@@ -1,0 +1,13 @@
+#define XEN_COMPILE_DATE	"@@date@@"
+#define XEN_COMPILE_TIME	"@@time@@"
+#define XEN_COMPILE_BY		"@@whoami@@"
+#define XEN_COMPILE_DOMAIN	"@@domain@@"
+#define XEN_COMPILE_HOST	"@@hostname@@"
+#define XEN_COMPILER		"@@compiler@@"
+
+#define XEN_VERSION		@@version@@
+#define XEN_SUBVERSION		@@subversion@@
+#define XEN_EXTRAVERSION	"@@extraversion@@"
+
+#define XEN_CHANGESET		"@@changeset@@"
+#define XEN_BANNER		\

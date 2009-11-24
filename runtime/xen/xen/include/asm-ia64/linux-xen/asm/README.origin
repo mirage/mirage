@@ -1,0 +1,50 @@
+# Source files in this directory are near-identical copies of linux-2.6.13
+# files:
+
+# NOTE: ALL changes to these files should be clearly marked
+# (e.g. with #ifdef XEN or XEN in a comment) so that they can be
+# easily updated to future versions of the corresponding Linux files.
+
+atomic.h		-> linux/include/asm-ia64/atomic.h
+cache.h			-> linux/include/asm-ia64/cache.h
+gcc_intrin.h		-> linux/include/asm-ia64/gcc_intrin.h
+ia64regs.h		-> linux/include/asm-ia64/ia64regs.h
+io.h			-> linux/include/asm-ia64/io.h
+hw_irq.h		-> linux/include/asm-ia64/hw_irq.h
+kregs.h			-> linux/include/asm-ia64/kregs.h
+mca_asm.h		-> linux/include/asm-ia64/mca_asm.h
+meminit.h		-> linux/include/asm-ia64/meminit.h
+numa.h			-> linux/include/asm-ia64/numa.h
+page.h			-> linux/include/asm-ia64/page.h
+percpu.h		-> linux/include/asm-ia64/percpu.h
+pgalloc.h		-> linux/include/asm-ia64/pgalloc.h
+pgtable.h		-> linux/include/asm-ia64/pgtable.h
+processor.h		-> linux/include/asm-ia64/processor.h
+ptrace.h		-> linux/include/asm-ia64/ptrace.h
+sal.h			-> linux/include/asm-ia64/sal.h
+sections.h		-> linux/include/asm-ia64/sections.h
+smp.h			-> linux/include/asm-ia64/smp.h
+spinlock.h		-> linux/include/asm-ia64/spinlock.h
+system.h		-> linux/include/asm-ia64/system.h
+tlbflush.h		-> linux/include/asm-ia64/tlbflush.h
+types.h			-> linux/include/asm-ia64/types.h
+
+# The files below are from Linux-2.6.16
+iosapic.h		-> linux/include/asm-ia64/iosapic.h
+
+# The files below are from Linux-2.6.16.33
+perfmon.h		-> linux/include/asm-ia64/perfmon.h
+perfmon_default_smpl.h	-> linux/include/asm-ia64/perfmon_default_smpl.h
+
+# The files below are from Linux-2.6.19
+machvec.h		-> linux/include/asm-ia64/machvec.h
+machvec_dig.h		-> linux/include/asm-ia64/machvec_dig.h
+machvec_sn2.h		-> linux/include/asm-ia64/machvec_sn2.h
+machvec_hpzx1.h		-> linux/include/asm-ia64/machvec_hpzx1.h
+machvec_pci.h		-> linux/include/asm-ia64/pci.h
+
+# The files below are from Linux-2.6.21
+pal.h			-> linux/include/asm-ia64/pal.h
+
+# The files below are from Linux-2.6.26-rc5
+acpi.h			-> linux/include/asm-ia64/acpi.h

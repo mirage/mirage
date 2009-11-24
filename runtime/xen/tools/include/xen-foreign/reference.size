@@ -1,0 +1,18 @@
+
+structs                   |  x86_32  x86_64    ia64
+
+start_info                |    1112    1168    1168
+trap_info                 |       8      16       -
+pt_fpreg                  |       -       -      16
+cpu_user_regs             |      68     200       -
+xen_ia64_boot_param       |       -       -      96
+ia64_tr_entry             |       -       -      32
+vcpu_tr_regs              |       -       -     768
+vcpu_guest_context_regs   |       -       -   22176
+vcpu_guest_context        |    2800    5168   22208
+arch_vcpu_info            |      24      16       0
+vcpu_time_info            |      32      32      32
+vcpu_info                 |      64      64      48
+arch_shared_info          |     268     280     272
+shared_info               |    2584    3368    4384
+

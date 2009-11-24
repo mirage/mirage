@@ -1,0 +1,10 @@
+TODO in no particular order.  Some of these will never be done.  There
+are omissions of important but necessary things.  It is up to the
+reader to fill in the blanks.
+
+- Timeout failed watch responses
+- Dynamic/supply nodes
+- Persistant storage of introductions, watches and transactions, so daemon can restart
+- Remove assumption that rename doesn't fail
+- Multi-root transactions, for setting up front and back ends at same time.
+

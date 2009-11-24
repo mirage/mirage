@@ -82,17 +82,10 @@ $(NEWLIB_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH)
 # Cross-zlib
 ############
 
-zlib-$(ZLIB_VERSION).tar.gz:
-	$(WGET) $(ZLIB_URL)/$@
-
-zlib-$(XEN_TARGET_ARCH): zlib-$(ZLIB_VERSION).tar.gz 
-	tar xzf $<
-	mv zlib-$(ZLIB_VERSION) $@
-
 ZLIB_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libz.a
 .PHONY: cross-zlib
 cross-zlib: $(ZLIB_STAMPFILE)
-$(ZLIB_STAMPFILE): zlib-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
+$(ZLIB_STAMPFILE): zlib $(NEWLIB_STAMPFILE)
 	( cd $< && \
 	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) ./configure --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
 	  $(MAKE) libz.a && \

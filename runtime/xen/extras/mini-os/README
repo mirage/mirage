@@ -1,0 +1,46 @@
+ Minimal OS
+ ----------
+
+This shows some of the stuff that any guest OS will have to set up.
+
+This includes:
+
+ * installing a virtual exception table
+ * handling virtual exceptions
+ * handling asynchronous events
+ * enabling/disabling async events
+ * parsing start_info struct at start-of-day
+ * registering virtual interrupt handlers (for timer interrupts)
+ * a simple page and memory allocator
+ * minimal libc support
+ * minimal Copy-on-Write support
+ * network, block, framebuffer support
+ * transparent access to FileSystem exports (see tools/fs-back)
+
+- to build it just type make.
+
+- to build it with TCP/IP support, download LWIP 1.3 source code and type
+
+  make LWIPDIR=/path/to/lwip/source
+
+- to build it with much better libc support, see the stubdom/ directory
+
+- to start it do the following in domain0 (assuming xend is running)
+  # xm create domain_config
+
+This starts the kernel and prints out a bunch of stuff and then once every
+second the system time.
+
+If you have setup a disk in the config file (e.g.
+disk = [ 'file:/tmp/foo,hda,r' ] ), it will loop reading it.  If that disk is
+writable (e.g. disk = [ 'file:/tmp/foo,hda,w' ] ), it will write data patterns
+and re-read them.
+
+If you have setup a network in the config file (e.g. vif = [''] ), it will
+print incoming packets.
+
+If you have setup a VFB in the config file (e.g. vfb = ['type=sdl'] ), it will
+show a mouse with which you can draw color squares.
+
+If you have compiled it with TCP/IP support, it will run a daytime server on
+TCP port 13.

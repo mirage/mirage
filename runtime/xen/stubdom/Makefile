@@ -176,24 +176,7 @@ $(OCAML_STAMPFILE): ocaml-$(XEN_TARGET_ARCH)/.dirstamp
 .PHONY: $(CROSS_ROOT)
 $(CROSS_ROOT): cross-newlib cross-zlib cross-libpci
 
-$(XEN_ROOT)/tools/ioemu-dir:
-	$(MAKE) -C $(XEN_ROOT)/tools ioemu-dir-find
-
-ioemu/linkfarm.stamp: $(XEN_ROOT)/tools/ioemu-dir
-	mkdir -p ioemu
-	set -e;									\
-	$(absolutify_xen_root);							\
-	cd ioemu;								\
-	src="$$XEN_ROOT/tools/ioemu-dir"; export src;				\
-	(cd $$src && find * -type d -print) | xargs mkdir -p;			\
-	(cd $$src && find *	! -type l  -type f  $(addprefix ! -name ,	\
-			'*.[oda1]' 'config-*' config.mak qemu-dm qemu-img-xen	\
-			'*.html' '*.pod'					\
-			)) |							\
-	    while read f; do rm -f "$$f"; ln -s "$$src/$$f" "$$f"; done
-	touch ioemu/linkfarm.stamp
-
-mk-headers-$(XEN_TARGET_ARCH): ioemu/linkfarm.stamp
+mk-headers-$(XEN_TARGET_ARCH):
 	mkdir -p include/xen && \
           ln -sf $(addprefix ../../,$(wildcard $(XEN_ROOT)/xen/include/public/*.h)) include/xen && \
           ln -sf $(addprefix ../../$(XEN_ROOT)/xen/include/public/,arch-ia64 arch-x86 hvm io xsm) include/xen && \
@@ -231,23 +214,6 @@ $(TARGETS_MINIOS): mini-os-%:
 libxc: libxc-$(XEN_TARGET_ARCH)/libxenctrl.a libxc-$(XEN_TARGET_ARCH)/libxenguest.a
 libxc-$(XEN_TARGET_ARCH)/libxenctrl.a libxc-$(XEN_TARGET_ARCH)/libxenguest.a:: cross-zlib
 	CPPFLAGS="$(TARGET_CPPFLAGS)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) -C libxc-$(XEN_TARGET_ARCH)
-
-#######
-# ioemu
-#######
-
-.PHONY: ioemu
-ioemu: cross-zlib cross-libpci libxc
-	[ -f ioemu/config-host.mak ] || \
-	  ( $(absolutify_xen_root); \
-	    $(buildmakevars2shellvars); \
-	    cd ioemu ; \
-	    LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) \
-	    TARGET_CPPFLAGS="$(TARGET_CPPFLAGS)" \
-	    TARGET_CFLAGS="$(TARGET_CFLAGS)" \
-	    TARGET_LDFLAGS="$(TARGET_LDFLAGS)" \
-	    ./xen-setup-stubdom )
-	$(MAKE) -C ioemu
 
 ######
 # caml

@@ -1,0 +1,70 @@
+@node Signals
+@chapter Signal Handling (@file{signal.h})
+
+A @dfn{signal} is an event that interrupts the normal flow of control
+in your program.  Your operating environment normally defines the full
+set of signals available (see @file{sys/signal.h}), as well as the
+default means of dealing with them---typically, either printing an
+error message and aborting your program, or ignoring the signal.
+
+All systems support at least the following signals:
+@table @code
+@item SIGABRT
+Abnormal termination of a program; raised by the <<abort>> function.
+
+@item SIGFPE
+A domain error in arithmetic, such as overflow, or division by zero.
+
+@item SIGILL
+Attempt to execute as a function data that is not executable.
+
+@item SIGINT
+Interrupt; an interactive attention signal.
+
+@item SIGSEGV
+An attempt to access a memory location that is not available.
+
+@item SIGTERM
+A request that your program end execution.
+@end table
+
+Two functions are available for dealing with asynchronous
+signals---one to allow your program to send signals to itself (this is
+called @dfn{raising} a signal), and one to specify subroutines (called
+@dfn{handlers} to handle particular signals that you anticipate may
+occur---whether raised by your own program or the operating environment.
+
+To support these functions, @file{signal.h} defines three macros:
+
+@table @code
+@item SIG_DFL
+Used with the @code{signal} function in place of a pointer to a
+handler subroutine, to select the operating environment's default
+handling of a signal.
+
+@item SIG_IGN
+Used with the @code{signal} function in place of a pointer to a
+handler, to ignore a particular signal.
+
+@item SIG_ERR
+Returned by the @code{signal} function in place of a pointer to a
+handler, to indicate that your request to set up a handler could not
+be honored for some reason.
+@end table
+
+@file{signal.h} also defines an integral type, @code{sig_atomic_t}.
+This type is not used in any function declarations; it exists only to
+allow your signal handlers to declare a static storage location where
+they may store a signal value.  (Static storage is not otherwise
+reliable from signal handlers.)
+
+@menu
+* raise::   Send a signal
+* signal::  Specify handler subroutine for a signal
+@end menu
+
+@page
+@include signal/raise.def
+
+@page
+@include signal/signal.def

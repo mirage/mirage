@@ -1,0 +1,94 @@
+@node Timefns
+@chapter Time Functions (@file{time.h})
+
+This chapter groups functions used either for reporting on time
+(elapsed, current, or compute time) or to perform calculations based
+on time.
+
+The header file @file{time.h} defines three types.  @code{clock_t} and
+@code{time_t} are both used for representations of time particularly
+suitable for arithmetic.  (In this implementation, quantities of type
+@code{clock_t} have the highest resolution possible on your machine,
+and quantities of type @code{time_t} resolve to seconds.)  @code{size_t}
+is also defined if necessary for quantities representing sizes. 
+
+@file{time.h} also defines the structure @code{tm} for the traditional
+representation of Gregorian calendar time as a series of numbers, with
+the following fields: 
+
+@table @code
+@item tm_sec
+Seconds, between 0 and 60 inclusive (60 allows for leap seconds).
+
+@item tm_min
+Minutes, between 0 and 59 inclusive.
+
+@item tm_hour
+Hours, between 0 and 23 inclusive.
+
+@item tm_mday
+Day of the month, between 1 and 31 inclusive.
+
+@item tm_mon
+Month, between 0 (January) and 11 (December).
+
+@item tm_year
+Year (since 1900), can be negative for earlier years.
+
+@item tm_wday
+Day of week, between 0 (Sunday) and 6 (Saturday).
+
+@item tm_yday
+Number of days elapsed since last January 1, between 0 and 365 inclusive.
+
+@item tm_isdst
+Daylight Savings Time flag: positive means DST in effect, zero means DST
+not in effect, negative means no information about DST is available.
+@end table
+
+@menu
+* asctime::     Format time as string
+* clock::       Cumulative processor time
+* ctime::       Convert time to local and format as string
+* difftime::    Subtract two times
+* gmtime::      Convert time to UTC (GMT) traditional representation
+* localtime::   Convert time to local representation
+* mktime::      Convert time to arithmetic representation
+* strftime::    Flexible calendar time formatter
+* time::        Get current calendar time (as single number)
+* __tz_lock::   Lock time zone global variables
+* tzset::       Set timezone info
+@end menu
+
+@page
+@include time/asctime.def
+
+@page
+@include time/clock.def
+
+@page
+@include time/ctime.def
+
+@page
+@include time/difftime.def
+
+@page
+@include time/gmtime.def
+
+@page
+@include time/lcltime.def
+
+@page
+@include time/mktime.def
+
+@page
+@include time/strftime.def
+
+@page
+@include time/time.def
+
+@page
+@include time/tzlock.def
+
+@page
+@include time/tzset.def

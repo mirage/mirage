@@ -1,0 +1,460 @@
+\input texinfo.tex
+@setfilename libc.info
+@tex
+% NOTE LOCAL KLUGE TO AVOID TOO MUCH WHITESPACE FROM "makedoc"
+\global\long\def\example{%
+\begingroup
+\let\aboveenvbreak=\par
+\let\afterenvbreak=\par
+\parskip=0pt
+\lisp}
+\global\long\def\Eexample{%
+\Elisp
+\endgroup
+\vskip -\parskip% to cancel out effect of following \par
+}
+% END LOCAL WHITESPACE KLUGE
+@end tex
+@syncodeindex fn cp
+
+@ifinfo
+@format
+START-INFO-DIR-ENTRY
+* libc::                        The ANSI C library.
+END-INFO-DIR-ENTRY
+@end format
+@end ifinfo
+
+@ifinfo
+This file documents the ANSI C library.
+
+Copyright (C) 1992, 1993, 1994-2004 Red Hat, Inc.
+
+@file{libc} includes software developed by the
+University of California, Berkeley and its contributors.
+
+libc includes software developed by Martin Jackson, Graham Haley
+and Steve Chamberlain of Tadpole Technology and released to Cygnus.
+
+libc uses floating-point conversion software developed at AT&T, which
+includes this copyright information:
+
+ The author of this software is David M. Gay.
+
+ Copyright (c) 1991 by AT&T.
+
+ Permission to use, copy, modify, and distribute this software for any
+ purpose without fee is hereby granted, provided that this entire notice
+ is included in all copies of any software which is or includes a copy
+ or modification of this software and in all copies of the supporting
+ documentation for such software.
+
+ THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+ WARRANTY.  IN PARTICULAR, NEITHER THE AUTHOR NOR AT&T MAKES ANY
+ REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+ OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
+
+Permission is granted to make and distribute verbatim copies of
+this manual provided the copyright notice and this permission notice
+are preserved on all copies.
+
+@ignore
+Permission is granted to process this file through Tex and print the
+results, provided the printed document carries copying permission
+notice identical to this one except for the removal of this paragraph
+(this paragraph not being relevant to the printed manual).
+
+@end ignore
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, subject to the terms
+of the GNU General Public License, which includes the provision that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions.
+@end ifinfo
+@iftex
+@c @smallbook
+@c @cropmarks
+@finalout
+@setchapternewpage odd
+@settitle Red Hat newlib C Library, Full
+@titlepage
+@title The Red Hat newlib C Library
+@subtitle Full Configuration
+@sp 1
+@subtitle @code{libc} 1.16.0
+@subtitle December 2007
+@author {Steve Chamberlain}
+@author {Roland Pesch}
+@author {Red Hat Support}
+@author {Jeff Johnston}
+@page
+
+@tex
+{\parskip=0pt
+sac@@cygnus.com, pesch@@cygnus.com, jjohnstn@@redhat.com\hfill {\it The Red Hat newlib C Library}\par
+Copyright \copyright{} 1992, 1993, 1994-2004 Red Hat Inc. 
+}
+\global\parindent=0pt % Steve likes it this way
+@end tex
+
+@file{libc} includes software developed by the
+University of California, Berkeley and its contributors.
+
+@file{libc} includes software developed by Martin Jackson, Graham Haley
+and Steve Chamberlain of Tadpole Technology and released to Cygnus.
+
+@file{libc} uses floating-point conversion software developed at AT&T,
+which includes this copyright information:
+
+@cartouche
+@quotation
+The author of this software is David M. Gay.
+
+Copyright (c) 1991 by AT&T.
+
+Permission to use, copy, modify, and distribute this software for any
+purpose without fee is hereby granted, provided that this entire notice
+is included in all copies of any software which is or includes a copy
+or modification of this software and in all copies of the supporting
+documentation for such software.
+
+THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR IMPLIED
+WARRANTY.  IN PARTICULAR, NEITHER THE AUTHOR NOR AT&T MAKES ANY
+REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
+@end quotation
+@end cartouche
+
+Permission is granted to make and distribute verbatim copies of
+this manual provided the copyright notice and this permission notice
+are preserved on all copies.
+
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, subject to the terms
+of the GNU General Public License, which includes the provision that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions.
+@end titlepage
+@end iftex
+
+@ifnottex
+@node Top
+@top The Red Hat newlib C Library
+
+@c The menu contents depend on the configuration, so we include them
+@c as a separate file
+
+@c switch to set SIGNALS on or off, according to whether config picks up
+@c signal subdirectory:
+@include sigset.texi
+@include extra.texi
+@include stdio64.texi
+@include iconvset.texi
+
+@menu
+* Introduction::
+* Stdlib::
+* Ctype::
+* Stdio::
+@ifset STDIO64
+* Stdio64::
+@end ifset
+
+* Strings::
+* Wchar strings::
+@ifset SIGNALS
+* Signals::
+@end ifset
+
+* Timefns::
+* Locale::
+* Reentrancy::
+
+* Misc::
+* Syscalls::
+* Arglists::
+@ifset ICONV
+* Iconv::
+@end ifset
+
+* Library Index::
+@end menu
+@end ifnottex
+
+@node Introduction
+@chapter Introduction
+
+This reference manual describes the functions provided by the Red Hat
+``newlib'' version of the standard ANSI C library.  This document is not
+intended as an overview or a tutorial for the C library.  Each library
+function is listed with a synopsis of its use, a brief description,
+return values (including error handling), and portability issues.
+
+Some of the library functions depend on support from the underlying
+operating system and may not be available on every platform.  For
+embedded systems in particular, many of these underlying operating
+system services may not be available or may not be fully functional.
+The specific operating system subroutines required for a particular
+library function are listed in the ``Portability'' section of the
+function description.  @xref{Syscalls}, for a description of the
+relevant operating system calls.
+
+@include targetdep.tex
+
+@node Arglists
+@chapter Variable Argument Lists
+
+The @code{printf} family of functions is defined to accept a variable
+number of arguments, rather than a fixed argument list.  You can define
+your own functions with a variable argument list, by using macro
+definitions from either @file{stdarg.h} (for compatibility with ANSI C)
+or from @file{varargs.h} (for compatibility with a popular convention
+prior to ANSI C).  
+
+@menu
+* Stdarg::
+* Varargs::
+@end menu
+
+@node Stdarg
+@section ANSI-standard macros, @file{stdarg.h}
+
+In ANSI C, a function has a variable number of arguments when its
+parameter list ends in an ellipsis (@code{...}).  The parameter list
+must also include at least one explicitly named argument; that argument
+is used to initialize the variable list data structure.
+
+ANSI C defines three macros (@code{va_start}, @code{va_arg}, and
+@code{va_end}) to operate on variable argument lists.  @file{stdarg.h}
+also defines a special type to represent variable argument lists: this
+type is called @code{va_list}.  
+
+@menu
+* va_start::
+* va_arg::
+* va_end::
+@end menu
+
+@page
+@node va_start
+@subsection Initialize variable argument list
+@findex va_start
+@strong{Synopsis}
+@example
+#include <stdarg.h>
+void va_start(va_list @var{ap}, @var{rightmost});
+@end example
+
+@strong{Description}@*
+Use @code{va_start} to initialize the variable argument list @var{ap},
+so that @code{va_arg} can extract values from it.  @var{rightmost} is
+the name of the last explicit argument in the parameter list (the
+argument immediately preceding the ellipsis @samp{...} that flags
+variable arguments in an ANSI C function header).  You can only use
+@code{va_start} in a function declared using this ellipsis notation
+(not, for example, in one of its subfunctions).
+
+@strong{Returns}@*
+@code{va_start} does not return a result.
+
+@strong{Portability}@*
+ANSI C requires @code{va_start}.
+
+@page
+@node va_arg
+@subsection Extract a value from argument list
+@findex va_arg
+@strong{Synopsis}
+@example
+#include <stdarg.h>
+@var{type} va_arg(va_list @var{ap}, @var{type});
+@end example
+
+@strong{Description}@*
+@code{va_arg} returns the next unprocessed value from a variable
+argument list @var{ap} (which you must previously create with
+@var{va_start}).  Specify the type for the value as the second parameter
+to the macro, @var{type}.
+
+You may pass a @code{va_list} object @var{ap} to a subfunction, and use
+@code{va_arg} from the subfunction rather than from the function
+actually declared with an ellipsis in the header; however, in that case
+you may @emph{only} use @code{va_arg} from the subfunction.  ANSI C does
+not permit extracting successive values from a single variable-argument
+list from different levels of the calling stack.
+
+There is no mechanism for testing whether there is actually a next
+argument available; you might instead pass an argument count (or some
+other data that implies an argument count) as one of the fixed arguments
+in your function call.
+
+@strong{Returns}@*
+@code{va_arg} returns the next argument, an object of type @var{type}.
+
+@strong{Portability}@*
+ANSI C requires @code{va_arg}.
+
+@page
+@node va_end
+@subsection Abandon a variable argument list
+@findex va_end
+@strong{Synopsis}
+@example
+#include <stdarg.h>
+void va_end(va_list @var{ap});
+@end example
+
+@strong{Description}@*
+Use @code{va_end} to declare that your program will not use the variable
+argument list @var{ap} any further.
+
+@strong{Returns}@*
+@code{va_end} does not return a result.
+
+@strong{Portability}@*
+ANSI C requires @code{va_end}.
+
+@node Varargs
+@section Traditional macros, @file{varargs.h}
+
+If your C compiler predates ANSI C, you may still be able to use
+variable argument lists using the macros from the @file{varargs.h}
+header file.  These macros resemble their ANSI counterparts, but have
+important differences in usage.   In particular, since traditional C has
+no declaration mechanism for variable argument lists, two additional
+macros are provided simply for the purpose of defining functions with
+variable argument lists.  
+
+As with @file{stdarg.h}, the type @code{va_list} is used to hold a data
+structure representing a variable argument list.
+
+@menu
+* va_alist::
+* va_start-trad::
+* va_arg-trad::
+* va_end-trad::
+@end menu
+
+@page
+@node va_alist
+@subsection Declare variable arguments
+@findex va_alist
+@findex va_dcl
+@strong{Synopsis}
+@example
+#include <varargs.h>
+@var{function}(va_alist)
+va_dcl
+@end example
+
+@strong{Description}@*
+To use the @file{varargs.h} version of variable argument lists, you must
+declare your function with a call to the macro @code{va_alist} as its
+argument list, and use @code{va_dcl} as the declaration.  @emph{Do not
+use a semicolon after @code{va_dcl}.}  
+
+@strong{Returns}@*
+These macros cannot be used in a context where a return is syntactically
+possible. 
+
+@strong{Portability}@*
+@var{va_alist} and @var{va_dcl} were the most widespread method of
+declaring variable argument lists prior to ANSI C.
+
+@page
+@node va_start-trad
+@subsection Initialize variable argument list
+@findex va_start
+@strong{Synopsis}
+@example
+#include <varargs.h>
+va_list @var{ap};
+va_start(@var{ap});
+@end example
+
+@strong{Description}@*
+With the @file{varargs.h} macros, use @code{va_start} to initialize a
+data structure @var{ap} to permit manipulating a variable argument list.
+@var{ap} must have the type @var{va_alist}.
+
+@strong{Returns}@*
+@code{va_start} does not return a result.
+
+@strong{Portability}@*
+@code{va_start} is also defined as a macro in ANSI C, but the
+definitions are incompatible; the ANSI version has another parameter
+besides @var{ap}.
+
+@page
+@node va_arg-trad
+@subsection Extract a value from argument list
+@findex va_arg
+@strong{Synopsis}
+@example
+#include <varargs.h>
+@var{type} va_arg(va_list @var{ap}, @var{type});
+@end example
+
+@strong{Description}@*
+@code{va_arg} returns the next unprocessed value from a variable
+argument list @var{ap} (which you must previously create with
+@var{va_start}).  Specify the type for the value as the second parameter
+to the macro, @var{type}.
+
+@strong{Returns}@*
+@code{va_arg} returns the next argument, an object of type @var{type}.
+
+@strong{Portability}@*
+The @code{va_arg} defined in @file{varargs.h} has the same syntax and
+usage as the ANSI C version from @file{stdarg.h}.
+
+@page
+@node va_end-trad
+@subsection Abandon a variable argument list
+@findex va_end
+@strong{Synopsis}
+@example
+#include <varargs.h>
+va_end(va_list @var{ap});
+@end example
+
+@strong{Description}@*
+Use @code{va_end} to declare that your program will not use the variable
+argument list @var{ap} any further.
+
+@strong{Returns}@*
+@code{va_end} does not return a result.
+
+@strong{Portability}@*
+The @code{va_end} defined in @file{varargs.h} has the same syntax and
+usage as the ANSI C version from @file{stdarg.h}.
+
+@node Library Index
+@unnumbered Index
+@printindex cp
+
+@tex
+% I think something like @colophon should be in texinfo.  In the
+% meantime:
+\long\def\colophon{\hbox to0pt{}\vfill
+\centerline{The body of this manual is set in}
+\centerline{\fontname\tenrm,}
+\centerline{with headings in {\bf\fontname\tenbf}}
+\centerline{and examples in {\tt\fontname\tentt}.}
+\centerline{{\it\fontname\tenit\/} and}
+\centerline{{\sl\fontname\tensl\/}}
+\centerline{are used for emphasis.}\vfill}
+\page\colophon
+% Blame: pesch@cygnus.com, 28mar91.
+@end tex
+
+@contents
+@bye
+
+

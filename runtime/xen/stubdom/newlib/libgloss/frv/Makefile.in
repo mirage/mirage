@@ -1,0 +1,125 @@
+# Copyright (c) 2002 Red Hat, Inc
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+
+# Makefile for libgloss/frv. This is the board support
+# code for the various frv targets.
+
+DESTDIR =
+VPATH = @srcdir@ @srcdir@/..
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL = /bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+AR_FLAGS = rc
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+CRT0 = crt0.o
+SIM_BSP = libsim.a
+SIM_OBJS = fstat.o \
+	   getpid.o \
+	   isatty.o \
+	   kill.o \
+	   putnum.o \
+	   sbrk.o \
+	   sim-close.o \
+	   sim-exit.o \
+	   sim-inbyte.o \
+	   sim-lseek.o \
+	   sim-open.o \
+	   sim-read.o \
+	   sim-time.o \
+	   sim-unlink.o \
+	   sim-write.o \
+	   stat.o
+
+#### Host specific Makefile fragment comes in here.
+@host_makefile_frag@
+
+all: $(CRT0) $(SIM_BSP)
+
+$(SIM_BSP): $(SIM_OBJS)
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+fstat.o: $(srcdir)/fstat.c
+getpid.o: $(srcdir)/getpid.c
+isatty.o: $(srcdir)/isatty.c
+kill.o: $(srcdir)/kill.c
+putnum.o: $(srcdir)/putnum.c
+sbrk.o: $(srcdir)/sbrk.c
+sim-close.o: $(srcdir)/sim-close.S
+sim-exit.o: $(srcdir)/sim-exit.S
+sim-inbyte.o: $(srcdir)/sim-inbyte.c
+sim-lseek.o: $(srcdir)/sim-lseek.S
+sim-open.o: $(srcdir)/sim-open.S
+sim-read.o: $(srcdir)/sim-read.S
+sim-time.o: $(srcdir)/sim-time.c
+sim-unlink.o: $(srcdir)/sim-unlink.S
+sim-write.o: $(srcdir)/sim-write.S
+stat.o: $(srcdir)/stat.c
+
+install: $($(CPU)_INSTALL)
+	$(INSTALL_DATA) $(CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(CRT0)
+	$(INSTALL_DATA) $(SIM_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(SIM_BSP)
+
+clean mostlyclean:
+	rm -f *.o *.a
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.cache config.log config.status
+
+.PHONY: info dvi doc install-info clean-info
+info doc dvi:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

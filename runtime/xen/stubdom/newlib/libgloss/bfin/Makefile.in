@@ -1,0 +1,102 @@
+#
+#
+
+DESTDIR =
+VPATH = @srcdir@ @srcdir@/..
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+
+SHELL =	/bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+OBJS		=
+CFLAGS		=
+SCRIPTS		=
+
+# Here is all of the simulator stuff
+SIM_SCRIPTS	=
+SIM_LDFLAGS	=
+SIM_BSP		= libsim.a
+SIM_CRT0	= crt0.o
+SIM_OBJS	= syscalls.o
+SIM_TEST	= sim-test
+SIM_INSTALL	= install-sim
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+#
+# build a test program for each target board. Just trying to get
+# it to link is a good test, so we ignore all the errors for now.
+#
+all: ${SIM_CRT0} ${SIM_BSP}
+
+#
+# here's where we build the board support packages for each target
+#
+${SIM_BSP}: ${OBJS} ${SIM_OBJS}
+	${AR} ${ARFLAGS} ${SIM_BSP} ${SIM_OBJS} ${OBJS}
+	${RANLIB} ${SIM_BSP}
+
+#
+#
+#
+.c.S:
+	${CC} ${CFLAGS_FOR_TARGET} -c $<
+
+clean mostlyclean:
+	rm -f a.out core *.i *.o $(SIM_BSP)
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status *~
+
+.PHONY: install info install-info clean-info
+install: ${SIM_INSTALL}
+
+install-sim:
+	set -e; for x in ${SIM_CRT0} ${SIM_BSP} ${SIM_SCRIPTS}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+doc:
+info:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

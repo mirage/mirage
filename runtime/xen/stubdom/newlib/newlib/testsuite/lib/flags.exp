@@ -1,0 +1,86 @@
+# Copyright (C) 2002 by Red Hat, Incorporated. All rights reserved.
+#
+# Permission to use, copy, modify, and distribute this software
+# is freely granted, provided that this notice is preserved.
+#
+
+# flags.exp: overrides the dejagnu versions of libgloss_link_flags,
+# newlib_link_flags, and newlib_include_flags.
+
+# These versions of the procedures generate link and include flags
+# by searching for the needed files in the current build and source
+# directories, rather than in the build and source paths of the
+# compiler being used.
+
+if {![llength [info procs saved_libgloss_link_flags]]} {
+    rename libgloss_link_flags saved_libgloss_link_flags
+}
+
+proc libgloss_link_flags { args } {
+    global target_cpu
+    # These values come from the local site.exp.
+    global srcdir objdir
+    global multibuildtop
+
+    if {![info exists multibuildtop]} {
+	return [saved_libgloss_link_flags $args]
+    }
+
+    verbose "In newlib version of libgloss_link_flags...\n"
+
+    if [isnative] {
+	return ""
+    }
+
+    if [is_remote host] {
+	return ""
+    }
+
+    set target_build_path "$objdir/$multibuildtop.."
+
+    set gloss_srcdir [lookfor_file ${srcdir} libgloss/$target_cpu]
+
+    if { $gloss_srcdir == "" } {
+	return ""
+    }
+
+    if [file exists $target_build_path/libgloss/$target_cpu] {
+	verbose "libgloss path is $target_build_path/libgloss/$target_cpu" 2
+	return "-B$target_build_path/libgloss/$target_cpu/ -L$target_build_path/libgloss/$target_cpu -L$gloss_srcdir"
+    } else {
+	verbose -log "No libgloss support for this target." 2
+	return ""
+    }
+}
+
+proc newlib_link_flags { args } {
+    global tool_root_dir
+    global srcdir objdir
+
+    verbose "In newlib version of newlib_link_flags...\n"
+
+    if [is_remote host] {
+	return ""
+    }
+
+    set ld_script_path [lookfor_file ${tool_root_dir} "ld/ldscripts"];
+    if { $ld_script_path != "" } {
+	set result "-L[file dirname $ld_script_path]"
+    } else {
+	set result ""
+    }
+
+    return "$result -B$objdir -L$objdir"
+}
+
+proc newlib_include_flags { args } {
+    global srcdir objdir
+
+    verbose "In newlib version of newlib_include_flags...\n"
+
+    if [is_remote host] {
+	return ""
+    }
+
+    return " -I$objdir/targ-include"
+}

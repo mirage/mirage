@@ -1,0 +1,8 @@
+%rename link                old_link
+
+*link:
+%(old_link) -lrdimon
+
+*startfile:
+rdimon-crt0%O%s
+

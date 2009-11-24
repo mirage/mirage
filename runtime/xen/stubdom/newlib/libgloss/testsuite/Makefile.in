@@ -1,0 +1,109 @@
+#
+# Makefile
+#   Copyright (C) 1990, 1991, 1992, 1993, 1994, 1995 Free Software Foundation
+#
+# This file is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
+#
+
+srcdir = .
+
+prefix = /usr/local
+
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+tooldir = $(exec_prefix)
+
+SHELL = /bin/sh
+
+INSTALL = `cd $(srcdir); pwd`/../../install-sh -c
+INSTALL_PROGRAM = $(INSTALL)
+INSTALL_DATA = $(INSTALL)
+
+AR_FLAGS = qv
+BISON = bison
+MAKEINFO = makeinfo
+
+SUBDIRS =
+OBJROOT =
+SRCROOT =
+
+.NOEXPORT:
+MAKEOVERRIDES=
+
+#### Host, target, and site specific Makefile fragments come in here.
+###
+
+# These are roughly topologically sorted in order to make porting more
+# streamlined.
+FLAGS_TO_PASS = \
+	"prefix=$(prefix)" \
+	"exec_prefix=$(exec_prefix)" \
+	"CC=$(CC)" \
+	"CFLAGS=$(CFLAGS)" \
+	"AR=$(AR)" \
+	"RANLIB=$(RANLIB)" \
+	"AR_FLAGS=$(AR_FLAGS)" \
+	"AS=$(AS)" \
+	"CROSS_CFLAGS=$(CROSS_CFLAGS)" \
+	"TARGET_CFLAGS=$(TARGET_CFLAGS)" \
+	"OBJROOT=$(OBJROOT)"
+
+all:
+	@for dir in ${SUBDIRS}; do \
+	if [ -d $$dir ]; then \
+	    (cd $$dir; $(MAKE) $(FLAGS_TO_PASS)); \
+	else true; fi; \
+	done
+
+install:
+	-rm -f *~ core *.o a.out xgdb *.x
+	for dir in ${SUBDIRS}; do \
+	    echo "$$dir:"; \
+	    if [ -d $$dir ]; then \
+		(cd $$dir; $(MAKE) $(FLAGS_TO_PASS) install); \
+	    else true; fi; \
+	    done
+
+clean-here:
+	-rm -f *~ core *.o a.out xgdb *.x
+
+clean mostlyclean: clean-here
+	for dir in ${SUBDIRS}; do \
+	    echo "$$dir:"; \
+	    if [ -d $$dir ]; then \
+		(cd $$dir; $(MAKE) $(FLAGS_TO_PASS) $@); \
+	    else true; fi; \
+	    done
+
+distclean maintainer-clean realclean: clean-here
+	for dir in ${SUBDIRS}; do \
+	    echo "$$dir:"; \
+	    if [ -d $$dir ]; then \
+		(cd $$dir; $(MAKE) $(FLAGS_TO_PASS) $@); \
+	    else true; fi; \
+	    done
+	-rm -f Makefile config.status *-init.exp site.*
+	-rm -fr *.log summary detail *.sum blockit
+
+.PHONY: info install-info clean-info
+info:
+install-info:
+clean-info:
+
+force:
+
+Makefile: Makefile.in configure.in $(host_makefile_frag) $(target_makefile_frag)
+	$(SHELL) config.status

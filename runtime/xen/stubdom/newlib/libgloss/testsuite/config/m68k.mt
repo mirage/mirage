@@ -1,0 +1,3 @@
+MULTILIB=
+GLOSSDIR=m68k
+SCRIPTS=mvme135 idp 

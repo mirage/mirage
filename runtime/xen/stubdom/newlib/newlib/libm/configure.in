@@ -1,0 +1,45 @@
+dnl This is the newlib/libm configure.in file.
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT([newlib],[NEWLIB_VERSION])
+AC_CONFIG_SRCDIR([libm.texinfo])
+
+AC_ARG_ENABLE(newlib_hw_fp,
+[  --enable-newlib-hw-fp    Turn on hardware floating point math],
+[case "${enableval}" in
+   yes) newlib_hw_fp=true ;;
+   no)  newlib_hw_fp=false ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --enable-newlib-hw-fp) ;;
+ esac],[newlib_hw_fp=false])
+AM_CONDITIONAL(NEWLIB_HW_FP, test x$newlib_hw_fp = xtrue)
+
+dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
+AC_CONFIG_AUX_DIR(../..)
+
+NEWLIB_CONFIGURE(..)
+
+dnl We have to enable libtool after NEWLIB_CONFIGURE because if we try and
+dnl add it into NEWLIB_CONFIGURE, executable tests are made before the first
+dnl line of the macro which fail because appropriate LDFLAGS are not set.
+_LT_DECL_SED
+if test "${use_libtool}" = "yes"; then
+AC_LIBTOOL_WIN32_DLL
+AM_PROG_LIBTOOL
+fi
+
+AC_CONFIG_SUBDIRS(machine)
+
+LIBM_MACHINE_LIB=
+if test -n "${libm_machine_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBM_MACHINE_LIB=machine/${libm_machine_dir}/lib${libm_machine_dir}.${aext}
+  else
+    LIBM_MACHINE_LIB=machine/lib.${aext}
+  fi
+fi
+
+AC_SUBST(LIBM_MACHINE_LIB)
+
+AC_CONFIG_FILES([Makefile math/Makefile mathfp/Makefile common/Makefile])
+AC_OUTPUT

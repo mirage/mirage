@@ -1,0 +1,154 @@
+dnl This is the newlib/libc configure.in file.
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT([newlib],[NEWLIB_VERSION])
+AC_CONFIG_SRCDIR([sys.tex])
+
+dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
+AC_CONFIG_AUX_DIR(../..)
+
+dnl Support --enable-newlib-io-pos-args used by libc/stdio
+AC_ARG_ENABLE(newlib-io-pos-args,
+[  --enable-newlib-io-pos-args enable printf-family positional arg support],
+[case "${enableval}" in
+  yes) newlib_io_pos_args=yes ;;
+  no)  newlib_io_pos_args=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-io-pos-args option) ;;
+ esac], [newlib_io_pos_args=no])dnl
+
+NEWLIB_CONFIGURE(..)
+
+dnl We have to enable libtool after NEWLIB_CONFIGURE because if we try and
+dnl add it into NEWLIB_CONFIGURE, executable tests are made before the first
+dnl line of the macro which fail because appropriate LDFLAGS are not set.
+_LT_DECL_SED
+if test "${use_libtool}" = "yes"; then
+AC_LIBTOOL_WIN32_DLL
+AM_PROG_LIBTOOL
+fi
+
+AC_CONFIG_SUBDIRS(machine sys)
+
+CRT0=
+if test "x${have_crt0}" = "xyes"; then
+  CRT0=crt0.o
+fi
+AC_SUBST(CRT0)
+
+dnl For each directory which we may or may not want, we define a name
+dnl for the library and an automake conditional for whether we should
+dnl build the library.
+
+LIBC_POSIX_LIB=
+if test -n "${posix_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_POSIX_LIB=${posix_dir}/lib${posix_dir}.${aext}
+  else
+    LIBC_POSIX_LIB=${posix_dir}/lib.${aext}
+  fi
+fi
+AC_SUBST(LIBC_POSIX_LIB)
+AM_CONDITIONAL(HAVE_POSIX_DIR, test x${posix_dir} != x)
+
+LIBC_SIGNAL_LIB=
+LIBC_SIGNAL_DEF=
+if test -n "${signal_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_SIGNAL_LIB=${signal_dir}/lib${signal_dir}.${aext}
+  else
+    LIBC_SIGNAL_LIB=${signal_dir}/lib.${aext}
+  fi
+  LIBC_SIGNAL_DEF=${signal_dir}/stmp-def
+fi
+AC_SUBST(LIBC_SIGNAL_LIB)
+AC_SUBST(LIBC_SIGNAL_DEF)
+AM_CONDITIONAL(HAVE_SIGNAL_DIR, test x${signal_dir} != x)
+
+LIBC_STDIO_LIB=
+LIBC_STDIO_DEF=
+if test -n "${stdio_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_STDIO_LIB=${stdio_dir}/lib${stdio_dir}.${aext}
+  else
+    LIBC_STDIO_LIB=${stdio_dir}/lib.${aext}
+  fi
+  LIBC_STDIO_DEF=${stdio_dir}/stmp-def
+fi
+AC_SUBST(LIBC_STDIO_LIB)
+AC_SUBST(LIBC_STDIO_DEF)
+AM_CONDITIONAL(HAVE_STDIO_DIR, test x${stdio_dir} != x)
+
+LIBC_STDIO64_LIB=
+LIBC_STDIO64_DEF=
+if test -n "${stdio64_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_STDIO64_LIB=${stdio64_dir}/lib${stdio64_dir}.${aext}
+  else
+    LIBC_STDIO64_LIB=${stdio64_dir}/lib.${aext}
+  fi
+  LIBC_STDIO64_DEF=${stdio64_dir}/stmp-def
+fi
+AC_SUBST(LIBC_STDIO64_LIB)
+AC_SUBST(LIBC_STDIO64_DEF)
+AM_CONDITIONAL(HAVE_STDIO64_DIR, test x${stdio64_dir} != x)
+
+LIBC_SYSCALL_LIB=
+if test -n "${syscall_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_SYSCALL_LIB=${syscall_dir}/lib${syscall_dir}.${aext}
+  else
+    LIBC_SYSCALL_LIB=${syscall_dir}/lib.${aext}
+  fi
+fi
+AC_SUBST(LIBC_SYSCALL_LIB)
+AM_CONDITIONAL(HAVE_SYSCALL_DIR, test x${syscall_dir} != x)
+
+LIBC_UNIX_LIB=
+if test -n "${unix_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_UNIX_LIB=${unix_dir}/lib${unix_dir}.${aext}
+  else
+    LIBC_UNIX_LIB=${unix_dir}/lib.${aext}
+  fi
+fi
+AC_SUBST(LIBC_UNIX_LIB)
+AM_CONDITIONAL(HAVE_UNIX_DIR, test x${unix_dir} != x)
+
+LIBC_EXTRA_LIB=
+LIBC_EXTRA_DEF=
+extra_dir=
+
+AC_SUBST(LIBC_EXTRA_LIB)
+AC_SUBST(LIBC_EXTRA_DEF)
+AC_SUBST(extra_dir)
+
+dnl We always recur into sys and machine, and let them decide what to
+dnl do.  However, we do need to know whether they will produce a library.
+
+LIBC_SYS_LIB=
+if test -n "${sys_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_SYS_LIB=sys/${sys_dir}/lib${sys_dir}.${aext}
+  else
+    LIBC_SYS_LIB=sys/lib.${aext}
+  fi
+fi
+AC_SUBST(LIBC_SYS_LIB)
+AC_SUBST(sys_dir)
+
+dnl iconv library will be compiled if --enable-newlib-iconv option is enabled
+AM_CONDITIONAL(ENABLE_NEWLIB_ICONV, test x${newlib_iconv} != x)
+
+if test -n "${machine_dir}"; then
+  if test "${use_libtool}" = "yes"; then
+    LIBC_MACHINE_LIB=machine/${machine_dir}/lib${machine_dir}.${aext}
+  else
+    LIBC_MACHINE_LIB=machine/lib.${aext}
+  fi
+fi
+AC_SUBST(LIBC_MACHINE_LIB)
+AC_SUBST(machine_dir)
+
+AC_CONFIG_FILES([Makefile argz/Makefile ctype/Makefile errno/Makefile locale/Makefile misc/Makefile reent/Makefile search/Makefile stdio/Makefile stdio64/Makefile stdlib/Makefile string/Makefile time/Makefile posix/Makefile signal/Makefile syscalls/Makefile unix/Makefile iconv/Makefile iconv/ces/Makefile iconv/ccs/Makefile iconv/ccs/binary/Makefile iconv/lib/Makefile])
+AC_OUTPUT

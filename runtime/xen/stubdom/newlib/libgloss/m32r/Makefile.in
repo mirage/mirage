@@ -1,0 +1,146 @@
+# Makefile for libgloss/m32r
+# Copyright (c) 1996, 1998 Cygnus Support.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that the above copyright notice and this paragraph are
+# duplicated in all such forms and that any documentation,
+# advertising materials, and other materials related to such
+# distribution and use acknowledge that the software was developed
+# at Cygnus Support, Inc.  Cygnus Support, Inc. may not be used to
+# endorse or promote products derived from this software without
+# specific prior written permission.
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+DESTDIR =
+VPATH = @srcdir@ @srcdir@/..
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+TOP = ../..
+SRCTOP = ../..
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTISRCTOP =
+MULTIBUILDTOP =
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL = /bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+AR_FLAGS = qv
+BISON = bison
+MAKEINFO = makeinfo
+
+.NOEXPORT:
+MAKEOVERRIDES=
+
+TARGETDOC = ../../targetdep.tex
+
+CRT0 = crt0.o
+GDBLIB = m32r-lib.o
+GDBSTUB = m32r-stub.o
+EVASCRIPT = eva.ld
+STUBSCRIPT = eva-stub.ld
+
+GENERIC_LIBOBJS = \
+	chmod.o close.o exit.o fstat.o getpid.o isatty.o kill.o lseek.o \
+	open.o raise.o read.o sbrk.o stat.o unlink.o utime.o write.o
+
+LIBOBJS = trap0.o $(GENERIC_LIBOBJS)
+LIBGLOSS = libgloss.a
+
+MONLIBOBJS = trapmon0.o $(GENERIC_LIBOBJS)
+MONLIBGLOSS = libmon.a
+MONSPECS = mon.specs
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+all: $(CRT0) $(LIBGLOSS) $(MONLIBGLOSS) $(GDBLIB) $(GDBSTUB)
+
+m32r-stub.o: $(srcdir)/$(MULTISRCTOP)../../gdb/m32r-stub.c
+	$(CC) -c $(CFLAGS) -o $@ $(srcdir)/$(MULTISRCTOP)../../gdb/m32r-stub.c
+
+libgloss.a: $(LIBOBJS)
+	$(AR) $(ARFLAGS) $@ $(LIBOBJS)
+	$(RANLIB) $@
+
+libmon.a: $(MONLIBOBJS)
+	$(AR) $(ARFLAGS) $@ $(MONLIBOBJS)
+	$(RANLIB) $@
+
+install:
+	mkdir -p $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(CRT0)
+	$(INSTALL_DATA) $(LIBGLOSS) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(LIBGLOSS)
+	$(INSTALL_DATA) $(MONLIBGLOSS) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(MONLIBGLOSS)
+	$(INSTALL_DATA) $(GDBLIB) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(GDBLIB)
+	$(INSTALL_DATA) $(GDBSTUB) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(GDBSTUB)
+	$(INSTALL_DATA) $(srcdir)/$(EVASCRIPT) $(DESTDIR)$(tooldir)/lib/$(EVASCRIPT)
+	$(INSTALL_DATA) $(srcdir)/$(STUBSCRIPT) $(DESTDIR)$(tooldir)/lib/$(STUBSCRIPT)
+	$(INSTALL_DATA) $(srcdir)/$(MONSPECS) $(DESTDIR)$(tooldir)/lib/$(MONSPECS)
+
+clean mostlyclean:
+	rm -f *~ *.[oa]
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status
+
+info doc:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck
+
+# to support SunOS VPATH
+crt0.o: crt0.S
+m32r-lib.o: m32r-lib.c
+chmod.o: chmod.c
+close.o: close.c
+exit.o: exit.c
+fstat.o: fstat.c
+getpid.o: getpid.c
+isatty.o: isatty.c
+kill.o: kill.c
+lseek.o: lseek.c
+open.o: open.c
+raise.o: raise.c
+read.o: read.c
+sbrk.o: sbrk.c
+stat.o: stat.c
+unlink.o: unlink.c
+utime.o: utime.c
+write.o: write.c
+trap0.o: trap0.S
+trapmon0.o: trapmon0.c

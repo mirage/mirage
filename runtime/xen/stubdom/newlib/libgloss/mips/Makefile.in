@@ -1,0 +1,259 @@
+# Copyright (c) 1995, 1996, 1997, 1998, 1999, 2000 Cygnus Support
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+
+DESTDIR =
+VPATH = @srcdir@
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+program_transform_name = @program_transform_name@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL =	/bin/sh
+
+CC = @CC@
+
+#AS = @AS@
+AS = `if [ -f ${objroot}/../gas/as.new ] ; \
+	then echo ${objroot}/../gas/as.new ; \
+	else echo as ; fi`
+
+AR = @AR@
+
+#LD = @LD@
+LD = `if [ -f ${objroot}/../ld/ld.new ] ; \
+	then echo ${objroot}/../ld/ld.new ; \
+	else echo ld ; fi`
+
+RANLIB = @RANLIB@
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+CRT0 = @crt0@
+PCRT0 = @pcrt0@
+GENOBJS = syscalls.o fstat.o getpid.o isatty.o kill.o \
+	lseek.o print.o putnum.o stat.o unlink.o
+GENOBJS2 = open.o close.o read.o write.o
+IDTOBJS = idtmon.o @part_specific_obj@ ${GENOBJS}
+PMONOBJS = pmon.o @part_specific_obj@ ${GENOBJS}
+LSIOBJS = lsipmon.o @part_specific_obj@ ${GENOBJS}
+DVEOBJS = dvemon.o @part_specific_obj@ ${GENOBJS} ${GENOBJS2}
+JMR3904OBJS = jmr3904-io.o @part_specific_obj@ ${GENOBJS} ${GENOBJS2}
+CFEOBJS = cfe.o cfe_api.o cfe_mem.o @part_specific_obj@ ${GENOBJS} ${GENOBJS2}
+CYGMONOBJS = open.o close.o cygmon.o @part_specific_obj@ ${GENOBJS}
+
+# Nullmon cannot support read and write, but the test cases pull them in via libs
+NULLMONOBJS = nullmon.o @part_specific_obj@ ${GENOBJS}
+
+CFLAGS = -g 
+
+GCC_LDFLAGS = `if [ -d ${objroot}/../gcc ] ; \
+	then echo -L${objroot}/../gcc ; fi`
+
+SCRIPTS = @script_list@
+BSP = @bsp_list@
+
+PART_SPECIFIC_DEFINES = @part_specific_defines@
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+#
+# build a test program for each target board. Just trying to get
+# it to link is a good test, so we ignore all the errors for now.
+#
+
+all: ${CRT0} ${PCRT0} test.o ${BSP}
+
+#
+# here's where we build the board support packages for each target
+#
+mipsidt.o: $(IDTOBJS)
+	${LD} -r $(IDTOBJS) -o $@
+
+mipspmon.o: $(PMONOBJS)
+	${LD} -r $(PMONOBJS) -o $@
+
+mipslsi.o: $(PMONOBJS)
+	${LD} -r $(LSIOBJS) -o $@
+
+libidt.a: $(IDTOBJS)
+	${AR} ${ARFLAGS} $@ $(IDTOBJS)
+	${RANLIB} $@
+
+libpmon.a: $(PMONOBJS)
+	${AR} ${ARFLAGS} $@ $(PMONOBJS)
+	${RANLIB} $@
+
+liblsi.a: $(LSIOBJS)
+	${AR} ${ARFLAGS} $@ $(LSIOBJS)
+	${RANLIB} $@
+
+libdve.a: $(DVEOBJS)
+	${AR} ${ARFLAGS} $@ $(DVEOBJS)
+	${RANLIB} $@
+
+libjmr3904.a: $(JMR3904OBJS)
+	${AR} ${ARFLAGS} $@ $(JMR3904OBJS)
+	${RANLIB} $@
+
+libcygmon.a: $(CYGMONOBJS)
+	${AR} ${ARFLAGS} $@ $(CYGMONOBJS)
+	${RANLIB} $@
+
+libcfe.a: $(CFEOBJS)
+	${AR} ${ARFLAGS} $@ $(CFEOBJS)
+	${RANLIB} $@
+
+# nullmon.a , This is what you want if you want crt0 but NO mon services
+# Supports GDB sim testing, board bringups, ICE operation.
+libnullmon.a: $(NULLMONOBJS)
+	${AR} ${ARFLAGS} $@ $(NULLMONOBJS)
+	${RANLIB} $@
+
+
+# compile a fully linked binary. The -Wl,-T*.ld is for the linker
+# script. By using -Wl, the linker script is put on the proper place
+# in the comand line for ld, and all the symbols will get fully
+# resolved.
+
+test: $(OBJS) ${BSP} pmon-test idt-test cfe-test
+	@echo Done...
+
+dtor.o:  $(srcdir)/dtor.C
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -o $@ -c $<
+dtor.x: dtor.o ${CRT0} ${srcdir}/pmon.ld Makefile libpmon.a
+	${CC} $(CFLAGS_FOR_TARGET) -L${srcdir} -L${objdir} \
+	dtor.o -o $@ $(NEWLIB_LDFLAGS) -N -Wl,-Tpmon.ld
+
+pmon-test.x: test.o ${CRT0} Makefile libpmon.a
+	${CC} $(CFLAGS_FOR_TARGET) -L${srcdir} -L${objdir} \
+	test.o -o $@ $(NEWLIB_LDFLAGS) -Wl,-Tpmon.ld
+pmon-test.srec: pmon-test.x
+	$(OBJCOPY) -O srec pmon-test.x $@
+pmon-test.dis: pmon-test.x
+	@rm -fr pmon-test.dis
+	$(OBJDUMP) -d pmon-test.x > $@
+pmon-test: pmon-test.srec pmon-test.dis
+
+idt-test.x: test.o ${CRT0} Makefile libidt.a
+	${CC} $(CFLAGS_FOR_TARGET) -L${srcdir} -L${objdir} \
+	test.o -o $@ $(NEWLIB_LDFLAGS) -Wl,-Tidt.ld
+idt-test.srec: idt-test.x
+	$(OBJCOPY) -O srec idt-test.x $@
+idt-test.dis: idt-test.x
+	@rm -fr idt-test.dis
+	$(OBJDUMP) -d idt-test.x > $@
+idt-test: idt-test.srec idt-test.dis
+
+cfe-test.x: test.o ${CRT0} Makefile libcfe.a
+	${CC} $(CFLAGS_FOR_TARGET) -L${srcdir} -L${objdir} \
+	test.o -o $@ $(NEWLIB_LDFLAGS) -Wl,-Tcfe.ld
+cfe-test.srec: cfe-test.x
+	$(OBJCOPY) -O srec cfe-test.x $@
+cfe-test.dis: cfe-test.x
+	@rm -fr cfe-test.dis
+	$(OBJDUMP) -d cfe-test.x > $@
+cfe-test: cfe-test.srec cfe-test.dis
+
+doc:	
+
+clean mostlyclean:
+	rm -f a.out core *.i *~ *.o *-test *.srec *.dis *.map *.x
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status a.out
+
+.PHONY: install info install-info clean-info
+install:
+	@for file in $(CRT0) $(PCRT0) $(BSP); do \
+	  $(INSTALL_DATA) $${file} $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}; \
+	done
+	@for script in ${SCRIPTS}; do\
+	  $(INSTALL_DATA) ${srcdir}/$${script}.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$${script}.ld; \
+	done
+
+info:
+install-info:
+clean-info:
+
+test.o:	${srcdir}/test.c
+
+# these are for the BSPs
+crt0.o: ${srcdir}/crt0.S
+pcrt0.o: ${srcdir}/crt0.S
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) -DGCRT0 ${srcdir}/crt0.S -o ${PCRT0}
+crt0_cfe.o: ${srcdir}/crt0_cfe.S
+crt0_cygmon.o: ${srcdir}/crt0_cygmon.S
+idtmon.o: ${srcdir}/idtmon.S
+pmon.o: ${srcdir}/pmon.S
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) $(PART_SPECIFIC_DEFINES) ${srcdir}/pmon.S -o pmon.o
+vr4300.o: ${srcdir}/vr4300.S
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) ${srcdir}/vr4300.S
+vr5xxx.o: ${srcdir}/vr5xxx.S
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) ${srcdir}/vr5xxx.S
+lsipmon.o: $(srcdir)/lsipmon.S $(srcdir)/pmon.S
+jmr3904-io.o: ${srcdir}/jmr3904-io.c
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) ${srcdir}/jmr3904-io.c -o $@
+cfe.o: ${srcdir}/cfe.c ${srcdir}/cfe_api.h
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) ${srcdir}/cfe.c -o $@
+cfe_api.o: ${srcdir}/cfe_api.c ${srcdir}/cfe_api.h ${srcdir}/cfe_api_int.h
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) ${srcdir}/cfe_api.c -o $@
+cfe_mem.o: ${srcdir}/cfe_mem.c ${srcdir}/cfe_api.h
+	$(CC) -c $(CFLAGS_FOR_TARGET) $(CFLAGS) ${srcdir}/cfe_mem.c -o $@
+
+# cma101 can not be compiled mips16, if a mips16 version is needed then
+# it will have to be built, then this rule can be scrapped, allowing
+# the implicit rule to run.
+cma101.o: ${srcdir}/cma101.c
+	$(CC) -c $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) $(CFLAGS) -mno-mips16 ${srcdir}/cma101.c
+
+# cygmon can not be compiled as mips16 since it uses the syscall instruction
+cygmon.o: ${srcdir}/cygmon.c
+	$(CC) -c $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) $(CFLAGS) -mno-mips16 ${srcdir}/cygmon.c
+
+syscalls.o: ${srcdir}/syscalls.c
+
+# target specific makefile fragment comes in here.
+@target_makefile_frag@
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@ @target_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

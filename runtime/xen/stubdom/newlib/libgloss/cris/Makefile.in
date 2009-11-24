@@ -1,0 +1,278 @@
+#
+# libgloss Makefile.in for CRIS.  Copied and modified from mcore long ago.
+#
+
+DESTDIR =
+VPATH = @srcdir@
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+
+SHELL =	/bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+CFLAGS		= -g
+SCRIPTS		=
+
+OBJS = outbyte.o
+
+# Beware: GNU make construct used (shell call).  Since GCC at the time
+# of this writing requires GNU make >= 3.79.1, this should pose no
+# problem.
+SYSCALL_CFILES := $(shell sed -ne 's/^cat > \([^ ]*\).*/\1/p' < $(srcdir)/gensyscalls)
+
+# Here is all of the simulator stuff.
+# Actually, now it's just the GNU/Linux stuff, as that's also the
+# simulator ABI.  The name of the library is different, though.
+SIM_SCRIPTS	=
+SIM_LDFLAGS	=
+SIM_BSP		= libsyssim.a
+SIM_CRT0	= $(LIN_CRT0)
+SIM_OBJS	= $(LIN_OBJS)
+SIM_TEST	= sim-test
+SIM_INSTALL	= install-sim
+
+# Here is all of the GNU/Linux stuff.  At present we don't build newlib
+# and libgloss for cris*-linux-gnu*, but it's nice to keep that as an
+# option.
+LIN_PREFIX	=
+LIN_LDFLAGS	=
+LIN_BSP		= libsyslinux.a
+LIN_CRT0	= lcrt0.o
+LIN_EXTRA	= crti.o crtn.o crt1.o
+LIN_OBJS	= close.o execve.o exit.o fcntl.o fork.o fstat.o getpid.o \
+ gettod.o isatty.o kill.o link.o lseek.o open.o read.o \
+ rename.o sbrk.o stat.o times.o unlink.o wait.o write.o ${OBJS}
+LIN_SCRIPTS	=
+LIN_TEST	=
+LIN_INSTALL	= install-lin
+
+# In (over)due time, here will be all stuff necessary for a development
+# board.
+BSP_PREFIX	=
+BSP_LDFLAGS	=
+BSP_BSP		= libbsp.a
+BSP_CRT0	= crt0.o
+BSP_OBJS	= ${OBJS} setup.o irqtable.o
+BSP_SCRIPTS	=
+BSP_TEST	=
+BSP_INSTALL	= install-bsp
+
+ALL_INSTALL_FILES = \
+ ${SIM_CRT0} ${SIM_EXTRA} ${SIM_BSP} \
+ ${LIN_CRT0} ${LIN_EXTRA} ${LIN_BSP} \
+ ${BSP_CRT0} ${BSP_EXTRA} ${BSP_BSP}
+
+ALL_INSTALL_FILES_NEWLIB_COPY = \
+ $(sort ${ALL_INSTALL_FILES:%=$(objroot)/newlib/%}) $(objroot)/newlib/libnosys.a
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+# Need to augment the definition from host_makefile_frag above.
+INCLUDES += -I$(srcdir)
+
+all: ${ALL_INSTALL_FILES} ${ALL_INSTALL_FILES_NEWLIB_COPY} libnosys.a
+
+#
+# Here's where we build the board support packages for each target.
+#
+${SIM_BSP}: ${SIM_OBJS}
+	${AR} ${ARFLAGS} ${SIM_BSP} ${SIM_OBJS}
+	${RANLIB} ${SIM_BSP}
+
+${BSP_BSP}: ${BSP_OBJS}
+	${AR} ${ARFLAGS} ${BSP_BSP} ${BSP_OBJS}
+	${RANLIB} ${BSP_BSP}
+
+${LIN_BSP}: ${LIN_OBJS}
+	${AR} ${ARFLAGS} ${LIN_BSP} ${LIN_OBJS}
+	${RANLIB} ${LIN_BSP}
+
+# We need a link to libnosys.a in this directory, since this is the
+# directory used when test-compiling for configuration for other parts and
+# when running the testsuite.  By using a symbolic link, it does not
+# matter whether libnosys.a is built yet when the rule is executed.
+libnosys.a:
+	ln -s ../libnosys/libnosys.a
+
+# Toplevel build rules for various other libraries have gcc -B options
+# applied so the newlib build directory is reached, but not the target
+# libgloss directory (whose name is unknown to the toplevel configury
+# anyway).  Configury tests that check for a successful link therefore
+# fail; they can't find crt0.o and non-libc.a+libm.a libraries.  We copy
+# over all files we would install to the neighboring newlib directory.
+# Only the default crt0.o and libraries are needed, but we do them all for
+# completeness.  They're however installed from here, not from the newlib
+# build directory.
+$(objroot)/newlib/%: %
+	cp -p $^ $@
+
+# This rule, being more specific, overrides the pattern rule above.
+$(objroot)/newlib/libnosys.a:
+	ln -s ../libgloss/libnosys/libnosys.a $(objroot)/newlib
+
+#
+# Build a test program for each target board. Just trying to get
+# it to link is a good test, so we ignore all the errors for now.
+#
+#
+# Here's where we build the test programs for each target.
+#
+.PHONY: test
+test:	${SIM_TEST} ${BSP_TEST}
+
+sim-test:	sim-test.x sim-test.dis
+
+sim-test.x:	test.o ${SIM_CRT0} ${SIM_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	${SIM_CRT0} test.o \
+	-o sim-test.x ${LIBS_FOR_TARGET} -lc ${SIM_BSP}
+
+sim-test.dis:	sim-test.x
+	${OBJDUMP} -d sim-test.x > sim-test.dis
+
+
+test.o: ${srcdir}/m68k/test.c
+
+# Debug usage.
+.c.S:
+	${CC} ${CFLAGS_FOR_TARGET} $(INCLUDES) $(CFLAGS) -c $<
+
+# Caveat: for the -melinux multilib in cris-axis-aout, crt0.o is the
+# same as lcrt0.o, while elsewhere (other cris-axis-aout multilib and
+# cris-axis-elf) it's crt0.c compiled.
+crt0.o: lcrt0.o crt0.S
+	case "${MULTISUBDIR}" in \
+          */elinux) \
+	   cp -p $< $@; st=$$?;; \
+          *) \
+           case "$?" in \
+            *crt0.S) \
+	     $(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) $(CFLAGS) -c -xassembler-with-cpp $(srcdir)/crt0.S;; \
+            *) touch $@;; \
+            esac; \
+	   st=$$?;; \
+	esac; exit $$st
+
+crt1.o: lcrt0.o
+	cp -p $< $@
+
+clean mostlyclean:
+	rm -f a.out core *.i *.o *-test *.srec *.dis *.x $(SIM_BSP) $(BSP_BSP) $(LIN_BSP) libnosys.a
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status *~
+
+.PHONY: install info install-info clean-info
+install: ${SIM_INSTALL} ${BSP_INSTALL} ${LIN_INSTALL}
+
+# Note that bsp and elinux objects are exclusive: do not overlap
+# installed files.
+install-bsp:
+	case "${MULTISUBDIR}" in \
+          */elinux) ;; \
+	  *) set -e; \
+	     for x in ${BSP_CRT0} ${BSP_BSP} ${BSP_SCRIPTS}; do \
+		${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; \
+	     done;; \
+	esac
+
+install-sim:
+	set -e; \
+	for x in ${SIM_CRT0} ${SIM_BSP} ${SIM_SCRIPTS}; do \
+	  ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; \
+	done
+
+install-lin:
+	case "${MULTISUBDIR}" in \
+          */elinux) \
+	    ${INSTALL_DATA} ${LIN_CRT0} $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/crt0.o; \
+	    set -e; \
+	    for x in ${LIN_BSP} ${LIN_SCRIPTS}; do \
+	      ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; \
+	    done;; \
+          *) \
+	    set -e; \
+	    for x in ${LIN_BSP} ${LIN_SCRIPTS} ${LIN_EXTRA}; do \
+	      ${INSTALL_DATA} $$x ${tooldir}/lib${MULTISUBDIR}/$$x; \
+	    done;; \
+	esac
+
+doc:
+info:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck
+
+$(SYSCALL_CFILES): syscalls.stamp
+
+syscalls.stamp: gensyscalls
+	$(SHELL) $(srcdir)/gensyscalls
+	touch $@
+
+# Dependencies that could and should be auto-generated.
+close.o: close.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+execve.o: execve.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+exit.o: exit.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+fork.o: fork.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+fstat.o: fstat.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+fcntl.o: fcntl.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+getpid.o: getpid.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+gettod.o: gettod.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+isatty.o: isatty.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+kill.o: kill.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+link.o: link.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+lseek.o: lseek.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+open.o: open.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+read.o: read.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+rename.o: rename.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+sbrk.o: sbrk.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+stat.o: stat.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+times.o: times.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+unlink.o: unlink.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+wait.o: wait.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+write.o: write.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+lcrt0.o: lcrt0.c linunistd.h $(objdir)/../libnosys/config.h $(srcdir)/../libnosys/warning.h
+setup.o: setup.S
+irqtable.o: irqtable.S
+crti.o: crti.c
+crtn.o: crtn.c

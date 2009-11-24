@@ -1,0 +1,29 @@
+dnl This is the newlib/libc/machine/powerpc configure.in file.
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT([newlib],[NEWLIB_VERSION])
+AC_CONFIG_SRCDIR([setjmp.S])
+
+dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
+AC_CONFIG_AUX_DIR(../../../..)
+
+NEWLIB_CONFIGURE(../../..)
+
+extra_objs=
+extra_sources=
+case $host in
+  powerpc*-*altivec*)
+	extra_objs="vfprintf.o vfscanf.o vec_malloc.o vec_calloc.o vec_free.o vec_realloc.o vec_reallocr.o vec_callocr.o"
+	extra_sources="vfprintf.c vfscanf.c vec_malloc.c vec_calloc.c vec_free.c vec_realloc.c vec_mallocr.c"
+	;;
+  powerpc*-*spe*)
+	extra_objs="atosfix16.o atosfix32.o atosfix64.o atoufix16.o atoufix32.o atoufix64.o simdldtoa.o strtosfix16.o strtosfix32.o strtosfix64.o strtoufix16.o strtoufix32.o strtoufix64.o ufix64toa.o vfprintf.o vfscanf.o"
+	extra_sources="atosfix16.c atosfix32.c atosfix64.c atoufix16.c atoufix32.c atoufix64.c simdldtoa.c strtosfix16.c strtosfix32.c strtosfix64.c strtoufix16.c strtoufix32.c strtoufix64.c ufix64toa.c vfprintf.c vfscanf.c"
+	;;
+esac
+AC_SUBST(extra_objs)
+AC_SUBST(extra_sources)
+
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

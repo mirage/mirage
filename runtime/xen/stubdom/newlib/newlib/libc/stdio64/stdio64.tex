@@ -1,0 +1,42 @@
+@node Stdio64
+@chapter Large File Input and Output (@file{stdio.h}) 
+
+This chapter comprises additional functions to manage large files which
+are potentially larger than 2GB.
+
+The underlying facilities for input and output depend on the host
+system, but these functions provide a uniform interface.
+
+The corresponding declarations are in @file{stdio.h}.
+
+@menu  
+* fopen64::     Open a large file
+* freopen64::   Open a large file using an existing file descriptor
+* fsetpos64::   Restore position of a large stream or file
+* fgetpos64::   Get position of a large stream or file
+* ftello64::    Return position in a large stream or file
+* fseeko64::    Set large file position
+* tmpfile64::   Create a temporary large file
+@end menu 
+
+@page
+@include stdio64/fopen64.def
+
+@page
+@include stdio64/freopen64.def
+
+@page 
+@include stdio64/ftello64.def 
+
+@page
+@include stdio64/fseeko64.def
+
+@page
+@include stdio64/fgetpos64.def
+
+@page
+@include stdio64/fsetpos64.def
+
+@page
+@include stdio64/tmpfile64.def
+

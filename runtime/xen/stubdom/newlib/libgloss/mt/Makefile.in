@@ -1,0 +1,128 @@
+# Copyright (c) 2001, 2005 Red Hat, Inc.
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+
+# Makefile for libgloss/mt. This is the board support for the Morpho mt.
+
+VPATH = @srcdir@ @srcdir@/..
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL = /bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+AR_FLAGS = rc
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+SCRIPTS = 16-002.ld  16-003.ld  64-001.ld ms2.ld
+CRT0 = crt0.o crt0-64-001.o crt0-16-002.o crt0-16-003.o crt0-ms2.o \
+	startup-64-001.o startup-16-002.o startup-16-003.o startup-ms2.o \
+	exit.o exit-64-001.o exit-16-002.o exit-16-003.o exit-ms2.o
+
+SIM_BSP = libsim.a
+SIM_OBJS = access.o chmod.o close.o \
+	fstat.o getpid.o gettime.o isatty.o kill.o lseek.o open.o \
+	read.o sbrk.o stat.o time.o times.o trap.o unlink.o utime.o write.o
+
+#### Host specific Makefile fragment comes in here.
+@host_makefile_frag@
+
+all: $(CRT0) $(SIM_BSP)
+
+$(SIM_BSP): $(SIM_OBJS)
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+access.o: $(srcdir)/access.c
+chmod.o: $(srcdir)/chmod.c
+close.o: $(srcdir)/close.c
+fstat.o: $(srcdir)/fstat.c
+getpid.o: $(srcdir)/getpid.c
+gettime.o: $(srcdir)/gettime.c
+isatty.o: $(srcdir)/isatty.c
+kill.o: $(srcdir)/kill.c
+lseek.o: $(srcdir)/lseek.c
+open.o: $(srcdir)/open.c
+read.o: $(srcdir)/read.c
+sbrk.o: $(srcdir)/sbrk.c
+stat.o: $(srcdir)/stat.c
+time.o: $(srcdir)/time.c
+times.o: $(srcdir)/times.c
+unlink.o: $(srcdir)/unlink.c
+utime.o: $(srcdir)/utime.c
+write.o: $(srcdir)/write.c
+crt0.o: $(srcdir)/crt0.S
+crt0-16-002.o: $(srcdir)/crt0-16-002.S
+crt0-16-003.o: $(srcdir)/crt0-16-003.S
+crt0-64-001.o: $(srcdir)/crt0-64-001.S
+crt0-ms2.o: $(srcdir)/crt0-ms2.S
+
+trap.o:	$(srcdir)/trap.S
+
+install: $($(CPU)_INSTALL)
+	for c in $(CRT0); do \
+	  $(INSTALL_DATA) $$c $(tooldir)/lib${MULTISUBDIR}/$$c ; \
+	done; 
+	$(INSTALL_DATA) $(SIM_BSP) $(tooldir)/lib${MULTISUBDIR}/$(SIM_BSP)
+	for c in $(SCRIPTS); do \
+	  $(INSTALL_DATA) $(srcdir)/$$c $(tooldir)/lib/$$c ; \
+	done;
+
+clean mostlyclean:
+	rm -f *.o *.a
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.cache config.log config.status
+
+.PHONY: info dvi doc install-info clean-info
+info doc dvi:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

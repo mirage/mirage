@@ -1,0 +1,192 @@
+# Top level makefile for libgloss
+#
+# Copyright (c) 1995, 1996 Cygnus Support
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+#
+
+DESTDIR =
+VPATH = @srcdir@
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+TOP = .
+SRCTOP = .
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTISRCTOP =
+MULTIBUILDTOP =
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL =	/bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+AR_FLAGS = qv
+BISON = bison
+MAKEINFO = makeinfo
+
+SUBDIRS = @subdirs@
+
+.NOEXPORT:
+MAKEOVERRIDES=
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+# These are roughly topologically sorted in order to make porting more
+# streamlined.
+FLAGS_TO_PASS = \
+	"CC=$(CC)" \
+	"CFLAGS=$(CFLAGS)" \
+	"CFLAGS_FOR_TARGET=$(CFLAGS_FOR_TARGET)" \
+	"CCASFLAGS=$(CCASFLAGS)" \
+	"AR=$(AR)" \
+	"RANLIB=$(RANLIB)" \
+	"AR_FLAGS=$(AR_FLAGS)" \
+	"MAKEINFO=$(MAKEINFO)" \
+	"AS=$(AS)" \
+	"LD=$(LD)" \
+	"CROSS_CFLAGS=$(CROSS_CFLAGS)" \
+	"TARGET_CFLAGS=$(TARGET_CFLAGS)" \
+	"exec_prefix=$(exec_prefix)" \
+	"prefix=$(prefix)" \
+	"tooldir=$(tooldir)" \
+	"infodir=$(infodir)" \
+	"libdir=$(libdir)" \
+	"top_toollibdir=$(toollibdir)" \
+	"INSTALL=$(INSTALL)" \
+	"INSTALL_PROGRAM=$(INSTALL_PROGRAM)" \
+	"INSTALL_DATA=$(INSTALL_DATA)" \
+	"DESTDIR=$(DESTDIR)"
+
+all: stmp-bsp force
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=all
+
+stmp-bsp: force
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	for dir in .. ${SUBDIRS}; do \
+	  if [ x$$dir != x.. ]; then \
+	    if [ -d $$dir ]; then \
+	      (cd $$dir; $(MAKE) $(FLAGS_TO_PASS)); \
+	    else true; fi; \
+	  else true; fi; \
+	done
+
+install: force
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	for dir in .. ${SUBDIRS}; do \
+	  if [ x$$dir != x.. ]; then \
+	    if [ -d $$dir ]; then \
+	      (cd $$dir; $(MAKE) $(FLAGS_TO_PASS) install); \
+	    else true; fi; \
+	  else true; fi; \
+	done
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=install
+
+test: force
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	for dir in .. ${SUBDIRS}; do \
+	  if [ x$$dir != x.. ]; then \
+	    if [ -d $$dir ]; then \
+	      (cd $$dir; $(MAKE) $(FLAGS_TO_PASS) test); \
+	    else true; fi; \
+	  else true; fi; \
+	done
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=test
+
+clean-here:
+	-rm -f *~ core *.o a.out xgdb *.x
+
+clean mostlyclean: clean-here
+	rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MAKE) DO=$@ DODIRS="$(SUBDIRS)" $(FLAGS_TO_PASS) subdir_do; \
+	$(MULTICLEAN) multi-clean DO=$@
+
+distclean maintainer-clean realclean: clean-here
+	-rm -f Makefile config.cache config.log config.status 
+	-rm -f *-init.exp site.*
+	-rm -fr *.log summary detail *.sum
+	rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MAKE) DO=$@ DODIRS="$(SUBDIRS)" $(FLAGS_TO_PASS) subdir_do; \
+	$(MULTICLEAN) multi-clean DO=$@
+
+.PHONY: info install-info clean-info
+subdir_do:
+	@rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	for i in .. $(DODIRS); do \
+	  if [ x$$i != x.. ]; then \
+	    if [ -f ./$$i/Makefile ]; then \
+	      if (cd ./$$i; $(MAKE) $(FLAGS_TO_PASS) $(DO)); then \
+		true; \
+	      else \
+		exit 1; \
+	      fi; \
+	    else true; fi; \
+	  else true; fi; \
+	done
+
+info dvi docs:
+	rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MAKE) DO=$@ DODIRS=doc $(FLAGS_TO_PASS) subdir_do
+
+install-info:
+	rootpre=`pwd`/; export rootpre; \
+	srcrootpre=`cd $(srcdir); pwd`/; export srcrootpre; \
+	$(MAKE) DO=$@ DODIRS=doc $(FLAGS_TO_PASS) subdir_do
+
+clean-info:
+
+force:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

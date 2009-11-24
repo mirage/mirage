@@ -1,0 +1,52 @@
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs, see configure's option --config-cache.
+# It is not useful on other systems.  If it contains results you don't
+# want to keep, you may remove or edit it.
+#
+# config.status only pays attention to the cache file if you give it
+# the --recheck option to rerun configure.
+#
+# `ac_cv_env_foo' variables (set or unset) will be overridden when
+# loading this file, other *unset* `ac_cv_foo' will be assigned the
+# following values.
+
+ac_cv_build=${ac_cv_build=x86_64-unknown-linux-gnu}
+ac_cv_c_compiler_gnu=${ac_cv_c_compiler_gnu=no}
+ac_cv_env_CCASFLAGS_set=
+ac_cv_env_CCASFLAGS_value=
+ac_cv_env_CCAS_set=
+ac_cv_env_CCAS_value=
+ac_cv_env_CC_set=set
+ac_cv_env_CC_value='x86_64-xen-elf-cc -B/home/avsm/upstream/mlx/newlib/x86_64-xen-elf/newlib/ -isystem /home/avsm/upstream/mlx/newlib/x86_64-xen-elf/newlib/targ-include -isystem /home/avsm/upstream/mlx/newlib/newlib/libc/include -B/home/avsm/upstream/mlx/newlib/x86_64-xen-elf/libgloss/x86_64 -L/home/avsm/upstream/mlx/newlib/x86_64-xen-elf/libgloss/libnosys -L/home/avsm/upstream/mlx/newlib/libgloss/x86_64'
+ac_cv_env_CFLAGS_set=set
+ac_cv_env_CFLAGS_value='-O2 -g -g -O2  '
+ac_cv_env_CPPFLAGS_set=set
+ac_cv_env_CPPFLAGS_value=
+ac_cv_env_CPP_set=
+ac_cv_env_CPP_value=
+ac_cv_env_LDFLAGS_set=set
+ac_cv_env_LDFLAGS_value=
+ac_cv_env_LIBS_set=
+ac_cv_env_LIBS_value=
+ac_cv_env_build_alias_set=set
+ac_cv_env_build_alias_value=x86_64-unknown-linux-gnu
+ac_cv_env_host_alias_set=set
+ac_cv_env_host_alias_value=x86_64-xen-elf
+ac_cv_env_target_alias_set=set
+ac_cv_env_target_alias_value=x86_64-xen-elf
+ac_cv_host=${ac_cv_host=x86_64-xen-elf}
+ac_cv_path_SED=${ac_cv_path_SED=/bin/sed}
+ac_cv_prog_AR=${ac_cv_prog_AR=x86_64-xen-elf-ar}
+ac_cv_prog_AS=${ac_cv_prog_AS=x86_64-xen-elf-as}
+ac_cv_prog_AWK=${ac_cv_prog_AWK=mawk}
+ac_cv_prog_CC=${ac_cv_prog_CC='x86_64-xen-elf-cc -B/home/avsm/upstream/mlx/newlib/x86_64-xen-elf/newlib/ -isystem /home/avsm/upstream/mlx/newlib/x86_64-xen-elf/newlib/targ-include -isystem /home/avsm/upstream/mlx/newlib/newlib/libc/include -B/home/avsm/upstream/mlx/newlib/x86_64-xen-elf/libgloss/x86_64 -L/home/avsm/upstream/mlx/newlib/x86_64-xen-elf/libgloss/libnosys -L/home/avsm/upstream/mlx/newlib/libgloss/x86_64'}
+ac_cv_prog_RANLIB=${ac_cv_prog_RANLIB=x86_64-xen-elf-ranlib}
+ac_cv_prog_STRIP=${ac_cv_prog_STRIP=x86_64-xen-elf-strip}
+ac_cv_prog_ac_ct_READELF=${ac_cv_prog_ac_ct_READELF=readelf}
+ac_cv_prog_make_make_set=${ac_cv_prog_make_make_set=yes}
+am_cv_CC_dependencies_compiler_type=${am_cv_CC_dependencies_compiler_type=none}
+libc_cv_array_aliasing=${libc_cv_array_aliasing=no}
+libc_cv_initfinit_array=${libc_cv_initfinit_array=no}
+lt_cv_path_SED=${lt_cv_path_SED=/bin/sed}
+newlib_cv_build_exeext=${newlib_cv_build_exeext=no}

@@ -1,0 +1,82 @@
+				 Misc
+				 ....
+
+Naming Conventions
+------------------
+    The basic naming convention for Unix machines is that
+    hppa1.1-hp-proelf- is prepended to the front of each tool
+    name. For DOS machines, the names are truncated to just the base
+    tool name, like GCC.
+
+Installation
+------------
+    For this beta release, there are three tar files on the tape. A
+    simple "tar xvf [device name]" will work. One of the tarfiles is
+    all the sources, the others are binaries. One set is for a HP-UX
+    host, and the other set is for a sun4 host.
+
+    First, make a directory called /usr/cygnus/beta-941019. Cd into
+    this directory and type the tar command to extract the three tar
+    files. Once the tar files are off the tape, you can uncompress
+    and extract them. Typically, once they are installed, it's common
+    practice to make a symbolic link so the path
+    /usr/cygnus/beta-941019 works regardless which host. The actual
+    binaries are in /usr/cygnus/beta-941019/$host/bin, where host is
+    the configuration string for this machine.
+
+
+			  WinBond W89k board
+			  ..................
+Downloading
+-----------
+    To download type the "U" command to the ROM monitor. This will
+    load to the address as specified in the srecord. This address is
+    0x100000. 
+
+To compile
+----------
+    Use these arguments on the command line for either the linker or
+    the compiler:
+
+	-Tw89k.ld -Ttext 100000
+
+To execute
+----------
+    Type a "g = 100000" at thr ROM monitor after downloading to the
+    target. After downloading, PC will be set to the correct address,
+    but this command will *always* restart the execution from the
+    beginning. 
+    
+To debug
+--------
+    To connect GDB to the target, use the "target w89k [devicename]".
+
+			   Oki OP50N board
+			   ...............
+
+Downloading
+-----------
+    To download, type "r 0" to the ROM monitor. The 0 is cause the
+    monitor wants to offset the address in the srecord to 0x40000. The
+    problem is that it doesn't relocate data right. So, we set the
+    address for .text and .data to 0x40000, and we don't want any
+    offset.
+
+To compile
+----------
+    Use these arguments on the command line for either the linker or
+    the compiler:
+
+	-Top50n.ld -Ttext 40000
+
+ To execute
+----------
+    Type a "g 40000" at thr ROM monitor after downloading to the
+    target. After downloading, PC will be set to the correct address,
+    but this command will *always* restart the execution from the
+    beginning
+    
+To debug
+--------
+    To connect GDB to the target, use the "target op50n [devicename]".
+

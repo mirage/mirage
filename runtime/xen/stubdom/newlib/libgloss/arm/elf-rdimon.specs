@@ -1,0 +1,8 @@
+%rename link                old_link
+
+*link:
+%(old_link) -lrdimon
+
+*startfile:
+crti%O%s crtbegin%O%s %{!pg:rdimon-crt0%O%s} %{pg:rdimon-crt0%O%s}
+

@@ -1,0 +1,221 @@
+srcdir = .
+OBJROOT =
+SRCROOT =
+
+SHELL = /bin/sh
+
+#
+# this is for code to support embedded testing
+#
+SUPPORT=support.o
+
+#
+# to add a new test, put it's name here, and list the objects
+# required too.
+TESTS= misc.x float.x io.x memory.x double.x math.x func.x div.x \
+      printf.x varargs.x varargs2.x array.x struct.x misc.x
+
+CFLAGS= -g
+LDFLAGS_FOR_TARGET= -g
+LIBS_FOR_TARGET =  ${SUPPORT} ${LIBC_FOR_TARGET} ${LIBGCC_FOR_TARGET} \
+	          ${LIBC_FOR_TARGET}
+
+#### Host, target, and site specific Makefile fragments come in here.
+###
+
+#
+# This attempts to build the binaries. Ideally these are getting built
+# under control of DejaGnu, but it's nice to build these for times
+# when testing needs to be done by hand.
+#
+all: support.o ${TESTS}
+
+#
+# we create a false implicit rule to make a binary ".x" file from
+# an object file. this also makes us an srecord and a dissasmbly
+# cause if something goes wrong, we'll need them.
+#
+.SUFFIXES: .x
+.o.x:
+	for script in ${SCRIPTS}; do \
+	  echo Building $@ for $${script}... ; \
+	    echo Link Line is ${LD_FOR_TARGET} \
+	    ${LDFLAGS_FOR_TARGET} $< -L${OBJROOT}/libgloss/${GLOSSDIR} \
+	      -T${srcdir}/../../${GLOSSDIR}/$${script}.ld \
+	       ${SUPPORT} -o $*-$${script} $(LIBS_FOR_TARGET); \
+	    ${LD_FOR_TARGET} ${LDFLAGS_FOR_TARGET} $< -L${OBJROOT}/libgloss/${GLOSSDIR} \
+	       -T${srcdir}/../../${GLOSSDIR}/$${script}.ld \
+	       ${SUPPORT} -o $*-$${script}.x $(LIBS_FOR_TARGET); \
+            if [ -s $*-$${script}.x ] ; then  \
+              echo "Making an srecord for $@..." ; \
+              ${OBJCOPY_FOR_TARGET} -O srec $*-$${script}.x $*-$${script}.srec ; \
+              echo "Making an disassembly file for $@..." ; \
+              rm -f $*-$${script}.dis ; \
+              ${OBJDUMP_FOR_TARGET} -d $*-$${script}.x > $*-$${script}.dis ; \
+            else  \
+              rm $*-$${script}.x ; \
+              echo "WARNING: $*-$${script} didn't build." ; \
+            fi ; \
+	  touch $@ ; \
+	done
+
+#
+# here's all the dependancies. This is a little messy cause we want
+# dependancies to work for the rule we just defined. this isn't
+# tottally ideal cause if one of the architectures doesn't build. it
+# relinks for all of the scrip0t files.
+#
+array.o: ${srcdir}/array.c
+array.x: array-w89k.x array-op50n.x
+array-w89k.x: array.o
+array-op50n.x: array.o
+float.o: ${srcdir}/float.c
+float.x: float-w89k.x float-op50n.x
+float-w89k.x: float.o
+float-op50n.x: float.o
+io.o: ${srcdir}/io.c
+io.x: io-w89k.x io-op50n.x
+io-w89k.x: io.o
+io-op50n.x: io.o
+memory.o: ${srcdir}/memory.c
+memory.x: memory-w89k.x memory-op50n.x
+memory-w89k.x: memory.o
+memory-op50n.x: memory.o
+double.o: ${srcdir}/double.c
+double.x: double-w89k.x double-op50n.x
+double-w89k.x: double.o
+double-op50n.x: double.o
+math.o: ${srcdir}/math.c
+math.x: math-w89k.x math-op50n.x
+math-w89k.x: math.o
+math-op50n.x: math.o
+misc.o: ${srcdir}/misc.c
+misc.x: misc-w89k.x misc-op50n.x
+misc-w89k.x: misc.o
+misc-op50n.x: misc.o
+func.o: ${srcdir}/func.c
+func.x: func-w89k.x func-op50n.x
+func-w89k.x: func.o
+func-op50n.x: func.o
+div.o: ${srcdir}/div.c
+div.x: div-w89k.x div-op50n.x
+div-w89k.x: div.o
+div-op50n.x: div.o
+struct.o: ${srcdir}/struct.c
+struct.x: struct-w89k.x struct-op50n.x
+struct-w89k.x: struct.o
+struct-op50n.x: struct.o
+printf.o: ${srcdir}/printf.c
+printf.x: printf-w89k.x printf-op50n.x
+printf-w89k.x: printf.o
+printf-op50n.x: printf.o
+varargs.o: ${srcdir}/varargs.c
+varargs.x: varargs-w89k.x varargs-op50n.x
+varargs-w89k.x: varargs.o
+varargs-op50n.x: varargs.o
+varargs2.o: ${srcdir}/varargs2.c
+varargs2.x: varargs2-w89k.x varargs2-op50n.x
+varargs2-w89k.x: varargs2.o
+varargs2-op50n.x: varargs.o
+misc.o: ${srcdir}/misc.c
+misc.x: misc-w89k.x misc-op50n.x
+misc-w89k.x: misc.o
+misc-op50n.x: misc.o
+
+#
+# this attempts to build these test cases on a DOS box
+#
+DOSLIBS= ../lib/soft-flo/libc.a ../lib/soft-flo/libgcc.a ../lib/soft-flo/libc.a
+LIBDIR= -L../lib
+dos:
+	gcc -msoft-float -c support.c
+	gcc -msoft-float -c io.c
+	gcc -msoft-float -c float.c
+	gcc -msoft-float -c memory.c
+	gcc -msoft-float -c double.c
+	gcc -msoft-float -c func.c
+	gcc -msoft-float -c array.c
+	gcc -msoft-float -c math.c
+	gcc -msoft-float -c div.c 
+	gcc -msoft-float -c struct.c
+	gcc -msoft-float -c printf.c
+	gcc -msoft-float -c varargs.c
+	gcc -msoft-float -c varargs2.c
+	gcc -msoft-float -c misc.c
+	ld ${LIBDIR} io.o  -Tw89k.ld -o io-wec.x support.o ${DOSLIBS}
+	objcopy -O srec io-wec.x io-wec.sre
+	ld ${LIBDIR} io.o -Top50n.ld -o io-oki.x support.o ${DOSLIBS}
+	objcopy -O srec io-oki.x io-oki.sre
+	ld ${LIBDIR} func.o  -Tw89k.ld -o func-wec.x support.o ${DOSLIBS}
+	objcopy -O srec func-wec.x func-wec.sre
+	ld ${LIBDIR} func.o -Top50n.ld -o func-oki.x support.o ${DOSLIBS}
+	objcopy -O srec func-oki.x func-oki.sre
+	ld ${LIBDIR} math.o  -Tw89k.ld -o math-wec.x support.o ${DOSLIBS}
+	objcopy -O srec math-wec.x math-wec.sre
+	gcc ${LIBDIR} math.o -Top50n.ld -o math-oki.x support.o ${DOSLIBS}
+	objcopy -O srec math-oki.x math-oki.sre
+	gcc ${LIBDIR} float.o  -Tw89k.ld -o flot-wec.x support.o ${DOSLIBS}
+	objcopy -O srec flot-wec.x flot-wec.sre
+	gcc ${LIBDIR} float.o -Top50n.ld -o flot-oki.x support.o ${DOSLIBS}
+	objcopy -O srec flot-oki.x flot-oki.sre
+	gcc ${LIBDIR} memory.o  -Tw89k.ld -o mem-wec.x support.o ${DOSLIBS}
+	objcopy -O srec mem-wec.x mem-wec.sre
+	gcc ${LIBDIR} memory.c -Top50n.ld -o mem-oki.x support.o ${DOSLIBS}
+	objcopy -O srec mem-oki.x mem-oki.sre
+	gcc ${LIBDIR} double.o  -Tw89k.ld -o doub-wec.x support.o ${DOSLIBS}
+	objcopy -O srec mem-wec.x doub-wec.sre
+	gcc ${LIBDIR} double.o -Top50n.ld -o doub-oki.x support.o ${DOSLIBS}
+	objcopy -O srec doub-oki.x doub-oki.sre
+	gcc ${LIBDIR} array.o -Tw89k.ld -o arry-wec.x support.o ${DOSLIBS}
+	objcopy -O srec arry-wec.x arry-wec.sre
+	gcc ${LIBDIR} array.o -Top50n.ld -o arry-oki.x support.o ${DOSLIBS}
+	objcopy -O srec arry-oki.x arry-oki.sre
+	gcc ${LIBDIR} div.o -Tw89k.ld -o div-wec.x support.o ${DOSLIBS}
+	objcopy -O srec div-wec.x div-wec.sre
+	gcc ${LIBDIR} div.o -Top50n.ld -o div-oki.x support.o ${DOSLIBS}
+	objcopy -O srec div-oki.x div-oki.sre
+	gcc ${LIBDIR} printf.o -Tw89k.ld -o printf-wec.x support.o ${DOSLIBS}
+	objcopy -O srec printf-wec.x printf-wec.sre
+	gcc ${LIBDIR} printf.o -Top50n.ld -o printf-oki.x support.o ${DOSLIBS}
+	objcopy -O srec printf-oki.x printf-oki.sre
+	gcc ${LIBDIR} struct.o -Tw89k.ld -o struct-wec.x support.o ${DOSLIBS}
+	objcopy -O srec struct-wec.x struct-wec.sre
+	gcc ${LIBDIR} struct.o -Top50n.ld -o struct-oki.x support.o ${DOSLIBS}
+	objcopy -O srec struct-oki.x struct-oki.sre
+	gcc ${LIBDIR} varargs.o -Tw89k.ld -o args-wec.x support.o ${DOSLIBS}
+	objcopy -O srec args-wec.x args-wec.sre
+	gcc ${LIBDIR} varargs.o -Top50n.ld -o args-oki.x support.o ${DOSLIBS}
+	objcopy -O srec args-oki.x args-oki.sre
+	gcc ${LIBDIR} varargs2.o -Tw89k.ld -o arg2-wec.x support.o ${DOSLIBS}
+	objcopy -O srec arg2-wec.x arg2-wec.sre
+	gcc ${LIBDIR} varargs2.o -Top50n.ld -o arg2-oki.x support.o ${DOSLIBS}
+	objcopy -O srec arg2-oki.x arg2-oki.sre
+	gcc ${LIBDIR} misc.o -Tw89k.ld -o misc-wec.x support.o ${DOSLIBS}
+	objcopy -O srec misc-wec.x misc-wec.sre
+	gcc ${LIBDIR} misc.o -Top50n.ld -o misc-oki.x support.o ${DOSLIBS}
+	objcopy -O srec misc-oki.x misc-oki.sre
+
+# this is a minimalist testing API for these test cases to keep the
+# outout standardized enough to help with automated testing.
+support.o: ${srcdir}/../config/support.c
+	rootme=`pwd | sed  -e 's@/[^/]*$$@@'`; \
+	$(CC_FOR_TARGET) $(CFLAGS_FOR_TARGET) -O2 $(INCLUDES) -c $<
+
+doc:	
+
+clean mostlyclean:
+	rm -f a.out core *.i *~ *.o *-test *.srec *.dis *.map *.x
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status a.out
+
+.PHONY: install info install-info clean-info
+install:
+info:
+install-info:
+clean-info:
+
+Makefile: Makefile.in $(host_makefile_frag) $(target_makefile_frag)
+	$(SHELL) config.status
+
+

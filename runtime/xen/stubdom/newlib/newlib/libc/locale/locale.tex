@@ -1,0 +1,123 @@
+@node Locale
+@chapter Locale (@file{locale.h})
+
+A @dfn{locale} is the name for a collection of parameters (affecting
+collating sequences and formatting conventions) that may be different
+depending on location or culture.  The @code{"C"} locale is the only
+one defined in the ANSI C standard.
+
+This is a minimal implementation, supporting only the required @code{"C"}
+value for locale; strings representing other locales are not
+honored.  (@code{""} is also accepted; it represents the default locale
+for an implementation, here equivalent to @code{"C"}.
+
+
+@file{locale.h} defines the structure @code{lconv} to collect the
+information on a locale, with the following fields:
+
+@table @code
+@item char *decimal_point
+The decimal point character used to format ``ordinary'' numbers (all
+numbers except those referring to amounts of money).  @code{"."} in the
+C locale. 
+
+@item char *thousands_sep
+The character (if any) used to separate groups of digits, when
+formatting ordinary numbers.
+@code{""} in the C locale.
+
+@item char *grouping
+Specifications for how many digits to group (if any grouping is done at
+all) when formatting ordinary numbers.  The @emph{numeric value} of each
+character in the string represents the number of digits for the next
+group, and a value of @code{0} (that is, the string's trailing
+@code{NULL}) means to continue grouping digits using the last value
+specified.  Use @code{CHAR_MAX} to indicate that no further grouping is
+desired.  @code{""} in the C locale. 
+
+@item char *int_curr_symbol
+The international currency symbol (first three characters), if any, and
+the character used to separate it from numbers.
+@code{""} in the C locale.
+
+@item char *currency_symbol
+The local currency symbol, if any.
+@code{""} in the C locale.
+
+@item char *mon_decimal_point
+The symbol used to delimit fractions in amounts of money.
+@code{""} in the C locale.
+
+@item char *mon_thousands_sep
+Similar to @code{thousands_sep}, but used for amounts of money.
+@code{""} in the C locale.
+
+@item char *mon_grouping
+Similar to @code{grouping}, but used for amounts of money.
+@code{""} in the C locale.
+
+@item char *positive_sign
+A string to flag positive amounts of money when formatting.
+@code{""} in the C locale.
+
+@item char *negative_sign
+A string to flag negative amounts of money when formatting.
+@code{""} in the C locale.
+
+@item char int_frac_digits
+The number of digits to display when formatting amounts of money to
+international conventions.
+@code{CHAR_MAX} (the largest number representable as a @code{char}) in
+the C locale. 
+
+@item char frac_digits
+The number of digits to display when formatting amounts of money to
+local conventions.
+@code{CHAR_MAX} in the C locale. 
+
+@item char p_cs_precedes
+@code{1} indicates the local currency symbol is used before a
+@emph{positive or zero} formatted amount of money; @code{0} indicates
+the currency symbol is placed after the formatted number.
+@code{CHAR_MAX} in the C locale. 
+
+@item char p_sep_by_space
+@code{1} indicates the local currency symbol must be separated from
+@emph{positive or zero} numbers by a space; @code{0} indicates that it
+is immediately adjacent to numbers.
+@code{CHAR_MAX} in the C locale. 
+
+@item char n_cs_precedes
+@code{1} indicates the local currency symbol is used before a
+@emph{negative} formatted amount of money; @code{0} indicates
+the currency symbol is placed after the formatted number.
+@code{CHAR_MAX} in the C locale. 
+
+@item char n_sep_by_space
+@code{1} indicates the local currency symbol must be separated from
+@emph{negative} numbers by a space; @code{0} indicates that it
+is immediately adjacent to numbers.
+@code{CHAR_MAX} in the C locale. 
+
+@item char p_sign_posn
+Controls the position of the @emph{positive} sign for
+numbers representing money.  @code{0} means parentheses surround the
+number; @code{1} means the sign is placed before both the number and the
+currency symbol; @code{2} means the sign is placed after both the number
+and the currency symbol; @code{3} means the sign is placed just before
+the currency symbol; and @code{4} means the sign is placed just after
+the currency symbol.
+@code{CHAR_MAX} in the C locale. 
+
+@item char n_sign_posn
+Controls the position of the @emph{negative} sign for numbers
+representing money, using the same rules as @code{p_sign_posn}.
+@code{CHAR_MAX} in the C locale. 
+@end table
+
+@menu
+* setlocale::  Select or query locale
+@end menu
+
+@page
+@include locale/locale.def

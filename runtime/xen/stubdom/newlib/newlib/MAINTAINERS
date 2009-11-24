@@ -1,0 +1,45 @@
+			 Newlib Maintainers
+
+
+		      Blanket Write Privileges
+
+The official maintainers of newlib:
+
+Jeff Johnston			jjohnstn@redhat.com
+
+
+		     Various Domain Maintainers
+
+This is a list of maintainers who look after specific domains of newlib.
+Individuals who maintain parts of newlib need approval to check in changes
+outside of the immediate domain that they maintain.
+
+If there is no maintainer for a given domain then the responsibility
+falls to the head maintainers.
+
+If there are several maintainers for a given domain then
+responsibility falls to the first maintainer.  The first maintainer is
+free to devolve that responsibility among the other maintainers.
+
+Makefile.in, configure*:	jjohnstn@redhat.com
+
+Cygwin:				cgf@redhat.com
+
+Web pages:			jjohnstn@redhat.com
+
+
+			CPU Port Maintainers	(CPU alphabetical order)
+
+CPU port maintainers may make changes in cpu-specific directories, as
+well as cpu-specific portions of the build system, without approval.
+
+m32c port		DJ Delorie		dj@redhat.com
+
+
+			Write After Approval
+
+These are users with general write privileges after getting approval:
+
+DJ Delorie			dj@redhat.com
+Christopher G. Faylor		cgf@redhat.com
+Jim Wilson			wilson@specifixinc.com

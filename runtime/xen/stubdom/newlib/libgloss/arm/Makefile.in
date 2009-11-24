@@ -1,0 +1,187 @@
+#
+#
+DESTDIR =
+VPATH = @srcdir@ @srcdir@/..
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+objtype = @objtype@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTISRCTOP =
+MULTIBUILDTOP =
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+SHELL =	/bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+@BUILD_CRT0_TRUE@CRT0		= crt0.o
+@BUILD_CRT0_TRUE@CRT0_INSTALL	= install-crt0
+@BUILD_CRT0_FALSE@CRT0		= 
+@BUILD_CRT0_FALSE@CRT0_INSTALL	= 
+
+LINUX_CRT0    = linux-crt0.o
+LINUX_BSP     = libgloss-linux.a
+LINUX_OBJS    = linux-syscalls0.o linux-syscalls1.o
+LINUX_SCRIPTS = linux.specs
+LINUX_INSTALL = install-linux
+
+REDBOOT_CRT0	= redboot-crt0.o 
+REDBOOT_OBJS	= redboot-syscalls.o
+REDBOOT_SCRIPTS	= redboot.ld redboot.specs
+REDBOOT_INSTALL	= install-redboot
+
+RDPMON_CRT0	= rdpmon-crt0.o
+RDPMON_BSP	= librdpmon.a
+RDPMON_OBJS	= syscalls.o libcfunc.o trap.o _exit.o _kill.o
+RDPMON_SCRIPTS	= rdpmon.specs
+RDPMON_INSTALL	= install-rdpmon
+
+RDIMON_CRT0	= rdimon-crt0.o
+RDIMON_BSP	= librdimon.a
+RDIMON_OBJS	= $(patsubst %,rdimon-%,$(RDPMON_OBJS))
+RDIMON_SCRIPTS	= rdimon.specs
+RDIMON_INSTALL	= install-rdimon
+
+CFLAGS		= -g
+
+# Here is all of the eval board stuff
+PID_SCRIPTS	= pid.specs
+PID_INSTALL	= install-pid
+
+IQ80310_SCRIPTS	= iq80310.specs
+IQ80310_INSTALL	= install-iq80310
+
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+#
+# build a test program for each target board. Just trying to get
+# it to link is a good test, so we ignore all the errors for now.
+#
+all: ${CRT0} ${LINUX_CRT0} ${LINUX_BSP} ${REDBOOT_CRT0} ${REDBOOT_OBJS} ${RDPMON_CRT0} ${RDPMON_BSP} ${RDIMON_CRT0} ${RDIMON_BSP}
+
+#
+# here's where we build the test programs for each target
+#
+.PHONY: test
+test:
+
+#
+crt0.o: crt0.S
+redboot-crt0.o: redboot-crt0.S
+redboot-syscalls.o: redboot-syscalls.c $(srcdir)/../syscall.h
+
+rdpmon-crt0.o: crt0.S
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDP_MONITOR -o $@ -c $<
+
+rdimon-crt0.o: crt0.S
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDI_MONITOR -o $@ -c $<
+
+rdimon-trap.o: trap.S
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDI_MONITOR -o $@ -c $<
+
+rdimon-_exit.o: _exit.c
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDI_MONITOR -o $@ -c $<
+
+rdimon-_kill.o: _kill.c
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDI_MONITOR -o $@ -c $<
+
+rdimon-syscalls.o: syscalls.c
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDI_MONITOR -o $@ -c $<
+
+rdimon-libcfunc.o: libcfunc.c
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -DARM_RDI_MONITOR -o $@ -c $<
+
+$(LINUX_BSP): $(LINUX_OBJS)
+	${AR} ${ARFLAGS} $@ $^
+	${RANLIB} $@
+
+$(RDPMON_BSP): $(RDPMON_OBJS)
+	${AR} ${ARFLAGS} $@ $^
+	${RANLIB} $@
+
+$(RDIMON_BSP): $(RDIMON_OBJS)
+	${AR} ${ARFLAGS} $@ $^
+	${RANLIB} $@
+
+clean mostlyclean:
+	rm -f a.out core *.i *.o *-test *.srec *.dis *.x $(SIM_BSP) $(IQ80310_BSP)
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status *~
+
+.PHONY: install info install-info clean-info
+install: ${CRT0_INSTALL} ${LINUX_INSTALL} ${REDBOOT_INSTALL} ${RDPMON_INSTALL} ${RDIMON_INSTALL} ${IQ80310_INSTALL}  ${PID_INSTALL}
+
+install-crt0:
+	${INSTALL_DATA} ${CRT0} $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x
+
+install-linux:
+	set -e; for x in ${LINUX_CRT0} ${LINUX_BSP}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${LINUX_SCRIPTS}; do ${INSTALL_DATA} ${srcdir}/${objtype}$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-redboot:
+	set -e; for x in ${REDBOOT_CRT0} ${REDBOOT_OBJS}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${REDBOOT_SCRIPTS}; do ${INSTALL_DATA} ${srcdir}/${objtype}$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-rdpmon:
+	set -e; for x in ${RDPMON_CRT0} ${RDPMON_BSP}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${RDPMON_SCRIPTS}; do ${INSTALL_DATA} ${srcdir}/${objtype}$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-rdimon:
+	set -e; for x in ${RDIMON_CRT0} ${RDIMON_BSP}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${RDIMON_SCRIPTS}; do ${INSTALL_DATA} ${srcdir}/${objtype}$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+
+install-pid:
+	set -e; for x in ${PID_SCRIPTS}; do ${INSTALL_DATA} ${srcdir}/${objtype}$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-iq80310:
+	set -e; for x in ${IQ80310_SCRIPTS}; do ${INSTALL_DATA} ${srcdir}/${objtype}$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+
+doc:
+info:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

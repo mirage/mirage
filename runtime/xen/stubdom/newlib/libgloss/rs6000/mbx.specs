@@ -1,0 +1,12 @@
+*lib_default:
+--start-group -lmbx -lc --end-group
+
+*startfile_default:
+ecrti.o%s crt0.o%s
+
+*endfile_default:
+ecrtn.o%s
+
+*link_start_default:
+-T mbx.ld%s
+

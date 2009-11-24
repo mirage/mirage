@@ -1,0 +1,267 @@
+@node Stdio
+@chapter Input and Output (@file{stdio.h})
+
+This chapter comprises functions to manage files
+or other input/output streams. Among these functions are subroutines
+to generate or scan strings according to specifications from a format string.
+
+The underlying facilities for input and output depend on the host
+system, but these functions provide a uniform interface.
+
+The corresponding declarations are in @file{stdio.h}.
+
+The reentrant versions of these functions use macros
+
+@example
+_stdin_r(@var{reent})
+_stdout_r(@var{reent})
+_stderr_r(@var{reent})
+@end example
+
+@noindent
+instead of the globals @code{stdin}, @code{stdout}, and
+@code{stderr}.  The argument <[reent]> is a pointer to a reentrancy
+structure.
+
+@menu
+* clearerr::    Clear file or stream error indicator
+* diprintf::    Print to a file descriptor (integer only)
+* dprintf::     Print to a file descriptor
+* fclose::      Close a file
+* fcloseall::   Close all files
+* fdopen::      Turn an open file into a stream
+* feof::        Test for end of file
+* ferror::      Test whether read/write error has occurred
+* fflush::      Flush buffered file output
+* fgetc::       Get a character from a file or stream
+* fgetpos::     Record position in a stream or file
+* fgets::       Get character string from a file or stream
+* fileno::      Get file descriptor associated with stream
+* fmemopen::    Open a stream around a fixed-length buffer
+* fopen::       Open a file
+* fopencookie:: Open a stream with custom callbacks
+* fputc::       Write a character on a stream or file
+* fputs::       Write a character string in a file or stream
+* fread::       Read array elements from a file
+* freopen::     Open a file using an existing file descriptor
+* fseek::       Set file position
+* fsetpos::     Restore position of a stream or file
+* ftell::       Return position in a stream or file
+* funopen::     Open a stream with custom callbacks
+* fwrite::      Write array elements from memory to a file or stream
+* getc::        Get a character from a file or stream (macro)
+* getc_unlocked::	Get a character from a file or stream (macro)
+* getchar::     Get a character from standard input (macro)
+* getchar_unlocked::	Get a character from standard input (macro)
+* getdelim::    Get character string from a file or stream
+* getline::     Get character string from a file or stream
+* gets::        Get character string from standard input (obsolete)
+* getw::        Get a word (int) from a file or stream
+* mktemp::      Generate unused file name
+* open_memstream::	Open a write stream around an arbitrary-length buffer
+* perror::      Print an error message on standard error
+* putc::        Write a character on a stream or file (macro)
+* putc_unlocked::	Write a character on a stream or file (macro)
+* putchar::     Write a character on standard output (macro)
+* putchar_unlocked::	Write a character on standard output (macro)
+* puts::        Write a character string on standard output
+* putw::        Write a word (int) to a file or stream
+* remove::      Delete a file's name
+* rename::      Rename a file
+* rewind::      Reinitialize a file or stream
+* setbuf::      Specify full buffering for a file or stream
+* setbuffer::   Specify full buffering for a file or stream with size
+* setlinebuf::  Specify line buffering for a file or stream
+* setvbuf::     Specify buffering for a file or stream
+* siprintf::    Write formatted output (integer only)
+* siscanf::     Scan and format input (integer only)
+* sprintf::     Write formatted output
+* sscanf::      Scan and format input
+* tmpfile::     Create a temporary file
+* tmpnam::      Generate name for a temporary file
+* ungetc::      Push data back into a stream
+* vfprintf::    Format variable argument list
+* vfscanf::     Scan variable argument list
+* viprintf::    Format variable argument list (integer only)
+* viscanf::     Scan variable format list (integer only)
+@end menu
+
+@page
+@include stdio/clearerr.def
+
+@page
+@include stdio/diprintf.def
+
+@page
+@include stdio/dprintf.def
+
+@page
+@include stdio/fclose.def
+
+@page
+@include stdio/fcloseall.def
+
+@page
+@include stdio/fdopen.def
+
+@page
+@include stdio/feof.def
+
+@page
+@include stdio/ferror.def
+
+@page
+@include stdio/fflush.def
+
+@page
+@include stdio/fgetc.def
+
+@page
+@include stdio/fgetpos.def
+
+@page
+@include stdio/fgets.def
+
+@page
+@include stdio/fileno.def
+
+@page
+@include stdio/fmemopen.def
+
+@page
+@include stdio/fopen.def
+
+@page
+@include stdio/fopencookie.def
+
+@page
+@include stdio/fputc.def
+
+@page
+@include stdio/fputs.def
+
+@page
+@include stdio/fread.def
+
+@page
+@include stdio/freopen.def
+
+@page
+@include stdio/fseek.def
+
+@page
+@include stdio/fsetpos.def
+
+@page
+@include stdio/ftell.def
+
+@page
+@include stdio/funopen.def
+
+@page
+@include stdio/fwrite.def
+
+@page
+@include stdio/getc.def
+
+@page
+@include stdio/getc_u.def
+
+@page
+@include stdio/getchar.def
+
+@page
+@include stdio/getchar_u.def
+
+@page
+@include stdio/getdelim.def
+
+@page
+@include stdio/getline.def
+
+@page
+@include stdio/gets.def
+
+@page
+@include stdio/getw.def
+
+@page
+@include stdio/mktemp.def
+
+@page
+@include stdio/open_memstream.def
+
+@page
+@include stdio/perror.def
+
+@page
+@include stdio/putc.def
+
+@page
+@include stdio/putc_u.def
+
+@page
+@include stdio/putchar.def
+
+@page
+@include stdio/putchar_u.def
+
+@page
+@include stdio/puts.def
+
+@page
+@include stdio/putw.def
+
+@page
+@include stdio/remove.def
+
+@page
+@include stdio/rename.def
+
+@page
+@include stdio/rewind.def
+
+@page
+@include stdio/setbuf.def
+
+@page
+@include stdio/setbuffer.def
+
+@page
+@include stdio/setlinebuf.def
+
+@page
+@include stdio/setvbuf.def
+
+@page
+@include stdio/siprintf.def
+
+@page
+@include stdio/siscanf.def
+
+@page
+@include stdio/sprintf.def
+
+@page
+@include stdio/sscanf.def
+
+@page
+@include stdio/tmpfile.def
+
+@page
+@include stdio/tmpnam.def
+
+@page
+@include stdio/ungetc.def
+
+@page
+@include stdio/vfprintf.def
+
+@page
+@include stdio/vfscanf.def
+
+@page
+@include stdio/viprintf.def
+
+@page
+@include stdio/viscanf.def

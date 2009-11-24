@@ -1,0 +1,156 @@
+*** Registers
+	GR0	*always zero
+	GR1	scratch
+	GR2	normal return register
+	GR27	Global Data Pointer (Must be set in crt0)
+	GR30	SP stack pointer
+	GR31	milicode return pointer
+
+	SR*	Space registers	
+
+	CR24-31	Temporary Control Registers
+	CR14	Vector Table Register (like VBR on an m68020)
+	CR0	Put in a count, causes exception when decremented to 0.
+
+FORTH's magic number is 031240
+
+***
+    Series 700/800
+      The following options are also supported:
+
+           -snnn          set the initial system load (ISL) start address to
+                          nnn in the volume label.  This is useful when
+                          building boot media for Series 700/800 systems.
+
+           -lnnn          specifies the length in bytes of the ISL code in
+                          the LIF volume.
+
+           -ennn          set the ISL entry point to nnn bytes from the
+                          beginning of the ISL.  For example, specifying -
+                          e3272 means that the ISL entry point is 3272
+                          (decimal) bytes from the beginning of the ISL
+                          object module.
+
+           -Knnn          forces the directory start location to be the
+                          nearest multiple of nnn x 1024 bytes from the
+                          beginning of the volume.  This is necessary for
+                          booting Series 700/800 systems from LIF media.
+
+	   -n xxx  	  Sets the volume name to be xxx.
+	lifinit -v64000000 -d64 -nISL10 -K2 -s4096 -l61440 -e5336 this_lif
+
+# lifcp --
+#	-r	Forces RAW mode copying. (file type BIN (-23951))
+#	-T	Sets the file type of the directory entry.
+#	-Knnn	forces each file copied in to begin on a nnn x
+#               1024-byte boundary from the beginning of the volume
+#	Note: the word echoed below MUST be 10 characters exactly.
+#
+	(echo "FORTH    ") | lifcp -r -T-030001 -K2 - this_lif:AUTO	
+
+
+#
+# somxtract infile outfile --
+#	converts a series 800 file *only* into a raw image
+
+It turns out the native cc and our current gcc produce series 700
+output, so in this case it runs till if fills up the hard disk.
+
+*** rombootlf5 is a FORTH interpreter in a "boot" image. (it won't run on
+the HP742 board)
+
+lifls -l rombootlf5
+volume ISL10 data size 249984 directory size 8 94/04/20 10:26:36
+filename   type   start   size     implement  created
+===============================================================
+ISL        -12800 16      240      0          94/04/20 10:26:36
+HPUX       -12928 256     496      0          94/04/20 10:26:37
+ IOMAP      -12960 752     1504     0          94/04/20 10:26:37
+AUTO       -12289 2256    1        0          94/04/20 10:26:38
+FORTH      -12960 2264    208      0          94/04/20 10:26:38
+HPFORTH    ASCII  2472    420      0          94/04/20 10:26:38
+BOOTROM    ASCII  2896    3849     0          94/04/20 10:26:40
+PAD1       -12290 6752    1172     0          94/04/20 10:26:40
+
+*** The ISL is only needed when booting the raw hardware. As we're runing
+on a monitor (barely) all we need is a crt0 that initiallizes the GR27
+Global Data Pointer and zero's bss.
+
+*** Initial Program Load
+--------------------
+From page 11-56, architecture book.
+0x00000000 +------------------------------------+ 0
+	   |	LIF_MAGIC	|		|
+0x00000004 +------------------------------------+ 4
+	   |					|
+0x000000F0 +------------------------------------+ 240
+	   |		IPL_ADDR		|
+0x000000F4 +------------------------------------+ 244
+	   |		IPL_SIZE		|
+0x000000F8 +------------------------------------+ 248
+ 	   |		IPL_ENTRY		|
+0x000000FC +------------------------------------+ 252
+	   |					|
+IPL_ADDR   +------------------------------------+ IPL_ADDR
+	   |	    Position Independant	|
+	   |		IPL Code		|
+	   |	(including IPL_CHECKSUM)	|
+	   +------------------------------------+ IPL_ADDR + IPL_SIZE
+	   |					|
+	   +------------------------------------+
+
+IPL_ADDR	2 Kbyte aligned, nonzero
+IPL_SIZE	Multiple of 2Kbytes, <= 256 Kbytes
+IPL_ENTRY	Word aligned, less than IPL_SIZE
+
+Loads at IPL_START
+
+This is based on Cobra/Coral hardware:
+      LED register at 0xf080024
+      I/O status register at 0xf0800000
+      EEPROM at 0xf0810000 (LAN ID begins at byte 0)
+
+Here's a dump of the LIF volume header using "xd" (od with hex output)
+
+*
+00000f0 0000 1000 0000 9800 0000 0000 0000 0000
+                       ^^^^
+		This is the size
+*
+0000800 5445 5354 2020 2020 2020 a271 0000 0010
+	^^^^ ^^^^ ^^^^ ^^^^ ^^^^           ^^^^<-- this is the ipl offset
+	this is the vol name	 ^^^^<- this is the type
+
+0000810 0000 0098 9407 1919 1426 8001 0000 0000
+	     ^^^^
+	This is the ipl size
+
+Interupts
+---------
+The vector table is access by %iva (%cr14). The address here must be a
+multiple of 2048. The indexes are:
+1	high-priority
+2	power failure
+3	recovery counter
+4	external interrupt
+5	low-priority machine check
+6	instruction TLB miss/instruction page fault
+7	instruction memory protection
+8	illegal instruction
+9	break instruction
+10	priviledged operation
+11	priviledged register
+12	overflow
+13	conditional
+14	assist exception
+15	data TLB miss fault/data page fault
+16	non access instruction TLB miss fault
+17	non access page TLB miss fault/non access data page fault
+18	data memory protection/unaligned data reference
+19	data memory break
+20	TLB dirty bit
+21	page reference
+22	assist emulation
+23	higher-priority transfer
+24	lower-priority transfe
+25	taken branch

@@ -1,0 +1,287 @@
+# Copyright (c) 1995, 1996, 1997 Cygnus Support
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+
+# Makefile for libgloss/sparc. This is the board support
+# code for the various sparc targets.
+
+DESTDIR =
+VPATH = @srcdir@
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL = /bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+AR_FLAGS = qrv
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+CYGMON_CRT0 = cygmon-crt0.o
+CYGMON_BSP = libcygmon.a
+CYGMON_OBJS = cygmon-salib.o
+
+701_CRT0 = crt0-701.o
+701_BSP = libsplet701.a
+701_OBJS = sysc-701.o salib-701.o sparclet-stub.o
+
+930_BSP = libslite930.a
+931_BSP = libslite931.a
+934_BSP = libslite934.a
+86X_BSP = libslite86x.a
+
+# for the time being, built the stub without hardware breakpoint support
+SLITE_OBJS = salib.o sparcl-stub.o cache.o
+
+# ERC32: SIS simulator, see sim/erc32.
+ERC32_CRT0 = erc32-crt0.o
+ERC32_BSP = liberc32.a
+ERC32_OBJS = erc32-io.o traps.o erc32-stub.o debug.o fixctors.o
+ERC32_ALL = $(ERC32_CRT0) $(ERC32_BSP)
+
+CRT0 = crt0.o
+OBJS = close.o fstat.o getpid.o isatty.o kill.o \
+	lseek.o open.o print.o putnum.o read.o sbrk.o stat.o \
+	unlink.o write.o
+
+# This is set to one of SPARC, SLITE, or SPLET by configure.
+# It's not clear what to do here.
+# One could certainly build everything.  The assembler supports all cpu
+# variants (via runtime switches).  However, the compiler [currently] doesn't.
+# Of course, it may be the case that there isn't any cpu specific code in
+# C source files, but there might be in the future.
+CPU = @CPU@
+
+# sparc stuff (not sparclite or sparclet)
+SPARC_ALL = $(CYGMON_BSP) $(CYGMON_CRT0) $(objdir)/cygmon.ld
+SPARC_INSTALL = sparc-install
+SPARC_OBJ_FORMAT = sparc
+SPARC_RAM_START = 0x4000
+
+# sparc 64 stuff
+SPARC64_ALL = $(CYGMON_BSP) $(CYGMON_CRT0) $(objdir)/cygmon.ld
+SPARC64_INSTALL = sparc-install
+SPARC64_OBJ_FORMAT = sparc:v9
+SPARC64_RAM_START = 0x4000
+
+# sparclite stuff
+SLITE_ALL = $(930_BSP) $(931_BSP) $(CYGMON_BSP) $(CYGMON_CRT0) $(objdir)/cygmon.ld $(934_BSP) $(86X_BSP)
+SLITE_INSTALL = slite-install
+SLITE_OBJ_FORMAT = sparc
+SLITE_RAM_START = 0x40050000
+
+# sparclet stuff
+SPLET_ALL = $(701_CRT0) $(701_BSP)
+SPLET_INSTALL = splet-install
+
+#### Host specific Makefile fragment comes in here.
+@host_makefile_frag@
+
+all: ${CRT0} $($(CPU)_ALL) $(ERC32_ALL)
+
+$(CYGMON_CRT0): cygmon-crt0.S
+	$(CC) $(CFLAGS_FOR_TARGET) $(CFLAGS) -DTARGET_CPU_$(CPU) $(INCLUDES) -o $@ -c $(srcdir)/cygmon-crt0.S
+
+$(CYGMON_BSP): $(CYGMON_OBJS)
+	@rm -f $@
+	${AR} ${AR_FLAGS} $@ $(CYGMON_OBJS)
+	${RANLIB} $@
+
+#$(STUBLIBS): $(OBJS) $(SLITE_OBJS) $(CRT0)
+#	${CC} -nostdlib -r $(SLITE_OBJS) $(SHARED_OBJS) -o $(930_BSP)
+#	${CC} -DSL931 -nostdlib -r $(SLITE_OBJS) $(SHARED_OBJS) -o $(931_BSP)
+#	${CC} -nostdlib -r $(SLITE_OBJS) $(SHARED_OBJS) -o $(934_BSP)
+
+$(CRT0): $(srcdir)/crt0.S $(srcdir)/asm.h $(srcdir)/slite.h
+	$(CC) $(CFLAGS_FOR_TARGET) $(CFLAGS) $(INCLUDES) -o $@ -c $(srcdir)/crt0.S
+
+$(930_BSP) $(931_BSP) $(934_BSP) $(86X_BSP): $(OBJS) $(SLITE_OBJS) 
+	@rm -f $@
+	${AR} ${AR_FLAGS} $@ $(OBJS) $(SLITE_OBJS)
+	${RANLIB} $@
+
+$(701_BSP): $(701_OBJS)
+	@rm -f $@
+	${AR} ${AR_FLAGS} $@ $(701_OBJS)
+	${RANLIB} $@
+
+erc32-crt0.o: $(srcdir)/erc32-crt0.S $(srcdir)/asm.h $(srcdir)/slite.h
+	$(CC) $(CFLAGS_FOR_TARGET) $(CFLAGS) $(INCLUDES) -o $@ -c $(srcdir)/erc32-crt0.S
+
+liberc32.a: $(OBJS) $(ERC32_OBJS)
+	@rm -f $@
+	${AR} ${AR_FLAGS} $@ $(OBJS) $(ERC32_OBJS)
+	${RANLIB} $@
+
+crt0-701.o: crt0-701.S
+sysc-701.o: sysc-701.c
+salib-701.o: salib-701.c
+sparclet-stub.o: sparclet-stub.c
+cygmon-salib.o: cygmon-salib.c
+	$(CC) -DTARGET_CPU_$(CPU) $(CFLAGS_FOR_TARGET) $(CFLAGS) $(INCLUDES) -o $@ -c $(srcdir)/cygmon-salib.c
+cache.o: $(srcdir)/cache.c
+salib.o: $(srcdir)/salib.c
+win.o: $(srcdir)/win.S
+syscalls.o: $(srcdir)/syscalls.c
+sparcl-stub.o: $(srcdir)/sparcl-stub.c $(srcdir)/../debug.h $(srcdir)/../debug.c
+erc32-stub.o: $(srcdir)/erc32-stub.c $(srcdir)/../debug.h $(srcdir)/../debug.c
+fixctors.o : $(srcdir)/fixctors.c
+
+$(objdir)/cygmon.ld: @CYGMONLDSCRIPTTEMPL@
+	sed 's/TARGET_OBJ_FORMAT/$($(CPU)_OBJ_FORMAT)/g;s/TARGET_RAM_START/$($(CPU)_RAM_START)/g;' < $(<) > $(objdir)/cygmon.ld
+
+install: $($(CPU)_INSTALL)
+	$(INSTALL_DATA) $(CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(CRT0)
+
+sparc-install:
+	$(INSTALL_DATA) $(CYGMON_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(CYGMON_OBJS) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(objdir)/cygmon.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(CYGMON_CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+
+slite-install:
+	$(INSTALL_DATA) $(930_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(930_BSP)
+	$(INSTALL_DATA) $(931_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(931_BSP)
+	$(INSTALL_DATA) $(934_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(934_BSP)
+	$(INSTALL_DATA) $(86X_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(86X_BSP)
+	$(INSTALL_DATA) $(srcdir)/ex930.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(srcdir)/ex931.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(srcdir)/ex934.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(srcdir)/sparc86x.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(srcdir)/elfsim.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(ERC32_CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(ERC32_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(objdir)/traps.o $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(CYGMON_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(CYGMON_OBJS) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(objdir)/cygmon.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+	$(INSTALL_DATA) $(CYGMON_CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+
+splet-install:
+	$(INSTALL_DATA) $(701_CRT0) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(701_CRT0)
+	$(INSTALL_DATA) $(701_BSP) $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}/$(701_BSP)
+	$(INSTALL_DATA) $(srcdir)/tsc701.ld $(DESTDIR)$(tooldir)/lib${MULTISUBDIR}
+
+# Make a simple test case to test the linker script, startup code, and
+# I/O code
+#
+test: ex930-test.x ex931-test.x erc32-test.x
+	@echo Done...
+
+# compile a fully linked binary. The -N option is for a.out, so the
+# base address will be zero, rather than the default of 0x2020. The
+# -Wl,-T*.ld is for the linker script. By using -Wl, the linker script
+# is put on the proper place in the comand line for ld, and all the
+# symbols will get fully resolved.
+
+erc32-test.x: test.o ${ERC32_CRT0} ${srcdir}/erc32.ld Makefile ${ERC32_BSP}
+	${CC} -L${srcdir} -L${objdir} test.o -o $@ $(LDFLAGS_FOR_TARGET) \
+	-N -Wl,-Terc32.ld -Wl,-Map -Wl,erc32.map -nostdlib
+erc32-test.srec: erc32-test.x
+	$(OBJCOPY) -O srec erc32-test.x $@
+erc32-test.dis: erc32-test.x
+	@rm -fr erc32-test.dis
+	$(OBJDUMP) -d erc32-test.x > $@
+erc32-test: erc32-test.srec erc32-test.dis
+
+ex930-test.x: test.o ${CRT0} ${srcdir}/ex930.ld Makefile  ${930_BSP}
+	${CC} -L${srcdir} -L${objdir} test.o -o $@ $(LDFLAGS_FOR_TARGET) \
+	-N -Wl,-Tex930.ld -nostdlib
+ex930-test.srec: ex930-test.x
+	$(OBJCOPY) -O srec ex930-test.x $@
+ex930-test.dis: ex930-test.x
+	@rm -fr ex930-test.dis
+	$(OBJDUMP) -d ex930-test.x > $@
+ex930-test: ex930-test.srec ex930-test.dis
+
+ex931-test.x: test.o ${CRT0} ${srcdir}/ex931.ld Makefile  ${931_BSP}
+	${CC} -L${srcdir} -L${objdir} test.o -o $@ $(LDFLAGS_FOR_TARGET) \
+	-N -Wl,-Tex931.ld -nostdlib
+ex931-test.srec: ex931-test.x
+	$(OBJCOPY) -O srec ex931-test.x $@
+ex931-test.dis: ex931-test.x
+	@rm -fr ex931-test.dis
+	$(OBJDUMP) -d ex931-test.x > $@
+ex931-test: ex931-test.srec ex931-test.dis
+
+ex934-test.x: test.o ${CRT0} ${srcdir}/ex934.ld Makefile  ${934_BSP}
+	${CC} -L${srcdir} -L${objdir} test.o -o $@ $(LDFLAGS_FOR_TARGET) \
+	-N -Wl,-Tex934.ld -nostdlib
+ex934-test.srec: ex934-test.x
+	$(OBJCOPY) -O srec ex934-test.x $@
+ex934-test.dis: ex934-test.x
+	@rm -fr ex934-test.dis
+	$(OBJDUMP) -d ex934-test.x > $@
+ex934-test: ex934-test.srec ex934-test.dis
+
+# a C++ test case
+dtor.o:  $(srcdir)/dtor.C
+	$(CC) $(CFLAGS_FOR_TARGET) $(INCLUDES) -o $@ -c $?
+dtor.dis: dtor.x
+	@rm -fr dtor.dis
+	$(OBJDUMP) -d dtor.x > $@
+dtor.x: dtor.o ${ERC32_CRT0} ${srcdir}/erc32.ld Makefile ${ERC32_BSP}
+	${CC} -L${srcdir} -L${objdir} dtor.o -o $@ $(LIBS_FOR_TARGET) \
+	-N -Wl,-Terc32.ld
+
+# target specific makefile fragment comes in here.
+@target_makefile_frag@
+
+clean mostlyclean:
+	rm -f *.o *.a *.map *.x
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.cache config.log config.status
+
+.PHONY: info dvi doc install-info clean-info
+info doc dvi:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@ \
+	@target_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

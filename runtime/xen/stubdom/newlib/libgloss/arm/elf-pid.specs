@@ -1,0 +1,8 @@
+%rename link                old_link
+
+*link:
+-T redboot.ld%s -Ttext 0x10000 %(old_link)
+
+*startfile:
+crti%O%s crtbegin%O%s %{!pg:redboot-crt0%O%s} %{pg:redboot-crt0%O%s} redboot-syscalls%O%s
+

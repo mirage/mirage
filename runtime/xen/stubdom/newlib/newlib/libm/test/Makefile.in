@@ -1,0 +1,202 @@
+# Makefile for newlib/libm/test.
+# Copyright (c) 1994, 2002 Red Hat Incorporated.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+#    Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 
+#    Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 
+#    The name of Red Hat Incorporated may not be used to endorse
+#    or promote products derived from this software without specific
+#    prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED.  IN NO EVENT SHALL RED HAT INCORPORATED BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF 
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+TOP=..
+SRCTOP=..
+
+#### Host, target, and site specific Makefile fragments come in here.
+###
+
+
+OFILES=test.o  string.o  convert.o conv_vec.o iconv_vec.o test_is.o dvec.o sprint_vec.o sprint_ivec.o math2.o test_ieee.o
+
+VEC_OFILES=\
+	math.o \
+	atan2_vec.o \
+	atan2f_vec.o \
+	jn_vec.o \
+	jnf_vec.o \
+	log2_vec.o \
+	log2f_vec.o \
+	yn_vec.o \
+	ynf_vec.o \
+	acos_vec.o	\
+	acosf_vec.o	\
+	acosh_vec.o	\
+	acoshf_vec.o	\
+	asin_vec.o	\
+	asinf_vec.o	\
+	asinh_vec.o	\
+	asinhf_vec.o	\
+	atan_vec.o	\
+	atanf_vec.o	\
+	atanh_vec.o	\
+	atanhf_vec.o	\
+	ceil_vec.o	\
+	ceilf_vec.o	\
+	cos_vec.o	\
+	cosf_vec.o	\
+	cosh_vec.o	\
+	coshf_vec.o	\
+	erf_vec.o	\
+	erfc_vec.o	\
+	erfcf_vec.o	\
+	erff_vec.o	\
+	exp_vec.o	\
+	expf_vec.o	\
+	fabs_vec.o	\
+	fabsf_vec.o	\
+	floor_vec.o	\
+	floorf_vec.o	\
+	gamma_vec.o	\
+	gammaf_vec.o	\
+	j0_vec.o	\
+	j0f_vec.o	\
+	j1_vec.o	\
+	j1f_vec.o	\
+	log10_vec.o	\
+	log10f_vec.o	\
+	log1p_vec.o	\
+	log1pf_vec.o	\
+	log_vec.o	\
+	logf_vec.o	\
+	sin_vec.o	\
+	sinf_vec.o	\
+	sinh_vec.o	\
+	sinhf_vec.o	\
+	sqrt_vec.o	\
+	sqrtf_vec.o	\
+	tan_vec.o	\
+	tanf_vec.o	\
+	tanh_vec.o	\
+	tanhf_vec.o	\
+	y0_vec.o	\
+	y0f_vec.o	\
+	y1_vec.o	\
+	y1f_vec.o	\
+	hypotf_vec.o	\
+	hypot_vec.o	\
+	fmod_vec.o	\
+	fmodf_vec.o	
+
+
+all:$(OFILES)  $(VEC_OFILES)
+	$(CROSS_LD) -o test ../../crt0.o $(OFILES) $(VEC_OFILES) ../../libc.a ../../libm.a
+
+
+clean mostlyclean:
+	$(RM) $(OFILES) $(VEC_OFILES) *~
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status
+
+
+Makefile:Makefile.in
+	$(SHELL) config.status
+
+# to support SunOS VPATH
+acos_vec.o: acos_vec.c
+acosf_vec.o: acosf_vec.c
+acosh_vec.o: acosh_vec.c
+acoshf_vec.o: acoshf_vec.c
+asin_vec.o: asin_vec.c
+asinf_vec.o: asinf_vec.c
+asinh_vec.o: asinh_vec.c
+asinhf_vec.o: asinhf_vec.c
+atan2_vec.o: atan2_vec.c
+atan2f_vec.o: atan2f_vec.c
+atan_vec.o: atan_vec.c
+atanf_vec.o: atanf_vec.c
+atanh_vec.o: atanh_vec.c
+atanhf_vec.o: atanhf_vec.c
+ceil_vec.o: ceil_vec.c
+ceilf_vec.o: ceilf_vec.c
+conv_vec.o: conv_vec.c
+convert.o: convert.c
+cos_vec.o: cos_vec.c
+cosf_vec.o: cosf_vec.c
+cosh_vec.o: cosh_vec.c
+coshf_vec.o: coshf_vec.c
+dcvt.o: dcvt.c
+dvec.o: dvec.c
+erf_vec.o: erf_vec.c
+erfc_vec.o: erfc_vec.c
+erfcf_vec.o: erfcf_vec.c
+erff_vec.o: erff_vec.c
+exp_vec.o: exp_vec.c
+expf_vec.o: expf_vec.c
+fabs_vec.o: fabs_vec.c
+fabsf_vec.o: fabsf_vec.c
+floor_vec.o: floor_vec.c
+floorf_vec.o: floorf_vec.c
+fmod_vec.o: fmod_vec.c
+fmodf_vec.o: fmodf_vec.c
+gamma_vec.o: gamma_vec.c
+gammaf_vec.o: gammaf_vec.c
+hypot_vec.o: hypot_vec.c
+hypotf_vec.o: hypotf_vec.c
+iconv_vec.o: iconv_vec.c
+j0_vec.o: j0_vec.c
+j0f_vec.o: j0f_vec.c
+j1_vec.o: j1_vec.c
+j1f_vec.o: j1f_vec.c
+jn_vec.o: jn_vec.c
+jnf_vec.o: jnf_vec.c
+log10_vec.o: log10_vec.c
+log10f_vec.o: log10f_vec.c
+log1p_vec.o: log1p_vec.c
+log1pf_vec.o: log1pf_vec.c
+log2_vec.o: log2_vec.c
+log2f_vec.o: log2f_vec.c
+log_vec.o: log_vec.c
+logf_vec.o: logf_vec.c
+math.o: math.c
+math2.o: math2.c
+sin_vec.o: sin_vec.c
+sinf_vec.o: sinf_vec.c
+sinh_vec.o: sinh_vec.c
+sinhf_vec.o: sinhf_vec.c
+sprint_ivec.o: sprint_ivec.c
+sprint_vec.o: sprint_vec.c
+sqrt_vec.o: sqrt_vec.c
+sqrtf_vec.o: sqrtf_vec.c
+string.o: string.c
+tan_vec.o: tan_vec.c
+tanf_vec.o: tanf_vec.c
+tanh_vec.o: tanh_vec.c
+tanhf_vec.o: tanhf_vec.c
+test.o: test.c
+test_ieee.o: test_ieee.c
+test_is.o: test_is.c
+y0_vec.o: y0_vec.c
+y0f_vec.o: y0f_vec.c
+y1_vec.o: y1_vec.c
+y1f_vec.o: y1f_vec.c
+yn_vec.o: yn_vec.c
+ynf_vec.o: ynf_vec.c

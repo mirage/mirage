@@ -1,0 +1,178 @@
+: nokill_bogus_lines ;
+
+: ENDDD
+	skip_past_newline
+	;
+
+: TABLE
+	skip_past_newline
+	"@table @code\n" catstr
+	;
+
+: ENDTABLE
+	skip_past_newline
+	"@end table\n"
+	catstr
+	;
+
+: QUICKREF
+	skip_past_newline
+	get_stuff_in_command
+	"&&~&&~&&\cr\tablerule\n"
+	quickref
+	;
+
+
+: ITEM 
+	"@item " catstr ;
+
+: EXAMPLE
+	skip_past_newline	
+
+	get_stuff_in_command nokill_bogus_lines translatecomments 
+	courierize catstr
+
+	;
+
+: INODE 
+	"@node " catstr skip_past_newline copy_past_newline catstr 
+	;
+
+: CODE_FRAGMENT
+	EXAMPLE 
+	;
+
+: SYNOPSIS
+	skip_past_newline
+	"@strong{Synopsis}\n" catstr
+	"@example\n" catstr
+	get_stuff_in_command  
+	do_fancy_stuff
+	nokill_bogus_lines
+	indent
+	catstr
+	"@end example\n" catstr
+
+	;
+
+
+: ANSI_SYNOPSIS
+	skip_past_newline
+	"@strong{Synopsis}\n" catstr
+	"@example\n" catstr
+	get_stuff_in_command  
+	do_fancy_stuff
+	nokill_bogus_lines
+	indent
+	catstr
+	"@end example\n" catstr
+
+	;
+
+: OLDTRAD_SYNOPSIS
+	skip_past_newline
+	"@strong{Traditional Synopsis}\n" catstr
+	"@example\n" catstr
+	get_stuff_in_command  
+	do_fancy_stuff
+	nokill_bogus_lines
+	indent
+	catstr
+	"@end example\n" catstr
+
+	;
+
+: TRAD_SYNOPSIS
+	skip_past_newline
+
+	;
+
+: INDEX 
+	"@findex " skip_past_newline copy_past_newline catstr catstr 
+	;
+
+: FUNCTION
+	"@node "	- a
+	skip_past_newline
+	copy_past_newline
+	dup		- a x x 
+	get_stuff_in_angle -a x y
+	swap
+	do_fancy_stuff
+	"@section " - a x x b 
+	swap
+	remchar
+	"\n" - a x b x c
+	catstr  catstr 	catstr 	catstr 	catstr 
+	;
+
+: bodytext
+	get_stuff_in_command 
+	bulletize
+	courierize
+	do_fancy_stuff
+	catstr
+	"@*\n" catstr
+	;
+
+: asection
+	skip_past_newline
+	catstr
+	copy_past_newline 	
+	do_fancy_stuff catstr 	
+	bodytext	
+	;
+
+: SECTION 
+	"@section " asection  ;
+
+: SUBSECTION
+	"@section " asection  ;
+
+: SUBSUBSECTION
+	"@subsection " asection  ;
+
+: subhead
+	skip_past_newline
+	bodytext
+	;
+
+
+	
+: DESCRIPTION 
+	"@strong{Description}@*\n" catstr subhead ;
+
+: RETURNS
+	"@strong{Returns}@*\n" catstr subhead ;
+
+: ERRORS
+	"@strong{Errors}@*\n" catstr subhead ;
+
+
+: PORTABILITY
+	"@strong{Portability}@*\n" catstr subhead ;
+
+
+: WARNINGS
+	"@strong{Warnings}@*\n" catstr subhead ;
+
+
+
+: INTERNAL_FUNCTION
+	func ;
+
+
+: INTERNAL_DEFINITION 
+	func ;
+
+
+: INTERNAL
+	func ;
+
+: TYPEDEF
+	FUNCTION ;
+
+
+
+: NEWPAGE
+	"@page\n" catstr subhead ;

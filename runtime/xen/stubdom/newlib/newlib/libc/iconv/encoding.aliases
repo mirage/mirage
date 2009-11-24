@@ -1,0 +1,55 @@
+#
+# This file was automatically generated. Don't edit.
+#
+
+big5 csbig5 big_five bigfive cn_big5 cp950
+cp775 ibm775 cspc775baltic
+cp850 ibm850 850 cspc850multilingual
+cp852 ibm852 852 cspcp852
+cp855 ibm855 855 csibm855
+cp866 866 IBM866 CSIBM866
+euc_jp eucjp
+euc_kr euckr
+euc_tw euctw
+iso_8859_1 iso8859_1 iso88591 iso_8859_1:1987 iso_ir_100 latin1 l1 ibm819 cp819 csisolatin1
+iso_8859_10 iso_8859_10:1992 iso_ir_157 iso885910 latin6 l6 csisolatin6 iso8859_10
+iso_8859_11 iso8859_11 iso885911
+iso_8859_13 iso_8859_13:1998 iso8859_13 iso885913
+iso_8859_14 iso_8859_14:1998 iso885914 iso8859_14
+iso_8859_15 iso885915 iso_8859_15:1998 iso8859_15 
+iso_8859_2 iso8859_2 iso88592 iso_8859_2:1987 iso_ir_101 latin2 l2 csisolatin2
+iso_8859_3 iso_8859_3:1988 iso_ir_109 iso8859_3 latin3 l3 csisolatin3 iso88593
+iso_8859_4 iso8859_4 iso88594 iso_8859_4:1988 iso_ir_110 latin4 l4 csisolatin4
+iso_8859_5 iso8859_5 iso88595 iso_8859_5:1988 iso_ir_144 cyrillic csisolatincyrillic
+iso_8859_6 iso_8859_6:1987 iso_ir_127 iso8859_6 ecma_114 asmo_708 arabic csisolatinarabic iso88596
+iso_8859_7 iso_8859_7:1987 iso_ir_126 iso8859_7 elot_928 ecma_118 greek greek8 csisolatingreek iso88597
+iso_8859_8 iso_8859_8:1988 iso_ir_138 iso8859_8 hebrew csisolatinhebrew iso88598
+iso_8859_9 iso_8859_9:1989 iso_ir_148 iso8859_9 latin5 l5 csisolatin5 iso88599
+iso_ir_111 ecma_cyrillic koi8_e koi8e csiso111ecmacyrillic
+koi8_r cskoi8r koi8r koi8
+koi8_ru koi8ru
+koi8_u koi8u
+koi8_uni koi8uni
+ucs_2 ucs2 iso_10646_ucs_2 iso10646_ucs_2 iso_10646_ucs2 iso10646_ucs2 iso10646ucs2 csUnicode
+ucs_2_internal ucs2_internal ucs_2internal ucs2internal
+ucs_2be ucs2be
+ucs_2le ucs2le
+ucs_4 ucs4 iso_10646_ucs_4 iso10646_ucs_4 iso_10646_ucs4 iso10646_ucs4 iso10646ucs4
+ucs_4_internal ucs4_internal ucs_4internal ucs4internal
+ucs_4be ucs4be
+ucs_4le ucs4le
+us_ascii ansi_x3.4_1968 ansi_x3.4_1986 iso_646.irv:1991 ascii iso646_us us ibm367 cp367 csascii 
+utf_16 utf16
+utf_16be utf16be
+utf_16le utf16le
+utf_8 utf8
+win_1250 cp1250
+win_1251 cp1251
+win_1252 cp1252
+win_1253 cp1253
+win_1254 cp1254
+win_1255 cp1255
+win_1256 cp1256
+win_1257 cp1257
+win_1258 cp1258
+

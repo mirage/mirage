@@ -1,0 +1,1 @@
+/* Dummy file to force .S.o suffix rule generation.  */

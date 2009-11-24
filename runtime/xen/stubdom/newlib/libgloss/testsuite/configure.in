@@ -1,0 +1,29 @@
+# This file is a shell script fragment that supplies the information
+# necessary to tailor a template configure script into the configure
+# script appropriate for this directory.  For more information, check
+# any existing configure script.
+
+srctrigger=Makefile.in
+srcname="testing support"
+target_dependent=true
+
+# per-host:
+
+# This is basically a hack so that we don't have to replicate the same
+# defines in all the Makefiles.  We put a standard set of definitions
+# in host/any, and use them everywhere.
+
+host_makefile_frag=../config/default.mh
+
+# per-target:
+
+configdirs="libgloss.all"
+
+# post-target:
+
+objroot=`pwd | sed  -e 's@/[^/]*$@@' -e 's@/[^/]*$@@'`
+srcroot=`echo $srcdir | sed  -e 's@/[^/]*$@@' -e 's@/[^/]*$@@'`
+sed -e "s:^OBJROOT[ 	]*=.*$:OBJROOT = ${objroot}:" -e "s:^SRCROOT[ 	]*=.*$:SRCROOT = ${srcroot}:" \
+    ${Makefile} > Makefile.tem
+rm -f ${Makefile}
+mv Makefile.tem ${Makefile}

@@ -1,0 +1,431 @@
+dnl This is the newlib configure.in file.
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT([newlib],[NEWLIB_VERSION])
+AC_CONFIG_SRCDIR([libc])
+AC_CONFIG_HEADER(newlib.h:newlib.hin)
+
+dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
+AC_CONFIG_AUX_DIR(..)
+
+dnl Support --enable-newlib-io-pos-args
+dnl This option is actually read in libc/configure.in.  It is repeated
+dnl here so that it shows up in the help text.
+AC_ARG_ENABLE(newlib-io-pos-args,
+[  --enable-newlib-io-pos-args enable printf-family positional arg support],
+[case "${enableval}" in
+  yes) newlib_io_pos_args=yes ;;
+  no)  newlib_io_pos_args=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-io-pos-args option) ;;
+ esac], [newlib_io_pos_args=])dnl
+
+dnl Support --enable-newlib-io-c99-formats
+AC_ARG_ENABLE(newlib-io-c99-formats,
+[  --enable-newlib-io-c99-formats   enable C99 support in IO functions like printf/scanf],
+[case "${enableval}" in
+  yes) newlib_io_c99_formats=yes;;
+  no)  newlib_io_c99_formats=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-io-c99-formats option) ;;
+ esac], [newlib_io_c99_formats=])dnl
+
+dnl Support --enable-newlib-io-long-long
+AC_ARG_ENABLE(newlib-io-long-long,
+[  --enable-newlib-io-long-long   enable long long type support in IO functions like printf/scanf],
+[case "${enableval}" in
+  yes) newlib_io_long_long=yes;;
+  no)  newlib_io_long_long=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-io-long-long option) ;;
+ esac], [newlib_io_long_long=])dnl
+
+dnl Support --enable-newlib-io-long-double
+AC_ARG_ENABLE(newlib-io-long-double,
+[  --enable-newlib-io-long-double   enable long double type support in IO functions printf/scanf],
+[case "${enableval}" in
+  yes) newlib_io_long_double=yes;;
+  no)  newlib_io_long_double=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-io-long-double option) ;;
+ esac], [newlib_io_long_double=])dnl
+
+dnl If multibyte support is enabled, iconv should be enabled too
+dnl Support --enable-newlib-mb
+AC_ARG_ENABLE(newlib-mb,
+[  --enable-newlib-mb        enable multibyte support],
+[case "${enableval}" in
+  yes) newlib_mb=yes;;
+  no)  newlib_mb=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-mb option) ;;
+ esac], [newlib_mb=])dnl
+
+dnl Support --enable-newlib-iconv-encodings
+AC_ARG_ENABLE(newlib-iconv-encodings,
+[  --enable-newlib-iconv-encodings   enable specific comma-separated list of bidirectional iconv encodings to be built-in],
+[if test x${enableval} = x; then
+   AC_MSG_ERROR(bad value ${enableval} for newlib-iconv-encodings option - use comma-separated encodings list)
+ fi
+ iconv_encodings=${enableval}
+ ], [iconv_encodings=])dnl
+
+dnl Support --enable-newlib-iconv-from-encodings
+AC_ARG_ENABLE(newlib-iconv-from-encodings,
+[  --enable-newlib-iconv-from-encodings   enable specific comma-separated list of \"from\" iconv encodings to be built-in],
+[if test x${enableval} = x; then
+   AC_MSG_ERROR(bad value ${enableval} for newlib-iconv-from-encodings option - use comma-separated encodings list)
+ fi
+ iconv_from_encodings=${enableval}
+ ], [iconv_from_encodings=])dnl
+
+dnl Support --enable-newlib-iconv-to-encodings
+AC_ARG_ENABLE(newlib-iconv-to-encodings,
+[  --enable-newlib-iconv-to-encodings   enable specific comma-separated list of \"to\" iconv encodings to be built-in],
+[if test x${enableval} = x; then
+   AC_MSG_ERROR(bad value ${enableval} for newlib-iconv-to-encodings option - use comma-separated encodings list)
+ fi
+ iconv_to_encodings=${enableval}
+ ], [iconv_to_encodings=])dnl
+
+dnl Support --enable-newlib-iconv-external-ccs
+AC_ARG_ENABLE(newlib-iconv-external-ccs,
+[  --enable-newlib-iconv-external-ccs     enable capabilities to load external CCS files for iconv],
+[if test "${newlib_iconv_external_ccs+set}" != set; then
+   case "${enableval}" in
+     yes) newlib_iconv_external_ccs=yes ;;
+     no)  newlib_iconv_external_ccs=no ;;
+     *)   AC_MSG_ERROR(bad value ${enableval} for newlib-iconv-external-ccs option) ;;
+   esac
+ fi], [newlib_iconv_external_ccs=${newlib_iconv_external_ccs}])dnl
+
+dnl Support --disable-newlib-atexit-dynamic-alloc
+AC_ARG_ENABLE(newlib-atexit-dynamic-alloc,
+[  --disable-newlib-atexit-alloc    disable dynamic allocation of atexit entries],
+[if test "${newlib_atexit_dynamic_alloc+set}" != set; then
+  case "${enableval}" in
+    yes) newlib_atexit_dynamic_alloc=yes ;;
+    no)  newlib_atexit_dynamic_alloc=no  ;;
+    *)   AC_MSG_ERROR(bad value ${enableval} for newlib-atexit-dynamic-alloc option) ;;
+  esac
+ fi], [newlib_atexit_dynamic_alloc=${newlib_atexit_dynamic_alloc}])dnl
+
+dnl Support --enable-newlib-reent-small
+AC_ARG_ENABLE(newlib-reent-small,
+[  --enable-newlib-reent-small   enable small reentrant struct support],
+[case "${enableval}" in
+  yes) newlib_reent_small=yes;;
+  no)  newlib_reent_small=no ;;
+  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-reent-small option) ;;
+ esac], [newlib_reent_small=])dnl
+
+NEWLIB_CONFIGURE(.)
+
+dnl We have to enable libtool after NEWLIB_CONFIGURE because if we try and
+dnl add it into NEWLIB_CONFIGURE, executable tests are made before the first
+dnl line of the macro which fail because appropriate LDFLAGS are not set.
+_LT_DECL_SED
+AC_PROG_AWK
+if test "${use_libtool}" = "yes"; then
+AC_LIBTOOL_WIN32_DLL
+AM_PROG_LIBTOOL
+fi
+
+AC_ARG_ENABLE(newlib_hw_fp,
+[  --enable-newlib-hw-fp    Turn on hardware floating point math],
+[case "${enableval}" in
+   yes) newlib_hw_fp=true ;;
+   no)  newlib_hw_fp=false ;;
+   *) AC_MSG_ERROR(bad value ${enableval} for --enable-newlib-hw-fp) ;;
+ esac],[newlib_hw_fp=false])
+AM_CONDITIONAL(NEWLIB_HW_FP, test x$newlib_hw_fp = xtrue)
+
+# These get added in the top-level configure.in, except in the case where
+# newlib is being built natively.
+LIBC_INCLUDE_GREP=`echo ${CC} | grep \/libc\/include`
+abs_newlib_basedir=`cd ${newlib_basedir} && pwd`
+if test -z "${LIBC_INCLUDE_GREP}"; then
+  CC_FOR_NEWLIB="${CC} -I$PWD/targ-include -I${abs_newlib_basedir}/libc/include"
+else
+  CC_FOR_NEWLIB="${CC}"
+fi
+AC_SUBST(CC_FOR_NEWLIB)
+
+AC_CONFIG_SUBDIRS(libc)
+AC_CONFIG_SUBDIRS(libm)
+
+if test -z "${with_multisubdir}"; then
+  AC_CONFIG_SUBDIRS(doc)
+  have_doc=yes
+else
+  have_doc=
+fi
+AM_CONDITIONAL(HAVE_DOC, test x$have_doc = xyes)
+
+EXTRA_DIRS=
+case $host in
+  i[[34567]]86-pc-linux-*)
+  	AC_CONFIG_SUBDIRS(iconvdata)
+	EXTRA_DIRS=iconvdata
+	;;
+esac
+AC_SUBST(EXTRA_DIRS)
+
+CRT0=
+CRT0_DIR=
+if test "x${have_crt0}" = "xyes"; then
+  CRT0=crt0.o
+  CRT0_DIR=libc/
+fi
+AC_SUBST(CRT0)
+AC_SUBST(CRT0_DIR)
+
+CRT1=${crt1}
+CRT1_DIR=
+if test -n "${crt1_dir}"; then
+  CRT1_DIR=${crt1_dir}/
+fi
+AC_SUBST(CRT1)
+AC_SUBST(CRT1_DIR)
+
+if test -n "${libm_machine_dir}"; then
+  LIBM_MACHINE_OBJECTLIST=libm/machine/${libm_machine_dir}/objectlist.awk.in
+fi
+AC_SUBST(LIBM_MACHINE_OBJECTLIST)
+
+if test -n "${machine_dir}"; then
+  MACHINE_OBJECTLIST=libc/machine/${machine_dir}/objectlist.awk.in
+fi
+AC_SUBST(MACHINE_OBJECTLIST)
+
+if test -n "${sys_dir}"; then
+  SYS_OBJECTLIST=libc/sys/${sys_dir}/objectlist.awk.in
+fi
+AC_SUBST(SYS_OBJECTLIST)
+
+if test "${have_sys_mach_dir}" = "yes"; then
+  SYS_MACH_OBJECTLIST=libc/sys/${sys_dir}/machine/${machine_dir}/objectlist.awk.in
+fi
+AC_SUBST(SYS_MACH_OBJECTLIST)
+
+if test -n "${posix_dir}"; then
+  POSIX_OBJECTLIST=libc/${posix_dir}/objectlist.awk.in
+fi
+AC_SUBST(POSIX_OBJECTLIST)
+
+if test -n "${signal_dir}"; then
+  SIGNAL_OBJECTLIST=libc/${signal_dir}/objectlist.awk.in
+fi
+AC_SUBST(SIGNAL_OBJECTLIST)
+
+if test -n "${syscall_dir}"; then
+  SYSCALL_OBJECTLIST=libc/${syscall_dir}/objectlist.awk.in
+fi
+AC_SUBST(SYSCALL_OBJECTLIST)
+
+if test -n "${unix_dir}"; then
+  UNIX_OBJECTLIST=libc/${unix_dir}/objectlist.awk.in
+fi
+AC_SUBST(UNIX_OBJECTLIST)
+
+if test -n "${stdio64_dir}"; then
+  STDIO64_OBJECTLIST=libc/${stdio64_dir}/objectlist.awk.in
+fi
+AC_SUBST(STDIO64_OBJECTLIST)
+
+# Put a plausible default for CC_FOR_BUILD in Makefile.
+if test -z "$CC_FOR_BUILD"; then
+  CC_FOR_BUILD=gcc
+fi
+AC_SUBST(CC_FOR_BUILD)
+
+if test "${newlib_elix_level}" -gt "0"; then
+AC_DEFINE_UNQUOTED(_ELIX_LEVEL,${newlib_elix_level})
+fi
+
+if test "${newlib_io_c99_formats}" = "yes"; then
+AC_DEFINE_UNQUOTED(_WANT_IO_C99_FORMATS)
+fi
+
+if test "${newlib_io_long_long}" = "yes"; then
+AC_DEFINE_UNQUOTED(_WANT_IO_LONG_LONG)
+fi
+
+if test "${newlib_io_long_double}" = "yes"; then
+AC_DEFINE_UNQUOTED(_WANT_IO_LONG_DOUBLE)
+fi
+
+if test "${newlib_io_pos_args}" = "yes"; then
+AC_DEFINE_UNQUOTED(_WANT_IO_POS_ARGS)
+fi
+
+if test "${newlib_reent_small}" = "yes"; then
+AC_DEFINE_UNQUOTED(_WANT_REENT_SMALL)
+fi
+
+if test "${newlib_mb}" = "yes"; then
+AC_DEFINE_UNQUOTED(_MB_CAPABLE)
+AC_DEFINE_UNQUOTED(_MB_LEN_MAX,8)
+else
+AC_DEFINE_UNQUOTED(_MB_LEN_MAX,1)
+fi
+
+if test "${newlib_iconv_external_ccs}" = "yes"; then
+AC_DEFINE_UNQUOTED(_ICONV_ENABLE_EXTERNAL_CCS)
+fi
+
+AC_DEFINE_UNQUOTED(_NEWLIB_VERSION,"NEWLIB_VERSION")
+
+if test "${multilib}" = "yes"; then
+  multilib_arg="--enable-multilib"
+else
+  multilib_arg=
+fi
+
+if test "${newlib_iconv}" = "yes"; then
+AC_DEFINE_UNQUOTED(_ICONV_ENABLED,1)
+fi
+
+if test "x${newlib_iconv_external_ccs}" = "xyes"; then
+  if test "x${newlib_iconv}" = "x"; then
+      AC_MSG_ERROR(--enable-newlib-iconv-external-ccs option can't be used if iconv library is disabled, use --enable-newlib-iconv to enable it.)
+  fi
+  AC_DEFINE_UNQUOTED(_ICONV_ENABLE_EXTERNAL_CCS,1)
+fi
+
+if test "${newlib_atexit_dynamic_alloc}" = "yes"; then
+AC_DEFINE_UNQUOTED(_ATEXIT_DYNAMIC_ALLOC)
+fi
+
+dnl
+dnl Parse --enable-newlib-iconv-encodings option argument
+dnl
+
+if test "x${iconv_encodings}" != "x" \
+   || test "x${iconv_to_encodings}" != "x" \
+   || test "x${iconv_from_encodings}" != "x"; then
+  if test "x${newlib_iconv}" = "x"; then
+      AC_MSG_ERROR([--enable-newlib-iconv-encodings, --enable-newlib-iconv-from-encodings and --enable-newlib-iconv-to-encodings option can't be used if iconv library is disabled, use --enable-newlib-iconv to enable it.])
+  fi
+  
+  dnl Normalize encodings names and delete commas
+  iconv_encodings=`echo "${iconv_encodings}" | sed -e 's/,/ /g' -e 's/-/_/g' -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
+  iconv_to_encodings=`echo "${iconv_to_encodings}" | sed -e 's/,/ /g' -e 's/-/_/g' -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
+  iconv_from_encodings=`echo "${iconv_from_encodings}" | sed -e 's/,/ /g' -e 's/-/_/g' -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
+ 
+  dnl Get the list of available encodings excluding comments
+  dnl Join line with previous if the first character is whitespace
+  available_encodings=`cat "${srcdir}/libc/iconv/encoding.aliases" | sed -e '/^#.*/d'`
+  
+  dnl Check if required encodings are supported
+  dnl Convert aliases to names
+  
+  dnl iconv_encodings
+  iconv_encodings1="${iconv_encodings}"
+  iconv_encodings=""
+  for encoding in ${iconv_encodings1}; do
+      result=`echo "${available_encodings}" | grep -e "\(^\| \)${encoding}\( \|\$\)"`
+      if test $? != "0"; then
+	  AC_MSG_ERROR(${encoding} is not supported - see ${srcdir}/libc/iconv/encoding.aliases file for the list of available encodings)
+      fi
+      encoding1=`echo "${result}" | sed -e 's/\(^[[^ ]]*\).*$/\1/'`
+      iconv_encodings="${iconv_encodings} ${encoding1}"
+  done
+  dnl Enable appropriate option in newlib.h
+  for encoding in ${iconv_encodings}; do
+      opt=_ICONV_TO_ENCODING_`echo "${encoding}" | sed -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
+      AC_DEFINE_UNQUOTED($opt,1)
+      opt=_ICONV_FROM_ENCODING_`echo "${encoding}" | sed -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
+      AC_DEFINE_UNQUOTED($opt,1)
+  done
+
+  dnl iconv_to_encodings
+  iconv_encodings1="${iconv_to_encodings}"
+  iconv_to_encodings=""
+  for encoding in ${iconv_encodings1}; do
+      result=`echo "${available_encodings}" | grep -e "\(^\| \)${encoding}\( \|\$\)"`
+      if test $? != "0"; then
+	  AC_MSG_ERROR(${encoding} is not supported - see ${srcdir}/libc/iconv/encoding.aliases file for the list of available encodings)
+      fi
+      encoding1=`echo "${result}" | sed -e 's/\(^[[^ ]]*\).*$/\1/'`
+      iconv_to_encodings="${iconv_to_encodings} ${encoding1}"
+  done
+  dnl Enable appropriate option in newlib.h
+  for encoding in ${iconv_to_encodings}; do
+      opt=_ICONV_TO_ENCODING_`echo "${encoding}" | sed -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
+      AC_DEFINE_UNQUOTED($opt,1)
+  done
+
+  dnl iconv_from_encodings
+  iconv_encodings1="${iconv_from_encodings}"
+  iconv_from_encodings=""
+  for encoding in ${iconv_encodings1}; do
+      result=`echo "${available_encodings}" | grep -e "\(^\| \)${encoding}\( \|\$\)"`
+      if test $? != "0"; then
+	  AC_MSG_ERROR(${encoding} is not supported - see ${srcdir}/libc/iconv/encoding.aliases file for the list of available encodings)
+      fi
+      encoding1=`echo "${result}" | sed -e 's/\(^[[^ ]]*\).*$/\1/'`
+      iconv_from_encodings="${iconv_from_encodings} ${encoding1}"
+  done
+  dnl Enable appropriate option in newlib.h
+  for encoding in ${iconv_from_encodings}; do
+      opt=_ICONV_FROM_ENCODING_`echo "${encoding}" | sed -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
+      AC_DEFINE_UNQUOTED($opt,1)
+  done
+fi;
+
+AC_CACHE_CHECK(for .preinit_array/.init_array/.fini_array support,
+	       libc_cv_initfinit_array, [dnl
+cat > conftest.c <<EOF
+int _start (void) { return 0; }
+int __start (void) { return 0; }
+int foo (void) { return 1; }
+int (*fp) (void) __attribute__ ((section (".init_array"))) = foo;
+EOF
+if AC_TRY_COMMAND([${CC} $CFLAGS $CPPFLAGS $LDFLAGS -o conftest conftest.c
+		   -static -nostartfiles -nostdlib 1>&AS_MESSAGE_LOG_FD])
+then
+  if ${READELF} -S conftest | grep -e INIT_ARRAY > /dev/null; then
+    libc_cv_initfinit_array=yes
+  else
+    libc_cv_initfinit_array=no
+  fi
+else
+  libc_cv_initfinit_array=no
+fi
+rm -f conftest*])
+AC_SUBST(libc_cv_initfinit_array)
+if test $libc_cv_initfinit_array = yes; then
+  AC_DEFINE_UNQUOTED(HAVE_INITFINI_ARRAY)
+fi
+
+AC_CACHE_CHECK(for array aliasing support,
+	       libc_cv_array_aliasing, [dnl
+cat > conftest.c <<EOF
+char x[3] = { 'a', 'b', 'c' };
+extern char y[2] __attribute__((alias ("x+1")));
+EOF
+if AC_TRY_COMMAND([${CC} $CFLAGS $CPPFLAGS -c conftest.c
+		   1>&AS_MESSAGE_LOG_FD])
+then
+  libc_cv_array_aliasing=yes
+else
+  libc_cv_array_aliasing=no
+fi
+rm -f conftest*])
+AC_SUBST(libc_cv_array_aliasing)
+if test $libc_cv_array_aliasing = yes; then
+  AC_DEFINE_UNQUOTED(_HAVE_ARRAY_ALIASING)
+fi
+
+AC_CONFIG_FILES([Makefile],
+[if test -n "$CONFIG_FILES"; then
+  unset ac_file
+  . ${newlib_basedir}/../config-ml.in
+fi],
+srcdir=${srcdir}
+host=${host}
+with_multisubdir=${with_multisubdir}
+ac_configure_args="${multilib_arg} ${ac_configure_args}"
+CONFIG_SHELL=${CONFIG_SHELL-/bin/sh}
+newlib_basedir=${newlib_basedir}
+CC="${CC}"
+LDFLAGS="${LDFLAGS}"
+)
+AC_OUTPUT

@@ -1,0 +1,352 @@
+# Copyright (c) 1995, 1996, 1998 Cygnus Support
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+#
+
+#
+# This currently works with the PPC simulator.
+#
+
+DESTDIR =
+VPATH = @srcdir@:@srcdir@/..
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL =	/bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+OBJS		= fstat.o getpid.o isatty.o kill.o putnum.o stat.o unlink.o mcount.o
+CFLAGS		= -g
+SCRIPTS		= ${SIM_SCRIPTS} ${MVME_SCRIPTS} ${YELLOWKNIFE_SCRIPTS} ${ADS_SCRIPTS}
+
+# Here is all of the simulator stuff
+SIM_SCRIPTS	=
+SIM_LDFLAGS	=
+SIM_BSP		= libsim.a
+SIM_CRT0	= sim-crt0.o
+SIM_OBJS	= sim-print.o sim-inbyte.o sim-sbrk.o sim-abort.o sim-errno.o simulator.o sim-getrusage.o
+SIM_TEST	= sim-test
+SIM_INSTALL	= install-sim
+
+# Here is all the mvme stuff
+MVME_SCRIPTS	=
+MVME_LDFLAGS	=
+MVME_BSP	= libmvme.a
+MVME_CRT0	= crt0.o
+MVME_OBJS	= mvme-exit.o mvme-inbyte.o mvme-outbyte.o open.o close.o lseek.o sbrk.o mvme-read.o mvme-print.o
+MVME_TEST	= mvme-test
+MVME_INSTALL	= install-mvme
+
+# Here is the Solaris stuff
+#SOLARIS_SCRIPTS=
+#SOLARIS_LDFLAGS=
+#SOLARIS_BSP	= libsolaris.a
+#SOLARIS_CRT0	=
+#SOLARIS_OBJS	= sol-cfuncs.o sol-syscall.o
+#SOLARIS_TEST	= sol-test
+#SOLARIS_INSTALL= install-solaris
+
+# Here is the Linux stuff
+#LINUX_SCRIPTS	=
+#LINUX_LDFLAGS	=
+#LINUX_BSP	= liblinux.a
+#LINUX_CRT0	=
+#LINUX_OBJS	= lin-cfuncs.o lin-syscall.o
+#LINUX_TEST	= linux-test
+#LINUX_INSTALL	= install-linux
+
+YELLOWKNIFE_SCRIPTS 	= yellowknife.ld
+YELLOWKNIFE_CRT0	= crt0.o
+YELLOWKNIFE_BSP		= libyk.a
+YELLOWKNIFE_OBJS	= open.o close.o lseek.o sbrk.o mvme-exit.o mvme-inbyte.o mvme-outbyte.o mvme-read.o mvme-print.o
+YELLOWKNIFE_TEST	= yellowknife-test
+YELLOWKNIFE_INSTALL	= install-yellowknife
+
+ADS_SCRIPTS 	= ads.ld
+ADS_CRT0	= crt0.o
+ADS_BSP		= libads.a
+ADS_OBJS	= open.o close.o lseek.o sbrk.o ads-exit.o ads-io.o
+ADS_TEST	= ads-test
+ADS_INSTALL	= install-ads
+
+MBX_SCRIPTS 	= mbx.ld
+MBX_SPECS 	= mbx.specs
+MBX_CRT0	= crt0.o
+MBX_BSP		= libmbx.a
+MBX_OBJS	= open.o close.o lseek.o sbrk.o read.o write.o mbx-exit.o mbx-inbyte.o mbx-outbyte.o mbx-print.o
+MBX_TEST	= mbx-test
+MBX_INSTALL	= install-mbx
+
+# Host specific makefile fragment comes in here.
+@host_makefile_frag@
+
+#
+# build a test program for each target board. Just trying to get
+# it to link is a good test, so we ignore all the errors for now.
+#
+all: \
+	${SIM_CRT0} ${SIM_BSP} \
+	${MVME_CRT0} ${MVME_BSP} \
+	${SOLARIS_CRT0} ${SOLARIS_BSP} \
+	${LINUX_CRT0} ${LINUX_BSP} \
+	${YELLOWKNIFE_CRT0} ${YELLOWKNIFE_BSP} \
+	${ADS_CRT0} ${ADS_BSP} \
+	${MBX_CRT0} ${MBX_BSP}
+
+#
+# here's where we build the board support packages for each target
+#
+
+${SIM_BSP}: ${OBJS} ${SIM_OBJS}
+	${AR} ${ARFLAGS} $@ ${SIM_OBJS} ${OBJS}
+	${RANLIB} $@
+
+${MVME_BSP}: ${OBJS} ${MVME_OBJS}
+	${AR} ${ARFLAGS} $@ ${MVME_OBJS} ${OBJS}
+	${RANLIB} $@
+
+${LINUX_BSP}: ${OBJS} ${LINUX_OBJS}
+	${AR} ${ARFLAGS} $@ ${LINUX_OBJS} ${OBJS}
+	${RANLIB} $@
+
+${SOLARIS_BSP}: ${OBJS} ${SOLARIS_OBJS}
+	${AR} ${ARFLAGS} $@ ${SOLARIS_OBJS}
+	${RANLIB} $@
+
+${YELLOWKNIFE_BSP}: ${OBJS} ${YELLOWKNIFE_OBJS}
+	${AR} ${ARFLAGS} $@ ${YELLOWKNIFE_OBJS} ${OBJS}
+	${RANLIB} $@
+
+${ADS_BSP}: ${OBJS} ${ADS_OBJS}
+	${AR} ${ARFLAGS} $@ ${ADS_OBJS} ${OBJS}
+	${RANLIB} $@
+
+${MBX_BSP}: ${OBJS} ${MBX_OBJS}
+	${AR} ${ARFLAGS} $@ ${MBX_OBJS} ${OBJS}
+	${RANLIB} $@
+
+#
+# here's where we build the test programs for each target
+#
+.PHONY: test
+test:	${SIM_TEST} ${MVME_TEST} ${YELLOWKNIFE_TEST} ${ADS_TEST} ${MBX_TEST}
+
+sim-test:	sim-test.x sim-test.dis
+
+sim-test.x:	test.o ${SIM_CRT0} ${SIM_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	${SIM_CRT0} test.o \
+	-o sim-test.x ${LIBS_FOR_TARGET} -lc ${SIM_BSP}
+
+sim-test.dis:	sim-test.x
+	${OBJDUMP} -d sim-test.x > sim-test.dis
+
+mvme-test:	mvme-test.x mvme-test.dis mvme-test.srec
+
+mvme-test.x:	test.o ${MVME_CRT0} ${MVME_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	${SIM_CRT0} test.o \
+	-o mvme-test.x ${LIBS_FOR_TARGET} -lc ${MVME_BSP}
+
+mvme-test.dis:	mvme-test.x
+	${OBJDUMP} -d mvme-test.x > mvme-test.dis
+
+mvme-test.srec:	mvme-test.x
+	${OBJCOPY} -O srec mvme-test.x mvme-test.srec
+
+sol-test:	sol-test.x sol-test.dis sol-test.srec
+
+sol-test.x:	test.o ${SOLARIS_CRT0} ${SOLARIS_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	${SIM_CRT0} test.o \
+	-o sol-test.x ${LIBS_FOR_TARGET} -lc ${SOLARIS_BSP}
+
+sol-test.dis: sol-test.x
+	${OBJDUMP} -d sol-test.x > sol-test.dis
+
+sol-test.srec:	sol-test.x
+	${OBJCOPY} -O srec sol-test.x sol-test.srec
+
+linux-test: linux-test.x linux-test.dis linux-test.srec
+
+linux-test.x: test.o ${LINUX_CRT0} ${LINUX_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	${SIM_CRT0} test.o \
+	-o linux-test.x ${LIBS_FOR_TARGET} -lc ${LINUX_BSP}
+
+linux-test.dis:	linux-test.x
+	${OBJDUMP} -d linux-test.x > linux-test.dis
+
+linux-test.srec:	linux-test.x
+	${OBJCOPY} -O srec linux-test.x linux-test.srec
+
+yellowknife-test:	yellowknife-test.x yellowknife-test.dis yellowknife-test.srec
+
+yellowknife-test.x:	test.o ${YELLOWKNIFE_CRT0} ${YELLOWKNIFE_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	-T${srcdir}/yellowknife.ld ${YELLOWKNIFE_CRT0} test.o \
+	-o yellowknife-test.x $(LIBS_FOR_TARGET) ${YELLOWKNIFE_BSP} -lc ${YELLOWKNIFE_BSP}
+
+yellowknife-test.dis:	yellowknife-test.x
+	${OBJDUMP} -d yellowknife-test.x > yellowknife-test.dis
+
+yellowknife-test.srec:	yellowknife-test.x
+	${OBJCOPY} -O srec yellowknife-test.x yellowknife-test.srec
+
+ads-test:	ads-test.x ads-test.dis ads-test.srec
+
+ads-test.x:	test.o ${ADS_CRT0} ${ADS_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	-T${srcdir}/ads.ld ${ADS_CRT0} test.o \
+	-o ads-test.x $(LIBS_FOR_TARGET) ${ADS_BSP} -lc ${ADS_BSP}
+
+ads-test.dis:	ads-test.x
+	${OBJDUMP} -d ads-test.x > ads-test.dis
+
+ads-test.srec:	ads-test.x
+	${OBJCOPY} -O srec ads-test.x ads-test.srec
+
+mbx-test:	mbx-test.x mbx-test.dis mbx-test.srec
+
+mbx-test.x:	test.o ${MBX_CRT0} ${MBX_BSP}
+	${CC} ${LDFLAGS_FOR_TARGET} -L${objdir} \
+	-T${srcdir}/mbx.ld ${MBX_CRT0} test.o \
+	-o mbx-test.x $(LIBS_FOR_TARGET) ${MBX_BSP} -lc ${MBX_BSP}
+
+mbx-test.dis:	mbx-test.x
+	${OBJDUMP} -d mbx-test.x > mbx-test.dis
+
+mbx-test.srec:	mbx-test.x
+	${OBJCOPY} -O srec mbx-test.x mbx-test.srec
+
+#
+#
+#
+
+crt0.o: crt0.S
+
+simulator.o: simulator.S
+sim-getrusage.o: sim-getrusage.S
+sim-crt0.o: sim-crt0.S
+mount.o: mount.S
+
+mvme-exit.o: mvme-exit.S
+mvme-inbyte.o: mvme-inbyte.S
+mvme-outbyte.o: mvme-outbyte.S
+
+ads-exit.o: ads-exit.S
+ads-io.o: ads-io.c
+
+mbx-exit.o: mbx-exit.c
+mbx-inbyte.o: mbx-inbyte.c
+mbx-outbyte.o: mbx-outbyte.c
+mbx-print.o: mbx-print.c
+
+sol-cfuncs.o: sol-cfuncs.c
+sol-syscall.o: sol-syscall.S
+
+close.o: $(srcdir)/../close.c
+fstat.o: $(srcdir)/../fstat.c
+getpid.o: $(srcdir)/../getpid.c
+isatty.o: $(srcdir)/../isatty.c
+kill.o: $(srcdir)/../kill.c
+lseek.o: $(srcdir)/../lseek.c
+open.o: $(srcdir)/../open.c
+putnum.o: $(srcdir)/../putnum.c
+sbrk.o: $(srcdir)/../sbrk.c
+stat.o: $(srcdir)/../stat.c
+unlink.o: $(srcdir)/../unlink.c
+
+# Don't optimize when compiling the test program, makes confusion in
+# the debugger.
+
+test.o:	$(srcdir)/test.c
+	$(CC) -g $(CFLAGS_MRELOCATABLE) $(INCLUDES) -c $(CFLAGS) $<
+
+clean mostlyclean:
+	rm -f a.out core *.i *.o *-test *.srec *.dis *.x
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status *~
+
+.PHONY: install info install-info clean-info
+install: ${SIM_INSTALL} ${MVME_INSTALL} ${SOLARIS_INSTALL} ${LINUX_INSTALL} ${YELLOWKNIFE_INSTALL} ${ADS_INSTALL} ${MBX_INSTALL}
+
+install-sim:
+	set -e; for x in ${SIM_CRT0} ${SIM_BSP} ${SIM_SCRIPTS}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-mvme:
+	set -e; for x in ${MVME_CRT0} ${MVME_BSP} ${MVME_SCRIPTS}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-solaris:
+	set -e; for x in ${SOLARIS_CRT0} ${SOLARIS_BSP} ${SOLARIS_SCRIPTS}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-linux:
+	set -e; for x in ${LINUX_CRT0} ${LINUX_BSP} ${LINUX_SCRIPTS}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-yellowknife:
+	set -e; for x in ${YELLOWKNIFE_CRT0} ${YELLOWKNIFE_BSP}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${YELLOWKNIFE_SCRIPTS}; do ${INSTALL_DATA} $(srcdir)/$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-ads:
+	set -e; for x in ${ADS_CRT0} ${ADS_BSP}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${ADS_SCRIPTS}; do ${INSTALL_DATA} $(srcdir)/$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+install-mbx:
+	set -e; for x in ${MBX_CRT0} ${MBX_BSP}; do ${INSTALL_DATA} $$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+	set -e; for x in ${MBX_SCRIPTS} ${MBX_SPECS}; do ${INSTALL_DATA} $(srcdir)/$$x $(DESTDIR)${tooldir}/lib${MULTISUBDIR}/$$x; done
+
+doc:
+info:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

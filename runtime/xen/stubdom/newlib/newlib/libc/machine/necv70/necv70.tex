@@ -1,0 +1,99 @@
+@node machine,,syscalls,Top
+@chapter NEC V70 Specific Functions
+
+The NEC V70 has machine instructions for fast IEEE floating-point
+arithmetic, including operations normally provided by the library.  
+
+When you use the @file{/usr/include/fastmath.h} header file, the
+names of several library math functions are redefined to call the
+@code{fastmath} routine (using the corresponding V70 machine instructions)
+whenever possible.
+
+For example,
+@example
+
+#include <fastmath.h>
+
+double sqsin(x)
+double x;
+@{
+  return sin(x*x);
+@}
+
+@end example
+expands into the code
+@example
+
+@dots{}
+double sqsin(x)
+double x;
+@{
+  return fast_sin(x*x);
+@}
+
+@end example
+
+The library has an entry @code{fast_sin} which uses the machine
+instruction @code{fsin.l} to perform the operation.  Note that the
+built-in instructions cannot call @code{matherr} or set @code{errno}
+in the same way that the C coded functions do.  Refer to a V70
+instruction manual to see how errors are generated and handled.
+
+Also, the library provides true @code{float} entry points.  The
+@code{fast_sinf} entry point really performs a @code{fsin.s}
+operation.  Because of this, the instructions are only useful when
+using code compiled with an ANSI C compiler.  The prototypes
+and definitions for the floating-point versions of the math library
+routines are only defined if compiling a module with an ANSI C
+compiler.
+
+@page
+@section Entry points 
+The functions provided by @file{fastmath.h} are
+@example
+
+ double fast_sin(double);	/*	fsin.l */
+ double fast_cos(double);	/*	fcos.l */
+ double fast_tan(double);	/*	ftan.l */
+ double fast_asin(double);	/*	fasin.l */
+ double fast_acos(double);	/*	facos.l */
+ double fast_atan(double);	/*	fatan.l */
+ double fast_sinh(double);	/*	fsinh.l */
+ double fast_cosh(double);	/*	fcosh.l */
+ double fast_tanh(double);	/*	ftanh.l */
+ double fast_asinh(double);	/*	fasinh.l */
+ double fast_acosh(double);	/*	facosh.l */
+ double fast_atanh(double);	/*	fatanh.l */
+ double fast_fabs(double);	/*	fabs.l */
+ double fast_sqrt(double);	/*	fsqrt.l */
+ double fast_exp2(double);	/*	fexp2.l */
+ double fast_exp10(double);	/*	fexp10.l */
+ double fast_expe(double);	/*	fexpe.l */
+ double fast_log10(double);	/*	flog10.l */
+ double fast_log2(double);	/*	flog2.l */
+ double fast_loge(double);	/*	floge.l */
+
+ float fast_sinf(float);	/*	fsin.s */
+ float fast_cosf(float);	/*	fcos.s */
+ float fast_tanf(float);	/*	ftan.s */
+ float fast_asinf(float);	/*	fasin.s */
+ float fast_acosf(float);	/*	facos.s */
+ float fast_atanf(float);	/*	fatan.s */
+ float fast_sinhf(float);	/*	fsinh.s */
+ float fast_coshf(float);	/*	fcosh.s */
+ float fast_tanhf(float);	/*	ftanh.s */
+ float fast_asinhf(float);	/*	fasinh.s */
+ float fast_acoshf(float);	/*	facosh.s */
+ float fast_atanhf(float);	/*	fatanh.s */
+ float fast_fabsf(float);	/*	fabs.s */
+ float fast_sqrtf(float);	/*	fsqrt.s */
+ float fast_exp2f(float);	/*	fexp2.s */
+ float fast_exp10f(float);	/*	fexp10.s */
+ float fast_expef(float);	/*	fexpe.s */
+ float fast_log10f(float);	/*	flog10.s */
+ float fast_log2f(float);	/*	flog2.s */
+ float fast_logef(float);	/*	floge.s */
+
+@end example
+
+

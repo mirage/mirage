@@ -1,0 +1,164 @@
+*** Major changes in newlib version 1.16.0:
+
+* mep-elf support contributed
+* x86_64 support added
+* reentrant I/O clean-up
+* various new C functions added from C99, POSIX, SUSV, etc..
+* switch to use top-level libtool
+* spu floating-point environment and stdio enhancement
+* fastmath support
+* various bug fixes
+
+*** Major changes in newlib version 1.15.0:
+
+* new platforms added (bfin, spu, fido)
+* merge of csl branch changes (e.g. m68k)
+* additional C99 support (printf modifiers, strtod, isnan/isinf)
+* new configuration option to turn off dynamic allocation for atexit
+* reentrancy added for read / write functions
+* Cygwin fixes (e.g. POSIX read file flush behavior)
+* switch to autoconf 2.5.9
+* use of aclocal/automake 1.9.6
+* various bug fixes and doc cleanups
+
+*** Major changes in newlib version 1.14.0:
+
+* new platforms added (cris, mt, m32c)
+* more locking protection macros added
+* various C99/POSIX/SUSV3 compliance issue improvements
+* reentrancy cleanup
+* header file improvements (e.g. adding RTEMS stdint.h/inttypes.h)
+* various math fixes
+* changes made to allow use of gcc4 to build newlib
+* general bug fixes and cleanups
+
+*** Major changes in newlib version 1.13.0:
+
+* optimized iconv support
+* new configuration option to disable syscalls in newlib (e.g. sys/arm)
+* new configuration options controlling long long, long double support
+* ability of configuration options to override platform defaults
+* improved locking protection for file I/O functions
+* new reentrant functions
+* various fixes to allow building under FC3 and Debian Linux
+* cxa exit support
+* new platforms (e.g. crx)
+* new iprintf and iscanf family functions
+
+*** Major changes in newlib version 1.12.0:
+
+* general iconv support added
+* major cleanup with linux header files regarding warnings
+* thread-safety and reentrancy fixes
+* additional wide character C99 functions
+* addition of %lc, %ls, %S, and %C printf format specifiers
+* doc cleanup
+
+*** Major changes in newlib version 1.11.0:
+
+* enhanced EL/IX support for i[3456]86-pc-linux 
+* new --enable-newlib-elix-level configuration option
+* positional arg I/O support for printf family (--enable-newlib-io-pos-args)
+* support for the Fujitsu FRV architecture added by Red Hat
+* support for Motorola Altivec and SPE added by Red Hat
+* new small reentrancy structure support
+* dynamic reentrancy structure support
+
+*** Major changes in newlib version 1.10.0:
+
+* libtool support for i[3456]86-pc-linux native builds
+* addition of libm/machine/i386 directory, for i386 fast math routines
+
+*** Major changes in newlib version 1.9.0:
+
+* i[3456]86-pc-linux support
+
+* Long Double I/O support via the WANT_IO_LONG_DBL flag
+
+* addition of reentrant environment functions
+
+* addition of xscale and AVR platforms
+
+* severe reduction in the number of warnings issued
+
+* consolidation of many RTEMS features into shared headers
+
+*** Major changes in newlib version 1.8.2:
+
+* RTEMS features and fixes from Joel Sherrill.
+
+* More work on reentrant routines.
+
+* Floating point math library check, --enable-newlib-hw-fp.
+
+*** Major changes in newlib version 1.8.1:
+
+* Added check for --enable-newlib-mb configure option which defines the
+  MB_CAPABLE macro.  Multibyte support for JIS, SJIS, and EUC-JP implemented.
+
+* Reduced code size for libm modules.
+
+* Replaced the BSD malloc with Doug Lea's malloc.
+
+*** Major changes in newlib version 1.8.0:
+
+* Added simulated signal handling functions _raise_r, _signal_r, raise, and
+  signal except for sparc-sun-sunos*, i[3456]86-*-sco*, and a29k-*-* systems,
+  which already provide access to signal.  The signal functionality provided
+  does not interact with hardware generated signals.
+    
+* Added reentrant function rand_r from POSIX.1c.
+
+* Removed _asctime, _next, _scanpoint, and _signgam fields from struct
+  _reent.  These are no longer necessary since there are now functions
+  that explictly support multiple threads (asctime_r, ctime_r, gamma_r,
+  gmtime_r, lgamma_r, localtime_r, rand_r, & strtok_r).
+
+
+*** Major changes in newlib version 1.7.0:
+
+* Cross compiler target libraries are now built in a subdir of the top level
+  build directory.
+
+  Old way: build
+                /newlib
+                       /m68020
+                              /m68881
+  New way:
+           build
+                /m68k-coff
+                          /m68020
+                                 /m68881
+
+  where m68020 and m68881 are multilib subdirectories
+
+* m68k targets support --disable options to avoid building unwanted versions
+  of the libraries.
+
+  --disable-softfloat - don't build libc, libg++, etc. for -msoft-float
+  --disable-m68881    - don't build libc, libg++, etc. for -m68881
+  --disable-m68000    - don't build libc, libg++, etc. for -m68000
+  --disable-m68020    - don't build libc, libg++, etc. for -m68020
+
+  These options have *no* effect on the default libraries, so if the default
+  is -m68020, --disable-m68020 is nilpotent.
+
+* Reentrancy support in libm removed.
+
+* strtok, strtol, strtoul, assert, div, ldiv, qsort, vfprintf
+  replaced with NetBSD versions.
+
+* Support for systems with 32 bit "doubles" added.
+
+* unctrl added.
+
+* dtoa.c updated from master dtoa.c soruces (netlib.att.com)
+
+* Various bug fixes.
+
+*** Major changes in newlib version 1.6.1:
+
+* Added reentrant functions (asctime_r, ctime_r, gmtime_r, localtime_r,
+and strtok_r) from POSIX.1c.
+
+* Removed _asctime_r and _strtok_r functions.

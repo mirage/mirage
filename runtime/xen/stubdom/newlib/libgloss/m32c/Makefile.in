@@ -1,0 +1,193 @@
+# Copyright (c) 2005 Red Hat Inc
+#
+# The authors hereby grant permission to use, copy, modify, distribute,
+# and license this software and its documentation for any purpose, provided
+# that existing copyright notices are retained in all copies and that this
+# notice is included verbatim in any distributions. No written agreement,
+# license, or royalty fee is required for any of the authorized uses.
+# Modifications to this software may be copyrighted by their authors
+# and need not follow the licensing terms described here, provided that
+# the new terms are clearly indicated on the first page of each file where
+# they apply.
+
+# Makefile for libgloss/m32c.
+
+VPATH = @srcdir@
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+# Multilib support variables.
+# TOP is used instead of MULTI{BUILD,SRC}TOP.
+MULTIDIRS =
+MULTISUBDIR =
+MULTIDO = true
+MULTICLEAN = true
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL = /bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+AR_FLAGS = rc
+
+OBJDUMP = `if [ -f ${objroot}/../binutils/objdump ] ; \
+	then echo ${objroot}/../binutils/objdump ; \
+	else t='$(program_transform_name)'; echo objdump | sed -e $$t ; fi`
+OBJCOPY = `if [ -f ${objroot}/../binutils/objcopy ] ; \
+	then echo ${objroot}/../binutils/objcopy ; \
+	else t='$(program_transform_name)'; echo objcopy | sed -e $$t ; fi`
+
+SCRIPTS = r8c.ld m16c.ld m32cm.ld m32c.ld m16cmon.ld m32cmon.ld sim8.ld sim16.ld sim24.ld
+CRT = crt0.o crtn.o
+SIM_BSP = libsim.a
+LIBNOSYS = ../libnosys/libnosys.a
+SIM_OBJS = \
+	sbrk.o \
+	heaptop.o \
+	exit.o \
+	open.o \
+	close.o \
+	read.o \
+	write.o \
+	lseek.o \
+	unlink.o \
+	getpid.o \
+	kill.o \
+	fstat.o \
+	argvlen.o \
+	argv.o \
+	chdir.o \
+	stat.o \
+	chmod.o \
+	utime.o \
+	time.o \
+	gettimeofday.o \
+	times.o \
+	link.o \
+	isatty.o \
+	abort.o
+
+
+#### Host specific Makefile fragment comes in here.
+@host_makefile_frag@
+
+
+# Override .S.o rule to pass assembler debugging flags
+.S.o:
+	$(CC) -Wa,-gdwarf2 -Wa,-I$(srcdir) $(CFLAGS_FOR_TARGET) $(INCLUDES) $(CFLAGS) -c $<
+
+all: $(CRT) $(SIM_BSP) $(SCRIPTS)
+
+$(SIM_BSP): $(SIM_OBJS)
+	$(AR) $(ARFLAGS) $@ $?
+	$(RANLIB) $@
+
+# genscript parameters: srcdir name ramstart ramsize romstart romsize vecprefix
+
+GDEP = $(srcdir)/m32c.tmpl $(srcdir)/genscript Makefile
+GS = $(SHELL) $(srcdir)/genscript $(srcdir) 
+
+# NOTE: The simulators and monitors reserve the following locations
+# for themselves, so we skip them:
+#   R8C/M16C:	0x400-0x4ff	0x0ff600-0x0ffcff
+#   M32C:	0x400-0x4ff	0xfff600-0xfffcff
+
+r8c.ld : $(GDEP)
+	$(GS) r8c   0x500  0x300   0xc000   0x3f24   0xff
+
+m16c.ld : $(GDEP)
+	$(GS) m16c  0x500 0x4f00  0xc0000  0x3f600  0xfff
+
+m32cm.ld : $(GDEP)
+	$(GS) m32cm 0x500 0x2700 0xfe0000 0x01f600 0xffff
+
+m32c.ld : $(GDEP)
+	$(GS) m32c  0x500 0x7b00 0xf80000 0x07f600 0xffff
+
+
+m16cmon.ld : $(GDEP)
+	$(GS) m16cmon  0x400  0x100  0xff600    0x800  0xfff
+
+m32cmon.ld : $(GDEP)
+	$(GS) m32cmon  0x400  0x100 0xfff600    0x800 0xffff
+
+
+sim8.ld : $(GDEP)
+	$(GS) sim8  0x500 0xf624        0        0   0xff
+
+sim16.ld : $(GDEP)
+	$(GS) sim16 0x500 0xf700  0x20000  0x80000  0xfff
+
+sim24.ld : $(GDEP)
+	$(GS) sim24 0x200000 0x800000   0        0 0xffff
+
+# Dependencies
+
+SDEPS = $(srcdir)/m32csys.h $(srcdir)/../syscall.h
+
+abort.o : $(SDEPS)
+argv.o : $(SDEPS)
+argvlen.o : $(SDEPS)
+chdir.o : $(SDEPS)
+chmod.o : $(SDEPS)
+close.o : $(SDEPS)
+exit.o : $(SDEPS)
+fstat.o : $(SDEPS)
+getpid.o : $(SDEPS)
+gettimeofday.o : $(SDEPS)
+heaptop.o : $(SDEPS)
+kill.o : $(SDEPS)
+link.o : $(SDEPS)
+lseek.o : $(SDEPS)
+open.o : $(SDEPS)
+read.o : $(SDEPS)
+stat.o : $(SDEPS)
+time.o : $(SDEPS)
+times.o : $(SDEPS)
+unlink.o : $(SDEPS)
+utime.o : $(SDEPS)
+write.o : $(SDEPS)
+
+install: $(CRT) $(SIM_BSP) $(SCRIPTS)
+	for c in $(CRT) $(SIM_BSP); do \
+	  $(INSTALL_DATA) $$c $(tooldir)/lib${MULTISUBDIR}/$$c ;\
+	done
+	for c in $(SCRIPTS); do \
+	  $(INSTALL_DATA) $$c $(tooldir)/lib${MULTISUBDIR}/$$c ;\
+	done
+
+clean mostlyclean:
+	rm -f *.o *.a
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.cache config.log config.status
+
+.PHONY: info dvi doc install-info clean-info
+info doc dvi:
+install-info:
+clean-info:
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck

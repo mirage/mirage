@@ -1,0 +1,168 @@
+# Makefile for libgloss/sparc/libsys
+# Copyright (c) 1996 Cygnus Support.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that the above copyright notice and this paragraph are
+# duplicated in all such forms and that any documentation,
+# advertising materials, and other materials related to such
+# distribution and use acknowledge that the software was developed
+# at Cygnus Support, Inc.  Cygnus Support, Inc. may not be used to
+# endorse or promote products derived from this software without
+# specific prior written permission.
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+DESTDIR =
+VPATH = @srcdir@
+srcdir = @srcdir@
+objdir = .
+srcroot = $(srcdir)/../..
+objroot = $(objdir)/../..
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+host_alias = @host_alias@
+target_alias = @target_alias@
+
+bindir = @bindir@
+libdir = @libdir@
+tooldir = $(exec_prefix)/$(target_alias)
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+SHELL = /bin/sh
+
+CC = @CC@
+
+AS = @AS@
+AR = @AR@
+LD = @LD@
+RANLIB = @RANLIB@
+
+# _r.o is for the reentrant syscall stubs.
+# The .S_r.o/.c_r.o rules are from host/any.
+
+.SUFFIXES: .c .S .o _r.o
+
+.S_r.o:
+	$(CC) $(CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS) -DREENT $(INCLUDES) -c $< -o $@
+.c_r.o:
+	$(CC) $(CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS) -DREENT $(INCLUDES) -c $< -o $@
+
+# CFILES_R, SFILES_R, and TEMPLATE_SFILES_R define those system calls that are
+# needed by the ANSI C part of newlib when REENTRANT_SYSCALLS_PROVIDED is
+# defined.
+
+CFILES = isatty.c
+
+CFILES_R =
+
+SFILES = cerror.S _exit.S
+
+SFILES_R = sbrk.S
+
+# List of files built from template.S (with an '_' suffix).
+
+TEMPLATE_SFILES = chdir_ lstat_
+
+TEMPLATE_SFILES_R = close_ fstat_ getpid_ kill_ \
+	lseek_ open_ read_ stat_ unlink_ write_
+
+# If newlib defines REENTRANT_SYSCALLS_PROVIDED, then these are used as well.
+REENTRANT_OFILES = $(SFILES_R:.S=_r.o) $(TEMPLATE_SFILES_R:_=_r.o) \
+	$(CFILES_R:.c=_r.o)
+
+OFILES = $(SFILES:.S=.o) $(SFILES_R:.S=.o) \
+	$(TEMPLATE_SFILES:_=.o) $(TEMPLATE_SFILES_R:_=.o) \
+	$(CFILES:.c=.o) $(CFILES_R:.c=.o) \
+	$(REENTRANT_OFILES)
+
+#### Host specific Makefile fragment comes in here.
+@host_makefile_frag@
+
+all: libsys.a libsys-crt0.o
+
+libsys.a: $(OFILES)
+	rm -f $@
+	$(AR) $(AR_FLAGS) $@ $(OFILES)
+
+install:
+	$(INSTALL_DATA) libsys-crt0.o $(DESTDIR)$(tooldir)/lib/libsys-crt0.o
+	$(INSTALL_DATA) libsys.a $(DESTDIR)$(tooldir)/lib/libsys.a
+
+doc:
+
+.PHONY: info install-info clean-info
+info:
+install-info:
+clean-info:
+
+clean mostlyclean:
+	rm -f *.o *.a *.s stamp-srcs
+
+distclean maintainer-clean realclean: clean
+	rm -f Makefile config.status
+
+Makefile: Makefile.in config.status @host_makefile_frag_path@
+	$(SHELL) config.status
+
+config.status: configure
+	$(SHELL) config.status --recheck
+
+stamp-srcs: Makefile template.S template_r.S
+	for f in $(TEMPLATE_SFILES:_=) ; \
+	do \
+		$(CC) -E -Dfunc=$$f \
+		$(CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS) $(INCLUDES) \
+		$(srcdir)/template.S >$$f.S ; \
+	done
+	for f in $(TEMPLATE_SFILES_R:_=) ; \
+	do \
+		$(CC) -E -Dfunc=$$f \
+		$(CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS) $(INCLUDES) \
+		$(srcdir)/template_r.S | sed -e 's/^_/#/' >$$f.S ; \
+	done
+	touch stamp-srcs
+
+# Make a dependency for each file built from a template.
+
+$(TEMPLATE_SFILES:_=.S) $(TEMPLATE_SFILES_R:_=.S): stamp-srcs
+
+# To support SunOS broken VPATH (sigh).
+
+_exit.o: _exit.S
+cerror.o: cerror.S
+chdir.o: chdir.S
+close.o: close.S
+fstat.o: fstat.S
+getpid.o: getpid.S
+isatty.o: isatty.c
+kill.o: kill.S
+libsys-crt0.o: libsys-crt0.S
+lseek.o: lseek.S
+lstat.o: lstat.S
+open.o: open.S
+read.o: read.S
+sbrk.o: sbrk.S
+stat.o: stat.S
+write.o: write.S
+
+# Reentrant versions ...
+# These are all needed to support the ANSI C library routines.
+
+close_r.o: close.S
+fstat_r.o: fstat.S
+getpid_r.o: getpid.S
+kill_r.o: kill.S
+lseek_r.o: lseek.S
+open_r.o: open.S
+read_r.o: read.S
+sbrk_r.o: sbrk.S
+stat_r.o: stat.S
+unlink_r.o: unlink.S
+write_r.o: write.S

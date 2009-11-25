@@ -1375,6 +1375,7 @@ unsupported_function_log(int, __xstat64, -1);
 unsupported_function_log(long, __strtol_internal, LONG_MIN);
 unsupported_function_log(double, __strtod_internal, HUGE_VAL);
 unsupported_function_log(int, utime, -1);
+unsupported_function_log(clock_t, times, -1);
 unsupported_function_log(int, truncate64, -1);
 unsupported_function_log(int, tcflow, -1);
 unsupported_function_log(int, tcflush, -1);

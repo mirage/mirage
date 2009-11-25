@@ -50,12 +50,7 @@ TARGET_CPPFLAGS += -I$(XEN_ROOT)/xen/include
 
 TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
 
-TARGETS=ioemu c caml grub
-
-STUBDOMPATH="stubdompath.sh"
-genpath-target = $(call buildmakevars2file,$(STUBDOMPATH))
-$(eval $(genpath-target))
-
+TARGETS=c caml
 
 ##############
 # Cross-newlib
@@ -212,56 +207,25 @@ c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c c
 pv-grub: mini-os-$(XEN_TARGET_ARCH)-grub libxc grub
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_GRUB $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< APP_OBJS=$(CURDIR)/grub-$(XEN_TARGET_ARCH)/main.a
 
-#########
-# install
-#########
-
-ifeq ($(STUBDOM_SUPPORTED),1)
-install: genpath install-readme install-ioemu install-grub
-else
-install: genpath
-endif
-
-install-readme:
-	$(INSTALL_DIR) $(DESTDIR)$(DOCDIR)
-	$(INSTALL_DATA) README $(DESTDIR)$(DOCDIR)/README.stubdom
-
-install-ioemu: ioemu-stubdom
-	$(INSTALL_DIR) "$(DESTDIR)$(LIBEXEC)"
-	$(INSTALL_PROG) stubdompath.sh stubdom-dm "$(DESTDIR)$(LIBEXEC)"
-	$(INSTALL_DIR) "$(DESTDIR)$(XENFIRMWAREDIR)"
-	$(INSTALL_DATA) mini-os-$(XEN_TARGET_ARCH)-ioemu/mini-os.gz "$(DESTDIR)$(XENFIRMWAREDIR)/ioemu-stubdom.gz"
-
-install-grub: pv-grub
-	$(INSTALL_DIR) "$(DESTDIR)$(XENFIRMWAREDIR)"
-	$(INSTALL_DATA) mini-os-$(XEN_TARGET_ARCH)-grub/mini-os.gz "$(DESTDIR)$(XENFIRMWAREDIR)/pv-grub-$(XEN_TARGET_ARCH).gz"
-
 #######
 # clean
 #######
 
-# Only clean the libxc/ioemu/mini-os part
 .PHONY: clean
 clean:
-	rm -fr mini-os-$(XEN_TARGET_ARCH)-ioemu
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-c
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-caml
-	rm -fr mini-os-$(XEN_TARGET_ARCH)-grub
 	$(MAKE) -C caml clean
 	$(MAKE) -C c clean
-	rm -fr grub-$(XEN_TARGET_ARCH)
-	rm -f $(STUBDOMPATH)
 	[ ! -d libxc-$(XEN_TARGET_ARCH) ] || $(MAKE) -C libxc-$(XEN_TARGET_ARCH) clean
-	-[ ! -d ioemu ] || $(MAKE) -C ioemu clean
 
 # clean the cross-compilation result
 .PHONY: crossclean
 crossclean: clean
 	rm -fr $(CROSS_ROOT)
 	rm -fr newlib-$(XEN_TARGET_ARCH)
-	rm -fr zlib-$(XEN_TARGET_ARCH) pciutils-$(XEN_TARGET_ARCH)
-	rm -fr libxc-$(XEN_TARGET_ARCH) ioemu
-	rm -f mk-headers-$(XEN_TARGET_ARCH)
+	rm -fr zlib-$(XEN_TARGET_ARCH)
+	rm -fr libxc-$(XEN_TARGET_ARCH)
 	rm -fr ocaml-$(XEN_TARGET_ARCH)
 	rm -fr include
 

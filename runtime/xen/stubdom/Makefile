@@ -86,28 +86,18 @@ $(ZLIB_STAMPFILE): zlib $(NEWLIB_STAMPFILE)
 CAMLLIB = $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib/ocaml
 OCAML_STAMPFILE=$(CAMLLIB)/.dirstamp
 
-ocaml-$(OCAML_VERSION).tar.gz:
-	$(WGET) $(OCAML_URL)/$@
-
-ocaml-$(XEN_TARGET_ARCH)/.dirstamp: ocaml-$(OCAML_VERSION).tar.gz ocaml.patch
-	tar xzf $<
-	cd ocaml-$(OCAML_VERSION) && patch -p0 < ../ocaml.patch
-	rm -rf ocaml-$(XEN_TARGET_ARCH)
-	mv ocaml-$(OCAML_VERSION) ocaml-$(XEN_TARGET_ARCH)
-	touch $@
-
 MINIOS_HASNOT=IPV6 INET_ATON
 
 .PHONY: cross-ocaml
 cross-ocaml: $(OCAML_STAMPFILE)
-$(OCAML_STAMPFILE): ocaml-$(XEN_TARGET_ARCH)/.dirstamp
-	cd ocaml-$(XEN_TARGET_ARCH) &&  ./configure -prefix $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+$(OCAML_STAMPFILE): 
+	cd ocaml &&  ./configure -prefix $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
 		-no-pthread -no-shared-libs -no-tk -no-curses \
 		-cc "$(CC) -U_FORTIFY_SOURCE -fno-stack-protector"
-	$(foreach i,$(MINIOS_HASNOT),sed -i 's,^\(#define HAS_$(i)\),//\1,' ocaml-$(XEN_TARGET_ARCH)/config/s.h ; )
-	$(MAKE) -C ocaml-$(XEN_TARGET_ARCH) world
-	$(MAKE) -C ocaml-$(XEN_TARGET_ARCH) opt
-	$(MAKE) -C ocaml-$(XEN_TARGET_ARCH) install
+	$(foreach i,$(MINIOS_HASNOT),sed -i 's,^\(#define HAS_$(i)\),//\1,' ocaml/config/s.h ; )
+	$(MAKE) -C ocaml world
+	$(MAKE) -C ocaml opt
+	$(MAKE) -C ocaml install
 	touch $@
 
 #######
@@ -197,7 +187,7 @@ grub: grub-upstream $(CROSS_ROOT)
 
 .PHONY: caml-stubdom
 caml-stubdom: mini-os-$(XEN_TARGET_ARCH)-caml libxc caml
-	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_CAML $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS="$(CURDIR)/caml/main-caml.o $(CURDIR)/caml/caml.o $(CAMLLIB)/libasmrun.a"
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_CAML $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip APP_OBJS="$(CURDIR)/caml/main-caml.o $(CURDIR)/caml/caml.o $(CAMLLIB)/libasmrun.a"
 
 .PHONY: c-stubdom
 c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c c

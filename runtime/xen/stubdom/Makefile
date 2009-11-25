@@ -86,18 +86,20 @@ $(ZLIB_STAMPFILE): zlib $(NEWLIB_STAMPFILE)
 CAMLLIB = $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib/ocaml
 OCAML_STAMPFILE=$(CAMLLIB)/.dirstamp
 
-MINIOS_HASNOT=IPV6 INET_ATON
+MINIOS_HASNOT=HAS_IPV6 HAS_INET_ATON POSIX_SIGNALS HAS_GETRUSAGE HAS_STACK_OVERFLOW_DETECTION
 
 .PHONY: cross-ocaml
 cross-ocaml: $(OCAML_STAMPFILE)
 $(OCAML_STAMPFILE): 
-	cd ocaml &&  ./configure -prefix $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+	@echo $(TARGET_LDFLAGS)
+	cd ocaml && ./configure -prefix $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
 		-no-pthread -no-shared-libs -no-tk -no-curses \
-		-cc "$(CC) -U_FORTIFY_SOURCE -fno-stack-protector"
-	$(foreach i,$(MINIOS_HASNOT),sed -i 's,^\(#define HAS_$(i)\),//\1,' ocaml/config/s.h ; )
-	$(MAKE) -C ocaml world
-	$(MAKE) -C ocaml opt
-	$(MAKE) -C ocaml install
+		-cc "$(CC) -U_FORTIFY_SOURCE $(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" 
+	$(foreach i,$(MINIOS_HASNOT),sed -i 's,^\(#define $(i)\),//\1,' ocaml/config/s.h ; )
+	$(MAKE) LDFLAGS="$(TARGET_LDFLAGS)" -C ocaml/asmrun -f Makefile.xen libasmrun.a
+	#$(MAKE) -C ocaml world
+	#$(MAKE) -C ocaml opt
+	#$(MAKE) -C ocaml install
 	touch $@
 
 #######

@@ -36,7 +36,7 @@
 int caml_debugger_in_use = 0;
 uintnat caml_event_count;
 
-#if !defined(HAS_SOCKETS)
+#if 1
 
 void caml_debugger_init(void)
 {

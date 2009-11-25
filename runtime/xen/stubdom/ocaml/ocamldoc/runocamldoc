@@ -1,0 +1,12 @@
+#!/bin/sh
+# $Id: runocamldoc,v 1.6 2002/07/23 14:11:53 doligez Exp $
+
+case "$1" in
+  true) shift
+        exec ../boot/ocamlrun  -I ../otherlibs/unix -I ../otherlibs/str \
+             ./ocamldoc "$@"
+        ;;
+     *) shift
+        exec ./ocamldoc "$@"
+        ;;
+esac

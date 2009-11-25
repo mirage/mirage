@@ -1,0 +1,3 @@
+*.o
+*.x
+so_locations

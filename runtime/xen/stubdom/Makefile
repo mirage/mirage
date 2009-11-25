@@ -62,7 +62,7 @@ cross-newlib: $(NEWLIB_STAMPFILE)
 $(NEWLIB_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH)
 	mkdir -p newlib-$(XEN_TARGET_ARCH)
 	( cd newlib-$(XEN_TARGET_ARCH) && \
-	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" AR_FOR_TARGET=$(AR) LD_FOR_TARGET=$(LD) RANLIB_FOR_TARGET=$(RANLIB) ../newlib/configure --prefix=$(CROSS_PREFIX) --verbose --target=$(GNU_TARGET_ARCH)-xen-elf --enable-newlib-io-long-long --disable-multilib && \
+	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" AR_FOR_TARGET=$(AR) LD_FOR_TARGET=$(LD) RANLIB_FOR_TARGET=$(RANLIB) ../newlib/configure --prefix=$(CROSS_PREFIX) --verbose --target=$(GNU_TARGET_ARCH)-xen-elf --enable-newlib-io-long-long --disable-multilib --disable-newlib-multithread && \
 	  $(MAKE) && \
 	  DESTDIR= $(MAKE) install )
 
@@ -85,22 +85,28 @@ $(ZLIB_STAMPFILE): zlib $(NEWLIB_STAMPFILE)
 
 CAMLLIB = $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib/ocaml
 OCAML_STAMPFILE=$(CAMLLIB)/.dirstamp
+OCAMLXEN_STAMPFILE=$(CAMLLIB)/libasmrunxen.a
 
-MINIOS_HASNOT=HAS_IPV6 HAS_INET_ATON POSIX_SIGNALS HAS_GETRUSAGE HAS_STACK_OVERFLOW_DETECTION
+MINIOS_HASNOT=HAS_IPV6 HAS_INET_ATON POSIX_SIGNALS HAS_GETRUSAGE HAS_STACK_OVERFLOW_DETECTION HAS_TIMES
 
 .PHONY: cross-ocaml
-cross-ocaml: $(OCAML_STAMPFILE)
+cross-ocaml: $(OCAMLXEN_STAMPFILE)
 $(OCAML_STAMPFILE): 
 	@echo $(TARGET_LDFLAGS)
 	cd ocaml && ./configure -prefix $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
 		-no-pthread -no-shared-libs -no-tk -no-curses \
-		-cc "$(CC) -U_FORTIFY_SOURCE $(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" 
+		-cc "$(CC) -U_FORTIFY_SOURCE -fno-stack-protector"
 	$(foreach i,$(MINIOS_HASNOT),sed -i 's,^\(#define $(i)\),//\1,' ocaml/config/s.h ; )
-	$(MAKE) LDFLAGS="$(TARGET_LDFLAGS)" -C ocaml/asmrun -f Makefile.xen libasmrun.a
-	#$(MAKE) -C ocaml world
-	#$(MAKE) -C ocaml opt
-	#$(MAKE) -C ocaml install
+	$(MAKE) -C ocaml world
+	$(MAKE) -C ocaml opt
+	$(MAKE) -C ocaml install
 	touch $@
+
+$(OCAMLXEN_STAMPFILE): $(OCAML_STAMPFILE)
+	$(MAKE) -C ocaml/asmrun clean
+	$(MAKE) LDFLAGS="$(TARGET_LDFLAGS)" TARGET_CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" \
+	  -C ocaml/asmrun -f Makefile.xen libasmrun.a
+	cp ocaml/asmrun/libasmrun.a $@
 
 #######
 # Links
@@ -189,15 +195,11 @@ grub: grub-upstream $(CROSS_ROOT)
 
 .PHONY: caml-stubdom
 caml-stubdom: mini-os-$(XEN_TARGET_ARCH)-caml libxc caml
-	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_CAML $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip APP_OBJS="$(CURDIR)/caml/main-caml.o $(CURDIR)/caml/caml.o $(CAMLLIB)/libasmrun.a"
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_CAML $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip APP_OBJS="$(CURDIR)/caml/main-caml.o $(CURDIR)/caml/caml.o $(CAMLLIB)/libasmrunxen.a"
 
 .PHONY: c-stubdom
 c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c c
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_C $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip APP_OBJS=$(CURDIR)/c/main.a
-
-.PHONY: pv-grub
-pv-grub: mini-os-$(XEN_TARGET_ARCH)-grub libxc grub
-	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_GRUB $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< APP_OBJS=$(CURDIR)/grub-$(XEN_TARGET_ARCH)/main.a
 
 #######
 # clean
@@ -209,6 +211,7 @@ clean:
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-caml
 	$(MAKE) -C caml clean
 	$(MAKE) -C c clean
+	$(MAKE) -C ocaml clean
 	[ ! -d libxc-$(XEN_TARGET_ARCH) ] || $(MAKE) -C libxc-$(XEN_TARGET_ARCH) clean
 
 # clean the cross-compilation result
@@ -220,6 +223,7 @@ crossclean: clean
 	rm -fr libxc-$(XEN_TARGET_ARCH)
 	rm -fr ocaml-$(XEN_TARGET_ARCH)
 	rm -fr include
+	rm -f mk-headers-*
 
 # clean patched sources
 .PHONY: patchclean

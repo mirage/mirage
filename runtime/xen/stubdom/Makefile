@@ -224,23 +224,3 @@ crossclean: clean
 	rm -fr ocaml-$(XEN_TARGET_ARCH)
 	rm -fr include
 	rm -f mk-headers-*
-
-# clean patched sources
-.PHONY: patchclean
-patchclean: crossclean
-	rm -fr newlib-$(NEWLIB_VERSION)
-	rm -fr lwip-$(XEN_TARGET_ARCH)
-	rm -fr grub-upstream
-
-# clean downloads
-.PHONY: downloadclean
-downloadclean: patchclean
-	rm -f newlib-$(NEWLIB_VERSION).tar.gz
-	rm -f zlib-$(ZLIB_VERSION).tar.gz
-	rm -f pciutils-$(LIBPCI_VERSION).tar.bz2
-	rm -f grub-$(GRUB_VERSION).tar.gz
-	rm -f lwip-$(LWIP_VERSION).tar.gz
-	rm -f ocaml-$(OCAML_VERSION).tar.gz
-
-.PHONY: distclean
-distclean: downloadclean

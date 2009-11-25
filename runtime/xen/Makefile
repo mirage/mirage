@@ -14,4 +14,4 @@ SUBARCH := $(subst x86_32,i386,$(XEN_TARGET_ARCH))
 export XEN_TARGET_ARCH SUBARCH XEN_SYSTYPE
 
 core:
-	make -C stubdom c-stubdom
+	make -C stubdom caml-stubdom

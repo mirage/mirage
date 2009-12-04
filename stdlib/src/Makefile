@@ -1,14 +1,20 @@
 OCAMLOPT ?= ocamlopt.opt
 OCAMLDEP ?= ocamldep.opt
-OCAMLDSORT ?= ocamldsort.opt
-
-CORE=pervasives.ml
-ALL=$(wildcard *.ml)
-LIBS=$(filter-out $(CORE),$(ALL)) 
+OCAMLDSORT ?= ocamldsort
 
 .PHONY: build
-build: pervasives.cmx
-	$(OCAMLOPT) -c -nostdlib $(shell $(OCAMLDSORT) -mli *.ml *.mli)
+build: stdlib.cmxa
+	@ :
+
+.mldeps:
+	$(OCAMLDSORT) -mli *.ml *.mli > $@
+
+.cmxdeps:
+	$(OCAMLDSORT) -opt *.ml > $@
+
+stdlib.cmxa: .cmxdeps .mldeps
+	$(OCAMLOPT) -c -nostdlib -nopervasives pervasives.mli pervasives.ml `cat .mldeps`
+	$(OCAMLOPT) -a -o stdlib.cmxa `cat .cmxdeps`
 
 pervasives.cmi: pervasives.mli
 	$(OCAMLOPT) -c -nostdlib -nopervasives $<
@@ -18,4 +24,4 @@ pervasives.cmx: pervasives.ml pervasives.cmi
 
 .PHONY: clean
 clean:
-	rm -f *.cmx *.cmo *.o *.cmi
+	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps

@@ -1,0 +1,76 @@
+#!/bin/bash -e
+# Build Mirage applications
+
+shopt -s nullglob
+
+OCAMLDSORT=${OCAMLDSORT:-ocamldsort}
+OCAMLOPT=${OCAMLOPT:-ocamlopt.opt}
+OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
+CC=${CC:-cc}
+
+MIRAGE_ROOT=${MIRAGE_ROOT:-/Users/avsm/src/oss/mirage}
+STDLIB=${MIRAGE_ROOT}/stdlib/src
+RUNTIME=${MIRAGE_ROOT}/runtime
+
+MODE=bu
+
+if [ ! -z "$1" ]; then
+  MODE="$1"
+  shift
+fi
+
+if [ -z "$1" ]; then
+  DIR="."
+else
+  DIR="$1"
+fi
+
+function usage {
+  echo "Usage: $0 [mode] [dir]"
+  echo "  [mode] can be:"
+  echo "    bu : target UNIX (default)"
+  echo "    bx : target Xen"
+  echo "    clean : clean intermediates"
+  exit 1
+}
+
+case "${MODE}" in
+bu)
+  echo Building for UNIX
+  TARG=u
+  ;;
+bx)
+  echo Building for Xen
+  TARG=x
+  ;;
+clean)
+  echo Cleaning intermediate files
+  cd "${DIR}"
+  rm -f *.cmi *.cma *.cmo *.cmx *.annot *.o
+  exit 0
+  ;;
+*)
+  echo Unknown mode $*
+  usage
+  ;;
+esac
+
+cd "${DIR}"
+DEPEND=".depend"
+${OCAMLDSORT} -nox -mli *.ml *.mli > ${DEPEND}
+env CAMLLIB="${STDLIB}" ${OCAMLOPT} `cat .depend` -output-obj -o app.o
+
+# now link app.o depending on the target platform
+case "${TARG}" in
+u)
+  echo Linking for UNIX
+  ${CC} -o app ${RUNTIME}/libasmrun_unix.a
+  ;;
+x)
+  echo Linking for Xen
+  ;;
+*)
+  echo Unknown target $TARGET
+  exit 1
+  ;;
+esac

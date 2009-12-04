@@ -1,8 +1,0 @@
-Platform-independent standard library for Mirage
-
-To build something, do:
-
-$ make -C build SOURCES="<full paths to ML source files>"
-
-Output will be in build/app.o ready for linking in with the right
-libasmrun.a

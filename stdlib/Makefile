@@ -6,10 +6,10 @@ OCAMLDSORT ?= ocamldsort
 build: stdlib.cmxa
 	@ :
 
-.mldeps:
+.mldeps: *.ml *.mli
 	$(OCAMLDSORT) -mli *.ml *.mli > $@
 
-.cmxdeps:
+.cmxdeps: .mldeps
 	$(OCAMLDSORT) -opt *.ml > $@
 
 stdlib.cmxa: .cmxdeps .mldeps

@@ -6,10 +6,11 @@ shopt -s nullglob
 OCAMLDSORT=${OCAMLDSORT:-ocamldsort}
 OCAMLOPT=${OCAMLOPT:-ocamlopt.opt}
 OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
+MAKE=${MAKE:-make}
 CC=${CC:-cc}
 
 MIRAGE_ROOT=${MIRAGE_ROOT:-/Users/avsm/src/oss/mirage}
-STDLIB=${MIRAGE_ROOT}/stdlib/src
+STDLIB=${MIRAGE_ROOT}/stdlib
 RUNTIME=${MIRAGE_ROOT}/runtime
 
 MODE=bu
@@ -43,10 +44,10 @@ bx)
   echo Building for Xen
   TARG=x
   ;;
-clean)
+clean|cl)
   echo Cleaning intermediate files
   cd "${DIR}"
-  rm -f *.cmi *.cma *.cmo *.cmx *.annot *.o
+  rm -f *.cmi *.cma *.cmo *.cmx *.annot *.o app .depend
   exit 0
   ;;
 *)
@@ -64,10 +65,12 @@ env CAMLLIB="${STDLIB}" ${OCAMLOPT} `cat .depend` -output-obj -o app.o
 case "${TARG}" in
 u)
   echo Linking for UNIX
-  ${CC} -o app ${RUNTIME}/libasmrun_unix.a
+  ${CC} -o app app.o ${RUNTIME}/libasmrun_unix.a
   ;;
 x)
   echo Linking for Xen
+  cp app.o ${RUNTIME}/xen/stubdom/caml/app.o
+  cd ${RUNTIME}/xen/stubdom && ${MAKE} caml-stubdom
   ;;
 *)
   echo Unknown target $TARGET

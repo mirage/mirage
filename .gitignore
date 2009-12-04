@@ -4,4 +4,8 @@
 *.cmx
 *.cma
 *.cmo
+*.cmxa
 *.cache/
+.cmxdeps
+.mldeps
+

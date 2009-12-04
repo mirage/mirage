@@ -19,3 +19,4 @@ clean:
 install:
 	@cd stdlib && $(MAKE) install
 	@cd bin && $(MAKE) install
+	@cd runtime && $(MAKE) install

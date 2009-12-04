@@ -4,6 +4,12 @@
 SUDO ?= sudo
 export SUDO
 
+DESTDIR ?=
+export DESTDIR
+
+PREFIX ?= /usr/local
+export PREFIX
+
 all:
 	@cd stdlib && $(MAKE)
 
@@ -12,3 +18,4 @@ clean:
 
 install:
 	@cd stdlib && $(MAKE) install
+	@cd bin && $(MAKE) install

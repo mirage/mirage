@@ -25,3 +25,10 @@ pervasives.cmx: pervasives.ml pervasives.cmi
 .PHONY: clean
 clean:
 	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps
+
+OCAML_PREFIX = $(shell $(OCAMLOPT) -where)
+
+.PHONY: install
+install:
+	mkdir -p $(DESTDIR)$(OCAML_PREFIX)/mirage
+	cp *.cmi *.cmxa *.cmx *.a $(DESTDIR)$(OCAML_PREFIX)/mirage/

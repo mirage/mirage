@@ -9,11 +9,15 @@ OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
 MAKE=${MAKE:-make}
 CC=${CC:-cc}
 
-MIRAGE_ROOT=${MIRAGE_ROOT:-/Users/avsm/src/oss/mirage}
+MIRAGE_ROOT=${MIRAGE_ROOT:-}
 STDLIB=${MIRAGE_ROOT}/stdlib
 RUNTIME=${MIRAGE_ROOT}/runtime
 
 MODE=bu
+
+if [ -z "${MIRAGE_ROOT}" ]; then
+  MIRAGE_ROOT="$(${OCAMLOPT} -where)/mirage"
+fi
 
 if [ ! -z "$1" ]; then
   MODE="$1"
@@ -69,7 +73,7 @@ u)
   ;;
 x)
   echo Linking for Xen
-  cp app.o ${RUNTIME}/xen/stubdom/caml/app.o
+  cp app.o ${RUNTIME}/xen/stubdom/caml/caml.o
   cd ${RUNTIME}/xen/stubdom && ${MAKE} caml-stubdom
   ;;
 *)

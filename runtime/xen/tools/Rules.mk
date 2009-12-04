@@ -49,11 +49,6 @@ check-$(CONFIG_X86) = $(call cc-ver-check,CC,0x030400,\
                         "Xen requires at least gcc-3.4")
 $(eval $(check-y))
 
-DEFAULT_PYTHON_PATH := $(shell $(XEN_ROOT)/tools/python/get-path)
-PYTHON_PATH ?= $(DEFAULT_PYTHON_PATH)
-INSTALL_PYTHON_PROG = \
-	$(XEN_ROOT)/tools/python/install-wrap "$(PYTHON_PATH)" $(INSTALL_PROG)
-
 %.opic: %.c
 	$(CC) $(CPPFLAGS) -DPIC $(CFLAGS) -fPIC -c -o $@ $<
 

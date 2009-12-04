@@ -69,7 +69,7 @@ env CAMLLIB="${STDLIB}" ${OCAMLOPT} `cat .depend` -output-obj -o app.o
 case "${TARG}" in
 u)
   echo Linking for UNIX
-  ${CC} -o app app.o ${RUNTIME}/libasmrun_unix.a
+  ${CC} -o app app.o ${RUNTIME}/libmiragerun.a
   ;;
 x)
   echo Linking for Xen

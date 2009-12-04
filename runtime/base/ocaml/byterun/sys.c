@@ -330,19 +330,3 @@ CAMLprim value caml_sys_get_config(value unit)
   CAMLreturn (result);
 }
 
-CAMLprim value caml_sys_read_directory(value path)
-{
-  CAMLparam1(path);
-  CAMLlocal1(result);
-  struct ext_table tbl;
-
-  caml_ext_table_init(&tbl, 50);
-  if (caml_read_directory(String_val(path), &tbl) == -1){
-    caml_ext_table_free(&tbl, 1);
-    caml_sys_error(path);
-  }
-  caml_ext_table_add(&tbl, NULL);
-  result = caml_copy_string_array((char const **) tbl.contents);
-  caml_ext_table_free(&tbl, 1);
-  CAMLreturn(result);
-}

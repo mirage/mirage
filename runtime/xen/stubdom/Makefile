@@ -50,7 +50,7 @@ TARGET_CPPFLAGS += -I$(XEN_ROOT)/xen/include
 
 TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
 
-TARGETS=c caml
+TARGETS=caml
 
 ##############
 # Cross-newlib
@@ -85,6 +85,9 @@ $(ZLIB_STAMPFILE): zlib $(NEWLIB_STAMPFILE)
 
 .PHONY: $(CROSS_ROOT)
 $(CROSS_ROOT): cross-newlib cross-zlib 
+
+.PHONY: cross
+cross: $(CROSS_ROOT)
 
 mk-headers-$(XEN_TARGET_ARCH):
 	mkdir -p include/xen && \
@@ -141,32 +144,13 @@ caml: $(CROSS_ROOT)
 c: $(CROSS_ROOT)
 	CPPFLAGS="$(TARGET_CPPFLAGS)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) -C $@ LWIPDIR=$(CURDIR)/lwip
 
-######
-# Grub
-######
-
-grub-$(GRUB_VERSION).tar.gz:
-	$(WGET) $(GRUB_URL)/$@
-
-grub-upstream: grub-$(GRUB_VERSION).tar.gz
-	tar xzf $<
-	mv grub-$(GRUB_VERSION) $@
-	for i in grub.patches/* ; do \
-		patch -d $@ -p1 < $$i ; \
-	done
-
-.PHONY: grub
-grub: grub-upstream $(CROSS_ROOT)
-	mkdir -p grub-$(XEN_TARGET_ARCH)
-	CPPFLAGS="$(TARGET_CPPFLAGS)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) -C $@ OBJ_DIR=$(CURDIR)/grub-$(XEN_TARGET_ARCH)
-
 ########
 # minios
 ########
 
 .PHONY: caml-stubdom
 caml-stubdom: mini-os-$(XEN_TARGET_ARCH)-caml libxc caml
-	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_CAML $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip APP_OBJS="$(CURDIR)/caml/main-caml.o $(CURDIR)/caml/caml.o $(CAMLLIB)/libasmrunxen.a"
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="-DCONFIG_CAML $(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip APP_OBJS="$(CURDIR)/caml/main-caml.o $(APP_LIBS)"
 
 #######
 # clean

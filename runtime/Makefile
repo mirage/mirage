@@ -1,8 +1,18 @@
+OS = $(shell uname -s)
+OCAML_PREFIX = $(shell ocamlopt -where)
+
+TARGS = 
+ifeq ($(OS), Linux)
+TARGS += libmiragerun_linux.a
+TARGS += libmiragerun_xen.a
+endif
+ifeq ($(OS), Darwin)
+TARGS += libmiragerun_darwin.a
+endif
+
 .PHONY: all clean install
 
-OCAML_PREFIX=$(shell ocamlopt -where)
-
-all: libmiragerun_linux.a libmiragerun_xen.a
+all: $(TARGS)
 	@ :
 
 xen: libmiragerun_xen.a
@@ -12,6 +22,8 @@ clean:
 	rm -rf base/obj-*
 	rm -f libmiragerun*
 
+libmiragerun_darwin.a:
+	@cd base && $(MAKE) MODE=darwin CC="$(CC)"
 libmiragerun_linux.a:
 	@cd base && $(MAKE) MODE=linux CC="$(CC)"
 

@@ -9,7 +9,7 @@ OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
 MAKE=${MAKE:-make}
 CC=${CC:-cc}
 
-MIRAGE_ROOT=${MIRAGE_ROOT:-}
+MIRAGE_ROOT=${MIRAGE_ROOT:-`pwd`}
 STDLIB=${MIRAGE_ROOT}/stdlib
 RUNTIME=${MIRAGE_ROOT}/runtime
 
@@ -31,7 +31,7 @@ else
 fi
 
 # no readlink -f on MacOS X, so use perl instead for that
-if readlink -f .; then
+if readlink -f . >/dev/null 2>&1; then
   DIR=`readlink -f ${DIR}`
 else
   DIR=`perl -e "use Cwd 'abs_path'; print abs_path(\"$1\")"`
@@ -76,7 +76,8 @@ env CAMLLIB="${STDLIB}" ${OCAMLOPT} `cat .depend` -output-obj -o app.o
 case "${TARG}" in
 u)
   echo Linking for UNIX
-  ${CC} -o app app.o ${RUNTIME}/libmiragerun.a
+  OS=$(uname -s | tr "[A-Z]" "[a-z]")
+  ${CC} -o app app.o ${RUNTIME}/libmiragerun_${OS}.a
   ;;
 x)
   echo Linking for Xen

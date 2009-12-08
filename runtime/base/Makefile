@@ -10,7 +10,7 @@ all: $(OUT)
 	@ :
 
 $(OBJ)/.stamp:
-	cp -rl ocaml/ $(OBJ)/
+	cp -R ocaml/ $(OBJ)/
 	@touch $@
 
 $(OUT): $(OBJ)/asmrun/libasmrun.a
@@ -19,5 +19,5 @@ $(OUT): $(OBJ)/asmrun/libasmrun.a
 $(OBJ)/asmrun/libasmrun.a: $(OBJ)/.stamp
 	cd $(OBJ) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
                 -cc "$(CC) -U_FORTIFY_SOURCE -fno-stack-protector"
-	$(foreach i,$(HAS_NOT),sed -i 's,^\(#define $(i)\),//\1,' $(OBJ)/config/s.h ; )
+	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJ)/config/s.h ; )
 	cd $(OBJ)/asmrun && $(MAKE) SYSTEM=$(MODE) libasmrun.a

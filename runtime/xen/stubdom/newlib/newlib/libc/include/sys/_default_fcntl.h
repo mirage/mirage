@@ -163,7 +163,11 @@ struct eflock {
 #include <sys/types.h>
 #include <sys/stat.h>		/* sigh. for the mode bits for open/creat */
 
-extern int open _PARAMS ((const char *, int, ...));
+extern int open _PARAMS ((const char *, int, ...))
+#ifdef __MINIOS__
+  asm("open64")
+#endif
+    ;
 extern int creat _PARAMS ((const char *, mode_t));
 extern int fcntl _PARAMS ((int, int, ...));
 

@@ -2,8 +2,8 @@ XEN_ROOT = ../..
 
 include $(XEN_ROOT)/Config.mk
 
-CAMLLIB = $(shell $(OCAMLC_CROSS_PREFIX)ocamlc -where)
-DEF_CPPFLAGS += -I$(CAMLLIB)
+CAMLLIB = $(shell ocamlc -where)
+DEF_CPPFLAGS += -I(CAMLLIB)
 
 OCAMLOPT=$(OCAMLC_CROSS_PREFIX)ocamlopt
 

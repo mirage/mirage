@@ -30,6 +30,13 @@ else
   DIR="$1"
 fi
 
+# no readlink -f on MacOS X, so use perl instead for that
+if readlink -f .; then
+  DIR=`readlink -f ${DIR}`
+else
+  DIR=`perl -e "use Cwd 'abs_path'; print abs_path(\"$1\")"`
+fi
+
 function usage {
   echo "Usage: $0 [mode] [dir]"
   echo "  [mode] can be:"
@@ -73,8 +80,8 @@ u)
   ;;
 x)
   echo Linking for Xen
-  cp app.o ${RUNTIME}/xen/stubdom/caml/caml.o
-  cd ${RUNTIME}/xen/stubdom && ${MAKE} caml-stubdom
+  cd ${RUNTIME}/xen/stubdom && ${MAKE} caml-stubdom APP_LIBS="${DIR}/app.o ${RUNTIME}/libmiragerun_xen.a"
+  cp ${RUNTIME}/xen/stubdom/mini-os-x86_64-caml/mini-os.gz ${DIR}/
   ;;
 *)
   echo Unknown target $TARGET

@@ -25,7 +25,6 @@
 #include <wait.h>
 #include <netfront.h>
 #include <blkfront.h>
-#include <fbfront.h>
 #include <xenbus.h>
 #include <xs.h>
 
@@ -46,7 +45,6 @@
 #ifdef HAVE_LWIP
 #include <lwip/sockets.h>
 #endif
-#include <fs.h>
 
 #define debug(fmt, ...) \
 
@@ -155,17 +153,6 @@ char *getcwd(char *buf, size_t size)
 
 #define LOG_PATH "/var/log/"
 
-int mkdir(const char *pathname, mode_t mode)
-{
-    int ret;
-    ret = fs_create(fs_import, (char *) pathname, 1, mode);
-    if (ret < 0) {
-        errno = EIO;
-        return -1;
-    }
-    return 0;
-}
-
 int posix_openpt(int flags)
 {
     struct consfront_dev *dev;
@@ -182,7 +169,7 @@ int posix_openpt(int flags)
 
 int open(const char *pathname, int flags, ...)
 {
-    int fs_fd, fd;
+    int fd;
     /* Ugly, but fine.  */
     if (!strncmp(pathname,LOG_PATH,strlen(LOG_PATH))) {
 	fd = alloc_fd(FTYPE_CONSOLE);
@@ -197,33 +184,8 @@ int open(const char *pathname, int flags, ...)
     if (!strncmp(pathname, "/dev/ptmx", strlen("/dev/ptmx")))
         return posix_openpt(flags);
     printk("open(%s, %x)", pathname, flags);
-    switch (flags & ~O_ACCMODE) {
-        case 0:
-            fs_fd = fs_open(fs_import, (void *) pathname);
-            break;
-        case O_CREAT|O_TRUNC:
-        {
-            va_list ap;
-            mode_t mode;
-            va_start(ap, flags);
-            mode = va_arg(ap, mode_t);
-            va_end(ap);
-            fs_fd = fs_create(fs_import, (void *) pathname, 0, mode);
-            break;
-        }
-        default:
-            printk(" unsupported flags\n");
-            do_exit();
-    }
-    if (fs_fd < 0) {
-	errno = EIO;
-	return -1;
-    }
-    fd = alloc_fd(FTYPE_FILE);
-    printk("-> %d\n", fd);
-    files[fd].file.fd = fs_fd;
-    files[fd].file.offset = 0;
-    return fd;
+    errno = EIO;
+    return -1;
 }
 
 int isatty(int fd)
@@ -247,20 +209,6 @@ int read(int fd, void *buf, size_t nbytes)
             remove_waiter(w);
             return ret;
         }
-	case FTYPE_FILE: {
-	    ssize_t ret;
-	    if (nbytes > PAGE_SIZE * FSIF_NR_READ_GNTS)
-		nbytes = PAGE_SIZE * FSIF_NR_READ_GNTS;
-	    ret = fs_read(fs_import, files[fd].file.fd, buf, nbytes, files[fd].file.offset);
-	    if (ret > 0) {
-		files[fd].file.offset += ret;
-		return ret;
-	    } else if (ret < 0) {
-		errno = EIO;
-		return -1;
-	    }
-	    return 0;
-	}
 #ifdef HAVE_LWIP
 	case FTYPE_SOCKET:
 	    return lwip_read(files[fd].socket.fd, buf, nbytes);
@@ -274,26 +222,6 @@ int read(int fd, void *buf, size_t nbytes)
 	    }
 	    return ret;
 	}
-        case FTYPE_KBD: {
-            int ret, n;
-            n = nbytes / sizeof(union xenkbd_in_event);
-            ret = kbdfront_receive(files[fd].kbd.dev, buf, n);
-	    if (ret <= 0) {
-		errno = EAGAIN;
-		return -1;
-	    }
-	    return ret * sizeof(union xenkbd_in_event);
-        }
-        case FTYPE_FB: {
-            int ret, n;
-            n = nbytes / sizeof(union xenfb_in_event);
-            ret = fbfront_receive(files[fd].fb.dev, buf, n);
-	    if (ret <= 0) {
-		errno = EAGAIN;
-		return -1;
-	    }
-	    return ret * sizeof(union xenfb_in_event);
-        }
 	default:
 	    break;
     }
@@ -308,20 +236,6 @@ int write(int fd, const void *buf, size_t nbytes)
 	case FTYPE_CONSOLE:
 	    console_print(files[fd].cons.dev, (char *)buf, nbytes);
 	    return nbytes;
-	case FTYPE_FILE: {
-	    ssize_t ret;
-	    if (nbytes > PAGE_SIZE * FSIF_NR_WRITE_GNTS)
-		nbytes = PAGE_SIZE * FSIF_NR_WRITE_GNTS;
-	    ret = fs_write(fs_import, files[fd].file.fd, (void *) buf, nbytes, files[fd].file.offset);
-	    if (ret > 0) {
-		files[fd].file.offset += ret;
-		return ret;
-	    } else if (ret < 0) {
-		errno = EIO;
-		return -1;
-	    }
-	    return 0;
-	}
 #ifdef HAVE_LWIP
 	case FTYPE_SOCKET:
 	    return lwip_write(files[fd].socket.fd, (void*) buf, nbytes);
@@ -339,47 +253,11 @@ int write(int fd, const void *buf, size_t nbytes)
 
 off_t lseek(int fd, off_t offset, int whence)
 {
-    if (files[fd].type != FTYPE_FILE) {
-	errno = ESPIPE;
-	return (off_t) -1;
-    }
-    switch (whence) {
-	case SEEK_SET:
-	    files[fd].file.offset = offset;
-	    break;
-	case SEEK_CUR:
-	    files[fd].file.offset += offset;
-	    break;
-	case SEEK_END: {
-	    struct stat st;
-	    int ret;
-	    ret = fstat(fd, &st);
-	    if (ret)
-		return -1;
-	    files[fd].file.offset = st.st_size + offset;
-	    break;
-	}
-	default:
-	    errno = EINVAL;
-	    return -1;
-    }
-    return files[fd].file.offset;
+    errno = ESPIPE;
+    return (off_t) -1;
 }
 
 int fsync(int fd) {
-    switch (files[fd].type) {
-	case FTYPE_FILE: {
-	    int ret;
-	    ret = fs_sync(fs_import, files[fd].file.fd);
-	    if (ret < 0) {
-		errno = EIO;
-		return -1;
-	    }
-	    return 0;
-	}
-	default:
-	    break;
-    }
     printk("fsync(%d): Bad descriptor\n", fd);
     errno = EBADF;
     return -1;
@@ -392,15 +270,6 @@ int close(int fd)
         default:
 	    files[fd].type = FTYPE_NONE;
 	    return 0;
-	case FTYPE_FILE: {
-	    int ret = fs_close(fs_import, files[fd].file.fd);
-	    files[fd].type = FTYPE_NONE;
-	    if (ret < 0) {
-		errno = EIO;
-		return -1;
-	    }
-	    return 0;
-	}
 	case FTYPE_XENBUS:
             xs_daemon_close((void*)(intptr_t) fd);
             return 0;
@@ -428,14 +297,6 @@ int close(int fd)
             shutdown_blkfront(files[fd].blk.dev);
 	    files[fd].type = FTYPE_NONE;
 	    return 0;
-	case FTYPE_KBD:
-            shutdown_kbdfront(files[fd].kbd.dev);
-            files[fd].type = FTYPE_NONE;
-            return 0;
-	case FTYPE_FB:
-            shutdown_fbfront(files[fd].fb.dev);
-            files[fd].type = FTYPE_NONE;
-            return 0;
         case FTYPE_CONSOLE:
             fini_console(files[fd].cons.dev);
             files[fd].type = FTYPE_NONE;
@@ -459,43 +320,10 @@ static void init_stat(struct stat *buf)
     buf->st_blocks = 0;
 }
 
-static void stat_from_fs(struct stat *buf, struct fsif_stat_response *stat)
-{
-    buf->st_mode = stat->stat_mode;
-    buf->st_uid = stat->stat_uid;
-    buf->st_gid = stat->stat_gid;
-    buf->st_size = stat->stat_size;
-    buf->st_atime = stat->stat_atime;
-    buf->st_mtime = stat->stat_mtime;
-    buf->st_ctime = stat->stat_ctime;
-}
-
 int stat(const char *path, struct stat *buf)
 {
-    struct fsif_stat_response stat;
-    int ret;
-    int fs_fd;
-    printk("stat(%s)\n", path);
-    fs_fd = fs_open(fs_import, (char*) path);
-    if (fs_fd < 0) {
-	errno = EIO;
-	ret = -1;
-	goto out;
-    }
-    ret = fs_stat(fs_import, fs_fd, &stat);
-    if (ret < 0) {
-	errno = EIO;
-	ret = -1;
-	goto outfd;
-    }
-    init_stat(buf);
-    stat_from_fs(buf, &stat);
-    ret = 0;
-
-outfd:
-    fs_close(fs_import, fs_fd);
-out:
-    return ret;
+    errno = EIO;
+    return -1;
 }
 
 int fstat(int fd, struct stat *buf)
@@ -513,18 +341,6 @@ int fstat(int fd, struct stat *buf)
 	    buf->st_ctime = time(NULL);
 	    return 0;
 	}
-	case FTYPE_FILE: {
-	    struct fsif_stat_response stat;
-	    int ret;
-	    ret = fs_stat(fs_import, files[fd].file.fd, &stat);
-	    if (ret < 0) {
-		errno = EIO;
-		return -1;
-	    }
-	    /* The protocol is a bit evasive about this value */
-	    stat_from_fs(buf, &stat);
-	    return 0;
-	}
 	default:
 	    break;
     }
@@ -536,20 +352,6 @@ int fstat(int fd, struct stat *buf)
 
 int ftruncate(int fd, off_t length)
 {
-    switch (files[fd].type) {
-	case FTYPE_FILE: {
-            int ret;
-            ret = fs_truncate(fs_import, files[fd].file.fd, length);
-	    if (ret < 0) {
-		errno = EIO;
-		return -1;
-	    }
-	    return 0;
-	}
-	default:
-	    break;
-    }
-
     printk("ftruncate(%d): Bad descriptor\n", fd);
     errno = EBADF;
     return -1;
@@ -557,14 +359,8 @@ int ftruncate(int fd, off_t length)
 
 int remove(const char *pathname)
 {
-    int ret;
-    printk("remove(%s)", pathname);
-    ret = fs_remove(fs_import, (char*) pathname);
-    if (ret < 0) {
-        errno = EIO;
-        return -1;
-    }
-    return 0;
+    errno = EIO;
+    return -1;
 }
 
 int unlink(const char *pathname)
@@ -602,66 +398,17 @@ int fcntl(int fd, int cmd, ...)
     }
 }
 
-DIR *opendir(const char *name)
-{
-    DIR *ret;
-    ret = malloc(sizeof(*ret));
-    ret->name = strdup(name);
-    ret->offset = 0;
-    ret->entries = NULL;
-    ret->curentry = -1;
-    ret->nbentries = 0;
-    ret->has_more = 1;
-    return ret;
-}
-
-struct dirent *readdir(DIR *dir)
-{
-    if (dir->curentry >= 0) {
-        free(dir->entries[dir->curentry]);
-        dir->entries[dir->curentry] = NULL;
-    }
-    dir->curentry++;
-    if (dir->curentry >= dir->nbentries) {
-        dir->offset += dir->nbentries;
-        free(dir->entries);
-        dir->curentry = -1;
-        dir->nbentries = 0;
-        if (!dir->has_more)
-            return NULL;
-        dir->entries = fs_list(fs_import, dir->name, dir->offset, &dir->nbentries, &dir->has_more);
-        if (!dir->entries || !dir->nbentries)
-            return NULL;
-        dir->curentry = 0;
-    }
-    dir->dirent.d_name = dir->entries[dir->curentry];
-    return &dir->dirent;
-} 
-int closedir(DIR *dir)
-{
-    int i;
-    for (i=0; i<dir->nbentries; i++)
-        free(dir->entries[i]);
-    free(dir->entries);
-    free(dir->name);
-    free(dir);
-    return 0;
-}
-
 /* We assume that only the main thread calls select(). */
 
 static const char file_types[] = {
     [FTYPE_NONE]	= 'N',
     [FTYPE_CONSOLE]	= 'C',
-    [FTYPE_FILE]	= 'F',
     [FTYPE_XENBUS]	= 'S',
     [FTYPE_XC]		= 'X',
     [FTYPE_EVTCHN]	= 'E',
     [FTYPE_SOCKET]	= 's',
     [FTYPE_TAP]		= 'T',
     [FTYPE_BLK]		= 'B',
-    [FTYPE_KBD]		= 'K',
-    [FTYPE_FB]		= 'G',
 };
 #ifdef LIBC_DEBUG
 static void dump_set(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
@@ -752,11 +499,6 @@ static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exce
 	    if (FD_ISSET(i, readfds) || FD_ISSET(i, writefds) || FD_ISSET(i, exceptfds))
 		printk("bogus fd %d in select\n", i);
 	    /* Fallthrough.  */
-	case FTYPE_FILE:
-	    FD_CLR(i, readfds);
-	    FD_CLR(i, writefds);
-	    FD_CLR(i, exceptfds);
-	    break;
 	case FTYPE_CONSOLE:
 	    if (FD_ISSET(i, readfds)) {
                 if (xencons_ring_avail(files[i].cons.dev))
@@ -781,8 +523,6 @@ static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exce
 	case FTYPE_EVTCHN:
 	case FTYPE_TAP:
 	case FTYPE_BLK:
-	case FTYPE_KBD:
-	case FTYPE_FB:
 	    if (FD_ISSET(i, readfds)) {
 		if (files[i].read)
 		    n++;
@@ -888,7 +628,6 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
     add_waiter(w2, event_queue);
     add_waiter(w3, blkfront_queue);
     add_waiter(w4, xenbus_watch_queue);
-    add_waiter(w5, kbdfront_queue);
     add_waiter(w6, console_queue);
 
     if (readfds)

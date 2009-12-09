@@ -39,9 +39,6 @@
 #include <mini-os/gnttab.h>
 #include <mini-os/netfront.h>
 #include <mini-os/blkfront.h>
-#include <mini-os/fbfront.h>
-#include <mini-os/pcifront.h>
-#include <mini-os/fs.h>
 #include <mini-os/xmalloc.h>
 #include <fcntl.h>
 #include <xen/features.h>
@@ -257,209 +254,6 @@ static void blkfront_thread(void *p)
     }
 }
 
-#define WIDTH 800
-#define HEIGHT 600
-#define DEPTH 32
-
-static uint32_t *fb;
-static int refresh_period = 50;
-static struct fbfront_dev *fb_dev;
-static struct semaphore fbfront_sem = __SEMAPHORE_INITIALIZER(fbfront_sem, 0);
-
-static void fbfront_drawvert(int x, int y1, int y2, uint32_t color)
-{
-    int y;
-    if (x < 0)
-        return;
-    if (x >= WIDTH)
-        return;
-    if (y1 < 0)
-        y1 = 0;
-    if (y2 >= HEIGHT)
-        y2 = HEIGHT-1;
-    for (y = y1; y <= y2; y++)
-        fb[x + y*WIDTH] ^= color;
-}
-
-static void fbfront_drawhoriz(int x1, int x2, int y, uint32_t color)
-{
-    int x;
-    if (y < 0)
-        return;
-    if (y >= HEIGHT)
-        return;
-    if (x1 < 0)
-        x1 = 0;
-    if (x2 >= WIDTH)
-        x2 = WIDTH-1;
-    for (x = x1; x <= x2; x++)
-        fb[x + y*WIDTH] ^= color;
-}
-
-static void fbfront_thread(void *p)
-{
-    size_t line_length = WIDTH * (DEPTH / 8);
-    size_t memsize = HEIGHT * line_length;
-    unsigned long *mfns;
-    int i, n = (memsize + PAGE_SIZE-1) / PAGE_SIZE;
-
-    memsize = n * PAGE_SIZE;
-    fb = _xmalloc(memsize, PAGE_SIZE);
-    memset(fb, 0, memsize);
-    mfns = xmalloc_array(unsigned long, n);
-    for (i = 0; i < n; i++)
-        mfns[i] = virtual_to_mfn((char *) fb + i * PAGE_SIZE);
-    fb_dev = init_fbfront(NULL, mfns, WIDTH, HEIGHT, DEPTH, line_length, n);
-    xfree(mfns);
-    if (!fb_dev) {
-        xfree(fb);
-        return;
-    }
-    up(&fbfront_sem);
-}
-
-static void clip_cursor(int *x, int *y)
-{
-    if (*x < 0)
-        *x = 0;
-    if (*x >= WIDTH)
-        *x = WIDTH - 1;
-    if (*y < 0)
-        *y = 0;
-    if (*y >= HEIGHT)
-        *y = HEIGHT - 1;
-}
-
-static void refresh_cursor(int new_x, int new_y)
-{
-    static int old_x = -1, old_y = -1;
-
-    if (!refresh_period)
-        return;
-
-    if (old_x != -1 && old_y != -1) {
-        fbfront_drawvert(old_x, old_y + 1, old_y + 8, 0xffffffff);
-        fbfront_drawhoriz(old_x + 1, old_x + 8, old_y, 0xffffffff);
-        fbfront_update(fb_dev, old_x, old_y, 9, 9);
-    }
-    old_x = new_x;
-    old_y = new_y;
-    fbfront_drawvert(new_x, new_y + 1, new_y + 8, 0xffffffff);
-    fbfront_drawhoriz(new_x + 1, new_x + 8, new_y, 0xffffffff);
-    fbfront_update(fb_dev, new_x, new_y, 9, 9);
-}
-
-static struct kbdfront_dev *kbd_dev;
-static void kbdfront_thread(void *p)
-{
-    DEFINE_WAIT(w);
-    int x = WIDTH / 2, y = HEIGHT / 2, z = 0;
-
-    kbd_dev = init_kbdfront(NULL, 1);
-    if (!kbd_dev)
-        return;
-
-    down(&fbfront_sem);
-    refresh_cursor(x, y);
-    while (1) {
-        union xenkbd_in_event kbdevent;
-        union xenfb_in_event fbevent;
-        int sleep = 1;
-
-        add_waiter(w, kbdfront_queue);
-        add_waiter(w, fbfront_queue);
-
-        while (kbdfront_receive(kbd_dev, &kbdevent, 1) != 0) {
-            sleep = 0;
-            switch(kbdevent.type) {
-            case XENKBD_TYPE_MOTION:
-                printk("motion x:%d y:%d z:%d\n",
-                        kbdevent.motion.rel_x,
-                        kbdevent.motion.rel_y,
-                        kbdevent.motion.rel_z);
-                x += kbdevent.motion.rel_x;
-                y += kbdevent.motion.rel_y;
-                z += kbdevent.motion.rel_z;
-                clip_cursor(&x, &y);
-                refresh_cursor(x, y);
-                break;
-            case XENKBD_TYPE_POS:
-                printk("pos x:%d y:%d dz:%d\n",
-                        kbdevent.pos.abs_x,
-                        kbdevent.pos.abs_y,
-                        kbdevent.pos.rel_z);
-                x = kbdevent.pos.abs_x;
-                y = kbdevent.pos.abs_y;
-                z = kbdevent.pos.rel_z;
-                clip_cursor(&x, &y);
-                refresh_cursor(x, y);
-                break;
-            case XENKBD_TYPE_KEY:
-                printk("key %d %s\n",
-                        kbdevent.key.keycode,
-                        kbdevent.key.pressed ? "pressed" : "released");
-                if (kbdevent.key.keycode == BTN_LEFT) {
-                    printk("mouse %s at (%d,%d,%d)\n",
-                            kbdevent.key.pressed ? "clic" : "release", x, y, z);
-                    if (kbdevent.key.pressed) {
-                        uint32_t color = rand();
-                        fbfront_drawvert(x - 16, y - 16, y + 15, color);
-                        fbfront_drawhoriz(x - 16, x + 15, y + 16, color);
-                        fbfront_drawvert(x + 16, y - 15, y + 16, color);
-                        fbfront_drawhoriz(x - 15, x + 16, y - 16, color);
-                        fbfront_update(fb_dev, x - 16, y - 16, 33, 33);
-                    }
-                } else if (kbdevent.key.keycode == KEY_Q) {
-                    struct sched_shutdown sched_shutdown = { .reason = SHUTDOWN_poweroff };
-                    HYPERVISOR_sched_op(SCHEDOP_shutdown, &sched_shutdown);
-                    do_exit();
-                }
-                break;
-            }
-        }
-        while (fbfront_receive(fb_dev, &fbevent, 1) != 0) {
-            sleep = 0;
-            switch(fbevent.type) {
-            case XENFB_TYPE_REFRESH_PERIOD:
-                refresh_period = fbevent.refresh_period.period;
-                printk("refresh period %d\n", refresh_period);
-                refresh_cursor(x, y);
-                break;
-            }
-        }
-        if (sleep)
-            schedule();
-    }
-}
-
-static struct pcifront_dev *pci_dev;
-
-static void print_pcidev(unsigned int domain, unsigned int bus, unsigned int slot, unsigned int fun)
-{
-    unsigned int vendor, device, rev, class;
-
-    pcifront_conf_read(pci_dev, domain, bus, slot, fun, 0x00, 2, &vendor);
-    pcifront_conf_read(pci_dev, domain, bus, slot, fun, 0x02, 2, &device);
-    pcifront_conf_read(pci_dev, domain, bus, slot, fun, 0x08, 1, &rev);
-    pcifront_conf_read(pci_dev, domain, bus, slot, fun, 0x0a, 2, &class);
-
-    printk("%04x:%02x:%02x.%02x %04x: %04x:%04x (rev %02x)\n", domain, bus, slot, fun, class, vendor, device, rev);
-}
-
-static void pcifront_thread(void *p)
-{
-    pci_dev = init_pcifront(NULL);
-    if (!pci_dev)
-        return;
-    printk("PCI devices:\n");
-    pcifront_scan(pci_dev, print_pcidev);
-}
-
-static void fs_thread(void *p)
-{
-    init_fs_frontend();
-}
-
 /* This should be overridden by the application we are linked against. */
 __attribute__((weak)) int app_main(start_info_t *si)
 {
@@ -468,10 +262,6 @@ __attribute__((weak)) int app_main(start_info_t *si)
     create_thread("periodic_thread", periodic_thread, si);
     create_thread("netfront", netfront_thread, si);
     create_thread("blkfront", blkfront_thread, si);
-    create_thread("fbfront", fbfront_thread, si);
-    create_thread("kbdfront", kbdfront_thread, si);
-    create_thread("pcifront", pcifront_thread, si);
-    create_thread("fs-frontend", fs_thread, si);
     return 0;
 }
 
@@ -545,14 +335,6 @@ void stop_kernel(void)
     if (blk_dev)
         shutdown_blkfront(blk_dev);
 
-    if (fb_dev)
-        shutdown_fbfront(fb_dev);
-
-    if (kbd_dev)
-        shutdown_kbdfront(kbd_dev);
-
-    if (pci_dev)
-        shutdown_pcifront(pci_dev);
 
     /* TODO: fs import */
 

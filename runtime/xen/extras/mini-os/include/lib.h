@@ -131,11 +131,9 @@ do {                                                           \
 /* Consistency check as much as possible. */
 void sanity_check(void);
 
-#ifdef HAVE_LIBC
 enum fd_type {
     FTYPE_NONE = 0,
     FTYPE_CONSOLE,
-    FTYPE_FILE,
     FTYPE_XENBUS,
     FTYPE_XC,
     FTYPE_EVTCHN,
@@ -143,8 +141,6 @@ enum fd_type {
     FTYPE_SOCKET,
     FTYPE_TAP,
     FTYPE_BLK,
-    FTYPE_KBD,
-    FTYPE_FB,
     FTYPE_MEM,
 };
 
@@ -200,6 +196,5 @@ int alloc_fd(enum fd_type type);
 void close_all_files(void);
 extern struct thread *main_thread;
 void sparse(unsigned long data, size_t size);
-#endif
 
 #endif /* _LIB_H_ */

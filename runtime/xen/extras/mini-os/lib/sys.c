@@ -43,7 +43,7 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <sys/times.h>
 #ifdef HAVE_LWIP
 #include <lwip/sockets.h>
 #endif
@@ -1210,6 +1210,17 @@ int clock_gettime(clockid_t clk_id, struct timespec *tp)
     return 0;
 }
 
+clock_t times(struct tms *buf)
+{
+     uint64_t nsec;
+     nsec = monotonic_clock ();
+     buf->tms_utime = nsec / CLK_TCK;
+     buf->tms_stime = 0;
+     buf->tms_cutime = 0;
+     buf->tms_cstime = 0;
+     return 0;
+}
+
 uid_t getuid(void)
 {
 	return 0;
@@ -1375,7 +1386,6 @@ unsupported_function_log(int, __xstat64, -1);
 unsupported_function_log(long, __strtol_internal, LONG_MIN);
 unsupported_function_log(double, __strtod_internal, HUGE_VAL);
 unsupported_function_log(int, utime, -1);
-unsupported_function_log(clock_t, times, -1);
 unsupported_function_log(int, truncate64, -1);
 unsupported_function_log(int, tcflow, -1);
 unsupported_function_log(int, tcflush, -1);

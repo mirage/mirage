@@ -31,6 +31,8 @@ int main(int argc, char *argv[], char *envp[])
     sleep(1);
 
     caml_startup(argv);
+    printf("caml_startup is done\n");
+#if 0
     val = caml_named_value("main");
     if (!val) {
         printf("Couldn't find Caml main");
@@ -38,5 +40,6 @@ int main(int argc, char *argv[], char *envp[])
     }
     caml_callback(*val, Val_int(0));
     printf("callback returned\n");
+#endif
     return 0;
 }

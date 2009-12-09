@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+# helper script to start a MiniOS VM using xapi and pipe
+# the console to stdout.
+import sys, os, subprocess
+import XenAPI, inventory, xmlrpclib
+
+xenconsole = "/usr/lib/xen/bin/xenconsole"
+
+def attach_console(session, uuid):
+    vmref = session.xenapi.VM.get_by_uuid(uuid)
+    try:
+      session.xenapi.VM.start(vmref, True, True)
+    except:
+      print "Unable to start VM, is it already running?"
+      return 1
+    domid="-1"
+    while domid=="-1":
+      domid=session.xenapi.VM.get_domid(vmref)
+    args = [ xenconsole, domid ]
+    proc = subprocess.Popen(args,close_fds=False)
+    try:
+      session.xenapi.VM.unpause(vmref)
+    except:
+      print "Unable to unpause VM"
+      return 1
+    proc.wait ()
+    sys.stdout.flush ()
+    sys.stderr.flush ()
+
+if  __name__ == "__main__":
+    session = XenAPI.xapi_local()
+    try:
+      session.xenapi.login_with_password("root", "")        
+    except:
+      print "Unable to connect to xapi"
+      sys.exit(1)
+    # XXX hardcoded uuid
+    uuid="6720667c-5666-d425-9600-3ab6db6bd7a4"
+    try:
+      attach_console(session, uuid)
+    finally:
+      session.xenapi.logout()
+

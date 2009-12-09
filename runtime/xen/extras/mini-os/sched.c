@@ -149,9 +149,7 @@ struct thread* create_thread(char *name, void (*function)(void *), void *data)
     /* Not runable, not exited, not sleeping */
     thread->flags = 0;
     thread->wakeup_time = 0LL;
-#ifdef HAVE_LIBC
     _REENT_INIT_PTR((&thread->reent))
-#endif
     set_runnable(thread);
     local_irq_save(flags);
     if(idle_thread != NULL) {
@@ -165,7 +163,6 @@ struct thread* create_thread(char *name, void (*function)(void *), void *data)
     return thread;
 }
 
-#ifdef HAVE_LIBC
 static struct _reent callback_reent;
 struct _reent *__getreent(void)
 {
@@ -199,7 +196,6 @@ struct _reent *__getreent(void)
 #endif
     return _reent;
 }
-#endif
 
 void exit_thread(void)
 {
@@ -292,9 +288,7 @@ void init_sched(void)
 {
     printk("Initialising scheduler\n");
 
-#ifdef HAVE_LIBC
     _REENT_INIT_PTR((&callback_reent))
-#endif
     idle_thread = create_thread("Idle", idle_thread_fn, NULL);
     MINIOS_INIT_LIST_HEAD(&idle_thread->thread_list);
 }

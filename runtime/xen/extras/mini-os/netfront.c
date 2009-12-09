@@ -19,10 +19,7 @@
 
 DECLARE_WAIT_QUEUE_HEAD(netfront_queue);
 
-#ifdef HAVE_LIBC
 #define NETIF_SELECT_RX ((void*)-1)
-#endif
-
 
 
 #define NET_TX_RING_SIZE __RING_SIZE((struct netif_tx_sring *)0, PAGE_SIZE)
@@ -56,12 +53,10 @@ struct netfront_dev {
 
     xenbus_event_queue events;
 
-#ifdef HAVE_LIBC
     int fd;
     unsigned char *data;
     size_t len;
     size_t rlen;
-#endif
 
     void (*netif_rx)(unsigned char* data, int len);
 };
@@ -133,7 +128,6 @@ moretodo:
 
         if(rx->status>0)
         {
-#ifdef HAVE_LIBC
 	    if (dev->netif_rx == NETIF_SELECT_RX) {
 		int len = rx->status;
 		ASSERT(current == main_thread);
@@ -143,7 +137,6 @@ moretodo:
 		dev->rlen = len;
 		some = 1;
 	    } else
-#endif
 		dev->netif_rx(page+rx->offset,rx->status);
         }
 
@@ -246,7 +239,6 @@ void netfront_handler(evtchn_port_t port, struct pt_regs *regs, void *data)
     local_irq_restore(flags);
 }
 
-#ifdef HAVE_LIBC
 void netfront_select_handler(evtchn_port_t port, struct pt_regs *regs, void *data)
 {
     int flags;
@@ -261,7 +253,6 @@ void netfront_select_handler(evtchn_port_t port, struct pt_regs *regs, void *dat
         files[fd].read = 1;
     wake_up(&netfront_queue);
 }
-#endif
 
 static void free_netfront(struct netfront_dev *dev)
 {
@@ -325,9 +316,7 @@ struct netfront_dev *init_netfront(char *_nodename, void (*thenetif_rx)(unsigned
     dev = malloc(sizeof(*dev));
     memset(dev, 0, sizeof(*dev));
     dev->nodename = strdup(nodename);
-#ifdef HAVE_LIBC
     dev->fd = -1;
-#endif
 
     printk("net TX ring size %d\n", NET_TX_RING_SIZE);
     printk("net RX ring size %d\n", NET_RX_RING_SIZE);
@@ -346,11 +335,9 @@ struct netfront_dev *init_netfront(char *_nodename, void (*thenetif_rx)(unsigned
 
     snprintf(path, sizeof(path), "%s/backend-id", nodename);
     dev->dom = xenbus_read_integer(path);
-#ifdef HAVE_LIBC
     if (thenetif_rx == NETIF_SELECT_RX)
         evtchn_alloc_unbound(dev->dom, netfront_select_handler, dev, &dev->evtchn);
     else
-#endif
         evtchn_alloc_unbound(dev->dom, netfront_handler, dev, &dev->evtchn);
 
     txs = (struct netif_tx_sring *) alloc_page();
@@ -483,7 +470,6 @@ error:
     return NULL;
 }
 
-#ifdef HAVE_LIBC
 int netfront_tap_open(char *nodename) {
     struct netfront_dev *dev;
 
@@ -498,7 +484,6 @@ int netfront_tap_open(char *nodename) {
     files[dev->fd].tap.dev = dev;
     return dev->fd;
 }
-#endif
 
 void shutdown_netfront(struct netfront_dev *dev)
 {
@@ -636,7 +621,6 @@ void netfront_xmit(struct netfront_dev *dev, unsigned char* data,int len)
     local_irq_restore(flags);
 }
 
-#ifdef HAVE_LIBC
 ssize_t netfront_receive(struct netfront_dev *dev, unsigned char *data, size_t len)
 {
     unsigned long flags;
@@ -661,4 +645,3 @@ ssize_t netfront_receive(struct netfront_dev *dev, unsigned char *data, size_t l
 
     return dev->rlen;
 }
-#endif

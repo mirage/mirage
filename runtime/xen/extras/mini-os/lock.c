@@ -4,7 +4,6 @@
  * Samuel Thibault <Samuel.Thibault@eu.citrix.net>, July 20008
  */
 
-#ifdef HAVE_LIBC
 
 #include <sys/lock.h>
 #include <sched.h>
@@ -107,5 +106,3 @@ int ___lock_release_recursive(_LOCK_RECURSIVE_T *lock)
     local_irq_restore(flags);
     return 0;
 }
-
-#endif

@@ -4,7 +4,6 @@
  * Samuel Thibault <Samuel.Thibault@eu.citrix.net>, October 2007
  */
 
-#ifdef HAVE_LIBC
 #include <os.h>
 #include <sched.h>
 #include <console.h>
@@ -22,15 +21,6 @@ extern void __libc_init_array(void);
 extern void __libc_fini_array(void);
 extern unsigned long __CTOR_LIST__[];
 extern unsigned long __DTOR_LIST__[];
-
-#if 0
-#include <stdio.h>
-int main(int argc, char *argv[], char *envp[])
-{
-    printf("Hello, World!\n");
-    return 1;
-}
-#endif
 
 void _init(void)
 {
@@ -189,4 +179,3 @@ int app_main(start_info_t *si)
     main_thread = create_thread("main", call_main, si);
     return 0;
 }
-#endif

@@ -21,6 +21,7 @@ xen: libmiragerun_xen.a
 clean:
 	rm -rf base/obj-*
 	rm -f libmiragerun*
+	cd xen/stubdom && $(MAKE) clean crossclean
 
 libmiragerun_darwin.a:
 	@cd base && $(MAKE) MODE=darwin CC="$(CC)"
@@ -31,7 +32,11 @@ libmiragerun_linux.a:
 # and not the system ones
 GCC_INSTALL = $(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 CROSS_XEN=$(CURDIR)/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/
-libmiragerun_xen.a:
+
+$(CROSS_XEN)/lib/libc.a:
+	cd xen/stubdom && $(MAKE) cross
+
+libmiragerun_xen.a: $(CROSS_XEN)/lib/libc.a
 	@cd base && $(MAKE) MODE=xen CC="$(CC) -nostdinc \
 	  -U __linux__ -U __FreeBSD__ -U __sun_ -D__MINIOS__ \
 	  -isystem $(CURDIR)/xen/extras/mini-os/include/posix \

@@ -7,7 +7,10 @@
 *.cmxa
 *.cache/
 .cmxdeps
+.*.swp
 .mldeps
+mini-os.gz
+tests/*/.depend
 runtime/base/obj-*
 runtime/xen/stubdom/*-x86_64
 runtime/xen/extras/mini-os/include/mini-os

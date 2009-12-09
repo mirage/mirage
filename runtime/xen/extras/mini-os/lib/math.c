@@ -59,10 +59,6 @@
 #include <mini-os/lib.h>
 #include <mini-os/time.h>
 
-	/* On ia64 these functions lead to crashes. These are replaced by
-	 * assembler functions. */
-#if !defined(__ia64__)
-
 /*
  * Depending on the desired operation, we view a `long long' (aka quad_t) in
  * one or more of the following formats.
@@ -408,5 +404,4 @@ __moddi3(quad_t a, quad_t b)
 	(void)__qdivrem(ua, ub, &ur);
 	return (neg ? -ur : ur);
 }
-#endif /* !defined(__ia64__) */
 

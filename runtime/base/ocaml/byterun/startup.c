@@ -298,10 +298,8 @@ static void scanmult (char *opt, uintnat *var)
 
 static void parse_camlrunparam(void)
 {
-  char *opt = getenv ("OCAMLRUNPARAM");
+  char *opt = "b";
   uintnat p;
-
-  if (opt == NULL) opt = getenv ("CAMLRUNPARAM");
 
   if (opt != NULL){
     while (*opt != '\0'){

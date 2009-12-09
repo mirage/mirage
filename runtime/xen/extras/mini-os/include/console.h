@@ -56,9 +56,7 @@ struct consfront_dev {
 
     xenbus_event_queue events;
 
-#ifdef HAVE_LIBC
     int fd;
-#endif
 };
 
 

@@ -55,27 +55,6 @@
 static int console_initialised = 0;
 
 
-#ifndef HAVE_LIBC
-void xencons_rx(char *buf, unsigned len, struct pt_regs *regs)
-{
-    if(len > 0)
-    {
-        /* Just repeat what's written */
-        buf[len] = '\0';
-        printk("%s", buf);
-        
-        if(buf[len-1] == '\r')
-            printk("\nNo console input handler.\n");
-    }
-}
-
-void xencons_tx(void)
-{
-    /* Do nothing, handled by _rx */
-}
-#endif
-
-
 void console_print(struct consfront_dev *dev, char *data, int length)
 {
     char *curr_char, saved_char;

@@ -48,9 +48,7 @@ typedef long suseconds_t;
 
 #include <sys/time.h>
 
-#ifdef HAVE_LIBC
 #include_next <time.h>
-#endif
 
 /* prototypes */
 void     init_time(void);

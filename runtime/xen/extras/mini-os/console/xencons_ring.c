@@ -67,7 +67,6 @@ int xencons_ring_send(struct consfront_dev *dev, const char *data, unsigned len)
 
 static void handle_input(evtchn_port_t port, struct pt_regs *regs, void *data)
 {
-#ifdef HAVE_LIBC
 	struct consfront_dev *dev = (struct consfront_dev *) data;
         int fd = dev ? dev->fd : -1;
 
@@ -75,30 +74,8 @@ static void handle_input(evtchn_port_t port, struct pt_regs *regs, void *data)
             files[fd].read = 1;
 
         wake_up(&console_queue);
-#else
-	struct xencons_interface *intf = xencons_interface();
-	XENCONS_RING_IDX cons, prod;
-
-	cons = intf->in_cons;
-	prod = intf->in_prod;
-	mb();
-	BUG_ON((prod - cons) > sizeof(intf->in));
-
-	while (cons != prod) {
-		xencons_rx(intf->in+MASK_XENCONS_IDX(cons,intf->in), 1, regs);
-		cons++;
-	}
-
-	mb();
-	intf->in_cons = cons;
-
-	notify_daemon(dev);
-
-	xencons_tx();
-#endif
 }
 
-#ifdef HAVE_LIBC
 int xencons_ring_avail(struct consfront_dev *dev)
 {
 	struct xencons_interface *intf;
@@ -145,7 +122,6 @@ int xencons_ring_recv(struct consfront_dev *dev, char *data, unsigned len)
 
         return filled;
 }
-#endif
 
 struct consfront_dev *xencons_ring_init(void)
 {
@@ -162,9 +138,6 @@ struct consfront_dev *xencons_ring_init(void)
 	dev->backend = 0;
 	dev->ring_ref = 0;
 
-#ifdef HAVE_LIBC
-	dev->fd = -1;
-#endif
 	dev->evtchn = start_info.console.domU.evtchn;
 	dev->ring = (struct xencons_interface *) mfn_to_virt(start_info.console.domU.mfn);
 
@@ -221,9 +194,7 @@ struct consfront_dev *init_consfront(char *_nodename)
     dev = malloc(sizeof(*dev));
     memset(dev, 0, sizeof(*dev));
     dev->nodename = strdup(nodename);
-#ifdef HAVE_LIBC
     dev->fd = -1;
-#endif
 
     snprintf(path, sizeof(path), "%s/backend-id", nodename);
     if ((res = xenbus_read_integer(path)) < 0) 

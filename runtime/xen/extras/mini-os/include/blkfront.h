@@ -27,9 +27,7 @@ struct blkfront_info
     int flush;
 };
 struct blkfront_dev *init_blkfront(char *nodename, struct blkfront_info *info);
-#ifdef HAVE_LIBC
 int blkfront_open(struct blkfront_dev *dev);
-#endif
 void blkfront_aio(struct blkfront_aiocb *aiocbp, int write);
 #define blkfront_aio_read(aiocbp) blkfront_aio(aiocbp, 0)
 #define blkfront_aio_write(aiocbp) blkfront_aio(aiocbp, 1)

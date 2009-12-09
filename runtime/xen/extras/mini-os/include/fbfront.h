@@ -22,9 +22,7 @@
 
 struct kbdfront_dev;
 struct kbdfront_dev *init_kbdfront(char *nodename, int abs_pointer);
-#ifdef HAVE_LIBC
 int kbdfront_open(struct kbdfront_dev *dev);
-#endif
 
 int kbdfront_receive(struct kbdfront_dev *dev, union xenkbd_in_event *buf, int n);
 extern struct wait_queue_head kbdfront_queue;
@@ -33,9 +31,7 @@ void shutdown_kbdfront(struct kbdfront_dev *dev);
 
 
 struct fbfront_dev *init_fbfront(char *nodename, unsigned long *mfns, int width, int height, int depth, int stride, int n);
-#ifdef HAVE_LIBC
 int fbfront_open(struct fbfront_dev *dev);
-#endif
 
 int fbfront_receive(struct fbfront_dev *dev, union xenfb_in_event *buf, int n);
 extern struct wait_queue_head fbfront_queue;

@@ -6,7 +6,6 @@
  * Mere wrapper around xenbus_*
  */
 
-#ifdef HAVE_LIBC
 #include <os.h>
 #include <lib.h>
 #include <xs.h>
@@ -184,4 +183,3 @@ bool xs_unwatch(struct xs_handle *h, const char *path, const char *token)
     printk("xs_unwatch(%s, %s)\n", path, token);
     return xs_bool(xenbus_unwatch_path_token(XBT_NULL, path, token));
 }
-#endif

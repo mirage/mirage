@@ -4,9 +4,7 @@
 #include <mini-os/list.h>
 #include <mini-os/time.h>
 #include <mini-os/arch_sched.h>
-#ifdef HAVE_LIBC
 #include <sys/reent.h>
-#endif
 
 struct thread
 {
@@ -22,9 +20,7 @@ struct thread
     struct minios_list_head thread_list;
     uint32_t flags;
     s_time_t wakeup_time;
-#ifdef HAVE_LIBC
     struct _reent reent;
-#endif
 };
 
 extern struct thread *idle_thread;

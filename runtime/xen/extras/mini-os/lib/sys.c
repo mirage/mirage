@@ -18,7 +18,6 @@
 #define DEBUG(fmt,...)
 #endif
 
-#ifdef HAVE_LIBC
 #include <os.h>
 #include <console.h>
 #include <sched.h>
@@ -1439,4 +1438,3 @@ unsupported_function_log(int, chmod, -1);
 unsupported_function_crash(alarm);
 unsupported_function_log(int, inet_pton, -1);
 unsupported_function_log(int, access, -1);
-#endif

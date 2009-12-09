@@ -499,15 +499,11 @@ static unsigned long demand_map_area_start;
 #define DEMAND_MAP_PAGES ((2ULL << 30) / PAGE_SIZE)
 #endif
 
-#ifndef HAVE_LIBC
-#define HEAP_PAGES 0
-#else
 unsigned long heap, brk, heap_mapped, heap_end;
 #ifdef __x86_64__
 #define HEAP_PAGES ((128ULL << 30) / PAGE_SIZE)
 #else
 #define HEAP_PAGES ((1ULL << 30) / PAGE_SIZE)
-#endif
 #endif
 
 void arch_init_demand_mapping_area(unsigned long cur_pfn)
@@ -519,13 +515,11 @@ void arch_init_demand_mapping_area(unsigned long cur_pfn)
     printk("Demand map pfns at %lx-%lx.\n", 
            demand_map_area_start, pfn_to_virt(cur_pfn));
 
-#ifdef HAVE_LIBC
     cur_pfn++;
     heap_mapped = brk = heap = (unsigned long) pfn_to_virt(cur_pfn);
     cur_pfn += HEAP_PAGES;
     heap_end = (unsigned long) pfn_to_virt(cur_pfn);
     printk("Heap resides at %lx-%lx.\n", brk, heap_end);
-#endif
 }
 
 unsigned long allocate_ondemand(unsigned long n, unsigned long alignment)

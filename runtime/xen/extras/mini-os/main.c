@@ -32,54 +32,18 @@ extern char __app_bss_start, __app_bss_end;
 static void call_main(void *p)
 {
     char *c, quote;
-#ifdef CONFIG_QEMU
-    char *domargs, *msg;
-#endif
     int argc;
     char **argv;
     char *envp[] = { NULL };
-#ifdef CONFIG_QEMU
-    char *vm;
-    char path[128];
-    int domid;
-#endif
     int i;
 
     /* Let other parts initialize (including console output) before maybe
      * crashing. */
     //sleep(1);
 
-#ifndef CONFIG_GRUB
     sparse((unsigned long) &__app_bss_start, &__app_bss_end - &__app_bss_start);
-#if defined(HAVE_LWIP) && !defined(CONFIG_QEMU)
+#if defined(HAVE_LWIP)
     start_networking();
-#endif
-#endif
-
-#ifdef CONFIG_QEMU
-    /* Fetch argc, argv from XenStore */
-    domid = xenbus_read_integer("target");
-    if (domid == -1) {
-        printk("Couldn't read target\n");
-        do_exit();
-    }
-
-    snprintf(path, sizeof(path), "/local/domain/%d/vm", domid);
-    msg = xenbus_read(XBT_NIL, path, &vm);
-    if (msg) {
-        printk("Couldn't read vm path\n");
-        do_exit();
-    }
-    printk("dom vm is at %s\n", vm);
-
-    snprintf(path, sizeof(path), "%s/image/dmargs", vm);
-    free(vm);
-    msg = xenbus_read(XBT_NIL, path, &domargs);
-
-    if (msg) {
-        printk("Couldn't get stubdom args: %s\n", msg);
-        domargs = strdup("");
-    }
 #endif
 
     argc = 1;
@@ -120,18 +84,12 @@ static void call_main(void *p)
 #define PARSE_ARGS_STORE(ARGS) PARSE_ARGS(ARGS, argv[argc++] = c, memmove(c, c + 1, strlen(c + 1) + 1), *c++ = 0)
 
     PARSE_ARGS_COUNT((char*)start_info.cmd_line);
-#ifdef CONFIG_QEMU
-    PARSE_ARGS_COUNT(domargs);
-#endif
 
     argv = alloca((argc + 1) * sizeof(char *));
     argv[0] = "main";
     argc = 1;
 
     PARSE_ARGS_STORE((char*)start_info.cmd_line)
-#ifdef CONFIG_QEMU
-    PARSE_ARGS_STORE(domargs)
-#endif
 
     argv[argc] = NULL;
 

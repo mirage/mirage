@@ -35,7 +35,7 @@ if  __name__ == "__main__":
       print "Unable to connect to xapi"
       sys.exit(1)
     # XXX hardcoded uuid
-    uuid="6720667c-5666-d425-9600-3ab6db6bd7a4"
+    uuid=sys.argv[1]
     try:
       attach_console(session, uuid)
     finally:

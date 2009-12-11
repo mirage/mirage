@@ -1,6 +1,7 @@
 OCAMLOPT ?= ocamlopt.opt
 OCAMLDEP ?= ocamldep.opt
 OCAMLDSORT ?= ocamldsort
+OCAMLOPT_FLAGS = -fno-PIC -nodynlink -inline 100
 
 .PHONY: build
 build: stdlib.cmxa
@@ -13,14 +14,15 @@ build: stdlib.cmxa
 	$(OCAMLDSORT) -opt *.ml > $@
 
 stdlib.cmxa: .cmxdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -nopervasives pervasives.mli pervasives.ml `cat .mldeps`
+	$(OCAMLOPT) -c -nostdlib -nopervasives $(OCAMLOPT_FLAGS) \
+	  pervasives.mli pervasives.ml `cat .mldeps`
 	$(OCAMLOPT) -a -o stdlib.cmxa `cat .cmxdeps`
 
 pervasives.cmi: pervasives.mli
-	$(OCAMLOPT) -c -nostdlib -nopervasives $<
+	$(OCAMLOPT) -c -nostdlib -nopervasives $(OCAMLOPT_FLAGS) $<
 
 pervasives.cmx: pervasives.ml pervasives.cmi
-	$(OCAMLOPT) -c -nostdlib -nopervasives $<
+	$(OCAMLOPT) -c -nostdlib -nopervasives $(OCAMLOPT_FLAGS) $<
 
 .PHONY: clean
 clean:

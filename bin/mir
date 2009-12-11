@@ -5,6 +5,7 @@ shopt -s nullglob
 
 OCAMLDSORT=${OCAMLDSORT:-ocamldsort}
 OCAMLOPT=${OCAMLOPT:-ocamlopt.opt}
+OCAMLOPT_FLAGS="-fno-PIC -nodynlink"
 OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
 MAKE=${MAKE:-make}
 CC=${CC:-cc}
@@ -70,7 +71,7 @@ esac
 cd "${DIR}"
 DEPEND=".depend"
 ${OCAMLDSORT} -nox -mli *.ml *.mli > ${DEPEND}
-env CAMLLIB="${STDLIB}" ${OCAMLOPT} `cat .depend` -output-obj -o app.o
+env CAMLLIB="${STDLIB}" ${OCAMLOPT} ${OCAMLOPT_FLAGS} `cat .depend` -output-obj -o app.o
 
 # now link app.o depending on the target platform
 case "${TARG}" in

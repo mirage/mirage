@@ -12,5 +12,5 @@ K=/opt/kernels/anil-os.gz
 U="a3289cac-d8c1-d26b-4431-30b0d4085394"
 mir clean $V
 mir bx $V
-scp -P $P $V/mini-os.gz root@$H:
-ssh -p $P root@$H ./mini
+scp -P $P $V/mini-os.gz root@$H:$K
+ssh -p $P root@$H ./mini2

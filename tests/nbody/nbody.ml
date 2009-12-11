@@ -111,5 +111,6 @@ let () =
   offset_momentum bodies;
   Printf.printf "%.9f\n" (energy bodies);
   for i = 1 to n do advance bodies 0.01 done;
-  Printf.printf "%.9f\n" (energy bodies)
+  Printf.printf "%.9f\n" (energy bodies);
+  Printf.printf "done\n%!"
 

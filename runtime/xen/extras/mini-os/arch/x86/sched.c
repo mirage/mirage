@@ -107,7 +107,11 @@ struct thread* arch_create_thread(char *name, void (*function)(void *),
     thread->sp = (unsigned long)thread->stack + STACK_SIZE;
     /* Save pointer to the thread on the stack, used by current macro */
     *((unsigned long *)thread->stack) = (unsigned long)thread;
-    
+   
+    /* Ensure stack is 16-aligned for SSE instructions. The first zero is
+       required since %sp is pushed onto stack. Better fix later is to 
+       fixup esp properly but this lets FP work */ 
+    stack_push(thread, (unsigned long) 0); 
     stack_push(thread, (unsigned long) function);
     stack_push(thread, (unsigned long) data);
     thread->ip = (unsigned long) thread_starter;

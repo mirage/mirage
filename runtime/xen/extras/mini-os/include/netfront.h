@@ -11,6 +11,8 @@ ssize_t netfront_receive(struct netfront_dev *dev, unsigned char *data, size_t l
 
 extern struct wait_queue_head netfront_queue;
 
+void netif_rx(unsigned char* data,int len);
+
 #ifdef HAVE_LWIP
 /* Call this to bring up the netfront interface and the lwIP stack.
  * N.B. _must_ be called from a thread; it's not safe to call this from 

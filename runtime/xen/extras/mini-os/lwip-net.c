@@ -345,6 +345,7 @@ void start_networking(void)
   struct ip_addr ipaddr = { htonl(IF_IPADDR) };
   struct ip_addr netmask = { htonl(IF_NETMASK) };
   struct ip_addr gw = { 0 };
+  int mscnt = 0, got_dhcp_ip = 0;
   char *ip = NULL;
 
   tprintk("Waiting for network.\n");
@@ -377,6 +378,27 @@ void start_networking(void)
 
   down(&tcpip_is_up);
 
+  tprintk("Starting DHCP ");
+  dhcp_start(netif);
+
+  while (!got_dhcp_ip) {
+    printk(".");
+    msleep(DHCP_FINE_TIMER_MSECS);
+    dhcp_fine_tmr();
+    mscnt += DHCP_FINE_TIMER_MSECS;
+    if (mscnt >= DHCP_COARSE_TIMER_MSECS * 1000) {
+      printk("|");
+      dhcp_coarse_tmr ();
+      mscnt = 0;
+    }
+    if (netif->ip_addr.addr) {
+      printk(" IP=%d.%d.%d.%d ", ip4_addr1(&netif->ip_addr), 
+        ip4_addr2(&netif->ip_addr), ip4_addr3(&netif->ip_addr), ip4_addr4(&netif->ip_addr));
+      printk(" mask=%d.%d.%d.%d\n",  ip4_addr1(&netif->netmask), 
+        ip4_addr2(&netif->netmask), ip4_addr3(&netif->netmask), ip4_addr4(&netif->netmask));
+      got_dhcp_ip = 1;
+    }
+  }
   tprintk("Network is ready.\n");
 }
 

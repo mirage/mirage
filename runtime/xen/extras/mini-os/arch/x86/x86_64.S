@@ -3,7 +3,7 @@
 #include <xen/features.h>
 
 .section __xen_guest
-	.ascii	"GUEST_OS=Mini-OS"
+	.ascii	"GUEST_OS=Mirage"
 	.ascii	",XEN_VER=xen-3.0"
 	.ascii	",VIRT_BASE=0x0" /* &_text from minios_x86_64.lds */
 	.ascii	",ELF_PADDR_OFFSET=0x0"

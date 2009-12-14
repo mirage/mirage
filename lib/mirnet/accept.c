@@ -20,8 +20,6 @@
 #include <signals.h>
 #include "unixsupport.h"
 
-#ifdef HAS_SOCKETS
-
 #include "socketaddr.h"
 
 CAMLprim value unix_accept(value sock)
@@ -45,10 +43,3 @@ CAMLprim value unix_accept(value sock)
   End_roots();
   return res;
 }
-
-#else
-
-CAMLprim value unix_accept(value sock)
-{ invalid_argument("accept not implemented"); }
-  
-#endif

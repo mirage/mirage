@@ -19,8 +19,6 @@
 #include <fail.h>
 #include "unixsupport.h"
 
-#ifdef HAS_SOCKETS
-
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -288,13 +286,3 @@ CAMLprim value unix_setsockopt(value vty, value vsocket, value voption,
                              vsocket,
                              val);
 }
-
-#else
-
-CAMLprim value unix_getsockopt(value vty, value socket, value option)
-{ invalid_argument("getsockopt not implemented"); }
-
-CAMLprim value unix_setsockopt(value vty, value socket, value option, value val)
-{ invalid_argument("setsockopt not implemented"); }
-
-#endif

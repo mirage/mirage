@@ -11,16 +11,6 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: listen.c,v 1.11 2005/03/24 17:20:53 doligez Exp $ */
+/* $Id: cst2constr.h,v 1.7 2004/04/09 13:25:21 xleroy Exp $ */
 
-#include <fail.h>
-#include <mlvalues.h>
-#include "unixsupport.h"
-
-#include <sys/socket.h>
-
-CAMLprim value unix_listen(value sock, value backlog)
-{
-  if (listen(Int_val(sock), Int_val(backlog)) == -1) uerror("listen", Nothing);
-  return Val_unit;
-}
+extern value cst_to_constr(int n, int * tbl, int size, int deflt);

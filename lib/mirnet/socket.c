@@ -17,24 +17,16 @@
 #include <mlvalues.h>
 #include "unixsupport.h"
 
-#ifdef HAS_SOCKETS
-
 #include <sys/types.h>
 #include <sys/socket.h>
 
 int socket_domain_table[] = {
-  PF_UNIX, PF_INET,
-#if defined(HAS_IPV6)
-  PF_INET6
-#elif defined(PF_UNDEF)
-  PF_UNDEF
-#else
+  PF_INET,
   0
-#endif
 };
 
 int socket_type_table[] = {
-  SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_SEQPACKET
+  SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
 };
 
 CAMLprim value unix_socket(value domain, value type, value proto)
@@ -47,10 +39,3 @@ CAMLprim value unix_socket(value domain, value type, value proto)
   return Val_int(retcode);
 
 }
-
-#else
-
-CAMLprim value unix_socket(value domain, value type, value proto)
-{ invalid_argument("socket not implemented"); }
-
-#endif

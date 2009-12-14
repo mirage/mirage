@@ -17,8 +17,6 @@
 #include <mlvalues.h>
 #include "unixsupport.h"
 
-#ifdef HAS_SOCKETS
-
 #include "socketaddr.h"
   
 CAMLprim value unix_bind(value socket, value address)
@@ -32,10 +30,3 @@ CAMLprim value unix_bind(value socket, value address)
   if (ret == -1) uerror("bind", Nothing);
   return Val_unit;
 }
-
-#else
-
-CAMLprim value unix_bind(value socket, value address)
-{ invalid_argument("bind not implemented"); }
-  
-#endif

@@ -17,8 +17,6 @@
 #include <mlvalues.h>
 #include "unixsupport.h"
 
-#ifdef HAS_SOCKETS
-
 #include <sys/socket.h>
 
 static int shutdown_command_table[] = {
@@ -31,10 +29,3 @@ CAMLprim value unix_shutdown(value sock, value cmd)
     uerror("shutdown", Nothing);
   return Val_unit;
 }
-
-#else
-
-CAMLprim value unix_shutdown(value sock, value cmd)
-{ invalid_argument("shutdown not implemented"); }
-
-#endif

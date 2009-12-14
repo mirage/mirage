@@ -1,7 +1,5 @@
 # before including this, define ROOTDIR to the repository root
 
-OCAMLC ?= ocamlc.opt
-OCAMLOPT ?= ocamlopt.opt
 CC ?= gcc
 
 CROSS_PREFIX = $(ROOTDIR)/runtime/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/include

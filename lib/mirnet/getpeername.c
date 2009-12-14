@@ -17,8 +17,6 @@
 #include <mlvalues.h>
 #include "unixsupport.h"
 
-#ifdef HAS_SOCKETS
-
 #include "socketaddr.h"
 
 CAMLprim value unix_getpeername(value sock)
@@ -32,10 +30,3 @@ CAMLprim value unix_getpeername(value sock)
   if (retcode == -1) uerror("getpeername", Nothing);
   return alloc_sockaddr(&addr, addr_len, -1);
 }
-
-#else
-
-CAMLprim value unix_getpeername(value sock)
-{ invalid_argument("getpeername not implemented"); }
-  
-#endif

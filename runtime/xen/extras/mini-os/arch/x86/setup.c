@@ -53,12 +53,7 @@ extern char shared_info[PAGE_SIZE];
 void hypervisor_callback(void);
 void failsafe_callback(void);
 
-#if defined(__x86_64__)
 #define __pte(x) ((pte_t) { (x) } )
-#else
-#define __pte(x) ({ unsigned long long _x = (x);        \
-    ((pte_t) {(unsigned long)(_x), (unsigned long)(_x>>32)}); })
-#endif
 
 static
 shared_info_t *map_shared_info(unsigned long pa)
@@ -89,26 +84,15 @@ arch_init(start_info_t *si)
 	HYPERVISOR_shared_info = map_shared_info(start_info.shared_info);
 
 	    /* Set up event and failsafe callback addresses. */
-#ifdef __i386__
-	HYPERVISOR_set_callbacks(
-		__KERNEL_CS, (unsigned long)hypervisor_callback,
-		__KERNEL_CS, (unsigned long)failsafe_callback);
-#else
 	HYPERVISOR_set_callbacks(
 		(unsigned long)hypervisor_callback,
 		(unsigned long)failsafe_callback, 0);
-#endif
-
 }
 
 void
 arch_fini(void)
 {
-#ifdef __i386__
-	HYPERVISOR_set_callbacks(0, 0, 0, 0);
-#else
 	HYPERVISOR_set_callbacks(0, 0, 0);
-#endif
 }
 
 void

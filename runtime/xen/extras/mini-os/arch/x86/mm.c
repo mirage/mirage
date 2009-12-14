@@ -87,12 +87,10 @@ static void new_pt_frame(unsigned long *pt_pfn, unsigned long prev_l_mfn,
         prot_e = L2_PROT;
         prot_t = L3_PROT;
         break;
-#if defined(__x86_64__)
     case L3_FRAME:
         prot_e = L3_PROT;
         prot_t = L4_PROT;
         break;
-#endif
     default:
         printk("new_pt_frame() called with invalid level number %d\n", level);
         do_exit();
@@ -100,9 +98,7 @@ static void new_pt_frame(unsigned long *pt_pfn, unsigned long prev_l_mfn,
     }
 
     /* Make PFN a page table page */
-#if defined(__x86_64__)
     tab = pte_to_virt(tab[l4_table_offset(pt_page)]);
-#endif
     tab = pte_to_virt(tab[l3_table_offset(pt_page)]);
 
     mmu_updates[0].ptr = (tab[l2_table_offset(pt_page)] & PAGE_MASK) + 
@@ -139,15 +135,10 @@ static void new_pt_frame(unsigned long *pt_pfn, unsigned long prev_l_mfn,
 static int need_pt_frame(unsigned long va, int level)
 {
     unsigned long hyp_virt_start = HYPERVISOR_VIRT_START;
-#if defined(__x86_64__)
     unsigned long hyp_virt_end = HYPERVISOR_VIRT_END;
-#else
-    unsigned long hyp_virt_end = 0xffffffff;
-#endif
 
     /* In general frames will _not_ be needed if they were already
        allocated to map the hypervisor into our VA space */
-#if defined(__x86_64__)
     if ( level == L3_FRAME )
     {
         if ( l4_table_offset(va) >= 
@@ -158,16 +149,14 @@ static int need_pt_frame(unsigned long va, int level)
         return 1;
     } 
     else
-#endif
 
     if ( level == L2_FRAME )
     {
-#if defined(__x86_64__)
+
         if ( l4_table_offset(va) >= 
              l4_table_offset(hyp_virt_start) &&
              l4_table_offset(va) <= 
              l4_table_offset(hyp_virt_end))
-#endif
             if ( l3_table_offset(va) >= 
                  l3_table_offset(hyp_virt_start) &&
                  l3_table_offset(va) <= 
@@ -226,7 +215,6 @@ static void build_pagetable(unsigned long *start_pfn, unsigned long *max_pfn)
         tab = (pgentry_t *)start_info.pt_base;
         pt_mfn = pfn_to_mfn(virt_to_pfn(start_info.pt_base));
 
-#if defined(__x86_64__)
         offset = l4_table_offset(start_address);
         /* Need new L3 pt frame */
         if ( !(start_address & L3_MASK) )
@@ -236,7 +224,7 @@ static void build_pagetable(unsigned long *start_pfn, unsigned long *max_pfn)
         page = tab[offset];
         pt_mfn = pte_to_mfn(page);
         tab = to_virt(mfn_to_pfn(pt_mfn) << PAGE_SHIFT);
-#endif
+
         offset = l3_table_offset(start_address);
         /* Need new L2 pt frame */
         if ( !(start_address & L2_MASK) )
@@ -301,12 +289,11 @@ static void set_readonly(void *text, void *etext)
         tab = (pgentry_t *)start_info.pt_base;
         mfn = pfn_to_mfn(virt_to_pfn(start_info.pt_base));
 
-#if defined(__x86_64__)
         offset = l4_table_offset(start_address);
         page = tab[offset];
         mfn = pte_to_mfn(page);
         tab = to_virt(mfn_to_pfn(mfn) << PAGE_SHIFT);
-#endif
+
         offset = l3_table_offset(start_address);
         page = tab[offset];
         mfn = pte_to_mfn(page);
@@ -419,13 +406,12 @@ static pgentry_t *get_pgt(unsigned long va)
     tab = (pgentry_t *)start_info.pt_base;
     mfn = virt_to_mfn(start_info.pt_base);
 
-#if defined(__x86_64__)
     offset = l4_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) )
         return NULL;
     mfn = pte_to_mfn(tab[offset]);
     tab = mfn_to_virt(mfn);
-#endif
+
     offset = l3_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) )
         return NULL;
@@ -455,7 +441,6 @@ pgentry_t *need_pgt(unsigned long va)
     tab = (pgentry_t *)start_info.pt_base;
     pt_mfn = virt_to_mfn(start_info.pt_base);
 
-#if defined(__x86_64__)
     offset = l4_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
@@ -465,7 +450,7 @@ pgentry_t *need_pgt(unsigned long va)
     ASSERT(tab[offset] & _PAGE_PRESENT);
     pt_mfn = pte_to_mfn(tab[offset]);
     tab = mfn_to_virt(pt_mfn);
-#endif
+
     offset = l3_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) ) 
     {
@@ -493,18 +478,10 @@ pgentry_t *need_pgt(unsigned long va)
  * Reserve an area of virtual address space for mappings and Heap
  */
 static unsigned long demand_map_area_start;
-#ifdef __x86_64__
 #define DEMAND_MAP_PAGES ((128ULL << 30) / PAGE_SIZE)
-#else
-#define DEMAND_MAP_PAGES ((2ULL << 30) / PAGE_SIZE)
-#endif
 
 unsigned long heap, brk, heap_mapped, heap_end;
-#ifdef __x86_64__
 #define HEAP_PAGES ((128ULL << 30) / PAGE_SIZE)
-#else
-#define HEAP_PAGES ((1ULL << 30) / PAGE_SIZE)
-#endif
 
 void arch_init_demand_mapping_area(unsigned long cur_pfn)
 {
@@ -667,9 +644,6 @@ int unmap_frames(unsigned long va, unsigned long num_frames)
             call[i].op = __HYPERVISOR_update_va_mapping;
             call[i].args[arg++] = va;
             call[i].args[arg++] = 0;
-#ifdef __i386__
-            call[i].args[arg++] = 0;
-#endif  
             call[i].args[arg++] = UVMF_INVLPG;
 
             va += PAGE_SIZE;
@@ -769,9 +743,6 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
         call[i].op = __HYPERVISOR_update_va_mapping;
         call[i].args[arg++] = va;
         call[i].args[arg++] = 0;
-#ifdef __i386__
-        call[i].args[arg++] = 0;
-#endif  
         call[i].args[arg++] = UVMF_INVLPG;
     }
 
@@ -812,12 +783,7 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
         /* build multi call */
         call[i].op = __HYPERVISOR_update_va_mapping;
         call[i].args[arg++] = va;
-#ifdef __x86_64__
         call[i].args[arg++] = (pgentry_t)pte.pte;
-#else
-        call[i].args[arg++] = pte.pte_low;
-        call[i].args[arg++] = pte.pte_high;
-#endif  
         call[i].args[arg++] = UVMF_INVLPG;
     }
     ret = HYPERVISOR_multicall(call, i);
@@ -866,15 +832,9 @@ static void clear_bootstrap(void)
 
 void arch_init_p2m(unsigned long max_pfn)
 {
-#ifdef __x86_64__
 #define L1_P2M_SHIFT    9
 #define L2_P2M_SHIFT    18    
 #define L3_P2M_SHIFT    27    
-#else
-#define L1_P2M_SHIFT    10
-#define L2_P2M_SHIFT    20    
-#define L3_P2M_SHIFT    30    
-#endif
 #define L1_P2M_ENTRIES  (1 << L1_P2M_SHIFT)    
 #define L2_P2M_ENTRIES  (1 << (L2_P2M_SHIFT - L1_P2M_SHIFT))    
 #define L3_P2M_ENTRIES  (1 << (L3_P2M_SHIFT - L2_P2M_SHIFT))    
@@ -929,13 +889,6 @@ void arch_init_mm(unsigned long* start_pfn_p, unsigned long* max_pfn_p)
     max_pfn = start_info.nr_pages;
 
     /* We need room for demand mapping and heap, clip available memory */
-#if defined(__i386__)
-    {
-        unsigned long virt_pfns = 1 + DEMAND_MAP_PAGES + 1 + HEAP_PAGES;
-        if (max_pfn + virt_pfns >= 0x100000)
-            max_pfn = 0x100000 - virt_pfns - 1;
-    }
-#endif
 
     printk("  start_pfn: %lx\n", start_pfn);
     printk("    max_pfn: %lx\n", max_pfn);

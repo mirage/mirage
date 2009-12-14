@@ -62,13 +62,8 @@ void dump_stack(struct thread *thread)
     int count;
     if(thread == current)
     {
-#ifdef __i386__    
-        asm("movl %%esp,%0"
-            : "=r"(pointer));
-#else
         asm("movq %%rsp,%0"
             : "=r"(pointer));
-#endif
     }
     printk("The stack for \"%s\"\n", thread->name);
     for(count = 0; count < 25 && pointer < bottom; count ++)
@@ -121,19 +116,11 @@ struct thread* arch_create_thread(char *name, void (*function)(void *),
 void run_idle_thread(void)
 {
     /* Switch stacks and run the thread */ 
-#if defined(__i386__)
-    __asm__ __volatile__("mov %0,%%esp\n\t"
-                         "push %1\n\t" 
-                         "ret"                                            
-                         :"=m" (idle_thread->sp)
-                         :"m" (idle_thread->ip));                          
-#elif defined(__x86_64__)
     __asm__ __volatile__("mov %0,%%rsp\n\t"
                          "push %1\n\t" 
                          "ret"                                            
                          :"=m" (idle_thread->sp)
                          :"m" (idle_thread->ip));                                                    
-#endif
 }
 
 

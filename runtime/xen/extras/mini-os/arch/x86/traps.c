@@ -33,17 +33,6 @@ void machine_check(void);
 void dump_regs(struct pt_regs *regs)
 {
     printk("Thread: %s\n", current->name);
-#ifdef __i386__    
-    printk("EIP: %x, EFLAGS %x.\n", regs->eip, regs->eflags);
-    printk("EBX: %08x ECX: %08x EDX: %08x\n",
-	   regs->ebx, regs->ecx, regs->edx);
-    printk("ESI: %08x EDI: %08x EBP: %08x EAX: %08x\n",
-	   regs->esi, regs->edi, regs->ebp, regs->eax);
-    printk("DS: %04x ES: %04x orig_eax: %08x, eip: %08x\n",
-	   regs->xds, regs->xes, regs->orig_eax, regs->eip);
-    printk("CS: %04x EFLAGS: %08x esp: %08x ss: %04x\n",
-	   regs->xcs, regs->eflags, regs->esp, regs->xss);
-#else
     printk("RIP: %04lx:[<%016lx>] ", regs->cs & 0xffff, regs->rip);
     printk("\nRSP: %04lx:%016lx  EFLAGS: %08lx\n", 
            regs->ss, regs->rsp, regs->eflags);
@@ -57,7 +46,6 @@ void dump_regs(struct pt_regs *regs)
            regs->r10, regs->r11, regs->r12); 
     printk("R13: %016lx R14: %016lx R15: %016lx\n",
            regs->r13, regs->r14, regs->r15); 
-#endif
 }
 
 static void do_trap(int trapnr, char *str, struct pt_regs * regs, unsigned long error_code)
@@ -99,11 +87,10 @@ void page_walk(unsigned long virt_address)
         unsigned long addr = virt_address;
         printk("Pagetable walk from virt %lx, base %lx:\n", virt_address, start_info.pt_base);
     
-#if defined(__x86_64__)
         page = tab[l4_table_offset(addr)];
         tab = pte_to_virt(page);
         printk(" L4 = %"PRIpte" (%p)  [offset = %lx]\n", page, tab, l4_table_offset(addr));
-#endif
+
         page = tab[l3_table_offset(addr)];
         tab = pte_to_virt(page);
         printk("  L3 = %"PRIpte" (%p)  [offset = %lx]\n", page, tab, l3_table_offset(addr));
@@ -121,12 +108,11 @@ static int handle_cow(unsigned long addr) {
 	unsigned long new_page;
 	int rc;
 
-#if defined(__x86_64__)
         page = tab[l4_table_offset(addr)];
 	if (!(page & _PAGE_PRESENT))
 	    return 0;
         tab = pte_to_virt(page);
-#endif
+
         page = tab[l3_table_offset(addr)];
 	if (!(page & _PAGE_PRESENT))
 	    return 0;
@@ -167,11 +153,7 @@ static void do_stack_walk(unsigned long frame_base)
 void stack_walk(void)
 {
     unsigned long bp;
-#ifdef __x86_64__
     asm("movq %%rbp, %0":"=r"(bp));
-#else
-    asm("movl %%ebp, %0":"=r"(bp));
-#endif
     do_stack_walk(bp);
 }
 
@@ -213,26 +195,14 @@ void do_page_fault(struct pt_regs *regs, unsigned long error_code)
     handling_pg_fault++;
     barrier();
 
-#if defined(__x86_64__)
     printk("Page fault at linear address %p, rip %p, regs %p, sp %p, our_sp %p, code %lx\n",
            addr, regs->rip, regs, regs->rsp, &addr, error_code);
-#else
-    printk("Page fault at linear address %p, eip %p, regs %p, sp %p, our_sp %p, code %lx\n",
-           addr, regs->eip, regs, regs->esp, &addr, error_code);
-#endif
 
     dump_regs(regs);
-#if defined(__x86_64__)
     do_stack_walk(regs->rbp);
     dump_mem(regs->rsp);
     dump_mem(regs->rbp);
     dump_mem(regs->rip);
-#else
-    do_stack_walk(regs->ebp);
-    dump_mem(regs->esp);
-    dump_mem(regs->ebp);
-    dump_mem(regs->eip);
-#endif
     page_walk(addr);
     HYPERVISOR_sched_op(SCHEDOP_shutdown, &sched_shutdown);
     /* We should never get here ... but still */
@@ -242,23 +212,12 @@ void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 void do_general_protection(struct pt_regs *regs, long error_code)
 {
     struct sched_shutdown sched_shutdown = { .reason = SHUTDOWN_crash };
-#ifdef __i386__
-    printk("GPF eip: %p, error_code=%lx\n", regs->eip, error_code);
-#else    
     printk("GPF rip: %p, error_code=%lx\n", regs->rip, error_code);
-#endif
     dump_regs(regs);
-#if defined(__x86_64__)
     do_stack_walk(regs->rbp);
     dump_mem(regs->rsp);
     dump_mem(regs->rbp);
     dump_mem(regs->rip);
-#else
-    do_stack_walk(regs->ebp);
-    dump_mem(regs->esp);
-    dump_mem(regs->ebp);
-    dump_mem(regs->eip);
-#endif
     HYPERVISOR_sched_op(SCHEDOP_shutdown, &sched_shutdown);
 }
 

@@ -27,13 +27,7 @@
 
 #ifndef __ASSEMBLY__
 #include <xen/xen.h>
-#if defined(__i386__)
-#include <xen/arch-x86_32.h>
-#elif defined(__x86_64__)
 #include <xen/arch-x86_64.h>
-#else
-#error "Unsupported architecture"
-#endif
 #endif
 
 #define L1_FRAME                1
@@ -41,34 +35,6 @@
 #define L3_FRAME                3
 
 #define L1_PAGETABLE_SHIFT      12
-
-#if defined(__i386__)
-
-#define L2_PAGETABLE_SHIFT      21
-#define L3_PAGETABLE_SHIFT      30
-
-#define L1_PAGETABLE_ENTRIES    512
-#define L2_PAGETABLE_ENTRIES    512
-#define L3_PAGETABLE_ENTRIES    4
-
-#define PADDR_BITS              44
-#define PADDR_MASK              ((1ULL << PADDR_BITS)-1)
-
-#define L2_MASK  ((1UL << L3_PAGETABLE_SHIFT) - 1)
-
-/*
- * If starting from virtual address greater than 0xc0000000,
- * this value will be 2 to account for final mid-level page
- * directory which is always mapped in at this location.
- */
-#define NOT_L1_FRAMES           3
-#define PRIpte "016llx"
-#ifndef __ASSEMBLY__
-typedef uint64_t pgentry_t;
-#endif
-
-#elif defined(__x86_64__)
-
 #define L2_PAGETABLE_SHIFT      21
 #define L3_PAGETABLE_SHIFT      30
 #define L4_PAGETABLE_SHIFT      39
@@ -93,8 +59,6 @@ typedef uint64_t pgentry_t;
 typedef unsigned long pgentry_t;
 #endif
 
-#endif
-
 #define L1_MASK  ((1UL << L2_PAGETABLE_SHIFT) - 1)
 
 /* Given a virtual address, get an entry offset into a page table. */
@@ -104,10 +68,8 @@ typedef unsigned long pgentry_t;
   (((_a) >> L2_PAGETABLE_SHIFT) & (L2_PAGETABLE_ENTRIES - 1))
 #define l3_table_offset(_a) \
   (((_a) >> L3_PAGETABLE_SHIFT) & (L3_PAGETABLE_ENTRIES - 1))
-#if defined(__x86_64__)
 #define l4_table_offset(_a) \
   (((_a) >> L4_PAGETABLE_SHIFT) & (L4_PAGETABLE_ENTRIES - 1))
-#endif
 
 #define _PAGE_PRESENT  0x001ULL
 #define _PAGE_RW       0x002ULL
@@ -120,18 +82,11 @@ typedef unsigned long pgentry_t;
 #define _PAGE_PSE      0x080ULL
 #define _PAGE_GLOBAL   0x100ULL
 
-#if defined(__i386__)
-#define L1_PROT (_PAGE_PRESENT|_PAGE_RW|_PAGE_ACCESSED)
-#define L1_PROT_RO (_PAGE_PRESENT|_PAGE_ACCESSED)
-#define L2_PROT (_PAGE_PRESENT|_PAGE_RW|_PAGE_ACCESSED|_PAGE_DIRTY |_PAGE_USER)
-#define L3_PROT (_PAGE_PRESENT)
-#elif defined(__x86_64__)
 #define L1_PROT (_PAGE_PRESENT|_PAGE_RW|_PAGE_ACCESSED|_PAGE_USER)
 #define L1_PROT_RO (_PAGE_PRESENT|_PAGE_ACCESSED|_PAGE_USER)
 #define L2_PROT (_PAGE_PRESENT|_PAGE_RW|_PAGE_ACCESSED|_PAGE_DIRTY|_PAGE_USER)
 #define L3_PROT (_PAGE_PRESENT|_PAGE_RW|_PAGE_ACCESSED|_PAGE_DIRTY|_PAGE_USER)
 #define L4_PROT (_PAGE_PRESENT|_PAGE_RW|_PAGE_ACCESSED|_PAGE_DIRTY|_PAGE_USER)
-#endif /* __i386__ || __x86_64__ */
 
 /* flags for ioremap */
 #define IO_PROT (L1_PROT)
@@ -155,13 +110,8 @@ typedef unsigned long pgentry_t;
 
 #ifndef __ASSEMBLY__
 /* Definitions for machine and pseudophysical addresses. */
-#ifdef __i386__
-typedef unsigned long long paddr_t;
-typedef unsigned long long maddr_t;
-#else
 typedef unsigned long paddr_t;
 typedef unsigned long maddr_t;
-#endif
 
 extern unsigned long *phys_to_machine_mapping;
 extern char _text, _etext, _erodata, _edata, _end;
@@ -202,11 +152,7 @@ static __inline__ paddr_t machine_to_phys(maddr_t machine)
 
 #define PT_BASE			   ((pgentry_t *)start_info.pt_base)
 
-#ifdef __x86_64__
 #define virtual_to_l3(_virt)	   ((pgentry_t *)pte_to_virt(PT_BASE[l4_table_offset(_virt)]))
-#else
-#define virtual_to_l3(_virt)	   PT_BASE
-#endif
 
 #define virtual_to_l2(_virt)	   ({ \
 	unsigned long __virt2 = (_virt); \

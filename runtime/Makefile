@@ -28,11 +28,7 @@ libmiragerun_darwin.a:
 libmiragerun_linux.a:
 	@cd base && $(MAKE) MODE=linux CC="$(CC)"
 
-# xen build needs to be compiled against the newlib headers
-# and not the system ones
-GCC_INSTALL = $(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 CROSS_XEN=$(CURDIR)/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/
-
 $(CROSS_XEN)/lib/libc.a:
 	cd xen/stubdom && $(MAKE) cross
 

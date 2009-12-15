@@ -17,29 +17,8 @@ type complex = { mutable r: float; mutable i: float }
 (* semi-standard function for parallelism *)
 let invoke (f : 'a -> 'b) x : unit -> 'b =
   let v = f x in fun () -> v
-(*
-  let input, output = Unix.pipe() in
-  match Unix.fork() with
-  | -1 -> Unix.close input; Unix.close output; (let v = f x in fun () -> v)
-  | 0 ->
-      Unix.close input;
-      let output = Unix.out_channel_of_descr output in
-        Marshal.to_channel output (try `Res(f x) with e -> `Exn e) [];
-        close_out output;
-        exit 0
-  | pid ->
-      Unix.close output;
-      let input = Unix.in_channel_of_descr input in fun () ->
-        let v = Marshal.from_channel input in
-        ignore (Unix.waitpid [] pid);
-        close_in input;
-        match v with `Res x -> x | `Exn e -> raise e
-*)
-  
-  
 
-let () =
-  let size = 1600 in
+let calc size =
   let w = size in
   let h = w in
   let fw = float w and fh = float h in
@@ -79,6 +58,16 @@ let () =
   let y = ref 0 in
   let rs = Array.init (nworkers - 1)
              (fun _ -> let y'= !y + dy in let r = (!y, y') in y := y'+1; r) in
-  let workers = Array.map (invoke mandelbrot) (Array.append rs [|!y, h-1|]) in
-    Printf.printf "P4\n%i %i%!\n" w h;
-(* Array.iter (fun w -> output_string stdout (w ())) workers *) ()
+  let _ = Array.map (invoke mandelbrot) (Array.append rs [|!y, h-1|]) in
+  w, h
+(* Array.iter (fun w -> output_string stdout (w ())) workers *)
+
+let _ =
+  let _ = Gc.create_alarm (fun () -> Printf.printf "gc\n%!") in 
+  let sizes = [ 1600; 3200; 10000 ] in
+  List.iter (fun sz ->
+    let t1 = Mir.gettimeofday () in
+    let w,h = calc sz in
+    let t2 = Mir.gettimeofday () in
+    Printf.printf "%d,%d,%d,%.3f\n%!" sz w h (t2 -. t1)
+  ) sizes

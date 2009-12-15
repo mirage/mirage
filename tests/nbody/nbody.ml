@@ -110,7 +110,8 @@ let bodies = [| sun; jupiter; saturn; uranus; neptune |]
 open Printf
 
 let () =
-  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000 ] in
+  let _ = Gc.create_alarm (fun () -> printf "gc\n%!") in
+  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 10000000 ] in
   List.iter (fun n ->
     offset_momentum bodies;
     let e1 = energy bodies in

@@ -1,7 +1,5 @@
-OCAMLOPT ?= ocamlopt.opt
-OCAMLDEP ?= ocamldep.opt
-OCAMLDSORT ?= ocamldsort
-OCAMLOPT_FLAGS = -fno-PIC -nodynlink -inline 100
+ROOTDIR=..
+include $(ROOTDIR)/mk/ocaml.mk
 
 .PHONY: build
 build: stdlib.cmxa

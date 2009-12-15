@@ -1,11 +1,11 @@
 # define ROOTDIR before using this makefile fragment
-OS = $(shell uname -s)
+include $(ROOTDIR)/mk/base.mk
 
 OCAMLC ?= ocamlc.opt
 OCAMLOPT ?= ocamlopt.opt
 OCAMLDSORT ?= ocamldsort
 
-ifeq ($(OS),Darwin)
+ifeq ($(OS),macosx)
 OCAMLOPT_FLAGS =
 else
 OCAMLOPT_FLAGS = -fno-PIC -nodynlink

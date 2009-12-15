@@ -7,7 +7,7 @@ include $(ROOTDIR)/mk/$(MODE).mk
 
 OBJDIR ?= obj-$(MODE)
 TARGS=$(wildcard *.c)
-CFLAGS += -I"$(shell $(OCAMLC) -where)/include"
+CFLAGS += -I"$(shell $(OCAMLC) -where)/caml"
 
 .PHONY: all
 all: $(OBJDIR)/libmir.a

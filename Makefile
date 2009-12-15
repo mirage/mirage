@@ -23,7 +23,4 @@ clean:
 	@cd runtime && $(MAKE) clean
 
 install:
-	@cd stdlib && $(MAKE) install
-	@cd syntax && $(MAKE) install
-	@cd lib && $(MAKE) install
 	@cd bin && $(MAKE) install

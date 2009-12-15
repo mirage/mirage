@@ -41,7 +41,7 @@ fi
 function usage {
   echo "Usage: $0 [mode] [dir]"
   echo "  [mode] can be:"
-  echo "    bu : target UNIX (default)"
+  echo "    bu : target @OS@ (default)"
   echo "    bx : target Xen"
   echo "    clean : clean intermediates"
   exit 1
@@ -49,7 +49,7 @@ function usage {
 
 case "${MODE}" in
 bu)
-  echo Building for UNIX
+  echo Building for @OS@
   TARG=u
   ;;
 bx)
@@ -76,9 +76,8 @@ env CAMLLIB="${STDLIB}" ${OCAMLOPT} ${OCAMLOPT_FLAGS} `cat .depend` -output-obj 
 # now link app.o depending on the target platform
 case "${TARG}" in
 u)
-  echo Linking for UNIX
-  OS=$(uname -s | tr "[A-Z]" "[a-z]")
-  ${CC} -o app app.o ${RUNTIME}/libmiragerun_${OS}.a
+  echo Linking for @OS@
+  ${CC} -o app app.o ${RUNTIME}/libmiragerun_@OS@.a
   ;;
 x)
   echo Linking for Xen

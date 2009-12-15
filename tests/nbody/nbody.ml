@@ -4,6 +4,7 @@
  * http://shootout.alioth.debian.org/
  *
  * Contributed by Troestler Christophe
+ * Adapted to Mirage by Anil Madhavapeddy
  *)
 
 
@@ -106,11 +107,19 @@ let sun = { x = 0.;  y = 0.;  z = 0.;  vx = 0.;  vy = 0.; vz = 0.;
 
 let bodies = [| sun; jupiter; saturn; uranus; neptune |]
 
+open Printf
+
 let () =
-  let n = 500000 in
-  offset_momentum bodies;
-  Printf.printf "%.9f\n" (energy bodies);
-  for i = 1 to n do advance bodies 0.01 done;
-  Printf.printf "%.9f\n" (energy bodies);
-  Printf.printf "done\n%!"
+  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000 ] in
+  List.iter (fun n ->
+    offset_momentum bodies;
+    let e1 = energy bodies in
+    let t1 = Mir.gettimeofday () in
+    for i = 1 to n do 
+      advance bodies 0.01;
+    done;
+    let t2 = Mir.gettimeofday () in
+    printf "%d,%.9f,%.9f,%.3f\n%!" n e1 (energy bodies) (t2 -. t1);
+  ) ns;
+  printf "done\n%!"
 

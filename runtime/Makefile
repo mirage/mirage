@@ -37,11 +37,4 @@ $(CROSS_XEN)/lib/libc.a:
 	cd xen/stubdom && $(MAKE) cross
 
 libmiragerun_xen.a: $(CROSS_XEN)/lib/libc.a
-	@cd base && $(MAKE) MODE=xen CC="$(CC) -nostdinc \
-	  -U __linux__ -U __FreeBSD__ -U __sun_ -D__MINIOS__ \
-	  -isystem $(CURDIR)/xen/extras/mini-os/include/posix \
-	  -isystem $(CURDIR)/xen/extras/mini-os/include/x86 \
-	  -isystem $(CROSS_XEN)/include \
-	  -isystem $(GCC_INSTALL)/include \
-	  " all
-
+	@cd base && $(MAKE) MODE=xen

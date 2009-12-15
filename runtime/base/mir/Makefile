@@ -1,33 +1,28 @@
-ROOTDIR = ../..
+ROOTDIR = ../../..
 
 MODE ?= xen
 
 include $(ROOTDIR)/mk/ocaml.mk
 include $(ROOTDIR)/mk/$(MODE).mk
 
-OBJDIR=obj-$(MODE)
+OBJDIR ?= obj-$(MODE)
+TARGS=$(wildcard *.c)
+CFLAGS += -I"$(shell $(OCAMLC) -where)/include"
 
 .PHONY: all
-all: $(OBJDIR)/libmirnet.a $(OBJDIR)/mirnet.cmx
+all: $(OBJDIR)/libmir.a
 	@ :
 
 $(OBJDIR)/%.o: %.c $(OBJDIR)/.stamp
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-TARGS=$(wildcard *.c)
-
 $(OBJDIR)/.stamp:
 	mkdir -p $(OBJDIR)
 	touch $@
 
-$(OBJDIR)/libmirnet.a: $(TARGS:%.c=$(OBJDIR)/%.o)
+$(OBJDIR)/libmir.a: $(TARGS:%.c=$(OBJDIR)/%.o)
 	ar rc $@ $^
 	ranlib $@
-
-# ocaml leaves tmp files in curdir, so copy file
-$(OBJDIR)/%.cmx: %.ml
-	cp $< $(OBJDIR)/$<
-	$(OCAMLOPT_BUILD) -c $(OBJDIR)/$< $@
 
 .PHONY: clean
 clean:

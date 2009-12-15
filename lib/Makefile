@@ -1,6 +1,6 @@
 .PHONY: all
 all:
-	@cd mirnet && $(MAKE) all
+	@cd mirnet && $(MAKE) MODE=xen
 
 .PHONY: clean
 clean:

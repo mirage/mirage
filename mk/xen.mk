@@ -1,6 +1,6 @@
 # before including this, define ROOTDIR to the repository root
 
-CC ?= gcc
+CC = gcc
 
 CROSS_PREFIX = $(ROOTDIR)/runtime/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/include
 GCC_INSTALL = $(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
@@ -17,8 +17,4 @@ CFLAGS += -isystem $(ROOTDIR)/runtime/xen/stubdom/lwip/src/include/ipv4
 CFLAGS += -isystem $(ROOTDIR)/runtime/xen/extras/mini-os/include/x86
 CFLAGS += -isystem $(ROOTDIR)/runtime/xen/extras/mini-os/include/x86/x86_64
 CFLAGS += -isystem $(ROOTDIR)/runtime/xen/xen/include
-CFLAGS += -I"$(shell $(OCAMLC) -where)/caml"
-
-TARGS = $(wildcard *.c)
-
-
+CFLAGS += -fno-stack-protector

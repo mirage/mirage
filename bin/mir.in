@@ -5,7 +5,7 @@ shopt -s nullglob
 
 OCAMLDSORT=${OCAMLDSORT:-ocamldsort}
 OCAMLOPT=${OCAMLOPT:-ocamlopt.opt}
-OCAMLOPT_FLAGS="-fno-PIC -nodynlink"
+OCAMLOPT_FLAGS=@OCAMLOPT_FLAGS@
 OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
 MAKE=${MAKE:-make}
 CC=${CC:-cc}

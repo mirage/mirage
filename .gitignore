@@ -20,3 +20,4 @@ runtime/xen/extras/mini-os/include/xen
 runtime/xen/stubdom/include/
 runtime/xen/stubdom/mini-os-x86_64-caml/
 runtime/xen/stubdom/zlib/Makefile
+tests/*/app

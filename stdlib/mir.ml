@@ -1,3 +1,4 @@
+open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -131,15 +132,6 @@ let single_write fd buf ofs len =
   if ofs < 0 || len < 0 || ofs > String.length buf - len
   then invalid_arg "Unix.single_write"
   else unsafe_single_write fd buf ofs len
-
-external in_channel_of_descr : file_descr -> in_channel
-                             = "caml_ml_open_descriptor_in"
-external out_channel_of_descr : file_descr -> out_channel
-                              = "caml_ml_open_descriptor_out"
-external descr_of_in_channel : in_channel -> file_descr
-                             = "caml_channel_descriptor"
-external descr_of_out_channel : out_channel -> file_descr
-                              = "caml_channel_descriptor"
 
 external gettimeofday : unit -> float = "unix_gettimeofday"
 external sleep : int -> unit = "unix_sleep"

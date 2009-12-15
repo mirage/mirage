@@ -24,9 +24,9 @@ clean:
 	cd xen/stubdom && $(MAKE) clean crossclean
 
 libmiragerun_darwin.a:
-	@cd base && $(MAKE) MODE=darwin CC="$(CC)"
+	@cd base && $(MAKE) MODE=darwin
 libmiragerun_linux.a:
-	@cd base && $(MAKE) MODE=linux CC="$(CC)"
+	@cd base && $(MAKE) MODE=linux
 
 CROSS_XEN=$(CURDIR)/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/
 $(CROSS_XEN)/lib/libc.a:

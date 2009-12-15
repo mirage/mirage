@@ -2,5 +2,3 @@
 
 CC ?= gcc
 CFLAGS += -O2
-CFLAGS += -I"$(shell $(OCAMLC) -where)/caml"
-

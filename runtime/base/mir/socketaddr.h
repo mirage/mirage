@@ -16,6 +16,7 @@
 #include <misc.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 
 union sock_addr_union {
   struct sockaddr s_gen;

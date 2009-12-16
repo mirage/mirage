@@ -1,4 +1,4 @@
 # before including this, define ROOTDIR to the repository root
+include $(ROOTDIR)/mk/base.mk
 
-CC = gcc
-CFLAGS += -O2
+CFLAGS += $(DEBUG_CFLAGS)

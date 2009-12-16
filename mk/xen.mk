@@ -1,11 +1,10 @@
 # before including this, define ROOTDIR to the repository root
-
-CC = gcc
+include $(ROOTDIR)/mk/base.mk
 
 CROSS_PREFIX = $(ROOTDIR)/runtime/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/include
 GCC_INSTALL = $(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 CFLAGS = -U __linux__ -U __FreeBSD__ -U __sun__
-CFLAGS += -O2
+CFLAGS += $(DEBUG_CFLAGS)
 CFLAGS += -D__MiniOS__ -DHAVE_LIBC -D__x86_64__
 CFLAGS += -nostdinc
 CFLAGS += -isystem $(ROOTDIR)/runtime/xen/extras/mini-os/include/posix

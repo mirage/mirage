@@ -12,7 +12,7 @@ all: $(TARGS)
 
 CROSS_XEN=$(CURDIR)/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/
 $(CROSS_XEN)/lib/libc.a:
-	cd xen/stubdom && $(MAKE) cross
+	cd xen/stubdom && $(MAKE) cross debug=$(debug)
 
 libmiragerun_xen.a: $(CROSS_XEN)/lib/libc.a
 	@cd base && $(MAKE) MODE=xen
@@ -24,4 +24,3 @@ clean:
 	rm -rf base/obj-*
 	rm -f libmiragerun*
 	cd xen/stubdom && $(MAKE) clean crossclean
-

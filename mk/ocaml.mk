@@ -11,6 +11,9 @@ else
 OCAMLOPT_FLAGS = -fno-PIC -nodynlink
 endif
 
+OCAML_CLIBS_linux = -lm
+OCAML_CLIBS = $(OCAML_CLIBS_$(OS))
+
 OCAMLDEP ?= ocamldep.opt
 
 OCAMLOPT_BUILD = env CAMLLIB=$(ROOTDIR)/stdlib $(OCAMLOPT) 

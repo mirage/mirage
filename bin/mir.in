@@ -5,7 +5,7 @@ shopt -s nullglob
 
 OCAMLDSORT=${OCAMLDSORT:-ocamldsort}
 OCAMLOPT=${OCAMLOPT:-ocamlopt.opt}
-OCAMLOPT_FLAGS=@OCAMLOPT_FLAGS@
+OCAMLOPT_FLAGS="@OCAMLOPT_FLAGS@"
 OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
 MAKE=${MAKE:-make}
 CC=${CC:-cc}
@@ -77,7 +77,7 @@ env CAMLLIB="${STDLIB}" ${OCAMLOPT} ${OCAMLOPT_FLAGS} `cat .depend` -output-obj 
 case "${TARG}" in
 u)
   echo Linking for @OS@
-  ${CC} -o app app.o ${RUNTIME}/libmiragerun_@OS@.a
+  ${CC} -o app @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
   ;;
 x)
   echo Linking for Xen

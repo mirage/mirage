@@ -59,7 +59,7 @@ SONAME_LDFLAG = -soname
 SHLIB_CFLAGS = -shared
 
 ifneq ($(debug),y)
-CFLAGS += -O2 -fomit-frame-pointer
+CFLAGS += -O3 -fomit-frame-pointer
 else
 # Less than -O1 produces bad code and large stack frames
 CFLAGS += -O1 -fno-omit-frame-pointer -fno-optimize-sibling-calls

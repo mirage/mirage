@@ -12,5 +12,6 @@ size_t getpagesize(void);
 int ftruncate(int fd, off_t length);
 int lockf(int fd, int cmd, off_t len);
 int nice(int inc);
+off_t lseek(int fd, off_t offset, int whence) asm("lseek64");
 
 #endif /* _POSIX_UNISTD_H */

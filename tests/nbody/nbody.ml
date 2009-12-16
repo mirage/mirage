@@ -20,7 +20,7 @@ let advance bodies dt =
   let n = Array.length bodies - 1 in
   for i = 0 to Array.length bodies - 1 do
     let b = bodies.(i) in
-    for j = i+1 to Array.length bodies - 1 do
+  for j = i+1 to Array.length bodies - 1 do
       let b' = bodies.(j) in
       let dx = b.x -. b'.x  and dy = b.y -. b'.y  and dz = b.z -. b'.z in
       let dist2 = dx *. dx +. dy *. dy +. dz *. dz in

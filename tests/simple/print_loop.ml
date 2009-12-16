@@ -1,16 +1,8 @@
-open Pervasives
-
-let tm = Sys.time
-
-let main () =
-  let t1 = tm () in
-  for i = 0 to 10000000 do
+let _ =
+  let t1 = Mir.gettimeofday () in
+  for i = 0 to 100000000 do
     let _ = String.create 10000 in
-    if i mod 50000 = 0 then
-      Printf.printf "%d\n%!" i
+    ()
   done;
-  let t2 = tm () in
-  let t = int_of_float ( (t2 -. t1) *. 100. ) in
-  Printf.printf "game over: %d\n%!" t
-
-let _ = main ()
+  let t2 = Mir.gettimeofday () in
+  Printf.printf "game over: %.3fs\n%!" (t2 -. t1)

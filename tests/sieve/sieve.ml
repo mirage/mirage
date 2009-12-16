@@ -1,4 +1,4 @@
-let count = 500000 
+let count = 700000 
 
 let primes = 
   let primes = Array.create (max count 3) 0 in 

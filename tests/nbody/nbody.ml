@@ -108,10 +108,22 @@ let sun = { x = 0.;  y = 0.;  z = 0.;  vx = 0.;  vy = 0.; vz = 0.;
 let bodies = [| sun; jupiter; saturn; uranus; neptune |]
 
 open Printf
+open Gc
+
+let print_gc () =
+  let c = Gc.get () in
+  printf "minor_heap_size: %d\n" c.minor_heap_size;
+  printf "major_heap_increment: %d\n" c.major_heap_increment;
+  printf "space_overhead: %d\n" c.space_overhead;
+  printf "max_overhead: %d\n" c.max_overhead;
+  printf "stack_limit: %d\n" c.stack_limit;
+  printf "allocation_policy: %d\n" c.allocation_policy ;
+  printf "\n%!"
 
 let () =
   let _ = Gc.create_alarm (fun () -> printf "gc\n%!") in
-  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000; 50000000 ] in
+  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000;] in (* 50000000 ] in *)
+  print_gc ();
   List.iter (fun n ->
     Gc.compact ();
     offset_momentum bodies;

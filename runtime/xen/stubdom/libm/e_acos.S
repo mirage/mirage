@@ -9,7 +9,7 @@
 #include "abi.h"
 
 /* acos = atan (sqrt(1 - x^2) / x) */
-ENTRY(acos)
+ENTRY(__ieee754_acos)
 	XMM_ONE_ARG_DOUBLE_PROLOGUE
 	fldl	ARG_DOUBLE_ONE		/* x */
 	fld	%st(0)

@@ -9,7 +9,7 @@
 #include "abi.h"
 
 
-ENTRY(fmod)
+ENTRY(__ieee754_fmod)
 	XMM_TWO_ARG_DOUBLE_PROLOGUE
 	fldl	ARG_DOUBLE_TWO
 	fldl	ARG_DOUBLE_ONE

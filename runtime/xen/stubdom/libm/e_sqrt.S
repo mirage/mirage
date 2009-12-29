@@ -6,6 +6,6 @@
 
 #include <machine/asm.h>
 
-ENTRY(sqrt)
+ENTRY(__ieee754_sqrt)
 	sqrtsd	%xmm0,%xmm0
 	ret

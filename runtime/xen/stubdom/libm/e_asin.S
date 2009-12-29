@@ -9,7 +9,7 @@
 #include "abi.h"
 
 /* asin = atan (x / sqrt(1 - x^2)) */
-ENTRY(asin)
+ENTRY(__ieee754_asin)
 	XMM_ONE_ARG_DOUBLE_PROLOGUE
 	fldl	ARG_DOUBLE_ONE		/* x */
 	fld	%st(0)

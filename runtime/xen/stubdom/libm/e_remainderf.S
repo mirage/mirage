@@ -8,7 +8,7 @@
 
 #include "abi.h"
 
-ENTRY(remainderf)
+ENTRY(__ieee754_remainderf)
 	XMM_TWO_ARG_FLOAT_PROLOGUE
 	flds	ARG_FLOAT_TWO
 	flds	ARG_FLOAT_ONE

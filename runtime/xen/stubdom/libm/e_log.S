@@ -8,7 +8,7 @@
 
 #include "abi.h"
 
-ENTRY(log)
+ENTRY(__ieee754_log)
 	XMM_ONE_ARG_DOUBLE_PROLOGUE
 	fldln2
 	fldl	ARG_DOUBLE_ONE

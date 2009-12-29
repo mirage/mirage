@@ -8,7 +8,7 @@
 
 #include "abi.h"
 
-ENTRY(atan2f)
+ENTRY(__ieee754_atan2f)
 	XMM_TWO_ARG_FLOAT_PROLOGUE
 	flds	ARG_FLOAT_ONE
 	flds	ARG_FLOAT_TWO

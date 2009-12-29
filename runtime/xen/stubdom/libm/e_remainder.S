@@ -8,7 +8,7 @@
 
 #include "abi.h"
 
-ENTRY(remainder)
+ENTRY(__ieee754_remainder)
 	XMM_TWO_ARG_DOUBLE_PROLOGUE
 	fldl	ARG_DOUBLE_TWO
 	fldl	ARG_DOUBLE_ONE

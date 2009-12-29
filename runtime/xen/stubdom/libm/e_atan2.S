@@ -8,7 +8,7 @@
 
 #include "abi.h"
 
-ENTRY(atan2)
+ENTRY(__ieee754_atan2)
 	XMM_TWO_ARG_DOUBLE_PROLOGUE
 	fldl	ARG_DOUBLE_ONE
 	fldl	ARG_DOUBLE_TWO

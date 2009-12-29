@@ -66,6 +66,14 @@ $(NEWLIB_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH)
 	  $(MAKE) && \
 	  DESTDIR= $(MAKE) install )
 
+LIBM_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libmfast.a
+.PHONY: cross-libm
+cross-libm: $(LIBM_STAMPFILE)
+
+$(LIBM_STAMPFILE): $(NEWLIB_STAMPFILE)
+	cd libm && $(MAKE) all
+	cp libm/obj/libm.a $@
+
 ############
 # Cross-zlib
 ############
@@ -84,7 +92,7 @@ $(ZLIB_STAMPFILE): zlib $(NEWLIB_STAMPFILE)
 #######
 
 .PHONY: $(CROSS_ROOT)
-$(CROSS_ROOT): cross-newlib cross-zlib 
+$(CROSS_ROOT): cross-newlib cross-libm cross-zlib 
 
 .PHONY: cross
 cross: $(CROSS_ROOT)

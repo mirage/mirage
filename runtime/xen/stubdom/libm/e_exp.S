@@ -41,7 +41,7 @@
 #include "abi.h"
 
 /* e^x = 2^(x * log2(e)) */
-ENTRY(exp)
+ENTRY(__ieee754_exp)
 	XMM_ONE_ARG_DOUBLE_PROLOGUE
 	/*
 	 * If x is +-Inf, then the subtraction would give Inf-Inf = NaN.

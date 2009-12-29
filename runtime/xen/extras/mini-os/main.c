@@ -43,7 +43,7 @@ static void call_main(void *p)
 
     sparse((unsigned long) &__app_bss_start, &__app_bss_end - &__app_bss_start);
 #if defined(HAVE_LWIP)
-    start_networking();
+    // start_networking();
 #endif
 
     argc = 1;

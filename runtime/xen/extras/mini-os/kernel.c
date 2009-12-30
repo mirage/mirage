@@ -203,6 +203,8 @@ static void blk_write_sector(uint64_t sector)
 }
 #endif
 
+void sqlite3_test(void);
+
 void blkfront_thread(void *p)
 {
     time_t lasttime = 0;
@@ -218,6 +220,8 @@ void blkfront_thread(void *p)
     if (blk_info.info & VDISK_READONLY)
         printk("Block device is read-only\n");
 
+
+    sqlite3_test();
 #ifdef BLKTEST_WRITE
     if (blk_info.mode == O_RDWR) {
         blk_write_sector(0);

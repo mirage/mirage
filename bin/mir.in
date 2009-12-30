@@ -83,6 +83,7 @@ x)
   echo Linking for Xen
   cd ${RUNTIME}/xen/stubdom && ${MAKE} caml-stubdom APP_LIBS="${DIR}/app.o ${RUNTIME}/libmiragerun_xen.a" debug=n
   cp ${RUNTIME}/xen/stubdom/mini-os-x86_64-caml/mini-os.gz ${DIR}/
+  cp ${RUNTIME}/xen/stubdom/mini-os-x86_64-caml/mini-os ${DIR}/
   ;;
 *)
   echo Unknown target $TARGET

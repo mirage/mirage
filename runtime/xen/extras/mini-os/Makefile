@@ -85,10 +85,6 @@ APP_LDLIBS += -lm -lmfast
 LDLIBS += -lc
 endif
 
-ifneq ($(APP_OBJS)-$(lwip),-y)
-OBJS := $(filter-out $(OBJ_DIR)/daytime.o, $(OBJS))
-endif
-
 $(OBJ_DIR)/$(TARGET)_app.o: $(APP_OBJS) app.lds
 	$(LD) -r -d $(LDFLAGS) -\( $^ -\) $(APP_LDLIBS) --undefined main -o $@
 

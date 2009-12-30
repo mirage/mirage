@@ -127,9 +127,11 @@ void _exit(int ret)
     do_exit();
 }
 
+void blkfront_thread(void *);
 int app_main(start_info_t *si)
 {
     printk("Dummy main: start_info=%p\n", si);
     main_thread = create_thread("main", call_main, si);
+    create_thread("blkfront", blkfront_thread, si);
     return 0;
 }

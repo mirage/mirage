@@ -88,7 +88,7 @@ struct blkfront_dev *init_blkfront(char *_nodename, struct blkfront_info *info)
     int retry=0;
     char* msg;
     char* c;
-    char* nodename = _nodename ? _nodename : "device/vbd/768";
+    char* nodename = _nodename ? _nodename : "device/vbd/51713";
 
     struct blkfront_dev *dev;
 

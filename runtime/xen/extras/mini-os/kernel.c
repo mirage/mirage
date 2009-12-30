@@ -201,7 +201,7 @@ static void blk_write_sector(uint64_t sector)
 }
 #endif
 
-static void blkfront_thread(void *p)
+void blkfront_thread(void *p)
 {
     time_t lasttime = 0;
 

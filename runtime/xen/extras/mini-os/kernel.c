@@ -44,6 +44,8 @@
 #include <xen/features.h>
 #include <xen/version.h>
 
+int app_main(start_info_t *);
+
 static struct netfront_dev *net_dev;
 
 uint8_t xen_features[XENFEAT_NR_SUBMAPS * 32];
@@ -252,17 +254,6 @@ void blkfront_thread(void *p)
         }
 #endif
     }
-}
-
-/* This should be overridden by the application we are linked against. */
-__attribute__((weak)) int app_main(start_info_t *si)
-{
-    printk("Dummy main: start_info=%p\n", si);
-    create_thread("xenbus_tester", xenbus_tester, si);
-    create_thread("periodic_thread", periodic_thread, si);
-    create_thread("netfront", netfront_thread, si);
-    create_thread("blkfront", blkfront_thread, si);
-    return 0;
 }
 
 /*

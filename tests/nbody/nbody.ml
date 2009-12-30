@@ -122,10 +122,9 @@ let print_gc () =
 
 let () =
   let _ = Gc.create_alarm (fun () -> printf "gc\n%!") in
-  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000;] in (* 50000000 ] in *)
+  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000; 50000000; 200000000 ] in
   print_gc ();
   List.iter (fun n ->
-    Gc.compact ();
     offset_momentum bodies;
     let e1 = energy bodies in
     let t1 = Mir.gettimeofday () in

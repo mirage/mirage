@@ -74,9 +74,7 @@
 ** Include the configuration header output by 'configure' if we're using the
 ** autoconf-based build
 */
-#ifdef _HAVE_SQLITE_CONFIG_H
-#include "config.h"
-#endif
+#include "sqlite_config.h"
 
 /************** Include sqliteLimit.h in the middle of sqliteInt.h ***********/
 /************** Begin file sqliteLimit.h *************************************/

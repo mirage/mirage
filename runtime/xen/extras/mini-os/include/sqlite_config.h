@@ -1,0 +1,4 @@
+#define SQLITE_THREADSAFE 0
+#define SQLITE_OS_OTHER 1
+#define HAVE_STDINT_H 
+

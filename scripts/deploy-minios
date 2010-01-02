@@ -2,7 +2,7 @@
 # Run and profile a Mirage minios kernel
 # Assumes the file is under test/$1
 
-PROFILING=1
+PROFILING=${MIRAGE_PROFILING:-1}
 MIRAGE_ROOT=${MIRAGE_ROOT:-`pwd`}
 export MIRAGE_ROOT
 CONF=${MIRAGE_ROOT}/scripts/minios-config.in
@@ -29,6 +29,9 @@ ${SUDO} ${XM_BIN} create -p ${TMPCONF}
 
 DOMID=$(${SUDO} ${XM_BIN} domid ${NAME})
 
+rm -f screenlog.*
+screen -d -m -L ${SUDO} ${XM_BIN} console ${DOMID}
+
 if [ ${PROFILING} -gt 0 ]; then
   ${SUDO} opcontrol --reset
   ${SUDO} opcontrol --shutdown
@@ -38,6 +41,8 @@ if [ ${PROFILING} -gt 0 ]; then
 fi
 
 ${SUDO} ${XM_BIN} unpause ${DOMID}
+
+tail --bytes +0 -f screenlog.*
 
 echo -n Waiting for domain to terminate
 dom_done=0

@@ -16,7 +16,7 @@ endif
 include minios.mk
 
 # Set tester flags
-CFLAGS += -DBLKTEST_WRITE
+#CFLAGS += -DBLKTEST_WRITE
 
 # Define some default flags for linking.
 LDLIBS := 

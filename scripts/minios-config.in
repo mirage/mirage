@@ -3,3 +3,4 @@ memory=1024
 kernel="@KERNEL@"
 vif=['bridge=eth0']
 disk=['phy:/dev/brolga-0/guest-db,xvda1,w' ]
+#on_crash='preserve'

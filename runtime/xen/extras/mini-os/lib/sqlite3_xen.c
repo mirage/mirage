@@ -18,7 +18,7 @@ mirClose(sqlite3_file *file)
 */
 static int 
 mirRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset) {
-  printf("mirRead\n");
+  printf("mirRead: off=%Lu amt=%lu\n", offset, amt);
   return SQLITE_ERROR;
 }
 
@@ -120,7 +120,7 @@ mirDeviceCharacteristics(sqlite3_file *NotUsed) {
   return 0;
 }
 
-static const sqlite3_io_methods mirIoMethods = {
+static sqlite3_io_methods mirIoMethods = {
    1,                          /* iVersion */
    mirClose,                   /* xClose */
    mirRead,                    /* xRead */
@@ -137,8 +137,11 @@ static const sqlite3_io_methods mirIoMethods = {
 };
 
 struct mirFile {
-    sqlite3_io_methods const *pMethod;
+    sqlite3_io_methods const *pMethods;
+    int reserved;
 };
+
+static sqlite3_file mirFileIO;
 
 /** Open the file zPath.
 ** 
@@ -161,7 +164,7 @@ static int mirOpen(
   int *pOutFlags               /* Output flags returned to SQLite core */
 ) {
     int eType = flags & 0xFFFFFF00;  /* Type of file to open */
-    printf("mirOpen: type ");
+    printf("mirOpen: path=%s type ", zPath);
     switch (eType) {
     case SQLITE_OPEN_MAIN_DB:
       printf("main_db");
@@ -188,9 +191,13 @@ static int mirOpen(
       printf("???");
     }
     printf(".\n");
-    if (eType != SQLITE_OPEN_MAIN_DB)
+    if (eType != SQLITE_OPEN_MAIN_DB) {
+      printf(" (err)\n");
       return SQLITE_ERROR;
-    return SQLITE_ERROR;   
+    } else
+      printf(".\n");
+    bcopy(&mirFileIO, pFile, sizeof(mirFileIO));
+    return SQLITE_OK;
 }
 
 static int mirDelete(
@@ -281,7 +288,7 @@ static int mirGetLastError(
 
 struct sqlite3_vfs mirVfs = {
     1,                    /* iVersion */
-    sizeof(struct mirFile),      /* szOsFile */
+    sizeof(sqlite3_file), /* szOsFile */
     1024,                 /* mxPathname */
     0,                    /* pNext */ 
     VFS_NAME,             /* zName */
@@ -303,12 +310,12 @@ struct sqlite3_vfs mirVfs = {
 int sqlite3_os_init(void) {
   int rc;
   printf("sqlite3_os_init: ");
+  mirFileIO.pMethods = &mirIoMethods;
   rc = sqlite3_vfs_register(&mirVfs, 1);
-  if (rc != SQLITE_OK) {
+  if (rc != SQLITE_OK)
     printf("error registering VFS\n");
-  } else {
+  else
     printf("ok\n");
-  }
   return SQLITE_OK;
 }
 
@@ -322,13 +329,16 @@ void sqlite3_test(void) {
   int ret;
   char *errmsg;
   ret = sqlite3_open("test.db", &db);
+  printf("done with sqlite3_open\n");
   if (ret) {
      printf("sqlite3_open error: %s\n", sqlite3_errmsg(db));
   } else {
+     printf("trying sqlite3_exec\n");
      ret = sqlite3_exec(db, "create table foo (bar TEXT)", NULL, NULL, &errmsg);
      if (ret) {
        printf("sqlite3_exec: %s\n", sqlite3_errmsg(db));
      }
      ret = sqlite3_close(db);
   }
+  exit(1);
 }

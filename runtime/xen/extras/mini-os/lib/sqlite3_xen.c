@@ -7,14 +7,70 @@
 
 #define VFS_NAME "mirage"
 
+/* First sector of VBD is used for database metadata */
+#define DB_NAME_MAXLENGTH 32
+struct db_metadata {
+  uint32_t version;
+  uint64_t size;
+  char name[DB_NAME_MAXLENGTH];
+};
+
 struct blkfront_dev *blk_dev;
 struct blkfront_info *blk_info;
+struct db_metadata *db_metadata;
 
 static int 
 mirClose(sqlite3_file *file)
 {
   printf("mirClose: ERR\n");
   return SQLITE_ERROR;
+}
+
+/* Write database metadata to the first sector of the block device.
+   Buffer must have come from readMetadata */
+static void
+writeMetadata(struct db_metadata *m)
+{
+  struct blkfront_aiocb req;
+  bzero(&req, sizeof(struct blkfront_aiocb));
+  ASSERT(blk_info->sector_size >= sizeof(struct db_metadata));
+  printf("writeMetadata: ");
+  req.aio_dev = blk_dev;
+  req.aio_buf = (void *)m;
+  req.aio_nbytes = blk_info->sector_size;
+  req.aio_offset = 0;
+  req.data = &req;
+  blkfront_write(&req);
+  printf(" OK\n");
+}
+
+/* Read database metadata from first sector of blk device.
+   If it is uninitialized, then set the version field and
+   sync it to disk.
+   Returns a whole sector so it can be easily written again */
+static struct db_metadata *
+readMetadata(void)
+{
+  struct blkfront_aiocb req;
+  struct db_metadata *m;
+  bzero(&req, sizeof(struct blkfront_aiocb));
+  ASSERT(blk_info->sector_size >= sizeof(struct db_metadata));
+  printf("readMetadata: ");
+  req.aio_dev = blk_dev;
+  req.aio_buf = _xmalloc(blk_info->sector_size, blk_info->sector_size);
+  req.aio_nbytes = blk_info->sector_size;
+  req.aio_offset = 0;
+  req.data = &req;
+  blkfront_read(&req);
+  m = (struct db_metadata *)req.aio_buf;
+  if (m->version == 0) {
+    printf(" NEW\n");
+    m->version = 1;
+    strcpy(m->name, "unknown");
+    writeMetadata(m);
+  } else
+    printf(" '%s' v=%lu sz=%Lu OK\n", m->name, m->version, m->size);
+  return m;
 }
 
 /*
@@ -29,7 +85,8 @@ mirRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset) {
 
   /* Our reads to blkfront must be sector-aligned */
   start_offset = offset % blk_info->sector_size;
-  sector = offset / blk_info->sector_size;
+  /* Add 1 to sector to skip metadata block */
+  sector = 1 + (offset / blk_info->sector_size);
   nsectors = 1 + ((amt + start_offset) / blk_info->sector_size);
   nbytes = nsectors * blk_info->sector_size;
  
@@ -48,7 +105,7 @@ mirRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset) {
   free(req->aio_buf);
   free(req);
 
-#if 0
+#if 1
   printf("mirRead: ");
   for (int i = 0; i < amt; i++) printf("%Lx ", ((char *)pBuf)[i]);
   printf("\n");
@@ -97,8 +154,10 @@ mirSync(sqlite3_file *id, int flags) {
 */
 static int 
 mirFileSize(sqlite3_file *id, sqlite3_int64 *pSize) {
-  printf("mirFileSize: ERR\n");
-  return SQLITE_ERROR;
+  ASSERT(db_metadata != NULL);
+  printf("mirFileSize: %Lu OK\n", db_metadata->size);
+  *pSize = db_metadata->size;
+  return SQLITE_OK;
 }
 
 static int
@@ -230,6 +289,7 @@ static int mirOpen(
     } else
       printf(" OK\n");
     bcopy(&mirFileIO, pFile, sizeof(mirFileIO));
+    db_metadata = readMetadata();
     return SQLITE_OK;
 }
 
@@ -238,8 +298,11 @@ static int mirDelete(
   const char *zPath,        /* Name of file to be deleted */
   int dirSync               /* If true, fsync() directory after deleting file */
 ) {
-    printf("mirDelete: ERR\n");
-    return SQLITE_ERROR;
+    ASSERT(db_metadata != NULL);
+    printf("mirDelete: %s\n", zPath);
+    db_metadata->size = 0;
+    writeMetadata(db_metadata);
+    return SQLITE_OK;
 }
 
 /*
@@ -259,7 +322,8 @@ static int mirAccess(
   int *pResOut            /* Write result boolean here */
 ) {
     printf("mirAccess: OK\n");
-    return 1;
+    *pResOut = 1;
+    return SQLITE_OK;
 }
 
 /*
@@ -373,7 +437,7 @@ void sqlite3_test(struct blkfront_dev *dev, struct blkfront_info *info) {
   char *errmsg;
   blk_dev = dev;
   blk_info = info;
-  ret = sqlite3_open(":memory:", &db);
+  ret = sqlite3_open("test.db", &db);
   if (ret) {
      printf("OPEN err: %s\n", sqlite3_errmsg(db));
   } else {

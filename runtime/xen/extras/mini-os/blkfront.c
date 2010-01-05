@@ -94,7 +94,7 @@ struct blkfront_dev *init_blkfront(char *_nodename, struct blkfront_info *info)
 
     char path[strlen(nodename) + 1 + 10 + 1];
 
-    printk("******************* BLKFRONT for %s **********\n\n\n", nodename);
+    printk("******************* BLKFRONT for %s **********\n", nodename);
 
     dev = malloc(sizeof(*dev));
     memset(dev, 0, sizeof(*dev));

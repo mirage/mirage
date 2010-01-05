@@ -102,10 +102,6 @@ struct blk_req {
     struct blk_req *next;
 };
 
-#ifdef BLKTEST_WRITE
-static struct blk_req *blk_to_read;
-#endif
-
 static struct blk_req *blk_alloc_req(uint64_t sector)
 {
     struct blk_req *req = xmalloc(struct blk_req);
@@ -139,127 +135,6 @@ static void blk_read_sector(uint64_t sector)
     blkfront_aio_read(&req->aiocb);
 }
 
-#ifdef BLKTEST_WRITE
-static void blk_write_read_completed(struct blkfront_aiocb *aiocb, int ret)
-{
-    struct blk_req *req = aiocb->data;
-    int rand_value;
-    int i;
-    int *buf;
-
-    if (ret) {
-        printk("got error code %d when reading back at offset %ld\n", ret, aiocb->aio_offset);
-        free(aiocb->aio_buf);
-        free(req);
-        return;
-    }
-    blk_size_read += blk_info.sector_size;
-    buf = (int*) aiocb->aio_buf;
-    rand_value = req->rand_value;
-    for (i = 0; i < blk_info.sector_size / sizeof(int); i++) {
-        if (buf[i] != rand_value) {
-            printk("bogus data at offset %ld\n", aiocb->aio_offset + i);
-            break;
-        }
-        rand_value *= RAND_MIX;
-    }
-    free(aiocb->aio_buf);
-    free(req);
-}
-
-static void blk_write_completed(struct blkfront_aiocb *aiocb, int ret)
-{
-    struct blk_req *req = aiocb->data;
-    if (ret) {
-        printk("got error code %d when writing at offset %ld\n", ret, aiocb->aio_offset);
-        free(aiocb->aio_buf);
-        free(req);
-        return;
-    }
-    blk_size_write += blk_info.sector_size;
-    /* Push write check */
-    req->next = blk_to_read;
-    blk_to_read = req;
-}
-
-static void blk_write_sector(uint64_t sector)
-{
-    struct blk_req *req;
-    int rand_value;
-    int i;
-    int *buf;
-
-    req = blk_alloc_req(sector);
-    req->aiocb.aio_cb = blk_write_completed;
-    req->rand_value = rand_value = rand();
-
-    buf = (int*) req->aiocb.aio_buf;
-    for (i = 0; i < blk_info.sector_size / sizeof(int); i++) {
-        buf[i] = rand_value;
-        rand_value *= RAND_MIX;
-    }
-
-    blkfront_aio_write(&req->aiocb);
-}
-#endif
-
-void sqlite3_test(struct blkfront_dev *, struct blkfront_info *);
-
-void blkfront_thread(void *p)
-{
-    time_t lasttime = 0;
-
-    blk_dev = init_blkfront(NULL, &blk_info);
-    if (!blk_dev)
-        return;
-
-    if (blk_info.info & VDISK_CDROM)
-        printk("Block device is a CDROM\n");
-    if (blk_info.info & VDISK_REMOVABLE)
-        printk("Block device is removable\n");
-    if (blk_info.info & VDISK_READONLY)
-        printk("Block device is read-only\n");
-
-
-    sqlite3_test(blk_dev, &blk_info);
-#ifdef BLKTEST_WRITE
-    if (blk_info.mode == O_RDWR) {
-        blk_write_sector(0);
-        blk_write_sector(blk_info.sectors-1);
-    } else
-#endif
-    {
-        blk_read_sector(0);
-        blk_read_sector(blk_info.sectors-1);
-    }
-
-    while (1) {
-        uint64_t sector = rand() % blk_info.sectors;
-        struct timeval tv;
-#ifdef BLKTEST_WRITE
-        if (blk_info.mode == O_RDWR)
-            blk_write_sector(sector);
-        else
-#endif
-            blk_read_sector(sector);
-        blkfront_aio_poll(blk_dev);
-        gettimeofday(&tv, NULL);
-        if (tv.tv_sec > lasttime + 10) {
-            printk("%llu read, %llu write\n", blk_size_read, blk_size_write);
-            lasttime = tv.tv_sec;
-        }
-
-#ifdef BLKTEST_WRITE
-        while (blk_to_read) {
-            struct blk_req *req = blk_to_read;
-            blk_to_read = blk_to_read->next;
-            req->aiocb.aio_cb = blk_write_read_completed;
-            blkfront_aio_read(&req->aiocb);
-        }
-#endif
-    }
-}
-
 /*
  * INITIAL C ENTRY POINT.
  */
@@ -274,7 +149,7 @@ void start_kernel(start_info_t *si)
     trap_init();
 
     /* print out some useful information  */
-    printk("Xen Minimal OS!\n");
+    printk("Mirage OS!\n");
     printk("  start_info: %p(VA)\n", si);
     printk("    nr_pages: 0x%lx\n", si->nr_pages);
     printk("  shared_inf: 0x%08lx(MA)\n", si->shared_info);
@@ -329,9 +204,6 @@ void stop_kernel(void)
 
     if (blk_dev)
         shutdown_blkfront(blk_dev);
-
-
-    /* TODO: fs import */
 
     local_irq_disable();
 

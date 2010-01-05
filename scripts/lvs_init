@@ -1,9 +1,10 @@
-#!/bin/bash -x
+#!/bin/bash -xe
 # Initialize LVM volumes for database and journal for guest
 # Deletes any existing present ones and zeroes new ones
 
 SUDO=${SUDO:-sudo}
 VG=${VG:-brolga-0}
+SIZE=32 # in megabytes
 DBNAME=guest-db
 JONAME=guest-db-journal
 DB=$(readlink -f "/dev/${VG}/${DBNAME}")
@@ -17,6 +18,7 @@ if [ -b ${JO} ]; then
   ${SUDO} lvremove ${JO}
 fi
 
-${SUDO} lvcreate -n "${DBNAME}" -Zy -L512M ${VG}
-${SUDO} lvcreate -n "${JONAME}" -Zy -L512M ${VG}
-
+${SUDO} lvcreate -n "${DBNAME}" -Zy -L${SIZE}M ${VG}
+${SUDO} lvcreate -n "${JONAME}" -Zy -L${SIZE}M ${VG}
+${SUDO} dd if=/dev/zero of=${DB} count=${SIZE} bs=1M
+${SUDO} dd if=/dev/zero of=${JO} count=${SIZE} bs=1M

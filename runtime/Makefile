@@ -22,5 +22,6 @@ libmiragerun_%.a:
 
 clean:
 	rm -rf base/obj-*
+	rm -rf base/mir/obj-*
 	rm -f libmiragerun*
 	cd xen/stubdom && $(MAKE) clean crossclean

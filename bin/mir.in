@@ -77,7 +77,7 @@ env CAMLLIB="${STDLIB}" ${OCAMLOPT} ${OCAMLOPT_FLAGS} `cat .depend` -output-obj 
 case "${TARG}" in
 u)
   echo Linking for @OS@
-  ${CC} -o app @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
+  ${CC} -o app -lsqlite3 @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
   ;;
 x)
   echo Linking for Xen

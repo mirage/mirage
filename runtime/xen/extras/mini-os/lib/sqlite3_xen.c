@@ -1,11 +1,36 @@
+/*
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #include <stdio.h>
 #include <mini-os/types.h>
 #include <mini-os/xmalloc.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <ctype.h>
 #include <mini-os/blkfront.h>
 
 #define VFS_NAME "mirage"
+
+#undef DEBUG_MIRIO
+
+#ifdef DEBUG_MIRIO
+#define SQLDEBUG printf
+#else
+#define SQLDEBUG if (0) printf
+#endif
 
 /* First sector of VBD is used for database metadata */
 #define DB_NAME_MAXLENGTH 32
@@ -15,62 +40,75 @@ struct db_metadata {
   char name[DB_NAME_MAXLENGTH];
 };
 
-struct blkfront_dev *blk_dev;
-struct blkfront_info *blk_info;
-struct db_metadata *db_metadata;
+/* Mirage file structure, which records the IO callbacks and 
+   blkfront device pointers for the db */
+struct sqlite3_mir_file {
+    const struct sqlite3_io_methods *pMethods;
+    struct blkfront_dev *dev;
+    struct blkfront_info info;
+    struct db_metadata *meta;
+};
 
 static int 
-mirClose(sqlite3_file *file)
+mirClose(struct sqlite3_file *id)
 {
-  printf("mirClose: ERR\n");
-  return SQLITE_ERROR;
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  SQLDEBUG("mirClose: START\n");
+  shutdown_blkfront(mf->dev);
+  if (mf->meta)
+    free(mf->meta);
+  SQLDEBUG("mirClose: OK\n");
+  return SQLITE_OK;
 }
 
 /* Write database metadata to the first sector of the block device.
    Buffer must have come from readMetadata */
 static void
-writeMetadata(struct db_metadata *m)
+writeMetadata(struct sqlite3_mir_file *mf)
 {
   struct blkfront_aiocb req;
   bzero(&req, sizeof(struct blkfront_aiocb));
-  ASSERT(blk_info->sector_size >= sizeof(struct db_metadata));
-  printf("writeMetadata: ");
-  req.aio_dev = blk_dev;
-  req.aio_buf = (void *)m;
-  req.aio_nbytes = blk_info->sector_size;
+  ASSERT(mf->info.sector_size >= sizeof(struct db_metadata));
+  SQLDEBUG("writeMetadata: ");
+  req.aio_dev = mf->dev;
+  req.aio_buf = (void *)mf->meta;
+  req.aio_nbytes = mf->info.sector_size;
   req.aio_offset = 0;
   req.data = &req;
   blkfront_write(&req);
-  printf(" OK\n");
+  SQLDEBUG(" OK\n");
 }
 
 /* Read database metadata from first sector of blk device.
    If it is uninitialized, then set the version field and
-   sync it to disk.
-   Returns a whole sector so it can be easily written again */
-static struct db_metadata *
-readMetadata(void)
+   sync it to disk. */
+static void
+readMetadata(struct sqlite3_mir_file *mf)
 {
   struct blkfront_aiocb req;
-  struct db_metadata *m;
+  int ssize = mf->info.sector_size;
   bzero(&req, sizeof(struct blkfront_aiocb));
-  ASSERT(blk_info->sector_size >= sizeof(struct db_metadata));
-  printf("readMetadata: ");
-  req.aio_dev = blk_dev;
-  req.aio_buf = _xmalloc(blk_info->sector_size, blk_info->sector_size);
-  req.aio_nbytes = blk_info->sector_size;
+  ASSERT(ssize >= sizeof(struct db_metadata));
+  SQLDEBUG("readMetadata: ");
+  req.aio_dev = mf->dev;
+  req.aio_buf = _xmalloc(ssize, ssize);
+  req.aio_nbytes = ssize;
   req.aio_offset = 0;
   req.data = &req;
   blkfront_read(&req);
-  m = (struct db_metadata *)req.aio_buf;
-  if (m->version == 0) {
-    printf(" NEW\n");
-    m->version = 1;
-    strcpy(m->name, "unknown");
-    writeMetadata(m);
+  mf->meta = (struct db_metadata *)req.aio_buf;
+  if (mf->meta->version == 0) {
+    SQLDEBUG(" NEW\n");
+    mf->meta->version = 1;
+    strcpy(mf->meta->name, "unknown");
+    writeMetadata(mf);
   } else
-    printf(" '%s' v=%lu sz=%Lu OK\n", m->name, m->version, m->size);
-  return m;
+    SQLDEBUG(" '%s' v=%lu sz=%Lu OK\n", mf->meta->name, mf->meta->version, mf->meta->size);
+#ifdef DEBUG_MIRIO
+  printf("readMetadata: ");
+  for (int i = 0; i < ssize; i++) printf("%d ", ((char *)(req.aio_buf))[i]);
+  printf("\n");
+#endif
 }
 
 /*
@@ -81,36 +119,38 @@ readMetadata(void)
 static int 
 mirRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset) {
   struct blkfront_aiocb *req;
-  uint64_t sector, start_offset, nsectors, nbytes;
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  int ssize = mf->info.sector_size;
+  uint64_t sector_offset;
+  uint64_t start_sector, nsectors, nbytes;
 
-  /* Our reads to blkfront must be sector-aligned */
-  start_offset = offset % blk_info->sector_size;
-  /* Add 1 to sector to skip metadata block */
-  sector = 1 + (offset / blk_info->sector_size);
-  nsectors = 1 + ((amt + start_offset) / blk_info->sector_size);
-  nbytes = nsectors * blk_info->sector_size;
+  /* Our reads to blkfront must be sector-aligned, so fix up if needed */
+  sector_offset = offset % ssize;
+  /* Add 1 to start sector to skip metadata block */
+  start_sector = 1 + (offset / ssize);
+  nsectors = (amt + sector_offset + ssize) / ssize;
+  nbytes = nsectors * ssize;
  
-  printf("mirRead: amt=%d off=%Lu start_offset=%Lu sector=%Lu nsectors=%Lu nbytes=%Lu\n", amt, offset, start_offset, sector, nsectors, nbytes); 
+  SQLDEBUG("mirRead: off=%Lu amt=%d start_sector=%Lu nsectors=%Lu nbytes=%Lu\n", offset, amt, start_sector, nsectors, nbytes); 
   req = xmalloc(struct blkfront_aiocb);
-  req->aio_dev = blk_dev;
-  req->aio_buf = _xmalloc(nbytes, blk_info->sector_size);
+  bzero(req, sizeof(struct blkfront_aiocb));
+  req->aio_dev = mf->dev;
+  req->aio_buf = _xmalloc(nbytes, ssize);
+  bzero(req->aio_buf, nbytes);
   req->aio_nbytes = nbytes;
-  req->aio_offset = sector * blk_info->sector_size;
+  req->aio_offset = start_sector * ssize;
   req->data = req;
 
   /* XXX modify blkfront.c:blkfront_io to return error code if any */
   blkfront_read(req);
-  bcopy(req->aio_buf + start_offset, pBuf, amt);
-
+  bcopy(req->aio_buf + sector_offset, pBuf, amt);
   free(req->aio_buf);
   free(req);
-
-#if 1
+#ifdef DEBUG_MIRIO
   printf("mirRead: ");
-  for (int i = 0; i < amt; i++) printf("%Lx ", ((char *)pBuf)[i]);
+  for (int i = 0; i < amt; i++) printf("%d ", ((char *)pBuf)[i]);
   printf("\n");
 #endif
-
   return SQLITE_OK;
 }
 
@@ -119,9 +159,55 @@ mirRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset) {
 ** or some other error code on failure.
 */
 static int
-mirWrite(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset) {
-  printf("mirWrite: ERR\n");
-  return SQLITE_ERROR;
+mirWrite(sqlite3_file *id, const void *pBuf, int orig_amt, sqlite3_int64 offset) {
+  struct blkfront_aiocb *req;
+  uint64_t sector, nsectors, nbytes;
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  int ssize = mf->info.sector_size;
+  int amt = orig_amt;
+
+  SQLDEBUG("mirWrite: amt=%d off=%Lu\n", orig_amt, offset);
+  /* for small writes, round up to a sector and assume we are extending the file */
+  if (amt < ssize) {
+    ASSERT(offset + amt > mf->meta->size);
+    amt = ssize;
+  }
+
+  /* Writes must be sector-aligned */
+  ASSERT(offset % ssize == 0);
+
+  /* Add 1 to sector to skip metadata block */
+  sector = 1 + (offset / ssize);
+
+  nsectors = amt / ssize;
+  nbytes = nsectors * ssize;
+  SQLDEBUG("mirWrite: sector=%Lu nsectors=%Lu nbytes=%Lu\n", sector, nsectors, nbytes); 
+
+  req = xmalloc(struct blkfront_aiocb);
+  bzero(req, sizeof(struct blkfront_aiocb));
+
+  req->aio_dev = mf->dev;
+  req->aio_buf = _xmalloc(nbytes, ssize);
+  req->aio_nbytes = nbytes;
+  req->aio_offset = sector * ssize;
+  req->data = req;
+  bzero(req->aio_buf, nbytes);
+  bcopy(pBuf, req->aio_buf, orig_amt);
+  /* XXX modify blkfront.c:blkfront_io to return error code if any */
+  blkfront_write(req);
+#ifdef DEBUG_MIRIO
+  printf("mirWrite: ");
+  for (int i = 0; i < amt; i++) printf("%Lx ", ((char *)pBuf)[i]);
+  printf("\n");
+#endif
+  /* extend file size in metadata if necessary */
+  if (req->aio_offset + req->aio_nbytes > mf->meta->size) {
+    mf->meta->size = req->aio_offset + req ->aio_nbytes;
+    writeMetadata(mf);
+  }
+  free(req->aio_buf);
+  free(req);
+  return SQLITE_OK;
 }
 
 /*
@@ -129,8 +215,11 @@ mirWrite(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset) {
 */
 static int 
 mirTruncate(sqlite3_file *id, sqlite3_int64 nByte) {
-  printf("mirTruncate: ERR\n");
-  return SQLITE_ERROR;
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  mf->meta->size = nByte;
+  writeMetadata(mf);
+  SQLDEBUG("mirTruncate: %Lu OK\n", nByte);
+  return SQLITE_OK;
 }
 
 /*
@@ -143,10 +232,10 @@ mirTruncate(sqlite3_file *id, sqlite3_int64 nByte) {
 */
 static int 
 mirSync(sqlite3_file *id, int flags) {
-  int isDataOnly = (flags & SQLITE_SYNC_DATAONLY);
-  int isFullSync = (flags & 0x0F) == SQLITE_SYNC_FULL;
-  printf("mirSync: data=%d fullsync=%d ERR\n", isDataOnly, isFullSync);
-  return SQLITE_ERROR;
+  //int isDataOnly = (flags & SQLITE_SYNC_DATAONLY);
+  //int isFullSync = (flags & 0x0F) == SQLITE_SYNC_FULL;
+  //printf("mirSync: data=%d fullsync=%d OK LIED\n", isDataOnly, isFullSync);
+  return SQLITE_OK;
 }
 
 /*
@@ -154,28 +243,29 @@ mirSync(sqlite3_file *id, int flags) {
 */
 static int 
 mirFileSize(sqlite3_file *id, sqlite3_int64 *pSize) {
-  ASSERT(db_metadata != NULL);
-  printf("mirFileSize: %Lu OK\n", db_metadata->size);
-  *pSize = db_metadata->size;
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  ASSERT(mf->meta != NULL);
+  SQLDEBUG("mirFileSize: %Lu OK\n", mf->meta->size);
+  *pSize = mf->meta->size;
   return SQLITE_OK;
 }
 
 static int
 mirCheckLock(sqlite3_file *NotUsed, int *pResOut) {
-  printf("mirCheckLock: OK\n");
+  //printf("mirCheckLock: OK\n");
   *pResOut = 0;
   return SQLITE_OK;
 }
 
 static int
 mirLock(sqlite3_file *NotUsed, int NotUsed2) {
-  printf("mirLock: OK\n");
+  //printf("mirLock: OK\n");
   return SQLITE_OK;
 }
 
 static int 
 mirUnlock(sqlite3_file *NotUsed, int NotUsed2) {
-  printf("mirUnlock: OK\n");
+  //printf("mirUnlock: OK\n");
   return SQLITE_OK;
 }
 
@@ -184,7 +274,7 @@ mirUnlock(sqlite3_file *NotUsed, int NotUsed2) {
 */
 static int
 mirFileControl(sqlite3_file *id, int op, void *pArg) {
-  printf("mirFileControl: ERR\n");
+  SQLDEBUG("mirFileControl: ERR\n");
   return SQLITE_ERROR;
 }
 
@@ -199,21 +289,23 @@ mirFileControl(sqlite3_file *id, int op, void *pArg) {
 ** same for both.
 */
 static int 
-mirSectorSize(sqlite3_file *NotUsed) {
-  printf("mirSectorSize: %d OK\n", blk_info->sector_size);
-  return blk_info->sector_size;
+mirSectorSize(sqlite3_file *id) {
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  int s = mf->info.sector_size;
+  SQLDEBUG("mirSectorSize: %d OK\n", s);
+  return s;
 }
 
 /*
-** Return the device characteristics for the file. This is always 0 for unix.
+** Return the device characteristics for the file.
 */
 static int 
 mirDeviceCharacteristics(sqlite3_file *NotUsed) {
-  printf("mirDeviceCharacteristics: NOOP\n");
-  return 0;
+  SQLDEBUG("mirDeviceCharacteristics: SQLITE_IOCAP_SAFE_APPEND\n");
+  return SQLITE_IOCAP_SAFE_APPEND;
 }
 
-static sqlite3_io_methods mirIoMethods = {
+static const sqlite3_io_methods mirIoMethods = {
    1,                          /* iVersion */
    mirClose,                   /* xClose */
    mirRead,                    /* xRead */
@@ -228,13 +320,6 @@ static sqlite3_io_methods mirIoMethods = {
    mirSectorSize,              /* xSectorSize */
    mirDeviceCharacteristics    /* xDeviceCapabilities */
 };
-
-struct mirFile {
-    sqlite3_io_methods const *pMethods;
-    int reserved;
-};
-
-static sqlite3_file mirFileIO;
 
 /** Open the file zPath.
 ** 
@@ -257,13 +342,19 @@ static int mirOpen(
   int *pOutFlags               /* Output flags returned to SQLite core */
 ) {
     int eType = flags & 0xFFFFFF00;  /* Type of file to open */
+    struct sqlite3_mir_file *pMirFile = (struct sqlite3_mir_file *)pFile;
+    char *nodename = NULL;
+
     printf("mirOpen: path=%s type ", zPath);
     switch (eType) {
     case SQLITE_OPEN_MAIN_DB:
+      /* XXX hardcoded xenstore nodenames for now */
       printf("main_db");
+      nodename="device/vbd/51713";
       break;
     case SQLITE_OPEN_MAIN_JOURNAL:
       printf("main_journal");
+      nodename="device/vbd/51714";
       break;
     case SQLITE_OPEN_TEMP_DB:
       printf("temp_db");
@@ -283,14 +374,18 @@ static int mirOpen(
     default:
       printf("???");
     }
-    if (eType != SQLITE_OPEN_MAIN_DB) {
+
+    if (eType != SQLITE_OPEN_MAIN_DB && eType != SQLITE_OPEN_MAIN_JOURNAL) {
       printf(" ERR\n");
       return SQLITE_ERROR;
-    } else
+    } else {
       printf(" OK\n");
-    bcopy(&mirFileIO, pFile, sizeof(mirFileIO));
-    db_metadata = readMetadata();
-    return SQLITE_OK;
+      ASSERT(nodename != NULL);
+      pMirFile->pMethods = &mirIoMethods;
+      pMirFile->dev = init_blkfront(nodename, &pMirFile->info);
+      readMetadata(pMirFile);
+      return SQLITE_OK;
+    }
 }
 
 static int mirDelete(
@@ -298,11 +393,10 @@ static int mirDelete(
   const char *zPath,        /* Name of file to be deleted */
   int dirSync               /* If true, fsync() directory after deleting file */
 ) {
-    ASSERT(db_metadata != NULL);
-    printf("mirDelete: %s\n", zPath);
-    db_metadata->size = 0;
-    writeMetadata(db_metadata);
-    return SQLITE_OK;
+    SQLDEBUG("mirDelete: %s ERROR\n", zPath);
+    /* XXX Dont have a pointer back to the sqlite_mir_file * here, so would need to 
+       stored opened files somewhere. */
+    return SQLITE_ERROR;
 }
 
 /*
@@ -321,7 +415,7 @@ static int mirAccess(
   int flags,              /* What do we want to learn about the zPath file? */
   int *pResOut            /* Write result boolean here */
 ) {
-    printf("mirAccess: OK\n");
+    SQLDEBUG("mirAccess: OK\n");
     *pResOut = 1;
     return SQLITE_OK;
 }
@@ -341,7 +435,7 @@ static int mirFullPathname(
   int nOut,                     /* Size of output buffer in bytes */
   char *zOut                    /* Output buffer */
 ) {
-    printf("mirFullPathname: %s OK\n", zPath);
+    SQLDEBUG("mirFullPathname: %s OK\n", zPath);
     strcpy(zOut, zPath);
     return SQLITE_OK;
 }
@@ -354,10 +448,10 @@ static int mirRandomness(
   int nBuf, 
   char *zBuf
 ) {
-    printf("mirRandomness: ");
+    SQLDEBUG("mirRandomness: ");
     for (int i=0; i < nBuf; i++)
       zBuf[i] = rand();
-    printf (" OK\n");
+    SQLDEBUG (" OK\n");
     return SQLITE_OK;
 }
 
@@ -388,8 +482,8 @@ static int mirGetLastError(
 
 struct sqlite3_vfs mirVfs = {
     1,                    /* iVersion */
-    sizeof(sqlite3_file), /* szOsFile */
-    1024,                 /* mxPathname */
+    sizeof(struct sqlite3_mir_file), /* szOsFile */
+    DB_NAME_MAXLENGTH,    /* mxPathname */
     0,                    /* pNext */ 
     VFS_NAME,             /* zName */
     NULL,                 /* pAppData */
@@ -407,42 +501,46 @@ struct sqlite3_vfs mirVfs = {
     mirGetLastError       /* xGetLastError */
 };
 
-int sqlite3_os_init(void) {
+int
+sqlite3_os_init(void) {
   int rc;
-  printf("sqlite3_os_init: ");
-  mirFileIO.pMethods = &mirIoMethods;
   rc = sqlite3_vfs_register(&mirVfs, 1);
   if (rc != SQLITE_OK)
-    printf("error registering VFS\n");
+    printf("sqlite3_os_init: ERROR\n");
   else
-    printf("ok\n");
+    printf("sqlite3_os_init: OK\n");
+  return rc;
+}
+
+int
+sqlite3_os_end(void) {
+  printf("sqlite3_os_end: OK\n");
   return SQLITE_OK;
 }
 
-int sqlite3_os_end(void) {
-  printf("sqlite3_os_end\n");
-  return SQLITE_OK;
-}
-
-
-static int sqlite3_test_cb(void *arg, int argc, char **argv, char **col) {
+static int 
+sqlite3_test_cb(void *arg, int argc, char **argv, char **col) {
   for (int i=0; i<argc; i++)
     printf("SELECT: %s = %s\n", col[i], argv[i] ? argv[i] : "NULL");
   return 0;
 }
 
-void sqlite3_test(struct blkfront_dev *dev, struct blkfront_info *info) {
+void
+sqlite3_test(void) {
   sqlite3 *db;
   int ret;
   char *errmsg;
-  blk_dev = dev;
-  blk_info = info;
   ret = sqlite3_open("test.db", &db);
   if (ret) {
      printf("OPEN err: %s\n", sqlite3_errmsg(db));
   } else {
      printf("OPEN ok\n");
-     ret = sqlite3_exec(db, "create table foo (bar1 TEXT, bar2 INTEGER)", NULL, NULL, &errmsg);
+     ret = sqlite3_exec(db, "PRAGMA journal_mode=memory", NULL, NULL, &errmsg);
+     if (ret) 
+       printf("PRAGMA err: %s\n", sqlite3_errmsg(db));
+     else
+       printf("PRAGMA ok\n");
+     ret = sqlite3_exec(db, "create table if not exists foo (bar1 TEXT, bar2 INTEGER)", NULL, NULL, &errmsg);
      if (ret) {
        printf("CREATE err: %s\n", sqlite3_errmsg(db));
        exit(1);

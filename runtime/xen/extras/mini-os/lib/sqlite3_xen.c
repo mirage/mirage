@@ -345,41 +345,41 @@ static int mirOpen(
     struct sqlite3_mir_file *pMirFile = (struct sqlite3_mir_file *)pFile;
     char *nodename = NULL;
 
-    printf("mirOpen: path=%s type ", zPath);
+    SQLDEBUG("mirOpen: path=%s type ", zPath);
     switch (eType) {
     case SQLITE_OPEN_MAIN_DB:
       /* XXX hardcoded xenstore nodenames for now */
-      printf("main_db");
+      SQLDEBUG("main_db");
       nodename="device/vbd/51713";
       break;
     case SQLITE_OPEN_MAIN_JOURNAL:
-      printf("main_journal");
+      SQLDEBUG("main_journal");
       nodename="device/vbd/51714";
       break;
     case SQLITE_OPEN_TEMP_DB:
-      printf("temp_db");
+      SQLDEBUG("temp_db");
       break;
     case SQLITE_OPEN_TEMP_JOURNAL:
-      printf("temp_journal");
+      SQLDEBUG("temp_journal");
       break;
     case SQLITE_OPEN_TRANSIENT_DB:
-      printf("transient_db");
+      SQLDEBUG("transient_db");
       break;
     case SQLITE_OPEN_SUBJOURNAL:
-      printf("subjournal");
+      SQLDEBUG("subjournal");
       break;
     case SQLITE_OPEN_MASTER_JOURNAL:
-      printf("master_journal");
+      SQLDEBUG("master_journal");
       break;
     default:
-      printf("???");
+      SQLDEBUG("???");
     }
 
     if (eType != SQLITE_OPEN_MAIN_DB && eType != SQLITE_OPEN_MAIN_JOURNAL) {
-      printf(" ERR\n");
+      SQLDEBUG(" ERR\n");
       return SQLITE_ERROR;
     } else {
-      printf(" OK\n");
+      SQLDEBUG(" OK\n");
       ASSERT(nodename != NULL);
       pMirFile->pMethods = &mirIoMethods;
       pMirFile->dev = init_blkfront(nodename, &pMirFile->info);

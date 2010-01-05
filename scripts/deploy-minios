@@ -42,7 +42,7 @@ fi
 
 ${SUDO} ${XM_BIN} unpause ${DOMID}
 
-tail --bytes +0 -f screenlog.*
+tail --bytes +0 -f screenlog.* &
 
 echo -n Waiting for domain to terminate
 dom_done=0

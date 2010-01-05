@@ -707,7 +707,7 @@ int xenbus_read_integer(const char *path)
 
     res = xenbus_read(XBT_NIL, path, &buf);
     if (res) {
-	printk("Failed to read %s.\n", path);
+	//printk("Failed to read %s.\n", path);
 	free(res);
 	return -1;
     }

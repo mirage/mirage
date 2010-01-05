@@ -30,6 +30,13 @@ DECLARE_WAIT_QUEUE_HEAD(blkfront_queue);
 #define BLK_RING_SIZE __RING_SIZE((struct blkif_sring *)0, PAGE_SIZE)
 #define GRANT_INVALID_REF 0
 
+#undef DEBUG_BLKFRONT
+
+#ifdef DEBUG_BLKFRONT
+#define BFDEBUG printk
+#else
+#define BFDEBUG if (0) printk
+#endif
 
 struct blk_buffer {
     void* page;
@@ -94,7 +101,7 @@ struct blkfront_dev *init_blkfront(char *_nodename, struct blkfront_info *info)
 
     char path[strlen(nodename) + 1 + 10 + 1];
 
-    printk("******************* BLKFRONT for %s **********\n", nodename);
+    BFDEBUG("blkfront_init: %s\n", nodename);
 
     dev = malloc(sizeof(*dev));
     memset(dev, 0, sizeof(*dev));
@@ -119,7 +126,7 @@ struct blkfront_dev *init_blkfront(char *_nodename, struct blkfront_info *info)
 again:
     err = xenbus_transaction_start(&xbt);
     if (err) {
-        printk("starting transaction\n");
+        BFDEBUG("starting transaction\n");
     }
 
     err = xenbus_printf(xbt, nodename, "ring-ref","%u",
@@ -152,7 +159,7 @@ again:
     err = xenbus_transaction_end(xbt, 0, &retry);
     if (retry) {
             goto again;
-        printk("completing transaction\n");
+        BFDEBUG("completing transaction\n");
     }
 
     goto done;
@@ -166,11 +173,11 @@ done:
     snprintf(path, sizeof(path), "%s/backend", nodename);
     msg = xenbus_read(XBT_NIL, path, &dev->backend);
     if (msg) {
-        printk("Error %s when reading the backend path %s\n", msg, path);
+        BFDEBUG("Error %s when reading the backend path %s\n", msg, path);
         goto error;
     }
 
-    printk("backend at %s\n", dev->backend);
+    BFDEBUG("backend at %s\n", dev->backend);
 
     dev->handle = strtoul(strrchr(nodename, '/')+1, NULL, 0);
 
@@ -180,7 +187,7 @@ done:
         snprintf(path, sizeof(path), "%s/mode", dev->backend);
         msg = xenbus_read(XBT_NIL, path, &c);
         if (msg) {
-            printk("Error %s when reading the mode\n", msg);
+            BFDEBUG("Error %s when reading the mode\n", msg);
             goto error;
         }
         if (*c == 'w')
@@ -198,7 +205,7 @@ done:
         while (msg == NULL && state < XenbusStateConnected)
             msg = xenbus_wait_for_state_change(path, &state, &dev->events);
         if (msg != NULL || state != XenbusStateConnected) {
-            printk("backend not available, state=%d\n", state);
+            BFDEBUG("backend not available, state=%d\n", state);
             xenbus_unwatch_path(XBT_NIL, path);
             goto error;
         }
@@ -223,8 +230,7 @@ done:
     }
     unmask_evtchn(dev->evtchn);
 
-    printk("%u sectors of %u bytes\n", dev->info.sectors, dev->info.sector_size);
-    printk("**************************\n");
+    BFDEBUG("%u sectors of %u bytes\n", dev->info.sectors, dev->info.sector_size);
 
     return dev;
 
@@ -243,13 +249,13 @@ void shutdown_blkfront(struct blkfront_dev *dev)
 
     blkfront_sync(dev);
 
-    printk("close blk: backend=%s node=%s\n", dev->backend, dev->nodename);
+    BFDEBUG("close blk: backend=%s node=%s\n", dev->backend, dev->nodename);
 
     snprintf(path, sizeof(path), "%s/state", dev->backend);
     snprintf(nodename, sizeof(nodename), "%s/state", dev->nodename);
 
     if ((err = xenbus_switch_state(XBT_NIL, nodename, XenbusStateClosing)) != NULL) {
-        printk("shutdown_blkfront: error changing state to %d: %s\n",
+        BFDEBUG("shutdown_blkfront: error changing state to %d: %s\n",
                 XenbusStateClosing, err);
         goto close;
     }
@@ -258,7 +264,7 @@ void shutdown_blkfront(struct blkfront_dev *dev)
         err = xenbus_wait_for_state_change(path, &state, &dev->events);
 
     if ((err = xenbus_switch_state(XBT_NIL, nodename, XenbusStateClosed)) != NULL) {
-        printk("shutdown_blkfront: error changing state to %d: %s\n",
+        BFDEBUG("shutdown_blkfront: error changing state to %d: %s\n",
                 XenbusStateClosed, err);
         goto close;
     }
@@ -267,7 +273,7 @@ void shutdown_blkfront(struct blkfront_dev *dev)
         xenbus_wait_for_state_change(path, &state, &dev->events);
 
     if ((err = xenbus_switch_state(XBT_NIL, nodename, XenbusStateInitialising)) != NULL) {
-        printk("shutdown_blkfront: error changing state to %d: %s\n",
+        BFDEBUG("shutdown_blkfront: error changing state to %d: %s\n",
                 XenbusStateInitialising, err);
         goto close;
     }
@@ -485,7 +491,7 @@ moretodo:
         status = rsp->status;
 
         if (status != BLKIF_RSP_OKAY)
-            printk("block error %d for op %d\n", status, rsp->operation);
+            BFDEBUG("block error %d for op %d\n", status, rsp->operation);
 
         switch (rsp->operation) {
         case BLKIF_OP_READ:
@@ -504,7 +510,7 @@ moretodo:
             break;
 
         default:
-            printk("unrecognized block operation %d response\n", rsp->operation);
+            BFDEBUG("unrecognized block operation %d response\n", rsp->operation);
         }
 
         dev->ring.rsp_cons = ++cons;
@@ -525,7 +531,7 @@ moretodo:
 int blkfront_open(struct blkfront_dev *dev)
 {
     dev->fd = alloc_fd(FTYPE_BLK);
-    printk("blk_open(%s) -> %d\n", dev->nodename, dev->fd);
+    BFDEBUG("blk_open(%s) -> %d\n", dev->nodename, dev->fd);
     files[dev->fd].blk.dev = dev;
     return dev->fd;
 }

@@ -11,11 +11,11 @@ DB=$(readlink -f "/dev/${VG}/${DBNAME}")
 JO=$(readlink -f "/dev/${VG}/${JONAME}")
 
 if [ -b ${DB} ]; then
-  ${SUDO} lvremove ${DB}
+  ${SUDO} lvremove -f ${DB}
 fi
 
 if [ -b ${JO} ]; then
-  ${SUDO} lvremove ${JO}
+  ${SUDO} lvremove -f ${JO}
 fi
 
 ${SUDO} lvcreate -n "${DBNAME}" -Zy -L${SIZE}M ${VG}

@@ -25,6 +25,7 @@
 (*  SOFTWARE.                                                             *)
 (**************************************************************************)
 
+open Pervasives
 open Printf
 
 exception InternalError of string

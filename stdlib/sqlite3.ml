@@ -161,8 +161,9 @@ external exec_not_null_no_headers :
 external _db_open : string -> db = "caml_sqlite3_open"
 let db_open file =
   let db = _db_open file in 
-  ignore(exec db "PRAGMA journal_mode=memory");
-  db
+  match exec db "PRAGMA journal_mode=off" with
+  |Rc.OK -> db
+  |_ -> failwith "pragma failed"
 
 external changes : db -> int = "caml_sqlite3_changes"
 

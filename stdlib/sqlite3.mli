@@ -156,7 +156,7 @@ end
 
 (** {2 General database operations} *)
 
-external db_open : string -> db = "caml_sqlite3_open"
+val db_open : string -> db
 (** [db_open filename] opens the database file [filename], and returns
     a database handle. *)
 

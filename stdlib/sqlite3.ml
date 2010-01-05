@@ -134,7 +134,6 @@ type headers = header array
 type row = string option array
 type row_not_null = string array
 
-external db_open : string -> db = "caml_sqlite3_open"
 external db_close : db -> bool = "caml_sqlite3_close"
 
 external errcode : db -> Rc.t = "caml_sqlite3_errcode"
@@ -156,6 +155,14 @@ external exec_not_null :
 external exec_not_null_no_headers :
   db -> cb : (string array -> unit) -> string -> Rc.t
   = "caml_sqlite3_exec_not_null_no_headers"
+
+(* XXX for Mirage, ensure journaling is in memory only until
+   unaligned writes work *)
+external _db_open : string -> db = "caml_sqlite3_open"
+let db_open file =
+  let db = _db_open file in 
+  ignore(exec db "PRAGMA journal_mode=memory");
+  db
 
 external changes : db -> int = "caml_sqlite3_changes"
 

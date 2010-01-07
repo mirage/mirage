@@ -27,6 +27,7 @@ struct blkfront_info
     int flush;
 };
 struct blkfront_dev *init_blkfront(char *nodename, struct blkfront_info *info);
+void blkfront_block_until(struct blkfront_dev *dev, int (*fn)(void *), void *data);
 int blkfront_open(struct blkfront_dev *dev);
 void blkfront_aio(struct blkfront_aiocb *aiocbp, int write);
 #define blkfront_aio_read(aiocbp) blkfront_aio(aiocbp, 0)

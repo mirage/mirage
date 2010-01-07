@@ -60,6 +60,24 @@ struct blkfront_dev {
     int fd;
 };
 
+void blkfront_block_until(struct blkfront_dev *dev, int (*fn)(void *), void *data)
+{
+    DEFINE_WAIT(w);
+    unsigned long flags;
+    local_irq_save(flags);
+    while (1) {
+        blkfront_aio_poll(dev);
+        if (fn(data))
+            break;
+        add_waiter(w, blkfront_queue);
+        local_irq_restore(flags);
+        schedule();
+        local_irq_save(flags);
+    }
+    remove_waiter(w);
+    local_irq_restore(flags);
+}
+
 void blkfront_handler(evtchn_port_t port, struct pt_regs *regs, void *data)
 {
     struct blkfront_dev *dev = data;

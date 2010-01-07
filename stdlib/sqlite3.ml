@@ -161,7 +161,7 @@ external exec_not_null_no_headers :
 external _db_open : string -> db = "caml_sqlite3_open"
 let db_open file =
   let db = _db_open file in 
-  match exec db "PRAGMA journal_mode=off" with
+  match exec db "PRAGMA journal_mode=truncate" with
   |Rc.OK -> db
   |_ -> failwith "pragma failed"
 

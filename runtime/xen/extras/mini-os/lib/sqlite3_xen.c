@@ -83,14 +83,22 @@ issueWriteBarrier(struct blkfront_dev *dev)
    blkfront_aio_push_operation(req, BLKIF_OP_WRITE_BARRIER);
 }
 
+/* Write a sector into the buffer cache. 
+ * Does NOT read if the page is not found; instead it fills it a new buffer that
+ * is full of junk. Beware when doing partial writes that aren't appends on 
+ * things that are already in the buffer cache...
+ */
 static void
-sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, const void *data)
+sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, const void *data)
 {
     struct sector *sec;
     BUG_ON(off % mf->info.sector_size);
+    BUG_ON(start + len > mf->info.sector_size);
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
+    SQLDEBUG("secWrite: %s off=%Lu start=%d len=%d\n", mf->meta->name, off, start, len);
     if (!sec) {
       int rc;
+      BUG_ON(start > 0);
       sec = malloc(sizeof(struct sector));
       sec->buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
       rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
@@ -102,8 +110,9 @@ sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, const void *data)
         break;
       case BUF_WRITING:
         sec->state = BUF_DIRTY_WRITING;
+        break;
     }
-    bcopy(data, sec->buf, mf->info.sector_size);
+    bcopy(data, sec->buf+start, len);
 }
 
 static void
@@ -179,7 +188,7 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
 static void
 writeMetadata(struct sqlite3_mir_file *mf)
 {
-  sectorWrite(mf, 0, mf->meta);
+  sectorWrite(mf, 0, 0, mf->info.sector_size, mf->meta);
   SQLDEBUG("writeMetadata %s size=%Lu OK\n", mf->meta->name, mf->meta->size);
 }
 
@@ -202,20 +211,32 @@ readMetadata(struct sqlite3_mir_file *mf)
     SQLDEBUG(" '%s' v=%lu sz=%Lu OK\n", mf->meta->name, mf->meta->version, mf->meta->size);
 }
 
+#define MIN(a,b) ((b < a) ? (b) : (a))
+
 static int
 mirBufferRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset)
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-  int sector_offset;
   int ssize = mf->info.sector_size;
+  int sector_offset = offset % ssize;
+  unsigned char *buf = pBuf;
+  SQLDEBUG("mirBufRead: %s off=%Lu amt=%Lu fsize=%Lu\n", mf->meta->name, offset, amt, mf->meta->size);
+ 
+  if (sector_offset) {
+    /* unaligned read */
+    int len = MIN(ssize-sector_offset, amt);
+    sectorRead(mf, ssize+offset-sector_offset, sector_offset, len, buf);
+    amt -= len;
+    buf += len;
+    offset += len;
+  }
 
-  sector_offset = offset % ssize;
-  SQLDEBUG("mirBufRead: %s off=%Lu amt=%Lu\n", mf->meta->name, offset, amt);
-  
-  for (int i=(-sector_offset); i < amt; i += ssize)
-    sectorRead(mf, ssize+offset+i, sector_offset, 
-       (amt-i > mf->info.sector_size) ? mf->info.sector_size : (amt-i), (unsigned char *)pBuf+sector_offset+i);
-
+  while (amt > 0) {
+    sectorRead(mf, ssize+offset, 0, MIN(amt, ssize), buf);
+    offset += ssize;
+    buf += ssize;
+    amt -= ssize;
+  }
   return SQLITE_OK;
 }
 
@@ -224,18 +245,45 @@ mirBufferWrite(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
   int ssize = mf->info.sector_size;
-  /* Writes must be sector size 512 for now */
-  ASSERT(ssize == 512);
-  /* Writes must be sector-aligned */
-  BUG_ON(amt < ssize);
-  BUG_ON(offset % ssize);
 
   SQLDEBUG("mirBufWrite: %s off=%Lu amt=%Lu\n", mf->meta->name, offset, amt);
   for (int i=0; i< amt; i += ssize)
-    sectorWrite(mf, ssize+offset+i, ((char *)pBuf + i));
+    sectorWrite(mf, ssize+offset+i, 0, ssize, ((char *)pBuf + i));
 
   if (offset + amt > mf->meta->size) 
      mf->meta->size = offset+amt;
+  writeMetadata(mf);
+  return SQLITE_OK;
+}
+
+/* Append to a file, for use by the journal */
+static int
+mirBufferAppend(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset)
+{
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  int ssize = mf->info.sector_size;
+  int sector_offset = offset % ssize;
+  const unsigned char *buf = pBuf;
+  SQLDEBUG("mirBufAppend: %s off=%Lu amt=%Lu fsize=%Lu\n", mf->meta->name, offset, amt, mf->meta->size);
+  ASSERT(offset + amt > mf->meta->size);
+ 
+  if (sector_offset) {
+    /* unaligned write */
+    int len = MIN(ssize-sector_offset, amt);
+    sectorWrite(mf, ssize+offset-sector_offset, sector_offset, len, buf);
+    amt -= len;
+    buf += len;
+    offset += len;
+  }
+
+  while (amt > 0) {
+    sectorWrite(mf, ssize+offset, 0, MIN(amt, ssize), buf);
+    offset += ssize;
+    buf += ssize;
+    amt -= ssize;
+  }
+  mf->meta->size = offset+amt;
+  writeMetadata(mf);
   return SQLITE_OK;
 }
 
@@ -362,7 +410,7 @@ static const sqlite3_io_methods mirIoJoMethods = {
    1,                          /* iVersion */
    mirClose,                   /* xClose */
    mirBufferRead,              /* xRead */
-   mirBufferWrite,             /* xWrite */
+   mirBufferAppend,            /* xWrite */
    mirTruncate,                /* xTruncate */
    mirSync,                    /* xSync */
    mirFileSize,                /* xFileSize */

@@ -120,7 +120,7 @@ sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *
       req->aio_dev = mf->dev;
       req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
       req->aio_nbytes = mf->info.sector_size;
-      req->aio_offset = off + mf->info.sector_size;
+      req->aio_offset = off;
       blkfront_read(req);
       sec->state = BUF_CLEAN;
       sec->buf = req->aio_buf;
@@ -166,7 +166,7 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
        req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
        bcopy(sec->buf, req->aio_buf, mf->info.sector_size);
        req->aio_nbytes = mf->info.sector_size;
-       req->aio_offset = *num + mf->info.sector_size;
+       req->aio_offset = *num;
        req->data = sec;
        req->aio_cb = sector_aio_cb;
        sec->state = BUF_WRITING;
@@ -341,7 +341,7 @@ mirBufferRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset)
   SQLDEBUG("mirBufRead: %s off=%Lu amt=%Lu\n", mf->meta->name, offset, amt);
   
   for (int i=(-sector_offset); i < amt; i += ssize)
-    sectorRead(mf, offset+i, sector_offset, 
+    sectorRead(mf, ssize+offset+i, sector_offset, 
        (amt-i > mf->info.sector_size) ? mf->info.sector_size : (amt-i), (unsigned char *)pBuf+sector_offset+i);
 
   return SQLITE_OK;
@@ -360,12 +360,10 @@ mirBufferWrite(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset
 
   SQLDEBUG("mirBufWrite: %s off=%Lu amt=%Lu\n", mf->meta->name, offset, amt);
   for (int i=0; i< amt; i += ssize)
-    sectorWrite(mf, offset+i, ((char *)pBuf + i));
+    sectorWrite(mf, ssize+offset+i, ((char *)pBuf + i));
 
-  if (offset + amt > mf->meta->size) {
+  if (offset + amt > mf->meta->size) 
      mf->meta->size = offset+amt;
-     //writeMetadata(mf);
-  }
   return SQLITE_OK;
 }
 

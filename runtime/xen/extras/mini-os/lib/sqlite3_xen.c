@@ -63,21 +63,7 @@ struct sqlite3_mir_file {
     int meta_state;
     void *aiobuf;
     ght_hash_table_t *hash;
-    
 };
-
-static int 
-mirClose(struct sqlite3_file *id)
-{
- // struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-//  SQLDEBUG("mirClose: START\n");
-//  shutdown_blkfront(mf->dev);
-//  if (mf->meta)
-//    free(mf->meta);
-  //blkfront_sync(mf->dev);
-  SQLDEBUG("mirClose: OK\n");
-  return SQLITE_OK;
-}
 
 static void 
 blkfront_aio_sync_cb(struct blkfront_aiocb *aiocb, int ret)
@@ -95,6 +81,52 @@ issueWriteBarrier(struct blkfront_dev *dev)
    req->aio_dev = dev;
    req->aio_cb = blkfront_aio_sync_cb;
    blkfront_aio_push_operation(req, BLKIF_OP_WRITE_BARRIER);
+}
+
+static void
+sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, const void *data)
+{
+    struct sector *sec;
+    BUG_ON(off % mf->info.sector_size);
+    sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
+    if (!sec) {
+      int rc;
+      sec = malloc(sizeof(struct sector));
+      sec->buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
+      rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
+      BUG_ON(rc < 0);
+    }
+    switch (sec->state) {
+      case BUF_CLEAN:
+        sec->state = BUF_DIRTY;
+        break;
+      case BUF_WRITING:
+        sec->state = BUF_DIRTY_WRITING;
+    }
+    bcopy(data, sec->buf, mf->info.sector_size);
+}
+
+static void
+sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *data)
+{
+    struct sector *sec;
+    BUG_ON(off % mf->info.sector_size);
+    BUG_ON(len > mf->info.sector_size);
+    sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
+    if (!sec) {
+      struct blkfront_aiocb *req = malloc(sizeof (struct blkfront_aiocb));
+      sec = malloc(sizeof (struct sector));
+      bzero(req, sizeof(struct blkfront_aiocb));
+      req->aio_dev = mf->dev;
+      req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
+      req->aio_nbytes = mf->info.sector_size;
+      req->aio_offset = off + mf->info.sector_size;
+      blkfront_read(req);
+      sec->state = BUF_CLEAN;
+      sec->buf = req->aio_buf;
+      free(req);
+    }
+    bcopy(sec->buf + start, data, len);
 }
 
 static void
@@ -250,56 +282,6 @@ mirJournalWrite(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offse
   bcopy(req->aio_buf + req->aio_nbytes - ssize, last_sector, ssize);
   free(req);
   return SQLITE_OK;
-}
-
-static int check_write_done(void *sec) {
-  return (((struct sector *)sec)->state != BUF_WRITING);
-}
-
-static void
-sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, const void *data)
-{
-    struct sector *sec;
-    BUG_ON(off % mf->info.sector_size);
-    sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
-    if (!sec) {
-      int rc;
-      sec = malloc(sizeof(struct sector));
-      sec->buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
-      rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
-      BUG_ON(rc < 0);
-    }
-    switch (sec->state) {
-      case BUF_CLEAN:
-        sec->state = BUF_DIRTY;
-        break;
-      case BUF_WRITING:
-        sec->state = BUF_DIRTY_WRITING;
-    }
-    bcopy(data, sec->buf, mf->info.sector_size);
-}
-
-static void
-sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *data)
-{
-    struct sector *sec;
-    BUG_ON(off % mf->info.sector_size);
-    BUG_ON(len > mf->info.sector_size);
-    sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
-    if (!sec) {
-      struct blkfront_aiocb *req = malloc(sizeof (struct blkfront_aiocb));
-      sec = malloc(sizeof (struct sector));
-      bzero(req, sizeof(struct blkfront_aiocb));
-      req->aio_dev = mf->dev;
-      req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
-      req->aio_nbytes = mf->info.sector_size;
-      req->aio_offset = off + mf->info.sector_size;
-      blkfront_read(req);
-      sec->state = BUF_CLEAN;
-      sec->buf = req->aio_buf;
-      free(req);
-    }
-    bcopy(sec->buf + start, data, len);
 }
 
 static int
@@ -518,6 +500,19 @@ static int
 mirDeviceCharacteristics(sqlite3_file *NotUsed) {
   SQLDEBUG("mirDeviceCharacteristics: SQLITE_IOCAP_SAFE_APPEND\n");
   return SQLITE_IOCAP_SAFE_APPEND;
+}
+
+static int 
+mirClose(struct sqlite3_file *id)
+{
+ // struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+//  SQLDEBUG("mirClose: START\n");
+//  shutdown_blkfront(mf->dev);
+//  if (mf->meta)
+//    free(mf->meta);
+  //blkfront_sync(mf->dev);
+  SQLDEBUG("mirClose: OK\n");
+  return SQLITE_OK;
 }
 
 static const sqlite3_io_methods mirIoMethods = {

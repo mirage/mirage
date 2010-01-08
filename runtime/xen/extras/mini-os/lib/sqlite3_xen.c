@@ -43,9 +43,10 @@ struct db_metadata {
 };
 
 /* states for buffer cache */
-#define BUF_CLEAN 0
-#define BUF_DIRTY 1
-#define BUF_WRITING 2
+#define BUF_CLEAN 0  /* no changes from disk */
+#define BUF_DIRTY 1  /* pending changes to write */
+#define BUF_WRITING 2 /* write in progress, no change to memory */
+#define BUF_DIRTY_WRITING 3 /* write in progress, and new changes pending too */
 
 struct sector {
   int state;
@@ -267,8 +268,14 @@ sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, const void *data)
       sec->buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
       rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
       BUG_ON(rc < 0);
-    } 
-    sec->state = BUF_DIRTY;
+    }
+    switch (sec->state) {
+      case BUF_CLEAN:
+        sec->state = BUF_DIRTY;
+        break;
+      case BUF_WRITING:
+        sec->state = BUF_DIRTY_WRITING;
+    }
     bcopy(data, sec->buf, mf->info.sector_size);
 }
 
@@ -387,17 +394,21 @@ mirTruncate(sqlite3_file *id, sqlite3_int64 nByte) {
   return SQLITE_OK;
 }
 
-/*
-** Make sure all writes to a particular file are committed to disk.
-**
-** If dataOnly==0 then both the file itself and its metadata (file
-** size, access time, etc) are synced.  If dataOnly!=0 then only the
-** file data is synced.
-**
-*/
-static void blkfront_aio_cb(struct blkfront_aiocb *aiocb, int ret)
+static void
+blkfront_aio_cb(struct blkfront_aiocb *aiocb, int ret)
 {
-  //((struct sector *)(aiocb->data))->state = BUF_CLEAN;
+  struct sector *sec = (struct sector *)aiocb->data;
+  switch (sec->state) {
+    case BUF_WRITING:
+      sec->state = BUF_CLEAN; /* buffer is now clean and synched */
+      break;
+    case BUF_DIRTY_WRITING: 
+      sec->state = BUF_DIRTY; /* more changes to write, so mark it dirty again */
+      break;
+    case BUF_CLEAN:
+    case BUF_DIRTY:
+      BUG_ON(1);
+  }
   free(aiocb->aio_buf);
   free(aiocb);
   return;
@@ -423,7 +434,7 @@ mirFlushBuffers(struct sqlite3_mir_file *mf)
        req->aio_offset = *num + mf->info.sector_size;
        req->data = sec;
        req->aio_cb = blkfront_aio_cb;
-       sec->state = BUF_CLEAN;
+       sec->state = BUF_WRITING;
        blkfront_aio_write(req);
     }
   }
@@ -433,16 +444,11 @@ static int
 mirSync(sqlite3_file *id, int flags) 
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-  struct blkfront_aiocb *req;
   //int isFullSync = (flags & 0x0F) == SQLITE_SYNC_FULL;
   //printf("mirSync: %d\n", isFullSync);
   mirFlushBuffers(mf);
-  req = malloc(sizeof (struct blkfront_aiocb));
-  bzero(req, sizeof(struct blkfront_aiocb));
-  req->aio_dev = mf->dev;
-  req->aio_cb = blkfront_aio_sync_cb;
+  issueWriteBarrier(mf->dev);
   //writeMetadata(mf);
-  blkfront_aio_push_operation(req, BLKIF_OP_WRITE_BARRIER);
   //blkfront_sync(mf->dev);
   return SQLITE_OK;
 }

@@ -1,7 +1,7 @@
 open Sqlite3
 open Printf
 
-let iters = 1000
+let iters = 4000
 
 let cmd ?(cb=(fun _ _ -> printf "???\n%!")) db sql =
   match exec db sql ~cb with
@@ -27,5 +27,18 @@ let _ =
   let cb row header = incr cnt in
   cmd ~cb db "SELECT * from foo";
   assert(!cnt = iters);
-  printf "count=%d\n%!" !cnt
-  
+  printf "count=%d\n%!" !cnt;
+  with_time (fun () ->
+    for i = 1 to iters do 
+      cmd db (sprintf "UPDATE foo SET b=%d WHERE a=\"hello%d\"" (i+1000) i)
+    done
+  );
+  let cnt = ref 0 in
+  let cb row header = 
+    incr cnt;
+    let gr n = match row.(n) with |None -> assert false |Some x -> x in
+    let y = int_of_string (gr 1) in
+    assert(sprintf "hello%d" (y-1000) = (gr 0))
+  in
+  cmd ~cb db "SELECT a,b from foo order by b";
+  printf "count postupdate=%d\n%!" !cnt

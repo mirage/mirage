@@ -30,6 +30,7 @@ ${MIR_BIN} bu ./tests/${NAME}
 MNT=/tmp/${NAME}.mnt
 ${SUDO} mkdir -p ${MNT}
 ${SUDO} mount ${GUEST_ROOT} ${MNT}
+${SUDO} cp ${MIRAGE_ROOT}/scripts/init.sh ${MNT}/init.sh
 ${SUDO} cp ./tests/${NAME}/app ${MNT}/app
 ${SUDO} umount ${MNT}
 
@@ -45,7 +46,12 @@ if [ ${PROFILING} -gt 0 ]; then
   ${SUDO} opcontrol --start
 fi
 
+rm -f screenlog.*
+screen -d -m -L ${SUDO} ${XM_BIN} console ${DOMID}
+
 ${SUDO} ${XM_BIN} unpause ${DOMID}
+
+tail --bytes +0 -f screenlog.* &
 
 echo -n Waiting for domain to terminate
 dom_done=0

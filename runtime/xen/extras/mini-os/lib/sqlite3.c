@@ -33061,7 +33061,9 @@ static int pager_truncate(Pager *pPager, Pgno nPage){
       if( currentSize>newSize ){
         rc = sqlite3OsTruncate(pPager->fd, newSize);
       }else{
-        rc = sqlite3OsWrite(pPager->fd, "", 1, newSize-1);
+        // Mirage change: truncate is safe for increasing size
+        // but a non-page-aligned write is never safe.
+        rc = sqlite3OsTruncate(pPager->fd, newSize);
       }
       if( rc==SQLITE_OK ){
         pPager->dbFileSize = nPage;

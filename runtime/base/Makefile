@@ -24,6 +24,7 @@ $(OBJ)/asmrun/libasmrun.a: $(OBJ)/.stamp
 	cd $(OBJ) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
                 -cc "$(CC) $(CFLAGS) -U_FORTIFY_SOURCE"
 	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJ)/config/s.h ; )
+	sed -i -e 's,Unix,$(MODE),g' $(OBJ)/config/s.h
 	cd $(OBJ)/asmrun && $(MAKE) SYSTEM=$(MODE) libasmrun.a
 
 $(LIBMIR)/obj-$(MODE)/libmir.a:

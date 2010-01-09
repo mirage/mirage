@@ -14,9 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
 #include <mini-os/types.h>
 #include <mini-os/xmalloc.h>
+#include <stdio.h>
 #include <string.h>
 #include <sqlite3.h>
 #include <ctype.h>
@@ -60,7 +60,6 @@ struct sqlite3_mir_file {
     struct blkfront_dev *dev;
     struct blkfront_info info;
     struct db_metadata *meta;
-    int meta_state;
     void *aiobuf;
     ght_hash_table_t *hash;
 };
@@ -198,8 +197,6 @@ writeMetadata(struct sqlite3_mir_file *mf)
 static void
 readMetadata(struct sqlite3_mir_file *mf)
 {
-  if (!mf->meta)
-      mf->meta = malloc(mf->info.sector_size);
   sectorRead(mf, 0, 0, mf->info.sector_size, mf->meta);
   SQLDEBUG("readMetaData: ");
   if (mf->meta->version == 0) {
@@ -380,12 +377,21 @@ mirDeviceCharacteristics(sqlite3_file *NotUsed) {
 static int 
 mirClose(struct sqlite3_file *id)
 {
- // struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-//  SQLDEBUG("mirClose: START\n");
-//  shutdown_blkfront(mf->dev);
-//  if (mf->meta)
-//    free(mf->meta);
-  //blkfront_sync(mf->dev);
+  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  ght_iterator_t i;
+  const void *p_key;
+  void *p_e;
+  SQLDEBUG("mirClose: \n");
+  for (p_e = ght_first(mf->hash, &i, &p_key); p_e; p_e = ght_next(mf->hash, &i, &p_key)) {
+    struct sector *sec = (struct sector *)p_e;
+    free(sec->buf);
+    free(sec);
+  }
+  ght_finalize(mf->hash);
+  //if (mf->meta)
+  // free(mf->meta);
+  if (mf->aiobuf)
+    free(mf->aiobuf);
   SQLDEBUG("mirClose: OK\n");
   return SQLITE_OK;
 }
@@ -497,6 +503,7 @@ static int mirOpen(
         pMirFile->dev = jdb;
         bcopy(&jdbi, &pMirFile->info, sizeof(jdbi));
       }
+      pMirFile->meta = _xmalloc(pMirFile->info.sector_size, pMirFile->info.sector_size);
       readMetadata(pMirFile);
       if (strcmp(zPath, pMirFile->meta->name)) {
         strcpy(pMirFile->meta->name, zPath);

@@ -47,6 +47,7 @@ struct db_metadata {
 #define BUF_DIRTY 1  /* pending changes to write */
 #define BUF_WRITING 2 /* write in progress, no change to memory */
 #define BUF_DIRTY_WRITING 3 /* write in progress, and new changes pending too */
+#define BUF_CLOSED 4 /* buf is finished, so free it when AIO finishes */
 
 struct sector {
   int state;
@@ -94,7 +95,7 @@ sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, const
     BUG_ON(off % mf->info.sector_size);
     BUG_ON(start + len > mf->info.sector_size);
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
-    SQLDEBUG("secWrite: %s off=%Lu start=%d len=%d\n", mf->meta->name, off, start, len);
+    //SQLDEBUG("secWrite: %s off=%Lu start=%d len=%d\n", mf->meta->name, off, start, len);
     if (!sec) {
       int rc;
       BUG_ON(start > 0);
@@ -147,6 +148,10 @@ sector_aio_cb(struct blkfront_aiocb *aiocb, int ret)
       break;
     case BUF_DIRTY_WRITING: 
       sec->state = BUF_DIRTY; /* more changes to write, so mark it dirty again */
+      break;
+    case BUF_CLOSED:
+      free(sec->buf);
+      free(sec);
       break;
     case BUF_CLEAN:
     case BUF_DIRTY:
@@ -384,8 +389,21 @@ mirClose(struct sqlite3_file *id)
   SQLDEBUG("mirClose: \n");
   for (p_e = ght_first(mf->hash, &i, &p_key); p_e; p_e = ght_next(mf->hash, &i, &p_key)) {
     struct sector *sec = (struct sector *)p_e;
-    free(sec->buf);
-    free(sec);
+    switch (sec->state) {
+      case BUF_CLEAN:
+        free(sec->buf);
+        free(sec);
+        break;
+      case BUF_WRITING:
+        sec->state = BUF_CLOSED; /* will be freed in AIO callback */
+        break;
+      case BUF_DIRTY:
+        ASSERT(sec->state != BUF_DIRTY);
+      case BUF_DIRTY_WRITING:
+        ASSERT(sec->state != BUF_DIRTY_WRITING);
+      case BUF_CLOSED:
+        ASSERT(sec->state != BUF_CLOSED);
+    }
   }
   ght_finalize(mf->hash);
   //if (mf->meta)

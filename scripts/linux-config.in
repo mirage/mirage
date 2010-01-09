@@ -4,4 +4,4 @@ kernel="/boot/vmlinuz-2.6.27.29-0.1.1.xs0.1.0.669.1028xen-xcixen"
 ramdisk="/boot/initrd.img-2.6.27.29-0.1.1.xs0.1.0.669.1028xen-xcixen"
 vif=['bridge=eth0']
 disk=['phy:/dev/brolga-0/guest1,xvda1,w', 'phy:/dev/brolga-0/guest1-swap,xvdb1,w']
-extra="console=hvc0 loglevel=10 debug root=/dev/xvda1 verbose init=/app"
+extra="console=hvc0 loglevel=10 debug root=/dev/xvda1 verbose init=/init.sh"

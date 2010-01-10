@@ -10,7 +10,7 @@ let with_time i label fn =
   let t1 = Mir.gettimeofday () in
   fn ();
   let t2 = Mir.gettimeofday () in
-  printf "%s:%d:%s:%f\n%!" Sys.os_type i label (t2 -. t1)
+  printf "%s,%d,%s,%f\n%!" Sys.os_type i label (t2 -. t1)
 
 let with_trans db fn =
   cmd db "begin";

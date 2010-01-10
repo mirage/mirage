@@ -45,13 +45,12 @@ struct db_metadata {
 /* states for buffer cache */
 #define BUF_CLEAN 0  /* no changes from disk */
 #define BUF_DIRTY 1  /* pending changes to write */
-#define BUF_WRITING 2 /* write in progress, no change to memory */
-#define BUF_DIRTY_WRITING 3 /* write in progress, and new changes pending too */
 #define BUF_CLOSED 4 /* buf is finished, so free it when AIO finishes */
 
 struct sector {
   int state;
   unsigned char *buf;
+  struct blkfront_aiocb *last_write;  /* last issued active aio write */
 };
  
 /* Mirage file structure, which records the IO callbacks and 
@@ -95,23 +94,17 @@ sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, const
     BUG_ON(off % mf->info.sector_size);
     BUG_ON(start + len > mf->info.sector_size);
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
-    //SQLDEBUG("secWrite: %s off=%Lu start=%d len=%d\n", mf->meta->name, off, start, len);
+    SQLDEBUG("secWrite: %s o=%Lu s=%d l=%d\n", mf->meta->name, off, start, len);
     if (!sec) {
       int rc;
       BUG_ON(start > 0);
-      sec = malloc(sizeof(struct sector));
+      sec = calloc(1,sizeof(struct sector));
       sec->buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
       rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
       BUG_ON(rc < 0);
     }
-    switch (sec->state) {
-      case BUF_CLEAN:
-        sec->state = BUF_DIRTY;
-        break;
-      case BUF_WRITING:
-        sec->state = BUF_DIRTY_WRITING;
-        break;
-    }
+    BUG_ON(sec->state != BUF_CLEAN && sec->state != BUF_DIRTY);
+    sec->state = BUF_DIRTY;
     bcopy(data, sec->buf+start, len);
 }
 
@@ -123,16 +116,19 @@ sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *
     BUG_ON(len > mf->info.sector_size);
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
     if (!sec) {
+      int rc;
       struct blkfront_aiocb *req = malloc(sizeof (struct blkfront_aiocb));
-      sec = malloc(sizeof (struct sector));
       bzero(req, sizeof(struct blkfront_aiocb));
       req->aio_dev = mf->dev;
       req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
       req->aio_nbytes = mf->info.sector_size;
       req->aio_offset = off;
       blkfront_read(req);
+      sec = calloc(1,sizeof (struct sector));
       sec->state = BUF_CLEAN;
       sec->buf = req->aio_buf;
+      rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
+      BUG_ON(rc < 0);
       free(req);
     }
     bcopy(sec->buf + start, data, len);
@@ -142,20 +138,14 @@ static void
 sector_aio_cb(struct blkfront_aiocb *aiocb, int ret)
 {
   struct sector *sec = (struct sector *)aiocb->data;
-  switch (sec->state) {
-    case BUF_WRITING:
-      sec->state = BUF_CLEAN; /* buffer is now clean and synched */
-      break;
-    case BUF_DIRTY_WRITING: 
-      sec->state = BUF_DIRTY; /* more changes to write, so mark it dirty again */
-      break;
-    case BUF_CLOSED:
+ // if (!aiocb->aio_offset)
+   // printf("AIOCB: off=%Lu state=%d\n", aiocb->aio_offset, sec->state);
+  if (sec->last_write == aiocb) {
+    sec->last_write = NULL;
+    if (sec->state == BUF_CLOSED) {
       free(sec->buf);
       free(sec);
-      break;
-    case BUF_CLEAN:
-    case BUF_DIRTY:
-      BUG_ON(1);
+    }
   }
   free(aiocb->aio_buf);
   free(aiocb);
@@ -173,8 +163,7 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
     struct sector *sec = (struct sector *)p_e;
     uint64_t *num = (uint64_t *)p_key;
     if (sec->state == BUF_DIRTY) {
-       req = malloc(sizeof (struct blkfront_aiocb));
-       bzero(req, sizeof(struct blkfront_aiocb));
+       req = calloc(1,sizeof (struct blkfront_aiocb));
        req->aio_dev = mf->dev;
        req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
        bcopy(sec->buf, req->aio_buf, mf->info.sector_size);
@@ -182,7 +171,8 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
        req->aio_offset = *num;
        req->data = sec;
        req->aio_cb = sector_aio_cb;
-       sec->state = BUF_WRITING;
+       sec->state = BUF_CLEAN;
+       sec->last_write = req;
        blkfront_aio_write(req);
     }
   }
@@ -387,27 +377,19 @@ mirClose(struct sqlite3_file *id)
   const void *p_key;
   void *p_e;
   SQLDEBUG("mirClose: \n");
+  sectorFlushBuffers(mf);
   for (p_e = ght_first(mf->hash, &i, &p_key); p_e; p_e = ght_next(mf->hash, &i, &p_key)) {
     struct sector *sec = (struct sector *)p_e;
-    switch (sec->state) {
-      case BUF_CLEAN:
-        free(sec->buf);
-        free(sec);
-        break;
-      case BUF_WRITING:
-        sec->state = BUF_CLOSED; /* will be freed in AIO callback */
-        break;
-      case BUF_DIRTY:
-        ASSERT(sec->state != BUF_DIRTY);
-      case BUF_DIRTY_WRITING:
-        ASSERT(sec->state != BUF_DIRTY_WRITING);
-      case BUF_CLOSED:
-        ASSERT(sec->state != BUF_CLOSED);
+    if (sec->last_write)
+      sec->state = BUF_CLOSED;
+    else {
+      free(sec->buf);
+      free(sec);
     }
   }
   ght_finalize(mf->hash);
-  //if (mf->meta)
-  // free(mf->meta);
+  if (mf->meta)
+    free(mf->meta);
   if (mf->aiobuf)
     free(mf->aiobuf);
   SQLDEBUG("mirClose: OK\n");

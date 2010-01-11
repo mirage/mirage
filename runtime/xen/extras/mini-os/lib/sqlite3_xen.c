@@ -34,6 +34,8 @@
 #define SQLDEBUG if (0) printf
 #endif
 
+#define SQLITE_SECTOR_SIZE PAGE_SIZE
+
 /* First sector of VBD is used for database metadata */
 #define DB_NAME_MAXLENGTH 32
 struct db_metadata {
@@ -91,15 +93,15 @@ static void
 sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, const void *data)
 {
     struct sector *sec;
-    BUG_ON(off % mf->info.sector_size);
-    BUG_ON(start + len > mf->info.sector_size);
+    BUG_ON(off % PAGE_SIZE);
+    BUG_ON(start + len > PAGE_SIZE);
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
     SQLDEBUG("secWrite: %s o=%Lu s=%d l=%d\n", mf->meta->name, off, start, len);
     if (!sec) {
       int rc;
       BUG_ON(start > 0);
       sec = calloc(1,sizeof(struct sector));
-      sec->buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
+      sec->buf = _xmalloc(PAGE_SIZE, PAGE_SIZE);
       rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
       BUG_ON(rc < 0);
     }
@@ -112,16 +114,16 @@ static void
 sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *data)
 {
     struct sector *sec;
-    BUG_ON(off % mf->info.sector_size);
-    BUG_ON(len > mf->info.sector_size);
+    BUG_ON(off % PAGE_SIZE);
+    BUG_ON(len > PAGE_SIZE);
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
     if (!sec) {
       int rc;
       struct blkfront_aiocb *req = malloc(sizeof (struct blkfront_aiocb));
       bzero(req, sizeof(struct blkfront_aiocb));
       req->aio_dev = mf->dev;
-      req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
-      req->aio_nbytes = mf->info.sector_size;
+      req->aio_buf = _xmalloc(PAGE_SIZE, PAGE_SIZE);
+      req->aio_nbytes = PAGE_SIZE;
       req->aio_offset = off;
       blkfront_read(req);
       sec = calloc(1,sizeof (struct sector));
@@ -165,9 +167,9 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
     if (sec->state == BUF_DIRTY) {
        req = calloc(1,sizeof (struct blkfront_aiocb));
        req->aio_dev = mf->dev;
-       req->aio_buf = _xmalloc(mf->info.sector_size, mf->info.sector_size);
-       bcopy(sec->buf, req->aio_buf, mf->info.sector_size);
-       req->aio_nbytes = mf->info.sector_size;
+       req->aio_buf = _xmalloc(PAGE_SIZE, PAGE_SIZE);
+       bcopy(sec->buf, req->aio_buf, PAGE_SIZE);
+       req->aio_nbytes = PAGE_SIZE;
        req->aio_offset = *num;
        req->data = sec;
        req->aio_cb = sector_aio_cb;
@@ -182,7 +184,7 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
 static void
 writeMetadata(struct sqlite3_mir_file *mf)
 {
-  sectorWrite(mf, 0, 0, mf->info.sector_size, mf->meta);
+  sectorWrite(mf, 0, 0, PAGE_SIZE, mf->meta);
   SQLDEBUG("writeMetadata %s size=%Lu OK\n", mf->meta->name, mf->meta->size);
 }
 
@@ -192,7 +194,7 @@ writeMetadata(struct sqlite3_mir_file *mf)
 static void
 readMetadata(struct sqlite3_mir_file *mf)
 {
-  sectorRead(mf, 0, 0, mf->info.sector_size, mf->meta);
+  sectorRead(mf, 0, 0, PAGE_SIZE, mf->meta);
   SQLDEBUG("readMetaData: ");
   if (mf->meta->version == 0) {
     SQLDEBUG(" NEW\n");
@@ -209,7 +211,7 @@ static int
 mirBufferRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset)
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-  int ssize = mf->info.sector_size;
+  int ssize = PAGE_SIZE;
   int sector_offset = offset % ssize;
   unsigned char *buf = pBuf;
   SQLDEBUG("mirBufRead: %s off=%Lu amt=%Lu fsize=%Lu\n", mf->meta->name, offset, amt, mf->meta->size);
@@ -236,7 +238,7 @@ static int
 mirBufferWrite(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset)
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-  int ssize = mf->info.sector_size;
+  int ssize = PAGE_SIZE;
 
   SQLDEBUG("mirBufWrite: %s off=%Lu amt=%Lu\n", mf->meta->name, offset, amt);
   for (int i=0; i< amt; i += ssize)
@@ -253,11 +255,11 @@ static int
 mirBufferAppend(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offset)
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-  int ssize = mf->info.sector_size;
+  int ssize = PAGE_SIZE;
   int sector_offset = offset % ssize;
   const unsigned char *buf = pBuf;
   SQLDEBUG("mirBufAppend: %s off=%Lu amt=%Lu fsize=%Lu\n", mf->meta->name, offset, amt, mf->meta->size);
-  ASSERT(offset + amt > mf->meta->size);
+  //ASSERT(offset + amt > mf->meta->size);
  
   if (sector_offset) {
     /* unaligned write */
@@ -354,10 +356,8 @@ mirFileControl(sqlite3_file *id, int op, void *pArg) {
 */
 static int 
 mirSectorSize(sqlite3_file *id) {
-  struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
-  int s = mf->info.sector_size;
-  SQLDEBUG("mirSectorSize: %d OK\n", s);
-  return s;
+  SQLDEBUG("mirSectorSize: %d OK\n", PAGE_SIZE);
+  return PAGE_SIZE;
 }
 
 /*
@@ -366,7 +366,7 @@ mirSectorSize(sqlite3_file *id) {
 static int 
 mirDeviceCharacteristics(sqlite3_file *NotUsed) {
   SQLDEBUG("mirDeviceCharacteristics: SQLITE_IOCAP_SAFE_APPEND\n");
-  return SQLITE_IOCAP_SAFE_APPEND;
+  return SQLITE_IOCAP_SAFE_APPEND & SQLITE_IOCAP_ATOMIC4K;
 }
 
 static int 
@@ -503,7 +503,7 @@ static int mirOpen(
         pMirFile->dev = jdb;
         bcopy(&jdbi, &pMirFile->info, sizeof(jdbi));
       }
-      pMirFile->meta = _xmalloc(pMirFile->info.sector_size, pMirFile->info.sector_size);
+      pMirFile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
       readMetadata(pMirFile);
       if (strcmp(zPath, pMirFile->meta->name)) {
         strcpy(pMirFile->meta->name, zPath);
@@ -521,7 +521,7 @@ static int mirDelete(
     SQLDEBUG("mirDelete: %s ERROR\n", zPath);
     /* XXX Dont have a pointer back to the sqlite_mir_file * here, so would need to 
        stored opened files somewhere. */
-    return SQLITE_ERROR;
+    return SQLITE_IOERR_DELETE;
 }
 
 /*

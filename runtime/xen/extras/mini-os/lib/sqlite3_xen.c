@@ -25,7 +25,7 @@
 
 #define VFS_NAME "mirage"
 
-#undef DEBUG_MIRIO
+#define DEBUG_MIRIO
 #undef DEBUG_MIRIO_DUMP
 
 #ifdef DEBUG_MIRIO
@@ -74,14 +74,16 @@ blkfront_aio_sync_cb(struct blkfront_aiocb *aiocb, int ret)
 }
 
 static void 
-issueWriteBarrier(struct blkfront_dev *dev)
+issueWriteBarrier(struct sqlite3_mir_file *mf)
 {
-   struct blkfront_aiocb *req;
-   req = malloc(sizeof (struct blkfront_aiocb));
-   bzero(req, sizeof(struct blkfront_aiocb));
-   req->aio_dev = dev;
-   req->aio_cb = blkfront_aio_sync_cb;
-   blkfront_aio_push_operation(req, BLKIF_OP_WRITE_BARRIER);
+   if (mf->info.barrier > 0) {
+     struct blkfront_aiocb *req;
+     req = malloc(sizeof (struct blkfront_aiocb));
+     bzero(req, sizeof(struct blkfront_aiocb));
+     req->aio_dev = mf->dev;
+     req->aio_cb = blkfront_aio_sync_cb;
+     blkfront_aio_push_operation(req, BLKIF_OP_WRITE_BARRIER);
+   }
 }
 
 /* Write a sector into the buffer cache. 
@@ -140,8 +142,7 @@ static void
 sector_aio_cb(struct blkfront_aiocb *aiocb, int ret)
 {
   struct sector *sec = (struct sector *)aiocb->data;
- // if (!aiocb->aio_offset)
-   // printf("AIOCB: off=%Lu state=%d\n", aiocb->aio_offset, sec->state);
+  BUG_ON(ret);
   if (sec->last_write == aiocb) {
     sec->last_write = NULL;
     if (sec->state == BUF_CLOSED) {
@@ -300,7 +301,7 @@ mirSync(sqlite3_file *id, int flags)
   //int isFullSync = (flags & 0x0F) == SQLITE_SYNC_FULL;
   //printf("mirSync: %d\n", isFullSync);
   sectorFlushBuffers(mf);
-  issueWriteBarrier(mf->dev);
+  issueWriteBarrier(mf);
   return SQLITE_OK;
 }
 

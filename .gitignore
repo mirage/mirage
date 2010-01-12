@@ -22,3 +22,4 @@ runtime/xen/stubdom/mini-os-x86_64-caml/
 runtime/xen/stubdom/zlib/Makefile
 runtime/xen/stubdom/libm/obj/
 tests/*/app
+tests/*/mini-os

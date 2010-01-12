@@ -248,7 +248,7 @@ done:
     }
     unmask_evtchn(dev->evtchn);
 
-    BFDEBUG("%u sectors of %u bytes\n", dev->info.sectors, dev->info.sector_size);
+    BFDEBUG("%u sectors of %u bytes (barrier=%d flush=%d)\n", dev->info.sectors, dev->info.sector_size, dev->info.barrier, dev->info.flush);
 
     return dev;
 

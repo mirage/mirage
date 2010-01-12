@@ -25,7 +25,7 @@
 
 #define VFS_NAME "mirage"
 
-#define DEBUG_MIRIO
+#undef DEBUG_MIRIO
 #undef DEBUG_MIRIO_DUMP
 
 #ifdef DEBUG_MIRIO
@@ -486,32 +486,31 @@ static int mirOpen(
       SQLDEBUG("???");
     }
 
-    if (eType != SQLITE_OPEN_MAIN_DB && eType != SQLITE_OPEN_MAIN_JOURNAL) {
-      SQLDEBUG(" ERR\n");
-      return SQLITE_ERROR;
+    BUG_ON(eType != SQLITE_OPEN_MAIN_DB && eType != SQLITE_OPEN_MAIN_JOURNAL);
+    ASSERT(nodename != NULL);
+
+    SQLDEBUG(" OK\n");
+    pMirFile->aiobuf = _xmalloc(8192, 512);
+    pMirFile->hash = ght_create(128);
+    if (eType == SQLITE_OPEN_MAIN_DB) {
+      pMirFile->dev = init_blkfront(nodename, &pMirFile->info);
+      /* XXX disable barriers for now */
+      pMirFile->info.barrier = 0;
+      pMirFile->pMethods = &mirIoMethods;
     } else {
-      SQLDEBUG(" OK\n");
-      ASSERT(nodename != NULL);
-      pMirFile->aiobuf = _xmalloc(8192, 512);
-      pMirFile->hash = ght_create(128);
-      if (eType == SQLITE_OPEN_MAIN_DB) {
-        pMirFile->dev = init_blkfront(nodename, &pMirFile->info);
-        pMirFile->pMethods = &mirIoMethods;
-      } else {
-        if (!jdb)
-          jdb = init_blkfront(nodename, &jdbi);
-        pMirFile->pMethods = &mirIoJoMethods;
-        pMirFile->dev = jdb;
-        bcopy(&jdbi, &pMirFile->info, sizeof(jdbi));
-      }
-      pMirFile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
-      readMetadata(pMirFile);
-      if (strcmp(zPath, pMirFile->meta->name)) {
-        strcpy(pMirFile->meta->name, zPath);
-        writeMetadata(pMirFile);
-      }
-      return SQLITE_OK;
+      if (!jdb)
+        jdb = init_blkfront(nodename, &jdbi);
+      pMirFile->pMethods = &mirIoJoMethods;
+      pMirFile->dev = jdb;
+      bcopy(&jdbi, &pMirFile->info, sizeof(jdbi));
     }
+    pMirFile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
+    readMetadata(pMirFile);
+    if (strcmp(zPath, pMirFile->meta->name)) {
+      strcpy(pMirFile->meta->name, zPath);
+      writeMetadata(pMirFile);
+    }
+    return SQLITE_OK;
 }
 
 static int mirDelete(

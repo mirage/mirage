@@ -24,9 +24,6 @@
 
 DECLARE_WAIT_QUEUE_HEAD(blkfront_queue);
 
-
-
-
 #define BLK_RING_SIZE __RING_SIZE((struct blkif_sring *)0, PAGE_SIZE)
 #define GRANT_INVALID_REF 0
 
@@ -332,6 +329,61 @@ static void blkfront_wait_slot(struct blkfront_dev *dev)
 	local_irq_restore(flags);
     }
 }
+
+/* Issue an aio */
+void blkfront_aiov(struct blkfront_aiocbv *aiocbp, int write)
+{
+    struct blkfront_dev *dev = aiocbp->aio_dev;
+    struct blkif_request *req;
+    RING_IDX i;
+    int notify;
+    int n, j;
+
+    // Can't io at non-page-sized location
+    ASSERT(!(aiocbp->aio_offset & (PAGE_SIZE-1)));
+    // Can't io non-sector-sized amounts
+    ASSERT(!(aiocbp->aio_nbytes & (PAGE_SIZE-1)));
+
+    aiocbp->n = n = aiocbp->aio_nbytes / PAGE_SIZE;
+
+    /* qemu's IDE max multsect is 16 (8KB) and SCSI max DMA was set to 32KB,
+     * so max 44KB can't happen */
+    ASSERT(n <= BLKIF_MAX_SEGMENTS_PER_REQUEST);
+
+    blkfront_wait_slot(dev);
+    i = dev->ring.req_prod_pvt;
+    req = RING_GET_REQUEST(&dev->ring, i);
+
+    req->operation = write ? BLKIF_OP_WRITE : BLKIF_OP_READ;
+    req->nr_segments = n;
+    req->handle = dev->handle;
+    req->id = (uintptr_t) aiocbp;
+    req->sector_number = aiocbp->aio_offset / 512;
+
+    for (j = 0; j < n; j++) {
+        req->seg[j].first_sect = 0;
+        req->seg[j].last_sect = PAGE_SIZE / 512 - 1;
+    }
+
+    for (j = 0; j < n; j++) {
+	uintptr_t data = aiocbp->aio_bufv[j];
+        if (!write) {
+            /* Trigger CoW if needed */
+            *(uint8_t *)(data) = 0;
+            barrier();
+        }
+	aiocbp->gref[j] = req->seg[j].gref =
+            gnttab_grant_access(dev->dom, virtual_to_mfn(data), write);
+    }
+
+    dev->ring.req_prod_pvt = i + 1;
+
+    wmb();
+    RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&dev->ring, notify);
+
+    if(notify) notify_remote_via_evtchn(dev->evtchn);
+}
+
 
 /* Issue an aio */
 void blkfront_aio(struct blkfront_aiocb *aiocbp, int write)

@@ -91,50 +91,6 @@ static void netfront_thread(void *p)
     net_dev = init_netfront(NULL, NULL, NULL, NULL);
 }
 
-static struct blkfront_dev *blk_dev;
-static struct blkfront_info blk_info;
-static uint64_t blk_size_read;
-static uint64_t blk_size_write;
-
-struct blk_req {
-    struct blkfront_aiocb aiocb;
-    int rand_value;
-    struct blk_req *next;
-};
-
-static struct blk_req *blk_alloc_req(uint64_t sector)
-{
-    struct blk_req *req = xmalloc(struct blk_req);
-    req->aiocb.aio_dev = blk_dev;
-    req->aiocb.aio_buf = _xmalloc(blk_info.sector_size, blk_info.sector_size);
-    req->aiocb.aio_nbytes = blk_info.sector_size;
-    req->aiocb.aio_offset = sector * blk_info.sector_size;
-    req->aiocb.data = req;
-    req->next = NULL;
-    return req;
-}
-
-static void blk_read_completed(struct blkfront_aiocb *aiocb, int ret)
-{
-    struct blk_req *req = aiocb->data;
-    if (ret)
-        printk("got error code %d when reading at offset %ld\n", ret, aiocb->aio_offset);
-    else
-        blk_size_read += blk_info.sector_size;
-    free(aiocb->aio_buf);
-    free(req);
-}
-
-static void blk_read_sector(uint64_t sector)
-{
-    struct blk_req *req;
-
-    req = blk_alloc_req(sector);
-    req->aiocb.aio_cb = blk_read_completed;
-
-    blkfront_aio_read(&req->aiocb);
-}
-
 /*
  * INITIAL C ENTRY POINT.
  */
@@ -201,9 +157,6 @@ void stop_kernel(void)
 {
     if (net_dev)
         shutdown_netfront(net_dev);
-
-    if (blk_dev)
-        shutdown_blkfront(blk_dev);
 
     local_irq_disable();
 

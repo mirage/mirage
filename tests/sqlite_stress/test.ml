@@ -65,6 +65,7 @@ let ins_up_del insertfn iters db =
   ignore(Gc.stat ())
 
 let sets = [ 1; 10; 50; 100; 200; 500; 1000; 2500; 5000; 7500 ]
+let sets = [ 1; 10; 50; 100; 200; 500; 1000; 2500; 5000]
 let _ =
   try
     let db = db_open "test" in

@@ -22,7 +22,7 @@ struct blkfront_aiocb
 struct blkfront_aiocbv
 {
     struct blkfront_dev *aio_dev;
-    uint8_t **aio_bufv;
+    uint8_t *aio_bufv[BLKIF_MAX_SEGMENTS_PER_REQUEST];
     size_t aio_nbytes;
     off_t aio_offset;
     size_t total_bytes;
@@ -52,6 +52,8 @@ void blkfront_aio(struct blkfront_aiocb *, int);
 void blkfront_aiov(struct blkfront_aiocbv *, int);
 #define blkfront_aio_read(aiocbp) blkfront_aio(aiocbp, 0)
 #define blkfront_aio_write(aiocbp) blkfront_aio(aiocbp, 1)
+#define blkfront_aio_readv(aiocbp) blkfront_aiov(aiocbp, 0)
+#define blkfront_aio_writev(aiocbp) blkfront_aiov(aiocbp, 1)
 void blkfront_io(struct blkfront_aiocb *aiocbp, int write);
 #define blkfront_read(aiocbp) blkfront_io(aiocbp, 0)
 #define blkfront_write(aiocbp) blkfront_io(aiocbp, 1)

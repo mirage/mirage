@@ -52,7 +52,7 @@ struct db_metadata {
 struct sector {
   int state;
   unsigned char *buf;
-  struct blkfront_aiocb *last_write;  /* last issued active aio write */
+  struct blkfront_aiocbv *last_write;  /* last issued active aio write */
 };
  
 /* Mirage file structure, which records the IO callbacks and 
@@ -138,21 +138,48 @@ sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *
     bcopy(sec->buf + start, data, len);
 }
 
+#define MAX_IO_COALESCE 10
+struct sectorv {
+  int head;
+  uint64_t num[MAX_IO_COALESCE+1];
+  struct sector *sec[MAX_IO_COALESCE+1];
+};
+
 static void
-sector_aio_cb(struct blkfront_aiocb *aiocb, int ret)
+sector_aio_cb(struct blkfront_aiocbv *aiocb, int ret)
 {
-  struct sector *sec = (struct sector *)aiocb->data;
+  struct sectorv *secv = (struct sectorv *)aiocb->data;
   BUG_ON(ret);
-  if (sec->last_write == aiocb) {
-    sec->last_write = NULL;
-    if (sec->state == BUF_CLOSED) {
-      free(sec->buf);
-      free(sec);
+  for (int i=0; i<=secv->head; i++) {
+    struct sector *sec = secv->sec[i];
+    if (sec->last_write == aiocb) {
+      sec->last_write = NULL;
+      if (sec->state == BUF_CLOSED) {
+        free(sec->buf);
+        free(sec);
+      }
     }
   }
-  free(aiocb->aio_buf);
+  free(secv);
   free(aiocb);
-  return;
+}
+
+static void
+flush_secv(struct sqlite3_mir_file *mf, struct sectorv *secv)
+{
+  struct blkfront_aiocbv *req;
+  req = calloc(1,sizeof (struct blkfront_aiocb));
+  req->aio_dev = mf->dev;
+  for (int i=0; i <= secv->head; i++) {
+    secv->sec[i]->state = BUF_CLEAN;
+    secv->sec[i]->last_write = req;
+    req->aio_bufv[i] = secv->sec[i]->buf;
+  }
+  req->aio_nbytes = PAGE_SIZE * (secv->head+1);
+  req->aio_offset = secv->num[0];
+  req->data = secv;
+  req->aio_cb = sector_aio_cb;
+  blkfront_aio_writev(req);
 }
 
 static void 
@@ -160,25 +187,30 @@ sectorFlushBuffers(struct sqlite3_mir_file *mf)
 {
   const void *p_key;
   void *p_e;
-  struct blkfront_aiocb *req;
   ght_iterator_t iter;
+  struct sectorv *secv = NULL;
   for (p_e = ght_first(mf->hash, &iter, &p_key); p_e; p_e = ght_next(mf->hash, &iter, &p_key)) {
     struct sector *sec = (struct sector *)p_e;
     uint64_t *num = (uint64_t *)p_key;
     if (sec->state == BUF_DIRTY) {
-       req = calloc(1,sizeof (struct blkfront_aiocb));
-       req->aio_dev = mf->dev;
-       req->aio_buf = _xmalloc(PAGE_SIZE, PAGE_SIZE);
-       bcopy(sec->buf, req->aio_buf, PAGE_SIZE);
-       req->aio_nbytes = PAGE_SIZE;
-       req->aio_offset = *num;
-       req->data = sec;
-       req->aio_cb = sector_aio_cb;
-       sec->state = BUF_CLEAN;
-       sec->last_write = req;
-       blkfront_aio_write(req);
+again:
+       if (secv == NULL) {
+         secv = calloc(1,sizeof(struct sectorv));
+         secv->num[0] = *num;
+         secv->sec[0] = sec;
+       } else if (secv->head < MAX_IO_COALESCE && (secv->num[secv->head] + mf->info.sector_size == *num)) {
+           secv->head++;
+           secv->num[secv->head] = *num;
+           secv->sec[secv->head] = sec;
+       } else {
+          flush_secv(mf, secv);
+          secv = NULL;
+          goto again; 
+       }
     }
   }
+  if (secv)
+    flush_secv(mf, secv);
 }
 
 /* Write database metadata to the first sector of the block device. */

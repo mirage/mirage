@@ -67,7 +67,7 @@ struct sqlite3_mir_file {
 };
 
 static void 
-blkfront_aio_sync_cb(struct blkfront_aiocb *aiocb, int ret)
+blkfront_aio_sync_cb(struct blkfront_aiocbv *aiocb, int ret)
 {
   free(aiocb);
   return;
@@ -77,9 +77,8 @@ static void
 issueWriteBarrier(struct sqlite3_mir_file *mf)
 {
    if (mf->info.barrier > 0) {
-     struct blkfront_aiocb *req;
-     req = malloc(sizeof (struct blkfront_aiocb));
-     bzero(req, sizeof(struct blkfront_aiocb));
+     struct blkfront_aiocbv *req;
+     req = calloc(1, sizeof (struct blkfront_aiocbv));
      req->aio_dev = mf->dev;
      req->aio_cb = blkfront_aio_sync_cb;
      blkfront_aio_push_operation(req, BLKIF_OP_WRITE_BARRIER);
@@ -121,16 +120,15 @@ sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *
     sec = (struct sector *)ght_get(mf->hash, sizeof(uint64_t), &off);
     if (!sec) {
       int rc;
-      struct blkfront_aiocb *req = malloc(sizeof (struct blkfront_aiocb));
-      bzero(req, sizeof(struct blkfront_aiocb));
+      struct blkfront_aiocbv *req = calloc(1, sizeof (struct blkfront_aiocbv));
       req->aio_dev = mf->dev;
-      req->aio_buf = _xmalloc(PAGE_SIZE, PAGE_SIZE);
+      req->aio_bufv[0] = _xmalloc(PAGE_SIZE, PAGE_SIZE);
       req->aio_nbytes = PAGE_SIZE;
       req->aio_offset = off;
       blkfront_read(req);
       sec = calloc(1,sizeof (struct sector));
       sec->state = BUF_CLEAN;
-      sec->buf = req->aio_buf;
+      sec->buf = req->aio_bufv[0];
       rc = ght_insert(mf->hash, sec, sizeof(uint64_t), &off);
       BUG_ON(rc < 0);
       free(req);
@@ -168,17 +166,20 @@ static void
 flush_secv(struct sqlite3_mir_file *mf, struct sectorv *secv)
 {
   struct blkfront_aiocbv *req;
-  req = calloc(1,sizeof (struct blkfront_aiocb));
+  req = calloc(1,sizeof (struct blkfront_aiocbv));
   req->aio_dev = mf->dev;
+  SQLDEBUG("flush_secv: hd=%d ");
   for (int i=0; i <= secv->head; i++) {
     secv->sec[i]->state = BUF_CLEAN;
     secv->sec[i]->last_write = req;
     req->aio_bufv[i] = secv->sec[i]->buf;
+    SQLDEBUG("off%d=%Lu %p ",i,secv->num[i],secv->sec[i]->buf);
   }
   req->aio_nbytes = PAGE_SIZE * (secv->head+1);
   req->aio_offset = secv->num[0];
   req->data = secv;
   req->aio_cb = sector_aio_cb;
+  SQLDEBUG("\n");
   blkfront_aio_writev(req);
 }
 
@@ -198,7 +199,7 @@ again:
          secv = calloc(1,sizeof(struct sectorv));
          secv->num[0] = *num;
          secv->sec[0] = sec;
-       } else if (secv->head < MAX_IO_COALESCE && (secv->num[secv->head] + mf->info.sector_size == *num)) {
+       } else if (secv->head < MAX_IO_COALESCE && (secv->num[secv->head] + PAGE_SIZE == *num)) {
            secv->head++;
            secv->num[secv->head] = *num;
            secv->sec[secv->head] = sec;

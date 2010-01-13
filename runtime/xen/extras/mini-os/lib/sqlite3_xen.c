@@ -50,8 +50,8 @@ struct db_metadata {
 #define BUF_CLOSED 4 /* buf is finished, so free it when AIO finishes */
 
 struct sector {
-  int state;
-  unsigned char *buf;
+  uint8_t state;
+  uint8_t *buf;
   struct blkfront_aiocbv *last_write;  /* last issued active aio write */
 };
  
@@ -247,7 +247,7 @@ mirBufferRead(sqlite3_file *id, void *pBuf, int amt, sqlite3_int64 offset)
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
   int ssize = PAGE_SIZE;
   int sector_offset = offset % ssize;
-  unsigned char *buf = pBuf;
+  uint8_t *buf = pBuf;
   SQLDEBUG("mirBufRead: %s off=%Lu amt=%Lu fsize=%Lu\n", mf->meta->name, offset, amt, mf->meta->size);
  
   if (sector_offset) {
@@ -291,7 +291,7 @@ mirBufferAppend(sqlite3_file *id, const void *pBuf, int amt, sqlite3_int64 offse
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
   int ssize = PAGE_SIZE;
   int sector_offset = offset % ssize;
-  const unsigned char *buf = pBuf;
+  const uint8_t *buf = pBuf;
   SQLDEBUG("mirBufAppend: %s off=%Lu amt=%Lu fsize=%Lu\n", mf->meta->name, offset, amt, mf->meta->size);
   //ASSERT(offset + amt > mf->meta->size);
  

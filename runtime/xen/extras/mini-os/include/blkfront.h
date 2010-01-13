@@ -3,25 +3,10 @@
 #include <mini-os/types.h>
 struct blkfront_dev;
 
-struct blkfront_aiocb
-{
-    struct blkfront_dev *aio_dev;
-    uint8_t *aio_buf;
-    size_t aio_nbytes;
-    off_t aio_offset;
-    size_t total_bytes;
-    uint8_t is_write;
-    void *data;
-
-    grant_ref_t gref[BLKIF_MAX_SEGMENTS_PER_REQUEST];
-    int n;
-
-    void (*aio_cb)(struct blkfront_aiocb *aiocb, int ret);
-};
-
 struct blkfront_aiocbv
 {
     struct blkfront_dev *aio_dev;
+    void (*aio_cb)(struct blkfront_aiocbv *aiocb, int ret);
     uint8_t *aio_bufv[BLKIF_MAX_SEGMENTS_PER_REQUEST];
     size_t aio_nbytes;
     off_t aio_offset;
@@ -32,7 +17,6 @@ struct blkfront_aiocbv
     grant_ref_t gref[BLKIF_MAX_SEGMENTS_PER_REQUEST];
     int n;
 
-    void (*aio_cb)(struct blkfront_aiocbv *aiocbv, int ret);
 };
 
 struct blkfront_info
@@ -46,18 +30,14 @@ struct blkfront_info
 };
 
 struct blkfront_dev *init_blkfront(char *nodename, struct blkfront_info *info);
-void blkfront_block_until(struct blkfront_dev *dev, int (*fn)(void *), void *data);
 int blkfront_open(struct blkfront_dev *dev);
-void blkfront_aio(struct blkfront_aiocb *, int);
 void blkfront_aiov(struct blkfront_aiocbv *, int);
-#define blkfront_aio_read(aiocbp) blkfront_aio(aiocbp, 0)
-#define blkfront_aio_write(aiocbp) blkfront_aio(aiocbp, 1)
 #define blkfront_aio_readv(aiocbp) blkfront_aiov(aiocbp, 0)
 #define blkfront_aio_writev(aiocbp) blkfront_aiov(aiocbp, 1)
-void blkfront_io(struct blkfront_aiocb *aiocbp, int write);
+void blkfront_io(struct blkfront_aiocbv *aiocbp, int write);
 #define blkfront_read(aiocbp) blkfront_io(aiocbp, 0)
 #define blkfront_write(aiocbp) blkfront_io(aiocbp, 1)
-void blkfront_aio_push_operation(struct blkfront_aiocb *aiocbp, uint8_t op);
+void blkfront_aio_push_operation(struct blkfront_aiocbv *aiocbp, uint8_t op);
 int blkfront_aio_poll(struct blkfront_dev *dev);
 void blkfront_sync(struct blkfront_dev *dev);
 void shutdown_blkfront(struct blkfront_dev *dev);

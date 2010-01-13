@@ -57,24 +57,6 @@ struct blkfront_dev {
     int fd;
 };
 
-void blkfront_block_until(struct blkfront_dev *dev, int (*fn)(void *), void *data)
-{
-    DEFINE_WAIT(w);
-    unsigned long flags;
-    local_irq_save(flags);
-    while (1) {
-        blkfront_aio_poll(dev);
-        if (fn(data))
-            break;
-        add_waiter(w, blkfront_queue);
-        local_irq_restore(flags);
-        schedule();
-        local_irq_save(flags);
-    }
-    remove_waiter(w);
-    local_irq_restore(flags);
-}
-
 void blkfront_handler(evtchn_port_t port, struct pt_regs *regs, void *data)
 {
     struct blkfront_dev *dev = data;
@@ -385,79 +367,19 @@ void blkfront_aiov(struct blkfront_aiocbv *aiocbp, int write)
 }
 
 
-/* Issue an aio */
-void blkfront_aio(struct blkfront_aiocb *aiocbp, int write)
-{
-    struct blkfront_dev *dev = aiocbp->aio_dev;
-    struct blkif_request *req;
-    RING_IDX i;
-    int notify;
-    int n, j;
-    uintptr_t start, end;
-
-    // Can't io at non-sector-aligned location
-    ASSERT(!(aiocbp->aio_offset & (dev->info.sector_size-1)));
-    // Can't io non-sector-sized amounts
-    ASSERT(!(aiocbp->aio_nbytes & (dev->info.sector_size-1)));
-    // Can't io non-sector-aligned buffer
-    ASSERT(!((uintptr_t) aiocbp->aio_buf & (dev->info.sector_size-1)));
-
-    start = (uintptr_t)aiocbp->aio_buf & PAGE_MASK;
-    end = ((uintptr_t)aiocbp->aio_buf + aiocbp->aio_nbytes + PAGE_SIZE - 1) & PAGE_MASK;
-    aiocbp->n = n = (end - start) / PAGE_SIZE;
-
-    /* qemu's IDE max multsect is 16 (8KB) and SCSI max DMA was set to 32KB,
-     * so max 44KB can't happen */
-    ASSERT(n <= BLKIF_MAX_SEGMENTS_PER_REQUEST);
-
-    blkfront_wait_slot(dev);
-    i = dev->ring.req_prod_pvt;
-    req = RING_GET_REQUEST(&dev->ring, i);
-
-    req->operation = write ? BLKIF_OP_WRITE : BLKIF_OP_READ;
-    req->nr_segments = n;
-    req->handle = dev->handle;
-    req->id = (uintptr_t) aiocbp;
-    req->sector_number = aiocbp->aio_offset / 512;
-
-    for (j = 0; j < n; j++) {
-        req->seg[j].first_sect = 0;
-        req->seg[j].last_sect = PAGE_SIZE / 512 - 1;
-    }
-    req->seg[0].first_sect = ((uintptr_t)aiocbp->aio_buf & ~PAGE_MASK) / 512;
-    req->seg[n-1].last_sect = (((uintptr_t)aiocbp->aio_buf + aiocbp->aio_nbytes - 1) & ~PAGE_MASK) / 512;
-    for (j = 0; j < n; j++) {
-	uintptr_t data = start + j * PAGE_SIZE;
-        if (!write) {
-            /* Trigger CoW if needed */
-            *(char*)(data + (req->seg[j].first_sect << 9)) = 0;
-            barrier();
-        }
-	aiocbp->gref[j] = req->seg[j].gref =
-            gnttab_grant_access(dev->dom, virtual_to_mfn(data), write);
-    }
-
-    dev->ring.req_prod_pvt = i + 1;
-
-    wmb();
-    RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&dev->ring, notify);
-
-    if(notify) notify_remote_via_evtchn(dev->evtchn);
-}
-
-static void blkfront_aio_cb(struct blkfront_aiocb *aiocbp, int ret)
+static void blkfront_aio_cb(struct blkfront_aiocbv *aiocbp, int ret)
 {
     aiocbp->data = (void*) 1;
 }
 
-void blkfront_io(struct blkfront_aiocb *aiocbp, int write)
+void blkfront_io(struct blkfront_aiocbv *aiocbp, int write)
 {
     unsigned long flags;
     DEFINE_WAIT(w);
 
     ASSERT(!aiocbp->aio_cb);
     aiocbp->aio_cb = blkfront_aio_cb;
-    blkfront_aio(aiocbp, write);
+    blkfront_aiov(aiocbp, write);
     aiocbp->data = NULL;
 
     local_irq_save(flags);
@@ -496,7 +418,7 @@ static void blkfront_push_operation(struct blkfront_dev *dev, uint8_t op, uint64
     if (notify) notify_remote_via_evtchn(dev->evtchn);
 }
 
-void blkfront_aio_push_operation(struct blkfront_aiocb *aiocbp, uint8_t op)
+void blkfront_aio_push_operation(struct blkfront_aiocbv *aiocbp, uint8_t op)
 {
     struct blkfront_dev *dev = aiocbp->aio_dev;
     blkfront_push_operation(dev, op, (uintptr_t) aiocbp);
@@ -551,7 +473,7 @@ moretodo:
     nr_consumed = 0;
     while ((cons != rp))
     {
-        struct blkfront_aiocb *aiocbp;
+        struct blkfront_aiocbv *aiocbp;
         int status;
 
 	rsp = RING_GET_RESPONSE(&dev->ring, cons);

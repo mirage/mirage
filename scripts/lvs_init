@@ -4,7 +4,7 @@
 
 SUDO=${SUDO:-sudo}
 VG=${VG:-brolga-0}
-SIZE=32 # in megabytes
+SIZE=64 # in megabytes
 DBNAME=guest-db
 JONAME=guest-db-journal
 DB=$(readlink -f "/dev/${VG}/${DBNAME}")

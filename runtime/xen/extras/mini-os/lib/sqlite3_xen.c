@@ -62,7 +62,6 @@ struct sqlite3_mir_file {
     struct blkfront_dev *dev;
     struct blkfront_info info;
     struct db_metadata *meta;
-    void *aiobuf;
     ght_hash_table_t *hash;
 };
 
@@ -407,11 +406,12 @@ static int
 mirClose(struct sqlite3_file *id)
 {
   struct sqlite3_mir_file *mf = (struct sqlite3_mir_file *)id;
+  sectorFlushBuffers(mf);
+#if 0
   ght_iterator_t i;
   const void *p_key;
   void *p_e;
   SQLDEBUG("mirClose: \n");
-  sectorFlushBuffers(mf);
   for (p_e = ght_first(mf->hash, &i, &p_key); p_e; p_e = ght_next(mf->hash, &i, &p_key)) {
     struct sector *sec = (struct sector *)p_e;
     if (sec->last_write)
@@ -424,9 +424,8 @@ mirClose(struct sqlite3_file *id)
   ght_finalize(mf->hash);
   if (mf->meta)
     free(mf->meta);
-  if (mf->aiobuf)
-    free(mf->aiobuf);
   SQLDEBUG("mirClose: OK\n");
+#endif
   return SQLITE_OK;
 }
 
@@ -475,8 +474,7 @@ static const sqlite3_io_methods mirIoJoMethods = {
 ** OpenExclusive().
 */
 
-static struct blkfront_dev *jdb;
-static struct blkfront_info jdbi;
+struct sqlite3_mir_file *jofile = NULL;
 
 static int mirOpen(
   sqlite3_vfs *pVfs,           /* The VFS for which this is the xOpen method */
@@ -523,21 +521,22 @@ static int mirOpen(
     ASSERT(nodename != NULL);
 
     SQLDEBUG(" OK\n");
-    pMirFile->aiobuf = _xmalloc(8192, 512);
-    pMirFile->hash = ght_create(128);
     if (eType == SQLITE_OPEN_MAIN_DB) {
       pMirFile->dev = init_blkfront(nodename, &pMirFile->info);
       /* XXX disable barriers for now */
       pMirFile->info.barrier = 0;
       pMirFile->pMethods = &mirIoMethods;
-    } else {
-      if (!jdb)
-        jdb = init_blkfront(nodename, &jdbi);
-      pMirFile->pMethods = &mirIoJoMethods;
-      pMirFile->dev = jdb;
-      bcopy(&jdbi, &pMirFile->info, sizeof(jdbi));
+      pMirFile->hash = ght_create(128);
+      pMirFile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
+    } else if (!jofile) {
+      jofile = calloc(1, sizeof(struct sqlite3_mir_file));
+      jofile->dev = init_blkfront(nodename, &jofile->info);
+      jofile->pMethods = &mirIoJoMethods;
+      jofile->hash = ght_create(128);
+      jofile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
     }
-    pMirFile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
+    if (eType == SQLITE_OPEN_MAIN_JOURNAL) 
+      bcopy(jofile, pMirFile, sizeof(struct sqlite3_mir_file));
     readMetadata(pMirFile);
     if (strcmp(zPath, pMirFile->meta->name)) {
       strcpy(pMirFile->meta->name, zPath);

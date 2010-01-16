@@ -1,8 +1,6 @@
 open Sqlite3
 open Printf
 
-let sizes = [ 4; 256; 1024; 2048 ]
-
 let cmd ?(cb=(fun _ _ -> printf "???\n%!")) db sql =
   match exec db sql ~cb with
   | Rc.OK -> ()
@@ -12,7 +10,7 @@ let with_time i label fn =
   let t1 = Mir.gettimeofday () in
   fn ();
   let t2 = Mir.gettimeofday () in
-  printf "%s,%d,%s,%f\n%!" Sys.os_type i label (t2 -. t1)
+  printf "%s,%d,%s,%.3f\n%!" Sys.os_type i label (t2 -. t1)
 
 let with_trans db fn =
   cmd db "begin";
@@ -71,9 +69,19 @@ let _ =
     let db = db_open "test" in
     cmd db "CREATE TABLE IF NOT EXISTS foo (a TEXT, b INTEGER, c FLOAT)";
     delete_all db;
+(*
     List.iter (fun i ->   
       List.iter (fun sz -> 
         with_time i (sprintf "%d" sz) 
           (fun () -> with_trans db (ins_up_del (insert_large_mass sz) i))) sizes
     ) sets
+*)
+   let i = 500 in
+   let sizes = [ 4; 256; 1024; 2048; 3072; 4096; 6144; 8192 ] in
+
+   
+    List.iter (fun sz ->
+       with_time i (sprintf "%d" sz)
+         (fun () -> ins_up_del (insert_large_mass sz) i db)) sizes
+    
   with e -> (print_endline (Printexc.to_string e); raise e)

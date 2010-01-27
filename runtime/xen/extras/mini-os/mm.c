@@ -41,6 +41,7 @@
 #include <mini-os/types.h>
 #include <mini-os/lib.h>
 #include <mini-os/xmalloc.h>
+#include <mini-os/errno.h>
 
 #ifdef MM_DEBUG
 #define DEBUG(_f, _a...) \
@@ -437,3 +438,29 @@ void sanity_check(void)
         }
     }
 }
+
+int allocate_va_mapping(unsigned long va, unsigned long nr_pages)
+{
+#define MAX_MAP_PAGES (64)
+	
+	unsigned long mfns[MAX_MAP_PAGES];
+	int i;
+
+	if (nr_pages > MAX_MAP_PAGES)
+		return -EINVAL;
+	
+	for (i=0;i<nr_pages;i++)
+	{
+		unsigned long cva = alloc_pages(0);
+
+		if (cva == 0)
+			return -ENOMEM;
+		
+		mfns[i] = virt_to_mfn(cva);
+		
+	}
+	
+	do_map_frames(va, mfns, nr_pages,1,1,DOMID_SELF,NULL,L1_PROT);
+	return 0;
+}
+

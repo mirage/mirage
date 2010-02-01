@@ -90,6 +90,11 @@ void caml_gc_message (int, char *, uintnat);
 
 char *caml_aligned_malloc (asize_t, int, void **);
 
+/* Use Xen static virtual memory layout */
+#ifdef SYS_xen
+#define USE_STATIC_VMEM
+#endif
+
 #ifdef DEBUG
 #ifdef ARCH_SIXTYFOUR
 #define Debug_tag(x) (0xD700D7D7D700D6D7ul \

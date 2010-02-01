@@ -89,8 +89,13 @@ void caml_set_minor_heap_size (asize_t size)
     caml_raise_out_of_memory();
 
   if (caml_young_start != NULL){
+#if 0
     caml_page_table_remove(In_young, caml_young_start, caml_young_end);
     free (caml_young_base);
+#else
+    printf("caml_set_minor_heap_size: resize unsupported\n");
+    caml_raise_out_of_memory();
+#endif
   }
   caml_young_base = new_heap_base;
   caml_young_start = new_heap;

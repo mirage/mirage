@@ -13,6 +13,7 @@ let _ =
     with_time sz sz (fun () -> 
       for i = 0 to 100000000 do
         let p = String.create sz in
-      done;
+        ()
+      done
     )
   ) sizes

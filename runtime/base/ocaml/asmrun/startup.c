@@ -36,7 +36,7 @@
 #endif
 
 extern int caml_parser_trace;
-CAMLexport header_t caml_atom_table[256];
+CAMLexport header_t *caml_atom_table;
 char * caml_code_area_start, * caml_code_area_end;
 
 /* Initialize the atom table and the static data and code area limits. */
@@ -47,7 +47,8 @@ static void init_atoms(void)
 {
   extern struct segment caml_data_segments[], caml_code_segments[];
   int i;
-
+  void *block;
+  caml_atom_table = caml_aligned_malloc(sizeof(header_t) * 256, 0, &block);
   for (i = 0; i < 256; i++) {
     caml_atom_table[i] = Make_header(0, i, Caml_white);
   }

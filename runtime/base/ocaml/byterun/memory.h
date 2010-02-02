@@ -59,11 +59,7 @@ color_t caml_allocation_color (void *hp);
 
 /* 64 bits: Represent page table as a sparse hash table */
 int caml_page_table_lookup(void * addr);
-#ifdef USE_STATIC_VMEM
-#define Classify_addr(a) (((unsigned long)(a) >= 0xFFFF880000000000) ? In_heap : caml_page_table_lookup((void *)a))
-#else
 #define Classify_addr(a) (caml_page_table_lookup((void *)(a)))
-#endif
 
 #else
 

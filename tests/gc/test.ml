@@ -8,7 +8,7 @@ let with_time i label fn =
 
 let _ =
   (* Gc.set { (Gc.get ()) with Gc.verbose = 0x3 };; *)
-  let sizes = [10000; ] in
+  let sizes = [100; 500; 1000; 5000; 10000 ] in
   List.iter (fun sz ->
     with_time sz sz (fun () -> 
       for i = 0 to 100000000 do

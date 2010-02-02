@@ -31,7 +31,6 @@ void _fini(void)
 extern char __app_bss_start, __app_bss_end;
 static void call_main(void *p)
 {
-    char *c, quote;
     int argc;
     char **argv;
     char *envp[] = { NULL };
@@ -48,48 +47,9 @@ static void call_main(void *p)
 
     argc = 1;
 
-#define PARSE_ARGS(ARGS,START,QUOTE,END) \
-    c = ARGS; \
-    quote = 0; \
-    while (*c) { \
-	if (*c != ' ') { \
-	    START; \
-	    while (*c) { \
-		if (quote) { \
-		    if (*c == quote) { \
-			quote = 0; \
-			QUOTE; \
-			continue; \
-		    } \
-		} else if (*c == ' ') \
-		    break; \
-		if (*c == '"' || *c == '\'') { \
-		    quote = *c; \
-		    QUOTE; \
-		    continue; \
-		} \
-		c++; \
-	    } \
-	} else { \
-            END; \
-	    while (*c == ' ') \
-		c++; \
-	} \
-    } \
-    if (quote) {\
-	printk("Warning: unterminated quotation %c\n", quote); \
-	quote = 0; \
-    }
-#define PARSE_ARGS_COUNT(ARGS) PARSE_ARGS(ARGS, argc++, c++, )
-#define PARSE_ARGS_STORE(ARGS) PARSE_ARGS(ARGS, argv[argc++] = c, memmove(c, c + 1, strlen(c + 1) + 1), *c++ = 0)
-
-    PARSE_ARGS_COUNT((char*)start_info.cmd_line);
-
     argv = alloca((argc + 1) * sizeof(char *));
     argv[0] = "main";
     argc = 1;
-
-    PARSE_ARGS_STORE((char*)start_info.cmd_line)
 
     argv[argc] = NULL;
 

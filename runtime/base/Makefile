@@ -8,6 +8,11 @@ OUT = ../libmiragerun_$(MODE).a
 OBJ = $(CURDIR)/obj-$(MODE)
 LIBMIR = $(CURDIR)/mir
 
+ASMRUN_debug = libasmrund.a
+ASMRUN_normal = libasmrun.a
+ASMRUN = normal
+ASMRUNLIB = $(ASMRUN_$(ASMRUN))
+
 .PHONY: all
 all: $(OUT)
 	@ :
@@ -16,16 +21,16 @@ $(OBJ)/.stamp:
 	cp -R ocaml/ $(OBJ)/
 	@touch $@
 
-$(OUT): $(OBJ)/asmrun/libasmrun.a $(LIBMIR)/obj-$(MODE)/libmir.a
-	cp $(OBJ)/asmrun/libasmrun.a $@
+$(OUT): $(OBJ)/asmrun/$(ASMRUNLIB) $(LIBMIR)/obj-$(MODE)/libmir.a
+	cp $(OBJ)/asmrun/$(ASMRUNLIB) $@
 	ar rc $@ $(LIBMIR)/obj-$(MODE)/*.o
 
-$(OBJ)/asmrun/libasmrun.a: $(OBJ)/.stamp
+$(OBJ)/asmrun/$(ASMRUNLIB): $(OBJ)/.stamp
 	cd $(OBJ) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
                 -cc "$(CC) $(CFLAGS) -U_FORTIFY_SOURCE"
 	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJ)/config/s.h ; )
 	sed -i -e 's,Unix,$(MODE),g' $(OBJ)/config/s.h
-	cd $(OBJ)/asmrun && $(MAKE) SYSTEM=$(MODE) libasmrun.a
+	cd $(OBJ)/asmrun && $(MAKE) SYSTEM=$(MODE) $(ASMRUNLIB)
 
 $(LIBMIR)/obj-$(MODE)/libmir.a:
 	cd $(LIBMIR) && $(MAKE) MODE=$(MODE)

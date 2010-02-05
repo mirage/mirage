@@ -176,13 +176,8 @@ struct _reent *__getreent(void)
 	_reent = &get_current()->reent;
 
 #ifndef NDEBUG
-#if defined(__x86_64__) || defined(__x86__)
     {
-#ifdef __x86_64__
 	register unsigned long sp asm ("rsp");
-#else
-	register unsigned long sp asm ("esp");
-#endif
 	if ((sp & (STACK_SIZE-1)) < STACK_SIZE / 16) {
 	    static int overflowing;
 	    if (!overflowing) {
@@ -192,7 +187,6 @@ struct _reent *__getreent(void)
 	    }
 	}
     }
-#endif
 #endif
     return _reent;
 }

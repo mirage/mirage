@@ -76,7 +76,7 @@ let _ =
           (fun () -> with_trans db (ins_up_del (insert_large_mass sz) i))) sizes
     ) sets
 *)
-   let i = 500 in
+   let i = 50000 in
    let sizes = [ 4; 256; 1024; 2048; 3072; 4096; 6144; 8192 ] in
 
    

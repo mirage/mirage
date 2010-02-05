@@ -11,7 +11,6 @@ SECTIONS
 	} = 0x9090
 
   _etext = .;			/* End of text section */
-
   .rodata : { *(.rodata) *(.rodata.*) }
   . = ALIGN(4096);
   _erodata = .;
@@ -51,7 +50,22 @@ SECTIONS
 
   _edata = .;			/* End of data section */
 
+  . = ALIGN(4096);
+  _mlstart = . ;		/* Start of ML section */
+
+  .ml : {
+       *(.mltext)
+       *(.mldata)
+       *(.mlrodata)
+  }
+
   __bss_start = .;		/* BSS */
+
+  .mlbss : {
+       *(.mlbss)
+  }
+  _mlend = . ;			/* End of ML section */
+
   .bss : {
 	*(.bss)
         *(.app.bss)

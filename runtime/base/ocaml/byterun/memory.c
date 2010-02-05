@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "fail.h"
 #include "freelist.h"
 #include "gc.h"
@@ -26,6 +27,10 @@
 #include "misc.h"
 #include "mlvalues.h"
 #include "signals.h"
+#ifdef USE_STATIC_VMEM
+#include <stdint.h>
+#include <xen/xen.h>
+#endif
 
 extern uintnat caml_percent_free;                   /* major_gc.c */
 
@@ -67,8 +72,23 @@ static struct page_table caml_page_table;
 #endif
 #define Hash(v) (((v) * HASH_FACTOR) >> caml_page_table.shift)
 
+
+#ifdef USE_STATIC_VMEM
+extern unsigned long _mlstart, _mlend;
+static unsigned long mlstart = (unsigned long)&_mlstart;
+static unsigned long mlend = (unsigned long)&_mlend;
+#endif
+
 int caml_page_table_lookup(void * addr)
 {
+#ifdef USE_STATIC_VMEM
+  if (addr >= HYPERVISOR_VIRT_END)
+    return In_heap;
+  if ((unsigned long)addr >= mlstart && (unsigned long)addr < mlend)
+    return In_static_data;
+  /* XXX need minor heap area also. In_code area is mapped to In_static_data. */
+  return 0;
+#else
   uintnat h, e;
 
   h = Hash(Page(addr));
@@ -81,6 +101,7 @@ int caml_page_table_lookup(void * addr)
     e = caml_page_table.entries[h];
     if (Page_entry_matches(e, (uintnat)addr)) return e & 0xFF;
   }
+#endif
 }
 
 int caml_page_table_initialize(mlsize_t bytesize)
@@ -143,6 +164,13 @@ static int caml_page_table_modify(uintnat page, int toclear, int toset)
 
   Assert ((page & ~Page_mask) == 0);
 
+#ifdef USE_STATIC_VMEM
+  /* All pages above HYPERVISOR_VIRT_END are part of the OCaml heap */
+  if (page >= HYPERVISOR_VIRT_END)
+    return 0;
+  else
+    printf("modify: %p %d %d\n", page, toclear, toset);
+#endif
   /* Resize to keep load factor below 1/2 */
   if (caml_page_table.occupancy * 2 >= caml_page_table.size) {
     if (caml_page_table_resize() != 0) return -1;
@@ -244,7 +272,8 @@ char *caml_alloc_for_heap (asize_t request)
 */
 void caml_free_for_heap (char *mem)
 {
-  free (Chunk_block (mem));
+  printf("free_for_heap\n");
+//  free (Chunk_block (mem));
 }
 
 /* Take a chunk of memory as argument, which must be the result of a

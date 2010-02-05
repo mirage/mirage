@@ -431,7 +431,7 @@ static pgentry_t *get_pgt(unsigned long va)
  * return a valid PTE for a given virtual address. If PTE does not exist,
  * allocate page-table pages.
  */
-pgentry_t *need_pgt(unsigned long va)
+pgentry_t *need_pgt(unsigned long va, int superpage)
 {
     unsigned long pt_mfn;
     pgentry_t *tab;
@@ -461,6 +461,13 @@ pgentry_t *need_pgt(unsigned long va)
     pt_mfn = pte_to_mfn(tab[offset]);
     tab = mfn_to_virt(pt_mfn);
     offset = l2_table_offset(va);
+
+    if (superpage)
+    {
+		ASSERT( !(tab[offset] & _PAGE_PRESENT) );
+		return &tab[offset];
+    }
+
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
         pt_pfn = virt_to_pfn(alloc_page());
@@ -571,11 +578,12 @@ void do_map_frames(unsigned long va,
 
         {
             mmu_update_t mmu_updates[todo];
+			int superpage = prot & _PAGE_PSE;
 
-            for ( i = 0; i < todo; i++, va += PAGE_SIZE, pgt++) 
+            for ( i = 0; i < todo; i++, va += PAGE_SIZE << (superpage ? 9:0), pgt++) 
             {
                 if ( !pgt || !(va & L1_MASK) )
-                    pgt = need_pgt(va);
+                    pgt = need_pgt(va, superpage);
                 
                 mmu_updates[i].ptr = virt_to_mach(pgt) | MMU_NORMAL_PT_UPDATE;
                 mmu_updates[i].val = ((pgentry_t)(mfns[(done + i) * stride] +

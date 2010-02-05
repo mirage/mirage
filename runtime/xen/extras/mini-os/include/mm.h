@@ -69,5 +69,5 @@ extern unsigned long heap, brk, heap_mapped, heap_end;
 
 int free_physical_pages(xen_pfn_t *mfns, int n);
 void fini_mm(void);
-int allocate_va_mapping(unsigned long va, unsigned long nr_pages);
+int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages);
 #endif /* _MM_H_ */

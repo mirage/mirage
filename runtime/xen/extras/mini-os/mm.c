@@ -439,28 +439,32 @@ void sanity_check(void)
     }
 }
 
-int allocate_va_mapping(unsigned long va, unsigned long nr_pages)
-{
-#define MAX_MAP_PAGES (64)
-	
-	unsigned long mfns[MAX_MAP_PAGES];
-	int i;
 
-	if (nr_pages > MAX_MAP_PAGES)
-		return -EINVAL;
+int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages)
+{
+	int i;
+	int order = superpages ? 9:0;
 	
-	for (i=0;i<nr_pages;i++)
+	for (i=0; i<nr_pages; i++)
 	{
-		unsigned long cva = alloc_pages(0);
+		int j = 0;
+		unsigned long mfns[1];
+		unsigned long cva = alloc_contig_pages(order,0);
 
 		if (cva == 0)
+		{
+			DEBUG("%s: alloc_contig_pages failed [i=%d]\n",
+				 __func__,i);
 			return -ENOMEM;
+		}
+
+		mfns[0] = virt_to_mfn(cva);
 		
-		mfns[i] = virt_to_mfn(cva);
-		
+		do_map_frames(va, mfns, 1, 1, 0, DOMID_SELF, 0, L1_PROT |( superpages ? _PAGE_PSE : 0));
+
+		va += ((1<<order)<<PAGE_SHIFT);
 	}
-	
-	do_map_frames(va, mfns, nr_pages,1,1,DOMID_SELF,NULL,L1_PROT);
+
 	return 0;
 }
 

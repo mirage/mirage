@@ -439,11 +439,17 @@ void sanity_check(void)
     }
 }
 
-
 int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages)
 {
 	int i;
 	int order = superpages ? 9:0;
+
+	if (va & ((1UL<<order)<<PAGE_SHIFT)-1)
+		return -EINVAL;
+
+	for (i=0; i<(nr_pages<<order); i++)
+		if(need_pgt(va + (i<<PAGE_SHIFT), 0, 0))
+			return -EADDRINUSE;
 	
 	for (i=0; i<nr_pages; i++)
 	{
@@ -462,7 +468,7 @@ int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages
 		
 		do_map_frames(va, mfns, 1, 1, 0, DOMID_SELF, 0, L1_PROT |( superpages ? _PAGE_PSE : 0));
 
-		va += ((1<<order)<<PAGE_SHIFT);
+		va += ((1UL<<order)<<PAGE_SHIFT);
 	}
 
 	return 0;

@@ -431,20 +431,23 @@ static pgentry_t *get_pgt(unsigned long va)
  * return a valid PTE for a given virtual address. If PTE does not exist,
  * allocate page-table pages.
  */
-pgentry_t *need_pgt(unsigned long va, int superpage)
+pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
 {
     unsigned long pt_mfn;
     pgentry_t *tab;
     unsigned long pt_pfn;
     unsigned offset;
 
+    /* checks only applicable to 4K va pages */
+    ASSERT(((do_alloc == 0) && (superpage == 1)) == 0);
+
     tab = (pgentry_t *)start_info.pt_base;
     pt_mfn = virt_to_mfn(start_info.pt_base);
-
     offset = l4_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
-        pt_pfn = virt_to_pfn(alloc_page());
+	if (do_alloc == 0) return NULL;
+	pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L3_FRAME);
     }
     ASSERT(tab[offset] & _PAGE_PRESENT);
@@ -454,6 +457,7 @@ pgentry_t *need_pgt(unsigned long va, int superpage)
     offset = l3_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) ) 
     {
+	if (do_alloc == 0) return NULL;
         pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L2_FRAME);
     }
@@ -462,14 +466,12 @@ pgentry_t *need_pgt(unsigned long va, int superpage)
     tab = mfn_to_virt(pt_mfn);
     offset = l2_table_offset(va);
 
-    if (superpage)
-    {
-		ASSERT( !(tab[offset] & _PAGE_PRESENT) );
-		return &tab[offset];
-    }
+    if (superpage || tab[offset] & _PAGE_PSE)
+	    return &tab[offset];
 
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
+	if (do_alloc == 0) return NULL;
         pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L1_FRAME);
     }
@@ -583,7 +585,7 @@ void do_map_frames(unsigned long va,
             for ( i = 0; i < todo; i++, va += PAGE_SIZE << (superpage ? 9:0), pgt++) 
             {
                 if ( !pgt || !(va & L1_MASK) )
-                    pgt = need_pgt(va, superpage);
+                    pgt = need_pgt(va, superpage, 1);
                 
                 mmu_updates[i].ptr = virt_to_mach(pgt) | MMU_NORMAL_PT_UPDATE;
                 mmu_updates[i].val = ((pgentry_t)(mfns[(done + i) * stride] +

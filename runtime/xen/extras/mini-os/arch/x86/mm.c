@@ -699,7 +699,7 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
     unsigned long in_frames[1UL << order], out_frames, mfn;
     multicall_entry_t call[1UL << order];
     unsigned int i, num_pages = 1UL << order;
-    int ret, exch_success;
+    int ret, exch_success, contig_mfn_range = 1;
 
     /* pass in num_pages 'extends' of size 1 and
      * request 1 extend of size 'order */
@@ -734,7 +734,17 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
         return 0;
     }
 
-    /* set up arguments for exchange hyper call */
+	/* return va immediately if underlying mfn range is contiguous */
+	mfn = virt_to_mfn(in_va);
+
+	for (i=1; i<num_pages; i++)
+		if (virt_to_mfn(in_va + (i<<PAGE_SHIFT)) != mfn + i)
+			contig_mfn_range = 0;
+
+	if (contig_mfn_range)
+		return in_va;
+
+	/* set up arguments for exchange hyper call */
     set_xen_guest_handle(exchange.in.extent_start, in_frames);
     set_xen_guest_handle(exchange.out.extent_start, &out_frames);
 

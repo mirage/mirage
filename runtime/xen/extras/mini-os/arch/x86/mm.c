@@ -431,20 +431,23 @@ static pgentry_t *get_pgt(unsigned long va)
  * return a valid PTE for a given virtual address. If PTE does not exist,
  * allocate page-table pages.
  */
-pgentry_t *need_pgt(unsigned long va)
+pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
 {
     unsigned long pt_mfn;
     pgentry_t *tab;
     unsigned long pt_pfn;
     unsigned offset;
 
+    /* checks only applicable to 4K va pages */
+    ASSERT(((do_alloc == 0) && (superpage == 1)) == 0);
+
     tab = (pgentry_t *)start_info.pt_base;
     pt_mfn = virt_to_mfn(start_info.pt_base);
-
     offset = l4_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
-        pt_pfn = virt_to_pfn(alloc_page());
+	if (do_alloc == 0) return NULL;
+	pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L3_FRAME);
     }
     ASSERT(tab[offset] & _PAGE_PRESENT);
@@ -454,6 +457,7 @@ pgentry_t *need_pgt(unsigned long va)
     offset = l3_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) ) 
     {
+	if (do_alloc == 0) return NULL;
         pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L2_FRAME);
     }
@@ -461,8 +465,13 @@ pgentry_t *need_pgt(unsigned long va)
     pt_mfn = pte_to_mfn(tab[offset]);
     tab = mfn_to_virt(pt_mfn);
     offset = l2_table_offset(va);
+
+    if (superpage || tab[offset] & _PAGE_PSE)
+	    return &tab[offset];
+
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
+	if (do_alloc == 0) return NULL;
         pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L1_FRAME);
     }
@@ -571,11 +580,12 @@ void do_map_frames(unsigned long va,
 
         {
             mmu_update_t mmu_updates[todo];
+			int superpage = prot & _PAGE_PSE;
 
-            for ( i = 0; i < todo; i++, va += PAGE_SIZE, pgt++) 
+            for ( i = 0; i < todo; i++, va += PAGE_SIZE << (superpage ? 9:0), pgt++) 
             {
                 if ( !pgt || !(va & L1_MASK) )
-                    pgt = need_pgt(va);
+                    pgt = need_pgt(va, superpage, 1);
                 
                 mmu_updates[i].ptr = virt_to_mach(pgt) | MMU_NORMAL_PT_UPDATE;
                 mmu_updates[i].val = ((pgentry_t)(mfns[(done + i) * stride] +
@@ -689,7 +699,7 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
     unsigned long in_frames[1UL << order], out_frames, mfn;
     multicall_entry_t call[1UL << order];
     unsigned int i, num_pages = 1UL << order;
-    int ret, exch_success;
+    int ret, exch_success, contig_mfn_range = 1;
 
     /* pass in num_pages 'extends' of size 1 and
      * request 1 extend of size 'order */
@@ -724,7 +734,17 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
         return 0;
     }
 
-    /* set up arguments for exchange hyper call */
+	/* return va immediately if underlying mfn range is contiguous */
+	mfn = virt_to_mfn(in_va);
+
+	for (i=1; i<num_pages; i++)
+		if (virt_to_mfn(in_va + (i<<PAGE_SHIFT)) != mfn + i)
+			contig_mfn_range = 0;
+
+	if (contig_mfn_range)
+		return in_va;
+
+	/* set up arguments for exchange hyper call */
     set_xen_guest_handle(exchange.in.extent_start, in_frames);
     set_xen_guest_handle(exchange.out.extent_start, &out_frames);
 

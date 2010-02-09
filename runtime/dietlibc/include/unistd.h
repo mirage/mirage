@@ -105,7 +105,6 @@ int pipe(int filedes[2]) __THROW;
 
 char *ttyname (int desc) __THROW;
 
-int brk(void *end_data_segment) __THROW;
 void *sbrk(ptrdiff_t increment) __THROW;
 
 int gethostname(char *name, size_t len) __THROW;

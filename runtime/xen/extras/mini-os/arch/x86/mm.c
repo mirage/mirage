@@ -480,6 +480,9 @@ pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
     tab = mfn_to_virt(pt_mfn);
 
     offset = l1_table_offset(va);
+
+    if (do_alloc == 0 && !(tab[offset] & _PAGE_PRESENT))
+	return NULL;
     return &tab[offset];
 }
 

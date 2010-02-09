@@ -3,9 +3,8 @@ ARCH=x86_64
 OBJDIR=bin-$(ARCH)
 ILIBDIR=$(LIBDIR)-$(ARCH)
 
-WHAT= 	$(OBJDIR)/dietlibc.a $(OBJDIR)/liblatin1.a \
-	$(OBJDIR)/libcompat.a $(OBJDIR)/libm.a \
-	$(OBJDIR)/libcrypt.a 
+WHATBASE= dietlibc.a liblatin1.a libcompat.a libm.a libcrypt.a
+WHAT= $(WHATBASE:%=$(OBJDIR)/%)
 
 all: $(OBJDIR) $(WHAT)
 
@@ -107,9 +106,15 @@ clean:
 	rm -f *.o *.a t
 	rm -rf bin-* pic-*
 
-install-headers:
-	for i in `find include -name \*.h`; do install -m 644 -D $$i $(DESTDIR)$(prefix)/$$i; done
+prefix ?= ../inst-x86_64
 
+install-headers:
+	for i in `find include -name \*.h`; do install -m 644 -D $$i $(prefix)/$$i; done
+
+install-libs:
+	for i in $(WHATBASE); do install -m 644 -D $(OBJDIR)/$$i $(prefix)/lib/$$i; done
+
+install: install-headers install-libs
 
 .PHONY: x86_64 
 

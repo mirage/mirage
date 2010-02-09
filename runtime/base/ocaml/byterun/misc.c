@@ -72,7 +72,7 @@ CAMLexport void caml_fatal_error_arg2 (char *fmt1, char *arg1,
 
 #ifdef USE_STATIC_VMEM
 #include <xen/xen.h>
-extern int allocate_va_mapping(unsigned long va, unsigned long nr_pages);
+extern int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages);
 static unsigned long ocaml_major_brk = HYPERVISOR_VIRT_END;
 #endif
 
@@ -85,19 +85,11 @@ char *caml_aligned_malloc (asize_t size, int modulo, void **block)
   unsigned long nr_pages = (size + Page_size + Page_size) / Page_size;
   asize_t x;
   int rc;
-#if 0
-  XXX allocate_va_mapping currently broken for nr_pages>1
-  rc = allocate_va_mapping(ocaml_major_brk, nr_pages);
-  if (rc != 0) return NULL;
-#else
-  for (x=0; x<nr_pages; x++) {
-    rc=allocate_va_mapping(ocaml_major_brk + (x * Page_size), 1);
-    if (rc != 0) {
-      printf("allocate_va_mapping: failed %p %d\n", ocaml_major_brk, x);
-      return NULL; 
-    }
+  rc = allocate_va_mapping(ocaml_major_brk, nr_pages, 0);
+  if (rc != 0) {
+    printf("allocate_va_mapping: failed %p %d rc=%d\n", ocaml_major_brk, x, rc);
+    return NULL; 
   }
-#endif
   raw_mem = (char *)ocaml_major_brk;
   ocaml_major_brk += nr_pages * Page_size;
 #else  /* !SYS_xen */

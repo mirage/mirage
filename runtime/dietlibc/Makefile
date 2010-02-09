@@ -10,83 +10,10 @@ MAN1DIR=${prefix}/man/man1
 
 MYARCH:=$(shell uname -m | sed -e 's/i[4-9]86/i386/' -e 's/armv[3-6]t\?e\?[lb]/arm/')
 
-# This extra-ugly cruft is here so make will not run uname and sed each
-# time it looks at $(OBJDIR).  This alone sped up running make when
-# nothing has to be done from 1 sec to 0.12 sec on a 900 MHz Athlon.
-# We don't use ARCH:=$(MYARCH) so we can detect unknown architectures.
-ifeq ($(MYARCH),i386)
-ARCH=i386
-else
-ifeq ($(MYARCH),mips)
-ARCH=mips
-else
-ifeq ($(MYARCH),alpha)
-ARCH=alpha
-else
-ifeq ($(MYARCH),ppc)
-ARCH=ppc
-else
-ifeq ($(MYARCH),ppc64)
-ARCH=ppc64
-else
-ifeq ($(MYARCH),arm)
-ARCH=arm
-else
-ifeq ($(MYARCH),sparc)
-ARCH=sparc
-else
-ifeq ($(MYARCH),sparc64)
-ARCH=sparc64
-else
-ifeq ($(MYARCH),s390)
-ARCH=s390
-else
-ifeq ($(MYARCH),s390x)
-ARCH=s390x
-else
-ifeq ($(MYARCH),mipsel)
-ARCH=mipsel
-else
-ifeq ($(MYARCH),parisc)
-ARCH=parisc
-else
-ifeq ($(MYARCH),parisc64)
-ARCH=parisc
-MYARCH=parisc
-else
-ifeq ($(MYARCH),x86_64)
 ARCH=x86_64
-else
-ifeq ($(MYARCH),ia64)
-ARCH=ia64
-else
-ifeq ($(MYARCH),armeb)
-ARCH=arm
-else
-$(error unknown architecture, please fix Makefile)
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-
-# ARCH=$(MYARCH)
 
 OBJDIR=bin-$(ARCH)
 ILIBDIR=$(LIBDIR)-$(ARCH)
-
-HOME=$(shell pwd)
 
 WHAT=	$(OBJDIR) $(OBJDIR)/start.o $(OBJDIR)/dyn_start.o $(OBJDIR)/dyn_stop.o \
 	$(OBJDIR)/dietlibc.a $(OBJDIR)/liblatin1.a \

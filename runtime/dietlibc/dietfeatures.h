@@ -23,16 +23,16 @@
 #define SLASH_PROC_OK
 
 /* use errno_location instead of errno; NEEDED FOR MULTI-THREADING! */
-#define WANT_THREAD_SAFE
+#undef WANT_THREAD_SAFE
 
 /* support __thread; NEEDED FOR MULTI-THREADING! */
-#define WANT_TLS
+#undef WANT_TLS
 
 /* make the startcode, etc. dynamic aware ({con,de}structors) */
 /* #define WANT_DYNAMIC */
 
 /* GDB support in the dynamic linker */
-#define WANT_LD_SO_GDB_SUPPORT
+#undef WANT_LD_SO_GDB_SUPPORT
 
 /* do you want smaller or faster string routines? */
 #define WANT_FASTER_STRING_ROUTINES
@@ -44,9 +44,9 @@
 /* on i386, Linux has an alternate syscall method since 2002/12/16 */
 /* on my Athlon XP, it is twice as fast, but it's only in kernel 2.5 */
 /* 20040118: enabling this breaks User Mode Linux!  It's their fault. */
-#define WANT_SYSENTER
+#undef WANT_SYSENTER
 
-#define WANT_LINKER_WARNINGS
+#undef WANT_LINKER_WARNINGS
 
 /* you need to define this if you want to run your programs with large
  * file support on kernel 2.2 or 2.0 */
@@ -54,22 +54,22 @@
 
 /* do you want localtime(3) to read /etc/localtime?
  * Needed for daylight saving time etc. */
-#define WANT_TZFILE_PARSER
+#undef WANT_TZFILE_PARSER
 
 /* do you want the DNS routines to parse and use "domain" and "search"
  * lines from /etc/resolv.conf?  Normally not used on boot floppies and
  * embedded environments. */
-#define WANT_FULL_RESOLV_CONF
+#undef WANT_FULL_RESOLV_CONF
 
 /* do you want IPv6 transport support in the DNS resolver? */
-#define WANT_IPV6_DNS
+#undef WANT_IPV6_DNS
 
 /* do you want gethostbyname and friends to consult /etc/hosts? */
-#define WANT_ETC_HOSTS
+#undef WANT_ETC_HOSTS
 
 /* do you want gethostbyname to understand dotted decimal IP numbers
  * directly and not try to resolve them? */
-#define WANT_INET_ADDR_DNS
+#undef WANT_INET_ADDR_DNS
 
 /* do you want math functions high precision rather than fast/small? */
 #define WANT_HIGH_PRECISION_MATH
@@ -87,7 +87,7 @@
 /* This enables zeroconf DNS aka Rendezvous aka Bonjour. */
 /* This code will try zeroconf DNS if you ask for host.local or if you
  * ask for an unqualified hostname */
-#define WANT_PLUGPLAY_DNS
+#undef WANT_PLUGPLAY_DNS
 
 /* do you want that malloc(0) return a pointer to a "zero-length" object
  * that is realloc-able; means realloc(..,size) gives a NEW object (like a
@@ -119,7 +119,7 @@
  * compiled with -fstack-protector against it, the binary will segfault
  * when calling that code. */
 #if (__GNUC__>4) || ((__GNUC__==4) && (__GNUC_MINOR__>=1))
-#define WANT_SSP
+#undef WANT_SSP
 #endif
 
 

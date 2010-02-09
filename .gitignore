@@ -9,6 +9,7 @@
 .cmxdeps
 .*.swp
 .mldeps
+CVS/
 mini-os.gz
 tests/*/.depend
 runtime/base/obj-*

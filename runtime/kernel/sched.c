@@ -149,7 +149,6 @@ struct thread* create_thread(char *name, void (*function)(void *), void *data)
     /* Not runable, not exited, not sleeping */
     thread->flags = 0;
     thread->wakeup_time = 0LL;
-    _REENT_INIT_PTR((&thread->reent))
     set_runnable(thread);
     local_irq_save(flags);
     if(idle_thread != NULL) {
@@ -161,34 +160,6 @@ struct thread* create_thread(char *name, void (*function)(void *), void *data)
     }
     local_irq_restore(flags);
     return thread;
-}
-
-static struct _reent callback_reent;
-struct _reent *__getreent(void)
-{
-    struct _reent *_reent;
-
-    if (!threads_started)
-	_reent = _impure_ptr;
-    else if (in_callback)
-	_reent = &callback_reent;
-    else
-	_reent = &get_current()->reent;
-
-#ifndef NDEBUG
-    {
-	register unsigned long sp asm ("rsp");
-	if ((sp & (STACK_SIZE-1)) < STACK_SIZE / 16) {
-	    static int overflowing;
-	    if (!overflowing) {
-		overflowing = 1;
-		printk("stack overflow\n");
-		BUG();
-	    }
-	}
-    }
-#endif
-    return _reent;
 }
 
 void exit_thread(void)
@@ -282,7 +253,6 @@ void init_sched(void)
 {
     printk("Initialising scheduler\n");
 
-    _REENT_INIT_PTR((&callback_reent))
     idle_thread = create_thread("Idle", idle_thread_fn, NULL);
     MINIOS_INIT_LIST_HEAD(&idle_thread->thread_list);
 }

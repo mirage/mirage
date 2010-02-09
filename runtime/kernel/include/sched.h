@@ -4,7 +4,6 @@
 #include <mini-os/list.h>
 #include <mini-os/time.h>
 #include <mini-os/arch_sched.h>
-#include <sys/reent.h>
 
 struct thread
 {
@@ -16,7 +15,6 @@ struct thread
     struct minios_list_head thread_list;
     uint32_t flags;
     s_time_t wakeup_time;
-    struct _reent reent;
 };
 
 extern struct thread *idle_thread;

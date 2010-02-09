@@ -1,0 +1,37 @@
+
+        Notes on profiling support for dietlibc
+
+ 1.) A big  problem when doing profiling on statically linked 
+     programs, is that the internal profiling functions (mcount 
+     and friends) will be included  in the call graph although 
+     they would not if the program would have been dynamically 
+     linked.  This is  because every  symbol between .text and 
+     _etext  is included  in the call-graph.  If a  program is 
+     dynamically linked, then mcount and friends are not between 
+     .text and _etext, so they are not included. A  workaround 
+     for this, would be to put mcount,  __mcount,  monitor and 
+     profiler into another section (eg. ".profile"),  but this 
+     creates some strange problems, I'm currently not aware of. 
+     If you want to debug this: Putting a function into a specific 
+     section works like this (with gcc):
+
+     void foo (int bar) __attribute__ ((section(".foobar")))
+
+ 2.) _start may randomly be found in the callgraph.  I don't 
+     know why. May be a bug in gprof.
+
+ 3.) The profiling is a  complete rewrite,  though I looked at 
+     the glibc Version for  inspiration. Please note that this
+     version might not be as portable as the glibc version but
+     its much smaller (although this is not a really important
+     argument, as  profiled binaries seldom  get shipped) and
+     hopefully easier to understand.
+
+ 4.) all objects that should be profiled mustn't be compiled
+     with -fomit-frame-pointer (as with glibc). Add
+     -fno-fomit-frame-pointer to $CFLAGS if you're encountering 
+     weird problems.
+
+ 5.) There is currently no basic-block statistic support.
+
+Please send comments and bug reports to: tom@rhadamanthys.org

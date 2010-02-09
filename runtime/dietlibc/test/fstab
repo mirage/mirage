@@ -1,0 +1,22 @@
+/dev/ide/host0/bus0/target0/lun0/part2	/ ext2 defaults,ro,errors=remount-ro 0 1
+/dev/ide/host0/bus0/target0/lun0/part1	/boot ext2 defaults,ro 0 2
+/dev/ide/host0/bus0/target0/lun0/part3	/home ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part6	/usr ext2 defaults,ro 0 2
+/dev/ide/host0/bus0/target0/lun0/part7	/usr/local ext2 defaults,ro 0 2
+/dev/ide/host0/bus0/target0/lun0/part8	/usr/local/opt ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part9	/var ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part10	/var/log ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part11	/var/tmp ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part12	/usr/local/opt/package/mail/qmail-1.03/queue ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part13	/var/cache ext2 defaults,rw 0 2
+/dev/ide/host0/bus0/target0/lun0/part14	/alt ext2 defaults,rw 0 2
+
+/dev/ide/host0/bus0/target0/lun0/part5	none swap sw 0 0
+tmpfs  /tmp  tmpfs  rw,mode=1777,size=64m  0 0
+
+# none		/dev		devfs	noauto	0 0
+# proc		/proc		proc	noauto	0 0
+# tmpfs		/service        tmpfs	noauto	0 0
+#sysfs		/sys		sysfs	noauto	0 0
+
+/dev/floppy/0	/mnt/floppy	auto	defaults,noauto	0 0

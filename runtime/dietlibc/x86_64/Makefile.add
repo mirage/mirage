@@ -1,0 +1,3 @@
+CFLAGS := -Os -fstrict-aliasing -momit-leaf-frame-pointer -mfancy-math-387
+VPATH  := x86_64:syscalls.s:$(VPATH)
+LIBOBJ += $(OBJDIR)/arch_prctl.o

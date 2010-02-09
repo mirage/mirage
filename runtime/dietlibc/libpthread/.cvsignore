@@ -1,0 +1,8 @@
+*.o
+*.a
+*.oa
+*.out
+test-basic
+test-threads_busy
+test-threads_busy_inc
+test-threads_many

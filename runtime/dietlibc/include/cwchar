@@ -1,0 +1,44 @@
+#ifndef __DIETLIBC_CWCHAR_INCLUDED
+#define __DIETLIBC_CWCHAR_INCLUDED
+
+#include <cstddef>
+
+#if !defined(WEOF)
+#  define WEOF (-1)
+#endif
+
+extern "C" {
+
+// dummy type
+typedef struct
+{
+    int __count;
+    union {
+        wint_t __wch;
+        char __wchb[4];
+    } __value;
+} mbstate_t;
+
+// dummy functions - not implemented
+size_t   wcslen(const wchar_t *);
+wchar_t *wmemchr(const wchar_t *, wchar_t, size_t);
+int      wmemcmp(const wchar_t *, const wchar_t *, size_t);
+wchar_t *wmemcpy(wchar_t *, const wchar_t *, size_t);
+wchar_t *wmemmove(wchar_t *, const wchar_t *, size_t);
+wchar_t *wmemset(wchar_t *, wchar_t, size_t);
+
+}
+
+namespace std {
+    using ::mbstate_t;
+    using ::wint_t;
+
+    using ::wcslen;
+    using ::wmemchr;
+    using ::wmemcmp;
+    using ::wmemcpy;
+    using ::wmemmove;
+    using ::wmemset;
+}
+
+#endif

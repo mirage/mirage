@@ -1,0 +1,29 @@
+To port the diet libc to a new architecture, you need to:
+
+  - edit Makefile to detect the architecture
+  - create a directory for the architecture, and put a Makefile.add in
+    it.  Look at the other Makefile.adds for guidance.
+  - provide start.S (the start code, look at glibc)
+  - provide unified.S (the unified syscall)
+  - provide syscalls.h (the syscall numbers, from asm/unistd.h)
+  - provide setjmp and longjmp
+  - edit include/setjmp.h
+  - pipe, clone and mmap often need special care
+  - edit include/sys/ioctl.h
+  - edit include/sys/ptrace.h
+  - edit include/asm/sigcontext.h
+  - edit include/sys/ucontext.h
+  - edit include/endian.h
+  - edit include/fcntl.h
+  - edit include/sys/mman.h
+  - edit include/sys/shm.h
+  - edit include/sys/stat.h
+  - edit include/errno.h
+  - edit syscalls.h
+  - edit include/termios.h
+  - edit diet.c to make it recognize the architecture and add proper
+    CFLAGS
+  - edit libcompat/syscall.S
+  - edit include/fenv.h
+
+(I may have missed a few)

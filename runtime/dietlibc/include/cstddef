@@ -1,0 +1,17 @@
+#ifndef __DIETLIBC_CSTDDEF_INCLUDED
+#define __DIETLIBC_CSTDDEF_INCLUDED
+
+#include <stddef.h>
+
+#if defined(__WINT_TYPE__)
+typedef __WINT_TYPE__ wint_t;
+#else
+typedef unsigned int wint_t;
+#endif
+
+namespace std {
+    using ::ptrdiff_t;
+    using ::size_t;
+}
+
+#endif

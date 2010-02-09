@@ -1,0 +1,82 @@
+this is the experimental libdl
+
+written by Olaf Dreesen
+
+Fri Nov 15 16:23:28 CET 2002
+
+  fixing the copy-relocation bug.
+
+  TODO as last time.... plus
+	- dlsym with RTLD_NEXT
+
+Wed Nov  6 19:08:00 CET 2002
+
+  Ups.. misunderstood the manual-page of dlopen.
+  now dlopen(0,...) works the way it is described in the susv2, BUT still not
+  complete.
+
+  TODO:
+	- gdb support
+
+	- RTLD_GLOBAL/RTLD_LOCAL
+    at the moment ALL are GLOBAL.
+
+	- open of a shared object ONCE
+    there is no library hard-, symlink detection yet.
+
+	- code for other archs then i386 and arm
+
+
+Fri Sep 13 16:28:42 CEST 2002
+
+  this unified libdl/dynlinker is now the default.
+
+
+Mon Mar 11 19:44:20 CET 2002
+
+  the unified libdl/dynlinker now seems to stand the NORMAL usage so I think
+  it should be tested outside my CLEANROOM :)
+
+  TODO: code for other archs than i386 and arm
+
+
+Thu Nov  1 18:41:36 MET 2001
+
+  ufffff.... now the libdl code can be used in the libdl.so :)
+  Status: it works in my clean room on i386, arm-code started
+
+  TODO: see below :)
+
+
+Wed Jul  4 11:55:00 MEST 2001
+
+  Uwe Ohse pointed to some flaws in my code, I have started to fix them....
+
+  TODO: rebuild the code in a more readable and consistent way.
+  TODO: code for other archs than i386
+
+
+Thu Jun 21 15:32:45 MEST 2001
+
+  It work good enough to make a libdietc.so possible.
+
+  TODO: rebuild the code in a more readable and consistent way.
+  TODO: code for other archs than i386
+
+
+Thu Jun  7 14:10:03 MEST 2001
+
+  Status: test-pre-alpha code
+  the code is now "testable" ...
+  I need a dyn-dietlibc specific ld.so. (in work)
+
+  TODO: rebuild the code in a more readable and consistent way.
+
+
+INITIAL May ? :
+
+  Status: test-pre-pre-alpha code
+
+  Shouldn't work yet. Had and have some problems with the elf specs...
+  and more inconsistencies...
+

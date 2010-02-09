@@ -1,0 +1,23 @@
+#ifndef __DIETLIBC_CLOCALE_INCLUDED
+#define __DIETLIBC_CLOCALE_INCLUDED
+
+#include <sys/types.h>
+#include <locale.h>
+
+struct __locale_struct
+{
+    struct locale_data *__locales[13];
+    const uint16_t *__ctype_b;
+    const int32_t *__ctype_tolower;
+    const int32_t *__ctype_toupper;
+    const char *__names[13];
+};
+typedef struct __locale_struct *__locale_t;
+
+namespace std {
+    using ::lconv;
+    using ::localeconv;
+    using ::setlocale;
+}
+
+#endif

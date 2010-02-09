@@ -1,0 +1,34 @@
+LIBPTHREAD
+
+  This is the pthread implementation for the dietlibc.
+  Written from scratch by Olaf Dreesen.
+
+It's like linuxthreads a clone base thread implementation.
+
+
+STATUS:
+	near complete and should work (see KNOWN BUGS) on all dietlibc
+	platforms that have a working implementation of:
+	- clone
+	- testandset
+	- sigsetjmp/siglongjmp
+
+
+KNOWN BUGS:
+	- gdb can't handle this implementation.
+	- there are problems with the stdio functions....
+	- ia64 doesn't work. the problem is this f**king separate register
+	  stack
+
+
+MAYBE BUGS:
+	- ia64: r13 is used as a pointer to the thread-struct
+	- s390: a0 used as pointer to thread-struct
+	- sparc/sparc64: g6 used as pointer to thread-struct
+
+
+NOTES:
+	SIGRTMAX and SIGRTMAX-1 are used by this imlementation !
+	- SIGRTMAX   as restart event (join,cond_*wait,...)
+	- SIGRTMAX-1 as cancel envent (cancel).
+

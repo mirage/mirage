@@ -1,0 +1,30 @@
+The diet libc is not especially focused on providing a secure
+environment, but where it is possible to do something, we try to do it.
+
+  1. WANT_STACKGAP in dietfeatures.h
+     This will randomize the stack layout slightly.  The real memory
+     cost is about one page of real memory.  The code size increase is
+     about 100 bytes, 86 for i386.  The benefit is that buffer overflow
+     exploits are harder because the address of the buffer fluctuates.
+
+  2. WANT_CRYPT_MD5 in dietfeatures.h
+     This will enable MD5 style passwords in crypt(3).  The standard
+     Unix password mechanism is DES based and thus insecure by today's
+     standards.  Adding MD5 makes the code larger by some 5k.
+
+  3. WANT_NON_COMPLIANT_STRNCAT in dietfeatures.h
+     strncat and strncpy are very user unfriendly.  They copy zero
+     terminated strings, and you can give them a limit on how much to
+     copy, but they will not make sure the result is zero terminated,
+     which most programmers would expect who are not familiar with the
+     API.  So, in the diet libc you can set this #define in
+     dietfeatures.h to get the expected behaviour.  Since the fix for
+     the normal behaviour usually is to write \0 over the last byte of
+     the buffer, this does not hurt usually (but is not standards
+     compliant).
+
+  4. printf does not support %n.
+     %n in printf is the attack vector for format string
+     vulnerabilities.  Almost nobody uses it anyway (except some part of
+     the gcc build process, apparently).
+

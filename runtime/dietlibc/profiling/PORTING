@@ -1,0 +1,25 @@
+              Porting to other platforms
+
+	... is easy. Just create an mcount.S in the $ARCH
+    directory  (eg. dietlibc/i386)  which  includes a
+    function (called "mcount") that:
+
+     1.) saves ALL registers that are freely usable
+         and which might be used by __mcount().
+     2.) loads the instruction pointer (PC) from the
+         function that called mcount, and the function
+         which called the function, that called mcount
+         into the first two argument registers (or push
+         them on the stack - depending on the processor-
+         architecture).
+     3.) call __mcount.
+     4.) restore the registers saved in 1)
+
+    Then You need a macro called PC in <asm/sigcontext.h>
+    which extracts the (instruction pointer / program 
+    counter) from a sigcontext structure (eg. on i386 this 
+    would be ctx.eip).
+
+    $ARCH/start.S must also be modified to call monitor
+    with the offset of .text and _etext as parameters.
+

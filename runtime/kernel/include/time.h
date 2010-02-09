@@ -48,8 +48,6 @@ typedef long suseconds_t;
 
 #include <sys/time.h>
 
-#include_next <time.h>
-
 /* prototypes */
 void     init_time(void);
 void     fini_time(void);

@@ -20,7 +20,7 @@
 #ifndef _XS_H
 #define _XS_H
 
-#include <xs_lib.h>
+#include "xs_lib.h"
 
 #define XBT_NULL 0
 

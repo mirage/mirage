@@ -242,6 +242,12 @@ ssize_t write(int fd, const void *buf, size_t nbytes)
     return -1;
 }
 
+/* XXX revisit */
+ssize_t __libc_write(int fd, const void *buf, size_t len)
+{
+  return write(fd, buf, len);
+}
+
 off_t lseek(int fd, off_t offset, int whence)
 {
     errno = ESPIPE;
@@ -271,6 +277,7 @@ int close(int fd)
 	    return res;
 	}
 #endif
+#if 0 /* XXX bring back when XC is back */
 	case FTYPE_XC:
 	    xc_interface_close(fd);
 	    return 0;
@@ -280,6 +287,7 @@ int close(int fd)
 	case FTYPE_GNTMAP:
 	    xc_gnttab_close(fd);
 	    return 0;
+#endif
 	case FTYPE_TAP:
 	    shutdown_netfront(files[fd].tap.dev);
 	    files[fd].type = FTYPE_NONE;

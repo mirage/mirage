@@ -113,6 +113,7 @@ install-headers:
 
 install-libs:
 	for i in $(WHATBASE); do install -m 644 -D $(OBJDIR)/$$i $(prefix)/lib/$$i; done
+	mv $(prefix)/lib/dietlibc.a $(prefix)/lib/libc.a
 
 install: install-headers install-libs
 

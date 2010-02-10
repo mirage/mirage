@@ -92,7 +92,7 @@ struct thread* arch_create_thread(char *name, void (*function)(void *),
 {
     struct thread *thread;
     
-    thread = xmalloc(struct thread);
+    thread = malloc(sizeof (struct thread));
     /* We can't use lazy allocation here since the trap handler runs on the stack */
     thread->stack = (char *)alloc_pages(STACK_SIZE_PAGE_ORDER);
     thread->name = name;

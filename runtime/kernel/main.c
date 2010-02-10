@@ -28,7 +28,9 @@ void _fini(void)
 
 static void call_main(void *p)
 {
-    exit(main(0, NULL, NULL));
+    printk("call_main\n");
+    sleep(1);
+    _exit(0);
 }
 
 void _exit(int ret)

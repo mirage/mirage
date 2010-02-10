@@ -640,3 +640,9 @@ ssize_t netfront_receive(struct netfront_dev *dev, unsigned char *data, size_t l
 
     return dev->rlen;
 }
+
+void netif_rx(unsigned char *data, int len)
+{
+    printk("netif_rx: %d\n", len);
+}
+

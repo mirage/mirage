@@ -36,7 +36,6 @@
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <pthread.h>
 #include <assert.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -84,7 +83,6 @@ extern int xc_evtchn_close(int fd);
 extern int xc_interface_close(int fd);
 extern int xc_gnttab_close(int fd);
 
-pthread_mutex_t fd_lock = PTHREAD_MUTEX_INITIALIZER;
 struct file files[NOFILE] = {
     { .type = FTYPE_CONSOLE }, /* stdin */
     { .type = FTYPE_CONSOLE }, /* stdout */
@@ -96,15 +94,12 @@ DECLARE_WAIT_QUEUE_HEAD(event_queue);
 int alloc_fd(enum fd_type type)
 {
     int i;
-    pthread_mutex_lock(&fd_lock);
     for (i=0; i<NOFILE; i++) {
 	if (files[i].type == FTYPE_NONE) {
 	    files[i].type = type;
-	    pthread_mutex_unlock(&fd_lock);
 	    return i;
 	}
     }
-    pthread_mutex_unlock(&fd_lock);
     printk("Too many opened files\n");
     do_exit();
 }
@@ -112,21 +107,17 @@ int alloc_fd(enum fd_type type)
 void close_all_files(void)
 {
     int i;
-    pthread_mutex_lock(&fd_lock);
     for (i=NOFILE - 1; i > 0; i--)
 	if (files[i].type != FTYPE_NONE)
             close(i);
-    pthread_mutex_unlock(&fd_lock);
 }
 
 int dup2(int oldfd, int newfd)
 {
-    pthread_mutex_lock(&fd_lock);
     if (files[newfd].type != FTYPE_NONE)
 	close(newfd);
     // XXX: this is a bit bogus, as we are supposed to share the offset etc
     files[newfd] = files[oldfd];
-    pthread_mutex_unlock(&fd_lock);
     return 0;
 }
 

@@ -16,6 +16,8 @@
 
 extern int main(int argc, char *argv[], char *envp[]);
 
+int errno;
+
 void _init(void)
 {
 }

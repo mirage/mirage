@@ -11,12 +11,12 @@ XB_SRC = xenbus.c
 LDFLAGS = -L$(shell pwd)/../inst-x86_64/lib
 EXTRA_LIB = -lc -lm
 
-AS_OBJ = x86_64.o
+AS_OBJ = $(OBJDIR)/x86_64.o
 ALL_SRC = $(CORE_SRC) $(LIB_SRC) $(ARCH_SRC) $(CONSOLE_SRC) $(XB_SRC)
-ALL_OBJ = $(ALL_SRC:%.c=$(OBJDIR)/%.o) $(AS_OBJ)
+ALL_OBJ = $(AS_OBJ) $(ALL_SRC:%.c=$(OBJDIR)/%.o)
 
 .PHONY: all
-all: $(OBJDIR)/mirage-app.gz
+all: $(OBJDIR)/mirage-os.gz
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
@@ -24,7 +24,7 @@ $(OBJDIR):
 PWD = $(shell pwd)
 BASEINC = $(PWD)/..
 GCC_INSTALL = $(shell LANG=C gcc -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
-CFLAGS += -nostdinc -std=gnu99
+CFLAGS += -nostdinc -std=gnu99 -m64 -mno-red-zone -fno-reorder-blocks
 CFLAGS += -isystem $(GCC_INSTALL)include
 CFLAGS += -isystem $(BASEINC)/dietlibc/include
 CFLAGS += -isystem $(BASEINC)/include 
@@ -46,12 +46,13 @@ $(OBJDIR)/%.o: %.S
 LD ?= ld
 OBJCOPY ?= objcopy
 
-$(OBJDIR)/mirage-app: $(OBJDIR) $(ALL_OBJ)
-	$(LD) -r $(ALL_OBJ) $(LDFLAGS) $(EXTRA_LIB) -o $@.o
+$(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ)
+	$(LD) -r -d -nostdlib -m elf_x86_64 $(ALL_OBJ) $(LDFLAGS) $(EXTRA_LIB) -T arch/x86/minios-x86_64.lds -o $@.o
 	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
-	$(LD) -T arch/x86/minios-x86_64.lds $@.o -o $@
+	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $@.o -o $@
+	cp $@ $(OBJDIR)/o
 
-$(OBJDIR)/mirage-app.gz: $(OBJDIR)/mirage-app
+$(OBJDIR)/mirage-os.gz: $(OBJDIR)/mirage-os
 	rm -f $@
 	gzip -9 $<
 

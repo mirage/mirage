@@ -11,7 +11,6 @@ all: $(OBJDIR) $(WHAT)
 $(OBJDIR):
 	mkdir $@
 
-CFLAGS=-pipe -nostdinc
 CROSS=
 
 CC=gcc
@@ -38,9 +37,10 @@ include $(ARCH)/Makefile.add
 LIBMATHOBJ=$(patsubst %,$(OBJDIR)/%,$(LIBMATH))
 
 ifneq ($(DEBUG),)
-CFLAGS = -g
+CFLAGS += -g
 COMMENT = :
 endif
+CFLAGS += -pipe -nostdinc -std=gnu99 -m64 -mno-red-zone -fno-reorder-blocks
 CFLAGS += -W -Wall -Wextra -Wchar-subscripts -Wmissing-prototypes -Wmissing-declarations -Wno-switch -Wno-unused -Wredundant-decls
 
 PWD=$(shell pwd)
@@ -70,7 +70,7 @@ DIETLIBC_OBJ = $(LIBOBJ) $(LIBSTDIOOBJ) $(LIBUGLYOBJ) \
 $(OBJDIR)/__longjmp.o $(OBJDIR)/setjmp.o \
 $(OBJDIR)/clone.o
 
-$(OBJDIR)/dietlibc.a: $(DIETLIBC_OBJ) $(OBJDIR)/start.o
+$(OBJDIR)/dietlibc.a: $(DIETLIBC_OBJ)
 	$(CROSS)ar cru $@ $(DIETLIBC_OBJ)
 
 $(OBJDIR)/librpc.a: $(LIBRPCOBJ)
@@ -168,9 +168,6 @@ $(OBJDIR)/crypt.o: dietfeatures.h
 
 # these depend on dietfeatures.h for WANT_FREAD_OPTIMIZATION
 $(OBJDIR)/fread.o $(OBJDIR)/fwrite.o: dietfeatures.h
-
-# these depend on dietfeatures.h for WANT_DYNAMIC
-$(OBJDIR)/start.o $(OBJDIR)/dyn_start.o $(OBJDIR)/dyn_stop.o: dietfeatures.h
 
 $(OBJDIR)/adjtimex.o: include/sys/timex.h
 

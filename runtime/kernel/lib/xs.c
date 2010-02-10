@@ -8,8 +8,8 @@
 
 #include <os.h>
 #include <lib.h>
-#include <xs.h>
-#include <xenbus.h>
+#include <xen/xenstore/xs.h>
+#include <xen/io/xenbus.h>
 #include <stdlib.h>
 #include <unistd.h>
 

@@ -25,11 +25,11 @@
 #include <wait.h>
 #include <netfront.h>
 #include <blkfront.h>
-#include <xenbus.h>
-#include <xs.h>
+#include <xen/io/xenbus.h>
+#include <xen/xenstore/xs.h>
 
 #include <sys/types.h>
-#include <sys/unistd.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <net/if.h>
@@ -193,7 +193,7 @@ int isatty(int fd)
     return files[fd].type == FTYPE_CONSOLE;
 }
 
-int read(int fd, void *buf, size_t nbytes)
+ssize_t read(int fd, void *buf, size_t nbytes)
 {
     switch (files[fd].type) {
 	case FTYPE_CONSOLE: {
@@ -230,7 +230,7 @@ int read(int fd, void *buf, size_t nbytes)
     return -1;
 }
 
-int write(int fd, const void *buf, size_t nbytes)
+ssize_t write(int fd, const void *buf, size_t nbytes)
 {
     switch (files[fd].type) {
 	case FTYPE_CONSOLE:
@@ -888,7 +888,7 @@ int nanosleep(const struct timespec *req, struct timespec *rem)
     return 0;
 }
 
-int usleep(useconds_t usec)
+int usleep(unsigned long usec)
 {
     /* "usec shall be less than one million."  */
     struct timespec req;

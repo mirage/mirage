@@ -17,12 +17,8 @@ int atexit(function t) {
   return -1;
 }
 
-extern void __thread_doexit(int doexit);
-
-void __libc_exit(int code);
 void __libc_exit(int code) {
   register int i=atexit_counter;
-  __thread_doexit(code);
   while(i) {
     __atexitlist[--i]();
   }

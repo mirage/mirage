@@ -13,6 +13,8 @@ void *calloc(size_t nmemb, size_t size) __THROW __attribute_malloc__;
 void *malloc(size_t size)  __THROW __attribute_malloc__;
 void free(void *ptr) __THROW;
 void *realloc(void *ptr, size_t size) __THROW __attribute_malloc__;
+void *memalign(size_t alignment, size_t size) __THROW __attribute_malloc__;
+void *valloc(size_t size) __THROW __attribute_malloc__;
 
 char *getenv(const char *name) __THROW __pure;
 int putenv(const char *string) __THROW;

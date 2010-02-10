@@ -128,10 +128,14 @@ static void* REGPARM(1) __small_malloc(size_t _size) {
 }
 
 /* -- PUBLIC FUNCTIONS ---------------------------------------------------- */
-
+int __libc_free_aligned(void *ptr);
 static void _alloc_libc_free(void *ptr) {
   register size_t size;
-  if (ptr) {
+  if (ptr == NULL)
+	  return;
+  if (__libc_free_aligned(ptr))
+	  return;
+
     size=((__alloc_t*)BLOCK_START(ptr))->size;
     if (size) {
       if (size<=__MAX_SMALL_SIZE)
@@ -139,7 +143,6 @@ static void _alloc_libc_free(void *ptr) {
       else
 	munmap(BLOCK_START(ptr),size);
     }
-  }
 }
 void __libc_free(void *ptr) __attribute__((alias("_alloc_libc_free")));
 void free(void *ptr) __attribute__((weak,alias("_alloc_libc_free")));
@@ -246,3 +249,73 @@ retzero:
 }
 void* realloc(void* ptr, size_t size) __attribute__((weak,alias("__libc_realloc")));
 
+/* List of blocks allocated with memalign or valloc */
+struct alignlist {
+	struct alignlist *next;
+	void *aligned;	/* The address that memaligned returned.  */
+	void *exact;	/* The address that malloc returned.  */
+};
+struct alignlist *_aligned_blocks;
+
+/* Return memory to the heap. */
+int __libc_free_aligned(void *ptr) {
+	struct alignlist *l;
+	register size_t size;
+
+	if (ptr == NULL)
+		return 0;
+
+	for (l = _aligned_blocks; l != NULL; l = l->next) {
+		if (l->aligned == ptr) {
+			size=((__alloc_t*)BLOCK_START(l->exact))->size;
+			if (size) {
+			  if (size<=__MAX_SMALL_SIZE)
+			    __small_free(l->exact,size);
+			  else
+			    munmap(BLOCK_START(l->exact),size);
+			}
+			/* Mark the block as free */
+			l->aligned = NULL;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void * memalign (size_t alignment, size_t size) {
+	void * result;
+	unsigned long int adj;
+
+	result = malloc (size + alignment - 1);
+	if (result == NULL)
+		return NULL;
+
+	adj = (unsigned long int) ((unsigned long int) ((char *) result - (char *) NULL)) % alignment;
+	if (adj != 0) {
+		struct alignlist *l;
+		for (l = _aligned_blocks; l != NULL; l = l->next)
+			if (l->aligned == NULL)
+				/* This slot is free.  Use it.  */
+				break;
+		if (l == NULL) {
+			l = (struct alignlist *) malloc (sizeof (struct alignlist));
+			if (l == NULL) {
+				_alloc_libc_free(result);
+				result = NULL;
+				goto DONE;
+			}
+			l->next = _aligned_blocks;
+			_aligned_blocks = l;
+		}
+		l->exact = result;
+		result = l->aligned = (char *) result + alignment - adj;
+	}
+DONE:
+
+	return result;
+}
+
+void * valloc (size_t size);
+void * valloc (size_t size) {
+	return memalign(PAGE_SIZE, size);
+}

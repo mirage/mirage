@@ -16,7 +16,7 @@ ALL_SRC = $(CORE_SRC) $(LIB_SRC) $(ARCH_SRC) $(CONSOLE_SRC) $(XB_SRC)
 ALL_OBJ = $(ALL_SRC:%.c=$(OBJDIR)/%.o) $(AS_OBJ)
 
 .PHONY: all
-all: $(OBJDIR)/mirage-app
+all: $(OBJDIR)/mirage-app.gz
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
@@ -50,6 +50,10 @@ $(OBJDIR)/mirage-app: $(OBJDIR) $(ALL_OBJ)
 	$(LD) -r $(ALL_OBJ) $(LDFLAGS) $(EXTRA_LIB) -o $@.o
 	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
 	$(LD) -T arch/x86/minios-x86_64.lds $@.o -o $@
+
+$(OBJDIR)/mirage-app.gz: $(OBJDIR)/mirage-app
+	rm -f $@
+	gzip -9 $<
 
 clean:
 	rm -rf $(OBJDIR)

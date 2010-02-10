@@ -18,6 +18,7 @@
 #include <mini-os/xmalloc.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <sqlite3.h>
 #include <ctype.h>
 #include <mini-os/blkfront.h>
@@ -107,7 +108,7 @@ sectorWrite(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, const
     }
     BUG_ON(sec->state != BUF_CLEAN && sec->state != BUF_DIRTY);
     sec->state = BUF_DIRTY;
-    bcopy(data, sec->buf+start, len);
+    memcpy(sec->buf+start, data, len);
 }
 
 static void
@@ -132,7 +133,7 @@ sectorRead(struct sqlite3_mir_file *mf, uint64_t off, int start, int len, void *
       BUG_ON(rc < 0);
       free(req);
     }
-    bcopy(sec->buf + start, data, len);
+    memcpy(data, sec->buf + start, len);
 }
 
 #define MAX_IO_COALESCE 10
@@ -536,7 +537,7 @@ static int mirOpen(
       jofile->meta = _xmalloc(PAGE_SIZE, PAGE_SIZE);
     }
     if (eType == SQLITE_OPEN_MAIN_JOURNAL) 
-      bcopy(jofile, pMirFile, sizeof(struct sqlite3_mir_file));
+      memcpy(pMirFile, jofile, sizeof(struct sqlite3_mir_file));
     readMetadata(pMirFile);
     if (strcmp(zPath, pMirFile->meta->name)) {
       strcpy(pMirFile->meta->name, zPath);

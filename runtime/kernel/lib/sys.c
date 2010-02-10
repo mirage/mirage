@@ -319,6 +319,7 @@ int stat(const char *path, struct stat *buf)
 
 int fstat(int fd, struct stat *buf)
 {
+    struct timeval tv;
     init_stat(buf);
     switch (files[fd].type) {
 	case FTYPE_CONSOLE:
@@ -327,9 +328,10 @@ int fstat(int fd, struct stat *buf)
 	    buf->st_uid = 0;
 	    buf->st_gid = 0;
 	    buf->st_size = 0;
+	    gettimeofday(&tv, NULL);
 	    buf->st_atime = 
 	    buf->st_mtime = 
-	    buf->st_ctime = time(NULL);
+	    buf->st_ctime = tv.tv_sec;
 	    return 0;
 	}
 	default:

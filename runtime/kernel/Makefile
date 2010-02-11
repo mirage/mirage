@@ -18,11 +18,13 @@ ALL_OBJ = $(AS_OBJ) $(ALL_SRC:%.c=$(OBJDIR)/%.o)
 .PHONY: all
 all: $(OBJDIR)/mirage-os.gz
 
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-
 PWD = $(shell pwd)
 BASEINC = $(PWD)/..
+
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+	(cd $(PWD)/include && ln -nfs . mini-os && cd x86 && ln -nfs . mini-os)
+
 GCC_INSTALL = $(shell LANG=C gcc -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 CFLAGS += -nostdinc -std=gnu99 -m64 -mno-red-zone -fno-reorder-blocks
 CFLAGS += -isystem $(GCC_INSTALL)include

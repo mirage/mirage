@@ -108,14 +108,9 @@ clean:
 
 prefix ?= ../inst-x86_64
 
-install-headers:
-	for i in `find include -name \*.h`; do install -m 644 -D $$i $(prefix)/$$i; done
-
-install-libs:
+install:
 	for i in $(WHATBASE); do install -m 644 -D $(OBJDIR)/$$i $(prefix)/lib/$$i; done
-	mv $(prefix)/lib/dietlibc.a $(prefix)/lib/libc.a
-
-install: install-headers install-libs
+	ln -nfs dietlibc.a $(prefix)/lib/libc.a
 
 .PHONY: x86_64 
 

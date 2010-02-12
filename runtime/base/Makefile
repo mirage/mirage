@@ -4,9 +4,8 @@ include $(ROOTDIR)/mk/$(MODE).mk
 HAS_NOT := HAS_IPV6 HAS_INET_ATON POSIX_SIGNALS HAS_GETRUSAGE HAS_STACK_OVERFLOW_DETECTION HAS_TIMES
 MODE ?= unknown
 
-OUT = ../libmiragerun_$(MODE).a
-OBJ = $(CURDIR)/obj-$(MODE)
-LIBMIR = $(CURDIR)/mir
+OBJDIR = $(CURDIR)/obj-$(MODE)
+OUT = $(OBJDIR)/libmiragerun_$(MODE).a
 
 ASMRUN_debug = libasmrund.a
 ASMRUN_normal = libasmrun.a
@@ -17,20 +16,16 @@ ASMRUNLIB = $(ASMRUN_$(ASMRUN))
 all: $(OUT)
 	@ :
 
-$(OBJ)/.stamp:
-	cp -R ocaml/ $(OBJ)/
+$(OBJDIR)/.stamp:
+	cp -R ocaml/ $(OBJDIR)/
 	@touch $@
 
-$(OUT): $(OBJ)/asmrun/$(ASMRUNLIB) $(LIBMIR)/obj-$(MODE)/libmir.a
-	cp $(OBJ)/asmrun/$(ASMRUNLIB) $@
-	ar rc $@ $(LIBMIR)/obj-$(MODE)/*.o
+$(OUT): $(OBJDIR)/asmrun/$(ASMRUNLIB)
+	cp $< $@
 
-$(OBJ)/asmrun/$(ASMRUNLIB): $(OBJ)/.stamp
-	cd $(OBJ) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
+$(OBJDIR)/asmrun/$(ASMRUNLIB): $(OBJDIR)/.stamp
+	cd $(OBJDIR) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
                 -cc "$(CC) $(CFLAGS) -U_FORTIFY_SOURCE"
-	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJ)/config/s.h ; )
-	sed -i -e 's,Unix,$(MODE),g' $(OBJ)/config/s.h
-	cd $(OBJ)/asmrun && $(MAKE) SYSTEM=$(MODE) $(ASMRUNLIB)
-
-$(LIBMIR)/obj-$(MODE)/libmir.a:
-	cd $(LIBMIR) && $(MAKE) MODE=$(MODE)
+	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJDIR)/config/s.h ; )
+	sed -i -e 's,Unix,$(MODE),g' $(OBJDIR)/config/s.h
+	cd $(OBJDIR)/asmrun && $(MAKE) SYSTEM=$(MODE) $(ASMRUNLIB)

@@ -1,5 +1,4 @@
-ROOTDIR = ../../..
-
+ROOTDIR = ../..
 MODE ?= xen
 
 include $(ROOTDIR)/mk/ocaml.mk

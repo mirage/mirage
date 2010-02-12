@@ -9,7 +9,6 @@ CONSOLE_SRC = console.c xencons_ring.c
 XB_SRC = xenbus.c
 
 LDFLAGS = -L$(shell pwd)/../inst-x86_64/lib
-EXTRA_LIB = -lc -lm
 
 AS_OBJ = $(OBJDIR)/x86_64.o
 ALL_SRC = $(CORE_SRC) $(LIB_SRC) $(ARCH_SRC) $(CONSOLE_SRC) $(XB_SRC)
@@ -49,7 +48,7 @@ LD ?= ld
 OBJCOPY ?= objcopy
 
 $(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ)
-	$(LD) -r -d -nostdlib -m elf_x86_64 $(ALL_OBJ) $(LDFLAGS) $(EXTRA_LIB) -T arch/x86/minios-x86_64.lds -o $@.o
+	$(LD) -r -d -nostdlib -m elf_x86_64 $(ALL_OBJ) $(LDFLAGS) -lc $(EXTRA_LIB) -T arch/x86/minios-x86_64.lds -o $@.o
 	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
 	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $@.o -o $@
 	cp $@ $(OBJDIR)/o

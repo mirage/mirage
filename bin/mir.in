@@ -78,13 +78,13 @@ objcopy --rename-section .bss=.mlbss --rename-section .data=.mldata --rename-sec
 case "${TARG}" in
 u)
   echo Linking for @OS@
+  echo Currently known broken, sorry
+  exit 1
   ${CC} -o app -lsqlite3 @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
   ;;
 x)
   echo Linking for Xen
-  cd ${RUNTIME}/xen/stubdom && ${MAKE} caml-stubdom APP_LIBS="${DIR}/app.o ${RUNTIME}/libmiragerun_xen.a" debug=n
-  cp ${RUNTIME}/xen/stubdom/mini-os-x86_64-caml/mini-os.gz ${DIR}/
-  cp ${RUNTIME}/xen/stubdom/mini-os-x86_64-caml/mini-os ${DIR}/
+  cd ${RUNTIME}/kernel && ${MAKE} EXTRA_LIB="-lm -lmiragerun_xen -lm ${DIR}/app.o"
   ;;
 *)
   echo Unknown target $TARGET

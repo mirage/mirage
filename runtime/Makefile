@@ -1,27 +1,29 @@
 ROOTDIR=..
-include $(ROOTDIR)/mk/base.mk
+include $(ROOTDIR)/mk/xen.mk
 
-TARGS = libmiragerun_$(OS).a
-ifeq ($(OS), linux)
-TARGS += libmiragerun_xen.a
-endif
+TARGS = libmiragerun_xen.a libc.a libmir.a
+
+CROSS_PREFIX = inst-x86_64
 
 .PHONY: all clean install
-all: $(TARGS)
+all: $(TARGS:%=$(CROSS_PREFIX)/lib/%)
 	@ :
 
-CROSS_XEN=$(CURDIR)/xen/stubdom/cross-root-x86_64/x86_64-xen-elf/
-$(CROSS_XEN)/lib/libc.a:
-	cd xen/stubdom && $(MAKE) cross debug=$(debug)
+$(CROSS_PREFIX)/lib/libc.a:
+	cd dietlibc && $(MAKE) all install
 
-libmiragerun_xen.a: $(CROSS_XEN)/lib/libc.a
-	@cd base && $(MAKE) MODE=xen
+$(CROSS_PREFIX)/lib/libmiragerun_xen.a:
+	cd base && $(MAKE) MODE=xen
+	mkdir -p $(CROSS_PREFIX)/lib
+	cp base/obj-xen/libmiragerun_xen.a $@
 
-libmiragerun_%.a:
-	@cd base && $(MAKE) MODE=$*
+$(CROSS_PREFIX)/lib/libmir.a:
+	cd bindings && $(MAKE) MODE=xen
+	mkdir -p $(CROSS_PREFIX)/lib
+	cp bindings/obj-xen/libmir.a $@
 
 clean:
 	rm -rf base/obj-*
-	rm -rf base/mir/obj-*
-	rm -f libmiragerun*
-	cd xen/stubdom && $(MAKE) clean crossclean
+	rm -rf bindings/obj-*
+	cd dietlibc && $(MAKE) clean
+	rm -rf $(CROSS_PREFIX)

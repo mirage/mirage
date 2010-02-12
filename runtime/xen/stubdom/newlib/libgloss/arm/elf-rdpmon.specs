@@ -1,8 +1,0 @@
-%rename link                old_link
-
-*link:
-%(old_link) -lrdpmon
-
-*startfile:
-crti%O%s crtbegin%O%s %{!pg:rdpmon-crt0%O%s} %{pg:rdpmon-crt0%O%s}
-

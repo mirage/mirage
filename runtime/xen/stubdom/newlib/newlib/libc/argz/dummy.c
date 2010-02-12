@@ -1,1 +1,0 @@
-/* empty stub to allow objectlist.awk.in to be created */

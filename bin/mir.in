@@ -72,7 +72,7 @@ cd "${DIR}"
 DEPEND=".depend"
 ${OCAMLDSORT} -nox -mli *.ml *.mli > ${DEPEND}
 env CAMLLIB="${STDLIB}" ${OCAMLOPT} ${OCAMLOPT_FLAGS} `cat .depend` -output-obj -o app_raw.o
-#objcopy --rename-section .bss=.mlbss --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
+objcopy --rename-section .bss=.mlbss --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
 
 # now link app.o depending on the target platform
 case "${TARG}" in
@@ -85,7 +85,8 @@ u)
 x)
   echo Linking for Xen
   I=${RUNTIME}/inst-x86_64/lib
-  cd ${RUNTIME}/kernel && ${MAKE} clean && ${MAKE} EXTRA_LIB="${DIR}/app.o"
+  cd ${RUNTIME}/kernel && ${MAKE} APP_LIB="${DIR}/app.o" && mv ${RUNTIME}/kernel/obj/mirage-os.gz ${DIR}/mirage-os.gz
+  zcat ${DIR}/mirage-os.gz > ${DIR}/mirage-os
   ;;
 *)
   echo Unknown target $TARGET

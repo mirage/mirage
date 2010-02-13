@@ -21,7 +21,7 @@ fi
 
 TMPCONF=/tmp/${NAME}.xm
 
-sed -e "s/@NAME@/${NAME}/g" -e "s,@KERNEL@,${FULLDIR}/mini-os.gz,g" < ${CONF} > ${TMPCONF}
+sed -e "s/@NAME@/${NAME}/g" -e "s,@KERNEL@,${FULLDIR}/mirage-os.gz,g" < ${CONF} > ${TMPCONF}
 
 cd ${MIRAGE_ROOT}
 ${MIR_BIN} bx ./tests/${NAME}
@@ -36,7 +36,7 @@ if [ ${PROFILING} -gt 0 ]; then
   ${SUDO} opcontrol --reset
   ${SUDO} opcontrol --shutdown
   ${SUDO} opcontrol --start-daemon --event=CPU_CLK_UNHALTED:1000000 --xen=/boot/xen-syms-3.4.3-rc1-pre \
-    --passive-domains=${DOMID} --passive-images=${FULLDIR}/mini-os --no-vmlinux
+    --passive-domains=${DOMID} --passive-images=${FULLDIR}/mirage-os --no-vmlinux
   ${SUDO} opcontrol --start
 fi
 

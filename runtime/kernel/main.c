@@ -26,10 +26,13 @@ void _fini(void)
 {
 }
 
+static char *argv[] = { "mirage", NULL };
+void caml_startup(char *argv[]);
+
 static void call_main(void *p)
 {
     printk("call_main\n");
-    sleep(1);
+    caml_startup(argv);
     _exit(0);
 }
 

@@ -1,7 +1,7 @@
 ROOTDIR=..
 include $(ROOTDIR)/mk/xen.mk
 
-TARGS = libmiragerun_xen.a libc.a libmir.a
+TARGS = libmiragerun_xen.a libc.a libmir.a libm.a
 
 CROSS_PREFIX = inst-x86_64
 
@@ -22,8 +22,13 @@ $(CROSS_PREFIX)/lib/libmir.a:
 	mkdir -p $(CROSS_PREFIX)/lib
 	cp bindings/obj-xen/libmir.a $@
 
+$(CROSS_PREFIX)/lib/libm.a:
+	cd libm && $(MAKE)
+	cp libm/obj/libm.a $@
+
 clean:
 	rm -rf base/obj-*
 	rm -rf bindings/obj-*
+	rm -rf kernel/obj
 	cd dietlibc && $(MAKE) clean
 	rm -rf $(CROSS_PREFIX)

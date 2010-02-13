@@ -51,7 +51,6 @@ int ungetc_unlocked(int c, FILE *stream) __THROW;
 int fputc(int c, FILE *stream) __THROW;
 int fputc_unlocked(int c, FILE *stream) __THROW;
 int fputs(const char *s, FILE *stream) __THROW;
-int fputs_unlocked(const char *s, FILE *stream) __THROW;
 
 int getc(FILE *stream) __THROW;
 int getchar(void) __THROW;
@@ -111,7 +110,6 @@ size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream) __THROW;
 size_t fread_unlocked(void *ptr, size_t size, size_t nmemb, FILE *stream) __THROW;
 
 size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) __THROW;
-size_t fwrite_unlocked(const void *ptr, size_t size, size_t nmemb, FILE *stream) __THROW;
 
 int fflush(FILE *stream) __THROW;
 int fflush_unlocked(FILE *stream) __THROW;

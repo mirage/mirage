@@ -1,7 +1,6 @@
 ROOTDIR=$(abspath ../..)
 include $(ROOTDIR)/mk/$(MODE).mk
 
-HAS_NOT := HAS_IPV6 HAS_INET_ATON POSIX_SIGNALS HAS_GETRUSAGE HAS_STACK_OVERFLOW_DETECTION HAS_TIMES
 MODE ?= unknown
 
 OBJDIR = $(CURDIR)/obj-$(MODE)
@@ -27,5 +26,6 @@ $(OBJDIR)/asmrun/$(ASMRUNLIB): $(OBJDIR)/.stamp
 	cd $(OBJDIR) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
                 -cc "$(CC) $(CFLAGS) -U_FORTIFY_SOURCE"
 	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJDIR)/config/s.h ; )
-	sed -i -e 's,Unix,$(MODE),g' $(OBJDIR)/config/s.h
+	cp $(OBJDIR)/config/m-xen.h $(OBJDIR)/config/m.h
+	cp $(OBJDIR)/config/s-xen.h $(OBJDIR)/config/s.h
 	cd $(OBJDIR)/asmrun && $(MAKE) SYSTEM=$(MODE) $(ASMRUNLIB)

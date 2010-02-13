@@ -46,9 +46,10 @@ $(OBJDIR)/%.o: %.S
 
 LD ?= ld
 OBJCOPY ?= objcopy
+LDLIBS = -lmiragerun_xen -lmir -lc -lm
 
 $(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ)
-	$(LD) -r -d -nostdlib -m elf_x86_64 $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) ../../tests/simple/app.o -lc -lm -lmiragerun_xen -lmir -T arch/x86/minios-x86_64.lds -o $@.o
+	$(LD) -r -d -nostdlib -m elf_x86_64 $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) ../../tests/simple/app.o $(LDLIBS)  -T arch/x86/minios-x86_64.lds -o $@.o
 	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
 	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $@.o -o $@
 	cp $@ $(OBJDIR)/o

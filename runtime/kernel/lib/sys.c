@@ -1116,6 +1116,8 @@ unsupported_function_log(struct  if_nameindex *, if_nameindex, (struct  if_namei
    Log, and return an error code if possible.  If it is not possible
    to inform the application of an error, then crash instead!
 */
+unsupported_function_log(char *, getenv, (char *) NULL);
+unsupported_function_log(int, system, -1);
 unsupported_function_log(struct dirent *, readdir64, NULL);
 unsupported_function_log(int, getrusage, -1);
 unsupported_function_log(int, getrlimit, -1);

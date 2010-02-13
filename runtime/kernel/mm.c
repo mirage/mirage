@@ -41,7 +41,7 @@
 #include <mini-os/types.h>
 #include <mini-os/lib.h>
 #include <mini-os/xmalloc.h>
-#include <mini-os/errno.h>
+#include <errno.h>
 
 #ifdef MM_DEBUG
 #define DEBUG(_f, _a...) \

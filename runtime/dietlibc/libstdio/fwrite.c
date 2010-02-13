@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-size_t fwrite_unlocked(const void *ptr, size_t size, size_t nmemb, FILE *stream) {
+size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) {
   ssize_t res;
   size_t len=size*nmemb;
   size_t i,done;
@@ -52,4 +52,3 @@ abort:
   return size?res/size:0;
 }
 
-size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream) __attribute__((weak,alias("fwrite_unlocked")));

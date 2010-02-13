@@ -1,12 +1,16 @@
+ROOTDIR=../..
+include $(ROOTDIR)/mk/xen.mk
+
 OBJDIR ?= ./obj
 
 SSRC=$(wildcard *.S)
+CSRC=$(wildcard *.c)
 
 .PHONY: all
 all: $(OBJDIR)/libm.a
 	@ :
 
-$(OBJDIR)/libm.a: $(SSRC:%.S=$(OBJDIR)/%.o)
+$(OBJDIR)/libm.a: $(SSRC:%.S=$(OBJDIR)/%.o) $(CSRC:%.c=$(OBJDIR)/%.o)
 	rm -f $@
 	ar rc $@ $^
 
@@ -15,7 +19,7 @@ $(OBJDIR)/.stamp:
 	@touch $@
 
 CC = gcc
-CFLAGS = -O2 -I./include
+CFLAGS += -I./include
 
 $(OBJDIR)/%.o: %.S $(OBJDIR)/.stamp
 	$(CC) $(CFLAGS) -c -o $@ $<

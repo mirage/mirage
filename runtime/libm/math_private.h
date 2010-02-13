@@ -45,8 +45,8 @@ typedef union
   double value;
   struct
   {
-    u_int32_t msw;
-    u_int32_t lsw;
+    uint32_t msw;
+    uint32_t lsw;
   } parts;
 } ieee_double_shape_type;
 
@@ -54,9 +54,9 @@ typedef union
 {
   long double value;
   struct {
-    u_int32_t msw;
-    u_int32_t nsw;
-    u_int32_t lsw;
+    uint32_t msw;
+    uint32_t nsw;
+    uint32_t lsw;
   } parts;
 } ieee_extended_shape_type;
 
@@ -64,10 +64,10 @@ typedef union
 {
   long double value;
   struct {
-    u_int32_t mswhi;
-    u_int32_t mswlo;
-    u_int32_t lswhi;
-    u_int32_t lswlo;
+    uint32_t mswhi;
+    uint32_t mswlo;
+    uint32_t lswhi;
+    uint32_t lswlo;
   } parts;
 } ieee_quad_shape_type;
 
@@ -80,8 +80,8 @@ typedef union
   double value;
   struct
   {
-    u_int32_t lsw;
-    u_int32_t msw;
+    uint32_t lsw;
+    uint32_t msw;
   } parts;
 } ieee_double_shape_type;
 
@@ -89,10 +89,10 @@ typedef union
 {
   long double value;
   struct {
-    u_int32_t lswlo;
-    u_int32_t lswhi;
-    u_int32_t mswlo;
-    u_int32_t mswhi;
+    uint32_t lswlo;
+    uint32_t lswhi;
+    uint32_t mswlo;
+    uint32_t mswhi;
   } parts;
 } ieee_quad_shape_type;
 
@@ -100,9 +100,9 @@ typedef union
 {
   long double value;
   struct {
-    u_int32_t lsw;
-    u_int32_t nsw;
-    u_int32_t msw;
+    uint32_t lsw;
+    uint32_t nsw;
+    uint32_t msw;
   } parts;
 } ieee_extended_shape_type;
 
@@ -172,7 +172,7 @@ do {								\
 typedef union
 {
   float value;
-  u_int32_t word;
+  uint32_t word;
 } ieee_float_shape_type;
 
 /* Get a 32 bit int from a float.  */

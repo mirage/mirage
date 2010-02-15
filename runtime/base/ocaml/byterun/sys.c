@@ -204,11 +204,7 @@ CAMLprim value caml_sys_getcwd(value unit)
 
 CAMLprim value caml_sys_getenv(value var)
 {
-  char * res;
-
-  res = getenv(String_val(var));
-  if (res == 0) caml_raise_not_found();
-  return caml_copy_string(res);
+  caml_raise_not_found();
 }
 
 char * caml_exe_name;

@@ -1,4 +1,4 @@
-/*
+(*
  * Copyright (C) 2006-2009 Citrix Systems Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -10,15 +10,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- */
+ *)
 
-#ifndef C_MMAP_H
-#define C_MMAP_H
-
-struct mmap_interface
-{
-	char *addr;
-	int len;
-};
-
-#endif
+external read: Mmap.mmap_interface -> string -> int -> int = "ml_interface_read"
+external write: Mmap.mmap_interface -> string -> int -> int = "ml_interface_write"

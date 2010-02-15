@@ -15,35 +15,6 @@ SECTIONS
   . = ALIGN(4096);
   _erodata = .;
 
-  /* newlib initialization functions */
-  . = ALIGN(64 / 8);
-  PROVIDE (__preinit_array_start = .);
-  .preinit_array     : { *(.preinit_array) }
-  PROVIDE (__preinit_array_end = .);
-  PROVIDE (__init_array_start = .);
-  .init_array     : { *(.init_array) }
-  PROVIDE (__init_array_end = .);
-  PROVIDE (__fini_array_start = .);
-  .fini_array     : { *(.fini_array) }
-  PROVIDE (__fini_array_end = .);
-
-  .ctors : {
-        __CTOR_LIST__ = .;
-        QUAD((__CTOR_END__ - __CTOR_LIST__) / 8 - 2)
-        *(.ctors)
-	CONSTRUCTORS
-        QUAD(0)
-        __CTOR_END__ = .;
-        }
-
-  .dtors : {
-        __DTOR_LIST__ = .;
-        QUAD((__DTOR_END__ - __DTOR_LIST__) / 8 - 2)
-        *(.dtors)
-        QUAD(0)
-        __DTOR_END__ = .;
-        }
-
   .data : {			/* Data */
 	*(.data)
 	}
@@ -59,17 +30,21 @@ SECTIONS
        *(.mlrodata)
   }
 
-  __bss_start = .;		/* BSS */
-
-  .mlbss : {
-       *(.mlbss)
-  }
   _mlend = . ;			/* End of ML section */
+
+  . = ALIGN(4096);
+  __bss_start = .;		/* BSS */
 
   .bss : {
 	*(.bss)
-        *(.app.bss)
+        *(.bss .bss.*)
+        *(COMMON)
+        *(.lbss .lbss.*)
+        *(LARGE_COMMON)
 	}
+
+  . = ALIGN(4096);
+  __bss_stop = .;
   _end = . ;
 
   /* Sections to be discarded */

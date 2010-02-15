@@ -49,13 +49,13 @@ OBJCOPY ?= objcopy
 LDLIBS = -lmiragerun_xen -lmir -lc -lm
 
 $(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ) $(APP_LIB)
-	$(LD) -r -d -nostdlib -m elf_x86_64 $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) $(APP_LIB) $(LDLIBS)  -T arch/x86/minios-x86_64.lds -o $@.o
-	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
-	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $@.o -o $@
+#	$(LD) -r -d -nostdlib -m elf_x86_64 $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) $(APP_LIB) $(LDLIBS)  -T arch/x86/minios-x86_64.lds -o $@.o
+#	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
+#	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $@.o -o $@
+	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) $(APP_LIB) $(LDLIBS) -o $@
 
 $(OBJDIR)/mirage-os.gz: $(OBJDIR)/mirage-os
-	rm -f $@
-	gzip -9 $<
+	gzip -c -9 $< > $@
 
 clean:
 	rm -rf $(OBJDIR)

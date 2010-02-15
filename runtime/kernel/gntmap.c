@@ -30,7 +30,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/lib.h>
 #include <mini-os/xmalloc.h>
 #include <errno.h>

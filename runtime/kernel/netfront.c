@@ -5,7 +5,7 @@
  * Does not handle fragments or extras.
  */
 
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/xenbus.h>
 #include <mini-os/events.h>
 #include <errno.h>

@@ -12,7 +12,7 @@ typedef struct {
 } spinlock_t;
 
 
-#include <mini-os/arch_spinlock.h>
+#include <mini-os/x86/arch_spinlock.h>
 
 
 #define SPINLOCK_MAGIC	0xdead4ead

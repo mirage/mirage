@@ -9,3 +9,5 @@ CFLAGS += -nostdinc
 CFLAGS += -fno-stack-protector
 CFLAGS += -isystem $(GCC_INSTALL)/include
 CFLAGS += -isystem $(ROOTDIR)/runtime/include
+CFLAGS += -isystem $(ROOTDIR)/runtime/include/mini-os
+CFLAGS += -isystem $(ROOTDIR)/runtime/include/mini-os/x86

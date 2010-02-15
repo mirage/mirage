@@ -3,7 +3,7 @@
 
 #include <mini-os/list.h>
 #include <mini-os/time.h>
-#include <mini-os/arch_sched.h>
+#include <mini-os/x86/arch_sched.h>
 
 struct thread
 {

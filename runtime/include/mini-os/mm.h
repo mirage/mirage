@@ -29,8 +29,8 @@
 
 #include <mini-os/lib.h>
 
-#include <mini-os/arch_limits.h>
-#include <mini-os/arch_mm.h>
+#include <mini-os/x86/arch_limits.h>
+#include <mini-os/x86/arch_mm.h>
 
 #define STACK_SIZE_PAGE_ORDER __STACK_SIZE_PAGE_ORDER
 #define STACK_SIZE __STACK_SIZE

@@ -32,8 +32,8 @@
  */
 
 
-#include <mini-os/os.h>
-#include <mini-os/traps.h>
+#include <mini-os/x86/os.h>
+#include <mini-os/x86/traps.h>
 #include <mini-os/types.h>
 #include <mini-os/hypervisor.h>
 #include <mini-os/events.h>

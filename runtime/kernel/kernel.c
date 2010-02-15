@@ -27,7 +27,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/hypervisor.h>
 #include <mini-os/mm.h>
 #include <mini-os/events.h>

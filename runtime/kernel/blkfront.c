@@ -4,15 +4,15 @@
  */
 
 #include <stdint.h>
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/xenbus.h>
 #include <mini-os/events.h>
-#include <errno.h>
 #include <xen/io/blkif.h>
 #include <xen/io/protocols.h>
 #include <mini-os/gnttab.h>
 #include <mini-os/xmalloc.h>
 #include <time.h>
+#include <errno.h>
 #include <mini-os/blkfront.h>
 #include <mini-os/lib.h>
 #include <fcntl.h>

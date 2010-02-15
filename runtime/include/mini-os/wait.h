@@ -2,7 +2,7 @@
 #define __WAIT_H__
 
 #include <mini-os/sched.h>
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/waittypes.h>
 
 #define DEFINE_WAIT(name)                               \

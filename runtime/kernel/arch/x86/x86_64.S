@@ -1,4 +1,4 @@
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/x86/arch_limits.h>
 #include <xen/features.h>
 

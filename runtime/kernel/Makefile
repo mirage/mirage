@@ -22,16 +22,14 @@ BASEINC = $(PWD)/..
 
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
-	(cd $(PWD)/include && ln -nfs . mini-os && cd x86 && ln -nfs . mini-os)
 
 GCC_INSTALL = $(shell LANG=C gcc -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p')
 CFLAGS += -nostdinc -std=gnu99 -m64 -mno-red-zone -fno-reorder-blocks
 CFLAGS += -isystem $(GCC_INSTALL)include
-CFLAGS += -isystem $(BASEINC)/dietlibc/include
 CFLAGS += -isystem $(BASEINC)/include 
-CFLAGS += -isystem $(PWD)/include 
-CFLAGS += -isystem $(PWD)/include/x86 
-CFLAGS += -isystem $(PWD)/include/x86/x86_64
+CFLAGS += -isystem $(BASEINC)/include/mini-os
+CFLAGS += -isystem $(BASEINC)/include/mini-os/x86 
+CFLAGS += -isystem $(BASEINC)/include/mini-os/x86/x86_64
 CFLAGS += -D__XEN_INTERFACE_VERSION__=0x00030205
 CFLAGS += -D__INSIDE_MINIOS__
 

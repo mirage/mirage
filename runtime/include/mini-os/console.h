@@ -36,8 +36,8 @@
 #ifndef _LIB_CONSOLE_H_
 #define _LIB_CONSOLE_H_
 
-#include <mini-os/os.h>
-#include <mini-os/traps.h>
+#include <mini-os/x86/os.h>
+#include <mini-os/x86/traps.h>
 #include <mini-os/types.h>
 #include <xen/grant_table.h>
 #include <xenbus.h>

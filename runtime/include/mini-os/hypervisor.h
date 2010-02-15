@@ -15,8 +15,8 @@
 
 #include <mini-os/types.h>
 #include <xen/xen.h>
-#include <hypercall-x86_64.h>
-#include <mini-os/traps.h>
+#include <mini-os/x86/hypercall-x86_64.h>
+#include <mini-os/x86/traps.h>
 
 /*
  * a placeholder for the start of day information passed up from the hypervisor

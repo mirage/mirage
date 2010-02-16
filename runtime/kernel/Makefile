@@ -44,7 +44,7 @@ $(OBJDIR)/%.o: %.S
 
 LD ?= ld
 OBJCOPY ?= objcopy
-LDLIBS = -lmiragerun_xen -lmir -lc -lm
+LDLIBS = -lmiragerun_xen -llwip -lmir -lc -lm
 
 $(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ) $(APP_LIB)
 #	$(LD) -r -d -nostdlib -m elf_x86_64 $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) $(APP_LIB) $(LDLIBS)  -T arch/x86/minios-x86_64.lds -o $@.o

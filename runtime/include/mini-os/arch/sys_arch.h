@@ -9,7 +9,7 @@
 #ifndef __LWIP_ARCH_SYS_ARCH_H__
 #define __LWIP_ARCH_SYS_ARCH_H__
 
-#include <mini-os/os.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/xmalloc.h>
 #include <mini-os/semaphore.h>
 

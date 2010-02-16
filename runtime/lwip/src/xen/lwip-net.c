@@ -329,7 +329,7 @@ netif_netfront_init(struct netif *netif)
 static __DECLARE_SEMAPHORE_GENERIC(tcpip_is_up, 0);
 static void tcpip_bringup_finished(void *p)
 {
-  tprintk("TCP/IP bringup ends.\n");
+  printf("TCP/IP bringup ends.\n");
   up(&tcpip_is_up);
 }
 
@@ -348,7 +348,7 @@ void start_networking(void)
   int mscnt = 0, got_dhcp_ip = 0;
   char *ip = NULL;
 
-  tprintk("Waiting for network.\n");
+  printf("Waiting for network.\n");
 
   dev = init_netfront(NULL, NULL, rawmac, &ip);
   
@@ -361,12 +361,12 @@ void start_networking(void)
     else if (IN_CLASSC(ntohl(ipaddr.addr)))
       netmask.addr = htonl(IN_CLASSC_NET);
     else
-      tprintk("Strange IP %s, leaving netmask to 0.\n", ip);
+      printf("Strange IP %s, leaving netmask to 0.\n", ip);
   }
-  tprintk("IP %x netmask %x gateway %x.\n",
+  printf("IP %x netmask %x gateway %x.\n",
           ntohl(ipaddr.addr), ntohl(netmask.addr), ntohl(gw.addr));
   
-  tprintk("TCP/IP bringup begins.\n");
+  printf("TCP/IP bringup begins.\n");
   
   netif = xmalloc(struct netif);
   tcpip_init(tcpip_bringup_finished, netif);
@@ -378,7 +378,7 @@ void start_networking(void)
 
   down(&tcpip_is_up);
 
-  tprintk("Starting DHCP ");
+  printf("Starting DHCP ");
   dhcp_start(netif);
 
   while (!got_dhcp_ip) {
@@ -399,7 +399,7 @@ void start_networking(void)
       got_dhcp_ip = 1;
     }
   }
-  tprintk("Network is ready.\n");
+  printf("Network is ready.\n");
 }
 
 /* Shut down the network */

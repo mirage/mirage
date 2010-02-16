@@ -146,25 +146,6 @@ evtchn_port_t bind_virq(uint32_t virq, evtchn_handler_t handler, void *data)
 	return op.port;
 }
 
-evtchn_port_t bind_pirq(uint32_t pirq, int will_share,
-                        evtchn_handler_t handler, void *data)
-{
-	evtchn_bind_pirq_t op;
-    int rc;
-
-	/* Try to bind the pirq to a port */
-	op.pirq = pirq;
-	op.flags = will_share ? BIND_PIRQ__WILL_SHARE : 0;
-
-	if ( (rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_pirq, &op)) != 0 )
-	{
-		printk("Failed to bind physical IRQ %d with rc=%d\n", pirq, rc);
-		return -1;
-	}
-	bind_evtchn(op.port, handler, data);
-	return op.port;
-}
-
 #if defined(__x86_64__)
 char irqstack[2 * STACK_SIZE];
 

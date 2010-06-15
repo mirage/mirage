@@ -76,8 +76,6 @@ static inline unsigned short get_id_from_freelist(unsigned short* freelist)
     return id;
 }
 
-__attribute__((weak)) void net_app_main(void*si,unsigned char*mac) {}
-
 static inline int xennet_rxidx(RING_IDX idx)
 {
     return idx & (NET_RX_RING_SIZE - 1);

@@ -1,4 +1,4 @@
-ARCH=$(shell uname | tr A-Z a-z)
+ARCH?=$(shell uname | tr A-Z a-z)
 export ARCH
 
 .PHONY: all

@@ -1,0 +1,12 @@
+CVS/
+*.o
+*.a
+.*.swp
+*.cmx
+*.cma
+*.cmo
+*.cmi
+*.cmxa
+._d/
+lib/echop
+lib_test/.depend

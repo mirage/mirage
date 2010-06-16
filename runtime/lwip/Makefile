@@ -4,7 +4,6 @@ export ARCH
 .PHONY: all
 all:
 	cd lib_test && $(MAKE)
-	cd lib && $(MAKE) nc
 
 .PHONY: echo
 echo:

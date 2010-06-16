@@ -28,14 +28,18 @@
 # 
 # Author: Adam Dunkels <adam@sics.se>
 #
+
+ROOTDIR=$(abspath ../../..)
+include $(ROOTDIR)/mk/xen.mk
  
 CCDEP=gcc
 CC=gcc
 #To compile for linux: make ARCH=linux
 #To compile for cygwin: make ARCH=cygwin
 #To compile for openbsd: make ARCH=openbsd
-ARCH=$(shell uname | tr A-Z a-z)
-CFLAGS=-g -Wall -pedantic -D$(ARCH) -DIPv4 -DLWIP_DEBUG
+#To compile for xen: make ARCH=xen
+ARCH=xen
+CFLAGS +=-g -Wall -pedantic -D$(ARCH) -DIPv4 -DLWIP_DEBUG
 ARFLAGS=rs
 
 LWIPARCH=.
@@ -45,8 +49,7 @@ LWIPARCH=.
 LWIPDIR=../lwip/src
 
 CFLAGS:=$(CFLAGS) \
-	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4 \
-	-Iapps -I.
+	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4  -I.
 
 # COREFILES, CORE4FILES: The minimum set of files needed for lwIP.
 COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
@@ -60,7 +63,7 @@ CORE4FILES=$(LWIPDIR)/core/ipv4/icmp.c $(LWIPDIR)/core/ipv4/ip.c \
 	$(LWIPDIR)/core/ipv4/ip_frag.c $(LWIPDIR)/core/ipv4/inet_chksum.c 
 
 # NETIFFILES: Files implementing various generic network interface functions.'
-NETIFFILES=$(LWIPDIR)/netif/etharp.c mintapif.c
+NETIFFILES=$(LWIPDIR)/netif/etharp.c xen-tapif.c
 
 # LWIPFILES: All the above.
 LWIPFILES=$(COREFILES) $(CORE4FILES) $(NETIFFILES)

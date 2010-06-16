@@ -24,6 +24,7 @@
 #include <lwip/ip_frag.h>
 #include <lwip/udp.h>
 #include <lwip/tcp.h>
+#include <netif/etharp.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
@@ -45,8 +46,7 @@
 
 /* XXX: these are just for lib_test, need to be
    abstracted out for MirageOS */
-#include <mintapif.h>
-#include <netif/etharp.h>
+err_t netif_netfront_init(struct netif *);
 
 enum tcp_states
 {
@@ -367,7 +367,7 @@ caml_netif_new(value v_ip, value v_netmask, value v_gw)
         Int_val(Field(v_gw, 2)), Int_val(Field(v_gw,3)));
 
     netif = caml_stat_alloc(sizeof(struct netif));
-    netif_add(netif, &ip, &netmask, &gw, NULL, mintapif_init, ethernet_input);
+    netif_add(netif, &ip, &netmask, &gw, NULL, netif_netfront_init, ethernet_input);
     v_netif = caml_alloc_final(2, netif_finalize, 1, 100);
     Netif_wrap_val(v_netif) = netif;
     
@@ -506,8 +506,7 @@ CAMLprim value
 caml_netif_select(value v_netif)
 {
     CAMLparam1(v_netif);
-    int i = mintapif_select( Netif_wrap_val(v_netif) );
-    CAMLreturn(Val_int(i));
+    CAMLreturn(Val_int(0));
 }
 
 /* Timers */

@@ -5,7 +5,7 @@ GCC_INSTALL = $(shell LANG=C $(CC) -print-search-dirs | sed -n -e 's/install: \(
 CFLAGS = -U __linux__ -U __FreeBSD__ -U __sun__
 CFLAGS += $(DEBUG_CFLAGS)
 CFLAGS += -D__MiniOS__ -DHAVE_LIBC -D__x86_64__
-CFLAGS += -nostdinc
+CFLAGS += -nostdinc -std=gnu99
 CFLAGS += -fno-stack-protector
 CFLAGS += -isystem $(GCC_INSTALL)/include
 CFLAGS += -isystem $(ROOTDIR)/runtime/include

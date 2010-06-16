@@ -272,22 +272,6 @@ mintapif_init(struct netif *netif)
     return ERR_MEM;
   }
   netif->state = mintapif;
-#if LWIP_SNMP
-  /* ifType is other(1), there doesn't seem
-     to be a proper type for the tunnel if */
-  netif->link_type = 1;
-  /* @todo get this from struct tunif? */
-  netif->link_speed = 0;
-  netif->ts = 0;
-  netif->ifinoctets = 0;
-  netif->ifinucastpkts = 0;
-  netif->ifinnucastpkts = 0;
-  netif->ifindiscards = 0;
-  netif->ifoutoctets = 0;
-  netif->ifoutucastpkts = 0;
-  netif->ifoutnucastpkts = 0;
-  netif->ifoutdiscards = 0;
-#endif
 
   netif->hwaddr_len = 6;
   netif->name[0] = IFNAME0;

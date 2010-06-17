@@ -1,4 +1,4 @@
-(* $Id: addlabels.ml,v 1.12 2008/07/09 13:03:37 mauny Exp $ *)
+(* $Id: addlabels.ml 8906 2008-07-09 13:03:38Z mauny $ *)
 
 open StdLabels
 open Asttypes

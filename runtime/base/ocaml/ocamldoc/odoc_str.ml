@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_str.ml,v 1.13 2008/07/23 08:55:36 guesdon Exp $ *)
+(* $Id: odoc_str.ml 8927 2008-07-23 08:55:36Z guesdon $ *)
 
 (** The functions to get a string from different kinds of elements (types, modules, ...). *)
 
@@ -274,4 +274,4 @@ let string_of_method m =
     None -> ""
   | Some i -> Odoc_misc.string_of_info i)
 
-(* eof $Id: odoc_str.ml,v 1.13 2008/07/23 08:55:36 guesdon Exp $ *)
+(* eof $Id: odoc_str.ml 8927 2008-07-23 08:55:36Z guesdon $ *)

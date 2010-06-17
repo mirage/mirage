@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: meta.mli,v 1.13 2004/04/16 13:46:27 starynke Exp $ *)
+(* $Id: meta.mli 6224 2004-04-16 13:46:43Z starynke $ *)
 
 (* To control the runtime system and bytecode interpreter *)
 

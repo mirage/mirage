@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: targets.sh,v 1.5 2008/01/11 16:13:16 doligez Exp $
+# $Id: targets.sh 8768 2008-01-11 16:13:18Z doligez $
 
 . config/config.sh
 . build/otherlibs-targets.sh

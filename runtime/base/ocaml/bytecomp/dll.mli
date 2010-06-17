@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: dll.mli,v 1.6 2006/09/28 21:36:38 xleroy Exp $ *)
+(* $Id: dll.mli 7656 2006-09-28 21:36:38Z xleroy $ *)
 
 (* Handling of dynamically-linked libraries *)
 

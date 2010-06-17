@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: loadprinter.ml,v 1.19.20.1 2009/04/02 09:44:21 xclerc Exp $ *)
+(* $Id: loadprinter.ml 9226 2009-04-02 09:44:21Z xclerc $ *)
 
 (* Loading and installation of user-defined printer functions *)
 

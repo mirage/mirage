@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: annot.mli,v 1.2 2008/07/29 15:42:44 doligez Exp $ *)
+(* $Id: annot.mli 8958 2008-07-29 15:42:44Z doligez $ *)
 
 (* Data types for annotations (Stypes.ml) *)
 

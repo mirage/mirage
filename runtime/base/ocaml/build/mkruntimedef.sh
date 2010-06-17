@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: mkruntimedef.sh,v 1.2 2007/10/08 14:19:34 doligez Exp $
+# $Id: mkruntimedef.sh 8416 2007-10-08 14:19:34Z doligez $
 echo 'let builtin_exceptions = [|'; \
 sed -n -e 's|.*/\* \("[A-Za-z_]*"\) \*/$|  \1;|p' byterun/fail.h | \
 sed -e '$s/;$//'; \

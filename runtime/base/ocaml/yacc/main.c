@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: main.c,v 1.20 2006/04/16 23:28:22 doligez Exp $ */
+/* $Id: main.c 7382 2006-04-16 23:28:22Z doligez $ */
 
 #include <signal.h>
 #include <string.h>

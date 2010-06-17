@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: outcometree.mli,v 1.15 2006/04/05 02:28:13 garrigue Exp $ *)
+(* $Id: outcometree.mli 7372 2006-04-05 02:28:13Z garrigue $ *)
 
 (* Module [Outcometree]: results displayed by the toplevel *)
 

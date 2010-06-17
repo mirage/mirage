@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: datarepr.mli,v 1.9 2003/07/02 09:14:32 xleroy Exp $ *)
+(* $Id: datarepr.mli 5643 2003-07-02 09:14:35Z xleroy $ *)
 
 (* Compute constructor and label descriptions from type declarations,
    determining their representation. *)

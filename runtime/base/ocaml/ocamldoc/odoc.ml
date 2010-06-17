@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc.ml,v 1.9.14.1 2009/04/09 13:56:38 guesdon Exp $ *)
+(* $Id: odoc.ml 9371 2009-10-16 12:40:04Z doligez $ *)
 
 (** Main module for bytecode. *)
 
@@ -81,11 +81,11 @@ let _ =
           prerr_endline (Odoc_messages.load_file_error file "Not_found");
           exit 1
       | Sys_error s
-      |	Failure s ->
+      | Failure s ->
           prerr_endline (Odoc_messages.load_file_error file s);
           exit 1
 
-let _ = print_DEBUG "Fin du chargement dynamique éventuel"
+let _ = print_DEBUG "Fin du chargement dynamique eventuel"
 
 let default_html_generator = new Odoc_html.html
 let default_latex_generator = new Odoc_latex.latex
@@ -147,4 +147,4 @@ let _ =
     exit 0
 
 
-(* eof $Id: odoc.ml,v 1.9.14.1 2009/04/09 13:56:38 guesdon Exp $ *)
+(* eof $Id: odoc.ml 9371 2009-10-16 12:40:04Z doligez $ *)

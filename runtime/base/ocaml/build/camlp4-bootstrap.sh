@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: camlp4-bootstrap.sh,v 1.3 2007/10/08 14:19:34 doligez Exp $
+# $Id: camlp4-bootstrap.sh 8416 2007-10-08 14:19:34Z doligez $
 set -e
 cd `dirname $0`/..
 

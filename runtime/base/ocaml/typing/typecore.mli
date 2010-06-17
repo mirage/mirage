@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typecore.mli,v 1.41 2008/01/11 16:13:16 doligez Exp $ *)
+(* $Id: typecore.mli 8768 2008-01-11 16:13:18Z doligez $ *)
 
 (* Type inference for the core language *)
 

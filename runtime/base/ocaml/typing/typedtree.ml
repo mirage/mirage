@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typedtree.ml,v 1.39 2008/07/09 13:03:38 mauny Exp $ *)
+(* $Id: typedtree.ml 8906 2008-07-09 13:03:38Z mauny $ *)
 
 (* Abstract syntax tree after typing *)
 

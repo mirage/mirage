@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_ocamlhtml.mll,v 1.10.4.1 2008/11/10 13:03:55 guesdon Exp $ *)
+(* $Id: odoc_ocamlhtml.mll 9125 2008-11-10 13:03:55Z guesdon $ *)
 
 (** Generation of html code to display OCaml code. *)
 open Lexing

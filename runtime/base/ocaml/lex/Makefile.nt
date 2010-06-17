@@ -10,9 +10,11 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.nt,v 1.9 2003/01/06 14:57:22 xleroy Exp $
+# $Id: Makefile.nt 9528 2010-01-14 21:26:13Z doligez $
 
 # The lexer generator
+
+include ../config/Makefile
 
 CAMLC=../boot/ocamlrun ../boot/ocamlc -I ../boot
 CAMLOPT=../boot/ocamlrun ../ocamlopt -I ../stdlib

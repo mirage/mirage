@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: optmain.mli,v 1.1 2000/01/07 16:03:04 doligez Exp $ *)
+(* $Id: optmain.mli 2740 2000-01-07 16:03:04Z doligez $ *)
 
 (*
   this "empty" file is here to speed up garbage collection in ocamlopt.opt

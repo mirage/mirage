@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: mkconfig.sh,v 1.3 2007/11/06 15:16:56 frisch Exp $
+# $Id: mkconfig.sh 8477 2007-11-06 15:16:56Z frisch $
 
 cd `dirname $0`/..
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml,v 1.7 2004/05/03 12:27:07 xleroy Exp $ *)
+(* $Id: selection.ml 6276 2004-05-03 12:27:07Z xleroy $ *)
 
 (* Instruction selection for the IA64 processor *)
 

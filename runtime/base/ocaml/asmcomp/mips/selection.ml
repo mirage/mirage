@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml,v 1.4 1999/11/17 18:56:46 xleroy Exp $ *)
+(* $Id: selection.ml 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Instruction selection for the Mips processor *)
 

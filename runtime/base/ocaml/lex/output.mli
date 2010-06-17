@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: output.mli,v 1.8 2002/12/09 10:44:46 maranget Exp $ *)
+(* $Id: output.mli 5323 2002-12-09 10:44:46Z maranget $ *)
 
 (* Output the DFA tables and its entry points *)
 

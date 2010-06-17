@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytegen.mli,v 1.6 1999/11/17 18:56:59 xleroy Exp $ *)
+(* $Id: bytegen.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Generation of bytecode from lambda terms *)
 

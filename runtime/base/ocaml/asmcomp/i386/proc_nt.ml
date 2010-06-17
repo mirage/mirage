@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: proc_nt.ml,v 1.8 2008/01/11 16:13:11 doligez Exp $ *)
+(* $Id: proc_nt.ml 8768 2008-01-11 16:13:18Z doligez $ *)
 
 (* Description of the Intel 386 processor, for Windows NT *)
 

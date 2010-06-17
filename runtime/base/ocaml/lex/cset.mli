@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: cset.mli,v 1.3 2004/04/29 11:12:49 maranget Exp $ *)
+(* $Id: cset.mli 6269 2004-04-29 11:12:49Z maranget $ *)
 
 (* Set of characters encoded as list of intervals *)
 

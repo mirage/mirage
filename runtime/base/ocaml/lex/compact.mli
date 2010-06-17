@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: compact.mli,v 1.4 2002/10/28 16:46:49 maranget Exp $ *)
+(* $Id: compact.mli 5193 2002-10-28 16:46:50Z maranget $ *)
 
 (* Compaction of an automata *)
 type lex_tables =

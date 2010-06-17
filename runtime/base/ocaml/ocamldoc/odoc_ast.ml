@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_ast.ml,v 1.32 2008/07/25 13:28:23 guesdon Exp $ *)
+(* $Id: odoc_ast.ml 9371 2009-10-16 12:40:04Z doligez $ *)
 
 (** Analysis of implementation files. *)
 open Misc
@@ -332,7 +332,7 @@ module Analyser =
                       in
                       (new_param, func_body2)
                   | _ ->
-                      print_DEBUG3 "Pas le bon filtre pour le paramètre optionnel avec valeur par défaut.";
+                      print_DEBUG3 "Pas le bon filtre pour le parametre optionnel avec valeur par defaut.";
                       (parameter, func_body)
                  )
                 )
@@ -477,7 +477,7 @@ module Analyser =
                                   in
                                   (new_param, body2)
                               | _ ->
-                                  print_DEBUG3 "Pas le bon filtre pour le paramètre optionnel avec valeur par défaut.";
+                                  print_DEBUG3 "Pas le bon filtre pour le parametre optionnel avec valeur par defaut.";
                                   (parameter, body)
                              )
                             )

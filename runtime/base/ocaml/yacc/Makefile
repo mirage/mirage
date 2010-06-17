@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile,v 1.10 2007/02/07 14:49:42 doligez Exp $
+# $Id: Makefile 7833 2007-02-07 14:49:42Z doligez $
 
 # Makefile for the parser generator.
 

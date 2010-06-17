@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: clflags.mli,v 1.4.2.1 2008/10/15 08:48:51 xleroy Exp $ *)
+(* $Id: clflags.mli 9084 2008-10-15 08:48:51Z xleroy $ *)
 
 val objfiles : string list ref
 val ccobjs : string list ref

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typeclass.mli,v 1.19 2006/04/05 02:28:13 garrigue Exp $ *)
+(* $Id: typeclass.mli 7372 2006-04-05 02:28:13Z garrigue $ *)
 
 open Asttypes
 open Types

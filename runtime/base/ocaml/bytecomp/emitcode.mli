@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emitcode.mli,v 1.15 2006/05/11 15:50:53 xleroy Exp $ *)
+(* $Id: emitcode.mli 7422 2006-05-11 15:50:53Z xleroy $ *)
 
 (* Generation of bytecode for .cmo files *)
 

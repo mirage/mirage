@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: reload.mli,v 1.6 1999/11/17 18:56:35 xleroy Exp $ *)
+(* $Id: reload.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Insert load/stores for pseudoregs that got assigned to stack locations. *)
 

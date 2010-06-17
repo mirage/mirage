@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_parameter.ml,v 1.8 2004/04/02 15:10:57 guesdon Exp $ *)
+(* $Id: odoc_parameter.ml 6185 2004-04-02 15:10:58Z guesdon $ *)
 
 (** Representation and manipulation of method / function / class parameters. *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translcore.ml,v 1.110 2008/08/27 10:23:21 garrigue Exp $ *)
+(* $Id: translcore.ml 8992 2008-08-27 10:23:21Z garrigue $ *)
 
 (* Translation from typed abstract syntax to lambda terms,
    for the core language *)

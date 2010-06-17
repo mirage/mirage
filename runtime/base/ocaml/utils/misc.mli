@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: misc.mli,v 1.26 2007/02/23 13:44:51 ertai Exp $ *)
+(* $Id: misc.mli 7909 2007-02-23 13:44:51Z ertai $ *)
 
 (* Miscellaneous useful types and functions *)
 

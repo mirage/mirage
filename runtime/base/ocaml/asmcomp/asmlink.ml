@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmlink.ml,v 1.78 2008/01/31 09:13:07 frisch Exp $ *)
+(* $Id: asmlink.ml 9338 2009-09-16 14:03:37Z garrigue $ *)
 
 (* Link a set of .cmx/.o files and produce an executable *)
 
@@ -259,6 +259,7 @@ let link_shared ppf objfiles output_name =
     (fun (info, file_name, crc) -> check_consistency file_name info crc)
     units_tolink;
   Clflags.ccobjs := !Clflags.ccobjs @ !lib_ccobjs;
+  Clflags.ccopts := !lib_ccopts @ !Clflags.ccopts;
   let objfiles = List.rev (List.map object_file_name objfiles) @
     !Clflags.ccobjs in
 

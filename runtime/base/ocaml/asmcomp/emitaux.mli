@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emitaux.mli,v 1.12.12.1 2009/01/26 17:06:10 xleroy Exp $ *)
+(* $Id: emitaux.mli 9314 2009-07-15 12:14:39Z xleroy $ *)
 
 (* Common functions for emitting assembly code *)
 
@@ -25,6 +25,9 @@ val emit_char: char -> unit
 val emit_string_literal: string -> unit
 val emit_string_directive: string -> string -> unit
 val emit_bytes_directive: string -> string -> unit
+val emit_float64_directive: string -> string -> unit
+val emit_float64_split_directive: string -> string -> unit
+val emit_float32_directive: string -> string -> unit
 
 type frame_descr =
   { fd_lbl: int;                        (* Return address *)

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: types.mli,v 1.29 2008/07/19 02:13:09 garrigue Exp $ *)
+(* $Id: types.mli 8922 2008-07-19 02:13:09Z garrigue $ *)
 
 (* Representation of types and declarations *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: simplif.mli,v 1.3 1999/11/17 18:57:01 xleroy Exp $ *)
+(* $Id: simplif.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Elimination of useless Llet(Alias) bindings *)
 

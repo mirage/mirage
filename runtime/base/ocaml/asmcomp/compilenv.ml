@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: compilenv.ml,v 1.24 2007/11/06 15:16:55 frisch Exp $ *)
+(* $Id: compilenv.ml 8477 2007-11-06 15:16:56Z frisch $ *)
 
 (* Compilation environments for compilation units *)
 

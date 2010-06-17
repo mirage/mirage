@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emit.mlp,v 1.42 2006/04/16 23:28:14 doligez Exp $ *)
+(* $Id: emit.mlp 9314 2009-07-15 12:14:39Z xleroy $ *)
 
 module LabelSet =
   Set.Make(struct type t = Linearize.label let compare = compare end)
@@ -793,9 +793,9 @@ let emit_item = function
            long decimal constants *)
         `	.quad	0x{emit_string(Nativeint.format "%x" n)}\n`
   | Csingle f ->
-      `	.float	{emit_string f}\n`
+      emit_float32_directive ".long" f
   | Cdouble f ->
-      `	.double	{emit_string f}\n`
+      emit_float64_directive ".quad" f
   | Csymbol_address s ->
       `	.quad	{emit_symbol s}\n`
   | Clabel_address lbl ->

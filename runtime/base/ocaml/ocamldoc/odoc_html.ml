@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_html.ml,v 1.64.2.1 2008/11/10 13:03:55 guesdon Exp $ *)
+(* $Id: odoc_html.ml 9125 2008-11-10 13:03:55Z guesdon $ *)
 
 (** Generation of html documentation.*)
 

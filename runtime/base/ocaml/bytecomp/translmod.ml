@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translmod.ml,v 1.56 2008/07/24 05:35:22 frisch Exp $ *)
+(* $Id: translmod.ml 8930 2008-07-24 05:35:22Z frisch $ *)
 
 (* Translation from typed abstract syntax to lambda terms,
    for the module language *)

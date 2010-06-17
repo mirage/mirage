@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selectgen.mli,v 1.8 2007/01/29 12:10:50 xleroy Exp $ *)
+(* $Id: selectgen.mli 7812 2007-01-29 12:11:18Z xleroy $ *)
 
 (* Selection of pseudo-instructions, assignment of pseudo-registers,
    sequentialization. *)

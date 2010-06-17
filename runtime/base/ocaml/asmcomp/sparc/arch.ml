@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arch.ml,v 1.8 2002/11/29 15:03:08 xleroy Exp $ *)
+(* $Id: arch.ml 5303 2002-11-29 15:03:08Z xleroy $ *)
 
 (* Specific operations for the Sparc processor *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmlibrarian.mli,v 1.6 2000/04/21 08:10:27 weis Exp $ *)
+(* $Id: asmlibrarian.mli 3123 2000-04-21 08:13:22Z weis $ *)
 
 (* Build libraries of .cmx files *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: primitive.mli,v 1.8 2008/07/24 05:35:22 frisch Exp $ *)
+(* $Id: primitive.mli 8930 2008-07-24 05:35:22Z frisch $ *)
 
 (* Description of primitive functions *)
 

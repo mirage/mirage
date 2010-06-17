@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arch.ml,v 1.12 2006/05/31 08:16:34 xleroy Exp $ *)
+(* $Id: arch.ml 7430 2006-05-31 08:16:34Z xleroy $ *)
 
 (* Specific operations for the PowerPC processor *)
 

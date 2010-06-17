@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_search.mli,v 1.4 2003/11/24 10:43:12 starynke Exp $ *)
+(* $Id: odoc_search.mli 5973 2003-11-24 10:44:07Z starynke $ *)
 
 (** Research of elements through modules. *)
 

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: lexer.mli,v 1.1 2004/06/13 12:46:11 xleroy Exp $ *)
+(* $Id: lexer.mli 6394 2004-06-13 12:46:11Z xleroy $ *)
 
 val line: Lexing.lexbuf -> string
 val lexeme: Lexing.lexbuf -> Parser.token

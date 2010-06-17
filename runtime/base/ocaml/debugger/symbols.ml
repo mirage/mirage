@@ -11,12 +11,13 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: symbols.ml,v 1.18.18.1 2009/04/02 09:44:21 xclerc Exp $ *)
+(* $Id: symbols.ml 9300 2009-06-18 11:17:16Z xclerc $ *)
 
 (* Handling of symbol tables (globals and events) *)
 
 open Instruct
 open Debugger_config (* Toplevel *)
+open Program_loading
 
 let modules =
   ref ([] : string list)
@@ -61,6 +62,12 @@ let read_symbols' bytecode_file =
     List.iter (relocate_event orig) evl;
     eventlists := evl :: !eventlists
   done;
+  begin try
+    ignore (Bytesections.seek_section ic "CODE")
+  with Not_found ->
+    (* The file contains only debugging info, loading mode is forced to "manual" *)
+    set_launching_function (List.assoc "manual" loading_modes)
+  end;
   close_in_noerr ic;
   !eventlists
 

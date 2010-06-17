@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_misc.ml,v 1.21 2006/07/06 07:19:06 pouillar Exp $ *)
+(* $Id: odoc_misc.ml 7470 2006-07-06 07:19:06Z pouillar $ *)
 
 let no_blanks s =
   let len = String.length s in

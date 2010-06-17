@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmpackager.ml,v 1.26 2007/11/15 16:09:57 frisch Exp $ *)
+(* $Id: asmpackager.ml 8523 2007-11-15 16:09:57Z frisch $ *)
 
 (* "Package" a set of .cmx/.o files into one .cmx/.o file having the
    original compilation units as sub-modules. *)

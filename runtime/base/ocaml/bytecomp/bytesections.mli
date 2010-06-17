@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytesections.mli,v 1.3 2004/02/22 15:07:50 xleroy Exp $ *)
+(* $Id: bytesections.mli 6130 2004-02-22 15:07:51Z xleroy $ *)
 
 (* Handling of sections in bytecode executable files *)
 

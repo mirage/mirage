@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scheduling.ml,v 1.3 2000/07/16 02:57:31 xleroy Exp $ *)
+(* $Id: scheduling.ml 3235 2000-07-16 02:57:31Z xleroy $ *)
 
 open Schedgen (* to create a dependency *)
 

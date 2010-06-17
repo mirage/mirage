@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: main.ml,v 1.21.2.2 2009/04/02 09:44:21 xclerc Exp $ *)
+(* $Id: main.ml 9310 2009-07-08 14:30:05Z xclerc $ *)
 
 open Input_handling
 open Question
@@ -24,6 +24,7 @@ open Program_management
 open Frames
 open Show_information
 open Format
+open Primitives
 
 let line_buffer = Lexing.from_function read_user_input
 
@@ -107,7 +108,39 @@ let rec protect ppf restart loop =
       kill_program ();
       raise x
 
-let toplevel_loop () = protect Format.std_formatter loop loop
+let execute_file_if_any () =
+  let buffer = Buffer.create 128 in
+  begin
+    try
+      let base = ".ocamldebug" in
+      let file =
+        if Sys.file_exists base then
+          base
+        else
+          Filename.concat (Sys.getenv "HOME") base in
+      let ch = open_in file in
+      fprintf Format.std_formatter "Executing file %s@." file;
+      while true do
+        let line = string_trim (input_line ch) in
+        if line <> ""  && line.[0] <> '#' then begin
+          Buffer.add_string buffer line;
+          Buffer.add_char buffer '\n'
+        end
+      done;
+    with _ -> ()
+  end;
+  let len = Buffer.length buffer in
+  if len > 0 then
+    let commands = Buffer.sub buffer 0 (pred len) in
+    line_loop Format.std_formatter (Lexing.from_string commands)
+
+let toplevel_loop () =
+  interactif := false;
+  current_prompt := "";
+  execute_file_if_any ();
+  interactif := true;
+  current_prompt := debugger_prompt;
+  protect Format.std_formatter loop loop
 
 (* Parsing of command-line arguments *)
 
@@ -167,7 +200,6 @@ let main () =
         arguments := !arguments ^ " " ^ (Filename.quote Sys.argv.(j))
       done
     end;
-    current_prompt := debugger_prompt;
     printf "\tObjective Caml Debugger version %s@.@." Config.version;
     Config.load_path := !default_load_path;
     Clflags.recursive_types := true;    (* Allow recursive types. *)

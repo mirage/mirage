@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printinstr.ml,v 1.23 2005/08/25 15:35:16 doligez Exp $ *)
+(* $Id: printinstr.ml 7031 2005-08-25 15:35:16Z doligez $ *)
 
 (* Pretty-print lists of instructions *)
 

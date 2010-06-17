@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.nt,v 1.11 2007/11/15 13:21:15 frisch Exp $
+# $Id: Makefile.nt 8521 2007-11-15 13:21:15Z frisch $
 
 # Makefile for the parser generator.
 

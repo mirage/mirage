@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: otherlibs-targets.sh,v 1.4.4.1 2009/05/26 12:49:16 ertai Exp $
+# $Id: otherlibs-targets.sh 9281 2009-05-26 12:50:41Z ertai $
 OTHERLIBS_BYTE=""
 OTHERLIBS_NATIVE=""
 OTHERLIBS_UNIX_NATIVE=""

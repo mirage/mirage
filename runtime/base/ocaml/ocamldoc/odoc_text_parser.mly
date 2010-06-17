@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_text_parser.mly,v 1.5 2006/01/04 16:55:50 doligez Exp $ *)
+(* $Id: odoc_text_parser.mly 7307 2006-01-04 16:55:50Z doligez $ *)
 
 open Odoc_types
 

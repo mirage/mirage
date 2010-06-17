@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: keywords.r,v 1.3 2001/12/07 13:41:01 xleroy Exp $ */
+/* $Id: keywords.r 4144 2001-12-07 13:41:02Z xleroy $ */
 
 type 'Odds' {
   longint;                  /* resource ID of corresponding 'Sods' */

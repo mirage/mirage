@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: linenum.mll,v 1.7 1999/11/17 18:58:17 xleroy Exp $ *)
+(* $Id: linenum.mll 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* An auxiliary lexer for determining the line number corresponding to
    a file position, honoring the directives # linenum "filename" *)

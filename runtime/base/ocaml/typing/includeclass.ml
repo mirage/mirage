@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: includeclass.ml,v 1.8.16.1 2009/04/19 08:42:43 xleroy Exp $ *)
+(* $Id: includeclass.ml 9236 2009-04-19 08:42:43Z xleroy $ *)
 
 (* Inclusion checks for the class language *)
 

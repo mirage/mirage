@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytepackager.mli,v 1.1 2002/02/08 16:55:42 xleroy Exp $ *)
+(* $Id: bytepackager.mli 4367 2002-02-08 16:55:44Z xleroy $ *)
 
 (* "Package" a set of .cmo files into one .cmo file having the
    original compilation units as sub-modules. *)

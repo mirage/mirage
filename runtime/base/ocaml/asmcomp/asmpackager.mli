@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmpackager.mli,v 1.2 2005/08/01 15:51:09 xleroy Exp $ *)
+(* $Id: asmpackager.mli 7003 2005-08-01 15:51:09Z xleroy $ *)
 
 (* "Package" a set of .cmx/.o files into one .cmx/.o file having the
    original compilation units as sub-modules. *)

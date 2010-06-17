@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: frames.mli,v 1.3 1999/11/17 18:57:24 xleroy Exp $ *)
+(* $Id: frames.mli 9299 2009-06-17 08:15:39Z xclerc $ *)
 
 (****************************** Frames *********************************)
 
@@ -24,9 +24,9 @@ val current_frame : int ref
 (* Event at selected position. *)
 val selected_event : debug_event option ref
 
-(* Selected position in source. *)
+(* Selected position in source (module, line, column). *)
 (* Raise `Not_found' if not on an event. *)
-val selected_point : unit -> string * int
+val selected_point : unit -> string * int * int
 
 val selected_event_is_before : unit -> bool
 

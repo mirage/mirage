@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: ocamlbuildlib-native-only.sh,v 1.2.4.1 2008/10/23 15:29:11 ertai Exp $
+# $Id: ocamlbuildlib-native-only.sh 9099 2008-10-23 15:29:11Z ertai $
 set -e
 cd `dirname $0`/..
 . build/targets.sh

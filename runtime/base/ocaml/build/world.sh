@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: world.sh,v 1.3.4.2 2009/06/02 09:37:47 doligez Exp $
+# $Id: world.sh 9283 2009-06-02 09:37:47Z doligez $
 cd `dirname $0`
 set -e
 if [ -e ocamlbuild_mixed_mode ]; then

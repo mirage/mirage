@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: source.mli,v 1.3 2006/12/09 13:49:10 ertai Exp $ *)
+(* $Id: source.mli 9299 2009-06-17 08:15:39Z xclerc $ *)
 
 (************************ Source management ****************************)
 
@@ -56,3 +56,6 @@ val pos_of_line : buffer -> int -> position
 (* Convert a coordinate (line / column) into a position. *)
 (* --- The first line and column are line 1 and column 1. *)
 val point_of_coord : buffer -> int -> int -> int
+
+(* Return the offsets of both line start and cnum for the passed position. *)
+val start_and_cnum : buffer -> Lexing.position -> (int * int)

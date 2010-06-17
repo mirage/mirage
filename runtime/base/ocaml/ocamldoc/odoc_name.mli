@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_name.mli,v 1.4 2004/03/26 09:09:50 guesdon Exp $ *)
+(* $Id: odoc_name.mli 6173 2004-03-26 09:09:50Z guesdon $ *)
 
 (** Representation of element names. *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ccomp.mli,v 1.16 2008/01/11 16:13:18 doligez Exp $ *)
+(* $Id: ccomp.mli 8768 2008-01-11 16:13:18Z doligez $ *)
 
 (* Compiling C files and building C libraries *)
 

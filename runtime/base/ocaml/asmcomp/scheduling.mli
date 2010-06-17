@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scheduling.mli,v 1.3 1999/11/17 18:56:36 xleroy Exp $ *)
+(* $Id: scheduling.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Instruction scheduling *)
 

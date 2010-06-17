@@ -12,7 +12,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: profiling.mli,v 1.6 2005/03/24 17:20:54 doligez Exp $ *)
+(* $Id: profiling.mli 6824 2005-03-24 17:20:54Z doligez $ *)
 
 (* Run-time library for profiled programs *)
 

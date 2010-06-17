@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_lexer.mll,v 1.5 2008/07/23 11:14:22 guesdon Exp $ *)
+(* $Id: odoc_lexer.mll 8928 2008-07-23 11:14:22Z guesdon $ *)
 
 (** The lexer for special comments. *)
 

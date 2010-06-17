@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: includecore.mli,v 1.10 1999/11/17 18:58:54 xleroy Exp $ *)
+(* $Id: includecore.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Inclusion checks for the core language *)
 

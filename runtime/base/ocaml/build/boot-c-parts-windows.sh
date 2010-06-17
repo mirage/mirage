@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: boot-c-parts-windows.sh,v 1.3 2007/10/08 14:19:34 doligez Exp $
+# $Id: boot-c-parts-windows.sh 9527 2010-01-14 14:45:42Z xclerc $
 cd `dirname $0`/..
 set -ex
 
@@ -13,7 +13,6 @@ set -ex
 mkdir -p _build/boot
 cp -f byterun/ocamlrun.exe \
       byterun/libcamlrun.$A \
-      byterun/ocamlrun.dll \
       asmrun/libasmrun.$A \
       yacc/ocamlyacc.exe \
       boot/ocamlc \
@@ -21,5 +20,4 @@ cp -f byterun/ocamlrun.exe \
       boot/ocamldep \
       _build/boot
 mkdir -p _build/byterun
-cp -f byterun/ocamlrun.exe byterun/ocamlrun.dll boot
-cp -f byterun/ocamlrun.$A _build/byterun
+cp -f byterun/ocamlrun.exe boot

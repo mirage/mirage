@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translclass.ml,v 1.43.4.1 2008/10/08 13:07:13 doligez Exp $ *)
+(* $Id: translclass.ml 9079 2008-10-08 13:09:39Z doligez $ *)
 
 open Misc
 open Asttypes

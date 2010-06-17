@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_type.ml,v 1.7 2008/05/21 05:56:39 guesdon Exp $ *)
+(* $Id: odoc_type.ml 8883 2008-05-21 05:56:39Z guesdon $ *)
 
 (** Representation and manipulation of a type, but not class nor module type.*)
 

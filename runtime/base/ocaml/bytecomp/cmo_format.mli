@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: cmo_format.mli,v 1.1 2006/05/11 15:50:53 xleroy Exp $ *)
+(* $Id: cmo_format.mli 7422 2006-05-11 15:50:53Z xleroy $ *)
 
 (* Symbol table information for .cmo and .cma files *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: matching.mli,v 1.13 2008/08/01 16:57:10 mauny Exp $ *)
+(* $Id: matching.mli 8974 2008-08-01 16:57:10Z mauny $ *)
 
 (* Compilation of pattern-matching *)
 

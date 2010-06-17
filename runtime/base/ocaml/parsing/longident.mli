@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: longident.mli,v 1.7 2000/03/25 18:55:44 xleroy Exp $ *)
+(* $Id: longident.mli 2990 2000-03-25 18:55:45Z xleroy $ *)
 
 (* Long identifiers, used in parsetree. *)
 

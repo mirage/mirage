@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: debugcom.mli,v 1.8 2002/10/29 17:53:23 doligez Exp $ *)
+(* $Id: debugcom.mli 5200 2002-10-29 17:53:24Z doligez $ *)
 
 (* Low-level communication with the debuggee *)
 

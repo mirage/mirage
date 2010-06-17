@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id: caml-types.el,v 1.38 2008/07/29 15:49:31 doligez Exp $ *)
+;(* $Id: caml-types.el 9364 2009-10-02 12:31:37Z doligez $ *)
 
 ; An emacs-lisp complement to the "-annot" option of ocamlc and ocamlopt.
 
@@ -256,9 +256,9 @@ See `caml-types-location-re' for annotation file format.
           (let* ((loc-re (concat caml-types-position-re " "
                                  caml-types-position-re))
                  (end-re (concat caml-types-position-re " --"))
-                 (def-re (concat "def \\([^ ]\\)* " loc-re))
-                 (def-end-re (concat "def \\([^ ]\\)* " end-re))
-                 (internal-re (concat "int_ref \\([^ ]\\)* " loc-re))
+                 (def-re (concat "def \\([^ ]*\\) " loc-re))
+                 (def-end-re (concat "def \\([^ ]*\\) " end-re))
+                 (internal-re (concat "int_ref \\([^ ]*\\) " loc-re))
                  (external-re "ext_ref \\(.*\\)"))
             (cond
              ((string-match def-re kind)
@@ -359,7 +359,7 @@ See `caml-types-location-re' for annotation file format.
                            (expand-file-name "_build" project-dir)))))
          (if (equal project-dir (parent-dir project-dir))
              (error (concat "No annotation file. "
-                            "You should compile with option \"-dtypes\".")))
+                            "You should compile with option \"-annot\".")))
          (setq project-dir (parent-dir project-dir)))
        type-path))))
 

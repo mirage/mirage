@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: terminfo.ml,v 1.6 2004/01/01 16:42:42 doligez Exp $ *)
+(* $Id: terminfo.ml 6045 2004-01-01 16:42:43Z doligez $ *)
 
 (* Basic interface to the terminfo database *)
 

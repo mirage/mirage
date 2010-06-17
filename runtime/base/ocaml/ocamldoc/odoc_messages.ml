@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_messages.ml,v 1.32.2.1 2009/04/09 13:56:38 guesdon Exp $ *)
+(* $Id: odoc_messages.ml 9229 2009-04-09 13:56:38Z guesdon $ *)
 
 (** The messages of the application. *)
 

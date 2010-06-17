@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: genprintval.mli,v 1.10 2002/04/18 07:27:44 garrigue Exp $ *)
+(* $Id: genprintval.mli 4694 2002-04-18 07:27:47Z garrigue $ *)
 
 (* Printing of values *)
 

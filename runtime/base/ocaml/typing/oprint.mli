@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: oprint.mli,v 1.2 2002/04/18 07:27:45 garrigue Exp $ *)
+(* $Id: oprint.mli 4694 2002-04-18 07:27:47Z garrigue $ *)
 
 open Format
 open Outcometree

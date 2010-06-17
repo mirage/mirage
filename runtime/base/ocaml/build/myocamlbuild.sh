@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: myocamlbuild.sh,v 1.3 2007/10/08 14:19:34 doligez Exp $
+# $Id: myocamlbuild.sh 8416 2007-10-08 14:19:34Z doligez $
 cd `dirname $0`/..
 set -xe
 if [ ! -x _build/ocamlbuild/ocamlbuildlight.byte ]; then

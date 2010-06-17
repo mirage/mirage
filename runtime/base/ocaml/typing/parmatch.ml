@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parmatch.ml,v 1.76.2.2 2009/03/16 04:24:05 garrigue Exp $ *)
+(* $Id: parmatch.ml 9187 2009-03-16 04:24:05Z garrigue $ *)
 
 (* Detection of partial matches and unused match cases. *)
 

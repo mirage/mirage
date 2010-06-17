@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_ast.mli,v 1.4 2003/11/24 10:39:29 starynke Exp $ *)
+(* $Id: odoc_ast.mli 5973 2003-11-24 10:44:07Z starynke $ *)
 
 (** The module for analysing the typed abstract syntax tree and source code and creating modules, classes, ..., elements.*)
 

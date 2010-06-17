@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printlinear.mli,v 1.5 2000/04/21 08:10:35 weis Exp $ *)
+(* $Id: printlinear.mli 3123 2000-04-21 08:13:22Z weis $ *)
 
 (* Pretty-printing of linearized machine code *)
 

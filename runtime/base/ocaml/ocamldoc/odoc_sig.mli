@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_sig.mli,v 1.6 2004/11/03 09:31:19 guesdon Exp $ *)
+(* $Id: odoc_sig.mli 6661 2004-11-03 09:31:19Z guesdon $ *)
 
 (** The module for analysing a signature and source code and creating modules, classes, ..., elements.*)
 

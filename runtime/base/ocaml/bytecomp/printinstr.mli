@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printinstr.mli,v 1.5 2000/03/06 22:11:08 weis Exp $ *)
+(* $Id: printinstr.mli 2908 2000-03-06 22:12:09Z weis $ *)
 
 (* Pretty-print lists of instructions *)
 

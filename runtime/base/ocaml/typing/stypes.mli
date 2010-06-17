@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: stypes.mli,v 1.5 2008/07/29 15:42:44 doligez Exp $ *)
+(* $Id: stypes.mli 8958 2008-07-29 15:42:44Z doligez $ *)
 
 (* Recording and dumping (partial) type information *)
 

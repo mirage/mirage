@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: objinfo.ml,v 1.11 2006/07/05 12:09:18 pouillar Exp $ *)
+(* $Id: objinfo.ml 7469 2006-07-05 12:09:18Z pouillar $ *)
 
 (* Dump a compilation unit description *)
 

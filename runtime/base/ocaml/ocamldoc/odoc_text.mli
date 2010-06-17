@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_text.mli,v 1.3 2003/11/24 21:20:51 guesdon Exp $ *)
+(* $Id: odoc_text.mli 5974 2003-11-24 21:20:51Z guesdon $ *)
 
 (** A module with a function to parse strings to obtain a [Odoc_types.text] value. *)
 

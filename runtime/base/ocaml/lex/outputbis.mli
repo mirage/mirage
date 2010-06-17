@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: outputbis.mli,v 1.3 2002/12/09 10:44:46 maranget Exp $ *)
+(* $Id: outputbis.mli 5323 2002-12-09 10:44:46Z maranget $ *)
 val output_lexdef :
   string ->
   in_channel ->

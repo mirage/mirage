@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_types.mli,v 1.6 2006/01/04 16:55:50 doligez Exp $ *)
+(* $Id: odoc_types.mli 7307 2006-01-04 16:55:50Z doligez $ *)
 
 (** Types for the information collected in comments. *)
 

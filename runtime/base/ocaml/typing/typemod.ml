@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typemod.ml,v 1.86.2.1 2008/10/08 13:07:14 doligez Exp $ *)
+(* $Id: typemod.ml 9079 2008-10-08 13:09:39Z doligez $ *)
 
 (* Type-checking of the module language *)
 

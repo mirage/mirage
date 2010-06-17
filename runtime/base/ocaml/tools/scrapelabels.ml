@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scrapelabels.ml,v 1.6 2001/10/04 01:55:02 garrigue Exp $ *)
+(* $Id: scrapelabels.ml 3850 2001-10-04 01:55:02Z garrigue $ *)
 
 open StdLabels
 open Lexer301

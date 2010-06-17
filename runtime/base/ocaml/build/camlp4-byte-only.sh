@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: camlp4-byte-only.sh,v 1.3.4.1 2008/10/23 15:29:11 ertai Exp $
+# $Id: camlp4-byte-only.sh 9099 2008-10-23 15:29:11Z ertai $
 set -e
 cd `dirname $0`/..
 . build/targets.sh

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ocamlmktop.ml,v 1.6 2003/03/24 15:27:01 xleroy Exp $ *)
+(* $Id: ocamlmktop.ml 5454 2003-03-24 15:27:01Z xleroy $ *)
 
 let _ =
   let args = Ccomp.quote_files (List.tl (Array.to_list Sys.argv)) in

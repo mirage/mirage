@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printmach.mli,v 1.6 2000/04/21 08:10:37 weis Exp $ *)
+(* $Id: printmach.mli 3123 2000-04-21 08:13:22Z weis $ *)
 
 (* Pretty-printing of pseudo machine code *)
 

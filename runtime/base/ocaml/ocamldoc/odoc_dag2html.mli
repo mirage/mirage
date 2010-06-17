@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_dag2html.mli,v 1.3 2003/11/24 10:39:31 starynke Exp $ *)
+(* $Id: odoc_dag2html.mli 5973 2003-11-24 10:44:07Z starynke $ *)
 
 (** The types and functions to create a html table representing a dag. 
    Thanks to Daniel de Rauglaudre. *)

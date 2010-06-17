@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: syntaxerr.ml,v 1.9 2007/12/04 13:38:58 doligez Exp $ *)
+(* $Id: syntaxerr.ml 8705 2007-12-04 13:38:58Z doligez $ *)
 
 (* Auxiliary type for reporting syntax errors *)
 

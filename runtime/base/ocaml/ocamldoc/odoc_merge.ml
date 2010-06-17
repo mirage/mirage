@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_merge.ml,v 1.13 2007/10/09 10:29:36 weis Exp $ *)
+(* $Id: odoc_merge.ml 8418 2007-10-09 10:29:37Z weis $ *)
 
 (** Merge of information from [.ml] and [.mli] for a module.*)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parsetree.mli,v 1.45 2008/07/09 13:03:37 mauny Exp $ *)
+(* $Id: parsetree.mli 8906 2008-07-09 13:03:38Z mauny $ *)
 
 (* Abstract syntax tree produced by parsing *)
 

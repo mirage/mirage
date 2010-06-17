@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: program_management.mli,v 1.2 1999/11/17 18:57:27 xleroy Exp $ *)
+(* $Id: program_management.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (*** Program loading and initializations. ***)
 

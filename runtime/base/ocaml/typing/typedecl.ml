@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typedecl.ml,v 1.82.2.3 2009/06/08 04:08:14 garrigue Exp $ *)
+(* $Id: typedecl.ml 9509 2010-01-06 11:32:57Z garrigue $ *)
 
 (**** Typing of type definitions ****)
 
@@ -184,11 +184,7 @@ let transl_declaration env (name, sdecl) id =
           None -> None
         | Some sty ->
             let no_row = not (is_fixed_type sdecl) in
-            let ty =
-              transl_simple_type env no_row sty in
-            if Ctype.cyclic_abbrev env id ty then
-              raise(Error(sdecl.ptype_loc, Recursive_abbrev name));
-            Some ty
+            Some (transl_simple_type env no_row sty)
         end;
       type_variance = List.map (fun _ -> true, true, true) params;
     } in
@@ -200,11 +196,18 @@ let transl_declaration env (name, sdecl) id =
         raise(Error(loc, Unconsistent_constraint tr)))
     cstrs;
   Ctype.end_def ();
+  (* Add abstract row *)
   if is_fixed_type sdecl then begin
     let (p, _) =
       try Env.lookup_type (Longident.Lident(Ident.name id ^ "#row")) env
       with Not_found -> assert false in
     set_fixed_row env sdecl.ptype_loc p decl
+  end;
+  (* Check for cyclic abbreviations *)
+  begin match decl.type_manifest with None -> ()
+  | Some ty ->
+      if Ctype.cyclic_abbrev env id ty then
+        raise(Error(sdecl.ptype_loc, Recursive_abbrev name));
   end;
   (id, decl)
 

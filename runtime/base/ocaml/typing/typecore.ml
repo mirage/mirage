@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typecore.ml,v 1.199.2.3 2009/04/19 09:21:08 xleroy Exp $ *)
+(* $Id: typecore.ml 9412 2009-11-09 11:42:39Z weis $ *)
 
 (* Typechecking for the core language *)
 
@@ -752,7 +752,7 @@ let type_format loc fmt =
       and scan_conversion i j =
         if j >= len then incomplete_format fmt else
         match fmt.[j] with
-        | '%' | '!' -> scan_format (j + 1)
+        | '%' | '!' | ',' -> scan_format (j + 1)
         | 's' | 'S' -> conversion j Predef.type_string
         | '[' ->
           let j = range_closing_index fmt j in

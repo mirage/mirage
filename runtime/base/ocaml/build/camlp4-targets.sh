@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: camlp4-targets.sh,v 1.2 2007/10/08 14:19:34 doligez Exp $
+# $Id: camlp4-targets.sh 8416 2007-10-08 14:19:34Z doligez $
 CAMLP4_COMMON="\
   camlp4/Camlp4/Camlp4Ast.partial.ml \
   camlp4/boot/camlp4boot.byte"

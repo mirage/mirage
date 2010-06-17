@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: tbl.mli,v 1.7.44.1 2009/04/02 09:06:33 xclerc Exp $ *)
+(* $Id: tbl.mli 9221 2009-04-02 09:06:33Z xclerc $ *)
 
 (* Association tables from any ordered type to any type.
    We use the generic ordering to compare keys. *)

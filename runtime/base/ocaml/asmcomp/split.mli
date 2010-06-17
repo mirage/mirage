@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: split.mli,v 1.4 1999/11/17 18:56:38 xleroy Exp $ *)
+(* $Id: split.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 (* Renaming of registers at reload points to split live ranges. *)
 

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emit_nt.mlp,v 1.7 2008/01/11 16:13:11 doligez Exp $ *)
+(* $Id: emit_nt.mlp 8768 2008-01-11 16:13:18Z doligez $ *)
 
 (* Emission of x86-64 (AMD 64) assembly code, MASM syntax *)
 

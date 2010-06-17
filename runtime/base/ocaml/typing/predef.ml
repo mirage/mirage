@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: predef.ml,v 1.32 2007/10/09 10:29:37 weis Exp $ *)
+(* $Id: predef.ml 8418 2007-10-09 10:29:37Z weis $ *)
 
 (* Predefined type constructors (with special typing rules in typecore) *)
 

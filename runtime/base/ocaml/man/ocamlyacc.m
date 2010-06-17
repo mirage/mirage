@@ -1,4 +1,4 @@
-\" $Id: ocamlyacc.m,v 1.4 2008/09/15 14:12:56 doligez Exp $
+\" $Id: ocamlyacc.m 9026 2008-09-15 14:12:56Z doligez $
 .TH OCAMLYACC 1
 
 .SH NAME

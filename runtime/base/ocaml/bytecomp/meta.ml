@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: meta.ml,v 1.13 2004/04/16 13:46:20 starynke Exp $ *)
+(* $Id: meta.ml 6224 2004-04-16 13:46:43Z starynke $ *)
 
 external global_data : unit -> Obj.t array = "caml_get_global_data"
 external realloc_global_data : int -> unit = "caml_realloc_global"

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parameters.mli,v 1.2.40.1 2009/04/02 09:06:32 xclerc Exp $ *)
+(* $Id: parameters.mli 9221 2009-04-02 09:06:33Z xclerc $ *)
 
 (* Miscellaneous parameters *)
 

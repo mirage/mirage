@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typetexp.mli,v 1.19 2003/05/19 09:21:17 garrigue Exp $ *)
+(* $Id: typetexp.mli 9297 2009-06-12 12:40:55Z garrigue $ *)
 
 (* Typechecking of type expressions for the core language *)
 
@@ -54,6 +54,7 @@ type error =
   | Variant_tags of string * string
   | Invalid_variable_name of string
   | Cannot_quantify of string * Types.type_expr
+  | Repeated_method_label of string
 
 exception Error of Location.t * error
 

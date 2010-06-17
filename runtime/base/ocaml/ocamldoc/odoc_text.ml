@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_text.ml,v 1.6 2006/01/04 16:55:50 doligez Exp $ *)
+(* $Id: odoc_text.ml 7307 2006-01-04 16:55:50Z doligez $ *)
 
 exception Text_syntax of int * int * string (* line, char, string *)
 

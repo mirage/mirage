@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmlibrarian.ml,v 1.14 2005/09/24 16:45:56 xleroy Exp $ *)
+(* $Id: asmlibrarian.ml 7079 2005-09-24 16:45:56Z xleroy $ *)
 
 (* Build libraries of .cmx files *)
 

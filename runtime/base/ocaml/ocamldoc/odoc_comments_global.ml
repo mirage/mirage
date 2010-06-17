@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_comments_global.ml,v 1.2 2003/11/24 10:39:30 starynke Exp $ *)
+(* $Id: odoc_comments_global.ml 5973 2003-11-24 10:44:07Z starynke $ *)
 
 (** The global variables used by the special comment parser.*)
 
@@ -45,4 +45,4 @@ let init () =
   return_value := None ;
   customs := [] 
 
-(* eof $Id: odoc_comments_global.ml,v 1.2 2003/11/24 10:39:30 starynke Exp $ *)
+(* eof $Id: odoc_comments_global.ml 5973 2003-11-24 10:44:07Z starynke $ *)

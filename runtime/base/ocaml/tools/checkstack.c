@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: checkstack.c,v 1.3 2006/04/16 23:28:21 doligez Exp $ */
+/* $Id: checkstack.c 7382 2006-04-16 23:28:22Z doligez $ */
 
 #include <stdio.h>
 #include <stdlib.h>

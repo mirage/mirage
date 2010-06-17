@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: syntaxerr.mli,v 1.4 2000/03/06 22:11:40 weis Exp $ *)
+(* $Id: syntaxerr.mli 2908 2000-03-06 22:12:09Z weis $ *)
 
 (* Auxiliary type for reporting syntax errors *)
 

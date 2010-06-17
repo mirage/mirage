@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: defs.h,v 1.22 2004/04/21 23:26:05 doligez Exp $ */
+/* $Id: defs.h 6244 2004-04-21 23:26:06Z doligez $ */
 
 #include <assert.h>
 #include <ctype.h>

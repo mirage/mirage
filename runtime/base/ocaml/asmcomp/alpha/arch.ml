@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arch.ml,v 1.10 2002/11/29 15:03:36 xleroy Exp $ *)
+(* $Id: arch.ml 5304 2002-11-29 15:03:37Z xleroy $ *)
 
 (* Specific operations for the Alpha processor *)
 

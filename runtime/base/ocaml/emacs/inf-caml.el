@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id: inf-caml.el,v 1.11 2004/08/20 17:04:35 doligez Exp $ *)
+;(* $Id: inf-caml.el 6612 2004-08-20 17:04:35Z doligez $ *)
 
 ;;; inf-caml.el --- run the Caml toplevel in an Emacs buffer
 

@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.shared,v 1.5 2007/11/22 22:14:43 doligez Exp $
+# $Id: Makefile.shared 8616 2007-11-22 22:14:43Z doligez $
 
 include ../config/Makefile
 

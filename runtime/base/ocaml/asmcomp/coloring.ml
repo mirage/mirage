@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: coloring.ml,v 1.13 2004/08/12 13:34:42 xleroy Exp $ *)
+(* $Id: coloring.ml 6592 2004-08-12 13:34:42Z xleroy $ *)
 
 (* Register allocation by coloring of the interference graph *)
 

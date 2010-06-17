@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: output.c,v 1.14 2002/11/02 22:36:46 doligez Exp $ */
+/* $Id: output.c 5232 2002-11-02 22:36:46Z doligez $ */
 
 #include "defs.h"
 

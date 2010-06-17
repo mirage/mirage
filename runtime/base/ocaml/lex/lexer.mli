@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: lexer.mli,v 1.6 2004/04/21 23:26:05 doligez Exp $ *)
+(* $Id: lexer.mli 6244 2004-04-21 23:26:06Z doligez $ *)
 
 val main: Lexing.lexbuf -> Parser.token
 

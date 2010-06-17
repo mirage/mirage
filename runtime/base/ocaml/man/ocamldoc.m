@@ -1,4 +1,4 @@
-\" $Id: ocamldoc.m,v 1.5.2.1 2009/05/27 14:35:27 doligez Exp $
+\" $Id: ocamldoc.m 9282 2009-05-27 14:35:27Z doligez $
 
 .TH OCAMLDOC 1
 

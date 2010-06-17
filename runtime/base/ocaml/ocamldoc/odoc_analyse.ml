@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_analyse.ml,v 1.15 2007/12/04 13:38:58 doligez Exp $ *)
+(* $Id: odoc_analyse.ml 8705 2007-12-04 13:38:58Z doligez $ *)
 
 (** Analysis of source files. This module is strongly inspired from
     driver/main.ml :-) *)

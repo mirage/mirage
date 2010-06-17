@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.nt,v 1.1 2008/07/29 08:31:41 xleroy Exp $
+# $Id: Makefile.nt 8955 2008-07-29 08:31:41Z xleroy $
 
 UNIXDIR=../otherlibs/win32unix
 include Makefile.shared

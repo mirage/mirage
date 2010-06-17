@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_parser.mly,v 1.3 2003/11/24 10:43:11 starynke Exp $ *)
+(* $Id: odoc_parser.mly 5973 2003-11-24 10:44:07Z starynke $ *)
 
 open Odoc_types
 open Odoc_comments_global

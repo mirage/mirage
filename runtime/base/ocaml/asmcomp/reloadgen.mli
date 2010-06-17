@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: reloadgen.mli,v 1.4 1999/11/17 18:56:36 xleroy Exp $ *)
+(* $Id: reloadgen.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
 
 class reload_generic : object
   method reload_operation :

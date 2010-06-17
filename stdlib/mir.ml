@@ -135,6 +135,7 @@ let single_write fd buf ofs len =
 
 external gettimeofday : unit -> float = "unix_gettimeofday"
 external sleep : int -> unit = "unix_sleep"
+external schedule : unit -> unit = "mirage_schedule"
 
 type inet_addr = string
 

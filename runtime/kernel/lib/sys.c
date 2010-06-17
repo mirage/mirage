@@ -41,9 +41,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/times.h>
-#ifdef HAVE_LWIP
-#include <lwip/sockets.h>
-#endif
 
 #define debug(fmt, ...) \
 
@@ -200,10 +197,6 @@ ssize_t read(int fd, void *buf, size_t nbytes)
             remove_waiter(w);
             return ret;
         }
-#ifdef HAVE_LWIP
-	case FTYPE_SOCKET:
-	    return lwip_read(files[fd].socket.fd, buf, nbytes);
-#endif
 	case FTYPE_TAP: {
 	    ssize_t ret;
 	    ret = netfront_receive(files[fd].tap.dev, buf, nbytes);
@@ -227,10 +220,6 @@ ssize_t write(int fd, const void *buf, size_t nbytes)
 	case FTYPE_CONSOLE:
 	    console_print(files[fd].cons.dev, (char *)buf, nbytes);
 	    return nbytes;
-#ifdef HAVE_LWIP
-	case FTYPE_SOCKET:
-	    return lwip_write(files[fd].socket.fd, (void*) buf, nbytes);
-#endif
 	case FTYPE_TAP:
 	    netfront_xmit(files[fd].tap.dev, (void*) buf, nbytes);
 	    return nbytes;
@@ -270,13 +259,6 @@ int close(int fd)
 	case FTYPE_XENBUS:
             xs_daemon_close((void*)(intptr_t) fd);
             return 0;
-#ifdef HAVE_LWIP
-	case FTYPE_SOCKET: {
-	    int res = lwip_close(files[fd].socket.fd);
-	    files[fd].type = FTYPE_NONE;
-	    return res;
-	}
-#endif
 #if 0 /* XXX bring back when XC is back */
 	case FTYPE_XC:
 	    xc_interface_close(fd);
@@ -383,15 +365,6 @@ int fcntl(int fd, int cmd, ...)
     va_end(ap);
 
     switch (cmd) {
-#ifdef HAVE_LWIP
-	case F_SETFL:
-	    if (files[fd].type == FTYPE_SOCKET && !(arg & ~O_NONBLOCK)) {
-		/* Only flag supported: non-blocking mode */
-		uint32_t nblock = !!(arg & O_NONBLOCK);
-		return lwip_ioctl(files[fd].socket.fd, FIONBIO, &nblock);
-	    }
-	    /* Fallthrough */
-#endif
 	default:
 	    printk("fcntl(%d, %d, %lx/%lo)\n", fd, cmd, arg, arg);
 	    errno = ENOSYS;
@@ -448,11 +421,6 @@ static void dump_set(int nfds, fd_set *readfds, fd_set *writefds, fd_set *except
 static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds)
 {
     int i, n = 0;
-#ifdef HAVE_LWIP
-    int sock_n = 0, sock_nfds = 0;
-    fd_set sock_readfds, sock_writefds, sock_exceptfds;
-    struct timeval timeout = { .tv_sec = 0, .tv_usec = 0};
-#endif
 
 #ifdef LIBC_VERBOSE
     static int nb;
@@ -460,37 +428,6 @@ static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exce
     static s_time_t lastshown;
 
     nb++;
-#endif
-
-#ifdef HAVE_LWIP
-    /* first poll network */
-    FD_ZERO(&sock_readfds);
-    FD_ZERO(&sock_writefds);
-    FD_ZERO(&sock_exceptfds);
-    for (i = 0; i < nfds; i++) {
-	if (files[i].type == FTYPE_SOCKET) {
-	    if (FD_ISSET(i, readfds)) {
-		FD_SET(files[i].socket.fd, &sock_readfds);
-		sock_nfds = i+1;
-	    }
-	    if (FD_ISSET(i, writefds)) {
-		FD_SET(files[i].socket.fd, &sock_writefds);
-		sock_nfds = i+1;
-	    }
-	    if (FD_ISSET(i, exceptfds)) {
-		FD_SET(files[i].socket.fd, &sock_exceptfds);
-		sock_nfds = i+1;
-	    }
-	}
-    }
-    if (sock_nfds > 0) {
-        DEBUG("lwip_select(");
-        dump_set(nfds, &sock_readfds, &sock_writefds, &sock_exceptfds, &timeout);
-        DEBUG("); -> ");
-        sock_n = lwip_select(sock_nfds, &sock_readfds, &sock_writefds, &sock_exceptfds, &timeout);
-        dump_set(nfds, &sock_readfds, &sock_writefds, &sock_exceptfds, &timeout);
-        DEBUG("\n");
-    }
 #endif
 
     /* Then see others as well. */
@@ -533,29 +470,6 @@ static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exce
 	    FD_CLR(i, writefds);
 	    FD_CLR(i, exceptfds);
 	    break;
-#ifdef HAVE_LWIP
-	case FTYPE_SOCKET:
-	    if (FD_ISSET(i, readfds)) {
-	        /* Optimize no-network-packet case.  */
-		if (sock_n && FD_ISSET(files[i].socket.fd, &sock_readfds))
-		    n++;
-		else
-		    FD_CLR(i, readfds);
-	    }
-            if (FD_ISSET(i, writefds)) {
-		if (sock_n && FD_ISSET(files[i].socket.fd, &sock_writefds))
-		    n++;
-		else
-		    FD_CLR(i, writefds);
-            }
-            if (FD_ISSET(i, exceptfds)) {
-		if (sock_n && FD_ISSET(files[i].socket.fd, &sock_exceptfds))
-		    n++;
-		else
-		    FD_CLR(i, exceptfds);
-            }
-	    break;
-#endif
 	}
 #ifdef LIBC_VERBOSE
 	if (FD_ISSET(i, readfds))
@@ -719,60 +633,6 @@ out:
     remove_waiter(w6);
     return ret;
 }
-
-#ifdef HAVE_LWIP
-int socket(int domain, int type, int protocol)
-{
-    int fd, res;
-    fd = lwip_socket(domain, type, protocol);
-    if (fd < 0)
-	return -1;
-    res = alloc_fd(FTYPE_SOCKET);
-    printk("socket -> %d\n", res);
-    files[res].socket.fd = fd;
-    return res;
-}
-
-int accept(int s, struct sockaddr *addr, socklen_t *addrlen)
-{
-    int fd, res;
-    if (files[s].type != FTYPE_SOCKET) {
-	printk("accept(%d): Bad descriptor\n", s);
-	errno = EBADF;
-	return -1;
-    }
-    fd = lwip_accept(files[s].socket.fd, addr, addrlen);
-    if (fd < 0)
-	return -1;
-    res = alloc_fd(FTYPE_SOCKET);
-    files[res].socket.fd = fd;
-    printk("accepted on %d -> %d\n", s, res);
-    return res;
-}
-
-#define LWIP_STUB(ret, name, proto, args) \
-ret name proto \
-{ \
-    if (files[s].type != FTYPE_SOCKET) { \
-	printk(#name "(%d): Bad descriptor\n", s); \
-	errno = EBADF; \
-	return -1; \
-    } \
-    s = files[s].socket.fd; \
-    return lwip_##name args; \
-}
-
-LWIP_STUB(int, bind, (int s, struct sockaddr *my_addr, socklen_t addrlen), (s, my_addr, addrlen))
-LWIP_STUB(int, getsockopt, (int s, int level, int optname, void *optval, socklen_t *optlen), (s, level, optname, optval, optlen))
-LWIP_STUB(int, setsockopt, (int s, int level, int optname, void *optval, socklen_t optlen), (s, level, optname, optval, optlen))
-LWIP_STUB(int, connect, (int s, struct sockaddr *serv_addr, socklen_t addrlen), (s, serv_addr, addrlen))
-LWIP_STUB(int, listen, (int s, int backlog), (s, backlog));
-LWIP_STUB(ssize_t, recv, (int s, void *buf, size_t len, int flags), (s, buf, len, flags))
-LWIP_STUB(ssize_t, recvfrom, (int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen), (s, buf, len, flags, from, fromlen))
-LWIP_STUB(ssize_t, send, (int s, void *buf, size_t len, int flags), (s, buf, len, flags))
-LWIP_STUB(ssize_t, sendto, (int s, void *buf, size_t len, int flags, struct sockaddr *to, socklen_t tolen), (s, buf, len, flags, to, tolen))
-LWIP_STUB(int, getsockname, (int s, struct sockaddr *name, socklen_t *namelen), (s, name, namelen))
-#endif
 
 static char *syslog_ident;
 void openlog(const char *ident, int option, int facility)

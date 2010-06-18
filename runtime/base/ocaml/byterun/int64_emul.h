@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64_emul.h,v 1.5.18.1 2009/03/28 18:34:19 xleroy Exp $ */
+/* $Id: int64_emul.h 9202 2009-03-28 18:34:19Z xleroy $ */
 
 /* Software emulation of 64-bit integer arithmetic, for C compilers
    that do not support it.  */

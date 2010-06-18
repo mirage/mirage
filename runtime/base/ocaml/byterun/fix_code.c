@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: fix_code.c,v 1.31 2004/05/26 11:10:51 garrigue Exp $ */
+/* $Id: fix_code.c 6331 2004-05-26 11:10:52Z garrigue $ */
 
 /* Handling of blocks of bytecode (endianness switch, threading). */
 

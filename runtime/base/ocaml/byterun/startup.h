@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: startup.h,v 1.5 2004/02/22 15:07:51 xleroy Exp $ */
+/* $Id: startup.h 6130 2004-02-22 15:07:51Z xleroy $ */
 
 #ifndef CAML_STARTUP_H
 #define CAML_STARTUP_H

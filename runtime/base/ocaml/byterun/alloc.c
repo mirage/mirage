@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: alloc.c,v 1.29 2007/02/09 13:31:15 doligez Exp $ */
+/* $Id: alloc.c 7849 2007-02-09 13:31:15Z doligez $ */
 
 /* 1. Allocation functions doing the same work as the macros in the
       case where [Setup_for_gc] and [Restore_after_gc] are no-ops.

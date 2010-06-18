@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: major_gc.h,v 1.23 2008/01/11 11:55:36 doligez Exp $ */
+/* $Id: major_gc.h 8766 2008-01-11 11:55:36Z doligez $ */
 
 #ifndef CAML_MAJOR_GC_H
 #define CAML_MAJOR_GC_H

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: compare.h,v 1.2 2003/12/31 14:20:35 doligez Exp $ */
+/* $Id: compare.h 6044 2003-12-31 14:20:40Z doligez $ */
 
 #ifndef CAML_COMPARE_H
 #define CAML_COMPARE_H

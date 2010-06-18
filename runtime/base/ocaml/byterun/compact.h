@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: compact.h,v 1.7 2003/12/31 14:20:35 doligez Exp $ */
+/* $Id: compact.h 6044 2003-12-31 14:20:40Z doligez $ */
 
 #ifndef CAML_COMPACT_H
 #define CAML_COMPACT_H

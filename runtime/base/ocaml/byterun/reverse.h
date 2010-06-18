@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: reverse.h,v 1.12 2003/12/15 18:10:48 doligez Exp $ */
+/* $Id: reverse.h 6021 2003-12-15 18:10:51Z doligez $ */
 
 /* Swap byte-order in 16, 32, and 64-bit integers or floats */
 

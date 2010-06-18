@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: debugger.c,v 1.31 2008/07/29 08:31:41 xleroy Exp $ */
+/* $Id: debugger.c 8955 2008-07-29 08:31:41Z xleroy $ */
 
 /* Interface with the debugger */
 
@@ -36,7 +36,7 @@
 int caml_debugger_in_use = 0;
 uintnat caml_event_count;
 
-#if 1
+#if !defined(HAS_SOCKETS)
 
 void caml_debugger_init(void)
 {

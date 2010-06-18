@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: interp.c,v 1.97.2.1 2009/05/25 08:02:16 xleroy Exp $ */
+/* $Id: interp.c 9513 2010-01-08 10:33:23Z xleroy $ */
 
 /* The bytecode interpreter */
 #include <stdio.h>
@@ -157,7 +157,8 @@ sp is a local copy of the global variable caml_extern_sp. */
 #define SP_REG asm("a4")
 #define ACCU_REG asm("d7")
 #endif
-#ifdef __arm__
+/* PR#4953: these specific registers not available in Thumb mode */
+#if defined (__arm__) && !defined(__thumb__)
 #define PC_REG asm("r9")
 #define SP_REG asm("r8")
 #define ACCU_REG asm("r7")

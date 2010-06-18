@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: printexc.h,v 1.5 2004/01/01 16:42:37 doligez Exp $ */
+/* $Id: printexc.h 6045 2004-01-01 16:42:43Z doligez $ */
 
 #ifndef CAML_PRINTEXC_H
 #define CAML_PRINTEXC_H

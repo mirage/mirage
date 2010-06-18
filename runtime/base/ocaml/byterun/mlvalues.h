@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: mlvalues.h,v 1.58 2008/08/01 14:10:36 xleroy Exp $ */
+/* $Id: mlvalues.h 8970 2008-08-01 14:10:36Z xleroy $ */
 
 #ifndef CAML_MLVALUES_H
 #define CAML_MLVALUES_H

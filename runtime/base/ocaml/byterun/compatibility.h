@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: compatibility.h,v 1.17 2008/07/28 11:59:55 doligez Exp $ */
+/* $Id: compatibility.h 8953 2008-07-28 11:59:55Z doligez $ */
 
 /* definitions for compatibility with old identifiers */
 

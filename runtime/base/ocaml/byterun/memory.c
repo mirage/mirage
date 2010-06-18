@@ -11,11 +11,10 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: memory.c,v 1.46.4.1 2008/11/02 14:30:05 xleroy Exp $ */
+/* $Id: memory.c 9117 2008-11-02 14:30:05Z xleroy $ */
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include "fail.h"
 #include "freelist.h"
 #include "gc.h"

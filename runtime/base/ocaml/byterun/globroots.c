@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: globroots.c,v 1.11.2.1 2009/03/28 15:26:37 xleroy Exp $ */
+/* $Id: globroots.c 9195 2009-03-28 15:26:37Z xleroy $ */
 
 /* Registration of global memory roots */
 

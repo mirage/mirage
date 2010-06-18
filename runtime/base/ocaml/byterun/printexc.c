@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: printexc.c,v 1.17 2007/01/29 12:11:15 xleroy Exp $ */
+/* $Id: printexc.c 7812 2007-01-29 12:11:18Z xleroy $ */
 
 /* Print an uncaught exception and abort */
 

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64_format.h,v 1.2 2003/12/15 18:10:47 doligez Exp $ */
+/* $Id: int64_format.h 6021 2003-12-15 18:10:51Z doligez $ */
 
 /* printf-like formatting of 64-bit integers, in case the C library
    printf() function does not support them. */

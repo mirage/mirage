@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: finalise.h,v 1.5 2004/01/02 19:23:21 doligez Exp $ */
+/* $Id: finalise.h 6047 2004-01-02 19:23:29Z doligez $ */
 
 #ifndef CAML_FINALISE_H
 #define CAML_FINALISE_H

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: obj.c,v 1.42 2008/01/29 13:11:15 doligez Exp $ */
+/* $Id: obj.c 9350 2009-09-24 09:12:51Z doligez $ */
 
 /* Operations on objects */
 
@@ -165,6 +165,10 @@ CAMLprim value caml_obj_truncate (value v, value newsize)
   return Val_unit;
 }
 
+CAMLprim value caml_obj_add_offset (value v, value offset)
+{
+  return v + Int32_val (offset);
+}
 
 /* The following functions are used in stdlib/lazy.ml.
    They are not written in O'Caml because they must be atomic with respect

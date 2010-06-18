@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals.c,v 1.53 2007/02/23 09:29:45 xleroy Exp $ */
+/* $Id: signals.c 7904 2007-02-23 09:29:45Z xleroy $ */
 
 /* Signal handling, code common to the bytecode and native systems */
 

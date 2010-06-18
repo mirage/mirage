@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: instrtrace.h,v 1.9 2005/09/22 14:21:50 xleroy Exp $ */
+/* $Id: instrtrace.h 7064 2005-09-22 14:21:50Z xleroy $ */
 
 /* Trace the instructions executed */
 

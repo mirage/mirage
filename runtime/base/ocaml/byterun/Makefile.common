@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.common,v 1.6.2.1 2009/05/25 12:25:25 doligez Exp $
+# $Id: Makefile.common 9280 2009-05-25 12:25:25Z doligez $
 
 include ../config/Makefile
 

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: terminfo.c,v 1.23 2004/01/01 16:42:38 doligez Exp $ */
+/* $Id: terminfo.c 6045 2004-01-01 16:42:43Z doligez $ */
 
 /* Read and output terminal commands */
 

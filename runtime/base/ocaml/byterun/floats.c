@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: floats.c,v 1.50 2008/08/02 11:02:28 xleroy Exp $ */
+/* $Id: floats.c 8976 2008-08-02 11:02:28Z xleroy $ */
 
 /* The interface of this file is in "mlvalues.h" and "alloc.h" */
 

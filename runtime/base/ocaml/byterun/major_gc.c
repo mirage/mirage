@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: major_gc.c,v 1.62.2.1 2008/11/12 12:53:07 doligez Exp $ */
+/* $Id: major_gc.c 9409 2009-11-04 12:24:35Z doligez $ */
 
 #include <limits.h>
 
@@ -30,7 +30,7 @@
 #include "weak.h"
 
 uintnat caml_percent_free;
-intnat caml_major_heap_increment;
+uintnat caml_major_heap_increment;
 CAMLexport char *caml_heap_start;
 char *caml_gc_sweep_hp;
 int caml_gc_phase;        /* always Phase_mark, Phase_sweep, or Phase_idle */

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: header.c,v 1.17 2001/12/07 13:40:52 xleroy Exp $ */
+/* $Id: header.c 4144 2001-12-07 13:41:02Z xleroy $ */
 
 /* The launcher for bytecode executables (if #! is not working) */
 

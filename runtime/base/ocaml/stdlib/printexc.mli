@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printexc.mli,v 1.13 2008/03/14 13:47:24 xleroy Exp $ *)
+(* $Id: printexc.mli 9335 2009-09-16 13:34:57Z xclerc $ *)
 
 (** Facilities for printing exceptions. *)
 
@@ -57,3 +57,13 @@ val record_backtrace: bool -> unit
 val backtrace_status: unit -> bool
 (** [Printexc.backtrace_status()] returns [true] if exception
     backtraces are currently recorded, [false] if not. *)
+
+val register_printer : (exn -> string option) -> unit
+(** [Printexc.register_printer fn] registers [fn] as an exception printer.
+    The printer should return [None] if it does not know how to convert
+    the passed exception, and [Some s] with [s] the resulting string if
+    it can convert the passed exception.
+    When converting an exception into a string, the printers will be invoked
+    in the reverse order of their registrations, until a printer returns
+    a [Some s] value (if no such printer exists, the runtime will use a
+    generic printer). *)

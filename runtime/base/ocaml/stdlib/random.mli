@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: random.mli,v 1.17 2007/02/09 13:31:15 doligez Exp $ *)
+(* $Id: random.mli 7849 2007-02-09 13:31:15Z doligez $ *)
 
 (** Pseudo-random number generators (PRNG). *)
 

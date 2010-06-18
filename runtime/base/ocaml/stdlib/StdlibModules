@@ -1,6 +1,6 @@
 # This file lists all standard library modules. -*- Makefile -*-
 # It is used in particular to know what to expunge in toplevels.
-# $Id: StdlibModules,v 1.4 2008/08/01 16:57:10 mauny Exp $
+# $Id: StdlibModules 8974 2008-08-01 16:57:10Z mauny $
 
 STDLIB_MODULES=\
   arg \

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: stdLabels.ml,v 1.3 2001/12/07 13:40:59 xleroy Exp $ *)
+(* $Id: stdLabels.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
 
 (* Module [StdLabels]: meta-module for labelled libraries *)
 

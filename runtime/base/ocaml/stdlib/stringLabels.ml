@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: stringLabels.ml,v 1.4 2004/01/03 22:08:38 doligez Exp $ *)
+(* $Id: stringLabels.ml 6054 2004-01-03 22:08:38Z doligez $ *)
 
 (* Module [StringLabels]: labelled String module *)
 

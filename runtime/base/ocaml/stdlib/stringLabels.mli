@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: stringLabels.mli,v 1.11 2007/01/22 08:06:09 garrigue Exp $ *)
+(* $Id: stringLabels.mli 7805 2007-01-22 08:06:09Z garrigue $ *)
 
 (** String operations. *)
 

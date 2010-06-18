@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: pervasives.ml,v 1.81 2006/11/17 08:34:01 weis Exp $ *)
+(* $Id: pervasives.ml 9412 2009-11-09 11:42:39Z weis $ *)
 
 (* type 'a option = None | Some of 'a *)
 
@@ -398,7 +398,7 @@ external incr: int ref -> unit = "%incr"
 external decr: int ref -> unit = "%decr"
 
 (* Formats *)
-type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6 
+type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6
 
 type ('a, 'b, 'c) format = ('a, 'b, 'c, 'c) format4
 
@@ -416,7 +416,8 @@ let (( ^^ ) :
       ('f, 'b, 'c, 'e, 'g, 'h) format6 ->
       ('a, 'b, 'c, 'd, 'g, 'h) format6) =
   fun fmt1 fmt2 ->
-    string_to_format (format_to_string fmt1 ^ format_to_string fmt2);;
+    string_to_format (format_to_string fmt1 ^ "%," ^ format_to_string fmt2)
+;;
 
 let string_of_format fmt =
   let s = format_to_string fmt in

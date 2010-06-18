@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: hashtbl.mli,v 1.39 2005/05/04 13:36:47 doligez Exp $ *)
+(* $Id: hashtbl.mli 6854 2005-05-04 13:36:47Z doligez $ *)
 
 (** Hash tables and hash functions.
 

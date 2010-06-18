@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: oo.ml,v 1.27 2004/05/26 11:10:52 garrigue Exp $ *)
+(* $Id: oo.ml 6331 2004-05-26 11:10:52Z garrigue $ *)
 
 let copy = CamlinternalOO.copy
 external id : < .. > -> int = "%field1"

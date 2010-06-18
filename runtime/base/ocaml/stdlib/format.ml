@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: format.ml,v 1.74.2.1 2009/04/29 18:33:31 weis Exp $ *)
+(* $Id: format.ml 9244 2009-04-29 18:33:31Z weis $ *)
 
 (* A pretty-printing facility and definition of formatters for ``parallel''
    (i.e. unrelated or independent) pretty-printing on multiple out channels. *)

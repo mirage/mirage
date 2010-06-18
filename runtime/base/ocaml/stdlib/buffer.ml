@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: buffer.ml,v 1.19 2008/09/09 08:50:39 weis Exp $ *)
+(* $Id: buffer.ml 9340 2009-09-16 15:52:46Z xclerc $ *)
 
 (* Extensible buffers *)
 
@@ -37,6 +37,14 @@ let sub b ofs len =
     String.blit b.buffer ofs r 0 len;
     r
   end
+;;
+
+let blit src srcoff dst dstoff len =
+  if len < 0 || srcoff < 0 || srcoff > src.position - len
+             || dstoff < 0 || dstoff > (String.length dst) - len
+  then invalid_arg "Buffer.blit"
+  else
+    String.blit src.buffer srcoff dst dstoff len
 ;;
 
 let nth b ofs =

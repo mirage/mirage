@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arrayLabels.ml,v 1.3 2001/12/07 13:40:49 xleroy Exp $ *)
+(* $Id: arrayLabels.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
 
 (* Module [ArrayLabels]: labelled Array module *)
 

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: getgroups.c,v 1.8 2001/12/07 13:39:43 xleroy Exp $ */
+/* $Id: getgroups.c 4144 2001-12-07 13:41:02Z xleroy $ */
 
 #include <sys/types.h>
 #include <limits.h>

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals.c,v 1.7 2001/12/07 13:39:44 xleroy Exp $ */
+/* $Id: signals.c 4144 2001-12-07 13:41:02Z xleroy $ */
 
 /* To determine the semantics of signal handlers
    (System V: signal is reset to default behavior on entrance to the handler

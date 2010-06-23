@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: s-templ.h,v 1.22 2004/05/18 08:50:22 xleroy Exp $ */
+/* $Id: s-templ.h 6304 2004-05-18 08:50:22Z xleroy $ */
 
 /* Operating system and standard library dependencies. */
 

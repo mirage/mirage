@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: m-nt.h,v 1.12 2006/05/09 16:01:26 xleroy Exp $ */
+/* $Id: m-nt.h 7408 2006-05-09 16:02:09Z xleroy $ */
 
 /* Machine configuration, Intel x86 processors, Win32,
    Visual C++ or Mingw compiler */

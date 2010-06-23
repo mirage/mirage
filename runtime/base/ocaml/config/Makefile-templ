@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile-templ,v 1.31 2007/10/30 12:37:16 xleroy Exp $
+# $Id: Makefile-templ 9313 2009-07-15 12:13:31Z xleroy $
 
 ### Compile-time configuration
 
@@ -78,10 +78,14 @@ SHARPBANGSCRIPTS=true
 # Under FreeBSD:
 #CPP=cpp -P
 
+### Magic declarations for ocamlbuild -- leave unchanged
+#ml let syslib x = "-l"^x;;
+#ml let mklib out files opts = Printf.sprintf "ar rc %s %s %s; ranlib %s" out opts files out;;
+
 ### How to invoke ranlib
-# BSD-style:
-#RANLIB=ranlib
-#RANLIBCMD=ranlib
+RANLIB=ranlib
+RANLIBCMD=ranlib
+
 # If ranlib is not needed:
 #RANLIB=ar rs
 #RANLIBCMD=

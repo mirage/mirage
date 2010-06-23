@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: stack.h,v 1.35 2007/11/06 15:16:55 frisch Exp $ */
+/* $Id: stack.h 8477 2007-11-06 15:16:56Z frisch $ */
 
 /* Machine-dependent interface with the asm code */
 

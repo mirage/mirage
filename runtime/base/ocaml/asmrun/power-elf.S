@@ -11,7 +11,7 @@
 /*                                                                   */
 /*********************************************************************/
 
-/* $Id: power-elf.S,v 1.18 2004/01/03 12:51:19 doligez Exp $ */
+/* $Id: power-elf.S 6050 2004-01-03 12:51:20Z doligez $ */
 
 #define Addrglobal(reg,glob) \
         addis   reg, 0, glob@ha; \

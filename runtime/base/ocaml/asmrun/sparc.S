@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: sparc.S,v 1.26 2004/10/06 06:33:25 garrigue Exp $ */
+/* $Id: sparc.S 6631 2004-10-06 06:33:25Z garrigue $ */
 
 /* Asm part of the runtime system for the Sparc processor.  */
 /* Must be preprocessed by cpp */

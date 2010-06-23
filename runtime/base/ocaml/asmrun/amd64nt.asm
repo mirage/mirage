@@ -11,7 +11,7 @@
 ;
 ;*********************************************************************
 
-; $Id: amd64nt.asm,v 1.5 2007/03/01 10:26:51 xleroy Exp $
+; $Id: amd64nt.asm 7942 2007-03-01 10:26:51Z xleroy $
 
 ; Asm part of the runtime system, AMD64 processor, Intel syntax
 

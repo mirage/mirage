@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: alpha.S,v 1.29 2004/01/03 12:51:18 doligez Exp $ */
+/* $Id: alpha.S 6050 2004-01-03 12:51:20Z doligez $ */
 
 /* Asm part of the runtime system, Alpha processor */
 

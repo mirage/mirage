@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals_osdep.h,v 1.11.4.2 2009/03/28 15:18:31 xleroy Exp $ */
+/* $Id: signals_osdep.h 9194 2009-03-28 15:18:31Z xleroy $ */
 
 /* Processor- and OS-dependent signal interface */
 

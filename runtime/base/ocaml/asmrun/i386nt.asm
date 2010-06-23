@@ -11,7 +11,7 @@
 ;
 ;*********************************************************************
 
-; $Id: i386nt.asm,v 1.20 2007/01/29 12:10:52 xleroy Exp $
+; $Id: i386nt.asm 7812 2007-01-29 12:11:18Z xleroy $
 
 ; Asm part of the runtime system, Intel 386 processor, Intel syntax
 

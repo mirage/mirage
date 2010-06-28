@@ -38,7 +38,7 @@ external seq_of_node : 'a node -> 'a t = "%identity"
 external node_of_seq : 'a t -> 'a node = "%identity"
 
 (* +-----------------------------------------------------------------+
-   | Operations on nodes                                        |
+   | Operations on nodes                                             |
    +-----------------------------------------------------------------+ *)
 
 let get node =

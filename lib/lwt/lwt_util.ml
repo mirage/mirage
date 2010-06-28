@@ -24,12 +24,9 @@
 open Lwt
 
 let rec iter f l =
-  match l with
-    []     -> return ()
-  | a :: r ->
-      let t = f a in
-      let rt = iter f r in
-      t >>= (fun () -> rt)
+  let l = List.fold_left (fun acc a -> f a :: acc) [] l in
+  let l = List.rev l in
+  List.fold_left (fun rt t -> t >>= fun () -> rt) (Lwt.return ()) l
 
 let rec iter_serial f l =
   match l with
@@ -97,7 +94,7 @@ let resize_region reg sz = reg.size <- sz
 
 let leave_region reg sz =
    try
-     if reg.count > reg.size then raise Queue.Empty;
+     if reg.count - sz >= reg.size then raise Queue.Empty;
      let (w, sz') = Queue.take reg.waiters in
      reg.count <- reg.count - sz + sz';
      Lwt.wakeup w ()

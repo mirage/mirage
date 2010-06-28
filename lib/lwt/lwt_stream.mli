@@ -39,6 +39,9 @@ val from : (unit -> 'a option Lwt.t) -> 'a t
       called each time more input is needed, and the stream ends when
       [f] returns [None]. *)
 
+val create : unit -> 'a t * ('a option -> unit)
+  (** [create ()] returns a new stream and a push function *)
+
 val of_list : 'a list -> 'a t
   (** [of_list l] creates a stream returns all elements of [l] *)
 
@@ -57,12 +60,21 @@ val clone : 'a t -> 'a t
         val st1 : int Lwt_stream.t = <abstr>
         # let st2 = Lwt_stream.clone st1;;
         val st2 : int Lwt_stream.t = <abstr>
-        # Lwt_main.run (Lwt_stream.next st1);;
-        \- : int = 1
-        # Lwt_main.run (Lwt_stream.next st2);;
-        \- : int = 1
+        # lwt x = Lwt_stream.next st1;;
+        val x : int = 1
+        # lwt y = Lwt_stream.next st2;;
+        val y : int = 1
       ]}
   *)
+
+(** {6 Destruction} *)
+
+val to_list : 'a t -> 'a list Lwt.t
+  (** Returns the list of elements of the given stream *)
+
+val to_string : char t -> string Lwt.t
+  (** Returns the word composed of all characters of the given
+      stream *)
 
 (** {6 Data retreival} *)
 
@@ -92,8 +104,16 @@ val get_while_s : ('a -> bool Lwt.t) -> 'a t -> 'a list Lwt.t
       elements satisfy [f]. *)
 
 val next : 'a t -> 'a Lwt.t
-  (** [next enum] remove and returns the next element of the stream,
-      of fail with {!Empty} if the stream is empty. *)
+  (** [next st] remove and returns the next element of the stream, of
+      fail with {!Empty} if the stream is empty. *)
+
+val last_new : 'a t -> 'a Lwt.t
+  (** [next_new st] if no element are available on [st] without
+      sleeping, then it is the same as [next st]. Otherwise it removes
+      all elements of [st] that are ready except the last one, and
+      return it.
+
+      If fails with {!Empty} if the stream has no more elements *)
 
 val junk : 'a t -> unit Lwt.t
   (** [junk st] remove the first element of [st]. *)
@@ -115,6 +135,14 @@ val junk_old : 'a t -> unit Lwt.t
       that to junk key previously typed by the user.
   *)
 
+val get_available : 'a t -> 'a list
+  (** [get_available l] returns all available elements of [l] without
+      blocking *)
+
+val get_available_up_to : int -> 'a t -> 'a list
+  (** [get_available_up_to l n] returns up to [n] elements of [l]
+      without blocking *)
+
 val is_empty : 'a t -> bool Lwt.t
   (** [is_empty enum] returns wether the given stream is empty *)
 
@@ -129,10 +157,10 @@ val is_empty : 'a t -> bool Lwt.t
       val st1 : int Lwt_stream.t = <abstr>
       # let st2 = Lwt_stream.map string_of_int st1;;
       val st2 : string Lwt_stream.t = <abstr>
-      # Lwt_main.run (Lwt_stream.next st1);;
-      \- : int = 1
-      # Lwt_main.run (Lwt_stream.next st2);;
-      \- : string = "2"
+      # lwt x = Lwt_stream.next st1;;
+      val x : int = 1
+      # lwt y = Lwt_stream.next st2;;
+      val y : string = "2"
     ]}
 *)
 
@@ -152,6 +180,11 @@ val filter_s : ('a -> bool Lwt.t) -> 'a t -> 'a t
 val filter_map : ('a -> 'b option) -> 'a t -> 'b t
 val filter_map_s : ('a -> 'b option Lwt.t) -> 'a t -> 'b t
   (** [filter_map f st] filter and map [st] at the same time *)
+
+val map_list : ('a -> 'b list) -> 'a t -> 'b t
+val map_list_s : ('a -> 'b list Lwt.t) -> 'a t -> 'b t
+  (** [map_list f st] applies [f] on each element of [st] and flattens
+      the lists returned *)
 
 val fold : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b Lwt.t
 val fold_s : ('a -> 'b -> 'b Lwt.t) -> 'a t -> 'b -> 'b Lwt.t
@@ -181,12 +214,14 @@ val append : 'a t -> 'a t -> 'a t
 val concat : 'a t t -> 'a t
   (** [concat st] returns the concatenation of all streams of [st]. *)
 
+val flatten : 'a list t -> 'a t
+  (** [flatten st = map_list (fun l -> l) st] *)
+
 (** {6 Parsing} *)
 
 val parse : 'a t -> ('a t -> 'b Lwt.t) -> 'b Lwt.t
-  (** [parse st f] parsses to [f] a copy of [st]. If [f] fails, [st]
-      is left unchanged, otherwise [st] is set to the state of the
-      stream passed to [f]. *)
+  (** [parse st f] parses [st] with [f]. If [f] raise an exception,
+      [st] is restored to its previous state. *)
 
 (** {6 Misc} *)
 
@@ -202,21 +237,3 @@ val hexdump : char t -> string t
         let () = Lwt_main.run (write_lines stdout (Lwt_stream.hexdump (read_lines stdin)))
       ]}
   *)
-
-(** {6 Stream as lazy-list} *)
-
-(** Streams are internally represented by a lazy-list. *)
-
-(** Type of a node of a lazy-list: *)
-type 'a node =
-  | Cons of 'a * 'a lazy_list
-  | Nil
-
-and 'a lazy_list = 'a node Lwt.t Lazy.t
-    (** Type of lazy-lists *)
-
-val of_lazy_list : 'a lazy_list -> 'a t
-  (** [of_lazy_list st] creates a stream from a lazy-list *)
-
-val to_lazy_list : 'a t -> 'a lazy_list
-  (** [to_lazy_list ll] returns the internal lazy-list of a stream *)

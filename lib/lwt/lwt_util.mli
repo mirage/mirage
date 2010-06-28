@@ -21,6 +21,9 @@
  * 02111-1307, USA.
  *)
 
+(** Note: This lodule is deprecated. Use {!Lwt_list} and {!Lwt_pool}
+    instead. *)
+
 (** {2 Lists iterators} *)
 
 val iter : ('a -> unit Lwt.t) -> 'a list -> unit Lwt.t

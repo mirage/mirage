@@ -2,7 +2,7 @@
 (******************************************************************************)
 (* Lightweight thread library for Objective Caml
  * http://www.ocsigen.org/lwt
- * Interface Lwt_monitor
+ * Module Lwt_condition
  ******************************************************************************
  * Copyright (c) 2009, Metaweb Technologies, Inc.
  * All rights reserved.
@@ -32,75 +32,34 @@
 
 open Lwt
 
-module Condition =
-struct
-  type 'a t = 'a Lwt.u Queue.t
+type 'a t = 'a Lwt.u Queue.t
 
-  let wait cvar =
-    let (thread, w) = Lwt.wait () in
-    Queue.add w cvar;
-    thread
+let create = Queue.create
 
-  let notify cvar arg =
-    try
-      let thread = Queue.take cvar in
-      wakeup thread arg
-    with Queue.Empty -> ()
-
-  let notify_all cvar arg =
-    try
-      while true do
-        let thread = Queue.take cvar in
-        wakeup thread arg
-      done
-    with Queue.Empty -> ()
-end
-
-type 'a condition = 'a Condition.t
-type t = { mutable locked : bool; enter : unit Condition.t }
-
-let create () = { locked = false; enter = Queue.create () }
-let create_condition = Queue.create
-
-let rec lock m =
-  if m.locked then
-    Condition.wait m.enter >> lock m
-  else begin
-    m.locked <- true;
-    return ()
-  end
-
-let unlock m =
-  if m.locked then begin
-    m.locked <- false;
-    Condition.notify m.enter ()
-  end
-
-let wait m cond =
-  let t = Condition.wait cond in
-  unlock m;
-  lwt arg = t in
-  lwt () = lock m in
+let wait ?mutex cvar =
+  let (thread, w) = Lwt.wait () in
+  Queue.add w cvar;
+  let () = match mutex with
+    | Some m -> Lwt_mutex.unlock m
+    | None -> ()
+  in
+  lwt arg = thread in
+  lwt () = match mutex with
+    | Some m -> Lwt_mutex.lock m
+    | None -> return ()
+  in
   return arg
 
-let notify m cond arg =
-  if m.locked then
-    Condition.notify cond arg
-  else
-    failwith "Lwt_monitor.notify: not locked"
+let signal cvar arg =
+  try
+    let thread = Queue.take cvar in
+    wakeup thread arg
+  with Queue.Empty -> ()
 
-let notify_all m cond arg =
-  if m.locked then
-    Condition.notify_all cond arg
-  else
-    failwith "Lwt_monitor.notify: not locked"
-
-let with_lock m thunk =
-  lwt () = lock m in
-  try_lwt
-    lwt rv = thunk () in
-    unlock m;
-    return rv
-  with exn ->
-    unlock m;
-    fail exn
+let broadcast cvar arg =
+  try
+    while true do
+      let thread = Queue.take cvar in
+      wakeup thread arg
+    done
+  with Queue.Empty -> ()

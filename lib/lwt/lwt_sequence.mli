@@ -28,6 +28,7 @@
     - adding an element to the left or the right in time and space O(1)
     - taking an element from the left or the right in time and space O(1)
     - removing a previously added element from a sequence in time and space O(1)
+    - removing an element while the sequence is being transversed.
 *)
 
 type 'a t
@@ -35,9 +36,6 @@ type 'a t
 
 type 'a node
   (** Type of a node holding one value of type ['a] in a sequence *)
-
-exception Empty
-  (** Exception raised by [take_*] when the sequence is empty *)
 
 (** {6 Operation on nodes} *)
 
@@ -64,6 +62,10 @@ val add_l : 'a -> 'a t -> 'a node
 
 val add_r : 'a -> 'a t -> 'a node
   (** [add_l x s] adds [x] to the right of the sequence [s] *)
+
+exception Empty
+  (** Exception raised by [take_l] and [tale_s] and when the sequence
+      is empty *)
 
 val take_l : 'a t -> 'a
   (** [take_l x s] remove and returns the leftmost element of [s]
@@ -93,9 +95,9 @@ val transfer_r : 'a t -> 'a t -> unit
       the right of [s2]. This operation runs in constant time and
       space. *)
 
-(** {6 Sequence transferal} *)
+(** {6 Sequence iterators} *)
 
-(** Note: it is OK to remove nodes while traversing a sequence *)
+(** Note: it is OK to remove a node while traversing a sequence *)
 
 val iter_l : ('a -> unit) -> 'a t -> unit
   (** [iter_l f s] applies [f] on all elements of [s] starting from
@@ -115,20 +117,16 @@ val iter_node_r : ('a node -> unit) -> 'a t -> unit
 
 val fold_l : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   (** [fold_l f s] is:
-
       {[
         fold_l f s x = f en (... (f e2 (f e1 x)))
       ]}
-
-      where [to_list s = [e1; e2; ...; en]]
+      where [e1], [e2], ..., [en] are the elements of [s]
   *)
 
 val fold_r : ('a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   (** [fold_r f s] is:
-
       {[
         fold_r f s x = f e1 (f e2 (... (f en x)))
       ]}
-
-      where [to_list s = [e1; e2; ...; en]]
+      where [e1], [e2], ..., [en] are the elements of [s]
   *)

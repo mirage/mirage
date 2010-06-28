@@ -17,7 +17,7 @@ build: lwtlib.cmxa
 	$(OCAMLDSORT) $(SYNTAX) -opt *.ml > $@
 
 lwtlib.cmxa: .cmxdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -I $(STDLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
+	$(OCAMLOPT) -c -nostdlib -annot -I $(STDLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
 	$(OCAMLOPT) -a -o $@ `cat .cmxdeps`
 
 .PHONY: clean

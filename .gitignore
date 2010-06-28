@@ -7,6 +7,8 @@
 *.cmxa
 *.cache/
 .*.swp
+*.annot
+*.gz
 CVS/
 mini-os.gz
 tests/*/.depend
@@ -22,3 +24,4 @@ runtime/xen/stubdom/zlib/Makefile
 runtime/xen/stubdom/libm/obj/
 tests/*/app
 tests/*/mini-os
+tests/*/mirage-os

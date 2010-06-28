@@ -25,3 +25,4 @@ clean:
 
 install:
 	@cd bin && $(MAKE) install
+	@cd syntax && $(MAKE) install

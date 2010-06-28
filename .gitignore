@@ -6,9 +6,7 @@
 *.cmo
 *.cmxa
 *.cache/
-.cmxdeps
 .*.swp
-.mldeps
 CVS/
 mini-os.gz
 tests/*/.depend

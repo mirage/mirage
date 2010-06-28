@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 # Build Mirage applications
 
 shopt -s nullglob
@@ -70,8 +70,9 @@ esac
 
 cd "${DIR}"
 DEPEND=".depend"
-${OCAMLDSORT} -nox -mli *.ml *.mli > ${DEPEND}
-env CAMLLIB="${STDLIB}" ${OCAMLOPT} ${OCAMLOPT_FLAGS} `cat .depend` -output-obj -o app_raw.o
+
+${OCAMLDSORT} -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -nox -mli *.ml *.mli > ${DEPEND}
+${OCAMLOPT} -nostdlib -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -I ${MIRAGE_ROOT}/stdlib ${OCAMLOPT_FLAGS} stdlib.cmxa `cat .depend` -output-obj -o app_raw.o
 objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
 
 # now link app.o depending on the target platform

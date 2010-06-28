@@ -1,6 +1,6 @@
 OCAMLC ?= ocamlc
 CAMLP4OF ?= camlp4of
-MIRAGE_ROOT ?= $(shell $(OCAMLC) -where)/mirage
+MIRAGE_ROOT ?= $(shell $(OCAMLC) -where)/mirage/syntax
 
 .PHONY: all clean
 all: pa_mirage.cma

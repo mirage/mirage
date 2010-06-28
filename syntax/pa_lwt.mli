@@ -27,11 +27,7 @@
     - anonymous bind:
 
       {[
-         put_string stdio "Hello, " >>
-         put_string stdio "world!" >>
-         x := 1;
-         sleep 1.0 >>
-         return 1
+         write stdio "Hello, " >> write stdio "world!"
       ]}
 
     - lwt-binding:

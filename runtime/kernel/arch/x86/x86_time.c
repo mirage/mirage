@@ -39,6 +39,7 @@
 #include <mini-os/events.h>
 #include <mini-os/time.h>
 #include <mini-os/lib.h>
+#include <xen/vcpu.h>
 
 /************************************************************************
  * Time functions
@@ -183,37 +184,44 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 void block_domain(s_time_t until)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
     ASSERT(irqs_disabled());
+
     if(monotonic_clock() < until)
     {
-        HYPERVISOR_set_timer_op(until);
-        HYPERVISOR_sched_op(SCHEDOP_block, 0);
+        int cpu = smp_processor_id();
+        struct vcpu_set_singleshot_timer single;
+        int ret;
+
+        single.timeout_abs_ns = until;
+        single.flags = VCPU_SSHOTTMR_future;
+ 
+        ret = HYPERVISOR_vcpu_op(VCPUOP_set_singleshot_timer, cpu, &single);
+        BUG_ON(ret != 0);
+        printk("block_domain: diff=%Lu ret=%d\n", (until - (monotonic_clock ())), ret);
+        HYPERVISOR_sched_op(SCHEDOP_block, NULL);
         local_irq_disable();
     }
 }
 
-
-/*
- * Just a dummy 
- */
 static void timer_handler(evtchn_port_t ev, struct pt_regs *regs, void *ign)
 {
     get_time_values_from_xen();
     update_wallclock();
 }
 
-
-
 static evtchn_port_t port;
+
 void init_time(void)
 {
-    printk("Initialising timer interface\n");
+    int ret;
     port = bind_virq(VIRQ_TIMER, &timer_handler, NULL);
     unmask_evtchn(port);
     get_time_values_from_xen();
     update_wallclock();
+    ret = HYPERVISOR_vcpu_op( VCPUOP_stop_periodic_timer, smp_processor_id (), NULL );
+    BUG_ON(ret != 0);
+    ret = HYPERVISOR_vcpu_op( VCPUOP_stop_singleshot_timer, smp_processor_id (), NULL );
+    BUG_ON(ret != 0);
 }
 
 void fini_time(void)

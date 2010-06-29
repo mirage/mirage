@@ -45,13 +45,9 @@ void do_hypervisor_callback(struct pt_regs *regs)
     vcpu_info_t   *vcpu_info = &s->vcpu_info[cpu];
 
     in_callback = 1;
-   
+
     vcpu_info->evtchn_upcall_pending = 0;
     /* NB x86. No need for a barrier here -- XCHG is a barrier on x86. */
-#if !defined(__i386__) && !defined(__x86_64__)
-    /* Clear master flag /before/ clearing selector flag. */
-    wmb();
-#endif
     l1 = xchg(&vcpu_info->evtchn_pending_sel, 0);
     while ( l1 != 0 )
     {

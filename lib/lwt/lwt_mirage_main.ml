@@ -26,6 +26,8 @@ type current_time = float Lazy.t
 type fd_set = unit list
 type select = fd_set -> fd_set -> fd_set -> float option -> current_time * fd_set * fd_set * fd_set
 
+external block_domain : float -> unit = "mirage_block_domain"
+
 let select_filters = Lwt_sequence.create ()
 
 let min_timeout a b = match a, b with
@@ -43,9 +45,10 @@ let default_select (set_r:fd_set) (set_w:fd_set) (set_e:fd_set) timeout : (curre
       (* If there is nothing to monitor and there is no timeout,
          save one system call: *)
       ([], [], [])
-    else
-      (* Dummy sleep, XXX TODO *)
-      ([], [], []) in
+    else (
+      (* XXX 10 second default timer for debugging for now *)
+      block_domain (match timeout with None -> 10. |Some t -> t);
+      ([], [], [])) in
   (Lazy.lazy_from_fun Mir.gettimeofday, set_r, set_w, set_e)
 
 let default_iteration () =

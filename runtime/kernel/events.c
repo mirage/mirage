@@ -162,13 +162,11 @@ static struct pda
 void init_events(void)
 {
     int i;
-#if defined(__x86_64__)
     asm volatile("movl %0,%%fs ; movl %0,%%gs" :: "r" (0));
     wrmsrl(0xc0000101, &cpu0_pda); /* 0xc0000101 is MSR_GS_BASE */
     cpu0_pda.irqcount = -1;
     cpu0_pda.irqstackptr = (void*) (((unsigned long)irqstack + 2 * STACK_SIZE)
                                     & ~(STACK_SIZE - 1));
-#endif
     /* initialize event handler */
     for ( i = 0; i < NR_EVS; i++ )
 	{
@@ -181,9 +179,7 @@ void fini_events(void)
 {
     /* Dealloc all events */
     unbind_all_ports();
-#if defined(__x86_64__)
     wrmsrl(0xc0000101, NULL); /* 0xc0000101 is MSR_GS_BASE */
-#endif
 }
 
 void default_handler(evtchn_port_t port, struct pt_regs *regs, void *ignore)
@@ -213,29 +209,6 @@ int evtchn_alloc_unbound(domid_t pal, evtchn_handler_t handler,
 		return rc;
     }
     *port = bind_evtchn(op.port, handler, data);
-    return rc;
-}
-
-/* Connect to a port so as to allow the exchange of notifications with
-   the pal. Returns the result of the hypervisor call. */
-
-int evtchn_bind_interdomain(domid_t pal, evtchn_port_t remote_port,
-			    evtchn_handler_t handler, void *data,
-			    evtchn_port_t *local_port)
-{
-    int rc;
-    evtchn_port_t port;
-    evtchn_bind_interdomain_t op;
-    op.remote_dom = pal;
-    op.remote_port = remote_port;
-    rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_interdomain, &op);
-    if ( rc )
-    {
-        printk("ERROR: bind_interdomain failed with rc=%d", rc);
-		return rc;
-    }
-    port = op.local_port;
-    *local_port = bind_evtchn(port, handler, data);
     return rc;
 }
 

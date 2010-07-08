@@ -95,16 +95,6 @@ let rec restart_threads now =
         ()
 
 (* +-----------------------------------------------------------------+
-   | Mirage descriptors                                              |
-   +-----------------------------------------------------------------+ *)
-
-(* XXX TODO fill in *)
-let inputs = ref [ [()] ]
-let outputs = ref [ [()] ]
-let active_descriptors set acc = []
-let perform_actions set fd = ()
-   
-(* +-----------------------------------------------------------------+
    | Event loop                                                      |
    +-----------------------------------------------------------------+ *)
 
@@ -120,26 +110,17 @@ let rec get_next_timeout now timeout =
     | None ->
         timeout
 
-let select_filter now select set_r set_w set_e timeout =
+let select_filter now select timeout =
   (* Transfer all sleepers added since the last iteration to the main
      sleep queue: *)
   sleep_queue :=
     List.fold_left
       (fun q e -> SleepQueue.add e q) !sleep_queue !new_sleeps;
   new_sleeps := [];
-  let (now, set_r, set_w, set_e) as result =
-    select
-      (active_descriptors inputs set_r)
-      (active_descriptors outputs set_w)
-      set_e
-      (get_next_timeout now timeout)
-  in
+  let now = select (get_next_timeout now timeout) in
   (* Restart threads waiting for a timeout: *)
   restart_threads now;
-  (* Restart threads waiting on a file descriptors: *)
-  List.iter (fun fd -> perform_actions inputs fd) set_r;
-  List.iter (fun fd -> perform_actions outputs fd) set_w;
-  result
+  now
 
 let _ = Lwt_sequence.add_l select_filter Lwt_mirage_main.select_filters
 

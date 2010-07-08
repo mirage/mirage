@@ -23,8 +23,7 @@
 open Lwt
 
 type current_time = float Lazy.t
-type fd_set = unit list
-type select = fd_set -> fd_set -> fd_set -> float option -> current_time * fd_set * fd_set * fd_set
+type select = float option -> current_time
 
 external block_domain : float -> unit = "mirage_block_domain"
 
@@ -39,21 +38,13 @@ let apply_filters select =
   let now = Lazy.lazy_from_fun Mir.gettimeofday in
   Lwt_sequence.fold_l (fun filter select -> filter now select) select_filters select
 
-let default_select (set_r:fd_set) (set_w:fd_set) (set_e:fd_set) timeout : (current_time * fd_set * fd_set * fd_set) =
-  let set_r, set_w, set_e =
-    if (set_r = [] && set_w = [] && set_e = [] && timeout = Some 0.0) then
-      (* If there is nothing to monitor and there is no timeout,
-         save one system call: *)
-      ([], [], [])
-    else (
-      (* XXX 10 second default timer for debugging for now *)
-      block_domain (match timeout with None -> 10. |Some t -> t);
-      ([], [], [])) in
-  (Lazy.lazy_from_fun Mir.gettimeofday, set_r, set_w, set_e)
+let default_select timeout =
+  block_domain (match timeout with None -> 10. |Some t -> t);
+  Lazy.lazy_from_fun Mir.gettimeofday
 
 let default_iteration () =
   Lwt.wakeup_paused ();
-  ignore (apply_filters default_select [] [] [] None)
+  ignore (apply_filters default_select None)
 
 let main_loop_iteration = ref default_iteration
 

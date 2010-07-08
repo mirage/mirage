@@ -22,5 +22,4 @@ lwtlib.cmxa: .cmxdeps .mldeps
 
 .PHONY: clean
 clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps
-
+	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.annot *.a

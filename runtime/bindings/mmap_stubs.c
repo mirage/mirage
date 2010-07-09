@@ -22,11 +22,11 @@
 #include <xen/xen.h>
 #include <mini-os/hypervisor.h>
 
-#include <mlvalues.h>
-#include <memory.h>
-#include <alloc.h>
-#include <custom.h>
-#include <fail.h>
+#include <caml/mlvalues.h>
+#include <caml/memory.h>
+#include <caml/alloc.h>
+#include <caml/custom.h>
+#include <caml/fail.h>
 
 #define GET_C_STRUCT(a) ((struct mmap_interface *) a)
 

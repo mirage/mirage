@@ -13,9 +13,8 @@
 
 /* $Id: sleep.c,v 1.9 2001/12/07 13:40:35 xleroy Exp $ */
 
-#include <mlvalues.h>
-#include <signals.h>
-#include "unixsupport.h"
+#include <caml/mlvalues.h>
+#include <caml/signals.h>
 
 CAMLprim value unix_sleep(value t)
 {

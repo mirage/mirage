@@ -28,13 +28,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <mlvalues.h>
-#include <memory.h>
-#include <fail.h>
-#include <alloc.h>
-#include <callback.h>
-#include <custom.h>
-#include <signals.h>
+#include <caml/mlvalues.h>
+#include <caml/memory.h>
+#include <caml/fail.h>
+#include <caml/alloc.h>
+#include <caml/callback.h>
+#include <caml/custom.h>
+#include <caml/signals.h>
 
 #include <sqlite3.h>
 

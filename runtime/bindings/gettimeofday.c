@@ -13,10 +13,9 @@
 
 /* $Id: gettimeofday.c,v 1.8 2005/03/24 17:20:53 doligez Exp $ */
 
-#include <mlvalues.h>
-#include <alloc.h>
-#include <fail.h>
-#include "unixsupport.h"
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/fail.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -24,6 +23,6 @@
 CAMLprim value unix_gettimeofday(value unit)
 {
   struct timeval tp;
-  if (gettimeofday(&tp, NULL) == -1) uerror("gettimeofday", Nothing);
+  gettimeofday(&tp, NULL);
   return copy_double((double) tp.tv_sec + (double) tp.tv_usec / 1e6);
 }

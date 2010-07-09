@@ -13,8 +13,7 @@
 
 /* $Id: exit.c,v 1.9 2001/12/07 13:40:28 xleroy Exp $ */
 
-#include <mlvalues.h>
-#include "unixsupport.h"
+#include <caml/mlvalues.h>
 
 CAMLprim value unix_exit(value n)
 {

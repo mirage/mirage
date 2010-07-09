@@ -1,6 +1,6 @@
-#include <mlvalues.h>
-#include <alloc.h>
-#include <memory.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
 #include <mini-os/x86/os.h>
 #include <mini-os/sched.h>
 

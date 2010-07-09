@@ -56,26 +56,26 @@ module Timer = struct
 
     (** TCP timer, every 100ms *)
     let rec tcp () =
-        lwt () = Lwt_unix.sleep 0.1 in
+        lwt () = Lwt_mirage.sleep 0.1 in
         timer_tcp ();
         tcp ()
 
     (** IP fragment reassembly timer, every 1sec *)
     let rec ip () = 
-        lwt () = Lwt_unix.sleep 1. in
+        lwt () = Lwt_mirage.sleep 1. in
         timer_ip_reass ();
         ip ()
 
     (** Ethernet ARP cache timer, every 5sec *)
     let rec etharp () = 
-        lwt () = Lwt_unix.sleep 5. in
+        lwt () = Lwt_mirage.sleep 5. in
         timer_etharp ();
         etharp ()
 
     (** Netif select for packets.
       * This needs to be replaced with Lwt_main loop support *)
     let rec netif_sel netif =
-        lwt () = Lwt_unix.sleep 0.01 in
+        lwt () = Lwt_mirage.sleep 0.01 in
         let _ = Netif.select netif in
         netif_sel netif
  

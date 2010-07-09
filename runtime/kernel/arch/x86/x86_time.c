@@ -197,7 +197,7 @@ void block_domain(s_time_t until)
  
         ret = HYPERVISOR_vcpu_op(VCPUOP_set_singleshot_timer, cpu, &single);
         BUG_ON(ret != 0);
-        printk("block_domain: diff=%Lu ret=%d\n", (until - (monotonic_clock ())), ret);
+        /* printk("block_domain: diff=%Lu ret=%d\n", (until - (monotonic_clock ())), ret); */
         HYPERVISOR_sched_op(SCHEDOP_block, NULL);
         local_irq_disable();
     }

@@ -54,7 +54,13 @@
    NOTE: you need to enable verbose in xen/Rules.mk for it to work. */
 static int console_initialised = 0;
 
+#ifdef USE_XEN_CONSOLE
+void console_print(struct consfront_dev *dev, char *data, int length)
+{
+    (void)HYPERVISOR_console_io(CONSOLEIO_write, length, data);
+}
 
+#else
 void console_print(struct consfront_dev *dev, char *data, int length)
 {
     char *curr_char, saved_char;
@@ -93,25 +99,29 @@ void console_print(struct consfront_dev *dev, char *data, int length)
     
     ring_send_fn(dev, copied_ptr, length);
 }
+#endif
+
 
 void print(int direct, const char *fmt, va_list args)
 {
     static char   buf[1024];
     
     (void)vsnprintf(buf, sizeof(buf), fmt, args);
- 
+
+#ifdef USE_XEN_CONSOLE
+    (void)HYPERVISOR_console_io(CONSOLEIO_write, strlen(buf), buf);
+#else
     if(direct)
     {
         (void)HYPERVISOR_console_io(CONSOLEIO_write, strlen(buf), buf);
         return;
     } else {
-#ifndef USE_XEN_CONSOLE
     if(!console_initialised)
-#endif    
             (void)HYPERVISOR_console_io(CONSOLEIO_write, strlen(buf), buf);
         
         console_print(NULL, buf, strlen(buf));
     }
+#endif
 }
 
 void printk(const char *fmt, ...)

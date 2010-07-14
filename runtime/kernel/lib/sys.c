@@ -521,7 +521,6 @@ int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
     /* Tell people we're going to sleep before looking at what they are
      * saying, hence letting them wake us if events happen between here and
      * schedule() */
-    add_waiter(w1, netfront_queue);
     add_waiter(w2, event_queue);
     add_waiter(w3, blkfront_queue);
     add_waiter(w4, xenbus_watch_queue);

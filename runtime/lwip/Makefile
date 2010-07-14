@@ -29,7 +29,7 @@
 # Author: Adam Dunkels <adam@sics.se>
 #
 
-ROOTDIR=$(abspath ../../..)
+ROOTDIR=$(abspath ../..)
 include $(ROOTDIR)/mk/xen.mk
  
 CCDEP=gcc
@@ -46,7 +46,7 @@ LWIPARCH=.
 
 #Set this to where you have the lwip core module checked out from CVS
 #default assumes it's a dir named lwip at the same level as the contrib module
-LWIPDIR=../lwip/src
+LWIPDIR=lwip/src
 
 CFLAGS:=$(CFLAGS) \
 	-I$(LWIPDIR)/include -I$(LWIPARCH)/include -I$(LWIPDIR)/include/ipv4  -I.

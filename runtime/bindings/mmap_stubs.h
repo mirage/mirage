@@ -17,7 +17,7 @@
 
 struct mmap_interface
 {
-	char *addr;
+	void *addr;
 	int len;
 };
 

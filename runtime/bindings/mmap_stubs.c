@@ -21,6 +21,7 @@
 
 #include <xen/xen.h>
 #include <mini-os/hypervisor.h>
+#include <mini-os/events.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
@@ -35,13 +36,24 @@ stub_xenstore_init(value unit)
 {
 	CAMLparam1(unit);
 	CAMLlocal1(result);
-        
+
+        printk("stub_xenstore_init\n");        
 	result = caml_alloc(sizeof(struct mmap_interface), Abstract_tag);
 
         GET_C_STRUCT(result)->len = 4096;
-        GET_C_STRUCT(result)->addr = (char *)mfn_to_virt(start_info.store_mfn);
+        GET_C_STRUCT(result)->addr = mfn_to_virt(start_info.store_mfn);
 
 	CAMLreturn(result);
+}
+
+CAMLprim value
+stub_xenstore_evtchn_notify(value unit)
+{
+        CAMLparam1(unit);
+        printk("stub_xenstore_evtchn_notify\n");
+        notify_remote_via_evtchn(start_info.store_evtchn);
+        printk("stub_xenstore_evtchn_notify: done \n");
+        CAMLreturn(Val_unit);
 }
 
 CAMLprim value
@@ -53,6 +65,7 @@ stub_mmap_read(value interface, value start, value len)
 	int c_start;
 	int c_len;
 
+        printk("stub_mmap_read\n");
 	c_start = Int_val(start);
 	c_len = Int_val(len);
 	intf = GET_C_STRUCT(interface);
@@ -77,6 +90,7 @@ stub_mmap_write(value interface, value data,
 	int c_start;
 	int c_len;
 
+        printk("stub_mmap_write\n");
 	c_start = Int_val(start);
 	c_len = Int_val(len);
 	intf = GET_C_STRUCT(interface);

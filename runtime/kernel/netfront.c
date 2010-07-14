@@ -87,7 +87,6 @@ void network_rx(struct netfront_dev *dev)
     struct netif_rx_response *rx;
     int nr_consumed, some, more, i, notify;
 
-
 moretodo:
     rp = dev->rx.sring->rsp_prod;
     rmb(); /* Ensure we see queued responses up to 'rp'. */
@@ -280,7 +279,8 @@ static void free_netfront(struct netfront_dev *dev)
     free(dev);
 }
 
-struct netfront_dev *init_netfront(char *_nodename, void (*thenetif_rx)(unsigned char* data, int len), unsigned char rawmac[6], char **ip)
+struct netfront_dev *
+init_netfront(char *_nodename, void (*thenetif_rx)(unsigned char* data, int len), unsigned char rawmac[6], char **ip)
 {
     xenbus_transaction_t xbt;
     char* err;
@@ -302,7 +302,7 @@ struct netfront_dev *init_netfront(char *_nodename, void (*thenetif_rx)(unsigned
     netfrontends++;
 
     if (!thenetif_rx)
-	thenetif_rx = netif_rx;
+       thenetif_rx = netif_rx;
 
     printk("************************ NETFRONT for %s **********\n\n\n", nodename);
 
@@ -463,21 +463,6 @@ error:
     return NULL;
 }
 
-int netfront_tap_open(char *nodename) {
-    struct netfront_dev *dev;
-
-    dev = init_netfront(nodename, NETIF_SELECT_RX, NULL, NULL);
-    if (!dev) {
-	printk("TAP open failed\n");
-	errno = EIO;
-	return -1;
-    }
-    dev->fd = alloc_fd(FTYPE_TAP);
-    printk("tap_open(%s) -> %d\n", nodename, dev->fd);
-    files[dev->fd].tap.dev = dev;
-    return dev->fd;
-}
-
 void shutdown_netfront(struct netfront_dev *dev)
 {
     char* err = NULL;
@@ -612,29 +597,4 @@ void netfront_xmit(struct netfront_dev *dev, unsigned char* data,int len)
     local_irq_save(flags);
     network_tx_buf_gc(dev);
     local_irq_restore(flags);
-}
-
-ssize_t netfront_receive(struct netfront_dev *dev, unsigned char *data, size_t len)
-{
-    unsigned long flags;
-    int fd = dev->fd;
-    ASSERT(current == main_thread);
-
-    dev->rlen = 0;
-    dev->data = data;
-    dev->len = len;
-
-    local_irq_save(flags);
-    network_rx(dev);
-    if (!dev->rlen && fd != -1)
-	/* No data for us, make select stop returning */
-	files[fd].read = 0;
-    /* Before re-enabling the interrupts, in case a packet just arrived in the
-     * meanwhile. */
-    local_irq_restore(flags);
-
-    dev->data = NULL;
-    dev->len = 0;
-
-    return dev->rlen;
 }

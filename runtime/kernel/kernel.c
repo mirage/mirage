@@ -86,11 +86,6 @@ static void periodic_thread(void *p)
     }
 }
 
-static void netfront_thread(void *p)
-{
-    net_dev = init_netfront(NULL, NULL, NULL, NULL);
-}
-
 /*
  * INITIAL C ENTRY POINT.
  */

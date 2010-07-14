@@ -14,6 +14,7 @@
 /* $Id: minor_gc.c 8954 2008-07-28 12:03:55Z doligez $ */
 
 #include <string.h>
+#include <stdio.h>
 #include "config.h"
 #include "fail.h"
 #include "finalise.h"

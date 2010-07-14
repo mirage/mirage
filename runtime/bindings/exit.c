@@ -14,12 +14,10 @@
 /* $Id: exit.c,v 1.9 2001/12/07 13:40:28 xleroy Exp $ */
 
 #include <caml/mlvalues.h>
+#include <mini-os/kernel.h>
 
 CAMLprim value unix_exit(value n)
 {
-  _exit(Int_val(n));
-  return Val_unit;                  /* never reached, but suppress warnings */
-                                    /* from smart compilers */
+  do_exit();
+  return Val_unit;
 }
-
-

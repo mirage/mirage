@@ -38,6 +38,18 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
+#if 0
+#define LWIP_DEBUG 1
+#define TCP_DEBUG LWIP_DBG_ON
+#define TCP_INPUT_DEBUG LWIP_DBG_ON
+#endif
+
+/* XXX TODO Checksum handling is more complex than just on/off in Xen
+   and needs interaction with the evtchn rings. Just disable for now */
+#define CHECKSUM_CHECK_TCP 0
+#define CHECKSUM_CHECK_IP 0
+#define CHECKSUM_CHECK_UDP 0
+
 /*
    -----------------------------------------------
    ---------- Platform specific locking ----------

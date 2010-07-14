@@ -82,8 +82,8 @@ static err_t netfront_output(struct netif *netif, struct pbuf *p,
 static err_t
 low_level_output(struct netif *netif, struct pbuf *p)
 {
-  if (!dev)
-    return ERR_OK;
+  struct netfront_dev *dev = (struct netfront_dev *)netif->state;
+  ASSERT(dev != NULL);
 
   /* Send the data from the pbuf to the interface, one pbuf at a
      time. The size of the data in each pbuf is kept in the ->len
@@ -120,7 +120,6 @@ static err_t
 netfront_output(struct netif *netif, struct pbuf *p,
       struct ip_addr *ipaddr)
 {
-  
  /* resolve hardware address, then send (or queue) packet */
   return etharp_output(netif, p, ipaddr);
  
@@ -163,7 +162,6 @@ netfront_input(struct netif *netif, unsigned char* data, int len)
   ethernet_input(p, netif);
 }
 
-
 /* 
  * netif_rx(): overrides the default netif_rx behaviour in the netfront driver.
  * 
@@ -175,7 +173,6 @@ void netif_rx(unsigned char* data, int len)
 {
   if (the_interface != NULL) {
     netfront_input(the_interface, data, len);
-    wake_up(&netfront_queue);
   }
   /* By returning, we ack the packet and relinquish the RX ring slot */
 }
@@ -193,6 +190,7 @@ netif_netfront_init(struct netif *netif)
 {
   unsigned char *mac = netif->state;
 
+  printf("netif_netfront_init: netif=%p, mac=%p\n", netif, mac);
   netif->name[0] = IFNAME0;
   netif->name[1] = IFNAME1;
   netif->output = netfront_output;
@@ -223,22 +221,3 @@ netif_netfront_init(struct netif *netif)
   return ERR_OK;
 }
 
-void start_networking(unsigned char rawmac[6])
-{
-  struct netif *netif;
-  char *ip = NULL;
-
-  printf("start_networking\n");
-
-  dev = init_netfront(NULL, NULL, rawmac, NULL);
-  
-  netif = malloc(sizeof(struct netif));
-  netif_netfront_init(netif);
-}
-
-/* Shut down the network */
-void stop_networking(void)
-{
-  if (dev)
-    shutdown_netfront(dev);
-}

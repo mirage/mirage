@@ -17,11 +17,6 @@
 #include <mini-os/lib.h>
 #include <mini-os/semaphore.h>
 
-DECLARE_WAIT_QUEUE_HEAD(netfront_queue);
-
-#define NETIF_SELECT_RX ((void*)-1)
-
-
 #define NET_TX_RING_SIZE __RING_SIZE((struct netif_tx_sring *)0, PAGE_SIZE)
 #define NET_RX_RING_SIZE __RING_SIZE((struct netif_rx_sring *)0, PAGE_SIZE)
 #define GRANT_INVALID_REF 0
@@ -58,7 +53,8 @@ struct netfront_dev {
     size_t len;
     size_t rlen;
 
-    void (*netif_rx)(unsigned char* data, int len);
+    void (*netif_rx)(void *, unsigned char* data, int len);
+    void *state;
 };
 
 void init_rx_buffers(struct netfront_dev *dev);
@@ -79,6 +75,12 @@ static inline unsigned short get_id_from_freelist(unsigned short* freelist)
 static inline int xennet_rxidx(RING_IDX idx)
 {
     return idx & (NET_RX_RING_SIZE - 1);
+}
+
+void
+set_netfront_state(struct netfront_dev *dev, void *state)
+{
+    dev->state = state;
 }
 
 void network_rx(struct netfront_dev *dev)
@@ -119,18 +121,7 @@ moretodo:
         gnttab_end_access(buf->gref);
 
         if(rx->status>0)
-        {
-	    if (dev->netif_rx == NETIF_SELECT_RX) {
-		int len = rx->status;
-		ASSERT(current == main_thread);
-		if (len > dev->len)
-		    len = dev->len;
-		memcpy(dev->data, page+rx->offset, len);
-		dev->rlen = len;
-		some = 1;
-	    } else
-		dev->netif_rx(page+rx->offset,rx->status);
-        }
+	   dev->netif_rx(dev->state, page+rx->offset,rx->status);
 
         nr_consumed++;
 
@@ -231,21 +222,6 @@ void netfront_handler(evtchn_port_t port, struct pt_regs *regs, void *data)
     local_irq_restore(flags);
 }
 
-void netfront_select_handler(evtchn_port_t port, struct pt_regs *regs, void *data)
-{
-    int flags;
-    struct netfront_dev *dev = data;
-    int fd = dev->fd;
-
-    local_irq_save(flags);
-    network_tx_buf_gc(dev);
-    local_irq_restore(flags);
-
-    if (fd != -1)
-        files[fd].read = 1;
-    wake_up(&netfront_queue);
-}
-
 static void free_netfront(struct netfront_dev *dev)
 {
     int i;
@@ -280,7 +256,7 @@ static void free_netfront(struct netfront_dev *dev)
 }
 
 struct netfront_dev *
-init_netfront(char *_nodename, void (*thenetif_rx)(unsigned char* data, int len), unsigned char rawmac[6], char **ip)
+init_netfront(char *_nodename, void (*thenetif_rx)(void *, unsigned char* data, int len), unsigned char rawmac[6], char **ip)
 {
     xenbus_transaction_t xbt;
     char* err;
@@ -301,8 +277,7 @@ init_netfront(char *_nodename, void (*thenetif_rx)(unsigned char* data, int len)
         strncpy(nodename, _nodename, strlen(nodename));
     netfrontends++;
 
-    if (!thenetif_rx)
-       thenetif_rx = netif_rx;
+    ASSERT(thenetif_rx != NULL);
 
     printk("************************ NETFRONT for %s **********\n\n\n", nodename);
 
@@ -328,10 +303,7 @@ init_netfront(char *_nodename, void (*thenetif_rx)(unsigned char* data, int len)
 
     snprintf(path, sizeof(path), "%s/backend-id", nodename);
     dev->dom = xenbus_read_integer(path);
-    if (thenetif_rx == NETIF_SELECT_RX)
-        evtchn_alloc_unbound(dev->dom, netfront_select_handler, dev, &dev->evtchn);
-    else
-        evtchn_alloc_unbound(dev->dom, netfront_handler, dev, &dev->evtchn);
+    evtchn_alloc_unbound(dev->dom, netfront_handler, dev, &dev->evtchn);
 
     txs = (struct netif_tx_sring *) alloc_page();
     rxs = (struct netif_rx_sring *) alloc_page();

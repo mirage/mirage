@@ -61,9 +61,6 @@
 #define IFNAME0 'e'
 #define IFNAME1 'n'
 
-/* Only have one network interface at a time. */
-static struct netif *the_interface = NULL;
-
 static struct netfront_dev *dev;
 
 /* Forward declarations. */
@@ -104,8 +101,6 @@ low_level_output(struct netif *netif, struct pbuf *p)
 
   return ERR_OK;
 }
-
-
 
 /*
  * netfront_output():
@@ -162,19 +157,11 @@ netfront_input(struct netif *netif, unsigned char* data, int len)
   ethernet_input(p, netif);
 }
 
-/* 
- * netif_rx(): overrides the default netif_rx behaviour in the netfront driver.
- * 
- * Pull received packets into a pbuf queue for the low_level_input() 
- * function to pass up to lwIP.
- */
-
-void netif_rx(unsigned char* data, int len)
+void
+netif_rx(void *state, unsigned char *data, int len)
 {
-  if (the_interface != NULL) {
-    netfront_input(the_interface, data, len);
-  }
-  /* By returning, we ack the packet and relinquish the RX ring slot */
+    ASSERT(state != NULL);
+    netfront_input((struct netif *)state, data, len);
 }
 
 /*
@@ -190,13 +177,11 @@ netif_netfront_init(struct netif *netif)
 {
   unsigned char *mac = netif->state;
 
-  printf("netif_netfront_init: netif=%p, mac=%p\n", netif, mac);
+  printf("netif_netfront_init\n");
   netif->name[0] = IFNAME0;
   netif->name[1] = IFNAME1;
   netif->output = netfront_output;
   netif->linkoutput = low_level_output;
-  
-  the_interface = netif;
   
   /* set MAC hardware address */
   netif->hwaddr_len = 6;

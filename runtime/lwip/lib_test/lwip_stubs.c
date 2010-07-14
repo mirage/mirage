@@ -24,6 +24,7 @@
 #include <lwip/ip_frag.h>
 #include <lwip/udp.h>
 #include <lwip/tcp.h>
+#include <lwip/netif.h>
 #include <netif/etharp.h>
 
 #include <caml/mlvalues.h>
@@ -34,13 +35,13 @@
 #include <caml/signals.h>
 #include <caml/callback.h>
 
-#include <netfront.h>
+#include <mini-os/netfront.h>
 
 #define LWIP_STUBS_DEBUG
 #ifdef LWIP_STUBS_DEBUG
 #include <stdio.h>
-#define LWIP_STUB_DPRINTF(x) fprintf(stderr, "%s\n", (x))
-#define LWIP_STUB_DPRINTF1(x,y) fprintf(stderr, (x "\n"), (y))
+#define LWIP_STUB_DPRINTF(x) fprintf(stderr, "CAML: %s\n", (x))
+#define LWIP_STUB_DPRINTF1(x,y) fprintf(stderr, ("CAML: " x "\n"), (y))
 #else
 #define LWIP_STUB_DPRINTF1(x,y)
 #define LWIP_STUB_DPRINTF(x)
@@ -159,10 +160,9 @@ tcp_wrap_of_value(value v_tw)
 {
     struct tcp_wrap *tw = Tcp_wrap_val(v_tw);
     if (tw->pcb == NULL) {
-        LWIP_STUB_DPRINTF("tcp_wrap_finalize: CLOSED");
+        LWIP_STUB_DPRINTF("tcp_wrap_of_value: CLOSED");
         caml_raise(*Lwip_Connection_closed);
     }
-    LWIP_STUB_DPRINTF("tcp_wrap_finalize: ok");
     return tw;
 }
 
@@ -272,6 +272,7 @@ tcp_accept_cb(void *arg, struct tcp_pcb *newpcb, err_t err)
     value *cb = (value *)arg;
     value v_state, v_tw;
 
+    LWIP_STUB_DPRINTF("caml_tcp_accept_cb");
     tcp_setprio(newpcb, TCP_PRIO_MIN);   
 
     v_tw = caml_alloc_final(2, tcp_wrap_finalize, 1, 100);
@@ -350,6 +351,7 @@ netif_finalize(value v_netif)
     struct netif *netif = Netif_wrap_val(v_netif);
     LWIP_STUB_DPRINTF("netif_finalize");
     free(netif);
+    Netif_wrap_val(v_netif) = NULL;
 }
 
 CAMLprim value
@@ -373,12 +375,14 @@ caml_netif_new(value v_ip, value v_netmask, value v_gw)
         Int_val(Field(v_gw, 2)), Int_val(Field(v_gw,3)));
 
     /* XXX TODO need a netif_wrap to store dev to close the netfront later */
-    dev = init_netfront(NULL, NULL, rawmac, NULL);
+    dev = init_netfront(NULL, netif_rx, rawmac, NULL);
     netif = caml_stat_alloc(sizeof(struct netif));
     netif_add(netif, &ip, &netmask, &gw, rawmac, netif_netfront_init, ethernet_input);
     v_netif = caml_alloc_final(2, netif_finalize, 1, 100);
     Netif_wrap_val(v_netif) = netif;
-    
+    printf("setting state to dev\n");
+    netif->state = dev;
+    set_netfront_state(dev, (void *)netif);
     CAMLreturn(v_netif);
 }
 

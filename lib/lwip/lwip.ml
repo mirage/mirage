@@ -41,6 +41,9 @@ module Netif = struct
          if default then set_default netif;
          if up then set_up netif;
          netif
+    
+    (** Close a netif *)
+    external close: t -> unit = "caml_netif_close"
 end
 
 open Lwt
@@ -72,18 +75,11 @@ module Timer = struct
         timer_etharp ();
         etharp ()
 
-    (** Netif select for packets.
-      * This needs to be replaced with Lwt_main loop support *)
-    let rec netif_sel netif =
-        lwt () = Lwt_mirage.sleep 0.01 in
-        let _ = Netif.select netif in
-        netif_sel netif
- 
     (** Start all timers as LWT threads 
       * @return list of LWT threads of the spawned timers
       *)
-    let start netif =
-        [ tcp (); ip (); etharp (); netif_sel netif ]
+    let start () =
+        [ tcp (); ip (); etharp () ]
 end
 
 module TCP = struct

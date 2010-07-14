@@ -348,10 +348,7 @@ caml_tcp_accepted(value v_tw)
 static void
 netif_finalize(value v_netif)
 {
-    struct netif *netif = Netif_wrap_val(v_netif);
     LWIP_STUB_DPRINTF("netif_finalize");
-    free(netif);
-    Netif_wrap_val(v_netif) = NULL;
 }
 
 CAMLprim value
@@ -374,16 +371,26 @@ caml_netif_new(value v_ip, value v_netmask, value v_gw)
     IP4_ADDR(&gw, Int_val(Field(v_gw, 0)), Int_val(Field(v_gw, 1)), 
         Int_val(Field(v_gw, 2)), Int_val(Field(v_gw,3)));
 
-    /* XXX TODO need a netif_wrap to store dev to close the netfront later */
     dev = init_netfront(NULL, netif_rx, rawmac, NULL);
     netif = caml_stat_alloc(sizeof(struct netif));
     netif_add(netif, &ip, &netmask, &gw, rawmac, netif_netfront_init, ethernet_input);
     v_netif = caml_alloc_final(2, netif_finalize, 1, 100);
     Netif_wrap_val(v_netif) = netif;
-    printf("setting state to dev\n");
     netif->state = dev;
     set_netfront_state(dev, (void *)netif);
     CAMLreturn(v_netif);
+}
+
+CAMLprim value
+caml_netif_close(value v_netif)
+{
+    CAMLparam1(v_netif);
+    struct netif *netif = Netif_wrap_val(v_netif);
+    shutdown_netfront((struct netfront_dev *)netif->state);
+    netif->state = NULL;
+    netif_remove(netif);
+    Netif_wrap_val(v_netif) = NULL;
+    CAMLreturn(Val_unit);
 }
 
 /* Copy out all the pbufs in a chain into a string, and ack/free pbuf.

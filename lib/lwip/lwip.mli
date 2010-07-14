@@ -28,6 +28,9 @@ module Netif : sig
       ?default:bool ->
       ?up:bool ->
       ip:ipv4_addr -> netmask:ipv4_addr -> gw:ipv4_addr -> unit -> t
+
+    val close: t -> unit
+
   end
 
 (** LWIP requires regular timer functions to be called to process
@@ -37,7 +40,7 @@ module Timer : sig
     (** Start all timers as LWT threads 
       * @return list of LWT threads of the spawned timers
       *)
-    val start : Netif.t -> 'a Lwt.t list
+    val start : unit -> 'a Lwt.t list
   end
 
 module TCP : sig

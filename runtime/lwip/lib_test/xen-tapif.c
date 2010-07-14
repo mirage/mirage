@@ -63,10 +63,6 @@
 
 static struct netfront_dev *dev;
 
-/* Forward declarations. */
-static err_t netfront_output(struct netif *netif, struct pbuf *p,
-             struct ip_addr *ipaddr);
-
 /*
  * low_level_output():
  *

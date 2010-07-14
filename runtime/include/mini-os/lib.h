@@ -108,7 +108,6 @@ enum fd_type {
     FTYPE_EVTCHN,
     FTYPE_GNTMAP,
     FTYPE_SOCKET,
-    FTYPE_TAP,
     FTYPE_BLK,
     FTYPE_MEM,
 };

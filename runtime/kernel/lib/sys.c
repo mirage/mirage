@@ -197,15 +197,6 @@ ssize_t read(int fd, void *buf, size_t nbytes)
             remove_waiter(w);
             return ret;
         }
-	case FTYPE_TAP: {
-	    ssize_t ret;
-	    ret = netfront_receive(files[fd].tap.dev, buf, nbytes);
-	    if (ret <= 0) {
-		errno = EAGAIN;
-		return -1;
-	    }
-	    return ret;
-	}
 	default:
 	    break;
     }
@@ -219,9 +210,6 @@ ssize_t write(int fd, const void *buf, size_t nbytes)
     switch (files[fd].type) {
 	case FTYPE_CONSOLE:
 	    console_print(files[fd].cons.dev, (char *)buf, nbytes);
-	    return nbytes;
-	case FTYPE_TAP:
-	    netfront_xmit(files[fd].tap.dev, (void*) buf, nbytes);
 	    return nbytes;
 	default:
 	    break;
@@ -270,10 +258,6 @@ int close(int fd)
 	    xc_gnttab_close(fd);
 	    return 0;
 #endif
-	case FTYPE_TAP:
-	    shutdown_netfront(files[fd].tap.dev);
-	    files[fd].type = FTYPE_NONE;
-	    return 0;
 	case FTYPE_BLK:
             shutdown_blkfront(files[fd].blk.dev);
 	    files[fd].type = FTYPE_NONE;
@@ -381,7 +365,6 @@ static const char file_types[] = {
     [FTYPE_XC]		= 'X',
     [FTYPE_EVTCHN]	= 'E',
     [FTYPE_SOCKET]	= 's',
-    [FTYPE_TAP]		= 'T',
     [FTYPE_BLK]		= 'B',
 };
 #ifdef LIBC_DEBUG
@@ -459,7 +442,6 @@ static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exce
 	    FD_CLR(i, exceptfds);
 	    break;
 	case FTYPE_EVTCHN:
-	case FTYPE_TAP:
 	case FTYPE_BLK:
 	    if (FD_ISSET(i, readfds)) {
 		if (files[i].read)

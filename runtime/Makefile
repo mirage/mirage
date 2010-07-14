@@ -27,7 +27,7 @@ $(CROSS_PREFIX)/lib/libmir.a: $(STAMP)
 
 $(CROSS_PREFIX)/lib/liblwip.a: $(STAMP)
 	cd lwip && $(MAKE) MODE=xen
-	cp lwip/lib_test/liblwip4.a $@
+	cp lwip/liblwip4.a $@
 
 $(CROSS_PREFIX)/lib/libm.a: $(STAMP)
 	cd libm && $(MAKE)

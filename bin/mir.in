@@ -72,7 +72,7 @@ cd "${DIR}"
 DEPEND=".depend"
 
 ${OCAMLDSORT} -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -nox -mli *.ml *.mli > ${DEPEND}
-${OCAMLOPT} -nostdlib -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -I ${MIRAGE_ROOT}/stdlib -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/lwip ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa lwiplib.cmxa `cat .depend` -output-obj -o app_raw.o
+${OCAMLOPT} -nostdlib -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -I ${MIRAGE_ROOT}/stdlib -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/lwip -I ${MIRAGE_ROOT}/lib/xs ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa lwiplib.cmxa xslib.cmxa `cat .depend` -output-obj -o app_raw.o
 objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
 
 # now link app.o depending on the target platform

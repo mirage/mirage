@@ -151,7 +151,9 @@ void caml_main(char **argv)
 #ifdef DEBUG
   caml_verb_gc = 63;
 #endif
+#ifndef __MiniOS__
   parse_camlrunparam();
+#endif
   caml_init_gc (minor_heap_init, heap_size_init, heap_chunk_init,
                 percent_free_init, max_percent_free_init);
   init_atoms();

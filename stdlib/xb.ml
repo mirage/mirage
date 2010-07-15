@@ -49,8 +49,10 @@ let queue con pkt = Queue.push pkt con.pkt_out
 let read t s len =
 	let rd = Xs_ring.read t.backend.mmap s len in
 	t.backend.work_again <- (rd > 0);
-	if rd > 0 then
+	if rd > 0 then (
 		t.backend.eventchn_notify ();
+                print_endline "rd>0";
+        );
 	rd
 
 let write t s len =
@@ -122,6 +124,9 @@ let backend mmap notifyfct =
 		 eventchn_notify = notifyfct;
 		 work_again = false; }
 
+let open_mmap () =
+        backend (Mmap.xenstore_init ()) Mmap.xenstore_evtchn_notify
+
 let output_len con = Queue.length con.pkt_out
 let has_new_output con = Queue.length con.pkt_out > 0
 let has_old_output con = String.length con.partial_out > 0
@@ -134,4 +139,3 @@ let input_len con = Queue.length con.pkt_in
 let has_in_packet con = Queue.length con.pkt_in > 0
 let get_in_packet con = Queue.pop con.pkt_in
 let has_more_input con = con.backend.work_again
-let is_selectable con = false

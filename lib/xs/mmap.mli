@@ -16,6 +16,3 @@ type mmap_interface
 
 external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
-external read : mmap_interface -> int -> int -> string = "stub_mmap_read"
-external write : mmap_interface -> string -> int -> int -> unit
-               = "stub_mmap_write"

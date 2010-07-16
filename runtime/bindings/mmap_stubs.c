@@ -31,11 +31,20 @@
 
 #define GET_C_STRUCT(a) ((struct mmap_interface *) a)
 
+static void
+xenstore_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
+{
+        printk("xenstore_evtchn_callback\n");       
+}
+
+/* At start of day, get a pointer to Xenstore, and also bind an 
+   event channel */
 CAMLprim value
 stub_xenstore_init(value unit)
 {
 	CAMLparam1(unit);
 	CAMLlocal1(result);
+        int err;
 
         printk("stub_xenstore_init\n");        
 	result = caml_alloc(sizeof(struct mmap_interface), Abstract_tag);
@@ -43,6 +52,8 @@ stub_xenstore_init(value unit)
         GET_C_STRUCT(result)->len = 4096;
         GET_C_STRUCT(result)->addr = mfn_to_virt(start_info.store_mfn);
 
+        err = bind_evtchn(start_info.store_evtchn, xenstore_evtchn_handler, NULL);
+        unmask_evtchn(start_info.store_evtchn);
 	CAMLreturn(result);
 }
 
@@ -50,57 +61,6 @@ CAMLprim value
 stub_xenstore_evtchn_notify(value unit)
 {
         CAMLparam1(unit);
-        printk("stub_xenstore_evtchn_notify\n");
         notify_remote_via_evtchn(start_info.store_evtchn);
-        printk("stub_xenstore_evtchn_notify: done \n");
         CAMLreturn(Val_unit);
-}
-
-CAMLprim value
-stub_mmap_read(value interface, value start, value len)
-{
-	CAMLparam3(interface, start, len);
-	CAMLlocal1(data);
-	struct mmap_interface *intf;
-	int c_start;
-	int c_len;
-
-        printk("stub_mmap_read\n");
-	c_start = Int_val(start);
-	c_len = Int_val(len);
-	intf = GET_C_STRUCT(interface);
-
-	if (c_start > intf->len)
-		caml_invalid_argument("start invalid");
-	if (c_start + c_len > intf->len)
-		caml_invalid_argument("len invalid");
-
-	data = caml_alloc_string(c_len);
-	memcpy((char *) data, intf->addr + c_start, c_len);
-
-	CAMLreturn(data);
-}
-
-CAMLprim value
-stub_mmap_write(value interface, value data,
-                               value start, value len)
-{
-	CAMLparam4(interface, data, start, len);
-	struct mmap_interface *intf;
-	int c_start;
-	int c_len;
-
-        printk("stub_mmap_write\n");
-	c_start = Int_val(start);
-	c_len = Int_val(len);
-	intf = GET_C_STRUCT(interface);
-
-	if (c_start > intf->len)
-		caml_invalid_argument("start invalid");
-	if (c_start + c_len > intf->len)
-		caml_invalid_argument("len invalid");
-
-	memcpy(intf->addr + c_start, (char *) data, c_len);
-
-	CAMLreturn(Val_unit);
 }

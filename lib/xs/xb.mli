@@ -75,10 +75,10 @@ type t = {
 }
 val init_partial_in : unit -> partial_buf
 val queue : t -> Packet.t -> unit
-val read : t -> string -> int -> int
+val read : t -> string -> int -> int Lwt.t
 val write : t -> string -> int -> int
 val output : t -> bool
-val input : t -> bool
+val input : t -> bool Lwt.t
 val newcon : backend -> t
 val backend : Mmap.mmap_interface -> (unit -> unit) -> t
 val open_mmap : unit -> t

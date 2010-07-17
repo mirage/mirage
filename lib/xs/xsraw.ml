@@ -1,4 +1,3 @@
-open Pervasives
 (*
  * Copyright (C) 2006-2009 Citrix Systems Inc.
  *
@@ -12,6 +11,9 @@ open Pervasives
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *)
+
+open Lwt
+
 exception Partial_not_empty
 exception Unexpected_packet of string
 
@@ -22,7 +24,7 @@ let unexpected_packet expected received =
 	let s = Printf.sprintf "expecting %s received %s"
 	                       (Xb.Op.to_string expected)
 	                       (Xb.Op.to_string received) in
-	raise (Unexpected_packet s)
+	fail (Unexpected_packet s)
 
 type con = {
 	xb: Xb.t;
@@ -76,26 +78,42 @@ let perms_of_string s =
 	let l = List.map perm_of_string (split s) in
 	match l with h :: l -> (fst h, snd h, l) | [] -> (0, PERM_NONE, [])
 
+(*
 (* send one packet - can sleep *)
 let pkt_send con =
-	if Xb.has_old_output con.xb then
-		raise Partial_not_empty;
-	let workdone = ref false in
-	while not !workdone
-	do
-		workdone := Xb.output con.xb
-	done
+(*
+	(if Xb.has_old_output con.xb then
+		fail Partial_not_empty
+         else return ()) >>
+*)
+        let rec loop_output () =
+           lwt w = Xb.output con.xb in 
+           if w then return () else loop_output ()
+        in
+        loop_output () >>
+        return ()
+*)
+
+ let pkt_send con =
+       if Xb.has_old_output con.xb then
+               raise Partial_not_empty;
+       let workdone = ref false in
+       while not !workdone
+       do
+               workdone := Xb.output con.xb
+       done
 
 (* receive one packet - can sleep *)
 let pkt_recv con =
-	let workdone = ref false in
         print_endline "pkt_recv: start";
-	while not !workdone
-	do
-		workdone := Xb.input con.xb
-	done;
+        let rec loop_input () =
+            lwt w = Xb.input con.xb in 
+            print_endline "Xb.input";
+            if w then return () else loop_input ()
+        in 
+        lwt () = loop_input () in
         print_endline "pkt_recv: done";
-	Xb.get_in_packet con.xb
+	return (Xb.get_in_packet con.xb)
 
 (*
 let pkt_recv_timeout con timeout =
@@ -124,28 +142,28 @@ let has_watchevents con = Queue.length con.watchevents > 0
 let get_watchevent con = Queue.pop con.watchevents
 
 let read_watchevent con =
-	let pkt = pkt_recv con in
+	lwt pkt = pkt_recv con in
 	match Xs_packet.get_ty pkt with
 	| Xb.Op.Watchevent ->
 		queue_watchevent con (Xs_packet.get_data pkt);
-		Queue.pop con.watchevents
-	| ty               -> unexpected_packet Xb.Op.Watchevent ty
+		return (Queue.pop con.watchevents)
+	| ty -> unexpected_packet Xb.Op.Watchevent ty
 
 (* send one packet in the queue, and wait for reply *)
 let rec sync_recv ty con =
-	let pkt = pkt_recv con in
+	lwt pkt = pkt_recv con in
 	match Xs_packet.get_ty pkt with
 	| Xb.Op.Error       -> (
 		match Xs_packet.get_data pkt with
-		| "ENOENT" -> raise Xb.Noent
-		| "EAGAIN" -> raise Xb.Eagain
-		| "EINVAL" -> raise Xb.Invalid
-		| s        -> raise (Xs_packet.Error s))
+		| "ENOENT" -> fail Xb.Noent
+		| "EAGAIN" -> fail Xb.Eagain
+		| "EINVAL" -> fail Xb.Invalid
+		| s        -> fail (Xs_packet.Error s))
 	| Xb.Op.Watchevent  ->
 		queue_watchevent con (Xs_packet.get_data pkt);
 		sync_recv ty con
-	| rty when rty = ty ->Xs_packet.get_data pkt
-	| rty               -> unexpected_packet ty rty
+	| rty when rty = ty -> return (Xs_packet.get_data pkt)
+	| rty -> unexpected_packet ty rty
 
 let sync f con =
 	(* queue a query using function f *)
@@ -157,7 +175,9 @@ let sync f con =
 	sync_recv ty con
 
 let ack s =
-	if s = "OK" then () else raise (Xs_packet.DataError s)
+        Lwt.bind s (fun s ->
+	  if s = "OK" then return () else fail (Xs_packet.DataError s)
+        ) 
 
 (** Check paths are suitable for read/write/mkdir/rm/directory etc (NOT watches) *)
 let validate_path path =
@@ -182,8 +202,8 @@ let debug command con =
 
 let directory tid path con =
 	validate_path path;
-	let data = sync (Queueop.directory tid path) con in
-	split_string '\000' data
+	lwt data = sync (Queueop.directory tid path) con in
+	return (split_string '\000' data)
 
 let read tid path con =
 	validate_path path;
@@ -196,7 +216,8 @@ let readv tid dir vec con =
 
 let getperms tid path con =
 	validate_path path;
-	perms_of_string (sync (Queueop.getperms tid path) con)
+	lwt perms = sync (Queueop.getperms tid path) con in
+        return (perms_of_string perms)
 
 let watch path data con =
 	validate_watch_path path;
@@ -204,21 +225,21 @@ let watch path data con =
 
 let unwatch path data con =
 	validate_watch_path path;
-	ack (sync (Queueop.unwatch path data) con)
+        ack (sync (Queueop.unwatch path data) con)
 
 let transaction_start con =
-	let data = sync (Queueop.transaction_start) con in
-	try
-		int_of_string data
+	lwt data = sync (Queueop.transaction_start) con in
+	try_lwt
+		return (int_of_string data)
 	with
-		_ -> raise (Xs_packet.DataError (Printf.sprintf "int expected; got '%s'" data))
+		_ -> fail (Xs_packet.DataError (Printf.sprintf "int expected; got '%s'" data))
 
 let transaction_end tid commit con =
-	try
-		ack (sync (Queueop.transaction_end tid commit) con);
-		true
-	with
-		Xb.Eagain -> false
+	try_lwt
+		ack (sync (Queueop.transaction_end tid commit) con) >>
+                return true
+	with | Xb.Eagain ->
+                return false
 
 let introduce domid mfn port con =
 	ack (sync (Queueop.introduce domid mfn port) con)
@@ -237,7 +258,7 @@ let write tid path value con =
 	ack (sync (Queueop.write tid path value) con)
 
 let writev tid dir vec con =
-	List.iter (fun (entry, value) ->
+	Lwt_list.iter_s (fun (entry, value) ->
 		let path = (if dir <> "" then dir ^ "/" ^ entry else entry) in
                 validate_path path;
 		write tid path value con) vec
@@ -248,17 +269,17 @@ let mkdir tid path con =
 
 let rm tid path con =
         validate_path path;
-	try
+	try_lwt
 		ack (sync (Queueop.rm tid path) con)
 	with
-		Xb.Noent -> ()
+		Xb.Noent -> return ()
 
 let setperms tid path perms con =
 	validate_path path;
 	ack (sync (Queueop.setperms tid path (string_of_perms perms)) con)
 
 let setpermsv tid dir vec perms con =
-	List.iter (fun entry ->
+	Lwt_list.iter_s (fun entry ->
 		let path = (if dir <> "" then dir ^ "/" ^ entry else entry) in
 		validate_path path;
 		setperms tid path perms con) vec

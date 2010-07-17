@@ -13,7 +13,7 @@
  * GNU Lesser General Public License for more details.
  *)
 
-open Pervasives
+open Lwt
 
 module Op = struct include Xb_op end
 module Packet = struct include Xs_packet end
@@ -48,14 +48,18 @@ let queue con pkt = Queue.push pkt con.pkt_out
 
 let read t s len =
 	let rd = Xs_ring.read t.backend.mmap s len in
+        Printf.printf "Xb.read: len=%d\n%!" rd;
 	t.backend.work_again <- (rd > 0);
+        (* XXX TODO Hack to force a yield until select integration is done *)
+        Lwt_mirage.sleep 1. >>
 	if rd > 0 then (
 		t.backend.eventchn_notify ();
                 print_endline "rd>0";
         );
-	rd
+	return rd
 
 let write t s len =
+        Printf.printf "Xb.write: len=%d %s\n%!" len (String.escaped s);
 	let ws = Xs_ring.write t.backend.mmap s len in
 	if ws > 0 then
 		t.backend.eventchn_notify ();
@@ -88,7 +92,7 @@ let input con =
 
 	(* try to get more data from input stream *)
 	let s = String.make to_read '\000' in
-	let sz = if to_read > 0 then read con s to_read else 0 in
+	lwt sz = read con s to_read in
 
 	(
 	match con.partial_in with
@@ -109,7 +113,7 @@ let input con =
 		con.partial_in <- if sz = i then
 			HaveHdr (Xb_partial.of_string buf) else NoHdr (i - sz, buf)
 	);
-	!newpacket
+	return (!newpacket)
 
 let newcon backend = {
 	backend = backend;

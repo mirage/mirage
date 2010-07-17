@@ -44,8 +44,8 @@ static int xs_ring_read(struct mmap_interface *interface,
 	XENSTORE_RING_IDX cons, prod;
 	int to_read;
 
-	cons = intf->req_cons;
-	prod = intf->req_prod;
+	cons = intf->rsp_cons;
+	prod = intf->rsp_prod;
 	mb();
 	if (prod == cons)
 		return 0;
@@ -56,9 +56,9 @@ static int xs_ring_read(struct mmap_interface *interface,
 		to_read = XENSTORE_RING_SIZE - MASK_XENSTORE_IDX(cons);
 	if (to_read < len)
 		len = to_read;
-	memcpy(buffer, intf->req + MASK_XENSTORE_IDX(cons), len);
+	memcpy(buffer, intf->rsp + MASK_XENSTORE_IDX(cons), len);
 	mb();
-	intf->req_cons += len;
+	intf->rsp_cons += len;
         printk("xs_ring_read: done %d\n", len);
 	return len;
 }
@@ -70,8 +70,8 @@ static int xs_ring_write(struct mmap_interface *interface,
 	XENSTORE_RING_IDX cons, prod;
 	int can_write;
 
-	cons = intf->rsp_cons;
-	prod = intf->rsp_prod;
+	cons = intf->req_cons;
+	prod = intf->req_prod;
 	mb();
 	if ( (prod - cons) >= XENSTORE_RING_SIZE )
 		return 0;
@@ -82,10 +82,10 @@ static int xs_ring_write(struct mmap_interface *interface,
 		can_write = MASK_XENSTORE_IDX(cons) - MASK_XENSTORE_IDX(prod);
 	if (can_write < len)
 		len = can_write;
-	memcpy(intf->rsp + MASK_XENSTORE_IDX(prod), buffer, len);
+	memcpy(intf->req + MASK_XENSTORE_IDX(prod), buffer, len);
 	mb();
-	intf->rsp_prod += len;
-        printk("xs_ring_write: done\n");
+	intf->req_prod += len;
+        printk("xs_ring_write: len=%d done\n", len);
 	return len;
 }
 

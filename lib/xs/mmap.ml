@@ -16,4 +16,9 @@
 type mmap_interface
 
 external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
+external xenstore_evtchn_port: unit -> int = "stub_xenstore_evtchn_port"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
+
+let condition = 
+    let port = xenstore_evtchn_port () in
+    Lwt_mirage_main.Activations.register port

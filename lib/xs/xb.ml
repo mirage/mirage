@@ -59,12 +59,16 @@ let rec read t s len =
              t.backend.eventchn_notify ();
 	     return rd
 
-let write t s len =
-        Printf.printf "Xb.write: len=%d %s\n%!" len (String.escaped s);
+let rec write t s len =
 	let ws = Xs_ring.write t.backend.mmap s len in
-	if ws > 0 then
-		t.backend.eventchn_notify ();
-	ws
+        Printf.printf "Xb.write: len=%d ws=%d %s\n%!" len ws (String.escaped s);
+        match ws with
+        | 0 ->
+             Lwt_condition.wait Mmap.condition >>
+             write t s len
+        | ws ->
+	     t.backend.eventchn_notify ();
+             return ws
 
 let output con =
 	(* get the output string from a string_of(packet) or partial_out *)
@@ -75,14 +79,17 @@ let output con =
 		else
 			"" in
 	(* send data from s, and save the unsent data to partial_out *)
-	if s <> "" then (
+	lwt () = if s <> "" then (
 		let len = String.length s in
-		let sz = write con s len in
+		lwt sz = write con s len in
 		let left = String.sub s sz (len - sz) in
-		con.partial_out <- left
-	);
+		con.partial_out <- left;
+                return ()
+	) else
+                return ()
+        in
 	(* after sending one packet, partial is empty *)
-	con.partial_out = ""
+	return (con.partial_out = "")
 
 let input con =
 	let newpacket = ref false in

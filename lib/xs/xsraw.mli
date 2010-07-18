@@ -9,7 +9,7 @@ type perm = PERM_NONE | PERM_READ | PERM_WRITE | PERM_RDWR
 type perms = int * perm * (int * perm) list
 val string_of_perms : int * perm * (int * perm) list -> string
 val perms_of_string : string -> int * perm * (int * perm) list
-val pkt_send : con -> unit
+val pkt_send : con -> unit Lwt.t
 val pkt_recv : con -> Xb.Packet.t Lwt.t
 val queue_watchevent : con -> string -> unit
 val has_watchevents : con -> bool

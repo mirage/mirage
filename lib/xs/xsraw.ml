@@ -95,13 +95,14 @@ let pkt_send con =
 *)
 
  let pkt_send con =
-       if Xb.has_old_output con.xb then
-               raise Partial_not_empty;
-       let workdone = ref false in
-       while not !workdone
-       do
-               workdone := Xb.output con.xb
-       done
+       match Xb.has_old_output con.xb with
+       | true -> fail Partial_not_empty
+       | false ->
+           let rec loop_output () = 
+               lwt w = Xb.output con.xb in
+               if w then return () else loop_output ()
+           in
+           loop_output ()
 
 (* receive one packet - can sleep *)
 let pkt_recv con =
@@ -171,7 +172,7 @@ let sync f con =
 	if Xb.output_len con.xb = 0 then
 		Printf.printf "output len = 0\n%!";
 	let ty = Xs_packet.get_ty (Xb.peek_output con.xb) in
-	pkt_send con;
+	pkt_send con >>
 	sync_recv ty con
 
 let ack s =

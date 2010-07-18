@@ -46,17 +46,18 @@ let init_partial_in () = NoHdr
 
 let queue con pkt = Queue.push pkt con.pkt_out
 
-let read t s len =
+let rec read t s len =
 	let rd = Xs_ring.read t.backend.mmap s len in
         Printf.printf "Xb.read: len=%d\n%!" rd;
-	t.backend.work_again <- (rd > 0);
-        (* XXX TODO Hack to force a yield until select integration is done *)
-        Lwt_mirage.sleep 1. >>
-	if rd > 0 then (
-		t.backend.eventchn_notify ();
-                print_endline "rd>0";
-        );
-	return rd
+        match rd with 
+        | 0 ->
+             t.backend.work_again <- false;
+             Lwt_condition.wait Mmap.condition >>
+             read t s len
+        | rd ->
+             t.backend.work_again <- true;
+             t.backend.eventchn_notify ();
+	     return rd
 
 let write t s len =
         Printf.printf "Xb.write: len=%d %s\n%!" len (String.escaped s);

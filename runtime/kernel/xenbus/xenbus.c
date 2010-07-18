@@ -34,6 +34,7 @@
         tmpx < tmpy ? tmpx : tmpy;            \
         })
 
+#define XENBUS_DEBUG
 #ifdef XENBUS_DEBUG
 #define DEBUG(_f, _a...) \
     printk("MINI_OS(file=xenbus.c, line=%d) " _f , __LINE__, ## _a)
@@ -363,7 +364,7 @@ static void xb_write(int type, int req_id, xenbus_transaction_t trans_id,
         len += req[r].len;
     m.len = len;
     len += sizeof(m);
-
+    DEBUG("xb_write; trans_id=%d type=%d nr_reqs=%d len=%d\n", trans_id, type, nr_reqs, len);
     cur_req = &header_req;
 
     BUG_ON(len > XENSTORE_RING_SIZE);
@@ -390,6 +391,9 @@ static void xb_write(int type, int req_id, xenbus_transaction_t trans_id,
     {
         this_chunk = min(cur_req->len - req_off,
                 XENSTORE_RING_SIZE - MASK_XENSTORE_IDX(prod));
+        for (int f=0; f<this_chunk; f++)
+          printk("%c ", (char *)cur_req->data + req_off + f);
+        printk("\n");
         memcpy((char *)xenstore_buf->req + MASK_XENSTORE_IDX(prod),
                 (char *)cur_req->data + req_off, this_chunk);
         prod += this_chunk;
@@ -489,6 +493,7 @@ char *xenbus_ls(xenbus_transaction_t xbt, const char *pre, char ***contents)
     int nr_elems, x, i;
     char **res, *msg;
 
+    DEBUG("xenbus_ls: %s\n", pre);
     repmsg = xenbus_msg_reply(XS_DIRECTORY, xbt, req, ARRAY_SIZE(req));
     msg = errmsg(repmsg);
     if (msg) {
@@ -516,6 +521,7 @@ char *xenbus_read(xenbus_transaction_t xbt, const char *path, char **value)
     struct write_req req[] = { {path, strlen(path) + 1} };
     struct xsd_sockmsg *rep;
     char *res, *msg;
+    DEBUG("xenbus_read: %s\n", path);
     rep = xenbus_msg_reply(XS_READ, xbt, req, ARRAY_SIZE(req));
     msg = errmsg(rep);
     if (msg) {
@@ -538,6 +544,7 @@ char *xenbus_write(xenbus_transaction_t xbt, const char *path, const char *value
     };
     struct xsd_sockmsg *rep;
     char *msg;
+    DEBUG("xenbus_write: %s\n", path);
     rep = xenbus_msg_reply(XS_WRITE, xbt, req, ARRAY_SIZE(req));
     msg = errmsg(rep);
     if (msg) return msg;
@@ -588,6 +595,7 @@ char* xenbus_unwatch_path_token( xenbus_transaction_t xbt, const char *path, con
 
     char *msg;
 
+    DEBUG("xenbus_unwatch_path_token\n");
     rep = xenbus_msg_reply(XS_UNWATCH, xbt, req, ARRAY_SIZE(req));
 
     msg = errmsg(rep);
@@ -610,6 +618,7 @@ char *xenbus_rm(xenbus_transaction_t xbt, const char *path)
     struct write_req req[] = { {path, strlen(path) + 1} };
     struct xsd_sockmsg *rep;
     char *msg;
+    DEBUG("Xenbus_rm\n");
     rep = xenbus_msg_reply(XS_RM, xbt, req, ARRAY_SIZE(req));
     msg = errmsg(rep);
     if (msg)
@@ -623,6 +632,7 @@ char *xenbus_get_perms(xenbus_transaction_t xbt, const char *path, char **value)
     struct write_req req[] = { {path, strlen(path) + 1} };
     struct xsd_sockmsg *rep;
     char *res, *msg;
+    DEBUG("Xenbus_get_perms\n");
     rep = xenbus_msg_reply(XS_GET_PERMS, xbt, req, ARRAY_SIZE(req));
     msg = errmsg(rep);
     if (msg) {
@@ -647,6 +657,7 @@ char *xenbus_set_perms(xenbus_transaction_t xbt, const char *path, domid_t dom, 
     };
     struct xsd_sockmsg *rep;
     char *msg;
+    DEBUG("xenbus_set_perms\n");
     snprintf(value, PERM_MAX_SIZE, "%c%hu", perm, dom);
     req[1].len = strlen(value) + 1;
     rep = xenbus_msg_reply(XS_SET_PERMS, xbt, req, ARRAY_SIZE(req));
@@ -664,7 +675,7 @@ char *xenbus_transaction_start(xenbus_transaction_t *xbt)
     struct write_req req = { "", 1};
     struct xsd_sockmsg *rep;
     char *err;
-
+    DEBUG("xenbus_trans_start\n");
     rep = xenbus_msg_reply(XS_TRANSACTION_START, 0, &req, 1);
     err = errmsg(rep);
     if (err)

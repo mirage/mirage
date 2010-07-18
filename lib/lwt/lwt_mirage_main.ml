@@ -27,6 +27,28 @@ type select = float option -> current_time
 
 external block_domain : float -> unit = "mirage_block_domain"
 
+module Activations = struct
+
+    let events = Array.create 1024 None
+
+    (* Register an event channel port with a condition variable to let 
+       threads sleep on it *)
+    let register port =
+       if events.(port) != None then
+           Printf.printf "warning: port %d already registered\n%!" port;
+       let c = Lwt_condition.create () in
+       events.(port) <- Some c;
+       c
+
+    let activate port =
+       match events.(port) with
+       | None -> ()
+       | Some c -> Lwt_condition.signal c ()
+
+    let _ = Callback.register "Activations.activate" activate
+
+end
+
 let select_filters = Lwt_sequence.create ()
 
 let min_timeout a b = match a, b with

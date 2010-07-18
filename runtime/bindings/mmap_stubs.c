@@ -28,13 +28,18 @@
 #include <caml/alloc.h>
 #include <caml/custom.h>
 #include <caml/fail.h>
+#include <caml/callback.h>
 
 #define GET_C_STRUCT(a) ((struct mmap_interface *) a)
 
 static void
-xenstore_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
+caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
 {
-        printk("xenstore_evtchn_callback\n");       
+    static value *closure_f = NULL;
+    printk("caml_eventchn_handler: %d\n", port);
+    if (closure_f == NULL)
+        closure_f = caml_named_value("Activations.activate");
+    caml_callback(*closure_f, Val_int(port));
 }
 
 /* At start of day, get a pointer to Xenstore, and also bind an 
@@ -52,9 +57,16 @@ stub_xenstore_init(value unit)
         GET_C_STRUCT(result)->len = 4096;
         GET_C_STRUCT(result)->addr = mfn_to_virt(start_info.store_mfn);
 
-        err = bind_evtchn(start_info.store_evtchn, xenstore_evtchn_handler, NULL);
+        err = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
         unmask_evtchn(start_info.store_evtchn);
 	CAMLreturn(result);
+}
+
+CAMLprim value
+stub_xenstore_evtchn_port(value unit)
+{
+        CAMLparam1(unit);
+        CAMLreturn(Val_int(start_info.store_evtchn));
 }
 
 CAMLprim value

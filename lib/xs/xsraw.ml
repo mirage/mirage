@@ -116,21 +116,6 @@ let pkt_recv con =
         print_endline "pkt_recv: done";
 	return (Xb.get_in_packet con.xb)
 
-(*
-let pkt_recv_timeout con timeout =
-	let fd = Xb.get_fd con.xb in
-	let r, _, _ = Unix.select [ fd ] [] [] timeout in
-	if r = [] then
-		true, None
-	else (
-		let workdone = Xb.input con.xb in
-		if workdone then
-			false, (Some (Xb.get_in_packet con.xb))
-		else
-			false, None
-	)
-*)
-
 let queue_watchevent con data =
 	let ls = split_string ~limit:2 '\000' data in
 	if List.length ls != 2 then

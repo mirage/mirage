@@ -39,9 +39,6 @@ static void call_main(void *p)
 void _exit(int ret)
 {
     printk("main returned %d\n", ret);
-#ifdef HAVE_LWIP
-    stop_networking();
-#endif
     stop_kernel();
     if (!ret) {
 	/* No problem, just shutdown.  */

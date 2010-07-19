@@ -549,59 +549,6 @@ void errx(int eval, const char *format, ...)
     va_end(ap);
 }
 
-int nanosleep(const struct timespec *req, struct timespec *rem)
-{
-    s_time_t start = NOW();
-    s_time_t stop = start + SECONDS(req->tv_sec) + req->tv_nsec;
-    s_time_t stopped;
-    struct thread *thread = get_current();
-
-    thread->wakeup_time = stop;
-    clear_runnable(thread);
-    schedule();
-    stopped = NOW();
-
-    if (rem)
-    {
-	s_time_t remaining = stop - stopped;
-	if (remaining > 0)
-	{
-	    rem->tv_nsec = remaining % 1000000000ULL;
-	    rem->tv_sec  = remaining / 1000000000ULL;
-	} else memset(rem, 0, sizeof(*rem));
-    }
-
-    return 0;
-}
-
-int usleep(unsigned long usec)
-{
-    /* "usec shall be less than one million."  */
-    struct timespec req;
-    req.tv_nsec = usec * 1000;
-    req.tv_sec = 0;
-
-    if (nanosleep(&req, NULL))
-	return -1;
-
-    return 0;
-}
-
-unsigned int sleep(unsigned int seconds)
-{
-    struct timespec req, rem;
-    req.tv_sec = seconds;
-    req.tv_nsec = 0;
-
-    if (nanosleep(&req, &rem))
-	return -1;
-
-    if (rem.tv_nsec > 0)
-	rem.tv_sec++;
-
-    return rem.tv_sec;
-}
-
 int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
     switch (clk_id) {
@@ -643,32 +590,6 @@ clock_t times(struct tms *buf)
      buf->tms_cutime = 0;
      buf->tms_cstime = 0;
      return 0;
-}
-
-uid_t getuid(void)
-{
-	return 0;
-}
-
-uid_t geteuid(void)
-{
-	return 0;
-}
-
-gid_t getgid(void)
-{
-	return 0;
-}
-
-gid_t getegid(void)
-{
-	return 0;
-}
-
-int gethostname(char *name, size_t namelen)
-{
-	strncpy(name, "mini-os", namelen);
-	return 0;
 }
 
 size_t getpagesize(void)
@@ -742,13 +663,6 @@ void sparse(unsigned long data, size_t size)
     free_physical_pages(mfns, n);
     do_map_zero(data, n);
 }
-
-int nice(int inc)
-{
-    printk("nice() stub called with inc=%d\n", inc);
-    return 0;
-}
-
 
 /* Not supported by FS yet.  */
 unsupported_function_crash(link);

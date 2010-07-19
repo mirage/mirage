@@ -93,11 +93,9 @@ let pkt_recv con =
         print_endline "pkt_recv: start";
         let rec loop_input () =
             lwt w = Xb.input con.xb in 
-            print_endline "Xb.input";
             if w then return () else loop_input ()
         in 
         lwt () = loop_input () in
-        print_endline "pkt_recv: done";
 	return (Xb.get_in_packet con.xb)
 
 let queue_watchevent con data =

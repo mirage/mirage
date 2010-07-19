@@ -48,7 +48,6 @@ let queue con pkt = Queue.push pkt con.pkt_out
 
 let rec read t s len =
 	let rd = Xs_ring.read t.backend.mmap s len in
-        Printf.printf "Xb.read: len=%d\n%!" rd;
         match rd with 
         | 0 ->
              t.backend.work_again <- false;
@@ -61,7 +60,6 @@ let rec read t s len =
 
 let rec write t s len =
 	let ws = Xs_ring.write t.backend.mmap s len in
-        Printf.printf "Xb.write: len=%d ws=%d %s\n%!" len ws (String.escaped s);
         match ws with
         | 0 ->
              Lwt_condition.wait Mmap.condition >>

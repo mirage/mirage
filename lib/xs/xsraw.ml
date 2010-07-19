@@ -196,7 +196,7 @@ let read tid path con =
 	sync (Queueop.read tid path) con
 
 let readv tid dir vec con =
-	List.map (fun path -> validate_path path; read tid path con)
+	Lwt_list.map_s (fun path -> validate_path path; read tid path con)
 		(if dir <> "" then
 			(List.map (fun v -> dir ^ "/" ^ v) vec) else vec)
 

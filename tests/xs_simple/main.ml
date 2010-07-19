@@ -28,16 +28,18 @@ let xs_test () =
    lwt viffoo0 = try_xs xsh.Xs.read "device/vif/0/foo" in
    p (sprintf "vif0 write: %s" viffoo0);
 
-   lwt () = Lwt_mirage.sleep 3. in
-
    let watchpath = "device/vif" in
-   p ("sleeping to watch " ^ watchpath);
-   lwt () = Xs.monitor_paths xsh [ watchpath, "XXX" ] 10.0 
-     (fun (k,v) -> printf "watch callback: [ %s = %s ]\n%!" k v; false) in
+   let timeout = 10. in
+   p ("sleeping to watch " ^ watchpath ^ " for " ^ (string_of_float timeout));
+   try_lwt
+       Xs.monitor_paths xsh [ watchpath, "XXX" ] timeout
+           (fun (k,v) -> printf "watch callback: [ %s = %s ]\n%!" k v; false)
+   with
+       Xs.Timeout -> begin
+           print_endline "timed out";
+           return ()
+       end
          
-   lwt ()  = Lwt_mirage.sleep 10. in
-   p "done";
-   return ()
 
 let _ =
    Lwt_mirage.run (xs_test ())

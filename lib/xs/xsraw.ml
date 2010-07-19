@@ -78,31 +78,15 @@ let perms_of_string s =
 	let l = List.map perm_of_string (split s) in
 	match l with h :: l -> (fst h, snd h, l) | [] -> (0, PERM_NONE, [])
 
-(*
-(* send one packet - can sleep *)
 let pkt_send con =
-(*
-	(if Xb.has_old_output con.xb then
-		fail Partial_not_empty
-         else return ()) >>
-*)
-        let rec loop_output () =
-           lwt w = Xb.output con.xb in 
-           if w then return () else loop_output ()
+    match Xb.has_old_output con.xb with
+    | true -> fail Partial_not_empty
+    | false ->
+        let rec loop_output () = 
+            lwt w = Xb.output con.xb in
+            if w then return () else loop_output ()
         in
-        loop_output () >>
-        return ()
-*)
-
- let pkt_send con =
-       match Xb.has_old_output con.xb with
-       | true -> fail Partial_not_empty
-       | false ->
-           let rec loop_output () = 
-               lwt w = Xb.output con.xb in
-               if w then return () else loop_output ()
-           in
-           loop_output ()
+        loop_output ()
 
 (* receive one packet - can sleep *)
 let pkt_recv con =

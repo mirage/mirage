@@ -25,7 +25,7 @@ let xs_test () =
 
    Xsraw.write 0 "device/vif/0/foo" "bar" con >> 
    lwt viffoo0 = try_xs (Xsraw.read 0 "device/vif/0/foo") in
-   p (Printf.sprintf "vif0 write: %s" vif0 viffoo0);
+   p (Printf.sprintf "vif0 write: %s" viffoo0);
    
    lwt ()  = Lwt_mirage.sleep 10. in
    p "done";

@@ -36,7 +36,6 @@ static void
 caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
 {
     static value *closure_f = NULL;
-    printk("caml_eventchn_handler: %d\n", port);
     if (closure_f == NULL)
         closure_f = caml_named_value("Activations.activate");
     caml_callback(*closure_f, Val_int(port));
@@ -51,7 +50,6 @@ stub_xenstore_init(value unit)
 	CAMLlocal1(result);
         int err;
 
-        printk("stub_xenstore_init\n");        
 	result = caml_alloc(sizeof(struct mmap_interface), Abstract_tag);
 
         GET_C_STRUCT(result)->len = 4096;

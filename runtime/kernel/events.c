@@ -26,8 +26,8 @@
 
 /* this represents a event handler. Chaining or sharing is not allowed */
 typedef struct _ev_action_t {
-	evtchn_handler_t handler;
-	void *data;
+    evtchn_handler_t handler;
+    void *data;
     uint32_t count;
 } ev_action_t;
 
@@ -85,44 +85,44 @@ int do_event(evtchn_port_t port, struct pt_regs *regs)
     action->count++;
 
     /* call the handler */
-	action->handler(port, regs, action->data);
+    action->handler(port, regs, action->data);
 
     return 1;
 
 }
 
 evtchn_port_t bind_evtchn(evtchn_port_t port, evtchn_handler_t handler,
-						  void *data)
+                          void *data)
 {
- 	if ( ev_actions[port].handler != default_handler )
+     if ( ev_actions[port].handler != default_handler )
         printk("WARN: Handler for port %d already registered, replacing\n",
                port);
 
-	ev_actions[port].data = data;
-	wmb();
-	ev_actions[port].handler = handler;
-	set_bit(port, bound_ports);
+    ev_actions[port].data = data;
+    wmb();
+    ev_actions[port].handler = handler;
+    set_bit(port, bound_ports);
 
-	return port;
+    return port;
 }
 
 void unbind_evtchn(evtchn_port_t port )
 {
-	struct evtchn_close close;
+    struct evtchn_close close;
     int rc;
 
-	if ( ev_actions[port].handler == default_handler )
-		printk("WARN: No handler for port %d when unbinding\n", port);
-	mask_evtchn(port);
-	clear_evtchn(port);
+    if ( ev_actions[port].handler == default_handler )
+        printk("WARN: No handler for port %d when unbinding\n", port);
+    mask_evtchn(port);
+    clear_evtchn(port);
 
-	ev_actions[port].handler = default_handler;
-	wmb();
-	ev_actions[port].data = NULL;
-	clear_bit(port, bound_ports);
+    ev_actions[port].handler = default_handler;
+    wmb();
+    ev_actions[port].data = NULL;
+    clear_bit(port, bound_ports);
 
-	close.port = port;
-	rc = HYPERVISOR_event_channel_op(EVTCHNOP_close, &close);
+    close.port = port;
+    rc = HYPERVISOR_event_channel_op(EVTCHNOP_close, &close);
     if ( rc )
         printk("WARN: close_port %s failed rc=%d. ignored\n", port, rc);
         
@@ -130,20 +130,20 @@ void unbind_evtchn(evtchn_port_t port )
 
 evtchn_port_t bind_virq(uint32_t virq, evtchn_handler_t handler, void *data)
 {
-	evtchn_bind_virq_t op;
+    evtchn_bind_virq_t op;
     int rc;
 
-	/* Try to bind the virq to a port */
-	op.virq = virq;
-	op.vcpu = smp_processor_id();
+    /* Try to bind the virq to a port */
+    op.virq = virq;
+    op.vcpu = smp_processor_id();
 
-	if ( (rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_virq, &op)) != 0 )
-	{
-		printk("Failed to bind virtual IRQ %d with rc=%d\n", virq, rc);
-		return -1;
+    if ( (rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_virq, &op)) != 0 )
+    {
+        printk("Failed to bind virtual IRQ %d with rc=%d\n", virq, rc);
+        return -1;
     }
     bind_evtchn(op.port, handler, data);
-	return op.port;
+    return op.port;
 }
 
 #if defined(__x86_64__)
@@ -169,7 +169,7 @@ void init_events(void)
                                     & ~(STACK_SIZE - 1));
     /* initialize event handler */
     for ( i = 0; i < NR_EVS; i++ )
-	{
+    {
         ev_actions[i].handler = default_handler;
         mask_evtchn(i);
     }
@@ -195,7 +195,7 @@ void default_handler(evtchn_port_t port, struct pt_regs *regs, void *ignore)
    from inside mini-os. */
 
 int evtchn_alloc_unbound(domid_t pal, evtchn_handler_t handler,
-						 void *data, evtchn_port_t *port)
+                         void *data, evtchn_port_t *port)
 {
     int rc;
 
@@ -206,7 +206,7 @@ int evtchn_alloc_unbound(domid_t pal, evtchn_handler_t handler,
     if ( rc )
     {
         printk("ERROR: alloc_unbound failed with rc=%d", rc);
-		return rc;
+        return rc;
     }
     *port = bind_evtchn(op.port, handler, data);
     return rc;

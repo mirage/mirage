@@ -1,7 +1,7 @@
 type ops = {
   directory : string -> string list Lwt.t;
   read : string -> string Lwt.t;
-  readv : string -> string list -> string Lwt.t list;
+  readv : string -> string list -> string list Lwt.t;
   write : string -> string -> unit Lwt.t;
   writev : string -> (string * string) list -> unit Lwt.t;
   mkdir : string -> unit Lwt.t;

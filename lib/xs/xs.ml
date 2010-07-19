@@ -84,10 +84,9 @@ let read_watchevent_timeout xsh timeout callback =
 	let start_time = Mir.gettimeofday () in
 	let end_time = start_time +. timeout in
 
-	let left = ref timeout in
-
 	(* Returns true if a watch event in the queue satisfied us *)
 	let process_queued_events () = 
+                print_endline "process_queued_events";
 		let success = ref false in
                 let rec loop () =
 		    if Xsraw.has_watchevents xsh.con && not(!success) then (
@@ -99,43 +98,46 @@ let read_watchevent_timeout xsh timeout callback =
         in
 	(* Returns true if a watch event read from the socket satisfied us *)
 	let process_incoming_event () = 
+                print_endline "process_incoming_event";
 		lwt wev = Xsraw.read_watchevent xsh.con in
                 return (callback wev)
         in
 
-	let success = ref false in
-        let rec loop () =
-	    if !left > 0. && not(!success) then begin
-		(* NB the 'callback' might call back into Xs functions
-		   and as a side-effect, watches might be queued. Hence
-		   we must process the queue on every loop iteration *)
-
-		(* First process all queued watch events *)
-		if not(!success)
-		    then success := process_queued_events ();
-		(* Then block for one more watch event *)
-		lwt () = 
-                    if not(!success) then (
-                        lwt s = process_incoming_event () in
-                        success := s;
-                        return ()
-                    ) else
-                        return ()
+        let rec loop time_left =
+	    (* NB the 'callback' might call back into Xs functions
+	       and as a side-effect, watches might be queued. Hence
+	       we must process the queue on every loop iteration *)
+            Printf.printf "loop: %d\n" (int_of_float time_left);
+	    (* First process all queued watch events *)
+            match process_queued_events () with
+            | true -> return true
+            | false -> begin
+	        (* If not successful, then block for another event *)
+                lwt success = 
+                    try_lwt
+                        Lwt_mirage.with_timeout time_left process_incoming_event
+                    with Lwt_mirage.Timeout -> 
+                        return false
                 in
 		(* Just in case our callback caused events to be queued
 		   and this is our last time round the loop: this prevents
 		   us throwing the Timeout_with_nonempty_queue spuriously *)
-		if not(!success)
-	      	    then success := process_queued_events ();
-
-		(* Update the time left *)
-		let current_time = Mir.gettimeofday () in
-		left := end_time -. current_time;
-                loop ()
-            end else 
-                return () in
-        lwt () = loop () in 
-	if not(!success) then begin
+		match success with
+                | true -> return true
+                | false -> begin
+                    match process_queued_events () with
+                    | true -> return true
+                    | false -> begin
+                         let time_left = end_time -. (Mir.gettimeofday ()) in
+                         if time_left <= 0. then
+                             return false
+                         else
+                             loop time_left
+                    end
+                end
+            end in
+        lwt success = loop (start_time -. end_time) in
+	if not success then begin
 		(* Sanity check: it should be impossible for any
 		   events to be queued here *)
 		if Xsraw.has_watchevents xsh.con then 

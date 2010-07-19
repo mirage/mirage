@@ -90,7 +90,6 @@ let pkt_send con =
 
 (* receive one packet - can sleep *)
 let pkt_recv con =
-        print_endline "pkt_recv: start";
         let rec loop_input () =
             lwt w = Xb.input con.xb in 
             if w then return () else loop_input ()

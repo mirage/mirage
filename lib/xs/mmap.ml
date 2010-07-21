@@ -19,6 +19,27 @@ external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
 external xenstore_evtchn_port: unit -> int = "stub_xenstore_evtchn_port"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
 
-let condition = 
+(* Blocking Xenstore reads that may be cancelled will register with
+   this sequence using wait(), and will be removed from it if cancelled *)
+let waiters = Lwt_sequence.create ()
+
+(** Callback to go through the active waiting threads and wake them *)
+let perform_actions () =
+    Lwt_sequence.iter_node_l 
+      (fun node ->
+         Lwt_sequence.remove node;
+         Lwt.wakeup (Lwt_sequence.get node) ();
+      ) waiters
+
+(** Called by a Xenstore thread that wishes to sleep (or be cancelled) *)
+let wait () =
+   let t,u = Lwt.task () in
+   let node = Lwt_sequence.add_r u waiters in
+   Lwt.on_cancel t (fun _ -> Lwt_sequence.remove node);
+   t
+
+(** Register the callback for the Xenstore event port *)
+let _ = 
     let port = xenstore_evtchn_port () in
-    Lwt_mirage_main.Activations.register port
+    Printf.printf "CONDITION: registering on port %d\n%!" port;
+    Lwt_mirage_main.Activations.register port perform_actions

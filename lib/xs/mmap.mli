@@ -17,4 +17,4 @@ type mmap_interface
 external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
 
-val condition : unit Lwt_condition.t
+val wait: unit -> unit Lwt.t

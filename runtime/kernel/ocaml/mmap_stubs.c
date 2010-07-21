@@ -32,15 +32,27 @@
 
 #define GET_C_STRUCT(a) ((struct mmap_interface *) a)
 
+#define NR_EVENTS 16 /* same as events.c XXX */
+static uint8_t ev_callback_ml[NR_EVENTS];
+
+void
+post_event_callbacks(void)
+{
+    static value *closure_f = NULL;
+    if (closure_f == NULL)
+        closure_f = caml_named_value("Activations.activate");
+    for (int i=0; i<NR_EVENTS; i++)
+       if (ev_callback_ml[i] == 1) {
+         ev_callback_ml[i] = 0;
+         caml_callback(*closure_f, Val_int(i));
+       }
+}
+
 static void
 caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
 {
-    static value *closure_f = NULL;
-    printk("caml_evtchn_handler: %d\n", port);
-    if (closure_f == NULL)
-        closure_f = caml_named_value("Activations.activate");
-    caml_callback(*closure_f, Val_int(port));
-    printk("caml_evtchn_handler: done\n");
+    ASSERT(port < NR_EVENTS);
+    ev_callback_ml[port] = 1;
 }
 
 /* At start of day, get a pointer to Xenstore, and also bind an 

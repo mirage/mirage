@@ -152,13 +152,12 @@ let read_watchevent_timeout xsh timeout callback =
 
 let monitor_paths xsh l time callback =
 	let unwatch () =
-		Lwt_list.iter_s (fun (w,v) -> try_lwt xsh.unwatch w v with _ -> return ()) l in
+	    Lwt_list.iter_s (fun (w,v) -> try_lwt xsh.unwatch w v with _ -> return ()) l in
 	Lwt_list.iter_s (fun (w,v) -> xsh.watch w v) l >>
-	lwt () = try_lwt
-		read_watchevent_timeout xsh time callback;
-	with exn -> 
+	try_lwt
+		read_watchevent_timeout xsh time callback >>
+                unwatch ()
+	with exn -> begin
                 unwatch () >>
-                fail exn;
-        in
-	unwatch ()
-
+                fail exn
+        end

@@ -51,8 +51,7 @@ CAMLprim value stub_header_of_string(value s)
 	CAMLlocal1(ret);
 	struct xsd_sockmsg *hdr;
 
-	if (caml_string_length(s) != sizeof(struct xsd_sockmsg))
-		caml_failwith("xb header incomplete");
+	BUG_ON(caml_string_length(s) != sizeof(struct xsd_sockmsg));
 	ret = caml_alloc_tuple(4);
 	hdr = (struct xsd_sockmsg *) String_val(s);
 	Store_field(ret, 0, Val_int(hdr->tx_id));

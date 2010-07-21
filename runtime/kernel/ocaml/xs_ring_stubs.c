@@ -93,8 +93,7 @@ CAMLprim value ml_interface_read(value interface, value buffer, value len)
 
 	res = xs_ring_read(GET_C_STRUCT(interface),
 	                   String_val(buffer), Int_val(len));
-	if (res == -1)
-		caml_failwith("huh");
+        ASSERT(res >= 0);
 	result = Val_int(res);
 	CAMLreturn(result);
 }

@@ -29,11 +29,15 @@ let xs_test () =
    p (sprintf "vif0 write: %s" viffoo0);
 
    let watchpath = "device/vif" in
-   let timeout = 10. in
+   let timeout = 9.5 in
    p ("sleeping to watch " ^ watchpath ^ " for " ^ (string_of_float timeout));
    try_lwt
        Xs.monitor_paths xsh [ watchpath, "XXX" ] timeout
-           (fun (k,v) -> printf "watch callback: [ %s = %s ]\n%!" k v; false)
+           (fun (k,v) ->
+               printf "watch callback: [ %s = %s ]\n%!" k v;
+               match k with
+               | "device/vif/foo" -> true
+               | _ -> false)
    with
        Xs.Timeout -> begin
            print_endline "timed out";

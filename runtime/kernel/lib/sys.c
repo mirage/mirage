@@ -141,20 +141,6 @@ char *getcwd(char *buf, size_t size)
 
 #define LOG_PATH "/var/log/"
 
-int posix_openpt(int flags)
-{
-    struct consfront_dev *dev;
-
-    /* Ignore flags */
-
-    dev = init_consfront(NULL);
-    dev->fd = alloc_fd(FTYPE_CONSOLE);
-    files[dev->fd].cons.dev = dev;
-
-    printk("fd(%d) = posix_openpt\n", dev->fd);
-    return(dev->fd);
-}
-
 int open(const char *pathname, int flags, ...)
 {
     int fd;
@@ -169,8 +155,6 @@ int open(const char *pathname, int flags, ...)
         printk("open(/dev/mem) -> %d\n", fd);
         return fd;
     }
-    if (!strncmp(pathname, "/dev/ptmx", strlen("/dev/ptmx")))
-        return posix_openpt(flags);
     printk("open(%s, %x)", pathname, flags);
     errno = EIO;
     return -1;
@@ -184,19 +168,6 @@ int isatty(int fd)
 ssize_t read(int fd, void *buf, size_t nbytes)
 {
     switch (files[fd].type) {
-	case FTYPE_CONSOLE: {
-	    int ret;
-            DEFINE_WAIT(w);
-            while(1) {
-                add_waiter(w, console_queue);
-                ret = xencons_ring_recv(files[fd].cons.dev, buf, nbytes);
-                if (ret)
-                    break;
-                schedule();
-            }
-            remove_waiter(w);
-            return ret;
-        }
 	default:
 	    break;
     }
@@ -244,9 +215,6 @@ int close(int fd)
         default:
 	    files[fd].type = FTYPE_NONE;
 	    return 0;
-	case FTYPE_XENBUS:
-            xs_daemon_close((void*)(intptr_t) fd);
-            return 0;
 #if 0 /* XXX bring back when XC is back */
 	case FTYPE_XC:
 	    xc_interface_close(fd);
@@ -258,10 +226,6 @@ int close(int fd)
 	    xc_gnttab_close(fd);
 	    return 0;
 #endif
-	case FTYPE_BLK:
-            shutdown_blkfront(files[fd].blk.dev);
-	    files[fd].type = FTYPE_NONE;
-	    return 0;
         case FTYPE_CONSOLE:
             fini_console(files[fd].cons.dev);
             files[fd].type = FTYPE_NONE;
@@ -340,22 +304,6 @@ int rmdir(const char *pathname)
     return remove(pathname);
 }
 
-int fcntl(int fd, int cmd, ...)
-{
-    long arg;
-    va_list ap;
-    va_start(ap, cmd);
-    arg = va_arg(ap, long);
-    va_end(ap);
-
-    switch (cmd) {
-	default:
-	    printk("fcntl(%d, %d, %lx/%lo)\n", fd, cmd, arg, arg);
-	    errno = ENOSYS;
-	    return -1;
-    }
-}
-
 /* We assume that only the main thread calls select(). */
 
 static const char file_types[] = {
@@ -399,93 +347,6 @@ static void dump_set(int nfds, fd_set *readfds, fd_set *writefds, fd_set *except
 #else
 #define dump_set(nfds, readfds, writefds, exceptfds, timeout)
 #endif
-
-/* Just poll without blocking */
-static int select_poll(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds)
-{
-    int i, n = 0;
-
-#ifdef LIBC_VERBOSE
-    static int nb;
-    static int nbread[NOFILE], nbwrite[NOFILE], nbexcept[NOFILE];
-    static s_time_t lastshown;
-
-    nb++;
-#endif
-
-    /* Then see others as well. */
-    for (i = 0; i < nfds; i++) {
-	switch(files[i].type) {
-	default:
-	    if (FD_ISSET(i, readfds) || FD_ISSET(i, writefds) || FD_ISSET(i, exceptfds))
-		printk("bogus fd %d in select\n", i);
-	    /* Fallthrough.  */
-	case FTYPE_CONSOLE:
-	    if (FD_ISSET(i, readfds)) {
-                if (xencons_ring_avail(files[i].cons.dev))
-		    n++;
-		else
-		    FD_CLR(i, readfds);
-            }
-	    if (FD_ISSET(i, writefds))
-                n++;
-	    FD_CLR(i, exceptfds);
-	    break;
-	case FTYPE_XENBUS:
-	    if (FD_ISSET(i, readfds)) {
-                if (files[i].xenbus.events)
-		    n++;
-		else
-		    FD_CLR(i, readfds);
-	    }
-	    FD_CLR(i, writefds);
-	    FD_CLR(i, exceptfds);
-	    break;
-	case FTYPE_EVTCHN:
-	case FTYPE_BLK:
-	    if (FD_ISSET(i, readfds)) {
-		if (files[i].read)
-		    n++;
-		else
-		    FD_CLR(i, readfds);
-	    }
-	    FD_CLR(i, writefds);
-	    FD_CLR(i, exceptfds);
-	    break;
-	}
-#ifdef LIBC_VERBOSE
-	if (FD_ISSET(i, readfds))
-	    nbread[i]++;
-	if (FD_ISSET(i, writefds))
-	    nbwrite[i]++;
-	if (FD_ISSET(i, exceptfds))
-	    nbexcept[i]++;
-#endif
-    }
-#ifdef LIBC_VERBOSE
-    if (NOW() > lastshown + 1000000000ull) {
-	lastshown = NOW();
-	printk("%lu MB free, ", num_free_pages() / ((1 << 20) / PAGE_SIZE));
-	printk("%d(%d): ", nb, sock_n);
-	for (i = 0; i < nfds; i++) {
-	    if (nbread[i] || nbwrite[i] || nbexcept[i])
-		printk(" %d(%c):", i, file_types[files[i].type]);
-	    if (nbread[i])
-	    	printk(" %dR", nbread[i]);
-	    if (nbwrite[i])
-		printk(" %dW", nbwrite[i]);
-	    if (nbexcept[i])
-		printk(" %dE", nbexcept[i]);
-	}
-	printk("\n");
-	memset(nbread, 0, sizeof(nbread));
-	memset(nbwrite, 0, sizeof(nbwrite));
-	memset(nbexcept, 0, sizeof(nbexcept));
-	nb = 0;
-    }
-#endif
-    return n;
-}
 
 void vwarn(const char *format, va_list ap)
 {

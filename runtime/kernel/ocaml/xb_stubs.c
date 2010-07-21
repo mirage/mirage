@@ -11,11 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <errno.h>
+#include <os.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
@@ -23,6 +19,7 @@
 #include <caml/custom.h>
 #include <caml/fail.h>
 #include <caml/callback.h>
+
 
 #define __XEN_TOOLS__
 

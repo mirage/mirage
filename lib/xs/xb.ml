@@ -51,7 +51,7 @@ let rec read t s len =
         match rd with 
         | 0 ->
              t.backend.work_again <- false;
-             Lwt_condition.wait Mmap.condition >>
+             Mmap.wait () >>
              read t s len
         | rd ->
              t.backend.work_again <- true;
@@ -62,7 +62,7 @@ let rec write t s len =
 	let ws = Xs_ring.write t.backend.mmap s len in
         match ws with
         | 0 ->
-             Lwt_condition.wait Mmap.condition >>
+             Mmap.wait () >>
              write t s len
         | ws ->
 	     t.backend.eventchn_notify ();

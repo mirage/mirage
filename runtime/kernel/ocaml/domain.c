@@ -34,5 +34,6 @@ mirage_block_domain(value v_timeout)
     block_domain(until);
     force_evtchn_callback();
     local_irq_restore(flags);
+    force_evtchn_callback();
     CAMLreturn(Val_unit);
 }

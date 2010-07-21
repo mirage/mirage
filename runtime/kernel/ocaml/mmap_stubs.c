@@ -36,9 +36,11 @@ static void
 caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
 {
     static value *closure_f = NULL;
+    printk("caml_evtchn_handler: %d\n", port);
     if (closure_f == NULL)
         closure_f = caml_named_value("Activations.activate");
     caml_callback(*closure_f, Val_int(port));
+    printk("caml_evtchn_handler: done\n");
 }
 
 /* At start of day, get a pointer to Xenstore, and also bind an 

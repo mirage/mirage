@@ -46,6 +46,11 @@ void do_hypervisor_callback(struct pt_regs *regs)
 
     in_callback = 1;
 
+    /* Adjust the stack to be 16-byte aligned, so that functions
+       called from an event callback will respect the x86_64 ABI.
+       The Xen IRQ injection is only 8-bytes */
+    asm("andl $0xfffffff0, %esp");
+
     vcpu_info->evtchn_upcall_pending = 0;
     /* NB x86. No need for a barrier here -- XCHG is a barrier on x86. */
     l1 = xchg(&vcpu_info->evtchn_pending_sel, 0);
@@ -60,7 +65,7 @@ void do_hypervisor_callback(struct pt_regs *regs)
             l2 &= ~(1UL << l2i);
 
             port = (l1i * (sizeof(unsigned long) * 8)) + l2i;
-			do_event(port, regs);
+            do_event(port, regs);
         }
     }
 

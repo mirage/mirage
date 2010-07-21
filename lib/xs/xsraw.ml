@@ -100,7 +100,8 @@ let pkt_recv con =
 let queue_watchevent con data =
 	let ls = split_string ~limit:2 '\000' data in
 	if List.length ls != 2 then
-		raise (Xs_packet.DataError "arguments number mismatch");
+                print_endline "XXX queue_watchevent: arg mismatch";
+(* XXX		raise (Xs_packet.DataError "arguments number mismatch"); *)
 	let event = List.nth ls 0
 	and event_data = List.nth ls 1 in
 	Queue.push (event, event_data) con.watchevents
@@ -152,11 +153,13 @@ let validate_path path =
 	let bad = "//" in
 	for offset = 0 to String.length path - (String.length bad) do
 		if String.sub path offset (String.length bad) = bad then
-			raise (Invalid_path path)
+                        print_endline "XXX: Invalid_path"
+(* XXX			raise (Invalid_path path) *)
 	done;
 	(* Paths shouldn't have a "/" at the end, except for the root *)
 	if path <> "/" && path <> "" && path.[String.length path - 1] = '/' then
-		raise (Invalid_path path)
+                print_endline "XXX: Invalid_path"
+(* XXX		raise (Invalid_path path) *)
 
 (** Check to see if a path is suitable for watches *)
 let validate_watch_path path =

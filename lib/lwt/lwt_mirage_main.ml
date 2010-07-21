@@ -33,17 +33,16 @@ module Activations = struct
 
     (* Register an event channel port with a condition variable to let 
        threads sleep on it *)
-    let register port =
+    let register port cb =
        if events.(port) != None then
            Printf.printf "warning: port %d already registered\n%!" port;
-       let c = Lwt_condition.create () in
-       events.(port) <- Some c;
-       c
+       events.(port) <- Some cb;
+       cb
 
     let activate port =
        match events.(port) with
        | None -> ()
-       | Some c -> Lwt_condition.signal c ()
+       | Some cb -> cb ()
 
     let _ = Callback.register "Activations.activate" activate
 

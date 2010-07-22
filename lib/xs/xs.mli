@@ -52,7 +52,7 @@ val get_operations : con -> xsh
 
 (** create a transaction with a vector of function that can be applied
     into the transaction. *)
-val transaction : xsh -> (Xst.ops -> 'a) -> 'a Lwt.t
+val transaction : xsh -> (Xst.ops -> 'a Lwt.t) -> 'a Lwt.t
 
 (** watch manipulation on a connection *)
 val has_watchevents : xsh -> bool

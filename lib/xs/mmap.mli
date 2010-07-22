@@ -16,5 +16,6 @@ type mmap_interface
 
 external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
+val xenstore_wait: unit -> unit Lwt.t
 
-val wait: unit -> unit Lwt.t
+val evtchn_alloc_unbound_port : int -> int

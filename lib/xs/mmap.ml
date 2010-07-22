@@ -13,15 +13,20 @@
  * GNU Lesser General Public License for more details.
  *)
 
+(* XXX This file has a mix of mmap and event handling functions. 
+   Needs a renaming ... it was called Mmap due to the upstream
+   version it was first modified from... *)
+
 type mmap_interface
 
 external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
 external xenstore_evtchn_port: unit -> int = "stub_xenstore_evtchn_port"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
+external evtchn_alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
 
 (* Blocking Xenstore reads that may be cancelled will register with
    this sequence using wait(), and will be removed from it if cancelled *)
-let waiters = Lwt_sequence.create ()
+let xenstore_waiters = Lwt_sequence.create ()
 
 (** Callback to go through the active waiting threads and wake them *)
 let perform_actions () =
@@ -29,12 +34,12 @@ let perform_actions () =
       (fun node ->
          Lwt_sequence.remove node;
          Lwt.wakeup (Lwt_sequence.get node) ();
-      ) waiters
+      ) xenstore_waiters
 
 (** Called by a Xenstore thread that wishes to sleep (or be cancelled) *)
-let wait () =
+let xenstore_wait () =
    let t,u = Lwt.task () in
-   let node = Lwt_sequence.add_r u waiters in
+   let node = Lwt_sequence.add_r u xenstore_waiters in
    Lwt.on_cancel t (fun _ -> Lwt_sequence.remove node);
    t
 

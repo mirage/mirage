@@ -17,6 +17,7 @@ open Lwt
 
 module Op = struct include Xb_op end
 module Packet = struct include Xs_packet end
+module State = struct include Xb_state end
 
 exception End_of_file
 exception Eagain
@@ -51,7 +52,7 @@ let rec read t s len =
         match rd with 
         | 0 ->
              t.backend.work_again <- false;
-             Mmap.wait () >>
+             Mmap.xenstore_wait () >>
              read t s len
         | rd ->
              t.backend.work_again <- true;
@@ -62,7 +63,7 @@ let rec write t s len =
 	let ws = Xs_ring.write t.backend.mmap s len in
         match ws with
         | 0 ->
-             Mmap.wait () >>
+             Mmap.xenstore_wait () >>
              write t s len
         | ws ->
 	     t.backend.eventchn_notify ();

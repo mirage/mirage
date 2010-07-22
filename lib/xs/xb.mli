@@ -56,6 +56,22 @@ module Packet :
     val get_data : t -> string
     val get_rid : t -> int
   end
+module State :
+  sig
+    type state =
+        Unknown
+      | Initialising
+      | InitWait
+      | Initialised
+      | Connected
+      | Closing
+      | Closed
+      | Reconfiguring
+      | Reconfigured
+    val of_string : string -> state
+    val to_string : state -> string
+  end
+
 exception End_of_file
 exception Eagain
 exception Noent

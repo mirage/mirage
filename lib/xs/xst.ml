@@ -41,13 +41,14 @@ let get_operations tid xsh = {
 	setpermsv = (fun dir vec perms -> Xsraw.setpermsv tid dir vec perms xsh);
 }
 
-let transaction xsh (f: ops -> 'a) : 'a Lwt.t =
+let transaction xsh (f: ops -> 'a Lwt.t) : 'a Lwt.t =
 	let result = ref None in
         let rec loop_until_committed () =
 	    lwt tid = Xsraw.transaction_start xsh in
 	    let t = get_operations tid xsh in
  	    (try_lwt 
-	       result := Some (f t);
+               lwt fres = f t in
+	       result := Some fres; 
                return ()
 	    with exn ->
 		lwt _ = Xsraw.transaction_end tid false xsh in

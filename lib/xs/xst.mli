@@ -11,4 +11,4 @@ type ops = {
   setpermsv : string -> string list -> Xsraw.perms -> unit Lwt.t;
 }
 val get_operations : int -> Xsraw.con -> ops
-val transaction : Xsraw.con -> (ops -> 'a) -> 'a Lwt.t
+val transaction : Xsraw.con -> (ops -> 'a Lwt.t) -> 'a Lwt.t

@@ -35,6 +35,9 @@
 #define NR_EVENTS 16 /* same as events.c XXX */
 static uint8_t ev_callback_ml[NR_EVENTS];
 
+/* Called by mirage_block_domain after interrupts are reenabled
+   to run any activations, before handing control back to the
+   LWT main loop */
 void
 post_event_callbacks(void)
 {
@@ -48,11 +51,27 @@ post_event_callbacks(void)
        }
 }
 
+/* Called with interrupts enabled to mark an event channel as being
+   active. Safe to call multiple times... */
 static void
 caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
 {
     ASSERT(port < NR_EVENTS);
     ev_callback_ml[port] = 1;
+}
+
+CAMLprim value
+stub_evtchn_alloc_unbound(value v_domid)
+{
+    CAMLparam1(v_domid);
+    domid_t domid = Int_val(v_domid);
+    int rc, port;
+
+    rc = evtchn_alloc_unbound(domid, caml_evtchn_handler, NULL, &port);
+    if (rc)
+       CAMLreturn(Val_int(-1));
+    else
+       CAMLreturn(Val_int(port)); 
 }
 
 /* At start of day, get a pointer to Xenstore, and also bind an 

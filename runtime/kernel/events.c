@@ -22,7 +22,7 @@
 #include <mini-os/events.h>
 #include <mini-os/lib.h>
 
-#define NR_EVS 1024
+#define NR_EVS 16
 
 /* this represents a event handler. Chaining or sharing is not allowed */
 typedef struct _ev_action_t {
@@ -86,7 +86,6 @@ int do_event(evtchn_port_t port, struct pt_regs *regs)
 
     /* call the handler */
     action->handler(port, regs, action->data);
-
     return 1;
 
 }
@@ -146,7 +145,6 @@ evtchn_port_t bind_virq(uint32_t virq, evtchn_handler_t handler, void *data)
     return op.port;
 }
 
-#if defined(__x86_64__)
 char irqstack[2 * STACK_SIZE];
 
 static struct pda
@@ -154,7 +152,6 @@ static struct pda
     int irqcount;       /* offset 0 (used in x86_64.S) */
     char *irqstackptr;  /*        8 */
 } cpu0_pda;
-#endif
 
 /*
  * Initially all events are without a handler and disabled

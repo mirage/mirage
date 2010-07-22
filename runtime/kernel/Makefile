@@ -1,18 +1,19 @@
-VPATH=.:console:lib:sys:xenbus:arch/x86
+VPATH=.:ocaml:console:lib:sys:xenbus:arch/x86
 
 OBJDIR=./obj
 
 CORE_SRC = $(wildcard *.c)
-LIB_SRC  = hash_functions.c hash_table.c sqlite3.c sqlite3_xen.c stack_chk_fail.c sys.c xs.c
-ARCH_SRC = x86_ioremap.c x86_sched.c x86_time.c x86_mm.c x86_setup.c x86_traps.c
-CONSOLE_SRC = console.c xencons_ring.c
-XB_SRC = xenbus.c
+LIB_SRC  = hash_functions.c hash_table.c stack_chk_fail.c sys.c
+ARCH_SRC = x86_ioremap.c x86_time.c x86_mm.c x86_setup.c x86_traps.c
+CONSOLE_SRC = console.c
+CAML_SRC = domain.c exit.c gettimeofday.c mmap_stubs.c xb_stubs.c xs_ring_stubs.c gnttab_stubs.c netfront_stubs.c
 
 LDFLAGS = -L$(shell pwd)/../inst-x86_64/lib
 
 AS_OBJ = $(OBJDIR)/x86_64.o
-ALL_SRC = $(CORE_SRC) $(LIB_SRC) $(ARCH_SRC) $(CONSOLE_SRC) $(XB_SRC)
+ALL_SRC = $(CORE_SRC) $(LIB_SRC) $(ARCH_SRC) $(CONSOLE_SRC)
 ALL_OBJ = $(AS_OBJ) $(ALL_SRC:%.c=$(OBJDIR)/%.o)
+CAML_OBJ = $(CAML_SRC:%.c=$(OBJDIR)/%.o)
 
 .PHONY: all
 all: $(OBJDIR)/mirage-os.gz
@@ -44,12 +45,9 @@ $(OBJDIR)/%.o: %.S
 
 LD ?= ld
 OBJCOPY ?= objcopy
-LDLIBS = -lmiragerun_xen -llwip -lmir -lc -lm
+LDLIBS = -lmiragerun_xen -llwip $(CAML_OBJ) -lc -lm
 
-$(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ) $(APP_LIB)
-#	$(LD) -r -d -nostdlib -m elf_x86_64 $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) $(APP_LIB) $(LDLIBS)  -T arch/x86/minios-x86_64.lds -o $@.o
-#	$(OBJCOPY) -w -G xenos_* -G _start $@.o $@.o
-#	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $@.o -o $@
+$(OBJDIR)/mirage-os: $(OBJDIR) $(ALL_OBJ) $(CAML_OBJ) $(APP_LIB)
 	$(LD) -d -nostdlib -m elf_x86_64 -T arch/x86/minios-x86_64.lds $(LDFLAGS) $(EXTRA_LIB) $(ALL_OBJ) $(APP_LIB) $(LDLIBS) -o $@
 
 $(OBJDIR)/mirage-os.gz: $(OBJDIR)/mirage-os

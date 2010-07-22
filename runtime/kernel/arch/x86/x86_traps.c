@@ -32,7 +32,6 @@ void machine_check(void);
 
 void dump_regs(struct pt_regs *regs)
 {
-    printk("Thread: %s\n", current->name);
     printk("RIP: %04lx:[<%016lx>] ", regs->cs & 0xffff, regs->rip);
     printk("\nRSP: %04lx:%016lx  EFLAGS: %08lx\n", 
            regs->ss, regs->rsp, regs->eflags);
@@ -154,7 +153,7 @@ void stack_walk(void)
 {
     unsigned long bp;
     asm("movq %%rbp, %0":"=r"(bp));
-    do_stack_walk(bp);
+    //do_stack_walk(bp);
 }
 
 static void dump_mem(unsigned long addr)
@@ -199,7 +198,7 @@ void do_page_fault(struct pt_regs *regs, unsigned long error_code)
            addr, regs->rip, regs, regs->rsp, &addr, error_code);
 
     dump_regs(regs);
-    do_stack_walk(regs->rbp);
+    //do_stack_walk(regs->rbp);
     dump_mem(regs->rsp);
     dump_mem(regs->rbp);
     dump_mem(regs->rip);
@@ -214,7 +213,7 @@ void do_general_protection(struct pt_regs *regs, long error_code)
     struct sched_shutdown sched_shutdown = { .reason = SHUTDOWN_crash };
     printk("GPF rip: %p, error_code=%lx\n", regs->rip, error_code);
     dump_regs(regs);
-    do_stack_walk(regs->rbp);
+    //do_stack_walk(regs->rbp);
     dump_mem(regs->rsp);
     dump_mem(regs->rbp);
     dump_mem(regs->rip);

@@ -31,7 +31,7 @@ void caml_startup(char *argv[]);
 
 static void call_main(void *p)
 {
-    printk("call_main\n");
+    printk("call_main: %p\n", __builtin_frame_address(0));
     caml_startup(argv);
     _exit(0);
 }
@@ -51,6 +51,7 @@ void _exit(int ret)
 int app_main(start_info_t *si)
 {
     printk("Dummy main: start_info=%p\n", si);
-    main_thread = create_thread("main", call_main, si);
+//    main_thread = create_thread("main", call_main, si);
+    call_main(si);
     return 0;
 }

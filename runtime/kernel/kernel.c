@@ -36,17 +36,12 @@
 #include <mini-os/lib.h>
 #include <mini-os/sched.h>
 #include <mini-os/xenbus.h>
-#include <mini-os/gnttab.h>
-#include <mini-os/netfront.h>
-#include <mini-os/blkfront.h>
 #include <mini-os/xmalloc.h>
 #include <fcntl.h>
 #include <xen/features.h>
 #include <xen/version.h>
 
 int app_main(start_info_t *);
-
-static struct netfront_dev *net_dev;
 
 uint8_t xen_features[XENFEAT_NR_SUBMAPS * 32];
 
@@ -63,26 +58,6 @@ void setup_xen_features(void)
         
         for (j=0; j<32; j++)
             xen_features[i*32+j] = !!(fi.submap & 1<<j);
-    }
-}
-
-void test_xenbus(void);
-
-static void xenbus_tester(void *p)
-{
-    printk("Xenbus tests disabled, because of a Xend bug.\n");
-    /* test_xenbus(); */
-}
-
-static void periodic_thread(void *p)
-{
-    struct timeval tv;
-    printk("Periodic thread started.\n");
-    for(;;)
-    {
-        gettimeofday(&tv, NULL);
-        printk("T(s=%ld us=%ld)\n", tv.tv_sec, tv.tv_usec);
-        msleep(1000);
     }
 }
 
@@ -129,50 +104,28 @@ void start_kernel(start_info_t *si)
     /* Init time and timers. */
     init_time();
 
-    /* Init the console driver. */
-    init_console();
+ //   /* Init the console driver. */
+    //init_console();
 
     /* Init grant tables */
-    init_gnttab();
+    //init_gnttab();
     
-    /* Init scheduler. */
-    init_sched();
- 
-    /* Init XenBus */
-    init_xenbus();
+//    /* Init XenBus */
+    //init_xenbus();
 
     /* Call (possibly overridden) app_main() */
     app_main(&start_info);
-
-    /* Everything initialised, start idle thread */
-    run_idle_thread();
 }
 
 void stop_kernel(void)
 {
-    if (net_dev)
-        shutdown_netfront(net_dev);
-
     local_irq_disable();
-
-    /* Reset grant tables */
-    fini_gnttab();
-
-    /* Reset the console driver. */
-    fini_console(NULL);
-    /* TODO: record new ring mfn & event in start_info */
-
-    /* Reset XenBus */
-    fini_xenbus();
 
     /* Reset timers */
     fini_time();
 
     /* Reset memory management. */
     fini_mm();
-
-    /* Reset events. */
-    fini_events();
 
     /* Reset traps */
     trap_fini();

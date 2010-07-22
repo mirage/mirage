@@ -284,36 +284,3 @@ ENTRY(spurious_interrupt_bug)
 ENTRY(page_fault)
         errorentry do_page_fault
 
-
-
-
-
-ENTRY(thread_starter)
-        popq %rdi
-        popq %rbx
-        pushq $0
-        xorq %rbp,%rbp
-        call *%rbx
-        call exit_thread 
-        
-
-ENTRY(__arch_switch_threads)
-	pushq %rbp
-	pushq %rbx
-	pushq %r12
-	pushq %r13
-	pushq %r14
-	pushq %r15
-	movq %rsp, (%rdi)		/* save ESP */
-	movq (%rsi), %rsp		/* restore ESP */
-	movq $1f, 8(%rdi)		/* save EIP */
-	pushq 8(%rsi)			/* restore EIP */
-	ret
-1:
-	popq %r15
-	popq %r14
-	popq %r13
-	popq %r12
-	popq %rbx
-	popq %rbp
-	ret

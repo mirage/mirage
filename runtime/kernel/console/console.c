@@ -142,13 +142,15 @@ void xprintk(const char *fmt, ...)
 void init_console(void)
 {   
     printk("Initialising console ... ");
+#ifndef USE_XEN_CONSOLE
     xencons_ring_init();    
     console_initialised = 1;
+#endif
     /* This is also required to notify the daemon */
     printk("done.\n");
 }
 
 void fini_console(struct consfront_dev *dev)
 {
-    if (dev) free_consfront(dev);
+    //if (dev) free_consfront(dev);
 }

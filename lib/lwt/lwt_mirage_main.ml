@@ -37,7 +37,7 @@ module Activations = struct
        if events.(port) != None then
            Printf.printf "warning: port %d already registered\n%!" port;
        events.(port) <- Some cb;
-       cb
+       ()
 
     let activate port =
        match events.(port) with

@@ -22,7 +22,9 @@ type mmap_interface
 external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
 external xenstore_evtchn_port: unit -> int = "stub_xenstore_evtchn_port"
 external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
+
 external evtchn_alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
+external evtchn_unmask: int -> unit = "stub_evtchn_unmask"
 
 (* Blocking Xenstore reads that may be cancelled will register with
    this sequence using wait(), and will be removed from it if cancelled *)

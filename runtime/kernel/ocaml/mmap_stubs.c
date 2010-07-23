@@ -74,6 +74,14 @@ stub_evtchn_alloc_unbound(value v_domid)
        CAMLreturn(Val_int(port)); 
 }
 
+CAMLprim value
+stub_evtchn_unmask(value v_port)
+{
+    CAMLparam1(v_port);
+    unmask_evtchn(Int_val(v_port));
+    CAMLreturn(Val_unit);
+}
+
 /* At start of day, get a pointer to Xenstore, and also bind an 
    event channel */
 CAMLprim value

@@ -21,9 +21,12 @@ type netfront_state
 
 type netfront = {
     backend_id: int;
+    backend: string;
+    mac: string;
     tx_ring_ref: Gnttab.r;
     rx_ring_ref: Gnttab.r;
     evtchn: int;
+    cb: unit -> unit;
     state: netfront_state;
 }
 
@@ -38,18 +41,23 @@ let create xsh (num,domid) =
     lwt rx_ring_ref = Gnttab.get_free_entry () in
     let state = netfront_init domid tx_ring_ref rx_ring_ref in
     let evtchn = Mmap.evtchn_alloc_unbound_port domid in
-    Xs.transaction xsh (fun xst ->
-        let node = Printf.sprintf "device/vif/%d/" num in
+    let node = Printf.sprintf "device/vif/%d/" num in
+    lwt backend = xsh.Xs.read (node ^ "backend") in
+    lwt mac = xsh.Xs.read (node ^ "mac") in
+    lwt () = Xs.transaction xsh (fun xst ->
         let wrfn k v = xst.Xst.write (node ^ k) v in
         wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
         wrfn "rx-ring-ref" (Gnttab.to_string rx_ring_ref) >>
         wrfn "event-channel" (string_of_int evtchn) >>
         wrfn "request-rx-copy" "1" >>
         wrfn "state" (Xb.State.to_string Xb.State.Connected)
-      ) >>
-    (* TODO need to unmask and register the evtchn *)
+    ) in
+    let cb () = Printf.printf "netfront callback num=%d\n%!" num in
+    Lwt_mirage_main.Activations.register evtchn cb;
+    Mmap.evtchn_unmask evtchn;
     return { backend_id=domid; tx_ring_ref=tx_ring_ref;
-      rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state }
+      rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state;
+      mac=mac; backend=backend; cb=cb }
    
 (** Return a list of valid VIF IDs *)
 let enumerate xsh =

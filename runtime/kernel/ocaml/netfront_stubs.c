@@ -17,10 +17,7 @@
 #include <mini-os/x86/os.h>
 #include <xen/io/netif.h>
 #include <mini-os/netfront.h>
-
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
+#include <mini-os/gnttab.h>
 
 #define NETFRONT_STUBS_DEBUG   
 #ifdef NETFRONT_STUBS_DEBUG
@@ -31,8 +28,11 @@
 #define NETFRONT_STUB_DPRINTF(x)
 #endif
 
+#define NET_TX_RING_SIZE __RING_SIZE((struct netif_tx_sring *)0, PAGE_SIZE)
+#define NET_RX_RING_SIZE __RING_SIZE((struct netif_rx_sring *)0, PAGE_SIZE)
+#define GRANT_INVALID_REF 0
+
 typedef struct netfront_wrap {
-    value v;
     struct netif_tx_front_ring tx;
     struct netif_rx_front_ring rx;   
 } netfront_wrap;
@@ -40,25 +40,23 @@ typedef struct netfront_wrap {
 #define Netfront_wrap_val(x) (*((netfront_wrap **)(Data_custom_val(x))))
 
 struct netfront_wrap *
-netfront_wrap_alloc(domid_t domid, grant_ref_t tx_ref, grant_ref_t rx_ref)
+netfront_wrap_alloc(domid_t domid, gnttab_wrap *tx_gw, gnttab_wrap *rx_gw)
 {
     netfront_wrap *nfw = caml_stat_alloc(sizeof(netfront_wrap));
     struct netif_tx_sring *txs;
     struct netif_rx_sring *rxs;
 
     NETFRONT_STUB_DPRINTF("netfront_wrap_alloc");
-    nfw->v = 0;
-    txs = (struct netif_tx_sring *) alloc_page ();
-    rxs = (struct netif_rx_sring *) alloc_page ();
+    if (!tx_gw->page) tx_gw->page = (void *)alloc_page();
+    if (!rx_gw->page) rx_gw->page = (void *)alloc_page();
+    txs = (struct netif_tx_sring *) tx_gw->page;
+    rxs = (struct netif_rx_sring *) rx_gw->page;
     memset(txs, 0, PAGE_SIZE);
     memset(rxs, 0, PAGE_SIZE);
     SHARED_RING_INIT(txs);
     SHARED_RING_INIT(rxs);
     FRONT_RING_INIT(&nfw->tx, txs, PAGE_SIZE);
     FRONT_RING_INIT(&nfw->rx, rxs, PAGE_SIZE);
-
-    gnttab_grant_access(tx_ref, domid, virt_to_mfn(txs), 0);
-    gnttab_grant_access(rx_ref, domid, virt_to_mfn(rxs), 0);
     return nfw;
 }
 
@@ -69,15 +67,15 @@ netfront_wrap_finalize(value v_nfw)
 }
 
 CAMLprim value
-caml_netfront_init(value v_domid, value v_tx_ref, value v_rx_ref)
+caml_netfront_init(value v_domid, value v_tx_gw, value v_rx_gw)
 {
-    CAMLparam3(v_domid, v_tx_ref, v_rx_ref);
+    CAMLparam3(v_domid, v_tx_gw, v_rx_gw);
     CAMLlocal1(v_nfw);
     netfront_wrap *nfw;
     NETFRONT_STUB_DPRINTF("caml_netfront_init");
     v_nfw = caml_alloc_final(2, netfront_wrap_finalize, 1, 100);
     Netfront_wrap_val(v_nfw) = NULL;
-    nfw = netfront_wrap_alloc (Int_val(v_domid), Int_val(v_tx_ref), Int_val(v_rx_ref));
+    nfw = netfront_wrap_alloc (Int_val(v_domid), Gnttab_wrap_val(v_tx_gw), Gnttab_wrap_val(v_rx_gw));
     Netfront_wrap_val(v_nfw) = nfw;
     CAMLreturn(v_nfw);
 }

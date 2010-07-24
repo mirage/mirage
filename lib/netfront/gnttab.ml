@@ -16,10 +16,15 @@
 
 open Lwt
 
-type r = int (* Grant ref *)
+type r (* Grant ref and its memory page *)
+type num = int (* Grant ref number *)
+type perm = RO |RW
 
 external gnttab_init : unit -> unit = "caml_gnttab_init"
 external gnttab_fini : unit -> unit = "caml_gnttab_fini"
+external gnttab_new : num -> r = "caml_gnttab_new"
+external gnttab_ref : r -> num = "caml_gnttab_ref"
+external gnttab_grant_access : r -> int -> bool -> unit = "caml_gnttab_grant_access"
 external gnttab_nr_entries : unit -> int = "caml_gnttab_nr_entries"
 external gnttab_nr_reserved : unit -> int = "caml_gnttab_reserved"
 
@@ -38,11 +43,14 @@ let rec get_free_entry () =
     | false ->
         return (Queue.pop free_list)
 
-let to_string (r:r) = string_of_int r
+let to_string (r:r) = string_of_int (gnttab_ref r)
 
-let init () =
+let grant_access r domid perm =
+    gnttab_grant_access r domid (match perm with RO -> true |RW -> false)
+
+let _ =
+    Printf.printf "gnttab_init: %d\n%!" (gnttab_nr_entries () - 1);
     for i = gnttab_nr_reserved () to gnttab_nr_entries () - 1 do
-        put_free_entry i
+        put_free_entry (gnttab_new i);
     done;
     gnttab_init ()
-

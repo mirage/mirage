@@ -40,6 +40,8 @@ let create xsh (num,domid) =
     lwt tx_ring_ref = Gnttab.get_free_entry () in
     lwt rx_ring_ref = Gnttab.get_free_entry () in
     let state = netfront_init domid tx_ring_ref rx_ring_ref in
+    Gnttab.grant_access tx_ring_ref domid Gnttab.RW;
+    Gnttab.grant_access rx_ring_ref domid Gnttab.RW;
     let evtchn = Mmap.evtchn_alloc_unbound_port domid in
     let node = Printf.sprintf "device/vif/%d/" num in
     lwt backend = xsh.Xs.read (node ^ "backend") in

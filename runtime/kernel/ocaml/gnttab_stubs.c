@@ -20,14 +20,6 @@
 #include <mini-os/mm.h>
 #include <mini-os/gnttab.h>
 
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-
-#define NR_RESERVED_ENTRIES 8
-#define NR_GRANT_FRAMES 4
-#define NR_GRANT_ENTRIES (NR_GRANT_FRAMES * PAGE_SIZE / sizeof(grant_entry_t))
-
 static grant_entry_t *gnttab_table;
 static grant_ref_t gnttab_list[NR_GRANT_ENTRIES];
 
@@ -47,16 +39,61 @@ caml_gnttab_reserved(value unit)
     CAMLreturn(Val_int(NR_RESERVED_ENTRIES));
 }
 
-void
-gnttab_grant_access(grant_ref_t ref, domid_t domid, unsigned long frame, int readonly)
+static gnttab_wrap *
+gnttab_wrap_alloc(grant_ref_t ref)
 {
-    printk("gnttab_grant_access: ref=%d domid=%d frame=%lu ro=%d\n", ref, domid, frame, readonly);
-    gnttab_table[ref].frame = frame;
-    gnttab_table[ref].domid = domid;
+    gnttab_wrap *gw = caml_stat_alloc(sizeof(gnttab_wrap));
+    gw->ref = ref;
+    gw->page = NULL;
+    return gw;
+}
+
+static void 
+gnttab_finalize(value v_gw)
+{
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    printk("gnttab_finalize %d\n", gw->ref);
+    if (gw->page != NULL) {
+        free_page(gw->page);
+        gw->page = NULL;
+    }
+    free(gw);
+}
+
+CAMLprim value
+caml_gnttab_new(value v_ref)
+{
+    CAMLparam1(v_ref);
+    CAMLlocal1(v_gw);
+    gnttab_wrap *gw;
+    //printk("%d\n", Int_val(v_ref));
+    v_gw = caml_alloc_final(2, gnttab_finalize, 1, 100);
+    Gnttab_wrap_val(v_gw) = NULL;
+    gw = gnttab_wrap_alloc(Int_val(v_ref));
+    Gnttab_wrap_val(v_gw) = gw;
+    CAMLreturn(v_gw);
+}
+
+CAMLprim value
+caml_gnttab_ref(value v_gw)
+{
+    CAMLparam1(v_gw);
+    CAMLreturn(Val_int(Gnttab_wrap_val(v_gw)->ref));
+}
+
+CAMLprim value
+caml_gnttab_grant_access(value v_gw, value v_domid, value v_readonly)
+{
+    CAMLparam3(v_gw, v_domid, v_readonly);
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
+        gw->ref, gw->page, Int_val(v_domid), Int_val(v_readonly));
+    gnttab_table[gw->ref].frame = virt_to_mfn(gw->page);
+    gnttab_table[gw->ref].domid = Int_val(v_domid);
     wmb();
-    readonly *= GTF_readonly;
-    gnttab_table[ref].flags = GTF_permit_access | readonly;
-    printk("   flags=%d\n", gnttab_table[ref].flags);
+    gnttab_table[gw->ref].flags = GTF_permit_access | (Bool_val(v_readonly) * GTF_readonly);
+    printk("   flags=%d\n", gnttab_table[gw->ref].flags);
+    CAMLreturn(Val_unit);
 }
 
 /* Initialise grant tables and map machine frames to a VA */

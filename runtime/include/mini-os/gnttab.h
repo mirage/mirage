@@ -1,16 +1,22 @@
 #ifndef __GNTTAB_H__
 #define __GNTTAB_H__
 
+
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+
 #include <xen/grant_table.h>
 
-void gnttab_grant_access(grant_ref_t ref, domid_t domid, unsigned long frame,
-				int readonly);
-#if 0
-grant_ref_t gnttab_grant_transfer(domid_t domid, unsigned long pfn);
-unsigned long gnttab_end_transfer(grant_ref_t gref);
-int gnttab_end_access(grant_ref_t ref);
-const char *gnttabop_error(int16_t status);
-void fini_gnttab(void);
-#endif
+#define NR_RESERVED_ENTRIES 8
+#define NR_GRANT_FRAMES 4
+#define NR_GRANT_ENTRIES (NR_GRANT_FRAMES * PAGE_SIZE / sizeof(grant_entry_t))
+
+typedef struct gnttab_wrap {
+    grant_ref_t ref;
+    void *page;
+} gnttab_wrap;
+
+#define Gnttab_wrap_val(x) (*((gnttab_wrap **)(Data_custom_val(x))))
 
 #endif /* !__GNTTAB_H__ */

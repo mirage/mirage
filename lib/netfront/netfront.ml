@@ -34,12 +34,13 @@ module Req = struct
         status: int;
         data: string;
     }
-    let resp_raw_to_string x = sprintf "{id=%d off=%d flags=%d status=%d}" x.id x.offset x.flags x.status
+    let resp_raw_to_string x = sprintf "{id=%d off=%d flags=%d status=%d}"
+        x.id x.offset x.flags x.status
 
     (** wrap -> index -> req to retrieve pointer *)
     external rx_get : nw -> int -> w = "caml_nf_rx_req_get"
-    external set_gnt : w -> Gnttab.r -> unit = "caml_nf_req_set_gnt"
-    external set_id : w -> int -> unit = "caml_nf_req_set_id"
+    external set_gnt : w -> Gnttab.r -> unit = "caml_nf_rx_req_set_gnt"
+    external set_id : w -> int -> unit = "caml_nf_rx_req_set_id"
     external rx_prod_set : nw -> int -> int -> unit = "caml_nf_rx_req_prod_set"
     external rx_prod_get : nw -> int = "caml_nf_rx_req_prod_get"
     external recv : nw -> resp_raw = "caml_nf_receive"

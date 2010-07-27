@@ -110,7 +110,7 @@ caml_nf_rx_req_get(value v_nfw, value v_id)
 }
 
 CAMLprim value
-caml_nf_req_set_gnt(value v_wrap, value v_gw)
+caml_nf_rx_req_set_gnt(value v_wrap, value v_gw)
 {
     CAMLparam2(v_wrap, v_gw);
     netif_rx_request_t *req = (netif_rx_request_t *)Netfront_req_wrap(v_wrap);
@@ -119,28 +119,11 @@ caml_nf_req_set_gnt(value v_wrap, value v_gw)
 }
 
 CAMLprim value
-caml_nf_req_set_id(value v_wrap, value v_id)
+caml_nf_rx_req_set_id(value v_wrap, value v_id)
 {
     CAMLparam2(v_wrap, v_id);
     netif_rx_request_t *req = (netif_rx_request_t *)Netfront_req_wrap(v_wrap);
     req->id = Int_val(v_id);
-    CAMLreturn(Val_unit);
-}
-
-/* Post-init function once grants have been set up.
- * TODO revisit when more general ring bindings exist
- */
-CAMLprim value
-caml_nf_req_prod_init(value v_nfw, value v_evtchn, value v_id)
-{
-    CAMLparam3(v_nfw, v_evtchn, v_id);
-    int notify;
-    netfront_wrap *nfw = Netfront_wrap_val(v_nfw);
-    nfw->rx.req_prod_pvt = Int_val(v_id);
-    RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&nfw->rx, notify);
-    if (notify)
-        notify_remote_via_evtchn(Int_val(v_evtchn));
-    //nfw->rx.sring->rsp_event = nfw->rx.rsp_cons + 1;
     CAMLreturn(Val_unit);
 }
 

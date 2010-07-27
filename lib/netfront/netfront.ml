@@ -39,8 +39,8 @@ module Req = struct
 
     (** wrap -> index -> req to retrieve pointer *)
     external rx_get : nw -> int -> w = "caml_nf_rx_req_get"
-    external set_gnt : w -> Gnttab.r -> unit = "caml_nf_rx_req_set_gnt"
-    external set_id : w -> int -> unit = "caml_nf_rx_req_set_id"
+    external rx_set_gnt : w -> Gnttab.r -> unit = "caml_nf_rx_req_set_gnt"
+    external rx_set_id : w -> int -> unit = "caml_nf_rx_req_set_id"
     external rx_prod_set : nw -> int -> int -> unit = "caml_nf_rx_req_prod_set"
     external rx_prod_get : nw -> int = "caml_nf_rx_req_prod_get"
     external recv : nw -> resp_raw = "caml_nf_receive"
@@ -88,8 +88,8 @@ let create xsh (num,domid) =
             let id = num - 1 in
             lwt gnt = Gnttab.get_free_entry () in
             let slot = Req.rx_get state id in
-            Req.set_gnt slot gnt;
-            Req.set_id slot id;
+            Req.rx_set_gnt slot gnt;
+            Req.rx_set_id slot id;
             Gnttab.grant_access gnt domid Gnttab.RW;
             get_rx_slots id ((id,gnt,slot) :: acc)
     in 

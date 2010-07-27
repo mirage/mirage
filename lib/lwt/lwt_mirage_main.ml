@@ -35,7 +35,9 @@ module Activations = struct
        threads sleep on it *)
     let register port cb =
        if events.(port) != None then
-           Printf.printf "warning: port %d already registered\n%!" port;
+           Printf.printf "warning: port %d already registered\n%!" port
+       else
+           Printf.printf "notice: registering port %d\n%!" port;
        events.(port) <- Some cb;
        ()
 

@@ -29,6 +29,7 @@ external gnttab_nr_entries : unit -> int = "caml_gnttab_nr_entries"
 external gnttab_nr_reserved : unit -> int = "caml_gnttab_reserved"
 external gnttab_end_access : r -> unit = "caml_gnttab_end_access"
 external gnttab_read : r -> int -> int -> string = "caml_gnttab_read"
+external gnttab_write : r -> string -> int -> int -> unit = "caml_gnttab_write"
 
 let free_list = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
@@ -54,6 +55,7 @@ let end_access r =
     gnttab_end_access r
 
 let read r off sz = gnttab_read r off sz
+let write r buf off sz = gnttab_write r buf off sz
 
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (gnttab_nr_entries () - 1);

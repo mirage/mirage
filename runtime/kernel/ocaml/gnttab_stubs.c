@@ -110,6 +110,17 @@ caml_gnttab_read(value v_gw, value v_off, value v_size)
 }
 
 CAMLprim value
+caml_gnttab_write(value v_gw, value v_str, value v_off, value v_size)
+{
+    CAMLparam4(v_gw, v_str, v_off, v_size);
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    if (gw->page == NULL)
+        gw->page = (void *)alloc_page();
+    memcpy(gw->page + Int_val(v_off), String_val(v_str), Int_val(v_size));
+    CAMLreturn(Val_unit);
+}
+
+CAMLprim value
 caml_gnttab_end_access(value v_gw)
 {
     CAMLparam1(v_gw);

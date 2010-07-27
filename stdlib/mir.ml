@@ -90,48 +90,31 @@ exception Unix_error of error * string * string
 let _ = Callback.register_exception "Unix.Unix_error"
                                     (Unix_error(E2BIG, "", ""))
 
-external error_message : error -> string = "unix_error_message"
-
-type file_descr = int
-
-let stdin = 0
-let stdout = 1
-let stderr = 2
-
-type open_flag =
-    O_RDONLY
-  | O_WRONLY
-  | O_RDWR
-  | O_NONBLOCK
-  | O_APPEND
-  | O_CREAT
-  | O_TRUNC
-  | O_EXCL
-  | O_NOCTTY
-  | O_DSYNC
-  | O_SYNC
-  | O_RSYNC
-
-external close : file_descr -> unit = "unix_close"
-external unsafe_read : file_descr -> string -> int -> int -> int = "unix_read"
-external unsafe_write : file_descr -> string -> int -> int -> int = "unix_write"
-external unsafe_single_write : file_descr -> string -> int -> int -> int = "unix_single_write"
-
-let read fd buf ofs len =
-  if ofs < 0 || len < 0 || ofs > String.length buf - len
-  then invalid_arg "Unix.read"
-  else unsafe_read fd buf ofs len
-let write fd buf ofs len =
-  if ofs < 0 || len < 0 || ofs > String.length buf - len
-  then invalid_arg "Unix.write"
-  else unsafe_write fd buf ofs len
-(* write misbehaves because it attempts to write all data by making repeated
-   calls to the Unix write function (see comment in write.c and unix.mli).
-   partial_write fixes this by never calling write twice. *)
-let single_write fd buf ofs len =
-  if ofs < 0 || len < 0 || ofs > String.length buf - len
-  then invalid_arg "Unix.single_write"
-  else unsafe_single_write fd buf ofs len
-
 external gettimeofday : unit -> float = "unix_gettimeofday"
+
+let prettyprint s =
+    let buf1 = Buffer.create 64 in
+    let buf2 = Buffer.create 64 in
+    let lines1 = ref [] in
+    let lines2 = ref [] in
+    for i = 0 to String.length s - 1 do
+      if i <> 0 && (i mod 8) = 0 then begin
+        lines1 := Buffer.contents buf1 :: !lines1;
+        lines2 := Buffer.contents buf2 :: !lines2;
+        Buffer.reset buf1;
+        Buffer.reset buf2;
+      end;
+      let pchar c =
+          let s = String.make 1 c in if Char.escaped c = s then s else "." in
+      Buffer.add_string buf1 (Printf.sprintf " %02X" (int_of_char (String.get s i)));
+      Buffer.add_string buf2 (Printf.sprintf " %s" (pchar (String.get s i)));
+    done;
+    if Buffer.length buf1 > 0 then lines1 := Buffer.contents buf1 :: !lines1;
+    if Buffer.length buf2 > 0 then lines2 := Buffer.contents buf2 :: !lines2;
+    Buffer.reset buf1;
+    Buffer.add_char buf1 '\n';
+    List.iter2 (fun l1 l2 ->
+      Buffer.add_string buf1 (Printf.sprintf "   %-24s   |   %-16s   \n" l1 l2);
+    ) (List.rev !lines1) (List.rev !lines2);
+    Buffer.contents buf1
 

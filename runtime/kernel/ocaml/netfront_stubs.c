@@ -95,7 +95,21 @@ caml_netfront_rx_ring_size(value v_nfw)
     CAMLreturn(Val_int(NET_RX_RING_SIZE));
 }
 
-#define Netfront_req_wrap(x) Field(x,0)
+/* Retrieve a TX.w wrapper from the tx ring */
+CAMLprim value
+caml_nf_tx_req_get(value v_nfw, value v_id)
+{
+    CAMLparam2(v_nfw, v_id);
+    CAMLlocal1(v_wrap);
+    netfront_wrap *nfw = Netfront_wrap_val(v_nfw);
+    netif_tx_request_t *req;
+    req = RING_GET_REQUEST(&nfw->tx, Int_val(v_id));
+    v_wrap = caml_alloc(sizeof(req), Abstract_tag);
+    Field(v_wrap, 0) = (value)req;
+    CAMLreturn(v_wrap);
+}
+
+/* Retrieve a RX.w wrapper from the rx ring */
 CAMLprim value
 caml_nf_rx_req_get(value v_nfw, value v_id)
 {
@@ -105,28 +119,70 @@ caml_nf_rx_req_get(value v_nfw, value v_id)
     netif_rx_request_t *req;
     req = RING_GET_REQUEST(&nfw->rx, Int_val(v_id));
     v_wrap = caml_alloc(sizeof(req), Abstract_tag);
-    Netfront_req_wrap(v_wrap) = (value)req;
+    Field(v_wrap,0) = (value)req;
     CAMLreturn(v_wrap);
 }
 
+/* Set the grant reference value in a TX request */
 CAMLprim value
-caml_nf_rx_req_set_gnt(value v_wrap, value v_gw)
+caml_nf_tx_req_set_gnt(value v_wrap, value v_gw)
 {
     CAMLparam2(v_wrap, v_gw);
-    netif_rx_request_t *req = (netif_rx_request_t *)Netfront_req_wrap(v_wrap);
+    netif_tx_request_t *req = (netif_tx_request_t *)Field(v_wrap,0);
     req->gref = Gnttab_wrap_val(v_gw)->ref;
     CAMLreturn(Val_unit);
 }
 
+/* Set the grant reference value in a RX request */
 CAMLprim value
-caml_nf_rx_req_set_id(value v_wrap, value v_id)
+caml_nf_rx_req_set_gnt(value v_wrap, value v_gw)
 {
-    CAMLparam2(v_wrap, v_id);
-    netif_rx_request_t *req = (netif_rx_request_t *)Netfront_req_wrap(v_wrap);
+    CAMLparam2(v_wrap, v_gw);
+    netif_rx_request_t *req = (netif_rx_request_t *)Field(v_wrap,0);
+    req->gref = Gnttab_wrap_val(v_gw)->ref;
+    CAMLreturn(Val_unit);
+}
+
+/* Set the various TX request values in a request */
+CAMLprim value
+caml_nf_tx_req_set_param(value v_wrap, value v_offset, 
+    value v_size, value v_flags, value v_id)
+{
+    CAMLparam5(v_wrap, v_offset, v_size, v_flags, v_id);
+    netif_tx_request_t *req = (netif_tx_request_t *)Field(v_wrap,0);
+    req->offset = Int_val(v_offset);
+    req->size = Int_val(v_size);
+    req->flags = Int_val(v_flags);
     req->id = Int_val(v_id);
     CAMLreturn(Val_unit);
 }
 
+/* Set the request ID value in a RX request */
+CAMLprim value
+caml_nf_rx_req_set_id(value v_wrap, value v_id)
+{
+    CAMLparam2(v_wrap, v_id);
+    netif_rx_request_t *req = (netif_rx_request_t *)Field(v_wrap,0);
+    req->id = Int_val(v_id);
+    CAMLreturn(Val_unit);
+}
+
+/* Set the producer value in the TX request ring, and notify evtchn */
+CAMLprim value
+caml_nf_tx_req_prod_set(value v_nfw, value v_evtchn, value v_id)
+{
+    CAMLparam3(v_nfw, v_evtchn, v_id);
+    int notify;
+    netfront_wrap *nfw = Netfront_wrap_val(v_nfw);
+    nfw->tx.req_prod_pvt = Int_val(v_id);
+    wmb();
+    RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&nfw->tx, notify);
+    if (notify)
+        notify_remote_via_evtchn(Int_val(v_evtchn));
+    CAMLreturn(Val_unit);
+}
+
+/* Set the producer value in the RX request ring, and notify evtchn */
 CAMLprim value
 caml_nf_rx_req_prod_set(value v_nfw, value v_evtchn, value v_id)
 {
@@ -140,6 +196,16 @@ caml_nf_rx_req_prod_set(value v_nfw, value v_evtchn, value v_id)
     CAMLreturn(Val_unit);
 }
 
+/* Get the value of the producer in the TX request ring */
+CAMLprim value
+caml_nf_tx_req_prod_get(value v_nfw)
+{
+    CAMLparam1(v_nfw);
+    netfront_wrap *nfw = Netfront_wrap_val(v_nfw);
+    CAMLreturn(Val_int(nfw->tx.req_prod_pvt));
+}
+
+/* Get the value of the producer in the RX request ring */
 CAMLprim value
 caml_nf_rx_req_prod_get(value v_nfw)
 {

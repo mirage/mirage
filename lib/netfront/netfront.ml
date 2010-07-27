@@ -23,7 +23,7 @@ external rx_ring_size : nw -> int = "caml_netfront_rx_ring_size"
 (** backend domid -> tx gnttab -> rx gnttab -> state *)
 external netfront_init: int -> Gnttab.r -> Gnttab.r -> nw = "caml_netfront_init"
 
-module Req = struct
+module RX = struct
     type w
 
     type flags = RX_data_validated | RX_checksum_blank | RX_more_data | RX_extra_info
@@ -47,6 +47,17 @@ module Req = struct
     external recv_ack : nw -> bool = "caml_nf_receive_ack"
 end
 
+module TX = struct
+    type w
+
+    (** wrap -> index -> req to retrieve pointer *)
+    external tx_get : nw -> int -> w = "caml_nf_tx_req_get"
+    external tx_set_gnt : w -> Gnttab.r -> unit = "caml_nf_tx_req_set_gnt"
+    external tx_set_param : w -> int -> int -> int -> int -> unit = "caml_nf_tx_req_set_param"
+    external tx_prod_set : nw -> int -> int -> unit = "caml_nf_tx_req_prod_set"
+    external tx_prod_get : nw -> int = "caml_nf_tx_req_prod_get"
+end
+
 type netfront = {
     backend_id: int;
     backend: string;
@@ -55,7 +66,10 @@ type netfront = {
     rx_ring_ref: Gnttab.r;
     evtchn: int;
     cb: unit -> unit;
-    rx_slots: (int * Gnttab.r * Req.w) array;
+    rx_slots: (int * Gnttab.r * RX.w) array;
+    tx_slots: (int * Gnttab.r * TX.w) array;
+    tx_freelist: int Queue.t;
+    tx_freelist_cond: unit Lwt_condition.t;
     state: nw;
 }
 
@@ -80,52 +94,87 @@ let create xsh (num,domid) =
         wrfn "request-rx-copy" "1" >>
         wrfn "state" (Xb.State.to_string Xb.State.Connected)
     ) in
-    print_endline "init_rx_buffers";
-    let rec get_rx_slots num acc =
+    let rec iter_n fn num acc =
         match num with
-        | 0 -> return acc
+        | 0 -> return (Array.of_list acc)
         | num -> 
-            let id = num - 1 in
-            lwt gnt = Gnttab.get_free_entry () in
-            let slot = Req.rx_get state id in
-            Req.rx_set_gnt slot gnt;
-            Req.rx_set_id slot id;
-            Gnttab.grant_access gnt domid Gnttab.RW;
-            get_rx_slots id ((id,gnt,slot) :: acc)
-    in 
-    lwt rx_slots = get_rx_slots (rx_ring_size state) [] in
-    let rx_slots = Array.of_list rx_slots in
-    Req.rx_prod_set state evtchn (rx_ring_size state);
-    print_endline "init_rx_buffers: done";
+            lwt r = fn num in
+            iter_n fn (num - 1) (r :: acc) in
+    print_endline "init_rx_buffers";
+    lwt rx_slots = iter_n 
+      (fun num ->
+        let id = num - 1 in
+        lwt gnt = Gnttab.get_free_entry () in
+        let slot = RX.rx_get state id in
+        RX.rx_set_gnt slot gnt;
+        RX.rx_set_id slot id;
+        Gnttab.grant_access gnt domid Gnttab.RW;
+        return (id,gnt,slot)
+      ) (rx_ring_size state) [] in
+    RX.rx_prod_set state evtchn (rx_ring_size state);
+    print_endline "init_tx_buffers";
+    let tx_freelist = Queue.create () in
+    let tx_freelist_cond = Lwt_condition.create () in
+    lwt tx_slots = iter_n
+      (fun num ->
+         let id = num - 1 in
+         lwt gnt = Gnttab.get_free_entry () in
+         let slot = TX.tx_get state id in
+         TX.tx_set_gnt slot gnt;
+         Queue.push id tx_freelist;
+         return (id,gnt,slot)
+      ) (tx_ring_size state) [] in
     let cb () =
-      Printf.printf "netfront callback num=%d\n%!" num;
+      Printf.printf "netfront recv: num=%d\n%!" num;
       let rec read () =
           (* Read the raw descriptor *)
-          let resp_raw = Req.recv state in
+          let resp_raw = RX.recv state in
           (* Lookup the grant page from the id in the raw descriptor *)
-          let id',gnt,req = rx_slots.(resp_raw.Req.id) in
-          printf "   %d = %d ?\n%!" resp_raw.Req.id id';
-          printf "   raw= %s   gntid=%d\n%!" (Req.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
+          let id',gnt,req = rx_slots.(resp_raw.RX.id) in
+          assert(id' = resp_raw.RX.id);
+          printf "   raw= %s gntid=%d\n%!" 
+             (RX.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
           (* Remove netback access to this grant *)
           Gnttab.end_access gnt;
           (* For now, just copy the grant over to an OCaml string.
              TODO: zero copy implementation *)
-          let data = Gnttab.read gnt resp_raw.Req.offset resp_raw.Req.status in
+          let data = Gnttab.read gnt resp_raw.RX.offset resp_raw.RX.status in
           printf "    %s\n%!" (Mir.prettyprint data);
           (* since it has been copied, replenish the same used grant back to netfront *)
           Gnttab.grant_access gnt domid Gnttab.RW;
-          Req.rx_prod_set state evtchn (Req.rx_prod_get state);
-          if Req.recv_ack state then
-              read ()
+          (* advance the request producer pointer by one and push *)
+          RX.rx_prod_set state evtchn (RX.rx_prod_get state + 1);
+          if RX.recv_ack state then read ()
        in read ()
     in
     Lwt_mirage_main.Activations.register evtchn cb;
     Mmap.evtchn_unmask evtchn;
 
     return { backend_id=domid; tx_ring_ref=tx_ring_ref;
-      rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state; rx_slots=rx_slots;
-      mac=mac; backend=backend; cb=cb }
-   
+      rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state;
+      rx_slots=rx_slots; tx_slots=tx_slots; mac=mac; 
+      tx_freelist=tx_freelist; tx_freelist_cond=tx_freelist_cond;
+      backend=backend; cb=cb }
+  
+let netfront_xmit nf buf off len =
+    (* Get an ID from the freelist *)
+    let rec get_id () = 
+      try 
+        return (Queue.take nf.tx_freelist)
+      with Queue.Empty ->
+        Lwt_condition.wait nf.tx_freelist_cond >>
+        get_id () in
+    lwt id = get_id () in
+    let state = nf.state in
+    let cur_slot = TX.tx_prod_get state in
+    let slot_id, gnt, req = nf.tx_slots.(cur_slot) in
+    assert(slot_id = cur_slot);
+    Gnttab.write gnt buf off len;
+    Gnttab.grant_access gnt nf.backend_id Gnttab.RO;
+    TX.tx_set_param req 0 len 0 id;
+    TX.tx_prod_set state nf.evtchn (slot_id+1);
+    return ()  
+
 (** Return a list of valid VIF IDs *)
 let enumerate xsh =
     (* Find out how many VIFs we have *)

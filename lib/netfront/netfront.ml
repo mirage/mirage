@@ -17,7 +17,34 @@
 open Lwt
 open Printf
 
-type netfront_state
+type nw
+external tx_ring_size : nw -> int = "caml_netfront_tx_ring_size"
+external rx_ring_size : nw -> int = "caml_netfront_rx_ring_size"
+(** backend domid -> tx gnttab -> rx gnttab -> state *)
+external netfront_init: int -> Gnttab.r -> Gnttab.r -> nw = "caml_netfront_init"
+
+module Req = struct
+    type w
+
+    type flags = RX_data_validated | RX_checksum_blank | RX_more_data | RX_extra_info
+    type resp_raw = {
+        id: int;
+        offset: int;
+        flags: int;
+        status: int;
+        data: string;
+    }
+    let resp_raw_to_string x = sprintf "{id=%d off=%d flags=%d status=%d}" x.id x.offset x.flags x.status
+
+    (** wrap -> index -> req to retrieve pointer *)
+    external rx_get : nw -> int -> w = "caml_nf_rx_req_get"
+    external set_gnt : w -> Gnttab.r -> unit = "caml_nf_req_set_gnt"
+    external set_id : w -> int -> unit = "caml_nf_req_set_id"
+    external rx_prod_set : nw -> int -> int -> unit = "caml_nf_rx_req_prod_set"
+    external rx_prod_get : nw -> int = "caml_nf_rx_req_prod_get"
+    external recv : nw -> resp_raw = "caml_nf_receive"
+    external recv_ack : nw -> bool = "caml_nf_receive_ack"
+end
 
 type netfront = {
     backend_id: int;
@@ -27,12 +54,9 @@ type netfront = {
     rx_ring_ref: Gnttab.r;
     evtchn: int;
     cb: unit -> unit;
-    state: netfront_state;
+    rx_slots: (int * Gnttab.r * Req.w) array;
+    state: nw;
 }
-
-(** backend domid -> tx gnttab -> rx gnttab -> state *)
-external netfront_init: int -> Gnttab.r -> Gnttab.r 
-   -> netfront_state = "caml_netfront_init"
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let create xsh (num,domid) =
@@ -46,6 +70,7 @@ let create xsh (num,domid) =
     let node = Printf.sprintf "device/vif/%d/" num in
     lwt backend = xsh.Xs.read (node ^ "backend") in
     lwt mac = xsh.Xs.read (node ^ "mac") in
+
     lwt () = Xs.transaction xsh (fun xst ->
         let wrfn k v = xst.Xst.write (node ^ k) v in
         wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
@@ -54,11 +79,50 @@ let create xsh (num,domid) =
         wrfn "request-rx-copy" "1" >>
         wrfn "state" (Xb.State.to_string Xb.State.Connected)
     ) in
-    let cb () = Printf.printf "netfront callback num=%d\n%!" num in
+    print_endline "init_rx_buffers";
+    let rec get_rx_slots num acc =
+        match num with
+        | 0 -> return acc
+        | num -> 
+            let id = num - 1 in
+            lwt gnt = Gnttab.get_free_entry () in
+            let slot = Req.rx_get state id in
+            Req.set_gnt slot gnt;
+            Req.set_id slot id;
+            Gnttab.grant_access gnt domid Gnttab.RW;
+            get_rx_slots id ((id,gnt,slot) :: acc)
+    in 
+    lwt rx_slots = get_rx_slots (rx_ring_size state) [] in
+    let rx_slots = Array.of_list rx_slots in
+    Req.rx_prod_set state evtchn (rx_ring_size state);
+    print_endline "init_rx_buffers: done";
+    let cb () =
+      Printf.printf "netfront callback num=%d\n%!" num;
+      let rec read () =
+          (* Read the raw descriptor *)
+          let resp_raw = Req.recv state in
+          (* Lookup the grant page from the id in the raw descriptor *)
+          let id',gnt,req = rx_slots.(resp_raw.Req.id) in
+          printf "   %d = %d ?\n%!" resp_raw.Req.id id';
+          printf "   raw= %s   gntid=%d\n%!" (Req.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
+          (* Remove netback access to this grant *)
+          Gnttab.end_access gnt;
+          (* For now, just copy the grant over to an OCaml string.
+             TODO: zero copy implementation *)
+          let data = Gnttab.read gnt resp_raw.Req.offset resp_raw.Req.status in
+          printf "    %s\n%!" (Mir.prettyprint data);
+          (* since it has been copied, replenish the same used grant back to netfront *)
+          Gnttab.grant_access gnt domid Gnttab.RW;
+          Req.rx_prod_set state evtchn (Req.rx_prod_get state);
+          if Req.recv_ack state then
+              read ()
+       in read ()
+    in
     Lwt_mirage_main.Activations.register evtchn cb;
     Mmap.evtchn_unmask evtchn;
+
     return { backend_id=domid; tx_ring_ref=tx_ring_ref;
-      rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state;
+      rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state; rx_slots=rx_slots;
       mac=mac; backend=backend; cb=cb }
    
 (** Return a list of valid VIF IDs *)

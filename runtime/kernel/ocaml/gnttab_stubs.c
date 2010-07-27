@@ -86,15 +86,51 @@ caml_gnttab_grant_access(value v_gw, value v_domid, value v_readonly)
 {
     CAMLparam3(v_gw, v_domid, v_readonly);
     gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
-        gw->ref, gw->page, Int_val(v_domid), Int_val(v_readonly));
+    if (gw->page == NULL)
+       gw->page = (void *)alloc_page();
+    //printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
+     //   gw->ref, gw->page, Int_val(v_domid), Int_val(v_readonly));
     gnttab_table[gw->ref].frame = virt_to_mfn(gw->page);
     gnttab_table[gw->ref].domid = Int_val(v_domid);
     wmb();
     gnttab_table[gw->ref].flags = GTF_permit_access | (Bool_val(v_readonly) * GTF_readonly);
-    printk("   flags=%d\n", gnttab_table[gw->ref].flags);
     CAMLreturn(Val_unit);
 }
+
+CAMLprim value
+caml_gnttab_read(value v_gw, value v_off, value v_size)
+{
+    CAMLparam3(v_gw, v_off, v_size);
+    CAMLlocal1(v_ret);
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    BUG_ON(gw->page == NULL);
+    v_ret = caml_alloc_string(Int_val(v_size));
+    memcpy(String_val(v_ret), gw->page + Int_val(v_off), Int_val(v_size));
+    CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_gnttab_end_access(value v_gw)
+{
+    CAMLparam1(v_gw);
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    grant_ref_t ref = gw->ref;
+    uint16_t flags, nflags;
+
+    BUG_ON(ref >= NR_GRANT_ENTRIES || ref < NR_RESERVED_ENTRIES);
+
+    nflags = gnttab_table[ref].flags;
+    do {
+        if ((flags = nflags) & (GTF_reading|GTF_writing)) {
+            printk("WARNING: g.e. %d still in use! (%x)\n", ref, flags);
+            CAMLreturn(Val_unit);
+        }
+    } while ((nflags = synch_cmpxchg(&gnttab_table[ref].flags, flags, 0)) !=
+            flags);
+
+    CAMLreturn(Val_unit);
+}
+
 
 /* Initialise grant tables and map machine frames to a VA */
 CAMLprim value

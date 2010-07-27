@@ -27,6 +27,8 @@ external gnttab_ref : r -> num = "caml_gnttab_ref"
 external gnttab_grant_access : r -> int -> bool -> unit = "caml_gnttab_grant_access"
 external gnttab_nr_entries : unit -> int = "caml_gnttab_nr_entries"
 external gnttab_nr_reserved : unit -> int = "caml_gnttab_reserved"
+external gnttab_end_access : r -> unit = "caml_gnttab_end_access"
+external gnttab_read : r -> int -> int -> string = "caml_gnttab_read"
 
 let free_list = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
@@ -47,6 +49,11 @@ let to_string (r:r) = string_of_int (gnttab_ref r)
 
 let grant_access r domid perm =
     gnttab_grant_access r domid (match perm with RO -> true |RW -> false)
+
+let end_access r =
+    gnttab_end_access r
+
+let read r off sz = gnttab_read r off sz
 
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (gnttab_nr_entries () - 1);

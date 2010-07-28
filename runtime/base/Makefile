@@ -8,7 +8,7 @@ OUT = $(OBJDIR)/libmiragerun_$(MODE).a
 
 ASMRUN_debug = libasmrund.a
 ASMRUN_normal = libasmrun.a
-ASMRUN = normal
+ASMRUN = debug
 ASMRUNLIB = $(ASMRUN_$(ASMRUN))
 
 .PHONY: all

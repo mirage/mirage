@@ -1,7 +1,7 @@
 ROOTDIR=..
 include $(ROOTDIR)/mk/xen.mk
 
-TARGS = libmiragerun_xen.a libc.a libm.a liblwip.a
+TARGS = libmiragerun_xen.a libc.a libm.a 
 
 CROSS_PREFIX = inst-x86_64
 
@@ -21,10 +21,6 @@ $(CROSS_PREFIX)/lib/libmiragerun_xen.a: $(STAMP)
 	cd base && $(MAKE) MODE=xen
 	cp base/obj-xen/libmiragerun_xen.a $@
 
-$(CROSS_PREFIX)/lib/liblwip.a: $(STAMP)
-	cd lwip && $(MAKE) MODE=xen
-	cp lwip/liblwip4.a $@
-
 $(CROSS_PREFIX)/lib/libm.a: $(STAMP)
 	cd libm && $(MAKE)
 	cp libm/obj/libm.a $@
@@ -33,7 +29,6 @@ clean:
 	rm -rf base/obj-*
 	rm -rf bindings/obj-*
 	rm -rf kernel/obj
-	rm -rf lwip/obj-*
 	rm -rf libm/obj-*
 	cd dietlibc && $(MAKE) clean
 	rm -rf $(CROSS_PREFIX)

@@ -65,7 +65,7 @@ type netfront = {
     tx_ring_ref: Gnttab.r;
     rx_ring_ref: Gnttab.r;
     evtchn: int;
-    cb: unit -> unit;
+    rx_cb: unit -> unit;
     rx_slots: (int * Gnttab.r * RX.w) array;
     tx_slots: (int * Gnttab.r * TX.w) array;
     tx_freelist: int Queue.t;
@@ -73,8 +73,10 @@ type netfront = {
     state: nw;
 }
 
+type netfront_id = (int * int)
+
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
-let create xsh (num,domid) =
+let create xsh (num,domid) user_fn =
     Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num domid;
     lwt tx_ring_ref = Gnttab.get_free_entry () in
     lwt rx_ring_ref = Gnttab.get_free_entry () in
@@ -124,7 +126,7 @@ let create xsh (num,domid) =
          Queue.push id tx_freelist;
          return (id,gnt,slot)
       ) (tx_ring_size state) [] in
-    let cb () =
+    let rx_cb () =
       Printf.printf "netfront recv: num=%d\n%!" num;
       let rec read () =
           (* Read the raw descriptor *)
@@ -139,24 +141,25 @@ let create xsh (num,domid) =
           (* For now, just copy the grant over to an OCaml string.
              TODO: zero copy implementation *)
           let data = Gnttab.read gnt resp_raw.RX.offset resp_raw.RX.status in
-          printf "    %s\n%!" (Mir.prettyprint data);
           (* since it has been copied, replenish the same used grant back to netfront *)
           Gnttab.grant_access gnt domid Gnttab.RW;
           (* advance the request producer pointer by one and push *)
           RX.rx_prod_set state evtchn (RX.rx_prod_get state + 1);
+          printf "    %s\n%!" (Mir.prettyprint data);
+          let () = user_fn data in
           if RX.recv_ack state then read ()
        in read ()
     in
-    Lwt_mirage_main.Activations.register evtchn cb;
+    Lwt_mirage_main.Activations.register evtchn rx_cb;
     Mmap.evtchn_unmask evtchn;
 
     return { backend_id=domid; tx_ring_ref=tx_ring_ref;
       rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state;
       rx_slots=rx_slots; tx_slots=tx_slots; mac=mac; 
       tx_freelist=tx_freelist; tx_freelist_cond=tx_freelist_cond;
-      backend=backend; cb=cb }
+      backend=backend; rx_cb=rx_cb }
   
-let netfront_xmit nf buf off len =
+let xmit nf buf off len =
     (* Get an ID from the freelist *)
     let rec get_id () = 
       try 

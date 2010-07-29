@@ -7,7 +7,11 @@ let main () =
     lwt nfs = Lwt_list.map_s (
        fun nid ->
          lwt nf = Netfront.create xsh nid in
-         Netfront.set_recv nf (fun buf -> printf "%s: %s\n%!" (Netfront.mac nf) (Mir.prettyprint buf));
+         Netfront.set_recv nf (fun buf -> 
+            printf "%s: %s\n%!" (Netfront.mac nf) (Mir.prettyprint buf);
+            Lwt_mirage.sleep 2. >>
+            return (printf "%s: slept\n%!" (Netfront.mac nf))
+         );
          return nf
     ) vifs in
     Lwt_mirage.sleep 20.

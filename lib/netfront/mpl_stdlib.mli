@@ -16,12 +16,6 @@
  * $Id: mpl_stdlib.mli,v 1.5 2006/03/14 19:39:56 avsm Exp $
  *)
 
-module Tree :
-  sig
-    type t = [ `Leaf of string * string | `Tree of string * t list ]
-    val print : t -> unit
-  end
-
 exception IO_error
 exception Buffer_overflow
 
@@ -34,8 +28,6 @@ val new_env : ?fillfn:(string -> int -> int -> int) -> ?length:int -> string -> 
 val string_of_env : env -> string
 val string_of_full_env : env -> string
 
-val fill : ?min:int -> env -> Unix.file_descr -> unit
-val fill_string : env -> string -> unit
 val reset : env -> unit
 val size : env -> int
 val total_size : env -> int
@@ -48,9 +40,6 @@ val env_recv_fn : env -> (string -> int -> int -> int * 'a) -> 'a
 val env_send_fn : env -> (string -> int -> int -> 'a) -> 'a
 val env_fn : env -> (string -> int -> int -> 'a) -> 'a
 val remaining : env -> int
-val flush : env -> Unix.file_descr -> unit
-val sendto : env -> Unix.file_descr -> Unix.sockaddr -> unit
-val recvfrom : env -> Unix.file_descr -> Unix.msg_flag list -> Unix.sockaddr
 
 type fillfn = string -> int -> int -> int
 val set_fillfn : env -> fillfn -> unit

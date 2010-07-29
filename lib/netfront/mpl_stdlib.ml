@@ -20,30 +20,6 @@
 
 open Printf
 
-module Tree = struct
-    type t = [
-     |`Tree of string * (t list)
-     |`Leaf of string * string
-    ]
-
-    let print (t:t) =
-        let ind i = String.make (i*2) ' ' in
-        let ofn i x = output_string Pervasives.stderr (sprintf "%s%s" (ind i) x) in
-        let onl = prerr_endline in
-        let rec fn i = function
-        |`Tree (nm,tl) ->
-            onl (sprintf "[ %s ]" nm);  
-            List.iter (fun t ->
-               ofn i "|_ ";
-               fn (i+1) t;
-            ) tl;
-        |`Leaf (k,v) ->
-            onl (sprintf "%s = %s" k v);
-        in
-        fn 0 t;
-        onl ""
-end
-
 exception IO_error
 exception Buffer_overflow
 
@@ -102,22 +78,6 @@ let reset env =
     env.__bsz <- 0;
     env.__bpos <- 0
     
-(* Fill the buffer by at least min bytes or throw an exception *)
-let fill ?(min=1) env fd =
-    assert (min >= 0);
-    rd := 0;
-    while !rd < min do 
-       let r = Unix.read fd env.__bbuf !(env.__blen)
-          (env.__btlen - !(env.__blen)) in
-       if r = 0 then raise IO_error else env.__blen := !(env.__blen) + r;
-       rd := !rd + r;
-    done;
-    env.__bsz <- !(env.__blen)
-
-(* Append a string into the buffer *)
-let fill_string env buf =
-    String.blit buf 0 env.__bbuf !(env.__blen) (String.length buf)
-
 let env_recv_fn env fn =
     let r,o = fn env.__bbuf (env.__bbase + env.__bpos) env.__btlen in
     env.__blen := !(env.__blen) + r;
@@ -153,18 +113,6 @@ let remaining env =
     assert (env.__bpos <= env.__bsz);
     env.__bsz - env.__bpos
 
-
-(* Flush the environment to the file descriptor *)
-let flush env fd =
-    ignore(Unix.single_write fd env.__bbuf 0 !(env.__blen))
-
-let sendto env s t =
-    ignore(Unix.sendto s env.__bbuf 0 !(env.__blen) [] t)
-
-let recvfrom env s fl =
-    let x,addr = Unix.recvfrom s env.__bbuf 0 env.__btlen fl in
-    env.__blen := x;
-    addr
 
 (* XXX These are slow implementations of byte/uint16/uint32/bit, to be replaced
    by C bindings when the dust settles and all else is stable - avsm *)

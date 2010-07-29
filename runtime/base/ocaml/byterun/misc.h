@@ -92,7 +92,7 @@ char *caml_aligned_malloc (asize_t, int, void **);
 
 /* Use Xen static virtual memory layout */
 #ifdef SYS_xen
-#define USE_STATIC_VMEM
+//#define USE_STATIC_VMEM
 #endif
 
 #ifdef DEBUG

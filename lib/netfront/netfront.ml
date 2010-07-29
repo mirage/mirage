@@ -65,7 +65,6 @@ type netfront = {
     tx_ring_ref: Gnttab.r;
     rx_ring_ref: Gnttab.r;
     evtchn: int;
-    rx_cb: unit -> unit;
     rx_slots: (int * Gnttab.r * RX.w) array;
     tx_slots: (int * Gnttab.r * TX.w) array;
     tx_freelist: int Queue.t;
@@ -76,7 +75,7 @@ type netfront = {
 type netfront_id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
-let create xsh (num,domid) user_fn =
+let create xsh (num,domid) =
     Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num domid;
     lwt tx_ring_ref = Gnttab.get_free_entry () in
     lwt rx_ring_ref = Gnttab.get_free_entry () in
@@ -126,39 +125,40 @@ let create xsh (num,domid) user_fn =
          Queue.push id tx_freelist;
          return (id,gnt,slot)
       ) (tx_ring_size state) [] in
-    let rx_cb () =
-      Printf.printf "netfront recv: num=%d\n%!" num;
-      let rec read () =
-          (* Read the raw descriptor *)
-          let resp_raw = RX.recv state in
-          (* Lookup the grant page from the id in the raw descriptor *)
-          let id',gnt,req = rx_slots.(resp_raw.RX.id) in
-          assert(id' = resp_raw.RX.id);
-          printf "   raw= %s gntid=%d\n%!" 
-             (RX.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
-          (* Remove netback access to this grant *)
-          Gnttab.end_access gnt;
-          (* For now, just copy the grant over to an OCaml string.
-             TODO: zero copy implementation *)
-          let data = Gnttab.read gnt resp_raw.RX.offset resp_raw.RX.status in
-          (* since it has been copied, replenish the same used grant back to netfront *)
-          Gnttab.grant_access gnt domid Gnttab.RW;
-          (* advance the request producer pointer by one and push *)
-          RX.rx_prod_set state evtchn (RX.rx_prod_get state + 1);
-          printf "    %s\n%!" (Mir.prettyprint data);
-          let () = user_fn data in
-          if RX.recv_ack state then read ()
-       in read ()
-    in
-    Lwt_mirage_main.Activations.register evtchn rx_cb;
-    Mmap.evtchn_unmask evtchn;
-
     return { backend_id=domid; tx_ring_ref=tx_ring_ref;
       rx_ring_ref=rx_ring_ref; evtchn=evtchn; state=state;
       rx_slots=rx_slots; tx_slots=tx_slots; mac=mac; 
       tx_freelist=tx_freelist; tx_freelist_cond=tx_freelist_cond;
-      backend=backend; rx_cb=rx_cb }
-  
+      backend=backend }
+
+let set_recv nf callback  =
+    Printf.printf "netfront recv: num=%d\n%!" nf.backend_id;
+    let state = nf.state in
+    let rec read () =
+        (* Read the raw descriptor *)
+        let resp_raw = RX.recv state in
+        (* Lookup the grant page from the id in the raw descriptor *)
+        let id',gnt,req = nf.rx_slots.(resp_raw.RX.id) in
+        assert(id' = resp_raw.RX.id);
+        printf "   raw= %s gntid=%d\n%!" 
+        (RX.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
+        (* Remove netback access to this grant *)
+        Gnttab.end_access gnt;
+        (* For now, just copy the grant over to an OCaml string.
+           TODO: zero copy implementation *)
+        let data = Gnttab.read gnt resp_raw.RX.offset resp_raw.RX.status in
+        (* since it has been copied, replenish the same used grant back to netfront *)
+        Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
+        (* advance the request producer pointer by one and push *)
+        RX.rx_prod_set state nf.evtchn (RX.rx_prod_get state + 1);
+        printf "    %s\n%!" (Mir.prettyprint data);
+        let () = callback data in
+        if RX.recv_ack state then read ()
+    in 
+    Lwt_mirage_main.Activations.register nf.evtchn read;
+    Mmap.evtchn_unmask nf.evtchn
+
+(* Transmit a packet from buffer, with offset and length *)  
 let xmit nf buf off len =
     (* Get an ID from the freelist *)
     let rec get_id () = 
@@ -191,3 +191,6 @@ let enumerate xsh =
           Xb.Noent -> return (List.rev acc)
      in
      read_vif 0 []
+
+(** Return a MAC address for a VIF *)
+let mac nf = nf.mac

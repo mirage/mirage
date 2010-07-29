@@ -6,8 +6,9 @@ let main () =
     lwt vifs = Netfront.enumerate xsh in
     lwt nfs = Lwt_list.map_s (
        fun nid ->
-         let recv_fn buf = printf "%s\n%!" (Mir.prettyprint buf) in
-         Netfront.create xsh nid recv_fn
+         lwt nf = Netfront.create xsh nid in
+         Netfront.set_recv nf (fun buf -> printf "%s: %s\n%!" (Netfront.mac nf) (Mir.prettyprint buf));
+         return nf
     ) vifs in
     Lwt_mirage.sleep 20.
 

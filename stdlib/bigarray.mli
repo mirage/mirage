@@ -380,46 +380,6 @@ module Genarray :
      can be achieved by applying [Genarray.fill] to a sub-array
      or a slice of [a]. *)
 
-  val map_file:
-    Unix.file_descr -> ?pos:int64 -> ('a, 'b) kind -> 'c layout ->
-    bool -> int array -> ('a, 'b, 'c) t
-  (** Memory mapping of a file as a big array.
-     [Genarray.map_file fd kind layout shared dims]
-     returns a big array of kind [kind], layout [layout],
-     and dimensions as specified in [dims].  The data contained in
-     this big array are the contents of the file referred to by
-     the file descriptor [fd] (as opened previously with
-     [Unix.openfile], for example).  The optional [pos] parameter
-     is the byte offset in the file of the data being mapped;
-     it defaults to 0 (map from the beginning of the file).
-
-     If [shared] is [true], all modifications performed on the array
-     are reflected in the file.  This requires that [fd] be opened
-     with write permissions.  If [shared] is [false], modifications
-     performed on the array are done in memory only, using
-     copy-on-write of the modified pages; the underlying file is not
-     affected.
-
-     [Genarray.map_file] is much more efficient than reading
-     the whole file in a big array, modifying that big array,
-     and writing it afterwards.
-
-     To adjust automatically the dimensions of the big array to
-     the actual size of the file, the major dimension (that is,
-     the first dimension for an array with C layout, and the last
-     dimension for an array with Fortran layout) can be given as
-     [-1].  [Genarray.map_file] then determines the major dimension
-     from the size of the file.  The file must contain an integral
-     number of sub-arrays as determined by the non-major dimensions,
-     otherwise [Failure] is raised.
-
-     If all dimensions of the big array are given, the file size is
-     matched against the size of the big array.  If the file is larger
-     than the big array, only the initial portion of the file is
-     mapped to the big array.  If the file is smaller than the big
-     array, the file is automatically grown to the size of the big array.
-     This requires write permissions on [fd]. *)
-
   end
 
 (** {6 One-dimensional arrays} *)
@@ -484,11 +444,6 @@ module Array1 : sig
   val of_array: ('a, 'b) kind -> 'c layout -> 'a array -> ('a, 'b, 'c) t
   (** Build a one-dimensional big array initialized from the
      given array.  *)
-
-  val map_file: Unix.file_descr -> ?pos:int64 -> ('a, 'b) kind -> 'c layout ->
-    bool -> int -> ('a, 'b, 'c) t
-  (** Memory mapping of a file as a one-dimensional big array.
-     See {!Bigarray.Genarray.map_file} for more details. *)
 
   external unsafe_get: ('a, 'b, 'c) t -> int -> 'a = "%caml_ba_unsafe_ref_1"
   (** Like {!Bigarray.Array1.get}, but bounds checking is not always performed.
@@ -589,11 +544,6 @@ module Array2 :
   val of_array: ('a, 'b) kind -> 'c layout -> 'a array array -> ('a, 'b, 'c) t
   (** Build a two-dimensional big array initialized from the
      given array of arrays.  *)
-
-  val map_file: Unix.file_descr -> ?pos:int64 -> ('a, 'b) kind -> 'c layout ->
-                bool -> int -> int -> ('a, 'b, 'c) t
-  (** Memory mapping of a file as a two-dimensional big array.
-     See {!Bigarray.Genarray.map_file} for more details. *)
 
   external unsafe_get: ('a, 'b, 'c) t -> int -> int -> 'a
                      = "%caml_ba_unsafe_ref_2"
@@ -717,11 +667,6 @@ module Array3 :
     ('a, 'b) kind -> 'c layout -> 'a array array array -> ('a, 'b, 'c) t
   (** Build a three-dimensional big array initialized from the
      given array of arrays of arrays.  *)
-
-  val map_file: Unix.file_descr -> ?pos:int64 -> ('a, 'b) kind -> 'c layout ->
-             bool -> int -> int -> int -> ('a, 'b, 'c) t
-  (** Memory mapping of a file as a three-dimensional big array.
-     See {!Bigarray.Genarray.map_file} for more details. *)
 
   external unsafe_get: ('a, 'b, 'c) t -> int -> int -> int -> 'a
                      = "%caml_ba_unsafe_ref_3"

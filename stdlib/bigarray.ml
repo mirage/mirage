@@ -1,3 +1,4 @@
+open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -94,11 +95,6 @@ module Genarray = struct
   external blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
      = "caml_ba_blit"
   external fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
-  external map_internal: Unix.file_descr -> ('a, 'b) kind -> 'c layout ->
-                     bool -> int array -> int64 -> ('a, 'b, 'c) t
-                     = "caml_ba_map_file_bytecode" "caml_ba_map_file"
-  let map_file fd ?(pos = 0L) kind layout shared dims =
-    map_internal fd kind layout shared dims pos
 end
 
 module Array1 = struct
@@ -120,8 +116,6 @@ module Array1 = struct
     let ofs = if layout = c_layout then 0 else 1 in
     for i = 0 to Array.length data - 1 do unsafe_set ba (i + ofs) data.(i) done;
     ba
-  let map_file fd ?pos kind layout shared dim =
-    Genarray.map_file fd ?pos kind layout shared [|dim|]
 end
 
 module Array2 = struct
@@ -159,8 +153,6 @@ module Array2 = struct
       done
     done;
     ba
-  let map_file fd ?pos kind layout shared dim1 dim2 =
-    Genarray.map_file fd ?pos kind layout shared [|dim1;dim2|]
 end
 
 module Array3 = struct
@@ -208,8 +200,6 @@ module Array3 = struct
       done
     done;
     ba
-  let map_file fd ?pos kind layout shared dim1 dim2 dim3 =
-    Genarray.map_file fd ?pos kind layout shared [|dim1;dim2;dim3|]
 end
 
 external genarray_of_array1: ('a, 'b, 'c) Array1.t -> ('a, 'b, 'c) Genarray.t

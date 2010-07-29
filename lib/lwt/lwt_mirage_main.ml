@@ -2,6 +2,7 @@
  * http://www.ocsigen.org/lwt
  * Module Lwt_main
  * Copyright (C) 2009 Jérémie Dimino
+ * Copyright (C) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -29,25 +30,55 @@ external block_domain : float -> unit = "mirage_block_domain"
 
 module Activations = struct
 
-    let events = Array.create 1024 None
+    open Bigarray
+
+    external evtchn_init : unit -> (int, int8_unsigned_elt, c_layout) Array1.t = "caml_evtchn_init"
+    let event_mask = evtchn_init ()
+    let nr_events = Array1.dim event_mask
+
+    type cb = 
+      | Event_none
+      | Event_direct of (unit -> unit)
+      | Event_thread of (unit -> unit Lwt.t)
+
+    let event_cb = Array.create nr_events Event_none
 
     (* Register an event channel port with a condition variable to let 
        threads sleep on it *)
     let register port cb =
-       if events.(port) != None then
+       if event_cb.(port) != Event_none then
            Printf.printf "warning: port %d already registered\n%!" port
        else
            Printf.printf "notice: registering port %d\n%!" port;
-       events.(port) <- Some cb;
-       ()
+       event_cb.(port) <- cb
 
-    let activate port =
-       match events.(port) with
-       | None -> ()
-       | Some cb -> cb ()
-
-    let _ = Callback.register "Activations.activate" activate
-
+    (* Go through the event mask and activate any events, potentially spawning
+       new threads *)
+    let run () =
+       let rec loop n acc =
+         match n with
+         | 0 -> acc
+         | n -> 
+             let port = n - 1 in
+             let acc = 
+               if Array1.get event_mask port = 1 then begin
+                 match event_cb.(port) with
+                 | Event_none -> 
+                      Printf.printf "warning: event on port %d but no registered event\n%!" port;
+                      acc
+                 | Event_direct cb ->
+                      Array1.set event_mask port 0;
+                      cb (); 
+                      acc
+                 | Event_thread cb ->
+                      Array1.set event_mask port 0;
+                      cb () :: acc
+               end 
+                 else acc
+             in loop (n-1) acc
+       in
+       loop nr_events []
+       
 end
 
 let select_filters = Lwt_sequence.create ()
@@ -63,13 +94,12 @@ let apply_filters select =
 
 let default_select timeout =
   block_domain (match timeout with None -> 10. |Some t -> t);
-  Lazy.lazy_from_fun Mir.gettimeofday
+  let activations = Activations.run () in
+  Lazy.lazy_from_fun Mir.gettimeofday, activations
 
 let default_iteration () =
   Lwt.wakeup_paused ();
-  ignore (apply_filters default_select None)
-
-let main_loop_iteration = ref default_iteration
+  apply_filters default_select None
 
 let rec run t =
   Lwt.wakeup_paused ();
@@ -77,8 +107,8 @@ let rec run t =
     | Some x ->
         x
     | None ->
-        !main_loop_iteration ();
-        run t
+        let _, activations = default_iteration () in
+        run (join (t :: activations))
 
 let exit_hooks = Lwt_sequence.create ()
 

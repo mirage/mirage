@@ -29,26 +29,21 @@
 #include <caml/custom.h>
 #include <caml/fail.h>
 #include <caml/callback.h>
+#include <caml/bigarray.h>
 
 #define GET_C_STRUCT(a) ((struct mmap_interface *) a)
 
 #define NR_EVENTS 16 /* same as events.c XXX */
 static uint8_t ev_callback_ml[NR_EVENTS];
 
-/* Called by mirage_block_domain after interrupts are reenabled
-   to run any activations, before handing control back to the
-   LWT main loop */
-void
-post_event_callbacks(void)
+/* Initialise the events Bigarray */
+CAMLprim value
+caml_evtchn_init(value v_unit)
 {
-    static value *closure_f = NULL;
-    if (closure_f == NULL)
-        closure_f = caml_named_value("Activations.activate");
-    for (int i=0; i<NR_EVENTS; i++)
-       if (ev_callback_ml[i] == 1) {
-         ev_callback_ml[i] = 0;
-         caml_callback(*closure_f, Val_int(i));
-       }
+    CAMLparam1(v_unit);
+    CAMLlocal1(v_arr);
+    v_arr = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1, ev_callback_ml, NR_EVENTS);
+    CAMLreturn(v_arr);
 }
 
 /* Called with interrupts enabled to mark an event channel as being

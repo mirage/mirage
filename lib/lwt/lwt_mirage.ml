@@ -117,10 +117,10 @@ let select_filter now select timeout =
     List.fold_left
       (fun q e -> SleepQueue.add e q) !sleep_queue !new_sleeps;
   new_sleeps := [];
-  let now = select (get_next_timeout now timeout) in
+  let now, act = select (get_next_timeout now timeout) in
   (* Restart threads waiting for a timeout: *)
   restart_threads now;
-  now
+  now, act
 
 let _ = Lwt_sequence.add_l select_filter Lwt_mirage_main.select_filters
 

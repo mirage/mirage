@@ -49,4 +49,4 @@ let xenstore_wait () =
 let _ = 
     let port = xenstore_evtchn_port () in
     Printf.printf "CONDITION: registering on port %d\n%!" port;
-    Lwt_mirage_main.Activations.register port perform_actions
+    Lwt_mirage_main.Activations.register port (Lwt_mirage_main.Activations.Event_direct perform_actions)

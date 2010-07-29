@@ -152,10 +152,10 @@ let set_recv nf callback  =
         (* advance the request producer pointer by one and push *)
         RX.rx_prod_set state nf.evtchn (RX.rx_prod_get state + 1);
         printf "    %s\n%!" (Mir.prettyprint data);
-        let () = callback data in
-        if RX.recv_ack state then read ()
+        lwt () = callback data in
+        if RX.recv_ack state then read () else return ()
     in 
-    Lwt_mirage_main.Activations.register nf.evtchn read;
+    Lwt_mirage_main.Activations.register nf.evtchn (Lwt_mirage_main.Activations.Event_thread read);
     Mmap.evtchn_unmask nf.evtchn
 
 (* Transmit a packet from buffer, with offset and length *)  

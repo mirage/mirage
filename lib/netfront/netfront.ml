@@ -151,7 +151,6 @@ let set_recv nf callback  =
         Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
         (* advance the request producer pointer by one and push *)
         RX.rx_prod_set state nf.evtchn (RX.rx_prod_get state + 1);
-        printf "    %s\n%!" (Mir.prettyprint data);
         lwt () = callback data in
         if RX.recv_ack state then read () else return ()
     in 

@@ -32,3 +32,10 @@ runtime/xen/stubdom/libm/obj/
 tests/*/app
 tests/*/mini-os
 tests/*/mirage-os
+tools/mpl/._d/
+tools/mpl/._ncdi/
+tools/mpl/mpl_lexer.ml
+tools/mpl/mpl_parser.ml
+tools/mpl/mpl_parser.mli
+tools/mpl/mplc
+/screenlog.*

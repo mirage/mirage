@@ -9,10 +9,13 @@ packet ethernet {
             data: byte[remaining()];
         |0x0806:"ARP" ->
             htype: uint16 const(1);
-            ptype: uint16;
+            ptype: uint16 variant {
+                |0x0800 => IPv4
+                |0x86DD -> IPv6
+            };
             hlen: bit[8] const(6);
             plen: bit[8];
-            operation: uint16 variant { |0 => Request |1 -> Reply };
+            operation: uint16 variant { |1 => Request |2 -> Reply };
             sha: byte[6];
             spa: byte[4];
             tha: byte[6];

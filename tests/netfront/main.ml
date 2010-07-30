@@ -8,7 +8,7 @@ let main () =
        fun nid ->
          lwt nf = Netfront.create xsh nid in
          Netfront.set_recv nf (fun buf -> 
-            Ethernet.recv nf buf >>
+            Ethernet.Frame.recv nf buf >>
             Lwt_mirage.sleep 2. >>
             return (printf "%s: slept\n%!" (Netfront.mac nf))
          );

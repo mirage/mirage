@@ -1,19 +1,16 @@
 open Lwt 
 open Printf
+open Mlnet
+module MT = Mlnet_types
+
+let ip = MT.ipv4_addr_of_tuple (128, 232, 39, 246)
+let netmask = MT.ipv4_addr_of_tuple (255, 255, 240, 0)
+let gw = MT.ipv4_addr_of_tuple (128, 232, 32, 1)
 
 let main () =
-    let xsh = Xs.make_mmap () in
-    lwt vifs = Netfront.enumerate xsh in
-    lwt nfs = Lwt_list.map_s (
-       fun nid ->
-         lwt nf = Netfront.create xsh nid in
-         Netfront.set_recv nf (fun buf -> 
-            Ethernet.Frame.recv nf buf >>
-            Lwt_mirage.sleep 2. >>
-            return (printf "%s: slept\n%!" (Netfront.mac nf))
-         );
-         return nf
-    ) vifs in
+    lwt vifs = Netfront.enumerate () in
+    let vif_id = List.hd vifs in
+    lwt netif = Netif.create ~ip ~netmask ~gw vif_id in
     Lwt_mirage.sleep 20.
 
 let _ = Lwt_mirage_main.run (main ())

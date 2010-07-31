@@ -10,7 +10,7 @@ LWTLIB=$(ROOTDIR)/lib/lwt
 NFLIB=$(ROOTDIR)/lib/netfront
 
 .PHONY: build
-build: depend mlnetlib.cmxa
+build: depend mlnet.cmxa
 	@ :
 
 .PHONY: depend
@@ -19,15 +19,26 @@ depend: mpl_ethernet.ml
 mpl_%.ml: %.mpl
 	mplc -v $< > $@
 
+MLDEPS=mlnet_types.mli mpl_ethernet.ml netif.mli frame.mli arp.mli mlnet_types.ml netif.ml arp.ml frame.ml
 .mldeps: *.ml *.mli
-	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
+	#	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
+	echo $(MLDEPS) > $@
 
 .cmxdeps: .mldeps
 	$(OCAMLDSORT) $(SYNTAX) -opt *.ml > $@
 
-mlnetlib.cmxa: .cmxdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -annot -I $(STDLIB) -I $(LWTLIB) -I $(NFLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -a -o $@ `cat .cmxdeps`
+mlnet.cmx: .cmxdeps .mldeps
+	# run it twice to get the cross-module optimisation for cmx and let -for-pack work (XXX investigate further!)
+	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet -I $(STDLIB) -I $(LWTLIB) -I $(NFLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
+	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet -I $(STDLIB) -I $(LWTLIB) -I $(NFLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
+	$(OCAMLOPT) -pack -o $@ `cat .cmxdeps`
+
+%.cmxa: %.cmx
+	$(OCAMLOPT) -a -o $@ $<
+
+.PHONY: i-%
+i-%:
+	$(OCAMLOPT) -i -nostdlib -I $(STDLIB) -I $(LWTLIB) -I $(NFLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) $*.ml
 
 .PHONY: clean
 clean:

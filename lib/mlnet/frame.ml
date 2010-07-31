@@ -32,14 +32,15 @@ let recv netif buf =
        String.length buf in
 
     let env = Mpl_stdlib.new_env ~fillfn envbuf in
-    (try
+    try_lwt
         let ethernet = Ethernet.unmarshal env in
         match ethernet with
         |`ARP o ->
             Ethernet.ARP.prettyprint o;
             Arp.recv netif o;
         |`IPv4 o ->
-            Ethernet.IPv4.prettyprint o
-        |_ -> printf "discarding non-IPv4/ARP ethernet frame"
-    with exn -> printf "exn: %s\n%!" (Printexc.to_string exn));
-    return ()
+            Ethernet.IPv4.prettyprint o;
+            return ()
+        |_ -> return (printf "discarding non-IPv4/ARP ethernet frame")
+    with 
+        exn -> return (printf "exn: %s\n%!" (Printexc.to_string exn))

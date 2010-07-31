@@ -67,4 +67,4 @@ val monitor_paths : xsh
                  -> (string * string -> bool)
                  -> unit Lwt.t
 
-val make_mmap : unit -> xsh
+val t : xsh

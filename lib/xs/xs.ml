@@ -69,7 +69,7 @@ let get_watchevent xsh = Xsraw.get_watchevent xsh.con
 
 let read_watchevent xsh = Xsraw.read_watchevent xsh.con
 
-let make_mmap () = get_operations (Xsraw.open_mmap ())
+let t = get_operations (Xsraw.open_mmap ())
 
 exception Timeout
 

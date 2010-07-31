@@ -75,7 +75,7 @@ type netfront = {
 type netfront_id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
-let create xsh (num,domid) =
+let create (num,domid) =
     Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num domid;
     lwt tx_ring_ref = Gnttab.get_free_entry () in
     lwt rx_ring_ref = Gnttab.get_free_entry () in
@@ -84,10 +84,10 @@ let create xsh (num,domid) =
     Gnttab.grant_access rx_ring_ref domid Gnttab.RW;
     let evtchn = Mmap.evtchn_alloc_unbound_port domid in
     let node = Printf.sprintf "device/vif/%d/" num in
-    lwt backend = xsh.Xs.read (node ^ "backend") in
-    lwt mac = xsh.Xs.read (node ^ "mac") in
+    lwt backend = Xs.t.Xs.read (node ^ "backend") in
+    lwt mac = Xs.t.Xs.read (node ^ "mac") in
 
-    lwt () = Xs.transaction xsh (fun xst ->
+    lwt () = Xs.transaction Xs.t (fun xst ->
         let wrfn k v = xst.Xst.write (node ^ k) v in
         wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
         wrfn "rx-ring-ref" (Gnttab.to_string rx_ring_ref) >>
@@ -178,11 +178,11 @@ let xmit nf buf off len =
     return ()  
 
 (** Return a list of valid VIF IDs *)
-let enumerate xsh =
+let enumerate () =
     (* Find out how many VIFs we have *)
     let rec read_vif num acc =
        try_lwt
-          lwt sid = xsh.Xs.read (sprintf "device/vif/%d/backend-id" num) in
+          lwt sid = Xs.t.Xs.read (sprintf "device/vif/%d/backend-id" num) in
           let domid = int_of_string sid in
           printf "found: num=%d backend-id=%d\n%!" num domid;
           read_vif (succ num) ((num,domid) :: acc)

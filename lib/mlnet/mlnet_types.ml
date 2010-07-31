@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+type bytes = string (* to differentiate from pretty-printed strings *)
 type ethernet_mac = string (* length 6 only *)
 
 (* Raw MAC address off the wire (network endian) *)
@@ -42,12 +43,17 @@ let ethernet_mac_to_string x =
     Printf.sprintf "%2x:%2x:%2x:%2x:%2x:%2x"
        (chri 0) (chri 1) (chri 2) (chri 3) (chri 4) (chri 5)
 
+let ethernet_mac_to_bytes x = x 
+
 type ipv4_addr = string (* length 4 only *)
 
 (* Raw IPv4 address of the wire (network endian) *)
 let ipv4_addr_of_bytes x = 
     assert(String.length x = 4);
     x
+
+(* Identity function to convert ipv4_addr back to bytes *)
+let ipv4_addr_to_bytes x = x
 
 (* Read an IPv4 address dot-separated string *)
 let ipv4_addr_of_string x =
@@ -83,6 +89,7 @@ type netif = {
    ip: ipv4_addr;
    netmask: ipv4_addr;
    gw: ipv4_addr;
+   mac: ethernet_mac;
 }
 
 let netfront_of_netif x = x.nf

@@ -9,6 +9,7 @@ module IPv4 :
   sig
     type addr
     val addr_of_bytes : string -> addr
+    val addr_of_tuple : (int * int * int * int) -> addr
     val addr_of_string : string -> addr option
     val addr_to_string : addr -> string
   end

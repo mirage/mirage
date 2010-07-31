@@ -25,7 +25,9 @@ module ARP = struct
     let mac_cache = Hashtbl.create 1
 
     let dump_cache () = 
-        Hashtbl.iter (fun mac ip -> printf "%s -> %s\n%!" (MT.Ethernet.mac_to_string mac) (MT.IPv4.addr_to_string ip)) mac_cache
+        Hashtbl.iter (fun mac ip -> 
+            printf "%s -> %s\n%!" (MT.Ethernet.mac_to_string mac) 
+                (MT.IPv4.addr_to_string ip)) mac_cache
 
     let recv nf (arp:Mpl_ethernet.Ethernet.ARP.o) =
         match arp#ptype with
@@ -67,4 +69,34 @@ module Frame = struct
         with exn -> printf "exn: %s\n%!" (Printexc.to_string exn));
         return ()
     end
+
+(** Create an interface from a netfront and manage its lifecycle *)
+module Netif = struct
+    type t = {
+       nf: Netfront.netfront;
+       mutable up: bool;
+       ip: MT.IPv4.addr;
+       netmask: MT.IPv4.addr;
+       gw: MT.IPv4.addr;
+    }
+
+    let default_netif = ref None
+
+    let create ?(default=true) ?(up=true) ~ip ~netmask ~gw vif_id  =
+        lwt nf = Netfront.create vif_id in
+        Netfront.set_recv nf (Frame.recv nf);
+        let t = { nf=nf; up=up; ip=ip; netmask=netmask; gw=gw } in
+        if default then default_netif := Some t;
+        return t
+
+    let set_default netif = function
+        | true ->
+           default_netif := Some netif
+        | false -> begin
+            match !default_netif with
+            |Some netif' when netif' = netif ->
+                default_netif := None
+            | _ -> ()
+        end   
+end
 

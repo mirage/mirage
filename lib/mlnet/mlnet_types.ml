@@ -66,6 +66,15 @@ module IPv4 = struct
            Some s
        with _ -> None
 
+   (* Read an IPv4 address from a tuple *)
+   let addr_of_tuple (a,b,c,d) : addr =
+       let s = String.create 4 in
+       s.[0] <- Char.chr a;
+       s.[1] <- Char.chr b;
+       s.[2] <- Char.chr c;
+       s.[3] <- Char.chr d;
+       s
+
    let addr_to_string x =
        let chri i = Char.code x.[i] in
        Printf.sprintf "%d.%d.%d.%d" 

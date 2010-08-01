@@ -58,14 +58,14 @@ let create (num,domid) =
         match num with
         | 0 -> return (Array.of_list acc)
         | num -> 
-            lwt r = fn num in
-            iter_n fn (num - 1) (r :: acc) in
+            lwt gnt = Gnttab.get_free_entry () in
+            let id = num - 1 in
+            lwt r = fn id gnt in
+            iter_n fn id (r :: acc) in
 
     print_endline "init_rx_buffers";
     lwt rx_slots = iter_n 
-      (fun num ->
-        let id = num - 1 in
-        lwt gnt = Gnttab.get_free_entry () in
+      (fun id gnt ->
         let req = Ring.Netif_rx.req_get rx_ring id in
         Ring.Netif_rx.req_set req ~id ~gnt;
         Gnttab.grant_access gnt domid Gnttab.RW;
@@ -77,9 +77,7 @@ let create (num,domid) =
     let tx_freelist = Queue.create () in
     let tx_freelist_cond = Lwt_condition.create () in
     lwt tx_slots = iter_n
-      (fun num ->
-         let id = num - 1 in
-         lwt gnt = Gnttab.get_free_entry () in
+      (fun id gnt ->
          let res = Ring.Netif_tx.req_get tx_ring id in
          Ring.Netif_tx.req_set_gnt res gnt;
          Queue.push id tx_freelist;

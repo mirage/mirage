@@ -77,14 +77,34 @@ caml_##xtype##_ring_req_push(value v_ring, value v_idx, value v_evtchn) \
 } \
 \
 CAMLprim value \
-caml_##xtype##_ring_res_ack(value v_ring, value v_idx) \
+caml_##xtype##_ring_res_waiting(value v_ring) \
+{ \
+   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
+   return Val_int(RING_HAS_UNCONSUMED_RESPONSES(r)); \
+} \
+\
+CAMLprim value \
+caml_##xtype##_ring_res_ack(value v_ring, value v_num) \
 { \
    struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
    int more; \
-   r->rsp_cons++; \
+   r->rsp_cons += Int_val(v_num); \
    RING_FINAL_CHECK_FOR_RESPONSES(r, more); \
    return Val_bool(more ? 1 : 0); \
-} 
+} \
+\
+CAMLprim value \
+caml_##xtype##_ring_size(value v_unit) \
+{ \
+   return Val_int(__RING_SIZE((struct xtype##_sring *)0, PAGE_SIZE)); \
+} \
+\
+CAMLprim value \
+caml_##xtype##_ring_res_get_cons(value v_ring) \
+{ \
+   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
+   return Val_int(r->rsp_cons); \
+}
 
 DEFINE_RING_OPS(netif_tx);
 DEFINE_RING_OPS(netif_rx);
@@ -100,12 +120,31 @@ caml_netif_rx_ring_req_set(value v_req, value v_id, value v_gw)
     return Val_unit;
 }
 
+CAMLprim value
+caml_netif_tx_ring_req_set(value v_req, value v_off, value v_flags, value v_id, value v_size)
+{
+    netif_tx_request_t *r = (netif_tx_request_t *)v_req;
+    r->offset = Int_val(v_off);
+    r->flags = Int_val(v_flags);
+    r->id = Int_val(v_id);
+    r->size = Int_val(v_size);
+    return Val_unit;
+}
+
+CAMLprim value
+caml_netif_tx_ring_req_set_gnt(value v_req, value v_gw)
+{
+    netif_tx_request_t *r = (netif_tx_request_t *)v_req;
+    r->gref = Gnttab_wrap_val(v_gw)->ref;
+    return Val_unit;
+}
+
 /* These macros define direct accessor functions from OCaml
    to access individual structures in the response pointers */
 
 #define DEFINE_RING_RESP_GET_INT(xtype, xfield) \
 CAMLprim value \
-caml_##xtype##_ring_resp_get_##field(value v_resp) \
+caml_##xtype##_ring_res_get_##xfield(value v_resp) \
 { \
     xtype##_response_t *r = (xtype##_response_t *)v_resp; \
     return Val_int(r->xfield); \

@@ -140,13 +140,15 @@ let set_recv nf callback  =
         (* Lookup the grant page from the id in the raw descriptor *)
         let id',gnt,req = nf.rx_slots.(resp_raw.RX.id) in
         assert(id' = resp_raw.RX.id);
-        printf "   raw= %s gntid=%d\n%!" 
-        (RX.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
+        printf "   raw= %s gntid=%d\n%!" (RX.resp_raw_to_string resp_raw) (Gnttab.gnttab_ref gnt);
         (* Remove netback access to this grant *)
         Gnttab.end_access gnt;
         (* For now, just copy the grant over to an OCaml string.
            TODO: zero copy implementation *)
         let data = Gnttab.read gnt resp_raw.RX.offset resp_raw.RX.status in
+        (* rewrite the request and id on the ring as it will have been overwritten by responses *)
+        RX.rx_set_gnt req gnt;
+        RX.rx_set_id req id';
         (* since it has been copied, replenish the same used grant back to netfront *)
         Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
         (* advance the request producer pointer by one and push *)

@@ -106,7 +106,7 @@ let set_recv nf callback =
               let data = Gnttab.read gnt offset status in
               Ring.Netif_rx.req_set req ~id ~gnt;
               Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
-              Ring.Netif_rx.req_push nf.rx_ring (pos+1) nf.evtchn;
+              Ring.Netif_rx.req_push nf.rx_ring 1 nf.evtchn;
               callback data
            )
     in

@@ -65,11 +65,11 @@ caml_##xtype##_ring_res_get(value v_ring, value v_idx) \
 } \
 \
 CAMLprim value \
-caml_##xtype##_ring_req_push(value v_ring, value v_idx, value v_evtchn) \
+caml_##xtype##_ring_req_push(value v_ring, value v_num, value v_evtchn) \
 { \
    struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
    int notify; \
-   r->req_prod_pvt = Int_val(v_idx); \
+   r->req_prod_pvt += Int_val(v_num); \
    wmb (); \
    RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(r, notify); \
    if (notify) notify_remote_via_evtchn(Int_val(v_evtchn)); \

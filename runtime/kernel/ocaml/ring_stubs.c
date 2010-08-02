@@ -104,7 +104,13 @@ caml_##xtype##_ring_res_get_cons(value v_ring) \
 { \
    struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
    return Val_int(r->rsp_cons); \
-}
+} \
+CAMLprim value \
+caml_##xtype##_ring_req_get_prod(value v_ring) \
+{ \
+   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
+   return Val_int(r->req_prod_pvt); \
+} \
 
 DEFINE_RING_OPS(netif_tx);
 DEFINE_RING_OPS(netif_rx);

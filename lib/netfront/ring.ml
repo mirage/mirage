@@ -45,6 +45,7 @@ module Netif_tx = struct
     external req_push: t -> int -> port -> unit = "caml_netif_tx_ring_req_push" "noalloc"
     external res_waiting: t -> int = "caml_netif_tx_ring_res_waiting" "noalloc"
     external res_get_cons: t -> int = "caml_netif_tx_ring_res_get_cons" "noalloc"
+    external req_get_prod: t -> int = "caml_netif_tx_ring_req_get_prod" "noalloc"
     external res_ack: t -> num:int -> bool = "caml_netif_tx_ring_res_ack" "noalloc"
     external get_size: unit -> int = "caml_netif_tx_ring_size" "noalloc"
 
@@ -68,6 +69,7 @@ module Netif_rx = struct
     external req_push: t -> int -> port -> unit = "caml_netif_rx_ring_req_push" "noalloc"
     external res_waiting: t -> int = "caml_netif_rx_ring_res_waiting" "noalloc"
     external res_get_cons: t -> int = "caml_netif_rx_ring_res_get_cons" "noalloc"
+    external req_get_prod: t -> int = "caml_netif_rx_ring_req_get_prod" "noalloc"
     external res_ack: t -> num:int -> bool = "caml_netif_rx_ring_res_ack" "noalloc"
     external get_size: unit -> int = "caml_netif_rx_ring_size" "noalloc"
 

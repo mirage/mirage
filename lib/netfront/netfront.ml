@@ -99,7 +99,7 @@ let set_recv nf callback =
               let status = Ring.Netif_rx.res_get_status res in
               let id', gnt, req = nf.rx_slots.(id) in
               assert(id' = id);
-              assert(id = pos);
+              assert(id = pos); (* XXX this SHOULD fail when it overflows, just here to make sure it does and then remove *)
               Gnttab.end_access gnt;
               let data = Gnttab.read gnt offset status in
               Ring.Netif_rx.req_set req ~id ~gnt;
@@ -114,7 +114,7 @@ let set_recv nf callback =
 
 (* Transmit a packet from buffer, with offset and length *)  
 let xmit nf buf off len =
-(*
+    Printf.printf "xmit off=%d len=%d\n%!" off len;
     (* Get an ID from the freelist *)
     let rec get_id () = 
       try 
@@ -123,17 +123,15 @@ let xmit nf buf off len =
         Lwt_condition.wait nf.tx_freelist_cond >>
         get_id () in
     lwt id = get_id () in
-    let state = nf.state in
-    let cur_slot = TX.tx_prod_get state in
+    let cur_slot = Ring.Netif_tx.req_get_prod nf.tx_ring in
     let slot_id, gnt, req = nf.tx_slots.(cur_slot) in
-    assert(slot_id = cur_slot);
+    assert(slot_id = cur_slot); (* XXX this SHOULD fail when it overflows, just here to check that it does once then remove *)
     Gnttab.write gnt buf off len;
     Gnttab.grant_access gnt nf.backend_id Gnttab.RO;
-    TX.tx_set_param req 0 len 0 id;
-    TX.tx_prod_set state nf.evtchn (slot_id+1);
+    Ring.Netif_tx.req_set_gnt req gnt;
+    Ring.Netif_tx.req_set req ~offset:0 ~flags:0 ~id ~size:len;
+    Ring.Netif_tx.req_push nf.tx_ring 1 nf.evtchn;
     return ()  
-*)
-    return ()
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

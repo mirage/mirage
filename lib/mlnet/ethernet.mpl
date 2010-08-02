@@ -1,10 +1,8 @@
 packet ethernet {
     dest_mac: byte[6];
     src_mac: byte[6];
-    length: uint16 value(offset(end_of_packet)-offset(length));
-    classify (length) {
-        |46..1500:"E802_2" ->
-            data: byte[length];
+    ethertype: uint16;
+    classify (ethertype) {
         |0x0800:"IPv4" ->
             data: byte[remaining()];
         |0x0806:"ARP" ->

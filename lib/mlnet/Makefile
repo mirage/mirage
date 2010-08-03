@@ -13,15 +13,18 @@ NFLIB=$(ROOTDIR)/lib/netfront
 build: depend mlnet.cmxa
 	@ :
 
+MPL=ethernet ipv4 udp icmp
+MPLDEPS=$(MPL:%=mpl_%.ml)
+MLDEPS=$(MPLDEPS) mlnet_types.mli mpl_ethernet.ml netif.mli frame.mli arp.mli mlnet_types.ml frame.ml arp.ml netif.ml
 .PHONY: depend
-depend: mpl_ethernet.ml
+depend: $(MPLDEPS)
 
 mpl_%.ml: %.mpl
 	mplc -v $< > $@
 
-MLDEPS=mlnet_types.mli mpl_ethernet.ml netif.mli frame.mli arp.mli mlnet_types.ml netif.ml arp.ml frame.ml
+
 .mldeps: *.ml *.mli
-	#	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
+#	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
 	echo $(MLDEPS) > $@
 
 .cmxdeps: .mldeps

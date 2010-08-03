@@ -17,6 +17,8 @@
 open Printf
 open Lwt
 open Mpl_ethernet
+open Mpl_ipv4
+open Mpl_icmp
 
 module MT = Mlnet_types
 
@@ -27,10 +29,11 @@ let recv netif buf =
     let envbuf = String.make 4096 '\000' in
     let fillfn targ off len =
        assert(String.length envbuf > (String.length buf));
-       assert(off = 0);
-       String.blit buf 0 envbuf off (String.length buf);
-       String.length buf in
-
+       match off with
+       | 0 -> 0
+       | off ->
+           String.blit buf 0 envbuf off (String.length buf);
+           String.length buf in
     let env = Mpl_stdlib.new_env ~fillfn envbuf in
     try_lwt
         let ethernet = Ethernet.unmarshal env in
@@ -38,9 +41,16 @@ let recv netif buf =
         |`ARP o ->
             Ethernet.ARP.prettyprint o;
             Arp.recv netif o;
-        |`IPv4 o ->
-            Ethernet.IPv4.prettyprint o;
-            return ()
+        |`IPv4 o -> begin
+            let ipv4 = Ipv4.unmarshal o#data_env in
+            match ipv4#protocol with
+            |`ICMP -> begin
+                let icmp = Icmp.unmarshal ipv4#data_env in
+                Icmp.prettyprint icmp;
+                return ()
+            end
+            |_ -> return ()
+        end
         |_ -> return (printf "discarding non-IPv4/ARP ethernet frame")
     with 
         exn -> return (printf "exn: %s\n%!" (Printexc.to_string exn))

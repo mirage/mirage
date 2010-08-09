@@ -19,15 +19,17 @@
 #include <caml/memory.h>
 #include <caml/alloc.h>
 
-/* Reads an OCaml string out of a raw page into an OCaml string */
+/* Reads an OCaml string out of a raw page into an OCaml string 
+ * Same signature as String.blit except the source is a page 
+ */
 CAMLprim value
-caml_page_read_to_string(value v_page, value v_off, value v_len, value v_str)
+caml_page_read_to_string(value v_src, value v_srcoff, value v_dst, value v_dstoff, value v_len)
 {
-    CAMLparam4(v_page, v_off, v_len, v_str);
-    char *page = (char *)v_page;
-    if (Int_val(v_off) + Int_val(v_len) >= PAGE_SIZE || caml_string_length(v_str) < Int_val(v_len))
+    CAMLparam5(v_src, v_srcoff, v_dst, v_dstoff, v_len);
+    char *page = (char *)v_src;
+    if (Int_val(v_srcoff) + Int_val(v_len) >= PAGE_SIZE || caml_string_length(v_dst) + Int_val(v_dstoff) < Int_val(v_len))
         caml_array_bound_error();
-    memcpy(String_val(v_str), page + Int_val(v_off), Int_val(v_len));
+    memcpy(String_val(v_dst) + Int_val(v_dstoff), page + Int_val(v_srcoff), Int_val(v_len));
     CAMLreturn(Val_unit);
 }
 

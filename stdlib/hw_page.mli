@@ -20,7 +20,7 @@
 type t
 
 (** Read from a page into a supplied OCaml string (offset / length) *)
-external blit: t -> int -> int -> string -> unit = "caml_page_read_to_string"
+external blit : t -> int -> string -> int -> int -> unit = "caml_page_read_to_string"
 
 (** Read a single character from a 4K page. If the supplied offset is too
     big, it wraps around PAGE_SIZE *)

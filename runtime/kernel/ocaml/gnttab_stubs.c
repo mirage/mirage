@@ -176,3 +176,16 @@ caml_gnttab_fini(value unit)
     CAMLreturn(Val_unit);
 }
 
+/* Generate a Hw_page.t from a grant reference.  Be careful to remove
+   any external grants before calling this as it dissociates the
+   underlying page from the grant reference structure. */
+CAMLprim value
+caml_page_from_grant(value v_gw)
+{
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    void *page = gw->page;
+    gw->page = NULL;
+    if (page == NULL)
+        page = (void *)alloc_page();
+    return (value)page;
+}

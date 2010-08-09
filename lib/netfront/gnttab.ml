@@ -54,6 +54,7 @@ let grant_access r domid perm =
 let end_access r =
     gnttab_end_access r
 
+external release_page: r -> Hw_page.t = "caml_gnt_release_page"
 let read r off sz = gnttab_read r off sz
 let write r buf off sz = gnttab_write r buf off sz
 

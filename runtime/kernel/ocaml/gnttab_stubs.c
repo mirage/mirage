@@ -180,7 +180,7 @@ caml_gnttab_fini(value unit)
    any external grants before calling this as it dissociates the
    underlying page from the grant reference structure. */
 CAMLprim value
-caml_page_from_grant(value v_gw)
+caml_gnt_release_page(value v_gw)
 {
     gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
     void *page = gw->page;

@@ -9,7 +9,7 @@ val enumerate: unit -> netfront_id list Lwt.t
 val create: netfront_id -> netfront Lwt.t
 
 (** Add a receive callback function to this netfront. *)
-val set_recv : netfront -> (string -> unit Lwt.t) -> unit
+val set_recv : netfront -> (Page_stream.extent -> unit) -> unit
 
 (** Transmit a packet; can block
   * netfront -> buffer -> offset -> length -> unit Lwt.t

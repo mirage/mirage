@@ -101,15 +101,17 @@ let set_recv nf callback =
               assert(id' = id);
               assert(id = pos); (* XXX this SHOULD fail when it overflows, just here to make sure it does and then remove *)
               Gnttab.end_access gnt;
-              let data = Gnttab.read gnt offset status in
+              (* detach the data page from the grant and give it to the receive
+                 function to queue up for the application *)
+              let extent = Page_stream.extent gnt offset status in
               Ring.Netif_rx.req_set req ~id ~gnt;
               Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
               Ring.Netif_rx.req_push nf.rx_ring 1 nf.evtchn;
-              callback data
+              callback extent
            )
     in
     Lwt_mirage_main.Activations.register nf.evtchn 
-       (Lwt_mirage_main.Activations.Event_thread read);
+       (Lwt_mirage_main.Activations.Event_direct read);
     Mmap.evtchn_unmask nf.evtchn
 
 (* Transmit a packet from buffer, with offset and length *)  

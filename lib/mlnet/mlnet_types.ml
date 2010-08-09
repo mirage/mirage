@@ -83,13 +83,22 @@ let ipv4_addr_to_string x =
     Printf.sprintf "%d.%d.%d.%d" 
       (chri 0) (chri 1) (chri 2) (chri 3)
 
+type netif_state =
+   |Netif_up             (* Interface is active *)
+   |Netif_down           (* Interface is disabled *)
+   |Netif_shutting_down  (* Interface is shutting down *)
+
 type netif = {
    nf: Netfront.netfront;
-   mutable up: bool;
+   mutable state: netif_state;
    ip: ipv4_addr;
    netmask: ipv4_addr;
    gw: ipv4_addr;
    mac: ethernet_mac;
+   recv: Page_stream.t;
+   recv_cond: unit Lwt_condition.t;
+   recv_pool: string Lwt_pool.t;
+   xmit: Page_stream.t;
 }
 
 let netfront_of_netif x = x.nf

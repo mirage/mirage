@@ -21,36 +21,57 @@ open Mpl_ipv4
 open Mpl_icmp
 
 module MT = Mlnet_types
+module PS = Page_stream
 
-let recv netif buf =
-    let nf = MT.netfront_of_netif netif in
-    (* Just a temporary copying fill function until the paging
-       interface is in *)
-    let envbuf = String.make 4096 '\000' in
-    let fillfn targ off len =
-       assert(String.length envbuf > (String.length buf));
-       match off with
-       | 0 -> 0
-       | off ->
-           String.blit buf 0 envbuf off (String.length buf);
-           String.length buf in
-    let env = Mpl_stdlib.new_env ~fillfn envbuf in
-    try_lwt
-        let ethernet = Ethernet.unmarshal env in
-        match ethernet with
-        |`ARP o ->
-            Ethernet.ARP.prettyprint o;
-            Arp.recv netif o;
-        |`IPv4 o -> begin
-            let ipv4 = Ipv4.unmarshal o#data_env in
-            match ipv4#protocol with
-            |`ICMP -> begin
-                let icmp = Icmp.unmarshal ipv4#data_env in
-                Icmp.prettyprint icmp;
-                return ()
-            end
-            |_ -> return ()
-        end
-        |_ -> return (printf "discarding non-IPv4/ARP ethernet frame")
-    with 
-        exn -> return (printf "exn: %s\n%!" (Printexc.to_string exn))
+(* Receive a page, queue it up, and wake up the Ethernet thread *)
+let recv netif page =
+    let _ = PS.append page netif.MT.recv in
+    Lwt_condition.signal netif.MT.recv_cond ()
+
+(* A copying fill function for MPL that acts on pages
+ * Temporary until the MPL backend is modified to work directly 
+ * the page contents *)
+let page_fillfn netif envbuf dstbuf dstoff len =
+    assert(not (Lwt_sequence.is_empty netif.MT.recv));
+    let ext = Lwt_sequence.take_l netif.MT.recv in
+    assert(len < ext.PS.len);
+    Hw_page.blit ext.PS.page ext.PS.off dstbuf dstoff ext.PS.len;
+    ext.PS.len
+
+(* Loops around waiting for work to do *)
+let rec recv_thread netif =
+    if Lwt_sequence.is_empty netif.MT.recv then begin
+        match netif.MT.state with
+        |MT.Netif_shutting_down ->
+            (* If the interface is shutting down, and our receive pool
+               is empty, exit the thread *)
+            return ()
+        |_ -> 
+            Lwt_condition.wait netif.MT.recv_cond >>
+            recv_thread netif
+    end else begin
+        (* We have work to process! *)
+        Lwt_pool.use netif.MT.recv_pool
+          (fun envbuf -> 
+            let fillfn = page_fillfn netif envbuf in
+            let env = Mpl_stdlib.new_env ~fillfn envbuf in
+            try_lwt
+               match Ethernet.unmarshal env with
+               |`ARP o ->
+                   Ethernet.ARP.prettyprint o;
+                   Arp.recv netif o;
+               |`IPv4 o -> begin
+                   let ipv4 = Ipv4.unmarshal o#data_env in
+                    match ipv4#protocol with
+                    |`ICMP -> begin
+                        let icmp = Icmp.unmarshal ipv4#data_env in
+                        Icmp.prettyprint icmp;
+                        return ()
+                    end
+                    |_ -> return ()
+                end
+                |_ -> return (printf "discarding non-IPv4/ARP frame")
+            with exn -> return (printf "exn:%s\n%!" (Printexc.to_string exn))
+          ) >>
+        recv_thread netif
+    end

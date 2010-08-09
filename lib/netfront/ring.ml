@@ -25,13 +25,11 @@ let read_responses ring waiting get_cons get ack fn =
     let rec loop () = 
         let num = waiting ring in
         let cons = get_cons ring in
-        for_lwt i = cons to (cons + num - 1) do
+        for i = cons to (cons + num - 1) do
            fn i (get ring i) 
-        done >>
+        done;
         if ack ring ~num then
            loop ()
-        else 
-           return ()
     in loop ()
 
 module Netif_tx = struct

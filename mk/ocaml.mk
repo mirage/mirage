@@ -3,7 +3,7 @@ include $(ROOTDIR)/mk/base.mk
 
 OCAMLC ?= ocamlc.opt
 OCAMLOPT ?= ocamlopt.opt
-OCAMLDSORT ?= ocamldsort
+OCAMLDSORT ?= miragedsort.opt
 
 ifeq ($(OS),macosx)
 OCAMLOPT_FLAGS =

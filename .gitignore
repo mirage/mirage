@@ -40,3 +40,9 @@ tools/mpl/mpl_parser.mli
 tools/mpl/mplc
 lib/mlnet/mpl_*.ml
 /screenlog.*
+tools/ocamldsort/Makefile
+tools/ocamldsort/*.opt
+tools/ocamldsort/miragedsort
+tools/ocamldsort/config.log
+tools/ocamldsort/config.log
+tools/ocamldsort/config.status

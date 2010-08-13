@@ -1,8 +1,6 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-# not using ocamldsort by default since it requires a bugfix
-# to handle -pp properly, just storing output in repo directly
 SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
 
 STDLIB=$(ROOTDIR)/stdlib

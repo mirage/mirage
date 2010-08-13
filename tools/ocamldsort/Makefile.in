@@ -95,8 +95,8 @@ configure: configure.in
 install: dummy
 	install -d $(BINDIR)
 	install $(EXE) $(BINDIR)
-	install -d $(MANDIR)/man1
-	install $(EXE).1 $(MANDIR)/man1
+#	install -d $(MANDIR)/man1
+#	install $(EXE).1 $(MANDIR)/man1
 	if test -f $(EXE_OPT); then $(MAKE) install_opt; fi
 
 

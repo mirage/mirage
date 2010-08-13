@@ -55,3 +55,7 @@ let recv netif (arp:Mpl_ethernet.Ethernet.ARP.o) =
             return ()
     end
     | _ -> return ()
+
+let send_garp netif =
+    (* Send gratuitous ARP, usually on interface bringup *)
+    return ()

@@ -21,7 +21,7 @@ MANDIR=@mandir@
 ##############
 MKDIR=mkdir -p 
 CP=cp -f
-EXE=ocamldsort
+EXE=miragedsort
 EXE_OPT=$(EXE).opt
 
 # Compilation flags

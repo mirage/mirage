@@ -1,0 +1,130 @@
+# Various commands and dir
+##########################
+OCAMLBIN= @OCAMLBIN@
+OCAMLC   = @OCAMLC@
+OCAMLOPT = @OCAMLOPT@
+OCAMLDEP = @OCAMLDEP@
+OCAMLLEX = @OCAMLLEX@
+OCAMLYACC= @OCAMLYACC@
+OCAMLLIB = @OCAMLLIB@
+OCAMLBEST= @OCAMLBEST@
+OCAMLVERSION = @OCAMLVERSION@
+EXTRAC_CRC = $(OCAMLLIB)/extract_crc
+OCAMLDOC= @OCAMLDOC@
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+BINDIR=@bindir@
+MANDIR=@mandir@
+
+# For installation 
+##############
+MKDIR=mkdir -p 
+CP=cp -f
+EXE=miragedsort
+EXE_OPT=$(EXE).opt
+
+# Compilation flags
+######################
+COMPFLAGS=$(PPFLAGS)
+PPFLAGS=-pp camlp4o
+
+LIB=unix.cma
+LIB_OPT=$(LIB:.cma=.cmxa)
+CMO_FILES=files.cmo dep_debug.cmo dep_error.cmo dep_parse.cmo params.cmo \
+          dependencies.cmo dep_sort.cmo main.cmo
+CMX_FILES=files.cmx dep_debug.cmx dep_error.cmx dep_parse.cmx params.cmx \
+          dependencies.cmx dep_sort.cmx main.cmx
+
+all:: byte
+
+ifneq ($(OCAMLOPT), no)
+all:: opt 
+endif
+
+byte: $(EXE) 
+
+$(EXE): $(CMO_FILES)
+	$(OCAMLC) -o $@ $(LINKFLAGS) $(LIB) $^
+
+opt: $(EXE_OPT)
+
+$(EXE_OPT): $(CMX_FILES)
+	$(OCAMLOPT) -o $@ $(LINKFLAGS) $(LIB_OPT) $^
+
+bootstrap: all
+	make clean
+	make all CMO_FILES="$$(./$(EXE) $(PPFLAGS) -byte *.ml)" \
+	         CMX_FILES="$$(./$(EXE) $(PPFLAGS) -opt *.ml)"
+
+# generic rules :
+#################
+
+.SUFFIXES: .mli .ml .cmi .cmo .cmx .mll .mly .zog
+
+%.cmi:%.mli
+	$(OCAMLC) $(OCAMLPP) $(COMPFLAGS) -c $<
+
+%.cmo:%.ml
+	$(OCAMLC) $(OCAMLPP) $(COMPFLAGS) -c $<
+
+%.cmi %.cmo:%.ml
+	$(OCAMLC) $(OCAMLPP) $(COMPFLAGS) -c $<
+
+%.cmx %.o:%.ml
+	$(OCAMLOPT) $(OCAMLPP) $(COMPFLAGS) -c $<
+
+%.ml:%.mll
+	$(OCAMLLEX) $<
+
+%.mli %.ml:%.mly
+	$(OCAMLYACC) -v $<
+
+# myself
+
+Makefile: Makefile.in config.status
+	./config.status
+config.status: configure
+	./config.status --recheck
+
+configure: configure.in
+	autoconf
+
+# installation :
+################
+install: dummy
+	install -d $(BINDIR)
+	install $(EXE) $(BINDIR)
+#	install -d $(MANDIR)/man1
+#	install $(EXE).1 $(MANDIR)/man1
+	if test -f $(EXE_OPT); then $(MAKE) install_opt; fi
+
+
+install_opt: dummy
+	install -d $(BINDIR)
+	install $(EXE_OPT) $(BINDIR)
+
+dummy:
+
+
+
+# backup, clean and depend :
+############################
+
+clean_all:: clean
+	rm -f $(EXE) $(EXE_OPT)
+
+clean::
+	rm -f *~ \#*\#
+	rm -f *.cmo *.cmi *.cmx *.cma *.cmxa *.a *.o
+
+distclean:: clean_all
+	rm -f config.* Makefile
+
+.depend depend::
+	rm -f .depend
+	$(OCAMLDEP) $(PPFLAGS) $(INCLUDES) *.ml > .depend
+
+dummy:
+
+include .depend

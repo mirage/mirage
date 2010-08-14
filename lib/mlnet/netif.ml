@@ -9,6 +9,7 @@ let default_netif = ref None
 let all_netif = ref []
 
 exception Invalid_ethernet_mac of string
+exception Invalid_mode_change
 
 let create ?(default=true) ?(up=true) ~ip ~netmask ~gw vif_id  =
     lwt nf = Netfront.create vif_id in
@@ -30,6 +31,16 @@ let create ?(default=true) ?(up=true) ~ip ~netmask ~gw vif_id  =
     Netfront.set_recv nf (Frame.recv t);
     return (t, recv_thread)
 
+let set_mode netif new_mode = 
+    match new_mode, netif.MT.state with
+    | MT.Netif_up, MT.Netif_down ->
+        netif.MT.state <- MT.Netif_up;
+        Arp.send_garp netif
+    | _, MT.Netif_shutting_down ->
+        fail Invalid_mode_change
+    | _ ->
+        return ()
+    
 (* Fold a function over active interfaces *)
 let fold_active fn a =
     List.fold_left (fun a t ->

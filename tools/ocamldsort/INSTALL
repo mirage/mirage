@@ -1,0 +1,7 @@
+Type:
+	./configure
+	make
+	make install
+
+To bootstrap ocamldsort (just for fun):
+	make bootstrap

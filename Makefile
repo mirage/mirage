@@ -18,6 +18,10 @@ all:
 	@cd syntax && $(MAKE)
 	@cd lib && $(MAKE)
 
+bootstrap:
+	@cd tools && $(MAKE)
+	@cd syntax && $(MAKE)
+
 clean:
 	@cd tools && $(MAKE) clean
 	@cd stdlib && $(MAKE) clean

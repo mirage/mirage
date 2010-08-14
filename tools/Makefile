@@ -6,7 +6,7 @@ all:
 .PHONY: clean
 clean:
 	cd mpl && $(MAKE) clean
-	cd ocamldsort && $(MAKE) clean
+	cd ocamldsort && $(MAKE) clean || true
 
 .PHONY: install
 install:

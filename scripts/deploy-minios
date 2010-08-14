@@ -2,7 +2,7 @@
 # Run and profile a Mirage minios kernel
 # Assumes the file is under test/$1
 
-PROFILING=${MIRAGE_PROFILING:-1}
+PROFILING=${MIRAGE_PROFILING:-0}
 MIRAGE_ROOT=${MIRAGE_ROOT:-`pwd`}
 export MIRAGE_ROOT
 CONF=${MIRAGE_ROOT}/scripts/minios-config.in

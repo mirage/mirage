@@ -147,6 +147,7 @@ let init () =
         partial_out = "" } in
     Lwt_mirage_main.Activations.register evtchn 
        (Lwt_mirage_main.Activations.Event_direct (perform_actions backend));
+    Evtchn.unmask evtchn;
     con
 
 let output_len con = Queue.length con.pkt_out

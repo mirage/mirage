@@ -36,16 +36,6 @@
 #define NR_EVENTS 16 /* same as events.c XXX */
 static uint8_t ev_callback_ml[NR_EVENTS];
 
-/* Initialise the events Bigarray */
-CAMLprim value
-caml_evtchn_init(value v_unit)
-{
-    CAMLparam1(v_unit);
-    CAMLlocal1(v_arr);
-    v_arr = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1, ev_callback_ml, NR_EVENTS);
-    CAMLreturn(v_arr);
-}
-
 /* Called with interrupts enabled to mark an event channel as being
    active. Safe to call multiple times... */
 static void
@@ -53,6 +43,18 @@ caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
 {
     ASSERT(port < NR_EVENTS);
     ev_callback_ml[port] = 1;
+}
+
+/* Initialise the events Bigarray and bind the predefined ports */
+CAMLprim value
+caml_evtchn_init(value v_unit)
+{
+    CAMLparam1(v_unit);
+    CAMLlocal1(v_arr);
+    int rc;
+    v_arr = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1, ev_callback_ml, NR_EVENTS);
+    rc = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
+    CAMLreturn(v_arr);
 }
 
 CAMLprim value

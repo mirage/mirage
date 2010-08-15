@@ -7,7 +7,7 @@ STDLIB=$(ROOTDIR)/stdlib
 LWTLIB=$(ROOTDIR)/lib/lwt
 
 .PHONY: build
-build: xslib.cmxa
+build: xen.cmx
 	@ :
 
 .mldeps: *.ml *.mli
@@ -16,9 +16,10 @@ build: xslib.cmxa
 .cmxdeps: .mldeps
 	$(OCAMLDSORT) $(SYNTAX) -opt *.ml > $@
 
-xslib.cmxa: .cmxdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -annot -I $(STDLIB) -I $(LWTLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -a -o $@ `cat .cmxdeps`
+xen.cmx: .cmxdeps .mldeps
+	$(OCAMLOPT) -c -nostdlib -for-pack Xen -annot -I $(STDLIB) -I $(LWTLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
+	$(OCAMLOPT) -c -nostdlib -for-pack Xen -annot -I $(STDLIB) -I $(LWTLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
+	$(OCAMLOPT) -pack -o $@ `cat .cmxdeps`
 
 .PHONY: clean
 clean:

@@ -5,7 +5,7 @@ SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
 
 STDLIB=$(ROOTDIR)/stdlib
 LWTLIB=$(ROOTDIR)/lib/lwt
-XSLIB=$(ROOTDIR)/lib/xs
+XSLIB=$(ROOTDIR)/lib/xen
 
 .PHONY: build
 build: netfrontlib.cmxa

@@ -134,8 +134,8 @@ caml_##xname##_ring_write(value v_ring, value v_str, value v_len) \
    XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
    cons = intf->xout##_cons; \
    prod = intf->xout##_prod; \
-   cons_mask = cons & (sizeof(intf->xout - 1)); \
-   prod_mask = prod & (sizeof(intf->xout - 1)); \
+   cons_mask = cons & (sizeof(intf->xout) - 1); \
+   prod_mask = prod & (sizeof(intf->xout) - 1); \
    mb(); \
    if ( (prod-cons) >= sizeof(intf->xout) ) \
      return(Val_int(0)); \
@@ -159,8 +159,8 @@ caml_##xname##_ring_read(value v_ring, value v_str, value v_len) \
    mb (); \
    cons = intf->xin##_cons; \
    prod = intf->xin##_prod; \
-   cons_mask = cons & (sizeof(intf->xout - 1)); \
-   prod_mask = prod & (sizeof(intf->xout - 1)); \
+   cons_mask = cons & (sizeof(intf->xin) - 1); \
+   prod_mask = prod & (sizeof(intf->xin) - 1); \
    if (prod == cons) \
      return (Val_int(0)); \
    if (prod_mask > cons_mask) \
@@ -176,7 +176,7 @@ caml_##xname##_ring_read(value v_ring, value v_str, value v_len) \
 } \
 
 DEFINE_RAW_RING_OPS(console,xencons_interface,in,out);
-DEFINE_RAW_RING_OPS(xenstore,xenstore_domain_interface,req,rsp);
+DEFINE_RAW_RING_OPS(xenstore,xenstore_domain_interface,rsp,req);
 
 CAMLprim value
 caml_xenstore_custom_ring_init(value v_gw)

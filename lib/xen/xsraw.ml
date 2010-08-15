@@ -1,5 +1,6 @@
 (*
  * Copyright (C) 2006-2009 Citrix Systems Inc.
+ * Copyright (C) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published

@@ -94,6 +94,6 @@ module Xenstore = struct
     type t
     external init: Gnttab.r -> t = "caml_xenstore_custom_ring_init" "noalloc"
     external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write" "noalloc"
-    external unsafe_read: t -> string -> int -> int = "caml_console_ring_read" "noalloc"
+    external unsafe_read: t -> string -> int -> int = "caml_xenstore_ring_read" "noalloc"
     let alloc domid = alloc init domid
 end

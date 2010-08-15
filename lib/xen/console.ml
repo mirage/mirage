@@ -91,3 +91,5 @@ let write cons buf off len =
     assert(len <= String.length buf + off);
     let _ = Ring.Console.unsafe_write cons.ring buf (String.length buf) in
     Evtchn.notify cons.evtchn
+
+let t = create ()

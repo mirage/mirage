@@ -1,7 +1,8 @@
 open Lwt
+open Xen
 
 let main () =
-   let cons = Console.create () in
+   let cons = Console.t in
    let s = "abcdefghi\n" in
    Lwt_mirage.sleep 4. >>
    Console.sync_write cons s 0 (String.length s) >>

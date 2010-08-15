@@ -22,7 +22,7 @@
 let load_path = ref []
 let preprocessor = ref None
 let filenames = ref []
-let ocamldep = ref "ocamldep"
+let ocamldep = ref "ocamldep.opt"
 let sort_strat = ref Params.Sort_ml
 let no_x = ref false
 

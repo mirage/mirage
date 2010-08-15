@@ -33,6 +33,7 @@ external gnttab_write : r -> string -> int -> int -> unit = "caml_gnttab_write"
 
 module Reserved = struct
     let xenstore () = gnttab_new 1
+    let console () = gnttab_new 2
 end
 
 let free_list = Queue.create ()

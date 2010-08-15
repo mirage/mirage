@@ -13,25 +13,14 @@
  * GNU Lesser General Public License for more details.
  */
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <string.h>
-#include "mmap_stubs.h"
-
-#include <xen/xen.h>
-#include <mini-os/hypervisor.h>
+#include <mini-os/x86/os.h>
 #include <mini-os/events.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 #include <caml/alloc.h>
-#include <caml/custom.h>
-#include <caml/fail.h>
 #include <caml/callback.h>
 #include <caml/bigarray.h>
-
-#define GET_C_STRUCT(a) ((struct mmap_interface *) a)
 
 #define NR_EVENTS 16 /* same as events.c XXX */
 static uint8_t ev_callback_ml[NR_EVENTS];
@@ -54,6 +43,7 @@ caml_evtchn_init(value v_unit)
     int rc;
     v_arr = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1, ev_callback_ml, NR_EVENTS);
     rc = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
+    rc = bind_evtchn(start_info.console.domU.evtchn, caml_evtchn_handler, NULL);
     CAMLreturn(v_arr);
 }
 
@@ -93,3 +83,11 @@ stub_xenstore_evtchn_port(value unit)
         CAMLparam1(unit);
         CAMLreturn(Val_int(start_info.store_evtchn));
 }
+
+CAMLprim value
+stub_console_evtchn_port(value unit)
+{
+	CAMLparam1(unit);
+	CAMLreturn(Val_int(start_info.console.domU.evtchn));
+}
+

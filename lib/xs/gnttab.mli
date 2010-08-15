@@ -12,4 +12,5 @@ external release_page : r -> Hw_page.t = "caml_gnt_release_page"
 
 module Reserved : sig
    val xenstore : unit -> r
+   val console : unit -> r
 end

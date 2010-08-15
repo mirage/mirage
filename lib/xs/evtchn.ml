@@ -14,33 +14,8 @@
  *)
 
 external xenstore_port: unit -> int = "stub_xenstore_evtchn_port"
+external console_port: unit -> int = "stub_console_evtchn_port"
 
 external alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
 external unmask: int -> unit = "stub_evtchn_unmask"
 external notify: int -> unit = "stub_evtchn_notify"
-
-(* Blocking Xenstore reads that may be cancelled will register with
-   this sequence using wait(), and will be removed from it if cancelled *)
-let xenstore_waiters = Lwt_sequence.create ()
-
-(** Callback to go through the active waiting threads and wake them *)
-let perform_actions () =
-    Lwt_sequence.iter_node_l 
-      (fun node ->
-         Lwt_sequence.remove node;
-         Lwt.wakeup (Lwt_sequence.get node) ();
-      ) xenstore_waiters
-
-(** Called by a Xenstore thread that wishes to sleep (or be cancelled) *)
-let xenstore_wait () =
-   let t,u = Lwt.task () in
-   let node = Lwt_sequence.add_r u xenstore_waiters in
-   Lwt.on_cancel t (fun _ -> Lwt_sequence.remove node);
-   t
-
-(** Register the callback for the Xenstore event port
-let _ = 
-    let port = xenstore_evtchn_port () in
-    Printf.printf "CONDITION: registering on port %d\n%!" port;
-    Lwt_mirage_main.Activations.register port (Lwt_mirage_main.Activations.Event_direct perform_actions)
-*)

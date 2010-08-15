@@ -173,15 +173,23 @@ caml_##xname##_ring_read(value v_ring, value v_str, value v_len) \
    mb (); \
    intf->xin##_cons += len; \
    return Val_int(len); \
-} \
+}
 
 DEFINE_RAW_RING_OPS(console,xencons_interface,in,out);
 DEFINE_RAW_RING_OPS(xenstore,xenstore_domain_interface,rsp,req);
 
 CAMLprim value
-caml_xenstore_custom_ring_init(value v_gw)
+caml_console_start_ring_init(value v_gw)
 {
-    int err;
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    ASSERT(gw->page == NULL);
+    gw->page = mfn_to_virt(start_info.console.domU.mfn);
+    return (value)gw->page;
+}
+
+CAMLprim value
+caml_xenstore_start_ring_init(value v_gw)
+{
     gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
     ASSERT(gw->page == NULL);
     gw->page = mfn_to_virt(start_info.store_mfn);

@@ -18,6 +18,7 @@
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 #include <caml/alloc.h>
+#include <caml/fail.h>
 
 /* Reads an OCaml string out of a raw page into an OCaml string 
  * Same signature as String.blit except the source is a page 

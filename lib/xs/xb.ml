@@ -137,7 +137,7 @@ let input con =
 
 let init () =
     let gnt = Gnttab.Reserved.xenstore () in
-    let ring = Ring.Xenstore.init gnt in
+    let ring = Ring.Xenstore.start_init gnt in
     let evtchn = Evtchn.xenstore_port () in
     let notify () = Evtchn.notify evtchn in
     let waiters = Lwt_sequence.create () in

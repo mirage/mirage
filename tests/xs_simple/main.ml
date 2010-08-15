@@ -5,7 +5,7 @@ let p x = print_endline x; Gc.compact ()
 
 let xs_test () =
    p "starting";
-   let xsh = Xs.make_mmap () in
+   let xsh = Xs.t in
    let try_xs fn a =
       try_lwt fn a
       with 

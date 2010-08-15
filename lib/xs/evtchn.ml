@@ -13,18 +13,11 @@
  * GNU Lesser General Public License for more details.
  *)
 
-(* XXX This file has a mix of mmap and event handling functions. 
-   Needs a renaming ... it was called Mmap due to the upstream
-   version it was first modified from... *)
+external xenstore_port: unit -> int = "stub_xenstore_evtchn_port"
 
-type mmap_interface
-
-external xenstore_init: unit -> mmap_interface = "stub_xenstore_init"
-external xenstore_evtchn_port: unit -> int = "stub_xenstore_evtchn_port"
-external xenstore_evtchn_notify: unit -> unit = "stub_xenstore_evtchn_notify"
-
-external evtchn_alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
-external evtchn_unmask: int -> unit = "stub_evtchn_unmask"
+external alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
+external unmask: int -> unit = "stub_evtchn_unmask"
+external notify: int -> unit = "stub_evtchn_notify"
 
 (* Blocking Xenstore reads that may be cancelled will register with
    this sequence using wait(), and will be removed from it if cancelled *)
@@ -45,8 +38,9 @@ let xenstore_wait () =
    Lwt.on_cancel t (fun _ -> Lwt_sequence.remove node);
    t
 
-(** Register the callback for the Xenstore event port *)
+(** Register the callback for the Xenstore event port
 let _ = 
     let port = xenstore_evtchn_port () in
     Printf.printf "CONDITION: registering on port %d\n%!" port;
     Lwt_mirage_main.Activations.register port (Lwt_mirage_main.Activations.Event_direct perform_actions)
+*)

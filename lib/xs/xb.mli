@@ -76,11 +76,7 @@ exception End_of_file
 exception Eagain
 exception Noent
 exception Invalid
-type backend = {
-  mmap : Mmap.mmap_interface;
-  eventchn_notify : unit -> unit;
-  mutable work_again : bool;
-}
+type backend
 type partial_buf = HaveHdr of Xb_partial.pkt | NoHdr of int * string
 type t = {
   backend : backend;
@@ -95,9 +91,7 @@ val read : t -> string -> int -> int Lwt.t
 val write : t -> string -> int -> int Lwt.t
 val output : t -> bool Lwt.t
 val input : t -> bool Lwt.t
-val newcon : backend -> t
-val backend : Mmap.mmap_interface -> (unit -> unit) -> t
-val open_mmap : unit -> t
+val init : unit -> t
 val output_len : t -> int
 val has_new_output : t -> bool
 val has_old_output : t -> bool
@@ -106,4 +100,3 @@ val peek_output : t -> Packet.t
 val input_len : t -> int
 val has_in_packet : t -> bool
 val get_in_packet : t -> Packet.t
-val has_more_input : t -> bool

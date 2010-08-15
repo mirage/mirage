@@ -31,10 +31,9 @@ type con = {
 	watchevents: (string * string) Queue.t;
 }
 
-let open_mmap () = {
-	xb = Xb.open_mmap ();
-	watchevents = Queue.create ();
-}
+let create () = 
+	let xb = Xb.init () in
+	{ xb = xb; watchevents = Queue.create () }
 
 let rec split_string ?limit:(limit=(-1)) c s =
 	let i = try String.index s c with Not_found -> -1 in

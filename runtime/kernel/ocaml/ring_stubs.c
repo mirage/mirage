@@ -18,12 +18,14 @@
 #include <mini-os/gnttab.h>
 #include <mini-os/events.h>
 #include <xen/io/netif.h>
+#include <xen/io/console.h>
+#include <xen/io/xs_wire.h>
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
 
-/* The DEFINE_RING_OPS macro defines OCaml functions to initialise and
+/* The DEFINE_TYPED_RING_OPS macro defines OCaml functions to initialise and
    perform common ring operations on a specified type that has been
    previously declared using the DEFINE_RING_TYPES macro. This must be
    done using separate functions since the RING_* macros need to know
@@ -35,7 +37,7 @@
    to avoid allocation and since Mirage is 64-bit only, we use Val_int
    here without problem, but beware if you want to run on x86_32 */
 
-#define DEFINE_RING_OPS(xtype) \
+#define DEFINE_TYPED_RING_OPS(xtype) \
 CAMLprim value \
 caml_##xtype##_ring_init(value v_gw) \
 { \
@@ -112,8 +114,79 @@ caml_##xtype##_ring_req_get_prod(value v_ring) \
    return Val_int(r->req_prod_pvt); \
 } \
 
-DEFINE_RING_OPS(netif_tx);
-DEFINE_RING_OPS(netif_rx);
+DEFINE_TYPED_RING_OPS(netif_tx);
+DEFINE_TYPED_RING_OPS(netif_rx);
+
+#define DEFINE_RAW_RING_OPS(xname,xtype,xin,xout) \
+CAMLprim value \
+caml_##xname##_ring_init(value v_gw) \
+{ \
+   gnttab_wrap *gw = Gnttab_wrap_val(v_gw); \
+   if (gw->page == NULL) gw->page = (void *)alloc_page(); \
+   memset(gw->page, 0, PAGE_SIZE); \
+   return (value)gw->page; \
+} \
+CAMLprim value \
+caml_##xname##_ring_write(value v_ring, value v_str, value v_len) \
+{ \
+   struct xtype *intf = (struct xtype *)v_ring; \
+   int can_write = 0, len = Int_val(v_len); \
+   XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
+   cons = intf->xout##_cons; \
+   prod = intf->xout##_prod; \
+   cons_mask = cons & (sizeof(intf->xout - 1)); \
+   prod_mask = prod & (sizeof(intf->xout - 1)); \
+   mb(); \
+   if ( (prod-cons) >= sizeof(intf->xout) ) \
+     return(Val_int(0)); \
+   if (prod_mask >= cons_mask) \
+     can_write = sizeof(intf->xout) - prod_mask; \
+   else \
+     can_write = cons_mask - prod_mask; \
+   if (can_write < len) \
+     len = can_write; \
+   memcpy(intf->xout + prod_mask, String_val(v_str), len); \
+   mb (); \
+   intf->xout##_prod += len; \
+   return Val_int(len); \
+} \
+CAMLprim value \
+caml_##xname##_ring_read(value v_ring, value v_str, value v_len) \
+{ \
+   struct xtype *intf = (struct xtype *)v_ring; \
+   int to_read, len = Int_val(v_len); \
+   XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
+   mb (); \
+   cons = intf->xin##_cons; \
+   prod = intf->xin##_prod; \
+   cons_mask = cons & (sizeof(intf->xout - 1)); \
+   prod_mask = prod & (sizeof(intf->xout - 1)); \
+   if (prod == cons) \
+     return (Val_int(0)); \
+   if (prod_mask > cons_mask) \
+     to_read = prod - cons; \
+   else \
+     to_read = sizeof(intf->xin) - cons_mask; \
+   if (to_read < len) \
+     len = to_read; \
+   memcpy(String_val(v_str), intf->xin + cons_mask, len); \
+   mb (); \
+   intf->xin##_cons += len; \
+   return Val_int(len); \
+} \
+
+DEFINE_RAW_RING_OPS(console,xencons_interface,in,out);
+DEFINE_RAW_RING_OPS(xenstore,xenstore_domain_interface,req,rsp);
+
+CAMLprim value
+caml_xenstore_custom_ring_init(value v_gw)
+{
+    int err;
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    ASSERT(gw->page == NULL);
+    gw->page = mfn_to_virt(start_info.store_mfn);
+    return (value)gw->page;
+}
 
 /* Manually fill in functions to set parameters in requests */
 

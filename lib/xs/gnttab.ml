@@ -31,6 +31,10 @@ external gnttab_end_access : r -> unit = "caml_gnttab_end_access"
 external gnttab_read : r -> int -> int -> string = "caml_gnttab_read"
 external gnttab_write : r -> string -> int -> int -> unit = "caml_gnttab_write"
 
+module Reserved = struct
+    let xenstore () = gnttab_new 1
+end
+
 let free_list = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
 

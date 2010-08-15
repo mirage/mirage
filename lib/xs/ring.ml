@@ -82,3 +82,18 @@ module Netif_rx = struct
     let read_responses ring fn = read_responses ring res_waiting res_get_cons res_get res_ack fn
 end
 
+module Console = struct
+    type t
+    external init: Gnttab.r -> t = "caml_console_ring_init" "noalloc"
+    external unsafe_write: t -> string -> int -> int = "caml_console_ring_write" "noalloc"
+    external unsafe_read: t -> string -> int -> int = "caml_console_ring_read" "noalloc"
+    let alloc domid = alloc init domid
+end
+
+module Xenstore = struct
+    type t
+    external init: Gnttab.r -> t = "caml_xenstore_custom_ring_init" "noalloc"
+    external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write" "noalloc"
+    external unsafe_read: t -> string -> int -> int = "caml_console_ring_read" "noalloc"
+    let alloc domid = alloc init domid
+end

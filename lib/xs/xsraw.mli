@@ -3,7 +3,7 @@ exception Unexpected_packet of string
 exception Invalid_path of string
 val unexpected_packet : Xb.Op.operation -> Xb.Op.operation -> 'a Lwt.t
 type con = { xb : Xb.t; watchevents : (string * string) Queue.t; }
-val open_mmap : unit -> con
+val create : unit -> con 
 val split_string : ?limit:int -> char -> string -> string list
 type perm = PERM_NONE | PERM_READ | PERM_WRITE | PERM_RDWR
 type perms = int * perm * (int * perm) list

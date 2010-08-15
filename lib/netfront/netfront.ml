@@ -39,7 +39,7 @@ let create (num,domid) =
     Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num domid;
     lwt (tx_ring_ref, tx_ring) = Ring.Netif_tx.alloc domid in
     lwt (rx_ring_ref, rx_ring)  = Ring.Netif_rx.alloc domid in
-    let evtchn = Mmap.evtchn_alloc_unbound_port domid in
+    let evtchn = Evtchn.alloc_unbound_port domid in
 
     let node = Printf.sprintf "device/vif/%d/" num in
     lwt backend = Xs.t.Xs.read (node ^ "backend") in
@@ -112,7 +112,7 @@ let set_recv nf callback =
     in
     Lwt_mirage_main.Activations.register nf.evtchn 
        (Lwt_mirage_main.Activations.Event_direct read);
-    Mmap.evtchn_unmask nf.evtchn
+    Evtchn.unmask nf.evtchn
 
 (* Transmit a packet from buffer, with offset and length *)  
 let xmit nf buf off len =

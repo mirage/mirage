@@ -77,23 +77,12 @@ stub_evtchn_unmask(value v_port)
     CAMLreturn(Val_unit);
 }
 
-/* At start of day, get a pointer to Xenstore, and also bind an 
-   event channel */
 CAMLprim value
-stub_xenstore_init(value unit)
+stub_evtchn_notify(value v_port)
 {
-	CAMLparam1(unit);
-	CAMLlocal1(result);
-        int err;
-
-	result = caml_alloc(sizeof(struct mmap_interface), Abstract_tag);
-
-        GET_C_STRUCT(result)->len = 4096;
-        GET_C_STRUCT(result)->addr = mfn_to_virt(start_info.store_mfn);
-
-        err = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
-        unmask_evtchn(start_info.store_evtchn);
-	CAMLreturn(result);
+        CAMLparam1(v_port);
+        notify_remote_via_evtchn(Int_val(v_port));
+        CAMLreturn(Val_unit);
 }
 
 CAMLprim value
@@ -101,12 +90,4 @@ stub_xenstore_evtchn_port(value unit)
 {
         CAMLparam1(unit);
         CAMLreturn(Val_int(start_info.store_evtchn));
-}
-
-CAMLprim value
-stub_xenstore_evtchn_notify(value unit)
-{
-        CAMLparam1(unit);
-        notify_remote_via_evtchn(start_info.store_evtchn);
-        CAMLreturn(Val_unit);
 }

@@ -9,3 +9,7 @@ val end_access : r -> unit
 val gnttab_ref : r -> int
 val to_string : r -> string
 external release_page : r -> Hw_page.t = "caml_gnt_release_page"
+
+module Reserved : sig
+   val xenstore : unit -> r
+end

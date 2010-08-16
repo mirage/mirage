@@ -145,8 +145,8 @@ let init () =
     let con = { backend=backend; pkt_in=Queue.create ();
         pkt_out=Queue.create (); partial_in = init_partial_in ();
         partial_out = "" } in
-    Lwt_mirage_main.Activations.register evtchn 
-       (Lwt_mirage_main.Activations.Event_direct (perform_actions backend));
+    Activations.register evtchn 
+      (Activations.Event_direct (perform_actions backend));
     Evtchn.unmask evtchn;
     con
 

@@ -50,8 +50,8 @@ let create () =
     let waiters = Lwt_sequence.create () in
     let con = { backend_id=backend_id; gnt=gnt; ring=ring;
         evtchn=evtchn; waiters=waiters } in
-    Lwt_mirage_main.Activations.register evtchn
-       (Lwt_mirage_main.Activations.Event_direct (perform_actions waiters));
+    Activations.register evtchn
+       (Activations.Event_direct (perform_actions waiters));
     Evtchn.unmask evtchn;
     Evtchn.notify evtchn;
     con

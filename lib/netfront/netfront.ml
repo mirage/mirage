@@ -111,8 +111,7 @@ let set_recv nf callback =
               callback extent
            )
     in
-    Lwt_mirage_main.Activations.register nf.evtchn 
-       (Lwt_mirage_main.Activations.Event_direct read);
+    Activations.register nf.evtchn (Activations.Event_direct read);
     Evtchn.unmask nf.evtchn
 
 (* Transmit a packet from buffer, with offset and length *)  

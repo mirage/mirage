@@ -98,7 +98,7 @@ let rec restart_threads now =
    | Event loop                                                      |
    +-----------------------------------------------------------------+ *)
 
-let run = Lwt_mirage_main.run
+let run = Main.run
 
 let rec get_next_timeout now timeout =
   match SleepQueue.lookup_min !sleep_queue with
@@ -106,7 +106,7 @@ let rec get_next_timeout now timeout =
         sleep_queue := SleepQueue.remove_min !sleep_queue;
         get_next_timeout now timeout
     | Some{ time = time } ->
-        Lwt_mirage_main.min_timeout timeout (Some(if time = 0. then 0. else max 0. (time -. (Lazy.force now))))
+        Main.min_timeout timeout (Some(if time = 0. then 0. else max 0. (time -. (Lazy.force now))))
     | None ->
         timeout
 
@@ -122,5 +122,5 @@ let select_filter now select timeout =
   restart_threads now;
   now, act
 
-let _ = Lwt_sequence.add_l select_filter Lwt_mirage_main.select_filters
+let _ = Lwt_sequence.add_l select_filter Main.select_filters
 

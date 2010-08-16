@@ -116,8 +116,8 @@ let read_watchevent_timeout xsh timeout callback =
                     if not(!success) then (
                         lwt s =
                           try_lwt
-                            Lwt_mirage.with_timeout timeout process_incoming_event
-                          with Lwt_mirage.Timeout ->
+                            Time.with_timeout timeout process_incoming_event
+                          with Time.Timeout ->
                             return false
                         in
                         success := s;

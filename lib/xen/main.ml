@@ -36,13 +36,13 @@ let min_timeout a b = match a, b with
   | Some a, Some b -> Some(min a b)
 
 let apply_filters select =
-  let now = Lazy.lazy_from_fun Mir.gettimeofday in
+  let now = Lazy.lazy_from_fun Clock.time in
   Lwt_sequence.fold_l (fun filter select -> filter now select) select_filters select
 
 let default_select timeout =
   block_domain (match timeout with None -> 10. |Some t -> t);
   let activations = Activations.run () in
-  Lazy.lazy_from_fun Mir.gettimeofday, activations
+  Lazy.lazy_from_fun Clock.time, activations
 
 let default_iteration () =
   Lwt.wakeup_paused ();

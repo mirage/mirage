@@ -53,7 +53,7 @@ let new_sleeps = ref []
 
 let sleep d =
   let (res, w) = Lwt.task () in
-  let t = if d <= 0. then 0. else Mir.gettimeofday () +. d in
+  let t = if d <= 0. then 0. else Clock.time () +. d in
   let sleeper = { time = t; canceled = false; thread = w } in
   new_sleeps := sleeper :: !new_sleeps;
   Lwt.on_cancel res (fun _ -> sleeper.canceled <- true);
@@ -62,9 +62,9 @@ let sleep d =
 let yield () = sleep 0.
 
 let auto_yield timeout =
-  let limit = ref (Mir.gettimeofday () +. timeout) in
+  let limit = ref (Clock.time () +. timeout) in
   fun () ->
-    let current = Mir.gettimeofday () in
+    let current = Clock.time () in
     if current >= !limit then begin
       limit := current +. timeout;
       yield ();

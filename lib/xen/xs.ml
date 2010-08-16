@@ -79,7 +79,7 @@ exception Timeout
 exception Timeout_with_nonempty_queue
 
 let read_watchevent_timeout xsh timeout callback =
-	let start_time = Mir.gettimeofday () in
+	let start_time = Clock.time () in
 	let end_time = start_time +. timeout in
 
 	let left = ref timeout in
@@ -132,7 +132,7 @@ let read_watchevent_timeout xsh timeout callback =
 	      	    then success := process_queued_events ();
 
 		(* Update the time left *)
-		let current_time = Mir.gettimeofday () in
+		let current_time = Clock.time () in
 		left := end_time -. current_time;
                 if !left > 0. then 
                     loop ()

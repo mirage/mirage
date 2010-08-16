@@ -76,9 +76,6 @@
     }
 
 #define NOFILE 32
-extern int xc_evtchn_close(int fd);
-extern int xc_interface_close(int fd);
-extern int xc_gnttab_close(int fd);
 
 struct file files[NOFILE] = {
     { .type = FTYPE_CONSOLE }, /* stdin */
@@ -86,274 +83,12 @@ struct file files[NOFILE] = {
     { .type = FTYPE_CONSOLE }, /* stderr */
 };
 
-DECLARE_WAIT_QUEUE_HEAD(event_queue);
-
-int alloc_fd(enum fd_type type)
-{
-    int i;
-    for (i=0; i<NOFILE; i++) {
-	if (files[i].type == FTYPE_NONE) {
-	    files[i].type = type;
-	    return i;
-	}
-    }
-    printk("Too many opened files\n");
-    do_exit();
-}
-
-void close_all_files(void)
-{
-    int i;
-    for (i=NOFILE - 1; i > 0; i--)
-	if (files[i].type != FTYPE_NONE)
-            close(i);
-}
-
-int dup2(int oldfd, int newfd)
-{
-    if (files[newfd].type != FTYPE_NONE)
-	close(newfd);
-    // XXX: this is a bit bogus, as we are supposed to share the offset etc
-    files[newfd] = files[oldfd];
-    return 0;
-}
-
-pid_t getpid(void)
-{
-    return 1;
-}
-
-pid_t getppid(void)
-{
-    return 1;
-}
-
-pid_t setsid(void)
-{
-    return 1;
-}
-
-char *getcwd(char *buf, size_t size)
-{
-    snprintf(buf, size, "/");
-    return buf;
-}
-
-#define LOG_PATH "/var/log/"
-
-int open(const char *pathname, int flags, ...)
-{
-    int fd;
-    /* Ugly, but fine.  */
-    if (!strncmp(pathname,LOG_PATH,strlen(LOG_PATH))) {
-	fd = alloc_fd(FTYPE_CONSOLE);
-        printk("open(%s) -> %d\n", pathname, fd);
-        return fd;
-    }
-    if (!strncmp(pathname, "/dev/mem", strlen("/dev/mem"))) {
-        fd = alloc_fd(FTYPE_MEM);
-        printk("open(/dev/mem) -> %d\n", fd);
-        return fd;
-    }
-    printk("open(%s, %x)", pathname, flags);
-    errno = EIO;
-    return -1;
-}
-
-int isatty(int fd)
-{
-    return files[fd].type == FTYPE_CONSOLE;
-}
-
-ssize_t read(int fd, void *buf, size_t nbytes)
-{
-    switch (files[fd].type) {
-	default:
-	    break;
-    }
-    printk("read(%d): Bad descriptor\n", fd);
-    errno = EBADF;
-    return -1;
-}
-
-ssize_t write(int fd, const void *buf, size_t nbytes)
-{
-    switch (files[fd].type) {
-	case FTYPE_CONSOLE:
-	    console_print(files[fd].cons.dev, (char *)buf, nbytes);
-	    return nbytes;
-	default:
-	    break;
-    }
-    printk("write(%d): Bad descriptor\n", fd);
-    errno = EBADF;
-    return -1;
-}
-
-/* XXX revisit */
-ssize_t __libc_write(int fd, const void *buf, size_t len)
-{
-  return write(fd, buf, len);
-}
-
-off_t lseek(int fd, off_t offset, int whence)
-{
-    errno = ESPIPE;
-    return (off_t) -1;
-}
-
-int fsync(int fd) {
-    printk("fsync(%d): Bad descriptor\n", fd);
-    errno = EBADF;
-    return -1;
-}
-
-int close(int fd)
-{
-    printk("close(%d)\n", fd);
-    switch (files[fd].type) {
-        default:
-	    files[fd].type = FTYPE_NONE;
-	    return 0;
-#if 0 /* XXX bring back when XC is back */
-	case FTYPE_XC:
-	    xc_interface_close(fd);
-	    return 0;
-	case FTYPE_EVTCHN:
-            xc_evtchn_close(fd);
-            return 0;
-	case FTYPE_GNTMAP:
-	    xc_gnttab_close(fd);
-	    return 0;
-#endif
-        case FTYPE_CONSOLE:
-            fini_console(files[fd].cons.dev);
-            files[fd].type = FTYPE_NONE;
-            return 0;
-	case FTYPE_NONE:
-	    break;
-    }
-    printk("close(%d): Bad descriptor\n", fd);
-    errno = EBADF;
-    return -1;
-}
-
-static void init_stat(struct stat *buf)
-{
-    memset(buf, 0, sizeof(*buf));
-    buf->st_dev = 0;
-    buf->st_ino = 0;
-    buf->st_nlink = 1;
-    buf->st_rdev = 0;
-    buf->st_blksize = 4096;
-    buf->st_blocks = 0;
-}
-
-int stat(const char *path, struct stat *buf)
-{
-    errno = EIO;
-    return -1;
-}
-
-int fstat(int fd, struct stat *buf)
-{
-    struct timeval tv;
-    init_stat(buf);
-    switch (files[fd].type) {
-	case FTYPE_CONSOLE:
-	case FTYPE_SOCKET: {
-	    buf->st_mode = (files[fd].type == FTYPE_CONSOLE?S_IFCHR:S_IFSOCK) | S_IRUSR|S_IWUSR;
-	    buf->st_uid = 0;
-	    buf->st_gid = 0;
-	    buf->st_size = 0;
-	    gettimeofday(&tv, NULL);
-	    buf->st_atime = 
-	    buf->st_mtime = 
-	    buf->st_ctime = tv.tv_sec;
-	    return 0;
-	}
-	default:
-	    break;
-    }
-
-    printk("statf(%d): Bad descriptor\n", fd);
-    errno = EBADF;
-    return -1;
-}
-
-int ftruncate(int fd, off_t length)
-{
-    printk("ftruncate(%d): Bad descriptor\n", fd);
-    errno = EBADF;
-    return -1;
-}
-
-int remove(const char *pathname)
-{
-    errno = EIO;
-    return -1;
-}
-
-int unlink(const char *pathname)
-{
-    return remove(pathname);
-}
-
-int rmdir(const char *pathname)
-{
-    return remove(pathname);
-}
-
-/* We assume that only the main thread calls select(). */
-
-static const char file_types[] = {
-    [FTYPE_NONE]	= 'N',
-    [FTYPE_CONSOLE]	= 'C',
-    [FTYPE_XENBUS]	= 'S',
-    [FTYPE_XC]		= 'X',
-    [FTYPE_EVTCHN]	= 'E',
-    [FTYPE_SOCKET]	= 's',
-    [FTYPE_BLK]		= 'B',
-};
-#ifdef LIBC_DEBUG
-static void dump_set(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
-{
-    int i, comma;
-#define printfds(set) do {\
-    comma = 0; \
-    for (i = 0; i < nfds; i++) { \
-	if (FD_ISSET(i, set)) { \
-	    if (comma) \
-		printk(", "); \
-	    printk("%d(%c)", i, file_types[files[i].type]); \
-	    comma = 1; \
-	} \
-    } \
-} while (0)
-
-    printk("[");
-    if (readfds)
-	printfds(readfds);
-    printk("], [");
-    if (writefds)
-	printfds(writefds);
-    printk("], [");
-    if (exceptfds)
-	printfds(exceptfds);
-    printk("], ");
-    if (timeout)
-	printk("{ %ld, %ld }", timeout->tv_sec, timeout->tv_usec);
-}
-#else
-#define dump_set(nfds, readfds, writefds, exceptfds, timeout)
-#endif
-
 void vwarn(const char *format, va_list ap)
 {
     int the_errno = errno;
     printk("stubdom: ");
     if (format) {
-        print(0, format, ap);
+        print(format, ap);
         printk(", ");
     }
     printk("%s", strerror(the_errno));
@@ -385,7 +120,7 @@ void vwarnx(const char *format, va_list ap)
 {
     printk("stubdom: ");
     if (format)
-        print(0, format, ap);
+        print(format, ap);
 }
 
 void warnx(const char *format, ...)
@@ -525,10 +260,26 @@ void sparse(unsigned long data, size_t size)
     do_map_zero(data, n);
 }
 
+ssize_t write(int fd, const void *buf, size_t nbytes)
+{
+    console_print(buf, nbytes);
+    return nbytes;
+}
+
 /* Not supported by FS yet.  */
 unsupported_function_crash(link);
 unsupported_function(int, readlink, -1);
+unsupported_function(int, __libc_write, -1);
+unsupported_function(off_t, lseek, -1);
+unsupported_function(int, ioctl, -1);
+unsupported_function(int, stat, -1);
+unsupported_function(int, close, -1);
+unsupported_function(int, open, -1);
+unsupported_function_crash(unlink);
+unsupported_function_crash(read);
+unsupported_function_crash(getpid);
 unsupported_function_crash(umask);
+unsupported_function_crash(getcwd);
 
 /* We could support that.  */
 unsupported_function_log(int, chdir, -1);

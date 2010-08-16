@@ -45,90 +45,25 @@
 #include <xen/io/console.h>
 
 
-/* Copies all print output to the Xen emergency console apart
-   of standard dom0 handled console */
-#define USE_XEN_CONSOLE
-
-
-/* If console not initialised the printk will be sent to xen serial line 
-   NOTE: you need to enable verbose in xen/Rules.mk for it to work. */
-static int console_initialised = 0;
-
-#ifdef USE_XEN_CONSOLE
-void console_print(struct consfront_dev *dev, char *data, int length)
+void console_print(char *data, int length)
 {
     (void)HYPERVISOR_console_io(CONSOLEIO_write, length, data);
 }
 
-#else
-void console_print(struct consfront_dev *dev, char *data, int length)
-{
-    char *curr_char, saved_char;
-    char copied_str[length+1];
-    char *copied_ptr;
-    int part_len;
-    int (*ring_send_fn)(struct consfront_dev *dev, const char *data, unsigned length);
-
-    if(!console_initialised)
-        ring_send_fn = xencons_ring_send_no_notify;
-    else
-        ring_send_fn = xencons_ring_send;
-
-    copied_ptr = copied_str;
-    memcpy(copied_ptr, data, length);
-    for(curr_char = copied_ptr; curr_char < copied_ptr+length-1; curr_char++)
-    {
-        if(*curr_char == '\n')
-        {
-            *curr_char = '\r';
-            saved_char = *(curr_char+1);
-            *(curr_char+1) = '\n';
-            part_len = curr_char - copied_ptr + 2;
-            ring_send_fn(dev, copied_ptr, part_len);
-            *(curr_char+1) = saved_char;
-            copied_ptr = curr_char+1;
-            length -= part_len - 1;
-        }
-    }
-
-    if (copied_ptr[length-1] == '\n') {
-        copied_ptr[length-1] = '\r';
-        copied_ptr[length] = '\n';
-        length++;
-    }
-    
-    ring_send_fn(dev, copied_ptr, length);
-}
-#endif
-
-
-void print(int direct, const char *fmt, va_list args)
+void print(const char *fmt, va_list args)
 {
     static char   buf[1024];
     
     (void)vsnprintf(buf, sizeof(buf), fmt, args);
 
-#ifdef USE_XEN_CONSOLE
     (void)HYPERVISOR_console_io(CONSOLEIO_write, strlen(buf), buf);
-#else
-    if(direct)
-    {
-        (void)HYPERVISOR_console_io(CONSOLEIO_write, strlen(buf), buf);
-        return;
-    } else {
-    if(!console_initialised)
-            (void)HYPERVISOR_console_io(CONSOLEIO_write, strlen(buf), buf);
-        
-        console_print(NULL, buf, strlen(buf));
-    }
-#endif
 }
 
 void printk(const char *fmt, ...)
 {
     va_list       args;
     va_start(args, fmt);
-    print(0, fmt, args);
+    print(fmt, args);
     va_end(args);        
 }
 
@@ -136,21 +71,6 @@ void xprintk(const char *fmt, ...)
 {
     va_list       args;
     va_start(args, fmt);
-    print(1, fmt, args);
+    print(fmt, args);
     va_end(args);        
-}
-void init_console(void)
-{   
-    printk("Initialising console ... ");
-#ifndef USE_XEN_CONSOLE
-    xencons_ring_init();    
-    console_initialised = 1;
-#endif
-    /* This is also required to notify the daemon */
-    printk("done.\n");
-}
-
-void fini_console(struct consfront_dev *dev)
-{
-    //if (dev) free_consfront(dev);
 }

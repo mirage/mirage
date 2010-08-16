@@ -16,6 +16,7 @@
 
 open Printf
 open Lwt
+open Mpl
 open Mpl_ethernet
 open Mpl_ipv4
 open Mpl_icmp

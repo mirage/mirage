@@ -13,8 +13,8 @@ build: mlnet.cmx
 	@ :
 
 mlnet.cmx: *.ml *.mli
-	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet -I $(STDLIB) -I $(LWTLIB) -I $(XENLIB) -I $(MPLLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) mlnet_types.mli mlnet_types.ml arp.ml frame.mli frame.ml netif.mli netif.ml
-	$(OCAMLOPT) -pack -o $@ mlnet_types.cmx arp.cmx frame.cmx netif.cmx
+	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet -I $(STDLIB) -I $(LWTLIB) -I $(XENLIB) -I $(MPLLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) mlnet_types.mli mlnet_types.ml checksum.ml arp.ml frame.mli frame.ml netif.mli netif.ml
+	$(OCAMLOPT) -pack -o $@ mlnet_types.cmx checksum.cmx arp.cmx frame.cmx netif.cmx
 
 .PHONY: i-%
 i-%:

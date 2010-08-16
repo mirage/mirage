@@ -23,9 +23,9 @@ let create ?(default=true) ?(up=true) ~ip ~netmask ~gw vif_id  =
        (fun () -> return (String.make 4096 '\000')) in
     let xmit = Page_stream.make () in
     let state = if true then MT.Netif_up else MT.Netif_down in
-    let t = { Mlnet_types.nf=nf; ip=ip; state=state; netmask=netmask; gw=gw; 
+    let t = { MT.nf=nf; ip=ip; state=state; netmask=netmask; gw=gw; 
         mac=mac; recv=recv; recv_cond=recv_cond; recv_pool=recv_pool; 
-        xmit=xmit } in
+        xmit=xmit; dhcp=MT.Dhcp_disabled } in
     if default then default_netif := Some t;
     all_netif := t :: !all_netif;
     let recv_thread = Frame.recv_thread t in

@@ -83,13 +83,20 @@ let ipv4_addr_to_string x =
     Printf.sprintf "%d.%d.%d.%d" 
       (chri 0) (chri 1) (chri 2) (chri 3)
 
+type dhcp_state =
+   |Dhcp_disabled            (* DHCP not active *)
+   |Dhcp_request_sent        (* Request sent, waiting for offer *)
+   |Dhcp_offer_accepted      (* Offer accepted, waiting for ack *)
+   |Dhcp_lease_held          (* Lease currently held *)
+   
 type netif_state =
-   |Netif_up             (* Interface is active *)
-   |Netif_down           (* Interface is disabled *)
-   |Netif_shutting_down  (* Interface is shutting down *)
+   |Netif_up                 (* Interface is active *)
+   |Netif_down               (* Interface is disabled *)
+   |Netif_shutting_down      (* Interface is shutting down *)
 
 type netif = {
    nf: Xen.Netfront.netfront;
+   mutable dhcp: dhcp_state;
    mutable state: netif_state;
    ip: ipv4_addr;
    netmask: ipv4_addr;

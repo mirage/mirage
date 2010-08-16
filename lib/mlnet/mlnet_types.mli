@@ -13,6 +13,12 @@ val ipv4_addr_of_string : string -> ipv4_addr option
 val ipv4_addr_to_bytes : ipv4_addr -> bytes
 val ipv4_addr_to_string : ipv4_addr -> string
 
+type dhcp_state =
+   |Dhcp_disabled        (* DHCP not active *)
+   |Dhcp_request_sent    (* Request sent, waiting for offer *)
+   |Dhcp_offer_accepted  (* Offer accepted, waiting for ack *)
+   |Dhcp_lease_held      (* Lease currently held *)
+   
 type netif_state =
    |Netif_up             (* Interface is active *)
    |Netif_down           (* Interface is disabled *)
@@ -20,6 +26,7 @@ type netif_state =
 
 type netif = {
     nf: Xen.Netfront.netfront;
+    mutable dhcp: dhcp_state;
     mutable state: netif_state;
     ip: ipv4_addr;
     netmask: ipv4_addr;

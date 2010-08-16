@@ -42,7 +42,7 @@ let recv netif (arp:Mpl_ethernet.Ethernet.ARP.o) =
                     ~tpa:(`Str arp#spa) env in
                  let str = Mpl_stdlib.string_of_env env in
                  let nf = MT.netfront_of_netif netif in
-                 Netfront.xmit nf str 0 (String.length str)
+                 Xen.Netfront.xmit nf str 0 (String.length str)
              end else
                  return () (* not a matching request *)
         end

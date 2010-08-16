@@ -21,7 +21,7 @@ open Mpl_ipv4
 open Mpl_icmp
 
 module MT = Mlnet_types
-module PS = Page_stream
+module PS = Xen.Page_stream
 
 (* Receive a page, queue it up, and wake up the Ethernet thread *)
 let recv netif page =

@@ -1,5 +1,6 @@
 open Lwt
 open Printf
+open Xen
 module MT = Mlnet_types
 
 (* default interface to send traffic through *)

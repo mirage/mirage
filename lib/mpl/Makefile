@@ -1,0 +1,32 @@
+ROOTDIR=../..
+include $(ROOTDIR)/mk/ocaml.mk
+
+STDLIB=$(ROOTDIR)/stdlib
+
+.PHONY: build
+build: mpl.cmx
+	@ :
+
+MPL=ethernet ipv4 udp icmp
+MPLDEPS=$(MPL:%=mpl_%.ml)
+MPLCMX=$(MPL:%=mpl_%.cmx)
+
+.PHONY: depend
+depend: $(MPLDEPS)
+
+mpl_%.ml: %.mpl
+	mplc -v $< > $@
+
+mpl.cmx:
+	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mpl -I $(STDLIB) $(OCAMLOPT_FLAGS) mpl_stdlib.mli mpl_stdlib.ml
+	$(OCAMLOPT) -c -w y -nostdlib -annot -for-pack Mpl -I $(STDLIB) $(OCAMLOPT_FLAGS) $(MPLDEPS)
+	$(OCAMLOPT) -pack -o $@ mpl_stdlib.cmx $(MPLCMX)
+
+.PHONY: i-%
+i-%:
+	$(OCAMLOPT) -i -nostdlib -I $(STDLIB) $(OCAMLOPT_FLAGS) $*.ml
+
+.PHONY: clean
+clean:
+	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.annot *.a
+	rm -rf ._d

@@ -15,7 +15,6 @@
  *)
 
 open Lwt
-open Xen
 open Printf
 
 type netfront = {

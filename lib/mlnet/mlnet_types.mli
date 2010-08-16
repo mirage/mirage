@@ -19,16 +19,16 @@ type netif_state =
    |Netif_shutting_down  (* Interface is shutting down *)
 
 type netif = {
-    nf: Netfront.netfront;
+    nf: Xen.Netfront.netfront;
     mutable state: netif_state;
     ip: ipv4_addr;
     netmask: ipv4_addr;
     gw: ipv4_addr;
     mac: ethernet_mac;
-    recv: Page_stream.t;
+    recv: Xen.Page_stream.t;
     recv_cond: unit Lwt_condition.t;
     recv_pool: string Lwt_pool.t;
-    xmit: Page_stream.t;
+    xmit: Xen.Page_stream.t;
 }
 
-val netfront_of_netif : netif -> Netfront.netfront
+val netfront_of_netif : netif -> Xen.Netfront.netfront

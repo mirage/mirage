@@ -48,6 +48,6 @@ void print( const char *fmt, va_list args);
 void printk(const char *fmt, ...);
 void xprintk(const char *fmt, ...);
 
-void console_print(const char *, int);
-
+void console_print(const char *, unsigned int);
+int xencons_ring_send(void *, const char *, unsigned int);
 #endif /* _LIB_CONSOLE_H_ */

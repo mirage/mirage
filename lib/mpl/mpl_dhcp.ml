@@ -3,30 +3,6 @@ module Dhcp = struct
   open Mpl_stdlib
   exception Bad_packet of string
 
-  type htype_t = [
-    |`Ethernet
-    |`Unknown of int
-  ]
-
-  let htype_marshal (a:htype_t) =
-    match a with
-    |`Ethernet -> 1
-    |`Unknown x -> x
-
-  let htype_unmarshal a : htype_t =
-    match a with
-    |1 -> `Ethernet
-    |x -> `Unknown x
-
-  let htype_to_string (a:htype_t) =
-    match a with
-    |`Ethernet -> "Ethernet"
-    |`Unknown x -> Printf.sprintf "%d" x
-
-  let htype_of_string s : htype_t option = match s with
-    |"Ethernet" -> Some `Ethernet
-    |_ -> None
-
   type op_t = [
     |`BootRequest
     |`BootReply
@@ -61,18 +37,13 @@ module Dhcp = struct
     (env:env) =
     object(self)
       method env = env_at env 0 self#sizeof
-      method sizeof = options_length+128+64+16+4+4+4+4+1+1+2+4+1+1+1+1
+      method sizeof = options_length+4+128+64+16+4+4+4+4+1+1+2+4+1+1+1+1
       method op =
         let op = Mpl_byte.to_int (Mpl_byte.at env (0)) in
         op_unmarshal op
       method set_op v : unit =
         Mpl_byte.marshal (env_at env (0) 1) (Mpl_byte.of_int v)
 
-      method htype =
-        let htype = Mpl_byte.to_int (Mpl_byte.at env (1)) in
-        htype_unmarshal htype
-      method set_htype v : unit =
-        Mpl_byte.marshal (env_at env (1) 1) (Mpl_byte.of_int v)
 
 
       method hops =
@@ -139,11 +110,12 @@ module Dhcp = struct
       method file_frag = Mpl_raw.frag env (1+1+1+1+4+2+1+1+4+4+4+4+16+64) 128
       method file_length = 128
 
+
       method options =
-        Mpl_raw.at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128) options_length
+        Mpl_raw.at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128+4) options_length
       (* set_options unsupported for now (type byte array) *)
-      method options_env : env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128) options_length
-      method options_frag = Mpl_raw.frag env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128) options_length
+      method options_env : env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128+4) options_length
+      method options_frag = Mpl_raw.frag env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128+4) options_length
       method options_length = options_length
 
 
@@ -151,7 +123,7 @@ module Dhcp = struct
         let out = prerr_endline in
         out "[ Dhcp.dhcp ]";
         out ("  op = " ^ (op_to_string self#op));
-        out ("  htype = " ^ (htype_to_string self#htype));
+        (* htype : bound *)
         (* hlen : bound *)
         out ("  hops = " ^ (Printf.sprintf "%u" self#hops));
         out ("  xid = " ^ (Printf.sprintf "%lu" self#xid));
@@ -167,14 +139,14 @@ module Dhcp = struct
         out ("  chaddr = " ^ (Mpl_raw.prettyprint self#chaddr));
         out ("  sname = " ^ (Mpl_raw.prettyprint self#sname));
         out ("  file = " ^ (Mpl_raw.prettyprint self#file));
+        (* cookie : bound *)
         out ("  options = " ^ (Mpl_raw.prettyprint self#options));
         ()
     end
 
   let t
     ~op
-    ~htype
-    ~hops
+    ?(hops=0)
     ~xid
     ~secs
     ~broadcast
@@ -193,7 +165,6 @@ module Dhcp = struct
       |`Sub fn -> fn ___env; curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
-      let chaddr___sizeof = 16 in
       let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16) 0 in
       let sname___len = match sname with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
@@ -206,7 +177,7 @@ module Dhcp = struct
       |`Sub fn -> fn ___env; curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
-      let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128) 0 in
+      let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128+4) 0 in
       let options___len = match options with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
       |`Sub fn -> fn ___env; curpos ___env
@@ -216,11 +187,11 @@ module Dhcp = struct
       let reserved = 0 in (* const bit *)
       let __bitdummy1 = Mpl_byte.of_int ((reserved land 255)) in
       let __bitdummy0 = Mpl_byte.of_int ((reserved lsr 8) + (broadcast lsl 7)) in
-      let hlen = (Mpl_byte.of_int chaddr___sizeof) in (* bound *)
+      let htype = (Mpl_byte.of_int 1) in (* const *)
+      let hlen = (Mpl_byte.of_int 6) in (* const *)
+      let cookie = (Mpl_uint32.of_int32 1669485411l) in (* const *)
       let __op = op_marshal op in
       let __op = (Mpl_byte.of_int __op) in
-      let __htype = htype_marshal htype in
-      let __htype = (Mpl_byte.of_int __htype) in
       let hops = (Mpl_byte.of_int hops) in
       let xid = (Mpl_uint32.of_int32 xid) in
       let secs = (Mpl_uint16.of_int secs) in
@@ -233,7 +204,7 @@ module Dhcp = struct
       let file = file in
       let options = options in
       Mpl_byte.marshal env __op;
-      Mpl_byte.marshal env __htype;
+      Mpl_byte.marshal env htype;
       Mpl_byte.marshal env hlen;
       Mpl_byte.marshal env hops;
       Mpl_uint32.marshal env xid;
@@ -249,6 +220,7 @@ module Dhcp = struct
       skip env chaddr___len;
       skip env sname___len;
       skip env file___len;
+      Mpl_uint32.marshal env cookie;
       skip env options___len;
       new o
       ~options_length:options___len
@@ -263,7 +235,7 @@ module Dhcp = struct
     (env:env) : o =
     skip env 1; (* skipped op *)
     skip env 1; (* skipped htype *)
-    let hlen = Mpl_byte.to_int (Mpl_byte.unmarshal env) in
+    skip env 1; (* skipped hlen *)
     skip env 1; (* skipped hops *)
     skip env 4; (* skipped xid *)
     skip env 2; (* skipped secs *)
@@ -276,6 +248,7 @@ module Dhcp = struct
     skip env 16; (* skipped chaddr *)
     skip env 64; (* skipped sname *)
     skip env 128; (* skipped file *)
+    skip env 4; (* skipped cookie *)
     let options_length = (remaining env) in
     skip env options_length; (* skipped options *)
     new o env

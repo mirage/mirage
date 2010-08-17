@@ -45,6 +45,8 @@ let ethernet_mac_to_string x =
 
 let ethernet_mac_to_bytes x = x 
 
+let ethernet_mac_broadcast = String.make 6 '\255'
+
 type ipv4_addr = string (* length 4 only *)
 
 (* Raw IPv4 address of the wire (network endian) *)
@@ -69,6 +71,20 @@ let ipv4_addr_of_string x =
         Some s
     with _ -> None
 
+(* Blank 0.0.0.0 IPv4 address *)
+let ipv4_blank = String.make 4 '\000'
+(* Broadcast 255.255.255.255 IPv4 address *)
+let ipv4_broadcast = String.make 4 '\255'
+
+let ipv4_addr_of_uint32 s =
+    let (>!) x y = Int32.logand (Int32.shift_right x y) 255l in
+    Printf.sprintf "%ld.%ld.%ld.%ld" (s >! 24) (s >! 16) (s >! 8) (s >! 0)
+
+let ipv4_addr_to_uint32 a =
+    let s x y = Int32.shift_left (Int32.of_int (Char.code a.[x])) (y*8) in
+    let (++) = Int32.add in
+    (s 0 3) ++ (s 1 2) ++ (s 2 1) ++ (s 3 0)
+
 (* Read an IPv4 address from a tuple *)
 let ipv4_addr_of_tuple (a,b,c,d) =
     let s = String.create 4 in
@@ -90,6 +106,7 @@ type dhcp_state =
    |Dhcp_lease_held          (* Lease currently held *)
    
 type netif_state =
+   |Netif_obtaining_ip       (* Interface is obtaining an IP address *)
    |Netif_up                 (* Interface is active *)
    |Netif_down               (* Interface is disabled *)
    |Netif_shutting_down      (* Interface is shutting down *)
@@ -98,14 +115,14 @@ type netif = {
    nf: Xen.Netfront.netfront;
    mutable dhcp: dhcp_state;
    mutable state: netif_state;
-   ip: ipv4_addr;
-   netmask: ipv4_addr;
-   gw: ipv4_addr;
+   mutable ip: ipv4_addr;
+   mutable netmask: ipv4_addr;
+   mutable gw: ipv4_addr;
    mac: ethernet_mac;
    recv: Xen.Page_stream.t;
    recv_cond: unit Lwt_condition.t;
-   recv_pool: string Lwt_pool.t;
-   xmit: Xen.Page_stream.t;
+   env_pool: string Lwt_pool.t;
+   xmit: string -> unit Lwt.t;
 }
 
 let netfront_of_netif x = x.nf

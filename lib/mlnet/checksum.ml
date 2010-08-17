@@ -18,15 +18,6 @@
 open Mpl
 module M = Mpl_stdlib
 
-let ip_of_uint32 s =
-    let (>!) x y = Int32.logand (Int32.shift_right x y) 255l in
-    Printf.sprintf "%ld.%ld.%ld.%ld" (s >! 24) (s >! 16) (s >! 8) (s >! 0)    
-
-let uint32_of_ip a b c d =
-    let s x y = Int32.shift_left (Int32.of_int x) (y*8) in
-    let (++) = Int32.add in
-    (s a 3) ++ (s b 2) ++ (s c 1) ++ (s d 0)
-
 let ones_checksum sum =
     0xffff - ((sum lsr 16) + (sum land 0xffff))
 
@@ -40,19 +31,21 @@ let ip_checksum sz env =
     done;
     ones_checksum !sum
 
-let data_env ob fn = let env = ob#data_env in fn env
+let data_env ob fn =
+    let env = ob#data_env in fn env
 
-(* Given an ip and udp packet, return a checksum *)
-let udp_checksum (ip:Mpl_ipv4.Ipv4.o) (udp:Mpl_udp.Udp.o)  =
+(* Given a udp packet and ip info, return a checksum *)
+let udp_checksum ip_src ip_dest (udp:Mpl_udp.Udp.o)  =
     let sum = ref 0 in
     let addsum x = sum := !sum + x in
     let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));
         addsum (Int32.to_int (Int32.logand x 65535l)) in
     (* pseudo header *)
-    add32 ip#src;
-    add32 ip#dest;
+    add32 ip_src;
+    add32 ip_dest;
+    add32 (Int32.of_int udp#total_length);
     addsum 17; (* UDP protocol number *)
-    addsum ip#data_length;
+    addsum udp#data_length;
     addsum udp#source_port;
     addsum udp#dest_port;
     addsum udp#total_length;

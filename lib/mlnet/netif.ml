@@ -12,25 +12,36 @@ let all_netif = ref []
 exception Invalid_ethernet_mac of string
 exception Invalid_mode_change
 
-let create ?(default=true) ?(up=true) ~ip ~netmask ~gw vif_id  =
+let xmit nf buf =
+    Xen.Netfront.xmit nf buf 0 (String.length buf)
+
+let create_static ?(default=true) ~ip ~netmask ~gw vif_id =
     lwt nf = Netfront.create vif_id in
     lwt mac = match MT.ethernet_mac_of_string (Netfront.mac nf) with
         | Some mac -> return mac
         | None -> fail (Invalid_ethernet_mac (Netfront.mac nf)) in
     let recv = Page_stream.make () in
     let recv_cond = Lwt_condition.create () in
-    let recv_pool = Lwt_pool.create 5 
+    let env_pool = Lwt_pool.create 5 
        (fun () -> return (String.make 4096 '\000')) in
-    let xmit = Page_stream.make () in
-    let state = if true then MT.Netif_up else MT.Netif_down in
+    let state = MT.Netif_down in
     let t = { MT.nf=nf; ip=ip; state=state; netmask=netmask; gw=gw; 
-        mac=mac; recv=recv; recv_cond=recv_cond; recv_pool=recv_pool; 
-        xmit=xmit; dhcp=MT.Dhcp_disabled } in
+        mac=mac; recv=recv; recv_cond=recv_cond; env_pool=env_pool; 
+        xmit=(xmit nf); dhcp=MT.Dhcp_disabled } in
     if default then default_netif := Some t;
     all_netif := t :: !all_netif;
     let recv_thread = Frame.recv_thread t in
     Netfront.set_recv nf (Frame.recv t);
     return (t, recv_thread)
+
+let create_dhcp ?(default=true) vif_id =
+    let ip = MT.ipv4_blank in
+    let netmask = MT.ipv4_blank in
+    let gw = MT.ipv4_blank in
+    lwt (t, recv_thread) = create_static ~default ~ip ~netmask ~gw vif_id in
+    t.MT.state <- MT.Netif_obtaining_ip;
+    Dhcp.start_request t >>
+    return (t, recv_thread)    
 
 let set_mode netif new_mode = 
     match new_mode, netif.MT.state with

@@ -52,7 +52,7 @@ let rec recv_thread netif =
             recv_thread netif
     end else begin
         (* We have work to process! *)
-        Lwt_pool.use netif.MT.recv_pool
+        Lwt_pool.use netif.MT.env_pool
           (fun envbuf -> 
             let fillfn = page_fillfn netif envbuf in
             let env = Mpl_stdlib.new_env ~fillfn envbuf in
@@ -71,7 +71,9 @@ let rec recv_thread netif =
                     end
                     |_ -> return ()
                 end
-                |_ -> return (printf "discarding non-IPv4/ARP frame")
+                |x ->
+                  Ethernet.prettyprint x;
+                  return (printf "discarding non-IPv4/ARP frame\n")
             with exn -> return (printf "exn:%s\n%!" (Printexc.to_string exn))
           ) >>
         recv_thread netif

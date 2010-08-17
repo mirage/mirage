@@ -188,19 +188,13 @@ void block_domain(s_time_t until)
 
     if(monotonic_clock() < until)
     {
-        int cpu = smp_processor_id();
-        struct vcpu_set_singleshot_timer single;
         int ret;
 
-        single.timeout_abs_ns = until;
-        single.flags = VCPU_SSHOTTMR_future;
- 
-        ret = HYPERVISOR_vcpu_op(VCPUOP_set_singleshot_timer, cpu, &single);
-       
+        HYPERVISOR_set_timer_op(until);
+        ret=HYPERVISOR_sched_op(SCHEDOP_block, 0);
+        local_irq_disable();
         if (ret != 0)
            printk("block_domain failed: diff=%Lu ret=%d\n", (until - (monotonic_clock ())), ret);
-        HYPERVISOR_sched_op(SCHEDOP_block, NULL);
-        local_irq_disable();
     }
 }
 
@@ -219,10 +213,6 @@ void init_time(void)
     unmask_evtchn(port);
     get_time_values_from_xen();
     update_wallclock();
-    ret = HYPERVISOR_vcpu_op( VCPUOP_stop_periodic_timer, smp_processor_id (), NULL );
-    BUG_ON(ret != 0);
-    ret = HYPERVISOR_vcpu_op( VCPUOP_stop_singleshot_timer, smp_processor_id (), NULL );
-    BUG_ON(ret != 0);
 }
 
 void fini_time(void)

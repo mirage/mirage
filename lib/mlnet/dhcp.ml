@@ -96,25 +96,41 @@ module Options = struct
     let options mtype xs = String.concat "" (List.map to_bytes
        (`Message_type mtype :: xs @ [`End]))
   end
+
+  module Unmarshal = struct
+
+    exception Unknown_option of char
+    let t_of_code = function
+       |'\000' -> `Pad
+       |'\001' -> `Subnet_mask 
+       |'\002' -> `Time_offset
+       |'\003' -> `Router
+       |'\004' -> `Time_server
+       |'\005' -> `Name_server 
+       |'\006' -> `DNS_server 
+       |'\012' -> `Host_name 
+       |'\015' -> `Domain_name 
+       |'\050' -> `Requested_ip
+       |'\051' -> `Lease_time
+       |'\053' -> `Message_type
+       |'\054' -> `Server_identifier
+       |'\055' -> `Parameter_request 
+       |'\057' -> `Max_size 
+       |'\061' -> `Client_id
+       |'\255' -> `End
+       |x -> raise (Unknown_option x)
+
+  end
 end
 
-let parse_options env optionfn =
-    let cont = ref true in
-    let pos = ref (MS.curpos env) in
-    while !cont do
-        let env' = MS.env_at env !pos (MS.size env) in
-        let o = Dhcp_option.unmarshal env' in
-        pos := !pos + (MS.curpos env');
-        let () = optionfn o in
-        match o with
-        |`Pad x -> ()
-        |`End x -> cont := false
-        |_ -> ()
-    done
+(* Receive a DHCP UDP packet *)
+let recv netif (udp:Udp.o) =
+    let dhcp = Dhcp.unmarshal udp#data_env in 
+    Dhcp.prettyprint dhcp;
+    return ()
 
 (* Start a DHCP request off on an interface *)
 let start_request netif =
-    print_endline "dhcp start request!";
     Lwt_pool.use netif.MT.env_pool
       (fun envbuf ->
         let env = MS.new_env envbuf in

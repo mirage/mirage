@@ -20,6 +20,7 @@ open Mpl
 open Mpl_ethernet
 open Mpl_ipv4
 open Mpl_icmp
+open Mpl_udp
 
 module MT = Mlnet_types
 module PS = Xen.Page_stream
@@ -64,15 +65,23 @@ let rec recv_thread netif =
                |`IPv4 o -> begin
                    let ipv4 = Ipv4.unmarshal o#data_env in
                     match ipv4#protocol with
-                    |`ICMP -> begin
+                    |`ICMP ->
                         let icmp = Icmp.unmarshal ipv4#data_env in
                         Icmp.prettyprint icmp;
                         return ()
+                    |`UDP -> begin
+                        let udp = Udp.unmarshal ipv4#data_env in
+                        print_endline "received udp prettyprint";
+                        Udp.prettyprint udp;
+                        match udp#source_port, udp#dest_port with
+                        |68,67 (* dhcp *) -> Dhcp.recv netif udp
+                        |_ -> return (print_endline "unknown udp")
                     end
-                    |_ -> return ()
+                    |_ -> 
+                        return ()
                 end
                 |x ->
-                  Ethernet.prettyprint x;
+                  (* Ethernet.prettyprint x; *)
                   return (printf "discarding non-IPv4/ARP frame\n")
             with exn -> return (printf "exn:%s\n%!" (Printexc.to_string exn))
           ) >>

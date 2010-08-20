@@ -77,8 +77,13 @@ let ipv4_blank = String.make 4 '\000'
 let ipv4_broadcast = String.make 4 '\255'
 
 let ipv4_addr_of_uint32 s =
-    let (>!) x y = Int32.logand (Int32.shift_right x y) 255l in
-    Printf.sprintf "%ld.%ld.%ld.%ld" (s >! 24) (s >! 16) (s >! 8) (s >! 0)
+    let (>!) x y = Char.chr (Int32.to_int (Int32.logand (Int32.shift_right x y) 255l)) in
+    let x = String.create 4 in
+    x.[0] <- (s >! 24);
+    x.[1] <- (s >! 16); 
+    x.[2] <- (s >! 8); 
+    x.[3] <- (s >! 0);
+    x
 
 let ipv4_addr_to_uint32 a =
     let s x y = Int32.shift_left (Int32.of_int (Char.code a.[x])) (y*8) in

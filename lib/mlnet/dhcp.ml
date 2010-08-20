@@ -331,30 +331,22 @@ module Options = struct
           let cont (r:t) = fn (r :: acc) in
           let code = msg_of_code (getc ()) in
           match code with
-          |`Pad -> 
-              fn acc
-          |`Subnet_mask -> 
-              cont (`Subnet_mask (get_addr MT.ipv4_addr_of_bytes))
-          |`Time_offset ->
-              cont (`Time_offset (get_addr (fun x -> x)))
-          |`Router ->
-              cont (`Router (get_addrs MT.ipv4_addr_of_bytes))
-          |`Broadcast ->
-              cont (`Broadcast (get_addr MT.ipv4_addr_of_bytes))
-          |`Time_server ->
-              cont (`Time_server (get_addrs MT.ipv4_addr_of_bytes))
-          |`Name_server ->
-              cont (`Name_server (get_addrs MT.ipv4_addr_of_bytes))
-          |`DNS_server ->
-              cont (`DNS_server (get_addrs MT.ipv4_addr_of_bytes))
-          |`Host_name ->
-              cont (`Host_name (slice (getint ())))
-          |`Domain_name ->
-              cont (`Domain_name (slice (getint ())))
-          |`Requested_ip ->
-              cont (`Requested_ip (get_addr MT.ipv4_addr_of_bytes))
-          |`Lease_time ->
-              cont (`Lease_time (get_addr uint32_of_bytes))
+          |`Pad -> fn acc
+          |`Subnet_mask -> cont (`Subnet_mask (get_addr MT.ipv4_addr_of_bytes))
+          |`Time_offset -> cont (`Time_offset (get_addr (fun x -> x)))
+          |`Router -> cont (`Router (get_addrs MT.ipv4_addr_of_bytes))
+          |`Broadcast -> cont (`Broadcast (get_addr MT.ipv4_addr_of_bytes))
+          |`Time_server -> cont (`Time_server (get_addrs MT.ipv4_addr_of_bytes))
+          |`Name_server -> cont (`Name_server (get_addrs MT.ipv4_addr_of_bytes))
+          |`DNS_server -> cont (`DNS_server (get_addrs MT.ipv4_addr_of_bytes))
+          |`Host_name -> cont (`Host_name (slice (getint ())))
+          |`Domain_name -> cont (`Domain_name (slice (getint ())))
+          |`Requested_ip -> cont (`Requested_ip (get_addr MT.ipv4_addr_of_bytes))
+          |`Server_identifier -> cont (`Server_identifier (get_addr MT.ipv4_addr_of_bytes)) 
+          |`Lease_time -> cont (`Lease_time (get_addr uint32_of_bytes))
+          |`Domain_search -> cont (`Domain_search (slice (getint())))
+          |`Netbios_name_server -> cont (`Netbios_name_server (get_addrs MT.ipv4_addr_of_bytes))
+          |`Message -> cont (`Message (slice (getint ())))
           |`Message_type ->
               check '\001';
               let mcode = match (getc ()) with
@@ -368,8 +360,6 @@ module Options = struct
               |'\008'  -> `Inform
               |x -> `Unknown x in
               cont (`Message_type mcode)
-          |`Server_identifier ->
-              cont (`Server_identifier (get_addr MT.ipv4_addr_of_bytes)) 
           |`Parameter_request ->
               let len = getint () in
               let params = ref [] in
@@ -377,8 +367,6 @@ module Options = struct
                  params := (msg_of_code (getc ())) :: !params
               done;
               cont (`Parameter_request (List.rev !params))
-          |`Message ->
-              cont (`Message (slice (getint ())))
           |`Max_size ->
               let l1 = getint () lsl 8 in
               cont (`Max_size (getint () + l1))
@@ -389,14 +377,8 @@ module Options = struct
               let len = getint () in 
               let _ = getint () in 
               cont (`Client_id (slice len))
-          |`Domain_search ->
-              cont (`Domain_search (slice (getint())))
-          |`Netbios_name_server ->
-              cont (`Netbios_name_server (get_addrs MT.ipv4_addr_of_bytes))
-          |`Unknown c ->
-              cont (`Unknown (c, (slice (getint ()))))
-          |`End -> 
-              acc
+          |`End -> acc
+          |`Unknown c -> cont (`Unknown (c, (slice (getint ()))))
        in
        fn []       
   end 

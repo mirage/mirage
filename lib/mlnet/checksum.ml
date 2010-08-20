@@ -35,6 +35,7 @@ let data_env ob fn =
     let env = ob#data_env in fn env
 
 (* Given a udp packet and ip info, return a checksum *)
+(* XXX this is broken, generates bad checksums *)
 let udp_checksum ip_src ip_dest (udp:Mpl_udp.Udp.o)  =
     let sum = ref 0 in
     let addsum x = sum := !sum + x in
@@ -43,12 +44,12 @@ let udp_checksum ip_src ip_dest (udp:Mpl_udp.Udp.o)  =
     (* pseudo header *)
     add32 ip_src;
     add32 ip_dest;
-    add32 (Int32.of_int udp#total_length);
     addsum 17; (* UDP protocol number *)
-    addsum udp#data_length;
+    addsum udp#total_length;
+    (* udp packet *)
     addsum udp#source_port;
     addsum udp#dest_port;
-    addsum udp#total_length;
+    addsum udp#data_length;
     let len = udp#data_length in
     data_env udp (fun env ->
         for i = 1 to len / 2 do

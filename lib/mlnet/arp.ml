@@ -11,13 +11,6 @@ let dump_cache () =
         printf "%s -> %s\n%!" (MT.ethernet_mac_to_string mac) 
             (MT.ipv4_addr_to_string ip)) mac_cache
 
-(* XXX temporary hack to get an MPL env, until zero copy and pools *)
-let get_env () =
-    let x = String.make 4096 '\000' in
-    let env = Mpl_stdlib.new_env x in
-    Mpl_stdlib.reset env;
-    env
-
 let recv netif (arp:Mpl_ethernet.Ethernet.ARP.o) =
     match arp#ptype with
     |`IPv4 -> begin
@@ -31,19 +24,17 @@ let recv netif (arp:Mpl_ethernet.Ethernet.ARP.o) =
                  let my_mac = `Str (MT.ethernet_mac_to_bytes netif.MT.mac) in
                  let to_mac = `Str arp#src_mac in
                  let my_ipv4 = `Str (MT.ipv4_addr_to_bytes netif.MT.ip) in
-                 let env = get_env () in
-                 let arp_reply = Mpl_ethernet.Ethernet.ARP.t
-                    ~dest_mac:to_mac
-                    ~src_mac:my_mac
-                    ~ptype:`IPv4
-                    ~operation:`Reply
-                    ~sha:my_mac
-                    ~spa:my_ipv4
-                    ~tha:to_mac
-                    ~tpa:(`Str arp#spa) env in
-                 let str = Mpl_stdlib.string_of_env env in
-                 let nf = MT.netfront_of_netif netif in
-                 Xen.Netfront.xmit nf str 0 (String.length str)
+                 MT.mpl_xmit_env netif (fun env ->
+                   let arp_reply = Mpl_ethernet.Ethernet.ARP.t
+                      ~dest_mac:to_mac
+                      ~src_mac:my_mac
+                      ~ptype:`IPv4
+                      ~operation:`Reply
+                      ~sha:my_mac
+                      ~spa:my_ipv4
+                      ~tha:to_mac
+                      ~tpa:(`Str arp#spa) env in
+                   ())
              end else
                  return () (* not a matching request *)
         end
@@ -57,6 +48,16 @@ let recv netif (arp:Mpl_ethernet.Ethernet.ARP.o) =
     end
     | _ -> return ()
 
+(* Send gratuitous ARP, usually on interface bringup *)
 let send_garp netif =
-    (* Send gratuitous ARP, usually on interface bringup *)
-    return ()
+    MT.mpl_xmit_env netif (fun env ->
+      ignore(Mpl_ethernet.Ethernet.ARP.t
+        ~dest_mac: (`Str (MT.ethernet_mac_to_bytes MT.ethernet_mac_broadcast))
+        ~src_mac: (`Str (MT.ethernet_mac_to_bytes netif.MT.mac))
+        ~ptype:`IPv4
+        ~operation:`Reply
+        ~sha: (`Str (MT.ethernet_mac_to_bytes netif.MT.mac))
+        ~tpa: (`Str (MT.ipv4_addr_to_bytes netif.MT.ip)) 
+        ~tha: (`Str (MT.ethernet_mac_to_bytes MT.ethernet_mac_broadcast))
+        ~spa: (`Str (MT.ipv4_addr_to_bytes netif.MT.ip)) env)
+    )

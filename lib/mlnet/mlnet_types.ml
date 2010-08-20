@@ -136,7 +136,7 @@ type netif = {
    mutable state: netif_state;
    mutable ip: ipv4_addr;
    mutable netmask: ipv4_addr;
-   mutable gw: ipv4_addr;
+   mutable gw: ipv4_addr list;
    mac: ethernet_mac;
    recv: Xen.Page_stream.t;
    recv_cond: unit Lwt_condition.t;
@@ -144,4 +144,9 @@ type netif = {
    xmit: string -> unit Lwt.t;
 }
 
-let netfront_of_netif x = x.nf
+let mpl_xmit_env netif fn =
+   Lwt_pool.use netif.env_pool (fun envbuf ->
+      let env = Mpl.Mpl_stdlib.new_env envbuf in
+      fn env;
+      netif.xmit (Mpl.Mpl_stdlib.string_of_env env) (* XXX TODO zero copy *)
+   )

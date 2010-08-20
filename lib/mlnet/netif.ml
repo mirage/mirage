@@ -37,9 +37,18 @@ let create_static ?(default=true) ~ip ~netmask ~gw vif_id =
 
 let set_mode netif new_mode = 
     match new_mode, netif.MT.state with
-    | MT.Netif_up, (MT.Netif_down|MT.Netif_obtaining_ip) ->
-        netif.MT.state <- MT.Netif_up;
-        Arp.send_garp netif
+    | MT.Netif_up, (MT.Netif_down|MT.Netif_obtaining_ip) -> begin
+        (* Sync up interface state to the DHCP lease *)
+        match netif.MT.dhcp with
+        | MT.DHCP.Lease_held info ->
+            netif.MT.ip <- info.MT.DHCP.ip;
+            netif.MT.netmask <- 
+              (match info.MT.DHCP.netmask with Some x -> x|None -> MT.ipv4_blank);
+            netif.MT.gw <- info.MT.DHCP.gw;
+            netif.MT.state <- MT.Netif_up;
+            Arp.send_garp netif
+        | _ -> assert false (* XXX *)
+    end
     | _, MT.Netif_shutting_down ->
         fail Invalid_mode_change
     | _ ->
@@ -48,7 +57,7 @@ let set_mode netif new_mode =
 let create_dhcp ?(default=true) vif_id =
     let ip = MT.ipv4_blank in
     let netmask = MT.ipv4_blank in
-    let gw = MT.ipv4_blank in
+    let gw = [] in
     lwt (t, recv_thread) = create_static ~default ~ip ~netmask ~gw vif_id in
     t.MT.state <- MT.Netif_obtaining_ip;
     Dhcp.Client.start_discovery t >>

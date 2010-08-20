@@ -420,9 +420,7 @@ module Client = struct
 
   (* Send a client broadcast packet *)
    let send_broadcast netif ~xid ~yiaddr ~siaddr ~options =
-      Lwt_pool.use netif.MT.env_pool (fun envbuf ->
-       let env = MS.new_env envbuf in
-
+     MT.mpl_xmit_env netif (fun env ->
        (* DHCP pads the MAC address to 16 bytes *)
        let chaddr = `Str ((MT.ethernet_mac_to_bytes netif.MT.mac) ^ 
          (String.make 10 '\000')) in
@@ -474,10 +472,8 @@ module Client = struct
             ~src_mac:(`Str (MT.ethernet_mac_to_bytes netif.MT.mac))
             ~data:(`Sub ipfn)
         in
-        let _ = etherfn env in
-        let buf = MS.string_of_env env in (* TODO zero copy xmit *)
-        netif.MT.xmit buf
-     )         
+        ignore(etherfn env)
+   )         
 
    (* Receive a DHCP UDP packet *)
    let recv netif (udp:Udp.o) =

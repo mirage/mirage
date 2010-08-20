@@ -50,7 +50,7 @@ type netif = {
     mutable state: netif_state;
     mutable ip: ipv4_addr;
     mutable netmask: ipv4_addr;
-    mutable gw: ipv4_addr;
+    mutable gw: ipv4_addr list;
     mac: ethernet_mac;
     recv: Xen.Page_stream.t;
     recv_cond: unit Lwt_condition.t;
@@ -58,4 +58,4 @@ type netif = {
     xmit: string -> unit Lwt.t;
 }
 
-val netfront_of_netif : netif -> Xen.Netfront.netfront
+val mpl_xmit_env : netif -> (Mpl.Mpl_stdlib.env -> unit ) -> unit Lwt.t

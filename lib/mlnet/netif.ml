@@ -25,14 +25,25 @@ let create_static ?(default=true) ~ip ~netmask ~gw vif_id =
     let env_pool = Lwt_pool.create 5 
        (fun () -> return (String.make 4096 '\000')) in
     let state = MT.Netif_down in
+    let dhcp_cond = Lwt_condition.create () in
     let t = { MT.nf=nf; ip=ip; state=state; netmask=netmask; gw=gw; 
         mac=mac; recv=recv; recv_cond=recv_cond; env_pool=env_pool; 
-        xmit=(xmit nf); dhcp=MT.Dhcp_disabled } in
+        dhcp_cond=dhcp_cond; xmit=(xmit nf); dhcp=MT.DHCP.Disabled } in
     if default then default_netif := Some t;
     all_netif := t :: !all_netif;
     let recv_thread = Frame.recv_thread t in
     Netfront.set_recv nf (Frame.recv t);
     return (t, recv_thread)
+
+let set_mode netif new_mode = 
+    match new_mode, netif.MT.state with
+    | MT.Netif_up, (MT.Netif_down|MT.Netif_obtaining_ip) ->
+        netif.MT.state <- MT.Netif_up;
+        Arp.send_garp netif
+    | _, MT.Netif_shutting_down ->
+        fail Invalid_mode_change
+    | _ ->
+        return ()
 
 let create_dhcp ?(default=true) vif_id =
     let ip = MT.ipv4_blank in
@@ -40,19 +51,11 @@ let create_dhcp ?(default=true) vif_id =
     let gw = MT.ipv4_blank in
     lwt (t, recv_thread) = create_static ~default ~ip ~netmask ~gw vif_id in
     t.MT.state <- MT.Netif_obtaining_ip;
-    Dhcp.start_request t >>
+    Dhcp.Client.start_discovery t >>
+    Lwt_condition.wait t.MT.dhcp_cond >>
+    set_mode t MT.Netif_up >>
     return (t, recv_thread)    
 
-let set_mode netif new_mode = 
-    match new_mode, netif.MT.state with
-    | MT.Netif_up, MT.Netif_down ->
-        netif.MT.state <- MT.Netif_up;
-        Arp.send_garp netif
-    | _, MT.Netif_shutting_down ->
-        fail Invalid_mode_change
-    | _ ->
-        return ()
-    
 (* Fold a function over active interfaces *)
 let fold_active fn a =
     List.fold_left (fun a t ->

@@ -104,12 +104,25 @@ let ipv4_addr_to_string x =
     Printf.sprintf "%d.%d.%d.%d" 
       (chri 0) (chri 1) (chri 2) (chri 3)
 
-type dhcp_state =
-   |Dhcp_disabled            (* DHCP not active *)
-   |Dhcp_request_sent        (* Request sent, waiting for offer *)
-   |Dhcp_offer_accepted      (* Offer accepted, waiting for ack *)
-   |Dhcp_lease_held          (* Lease currently held *)
-   
+module DHCP = struct
+   (* An active DHCP lease *)
+   type info = {
+     xid: int32;
+     ip: ipv4_addr;
+     netmask: ipv4_addr option;
+     gw: ipv4_addr list;
+     dns: ipv4_addr list;
+     lease_until: float;
+   }
+
+   type state =
+    |Disabled               (* DHCP not active *)
+    |Request_sent of int32  (* Request sent with xid int32, waiting offer *)
+    |Offer_accepted of info (* Offer accepted, waiting for ack *)
+    |Lease_held of info     (* Lease currently held *)
+ 
+end
+  
 type netif_state =
    |Netif_obtaining_ip       (* Interface is obtaining an IP address *)
    |Netif_up                 (* Interface is active *)
@@ -118,7 +131,8 @@ type netif_state =
 
 type netif = {
    nf: Xen.Netfront.netfront;
-   mutable dhcp: dhcp_state;
+   mutable dhcp: DHCP.state;
+   dhcp_cond: unit Lwt_condition.t; 
    mutable state: netif_state;
    mutable ip: ipv4_addr;
    mutable netmask: ipv4_addr;

@@ -71,10 +71,9 @@ let rec recv_thread netif =
                         return ()
                     |`UDP -> begin
                         let udp = Udp.unmarshal ipv4#data_env in
-                        print_endline "received udp prettyprint";
-                        Udp.prettyprint udp;
                         match udp#source_port, udp#dest_port with
-                        |68,67 (* dhcp *) -> Dhcp.recv netif udp
+                        |67,68 (* dhcp reply *) -> Dhcp.Client.recv netif udp
+                        |68,67 (* dhcp broadcast *) -> (* discard *) return ()
                         |_ -> return (print_endline "unknown udp")
                     end
                     |_ -> 

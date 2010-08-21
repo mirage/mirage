@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translmod.mli 8930 2008-07-24 05:35:22Z frisch $ *)
+(* $Id: translmod.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Translation from typed abstract syntax to lambda terms,
    for the module language *)
@@ -23,7 +23,7 @@ val transl_store_phrases: string -> structure -> int * lambda
 val transl_store_implementation:
       string -> structure * module_coercion -> int * lambda
 val transl_toplevel_definition: structure -> lambda
-val transl_package: 
+val transl_package:
       Ident.t option list -> Ident.t -> module_coercion -> lambda
 val transl_store_package:
       Ident.t option list -> Ident.t -> module_coercion -> int * lambda

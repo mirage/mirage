@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytelink.ml 9496 2009-12-28 13:05:36Z doligez $ *)
+(* $Id: bytelink.ml 9540 2010-01-20 16:26:46Z doligez $ *)
 
 (* Link a set of .cmo files and produce a bytecode executable. *)
 
@@ -58,7 +58,7 @@ let add_ccobjs l =
   end
 
 (* A note on ccobj ordering:
-   - Clflags.ccobjs is in reverse order w.r.t. what was given on the 
+   - Clflags.ccobjs is in reverse order w.r.t. what was given on the
         ocamlc command line;
    - l.lib_ccobjs is also in reverse order w.r.t. what was given on the
         ocamlc -a command line when the library was created;

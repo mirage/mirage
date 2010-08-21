@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 6612 2004-08-20 17:04:35Z doligez $
+# $Id: Makefile 9547 2010-01-22 12:48:24Z doligez $
 
 include ../config/Makefile
 
@@ -30,28 +30,28 @@ SCRIPTDIR = $(BINDIR)
 
 # Command for byte-compiling the files
 COMPILECMD=(progn \
-              (setq load-path (cons "." load-path)) \
-              (byte-compile-file "caml-xemacs.el") \
+	      (setq load-path (cons "." load-path)) \
+	      (byte-compile-file "caml-xemacs.el") \
 	      (byte-compile-file "caml-emacs.el") \
-              (byte-compile-file "caml.el") \
-              (byte-compile-file "inf-caml.el") \
-              (byte-compile-file "caml-help.el") \
-              (byte-compile-file "caml-types.el") \
-              (byte-compile-file "camldebug.el"))
+	      (byte-compile-file "caml.el") \
+	      (byte-compile-file "inf-caml.el") \
+	      (byte-compile-file "caml-help.el") \
+	      (byte-compile-file "caml-types.el") \
+	      (byte-compile-file "camldebug.el"))
 
 install:
 	@if test "$(EMACSDIR)" = ""; then \
-          set xxx `($(EMACS) --batch --eval "(mapcar 'print load-path)") \
-                   2>/dev/null | \
-                   sed -n -e '/\/site-lisp/s/"//gp'`; \
-          if test "$$2" = ""; then \
-            echo "Cannot determine Emacs site-lisp directory"; \
-            exit 2; \
-          fi; \
-          $(MAKE) EMACSDIR="$$2" simple-install; \
-        else \
-          $(MAKE) simple-install; \
-        fi
+	  set xxx `($(EMACS) --batch --eval "(mapcar 'print load-path)") \
+	           2>/dev/null | \
+	           sed -n -e '/\/site-lisp/s/"//gp'`; \
+	  if test "$$2" = ""; then \
+	    echo "Cannot determine Emacs site-lisp directory"; \
+	    exit 2; \
+	  fi; \
+	  $(MAKE) EMACSDIR="$$2" simple-install; \
+	else \
+	  $(MAKE) simple-install; \
+	fi
 
 # install the .el files, but do not compile them.
 install-el:

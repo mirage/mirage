@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: emitcode.ml 8930 2008-07-24 05:35:22Z frisch $ *)
+(* $Id: emitcode.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Generation of bytecode + relocation information *)
 
@@ -69,7 +69,7 @@ let out_const c =
     out_int (const_as_int c)
   with
   | AsInt -> Misc.fatal_error "Emitcode.const_as_int"
-  
+
 
 (* Handling of local labels and backpatching *)
 

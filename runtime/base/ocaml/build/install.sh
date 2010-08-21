@@ -12,7 +12,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: install.sh 9530 2010-01-15 13:33:23Z xclerc $
+# $Id: install.sh 10443 2010-05-20 09:44:25Z doligez $
 
 set -e
 
@@ -344,10 +344,6 @@ installdir \
   otherlibs/labltk/lib/labltk.cma \
   otherlibs/labltk/lib/labltk.cmxa \
   otherlibs/labltk/lib/labltk.cmx \
-  otherlibs/labltk/tkanim/*.mli \
-  otherlibs/labltk/tkanim/*.cmi \
-  otherlibs/labltk/tkanim/tkanim.cma \
-  otherlibs/labltk/tkanim/tkanim.cmxa \
   otherlibs/labltk/compiler/tkcompiler \
   $LIBDIR/labltk
 
@@ -376,7 +372,6 @@ installdir \
   otherlibs/"$WIN32"unix/dllunix$EXT_DLL \
   otherlibs/threads/dllvmthreads$EXT_DLL \
   otherlibs/labltk/support/dlllabltk$EXT_DLL \
-  otherlibs/labltk/tkanim/dlltkanim$EXT_DLL \
   $STUBLIBDIR
 
 installlibdir \
@@ -403,8 +398,6 @@ installlibdir \
   otherlibs/labltk/support/liblabltk.$A \
   otherlibs/labltk/lib/labltk.$A \
   otherlibs/labltk/jpf/jpflib.$A \
-  otherlibs/labltk/tkanim/libtkanim.$A \
-  otherlibs/labltk/tkanim/tkanim.$A \
   otherlibs/labltk/frx/frxlib.$A \
   $LIBDIR/labltk
 

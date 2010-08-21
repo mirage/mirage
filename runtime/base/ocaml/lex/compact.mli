@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: compact.mli 5193 2002-10-28 16:46:50Z maranget $ *)
+(* $Id: compact.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Compaction of an automata *)
 type lex_tables =
@@ -24,7 +24,7 @@ type lex_tables =
     tbl_backtrk_code : int array;        (* nothing / code when Remember *)
 (* moves to execute before transitions (compacted) *)
     tbl_default_code : int array;
-    tbl_trans_code : int array;  
+    tbl_trans_code : int array;
     tbl_check_code : int array;
 (* byte code itself *)
     tbl_code: int array;}

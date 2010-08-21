@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translcore.ml 8992 2008-08-27 10:23:21Z garrigue $ *)
+(* $Id: translcore.ml 10445 2010-05-20 14:57:42Z doligez $ *)
 
 (* Translation from typed abstract syntax to lambda terms,
    for the core language *)
@@ -381,6 +381,7 @@ let check_recursive_lambda idlist lam =
         let idlist' = add_letrec bindings idlist in
         List.for_all (fun (id, arg) -> check idlist' arg) bindings &&
         check_top idlist' body
+    | Lprim (Pmakearray (Pgenarray), args) -> false
     | Lsequence (lam1, lam2) -> check idlist lam1 && check_top idlist lam2
     | Levent (lam, _) -> check_top idlist lam
     | lam -> check idlist lam
@@ -398,9 +399,8 @@ let check_recursive_lambda idlist lam =
         check idlist' body
     | Lprim(Pmakeblock(tag, mut), args) ->
         List.for_all (check idlist) args
-    | Lprim(Pmakearray(Paddrarray|Pintarray), args) ->
+    | Lprim(Pmakearray(_), args) ->
         List.for_all (check idlist) args
-    | Lprim (Pmakearray (Pgenarray), args) -> false
     | Lsequence (lam1, lam2) -> check idlist lam1 && check idlist lam2
     | Levent (lam, _) -> check idlist lam
     | lam ->
@@ -762,6 +762,8 @@ and transl_exp0 e =
              (Lvar cpy))
   | Texp_letmodule(id, modl, body) ->
       Llet(Strict, id, !transl_module Tcoerce_none None modl, transl_exp body)
+  | Texp_pack modl ->
+      !transl_module Tcoerce_none None modl
   | Texp_assert (cond) ->
       if !Clflags.noassert
       then lambda_unit
@@ -790,7 +792,7 @@ and transl_exp0 e =
               Lprim(Pmakeblock(Obj.forward_tag, Immutable), [transl_exp e])
           (* the following cannot be represented as float/forward/lazy:
              optimize *)
-          | Tarrow(_,_,_,_) | Ttuple _ | Tobject(_,_) | Tnil | Tvariant _
+          | Tarrow(_,_,_,_) | Ttuple _ | Tpackage _ | Tobject(_,_) | Tnil | Tvariant _
               -> transl_exp e
           (* optimize predefined types (excepted float) *)
           | Tconstr(_,_,_) ->

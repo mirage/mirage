@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: bytepackager.ml 9221 2009-04-02 09:06:33Z xclerc $ *)
+(* $Id: bytepackager.ml 10450 2010-05-21 12:00:49Z doligez $ *)
 
 (* "Package" a set of .cmo files into one .cmo file having the
    original compilation units as sub-modules. *)
@@ -28,7 +28,7 @@ type error =
 
 exception Error of error
 
-(* References accumulating informations on the .cmo files *)
+(* References accumulating information on the .cmo files *)
 
 let relocs = ref ([] : (reloc_info * int) list)
 let events = ref ([] : debug_event list)

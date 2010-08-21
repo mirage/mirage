@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: translobj.ml 9079 2008-10-08 13:09:39Z doligez $ *)
+(* $Id: translobj.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Misc
 open Primitive
@@ -112,8 +112,8 @@ let transl_store_label_init glob size f arg =
     (size+1,
      Lsequence(
      Lprim(Psetfield(size, false),
-	   [Lprim(Pgetglobal glob, []);
-	    Lprim (Pccall prim_makearray, [int !method_count; int 0])]),
+           [Lprim(Pgetglobal glob, []);
+            Lprim (Pccall prim_makearray, [int !method_count; int 0])]),
      expr))
   in
   (size, transl_label_init expr)
@@ -157,4 +157,3 @@ let oo_wrap env req f x =
     wrapping := false;
     top_env := Env.empty;
     raise exn
-    

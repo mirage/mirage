@@ -1,5 +1,20 @@
 #!/bin/sh
-# $Id: otherlibs-targets.sh 9281 2009-05-26 12:50:41Z ertai $
+
+#########################################################################
+#                                                                       #
+#                            Objective Caml                             #
+#                                                                       #
+#         Nicolas Pouillard, projet Gallium, INRIA Rocquencourt         #
+#                                                                       #
+#   Copyright 2008 Institut National de Recherche en Informatique et    #
+#   en Automatique.  All rights reserved.  This file is distributed     #
+#   under the terms of the GNU Library General Public License, with     #
+#   the special exception on linking described in file LICENSE.         #
+#                                                                       #
+#########################################################################
+
+# $Id: otherlibs-targets.sh 10443 2010-05-20 09:44:25Z doligez $
+
 OTHERLIBS_BYTE=""
 OTHERLIBS_NATIVE=""
 OTHERLIBS_UNIX_NATIVE=""
@@ -86,8 +101,6 @@ for lib in $OTHERLIBRARIES; do
     add_byte      lib/labltktop$EXE lib/labltk$EXE
     add_ocaml_lib jpf/jpflib
     add_ocaml_lib frx/frxlib
-    add_ocaml_lib tkanim/tkanim
-    add_file      tkanim/libtkanim.$A
     add_byte      browser/ocamlbrowser$EXE
     ;;
   dbm)

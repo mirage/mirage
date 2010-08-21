@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: typeopt.ml 9334 2009-09-16 09:44:33Z xleroy $ *)
+(* $Id: typeopt.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Auxiliaries for type-based optimizations, e.g. array kinds *)
 
@@ -58,7 +58,7 @@ let array_element_kind env ty =
       else if Path.same p Predef.path_float then
         Pfloatarray
       else if Path.same p Predef.path_string
-           || Path.same p Predef.path_array 
+           || Path.same p Predef.path_array
            || Path.same p Predef.path_nativeint
            || Path.same p Predef.path_int32
            || Path.same p Predef.path_int64 then

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: dll.mli 7656 2006-09-28 21:36:38Z xleroy $ *)
+(* $Id: dll.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Handling of dynamically-linked libraries *)
 
@@ -58,4 +58,3 @@ val init_compile: bool -> unit
    contents of ld.conf file).  Take note of the DLLs that were opened
    when starting the running program. *)
 val init_toplevel: string -> unit
-

@@ -11,12 +11,11 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: cset.mli 6269 2004-04-29 11:12:49Z maranget $ *)
+(* $Id: cset.mli 10268 2010-04-18 09:02:40Z xleroy $ *)
 
 (* Set of characters encoded as list of intervals *)
 
-type t 
-exception Bad
+type t
 
 val empty : t
 val is_empty : t -> bool
@@ -32,6 +31,3 @@ val inter : t -> t -> t
 val diff : t -> t -> t
 val complement : t -> t
 val env_to_array : (t * 'a) list -> 'a array
-
-
-

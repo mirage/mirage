@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: lambda.ml 8974 2008-08-01 16:57:10Z mauny $ *)
+(* $Id: lambda.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Misc
 open Path
@@ -423,5 +423,3 @@ and negate_comparison = function
 | Ceq -> Cneq| Cneq -> Ceq
 | Clt -> Cge | Cle -> Cgt
 | Cgt -> Cle | Cge -> Clt
-
-

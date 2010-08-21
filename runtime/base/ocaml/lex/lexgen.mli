@@ -10,11 +10,11 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: lexgen.mli 7815 2007-01-29 16:44:16Z maranget $ *)
+(* $Id: lexgen.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 
 (* raised when there are too many bindings (>= 254 memory cells) *)
-exception Memory_overflow 
+exception Memory_overflow
 
 
 (* Representation of automata *)
@@ -39,7 +39,7 @@ type ident = string *  Syntax.location
 
 (* Representation of entry points *)
 type tag_base = Start | End | Mem of int
-type tag_addr = Sum of (tag_base * int)        
+type tag_addr = Sum of (tag_base * int)
 type ident_info =
   | Ident_string of bool * tag_addr * tag_addr
   | Ident_char of bool * tag_addr
@@ -58,4 +58,3 @@ type ('args,'action) automata_entry =
 val make_dfa :
   ('args, 'action) Syntax.entry list ->
   ('args, 'action) automata_entry list * automata array
-

@@ -1,15 +1,29 @@
 #!/bin/sh
-# $Id: myocamlbuild.sh 8416 2007-10-08 14:19:34Z doligez $
+
+#########################################################################
+#                                                                       #
+#                            Objective Caml                             #
+#                                                                       #
+#   Nicolas Pouillard, Berke Durak, projet Gallium, INRIA Rocquencourt  #
+#                                                                       #
+#   Copyright 2007 Institut National de Recherche en Informatique et    #
+#   en Automatique.  All rights reserved.  This file is distributed     #
+#   under the terms of the Q Public License version 1.0.                #
+#                                                                       #
+#########################################################################
+
+# $Id: myocamlbuild.sh 10449 2010-05-21 11:48:35Z doligez $
+
 cd `dirname $0`/..
 set -xe
 if [ ! -x _build/ocamlbuild/ocamlbuildlight.byte ]; then
   if [ ! -x ocamlbuild/_build/ocamlbuildlight.byte ]; then
-    (cd ocamlbuild && make)
+    (cd ocamlbuild && ${GNUMAKE:-make})
   fi
   mkdir -p _build/ocamlbuild
-	for i in "light.cmo" "light.byte" "lightlib.cma" "_plugin.cmi" "_pack.cmi"
+  for i in "light.cmo" "light.byte" "lightlib.cma" "_plugin.cmi" "_pack.cmi"
   do
-	  cp ocamlbuild/_build/ocamlbuild$i _build/ocamlbuild
+    cp ocamlbuild/_build/ocamlbuild$i _build/ocamlbuild
   done
 fi
 rm -f ocamlbuild/myocamlbuild_config.ml ocamlbuild/myocamlbuild_config.mli

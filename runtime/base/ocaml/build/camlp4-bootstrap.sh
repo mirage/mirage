@@ -1,7 +1,12 @@
 #!/bin/sh
-# $Id: camlp4-bootstrap.sh 8416 2007-10-08 14:19:34Z doligez $
+
+# README: to bootstrap camlp4 have a look at build/camlp4-bootstrap-recipe.txt
+
 set -e
 cd `dirname $0`/..
+
+. config/config.sh
+export PATH=$BINDIR:$PATH
 
 TMPTARGETS="\
   camlp4/boot/Lexer.ml"

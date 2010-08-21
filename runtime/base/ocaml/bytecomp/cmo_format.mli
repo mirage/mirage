@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: cmo_format.mli 7422 2006-05-11 15:50:53Z xleroy $ *)
+(* $Id: cmo_format.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Symbol table information for .cmo and .cma files *)
 
@@ -58,4 +58,3 @@ type library =
      ...
      object code for last library member
      library descriptor *)
-

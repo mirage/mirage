@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: cset.ml 6269 2004-04-29 11:12:49Z maranget $ *)
+(* $Id: cset.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 
 exception Bad
@@ -95,5 +95,3 @@ let env_to_array env = match env with
           c)
       rem ;
     res
-
-  

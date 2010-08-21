@@ -10,7 +10,7 @@
 ;(*                                                                     *)
 ;(***********************************************************************)
 
-;(* $Id: caml-font-old.el 8768 2008-01-11 16:13:18Z doligez $ *)
+;(* $Id: caml-font-old.el 9547 2010-01-22 12:48:24Z doligez $ *)
 
 ;; useful colors
 
@@ -114,7 +114,7 @@
    ((fboundp 'global-font-lock-mode)
     (make-local-variable 'font-lock-defaults)
     (setq font-lock-defaults
-	  '(caml-font-lock-keywords nil nil ((?' . "w") (?_ . "w")))))
+          '(caml-font-lock-keywords nil nil ((?' . "w") (?_ . "w")))))
    (t
     (setq font-lock-keywords caml-font-lock-keywords)))
   (make-local-variable 'font-lock-keywords-only)

@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: boot.sh 8416 2007-10-08 14:19:34Z doligez $
+# $Id: boot.sh 10443 2010-05-20 09:44:25Z doligez $
 cd `dirname $0`/..
 set -ex
 TAGLINE='true: -use_stdlib'

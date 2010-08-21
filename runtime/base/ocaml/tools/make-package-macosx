@@ -12,12 +12,12 @@
 #                                                                       #
 #########################################################################
 
-# $Id: make-package-macosx 9093 2008-10-16 15:57:00Z doligez $
+# $Id: make-package-macosx 10448 2010-05-21 11:28:21Z doligez $
 
 cd package-macosx
 rm -rf ocaml.pkg ocaml-rw.dmg
 
-VERSION=`head -1 ../VERSION`
+VERSION=`sed -e 1q ../VERSION`
 VERSION_MAJOR=`sed -n -e '1s/^\([0-9]*\)\..*/\1/p' ../VERSION`
 VERSION_MINOR=`sed -n -e '1s/^[0-9]*\.\([0-9]*\)[.+].*/\1/p' ../VERSION`
 

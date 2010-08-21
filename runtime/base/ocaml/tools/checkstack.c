@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: checkstack.c 7382 2006-04-16 23:28:22Z doligez $ */
+/* $Id: checkstack.c 9625 2010-02-09 14:48:28Z weis $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,8 @@ int main(int argc, char ** argv)
              "Under sh, bash, zsh:  ulimit -s %lu\n"
              "Under csh, tcsh:      limit stacksize %lu\n\n",
              (unsigned long) (limit.rlim_cur / 1024),
-             MINSTACKBYTES / 1024, MINSTACKBYTES / 1024);
+             (unsigned long) (MINSTACKBYTES / 1024),
+             (unsigned long) (MINSTACKBYTES / 1024));
     exit (3);
   }
   exit (0);

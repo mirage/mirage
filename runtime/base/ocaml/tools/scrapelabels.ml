@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scrapelabels.ml 3850 2001-10-04 01:55:02Z garrigue $ *)
+(* $Id: scrapelabels.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open StdLabels
 open Lexer301
@@ -148,7 +148,7 @@ let convert_impl buffer =
         assert false
     with Closing last ->
       match token, last with
-        LPAREN, RPAREN 
+        LPAREN, RPAREN
       | (LBRACKET|LBRACKETBAR|LBRACKETLESS),
         (RBRACKET|BARRBRACKET|GREATERRBRACKET)
       | (BEGIN|STRUCT|SIG|OBJECT), END

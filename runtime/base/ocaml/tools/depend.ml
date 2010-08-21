@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: depend.ml 8906 2008-07-09 13:03:38Z mauny $ *)
+(* $Id: depend.ml 10263 2010-04-17 14:45:12Z garrigue $ *)
 
 open Format
 open Location
@@ -52,6 +52,11 @@ let rec add_type bv ty =
           | Rinherit sty -> add_type bv sty)
         fl
   | Ptyp_poly(_, t) -> add_type bv t
+  | Ptyp_package pt -> add_package_type bv pt
+
+and add_package_type bv (lid, l) =
+  add bv lid;
+  List.iter (add_type bv) (List.map snd l)
 
 and add_field_type bv ft =
   match ft.pfield_desc with
@@ -105,7 +110,7 @@ let rec add_pattern bv pat =
   | Ppat_constant _ -> ()
   | Ppat_tuple pl -> List.iter (add_pattern bv) pl
   | Ppat_construct(c, op, _) -> add bv c; add_opt add_pattern bv op
-  | Ppat_record pl ->
+  | Ppat_record(pl, _) ->
       List.iter (fun (lbl, p) -> add bv lbl; add_pattern bv p) pl
   | Ppat_array pl -> List.iter (add_pattern bv) pl
   | Ppat_or(p1, p2) -> add_pattern bv p1; add_pattern bv p2
@@ -157,6 +162,9 @@ let rec add_expr bv exp =
   | Pexp_poly (e, t) -> add_expr bv e; add_opt add_type bv t
   | Pexp_object (pat, fieldl) ->
       add_pattern bv pat; List.iter (add_class_field bv) fieldl
+  | Pexp_newtype (_, e) -> add_expr bv e
+  | Pexp_pack (m, pt) -> add_package_type bv pt; add_module bv m
+  | Pexp_open (m, e) -> addmodule bv m; add_expr bv e
 and add_pat_expr_list bv pel =
   List.iter (fun (p, e) -> add_pattern bv p; add_expr bv e) pel
 
@@ -170,8 +178,11 @@ and add_modtype bv mty =
       add_modtype bv mty;
       List.iter
         (function (_, Pwith_type td) -> add_type_declaration bv td
-                | (_, Pwith_module lid) -> addmodule bv lid)
+                | (_, Pwith_module lid) -> addmodule bv lid
+                | (_, Pwith_typesubst td) -> add_type_declaration bv td
+                | (_, Pwith_modsubst lid) -> addmodule bv lid)
         cstrl
+  | Pmty_typeof m -> add_module bv m
 
 and add_signature bv = function
     [] -> ()
@@ -217,9 +228,12 @@ and add_module bv modl =
       add_module bv mod1; add_module bv mod2
   | Pmod_constraint(modl, mty) ->
       add_module bv modl; add_modtype bv mty
+  | Pmod_unpack(e, pt) ->
+      add_package_type bv pt;
+      add_expr bv e
 
 and add_structure bv item_list =
-  List.fold_left add_struct_item bv item_list 
+  List.fold_left add_struct_item bv item_list
 
 and add_struct_item bv item =
   match item.pstr_desc with
@@ -242,7 +256,7 @@ and add_struct_item bv item =
         List.fold_right StringSet.add
           (List.map (fun (id,_,_) -> id) bindings) bv in
       List.iter
-        (fun (id, mty, modl) -> add_modtype bv' mty; add_module bv' modl) 
+        (fun (id, mty, modl) -> add_modtype bv' mty; add_module bv' modl)
         bindings;
       bv'
   | Pstr_modtype(id, mty) ->
@@ -279,15 +293,14 @@ and add_class_expr bv ce =
       add_class_expr bv ce; add_class_type bv ct
 
 and add_class_field bv = function
-    Pcf_inher(ce, _) -> add_class_expr bv ce
-  | Pcf_val(_, _, e, _) -> add_expr bv e
+    Pcf_inher(_, ce, _) -> add_class_expr bv ce
+  | Pcf_val(_, _, _, e, _) -> add_expr bv e
   | Pcf_valvirt(_, _, ty, _)
   | Pcf_virt(_, _, ty, _) -> add_type bv ty
-  | Pcf_meth(_, _, e, _) -> add_expr bv e
+  | Pcf_meth(_, _, _, e, _) -> add_expr bv e
   | Pcf_cstr(ty1, ty2, _) -> add_type bv ty1; add_type bv ty2
   | Pcf_let(_, pel, _) -> add_pat_expr_list bv pel
   | Pcf_init e -> add_expr bv e
 
 and add_class_declaration bv decl =
   add_class_expr bv decl.pci_expr
-

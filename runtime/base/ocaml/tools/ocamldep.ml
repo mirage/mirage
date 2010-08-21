@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ocamldep.ml 8963 2008-08-01 09:02:55Z xleroy $ *)
+(* $Id: ocamldep.ml 10444 2010-05-20 14:06:29Z doligez $ *)
 
 open Format
 open Location
@@ -82,7 +82,7 @@ let find_dependency modname (byt_deps, opt_deps) =
   with Not_found ->
     (byt_deps, opt_deps)
 
-let (depends_on, escaped_eol) = (": ", "\\\n    ")
+let (depends_on, escaped_eol) = (":", " \\\n    ")
 
 let print_filename s =
   let s = if !force_slash then fix_slash s else s in
@@ -117,14 +117,14 @@ let print_dependencies target_file deps =
   let rec print_items pos = function
     [] -> print_string "\n"
   | dep :: rem ->
-      if pos + String.length dep <= 77 then begin
-        print_filename dep; print_string " ";
+      if pos + 1 + String.length dep <= 77 then begin
+        print_string " "; print_filename dep;
         print_items (pos + String.length dep + 1) rem
       end else begin
-        print_string escaped_eol; print_filename dep; print_string " ";
-        print_items (String.length dep + 5) rem
+        print_string escaped_eol; print_filename dep;
+        print_items (String.length dep + 4) rem
       end in
-  print_items (String.length target_file + 2) deps
+  print_items (String.length target_file + 1) deps
 
 let print_raw_dependencies source_file deps =
   print_filename source_file; print_string ":";
@@ -143,7 +143,7 @@ let preprocess sourcefile =
   match !preprocessor with
     None -> sourcefile
   | Some pp ->
-      flush stdout;
+      flush Pervasives.stdout;
       let tmpfile = Filename.temp_file "camlpp" "" in
       let comm = Printf.sprintf "%s %s > %s" pp sourcefile tmpfile in
       if Sys.command comm <> 0 then begin
@@ -279,6 +279,11 @@ let print_version () =
   exit 0;
 ;;
 
+let print_version_num () =
+  printf "%s@." Sys.ocaml_version;
+  exit 0;
+;;
+
 let _ =
   Clflags.classic := false;
   add_to_load_path Filename.current_dir_name;
@@ -299,5 +304,7 @@ let _ =
        "   (Windows) Use forward slash / instead of backslash \\ in file paths";
      "-version", Arg.Unit print_version,
       " Print version and exit";
+     "-vnum", Arg.Unit print_version_num,
+      " Print version number and exit";
     ] file_dependencies usage;
   exit (if !error_occurred then 2 else 0)

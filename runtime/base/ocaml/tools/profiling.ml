@@ -12,7 +12,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: profiling.ml 7762 2006-11-28 15:59:35Z doligez $ *)
+(* $Id: profiling.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Run-time library for profiled programs *)
 
@@ -54,4 +54,3 @@ let dump_counters () =
   end
 
 let _ = at_exit dump_counters
-

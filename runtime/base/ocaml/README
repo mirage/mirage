@@ -84,7 +84,7 @@ All files marked "Copyright INRIA" in this distribution are copyright
 
 INSTALLATION:
 
-See the file INSTALL for installation instructions on Unix, Linux and 
+See the file INSTALL for installation instructions on Unix, Linux and
 MacOS X machines.  For MS Windows, see README.win32.
 
 DOCUMENTATION:
@@ -135,4 +135,4 @@ You can also contact the implementors directly at caml@inria.fr.
 
 
 ----
-$Id: README 9146 2008-12-02 17:11:22Z xleroy $
+$Id: README 9547 2010-01-22 12:48:24Z doligez $

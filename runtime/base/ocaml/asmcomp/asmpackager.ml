@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmpackager.ml 8523 2007-11-15 16:09:57Z frisch $ *)
+(* $Id: asmpackager.ml 10424 2010-05-19 11:29:38Z xleroy $ *)
 
 (* "Package" a set of .cmx/.o files into one .cmx/.o file having the
    original compilation units as sub-modules. *)
@@ -19,7 +19,7 @@ open Printf
 open Misc
 open Lambda
 open Clambda
-open Compilenv
+open Cmx_format
 
 type error =
     Illegal_renaming of string * string
@@ -83,10 +83,10 @@ let make_package_object ppf members targetobj targetname coercion =
   let objtemp =
     if !Clflags.keep_asm_file
     then chop_extension_if_any targetobj ^ ".pack" ^ Config.ext_obj
-    else 
+    else
       (* Put the full name of the module in the temporary file name
-	 to avoid collisions with MSVC's link /lib in case of successive 
-	 packs *)
+         to avoid collisions with MSVC's link /lib in case of successive
+         packs *)
       Filename.temp_file (Compilenv.make_symbol (Some "")) Config.ext_obj in
   let components =
     List.map

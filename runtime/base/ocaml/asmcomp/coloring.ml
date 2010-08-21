@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: coloring.ml 6592 2004-08-12 13:34:42Z xleroy $ *)
+(* $Id: coloring.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Register allocation by coloring of the interference graph *)
 
@@ -50,7 +50,7 @@ let find_degree reg =
     let cl = Proc.register_class reg in
     let avail_regs = Proc.num_available_registers.(cl) in
     if avail_regs = 0 then
-      (* Don't bother computing the degree if there are no regs 
+      (* Don't bother computing the degree if there are no regs
          in this class *)
       unconstrained := Reg.Set.add reg !unconstrained
     else begin
@@ -131,7 +131,7 @@ let iter_preferred f reg =
   List.iter (fun (r, w) -> walk r w) reg.prefer;
   reg.visited <- false
 
-(* Where to start the search for a suitable register. 
+(* Where to start the search for a suitable register.
    Used to introduce some "randomness" in the choice between registers
    with equal scores. This offers more opportunities for scheduling. *)
 

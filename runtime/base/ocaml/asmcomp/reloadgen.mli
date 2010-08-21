@@ -10,16 +10,16 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: reloadgen.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
+(* $Id: reloadgen.mli 10450 2010-05-21 12:00:49Z doligez $ *)
 
 class reload_generic : object
   method reload_operation :
     Mach.operation -> Reg.t array -> Reg.t array -> Reg.t array * Reg.t array
   method reload_test : Mach.test -> Reg.t array -> Reg.t array
-    (* Can be overriden to reflect instructions that can operate
+    (* Can be overridden to reflect instructions that can operate
        directly on stack locations *)
   method makereg : Reg.t -> Reg.t
-    (* Can be overriden to avoid creating new registers of some class
+    (* Can be overridden to avoid creating new registers of some class
        (i.e. if all "registers" of that class are actually on stack) *)
   method fundecl : Mach.fundecl -> Mach.fundecl * bool
     (* The entry point *)

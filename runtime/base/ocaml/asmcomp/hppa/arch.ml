@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arch.ml 5304 2002-11-29 15:03:37Z xleroy $ *)
+(* $Id: arch.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Specific operations for the HP PA-RISC processor *)
 
@@ -71,4 +71,3 @@ let print_specific_operation printreg op ppf arg =
   | Ishift1add -> fprintf ppf "%a << 1 + %a" printreg arg.(0) printreg arg.(1)
   | Ishift2add -> fprintf ppf "%a << 2 + %a" printreg arg.(0) printreg arg.(1)
   | Ishift3add -> fprintf ppf "%a << 3 + %a" printreg arg.(0) printreg arg.(1)
-

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: cmm.ml 7812 2007-01-29 12:11:18Z xleroy $ *)
+(* $Id: cmm.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 type machtype_component =
     Addr
@@ -129,4 +129,3 @@ type data_item =
 type phrase =
     Cfunction of fundecl
   | Cdata of data_item list
-

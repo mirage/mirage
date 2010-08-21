@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printmach.ml 7812 2007-01-29 12:11:18Z xleroy $ *)
+(* $Id: printmach.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Pretty-printing of pseudo machine code *)
 
@@ -27,7 +27,7 @@ let reg ppf r =
   fprintf ppf "/%i" r.stamp;
   begin match r.loc with
   | Unknown -> ()
-  | Reg r -> 
+  | Reg r ->
       fprintf ppf "[%s]" (Proc.register_name r)
   | Stack(Local s) ->
       fprintf ppf "[s%i]" s

@@ -10,11 +10,11 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scheduling.ml 3235 2000-07-16 02:57:31Z xleroy $ *)
+(* $Id: scheduling.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Schedgen (* to create a dependency *)
 
-(* We don't schedule here on the linearized code, but instead schedule the 
+(* We don't schedule here on the linearized code, but instead schedule the
    assembly code generated in Emit. *)
 
 let fundecl f = f

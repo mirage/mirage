@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: scheduling.ml 6423 2004-06-19 16:17:31Z xleroy $ *)
+(* $Id: scheduling.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Instruction scheduling for the Power PC *)
 
@@ -63,4 +63,3 @@ method reload_retaddr_issue_cycles = 3
 end
 
 let fundecl f = (new scheduler)#schedule_fundecl f
-

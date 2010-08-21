@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmgen.ml 8930 2008-07-24 05:35:22Z frisch $ *)
+(* $Id: asmgen.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* From lambda to assembly code *)
 
@@ -90,7 +90,7 @@ let compile_genfuns ppf f =
   List.iter
     (function
        | (Cfunction {fun_name = name}) as ph when f name ->
-	   compile_phrase ppf ph
+           compile_phrase ppf ph
        | _ -> ())
     (Cmmgen.generic_functions true [Compilenv.current_unit_infos ()])
 

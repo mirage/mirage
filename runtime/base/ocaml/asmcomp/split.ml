@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: split.ml 7812 2007-01-29 12:11:18Z xleroy $ *)
+(* $Id: split.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Renaming of registers at reload points to split live ranges. *)
 
@@ -189,7 +189,7 @@ let rec rename i sub =
   | Iraise ->
       (instr_cons_debug Iraise (subst_regs i.arg sub) [||] i.dbg i.next,
        None)
-      
+
 (* Second pass: replace registers by their final representatives *)
 
 let set_repres i =

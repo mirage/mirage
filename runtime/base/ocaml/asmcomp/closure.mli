@@ -10,9 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: closure.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
+(* $Id: closure.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Introduction of closures, uncurrying, recognition of direct calls *)
 
 val intro: int -> Lambda.lambda -> Clambda.ulambda
-

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: interf.ml 7812 2007-01-29 12:11:18Z xleroy $ *)
+(* $Id: interf.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Construction of the interference graph.
    Annotate pseudoregs with interference lists and preference lists. *)
@@ -98,7 +98,7 @@ let build_graph fundecl =
     | Iexit _ ->
         ()
     | Itrywith(body, handler) ->
-        add_interf_set Proc.destroyed_at_raise handler.live;    
+        add_interf_set Proc.destroyed_at_raise handler.live;
         interf body; interf handler; interf i.next
     | Iraise -> () in
 

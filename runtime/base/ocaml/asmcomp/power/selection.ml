@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml 8499 2007-11-09 15:06:57Z frisch $ *)
+(* $Id: selection.ml 10296 2010-04-22 12:51:06Z xleroy $ *)
 
 (* Instruction selection for the Power PC processor *)
 
@@ -63,13 +63,13 @@ method select_addressing exp =
       then (Iindexed2, Ctuple[e1; e2])
       else (Iindexed d, Cop(Cadda, [e1; e2]))
 
-method select_operation op args =
+method! select_operation op args =
   match (op, args) with
   (* Prevent the recognition of (x / cst) and (x % cst) when cst is not
      a power of 2, which do not correspond to an instruction. *)
     (Cdivi, [arg; Cconst_int n]) when n = 1 lsl (Misc.log2 n) ->
       (Iintop_imm(Idiv, n), [arg])
-  | (Cdivi, _) -> 
+  | (Cdivi, _) ->
       (Iintop Idiv, args)
   | (Cmodi, [arg; Cconst_int n]) when n = 1 lsl (Misc.log2 n) ->
       (Iintop_imm(Imod, n), [arg])

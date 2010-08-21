@@ -10,13 +10,13 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: asmlibrarian.ml 7079 2005-09-24 16:45:56Z xleroy $ *)
+(* $Id: asmlibrarian.ml 10424 2010-05-19 11:29:38Z xleroy $ *)
 
 (* Build libraries of .cmx files *)
 
 open Misc
 open Config
-open Compilenv
+open Cmx_format
 
 type error =
     File_not_found of string
@@ -71,4 +71,3 @@ let report_error ppf = function
       fprintf ppf "Cannot find file %s" name
   | Archiver_error name ->
       fprintf ppf "Error while creating the library %s" name
-

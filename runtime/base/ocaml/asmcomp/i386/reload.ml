@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: reload.ml 7812 2007-01-29 12:11:18Z xleroy $ *)
+(* $Id: reload.ml 10250 2010-04-08 03:58:41Z garrigue $ *)
 
 open Cmm
 open Arch
@@ -28,7 +28,7 @@ class reload = object (self)
 
 inherit Reloadgen.reload_generic as super
 
-method makereg r =
+method! makereg r =
   match r.typ with
     Float -> r
   | _ -> super#makereg r
@@ -37,7 +37,7 @@ method makereg r =
    will never be reloaded. Hence there is no need to make special cases for
    floating-point operations. *)
 
-method reload_operation op arg res =
+method! reload_operation op arg res =
   match op with
     Iintop(Iadd|Isub|Iand|Ior|Ixor|Icomp _|Icheckbound) ->
       (* One of the two arguments can reside in the stack *)
@@ -66,7 +66,7 @@ method reload_operation op arg res =
   | _ -> (* Other operations: all args and results in registers *)
       super#reload_operation op arg res
 
-method reload_test tst arg =
+method! reload_test tst arg =
   match tst with
     Iinttest cmp ->
       (* One of the two arguments can reside on stack *)

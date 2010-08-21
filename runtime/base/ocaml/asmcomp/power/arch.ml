@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arch.ml 7430 2006-05-31 08:16:34Z xleroy $ *)
+(* $Id: arch.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Specific operations for the PowerPC processor *)
 
@@ -84,4 +84,3 @@ let print_specific_operation printreg op ppf arg =
         printreg arg.(0) printreg arg.(1) printreg arg.(2)
   | Ialloc_far n ->
       fprintf ppf "alloc_far %d" n
-

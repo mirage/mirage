@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: reg.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
+(* $Id: reg.mli 9210 2009-03-31 09:44:50Z xleroy $ *)
 
 (* Pseudo-registers *)
 
@@ -39,6 +39,7 @@ and stack_location =
 val dummy: t
 val create: Cmm.machtype_component -> t
 val createv: Cmm.machtype -> t array
+val createv_like: t array -> t array
 val clone: t -> t
 val at_location: Cmm.machtype_component -> location -> t
 

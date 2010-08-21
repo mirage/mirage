@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml 8768 2008-01-11 16:13:18Z doligez $ *)
+(* $Id: selection.ml 10296 2010-04-22 12:51:06Z xleroy $ *)
 
 (* Instruction selection for the HPPA processor *)
 
@@ -45,7 +45,7 @@ method select_addressing = function
   | arg ->
       (Iindexed 0, arg)
 
-method select_operation op args =
+method! select_operation op args =
   match (op, args) with
   (* Recognize shift-add operations. *)
     ((Caddi|Cadda),
@@ -69,7 +69,7 @@ method select_operation op args =
      Cand, Cor, Cxor : never *)
   | (Cmuli, ([arg1; Cconst_int n] as args)) ->
       let l = Misc.log2 n in
-      if n = 1 lsl l 
+      if n = 1 lsl l
       then (Iintop_imm(Ilsl, l), [arg1])
       else (Iintop Imul, args)
   | (Cmuli, ([Cconst_int n; arg1] as args)) ->
@@ -92,7 +92,7 @@ method select_operation op args =
 
 (* Deal with register constraints *)
 
-method insert_op_debug op dbg rs rd =
+method! insert_op_debug op dbg rs rd =
   match op with
     Iintop(Idiv | Imod) -> (* handled via calls to millicode *)
       let rs' = [|phys_reg 20; phys_reg 19|] (* %r26, %r25 *)

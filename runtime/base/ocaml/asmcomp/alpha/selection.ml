@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml 3593 2001-07-24 08:01:25Z xleroy $ *)
+(* $Id: selection.ml 10296 2010-04-22 12:51:06Z xleroy $ *)
 
 (* Instruction selection for the Alpha processor *)
 
@@ -40,7 +40,7 @@ method select_addressing = function
   | arg ->
       (Iindexed 0, arg)
 
-method select_operation op args =
+method! select_operation op args =
   match (op, args) with
     (* Recognize shift-add operations *)
     ((Caddi|Cadda),

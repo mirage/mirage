@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: selection.ml 5303 2002-11-29 15:03:08Z xleroy $ *)
+(* $Id: selection.ml 10296 2010-04-22 12:51:06Z xleroy $ *)
 
 (* Instruction selection for the Sparc processor *)
 
@@ -38,7 +38,7 @@ method select_addressing = function
   | arg ->
       (Iindexed 0, arg)
 
-method select_operation op args =
+method! select_operation op args =
   match (op, args) with
   (* For SPARC V7 multiplication, division and modulus are turned into
      calls to C library routines, except if the dividend is a power of 2.
@@ -65,7 +65,7 @@ method select_operation op args =
 
 (* Override insert_move_args to deal correctly with floating-point
    arguments being passed into pairs of integer registers. *)
-method insert_move_args arg loc stacksize =
+method! insert_move_args arg loc stacksize =
   if stacksize <> 0 then self#insert (Iop(Istackoffset stacksize)) [||] [||];
   let locpos = ref 0 in
   for i = 0 to Array.length arg - 1 do

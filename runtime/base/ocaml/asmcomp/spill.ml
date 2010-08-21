@@ -10,9 +10,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: spill.ml 7812 2007-01-29 12:11:18Z xleroy $ *)
+(* $Id: spill.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
-(* Insertion of moves to suggest possible spilling / reloading points 
+(* Insertion of moves to suggest possible spilling / reloading points
    before register allocation. *)
 
 open Reg
@@ -130,7 +130,7 @@ let find_reload_at_exit k =
     List.assoc k !reload_at_exit
   with
   | Not_found -> Misc.fatal_error "Spill.find_reload_at_exit"
-        
+
 let reload_at_break = ref Reg.Set.empty
 
 let rec reload i before =
@@ -400,4 +400,3 @@ let fundecl f =
     fun_args = f.fun_args;
     fun_body = new_body;
     fun_fast = f.fun_fast }
-  

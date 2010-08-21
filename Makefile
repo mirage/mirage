@@ -23,7 +23,7 @@ bootstrap:
 
 tools:
 	@cd tools && $(MAKE) tools
-	@cd syntax && $(MAKE)
+	@cd syntax && $(MAKE) && $(MAKE) install
 
 clean:
 	@cd tools && $(MAKE) clean

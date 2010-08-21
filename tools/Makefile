@@ -1,15 +1,19 @@
-.PHONY: all
-all:
-	@cd mpl && $(MAKE)
-	@cd ocamldsort && if [ ! -f Makefile ]; then ./configure; fi
-	@cd ocamldsort && $(MAKE)
+PREFIX ?= /usr/local/mirage
+export PREFIX
+
+.PHONY: bootstrap
+bootstrap:
+	@cd ocaml && $(MAKE) && $(MAKE) install
+	mkdir -p $(PREFIX)
+	tar -zxf ocaml/install.tgz -C $(PREFIX)
+
+tools:
+	@cd ocamldsort && ./configure --prefix=$(PREFIX)
+	@cd mpl && $(MAKE) && $(MAKE) install
+	@cd ocamldsort && $(MAKE) && $(MAKE) install
 
 .PHONY: clean
 clean:
+	@cd ocaml && $(MAKE) clean
 	@cd mpl && $(MAKE) clean
 	@cd ocamldsort && $(MAKE) clean || true
-
-.PHONY: install
-install:
-	cd mpl && $(MAKE) install
-	cd ocamldsort && $(MAKE) install

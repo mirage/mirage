@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: genprintval.ml 8418 2007-10-09 10:29:37Z weis $ *)
+(* $Id: genprintval.ml 9397 2009-10-26 10:53:16Z frisch $ *)
 
 (* To print values *)
 
@@ -320,6 +320,8 @@ module Make(O : OBJ)(EVP : EVALPATH with type value = O.t) = struct
               tree_of_val (depth - 1) obj ty
           | Tunivar ->
               Oval_stuff "<poly>"
+          | Tpackage _ ->
+              Oval_stuff "<module>"
         end
 
       and tree_of_val_list start depth obj ty_list =

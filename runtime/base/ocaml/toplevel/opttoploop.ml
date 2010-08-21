@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: opttoploop.ml 8705 2007-12-04 13:38:58Z doligez $ *)
+(* $Id: opttoploop.ml 10260 2010-04-13 10:44:25Z doligez $ *)
 
 (* The interactive toplevel loop *)
 
@@ -333,7 +333,7 @@ let first_line = ref true
 let got_eof = ref false;;
 
 let read_input_default prompt buffer len =
-  output_string stdout prompt; flush stdout;
+  output_string Pervasives.stdout prompt; flush Pervasives.stdout;
   let i = ref 0 in
   try
     while true do

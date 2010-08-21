@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: stack.h 8477 2007-11-06 15:16:56Z frisch $ */
+/* $Id: stack.h 10315 2010-04-27 07:55:08Z xleroy $ */
 
 /* Machine-dependent interface with the asm code */
 
@@ -117,7 +117,11 @@ extern void caml_init_frame_descriptors(void);
 extern void caml_register_frametable(intnat *);
 extern void caml_register_dyn_global(void *);
 
+extern uintnat caml_stack_usage (void);
+extern uintnat (*caml_stack_usage_hook)(void);
+
 /* Declaration of variables used in the asm code */
+extern char * caml_top_of_stack;
 extern char * caml_bottom_of_stack;
 extern uintnat caml_last_return_address;
 extern value * caml_gc_regs;

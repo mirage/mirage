@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals_osdep.h 9194 2009-03-28 15:18:31Z xleroy $ */
+/* $Id: signals_osdep.h 9270 2009-05-20 11:52:42Z doligez $ */
 
 /* Processor- and OS-dependent signal interface */
 
@@ -75,6 +75,25 @@
   #define CONTEXT_YOUNG_PTR (CONTEXT_STATE.CONTEXT_REG(r15))
   #define CONTEXT_SP (CONTEXT_STATE.CONTEXT_REG(rsp))
   #define CONTEXT_FAULTING_ADDRESS ((char *) info->si_addr)
+
+/****************** ARM, Linux */
+
+#elif defined(TARGET_arm) && defined (SYS_linux)
+
+  #include <sys/ucontext.h>
+
+  #define DECLARE_SIGNAL_HANDLER(name) \
+    static void name(int sig, siginfo_t * info, ucontext_t * context)
+
+  #define SET_SIGACT(sigact,name) \
+     sigact.sa_sigaction = (void (*)(int,siginfo_t *,void *)) (name); \
+     sigact.sa_flags = SA_SIGINFO
+
+  typedef unsigned long context_reg;
+  #define CONTEXT_PC (context->uc_mcontext.arm_pc)
+  #define CONTEXT_EXCEPTION_POINTER (context->uc_mcontext.arm_fp)
+  #define CONTEXT_YOUNG_PTR (context->uc_mcontext.arm_r8)
+  #define CONTEXT_FAULTING_ADDRESS ((char *) context->uc_mcontext.fault_address)
 
 /****************** AMD64, Solaris x86 */
 

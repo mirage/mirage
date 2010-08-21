@@ -11,7 +11,7 @@
 ;*                                                                   *
 ;*********************************************************************
 
-; $Id: hppa.S 7382 2006-04-16 23:28:22Z doligez $
+; $Id: hppa.S 9547 2010-01-22 12:48:24Z doligez $
 
 ; Asm part of the runtime system for the HP PA-RISC processor.
 ; Must be preprocessed by cpp
@@ -366,7 +366,7 @@ L102:
         ldo     LOW(G(caml_young_limit))(%r1), %r4
 ; Call the Caml code
         ble     0(4, %r22)
-        copy    %r31, %r2        
+        copy    %r31, %r2
 L104:
 ; Pop the trap frame
         ldw     -8(%r30), %r31

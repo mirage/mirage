@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: startup.c 9131 2008-11-18 10:24:43Z doligez $ */
+/* $Id: startup.c 10315 2010-04-27 07:55:08Z xleroy $ */
 
 /* Start-up code */
 
@@ -29,6 +29,7 @@
 #include "mlvalues.h"
 #include "osdeps.h"
 #include "printexc.h"
+#include "stack.h"
 #include "sys.h"
 #include "natdynlink.h"
 #ifdef HAS_UI
@@ -36,7 +37,7 @@
 #endif
 
 extern int caml_parser_trace;
-CAMLexport header_t *caml_atom_table;
+CAMLexport header_t caml_atom_table[256];
 char * caml_code_area_start, * caml_code_area_end;
 
 /* Initialize the atom table and the static data and code area limits. */
@@ -47,8 +48,7 @@ static void init_atoms(void)
 {
   extern struct segment caml_data_segments[], caml_code_segments[];
   int i;
-  void *block;
-  caml_atom_table = caml_aligned_malloc(sizeof(header_t) * 256, 0, &block);
+
   for (i = 0; i < 256; i++) {
     caml_atom_table[i] = Make_header(0, i, Caml_white);
   }
@@ -145,22 +145,30 @@ void caml_main(char **argv)
   static char proc_self_exe[256];
 #endif
   value res;
+  char tos;
 
   caml_init_ieee_floats();
   caml_init_custom_operations();
 #ifdef DEBUG
   caml_verb_gc = 63;
 #endif
-#ifndef __MiniOS__
+  caml_top_of_stack = &tos;
   parse_camlrunparam();
-#endif
   caml_init_gc (minor_heap_init, heap_size_init, heap_chunk_init,
                 percent_free_init, max_percent_free_init);
   init_atoms();
   caml_init_signals();
+  caml_debugger_init (); /* force debugger.o stub to be linked */
   exe_name = argv[0];
   if (exe_name == NULL) exe_name = "";
-  exe_name = "Mirage application";
+#ifdef __linux__
+  if (caml_executable_name(proc_self_exe, sizeof(proc_self_exe)) == 0)
+    exe_name = proc_self_exe;
+  else
+    exe_name = caml_search_exe_in_path(exe_name);
+#else
+  exe_name = caml_search_exe_in_path(exe_name);
+#endif
   caml_sys_init(exe_name, argv);
   if (sigsetjmp(caml_termination_jmpbuf.buf, 0)) {
     if (caml_termination_hook != NULL) caml_termination_hook(NULL);

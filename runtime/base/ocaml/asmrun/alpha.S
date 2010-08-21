@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: alpha.S 6050 2004-01-03 12:51:20Z doligez $ */
+/* $Id: alpha.S 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Asm part of the runtime system, Alpha processor */
 
@@ -80,7 +80,7 @@ caml_allocN:
         .set    at
         ret     ($26)
         .end    caml_allocN
-        
+
         .globl  caml_call_gc
         .ent    caml_call_gc
         .align  3

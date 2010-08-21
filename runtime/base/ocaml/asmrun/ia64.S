@@ -10,7 +10,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: ia64.S 9341 2009-09-17 13:05:47Z xleroy $ */
+/* $Id: ia64.S 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Asm part of the runtime system, IA64 processor */
 
@@ -239,7 +239,7 @@ caml_start_program:
         mov     b6 = r2
 
         /* Code shared with caml_callback* */
-.L103:        
+.L103:
         /* Allocate 64 "out" registers (for the Caml code) and no locals */
         alloc	r3 = ar.pfs, 0, 0, 64, 0
         add     sp = -(56 * 8), sp ;;
@@ -503,7 +503,7 @@ caml_callback3_exn:
         .align  16
 caml_ml_array_bound_error:
         ADDRGLOBAL(r2, @fptr(caml_array_bound_error#))
-        br.sptk caml_c_call             /* never returns */        
+        br.sptk caml_c_call             /* never returns */
 
         .rodata
 

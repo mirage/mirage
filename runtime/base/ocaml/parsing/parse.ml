@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parse.ml 5224 2002-11-01 17:06:47Z doligez $ *)
+(* $Id: parse.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Entry points in the parser *)
 
@@ -53,7 +53,7 @@ let wrap parsing_fun lexbuf =
       raise err
   | Parsing.Parse_error | Syntaxerr.Escape_error ->
       let loc = Location.curr lexbuf in
-      if !Location.input_name = "" 
+      if !Location.input_name = ""
       then maybe_skip_phrase lexbuf;
       raise(Syntaxerr.Error(Syntaxerr.Other loc))
 ;;

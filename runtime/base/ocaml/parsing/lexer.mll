@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: lexer.mll 9079 2008-10-08 13:09:39Z doligez $ *)
+(* $Id: lexer.mll 10250 2010-04-08 03:58:41Z garrigue $ *)
 
 (* The lexer definition *)
 
@@ -156,6 +156,17 @@ let char_for_hexadecimal_code lexbuf i =
   in
   Char.chr (val1 * 16 + val2)
 
+(* To convert integer literals, allowing max_int + 1 (PR#4210) *)
+
+let cvt_int_literal s =
+  - int_of_string ("-" ^ s)
+let cvt_int32_literal s =
+  Int32.neg (Int32.of_string ("-" ^ String.sub s 0 (String.length s - 1)))
+let cvt_int64_literal s =
+  Int64.neg (Int64.of_string ("-" ^ String.sub s 0 (String.length s - 1)))
+let cvt_nativeint_literal s =
+  Nativeint.neg (Nativeint.of_string ("-" ^ String.sub s 0 (String.length s - 1)))
+
 (* Remove underscores from float literals *)
 
 let remove_underscores s =
@@ -239,7 +250,8 @@ rule token = parse
       { token lexbuf }
   | "_"
       { UNDERSCORE }
-  | "~"  { TILDE }
+  | "~"
+      { TILDE }
   | "~" lowercase identchar * ':'
       { let s = Lexing.lexeme lexbuf in
         let name = String.sub s 1 (String.length s - 2) in
@@ -264,29 +276,25 @@ rule token = parse
       { UIDENT(Lexing.lexeme lexbuf) }       (* No capitalized keywords *)
   | int_literal
       { try
-          INT (int_of_string(Lexing.lexeme lexbuf))
+          INT (cvt_int_literal (Lexing.lexeme lexbuf))
         with Failure _ ->
           raise (Error(Literal_overflow "int", Location.curr lexbuf))
       }
   | float_literal
       { FLOAT (remove_underscores(Lexing.lexeme lexbuf)) }
   | int_literal "l"
-      { let s = Lexing.lexeme lexbuf in
-        try
-          INT32 (Int32.of_string(String.sub s 0 (String.length s - 1)))
+      { try
+          INT32 (cvt_int32_literal (Lexing.lexeme lexbuf))
         with Failure _ ->
           raise (Error(Literal_overflow "int32", Location.curr lexbuf)) }
   | int_literal "L"
-      { let s = Lexing.lexeme lexbuf in
-        try
-          INT64 (Int64.of_string(String.sub s 0 (String.length s - 1)))
+      { try
+          INT64 (cvt_int64_literal (Lexing.lexeme lexbuf))
         with Failure _ ->
           raise (Error(Literal_overflow "int64", Location.curr lexbuf)) }
   | int_literal "n"
-      { let s = Lexing.lexeme lexbuf in
-        try
-          NATIVEINT
-            (Nativeint.of_string(String.sub s 0 (String.length s - 1)))
+      { try
+          NATIVEINT (cvt_nativeint_literal (Lexing.lexeme lexbuf))
         with Failure _ ->
           raise (Error(Literal_overflow "nativeint", Location.curr lexbuf)) }
   | "\""
@@ -372,13 +380,15 @@ rule token = parse
   | ">]" { GREATERRBRACKET }
   | "}"  { RBRACE }
   | ">}" { GREATERRBRACE }
+  | "!"  { BANG }
 
   | "!=" { INFIXOP0 "!=" }
   | "+"  { PLUS }
+  | "+." { PLUSDOT }
   | "-"  { MINUS }
   | "-." { MINUSDOT }
 
-  | "!" symbolchar *
+  | "!" symbolchar +
             { PREFIXOP(Lexing.lexeme lexbuf) }
   | ['~' '?'] symbolchar +
             { PREFIXOP(Lexing.lexeme lexbuf) }
@@ -481,7 +491,9 @@ and string = parse
         end
       }
   | newline
-      { update_loc lexbuf None 1 false 0;
+      { if not (in_comment ()) then
+          Location.prerr_warning (Location.curr lexbuf) Warnings.Eol_in_string;
+        update_loc lexbuf None 1 false 0;
         let s = Lexing.lexeme lexbuf in
         for i = 0 to String.length s - 1 do
           store_string_char s.[i];

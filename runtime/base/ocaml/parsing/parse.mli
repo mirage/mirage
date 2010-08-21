@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parse.mli 2553 1999-11-17 18:59:06Z xleroy $ *)
+(* $Id: parse.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Entry points in the parser *)
 
@@ -18,4 +18,3 @@ val implementation : Lexing.lexbuf -> Parsetree.structure
 val interface : Lexing.lexbuf -> Parsetree.signature
 val toplevel_phrase : Lexing.lexbuf -> Parsetree.toplevel_phrase
 val use_file : Lexing.lexbuf -> Parsetree.toplevel_phrase list
-

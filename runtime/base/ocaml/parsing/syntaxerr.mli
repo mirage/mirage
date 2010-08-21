@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: syntaxerr.mli 2908 2000-03-06 22:12:09Z weis $ *)
+(* $Id: syntaxerr.mli 9316 2009-07-15 14:06:37Z xleroy $ *)
 
 (* Auxiliary type for reporting syntax errors *)
 
@@ -18,6 +18,7 @@ open Format
 
 type error =
     Unclosed of Location.t * string * Location.t * string
+  | Applicative_path of Location.t
   | Other of Location.t
 
 exception Error of error

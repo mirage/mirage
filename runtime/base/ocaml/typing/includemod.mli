@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: includemod.mli 7619 2006-09-20 11:14:37Z doligez $ *)
+(* $Id: includemod.mli 10447 2010-05-21 03:36:52Z garrigue $ *)
 
 (* Inclusion checks for the module language *)
 
@@ -27,7 +27,8 @@ val type_declarations:
 type error =
     Missing_field of Ident.t
   | Value_descriptions of Ident.t * value_description * value_description
-  | Type_declarations of Ident.t * type_declaration * type_declaration
+  | Type_declarations of Ident.t * type_declaration
+        * type_declaration * Includecore.type_mismatch list
   | Exception_declarations of
       Ident.t * exception_declaration * exception_declaration
   | Module_types of module_type * module_type

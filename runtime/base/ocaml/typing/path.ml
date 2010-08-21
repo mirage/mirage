@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: path.ml 5640 2003-07-01 13:05:43Z xleroy $ *)
+(* $Id: path.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 type t =
     Pident of Ident.t
@@ -46,4 +46,3 @@ let rec head = function
     Pident id -> id
   | Pdot(p, s, pos) -> head p
   | Papply(p1, p2) -> assert false
-

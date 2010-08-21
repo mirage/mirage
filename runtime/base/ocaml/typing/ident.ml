@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ident.ml 6055 2004-01-04 14:32:34Z doligez $ *)
+(* $Id: ident.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Format
 
@@ -63,7 +63,7 @@ let set_current_time t = currentstamp := max !currentstamp t
 
 let reinit_level = ref (-1)
 
-let reinit () = 
+let reinit () =
   if !reinit_level < 0
   then reinit_level := !currentstamp
   else currentstamp := !reinit_level

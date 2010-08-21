@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: types.ml 8922 2008-07-19 02:13:09Z garrigue $ *)
+(* $Id: types.ml 9397 2009-10-26 10:53:16Z frisch $ *)
 
 (* Representation of types and declarations *)
 
@@ -37,6 +37,7 @@ and type_desc =
   | Tvariant of row_desc
   | Tunivar
   | Tpoly of type_expr * type_expr list
+  | Tpackage of Path.t * string list * type_expr list
 
 and row_desc =
     { row_fields: (label * row_field) list;
@@ -120,7 +121,8 @@ and constructor_tag =
 (* Record label descriptions *)
 
 type label_description =
-  { lbl_res: type_expr;                 (* Type of the result *)
+  { lbl_name: string;                   (* Short name *)
+    lbl_res: type_expr;                 (* Type of the result *)
     lbl_arg: type_expr;                 (* Type of the argument *)
     lbl_mut: mutable_flag;              (* Is this a mutable field? *)
     lbl_pos: int;                       (* Position in block *)

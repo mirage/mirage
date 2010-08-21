@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: outcometree.mli 7372 2006-04-05 02:28:13Z garrigue $ *)
+(* $Id: outcometree.mli 9397 2009-10-26 10:53:16Z frisch $ *)
 
 (* Module [Outcometree]: results displayed by the toplevel *)
 
@@ -60,6 +60,8 @@ type out_type =
   | Otyp_variant of
       bool * out_variant * bool * (string list) option
   | Otyp_poly of string list * out_type
+  | Otyp_module of string * string list * out_type list
+
 and out_variant =
   | Ovar_fields of (string * bool * out_type list) list
   | Ovar_name of out_ident * out_type list

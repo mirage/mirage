@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: predef.ml 8418 2007-10-09 10:29:37Z weis $ *)
+(* $Id: predef.ml 10288 2010-04-21 08:13:10Z xleroy $ *)
 
 (* Predefined type constructors (with special typing rules in typecore) *)
 
@@ -100,7 +100,7 @@ let build_initial_env add_type add_exception empty_env =
      type_manifest = None;
      type_variance = []}
   and decl_unit =
-    {type_params = []; 
+    {type_params = [];
      type_arity = 0;
      type_kind = Type_variant(["()", []]);
      type_private = Public;
@@ -201,3 +201,9 @@ let builtin_values =
        ident_failure; ident_not_found; ident_sys_error; ident_end_of_file;
        ident_division_by_zero; ident_sys_blocked_io;
        ident_assert_failure; ident_undefined_recursive_module ]
+
+(* Start non-predef identifiers at 1000.  This way, more predefs can
+   be defined in this file (above!) without breaking .cmi
+   compatibility. *)
+
+let _ = Ident.set_current_time 999 

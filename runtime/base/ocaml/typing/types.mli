@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: types.mli 8922 2008-07-19 02:13:09Z garrigue $ *)
+(* $Id: types.mli 10250 2010-04-08 03:58:41Z garrigue $ *)
 
 (* Representation of types and declarations *)
 
@@ -36,6 +36,7 @@ and type_desc =
   | Tvariant of row_desc
   | Tunivar
   | Tpoly of type_expr * type_expr list
+  | Tpackage of Path.t * string list * type_expr list
 
 and row_desc =
     { row_fields: (label * row_field) list;
@@ -91,8 +92,7 @@ and value_kind =
   | Val_prim of Primitive.description   (* Primitive *)
   | Val_ivar of mutable_flag * string   (* Instance variable (mutable ?) *)
   | Val_self of (Ident.t * type_expr) Meths.t ref *
-                (Ident.t * Asttypes.mutable_flag *
-                 Asttypes.virtual_flag * type_expr) Vars.t ref *
+                (Ident.t * mutable_flag * virtual_flag * type_expr) Vars.t ref *
                 string * type_expr
                                         (* Self *)
   | Val_anc of (string * Ident.t) list * string
@@ -118,7 +118,8 @@ and constructor_tag =
 (* Record label descriptions *)
 
 type label_description =
-  { lbl_res: type_expr;                 (* Type of the result *)
+  { lbl_name: string;                   (* Short name *)
+    lbl_res: type_expr;                 (* Type of the result *)
     lbl_arg: type_expr;                 (* Type of the argument *)
     lbl_mut: mutable_flag;              (* Is this a mutable field? *)
     lbl_pos: int;                       (* Position in block *)
@@ -160,8 +161,7 @@ type class_type =
 
 and class_signature =
   { cty_self: type_expr;
-    cty_vars:
-      (Asttypes.mutable_flag * Asttypes.virtual_flag * type_expr) Vars.t;
+    cty_vars: (mutable_flag * virtual_flag * type_expr) Vars.t;
     cty_concr: Concr.t;
     cty_inher: (Path.t * type_expr list) list }
 

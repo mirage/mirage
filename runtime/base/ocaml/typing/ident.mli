@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ident.mli 6055 2004-01-04 14:32:34Z doligez $ *)
+(* $Id: ident.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Identifiers (unique names) *)
 
@@ -25,7 +25,7 @@ val unique_name: t -> string
 val unique_toplevel_name: t -> string
 val persistent: t -> bool
 val equal: t -> t -> bool
-        (* Compare identifiers by name. *)      
+        (* Compare identifiers by name. *)
 val same: t -> t -> bool
         (* Compare identifiers by binding location.
            Two identifiers are the same either if they are both

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ctype.mli 9168 2009-02-13 05:05:36Z garrigue $ *)
+(* $Id: ctype.mli 10541 2010-06-08 08:43:38Z garrigue $ *)
 
 (* Operations on core types *)
 
@@ -183,7 +183,7 @@ type class_match_failure =
   | CM_Private_method of string
   | CM_Virtual_method of string
 val match_class_types:
-        Env.t -> class_type -> class_type -> class_match_failure list
+        ?trace:bool -> Env.t -> class_type -> class_type -> class_match_failure list
         (* Check if the first class type is more general than the second. *)
 val equal: Env.t -> bool -> type_expr list -> type_expr list -> bool
         (* [equal env [x1...xn] tau [y1...yn] sigma]

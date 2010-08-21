@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: datarepr.mli 5643 2003-07-02 09:14:35Z xleroy $ *)
+(* $Id: datarepr.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Compute constructor and label descriptions from type declarations,
    determining their representation. *)
@@ -25,7 +25,7 @@ val exception_descr:
   Path.t -> type_expr list -> constructor_description
 val label_descrs:
   type_expr -> (string * mutable_flag * type_expr) list ->
-    record_representation -> private_flag -> 
+    record_representation -> private_flag ->
     (string * label_description) list
 
 exception Constr_not_found

@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: oprint.mli 4694 2002-04-18 07:27:47Z garrigue $ *)
+(* $Id: oprint.mli 10486 2010-05-31 13:18:11Z xclerc $ *)
 
 open Format
 open Outcometree
@@ -22,3 +22,5 @@ val out_module_type : (formatter -> out_module_type -> unit) ref
 val out_sig_item : (formatter -> out_sig_item -> unit) ref
 val out_signature : (formatter -> out_sig_item list -> unit) ref
 val out_phrase : (formatter -> out_phrase -> unit) ref
+
+val parenthesized_ident : string -> bool

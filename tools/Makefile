@@ -11,6 +11,7 @@ tools:
 	@cd ocamldsort && ./configure --prefix=$(PREFIX)
 	@cd mpl && $(MAKE) && $(MAKE) install
 	@cd ocamldsort && $(MAKE) && $(MAKE) install
+	@cd mir && $(MAKE) install
 
 .PHONY: clean
 clean:

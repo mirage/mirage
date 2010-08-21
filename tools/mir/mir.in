@@ -3,7 +3,7 @@
 
 shopt -s nullglob
 
-OCAMLDSORT=${OCAMLDSORT:-ocamldsort}
+OCAMLDSORT=${OCAMLDSORT:-miragedsort.opt}
 OCAMLOPT=${OCAMLOPT:-ocamlopt.opt}
 OCAMLOPT_FLAGS="@OCAMLOPT_FLAGS@"
 OCAMLDEP=${OCAMLDEP:-ocamldep.opt}

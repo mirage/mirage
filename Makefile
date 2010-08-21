@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all clean tools
 .DEFAULT: all
 
 SUDO ?= sudo
@@ -7,7 +7,7 @@ export SUDO
 DESTDIR ?=
 export DESTDIR
 
-PREFIX ?= /usr/local
+PREFIX ?= $(HOME)/mir-inst
 export PREFIX
 
 all:
@@ -19,7 +19,10 @@ all:
 	@cd lib && $(MAKE)
 
 bootstrap:
-	@cd tools && $(MAKE)
+	@cd tools && $(MAKE) bootstrap
+
+tools:
+	@cd tools && $(MAKE) tools
 	@cd syntax && $(MAKE)
 
 clean:

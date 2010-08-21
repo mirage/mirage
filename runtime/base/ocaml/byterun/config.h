@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: config.h 9117 2008-11-02 14:30:05Z xleroy $ */
+/* $Id: config.h 9153 2008-12-03 18:09:09Z doligez $ */
 
 #ifndef CAML_CONFIG_H
 #define CAML_CONFIG_H
@@ -135,8 +135,12 @@ typedef struct { uint32 l, h; } uint64, int64;
 #define Minor_heap_max (1 << 28)
 
 /* Default size of the minor zone. (words)  */
+#ifdef SYS_xen
+/* XXX Temporary fix until the memory allocator is rewritten */
 #define Minor_heap_def (32768 * 4)
-
+#else
+#define Minor_heap_def 32768
+#endif
 
 /* Minimum size increment when growing the heap (words).
    Must be a multiple of [Page_size / sizeof (value)]. */

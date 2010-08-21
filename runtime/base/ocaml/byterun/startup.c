@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: startup.c 9300 2009-06-18 11:17:16Z xclerc $ */
+/* $Id: startup.c 10444 2010-05-20 14:06:29Z doligez $ */
 
 /* Start-up code */
 
@@ -176,7 +176,7 @@ int32 caml_seek_optional_section(int fd, struct exec_trailer *trail, char *name)
 int32 caml_seek_section(int fd, struct exec_trailer *trail, char *name)
 {
   int32 len = caml_seek_optional_section(fd, trail, name);
-  if (len == -1) 
+  if (len == -1)
     caml_fatal_error_arg("Fatal_error: section `%s' is missing\n", name);
   return len;
 }
@@ -249,6 +249,9 @@ static int parse_command_line(char **argv)
       if (!strcmp (argv[i], "-version")){
         printf ("The Objective Caml runtime, version " OCAML_VERSION "\n");
         exit (0);
+      }else if (!strcmp (argv[i], "-vnum")){
+        printf (OCAML_VERSION "\n");
+        exit (0);
       }else{
         caml_verb_gc = 0x001+0x004+0x008+0x010+0x020;
       }
@@ -298,8 +301,10 @@ static void scanmult (char *opt, uintnat *var)
 
 static void parse_camlrunparam(void)
 {
-  char *opt = "b";
+  char *opt = getenv ("OCAMLRUNPARAM");
   uintnat p;
+
+  if (opt == NULL) opt = getenv ("CAMLRUNPARAM");
 
   if (opt != NULL){
     while (*opt != '\0'){

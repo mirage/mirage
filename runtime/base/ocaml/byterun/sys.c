@@ -51,10 +51,8 @@
 #include "stacks.h"
 #include "sys.h"
 
-#if 0
 #ifndef _WIN32
 extern int errno;
-#endif
 #endif
 
 static char * error_message(void)
@@ -143,6 +141,9 @@ CAMLprim value caml_sys_open(value path, value vflags, value vperm)
   caml_leave_blocking_section();
   caml_stat_free(p);
   if (fd == -1) caml_sys_error(path);
+#if defined(F_SETFD) && defined(FD_CLOEXEC)
+  fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
   CAMLreturn(Val_long(fd));
 }
 
@@ -179,7 +180,9 @@ CAMLprim value caml_sys_remove(value name)
 
 CAMLprim value caml_sys_rename(value oldname, value newname)
 {
-  caml_sys_error(oldname);
+  if (rename(String_val(oldname), String_val(newname)) != 0)
+    caml_sys_error(NO_ARG);
+  return Val_unit;
 }
 
 CAMLprim value caml_sys_chdir(value dirname)
@@ -201,7 +204,11 @@ CAMLprim value caml_sys_getcwd(value unit)
 
 CAMLprim value caml_sys_getenv(value var)
 {
-  caml_raise_not_found();
+  char * res;
+
+  res = getenv(String_val(var));
+  if (res == 0) caml_raise_not_found();
+  return caml_copy_string(res);
 }
 
 char * caml_exe_name;
@@ -291,11 +298,22 @@ extern intnat caml_win32_random_seed (void);
 
 CAMLprim value caml_sys_random_seed (value unit)
 {
+#ifdef _WIN32
+  return Val_long(caml_win32_random_seed());
+#else
   intnat seed;
+#ifdef HAS_GETTIMEOFDAY
   struct timeval tv;
   gettimeofday(&tv, NULL);
   seed = tv.tv_sec ^ tv.tv_usec;
+#else
+  seed = time (NULL);
+#endif
+#ifdef HAS_UNISTD
+  seed ^= (getppid() << 16) ^ getpid();
+#endif
   return Val_long(seed);
+#endif
 }
 
 CAMLprim value caml_sys_get_config(value unit)
@@ -310,3 +328,19 @@ CAMLprim value caml_sys_get_config(value unit)
   CAMLreturn (result);
 }
 
+CAMLprim value caml_sys_read_directory(value path)
+{
+  CAMLparam1(path);
+  CAMLlocal1(result);
+  struct ext_table tbl;
+
+  caml_ext_table_init(&tbl, 50);
+  if (caml_read_directory(String_val(path), &tbl) == -1){
+    caml_ext_table_free(&tbl, 1);
+    caml_sys_error(path);
+  }
+  caml_ext_table_add(&tbl, NULL);
+  result = caml_copy_string_array((char const **) tbl.contents);
+  caml_ext_table_free(&tbl, 1);
+  CAMLreturn(result);
+}

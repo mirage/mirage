@@ -11,10 +11,9 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: misc.c,v 1.29 2008/02/29 12:56:15 doligez Exp $ */
+/* $Id: misc.c 8822 2008-02-29 12:56:15Z doligez $ */
 
 #include <stdio.h>
-#include <stdint.h>
 #include "config.h"
 #include "misc.h"
 #include "memory.h"
@@ -45,7 +44,8 @@ uintnat caml_verb_gc = 0;
 void caml_gc_message (int level, char *msg, uintnat arg)
 {
   if (level < 0 || (caml_verb_gc & level) != 0){
-    printf (msg, arg);
+    fprintf (stderr, msg, arg);
+    fflush (stderr);
   }
 }
 

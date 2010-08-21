@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: buffer.mli 9340 2009-09-16 15:52:46Z xclerc $ *)
+(* $Id: buffer.mli 10457 2010-05-21 18:30:12Z doligez $ *)
 
 (** Extensible string buffers.
 
@@ -55,7 +55,9 @@ val blit : t -> int -> string -> int -> int -> unit
 
    Raise [Invalid_argument] if [srcoff] and [len] do not designate a valid
    substring of [src], or if [dstoff] and [len] do not designate a valid
-   substring of [dst]. *)
+   substring of [dst].
+   @since 3.11.2
+*)
 
 val nth : t -> int -> char
 (** get the n-th character of the buffer. Raise [Invalid_argument] if

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: obj.ml 9482 2009-12-22 13:32:12Z doligez $ *)
+(* $Id: obj.ml 9561 2010-01-25 11:55:30Z doligez $ *)
 
 (* Operations on internal representations of values *)
 
@@ -32,7 +32,7 @@ let set_double_field x i v = Array.set (obj x : float array) i v
 external new_block : int -> int -> t = "caml_obj_block"
 external dup : t -> t = "caml_obj_dup"
 external truncate : t -> int -> unit = "caml_obj_truncate"
-external add_offset : t -> int -> t = "caml_obj_add_offset"
+external add_offset : t -> Int32.t -> t = "caml_obj_add_offset"
 
 let marshal (obj : t) =
   Marshal.to_string obj []

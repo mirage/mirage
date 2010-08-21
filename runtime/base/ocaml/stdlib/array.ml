@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: array.ml 6834 2005-04-11 16:44:26Z doligez $ *)
+(* $Id: array.ml 10482 2010-05-31 12:46:27Z doligez $ *)
 
 (* Array operations *)
 
@@ -78,10 +78,11 @@ let concat_aux init al =
 ;;
 
 let concat al =
-  let rec find_init = function
-      [] -> [||]
+  let rec find_init aa =
+    match aa with
+    | [] -> [||]
     | a :: rem ->
-        if length a > 0 then concat_aux (unsafe_get a 0) al else find_init rem
+        if length a > 0 then concat_aux (unsafe_get a 0) aa else find_init rem
   in find_init al
 
 let sub a ofs len =

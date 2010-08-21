@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.nt 8929 2008-07-24 05:18:31Z frisch $
+# $Id: Makefile.nt 9547 2010-01-22 12:48:24Z doligez $
 
 include Makefile.shared
 
@@ -29,4 +29,3 @@ camlheader camlheader_ur: headernt.c ../config/Makefile
 
 # TODO: do not call flexlink to build tmpheader.exe (we don't need
 # the export table)
-

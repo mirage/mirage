@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: string.mli 9079 2008-10-08 13:09:39Z doligez $ *)
+(* $Id: string.mli 9153 2008-12-03 18:09:09Z doligez $ *)
 
 (** String operations.
   Given a string [s] of length [l], we call character number in [s]

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: weak.mli 9130 2008-11-13 10:39:46Z doligez $ *)
+(* $Id: weak.mli 9153 2008-12-03 18:09:09Z doligez $ *)
 
 (** Arrays of weak pointers and hash tables of weak pointers. *)
 
@@ -24,7 +24,7 @@ type 'a t
    the value is not used any more (through normal pointers) by the
    program.  Note that finalisation functions are run after the
    weak pointers are erased.
- 
+
    A weak pointer is said to be full if it points to a value,
    empty if the value was erased by the GC.
 

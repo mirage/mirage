@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: buffer.ml 9340 2009-09-16 15:52:46Z xclerc $ *)
+(* $Id: buffer.ml 10216 2010-03-28 08:16:45Z xleroy $ *)
 
 (* Extensible buffers *)
 
@@ -100,6 +100,8 @@ let add_buffer b bs =
   add_substring b bs.buffer 0 bs.position
 
 let add_channel b ic len =
+  if len < 0 || len > Sys.max_string_length then   (* PR#5004 *)
+    invalid_arg "Buffer.add_channel";
   if b.position + len > b.length then resize b len;
   really_input ic b.buffer b.position len;
   b.position <- b.position + len

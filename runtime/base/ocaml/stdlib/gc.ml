@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: gc.ml 9131 2008-11-18 10:24:43Z doligez $ *)
+(* $Id: gc.ml 10315 2010-04-27 07:55:08Z xleroy $ *)
 
 type stat = {
   minor_words : float;
@@ -29,6 +29,7 @@ type stat = {
   fragments : int;
   compactions : int;
   top_heap_words : int;
+  stack_size : int;
 };;
 
 type control = {

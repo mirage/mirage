@@ -14,6 +14,7 @@
 //#define HAS_LOCKF
 //#define HAS_MKFIFO
 #define HAS_GETCWD
+#define HAS_EXPM1_LOG1P
 //#define HAS_GETWD
 //#define HAS_GETPRIORITY
 //#define HAS_UTIME

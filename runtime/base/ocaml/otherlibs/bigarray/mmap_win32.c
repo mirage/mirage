@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: mmap_win32.c 8773 2008-01-15 14:55:15Z frisch $ */
+/* $Id: mmap_win32.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <stddef.h>
 #include <stdio.h>
@@ -111,7 +111,7 @@ CAMLprim value caml_ba_map_file(value vfd, value vkind, value vlayout,
   delta = (uintnat) (startpos % sysinfo.dwPageSize);
   /* Map the mapping in memory */
   li.QuadPart = startpos - delta;
-  addr = 
+  addr =
     MapViewOfFile(fmap, mode, li.HighPart, li.LowPart, array_size + delta);
   if (addr == NULL) caml_ba_sys_error();
   addr = (void *) ((uintnat) addr + delta);

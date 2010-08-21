@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: bigarray_stubs.c 9123 2008-11-09 09:03:51Z xleroy $ */
+/* $Id: bigarray_stubs.c 9153 2008-12-03 18:09:09Z doligez $ */
 
 #include <stddef.h>
 #include <stdarg.h>
@@ -201,7 +201,7 @@ CAMLprim value caml_ba_create(value vkind, value vlayout, value vdim)
     caml_invalid_argument("Bigarray.create: bad number of dimensions");
   for (i = 0; i < num_dims; i++) {
     dim[i] = Long_val(Field(vdim, i));
-    if (dim[i] < 0) 
+    if (dim[i] < 0)
       caml_invalid_argument("Bigarray.create: negative dimension");
   }
   flags = Int_val(vkind) | Int_val(vlayout);
@@ -697,7 +697,7 @@ static void caml_ba_serialize_longarray(void * data,
     caml_serialize_block_8(data, num_elts);
   } else {
     caml_serialize_int_1(0);
-    for (n = 0, p = data; n < num_elts; n++, p++) 
+    for (n = 0, p = data; n < num_elts; n++, p++)
       caml_serialize_int_4((int32) *p);
   }
 #else
@@ -765,7 +765,7 @@ static void caml_ba_deserialize_longarray(void * dest, intnat num_elts)
     caml_deserialize_block_8(dest, num_elts);
   } else {
     intnat * p, n;
-    for (n = 0, p = dest; n < num_elts; n++, p++) 
+    for (n = 0, p = dest; n < num_elts; n++, p++)
       *p = caml_deserialize_sint_4();
   }
 #else

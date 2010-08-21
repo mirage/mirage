@@ -1,3 +1,17 @@
+#########################################################################
+#                                                                       #
+#                            Objective Caml                             #
+#                                                                       #
+#   Nicolas Pouillard, Berke Durak, projet Gallium, INRIA Rocquencourt  #
+#                                                                       #
+#   Copyright 2007 Institut National de Recherche en Informatique et    #
+#   en Automatique.  All rights reserved.  This file is distributed     #
+#   under the terms of the Q Public License version 1.0.                #
+#                                                                       #
+#########################################################################
+
+# $Id: Makefile 10286 2010-04-20 15:38:58Z doligez $
+
 .PHONY: all byte native profile debug ppcache doc
 
 ifndef INSTALL_PREFIX

@@ -1,4 +1,4 @@
-\" $Id: ocamlprof.m 9027 2008-09-15 14:25:42Z doligez $
+\" $Id: ocamlprof.m 10444 2010-05-20 14:06:29Z doligez $
 .TH OCAMLPROF 1
 
 .SH NAME
@@ -7,10 +7,7 @@ ocamlprof \- The Objective Caml profiler
 .SH SYNOPSIS
 .B ocamlprof
 [
-.BI \-f \ dump-file
-]
-[
-.BI \-F \ text
+.I options
 ]
 .I filename ...
 
@@ -61,7 +58,10 @@ Compile the file
 as an interface file, even if its extension is not .mli.
 .TP
 .B \-version
-Print the version number of ocamlprof and exit.
+Print version string and exit.
+.TP
+.B \-vnum
+Print short version number and exit.
 .TP
 .BR \-help \ or \ \-\-help
 Display a short usage summary and exit.

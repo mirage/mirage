@@ -1,4 +1,4 @@
-\" $Id: ocamllex.m 9026 2008-09-15 14:12:56Z doligez $
+\" $Id: ocamllex.m 10444 2010-05-20 14:06:29Z doligez $
 .TH OCAMLLEX 1
 
 .SH NAME
@@ -72,7 +72,10 @@ to standard output.  They are suppressed if option
 is used.
 .TP
 .BR \-v \ or \ \-version
-Print version and exit.
+Print version string and exit.
+.TP
+.B \-vnum
+Print short version number and exit.
 .TP
 .BR \-help \ or \ \-\-help
 Display a short usage summary and exit.

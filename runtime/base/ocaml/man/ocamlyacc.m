@@ -1,4 +1,4 @@
-\" $Id: ocamlyacc.m 9026 2008-09-15 14:12:56Z doligez $
+\" $Id: ocamlyacc.m 10444 2010-05-20 14:06:29Z doligez $
 .TH OCAMLYACC 1
 
 .SH NAME
@@ -7,10 +7,15 @@ ocamlyacc \- The Objective Caml parser generator
 .SH SYNOPSIS
 .B ocamlyacc
 [
-.B -v
-]
-[
 .BI \-b prefix
+] [
+.B \-q
+] [
+.B \-v
+] [
+.B \-version
+] [
+.B \-vnum
 ]
 .I filename.mly
 
@@ -67,7 +72,10 @@ file
 .IR grammar .output.
 .TP
 .B \-version
-Print version and exit.
+Print version string and exit.
+.TP
+.B \-vnum
+Print short version number and exit.
 .TP
 .B \-
 Read the grammar specification from standard input.  The default

@@ -1,4 +1,4 @@
-\" $Id: ocamldep.m 9026 2008-09-15 14:12:56Z doligez $
+\" $Id: ocamldep.m 10444 2010-05-20 14:06:29Z doligez $
 
 .TH OCAMLDEP 1
 
@@ -99,7 +99,10 @@ as a preprocessor for each source file.
 Under Unix, this option does nothing.
 .TP
 .B \-version
-Print version and exit.
+Print version string and exit.
+.TP
+.B \-vnum
+Print short version number and exit.
 .TP
 .BR \-help \ or \ \-\-help
 Display a short usage summary and exit.

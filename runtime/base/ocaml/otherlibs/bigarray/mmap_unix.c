@@ -130,7 +130,7 @@ CAMLprim value caml_ba_map_file(value vfd, value vkind, value vlayout,
 value caml_ba_map_file(value vfd, value vkind, value vlayout,
                        value vshared, value vdim, value vpos)
 {
-  invalid_argument("Bigarray.map_file: not supported");
+  caml_invalid_argument("Bigarray.map_file: not supported");
   return Val_unit;
 }
 

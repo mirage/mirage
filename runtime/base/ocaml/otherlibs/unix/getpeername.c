@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: getpeername.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: getpeername.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <fail.h>
 #include <mlvalues.h>
@@ -37,5 +37,5 @@ CAMLprim value unix_getpeername(value sock)
 
 CAMLprim value unix_getpeername(value sock)
 { invalid_argument("getpeername not implemented"); }
-  
+
 #endif

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: arith_flags.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: arith_flags.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 let error_when_null_denominator_flag = ref true;;
 
@@ -22,4 +22,3 @@ let normalize_ratio_when_printing_flag = ref true;;
 let floating_precision = ref 12;;
 
 let approx_printing_flag = ref false;;
-

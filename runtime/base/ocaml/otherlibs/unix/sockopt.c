@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: sockopt.c 8968 2008-08-01 13:46:08Z xleroy $ */
+/* $Id: sockopt.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <memory.h>
@@ -126,10 +126,10 @@ static struct socket_option sockopt_int[] = {
   { SOL_SOCKET, SO_SNDLOWAT } };
 
 static struct socket_option sockopt_linger[] = {
-  { SOL_SOCKET, SO_LINGER } 
+  { SOL_SOCKET, SO_LINGER }
 };
 
-static struct socket_option sockopt_timeval[] = { 
+static struct socket_option sockopt_timeval[] = {
   { SOL_SOCKET, SO_RCVTIMEO },
   { SOL_SOCKET, SO_SNDTIMEO }
 };
@@ -226,7 +226,7 @@ unix_getsockopt_aux(char * name,
   }
 }
 
-CAMLexport value 
+CAMLexport value
 unix_setsockopt_aux(char * name,
                     enum option_type ty, int level, int option,
                     value socket, value val)

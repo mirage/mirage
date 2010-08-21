@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: event.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: event.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Events *)
 type 'a basic_event =
@@ -92,7 +92,7 @@ let basic_sync abort_env genev =
   (* Extract the result *)
   if abort_env = [] then
     (* Preserve tail recursion *)
-    bev.(!performed).result() 
+    bev.(!performed).result()
   else begin
     let num = !performed in
     let result = bev.(num).result() in

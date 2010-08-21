@@ -15,7 +15,7 @@
 (***********************************************************************)
 open Camltk
 
-let version = "$Id: frx_entry.ml 4745 2002-04-26 12:16:26Z furuse $"
+let version = "$Id: frx_entry.ml 9547 2010-01-22 12:48:24Z doligez $"
 
 (*
  * Tk 4.0 has emacs bindings for entry widgets
@@ -25,7 +25,7 @@ let new_label_entry parent txt action =
   let f = Frame.create parent [] in
   let m = Label.create f [Text txt]
   and e = Entry.create f [Relief Sunken; TextWidth 0] in
-   Camltk.bind e [[], KeyPressDetail "Return"] 
+   Camltk.bind e [[], KeyPressDetail "Return"]
        (BindSet ([], fun _ -> action(Entry.get e)));
   pack [m][Side Side_Left];
   pack [e][Side Side_Right; Fill Fill_X; Expand true];
@@ -38,5 +38,3 @@ let new_labelm_entry parent txt memo =
   pack [m][Side Side_Left];
   pack [e][Side Side_Right; Fill Fill_X; Expand true];
   f,e
-
-

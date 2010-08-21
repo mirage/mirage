@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: useunix.ml 5094 2002-08-09 10:34:44Z garrigue $ *)
+(* $Id: useunix.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open StdLabels
 open UnixLabels
@@ -36,7 +36,7 @@ let get_files_in_directory dir =
         | Some x ->
             get_them (x::l)
         | None ->
-            closedir dirh; l 
+            closedir dirh; l
       in
       List.sort ~cmp:compare (get_them [])
 
@@ -63,7 +63,7 @@ let subshell ~cmd =
     with
       Some x -> it (x::l)
     | None -> List.rev l
-  in 
+  in
   let answer = it [] in
   ignore (close_process_in rc);
   answer

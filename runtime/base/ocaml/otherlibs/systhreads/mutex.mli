@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: mutex.mli 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: mutex.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Locks for mutual exclusion.
 
@@ -47,4 +47,3 @@ val try_lock : t -> bool
 val unlock : t -> unit
 (** Unlock the given mutex. Other threads suspended trying to lock
    the mutex will restart. *)
-

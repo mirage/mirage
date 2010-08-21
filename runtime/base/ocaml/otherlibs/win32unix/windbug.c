@@ -11,41 +11,22 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: windbug.c 9144 2008-11-26 13:41:01Z xleroy $ */
+/* $Id: windbug.c 10467 2010-05-25 13:01:06Z xleroy $ */
 
-#include <windows.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include "windbug.h"
 
-#ifdef DBUG
-
-static int dbug = 0;
-
-void dbug_init (void)
+int debug_test (void)
 {
-  dbug = (getenv("OCAMLDBUG") != NULL);
-}
+  static int debug_init = 0;
+  static int debug = 0;
 
-void dbug_cleanup (void)
-{
-}
+#ifdef DEBUG
+  if (!debug_init)
+  {
+    debug = (getenv("OCAMLDEBUG") != NULL);
+    debug_init = 1;
+  };
+#endif 
 
-int dbug_test (void)
-{
-  return dbug;
+  return debug;
 }
-
-void dbug_print(const char * fmt, ...)
-{
-  va_list ap;
-  if (dbug) {
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    fflush(stderr);
-    va_end(ap);
-  }
-}
-
-#endif

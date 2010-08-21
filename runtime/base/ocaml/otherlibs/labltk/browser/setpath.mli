@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: setpath.mli 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: setpath.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Widget
 
@@ -22,4 +22,4 @@ val exec_update_hooks : unit -> unit
 
 val set : dir:string -> unit
 val f : dir:string -> toplevel widget
-    (* edit the load path *)  
+    (* edit the load path *)

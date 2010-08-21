@@ -14,7 +14,7 @@
 /*                                                                       */
 /*************************************************************************/
 
-/* $Id: cltkDMain.c 8899 2008-07-01 09:55:52Z weis $ */
+/* $Id: cltkDMain.c 10230 2010-04-03 06:43:51Z furuse $ */
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -223,7 +223,7 @@ int Caml_Init(interp)
       if (0 == access(f,R_OK))
         if (TCL_OK != Tcl_EvalFile(cltclinterp,f)) {
           stat_free(f);
-          tk_error(cltclinterp->result);
+          tk_error(Tcl_GetStringResult(cltclinterp));
         };
       stat_free(f);
     }

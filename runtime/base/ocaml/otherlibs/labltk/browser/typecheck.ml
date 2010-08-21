@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: typecheck.ml 9293 2009-06-08 04:43:32Z garrigue $ *)
+(* $Id: typecheck.ml 9319 2009-07-20 11:51:50Z doligez $ *)
 
 open StdLabels
 open Tk
@@ -139,6 +139,7 @@ let f txt =
           Syntaxerr.report_error Format.std_formatter err;
           begin match err with
             Syntaxerr.Unclosed(l,_,_,_) -> l
+          | Syntaxerr.Applicative_path l -> l
           | Syntaxerr.Other l -> l
           end
       | Typecore.Error (l,err) ->

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: windir.c 5029 2002-07-23 14:12:03Z doligez $ */
+/* $Id: windir.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <memory.h>
@@ -77,4 +77,3 @@ CAMLprim value win_findclose(valh)
   }
   return Val_unit;
 }
-

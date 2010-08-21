@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: gethost.c 7619 2006-09-20 11:14:37Z doligez $ */
+/* $Id: gethost.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <string.h>
 #include <mlvalues.h>
@@ -176,8 +176,8 @@ CAMLprim value unix_gethostbyname(value name)
 
 CAMLprim value unix_gethostbyaddr(value name)
 { invalid_argument("gethostbyaddr not implemented"); }
-  
+
 CAMLprim value unix_gethostbyname(value name)
 { invalid_argument("gethostbyname not implemented"); }
- 
+
 #endif

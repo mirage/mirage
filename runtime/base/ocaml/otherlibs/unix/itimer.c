@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: itimer.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: itimer.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -56,7 +56,7 @@ CAMLprim value unix_setitimer(value which, value newval)
     uerror("setitimer", Nothing);
   return unix_convert_itimer(&old);
 }
-     
+
 CAMLprim value unix_getitimer(value which)
 {
   struct itimerval val;

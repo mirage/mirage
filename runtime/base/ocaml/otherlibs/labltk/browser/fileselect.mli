@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: fileselect.mli 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: fileselect.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 val f :
   title:string ->
@@ -22,7 +22,7 @@ val f :
   ?file:string ->
   ?multi:bool -> ?sync:bool -> ?usepath:bool -> unit -> unit
 
-(* action 
+(* action
       []  means canceled
       if multi select is false, then the list is null or a singleton *)
 

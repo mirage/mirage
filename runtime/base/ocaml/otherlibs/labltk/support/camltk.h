@@ -14,7 +14,7 @@
 /*                                                                       */
 /*************************************************************************/
 
-/* $Id: camltk.h 9036 2008-09-26 07:35:24Z garrigue $ */
+/* $Id: camltk.h 10230 2010-04-03 06:43:51Z furuse $ */
 
 #if defined(_WIN32) && defined(CAML_DLL) && defined(IN_CAMLTKSUPPORT)
 #define CAMLTKextern CAMLexport
@@ -25,6 +25,11 @@
 /* compatibility with earlier versions of Tcl/Tk */
 #ifndef CONST84
 #define CONST84
+#endif
+
+/* if Tcl_GetStringResult is not defined, we use interp->result */
+#ifndef Tcl_GetStringResult
+#  define Tcl_GetStringResult(interp) (interp->result)
 #endif
 
 /* cltkMisc.c */
@@ -58,4 +63,3 @@ extern int cltk_slave_mode;
 
 #define RCNAME ".camltkrc"
 #define CAMLCB "camlcb"
-

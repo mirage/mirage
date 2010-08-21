@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: cstringv.c 4144 2001-12-07 13:41:02Z xleroy $ */
+/* $Id: cstringv.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <memory.h>
@@ -28,5 +28,3 @@ char ** cstringvect(value arg)
   res[size] = NULL;
   return res;
 }
-
-  

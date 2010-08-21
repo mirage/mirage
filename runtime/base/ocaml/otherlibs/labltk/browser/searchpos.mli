@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: searchpos.mli 8232 2007-05-16 08:21:41Z doligez $ *)
+(* $Id: searchpos.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Widget
 
@@ -75,4 +75,3 @@ val parent_path : Path.t -> Path.t option
 val string_of_path : Path.t -> string
 val string_of_longident : Longident.t -> string
 val lines_to_chars : int -> text:string -> int
-

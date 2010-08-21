@@ -14,7 +14,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: cltkMain.c 8899 2008-07-01 09:55:52Z weis $ */
+/* $Id: cltkMain.c 10230 2010-04-03 06:43:51Z furuse $ */
 
 #include <string.h>
 #include <tcl.h>
@@ -95,7 +95,7 @@ CAMLprim value camltk_opentk(value argv)
     }
 
     if (Tcl_Init(cltclinterp) != TCL_OK)
-      tk_error(cltclinterp->result);
+      tk_error(Tcl_GetStringResult(cltclinterp));
     Tcl_SetVar(cltclinterp, "argv0", String_val (argv0), TCL_GLOBAL_ONLY);
 
     { /* Sets argv */
@@ -132,13 +132,13 @@ CAMLprim value camltk_opentk(value argv)
       }
     }
     if (Tk_Init(cltclinterp) != TCL_OK)
-      tk_error(cltclinterp->result);
+      tk_error(Tcl_GetStringResult(cltclinterp));
 
     /* Retrieve the main window */
     cltk_mainWindow = Tk_MainWindow(cltclinterp);
 
     if (NULL == cltk_mainWindow)
-      tk_error(cltclinterp->result);
+      tk_error(Tcl_GetStringResult(cltclinterp));
 
     Tk_GeometryRequest(cltk_mainWindow,200,200);
   }
@@ -165,7 +165,7 @@ CAMLprim value camltk_opentk(value argv)
       if (0 == access(f,R_OK))
         if (TCL_OK != Tcl_EvalFile(cltclinterp,f)) {
           stat_free(f);
-          tk_error(cltclinterp->result);
+          tk_error(Tcl_GetStringResult(cltclinterp));
         };
       stat_free(f);
     }

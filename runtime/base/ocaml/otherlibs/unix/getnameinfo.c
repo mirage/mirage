@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: getnameinfo.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: getnameinfo.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <string.h>
 #include <mlvalues.h>
@@ -46,7 +46,7 @@ CAMLprim value unix_getnameinfo(value vaddr, value vopts)
   get_sockaddr(vaddr, &addr, &addr_len);
   opts = convert_flag_list(vopts, getnameinfo_flag_table);
   enter_blocking_section();
-  retcode = 
+  retcode =
     getnameinfo((const struct sockaddr *) &addr.s_gen, addr_len,
                 host, sizeof(host), serv, sizeof(serv), opts);
   leave_blocking_section();

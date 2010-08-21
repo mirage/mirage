@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: fchmod.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: fchmod.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,5 +31,5 @@ CAMLprim value unix_fchmod(value fd, value perm)
 
 CAMLprim value unix_fchmod(value fd, value perm)
 { invalid_argument("fchmod not implemented"); }
-  
+
 #endif

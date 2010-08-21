@@ -12,12 +12,12 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: tkthread.mli 8768 2008-01-11 16:13:18Z doligez $ *)
+(* $Id: tkthread.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Helper functions for using LablTk with threads.
    To use, add tkthread.cmo or tkthread.cmx to your command line *)
 
-(** Start the main loop in a new GUI thread. Do not use recursively. *) 
+(** Start the main loop in a new GUI thread. Do not use recursively. *)
 val start : unit -> Thread.t
 (** The actual function executed in the GUI thread *)
 val thread_main : unit -> unit

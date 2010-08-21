@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: unixsupport.c 9450 2009-12-07 10:39:54Z xleroy $ */
+/* $Id: unixsupport.c 10467 2010-05-25 13:01:06Z xleroy $ */
 
 #include <stddef.h>
 #include <mlvalues.h>
@@ -53,6 +53,7 @@ value win_alloc_handle(HANDLE h)
   Handle_val(res) = h;
   Descr_kind_val(res) = KIND_HANDLE;
   CRT_fd_val(res) = NO_CRT_FD;
+  Flags_fd_val(res) = 0;
   return res;
 }
 
@@ -62,6 +63,7 @@ value win_alloc_socket(SOCKET s)
   Socket_val(res) = s;
   Descr_kind_val(res) = KIND_SOCKET;
   CRT_fd_val(res) = NO_CRT_FD;
+  Flags_fd_val(res) = 0;
   return res;
 }
 

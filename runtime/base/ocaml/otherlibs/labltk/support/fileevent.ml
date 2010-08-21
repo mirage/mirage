@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: fileevent.ml 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: fileevent.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Unix
 open Support
@@ -48,7 +48,7 @@ let remove_fileinput ~fd =
     clear_callback id;
     Hashtbl.remove fd_table (fd, 'r');
     if !Protocol.debug then begin
-      prerr_string "clear "; 
+      prerr_string "clear ";
       Protocol.prerr_cbid id;
       prerr_endline " for fileinput"
     end;
@@ -71,11 +71,10 @@ let remove_fileoutput ~fd =
     clear_callback id;
     Hashtbl.remove fd_table (fd, 'w');
     if !Protocol.debug then begin
-      prerr_string "clear "; 
+      prerr_string "clear ";
       Protocol.prerr_cbid id;
       prerr_endline " for fileoutput"
     end;
     rem_file_output fd id
   with
     Not_found -> ()
-

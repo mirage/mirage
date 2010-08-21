@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: connect.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: connect.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <fail.h>
 #include <mlvalues.h>
@@ -40,5 +40,5 @@ CAMLprim value unix_connect(value socket, value address)
 
 CAMLprim value unix_connect(value socket, value address)
 { invalid_argument("connect not implemented"); }
-  
+
 #endif

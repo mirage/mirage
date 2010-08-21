@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: num.ml 9022 2008-09-10 16:12:05Z weis $ *)
+(* $Id: num.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Int_misc
 open Nat
@@ -438,8 +438,3 @@ and approx_num_exp n num = approx_ratio_exp n (ratio_of_num num)
 
 let incr_num r = r := succ_num !r
 and decr_num r = r := pred_num !r
-
-
-
-
-

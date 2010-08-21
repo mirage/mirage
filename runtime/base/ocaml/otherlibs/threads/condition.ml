@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: condition.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: condition.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 type t = { mutable waiting: Thread.t list }
 
@@ -33,4 +33,3 @@ let broadcast cond =
   let w = cond.waiting in                  (* atomic *)
   cond.waiting <- [];                      (* atomic *)
   List.iter Thread.wakeup w
-

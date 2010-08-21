@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: jg_message.ml 5045 2002-07-26 00:04:05Z garrigue $ *)
+(* $Id: jg_message.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open StdLabels
 open Tk
@@ -90,7 +90,7 @@ let ask ~title ?master ?(no=true) ?(cancel=true) text =
   and r = ref (`Cancel : [`Yes|`No|`Cancel]) in
   let accept = Button.create fw
       ~text:(if no || cancel then "Yes" else "Dismiss")
-      ~command:(fun () -> r := `Yes; destroy tl) 
+      ~command:(fun () -> r := `Yes; destroy tl)
   and refuse = Button.create fw ~text:"No"
       ~command:(fun () -> r := `No; destroy tl)
   and cancelB = Button.create fw ~text:"Cancel"

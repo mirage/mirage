@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 9021 2008-09-10 16:10:43Z weis $
+# $Id: Makefile 9623 2010-02-09 14:17:20Z doligez $
 
 # Makefile for the "num" (exact rational arithmetic) library
 
@@ -26,7 +26,6 @@ include ../Makefile
 
 clean::
 	rm -f *~
-	cd test; $(MAKE) clean
 
 bng.$(O): bng.h bng_digit.c \
        bng_alpha.c bng_amd64.c bng_ia32.c bng_mips.c bng_ppc.c bng_sparc.c

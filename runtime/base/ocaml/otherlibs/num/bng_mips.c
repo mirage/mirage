@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: bng_mips.c 5880 2003-10-24 09:18:01Z xleroy $ */
+/* $Id: bng_mips.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Code specific to the MIPS architecture. */
 
@@ -21,4 +21,3 @@
       "mfhi %1"                                                             \
       : "=r" (resl), "=r" (resh)                                            \
       : "r" (arg1), "r" (arg2))
-

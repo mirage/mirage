@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: jg_multibox.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: jg_multibox.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open StdLabels
 
@@ -58,7 +58,7 @@ let rec split l ~len =
   let (cars,r) = first l ~len in
   let cdrs = split r ~len in
   List.map2 cars cdrs ~f:(fun a l -> a::l)
-  
+
 
 open Tk
 
@@ -168,7 +168,7 @@ let add_scrollbar (box : c) =
 let add_completion ?action ?wait (box : c) =
   let comp = new Jg_completion.timed (box#texts) ?wait in
   box#bind_kbd ~events:[`KeyPress]
-    ~action:(fun ev ~index -> 
+    ~action:(fun ev ~index ->
       (* consider only keys producing characters. The callback is called
        * even if you press Shift. *)
       if ev.ev_Char <> "" then

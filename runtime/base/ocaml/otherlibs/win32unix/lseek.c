@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: lseek.c 6774 2005-02-02 15:52:26Z xleroy $ */
+/* $Id: lseek.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -52,7 +52,7 @@ CAMLprim value unix_lseek(value fd, value ofs, value cmd)
   __int64 ret;
 
   ret = caml_set_file_pointer(Handle_val(fd), Long_val(ofs),
-			      seek_command_table[Int_val(cmd)]);
+                              seek_command_table[Int_val(cmd)]);
   if (ret > Max_long) {
     win32_maperr(ERROR_ARITHMETIC_OVERFLOW);
     uerror("lseek", Nothing);
@@ -65,6 +65,6 @@ CAMLprim value unix_lseek_64(value fd, value ofs, value cmd)
   __int64 ret;
 
   ret = caml_set_file_pointer(Handle_val(fd), Int64_val(ofs),
-			      seek_command_table[Int_val(cmd)]);
+                              seek_command_table[Int_val(cmd)]);
   return copy_int64(ret);
 }

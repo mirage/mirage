@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: system.c 7626 2006-09-21 08:03:56Z xleroy $ */
+/* $Id: system.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <memory.h>
@@ -42,6 +42,3 @@ CAMLprim value win_system(cmd)
   Field(st, 0) = Val_int(ret);
   return st;
 }
-
-
-

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: bng_ia32.c 7019 2005-08-13 20:59:37Z doligez $ */
+/* $Id: bng_ia32.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Code specific to the Intel IA32 (x86) architecture. */
 
@@ -318,7 +318,7 @@ static bngdigit bng_ia32sse2_mult_sub_digit
         "movd (%1), %%mm2 \n\t"       /* MM2 is next digit of b */
         "paddq %%mm6, %%mm1 \n\t"     /* bias digit of a */
         "pmuludq %%mm7, %%mm2 \n\t"   /* MM2 = d * digit of b */
-        /* Compute 
+        /* Compute
            digit of a + ENC(carry) + 0xFFFFFFFF00000000 - 0xFFFFFFFF - product
            = digit of a - carry + 0xFFFFFFFF00000000 - product
            = digit of a - carry - productlow + (ENC(nextcarry) << 32) */
@@ -409,4 +409,3 @@ static void bng_ia32_setup_ops(void)
 }
 
 #define BNG_SETUP_OPS bng_ia32_setup_ops()
-

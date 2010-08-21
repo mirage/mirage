@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: select.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: select.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -62,7 +62,7 @@ static value fdset_to_fdlist(value fdlist, fd_set *fdset)
   return res;
 }
 
-CAMLprim value unix_select(value readfds, value writefds, value exceptfds, 
+CAMLprim value unix_select(value readfds, value writefds, value exceptfds,
                            value timeout)
 {
   fd_set read, write, except;

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: dup.c 4765 2002-04-30 15:00:48Z xleroy $ */
+/* $Id: dup.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include "unixsupport.h"
@@ -31,4 +31,3 @@ CAMLprim value unix_dup(value fd)
   Descr_kind_val(newfd) = kind;
   return newfd;
 }
-

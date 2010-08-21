@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: mutex.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: mutex.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 type t = { mutable locked: bool; mutable waiting: Thread.t list }
 
@@ -36,4 +36,3 @@ let unlock m =
   m.waiting <- [];                      (* atomic *)
   m.locked <- false;                    (* atomic *)
   List.iter Thread.wakeup w
-

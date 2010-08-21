@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: errmsg.c 6043 2003-12-31 00:00:57Z doligez $ */
+/* $Id: errmsg.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <stdio.h>
 #include <errno.h>
@@ -26,7 +26,7 @@ CAMLprim value unix_error_message(value err)
 {
   int errnum;
   char buffer[512];
-  
+
   errnum = Is_block(err) ? Int_val(Field(err, 0)) : error_table[Int_val(err)];
   if (errnum > 0)
     return copy_string(strerror(errnum));
@@ -38,7 +38,6 @@ CAMLprim value unix_error_message(value err)
                     sizeof(buffer),
                     NULL))
     return copy_string(buffer);
-  sprintf(buffer, "unknown error #%d", errnum);  
+  sprintf(buffer, "unknown error #%d", errnum);
   return copy_string(buffer);
 }
-

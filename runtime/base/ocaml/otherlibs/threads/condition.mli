@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: condition.mli 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: condition.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Condition variables to synchronize between threads.
 
@@ -45,9 +45,9 @@ val wait : t -> Mutex.t -> unit
    The mutex [m] is locked again before [wait] returns. *)
 
 val signal : t -> unit
-(** [signal c] restarts one of the processes waiting on the 
+(** [signal c] restarts one of the processes waiting on the
    condition variable [c]. *)
 
 val broadcast : t -> unit
-(** [broadcast c] restarts all processes waiting on the 
+(** [broadcast c] restarts all processes waiting on the
    condition variable [c]. *)

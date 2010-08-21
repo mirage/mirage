@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: jg_completion.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: jg_completion.ml 10250 2010-04-08 03:58:41Z garrigue $ *)
 
 let lt_string ?(nocase=false) s1 s2 =
   if nocase then String.lowercase s1 < String.lowercase s2 else s1 < s2
@@ -41,13 +41,13 @@ class timed ?nocase ?wait texts = object (self)
   inherit completion texts ?nocase as super
   val wait = match wait with None -> 500 | Some n -> n
   val mutable timer = None
-  method add c =
+  method! add c =
     begin match timer with
       None -> self#reset
     | Some t -> Timer.remove t
     end;
     timer <- Some (Timer.add ~ms:wait ~callback:(fun () -> self#reset));
     super#add c
-  method reset =
+  method! reset =
     timer <- None; super#reset
 end

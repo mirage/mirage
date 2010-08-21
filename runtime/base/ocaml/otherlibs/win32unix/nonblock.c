@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: nonblock.c 5375 2003-01-06 16:44:21Z xleroy $ */
+/* $Id: nonblock.c 10467 2010-05-25 13:01:06Z xleroy $ */
 
 #include <mlvalues.h>
 #include <signals.h>
@@ -26,6 +26,7 @@ CAMLprim value unix_set_nonblock(socket)
     win32_maperr(WSAGetLastError());
     uerror("unix_set_nonblock", Nothing);
   }
+  Flags_fd_val(socket) = Flags_fd_val(socket) | FLAGS_FD_IS_BLOCKING;
   return Val_unit;
 }
 
@@ -38,5 +39,6 @@ CAMLprim value unix_clear_nonblock(socket)
     win32_maperr(WSAGetLastError());
     uerror("unix_clear_nonblock", Nothing);
   }
+  Flags_fd_val(socket) = Flags_fd_val(socket) & ~FLAGS_FD_IS_BLOCKING;
   return Val_unit;
 }

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: graphics.ml 7019 2005-08-13 20:59:37Z doligez $ *)
+(* $Id: graphics.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 exception Graphic_failure of string
 
@@ -253,4 +253,3 @@ let curveto b c (x, y as d) =
  draw_poly_line
   (Array.of_list (List.map int_point points));
  moveto x y;;
-

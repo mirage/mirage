@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: dynlink.mli 8873 2008-04-22 12:24:10Z frisch $ *)
+(* $Id: dynlink.mli 10471 2010-05-28 10:16:31Z frisch $ *)
 
 (** Dynamic loading of object files. *)
 
@@ -23,9 +23,9 @@ val is_native: bool
 
 val loadfile : string -> unit
 (** In bytecode: load the given bytecode object file ([.cmo] file) or
-    bytecode library file ([.cma] file), and link it with the running 
+    bytecode library file ([.cma] file), and link it with the running
     program. In native code: load the given OCaml plugin file (usually
-    [.cmxs]), and link it with the running 
+    [.cmxs]), and link it with the running
     program.
     All toplevel expressions in the loaded compilation units
     are evaluated. No facilities are provided to

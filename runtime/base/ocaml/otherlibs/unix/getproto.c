@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: getproto.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: getproto.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -63,7 +63,7 @@ CAMLprim value unix_getprotobynumber(value proto)
 
 CAMLprim value unix_getprotobynumber(value proto)
 { invalid_argument("getprotobynumber not implemented"); }
-  
+
 CAMLprim value unix_getprotobyname(value name)
 { invalid_argument("getprotobyname not implemented"); }
 

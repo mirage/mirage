@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: rename.c 6553 2004-07-13 12:25:21Z xleroy $ */
+/* $Id: rename.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <stdio.h>
 #include <mlvalues.h>
@@ -31,13 +31,13 @@ CAMLprim value unix_rename(value path1, value path2)
   }
   if (supports_MoveFileEx > 0)
     ok = MoveFileEx(String_val(path1), String_val(path2),
-		    MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH |
-		    MOVEFILE_COPY_ALLOWED);
+                    MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH |
+                    MOVEFILE_COPY_ALLOWED);
   else
     ok = MoveFile(String_val(path1), String_val(path2));
   if (! ok) {
     win32_maperr(GetLastError());
     uerror("rename", path1);
-  }     
+  }
   return Val_unit;
 }

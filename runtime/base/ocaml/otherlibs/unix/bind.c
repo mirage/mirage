@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: bind.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: bind.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <fail.h>
 #include <mlvalues.h>
@@ -20,7 +20,7 @@
 #ifdef HAS_SOCKETS
 
 #include "socketaddr.h"
-  
+
 CAMLprim value unix_bind(value socket, value address)
 {
   int ret;
@@ -37,5 +37,5 @@ CAMLprim value unix_bind(value socket, value address)
 
 CAMLprim value unix_bind(value socket, value address)
 { invalid_argument("bind not implemented"); }
-  
+
 #endif

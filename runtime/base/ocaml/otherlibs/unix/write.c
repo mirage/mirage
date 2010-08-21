@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: write.c 6553 2004-07-13 12:25:21Z xleroy $ */
+/* $Id: write.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <errno.h>
 #include <string.h>
@@ -63,7 +63,7 @@ CAMLprim value unix_write(value fd, value buf, value vofs, value vlen)
    This problem is avoided in unix_single_write, which is faithful to the
    Unix system call. */
 
-CAMLprim value unix_single_write(value fd, value buf, value vofs, value vlen) 
+CAMLprim value unix_single_write(value fd, value buf, value vofs, value vlen)
 {
   long ofs, len;
   int numbytes, ret;
@@ -84,4 +84,3 @@ CAMLprim value unix_single_write(value fd, value buf, value vofs, value vlen)
   End_roots();
   return Val_int(ret);
 }
-

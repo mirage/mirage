@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: open.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: open.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -35,7 +35,7 @@
 #endif
 
 static int open_flag_table[] = {
-  O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_APPEND, O_CREAT, O_TRUNC, O_EXCL, 
+  O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_APPEND, O_CREAT, O_TRUNC, O_EXCL,
   O_NOCTTY, O_DSYNC, O_SYNC, O_RSYNC
 };
 

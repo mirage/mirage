@@ -12,12 +12,12 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: jg_toplevel.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: jg_toplevel.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Tk
 
 let titled ?iconname title  =
-  let iconname = match iconname with None -> title | Some s -> s in 
+  let iconname = match iconname with None -> title | Some s -> s in
   let tl = Toplevel.create Widget.default_toplevel in
   Wm.title_set tl title;
   Wm.iconname_set tl iconname;

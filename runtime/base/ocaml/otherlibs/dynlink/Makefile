@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 8868 2008-04-16 06:50:31Z frisch $
+# $Id: Makefile 10476 2010-05-28 15:09:22Z frisch $
 
 # Makefile for the dynamic link library
 
@@ -19,7 +19,7 @@ include ../../config/Makefile
 
 CAMLC=../../boot/ocamlrun ../../ocamlc
 CAMLOPT=../../ocamlcompopt.sh
-INCLUDES=-I ../../utils -I ../../typing -I ../../bytecomp
+INCLUDES=-I ../../utils -I ../../typing -I ../../bytecomp -I ../../asmcomp
 COMPFLAGS=-warn-error A -I ../../stdlib $(INCLUDES)
 
 OBJS=dynlinkaux.cmo dynlink.cmo
@@ -58,7 +58,7 @@ dynlinkaux.cmo: $(COMPILEROBJS)
 dynlinkaux.cmi: dynlinkaux.cmo
 
 dynlink.cmx: dynlink.cmi natdynlink.ml
-	cp natdynlink.ml dynlink.mlopt
+	cp natdynlink.ml  dynlink.mlopt
 	$(CAMLOPT) -c $(COMPFLAGS) -impl dynlink.mlopt
 	rm -f dynlink.mlopt
 
@@ -70,8 +70,10 @@ install:
 	cp extract_crc $(LIBDIR)/extract_crc$(EXE)
 
 installopt:
-	cp $(NATOBJS) dynlink.cmxa dynlink.$(A) $(LIBDIR)
-	cd $(LIBDIR); $(RANLIB) dynlink.$(A)
+	if $(NATDYNLINK); then \
+	  cp $(NATOBJS) dynlink.cmxa dynlink.$(A) $(LIBDIR) && \
+	  cd $(LIBDIR) && $(RANLIB) dynlink.$(A); \
+	fi
 
 partialclean:
 	rm -f extract_crc *.cm[ioax] *.cmxa
@@ -93,4 +95,4 @@ clean: partialclean
 depend:
 
 dynlink.cmo: dynlinkaux.cmi dynlink.cmi
-extract_crc.cmo: dynlink.cmi 
+extract_crc.cmo: dynlink.cmi

@@ -12,11 +12,11 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: jg_bind.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: jg_bind.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Tk
 
-let enter_focus w = 
+let enter_focus w =
   bind w ~events:[`Enter] ~action:(fun _ -> Focus.set w)
 
 let escape_destroy ?destroy:tl w =

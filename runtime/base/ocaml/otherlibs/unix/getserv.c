@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: getserv.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: getserv.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -69,7 +69,7 @@ CAMLprim value unix_getservbyport(value port, value proto)
 
 CAMLprim value unix_getservbyport(value port, value proto)
 { invalid_argument("getservbyport not implemented"); }
-  
+
 CAMLprim value unix_getservbyname(value name, value proto)
 { invalid_argument("getservbyname not implemented"); }
 

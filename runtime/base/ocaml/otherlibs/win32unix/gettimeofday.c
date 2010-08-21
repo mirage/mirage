@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: gettimeofday.c 7946 2007-03-01 13:51:24Z xleroy $ */
+/* $Id: gettimeofday.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -31,6 +31,6 @@ CAMLprim value unix_gettimeofday(value unit)
     return copy_double((double) initial_time);
   } else {
     return copy_double((double) initial_time +
-		       (double) (tickcount - initial_tickcount) * 1e-3);
+                       (double) (tickcount - initial_tickcount) * 1e-3);
   }
 }

@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.nt 8955 2008-07-29 08:31:41Z xleroy $
+# $Id: Makefile.nt 10442 2010-05-20 09:40:41Z xleroy $
 
 # Files in this directory
 WIN_FILES = accept.c bind.c channels.c close.c \
@@ -43,7 +43,7 @@ LINKOPTS=-cclib $(WSOCKLIB)
 LDOPTS=-ldopt $(WSOCKLIB)
 EXTRACAMLFLAGS=-nolabels
 EXTRACFLAGS=-I../unix
-HEADERS=unixsupport.h
+HEADERS=unixsupport.h socketaddr.h
 
 
 include ../Makefile.nt

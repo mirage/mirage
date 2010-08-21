@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: jg_memo.ml 4144 2001-12-07 13:41:02Z xleroy $ *)
+(* $Id: jg_memo.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 type ('a, 'b) assoc_list =
     Nil
@@ -31,5 +31,3 @@ let fast ~f =
       let data = f key in
       memo := Cons(key, data, !memo);
       data
-  
-  

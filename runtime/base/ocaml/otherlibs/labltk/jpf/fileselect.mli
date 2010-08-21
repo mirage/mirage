@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: fileselect.mli 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: fileselect.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* This file selecter works only under the OS with the full unix support.
    For the portability, Tk.getOpenFile and Tk.getSaveFile are recommended. *)
@@ -26,12 +26,12 @@ val f :
   action:(string list -> unit) ->
   filter:string -> file:string -> multi:bool -> sync:bool -> unit
 
-(* action 
+(* action
       []  means canceled
       if multi select is false, then the list is null or a singleton *)
 
-(* multi select 
+(* multi select
       if true then more than one file are selectable *)
 
-(* sync it 
+(* sync it
       if true then in synchronous mode *)

@@ -16,9 +16,9 @@
 open Camltk
 open Widget
 
-let version = "$Id: frx_font.ml 5029 2002-07-23 14:12:03Z doligez $"
+let version = "$Id: frx_font.ml 9547 2010-01-22 12:48:24Z doligez $"
 
-(* 
+(*
  * Finding fonts. Inspired by code in Ical by Sanjay Ghemawat.
  * Possibly bogus because some families use "i" for italic where others
  * use "o".
@@ -30,7 +30,7 @@ module StringSet = Set.Make(struct type t = string let compare = compare end)
 
 let available_fonts = ref (StringSet.empty)
 
-let get_canvas = 
+let get_canvas =
   Frx_misc.autodef (fun () -> Canvas.create Widget.default_toplevel [])
 
 
@@ -41,11 +41,10 @@ let find fmly wght slant pxlsz =
     else
       let c = get_canvas() in
       try
-        let tag = Canvas.create_text c (Pixels 0) (Pixels 0) 
+        let tag = Canvas.create_text c (Pixels 0) (Pixels 0)
                                 [Text "foo"; Font fontspec] in
            Canvas.delete c [tag];
            available_fonts := StringSet.add fontspec !available_fonts;
            fontspec
       with
         _ -> raise (Invalid_argument fontspec)
-

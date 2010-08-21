@@ -12,7 +12,7 @@
 (*                                                                       *)
 (*************************************************************************)
 
-(* $Id: searchpos.ml 8907 2008-07-09 14:03:08Z mauny $ *)
+(* $Id: searchpos.ml 10227 2010-04-02 12:53:33Z xleroy $ *)
 
 open StdLabels
 open Support
@@ -130,6 +130,8 @@ let rec search_pos_type t ~pos ~env =
       add_found_sig (`Type, lid) ~env ~loc:t.ptyp_loc
   | Ptyp_alias (t, _)
   | Ptyp_poly (_, t) -> search_pos_type ~pos ~env t
+  | Ptyp_package (_, stl) ->
+     List.iter stl ~f:(fun (_, ty) -> search_pos_type ty ~pos ~env)
   end
 
 let rec search_pos_class_type cl ~pos ~env =
@@ -178,7 +180,7 @@ let search_pos_type_decl td ~pos ~env =
         search_pos_type t2 ~pos ~env
       end
   end
-  
+
 let rec search_pos_signature l ~pos ~env =
   ignore (
   List.fold_left l ~init:env ~f:
@@ -203,7 +205,7 @@ let rec search_pos_signature l ~pos ~env =
       | Psig_exception (_, l) ->
           List.iter l ~f:(search_pos_type ~pos ~env);
           add_found_sig (`Type, Lident "exn") ~env ~loc:pt.psig_loc
-      | Psig_module (_, t) -> 
+      | Psig_module (_, t) ->
           search_pos_module t ~pos ~env
       | Psig_recmodule decls ->
           List.iter decls ~f:(fun (_, t) -> search_pos_module t ~pos ~env)
@@ -216,7 +218,7 @@ let rec search_pos_signature l ~pos ~env =
       | Psig_class_type l ->
           List.iter l
             ~f:(fun ci -> search_pos_class_type ci.pci_expr ~pos ~env)
-      (* The last cases should not happen in generated interfaces *) 
+      (* The last cases should not happen in generated interfaces *)
       | Psig_open lid -> add_found_sig (`Module, lid) ~env ~loc:pt.psig_loc
       | Psig_include t -> search_pos_module t ~pos ~env
       end;
@@ -235,9 +237,11 @@ and search_pos_module m ~pos ~env =
         search_pos_module m ~pos ~env;
         List.iter l ~f:
           begin function
-              _, Pwith_type t -> search_pos_type_decl t ~pos ~env 
+              _, Pwith_type t -> search_pos_type_decl t ~pos ~env
             | _ -> ()
           end
+    | Pmty_typeof md -> 
+        ()   (* TODO? *)
     end
   end
 
@@ -392,6 +396,7 @@ let rec view_signature ?title ?path ?(env = !start_env) ?(detach=false) sign =
         let l =
           match e with
             Syntaxerr.Unclosed(l,_,_,_) -> l
+          | Syntaxerr.Applicative_path l -> l
           | Syntaxerr.Other l -> l
         in
         Jg_text.tag_and_see  tw ~start:(tpos l.loc_start.Lexing.pos_cnum)
@@ -435,7 +440,7 @@ and view_signature_item sign ~path ~env =
 
 and view_module path ~env =
   match find_module path env with
-    Tmty_signature sign -> 
+    Tmty_signature sign ->
       !view_defined_ref (Searchid.longident_of_path path) ~env
   | modtype ->
       let id = ident_of_path path ~default:"M" in
@@ -704,7 +709,7 @@ and search_pos_class_expr ~pos cl =
         add_found_str (`Class (path, cl.cl_type))
           ~env:!start_env ~loc:cl.cl_loc
     | Tclass_structure cls ->
-	search_pos_class_structure ~pos cls
+        search_pos_class_structure ~pos cls
     | Tclass_fun (pat, iel, cl, _) ->
         search_pos_pat pat ~pos ~env:pat.pat_env;
         List.iter iel ~f:(fun (_,exp) -> search_pos_expr exp ~pos);
@@ -812,7 +817,9 @@ and search_pos_expr ~pos exp =
   | Texp_lazy exp ->
       search_pos_expr exp ~pos
   | Texp_object (cls, _, _) ->
-      	search_pos_class_structure ~pos cls
+      search_pos_class_structure ~pos cls
+  | Texp_pack modexp ->
+      search_pos_module_expr modexp ~pos
   end;
   add_found_str (`Exp(`Expr, exp.exp_type)) ~env:exp.exp_env ~loc:exp.exp_loc
   end
@@ -857,6 +864,7 @@ and search_pos_module_expr ~pos m =
     | Tmod_apply (a, b, _) ->
         search_pos_module_expr a ~pos; search_pos_module_expr b ~pos
     | Tmod_constraint (m, _, _) -> search_pos_module_expr m ~pos
+    | Tmod_unpack (e, _) -> search_pos_expr e ~pos
     end;
     add_found_str (`Module (Pident (Ident.create "M"), m.mod_type))
       ~env:m.mod_env ~loc:m.mod_loc

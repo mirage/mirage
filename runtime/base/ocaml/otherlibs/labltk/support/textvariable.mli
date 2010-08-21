@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: textvariable.mli 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: textvariable.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Support for Tk -textvariable option *)
 open Widget
@@ -24,7 +24,7 @@ type textVariable
       (* TextVariable is an abstract type *)
 
 val create : ?on: 'a widget -> unit -> textVariable
-      (* Allocation of a textVariable with lifetime associated to widget 
+      (* Allocation of a textVariable with lifetime associated to widget
          if a widget is specified *)
 val set : textVariable -> string -> unit
       (* Setting the val of a textVariable *)

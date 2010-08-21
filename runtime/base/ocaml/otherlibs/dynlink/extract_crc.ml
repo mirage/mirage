@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: extract_crc.ml 6195 2004-04-09 13:26:41Z xleroy $ *)
+(* $Id: extract_crc.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Print the digests of unit interfaces *)
 
@@ -51,5 +51,3 @@ let main () =
   print_string "\n]\n"
 
 let _ = main(); exit 0
-
-     

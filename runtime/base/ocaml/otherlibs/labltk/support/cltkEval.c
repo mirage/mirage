@@ -14,7 +14,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: cltkEval.c 8899 2008-07-01 09:55:52Z weis $ */
+/* $Id: cltkEval.c 10230 2010-04-03 06:43:51Z furuse $ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -75,9 +75,9 @@ CAMLprim value camltk_tcl_eval(value str)
 
   switch (code) {
   case TCL_OK:
-    return tcl_string_to_caml(cltclinterp->result);
+    return tcl_string_to_caml(Tcl_GetStringResult(cltclinterp));
   case TCL_ERROR:
-    tk_error(cltclinterp->result);
+    tk_error(Tcl_GetStringResult(cltclinterp));
   default:  /* TCL_BREAK, TCL_CONTINUE, TCL_RETURN */
     tk_error("bad tcl result");
   }
@@ -234,9 +234,9 @@ CAMLprim value camltk_tcl_direct_eval(value v)
 
   switch (result) {
   case TCL_OK:
-    return tcl_string_to_caml (cltclinterp->result);
+    return tcl_string_to_caml (Tcl_GetStringResult(cltclinterp));
   case TCL_ERROR:
-    tk_error(cltclinterp->result);
+    tk_error(Tcl_GetStringResult(cltclinterp));
   default:  /* TCL_BREAK, TCL_CONTINUE, TCL_RETURN */
     tk_error("bad tcl result");
   }

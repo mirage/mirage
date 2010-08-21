@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: marshal.ml 6338 2004-05-27 15:28:05Z doligez $ *)
+(* $Id: marshal.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 type extern_flags =
     No_sharing
@@ -53,6 +53,6 @@ let from_string buff ofs =
     if ofs > String.length buff - (header_size + len)
     then invalid_arg "Marshal.from_string"
     else from_string_unsafe buff ofs
-  end  
+  end
 
 let from_channel = Pervasives.input_value

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: bng_amd64.c 5880 2003-10-24 09:18:01Z xleroy $ */
+/* $Id: bng_amd64.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Code specific to the AMD x86_64 architecture. */
 
@@ -193,4 +193,3 @@ static void bng_amd64_setup_ops(void)
 }
 
 #define BNG_SETUP_OPS bng_amd64_setup_ops()
-

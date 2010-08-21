@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: bng_digit.c 5880 2003-10-24 09:18:01Z xleroy $ */
+/* $Id: bng_digit.c 10324 2010-04-28 11:59:09Z xleroy $ */
 
 /**** Generic operations on digits ****/
 
@@ -92,7 +92,7 @@
 }
 #endif
 
-#define BngLowHalf(d) ((d) & ((1L << BNG_BITS_PER_HALF_DIGIT) - 1))
+#define BngLowHalf(d) ((d) & (((bngdigit)1 << BNG_BITS_PER_HALF_DIGIT) - 1))
 #define BngHighHalf(d) ((d) >> BNG_BITS_PER_HALF_DIGIT)
 
 #ifndef BngMult
@@ -168,4 +168,3 @@ static void bng_div_aux(bngdigit * quo, bngdigit * rem,
 }
 
 #endif
-

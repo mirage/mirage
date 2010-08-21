@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: cldbm.c 5670 2003-07-08 13:50:31Z xleroy $ */
+/* $Id: cldbm.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <string.h>
 #include <fcntl.h>
@@ -65,7 +65,7 @@ value caml_dbm_open(value vfile, value vflags, value vmode) /* ML */
   int mode = Int_val(vmode);
   DBM *db = dbm_open(file,flags,mode);
 
-  if (db == NULL) 
+  if (db == NULL)
     raise_dbm("Can't open file");
   else
     return (alloc_dbm(db));
@@ -97,7 +97,7 @@ value caml_dbm_fetch(value vdb, value vkey)  /* ML */
 value caml_dbm_insert(value vdb, value vkey, value vcontent) /* ML */
 {
   datum key, content;
-  
+
   key.dptr = String_val(vkey);
   key.dsize = string_length(vkey);
   content.dptr = String_val(vcontent);
@@ -116,7 +116,7 @@ value caml_dbm_insert(value vdb, value vkey, value vcontent) /* ML */
 value caml_dbm_replace(value vdb, value vkey, value vcontent) /* ML */
 {
   datum key, content;
-  
+
   key.dptr = String_val(vkey);
   key.dsize = string_length(vkey);
   content.dptr = String_val(vcontent);

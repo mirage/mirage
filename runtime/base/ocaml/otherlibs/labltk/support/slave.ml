@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: slave.ml 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: slave.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* The code run on initialisation, in addition to normal Tk code
  * NOTE: camltk has not fully been initialised yet
@@ -27,7 +27,7 @@ open Printf
 let dynload args =
   List.iter Dynlink.loadfile args
 
-(* Default modules include everything from 
+(* Default modules include everything from
 let default_modules = []
 *)
 

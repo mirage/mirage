@@ -14,7 +14,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: rawwidget.mli 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: rawwidget.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (* Support for widget manipulations *)
 
@@ -74,7 +74,7 @@ val dummy : raw_any raw_widget
   (* [dummy] is a widget used as context when we don't have any.
      It is *not* a real widget.
    *)
-          
+
 val new_atom : parent:'a raw_widget -> ?name: string -> string -> 'b raw_widget
 
 val get_atom : string -> raw_any raw_widget

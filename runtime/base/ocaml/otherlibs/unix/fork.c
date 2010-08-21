@@ -11,9 +11,10 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: fork.c 4144 2001-12-07 13:41:02Z xleroy $ */
+/* $Id: fork.c 10287 2010-04-20 15:47:15Z doligez $ */
 
 #include <mlvalues.h>
+#include <debugger.h>
 #include "unixsupport.h"
 
 CAMLprim value unix_fork(value unit)
@@ -21,6 +22,9 @@ CAMLprim value unix_fork(value unit)
   int ret;
   ret = fork();
   if (ret == -1) uerror("fork", Nothing);
+  if (caml_debugger_in_use)
+    if ((caml_debugger_fork_mode && ret == 0) ||
+        (!caml_debugger_fork_mode && ret != 0))
+      caml_debugger_cleanup_fork();
   return Val_int(ret);
 }
-

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: unixLabels.mli 8968 2008-08-01 13:46:08Z xleroy $ *)
+(* $Id: unixLabels.mli 10450 2010-05-21 12:00:49Z doligez $ *)
 
 (** Interface to the Unix system.
    To use as replacement to default {!Unix} module,
@@ -338,7 +338,7 @@ type stats = Unix.stats =
     st_mtime : float;           (** Last modification time *)
     st_ctime : float;           (** Last status change time *)
   }
-(** The informations returned by the {!UnixLabels.stat} calls. *)
+(** The information returned by the {!UnixLabels.stat} calls. *)
 
 val stat : string -> stats
 (** Return the information for the named file. *)

@@ -14,9 +14,12 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: tkwait.ml 4745 2002-04-26 12:16:26Z furuse $ *)
+(* $Id: tkwait.ml 9358 2009-09-25 12:56:10Z weis $ *)
 
-external internal_tracevis : string -> string -> unit
+external internal_tracevis : string -> Protocol.cbid -> unit
         = "camltk_wait_vis"
-external internal_tracedestroy : string -> string -> unit
+;;
+
+external internal_tracedestroy : string -> Protocol.cbid -> unit
         = "camltk_wait_des"
+;;

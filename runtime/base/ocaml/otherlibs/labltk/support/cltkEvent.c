@@ -14,7 +14,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: cltkEvent.c 4745 2002-04-26 12:16:26Z furuse $ */
+/* $Id: cltkEvent.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <tcl.h>
 #include <tk.h>
@@ -52,4 +52,3 @@ CAMLprim value camltk_dooneevent(value flags)
   ret = Tk_DoOneEvent(convert_flag_list(flags, event_flag_table));
   return Val_int(ret);
 }
-

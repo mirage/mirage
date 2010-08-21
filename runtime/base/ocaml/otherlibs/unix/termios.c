@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: termios.c 6824 2005-03-24 17:20:54Z doligez $ */
+/* $Id: termios.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <mlvalues.h>
 #include <alloc.h>
@@ -39,7 +39,7 @@ enum { Input, Output };
 #define NFIELDS 38
 
 /* Structure of the terminal_io record. Cf. unix.mli */
-  
+
 static long terminal_io_descr[] = {
   /* Input modes */
   Bool, iflags, IGNBRK,
@@ -314,4 +314,3 @@ CAMLprim value unix_tcflow(value fd, value action)
 { invalid_argument("tcflow not implemented"); }
 
 #endif
-

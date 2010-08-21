@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: verbose.c 3573 2001-07-12 12:54:24Z doligez $ */
+/* $Id: verbose.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 
 #include "defs.h"
@@ -347,4 +347,3 @@ void print_gotos(int stateno)
             fprintf(verbose_file, "\t%s  goto %d\n", symbol_name[as], k);
     }
 }
-

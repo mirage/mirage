@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: clflags.mli 9084 2008-10-15 08:48:51Z xleroy $ *)
+(* $Id: clflags.mli 9464 2009-12-09 09:17:12Z weis $ *)
 
 val objfiles : string list ref
 val ccobjs : string list ref
@@ -41,6 +41,8 @@ val use_prims : string ref
 val use_runtime : string ref
 val principal : bool ref
 val recursive_types : bool ref
+val strict_sequence : bool ref
+val applicative_functors : bool ref
 val make_runtime : bool ref
 val gprofile : bool ref
 val c_compiler : string option ref

@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: defs.h 6244 2004-04-21 23:26:06Z doligez $ */
+/* $Id: defs.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <assert.h>
 #include <ctype.h>
@@ -356,4 +356,3 @@ extern void unterminated_union (int u_lineno, char *u_line, char *u_cptr);
 extern void used_reserved (char *s);
 extern void verbose (void);
 extern void write_section (char **section);
-

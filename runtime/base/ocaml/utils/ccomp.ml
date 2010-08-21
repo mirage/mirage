@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: ccomp.ml 9093 2008-10-16 15:57:00Z doligez $ *)
+(* $Id: ccomp.ml 10326 2010-04-28 12:09:32Z xleroy $ *)
 
 (* Compiling C files and building C libraries *)
 
@@ -24,7 +24,7 @@ let command cmdline =
 
 let run_command cmdline = ignore(command cmdline)
 
-(* Build @responsefile to work around Windows limitations on 
+(* Build @responsefile to work around Windows limitations on
    command-line length *)
 let build_diversion lst =
   let (responsefile, oc) = Filename.open_temp_file "camlresp" "" in
@@ -120,8 +120,8 @@ let call_linker mode output_name files extra =
         (if !Clflags.gprofile then Config.cc_profile else "")
         ""  (*(Clflags.std_include_flag "-I")*)
         (quote_prefixed "-L" !Config.load_path)
+        (String.concat " " (List.rev !Clflags.ccopts))
         files
         extra
-        (String.concat " " (List.rev !Clflags.ccopts))
   in
   command cmd = 0

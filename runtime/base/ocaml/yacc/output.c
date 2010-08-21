@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: output.c 5232 2002-11-02 22:36:46Z doligez $ */
+/* $Id: output.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include "defs.h"
 
@@ -114,7 +114,7 @@ void output_rule_data(void)
     register int i;
     register int j;
 
-  
+
     fprintf(output_file, "let yylhs = \"");
     output_short(symbol_value[start_symbol]);
 

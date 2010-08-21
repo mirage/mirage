@@ -12,7 +12,7 @@
 
 /* Based on public-domain code from Berkeley Yacc */
 
-/* $Id: lalr.c 3573 2001-07-12 12:54:24Z doligez $ */
+/* $Id: lalr.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include "defs.h"
 
@@ -336,7 +336,7 @@ void initialize_F(void)
               if (nullable[symbol])
                 edge[nedges++] = map_goto(stateno, symbol);
             }
-        
+
           if (nedges)
             {
               reads[i] = rp = NEW2(nedges + 1, short);

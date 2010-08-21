@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: config.mli 8868 2008-04-16 06:50:31Z frisch $ *)
+(* $Id: config.mli 10424 2010-05-19 11:29:38Z xleroy $ *)
 
 (* System configuration *)
 
@@ -27,12 +27,12 @@ val ccomp_type: string
                "msvc" (Microsoft Visual C++)
                "mrc" (Macintosh MPW) *)
 val bytecomp_c_compiler: string
-        (* The C compiler to use for compiling C files 
+        (* The C compiler to use for compiling C files
            with the bytecode compiler *)
 val bytecomp_c_libraries: string
         (* The C libraries to link with custom runtimes *)
 val native_c_compiler: string
-        (* The C compiler to use for compiling C files 
+        (* The C compiler to use for compiling C files
            with the native-code compiler *)
 val native_c_libraries: string
         (* The C libraries to link with native-code programs *)
@@ -72,6 +72,8 @@ val ast_intf_magic_number: string
         (* Magic number for file holding an interface syntax tree *)
 val ast_impl_magic_number: string
         (* Magic number for file holding an implementation syntax tree *)
+val cmxs_magic_number: string
+        (* Magic number for dynamically-loadable plugins *)
 
 val max_tag: int
         (* Biggest tag that can be stored in the header of a regular block. *)

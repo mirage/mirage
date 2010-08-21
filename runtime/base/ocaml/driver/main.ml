@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: main.ml 9164 2009-01-14 13:19:32Z doligez $ *)
+(* $Id: main.ml 10444 2010-05-20 14:06:29Z doligez $ *)
 
 open Config
 open Clflags
@@ -85,7 +85,7 @@ let show_config () =
   exit 0;
 ;;
 
-module Options = Main_args.Make_options (struct
+module Options = Main_args.Make_bytecomp_options (struct
   let set r () = r := true
   let unset r () = r := false
   let _a = set make_archive
@@ -108,6 +108,7 @@ module Options = Main_args.Make_options (struct
   let _linkall = set link_everything
   let _make_runtime () =
     custom_runtime := true; make_runtime := true; link_everything := true
+  let _no_app_funct = unset applicative_functors
   let _noassert = set noassert
   let _nolabels = set classic
   let _noautolink = set no_auto_link
@@ -118,6 +119,7 @@ module Options = Main_args.Make_options (struct
   let _pp s = preprocessor := Some s
   let _principal = set principal
   let _rectypes = set recursive_types
+  let _strict_sequence = set strict_sequence
   let _thread = set use_threads
   let _vmthread = set use_vmthreads
   let _unsafe = set fast
@@ -125,8 +127,10 @@ module Options = Main_args.Make_options (struct
   let _use_runtime s = use_runtime := s
   let _v = print_version_and_library
   let _version = print_version_string
+  let _vnum = print_version_string
   let _w = (Warnings.parse_options false)
   let _warn_error = (Warnings.parse_options true)
+  let _warn_help = Warnings.help_warnings
   let _where = print_standard_library
   let _verbose = set verbose
   let _nopervasives = set nopervasives

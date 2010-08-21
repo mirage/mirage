@@ -1,3 +1,7 @@
+ocamldsort 0.15.0:
+
+* made compatible with ocaml 3.12
+
 ocamldsort 0.14.4:
 
 * better Makefile example in the documentation

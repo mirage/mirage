@@ -32,7 +32,7 @@ let add_filename filename =
   filenames := filename :: !filenames
 
 let usage = "Usage: ocamldsort [options] <files>"
-let version =  "ocamldsort 0.14.4"
+let version =  "ocamldsort 0.15.0"
 let print_version () = print_endline version; exit 0
 
 let is_input_a_tty () =

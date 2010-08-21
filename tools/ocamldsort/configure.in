@@ -1,5 +1,4 @@
 #(***********************************************************************)
-#(*                          Epeire                                     *)
 #(*                                                                     *)
 #(*            Maxence Guesdon, projet Cristal, INRIA Rocquencourt      *)
 #(*                                                                     *)
@@ -108,8 +107,7 @@ fi
 AC_PATH_PROG(OCAMLCDOTOPT,ocamlc.opt,no)
 if test "$OCAMLCDOTOPT" != no ; then
         AC_MSG_CHECKING(ocamlc.opt version)
-        TMPVERSION=`$OCAMLCDOTOPT -v | sed -n -e 's|.*version*
-*\(.*\)$|\1|p' `
+        TMPVERSION=`$OCAMLCDOTOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
         if test "$TMPVERSION" != "$OCAMLVERSION" ; then
             AC_MSG_RESULT(differs from ocamlc; ocamlc.opt discarded.)
         else
@@ -123,8 +121,7 @@ if test "$OCAMLOPT" != no ; then
     AC_PATH_PROG(OCAMLOPTDOTOPT,ocamlopt.opt,no)
     if test "$OCAMLOPTDOTOPT" != no ; then
         AC_MSG_CHECKING(ocamlc.opt version)
-        TMPVER=`$OCAMLOPTDOTOPT -v | sed -n -e 's|.*version*
-*\(.*\)$|\1|p' `
+        TMPVER=`$OCAMLOPTDOTOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
         if test "$TMPVER" != "$OCAMLVERSION" ; then
             AC_MSG_RESULT(differs from ocamlc; ocamlopt.opt discarded.)
         else

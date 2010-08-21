@@ -14,6 +14,7 @@ OCAMLDOC= @OCAMLDOC@
 
 prefix=@prefix@
 exec_prefix=@exec_prefix@
+datarootdir=@datarootdir@
 BINDIR=@bindir@
 MANDIR=@mandir@
 
@@ -124,7 +125,3 @@ distclean:: clean_all
 .depend depend::
 	rm -f .depend
 	$(OCAMLDEP) $(PPFLAGS) $(INCLUDES) *.ml > .depend
-
-dummy:
-
-include .depend

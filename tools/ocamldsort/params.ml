@@ -52,7 +52,7 @@ let to_load_path input_param =
     Buffer.contents buf
 let to_preprocesor input_param =
   match input_param.preprocessor with
-    | Some p -> "-pp '" ^ p ^ "'"
+    | Some p -> "-pp " ^ p
     | None -> ""
 let to_concatened_filenames param =
   String.concat " " (to_filenames param)
@@ -60,13 +60,11 @@ let to_concatened_filenames param =
 let to_command_line param =
   match param.input with
     | Ocamldep input_param ->
-	let x = Printf.sprintf "%s %s %s %s"
+	Printf.sprintf "%s %s %s %s"
 	(to_path input_param)
 	(to_load_path input_param)
 	(to_preprocesor input_param)
-	(to_concatened_filenames param) in
-        prerr_endline x;
-        x
+	(to_concatened_filenames param)
     | _ -> failwith "to_command_line"
 
 let to_stream param = 

@@ -5,8 +5,8 @@ ocamldsort \- Dependency sorter for OCaml source files
 
 .SH SYNOPSIS
 
-\fBocamldsort\fR [ \fB-pp\fR \fI pre-command\fR ] [ \fB-d\fR \fIdep-command\fR ]
-         [ \fB-mli\fR ] [ \fB-nox\fR ] [ \fB-obj\fR | \fB-byte\fR | \fB-opt\fR ] [ \fIfilename\fR ] \fI...\fR
+\fBocamldsort\fR [ \fB\-pp\fR \fI pre-command\fR ] [ \fB\-d\fR \fIdep-command\fR ]
+           [ \fB\-mli\fR ] [ \fB\-nox\fR ] [ \fB\-obj\fR | \fB\-byte\fR | \fB\-opt\fR ] [ \fIfilename\fR ] \fI...\fR
 
 .SH DESCRIPTION
 
@@ -44,7 +44,7 @@ doesn't contain .mli files or:
 
 .cc @
 @nf
-ocamlc -c $(ocamldsort -mli *.ml *.mli) && ocamlc $(ocamldsort -byte *.ml)
+ocamlc \-c $(ocamldsort \-mli *.ml *.mli) && ocamlc $(ocamldsort \-byte *.ml)
 @fi
 @cc
 
@@ -63,7 +63,7 @@ OCAMLOPT=ocamlopt
 OCAMLDEP=ocamldep
 OCAMLDSORT=ocamldsort
 
-PPFLAGS=-pp camlp4o
+PPFLAGS=\-pp camlp4o
 
 MLY=$(shell echo *.mly)
 MLL=$(shell echo *.mll)
@@ -72,10 +72,10 @@ GENERATED_ML=$(MLY:.mly=.ml) $(MLL:.mll=.ml)
 include .generated .depend .ocamldsort
 
 $(TARGET): $(CMO_FILES)
-	$(OCAMLC) $(COMPFLAGS) $(LIBS) $^ -o $@
+	$(OCAMLC) $(COMPFLAGS) $(LIBS) $^ \-o $@
 
 $(TARGET).opt: $(CMX_FILES)
-	$(OCAMLOPT) $(COMPFLAGS) $(LIBS_OPT) $^ -o $@
+	$(OCAMLOPT) $(COMPFLAGS) $(LIBS_OPT) $^ \-o $@
 
 .generated: $(GENERATED_ML)
 	@touch .generated
@@ -84,37 +84,37 @@ $(TARGET).opt: $(CMX_FILES)
 	$(OCAMLDEP) *.ml *.mli > $@
 
 .ocamldsort: .depend
-	echo CMO_FILES=`< .depend $(OCAMLDSORT) -byte *.ml` > .ocamldsort
-	echo CMX_FILES=`< .depend $(OCAMLDSORT) -opt *.ml` >> .ocamldsort
+	echo CMO_FILES=`< .depend $(OCAMLDSORT) \-byte *.ml` > .ocamldsort
+	echo CMX_FILES=`< .depend $(OCAMLDSORT) \-opt *.ml` >> .ocamldsort
 
 distclean: clean
-	rm -f .generated .depend .ocamldsort
-	rm -f $(GENERATED_ML)
-	rm -f *~
-	rm -f $(TARGET) 
+	rm \-f .generated .depend .ocamldsort
+	rm \-f $(GENERATED_ML)
+	rm \-f *~
+	rm \-f $(TARGET) 
 
 clean:
-	rm -f *.cmo *.cmi *.cmx *.o 
+	rm \-f *.cmo *.cmi *.cmx *.o 
 
 .SUFFIXES: .mli .ml .cmi .cmo .cmx .mll .mly
 
 %.cmi:%.mli
-	$(OCAMLC) $(PPFLAGS) $(COMPFLAGS) -c $<
+	$(OCAMLC) $(PPFLAGS) $(COMPFLAGS) \-c $<
 
 %.cmo:%.ml
-	$(OCAMLC) $(PPFLAGS) $(COMPFLAGS) -c $<
+	$(OCAMLC) $(PPFLAGS) $(COMPFLAGS) \-c $<
 
 %.cmi %.cmo:%.ml
-	$(OCAMLC) $(PPFLAGS) $(COMPFLAGS) -c $<
+	$(OCAMLC) $(PPFLAGS) $(COMPFLAGS) \-c $<
 
 %.cmx %.o:%.ml
-	$(OCAMLOPT) $(PPFLAGS) $(COMPFLAGS)  -c $<
+	$(OCAMLOPT) $(PPFLAGS) $(COMPFLAGS) \-c $<
 
 %.ml:%.mll
 	$(OCAMLLEX) $<
 
 %.mli %.ml:%.mly
-	$(OCAMLYACC) -v $<
+	$(OCAMLYACC) \-v $<
 @fi
 @cc
 
@@ -148,7 +148,7 @@ Ignore filenames containg `*' so that unexpanded wildcards are ignored.
 
 .TP
 .BI \-obj
-Print bytecode filenames (.cmo and .cmi) (deprecated: use -byte).
+Print bytecode filenames (.cmo and .cmi) (deprecated: use \-byte).
 
 .TP
 .BI \-byte

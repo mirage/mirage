@@ -27,20 +27,21 @@ let concat char string =
   string_of_char char ^ string
 
 let rec parse_source = parser
-  | [< '' ' >] -> ""
-  | [< ''\n' >] -> ""
-  | [< 'a;  d = parse_source >] -> concat a d
+  | [< '' ' >] -> ("", true)
+  | [< ''\n' >] -> ("", false)
+  | [< 'a;  (d, cont) = parse_source >] -> (concat a d, cont)
 
 let rec parse_sources = parser
   | [< '' '; d = parse_sources >] -> d
   | [< ''\\'; ''\n'; d = parse_sources >] -> d
   | [< ''\n' >] -> []
-  | [< 'a; d = parse_source; ds = parse_sources >] ->
-      (Files.file_of_filename (concat a d)) :: ds
+  | [< 'a; (d, cont) = parse_source;
+       ds = if cont then parse_sources else (fun _ -> []) >] ->
+         (Files.file_of_filename (concat a d)) :: ds
 
 let rec parse_target = parser
   | [< '':' >] -> ""
-  | [< 'a;  n = parse_target >] -> concat a n
+| [< 'a;  n = parse_target >] -> concat a n
 
 let rec parse_ocamldep stream =
   try

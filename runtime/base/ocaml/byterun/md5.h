@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: md5.h 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id: md5.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* MD5 message digest */
 
@@ -32,7 +32,7 @@ struct MD5Context {
 };
 
 CAMLextern void caml_MD5Init (struct MD5Context *context);
-CAMLextern void caml_MD5Update (struct MD5Context *context, unsigned char *buf, 
+CAMLextern void caml_MD5Update (struct MD5Context *context, unsigned char *buf,
                                 uintnat len);
 CAMLextern void caml_MD5Final (unsigned char *digest, struct MD5Context *ctx);
 CAMLextern void caml_MD5Transform (uint32 *buf, uint32 *in);

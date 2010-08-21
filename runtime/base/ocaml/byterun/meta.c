@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: meta.c 8800 2008-01-31 09:13:19Z frisch $ */
+/* $Id: meta.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Primitives for the toplevel */
 
@@ -82,7 +82,7 @@ CAMLprim value caml_realloc_global(value size)
   }
   return Val_unit;
 }
-    
+
 CAMLprim value caml_get_current_environment(value unit)
 {
   return *caml_extern_sp;
@@ -148,7 +148,7 @@ value caml_realloc_global(value size)
   caml_invalid_argument("Meta.realloc_global");
   return Val_unit; /* not reached */
 }
-    
+
 value caml_invoke_traced_function(value codeptr, value env, value arg)
 {
   caml_invalid_argument("Meta.invoke_traced_function");

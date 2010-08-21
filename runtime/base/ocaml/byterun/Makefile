@@ -11,12 +11,12 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile 9280 2009-05-25 12:25:25Z doligez $
+# $Id: Makefile 10638 2010-07-28 13:19:44Z doligez $
 
 include Makefile.common
 
 CFLAGS=-DCAML_NAME_SPACE -O $(BYTECCCOMPOPTS) $(IFLEXDIR)
-DFLAGS=-DCAML_NAME_SPACE -g -DDEBUG $(BYTECCCOMPOPTS)
+DFLAGS=-DCAML_NAME_SPACE -g -DDEBUG $(BYTECCCOMPOPTS) $(IFLEXDIR)
 
 OBJS=$(COMMONOBJS) unix.o main.o
 DOBJS=$(OBJS:.o=.d.o) instrtrace.d.o

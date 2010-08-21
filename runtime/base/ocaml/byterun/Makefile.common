@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.common 9280 2009-05-25 12:25:25Z doligez $
+# $Id: Makefile.common 10448 2010-05-21 11:28:21Z doligez $
 
 include ../config/Makefile
 
@@ -84,7 +84,7 @@ jumptbl.h : instruct.h
 	       -e '/^}/q' instruct.h > jumptbl.h
 
 version.h : ../VERSION
-	echo "#define OCAML_VERSION \"`head -1 ../VERSION`\"" > version.h
+	echo "#define OCAML_VERSION \"`sed -e 1q ../VERSION`\"" > version.h
 
 clean ::
 	rm -f ocamlrun$(EXE) ocamlrund$(EXE) *.$(O) *.$(A) *.$(SO)

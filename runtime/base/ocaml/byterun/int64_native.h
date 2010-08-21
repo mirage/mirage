@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64_native.h 9202 2009-03-28 18:34:19Z xleroy $ */
+/* $Id: int64_native.h 9270 2009-05-20 11:52:42Z doligez $ */
 
 /* Wrapper macros around native 64-bit integer arithmetic,
    so that it has the same interface as the software emulation

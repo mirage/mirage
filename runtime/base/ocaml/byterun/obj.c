@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: obj.c 9350 2009-09-24 09:12:51Z doligez $ */
+/* $Id: obj.c 9561 2010-01-25 11:55:30Z doligez $ */
 
 /* Operations on objects */
 
@@ -167,7 +167,7 @@ CAMLprim value caml_obj_truncate (value v, value newsize)
 
 CAMLprim value caml_obj_add_offset (value v, value offset)
 {
-  return v + Int32_val (offset);
+  return v + (unsigned long) Int32_val (offset);
 }
 
 /* The following functions are used in stdlib/lazy.ml.

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals.c 7904 2007-02-23 09:29:45Z xleroy $ */
+/* $Id: signals.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Signal handling, code common to the bytecode and native systems */
 
@@ -267,7 +267,7 @@ CAMLprim value caml_install_signal_handler(value signal_number, value action)
   int sig, act, oldact;
 
   sig = caml_convert_signal_number(Int_val(signal_number));
-  if (sig < 0 || sig >= NSIG) 
+  if (sig < 0 || sig >= NSIG)
     caml_invalid_argument("Sys.signal: unavailable signal");
   switch(action) {
   case Val_int(0):              /* Signal_default */

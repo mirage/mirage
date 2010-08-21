@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64_format.h 6021 2003-12-15 18:10:51Z doligez $ */
+/* $Id: int64_format.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* printf-like formatting of 64-bit integers, in case the C library
    printf() function does not support them. */
@@ -49,7 +49,7 @@ static void I64_format(char * buffer, char * fmt, int64 x)
       filler = '0'; break;
     case '#':
       alternate = 1; break;
-    case '1': case '2': case '3': case '4': case '5': 
+    case '1': case '2': case '3': case '4': case '5':
     case '6': case '7': case '8': case '9':
       width = atoi(p);
       while (*p >= '0' && *p <= '9') p++;

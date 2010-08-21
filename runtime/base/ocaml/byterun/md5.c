@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: md5.c 7382 2006-04-16 23:28:22Z doligez $ */
+/* $Id: md5.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <string.h>
 #include "alloc.h"
@@ -308,4 +308,3 @@ CAMLexport void caml_MD5Transform(uint32 *buf, uint32 *in)
     buf[2] += c;
     buf[3] += d;
 }
-

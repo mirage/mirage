@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: stacks.c 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id: stacks.c 10315 2010-04-27 07:55:08Z xleroy $ */
 
 /* To initialize and resize the stacks */
 
@@ -101,4 +101,15 @@ void caml_change_max_stack_size (uintnat new_max_size)
                      new_max_size * sizeof (value) / 1024);
   }
   caml_max_stack_size = new_max_size;
+}
+
+CAMLexport uintnat (*caml_stack_usage_hook)(void) = NULL;
+
+uintnat caml_stack_usage(void)
+{
+  uintnat sz;
+  sz = caml_stack_high - caml_extern_sp;
+  if (caml_stack_usage_hook != NULL)
+    sz += (*caml_stack_usage_hook)();
+  return sz;
 }

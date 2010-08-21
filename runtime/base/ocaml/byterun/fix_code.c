@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: fix_code.c 6331 2004-05-26 11:10:52Z garrigue $ */
+/* $Id: fix_code.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Handling of blocks of bytecode (endianness switch, threading). */
 
@@ -92,7 +92,7 @@ void caml_thread_code (code_t code, asize_t len)
   code_t p;
   int l [STOP + 1];
   int i;
-  
+
   for (i = 0; i <= STOP; i++) {
     l [i] = 0;
   }

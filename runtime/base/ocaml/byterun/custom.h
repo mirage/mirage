@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: custom.h 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id: custom.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 #ifndef CAML_CUSTOM_H
 #define CAML_CUSTOM_H
@@ -27,7 +27,7 @@ struct custom_operations {
   void (*finalize)(value v);
   int (*compare)(value v1, value v2);
   intnat (*hash)(value v);
-  void (*serialize)(value v, 
+  void (*serialize)(value v,
                     /*out*/ uintnat * wsize_32 /*size in bytes*/,
                     /*out*/ uintnat * wsize_64 /*size in bytes*/);
   uintnat (*deserialize)(void * dst);

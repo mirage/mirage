@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: array.c 8995 2008-09-08 09:43:28Z frisch $ */
+/* $Id: array.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Operations on arrays */
 
@@ -34,7 +34,7 @@ CAMLprim value caml_array_get_float(value array, value index)
   double d;
   value res;
 
-  if (idx < 0 || idx >= Wosize_val(array) / Double_wosize) 
+  if (idx < 0 || idx >= Wosize_val(array) / Double_wosize)
     caml_array_bound_error();
   d = Double_field(array, idx);
 #define Setup_for_gc

@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: printexc.c 7812 2007-01-29 12:11:18Z xleroy $ */
+/* $Id: printexc.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Print an uncaught exception and abort */
 
@@ -44,7 +44,7 @@ static void add_string(struct stringbuf *buf, char *s)
   if (len > 0) memmove(buf->ptr, s, len);
   buf->ptr += len;
 }
-  
+
 CAMLexport char * caml_format_exception(value exn)
 {
   mlsize_t start, i;

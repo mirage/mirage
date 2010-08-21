@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: dynlink.c 8873 2008-04-22 12:24:10Z frisch $ */
+/* $Id: dynlink.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Dynamic loading of C primitives. */
 
@@ -94,7 +94,7 @@ static char * parse_ld_conf(void)
                          ldconfname);
   config = caml_stat_alloc(st.st_size + 1);
   nread = read(ldconf, config, st.st_size);
-  if (nread == -1) 
+  if (nread == -1)
     caml_fatal_error_arg
       ("Fatal error: error while reading loader config file %s\n",
        ldconfname);

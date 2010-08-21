@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64align.c 4144 2001-12-07 13:41:02Z xleroy $ */
+/* $Id: int64align.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <stdio.h>
 #include <signal.h>
@@ -53,4 +53,3 @@ int main(void)
 #endif
   exit(res);
 }
-

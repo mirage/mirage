@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: stackov.c 8768 2008-01-11 16:13:18Z doligez $ */
+/* $Id: stackov.c 9547 2010-01-22 12:48:24Z doligez $ */
 
 #include <stdio.h>
 #include <signal.h>
@@ -55,7 +55,7 @@ int main(int argc, char ** argv)
 #else
   act.sa_sigaction = segv_handler;
   act.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
-#endif  
+#endif
   sigemptyset(&act.sa_mask);
   system_stack_top = (char *) &act;
   if (sigaltstack(&stk, NULL) != 0) { perror("sigaltstack"); return 2; }

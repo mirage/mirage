@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: s-templ.h 6304 2004-05-18 08:50:22Z xleroy $ */
+/* $Id: s-templ.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Operating system and standard library dependencies. */
 
@@ -51,6 +51,11 @@
 
 /* Define SUPPORT_DYNAMIC_LINKING if dynamic loading of C stub code
    via dlopen() is available. */
+
+#define HAS_EXPM1_LOG1P
+
+/* Define HAS_EXPM1_LOG1P if the math functions expm1() and log1p()
+   are available.  (Standard C99 but not C89.) */
 
 /* 2. For the Unix library. */
 
@@ -139,6 +144,14 @@
 
 /* Define HAS_GETGROUPS if you have getgroups(). */
 
+#define HAS_SETGROUPS
+
+/* Define HAS_SETGROUPS if you have setgroups(). */
+
+#define HAS_INITGROUPS
+
+/* Define HAS_INITGROUPS if you have initgroups(). */
+
 #define HAS_TERMIOS
 
 /* Define HAS_TERMIOS if you have /usr/include/termios.h and it is
@@ -180,7 +193,7 @@
 
 #define HAS_LOCALE
 
-/* Define HAS_LOCALE if you have the include file <locale.h> and the 
+/* Define HAS_LOCALE if you have the include file <locale.h> and the
    setlocale() function. */
 
 #define HAS_MMAP
@@ -191,13 +204,13 @@
 #define HAS_GETHOSTBYNAME_R 6
 
 /* Define HAS_GETHOSTBYNAME_R if gethostbyname_r() is available.
-   The value of this symbol is the number of arguments of 
+   The value of this symbol is the number of arguments of
    gethostbyname_r(): either 5 or 6 depending on prototype.
    (5 is the Solaris version, 6 is the Linux version). */
 
 #define HAS_GETHOSTBYADDR_R 8
 
 /* Define HAS_GETHOSTBYADDR_R if gethostbyname_r() is available.
-   The value of this symbol is the number of arguments of 
+   The value of this symbol is the number of arguments of
    gethostbyaddr_r(): either 7 or 8 depending on prototype.
    (7 is the Solaris version, 8 is the Linux version). */

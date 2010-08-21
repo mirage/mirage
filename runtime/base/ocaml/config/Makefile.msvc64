@@ -11,7 +11,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.msvc64 9526 2010-01-14 14:42:00Z xclerc $
+# $Id: Makefile.msvc64 10622 2010-07-07 12:04:32Z frisch $
 
 # Configuration for Windows, Visual C++ compiler
 
@@ -70,6 +70,7 @@ DEBUGGER=ocamldebugger
 CC_PROFILE=
 SYSTHREAD_SUPPORT=true
 CMXS=cmxs
+NATDYNLINK=true
 
 ########## Configuration for the bytecode compiler
 
@@ -89,7 +90,8 @@ BYTECCLINKOPTS=
 DLLCCCOMPOPTS=/Ox /MD
 
 ### Libraries needed
-EXTRALIBS=bufferoverflowu.lib
+#EXTRALIBS=bufferoverflowu.lib  # for the old PSDK compiler only
+EXTRALIBS=
 BYTECCLIBS=advapi32.lib ws2_32.lib $(EXTRALIBS)
 NATIVECCLIBS=advapi32.lib ws2_32.lib $(EXTRALIBS)
 
@@ -101,7 +103,7 @@ FLEXLINK=flexlink -x64 -merge-manifest
 FLEXDIR=$(shell $(FLEXLINK) -where)
 IFLEXDIR=-I"$(FLEXDIR)"
 MKDLL=$(FLEXLINK)
-MKEXE=$(FLEXLINK) -exe
+MKEXE=$(FLEXLINK) -exe -link /STACK:33554432
 MKMAINDLL=$(FLEXLINK) -maindll
 
 ### How to build a static library
@@ -154,5 +156,5 @@ TK_LINK=
 
 ############# Aliases for common commands
 
-MAKEREC=$(MAKE) -f Makefile.nt 
+MAKEREC=$(MAKE) -f Makefile.nt
 MAKECMD=$(MAKE)

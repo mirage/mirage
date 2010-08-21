@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: m-nt.h 7408 2006-05-09 16:02:09Z xleroy $ */
+/* $Id: m-nt.h 9547 2010-01-22 12:48:24Z doligez $ */
 
 /* Machine configuration, Intel x86 processors, Win32,
    Visual C++ or Mingw compiler */
@@ -43,4 +43,3 @@
 #define ARCH_INT64_PRINTF_FORMAT "I64"
 
 #undef NONSTANDARD_DIV_MOD
-

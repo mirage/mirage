@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_messages.ml 9229 2009-04-09 13:56:38Z guesdon $ *)
+(* $Id: odoc_messages.ml 10480 2010-05-31 11:52:13Z guesdon $ *)
 
 (** The messages of the application. *)
 
@@ -328,6 +328,7 @@ let methods = "Methods"
 let authors = "Author(s)"
 let version = "Version"
 let since = "Since"
+let before = "Before"
 let deprecated = "Deprecated."
 let raises = "Raises"
 let returns = "Returns"

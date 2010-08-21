@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_text.mli 5974 2003-11-24 21:20:51Z guesdon $ *)
+(* $Id: odoc_text.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** A module with a function to parse strings to obtain a [Odoc_types.text] value. *)
 
@@ -17,8 +17,8 @@
 exception Text_syntax of int * int * string (* line, char, string *)
 
 (** Transformation of strings to text structures. *)
-module Texter : 
-    sig 
-      val text_of_string : string -> Odoc_types.text 
+module Texter :
+    sig
+      val text_of_string : string -> Odoc_types.text
       val string_of_text : Odoc_types.text -> string
     end

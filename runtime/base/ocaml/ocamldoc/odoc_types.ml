@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_types.ml 7307 2006-01-04 16:55:50Z doligez $ *)
+(* $Id: odoc_types.ml 10480 2010-05-31 11:52:13Z guesdon $ *)
 
 type ref_kind =
     RK_module
@@ -41,12 +41,13 @@ and text_element =
   | Title of int * string option * text
   | Latex of string
   | Link of string * text
-  | Ref of string * ref_kind option
+  | Ref of string * ref_kind option * text option
   | Superscript of text
   | Subscript of text
   | Module_list of string list
   | Index_list
   | Custom of string * text
+  | Target of string * string
 
 and text = text_element list
 
@@ -67,6 +68,7 @@ type info = {
     i_version : string option;
     i_sees : see list;
     i_since : string option;
+    i_before : (string * text) list;
     i_deprecated : text option;
     i_params : param list;
     i_raised_exceptions : raised_exception list;
@@ -80,6 +82,7 @@ let dummy_info = {
   i_version = None ;
   i_sees = [] ;
   i_since = None ;
+  i_before = [] ;
   i_deprecated = None ;
   i_params = [] ;
   i_raised_exceptions = [] ;

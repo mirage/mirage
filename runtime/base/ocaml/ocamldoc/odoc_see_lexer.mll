@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_see_lexer.mll 5973 2003-11-24 10:44:07Z starynke $ *)
+(* $Id: odoc_see_lexer.mll 9547 2010-01-22 12:48:24Z doligez $ *)
 
 let print_DEBUG2 s = print_string s ; print_newline ()
 
@@ -21,52 +21,52 @@ open Odoc_parser
 
 let buf = Buffer.create 32
 
-} 
+}
 
 rule main = parse
   [' ' '\013' '\009' '\012'] +
-  { 
+  {
     print_DEBUG2 "[' ' '\013' '\009' '\012'] +";
-    main lexbuf 
+    main lexbuf
   }
 
-  | [ '\010' ] 
-      { 
+  | [ '\010' ]
+      {
         print_DEBUG2 " [ '\010' ] ";
-        main lexbuf 
+        main lexbuf
       }
 
-  | "<" 
-      { 
+  | "<"
+      {
         print_DEBUG2 "call url lexbuf" ;
-        url lexbuf 
-      } 
+        url lexbuf
+      }
 
-  | "\"" 
-      { 
+  | "\""
+      {
         print_DEBUG2 "call doc lexbuf" ;
         doc lexbuf
-      } 
+      }
 
 
   | '\''
       {
         print_DEBUG2 "call file lexbuf" ;
         file lexbuf
-      } 
+      }
 
   | eof
-      { 
+      {
         print_DEBUG2 "EOF";
-        EOF 
+        EOF
       }
 
   | _
-      { 
+      {
         Buffer.reset buf ;
-        Buffer.add_string buf (Lexing.lexeme lexbuf); 
+        Buffer.add_string buf (Lexing.lexeme lexbuf);
         desc lexbuf
-      } 
+      }
 
 and url = parse
   | ([^'>'] | '\n')+">"
@@ -76,7 +76,7 @@ and url = parse
         See_url (String.sub s 0 ((String.length s) -1))
       }
 
-      
+
 and doc = parse
   | ([^'"'] | '\n' | "\\'")* "\""
       {
@@ -95,8 +95,8 @@ and file = parse
 and desc = parse
     eof
       { Desc (Buffer.contents buf) }
-  | _ 
-      { 
+  | _
+      {
         Buffer.add_string buf (Lexing.lexeme lexbuf);
         desc lexbuf
       }

@@ -9,9 +9,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_dag2html.mli 5973 2003-11-24 10:44:07Z starynke $ *)
+(* $Id: odoc_dag2html.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
-(** The types and functions to create a html table representing a dag. 
+(** The types and functions to create a html table representing a dag.
    Thanks to Daniel de Rauglaudre. *)
 
 type 'a dag = { mutable dag : 'a node array }
@@ -24,8 +24,6 @@ val html_of_dag : string dag -> string
 
 (** This function takes a list of classes and a list of class types and creates the associate dag. *)
 val create_class_dag :
-    Odoc_info.Class.t_class list -> 
-      Odoc_info.Class.t_class_type list -> 
+    Odoc_info.Class.t_class list ->
+      Odoc_info.Class.t_class_type list ->
         (Odoc_info.Name.t * Odoc_info.Class.cct option) dag
-
-

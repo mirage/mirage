@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: runocamldoc 5029 2002-07-23 14:12:03Z doligez $
+# $Id: runocamldoc 10443 2010-05-20 09:44:25Z doligez $
 
 case "$1" in
   true) shift

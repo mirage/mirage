@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_comments_global.mli 5973 2003-11-24 10:44:07Z starynke $ *)
+(* $Id: odoc_comments_global.mli 10480 2010-05-31 11:52:13Z guesdon $ *)
 
 (** The global variables used by the special comment parser.*)
 
@@ -27,6 +27,9 @@ val sees : string list ref
 
 (** the since string *)
 val since : string option ref
+
+(** the before tag information *)
+val before : (string * string) list ref
 
 (** the deprecated flag *)
 val deprecated : string option ref

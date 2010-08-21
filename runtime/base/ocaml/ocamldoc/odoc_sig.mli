@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_sig.mli 6661 2004-11-03 09:31:19Z guesdon $ *)
+(* $Id: odoc_sig.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** The module for analysing a signature and source code and creating modules, classes, ..., elements.*)
 
@@ -134,7 +134,7 @@ module Analyser :
         (Odoc_types.info option * Odoc_module.module_element list)
 
       (** [name_comment_from_type_kind pos_end pos_limit type_kind].
-	 This function takes a [Parsetree.type_kind] and returns the list of
+         This function takes a [Parsetree.type_kind] and returns the list of
          (name, optional comment) for the various fields/constructors of the type,
          or an empty list for an abstract type.
          [pos_end] is last char of the complete type definition.

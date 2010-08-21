@@ -9,7 +9,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_comments_global.ml 5973 2003-11-24 10:44:07Z starynke $ *)
+(* $Id: odoc_comments_global.ml 10480 2010-05-31 11:52:13Z guesdon $ *)
 
 (** The global variables used by the special comment parser.*)
 
@@ -22,6 +22,8 @@ let version = ref (None : string option)
 let sees = ref ([] : string list)
 
 let since = ref (None : string option)
+
+let before = ref []
 
 let deprecated = ref (None : string option)
 
@@ -39,10 +41,11 @@ let init () =
   version := None;
   sees := [];
   since := None;
+  before := [];
   deprecated := None;
   params := [];
   raised_exceptions := [];
   return_value := None ;
-  customs := [] 
+  customs := []
 
-(* eof $Id: odoc_comments_global.ml 5973 2003-11-24 10:44:07Z starynke $ *)
+(* eof $Id: odoc_comments_global.ml 10480 2010-05-31 11:52:13Z guesdon $ *)

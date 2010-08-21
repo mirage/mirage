@@ -9,11 +9,11 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_env.mli 5973 2003-11-24 10:44:07Z starynke $ *)
+(* $Id: odoc_env.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Environment for finding complete names from relative names. *)
 
-(** An environment of known names, 
+(** An environment of known names,
    from simple name to complete name. *)
 type env
 

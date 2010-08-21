@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: odoc_ocamlhtml.mll 9125 2008-11-10 13:03:55Z guesdon $ *)
+(* $Id: odoc_ocamlhtml.mll 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (** Generation of html code to display OCaml code. *)
 open Lexing
@@ -342,9 +342,9 @@ rule token = parse
   | "*)"
       { lexbuf.Lexing.lex_curr_pos <- lexbuf.Lexing.lex_curr_pos - 1;
         lexbuf.Lexing.lex_curr_p <-
-	  { lexbuf.Lexing.lex_curr_p with
-	    pos_cnum = lexbuf.Lexing.lex_curr_p.pos_cnum - 1
-	  } ;
+          { lexbuf.Lexing.lex_curr_p with
+            pos_cnum = lexbuf.Lexing.lex_curr_p.pos_cnum - 1
+          } ;
         print (Lexing.lexeme lexbuf) ;
         token lexbuf
       }

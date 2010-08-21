@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: frames.ml 9299 2009-06-17 08:15:39Z xclerc $ *)
+(* $Id: frames.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (***************************** Frames **********************************)
 
@@ -75,7 +75,7 @@ let select_frame frame_number =
         | _ ->
             set_initial_frame();
             selected_event := Some(move_up frame_number curr_event);
-            current_frame := frame_number          
+            current_frame := frame_number
   with Not_found ->
     set_frame initial_sp;
     raise Not_found

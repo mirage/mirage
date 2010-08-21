@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: envaux.ml 9221 2009-04-02 09:06:33Z xclerc $ *)
+(* $Id: envaux.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Misc
 open Types
@@ -60,7 +60,7 @@ let rec env_from_summary sum subst =
           let env = env_from_summary s subst in
           let path' = Subst.module_path subst path in
           let mty =
-            try 
+            try
               Env.find_module path' env
             with Not_found ->
               raise (Error (Module_not_found path'))

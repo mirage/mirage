@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: parser_aux.mli 9221 2009-04-02 09:06:33Z xclerc $ *)
+(* $Id: parser_aux.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (*open Globals*)
 
@@ -31,4 +31,3 @@ type break_arg =
   | BA_pos1 of Longident.t option * int * int option
                                         (* break @ [MODULE] LINE [POS] *)
   | BA_pos2 of Longident.t option * int (* break @ [MODULE] # OFFSET *)
-

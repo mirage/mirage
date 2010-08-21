@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: symbols.ml 9300 2009-06-18 11:17:16Z xclerc $ *)
+(* $Id: symbols.ml 9540 2010-01-20 16:26:46Z doligez $ *)
 
 (* Handling of symbol tables (globals and events) *)
 

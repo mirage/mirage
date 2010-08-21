@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: debugcom.mli 5200 2002-10-29 17:53:24Z doligez $ *)
+(* $Id: debugcom.mli 10287 2010-04-20 15:47:15Z doligez $ *)
 
 (* Low-level communication with the debuggee *)
 
@@ -31,6 +31,10 @@ type report =
 type checkpoint_report =
     Checkpoint_done of int
   | Checkpoint_failed
+
+type follow_fork_mode =
+    Fork_child
+  | Fork_parent
 
 (* Set the current connection with the debuggee *)
 val set_current_connection : Primitives.io_channel -> unit
@@ -76,6 +80,10 @@ val up_frame : int -> int * int
 (* Set the trap barrier to given stack position. *)
 val set_trap_barrier : int -> unit
 
+(* Set whether the debugger follow the child or the parent process on fork *)
+val fork_mode : follow_fork_mode ref
+val update_follow_fork_mode : unit -> unit
+
 (* Handling of remote values *)
 
 exception Marshalling_error
@@ -83,7 +91,7 @@ exception Marshalling_error
 module Remote_value :
   sig
     type t
-    
+
     val obj : t -> 'a
     val is_block : t -> bool
     val tag : t -> int

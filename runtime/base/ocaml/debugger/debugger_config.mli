@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: debugger_config.mli 9221 2009-04-02 09:06:33Z xclerc $ *)
+(* $Id: debugger_config.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (********************** Configuration file *****************************)
 
@@ -33,4 +33,3 @@ val checkpoint_big_step : int64 ref
 val checkpoint_small_step : int64 ref
 val checkpoint_max_count : int ref
 val make_checkpoints : bool ref
-

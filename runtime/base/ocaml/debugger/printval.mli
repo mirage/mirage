@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: printval.mli 3566 2001-07-03 11:04:10Z xleroy $ *)
+(* $Id: printval.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Format
 
@@ -28,6 +28,6 @@ val reset_named_values : unit -> unit
 val find_named_value : int -> Debugcom.Remote_value.t * Types.type_expr
 
 val install_printer :
-  Path.t -> Types.type_expr -> formatter -> 
+  Path.t -> Types.type_expr -> formatter ->
     (formatter -> Obj.t -> unit) -> unit
 val remove_printer : Path.t -> unit

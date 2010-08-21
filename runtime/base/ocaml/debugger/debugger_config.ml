@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: debugger_config.ml 9221 2009-04-02 09:06:33Z xclerc $ *)
+(* $Id: debugger_config.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (**************************** Configuration file ***********************)
 
@@ -23,7 +23,7 @@ exception Toplevel
 
 (*ISO 6429 color sequences
 00      to restore default color
-01      for brighter colors 
+01      for brighter colors
 04      for underlined text
 05      for flashing text
 30      for black foreground

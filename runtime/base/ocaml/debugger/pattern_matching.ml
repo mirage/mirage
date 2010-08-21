@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: pattern_matching.ml 3359 2000-12-28 13:07:42Z weis $ *)
+(* $Id: pattern_matching.ml 9547 2010-01-22 12:48:24Z doligez $ *)
 
 (************************ Simple pattern matching **********************)
 
@@ -150,7 +150,7 @@ and match_concrete_type pattern obj cstr ty ty_list =
   | Variant_type constr_list ->
       let tag = value_tag obj in
         (try
-           let constr = 
+           let constr =
              if same_type_constr cstr constr_type_exn then
                find_exception tag
              else

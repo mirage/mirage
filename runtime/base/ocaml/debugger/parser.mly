@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: parser.mly 9275 2009-05-23 14:42:57Z xclerc $ */
+/* $Id: parser.mly 9547 2010-01-22 12:48:24Z doligez $ */
 
 %{
 
@@ -187,7 +187,7 @@ opt_longident :
   |                             { None };
 
 opt_longident_eol :
-    opt_longident end_of_line   { $1 }; 
+    opt_longident end_of_line   { $1 };
 
 identifier :
     LIDENT                      { $1 }

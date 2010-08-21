@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: program_management.ml 9226 2009-04-02 09:44:21Z xclerc $ *)
+(* $Id: program_management.ml 10450 2010-05-21 12:00:49Z doligez $ *)
 
 (* Manage the loading of the program *)
 
@@ -117,7 +117,7 @@ let ask_kill_program () =
 
 let initialize_loading () =
   if !debug_loading then
-    prerr_endline "Loading debugging informations...";
+    prerr_endline "Loading debugging information...";
   begin try access !program_name [F_OK]
   with Unix_error _ ->
     prerr_endline "Program not found.";

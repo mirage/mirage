@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-# $Id: Makefile.shared 9529 2010-01-15 09:20:00Z doligez $
+# $Id: Makefile.shared 10413 2010-05-17 15:49:53Z doligez $
 
 include ../config/Makefile
 
@@ -44,7 +44,7 @@ OTHEROBJS=\
 
 
 OBJS=\
-        dynlink.cmo \
+	dynlink.cmo \
 	int64ops.cmo \
 	primitives.cmo \
 	unix_tools.cmo \
@@ -113,5 +113,14 @@ parser.ml parser.mli: parser.mly
 clean::
 	rm -f parser.ml parser.mli
 beforedepend:: parser.ml parser.mli
+
+dynlink.ml: ../otherlibs/dynlink/dynlink.ml
+	grep -v 'REMOVE_ME for ../../debugger/dynlink.ml' \
+	     ../otherlibs/dynlink/dynlink.ml >dynlink.ml
+dynlink.mli: ../otherlibs/dynlink/dynlink.mli
+	cp ../otherlibs/dynlink/dynlink.mli .
+clean::
+	rm -f dynlink.ml dynlink.mli
+beforedepend:: dynlink.ml dynlink.mli
 
 include .depend

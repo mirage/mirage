@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: events.mli 7031 2005-08-25 15:35:16Z doligez $ *)
+(* $Id: events.mli 9547 2010-01-22 12:48:24Z doligez $ *)
 
 open Instruct
 
@@ -27,4 +27,3 @@ val current_event : debug_event option ref
 val get_current_event : unit -> debug_event
 
 val current_event_is_before : unit -> bool
-

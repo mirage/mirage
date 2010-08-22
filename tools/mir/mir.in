@@ -10,15 +10,7 @@ OCAMLDEP=${OCAMLDEP:-ocamldep.opt}
 MAKE=${MAKE:-make}
 CC=${CC:-cc}
 
-MIRAGE_ROOT=${MIRAGE_ROOT:-`pwd`}
-STDLIB=${MIRAGE_ROOT}/stdlib
-RUNTIME=${MIRAGE_ROOT}/runtime
-
 MODE=bu
-
-if [ -z "${MIRAGE_ROOT}" ]; then
-  MIRAGE_ROOT="$(${OCAMLOPT} -where)/mirage"
-fi
 
 if [ ! -z "$1" ]; then
   MODE="$1"
@@ -51,10 +43,17 @@ case "${MODE}" in
 bu)
   echo Building for @OS@
   TARG=u
+  MIRAGE_ROOT=@PREFIX@/lib/ocaml/mirage
   ;;
 bx)
   echo Building for Xen
   TARG=x
+  MIRAGE_ROOT=@PREFIX@/lib/ocaml/mirage
+  ;;
+dx)
+  echo Building for Xen in-tree
+  TARG=x
+  MIRAGE_ROOT=`pwd`
   ;;
 clean|cl)
   echo Cleaning intermediate files
@@ -68,10 +67,13 @@ clean|cl)
   ;;
 esac
 
+SYNTAX=${MIRAGE_ROOT}/syntax
+STDLIB=${MIRAGE_ROOT}/stdlib
+RUNTIME=${MIRAGE_ROOT}/runtime
 cd "${DIR}"
 DEPEND=".depend"
 
-${OCAMLDSORT} -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -nox -mli *.ml *.mli > ${DEPEND}
+${OCAMLDSORT} -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -nox -mli *.ml *.mli > ${DEPEND}
 ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -I ${MIRAGE_ROOT}/stdlib -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/xen -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa xen.cmx mpl.cmx mlnet.cmx `cat .depend` -output-obj -o app_raw.o
 objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
 

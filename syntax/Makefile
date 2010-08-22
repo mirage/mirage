@@ -21,5 +21,5 @@ clean:
 
 .PHONY: install
 install:
-	mkdir -p $(MIRAGE_ROOT)
-	cp pa_mirage.cma $(MIRAGE_ROOT)/pa_mirage.cma
+	mkdir -p $(MIRAGE_ROOT)/syntax
+	cp pa_mirage.cma $(MIRAGE_ROOT)/syntax/pa_mirage.cma

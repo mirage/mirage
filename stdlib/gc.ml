@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: gc.ml,v 1.20.24.1 2008/11/18 10:24:43 doligez Exp $ *)
+(* $Id: gc.ml 10315 2010-04-27 07:55:08Z xleroy $ *)
 
 type stat = {
   minor_words : float;
@@ -30,6 +29,7 @@ type stat = {
   fragments : int;
   compactions : int;
   top_heap_words : int;
+  stack_size : int;
 };;
 
 type control = {
@@ -54,6 +54,25 @@ external full_major : unit -> unit = "caml_gc_full_major";;
 external compact : unit -> unit = "caml_gc_compaction";;
 
 open Printf;;
+
+let print_stat c =
+  let st = stat () in
+  fprintf c "minor_words: %.0f\n" st.minor_words;
+  fprintf c "promoted_words: %.0f\n" st.promoted_words;
+  fprintf c "major_words: %.0f\n" st.major_words;
+  fprintf c "minor_collections: %d\n" st.minor_collections;
+  fprintf c "major_collections: %d\n" st.major_collections;
+  fprintf c "heap_words: %d\n" st.heap_words;
+  fprintf c "heap_chunks: %d\n" st.heap_chunks;
+  fprintf c "top_heap_words: %d\n" st.top_heap_words;
+  fprintf c "live_words: %d\n" st.live_words;
+  fprintf c "live_blocks: %d\n" st.live_blocks;
+  fprintf c "free_words: %d\n" st.free_words;
+  fprintf c "free_blocks: %d\n" st.free_blocks;
+  fprintf c "largest_free: %d\n" st.largest_free;
+  fprintf c "fragments: %d\n" st.fragments;
+  fprintf c "compactions: %d\n" st.compactions;
+;;
 
 let allocated_bytes () =
   let (mi, pro, ma) = counters () in

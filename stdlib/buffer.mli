@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: buffer.mli,v 1.21 2005/10/25 18:34:07 doligez Exp $ *)
+(* $Id: buffer.mli 10457 2010-05-21 18:30:12Z doligez $ *)
 
 (** Extensible string buffers.
 
@@ -48,6 +47,17 @@ val sub : t -> int -> int -> string
 current contents of the buffer [b] starting at offset [off] of length
 [len] bytes. May raise [Invalid_argument] if out of bounds request. The
 buffer itself is unaffected. *)
+
+val blit : t -> int -> string -> int -> int -> unit
+(** [Buffer.blit src srcoff dst dstoff len] copies [len] characters from
+   the current contents of the buffer [src], starting at offset [srcoff]
+   to string [dst], starting at character [dstoff].
+
+   Raise [Invalid_argument] if [srcoff] and [len] do not designate a valid
+   substring of [src], or if [dstoff] and [len] do not designate a valid
+   substring of [dst].
+   @since 3.11.2
+*)
 
 val nth : t -> int -> char
 (** get the n-th character of the buffer. Raise [Invalid_argument] if

@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: gc.mli,v 1.44.4.1 2008/11/18 10:24:43 doligez Exp $ *)
+(* $Id: gc.mli 10457 2010-05-21 18:30:12Z doligez $ *)
 
 (** Memory management control and statistics; finalised values. *)
 
@@ -70,6 +70,9 @@ type stat =
 
     top_heap_words : int;
     (** Maximum size reached by the major heap, in words. *)
+
+    stack_size: int;
+    (** Current size of the stack, in words. @since 3.12.0 *)
 }
 (** The memory management counters are returned in a [stat] record.
 
@@ -133,7 +136,7 @@ type control =
         quite fast but can result in fragmentation.  1 is the
         first-fit policy, which can be slower in some cases but
         can be better for programs with fragmentation problems.
-        Default: 0. *)
+        Default: 0. @since 3.11.0 *)
 }
 (** The GC parameters are given as a [control] record.  Note that
     these parameters can also be initialised by setting the
@@ -182,6 +185,10 @@ external compact : unit -> unit = "caml_gc_compaction"
 (** Perform a full major collection and compact the heap.  Note that heap
    compaction is a lengthy operation. *)
 
+val print_stat : out_channel -> unit
+(** Print the current values of the memory management counters (in
+   human-readable form) into the channel argument. *)
+
 val allocated_bytes : unit -> float
 (** Return the total number of bytes allocated since the program was
    started.  It is returned as a [float] to avoid overflow problems
@@ -217,7 +224,8 @@ val finalise : ('a -> unit) -> 'a -> unit
    The [f] function can use all features of O'Caml, including
    assignments that make the value reachable again.  It can also
    loop forever (in this case, the other
-   finalisation functions will be called during the execution of f).
+   finalisation functions will not be called during the execution of f,
+   unless it calls [finalise_release]).
    It can call [finalise] on [v] or other values to register other
    functions or even itself.  It can raise an exception; in this case
    the exception will interrupt whatever the program was doing when

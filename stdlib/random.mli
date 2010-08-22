@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: random.mli 7849 2007-02-09 13:31:15Z doligez $ *)
+(* $Id: random.mli 10457 2010-05-21 18:30:12Z doligez $ *)
 
 (** Pseudo-random number generators (PRNG). *)
 
@@ -29,7 +29,10 @@ val self_init : unit -> unit
    in a system-dependent way. *)
 
 val bits : unit -> int
-(** Return 30 random bits in a nonnegative integer. *)
+(** Return 30 random bits in a nonnegative integer.
+    @before 3.12.0 used a different algorithm (affects all the following
+                   functions)
+*)
 
 val int : int -> int
 (** [Random.int bound] returns a random integer between 0 (inclusive)

@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: nativeint.ml,v 1.11 2007/01/30 09:34:36 xleroy Exp $ *)
+(* $Id: nativeint.ml 7818 2007-01-30 09:34:36Z xleroy $ *)
 
 (* Module [Nativeint]: processor-native integers *)
 

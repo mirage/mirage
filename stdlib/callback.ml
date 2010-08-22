@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: callback.ml,v 1.5 2003/12/31 14:20:39 doligez Exp $ *)
+(* $Id: callback.ml 6044 2003-12-31 14:20:40Z doligez $ *)
 
 (* Registering Caml values with the C runtime for later callbacks *)
 

@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: buffer.ml,v 1.19 2008/09/09 08:50:39 weis Exp $ *)
+(* $Id: buffer.ml 10216 2010-03-28 08:16:45Z xleroy $ *)
 
 (* Extensible buffers *)
 
@@ -38,6 +37,14 @@ let sub b ofs len =
     String.blit b.buffer ofs r 0 len;
     r
   end
+;;
+
+let blit src srcoff dst dstoff len =
+  if len < 0 || srcoff < 0 || srcoff > src.position - len
+             || dstoff < 0 || dstoff > (String.length dst) - len
+  then invalid_arg "Buffer.blit"
+  else
+    String.blit src.buffer srcoff dst dstoff len
 ;;
 
 let nth b ofs =
@@ -93,6 +100,8 @@ let add_buffer b bs =
   add_substring b bs.buffer 0 bs.position
 
 let add_channel b ic len =
+  if len < 0 || len > Sys.max_string_length then   (* PR#5004 *)
+    invalid_arg "Buffer.add_channel";
   if b.position + len > b.length then resize b len;
   really_input ic b.buffer b.position len;
   b.position <- b.position + len

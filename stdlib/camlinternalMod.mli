@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: camlinternalMod.mli,v 1.1 2004/08/12 12:57:00 xleroy Exp $ *)
+(* $Id: camlinternalMod.mli 6586 2004-08-12 12:57:00Z xleroy $ *)
 
 type shape =
   | Function

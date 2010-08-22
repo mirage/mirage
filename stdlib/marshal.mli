@@ -1,4 +1,3 @@
-open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -12,7 +11,7 @@ open Pervasives
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: marshal.mli,v 1.14 2005/10/25 18:34:07 doligez Exp $ *)
+(* $Id: marshal.mli 7164 2005-10-25 18:34:07Z doligez $ *)
 
 (** Marshaling of data structures.
 

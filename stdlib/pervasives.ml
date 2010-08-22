@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-(* $Id: pervasives.ml,v 1.81 2006/11/17 08:34:01 weis Exp $ *)
+(* $Id: pervasives.ml 10549 2010-06-09 10:27:01Z weis $ *)
 
 (* type 'a option = None | Some of 'a *)
 
@@ -51,6 +51,7 @@ external (||) : bool -> bool -> bool = "%sequor"
 (* Integer operations *)
 
 external (~-) : int -> int = "%negint"
+external (~+) : int -> int = "%identity"
 external succ : int -> int = "%succint"
 external pred : int -> int = "%predint"
 external (+) : int -> int -> int = "%addint"
@@ -77,12 +78,14 @@ let max_int = min_int - 1
 (* Floating-point operations *)
 
 external (~-.) : float -> float = "%negfloat"
+external (~+.) : float -> float = "%identity"
 external (+.) : float -> float -> float = "%addfloat"
 external (-.) : float -> float -> float = "%subfloat"
 external ( *. ) : float -> float -> float = "%mulfloat"
 external (/.) : float -> float -> float = "%divfloat"
 external ( ** ) : float -> float -> float = "caml_power_float" "pow" "float"
 external exp : float -> float = "caml_exp_float" "exp" "float"
+external expm1 : float -> float = "caml_expm1_float" "caml_expm1" "float"
 external acos : float -> float = "caml_acos_float" "acos" "float"
 external asin : float -> float = "caml_asin_float" "asin" "float"
 external atan : float -> float = "caml_atan_float" "atan" "float"
@@ -91,6 +94,7 @@ external cos : float -> float = "caml_cos_float" "cos" "float"
 external cosh : float -> float = "caml_cosh_float" "cosh" "float"
 external log : float -> float = "caml_log_float" "log" "float"
 external log10 : float -> float = "caml_log10_float" "log10" "float"
+external log1p : float -> float = "caml_log1p_float" "caml_log1p" "float"
 external sin : float -> float = "caml_sin_float" "sin" "float"
 external sinh : float -> float = "caml_sinh_float" "sinh" "float"
 external sqrt : float -> float = "caml_sqrt_float" "sqrt" "float"
@@ -385,7 +389,7 @@ external incr: int ref -> unit = "%incr"
 external decr: int ref -> unit = "%decr"
 
 (* Formats *)
-type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6 
+type ('a, 'b, 'c, 'd) format4 = ('a, 'b, 'c, 'c, 'c, 'd) format6
 
 type ('a, 'b, 'c) format = ('a, 'b, 'c, 'c) format4
 
@@ -403,7 +407,8 @@ let (( ^^ ) :
       ('f, 'b, 'c, 'e, 'g, 'h) format6 ->
       ('a, 'b, 'c, 'd, 'g, 'h) format6) =
   fun fmt1 fmt2 ->
-    string_to_format (format_to_string fmt1 ^ format_to_string fmt2);;
+    string_to_format (format_to_string fmt1 ^ "%," ^ format_to_string fmt2)
+;;
 
 let string_of_format fmt =
   let s = format_to_string fmt in

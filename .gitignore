@@ -39,6 +39,7 @@ tools/mpl/mpl_parser.ml
 tools/mpl/mpl_parser.mli
 tools/mpl/mplc
 tools/ocaml/dest
+tools/ocaml/obj
 tools/ocaml/install.tgz
 lib/mlnet/mpl_*.ml
 /screenlog.*

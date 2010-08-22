@@ -12,7 +12,6 @@ export PREFIX
 
 all:
 	@if [ "`uname -m`" != "x86_64" ]; then echo "Must build on a 64-bit platform, usually Linux."; exit 1; fi
-	@cd tools && $(MAKE) 
 	@cd stdlib && $(MAKE)
 	@cd runtime && $(MAKE)
 	@cd syntax && $(MAKE)

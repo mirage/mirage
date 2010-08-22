@@ -108,7 +108,11 @@ int caml_attempt_open(char **name, struct exec_trailer *trail,
   int err;
   char buf [2];
 
+#ifdef SYS_xen
+  truename = "mirage-app";
+#else
   truename = caml_search_exe_in_path(*name);
+#endif
   *name = truename;
   caml_gc_message(0x100, "Opening bytecode executable %s\n",
                   (uintnat) truename);
@@ -388,8 +392,10 @@ CAMLexport void caml_main(char **argv)
   init_atoms();
   /* Initialize the interpreter */
   caml_interprete(NULL, 0);
+#ifndef SYS_xen
   /* Initialize the debugger, if needed */
   caml_debugger_init();
+#endif
   /* Load the code */
   caml_code_size = caml_seek_section(fd, &trail, "CODE");
   caml_load_code(fd, caml_code_size);

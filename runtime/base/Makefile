@@ -28,7 +28,7 @@ $(OBJDIR)/asmrun/$(ASMRUNLIB): $(OBJDIR)/.stamp
 	$(foreach i,$(HAS_NOT),sed -i -e 's,^\(#define $(i)\),//\1,' $(OBJDIR)/config/s.h ; )
 	cp $(OBJDIR)/config/m-xen.h $(OBJDIR)/config/m.h
 	cp $(OBJDIR)/config/s-xen.h $(OBJDIR)/config/s.h
-	cd $(OBJDIR)/asmrun && $(MAKE) SYSTEM=$(MODE) $(ASMRUNLIB)
+	cd $(OBJDIR)/asmrun && $(MAKE) -f Makefile.xen SYSTEM=$(MODE) $(ASMRUNLIB)
 
 $(OBJDIR)/otherlibs/bigarray/libbigarray.a: $(OBJDIR)/.stamp
 	cd $(OBJDIR)/otherlibs/bigarray && $(MAKE) SYSTEM=$(MODE) bigarray_stubs.o mmap_unix.o && ar rvs libbigarray.a bigarray_stubs.o mmap_unix.o

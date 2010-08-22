@@ -158,7 +158,9 @@ void caml_main(char **argv)
                 percent_free_init, max_percent_free_init);
   init_atoms();
   caml_init_signals();
+#ifndef SYS_xen
   caml_debugger_init (); /* force debugger.o stub to be linked */
+#endif
   exe_name = argv[0];
   if (exe_name == NULL) exe_name = "";
 #ifdef __linux__
@@ -166,6 +168,8 @@ void caml_main(char **argv)
     exe_name = proc_self_exe;
   else
     exe_name = caml_search_exe_in_path(exe_name);
+#elif SYS_xen
+  exe_name = "mirage-app";
 #else
   exe_name = caml_search_exe_in_path(exe_name);
 #endif

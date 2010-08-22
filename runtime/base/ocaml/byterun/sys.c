@@ -125,6 +125,13 @@ static int sys_open_flags[] = {
   O_BINARY, O_TEXT, O_NONBLOCK
 };
 
+#ifdef SYS_xen
+CAMLprim value caml_sys_open(value path, value vflags, value vperm)
+{
+  CAMLparam3(path, vflags, vperm);
+  caml_sys_error(String_val(path));
+}
+#else
 CAMLprim value caml_sys_open(value path, value vflags, value vperm)
 {
   CAMLparam3(path, vflags, vperm);
@@ -210,6 +217,7 @@ CAMLprim value caml_sys_getenv(value var)
   if (res == 0) caml_raise_not_found();
   return caml_copy_string(res);
 }
+#endif
 
 char * caml_exe_name;
 static char ** caml_main_argv;
@@ -328,6 +336,7 @@ CAMLprim value caml_sys_get_config(value unit)
   CAMLreturn (result);
 }
 
+#ifndef SYS_xen
 CAMLprim value caml_sys_read_directory(value path)
 {
   CAMLparam1(path);
@@ -344,3 +353,4 @@ CAMLprim value caml_sys_read_directory(value path)
   caml_ext_table_free(&tbl, 1);
   CAMLreturn(result);
 }
+#endif

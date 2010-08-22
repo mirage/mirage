@@ -52,7 +52,7 @@ let to_load_path input_param =
     Buffer.contents buf
 let to_preprocesor input_param =
   match input_param.preprocessor with
-    | Some p -> "-pp " ^ p
+    | Some p -> "-pp '" ^ p ^ "'"
     | None -> ""
 let to_concatened_filenames param =
   String.concat " " (to_filenames param)

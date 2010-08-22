@@ -1,3 +1,4 @@
+open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                             Ocaml                                   *)
@@ -24,10 +25,7 @@ and 'a data =
   | Sapp of 'a data * 'a data
   | Slazy of 'a data Lazy.t
   | Sgen of 'a gen
-  | Sbuffio of buffio
 and 'a gen = { mutable curr : 'a option option; func : int -> 'a option }
-and buffio =
-  { ic : in_channel; buff : string; mutable len : int; mutable ind : int }
 ;;
 exception Failure;;
 exception Error of string;;
@@ -36,10 +34,6 @@ external count : 'a t -> int = "%field0";;
 external set_count : 'a t -> int -> unit = "%setfield0";;
 let set_data (s : 'a t) (d : 'a data) =
   Obj.set_field (Obj.repr s) 1 (Obj.repr d)
-;;
-
-let fill_buff b =
-  b.len <- input b.ic b.buff 0 (String.length b.buff); b.ind <- 0
 ;;
 
 let rec get_data count d = match d with
@@ -63,12 +57,6 @@ let rec get_data count d = match d with
      | Some a -> Scons(a, d)
          (* Warning: anyone using g thinks that an item has been read *)
      end
- | Sbuffio b ->
-     if b.ind >= b.len then fill_buff b;
-     if b.len == 0 then Sempty else
-       let r = Obj.magic (String.unsafe_get b.buff b.ind) in
-       (* Warning: anyone using g thinks that an item has been read *)
-       b.ind <- succ b.ind; Scons(r, d)
  | Slazy f -> get_data count (Lazy.force f)
 ;;
 
@@ -86,17 +74,12 @@ let rec peek s =
  | Slazy f -> set_data s (Lazy.force f); peek s
  | Sgen {curr = Some a} -> a
  | Sgen g -> let x = g.func s.count in g.curr <- Some x; x
- | Sbuffio b ->
-     if b.ind >= b.len then fill_buff b;
-     if b.len == 0 then begin set_data s Sempty; None end
-     else Some (Obj.magic (String.unsafe_get b.buff b.ind))
 ;;
 
 let rec junk s =
   match s.data with
     Scons (_, d) -> set_count s (succ s.count); set_data s d
   | Sgen ({curr = Some _} as g) -> set_count s (succ s.count); g.curr <- None
-  | Sbuffio b -> set_count s (succ s.count); b.ind <- succ b.ind
   | _ ->
       match peek s with
         None -> ()
@@ -150,11 +133,6 @@ let of_string s =
   from (fun c -> if c < String.length s then Some s.[c] else None)
 ;;
 
-let of_channel ic =
-  {count = 0;
-   data = Sbuffio {ic = ic; buff = String.create 4096; len = 0; ind = 0}}
-;;
-
 (* Stream expressions builders *)
 
 let iapp i s = {count = 0; data = Sapp (i.data, s.data)};;
@@ -196,5 +174,4 @@ and dump_data f =
       print_string ")"
   | Slazy _ -> print_string "Slazy"
   | Sgen _ -> print_string "Sgen"
-  | Sbuffio b -> print_string "Sbuffio"
 ;;

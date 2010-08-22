@@ -1,3 +1,4 @@
+open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -17,8 +18,6 @@ type extern_flags =
     No_sharing
   | Closures
 
-external to_channel: out_channel -> 'a -> extern_flags list -> unit
-    = "caml_output_value"
 external to_string: 'a -> extern_flags list -> string
     = "caml_output_value_to_string"
 external to_buffer_unsafe:
@@ -30,7 +29,6 @@ let to_buffer buff ofs len v flags =
   then invalid_arg "Marshal.to_buffer: substring out of bounds"
   else to_buffer_unsafe buff ofs len v flags
 
-external from_channel: in_channel -> 'a = "caml_input_value"
 external from_string_unsafe: string -> int -> 'a
                            = "caml_input_value_from_string"
 external data_size_unsafe: string -> int -> int = "caml_marshal_data_size"

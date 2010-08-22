@@ -49,36 +49,6 @@ type extern_flags =
   | Closures                            (** Send function closures *)
 (** The flags to the [Marshal.to_*] functions below. *)
 
-val to_channel : out_channel -> 'a -> extern_flags list -> unit
-(** [Marshal.to_channel chan v flags] writes the representation
-   of [v] on channel [chan]. The [flags] argument is a
-   possibly empty list of flags that governs the marshaling
-   behavior with respect to sharing and functional values.
-
-   If [flags] does not contain [Marshal.No_sharing], circularities
-   and sharing inside the value [v] are detected and preserved
-   in the sequence of bytes produced. In particular, this
-   guarantees that marshaling always terminates. Sharing
-   between values marshaled by successive calls to
-   [Marshal.to_channel] is not detected, though.
-   If [flags] contains [Marshal.No_sharing], sharing is ignored.
-   This results in faster marshaling if [v] contains no shared
-   substructures, but may cause slower marshaling and larger
-   byte representations if [v] actually contains sharing,
-   or even non-termination if [v] contains cycles.
-
-   If [flags] does not contain [Marshal.Closures],
-   marshaling fails when it encounters a functional value
-   inside [v]: only ``pure'' data structures, containing neither
-   functions nor objects, can safely be transmitted between
-   different programs. If [flags] contains [Marshal.Closures],
-   functional values will be marshaled as a position in the code
-   of the program. In this case, the output of marshaling can
-   only be read back in processes that run exactly the same program,
-   with exactly the same compiled code. (This is checked
-   at un-marshaling time, using an MD5 digest of the code
-   transmitted along with the code position.) *)
-
 external to_string :
   'a -> extern_flags list -> string = "caml_output_value_to_string"
 (** [Marshal.to_string v flags] returns a string containing
@@ -94,12 +64,6 @@ val to_buffer : string -> int -> int -> 'a -> extern_flags list -> int
    actually written to the string. If the byte representation
    of [v] does not fit in [len] characters, the exception [Failure]
    is raised. *)
-
-val from_channel : in_channel -> 'a
-(** [Marshal.from_channel chan] reads from channel [chan] the
-   byte representation of a structured value, as produced by
-   one of the [Marshal.to_*] functions, and reconstructs and
-   returns the corresponding value.*)
 
 val from_string : string -> int -> 'a
 (** [Marshal.from_string buff ofs] unmarshals a structured value

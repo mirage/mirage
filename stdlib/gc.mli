@@ -185,10 +185,6 @@ external compact : unit -> unit = "caml_gc_compaction"
 (** Perform a full major collection and compact the heap.  Note that heap
    compaction is a lengthy operation. *)
 
-val print_stat : out_channel -> unit
-(** Print the current values of the memory management counters (in
-   human-readable form) into the channel argument. *)
-
 val allocated_bytes : unit -> float
 (** Return the total number of bytes allocated since the program was
    started.  It is returned as a [float] to avoid overflow problems

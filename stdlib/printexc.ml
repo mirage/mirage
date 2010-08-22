@@ -1,3 +1,4 @@
+open Pervasives
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -66,7 +67,7 @@ let print fct arg =
   try
     fct arg
   with x ->
-    eprintf "Uncaught exception: %s\n" (to_string x);
+    printf "Uncaught exception: %s\n" (to_string x);
     flush stderr;
     raise x
 
@@ -75,7 +76,7 @@ let catch fct arg =
     fct arg
   with x ->
     flush stdout;
-    eprintf "Uncaught exception: %s\n" (to_string x);
+    printf "Uncaught exception: %s\n" (to_string x);
     exit 2
 
 type loc_info =

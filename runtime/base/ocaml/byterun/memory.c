@@ -273,8 +273,12 @@ char *caml_alloc_for_heap (asize_t request)
 */
 void caml_free_for_heap (char *mem)
 {
+#ifdef SYS_xen
   printf("free_for_heap\n");
 //  free (Chunk_block (mem));
+#else
+  free (Chunk_block (mem));
+#endif
 }
 
 /* Take a chunk of memory as argument, which must be the result of a

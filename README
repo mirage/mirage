@@ -4,7 +4,10 @@ compile applications into a standalone operating system that runs under
 the Xen hypervisor.
 
 It is based around the Objective Caml language, with a replacement
-standard library and syntax extensions.
+standard library and syntax extensions. You can read an overview of the
+project in the USENIX HotCloud paper available at:
+
+http://anil.recoil.org/papers/2010-hotcloud-lamp.pdf
 
 This repository is still in a pre-alpha state and not suitable for use. If
 you are interested in working with it, please contact:

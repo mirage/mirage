@@ -44,7 +44,7 @@ type netif_state =
    |Netif_shutting_down  (* Interface is shutting down *)
 
 type netif = {
-    nf: Xen.Netfront.netfront;
+    nf: Xen.Netfront.t;
     mutable dhcp: DHCP.state;
     dhcp_cond: unit Lwt_condition.t;
     mutable state: netif_state;

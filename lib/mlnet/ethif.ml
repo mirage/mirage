@@ -1,6 +1,5 @@
 open Lwt
 open Printf
-open Xen
 module MT = Mlnet_types
 
 (* default interface to send traffic through *)
@@ -16,10 +15,11 @@ let xmit nf buf =
     Xen.Netfront.xmit nf buf 0 (String.length buf)
 
 let create_static ?(default=true) ~ip ~netmask ~gw vif_id =
-    lwt nf = Netfront.create vif_id in
-    lwt mac = match MT.ethernet_mac_of_string (Netfront.mac nf) with
+    let module IF = Xen.Netfront in
+    lwt nf = IF.create vif_id in
+    lwt mac = match MT.ethernet_mac_of_string (IF.mac nf) with
         | Some mac -> return mac
-        | None -> fail (Invalid_ethernet_mac (Netfront.mac nf)) in
+        | None -> fail (Invalid_ethernet_mac (IF.mac nf)) in
     let recv = Xen.Hw_page.make () in
     let recv_cond = Lwt_condition.create () in
     let env_pool = Lwt_pool.create 5 
@@ -32,7 +32,7 @@ let create_static ?(default=true) ~ip ~netmask ~gw vif_id =
     if default then default_netif := Some t;
     all_netif := t :: !all_netif;
     let recv_thread = Frame.recv_thread t in
-    Netfront.set_recv nf (Frame.recv t);
+    IF.set_recv nf (Frame.recv t);
     return (t, recv_thread)
 
 let set_mode netif new_mode = 

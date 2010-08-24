@@ -32,4 +32,4 @@ install: install.tgz
 	@ :
 
 clean:
-	rm -rf $(OBJDIR)
+	rm -rf $(OBJDIR) install.tgz

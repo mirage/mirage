@@ -1,4 +1,4 @@
-ROOTDIR=..
+ROOTDIR=../..
 include $(ROOTDIR)/mk/xen.mk
 
 TARGS = libmiragerun_xen.a libc.a libm.a 

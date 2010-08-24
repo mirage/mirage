@@ -69,7 +69,7 @@ esac
 
 SYNTAX=${MIRAGE_ROOT}/syntax
 STDLIB=${MIRAGE_ROOT}/lib/stdlib
-RUNTIME=${MIRAGE_ROOT}/runtime
+RUNTIME=${MIRAGE_ROOT}/runtime/xen
 cd "${DIR}"
 DEPEND=".depend"
 

@@ -1,4 +1,4 @@
-ROOTDIR=../..
+ROOTDIR=../../..
 include $(ROOTDIR)/mk/xen.mk
 
 OBJDIR ?= ./obj

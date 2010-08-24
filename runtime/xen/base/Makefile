@@ -1,4 +1,4 @@
-ROOTDIR=$(abspath ../..)
+ROOTDIR=$(abspath ../../..)
 MODE ?= xen
 include $(ROOTDIR)/mk/$(MODE).mk
 

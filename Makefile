@@ -11,7 +11,8 @@ PREFIX ?= $(HOME)/mir-inst
 export PREFIX
 
 all:
-	@if [ "`uname -s`" = "Linux" ]; then cd runtime && $(MAKE); fi
+	@cd runtime && $(MAKE)
+	@cd syntax && $(MAKE)
 	@cd lib && $(MAKE)
 
 bootstrap:

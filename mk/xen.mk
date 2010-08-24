@@ -8,6 +8,6 @@ CFLAGS += -D__MiniOS__ -DHAVE_LIBC -D__x86_64__
 CFLAGS += -nostdinc -std=gnu99
 CFLAGS += -fno-stack-protector
 CFLAGS += -isystem $(GCC_INSTALL)/include
-CFLAGS += -isystem $(ROOTDIR)/runtime/include
-CFLAGS += -isystem $(ROOTDIR)/runtime/include/mini-os
-CFLAGS += -isystem $(ROOTDIR)/runtime/include/mini-os/x86
+CFLAGS += -isystem $(ROOTDIR)/runtime/xen/include
+CFLAGS += -isystem $(ROOTDIR)/runtime/xen/include/mini-os
+CFLAGS += -isystem $(ROOTDIR)/runtime/xen/include/mini-os/x86

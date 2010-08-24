@@ -17,7 +17,7 @@
 open Lwt
 open Printf
 
-type console = {
+type t = {
     backend_id: int;
     gnt: Gnttab.r;
     ring: Ring.Console.t;

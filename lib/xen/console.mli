@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type console
+type t
 exception Internal_error of string
-val t : console
-val create : unit -> console
-val create_additional_console : unit -> console Lwt.t
-val sync_write : console -> string -> int -> int -> unit Lwt.t
-val write : console -> string -> int -> int -> unit
+val t : t
+val create : unit -> t
+val create_additional_console : unit -> t Lwt.t
+val sync_write : t -> string -> int -> int -> unit Lwt.t
+val write : t -> string -> int -> int -> unit

@@ -60,7 +60,6 @@ let rec recv_thread netif =
             try_lwt
                match Ethernet.unmarshal env with
                |`ARP o ->
-                   Ethernet.ARP.prettyprint o;
                    Arp.recv netif o;
                |`IPv4 o -> begin
                    let ipv4 = Ipv4.unmarshal o#data_env in

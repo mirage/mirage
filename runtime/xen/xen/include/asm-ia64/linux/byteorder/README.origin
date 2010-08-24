@@ -1,9 +1,0 @@
-# Source files in this directory are identical copies of linux-2.6.13 files:
-# 
-# NOTE: DO NOT commit changes to these files!   If a file
-# needs to be changed, move it to ../linux-xen and follow
-# the instructions in the README there.
-
-generic.h		-> linux/include/linux/byteorder/generic.h
-little_endian.h		-> linux/include/linux/byteorder/little_endian.h
-swab.h			-> linux/include/linux/byteorder/swab.h

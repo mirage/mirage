@@ -1,5 +1,0 @@
-The following files are imported from the Samba project.  We use the versions
-from Samba 3, the current stable branch.
-
-talloc.c: samba-trunk/source/lib/talloc.c     r14291 2006-03-13 04:27:47 +0000
-talloc.h: samba-trunk/source/include/talloc.h r11986 2005-12-01 00:43:36 +0000

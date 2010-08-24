@@ -69,24 +69,25 @@ esac
 
 SYNTAX=${MIRAGE_ROOT}/syntax
 STDLIB=${MIRAGE_ROOT}/lib/stdlib
-RUNTIME=${MIRAGE_ROOT}/runtime/xen
+LIBDIR=${MIRAGE_ROOT}/lib
 cd "${DIR}"
 DEPEND=".depend"
-
 ${OCAMLDSORT} -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -nox -mli *.ml *.mli > ${DEPEND}
-${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${MIRAGE_ROOT}/syntax pa_mirage.cma" -I ${STDLIB} -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/xen -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa xen.cmx mpl.cmx mlnet.cmx `cat .depend` -output-obj -o app_raw.o
-objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
 
 # now link app.o depending on the target platform
 case "${TARG}" in
 u)
   echo Linking for @OS@
-  echo Currently known broken, sorry
-  exit 1
-  ${CC} -o app -lsqlite3 @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
+  RUNTIME=${MIRAGE_ROOT}/runtime/unix
+  INCLUDES="-I ${STDLIB} -I ${LIBDIR}/lwt -I ${LIBDIR}/lib/unix -I ${LIBDIR}/lib/mpl -I ${LIBDIR}/lib/mpl"
+  ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" ${INCLUDES} stdlib.cmxa lwtlib.cmxa unix.cmx mpl.cmx mlnet.cmx `cat .depend` -output-obj -o app.o
+  ${CC} -o app @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
   ;;
 x)
   echo Linking for Xen
+  RUNTIME=${MIRAGE_ROOT}/runtime/xen
+  ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -I ${STDLIB} -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/xen -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa xen.cmx mpl.cmx mlnet.cmx `cat .depend` -output-obj -o app_raw.o
+objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
   I=${RUNTIME}/inst-x86_64/lib
   cd ${RUNTIME}/kernel && ${MAKE} APP_LIB="${DIR}/app.o" && mv ${RUNTIME}/kernel/obj/mirage-os.gz ${DIR}/mirage-os.gz
   zcat ${DIR}/mirage-os.gz > ${DIR}/mirage-os

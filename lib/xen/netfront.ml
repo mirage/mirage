@@ -17,7 +17,7 @@
 open Lwt
 open Printf
 
-type netfront = {
+type t = {
     backend_id: int;
     backend: string;
     mac: string;
@@ -32,7 +32,7 @@ type netfront = {
     evtchn: int;
 }
 
-type netfront_id = (int * int)
+type id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let create (num,domid) =

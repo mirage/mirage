@@ -68,7 +68,7 @@ clean|cl)
 esac
 
 SYNTAX=${MIRAGE_ROOT}/syntax
-STDLIB=${MIRAGE_ROOT}/stdlib
+STDLIB=${MIRAGE_ROOT}/lib/stdlib
 RUNTIME=${MIRAGE_ROOT}/runtime
 cd "${DIR}"
 DEPEND=".depend"

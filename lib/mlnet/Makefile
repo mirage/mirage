@@ -3,7 +3,7 @@ include $(ROOTDIR)/mk/ocaml.mk
 
 SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
 
-STDLIB=$(ROOTDIR)/stdlib
+STDLIB=$(ROOTDIR)/lib/stdlib
 LWTLIB=$(ROOTDIR)/lib/lwt
 XENLIB=$(ROOTDIR)/lib/xen
 MPLLIB=$(ROOTDIR)/lib/mpl

@@ -1,7 +1,7 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-STDLIB=$(ROOTDIR)/stdlib
+STDLIB=$(ROOTDIR)/lib/stdlib
 
 .PHONY: build
 build: mpl.cmx

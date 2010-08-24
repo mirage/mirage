@@ -3,7 +3,8 @@ include $(ROOTDIR)/mk/ocaml.mk
 
 SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
 
-STDLIB=$(ROOTDIR)/stdlib
+STDLIB=../stdlib
+
 .PHONY: build
 build: lwtlib.cmxa
 	@ :

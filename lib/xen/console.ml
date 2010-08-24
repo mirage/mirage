@@ -72,8 +72,7 @@ let create_additional_console () =
         wrfn "type" "ioemu" >> (* XXX whats this for? *)
         wrfn "state" (Xb.State.to_string Xb.State.Connected)
     ) >>
-    return { backend_id=backend_id; gnt=gnt; ring=ring; 
-        evtchn=evtchn; waiters=waiters }
+    return { backend_id; gnt; ring; evtchn; waiters }
 
 let rec sync_write cons buf off len =
     assert(len <= String.length buf + off);

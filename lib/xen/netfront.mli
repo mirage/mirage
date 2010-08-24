@@ -25,7 +25,7 @@ type id
 val enumerate: unit -> id list Lwt.t
 
 (** Create a netfront Ethernet interface
-  * xenstore -> id -> receive function -> netfront *)
+  * id -> netfront *)
 val create: id -> t Lwt.t
 
 (** Add a receive callback function to this netfront. *)

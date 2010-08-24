@@ -35,11 +35,11 @@ type t = {
 type id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
-let create (num,domid) =
-    Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num domid;
-    lwt (tx_ring_ref, tx_ring) = Ring.Netif_tx.alloc domid in
-    lwt (rx_ring_ref, rx_ring)  = Ring.Netif_rx.alloc domid in
-    let evtchn = Evtchn.alloc_unbound_port domid in
+let create (num,backend_id) =
+    Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num backend_id;
+    lwt (tx_ring_ref, tx_ring) = Ring.Netif_tx.alloc backend_id in
+    lwt (rx_ring_ref, rx_ring)  = Ring.Netif_rx.alloc backend_id in
+    let evtchn = Evtchn.alloc_unbound_port backend_id in
 
     let node = Printf.sprintf "device/vif/%d/" num in
     lwt backend = Xs.t.Xs.read (node ^ "backend") in
@@ -68,7 +68,7 @@ let create (num,domid) =
       (fun id gnt ->
         let req = Ring.Netif_rx.req_get rx_ring id in
         Ring.Netif_rx.req_set req ~id ~gnt;
-        Gnttab.grant_access gnt domid Gnttab.RW;
+        Gnttab.grant_access gnt backend_id Gnttab.RW;
         return (id,gnt,req)
       ) Ring.Netif_rx.size [] in
     Ring.Netif_rx.req_push rx_ring Ring.Netif_rx.size evtchn;
@@ -84,10 +84,8 @@ let create (num,domid) =
          return (id,gnt,res)
       ) Ring.Netif_tx.size [] in
 
-    return { backend_id=domid; tx_ring=tx_ring; tx_ring_ref=tx_ring_ref;
-      rx_ring_ref=rx_ring_ref; rx_ring=rx_ring; evtchn=evtchn;
-      rx_slots=rx_slots; tx_slots=tx_slots; mac=mac; tx_freelist=tx_freelist; 
-      tx_freelist_cond=tx_freelist_cond; backend=backend }
+    return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; evtchn;
+      rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; backend }
 
 let set_recv nf callback =
     Printf.printf "netfront recv: num=%d\n%!" nf.backend_id;

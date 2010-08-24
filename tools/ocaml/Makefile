@@ -13,7 +13,7 @@ all: $(OBJSTAMP)
 $(OBJSTAMP):
 	rm -rf $(OBJDIR)
 	mkdir -p $(OBJDIR)
-	cp -R ../../runtime/base/ocaml/ $(OBJDIR)/
+	rsync -a ../../runtime/base/ocaml/ $(OBJDIR)/
 	cd $(OBJDIR)/; \
 	  ./configure -prefix $(PREFIX) -no-pthread -no-shared-libs -no-tk -no-curses && \
 	   $(MAKE) world opt opt.opt

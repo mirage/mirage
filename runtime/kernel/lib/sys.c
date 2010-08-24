@@ -280,6 +280,8 @@ unsupported_function_crash(read);
 unsupported_function_crash(getpid);
 unsupported_function_crash(umask);
 unsupported_function_crash(getcwd);
+unsupported_function_crash(fcntl);
+unsupported_function_crash(rename);
 
 /* We could support that.  */
 unsupported_function_log(int, chdir, -1);

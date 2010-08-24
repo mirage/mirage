@@ -62,6 +62,7 @@ let end_access r =
 external release_page: r -> Hw_page.t = "caml_gnt_release_page"
 let read r off sz = gnttab_read r off sz
 let write r buf off sz = gnttab_write r buf off sz
+let sub gnt off len = { Hw_page.page=(release_page gnt); off; len }
 
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (gnttab_nr_entries () - 1);

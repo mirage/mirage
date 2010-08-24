@@ -23,26 +23,26 @@ open Mpl_icmp
 open Mpl_udp
 
 module MT = Mlnet_types
-module PS = Xen.Page_stream
 
 (* Receive a page, queue it up, and wake up the Ethernet thread *)
 let recv netif page =
-    let _ = PS.append page netif.MT.recv in
+    let _ = Xen.Hw_page.push page netif.MT.recv in
     Lwt_condition.signal netif.MT.recv_cond ()
 
 (* A copying fill function for MPL that acts on pages
  * Temporary until the MPL backend is modified to work directly 
  * the page contents *)
 let page_fillfn netif envbuf dstbuf dstoff len =
-    assert(not (Lwt_sequence.is_empty netif.MT.recv));
-    let ext = Lwt_sequence.take_l netif.MT.recv in
-    assert(len < ext.PS.len);
-    Hw_page.blit ext.PS.page ext.PS.off dstbuf dstoff ext.PS.len;
-    ext.PS.len
+    Xen.Hw_page.(
+      let ext = pop netif.MT.recv in
+      assert(len < ext.len);
+      blit ext.page ext.off dstbuf dstoff ext.len;
+      ext.len
+    )
 
 (* Loops around waiting for work to do *)
 let rec recv_thread netif =
-    if Lwt_sequence.is_empty netif.MT.recv then begin
+    if Xen.Hw_page.is_empty netif.MT.recv then begin
         match netif.MT.state with
         |MT.Netif_shutting_down ->
             (* If the interface is shutting down, and our receive pool

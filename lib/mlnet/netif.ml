@@ -20,7 +20,7 @@ let create_static ?(default=true) ~ip ~netmask ~gw vif_id =
     lwt mac = match MT.ethernet_mac_of_string (Netfront.mac nf) with
         | Some mac -> return mac
         | None -> fail (Invalid_ethernet_mac (Netfront.mac nf)) in
-    let recv = Page_stream.make () in
+    let recv = Xen.Hw_page.make () in
     let recv_cond = Lwt_condition.create () in
     let env_pool = Lwt_pool.create 5 
        (fun () -> return (String.make 4096 '\000')) in

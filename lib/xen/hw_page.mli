@@ -34,3 +34,10 @@ external set: t -> int -> char -> unit = "caml_page_safe_set" "noalloc"
 
 (* Set a single byte *)
 external set_byte: t -> int -> int -> unit = "caml_page_safe_set" "noalloc"
+
+type sub = { off : int; len : int; page : t; }
+type extents
+val make : unit -> extents
+val push : sub -> extents -> unit
+val pop : extents -> sub
+val is_empty : extents -> bool

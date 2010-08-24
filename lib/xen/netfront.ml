@@ -103,11 +103,11 @@ let set_recv nf callback =
               Gnttab.end_access gnt;
               (* detach the data page from the grant and give it to the receive
                  function to queue up for the application *)
-              let extent = Page_stream.extent gnt offset status in
+              let sub = Gnttab.sub gnt offset status in
               Ring.Netif_rx.req_set req ~id ~gnt;
               Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
               Ring.Netif_rx.req_push nf.rx_ring 1 nf.evtchn;
-              callback extent
+              callback sub
            )
     in
     Activations.register nf.evtchn (Activations.Event_direct read);

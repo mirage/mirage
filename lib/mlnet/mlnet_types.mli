@@ -52,7 +52,7 @@ type netif = {
     mutable netmask: ipv4_addr;
     mutable gw: ipv4_addr list;
     mac: ethernet_mac;
-    recv: Xen.Page_stream.t;
+    recv: Xen.Hw_page.extents;
     recv_cond: unit Lwt_condition.t;
     env_pool: string Lwt_pool.t;
     xmit: string -> unit Lwt.t;

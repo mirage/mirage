@@ -17,34 +17,37 @@
 open Lwt
 open Printf
 
-type t = {
+type nf = {
     backend_id: int;
     backend: string;
     mac: string;
     tx_ring: Ring.Netif_tx.t;
     tx_ring_ref: Gnttab.r;
-    tx_slots: (int * Gnttab.r * Ring.Netif_tx.req) array;
+    tx_slots: (int * Gnttab.r) array;
     tx_freelist: int Queue.t;
     tx_freelist_cond: unit Lwt_condition.t;
     rx_ring: Ring.Netif_rx.t;
     rx_ring_ref: Gnttab.r;
     rx_slots: (int * Gnttab.r * Ring.Netif_rx.req) array;
+    rx_cond: unit Lwt_condition.t;
     evtchn: int;
 }
 
-type id = (int * int)
+type nf_id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let create (num,backend_id) =
     Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num backend_id;
+
+    (* Allocate a transmit and receive ring, and event channel for them *)
     lwt (tx_ring_ref, tx_ring) = Ring.Netif_tx.alloc backend_id in
     lwt (rx_ring_ref, rx_ring)  = Ring.Netif_rx.alloc backend_id in
     let evtchn = Evtchn.alloc_unbound_port backend_id in
 
+    (* Read xenstore info and set state to Connected *)
     let node = Printf.sprintf "device/vif/%d/" num in
     lwt backend = Xs.t.Xs.read (node ^ "backend") in
     lwt mac = Xs.t.Xs.read (node ^ "mac") in
-
     lwt () = Xs.transaction Xs.t (fun xst ->
         let wrfn k v = xst.Xst.write (node ^ k) v in
         wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
@@ -54,6 +57,8 @@ let create (num,backend_id) =
         wrfn "state" (Xb.State.to_string Xb.State.Connected)
     ) in
 
+    (* Helper function to iterate through the rings and return
+       an array of grant slots *)
     let rec iter_n fn num acc =
         match num with
         | 0 -> return (Array.of_list acc)
@@ -63,72 +68,86 @@ let create (num,backend_id) =
             lwt r = fn id gnt in
             iter_n fn id (r :: acc) in
 
-    print_endline "init_rx_buffers";
-    lwt rx_slots = iter_n 
-      (fun id gnt ->
-        let req = Ring.Netif_rx.req_get rx_ring id in
-        Ring.Netif_rx.req_set req ~id ~gnt;
-        Gnttab.grant_access gnt backend_id Gnttab.RW;
-        return (id,gnt,req)
-      ) Ring.Netif_rx.size [] in
+    (* Push all the recv grants to the recv ring *)
+    lwt rx_slots = Ring.Netif_rx.(iter_n 
+        (fun id gnt ->
+          let req = req_get rx_ring id in
+          req_set req ~id ~gnt;
+          Gnttab.grant_access gnt backend_id Gnttab.RW;
+          return (id,gnt,req)
+        ) size []
+      ) in
     Ring.Netif_rx.req_push rx_ring Ring.Netif_rx.size evtchn;
+    let rx_cond = Lwt_condition.create () in
 
-    print_endline "init_tx_buffers";
+    (* Record all the xmit grants in a freelist array, along
+       with the indices in tx_freelist to look them up *)
     let tx_freelist = Queue.create () in
     let tx_freelist_cond = Lwt_condition.create () in
-    lwt tx_slots = iter_n
+    lwt tx_slots = Ring.Netif_tx.(iter_n
       (fun id gnt ->
-         let res = Ring.Netif_tx.req_get tx_ring id in
-         Ring.Netif_tx.req_set_gnt res gnt;
          Queue.push id tx_freelist;
-         return (id,gnt,res)
-      ) Ring.Netif_tx.size [] in
+         return (id,gnt)
+      ) size []) in
 
-    return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; evtchn;
+    Activations.register evtchn (Activations.Event_condition rx_cond);
+    Evtchn.unmask evtchn;
+
+    return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond; evtchn;
       rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; backend }
 
-let set_recv nf callback =
-    Printf.printf "netfront recv: num=%d\n%!" nf.backend_id;
-    let read () =
-        Ring.Netif_rx.read_responses nf.rx_ring
-           (fun pos res ->
-              let id = Ring.Netif_rx.res_get_id res in
-              let offset = Ring.Netif_rx.res_get_offset res in
-              let status = Ring.Netif_rx.res_get_status res in
-              let id', gnt, req = nf.rx_slots.(id) in
-              assert(id' = id);
-              assert(id = pos); (* XXX this SHOULD fail when it overflows, just here to make sure it does and then remove *)
-              Gnttab.end_access gnt;
-              (* detach the data page from the grant and give it to the receive
-                 function to queue up for the application *)
-              let sub = Gnttab.sub gnt offset status in
-              Ring.Netif_rx.req_set req ~id ~gnt;
-              Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
-              Ring.Netif_rx.req_push nf.rx_ring 1 nf.evtchn;
-              callback sub
-           )
-    in
-    Activations.register nf.evtchn (Activations.Event_direct read);
-    Evtchn.unmask nf.evtchn
+(* Input all available pages from receive ring and return detached page list *)
+let input nf =
+    Ring.Netif_rx.(read_responses nf.rx_ring (fun pos res ->
+      let id = res_get_id res in
+      let offset = res_get_offset res in
+      let status = res_get_status res in
+      let id', gnt, req = nf.rx_slots.(id) in
+      assert(id' = id);
+      assert(id = pos); (* XXX this SHOULD fail when it overflows, just here to make sure it does and then remove *)
+      Gnttab.end_access gnt;
+      (* detach the data page from the grant and give it to the receive
+      function to queue up for the application *)
+      let sub = Gnttab.detach gnt offset status in
+      (* Queue up the recv grant again *)
+      req_set req ~id ~gnt;
+      Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
+      req_push nf.rx_ring 1 nf.evtchn;
+      (* Pass up the received page to the listener *)
+      sub
+    ))
+
+(* Number of unconsumed responses waiting for receive *)
+let has_input nf =
+    Ring.Netif_rx.res_waiting nf.rx_ring
+
+(* Get a xmit grant slot from the free list *)
+let rec get_tx_gnt nf =
+    if Queue.is_empty nf.tx_freelist then (
+      Lwt_condition.wait nf.tx_freelist_cond >> 
+      get_tx_gnt nf)
+    else
+      let id = Queue.take nf.tx_freelist in
+      let slot_id, gnt = nf.tx_slots.(id) in
+      assert(slot_id = id);
+      return (id, gnt)
 
 (* Transmit a packet from buffer, with offset and length *)  
-let xmit nf buf off len =
-    Printf.printf "xmit off=%d len=%d\n%!" off len;
-    (* Get an ID from the freelist *)
-    let rec get_id () = 
-      try 
-        return (Queue.take nf.tx_freelist)
-      with Queue.Empty ->
-        Lwt_condition.wait nf.tx_freelist_cond >>
-        get_id () in
-    lwt id = get_id () in
+let output nf sub =
+    Printf.printf "xmit off=%d len=%d\n%!" sub.Hw_page.off sub.Hw_page.len;
+    (* Grab a free grant slot from the free list, which may block *)
+    lwt (id, gnt) = get_tx_gnt nf in
+    (* Attach the incoming sub-page to the free grant *)
+    Gnttab.attach sub gnt;
+    (* Find our current request slot on the xmit queue *)
     let cur_slot = Ring.Netif_tx.req_get_prod nf.tx_ring in
-    let slot_id, gnt, req = nf.tx_slots.(cur_slot) in
-    assert(slot_id = cur_slot); (* XXX this SHOULD fail when it overflows, just here to check that it does once then remove *)
-    Gnttab.write gnt buf off len;
+    let req = Ring.Netif_tx.req_get nf.tx_ring cur_slot in
+    (* Grant read accesss to the backend and setup the request *)
+    let offset = sub.Hw_page.off in
+    let size = sub.Hw_page.len in
     Gnttab.grant_access gnt nf.backend_id Gnttab.RO;
     Ring.Netif_tx.req_set_gnt req gnt;
-    Ring.Netif_tx.req_set req ~offset:0 ~flags:0 ~id ~size:len;
+    Ring.Netif_tx.req_set req ~offset ~flags:0 ~id ~size;
     Ring.Netif_tx.req_push nf.tx_ring 1 nf.evtchn;
     return ()  
 
@@ -146,5 +165,18 @@ let enumerate () =
      in
      read_vif 0 []
 
-(** Return a MAC address for a VIF *)
-let mac nf = nf.mac
+module Ethif = struct
+
+    type t = nf
+    type id = nf_id
+    type data = Hw_page.sub
+   
+    let enumerate = enumerate 
+    let create = create
+    let input = input
+    let has_input = has_input
+    let wait_on_input t = Lwt_condition.wait t.rx_cond
+    let output = output
+    let alloc (t:t) = Hw_page.alloc_sub ()
+    let mac t = t.mac
+end

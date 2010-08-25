@@ -14,27 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Abstract type of a netfront instance *)
-type t
-
-(** Abstract id to refer to a netfront instance *)
-type id
-
-(** Get a list of all the available Netfronts ids
-  *)
-val enumerate: unit -> id list Lwt.t
-
-(** Create a netfront Ethernet interface
-  * id -> netfront *)
-val create: id -> t Lwt.t
-
-(** Add a receive callback function to this netfront. *)
-val set_recv : t -> (Hw_page.sub -> unit) -> unit
-
-(** Transmit a packet; can block
-  * netfront -> buffer -> offset -> length -> unit Lwt.t
-  *)
-val xmit: t -> string -> int -> int -> unit Lwt.t
-
-(** Return an Ethernet MAC address for a netfront *)
-val mac: t -> string
+module Ethif : sig
+    type t
+    type id
+    type data = Hw_page.sub
+    val enumerate : unit -> id list Lwt.t
+    val create : id -> t Lwt.t
+    val input : t -> data list
+    val wait_on_input : t -> unit Lwt.t
+    val output : t -> data -> unit Lwt.t
+    val alloc : t -> data
+    val mac : t -> string
+end

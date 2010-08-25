@@ -21,6 +21,10 @@ xen.cmx: .cmxdeps .mldeps
 	$(OCAMLOPT) -c -nostdlib -for-pack Xen -annot -I $(STDLIB) -I $(LWTLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
 	$(OCAMLOPT) -pack -o $@ `cat .cmxdeps`
 
+.PHONY: i-%
+i-%:
+	$(OCAMLOPT) -c -nostdlib -annot -I $(STDLIB) -I $(LWTLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) -i $*.ml
+
 .PHONY: clean
 clean:
 	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.annot *.a

@@ -189,3 +189,16 @@ caml_gnt_release_page(value v_gw)
         page = (void *)alloc_page();
     return (value)page;
 }
+
+/* Attaches a raw page to a grant entry. Panics as a sanity check
+   if another page is already part of the grant */
+CAMLprim value
+caml_gnt_attach_page(value v_page, v_gw)
+{
+    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
+    void *page = (void *)v_page;
+    BUG_ON(gw->page != NULL);
+    gw->page = page;
+    return Val_unit;
+}
+

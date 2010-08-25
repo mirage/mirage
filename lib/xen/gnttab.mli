@@ -24,7 +24,8 @@ val write : r -> string -> int -> int -> unit
 val end_access : r -> unit
 val gnttab_ref : r -> int
 val to_string : r -> string
-val sub : r -> int -> int -> Hw_page.sub
+val detach : r -> int -> int -> Hw_page.sub
+val attach : Hw_page.sub -> r -> unit
 
 module Reserved : sig
    val xenstore : unit -> r

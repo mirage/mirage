@@ -60,9 +60,16 @@ let end_access r =
     gnttab_end_access r
 
 external release_page: r -> Hw_page.t = "caml_gnt_release_page"
+external attach_page: Hw_page.t -> r -> unit = "caml_gnt_attach_page"
+
+(* Read/write bytes directly to a grant page *)
 let read r off sz = gnttab_read r off sz
 let write r buf off sz = gnttab_write r buf off sz
-let sub gnt off len = { Hw_page.page=(release_page gnt); off; len }
+
+(* Detach a grant into a separate sub-page *)
+let detach gnt off len = { Hw_page.page=(release_page gnt); off; len }
+(* Attach a subpage to a grant entry *)
+let attach sub gnt = attach_page sub.Hw_page.page gnt
 
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (gnttab_nr_entries () - 1);

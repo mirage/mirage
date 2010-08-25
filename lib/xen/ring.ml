@@ -38,15 +38,18 @@ let alloc fn domid =
 
 (* Read all responses on a ring, and ack them all at the end *)
 let read_responses ring waiting get_cons get ack fn =
+    let res = ref [] in
     let rec loop () = 
         let num = waiting ring in
         let cons = get_cons ring in
         for i = cons to (cons + num - 1) do
-           fn i (get ring i) 
+           res := (fn i (get ring i)) :: !res
         done;
         if ack ring ~num then
            loop ()
-    in loop ()
+    in
+    loop ();
+    List.rev !res
 
 module Netif_tx = struct
     type req

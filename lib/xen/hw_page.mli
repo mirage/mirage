@@ -35,7 +35,12 @@ external set: t -> int -> char -> unit = "caml_page_safe_set" "noalloc"
 (* Set a single byte *)
 external set_byte: t -> int -> int -> unit = "caml_page_safe_set" "noalloc"
 
+(* Allocate a new page *)
+external alloc: unit -> t = "caml_page_alloc" "noalloc"
+
 type sub = { off : int; len : int; page : t; }
+val alloc_sub: unit -> sub
+
 type extents
 val make : unit -> extents
 val push : sub -> extents -> unit

@@ -50,3 +50,10 @@ caml_page_safe_set(value v_page, value v_off, value v_char)
     *((char *)v_page + off) = Int_val(v_char);
     return Val_unit;
 }
+
+/* Allocate a new page */
+CAMLprim value
+caml_page_alloc(value v_unit)
+{
+    return (value)(alloc_page());
+}

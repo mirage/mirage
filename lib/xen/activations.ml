@@ -23,6 +23,7 @@ let nr_events = Array1.dim event_mask
 type cb = 
   | Event_none
   | Event_direct of (unit -> unit)
+  | Event_condition of unit Lwt_condition.t
   | Event_thread of (unit -> unit Lwt.t)
 
 let event_cb = Array.create nr_events Event_none
@@ -53,6 +54,10 @@ let run () =
           | Event_direct cb ->
             Array1.set event_mask port 0;
             cb (); 
+            acc
+          | Event_condition cond ->
+            Array1.set event_mask port 0;
+            Lwt_condition.broadcast cond ();
             acc
           | Event_thread cb ->
             Array1.set event_mask port 0;

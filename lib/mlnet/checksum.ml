@@ -36,7 +36,7 @@ let data_env ob fn =
 
 (* Given a udp packet and ip info, return a checksum *)
 (* XXX this is broken, generates bad checksums *)
-let udp_checksum ip_src ip_dest (udp:Mpl_udp.Udp.o)  =
+let udp_checksum ip_src ip_dest (udp:Udp.o)  =
     let sum = ref 0 in
     let addsum x = sum := !sum + x in
     let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));

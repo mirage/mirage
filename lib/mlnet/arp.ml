@@ -19,15 +19,29 @@ open Lwt
 open Mlnet_types
 open Printf
 
-module ARP(IF: Ethif.ETHIF) = struct
+(* Interface exposed higher up the stack (usually just IPv4) *)
+module type UP = sig
+  type t
+  type id
+  type ethif
+ 
+  val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
+  val get_bound_ips: t -> ipv4_addr list
+  val create: ethif -> (t * unit Lwt.t)
+end
+
+module ARP(IF: Ethif.UP) = struct
 
   (* TODO: ARP timeout with an Lwt_pqueue and not just a hashtable *)
   type t = {
     ethif: IF.t;
     cache: (ethernet_mac, ipv4_addr) Hashtbl.t;
     mutable bound_ips: ipv4_addr list;
-    shutdown: unit Lwt.t;
+    thread: unit Lwt.t;
   }
+
+  type id = IF.id
+  type ethif = IF.t
 
   (* Prettyprint cache contents *)
   let prettyprint t =
@@ -37,64 +51,71 @@ module ARP(IF: Ethif.ETHIF) = struct
         (ethernet_mac_to_string mac) 
         (ipv4_addr_to_string ip)) t.cache
 
-  let create ethif =
-    let shutdown,_ = Lwt.task () in
-    Lwt.on_cancel shutdown (fun () -> printf "ARP shutdown\n%!");
-    { cache=Hashtbl.create 1; bound_ips=[]; shutdown; ethif }
-
+  (* Transmit an ARP packet *)
   let output t arp =
-    IF.output t.ethif (`ARP (Mpl.Mpl_ethernet.Ethernet.ARP.m arp))
+    IF.output t.ethif (`ARP (Mpl.Ethernet.ARP.m arp))
 
-  let input t =
-    IF.input t.ethif (function
-      |`ARP arp -> begin
-        match arp#ptype with
-        |`IPv4 -> begin
-          match arp#operation with
-          |`Request ->
-             (* Received ARP request, check if we can satisfy it from
-                our own IPv4 list *)
-             let req_ipv4 = ipv4_addr_of_bytes arp#tpa in
-             if List.mem req_ipv4 t.bound_ips then begin
-                (* We own this IP, so reply with our MAC *)
-                let src_mac = `Str (ethernet_mac_to_bytes (IF.mac t.ethif)) in
-                let dest_mac = `Str arp#src_mac in
-                let spa = `Str arp#tpa in (* the requested IP *)
-                let tpa = `Str arp#spa in (* the requesting host's IP *)
-                output t (Mpl.Mpl_ethernet.Ethernet.ARP.t
-                  ~src_mac ~dest_mac ~ptype:`IPv4 ~operation:`Reply
-                  ~sha:src_mac ~spa ~tha:dest_mac ~tpa
-                )
-             end else return ()
-          |`Reply ->
-             let frm_mac = ethernet_mac_of_bytes arp#sha in
-             let frm_ip = ipv4_addr_of_bytes arp#spa in
-             Hashtbl.replace t.cache frm_mac frm_ip;
-             prettyprint t;
-             return ()
-          |`Unknown _ -> return ()
-        end
-        |_ -> return ()
-      end
-      |`IPv6 _ -> return ()
-      |`IPv4 _ -> return ()
-    )
+  (* Input handler for an ARP packet, registered through attach() *)
+  let input t (arp:Mpl.Ethernet.ARP.o) =
+    match arp#ptype with
+    |`IPv4 -> begin
+      match arp#operation with
+      |`Request ->
+        (* Received ARP request, check if we can satisfy it from
+           our own IPv4 list *)
+        let req_ipv4 = ipv4_addr_of_bytes arp#tpa in
+        if List.mem req_ipv4 t.bound_ips then begin
+          (* We own this IP, so reply with our MAC *)
+          let src_mac = `Str (IF.mac t.ethif) in
+          let dest_mac = `Str arp#src_mac in
+          let spa = `Str arp#tpa in (* the requested IP *)
+          let tpa = `Str arp#spa in (* the requesting host's IP *)
+          output t (Mpl.Ethernet.ARP.t
+            ~src_mac ~dest_mac ~ptype:`IPv4 ~operation:`Reply
+            ~sha:src_mac ~spa ~tha:dest_mac ~tpa
+          )
+        end else return ()
+      |`Reply ->
+        let frm_mac = ethernet_mac_of_bytes arp#sha in
+        let frm_ip = ipv4_addr_of_bytes arp#spa in
+        Hashtbl.replace t.cache frm_mac frm_ip;
+        prettyprint t;
+        return ()
+      |`Unknown _ -> return ()
+    end
+    |`IPv6 |`Unknown _ -> return ()
 
-  (* Loop until we are cancelled *)
-  let loop t = 
-     let rec loop () = input t >> loop () in
-     loop () <?> t.shutdown
-     
+  (* Detach an ARP handler and remove the handler from the interface *)
+  let destroy t = Lwt.cancel t.thread
+
+  (* Create an ARP handler and attach it to the Ethernet interface *)
+  let create ethif =
+    let thread,_ = Lwt.task () in
+    let t = { cache=Hashtbl.create 1; bound_ips=[]; thread; ethif } in
+    Lwt.on_cancel thread (fun () -> 
+      printf "ARP shutdown\n%!";
+      IF.detach t.ethif `ARP);
+    IF.attach t.ethif (`ARP (input t));
+    printf "ARP created\n%!";
+    t, thread
+
   (* Send a gratuitous ARP for our IP addresses *)
   let output_garp t =
     let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
-    let src_mac = `Str (ethernet_mac_to_bytes (IF.mac t.ethif)) in
+    let src_mac = `Str (IF.mac t.ethif) in
     Lwt_list.iter_s (fun ip ->
       let ip = `Str (ipv4_addr_to_bytes ip) in
-      output t (Mpl.Mpl_ethernet.Ethernet.ARP.t
+      output t (Mpl.Ethernet.ARP.t
         ~dest_mac ~src_mac ~ptype: `IPv4 ~operation: `Reply
         ~sha: src_mac ~tpa: ip ~tha: dest_mac ~spa: ip
       )
     ) t.bound_ips
+
+  let get_bound_ips t = t.bound_ips
+
+  (* Set the bound IP address list, which will xmit a GARP packet also *)
+  let set_bound_ips t ips =
+    t.bound_ips <- ips;
+    output_garp t
 
 end

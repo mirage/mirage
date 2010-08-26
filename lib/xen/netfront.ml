@@ -127,6 +127,11 @@ let input nf =
 let has_input nf =
     Ring.Netif_rx.res_waiting nf.rx_ring
 
+(* Shutdown a netfront *)
+let destroy nf =
+    printf "netfront_destroy\n%!";
+    return ()
+
 (* Get a xmit grant slot from the free list *)
 let rec get_tx_gnt nf =
     if Queue.is_empty nf.tx_freelist then (
@@ -211,7 +216,7 @@ module Ethif = struct
    
     let enumerate = enumerate 
     let create = create
-    let wait_on_input t = Lwt_condition.wait t.rx_cond
+    let destroy = destroy
     let input = input_frames
     let output = output_frame
     let mac t = t.mac

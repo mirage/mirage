@@ -86,7 +86,7 @@ u)
 x)
   echo Linking for Xen
   RUNTIME=${MIRAGE_ROOT}/runtime/xen
-  ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -I ${STDLIB} -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/xen -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa xen.cmx mpl.cmx mlnet.cmx `cat .depend` -output-obj -o app_raw.o
+  ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -I ${STDLIB} -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/xen -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa mpl.cmx xen.cmx mlnet.cmx `cat .depend` -output-obj -o app_raw.o
 objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o
   I=${RUNTIME}/inst-x86_64/lib
   cd ${RUNTIME}/kernel && ${MAKE} APP_LIB="${DIR}/app.o" && mv ${RUNTIME}/kernel/obj/mirage-os.gz ${DIR}/mirage-os.gz

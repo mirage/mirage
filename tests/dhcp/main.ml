@@ -1,12 +1,18 @@
 open Lwt 
 open Printf
-open Xen
+
+module OS = Xen
+module Eth = Mlnet.Ethif.Ethernet(OS.Netfront.Ethif)
+module Arp = Mlnet.Arp.ARP(Eth)
+module IPv4 = Mlnet.Ipv4.IPv4(Eth)(Arp)
 
 let main () =
-    lwt vifs = Netfront.enumerate () in
-    Lwt_list.iter_s (fun vif_id ->
-       Mlnet.Ethif.create_dhcp vif_id >>
-       Time.sleep 20.
-    ) vifs
+    lwt vifs = Eth.enumerate () in
+    let arp_t = List.map (fun id ->
+       lwt (t,thread) = IPv4.create_dhcp id in
+       thread
+    ) vifs in
+    pick (OS.Time.sleep 20. :: arp_t) >>
+    return (printf "success\n%!")
 
-let _ = Main.run (main ())
+let _ = OS.Main.run (main ())

@@ -5,20 +5,24 @@ SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
 
 STDLIB=$(ROOTDIR)/lib/stdlib
 LWTLIB=$(ROOTDIR)/lib/lwt
-XENLIB=$(ROOTDIR)/lib/xen
 MPLLIB=$(ROOTDIR)/lib/mpl
+INCLUDES=-I $(ROOTDIR)/lib/stdlib -I $(ROOTDIR)/lib/lwt -I $(ROOTDIR)/lib/mpl
 
+SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml
+CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx
 .PHONY: build
 build: mlnet.cmx
 	@ :
 
-mlnet.cmx: *.ml *.mli
-	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet -I $(STDLIB) -I $(LWTLIB) -I $(XENLIB) -I $(MPLLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) mlnet_types.mli mlnet_types.ml checksum.ml arp.ml frame.mli ethif.mli dhcp.ml frame.ml ethif.ml
-	$(OCAMLOPT) -pack -o $@ mlnet_types.cmx checksum.cmx arp.cmx dhcp.cmx frame.cmx ethif.cmx
+$(CMX): $(SOURCES)
+	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
+
+mlnet.cmx: $(CMX)
+	$(OCAMLOPT) -pack -o $@ $^
 
 .PHONY: i-%
 i-%:
-	$(OCAMLOPT) -i -nostdlib -I $(STDLIB) -I $(LWTLIB) -I $(XENLIB) -I $(MPLLIB) $(SYNTAX) $(OCAMLOPT_FLAGS) $*.ml
+	$(OCAMLOPT) -i -nostdlib -annot -for-pack Mlnet $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $*.ml
 
 .PHONY: clean
 clean:

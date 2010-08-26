@@ -1,3 +1,19 @@
+(*
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
 type bytes = string
 
 type ethernet_mac
@@ -17,45 +33,3 @@ val ipv4_addr_of_uint32 : int32 -> ipv4_addr
 val ipv4_addr_to_uint32 : ipv4_addr -> int32
 val ipv4_blank : ipv4_addr
 val ipv4_broadcast : ipv4_addr
-
-module DHCP : sig
-   (* An active DHCP lease *)
-   type info = {
-     xid: int32;
-     ip: ipv4_addr;
-     netmask: ipv4_addr option;
-     gw: ipv4_addr list;
-     dns: ipv4_addr list;
-     lease_until: float;
-   }
-
-   type state =
-    |Disabled               (* DHCP not active *)
-    |Request_sent of int32  (* Request sent with xid int32, waiting offer *)
-    |Offer_accepted of info (* Offer accepted, waiting for ack *)
-    |Lease_held of info     (* Lease currently held *)
- 
-end
- 
-type netif_state =
-   |Netif_obtaining_ip   (* Interface is obtaining an IP address *)
-   |Netif_up             (* Interface is active *)
-   |Netif_down           (* Interface is disabled *)
-   |Netif_shutting_down  (* Interface is shutting down *)
-
-type netif = {
-    nf: Xen.Netfront.t;
-    mutable dhcp: DHCP.state;
-    dhcp_cond: unit Lwt_condition.t;
-    mutable state: netif_state;
-    mutable ip: ipv4_addr;
-    mutable netmask: ipv4_addr;
-    mutable gw: ipv4_addr list;
-    mac: ethernet_mac;
-    recv: Xen.Hw_page.extents;
-    recv_cond: unit Lwt_condition.t;
-    env_pool: string Lwt_pool.t;
-    xmit: string -> unit Lwt.t;
-}
-
-val mpl_xmit_env : netif -> (Mpl.Mpl_stdlib.env -> unit ) -> unit Lwt.t

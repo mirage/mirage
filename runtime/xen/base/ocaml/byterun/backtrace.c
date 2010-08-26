@@ -248,9 +248,15 @@ static void print_location(struct loc_info * li, int index)
   if (! li->loc_valid) {
     fprintf(stderr, "%s unknown location\n", info);
   } else {
+#ifdef SYS_xen
+    printf ("%s file \"%s\", line %d, characters %d-%d\n",
+             info, li->loc_filename, li->loc_lnum,
+             li->loc_startchr, li->loc_endchr);
+#else
     fprintf (stderr, "%s file \"%s\", line %d, characters %d-%d\n",
              info, li->loc_filename, li->loc_lnum,
              li->loc_startchr, li->loc_endchr);
+#endif
   }
 }
 

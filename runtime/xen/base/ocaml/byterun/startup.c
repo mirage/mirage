@@ -305,7 +305,11 @@ static void scanmult (char *opt, uintnat *var)
 
 static void parse_camlrunparam(void)
 {
+#ifdef SYS_XEN
+  char *opt = "b,v=0x015,s=512k";
+#else
   char *opt = getenv ("OCAMLRUNPARAM");
+#endif
   uintnat p;
 
   if (opt == NULL) opt = getenv ("CAMLRUNPARAM");

@@ -49,7 +49,7 @@ let create (num,backend_id) =
     let node = Printf.sprintf "device/vif/%d/" num in
     lwt backend = Xs.(t.read (node ^ "backend")) in
     lwt mac = Xs.(t.read (node ^ "mac")) in
-    lwt () = Xs.(transaction Xs.t (fun xst ->
+    lwt () = Xs.(transaction t (fun xst ->
         let wrfn k v = xst.Xst.write (node ^ k) v in
         wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
         wrfn "rx-ring-ref" (Gnttab.to_string rx_ring_ref) >>
@@ -191,20 +191,21 @@ let input_frame nf fn sub =
          Hw_page.(read sub.page sub.off dstbuf dstoff sub.len);
          Hw_page.(sub.len) in
      let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
-     fn (Mpl.Mpl_ethernet.Ethernet.unmarshal env) 
+     let e = Mpl.Mpl_ethernet.Ethernet.unmarshal env in
+     Mpl.Mpl_ethernet.Ethernet.prettyprint e;
+     fn e
    )
 
 (** Receive all available ethernet frames *)
 let rec input_frames nf fn =
     match has_input nf with
-    |0 -> 
-       Lwt_list.iter_s (input_frame nf fn) (input nf);
-    |n ->
+    |0 ->
        Lwt_condition.wait nf.rx_cond >>
        input_frames nf fn
+    |n -> 
+       Lwt_list.iter_s (input_frame nf fn) (input nf);
 
 module Ethif = struct
-
     type t = nf
     type id = nf_id
    

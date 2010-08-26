@@ -193,7 +193,7 @@ caml_gnt_release_page(value v_gw)
 /* Attaches a raw page to a grant entry. Panics as a sanity check
    if another page is already part of the grant */
 CAMLprim value
-caml_gnt_attach_page(value v_page, v_gw)
+caml_gnt_attach_page(value v_page, value v_gw)
 {
     gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
     void *page = (void *)v_page;

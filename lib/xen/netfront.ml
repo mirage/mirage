@@ -30,6 +30,7 @@ type nf = {
     rx_ring_ref: Gnttab.r;
     rx_slots: (int * Gnttab.r * Ring.Netif_rx.req) array;
     rx_cond: unit Lwt_condition.t;
+    env_pool: string Lwt_pool.t;
     evtchn: int;
 }
 
@@ -90,11 +91,14 @@ let create (num,backend_id) =
          return (id,gnt)
       ) size []) in
 
+    (* MPL string environment pool to use until zero copy *)
+    let env_pool = Lwt_pool.create 5  (fun () -> return (String.make 4096 '\000')) in
+
     Activations.register evtchn (Activations.Event_condition rx_cond);
     Evtchn.unmask evtchn;
 
     return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond; evtchn;
-      rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; backend }
+      rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; backend; env_pool }
 
 (* Input all available pages from receive ring and return detached page list *)
 let input nf =
@@ -165,18 +169,47 @@ let enumerate () =
      in
      read_vif 0 []
 
+(** Transmit an ethernet frame 
+  * TODO Not yet zero copy, but it will be shortly, by Jove! *)
+let output_frame nf frame =
+    Lwt_pool.use nf.env_pool (fun buf ->
+      let env = Mpl.Mpl_stdlib.new_env buf in
+      let sub = Hw_page.alloc_sub () in
+      let _ = Mpl.Mpl_ethernet.Ethernet.m frame env in
+      let buf = Mpl.Mpl_stdlib.string_of_env env in
+      Hw_page.write buf 0 sub.Hw_page.page 0 (String.length buf);
+      output nf sub
+    )
+
+(** Handle one frame
+    Not zero copy until the MPL backend is modified *)
+let input_frame nf fn sub =
+   Lwt_pool.use nf.env_pool (fun buf ->
+     let fillfn dstbuf dstoff len =
+         Hw_page.(read sub.page sub.off dstbuf dstoff sub.len);
+         Hw_page.(sub.len) in
+     let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
+     fn (Mpl.Mpl_ethernet.Ethernet.unmarshal env) 
+   )
+
+(** Receive all available ethernet frames *)
+let rec input_frames nf fn =
+    match has_input nf with
+    |0 -> 
+       Lwt_list.iter_s (input_frame nf fn) (input nf);
+    |n ->
+       Lwt_condition.wait nf.rx_cond >>
+       input_frames nf fn
+
 module Ethif = struct
 
     type t = nf
     type id = nf_id
-    type data = Hw_page.sub
    
     let enumerate = enumerate 
     let create = create
-    let input = input
-    let has_input = has_input
     let wait_on_input t = Lwt_condition.wait t.rx_cond
-    let output = output
-    let alloc (t:t) = Hw_page.alloc_sub ()
+    let input = input_frames
+    let output = output_frame
     let mac t = t.mac
 end

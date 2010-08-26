@@ -22,7 +22,12 @@ type t
 (** Read from a page into a supplied OCaml string (offset / length) 
   * @param src -> srcoff -> dst -> dstoff -> len -> unit 
   *)
-external blit: t -> int -> string -> int -> int -> unit = "caml_page_read_to_string"
+external read: t -> int -> string -> int -> int -> unit = "caml_page_read"
+
+(** Read from a string into a supplied page
+  * @param dst -> dstoff -> src -> srcoff -> len -> unit 
+  *)
+external write: string -> int -> t -> int -> int -> unit = "caml_page_write"
 
 (** Read a single character from a 4K page. If the supplied offset is too
     big, it wraps around PAGE_SIZE *)

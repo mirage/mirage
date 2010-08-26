@@ -19,8 +19,9 @@
 (** Abstract type for a 4K memory page *)
 type t
 
-(** Read from a page into a supplied OCaml string (offset / length) *)
-external blit : t -> int -> string -> int -> int -> unit = "caml_page_read_to_string"
+(** Read/write from a page and a supplied OCaml string (offset / length) *)
+external read : t -> int -> string -> int -> int -> unit = "caml_page_read"
+external write : string -> int -> t -> int -> int -> unit = "caml_page_write"
 
 (** Read a single character from a 4K page. If the supplied offset is too
     big, it wraps around PAGE_SIZE *)

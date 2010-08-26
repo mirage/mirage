@@ -24,13 +24,25 @@
  * Same signature as String.blit except the source is a page 
  */
 CAMLprim value
-caml_page_read_to_string(value v_src, value v_srcoff, value v_dst, value v_dstoff, value v_len)
+caml_page_read(value v_src, value v_srcoff, value v_dst, value v_dstoff, value v_len)
 {
     CAMLparam5(v_src, v_srcoff, v_dst, v_dstoff, v_len);
     char *page = (char *)v_src;
     if (Int_val(v_srcoff) + Int_val(v_len) >= PAGE_SIZE || caml_string_length(v_dst) + Int_val(v_dstoff) < Int_val(v_len))
         caml_array_bound_error();
     memcpy(String_val(v_dst) + Int_val(v_dstoff), page + Int_val(v_srcoff), Int_val(v_len));
+    CAMLreturn(Val_unit);
+}
+
+/* Writes to a page from an OCaml string */
+CAMLprim value
+caml_page_write(value v_src, value v_srcoff, value v_dst, value v_dstoff, value v_len)
+{
+    CAMLparam5(v_src, v_srcoff, v_dst, v_dstoff, v_len);
+    char *page = (char *)v_dst;
+    if (Int_val(v_dstoff) + Int_val(v_len) >= PAGE_SIZE || caml_string_length(v_src) + Int_val(v_srcoff) < Int_val(v_len))
+        caml_array_bound_error();
+    memcpy(page + Int_val(v_srcoff), String_val(v_src) + Int_val(v_srcoff), Int_val(v_len));
     CAMLreturn(Val_unit);
 }
 

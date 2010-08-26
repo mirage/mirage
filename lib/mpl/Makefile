@@ -8,13 +8,13 @@ build: mpl.cmx
 	@ :
 
 MPL=ethernet ipv4 udp icmp dhcp
-MPLDEPS=$(MPL:%=mpl_%.ml)
-MPLCMX=$(MPL:%=mpl_%.cmx)
+MPLDEPS=$(MPL:%=%.ml)
+MPLCMX=$(MPL:%=%.cmx)
 
 .PHONY: depend
 depend: $(MPLDEPS)
 
-mpl_%.ml: %.mpl
+%.ml: %.mpl
 	mplc -v $< > $@
 
 mpl.cmx: $(MPLDEPS) mpl_stdlib.mli mpl_stdlib.ml

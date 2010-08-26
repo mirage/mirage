@@ -38,8 +38,12 @@ module Netfront : sig
     type id
     val enumerate : unit -> id list Lwt.t
     val create : id -> t Lwt.t
-    val input : nf -> (Mpl.Mpl_ethernet.Ethernet.o -> unit Lwt.t) -> unit Lwt.t
-    val output : nf -> Mpl.Mpl_ethernet.Ethernet.x -> unit Lwt.t
-    val mac : nf -> string
+    val input : t -> (Mpl.Mpl_ethernet.Ethernet.o -> unit Lwt.t) -> unit Lwt.t
+    val output : t -> Mpl.Mpl_ethernet.Ethernet.x -> unit Lwt.t
+    val mac : t -> string
   end
+end
+
+module Main : sig
+  val run : unit Lwt.t -> unit
 end

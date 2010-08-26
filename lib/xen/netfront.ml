@@ -182,7 +182,7 @@ let output_frame nf frame =
     Lwt_pool.use nf.env_pool (fun buf ->
       let env = Mpl.Mpl_stdlib.new_env buf in
       let sub = Hw_page.alloc_sub () in
-      let _ = Mpl.Mpl_ethernet.Ethernet.m frame env in
+      let _ = Mpl.Ethernet.m frame env in
       let buf = Mpl.Mpl_stdlib.string_of_env env in
       Hw_page.write buf 0 sub.Hw_page.page 0 (String.length buf);
       output nf sub
@@ -196,8 +196,8 @@ let input_frame nf fn sub =
          Hw_page.(read sub.page sub.off dstbuf dstoff sub.len);
          Hw_page.(sub.len) in
      let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
-     let e = Mpl.Mpl_ethernet.Ethernet.unmarshal env in
-     Mpl.Mpl_ethernet.Ethernet.prettyprint e;
+     let e = Mpl.Ethernet.unmarshal env in
+     Mpl.Ethernet.prettyprint e;
      fn e
    )
 

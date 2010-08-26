@@ -18,6 +18,11 @@
 #include "misc.h"
 #include "memory.h"
 
+/* XXX hack until the dietlibc removal happens */
+#ifdef SYS_xen
+#define fprintf(x,y,args...) printf((y), ## args)
+#endif
+
 #ifdef DEBUG
 
 int caml_failed_assert (char * expr, char * file, int line)

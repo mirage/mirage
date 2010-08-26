@@ -47,16 +47,16 @@ let create (num,backend_id) =
 
     (* Read xenstore info and set state to Connected *)
     let node = Printf.sprintf "device/vif/%d/" num in
-    lwt backend = Xs.t.Xs.read (node ^ "backend") in
-    lwt mac = Xs.t.Xs.read (node ^ "mac") in
-    lwt () = Xs.transaction Xs.t (fun xst ->
+    lwt backend = Xs.(t.read (node ^ "backend")) in
+    lwt mac = Xs.(t.read (node ^ "mac")) in
+    lwt () = Xs.(transaction Xs.t (fun xst ->
         let wrfn k v = xst.Xst.write (node ^ k) v in
         wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
         wrfn "rx-ring-ref" (Gnttab.to_string rx_ring_ref) >>
         wrfn "event-channel" (string_of_int evtchn) >>
         wrfn "request-rx-copy" "1" >>
-        wrfn "state" (Xb.State.to_string Xb.State.Connected)
-    ) in
+        wrfn "state" Xb.State.(to_string Connected)
+      )) in
 
     (* Helper function to iterate through the rings and return
        an array of grant slots *)
@@ -92,13 +92,15 @@ let create (num,backend_id) =
       ) size []) in
 
     (* MPL string environment pool to use until zero copy *)
-    let env_pool = Lwt_pool.create 5  (fun () -> return (String.make 4096 '\000')) in
+    let env_pool = Lwt_pool.create 5 
+      (fun () -> return (String.make 4096 '\000')) in
 
     Activations.register evtchn (Activations.Event_condition rx_cond);
     Evtchn.unmask evtchn;
 
-    return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond; evtchn;
-      rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; backend; env_pool }
+    return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond;
+      evtchn; rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; 
+      backend; env_pool }
 
 (* Input all available pages from receive ring and return detached page list *)
 let input nf =
@@ -182,7 +184,7 @@ let output_frame nf frame =
     )
 
 (** Handle one frame
-    Not zero copy until the MPL backend is modified *)
+    TODO Not zero copy until the MPL backend is modified *)
 let input_frame nf fn sub =
    Lwt_pool.use nf.env_pool (fun buf ->
      let fillfn dstbuf dstoff len =

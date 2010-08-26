@@ -1012,14 +1012,10 @@ let print_statecalls e pname xs =
     e.p "]"
         
 let marshal e p (env,txs) =
-    print_module e p.S.name (fun e ->
-        e.p "open Mpl_stdlib";
-        e.p "exception Bad_packet of string";
-        e.nl ();
-        if env.wantsc then begin print_statecalls e p.S.name txs;
-        e.nl ();
-        end;
-        print_struct {env with mods=[]; pname=p.S.name} e txs;
-        e.nl ();
-        print_unmarshal {env with mods=[]; pname=p.S.name} e txs;
-    )
+    e.p "open Mpl_stdlib";
+    e.p "exception Bad_packet of string";
+    e.nl ();
+    if env.wantsc then begin print_statecalls e p.S.name txs; e.nl (); end;
+    print_struct {env with mods=[]; pname=p.S.name} e txs;
+    e.nl ();
+    print_unmarshal {env with mods=[]; pname=p.S.name} e txs;

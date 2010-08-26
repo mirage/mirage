@@ -497,7 +497,11 @@ void caml_init_major_heap (asize_t heap_size)
   caml_make_free_blocks ((value *) caml_heap_start,
                          Wsize_bsize (caml_stat_heap_size), 1);
   caml_gc_phase = Phase_idle;
+#ifdef SYS_xen
+  gray_vals_size = 8192;
+#else
   gray_vals_size = 2048;
+#endif
   gray_vals = (value *) malloc (gray_vals_size * sizeof (value));
   if (gray_vals == NULL)
     caml_fatal_error ("Fatal error: not enough memory for the gray cache.\n");

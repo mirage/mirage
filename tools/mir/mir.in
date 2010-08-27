@@ -85,7 +85,7 @@ u)
   echo Linking for @OS@
   RUNTIME=${MIRAGE_ROOT}/runtime/unix
   ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -I ${STDLIB} -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/unix -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa mpl.cmx unix.cmx mlnet.cmx `cat .depend` -output-obj -o app.o
-  cd ${RUNTIME}/main && ${MAKE} APP_LIB="${DIR}/app.o"
+  cd ${RUNTIME}/main && ${MAKE} APP_LIB="${DIR}/app.o" && mv ${RUNTIME}/main/app ${DIR}/mirage-unix
   ;;
 x)
   echo Linking for Xen

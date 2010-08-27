@@ -108,9 +108,8 @@ module ARP(IF: Ethif.UP) = struct
       output t (Mpl.Ethernet.ARP.t
         ~dest_mac ~src_mac ~ptype: `IPv4 ~operation: `Reply
         ~sha: src_mac ~tpa: ip ~tha: dest_mac ~spa: ip
-      )
+     )
     ) t.bound_ips
-
   let get_bound_ips t = t.bound_ips
 
   (* Set the bound IP address list, which will xmit a GARP packet also *)

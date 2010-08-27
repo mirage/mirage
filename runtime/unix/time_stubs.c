@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <caml/mlvalues.h>
+#include <caml/memory.h>
 
 #include <sys/time.h>
 #include <sys/types.h>
@@ -37,18 +38,27 @@ unix_clear_events(value v_unit)
 CAMLprim value
 unix_block_domain(value v_time)
 {
+  CAMLparam1(v_time);
   struct timeval tv;
+  int ret; 
+  fd_set rfds;
+  int nfds = 0;
+
   tv.tv_sec = (long)(Double_val(v_time));
   tv.tv_usec = 0; /* XXX convert from v_time remainder */
 
-  fd_set rfds;
+  fprintf(stderr, "unix_block_domain: %f  tv_sec=%lu\n", Double_val(v_time), tv.tv_sec);
   FD_ZERO(&rfds);
-  FD_SET(tap_fd, &rfds);
+  if (tap_fd >= 0) {
+    FD_SET(tap_fd, &rfds);
+    nfds=1;
+  }
+  
+  ret = select(nfds, &rfds, NULL, NULL, &tv);
+  if (nfds > 0) {
+    if (FD_ISSET(tap_fd, &rfds))
+      tap_ready = 1;
+  }
  
-  int ret; 
-  ret = select(1, &rfds, NULL, NULL, &tv);
-  if (FD_ISSET(tap_fd, &rfds))
-    tap_ready = 1;
- 
-  return Val_unit;
+  CAMLreturn(Val_unit);
 }

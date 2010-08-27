@@ -64,7 +64,7 @@ let output_raw t buf =
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =
-    return [ "/dev/tun/tap0" ]
+    return [ "tap0" ]
 
 (** Transmit an ethernet frame  *)
 let output nf frame =

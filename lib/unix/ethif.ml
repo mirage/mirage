@@ -80,7 +80,7 @@ let output nf frame =
 (** Handle one frame *)
 let input_one nf fn sub =
    Lwt_pool.use nf.env_pool (fun buf ->
-     let fillfn = Tap.read nf.dev in
+     let fillfn dst off len = Tap.read nf.dev dst off 4096  in
      let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
      let e = Mpl.Ethernet.unmarshal env in
      Mpl.Ethernet.prettyprint e;

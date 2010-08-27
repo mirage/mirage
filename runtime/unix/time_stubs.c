@@ -51,7 +51,7 @@ unix_block_domain(value v_time)
   FD_ZERO(&rfds);
   if (tap_fd >= 0) {
     FD_SET(tap_fd, &rfds);
-    nfds=1;
+    nfds=tap_fd+1;
   }
   
   ret = select(nfds, &rfds, NULL, NULL, &tv);

@@ -18,6 +18,7 @@
    Statically registers any fds and timeout */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 
@@ -25,15 +26,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-int tap_fd = -1;
-int tap_ready = 0;
-
-CAMLprim value
-unix_clear_events(value v_unit)
-{
-  tap_ready = 0;
-  return Val_unit;
-}
+#define NR_EVENTS 128
+extern uint8_t ev_callback_ml[NR_EVENTS];
+extern uint8_t ev_fds[NR_EVENTS];
 
 CAMLprim value
 unix_block_domain(value v_time)
@@ -43,21 +38,30 @@ unix_block_domain(value v_time)
   int ret; 
   fd_set rfds;
   int nfds = 0;
+  unsigned int i;
 
   tv.tv_sec = (long)(Double_val(v_time));
   tv.tv_usec = 0; /* XXX convert from v_time remainder */
 
-  fprintf(stderr, "unix_block_domain: %f  tv_sec=%lu\n", Double_val(v_time), tv.tv_sec);
+  fprintf(stderr, "unix_block_domain: %f", Double_val(v_time));
+  fflush(stderr);
   FD_ZERO(&rfds);
-  if (tap_fd >= 0) {
-    FD_SET(tap_fd, &rfds);
-    nfds=tap_fd+1;
-  }
+ 
+  for (i=0; i < NR_EVENTS; i++) {
+    if (ev_fds[i] > 0) {
+      FD_SET(ev_fds[i], &rfds);
+      nfds=i+1;
+    }  
+  } 
   
   ret = select(nfds, &rfds, NULL, NULL, &tv);
-  if (nfds > 0) {
-    if (FD_ISSET(tap_fd, &rfds))
-      tap_ready = 1;
+
+  for (i=0; i < nfds; i++) {
+    if (FD_ISSET(ev_fds[i], &rfds)) {
+      fprintf(stderr, "EVENT: %d\n", i);
+      fflush(stderr);
+      ev_callback_ml[i] = 1;
+    }
   }
  
   CAMLreturn(Val_unit);

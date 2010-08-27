@@ -27,7 +27,6 @@ type current_time = float Lazy.t
 type select = float option -> current_time
 
 external block_domain : float -> unit = "unix_block_domain"
-external clear_events : unit -> unit = "unix_clear_events"
 
 let select_filters = Lwt_sequence.create ()
 
@@ -42,7 +41,8 @@ let apply_filters select =
 
 let default_select timeout =
   block_domain (match timeout with None -> 10. |Some t -> t);
-  Lazy.lazy_from_fun Clock.time, []
+  let activations = Activations.run () in
+  Lazy.lazy_from_fun Clock.time, activations
 
 let default_iteration () =
   Lwt.wakeup_paused ();

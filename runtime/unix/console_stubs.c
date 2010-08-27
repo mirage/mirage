@@ -36,5 +36,6 @@ console_write(value v_cons, value v_buf, value v_off, value v_len)
     memcpy(buf, String_val(v_buf)+Int_val(v_off), Int_val(v_len));
     buf[len] = '\0';
     fprintf(stderr, "%s", buf);
+    fflush(stderr);
     return Val_unit;
 }

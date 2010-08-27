@@ -18,7 +18,7 @@ open Lwt
 open Printf
 
 module Tap = struct
-  type t = string
+  type t = int
   external opendev: string -> t = "tap_opendev"
   external read: t -> string -> int -> int -> int = "tap_read"
   external has_input: t -> int = "tap_has_input"
@@ -40,10 +40,12 @@ let create id =
     let env_pool = Lwt_pool.create 5 
       (fun () -> return (String.make 4096 '\000')) in
     let rx_cond = Lwt_condition.create () in
+    Activations.register dev (Activations.Event_condition rx_cond);
     return { id; dev; env_pool; rx_cond }
 
 (* Input all available pages from receive ring and return detached page list *)
 let input_raw t =
+    print_endline "input_raw";
     [ Tap.read t.dev ]
 
 (* Number of unconsumed responses waiting for receive *)
@@ -89,8 +91,10 @@ let input_one nf fn sub =
 let rec input nf fn =
     match has_input nf with
     |0 ->
+       prerr_endline "waiting on input";
        Lwt_condition.wait nf.rx_cond >>
-       input nf fn
+       (prerr_endline "woken on input";
+       input nf fn)
     |n -> 
        Lwt_list.iter_s (input_one nf fn) (input_raw nf);
 

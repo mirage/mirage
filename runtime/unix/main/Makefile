@@ -5,7 +5,7 @@ CFLAGS=-I $(OCAMLDIR) -O2
 SOURCES=main
 CS=$(SOURCES:%=%.c)
 OBJS=$(SOURCES:%=%.o)
-LIBS=-lmirage_unix -lasmrun -lm
+LIBS=-lmirage_unix -lasmrun -lbigarray -lm
 LDFLAGS=-L.. -L$(OCAMLDIR)
 APP_LIB ?= null.o
 

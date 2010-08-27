@@ -15,6 +15,7 @@
  */
 
 #include <unistd.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -30,8 +31,8 @@
 #include <linux/if_tun.h>
 #endif
 
-extern int tap_ready;
-extern int tap_fd;
+extern uint8_t ev_callback_ml[];
+extern uint8_t ev_fds[];
 
 #ifdef LINUX
 int tun_alloc(char *dev)
@@ -70,7 +71,7 @@ tap_opendev(value v_str)
   fprintf(stderr, "tap_open: before dev=%s\n", dev);
   fd = tun_alloc(dev);
   fprintf(stderr, "   after dev=%s\n", dev);
-  tap_fd = fd;
+  ev_fds[fd] = 1;
   return Val_int(fd);
 }
 #else
@@ -81,6 +82,7 @@ tap_opendev(value v_str)
   int fd = open("/dev/tap0", O_RDWR);
   if (fd < 0)
     caml_failwith("tap open failed");
+  ev_fds[fd] = 1;
   return Val_int(fd);
 }
 #endif
@@ -90,7 +92,10 @@ CAMLprim value
 tap_read(value v_fd, value v_buf, value v_off, value v_len)
 {
   int fd = Int_val(v_fd);
+  fprintf(stderr, "tap_read: ");
   int res = read(fd, String_val(v_buf) + Int_val(v_off), Int_val(v_len));
+  fprintf(stderr, " %d\n", res);
+  fflush(stderr);
   if (res < 0)
     caml_failwith("tap_read < 0");
   return Val_int(res);
@@ -99,7 +104,17 @@ tap_read(value v_fd, value v_buf, value v_off, value v_len)
 CAMLprim value
 tap_has_input(value v_fd)
 {
-  return Val_int(tap_ready);
+  int fd = Int_val(v_fd);
+  fd_set fdset;
+  struct timeval tv;
+  int ret;
+  FD_ZERO(&fdset);
+  FD_SET(fd, &fdset);
+  tv.tv_sec = 0;
+  tv.tv_usec = 1;
+  ret = select(fd+1, &fdset, NULL, NULL, &tv);
+  fprintf(stderr, "has input fd=%d ret=%d\n", fd, ret);
+  return Val_int(ret == 1 ? 1 : 0);
 }
 
 CAMLprim value

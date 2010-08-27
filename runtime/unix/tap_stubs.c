@@ -22,6 +22,8 @@
 #include <errno.h>
 
 #include <caml/mlvalues.h>
+#include <caml/memory.h>
+#include <caml/alloc.h>
 #include <caml/fail.h>
 
 #define LINUX
@@ -43,21 +45,13 @@ int tun_alloc(char *dev)
   if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
     caml_failwith("unable to open /dev/net/tun");
   memset(&ifr, 0, sizeof(ifr));
-  ifr.ifr_flags = IFF_TAP;
+  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
   if (*dev)
     strncpy(ifr.ifr_name, dev, IFNAMSIZ);
-  fprintf(stderr, "fd=%d name=%s\n", fd, ifr.ifr_name);
   if ((err=ioctl(fd, TUNSETIFF, (void *)&ifr)) < 0) {
     fprintf(stderr, "TUNSETIFF failed: %d\n", err);
     caml_failwith("TUNSETIFF failed");
   }
-  fprintf(stderr, "MAC=%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n",
-         (unsigned char)ifr.ifr_hwaddr.sa_data[0],
-         (unsigned char)ifr.ifr_hwaddr.sa_data[1],
-         (unsigned char)ifr.ifr_hwaddr.sa_data[2],
-         (unsigned char)ifr.ifr_hwaddr.sa_data[3],
-         (unsigned char)ifr.ifr_hwaddr.sa_data[4],
-         (unsigned char)ifr.ifr_hwaddr.sa_data[5]);
   strcpy(dev, ifr.ifr_name);
   return fd;
 }
@@ -69,9 +63,7 @@ tap_opendev(value v_str)
   int fd;
   bzero(dev, sizeof dev);
   memcpy(dev, String_val(v_str), caml_string_length(v_str));
-  fprintf(stderr, "tap_open: before dev=%s\n", dev);
   fd = tun_alloc(dev);
-  fprintf(stderr, "   after dev=%s\n", dev);
   ev_fds[fd] = 1;
   return Val_int(fd);
 }
@@ -93,10 +85,7 @@ CAMLprim value
 tap_read(value v_fd, value v_buf, value v_off, value v_len)
 {
   int fd = Int_val(v_fd);
-  fprintf(stderr, "tap_read: v_len=%d ", Int_val(v_len));
   int res = read(fd, String_val(v_buf) + Int_val(v_off), Int_val(v_len));
-  fprintf(stderr, " %d\n", res);
-  fflush(stderr);
   if (res < 0) {
     fprintf(stderr, "read err: %s\n", strerror(errno));
     caml_failwith("tap_read < 0");
@@ -116,19 +105,31 @@ tap_has_input(value v_fd)
   tv.tv_sec = 0;
   tv.tv_usec = 1;
   ret = select(fd+1, &fdset, NULL, NULL, &tv);
-  fprintf(stderr, "has input fd=%d ret=%d\n", fd, ret);
   return Val_int(ret == 1 ? 1 : 0);
 }
 
 CAMLprim value
 tap_write(value v_fd, value v_buf)
 {
-  /* XXX figure out the IFF_NO_PI stuff */
-  caml_failwith("tap_write: todo");
+  int fd = Int_val(v_fd);
+  size_t len = caml_string_length(v_buf);
+  int res = write(fd, String_val(v_buf), len);
+  if (res != len)
+    caml_failwith("tap_write: not full write");
+  return Val_int(len);
 }
 
 CAMLprim value
-tap_mac(value v_tap)
+tap_mac(value v_fd)
 {
-  caml_failwith("\0\0\0\0\0\0");
+  CAMLparam1(v_fd);
+  CAMLlocal1(v_str);
+  int fd = Int_val(v_fd);
+  struct ifreq ifr;
+  memset(&ifr, 0, sizeof(ifr));
+  if (ioctl(fd, SIOCGIFHWADDR, (void *)&ifr) < 0)
+    caml_failwith("tuntap SIOCGIFHWADDR failed");
+  v_str = caml_alloc_string(6);
+  memcpy(String_val(v_str), ifr.ifr_hwaddr.sa_data, 6);
+  CAMLreturn(v_str);
 }

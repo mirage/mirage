@@ -22,12 +22,18 @@
 #include <caml/mlvalues.h>
 #include <caml/fail.h>
 
+#define DARWIN
+
+#ifdef LINUX
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <linux/if_tun.h>
+#endif
 
 extern int tap_ready;
+extern int tap_fd;
 
+#ifdef LINUX
 int tun_alloc(char *dev)
 {
   struct ifreq ifr;
@@ -64,8 +70,21 @@ tap_opendev(value v_str)
   fprintf(stderr, "tap_open: before dev=%s ", dev);
   fd = tun_alloc(dev);
   fprintf(stderr, "   after dev=%s\n", dev);
+  tap_fd = fd;
   return Val_int(fd);
 }
+#else
+#ifdef DARWIN
+CAMLprim value
+tap_opendev(value v_str)
+{
+  int fd = open("/dev/tap0", O_RDWR);
+  if (fd < 0)
+    caml_failwith("tap open failed");
+  return Val_int(fd);
+}
+#endif
+#endif
 
 CAMLprim value
 tap_read(value v_fd, value v_buf, value v_off, value v_len)

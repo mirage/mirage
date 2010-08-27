@@ -55,6 +55,11 @@ dx)
   TARG=x
   MIRAGE_ROOT=`pwd`
   ;;
+du)
+  echo Building for UNIX in-tree
+  TARG=u
+  MIRAGE_ROOT=`pwd`
+  ;;
 clean|cl)
   echo Cleaning intermediate files
   cd "${DIR}"
@@ -79,9 +84,8 @@ case "${TARG}" in
 u)
   echo Linking for @OS@
   RUNTIME=${MIRAGE_ROOT}/runtime/unix
-  INCLUDES="-I ${STDLIB} -I ${LIBDIR}/lwt -I ${LIBDIR}/lib/unix -I ${LIBDIR}/lib/mpl -I ${LIBDIR}/lib/mpl"
-  ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" ${INCLUDES} stdlib.cmxa lwtlib.cmxa unix.cmx mpl.cmx mlnet.cmx `cat .depend` -output-obj -o app.o
-  ${CC} -o app @OCAML_CLIBS@ app.o ${RUNTIME}/libmiragerun_@OS@.a
+  ${OCAMLOPT} -nostdlib -annot -pp "camlp4o -I ${SYNTAX} pa_mirage.cma" -I ${STDLIB} -I ${MIRAGE_ROOT}/lib/lwt -I ${MIRAGE_ROOT}/lib/unix -I ${MIRAGE_ROOT}/lib/mpl -I ${MIRAGE_ROOT}/lib/mlnet ${OCAMLOPT_FLAGS} stdlib.cmxa lwtlib.cmxa mpl.cmx unix.cmx mlnet.cmx `cat .depend` -output-obj -o app.o
+  cd ${RUNTIME}/main && ${MAKE} APP_LIB="${DIR}/app.o"
   ;;
 x)
   echo Linking for Xen

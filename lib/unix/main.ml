@@ -27,6 +27,7 @@ type current_time = float Lazy.t
 type select = float option -> current_time
 
 external block_domain : float -> unit = "unix_block_domain"
+external clear_events : unit -> unit = "unix_clear_events"
 
 let select_filters = Lwt_sequence.create ()
 

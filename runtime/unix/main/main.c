@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,20 +12,17 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-open Lwt
-exception Internal_error of string
+#include <stdio.h>
+#include <caml/callback.h>
 
-type t
-
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
-
-let sync_write t buf off len =
-   write t buf off len;
-   return ()
-
-let create_additional_console () = return (create ())
-
-let t = create ()
+int
+main(int argc, char **argv)
+{
+  static char *fake_argv[] = { "mirage", NULL };
+  fprintf(stderr, "caml_startup: start\n");
+  caml_startup(fake_argv);
+  fprintf(stderr, "caml_startup: end\n");
+  return 0;
+}

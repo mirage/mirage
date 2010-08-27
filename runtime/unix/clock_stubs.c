@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,20 +12,19 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-open Lwt
-exception Internal_error of string
+#include <sys/time.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/fail.h>
 
-type t
+CAMLprim value 
+unix_gettimeofday(value v_unit)
+{
+  struct timeval tp;
+  if (gettimeofday(&tp, NULL) == -1)
+    caml_failwith("gettimeofday");
+  return copy_double((double) tp.tv_sec + (double) tp.tv_usec / 1e6);
+}
 
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
-
-let sync_write t buf off len =
-   write t buf off len;
-   return ()
-
-let create_additional_console () = return (create ())
-
-let t = create ()

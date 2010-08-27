@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,20 +12,29 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-open Lwt
-exception Internal_error of string
+#include <stdio.h>
+#include <string.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
 
-type t
+/* Dont bother with full console, just direct everything to
+   stderr, so console_create is a noop for now */
 
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
+CAMLprim value
+console_create(value v_unit)
+{
+    return Val_int(0);
+}
 
-let sync_write t buf off len =
-   write t buf off len;
-   return ()
-
-let create_additional_console () = return (create ())
-
-let t = create ()
+CAMLprim value
+console_write(value v_cons, value v_buf, value v_off, value v_len)
+{
+    int len = Int_val(v_len);
+    char buf[len+1];
+    memcpy(buf, String_val(v_buf)+Int_val(v_off), Int_val(v_len));
+    buf[len] = '\0';
+    fprintf(stderr, "%s", buf);
+    return Val_unit;
+}

@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,20 +12,43 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-open Lwt
-exception Internal_error of string
+/* Stubs to handle waking up the xenulator.
+   Statically registers any fds and timeout */
 
-type t
+#include <stdio.h>
+#include <caml/mlvalues.h>
 
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-let sync_write t buf off len =
-   write t buf off len;
-   return ()
+int tap_fd = -1;
+int tap_ready = 0;
 
-let create_additional_console () = return (create ())
+CAMLprim value
+unix_clear_events(value v_unit)
+{
+  tap_ready = 0;
+  return Val_unit;
+}
 
-let t = create ()
+CAMLprim value
+unix_block_domain(value v_time)
+{
+  struct timeval tv;
+  tv.tv_sec = (long)(Double_val(v_time));
+  tv.tv_usec = 0; /* XXX convert from v_time remainder */
+
+  fd_set rfds;
+  FD_ZERO(&rfds);
+  FD_SET(tap_fd, &rfds);
+ 
+  int ret; 
+  ret = select(1, &rfds, NULL, NULL, &tv);
+  if (FD_ISSET(tap_fd, &rfds))
+    tap_ready = 1;
+ 
+  return Val_unit;
+}

@@ -43,13 +43,13 @@ unix_block_domain(value v_time)
   tv.tv_sec = (long)(Double_val(v_time));
   tv.tv_usec = 0; /* XXX convert from v_time remainder */
 
-  fprintf(stderr, "unix_block_domain: %f", Double_val(v_time));
+  fprintf(stderr, "unix_block_domain: %f\n", Double_val(v_time));
   fflush(stderr);
   FD_ZERO(&rfds);
  
   for (i=0; i < NR_EVENTS; i++) {
     if (ev_fds[i] > 0) {
-      FD_SET(ev_fds[i], &rfds);
+      FD_SET(i, &rfds);
       nfds=i+1;
     }  
   } 
@@ -57,7 +57,7 @@ unix_block_domain(value v_time)
   ret = select(nfds, &rfds, NULL, NULL, &tv);
 
   for (i=0; i < nfds; i++) {
-    if (FD_ISSET(ev_fds[i], &rfds)) {
+    if (FD_ISSET(i, &rfds)) {
       fprintf(stderr, "EVENT: %d\n", i);
       fflush(stderr);
       ev_callback_ml[i] = 1;

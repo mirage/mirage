@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <caml/mlvalues.h>
 #include <caml/fail.h>
@@ -92,12 +93,14 @@ CAMLprim value
 tap_read(value v_fd, value v_buf, value v_off, value v_len)
 {
   int fd = Int_val(v_fd);
-  fprintf(stderr, "tap_read: ");
+  fprintf(stderr, "tap_read: v_len=%d ", Int_val(v_len));
   int res = read(fd, String_val(v_buf) + Int_val(v_off), Int_val(v_len));
   fprintf(stderr, " %d\n", res);
   fflush(stderr);
-  if (res < 0)
+  if (res < 0) {
+    fprintf(stderr, "read err: %s\n", strerror(errno));
     caml_failwith("tap_read < 0");
+  }
   return Val_int(res);
 }
 

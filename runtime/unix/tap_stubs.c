@@ -22,7 +22,7 @@
 #include <caml/mlvalues.h>
 #include <caml/fail.h>
 
-#define DARWIN
+#define LINUX
 
 #ifdef LINUX
 #include <net/if.h>
@@ -47,7 +47,7 @@ int tun_alloc(char *dev)
   fprintf(stderr, "fd=%d name=%s\n", fd, ifr.ifr_name);
   if ((err=ioctl(fd, TUNSETIFF, (void *)&ifr)) < 0) {
     fprintf(stderr, "TUNSETIFF failed: %d\n", err);
-//    caml_failwith("TUNSETIFF failed");
+    caml_failwith("TUNSETIFF failed");
   }
   fprintf(stderr, "MAC=%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\n",
          (unsigned char)ifr.ifr_hwaddr.sa_data[0],
@@ -67,7 +67,7 @@ tap_opendev(value v_str)
   int fd;
   bzero(dev, sizeof dev);
   memcpy(dev, String_val(v_str), caml_string_length(v_str));
-  fprintf(stderr, "tap_open: before dev=%s ", dev);
+  fprintf(stderr, "tap_open: before dev=%s\n", dev);
   fd = tun_alloc(dev);
   fprintf(stderr, "   after dev=%s\n", dev);
   tap_fd = fd;

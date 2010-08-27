@@ -23,9 +23,6 @@
 #include <mini-os/x86/os.h>
 #include <mini-os/sched.h>
 
-/* XXX break out into a header */
-void post_event_callbacks(void);
-
 CAMLprim value 
 mirage_block_domain(value v_timeout)
 {

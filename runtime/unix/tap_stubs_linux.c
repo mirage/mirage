@@ -25,44 +25,55 @@
 #include <caml/memory.h>
 #include <caml/alloc.h>
 #include <caml/fail.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+
+#include <linux/if_tun.h>
 
 extern uint8_t ev_callback_ml[];
 extern uint8_t ev_fds[];
 
-CAMLprim value
-tap_read(value v_fd, value v_buf, value v_off, value v_len)
+static int tun_alloc(char *dev)
 {
-  int fd = Int_val(v_fd);
-  int res = read(fd, String_val(v_buf) + Int_val(v_off), Int_val(v_len));
-  if (res < 0) {
-    fprintf(stderr, "read err: %s\n", strerror(errno));
-    caml_failwith("tap_read < 0");
+  struct ifreq ifr;
+  int fd, err;
+  if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
+    caml_failwith("unable to open /dev/net/tun");
+  memset(&ifr, 0, sizeof(ifr));
+  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+  if (*dev)
+    strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+  if ((err=ioctl(fd, TUNSETIFF, (void *)&ifr)) < 0) {
+    fprintf(stderr, "TUNSETIFF failed: %d\n", err);
+    caml_failwith("TUNSETIFF failed");
   }
-  return Val_int(res);
+  strcpy(dev, ifr.ifr_name);
+  return fd;
 }
 
 CAMLprim value
-tap_has_input(value v_fd)
+tap_opendev(value v_str)
 {
-  int fd = Int_val(v_fd);
-  fd_set fdset;
-  struct timeval tv;
-  int ret;
-  FD_ZERO(&fdset);
-  FD_SET(fd, &fdset);
-  tv.tv_sec = 0;
-  tv.tv_usec = 1;
-  ret = select(fd+1, &fdset, NULL, NULL, &tv);
-  return Val_int(ret == 1 ? 1 : 0);
+  char dev[IFNAMSIZ];
+  int fd;
+  bzero(dev, sizeof dev);
+  memcpy(dev, String_val(v_str), caml_string_length(v_str));
+  fd = tun_alloc(dev);
+  ev_fds[fd] = 1;
+  return Val_int(fd);
 }
 
 CAMLprim value
-tap_write(value v_fd, value v_buf)
+tap_mac(value v_name, value v_fd)
 {
+  CAMLparam2(v_name, v_fd);
+  CAMLlocal1(v_str);
   int fd = Int_val(v_fd);
-  size_t len = caml_string_length(v_buf);
-  int res = write(fd, String_val(v_buf), len);
-  if (res != len)
-    caml_failwith("tap_write: not full write");
-  return Val_int(len);
+  struct ifreq ifr;
+  memset(&ifr, 0, sizeof(ifr));
+  if (ioctl(fd, SIOCGIFHWADDR, (void *)&ifr) < 0)
+    caml_failwith("tuntap SIOCGIFHWADDR failed");
+  v_str = caml_alloc_string(6);
+  memcpy(String_val(v_str), ifr.ifr_hwaddr.sa_data, 6);
+  CAMLreturn(v_str);
 }

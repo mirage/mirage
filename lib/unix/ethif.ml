@@ -23,7 +23,7 @@ module Tap = struct
   external read: t -> string -> int -> int -> int = "tap_read"
   external has_input: t -> int = "tap_has_input"
   external write: t -> string -> unit = "tap_write"
-  external mac: t -> string = "tap_mac"
+  external mac: string -> t -> string = "tap_mac"
 end
 
 type t = {
@@ -52,7 +52,7 @@ let input_raw t =
 let has_input t =
     Tap.has_input t.dev
 
-let mac t = Tap.mac t.dev
+let mac t = Tap.mac t.id t.dev
 
 (* Shutdown a netfront *)
 let destroy nf =

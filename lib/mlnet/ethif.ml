@@ -51,6 +51,7 @@ module Ethernet(IF:ETHIF) = struct
 
   type t = {
     ethif: IF.t;
+    mac: Mlnet_types.ethernet_mac;
     mutable arp: (Mpl.Ethernet.ARP.o -> unit Lwt.t);
     mutable ipv4: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
     mutable ipv6: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
@@ -76,10 +77,12 @@ module Ethernet(IF:ETHIF) = struct
 
   let create id = 
     lwt ethif = IF.create id in
+
     let arp = (fun _ -> return (print_endline "dropped arp")) in
     let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
     let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in
-    let t = { ethif; arp; ipv4; ipv6 }  in
+    let mac = Mlnet_types.ethernet_mac_of_bytes (IF.mac ethif) in
+    let t = { ethif; arp; ipv4; ipv6; mac }  in
     let th, _ =  Lwt.task () in
     let listen = listen t th in
     return (t, listen)

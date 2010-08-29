@@ -38,11 +38,11 @@ module type UP = sig
   val attach :
     t ->
       [ `ARP of Mpl.Ethernet.ARP.o -> unit Lwt.t
-      | `IPv4 of Mpl.Ethernet.IPv4.o -> unit Lwt.t
+      | `IPv4 of Mpl.Ipv4.o -> unit Lwt.t
       | `IPv6 of Mpl.Ethernet.IPv4.o -> unit Lwt.t ] ->
           unit
   val detach : t -> [`ARP |`IPv4 |`IPv6 ] -> unit
-  val mac : t -> string
+  val mac : t -> Mlnet_types.ethernet_mac
 end
 
 (* Functorize across the hardware interface, to route packets
@@ -53,7 +53,7 @@ module Ethernet(IF:ETHIF) = struct
     ethif: IF.t;
     mac: Mlnet_types.ethernet_mac;
     mutable arp: (Mpl.Ethernet.ARP.o -> unit Lwt.t);
-    mutable ipv4: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
+    mutable ipv4: (Mpl.Ipv4.o -> unit Lwt.t);
     mutable ipv6: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
   }
 
@@ -63,7 +63,7 @@ module Ethernet(IF:ETHIF) = struct
   let input t =
     IF.input t.ethif (function
       |`ARP arp -> t.arp arp
-      |`IPv4 ipv4 -> t.ipv4 ipv4
+      |`IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_env)
       |`IPv6 ipv6 -> t.ipv6 ipv6
     ) 
 

@@ -66,7 +66,7 @@ module ARP(IF: Ethif.UP) = struct
         let req_ipv4 = ipv4_addr_of_bytes arp#tpa in
         if List.mem req_ipv4 t.bound_ips then begin
           (* We own this IP, so reply with our MAC *)
-          let src_mac = `Str (IF.mac t.ethif) in
+          let src_mac = `Str (ethernet_mac_to_bytes (IF.mac t.ethif)) in
           let dest_mac = `Str arp#src_mac in
           let spa = `Str arp#tpa in (* the requested IP *)
           let tpa = `Str arp#spa in (* the requesting host's IP *)
@@ -102,7 +102,7 @@ module ARP(IF: Ethif.UP) = struct
   (* Send a gratuitous ARP for our IP addresses *)
   let output_garp t =
     let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
-    let src_mac = `Str (IF.mac t.ethif) in
+    let src_mac = `Str (ethernet_mac_to_bytes (IF.mac t.ethif)) in
     Lwt_list.iter_s (fun ip ->
       let ip = `Str (ipv4_addr_to_bytes ip) in
       output t (Mpl.Ethernet.ARP.t

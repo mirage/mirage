@@ -49,7 +49,7 @@ let input_raw t =
 
 (* Number of unconsumed responses waiting for receive *)
 let has_input t =
-    Tap.has_input t.dev
+    Tap.has_input t.dev > 0
 
 let mac t = Tap.mac t.id t.dev
 
@@ -71,27 +71,17 @@ let enumerate () =
 let output nf frame =
     Lwt_pool.use nf.env_pool (fun buf ->
       let env = Mpl.Mpl_stdlib.new_env buf in
-      let o = Mpl.Ethernet.m frame env in
-      Mpl.Ethernet.prettyprint o;
+      let _ = Mpl.Ethernet.m frame env in
       let buf = Mpl.Mpl_stdlib.string_of_env env in
       output_raw nf buf
     )
 
 (** Handle one frame *)
-let input_one nf fn sub =
-   Lwt_pool.use nf.env_pool (fun buf ->
-     let fillfn dst off len = Tap.read nf.dev dst off 4096  in
-     let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
-     let e = Mpl.Ethernet.unmarshal env in
-     fn e
-   )
+let input nf =
+    Lwt_pool.use nf.env_pool (fun buf ->
+      let fillfn dst off len = Tap.read nf.dev dst off 4096  in
+      let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
+      return (Mpl.Ethernet.unmarshal env)
+    )
 
-(** Receive all available ethernet frames *)
-let rec input nf fn =
-    match has_input nf with
-    |0 ->
-       Lwt_condition.wait nf.rx_cond >>
-       input nf fn
-    |n -> 
-       Lwt_list.iter_s (input_one nf fn) (input_raw nf);
-
+let wait nf = Lwt_condition.wait nf.rx_cond

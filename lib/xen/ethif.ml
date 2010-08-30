@@ -17,7 +17,7 @@
 open Lwt
 open Printf
 
-type nf = {
+type t = {
     backend_id: int;
     backend: string;
     mac: string;
@@ -29,12 +29,12 @@ type nf = {
     rx_ring: Ring.Netif_rx.t;
     rx_ring_ref: Gnttab.r;
     rx_slots: (int * Gnttab.r * Ring.Netif_rx.req) array;
-    rx_cond: unit Lwt_condition.t;
+    mutable rx_cond: unit Lwt_condition.t;
     env_pool: string Lwt_pool.t;
     evtchn: int;
 }
 
-type nf_id = (int * int)
+type id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let create (num,backend_id) =
@@ -103,7 +103,7 @@ let create (num,backend_id) =
       backend; env_pool }
 
 (* Input all available pages from receive ring and return detached page list *)
-let input nf =
+let input_low nf =
     Ring.Netif_rx.(read_responses nf.rx_ring (fun pos res ->
       let id = res_get_id res in
       let offset = res_get_offset res in
@@ -125,7 +125,8 @@ let input nf =
 
 (* Number of unconsumed responses waiting for receive *)
 let has_input nf =
-    Ring.Netif_rx.res_waiting nf.rx_ring
+    Printf.printf "has_input: %d\n%!" (Ring.Netif_rx.res_waiting nf.rx_ring);
+    Ring.Netif_rx.res_waiting nf.rx_ring > 0
 
 (* Shutdown a netfront *)
 let destroy nf =
@@ -144,7 +145,7 @@ let rec get_tx_gnt nf =
       return (id, gnt)
 
 (* Transmit a packet from buffer, with offset and length *)  
-let output nf sub =
+let output_raw nf sub =
     Printf.printf "xmit off=%d len=%d\n%!" sub.Hw_page.off sub.Hw_page.len;
     (* Grab a free grant slot from the free list, which may block *)
     lwt (id, gnt) = get_tx_gnt nf in
@@ -178,46 +179,43 @@ let enumerate () =
 
 (** Transmit an ethernet frame 
   * TODO Not yet zero copy, but it will be shortly, by Jove! *)
-let output_frame nf frame =
+let output nf frame =
     Lwt_pool.use nf.env_pool (fun buf ->
       let env = Mpl.Mpl_stdlib.new_env buf in
       let sub = Hw_page.alloc_sub () in
       let _ = Mpl.Ethernet.m frame env in
       let buf = Mpl.Mpl_stdlib.string_of_env env in
       Hw_page.write buf 0 sub.Hw_page.page 0 (String.length buf);
-      output nf sub
+      output_raw nf sub
     )
 
 (** Handle one frame
     TODO Not zero copy until the MPL backend is modified *)
-let input_frame nf fn sub =
-   Lwt_pool.use nf.env_pool (fun buf ->
-     let fillfn dstbuf dstoff len =
+let input nf fn =
+   let subs = input_low nf in
+   Lwt_list.iter_p (fun sub ->
+     Lwt_pool.use nf.env_pool (fun buf ->
+       let fillfn dstbuf dstoff len =
          Hw_page.(read sub.page sub.off dstbuf dstoff sub.len);
          Hw_page.(sub.len) in
-     let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
-     let e = Mpl.Ethernet.unmarshal env in
-     Mpl.Ethernet.prettyprint e;
-     fn e
-   )
+       let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
+       lwt () = fn (Mpl.Ethernet.unmarshal env) in
+       return ()
+     )
+   ) subs
 
-(** Receive all available ethernet frames *)
-let rec input_frames nf fn =
-    match has_input nf with
-    |0 ->
-       Lwt_condition.wait nf.rx_cond >>
-       input_frames nf fn
-    |n -> 
-       Lwt_list.iter_s (input_frame nf fn) (input nf);
+let wait nf = Lwt_condition.wait nf.rx_cond
 
-module Ethif = struct
-    type t = nf
-    type id = nf_id
-   
-    let enumerate = enumerate 
-    let create = create
-    let destroy = destroy
-    let input = input_frames
-    let output = output_frame
-    let mac t = t.mac
-end
+(* The Xenstore MAC address is colon separated, very helpfully *)
+let mac nf = 
+  let s = String.create 6 in
+  Scanf.sscanf nf.mac "%02x:%02x:%02x:%02x:%02x:%02x"
+    (fun a b c d e f ->
+      s.[0] <- Char.chr a;
+      s.[1] <- Char.chr b;
+      s.[2] <- Char.chr c;
+      s.[3] <- Char.chr d;
+      s.[4] <- Char.chr e;
+      s.[5] <- Char.chr f;
+    );
+  s

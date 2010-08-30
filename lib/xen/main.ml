@@ -50,12 +50,16 @@ let default_iteration () =
 
 let rec run t =
   Lwt.wakeup_paused ();
-  match Lwt.poll t with
+  try
+    match Lwt.poll t with
     | Some x ->
         x
     | None ->
         let _, activations = default_iteration () in
         run (join (t :: activations))
+  with
+   exn ->
+     Printf.printf "Top level exception: %s\n%!" (Printexc.to_string exn)
 
 let exit_hooks = Lwt_sequence.create ()
 

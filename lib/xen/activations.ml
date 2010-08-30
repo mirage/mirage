@@ -57,7 +57,7 @@ let run () =
             acc
           | Event_condition cond ->
             Array1.set event_mask port 0;
-            Lwt_condition.broadcast cond ();
+            Lwt_condition.signal cond ();
             acc
           | Event_thread cb ->
             Array1.set event_mask port 0;

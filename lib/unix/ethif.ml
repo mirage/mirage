@@ -77,11 +77,13 @@ let output nf frame =
     )
 
 (** Handle one frame *)
-let input nf =
-    Lwt_pool.use nf.env_pool (fun buf ->
+let input nf fn =
+    [ Lwt_pool.use nf.env_pool (fun buf ->
       let fillfn dst off len = Tap.read nf.dev dst off 4096  in
       let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
-      return (Mpl.Ethernet.unmarshal env)
-    )
+      lwt () = fn (Mpl.Ethernet.unmarshal env) in
+      return ()
+    ) ]
+   
 
 let wait nf = Lwt_condition.wait nf.rx_cond

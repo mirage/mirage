@@ -38,7 +38,7 @@ module Ethif : sig
     val enumerate : unit -> id list Lwt.t
     val create : id -> t Lwt.t
     val destroy : t -> unit Lwt.t
-    val input : t -> Mpl.Ethernet.o Lwt.t
+    val input : t -> (Mpl.Ethernet.o -> unit Lwt.t) -> unit Lwt.t list
     val has_input: t -> bool
     val wait : t -> unit Lwt.t
     val output : t -> Mpl.Ethernet.x -> unit Lwt.t

@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <net/if.h>
 #include <ifaddrs.h>
 #include <net/if_dl.h>
@@ -43,6 +44,12 @@ tap_opendev(value v_str)
   int fd = open(name, O_RDWR);
   if (fd < 0)
     caml_failwith("tap open failed");
+  /* Mark interface as up
+     Since MacOS doesnt have ethernet bridging built in, the
+     IP binding is temporary until someone writes a KPI filter for Darwin */
+  char buf[1024];
+  snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.0.0.1 netmask 255.255.255.0 up", String_val(v_str));
+  system(buf);
   ev_fds[fd] = 1;
   return Val_int(fd);
 }

@@ -60,9 +60,11 @@ CAMLprim value
 tap_write(value v_fd, value v_buf)
 {
   int fd = Int_val(v_fd);
-  size_t len = caml_string_length(v_buf);
+  ssize_t len = caml_string_length(v_buf);
   int res = write(fd, String_val(v_buf), len);
-  if (res != len)
+  if (res != len) {
+    fprintf(stderr, "tap_write: not full res=%d len=%lu (%s)\n", res, len, strerror(errno));
     caml_failwith("tap_write: not full write");
+  }
   return Val_int(len);
 }

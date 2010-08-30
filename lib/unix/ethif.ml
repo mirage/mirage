@@ -45,7 +45,6 @@ let create id =
 
 (* Input all available pages from receive ring and return detached page list *)
 let input_raw t =
-    print_endline "input_raw";
     [ Tap.read t.dev ]
 
 (* Number of unconsumed responses waiting for receive *)
@@ -72,7 +71,8 @@ let enumerate () =
 let output nf frame =
     Lwt_pool.use nf.env_pool (fun buf ->
       let env = Mpl.Mpl_stdlib.new_env buf in
-      let _ = Mpl.Ethernet.m frame env in
+      let o = Mpl.Ethernet.m frame env in
+      Mpl.Ethernet.prettyprint o;
       let buf = Mpl.Mpl_stdlib.string_of_env env in
       output_raw nf buf
     )
@@ -83,7 +83,6 @@ let input_one nf fn sub =
      let fillfn dst off len = Tap.read nf.dev dst off 4096  in
      let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
      let e = Mpl.Ethernet.unmarshal env in
-     Mpl.Ethernet.prettyprint e;
      fn e
    )
 
@@ -91,10 +90,8 @@ let input_one nf fn sub =
 let rec input nf fn =
     match has_input nf with
     |0 ->
-       prerr_endline "waiting on input";
        Lwt_condition.wait nf.rx_cond >>
-       (prerr_endline "woken on input";
-       input nf fn)
+       input nf fn
     |n -> 
        Lwt_list.iter_s (input_one nf fn) (input_raw nf);
 

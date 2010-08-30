@@ -91,13 +91,10 @@ module ARP(IF: Ethif.UP) = struct
         (* If we have a pending entry, notify the waiters that an answer is ready *)
         if Hashtbl.mem t.cache frm_ip then begin
           match Hashtbl.find t.cache frm_ip with
-          |Incomplete cond ->
-            printf "     notifying waiters\n%!";
-            Lwt_condition.broadcast cond frm_mac
+          |Incomplete cond -> Lwt_condition.broadcast cond frm_mac
           |_ -> ()
         end;
-        Hashtbl.replace t.cache frm_ip (Verified frm_mac);
-        return ()
+        return (Hashtbl.replace t.cache frm_ip (Verified frm_mac));
       |`Unknown _ -> return ()
     end
     |`IPv6 |`Unknown _ -> return ()
@@ -123,10 +120,25 @@ module ARP(IF: Ethif.UP) = struct
     Lwt_list.iter_s (fun ip ->
       let ip = `Str (ipv4_addr_to_bytes ip) in
       output t (Mpl.Ethernet.ARP.t
-        ~dest_mac ~src_mac ~ptype: `IPv4 ~operation: `Reply
-        ~sha: src_mac ~tpa: ip ~tha: dest_mac ~spa: ip
+        ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Reply
+        ~sha:src_mac ~tpa:ip ~tha:dest_mac ~spa:ip
      )
     ) t.bound_ips
+
+  (* Send a query for a particular IP *)
+  let output_probe t ip =
+    let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
+    let src_mac = `Str (ethernet_mac_to_bytes (IF.mac t.ethif)) in
+    (* Source protocol address, pick one of our IP addresses *)
+    let spa = match t.bound_ips with
+      |hd::tl -> `Str (ipv4_addr_to_bytes hd)
+      |[] -> `Str (ipv4_addr_to_bytes ipv4_blank) in
+    (* Target protocol address, the desired IP address *)
+    let tpa = `Str (ipv4_addr_to_bytes ip) in
+    output t (Mpl.Ethernet.ARP.t
+      ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Request
+      ~sha:src_mac ~spa ~tha:dest_mac ~tpa)
+
   let get_bound_ips t = t.bound_ips
 
   (* Set the bound IP address list, which will xmit a GARP packet also *)
@@ -143,12 +155,15 @@ module ARP(IF: Ethif.UP) = struct
          printf "ARP query: %s -> [incomplete]\n%!" (ipv4_addr_to_string ip);
          Lwt_condition.wait cond
       |Verified mac ->
-         printf "ARP query: %s -> %s\n%!" (ipv4_addr_to_string ip) (ethernet_mac_to_string mac);
+         (* printf "ARP query: %s -> %s\n%!" 
+            (ipv4_addr_to_string ip) (ethernet_mac_to_string mac); *)
          return mac
     ) else (
       let cond = Lwt_condition.create () in
       printf "ARP query: %s -> [probe]\n%!" (ipv4_addr_to_string ip);
       Hashtbl.add t.cache ip (Incomplete cond);
+      (* First request, so send a query packet *)
+      output_probe t ip >>
       Lwt_condition.wait cond
     )
 end

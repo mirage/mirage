@@ -185,7 +185,9 @@ let output nf frame =
       let sub = Hw_page.alloc_sub () in
       let _ = Mpl.Ethernet.m frame env in
       let buf = Mpl.Mpl_stdlib.string_of_env env in
-      Hw_page.write buf 0 sub.Hw_page.page 0 (String.length buf);
+      let len = String.length buf in
+      Hw_page.write buf 0 sub.Hw_page.page 0 len;
+      let sub = { sub with Hw_page.len=len } in
       output_raw nf sub
     )
 
@@ -193,7 +195,7 @@ let output nf frame =
     TODO Not zero copy until the MPL backend is modified *)
 let input nf fn =
    let subs = input_low nf in
-   Lwt_list.iter_p (fun sub ->
+   List.map (fun sub ->
      Lwt_pool.use nf.env_pool (fun buf ->
        let fillfn dstbuf dstoff len =
          Hw_page.(read sub.page sub.off dstbuf dstoff sub.len);

@@ -23,7 +23,7 @@ module type ETHIF = sig
   val enumerate : unit -> id list Lwt.t
   val create : id -> t Lwt.t
   val destroy : t -> unit Lwt.t
-  val input : t -> Mpl.Ethernet.o Lwt.t
+  val input : t -> (Mpl.Ethernet.o -> unit Lwt.t) -> unit Lwt.t
   val has_input : t -> bool
   val wait : t -> unit Lwt.t
   val output : t -> Mpl.Ethernet.x -> unit Lwt.t
@@ -64,14 +64,14 @@ module Ethernet(IF:ETHIF) = struct
     let rec loop acc =
       match IF.has_input t.ethif with
       |true -> 
-         lwt e = IF.input t.ethif in
-         (* spawn new thread r for receive handling *)
-         let r = match e with
-         |`ARP arp -> t.arp arp
-         |`IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_env)
-         |`IPv6 ipv6 -> t.ipv6 ipv6 in
+         let es = IF.input t.ethif
+           (function
+            |`ARP arp -> t.arp arp
+            |`IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_env)
+            |`IPv6 ipv6 -> t.ipv6 ipv6
+           ) in
          (* result is existing threads joined to r *)
-         let acc = join [r;acc] in
+         let acc = join [acc; es] in
          loop acc
       |false ->
          IF.wait t.ethif >>

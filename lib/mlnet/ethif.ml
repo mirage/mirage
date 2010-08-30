@@ -23,7 +23,9 @@ module type ETHIF = sig
   val enumerate : unit -> id list Lwt.t
   val create : id -> t Lwt.t
   val destroy : t -> unit Lwt.t
-  val input : t -> (Mpl.Ethernet.o -> unit Lwt.t) -> unit Lwt.t
+  val input : t -> Mpl.Ethernet.o Lwt.t
+  val has_input : t -> bool
+  val wait : t -> unit Lwt.t
   val output : t -> Mpl.Ethernet.x -> unit Lwt.t
   val mac : t -> string
 end
@@ -33,7 +35,6 @@ module type UP = sig
   type t
   type id
   val create: id -> (t * unit Lwt.t) Lwt.t
-  val input : t -> unit Lwt.t
   val output : t -> Mpl.Ethernet.x -> unit Lwt.t
   val attach :
     t ->
@@ -59,25 +60,30 @@ module Ethernet(IF:ETHIF) = struct
 
   type id = IF.id
 
-  (* Block on input on the interface and route any packets up stack *) 
-  let input t =
-    IF.input t.ethif (function
-      |`ARP arp -> t.arp arp
-      |`IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_env)
-      |`IPv6 ipv6 -> t.ipv6 ipv6
-    ) 
-
+  let listen t th = 
+    let rec loop acc =
+      match IF.has_input t.ethif with
+      |true -> 
+         lwt e = IF.input t.ethif in
+         (* spawn new thread r for receive handling *)
+         let r = match e with
+         |`ARP arp -> t.arp arp
+         |`IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_env)
+         |`IPv6 ipv6 -> t.ipv6 ipv6 in
+         (* result is existing threads joined to r *)
+         let acc = join [r;acc] in
+         loop acc
+      |false ->
+         IF.wait t.ethif >>
+         loop acc
+    in
+    loop (return ())
+         
   let output t e =
     IF.output t.ethif e
 
-  (* Listen until our shutdown thread is cancelled, then exit *)
-  let listen t th =
-    let rec loop () = input t >> loop () in
-    loop () <?> th
-
   let create id = 
     lwt ethif = IF.create id in
-
     let arp = (fun _ -> return (print_endline "dropped arp")) in
     let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
     let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in

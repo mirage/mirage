@@ -16,6 +16,8 @@
 
 open Lwt
 open Mlnet_types
+open Printf
+
 module MS=Mpl.Mpl_stdlib
 
 module ICMP(IP:Ipv4.UP) = struct
@@ -26,12 +28,12 @@ module ICMP(IP:Ipv4.UP) = struct
 
   let input t ip = function
   |`EchoRequest icmp ->
-    Mpl.Icmp.EchoRequest.prettyprint icmp;
-    let dest_ip = ipv4_addr_of_uint32 ip#dest in
+    (* Create the ICMP echo reply *)
+    let dest_ip = ipv4_addr_of_uint32 ip#src in
+    let sequence = icmp#sequence in
+    let identifier = icmp#identifier in
+    let data = `Frag icmp#data_frag in
     let icmpfn env =
-      let identifier = icmp#identifier in
-      let sequence = icmp#sequence in
-      let data = `Frag icmp#data_frag in
       let packet = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
       let csum = Checksum.icmp_checksum (MS.env_pos env 0) in
       packet#set_checksum csum;

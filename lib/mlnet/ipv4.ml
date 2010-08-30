@@ -84,7 +84,6 @@ module IPv4 (IF:Ethif.UP)
     let netmask = ipv4_blank in
     let gateways = [] in
     let t = { ethif; arp; thread; udp; icmp; ip; netmask; gateways } in
-    printf "IPv4.create done\n%!";
     IF.attach t.ethif (`IPv4 (input t));
     let th = join [ethif_t; arp_t; thread ] in
     return (t, th)

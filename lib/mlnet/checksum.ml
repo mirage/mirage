@@ -31,6 +31,17 @@ let ip_checksum sz env =
     done;
     ones_checksum !sum
 
+let icmp_checksum env =
+    let sum = ref 0 in
+    let sz = M.size env / 4 in
+    for i = 1 to sz do
+        let x = M.Mpl_uint16.to_int (M.Mpl_uint16.unmarshal env) in
+        let y = M.Mpl_uint16.to_int (M.Mpl_uint16.unmarshal env) in
+        let y = if i = 1 then 0 else y in (* zero out checksum header *)
+        sum := !sum + x + y;
+    done;
+    ones_checksum !sum
+
 let data_env ob fn =
     let env = ob#data_env in fn env
 

@@ -28,14 +28,19 @@ module type UP = sig
   val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
   val get_bound_ips: t -> ipv4_addr list
   val create: ethif -> (t * unit Lwt.t)
+  val query: t -> ipv4_addr -> ethernet_mac Lwt.t
 end
 
 module ARP(IF: Ethif.UP) = struct
 
-  (* TODO: ARP timeout with an Lwt_pqueue and not just a hashtable *)
+  (* TODO implement the full ARP state machine (pending, failed, timer thread, etc) *)
+  type entry =
+    |Incomplete of ethernet_mac Lwt_condition.t
+    |Verified of ethernet_mac
+
   type t = {
     ethif: IF.t;
-    cache: (ethernet_mac, ipv4_addr) Hashtbl.t;
+    cache: (ipv4_addr, entry) Hashtbl.t;
     mutable bound_ips: ipv4_addr list;
     thread: unit Lwt.t;
   }
@@ -46,10 +51,14 @@ module ARP(IF: Ethif.UP) = struct
   (* Prettyprint cache contents *)
   let prettyprint t =
     printf "ARP info:\n"; 
-    Hashtbl.iter (fun mac ip -> 
+    Hashtbl.iter (fun ip entry -> 
       printf "%s -> %s\n%!" 
-        (ethernet_mac_to_string mac) 
-        (ipv4_addr_to_string ip)) t.cache
+        (ipv4_addr_to_string ip)
+        (match entry with
+         |Incomplete _ -> "I"
+         |Verified mac -> sprintf "V(%s)" (ethernet_mac_to_string mac)
+       )
+    ) t.cache
 
   (* Transmit an ARP packet *)
   let output t arp =
@@ -78,8 +87,16 @@ module ARP(IF: Ethif.UP) = struct
       |`Reply ->
         let frm_mac = ethernet_mac_of_bytes arp#sha in
         let frm_ip = ipv4_addr_of_bytes arp#spa in
-        Hashtbl.replace t.cache frm_mac frm_ip;
-        prettyprint t;
+        printf "ARP: updating %s -> %s\n%!" (ipv4_addr_to_string frm_ip) (ethernet_mac_to_string frm_mac);
+        (* If we have a pending entry, notify the waiters that an answer is ready *)
+        if Hashtbl.mem t.cache frm_ip then begin
+          match Hashtbl.find t.cache frm_ip with
+          |Incomplete cond ->
+            printf "     notifying waiters\n%!";
+            Lwt_condition.broadcast cond frm_mac
+          |_ -> ()
+        end;
+        Hashtbl.replace t.cache frm_ip (Verified frm_mac);
         return ()
       |`Unknown _ -> return ()
     end
@@ -117,4 +134,21 @@ module ARP(IF: Ethif.UP) = struct
     t.bound_ips <- ips;
     output_garp t
 
+  (* Query the cache for an ARP entry, which may result in the sender sleeping
+     waiting for a response *)
+  let query t ip =
+    if Hashtbl.mem t.cache ip then (
+      match Hashtbl.find t.cache ip with
+      |Incomplete cond ->
+         printf "ARP query: %s -> [incomplete]\n%!" (ipv4_addr_to_string ip);
+         Lwt_condition.wait cond
+      |Verified mac ->
+         printf "ARP query: %s -> %s\n%!" (ipv4_addr_to_string ip) (ethernet_mac_to_string mac);
+         return mac
+    ) else (
+      let cond = Lwt_condition.create () in
+      printf "ARP query: %s -> [probe]\n%!" (ipv4_addr_to_string ip);
+      Hashtbl.add t.cache ip (Incomplete cond);
+      Lwt_condition.wait cond
+    )
 end

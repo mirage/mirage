@@ -18,17 +18,21 @@ open Lwt
 open Printf
 open Mlnet_types
 
-module type UP_conf = sig
+module type UP = sig
   type t
-  val output: t -> (Mpl.Ipv4.o -> unit Lwt.t) -> unit Lwt.t
+  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
+  val set_ip: t -> ipv4_addr -> unit Lwt.t
+  val set_netmask: t -> ipv4_addr -> unit Lwt.t
+  val set_gateways: t -> ipv4_addr list -> unit Lwt.t
   val attach: t -> 
-    [  `UDP of Mpl.Udp.o -> unit Lwt.t
-     | `ICMP of Mpl.Icmp.o -> unit Lwt.t
-    ]
+    [  `UDP of Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
+     | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
+    ] -> unit
 end
 
 module IPv4 (IF:Ethif.UP)
-            (ARP:Arp.UP with type id=IF.id and type ethif=IF.t) = struct
+            (ARP:Arp.UP with type id=IF.id and type ethif=IF.t)
+            = struct
 
   type state =
   |Obtaining_ip
@@ -40,9 +44,11 @@ module IPv4 (IF:Ethif.UP)
     ethif: IF.t;
     arp: ARP.t;
     thread: unit Lwt.t;
-    mutable udp: (Mpl.Udp.o -> unit Lwt.t);
-(*    mutable tcp: (Mpl.Tcp.o -> unit Lwt.t); *)
-    mutable icmp: (Mpl.Icmp.o -> unit Lwt.t);
+    mutable ip: ipv4_addr;
+    mutable netmask: ipv4_addr;
+    mutable gateways: ipv4_addr list;
+    mutable udp: (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t);
+    mutable icmp: (Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t);
   }
 
   let output_broadcast t ip =
@@ -52,28 +58,49 @@ module IPv4 (IF:Ethif.UP)
       ~data:(`Sub ip) in
     IF.output t.ethif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
-  let output t ip =
+  let output t ~dest_ip ip =
     (* Query ARP for destination MAC address to send this to *)
-    return ()
+    lwt dest_mac = ARP.query t.arp dest_ip in
+    let etherfn = Mpl.Ethernet.IPv4.t
+      ~dest_mac:(`Str (ethernet_mac_to_bytes dest_mac))
+      ~src_mac:(`Str (ethernet_mac_to_bytes (IF.mac t.ethif)))
+      ~data:(`Sub ip) in
+    IF.output t.ethif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
   let input t (ip:Mpl.Ipv4.o) =
     match ip#protocol with
-    |`UDP -> t.udp (Mpl.Udp.unmarshal ip#data_env)
+    |`UDP -> t.udp ip (Mpl.Udp.unmarshal ip#data_env)
     |`TCP -> return ()
-    |`ICMP -> t.icmp (Mpl.Icmp.unmarshal ip#data_env)
+    |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal ip#data_env)
     |`IGMP |`Unknown _ -> return ()
 
   let create id = 
     lwt (ethif, ethif_t) = IF.create id in
     let arp, arp_t = ARP.create ethif in
     let thread,_ = Lwt.task () in
-    let udp = (fun _ -> return (print_endline "dropped udp")) in
-    let icmp = (fun _ -> return (print_endline "dropped icmp")) in
-    let t = { ethif; arp; thread; udp; icmp } in
+    let udp = (fun _ _ -> return (print_endline "dropped udp")) in
+    let icmp = (fun _ _ -> return (print_endline "dropped icmp")) in
+    let ip = ipv4_blank in
+    let netmask = ipv4_blank in
+    let gateways = [] in
+    let t = { ethif; arp; thread; udp; icmp; ip; netmask; gateways } in
     printf "IPv4.create done\n%!";
     IF.attach t.ethif (`IPv4 (input t));
     let th = join [ethif_t; arp_t; thread ] in
     return (t, th)
+
+  let set_ip t ip = 
+    t.ip <- ip;
+    (* Inform ARP layer of new IP *)
+    ARP.set_bound_ips t.arp [ip]
+
+  let set_netmask t netmask =
+    t.netmask <- netmask;
+    return ()
+
+  let set_gateways t gateways =
+    t.gateways <- gateways;
+    return ()
 
   let attach t = function
     |`UDP f -> t.udp <- f

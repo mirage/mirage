@@ -97,7 +97,7 @@ module Ethernet(IF:ETHIF) = struct
     |`IPv4 -> t.ipv4 <- (fun _ -> return ())
     |`IPv6 -> t.ipv6 <- (fun _ -> return ())
 
-  let mac t = IF.mac t.ethif
+  let mac t = t.mac
   let enumerate = IF.enumerate
 
 end

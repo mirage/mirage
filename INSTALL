@@ -1,0 +1,45 @@
+Mirage has been tested on:
+- Debian Squeeze x86_64 (there is no x86_32 support yet)
+- MacOS X 10.6 Snow Leopard
+
+To build it, you must first:
+1) Bootstrap the compiler toolchain
+2) Build the tools
+3) Build the core libraries
+
+Bootstrap
+---------
+
+This builds and installs the compiler toolchain, by default into ~/mir-inst. You can alter this by setting the PREFIX variable to the make target:
+
+$ make PREFIX=<location> bootstrap
+
+At this point, add the <location> to your PATH variable so that the remaining steps can find the toolchain.
+
+Tools
+-----
+
+This installs the build tools and syntax extensions into the install PREFIX.
+
+$ make PREFIX=<location> tools
+
+The tools include the 'mir' build utility, a custom version of ocamldsort to help with dependency management, and the MPL protocol specification meta-compiler.
+
+Libraries
+---------
+
+$ make
+
+This will build the OCaml libraries and the Xen custom runtime, if appropriate.
+
+Build an application
+--------------------
+
+Build a Xen kernel in-tree:
+$ mir dx tests/ping
+output will be in tests/ping/mirage-os.gz
+
+Build a UNIX binary in-tree:
+$ mir du tests/ping
+output will be in tests/ping/mirage-unix
+

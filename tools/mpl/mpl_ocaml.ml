@@ -325,7 +325,7 @@ let ocaml_const_of_id id =
     |V.Packet (p,_) -> 
         (* XXX could read a static size from an external
            interface file but not yet *)
-        `Dyn (sprintf "(%s.%s.sizeof %s)" p p id)
+        `Dyn (sprintf "(%s.sizeof %s)" p id)
     |V.Array (_,V.UInt V.I8,_) -> begin
         let sz = must (fun x -> x) szo in
         try `Const (E.to_const_int sz)
@@ -449,7 +449,7 @@ let print_unmarshal env e l =
               failwith "propagating args across packets not yet supported, sorry!";
             (* need to rebase the environment since this packet is foreign *)
             e += "let ___%s___env = env_at env (curpos env) 0 in" $ id;
-            e += "let %s = %s.%s.unmarshal ___%s___env in" $ id $ p $ p $ id;
+            e += "let %s = %s.unmarshal ___%s___env in" $ id $ p $ id;
             (* skip forward by the amount of  unmarshalling that happened *)
             e += "skip env (curpos ___%s___env);" $ id;
           |ty -> 
@@ -618,7 +618,7 @@ let print_struct env e l =
               if not (must E.is_const szo) then 
                 e += "~(%s_length:int)" $ id
             |`Free (id,szo,V.Packet (p,_)) ->
-              e += "~(%s:%s.%s.o)" $ id $ p $ p;
+              e += "~(%s:%s.o)" $ id $ p;
             |`Free (id,szo,V.Class cid) ->
               e += "~(%s:%s array)" $ id $ (objname ~sub:env.mods cid);
               e += "(* mods:[%s], instr:false *)" $ (String.concat "," (List.rev env.mods));
@@ -771,7 +771,7 @@ let print_struct env e l =
                   e += "Array.iter %s.prettyprint %s;" $ (modname ~sub:env.mods cid) $ id;
                 |V.Packet (p,_) -> 
                   e += "out (\" %s = packet(%s)\");" $ id $ p;
-                  e += "%s.%s.prettyprint %s;" $ p $ p $ id;
+                  e += "%s.prettyprint %s;" $ p $ id;
                 |x -> prfn (custom_type_prettyprint id x);
                 in ()
               ) fvars;
@@ -815,7 +815,7 @@ let print_struct env e l =
                        let _ = match v with
                        |V.Packet (p,_) ->
                          e.p (sprintf "let ___env = env_at env (%s) 0 in" (foldfn !szs));
-                         e.p (sprintf "let %s = %s.%s.m %s ___env in let %s___len = size ___env in" id p p id id);
+                         e.p (sprintf "let %s = %s.m %s ___env in let %s___len = size ___env in" id p id id);
                        |V.Array (_,V.UInt V.I8,at) ->
                          let needalign,alignamt = match at with
                          |{V.aa_align=Some alval} -> true,(alval/8)

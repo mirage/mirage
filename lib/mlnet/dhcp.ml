@@ -115,6 +115,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
             (match info.netmask with 
              | Some x -> IP.set_netmask t.ip x 
              | None -> return ()) >>
+            IP.set_gateways t.ip info.gateways >>
             return ()
        end
        |_ -> printf "DHCP: ack not for us\n%!"; return ()

@@ -42,6 +42,13 @@ module IPv4 (IF:Ethif.UP)
   |Down
   |Shutting_down
 
+  type classify =
+  |Broadcast
+  |Gateway
+  |Local
+
+  exception No_route_to_destination_address of ipv4_addr
+
   type t = {
     ethif: IF.t;
     arp: ARP.t;
@@ -60,9 +67,26 @@ module IPv4 (IF:Ethif.UP)
       ~data:(`Sub ip) in
     IF.output t.ethif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
+  let is_local t ip =
+    let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
+    (ipand t.ip t.netmask) = (ipand ip t.netmask)
+
+  let classify_ip t = function
+    | ip when ip = ipv4_broadcast -> Broadcast
+    | ip when ip = ipv4_blank -> Broadcast
+    | ip when is_local t ip -> Local
+    | ip -> Gateway
+
   let output t ~dest_ip ip =
     (* Query ARP for destination MAC address to send this to *)
-    lwt dest_mac = ARP.query t.arp dest_ip in
+    lwt dest_mac = match classify_ip t dest_ip with
+    | Broadcast -> return ethernet_mac_broadcast
+    | Local -> ARP.query t.arp dest_ip
+    | Gateway -> begin
+        match t.gateways with 
+        | hd :: _ -> ARP.query t.arp hd
+        | [] -> fail (No_route_to_destination_address dest_ip)
+      end in
     let etherfn = Mpl.Ethernet.IPv4.t
       ~dest_mac:(`Str (ethernet_mac_to_bytes dest_mac))
       ~src_mac:(`Str (ethernet_mac_to_bytes (IF.mac t.ethif)))

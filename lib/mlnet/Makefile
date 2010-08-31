@@ -8,8 +8,9 @@ LWTLIB=$(ROOTDIR)/lib/lwt
 MPLLIB=$(ROOTDIR)/lib/mpl
 INCLUDES=-I $(ROOTDIR)/lib/stdlib -I $(ROOTDIR)/lib/lwt -I $(ROOTDIR)/lib/mpl
 
-SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml icmp.ml
-CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx icmp.cmx
+SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml icmp.ml udp.ml
+CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx icmp.cmx udp.cmx
+
 .PHONY: build
 build: mlnet.cmx
 	@ :

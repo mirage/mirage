@@ -18,6 +18,12 @@ open Lwt
 open Mlnet_types
 open Printf
 
+module type UP = sig
+  type t
+  val input: t -> Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
+  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
+end
+
 module UDP(IP:Ipv4.UP) = struct
 
   type t = {
@@ -55,5 +61,4 @@ module UDP(IP:Ipv4.UP) = struct
     let t = { ip; listeners } in
     IP.attach ip (`UDP (input t));
     t
-
 end

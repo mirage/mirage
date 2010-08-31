@@ -31,6 +31,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
   }
 
   type state = 
+  | Disabled
   | Request_sent of int32
   | Offer_accepted of offer
   | Lease_held of offer
@@ -68,7 +69,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
     in
     UDP.output t.udp ~dest_ip udpfn
 
-   (* Receive a DHCP UDP packet *)
+  (* Receive a DHCP UDP packet *)
   let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
     let dhcp = Mpl.Dhcp.unmarshal udp#data_env in 
     let packet = Dhcp_option.Packet.of_bytes dhcp#options in
@@ -98,7 +99,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
             (t.state <- Offer_accepted offer;
             return ())
         end
-        |_ -> Printf.printf "DHCP: offer not for us"; return ()
+        |_ -> printf "DHCP: offer not for us"; return ()
     end
     | Offer_accepted info -> begin
         (* we are expecting an ACK *)
@@ -135,4 +136,11 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
     (t.state <- Request_sent xid;
     return ())
 
+  (* Create a DHCP thread *)
+  let create ip udp =
+    let state = Disabled in
+    let t = { ip; udp; state } in
+    UDP.listen t.udp 68 (input t);
+    start_discovery t >>
+    return t
 end

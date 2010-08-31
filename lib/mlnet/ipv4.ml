@@ -85,7 +85,9 @@ module IPv4 (IF:Ethif.UP)
     | Gateway -> begin
         match t.gateways with 
         | hd :: _ -> ARP.query t.arp hd
-        | [] -> fail (No_route_to_destination_address dest_ip)
+        | [] -> 
+            printf "IP.output: no route to %s\n%!" (ipv4_addr_to_string dest_ip);
+            fail (No_route_to_destination_address dest_ip)
       end in
     let ipfn env = 
       let p = ip env in

@@ -47,9 +47,9 @@ module UDP(IP:Ipv4.UP) = struct
   let output t ~dest_ip udp =
     let dest = ipv4_addr_to_uint32 dest_ip in
     let src = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
-    let ipfn env =
-      ignore(Mpl.Ipv4.t ~dest ~src ~protocol:`UDP ~checksum:0
-      ~options:`None ~ttl:35 ~id:36 ~data:(`Sub udp) env) in
+    let ipfn =
+      Mpl.Ipv4.t ~dest ~src ~protocol:`UDP ~checksum:0
+      ~options:`None ~ttl:35 ~id:36 ~data:(`Sub udp) in
     IP.output t.ip ~dest_ip ipfn
 
   let listen t port fn =

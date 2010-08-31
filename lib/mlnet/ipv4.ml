@@ -20,7 +20,7 @@ open Mlnet_types
 
 module type UP = sig
   type t
-  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
+  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Ipv4.o) -> unit Lwt.t
   val set_ip: t -> ipv4_addr -> unit Lwt.t
   val get_ip: t -> ipv4_addr
   val mac: t -> ethernet_mac
@@ -87,10 +87,16 @@ module IPv4 (IF:Ethif.UP)
         | hd :: _ -> ARP.query t.arp hd
         | [] -> fail (No_route_to_destination_address dest_ip)
       end in
+    let ipfn env = 
+      let p = ip env in
+      let csum = Checksum.ip_checksum (p#header_end / 4)
+        (Mpl.Mpl_stdlib.env_pos env 0) in
+      p#set_checksum csum;
+    in
     let etherfn = Mpl.Ethernet.IPv4.t
       ~dest_mac:(`Str (ethernet_mac_to_bytes dest_mac))
       ~src_mac:(`Str (ethernet_mac_to_bytes (IF.mac t.ethif)))
-      ~data:(`Sub ip) in
+      ~data:(`Sub ipfn) in
     IF.output t.ethif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
   let input t (ip:Mpl.Ipv4.o) =

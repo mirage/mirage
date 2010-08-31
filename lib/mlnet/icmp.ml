@@ -42,12 +42,8 @@ module ICMP(IP:Ipv4.UP) = struct
     let id = ip#id in 
     let src = ip#dest in
     let dest = ip#src in
-    let ipfn env =
-      let packet = Mpl.Ipv4.t ~id ~ttl:34 ~protocol:`ICMP ~src
-        ~dest ~options:`None ~data:(`Sub icmpfn) env in
-      let csum = Checksum.ip_checksum (packet#header_end / 4) (MS.env_pos env 0) in
-      packet#set_checksum csum
-    in
+    let ipfn = Mpl.Ipv4.t ~id ~ttl:34 ~protocol:`ICMP ~src
+        ~dest ~options:`None ~data:(`Sub icmpfn) in
     IP.output t.ip ~dest_ip ipfn
 
   |_ -> print_endline "dropped icmp"; return ()

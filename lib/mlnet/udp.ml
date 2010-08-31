@@ -22,6 +22,7 @@ module type UP = sig
   type t
   val input: t -> Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
   val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
+  val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t) -> unit
 end
 
 module UDP(IP:Ipv4.UP) = struct
@@ -49,7 +50,7 @@ module UDP(IP:Ipv4.UP) = struct
     let ipfn env =
       ignore(Mpl.Ipv4.t ~dest ~src ~protocol:`UDP ~checksum:0
       ~options:`None ~ttl:35 ~id:36 ~data:(`Sub udp) env) in
-    IP.output t.ip ipfn
+    IP.output t.ip ~dest_ip ipfn
 
   let listen t port fn =
     if Hashtbl.mem t.listeners port then

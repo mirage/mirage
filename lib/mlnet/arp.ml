@@ -118,11 +118,13 @@ module ARP(IF: Ethif.UP) = struct
   let output_garp t =
     let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
     let src_mac = `Str (ethernet_mac_to_bytes (IF.mac t.ethif)) in
+    let tpa = `Str (ipv4_addr_to_bytes ipv4_blank) in
     Lwt_list.iter_s (fun ip ->
+      Printf.printf "ARP: sending gratuitous from %s\n%!" (ipv4_addr_to_string ip);
       let ip = `Str (ipv4_addr_to_bytes ip) in
       output t (Mpl.Ethernet.ARP.t
         ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Reply
-        ~sha:src_mac ~tpa:ip ~tha:dest_mac ~spa:ip
+        ~sha:src_mac ~spa:ip ~tha:dest_mac ~tpa
      )
     ) t.bound_ips
 

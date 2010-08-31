@@ -23,6 +23,7 @@ module type UP = sig
   val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
   val set_ip: t -> ipv4_addr -> unit Lwt.t
   val get_ip: t -> ipv4_addr
+  val mac: t -> ethernet_mac
   val set_netmask: t -> ipv4_addr -> unit Lwt.t
   val set_gateways: t -> ipv4_addr list -> unit Lwt.t
   val attach: t -> 
@@ -103,6 +104,8 @@ module IPv4 (IF:Ethif.UP)
   let set_gateways t gateways =
     t.gateways <- gateways;
     return ()
+
+  let mac t = IF.mac t.ethif
 
   let attach t = function
     |`UDP f -> t.udp <- f

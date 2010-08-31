@@ -15,6 +15,7 @@
  */
 
 #include <unistd.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,25 +56,14 @@ CAMLprim value
 tap_opendev(value v_str)
 {
   char dev[IFNAMSIZ];
+  char buf[4096];
   int fd;
   bzero(dev, sizeof dev);
   memcpy(dev, String_val(v_str), caml_string_length(v_str));
   fd = tun_alloc(dev);
+  snprintf(buf, sizeof buf, "ip link set %s up", dev);
+  system(buf);
   ev_fds[fd] = 1;
   return Val_int(fd);
 }
 
-CAMLprim value
-tap_mac(value v_name, value v_fd)
-{
-  CAMLparam2(v_name, v_fd);
-  CAMLlocal1(v_str);
-  int fd = Int_val(v_fd);
-  struct ifreq ifr;
-  memset(&ifr, 0, sizeof(ifr));
-  if (ioctl(fd, SIOCGIFHWADDR, (void *)&ifr) < 0)
-    caml_failwith("tuntap SIOCGIFHWADDR failed");
-  v_str = caml_alloc_string(6);
-  memcpy(String_val(v_str), ifr.ifr_hwaddr.sa_data, 6);
-  CAMLreturn(v_str);
-}

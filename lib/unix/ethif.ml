@@ -23,7 +23,6 @@ module Tap = struct
   external read: t -> string -> int -> int -> int = "tap_read"
   external has_input: t -> int = "tap_has_input"
   external write: t -> string -> unit = "tap_write"
-  external mac: string -> t -> string = "tap_mac"
 end
 
 type t = {
@@ -31,17 +30,31 @@ type t = {
     dev: Tap.t;
     env_pool: string Lwt_pool.t;
     rx_cond: unit Lwt_condition.t;
+    mac: string;
 }
 
 type id = string
+
+let generate_local_mac () =
+    let x = String.create 6 in
+    let i () = Char.chr (Random.int 256) in
+    (* set locally administered and unicast bits *)
+    x.[0] <- Char.chr ((((Random.int 256) lor 2) lsr 1) lsl 1);
+    x.[1] <- i ();
+    x.[2] <- i ();
+    x.[3] <- i ();
+    x.[4] <- i ();
+    x.[5] <- i ();
+    x
 
 let create id =
     let dev = Tap.opendev id in
     let env_pool = Lwt_pool.create 5 
       (fun () -> return (String.make 4096 '\000')) in
     let rx_cond = Lwt_condition.create () in
+    let mac = generate_local_mac () in
     Activations.register dev (Activations.Event_condition rx_cond);
-    return { id; dev; env_pool; rx_cond }
+    return { id; dev; env_pool; rx_cond; mac }
 
 (* Input all available pages from receive ring and return detached page list *)
 let input_raw t =
@@ -51,7 +64,7 @@ let input_raw t =
 let has_input t =
     Tap.has_input t.dev > 0
 
-let mac t = Tap.mac t.id t.dev
+let mac t = t.mac
 
 (* Shutdown a netfront *)
 let destroy nf =
@@ -85,5 +98,4 @@ let input nf fn =
       return ()
     ) ]
    
-
 let wait nf = Lwt_condition.wait nf.rx_cond

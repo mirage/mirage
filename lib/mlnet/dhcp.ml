@@ -61,11 +61,10 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
         ~options env)
     in
     let dest_ip = ipv4_broadcast in
-    let udpfn env = 
-      ignore(Mpl.Udp.t
+    let udpfn = Mpl.Udp.t
         ~source_port:68 ~dest_port:67
         ~checksum:0
-        ~data:(`Sub dhcpfn) env)
+        ~data:(`Sub dhcpfn)
     in
     UDP.output t.udp ~dest_ip udpfn
 
@@ -125,6 +124,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
  
   (* Start a DHCP discovery off on an interface *)
   let start_discovery t =
+    (* XXX TODO this Random needs to be functorized! *)
     let xid = Random.int32 Int32.max_int in
     let yiaddr = ipv4_blank in
     let siaddr = ipv4_blank in

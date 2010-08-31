@@ -21,7 +21,7 @@ open Printf
 module type UP = sig
   type t
   val input: t -> Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
-  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
+  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Udp.o) -> unit Lwt.t
   val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t) -> unit
 end
 
@@ -36,7 +36,6 @@ module UDP(IP:Ipv4.UP) = struct
     let dest_port = udp#dest_port in
     if Hashtbl.mem t.listeners dest_port then begin
       let fn = Hashtbl.find t.listeners dest_port in
-      printf "UDP: routing to listener for port %d\n%!" dest_port;
       fn ip udp
     end else
       return ()
@@ -47,9 +46,13 @@ module UDP(IP:Ipv4.UP) = struct
   let output t ~dest_ip udp =
     let dest = ipv4_addr_to_uint32 dest_ip in
     let src = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
+    let udpfn env =
+       let _ = udp env in
+       (* TODO Calculate checksum here *)
+       () in
     let ipfn =
       Mpl.Ipv4.t ~dest ~src ~protocol:`UDP ~checksum:0
-      ~options:`None ~ttl:35 ~id:36 ~data:(`Sub udp) in
+      ~options:`None ~ttl:35 ~id:36 ~data:(`Sub udpfn) in
     IP.output t.ip ~dest_ip ipfn
 
   let listen t port fn =

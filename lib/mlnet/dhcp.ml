@@ -16,14 +16,9 @@
  *)
 
 open Lwt
-open Mpl
-open Mpl_dhcp
-open Mpl_udp
-open Mpl_ipv4
-open Mpl_ethernet
 open Printf
-module MT = Mlnet_types
-module MS = Mpl_stdlib
+open Mlnet_types
+module MS = Mpl.Mpl_stdlib
 
 module Options = struct
 
@@ -72,21 +67,21 @@ module Options = struct
 
   type t = [   (* Full message payloads *)
     | `Pad
-    | `Subnet_mask of MT.ipv4_addr
+    | `Subnet_mask of ipv4_addr
     | `Time_offset of string
-    | `Router of MT.ipv4_addr list
-    | `Broadcast of MT.ipv4_addr
-    | `Time_server of MT.ipv4_addr list
-    | `Name_server of MT.ipv4_addr list
-    | `DNS_server of MT.ipv4_addr list
-    | `Netbios_name_server of MT.ipv4_addr list
+    | `Router of ipv4_addr list
+    | `Broadcast of ipv4_addr
+    | `Time_server of ipv4_addr list
+    | `Name_server of ipv4_addr list
+    | `DNS_server of ipv4_addr list
+    | `Netbios_name_server of ipv4_addr list
     | `Host_name of string
     | `Domain_name of string
-    | `Requested_ip of MT.ipv4_addr
+    | `Requested_ip of ipv4_addr
     | `Interface_mtu of int
     | `Lease_time of int32
     | `Message_type of op
-    | `Server_identifier of MT.ipv4_addr
+    | `Server_identifier of ipv4_addr
     | `Parameter_request of msg list
     | `Message of string
     | `Max_size of int
@@ -135,8 +130,8 @@ module Options = struct
     |`Unknown x -> "Unknown " ^ (string_of_int (Char.code x))
  
   let t_to_string (t:t) =
-    let ip_one s ip = sprintf "%s(%s)" s (MT.ipv4_addr_to_string ip) in
-    let ip_list s ips = sprintf "%s(%s)" s (String.concat "," (List.map MT.ipv4_addr_to_string ips)) in
+    let ip_one s ip = sprintf "%s(%s)" s (ipv4_addr_to_string ip) in
+    let ip_list s ips = sprintf "%s(%s)" s (String.concat "," (List.map ipv4_addr_to_string ips)) in
     let str s v = sprintf "%s(%s)" s (String.escaped v) in
     let strs s v = sprintf "%s(%s)" s (String.concat "," v) in
     let i32 s v = sprintf "%s(%lu)" s v in
@@ -211,9 +206,9 @@ module Options = struct
 
     let size x = String.make 1 (Char.chr x)
     let ip_list c ips = 
-       let x = List.map MT.ipv4_addr_to_bytes ips in
+       let x = List.map ipv4_addr_to_bytes ips in
        to_byte c :: (size (List.length x * 4)) :: x
-    let ip_one c x = to_byte c :: ["\004"; MT.ipv4_addr_to_bytes x]
+    let ip_one c x = to_byte c :: ["\004"; ipv4_addr_to_bytes x]
     let str c x = to_byte c :: (size (String.length x)) :: [x]
     let uint32 c x = to_byte c :: [ "\004"; uint32_to_bytes x]
     let uint16 c x = to_byte c :: [ "\002"; uint16_to_bytes x]
@@ -332,20 +327,20 @@ module Options = struct
           let code = msg_of_code (getc ()) in
           match code with
           |`Pad -> fn acc
-          |`Subnet_mask -> cont (`Subnet_mask (get_addr MT.ipv4_addr_of_bytes))
+          |`Subnet_mask -> cont (`Subnet_mask (get_addr ipv4_addr_of_bytes))
           |`Time_offset -> cont (`Time_offset (get_addr (fun x -> x)))
-          |`Router -> cont (`Router (get_addrs MT.ipv4_addr_of_bytes))
-          |`Broadcast -> cont (`Broadcast (get_addr MT.ipv4_addr_of_bytes))
-          |`Time_server -> cont (`Time_server (get_addrs MT.ipv4_addr_of_bytes))
-          |`Name_server -> cont (`Name_server (get_addrs MT.ipv4_addr_of_bytes))
-          |`DNS_server -> cont (`DNS_server (get_addrs MT.ipv4_addr_of_bytes))
+          |`Router -> cont (`Router (get_addrs ipv4_addr_of_bytes))
+          |`Broadcast -> cont (`Broadcast (get_addr ipv4_addr_of_bytes))
+          |`Time_server -> cont (`Time_server (get_addrs ipv4_addr_of_bytes))
+          |`Name_server -> cont (`Name_server (get_addrs ipv4_addr_of_bytes))
+          |`DNS_server -> cont (`DNS_server (get_addrs ipv4_addr_of_bytes))
           |`Host_name -> cont (`Host_name (slice (getint ())))
           |`Domain_name -> cont (`Domain_name (slice (getint ())))
-          |`Requested_ip -> cont (`Requested_ip (get_addr MT.ipv4_addr_of_bytes))
-          |`Server_identifier -> cont (`Server_identifier (get_addr MT.ipv4_addr_of_bytes)) 
+          |`Requested_ip -> cont (`Requested_ip (get_addr ipv4_addr_of_bytes))
+          |`Server_identifier -> cont (`Server_identifier (get_addr ipv4_addr_of_bytes)) 
           |`Lease_time -> cont (`Lease_time (get_addr uint32_of_bytes))
           |`Domain_search -> cont (`Domain_search (slice (getint())))
-          |`Netbios_name_server -> cont (`Netbios_name_server (get_addrs MT.ipv4_addr_of_bytes))
+          |`Netbios_name_server -> cont (`Netbios_name_server (get_addrs ipv4_addr_of_bytes))
           |`Message -> cont (`Message (slice (getint ())))
           |`Message_type ->
               check '\001';
@@ -416,123 +411,120 @@ module Options = struct
   end
 end
 
-module Client = struct
+module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
+
+  type offer = {
+    ip_addr: ipv4_addr;
+    netmask: ipv4_addr option;
+    gateways: ipv4_addr list;
+    dns: ipv4_addr list;
+    lease: int32;
+    xid: int32;
+  }
+
+  type state = 
+  | Request_sent of int32
+  | Offer_accepted of offer
+  | Lease_held of offer
+
+  type t = {
+    udp: UDP.t;
+    ip: IP.t;
+    mutable state: state;
+  }
 
   (* Send a client broadcast packet *)
-   let send_broadcast netif ~xid ~yiaddr ~siaddr ~options =
-     MT.mpl_xmit_env netif (fun env ->
-       (* DHCP pads the MAC address to 16 bytes *)
-       let chaddr = `Str ((MT.ethernet_mac_to_bytes netif.MT.mac) ^ 
-         (String.make 10 '\000')) in
+  let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
+    (* DHCP pads the MAC address to 16 bytes *)
+    let chaddr = `Str ((ethernet_mac_to_bytes (IP.mac t.ip)) ^ 
+      (String.make 10 '\000')) in
 
-       let options = `Str (Options.Packet.to_bytes options) in
+    let options = `Str (Options.Packet.to_bytes options) in
 
-       let dhcpfn env =
-          let _ = Dhcp.t
-             ~op:`BootRequest
-             ~xid ~secs:10
-             ~broadcast:0
-             ~ciaddr:0l 
-             ~yiaddr:(MT.ipv4_addr_to_uint32 yiaddr) 
-             ~siaddr:(MT.ipv4_addr_to_uint32 siaddr)
-             ~giaddr:0l
-             ~chaddr 
-             ~sname:(`Str (String.make 64 '\000'))
-             ~file:(`Str (String.make 128 '\000'))
-             ~options env in ()
-        in
-        let ip_src = MT.ipv4_addr_to_uint32 MT.ipv4_blank in
-        let ip_dest = MT.ipv4_addr_to_uint32 MT.ipv4_broadcast in
-
-        let udpfn env =
-           let udpo = Udp.t
-                ~source_port:68
-                ~dest_port:67
-                ~checksum:0
-                ~data:(`Sub dhcpfn) env 
-           in
-           (* now apply UDP checksum *)
-           let _ = Checksum.udp_checksum ip_src ip_dest udpo in
-           (* udpo#set_checksum csum *)
-           ()
-        in
-
-        let ipfn env = 
-          let p =
-            Ipv4.t ~id:0 ~ttl:34 ~protocol:`UDP 
-              ~src:ip_src ~dest:ip_dest
-              ~options:`None ~data:(`Sub udpfn) env in
-          let ipcsum = Checksum.ip_checksum (p#header_end / 4) 
-            (MS.env_pos env 0) in
-          p#set_checksum ipcsum;
-         in
-
-        let etherfn = Ethernet.IPv4.t
-            ~dest_mac:(`Str (MT.ethernet_mac_to_bytes MT.ethernet_mac_broadcast))
-            ~src_mac:(`Str (MT.ethernet_mac_to_bytes netif.MT.mac))
-            ~data:(`Sub ipfn)
-        in
-        ignore(etherfn env)
-   )         
+    let dhcpfn env =
+      ignore(Mpl.Dhcp.t
+        ~op:`BootRequest ~xid ~secs:10 ~broadcast:0
+        ~ciaddr:0l ~yiaddr:(ipv4_addr_to_uint32 yiaddr) 
+        ~siaddr:(ipv4_addr_to_uint32 siaddr)
+        ~giaddr:0l ~chaddr
+        ~sname:(`Str (String.make 64 '\000'))
+        ~file:(`Str (String.make 128 '\000'))
+        ~options env)
+    in
+    let dest_ip = ipv4_broadcast in
+    let udpfn env = 
+      ignore(Mpl.Udp.t
+        ~source_port:68 ~dest_port:67
+        ~checksum:0
+        ~data:(`Sub dhcpfn) env)
+    in
+    UDP.output t.udp ~dest_ip udpfn
 
    (* Receive a DHCP UDP packet *)
-   let recv netif (udp:Udp.o) =
-       let dhcp = Dhcp.unmarshal udp#data_env in 
-       let packet = Options.Packet.of_bytes dhcp#options in
-       (* See what state our Netif is in and if this packet is useful *)
-       match netif.MT.dhcp with
-       |MT.DHCP.Request_sent xid -> begin
-           (* we are expecting an offer *)
-           match packet.Options.Packet.op, dhcp#xid with 
-           |`Offer, offer_xid when offer_xid=xid ->  begin
-              let ip = MT.ipv4_addr_of_uint32 dhcp#yiaddr in
-              printf "Offer received: %s\n%!" (MT.ipv4_addr_to_string ip);
-              let netmask = Options.Packet.find packet (function `Subnet_mask addr -> Some addr |_ -> None) in
-              let gw = Options.Packet.findl packet (function `Router addrs -> Some addrs |_ -> None) in
-              let dns = Options.Packet.findl packet (function `DNS_server addrs -> Some addrs |_ -> None) in
-              let offer = { MT.DHCP.ip=ip; netmask=netmask; gw=gw; dns=dns; lease_until=0.; xid=xid } in
-              let yiaddr = MT.ipv4_addr_of_uint32 dhcp#yiaddr in
-              let siaddr = MT.ipv4_addr_of_uint32 dhcp#siaddr in
-              let options = { Options.Packet.op=`Request; opts= [
-                  `Requested_ip ip;
-                  `Server_identifier siaddr;
-                ] } in
-              send_broadcast netif ~xid ~yiaddr ~siaddr ~options >>
-              return (netif.MT.dhcp <- MT.DHCP.Offer_accepted offer)
-            end
-            |_ -> print_endline "not an offer for us, ignoring"; return ()
+  let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
+    let dhcp = Mpl.Dhcp.unmarshal udp#data_env in 
+    let packet = Options.Packet.of_bytes dhcp#options in
+    (* See what state our Netif is in and if this packet is useful *)
+    match t.state with
+    | Request_sent xid -> begin
+        (* we are expecting an offer *)
+        match packet.Options.Packet.op, dhcp#xid with 
+        |`Offer, offer_xid when offer_xid=xid ->  begin
+            let ip_addr = ipv4_addr_of_uint32 dhcp#yiaddr in
+            printf "DHCP: offer received: %s\n%!" (ipv4_addr_to_string ip_addr);
+            let netmask = Options.Packet.find packet
+              (function `Subnet_mask addr -> Some addr |_ -> None) in
+            let gateways = Options.Packet.findl packet 
+              (function `Router addrs -> Some addrs |_ -> None) in
+            let dns = Options.Packet.findl packet 
+              (function `DNS_server addrs -> Some addrs |_ -> None) in
+            let lease = 0l in
+            let offer = { ip_addr; netmask; gateways; dns; lease; xid } in
+            let yiaddr = ipv4_addr_of_uint32 dhcp#yiaddr in
+            let siaddr = ipv4_addr_of_uint32 dhcp#siaddr in
+            let options = { Options.Packet.op=`Request; opts= [
+                `Requested_ip ip_addr;
+                `Server_identifier siaddr;
+              ] } in
+            output_broadcast t ~xid ~yiaddr ~siaddr ~options >>
+            (t.state <- Offer_accepted offer;
+            return ())
+        end
+        |_ -> Printf.printf "DHCP: offer not for us"; return ()
+    end
+    | Offer_accepted info -> begin
+        (* we are expecting an ACK *)
+        match packet.Options.Packet.op, dhcp#xid with 
+        |`Ack, ack_xid when ack_xid = info.xid -> begin
+            let lease =
+              match Options.Packet.find packet (function `Lease_time lt -> Some lt |_ -> None) with
+              | None -> 300l (* Just leg it and assume a lease time of 5 minutes *)
+              | Some x -> x in
+            let info = { info with lease=lease } in
+            (* TODO also merge in additional requested options here *)
+            t.state <- Lease_held info;
+            IP.set_ip t.ip info.ip_addr >>
+            (match info.netmask with 
+             | Some x -> IP.set_netmask t.ip x 
+             | None -> return ()) >>
+            return ()
        end
-       |MT.DHCP.Offer_accepted info -> begin
-           (* we are expecting an ACK *)
-           match packet.Options.Packet.op, dhcp#xid with 
-           |`Ack, ack_xid when ack_xid = info.MT.DHCP.xid -> begin
-              let lease_time =
-                match Options.Packet.find packet (function `Lease_time lt -> Some lt |_ -> None) with
-                |None -> 300l (* Just leg it and assume a lease time of 5 minutes *)
-                |Some x -> x in
-              let lease_until = Xen.Clock.time () +. (Int32.to_float lease_time) in
-              let info = { info with MT.DHCP.lease_until=lease_until } in
-              (* TODO also merge in additional requested options here *)
-              netif.MT.dhcp <- MT.DHCP.Lease_held info;
-              (* notify the waiting Netif that DHCP is up *)
-              Lwt_condition.signal netif.MT.dhcp_cond ();
-              return ()
-           end
-           |_ -> print_endline "not an ack for us, ignoring"; return ()
-       end
-       |_ -> return (print_endline "other dhcp state")
+       |_ -> printf "DHCP: ack not for us\n%!"; return ()
+    end
+    |_ -> printf "DHCP: unknown DHCP state\n%!"; return ()
 
  
-    (* Start a DHCP discovery off on an interface *)
-    let start_discovery netif =
-       let xid = Random.int32 Int32.max_int in
-       let yiaddr = MT.ipv4_blank in
-       let siaddr = MT.ipv4_blank in
-       let options = { Options.Packet.op=`Discover; opts= [
-           (`Parameter_request [`Subnet_mask; `Router; `DNS_server; `Broadcast]);
-           (`Host_name "miragevm")
-          ] } in
-       send_broadcast netif ~xid ~yiaddr ~siaddr ~options >>
-       return (netif.MT.dhcp <- MT.DHCP.Request_sent xid)
+  (* Start a DHCP discovery off on an interface *)
+  let start_discovery t =
+    let xid = Random.int32 Int32.max_int in
+    let yiaddr = ipv4_blank in
+    let siaddr = ipv4_blank in
+    let options = { Options.Packet.op=`Discover; opts= [
+       (`Parameter_request [`Subnet_mask; `Router; `DNS_server; `Broadcast]);
+       (`Host_name "miragevm")
+     ] } in
+    output_broadcast t ~xid ~yiaddr ~siaddr ~options >>
+    (t.state <- Request_sent xid;
+    return ())
 
 end

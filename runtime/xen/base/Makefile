@@ -18,9 +18,9 @@ $(OBJDIR)/.stamp:
 	cp -R ocaml/ $(OBJDIR)/
 	@touch $@
 
-$(OUT): $(OBJDIR)/asmrun/$(ASMRUNLIB) $(OBJDIR)/otherlibs/bigarray/libbigarray.a
+$(OUT): $(OBJDIR)/asmrun/$(ASMRUNLIB) $(OBJDIR)/otherlibs/bigarray/libbigarray.a $(OBJDIR)/otherlibs/str/libstr.a
 	cp $< $@
-	ar rvs $@ $(OBJDIR)/otherlibs/bigarray/bigarray_stubs.o $(OBJDIR)/otherlibs/bigarray/mmap_unix.o
+	ar rvs $@ $(OBJDIR)/otherlibs/bigarray/bigarray_stubs.o $(OBJDIR)/otherlibs/bigarray/mmap_unix.o $(OBJDIR)/otherlibs/str/strstubs.o
 
 $(OBJDIR)/asmrun/$(ASMRUNLIB): $(OBJDIR)/.stamp
 	cd $(OBJDIR) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \
@@ -32,6 +32,9 @@ $(OBJDIR)/asmrun/$(ASMRUNLIB): $(OBJDIR)/.stamp
 
 $(OBJDIR)/otherlibs/bigarray/libbigarray.a: $(OBJDIR)/.stamp
 	cd $(OBJDIR)/otherlibs/bigarray && $(MAKE) SYSTEM=$(MODE) bigarray_stubs.o mmap_unix.o && ar rvs libbigarray.a bigarray_stubs.o mmap_unix.o
+
+$(OBJDIR)/otherlibs/str/libstr.a: $(OBJDIR)/.stamp
+	cd $(OBJDIR)/otherlibs/str && $(MAKE) SYSTEM=$(MODE) strstubs.o  && ar rvs libstr.a strstubs.o
 
 clean:
 	rm -rf $(OBJDIR)

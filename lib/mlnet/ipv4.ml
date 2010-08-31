@@ -22,6 +22,7 @@ module type UP = sig
   type t
   val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> unit) -> unit Lwt.t
   val set_ip: t -> ipv4_addr -> unit Lwt.t
+  val get_ip: t -> ipv4_addr
   val set_netmask: t -> ipv4_addr -> unit Lwt.t
   val set_gateways: t -> ipv4_addr list -> unit Lwt.t
   val attach: t -> 
@@ -92,6 +93,8 @@ module IPv4 (IF:Ethif.UP)
     t.ip <- ip;
     (* Inform ARP layer of new IP *)
     ARP.set_bound_ips t.arp [ip]
+
+  let get_ip t = t.ip
 
   let set_netmask t netmask =
     t.netmask <- netmask;

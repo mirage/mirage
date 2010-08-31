@@ -26,7 +26,7 @@ let ethernet_mac_of_bytes x =
 let ethernet_mac_of_string x = 
     try
       let s = String.create 6 in
-      Scanf.sscanf x "%02x:%02x:%02x:%02x:%02x:%02x"
+      Scanf.sscanf x "%2x:%2x:%2x:%2x:%2x:%2x"
        (fun a b c d e f ->
          s.[0] <- Char.chr a;
          s.[1] <- Char.chr b;
@@ -40,7 +40,7 @@ let ethernet_mac_of_string x =
 
 let ethernet_mac_to_string x =
     let chri i = Char.code x.[i] in
-    Printf.sprintf "%2x:%2x:%2x:%2x:%2x:%2x"
+    Printf.sprintf "%02x:%02x:%02x:%02x:%02x:%02x"
        (chri 0) (chri 1) (chri 2) (chri 3) (chri 4) (chri 5)
 
 let ethernet_mac_to_bytes x = x 

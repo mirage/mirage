@@ -125,7 +125,6 @@ let input_low nf =
 
 (* Number of unconsumed responses waiting for receive *)
 let has_input nf =
-    Printf.printf "has_input: %d\n%!" (Ring.Netif_rx.res_waiting nf.rx_ring);
     Ring.Netif_rx.res_waiting nf.rx_ring > 0
 
 (* Shutdown a netfront *)
@@ -146,7 +145,6 @@ let rec get_tx_gnt nf =
 
 (* Transmit a packet from buffer, with offset and length *)  
 let output_raw nf sub =
-    Printf.printf "xmit off=%d len=%d\n%!" sub.Hw_page.off sub.Hw_page.len;
     (* Grab a free grant slot from the free list, which may block *)
     lwt (id, gnt) = get_tx_gnt nf in
     (* Attach the incoming sub-page to the free grant *)

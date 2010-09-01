@@ -229,6 +229,8 @@ let options = ref [
   "-sort", Arg.Unit (fun () -> sort_modules := true), M.sort_modules ;
   "-no-stop", Arg.Set no_stop, M.no_stop ;
   "-no-custom-tags", Arg.Set no_custom_tags, M.no_custom_tags ;
+  "-nopervasives", Arg.Unit (fun () -> nopervasives := true), M.nopervasives ;
+  "-nostdlib", Arg.Unit (fun () -> no_std_include := true), M.no_std_include ;
   "-stars", Arg.Set remove_stars, M.remove_stars ;
   "-inv-merge-ml-mli", Arg.Set inverse_merge_ml_mli, M.inverse_merge_ml_mli ;
   "-no-module-constraint-filter", Arg.Clear filter_with_module_constraints,

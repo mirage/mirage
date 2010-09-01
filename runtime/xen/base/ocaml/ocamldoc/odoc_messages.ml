@@ -43,6 +43,8 @@ let add_load_dir = "<dir>\tAdd the given directory to the search path for custom
   "\t\tgenerators"
 let load_file = "<file.cm[o|a|xs]>\n\t\tLoad file defining a new documentation generator"
 let nolabels = "\tIgnore non-optional labels in types"
+let nopervasives = "Do not open the Pervasives module automatically"
+let no_std_include = "\tDo not add default directory to the list of include directories"
 let werr = "\tTreat ocamldoc warnings as errors"
 let hide_warnings = "\n\t\tdo not print ocamldoc warnings"
 let target_dir = "<dir>\tGenerate files in directory <dir>, rather than in current\n"^

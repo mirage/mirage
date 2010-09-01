@@ -7,7 +7,7 @@ STDLIB=$(ROOTDIR)/lib/stdlib
 build: mpl.cmx
 	@ :
 
-MPL=ethernet ipv4 udp icmp dhcp dns_rr dns
+MPL=ethernet ipv4 udp icmp dhcp dns_rr dns tcp
 MPLDEPS=$(MPL:%=%.ml)
 MPLCMX=$(MPL:%=%.cmx)
 

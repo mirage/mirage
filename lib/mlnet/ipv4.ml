@@ -28,6 +28,7 @@ module type UP = sig
   val set_gateways: t -> ipv4_addr list -> unit Lwt.t
   val attach: t -> 
     [  `UDP of Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
+     | `TCP of Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
      | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
     ] -> unit
 end
@@ -57,6 +58,7 @@ module IPv4 (IF:Ethif.UP)
     mutable netmask: ipv4_addr;
     mutable gateways: ipv4_addr list;
     mutable udp: (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t);
+    mutable tcp: (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t);
     mutable icmp: (Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t);
   }
 
@@ -104,7 +106,7 @@ module IPv4 (IF:Ethif.UP)
   let input t (ip:Mpl.Ipv4.o) =
     match ip#protocol with
     |`UDP -> t.udp ip (Mpl.Udp.unmarshal ip#data_env)
-    |`TCP -> return ()
+    |`TCP -> t.tcp ip (Mpl.Tcp.unmarshal ip#data_env)
     |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal ip#data_env)
     |`IGMP |`Unknown _ -> return ()
 
@@ -113,11 +115,12 @@ module IPv4 (IF:Ethif.UP)
     let arp, arp_t = ARP.create ethif in
     let thread,_ = Lwt.task () in
     let udp = (fun _ _ -> return (print_endline "dropped udp")) in
+    let tcp = (fun _ _ -> return (print_endline "dropped tcp")) in
     let icmp = (fun _ _ -> return (print_endline "dropped icmp")) in
     let ip = ipv4_blank in
     let netmask = ipv4_blank in
     let gateways = [] in
-    let t = { ethif; arp; thread; udp; icmp; ip; netmask; gateways } in
+    let t = { ethif; arp; thread; udp; tcp; icmp; ip; netmask; gateways } in
     IF.attach t.ethif (`IPv4 (input t));
     let th = join [ethif_t; arp_t; thread ] in
     return (t, th)
@@ -141,5 +144,6 @@ module IPv4 (IF:Ethif.UP)
 
   let attach t = function
     |`UDP f -> t.udp <- f
+    |`TCP f -> t.tcp <- f
     |`ICMP f -> t.icmp <- f
 end

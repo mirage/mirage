@@ -8,8 +8,8 @@ LWTLIB=$(ROOTDIR)/lib/lwt
 MPLLIB=$(ROOTDIR)/lib/mpl
 INCLUDES=-I $(ROOTDIR)/lib/stdlib -I $(ROOTDIR)/lib/lwt -I $(ROOTDIR)/lib/mpl
 
-SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml icmp.ml udp.ml dhcp_option.ml dhcp.ml
-CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx icmp.cmx udp.cmx dhcp_option.cmx dhcp.cmx
+SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml icmp.ml udp.ml dhcp_option.ml dhcp.ml tcp.ml
+CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx icmp.cmx udp.cmx dhcp_option.cmx dhcp.cmx tcp.cmx
 
 .PHONY: build
 build: mlnet.cmx
@@ -20,6 +20,9 @@ $(CMX): $(SOURCES)
 
 mlnet.cmx: $(CMX)
 	$(OCAMLOPT) -pack -o $@ $^
+
+mlnet.cmxa: mlnet.cmx
+	$(OCAMLOPT) -a -o $@ $<
 
 .PHONY: i-%
 i-%:

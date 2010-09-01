@@ -52,10 +52,11 @@ module TCP(IP:Ipv4.UP) = struct
   }
 
   type pcb = {
-
+    ip : IP.t;
     state: state;        (* Connection state *)
     flags: flags;        (* Connection flags *)
     remote_port: int;    (* Remote TCP port *)
+    remote_ip: ipv4_addr;(* Remote IP address *)
 
     (* Receiver info *)
     rcv_nxt: int32;      (* Next expected sequence no *)
@@ -85,7 +86,12 @@ module TCP(IP:Ipv4.UP) = struct
     snd_wl2: int32;      (* Seq and ack num of last wnd update *) 
     snd_lbb: int32;      (* Seq of next byte to be buffered *)
   }
-  
+
+  module PcbMap = Map.Make (struct
+    type t = pcb
+    let compare a b = 0
+  end)
+ 
   type t = {
     ip : IP.t;
     listeners: (int, (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t)) Hashtbl.t
@@ -105,14 +111,11 @@ module TCP(IP:Ipv4.UP) = struct
   |Time_wait -> "time_wait"
 
 
-  let 
-  let input t ip udp =
-    let dest_port = udp#dest_port in
-    if Hashtbl.mem t.listeners dest_port then begin
-      let fn = Hashtbl.find t.listeners dest_port in
-      fn ip udp
-    end else
-      return ()
+  let input t ip tcp =
+    match tcp#syn with 
+    |1 -> return () (* look for listening pcb *)
+    |0 -> return () (*  *)
+    |_ -> assert false
 
   let listen t port fn =
     if Hashtbl.mem t.listeners port then

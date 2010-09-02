@@ -50,9 +50,8 @@ module UDP(IP:Ipv4.UP) = struct
        let _ = udp env in
        (* TODO Calculate checksum here *)
        () in
-    let ipfn =
-      Mpl.Ipv4.t ~dest ~src ~protocol:`UDP ~checksum:0
-      ~options:`None ~ttl:35 ~id:36 ~data:(`Sub udpfn) in
+    let ipfn env =
+      Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
     IP.output t.ip ~dest_ip ipfn
 
   let listen t port fn =

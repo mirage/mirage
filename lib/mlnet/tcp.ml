@@ -52,12 +52,15 @@ module TCP(IP:Ipv4.UP) = struct
   }
 
   type pcb = {
-    ip : IP.t;
-    state: state;        (* Connection state *)
-    flags: flags;        (* Connection flags *)
-    remote_port: int;    (* Remote TCP port *)
-    remote_ip: ipv4_addr;(* Remote IP address *)
+    state: state;          (* Connection state *)
+    flags: flags;          (* Connection flags *)
+    remote_port: int;      (* Remote TCP port *)
+    remote_ip: ipv4_addr;  (* Remote IP address *)
+    local_port: int;       (* Local TCP port *)
+    local_ip: ipv4_addr;   (* Local IP address *)
+  }
 
+  type active = {   
     (* Receiver info *)
     rcv_nxt: int32;      (* Next expected sequence no *)
     rcv_wnd: int;        (* Receiver window available *)
@@ -87,15 +90,22 @@ module TCP(IP:Ipv4.UP) = struct
     snd_lbb: int32;      (* Seq of next byte to be buffered *)
   }
 
-  module PcbMap = Map.Make (struct
-    type t = pcb
-    let compare a b = 0
-  end)
- 
+  type conn_id = {
+    c_remote_port: int;
+    c_remote_ip: ipv4_addr;
+    c_local_port: int;
+    c_local_ip: ipv4_addr
+  }
+
   type t = {
     ip : IP.t;
-    listeners: (int, (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t)) Hashtbl.t
+    pcbs: (conn_id, pcb) Hashtbl.t ;
+    listeners: (int, (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t)) Hashtbl.t ;
   }
+
+  (* Global values for TCP parameters *)
+  let tcp_mss = 566
+  let tcp_wnd = tcp_mss * 4
 
   let state_to_string = function
   |Closed -> "closed"
@@ -109,13 +119,54 @@ module TCP(IP:Ipv4.UP) = struct
   |Closing -> "closing"
   |Last_ack -> "last_ack"
   |Time_wait -> "time_wait"
+ 
 
+  let output_tcp_rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number =
+    printf "TCP: xmit RST -> %s:%d\n%!" (ipv4_addr_to_string dest_ip) dest_port;
+    let tcpfn env =
+      Mpl.Tcp.t
+      ~source_port ~dest_port ~sequence ~ack_number 
+      ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None env
+    in
+    let src_ip = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
+    let ipfn env = Mpl.Ipv4.t ~src:src_ip ~protocol:`TCP ~id:30 ~data:(`Sub tcpfn) env in
+    IP.output ~dest_ip t.ip ipfn
 
-  let input t ip tcp =
-    match tcp#syn with 
-    |1 -> return () (* look for listening pcb *)
-    |0 -> return () (*  *)
-    |_ -> assert false
+  let input t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) =
+    let conn_id = {
+      c_remote_port = tcp#source_port;
+      c_remote_ip = ipv4_addr_of_uint32 ip#src;
+      c_local_ip = IP.get_ip t.ip;
+      c_local_port = tcp#dest_port;
+    } in
+    try begin
+      let pcb = Hashtbl.find t.pcbs conn_id in
+      print_endline "found pcb";
+      return ()
+    end with Not_found -> begin
+      (* No existing PCB, so check if it's a SYN for a listener *)
+      match tcp#syn, tcp#ack with 
+      |1,0 -> begin (* This is a pure SYN, no ACK packet *) 
+          (* Try to find a listener *)
+          try
+            let listener = Hashtbl.find t.listeners tcp#dest_port in
+            (* Got a listener, send ACK *)
+            print_endline "get a listener send ack";
+            return ()
+          with Not_found -> begin
+            (* Send a TCP RST since we dont have a listener *)
+            output_tcp_rst t
+              ~dest_ip:(ipv4_addr_of_uint32 ip#src)
+              ~source_port:tcp#dest_port
+              ~dest_port:tcp#source_port
+              ~sequence: (Int32.(add tcp#sequence (of_int tcp#data_length)))
+              ~ack_number: (Int32.succ tcp#ack_number)
+            
+          end
+
+      end
+      |_ -> return () 
+    end
 
   let listen t port fn =
     if Hashtbl.mem t.listeners port then
@@ -124,7 +175,8 @@ module TCP(IP:Ipv4.UP) = struct
 
   let create ip =
     let listeners = Hashtbl.create 1 in
-    let t = { ip; listeners } in
+    let pcbs = Hashtbl.create 7 in
+    let t = { ip; listeners; pcbs } in
     IP.attach ip (`TCP (input t));
     t
 

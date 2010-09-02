@@ -784,7 +784,7 @@ let print_struct env e l =
         e.p ("let t");
         list_iter_indent e (fun e -> function
             |`Free (id,szo,V.Array (_,V.UInt V.I8,_)) ->
-               e.p (sprintf "~(%s:data)" id);
+               e.p (sprintf "~(%s:('a data))" id);
             |`Free (id,szo,V.Value (_,_,{V.av_variant=Some vr;V.av_default=Some dexp})) ->
                let vname = List.assoc dexp vr in
                e.p (sprintf "?(%s=`%s)" id vname)
@@ -825,7 +825,7 @@ let print_struct env e l =
                          e.p (sprintf "let ___env = env_at env (%s) 0 in" off);
                          e.p (sprintf "let %s___len = match %s with " id id);
                          e.p (sprintf "|`Str x -> Mpl_raw.marshal ___env x; String.length x");
-                         e.p (sprintf "|`Sub fn -> fn ___env; curpos ___env");
+                         e.p (sprintf "|`Sub fn -> ignore(fn ___env); curpos ___env");
                          e.p (sprintf "|`None -> 0");
                          e.p (sprintf "|`Frag t -> Mpl_raw.blit ___env t; curpos ___env in");
                          if needalign then begin

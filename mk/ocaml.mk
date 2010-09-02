@@ -3,17 +3,18 @@ include $(ROOTDIR)/mk/base.mk
 
 OCAMLC ?= ocamlc.opt
 OCAMLOPT ?= ocamlopt.opt
+OCAMLDEP ?= ocamldep.opt
 OCAMLDSORT ?= miragedsort.opt
 
-ifeq ($(OS),macosx)
-OCAMLOPT_FLAGS =
+OCAMLOPT_FLAGS=
+
+ifeq ($(ARCH),x86_64)
+  ifneq ($(OS),macosx)  # MacOS X does not support absolute addressing
+    OCAMLOPT_FLAGS = -fno-PIC -nodynlink
+  endif
 else
-OCAMLOPT_FLAGS = -fno-PIC -nodynlink
+OCAMLOPT_FLAGS =
 endif
 
 OCAML_CLIBS_linux = -lm
 OCAML_CLIBS = $(OCAML_CLIBS_$(OS))
-
-OCAMLDEP ?= ocamldep.opt
-
-OCAMLOPT_BUILD = env CAMLLIB=$(ROOTDIR)/lib/stdlib $(OCAMLOPT) 

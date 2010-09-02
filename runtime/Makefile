@@ -1,9 +1,12 @@
 OS=$(shell uname -s)
 
+TARGS=unix
+ifeq ($(OS).$(ARCH),Linux.x86_64)
+  TARGS+=xen
+endif
+
 all:
-	if [ "$(OS)" = "Linux" ]; then cd xen && $(MAKE); fi
-	cd unix && $(MAKE)
+	for i in $(TARGS); do cd $$i && $(MAKE); done
 
 clean:
-	if [ "$(OS)" = "Linux" ]; then cd xen && $(MAKE) clean; fi
-	cd unix && $(MAKE) clean
+	for i in $(TARGS); do cd $$i && $(MAKE) clean; done

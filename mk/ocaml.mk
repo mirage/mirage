@@ -5,6 +5,7 @@ OCAMLC ?= ocamlc.opt
 OCAMLOPT ?= ocamlopt.opt
 OCAMLDEP ?= ocamldep.opt
 OCAMLDSORT ?= miragedsort.opt
+OCAMLDOC ?= ocamldoc.opt
 
 OCAMLOPT_FLAGS=
 

@@ -331,10 +331,10 @@ let t
   ?(dont_fragment=0)
   ?(can_fragment=0)
   ?(frag_offset=0)
-  ?(checksum=0)
   ~id
   ~ttl
   ~protocol
+  ~checksum
   ~src
   ~dest
   ~(options:('a data))

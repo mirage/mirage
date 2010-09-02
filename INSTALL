@@ -14,7 +14,7 @@ This builds and installs the compiler toolchain, by default into ~/mir-inst. You
 
 $ make PREFIX=<location> bootstrap
 
-At this point, add the <location> to your PATH variable so that the remaining steps can find the toolchain.
+At this point, add the <location>/bin to head of your PATH variable so that the remaining steps can find the toolchain.
 
 Tools
 -----
@@ -42,4 +42,67 @@ output will be in tests/ping/mirage-os.gz
 Build a UNIX binary in-tree:
 $ mir du tests/ping
 output will be in tests/ping/mirage-unix
+
+
+Installing and Testing mirage on debian 32 bits
+-----------------------------------------------
+
+Compile mirage
+================
+
+* Edit mk/ocaml.mk to remove the -fno-PIC flag
+
+* Edit runtime/Makefile to comment out the line :
+	 		if [ "$(OS)" = "Linux" ]; then cd xen && $(MAKE); fi
+
+* Install mirage as explained above :
+
+  $  make bootstrap && make tools && make
+
+Configure your network
+======================
+
+* if you have one phyisical interface called eth0 :
+
+  $ sudo apt-get install bridge-utils
+  $ sudo brctl addbr br0
+  $ sudo brctl addif br0 eth0
+
+From this point, you loose connectivity.
+
+* Edit your /etc/network/interfaces file to look like :
+
+  ----------------------------------------------------------------------------
+  # This file describes the network interfaces available on your system
+  # and how to activate them. For more information, see interfaces(5).
+  
+  # The loopback network interface
+  auto lo br0
+  iface lo inet loopback
+
+  # Set up interfaces manually, avoiding conflicts with, e.g., network manager
+  iface eth0 inet manual
+
+  iface eth1 inet manual
+
+  # Bridge setup
+  iface br0 inet dhcp
+  		bridge_ports eth0 eth1
+  ----------------------------------------------------------------------------
+
+* bring up the new bridge to get your connectivity back:
+
+  $ sudo ifup br0
+
+Test the ping application
+=========================
+
+* Build ping :
+
+  $ mir du tests/ping
+
+* Run the test
+
+  $ sudo ./tests/ping/mirage-unix & sudo brctl addif br0 tap0
+
 

@@ -43,26 +43,12 @@ Build a UNIX binary in-tree:
 $ mir du tests/ping
 output will be in tests/ping/mirage-unix
 
-
-Installing and Testing mirage on debian 32 bits
------------------------------------------------
-
-Compile mirage
-================
-
-* Edit mk/ocaml.mk to remove the -fno-PIC flag
-
-* Edit runtime/Makefile to comment out the line :
-	 		if [ "$(OS)" = "Linux" ]; then cd xen && $(MAKE); fi
-
-* Install mirage as explained above :
-
-  $  make bootstrap && make tools && make
-
 Configure your network
 ======================
 
-* if you have one phyisical interface called eth0 :
+On Debian:
+
+* if you have one physical interface called eth0 :
 
   $ sudo apt-get install bridge-utils
   $ sudo brctl addbr br0
@@ -104,5 +90,4 @@ Test the ping application
 * Run the test
 
   $ sudo ./tests/ping/mirage-unix & sudo brctl addif br0 tap0
-
 

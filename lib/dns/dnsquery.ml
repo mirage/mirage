@@ -74,7 +74,7 @@ let answer_query qname qtype trie =
     | `Authority -> auth_rrs := (Dns.Authority.t ~rr:x) :: !auth_rrs 
     | `Additional -> add_rrs := (Dns.Additional.t ~rr:x) :: !add_rrs 
     in
-    let mapfn ?(aclass = Some `IN) x = x ~name:owner ?aclass ~ttl:ttl in
+    let mapfn ?(aclass = Some `IN) x = x ?aclass ~name:owner ~ttl in
     match rdata with 
       A l -> log_rrset owner `A; 
         List.iter (fun i -> addfn (`A (mapfn Dns_rr.A.t ~ip:i))) l

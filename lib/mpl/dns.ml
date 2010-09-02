@@ -581,9 +581,9 @@ module Questions = struct
     end
 
   let t
+    ?(qclass=`IN)
     ~qname
     ~qtype
-    ?(qclass=`IN)
     env =
       let qname = (Mpl_dns_label.of_string_list qname) in (* custom *)
       let __qtype = qtype_marshal qtype in
@@ -825,6 +825,7 @@ class o
   end
 
 let t
+  ?(rcode=`NoError)
   ~id
   ~qr
   ~opcode
@@ -832,7 +833,6 @@ let t
   ~truncation
   ~rd
   ~ra
-  ?(rcode=`NoError)
   ~questions
   ~answers
   ~authority

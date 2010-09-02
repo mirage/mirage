@@ -134,12 +134,12 @@ module TimeExceeded = struct
   let t
     ?(code=0)
     ?(checksum=0)
-    ~(ip_header:data)
+    ~(ip_header:('a data))
     env =
       let ___env = env_at env (1+1+2+4) 0 in
       let ip_header___len = match ip_header with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ptype = (Mpl_byte.of_int 11) in (* const *)
@@ -307,12 +307,12 @@ module EchoRequest = struct
     ?(checksum=0)
     ~identifier
     ~sequence
-    ~(data:data)
+    ~(data:('a data))
     env =
       let ___env = env_at env (1+1+2+2+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ptype = (Mpl_byte.of_int 8) in (* const *)
@@ -383,12 +383,12 @@ module Redirect = struct
     ?(code=0)
     ?(checksum=0)
     ~gateway_ip
-    ~(ip_header:data)
+    ~(ip_header:('a data))
     env =
       let ___env = env_at env (1+1+2+4) 0 in
       let ip_header___len = match ip_header with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ptype = (Mpl_byte.of_int 5) in (* const *)
@@ -452,12 +452,12 @@ module SourceQuench = struct
   let t
     ?(code=0)
     ?(checksum=0)
-    ~(ip_header:data)
+    ~(ip_header:('a data))
     env =
       let ___env = env_at env (1+1+2+4) 0 in
       let ip_header___len = match ip_header with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ptype = (Mpl_byte.of_int 4) in (* const *)
@@ -521,12 +521,12 @@ module DestinationUnreachable = struct
   let t
     ?(code=0)
     ?(checksum=0)
-    ~(ip_header:data)
+    ~(ip_header:('a data))
     env =
       let ___env = env_at env (1+1+2+4) 0 in
       let ip_header___len = match ip_header with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ptype = (Mpl_byte.of_int 3) in (* const *)
@@ -602,12 +602,12 @@ module EchoReply = struct
     ?(checksum=0)
     ~identifier
     ~sequence
-    ~(data:data)
+    ~(data:('a data))
     env =
       let ___env = env_at env (1+1+2+2+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ptype = (Mpl_byte.of_int 0) in (* const *)

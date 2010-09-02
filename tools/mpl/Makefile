@@ -6,7 +6,7 @@ SOURCES = printer_utils.ml mpl_utils.ml mpl_types.ml mpl_location.ml mpl_bits.ml
 RESULT = mplc
 TRASH = mpl_parser.output mpl_parser.ml mpl_lexer.ml mpl_parser.mli
 LIBS = unix
-
+ANNOTATE=true
 PREFIX ?= /usr/local
 
 .PHONY: install all

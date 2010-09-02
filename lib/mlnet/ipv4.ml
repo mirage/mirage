@@ -18,9 +18,12 @@ open Lwt
 open Printf
 open Mlnet_types
 
+type 'a ip_output = Mpl.Mpl_stdlib.env -> ttl:int -> checksum:int -> dest:int32 ->
+  options:('a Mpl.Mpl_stdlib.data) -> Mpl.Ipv4.o
+
 module type UP = sig
   type t
-  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Ipv4.o) -> unit Lwt.t
+  val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> unit Lwt.t
   val set_ip: t -> ipv4_addr -> unit Lwt.t
   val get_ip: t -> ipv4_addr
   val mac: t -> ethernet_mac
@@ -79,7 +82,7 @@ module IPv4 (IF:Ethif.UP)
     | ip when is_local t ip -> Local
     | ip -> Gateway
 
-  let output t ~dest_ip ip =
+  let output t ~dest_ip (ip:'a ip_output) =
     (* Query ARP for destination MAC address to send this to *)
     lwt dest_mac = match classify_ip t dest_ip with
     | Broadcast -> return ethernet_mac_broadcast
@@ -92,7 +95,7 @@ module IPv4 (IF:Ethif.UP)
             fail (No_route_to_destination_address dest_ip)
       end in
     let ipfn env = 
-      let p = ip env in
+      let p = ip env ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None in
       let csum = Checksum.ip_checksum (p#header_end / 4)
         (Mpl.Mpl_stdlib.env_pos env 0) in
       p#set_checksum csum;

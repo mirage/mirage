@@ -41,9 +41,8 @@ module ICMP(IP:Ipv4.UP) = struct
     (* Create the IPv4 packet *)
     let id = ip#id in 
     let src = ip#dest in
-    let dest = ip#src in
-    let ipfn = Mpl.Ipv4.t ~id ~ttl:34 ~protocol:`ICMP ~src
-        ~dest ~options:`None ~data:(`Sub icmpfn) in
+    let ipfn env = Mpl.Ipv4.t ~id ~protocol:`ICMP ~src ~data:(`Sub icmpfn) env in
+    printf "ICMP: response seq=%d\n%!" sequence;
     IP.output t.ip ~dest_ip ipfn
 
   |_ -> print_endline "dropped icmp"; return ()

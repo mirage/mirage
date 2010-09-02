@@ -782,6 +782,11 @@ let print_struct env e l =
         );
         e.nl ();
         e.p ("let t");
+        (* output all the optional args first *)
+        let def_fvars,other_fvars = List.partition (function
+         |  `Free (_,_,V.Value (_,_,{V.av_default=Some _})) -> true
+         | _ -> false) fvars in
+   
         list_iter_indent e (fun e -> function
             |`Free (id,szo,V.Array (_,V.UInt V.I8,_)) ->
                e.p (sprintf "~(%s:('a data))" id);
@@ -793,7 +798,7 @@ let print_struct env e l =
             |`Free (id,szo,av) ->
                e.p (sprintf "~%s" id);
             |`Bound _ |_ -> ()
-        ) fvars;
+        ) (def_fvars @ other_fvars);
         indent_fn e (fun e ->
             e.p "env =";
             indent_fn e (fun e ->

@@ -21,7 +21,7 @@ exception Buffer_overflow
 
 type env
 type frag
-type data = [ `Str of string | `Sub of env -> unit | `Frag of frag | `None]
+type 'a data = [ `Str of string | `Sub of env -> 'a | `Frag of frag | `None]
 
 val new_env : ?fillfn:(string -> int -> int -> int) -> ?length:int -> string -> env
 

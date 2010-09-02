@@ -40,8 +40,8 @@ type env = {
 
 type frag = env
 
-type data = [
-   |`Sub of (env -> unit)
+type 'a data = [
+   |`Sub of (env -> 'a)
    |`Str of string
    |`Frag of frag
    |`None

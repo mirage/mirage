@@ -328,23 +328,23 @@ let t
   ?(tos_delay=`Normal)
   ?(tos_throughput=`Normal)
   ?(tos_reliability=`Normal)
-  ~id
   ?(dont_fragment=0)
   ?(can_fragment=0)
   ?(frag_offset=0)
+  ?(checksum=0)
+  ~id
   ~ttl
   ~protocol
-  ?(checksum=0)
   ~src
   ~dest
-  ~(options:data)
-  ~(data:data)
+  ~(options:('a data))
+  ~(data:('a data))
   env =
     let dest___offset = 1+1+2+2+1+1+1+1+2+4+4 in
     let ___env = env_at env (1+1+2+2+1+1+1+1+2+4+4) 0 in
     let options___len = match options with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let ___al = (4 - (options___len mod 4)) mod 4 in for i = 1 to ___al do
@@ -354,7 +354,7 @@ let t
     let ___env = env_at env (1+1+2+2+1+1+1+1+2+4+4+options___len) 0 in
     let data___len = match data with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let data___offset = 1+1+2+2+1+1+1+1+2+4+4+options___len+data___len in

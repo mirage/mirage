@@ -144,8 +144,8 @@ class o
   end
 
 let t
-  ~op
   ?(hops=0)
+  ~op
   ~xid
   ~secs
   ~broadcast
@@ -153,33 +153,33 @@ let t
   ~yiaddr
   ~siaddr
   ~giaddr
-  ~(chaddr:data)
-  ~(sname:data)
-  ~(file:data)
-  ~(options:data)
+  ~(chaddr:('a data))
+  ~(sname:('a data))
+  ~(file:('a data))
+  ~(options:('a data))
   env =
     let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4) 0 in
     let chaddr___len = match chaddr with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16) 0 in
     let sname___len = match sname with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64) 0 in
     let file___len = match file with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let ___env = env_at env (1+1+1+1+4+2+1+1+4+4+4+4+16+64+128+4) 0 in
     let options___len = match options with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     if broadcast < 0 || broadcast > 1 then raise (Bad_packet "out of range (0 < broadcast < 1)");

@@ -47,16 +47,16 @@ class o
   end
 
 let t
+  ?(checksum=0)
   ~source_port
   ~dest_port
-  ?(checksum=0)
-  ~(data:data)
+  ~(data:('a data))
   env =
     let checksum___offset = 2+2+2+2 in
     let ___env = env_at env (2+2+2+2) 0 in
     let data___len = match data with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let total_length___offset = 2+2+2+2+data___len in

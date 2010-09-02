@@ -46,26 +46,26 @@ module IPv6 = struct
     end
 
   let t
-    ~(dest_mac:data)
-    ~(src_mac:data)
-    ~(data:data)
+    ~(dest_mac:('a data))
+    ~(src_mac:('a data))
+    ~(data:('a data))
     env =
       let ___env = env_at env (0) 0 in
       let dest_mac___len = match dest_mac with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6) 0 in
       let src_mac___len = match src_mac with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6+6+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ethertype = (Mpl_uint16.of_int 34525) in (* const *)
@@ -265,50 +265,50 @@ module ARP = struct
     end
 
   let t
-    ~(dest_mac:data)
-    ~(src_mac:data)
     ?(ptype=`IPv4)
     ?(plen=`IPv4)
     ?(operation=`Request)
-    ~(sha:data)
-    ~(spa:data)
-    ~(tha:data)
-    ~(tpa:data)
+    ~(dest_mac:('a data))
+    ~(src_mac:('a data))
+    ~(sha:('a data))
+    ~(spa:('a data))
+    ~(tha:('a data))
+    ~(tpa:('a data))
     env =
       let ___env = env_at env (0) 0 in
       let dest_mac___len = match dest_mac with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6) 0 in
       let src_mac___len = match src_mac with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6+6+2+2+2+1+1+2) 0 in
       let sha___len = match sha with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6+6+2+2+2+1+1+2+6) 0 in
       let spa___len = match spa with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6+6+2+2+2+1+1+2+6+4) 0 in
       let tha___len = match tha with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6+6+2+2+2+1+1+2+6+4+6) 0 in
       let tpa___len = match tpa with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let hlen = 6 in (* const bit *)
@@ -394,26 +394,26 @@ module IPv4 = struct
     end
 
   let t
-    ~(dest_mac:data)
-    ~(src_mac:data)
-    ~(data:data)
+    ~(dest_mac:('a data))
+    ~(src_mac:('a data))
+    ~(data:('a data))
     env =
       let ___env = env_at env (0) 0 in
       let dest_mac___len = match dest_mac with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6) 0 in
       let src_mac___len = match src_mac with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ___env = env_at env (6+6+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let ethertype = (Mpl_uint16.of_int 2048) in (* const *)

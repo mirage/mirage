@@ -135,29 +135,29 @@ class o
   end
 
 let t
+  ?(cwr=0)
+  ?(ece=0)
+  ?(urg=0)
+  ?(ack=0)
+  ?(psh=0)
+  ?(rst=0)
+  ?(syn=0)
+  ?(fin=0)
+  ?(urgent=0)
   ~source_port
   ~dest_port
   ~sequence
   ~ack_number
-  ~cwr
-  ~ece
-  ~urg
-  ~ack
-  ~psh
-  ~rst
-  ~syn
-  ~fin
   ~window
   ~checksum
-  ~urgent
-  ~(options:data)
-  ~(data:data)
+  ~(options:('a data))
+  ~(data:('a data))
   env =
     let header_end___offset = 2+2+4+4+1+1+2+2+2 in
     let ___env = env_at env (2+2+4+4+1+1+2+2+2) 0 in
     let options___len = match options with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let ___al = (4 - (options___len mod 4)) mod 4 in for i = 1 to ___al do
@@ -166,7 +166,7 @@ let t
     let ___env = env_at env (2+2+4+4+1+1+2+2+2+options___len) 0 in
     let data___len = match data with 
     |`Str x -> Mpl_raw.marshal ___env x; String.length x
-    |`Sub fn -> fn ___env; curpos ___env
+    |`Sub fn -> ignore(fn ___env); curpos ___env
     |`None -> 0
     |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
     let offset = (header_end___offset / 4) in (* bit bound *)

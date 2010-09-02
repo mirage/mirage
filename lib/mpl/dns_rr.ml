@@ -93,17 +93,17 @@ module UNKNOWN = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
-    ~(data:data)
+    ~(data:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let data___offset = (Mpl_dns_label.size name)+2+2+4+2+data___len in
@@ -183,17 +183,17 @@ module UNSPEC = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
-    ~(data:data)
+    ~(data:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let data___offset = (Mpl_dns_label.size name)+2+2+4+2+data___len in
@@ -287,19 +287,19 @@ module DS = struct
       end
 
     let t
-      ~name
       ?(aclass=`IN)
+      ~name
       ~ttl
       ~key_tag
       ~algorithm
-      ~(digest:data)
+      ~(digest:('a data))
       env =
         let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
         let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
         let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2+2+1+1) 0 in
         let digest___len = match digest with 
         |`Str x -> Mpl_raw.marshal ___env x; String.length x
-        |`Sub fn -> fn ___env; curpos ___env
+        |`Sub fn -> ignore(fn ___env); curpos ___env
         |`None -> 0
         |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
         let end_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2+2+1+1+20 in
@@ -402,8 +402,8 @@ module DNAME = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~target
     env =
@@ -485,17 +485,17 @@ module A6 = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
-    ~(data:data)
+    ~(data:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let data___offset = (Mpl_dns_label.size name)+2+2+4+2+data___len in
@@ -590,8 +590,8 @@ module SRV = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~priority
     ~weight
@@ -711,8 +711,8 @@ module LOC = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~size
     ~horiz_pre
@@ -809,17 +809,17 @@ module AAAA = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
-    ~(ip:data)
+    ~(ip:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2) 0 in
       let ip___len = match ip with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let end_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2+16 in
@@ -906,8 +906,8 @@ module GPOS = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~longitude
     ~latitude
@@ -997,17 +997,17 @@ module KEY = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
-    ~(data:data)
+    ~(data:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let data___offset = (Mpl_dns_label.size name)+2+2+4+2+data___len in
@@ -1090,8 +1090,8 @@ module RT = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~preference
     ~intermediate_host
@@ -1173,8 +1173,8 @@ module ISDN = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~data
     env =
@@ -1254,8 +1254,8 @@ module X25 = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~psdn_address
     env =
@@ -1340,8 +1340,8 @@ module AFSDB = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~subtype
     ~hostname
@@ -1429,8 +1429,8 @@ module RP = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~mbox_dname
     ~txt_dname
@@ -1522,11 +1522,11 @@ module TXT = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~data
-    ~(misc:data)
+    ~(misc:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let data = (Mpl_string8.of_string data) in (* custom *)
@@ -1535,7 +1535,7 @@ module TXT = struct
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2+(Mpl_string8.size data)) 0 in
       let misc___len = match misc with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let end_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2+(Mpl_string8.size data)+misc___len in
@@ -1619,8 +1619,8 @@ module MX = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~preference
     ~hostname
@@ -1708,8 +1708,8 @@ module MINFO = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~rmailbox
     ~emailbox
@@ -1798,8 +1798,8 @@ module HINFO = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~cpu
     ~os
@@ -1882,8 +1882,8 @@ module PTR = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~ptrdname
     env =
@@ -1977,19 +1977,19 @@ module WKS = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~address
     ~protocol
-    ~(bitmap:data)
+    ~(bitmap:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2+4+1) 0 in
       let bitmap___len = match bitmap with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let end_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2+4+1+bitmap___len in
@@ -2072,17 +2072,17 @@ module NULL = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
-    ~(data:data)
+    ~(data:('a data))
     env =
       let name = (Mpl_dns_label.of_string_list ~comp:true name) in (* custom *)
       let start_of_answers___offset = (Mpl_dns_label.size name)+2+2+4+2 in
       let ___env = env_at env ((Mpl_dns_label.size name)+2+2+4+2) 0 in
       let data___len = match data with 
       |`Str x -> Mpl_raw.marshal ___env x; String.length x
-      |`Sub fn -> fn ___env; curpos ___env
+      |`Sub fn -> ignore(fn ___env); curpos ___env
       |`None -> 0
       |`Frag t -> Mpl_raw.blit ___env t; curpos ___env in
       let data___offset = (Mpl_dns_label.size name)+2+2+4+2+data___len in
@@ -2159,8 +2159,8 @@ module MR = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~newname
     env =
@@ -2239,8 +2239,8 @@ module MG = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~mgmname
     env =
@@ -2319,8 +2319,8 @@ module MB = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~madname
     env =
@@ -2435,8 +2435,8 @@ module SOA = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~primary_ns
     ~admin_mb
@@ -2534,8 +2534,8 @@ module CNAME = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~cname
     env =
@@ -2614,8 +2614,8 @@ module MF = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~madname
     env =
@@ -2694,8 +2694,8 @@ module MD = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~madname
     env =
@@ -2774,8 +2774,8 @@ module NS = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~hostname
     env =
@@ -2854,8 +2854,8 @@ module A = struct
     end
 
   let t
-    ~name
     ?(aclass=`IN)
+    ~name
     ~ttl
     ~ip
     env =

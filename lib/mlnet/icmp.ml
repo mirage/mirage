@@ -35,7 +35,7 @@ module ICMP(IP:Ipv4.UP) = struct
     let data = `Frag icmp#data_frag in
     let icmpfn env =
       let packet = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
-      let csum = Checksum.icmp_checksum (MS.env_pos env 0) in
+      let csum = Checksum.icmp (MS.env_pos env 0) in
       packet#set_checksum csum;
     in
     (* Create the IPv4 packet *)

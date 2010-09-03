@@ -45,11 +45,12 @@ module UDP(IP:Ipv4.UP) = struct
      set the checksum to 0 as it is optional *)
   let output t ~dest_ip udp =
     let dest = ipv4_addr_to_uint32 dest_ip in
-    let src = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
+    let src_ip = IP.get_ip t.ip in
+    let src = ipv4_addr_to_uint32 src_ip in
     let udpfn env =
-       let _ = udp env in
-       (* TODO Calculate checksum here *)
-       () in
+       let p = udp env in
+       let csum = Checksum.udp src_ip dest_ip p in
+       p#set_checksum csum in
     let ipfn env =
       Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
     IP.output t.ip ~dest_ip ipfn

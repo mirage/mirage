@@ -120,13 +120,15 @@ module TCP(IP:Ipv4.UP) = struct
   |Last_ack -> "last_ack"
   |Time_wait -> "time_wait"
  
-
   let output_tcp_rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number =
     printf "TCP: xmit RST -> %s:%d\n%!" (ipv4_addr_to_string dest_ip) dest_port;
     let tcpfn env =
-      Mpl.Tcp.t
-      ~source_port ~dest_port ~sequence ~ack_number 
-      ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None env
+      let p = Mpl.Tcp.t ~rst:1 ~ack:1
+        ~source_port ~dest_port ~sequence ~ack_number 
+        ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None env in
+      let csum = Checksum.tcp (IP.get_ip t.ip) dest_ip p in
+      p#set_checksum csum;
+Mpl.Tcp.prettyprint p;
     in
     let src_ip = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
     let ipfn env = Mpl.Ipv4.t ~src:src_ip ~protocol:`TCP ~id:30 ~data:(`Sub tcpfn) env in
@@ -159,8 +161,8 @@ module TCP(IP:Ipv4.UP) = struct
               ~dest_ip:(ipv4_addr_of_uint32 ip#src)
               ~source_port:tcp#dest_port
               ~dest_port:tcp#source_port
-              ~sequence: (Int32.(add tcp#sequence (of_int tcp#data_length)))
-              ~ack_number: (Int32.succ tcp#ack_number)
+              ~sequence:0l
+              ~ack_number:(Int32.succ tcp#sequence)
             
           end
 

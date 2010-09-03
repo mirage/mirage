@@ -16,12 +16,13 @@
  *)
 
 open Mpl
+open Mlnet_types
 module M = Mpl_stdlib
 
 let ones_checksum sum =
     0xffff - ((sum lsr 16) + (sum land 0xffff))
 
-let ip_checksum sz env =
+let ip sz env =
     let sum = ref 0 in
     for i = 1 to sz do
         let x = M.Mpl_uint16.to_int (M.Mpl_uint16.unmarshal env) in
@@ -31,7 +32,7 @@ let ip_checksum sz env =
     done;
     ones_checksum !sum
 
-let icmp_checksum env =
+let icmp env =
     let sum = ref 0 in
     let sz = M.size env / 4 in
     for i = 1 to sz do
@@ -42,34 +43,45 @@ let icmp_checksum env =
     done;
     ones_checksum !sum
 
-let data_env ob fn =
-    let env = ob#data_env in fn env
+let udp ip_src ip_dest (udp:Udp.o)  =
+  let sum = ref 0 in
+  let addsum x = sum := !sum + x in
+  let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));
+    addsum (Int32.to_int (Int32.logand x 65535l)) in
+  (* pseudo header *)
+  add32 (ipv4_addr_to_uint32 ip_src);
+  add32 (ipv4_addr_to_uint32 ip_dest);
+  addsum 17; (* UDP protocol number *)
+  let len = udp#sizeof in
+  addsum len;
+  (* udp packet *)
+  let env = udp#env in
+  for i = 1 to len / 2 do
+    addsum (M.Mpl_uint16.to_int (M.Mpl_uint16.unmarshal env))
+  done;
+  if len mod 2 = 1 then
+    addsum (M.Mpl_byte.to_int (M.Mpl_byte.unmarshal env) lsl 8);
+  let csum = match ones_checksum !sum with
+    | 0 -> 0xffff
+    | n -> n in
+  csum
 
-(* Given a udp packet and ip info, return a checksum *)
-(* XXX this is broken, generates bad checksums *)
-let udp_checksum ip_src ip_dest (udp:Udp.o)  =
-    let sum = ref 0 in
-    let addsum x = sum := !sum + x in
-    let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));
-        addsum (Int32.to_int (Int32.logand x 65535l)) in
-    (* pseudo header *)
-    add32 ip_src;
-    add32 ip_dest;
-    addsum 17; (* UDP protocol number *)
-    addsum udp#total_length;
-    (* udp packet *)
-    addsum udp#source_port;
-    addsum udp#dest_port;
-    addsum udp#data_length;
-    let len = udp#data_length in
-    data_env udp (fun env ->
-        for i = 1 to len / 2 do
-            addsum (M.Mpl_uint16.to_int (M.Mpl_uint16.unmarshal env))
-        done;
-        if len mod 2 = 1 then
-            addsum (M.Mpl_byte.to_int (M.Mpl_byte.unmarshal env) lsl 8);
-    );
-    let csum = ones_checksum !sum in
-    let csum = if csum = 0 then 0xffff else csum in
-    Printf.printf "original: %d  , ours: %d \n" udp#checksum csum;
-    csum
+let tcp ip_src ip_dest (tcp:Tcp.o) =
+  let sum = ref 0 in
+  let addsum x = sum := !sum + x in
+  let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));
+    addsum (Int32.to_int (Int32.logand x 65535l)) in
+  (* pseudo header *)
+  add32 (ipv4_addr_to_uint32 ip_src);
+  add32 (ipv4_addr_to_uint32 ip_dest);
+  addsum 6;
+  let len = tcp#sizeof in
+  addsum len;
+  let env = tcp#env in
+  for i = 1 to len / 2 do
+    addsum (M.Mpl_uint16.to_int (M.Mpl_uint16.unmarshal env))
+  done;
+  if len mod 2 = 1 then
+    addsum (M.Mpl_byte.to_int (M.Mpl_byte.unmarshal env) lsl 8);
+  let csum = ones_checksum !sum in
+  csum

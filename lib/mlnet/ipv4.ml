@@ -96,7 +96,7 @@ module IPv4 (IF:Ethif.UP)
       end in
     let ipfn env = 
       let p = ip env ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None in
-      let csum = Checksum.ip_checksum (p#header_end / 4)
+      let csum = Checksum.ip (p#header_end / 4)
         (Mpl.Mpl_stdlib.env_pos env 0) in
       p#set_checksum csum;
     in

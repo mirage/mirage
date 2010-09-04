@@ -1,23 +1,32 @@
 OCAMLC ?= ocamlc
 CAMLP4OF ?= camlp4of
+CAMLP4ORF ?= camlp4orf
 MIRAGE_ROOT ?= $(PREFIX)/lib/ocaml/mirage
 
 .PHONY: all clean
 all: pa_mirage.cma
 	@ :
 
-pa_mirage.cma: pa_lwt.cmo
+lwt/%.cmo:
+	cd lwt && $(MAKE)
+
+type-conv/%.cmo:
+	cd type-conv && $(MAKE)
+
+dyntype/%.cmo:
+	cd dyntype && $(MAKE)
+
+LWT_SOURCES=pa_lwt
+TC_SOURCES=pa_type_conv
+DYNTYPE_SOURCES=type value p4_type p4_value pa_type pa_value
+SOURCES=$(LWT_SOURCES:%=lwt/%) $(TC_SOURCES:%=type-conv/%) $(DYNTYPE_SOURCES:%=dyntype/%)
+pa_mirage.cma: $(SOURCES:%=%.cmo)
 	$(OCAMLC) -a -o $@ $^
-
-pa_lwt.cmi: pa_lwt.mli
-	$(OCAMLC) -I +camlp4 -c -pp '$(CAMLP4OF)' $<
-
-pa_lwt.cmo: pa_lwt.ml pa_lwt.cmi
-	$(OCAMLC) -I +camlp4 -c -pp '$(CAMLP4OF)' $<
 
 .PHONY: clean
 clean:
 	rm -f *.cmi *.cmo *.cma
+	for i in lwt type-conv dyntype; do (cd $$i && $(MAKE) clean); done
 
 .PHONY: install
 install:

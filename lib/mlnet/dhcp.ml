@@ -19,7 +19,7 @@ open Lwt
 open Printf
 open Mlnet_types
 
-module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
+module Client(IP:Ipv4.UP)(UDP:Udp.UP)(Time:Ethif.TIME)= struct
 
   type offer = {
     ip_addr: ipv4_addr;
@@ -35,6 +35,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
   | Request_sent of int32
   | Offer_accepted of offer
   | Lease_held of offer
+  | Shutting_down
 
   type t = {
     udp: UDP.t;
@@ -120,6 +121,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
        end
        |_ -> printf "DHCP: ack not for us\n%!"; return ()
     end
+    |Shutting_down -> return ()
     |_ -> printf "DHCP: unknown DHCP state\n%!"; return ()
   )
  
@@ -137,11 +139,32 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP) = struct
     (t.state <- Request_sent xid;
     return ())
 
+  (* DHCP state thred *)
+  let rec dhcp_thread t =
+    (* For now, just send out regular discoveries until we have a lease *)
+    match t.state with
+    |Disabled ->
+      start_discovery t >>
+      Time.sleep 60. >>
+      dhcp_thread t
+    |Shutting_down ->
+      printf "DHCP thread: done\n%!";
+      return ()
+    |_ -> 
+      (* TODO: This should be looking at the lease time *)
+      Time.sleep 3600. >>
+      dhcp_thread t
+
   (* Create a DHCP thread *)
   let create ip udp =
+    let thread,_ = Lwt.task () in
     let state = Disabled in
     let t = { ip; udp; state } in
     UDP.listen t.udp 68 (input t);
-    start_discovery t >>
-    return t
+    Lwt.on_cancel thread (fun () ->
+      printf "DHCP: shutting down\n%!";
+      t.state <- Shutting_down;
+    );
+    let thread = join [ dhcp_thread t; thread ] in
+    return (t, thread)
 end

@@ -30,6 +30,10 @@ module type ETHIF = sig
   val mac : t -> string
 end
 
+module type TIME = sig
+  val sleep: float -> unit Lwt.t
+end
+
 (* Module to go higher up the stack (e.g. ARP and IPv4 *)
 module type UP = sig
   type t

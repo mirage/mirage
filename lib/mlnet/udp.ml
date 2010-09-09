@@ -44,7 +44,6 @@ module UDP(IP:Ipv4.UP) = struct
      header for checksum calculation. Although we currently just
      set the checksum to 0 as it is optional *)
   let output t ~dest_ip udp =
-    let dest = ipv4_addr_to_uint32 dest_ip in
     let src_ip = IP.get_ip t.ip in
     let src = ipv4_addr_to_uint32 src_ip in
     let udpfn env =
@@ -63,6 +62,11 @@ module UDP(IP:Ipv4.UP) = struct
   let create ip =
     let listeners = Hashtbl.create 1 in
     let t = { ip; listeners } in
+    let thread,_ = Lwt.task () in
     IP.attach ip (`UDP (input t));
-    t
+    Lwt.on_cancel thread (fun () ->
+      printf "UDP: thread shutdown\n%!";
+      IP.detach ip `UDP
+    );
+    t, thread
 end

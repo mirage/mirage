@@ -18,8 +18,6 @@ open Lwt
 open Mlnet_types
 open Printf
 
-module MS=Mpl.Mpl_stdlib
-
 module ICMP(IP:Ipv4.UP) = struct
  
   type t = {
@@ -35,7 +33,7 @@ module ICMP(IP:Ipv4.UP) = struct
     let data = `Frag icmp#data_frag in
     let icmpfn env =
       let packet = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
-      let csum = Checksum.icmp (MS.env_pos env 0) in
+      let csum = Checksum.icmp (Mpl.Mpl_stdlib.env_pos env 0) in
       packet#set_checksum csum;
     in
     (* Create the IPv4 packet *)
@@ -48,8 +46,14 @@ module ICMP(IP:Ipv4.UP) = struct
   |_ -> print_endline "dropped icmp"; return ()
 
   let create ip =
+    let thread,_ = Lwt.task () in
     let t = { ip } in
     IP.attach ip (`ICMP (input t));
-    { ip }
+    Lwt.on_cancel thread (fun () ->
+      printf "ICMP shutdown\n%!";
+      IP.detach ip `ICMP
+    );
+    printf "ICMP created\n%!";
+    t, thread
 
 end

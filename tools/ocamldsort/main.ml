@@ -59,6 +59,8 @@ let speclist = [
   " print bytecode filename (.cmo and .cmi)";
   "-opt", Arg.Unit (fun () -> output := Params.Opt),
   "  print opt filename (.cmx and .cmi)";
+  "-js", Arg.Unit (fun () -> output := Params.Js),
+  "  print javascript filename (.cmjs and .cmi)";
   "-v", Arg.Unit print_version,
   "    output version information and exit" ] 
 

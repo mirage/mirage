@@ -26,7 +26,7 @@ type ocamldep =
 
 type input = Ocamldep of ocamldep | Input_file of string | Stdin
 
-type file_output_type = Source | Byte | Opt
+type file_output_type = Source | Byte | Opt | Js
 
 type sorting_strategy = Sort_ml | Sort_ml_mli
 
@@ -86,6 +86,7 @@ let filename_of_file param =
       Source -> Files.source_filename_of_file
     | Byte -> Files.byte_filename_of_file
     | Opt -> Files.opt_filename_of_file
+    | Js -> Files.js_filename_of_file
 
 let new_file_input_param file =
   Input_file file

@@ -46,6 +46,7 @@ let meta_filename_of_file implementation interface = function
 let source_filename_of_file = meta_filename_of_file ".ml" ".mli"
 let byte_filename_of_file = meta_filename_of_file ".cmo" ".cmi"
 let opt_filename_of_file = meta_filename_of_file ".cmx" ".cmi"
+let js_filename_of_file = meta_filename_of_file ".cmjs" ".cmi"
 
 (* beware, it won't print the extension of the file *)
 let filename_of_file = function

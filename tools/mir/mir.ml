@@ -20,7 +20,7 @@
 open Arg 
 open Printf
 
-type os = Unix | Xen
+type os = Unix | Xen | Browser
 type mode = Tree | Installed
 type net = Static | DHCP
 
@@ -50,6 +50,7 @@ let set_os = set_key os
   (function
    | "xen"|"x" -> Xen
    | "unix"|"u" -> Unix
+   | "browser"|"b" -> Browser
    | f -> failwith (sprintf "Unknown -os '%s', needs to be unix|xen" f)
   )
 
@@ -83,7 +84,7 @@ let cmd xs =
 let _ =
   let build_dir = ref None in
   let keyspec = [
-      "-os", String set_os, "Set target operating system [xen|unix]";
+      "-os", String set_os, "Set target operating system [xen|unix|browser]";
       "-mode", String set_mode, "Set where to build application [tree|installed]";
       "-net", String set_net, "How to configure network interfaces [dhcp|static]";
       set_var "mod" modname "Application module name";
@@ -99,6 +100,7 @@ let _ =
     | Installed -> failwith "Installed mode not supported yet"
   in
   (* Various locations for syntax, standard library and other libraries *)
+  if !os = Browser then ocamlopt := "ocamljs";
   let syntax = sprintf "%s/syntax" mirage_root in
   let stdlib = sprintf "%s/lib/stdlib" mirage_root in
   let libdir = sprintf "%s/lib" mirage_root in
@@ -120,14 +122,17 @@ let _ =
   let includes_os = match !os with
     | Unix -> sprintf "-I %s/unix" libdir
     | Xen -> sprintf "-I %s/xen" libdir
+    | Browser -> sprintf "-I %s/browser" libdir
   in
   (* All includes *)
   let includes = String.concat " " [ includes_pre; includes_os; includes_post ] in
 
   (* The list of libraries for a given OS *)
-  let cmxas = String.concat " " (List.map (fun x -> x ^ ".cmxa") [
+  let libs =
+     let suffix = match !os with Browser -> ".cmjs" | _ -> ".cmxa" in
+     String.concat " " (List.map (fun x -> x ^ suffix) [
      "stdlib"; "lwtlib"; "mpl"; 
-     (match !os with |Xen -> "xen" |Unix -> "unix");
+     (match !os with |Xen -> "xen" |Unix -> "unix"|Browser -> "browser");
      "mlnet"; "dns" ]) in
 
   (* If building on x86_64 Linux, use no-pic *)
@@ -161,7 +166,7 @@ let _ =
   | Xen ->
       let runtime = sprintf "%s/runtime/xen" mirage_root in
       (* Build the raw application object file *)
-      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; cmxas; depends; "-output-obj -o app_raw.o" ];
+      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app_raw.o" ];
       (* Relink sections for custom memory layout *)
       cmd [ "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o" ];
       (* Change to the Xen kernel build dir and perform build *)
@@ -179,12 +184,24 @@ let _ =
   | Unix -> 
       let runtime = sprintf "%s/runtime/unix" mirage_root in
       (* Build the raw application object file *)
-      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; cmxas; depends; "-output-obj -o app.o" ];
+      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app.o" ];
       (* Change the the Unix kernel build dir and perform build *)
       Sys.chdir (runtime ^ "/main");
       let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
       cmd [ "make"; app_lib ];
       let output_bin = sprintf "%s/main/app" runtime in
       let target_bin = sprintf "%s/mirage-unix" build_dir in
+      cmd [ "mv"; output_bin; target_bin ]
+
+  | Browser ->
+      let runtime = sprintf "%s/runtime/browser" mirage_root in
+      (* Build the raw application object file *)
+      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app.o" ];
+      (* Change the the Unix kernel build dir and perform build *)
+      Sys.chdir (runtime ^ "/main");
+      let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
+      cmd [ "make"; app_lib ];
+      let output_bin = sprintf "%s/main/app" runtime in
+      let target_bin = sprintf "%s/mirage-browser" build_dir in
       cmd [ "mv"; output_bin; target_bin ]
 

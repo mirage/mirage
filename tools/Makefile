@@ -19,5 +19,6 @@ tools:
 clean:
 	@cd ocaml && $(MAKE) clean
 	@cd ocaml-libs && $(MAKE) clean
+	@cd ocamljs && $(MAKE) clean
 	@cd mpl && $(MAKE) clean
 	@cd ocamldsort && $(MAKE) clean || true

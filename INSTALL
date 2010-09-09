@@ -1,6 +1,6 @@
 Mirage has been tested on:
-- Debian Squeeze x86_64 (there is no x86_32 support yet)
-- MacOS X 10.6 Snow Leopard
+- Debian Squeeze x86_64 and x86_32
+- MacOS X 10.6 Snow Leopard x86_64
 
 To build it, you must first:
 1) Bootstrap the compiler toolchain

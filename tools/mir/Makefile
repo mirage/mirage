@@ -1,12 +1,18 @@
-ROOTDIR = ../..
-include $(ROOTDIR)/mk/ocaml.mk
+OCAMLMAKEFILE=OCamlMakefile
 
 PREFIX ?= /usr/local/mirage
+SOURCES=unix_stubs.c mir.ml 
+RESULT=mir
+ANNOTATE=yes
+
+.PHONY: build
+build: nc
+	@ :
 
 .PHONY: install
-install: mir.in
+install: nc
 	mkdir -p $(PREFIX)/bin
-	sed -e 's/@OCAMLOPT_FLAGS@/$(OCAMLOPT_FLAGS)/g' \
-	    -e 's/@OS@/$(OS)/g' -e 's,@PREFIX@,$(PREFIX),g' \
-	    -e 's/@OCAML_CLIBS@/$(OCAML_CLIBS)/g' < mir.in > $(PREFIX)/bin/mir
+	cp mir $(PREFIX)/bin/mir
 	chmod 755 $(PREFIX)/bin/mir
+
+include $(OCAMLMAKEFILE)

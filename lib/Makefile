@@ -4,6 +4,7 @@ all:
 	cd mpl && $(MAKE)
 	cd lwt && $(MAKE)
 	cd xen && $(MAKE)
+	cd browser && $(MAKE)
 	cd unix && $(MAKE)
 	cd mlnet && $(MAKE)
 	cd dns && $(MAKE)
@@ -18,6 +19,7 @@ clean:
 	cd lwt && $(MAKE) clean
 	cd xen && $(MAKE) clean
 	cd unix && $(MAKE) clean
+	cd browser && $(MAKE) clean
 	cd mlnet && $(MAKE) clean
 	cd dns && $(MAKE) clean
 	rm -rf obj

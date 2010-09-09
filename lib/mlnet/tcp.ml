@@ -176,10 +176,15 @@ Mpl.Tcp.prettyprint p;
     Hashtbl.replace t.listeners port fn
 
   let create ip =
+    let thread, _ = Lwt.task () in
     let listeners = Hashtbl.create 1 in
     let pcbs = Hashtbl.create 7 in
     let t = { ip; listeners; pcbs } in
     IP.attach ip (`TCP (input t));
-    t
+    Lwt.on_cancel thread (fun () ->
+      printf "TCP: shutting down\n%!";
+      IP.detach ip `TCP;
+    );
+    (t, thread)
 
 end

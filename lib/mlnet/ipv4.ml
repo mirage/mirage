@@ -34,6 +34,7 @@ module type UP = sig
      | `TCP of Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
      | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
     ] -> unit
+  val detach: t -> [  `UDP | `TCP | `ICMP ] -> unit
 end
 
 module IPv4 (IF:Ethif.UP)
@@ -149,4 +150,9 @@ module IPv4 (IF:Ethif.UP)
     |`UDP f -> t.udp <- f
     |`TCP f -> t.tcp <- f
     |`ICMP f -> t.icmp <- f
+
+  let detach t = function
+    |`UDP -> t.udp <- (fun _ _ -> return ())
+    |`TCP -> t.tcp <- (fun _ _ -> return ())
+    |`ICMP -> t.icmp <- (fun _ _ -> return ())
 end

@@ -2,20 +2,16 @@ ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
 .PHONY: build
-build: stdlib.cmxa
+build: stdlib.cmxa stdlib.cmjsa
 	@ :
-
-.mldeps: *.ml *.mli
-	$(OCAMLDSORT) -mli *.ml *.mli > $@
-
-.cmxdeps: .mldeps
-	$(OCAMLDSORT) -opt *.ml > $@
 
 stdlib.cmxa: .cmxdeps .mldeps
 	$(OCAMLOPT) -c -nostdlib -nopervasives $(OCAMLOPT_FLAGS) \
 	  pervasives.mli pervasives.ml `cat .mldeps`
-	$(OCAMLOPT) -a -o stdlib.cmxa `cat .cmxdeps`
+	$(OCAMLOPT) -a -o $@ `cat .cmxdeps`
 
-.PHONY: clean
-clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps
+stdlib.cmjsa: .cmjsdeps .mldeps
+	$(OCAMLJS) -c -nostdlib -nopervasives pervasives.mli pervasives.ml `cat .mldeps`
+	$(OCAMLJS) -a -o $@ `cat .cmjsdeps`
+
+include ../Makefile.common

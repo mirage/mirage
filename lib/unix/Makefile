@@ -9,7 +9,7 @@ MPLLIB=$(ROOTDIR)/lib/mpl
 INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
 
 .PHONY: build
-build: unix.cmx
+build: unix.cmxa
 	@ :
 
 .mldeps: *.ml *.mli
@@ -22,6 +22,9 @@ unix.cmx: .cmxdeps .mldeps
 	$(OCAMLOPT) -c -nostdlib -for-pack Unix -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
 	$(OCAMLOPT) -c -nostdlib -for-pack Unix -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
 	$(OCAMLOPT) -pack -o $@ `cat .cmxdeps`
+
+%.cmxa: %.cmx
+	$(OCAMLOPT) -a -o $@ $^
 
 .PHONY: i-%
 i-%:

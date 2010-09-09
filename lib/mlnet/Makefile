@@ -12,7 +12,7 @@ SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml icmp.
 CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx icmp.cmx udp.cmx dhcp_option.cmx dhcp.cmx tcp.cmx
 
 .PHONY: build
-build: mlnet.cmx
+build: mlnet.cmxa
 	@ :
 
 $(CMX): $(SOURCES)

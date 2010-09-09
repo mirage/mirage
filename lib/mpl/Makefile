@@ -4,7 +4,7 @@ include $(ROOTDIR)/mk/ocaml.mk
 STDLIB=$(ROOTDIR)/lib/stdlib
 
 .PHONY: build
-build: mpl.cmx
+build: mpl.cmxa
 	@ :
 
 MPL=ethernet ipv4 udp icmp dhcp dns_rr dns tcp
@@ -21,6 +21,9 @@ mpl.cmx: $(MPLDEPS) mpl_stdlib.mli mpl_stdlib.ml
 	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mpl -I $(STDLIB) $(OCAMLOPT_FLAGS) mpl_stdlib.mli mpl_stdlib.ml
 	$(OCAMLOPT) -c -w y -nostdlib -annot -for-pack Mpl -I $(STDLIB) $(OCAMLOPT_FLAGS) $(MPLDEPS)
 	$(OCAMLOPT) -pack -o $@ mpl_stdlib.cmx $(MPLCMX)
+
+%.cmxa: %.cmx
+	$(OCAMLOPT) -a -o $@ $^
 
 .PHONY: i-%
 i-%:

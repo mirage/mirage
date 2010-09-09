@@ -16,7 +16,7 @@ CMX=hashcons.cmx dnsparameters.cmx dnsrr.cmx dnstrie.cmx dnsquery.cmx dnsloader.
   dnsparser.cmx dnslexer.cmx dnsserver.cmx
 
 .PHONY: build
-build: dns.cmx
+build: dns.cmxa
 	@ :
 
 dnslexer.ml: dnslexer.mll
@@ -28,6 +28,9 @@ dnsparser.mli dnsparser.ml: dnsparser.mly
 $(CMX): $(SOURCES)
 	$(OCAMLOPT) -c -nostdlib -annot -for-pack Dns $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
 	$(OCAMLOPT) -c -nostdlib -annot -for-pack Dns $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
+
+%.cmxa: %.cmx
+	$(OCAMLOPT) -a -o $@ $^
 
 dns.cmx: $(CMX)
 	$(OCAMLOPT) -pack -o $@ $^

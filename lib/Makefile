@@ -9,7 +9,7 @@ all:
 	cd dns && $(MAKE)
 	rm -rf obj
 	mkdir obj
-	cd obj && for i in mpl xen unix mlnet dns; do ln -nfs ../$$i/$$i.cmx; ln -nfs ../$$i/$$i.cmi; ln -nfs ../$$i/$$i.o; done
+	cd obj && for i in mpl xen unix mlnet dns; do ln -nfs ../$$i/$$i.cmxa; ln -nfs ../$$i/$$i.cmi; ln -nfs ../$$i/$$i.a; done
 
 .PHONY: clean
 clean:

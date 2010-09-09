@@ -11,10 +11,10 @@ APP_LIB ?= null.o
 
 .PHONY: app
 app: $(OBJS) $(APP_LIB)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(APP_LIB) $(LIBS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS) $(APP_LIB) $(LIBS)
 
 %.o: %.c
-	$(CC) -c -O2 $(CFLAGS) -o $@ $<
+	@$(CC) -c -O2 $(CFLAGS) -o $@ $<
 
 .PHONY: clean
 clean:

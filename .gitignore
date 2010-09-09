@@ -12,7 +12,11 @@
 *.annot
 *.gz
 *.odoc
+._d/
+._bcdi/
+._ncdi/
 CVS/
+doc/html/
 mini-os.gz
 lib/*/.cmxdeps
 lib/*/.mldeps

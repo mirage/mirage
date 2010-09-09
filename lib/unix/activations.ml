@@ -14,11 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Bigarray
-
-external evtchn_init : unit -> (int, int8_unsigned_elt, c_layout) Array1.t = "caml_evtchn_init"
-let event_mask = evtchn_init ()
-let nr_events = Array1.dim event_mask
+external evtchn_nr_events: unit -> int = "caml_nr_events"
+external evtchn_test_and_clear: int -> bool = "caml_evtchn_test_and_clear"
 
 type cb = 
   | Event_none
@@ -26,6 +23,7 @@ type cb =
   | Event_condition of unit Lwt_condition.t
   | Event_thread of (unit -> unit Lwt.t)
 
+let nr_events = evtchn_nr_events ()
 let event_cb = Array.create nr_events Event_none
 
 (* Register an event channel port with a condition variable to let 
@@ -46,21 +44,18 @@ let run () =
     | n -> 
       let port = n - 1 in
       let acc = 
-        if Array1.get event_mask port = 1 then begin
+        if evtchn_test_and_clear port then begin
           match event_cb.(port) with
           | Event_none -> 
             Printf.printf "warning: event on port %d but no registered event\n%!" port;
             acc
           | Event_direct cb ->
-            Array1.set event_mask port 0;
             cb (); 
             acc
           | Event_condition cond ->
-            Array1.set event_mask port 0;
             Lwt_condition.signal cond ();
             acc
           | Event_thread cb ->
-            Array1.set event_mask port 0;
             cb () :: acc
         end else acc
       in loop (n-1) acc

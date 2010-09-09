@@ -18,9 +18,9 @@ $(OBJDIR)/.stamp:
 	cp -R ocaml/ $(OBJDIR)/
 	@touch $@
 
-$(OUT): $(OBJDIR)/asmrun/$(ASMRUNLIB) $(OBJDIR)/otherlibs/bigarray/libbigarray.a $(OBJDIR)/otherlibs/str/libstr.a
+$(OUT): $(OBJDIR)/asmrun/$(ASMRUNLIB) $(OBJDIR)/otherlibs/str/libstr.a
 	cp $< $@
-	ar rvs $@ $(OBJDIR)/otherlibs/bigarray/bigarray_stubs.o $(OBJDIR)/otherlibs/bigarray/mmap_unix.o $(OBJDIR)/otherlibs/str/strstubs.o
+	ar rvs $@ $(OBJDIR)/otherlibs/str/strstubs.o
 
 $(OBJDIR)/asmrun/$(ASMRUNLIB): $(OBJDIR)/.stamp
 	cd $(OBJDIR) && ./configure -no-pthread -no-shared-libs -no-tk -no-curses \

@@ -41,10 +41,26 @@ caml_evtchn_init(value v_unit)
     CAMLparam1(v_unit);
     CAMLlocal1(v_arr);
     int rc;
-    v_arr = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1, ev_callback_ml, NR_EVENTS);
     rc = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
     rc = bind_evtchn(start_info.console.domU.evtchn, caml_evtchn_handler, NULL);
-    CAMLreturn(v_arr);
+    CAMLreturn(Val_unit);
+}
+
+CAMLprim value
+caml_nr_events(value v_unit)
+{
+   return Val_int(NR_EVENTS);
+}
+
+CAMLprim value
+caml_evtchn_test_and_clear(value v_idx)
+{
+   int idx = Int_val(v_idx) % NR_EVENTS;
+   if (ev_callback_ml[idx] > 0) {
+      ev_callback_ml[idx] = 0;
+      return Val_int(1);
+   } else
+      return Val_int(0);
 }
 
 CAMLprim value

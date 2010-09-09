@@ -9,12 +9,18 @@ uint8_t ev_fds[NR_EVENTS];
 uint8_t ev_callback_ml[NR_EVENTS];
 
 CAMLprim value
-caml_evtchn_init(value v_unit)
+caml_nr_events(value v_unit)
 {
-  CAMLparam1(v_unit);
-  CAMLlocal1(v_arr);
-  v_arr = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1,
-    ev_callback_ml, NR_EVENTS);
-  CAMLreturn(v_arr);
+   return Val_int(NR_EVENTS);
 }
 
+CAMLprim value
+caml_evtchn_test_and_clear(value v_idx)
+{
+   int idx = Int_val(v_idx) % NR_EVENTS;
+   if (ev_callback_ml[idx] > 0) {
+      ev_callback_ml[idx] = 0;
+      return Val_int(1);
+   } else
+      return Val_int(0);
+}

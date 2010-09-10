@@ -4,7 +4,7 @@ include $(ROOTDIR)/mk/ocaml.mk
 INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
 
 .PHONY: build
-build: xen.cmx
+build: xen.cmxa
 	@ :
 
 xen.ml: hw_page.mli hw_page.ml gnttab.mli gnttab.ml ring.ml evtchn.ml activations.ml \

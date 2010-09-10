@@ -7,7 +7,7 @@ SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml \
 	udp.ml icmp.ml dhcp_option.ml dhcp.ml tcp.ml
 
 .PHONY: build
-build: mlnet.cmx mlnet.cmjs
+build: mlnet.cmxa mlnet.cmjsa
 	@ :
 
 mlnet.ml: $(SOURCES)

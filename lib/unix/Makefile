@@ -9,7 +9,7 @@ MPLLIB=$(ROOTDIR)/lib/mpl
 INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
 
 .PHONY: build
-build: unix.cmxa 
+build: unix.cmxa
 	@ :
 
 unix.ml: console.ml clock.ml activations.ml main.ml ethif.ml time.ml

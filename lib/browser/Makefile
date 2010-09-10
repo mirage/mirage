@@ -4,7 +4,7 @@ include $(ROOTDIR)/mk/ocaml.mk
 INCLUDES=-I $(STDLIB) -I $(LWTLIB)
 
 .PHONY: build
-build: browser.cmjs
+build: browser.cmjsa
 	@ :
 
 browser.ml: activations.ml clock.ml console.ml main.ml time.ml

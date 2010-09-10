@@ -78,7 +78,7 @@ let timeout d = sleep d >> Lwt.fail Timeout
 let with_timeout d f = Lwt.pick [timeout d; Lwt.apply f ()]
 
 let in_the_past now t =
-  t = 0. || t <= Lazy.force now
+  t = 0. || t <= now ()
 
 (* We use a lazy-value for [now] to avoid one system call if not
    needed: *)
@@ -106,7 +106,7 @@ let rec get_next_timeout now timeout =
         sleep_queue := SleepQueue.remove_min !sleep_queue;
         get_next_timeout now timeout
     | Some{ time = time } ->
-        Main.min_timeout timeout (Some(if time = 0. then 0. else max 0. (time -. (Lazy.force now))))
+        Main.min_timeout timeout (Some(if time = 0. then 0. else max 0. (time -. (now ()))))
     | None ->
         timeout
 

@@ -15,6 +15,7 @@ function console_write(console, data, off, len) {
 		text = data.substring(off, off+len);
 		text.replace(/\n/gi, "<br/>\n");
 		console.innerHTML += text;
+		console.log(data);
 }
 		
 		

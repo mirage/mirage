@@ -34,8 +34,11 @@ external uname_machine: unit -> string = "unix_sysmachine"
 let ocamldsort = ref "miragedsort.opt"
 let ocamlopt = ref "ocamlopt.opt"
 let ocamlopt_flags = "-nostdlib -annot"
+let ocamljs_flags = "-nostdlib -annot"
+let ocamljs_cclibs = ["primitives"; "support"; "console_stubs"; "clock_stubs"; "evtchn_stubs"]
 let ocamlopt_flags_extra = ref ""
 let ocamldep = ref "ocamldep.opt"
+let ocamljs = ref "ocamljs"
 let cc = ref "gcc"
 let os = ref Unix 
 let mode = ref Tree
@@ -91,6 +94,7 @@ let _ =
       set_var "cc" cc "Compiler to use";
       set_var "ocamldsort" ocamldsort "ocamldsort binary";
       set_var "ocamlopt" ocamlopt "ocamlopt binary";
+      set_var "ocamljs" ocamlopt "ocamljs binary";
       set_var "ocamlopt_flags" ocamlopt_flags_extra "ocamlopt flags";
       set_var "ocamldep" ocamldep "ocamldep binary";
     ] in
@@ -100,9 +104,10 @@ let _ =
     | Installed -> failwith "Installed mode not supported yet"
   in
   (* Various locations for syntax, standard library and other libraries *)
-  if !os = Browser then ocamlopt := "ocamljs";
   let syntax = sprintf "%s/syntax" mirage_root in
-  let stdlib = sprintf "%s/lib/stdlib" mirage_root in
+  let stdlib = match !os with
+    |Unix | Xen -> sprintf "%s/lib/stdlib" mirage_root 
+    |Browser -> sprintf "%s/lib/stdlib.js" mirage_root in
   let libdir = sprintf "%s/lib" mirage_root in
   let templates = sprintf "%s/templates" mirage_root in
 
@@ -213,13 +218,7 @@ let _ =
 
   | Browser ->
       let runtime = sprintf "%s/runtime/browser" mirage_root in
+      let cclibs = String.concat " " (List.map (fun x -> sprintf "-cclib %s/%s.js" runtime x) ocamljs_cclibs) in
       (* Build the raw application object file *)
-      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app.o" ];
-      (* Change the the Unix kernel build dir and perform build *)
-      Sys.chdir (runtime ^ "/main");
-      let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
-      cmd [ "make"; app_lib ];
-      let output_bin = sprintf "%s/main/app" runtime in
-      let target_bin = sprintf "%s/mirage-browser" build_dir in
-      cmd [ "mv"; output_bin; target_bin ]
+      cmd [ !ocamljs; ocamljs_flags; camlp4; includes; libs; cclibs; depends; "-o app.js" ]
 

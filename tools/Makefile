@@ -14,6 +14,7 @@ tools:
 	@cd mpl && $(MAKE) && $(MAKE) install
 	@cd ocamldsort && $(MAKE) && $(MAKE) install
 	@cd mir && $(MAKE) install
+	@cd ocamlpack && $(MAKE) install
 
 .PHONY: clean
 clean:
@@ -22,3 +23,5 @@ clean:
 	@cd ocamljs && $(MAKE) clean
 	@cd mpl && $(MAKE) clean
 	@cd ocamldsort && $(MAKE) clean || true
+	@cd mir && $(MAKE) clean
+	@cd ocamlpack && $(MAKE) clean

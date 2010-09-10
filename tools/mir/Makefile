@@ -1,4 +1,4 @@
-OCAMLMAKEFILE=OCamlMakefile
+OCAMLMAKEFILE=../OCamlMakefile
 
 PREFIX ?= /usr/local/mirage
 SOURCES=unix_stubs.c mir.ml 

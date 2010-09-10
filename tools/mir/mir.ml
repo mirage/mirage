@@ -127,13 +127,31 @@ let _ =
   (* All includes *)
   let includes = String.concat " " [ includes_pre; includes_os; includes_post ] in
 
-  (* The list of libraries for a given OS *)
-  let libs =
-     let suffix = match !os with Browser -> ".cmjs" | _ -> ".cmxa" in
-     String.concat " " (List.map (fun x -> x ^ suffix) [
-     "stdlib"; "lwtlib"; "mpl"; 
-     (match !os with |Xen -> "xen" |Unix -> "unix"|Browser -> "browser");
-     "mlnet"; "dns" ]) in
+  (* The list of standard libraries for a given OS *)
+  let stdlibs = match !os with
+    |Browser ->
+      [ "stdlib"; "lwtlib"; "browser" ]
+    |Xen ->
+      [ "stdlib"; "lwtlib"; "mpl"; "xen" ]
+    |Unix ->
+      [ "stdlib"; "lwtlib"; "mpl"; "unix" ]
+  in
+
+  (* The other libraries needed by an OS (which will eventually be added on
+     demand as required *)
+  let otherlibs = match !os with
+    |Browser -> []
+    |Xen |Unix -> [ "mlnet"; "dns" ]
+  in
+
+  let libext = match !os with
+    |Browser -> "cmjsa"
+    |Unix |Xen -> "cmxa"
+  in
+
+  (* Complete set of libraries needed *)
+  let libs = String.concat " " (List.map
+    (fun l -> sprintf "-I %s/%s %s.%s" libdir l l libext) (stdlibs @ otherlibs)) in
 
   (* If building on x86_64 Linux, use no-pic *)
   let ocamlopt_flags_os = match uname_os (), (uname_machine ()) with

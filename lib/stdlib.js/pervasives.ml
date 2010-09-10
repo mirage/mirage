@@ -1,3 +1,26 @@
+(*
+ * This file is part of ocamljs, OCaml to Javascript compiler
+ * Copyright (C) 2007-9 Skydeck, Inc
+ * Copyright (C) 2010 Jake Donham
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the Free
+ * Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+ * MA 02111-1307, USA
+ *)
+
+open Ocamljs.Inline
+
 (***********************************************************************)
 (*                                                                     *)
 (*                           Objective Caml                            *)
@@ -141,11 +164,15 @@ external string_blit : string -> int -> string -> int -> int -> unit
                      = "caml_blit_string" "noalloc"
 
 let (^) s1 s2 =
-  let l1 = string_length s1 and l2 = string_length s2 in
-  let s = string_create (l1 + l2) in
-  string_blit s1 0 s 0 l1;
-  string_blit s2 0 s l1 l2;
-  s
+  (* camlp4 doesn't like (or) above, so we do this manually *)
+  inline_exp
+    (Jslib_ast.Jbinop (_loc, Jslib_ast.Jadd,
+       Jslib_ast.Jcall (_loc,
+         Jslib_ast.Jfieldref (_loc, inline_antiexp s1, "toString"),
+         Jslib_ast.Jexp_nil _loc),
+       Jslib_ast.Jcall (_loc,
+         Jslib_ast.Jfieldref (_loc, inline_antiexp s2, "toString"),
+         Jslib_ast.Jexp_nil _loc)))
 
 (* Character operations -- more in module Char *)
 

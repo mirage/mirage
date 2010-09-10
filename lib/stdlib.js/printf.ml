@@ -149,24 +149,6 @@ let extract_format fmt start stop widths =
   Buffer.contents b
 ;;
 
-let extract_format_int conv fmt start stop widths =
-   let sfmt = extract_format fmt start stop widths in
-   match conv with
-   | 'n' | 'N' ->
-     sfmt.[String.length sfmt - 1] <- 'u';
-     sfmt
-   | _ -> sfmt
-;;
-
-let extract_format_float conv fmt start stop widths =
-   let sfmt = extract_format fmt start stop widths in
-   match conv with
-   | 'F' ->
-     sfmt.[String.length sfmt - 1] <- 'g';
-     sfmt
-   | _ -> sfmt
-;;
-
 (* Returns the position of the next character following the meta format
    string, starting from position [i], inside a given format [fmt].
    According to the character [conv], the meta format string is
@@ -519,20 +501,20 @@ let scan_format fmt args n pos cont_s cont_a cont_t cont_f cont_m =
       let s =
         if conv = 'c' then String.make 1 x else "'" ^ Char.escaped x ^ "'" in
       cont_s (next_index spec n) s (succ i)
-    | 'd' | 'i' | 'o' | 'u' | 'x' | 'X' | 'N' as conv ->
+    | 'd' | 'i' | 'o' | 'u' | 'x' | 'X' | 'N' ->
       let (x : int) = get_arg spec n in
       let s =
-        format_int (extract_format_int conv fmt pos i widths) x in
+        format_int (extract_format fmt pos i widths) x in
       cont_s (next_index spec n) s (succ i)
     | 'f' | 'e' | 'E' | 'g' | 'G' ->
       let (x : float) = get_arg spec n in
       let s = format_float (extract_format fmt pos i widths) x in
       cont_s (next_index spec n) s (succ i)
-    | 'F' as conv ->
+    | 'F' ->
       let (x : float) = get_arg spec n in
       let s =
         if widths = [] then Pervasives.string_of_float x else
-        format_float_lexeme (extract_format_float conv fmt pos i widths) x in
+        format_float_lexeme (extract_format fmt pos i widths) x in
       cont_s (next_index spec n) s (succ i)
     | 'B' | 'b' ->
       let (x : bool) = get_arg spec n in
@@ -566,7 +548,7 @@ let scan_format fmt args n pos cont_s cont_a cont_t cont_f cont_m =
         cont_s (next_index spec n) s (succ i)
       | _ ->
         let (x : int) = get_arg spec n in
-        let s = format_int (extract_format_int 'n' fmt pos i widths) x in
+        let s = format_int (extract_format fmt pos i widths) x in
         cont_s (next_index spec n) s (succ i)
       end
     | ',' -> cont_s n "" (succ i)

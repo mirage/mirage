@@ -9,28 +9,19 @@ MPLLIB=$(ROOTDIR)/lib/mpl
 INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
 
 .PHONY: build
-build: unix.cmxa
+build: unix.cmxa 
 	@ :
 
-.mldeps: *.ml *.mli
-	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
+unix.ml: console.ml clock.ml activations.ml main.ml ethif.ml time.ml
+	$(OCAMLPACK) -name unix $^ > $@
 
-.cmxdeps: .mldeps
-	$(OCAMLDSORT) $(SYNTAX) -opt *.ml > $@
-
-unix.cmx: .cmxdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -for-pack Unix -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -c -nostdlib -for-pack Unix -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -pack -o $@ `cat .cmxdeps`
-
-%.cmxa: %.cmx
-	$(OCAMLOPT) -a -o $@ $^
+unix.cmx unix.cmi: unix.mli unix.ml
+	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $^
 
 .PHONY: i-%
 i-%:
 	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) -i $*.ml
 
-.PHONY: clean
-clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.annot *.a
-	rm -rf ._d
+WITH_SYNTAX=yes
+EXTRA_CLEAN=unix.ml
+include ../Makefile.common

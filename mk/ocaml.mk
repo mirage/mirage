@@ -8,6 +8,7 @@ OCAMLDSORT ?= miragedsort.opt
 OCAMLDOC ?= ocamldoc.opt
 OCAMLJS ?= ocamljs
 
+OCAMLPACK ?= ocamlpack
 OCAMLOPT_FLAGS=
 
 ifeq ($(ARCH),x86_64)

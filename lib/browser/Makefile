@@ -1,35 +1,23 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
-OCAMLC   = ocamljs
-OCAMLOPT = ocamljs
 
-SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
-
-STDLIB=$(ROOTDIR)/lib/stdlib
-LWTLIB=$(ROOTDIR)/lib/lwt
-MPLLIB=$(ROOTDIR)/lib/mpl
-INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
+INCLUDES=-I $(STDLIB) -I $(LWTLIB)
 
 .PHONY: build
 build: browser.cmjs
 	@ :
 
-.mldeps: *.ml *.mli
-	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
+browser.ml: activations.ml clock.ml console.ml main.ml time.ml
+	$(OCAMLPACK) -name browser $^ > $@
 
-.cmjsdeps: .mldeps
-	$(OCAMLDSORT) $(SYNTAX) -js *.ml > $@
-
-browser.cmjs: .cmjsdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -for-pack Browser -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -c -nostdlib -for-pack Browser -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -pack -o $@ `cat .cmjsdeps`
+browser.cmjs browser.cmi: browser.mli browser.ml
+	$(OCAMLJS) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $^
 
 .PHONY: i-%
 i-%:
 	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) -i $*.ml
 
-.PHONY: clean
-clean:
-	rm -f *.cmjs *.cmo *.o *.cmi .mldeps .cmjsdeps *.annot *.a
-	rm -rf ._d
+WITH_SYNTAX=yes
+EXTRA_CLEAN=browser.ml
+include ../Makefile.common
+

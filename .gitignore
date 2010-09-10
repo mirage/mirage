@@ -50,6 +50,12 @@ tools/ocaml/install.tgz
 lib/dns/dnslexer.ml
 lib/dns/dnsparser.mli
 lib/dns/dnsparser.ml
+lib/dns/dns.ml
+lib/mpl/mpl.ml
+lib/unix/unix.ml
+lib/xen/xen.ml
+lib/browser/browser.ml
+lib/mlnet/mlnet.ml
 lib/obj/
 /screenlog.*
 tools/ocamldsort/Makefile

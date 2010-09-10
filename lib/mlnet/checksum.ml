@@ -15,9 +15,8 @@
  *
  *)
 
-open Mpl
 open Mlnet_types
-module M = Mpl_stdlib
+module M = Mpl.Mpl_stdlib
 
 let ones_checksum sum =
     0xffff - ((sum lsr 16) + (sum land 0xffff))
@@ -43,7 +42,7 @@ let icmp env =
     done;
     ones_checksum !sum
 
-let udp ip_src ip_dest (udp:Udp.o)  =
+let udp ip_src ip_dest (udp:Mpl.Udp.o)  =
   let sum = ref 0 in
   let addsum x = sum := !sum + x in
   let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));
@@ -66,7 +65,7 @@ let udp ip_src ip_dest (udp:Udp.o)  =
     | n -> n in
   csum
 
-let tcp ip_src ip_dest (tcp:Tcp.o) =
+let tcp ip_src ip_dest (tcp:Mpl.Tcp.o) =
   let sum = ref 0 in
   let addsum x = sum := !sum + x in
   let add32 x = addsum (Int32.to_int (Int32.shift_right x 16));

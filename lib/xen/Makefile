@@ -1,36 +1,25 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
-
-STDLIB=$(ROOTDIR)/lib/stdlib
-LWTLIB=$(ROOTDIR)/lib/lwt
-MPLLIB=$(ROOTDIR)/lib/mpl
 INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
 
 .PHONY: build
-build: xen.cmxa
+build: xen.cmx
 	@ :
 
-.mldeps: *.ml *.mli
-	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
+xen.ml: hw_page.mli hw_page.ml gnttab.mli gnttab.ml ring.ml evtchn.ml activations.ml \
+	xb_op.ml xb_partial.ml xb_state.ml \
+	xs_packet.ml xb.mli xb.ml queueop.ml xsraw.mli xsraw.ml \
+	xst.mli xst.ml clock.ml main.ml time.ml xs.mli xs.ml ethif.ml console.mli console.ml 
+	$(OCAMLPACK) -name xen $^ > $@
 
-.cmxdeps: .mldeps
-	$(OCAMLDSORT) $(SYNTAX) -opt *.ml > $@
-
-xen.cmx: .cmxdeps .mldeps
-	$(OCAMLOPT) -c -nostdlib -for-pack Xen -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -c -nostdlib -for-pack Xen -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) `cat .mldeps`
-	$(OCAMLOPT) -pack -o $@ `cat .cmxdeps`
-
-%.cmxa: %.cmx
-	$(OCAMLOPT) -a -o $@ $^
+xen.cmx xen.cmi: xen.mli xen.ml
+	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $^
 
 .PHONY: i-%
 i-%:
 	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) -i $*.ml
 
-.PHONY: clean
-clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.annot *.a
-	rm -rf ._d
+WITH_SYNTAX=yes
+EXTRA_CLEAN=xen.ml
+include ../Makefile.common

@@ -1,34 +1,28 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
+INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
 
-STDLIB=$(ROOTDIR)/lib/stdlib
-LWTLIB=$(ROOTDIR)/lib/lwt
-MPLLIB=$(ROOTDIR)/lib/mpl
-INCLUDES=-I $(ROOTDIR)/lib/stdlib -I $(ROOTDIR)/lib/lwt -I $(ROOTDIR)/lib/mpl
-
-SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml icmp.ml udp.ml dhcp_option.ml dhcp.ml tcp.ml
-CMX=mlnet_types.cmx checksum.cmx ethif.cmx arp.cmx ipv4.cmx icmp.cmx udp.cmx dhcp_option.cmx dhcp.cmx tcp.cmx
+SOURCES=mlnet_types.mli mlnet_types.ml checksum.ml ethif.ml arp.ml ipv4.ml \
+	udp.ml icmp.ml dhcp_option.ml dhcp.ml tcp.ml
 
 .PHONY: build
-build: mlnet.cmxa
+build: mlnet.cmx mlnet.cmjs
 	@ :
 
-$(CMX): $(SOURCES)
-	$(OCAMLOPT) -c -nostdlib -annot -for-pack Mlnet $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
+mlnet.ml: $(SOURCES)
+	$(OCAMLPACK) -name mlnet $^ > $@
 
-mlnet.cmx: $(CMX)
-	$(OCAMLOPT) -pack -o $@ $^
+mlnet.cmx: mlnet.ml
+	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $<
 
-mlnet.cmxa: mlnet.cmx
-	$(OCAMLOPT) -a -o $@ $<
+mlnet.cmjs: mlnet.ml
+	$(OCAMLJS) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $<
 
 .PHONY: i-%
 i-%:
 	$(OCAMLOPT) -i -nostdlib -annot -for-pack Mlnet $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $*.ml
 
-.PHONY: clean
-clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.annot *.a mpl_*.ml
-	rm -rf ._d
+EXTRA_CLEAN=mlnet.ml
+WITH_SYNTAX=yes
+include ../Makefile.common

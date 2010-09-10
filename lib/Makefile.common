@@ -4,6 +4,10 @@ else
 SYNTAX=
 endif
 
+STDLIB=$(ROOTDIR)/lib/stdlib
+LWTLIB=$(ROOTDIR)/lib/lwt
+MPLLIB=$(ROOTDIR)/lib/mpl
+
 .mldeps: *.ml *.mli
 	$(OCAMLDSORT) $(SYNTAX) -mli *.ml *.mli > $@
 
@@ -21,5 +25,5 @@ endif
 
 .PHONY: clean
 clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.cmjs *.cmjsa
+	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps *.cmjs *.cmjsa *.annot $(EXTRA_CLEAN)
 

@@ -29,3 +29,5 @@ let sync_write t buf off len =
 let create_additional_console () = return (create ())
 
 let t = create ()
+
+let log s = write t s 0 (String.length s)

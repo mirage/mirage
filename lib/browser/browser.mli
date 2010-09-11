@@ -22,6 +22,7 @@ module Console : sig
   val create_additional_console : unit -> t Lwt.t
   val sync_write : t -> string -> int -> int -> unit Lwt.t
   val write : t -> string -> int -> int -> unit
+  val log : string -> unit
 end
 
 module Clock : sig
@@ -31,3 +32,8 @@ end
 module Time : sig
   val sleep : float -> unit Lwt.t
 end
+
+module Main : sig
+  val run : unit Lwt.t -> unit
+end
+

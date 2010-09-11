@@ -8,3 +8,8 @@ function caml_evtchn_init() {
     };
     return ev_callback;
 }
+
+function evtchn_block_domain(tm) {
+   if (tm >= 0)
+     setTimeout("ocamljs$caml_named_value('evtchn_run')(0)", tm * 1000);
+}

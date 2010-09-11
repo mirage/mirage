@@ -92,3 +92,7 @@ let write cons buf off len =
     Evtchn.notify cons.evtchn
 
 let t = create ()
+
+let log s = 
+  let s = s ^ "\n" in
+  write t s 0 (String.length s)

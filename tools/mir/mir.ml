@@ -218,7 +218,10 @@ let _ =
 
   | Browser ->
       let runtime = sprintf "%s/runtime/browser" mirage_root in
+      let console_html = sprintf "%s/app.html" runtime in
       let cclibs = String.concat " " (List.map (fun x -> sprintf "-cclib %s/%s.js" runtime x) ocamljs_cclibs) in
       (* Build the raw application object file *)
-      cmd [ !ocamljs; ocamljs_flags; camlp4; includes; libs; cclibs; depends; "-o app.js" ]
+      cmd [ !ocamljs; ocamljs_flags; camlp4; includes; libs; cclibs; depends; "-o app.js" ];
+      (* Copy in the console HTML *)
+      cmd [ "cp"; console_html; build_dir ]
 

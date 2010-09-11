@@ -1,5 +1,14 @@
 module OS = Browser
 
-let _ =
-  let x = "foo bar" in
-  OS.Console.(write t x 0 (String.length x))
+open Lwt
+
+let main () =
+  OS.Console.log "start";
+  for_lwt i = 1 to 10 do
+    OS.Console.log (Printf.sprintf "iteration: %d" i);
+    OS.Time.sleep ((float_of_int i) );
+  done >>
+  return (OS.Console.log "done")
+
+let _ = 
+  OS.Main.run (main ())

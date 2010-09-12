@@ -10,11 +10,14 @@ To build it, you must first:
 Bootstrap
 ---------
 
-This builds and installs the compiler toolchain, by default into ~/mir-inst. You can alter this by setting the PREFIX variable to the make target:
+This builds and installs the compiler toolchain, by default into
+~/mir-inst. You can alter this by setting the PREFIX variable to
+the make target. For the default, just omit PREFIX.
 
 $ make PREFIX=<location> bootstrap
 
-At this point, add the <location>/bin to head of your PATH variable so that the remaining steps can find the toolchain.
+At this point, add the <location>/bin to head of your PATH variable
+so that the remaining steps can find the Mirage toolchain.
 
 Tools
 -----
@@ -23,25 +26,32 @@ This installs the build tools and syntax extensions into the install PREFIX.
 
 $ make PREFIX=<location> tools
 
-The tools include the 'mir' build utility, a custom version of ocamldsort to help with dependency management, and the MPL protocol specification meta-compiler.
+The tools include the 'mir' build utility, a custom version of
+ocamldsort to help with dependency management, and the MPL protocol
+specification meta-compiler.
 
 Libraries
 ---------
 
 $ make
 
-This will build the OCaml libraries and the Xen custom runtime, if appropriate.
+This will build the OCaml libraries and the Xen custom runtime, if
+appropriate.
 
 Build an application
 --------------------
 
 Build a Xen kernel in-tree:
-$ mir dx tests/ping
+$ mir -os xen tests/tcp_echo
 output will be in tests/ping/mirage-os.gz
 
 Build a UNIX binary in-tree:
-$ mir du tests/ping
+$ mir -os unix tests/tcp_echo
 output will be in tests/ping/mirage-unix
+
+Build a Javascript bundle in-tre:
+$ mir -os browser tests/sleep
+output will be in tests/sleep/app.html
 
 Configure your network
 ======================
@@ -85,7 +95,7 @@ Test the ping application
 
 * Build ping :
 
-  $ mir du tests/ping
+  $ mir -os unix tests/ping
 
 * Run the test
 

@@ -72,7 +72,7 @@ module TCP(IP:Ipv4.UP) = struct
     local_port: int;       (* Local TCP port *)
     local_ip: ipv4_addr;   (* Local IP address *)
     wnd: wnd;              (* Window information *)
-  }
+  } 
  
   type todo = {   
     (* RTT estimation variables *)
@@ -107,7 +107,7 @@ module TCP(IP:Ipv4.UP) = struct
   let tcp_mss = 566
   let tcp_wnd = tcp_mss * 4
 
-  let state_to_string = function
+  let string_of_state = function
   |Closed -> "closed"
   |Listen -> "listen"
   |Syn_sent -> "syn_sent"
@@ -151,6 +151,15 @@ module TCP(IP:Ipv4.UP) = struct
         ~source_port:pcb.local_port ~dest_port:pcb.remote_port ~sequence ~ack_number
         ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None)
 
+  (* Process an incoming TCP packet that has an active PCB *)
+  let tcp_process_input ip tcp pcb =
+    match pcb.state with
+    | Syn_received -> begin
+        printf "TCP: syn_sent, hoping for ack\n%!";
+        return ()
+      end
+    | _ -> return (printf "unknown pcb state: %s\n%!" (string_of_state pcb.state))
+
   (* Helper function to apply function with contents of hashtbl, or take default action *)
   let with_hashtbl h k fn default =
     try fn (Hashtbl.find h k) with Not_found -> default ()
@@ -166,11 +175,8 @@ module TCP(IP:Ipv4.UP) = struct
     } in
     (* Lookup connection from the active PCB hash *)
     with_hashtbl t.pcbs conn_id
-      (* PCB exists, so continue the connection state machine *)
-      (fun pcb ->
-         print_endline "found pcb";
-         return ()
-      )
+      (* PCB exists, so continue the connection state machine in tcp_input *)
+      (tcp_process_input ip tcp)
       (* No existing PCB, so check if it is a SYN for a listening function *)
       (fun () ->
         let syn_no_ack = (tcp#syn = 1) && (tcp#ack = 0) in
@@ -198,6 +204,8 @@ module TCP(IP:Ipv4.UP) = struct
               let pcb = { state=Syn_received; flags; wnd; remote_port;
                 remote_ip=(ipv4_addr_of_uint32 ip#src); local_port;
                 local_ip=(IP.get_ip t.ip) } in
+              (* Add the PCB to our connection table *)
+              Hashtbl.add t.pcbs conn_id pcb;
               (* Reply with SYN ACK *)
               output_syn_ack t ~dest_ip pcb;
             )

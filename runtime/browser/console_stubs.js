@@ -12,6 +12,8 @@ function console_create() {
 }
 
 function console_write(con, data, off, len) {
+    if (typeof data == "object")
+      data = data.toString();
     text = data.substring(off, off+len);
     con.innerHTML += "<pre>"+text+"</pre>";
     console.log(con.id + ": " + text);

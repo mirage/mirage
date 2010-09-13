@@ -7,7 +7,7 @@ INCLUDES=-I $(STDLIB) -I $(LWTLIB)
 build: browser.cmxa browser.cmjsa
 	@ :
 
-SOURCES= activations.ml clock.ml console.ml time.ml main.ml
+SOURCES= activations.ml clock.ml console.ml time.ml websocket.ml main.ml
 debug: $(SOURCES)
 	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(OCAMLOPT_FLAGS) $(SYNTAX) $^
 

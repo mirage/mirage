@@ -1,4 +1,4 @@
-PREFIX ?= /usr/local/mirage
+PREFIX ?= $(HOME)/mir-inst
 export PREFIX
 
 .PHONY: bootstrap

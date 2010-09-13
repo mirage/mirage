@@ -2,7 +2,7 @@
 
 var nb_console = 0;
 
-function console_create(con_id) {
+function console_create() {
 		nb_console++;
     var new_console = document.createElement('div');
 		new_console.id = "console_"+nb_console;

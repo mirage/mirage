@@ -62,6 +62,7 @@ module TCP(IP:Ipv4.UP) = struct
     mutable snd_wl1: int32;
     mutable snd_wl2: int32;      (* Seq and ack num of last wnd update *) 
     mutable snd_lbb: int32;      (* Seq of next byte to be buffered *)
+    mutable last_ack: int32;     (* Last acknowleged seqno *)
   }
 
   and pcb = {
@@ -81,10 +82,6 @@ module TCP(IP:Ipv4.UP) = struct
     rto: int;            (* Retransmission timeout *)
     rtx: int;            (* Number of retransmissions *)
     
-    (* Fast transmit/recovery *)
-    lastack: int32;      (* Last acknowleged seqno *)
-    dupacks: int;
- 
     (* Congestion avoidance variables *)
     cwnd: int;
     ssthresh: int;
@@ -120,6 +117,10 @@ module TCP(IP:Ipv4.UP) = struct
   |Last_ack -> "last_ack"
   |Time_wait -> "time_wait"
 
+  (* Check if a sequence number is in the right range *)
+  let sequence_between seq base off = 
+    Int32.( (seq >= base) || (seq <= (add base off) ) )
+
   (* Output a general TCP packet and checksum it *)
   let output_tcp_low t ~dest_ip fn =
     let tcpfn env = 
@@ -145,18 +146,40 @@ module TCP(IP:Ipv4.UP) = struct
   let output_syn_ack t ~dest_ip pcb =
     printf "TCP: xmit SYN/ACK -> %s:%d\n%!" (ipv4_addr_to_string pcb.remote_ip) pcb.remote_port;
     let sequence = 0xdeadbeefl in (* XXX obviously *)
+    pcb.wnd.snd_nxt <- sequence;
     let ack_number = pcb.wnd.rcv_nxt in
+    pcb.wnd.last_ack <- ack_number;
     output_tcp_low t ~dest_ip (
       Mpl.Tcp.t ~syn:1 ~ack:1
         ~source_port:pcb.local_port ~dest_port:pcb.remote_port ~sequence ~ack_number
         ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None)
 
   (* Process an incoming TCP packet that has an active PCB *)
-  let tcp_process_input ip tcp pcb =
+  let tcp_process_input t ~dest_ip ip tcp pcb =
     match pcb.state with
     | Syn_received -> begin
-        printf "TCP: syn_sent, hoping for ack\n%!";
-        return ()
+        (* if it's an ACK then establish the connection *)
+        match tcp#ack = 1 with
+        | true -> begin
+            (* check the ack number is what we're expecting *)
+            match sequence_between tcp#ack_number (Int32.succ pcb.wnd.last_ack) pcb.wnd.snd_nxt with
+            | true ->
+                (* valid sequence, we can establish connection *)
+                printf "TCP: connection established\n%!";
+                pcb.state <- Established;
+                (* TODO pass any data through to the application callback *)
+                return ()
+            | false ->
+                (* invalid sequence number, send back an RST *)
+                printf "TCP: invalid seq, sending RST\n";
+                let source_port = tcp#dest_port in
+                let dest_port = tcp#source_port in 
+                let sequence = tcp#ack_number in
+                let ack_number = Int32.(add tcp#sequence (of_int tcp#data_length)) in
+                output_tcp_rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number 
+          end   
+        | false ->
+           return ()
       end
     | _ -> return (printf "unknown pcb state: %s\n%!" (string_of_state pcb.state))
 
@@ -167,16 +190,17 @@ module TCP(IP:Ipv4.UP) = struct
   (* Main input function for TCP packets *)
   let input t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) =
     (* Construct a connection ID from the input packet to look it up in PCB list *)
+    let dest_ip = ipv4_addr_of_uint32 ip#src in
     let conn_id = {
       c_remote_port = tcp#source_port;
-      c_remote_ip = ipv4_addr_of_uint32 ip#src;
+      c_remote_ip = dest_ip;
       c_local_ip = IP.get_ip t.ip;
       c_local_port = tcp#dest_port;
     } in
     (* Lookup connection from the active PCB hash *)
     with_hashtbl t.pcbs conn_id
       (* PCB exists, so continue the connection state machine in tcp_input *)
-      (tcp_process_input ip tcp)
+      (tcp_process_input t ~dest_ip ip tcp)
       (* No existing PCB, so check if it is a SYN for a listening function *)
       (fun () ->
         let syn_no_ack = (tcp#syn = 1) && (tcp#ack = 0) in
@@ -186,7 +210,6 @@ module TCP(IP:Ipv4.UP) = struct
           (* Try to find a listener *)
           let local_port = tcp#dest_port in
           let remote_port = tcp#source_port in
-          let dest_ip = ipv4_addr_of_uint32 ip#src in
           with_hashtbl t.listeners local_port 
             (* Got a listener, construct new PCB and send ACK *)
             (fun listener ->
@@ -199,7 +222,7 @@ module TCP(IP:Ipv4.UP) = struct
               let snd_wl1 = Int32.pred seqno in (* XXX to force an update, but what if seq=0? *)
               let wnd = { rcv_nxt=(Int32.succ seqno);
                 rcv_wnd; rcv_ann_wnd=0; rcv_ann_edge=rcv_wnd; mss=tcp_mss;
-                snd_wnd=rcv_wnd; snd_nxt=0l; snd_wl1; snd_wl2=0l; snd_lbb=0l } in
+                snd_wnd=rcv_wnd; snd_nxt=0l; snd_wl1; snd_wl2=0l; snd_lbb=0l; last_ack=0l } in
               (* Construct basic PCB in Syn_received state *)
               let pcb = { state=Syn_received; flags; wnd; remote_port;
                 remote_ip=(ipv4_addr_of_uint32 ip#src); local_port;

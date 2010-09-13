@@ -1,13 +1,13 @@
 // Need to have a node whose ID is console_window to hold all the consoles
+
+var nb_console = 0;
+
 function console_create() {
+		nb_console++;
     var new_console = document.createElement('div');
+		new_console.id = "console_"+nb_console;
     var con = document.getElementById("console_window");
-    if (con) {
-        con.appendChild(new_console);
-    } else {
-        con = document.createElement('div');
-        con.id = "console_1";
-    };
+    if (con) con.appendChild(new_console);
     return new_console;
 }
 
@@ -16,5 +16,5 @@ function console_write(con, data, off, len) {
       data = data.toString();
     text = data.substring(off, off+len);
     con.innerHTML += "<pre>"+text+"</pre>";
-    console.log(con.id + ": " + text);
+    if (window.console) console.log(con.id + ": " + text);
 }

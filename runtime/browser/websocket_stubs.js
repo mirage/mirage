@@ -22,11 +22,11 @@ function ws_create(url, evtch, callback) {
     if (ws_supported()) {
         var ws = new WebSocket(url);
         ws.onopen = function() {
-            if (window.console) console.debug("onopen: ev_callback[%d] <- 1", evtch);
+            // if (window.console) console.debug("onopen: ev_callback[%d] <- 1", evtch);
             ev_callback[evtch] = 1; // wake-up the opener
         };
         ws.onmessage = function (event) {
-            if (window.console) console.debug("onmessage: ev_callback[%d] <- 1", evtch);
+            // if (window.console) console.debug("onmessage: ev_callback[%d] <- 1", evtch);
             callback(event.data);   // fill-up some ocaml buffer
             ev_callback[evtch] = 1; // wake-up the lwt threads
         };

@@ -146,7 +146,7 @@ let _ =
      demand as required *)
   let otherlibs = match !os with
     |Browser -> []
-    |Xen |Unix -> [ "mlnet"; "dns" ]
+    |Xen |Unix -> [ "mlnet"; "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp" ]
   in
 
   let libext = match !os with

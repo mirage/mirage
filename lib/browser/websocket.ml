@@ -16,30 +16,37 @@
 
 open Lwt 
 
+exception Not_supported
+
 module Ws = struct
   type t
+  external supported : unit -> bool = "@ws_supported"
   external send : t -> string -> unit = "@ws_send"
   external create : string -> int -> (string -> unit) -> t = "@ws_create" (* url * evtch * callback *)
 end
 
-(* very inefficient ring buffer *)
+(* Each connection has a queue of incoming messages, waiting for ocaml readers to call [read] *)
 type t = {
-  mutable buffer: Buffer.t;
-  mutable current: int;
+  messages: string Queue.t;
   evtch: int;
   ws: Ws.t;
   cond: unit Lwt_condition.t;
 }
 
-let buffer_size = 1024 * 8
-
 let create url evtch =
-  let buffer = Buffer.create buffer_size in
-  let current = 0 in
-  let ws = Ws.create url evtch (Buffer.add_string buffer) in
-  let cond = Lwt_condition.create () in
-  Activations.register evtch (Activations.Event_condition cond);
-  { buffer; current; evtch; ws; cond }
+  if Ws.supported () then begin
+    let messages = Queue.create () in
+    let callback msg = Queue.push msg messages in
+    let cond = Lwt_condition.create () in
+    Activations.register evtch (Activations.Event_condition cond);
+    let ws = Ws.create url evtch callback in
+    (* Let's wait that the 'onopen' callback wakes us *)
+    Console.printf "[%d] waiting for the connection to be opened propely ..." evtch;
+    Lwt_condition.wait cond >> 
+    return (Console.printf "[%d] OK" evtch) >>
+    return { messages; evtch; ws; cond }
+  end else
+    Lwt.fail Not_supported
 
 let sync_write t str =
   Ws.send t.ws str;
@@ -48,22 +55,10 @@ let sync_write t str =
 let write t str =
   Ws.send t.ws str
 
-(* XXX: not efficient at all *)
-let shrink_buffer t =
-  if t.current > buffer_size then begin
-    Console.log "Shrinking the read buffer";
-    let remaining = Buffer.sub t.buffer t.current (Buffer.length t.buffer - t.current) in
-    t.buffer <- Buffer.create buffer_size;
-    Buffer.add_string t.buffer remaining;
-    t.current <- 0
-  end
-
-let read t length =
-  Lwt_condition.wait t.cond >>
-  let len = min (Buffer.length t.buffer - t.current) length in
-  let res = Buffer.sub t.buffer t.current len in
-  t.current <- t.current + len;
-  shrink_buffer t;
-  return (res, len)
-
+let rec read t =
+  if Queue.is_empty t.messages then
+    Lwt_condition.wait t.cond >>
+    read t
+  else
+    return (Queue.pop t.messages)
 

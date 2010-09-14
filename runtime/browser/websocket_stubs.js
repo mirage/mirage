@@ -14,19 +14,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-function ws_create(url, eventch, callback) {
-    if ("WebSocket" in window) {
+function ws_supported() {
+    return ("WebSocket" in window)
+}
+
+function ws_create(url, evtch, callback) {
+    if (ws_supported()) {
         var ws = new WebSocket(url);
+        ws.onopen = function() {
+            if (window.console) console.debug("onopen: ev_callback[%d] <- 1", evtch);
+            ev_callback[evtch] = 1; // wake-up the opener
+        };
         ws.onmessage = function (event) {
-            callback(event.data);     // fill-up some ocaml buffer
-            ev_callbak[eventchn] = 1; // wake-up the lwt threads
+            if (window.console) console.debug("onmessage: ev_callback[%d] <- 1", evtch);
+            callback(event.data);   // fill-up some ocaml buffer
+            ev_callback[evtch] = 1; // wake-up the lwt threads
         };
         return ws;
     } else
-        if (console) console.error("websocket is not supported on this browser");
+        if (window.console) console.error("websocket is not supported on this browser");
 }
 
 function ws_send(ws, str) {
-  if (typeof str == "object") str = str.toString();
-  ws.send(str);
+    if (ws_supported()) {
+        if (typeof str == "object") str = str.toString();
+        ws.send(str);
+    };
 }

@@ -23,6 +23,7 @@ module Console : sig
   val sync_write : t -> string -> int -> int -> unit Lwt.t
   val write : t -> string -> int -> int -> unit
   val log : string -> unit
+  val printf : ('a, unit, string, unit) format4 -> 'a
 end
 
 module Clock : sig
@@ -31,6 +32,15 @@ end
 
 module Time : sig
   val sleep : float -> unit Lwt.t
+end
+
+(* XXX: still need to find the right interface *)
+module Websocket : sig
+	exception Not_supported
+  type t
+  val create : string -> int -> t Lwt.t
+  val write : t -> string -> unit
+  val read : t -> string Lwt.t 
 end
 
 module Main : sig

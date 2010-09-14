@@ -25,10 +25,12 @@ function ws_create(url, evtch, callback) {
             if (window.console) console.debug("onmessage: ev_callback[%d] <- 1", evtch);
             callback(event.data);   // fill-up some ocaml buffer
             ev_callback[evtch] = 1; // wake-up the lwt threads
+            evtchn_activate();
         };
         ws.onopen = function() {
             if (window.console) console.debug("onopen: ev_callback[%d] <- 1", evtch);
             ev_callback[evtch] = 1; // wake-up the opener
+            evtchn_activate();
         };
         ws.onclose = function() {
             if (window.console) console.debug("onclose");

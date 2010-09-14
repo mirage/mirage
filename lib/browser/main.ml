@@ -45,7 +45,7 @@ let run t =
        (* XXX: the 0.1 is very hackish ...
           XXX: need to find a better solution than active polling here
           XXX: doesn't the above Lwt.poll should avoid such kind of situation ? *)
-       block_domain (match timeout with None -> 0.1 |Some x -> x)
+       block_domain (match timeout with None -> -1. |Some x -> x)
   in
   (* Register a callback for the JS runtime to restart this function *)
   let _ = Callback.register "evtchn_run" fn in

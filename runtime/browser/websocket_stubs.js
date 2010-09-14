@@ -27,12 +27,12 @@ function ws_create(url, evtch, callback) {
             ev_callback[evtch] = 1; // wake-up the lwt threads
             evtchn_activate();
         };
-        ws.onopen = function() {
+        ws.onopen = function(event) {
             if (window.console) console.debug("onopen: ev_callback[%d] <- 1", evtch);
             ev_callback[evtch] = 1; // wake-up the opener
             evtchn_activate();
         };
-        ws.onclose = function() {
+        ws.onclose = function(event) {
             if (window.console) console.debug("onclose");
         }
         return ws;

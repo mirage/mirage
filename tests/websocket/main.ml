@@ -87,7 +87,7 @@ let iter id n =
   for_lwt j = 0 to n do
     OS.Time.sleep 1. >>
     let i = Random.int nb_cons in
-    if cons.(i).messages > 0 && Random.int 5 <> 0 then
+    if cons.(i).messages > 0 && (j mod 2) = 1 (*Random.int 5 <> 0*) then
       random_read i id
     else
       return (random_write i id)

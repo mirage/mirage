@@ -42,7 +42,7 @@ let create url evtch =
     let ws = Ws.create url evtch callback in
     (* Let's wait that the 'onopen' callback wakes us *)
     Console.printf "[%d] waiting for the connection to be opened propely ..." evtch;
-    Lwt_condition.wait cond >> 
+    Lwt_condition.wait cond >>
     return (Console.printf "[%d] OK" evtch) >>
     return { messages; evtch; ws; cond }
   end else
@@ -56,9 +56,18 @@ let write t str =
   Ws.send t.ws str
 
 let rec read t =
-  if Queue.is_empty t.messages then
+  if Queue.is_empty t.messages then begin
+    Console.printf "[%d] reading the message queue : size=0" t.evtch;
     Lwt_condition.wait t.cond >>
     read t
-  else
-    return (Queue.pop t.messages)
+  end else begin
+    Console.printf "[%d] reading the message queue : size=%d; top=%s"
+      t.evtch
+      (Queue.length t.messages)
+      (Queue.peek t.messages);
+    let elt = Queue.pop t.messages in
+    if not (Queue.is_empty t.messages) then
+      Lwt_condition.signal t.cond ();
+    return elt
+  end
 

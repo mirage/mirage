@@ -18,7 +18,7 @@ open Lwt
 open Printf
 open Mlnet.Types
 
-module ICMP(IP:Mlnet.Ipv4) = struct
+module T(IP:Mlnet.Ipv4) = struct
  
   type t = {
     ip: IP.t;

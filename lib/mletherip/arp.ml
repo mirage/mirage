@@ -19,7 +19,7 @@ open Lwt
 open Mlnet.Types
 open Printf
 
-module ARP(IF: Mlnet.Ethernet) = struct
+module T(IF: Mlnet.Ethernet) = struct
 
   (* TODO implement the full ARP state machine (pending, failed, timer thread, etc) *)
   type entry =

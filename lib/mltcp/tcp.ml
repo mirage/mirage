@@ -20,7 +20,7 @@ open Lwt
 open Mlnet.Types
 open Printf
 
-module TCP(IP:Mlnet.Ipv4) = struct
+module Server(IP:Mlnet.Ipv4) = struct
 
   type state =
   |Closed

@@ -18,7 +18,7 @@ open Lwt
 open Mlnet.Types
 open Printf
 
-module UDP(IP:Mlnet.Ipv4) = struct
+module Socket(IP:Mlnet.Ipv4) = struct
 
   type t = {
     ip : IP.t;

@@ -19,7 +19,7 @@ open Lwt
 open Printf
 open Mlnet.Types
 
-module Client(IP:Mlnet.Ipv4)(UDP:Mlnet.Udp)(Time:Mlnet.Time)= struct
+module T(IP:Mlnet.Ipv4)(UDP:Mlnet.Udp)(Time:Mlnet.Time)= struct
 
   type offer = {
     ip_addr: ipv4_addr;

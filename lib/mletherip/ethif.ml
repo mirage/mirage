@@ -19,7 +19,7 @@ open Mlnet.Types
 
 (* Functorize across the hardware interface, to route packets
    appropriately *)
-module Ethernet(IF:Mlnet.Ethif) = struct 
+module T(IF:Mlnet.Ethif) = struct 
 
   type t = {
     ethif: IF.t;

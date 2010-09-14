@@ -30,6 +30,9 @@ function ws_create(url, evtch, callback) {
             callback(event.data);   // fill-up some ocaml buffer
             ev_callback[evtch] = 1; // wake-up the lwt threads
         };
+        ws.onclose = function() {
+            if (window.console) console.debug("onclose");
+        }
         return ws;
     } else
         if (window.console) console.error("websocket is not supported on this browser");

@@ -15,10 +15,10 @@
  *)
 
 open Lwt
-open Mlnet_types
 open Printf
+open Mlnet.Types
 
-module ICMP(IP:Ipv4.UP) = struct
+module ICMP(IP:Mlnet.Ipv4) = struct
  
   type t = {
     ip: IP.t;

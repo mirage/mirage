@@ -1,12 +1,18 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
-STDLIB=$(ROOTDIR)/lib/stdlib
 
-.PHONY: build
-build: mpl.cmxa mpl.cmjsa
-	@ :
-
+TARGET=mpl
+TARGET_MLI=
 MPL=ethernet ipv4 udp icmp dhcp dns_rr dns tcp
+SOURCES=mpl_stdlib.mli mpl_stdlib.ml $(MPL:%=%.ml)
+DEPENDS=lwt
+
+WITH_SYNTAX=yes
+EXTRA_FLAGS=-w y
+EXTRA_CLEAN=mpl.ml
+
+USE_PACK=yes
+include ../Makefile.common
 
 .PHONY: depend
 depend: $(MPLDEPS)
@@ -15,20 +21,3 @@ depend: $(MPLDEPS)
 %.ml: %.mpl
 	mplc -v $< > $@
 
-mpl.ml: mpl_stdlib.mli mpl_stdlib.ml $(MPL:%=%.ml)
-	rm -f $@
-	$(OCAMLPACK) -name mpl $^ > $@
-
-mpl.cmx: mpl.ml
-	$(OCAMLOPT) -c -w y -nostdlib -annot -I $(STDLIB) $(OCAMLOPT_FLAGS) $<
-
-mpl.cmjs: mpl.ml
-	$(OCAMLJS) -c -w y -nostdlib -annot -I $(STDLIB) $<
-
-.PHONY: i-%
-i-%:
-	$(OCAMLOPT) -i -nostdlib -I $(STDLIB) $(OCAMLOPT_FLAGS) $*.ml
-
-WITH_SYNTAX=yes
-EXTRA_CLEAN=mpl.ml
-include ../Makefile.common

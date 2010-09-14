@@ -16,22 +16,10 @@
  *)
 
 open Lwt
-open Mlnet_types
+open Mlnet.Types
 open Printf
 
-(* Interface exposed higher up the stack (usually just IPv4) *)
-module type UP = sig
-  type t
-  type id
-  type ethif
- 
-  val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
-  val get_bound_ips: t -> ipv4_addr list
-  val create: ethif -> (t * unit Lwt.t)
-  val query: t -> ipv4_addr -> ethernet_mac Lwt.t
-end
-
-module ARP(IF: Ethif.UP) = struct
+module ARP(IF: Mlnet.Ethernet) = struct
 
   (* TODO implement the full ARP state machine (pending, failed, timer thread, etc) *)
   type entry =

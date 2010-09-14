@@ -15,48 +15,15 @@
  *
  *)
 open Lwt
-
-(* Module type for an ethernet interface provided by the OS *)
-module type ETHIF = sig
-  type t
-  type id
-  val enumerate : unit -> id list Lwt.t
-  val create : id -> t Lwt.t
-  val destroy : t -> unit Lwt.t
-  val input : t -> (Mpl.Ethernet.o -> unit Lwt.t) -> unit Lwt.t list
-  val has_input : t -> bool
-  val wait : t -> unit Lwt.t
-  val output : t -> Mpl.Ethernet.x -> unit Lwt.t
-  val mac : t -> string
-end
-
-module type TIME = sig
-  val sleep: float -> unit Lwt.t
-end
-
-(* Module to go higher up the stack (e.g. ARP and IPv4 *)
-module type UP = sig
-  type t
-  type id
-  val create: id -> (t * unit Lwt.t) Lwt.t
-  val output : t -> Mpl.Ethernet.x -> unit Lwt.t
-  val attach :
-    t ->
-      [ `ARP of Mpl.Ethernet.ARP.o -> unit Lwt.t
-      | `IPv4 of Mpl.Ipv4.o -> unit Lwt.t
-      | `IPv6 of Mpl.Ethernet.IPv4.o -> unit Lwt.t ] ->
-          unit
-  val detach : t -> [`ARP |`IPv4 |`IPv6 ] -> unit
-  val mac : t -> Mlnet_types.ethernet_mac
-end
+open Mlnet.Types
 
 (* Functorize across the hardware interface, to route packets
    appropriately *)
-module Ethernet(IF:ETHIF) = struct 
+module Ethernet(IF:Mlnet.Ethif) = struct 
 
   type t = {
     ethif: IF.t;
-    mac: Mlnet_types.ethernet_mac;
+    mac: ethernet_mac;
     mutable arp: (Mpl.Ethernet.ARP.o -> unit Lwt.t);
     mutable ipv4: (Mpl.Ipv4.o -> unit Lwt.t);
     mutable ipv6: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
@@ -91,7 +58,7 @@ module Ethernet(IF:ETHIF) = struct
     let arp = (fun _ -> return (print_endline "dropped arp")) in
     let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
     let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in
-    let mac = Mlnet_types.ethernet_mac_of_bytes (IF.mac ethif) in
+    let mac = ethernet_mac_of_bytes (IF.mac ethif) in
     let t = { ethif; arp; ipv4; ipv6; mac }  in
     let th, _ =  Lwt.task () in
     let listen = listen t th in

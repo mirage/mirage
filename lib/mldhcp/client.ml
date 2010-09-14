@@ -17,9 +17,9 @@
 
 open Lwt
 open Printf
-open Mlnet_types
+open Mlnet.Types
 
-module Client(IP:Ipv4.UP)(UDP:Udp.UP)(Time:Ethif.TIME)= struct
+module Client(IP:Mlnet.Ipv4)(UDP:Mlnet.Udp)(Time:Mlnet.Time)= struct
 
   type offer = {
     ip_addr: ipv4_addr;
@@ -49,7 +49,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP)(Time:Ethif.TIME)= struct
     let chaddr = `Str ((ethernet_mac_to_bytes (IP.mac t.ip)) ^ 
       (String.make 10 '\000')) in
 
-    let options = `Str (Dhcp_option.Packet.to_bytes options) in
+    let options = `Str (Option.Packet.to_bytes options) in
 
     let dhcpfn env =
       ignore(Mpl.Dhcp.t
@@ -72,9 +72,9 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP)(Time:Ethif.TIME)= struct
   (* Receive a DHCP UDP packet *)
   let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
     let dhcp = Mpl.Dhcp.unmarshal udp#data_env in 
-    let packet = Dhcp_option.Packet.of_bytes dhcp#options in
+    let packet = Option.Packet.of_bytes dhcp#options in
     (* See what state our Netif is in and if this packet is useful *)
-    Dhcp_option.Packet.(match t.state with
+    Option.Packet.(match t.state with
     | Request_sent xid -> begin
         (* we are expecting an offer *)
         match packet.op, dhcp#xid with 
@@ -131,7 +131,7 @@ module Client(IP:Ipv4.UP)(UDP:Udp.UP)(Time:Ethif.TIME)= struct
     let xid = Random.int32 Int32.max_int in
     let yiaddr = ipv4_blank in
     let siaddr = ipv4_blank in
-    let options = { Dhcp_option.Packet.op=`Discover; opts= [
+    let options = { Option.Packet.op=`Discover; opts= [
        (`Parameter_request [`Subnet_mask; `Router; `DNS_server; `Broadcast]);
        (`Host_name "miragevm")
      ] } in

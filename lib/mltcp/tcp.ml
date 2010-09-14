@@ -17,17 +17,10 @@
 (* TCPv4 implementation, heavily based on the lwIP-1.3.2 state machine *)
 
 open Lwt
-open Mlnet_types
+open Mlnet.Types
 open Printf
 
-module type UP = sig
-  type t
-  val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Tcp.o) -> unit Lwt.t
-  val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t) -> unit
-end
-
-module TCP(IP:Ipv4.UP) = struct
+module TCP(IP:Mlnet.Ipv4) = struct
 
   type state =
   |Closed

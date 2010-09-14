@@ -1,24 +1,16 @@
+STDLIBS=stdlib stdlib.js lwt mpl
+PLATFORM=xen unix browser 
+LIBS=mlnet mletherip mludp mltcp mldhcp mldns
+
+ALL=$(STDLIBS) $(PLATFORM) $(LIBS)
+
 .PHONY: all
 all:
-	cd stdlib && $(MAKE)
-	cd mpl && $(MAKE)
-	cd lwt && $(MAKE)
-	cd xen && $(MAKE)
-	cd browser && $(MAKE)
-	cd unix && $(MAKE)
-	cd mlnet && $(MAKE)
-	cd dns && $(MAKE)
+	set -e; for i in $(ALL); do (cd $$i && $(MAKE)); done
 
 .PHONY: clean
 clean:
-	cd stdlib && $(MAKE) clean
-	cd mpl && $(MAKE) clean
-	cd lwt && $(MAKE) clean
-	cd xen && $(MAKE) clean
-	cd unix && $(MAKE) clean
-	cd browser && $(MAKE) clean
-	cd mlnet && $(MAKE) clean
-	cd dns && $(MAKE) clean
+	set -e; for i in $(ALL); do (cd $$i && $(MAKE) clean); done
 
 .PHONY: install
 install:

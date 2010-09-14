@@ -15,17 +15,10 @@
  *)
 
 open Lwt
-open Mlnet_types
+open Mlnet.Types
 open Printf
 
-module type UP = sig
-  type t
-  val input: t -> Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
-  val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Udp.o) -> unit Lwt.t
-  val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t) -> unit
-end
-
-module UDP(IP:Ipv4.UP) = struct
+module UDP(IP:Mlnet.Ipv4) = struct
 
   type t = {
     ip : IP.t;

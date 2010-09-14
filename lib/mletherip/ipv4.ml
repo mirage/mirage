@@ -16,30 +16,14 @@
 
 open Lwt
 open Printf
-open Mlnet_types
+open Mlnet.Types
 
-type 'a ip_output = Mpl.Mpl_stdlib.env -> ttl:int -> checksum:int -> dest:int32 ->
-  options:('a Mpl.Mpl_stdlib.data) -> Mpl.Ipv4.o
-
-module type UP = sig
-  type t
-  val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> unit Lwt.t
-  val set_ip: t -> ipv4_addr -> unit Lwt.t
-  val get_ip: t -> ipv4_addr
-  val mac: t -> ethernet_mac
-  val set_netmask: t -> ipv4_addr -> unit Lwt.t
-  val set_gateways: t -> ipv4_addr list -> unit Lwt.t
-  val attach: t -> 
-    [  `UDP of Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
-     | `TCP of Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-     | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
-    ] -> unit
-  val detach: t -> [  `UDP | `TCP | `ICMP ] -> unit
-end
-
-module IPv4 (IF:Ethif.UP)
-            (ARP:Arp.UP with type id=IF.id and type ethif=IF.t)
+module IPv4 (IF:Mlnet.Ethernet)
+            (ARP:Mlnet.Arp with type id=IF.id and type ethif=IF.t)
             = struct
+
+  type 'a ip_output = Mpl.Mpl_stdlib.env -> ttl:int -> checksum:int -> dest:int32 ->
+    options:('a Mpl.Mpl_stdlib.data) -> Mpl.Ipv4.o
 
   type state =
   |Obtaining_ip

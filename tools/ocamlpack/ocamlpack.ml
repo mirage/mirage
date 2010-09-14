@@ -34,7 +34,7 @@ let raw_read_file fn =
 
 (** returns (module_comment, remaining_module_text *)
 let split_module_comment_and_text =
-  let comment_start = regexp "^(\\*\\*" in
+  let comment_start = regexp "^(\\*" in
   let comment_end   = regexp_string "*)" in
     fun module_text ->
       if string_match comment_start module_text 0 then begin
@@ -46,30 +46,44 @@ let split_module_comment_and_text =
       else
         ("", module_text)
 
-let previous_module = ref ""
+let module_name fn = String.capitalize (chop_extension (basename fn))
 
-let process_file fn =
-  let module_name = String.capitalize (chop_extension (basename fn)) in
-  let mli = check_suffix fn ".mli" in
-  let text = raw_read_file fn in
-  let module_comment, module_text = split_module_comment_and_text text in
-    print_string module_comment; print_newline ();
-    if mli then (* .mli file *)
-      Printf.printf "module %s : sig\n%s\nend\n"
-        module_name module_text
-    else if !previous_module = module_name then (* .ml after .mli *)
-      Printf.printf "= struct\n%s\nend\n\n"
-        module_text
-    else (* just .ml file *)
-      Printf.printf "module %s = struct\n%s\nend\n\n"
-        module_name module_text;
-    previous_module := module_name
+let rec process_files = function
+  | mli :: ml :: tl when (ml ^ "i" = mli) ->
+      (* mli followed by ml *)
+      let mli_text = raw_read_file mli in
+      let ml_text = raw_read_file ml in
+      let _, mli_module_text = split_module_comment_and_text mli_text in
+      let _, ml_module_text = split_module_comment_and_text ml_text in
+      printf "module %s : sig\n%s\nend = struct\n%s\nend\n"
+        (module_name mli) mli_module_text  ml_module_text;
+      process_files tl
+  | ml :: tl when (check_suffix ml ".ml") ->
+      (* just an ML module *)
+      let ml_text = raw_read_file ml in
+      let _, ml_module_text = split_module_comment_and_text ml_text in
+      printf "module %s = struct\n%s\nend\n" (module_name ml) ml_module_text;
+      process_files tl
+  | mli :: tl when (check_suffix mli ".mli") ->
+      (* a module type MLI without a following ML *)
+      let mli_text = raw_read_file mli in
+      let _, mli_module_text = split_module_comment_and_text mli_text in
+      printf "module type %s = sig\n%s\nend\n" (module_name mli) mli_module_text;
+      process_files tl;
+  | x :: tl ->
+      failwith (sprintf "unknown file %s: must be .ml or .mli" x)
+  | [] -> ()
     
 let _ =
-  Printf.printf "(* This file has been auto-generated using ocamlpack *)\n\n";
+  let files = ref [] in
   Arg.(parse [
     "-name", Set_string modname, "top-level module name";
     "-no-source-lines", 
       String (fun s -> no_source_lines := s :: !no_source_lines), 
       "do not add source-code lines for this input file";
-   ] process_file "pack_in_one files")
+   ] (fun s -> files := s :: !files) "pack_in_one files");
+  let files = List.rev !files in
+  printf "(* This file has been auto-generated using ocamlpack and includes:\n";
+  List.iter (fun x -> printf "      %s\n" x) files;
+  printf " *)\n\n";
+  process_files files

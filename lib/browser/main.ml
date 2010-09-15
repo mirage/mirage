@@ -42,6 +42,9 @@ let run t =
        (* If we have nothing to do, then check for the next
           timeout and block the domain *)
        let timeout = Time.select_next Clock.time in
+       (* XXX: the 0.1 is very hackish ...
+          XXX: need to find a better solution than active polling here
+          XXX: doesn't the above Lwt.poll should avoid such kind of situation ? *)
        block_domain (match timeout with None -> -1. |Some x -> x)
   in
   (* Register a callback for the JS runtime to restart this function *)

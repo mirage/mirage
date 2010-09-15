@@ -14,8 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(*external evtchn_init : unit -> int array = "caml_evtchn_init"*)
-let evtchn_init () = Array.create 128 0
+external evtchn_init : unit -> int array = "caml_evtchn_init"
 let event_mask = evtchn_init ()
 let nr_events = Array.length event_mask
 
@@ -30,24 +29,26 @@ let event_cb = Array.create nr_events Event_none
    threads sleep on it *)
 let register port cb =
   if event_cb.(port) != Event_none then
-    Printf.printf "warning: port %d already registered\n%!" port
+    Console.printf "warning: port %d already registered\n%!" port
   else
-    Printf.printf "notice: registering port %d\n%!" port;
+    Console.printf "notice: registering port %d\n%!" port;
   event_cb.(port) <- cb
 
 (* Go through the event mask and activate any events *)
 let run () =
   for n = 1 to nr_events do
     let port = n - 1 in
-    if Array.get event_mask port = 1 then begin
+    if event_mask.(port) = 1 then begin
       match event_cb.(port) with
         | Event_none -> 
-            Printf.printf "warning: event on port %d but no registered event\n%!" port
+            Console.printf "warning: event on port %d but no registered event\n%!" port
         | Event_direct cb ->
-            Array.set event_mask port 0;
+            event_mask.(port) <- 0;
             cb ();
         | Event_condition cond ->
-            Array.set event_mask port 0;
+					  (* Console.printf "[activation] Event_condition on port %i" port; *)
+            event_mask.(port) <- 0;
             Lwt_condition.signal cond ()
     end
   done
+

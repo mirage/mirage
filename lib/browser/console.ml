@@ -30,4 +30,9 @@ let create_additional_console () = return (create ())
 
 let t = create ()
 
-let log s = write t s 0 (String.length s)
+let log s =
+	write t s 0 (String.length s)
+
+let printf (fmt : ('a, unit, string, unit) format4) =
+  Printf.kprintf (fun str -> log str) fmt
+

@@ -1,27 +1,12 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-SYNTAX=-pp 'camlp4o -I $(ROOTDIR)/syntax pa_mirage.cma'
-
-STDLIB=$(ROOTDIR)/lib/stdlib
-LWTLIB=$(ROOTDIR)/lib/lwt
-MPLLIB=$(ROOTDIR)/lib/mpl
-INCLUDES=-I $(STDLIB) -I $(LWTLIB) -I $(MPLLIB)
-
-.PHONY: build
-build: unix.cmxa
-	@ :
-
-unix.ml: console.ml clock.ml activations.ml main.ml ethif.ml time.ml
-	$(OCAMLPACK) -name unix $^ > $@
-
-unix.cmx unix.cmi: unix.mli unix.ml
-	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $^
-
-.PHONY: i-%
-i-%:
-	$(OCAMLOPT) -c -nostdlib -annot $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) -i $*.ml
+DEPENDS=lwt mpl
+TARGET=unix
+TARGET_MLI=unix.mli
+SOURCES=console.ml clock.ml activations.ml main.ml ethif.ml time.ml
 
 WITH_SYNTAX=yes
-EXTRA_CLEAN=unix.ml
+USE_PACK=yes
+NO_JS_CODE=yes
 include ../Makefile.common

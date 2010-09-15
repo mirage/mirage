@@ -32,7 +32,3 @@ ulex: findlib
 .PHONY: clean
 clean:
 	rm -rf ulex* findlib*
-
-uninstall:
-	@cd ulex-$(ULEX_VERSION) && $(MAKE) uninstall
-	@cd findlib-$(FINDLIB_VERSION) && $(MAKE) uninstall

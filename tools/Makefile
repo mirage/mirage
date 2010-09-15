@@ -17,8 +17,8 @@ tools:
 	@cd ocamlpack && $(MAKE) install
 
 rebootstrap:
-	@cd ocamljs/ocamljs && $(MAKE) uninstall
-	@cd ocaml-libs && $(MAKE) uninstall
+	@$(MAKE) clean
+	@rm -rf $(PREFIX)/lib/ocaml/site-lib
 	@$(MAKE) bootstrap
 
 .PHONY: clean

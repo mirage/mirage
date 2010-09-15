@@ -1,15 +1,15 @@
 module OS = Unix
-module Eth = Mlnet.Ethif.Ethernet(OS.Ethif)
-module Arp = Mlnet.Arp.ARP(Eth)
-module IPv4 = Mlnet.Ipv4.IPv4(Eth)(Arp)
-module ICMP = Mlnet.Icmp.ICMP(IPv4)
-module UDP = Mlnet.Udp.UDP(IPv4)
-module TCP = Mlnet.Tcp.TCP(IPv4)
-module DHCP = Mlnet.Dhcp.Client(IPv4)(UDP)(OS.Time)
+module Eth = Mletherip.Ethif.T(OS.Ethif)
+module Arp = Mletherip.Arp.T(Eth)
+module IPv4 = Mletherip.Ipv4.T(Eth)(Arp)
+module ICMP = Mletherip.Icmp.T(IPv4)
+module UDP = Mludp.Udp.Socket(IPv4)
+module TCP = Mltcp.Tcp.Server(IPv4)
+module DHCP = Mldhcp.Client.T(IPv4)(UDP)(OS.Time)
 
 open Lwt 
 open Printf
-open Mlnet.Mlnet_types
+open Mlnet.Types
 
 let ipaddr = match ipv4_addr_of_string "10.0.0.2" with Some x -> x |None -> assert false
 let nm = match ipv4_addr_of_string "255.255.255.0" with Some x -> x |None -> assert false

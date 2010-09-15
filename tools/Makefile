@@ -16,6 +16,11 @@ tools:
 	@cd mir && $(MAKE) install
 	@cd ocamlpack && $(MAKE) install
 
+rebootstrap:
+	@cd ocamljs/ocamljs && $(MAKE) uninstall
+	@cd ocaml-libs && $(MAKE) uninstall
+	@$(MAKE) bootstrap
+
 .PHONY: clean
 clean:
 	@cd ocaml && $(MAKE) clean

@@ -18,6 +18,9 @@ all:
 bootstrap:
 	@cd tools && $(MAKE) bootstrap
 
+rebootstrap:
+	@cd tools && $(MAKE) rebootstrap
+
 tools:
 	@cd tools && $(MAKE) tools
 	@cd syntax && $(MAKE) && $(MAKE) install

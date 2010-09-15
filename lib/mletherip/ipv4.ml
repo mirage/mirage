@@ -18,7 +18,7 @@ open Lwt
 open Printf
 open Mlnet.Types
 
-module IPv4 (IF:Mlnet.Ethernet)
+module T (IF:Mlnet.Ethernet)
             (ARP:Mlnet.Arp with type id=IF.id and type ethif=IF.t)
             = struct
 

@@ -35,6 +35,13 @@ $(TARGET).cmjs: $(TARGET_MLI) $(TARGET).ml
 
 $(TARGET).ml: $(SOURCES)
 	$(OCAMLPACK) -name $(TARGET) $^ > $@
+
+.PHONY: debug i-%
+debug:
+	$(OCAMLOPT) -c -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
+
+i-%:
+	$(OCAMLOPT) -i -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
 endif
 
 .mldeps: *.ml *.mli

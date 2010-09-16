@@ -37,6 +37,8 @@ unix_block_domain(value v_time)
   struct timeval tv;
   int ret; 
   fd_set rfds;
+  fd_set wfds;
+  fd_set efds;
   int nfds = 0;
   unsigned int i;
 
@@ -48,15 +50,23 @@ unix_block_domain(value v_time)
   for (i=0; i < NR_EVENTS; i++) {
     if (ev_fds[i] > 0) {
       FD_SET(i, &rfds);
+      FD_SET(i, &wfds);
+      FD_SET(i, &efds);
       nfds=i+1;
     }  
   } 
   
-  ret = select(nfds, &rfds, NULL, NULL, &tv);
+  ret = select(nfds, &rfds, &rfds, &efds, &tv);
 
   for (i=0; i < nfds; i++) {
     if (FD_ISSET(i, &rfds)) {
-      ev_callback_ml[i] = 1;
+      ev_callback_ml[i] &= 1;
+    }
+    if (FD_ISSET(i, &wfds)) {
+      ev_callback_ml[i] &= 2;
+    }
+    if (FD_ISSET(i, &efds)) {
+      ev_callback_ml[i] &= 4;
     }
   }
  

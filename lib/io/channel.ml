@@ -513,10 +513,22 @@ let of_string ~mode str =
   } in
   wrapper
 
+let channel_read t buf off len =
+  lwt r = Channel.read t buf off len in
+  match r with
+  | Channel.OK d -> return d
+  | Channel.Err err -> fail (Channel_closed err)
+
+let channel_write t buf off len =
+  lwt r = Channel.read t buf off len in
+  match r with
+  | Channel.OK d -> return d
+  | Channel.Err err -> fail (Channel_closed err)
+
 let of_fd ?buffer_size ?close ~mode fd =
   let perform_io = match mode with
-    | Input -> Channel.read fd
-    | Output -> Channel.write fd
+    | Input -> channel_read fd
+    | Output -> channel_write fd
   in
   make
     ?buffer_size
@@ -1180,17 +1192,23 @@ let null =
     (fun str ofs len -> return len)
 
 let open_connection ?buffer_size sockaddr =
-  lwt fd = Channel.connect sockaddr in
-  try_lwt
-    return (make ?buffer_size
+  lwt r = Channel.connect sockaddr in
+  match r with
+  |Channel.Err err -> fail (Channel_closed err)
+  |Channel.OK fd -> 
+    try_lwt
+      return (make ?buffer_size
               ~close:(fun _ -> close_fd fd)
-              ~mode:input (Channel.read fd),
+              ~mode:input
+              (channel_read fd),
             make ?buffer_size
               ~close:(fun _ -> close_fd fd)
-              ~mode:output (Channel.write fd))
-  with exn ->
-    lwt () = close_fd fd in
-    fail exn
+              ~mode:output
+              (channel_write fd)
+      )
+    with exn ->
+      lwt () = close_fd fd in
+      fail exn
 
 let with_connection ?buffer_size sockaddr f =
   lwt ic, oc = open_connection sockaddr in

@@ -1,10 +1,10 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=lwt mpl
+DEPENDS=lwt mpl mlnet
 TARGET=unix
 TARGET_MLI=unix.mli
-SOURCES=console.ml clock.ml activations.ml main.ml ethif.ml time.ml
+SOURCES=console.ml clock.ml activations.ml main.ml ethif.ml time.ml tcp.ml
 
 WITH_SYNTAX=yes
 USE_PACK=yes

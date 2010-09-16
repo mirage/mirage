@@ -18,9 +18,11 @@ CAMLprim value
 caml_evtchn_test_and_clear(value v_idx)
 {
    int idx = Int_val(v_idx) % NR_EVENTS;
+   int v;
    if (ev_callback_ml[idx] > 0) {
+      v = ev_callback_ml[idx];
       ev_callback_ml[idx] = 0;
-      return Val_int(1);
+      return Val_int(v);
    } else
       return Val_int(0);
 }

@@ -1,16 +1,16 @@
-STDLIBS=stdlib stdlib.js lwt mpl
+STDLIBS=stdlib stdlib.js lwt mpl mlnet
 PLATFORM=xen unix browser 
-LIBS=mlnet mletherip mludp mltcp mldhcp mldns
+LIBS=mletherip mludp mltcp mldhcp mldns io
 
 ALL=$(STDLIBS) $(PLATFORM) $(LIBS)
 
 .PHONY: all
 all:
-	set -e; for i in $(ALL); do (cd $$i && $(MAKE)); done
+	set -e; for i in $(ALL); do (set -e; cd $$i && $(MAKE)); done
 
 .PHONY: clean
 clean:
-	set -e; for i in $(ALL); do (cd $$i && $(MAKE) clean); done
+	set -e; for i in $(ALL); do (set -e; cd $$i && $(MAKE) clean); done
 
 .PHONY: install
 install:

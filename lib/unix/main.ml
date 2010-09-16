@@ -41,8 +41,8 @@ let apply_filters select =
 
 let default_select timeout =
   block_domain (match timeout with None -> 10. |Some t -> t);
-  let activations = Activations.run () in
-  Lazy.lazy_from_fun Clock.time, activations
+  Activations.run ();
+  Lazy.lazy_from_fun Clock.time
 
 let default_iteration () =
   Lwt.wakeup_paused ();
@@ -54,8 +54,8 @@ let rec run t =
     | Some x ->
         x
     | None ->
-        let _, activations = default_iteration () in
-        run (join (t :: activations))
+        let _  = default_iteration () in
+        run t
 
 let exit_hooks = Lwt_sequence.create ()
 

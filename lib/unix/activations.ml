@@ -15,50 +15,48 @@
  *)
 
 external evtchn_nr_events: unit -> int = "caml_nr_events"
-external evtchn_test_and_clear: int -> bool = "caml_evtchn_test_and_clear"
+external evtchn_test_and_clear: int -> int = "caml_evtchn_test_and_clear"
 
 type cb = 
   | Event_none
   | Event_direct of (unit -> unit)
   | Event_condition of unit Lwt_condition.t
-  | Event_thread of (unit -> unit Lwt.t)
 
 let nr_events = evtchn_nr_events ()
-let event_cb = Array.create nr_events Event_none
+let event_cb_rd = Array.create nr_events Event_none
+let event_cb_wr = Array.create nr_events Event_none
 
 (* Register an event channel port with a condition variable to let 
    threads sleep on it *)
-let register port cb =
-  if event_cb.(port) != Event_none then
-    Printf.printf "warning: port %d already registered\n%!" port
-  else
-    Printf.printf "notice: registering port %d\n%!" port;
-  event_cb.(port) <- cb
+let register port ?(rd=false) ?(wr=false) cb =
+  if rd then event_cb_rd.(port) <- cb;
+  if wr then event_cb_wr.(port) <- cb
+
+let register_rd port cb = event_cb_rd.(port) <- cb
+let register_wr port cb = event_cb_wr.(port) <- cb
+
+let deregister port =
+  event_cb_rd.(port) <- Event_none;
+  event_cb_wr.(port) <- Event_none
 
 (* Go through the event mask and activate any events, potentially spawning
    new threads *)
+
+let run_cond = function
+  | Event_none -> ()
+  | Event_direct cb -> cb ()
+  | Event_condition cond -> Lwt_condition.signal cond ()
+
 let run () =
-  let rec loop n acc =
-    match n with
-    | 0 -> acc
-    | n -> 
-      let port = n - 1 in
-      let acc = 
-        if evtchn_test_and_clear port then begin
-          match event_cb.(port) with
-          | Event_none -> 
-            Printf.printf "warning: event on port %d but no registered event\n%!" port;
-            acc
-          | Event_direct cb ->
-            cb (); 
-            acc
-          | Event_condition cond ->
-            Lwt_condition.signal cond ();
-            acc
-          | Event_thread cb ->
-            cb () :: acc
-        end else acc
-      in loop (n-1) acc
-  in
-  loop nr_events []
+  for n = 1 to nr_events do
+    let port = n - 1 in
+    let evt = evtchn_test_and_clear port in
+    if evt > 0 then begin
+      let rd = evt land 1 = 1 in
+      let wr = evt land 2 = 2 in
+      let ex = evt land 4 = 4 in
+      if rd || ex then run_cond event_cb_rd.(port);
+      if wr || ex then run_cond event_cb_wr.(port)
+    end
+  done
 

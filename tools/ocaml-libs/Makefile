@@ -10,7 +10,7 @@ endif
 PREFIX ?= /usr/local
 
 .PHONY: all
-all: findlib ulex
+all: findlib ulex pcre-ocaml
 	@ :
 
 .PHONY: findlib
@@ -32,3 +32,11 @@ ulex: findlib
 .PHONY: clean
 clean:
 	rm -rf ulex* findlib*
+
+.PHONY: pcre-ocaml
+PCRE_VERSION=6.1.0
+pcre:
+	$(FETCH) http://hg.ocaml.info/release/pcre-ocaml/archive/release-$(PCRE_VERSION).tar.gz
+	rm -rf pcre-ocaml-release-$(PCRE_VERSION)
+	tar -zxf release-$(PCRE_VERSION).tar.gz
+	cd pcre-ocaml-release-$(PCRE_VERSION) && export STATIC=no && $(MAKE) && $(MAKE) install

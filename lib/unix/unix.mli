@@ -62,7 +62,7 @@ end
 
 module Channel : Mlnet.Channel
 
-module IO : Io.Sig with type Channel.t = Channel.t and type Channel.sockaddr = Channel.sockaddr
+module IO : Io.Sig
 
 module Main : sig
   val run : unit Lwt.t -> unit

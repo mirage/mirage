@@ -27,6 +27,20 @@ end
 
 module Clock : sig
   val time : unit -> float
+
+  type tm = {
+    tm_sec : int;
+    tm_min : int;
+    tm_hour : int;
+    tm_mday : int;
+    tm_mon : int;
+    tm_year : int;
+    tm_wday : int;
+    tm_yday : int;
+    tm_isdst : bool
+  }
+
+  val gmtime : float -> tm
 end
 
 module Time : sig

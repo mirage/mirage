@@ -50,8 +50,10 @@
 *)
 
 module Channel : sig
-	type t
-	type sockaddr
+  type t
+  type sockaddr =
+    | TCP of Mlnet.Types.ipv4_addr * int
+    | UDP of Mlnet.Types.ipv4_addr * int
 end
 
 exception Channel_closed of string

@@ -46,6 +46,10 @@ module Ethif : sig
     val mac : t -> string
 end
 
+module Channel : Mlnet.Channel
+
+module IO : Io.Sig with type Channel.t = Channel.t and type Channel.sockaddr = Channel.sockaddr
+
 module Main : sig
   val run : unit Lwt.t -> unit
 end

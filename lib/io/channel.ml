@@ -25,6 +25,8 @@ open Lwt
 
 module IO(Channel:Mlnet.Channel) = struct
 
+module Channel = Channel
+
 exception Channel_closed of string
 
 (* Minimum size for buffers: *)

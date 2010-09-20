@@ -2,7 +2,7 @@ ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
 DEPENDS=lwt mpl mlnet
-SOURCES=channel.ml
+SOURCES=channel.ml sig.mli
 TARGET=io
 
 WITH_SYNTAX=yes

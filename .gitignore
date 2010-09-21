@@ -54,6 +54,7 @@ lib/mldns/dns.ml
 lib/mpl/mpl.ml
 lib/unix/unix.ml
 lib/xen/xen.ml
+lib/io/io.ml
 lib/browser/browser.ml
 lib/mlnet/mlnet.ml
 lib/mltcp/mltcp.ml

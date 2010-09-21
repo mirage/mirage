@@ -23,9 +23,10 @@
 
 open Lwt
 
-module IO(Channel:Mlnet.Channel) = struct
+module IO(Channel:Mlnet.Channel) : Mlnet.Io = struct
 
-module Channel = Channel
+type t = Channel.t
+type sockaddr = Channel.sockaddr
 
 exception Channel_closed of string
 

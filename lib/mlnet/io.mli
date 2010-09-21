@@ -49,18 +49,14 @@
     backend read/write functions, such as [Unix.Unix_error].
 *)
 
-module Channel : sig
-  type t
-  type sockaddr =
-    | TCP of Mlnet.Types.ipv4_addr * int
-    | UDP of Mlnet.Types.ipv4_addr * int
-end
-
 exception Channel_closed of string
 (** Exception raised when a channel is closed. The parameter is a
     description of the channel. *)
       
 (** {6 Types} *)
+
+type t
+type sockaddr
 
 type 'mode channel
 (** Type of buffered byte channels *)
@@ -127,7 +123,7 @@ val of_string : mode : 'mode mode -> string -> 'mode channel
 (** Create a channel from a string. Reading/writing is done directly
     on the provided string. *)
 
-val of_fd : ?buffer_size : int -> ?close : (unit -> unit Lwt.t) -> mode : 'mode mode -> Channel.t -> 'mode channel
+val of_fd : ?buffer_size : int -> ?close : (unit -> unit Lwt.t) -> mode : 'mode mode -> t -> 'mode channel
 (** [of_fd ?buffer_size ?close ~mode fd] creates a channel from a
     file descriptor.
 
@@ -280,7 +276,7 @@ val hexdump : output_channel -> string -> unit Lwt.t
 
 (** {6 File utilities} *)
 
-val open_connection : ?buffer_size : int -> Channel.sockaddr -> (input_channel * output_channel) Lwt.t
+val open_connection : ?buffer_size : int -> sockaddr -> (input_channel * output_channel) Lwt.t
 (** [open_connection ?buffer_size ~mode addr] open a connection to
     the given address and returns two channels for using it.
 
@@ -290,7 +286,7 @@ val open_connection : ?buffer_size : int -> Channel.sockaddr -> (input_channel *
     @raise Unix.Unix_error on error.
 *)
 
-val with_connection : ?buffer_size : int -> Channel.sockaddr -> (input_channel * output_channel -> 'a Lwt.t) -> 'a Lwt.t
+val with_connection : ?buffer_size : int -> sockaddr -> (input_channel * output_channel -> 'a Lwt.t) -> 'a Lwt.t
 (** [with_connection ?buffer_size ~mode addr f] open a connection to
     the given address and passes the channels to [f] *)
 

@@ -137,16 +137,17 @@ let _ =
     |Browser ->
       [ "stdlib"; "lwtlib"; "browser" ]
     |Xen ->
-      [ "stdlib"; "lwtlib"; "mpl"; "xen" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "xen" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "unix" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "unix" ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on
      demand as required *)
   let otherlibs = match !os with
     |Browser -> []
-    |Xen |Unix -> [ "mlnet"; "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp" ]
+    |Xen -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp"; "io" ]
+    |Unix -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp"; "io" ]
   in
 
   let libext = match !os with
@@ -163,8 +164,12 @@ let _ =
     |"Linux", "x86_64" -> "-fno-PIC -nodynlink"
     |_ -> "" in
 
+  let ocamlopt_debug = match !os with
+    |Unix -> "-g"
+    |Xen |Browser -> "" in
+
   (* Complete set of flags to ocamlopt *)
-  let ocamlopt_flags = String.concat " " [ocamlopt_flags; ocamlopt_flags_os; !ocamlopt_flags_extra ] in
+  let ocamlopt_flags = String.concat " " [ocamlopt_flags; ocamlopt_flags_os; ocamlopt_debug; !ocamlopt_flags_extra ] in
 
   Sys.chdir build_dir;
 

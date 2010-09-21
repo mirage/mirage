@@ -28,7 +28,7 @@ all: $(ALL_TARGETS)
 	@ :
 
 $(TARGET).cmx: $(TARGET_MLI) $(TARGET).ml
-	$(OCAMLOPT) -c -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $^
+	$(OCAMLOPT) -c -g -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $^
 
 $(TARGET).cmjs: $(TARGET_MLI) $(TARGET).ml
 	$(OCAMLJS) -c -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES_JS) $(SYNTAX) $^

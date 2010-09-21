@@ -35,10 +35,11 @@ type sockaddr =
   | TCP of ipv4_addr * int
   | UDP of ipv4_addr * int
 
-external unix_close: int -> unit = "unix_socket_close"
-external unix_tcp_connect: int32 -> int -> int resp = "unix_tcp_connect"
-external unix_socket_read: int -> string -> int -> int -> int resp = "unix_socket_read"
-external unix_socket_write: int -> string -> int -> int -> int resp = "unix_socket_write"
+external unix_close: int -> unit = "caml_socket_close"
+external unix_tcp_connect: int32 -> int -> int resp = "caml_tcp_connect"
+external unix_socket_read: int -> string -> int -> int -> int resp = "caml_socket_read"
+external unix_socket_write: int -> string -> int -> int -> int resp = "caml_socket_write"
+external unix_tcp_connect_result: int -> unit resp = "caml_tcp_connect_result"
 
 let rec read t buf off len =
   match unix_socket_read t.fd buf off len with
@@ -51,6 +52,7 @@ let rec read t buf off len =
     return r
         
 let rec write t buf off len =
+  print_endline "Unix.Channel.write";
   match unix_socket_write t.fd buf off len with 
   | OK 0 ->
     (* Would block, so register an activation and wait *)
@@ -63,7 +65,6 @@ let rec write t buf off len =
 let connect sa =
   match sa with
   | TCP (addr, port) -> begin
-    let c = Lwt_condition.create () in
     match unix_tcp_connect (ipv4_addr_to_uint32 addr) port with
     | OK fd ->
       let rx_cond = Lwt_condition.create () in
@@ -71,8 +72,10 @@ let connect sa =
       let t = { fd; rx_cond; tx_cond } in
       Activations.(register_rd t.fd (Event_condition rx_cond));
       Activations.(register_wr t.fd (Event_condition tx_cond));
-      Lwt_condition.wait c >>
-      return (OK t)
+      Lwt_condition.wait tx_cond >>
+      return (match unix_tcp_connect_result t.fd with
+      | OK () -> OK t
+      | Err s -> Err s)
     | Err s -> 
       return (Err s)
   end
@@ -82,4 +85,3 @@ let connect sa =
 let close t =
   Activations.deregister t.fd;
   unix_close t.fd
-

@@ -53,7 +53,8 @@ let create id =
       (fun () -> return (String.make 4096 '\000')) in
     let rx_cond = Lwt_condition.create () in
     let mac = generate_local_mac () in
-    Activations.register dev (Activations.Event_condition rx_cond);
+    Activations.register_rd dev (Activations.Event_condition rx_cond);
+    Activations.register_wr dev (Activations.Event_condition rx_cond);
     return { id; dev; env_pool; rx_cond; mac }
 
 (* Input all available pages from receive ring and return detached page list *)

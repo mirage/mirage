@@ -62,8 +62,6 @@ end
 
 module Channel : Mlnet.Channel
 
-module IO : Io.Sig
-
 module Main : sig
   val run : unit Lwt.t -> unit
 end

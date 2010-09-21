@@ -28,9 +28,6 @@ let event_cb_wr = Array.create nr_events Event_none
 
 (* Register an event channel port with a condition variable to let 
    threads sleep on it *)
-let register port ?(rd=false) ?(wr=false) cb =
-  if rd then event_cb_rd.(port) <- cb;
-  if wr then event_cb_wr.(port) <- cb
 
 let register_rd port cb = event_cb_rd.(port) <- cb
 let register_wr port cb = event_cb_wr.(port) <- cb

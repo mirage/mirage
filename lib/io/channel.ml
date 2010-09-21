@@ -114,7 +114,7 @@ and 'mode _channel = {
   main : 'mode channel;
   (* The main wrapper *)
 
-  close : unit Lwt.t;
+  close : unit -> unit Lwt.t;
   (* Close function *)
 
   mode : 'mode mode;
@@ -177,7 +177,8 @@ let invalid_channel ch = Failure(Printf.sprintf "temporary atomic %s channel no 
 
 (* Flush/refill the buffer. No race condition could happen because
    this function is always called atomically: *)
-let perform_io ch = match ch.main.state with
+let perform_io ch =
+  match ch.main.state with
   | Busy_primitive | Busy_atomic _ -> begin
       match ch.typ with
         | Type_normal(perform_io) ->
@@ -415,7 +416,7 @@ let rec abort wrapper = match wrapper.state with
       abort tmp_wrapper
   | Closed ->
       (* Double close, just returns the same thing as before *)
-      wrapper.channel.close
+      wrapper.channel.close ()
   | Invalid ->
       fail (invalid_channel wrapper.channel)
   | Idle | Busy_primitive ->
@@ -423,7 +424,7 @@ let rec abort wrapper = match wrapper.state with
       (* Abort any current real reading/writing operation on the
          channel: *)
       wakeup_exn wrapper.channel.abort_wakener (closed_channel wrapper.channel);
-      wrapper.channel.close
+      wrapper.channel.close ()
 
 let close wrapper =
   let channel = wrapper.channel in
@@ -475,7 +476,7 @@ let make ?buffer_size ?(close=return) ~mode perform_io =
     max = (match mode with
              | Input -> 0
              | Output -> String.length buffer);
-    close = close ();
+    close = close;
     abort_waiter = abort_waiter;
     abort_wakener = abort_wakener;
     main = wrapper;
@@ -499,7 +500,7 @@ let of_string ~mode str =
     length = length;
     ptr = 0;
     max = length;
-    close = return ();
+    close = (fun () -> return ());
     abort_waiter = abort_waiter;
     abort_wakener = abort_wakener;
     main = wrapper;
@@ -523,7 +524,7 @@ let channel_read t buf off len =
   | Channel.Err err -> fail (Channel_closed err)
 
 let channel_write t buf off len =
-  lwt r = Channel.read t buf off len in
+  lwt r = Channel.write t buf off len in
   match r with
   | Channel.OK d -> return d
   | Channel.Err err -> fail (Channel_closed err)
@@ -1195,11 +1196,11 @@ let open_connection ?buffer_size sockaddr =
   |Channel.OK fd -> 
     try_lwt
       return (make ?buffer_size
-              ~close:(fun _ -> close_fd fd)
+              ~close:(fun () -> close_fd fd)
               ~mode:input
               (channel_read fd),
             make ?buffer_size
-              ~close:(fun _ -> close_fd fd)
+              ~close:(fun () -> close_fd fd)
               ~mode:output
               (channel_write fd)
       )

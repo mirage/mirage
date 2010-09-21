@@ -55,18 +55,19 @@ unix_block_domain(value v_time)
       nfds=i+1;
     }  
   } 
-  
+
+  fprintf(stderr, "block_domain: %f\n", Double_val(v_time));
   ret = select(nfds, &rfds, &rfds, &efds, &tv);
 
   for (i=0; i < nfds; i++) {
     if (FD_ISSET(i, &rfds)) {
-      ev_callback_ml[i] &= 1;
+      ev_callback_ml[i] |= 1;
     }
     if (FD_ISSET(i, &wfds)) {
-      ev_callback_ml[i] &= 2;
+      ev_callback_ml[i] |= 2;
     }
     if (FD_ISSET(i, &efds)) {
-      ev_callback_ml[i] &= 4;
+      ev_callback_ml[i] |= 4;
     }
   }
  

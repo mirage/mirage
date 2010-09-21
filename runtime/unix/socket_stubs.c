@@ -31,6 +31,10 @@
 #include <caml/memory.h>
 #include <caml/alloc.h>
 
+#define NR_EVENTS 128
+extern uint8_t ev_callback_ml[NR_EVENTS];
+extern uint8_t ev_fds[NR_EVENTS];
+
 static void
 setnonblock(int fd)
 {
@@ -44,9 +48,12 @@ setnonblock(int fd)
 }
 
 CAMLprim value
-caml_socket_close(value fd)
+caml_socket_close(value v_fd)
 {
-  close(Int_val(fd)); 
+  int fd = Int_val(v_fd);
+  ev_fds[fd] = 0;
+  fprintf(stderr, "caml_socket_close %d\n", fd);
+  close(fd);
   return Val_unit;
 }
 
@@ -58,27 +65,46 @@ caml_tcp_connect(value v_ipaddr, value v_port)
 {
   CAMLparam2(v_ipaddr, v_port);
   CAMLlocal2(v_ret, v_err);
-  int s = socket(PF_INET, SOCK_STREAM, 0);
-  int r;
+  int s,r;
   struct sockaddr_in sa;
   bzero(&sa, sizeof sa);
   sa.sin_family = AF_INET;
-  sa.sin_port = Int_val(v_port);
+  sa.sin_port = htons(Int_val(v_port));
   sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
-
+  s = socket(PF_INET, SOCK_STREAM, 0);
+  ev_fds[s] = 1;
   setnonblock(s); 
   if (s < 0)
     err(1, "caml_tcp_connect: socket");
   r = connect(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
-  switch (r) {
-    case 0:
-    case EINPROGRESS:
-      Val_OK(v_ret, Val_int(s));
-      break;
-    default:
-      v_err = caml_copy_string(strerror(errno));
-      Val_Err(v_ret, v_err);
-      break;
+  if (r == 0 || (r == -1 && errno == EINPROGRESS)) {
+    fprintf(stderr, "connect: OK %d \n", r);
+    Val_OK(v_ret, Val_int(s));
+  } else {
+    fprintf(stderr, "connect: ERR: %s\n", strerror(errno));
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_tcp_connect_result(value v_fd)
+{
+  CAMLparam1(v_fd);
+  CAMLlocal2(v_ret, v_err);
+  int fd = Int_val(v_fd);
+  int valopt;
+  socklen_t lon = sizeof(int);
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0)
+    err(1, "tcp_connect_result: getsockopt");
+  if (!valopt) { 
+    fprintf(stderr, "connect_result: OK\n");
+    Val_OK(v_ret, Val_unit);
+  } else {
+    fprintf(stderr, "connect_result: ERR\n");
+    v_err = caml_copy_string(strerror(valopt));
+    Val_Err(v_ret, v_err);
   }
   CAMLreturn(v_ret);
 }
@@ -89,6 +115,7 @@ caml_socket_read(value v_fd, value v_buf, value v_off, value v_len)
   CAMLparam4(v_fd ,v_buf, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
   int r = read(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
+  fprintf(stderr, "caml_socket_write[%d] len=%d r=%d\n", Int_val(v_fd), Int_val(v_len), r);
   if (r < 0) {
     if (errno == EAGAIN)
       Val_OK(v_ret, Val_int(0));
@@ -101,3 +128,22 @@ caml_socket_read(value v_fd, value v_buf, value v_off, value v_len)
   CAMLreturn(v_ret);
 }
 
+CAMLprim value
+caml_socket_write(value v_fd, value v_buf, value v_off, value v_len)
+{
+  CAMLparam4(v_fd, v_buf, v_off, v_len);
+  CAMLlocal2(v_ret, v_err);
+  int r = write(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
+  fprintf(stderr, "caml_socket_write[%d] len=%d r=%d\n", Int_val(v_fd), Int_val(v_len), r);
+  if (r < 0) {
+    if (errno == EAGAIN)
+      Val_OK(v_ret, Val_int(0));
+    else {
+      fprintf(stderr, "   err=%s\n", strerror(errno));
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }
+  } else
+    Val_OK(v_ret, Val_int(r));
+  CAMLreturn(v_ret);
+}

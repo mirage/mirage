@@ -33,3 +33,4 @@ val ipv4_addr_of_uint32 : int32 -> ipv4_addr
 val ipv4_addr_to_uint32 : ipv4_addr -> int32
 val ipv4_blank : ipv4_addr
 val ipv4_broadcast : ipv4_addr
+val ipv4_localhost : ipv4_addr

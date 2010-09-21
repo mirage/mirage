@@ -75,6 +75,9 @@ let ipv4_addr_of_string x =
 let ipv4_blank = String.make 4 '\000'
 (* Broadcast 255.255.255.255 IPv4 address *)
 let ipv4_broadcast = String.make 4 '\255'
+(* Localhost 127.0.0.1 ipv4 address  *)
+let ipv4_localhost = 
+  match ipv4_addr_of_string "127.0.0.1" with |Some x -> x |None -> assert false
 
 let ipv4_addr_of_uint32 s =
     let (>!) x y = Char.chr (Int32.to_int (Int32.logand (Int32.shift_right x y) 255l)) in

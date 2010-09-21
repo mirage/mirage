@@ -23,7 +23,7 @@
 
 open Lwt
 
-module IO(Channel:Mlnet.Channel) : Mlnet.Io = struct
+module IO(Channel:Mlnet.Channel) = struct
 
 type t = Channel.t
 type sockaddr = Channel.sockaddr
@@ -1166,12 +1166,6 @@ end
 
 module LE = MakeNumberIO(ByteOrder.LE)
 module BE = MakeNumberIO(ByteOrder.BE)
-
-type byte_order = Little_endian | Big_endian
-
-external get_system_byte_order : unit -> byte_order = "lwt_unix_system_byte_order"
-
-let system_byte_order = get_system_byte_order ()
 
 (* +-----------------------------------------------------------------+
    | Other                                                           |

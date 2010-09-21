@@ -518,16 +518,20 @@ let of_string ~mode str =
   wrapper
 
 let channel_read t buf off len =
-  lwt r = Channel.read t buf off len in
-  match r with
-  | Channel.OK d -> return d
-  | Channel.Err err -> fail (Channel_closed err)
+  try_lwt
+    lwt r = Channel.read t buf off len in
+    match r with
+    | Channel.OK d -> return d
+    | Channel.Err err -> fail (Channel_closed err)
+  with Lwt.Canceled -> return 0
 
 let channel_write t buf off len =
-  lwt r = Channel.write t buf off len in
-  match r with
-  | Channel.OK d -> return d
-  | Channel.Err err -> fail (Channel_closed err)
+  try_lwt
+    lwt r = Channel.write t buf off len in
+    match r with
+    | Channel.OK d -> return d
+    | Channel.Err err -> fail (Channel_closed err)
+  with Lwt.Canceled -> return 0
 
 let of_fd ?buffer_size ?close ~mode fd =
   let perform_io = match mode with
@@ -590,68 +594,7 @@ let resize_buffer wrapper len =
                 return ()
         end wrapper
 
-(* +-----------------------------------------------------------------+
-   | Byte-order                                                      |
-   +-----------------------------------------------------------------+ *)
-
-module ByteOrder =
-struct
-  module type S = sig
-    val pos16_0 : int
-    val pos16_1 : int
-    val pos32_0 : int
-    val pos32_1 : int
-    val pos32_2 : int
-    val pos32_3 : int
-    val pos64_0 : int
-    val pos64_1 : int
-    val pos64_2 : int
-    val pos64_3 : int
-    val pos64_4 : int
-    val pos64_5 : int
-    val pos64_6 : int
-    val pos64_7 : int
-  end
-
-  module LE =
-  struct
-    let pos16_0 = 0
-    let pos16_1 = 1
-    let pos32_0 = 0
-    let pos32_1 = 1
-    let pos32_2 = 2
-    let pos32_3 = 3
-    let pos64_0 = 0
-    let pos64_1 = 1
-    let pos64_2 = 2
-    let pos64_3 = 3
-    let pos64_4 = 4
-    let pos64_5 = 5
-    let pos64_6 = 6
-    let pos64_7 = 7
-  end
-
-  module BE =
-  struct
-    let pos16_0 = 1
-    let pos16_1 = 0
-    let pos32_0 = 3
-    let pos32_1 = 2
-    let pos32_2 = 1
-    let pos32_3 = 0
-    let pos64_0 = 7
-    let pos64_1 = 6
-    let pos64_2 = 5
-    let pos64_3 = 4
-    let pos64_4 = 3
-    let pos64_5 = 2
-    let pos64_6 = 1
-    let pos64_7 = 0
-  end
-end
-
-module Primitives =
-struct
+module Primitives = struct
 
   (* This module contains all primitives operations. The operates
      without protection regarding locking, they are wrapped after into
@@ -944,133 +887,6 @@ struct
       return x
     end
 
-  module MakeNumberIO(ByteOrder : ByteOrder.S) =
-  struct
-    open ByteOrder
-
-    (* +-------------------------------------------------------------+
-       | Reading numbers                                             |
-       +-------------------------------------------------------------+ *)
-
-    let get buffer ptr = Char.code (String.unsafe_get buffer ptr)
-
-    let read_int ic =
-      read_block_unsafe ic 4
-        (fun buffer ptr ->
-           let v0 = get buffer (ptr + pos32_0)
-           and v1 = get buffer (ptr + pos32_1)
-           and v2 = get buffer (ptr + pos32_2)
-           and v3 = get buffer (ptr + pos32_3) in
-           let v = v0 lor (v1 lsl 8) lor (v2 lsl 16) lor (v3 lsl 24) in
-           if v3 land 0x80 = 0 then
-             return v
-           else
-             return (v - (1 lsl 32)))
-
-    let read_int16 ic =
-      read_block_unsafe ic 2
-        (fun buffer ptr ->
-           let v0 = get buffer (ptr + pos16_0)
-           and v1 = get buffer (ptr + pos16_1) in
-           let v = v0 lor (v1 lsl 8) in
-           if v1 land 0x80 = 0 then
-             return v
-           else
-             return (v - (1 lsl 16)))
-
-    let read_int32 ic =
-      read_block_unsafe ic 4
-        (fun buffer ptr ->
-           let v0 = get buffer (ptr + pos32_0)
-           and v1 = get buffer (ptr + pos32_1)
-           and v2 = get buffer (ptr + pos32_2)
-           and v3 = get buffer (ptr + pos32_3) in
-           return (Int32.logor
-                     (Int32.logor
-                        (Int32.of_int v0)
-                        (Int32.shift_left (Int32.of_int v1) 8))
-                     (Int32.logor
-                        (Int32.shift_left (Int32.of_int v2) 16)
-                        (Int32.shift_left (Int32.of_int v3) 24))))
-
-    let read_int64 ic =
-      read_block_unsafe ic 8
-        (fun buffer ptr ->
-           let v0 = get buffer (ptr + pos64_0)
-           and v1 = get buffer (ptr + pos64_1)
-           and v2 = get buffer (ptr + pos64_2)
-           and v3 = get buffer (ptr + pos64_3)
-           and v4 = get buffer (ptr + pos64_4)
-           and v5 = get buffer (ptr + pos64_5)
-           and v6 = get buffer (ptr + pos64_6)
-           and v7 = get buffer (ptr + pos64_7) in
-           return (Int64.logor
-                     (Int64.logor
-                        (Int64.logor
-                           (Int64.of_int v0)
-                           (Int64.shift_left (Int64.of_int v1) 8))
-                        (Int64.logor
-                           (Int64.shift_left (Int64.of_int v2) 16)
-                           (Int64.shift_left (Int64.of_int v3) 24)))
-                     (Int64.logor
-                        (Int64.logor
-                           (Int64.shift_left (Int64.of_int v4) 32)
-                           (Int64.shift_left (Int64.of_int v5) 40))
-                        (Int64.logor
-                           (Int64.shift_left (Int64.of_int v6) 48)
-                           (Int64.shift_left (Int64.of_int v7) 56)))))
-
-    let read_float32 ic = read_int32 ic >>= fun x -> return (Int32.float_of_bits x)
-    let read_float64 ic = read_int64 ic >>= fun x -> return (Int64.float_of_bits x)
-
-    (* +-------------------------------------------------------------+
-       | Writing numbers                                             |
-       +-------------------------------------------------------------+ *)
-
-    let set buffer ptr x = String.unsafe_set buffer ptr (Char.unsafe_chr x)
-
-    let write_int oc v =
-      write_block_unsafe oc 4
-        (fun buffer ptr ->
-           set buffer (ptr + pos32_0) v;
-           set buffer (ptr + pos32_1) (v lsr 8);
-           set buffer (ptr + pos32_2) (v lsr 16);
-           set buffer (ptr + pos32_3) (v asr 24);
-           return ())
-
-    let write_int16 oc v =
-      write_block_unsafe oc 2
-        (fun buffer ptr ->
-           set buffer (ptr + pos16_0) v;
-           set buffer (ptr + pos16_1) (v lsr 8);
-           return ())
-
-    let write_int32 oc v =
-      write_block_unsafe oc 4
-        (fun buffer ptr ->
-           set buffer (ptr + pos32_0) (Int32.to_int v);
-           set buffer (ptr + pos32_1) (Int32.to_int (Int32.shift_right v 8));
-           set buffer (ptr + pos32_2) (Int32.to_int (Int32.shift_right v 16));
-           set buffer (ptr + pos32_3) (Int32.to_int (Int32.shift_right v 24));
-           return ())
-
-    let write_int64 oc v =
-      write_block_unsafe oc 8
-        (fun buffer ptr ->
-           set buffer (ptr + pos64_0) (Int64.to_int v);
-           set buffer (ptr + pos64_1) (Int64.to_int (Int64.shift_right v 8));
-           set buffer (ptr + pos64_2) (Int64.to_int (Int64.shift_right v 16));
-           set buffer (ptr + pos64_3) (Int64.to_int (Int64.shift_right v 24));
-           set buffer (ptr + pos64_4) (Int64.to_int (Int64.shift_right v 32));
-           set buffer (ptr + pos64_5) (Int64.to_int (Int64.shift_right v 40));
-           set buffer (ptr + pos64_6) (Int64.to_int (Int64.shift_right v 48));
-           set buffer (ptr + pos64_7) (Int64.to_int (Int64.shift_right v 56));
-           return ())
-
-    let write_float32 oc v = write_int32 oc (Int32.bits_of_float v)
-    let write_float64 oc v = write_int64 oc (Int64.bits_of_float v)
-  end
-
 end
 
 (* +-----------------------------------------------------------------+
@@ -1131,43 +947,6 @@ let write_value oc ?flags x = primitive (fun oc -> Primitives.write_value oc ?fl
 let block ch size f = primitive (fun ch -> Primitives.block ch size f) ch
 let direct_access ch f = primitive (fun ch -> Primitives.direct_access ch f) ch
 
-module type NumberIO = sig
-  val read_int : input_channel -> int Lwt.t
-  val read_int16 : input_channel -> int Lwt.t
-  val read_int32 : input_channel -> int32 Lwt.t
-  val read_int64 : input_channel -> int64 Lwt.t
-  val read_float32 : input_channel -> float Lwt.t
-  val read_float64 : input_channel -> float Lwt.t
-  val write_int : output_channel -> int -> unit Lwt.t
-  val write_int16 : output_channel -> int -> unit Lwt.t
-  val write_int32 : output_channel -> int32 -> unit Lwt.t
-  val write_int64 : output_channel -> int64 -> unit Lwt.t
-  val write_float32 : output_channel -> float -> unit Lwt.t
-  val write_float64 : output_channel -> float -> unit Lwt.t
-end
-
-module MakeNumberIO(ByteOrder : ByteOrder.S) =
-struct
-  module Primitives = Primitives.MakeNumberIO(ByteOrder)
-
-  let read_int ic = primitive Primitives.read_int ic
-  let read_int16 ic = primitive Primitives.read_int16 ic
-  let read_int32 ic = primitive Primitives.read_int32 ic
-  let read_int64 ic = primitive Primitives.read_int64 ic
-  let read_float32 ic = primitive Primitives.read_float32 ic
-  let read_float64 ic = primitive Primitives.read_float64 ic
-
-  let write_int oc x = primitive (fun oc -> Primitives.write_int oc x) oc
-  let write_int16 oc x = primitive (fun oc -> Primitives.write_int16 oc x) oc
-  let write_int32 oc x = primitive (fun oc -> Primitives.write_int32 oc x) oc
-  let write_int64 oc x = primitive (fun oc -> Primitives.write_int64 oc x) oc
-  let write_float32 oc x = primitive (fun oc -> Primitives.write_float32 oc x) oc
-  let write_float64 oc x = primitive (fun oc -> Primitives.write_float64 oc x) oc
-end
-
-module LE = MakeNumberIO(ByteOrder.LE)
-module BE = MakeNumberIO(ByteOrder.BE)
-
 (* +-----------------------------------------------------------------+
    | Other                                                           |
    +-----------------------------------------------------------------+ *)
@@ -1205,8 +984,7 @@ let open_connection ?buffer_size sockaddr =
               (channel_write fd)
       )
     with exn ->
-      lwt () = close_fd fd in
-      fail exn
+      close_fd fd >> fail exn
 
 let with_connection ?buffer_size sockaddr f =
   lwt ic, oc = open_connection sockaddr in

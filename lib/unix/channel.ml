@@ -45,18 +45,17 @@ let rec read t buf off len =
   match unix_socket_read t.fd buf off len with
   | OK 0 ->
     (* Would block, so register an activation and wait *)
-    Lwt_condition.wait t.rx_cond >>
+    Activations.wait_rx t.fd t.rx_cond >>
     read t buf off len
   | OK _ | Err _ as r -> 
     (* Return anything else normally *)
     return r
         
 let rec write t buf off len =
-  print_endline "Unix.Channel.write";
   match unix_socket_write t.fd buf off len with 
   | OK 0 ->
     (* Would block, so register an activation and wait *)
-    Lwt_condition.wait t.tx_cond >>
+    Activations.wait_tx t.fd t.tx_cond >>
     write t buf off len
   | OK _ | Err _ as r ->
     (* Return anything else normally *)
@@ -70,9 +69,8 @@ let connect sa =
       let rx_cond = Lwt_condition.create () in
       let tx_cond = Lwt_condition.create () in
       let t = { fd; rx_cond; tx_cond } in
-      Activations.(register_rd t.fd (Event_condition rx_cond));
-      Activations.(register_wr t.fd (Event_condition tx_cond));
-      Lwt_condition.wait tx_cond >>
+      (* Wait for the connect to complete *)
+      Activations.wait_tx t.fd tx_cond >>
       return (match unix_tcp_connect_result t.fd with
       | OK () -> OK t
       | Err s -> Err s)
@@ -83,5 +81,4 @@ let connect sa =
     fail (Not_implemented "UDP")
 
 let close t =
-  Activations.deregister t.fd;
   unix_close t.fd

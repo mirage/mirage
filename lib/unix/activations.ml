@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Lwt
+
 external evtchn_nr_events: unit -> int = "caml_nr_events"
 external evtchn_test_and_clear: int -> int = "caml_evtchn_test_and_clear"
 
@@ -29,12 +31,25 @@ let event_cb_wr = Array.create nr_events Event_none
 (* Register an event channel port with a condition variable to let 
    threads sleep on it *)
 
-let register_rd port cb = event_cb_rd.(port) <- cb
-let register_wr port cb = event_cb_wr.(port) <- cb
+let register_rx port cb = event_cb_rd.(port) <- cb
+let register_tx port cb = event_cb_wr.(port) <- cb
 
-let deregister port =
-  event_cb_rd.(port) <- Event_none;
-  event_cb_wr.(port) <- Event_none
+let deregister_rx port = event_cb_rd.(port) <- Event_none
+let deregister_tx port = event_cb_wr.(port) <- Event_none
+
+let wait_rx port cond =
+  register_rx port (Event_condition cond);
+  try_lwt
+    Lwt_condition.wait cond >>
+    return (deregister_rx port)
+  with exn -> return (deregister_rx port)
+
+let wait_tx port cond =
+  register_tx port (Event_condition cond);
+  try_lwt
+    Lwt_condition.wait cond >>
+    return (deregister_tx port)
+  with exn -> return (deregister_tx port)
 
 (* Go through the event mask and activate any events, potentially spawning
    new threads *)

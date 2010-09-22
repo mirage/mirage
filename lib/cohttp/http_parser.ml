@@ -30,20 +30,20 @@ open Http_common
 open Http_types
 open Http_constants
 
-let (bindings_sep, binding_sep, pieces_sep, header_sep) =
-  (Pcre.regexp "&", Pcre.regexp "=", Pcre.regexp " ", Pcre.regexp ":")
-let header_RE = Pcre.regexp "([^:]*):(.*)"
+let bindings_sep, binding_sep, pieces_sep, header_sep =
+  List.map Str.regexp_string [ "&"; "="; " "; ":" ]
+let header_RE = Str.regexp "([^:]*):(.*)"
 
 let url_decode url = Http_url.decode url
 
 let split_query_params query =
-  let bindings = Pcre.split ~rex:bindings_sep query in
+  let bindings = Str.split bindings_sep query in
   match bindings with
   | [] -> raise (Malformed_query query)
   | bindings ->
       List.map
         (fun binding ->
-          match Pcre.split ~rex:binding_sep binding with
+          match Str.split binding_sep binding with
           | [ ""; b ] -> (* '=b' *)
               raise (Malformed_query_part (binding, query))
           | [ a; b ]  -> (* 'a=b' *) (url_decode a, url_decode b)
@@ -62,7 +62,7 @@ let parse_request_fst_line ic =
   lwt request_line = IO.read_line ic in
   debug_print (sprintf "HTTP request line (not yet parsed): %s" request_line);
   try_lwt begin
-    match Pcre.split ~rex:pieces_sep request_line with
+    match Str.split pieces_sep request_line with
       | [ meth_raw; uri_raw; http_version_raw ] ->
           return (method_of_string meth_raw,
 		  Http_url.of_string uri_raw,
@@ -74,7 +74,7 @@ let parse_response_fst_line ic =
   lwt response_line = IO.read_line ic in
   debug_print (sprintf "HTTP response line (not yet parsed): %s" response_line);
   try_lwt
-    (match Pcre.split ~rex:pieces_sep response_line with
+    (match Str.split pieces_sep response_line with
     | version_raw :: code_raw :: _ ->
         return (version_of_string version_raw,             (* method *)
         status_of_code (int_of_string code_raw))    (* status *)
@@ -96,21 +96,16 @@ let parse_headers ic =
   let rec parse_headers' headers =
     IO.read_line ic >>= function
     | "" -> return (List.rev headers)
-    | line ->
-        lwt subs = 
-          try_lwt 
-            return (Pcre.extract ~rex:header_RE line)
-          with Not_found -> fail (Invalid_header line) in
-        lwt header =
-          try_lwt
-            return (subs.(1))
-          with Invalid_argument "Array.get" -> fail (Invalid_header line) in
-        lwt value =
-          try_lwt
-            return (Http_parser_sanity.normalize_header_value subs.(2))
-          with Invalid_argument "Array.get" -> return "" in
-        Http_parser_sanity.heal_header (header, value);
-        parse_headers' ((header, value) :: headers)
+    | line -> begin
+        match Str.(bounded_split (regexp_string ":") line 2) with
+        | [header; value] ->
+            lwt norm_value =
+              try_lwt Http_parser_sanity.normalize_header_value value
+              with _ -> return "" in
+            Http_parser_sanity.heal_header (heafer, norm_value);
+            parse_headers' ((header, value) :: headers)
+        | _ -> fail (Invalid_header line) 
+      end
   in
   parse_headers' []
 

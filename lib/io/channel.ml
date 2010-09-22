@@ -22,11 +22,11 @@
  *)
 
 open Lwt
+open Mlnet.Types
 
-module IO(Channel:Mlnet.Channel) = struct
+module IO(Channel:Mlnet.Channel) : Mlnet.Io with type t = Channel.t = struct
 
 type t = Channel.t
-type sockaddr = Channel.sockaddr
 
 exception Channel_closed of string
 
@@ -521,16 +521,16 @@ let channel_read t buf off len =
   try_lwt
     lwt r = Channel.read t buf off len in
     match r with
-    | Channel.OK d -> return d
-    | Channel.Err err -> fail (Channel_closed err)
+    | OK d -> return d
+    | Err err -> fail (Channel_closed err)
   with Lwt.Canceled -> return 0
 
 let channel_write t buf off len =
   try_lwt
     lwt r = Channel.write t buf off len in
     match r with
-    | Channel.OK d -> return d
-    | Channel.Err err -> fail (Channel_closed err)
+    | OK d -> return d
+    | Err err -> fail (Channel_closed err)
   with Lwt.Canceled -> return 0
 
 let of_fd ?buffer_size ?close ~mode fd =
@@ -971,8 +971,8 @@ let null =
 let open_connection ?buffer_size sockaddr =
   lwt r = Channel.connect sockaddr in
   match r with
-  |Channel.Err err -> fail (Channel_closed err)
-  |Channel.OK fd -> 
+  | Err err -> fail (Channel_closed err)
+  | OK fd -> 
     try_lwt
       return (make ?buffer_size
               ~close:(fun () -> close_fd fd)

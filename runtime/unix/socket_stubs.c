@@ -47,6 +47,14 @@ setnonblock(int fd)
     err(1, "setnonblock, F_SETFL");
 }
 
+static void
+setreuseaddr(int fd)
+{
+  int o = 1;
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &o, sizeof o) < 0)
+    err(1, "setsockopt: reuseaddr");
+} 
+ 
 CAMLprim value
 caml_socket_close(value v_fd)
 {
@@ -59,6 +67,7 @@ caml_socket_close(value v_fd)
 
 #define Val_OK(v, x) do { (v)=caml_alloc(1,0); Store_field((v),0,(x)); } while (0)
 #define Val_Err(v, x) do { (v)=caml_alloc(1,1); Store_field((v),0,(x)); } while (0)
+#define Val_WouldBlock(v) do { (v)=Val_int(2); } while (0)
 
 CAMLprim value
 caml_tcp_connect(value v_ipaddr, value v_port)
@@ -72,7 +81,6 @@ caml_tcp_connect(value v_ipaddr, value v_port)
   sa.sin_port = htons(Int_val(v_port));
   sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
   s = socket(PF_INET, SOCK_STREAM, 0);
-  ev_fds[s] = 1;
   setnonblock(s); 
   if (s < 0)
     err(1, "caml_tcp_connect: socket");
@@ -84,7 +92,9 @@ caml_tcp_connect(value v_ipaddr, value v_port)
     fprintf(stderr, "connect: ERR: %s\n", strerror(errno));
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
+    close(s);
   }
+  ev_fds[s] = 1 & 2;
   CAMLreturn(v_ret);
 }
 
@@ -105,6 +115,68 @@ caml_tcp_connect_result(value v_fd)
     fprintf(stderr, "connect_result: ERR\n");
     v_err = caml_copy_string(strerror(valopt));
     Val_Err(v_ret, v_err);
+    ev_fds[fd] = 0;
+    close(fd);
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_tcp_listen(value v_ipaddr, value v_port)
+{
+  CAMLparam2(v_ipaddr, v_port);
+  CAMLlocal2(v_ret, v_err);
+  int s, r;
+  struct sockaddr_in sa;
+  bzero(&sa, sizeof sa);
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(Int_val(v_port));
+  sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
+  s = socket(PF_INET, SOCK_STREAM, 0);
+  if (s < 0)
+    err(1, "caml_tcp_listen: socket");
+  setnonblock(s);
+  setreuseaddr(s);
+  r = bind(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
+  if (r < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+    CAMLreturn(v_ret);
+  }
+  r = listen(s, 5);
+  if (r < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+    CAMLreturn(v_ret);
+  }
+  ev_fds[s] = 1;
+  Val_OK(v_ret, Val_int(s));
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_tcp_accept(value v_fd)
+{
+  CAMLparam1(v_fd);
+  CAMLlocal2(v_ret,v_err);
+  int r, fd=Int_val(v_fd);
+  struct sockaddr_in sa;
+  socklen_t len = sizeof sa;
+  r = accept(fd, (struct sockaddr *)&sa, &len);
+  fprintf(stderr, "accept r=%d err=%s\n", r, strerror(errno));
+  if (r < 0) {
+    if (errno == EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
+    else {
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }
+  } else {
+    /* TODO also pass back the accept sockaddr_in */
+    ev_fds[r] = 1 & 2;
+    Val_OK(v_ret, Val_int(r));
   }
   CAMLreturn(v_ret);
 }
@@ -117,8 +189,8 @@ caml_socket_read(value v_fd, value v_buf, value v_off, value v_len)
   int r = read(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
   fprintf(stderr, "caml_socket_write[%d] len=%d r=%d\n", Int_val(v_fd), Int_val(v_len), r);
   if (r < 0) {
-    if (errno == EAGAIN)
-      Val_OK(v_ret, Val_int(0));
+    if (errno == EAGAIN || errno==EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
     else {
       v_err = caml_copy_string(strerror(errno));
       Val_Err(v_ret, v_err);
@@ -136,8 +208,8 @@ caml_socket_write(value v_fd, value v_buf, value v_off, value v_len)
   int r = write(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
   fprintf(stderr, "caml_socket_write[%d] len=%d r=%d\n", Int_val(v_fd), Int_val(v_len), r);
   if (r < 0) {
-    if (errno == EAGAIN)
-      Val_OK(v_ret, Val_int(0));
+    if (errno == EAGAIN || errno==EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
     else {
       fprintf(stderr, "   err=%s\n", strerror(errno));
       v_err = caml_copy_string(strerror(errno));

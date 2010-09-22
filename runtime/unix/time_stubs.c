@@ -41,24 +41,24 @@ unix_block_domain(value v_time)
   fd_set efds;
   int nfds = 0;
   unsigned int i;
-
-  tv.tv_sec = (long)(Double_val(v_time));
-  tv.tv_usec = 0; /* XXX convert from v_time remainder */
+  double tm = Double_val(v_time);
+  tv.tv_sec = (long)tm;
+  tv.tv_usec = ((long)(tm * 1000000) % 1000000);
 
   FD_ZERO(&rfds);
- 
+  FD_ZERO(&wfds);
+  FD_ZERO(&efds);
+
   for (i=0; i < NR_EVENTS; i++) {
     if (ev_fds[i] > 0) {
-      FD_SET(i, &rfds);
-      FD_SET(i, &wfds);
+      if (ev_fds[i] & 1) FD_SET(i, &rfds);
+      if (ev_fds[i] & 2) FD_SET(i, &wfds);
       FD_SET(i, &efds);
       nfds=i+1;
     }  
   } 
 
-  fprintf(stderr, "block_domain: %f\n", Double_val(v_time));
-  ret = select(nfds, &rfds, &rfds, &efds, &tv);
-
+  ret = select(nfds, &rfds, &wfds, &efds, &tv);
   for (i=0; i < nfds; i++) {
     if (FD_ISSET(i, &rfds)) {
       ev_callback_ml[i] |= 1;

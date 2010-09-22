@@ -165,7 +165,6 @@ caml_tcp_accept(value v_fd)
   struct sockaddr_in sa;
   socklen_t len = sizeof sa;
   r = accept(fd, (struct sockaddr *)&sa, &len);
-  fprintf(stderr, "accept r=%d err=%s\n", r, strerror(errno));
   if (r < 0) {
     if (errno == EWOULDBLOCK)
       Val_WouldBlock(v_ret);
@@ -187,7 +186,6 @@ caml_socket_read(value v_fd, value v_buf, value v_off, value v_len)
   CAMLparam4(v_fd ,v_buf, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
   int r = read(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
-  fprintf(stderr, "caml_socket_write[%d] len=%d r=%d\n", Int_val(v_fd), Int_val(v_len), r);
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
       Val_WouldBlock(v_ret);
@@ -206,7 +204,6 @@ caml_socket_write(value v_fd, value v_buf, value v_off, value v_len)
   CAMLparam4(v_fd, v_buf, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
   int r = write(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
-  fprintf(stderr, "caml_socket_write[%d] len=%d r=%d\n", Int_val(v_fd), Int_val(v_len), r);
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
       Val_WouldBlock(v_ret);

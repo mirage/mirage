@@ -160,7 +160,7 @@ CAMLprim value
 caml_tcp_accept(value v_fd)
 {
   CAMLparam1(v_fd);
-  CAMLlocal2(v_ret,v_err);
+  CAMLlocal4(v_ret,v_err,v_ca,v_ip);
   int r, fd=Int_val(v_fd);
   struct sockaddr_in sa;
   socklen_t len = sizeof sa;
@@ -173,9 +173,13 @@ caml_tcp_accept(value v_fd)
       Val_Err(v_ret, v_err);
     }
   } else {
-    /* TODO also pass back the accept sockaddr_in */
     ev_fds[r] = 1 & 2;
-    Val_OK(v_ret, Val_int(r));
+    v_ip = caml_copy_int32(ntohl(sa.sin_addr.s_addr));
+    v_ca = caml_alloc(3,0);
+    Store_field(v_ca, 0, Val_int(r));
+    Store_field(v_ca, 1, v_ip);
+    Store_field(v_ca, 2, Val_int(sa.sin_port));
+    Val_OK(v_ret, v_ca);
   }
   CAMLreturn(v_ret);
 }

@@ -36,7 +36,7 @@ external unix_socket_read: int -> string -> int -> int -> int resp = "caml_socke
 external unix_socket_write: int -> string -> int -> int -> int resp = "caml_socket_write"
 external unix_tcp_connect_result: int -> unit resp = "caml_tcp_connect_result"
 external unix_tcp_listen: int32 -> int -> int resp = "caml_tcp_listen"
-external unix_tcp_accept: int -> int resp = "caml_tcp_accept"
+external unix_tcp_accept: int -> (int * int32 * int) resp = "caml_tcp_accept"
 
 let t_of_fd fd = 
   let rx_cond = Lwt_condition.create () in
@@ -85,9 +85,11 @@ let listen fn = function
       let rec loop () =
         t_wait_rx lt >>
         (match unix_tcp_accept fd with
-        | OK afd ->
+        | OK (afd,caddr_i,cport) ->
+            let caddr = ipv4_addr_of_uint32 caddr_i in
+            let csa = TCP (caddr, cport) in
             let t = t_of_fd afd in
-            join [ loop (); close_on_exit t (fn t) ]
+            join [ loop (); close_on_exit t (fn csa t) ]
         | Retry -> 
             loop () 
         | Err err -> 

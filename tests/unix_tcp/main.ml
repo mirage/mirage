@@ -15,9 +15,10 @@ let main () =
     done 
   in
 *)
-  let lsa = Channel.TCP (ipv4_localhost, 8081) in
-  let listen_t = Channel.listen (fun c ->
-    print_endline "new connection";
+  let lsa = TCP (ipv4_localhost, 8081) in
+  let listen_t = Channel.listen (fun sa c ->
+    let ip,port = match sa with TCP (x,y) -> x,y |_ -> assert false in
+    Printf.printf "connection from: %s:%d\n%!" (ipv4_addr_to_string ip) port;
     OS.Time.sleep 5. >>
     let msg = "byebye" in
     lwt _ = Channel.write c msg 0 (String.length msg) in

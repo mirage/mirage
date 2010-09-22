@@ -32,20 +32,22 @@ type headers = (string * string) list
 type tcp_error_source = Connect | Read | Write
 exception Tcp_error of tcp_error_source * exn
 exception Http_error of (int * headers * string)  (* code, body *)
+exception Invalid_url
 
-let http_scheme_RE = Pcre.regexp ~flags:[`CASELESS] "^http://"
-let url_RE = Pcre.regexp "^([\\w.-]+)(:(\\d+))?(/.*)?$"
+let url_RE = Str.regexp "^[hH][tT][tT][pP]://\\([a-zA-Z.-]+\\)\\(:[0-9]+\\)?\\(/.*\\)?"
 
 let tcp_bufsiz = 4096 (* for TCP I/O *)
 
 let parse_url url =
   try
-    let subs =
-      Pcre.extract ~rex:url_RE (Pcre.replace ~rex:http_scheme_RE url)
-    in
-    (subs.(1),
-    (if subs.(2) = "" then 80 else int_of_string subs.(3)),
-    (if subs.(4) = "" then "/" else subs.(4)))
+    if not (Str.string_match url_RE url 0) then raise Invalid_url;
+    let host = Str.matched_group 1 url in
+    let port = try
+        let port_s = Str.matched_group 2 url in
+        int_of_string (String.sub port_s 1 (String.length port_s - 1))
+      with _ -> 80 in
+    let path = try Str.matched_group 3 url with Not_found -> "/" in
+    (host, port, path)
   with exc ->
     failwith
       (sprintf "Can't parse url: %s (exception: %s)"

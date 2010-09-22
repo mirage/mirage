@@ -37,8 +37,8 @@ let debug_dump_request path params =
       (String.concat ";"
         (List.map (fun (h,v) -> String.concat "=" [h;v]) params)))
 
-let auth_sep_RE = Pcre.regexp ":"
-let basic_auth_RE = Pcre.regexp "^Basic\\s+"
+let auth_sep_RE = Str.regexp_string ":"
+let basic_auth_RE = Str.regexp "^Basic +"
 
 type request = {
   r_msg: Http_message.message;
@@ -125,9 +125,9 @@ let authorization r =
   match Http_message.header r.r_msg ~name:"authorization" with
     | [] -> None
     | h :: _ -> 
-	let credentials = Base64.decode (Pcre.replace ~rex:basic_auth_RE h) in
+	let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in
 	  debug_print ("HTTP Basic auth credentials: " ^ credentials);
-	  (match Pcre.split ~rex:auth_sep_RE credentials with
+	  (match Str.split auth_sep_RE credentials with
 	     | [username; password] -> Some (`Basic (username, password))
 	     | l -> None)
 

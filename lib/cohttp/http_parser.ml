@@ -31,7 +31,9 @@ open Http_types
 open Http_constants
 
 let bindings_sep, binding_sep, pieces_sep, header_sep =
-  List.map Str.regexp_string [ "&"; "="; " "; ":" ]
+  Str.(regexp_string "&", regexp_string "=", 
+       regexp_string " ", regexp_string ":" )
+
 let header_RE = Str.regexp "([^:]*):(.*)"
 
 let url_decode url = Http_url.decode url
@@ -100,9 +102,9 @@ let parse_headers ic =
         match Str.(bounded_split (regexp_string ":") line 2) with
         | [header; value] ->
             lwt norm_value =
-              try_lwt Http_parser_sanity.normalize_header_value value
+              try_lwt 
+                return (Http_parser_sanity.normalize_header_value value)
               with _ -> return "" in
-            Http_parser_sanity.heal_header (heafer, norm_value);
             parse_headers' ((header, value) :: headers)
         | _ -> fail (Invalid_header line) 
       end

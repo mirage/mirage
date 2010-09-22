@@ -21,19 +21,6 @@
 
 (** Sanity test functions related to HTTP message parsing *)
 
-  (** @param name an HTTP header name
-  @raise Invalid_header_name if name isn't a valid HTTP header name *)
-val heal_header_name: string -> unit
-
-  (** @param value an HTTP header value
-  @raise Invalid_header_value if value isn't a valid HTTP header value *)
-val heal_header_value: string -> unit
-
-  (** @param header a pair header_name * header_value
-  @raise Invalid_header_name if name isn't a valid HTTP header name
-  @raise Invalid_header_value if value isn't a valid HTTP header value *)
-val heal_header: string * string -> unit
-
   (** remove heading and/or trailing LWS sequences as per RFC2616 *)
 val normalize_header_value: string -> string
 

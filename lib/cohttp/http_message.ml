@@ -85,13 +85,11 @@ let set_body msg contents = msg.m_contents <- [contents]
 let add_body msg contents = msg.m_contents <- (contents :: msg.m_contents)
 let add_header msg ~name ~value =
   let name = String.lowercase name in
-  Http_parser_sanity.heal_header (name, value);
   Hashtbl.add msg.m_headers name value
 let add_headers msg =
   List.iter (fun (name, value) -> add_header msg ~name ~value)
 let replace_header msg ~name ~value =
   let name = String.lowercase name in
-  Http_parser_sanity.heal_header (name, value);
   Hashtbl.replace msg.m_headers name value
 let replace_headers msg =
   List.iter (fun (name, value) -> replace_header msg ~name ~value)

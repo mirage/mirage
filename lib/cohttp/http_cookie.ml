@@ -85,7 +85,7 @@ let serialize ?(version=`HTTP_1_0) cp =
 let extract req =
   List.fold_left
     (fun acc header ->
-       let comps = Str.(split (regex "(?:;|,)\\s") header) in
+       let comps = Str.(split (regexp "(?:;|,)\\s") header) in
        let cookies = List.filter (fun s -> s.[0] != '$') comps in
        let split_pair nvp =
          match Str.(split (regexp_string "=")) nvp with

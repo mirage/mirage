@@ -44,13 +44,15 @@ let rfc822_of_float x =
 let date_822 () =
   rfc822_of_float (OS.Clock.time ())
 
-let strip_trailing_slash =
-  let rex = Pcre.regexp "/$" in
-  fun s -> Pcre.replace ~rex ~templ:"" s
+let strip_trailing_slash s =
+  match String.length s with
+  |0 -> s
+  |n -> if s.[n-1] = '/' then String.sub s 0 (n-1) else s
 
-let strip_heading_slash =
-  let rex = Pcre.regexp "^/" in
-  fun s -> Pcre.replace ~rex ~templ:"" s
+let strip_heading_slash s =
+  match String.length s with
+  |0 -> s
+  |n -> if s.[0] = '/' then String.sub s 1 (n-1) else s
 
 let string_explode s =
   let rec string_explode' acc = function

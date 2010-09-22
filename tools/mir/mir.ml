@@ -90,6 +90,7 @@ let _ =
       "-os", String set_os, "Set target operating system [xen|unix|browser]";
       "-mode", String set_mode, "Set where to build application [tree|installed]";
       "-net", String set_net, "How to configure network interfaces [dhcp|static]";
+			"-package", String set_package, " Packages to link with";
       set_var "mod" modname "Application module name";
       set_var "cc" cc "Compiler to use";
       set_var "ocamldsort" ocamldsort "ocamldsort binary";
@@ -139,7 +140,7 @@ let _ =
     |Xen ->
       [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "xen" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "unix" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "unix"; "cohttp" ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on

@@ -34,3 +34,12 @@ val ipv4_addr_to_uint32 : ipv4_addr -> int32
 val ipv4_blank : ipv4_addr
 val ipv4_broadcast : ipv4_addr
 val ipv4_localhost : ipv4_addr
+
+type 'a resp =
+  | OK of 'a
+  | Err of string
+  | Retry
+
+type sockaddr = 
+  | TCP of ipv4_addr * int
+  | UDP of ipv4_addr * int

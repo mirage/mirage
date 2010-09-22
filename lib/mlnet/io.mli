@@ -56,7 +56,7 @@ exception Channel_closed of string
 (** {6 Types} *)
 
 type t
-type sockaddr
+(** Type of channels (ie. should be Channel.t)*)
 
 type 'mode channel
 (** Type of buffered byte channels *)
@@ -276,7 +276,7 @@ val hexdump : output_channel -> string -> unit Lwt.t
 
 (** {6 File utilities} *)
 
-val open_connection : ?buffer_size : int -> sockaddr -> (input_channel * output_channel) Lwt.t
+val open_connection : ?buffer_size : int -> Types.sockaddr -> (input_channel * output_channel) Lwt.t
 (** [open_connection ?buffer_size ~mode addr] open a connection to
     the given address and returns two channels for using it.
 
@@ -286,18 +286,12 @@ val open_connection : ?buffer_size : int -> sockaddr -> (input_channel * output_
     @raise Unix.Unix_error on error.
 *)
 
-val with_connection : ?buffer_size : int -> sockaddr -> (input_channel * output_channel -> 'a Lwt.t) -> 'a Lwt.t
+val with_connection : ?buffer_size : int -> Types.sockaddr -> (input_channel * output_channel -> 'a Lwt.t) -> 'a Lwt.t
 (** [with_connection ?buffer_size ~mode addr f] open a connection to
     the given address and passes the channels to [f] *)
 
 val make_stream :
   ('a channel -> 'b option Lwt.t) -> 'a channel -> 'b Lwt_stream.t
-
-(** Type of byte order *)
-type byte_order = Little_endian | Big_endian
-
-val system_byte_order : byte_order
-  (** The byte order used by the computer running the program *)
 
   (** {6 Low-level access to the internal buffer} *)
 
@@ -341,43 +335,3 @@ val set_default_buffer_size : int -> unit
 
     @raise Invalid_argument if the given size is smaller than [16]
     or greater than [Sys.max_string_length] *)
-
-(** Common interface for reading/writing integers in binary *)
-module type NumberIO = sig
-
-  (** {8 Reading} *)
-
-  val read_int : input_channel -> int Lwt.t
-  (** Reads a 32-bits integer as an ocaml int *)
-    
-  val read_int16 : input_channel -> int Lwt.t
-  val read_int32 : input_channel -> int32 Lwt.t
-  val read_int64 : input_channel -> int64 Lwt.t
-
-  val read_float32 : input_channel -> float Lwt.t
-  (** Reads an IEEE single precision floating point value *)
-
-  val read_float64 : input_channel -> float Lwt.t
-  (** Reads an IEEE double precision floating point value *)
-
-  (** {8 Writing} *)
-
-  val write_int : output_channel -> int -> unit Lwt.t
-  (** Writes an ocaml int as a 32-bits integer *)
-
-  val write_int16 : output_channel -> int -> unit Lwt.t
-  val write_int32 : output_channel -> int32 -> unit Lwt.t
-  val write_int64 : output_channel -> int64 -> unit Lwt.t
-
-  val write_float32 : output_channel -> float -> unit Lwt.t
-  (** Writes an IEEE single precision floating point value *)
-
-  val write_float64 : output_channel -> float -> unit Lwt.t
-  (** Writes an IEEE double precision floating point value *)
-end
-
-module LE : NumberIO
-(** Reading/writing of integers in little-endian *)
-
-module BE : NumberIO
-(** Reading/writing of integers in big-endian *)

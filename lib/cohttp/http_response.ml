@@ -28,8 +28,6 @@ open Printf
 open Lwt
 open Mlnet.Types
 
-let status_line_RE = Pcre.regexp "^(HTTP/\\d\\.\\d) (\\d{3}) (.*)$"
-
 let anyize = function
   | Some addr -> addr
   | None ->

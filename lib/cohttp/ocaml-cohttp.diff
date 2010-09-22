@@ -1,0 +1,656 @@
+diff --git a/Makefile b/Makefile
+index aa93ab1..7f67e8f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,28 +1,17 @@
+-OCAMLMAKEFILE=OCamlMakefile
++ROOTDIR=../..
++include $(ROOTDIR)/mk/ocaml.mk
+ 
+-SOURCES = http_types.mli http_types.ml http_constants.mli http_constants.ml \
+-	  http_common.mli http_common.ml http_parser_sanity.mli http_parser_sanity.ml http_parser.mli http_parser.ml \
+-	  http_misc.mli http_misc.ml http_message.mli http_message.ml \
+-	  http_response.mli http_response.ml http_request.mli http_request.ml \
+-	  http_user_agent.mli http_user_agent.ml http_cookie.mli http_cookie.ml
+-PACKS = netstring lwt lwt.unix
+-RESULT = cohttp
+-LIB_PACK_NAME = cohttp
+-ANNOTATE = yes
++# XXX: fix PCRE path
++EXTRA_FLAGS+=-I ../../tools/ocaml-libs/pcre-ocaml-release-6.1.0/lib
++DEPENDS=lwt mpl unix io mlnet
++FILES = http_types http_constants http_misc base64 http_url http_common http_parser_sanity \
++				http_parser http_user_agent http_message http_response http_request http_cookie 
++SOURCES=$(foreach file,$(FILES), $(file).mli $(file).ml)
+ 
+-.PHONY: all
+-all: pack-byte-code pack-native-code cohttp.cma cohttp.cmxa
+-	@ :
++TARGET=cohttp
++TARGET_MLI=
+ 
+-DISTVERSION = 0.1
+-
+-META: META.in
+-	cat META.in | sed -e 's/@DISTVERSION@/$(DISTVERSION)/' > META
+-
+-LIBINSTALL_FILES = META cohttp.cma cohttp.cmxa cohttp.a cohttp.cmi
+-
+-install: libinstall
+-uninstall: libuninstall
+-reinstall: uninstall install
+-
+--include $(OCAMLMAKEFILE)
++EXTRA_CLEAN=cohttp.ml
++WITH_SYNTAX=yes
++USE_PACK=yes
++include ../Makefile.common
+diff --git a/http_cookie.ml b/http_cookie.ml
+index 17e6caf..a20cec7 100644
+--- a/http_cookie.ml
++++ b/http_cookie.ml
+@@ -19,6 +19,7 @@
+   USA
+ *)
+ 
++module OS = Unix
+ type time = [ `Day of int | `Hour of int | `Minute of int | `Second of int ] list
+ type expiration = [ `Discard | `Session | `Age of time | `Until of float ]
+ 
+@@ -51,7 +52,7 @@ let serialize_1_1 (n, c) =
+     | `Discard -> "Max-Age=0" :: attrs
+     | `Session -> "Discard" :: attrs
+     | `Until stamp ->
+-	let offset = int_of_float (stamp -. (Unix.time ())) in
++	let offset = int_of_float (stamp -. (OS.Clock.time ())) in
+ 	  ("Max-Age=" ^ (string_of_int (min 0 offset))) :: attrs
+     | `Age tml -> ("Max-Age=" ^ (string_of_int (duration tml))) :: attrs in
+   let attrs = match c.domain with None -> attrs
+@@ -59,15 +60,7 @@ let serialize_1_1 (n, c) =
+     ("Set-Cookie2", String.concat "; " attrs)
+   
+ let serialize_1_0 (n, c) =
+-  let fmt_time a =
+-    let days = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |] in
+-    let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
+-		    "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |] in
+-    let tm = Unix.gmtime a in
+-      Printf.sprintf "%s, %02d-%s-%d %02d:%02d:%02d GMT"
+-	days.(tm.Unix.tm_wday) tm.Unix.tm_mday months.(tm.Unix.tm_mon)
+-	(1900 + tm.Unix.tm_year) tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec
+-  in
++  let fmt_time a = Http_misc.rfc822_of_float a in
+   let attrs = if c.secure then ["secure"] else [] in
+   let attrs = match c.path with None -> attrs
+     | Some p -> ("path=" ^ p) :: attrs in
+@@ -79,7 +72,7 @@ let serialize_1_0 (n, c) =
+     | `Until stamp -> ("expires=" ^ (fmt_time stamp)) :: attrs
+     | `Age tml ->
+ 	let age = float (duration tml) in
+-	  ("expires=" ^ (fmt_time ((Unix.time ()) +. age))) :: attrs in
++	  ("expires=" ^ (fmt_time ((OS.Clock.time ()) +. age))) :: attrs in
+   let attrs = (n ^ (match c.value with "" -> ""
+ 		      | v -> "=" ^ v)) :: attrs in
+     ("Set-Cookie", String.concat "; " attrs)
+@@ -95,9 +88,9 @@ let extract req =
+        let comps = Pcre.split ~rex:(Pcre.regexp "(?:;|,)\\s") header in
+        let cookies = List.filter (fun s -> s.[0] != '$') comps in
+        let split_pair nvp =
+-	 match Pcre.split ~rex:(Pcre.regexp "=") nvp with
+-	   | [] -> ("","")
+-	   | n :: [] -> (n, "")
+-	   | n :: v :: _ -> (n, v)
++         match Pcre.split ~rex:(Pcre.regexp "=") nvp with
++         | [] -> ("","")
++         | n :: [] -> (n, "")
++         | n :: v :: _ -> (n, v)
+        in (List.map split_pair cookies) @ acc
+     ) [] (Http_request.header req "Cookie")
+diff --git a/http_message.ml b/http_message.ml
+index 847c5c8..9d824b3 100644
+--- a/http_message.ml
++++ b/http_message.ml
+@@ -21,6 +21,8 @@
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+   USA
+ *)
++module OS = Unix
++module IO = Unix.IO
+ 
+ open Http_common
+ open Http_constants
+@@ -38,7 +40,7 @@ let rec hashtbl_remove_all tbl name =
+ type contents =
+     [ `Buffer of Buffer.t
+     | `String of string
+-    | `Inchan of int64 * Lwt_io.input_channel * unit Lwt.u
++    | `Inchan of int64 * IO.input_channel * unit Lwt.u
+     ]
+ 
+ type message = {
+@@ -76,7 +78,7 @@ let string_of_body cl =
+ 	               | `Inchan (il, ic, finished) ->
+ 			   lwt pos = pos in
+                            let il = Int64.to_int il in
+-                             (Lwt_io.read_into_exactly ic buf pos il) >>
++                             (IO.read_into_exactly ic buf pos il) >>
+ 			       (Lwt.wakeup finished (); return (pos + il))
+                     ) (return 0) cl) >>= (fun _ -> return buf)
+ let set_body msg contents = msg.m_contents <- [contents]
+@@ -143,7 +145,7 @@ let relay ic oc write_from_exactly m =
+   let bufsize = 4096 in (* blksz *)
+   let buffer = String.create bufsize in
+   let rec aux m =
+-    lwt len = m >> (Lwt_io.read_into ic buffer 0 bufsize) in
++    lwt len = m >> (IO.read_into ic buffer 0 bufsize) in
+       if len = 0 then Lwt.return ()
+       else aux (write_from_exactly oc buffer 0 len)
+   in aux m
+@@ -169,7 +171,7 @@ let serialize msg outchan write write_from_exactly ~fstLineToString =
+ 	  body)
+ 
+ let serialize_to_output_channel msg outchan ~fstLineToString =
+-  serialize msg outchan Lwt_io.write Lwt_io.write_from_exactly ~fstLineToString
++  serialize msg outchan IO.write IO.write_from_exactly ~fstLineToString
+ 
+ let serialize_to_stream msg ~fstLineToString =
+   let stream, push = Lwt_stream.create () in
+diff --git a/http_message.mli b/http_message.mli
+index 8ff5efa..40ac896 100644
+--- a/http_message.mli
++++ b/http_message.mli
+@@ -1,7 +1,9 @@
++open Mlnet.Types
++
+ type contents =
+     [ `Buffer of Buffer.t
+     | `String of string
+-    | `Inchan of int64 * Lwt_io.input_channel * unit Lwt.u
++    | `Inchan of int64 * Unix.IO.input_channel * unit Lwt.u
+     ]
+ type message
+ val body : message -> contents list
+@@ -26,12 +28,12 @@ val init :
+   body:contents list ->
+   headers:(string * string) list ->
+   version:Http_types.version ->
+-  clisockaddr:Unix.sockaddr -> srvsockaddr:Unix.sockaddr -> message
++  clisockaddr:sockaddr -> srvsockaddr:sockaddr -> message
+ val serialize :
+   message ->
+   'a -> ('a -> string -> unit Lwt.t) -> ('a -> string -> int -> int -> unit Lwt.t) ->
+   fstLineToString:string -> unit Lwt.t
+ val serialize_to_output_channel :
+-  message -> Lwt_io.output_channel -> fstLineToString:string -> unit Lwt.t
++  message -> Unix.IO.output_channel -> fstLineToString:string -> unit Lwt.t
+ val serialize_to_stream :
+   message -> fstLineToString:string -> string Lwt_stream.t
+diff --git a/http_misc.ml b/http_misc.ml
+index ab32fc5..b1aaa1d 100644
+--- a/http_misc.ml
++++ b/http_misc.ml
+@@ -4,6 +4,8 @@
+   OCaml HTTP - do it yourself (fully OCaml) HTTP daemon
+ 
+   Copyright (C) <2002-2005> Stefano Zacchiroli <zack@cs.unibo.it>
++	              2006-2009 Citrix Systems Inc.
++	              2010 Thomas Gazagnaire <thomas@gazagnaire.com>
+ 
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU Library General Public License as
+@@ -20,18 +22,27 @@
+   USA
+ *)
+ 
++module OS = Unix
++
+ open Printf
+ open Lwt
+ 
+ open Http_types
++open Mlnet.Types
+ 
+-let date_822 () =
+-  Netdate.mk_mail_date ~zone:Netdate.localzone (Unix.time ())
++let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; 
++   							"Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
++let days = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |]
+ 
+-let is_directory name =
+-  match Unix.lstat name with
+-  | { Unix.st_kind = Unix.S_DIR } -> true
+-  | _ -> false
++let rfc822_of_float x =
++  let time = OS.Clock.gmtime x in
++  Printf.sprintf "%s, %d %s %d %02d:%02d:%02d GMT"
++    days.(time.OS.Clock.tm_wday) time.OS.Clock.tm_mday
++    months.(time.OS.Clock.tm_mon) (time.OS.Clock.tm_year+1900)
++    time.OS.Clock.tm_hour time.OS.Clock.tm_min time.OS.Clock.tm_sec
++
++let date_822 () =
++  rfc822_of_float (OS.Clock.time ())
+ 
+ let strip_trailing_slash =
+   let rex = Pcre.regexp "/$" in
+@@ -95,13 +106,18 @@ let reason_phrase_of_code = function
+ 
+ let build_sockaddr (addr, port) =
+   try_lwt
+-      (* should this be lwt hent = Lwt_lib.gethostbyname addr ? *)
+-      let hent = Unix.gethostbyname addr in
+-      return (Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port))
++    (* should this be lwt hent = Lwt_lib.gethostbyname addr ? *)
++    (* XXX: no DNS client at the moment *)
++    (* let hent = Unix.gethostbyname addr in *)
++    (* return (Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port)) *)
++    let ip = match Mlnet.Types.ipv4_addr_of_string addr with
++      | Some x -> x
++      | None -> failwith "ip" in
++    return (TCP (ip, port))
+   with _ -> failwith ("ocaml-cohttp, cant resolve hostname: " ^ addr)
+      
+ let explode_sockaddr = function
+-  | Unix.ADDR_INET (addr, port) -> (Unix.string_of_inet_addr addr, port)
++  | TCP (ip, port) -> (Mlnet.Types.ipv4_addr_to_string ip, port)
+   | _ -> assert false (* can explode only inet address *)
+ 
+ let list_assoc_all key pairs =
+@@ -109,4 +125,3 @@ let list_assoc_all key pairs =
+ 
+ let warn msg  = prerr_endline (sprintf "ocaml-cohttp WARNING: %s" msg)
+ let error msg = prerr_endline (sprintf "ocaml-cohttp ERROR:   %s" msg)
+-
+diff --git a/http_misc.mli b/http_misc.mli
+index eee5109..23162fb 100644
+--- a/http_misc.mli
++++ b/http_misc.mli
+@@ -26,9 +26,8 @@ exposed in the final API *)
+   zone info are retrieved from UTC *)
+ val date_822: unit -> string
+ 
+-  (** @return true if 'name' is a directory on the file system, false otherwise
+-  *)
+-val is_directory: string -> bool
++(** Convert a number of seconds to a date compliant with RFC 822 *)
++val rfc822_of_float : float -> string
+ 
+   (** strip trailing '/', if any, from a string and @return the new string *)
+ val strip_trailing_slash: string -> string
+@@ -45,13 +44,13 @@ val string_implode: char list -> string
+   (** given an HTTP response code return the corresponding reason phrase *)
+ val reason_phrase_of_code: int -> string
+ 
+-  (** build a Unix.sockaddr inet address from a string representation of an IP
++  (** build a Channel.sockaddr inet address from a string representation of an IP
+   address and a port number *)
+-val build_sockaddr: string * int -> Unix.sockaddr Lwt.t
++val build_sockaddr: string * int -> Mlnet.Types.sockaddr Lwt.t
+ 
+-  (** explode an _inet_ Unix.sockaddr address in a string representation of an
++  (** explode an _inet_ Channel.sockaddr address in a string representation of an
+   IP address and a port number *)
+-val explode_sockaddr: Unix.sockaddr -> string * int
++val explode_sockaddr: Mlnet.Types.sockaddr -> string * int
+ 
+   (** like List.assoc but return all bindings of a given key instead of the
+   leftmost one only *)
+diff --git a/http_parser.ml b/http_parser.ml
+index c3011ea..f22b787 100644
+--- a/http_parser.ml
++++ b/http_parser.ml
+@@ -21,6 +21,8 @@
+   USA
+ *)
+ 
++module IO = Unix.IO
++
+ open Printf
+ open Lwt
+ 
+@@ -32,7 +34,7 @@ let (bindings_sep, binding_sep, pieces_sep, header_sep) =
+   (Pcre.regexp "&", Pcre.regexp "=", Pcre.regexp " ", Pcre.regexp ":")
+ let header_RE = Pcre.regexp "([^:]*):(.*)"
+ 
+-let url_decode url = Netencoding.Url.decode ~plus:true url
++let url_decode url = Http_url.decode url
+ 
+ let split_query_params query =
+   let bindings = Pcre.split ~rex:bindings_sep query in
+@@ -49,7 +51,6 @@ let split_query_params query =
+           | _ -> raise (Malformed_query_part (binding, query)))
+         bindings
+ 
+-let patch_empty_path = function "" -> "/" | s -> s
+ let debug_dump_request path params =
+   debug_print
+     (sprintf
+@@ -58,19 +59,19 @@ let debug_dump_request path params =
+       (String.concat ", " (List.map (fun (n, v) -> n ^ "=" ^ v) params)))
+ 
+ let parse_request_fst_line ic =
+-  lwt request_line = Lwt_io.read_line ic in
++  lwt request_line = IO.read_line ic in
+   debug_print (sprintf "HTTP request line (not yet parsed): %s" request_line);
+   try_lwt begin
+     match Pcre.split ~rex:pieces_sep request_line with
+       | [ meth_raw; uri_raw; http_version_raw ] ->
+           return (method_of_string meth_raw,
+-		  Http_parser_sanity.url_of_string uri_raw,
++		  Http_url.of_string uri_raw,
+ 		  version_of_string http_version_raw)
+       | _ -> fail (Malformed_request request_line)
+   end with | Malformed_URL url -> fail (Malformed_request_URI url)
+ 
+ let parse_response_fst_line ic =
+-  lwt response_line = Lwt_io.read_line ic in
++  lwt response_line = IO.read_line ic in
+   debug_print (sprintf "HTTP response line (not yet parsed): %s" response_line);
+   try_lwt
+     (match Pcre.split ~rex:pieces_sep response_line with
+@@ -83,16 +84,17 @@ let parse_response_fst_line ic =
+      fail (Malformed_response response_line)
+   | e -> fail e
+ 
+-let parse_path uri = patch_empty_path (String.concat "/" (Neturl.url_path uri))
++let parse_path uri = match Http_url.path uri with None -> "/" | Some x -> x
++
+ let parse_query_get_params uri =
+   try (* act on HTTP encoded URIs *)
+-    split_query_params (Neturl.url_query ~encoded:true uri)
++    match Http_url.query uri with None -> [] | Some x -> split_query_params x
+   with Not_found -> []
+ 
+ let parse_headers ic =
+   (* consume also trailing "^\r\n$" line *)
+   let rec parse_headers' headers =
+-    Lwt_io.read_line ic >>= function
++    IO.read_line ic >>= function
+     | "" -> return (List.rev headers)
+     | line ->
+         lwt subs = 
+diff --git a/http_parser.mli b/http_parser.mli
+index b51f9d4..3c100d2 100644
+--- a/http_parser.mli
++++ b/http_parser.mli
+@@ -37,32 +37,32 @@ val split_query_params: string -> (string * string) list
+   was specified
+   @raise Malformed_request if request 1st linst isn't well formed
+   @raise Malformed_request_URI if requested URI isn't well formed *)
+-val parse_request_fst_line: Lwt_io.input_channel -> (meth * Neturl.url * version) Lwt.t
++val parse_request_fst_line: Unix.IO.input_channel -> (meth * Http_url.t * version) Lwt.t
+ 
+   (** parse 1st line of an HTTP response
+    * @param inchan input channel from which parse response
+    * @raise Malformed_response if first line isn't well formed
+   *)
+-val parse_response_fst_line: Lwt_io.input_channel -> (version * status) Lwt.t
++val parse_response_fst_line: Unix.IO.input_channel -> (version * status) Lwt.t
+ 
+   (** parse HTTP GET parameters from an URL; paramater which were passed with no
+   value (like 'x' in "/foo.cgi?a=10&x=&c=9") are returned associated with the
+   empty ("") string.
+   @return a list of pairs param_name * param_value *)
+-val parse_query_get_params: Neturl.url -> (string * string) list
++val parse_query_get_params: Http_url.t -> (string * string) list
+ 
+   (** parse the base path (removing query string, fragment, ....) from an URL *)
+-val parse_path: Neturl.url -> string
++val parse_path: Http_url.t -> string
+ 
+   (** parse HTTP headers. Consumes also trailing CRLF at the end of header list
+   @param inchan input channel from which parse headers
+   @return a list of pairs header_name * header_value
+   @raise Invalid_header if a not well formed header is encountered *)
+-val parse_headers: Lwt_io.input_channel -> ((string * string) list) Lwt.t
++val parse_headers: Unix.IO.input_channel -> ((string * string) list) Lwt.t
+ 
+   (** given an input channel, reads from it a GET HTTP request and
+   @return a pair <path, query_params> where path is a string representing the
+   requested path and query_params is a list of pairs <name, value> (the GET
+   parameters) *)
+-val parse_request: Lwt_io.input_channel -> (string * (string * string) list) Lwt.t
++val parse_request: Unix.IO.input_channel -> (string * (string * string) list) Lwt.t
+ 
+diff --git a/http_parser_sanity.ml b/http_parser_sanity.ml
+index 7fe08cf..5a139e8 100644
+--- a/http_parser_sanity.ml
++++ b/http_parser_sanity.ml
+@@ -24,39 +24,12 @@ open Printf
+ open Http_types
+ open Http_constants
+ 
+-(*
+-type url_syntax_option =
+-    Url_part_not_recognized
+-  | Url_part_allowed
+-  | Url_part_required
+-
+-* (1) scheme://user:password@host:port/path;params?query#fragment
++(* convention:
++   foo_RE_raw  is the uncompiled regexp matching foo
++   foo_RE      is the compiled regexp matching foo
++   is_foo      is the predicate over string matching foo
+ *)
+ 
+-let request_uri_syntax =
+-{
+-  Neturl.url_enable_scheme  = Neturl.Url_part_not_recognized;
+-  url_enable_user           = Neturl.Url_part_not_recognized;
+-  url_enable_user_param     = Neturl.Url_part_not_recognized;
+-  url_enable_password       = Neturl.Url_part_not_recognized;
+-  url_enable_host           = Neturl.Url_part_not_recognized;
+-  url_enable_port           = Neturl.Url_part_not_recognized;
+-  url_enable_path           = Neturl.Url_part_required;
+-  url_enable_param          = Neturl.Url_part_not_recognized;
+-  url_enable_query          = Neturl.Url_part_allowed;
+-  url_enable_fragment       = Neturl.Url_part_not_recognized;
+-  url_enable_other          = Neturl.Url_part_not_recognized;
+-  url_accepts_8bits         = false;
+-  url_enable_relative       = true;
+-  url_is_valid              = (fun _ -> true);
+-}
+-
+-  (* convention:
+-      foo_RE_raw  is the uncompiled regexp matching foo
+-      foo_RE      is the compiled regexp matching foo
+-      is_foo      is the predicate over string matching foo
+-  *)
+-
+ let separators_RE_raw = "()<>@,;:\\\\\"/\\[\\]?={} \t"
+ let ctls_RE_raw = "\\x00-\\x1F\\x7F"
+ let token_RE_raw = "[^" ^ separators_RE_raw ^ ctls_RE_raw ^ "]+"
+@@ -105,11 +78,3 @@ let normalize_header_value s =
+ let heal_header (name, value) =
+   heal_header_name name;
+   heal_header_value name
+- 
+-let url_of_string s =
+-  try
+-    Neturl.url_of_string request_uri_syntax s
+-  with Neturl.Malformed_URL -> raise (Malformed_URL s)
+-
+-let string_of_url = Neturl.string_of_url
+-
+diff --git a/http_parser_sanity.mli b/http_parser_sanity.mli
+index a869f18..25b1f2c 100644
+--- a/http_parser_sanity.mli
++++ b/http_parser_sanity.mli
+@@ -37,10 +37,3 @@ val heal_header: string * string -> unit
+   (** remove heading and/or trailing LWS sequences as per RFC2616 *)
+ val normalize_header_value: string -> string
+ 
+-  (** parse an URL from a string.
+-  @raise Malformed_URL if an invalid URL is encountered *)
+-val url_of_string: string -> Neturl.url
+-
+-  (** pretty print an URL *)
+-val string_of_url: Neturl.url -> string
+-
+diff --git a/http_request.ml b/http_request.ml
+index 858bf1c..41e9e8b 100644
+--- a/http_request.ml
++++ b/http_request.ml
+@@ -22,6 +22,8 @@
+   USA
+ *)
+ 
++module IO = Unix.IO
++
+ open Printf
+ open Lwt
+ 
+@@ -51,7 +53,7 @@ type request = {
+  
+ let init_request ~clisockaddr ~srvsockaddr finished ic =
+   lwt (meth, uri, version) = Http_parser.parse_request_fst_line ic in
+-  let uri_str = Neturl.string_of_url uri in
++  let uri_str = Http_url.to_string uri in
+   let path = Http_parser.parse_path uri in
+   let query_get_params = Http_parser.parse_query_get_params uri in
+   lwt headers = Http_parser.parse_headers ic in
+@@ -61,7 +63,7 @@ let init_request ~clisockaddr ~srvsockaddr finished ic =
+                   (Int64.of_string (List.assoc "content-length" headers))
+ 		with Not_found -> None in
+ 		  match limit with 
+-		    |None -> Lwt_io.read ic >|= (fun s -> Lwt.wakeup finished (); [`String s])
++		    |None -> IO.read ic >|= (fun s -> Lwt.wakeup finished (); [`String s])
+ 		    |Some count -> return [`Inchan (count, ic, finished)]
+               end
+               else  (* TODO empty body for methods other than POST, is ok? *)
+@@ -123,7 +125,7 @@ let authorization r =
+   match Http_message.header r.r_msg ~name:"authorization" with
+     | [] -> None
+     | h :: _ -> 
+-	let credentials = Netencoding.Base64.decode (Pcre.replace ~rex:basic_auth_RE h) in
++	let credentials = Base64.decode (Pcre.replace ~rex:basic_auth_RE h) in
+ 	  debug_print ("HTTP Basic auth credentials: " ^ credentials);
+ 	  (match Pcre.split ~rex:auth_sep_RE credentials with
+ 	     | [username; password] -> Some (`Basic (username, password))
+diff --git a/http_request.mli b/http_request.mli
+index 0476cd3..04b2d08 100644
+--- a/http_request.mli
++++ b/http_request.mli
+@@ -1,7 +1,9 @@
++open Mlnet.Types
++
+ type request
+ val init_request :
+-  clisockaddr:Unix.sockaddr ->
+-  srvsockaddr:Unix.sockaddr -> unit Lwt.u -> Lwt_io.input_channel -> request Lwt.t
++  clisockaddr:sockaddr ->
++  srvsockaddr:sockaddr -> unit Lwt.u -> Unix.IO.input_channel -> request Lwt.t
+ val meth : request -> Http_types.meth
+ val uri : request -> string
+ val path : request -> string
+diff --git a/http_response.ml b/http_response.ml
+index 5cedcff..bbfe772 100644
+--- a/http_response.ml
++++ b/http_response.ml
+@@ -26,12 +26,17 @@ open Http_constants
+ open Http_common
+ open Printf
+ open Lwt
++open Mlnet.Types
+ 
+ let status_line_RE = Pcre.regexp "^(HTTP/\\d\\.\\d) (\\d{3}) (.*)$"
+ 
+ let anyize = function
+   | Some addr -> addr
+-  | None -> Unix.ADDR_INET (Unix.inet_addr_any, -1)
++  | None ->
++    let addr = match Mlnet.Types.ipv4_addr_of_string "0.0.0.0" with
++      | Some x -> x
++      | None   -> failwith "anyize" in
++    TCP (addr, -1)
+ 
+ type response = {
+   r_msg: Http_message.message;
+diff --git a/http_response.mli b/http_response.mli
+index 41e0186..202e678 100644
+--- a/http_response.mli
++++ b/http_response.mli
+@@ -1,3 +1,5 @@
++open Mlnet.Types
++
+ type response
+ val init :
+   ?body:Http_message.contents list ->
+@@ -5,8 +7,8 @@ val init :
+   ?version:Http_types.version ->
+   ?status:Http_types.status_code ->
+   ?reason:string ->
+-  ?clisockaddr:Unix.sockaddr ->
+-  ?srvsockaddr:Unix.sockaddr -> unit -> response
++  ?clisockaddr:sockaddr ->
++  ?srvsockaddr:sockaddr -> unit -> response
+ val version_string : response -> string
+ val code : response -> int
+ val set_code : response -> int -> unit
+@@ -36,5 +38,5 @@ val serialize :
+   response ->
+   'a -> ('a -> string -> unit Lwt.t) -> ('a -> string -> int -> int -> unit Lwt.t) ->
+   unit Lwt.t
+-val serialize_to_output_channel : response -> Lwt_io.output_channel -> unit Lwt.t
++val serialize_to_output_channel : response -> Unix.IO.output_channel -> unit Lwt.t
+ val serialize_to_stream : response -> string Lwt_stream.t
+diff --git a/http_types.ml b/http_types.ml
+index ee55bd9..ef96df8 100644
+--- a/http_types.ml
++++ b/http_types.ml
+@@ -110,4 +110,3 @@ exception Param_not_found of string
+ exception Invalid_status_line of string
+ exception Header_not_found of string
+ exception Unauthorized of string
+-
+diff --git a/http_user_agent.ml b/http_user_agent.ml
+index 43f93e3..9980312 100644
+--- a/http_user_agent.ml
++++ b/http_user_agent.ml
+@@ -21,6 +21,8 @@
+   USA
+ *)
+ 
++module IO = Unix.IO
++
+ open Printf
+ open Http_common
+ open Lwt
+@@ -66,21 +68,21 @@ let build_req_string headers meth address path body =
+ 
+ let request outchan headers meth body (address, _, path) =
+   let headers = match headers with None -> [] | Some hs -> hs in
+-    Lwt_io.write outchan (build_req_string headers meth address path body)
+-    >> Lwt_io.flush outchan
++    IO.write outchan (build_req_string headers meth address path body)
++    >> IO.flush outchan
+ 
+ let read inchan =
+   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
+   lwt headers = Http_parser.parse_headers inchan in
+   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
+-  lwt resp = Lwt_io.read inchan in
++  lwt resp = IO.read inchan in
+     match code_of_status status with
+       | 200 -> return (headers, resp)
+       | code -> fail (Http_error (code, headers, resp))
+ 
+ let connect (address, port, _) iofn =
+   lwt sockaddr = Http_misc.build_sockaddr (address, port) in
+-  Lwt_io.with_connection ~buffer_size:tcp_bufsiz sockaddr iofn
++  IO.with_connection ~buffer_size:tcp_bufsiz sockaddr iofn
+     
+ let call headers kind body url =
+   let meth = match kind with
+diff --git a/http_user_agent.mli b/http_user_agent.mli
+index fc2dc99..e2ef4db 100644
+--- a/http_user_agent.mli
++++ b/http_user_agent.mli
+@@ -25,8 +25,6 @@
+     this module is for performances and incremental elaboration of response's
+     bodies *)
+ 
+-open Http_types
+-
+ type headers = (string * string) list
+ 
+ type tcp_error_source = Connect | Read | Write

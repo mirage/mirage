@@ -25,19 +25,10 @@ type t = {
   tx_cond: unit Lwt_condition.t;
 }
 
-type 'a resp =
-  | OK of 'a      (* Result *)
-  | Err of string (* Hard error *)
-  | Retry         (* Would block *)
-
 exception Not_implemented of string
 exception Listen_error of string
 exception Accept_error of string
 exception Connect_error of string
-
-type sockaddr = 
-  | TCP of ipv4_addr * int
-  | UDP of ipv4_addr * int
 
 external unix_close: int -> unit = "caml_socket_close"
 external unix_tcp_connect: int32 -> int -> int resp = "caml_tcp_connect"

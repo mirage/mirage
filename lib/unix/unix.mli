@@ -62,6 +62,8 @@ end
 
 module Channel : Mlnet.Channel
 
+module IO : Mlnet.Io with type t = Channel.t
+
 module Main : sig
   val run : unit Lwt.t -> unit
 end

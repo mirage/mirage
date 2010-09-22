@@ -106,3 +106,12 @@ let ipv4_addr_to_string x =
     let chri i = Char.code x.[i] in
     Printf.sprintf "%d.%d.%d.%d" 
       (chri 0) (chri 1) (chri 2) (chri 3)
+
+type 'a resp =
+  | OK of 'a      (* Result *)
+  | Err of string (* Hard error *)
+  | Retry         (* Would block *)
+
+type sockaddr = 
+  | TCP of ipv4_addr * int
+  | UDP of ipv4_addr * int

@@ -62,6 +62,7 @@ lib/mludp/mludp.ml
 lib/mldhcp/mldhcp.ml
 lib/mldns/mldns.ml
 lib/mletherip/mletherip.ml
+lib/cohttp/cohttp.ml
 lib/obj/
 /screenlog.*
 tools/ocamldsort/Makefile

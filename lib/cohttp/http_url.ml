@@ -15,22 +15,24 @@
  *)
 
 (* From http://www.blooberry.com/indexdot/html/topics/urlencoding.htm#how *)
-let url_encoding = Pcre.regexp (
-  "([\\x00-\\x1F\\x7F" ^ (* ASCII control chars *)
-  "\\x80-\\xFF" ^ (* non-ASCII chars *)
-  "\\x24\\x26\\x2B\\x2C\\x2F\\x3A\\x3B\\x3D\\x3F\\x40" ^ (* Reserved chars *)
-  "\\x20\\x22\\x3C\\x3E\\x23\\x25\\x7B\\x7D\\x7C\\x5C\\x5E\\x7E\\x5B\\x5D\\x60])" (* unsafe chars *)
+let url_encoding = Str.regexp (
+  "[\x00-\x1F\x7F" ^ (* ASCII control chars *)
+  "\x80-\xFF" ^ (* non-ASCII chars *)
+  "\x24\x26\x2B\x2C\x2F\x3A\x3B\x3D\x3F\x40" ^ (* Reserved chars *)
+  "\x20\x22\x3C\x3E\x23\x25\x7B\x7D\x7C\x5C\x5E\x7E\x5B\\x5D\x60]" (* unsafe chars *)
 )
 
-let encoding c =
-	Printf.sprintf "%%%X" (Char.code c.[0])
-	
+let encoding str =
+  let c = Str.matched_string str in
+  Printf.sprintf "%%%X" (Char.code c.[0])
+  
 let encode str =
-	Pcre.substitute ~rex:url_encoding ~subst:encoding str
+  Str.global_substitute url_encoding encoding str
 
-let url_decoding = Pcre.regexp "(%[0-9][0-9])"
+let url_decoding = Str.regexp "%[0-9][0-9]"
 
 let decoding str =
+  let str = Str.matched_string str in
   let s = String.create 4 in
   s.[0] <- '0';
   s.[1] <- 'x';
@@ -39,65 +41,89 @@ let decoding str =
   String.make 1 (Char.chr (int_of_string s))
  
 let decode str =
-  Pcre.substitute ~rex:url_decoding ~subst:decoding str
+  Str.global_substitute url_decoding decoding str
 
-(*let _ =
+(*
+let _ =
   let i = "foo$bar$"in
   let e = encode i in
   let d = decode e in
-	Printf.printf "init: %s\nencode : %s\ndecode: %s" i e d
+  Printf.printf "init: %s\nencode : %s\ndecode: %s\n" i e d
 *)
 
 type t = {
-	scheme : string option;
-	userinfo: string option;
-	host : string;
-	port: int option;
-	path : string option;
-	query : string option;
-	fragment : string option;
+  scheme : string option;
+  userinfo: string option;
+  host : string;
+  port: int option;
+  path : string option;
+  query : string option;
+  fragment : string option;
 }
 
 let path t = t.path
 let query t = t.query
 
 (* From http://www.filbar.org/weblog/parsing_incomplete_or_malformed_urls_with_regular_expressions *)
-let url_regexp = Pcre.regexp (
-  "^((?<scheme>[A-Za-z0-9_+.]{1,8}):)?(//)?" ^
-  "((?<userinfo>[!-~]+)@)?" ^
-  "(?<host>[^/?#:]*)(:(?<port>[0-9]*))?" ^
-  "(/(?<path>[^?#]*))?" ^
-  "(\\?(?<query>[^#]*))?" ^
-  "(#(?<fragment>.*))?" )
+let url_regexp = Str.regexp (
+  "\\(\\([A-Za-z0-9_+.]+\\):\\)?\\(//\\)?" ^ (* scheme *)
+  "\\(\\([!-~]+\\)@\\)?" ^                   (* userinfo *)
+  "\\([^/?#:]*\\)" ^                         (* host *)
+  "\\(:\\([0-9]*\\)\\)?" ^                   (* port *)
+  "\\(/\\([^?#]*\\)\\)?" ^                   (* path *)
+  "\\(\\?\\([^#]*\\)\\)?" ^                  (* query *)
+  "\\(#\\(.*\\)\\)?"                         (* fragment *)
+)
 
+type url_fragments = Scheme | Userinfo | Host | Port | Path | Query | Fragment
 
-(*let _ =
-	let get n s =
-		try Printf.printf "%s: %s\n%!" n (Pcre.get_named_substring regexp n s)
-		with Not_found -> Printf.printf "%s: <none>\n%!" n in
-	let url = (Pcre.exec ~rex:regexp "http://foo.com/vi/vu.html") in
-	get "scheme" url;
-	get "host" url;
-	get "fragment" url
+let names = [
+  Scheme,   2;
+  Userinfo, 5;
+  Host,     6;
+  Port,     8;
+  Path,     10;
+  Query,    12;
+  Fragment, 14;
+]
+
+let get n str =
+  try Some (Str.matched_group (List.assoc n names) str)
+  with Not_found -> None
+
+(*
+let _ =
+  let url = "foo://john.doo@example.com:8042/over/there?name=ferret#nose" in
+  let get n s =
+    match get n url with
+    | Some x -> Printf.printf "%s: %s\n%!" n x
+    | None   -> Printf.printf "%s: <none>\n%!" n in
+  if Str.string_match url_regexp url 0 then begin
+    get "scheme" url;
+    get "userinfo" url;
+    get "host" url;
+    get "port" url;
+    get "path" url;
+    get "query" url;
+    get "fragment" url
+  end else
+    Printf.printf "URL don't match !!!\n"
 *)
 
 let of_string str =
-  try
-	  let url = Pcre.exec ~rex:url_regexp str in
-	  let get n =
-		  try Some (Pcre.get_named_substring url_regexp n url)
-		  with Not_found -> None in
-	  {
-		  scheme = get "scheme";
-		  userinfo = get "userinfo";
-		  host = (match get "host" with None -> failwith "of_string" | Some x -> x);
-		  port = (match get "port" with Some p -> Some (int_of_string p) | None -> None);
-		  path = get "path";
-		  query = get "query";
-		  fragment = get "fragment";
-	  }
-  with _ -> raise (Http_types.Malformed_URL str)
-	
+  if Str.string_match url_regexp str 0 then
+    let get n = get n str in
+    {
+      scheme = get Scheme;
+      userinfo = get Userinfo;
+      host = (match get Host with None -> failwith "of_string" | Some x -> x);
+      port = (match get Port with Some p -> Some (int_of_string p) | None -> None);
+      path = get Path;
+      query = get Query;
+      fragment = get Fragment;
+    }
+  else failwith "foo" (*raise (Http_types.Malformed_URL str)*)
+  
 open Printf
 
 let to_string url =

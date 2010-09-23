@@ -19,7 +19,6 @@
   USA
 *)
 
-module OS = Unix
 type time = [ `Day of int | `Hour of int | `Minute of int | `Second of int ] list
 type expiration = [ `Discard | `Session | `Age of time | `Until of float ]
 

@@ -1,5 +1,3 @@
-(*pp camlp4o -I `ocamlfind query lwt.syntax` pa_lwt.cmo *)
-
 (*
   OCaml HTTP - do it yourself (fully OCaml) HTTP daemon
 
@@ -21,8 +19,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   USA
 *)
-
-module OS = Unix
 
 open Printf
 open Lwt

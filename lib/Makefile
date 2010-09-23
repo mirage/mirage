@@ -1,6 +1,6 @@
 STDLIBS=stdlib stdlib.js lwt mpl mlnet
 PLATFORM=xen unix browser 
-LIBS=mletherip mludp mltcp mldhcp mldns io cohttp
+LIBS=mletherip mludp mltcp mldhcp mldns cohttp
 
 ALL=$(STDLIBS) $(PLATFORM) $(LIBS)
 

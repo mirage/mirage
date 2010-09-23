@@ -2,7 +2,7 @@ ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
 DEPENDS=stdlib lwt mpl
-SOURCES=types.mli types.ml time.mli ethernet.mli ethif.mli arp.mli ipv4.mli udp.mli tcp.mli channel.mli io.mli
+SOURCES=types.mli types.ml time.mli ethernet.mli ethif.mli arp.mli ipv4.mli udp.mli tcp.mli flow.mli
 
 TARGET=mlnet
 TARGET_MLI=

@@ -1,9 +1,9 @@
 ROOTDIR=../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=lwt mpl
-TARGET=xen
-TARGET_MLI=xen.mli
+DEPENDS=lwt mpl mlnet
+TARGET=oS
+TARGET_MLI=oS.mli
 SOURCES=hw_page.mli hw_page.ml gnttab.mli gnttab.ml ring.ml evtchn.ml activations.ml \
 	xb_op.ml xb_partial.ml xb_state.ml \
 	xs_packet.ml xb.mli xb.ml queueop.ml xsraw.mli xsraw.ml \

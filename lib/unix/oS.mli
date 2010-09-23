@@ -47,23 +47,10 @@ module Time : sig
   val sleep : float -> unit Lwt.t
 end
 
-module Ethif : sig
-    type t
-    type id
-    val enumerate : unit -> id list Lwt.t
-    val create : id -> t Lwt.t
-    val destroy : t -> unit Lwt.t
-    val input : t -> (Mpl.Ethernet.o -> unit Lwt.t) -> unit Lwt.t list
-    val has_input: t -> bool
-    val wait : t -> unit Lwt.t
-    val output : t -> Mpl.Ethernet.x -> unit Lwt.t
-    val mac : t -> string
-end
-
-module Channel : Mlnet.Channel
-
-module IO : Mlnet.Io with type t = Channel.t
-
 module Main : sig
   val run : unit Lwt.t -> unit
 end
+
+module Ethif : Mlnet.Ethif
+module Flow : Mlnet.Flow
+

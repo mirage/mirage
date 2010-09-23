@@ -135,11 +135,11 @@ let _ =
   (* The list of standard libraries for a given OS *)
   let stdlibs = match !os with
     |Browser ->
-      [ "stdlib"; "lwtlib"; "browser" ]
+      [ "stdlib"; "lwtlib"; "os" ]
     |Xen ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "xen" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "unix"; "cohttp" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os"; ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on

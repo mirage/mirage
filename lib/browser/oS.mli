@@ -34,6 +34,10 @@ module Time : sig
   val sleep : float -> unit Lwt.t
 end
 
+module Main : sig
+  val run : unit Lwt.t -> unit
+end
+
 (* XXX: still need to find the right interface *)
 module Websocket : sig
 	exception Not_supported
@@ -41,9 +45,5 @@ module Websocket : sig
   val create : string -> int -> t Lwt.t
   val write : t -> string -> unit
   val read : t -> string Lwt.t 
-end
-
-module Main : sig
-  val run : unit Lwt.t -> unit
 end
 

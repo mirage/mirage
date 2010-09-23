@@ -52,10 +52,9 @@ lib/mldns/dnsparser.mli
 lib/mldns/dnsparser.ml
 lib/mldns/dns.ml
 lib/mpl/mpl.ml
-lib/unix/unix.ml
-lib/xen/xen.ml
-lib/io/io.ml
-lib/browser/browser.ml
+lib/unix/oS.ml
+lib/browser/oS.ml
+lib/xen/oS.ml
 lib/mlnet/mlnet.ml
 lib/mltcp/mltcp.ml
 lib/mludp/mludp.ml

@@ -23,47 +23,27 @@ module Console : sig
   val sync_write : t -> string -> int -> int -> unit Lwt.t
   val write : t -> string -> int -> int -> unit
   val log : string -> unit
+  val printf : ('a, unit, string, unit) format4 -> 'a
 end
 
 module Clock : sig
   val time : unit -> float
-
-  type tm = {
-    tm_sec : int;
-    tm_min : int;
-    tm_hour : int;
-    tm_mday : int;
-    tm_mon : int;
-    tm_year : int;
-    tm_wday : int;
-    tm_yday : int;
-    tm_isdst : bool
-  }
-
-  val gmtime : float -> tm
 end
 
 module Time : sig
   val sleep : float -> unit Lwt.t
 end
 
-module Ethif : sig
-    type t
-    type id
-    val enumerate : unit -> id list Lwt.t
-    val create : id -> t Lwt.t
-    val destroy : t -> unit Lwt.t
-    val input : t -> (Mpl.Ethernet.o -> unit Lwt.t) -> unit Lwt.t list
-    val has_input: t -> bool
-    val wait : t -> unit Lwt.t
-    val output : t -> Mpl.Ethernet.x -> unit Lwt.t
-    val mac : t -> string
-end
-
-module Channel : Mlnet.Channel
-
-module IO : Mlnet.Io with type t = Channel.t
-
 module Main : sig
   val run : unit Lwt.t -> unit
 end
+
+(* XXX: still need to find the right interface *)
+module Websocket : sig
+	exception Not_supported
+  type t
+  val create : string -> int -> t Lwt.t
+  val write : t -> string -> unit
+  val read : t -> string Lwt.t 
+end
+

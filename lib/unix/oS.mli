@@ -52,5 +52,5 @@ module Main : sig
 end
 
 module Ethif : Mlnet.Ethif
-module Channel : Mlnet.Channel
+module Flow : Mlnet.Flow
 

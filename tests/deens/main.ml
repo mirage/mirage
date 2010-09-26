@@ -66,10 +66,9 @@ openmirage.org. 604800 IN SOA  (
         1800 ; minimum
 )
         IN  NS     ns1.openmirage.org.
-        IN  NS     deensns.recoil.org.
-ns1     IN  A      194.70.3.132
-dark    IN  A      89.16.177.154
-www     CNAME      dark.recoil.org.
+ns1     IN  A      184.72.211.126
+www     IN         67.202.8.182
+
 www     IN  TXT    \"I wish I were a llama in Peru!\"
 "
  

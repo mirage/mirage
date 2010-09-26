@@ -130,6 +130,15 @@ let rec write t buf off len =
   | OK r -> return r 
   | Err e -> failwith e
 
+let really_write t buf off len =
+  let rec aux n =
+    lwt k = write t buf (off+n) (len-n) in
+    if n+k = len then
+      return ()
+    else
+      aux (n+k) in
+  aux 0
+
 let write_all oc buf =
   let n = String.length buf in
   let rec aux k =

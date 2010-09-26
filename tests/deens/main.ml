@@ -66,8 +66,8 @@ openmirage.org. 604800 IN SOA  (
         1800 ; minimum
 )
         IN  NS     ns1.openmirage.org.
-ns1     IN  A      184.72.211.126
-www     IN         67.202.8.182
+ns1     IN  A      184.72.217.237
+www     IN  A      184.73.180.47
 
 www     IN  TXT    \"I wish I were a llama in Peru!\"
 "

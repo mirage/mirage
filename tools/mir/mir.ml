@@ -139,7 +139,7 @@ let _ =
     |Xen ->
       [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os"; ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os"; "cohttp" ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on

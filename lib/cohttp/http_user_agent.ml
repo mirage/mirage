@@ -66,21 +66,20 @@ let build_req_string headers meth address path body =
 
 let request outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
-    IO.write outchan (build_req_string headers meth address path body)
-    >> IO.flush outchan
+    OS.Flow.write_all outchan (build_req_string headers meth address path body)
 
 let read inchan =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
-  lwt resp = IO.read inchan in
+  lwt resp = OS.Flow.read_all inchan in
     match code_of_status status with
       | 200 -> return (headers, resp)
       | code -> fail (Http_error (code, headers, resp))
 
 let connect (address, port, _) iofn =
   lwt sockaddr = Http_misc.build_sockaddr (address, port) in
-  IO.with_connection ~buffer_size:tcp_bufsiz sockaddr iofn
+  OS.Flow.with_connection sockaddr iofn
     
 let call headers kind body url =
   let meth = match kind with
@@ -89,10 +88,10 @@ let call headers kind body url =
     | `POST -> "POST" in
   let endp = parse_url url in
     try_lwt connect endp
-      (fun (i, o) ->
-	 (try_lwt request o headers meth body endp
+      (fun t ->
+	 (try_lwt request t headers meth body endp
 	  with exn -> fail (Tcp_error (Write, exn))
-	 ) >> (try_lwt read i
+	 ) >> (try_lwt read t
 	       with
 		 | (Http_error _) as e -> fail e
 		 | exn -> fail (Tcp_error (Read, exn))

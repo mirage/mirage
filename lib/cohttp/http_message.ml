@@ -35,7 +35,7 @@ let rec hashtbl_remove_all tbl name =
 type contents =
     [ `Buffer of Buffer.t
     | `String of string
-    | `Inchan of int64 * IO.input_channel * unit Lwt.u
+    | `Inchan of int64 * OS.Flow.t * unit Lwt.u
     ]
 
 type message = {
@@ -73,7 +73,7 @@ let string_of_body cl =
 	               | `Inchan (il, ic, finished) ->
 			   lwt pos = pos in
                            let il = Int64.to_int il in
-                             (IO.read_into_exactly ic buf pos il) >>
+                             (OS.Flow.read ic buf pos il) >>
 			       (Lwt.wakeup finished (); return (pos + il))
                     ) (return 0) cl) >>= (fun _ -> return buf)
 let set_body msg contents = msg.m_contents <- [contents]
@@ -134,37 +134,38 @@ let init ~body ~headers ~version ~clisockaddr ~srvsockaddr =
     add_headers msg headers;
     msg
       
-let relay ic oc write_from_exactly m =
+let relay ic oc write m =
   let bufsize = 4096 in (* blksz *)
   let buffer = String.create bufsize in
   let rec aux m =
-    lwt len = m >> (IO.read_into ic buffer 0 bufsize) in
-      if len = 0 then Lwt.return ()
-      else aux (write_from_exactly oc buffer 0 len)
+    m >>= function _ ->
+      OS.Flow.read ic buffer 0 bufsize >>= function
+      | Mlnet.Types.OK 0   -> Lwt.return ()
+      | Mlnet.Types.OK len -> aux (write oc buffer 0 len)
+      | _                  -> failwith "relay"
   in aux m
 
-let serialize msg outchan write write_from_exactly ~fstLineToString =
+let serialize msg outchan write write_all ~fstLineToString =
   let body = body msg in
-  let bodylen = body_size body
-  in (write outchan (fstLineToString ^ crlf)) >>
-       (List.fold_left
-	  (fun m (h,v) ->
-	     m >> write outchan (h ^ ": " ^ v ^ crlf))
-	  (Lwt.return ())
-	  (headers msg)) >>
-       (if bodylen != Int64.zero then
-	  write outchan (sprintf "Content-Length: %Ld\r\n\r\n" bodylen)
-	else return ()) >>
-       (List.fold_left
-	  (fun m c -> match c with
-	     | `String s -> m >> (write outchan s)
-	     | `Buffer b -> m >> (write outchan (Buffer.contents b))
-	     | `Inchan (_, ic, finished) -> relay ic outchan write_from_exactly m >> (Lwt.wakeup finished (); Lwt.return ()))
-	  (Lwt.return ())
-	  body)
+  let bodylen = body_size body in
+  write_all outchan (fstLineToString ^ crlf) >>
+  List.fold_left
+    (fun m (h,v) -> m >> write_all outchan (h ^ ": " ^ v ^ crlf))
+	(Lwt.return ())
+	(headers msg) >>
+  if bodylen != Int64.zero then
+	write_all outchan (sprintf "Content-Length: %Ld\r\n\r\n" bodylen)
+  else return () >>
+  List.fold_left
+    (fun m c -> match c with
+       | `String s -> m >> (write_all outchan s)
+	   | `Buffer b -> m >> (write_all outchan (Buffer.contents b))
+	   | `Inchan (_, ic, finished) -> relay ic outchan write m >> (Lwt.wakeup finished (); Lwt.return ()))
+	(Lwt.return ())
+	body
 
 let serialize_to_output_channel msg outchan ~fstLineToString =
-  serialize msg outchan IO.write IO.write_from_exactly ~fstLineToString
+  serialize msg outchan OS.Flow.write OS.Flow.write_all ~fstLineToString
 
 let serialize_to_stream msg ~fstLineToString =
   let stream, push = Lwt_stream.create () in

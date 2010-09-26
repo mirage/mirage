@@ -57,7 +57,7 @@ let debug_dump_request path params =
       (String.concat ", " (List.map (fun (n, v) -> n ^ "=" ^ v) params)))
 
 let parse_request_fst_line ic =
-  lwt request_line = IO.read_line ic in
+  lwt request_line = OS.Flow.read_line ic in
   debug_print (sprintf "HTTP request line (not yet parsed): %s" request_line);
   try_lwt begin
     match Str.split pieces_sep request_line with
@@ -69,7 +69,7 @@ let parse_request_fst_line ic =
   end with | Malformed_URL url -> fail (Malformed_request_URI url)
 
 let parse_response_fst_line ic =
-  lwt response_line = IO.read_line ic in
+  lwt response_line = OS.Flow.read_line ic in
   debug_print (sprintf "HTTP response line (not yet parsed): %s" response_line);
   try_lwt
     (match Str.split pieces_sep response_line with
@@ -92,7 +92,7 @@ let parse_query_get_params uri =
 let parse_headers ic =
   (* consume also trailing "^\r\n$" line *)
   let rec parse_headers' headers =
-    IO.read_line ic >>= function
+    OS.Flow.read_line ic >>= function
     | "" -> return (List.rev headers)
     | line -> begin
         match Str.(bounded_split (regexp_string ":") line 2) with

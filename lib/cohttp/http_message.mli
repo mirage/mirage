@@ -3,7 +3,7 @@ open Mlnet.Types
 type contents =
     [ `Buffer of Buffer.t
     | `String of string
-    | `Inchan of int64 * Unix.IO.input_channel * unit Lwt.u
+    | `Inchan of int64 * OS.Flow.t * unit Lwt.u
     ]
 type message
 val body : message -> contents list
@@ -34,6 +34,6 @@ val serialize :
   'a -> ('a -> string -> unit Lwt.t) -> ('a -> string -> int -> int -> unit Lwt.t) ->
   fstLineToString:string -> unit Lwt.t
 val serialize_to_output_channel :
-  message -> Unix.IO.output_channel -> fstLineToString:string -> unit Lwt.t
+  message -> OS.Flow.t -> fstLineToString:string -> unit Lwt.t
 val serialize_to_stream :
   message -> fstLineToString:string -> string Lwt_stream.t

@@ -3,7 +3,7 @@ open Mlnet.Types
 type request
 val init_request :
   clisockaddr:sockaddr ->
-  srvsockaddr:sockaddr -> unit Lwt.u -> Unix.IO.input_channel -> request Lwt.t
+  srvsockaddr:sockaddr -> unit Lwt.u -> OS.Flow.t -> request Lwt.t
 val meth : request -> Http_types.meth
 val uri : request -> string
 val path : request -> string

@@ -1,10 +1,8 @@
 ROOTDIR=../
 include $(ROOTDIR)/mk/base.mk
 
-OS=$(shell uname -s)
-
 TARGS=unix
-ifeq ($(OS).$(ARCH),Linux.x86_64)
+ifeq ($(OS).$(ARCH),linux.x86_64)
   TARGS+=xen
 endif
 

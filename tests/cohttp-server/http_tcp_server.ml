@@ -21,8 +21,6 @@
   USA
 *)
 
-module OS = Unix
-
 open Cohttp
 open Http_common
 open Http_types
@@ -32,9 +30,10 @@ let backlog = 15
 
 (* XXX: do something with the backlog *)
 let simple ~sockaddr ~timeout callback =
-  OS.Channel.listen (fun c ->
+  OS.Flow.listen (fun clisockaddr flow ->
     debug_print "accepted connection";
+    let srvsockaddr = sockaddr in                     
     match timeout with
-    | None    -> callback c
-    | Some tm -> pick [ callback c; OS.Time.sleep tm ]
+    | None    -> callback ~clisockaddr ~srvsockaddr flow
+    | Some tm -> pick [ callback ~clisockaddr ~srvsockaddr flow; OS.Time.sleep tm ]
   ) sockaddr

@@ -12,7 +12,7 @@ type daemon_spec = {
   port : int;
   root_dir : string option;
   exn_handler : exn -> unit Lwt.t;
-  timeout : int option;
+  timeout : float option;
   auto_close : bool;
 }
 val respond :
@@ -52,7 +52,7 @@ val respond_with :
   Cohttp.Http_response.response -> string Lwt_stream.t Lwt.t
 val daemon_callback :
   daemon_spec ->
-  clisockaddr:sockaddr -> srvsockaddr:sockaddr -> Unix.IO.input_channel -> Unix.IO.output_channel -> unit Lwt.t
+  clisockaddr:sockaddr -> srvsockaddr:sockaddr -> OS.Flow.t -> unit Lwt.t
 val main : daemon_spec -> 'a Lwt.t
 module Trivial :
   sig
@@ -60,6 +60,6 @@ module Trivial :
       conn_id -> Cohttp.Http_request.request -> string Lwt_stream.t Lwt.t
     val callback :
       conn_id -> Cohttp.Http_request.request -> string Lwt_stream.t Lwt.t
-    val main : daemon_spec -> 'a Lwt.t
+    val main : daemon_spec -> unit Lwt.t
   end
 val default_spec : daemon_spec

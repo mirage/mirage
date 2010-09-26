@@ -75,6 +75,12 @@ let connect = function
   end
   | UDP _ -> fail (Not_implemented "UDP")
 
+(* XXX need to close the connection ? *)
+let with_connection sockaddr fn =
+  connect sockaddr >>= function
+  | OK t -> fn t
+  | x    -> failwith "open_connection"
+
 let listen fn = function
   | TCP (addr, port) -> begin
     match unix_tcp_listen (ipv4_addr_to_uint32 addr) port with
@@ -123,5 +129,65 @@ let rec write t buf off len =
   | OK _ | Err _ as r ->
     (* Return anything else normally *)
     return r
+
+let write_all oc buf =
+  let n = String.length buf in
+  let rec aux k =
+    if k = n then
+      return ()
+    else begin
+      write oc buf k (n-k) >>= function
+      | OK i -> aux (k+i)
+      | exn  -> failwith "write_all"
+    end in
+  aux 0
+
+(* XXX: very slow *)
+let read_char ic =
+  read ic (String.create 1) 0 1 >>= function
+  | OK i  -> return (char_of_int i)
+  | Err e -> failwith e
+  | _     -> failwith "read_char"
+
+let read_line ic =
+  let buf = Buffer.create 128 in
+  let rec loop cr_read =
+    try_bind (fun _ -> read_char ic)
+      (function
+         | '\n' ->
+            return(Buffer.contents buf)
+         | '\r' ->
+            if cr_read then Buffer.add_char buf '\r';
+            loop true
+         | ch ->
+            if cr_read then Buffer.add_char buf '\r';
+            Buffer.add_char buf ch;
+            loop false)
+      (function
+         | End_of_file ->
+            if cr_read then Buffer.add_char buf '\r';
+             return(Buffer.contents buf)
+         | exn ->
+           fail exn)
+  in
+  read_char ic >>= function
+    | '\r' -> loop true
+    | '\n' -> return ""
+    | ch -> Buffer.add_char buf ch; loop false
+
+let buffer_size = 4096
+
+let rec read_all ic =
+  let buf = Buffer.create buffer_size in
+  let str = String.create buffer_size in
+  let rec aux () =
+    read ic str 0 buffer_size >>= function
+    | OK 0 -> return (Buffer.contents buf)
+    | OK n ->
+      Buffer.add_substring buf str 0 n;
+      aux ()
+    | _ -> failwith "read_all" in
+  aux ()
+
 
 

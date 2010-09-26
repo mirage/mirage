@@ -274,3 +274,12 @@ let default_spec = {
   exn_handler = default_exn_handler;
   timeout = Some 300.;
 }
+
+let _ =
+  let spec = default_spec in
+  printf "hello\n%!";
+  OS.Main.run ( 
+    Log.logmod "Server" "listening to HTTP on port %d" spec.port;
+    main spec
+  )
+

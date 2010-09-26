@@ -17,18 +17,19 @@
 open Lwt 
 open Printf
 
-module OS = Xen
-module Eth = Mlnet.Ethif.Ethernet(OS.Ethif)
-module Arp = Mlnet.Arp.ARP(Eth)
-module IPv4 = Mlnet.Ipv4.IPv4(Eth)(Arp)
-module ICMP = Mlnet.Icmp.ICMP(IPv4)
-module UDP = Mlnet.Udp.UDP(IPv4)
-module DHCP = Mlnet.Dhcp.Client(IPv4)(UDP)
+module Eth = Mletherip.Ethif.T(OS.Ethif)
+module Arp = Mletherip.Arp.T(Eth)
+module IPv4 = Mletherip.Ipv4.T(Eth)(Arp)
+module ICMP = Mletherip.Icmp.T(IPv4)
+module UDP = Mludp.Udp.Socket(IPv4)
+module TCP = Mltcp.Tcp.Server(IPv4)
+module DHCP = Mldhcp.Client.T(IPv4)(UDP)(OS.Time)
+
 
 module M = Mpl.Mpl_stdlib
-module DL = Dns.Dnsloader
-module DQ = Dns.Dnsquery
-module DR = Dns.Dnsrr
+module DL = Mldns.Dnsloader
+module DQ = Mldns.Dnsquery
+module DR = Mldns.Dnsrr
 
 let dnstrie = DL.state.DL.db.DL.trie
 
@@ -40,7 +41,7 @@ let log (ipv4:Mpl.Ipv4.o) (dnsq:Mpl.Dns.Questions.o) =
         (String.concat "." dnsq#qname)
         (Mpl.Dns.Questions.qtype_to_string dnsq#qtype)
         (Mpl.Dns.Questions.qclass_to_string dnsq#qclass)
-        (Mlnet.Mlnet_types.(ipv4_addr_to_string (ipv4_addr_of_uint32 ipv4#src)))
+        (Mlnet.Types.(ipv4_addr_to_string (ipv4_addr_of_uint32 ipv4#src)))
 
 let get_answer (qname,qtype) id =
     let qname = List.map String.lowercase qname in  
@@ -73,7 +74,7 @@ www     IN  TXT    \"I wish I were a llama in Peru!\"
 "
  
 let init_dns t =
-    Dns.Dnsserver.load_zone [] zonebuf;
+    Mldns.Dnsserver.load_zone [] zonebuf;
     printf "Loaded zone\n%!"; 
     (fun ip udp ->
       let env = udp#data_env in
@@ -85,7 +86,7 @@ let init_dns t =
       let dnsfn env = 
         Mpl.Mpl_stdlib.Mpl_dns_label.init_marshal env;
         ignore(r env) in
-      let dest_ip = Mlnet.Mlnet_types.ipv4_addr_of_uint32 ip#src in
+      let dest_ip = Mlnet.Types.ipv4_addr_of_uint32 ip#src in
       let udp = Mpl.Udp.t ~source_port:53 ~dest_port:udp#source_port
         ~checksum:0 ~data:(`Sub dnsfn) in
       UDP.output t ~dest_ip udp
@@ -96,7 +97,7 @@ let main () =
     let vif_t = List.map (fun id ->
        lwt (ip,thread) = IPv4.create id in
        let icmp = ICMP.create ip in
-       let udp = UDP.create ip in
+       let udp,_ = UDP.create ip in
        lwt () = OS.Time.sleep 5. in
        lwt dhcp = DHCP.create ip udp in
        UDP.listen udp 53 (init_dns udp);

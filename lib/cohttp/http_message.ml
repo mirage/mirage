@@ -140,12 +140,11 @@ let relay ic oc write m =
   let rec aux m =
     m >>= function _ ->
       OS.Flow.read ic buffer 0 bufsize >>= function
-      | Mlnet.Types.OK 0   -> Lwt.return ()
-      | Mlnet.Types.OK len -> aux (write oc buffer 0 len)
-      | _                  -> failwith "relay"
+      | 0   -> Lwt.return ()
+      | len -> aux (write oc buffer 0 len)
   in aux m
 
-let serialize msg outchan write write_all ~fstLineToString =
+let serialize msg outchan write_all write ~fstLineToString =
   let body = body msg in
   let bodylen = body_size body in
   write_all outchan (fstLineToString ^ crlf) >>
@@ -165,7 +164,7 @@ let serialize msg outchan write write_all ~fstLineToString =
 	body
 
 let serialize_to_output_channel msg outchan ~fstLineToString =
-  serialize msg outchan OS.Flow.write OS.Flow.write_all ~fstLineToString
+  serialize msg outchan OS.Flow.write_all OS.Flow.really_write ~fstLineToString
 
 let serialize_to_stream msg ~fstLineToString =
   let stream, push = Lwt_stream.create () in

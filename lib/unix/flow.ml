@@ -66,20 +66,19 @@ let connect = function
       let rec loop () =
         t_wait_tx t >>
         match unix_tcp_connect_result t.fd with
-        | OK () -> return (OK t)
+        | OK () -> return t
         | Err s -> fail (Connect_error s)
         | Retry -> loop () in
       loop ()
-    | Err s -> return (Err s)
+    | Err s -> failwith s
     | Retry -> assert false (* initial connect cannot request a retry *)
   end
   | UDP _ -> fail (Not_implemented "UDP")
 
 (* XXX need to close the connection ? *)
 let with_connection sockaddr fn =
-  connect sockaddr >>= function
-  | OK t -> fn t
-  | x    -> failwith "open_connection"
+  lwt t = connect sockaddr in
+  fn t
 
 let listen fn = function
   | TCP (addr, port) -> begin
@@ -116,9 +115,11 @@ let rec read t buf off len =
     (* Would block, so register an activation and wait *)
     t_wait_rx t >>
     read t buf off len
-  | OK _ | Err _ as r -> 
-    (* Return anything else normally *)
+  | OK r ->
     return r
+  | Err e -> 
+    (* Return anything else normally *)
+    failwith e
         
 let rec write t buf off len =
   match unix_socket_write t.fd buf off len with 
@@ -126,9 +127,8 @@ let rec write t buf off len =
     (* Would block, so register an activation and wait *)
     t_wait_tx t >>
     write t buf off len
-  | OK _ | Err _ as r ->
-    (* Return anything else normally *)
-    return r
+  | OK r -> return r 
+  | Err e -> failwith e
 
 let write_all oc buf =
   let n = String.length buf in
@@ -136,18 +136,14 @@ let write_all oc buf =
     if k = n then
       return ()
     else begin
-      write oc buf k (n-k) >>= function
-      | OK i -> aux (k+i)
-      | exn  -> failwith "write_all"
+      lwt i = write oc buf k (n-k) in aux (k+i)
     end in
   aux 0
 
 (* XXX: very slow *)
 let read_char ic =
-  read ic (String.create 1) 0 1 >>= function
-  | OK i  -> return (char_of_int i)
-  | Err e -> failwith e
-  | _     -> failwith "read_char"
+  lwt i = read ic (String.create 1) 0 1 in
+  return (char_of_int i)
 
 let read_line ic =
   let buf = Buffer.create 128 in
@@ -182,11 +178,10 @@ let rec read_all ic =
   let str = String.create buffer_size in
   let rec aux () =
     read ic str 0 buffer_size >>= function
-    | OK 0 -> return (Buffer.contents buf)
-    | OK n ->
+    | 0 -> return (Buffer.contents buf)
+    | n ->
       Buffer.add_substring buf str 0 n;
-      aux ()
-    | _ -> failwith "read_all" in
+      aux () in
   aux ()
 
 

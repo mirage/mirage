@@ -137,17 +137,17 @@ let _ =
     |Browser ->
       [ "stdlib"; "lwtlib"; "os" ]
     |Xen ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "os"; ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS"; ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on
      demand as required *)
   let otherlibs = match !os with
     |Browser -> []
-    |Xen -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp"; "io" ]
-    |Unix -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp"; "io" ]
+    |Xen -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp";  ]
+    |Unix -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp"; ]
   in
 
   let libext = match !os with
@@ -203,7 +203,7 @@ let _ =
       cmd [ "make"; app_lib ];
       let output_gz = sprintf "%s/kernel/obj/mirage-os.gz" runtime in
       let target_gz = sprintf "%s/mirage-os.gz" build_dir in
-      let target_nongz = sprintf "%s/mirage-os" target_gz in
+      let target_nongz = sprintf "%s/mirage-os" build_dir in
       (* Move the output kernel to the application build directory *)
       cmd [ "mv"; output_gz; target_gz ];
       (* Make an uncompressed version available for debugging purposes *)

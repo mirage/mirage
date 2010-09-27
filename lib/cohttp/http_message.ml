@@ -152,9 +152,9 @@ let serialize msg outchan write_all write ~fstLineToString =
     (fun m (h,v) -> m >> write_all outchan (h ^ ": " ^ v ^ crlf))
 	(Lwt.return ())
 	(headers msg) >>
-  if bodylen != Int64.zero then
+  (if bodylen != Int64.zero then
 	write_all outchan (sprintf "Content-Length: %Ld\r\n\r\n" bodylen)
-  else return () >>
+  else return ()) >>
   List.fold_left
     (fun m c -> match c with
        | `String s -> m >> (write_all outchan s)

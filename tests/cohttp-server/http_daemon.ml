@@ -197,7 +197,7 @@ let daemon_callback spec =
       catch
         (fun () ->
            Lwt_stream.iter_s
-             (fun stream -> stream >>= Lwt_stream.iter_s (OS.Flow.write_all flow))
+             (fun stream -> stream >>= Lwt_stream.iter_s (fun s -> let _ = debug_print s in OS.Flow.write_all flow s))
              streams)
         (fun _ -> Lwt.return ()) in
 
@@ -246,7 +246,7 @@ let main spec =
 
 module Trivial =
   struct
-    let heading_slash str = str <> "" && str.[0] = '/'
+    let heading_slash str = str <> ""
 
     let callback _ req =
       let path = Http_request.path req in
@@ -254,7 +254,7 @@ module Trivial =
       if not (heading_slash path) then
         respond_error ~status:(`Code 400) ()
       else
-        respond_file ~fname:(Http_misc.strip_heading_slash path) ()
+        respond_file ~fname:path ()
 
    let exn_handler exn =
      debug_print "no handler given: ignoring";

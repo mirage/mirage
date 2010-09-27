@@ -18,8 +18,9 @@ let main () =
     let ip,port = match sa with TCP (x,y) -> x,y |_ -> assert false in
     Printf.printf "connection from: %s:%d\n%!" (ipv4_addr_to_string ip) port;
     OS.Time.sleep 5. >>
-    let msg = "byebye" in
-    lwt _ = Flow.write c msg 0 (String.length msg) in
+    lwt msg = Flow.read_line c in
+    let msg = "ECHO: " ^ msg in
+    lwt _ = Flow.write_all c msg in
     return ()
   ) lsa in
   pick [ listen_t; OS.Time.sleep 10. ] >>

@@ -202,20 +202,18 @@ let daemon_callback spec =
         let (finished_t, finished_u) = Lwt.wait () in
 
         let stream =
-          try_bind
-            (fun () -> Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow)
-            (fun req ->
-               debug_print "invoke_callback";
-               invoke_callback conn_id req spec)
-            (fun e ->
-               try_bind
-                 (fun () -> handle_parse_exn e)
-                 (fun s ->
-                    Lwt.wakeup finished_u (); (* read another request *)
-                    Lwt.return s)
-                 (fun e ->
-                    Lwt.wakeup_exn finished_u e;
-                    Lwt.fail e)) in
+          try_lwt
+            lwt req = Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow in
+            debug_print "invoke_callback";
+            invoke_callback conn_id req spec
+          with e ->
+            try_lwt
+              lwt s = handle_parse_exn e in
+              Lwt.wakeup finished_u (); (* read another request *)
+              Lwt.return s
+            with e ->
+              Lwt.wakeup_exn finished_u e;
+              Lwt.fail e in
         push_streams (Some stream);
 
         finished_t >>= loop (* wait for request to finish before reading another *)
@@ -258,8 +256,8 @@ module Trivial =
 
 let default_callback _ _ = let (s, _) = Lwt_stream.create () in Lwt.return s
 let default_exn_handler exn =
-  debug_print "no handler given: re-raising";
-  fail exn
+  debug_print "no handler given: ignoring";
+  return ()
 
 let default_conn_closed conn_id = ()
 
@@ -277,6 +275,7 @@ let default_spec = {
 
 let _ =
   let spec = default_spec in
+  debug := true;
   printf "hello\n%!";
   OS.Main.run ( 
     Log.logmod "Server" "listening to HTTP on port %d" spec.port;

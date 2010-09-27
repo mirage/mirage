@@ -20,8 +20,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   USA
 *)
-module OS = Unix
-
 open Printf
 
 open Cohttp
@@ -110,13 +108,14 @@ let respond_file ~fname ?droot ?(version = default_version)
     ?(mime_type = "application/octet-stream") () =
   (** ASSUMPTION: 'fname' doesn't begin with a "/"; it's relative to the current
       document root (usually the daemon's cwd) *)
+  debug_print "respond_file";
   let root = match droot with
     | Some s -> s
     | None   -> "root" in
   let path = root ^ "/" ^ fname in (* full path to the desired file *)
   let static = Printf.sprintf "<html><body><h1>Hello World</h1><p>%s</p></body></html>" path in
   let resp = Http_response.init ~body:[`String static] ~status:(`Code 200) ~version () in
-  return (respond_with resp)
+  respond_with resp
       
 (** internal: this exception is raised after a malformed request has been read
     by a serving process to signal main server (or itself if mode = `Single) to
@@ -172,6 +171,7 @@ let handle_parse_exn e =
   callbacks keep on living until the end or are they all killed immediately?
   The right semantics should obviously be the first one *)
 
+
   (** - handle HTTP authentication
    *  - handle automatic closures of client connections *)
 let invoke_callback conn_id (req:Http_request.request) spec =
@@ -189,14 +189,17 @@ let invoke_callback conn_id (req:Http_request.request) spec =
 
 let daemon_callback spec =
   let conn_id = ref 0 in
-  let daemon_callback ~clisockaddr ~srvsockaddr inchan outchan =
+  let daemon_callback ~clisockaddr ~srvsockaddr flow =
     let conn_id = incr conn_id; !conn_id in
 
     let streams, push_streams = Lwt_stream.create () in
     let write_streams =
-      Lwt_stream.iter_s
-        (fun stream -> stream >>= Lwt_stream.iter_s (OS.IO.write outchan))
-        streams in
+      catch
+        (fun () ->
+           Lwt_stream.iter_s
+             (fun stream -> stream >>= Lwt_stream.iter_s (OS.Flow.write_all flow))
+             streams)
+        (fun _ -> Lwt.return ()) in
 
     let rec loop () =
       catch (fun () -> 
@@ -205,7 +208,7 @@ let daemon_callback spec =
 
         let stream =
           try_bind
-            (fun () -> Http_request.init_request ~clisockaddr ~srvsockaddr finished_u inchan)
+            (fun () -> Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow)
             (fun req ->
                debug_print "invoke_callback";
                invoke_callback conn_id req spec)
@@ -236,43 +239,49 @@ let daemon_callback spec =
 	  spec.exn_handler exn
   in
   daemon_callback
-       
+
 let main spec =
   lwt sockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
   Http_tcp_server.simple ~sockaddr ~timeout:spec.timeout (daemon_callback spec)
 
 module Trivial =
   struct
-    let heading_slash str = str <> "" str.[0] = '/'
+    let heading_slash str = str <> "" && str.[0] = '/'
 
-    let trivial_callback _ req =
-      debug_print "trivial_callback";
+    let callback _ req =
       let path = Http_request.path req in
+      debug_print ("trivial_callback " ^ path);
       if not (heading_slash path) then
         respond_error ~status:(`Code 400) ()
       else
         respond_file ~fname:(Http_misc.strip_heading_slash path) ()
 
-    let callback = trivial_callback
+   let exn_handler exn =
+     debug_print "no handler given: ignoring";
+     return ()
 
-    let main spec = main { spec with callback = trivial_callback }
+   let conn_closed conn_id =
+     debug_print "Connection closed"
+
+   let spec = {
+     address = "0.0.0.0";
+     auth = `None;
+     auto_close = false;
+     callback = callback;
+     conn_closed = conn_closed;
+     port = 80;
+     root_dir = None;
+     exn_handler = exn_handler;
+     timeout = Some 300.;
+   }
   end
 
-let default_callback _ _ = let (s, _) = Lwt_stream.create () in Lwt.return s
-let default_exn_handler exn =
-  debug_print "no handler given: re-raising";
-  fail exn
+let _ =
+  let spec = Trivial.spec in
+  debug := true;
+  printf "hello\n%!";
+  OS.Main.run ( 
+    Log.logmod "Server" "listening to HTTP on port %d" spec.port;
+    main spec
+  )
 
-let default_conn_closed conn_id = ()
-
-let default_spec = {
-  address = "0.0.0.0";
-  auth = `None;
-  auto_close = false;
-  callback = default_callback;
-  conn_closed = default_conn_closed;
-  port = 80;
-  root_dir = None;
-  exn_handler = default_exn_handler;
-  timeout = Some 300.;
-}

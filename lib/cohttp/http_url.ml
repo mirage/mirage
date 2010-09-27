@@ -122,7 +122,7 @@ let of_string str =
       query = get Query;
       fragment = get Fragment;
     }
-  else failwith "foo" (*raise (Http_types.Malformed_URL str)*)
+  else raise (Http_types.Malformed_URL str)
   
 open Printf
 

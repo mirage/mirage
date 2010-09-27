@@ -57,6 +57,7 @@ let debug_dump_request path params =
       (String.concat ", " (List.map (fun (n, v) -> n ^ "=" ^ v) params)))
 
 let parse_request_fst_line ic =
+  debug_print "parse_request_fst_line";
   lwt request_line = OS.Flow.read_line ic in
   debug_print (sprintf "HTTP request line (not yet parsed): %s" request_line);
   try_lwt begin
@@ -74,9 +75,12 @@ let parse_response_fst_line ic =
   try_lwt
     (match Str.split pieces_sep response_line with
     | version_raw :: code_raw :: _ ->
-        return (version_of_string version_raw,             (* method *)
+        debug_print (Printf.sprintf "version_raw=%s; code_raw=%s" version_raw code_raw);
+        return (version_of_string version_raw,      (* method *)
         status_of_code (int_of_string code_raw))    (* status *)
-    | _ -> fail (Malformed_response response_line))
+    | _ ->
+		debug_print "Malformed_response";
+		fail (Malformed_response response_line))
   with 
   | Malformed_URL _ | Invalid_code _ | Failure "int_of_string" ->
      fail (Malformed_response response_line)
@@ -108,6 +112,7 @@ let parse_headers ic =
   parse_headers' []
 
 let parse_request ic =
+  debug_print "parse_request";
   lwt (meth, uri, version) = parse_request_fst_line ic in
   let path = parse_path uri in
   let query_get_params = parse_query_get_params uri in

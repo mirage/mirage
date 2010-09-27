@@ -48,8 +48,10 @@ type request = {
 }
  
 let init_request ~clisockaddr ~srvsockaddr finished ic =
+  debug_print "init_request";
   lwt (meth, uri, version) = Http_parser.parse_request_fst_line ic in
   let uri_str = Http_url.to_string uri in
+  debug_print (Printf.sprintf ">>> URL=%s" uri_str);
   let path = Http_parser.parse_path uri in
   let query_get_params = Http_parser.parse_query_get_params uri in
   lwt headers = Http_parser.parse_headers ic in

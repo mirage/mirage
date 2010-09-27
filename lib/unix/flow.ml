@@ -38,6 +38,9 @@ external unix_tcp_connect_result: int -> unit resp = "caml_tcp_connect_result"
 external unix_tcp_listen: int32 -> int -> int resp = "caml_tcp_listen"
 external unix_tcp_accept: int -> (int * int32 * int) resp = "caml_tcp_accept"
 
+let debug_print (fmt : ('a, unit, string, unit) format4) =
+  Printf.kprintf (fun str -> print_endline ("[FLOW] DEBUG: " ^ str)) fmt
+
 let t_of_fd fd = 
   let rx_cond = Lwt_condition.create () in
   let tx_cond = Lwt_condition.create () in
@@ -112,32 +115,42 @@ let listen fn = function
 let rec read t buf off len =
   match unix_socket_read t.fd buf off len with
   | Retry ->
+    debug_print "retry";
     (* Would block, so register an activation and wait *)
     t_wait_rx t >>
+    let _ = debug_print "waked-up" in
     read t buf off len
   | OK r ->
     return r
   | Err e -> 
     (* Return anything else normally *)
     failwith e
-        
+
+let rec really_read t buf off len =
+  read t buf off len >>= function
+    | 0 -> fail End_of_file
+    | n ->
+      let len = len - n in
+      if len=0 then
+        return ()
+      else
+        really_read t buf (off+n) len
+
 let rec write t buf off len =
   match unix_socket_write t.fd buf off len with 
   | Retry ->
     (* Would block, so register an activation and wait *)
+    debug_print "wainting\n";
     t_wait_tx t >>
+    let _ = debug_print "ok" in
     write t buf off len
   | OK r -> return r 
   | Err e -> failwith e
 
-let really_write t buf off len =
-  let rec aux n =
-    lwt k = write t buf (off+n) (len-n) in
-    if n+k = len then
-      return ()
-    else
-      aux (n+k) in
-  aux 0
+let rec really_write t buf off len =
+  write t buf off len >>= function
+    | 0 -> return ()
+    | n -> really_write t buf (off+n) (len-n)
 
 let write_all oc buf =
   let n = String.length buf in
@@ -151,29 +164,31 @@ let write_all oc buf =
 
 (* XXX: very slow *)
 let read_char ic =
-  lwt i = read ic (String.create 1) 0 1 in
-  return (char_of_int i)
+  let buf = String.create 1 in
+  really_read ic buf 0 1 >>
+  return buf.[0]
 
 let read_line ic =
+  debug_print "read_line";
   let buf = Buffer.create 128 in
   let rec loop cr_read =
-    try_bind (fun _ -> read_char ic)
-      (function
-         | '\n' ->
-            return(Buffer.contents buf)
-         | '\r' ->
-            if cr_read then Buffer.add_char buf '\r';
-            loop true
-         | ch ->
-            if cr_read then Buffer.add_char buf '\r';
-            Buffer.add_char buf ch;
-            loop false)
-      (function
-         | End_of_file ->
-            if cr_read then Buffer.add_char buf '\r';
-             return(Buffer.contents buf)
-         | exn ->
-           fail exn)
+    try_lwt
+      read_char ic >>= function
+      | '\n' ->
+        return(Buffer.contents buf)
+      | '\r' ->
+        if cr_read then Buffer.add_char buf '\r';
+        loop true
+      | ch ->
+        if cr_read then Buffer.add_char buf '\r';
+        Buffer.add_char buf ch;
+        loop false
+     with
+     | End_of_file ->
+       if cr_read then Buffer.add_char buf '\r';
+       return (Buffer.contents buf)
+     | exn ->
+       fail exn
   in
   read_char ic >>= function
     | '\r' -> loop true

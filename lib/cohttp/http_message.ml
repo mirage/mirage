@@ -73,7 +73,7 @@ let string_of_body cl =
 	               | `Inchan (il, ic, finished) ->
 			   lwt pos = pos in
                            let il = Int64.to_int il in
-                             (OS.Flow.read ic buf pos il) >>
+                             (OS.Flow.really_read ic buf pos il) >>
 			       (Lwt.wakeup finished (); return (pos + il))
                     ) (return 0) cl) >>= (fun _ -> return buf)
 let set_body msg contents = msg.m_contents <- [contents]

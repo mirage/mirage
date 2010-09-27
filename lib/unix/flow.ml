@@ -118,7 +118,7 @@ let rec read t buf off len =
     debug_print "retry";
     (* Would block, so register an activation and wait *)
     t_wait_rx t >>
-    debug_print "waked-up";
+    let _ = debug_print "waked-up" in
     read t buf off len
   | OK r ->
     return r
@@ -140,7 +140,9 @@ let rec write t buf off len =
   match unix_socket_write t.fd buf off len with 
   | Retry ->
     (* Would block, so register an activation and wait *)
+    debug_print "wainting\n";
     t_wait_tx t >>
+    let _ = debug_print "ok" in
     write t buf off len
   | OK r -> return r 
   | Err e -> failwith e
@@ -148,7 +150,7 @@ let rec write t buf off len =
 let rec really_write t buf off len =
   write t buf off len >>= function
     | 0 -> return ()
-    | n -> really_write t buf (off+len-n) n
+    | n -> really_write t buf (off+n) (len-n)
 
 let write_all oc buf =
   let n = String.length buf in

@@ -57,9 +57,7 @@ unix_block_domain(value v_time)
       nfds=i+1;
     }  
   } 
-  fprintf(stderr, "blocking %f\n", tm);
   ret = select(nfds, &rfds, &wfds, &efds, &tv);
-  fprintf(stderr, "woken-up %f\n", tm);
   for (i=0; i < nfds; i++) {
     if (FD_ISSET(i, &rfds)) {
       ev_callback_ml[i] |= 1;

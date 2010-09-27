@@ -115,8 +115,10 @@ let listen fn = function
 let rec read t buf off len =
   match unix_socket_read t.fd buf off len with
   | Retry ->
+    debug_print "retry";
     (* Would block, so register an activation and wait *)
     t_wait_rx t >>
+    debug_print "waked-up";
     read t buf off len
   | OK r ->
     return r
@@ -165,12 +167,13 @@ let read_char ic =
   return buf.[0]
 
 let read_line ic =
+  debug_print "read_line";
   let buf = Buffer.create 128 in
   let rec loop cr_read =
     try_lwt
       read_char ic >>= function
       | '\n' ->
-        return (Buffer.contents buf)
+        return(Buffer.contents buf)
       | '\r' ->
         if cr_read then Buffer.add_char buf '\r';
         loop true

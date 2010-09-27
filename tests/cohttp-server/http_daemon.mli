@@ -54,12 +54,7 @@ val daemon_callback :
   daemon_spec ->
   clisockaddr:sockaddr -> srvsockaddr:sockaddr -> OS.Flow.t -> unit Lwt.t
 val main : daemon_spec -> unit Lwt.t
-module Trivial :
-  sig
-    val trivial_callback :
-      conn_id -> Cohttp.Http_request.request -> string Lwt_stream.t Lwt.t
-    val callback :
-      conn_id -> Cohttp.Http_request.request -> string Lwt_stream.t Lwt.t
-    val main : daemon_spec -> unit Lwt.t
-  end
-val default_spec : daemon_spec
+
+module Trivial : sig
+  val spec : daemon_spec
+end

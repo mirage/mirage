@@ -108,6 +108,7 @@ let respond_file ~fname ?droot ?(version = default_version)
     ?(mime_type = "application/octet-stream") () =
   (** ASSUMPTION: 'fname' doesn't begin with a "/"; it's relative to the current
       document root (usually the daemon's cwd) *)
+  debug_print "respond_file";
   let root = match droot with
     | Some s -> s
     | None   -> "root" in
@@ -170,6 +171,7 @@ let handle_parse_exn e =
   callbacks keep on living until the end or are they all killed immediately?
   The right semantics should obviously be the first one *)
 
+
   (** - handle HTTP authentication
    *  - handle automatic closures of client connections *)
 let invoke_callback conn_id (req:Http_request.request) spec =
@@ -192,9 +194,12 @@ let daemon_callback spec =
 
     let streams, push_streams = Lwt_stream.create () in
     let write_streams =
-      Lwt_stream.iter_s
-        (fun stream -> stream >>= Lwt_stream.iter_s (OS.Flow.write_all flow))
-        streams in
+      catch
+        (fun () ->
+           Lwt_stream.iter_s
+             (fun stream -> stream >>= Lwt_stream.iter_s (OS.Flow.write_all flow))
+             streams)
+        (fun _ -> Lwt.return ()) in
 
     let rec loop () =
       catch (fun () -> 
@@ -202,18 +207,20 @@ let daemon_callback spec =
         let (finished_t, finished_u) = Lwt.wait () in
 
         let stream =
-          try_lwt
-            lwt req = Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow in
-            debug_print "invoke_callback";
-            invoke_callback conn_id req spec
-          with e ->
-            try_lwt
-              lwt s = handle_parse_exn e in
-              Lwt.wakeup finished_u (); (* read another request *)
-              Lwt.return s
-            with e ->
-              Lwt.wakeup_exn finished_u e;
-              Lwt.fail e in
+          try_bind
+            (fun () -> Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow)
+            (fun req ->
+               debug_print "invoke_callback";
+               invoke_callback conn_id req spec)
+            (fun e ->
+               try_bind
+                 (fun () -> handle_parse_exn e)
+                 (fun s ->
+                    Lwt.wakeup finished_u (); (* read another request *)
+                    Lwt.return s)
+                 (fun e ->
+                    Lwt.wakeup_exn finished_u e;
+                    Lwt.fail e)) in
         push_streams (Some stream);
 
         finished_t >>= loop (* wait for request to finish before reading another *)
@@ -232,7 +239,7 @@ let daemon_callback spec =
 	  spec.exn_handler exn
   in
   daemon_callback
-       
+
 let main spec =
   lwt sockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
   Http_tcp_server.simple ~sockaddr ~timeout:spec.timeout (daemon_callback spec)
@@ -241,40 +248,36 @@ module Trivial =
   struct
     let heading_slash str = str <> "" && str.[0] = '/'
 
-    let trivial_callback _ req =
-      debug_print "trivial_callback";
+    let callback _ req =
       let path = Http_request.path req in
+      debug_print ("trivial_callback " ^ path);
       if not (heading_slash path) then
         respond_error ~status:(`Code 400) ()
       else
         respond_file ~fname:(Http_misc.strip_heading_slash path) ()
 
-    let callback = trivial_callback
+   let exn_handler exn =
+     debug_print "no handler given: ignoring";
+     return ()
 
-    let main spec = main { spec with callback = trivial_callback }
+   let conn_closed conn_id =
+     debug_print "Connection closed"
+
+   let spec = {
+     address = "0.0.0.0";
+     auth = `None;
+     auto_close = false;
+     callback = callback;
+     conn_closed = conn_closed;
+     port = 80;
+     root_dir = None;
+     exn_handler = exn_handler;
+     timeout = Some 300.;
+   }
   end
 
-let default_callback _ _ = let (s, _) = Lwt_stream.create () in Lwt.return s
-let default_exn_handler exn =
-  debug_print "no handler given: ignoring";
-  return ()
-
-let default_conn_closed conn_id = ()
-
-let default_spec = {
-  address = "0.0.0.0";
-  auth = `None;
-  auto_close = false;
-  callback = default_callback;
-  conn_closed = default_conn_closed;
-  port = 80;
-  root_dir = None;
-  exn_handler = default_exn_handler;
-  timeout = Some 300.;
-}
-
 let _ =
-  let spec = default_spec in
+  let spec = Trivial.spec in
   debug := true;
   printf "hello\n%!";
   OS.Main.run ( 

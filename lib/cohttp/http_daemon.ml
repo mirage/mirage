@@ -1,5 +1,3 @@
-(*pp camlp4o -I `ocamlfind query lwt.syntax` pa_lwt.cmo *)
-
 (*
   OCaml HTTP - do it yourself (fully OCaml) HTTP daemon
 
@@ -22,7 +20,6 @@
 *)
 open Printf
 
-open Cohttp
 open Http_common
 open Http_types
 open Http_constants
@@ -39,10 +36,8 @@ type daemon_spec = {
   callback: conn_id -> Http_request.request -> string Lwt_stream.t Lwt.t;
   conn_closed : conn_id -> unit;
   port: int;
-  root_dir: string option;
   exn_handler: exn -> unit Lwt.t;
   timeout: float option;
-  auto_close: bool;
 }
 
 exception Http_daemon_failure of string
@@ -52,17 +47,10 @@ exception Http_daemon_failure of string
   Additional data can be added to the body via 'body' argument *)
 let control_body code body =
   let reason_phrase = Http_misc.reason_phrase_of_code code in
-  sprintf
-"<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">
-<HTML><HEAD>
-<TITLE>%d %s</TITLE>
-</HEAD><BODY>
-<H1>%d - %s</H1>%s
-</BODY></HTML>"
-    code reason_phrase code reason_phrase body
+  sprintf "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>%d %s</TITLE></HEAD><BODY><H1>%d - %s</H1>%s</BODY></HTML>" code reason_phrase code reason_phrase body
 
 let respond_with response =
-  Lwt.return (Http_response.serialize_to_stream response)
+  return (Http_response.serialize_to_stream response)
 
   (* Warning: keep default values in sync with Http_response.response class *)
 let respond ?(body = "") ?(headers = []) ?version ?(status = `Code 200) () =
@@ -104,31 +92,6 @@ let respond_unauthorized ?version ?(realm = server_string) () =
     respond ~headers:["WWW-Authenticate", sprintf "Basic realm=\"%s\"" realm]
       ~status:(`Code 401) ~body ()
 
-let respond_file ~fname ?droot ?(version = default_version) 
-    ?(mime_type = "application/octet-stream") () =
-  (** ASSUMPTION: 'fname' doesn't begin with a "/"; it's relative to the current
-      document root (usually the daemon's cwd) *)
-  debug_print "respond_file";
-  let root = match droot with
-    | Some s -> s
-    | None   -> "root" in
-  let path = root ^ "/" ^ fname in (* full path to the desired file *)
-  let static = Printf.sprintf "<html><body><h1>Hello World</h1><p>%s</p></body></html>" path in
-  let resp = Http_response.init ~body:[`String static] ~status:(`Code 200) ~version () in
-  respond_with resp
-      
-(** internal: this exception is raised after a malformed request has been read
-    by a serving process to signal main server (or itself if mode = `Single) to
-    skip to next request *)
-exception Again;;
-
-  (* given a Http_parser.parse_request like function, wrap it in a function that
-  do the same and additionally catch parsing exception sending HTTP error
-  messages back to client as needed. Returned function raises Again when it
-  encounter a parse error (name 'Again' is intended for future versions that
-  will support http keep alive signaling that a new request has to be parsed
-  from client) *)
-
 let handle_parse_exn e =
   let r =
     match e with
@@ -167,11 +130,6 @@ let handle_parse_exn e =
     | None ->
         fail e
 
-  (* TODO what happens when a Quit exception is raised by a callback? Do other
-  callbacks keep on living until the end or are they all killed immediately?
-  The right semantics should obviously be the first one *)
-
-
   (** - handle HTTP authentication
    *  - handle automatic closures of client connections *)
 let invoke_callback conn_id (req:Http_request.request) spec =
@@ -196,40 +154,37 @@ let daemon_callback spec =
     let write_streams =
       catch
         (fun () ->
-           Lwt_stream.iter_s
-             (fun stream -> stream >>= Lwt_stream.iter_s (fun s -> let _ = debug_print s in OS.Flow.write_all flow s))
+           Lwt_stream.iter_s (fun stream ->
+               stream >>= Lwt_stream.iter_s (OS.Flow.write_all flow))
              streams)
         (fun _ -> Lwt.return ()) in
 
     let rec loop () =
       catch (fun () -> 
-        debug_print "request";
         let (finished_t, finished_u) = Lwt.wait () in
 
         let stream =
           try_bind
             (fun () -> Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow)
             (fun req ->
-               debug_print "invoke_callback";
                invoke_callback conn_id req spec)
             (fun e ->
                try_bind
                  (fun () -> handle_parse_exn e)
                  (fun s ->
-                    Lwt.wakeup finished_u (); (* read another request *)
-                    Lwt.return s)
+                    wakeup finished_u (); (* read another request *)
+                    return s)
                  (fun e ->
-                    Lwt.wakeup_exn finished_u e;
-                    Lwt.fail e)) in
+                    wakeup_exn finished_u e;
+                    fail e)) in
         push_streams (Some stream);
 
         finished_t >>= loop (* wait for request to finish before reading another *)
-      ) ( function 
+      ) (function 
          | End_of_file -> debug_print "done with connection"; spec.conn_closed conn_id; return ()
          | Canceled -> debug_print "cancelled"; spec.conn_closed conn_id; return ()
          | e -> fail e )
     in
-    debug_print "server starting";
     try_lwt
       loop () <&> write_streams
     with
@@ -250,15 +205,8 @@ let main spec =
 
 module Trivial =
   struct
-    let heading_slash str = str <> ""
-
     let callback _ req =
-      let path = Http_request.path req in
-      debug_print ("trivial_callback " ^ path);
-      if not (heading_slash path) then
-        respond_error ~status:(`Code 400) ()
-      else
-        respond_file ~fname:path ()
+      respond_error ~status:(`Code 400) ()
 
    let exn_handler exn =
      debug_print "no handler given: ignoring";
@@ -270,21 +218,11 @@ module Trivial =
    let spec = {
      address = "0.0.0.0";
      auth = `None;
-     auto_close = false;
      callback = callback;
      conn_closed = conn_closed;
      port = 8080;
-     root_dir = None;
      exn_handler = exn_handler;
      timeout = Some 300.;
    }
   end
-
-let _ =
-  let spec = Trivial.spec in
-  debug := true;
-  OS.Main.run ( 
-    Log.logmod "Server" "listening to HTTP on port %d" spec.port;
-    main spec
-  )
 

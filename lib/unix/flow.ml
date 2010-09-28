@@ -38,9 +38,6 @@ external unix_tcp_connect_result: int -> unit resp = "caml_tcp_connect_result"
 external unix_tcp_listen: int32 -> int -> int resp = "caml_tcp_listen"
 external unix_tcp_accept: int -> (int * int32 * int) resp = "caml_tcp_accept"
 
-let debug_print (fmt : ('a, unit, string, unit) format4) =
-  Printf.kprintf (fun str -> print_endline ("[FLOW] DEBUG: " ^ str)) fmt
-
 let t_of_fd fd = 
   let rx_cond = Lwt_condition.create () in
   let tx_cond = Lwt_condition.create () in
@@ -115,10 +112,8 @@ let listen fn = function
 let rec read t buf off len =
   match unix_socket_read t.fd buf off len with
   | Retry ->
-    debug_print "retry";
     (* Would block, so register an activation and wait *)
     t_wait_rx t >>
-    let _ = debug_print "waked-up" in
     read t buf off len
   | OK r ->
     return r
@@ -140,9 +135,7 @@ let rec write t buf off len =
   match unix_socket_write t.fd buf off len with 
   | Retry ->
     (* Would block, so register an activation and wait *)
-    debug_print "wainting\n";
     t_wait_tx t >>
-    let _ = debug_print "ok" in
     write t buf off len
   | OK r -> return r 
   | Err e -> failwith e
@@ -169,7 +162,6 @@ let read_char ic =
   return buf.[0]
 
 let read_line ic =
-  debug_print "read_line";
   let buf = Buffer.create 128 in
   let rec loop cr_read =
     try_lwt

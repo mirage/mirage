@@ -60,7 +60,6 @@ caml_socket_close(value v_fd)
 {
   int fd = Int_val(v_fd);
   ev_fds[fd] = 0;
-  fprintf(stderr, "caml_socket_close %d\n", fd);
   close(fd);
   return Val_unit;
 }

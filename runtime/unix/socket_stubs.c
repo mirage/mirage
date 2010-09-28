@@ -173,7 +173,7 @@ caml_tcp_accept(value v_fd)
       Val_Err(v_ret, v_err);
     }
   } else {
-    ev_fds[r] = 1 & 2;
+    ev_fds[r] = 1 | 2;
     v_ip = caml_copy_int32(ntohl(sa.sin_addr.s_addr));
     v_ca = caml_alloc(3,0);
     Store_field(v_ca, 0, Val_int(r));

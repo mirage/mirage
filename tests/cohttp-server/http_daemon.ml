@@ -241,8 +241,12 @@ let daemon_callback spec =
   daemon_callback
 
 let main spec =
-  lwt sockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
-  Http_tcp_server.simple ~sockaddr ~timeout:spec.timeout (daemon_callback spec)
+  lwt srvsockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
+  OS.Flow.listen (fun clisockaddr flow ->
+      match spec.timeout with
+      |None -> daemon_callback spec ~clisockaddr ~srvsockaddr flow
+      |Some tm -> daemon_callback spec ~clisockaddr ~srvsockaddr flow <?> (OS.Time.sleep tm)
+  ) srvsockaddr
 
 module Trivial =
   struct
@@ -279,7 +283,6 @@ module Trivial =
 let _ =
   let spec = Trivial.spec in
   debug := true;
-  printf "hello\n%!";
   OS.Main.run ( 
     Log.logmod "Server" "listening to HTTP on port %d" spec.port;
     main spec

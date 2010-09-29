@@ -1,5 +1,3 @@
-module OS = Browser
-
 open Lwt
 
 let iter (nm,sz,m) =

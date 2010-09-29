@@ -10,14 +10,14 @@ To build it, you must first:
 Bootstrap
 ---------
 
-This builds and installs the compiler toolchain, by default into
-~/mir-inst. You can alter this by setting the PREFIX variable to
-the make target. For the default, just omit PREFIX.
+Pick where you want your bootstrap toolchain to be installed. This
+defaults to ~/mir-inst, and you can change it by setting the PREFIX
+variable to all the make targets.
+
+Before starting, add the $PREFIX/bin to head of your PATH variable
+and make sure it is active in your build shell.
 
 $ make PREFIX=<location> bootstrap
-
-At this point, add the <location>/bin to head of your PATH variable
-so that the remaining steps can find the Mirage toolchain.
 
 Tools
 -----
@@ -42,8 +42,8 @@ Build an application
 --------------------
 
 Build a Xen kernel in-tree:
-$ mir -os xen tests/tcp_echo
-output will be in tests/ping/mirage-os.gz
+$ mir -os xen tests/deens
+output will be in tests/deens/mirage-os.gz
 
 Build a UNIX binary in-tree:
 $ mir -os unix tests/tcp_echo

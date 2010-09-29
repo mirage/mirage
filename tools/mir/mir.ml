@@ -22,6 +22,7 @@ open Printf
 
 type os = Unix | Xen | Browser
 type mode = Tree | Installed
+type action = Build | Clean
 type net = Static | DHCP
 
 (* binding for realpath(2) *)
@@ -43,6 +44,7 @@ let cc = ref "gcc"
 let os = ref Unix 
 let mode = ref Tree
 let net = ref DHCP
+let action = ref Build
 let modname = ref "app_main.t"
 
 let set_key k fn f =
@@ -54,7 +56,7 @@ let set_os = set_key os
    | "xen"|"x" -> Xen
    | "unix"|"u" -> Unix
    | "browser"|"b" -> Browser
-   | f -> failwith (sprintf "Unknown -os '%s', needs to be unix|xen" f)
+   | f -> failwith (sprintf "Unknown -os '%s', needs to be unix|xen|browser" f)
   )
 
 let set_mode = set_key mode
@@ -69,6 +71,13 @@ let set_net = set_key net
    | "dhcp"|"d" -> DHCP
    | "static"|"s" -> Static
    | f -> failwith (sprintf "Unknown -net '%s', needs to be dhcp|static" f)
+  )
+
+let set_action = set_key action
+  (function
+   | "build"|"b" -> Build
+   | "clean"|"c" -> Clean
+   | f -> failwith (sprintf "Unknown -action '%s', needs to be build|clean" f)
   )
 
 let set_var k r s = ("-" ^ k), Set_string r, (sprintf "%s (default: %s)" s !r)
@@ -90,6 +99,7 @@ let _ =
       "-os", String set_os, "Set target operating system [xen|unix|browser]";
       "-mode", String set_mode, "Set where to build application [tree|installed]";
       "-net", String set_net, "How to configure network interfaces [dhcp|static]";
+      "-action", String set_action, "Action to perform [build|clean]";
       set_var "mod" modname "Application module name";
       set_var "cc" cc "Compiler to use";
       set_var "ocamldsort" ocamldsort "ocamldsort binary";
@@ -109,7 +119,6 @@ let _ =
     |Unix | Xen -> sprintf "%s/lib/stdlib" mirage_root 
     |Browser -> sprintf "%s/lib/stdlib.js" mirage_root in
   let libdir = sprintf "%s/lib" mirage_root in
-  let templates = sprintf "%s/templates" mirage_root in
 
   (* Directory in which the mirage application resides *)
   let build_dir = match !build_dir with
@@ -173,60 +182,54 @@ let _ =
 
   Sys.chdir build_dir;
 
-  (* Assemble the top-level module file *)
-  (* XXX disabled for now 
-  let top_module = sprintf "%s/mirage_build_main.ml" build_dir in
-  let module_cats = String.concat " " (List.map (fun x -> sprintf "%s/%s.ml" templates x) [
-     (match !os with Unix -> "unix" |Xen -> "xen");
-     (match !net with DHCP -> "dhcp" |Static -> "static");
-  ]) in
-  cmd [ "cat" ; module_cats; ">"; top_module ];
-  *)
-
-  (* Go to the build directory and generate dependencies and read them in *)
-  cmd [ !ocamldsort; camlp4; "-nox -mli *.ml *.mli > .depend" ];
-  let depin = open_in ".depend" in
-  let depends = input_line depin in
-  close_in depin;
+  match !action with
+  | Clean ->
+      cmd [ "rm -f *.cma *.cmi *.cmx *.a *.o *.annot mirage-unix mirage-os mirage-os.gz app.js app.html" ];
+  | Build -> begin
+      (* Go to the build directory and generate dependencies and read them in *)
+      cmd [ !ocamldsort; camlp4; "-nox -mli *.ml *.mli > .depend" ];
+      let depin = open_in ".depend" in
+      let depends = input_line depin in
+      close_in depin;
  
-  (* Start OS-specific build *)
-  match !os with
-  | Xen ->
-      let runtime = sprintf "%s/runtime/xen" mirage_root in
-      (* Build the raw application object file *)
-      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app_raw.o" ];
-      (* Relink sections for custom memory layout *)
-      cmd [ "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o" ];
-      (* Change to the Xen kernel build dir and perform build *)
-      Sys.chdir (runtime ^ "/kernel");
-      let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
-      cmd [ "make"; app_lib ];
-      let output_gz = sprintf "%s/kernel/obj/mirage-os.gz" runtime in
-      let target_gz = sprintf "%s/mirage-os.gz" build_dir in
-      let target_nongz = sprintf "%s/mirage-os" build_dir in
-      (* Move the output kernel to the application build directory *)
-      cmd [ "mv"; output_gz; target_gz ];
-      (* Make an uncompressed version available for debugging purposes *)
-      cmd [ "zcat"; target_gz; ">"; target_nongz ]
+      (* Start OS-specific build *)
+      match !os with
+      | Xen ->
+          let runtime = sprintf "%s/runtime/xen" mirage_root in
+          (* Build the raw application object file *)
+          cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app_raw.o" ];
+          (* Relink sections for custom memory layout *)
+          cmd [ "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext app_raw.o app.o" ];
+          (* Change to the Xen kernel build dir and perform build *)
+          Sys.chdir (runtime ^ "/kernel");
+          let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
+          cmd [ "make"; app_lib ];
+          let output_gz = sprintf "%s/kernel/obj/mirage-os.gz" runtime in
+          let target_gz = sprintf "%s/mirage-os.gz" build_dir in
+          let target_nongz = sprintf "%s/mirage-os" build_dir in
+          (* Move the output kernel to the application build directory *)
+          cmd [ "mv"; output_gz; target_gz ];
+          (* Make an uncompressed version available for debugging purposes *)
+          cmd [ "zcat"; target_gz; ">"; target_nongz ]
 
-  | Unix -> 
-      let runtime = sprintf "%s/runtime/unix" mirage_root in
-      (* Build the raw application object file *)
-      cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app.o" ];
-      (* Change the the Unix kernel build dir and perform build *)
-      Sys.chdir (runtime ^ "/main");
-      let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
-      cmd [ "make"; app_lib ];
-      let output_bin = sprintf "%s/main/app" runtime in
-      let target_bin = sprintf "%s/mirage-unix" build_dir in
-      cmd [ "mv"; output_bin; target_bin ]
+      | Unix -> 
+          let runtime = sprintf "%s/runtime/unix" mirage_root in
+          (* Build the raw application object file *)
+          cmd [ !ocamlopt; ocamlopt_flags; camlp4; includes; libs; depends; "-output-obj -o app.o" ];
+          (* Change the the Unix kernel build dir and perform build *)
+          Sys.chdir (runtime ^ "/main");
+          let app_lib = sprintf "APP_LIB=\"%s/app.o\"" build_dir in
+          cmd [ "make"; app_lib ];
+          let output_bin = sprintf "%s/main/app" runtime in
+          let target_bin = sprintf "%s/mirage-unix" build_dir in
+          cmd [ "mv"; output_bin; target_bin ]
 
-  | Browser ->
-      let runtime = sprintf "%s/runtime/browser" mirage_root in
-      let console_html = sprintf "%s/app.html" runtime in
-      let cclibs = String.concat " " (List.map (fun x -> sprintf "-cclib %s/%s.js" runtime x) ocamljs_cclibs) in
-      (* Build the raw application object file *)
-      cmd [ !ocamljs; ocamljs_flags; camlp4; includes; libs; cclibs; depends; "-o app.js" ];
-      (* Copy in the console HTML *)
-      cmd [ "cp"; console_html; build_dir ]
-
+      | Browser ->
+          let runtime = sprintf "%s/runtime/browser" mirage_root in
+          let console_html = sprintf "%s/app.html" runtime in
+          let cclibs = String.concat " " (List.map (fun x -> sprintf "-cclib %s/%s.js" runtime x) ocamljs_cclibs) in
+          (* Build the raw application object file *)
+          cmd [ !ocamljs; ocamljs_flags; camlp4; includes; libs; cclibs; depends; "-o app.js" ];
+          (* Copy in the console HTML *)
+          cmd [ "cp"; console_html; build_dir ]
+    end

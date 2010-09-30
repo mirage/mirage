@@ -42,7 +42,7 @@ module Socket(IP:Mlnet.Ipv4) = struct
     let udpfn env =
        let p = udp env in
        let csum = Checksum.udp src_ip dest_ip p in
-       p#set_checksum csum in
+       (* p#set_checksum csum *) () in
     let ipfn env =
       Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
     IP.output t.ip ~dest_ip ipfn

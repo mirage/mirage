@@ -24,7 +24,7 @@ TMPCONF=/tmp/${NAME}.xm
 sed -e "s/@NAME@/${NAME}/g" -e "s,@KERNEL@,${FULLDIR}/mirage-os.gz,g" < ${CONF} > ${TMPCONF}
 
 cd ${MIRAGE_ROOT}
-${MIR_BIN} dx ./tests/${NAME}
+${MIR_BIN} -os xen ./tests/${NAME}
 ${SUDO} ${XM_BIN} create -p ${TMPCONF}
 
 DOMID=$(${SUDO} ${XM_BIN} domid ${NAME})

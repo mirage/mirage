@@ -55,21 +55,23 @@ let get_answer (qname,qtype) id =
         ~additional:ans.DQ.additional
 
 let zonebuf = "
-$ORIGIN openmirage.org. ;
+$ORIGIN www.openmirage.org. ;
 $TTL    240
-openmirage.org. 604800 IN SOA  (
-        openmirage.org. anil.recoil.org.
-        2010034101 ; serial
+www.openmirage.org. 604800 IN SOA  (
+        www.openmirage.org. anil.recoil.org.
+        2010100401 ; serial
         3600 ; refresh
         1800 ; retry
         3024000 ; expire
         1800 ; minimum
 )
-        IN  NS     ns1.openmirage.org.
+        IN  NS     ns1.www.openmirage.org.
+        IN  NS     ns2.www.openmirage.org.
 ns1     IN  A      184.72.217.237
-www     IN  A      184.73.180.47
-
-www     IN  TXT    \"I wish I were a llama in Peru!\"
+ns2     IN  A      204.236.217.197
+@       IN  MX     smtp.recoil.org.
+@       IN  A      184.73.180.47
+@       IN  TXT    \"I wish I were a llama in Peru!\"
 "
  
 let init_dns t =

@@ -47,7 +47,3 @@ val daemon_callback :
   daemon_spec ->
   clisockaddr:sockaddr -> srvsockaddr:sockaddr -> OS.Flow.t -> unit Lwt.t
 val main : daemon_spec -> unit Lwt.t
-
-module Trivial : sig
-  val spec : daemon_spec
-end

@@ -153,43 +153,40 @@ let daemon_callback spec =
 
     let streams, push_streams = Lwt_stream.create () in
     let write_streams =
-      catch
-        (fun () ->
-           Lwt_stream.iter_s (fun stream_t ->
-             lwt stream = stream_t in
-             (* Temporary until buffered IO *)
-             let output = Buffer.create 4096 in
-             Lwt_stream.iter (Buffer.add_string output) stream >>
-             (OS.Flow.write_all flow (Buffer.contents output) >>
-             return (OS.Flow.close flow)))
-           streams)
-        (fun _ -> Lwt.return ()) in
-
+      try_lwt
+        Lwt_stream.iter_s (fun stream_t ->
+          lwt stream = stream_t in
+          (* Temporary until buffered IO *)
+          let output = Buffer.create 4096 in
+          Lwt_stream.iter (Buffer.add_string output) stream >>
+          OS.Flow.write_all flow (Buffer.contents output))
+        streams
+      with _ -> return ()
+    in
     let rec loop () =
-      catch (fun () -> 
+      try_lwt
         let (finished_t, finished_u) = Lwt.wait () in
 
         let stream =
-          try_bind
-            (fun () -> Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow)
-            (fun req ->
-               invoke_callback conn_id req spec)
-            (fun e ->
-               try_bind
-                 (fun () -> handle_parse_exn e)
-                 (fun s ->
-                    wakeup finished_u (); (* read another request *)
-                    return s)
-                 (fun e ->
-                    wakeup_exn finished_u e;
-                    fail e)) in
+          try_lwt
+            lwt req = Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow in
+            invoke_callback conn_id req spec
+          with e -> begin
+            try_lwt
+              lwt s = handle_parse_exn e in
+              wakeup finished_u (); (* read another request *)
+              return s
+            with e ->
+              wakeup_exn finished_u e;
+              fail e
+          end
+        in
         push_streams (Some stream);
-
         finished_t >>= loop (* wait for request to finish before reading another *)
-      ) (function 
-         | End_of_file -> debug_print "done with connection"; spec.conn_closed conn_id; return ()
-         | Canceled -> debug_print "cancelled"; spec.conn_closed conn_id; return ()
-         | e -> fail e )
+      with
+        | End_of_file -> debug_print "done with connection"; spec.conn_closed conn_id; return ()
+        | Canceled -> debug_print "cancelled"; spec.conn_closed conn_id; return ()
+        | e -> fail e
     in
     try_lwt
       loop () <&> write_streams
@@ -205,30 +202,6 @@ let main spec =
   lwt srvsockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
   OS.Flow.listen (fun clisockaddr flow ->
       match spec.timeout with
-      |None -> daemon_callback spec ~clisockaddr ~srvsockaddr flow
-      |Some tm -> daemon_callback spec ~clisockaddr ~srvsockaddr flow <?> (OS.Time.sleep tm)
+      | None -> daemon_callback spec ~clisockaddr ~srvsockaddr flow
+      | Some tm -> daemon_callback spec ~clisockaddr ~srvsockaddr flow <?> (OS.Time.sleep tm)
   ) srvsockaddr
-
-module Trivial =
-  struct
-    let callback _ req =
-      respond_error ~status:(`Code 400) ()
-
-   let exn_handler exn =
-     debug_print "no handler given: ignoring";
-     return ()
-
-   let conn_closed conn_id =
-     debug_print "Connection closed"
-
-   let spec = {
-     address = "0.0.0.0";
-     auth = `None;
-     callback = callback;
-     conn_closed = conn_closed;
-     port = 8080;
-     exn_handler = exn_handler;
-     timeout = Some 300.;
-   }
-  end
-

@@ -154,9 +154,13 @@ let daemon_callback spec =
     let write_streams =
       catch
         (fun () ->
-           Lwt_stream.iter_s (fun stream ->
-               stream >>= Lwt_stream.iter_s (OS.Flow.write_all flow))
-             streams)
+           Lwt_stream.iter_s (fun stream_t ->
+             lwt stream = stream_t in
+             (* Temporary until buffered IO *)
+             let output = Buffer.create 4096 in
+             Lwt_stream.iter (Buffer.add_string output) stream >>
+             OS.Flow.write_all flow (Buffer.contents output))
+           streams)
         (fun _ -> Lwt.return ()) in
 
     let rec loop () =

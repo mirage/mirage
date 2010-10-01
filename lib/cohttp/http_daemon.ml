@@ -54,6 +54,7 @@ let respond_with response =
 
   (* Warning: keep default values in sync with Http_response.response class *)
 let respond ?(body = "") ?(headers = []) ?version ?(status = `Code 200) () =
+  let headers = ("connection","close")  :: headers  in
   let resp = Http_response.init ~body:[`String body] ~headers ?version ~status () in
   respond_with resp
 
@@ -159,7 +160,8 @@ let daemon_callback spec =
              (* Temporary until buffered IO *)
              let output = Buffer.create 4096 in
              Lwt_stream.iter (Buffer.add_string output) stream >>
-             OS.Flow.write_all flow (Buffer.contents output))
+             (OS.Flow.write_all flow (Buffer.contents output) >>
+             return (OS.Flow.close flow)))
            streams)
         (fun _ -> Lwt.return ()) in
 

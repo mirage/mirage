@@ -1,6 +1,7 @@
 Mirage has been tested on:
 - Debian Squeeze x86_64 and x86_32
 - MacOS X 10.6 Snow Leopard x86_64
+- MacOS X 10.5 Snow Leopard x86_32
 
 To build it, you must first:
 1) Bootstrap the compiler toolchain
@@ -36,68 +37,25 @@ Libraries
 $ make
 
 This will build the OCaml libraries and the Xen custom runtime, if
-appropriate.
+appropriate for the build platform.  You require 64-bit Linux to
+compile up Xen binaries (32-bit will not work).
 
 Build an application
 --------------------
 
 Build a Xen kernel in-tree:
-$ mir -os xen tests/deens
-output will be in tests/deens/mirage-os.gz
+$ mir -os xen tests/sleep
+output will be in tests/sleep/mirage-os.gz
 
 Build a UNIX binary in-tree:
-$ mir -os unix tests/tcp_echo
-output will be in tests/ping/mirage-unix
+$ mir -os unix tests/sleep
+output will be in tests/sleep/mirage-unix
 
 Build a Javascript bundle in-tre:
 $ mir -os browser tests/sleep
 output will be in tests/sleep/app.html
 
-Configure your network
-======================
+This runs a simple interlocking sleep test which tries out the
+console and timer support for the various supported platforms.
 
-On Debian:
-
-* if you have one physical interface called eth0 :
-
-  $ sudo apt-get install bridge-utils
-  $ sudo brctl addbr br0
-  $ sudo brctl addif br0 eth0
-
-From this point, you loose connectivity.
-
-* Edit your /etc/network/interfaces file to look like :
-
-  ----------------------------------------------------------------------------
-  # This file describes the network interfaces available on your system
-  # and how to activate them. For more information, see interfaces(5).
-  
-  # The loopback network interface
-  auto lo br0
-  iface lo inet loopback
-
-  # Set up interfaces manually, avoiding conflicts with, e.g., network manager
-  iface eth0 inet manual
-
-  iface eth1 inet manual
-
-  # Bridge setup
-  iface br0 inet dhcp
-  		bridge_ports eth0 eth1
-  ----------------------------------------------------------------------------
-
-* bring up the new bridge to get your connectivity back:
-
-  $ sudo ifup br0
-
-Test the ping application
-=========================
-
-* Build ping :
-
-  $ mir -os unix tests/ping
-
-* Run the test
-
-  $ sudo ./tests/ping/mirage-unix & sudo brctl addif br0 tap0
-
+Coming soon: I/O :-)

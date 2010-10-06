@@ -161,7 +161,7 @@ let daemon_callback spec =
              let output = Buffer.create 4096 in
              Lwt_stream.iter (Buffer.add_string output) stream >>
              (OS.Flow.write_all flow (Buffer.contents output) >>
-             return (OS.Flow.close flow)))
+             return ()))
            streams)
         (fun _ -> Lwt.return ()) in
 
@@ -204,6 +204,7 @@ let daemon_callback spec =
 let main spec =
   lwt srvsockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
   OS.Flow.listen (fun clisockaddr flow ->
+      print_endline "NEW CONNECTION";
       match spec.timeout with
       |None -> daemon_callback spec ~clisockaddr ~srvsockaddr flow
       |Some tm -> daemon_callback spec ~clisockaddr ~srvsockaddr flow <?> (OS.Time.sleep tm)

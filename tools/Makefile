@@ -8,7 +8,7 @@ bootstrap:
 	tar -zxf ocaml/install.tgz -C $(PREFIX)
 	cd ocaml-libs && $(MAKE)
 	cd ocamljs && $(MAKE)
-	echo You should now add $(PREFIX) to your PATH variable
+	echo You should now add $(PREFIX)/bin to the front of your PATH variable
 
 tools:
 	@cd ocamldsort && ./configure --prefix=$(PREFIX)

@@ -49,13 +49,17 @@ let default_iteration () =
   apply_filters default_select None
 
 let rec run t =
-  Lwt.wakeup_paused ();
-  match Lwt.poll t with
+  try
+    Lwt.wakeup_paused ();
+    match Lwt.poll t with
     | Some x ->
         x
     | None ->
         let _  = default_iteration () in
         run t
+  with exn -> 
+    Printf.eprintf "Top-level exception: %s\n%!" (Printexc.to_string exn);
+    raise exn
 
 let exit_hooks = Lwt_sequence.create ()
 

@@ -22,7 +22,7 @@ let rec prime_n psize nr tog =
     prime_n psize' (nr + tog) (6 - tog) 
 
 let _ =
-  let t1 = Mir.gettimeofday () in
+  let t1 = OS.Clock.time () in
   prime_n 3 7 4; 
-  let t2 = Mir.gettimeofday () in
+  let t2 = OS.Clock.time () in
   Printf.printf "prime %d: %d (%.3fs)\n%!" count primes.(pred count) (t2 -. t1)

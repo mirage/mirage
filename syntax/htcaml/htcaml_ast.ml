@@ -26,11 +26,11 @@ type t =
   | Ant of Loc.t * string
 
 let rec meta_t _loc = function
-  | String s    -> <:expr< Html.String $`str:s$ >>
-  | Tag (t,l,s) -> <:expr< Html.Tag ($`str:t$, $meta_t _loc l$, $meta_t _loc s$) >>
-  | Prop (k,v)  -> <:expr< Html.Prop ($meta_t _loc k$, $meta_t _loc v$) >>
-  | Seq (a,b)   -> <:expr< Html.Seq ($meta_t _loc a$, $meta_t _loc b$) >> 
-  | Nil         -> <:expr< Html.Nil >>
+  | String s    -> <:expr< Htcaml.Html.String $`str:s$ >>
+  | Tag (t,l,s) -> <:expr< Htcaml.Html.Tag ($`str:t$, $meta_t _loc l$, $meta_t _loc s$) >>
+  | Prop (k,v)  -> <:expr< Htcaml.Html.Prop ($meta_t _loc k$, $meta_t _loc v$) >>
+  | Seq (a,b)   -> <:expr< Htcaml.Html.Seq ($meta_t _loc a$, $meta_t _loc b$) >> 
+  | Nil         -> <:expr< Htcaml.Html.Nil >>
 
   | Ant (l, str) -> Ast.ExAnt (l, str)
 

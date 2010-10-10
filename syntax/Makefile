@@ -16,17 +16,20 @@ type-conv/%.cmo:
 dyntype/%.cmo:
 	cd dyntype && $(MAKE)
 
+htcaml/%.cma:
+	cd htcaml && $(MAKE)
+
 LWT_SOURCES=pa_lwt
 TC_SOURCES=pa_type_conv
 DYNTYPE_SOURCES=type value p4_type p4_value pa_type pa_value
 SOURCES=$(LWT_SOURCES:%=lwt/%) $(TC_SOURCES:%=type-conv/%) $(DYNTYPE_SOURCES:%=dyntype/%)
-pa_mirage.cma: $(SOURCES:%=%.cmo)
+pa_mirage.cma: $(SOURCES:%=%.cmo) htcaml/htcaml.cma
 	$(OCAMLC) -a -o $@ $^
 
 .PHONY: clean
 clean:
 	rm -f *.cmi *.cmo *.cma
-	for i in lwt type-conv dyntype; do (cd $$i && $(MAKE) clean); done
+	for i in lwt type-conv dyntype htcaml; do (cd $$i && $(MAKE) clean); done
 
 .PHONY: install
 install:

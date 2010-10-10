@@ -34,13 +34,13 @@ object
       | Ast.ExAnt (_loc, s) ->
         let n, c = destruct_aq s in
         let e = AQ.parse_expr _loc c in
-        let fn = <:expr< (fun accu (k,v) -> Html.Seq (accu, Html.Prop (Html.String k, Html.String v))) >> in
+        let fn = <:expr< (fun accu (k,v) -> Htcaml.Html.Seq (accu, Htcaml.Html.Prop (Htcaml.Html.String k, Htcaml.Html.String v))) >> in
         begin match n with
-        | "int"   -> <:expr< Html.String (string_of_int $e$) >> 
-        | "flo"   -> <:expr< Html.String (string_of_float $e$) >>
-        | "str"   -> <:expr< Html.String $e$ >>
-        | "list"  -> <:expr< Html.t_of_list $e$ >> 
-        | "alist" -> <:expr< List.fold_left $fn$ Html.Nil $e$ >> 
+        | "int"   -> <:expr< Htcaml.Html.String (string_of_int $e$) >> 
+        | "flo"   -> <:expr< Htcaml.Html.String (string_of_float $e$) >>
+        | "str"   -> <:expr< Htcaml.Html.String $e$ >>
+        | "list"  -> <:expr< Htcaml.Html.t_of_list $e$ >> 
+        | "alist" -> <:expr< List.fold_left $fn$ Htcaml.Html.Nil $e$ >> 
         | _ -> e
         end
       | e -> super#expr e

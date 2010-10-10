@@ -146,9 +146,9 @@ let _ =
     |Browser ->
       [ "stdlib"; "lwtlib"; "os" ]
     |Xen ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS"; "htcaml" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS"; "cohttp" ]
+      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS"; "cohttp"; "htcaml" ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on

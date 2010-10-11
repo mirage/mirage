@@ -66,8 +66,8 @@ let _ =
   let _ = Gc.create_alarm (fun () -> Printf.printf "gc\n%!") in 
   let sizes = [ 1600; 3200; 10000 ] in
   List.iter (fun sz ->
-    let t1 = Mir.gettimeofday () in
+    let t1 = OS.Clock.time () in
     let w,h = calc sz in
-    let t2 = Mir.gettimeofday () in
+    let t2 = OS.Clock.time () in
     Printf.printf "%d,%d,%d,%.3f\n%!" sz w h (t2 -. t1)
   ) sizes

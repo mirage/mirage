@@ -7,7 +7,7 @@ export SUDO
 DESTDIR ?=
 export DESTDIR
 
-PREFIX ?= $(HOME)/mir-inst
+PREFIX ?= $(HOME)/research/mirage/install
 export PREFIX
 
 all:

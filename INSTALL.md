@@ -11,6 +11,9 @@ To build it, you must first:
 Bootstrap
 ---------
 
+You will need at least gcc, m4 and patch installed before you build
+the bootstrap toolchain.
+
 Pick where you want your bootstrap toolchain to be installed. This
 defaults to ~/mir-inst, and you can change it by setting the PREFIX
 variable to all the make targets.
@@ -42,6 +45,9 @@ compile up Xen binaries (32-bit will not work).
 
 Build an application
 --------------------
+
+For now, the mir tool must be run in the mirage.git base directory
+only.
 
 Build a Xen kernel in-tree:
 $ mir -os xen tests/sleep

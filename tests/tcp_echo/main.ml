@@ -1,4 +1,4 @@
-module OS = Unix
+(* module OS = Unix *)
 module Eth = Mletherip.Ethif.T(OS.Ethif)
 module Arp = Mletherip.Arp.T(Eth)
 module IPv4 = Mletherip.Ipv4.T(Eth)(Arp)

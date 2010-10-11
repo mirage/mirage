@@ -34,7 +34,8 @@ runtime/xen/stubdom/include/
 runtime/xen/stubdom/mini-os-x86_64-caml/
 runtime/xen/stubdom/zlib/Makefile
 runtime/xen/libm/obj/
-tests/*/app
+tests/*/app.html
+tests/*/app.js
 tests/*/mini-os
 tests/*/mirage-os
 tests/*/mirage-unix

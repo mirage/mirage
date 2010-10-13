@@ -15,12 +15,14 @@
  */
 
 #include <stdio.h>
+#include <signal.h>
 #include <caml/callback.h>
 
 int
 main(int argc, char **argv)
 {
   static char *fake_argv[] = { "mirage", NULL };
+  signal(SIGPIPE, SIG_IGN);
   fprintf(stderr, "caml_startup: start\n");
   caml_startup(fake_argv);
   fprintf(stderr, "caml_startup: end\n");

@@ -16,7 +16,6 @@
 
 open Lwt
 open Printf
-open OS
 
 type t = {
   backend_id: int;
@@ -31,7 +30,6 @@ type t = {
   rx_ring_ref: Gnttab.r;
   rx_slots: (int * Gnttab.r * Ring.Netif_rx.req) array;
   mutable rx_cond: unit Lwt_condition.t;
-  env_pool: string Lwt_pool.t;
   evtchn: int;
 }
 
@@ -92,16 +90,12 @@ let create (num,backend_id) =
       return (id,gnt)
     ) size []) in
 
- (* MPL string environment pool to use until zero copy *)
- let env_pool = Lwt_pool.create 5 
-   (fun () -> return (String.make 4096 '\000')) in
-
  Activations.register evtchn (Activations.Event_condition rx_cond);
  Evtchn.unmask evtchn;
 
  return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond;
    evtchn; rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; 
-   backend; env_pool }
+   backend }
 
 (* Input all available pages from receive ring and return detached page list *)
 let input_low nf =
@@ -146,7 +140,7 @@ let rec get_tx_gnt nf =
     return (id, gnt)
 
 (* Transmit a packet from buffer, with offset and length *)  
-let output_raw nf sub =
+let output nf sub =
   (* Grab a free grant slot from the free list, which may block *)
   lwt (id, gnt) = get_tx_gnt nf in
   (* Attach the incoming sub-page to the free grant *)
@@ -177,34 +171,10 @@ let enumerate () =
   in
   read_vif 0 []
 
-(** Transmit an ethernet frame 
-  * TODO Not yet zero copy, but it will be shortly, by Jove! *)
-let output nf frame =
-  Lwt_pool.use nf.env_pool (fun buf ->
-    let env = Mpl.Mpl_stdlib.new_env buf in
-    let sub = Hw_page.alloc_sub () in
-    let _ = Mpl.Ethernet.m frame env in
-    let buf = Mpl.Mpl_stdlib.string_of_env env in
-    let len = String.length buf in
-    Hw_page.write buf 0 sub.Hw_page.page 0 len;
-    let sub = { sub with Hw_page.len=len } in
-    output_raw nf sub
-  )
-
-(** Handle one frame
-    TODO Not zero copy until the MPL backend is modified *)
-let input nf fn =
+(** Input all available Ethernet frame *)
+let input nf (fn:Hw_page.sub -> unit Lwt.t) =
   let subs = input_low nf in
-  List.map (fun sub ->
-    Lwt_pool.use nf.env_pool (fun buf ->
-      let fillfn dstbuf dstoff len =
-        Hw_page.(read sub.page sub.off dstbuf dstoff sub.len);
-        Hw_page.(sub.len) in
-      let env = Mpl.Mpl_stdlib.new_env ~fillfn buf in
-      lwt () = fn (Mpl.Ethernet.unmarshal env) in
-      return ()
-    )
-  ) subs
+  List.map fn subs
 
 let wait nf =
   Lwt_condition.wait nf.rx_cond

@@ -1,0 +1,11 @@
+ROOTDIR=../../../
+include $(ROOTDIR)/mk/ocaml.mk
+
+DEPENDS=lwt 
+TARGET=oS
+SOURCES=console.ml clock.ml activations.ml main.ml time.ml
+
+WITH_SYNTAX=yes
+USE_PACK=yes
+NO_JS_CODE=yes
+include ../../Makefile.common

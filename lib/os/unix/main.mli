@@ -15,4 +15,6 @@
  *)
 
 val run : unit Lwt.t -> unit
+val min_timeout : float option -> float option -> float option
+val select_filters : (float Lazy.t -> (float option -> float Lazy.t) -> float option -> float Lazy.t) Lwt_sequence.t
 

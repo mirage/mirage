@@ -1,0 +1,90 @@
+(*
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
+open Lwt
+open Printf
+
+module Tap = struct
+  type t = int
+  external opendev: string -> t = "tap_opendev"
+  external read: t -> Hw_page.t -> int -> int -> int = "tap_read"
+  external has_input: t -> int = "tap_has_input"
+  external write: t -> Hw_page.t -> int -> int -> unit = "tap_write"
+end
+
+type t = {
+  id: string;
+  dev: Tap.t;
+  rx_cond: unit Lwt_condition.t;
+  mac: string;
+}
+
+type id = string
+
+(* We must generate a fake MAC for the Unix "VM", as using the
+   tuntap one will cause all sorts of unfortunate MAC routing 
+   loops in some stacks (notably Darwin tuntap). *)
+let generate_local_mac () =
+  let x = String.create 6 in
+  let i () = Char.chr (Random.int 256) in
+  (* set locally administered and unicast bits *)
+  x.[0] <- Char.chr ((((Random.int 256) lor 2) lsr 1) lsl 1);
+  x.[1] <- i ();
+  x.[2] <- i ();
+  x.[3] <- i ();
+  x.[4] <- i ();
+  x.[5] <- i ();
+  x
+
+let create id =
+  let dev = Tap.opendev id in
+  let rx_cond = Lwt_condition.create () in
+  let mac = generate_local_mac () in
+  Activations.register_rx dev (Activations.Event_condition rx_cond);
+  Activations.register_tx dev (Activations.Event_condition rx_cond);
+  return { id; dev; rx_cond; mac }
+
+(* Input all available pages from receive ring and return detached page list *)
+let input t =
+  let sub = Hw_page.alloc_sub () in
+  let len = Tap.read t.dev sub.Hw_page.page 0 4096 in
+  let sub = { sub with Hw_page.len=len } in
+  [ sub ]
+
+(* Number of unconsumed responses waiting for receive *)
+let has_input t =
+  Tap.has_input t.dev > 0
+
+(* Shutdown a netfront *)
+let destroy nf =
+  printf "tap_destroy\n%!";
+  return ()
+
+(* Transmit a packet from a Hw_page, with offset and length *)  
+let output t sub =
+  Hw_page.(Tap.write t.dev sub.page sub.off sub.len);
+  return ()  
+
+(** Return a list of valid VIF IDs *)
+let enumerate () =
+  return [ "tap0" ]
+
+let wait nf =
+  Lwt_condition.wait nf.rx_cond
+
+let mac t =
+  t.mac
+

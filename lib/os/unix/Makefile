@@ -1,9 +1,9 @@
 ROOTDIR=../../../
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=lwt 
+DEPENDS=
 TARGET=oS
-SOURCES=console.ml clock.ml activations.ml main.ml time.ml
+SOURCES=console.ml clock.ml activations.ml main.mli main.ml time.mli time.ml hw_page.mli hw_page.ml ethif.ml
 
 WITH_SYNTAX=yes
 USE_PACK=yes

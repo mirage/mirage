@@ -17,14 +17,18 @@
 #include <stdio.h>
 #include <signal.h>
 #include <caml/callback.h>
+#include "../libev/ev.h"
 
 int
 main(int argc, char **argv)
 {
   static char *fake_argv[] = { "mirage", NULL };
   signal(SIGPIPE, SIG_IGN);
-  fprintf(stderr, "caml_startup: start\n");
+  ev_default_loop(0);
+  fprintf(stderr, "Main: startup\n");
   caml_startup(fake_argv);
-  fprintf(stderr, "caml_startup: end\n");
+  fprintf(stderr, "Main: entering runloop\n");
+  ev_loop(0);
+  fprintf(stderr, "Main: end\n");
   return 0;
 }

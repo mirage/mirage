@@ -3,7 +3,7 @@ include $(ROOTDIR)/mk/ocaml.mk
 
 DEPENDS=
 TARGET=oS
-SOURCES=console.ml clock.ml activations.ml main.mli main.ml time.mli time.ml hw_page.mli hw_page.ml ethif.ml
+SOURCES=console.ml clock.ml activations.ml time.mli time.ml main.mli main.ml hw_page.mli hw_page.ml ethif.ml
 
 WITH_SYNTAX=yes
 USE_PACK=yes

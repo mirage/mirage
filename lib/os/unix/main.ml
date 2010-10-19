@@ -23,43 +23,33 @@
 
 open Lwt
 
-type current_time = float Lazy.t
-type select = float option -> current_time
+external block_domain_timeout : float -> unit = "caml_block_domain_with_timeout"
+external block_domain : unit -> unit = "caml_block_domain"
 
-external block_domain : float -> unit = "unix_block_domain"
-
-let select_filters = Lwt_sequence.create ()
-
-let min_timeout a b = match a, b with
-  | None, b -> b
-  | a, None -> a
-  | Some a, Some b -> Some(min a b)
-
-let apply_filters select =
-  let now = Lazy.lazy_from_fun Clock.time in
-  Lwt_sequence.fold_l (fun filter select -> filter now select) select_filters select
-
-let default_select timeout =
-  block_domain (match timeout with None -> 10. |Some t -> t);
-  Activations.run ();
-  Lazy.lazy_from_fun Clock.time
-
-let default_iteration () =
-  Lwt.wakeup_paused ();
-  apply_filters default_select None
-
-let rec run t =
-  try
+(* Main runloop, which registers a callback so it can be invoked
+   when timeouts expire. Thus, the program may only call this function
+   once and once only. *)
+let run t =
+  let fn () =
+    (* Wake up any paused threads, and restart threads waiting on timeout *)
     Lwt.wakeup_paused ();
+    Time.restart_threads Clock.time;
+    (* Attempt to advance the main loop thread *)
     match Lwt.poll t with
     | Some x ->
-        x
-    | None ->
-        let _  = default_iteration () in
-        run t
-  with exn -> 
-    Printf.eprintf "Top-level exception: %s\n%!" (Printexc.to_string exn);
-    raise exn
+       (* The main thread has completed, so return the value *)
+       x
+    | None -> 
+       (* If we have nothing to do, then check for the next
+          timeout and block the domain *)
+       let timeout = Time.select_next Clock.time in
+       (match timeout with 
+        |None -> block_domain ()
+        |Some tm -> block_domain_timeout tm)
+  in
+  (* Register a callback for the JS runtime to restart this function *)
+  let _ = Callback.register "Main.run" fn in
+  fn ()
 
 let exit_hooks = Lwt_sequence.create ()
 

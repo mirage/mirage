@@ -78,10 +78,8 @@ let timeout d = sleep d >> Lwt.fail Timeout
 let with_timeout d f = Lwt.pick [timeout d; Lwt.apply f ()]
 
 let in_the_past now t =
-  t = 0. || t <= Lazy.force now
+  t = 0. || t <= now ()
 
-(* We use a lazy-value for [now] to avoid one system call if not
-   needed: *)
 let rec restart_threads now =
   match SleepQueue.lookup_min !sleep_queue with
     | Some{ canceled = true } ->
@@ -98,29 +96,27 @@ let rec restart_threads now =
    | Event loop                                                      |
    +-----------------------------------------------------------------+ *)
 
-let run = Main.run
+let min_timeout a b = match a, b with
+  | None, b -> b
+  | a, None -> a
+  | Some a, Some b -> Some(min a b)
 
-let rec get_next_timeout now timeout =
+let rec get_next_timeout now =
   match SleepQueue.lookup_min !sleep_queue with
     | Some{ canceled = true } ->
         sleep_queue := SleepQueue.remove_min !sleep_queue;
-        get_next_timeout now timeout
+        get_next_timeout now 
     | Some{ time = time } ->
-        Main.min_timeout timeout (Some(if time = 0. then 0. else max 0. (time -. (Lazy.force now))))
+        Some (if time = 0. then 0. else max 0. (time -. (now ())))
     | None ->
-        timeout
+        None
 
-let select_filter now select timeout =
+let select_next now =
   (* Transfer all sleepers added since the last iteration to the main
      sleep queue: *)
   sleep_queue :=
     List.fold_left
       (fun q e -> SleepQueue.add e q) !sleep_queue !new_sleeps;
   new_sleeps := [];
-  let now = select (get_next_timeout now timeout) in
-  (* Restart threads waiting for a timeout: *)
-  restart_threads now;
-  now
-
-let _ = Lwt_sequence.add_l select_filter Main.select_filters
+  get_next_timeout now 
 

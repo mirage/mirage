@@ -21,7 +21,6 @@ module Tap = struct
   type t = int
   external opendev: string -> t = "tap_opendev"
   external read: t -> Hw_page.t -> int -> int -> int = "tap_read"
-  external has_input: t -> int = "tap_has_input"
   external write: t -> Hw_page.t -> int -> int -> unit = "tap_write"
 end
 
@@ -52,9 +51,9 @@ let generate_local_mac () =
 let create id =
   let dev = Tap.opendev id in
   let rx_cond = Lwt_condition.create () in
+  let cb = fun _ -> Lwt_condition.signal rx_cond () in
+  Activations.register ~rx:true ~tx:false dev cb;
   let mac = generate_local_mac () in
-  Activations.register_rx dev (Activations.Event_condition rx_cond);
-  Activations.register_tx dev (Activations.Event_condition rx_cond);
   return { id; dev; rx_cond; mac }
 
 (* Input all available pages from receive ring and return detached page list *)
@@ -63,10 +62,6 @@ let input t =
   let len = Tap.read t.dev sub.Hw_page.page 0 4096 in
   let sub = { sub with Hw_page.len=len } in
   [ sub ]
-
-(* Number of unconsumed responses waiting for receive *)
-let has_input t =
-  Tap.has_input t.dev > 0
 
 (* Shutdown a netfront *)
 let destroy nf =

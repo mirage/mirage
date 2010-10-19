@@ -16,59 +16,29 @@
 
 open Lwt
 
-external evtchn_nr_events: unit -> int = "caml_nr_events"
-external evtchn_test_and_clear: int -> int = "caml_evtchn_test_and_clear"
+module FD = struct
+  (* Low-level libev integration *)
+  type mask = int (* bitmask: x&1 = read, x&2 = write *)
+  type watcher (* abstract type created in bindings *)
+  type fd = int
+  external add : fd -> mask -> (mask -> unit) -> watcher = "caml_register_fd"
+  external remove : watcher -> unit = "caml_unregister_fd"
 
-type cb = 
-  | Event_none
-  | Event_direct of (unit -> unit)
-  | Event_condition of unit Lwt_condition.t
+  let can_read (mask:mask) = mask land 1
+  let can_write (mask:mask) = mask land 2
+end
 
-let nr_events = evtchn_nr_events ()
-let event_cb_rd = Array.create nr_events Event_none
-let event_cb_wr = Array.create nr_events Event_none
+(* Associate file descriptors with the callback watcher *)
+let watchers = Hashtbl.create 1
 
-(* Register an event channel port with a condition variable to let 
-   threads sleep on it *)
+(* Register a file descriptor and a callback function *)
+let register ~rx ~tx fd cb =
+  let mask = 0 + (if rx then 1 else 0) + (if tx then 2 else 0) in
+  let watcher = FD.add fd mask cb in
+  Hashtbl.add watchers fd watcher
 
-let register_rx port cb = event_cb_rd.(port) <- cb
-let register_tx port cb = event_cb_wr.(port) <- cb
-
-let deregister_rx port = event_cb_rd.(port) <- Event_none
-let deregister_tx port = event_cb_wr.(port) <- Event_none
-
-let wait_rx port cond =
-  register_rx port (Event_condition cond);
-  try_lwt
-    Lwt_condition.wait cond >>
-    return (deregister_rx port)
-  with exn -> return (deregister_rx port)
-
-let wait_tx port cond =
-  register_tx port (Event_condition cond);
-  try_lwt
-    Lwt_condition.wait cond >>
-    return (deregister_tx port)
-  with exn -> return (deregister_tx port)
-
-(* Go through the event mask and activate any events, potentially spawning
-   new threads *)
-
-let run_cond = function
-  | Event_none -> ()
-  | Event_direct cb -> cb ()
-  | Event_condition cond -> Lwt_condition.signal cond ()
-
-let run () =
-  for n = 1 to nr_events do
-    let port = n - 1 in
-    let evt = evtchn_test_and_clear port in
-    if evt > 0 then begin
-      let rd = evt land 1 = 1 in
-      let wr = evt land 2 = 2 in
-      let ex = evt land 4 = 4 in
-      if rd || ex then run_cond event_cb_rd.(port);
-      if wr || ex then run_cond event_cb_wr.(port)
-    end
-  done
-
+(* Deregister a file descriptor so its watcher can be freed *)
+let deregister fd =
+  let watcher = Hashtbl.find watchers fd in
+  FD.remove watcher;
+  Hashtbl.remove watchers fd

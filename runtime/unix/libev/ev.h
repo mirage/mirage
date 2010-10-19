@@ -46,6 +46,19 @@ extern "C" {
 
 typedef double ev_tstamp;
 
+/* Local Mirage settings */
+#define EV_MULTIPLICITY 0
+#define EV_PERIODIC_ENABLE 0
+#define EV_IDLE_ENABLE 0
+#define EV_EMBED_ENABLE 0
+#define EV_STAT_ENABLE 0
+#define EV_PREPARE_ENABLE 0
+#define EV_CHECK_ENABLE 0
+#define EV_FORK_ENABLE 0
+#define EV_SIGNAL_ENABLE 0
+#define EV_ASYNC_ENABLE 0
+#define EV_CHILD_ENABLE 0
+
 /* these priorities are inclusive, higher priorities will be called earlier */
 #ifndef EV_MINPRI
 # define EV_MINPRI -2

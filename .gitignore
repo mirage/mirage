@@ -76,3 +76,10 @@ tools/ocamldsort/miragedsort
 tools/ocamldsort/config.log
 tools/ocamldsort/config.log
 tools/ocamldsort/config.status
+tools/crunch/mlcrunch
+tools/mir/mir
+tools/ocaml-libs/findlib-1.2.6/
+tools/ocaml-libs/ulex-1.1/
+tools/ocamljs/ocaml/
+tools/ocamljs/ocamljs/
+tools/ocamlpack/ocamlpack

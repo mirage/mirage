@@ -65,3 +65,15 @@ This runs a simple interlocking sleep test which tries out the
 console and timer support for the various supported platforms.
 
 Coming soon: I/O :-)
+
+Notes
+-----
+
++ `mir` currently only works from within tree, i.e., the root
+  directory of your copy of the git repo.
+
++ Errors about "inconsistent assumptions over types" are likely due to
+  mismatches between parts of the installed libraries.  `rm -rf
+  $(PREFIX)/*` and `make clean` for your local value of $(PREFIX)
+  before `make rebootstrap`.
+

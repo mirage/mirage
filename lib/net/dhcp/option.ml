@@ -17,7 +17,7 @@
 
 open Lwt
 open Printf
-open Mlnet.Types
+open Nettypes
 module MS = Mpl.Mpl_stdlib
 
 (* This is a hand-crafted DHCP option parser. Did not use MPL

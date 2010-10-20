@@ -17,7 +17,8 @@
 
 open Lwt
 open Printf
-open Mlnet.Types
+open Nettypes
+open Mlnet
 
 type offer = {
   ip_addr: ipv4_addr;
@@ -36,15 +37,15 @@ type state =
   | Shutting_down
 
 type t = {
-  udp: UDP.t;
-  ip: IP.t;
+  udp: Udp.t;
+  ip: Ipv4.t;
   mutable state: state;
 }
 
 (* Send a client broadcast packet *)
 let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
   (* DHCP pads the MAC address to 16 bytes *)
-  let chaddr = `Str ((ethernet_mac_to_bytes (IP.mac t.ip)) ^ 
+  let chaddr = `Str ((ethernet_mac_to_bytes (Ipv4.mac t.ip)) ^ 
     (String.make 10 '\000')) in
 
   let options = `Str (Option.Packet.to_bytes options) in
@@ -65,7 +66,7 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
       ~checksum:0
       ~data:(`Sub dhcpfn)
   in
-  UDP.output t.udp ~dest_ip udpfn
+  Udp.output t.udp ~dest_ip udpfn
 
   (* Receive a DHCP UDP packet *)
   let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
@@ -110,11 +111,11 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
             let info = { info with lease=lease } in
             (* TODO also merge in additional requested options here *)
             t.state <- Lease_held info;
-            IP.set_ip t.ip info.ip_addr >>
+            Ipv4.set_ip t.ip info.ip_addr >>
             (match info.netmask with 
-             | Some x -> IP.set_netmask t.ip x 
+             | Some x -> Ipv4.set_netmask t.ip x 
              | None -> return ()) >>
-            IP.set_gateways t.ip info.gateways >>
+            Ipv4.set_gateways t.ip info.gateways >>
             return ()
        end
        |_ -> printf "DHCP: ack not for us\n%!"; return ()
@@ -143,14 +144,14 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
     match t.state with
     |Disabled ->
       start_discovery t >>
-      Time.sleep 60. >>
+      OS.Time.sleep 60. >>
       dhcp_thread t
     |Shutting_down ->
       printf "DHCP thread: done\n%!";
       return ()
     |_ -> 
       (* TODO: This should be looking at the lease time *)
-      Time.sleep 3600. >>
+      OS.Time.sleep 3600. >>
       dhcp_thread t
 
 (* Create a DHCP thread *)
@@ -158,7 +159,7 @@ let create ip udp =
   let thread,_ = Lwt.task () in
   let state = Disabled in
   let t = { ip; udp; state } in
-  UDP.listen t.udp 68 (input t);
+  Udp.listen t.udp 68 (input t);
   Lwt.on_cancel thread (fun () ->
     printf "DHCP: shutting down\n%!";
     t.state <- Shutting_down;

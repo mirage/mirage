@@ -1,9 +1,9 @@
 ROOTDIR=../../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=lwt mpl mlnet
+DEPENDS=os/unix net/api net/mpl net/ether 
 SOURCES=option.ml client.ml
-TARGET=mldhcp
+TARGET=dhcp
 
 WITH_SYNTAX=yes
 USE_PACK=yes

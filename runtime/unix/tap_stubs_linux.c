@@ -31,9 +31,6 @@
 
 #include <linux/if_tun.h>
 
-extern uint8_t ev_callback_ml[];
-extern uint8_t ev_fds[];
-
 static int tun_alloc(char *dev)
 {
   struct ifreq ifr;
@@ -52,6 +49,18 @@ static int tun_alloc(char *dev)
   return fd;
 }
 
+static void
+setnonblock(int fd)
+{
+  int flags;
+  flags = fcntl(fd, F_GETFL);
+  if (flags < 0)
+    err(1, "setnonblock: fcntl");
+  flags |= O_NONBLOCK;
+  if (fcntl(fd, F_SETFL, flags) < 0)
+    err(1, "setnonblock, F_SETFL");
+}
+
 CAMLprim value
 tap_opendev(value v_str)
 {
@@ -61,9 +70,8 @@ tap_opendev(value v_str)
   bzero(dev, sizeof dev);
   memcpy(dev, String_val(v_str), caml_string_length(v_str));
   fd = tun_alloc(dev);
+  setnonblock(fd);
   snprintf(buf, sizeof buf, "ip link set %s up", dev);
   system(buf);
-  ev_fds[fd] = 1;
   return Val_int(fd);
 }
-

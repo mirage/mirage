@@ -14,6 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * UNIX support for Mirage networking via tuntap.
+ *
+ * This tuntap interface is not intended to be high-performance, but 
+ * primarily for debugging the native Mirage networking stack under a 
+ * full OS environment.
+ */
+
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,9 +33,7 @@
 #include <caml/memory.h>
 #include <caml/alloc.h>
 #include <caml/fail.h>
-
-extern uint8_t ev_callback_ml[];
-extern uint8_t ev_fds[];
+#include <err.h>
 
 CAMLprim value
 tap_read(value v_fd, value v_buf, value v_off, value v_len)
@@ -35,36 +41,24 @@ tap_read(value v_fd, value v_buf, value v_off, value v_len)
   int fd = Int_val(v_fd);
   int res = read(fd, String_val(v_buf) + Int_val(v_off), Int_val(v_len));
   if (res < 0) {
-    fprintf(stderr, "read err: %s\n", strerror(errno));
-    caml_failwith("tap_read < 0");
+    if (errno == EAGAIN || errno == EWOULDBLOCK)
+      return Val_int(-1);
+    else
+      err(1, "tap_read");
   }
   return Val_int(res);
 }
 
 CAMLprim value
-tap_has_input(value v_fd)
+tap_write(value v_fd, value v_buf, value v_off, value v_len)
 {
   int fd = Int_val(v_fd);
-  fd_set fdset;
-  struct timeval tv;
-  int ret;
-  FD_ZERO(&fdset);
-  FD_SET(fd, &fdset);
-  tv.tv_sec = 0;
-  tv.tv_usec = 1;
-  ret = select(fd+1, &fdset, NULL, NULL, &tv);
-  return Val_int(ret == 1 ? 1 : 0);
-}
-
-CAMLprim value
-tap_write(value v_fd, value v_buf)
-{
-  int fd = Int_val(v_fd);
-  ssize_t len = caml_string_length(v_buf);
-  int res = write(fd, String_val(v_buf), len);
+  size_t len = Int_val(v_len);
+  int res = write(fd, String_val(v_buf) + Int_val(v_off), len);
   if (res != len) {
     fprintf(stderr, "tap_write: not full res=%d len=%lu (%s)\n", res, len, strerror(errno));
-    caml_failwith("tap_write: not full write");
+    err(1, "tap_write");
   }
-  return Val_int(len);
+  return Val_unit;
 }
+

@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <errno.h>
+#include <err.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
@@ -30,10 +30,18 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include <ifaddrs.h>
-#include <net/if_dl.h>
 
-extern uint8_t ev_fds[];
+static void
+setnonblock(int fd)
+{
+  int flags;
+  flags = fcntl(fd, F_GETFL);
+  if (flags < 0)
+    err(1, "setnonblock: fcntl");
+  flags |= O_NONBLOCK;
+  if (fcntl(fd, F_SETFL, flags) < 0)
+    err(1, "setnonblock, F_SETFL");
+}
 
 CAMLprim value
 tap_opendev(value v_str)
@@ -43,14 +51,14 @@ tap_opendev(value v_str)
   fprintf(stderr, "opendev: %s\n", name);
   int fd = open(name, O_RDWR);
   if (fd < 0)
-    caml_failwith("tap open failed");
+    err(1, "tap_opendev");
+  setnonblock(fd);
   /* Mark interface as up
      Since MacOS doesnt have ethernet bridging built in, the
      IP binding is temporary until someone writes a KPI filter for Darwin */
   char buf[1024];
   snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.0.0.1 netmask 255.255.255.0 up", String_val(v_str));
   system(buf);
-  ev_fds[fd] = 1;
   return Val_int(fd);
 }
 

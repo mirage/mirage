@@ -4,11 +4,12 @@ else
 SYNTAX=
 endif
 
-STDLIB=$(ROOTDIR)/lib/stdlib
-STDLIB_JS=$(ROOTDIR)/lib/stdlib.js
+STDLIB=$(ROOTDIR)/lib/std/native
+STDLIB_JS=$(ROOTDIR)/lib/std/js
+LWT=$(ROOTDIR)/lib/std/lwt
 
-INCLUDES=-I $(STDLIB) $(DEPENDS:%=-I $(ROOTDIR)/lib/%)
-INCLUDES_JS=-I $(STDLIB_JS) $(DEPENDS:%=-I $(ROOTDIR)/lib/%)
+INCLUDES=-I $(STDLIB) -I $(LWT) $(DEPENDS:%=-I $(ROOTDIR)/lib/%)
+INCLUDES_JS=-I $(STDLIB_JS) -I $(LWT) $(DEPENDS:%=-I $(ROOTDIR)/lib/%)
 
 ifeq ($(USE_PACK),yes)
 EXTRA_CLEAN += $(TARGET).ml
@@ -61,5 +62,5 @@ endif
 
 .PHONY: clean
 clean:
-	rm -f *.cmx *.cmo *.o *.cmi *.cmxa .mldeps .cmxdeps \
+	rm -f *.cmx *.cmo *.o *.cmi *.cmxa \
 	  *.cmjs *.cmjsa *.annot *.a $(EXTRA_CLEAN)

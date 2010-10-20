@@ -12,6 +12,7 @@
 *.annot
 *.gz
 *.odoc
+.depend
 ._d/
 ._bcdi/
 ._ncdi/
@@ -41,12 +42,11 @@ runtime/unix/libev/event.lo
 runtime/unix/libev/libev.la
 runtime/unix/libev/libtool
 runtime/unix/libev/stamp-h1
-tests/*/app
-tests/*/mini-os
-tests/*/mirage-os
-tests/*/mirage-unix
-tests/*/app.html
-tests/*/app.js
+app
+mirage-os
+mirage-unix
+app.html
+app.js
 tools/mpl/._d/
 tools/mpl/._ncdi/
 tools/mpl/mpl_lexer.ml

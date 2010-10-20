@@ -50,15 +50,15 @@ For now, the mir tool must be run in the mirage.git base directory
 only.
 
 Build a Xen kernel in-tree:
-$ mir -os xen tests/sleep
-output will be in tests/sleep/mirage-os.gz
+$ mir -os xen tests/basic/sleep
+output will be in tests/basic/sleep/mirage-os.gz
 
 Build a UNIX binary in-tree:
-$ mir -os unix tests/sleep
+$ mir -os unix tests/basic/sleep
 output will be in tests/sleep/mirage-unix
 
 Build a Javascript bundle in-tre:
-$ mir -os browser tests/sleep
+$ mir -os browser tests/basic/sleep
 output will be in tests/sleep/app.html
 
 This runs a simple interlocking sleep test which tries out the

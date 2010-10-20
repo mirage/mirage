@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Types
+open Nettypes
 
 type t
 val input: t -> Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
 val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Udp.o) -> unit Lwt.t
 val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t) -> unit
-
+val create : Ipv4.t -> t * unit Lwt.t

@@ -15,7 +15,7 @@
  *
  *)
 
-open Types
+open Nettypes
 open Printf
 
 type t

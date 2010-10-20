@@ -15,7 +15,7 @@
  *
  *)
 
-open Types
+open Nettypes
 
 let ones_checksum sum =
     0xffff - ((sum lsr 16) + (sum land 0xffff))

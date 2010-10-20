@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Types
+open Nettypes
 
 type 'a ip_output = Mpl.Mpl_stdlib.env -> ttl:int -> checksum:int -> dest:int32 ->
   options:('a Mpl.Mpl_stdlib.data) -> Mpl.Ipv4.o
@@ -32,4 +32,4 @@ val attach: t ->
      | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
     ] -> unit
 val detach: t -> [  `UDP | `TCP | `ICMP ] -> unit
-
+val create : OS.Ethif.id -> (t * unit Lwt.t) Lwt.t

@@ -16,7 +16,7 @@
  *)
 
 open Lwt
-open Types
+open Nettypes
 open Printf
 
 (* TODO implement the full ARP state machine (pending, failed, timer thread, etc) *)

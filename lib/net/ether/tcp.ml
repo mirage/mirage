@@ -17,7 +17,7 @@
 (* TCPv4 implementation, heavily based on the lwIP-1.3.2 state machine *)
 
 open Lwt
-open Types
+open Nettypes
 open Printf
 
 exception Not_implemented

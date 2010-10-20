@@ -16,12 +16,10 @@
 
 open Lwt
 open Printf
-open Types
-
-module IP = Ipv4
+open Nettypes
 
 type t = {
-  ip: IP.t;
+  ip: Ipv4.t;
 }
 
 let input t ip = function
@@ -41,17 +39,18 @@ let input t ip = function
     let src = ip#dest in
     let ipfn env = Mpl.Ipv4.t ~id ~protocol:`ICMP ~src ~data:(`Sub icmpfn) env in
     printf "ICMP: response seq=%d\n%!" sequence;
-    IP.output t.ip ~dest_ip ipfn
+    Ipv4.output t.ip ~dest_ip ipfn
 
   |_ -> print_endline "dropped icmp"; return ()
 
 let create ip =
   let thread,_ = Lwt.task () in
   let t = { ip } in
-  IP.attach ip (`ICMP (input t));
+  Ipv4.attach ip (`ICMP (input t));
   Lwt.on_cancel thread (fun () ->
     printf "ICMP shutdown\n%!";
-    IP.detach ip `ICMP
+    Ipv4.detach ip `ICMP
   );
   printf "ICMP created\n%!";
   t, thread
+

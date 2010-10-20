@@ -16,7 +16,7 @@
 
 open Lwt
 open Printf
-open Types
+open Nettypes
 
 module ARP = Arp
 

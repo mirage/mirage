@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Types
+open Nettypes
 
 type t
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t

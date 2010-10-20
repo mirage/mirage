@@ -15,13 +15,11 @@
  *)
 
 open Lwt
-open Types
+open Nettypes
 open Printf
 
-module IP = Ipv4
-
 type t = {
-  ip : IP.t;
+  ip : Ipv4.t;
   listeners: (int, (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t)) Hashtbl.t
 }
 
@@ -37,7 +35,7 @@ let input t ip udp =
    header for checksum calculation. Although we currently just
    set the checksum to 0 as it is optional *)
 let output t ~dest_ip udp =
-  let src_ip = IP.get_ip t.ip in
+  let src_ip = Ipv4.get_ip t.ip in
   let src = ipv4_addr_to_uint32 src_ip in
   let udpfn env =
      let p = udp env in
@@ -45,7 +43,7 @@ let output t ~dest_ip udp =
      (* p#set_checksum csum *) () in
   let ipfn env =
     Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
-  IP.output t.ip ~dest_ip ipfn
+  Ipv4.output t.ip ~dest_ip ipfn
 
 let listen t port fn =
   if Hashtbl.mem t.listeners port then
@@ -56,9 +54,9 @@ let create ip =
   let listeners = Hashtbl.create 1 in
   let t = { ip; listeners } in
   let thread,_ = Lwt.task () in
-  IP.attach ip (`UDP (input t));
+  Ipv4.attach ip (`UDP (input t));
   Lwt.on_cancel thread (fun () ->
     printf "UDP: thread shutdown\n%!";
-    IP.detach ip `UDP
+    Ipv4.detach ip `UDP
   );
   t, thread

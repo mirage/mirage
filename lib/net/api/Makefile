@@ -5,7 +5,7 @@ TARGET=nettypes
 TARGET_MLI=nettypes.mli
 
 .PHONY: all
-all: nettypes.cmx
+all: nettypes.cmxa
 	@ :
 
 nettypes.cmx: nettypes.mli nettypes.ml

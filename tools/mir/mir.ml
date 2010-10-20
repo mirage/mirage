@@ -116,8 +116,8 @@ let _ =
   (* Various locations for syntax, standard library and other libraries *)
   let syntax = sprintf "%s/syntax" mirage_root in
   let stdlib = match !os with
-    |Unix | Xen -> sprintf "%s/lib/stdlib" mirage_root 
-    |Browser -> sprintf "%s/lib/stdlib.js" mirage_root in
+    |Unix | Xen -> sprintf "%s/lib/std/native" mirage_root 
+    |Browser -> sprintf "%s/lib/std/js" mirage_root in
   let libdir = sprintf "%s/lib" mirage_root in
 
   (* Directory in which the mirage application resides *)
@@ -129,26 +129,27 @@ let _ =
   (* -pp flag to invoke the pa_mirage syntax extension *)
   let camlp4 = sprintf "-pp 'camlp4o -I %s pa_mirage.cma'" syntax in
   (* Core includes for stdlib and lwt needed by all applications *)
-  let includes_pre = sprintf "-I %s -I %s/lwt" stdlib libdir in
-  (* Includes for other packed libraries such as mlnet or mpl *)
-  let includes_post = sprintf "-I %s/lib/obj" mirage_root in
+  let includes_pre = sprintf "-I %s -I %s/std/lwt" stdlib libdir in
+  (* Includes for net libraries *)
+  let includes_net = List.map (sprintf "-I %s/lib/net/%s" mirage_root)
+    [ "api"; "mpl"; "ether"; "dhcp"; "dns" ]  in
   (* Includes for target-specific directory *)
   let includes_os = match !os with
-    | Unix -> sprintf "-I %s/unix" libdir
-    | Xen -> sprintf "-I %s/xen" libdir
-    | Browser -> sprintf "-I %s/browser" libdir
+    | Unix -> sprintf "-I %s/os/unix" libdir
+    | Xen -> sprintf "-I %s/os/xen" libdir
+    | Browser -> sprintf "-I %s/os/browser" libdir
   in
   (* All includes *)
-  let includes = String.concat " " [ includes_pre; includes_os; includes_post ] in
+  let includes = String.concat " " (includes_pre :: includes_os :: includes_net) in
 
   (* The list of standard libraries for a given OS *)
   let stdlibs = match !os with
     |Browser ->
-      [ "stdlib"; "lwtlib"; "os" ]
+      [ "stdlib"; "lwtlib"; "oS" ]
     |Xen ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS"; "htcaml" ]
+      [ "stdlib"; "lwtlib"; "oS" ]
     |Unix ->
-      [ "stdlib"; "lwtlib"; "mpl"; "mlnet"; "oS"; "cohttp"; "htcaml" ]
+      [ "stdlib"; "lwtlib"; "oS" ]
   in
 
   (* The other libraries needed by an OS (which will eventually be added on
@@ -156,7 +157,7 @@ let _ =
   let otherlibs = match !os with
     |Browser -> []
     |Xen -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp";  ]
-    |Unix -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp"; ]
+    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"  ] 
   in
 
   let libext = match !os with
@@ -166,7 +167,7 @@ let _ =
 
   (* Complete set of libraries needed *)
   let libs = String.concat " " (List.map
-    (fun l -> sprintf "-I %s/%s %s.%s" libdir l l libext) (stdlibs @ otherlibs)) in
+    (fun l -> sprintf "%s.%s" l libext) (stdlibs @ otherlibs)) in
 
   (* If building on x86_64 Linux, use no-pic *)
   let ocamlopt_flags_os = match uname_os (), (uname_machine ()) with

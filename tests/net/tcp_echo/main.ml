@@ -6,7 +6,7 @@ open Mlnet
 let ipaddr = match ipv4_addr_of_string "10.0.0.2" with Some x -> x |None -> assert false
 let nm = match ipv4_addr_of_string "255.255.255.0" with Some x -> x |None -> assert false
 
-let use_dhcp = true
+let use_dhcp = false
 
 let main () =
     lwt vifs = OS.Ethif.enumerate () in
@@ -16,7 +16,7 @@ let main () =
        let (udp,udp_t) = Udp.create ip in
        let ipaddr_t = (match use_dhcp with
         | true -> 
-            lwt (dhcp,dhcp_t) = Dhcp.create ip udp in
+            lwt (dhcp,dhcp_t) = Dhcp.Client.create ip udp in
             dhcp_t
         | false ->
             Ipv4.set_netmask ip nm >>

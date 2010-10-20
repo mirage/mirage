@@ -1,9 +1,9 @@
 open Printf
 
 let with_time i label fn =
-  let t1 = Mir.gettimeofday () in
+  let t1 = OS.Clock.time () in
   fn ();
-  let t2 = Mir.gettimeofday () in
+  let t2 = OS.Clock.time () in
   printf "%s,%d,%d,%.3f\n%!" Sys.os_type i label (t2 -. t1)
 
 let _ =

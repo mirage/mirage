@@ -1,5 +1,5 @@
 open Lwt
-open Xen
+open OS
 
 let main () =
    let cons = Console.t in
@@ -11,7 +11,5 @@ let main () =
    Time.sleep 4. >>
    Console.sync_write cons s 0 (String.length s) >>
    return ()
-   
 
-let _ = 
-   Main.run (main ())
+let _ = Main.run (main ())

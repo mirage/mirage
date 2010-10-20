@@ -1,0 +1,11 @@
+basic/ has simple core functionality like raising a top-level
+exception, sleeping and console printing.
+
+perf/ has performance-related tests, for memory allocation or
+math-related functions.
+
+os/ has backend-specific tests, such as Xenstore for Xen.
+
+net/ has network-stack tests, such as the TCP/IP backend.
+
+old/ has older tests that haven't been ported over yet.

@@ -21,7 +21,8 @@ module FD = struct
   type mask = int (* bitmask: x&1 = read, x&2 = write *)
   type watcher (* abstract type created in bindings *)
   type fd = int
-  external add : fd -> mask -> (mask -> unit) -> watcher = "caml_register_fd"
+  type cb = mask -> bool (* callback returns false if fd is finished *)
+  external add : fd -> mask -> (mask -> bool) -> watcher = "caml_register_fd"
   external remove : watcher -> unit = "caml_unregister_fd"
 
   let can_read (mask:mask) = mask land 1
@@ -34,11 +35,16 @@ let watchers = Hashtbl.create 1
 (* Register a file descriptor and a callback function *)
 let register ~rx ~tx fd cb =
   let mask = 0 + (if rx then 1 else 0) + (if tx then 2 else 0) in
-  let watcher = FD.add fd mask cb in
+  (* Wrap the callback function to also free the fd when done *)
+  let cb' m = 
+    match cb m with
+    |true -> true
+    |false ->
+       let watcher = Hashtbl.find watchers fd in
+       FD.remove watcher;
+       Hashtbl.remove watchers fd;
+       false
+  in
+  Gc.finalise (fun _ -> Printf.printf "xxx\n%!") cb;
+  let watcher = FD.add fd mask cb' in
   Hashtbl.add watchers fd watcher
-
-(* Deregister a file descriptor so its watcher can be freed *)
-let deregister fd =
-  let watcher = Hashtbl.find watchers fd in
-  FD.remove watcher;
-  Hashtbl.remove watchers fd

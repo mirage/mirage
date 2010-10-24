@@ -67,6 +67,7 @@ lib/os/xen/oS.ml
 lib/net/ether/mlnet.ml
 lib/net/dhcp/dhcp.ml
 lib/net/dns/dns.ml
+lib/net/socket/socket.ml
 lib/cohttp/cohttp.ml
 lib/obj/
 /screenlog.*

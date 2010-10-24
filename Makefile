@@ -1,5 +1,6 @@
 .PHONY: all clean tools
 .DEFAULT: all
+-include Makefile.config
 
 SUDO ?= sudo
 export SUDO
@@ -7,7 +8,7 @@ export SUDO
 DESTDIR ?=
 export DESTDIR
 
-PREFIX ?= $(HOME)/research/mirage/install
+PREFIX ?= $(HOME)/mir-inst
 export PREFIX
 
 all:

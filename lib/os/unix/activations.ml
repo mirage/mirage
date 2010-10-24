@@ -38,13 +38,17 @@ let register ~rx ~tx fd cb =
   (* Wrap the callback function to also free the fd when done *)
   let cb' m = 
     match cb m with
-    |true -> true
+    |true -> 
+       true
     |false ->
-       let watcher = Hashtbl.find watchers fd in
-       FD.remove watcher;
-       Hashtbl.remove watchers fd;
+       List.iter (fun watcher ->
+         FD.remove watcher;
+         Hashtbl.remove watchers fd;
+       ) (Hashtbl.find_all watchers fd);
        false
   in
-  Gc.finalise (fun _ -> Printf.printf "xxx\n%!") cb;
   let watcher = FD.add fd mask cb' in
   Hashtbl.add watchers fd watcher
+
+let register_read fd cb = register ~rx:true ~tx:false fd cb
+let register_write fd cb = register ~rx:false ~tx:true fd cb

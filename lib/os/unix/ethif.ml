@@ -59,7 +59,7 @@ let create (id:id) =
     Lwt_condition.signal rx_cond ();
     t.active
   in
-  Activations.register ~rx:true ~tx:false dev cb;
+  Activations.register_read dev cb;
   return t
 
 (* Input a frame, and block if nothing is available *)

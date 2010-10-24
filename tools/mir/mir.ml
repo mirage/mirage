@@ -132,7 +132,7 @@ let _ =
   let includes_pre = sprintf "-I %s -I %s/std/lwt" stdlib libdir in
   (* Includes for net libraries *)
   let includes_net = List.map (sprintf "-I %s/lib/net/%s" mirage_root)
-    [ "api"; "mpl"; "ether"; "dhcp"; "dns" ]  in
+    [ "api"; "mpl"; "ether"; "dhcp"; "dns"; "socket" ]  in
   (* Includes for target-specific directory *)
   let includes_os = match !os with
     | Unix -> sprintf "-I %s/os/unix" libdir
@@ -156,8 +156,8 @@ let _ =
      demand as required *)
   let otherlibs = match !os with
     |Browser -> []
-    |Xen -> [ "mletherip"; "mltcp"; "mludp"; "mldns"; "mldhcp";  ]
-    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"  ] 
+    |Xen -> []
+    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"; "socket"  ] 
   in
 
   let libext = match !os with

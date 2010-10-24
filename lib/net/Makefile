@@ -5,6 +5,7 @@ all:
 	cd ether && $(MAKE)
 	cd dhcp && $(MAKE)
 	cd dns && $(MAKE)
+	cd socket && $(MAKE)
 
 clean:
 	cd mpl && $(MAKE) clean
@@ -12,3 +13,4 @@ clean:
 	cd ether && $(MAKE) clean
 	cd dhcp && $(MAKE) clean
 	cd dns && $(MAKE) clean
+	cd socket && $(MAKE) clean

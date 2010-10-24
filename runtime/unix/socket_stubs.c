@@ -31,10 +31,6 @@
 #include <caml/memory.h>
 #include <caml/alloc.h>
 
-#define NR_EVENTS 128
-extern uint8_t ev_callback_ml[NR_EVENTS];
-extern uint8_t ev_fds[NR_EVENTS];
-
 static void
 setnonblock(int fd)
 {
@@ -58,9 +54,7 @@ setreuseaddr(int fd)
 CAMLprim value
 caml_socket_close(value v_fd)
 {
-  int fd = Int_val(v_fd);
-  ev_fds[fd] = 0;
-  close(fd);
+  close(Int_val(v_fd));
   return Val_unit;
 }
 
@@ -93,7 +87,6 @@ caml_tcp_connect(value v_ipaddr, value v_port)
     Val_Err(v_ret, v_err);
     close(s);
   }
-  ev_fds[s] = 1 & 2;
   CAMLreturn(v_ret);
 }
 
@@ -114,7 +107,6 @@ caml_tcp_connect_result(value v_fd)
     fprintf(stderr, "connect_result: ERR\n");
     v_err = caml_copy_string(strerror(valopt));
     Val_Err(v_ret, v_err);
-    ev_fds[fd] = 0;
     close(fd);
   }
   CAMLreturn(v_ret);
@@ -150,7 +142,6 @@ caml_tcp_listen(value v_ipaddr, value v_port)
     close(s);
     CAMLreturn(v_ret);
   }
-  ev_fds[s] = 1;
   Val_OK(v_ret, Val_int(s));
   CAMLreturn(v_ret);
 }
@@ -172,7 +163,6 @@ caml_tcp_accept(value v_fd)
       Val_Err(v_ret, v_err);
     }
   } else {
-    ev_fds[r] = 1 | 2;
     v_ip = caml_copy_int32(ntohl(sa.sin_addr.s_addr));
     v_ca = caml_alloc(3,0);
     Store_field(v_ca, 0, Val_int(r));

@@ -126,7 +126,6 @@ caml_tcp_listen(value v_ipaddr, value v_port)
   s = socket(PF_INET, SOCK_STREAM, 0);
   if (s < 0)
     err(1, "caml_tcp_listen: socket");
-  setnonblock(s);
   setreuseaddr(s);
   r = bind(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
   if (r < 0) {
@@ -136,6 +135,7 @@ caml_tcp_listen(value v_ipaddr, value v_port)
     CAMLreturn(v_ret);
   }
   r = listen(s, 5);
+  setnonblock(s);
   if (r < 0) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
@@ -156,7 +156,7 @@ caml_tcp_accept(value v_fd)
   socklen_t len = sizeof sa;
   r = accept(fd, (struct sockaddr *)&sa, &len);
   if (r < 0) {
-    if (errno == EWOULDBLOCK)
+    if (errno == EWOULDBLOCK || errno == EAGAIN)
       Val_WouldBlock(v_ret);
     else {
       v_err = caml_copy_string(strerror(errno));

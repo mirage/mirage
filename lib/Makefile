@@ -10,8 +10,7 @@ clean:
 	cd std && $(MAKE) clean
 	cd os && $(MAKE) clean
 	cd net && $(MAKE) clean
-	cd make && $(MAKE) clean
-	
+	cd misc && $(MAKE) clean
 
 .PHONY: install
 install:

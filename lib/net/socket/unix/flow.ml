@@ -147,8 +147,10 @@ let rec write t buf off len =
     (* Would block, so register an activation and wait *)
     t_wait_write t >>
     write t buf off len
-  | OK r -> return r 
-  | Err e -> failwith e
+  | OK r ->
+    return r 
+  | Err e ->
+    failwith e
 
 let rec really_write t buf off len =
   write t buf off len >>= function

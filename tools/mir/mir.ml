@@ -131,8 +131,9 @@ let _ =
   (* Core includes for stdlib and lwt needed by all applications *)
   let includes_pre = sprintf "-I %s -I %s/std/lwt" stdlib libdir in
   (* Includes for net libraries *)
+  let includes_socket = "socket/" ^ (match !os with |Unix -> "unix" |Xen -> "xen" |Browser -> "") in
   let includes_net = List.map (sprintf "-I %s/lib/net/%s" mirage_root)
-    [ "api"; "mpl"; "ether"; "dhcp"; "dns"; "socket" ]  in
+    [ "api"; "mpl"; "ether"; "dhcp"; "dns"; includes_socket; "http" ]  in
   (* Includes for target-specific directory *)
   let includes_os = match !os with
     | Unix -> sprintf "-I %s/os/unix" libdir
@@ -157,7 +158,7 @@ let _ =
   let otherlibs = match !os with
     |Browser -> []
     |Xen -> []
-    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"; "socket"  ] 
+    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"; "flow"; "http"  ] 
   in
 
   let libext = match !os with

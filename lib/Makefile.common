@@ -11,6 +11,9 @@ LWT=$(ROOTDIR)/lib/std/lwt
 INCLUDES=-I $(STDLIB) -I $(LWT) $(DEPENDS:%=-I $(ROOTDIR)/lib/%)
 INCLUDES_JS=-I $(STDLIB_JS) -I $(LWT) $(DEPENDS:%=-I $(ROOTDIR)/lib/%)
 
+OCAMLOPT_ALLFLAGS=-g -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS)
+
+.PRECIOUS: %.cmx
 ifeq ($(USE_PACK),yes)
 EXTRA_CLEAN += $(TARGET).ml
 
@@ -29,7 +32,7 @@ all: $(ALL_TARGETS)
 	@ :
 
 $(TARGET).cmx: $(TARGET_MLI) $(TARGET).ml
-	$(OCAMLOPT) -c -g -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $^
+	$(OCAMLOPT) -c $(OCAMLOPT_ALLFLAGS) $^
 
 $(TARGET).cmjs: $(TARGET_MLI) $(TARGET).ml
 	$(OCAMLJS) -c -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES_JS) $(SYNTAX) $^
@@ -43,6 +46,10 @@ debug:
 
 i-%:
 	$(OCAMLOPT) -i -nostdlib -annot $(EXTRA_FLAGS) $(INCLUDES) $(SYNTAX) $(OCAMLOPT_FLAGS) $(SOURCES)
+else
+.PHONY: all
+all: $(TARGET).cmxa
+	@ :
 endif
 
 .mldeps: *.ml *.mli

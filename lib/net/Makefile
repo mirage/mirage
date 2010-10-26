@@ -6,6 +6,7 @@ all:
 	cd dhcp && $(MAKE)
 	cd dns && $(MAKE)
 	cd socket && $(MAKE)
+	cd http && $(MAKE)
 
 clean:
 	cd mpl && $(MAKE) clean
@@ -14,3 +15,4 @@ clean:
 	cd dhcp && $(MAKE) clean
 	cd dns && $(MAKE) clean
 	cd socket && $(MAKE) clean
+	cd http && $(MAKE) clean

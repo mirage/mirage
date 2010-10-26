@@ -1,10 +1,11 @@
-ROOTDIR=../../..
+ROOTDIR=../../../..
 include $(ROOTDIR)/mk/ocaml.mk
 
+DEPENDS=os/unix net/api 
+	
 %.cmx: %.mli %.ml
 	$(OCAMLOPT) -c $(OCAMLOPT_ALLFLAGS) $^
 
-TARGET=nettypes
+TARGET=flow
 WITH_SYNTAX=yes
-
-include ../../Makefile.common
+include ../../../Makefile.common

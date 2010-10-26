@@ -21,8 +21,8 @@ module FD = struct
   type mask = int (* bitmask: x&1 = read, x&2 = write *)
   type watcher (* abstract type created in bindings *)
   type fd = int
-  type cb = mask -> bool (* callback returns false if fd is finished *)
-  external add : fd -> mask -> (mask -> bool) -> watcher = "caml_register_fd"
+  type cb = mask -> bool (* user callback returns false when its done *)
+  external add : fd -> mask -> (mask -> unit) -> watcher = "caml_register_fd"
   external remove : watcher -> unit = "caml_unregister_fd"
 
   let can_read (mask:mask) = mask land 1
@@ -38,14 +38,12 @@ let register ~rx ~tx fd cb =
   (* Wrap the callback function to also free the fd when done *)
   let cb' m = 
     match cb m with
-    |true -> 
-       true
+    |true -> () 
     |false ->
        List.iter (fun watcher ->
          FD.remove watcher;
          Hashtbl.remove watchers fd;
-       ) (Hashtbl.find_all watchers fd);
-       false
+       ) (Hashtbl.find_all watchers fd)
   in
   let watcher = FD.add fd mask cb' in
   Hashtbl.add watchers fd watcher

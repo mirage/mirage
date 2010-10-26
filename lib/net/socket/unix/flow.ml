@@ -58,10 +58,11 @@ let t_wait_write t =
 
 let close t = unix_close t.fd
 
-let close_on_exit t th =
+let close_on_exit t fn =
   try_lwt 
-    th >> 
-    return (close t)
+    lwt x = fn t in
+    close t;
+    return x
   with exn -> 
     close t;
     fail exn
@@ -84,10 +85,9 @@ let connect = function
   end
   | UDP _ -> fail (Not_implemented "UDP")
 
-(* XXX need to close the connection ? *)
 let with_connection sockaddr fn =
   lwt t = connect sockaddr in
-  fn t
+  close_on_exit t fn
 
 let listen fn = function
   | TCP (addr, port) -> begin
@@ -104,18 +104,20 @@ let listen fn = function
             let caddr = ipv4_addr_of_uint32 caddr_i in
             let csa = TCP (caddr, cport) in
             let t = t_of_fd afd in
-            join [ loop (); close_on_exit t (fn csa t) ]
+            join [ loop (); close_on_exit t (fn csa) ]
         | Retry -> 
             loop () 
-        | Err err -> 
+        | Err err ->
             Lwt.wakeup_exn abort_wakener (Accept_error err);
             loop ())
       in
       let x = loop () in
       Lwt.on_cancel x (fun () -> close lt);
       Lwt.pick [ abort_waiter; x]
-    | Err s -> fail (Listen_error s)
-    | Retry -> assert false (* Listen never blocks *)
+    | Err s ->
+       fail (Listen_error s)
+    | Retry ->
+       assert false (* Listen never blocks *)
   end
   | UDP _ -> fail (Not_implemented "UDP")
 

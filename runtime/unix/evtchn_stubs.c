@@ -41,7 +41,6 @@ io_watcher_callback(ev_io *w, int revents)
 {
   int flags = 0;
   value v_cb = ((value)w->data);
-  value v_ret;
   /* Stop any outstanding timer since I/O is ready instead */
   ev_timer_stop(&timeout_watcher);
   if (revents & EV_READ)
@@ -49,9 +48,7 @@ io_watcher_callback(ev_io *w, int revents)
   if (revents & EV_WRITE)
     flags |= 2;
   fprintf(stderr, "io_watcher_callback: flags=%d\n", flags);
-  v_ret = caml_callback(v_cb, Val_int(flags));
-  if (Int_val(v_ret) != 0)
-    ev_io_start(w);
+  caml_callback(v_cb, Val_int(flags));
   if (run_callback)
     caml_callback(*run_callback, Val_unit);
 }

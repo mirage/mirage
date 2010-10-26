@@ -134,7 +134,7 @@ caml_tcp_listen(value v_ipaddr, value v_port)
     close(s);
     CAMLreturn(v_ret);
   }
-  r = listen(s, 5);
+  r = listen(s, 25);
   setnonblock(s);
   if (r < 0) {
     v_err = caml_copy_string(strerror(errno));
@@ -163,6 +163,7 @@ caml_tcp_accept(value v_fd)
       Val_Err(v_ret, v_err);
     }
   } else {
+    setnonblock(r);
     v_ip = caml_copy_int32(ntohl(sa.sin_addr.s_addr));
     v_ca = caml_alloc(3,0);
     Store_field(v_ca, 0, Val_int(r));

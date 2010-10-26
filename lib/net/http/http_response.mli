@@ -1,4 +1,4 @@
-open Mlnet.Types
+open Nettypes
 
 type response
 val init :
@@ -38,5 +38,5 @@ val serialize :
   response ->
   'a -> ('a -> string -> unit Lwt.t) -> ('a -> string -> int -> int -> unit Lwt.t) ->
   unit Lwt.t
-val serialize_to_output_channel : response -> OS.Flow.t -> unit Lwt.t
+val serialize_to_output_channel : response -> Flow.t -> unit Lwt.t
 val serialize_to_stream : response -> string Lwt_stream.t

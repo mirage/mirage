@@ -61,7 +61,7 @@ let init_request ~clisockaddr ~srvsockaddr finished ic =
                   (Int64.of_string (List.assoc "content-length" headers))
 		with Not_found -> None in
 		  match limit with 
-		    |None -> OS.Flow.read_all ic >|= (fun s -> Lwt.wakeup finished (); [`String s])
+		    |None -> Flow.read_all ic >|= (fun s -> Lwt.wakeup finished (); [`String s])
 		    |Some count -> return [`Inchan (count, ic, finished)]
               end
               else  (* TODO empty body for methods other than POST, is ok? *)

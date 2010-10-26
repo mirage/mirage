@@ -26,12 +26,12 @@ open Http_constants
 open Http_common
 open Printf
 open Lwt
-open Mlnet.Types
+open Nettypes
 
 let anyize = function
   | Some addr -> addr
   | None ->
-    let addr = match Mlnet.Types.ipv4_addr_of_string "0.0.0.0" with
+    let addr = match ipv4_addr_of_string "0.0.0.0" with
       | Some x -> x
       | None   -> failwith "anyize" in
     TCP (addr, -1)

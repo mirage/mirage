@@ -24,7 +24,7 @@ open Printf
 open Lwt
 
 open Http_types
-open Mlnet.Types
+open Nettypes
 
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; 
    							"Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
@@ -108,14 +108,14 @@ let build_sockaddr (addr, port) =
     (* XXX: no DNS client at the moment *)
     (* let hent = Unix.gethostbyname addr in *)
     (* return (Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port)) *)
-    let ip = match Mlnet.Types.ipv4_addr_of_string addr with
+    let ip = match ipv4_addr_of_string addr with
       | Some x -> x
       | None -> failwith "ip" in
     return (TCP (ip, port))
   with _ -> failwith ("ocaml-cohttp, cant resolve hostname: " ^ addr)
      
 let explode_sockaddr = function
-  | TCP (ip, port) -> (Mlnet.Types.ipv4_addr_to_string ip, port)
+  | TCP (ip, port) -> (ipv4_addr_to_string ip, port)
   | _ -> assert false (* can explode only inet address *)
 
 let list_assoc_all key pairs =

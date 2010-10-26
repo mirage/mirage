@@ -66,20 +66,20 @@ let build_req_string headers meth address path body =
 
 let request outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
-    OS.Flow.write_all outchan (build_req_string headers meth address path body)
+    Flow.write_all outchan (build_req_string headers meth address path body)
 
 let read inchan =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
-  lwt resp = OS.Flow.read_all inchan in
+  lwt resp = Flow.read_all inchan in
     match code_of_status status with
       | 200 -> return (headers, resp)
       | code -> fail (Http_error (code, headers, resp))
 
 let connect (address, port, _) iofn =
   lwt sockaddr = Http_misc.build_sockaddr (address, port) in
-  OS.Flow.with_connection sockaddr iofn
+  Flow.with_connection sockaddr iofn
     
 let call headers kind body url =
   let meth = match kind with

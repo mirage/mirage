@@ -1,4 +1,4 @@
-open Mlnet.Types
+open Nettypes
 
 type conn_id
 val string_of_conn_id : conn_id -> string
@@ -45,5 +45,5 @@ val respond_with :
   Http_response.response -> string Lwt_stream.t Lwt.t
 val daemon_callback :
   daemon_spec ->
-  clisockaddr:sockaddr -> srvsockaddr:sockaddr -> OS.Flow.t -> unit Lwt.t
+  clisockaddr:sockaddr -> srvsockaddr:sockaddr -> Flow.t -> unit Lwt.t
 val main : daemon_spec -> unit Lwt.t

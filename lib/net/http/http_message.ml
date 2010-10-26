@@ -35,7 +35,7 @@ let rec hashtbl_remove_all tbl name =
 type contents =
     [ `Buffer of Buffer.t
     | `String of string
-    | `Inchan of int64 * OS.Flow.t * unit Lwt.u
+    | `Inchan of int64 * Flow.t * unit Lwt.u
     ]
 
 type message = {
@@ -73,7 +73,7 @@ let string_of_body cl =
 	               | `Inchan (il, ic, finished) ->
 			   lwt pos = pos in
                            let il = Int64.to_int il in
-                             (OS.Flow.really_read ic buf pos il) >>
+                             (Flow.really_read ic buf pos il) >>
 			       (Lwt.wakeup finished (); return (pos + il))
                     ) (return 0) cl) >>= (fun _ -> return buf)
 let set_body msg contents = msg.m_contents <- [contents]
@@ -139,7 +139,7 @@ let relay ic oc write m =
   let buffer = String.create bufsize in
   let rec aux m =
     m >>= function _ ->
-      OS.Flow.read ic buffer 0 bufsize >>= function
+      Flow.read ic buffer 0 bufsize >>= function
       | 0   -> Lwt.return ()
       | len -> aux (write oc buffer 0 len)
   in aux m
@@ -164,7 +164,7 @@ let serialize msg outchan write_all write ~fstLineToString =
 	body
 
 let serialize_to_output_channel msg outchan ~fstLineToString =
-  serialize msg outchan OS.Flow.write_all OS.Flow.really_write ~fstLineToString
+  serialize msg outchan Flow.write_all Flow.really_write ~fstLineToString
 
 let serialize_to_stream msg ~fstLineToString =
   let stream, push = Lwt_stream.create () in

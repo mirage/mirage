@@ -69,7 +69,7 @@ lib/net/dhcp/dhcp.ml
 lib/net/dns/dns.ml
 lib/net/socket/socket.ml
 lib/net/http/http.ml
-lib/cohttp/cohttp.ml
+lib/misc/htcaml/htcaml.ml
 lib/obj/
 /screenlog.*
 tools/ocamldsort/Makefile

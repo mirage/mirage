@@ -69,7 +69,7 @@ static void
 watcher_finalize_gc(value v_watcher)
 {
   ev_io *w = Watcher_val(v_watcher);
-  if (w->data != NULL)
+  if (w != NULL)
     errx(1, "watcher_finalize_gc: watcher->data != NULL, missing deregister");
 }
 
@@ -102,7 +102,7 @@ caml_unregister_fd(value v_watcher)
   CAMLparam1(v_watcher);
   fprintf(stderr, "caml_unregister_fd\n");
   ev_io *w = Watcher_val(v_watcher);
-  caml_remove_generational_global_root((value *)(w->data));
+  caml_remove_generational_global_root((value *)&w->data);
   ev_io_stop(w);
   free(w);
   Watcher_val(v_watcher) = NULL;

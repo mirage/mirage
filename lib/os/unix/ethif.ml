@@ -33,6 +33,7 @@ type t = {
 }
 
 type id = string
+exception Ethif_closed
 
 (* We must generate a fake MAC for the Unix "VM", as using the
    tuntap one will cause all sorts of unfortunate MAC routing 
@@ -55,12 +56,15 @@ let create (id:id) =
   let mac = generate_local_mac () in
   let active = true in
   let t = { id; dev; rx_cond; active; mac } in
-  let cb = fun mask ->
-    Lwt_condition.signal rx_cond ();
-    t.active
-  in
-  Activations.register_read dev cb;
   return t
+
+let t_wait_read t =
+  match t.active with
+  |true -> 
+    Activations.register_read t.dev (Lwt_condition.signal t.rx_cond);
+    Lwt_condition.wait t.rx_cond
+  |false ->
+    fail Ethif_closed
 
 (* Input a frame, and block if nothing is available *)
 let rec input t =
@@ -68,11 +72,11 @@ let rec input t =
   let len = Tap.read t.dev sub.Hw_page.page 0 4096 in
   match len with
   | (-1) -> (* EAGAIN or EWOULDBLOCK *)
-      Lwt_condition.wait t.rx_cond >>
+      t_wait_read t >>
       input t
   | 0 -> (* EOF *)
       t.active <- false;
-      Lwt_condition.wait t.rx_cond >>
+      t_wait_read t >>
       input t
   | n ->
       let sub = { sub with Hw_page.len=len } in

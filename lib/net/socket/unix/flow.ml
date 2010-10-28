@@ -50,8 +50,7 @@ let t_of_fd fd =
 let t_wait_read t  =
   match t.active with
   |true ->
-    Activations.register_read t.fd (fun _ ->
-      Lwt_condition.signal t.rx_cond (); t.active);
+    Activations.register_read t.fd (Lwt_condition.signal t.rx_cond);
     Lwt_condition.wait t.rx_cond
   |false ->
     fail Flow_closed
@@ -59,8 +58,7 @@ let t_wait_read t  =
 let t_wait_write t =
   match t.active with
   |true ->
-    Activations.register_write t.fd (fun _ ->
-      Lwt_condition.signal t.tx_cond (); t.active);
+    Activations.register_write t.fd (Lwt_condition.signal t.tx_cond);
     Lwt_condition.wait t.tx_cond
   |false ->
     fail Flow_closed

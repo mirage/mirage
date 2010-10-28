@@ -48,7 +48,7 @@ io_watcher_callback(ev_io *w, int revents)
   if (revents & EV_WRITE)
     flags |= 2;
   fprintf(stderr, "io_watcher_callback: flags=%d\n", flags);
-  caml_callback(v_cb, Val_int(flags));
+  caml_callback(v_cb, Val_unit);
   if (run_callback)
     caml_callback(*run_callback, Val_unit);
 }
@@ -77,22 +77,32 @@ watcher_finalize_gc(value v_watcher)
    and return the watcher.
  */
 CAMLprim value
-caml_register_fd(value v_fd, value v_mask, value v_cb)
+caml_register_fd(value v_fd, value v_mask)
 {
-  CAMLparam3(v_fd, v_mask, v_cb);
+  CAMLparam2(v_fd, v_mask);
   CAMLlocal1(v_watcher);
   int fd = Int_val(v_fd);
-  fprintf(stderr, "caml_register_fd: fd=%d mask=%d value=%lu\n", fd, Int_val(v_mask), v_cb);
+  fprintf(stderr, "caml_register_fd: fd=%d mask=%d\n", fd, Int_val(v_mask));
   /* Allocate an IO watcher, associate the OCaml callback with it,
      and register the callback as a generational root */
   ev_io *watcher = caml_stat_alloc(sizeof (struct ev_io));
-  watcher->data = (void *) v_cb;
-  caml_register_generational_global_root((value *)&watcher->data);
+  watcher->data = NULL;
   ev_io_init(watcher, io_watcher_callback, fd, Int_val(v_mask));
   v_watcher = caml_alloc_final(2, watcher_finalize_gc, 1, 100);
+  caml_register_generational_global_root(&v_watcher);
   Watcher_val(v_watcher) = watcher;
   ev_io_start(watcher);
   CAMLreturn(v_watcher);
+}
+
+CAMLprim value
+caml_register_callback(value v_watcher, value v_cb)
+{
+  CAMLparam2(v_watcher, v_cb);
+  ev_io *watcher = Watcher_val(v_watcher);
+  watcher->data = (void *) v_cb;
+  caml_register_generational_global_root((value *)&watcher->data);
+  CAMLreturn(Val_unit);
 }
 
 /* Deregister a watcher, which will free its memory and stop IO events */
@@ -106,6 +116,7 @@ caml_unregister_fd(value v_watcher)
   ev_io_stop(w);
   free(w);
   Watcher_val(v_watcher) = NULL;
+  caml_remove_generational_global_root(&v_watcher);
   CAMLreturn(Val_unit);
 }
 

@@ -31,6 +31,7 @@ exception Not_implemented of string
 exception Listen_error of string
 exception Accept_error of string
 exception Connect_error of string
+exception Flow_closed
 
 external unix_close: int -> unit = "caml_socket_close"
 external unix_tcp_connect: int32 -> int -> int resp = "caml_tcp_connect"
@@ -47,16 +48,26 @@ let t_of_fd fd =
   { fd; rx_cond; tx_cond; active }
 
 let t_wait_read t  =
-  Activations.register_read t.fd (fun _ ->
-    Lwt_condition.signal t.rx_cond (); t.active);
-  Lwt_condition.wait t.rx_cond
+  match t.active with
+  |true ->
+    Activations.register_read t.fd (fun _ ->
+      Lwt_condition.signal t.rx_cond (); t.active);
+    Lwt_condition.wait t.rx_cond
+  |false ->
+    fail Flow_closed
 
 let t_wait_write t =
-  Activations.register_write t.fd (fun _ ->
-    Lwt_condition.signal t.tx_cond (); t.active);
-  Lwt_condition.wait t.tx_cond
+  match t.active with
+  |true ->
+    Activations.register_write t.fd (fun _ ->
+      Lwt_condition.signal t.tx_cond (); t.active);
+    Lwt_condition.wait t.tx_cond
+  |false ->
+    fail Flow_closed
 
-let close t = unix_close t.fd
+let close t =
+  unix_close t.fd;
+  t.active <- false
 
 let close_on_exit t fn =
   try_lwt 

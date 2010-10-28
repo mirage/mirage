@@ -22,7 +22,6 @@ type cb =
   | Event_none
   | Event_direct of (unit -> unit)
   | Event_condition of unit Lwt_condition.t
-  | Event_thread of (unit -> unit Lwt.t)
 
 let _ = evtchn_init ()
 let nr_events = evtchn_nr_events ()
@@ -40,26 +39,14 @@ let register port cb =
 (* Go through the event mask and activate any events, potentially spawning
    new threads *)
 let run () =
-  let rec loop n acc =
-    match n with
-    | 0 -> acc
-    | n -> 
-      let port = n - 1 in
-      let acc = 
-        if evtchn_test_and_clear port then begin
-          match event_cb.(port) with
-          | Event_none -> 
-            Printf.printf "warning: event on port %d but no registered event\n%!" port;
-            acc
-          | Event_direct cb ->
-            cb (); 
-            acc
-          | Event_condition cond ->
-            Lwt_condition.signal cond ();
-            acc
-          | Event_thread cb ->
-            cb () :: acc
-        end else acc
-      in loop (n-1) acc
-  in
-  loop nr_events []
+  for port = 0 to nr_events - 1 do
+    if evtchn_test_and_clear port then begin
+      match event_cb.(port) with
+      | Event_none -> 
+          Printf.printf "warning: event on port %d but no registered event\n%!" port
+      | Event_direct cb ->
+          cb (); 
+      | Event_condition cond ->
+          Lwt_condition.signal cond ();
+    end
+  done

@@ -4,7 +4,7 @@ OBJDIR=./obj
 
 CORE_SRC = $(wildcard *.c)
 LIB_SRC  = stack_chk_fail.c sys.c
-ARCH_SRC = x86_ioremap.c x86_time.c x86_mm.c x86_setup.c x86_traps.c
+ARCH_SRC = x86_time.c x86_mm.c x86_setup.c x86_traps.c
 CONSOLE_SRC = console.c xencons_ring.c
 CAML_SRC = domain.c exit.c gettimeofday.c mmap_stubs.c xb_stubs.c ring_stubs.c gnttab_stubs.c page_stubs.c
 

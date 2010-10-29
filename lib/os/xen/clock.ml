@@ -14,4 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+type tm = {
+  tm_sec : int;
+  tm_min : int;
+  tm_hour : int;
+  tm_mday : int;
+  tm_mon : int;
+  tm_year : int;
+  tm_wday : int;
+  tm_yday : int;
+  tm_isdst : bool;
+}
+
 external time : unit -> float = "unix_gettimeofday"
+external gmtime : float -> tm = "unix_gmtime"
+

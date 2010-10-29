@@ -29,8 +29,9 @@ type t = {
   rx_ring: Ring.Netif_rx.t;
   rx_ring_ref: Gnttab.r;
   rx_slots: (int * Gnttab.r * Ring.Netif_rx.req) array;
-  mutable rx_cond: unit Lwt_condition.t;
   evtchn: int;
+  mutable rx_cond: unit Lwt_condition.t;
+  mutable active: bool;
 }
 
 type id = (int * int)
@@ -90,15 +91,16 @@ let create (num,backend_id) =
       return (id,gnt)
     ) size []) in
 
- Activations.register evtchn (Activations.Event_condition rx_cond);
- Evtchn.unmask evtchn;
+  Activations.register evtchn (Activations.Event_condition rx_cond);
+  Evtchn.unmask evtchn;
+  let active = true in
 
- return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond;
-   evtchn; rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; 
-   backend }
+  return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond;
+    evtchn; rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; 
+    backend; active }
 
 (* Input all available pages from receive ring and return detached page list *)
-let input_low nf =
+let input nf =
   Ring.Netif_rx.(read_responses nf.rx_ring (fun pos res ->
     let id = res_get_id res in
     let offset = res_get_offset res in
@@ -118,10 +120,21 @@ let input_low nf =
     sub
   ))
 
-(* Number of unconsumed responses waiting for receive *)
-let has_input nf =
-  Ring.Netif_rx.res_waiting nf.rx_ring > 0
-
+(* Loop permanently and listen for packets *)
+let rec listen nf fn =
+  match nf.active with
+  |true -> begin
+    match input nf with
+    | [] -> (* no input, so block *)
+        Lwt_condition.wait nf.rx_cond >>
+        listen nf fn
+    | frames -> (* handle inputs *)
+        let th = Lwt_list.iter_s fn frames in
+        listen nf fn <&> th
+  end  
+  |false ->
+     return ()
+  
 (* Shutdown a netfront *)
 let destroy nf =
   printf "netfront_destroy\n%!";
@@ -170,14 +183,6 @@ let enumerate () =
       Xb.Noent -> return (List.rev acc)
   in
   read_vif 0 []
-
-(** Input all available Ethernet frame *)
-let input nf (fn:Hw_page.sub -> unit Lwt.t) =
-  let subs = input_low nf in
-  List.map fn subs
-
-let wait nf =
-  Lwt_condition.wait nf.rx_cond
 
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let mac nf = 

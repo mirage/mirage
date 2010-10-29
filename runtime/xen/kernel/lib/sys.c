@@ -52,8 +52,8 @@
     int __unsup_##function(void) asm(#function); \
     int __unsup_##function(void) \
     { \
-	print_unsupported(#function); \
-	do_exit(); \
+    print_unsupported(#function); \
+    do_exit(); \
     }
 
 /* Log and err out on function call */
@@ -61,9 +61,9 @@
     type __unsup_##function(void) asm(#function); \
     type __unsup_##function(void) \
     { \
-	print_unsupported(#function); \
-	errno = ENOSYS; \
-	return ret; \
+    print_unsupported(#function); \
+    errno = ENOSYS; \
+    return ret; \
     }
 
 /* Err out on function call */
@@ -71,8 +71,8 @@
     type __unsup_##function(void) asm(#function); \
     type __unsup_##function(void) \
     { \
-	errno = ENOSYS; \
-	return ret; \
+    errno = ENOSYS; \
+    return ret; \
     }
 
 #define NOFILE 32
@@ -148,30 +148,30 @@ void errx(int eval, const char *format, ...)
 int clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
     switch (clk_id) {
-	case CLOCK_MONOTONIC:
-	{
-	    struct timeval tv;
+    case CLOCK_MONOTONIC:
+    {
+        struct timeval tv;
 
-	    gettimeofday(&tv, NULL);
+        gettimeofday(&tv, NULL);
 
-	    tp->tv_sec = tv.tv_sec;
-	    tp->tv_nsec = tv.tv_usec * 1000;
+        tp->tv_sec = tv.tv_sec;
+        tp->tv_nsec = tv.tv_usec * 1000;
 
-	    break;
-	}
-	case CLOCK_REALTIME:
-	{
-	    uint64_t nsec = monotonic_clock();
+        break;
+    }
+    case CLOCK_REALTIME:
+    {
+        uint64_t nsec = monotonic_clock();
 
-	    tp->tv_sec = nsec / 1000000000ULL;
-	    tp->tv_nsec = nsec % 1000000000ULL;
+        tp->tv_sec = nsec / 1000000000ULL;
+        tp->tv_nsec = nsec % 1000000000ULL;
 
-	    break;
-	}
-	default:
-	    print_unsupported("clock_gettime(%d)", clk_id);
-	    errno = EINVAL;
-	    return -1;
+        break;
+    }
+    default:
+        print_unsupported("clock_gettime(%d)", clk_id);
+        errno = EINVAL;
+        return -1;
     }
 
     return 0;

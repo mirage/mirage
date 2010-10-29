@@ -41,7 +41,7 @@ void _exit(int ret)
     printk("main returned %d\n", ret);
     stop_kernel();
     if (!ret) {
-	/* No problem, just shutdown.  */
+        /* No problem, just shutdown.  */
         struct sched_shutdown sched_shutdown = { .reason = SHUTDOWN_poweroff };
         HYPERVISOR_sched_op(SCHEDOP_shutdown, &sched_shutdown);
     }
@@ -51,7 +51,6 @@ void _exit(int ret)
 int app_main(start_info_t *si)
 {
     printk("Dummy main: start_info=%p\n", si);
-//    main_thread = create_thread("main", call_main, si);
     call_main(si);
     return 0;
 }

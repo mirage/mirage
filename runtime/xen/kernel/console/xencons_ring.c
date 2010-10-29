@@ -24,23 +24,23 @@ static inline struct xencons_interface *xencons_interface(void)
 } 
  
 int xencons_ring_send_no_notify(void *dev, const char *data, unsigned int len)
-{	
+{    
     int sent = 0;
-	struct xencons_interface *intf;
-	XENCONS_RING_IDX cons, prod;
+    struct xencons_interface *intf;
+    XENCONS_RING_IDX cons, prod;
 
-        intf = xencons_interface();
+    intf = xencons_interface();
 
-	cons = intf->out_cons;
-	prod = intf->out_prod;
-	mb();
-	BUG_ON((prod - cons) > sizeof(intf->out));
+    cons = intf->out_cons;
+    prod = intf->out_prod;
+    mb();
+    BUG_ON((prod - cons) > sizeof(intf->out));
 
-	while ((sent < len) && ((prod - cons) < sizeof(intf->out)))
-		intf->out[MASK_XENCONS_IDX(prod++, intf->out)] = data[sent++];
+    while ((sent < len) && ((prod - cons) < sizeof(intf->out)))
+        intf->out[MASK_XENCONS_IDX(prod++, intf->out)] = data[sent++];
 
-	wmb();
-	intf->out_prod = prod;
+    wmb();
+    intf->out_prod = prod;
     
     return sent;
 }
@@ -57,6 +57,6 @@ int xencons_ring_send(void *dev, const char *data, unsigned int len)
     }
     notify_daemon(dev);
     return sent;
-}	
+}    
 
 

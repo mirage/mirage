@@ -60,45 +60,45 @@ shared_info_t *map_shared_info(unsigned long pa)
 {
     int rc;
 
-	if ( (rc = HYPERVISOR_update_va_mapping(
+    if ( (rc = HYPERVISOR_update_va_mapping(
               (unsigned long)shared_info, __pte(pa | 7), UVMF_INVLPG)) )
-	{
-		printk("Failed to map shared_info!! rc=%d\n", rc);
-		do_exit();
-	}
-	return (shared_info_t *)shared_info;
+    {
+        printk("Failed to map shared_info!! rc=%d\n", rc);
+        do_exit();
+    }
+    return (shared_info_t *)shared_info;
 }
 
 void
 arch_init(start_info_t *si)
 {
-	/* Copy the start_info struct to a globally-accessible area. */
-	/* WARN: don't do printk before here, it uses information from
-	   shared_info. Use xprintk instead. */
-	memcpy(&start_info, si, sizeof(*si));
+    /* Copy the start_info struct to a globally-accessible area. */
+    /* WARN: don't do printk before here, it uses information from
+       shared_info. Use xprintk instead. */
+    memcpy(&start_info, si, sizeof(*si));
 
-	/* set up minimal memory infos */
-	phys_to_machine_mapping = (unsigned long *)start_info.mfn_list;
+    /* set up minimal memory infos */
+    phys_to_machine_mapping = (unsigned long *)start_info.mfn_list;
 
-	/* Grab the shared_info pointer and put it in a safe place. */
-	HYPERVISOR_shared_info = map_shared_info(start_info.shared_info);
+    /* Grab the shared_info pointer and put it in a safe place. */
+    HYPERVISOR_shared_info = map_shared_info(start_info.shared_info);
 
-	    /* Set up event and failsafe callback addresses. */
-	HYPERVISOR_set_callbacks(
-		(unsigned long)hypervisor_callback,
-		(unsigned long)failsafe_callback, 0);
+        /* Set up event and failsafe callback addresses. */
+    HYPERVISOR_set_callbacks(
+        (unsigned long)hypervisor_callback,
+        (unsigned long)failsafe_callback, 0);
 }
 
 void
 arch_fini(void)
 {
-	HYPERVISOR_set_callbacks(0, 0, 0);
+    HYPERVISOR_set_callbacks(0, 0, 0);
 }
 
 void
 arch_print_info(void)
 {
-	printk("  stack:      %p-%p\n", stack, stack + sizeof(stack));
+    printk("  stack:      %p-%p\n", stack, stack + sizeof(stack));
 }
 
 

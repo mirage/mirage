@@ -70,7 +70,8 @@ static unsigned long *alloc_bitmap;
  *  *_off == Bit offset within an element of the `alloc_bitmap' array.
  */
 
-static void map_alloc(unsigned long first_page, unsigned long nr_pages)
+static void
+map_alloc(unsigned long first_page, unsigned long nr_pages)
 {
     unsigned long start_off, end_off, curr_idx, end_idx;
 
@@ -92,7 +93,8 @@ static void map_alloc(unsigned long first_page, unsigned long nr_pages)
 }
 
 
-static void map_free(unsigned long first_page, unsigned long nr_pages)
+static void
+map_free(unsigned long first_page, unsigned long nr_pages)
 {
     unsigned long start_off, end_off, curr_idx, end_idx;
 
@@ -265,8 +267,8 @@ unsigned long alloc_pages(int order)
 
     /* Find smallest order which can satisfy the request. */
     for ( i = order; i < FREELIST_SIZE; i++ ) {
-	if ( !FREELIST_EMPTY(free_head[i]) ) 
-	    break;
+    if ( !FREELIST_EMPTY(free_head[i]) ) 
+        break;
     }
 
     if ( i == FREELIST_SIZE ) goto no_memory;
@@ -379,8 +381,8 @@ void *sbrk(ptrdiff_t increment)
     unsigned long new_brk = old_brk + increment;
 
     if (new_brk > heap_end) {
-	printk("Heap exhausted: %p + %lx = %p > %p\n", old_brk, increment, new_brk, heap_end);
-	return NULL;
+    printk("Heap exhausted: %p + %lx = %p > %p\n", old_brk, increment, new_brk, heap_end);
+    return NULL;
     }
     
     if (new_brk > heap_mapped) {
@@ -441,36 +443,36 @@ void sanity_check(void)
 
 int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages)
 {
-	int i;
-	int order = superpages ? 9:0;
+    int i;
+    int order = superpages ? 9:0;
 
-	if (va & ((1UL<<order)<<PAGE_SHIFT)-1)
-		return -EINVAL;
+    if (va & ((1UL<<order)<<PAGE_SHIFT)-1)
+        return -EINVAL;
 
-	for (i=0; i<(nr_pages<<order); i++)
-		if(need_pgt(va + (i<<PAGE_SHIFT), 0, 0))
-			return -EADDRINUSE;
-	
-	for (i=0; i<nr_pages; i++)
-	{
-		int j = 0;
-		unsigned long mfns[1];
-		unsigned long cva = alloc_contig_pages(order,0);
+    for (i=0; i<(nr_pages<<order); i++)
+        if(need_pgt(va + (i<<PAGE_SHIFT), 0, 0))
+            return -EADDRINUSE;
+    
+    for (i=0; i<nr_pages; i++)
+    {
+        int j = 0;
+        unsigned long mfns[1];
+        unsigned long cva = alloc_contig_pages(order,0);
 
-		if (cva == 0)
-		{
-			DEBUG("%s: alloc_contig_pages failed [i=%d]\n",
-				 __func__,i);
-			return -ENOMEM;
-		}
+        if (cva == 0)
+        {
+            DEBUG("%s: alloc_contig_pages failed [i=%d]\n",
+                 __func__,i);
+            return -ENOMEM;
+        }
 
-		mfns[0] = virt_to_mfn(cva);
-		
-		do_map_frames(va, mfns, 1, 1, 0, DOMID_SELF, 0, L1_PROT |( superpages ? _PAGE_PSE : 0));
+        mfns[0] = virt_to_mfn(cva);
+        
+        do_map_frames(va, mfns, 1, 1, 0, DOMID_SELF, 0, L1_PROT |( superpages ? _PAGE_PSE : 0));
 
-		va += ((1UL<<order)<<PAGE_SHIFT);
-	}
+        va += ((1UL<<order)<<PAGE_SHIFT);
+    }
 
-	return 0;
+    return 0;
 }
 

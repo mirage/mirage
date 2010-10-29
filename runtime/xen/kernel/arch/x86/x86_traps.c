@@ -58,13 +58,13 @@ static void do_trap(int trapnr, char *str, struct pt_regs * regs, unsigned long 
 #define DO_ERROR(trapnr, str, name) \
 void do_##name(struct pt_regs * regs, unsigned long error_code) \
 { \
-	do_trap(trapnr, str, regs, error_code); \
+    do_trap(trapnr, str, regs, error_code); \
 }
 
 #define DO_ERROR_INFO(trapnr, str, name, sicode, siaddr) \
 void do_##name(struct pt_regs * regs, unsigned long error_code) \
 { \
-	do_trap(trapnr, str, regs, error_code); \
+    do_trap(trapnr, str, regs, error_code); \
 }
 
 DO_ERROR_INFO( 0, "divide error", divide_error, FPE_INTDIV, regs->eip)
@@ -104,40 +104,40 @@ void page_walk(unsigned long virt_address)
 
 static int handle_cow(unsigned long addr) {
         pgentry_t *tab = (pgentry_t *)start_info.pt_base, page;
-	unsigned long new_page;
-	int rc;
+    unsigned long new_page;
+    int rc;
 
         page = tab[l4_table_offset(addr)];
-	if (!(page & _PAGE_PRESENT))
-	    return 0;
+    if (!(page & _PAGE_PRESENT))
+        return 0;
         tab = pte_to_virt(page);
 
         page = tab[l3_table_offset(addr)];
-	if (!(page & _PAGE_PRESENT))
-	    return 0;
+    if (!(page & _PAGE_PRESENT))
+        return 0;
         tab = pte_to_virt(page);
 
         page = tab[l2_table_offset(addr)];
-	if (!(page & _PAGE_PRESENT))
-	    return 0;
+    if (!(page & _PAGE_PRESENT))
+        return 0;
         tab = pte_to_virt(page);
         
         page = tab[l1_table_offset(addr)];
-	if (!(page & _PAGE_PRESENT))
-	    return 0;
-	/* Only support CoW for the zero page.  */
-	if (PHYS_PFN(page) != mfn_zero)
-	    return 0;
+    if (!(page & _PAGE_PRESENT))
+        return 0;
+    /* Only support CoW for the zero page.  */
+    if (PHYS_PFN(page) != mfn_zero)
+        return 0;
 
-	new_page = alloc_pages(0);
-	memset((void*) new_page, 0, PAGE_SIZE);
+    new_page = alloc_pages(0);
+    memset((void*) new_page, 0, PAGE_SIZE);
 
-	rc = HYPERVISOR_update_va_mapping(addr & PAGE_MASK, __pte(virt_to_mach(new_page) | L1_PROT), UVMF_INVLPG);
-	if (!rc)
-		return 1;
+    rc = HYPERVISOR_update_va_mapping(addr & PAGE_MASK, __pte(virt_to_mach(new_page) | L1_PROT), UVMF_INVLPG);
+    if (!rc)
+        return 1;
 
-	printk("Map zero page to %lx failed: %d.\n", addr, rc);
-	return 0;
+    printk("Map zero page to %lx failed: %d.\n", addr, rc);
+    return 0;
 }
 
 static void do_stack_walk(unsigned long frame_base)
@@ -146,7 +146,7 @@ static void do_stack_walk(unsigned long frame_base)
     printk("base is %#lx ", frame_base);
     printk("caller is %#lx\n", frame[1]);
     if (frame[0])
-	do_stack_walk(frame[0]);
+    do_stack_walk(frame[0]);
 }
 
 void stack_walk(void)
@@ -160,13 +160,13 @@ static void dump_mem(unsigned long addr)
 {
     unsigned long i;
     if (addr < PAGE_SIZE)
-	return;
+    return;
 
     for (i = ((addr)-16 ) & ~15; i < (((addr)+48 ) & ~15); i++)
     {
-	if (!(i%16))
-	    printk("\n%lx:", i);
-	printk(" %02x", *(unsigned char *)i);
+    if (!(i%16))
+        printk("\n%lx:", i);
+    printk(" %02x", *(unsigned char *)i);
     }
     printk("\n");
 }
@@ -181,7 +181,7 @@ void do_page_fault(struct pt_regs *regs, unsigned long error_code)
     struct sched_shutdown sched_shutdown = { .reason = SHUTDOWN_crash };
 
     if ((error_code & TRAP_PF_WRITE) && handle_cow(addr))
-	return;
+    return;
 
     /* If we are already handling a page fault, and got another one
        that means we faulted in pagetable walk. Continuing here would cause

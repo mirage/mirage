@@ -446,8 +446,8 @@ pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
     offset = l4_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
-	if (do_alloc == 0) return NULL;
-	pt_pfn = virt_to_pfn(alloc_page());
+    if (do_alloc == 0) return NULL;
+    pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L3_FRAME);
     }
     ASSERT(tab[offset] & _PAGE_PRESENT);
@@ -457,7 +457,7 @@ pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
     offset = l3_table_offset(va);
     if ( !(tab[offset] & _PAGE_PRESENT) ) 
     {
-	if (do_alloc == 0) return NULL;
+    if (do_alloc == 0) return NULL;
         pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L2_FRAME);
     }
@@ -467,11 +467,11 @@ pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
     offset = l2_table_offset(va);
 
     if (superpage || tab[offset] & _PAGE_PSE)
-	    return &tab[offset];
+        return &tab[offset];
 
     if ( !(tab[offset] & _PAGE_PRESENT) )
     {
-	if (do_alloc == 0) return NULL;
+    if (do_alloc == 0) return NULL;
         pt_pfn = virt_to_pfn(alloc_page());
         new_pt_frame(&pt_pfn, pt_mfn, offset, L1_FRAME);
     }
@@ -482,7 +482,7 @@ pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
     offset = l1_table_offset(va);
 
     if (do_alloc == 0 && !(tab[offset] & _PAGE_PRESENT))
-	return NULL;
+    return NULL;
     return &tab[offset];
 }
 
@@ -583,7 +583,7 @@ void do_map_frames(unsigned long va,
 
         {
             mmu_update_t mmu_updates[todo];
-			int superpage = prot & _PAGE_PSE;
+            int superpage = prot & _PAGE_PSE;
 
             for ( i = 0; i < todo; i++, va += PAGE_SIZE << (superpage ? 9:0), pgt++) 
             {
@@ -737,17 +737,17 @@ unsigned long alloc_contig_pages(int order, unsigned int addr_bits)
         return 0;
     }
 
-	/* return va immediately if underlying mfn range is contiguous */
-	mfn = virt_to_mfn(in_va);
+    /* return va immediately if underlying mfn range is contiguous */
+    mfn = virt_to_mfn(in_va);
 
-	for (i=1; i<num_pages; i++)
-		if (virt_to_mfn(in_va + (i<<PAGE_SHIFT)) != mfn + i)
-			contig_mfn_range = 0;
+    for (i=1; i<num_pages; i++)
+        if (virt_to_mfn(in_va + (i<<PAGE_SHIFT)) != mfn + i)
+            contig_mfn_range = 0;
 
-	if (contig_mfn_range)
-		return in_va;
+    if (contig_mfn_range)
+        return in_va;
 
-	/* set up arguments for exchange hyper call */
+    /* set up arguments for exchange hyper call */
     set_xen_guest_handle(exchange.in.extent_start, in_frames);
     set_xen_guest_handle(exchange.out.extent_start, &out_frames);
 

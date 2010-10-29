@@ -72,8 +72,15 @@ Notes
 + `mir` currently only works from within tree, i.e., the root
   directory of your copy of the git repo.
 
++ Currently, lib/Makefile.common defines a BUILD_OS variable that
+  is set to either `unix` or `xen`. This decides which version of the
+  standard OS library to compile the other dependent libraries against
+  (e.g. the networking library). This is temporary until ocamlbuild
+  integration is finished, so if you want to switch between OS backends,
+  do a `make clean` in `lib/` and change the BUILD_OS variable.
+
 + Errors about "inconsistent assumptions over types" are likely due to
-  mismatches between parts of the installed libraries.  `rm -rf
-  $(PREFIX)/*` and `make clean` for your local value of $(PREFIX)
-  before `make rebootstrap`.
+  mismatches between parts of the built libraries. Just do a `make clean`
+  in `lib/` and `make` to get a fresh build. Against, this is temporary
+  until a proper build system is in place.
 

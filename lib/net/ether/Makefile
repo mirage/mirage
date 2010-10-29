@@ -1,7 +1,7 @@
 ROOTDIR=../../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=lwt net/api net/mpl os/unix
+DEPENDS=lwt net/api net/mpl os/$(BUILD_OS)
 SOURCES=checksum.ml ethif.ml arp.mli arp.ml ipv4.mli ipv4.ml icmp.ml udp.mli udp.ml tcp.mli tcp.ml 
 
 TARGET=mlnet

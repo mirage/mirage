@@ -4,6 +4,8 @@ else
 SYNTAX=
 endif
 
+BUILD_OS ?= unix
+
 STDLIB=$(ROOTDIR)/lib/std/native
 STDLIB_JS=$(ROOTDIR)/lib/std/js
 LWT=$(ROOTDIR)/lib/std/lwt

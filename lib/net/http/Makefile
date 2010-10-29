@@ -1,7 +1,7 @@
 ROOTDIR=../../../
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=os/unix net/api net/socket/unix
+DEPENDS=os/$(BUILD_OS) net/api net/socket/unix
 FILES = http_types http_constants http_misc base64 http_url http_common http_parser_sanity \
 	http_parser http_user_agent http_message http_response http_request http_cookie \
  	http_daemon

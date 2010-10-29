@@ -1,7 +1,7 @@
 ROOTDIR=../../..
 include $(ROOTDIR)/mk/ocaml.mk
 
-DEPENDS=os/unix net/api net/mpl net/ether 
+DEPENDS=os/$(BUILD_OS) net/api net/mpl net/ether 
 SOURCES=option.ml client.ml
 TARGET=dhcp
 

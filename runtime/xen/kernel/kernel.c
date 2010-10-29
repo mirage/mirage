@@ -104,15 +104,6 @@ void start_kernel(start_info_t *si)
     /* Init time and timers. */
     init_time();
 
- //   /* Init the console driver. */
-    //init_console();
-
-    /* Init grant tables */
-    //init_gnttab();
-    
-//    /* Init XenBus */
-    //init_xenbus();
-
     /* Call (possibly overridden) app_main() */
     app_main(&start_info);
 }

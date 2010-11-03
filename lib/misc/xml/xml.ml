@@ -63,7 +63,6 @@ module type S = sig
   val error_message : error -> string      
 
   type source = [ 
-    | `Channel of in_channel 
     | `String of int * std_string 
     | `Fun of (unit -> int) ]
 
@@ -87,7 +86,7 @@ module type S = sig
 
   type 'a frag = [ `El of tag * 'a list | `Data of string ]
   type dest = [ 
-    | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
+    `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output
   val make_output : ?nl:bool -> ?indent:int option -> 
@@ -300,7 +299,6 @@ struct
     | Eoi            (* End of input *)
 	
   type source = [ 
-    | `Channel of in_channel 
     | `String of int * std_string
     | `Fun of (unit -> int) ]
 
@@ -937,7 +935,7 @@ struct
 
   type 'a frag = [ `El of tag * 'a list | `Data of string ]
   type dest = [ 
-    | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
+    `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output = 
       { nl : bool;                (* True if a newline is output at the end. *)

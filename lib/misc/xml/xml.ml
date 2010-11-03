@@ -340,7 +340,6 @@ struct
                  ?(entity = fun _ -> None) src = 
     let i = match src with
     | `Fun f -> f 
-    | `Channel ic -> fun () -> input_byte ic 
     | `String (pos, s) -> 
 	let len = Std_string.length s in
 	let pos = ref (pos - 1) in
@@ -957,7 +956,6 @@ struct
 
   let make_output ?(nl = false) ?(indent = None) ?(ns_prefix = fun _ ->None) d =
     let outs, outc = match d with 
-    | `Channel c -> (output c), (output_char c)
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
     | `Fun f -> 
 	let os s p l = 

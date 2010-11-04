@@ -4,6 +4,7 @@ Mirage has been tested on:
 - MacOS X 10.5 Snow Leopard x86_32
 
 To build it, you must first:
+
 1. Bootstrap the compiler toolchain
 2. Build the tools
 3. Build the core libraries

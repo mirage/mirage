@@ -42,11 +42,9 @@ let rec next_string = function
   | _               -> None
 
 (* XXX: make it complete *)
-let matching = Str.regexp "<\\|>\\|é\\|ë\\|è\\|à"
+let matching = Str.regexp "é\\|ë\\|è\\|à"
 let encoding str =
   match Str.matched_string str with
-    | "<" -> "&lt"
-    | ">" -> "&gt"
     | "é" -> "&eacute;"
     | "ë" -> "&euml;"
     | "è" -> "&egrave;"

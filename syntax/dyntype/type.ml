@@ -20,10 +20,11 @@ open Printf
 type t =
   | Unit | Bool | Float | Char | String
   | Int of int option
-  | Enum of t
+  | List of t
+  | Array of t
   | Tuple of t list
-  | Dict of (string * [`RW|`RO] * t) list
-  | Sum of (string * t list) list
+  | Dict of [`R|`O] * (string * [`RW|`RO] * t) list
+  | Sum of [`P|`N] * (string * t list) list
   | Option of t
   | Rec of string * t
   | Var of string
@@ -34,10 +35,11 @@ type t =
 let is_mutable t =
   let rec aux = function
     | Unit | Int _ | Bool | Float | Char | String -> false
-    | Enum t    -> aux t
+    | List t    -> aux t
+    | Array t   -> aux t
     | Tuple tl  -> List.exists aux tl
-    | Dict tl   -> List.exists (fun (_,m,t) -> m = `RW || aux t) tl
-    | Sum tl    -> List.exists (fun (_,tl) -> List.exists aux tl) tl
+    | Dict(_,tl)-> List.exists (fun (_,m,t) -> m = `RW || aux t) tl
+    | Sum (_,tl)-> List.exists (fun (_,tl) -> List.exists aux tl) tl
     | Option t  -> aux t
     | Rec (n,t) -> aux t
     | Var n     -> false
@@ -52,11 +54,12 @@ let free_vars t =
     | Var n when List.mem n accu
                 -> accu
     | Var n     -> n :: accu
-    | Enum t
+    | List t
+    | Array t
     | Option t  -> aux accu t
     | Tuple ts  -> List.fold_left aux accu ts
-    | Dict ts   -> List.fold_left (fun accu (_,_,t) -> aux accu t) accu ts
-    | Sum ts    -> List.fold_left (fun accu (_,t) -> List.fold_left aux accu t) accu ts
+    | Dict(_,ts)-> List.fold_left (fun accu (_,_,t) -> aux accu t) accu ts
+    | Sum (_,ts)-> List.fold_left (fun accu (_,t) -> List.fold_left aux accu t) accu ts
     | Unit | Int _ | Bool | Float | Char | String
                  -> accu
     | Arrow(t,s) -> aux (aux accu t) s
@@ -74,11 +77,12 @@ let foreigns t =
     | Var n when List.mem n accu
                 -> accu
     | Var n     -> n :: accu
-    | Enum t
+    | List t
+    | Array t
     | Option t  -> aux accu t
     | Tuple ts  -> List.fold_left aux accu ts
-    | Dict ts   -> List.fold_left (fun accu (_,_,t) -> aux accu t) accu ts
-    | Sum ts    -> List.fold_left (fun accu (_,t) -> List.fold_left aux accu t) accu ts
+    | Dict(_,ts)-> List.fold_left (fun accu (_,_,t) -> aux accu t) accu ts
+    | Sum (_,ts)-> List.fold_left (fun accu (_,t) -> List.fold_left aux accu t) accu ts
     | Unit | Int _ | Bool | Float | Char | String
                  -> accu
     | Arrow(t,s) -> aux (aux accu t) s in
@@ -95,10 +99,11 @@ let unroll env t =
                  -> aux name (List.assoc n env)
     | Var _ | Unit | Int _ | Bool | Float | Char | String as t
                  -> t
-    | Enum t     -> Enum (aux name t)
+    | List t     -> List (aux name t)
+    | Array t    -> Array (aux name t)
     | Tuple tl   -> Tuple (List.map (aux name) tl)
-    | Dict tl    -> Dict (List.map (fun (n, m, t) -> (n, m, aux name t)) tl)
-    | Sum tl     -> Sum (List.map (fun (n, tl) -> (n, List.map (aux name) tl)) tl)
+    | Dict(t,tl) -> Dict (t,List.map (fun (n, m, t) -> (n, m, aux name t)) tl)
+    | Sum (t,tl) -> Sum (t,List.map (fun (n, tl) -> (n, List.map (aux name) tl)) tl)
     | Option t   -> Option (aux name t)
 	| Arrow(s,t) -> Arrow (aux name s, aux name t) in
   match t with
@@ -107,17 +112,20 @@ let unroll env t =
 
 let map_strings sep fn l = String.concat sep (List.map fn l)
 
-let rec to_string t = match t with                                                                    
+let rec to_string t = match t with
   | Unit       -> "U"
   | Int x      -> "I" ^ (match x with None -> "" | Some n -> sprintf "%02d" n)
   | Bool       -> "B"
   | Float      -> "F"
   | Char       -> "C"
   | String     -> "S"
-  | Enum t     -> sprintf "[%s]" (to_string t)
+  | List t     -> sprintf "[%s]" (to_string t)
+  | Array t    -> sprintf "!%s|" (to_string t)
   | Tuple ts   -> sprintf "(%s)" (map_strings "*" to_string ts)
-  | Dict ts    -> sprintf "{%s}" (map_strings "*" (fun (s,m,t) -> sprintf "%s:%s:%s" s (if m = `RO then "I" else "M") (to_string t)) ts)
-  | Sum ts     -> sprintf "<%s>" (map_strings "*" (fun (s,t) -> sprintf "%s:(%s)" s (map_strings "*" to_string t)) ts)
+  | Dict(`R,ts)-> sprintf "{R%s}" (map_strings "*" (fun (s,m,t) -> sprintf "%s:%s:%s" s (if m = `RO then "I" else "M") (to_string t)) ts)
+  | Dict(`O,ts)-> sprintf "{O%s}" (map_strings "*" (fun (s,m,t) -> sprintf "%s:%s:%s" s (if m = `RO then "I" else "M") (to_string t)) ts)
+  | Sum (`P,ts)-> sprintf "<P%s>" (map_strings "*" (fun (s,t) -> sprintf "%s:(%s)" s (map_strings "*" to_string t)) ts)
+  | Sum (`N,ts)-> sprintf "<N%s>" (map_strings "*" (fun (s,t) -> sprintf "%s:(%s)" s (map_strings "*" to_string t)) ts)
   | Option t   -> sprintf "?%s" (to_string t)
   | Rec (n,t)  -> sprintf "R@%s@%s" n (to_string t)
   | Var n      -> sprintf "@%s" n
@@ -147,12 +155,13 @@ let is_subtype_of (t1:t) (t2:t) =
       | Rec (n,tt) , Rec (m,ss) -> n = m && tt <: ss
       | Ext (n,tt) , Ext (m,ss) -> n = m && tt <: ss
       | Var v      , Var w      -> v = w
-      | Enum tt    , Enum ss    -> tt <: ss
+      | List tt    , List ss    -> tt <: ss
+      | Array tt   , Array ss   -> tt <: ss
       | Option tt  , Option ss  -> tt <: ss
       | Option tt  , _          -> tt <: s
       | Tuple ts   , Tuple ss   -> List.for_all2 (<:) ts ss
-      | Dict ts    , Dict ss    -> List.for_all (fun (x1,_,y1) -> List.exists (fun (x2,m,y2) -> m=m && x1=x2 && y1 <: y2) ss) ts
-      | Sum ts     , Sum ss     ->
+      | Dict(_,ts) , Dict(_,ss) -> List.for_all (fun (x1,_,y1) -> List.exists (fun (x2,m,y2) -> m=m && x1=x2 && y1 <: y2) ss) ts
+      | Sum (_,ts) , Sum (_,ss) ->
         List.for_all (fun (x2,y2) -> List.exists (fun (x1,y1) -> x1=x2 && List.for_all2 (<:) y1 y2) ts) ss
         && List.for_all (fun (x1,_) -> List.exists (fun (x2,_) -> x1=x2) ss) ts (* TODO: this can be improved later *)
       | Unit, Unit
@@ -183,8 +192,8 @@ let index_par c s =
   let i = ref 0 in
   let n = String.length s in
   while !res = None && !i < n do
-    if s.[!i] = '(' || s.[!i] = '[' || s.[!i] = '{' || s.[!i] = '<' then incr par;
-    if s.[!i] = ')' || s.[!i] = ']' || s.[!i] = '}' || s.[!i] = '>' then decr par;
+    if s.[!i] = '(' || s.[!i] = '[' || s.[!i] = '{' || s.[!i] = '<' || s.[!i] = '!' then incr par;
+    if s.[!i] = ')' || s.[!i] = ']' || s.[!i] = '}' || s.[!i] = '>' || s.[!i] = '|' then decr par;
     if !par = 0 && s.[!i] = c then res := Some !i;
     incr i
   done;
@@ -210,7 +219,9 @@ let split_par ?limit c s =
   aux 1 s
 
 exception Parse_error of string
-let parse_error s = raise (Parse_error s)
+let parse_error s =
+  Printexc.print_backtrace stderr;
+  raise (Parse_error s)
 
 let rec of_string s : t  = match s.[0] with
   | 'U' -> Unit
@@ -222,22 +233,27 @@ let rec of_string s : t  = match s.[0] with
   | 'S' -> String
   | '[' ->
     let s = String.sub s 1 (String.length s - 2) in
-    Enum (of_string s)
+    List (of_string s)
+  | '!' ->
+    let s = String.sub s 1 (String.length s - 2) in
+    Array (of_string s)
   | '(' ->
     let s = String.sub s 1 (String.length s - 2) in
     let ss = split_par '*' s in
     Tuple (List.map of_string ss)
   | '{' ->
-    let s = String.sub s 1 (String.length s - 2) in
+    let kind = match s.[1] with 'R' -> `R | 'O' -> `O | _ -> parse_error s in
+    let s = String.sub s 2 (String.length s - 3) in
     let ss = split_par '*' s in
     let ss = List.map (split_par ~limit:3 ':') ss in
     let ss = List.map (fun x -> match x with 
       | [s;"I";t] -> (s, `RO, of_string t) 
       | [s;"M";t] -> (s, `RW, of_string t) 
       | _ -> parse_error s) ss in
-    Dict ss
+    Dict (kind,ss)
   | '<' ->
-    let s = String.sub s 1 (String.length s - 2) in
+    let kind = match s.[1] with 'P' -> `P | 'N' -> `N | _ -> parse_error s in
+    let s = String.sub s 2 (String.length s - 3) in
     let ss = split_par '*' s in
     let ss = List.map (split_par ~limit:2 ':') ss in
     let ss = List.map (fun x -> match x with
@@ -246,7 +262,7 @@ let rec of_string s : t  = match s.[0] with
         let t = String.sub t 1 (String.length t - 2) in
         (s, List.map of_string (split_par '*' t))
       | _ -> parse_error s) ss in
-    Sum ss
+    Sum (kind,ss)
   | '?' -> Option (of_string (String.sub s 1 (String.length s - 1)))
   | 'R' ->
      begin match split_par ~limit:3 '@' s with

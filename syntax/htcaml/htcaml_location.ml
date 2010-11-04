@@ -1,6 +1,5 @@
-(*pp camlp4orf *)
 (*
- * Copyright (c) 2009 Thomas Gazagnaire <thomas@gazagnaire.com>
+ * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,15 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Type generator *)
+open Camlp4.PreCast
 
-open Camlp4
-open PreCast
-open Ast
+let current = ref Loc.ghost
 
-open Pa_type_conv
+let set l = current := l
 
-let _ =
-	add_generator "value" (fun tds ->
-		let _loc = loc_of_ctyp tds in
-		<:str_item< $P4_value.gen tds$ >>)
+let get () = !current
+
+let shift n =
+  current := Loc.shift n !current
+
+let newline () =
+  current := Loc.move_line 1 !current

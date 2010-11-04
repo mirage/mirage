@@ -5,7 +5,7 @@ CAMLP4ORF ?= camlp4orf
 all: pa_dyntype.cma
 	@ :
 
-SOURCES=value.ml p4_value.ml pa_value.ml type.ml p4_type.ml pa_type.ml
+SOURCES=value.ml p4_helpers.ml p4_value.ml pa_value.ml type.ml p4_type.ml pa_type.ml
 CMIS=value.cmi type.cmi
 CMOS=$(patsubst %.ml,%.cmo,$(SOURCES))
 INC=-I +camlp4 -I ../type-conv

@@ -21,6 +21,7 @@
 open Camlp4
 open PreCast
 open Ast
+open P4_helpers
 
 let value_of n = "value_of_" ^ n
 let of_value n = n ^ "_of_value"
@@ -28,9 +29,8 @@ let of_value n = n ^ "_of_value"
 let of_value_aux n = n ^ "_of_value_aux"
 let value_of_aux n = "value_of_" ^ n ^ "_aux"
 
-let get_new_id n = "new_id_for_" ^ n
-let set_new_id n = "set_new_id_for_" ^ n
-let new_id_ref n = n ^ "__new_id__"
+let gen_id      n = "gen_" ^ n ^ "_id"
+let init_gen_id n = "init_gen_id_" ^ n
 
 (* Utils *)
 
@@ -53,26 +53,6 @@ let rec decompose_fields _loc fields =
 	| <:ctyp< $lid:field_name$: mutable $t$ >> | <:ctyp< $lid:field_name$: $t$ >> ->
 		[ field_name, t ]
 	| _ -> failwith "unexpected type while processing fields"
-
-let expr_list_of_list _loc exprs =
-	match List.rev exprs with
-	| []   -> <:expr< [] >>
-	| h::t -> List.fold_left (fun accu x -> <:expr< [ $x$ :: $accu$ ] >>) <:expr< [ $h$ ] >> t 
-
-let patt_list_of_list _loc patts =
-	match List.rev patts with
-	| []   -> <:patt< [] >>
-	| h::t -> List.fold_left (fun accu x -> <:patt< [ $x$ :: $accu$ ] >>) <:patt< [ $h$ ] >> t
-
-let expr_tuple_of_list _loc = function
-	| []   -> <:expr< >>
-	| [x]  -> x
-	| h::t -> ExTup (_loc, List.fold_left (fun accu n -> <:expr< $accu$, $n$ >>) h t)
-
-let patt_tuple_of_list _loc = function
-	| []   -> <:patt< >>
-	| [x]  -> x
-	| h::t -> PaTup (_loc, List.fold_left (fun accu n -> <:patt< $accu$, $n$ >>) h t)
 
 let decompose_variants _loc variant =
 	let rec fn accu = function
@@ -120,35 +100,17 @@ module Value_of = struct
 		else
 			<:expr< { (__env__) with Deps.$lid:t$ = [ ($id$, __id__) :: __env__.Deps.$lid:t$ ] } >>
 
-	let new_id_fns _loc names =
-		let binding_tbl n = <:binding< $lid:new_id_ref n$ : ref (option (string -> $lid:n$ -> int64)) = ref None >> in
-		let binding_set n = <:binding< $lid:set_new_id n$ fn = $lid:new_id_ref n$.val := Some fn >> in
-		let binding n =
-			<:binding< $lid:get_new_id n$ key =
-			match $lid:new_id_ref n$.val with [
-			  None   -> failwith (Printf.sprintf "value_of_%s: No new_id function have been registered for the key '%s'" $str:n$ key)
-			| Some f -> f key ]
-			>> in
-		let set_exprs = List.map (fun n -> <:expr< $lid:set_new_id n$ >>) names in
-		let set_patts = List.map (fun n -> <:patt< $lid:set_new_id n$ >>) names in
-		let new_id_exprs = List.map (fun n -> <:expr< $lid:get_new_id n$ >>) names in
-		let new_id_patts = List.map (fun n -> <:patt< $lid:get_new_id n$ >>) names in
-		<:binding< $patt_tuple_of_list _loc (set_patts @ new_id_patts)$ =
-			let $biAnd_of_list (List.map binding_tbl names)$ in
-			let $biAnd_of_list (List.map binding_set names)$ in
-			let $biAnd_of_list (List.map binding names)$ in
-			$expr_tuple_of_list _loc (set_exprs @ new_id_exprs)$
+
+	let gen_id_default _loc n =
+		<:expr< fun $lid:n$ -> do { id_seed.val := Int64.add id_seed.val 1L; id_seed.val }
 		>>
 
-	let new_id_fns_no_key _loc names =
-		let binding n = <:binding< $lid:get_new_id n$ =
- 			let count = ref 0L in
-			let __fresh__id__ _ _ =
-				do { count.val := Int64.add count.val 1L; count.val } in
-				__fresh__id__ >> in
-		biAnd_of_list (List.map binding names)
+	let gen_binding _loc gen_id_fn n = 
+		<:binding< $lid:gen_id n$ = fun ~id_seed -> $gen_id_fn _loc n$ >>
 
-	let rec create ~with_key names id ctyp =
+	let id_seed_default _loc = Some <:expr< ref 0L >>,  <:ctyp< ref Int64.t >>
+
+	let rec create names id ctyp =
 		let _loc = loc_of_ctyp ctyp in
 		match ctyp with
 		| <:ctyp< unit >>    -> <:expr< V.Unit >>
@@ -164,19 +126,19 @@ module Value_of = struct
 			let ids, ctyps = decompose_variants _loc t in
 			let pattern (n, t) ctyps =
 				let ids, pids = new_id_list _loc ctyps in
-				let body = <:expr< V.Sum ( $str:n$, $expr_list_of_list _loc (List.map2 (create ~with_key names) ids ctyps)$ ) >> in
+				let body = <:expr< V.Sum ( $str:n$, $expr_list_of_list _loc (List.map2 (create names) ids ctyps)$ ) >> in
 				<:match_case< $recompose_variant _loc (n,t) pids$ -> $body$ >> in
 			let patterns = mcOr_of_list (List.map2 pattern ids ctyps) in
 			<:expr< match $id$ with [ $patterns$ ] >>
 
 		| <:ctyp< option $t$ >> ->
 			let new_id, new_pid = new_id _loc in
-			<:expr< match $id$ with [ Some $new_pid$ -> V.Value $create ~with_key names new_id t$ | None -> V.Null ] >> 
+			<:expr< match $id$ with [ Some $new_pid$ -> V.Value $create names new_id t$ | None -> V.Null ] >> 
 
 		| <:ctyp< $tup:tp$ >> ->
 			let ctyps = list_of_ctyp tp [] in
 			let ids, pids = new_id_list _loc ctyps in
-			let exprs = List.map2 (create ~with_key names) ids ctyps in
+			let exprs = List.map2 (create names) ids ctyps in
 			<:expr<
 				let $patt_tuple_of_list _loc pids$ = $id$ in
 				V.Tuple $expr_list_of_list _loc exprs$
@@ -184,17 +146,17 @@ module Value_of = struct
 
 		| <:ctyp< list $t$ >> ->
 			let new_id, new_pid = new_id _loc in
-			<:expr< V.Enum (List.map (fun $new_pid$ -> $create ~with_key names new_id t$) $id$) >>
+			<:expr< V.Enum (List.map (fun $new_pid$ -> $create names new_id t$) $id$) >>
 
 		| <:ctyp< array $t$ >> ->
 			let new_id, new_pid = new_id _loc in
-			<:expr< V.Enum (Array.to_list (Array.map (fun $new_pid$ -> $create ~with_key names new_id t$) $id$)) >>
+			<:expr< V.Enum (Array.to_list (Array.map (fun $new_pid$ -> $create names new_id t$) $id$)) >>
 
 		| <:ctyp< { $t$ } >> ->
 			let fields = decompose_fields _loc t in
             let ids, pids = new_id_list _loc fields in
 			let bindings = List.map2 (fun pid (f, _) -> <:binding< $pid$ = $id$ . $lid:f$ >>) pids fields in
-			let one_expr nid (n, ctyp) = <:expr< ($str:n$, $create ~with_key names nid ctyp$) >> in
+			let one_expr nid (n, ctyp) = <:expr< ($str:n$, $create names nid ctyp$) >> in
 			let expr = <:expr< V.Dict $expr_list_of_list _loc (List.map2 one_expr ids fields)$ >> in
 			<:expr< let $biAnd_of_list bindings$ in $expr$ >>
 
@@ -202,7 +164,7 @@ module Value_of = struct
 			let fields = decompose_fields _loc t in
             let ids, pids = new_id_list _loc fields in
 			let bindings = List.map2 (fun pid (f, _) -> <:binding< $pid$ = $id$ # $lid:f$ >>) pids fields in
-			let one_expr nid (n, ctyp) = <:expr< ($str:n$, $create ~with_key names nid ctyp$) >> in
+			let one_expr nid (n, ctyp) = <:expr< ($str:n$, $create names nid ctyp$) >> in
 			let expr = <:expr< V.Dict $expr_list_of_list _loc (List.map2 one_expr ids fields)$ >> in
 			<:expr< let $biAnd_of_list bindings$ in $expr$ >>
 
@@ -210,17 +172,14 @@ module Value_of = struct
 
 		| <:ctyp< $lid:t$ >> ->
 			if not (List.mem t names) then
-				if with_key then
-					<:expr< $lid:value_of t$ ~key:__key__ $id$ >>
-				else
-					<:expr< $lid:value_of t$ $id$ >>
+				<:expr< $lid:value_of t$ ~id_seed $id$ >>
 			else
 				<:expr<
 					if List.mem_assq $id$ __env__.Deps.$lid:t$
 					then V.Var ($str:t$, List.assq $id$ __env__.Deps.$lid:t$)
 					else begin
-						let __id__ = $lid:get_new_id t$ __key__ $id$ in
-						let __value__ = $lid:value_of_aux t$ __key__ $replace_env _loc names id t$ $id$ in
+						let __id__ = $lid:gen_id t$ ~id_seed $id$ in
+						let __value__ = $lid:value_of_aux t$ ~id_seed $replace_env _loc names id t$ $id$ in
 						if List.mem ($str:t$, __id__) (V.free_vars __value__) then
 							V.Rec (($str:t$, __id__), __value__)
 						else
@@ -229,61 +188,49 @@ module Value_of = struct
 
 		| _ -> raise (Type_not_supported ctyp)
 
-	let gen_one ~with_key names name ctyp =
+	let gen_one names name ctyp =
 		let _loc = loc_of_ctyp ctyp in
 		let id, pid = new_id _loc in
 		<:binding< $lid:value_of_aux name$ =
-			fun __key__ -> fun __env__ -> fun $pid$ ->
-				let module V = Value in $create ~with_key names id ctyp$
+			fun ~id_seed -> fun __env__ -> fun $pid$ ->
+				let module V = Value in
+				$create names id ctyp$
 		>>
 
-	let gen ?(with_key=false) tds =
+	let gen tds =
 		let _loc = loc_of_ctyp tds in
 		let ids, ctyps = List.split (list_of_ctyp_decl tds) in
-		let bindings = List.map2 (gen_one ~with_key ids) ids ctyps in
+		let bindings = List.map2 (gen_one ids) ids ctyps in
 		biAnd_of_list bindings
 
-	let inputs _loc ?(with_key=false) ids =
+	let inputs _loc ~id_seed_t ~opt ids =
 		let value_of_fn x =
-			if with_key then
-				<:patt< ($lid:value_of x$ : ~key:string -> $lid:x$ -> Value.t) >>
+			if opt then
+				<:patt< ($lid:value_of x$ : ?id_seed:$id_seed_t$ -> $lid:x$ -> Value.t) >>
 			else
-				<:patt< ($lid:value_of x$ : $lid:x$ -> Value.t) >> in
+				<:patt< ($lid:value_of x$ : ~id_seed:$id_seed_t$ -> $lid:x$ -> Value.t) >> in
 		let value_of_fns = List.map value_of_fn ids in
-		let set_new_id_fns =
-			if with_key then
-				List.map (fun x -> <:patt< ($lid:set_new_id x$ : (string -> $lid:x$ -> int64) -> unit) >>) ids
-			else
-				[] in
-		patt_tuple_of_list _loc (value_of_fns @ set_new_id_fns)
+		patt_tuple_of_list _loc value_of_fns
 
-	let outputs _loc ?(with_key=false) ids =
-		let set_new_id_fns =
-			if with_key then
-				List.map (fun x -> <:expr< $lid:set_new_id x$ >>) ids
-			else
-				[] in
+	let outputs _loc ?id_seed ids =
 		let value_of_fn x =
 			let xe, xp = new_id _loc in
-			let key = if with_key then <:expr< key >> else <:expr< "" >> in
-			<:expr<
-				fun $xp$ ->
+			let body =
+				<:expr< fun $xp$ ->
 					let __env__ = $empty_env _loc ids$ in
-					let __id__ = $lid:get_new_id x$ $key$ $xe$ in
+					let __id__ = $lid:gen_id x$ ~id_seed $xe$ in
 					let __env__ = $replace_env _loc ids <:expr< $xe$ >> x$ in
-					let __x__ = $lid:value_of_aux x$ $key$ __env__ $xe$ in
+					let __x__ = $lid:value_of_aux x$ ~id_seed __env__ $xe$ in
 					if List.mem ($str:x$, __id__) (Value.free_vars __x__) then
 						Value.Rec (($str:x$, __id__), __x__)
 					else
-						Value.Ext (($str:x$, $lid:get_new_id x$ $key$ $xe$), __x__)
+						Value.Ext (($str:x$, $lid:gen_id x$ ~id_seed $xe$), __x__)
 			>> in
-		let value_of_fn x =
-			if with_key then
-				<:expr< fun ~key -> $value_of_fn x$ >>
-			else
-				value_of_fn x in
+			match id_seed with
+			| None   -> <:expr< fun ~id_seed -> $body$ >>
+			| Some d -> <:expr< fun ?(id_seed = $d$) -> $body$ >> in 
 		let value_of_fns = List.map value_of_fn ids in
-		expr_tuple_of_list _loc (value_of_fns @ set_new_id_fns)
+		expr_tuple_of_list _loc value_of_fns
 
 end
 
@@ -367,18 +314,14 @@ module Of_value = struct
 			let nid, npid = new_id _loc in
 			let nid2, npid2 = new_id _loc in
 			<:expr< match $id$ with
-				[   V.Enum $npid$ -> List.map (fun $npid2$ -> $create names nid2 t$) $nid$ 
-                                  | V.Null -> []
-                                  | $runtime_error id "List"$ ]
+				[ V.Enum $npid$ -> List.map (fun $npid2$ -> $create names nid2 t$) $nid$ | $runtime_error id "List"$ ]
 			>>
 
 		| <:ctyp< array $t$ >> ->
 			let nid, npid = new_id _loc in
 			let nid2, npid2 = new_id _loc in
 			<:expr< match $id$ with
-				[   V.Enum $npid$ -> Array.of_list (List.map (fun $npid2$ -> $create names nid2 t$) $nid$) 
-                                  | V.Null -> [||]
-                                  | $runtime_error id "List"$ ]
+				[ V.Enum $npid$ -> Array.of_list (List.map (fun $npid2$ -> $create names nid2 t$) $nid$) | $runtime_error id "List"$ ]
 			>>
 
 		| <:ctyp< { $t$ } >> ->
@@ -473,17 +416,18 @@ module Of_value = struct
 		expr_tuple_of_list _loc of_value_fns
 end
 
-let gen tds =
+let gen ?(gen_id=Value_of.gen_id_default) ?(id_seed=Value_of.id_seed_default) tds =
 	let _loc = loc_of_ctyp tds in
 	let ids, _ = List.split (list_of_ctyp_decl tds) in
+	let id_seed, id_seed_t = id_seed _loc in
 	<:str_item<
-		value $Value_of.inputs _loc ids$ =
+		value $Value_of.inputs _loc ~id_seed_t ~opt:(id_seed<>None) ids$ =
 			let module Deps = struct
 				type env = $Value_of.env_type _loc ids$;
 			end in
-			let $Value_of.new_id_fns_no_key _loc ids$ in
+			let $biAnd_of_list (List.map (Value_of.gen_binding _loc gen_id) ids)$ in
 			let rec $Value_of.gen tds$ in
-			$Value_of.outputs _loc ids$;
+			$Value_of.outputs _loc ?id_seed ids$;
 		value $Of_value.inputs _loc ids$ =
 			let module Deps = struct
 				type env = $Of_value.env_type _loc ids$;
@@ -494,24 +438,4 @@ let gen tds =
 			$Of_value.outputs _loc ids$;
 	>>
 
-let gen_with_key tds =
-	let _loc = loc_of_ctyp tds in
-	let ids, _ = List.split (list_of_ctyp_decl tds) in
-	<:str_item<
-		value $Value_of.inputs _loc ~with_key:true ids$ =
-			let module Deps = struct
-				type env = $Value_of.env_type _loc ids$;
-			end in
-			let $Value_of.new_id_fns _loc ids$ in
-			let rec $Value_of.gen ~with_key:true tds$ in
-			$Value_of.outputs _loc ~with_key:true ids$;
-		value $Of_value.inputs _loc ids$ =
-			let module Deps = struct
-				type env = $Of_value.env_type _loc ids$;
-				exception Runtime_error of (string * Value.t);
-				exception Runtime_exn_error of (string * exn);
-			end in
-			let rec $Of_value.gen tds$ in
-			$Of_value.outputs _loc ids$;
-	>>
 

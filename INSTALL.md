@@ -4,9 +4,9 @@ Mirage has been tested on:
 - MacOS X 10.5 Snow Leopard x86_32
 
 To build it, you must first:
-1) Bootstrap the compiler toolchain
-2) Build the tools
-3) Build the core libraries
+1. Bootstrap the compiler toolchain
+2. Build the tools
+3. Build the core libraries
 
 Bootstrap
 ---------
@@ -21,14 +21,14 @@ variable to all the make targets.
 Before starting, add the $PREFIX/bin to head of your PATH variable
 and make sure it is active in your build shell.
 
-$ make PREFIX=<location> bootstrap
+    make PREFIX=<location> bootstrap
 
 Tools
 -----
 
 This installs the build tools and syntax extensions into the install PREFIX.
 
-$ make PREFIX=<location> tools
+    make PREFIX=<location> tools
 
 The tools include the 'mir' build utility, a custom version of
 ocamldsort to help with dependency management, and the MPL protocol
@@ -37,7 +37,7 @@ specification meta-compiler.
 Libraries
 ---------
 
-$ make
+    make
 
 This will build the OCaml libraries and the Xen custom runtime, if
 appropriate for the build platform.  You require 64-bit Linux to
@@ -50,15 +50,21 @@ For now, the mir tool must be run in the mirage.git base directory
 only.
 
 Build a Xen kernel in-tree:
-$ mir -os xen tests/basic/sleep
+
+    mir -os xen tests/basic/sleep
+
 output will be in tests/basic/sleep/mirage-os.gz
 
 Build a UNIX binary in-tree:
-$ mir -os unix tests/basic/sleep
+
+    mir -os unix tests/basic/sleep
+
 output will be in tests/sleep/mirage-unix
 
 Build a Javascript bundle in-tre:
-$ mir -os browser tests/basic/sleep
+
+    mir -os browser tests/basic/sleep
+
 output will be in tests/sleep/app.html
 
 This runs a simple interlocking sleep test which tries out the

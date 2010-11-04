@@ -21,7 +21,7 @@ htcaml/%.cma:
 
 LWT_SOURCES=pa_lwt
 TC_SOURCES=pa_type_conv
-DYNTYPE_SOURCES=type value p4_type p4_value pa_type pa_value
+DYNTYPE_SOURCES=type value p4_helpers p4_type p4_value pa_type pa_value
 SOURCES=$(LWT_SOURCES:%=lwt/%) $(TC_SOURCES:%=type-conv/%) $(DYNTYPE_SOURCES:%=dyntype/%)
 pa_mirage.cma: $(SOURCES:%=%.cmo) htcaml/htcaml.cma
 	$(OCAMLC) -a -o $@ $^

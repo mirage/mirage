@@ -85,3 +85,6 @@ tools/ocaml-libs/ulex-1.1/
 tools/ocamljs/ocaml/
 tools/ocamljs/ocamljs/
 tools/ocamlpack/ocamlpack
+syntax/htcaml/htcaml_lexer.ml
+syntax/htcaml/htcaml_parser.ml
+syntax/htcaml/htcaml_parser.mli

@@ -1,7 +1,8 @@
 Mirage has been tested on:
-- Debian Squeeze x86_64 and x86_32
-- MacOS X 10.6 Snow Leopard x86_64
-- MacOS X 10.5 Snow Leopard x86_32
+
+* Debian Squeeze x86_64 and x86_32
+* MacOS X 10.6 Snow Leopard x86_64
+* MacOS X 10.5 Snow Leopard x86_32
 
 To build it, you must first:
 

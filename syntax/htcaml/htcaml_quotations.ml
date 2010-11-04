@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.com>
+ * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,11 +20,14 @@ module Q = Syntax.Quotation
 module AQ = Syntax.AntiquotSyntax
 
 let destruct_aq s =
-  let pos = String.index s ':' in
-  let len = String.length s in
-  let name = String.sub s 0 pos
-  and code = String.sub s (pos + 1) (len - pos - 1) in
-  name, code
+  try
+    let pos = String.index s ':' in
+    let len = String.length s in
+    let name = String.sub s 0 pos
+    and code = String.sub s (pos + 1) (len - pos - 1) in
+    name, code
+  with Not_found ->
+    "", s
 
 let aq_expander =
 object
@@ -46,11 +49,10 @@ object
       | e -> super#expr e
 end
 
-let parse_quot_string loc s =
-  let q = !Camlp4_config.antiquotations in
-  Camlp4_config.antiquotations := true;
-  let res = Htcaml_parser.parse_htcaml_eoi loc s in
-  Camlp4_config.antiquotations := q;
+let parse_quot_string loc s : Htcaml_ast.t =
+  Htcaml_location.set loc;
+  let res = Htcaml_parser.main Htcaml_lexer.token (Lexing.from_string s) in
+  Htcaml_location.set Loc.ghost;
   res
 
 let expand_expr loc _ s =

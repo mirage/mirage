@@ -13,10 +13,10 @@ OCAMLOPT_FLAGS=
 
 ifeq ($(ARCH),x86_64)
   ifneq ($(OS),macosx)  # MacOS X does not support absolute addressing
-    OCAMLOPT_FLAGS = -fno-PIC -nodynlink
+    OCAMLOPT_FLAGS = -fno-PIC -nodynlink -g
   endif
 else
-OCAMLOPT_FLAGS =
+OCAMLOPT_FLAGS = -g
 endif
 
 OCAML_CLIBS_linux = -lm

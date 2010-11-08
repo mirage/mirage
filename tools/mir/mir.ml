@@ -141,7 +141,7 @@ let _ =
     | Browser -> sprintf "-I %s/os/browser" libdir
   in
   (* Misc includes *)
-  let includes_misc = List.map (sprintf "-I %s/misc/%s" libdir) [ "htcaml"; "xml" ] in
+  let includes_misc = List.map (sprintf "-I %s/misc/%s" libdir) [ "htcaml"; "xml"; "atom" ] in
   (* All includes *)
   let includes = String.concat " " (includes_pre :: includes_os :: includes_misc @ includes_net) in
 
@@ -160,7 +160,7 @@ let _ =
   let otherlibs = match !os with
     |Browser -> []
     |Xen -> []
-    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"; "flow"; "http"; "htcaml" ] 
+    |Unix -> [ "nettypes"; "mpl"; "mlnet"; "dhcp"; "flow"; "http"; "htcaml"; "xml"; "atom" ] 
   in
 
   let libext = match !os with

@@ -69,12 +69,42 @@ let rec t ppf = function
       fprintf ppf "%a@ %a" t t1 t t2
   | Nil              -> ()
 
+let to_buf buf t' =
+  let ac = Buffer.add_char buf  in
+  let ax = Buffer.add_string buf in
+  let tag x = ac '<'; ax x; ac '>' in
+  let ctag x = ax "</"; ax x; ac '>' in
+  let rec t = function
+  | String s -> ax (encode s)
+  | Tag (s, Nil, Nil) -> ac '<'; ax s; ax "/>"
+  | Tag (s, Nil, t1) -> tag s; t t1; ctag s
+  | Tag (s, l, Nil)  -> ac '<'; ax s; ac ' '; t l; ax "/>"
+  | Tag (s, l, t1)   -> ac '<'; ax s; ac ' '; t l; ac '>'; t t1; ax "</"; ax s; ac '>'
+  | Prop (k,v)       -> t k; ac '='; t v
+  | Seq (t1, Nil)    -> t t1
+  | Seq (t1, t2)     ->
+    let str = next_string t2 in
+    if str = Some "." || str = Some "," || str = Some ";" then
+      (t t1; t t2)
+    else
+      (t t1; ac ' '; t t2)
+  | Nil              -> () in
+  t t'
+
+
 (* XXX: write a sanitizer *)
 let sanitaze t = t
 
+(* XXX: This stringifier does not preserve whitespace, e.g. for <pre> tags 
 let to_string t' =
   t str_formatter t';
   sanitaze (flush_str_formatter ())
+*)
+
+let to_string t =
+  let buf = Buffer.create 1024 in
+  to_buf buf t;
+  Buffer.contents buf
 
 let rec t_of_list = function
   | [] -> Nil

@@ -61,7 +61,7 @@ type attribute = name * string
 type tag = name * attribute list
 (** The type for an element tag. Tag name and attribute list. *)
 
-type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
+type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string |`Raw of string]
 (** The type for signals. A {e well-formed} sequence of signals belongs
     to the language of the [doc] grammar :
     {[doc ::= `Dtd tree
@@ -326,7 +326,7 @@ module type S = sig
   type name = string * string 
   type attribute = name * string
   type tag = name * attribute list
-  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
+  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string |`Raw of string]
 	
   val ns_xml : string 
   val ns_xmlns : string

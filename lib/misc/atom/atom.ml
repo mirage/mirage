@@ -89,12 +89,7 @@ let output_field t (f:field) =
     | `Text s ->
         Xml.output o (`Data s)
     | `XML h ->
-        let i = Xml.make_input (`String (0,h)) in
-        while not (Xml.eoi i) do 
-          match Xml.input i with
-          |`Dtd _ -> ()
-          |x -> Xml.output o x
-        done
+        Xml.output o (`Raw h)
     | `Empty -> ()
   )
 

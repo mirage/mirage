@@ -18,11 +18,10 @@ open Camlp4.PreCast
 
 type t =
   | String of string
-  | Tag of string * t * t
+  | Tag of t * t * t
   | Prop of t * t
   | Seq of t * t
   | Nil
-
   | Ant of Loc.t * string
 
 val meta_t : Ast.loc -> t -> Ast.expr

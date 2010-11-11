@@ -1,4 +1,4 @@
-OCAMLC ?= ocamlc
+OCAMLC ?= ocamlfind ocamlc
 CAMLP4OF ?= camlp4of
 CAMLP4ORF ?= camlp4orf
 MIRAGE_ROOT ?= $(PREFIX)/lib/ocaml/mirage
@@ -22,9 +22,10 @@ htcaml/%.cma:
 LWT_SOURCES=pa_lwt
 TC_SOURCES=pa_type_conv
 DYNTYPE_SOURCES=type value p4_helpers p4_type p4_value pa_type pa_value
-SOURCES=$(LWT_SOURCES:%=lwt/%) $(TC_SOURCES:%=type-conv/%) $(DYNTYPE_SOURCES:%=dyntype/%)
-pa_mirage.cma: $(SOURCES:%=%.cmo) htcaml/htcaml.cma
-	$(OCAMLC) -a -o $@ $^
+HTCAML_SOURCES=htcaml.cma
+SOURCES=$(LWT_SOURCES:%=lwt/%) $(TC_SOURCES:%=type-conv/%) $(DYNTYPE_SOURCES:%=dyntype/%) $(HTCAML_SOURCES:%.htcaml/%)
+pa_mirage.cma: $(SOURCES:%=%.cmo)
+	$(OCAMLC) -linkall -package xmlm,str -linkpkg -a -o $@ str.cma xmlm.cmo $^
 
 .PHONY: clean
 clean:

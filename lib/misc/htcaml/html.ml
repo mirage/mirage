@@ -14,109 +14,162 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t =
-  | String of string
-  | Tag of string * t * t
-  | Prop of t * t
-  | Seq of t * t
-  | Nil
+type t = (('a Xmlm.frag as 'a) Xmlm.frag) list
 
-let rec t_of_list = function
-  | [] -> Nil
-  | [e] -> e
-  | e::es -> Seq (e, t_of_list es)
+let id x = x
 
-let rec list_of_t x acc =
-  match x with
-  | Nil -> acc
-  | Seq (e1, e2) -> list_of_t e1 (list_of_t e2 acc)
-  | e -> e :: acc
-
-open Printf
-open Format
-
-let rec next_string = function
-  | String s        -> Some s
-  | Seq(String s,_) -> Some s
-  | Seq(t,_)        -> next_string t
-  | _               -> None
-
-(* XXX: make it complete *)
-let matching = Str.regexp "é\\|ë\\|è\\|à"
-let encoding str =
-  match Str.matched_string str with
-    | "é" -> "&eacute;"
-    | "ë" -> "&euml;"
-    | "è" -> "&egrave;"
-    | "à" -> "&agrave;"
-    | _   -> assert false
-let encode str =
-   Str.global_substitute matching encoding str
-
-let rec t ppf = function
-  | String s         -> fprintf ppf "%s" (encode s)
-  | Tag (s, Nil, Nil)-> fprintf ppf "<%s/>" s
-  | Tag (s, Nil, t1) -> fprintf ppf "@[<hov 1><%s>%a</%s>@]" s t t1 s
-  | Tag (s, l, Nil)  -> fprintf ppf "@[<hov 1><%s %a/>@]" s t l
-  | Tag (s, l, t1)   -> fprintf ppf "@[<hov 1><%s %a>%a</%s>@]" s t l t t1 s
-  | Prop (k,v)       -> fprintf ppf "%a=%a" t k t v
-  | Seq (t1, Nil)    -> t ppf t1
-  | Seq (t1, t2)     ->
-    let str = next_string t2 in
-    if str = Some "." || str = Some "," || str = Some ";" then
-      fprintf ppf "%a%a" t t1 t t2
-    else
-      fprintf ppf "%a@ %a" t t1 t t2
-  | Nil              -> ()
-
-let to_buf buf t' =
-  let ac = Buffer.add_char buf  in
-  let ax = Buffer.add_string buf in
-  let tag x = ac '<'; ax x; ac '>' in
-  let ctag x = ax "</"; ax x; ac '>' in
-  let rec t = function
-  | String s -> ax (encode s)
-  | Tag (s, Nil, Nil) -> ac '<'; ax s; ax "/>"
-  | Tag (s, Nil, t1) -> tag s; t t1; ctag s
-  | Tag (s, l, Nil)  -> ac '<'; ax s; ac ' '; t l; ax "/>"
-  | Tag (s, l, t1)   -> ac '<'; ax s; ac ' '; t l; ac '>'; t t1; ax "</"; ax s; ac '>'
-  | Prop (k,v)       -> t k; ac '='; t v
-  | Seq (t1, Nil)    -> t t1
-  | Seq (t1, t2)     ->
-    let str = next_string t2 in
-    if str = Some "." || str = Some "," || str = Some ";" then
-      (t t1; t t2)
-    else
-      (t t1; ac ' '; t t2)
-  | Nil              -> () in
-  t t'
-
-
-(* XXX: write a sanitizer *)
-let sanitaze t = t
-
-(* XXX: This stringifier does not preserve whitespace, e.g. for <pre> tags 
-let to_string t' =
-  t str_formatter t';
-  sanitaze (flush_str_formatter ())
-*)
+let rec output_t output = function
+  | (`Data _ as d) :: t ->
+    Xmlm.output output d;
+    output_t output t
+  | (`El _ as e) :: t   ->
+    Xmlm.output_tree id output e;
+    Xmlm.output output (`Dtd None);
+    output_t output t
+  | [] -> ()
 
 let to_string t =
   let buf = Buffer.create 1024 in
-  to_buf buf t;
+  let output = Xmlm.make_output (`Buffer buf) in
+  Xmlm.output output (`Dtd None);
+  output_t output t;
   Buffer.contents buf
-
-let rec t_of_list = function
-  | [] -> Nil
-  | [e] -> e
-  | e::es -> Seq (e, t_of_list es)
 
 type link = {
   text : string;
   href: string;
 }
 
-let html_of_link l =
-  Tag ("a",
-       Prop(String "href", String ("\"" ^ l.href ^ "\"")),
-       String l.text)
+let html_of_link l : t =
+  <:html<<a href=$str:l.href$>$str:l.text$</a>&>>
+
+module Code = struct
+
+  let keywords1 = [
+    "|";
+    "do";
+    "done";
+    "downto";
+    "else";
+    "for";
+    "if";
+    "lazy";
+    "match";
+    "new";
+    "or";
+    "then";
+    "to";
+    "try";
+    "when";
+    "while";
+  ]
+
+  let keywords2 = [
+    "assert";
+    "include";
+  ]
+
+  let keywords3 = [
+    "open";
+  ]
+    
+  let keywords4 = [
+    "and";
+    "as";
+    "class";
+    "constraint";
+    "exception";
+    "external";
+    "fun";
+    "function";
+    "functor";
+    "in";
+    "inherit";
+    "initializer";
+    "let";
+    "method";
+    "module";
+    "mutable";
+    "of";
+    "private";
+    "rec";
+    "type";
+    "val";
+    "virtual";
+  ]
+
+  let keywords5 = [
+    "raise";
+  ]
+
+  let keywords6 = [
+    "asr";
+    "land";
+    "lor";
+    "lsl";
+    "lsr";
+    "lxor";
+    "mod";
+  ]
+
+  let keywords7 = [
+    "begin";
+    "end";
+    "object";
+    "sig";
+    "struct";
+  ]
+
+  let keywords8 = [
+    "false";
+    "true";
+  ]
+
+  type keyword1 = string with html
+  type keyword2 = string with html
+  type keyword3 = string with html
+  type keyword4 = string with html
+  type keyword5 = string with html
+  type keyword6 = string with html
+  type keyword7 = string with html
+  type keyword8 = string with html
+
+  let keywords = [| keywords1; keywords2; keywords3; keywords4; keywords5; keywords6; keywords7 |]
+    
+  let is_keyword str =
+    Str.string_match (Str.regexp (String.concat "\\|" (List.concat (Array.to_list keywords)))) str 0
+
+  exception Found of int
+
+  let find_class str =
+    try
+      for i = 0 to 7 do
+        if List.mem str keywords.(i) then
+          raise (Found i)
+      done;
+      raise Not_found
+    with Found i ->
+      i
+
+  let html_of_keywords = [|
+    html_of_keyword1;
+    html_of_keyword2;
+    html_of_keyword3;
+    html_of_keyword4;
+    html_of_keyword5;
+    html_of_keyword6;
+    html_of_keyword7;
+    html_of_keyword8;
+  |]
+ 
+  let parse str =
+    let rec aux accu = function
+      | []                 -> List.rev accu
+      | Str.Delim str :: t -> aux (`Data str :: accu) t
+      | Str.Text str  :: t -> 
+        if is_keyword str then
+          aux ((html_of_keywords.(find_class str) str) @ accu) t
+        else
+          aux (`Data str :: accu) t in
+    aux [] (Str.full_split (Str.regexp "[ \n\t]+") str)
+end

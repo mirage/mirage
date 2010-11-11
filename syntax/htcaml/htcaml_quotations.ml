@@ -37,23 +37,57 @@ object
       | Ast.ExAnt (_loc, s) ->
         let n, c = destruct_aq s in
         let e = AQ.parse_expr _loc c in
-        let fn = <:expr< (fun accu (k,v) -> Htcaml.Html.Seq (accu, Htcaml.Html.Prop (Htcaml.Html.String k, Htcaml.Html.String v))) >> in
         begin match n with
-        | "int"   -> <:expr< Htcaml.Html.String (string_of_int $e$) >> 
-        | "flo"   -> <:expr< Htcaml.Html.String (string_of_float $e$) >>
-        | "str"   -> <:expr< Htcaml.Html.String $e$ >>
-        | "list"  -> <:expr< Htcaml.Html.t_of_list $e$ >> 
-        | "alist" -> <:expr< List.fold_left $fn$ Htcaml.Html.Nil $e$ >> 
-        | _ -> e
+        | "int"   -> <:expr< [`Data (string_of_int $e$)] >> 
+        | "flo"   -> <:expr< [`Data (string_of_float $e$)] >>
+        | "str"   -> <:expr< [`Data $e$] >>
+        | "alist" -> <:expr< List.map (fun (k,v) -> (("",k),v)) $e$ >> 
+        | "list"  -> <:expr< List.flatten $e$ >>
+        | "attrs" ->
+
+          <:expr<
+            let key_value str =
+              try
+                let pos = String.index str '=' in
+                let k = String.sub str 0 pos in
+                let v = String.sub str (pos+1) (String.length str - pos - 1) in
+                let v =
+                  if   (v.[0] = '"' && v.[String.length v - 1] = '"')
+                    || (v.[0] = '\'' && v.[String.length v - 1] = '\'') then
+                    String.sub v 1 (String.length v - 2)
+                  else
+                    raise Parsing.Parse_error in
+                (("",k),v)
+              with _ ->
+                raise Parsing.Parse_error in
+ 
+            let rec split ?(accu=[]) c s =
+              try
+                let i = String.index s c in
+                let prefix = String.sub s 0 i in
+                let suffix =
+                  if i = String.length s - 1 then
+                    ""
+                  else
+                    String.sub s (i+1) (String.length s - i - 1) in
+                split ~accu:[prefix :: accu] c suffix
+              with _ ->
+                List.rev [s :: accu] in
+            
+              match $e$ with [
+                [`Data str] -> List.map (fun x -> key_value x) (split ' ' str) 
+              | _ -> raise Parsing.Parse_error ] >>
+
+        | "" -> <:expr< $e$ >>
+        | x  ->
+          Printf.eprintf "[ERROR] %s is not a valid tag.\nAllowed tags are [int|flo|str|list|alist|attrs] or the empty one." x;
+          Loc.raise _loc Parsing.Parse_error
         end
       | e -> super#expr e
 end
 
 let parse_quot_string loc s : Htcaml_ast.t =
-  Htcaml_location.set loc;
-  let res = Htcaml_parser.main Htcaml_lexer.token (Lexing.from_string s) in
-  Htcaml_location.set Loc.ghost;
-  res
+  Htcaml_parser.parse ?enc:(Htcaml_parser.get_encoding ()) loc s
 
 let expand_expr loc _ s =
   let ast = parse_quot_string loc s in

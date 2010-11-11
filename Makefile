@@ -13,7 +13,6 @@ export PREFIX
 
 all:
 	@cd runtime && $(MAKE)
-	@cd syntax && $(MAKE)
 	@cd lib && $(MAKE)
 
 bootstrap:

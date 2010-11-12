@@ -3,7 +3,7 @@ ARCH=x86_64
 OBJDIR=bin-$(ARCH)
 ILIBDIR=$(LIBDIR)-$(ARCH)
 
-WHATBASE= dietlibc.a liblatin1.a libcompat.a libcrypt.a
+WHATBASE= dietlibc.a 
 WHAT= $(WHATBASE:%=$(OBJDIR)/%)
 
 all: $(OBJDIR) $(WHAT)
@@ -16,20 +16,12 @@ CROSS=
 CC=gcc
 INC=-I. -isystem include
 
-VPATH=lib:libstdio:libugly:libcruft:liblatin1:libcompat:libregex
+VPATH=lib:libstdio:libugly:libregex
 
 LIBOBJ=$(patsubst lib/%.c,$(OBJDIR)/%.o,$(wildcard lib/*.c))
 LIBUGLYOBJ=$(patsubst libugly/%.c,$(OBJDIR)/%.o,$(wildcard libugly/*.c))
 LIBSTDIOOBJ=$(patsubst libstdio/%.c,$(OBJDIR)/%.o,$(wildcard libstdio/*.c))
-#LIBCRUFTOBJ=$(patsubst libcruft/%.c,$(OBJDIR)/%.o,$(wildcard libcruft/*.c))
-LIBCRYPTOBJ=$(patsubst libcrypt/%.c,$(OBJDIR)/%.o,$(wildcard libcrypt/*.c))
-LIBSHELLOBJ=$(patsubst libshell/%.c,$(OBJDIR)/%.o,$(wildcard libshell/*.c))
-LIBCOMPATOBJ=$(patsubst libcompat/%.c,$(OBJDIR)/%.o,$(wildcard libcompat/*.c)) $(OBJDIR)/syscall.o
-
-LIBRPCOBJ=$(patsubst librpc/%.c,$(OBJDIR)/%.o,$(wildcard librpc/*.c))
 LIBREGEXOBJ=$(patsubst libregex/%.c,$(OBJDIR)/%.o,$(wildcard libregex/*.c))
-
-LIBGMON_OBJS=$(OBJDIR)/__mcount.o $(OBJDIR)/monitor.o $(OBJDIR)/profil.o
 
 include $(ARCH)/Makefile.add
 
@@ -59,9 +51,6 @@ SAFER_CFLAGS=$(CFLAGS)
 
 CC+=-D__dietlibc__
 
-$(OBJDIR)/crypt.o: libcrypt/crypt.c
-	$(CROSS)$(CC) $(INC) $(SAFER_CFLAGS) -c $< -o $@
-
 DIETLIBC_OBJ = $(LIBOBJ) $(LIBSTDIOOBJ) $(LIBUGLYOBJ) \
 	 $(LIBREGEXOBJ) \
 $(OBJDIR)/__longjmp.o $(OBJDIR)/setjmp.o \
@@ -80,19 +69,6 @@ $(OBJDIR)/libcrypt.a:
 	rm -f dummy.c dummy.o
 
 dummy.o:
-
-LIBLATIN1_OBJS=$(patsubst liblatin1/%.c,$(OBJDIR)/%.o,$(wildcard liblatin1/*.c))
-$(OBJDIR)/liblatin1.a: $(LIBLATIN1_OBJS)
-	$(CROSS)ar cru $@ $^
-
-$(OBJDIR)/libgmon.a: $(LIBGMON_OBJS)
-	$(CROSS)ar cru $@ $^
-
-$(OBJDIR)/libpthread.a: $(LIBPTHREAD_OBJS) dietfeatures.h
-	$(CROSS)ar cru $@ $(LIBPTHREAD_OBJS)
-
-$(OBJDIR)/libcompat.a: $(LIBCOMPATOBJ)
-	$(CROSS)ar cru $@ $(LIBCOMPATOBJ)
 
 $(SYSCALLOBJ): syscalls.h
 

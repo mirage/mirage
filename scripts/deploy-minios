@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 # Run and profile a Mirage minios kernel
 # Assumes the file is under test/$1
 

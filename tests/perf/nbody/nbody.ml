@@ -127,11 +127,11 @@ let () =
   List.iter (fun n ->
     offset_momentum bodies;
     let e1 = energy bodies in
-    let t1 = Mir.gettimeofday () in
+    let t1 = OS.Clock.time () in
     for i = 1 to n do 
       advance bodies 0.01;
     done;
-    let t2 = Mir.gettimeofday () in
+    let t2 = OS.Clock.time () in
     printf "%d,%.9f,%.9f,%.3f\n%!" n e1 (energy bodies) (t2 -. t1);
   ) ns;
   printf "done\n%!"

@@ -3,9 +3,10 @@
 
 #include <stdlib.h>
 #include <malloc.h>
+
+#define DEFAULT_ALIGN (sizeof(unsigned long))
 /* Allocate space for typed object. */
 #define _xmalloc(size, align) memalign(align, size)
-#define xfree(ptr) free(ptr)
 
 static inline void *_xmalloc_array(size_t size, size_t align, size_t num)
 {

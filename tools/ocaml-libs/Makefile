@@ -33,10 +33,10 @@ ulex: findlib
 XMLM_VERSION=1.0.2-patched
 xmlm: findlib
 	[ ! -s "xmlm-$(XMLM_VERSION).tar.gz" ] && $(FETCH) http://gazagnaire.org/projects/xmlm-$(XMLM_VERSION).tar.gz
-	rm -rf xmlm
+	rm -rf xmlm-$(XMLM_VERESION)
 	tar xvfz xmlm-$(XMLM_VERSION).tar.gz
 	cd xmlm-$(XMLM_VERSION) && $(MAKE) && $(MAKE) install
 
 .PHONY: clean
 clean:
-	rm -rf ulex* findlib*
+	rm -rf ulex* findlib* xmlm*

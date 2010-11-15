@@ -19,8 +19,8 @@ open Htcaml_ast
 
 let rec t ppf = function
   | String s        -> fprintf ppf "%s" s
-  | Tag (s,Nil, t') -> fprintf ppf "<%a>%a</%a>" t s t t' t s
-  | Tag (s,l,t')    -> fprintf ppf "<%a %a>%a</%a>" t s t l t t' t s
+  | Tag (s,Nil, t') -> fprintf ppf "<%s>%a</%s>" s t t' s
+  | Tag (s,l,t')    -> fprintf ppf "<%s %a>%a</%s>" s t l t t' s
   | Prop (k,v)      -> fprintf ppf "%a=\"%a\"" t k t v
   | Seq (t', Nil)   -> t ppf t'
   | Seq (t1, t2)    -> fprintf ppf "%a @;<1 2>%a" t t1 t t2

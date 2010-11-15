@@ -15,15 +15,24 @@
  *)
 
 open Camlp4.PreCast (* for Ast refs in generated code *)
-open P4_helpers
 
 type t =
   | String of string
-  | Tag of t * t * t
+  | Tag of string * t * t
   | Prop of t * t
   | Seq of t * t
   | Nil
+
   | Ant of Loc.t * string
+
+let rec meta_t _loc = function
+  | String s    -> <:expr< Htcaml.Html.String $`str:s$ >>
+  | Tag (t,l,s) -> <:expr< Htcaml.Html.Tag ($`str:t$, $meta_t _loc l$, $meta_t _loc s$) >>
+  | Prop (k,v)  -> <:expr< Htcaml.Html.Prop ($meta_t _loc k$, $meta_t _loc v$) >>
+  | Seq (a,b)   -> <:expr< Htcaml.Html.Seq ($meta_t _loc a$, $meta_t _loc b$) >> 
+  | Nil         -> <:expr< Htcaml.Html.Nil >>
+
+  | Ant (l, str) -> Ast.ExAnt (l, str)
 
 let rec t_of_list = function
   | [] -> Nil
@@ -35,37 +44,3 @@ let rec list_of_t x acc =
   | Nil -> acc
   | Seq (e1, e2) -> list_of_t e1 (list_of_t e2 acc)
   | e -> e :: acc
-
-let get_string _loc m =
-  match m with
-  | <:expr< [ `Data $str:x$ ] >> -> <:expr< $str:x$ >>
-  | _ ->
-    <:expr< match $m$ with [ [`Data str] -> str | _ -> raise Parsing.Parse_error ] >>
-
-(* Convert a value of type t to Html.t = Xmlm.frag *)
-let rec meta_t _loc = function
-  | String s    ->
-    <:expr< [`Data $`str:s$] >>
-
-  | Tag (t,l,s) ->
-    let tag = get_string _loc (meta_t _loc t) in
-    let attrs = meta_t _loc l in
-    let body = meta_t _loc s in
-    <:expr< [`El (("",$tag$), $attrs$) $body$] >>
-
-  | Prop (k,v)  ->
-    let mk = get_string _loc (meta_t _loc k) in
-    let mv = get_string _loc (meta_t _loc v) in
-    <:expr< [(("",$mk$), $mv$)] >>
-
-  | Seq (a,b)   ->
-    let la = list_of_t a [] in
-    let lb = list_of_t b [] in
-    let l = List.map (meta_t _loc) (la @ lb) in
-    <:expr< List.flatten $P4_helpers.expr_list_of_list _loc l$ >> 
-
-  | Nil         ->
-    <:expr< [] >>
-
-  | Ant (l, str) ->
-    Ast.ExAnt (l, str)

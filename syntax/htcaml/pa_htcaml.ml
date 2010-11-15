@@ -29,52 +29,61 @@ let new_id _loc _ =
 ;;
 
 let create_class _loc n body =
-  let tag = <:expr<
-    ((("","div"), [(("","class"), $`str:n$)])
-     : Xmlm.tag) >> in
-  <:expr< `El $tag$ $body$ >>
+  <:expr< Html.Tag
+    "div"
+    (Html.Prop 
+       (Html.String "class")
+       (Html.String $str:n$))
+    $body$ >>
 
 let create_id_class _loc n id body =
-  let tag = <:expr<
-    ((("","div"), [(("","id"), html_id); (("","class"), $`str:n$)]) : Xmlm.tag) >> in
   <:expr<
     match id with [
       None         -> $create_class _loc n body$
     | Some html_id ->
-      `El $tag$ $body$
+      Html.Tag
+        "div"
+        (Html.Seq (
+          Html.Prop
+            (Html.String "id")
+            (Html.String html_id),
+          Html.Prop
+            (Html.String "class")
+            (Html.String $str:n$)))
+        $body$
     ] >>
 
 let gen_html (_loc, n, t_exp) =
   let t = match t_exp with Ext (_,t) | Rec (_,t) -> t | _ -> assert false in
   let rec aux id = function
 	  | Unit     -> <:expr< >>
-	  | Bool     -> <:expr< [`Data (string_of_bool $id$)] >>
-    | Float    -> <:expr< [`Data (string_of_float $id$)] >>
-    | Char     -> <:expr< [`Data (String.make 1 $id$)] >>
-    | String   -> <:expr< [`Data $id$] >>
+	  | Bool     -> <:expr< Html.String (string_of_bool $id$) >>
+    | Float    -> <:expr< Html.String (string_of_float $id$) >>
+    | Char     -> <:expr< Html.String (String.make 1 $id$) >>
+    | String   -> <:expr< Html.String $id$ >>
 	  | Int (Some i) when i <= 64 ->
       if i + 1 = Sys.word_size then
-        <:expr< [`Data (string_of_int $id$)] >>
+        <:expr< Html.String (string_of_int $id$) >>
       else if i <= 32 then
-        <:expr< [`Data (Int32.to_string $id$)] >>
+        <:expr< Html.String (Int32.to_string $id$) >>
       else
-        <:expr< [`Data (Int64.to_string $id$)] >>
+        <:expr< Html.String (Int64.to_string $id$) >>
     | Int _ ->
-      <:expr< [`Data (Bigint.to_string $id$)] >>
+      <:expr< Html.String (Bigint.to_string $id$) >>
 	  | List t   ->
       let pid, eid = new_id _loc () in
-      <:expr< List.fold_left (fun accu $pid$ -> $aux eid t$ @ accu) [] $id$ >>
+      <:expr< Html.t_of_list (List.map (fun $pid$ -> $aux eid t$) $id$) >>
 	  | Array t  ->
       let pid, eid = new_id _loc () in
       let array = <:expr< Array.map (fun $pid$ -> $aux eid t$) $id$ >> in
-      <:expr< List.flatten (Array.to_list $array$) >>
+      <:expr< Html.t_of_list (Array.to_list $array$) >>
 	  | Tuple t  ->
       let ids = List.map (new_id _loc) t in
       let patts = List.map fst ids in
       let exprs = List.map2 (fun i t -> aux i t) (List.map snd ids) t in
       <:expr<
         let $patt_tuple_of_list _loc patts$ = $id$ in
-        List.flatten $expr_list_of_list _loc exprs$
+        Html.t_of_list $expr_list_of_list _loc exprs$
         >>
 	  | Dict(k,d) ->
       let new_id n = match k with
@@ -83,7 +92,7 @@ let gen_html (_loc, n, t_exp) =
       let exprs =
         List.map (fun (n,_,t) -> create_class _loc n (aux (new_id n) t)) d in
       let expr = expr_list_of_list _loc exprs in
-      <:expr< $expr$ >>
+      <:expr< Html.t_of_list $expr$ >>
 	  | Sum _
 	  | Option _
 	  | Arrow _  -> failwith "not yet supported"
@@ -98,8 +107,8 @@ let gen_html (_loc, n, t_exp) =
       <:expr< $P4_type.gen_ident _loc html_of n$ $id$ >>
   in
   let id = <:expr< $lid:n$ >> in
-  <:binding< $lid:html_of n$ ?id $lid:n$ : (list (Xmlm.frag (Xmlm.frag 'a as 'a))) =
-      [ $create_id_class _loc n id (aux id t)$ ]
+  <:binding< $lid:html_of n$ ?id $lid:n$ =
+      $create_id_class _loc n id (aux id t)$
   >>
 
 let () =

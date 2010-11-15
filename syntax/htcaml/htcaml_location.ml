@@ -16,13 +16,14 @@
 
 open Camlp4.PreCast
 
-let add loc (l, c) =
-  let loc =
-    if l > 1 then
-      Loc.move_line (l-1) loc
-    else
-      loc in
-  Loc.shift (c-1) loc
+let current = ref Loc.ghost
 
-let raise loc pos exn =
-  Loc.raise (add loc pos) exn
+let set l = current := l
+
+let get () = !current
+
+let shift n =
+  current := Loc.shift n !current
+
+let newline () =
+  current := Loc.move_line 1 !current

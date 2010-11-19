@@ -15,7 +15,7 @@ $(OBJSTAMP):
 	mkdir -p $(OBJDIR)
 	rsync -a ../../runtime/xen/base/ocaml/ $(OBJDIR)/
 	cd $(OBJDIR)/; \
-	  ./configure -prefix $(PREFIX) -no-pthread -no-shared-libs -no-tk -no-curses && \
+	  ./configure -prefix $(PREFIX) -no-pthread -no-tk -no-curses && \
 	   $(MAKE) world opt opt.opt
 	@touch $@
 

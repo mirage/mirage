@@ -10,7 +10,7 @@ endif
 PREFIX ?= /usr/local
 
 .PHONY: all
-all: findlib ulex xmlm
+all: findlib ulex
 	@ :
 
 .PHONY: findlib
@@ -29,14 +29,6 @@ ulex: findlib
 	tar -zxf ulex-$(ULEX_VERSION).tar.gz
 	cd ulex-$(ULEX_VERSION) && $(MAKE) && $(MAKE) install
 
-.PHONY: xmlm
-XMLM_VERSION=1.0.2-patched
-xmlm: findlib
-	[ ! -s "xmlm-$(XMLM_VERSION).tar.gz" ] && $(FETCH) http://gazagnaire.org/projects/xmlm-$(XMLM_VERSION).tar.gz
-	rm -rf xmlm-$(XMLM_VERESION)
-	tar xvfz xmlm-$(XMLM_VERSION).tar.gz
-	cd xmlm-$(XMLM_VERSION) && $(MAKE) && $(MAKE) install
-
 .PHONY: clean
 clean:
-	rm -rf ulex* findlib* xmlm*
+	rm -rf ulex* findlib*

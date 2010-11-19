@@ -20,17 +20,18 @@
 open Dnsrr
 open Dnstrie
 open Mpl
+(* XXX: due to a bug in ocamlbuild, need to write Mpl.Dns insteaf of Dns *)
 
 module H = Hashcons
 
 (* We answer a query with RCODE, AA, ANSWERS, AUTHORITY and ADDITIONAL *)
 
 type query_answer = {
-    rcode : Dns.rcode_t;
+    rcode : Mpl.Dns.rcode_t;
     aa: bool;
-    answer: (Mpl_stdlib.env -> Dns.Answers.o) list;
-    authority: (Mpl_stdlib.env -> Dns.Authority.o) list;
-    additional: (Mpl_stdlib.env -> Dns.Additional.o) list;
+    answer: (Mpl_stdlib.env -> Mpl.Dns.Answers.o) list;
+    authority: (Mpl_stdlib.env -> Mpl.Dns.Authority.o) list;
+    additional: (Mpl_stdlib.env -> Mpl.Dns.Additional.o) list;
   } 
 
 
@@ -70,9 +71,9 @@ let answer_query qname qtype trie =
   (* Map an RRSet into MPL closures and include it in the response *)
   let add_rrset owner ttl rdata section = 
     let addfn rr = match section with 
-      `Answer -> ans_rrs := (Dns.Answers.t ~rr) :: !ans_rrs 
-    | `Authority -> auth_rrs := (Dns.Authority.t ~rr) :: !auth_rrs 
-    | `Additional -> add_rrs := (Dns.Additional.t ~rr) :: !add_rrs 
+      `Answer -> ans_rrs := (Mpl.Dns.Answers.t ~rr) :: !ans_rrs 
+    | `Authority -> auth_rrs := (Mpl.Dns.Authority.t ~rr) :: !auth_rrs 
+    | `Additional -> add_rrs := (Mpl.Dns.Additional.t ~rr) :: !add_rrs 
     in
     let mapfn ?(aclass = Some `IN) x = x ?aclass ~name:owner ~ttl in
     match rdata with 

@@ -15,7 +15,7 @@
  *
  *)
 
-type field = [ `Empty | `Text of string | `XML of string ]
+type field = [ `Empty | `Text of string ]
 type author = { name : string; uri : string option; email : string option; }
 type date = int * int * int * int * int
 type meta = {
@@ -29,7 +29,7 @@ type meta = {
 }
 type entry = { entry : meta; summary : field; content : field; }
 type feed = { feed : meta; entries : entry list; }
-val output_entry : entry -> Xml.output -> unit
-val output_feed : feed -> Xml.output -> unit
+val output_entry : entry -> Xmlm.output -> unit
+val output_feed : feed -> Xmlm.output -> unit
 val string_of_feed : feed -> string
 val sort : date -> date -> int

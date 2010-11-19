@@ -1,0 +1,12 @@
+diff --git a/lib/type.ml b/lib/type.ml
+index 5717c4e..b0adb84 100644
+--- a/dyntype/type.ml
++++ b/dyntype/type.ml
+@@ -220,7 +220,6 @@ let split_par ?limit c s =
+ 
+ exception Parse_error of string
+ let parse_error s =
+-  Printexc.print_backtrace stderr;
+   raise (Parse_error s)
+ 
+ let rec of_string s : t  = match s.[0] with

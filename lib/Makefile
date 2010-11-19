@@ -1,17 +1,18 @@
-.PHONY: all
-all:
-	cd std && $(MAKE)
-	cd os && $(MAKE)
-	cd net && $(MAKE)
-	cd misc && $(MAKE)
+.PHONY: init
+init: .init
+	@
 
-.PHONY: clean
+.init:
+	touch .init
+	cp -r ../tools/ocaml-libs/dyntype/lib misc/dyntype
+	cp -r ../tools/ocaml-libs/htcaml/lib misc/html
+	cp -r ../tools/ocaml-libs/xmlm/src misc/xml
+	cd misc && patch -p1 < xmlm1.diff
+	cd misc && patch -p1 < xmlm2.diff
+	cd misc && patch -p1 < dyntype1.diff
+
 clean:
-	cd std && $(MAKE) clean
-	cd os && $(MAKE) clean
-	cd net && $(MAKE) clean
-	cd misc && $(MAKE) clean
-
-.PHONY: install
-install:
-	@ :
+	rm -rf .init
+	rm -rf misc/dyntype
+	rm -rf misc/html
+	rm -rf misc/xml

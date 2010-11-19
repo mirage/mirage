@@ -13,8 +13,10 @@ export PREFIX
 
 all:
 	@cd runtime && $(MAKE)
-	@cd syntax && $(MAKE)
-	@cd lib && $(MAKE)
+	@cd lib && $(MAKE) init
+	ocamlbuild -Xs runtime,build,syntax,scripts,tools,doc,tests lib/unix.otarget
+	cd _build && rm -f runtime && ln -s ../runtime .
+	cd _build && rm -f syntax && ln -s ../syntax/_build syntax
 
 bootstrap:
 	@cd tools && $(MAKE) bootstrap

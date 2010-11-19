@@ -128,6 +128,7 @@ let _ =
       match !os with
       | Xen ->
           (* Build the raw application object file *)
+          Unix.putenv "OS" "xen";
           cmd [ "ocamlbuild"; "-Xs"; "tools,runtime,syntax"; sprintf "%s.o" target ];
           (* Relink sections for custom memory layout *)
           cmd [ sprintf "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext %s.o %s/-xen.o" target target ];
@@ -146,6 +147,7 @@ let _ =
 
       | Unix -> 
           (* Build the raw application object file *)
+          Unix.putenv "OS" "unix";
           cmd [ "ocamlbuild"; "-Xs"; "tools,runtime,syntax"; sprintf "%s.o" target ];
           (* Change the the Unix kernel build dir and perform build *)
           let runtime = sprintf "%s/runtime/unix" mirage_root in
@@ -162,6 +164,7 @@ let _ =
 
           let cclibs = String.concat " " (List.map (fun x -> sprintf "-cclib %s/%s.js" runtime x) ocamljs_cclibs) in
           (* Build the raw application object file *)
+          Unix.putenv "OS" "browser";
           cmd [ "ocamlbuild"; "-Xs"; "tools,runtime,syntax"; cclibs; sprintf "%s.js" target ];
           (* Copy in the console HTML *)
           cmd [ "mv"; sprintf "%s.js" target; build_dir ];

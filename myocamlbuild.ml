@@ -188,14 +188,24 @@ let pp_jslib = site_lib "jslib" ^ " jslib.cma syntax_inline.cmo"
 let pp_ulex  = site_lib "ulex" ^ " pa_ulex.cma ulexing.cma"
 let pp_jslib_inline = "camlp4o " ^ pp_ulex ^ " " ^ pp_jslib
 
-let os = ref "unix"
-let lib = ref "native"
+let os =
+  let os = getenv "OS" ~default:"unix" in
+  if os <> "unix" && os <> "xen" && os <> "browser" then
+    (Printf.eprintf "`%s` is not a supported OS\n" os; exit (-1))
+  else
+    (Ocamlbuild_pack.Log.dprintf 0 "OS: %s" os; os)
+
+let lib =
+  match os with
+    | "unix" | "xen" -> "native"
+    | "browser"      -> "js"
+    | _              -> assert false
 
 let _ = dispatch begin function
   | After_rules ->
 
-    let oslib  = ps "lib/os/%s" !os in
-    let stdlib = ps "lib/std/%s" !lib in
+    let oslib  = ps "lib/os/%s" os in
+    let stdlib = ps "lib/std/%s" lib in
     let mirage_flags = S[A"-nostdlib"; A"-I"; A stdlib] in
 
     (* Define internal libraries *)

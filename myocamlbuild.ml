@@ -159,6 +159,14 @@ rule "mpl: mpl -> ml"
   (mpl_compile "%.mpl" "%.ml")
 ;;
 
+rule "output-obj: ml -> o"
+  ~prod:"%.o"
+  ~dep:"%.ml"
+  begin fun env build ->
+    let ml = env "%.ml" and o = env "%.o" in
+    let tags = tags_of_pathname ml in
+    Cmd (S[A"ocamlopt"; A"-output-obj"; T(tags++"output_obj"); P ml; A"-o"; Px o])
+  end;;
 
 let split s ch =
   let x = ref [] in

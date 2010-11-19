@@ -1,0 +1,2 @@
+<tests/**/*>: use_mirage
+<tests/**/*.{byte,native}>: nostdlib,use_stdlib

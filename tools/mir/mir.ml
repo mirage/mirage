@@ -153,7 +153,7 @@ let _ =
           let app_lib = sprintf "APP_LIB=\"%s/%s.o\"" mirage_root target in
           cmd [ "make"; app_lib ];
           let output_bin = sprintf "%s/main/app" runtime in
-          let target_bin = sprintf "%s/mirage-unix" in
+          let target_bin = sprintf "%s/mirage-unix" build_dir in
           cmd [ "mv"; output_bin; target_bin ]
 
       | Browser ->

@@ -65,8 +65,6 @@ let js_pack_mlpack = link_from_file js_pack_modules
 
 ;;
 
-(* XXX
-
 (* copied from the ocamlc versions in Ocaml_commpiler. *)
 rule "ocaml: mlpack & cmjs* & cmi -> cmjs"
   ~tags:["ocaml"; "js"]
@@ -141,8 +139,6 @@ flag ["ocaml"; "js"; "link"] begin
   S (List.map (fun x -> A (x^".cmjsa")) !Options.ocaml_libs)
 end;;
 
-XXX *)
-
 (* Rules for MPL *)
 let mpl_c tags arg out =
   Cmd (S [A"mplc"; A"-v"; T(tags++"mpl"); P arg; Sh">"; Px out])
@@ -210,6 +206,9 @@ let lib =
     | _              -> assert false
 
 let _ = dispatch begin function
+  | Before_options ->
+    Options.exclude_dirs := [ "runtime"; "syntax"; "scripts"; "tools" ]
+
   | After_rules ->
 
     let oslib  = ps "lib/os/%s" os in
@@ -232,6 +231,10 @@ let _ = dispatch begin function
       [ "dhcp"; "ether"; "dns" ];
     Pathname.define_context "lib/net/http" ["lib/net/http"; "lib/net/socket/unix"; oslib];
     Pathname.define_context "lib/net/socket/unix" [oslib];
+
+    Pathname.define_context "lib/os/xen" ["lib/os/xen"];
+    Pathname.define_context "lib/os/unix" ["lib/os/unix"];
+    Pathname.define_context "lib/os/browser" ["lib/os/browser"];
 
     dep ["ocaml"; "compile"; "need_pervasives"] [ps "%s/pervasives.cmi" stdlib];
     dep ["ocaml"; "compile"; "need_camlinternalOO"] [ps "%s/camlinternalOO.cmi" stdlib];

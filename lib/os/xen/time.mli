@@ -14,4 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+exception Timeout
+val with_timeout : float -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 val sleep : float -> unit Lwt.t

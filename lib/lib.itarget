@@ -10,3 +10,8 @@ misc/atom/atom.cmx
 misc/xml/xmlm.cmx
 misc/html/html.cmx
 misc/dyntype/type.cmx
+os/unix/oS.cmx
+os/xen/oS.cmx
+
+std/js/stdlib.cmjsa
+os/browser/oS.cmjsa

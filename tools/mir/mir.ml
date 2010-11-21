@@ -92,7 +92,7 @@ let cmd xs =
       eprintf "%s (exit %d)\n" x n; exit n
 
 let _ =
-  let target = ref None in
+  let build_dir = ref None in
   let keyspec = [
       "-os", String set_os, "Set target operating system [xen|unix|browser]";
       "-mode", String set_mode, "Set where to build application [tree|installed]";
@@ -106,18 +106,14 @@ let _ =
       set_var "ocamlopt_flags" ocamlopt_flags_extra "ocamlopt flags";
       set_var "ocamldep" ocamldep "ocamldep binary";
     ] in
-  parse keyspec (fun s -> target := Some s) usage_str;
+  parse keyspec (fun s -> build_dir := Some s) usage_str;
   let mirage_root = match !mode with
     | Tree -> sprintf "%s/_build" (Sys.getcwd ())
     | Installed -> failwith "Installed mode not supported yet"
   in
-  (* The target path/name *)
-  let target = match !target with
-   | None -> eprintf "No target specified\n"; Arg.usage keyspec usage_str; exit 1
+  let build_dir = match !build_dir with
+   | None -> eprintf "No build dir specified\n"; Arg.usage keyspec usage_str; exit 1
    | Some x -> x in
-  let build_dir =
-    let i = String.rindex target '/' in
-    String.sub target 0 i in
 
   match !action with
   | Clean ->
@@ -129,13 +125,13 @@ let _ =
       | Xen ->
           (* Build the raw application object file *)
           Unix.putenv "OS" "xen";
-          cmd [ "ocamlbuild"; "-Xs"; "tools,runtime,syntax"; sprintf "%s.o" target ];
+          cmd [ "ocamlbuild"; sprintf "%s/app.o" build_dir ];
           (* Relink sections for custom memory layout *)
-          cmd [ sprintf "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext %s.o %s/-xen.o" target target ];
+          cmd [ sprintf "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext %s/app.o %s/xen-app.o" build_dir build_dir ];
           (* Change to the Xen kernel build dir and perform build *)
           let runtime = sprintf "%s/runtime/xen" mirage_root in
           Sys.chdir (runtime ^ "/kernel");
-          let app_lib = sprintf "APP_LIB=\"%s/%s-xen.o\"" mirage_root target in
+          let app_lib = sprintf "APP_LIB=\"%s/%s/xen-app.o\"" mirage_root build_dir in
           cmd [ "make"; app_lib ];
           let output_gz = sprintf "%s/kernel/obj/mirage-os.gz" runtime in
           let target_gz = sprintf "%s/mirage-os.gz" build_dir in
@@ -148,11 +144,11 @@ let _ =
       | Unix -> 
           (* Build the raw application object file *)
           Unix.putenv "OS" "unix";
-          cmd [ "ocamlbuild"; "-Xs"; "tools,runtime,syntax"; sprintf "%s.o" target ];
+          cmd [ "ocamlbuild"; sprintf "%s/app.o" build_dir ];
           (* Change the the Unix kernel build dir and perform build *)
           let runtime = sprintf "%s/runtime/unix" mirage_root in
           Sys.chdir (runtime ^ "/main");
-          let app_lib = sprintf "APP_LIB=\"%s/%s.o\"" mirage_root target in
+          let app_lib = sprintf "APP_LIB=\"%s/%s/app.o\"" mirage_root build_dir in
           cmd [ "make"; app_lib ];
           let output_bin = sprintf "%s/main/app" runtime in
           let target_bin = sprintf "%s/mirage-unix" build_dir in
@@ -165,8 +161,8 @@ let _ =
           let cclibs = String.concat " " (List.map (fun x -> sprintf "-cclib %s/%s.js" runtime x) ocamljs_cclibs) in
           (* Build the raw application object file *)
           Unix.putenv "OS" "browser";
-          cmd [ "ocamlbuild"; "-Xs"; "tools,runtime,syntax"; cclibs; sprintf "%s.js" target ];
+          cmd [ "ocamlbuild"; cclibs; sprintf "%s/app.js" build_dir ];
           (* Copy in the console HTML *)
-          cmd [ "mv"; sprintf "%s.js" target; build_dir ];
+          cmd [ "mv"; sprintf "%s.js" build_dir ];
           cmd [ "cp"; console_html; build_dir ]
     end

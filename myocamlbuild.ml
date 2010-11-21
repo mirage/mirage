@@ -155,14 +155,36 @@ rule "mpl: mpl -> ml"
   (mpl_compile "%.mpl" "%.ml")
 ;;
 
-rule "output-obj: ml -> o"
+(* Rules for MIR *)
+let ocamlopt_link flag tags deps out =
+  Cmd (S [!Options.ocamlopt; flag; forpack_flags out tags; T tags;
+          atomize_paths deps; A"-o"; Px out])
+
+let ocamlopt_link_output_obj =
+  ocamlopt_link (A"-output-obj")
+
+let native_output_obj_linker tags =
+  if Tags.mem "ocamlmklib" tags then
+    ocamlmklib tags
+  else
+    ocamlopt_link_output_obj tags
+
+let native_output_obj_linker_tags tags =
+  tags++"ocaml"++"link"++"native"++"library"
+
+let native_output_obj_modules =
+  link_modules [("cmx",[!Options.ext_obj])] "cmx" "o"
+     !Options.ext_lib native_output_obj_linker native_output_obj_linker_tags
+
+let native_library_output_obj_mllib =
+  link_from_file native_output_obj_modules
+;;
+
+rule "output-obj: cmx* -> o"
   ~prod:"%.o"
-  ~dep:"%.ml"
-  begin fun env build ->
-    let ml = env "%.ml" and o = env "%.o" in
-    let tags = tags_of_pathname ml in
-    Cmd (S[A"ocamlopt"; A"-output-obj"; T(tags++"output_obj"); P ml; A"-o"; Px o])
-  end;;
+  ~dep:"%.mirlib"
+  (native_library_output_obj_mllib "%.mirlib" "%.o")
+;;
 
 let split s ch =
   let x = ref [] in
@@ -238,6 +260,7 @@ let _ = dispatch begin function
 
     dep ["ocaml"; "compile"; "need_pervasives"] [ps "%s/pervasives.cmi" stdlib];
     dep ["ocaml"; "compile"; "need_camlinternalOO"] [ps "%s/camlinternalOO.cmi" stdlib];
+    dep ["ocaml"; "compile"; "use_mirage"] [ps "%s/stdlib.cmxa" stdlib];
 
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";

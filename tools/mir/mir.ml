@@ -115,6 +115,11 @@ let _ =
    | None -> eprintf "No build dir specified\n"; Arg.usage keyspec usage_str; exit 1
    | Some x -> x in
 
+  (* If building on x86_64 Linux, use no-pic *)
+  let ocamlopt_flags_os = match uname_os (), (uname_machine ()) with
+    |"Linux", "x86_64" -> ["-cflags"; "-fno-PIC,-nodynlink" ]
+    |_ -> [] in
+
   match !action with
   | Clean ->
       cmd [ "rm -f *.cma *.cmi *.cmx *.a *.o *.annot mirage-unix mirage-os mirage-os.gz app.js app.html" ];
@@ -125,7 +130,7 @@ let _ =
       | Xen ->
           (* Build the raw application object file *)
           Unix.putenv "OS" "xen";
-          cmd [ "ocamlbuild"; sprintf "%s/app.o" build_dir ];
+          cmd ([ "ocamlbuild"; sprintf "%s/app.o" build_dir ] @ ocamlopt_flags_os);
           (* Relink sections for custom memory layout *)
           cmd [ sprintf "objcopy --rename-section .data=.mldata --rename-section .rodata=.mlrodata --rename-section .text=.mltext %s/app.o %s/xen-app.o" build_dir build_dir ];
           (* Change to the Xen kernel build dir and perform build *)
@@ -144,14 +149,14 @@ let _ =
       | Unix -> 
           (* Build the raw application object file *)
           Unix.putenv "OS" "unix";
-          cmd [ "ocamlbuild"; sprintf "%s/app.o" build_dir ];
+          cmd ([ "ocamlbuild"; sprintf "%s/app.o" build_dir ] @ ocamlopt_flags_os);
           (* Change the the Unix kernel build dir and perform build *)
           let runtime = sprintf "%s/runtime/unix" mirage_root in
           Sys.chdir (runtime ^ "/main");
           let app_lib = sprintf "APP_LIB=\"%s/%s/app.o\"" mirage_root build_dir in
           cmd [ "make"; app_lib ];
           let output_bin = sprintf "%s/main/app" runtime in
-          let target_bin = sprintf "%s/mirage-unix" build_dir in
+          let target_bin = sprintf "%s/%s/mirage-unix" mirage_root build_dir in
           cmd [ "mv"; output_bin; target_bin ]
 
       | Browser ->

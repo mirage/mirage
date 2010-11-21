@@ -12,6 +12,7 @@ Pervasives
 Nativeint
 Marshal
 Map
+Lazy
 List
 Lexing
 Int64

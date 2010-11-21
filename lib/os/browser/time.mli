@@ -14,4 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+val restart_threads : (unit -> float) -> unit
+val select_next : (unit -> float) -> float option
+
 val sleep : float -> unit Lwt.t

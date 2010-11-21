@@ -1,11 +1,14 @@
 PREFIX ?= $(HOME)/mir-inst
 export PREFIX
 
+PATH:=$(PREFIX)/bin:$(PATH)
+export PATH
+
 .PHONY: bootstrap
 bootstrap:
-	@cd ocaml && $(MAKE) && $(MAKE) install
-	mkdir -p $(PREFIX)
-	tar -zxf ocaml/install.tgz -C $(PREFIX)
+	if [ -z $(PREFIX)/bin/ocaml ]; then cd ocaml && \
+	  $(MAKE) && $(MAKE) install; mkdir -p $(PREFIX); \
+	  tar -zxf ocaml/install.tgz -C $(PREFIX); fi
 	cd ocaml-libs && $(MAKE)
 	cd ocamljs && $(MAKE)
 	echo You should now add $(PREFIX)/bin to the front of your PATH variable

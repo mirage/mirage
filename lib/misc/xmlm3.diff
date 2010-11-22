@@ -1,0 +1,94 @@
+diff --git a/lib/misc/xml/xml.ml b/lib/misc/xml/xml.ml
+index 3715050..a334cb2 100644
+--- a/xml/xmlm.ml
++++ b/xml/xmlm.ml
+@@ -41,7 +41,7 @@ module type S = sig
+   type name = string * string 
+   type attribute = name * string
+   type tag = name * attribute list
+-  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
++  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string |`Raw of string ]
+     
+   val ns_xml : string 
+   val ns_xmlns : string
+@@ -248,7 +248,7 @@ struct
+   type name = string * string 
+   type attribute = name * string
+   type tag = name * attribute list
+-  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
++  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string | `Raw of string ]
+ 
+   (* Input *)
+     
+@@ -918,6 +918,7 @@ struct
+ 	  | childs :: context' -> aux i tags (((data d) :: childs) :: context')
+ 	  | [] -> assert false
+ 	  end
++      | `Raw _ -> assert false
+       | `Dtd _ -> assert false
+       in 
+       aux i (tag :: []) ([] :: [])
+@@ -1020,7 +1021,11 @@ struct
+       o.outs s !start (!last - !start)
+     in
+     String.to_utf_8 out () s
+-      
++
++  (* XXX an avsm hack to be able to output XML strings from other sources *)
++  let out_raw o s =
++    out_utf_8 o s
++ 
+   let out_qname o (p, l) = 
+     if not (str_empty p) then (out_utf_8 o p; o.outc ':'); 
+     out_utf_8 o l
+@@ -1030,7 +1035,7 @@ struct
+     out_data o v; 
+     o.outc '\x22'
+     
+-  let output o s = 
++  let output o (s:signal) = 
+     let indent o = match o.indent with
+     | None -> ()
+     | Some c -> for i = 1 to (o.depth * c) do o.outc ' ' done
+@@ -1045,7 +1050,7 @@ struct
+ 	  | None -> ()
+ 	  end;
+ 	  o.depth <- 0
+-      | `Data _ -> invalid_arg err_data
++      | `Data _ | `Raw _-> invalid_arg err_data
+       | `El_start _ -> invalid_arg err_el_start
+       | `El_end -> invalid_arg err_el_end
+       end
+@@ -1082,6 +1087,10 @@ struct
+ 	  out_data o d;
+ 	  unindent o;
+ 	  o.last_el_start <- false
++      | `Raw d ->
++	  if o.last_el_start then (outs o ">"; unindent o);
++          out_raw o d;
++	  o.last_el_start <- false
+       | `Dtd _ -> failwith err_dtd
+       end
+ 
+diff --git a/lib/misc/xml/xml.mli b/lib/misc/xml/xml.mli
+index b5fc0d6..d1cab4d 100644
+--- a/xml/xmlm.mli
++++ b/xml/xmlm.mli
+@@ -61,7 +61,7 @@ type attribute = name * string
+ type tag = name * attribute list
+ (** The type for an element tag. Tag name and attribute list. *)
+ 
+-type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
++type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string |`Raw of string]
+ (** The type for signals. A {e well-formed} sequence of signals belongs
+     to the language of the [doc] grammar :
+     {[doc ::= `Dtd tree
+@@ -326,7 +326,7 @@ module type S = sig
+   type name = string * string 
+   type attribute = name * string
+   type tag = name * attribute list
+-  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string ]
++  type signal = [ `Dtd of dtd | `El_start of tag | `El_end | `Data of string |`Raw of string]
+ 	
+   val ns_xml : string 
+   val ns_xmlns : string

@@ -9,6 +9,8 @@ init: .init
 	cp -r ../tools/ocaml-libs/xmlm/src misc/xml
 	cd misc && patch -p1 < xmlm1.diff
 	cd misc && patch -p1 < xmlm2.diff
+	cd misc && patch -p1 < xmlm3.diff
+	cd misc && patch -p1 < atom1.diff
 	cd misc && patch -p1 < dyntype1.diff
 
 clean:

@@ -1,7 +1,7 @@
 diff --git a/lib/misc/xml/xml.ml b/lib/misc/xml/xml.ml
 index d3ad895..3715050 100644
 --- a/xml/xmlm.ml
-+++ b/lib/misc/xml/xml.ml
++++ b/xml/xmlm.ml
 @@ -340,7 +340,6 @@ struct
                   ?(entity = fun _ -> None) src = 
      let i = match src with

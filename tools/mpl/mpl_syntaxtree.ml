@@ -52,7 +52,7 @@ type attr =
     |Const of expr
     |Variant of (vlist * expr option)
     |Value of expr
-	 |Default of expr
+     |Default of expr
 and attrs = attr list
 
 type packet_var =
@@ -77,9 +77,9 @@ type packet = {
 }
 
 type packets = {
-	 pdefs: packet list;  (* packets *)
-	 tdefs: (string, (L.t * string)) Hashtbl.t; (* typedefs *)
-	 sdefs: (string, statements) Hashtbl.t; (* structs *)
+    pdefs: packet list;  (* packets *)
+    tdefs: (string, (L.t * string)) Hashtbl.t; (* typedefs *)
+    sdefs: (string, statements) Hashtbl.t; (* structs *)
 }
 
 let packet_var_of_string nm = function
@@ -130,7 +130,7 @@ let string_of_attr = function
     |Max e -> sprintf "max=(%s)" (string_of_expr e)    
     |Value e -> sprintf "value=(%s)" (string_of_expr e)
     |Const e -> sprintf "const=(%s)" (string_of_expr e)
-	 |Default e -> sprintf "default=(%s)" (string_of_expr e)
+    |Default e -> sprintf "default=(%s)" (string_of_expr e)
     |Variant (x,def) -> sprintf "variant={%s}" (String.concat ", "
         (List.map (fun (i,t) -> sprintf "%s->%s" (string_of_expr i) t) x))
 

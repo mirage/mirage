@@ -19,11 +19,9 @@
 exception Unknown_custom_type
 
 type custom = {
-	c_module: string;
+  c_module: string;
 }
 
 let custom_of_string = function
-	|"dns_label" -> {
-		c_module="Mpl_dns_label"
-	}
-	|_ -> raise Unknown_custom_type
+| "dns_label" -> { c_module="Mpl_dns_label" }
+| _ -> raise Unknown_custom_type

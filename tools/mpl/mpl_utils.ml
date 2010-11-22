@@ -26,12 +26,7 @@ let hashtbl_add_list h k v =
 
 (* 2 ^ val - 1 *)
 let tworaised x =
-	(int_of_float (2. ** (float_of_int x))) - 1
-(*
- function
-	|0 -> 0
-	|x -> (int_of_float (2. ** (float_of_int (x-1)))) + (tworaised (x-1))
-*)
+    (int_of_float (2. ** (float_of_int x))) - 1
 
 (* Returns unique version of list, unsorted *)
 let list_unique l =

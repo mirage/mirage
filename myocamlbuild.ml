@@ -221,15 +221,54 @@ let lib =
     | "browser"      -> "js"
     | _              -> assert false
 
+let make_lib file =
+  match os with
+    | "unix" | "xen" -> A (ps "%s.cmxa" file)
+    | "browser"      -> A (ps "%s.cmjsa" file)
+    | _              -> assert false
+
+let make_pack file =
+  match os with
+    | "unix" | "xen" -> A (ps "%s.cmx" file)
+    | "browser"      -> A (ps "%s.cmjs" file)
+    | _              -> assert false
+
 let _ = dispatch begin function
   | Before_options ->
     Options.exclude_dirs := [ "runtime"; "syntax"; "scripts"; "tools" ]
 
   | After_rules ->
 
-    let oslib  = ps "lib/os/%s" os in
-    let stdlib = ps "lib/std/%s" lib in
-    let mirage_flags = S[A"-nostdlib"; A"-I"; A stdlib] in
+    let oslib     = ps "lib/os/%s" os in
+    let stdlib    = ps "lib/std/%s" lib in
+    let socketlib = ps "lib/net/socket/%s" os in
+
+    let libs = List.map make_lib
+      [ "stdlib"; "lwt" ] in
+    let packs = List.map make_pack
+      [ "oS"; "nettypes";"flow"; 
+        "type"; "xmlm"; "html"; "atom";
+        "mpl"; "mlnet"; "http"; "dhcp"; "dns" ] in
+
+    let mirage_flags =
+      [A"-nostdlib"; A"-I"; A stdlib; A"-I"; A "lib/std/lwt";
+        (* OS *)
+        A"-I"; A oslib;
+        (* Network *)
+        A"-I"; A "lib/net/api";
+        A"-I"; A "lib/net/mpl";
+        A"-I"; A "lib/net/dns";
+        A"-I"; A "lib/net/ether";
+        A"-I"; A "lib/net/dhcp";
+        A"-I"; A "lib/net/http";
+        A"-I"; A socketlib;
+        (* Misc *)
+        A"-I"; A "lib/misc/atom";
+        A"-I"; A "lib/misc/xml";
+        A"-I"; A "lib/misc/html";
+        (* Pre-processor *)
+        A"-pp"; A pp_pa_mirage;
+      ] in
 
     (* Define internal libraries *)
     ocaml_lib (ps "%s/stdlib" stdlib);
@@ -261,9 +300,9 @@ let _ = dispatch begin function
     flag ["ocaml"; "pack"; "nostdlib"] & A"-nostdlib";
 
     (* Configure the mirage lib *)
-    flag ["ocaml"; "compile"; "use_mirage"] & mirage_flags;
-    flag ["ocaml"; "pack"; "use_mirage"]    & mirage_flags;
-    flag ["ocaml"; "link"; "use_mirage"]    & mirage_flags;
+    flag ["ocaml"; "compile"; "use_mirage"] & S mirage_flags;
+    flag ["ocaml"; "pack"; "use_mirage"]    & S mirage_flags;
+    flag ["ocaml"; "link"; "use_mirage"]    & S (mirage_flags @ libs @ packs);
 
     (* use pa_mirage syntax extension *)
     flag ["ocaml"; "compile"; "pa_mirage"] & S[A"-pp"; A pp_pa_mirage];

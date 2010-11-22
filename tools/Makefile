@@ -6,9 +6,9 @@ export PATH
 
 .PHONY: bootstrap
 bootstrap:
-	if [ -z $(PREFIX)/bin/ocaml ]; then cd ocaml && \
+	if [ ! -e $(PREFIX)/bin/ocaml ]; then cd ocaml && \
 	  $(MAKE) && $(MAKE) install; mkdir -p $(PREFIX); \
-	  tar -zxf ocaml/install.tgz -C $(PREFIX); fi
+	  tar -zxf install.tgz -C $(PREFIX); fi
 	cd ocaml-libs && $(MAKE)
 	cd ocamljs && $(MAKE)
 	echo You should now add $(PREFIX)/bin to the front of your PATH variable

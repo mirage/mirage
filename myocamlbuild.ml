@@ -160,30 +160,24 @@ let ocamlopt_link flag tags deps out =
   Cmd (S [!Options.ocamlopt; flag; forpack_flags out tags; T tags;
           atomize_paths deps; A"-o"; Px out])
 
-let ocamlopt_link_output_obj =
+let native_output_obj =
   ocamlopt_link (A"-output-obj")
 
-let native_output_obj_linker tags =
-  if Tags.mem "ocamlmklib" tags then
-    ocamlmklib tags
-  else
-    ocamlopt_link_output_obj tags
-
-let native_output_obj_linker_tags tags =
+let native_output_obj_tags tags =
   tags++"ocaml"++"link"++"native"++"library"
 
 let native_output_obj_modules =
   link_modules [("cmx",[!Options.ext_obj])] "cmx" "o"
-     !Options.ext_lib native_output_obj_linker native_output_obj_linker_tags
+     !Options.ext_lib native_output_obj native_output_obj_tags
 
-let native_library_output_obj_mllib =
+let native_output_obj_mir =
   link_from_file native_output_obj_modules
 ;;
 
-rule "output-obj: cmx* -> o"
+rule "output-obj: mir -> o"
   ~prod:"%.o"
-  ~dep:"%.mirlib"
-  (native_library_output_obj_mllib "%.mirlib" "%.o")
+  ~dep:"%.mir"
+  (native_output_obj_mir "%.mir" "%.o")
 ;;
 
 let split s ch =

@@ -303,6 +303,7 @@ let _ = dispatch begin function
     flag ["ocaml"; "compile"; "use_mirage"] & S mirage_flags;
     flag ["ocaml"; "pack"; "use_mirage"]    & S mirage_flags;
     flag ["ocaml"; "link"; "use_mirage"]    & S (mirage_flags @ libs @ packs);
+    flag ["ocamldep"; "use_mirage"]         & S[A"-pp"; A pp_pa_mirage];
 
     (* use pa_mirage syntax extension *)
     flag ["ocaml"; "compile"; "pa_mirage"] & S[A"-pp"; A pp_pa_mirage];

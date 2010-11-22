@@ -241,7 +241,7 @@ let ocaml_string_of_expr ?(statevar=false) ?(rfn=None) ?(toint=false) ty env =
         |V.UInt V.I32 -> "l"
         |V.UInt V.I64 -> "L"
         |x -> interr "int_constant" in
-        sprintf "%d%s" a s
+        sprintf "%Lu%s" a s
     end
     | S.String_constant a -> sprintf "\"%s\"" a
     | S.Range (a,b) -> begin

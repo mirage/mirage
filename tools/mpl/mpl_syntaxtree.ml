@@ -38,7 +38,7 @@ type expr =
     | Minus of (expr * expr)
     | Multiply of (expr * expr)
     | Divide of (expr * expr)
-    | Int_constant of int
+    | Int_constant of int64
     | String_constant of string
     | Range of (expr * expr)
     | Function_call of (id * string option)
@@ -117,7 +117,7 @@ let rec string_of_expr = function
     | Minus (a,b) -> sprintf "(%s - %s)" (string_of_expr a) (string_of_expr b)
     | Multiply (a,b) -> sprintf "(%s * %s)" (string_of_expr a) (string_of_expr b)
     | Divide (a,b) -> sprintf "(%s / %s)" (string_of_expr a) (string_of_expr b)
-    | Int_constant a -> sprintf "%d" a
+    | Int_constant a -> sprintf "%Lu" a
     | String_constant a -> sprintf "\"%s\"" a
     | Range (a,b) -> sprintf "(%s .. %s)" (string_of_expr a) (string_of_expr b)
     | Function_call (i,a) ->

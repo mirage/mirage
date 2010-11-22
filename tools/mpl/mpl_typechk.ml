@@ -320,7 +320,11 @@ module Expr = struct
                 (sprintf "int_expr_fold: unable to constant fold (%s) to type int"
                     (string_of_expr e))) in
         let rec fn = function
-        |Int_constant x -> x
+        |Int_constant x ->
+          if x >= (Int64.of_int max_int) then
+            raise (Type_error ("integer too large"))
+          else
+            Int64.to_int x
         |Range _ as e -> terr e
         |Plus (a,b) -> (fn a) + (fn b)
         |Minus (a,b) -> (fn a) - (fn b)
@@ -468,8 +472,8 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
                     match (t, T.of_string t) with
                     |"bit", Some x ->
                         let szi = E.to_const_int sz in
-								if szi < 1 then
-									 terr (sprintf "Bitfield size %d is too small, min 1" szi);
+			if szi < 1 then
+			 terr (sprintf "Bitfield size %d is too small, min 1" szi);
                         if szi > 15 then 
                             terr (sprintf "Bitfield size %d is too long, max 15" szi);
                         V.new_value ty x

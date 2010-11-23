@@ -3,182 +3,181 @@ open Command
 open Ocamlbuild_pack.Ocaml_compiler
 open Ocamlbuild_pack.Ocaml_utils
 open Ocamlbuild_pack.Tools
-;;
 
 let ps = Printf.sprintf
 
-let ocamljs = ref (A"ocamljs")
+(* From ocamljs, the ocaml to javascript compiler by Jake Donham *)
+module Ocamljs = struct
 
-let ocamljs_c tags arg out =
-  let tags = tags++"ocaml"++"js" in
-  Cmd (S [!ocamljs; A"-c"; T(tags++"compile");
-          ocaml_ppflags tags; (* flags_of_pathname arg; *)
-          ocaml_include_flags arg; A"-o"; Px out; P arg])
+  let ocamljs = ref (A"ocamljs")
 
-let ocamljs_link flag tags deps out =
-  Cmd (S [!ocamljs; flag; T tags;
-          atomize_paths deps; (* flags_of_pathname out; *) A"-o"; Px out])
+  let ocamljs_c tags arg out =
+    let tags = tags++"ocaml"++"js" in
+    Cmd (S [!ocamljs; A"-c"; T(tags++"compile");
+            ocaml_ppflags tags; (* flags_of_pathname arg; *)
+            ocaml_include_flags arg; A"-o"; Px out; P arg])
 
-let ocamljs_link_lib = ocamljs_link (A"-a")
-let ocamljs_link_prog = ocamljs_link N
+  let ocamljs_link flag tags deps out =
+    Cmd (S [!ocamljs; flag; T tags;
+            atomize_paths deps; (* flags_of_pathname out; *) A"-o"; Px out])
 
-let js_lib_linker tags =
-  if Tags.mem "ocamlmklib" tags then
-    ocamlmklib tags (* XXX ocamlmkjslib? *)
-  else
-    ocamljs_link_lib tags
+  let ocamljs_link_lib = ocamljs_link (A"-a")
+  let ocamljs_link_prog = ocamljs_link N
 
-let js_lib_linker_tags tags = tags++"ocaml"++"link"++"js"++"library"
+  let js_lib_linker tags =
+    if Tags.mem "ocamlmklib" tags then
+      ocamlmklib tags (* XXX ocamlmkjslib? *)
+    else
+      ocamljs_link_lib tags
 
-let ocamljs_p tags deps out =
-  Cmd (S [!ocamljs; A"-pack"; T tags;
-          atomize_paths deps; (* flags_of_pathname out; *) A"-o"; Px out])
+  let js_lib_linker_tags tags = tags++"ocaml"++"link"++"js"++"library"
 
-let js_compile_ocaml_implem ?tag ml cmjs env build =
-  let ml = env ml and cmjs = env cmjs in
-  prepare_compile build ml;
-  ocamljs_c (tags_of_pathname ml++"implem"+++tag) ml cmjs
+  let ocamljs_p tags deps out =
+    Cmd (S [!ocamljs; A"-pack"; T tags;
+            atomize_paths deps; (* flags_of_pathname out; *) A"-o"; Px out])
 
-let js_link_gen = link_gen "cmjs" "cmjsa" "cmjsa" ["cmjs"; "cmi"]
+  let js_compile_ocaml_implem ?tag ml cmjs env build =
+    let ml = env ml and cmjs = env cmjs in
+    prepare_compile build ml;
+    ocamljs_c (tags_of_pathname ml++"implem"+++tag) ml cmjs
 
-let js_link = js_link_gen ocamljs_link_prog
-  (fun tags -> tags++"ocaml"++"link"++"js"++"program")
+  let js_link_gen = link_gen "cmjs" "cmjsa" "cmjsa" ["cmjs"; "cmi"]
 
-let js_library_link = js_link_gen js_lib_linker js_lib_linker_tags
+  let js_link = js_link_gen ocamljs_link_prog
+    (fun tags -> tags++"ocaml"++"link"++"js"++"program")
 
-let js_library_link_modules =
-  link_modules [("cmjs",[]); ("cmi",[])] "cmjs" "cmjsa" "cmjsa" js_lib_linker js_lib_linker_tags
+  let js_library_link = js_link_gen js_lib_linker js_lib_linker_tags
+
+  let js_library_link_modules =
+    link_modules [("cmjs",[]); ("cmi",[])] "cmjs" "cmjsa" "cmjsa" js_lib_linker js_lib_linker_tags
 
 (* from Ocaml_compiler *)
-let link_from_file link modules_file cmX env build =
-  let modules_file = env modules_file in
-  let contents_list = string_list_of_file modules_file in
-  link contents_list cmX env build
+  let link_from_file link modules_file cmX env build =
+    let modules_file = env modules_file in
+    let contents_list = string_list_of_file modules_file in
+    link contents_list cmX env build
 
-let js_library_link_mllib = link_from_file js_library_link_modules
+  let js_library_link_mllib = link_from_file js_library_link_modules
 
-let js_pack_modules =
-  pack_modules [("cmjs",["cmi"]); ("cmi",[])] "cmjs" "cmjsa" "cmjsa" ocamljs_p
-    (fun tags -> tags++"ocaml"++"pack"++"js")
+  let js_pack_modules =
+    pack_modules [("cmjs",["cmi"]); ("cmi",[])] "cmjs" "cmjsa" "cmjsa" ocamljs_p
+      (fun tags -> tags++"ocaml"++"pack"++"js")
 
-let js_pack_mlpack = link_from_file js_pack_modules
+  let js_pack_mlpack = link_from_file js_pack_modules
 
-;;
+  let () =
 
-(* copied from the ocamlc versions in Ocaml_commpiler. *)
-rule "ocaml: mlpack & cmjs* & cmi -> cmjs"
-  ~tags:["ocaml"; "js"]
-  ~prod:"%.cmjs"
-  ~deps:["%.mli"; "%.cmi"; "%.mlpack"]
-  (js_pack_mlpack "%.mlpack" "%.cmjs");;
+  (* copied from the ocamlc versions in Ocaml_commpiler. *)
+    rule "ocaml: mlpack & cmjs* & cmi -> cmjs"
+      ~tags:["ocaml"; "js"]
+      ~prod:"%.cmjs"
+      ~deps:["%.mli"; "%.cmi"; "%.mlpack"]
+      (js_pack_mlpack "%.mlpack" "%.cmjs");
 
-(*
-  this rule is a little hack; the right one is commented out below,
-  but since apparently tags are not checked when picking a rule (??),
-  the commented rule conflicts with the ocamlc one when trying to
-  build a .cmi
-*)
+  (* this rule is a little hack; the right one is commented out below,
+     but since apparently tags are not checked when picking a rule
+     (??), the commented rule conflicts with the ocamlc one when
+     trying to build a .cmi *)
+    rule "ocaml: mlpack & cmjs* -> cmjs"
+      ~tags:["ocaml"; "js"]
+      ~prods:["%.cmjs"]
+      ~dep:"%.mlpack"
+      (js_pack_mlpack "%.mlpack" "%.cmjs");
 
-rule "ocaml: mlpack & cmjs* -> cmjs"
-  ~tags:["ocaml"; "js"]
-  ~prods:["%.cmjs"]
-  ~dep:"%.mlpack"
-  (js_pack_mlpack "%.mlpack" "%.cmjs");;
+  (* rule "ocaml: mlpack & cmjs* -> cmjs & cmi"
+     ~tags:["ocaml"; "js"]
+     ~prods:["%.cmjs"; "%.cmi"]
+     ~dep:"%.mlpack"
+     (js_pack_mlpack "%.mlpack" "%.cmjs");*)
 
-(*
-rule "ocaml: mlpack & cmjs* -> cmjs & cmi"
-  ~tags:["ocaml"; "js"]
-  ~prods:["%.cmjs"; "%.cmi"]
-  ~dep:"%.mlpack"
-  (js_pack_mlpack "%.mlpack" "%.cmjs");;
-*)
+    rule "ocaml: ml & cmi -> cmjs"
+      ~tags:["ocaml"; "js"]
+      ~prod:"%.cmjs"
+      ~deps:["%.mli"(* This one is inserted to force this rule to be skiped when
+                       a .ml is provided without a .mli *); "%.ml"; "%.ml.depends"; "%.cmi"]
+      (js_compile_ocaml_implem "%.ml" "%.cmjs");
 
-rule "ocaml: ml & cmi -> cmjs"
-  ~tags:["ocaml"; "js"]
-  ~prod:"%.cmjs"
-  ~deps:["%.mli"(* This one is inserted to force this rule to be skiped when
-                   a .ml is provided without a .mli *); "%.ml"; "%.ml.depends"; "%.cmi"]
-  (js_compile_ocaml_implem "%.ml" "%.cmjs");;
+  (* see above *)
+    rule "ocaml: ml -> cmjs"
+      ~tags:["ocaml"; "js"]
+      ~prods:["%.cmjs"]
+      ~deps:["%.ml"; "%.ml.depends"]
+      (js_compile_ocaml_implem "%.ml" "%.cmjs");
 
-(*
-  see above
-*)
-rule "ocaml: ml -> cmjs"
-  ~tags:["ocaml"; "js"]
-  ~prods:["%.cmjs"]
-  ~deps:["%.ml"; "%.ml.depends"]
-  (js_compile_ocaml_implem "%.ml" "%.cmjs");
+  (* rule "ocaml: ml -> cmjs & cmi"
+     ~tags:["ocaml"; "js"]
+     ~prods:["%.cmjs"; "%.cmi"]
+     ~deps:["%.ml"; "%.ml.depends"]
+     (js_compile_ocaml_implem "%.ml" "%.cmjs");*)
 
-(*
-  rule "ocaml: ml -> cmjs & cmi"
-  ~tags:["ocaml"; "js"]
-  ~prods:["%.cmjs"; "%.cmi"]
-  ~deps:["%.ml"; "%.ml.depends"]
-  (js_compile_ocaml_implem "%.ml" "%.cmjs");
-*)
+    rule "ocaml: cmjs* -> js"
+      ~tags:["ocaml"; "js"; "program"]
+      ~prod:"%.js"
+      ~dep:"%.cmjs"
+      (js_link "%.cmjs" "%.js");
 
-rule "ocaml: cmjs* -> js"
-  ~tags:["ocaml"; "js"; "program"]
-  ~prod:"%.js"
-  ~dep:"%.cmjs"
-  (js_link "%.cmjs" "%.js");
+    rule "ocaml: mllib & cmjs* -> cmja"
+      ~tags:["ocaml"; "js"; "library"]
+      ~prod:"%.cmjsa"
+      ~dep:"%.mllib"
+      (js_library_link_mllib "%.mllib" "%.cmjsa");
 
-rule "ocaml: mllib & cmjs* -> cmja"
-  ~tags:["ocaml"; "js"; "library"]
-  ~prod:"%.cmjsa"
-  ~dep:"%.mllib"
-  (js_library_link_mllib "%.mllib" "%.cmjsa");;
+    rule "ocaml: cmo* -> cmjsa"
+      ~tags:["ocaml"; "js"; "library"]
+      ~prod:"%.cmjsa"
+      ~dep:"%.cmjs"
+      (js_library_link "%.cmjs" "%.cmjsa");
 
-rule "ocaml: cmo* -> cmjsa"
-  ~tags:["ocaml"; "js"; "library"]
-  ~prod:"%.cmjsa"
-  ~dep:"%.cmjs"
-  (js_library_link "%.cmjs" "%.cmjsa");;
-
-flag ["ocaml"; "js"; "link"] begin
-  S (List.map (fun x -> A (x^".cmjsa")) !Options.ocaml_libs)
-end;;
+    flag ["ocaml"; "js"; "link"]
+      (S (List.map (fun x -> A (x^".cmjsa")) !Options.ocaml_libs))
+end
 
 (* Rules for MPL *)
-let mpl_c tags arg out =
-  Cmd (S [A"mplc"; A"-v"; T(tags++"mpl"); P arg; Sh">"; Px out])
+module MPL = struct
 
-let mpl_compile mpl ml env build =
-  let mpl = env mpl and ml = env ml in
-  let tags = tags_of_pathname mpl in
-  mpl_c tags mpl ml
-;;
+  let mpl_c tags arg out =
+    Cmd (S [A"mplc"; A"-v"; T(tags++"mpl"); P arg; Sh">"; Px out])
 
-rule "mpl: mpl -> ml"
-  ~prod:"%.ml"
-  ~dep:"%.mpl"
-  (mpl_compile "%.mpl" "%.ml")
-;;
+  let mpl_compile mpl ml env build =
+    let mpl = env mpl and ml = env ml in
+    let tags = tags_of_pathname mpl in
+    mpl_c tags mpl ml
+
+
+  let () =
+    rule "mpl: mpl -> ml"
+      ~prod:"%.ml"
+      ~dep:"%.mpl"
+      (mpl_compile "%.mpl" "%.ml")
+end
+
 
 (* Rules for MIR *)
-let ocamlopt_link flag tags deps out =
-  Cmd (S [!Options.ocamlopt; flag; forpack_flags out tags; T tags;
-          atomize_paths deps; A"-o"; Px out])
+module Mir = struct
 
-let native_output_obj =
-  ocamlopt_link (A"-output-obj")
+  let ocamlopt_link flag tags deps out =
+    Cmd (S [!Options.ocamlopt; flag; forpack_flags out tags; T tags;
+            atomize_paths deps; A"-o"; Px out])
 
-let native_output_obj_tags tags =
-  tags++"ocaml"++"link"++"native"++"library"
+  let native_output_obj =
+    ocamlopt_link (A"-output-obj")
 
-let native_output_obj_modules =
-  link_modules [("cmx",[!Options.ext_obj])] "cmx" "o"
-     !Options.ext_lib native_output_obj native_output_obj_tags
+  let native_output_obj_tags tags =
+    tags++"ocaml"++"link"++"native"++"library"
 
-let native_output_obj_mir =
-  link_from_file native_output_obj_modules
-;;
+  let native_output_obj_modules =
+    link_modules [("cmx",[!Options.ext_obj])] "cmx" "o"
+      !Options.ext_lib native_output_obj native_output_obj_tags
 
-rule "output-obj: mir -> o"
-  ~prod:"%.o"
-  ~dep:"%.mir"
-  (native_output_obj_mir "%.mir" "%.o")
-;;
+  let native_output_obj_mir =
+    Ocamljs.link_from_file native_output_obj_modules
+
+  let () =
+    rule "output-obj: mir -> o"
+      ~prod:"%.o"
+      ~dep:"%.mir"
+      (native_output_obj_mir "%.mir" "%.o")
+end
 
 let split s ch =
   let x = ref [] in
@@ -274,7 +273,7 @@ let _ = dispatch begin function
     ocaml_lib (ps "%s/stdlib" stdlib);
     ocaml_lib "lib/std/lwt/lwt";
     ocaml_lib (ps "%s/oS" oslib);
-    ocaml_lib "lib/net/socket/unix/flow";
+    ocaml_lib (ps "%s/flow" socketlib);
     ocaml_lib "lib/net/mpl/mpl";
 
     (* set the visibility of lib/net/ sub-directories *)
@@ -284,8 +283,8 @@ let _ = dispatch begin function
         let me = ps "lib/net/%s" path in
         Pathname.define_context me [me; oslib; "lib/net/mpl"; "lib/net/api"; "lib/net/ether"])
       [ "dhcp"; "ether"; "dns" ];
-    Pathname.define_context "lib/net/http" ["lib/net/http"; "lib/net/socket/unix"; oslib];
-    Pathname.define_context "lib/net/socket/unix" [oslib];
+    Pathname.define_context "lib/net/http" ["lib/net/http"; socketlib; oslib];
+    Pathname.define_context socketlib [oslib];
 
     Pathname.define_context "lib/os/xen" ["lib/os/xen"];
     Pathname.define_context "lib/os/unix" ["lib/os/unix"];

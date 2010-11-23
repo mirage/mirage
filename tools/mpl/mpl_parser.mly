@@ -33,7 +33,7 @@
 
 %token <Mpl_location.t> EOL EOF
 %token <string * Mpl_location.t> IDENTIFIER STRING UIDENTIFIER
-%token <int * Mpl_location.t> INT
+%token <int64 * Mpl_location.t> INT
 %token <Mpl_location.t> STRUCT TYPEDEF DEFAULT_PATTERN_BIND
 %token <Mpl_location.t> PACKET VARIANT CLASSIFY ARRAY RANGE
 %token <Mpl_location.t> LBRACKET RBRACKET LBRACE RBRACE SLBRACKET SRBRACKET
@@ -170,7 +170,7 @@ expr:
 | expr MULTIPLY expr { Mpl_syntaxtree.Multiply ($1, $3) }
 | expr DIVIDE expr { Mpl_syntaxtree.Divide ($1, $3) }
 | MINUS expr %prec UMINUS {
-    Mpl_syntaxtree.Multiply ( Mpl_syntaxtree.Int_constant (-1), $2) }
+    Mpl_syntaxtree.Multiply ( Mpl_syntaxtree.Int_constant (-1L), $2) }
 | TRUE {Mpl_syntaxtree.True}
 | FALSE {Mpl_syntaxtree.False}
 | expr AND expr {Mpl_syntaxtree.And ($1,$3)}

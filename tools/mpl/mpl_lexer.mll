@@ -76,7 +76,7 @@ rule token = parse
 | "\"" { string_e (Buffer.create 128) lexbuf }
 | uppercase identchar* { UIDENTIFIER(Lexing.lexeme lexbuf, next_token lexbuf) }
 | lowercase identchar* { IDENTIFIER(Lexing.lexeme lexbuf, next_token lexbuf) }
-| int_literal { INT(int_of_string (Lexing.lexeme lexbuf), next_token lexbuf) }
+| int_literal { INT(Int64.of_string (Lexing.lexeme lexbuf), next_token lexbuf) }
 | "/*" { ignore(comment lexbuf); token lexbuf }
 | "//" { ignore(lexbuf); token lexbuf }
 | eof { EOF(next_token lexbuf) }

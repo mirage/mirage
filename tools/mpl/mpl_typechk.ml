@@ -28,42 +28,42 @@ module B = Mpl_bits
 (* Types for variables *)
 module Var = struct
     type isz =
-        |I8
-        |I16
-        |I32
-        |I64
+    | I8
+    | I16
+    | I32
+    | I64
         
     (* Base types for statements that target language needs support for *)
     type b =
-        |UInt of isz
-        |String
-        |Bool
-        |Opaque
+    | UInt of isz
+    | String
+    | Bool
+    | Opaque
 
     (* Higher level constructs *)
     type value_attr = {
-        mutable av_min: int option;
-        mutable av_max: int option;
-        mutable av_const: expr option;
-        mutable av_value: expr option;
-        mutable av_variant: ((expr * string) list) option;
-		mutable av_default: expr option;
-        mutable av_bitvars: int list;
-		mutable av_bitops: B.t list;
-        mutable av_bitdummy: bool;
-        av_bound: bool;
+      mutable av_min: int option;
+      mutable av_max: int option;
+      mutable av_const: expr option;
+      mutable av_value: expr option;
+      mutable av_variant: ((expr * string) list) option;
+      mutable av_default: expr option;
+      mutable av_bitvars: int list;
+      mutable av_bitops: B.t list;
+      mutable av_bitdummy: bool;
+      av_bound: bool;
     }
     
     type array_attr = {
-        mutable aa_align: int option;
+      mutable aa_align: int option;
     }
     
     type t =
-        |Packet of (string * (string list))
-        |Value of (string * b * value_attr)
-        |Array of (string * b * array_attr)
-        |Class of string list
-        |Label
+    | Packet of (string * (string list))
+    | Value of (string * b * value_attr)
+    | Array of (string * b * array_attr)
+    | Class of string list
+    | Label
 
     type x =
     | S_var of (id * expr option * t)   (* id,size,type *)
@@ -75,7 +75,7 @@ module Var = struct
     let new_value ?(bitdummy=false) vty v =
         Value (vty, v, {av_min=None; av_max=None; av_const=None; av_value=None;
             av_variant=None; av_bound=false; av_bitvars=[]; av_bitdummy=bitdummy;
-				av_bitops=[]; av_default=None})
+                av_bitops=[]; av_default=None})
    
     let new_array vty v =
         Array (vty, v, {aa_align=None})
@@ -129,8 +129,8 @@ end
 
 (* Type checking environment *)
 type env = {
-	 t_sdefs: (string, statements) Hashtbl.t;
-	 t_tdefs: (string, (L.t * string)) Hashtbl.t;
+     t_sdefs: (string, statements) Hashtbl.t;
+     t_tdefs: (string, (L.t * string)) Hashtbl.t;
     root: Mpl_syntaxtree.packet;
     statevars: (string * Var.b) list;
     vars: (string * Var.t) list;
@@ -149,7 +149,7 @@ let get_var_type env id =
     assoc_opt id env.vars
 
 let bind_accum env a =
-    {env with bit_accum=(env.bit_accum+a) mod 8}	
+    {env with bit_accum=(env.bit_accum+a) mod 8}    
     
 let bind_reset_accum env =
     {env with bit_accum=0}
@@ -311,8 +311,8 @@ module Expr = struct
                 (string_of_expr e)))
 
     let is_const e =
-		  try check_const e; true with
-		  Type_error _ -> false
+          try check_const e; true with
+          Type_error _ -> false
 
     (* Convert expression to a constant int *)
     let to_const_int e =
@@ -320,7 +320,11 @@ module Expr = struct
                 (sprintf "int_expr_fold: unable to constant fold (%s) to type int"
                     (string_of_expr e))) in
         let rec fn = function
-        |Int_constant x -> x
+        |Int_constant x ->
+          if x >= (Int64.of_int max_int) then
+            raise (Type_error ("integer too large"))
+          else
+            Int64.to_int x
         |Range _ as e -> terr e
         |Plus (a,b) -> (fn a) + (fn b)
         |Minus (a,b) -> (fn a) - (fn b)
@@ -468,8 +472,8 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
                     match (t, T.of_string t) with
                     |"bit", Some x ->
                         let szi = E.to_const_int sz in
-								if szi < 1 then
-									 terr (sprintf "Bitfield size %d is too small, min 1" szi);
+            if szi < 1 then
+             terr (sprintf "Bitfield size %d is too small, min 1" szi);
                         if szi > 15 then 
                             terr (sprintf "Bitfield size %d is too long, max 15" szi);
                         V.new_value ty x
@@ -490,7 +494,7 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
             in
             (* Check variable attributes *)
             let varty = List.fold_left (fun varty attr -> match varty,attr with
-	         |V.Packet _ as o, _ -> o
+             |V.Packet _ as o, _ -> o
             |V.Class _, _ ->
                 terr "Internal error, V.Class"
             |V.Label, _ ->
@@ -505,8 +509,8 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
                 terr "Duplicate attribute 'const'"
             |V.Value (_,_, {V.av_value=Some _}), Value e ->
                 terr "Duplicate attribute 'value'"
-				|V.Value (_,_, {V.av_default=Some _}), Default e ->
-					 terr "Duplicate attribute 'default'"
+                |V.Value (_,_, {V.av_default=Some _}), Default e ->
+                     terr "Duplicate attribute 'default'"
             |V.Array (_,V.UInt V.I8, ({V.aa_align=None} as a)) as o, Align e ->
                 a.V.aa_align <- Some (E.to_const_int e); o
             |V.Array _, _ ->
@@ -572,7 +576,7 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
                             (V.to_string o) (E.to_string b))
                 ) x;
                 a.V.av_variant <- Some x;
-					 a.V.av_default <- def;
+                     a.V.av_default <- def;
                 o
             end
             |_ as a, Variant _ ->
@@ -667,9 +671,9 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
                 (e,x) :: a
             ) [] l) in
             (* Check that all sub-environments are equally bit-aligned *)
-				let acl = list_unique (List.map (fun e -> e.bit_accum) cenvs) in
-				let ac = if List.length acl > 1 then terr (sprintf "Classify elements are not equally bit-aligned (%s)"
-					(String.concat "," (List.map string_of_int acl))) else List.hd acl in
+                let acl = list_unique (List.map (fun e -> e.bit_accum) cenvs) in
+                let ac = if List.length acl > 1 then terr (sprintf "Classify elements are not equally bit-aligned (%s)"
+                    (String.concat "," (List.map string_of_int acl))) else List.hd acl in
             (* Add the bit alignments to the environment, but no variables are bound *)
             let idty' = match idty with |V.Value (_,x,_) -> x |_ -> terr "idty" in
             let vr = V.S_class (id,idty', cxs) in
@@ -680,59 +684,59 @@ let rec typeof env (xs:statements) : (env * Var.xs) =
     env, (List.rev xs)
 
 let resolve_defs env xs =
-	 (* all ids must be unique *)
-	 (* XXX TODO check for overlapping typedef/structs, and that struct statements 
-		 only contain basic Variables with no external references *)
-	 let nm = Hashtbl.create 1 in
-	 Hashtbl.iter (fun id (loc,t) ->
-		  prerr_endline (sprintf "[dbg] typedef %s -> %s" id t);
-	     if Hashtbl.mem nm id then raise
-		      (Type_error (sprintf "%s duplicate typedef %s" (L.string_of_location loc) id));
-		  Hashtbl.add nm id ();
-		  match T.of_string t with
-		  |None -> raise (Type_error (sprintf "%s unknown basic type %s for typedef %s" (L.string_of_location loc) t id))
-		  |Some _ -> ()
-	 ) env.t_tdefs;
-	 let rec fn = function
-	  | (loc,Variable (id,ty,ex,at)) as o :: r ->
-		 if Hashtbl.mem env.t_tdefs ty then begin
-			let _,t = Hashtbl.find env.t_tdefs ty in
-			(loc,Variable (id,t,ex,at)) :: (fn r)
-		 end else begin
-		     if Hashtbl.mem env.t_sdefs ty then begin
-		         let xst = Hashtbl.find env.t_sdefs ty in
-		         let xst = List.map (fun (_,x) -> match x with
-		            |Variable (vid,t,ex,at) ->
-		                (loc, Variable ((id ^ "_" ^ vid), t, ex, at))
-		            |_ -> raise (Type_error (sprintf "struct %s contains non-variable entry" ty))
-		         ) xst in
-		         xst @ (fn r)
-		     end else
-		         o :: (fn r)
-		 end
-	  | (loc,Classify (id, l)) :: r ->
-	    let l = List.map (fun (a,b,c,xsc) -> (a,b,c,(fn xsc))) l in
-	    (loc,Classify (id,l)) :: (fn r)
-	  | (loc,Array (id, ex, xsa)) :: r -> (loc,Array (id, ex, (fn xsa))) :: (fn r)
-	  | (loc, Packet _) as o :: r -> o :: (fn r)
-	  | (loc,Unit) :: r -> (loc,Unit) :: (fn r)
-	  | [] -> [] in
-	 fn xs
-	
+     (* all ids must be unique *)
+     (* XXX TODO check for overlapping typedef/structs, and that struct statements 
+         only contain basic Variables with no external references *)
+     let nm = Hashtbl.create 1 in
+     Hashtbl.iter (fun id (loc,t) ->
+          prerr_endline (sprintf "[dbg] typedef %s -> %s" id t);
+         if Hashtbl.mem nm id then raise
+              (Type_error (sprintf "%s duplicate typedef %s" (L.string_of_location loc) id));
+          Hashtbl.add nm id ();
+          match T.of_string t with
+          |None -> raise (Type_error (sprintf "%s unknown basic type %s for typedef %s" (L.string_of_location loc) t id))
+          |Some _ -> ()
+     ) env.t_tdefs;
+     let rec fn = function
+      | (loc,Variable (id,ty,ex,at)) as o :: r ->
+         if Hashtbl.mem env.t_tdefs ty then begin
+            let _,t = Hashtbl.find env.t_tdefs ty in
+            (loc,Variable (id,t,ex,at)) :: (fn r)
+         end else begin
+             if Hashtbl.mem env.t_sdefs ty then begin
+                 let xst = Hashtbl.find env.t_sdefs ty in
+                 let xst = List.map (fun (_,x) -> match x with
+                    |Variable (vid,t,ex,at) ->
+                        (loc, Variable ((id ^ "_" ^ vid), t, ex, at))
+                    |_ -> raise (Type_error (sprintf "struct %s contains non-variable entry" ty))
+                 ) xst in
+                 xst @ (fn r)
+             end else
+                 o :: (fn r)
+         end
+      | (loc,Classify (id, l)) :: r ->
+        let l = List.map (fun (a,b,c,xsc) -> (a,b,c,(fn xsc))) l in
+        (loc,Classify (id,l)) :: (fn r)
+      | (loc,Array (id, ex, xsa)) :: r -> (loc,Array (id, ex, (fn xsa))) :: (fn r)
+      | (loc, Packet _) as o :: r -> o :: (fn r)
+      | (loc,Unit) :: r -> (loc,Unit) :: (fn r)
+      | [] -> [] in
+     fn xs
+    
 let typecheck ps =
-	 (* send this environment to each packet *)
-	 List.map (fun packet ->
-	    let terr x = raise (Type_error (sprintf "packet %s%s %s" packet.name
-	        (L.string_of_location packet.loc) x)) in
-	    let h = Hashtbl.create 1 in
-	    List.iter (fun b ->
-	        let id,ty = match b with
-	        |P_bool id -> id, Var.Bool
-	        |P_int id -> id, Var.UInt Var.I8
-	        in if Hashtbl.mem h id then terr (sprintf "Duplicate state variable '%s'" id)
-	        else Hashtbl.add h id ty) packet.args;
-	    let svars = Hashtbl.fold (fun k v a -> (k,v) :: a) h [] in
-	    let env = {root=packet; statevars=svars; vars=[]; bit_accum=0; sizes=Hashtbl.create 1; offsets=Hashtbl.create 1;
-		            t_tdefs=ps.tdefs; t_sdefs=ps.sdefs; custom=Hashtbl.create 1} in
-	    typeof env (resolve_defs env packet.body)
-	 ) ps.pdefs
+     (* send this environment to each packet *)
+     List.map (fun packet ->
+        let terr x = raise (Type_error (sprintf "packet %s%s %s" packet.name
+            (L.string_of_location packet.loc) x)) in
+        let h = Hashtbl.create 1 in
+        List.iter (fun b ->
+            let id,ty = match b with
+            |P_bool id -> id, Var.Bool
+            |P_int id -> id, Var.UInt Var.I8
+            in if Hashtbl.mem h id then terr (sprintf "Duplicate state variable '%s'" id)
+            else Hashtbl.add h id ty) packet.args;
+        let svars = Hashtbl.fold (fun k v a -> (k,v) :: a) h [] in
+        let env = {root=packet; statevars=svars; vars=[]; bit_accum=0; sizes=Hashtbl.create 1; offsets=Hashtbl.create 1;
+                    t_tdefs=ps.tdefs; t_sdefs=ps.sdefs; custom=Hashtbl.create 1} in
+        typeof env (resolve_defs env packet.body)
+     ) ps.pdefs

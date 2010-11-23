@@ -22,6 +22,7 @@
 module Xml = Xmlm
 
 type field = [
+  | `XML of string 
   | `Text of string
   | `Empty
 ]
@@ -88,6 +89,8 @@ let output_field t (f:field) =
     match f with
     | `Text s ->
         Xml.output o (`Data s)
+    | `XML h ->
+        Xml.output o (`Raw h)
     | `Empty -> ()
   )
 

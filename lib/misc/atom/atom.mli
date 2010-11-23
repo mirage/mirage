@@ -15,7 +15,7 @@
  *
  *)
 
-type field = [ `Empty | `Text of string ]
+type field = [ `Empty | `Text of string | `XML of string ]
 type author = { name : string; uri : string option; email : string option; }
 type date = int * int * int * int * int
 type meta = {

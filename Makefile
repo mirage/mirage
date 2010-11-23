@@ -18,7 +18,6 @@ all:
 	cd _build && rm -f syntax && ln -s ../syntax/_build syntax
 
 bootstrap:
-	git submodule init && git submodule update
 	@cd tools && $(MAKE) bootstrap
 
 rebootstrap:

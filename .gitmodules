@@ -1,9 +1,0 @@
-[submodule "tools/ocaml-libs/dyntype"]
-	path = tools/ocaml-libs/dyntype
-	url = https://github.com/samoht/dyntype.git
-[submodule "tools/ocaml-libs/htcaml"]
-	path = tools/ocaml-libs/htcaml
-	url = https://github.com/samoht/htcaml.git
-[submodule "tools/ocaml-libs/xmlm"]
-	path = tools/ocaml-libs/xmlm
-	url = https://github.com/samoht/xmlm.git

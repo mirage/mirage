@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,10 +12,30 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-val min_timeout : float option -> float option -> float option
-val select_filters :
-  (float Lazy.t -> (float option -> float Lazy.t) -> float option -> float Lazy.t) Lwt_sequence.t
-val run : unit Lwt.t -> unit
+#include <stdio.h>
+#include <string.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
 
+/* Dont bother with full console, just direct everything to
+   stderr, so console_create is a noop for now */
+
+CAMLprim value
+console_create(value v_unit)
+{
+    return Val_int(0);
+}
+
+CAMLprim value
+console_write(value v_cons, value v_buf, value v_off, value v_len)
+{
+    int len = Int_val(v_len);
+    char buf[len+1];
+    memcpy(buf, String_val(v_buf)+Int_val(v_off), Int_val(v_len));
+    buf[len] = '\0';
+    fprintf(stderr, "%s", buf);
+    fflush(stderr);
+    return Val_unit;
+}

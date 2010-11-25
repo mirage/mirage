@@ -1,3 +1,0 @@
-<*>: nopervasives,nostdlib
-<random.ml> or <buffer.ml> or <camlinternalOO.ml>: syntax_camlp4o,pkg_jslib.inline,pkg_ocamljs
-<stdlib.cmjsa> : support_js,primitives_js

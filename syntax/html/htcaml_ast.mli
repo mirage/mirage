@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,24 +12,19 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
  *)
 
-type field = [ `Empty | `Text of string | `XML of string ]
-type author = { name : string; uri : string option; email : string option; }
-type date = int * int * int * int * int
-type meta = {
-  id : string;
-  title : field;
-  subtitle : field;
-  author : author option;
-  contributors : author list;
-  rights : string option;
-  updated: date;
-}
-type entry = { entry : meta; summary : field; content : field; }
-type feed = { feed : meta; entries : entry list; }
-val output_entry : entry -> Xmlm.output -> unit
-val output_feed : feed -> Xmlm.output -> unit
-val string_of_feed : feed -> string
-val sort : date -> date -> int
+open Camlp4.PreCast
+
+type t =
+  | String of string
+  | Tag of t * t * t
+  | Prop of t * t
+  | Seq of t * t
+  | Nil
+  | Ant of Loc.t * string
+
+val meta_t : Ast.loc -> t -> Ast.expr
+
+val t_of_list : t list -> t
+val list_of_t : t -> t list -> t list

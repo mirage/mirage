@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,24 +12,23 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
  *)
 
-type field = [ `Empty | `Text of string | `XML of string ]
-type author = { name : string; uri : string option; email : string option; }
-type date = int * int * int * int * int
-type meta = {
-  id : string;
-  title : field;
-  subtitle : field;
-  author : author option;
-  contributors : author list;
-  rights : string option;
-  updated: date;
+type t = (('a Xmlm.frag as 'a) Xmlm.frag) list
+
+val to_string : t -> string
+
+(** {2 HTML library} *)
+
+type link = {
+  text : string;
+  href: string;
 }
-type entry = { entry : meta; summary : field; content : field; }
-type feed = { feed : meta; entries : entry list; }
-val output_entry : entry -> Xmlm.output -> unit
-val output_feed : feed -> Xmlm.output -> unit
-val string_of_feed : feed -> string
-val sort : date -> date -> int
+
+val html_of_link : link -> t
+
+val interleave : string array -> t list -> t list
+
+module Code : sig
+  val ocaml : string -> t
+end

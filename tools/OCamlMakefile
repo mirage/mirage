@@ -179,12 +179,12 @@ endif
 export OCAMLFIND
 
 ifndef OCAMLC
-  OCAMLC := ocamlc.opt
+  OCAMLC := ocamlc
 endif
 export OCAMLC
 
 ifndef OCAMLOPT
-  OCAMLOPT := ocamlopt.opt
+  OCAMLOPT := ocamlopt
 endif
 export OCAMLOPT
 
@@ -199,7 +199,7 @@ endif
 export OCAMLCP
 
 ifndef OCAMLDEP
-  OCAMLDEP := ocamldep.opt
+  OCAMLDEP := ocamldep
 endif
 export OCAMLDEP
 

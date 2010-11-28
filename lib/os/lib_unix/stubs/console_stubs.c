@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,24 +12,30 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- *)
+ */
 
-type field = [ `Empty | `Text of string | `XML of string ]
-type author = { name : string; uri : string option; email : string option; }
-type date = int * int * int * int * int
-type meta = {
-  id : string;
-  title : field;
-  subtitle : field;
-  author : author option;
-  contributors : author list;
-  rights : string option;
-  updated: date;
+#include <stdio.h>
+#include <string.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+
+/* Dont bother with full console, just direct everything to
+   stderr, so console_create is a noop for now */
+
+CAMLprim value
+console_create(value v_unit)
+{
+    return Val_int(0);
 }
-type entry = { entry : meta; summary : field; content : field; }
-type feed = { feed : meta; entries : entry list; }
-val output_entry : entry -> Xmlm.output -> unit
-val output_feed : feed -> Xmlm.output -> unit
-val string_of_feed : feed -> string
-val sort : date -> date -> int
+
+CAMLprim value
+console_write(value v_cons, value v_buf, value v_off, value v_len)
+{
+    int len = Int_val(v_len);
+    char buf[len+1];
+    memcpy(buf, String_val(v_buf)+Int_val(v_off), Int_val(v_len));
+    buf[len] = '\0';
+    fprintf(stderr, "%s", buf);
+    fflush(stderr);
+    return Val_unit;
+}

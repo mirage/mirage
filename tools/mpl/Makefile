@@ -1,3 +1,4 @@
+PREFIX ?= ~/mir-inst
 OCAMLMAKEFILE = ../OCamlMakefile
  
 SOURCES = printer_utils.ml mpl_utils.ml mpl_types.ml mpl_location.ml mpl_bits.ml \

@@ -1,10 +1,12 @@
-.PHONY: all
-all:
-	cd xen && $(MAKE)
-	cd unix && $(MAKE)
-	cd browser && $(MAKE)
+unix:
+	cp sig/*.mli lib_unix/
+	ocamlbuild lib_unix/oS.cmxa
+
+xen:
+	cp sig/*.mli lib_xen/
+	ocamlbuild lib_xen/oS.cmxa
 
 clean:
-	cd xen && $(MAKE) clean
-	cd unix && $(MAKE) clean
-	cd browser && $(MAKE) clean
+	rm -f lib_unix/*.mli
+	cd lib_xen && rm -f hw_page.mli main.mli time.mli
+	ocamlbuild -clean

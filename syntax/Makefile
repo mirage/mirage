@@ -1,37 +1,23 @@
-OCAMLC ?= ocamlc
-CAMLP4OF ?= camlp4of
-CAMLP4ORF ?= camlp4orf
+PREFIX ?= ~/mir-inst
 MIRAGE_ROOT ?= $(PREFIX)/lib/ocaml/mirage
 
-.PHONY: all clean
-all: pa_mirage.cma
-	@ :
+all: pa_mirage.mllib
+	ocamlbuild pa_mirage.cma
 
-lwt/%.cmo:
-	cd lwt && $(MAKE)
+pa_mirage.mllib:
+	cat dyntype/pa_dyntype.mllib > pa_mirage.mllib
+	echo "\n" >> pa_mirage.mllib
+	cat dyntype-lib/dyntype.mllib >> pa_mirage.mllib
+	echo "\n" >> pa_mirage.mllib
+	cat html/pa_htcaml.mllib >> pa_mirage.mllib
+	echo Xmlm >> pa_mirage.mllib
+	echo Pa_lwt >> pa_mirage.mllib
+	echo Pa_type_conv >> pa_mirage.mllib
 
-type-conv/%.cmo:
-	cd type-conv && $(MAKE)
-
-dyntype/%.cmo:
-	cd dyntype && $(MAKE)
-
-htcaml/%.cma:
-	cd htcaml && $(MAKE)
-
-LWT_SOURCES=pa_lwt
-TC_SOURCES=pa_type_conv
-DYNTYPE_SOURCES=type value p4_helpers p4_type p4_value pa_type pa_value
-SOURCES=$(LWT_SOURCES:%=lwt/%) $(TC_SOURCES:%=type-conv/%) $(DYNTYPE_SOURCES:%=dyntype/%)
-pa_mirage.cma: $(SOURCES:%=%.cmo) htcaml/htcaml.cma
-	$(OCAMLC) -a -o $@ $^
-
-.PHONY: clean
 clean:
-	rm -f *.cmi *.cmo *.cma
-	for i in lwt type-conv dyntype htcaml; do (cd $$i && $(MAKE) clean); done
+	rm -f pa_mirage.mllib
+	ocamlbuild -clean
 
-.PHONY: install
 install:
 	mkdir -p $(MIRAGE_ROOT)/syntax
-	cp pa_mirage.cma $(MIRAGE_ROOT)/syntax/pa_mirage.cma
+	cp _build/pa_mirage.cma $(MIRAGE_ROOT)/syntax/pa_mirage.cma

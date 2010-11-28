@@ -1,0 +1,8 @@
+On my debian i686, `mplc dhcp.mpl -v > dhcp.ml` on line 191:
+
+    let cookie = (Mpl_uint32.of_int32 -477998237l) in (* cons *)
+
+which doesn't compile.
+
+So for now, I let the .ml files in the directory, even if they are not useful as there is
+a special rule in myocamlbuild.ml to handle them.

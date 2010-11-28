@@ -1,16 +1,9 @@
-.PHONY: all
-all:
-	cd native && $(MAKE)
-	cd js && $(MAKE)
-	cd lwt && $(MAKE)
+unix xen:
+	cp sig/*.mli lib/
+	ocamlbuild -use-ocamlfind syntax/pa_lwt.cmo
+	ocamlbuild lib/stdlib.cmxa
+	ocamlbuild lib/lwt.cmxa
 
-.PHONY: clean
 clean:
-	cd native && $(MAKE) clean
-	cd js && $(MAKE) clean
-	cd lwt && $(MAKE) clean
-	
-
-.PHONY: install
-install:
-	@ :
+	rm -f lib/*.mli
+	ocamlbuild -clean

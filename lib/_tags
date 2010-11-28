@@ -1,0 +1,15 @@
+# Misc
+<misc/**>: include
+
+# XXX: compils js lib as well when ocamljs -pack will work to have:
+# <std/**>: include
+"std/native" or "std/lwt": include
+
+# Network and OS paths are set-up with tags/myocamlbuild
+"net/api": include
+
+# Don't use the standard ocaml lib as we are building the mirage lib
+<**/*>: nostdlib
+
+# Pervasives does not depend on itself
+not <std/native/pervasives.*>: need_pervasives

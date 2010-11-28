@@ -12,4 +12,4 @@ let main () =
    Console.sync_write cons s 0 (String.length s) >>
    return ()
 
-let _ = Main.run (main ())
+let _ = OS.Main.run (main ())

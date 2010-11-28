@@ -1,0 +1,6 @@
+<*>: pkg_camlp4
+
+<htcaml_parser.ml*>: pkg_str,pkg_xmlm
+<htcaml_quotations.ml>: syntax_camlp4o,pkg_camlp4.quotations
+<htcaml_ast.ml>: syntax_camlp4o,pkg_camlp4.quotations,pkg_dyntype
+<pa_htcaml.ml>: syntax_camlp4o,pkg_camlp4.quotations,pkg_dyntype.syntax

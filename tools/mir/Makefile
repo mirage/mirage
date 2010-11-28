@@ -1,9 +1,10 @@
 OCAMLMAKEFILE=../OCamlMakefile
 
-PREFIX ?= /usr/local/mirage
+PREFIX ?= ~/mir-inst
 SOURCES=unix_stubs.c mir.ml 
 RESULT=mir
 ANNOTATE=yes
+PACKS=unix
 
 .PHONY: build
 build: nc

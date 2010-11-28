@@ -15,7 +15,7 @@ USE_PACK=yes
 include ../../Makefile.common
 
 .PHONY: depend
-depend: $(MPLDEPS)
+depend: $(MPL:%=%.ml)
 	@ :
 
 %.ml: %.mpl

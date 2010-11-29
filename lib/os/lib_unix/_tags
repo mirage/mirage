@@ -1,2 +1,3 @@
 <*.cmx>: for-pack(OS)
+<*.ml>: annot
 "ethif.ml" or "main.ml" or "time.ml": pa_lwt

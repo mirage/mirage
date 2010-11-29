@@ -24,7 +24,7 @@
 #include <caml/custom.h>
 #include <caml/callback.h>
 #include <err.h>
-#include "libev/ev.h"
+#include "ev.h"
 
 #define Watcher_val(x) (*((ev_io **) (Data_custom_val(x))))
 

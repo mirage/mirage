@@ -1,0 +1,2 @@
+<*.c>: include_libev
+<*_stubs.c>: include_ocaml

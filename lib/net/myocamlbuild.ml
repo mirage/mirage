@@ -2,8 +2,19 @@ open Ocamlbuild_plugin
 open Command
 
 let sf = Printf.sprintf
-let lib x = sf "../../std/_build/%s" x
-let oslib x = sf "../../os/_build/lib_%s" x
+let lib p x =
+  try
+    sf "%s/%s/%s" (Sys.getenv "MIRAGELIB") p x
+  with Not_found ->
+    sf "../../../%s/_build/%s" p x
+
+let stdlib = lib "std"
+(* Set the build directory to reflect the OS chosen,
+   as they do not have compatible interfaces *)
+let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix"
+let oslib =
+  Options.build_dir := "_build/"^os;
+  lib "os" os
 
 (* Rules for MPL *)
 module MPL = struct
@@ -25,22 +36,20 @@ end
 
 let _ = dispatch begin function
   | After_rules ->
-
-    let os = "unix" in (* TODO xen et al *)
     Pathname.define_context "mpl/protocols" ["mpl"];
-    Pathname.define_context "ether" ["mpl"; "api"];
+    Pathname.define_context "mlnet" ["mpl"; "api"];
     Pathname.define_context "dns" ["mpl"];
-    Pathname.define_context "dhcp" ["mpl"; "api"; "ether"];
-    Pathname.define_context "socket/unix" ["api"];
+    Pathname.define_context "dhcp" ["mpl"; "api"; "mlnet"];
+    Pathname.define_context ("socket/"^os) ["api"];
     Pathname.define_context "http" ["api"; "socket/"^os];
 
     (* do not compile and pack with the standard lib, and point to right OS module *)
-    flag ["ocaml"; "compile"] & S [A"-I"; A (lib "lib"); A"-nostdlib"; A"-I"; A(oslib os)];
-    flag ["ocaml"; "pack"   ] & S [A"-I"; A (lib "lib"); A"-nostdlib"];
+    flag ["ocaml"; "compile"] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];
+    flag ["ocaml"; "pack"   ] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"];
 
     (* use pa_lwt syntax extension if needed *)
-    flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (lib "syntax"))];
-    flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (lib "syntax"))];
+    flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (stdlib "syntax"))];
+    flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (stdlib "syntax"))];
 
   | _ -> ()
 end

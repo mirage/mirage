@@ -1,5 +1,5 @@
-mpl/mpl.cmx
-ether/mlnet.cmxa
+mpl/mpl.cmxa
+mlnet/mlnet.cmxa
 dns/dns.cmxa
 http/http.cmxa
 dhcp/dhcp.cmxa

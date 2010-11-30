@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <caml/callback.h>
-#include "../libev/ev.h"
+#include "ev.h"
 
 int
 main(int argc, char **argv)

@@ -8,8 +8,6 @@ syntax.init
 *.cma
 *.cmo
 *.cmxa
-*.cmjs
-*.cmjsa
 *.cache/
 .*.swp
 *.annot
@@ -36,16 +34,6 @@ runtime/xen/stubdom/include/
 runtime/xen/stubdom/mini-os-x86_64-caml/
 runtime/xen/stubdom/zlib/Makefile
 runtime/xen/libm/obj/
-runtime/unix/libev/.libs/
-runtime/unix/libev/Makefile
-runtime/unix/libev/config.h
-runtime/unix/libev/config.log
-runtime/unix/libev/config.status
-runtime/unix/libev/ev.lo
-runtime/unix/libev/event.lo
-runtime/unix/libev/libev.la
-runtime/unix/libev/libtool
-runtime/unix/libev/stamp-h1
 app
 mirage-os
 mirage-unix

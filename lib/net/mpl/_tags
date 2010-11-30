@@ -1,3 +1,2 @@
 <**/*.cmx>: for-pack(Mpl)
-<*>: need_camlinternalOO
 <*.ml>: use_stdlib

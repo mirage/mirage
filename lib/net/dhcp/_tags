@@ -1,2 +1,2 @@
 <*.cmx>: for-pack(Dhcp)
-"client.ml": pa_mirage
+"client.ml": pa_lwt

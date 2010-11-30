@@ -1,4 +1,4 @@
 <*.cmx>: for-pack(Http)
-"http_daemon.ml" or "http_message.ml" or "http_misc.ml" or "http_parser.ml" or "http_request.ml": pa_mirage
-"http_user_agent.ml": pa_mirage
+"http_daemon.ml" or "http_message.ml" or "http_misc.ml" or "http_parser.ml" or "http_request.ml": pa_lwt
+"http_user_agent.ml": pa_lwt
 <*.ml>: use_flow

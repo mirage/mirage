@@ -25,7 +25,7 @@ type entry =
   | Verified of ethernet_mac
 
 type t = {
-  ethif: Ethif.t;
+  netif: Netif.t;
   cache: (ipv4_addr, entry) Hashtbl.t;
   mutable bound_ips: ipv4_addr list;
   thread: unit Lwt.t;
@@ -45,7 +45,7 @@ let prettyprint t =
 
 (* Transmit an ARP packet *)
 let output t arp =
-  Ethif.output t.ethif (`ARP (Mpl.Ethernet.ARP.m arp))
+  Netif.output t.netif (`ARP (Mpl.Ethernet.ARP.m arp))
 
 (* Input handler for an ARP packet, registered through attach() *)
 let input t (arp:Mpl.Ethernet.ARP.o) =
@@ -59,7 +59,7 @@ let input t (arp:Mpl.Ethernet.ARP.o) =
       printf "ARP: who-has %s?\n%!" (ipv4_addr_to_string req_ipv4);
       if List.mem req_ipv4 t.bound_ips then begin
         (* We own this IP, so reply with our MAC *)
-        let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.ethif)) in
+        let src_mac = `Str (ethernet_mac_to_bytes (Netif.mac t.netif)) in
         let dest_mac = `Str arp#src_mac in
         let spa = `Str arp#tpa in (* the requested IP *)
         let tpa = `Str arp#spa in (* the requesting host's IP *)
@@ -87,20 +87,20 @@ let input t (arp:Mpl.Ethernet.ARP.o) =
 let destroy t = Lwt.cancel t.thread
 
 (* Create an ARP handler and attach it to the Ethernet interface *)
-let create ethif =
+let create netif =
   let thread,_ = Lwt.task () in
-  let t = { cache=Hashtbl.create 1; bound_ips=[]; thread; ethif } in
+  let t = { cache=Hashtbl.create 1; bound_ips=[]; thread; netif } in
   Lwt.on_cancel thread (fun () -> 
     printf "ARP shutdown\n%!";
-    Ethif.detach t.ethif `ARP);
-  Ethif.attach t.ethif (`ARP (input t));
+    Netif.detach t.netif `ARP);
+  Netif.attach t.netif (`ARP (input t));
   printf "ARP created\n%!";
   t, thread
 
 (* Send a gratuitous ARP for our IP addresses *)
 let output_garp t =
   let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
-  let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.ethif)) in
+  let src_mac = `Str (ethernet_mac_to_bytes (Netif.mac t.netif)) in
   let tpa = `Str (ipv4_addr_to_bytes ipv4_blank) in
   Lwt_list.iter_s (fun ip ->
     Printf.printf "ARP: sending gratuitous from %s\n%!" (ipv4_addr_to_string ip);
@@ -114,7 +114,7 @@ let output_garp t =
 (* Send a query for a particular IP *)
 let output_probe t ip =
   let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
-  let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.ethif)) in
+  let src_mac = `Str (ethernet_mac_to_bytes (Netif.mac t.netif)) in
   (* Source protocol address, pick one of our IP addresses *)
   let spa = match t.bound_ips with
     |hd::tl -> `Str (ipv4_addr_to_bytes hd)

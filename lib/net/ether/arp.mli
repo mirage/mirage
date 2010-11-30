@@ -22,5 +22,5 @@ type t
  
 val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
 val get_bound_ips: t -> ipv4_addr list
-val create: Ethif.t -> (t * unit Lwt.t)
+val create: Netif.t -> (t * unit Lwt.t)
 val query: t -> ipv4_addr -> ethernet_mac Lwt.t

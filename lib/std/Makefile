@@ -1,21 +1,15 @@
-.PHONY: all clean
+PREFIX ?= _build/root
 
-PA_LWT=_build/syntax/pa_lwt.cmo
-STDLIB=_build/lib/stdlib.cmxa
-LWT=_build/lib/lwt.cmxa
+.PHONY: all clean install
+all:
+	ocamlbuild -use-ocamlfind syntax.otarget
+	ocamlbuild all.otarget
 
-all: $(STDLIB) $(LWT)
-	@ :
-
-$(PA_LWT):
-	ocamlbuild -use-ocamlfind syntax/pa_lwt.cmo
-
-$(STDLIB):
-	ocamlbuild lib/stdlib.cmxa
-
-$(LWT): $(PA_LWT) $(STDLIB)
-	ocamlbuild lib/lwt.cmxa
+TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/std
+install:
+	mkdir -p $(TARGETDIR)/lib $(TARGETDIR)/syntax
+	cp _build/lib/*.cmi _build/lib/*.cmxa $(TARGETDIR)/lib
+	cp _build/syntax/pa_lwt.cmo $(TARGETDIR)/syntax
 
 clean:
 	ocamlbuild -clean
-

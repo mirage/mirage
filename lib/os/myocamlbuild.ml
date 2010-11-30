@@ -2,7 +2,14 @@ open Ocamlbuild_plugin
 open Command
 
 let sf = Printf.sprintf
-let lib x = sf "../../std/_build/%s" x
+let lib x =
+  let r =
+    try 
+      Sys.getenv "MIRAGELIB" ^ "/std"
+    with Not_found ->
+      "../../std/_build" 
+  in
+  sf "%s/%s" r x
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
@@ -21,7 +28,6 @@ module Util = struct
 
     let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
 end
-
 
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct

@@ -6,24 +6,17 @@ Mirage has been tested on:
 
 To build it, you must first:
 
-1. Bootstrap the compiler toolchain
+1. Install the basic toolchain
 2. Build the tools
 3. Build the core libraries
 
-Bootstrap
+Toolchain
 ---------
 
-You will need at least gcc, m4 and patch installed before you build
-the bootstrap toolchain.
+You need to have the following installed and available on your PATH:
 
-Pick where you want your bootstrap toolchain to be installed. This
-defaults to ~/mir-inst, and you can change it by setting the PREFIX
-variable to all the make targets.
-
-Before starting, add the $PREFIX/bin to head of your PATH variable
-and make sure it is active in your build shell.
-
-    make PREFIX=<location> bootstrap
+* OCaml 3.12.0
+* OCamlfind
 
 Tools
 -----
@@ -32,14 +25,13 @@ This installs the build tools and syntax extensions into the install PREFIX.
 
     make PREFIX=<location> tools
 
-The tools include the 'mir' build utility, a custom version of
-ocamldsort to help with dependency management, and the MPL protocol
+The tools include the 'mir' build utility and the MPL protocol
 specification meta-compiler.
 
 Libraries
 ---------
 
-    make
+    make && make install
 
 This will build the OCaml libraries and the Xen custom runtime, if
 appropriate for the build platform.  You require 64-bit Linux to
@@ -48,47 +40,25 @@ compile up Xen binaries (32-bit will not work).
 Build an application
 --------------------
 
-For now, the mir tool must be run in the mirage.git base directory
-only.
+Mirage uses `ocamlbuild` to build applications, with the `mir`
+script providing a thin wrapper to install a custom plugin to deal
+with the various backends.
 
-Build a Xen kernel in-tree:
+To try out basic functionality, do `cd tests/basic/sleep`.
 
-    mir -os xen tests/basic/sleep
+Build a UNIX binary:
 
-output will be in tests/basic/sleep/mirage-os.gz
+    mir test.unix
 
-Build a UNIX binary in-tree:
+output will be in `_build/test.unix`
 
-    mir -os unix tests/basic/sleep
+Build a Xen kernel:
 
-output will be in tests/sleep/mirage-unix
+    mir test.xen
 
-Build a Javascript bundle in-tre:
-
-    mir -os browser tests/basic/sleep
-
-output will be in tests/sleep/app.html
+output will be in `_build/test.xen`
 
 This runs a simple interlocking sleep test which tries out the
 console and timer support for the various supported platforms.
 
 Coming soon: I/O :-)
-
-Notes
------
-
-+ `mir` currently only works from within tree, i.e., the root
-  directory of your copy of the git repo.
-
-+ Currently, lib/Makefile.common defines a BUILD_OS variable that
-  is set to either `unix` or `xen`. This decides which version of the
-  standard OS library to compile the other dependent libraries against
-  (e.g. the networking library). This is temporary until ocamlbuild
-  integration is finished, so if you want to switch between OS backends,
-  do a `make clean` in `lib/` and change the BUILD_OS variable.
-
-+ Errors about "inconsistent assumptions over types" are likely due to
-  mismatches between parts of the built libraries. Just do a `make clean`
-  in `lib/` and `make` to get a fresh build. Against, this is temporary
-  until a proper build system is in place.
-

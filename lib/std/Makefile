@@ -1,3 +1,5 @@
+PREFIX ?= ~/mir-inst/lib
+
 .PHONY: all lwt_syntax std dyntype_syntax clean install
 all: lwt_syntax std dyntype_syntax
 	@ :

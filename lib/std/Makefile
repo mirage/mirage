@@ -21,6 +21,9 @@ install:
 	mkdir -p $(TARGETDIR)/lib $(TARGETDIR)/syntax
 	cp _build/lib/*.cmi _build/lib/*.cmxa _build/lib/*.a $(TARGETDIR)/lib
 	cp _build/syntax/pa_lwt.cmo $(TARGETDIR)/syntax
+	cp _build/syntax/pa_type_conv.cmo $(TARGETDIR)/syntax
+	cp _build/syntax/dyntype.cmo $(TARGETDIR)/syntax
+	cp _build/syntax/pa_dyntype.cmo $(TARGETDIR)/syntax
 
 clean:
 	rm -f syntax/dyntype.ml

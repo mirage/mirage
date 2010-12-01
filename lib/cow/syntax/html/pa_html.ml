@@ -14,9 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Type
+open Dyntype
 open Camlp4.PreCast
-open P4_helpers
+
+let expr_list_of_list _loc exprs =
+	match List.rev exprs with
+	| []   -> <:expr< [] >>
+	| h::t ->
+    List.fold_left (fun accu x -> <:expr< [ $x$ :: $accu$ ] >>) <:expr< [ $h$ ] >> t 
 
 let html_of t = "html_of_" ^ t
 
@@ -73,7 +78,7 @@ let gen_html (_loc, n, t_exp) =
       let patts,exprs = List.split ids in
       let exprs = List.map2 aux exprs t in
       <:expr<
-        let $patt_tuple_of_list _loc patts$ = $id$ in
+        let $tup:Ast.paCom_of_list patts$ = $id$ in
         List.flatten $expr_list_of_list _loc exprs$
         >>
 	  | Dict(k,d) ->
@@ -92,12 +97,12 @@ let gen_html (_loc, n, t_exp) =
           | []  -> <:expr< [] >>
           | [h] -> <:expr< $aux (List.hd exprs) h$ >>
           | _   -> <:expr< List.flatten $expr_list_of_list _loc (List.map2 aux exprs args)$ >> in
-        let patt = patt_tuple_of_list _loc patts in
+        let patt = Ast.paCom_of_list patts in
         let patt = match k, args with
           | `N, [] -> <:patt< $uid:n$ >>
           | `P, [] -> <:patt< `$uid:n$ >>
-          | `N, _ -> <:patt< $uid:n$ $patt$ >>
-          | `P, _ -> <:patt< `$uid:n$ $patt$ >> in
+          | `N, _ -> <:patt< $uid:n$ $tup:patt$ >>
+          | `P, _ -> <:patt< `$uid:n$ $tup:patt$ >> in
         <:match_case< $patt$ -> $exprs$ >> in
       <:expr< match $id$ with [ $list:List.map mc s$ ] >>
 	  | Option o ->
@@ -117,10 +122,10 @@ let gen_html (_loc, n, t_exp) =
 	  | Rec (n,_)
 	  | Var n    ->
       (* XXX: This will not work for recursive values *)
-      <:expr< $P4_type.gen_ident _loc html_of n$ $id$ >>
+      <:expr< $Pa_dyntype.gen_ident _loc html_of n$ $id$ >>
   in
   let id = <:expr< $lid:n$ >> in
-  <:binding< $lid:html_of n$ ?id $lid:n$ : (list (Xmlm.frag (Xmlm.frag 'a as 'a))) =
+  <:binding< $lid:html_of n$ ?id $lid:n$ : Html.t =
       [ $create_id_class _loc n id (aux id t)$ ]
   >>
 
@@ -130,7 +135,7 @@ let () =
 			 try
          let _loc = Ast.loc_of_ctyp tds in
 			   <:str_item<
-				   value rec $Ast.biAnd_of_list (List.map gen_html (P4_type.create tds))$;
+				   value rec $Ast.biAnd_of_list (List.map gen_html (Pa_dyntype.create tds))$;
 			   >>
        with Not_found ->
          Printf.eprintf "[Internal Error]\n";

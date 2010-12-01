@@ -14,5 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val t : Format.formatter -> Htcaml_ast.t -> unit
-val to_string : Htcaml_ast.t -> string
+type t = (('a Xml.frag as 'a) Xml.frag) list
+
+val to_string : t -> string
+
+(** {2 HTML library} *)
+
+type link = {
+  text : string;
+  href: string;
+}
+
+val html_of_link : link -> t
+
+val interleave : string array -> t list -> t list

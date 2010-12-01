@@ -19,8 +19,6 @@
    free to extend from the full spec at:
    http://www.atomenabled.org/developers/syndication/atom-format-spec.php
 *)
-module Xml = Xmlm
-
 type field = [
   | `XML of string 
   | `Text of string

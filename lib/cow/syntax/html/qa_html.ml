@@ -31,10 +31,10 @@ let destruct_aq s =
 
 let aq_expander =
 object
-  inherit Ast.map as super
+  inherit Camlp4.PreCast.Ast.map as super
   method expr =
     function
-      | Ast.ExAnt (_loc, s) ->
+      | Camlp4.PreCast.Ast.ExAnt (_loc, s) ->
         let n, c = destruct_aq s in
         let e = AQ.parse_expr _loc c in
         begin match n with
@@ -86,12 +86,12 @@ object
       | e -> super#expr e
 end
 
-let parse_quot_string loc s : Htcaml_ast.t =
-  Htcaml_parser.parse ?enc:(Htcaml_parser.get_encoding ()) loc s
+let parse_quot_string loc s : Html_ast.t =
+  Parser.parse ?enc:(Parser.get_encoding ()) loc s
 
 let expand_expr loc _ s =
   let ast = parse_quot_string loc s in
-  let meta_ast = Htcaml_ast.meta_t loc ast in
+  let meta_ast = Html_ast.meta_t loc ast in
   aq_expander#expr meta_ast
 
 let expand_str_item loc _ s =

@@ -14,8 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Camlp4.PreCast (* for Ast refs in generated code *)
-open P4_helpers
+open Camlp4.PreCast
+
+let expr_list_of_list _loc exprs =
+	match List.rev exprs with
+	| []   -> <:expr< [] >>
+	| h::t ->
+    List.fold_left (fun accu x -> <:expr< [ $x$ :: $accu$ ] >>) <:expr< [ $h$ ] >> t 
 
 type t =
   | String of string
@@ -42,7 +47,7 @@ let get_string _loc m =
   | _ ->
     <:expr< match $m$ with [ [`Data str] -> str | _ -> raise Parsing.Parse_error ] >>
 
-(* Convert a value of type t to Html.t = Xmlm.frag *)
+(* Convert a value of type t to Html.t = Xml.frag *)
 let rec meta_t _loc = function
   | String s    ->
     <:expr< [`Data $`str:s$] >>
@@ -62,7 +67,7 @@ let rec meta_t _loc = function
     let la = list_of_t a [] in
     let lb = list_of_t b [] in
     let l = List.map (meta_t _loc) (la @ lb) in
-    <:expr< List.flatten $P4_helpers.expr_list_of_list _loc l$ >> 
+    <:expr< List.flatten $expr_list_of_list _loc l$ >> 
 
   | Nil         ->
     <:expr< [] >>

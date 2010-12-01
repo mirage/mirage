@@ -1,0 +1,2 @@
+true: use_mirage_stdlib, pa_cow
+<*.cmx>: for-pack(Cow)

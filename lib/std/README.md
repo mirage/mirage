@@ -5,5 +5,3 @@ It implements:
   but with a few OS-specific abstractions removed such as channels.
 
 * the core of the LWT cooperative threading library.
-
-* the DynType syntax extension to add runtime type information at pre-processing time.

@@ -7,4 +7,3 @@ tap_stubs.o
 tap_stubs_os.o
 time_stubs.o
 ev_os.o
-main.o

@@ -12,8 +12,9 @@ depend: $(EVMAKE) $(EVLIB)
 
 install:
 	mkdir -p $(TARGETDIR)/xen $(TARGETDIR)/unix
-	cp _build/unix/oS.cmi _build/unix/oS.cmxa $(TARGETDIR)/unix
-	cp _build/xen/oS.cmi _build/xen/oS.cmxa $(TARGETDIR)/xen
+	cp _build/unix/oS.cmi _build/unix/oS.cmxa _build/unix/os.a $(TARGETDIR)/unix
+	cp _build/xen/oS.cmi _build/xen/oS.cmxa _build/xen/os.a $(TARGETDIR)/xen
+	cp _build/runtime_unix/libunixrun.a $(TARGETDIR)/unix
 
 clean:
 	ocamlbuild -clean

@@ -16,4 +16,4 @@ This repository is still in a pre-alpha state and not suitable for use. If
 you are interested in working with it, please contact:
 
 > Anil Madhavapeddy <anil@recoil.org>
-> Thomas Gazagnaire <thomas.gazagnaire@gmail.com>
+> Thomas Gazagnaire <thomas@gazagnaire.org>

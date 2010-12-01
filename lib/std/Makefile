@@ -1,7 +1,7 @@
 PREFIX ?= _build/root
 
-.PHONY: all lwt_syntax depend std dyntype_syntax clean install
-all: lwt_syntax depend std dyntype_syntax
+.PHONY: all lwt_syntax std dyntype_syntax clean install
+all: lwt_syntax std dyntype_syntax
 	@ :
 
 lwt_syntax:
@@ -10,10 +10,10 @@ lwt_syntax:
 std:
 	ocamlbuild all.otarget
 
-depend:
-	cd syntax && ln -nfs ../lib/dyntype.ml .
+syntax/dyntype.ml:
+	@cd syntax && ln -nfs ../lib/dyntype.ml .
 
-dyntype_syntax:
+dyntype_syntax: syntax/dyntype.ml
 	ocamlbuild -use-ocamlfind dyntype_syntax.otarget
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/std

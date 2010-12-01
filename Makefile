@@ -24,4 +24,3 @@ install:
 clean:
 	@cd tools && $(MAKE) clean
 	@cd lib && $(MAKE) clean
-	@cd runtime && $(MAKE) clean

@@ -76,7 +76,7 @@ end
 let _ = dispatch begin function
   | After_rules ->
     let pp_pa_lwt = ps "camlp4o %s/std/syntax/pa_lwt.cmo" lib in
-    let libs = [A "stdlib.cmxa"; A "lwt.cmxa"; A "os.cmxa"] in
+    let libs = [A "stdlib.cmxa"; A "lwt.cmxa"; A "oS.cmxa"] in
     let mirage_flags =
       [A"-nostdlib"; A"-I"; A stdlib; A"-I"; A oslib; A"-pp"; A pp_pa_lwt] in
 

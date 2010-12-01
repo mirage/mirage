@@ -1,0 +1,13 @@
+#!/bin/sh -e
+
+MIRAGELIB=${MIRAGELIB:-@MIRAGELIB@}
+OCAMLBUILD=${OCAMLBUILD:-ocamlbuild}
+
+if [ ! -e "${MIRAGELIB}/scripts/myocamlbuild.ml" ]; then
+  echo No Mirage installation found at: ${MIRAGELIB}
+  exit 1
+fi
+
+export MIRAGELIB
+ln -nfs ${MIRAGELIB}/scripts/myocamlbuild.ml
+ocamlbuild $*

@@ -17,6 +17,10 @@ all:
 tools:
 	@cd tools && $(MAKE) tools
 
+install:
+	@cd lib && $(MAKE) install
+	@cd scripts && $(MAKE) install
+
 clean:
 	@cd tools && $(MAKE) clean
 	@cd lib && $(MAKE) clean

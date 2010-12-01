@@ -1,19 +1,13 @@
-OCAMLMAKEFILE=../OCamlMakefile
-
 PREFIX ?= ~/mir-inst
-SOURCES=unix_stubs.c mir.ml 
-RESULT=mir
-ANNOTATE=yes
-PACKS=unix
 
-.PHONY: build
-build: nc
+.PHONY: all
+all:
 	@ :
 
 .PHONY: install
-install: nc
+install:
 	mkdir -p $(PREFIX)/bin
-	cp mir $(PREFIX)/bin/mir
+	sed -e 's,@MIRAGELIB@,$(PREFIX)/mirage,g' < mir.in > $(PREFIX)/bin/mir
 	chmod 755 $(PREFIX)/bin/mir
 
 include $(OCAMLMAKEFILE)

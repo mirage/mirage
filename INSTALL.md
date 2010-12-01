@@ -18,6 +18,11 @@ You need to have the following installed and available on your PATH:
 * OCaml 3.12.0
 * OCamlfind
 
+Debian Squeeze and Ubuntu are still at 3.11, but you can grab the latest
+packages from: http://ocaml.debian.net/debian/ocaml-3.12.0/
+
+Then: apt-get install ocaml-findlib camlp4-extra ocaml-native-compilers
+
 Tools
 -----
 

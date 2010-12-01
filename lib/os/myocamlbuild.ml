@@ -1,5 +1,6 @@
 open Ocamlbuild_plugin
 open Command
+open Ocamlbuild_pack.Ocaml_utils
 
 let sf = Printf.sprintf
 let lib x =
@@ -32,8 +33,8 @@ end
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
   let cc = ref (A"cc")
-  let ocamlc_where = Util.run_and_read "ocamlc -where" 
-  let cflags = [A"-O2"; A("-Wall")]
+  let ocamlc_where = Lazy.force stdlib_dir
+  let cflags = [A"-O2"; A("-Wall"); A"-fPIC"]
   let cc_c tags arg out =
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: cflags @ [ A"-c"; T(tags++"compile");

@@ -53,15 +53,15 @@ To try out basic functionality, do `cd tests/basic/sleep`.
 
 Build a UNIX binary:
 
-    mir test.unix
+    mir sleep.unix
 
-output will be in `_build/test.unix`
+output will be in `_build/sleep.unix`
 
 Build a Xen kernel:
 
-    mir test.xen
+    mir sleep.xen
 
-output will be in `_build/test.xen`
+output will be in `_build/sleep.xen`
 
 This runs a simple interlocking sleep test which tries out the
 console and timer support for the various supported platforms.

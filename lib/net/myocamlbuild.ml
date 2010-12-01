@@ -8,6 +8,12 @@ let lib p x =
   with Not_found ->
     sf "../../../%s/_build/%s" p x
 
+let mplc =
+  try
+    sf "%s/../bin/mplc" (Sys.getenv "MIRAGELIB") 
+  with Not_found ->
+    "../../../../tools/mpl/mplc" 
+
 let stdlib = lib "std"
 (* Set the build directory to reflect the OS chosen,
    as they do not have compatible interfaces *)
@@ -20,7 +26,7 @@ let oslib =
 module MPL = struct
 
   let mpl_c tags arg out =
-    Cmd (S [A"mplc"; A"-v"; T(tags++"mpl"); P arg; Sh">"; Px out])
+    Cmd (S [A mplc; A"-v"; T(tags++"mpl"); P arg; Sh">"; Px out])
 
   let mpl_compile mpl ml env build =
     let mpl = env mpl and ml = env ml in

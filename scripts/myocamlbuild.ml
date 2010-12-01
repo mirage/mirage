@@ -19,6 +19,32 @@ let lib = getenv "MIRAGELIB"
 let stdlib = ps "%s/std/lib" lib
 let oslib = ps "%s/os/%s" lib os
 
+(* Utility functions (e.g. to execute a command and return lines read) *)
+module Util = struct
+  let split s ch =
+    let x = ref [] in
+    let rec go s =
+      let pos = String.index s ch in
+      x := (String.before s pos)::!x;
+      go (String.after s (pos + 1))
+    in
+    try
+      go s
+    with Not_found -> !x
+
+    let split_nl s = split s '\n'
+
+    let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
+end
+
+(* OS detection *)
+module OS = struct
+  type t = Linux | Darwin
+  let t = match String.lowercase (Util.run_and_read "uname -s") with
+    |"linux" -> Linux |"darwin" -> Darwin
+    |os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
+end
+
 (* Rules for MIR *)
 module Mir = struct
 
@@ -49,13 +75,15 @@ module Mir = struct
   let oslib_unixrun = oslib ^ "/libunixrun.a"
   let oslib_unixmain = oslib ^ "/main.o"
   let cc_link tags arg out =
+    let dl_libs = match OS.t with
+      |OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"]
+      |OS.Darwin ->  [A"-lm"; A"-lasmrun"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
-             A"-lm"; A"-lasmrun";
-             A oslib_unixrun;
              A"-o"; Px out; P arg;
-             A oslib_unixmain]))
+             A oslib_unixrun;
+             A oslib_unixmain] @ dl_libs))
 
   let cc_link_c_implem ?tag c o env build =
     let c = env c and o = env o in

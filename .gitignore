@@ -13,7 +13,6 @@ syntax.init
 *.annot
 *.gz
 *.odoc
-.depend
 ._d/
 ._bcdi/
 ._ncdi/
@@ -35,10 +34,6 @@ runtime/xen/stubdom/mini-os-x86_64-caml/
 runtime/xen/stubdom/zlib/Makefile
 runtime/xen/libm/obj/
 app
-mirage-os
-mirage-unix
-app.html
-app.js
 tools/mpl/._d/
 tools/mpl/._ncdi/
 tools/mpl/mpl_lexer.ml
@@ -50,16 +45,5 @@ tools/ocaml/obj
 tools/ocaml/install.tgz
 lib/obj/
 /screenlog.*
-tools/ocamldsort/Makefile
-tools/ocamldsort/*.opt
-tools/ocamldsort/miragedsort
-tools/ocamldsort/config.log
-tools/ocamldsort/config.log
-tools/ocamldsort/config.status
 tools/crunch/mlcrunch
 tools/mir/mir
-tools/ocaml-libs/findlib-1.2.6/
-tools/ocaml-libs/ulex-1.1/
-tools/ocamljs/ocaml/
-tools/ocamljs/ocamljs/
-tools/ocamlpack/ocamlpack

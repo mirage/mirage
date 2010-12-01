@@ -47,13 +47,15 @@ module Mir = struct
   let cc = ref (A"cc")
   let ocamlc_libdir = "-L" ^ (Lazy.force stdlib_dir)
   let oslib_unixrun = oslib ^ "/libunixrun.a"
+  let oslib_unixmain = oslib ^ "/main.o"
   let cc_link tags arg out =
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
              A"-lm"; A"-lasmrun";
              A oslib_unixrun;
-             A"-o"; Px out; P arg]))
+             A"-o"; Px out; P arg;
+             A oslib_unixmain]))
 
   let cc_link_c_implem ?tag c o env build =
     let c = env c and o = env o in

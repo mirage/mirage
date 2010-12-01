@@ -7,7 +7,7 @@ all: lwt_syntax std dyntype_syntax
 lwt_syntax:
 	ocamlbuild -use-ocamlfind lwt_syntax.otarget
 
-std:
+std: lwt_syntax
 	ocamlbuild all.otarget
 
 syntax/dyntype.ml:

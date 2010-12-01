@@ -15,7 +15,7 @@ all:
 	cd lib && $(MAKE)
 
 tools:
-	@cd tools && $(MAKE)
+	@cd tools && $(MAKE) tools
 
 clean:
 	@cd tools && $(MAKE) clean

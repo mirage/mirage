@@ -45,14 +45,13 @@ module CC = struct
     (* Basic cflags *)
     let all_cflags = List.map (fun x -> A x)
       [ "-U"; "__linux__"; "-U"; "__FreeBSD__"; 
-       "-U"; "__sun__"; "-D__MiniOS__";
-       "-DHAVE_LIBC"; "-D__x86_64__";
-       "-D__XEN_INTERFACE_VERSION__=0x00030205";
-       "-D__INSIDE_MINIOS__";
-       "-nostdinc"; "-std=gnu99"; "-fno-stack-protector";
-       "-m64"; "-mno-red-zone"; "-fno-reorder-blocks";
-       "-fno-asynchronous-unwind-tables"; (* TODO: this will screw up backtraces, review *)
- 
+        "-U"; "__sun__"; "-D__MiniOS__";
+        "-DHAVE_LIBC"; "-D__x86_64__";
+        "-D__XEN_INTERFACE_VERSION__=0x00030205";
+        "-D__INSIDE_MINIOS__";
+        "-nostdinc"; "-std=gnu99"; "-fno-stack-protector";
+        "-m64"; "-mno-red-zone"; "-fno-reorder-blocks";
+        "-fno-asynchronous-unwind-tables"; (* TODO: this will screw up backtraces, review *)
       ] in
     (* Include dirs *)
     let incdirs= A ("-I"^gcc_install) :: List.flatten (
@@ -64,6 +63,12 @@ module CC = struct
   let libm_incs =
     [ A (sf "-I%s/runtime_xen/libm" Pathname.pwd) ]
 
+  (* defines used by the ocaml runtime, as well as includes *)
+  let ocaml_incs = [ 
+    A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen"; A "-DDBEUG";
+    A (sf "-I%s/runtime_xen/ocaml" Pathname.pwd) 
+  ]
+  
   let ocamlc_where = Lazy.force stdlib_dir
 
   let cc_cflags = List.map (fun x -> A x) !cflags
@@ -76,6 +81,15 @@ module CC = struct
     let c = env c and o = env o in
     cc_c (tags_of_pathname c++"implem"+++tag) c o
 
+  let cc_link clib a path env build =
+    let clib = env clib and a = env a and path = env path in
+    let objs = List.map (fun x -> path / x) (string_list_of_file clib) in
+    let resluts = build (List.map (fun x -> [x]) objs) in
+    let objs = List.map (function
+      | Outcome.Good o -> o
+      | Outcome.Bad exn -> raise exn) resluts in
+    Cmd(S[A cc; A"-nostdlib"; A"-m"; A "elf_x86_64"; A"-a"; A"-o"; Px a; T(tags_of_pathname a++"c"++"link"); atomize objs])
+
   let () =
     rule "cc: .c -> .o include ocaml dir"
       ~tags:["cc"; "c"]
@@ -85,7 +99,12 @@ module CC = struct
     rule "cc: .S -> .o assembly compile"
       ~prod:"%.o" ~dep:"%.S"
       (cc_compile_c_implem ~tag:"asm" "%.S" "%.o");
-  
+ 
+    rule "link: cclib .o -> .x.a link" 
+      ~prod:"%(path:<**/>)lib%(libname:<*> and not <*.*>).a"
+      ~dep:"%(path)lib%(libname).cclib"
+      (cc_link "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)")
+
 end
 
 (* Need to register manual dependency on libev included files/
@@ -112,8 +131,10 @@ let _ = dispatch begin function
     (* base cflags for C code *)
     flag ["c"; "compile"] & S CC.cc_cflags;
     flag ["asm"; "compile"] & S [A "-D__ASSEMBLY__"];
+
     (* xen code needs special cflags *)
     flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
+    flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
   | _ -> ()
 end

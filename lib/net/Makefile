@@ -4,7 +4,7 @@ PREFIX ?= _build/root
 OS ?= unix
 LIBS = mpl mlnet dns dhcp http
 
-TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/os/$(OS)
+TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/os/$(OS)/net
 
 all:
 	ocamlbuild all.otarget
@@ -14,4 +14,8 @@ clean:
 
 install:
 	mkdir -p $(TARGETDIR)
-	for i in $(LIBS); do cp _build/$(OS)/$$i/$$i.cmi _build/$(OS)/$$i/$$i.cmxa $(TARGETDIR)/; done
+	for i in $(LIBS); do \
+		cp _build/$(OS)/$$i/$$i.cmi $(TARGETDIR)/; \
+		cp _build/$(OS)/$$i/$$i.cmxa $(TARGETDIR)/; \
+		cp _build/$(OS)/$$i/$$i.a $(TARGETDIR)/; \
+	done

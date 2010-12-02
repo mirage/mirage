@@ -18,6 +18,8 @@ let lib = getenv "MIRAGELIB"
 
 let stdlib = ps "%s/std/lib" lib
 let oslib = ps "%s/os/%s" lib os
+let cowlib = ps "%s/cow/lib" lib
+let netlib = ps "%s/net" oslib
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
@@ -76,8 +78,8 @@ module Mir = struct
   let oslib_unixmain = oslib ^ "/main.o"
   let cc_link tags arg out =
     let dl_libs = match OS.t with
-      |OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"]
-      |OS.Darwin ->  [A"-lm"; A"-lasmrun"] in
+      |OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
+      |OS.Darwin ->  [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
@@ -103,10 +105,23 @@ end
 
 let _ = dispatch begin function
   | After_rules ->
-    let pp_pa_lwt = ps "camlp4o %s/std/syntax/pa_lwt.cmo" lib in
-    let libs = [A "stdlib.cmxa"; A "lwt.cmxa"; A "oS.cmxa"] in
-    let mirage_flags =
-      [A"-nostdlib"; A"-I"; A stdlib; A"-I"; A oslib; A"-pp"; A pp_pa_lwt] in
+    let pa_lwt = ps "-I %s/std/syntax pa_lwt.cmo" lib in
+    let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
+    let pa_dyntype = ps "%s -I %s/dyntype/syntax pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations lib in
+    let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_html.cmo" pa_dyntype lib in
+    let pp_pa = ps "camlp4o %s %s" pa_lwt pa_cow in
+    let libs = [
+      (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa";
+      (* os lib *)   A "oS.cmxa";                   
+      (* net libs *) A "mpl.cmxa"; A "mlnet.cmxa"; A "dns.cmxa"; A "http.cmxa" ; A "dhcp.cmxa";
+      (* cow lib *)  A "cow.cmx";
+    ] in
+    let mirage_flags = [
+      A"-nostdlib"; A"-I"; A stdlib;
+      A"-I"; A oslib;
+      A"-I"; A netlib;
+      A"-I"; A cowlib;
+      A"-pp"; A pp_pa ] in
 
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";
@@ -116,10 +131,10 @@ let _ = dispatch begin function
     flag ["ocaml"; "compile"] & S mirage_flags;
     flag ["ocaml"; "pack"]    & S mirage_flags;
     flag ["ocaml"; "link"]    & S (mirage_flags @ libs);
-    flag ["ocamldep"]         & S[A"-pp"; A pp_pa_lwt];
+    flag ["ocamldep"]         & S[A"-pp"; A pp_pa];
 
     (* use pa_mirage syntax extension *)
-    flag ["ocaml"; "compile"] & S[A"-pp"; A pp_pa_lwt];
+    flag ["ocaml"; "compile"] & S[A"-pp"; A pp_pa];
 
   | _ -> ()
 end

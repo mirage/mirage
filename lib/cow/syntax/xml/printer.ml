@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,23 +12,22 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
  *)
 
-type author = { name : string; uri : string option; email : string option; }
-type date = int * int * int * int * int
-type meta = {
-  id : string;
-  title : string;
-  subtitle : string;
-  author : author option;
-  contributors : author list;
-  rights : string option;
-  updated: date;
-}
-type entry = { entry : meta; summary : string; content : Xml.t; }
-type feed = { feed : meta; entries : entry list; }
+open Format
+open Qast
 
-val xml_of_feed : feed -> Xml.t
+let rec t ppf = function
+  | String s        -> fprintf ppf "%s" s
+  | Tag (s,Nil, t') -> fprintf ppf "<%a>%a</%a>" t s t t' t s
+  | Tag (s,l,t')    -> fprintf ppf "<%a %a>%a</%a>" t s t l t t' t s
+  | Prop (k,v)      -> fprintf ppf "%a=\"%a\"" t k t v
+  | Seq (t', Nil)   -> t ppf t'
+  | Seq (t1, t2)    -> fprintf ppf "%a @;<1 2>%a" t t1 t t2
+  | Nil             -> ()
 
-val sort : entry -> entry -> int
+  | Ant (_, s)      -> fprintf ppf "$%s$" s
+
+let to_string t' =
+  t str_formatter t';
+  flush_str_formatter ()

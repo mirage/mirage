@@ -1,2 +1,1 @@
-<*>: pa_dyntype
-<parser.ml*>: pkg_str
+true: pa_dyntype

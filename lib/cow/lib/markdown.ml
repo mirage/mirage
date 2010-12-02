@@ -409,3 +409,5 @@ and paras ps =
 
 let html_of_t ps =
   <:html< <div class="post"> $paras ps$ </div> >>
+
+let of_string = parse_text

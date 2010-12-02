@@ -14,7 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val parse : Camlp4.PreCast.Loc.t -> ?enc:Xml.encoding -> string -> Html_ast.t
+val parse :
+  Camlp4.PreCast.Loc.t ->
+  ?entity:(string -> string option) -> ?enc:Xml.encoding -> string ->
+  Qast.t
 
 val get_encoding : unit -> Xml.encoding option
 val set_encoding : Xml.encoding -> unit

@@ -86,19 +86,18 @@ object
       | e -> super#expr e
 end
 
-let parse_quot_string loc s : Html_ast.t =
-  Parser.parse ?enc:(Parser.get_encoding ()) loc s
+let parse_quot_string entity loc s =
+  Parser.parse ?enc:(Parser.get_encoding ()) ?entity loc s
 
-let expand_expr loc _ s =
-  let ast = parse_quot_string loc s in
-  let meta_ast = Html_ast.meta_t loc ast in
-  aq_expander#expr meta_ast
+let expand_expr entity _loc _ s =
+  let ast = parse_quot_string entity _loc s in
+  let meta_ast = Qast.meta_t _loc ast in
+  <:expr< ($aq_expander#expr meta_ast$ : Xml.t) >>
 
-let expand_str_item loc _ s =
-  let exp_ast = expand_expr loc None s in
-  <:str_item@loc< $exp:exp_ast$ >>
+let expand_str_item entity _loc _ s =
+  let exp_ast = expand_expr entity _loc None s in
+  <:str_item< ($exp:exp_ast$ : Xml.t) >>
 
-;;
-
-Q.add "html" Q.DynAst.expr_tag expand_expr;
-Q.add "html" Q.DynAst.str_item_tag expand_str_item
+let () =
+  Q.add "xml" Q.DynAst.expr_tag (expand_expr None);
+  Q.add "xml" Q.DynAst.str_item_tag (expand_str_item None)

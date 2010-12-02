@@ -1,1 +1,3 @@
-syntax/pa_html.cma
+syntax/pa_xml.cmo
+syntax/pa_html.cmo
+

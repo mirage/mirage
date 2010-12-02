@@ -14,5 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val t : Format.formatter -> Html_ast.t -> unit
-val to_string : Html_ast.t -> string
+val t : Format.formatter -> Qast.t -> unit
+val to_string : Qast.t -> string

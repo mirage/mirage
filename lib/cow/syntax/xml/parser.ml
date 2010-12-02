@@ -73,7 +73,7 @@ let encode str =
 
 (*** decoding ***)
 
-open Html_ast
+open Qast
 
 let antiquotation_decoding = Str.regexp "'\\$[0-9]*\\$'"
 
@@ -105,7 +105,7 @@ let input_tree loc input =
     decode loc input str in
   Xml.input_tree ~el ~data input
   
-let parse loc ?enc str =
+let parse loc ?entity ?enc str =
   (* It is illegal to write <:html<<b>foo</b>>> so we use a small trick and write
      <:html<<b>foo</b>&>> *)
   let str = if str.[String.length str - 1] = '&' then
@@ -113,17 +113,17 @@ let parse loc ?enc str =
   else
     str in
   (* Xml.input needs a root tag *)
-  let str = Printf.sprintf "<htcaml>%s</htcaml>" str in
+  let str = Printf.sprintf "<xxx>%s</xxx>" str in
   let str = encode str in
   try
-    let input = Xml.make_input ~enc ~entity:Xhtml.entity (`String (0,str)) in
+    let input = Xml.make_input ~enc ?entity (`String (0,str)) in
     (* Xml.make_input builds a well-formed document, so discard the Dtd *)
     (match Xml.peek input with
       | `Dtd _ -> let _ = Xml.input input in ()
       | _      -> ());
     (* Remove the dummy root tag *)
     match input_tree loc input with
-      | Tag (String "htcaml", Nil, body) -> body
+      | Tag (String "xxx", Nil, body) -> body
       | _ -> Location.raise loc (0,1) Parsing.Parse_error
   with Xml.Error (pos, e) ->
     Printf.eprintf "[XMLM:%d-%d] %s: %s\n"(fst pos) (snd pos) str (Xml.error_message e);

@@ -49,3 +49,5 @@ s_sin.o
 s_tanf.o
 s_tanh.o
 s_tan.o
+isnan.o
+isinf.o

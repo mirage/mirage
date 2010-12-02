@@ -1,0 +1,5 @@
+dietlibc/libdiet.a
+libm/libm.a
+kernel/libxen.a
+ocaml/libocaml.a
+kernel/x86_64.o

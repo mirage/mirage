@@ -1,7 +1,6 @@
 stack_chk_fail.o
 xmalloc.o
 sys.o
-x86_64.o
 x86_mm.o
 x86_setup.o
 x86_time.o

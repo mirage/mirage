@@ -108,6 +108,12 @@ void verr(int eval, const char *format, va_list ap)
     exit(eval);
 }
 
+void exit(int status)
+{
+    printk("exit: %d\n", status);
+    do_exit();
+}
+
 void err(int eval, const char *format, ...)
 {
     va_list ap;
@@ -336,8 +342,6 @@ unsupported_function_log(int, getrusage, -1);
 unsupported_function_log(int, getrlimit, -1);
 unsupported_function_log(int, getrlimit64, -1);
 unsupported_function_log(int, __xstat64, -1);
-unsupported_function_log(long, __strtol_internal, LONG_MIN);
-unsupported_function_log(double, __strtod_internal, HUGE_VAL);
 unsupported_function_log(int, utime, -1);
 unsupported_function_log(int, truncate64, -1);
 unsupported_function_log(int, tcflow, -1);

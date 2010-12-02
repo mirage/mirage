@@ -69,7 +69,14 @@ module CC = struct
     A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen"; A "-DDBEUG";
     A (sf "-I%s/runtime_xen/ocaml" Pathname.pwd) 
   ]
-  
+ 
+  (* dietlibc bits, mostly extra warnings *)
+  let dietlibc_incs = [
+    A "-Wextra"; A "-Wchar-subscripts"; A "-Wmissing-prototypes";
+    A "-Wmissing-declarations"; A "-Wno-switch"; A "-Wno-unused"; A "-Wredundant-decls";
+    A (sf "-I%s/runtime_xen/dietlibc" Pathname.pwd)
+  ]
+
   let ocamlc_where = Lazy.force stdlib_dir
 
   let cc_cflags = List.map (fun x -> A x) !cflags
@@ -82,14 +89,14 @@ module CC = struct
     let c = env c and o = env o in
     cc_c (tags_of_pathname c++"implem"+++tag) c o
 
-  let cc_link clib a path env build =
+  let cc_archive clib a path env build =
     let clib = env clib and a = env a and path = env path in
     let objs = List.map (fun x -> path / x) (string_list_of_file clib) in
     let resluts = build (List.map (fun x -> [x]) objs) in
     let objs = List.map (function
       | Outcome.Good o -> o
       | Outcome.Bad exn -> raise exn) resluts in
-    Cmd(S[A cc; A"-nostdlib"; A"-m"; A "elf_x86_64"; A"-a"; A"-o"; Px a; T(tags_of_pathname a++"c"++"link"); atomize objs])
+    Cmd(S[A ar; A"rc"; Px a; T(tags_of_pathname a++"c"++"archive"); atomize objs])
 
   let () =
     rule "cc: .c -> .o include ocaml dir"
@@ -101,10 +108,10 @@ module CC = struct
       ~prod:"%.o" ~dep:"%.S"
       (cc_compile_c_implem ~tag:"asm" "%.S" "%.o");
  
-    rule "link: cclib .o -> .x.a link" 
+    rule "archive: cclib .o -> .a archive" 
       ~prod:"%(path:<**/>)lib%(libname:<*> and not <*.*>).a"
       ~dep:"%(path)lib%(libname).cclib"
-      (cc_link "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)")
+      (cc_archive "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)")
 
 end
 
@@ -137,5 +144,6 @@ let _ = dispatch begin function
     flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
     flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
+    flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
   | _ -> ()
 end

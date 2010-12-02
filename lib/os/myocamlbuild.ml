@@ -31,7 +31,8 @@ end
 module CC = struct
  
   let cc = getenv "CC" ~default:"cc"
-  let cflags = ref ["-O2"; "-Wall"; "-fPIC"]
+  let ar = getenv "AR" ~default:"ar"
+  let cflags = ref ["-O2"; "-Wall"; "-fPIC"; "-g"]
 
   (* All the xen cflags for compiling against an embedded environment *)
   let xen_incs =

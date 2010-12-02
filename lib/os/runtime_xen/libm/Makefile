@@ -1,5 +1,6 @@
-ROOTDIR=../../..
-include $(ROOTDIR)/mk/xen.mk
+ROOTDIR=$(abspath ..)
+include ../base.mk
+include ../xen.mk
 
 OBJDIR ?= ./obj
 

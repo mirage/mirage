@@ -1,5 +1,5 @@
-ROOTDIR=../..
-include $(ROOTDIR)/mk/xen.mk
+include base.mk
+include xen.mk
 
 TARGS = libmiragerun_xen.a libc.a libm.a 
 

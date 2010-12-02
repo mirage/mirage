@@ -1,7 +1,8 @@
-ROOTDIR=$(abspath ../../..)
-MODE ?= xen
-include $(ROOTDIR)/mk/$(MODE).mk
+ROOTDIR=$(abspath ..)
+include ../base.mk
+include ../xen.mk
 
+MODE=xen
 OBJDIR = $(CURDIR)/obj-$(MODE)
 OUT = $(OBJDIR)/libmiragerun_$(MODE).a
 

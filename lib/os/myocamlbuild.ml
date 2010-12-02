@@ -30,14 +30,14 @@ end
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
  
-  let cc = ref "cc"
+  let cc = getenv "CC" ~default:"cc"
   let cflags = ref ["-O2"; "-Wall"; "-fPIC"]
 
   (* All the xen cflags for compiling against an embedded environment *)
   let xen_incs =
     (* base GCC standard include dir *)
     let gcc_install = 
-      let cmd = sf "LANG=C %s -print-search-dirs | sed -n -e 's/install: \\(.*\\)/\\1/p'" !cc in
+      let cmd = sf "LANG=C %s -print-search-dirs | sed -n -e 's/install: \\(.*\\)/\\1/p'" cc in
       Util.run_and_read cmd in
     (* root dir of xen bits *)
     let rootdir = sf "%s/runtime_xen" Pathname.pwd in
@@ -45,11 +45,18 @@ module CC = struct
     (* Basic cflags *)
     let all_cflags = List.map (fun x -> A x)
       [ "-U"; "__linux__"; "-U"; "__FreeBSD__"; 
-       "-U"; "__sun__"; "-D__MiniOS__"; "-DHAVE_LIBC"; "-D__x86_64__";
-       "-nostdinc"; "-std=gnu99"; "-fno-stack-protector"] in
+       "-U"; "__sun__"; "-D__MiniOS__";
+       "-DHAVE_LIBC"; "-D__x86_64__";
+       "-D__XEN_INTERFACE_VERSION__=0x00030205";
+       "-D__INSIDE_MINIOS__";
+       "-nostdinc"; "-std=gnu99"; "-fno-stack-protector";
+       "-m64"; "-mno-red-zone"; "-fno-reorder-blocks";
+       "-fno-asynchronous-unwind-tables"; (* TODO: this will screw up backtraces, review *)
+ 
+      ] in
     (* Include dirs *)
-    let incdirs= List.flatten (
-      List.map (fun x -> [A"-isystem"; A (sf "%s/%s" root_incdir x)])
+    let incdirs= A ("-I"^gcc_install) :: List.flatten (
+      List.map (fun x ->[A"-isystem"; A (sf "%s/%s" root_incdir x)])
         [""; "mini-os"; "mini-os/x86"]) in
     all_cflags @ incdirs 
 
@@ -63,9 +70,7 @@ module CC = struct
 
   let cc_c tags arg out =
     let tags = tags++"cc"++"c" in
-    Cmd (S (A !cc :: [ A"-c"; T(tags++"compile");
-                 A"-I"; Px ocamlc_where;
-                 A"-o"; Px out; P arg]))
+    Cmd (S (A cc :: [ A"-c"; T(tags++"compile"); A"-I"; Px ocamlc_where; A"-o"; Px out; P arg]))
 
   let cc_compile_c_implem ?tag c o env build =
     let c = env c and o = env o in
@@ -79,7 +84,7 @@ module CC = struct
 
     rule "cc: .S -> .o assembly compile"
       ~prod:"%.o" ~dep:"%.S"
-      (cc_compile_c_implem "%.S" "%.o");
+      (cc_compile_c_implem ~tag:"asm" "%.S" "%.o");
   
 end
 
@@ -106,6 +111,7 @@ let _ = dispatch begin function
 
     (* base cflags for C code *)
     flag ["c"; "compile"] & S CC.cc_cflags;
+    flag ["asm"; "compile"] & S [A "-D__ASSEMBLY__"];
     (* xen code needs special cflags *)
     flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;

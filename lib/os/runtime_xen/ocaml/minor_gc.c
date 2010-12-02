@@ -14,6 +14,7 @@
 /* $Id: minor_gc.c 8954 2008-07-28 12:03:55Z doligez $ */
 
 #include <string.h>
+#include <stdio.h>
 #include "config.h"
 #include "fail.h"
 #include "finalise.h"
@@ -91,7 +92,7 @@ void caml_set_minor_heap_size (asize_t size)
   if (caml_young_start != NULL){
 #ifdef SYS_xen
 /* XXX temporary until memory allocator works properly */
-    printf("caml_set_minor_heap_size: resize unsupported\n");
+    printk("caml_set_minor_heap_size: resize unsupported\n");
     caml_raise_out_of_memory();
 #else
     caml_page_table_remove(In_young, caml_young_start, caml_young_end);

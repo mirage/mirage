@@ -26,6 +26,7 @@
 #include "misc.h"
 #include "mlvalues.h"
 #include "signals.h"
+#include <stdio.h>
 #ifdef USE_STATIC_VMEM
 #include <stdint.h>
 #include <xen/xen.h>
@@ -274,7 +275,7 @@ char *caml_alloc_for_heap (asize_t request)
 void caml_free_for_heap (char *mem)
 {
 #ifdef SYS_xen
-  printf("free_for_heap\n");
+  fprintf(stderr,"free_for_heap\n");
 //  free (Chunk_block (mem));
 #else
   free (Chunk_block (mem));

@@ -18,18 +18,12 @@
 #include "misc.h"
 #include "memory.h"
 
-/* XXX hack until the dietlibc removal happens */
-#ifdef SYS_xen
-#define fprintf(x,y,args...) printf((y), ## args)
-#endif
-
 #ifdef DEBUG
 
 int caml_failed_assert (char * expr, char * file, int line)
 {
   fprintf (stderr, "file %s; line %d ### Assertion failed: %s\n",
            file, line, expr);
-  fflush (stderr);
   exit (100);
   return 1; /* not reached */
 }
@@ -50,7 +44,6 @@ void caml_gc_message (int level, char *msg, uintnat arg)
 {
   if (level < 0 || (caml_verb_gc & level) != 0){
     fprintf (stderr, msg, arg);
-    fflush (stderr);
   }
 }
 

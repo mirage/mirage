@@ -35,13 +35,12 @@ let new_id _loc _ =
 
 let create_class _loc n body =
   let tag = <:expr<
-    ((("","div"), [(("","class"), $`str:n$)])
-     : Xmlm.tag) >> in
+    ((("","div"), [(("","class"), $`str:n$)]) : Xml.tag) >> in
   <:expr< `El $tag$ $body$ >>
 
 let create_id_class _loc n id body =
   let tag = <:expr<
-    ((("","div"), [(("","id"), html_id); (("","class"), $`str:n$)]) : Xmlm.tag) >> in
+    ((("","div"), [(("","id"), html_id); (("","class"), $`str:n$)]) : Xml.tag) >> in
   <:expr<
     match id with [
       None         -> $create_class _loc n body$

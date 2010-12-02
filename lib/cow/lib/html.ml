@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t = (('a Xml.frag as 'a) Xml.frag) list
+type t = Xml.t
 
 let id x = x
 

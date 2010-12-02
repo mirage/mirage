@@ -193,6 +193,9 @@ val pos : input -> pos
 type 'a frag = [ `El of tag * 'a list | `Data of string ]
 (** The type for deconstructing data structures of type ['a]. *)
 
+type t = (('a frag as 'a) frag) list
+(** The type for XML fragments *)
+
 type dest = [ `Buffer of Buffer.t | 
               `Fun of (int -> unit) ]
 (** The type for output destinations. For [`Buffer], the buffer won't
@@ -374,6 +377,9 @@ module type S = sig
   (** {1 Output} *)
 
   type 'a frag = [ `El of tag * 'a list | `Data of string ]
+
+  type t = (('a frag as 'a) frag) list
+
   type dest = [ 
     `Buffer of std_buffer | `Fun of (int -> unit) ]
 

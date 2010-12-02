@@ -85,6 +85,7 @@ module type S = sig
   val pos : input -> pos 
 
   type 'a frag = [ `El of tag * 'a list | `Data of string ]
+  type t = (('a frag as 'a) frag) list
   type dest = [ 
     `Buffer of std_buffer | `Fun of (int -> unit) ]
 
@@ -934,6 +935,7 @@ struct
   (* Output *)
 
   type 'a frag = [ `El of tag * 'a list | `Data of string ]
+  type t = (('a frag as 'a) frag) list
   type dest = [ 
     `Buffer of std_buffer | `Fun of (int -> unit) ]
 

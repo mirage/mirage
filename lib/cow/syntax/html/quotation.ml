@@ -14,20 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Format
-open Html_ast
+open Camlp4.PreCast
 
-let rec t ppf = function
-  | String s        -> fprintf ppf "%s" s
-  | Tag (s,Nil, t') -> fprintf ppf "<%a>%a</%a>" t s t t' t s
-  | Tag (s,l,t')    -> fprintf ppf "<%a %a>%a</%a>" t s t l t t' t s
-  | Prop (k,v)      -> fprintf ppf "%a=\"%a\"" t k t v
-  | Seq (t', Nil)   -> t ppf t'
-  | Seq (t1, t2)    -> fprintf ppf "%a @;<1 2>%a" t t1 t t2
-  | Nil             -> ()
+module Q = Syntax.Quotation
 
-  | Ant (_, s)      -> fprintf ppf "$%s$" s
+let entity = Some Xhtml.entity
 
-let to_string t' =
-  t str_formatter t';
-  flush_str_formatter ()
+let () =
+  Q.add "html" Q.DynAst.expr_tag (Pa_xml.Quotation.expand_expr entity);
+  Q.add "html" Q.DynAst.str_item_tag (Pa_xml.Quotation.expand_str_item entity)

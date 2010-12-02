@@ -14,7 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val parse : Camlp4.PreCast.Loc.t -> ?enc:Xmlm.encoding -> string -> Htcaml_ast.t
-
-val get_encoding : unit -> Xmlm.encoding option
-val set_encoding : Xmlm.encoding -> unit
+val t : Format.formatter -> Html_ast.t -> unit
+val to_string : Html_ast.t -> string

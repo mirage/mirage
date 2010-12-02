@@ -1,9 +1,14 @@
-PREFIX ?= _build/root
+PREFIX ?= ~/mir-inst/lib
 
-.PHONY: all clean install
-all:
+.PHONY: all lib syntax clean install
+all: syntax lib
+	@ :
+
+syntax:
 	ocamlbuild -use-ocamlfind syntax.otarget
-	ocamlbuild all.otarget
+
+lib: syntax
+	ocamlbuild lib.otarget
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/std
 install:

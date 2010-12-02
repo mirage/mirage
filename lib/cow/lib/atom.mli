@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,22 +12,24 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
  *)
 
-open Format
-open Htcaml_ast
-
-let rec t ppf = function
-  | String s        -> fprintf ppf "%s" s
-  | Tag (s,Nil, t') -> fprintf ppf "<%a>%a</%a>" t s t t' t s
-  | Tag (s,l,t')    -> fprintf ppf "<%a %a>%a</%a>" t s t l t t' t s
-  | Prop (k,v)      -> fprintf ppf "%a=\"%a\"" t k t v
-  | Seq (t', Nil)   -> t ppf t'
-  | Seq (t1, t2)    -> fprintf ppf "%a @;<1 2>%a" t t1 t t2
-  | Nil             -> ()
-
-  | Ant (_, s)      -> fprintf ppf "$%s$" s
-
-let to_string t' =
-  t str_formatter t';
-  flush_str_formatter ()
+type field = [ `Empty | `Text of string | `XML of string ]
+type author = { name : string; uri : string option; email : string option; }
+type date = int * int * int * int * int
+type meta = {
+  id : string;
+  title : field;
+  subtitle : field;
+  author : author option;
+  contributors : author list;
+  rights : string option;
+  updated: date;
+}
+type entry = { entry : meta; summary : field; content : field; }
+type feed = { feed : meta; entries : entry list; }
+val output_entry : entry -> Xml.output -> unit
+val output_feed : feed -> Xml.output -> unit
+val string_of_feed : feed -> string
+val sort : date -> date -> int

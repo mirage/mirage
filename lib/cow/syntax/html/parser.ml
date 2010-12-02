@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let encoding : Xmlm.encoding option ref = ref None
+let encoding : Xml.encoding option ref = ref None
 
 let set_encoding e =
   encoding := Some e
@@ -73,7 +73,7 @@ let encode str =
 
 (*** decoding ***)
 
-open Htcaml_ast
+open Html_ast
 
 let antiquotation_decoding = Str.regexp "'\\$[0-9]*\\$'"
 
@@ -81,8 +81,8 @@ let decode loc input str =
   let split = Str.full_split antiquotation_decoding str in
   let aux = function
     | Str.Text s  -> String s
-    | Str.Delim s -> Ant (Htcaml_location.add loc (Xmlm.pos input), find_antiquotation s) in
-  Htcaml_ast.t_of_list (List.map aux split)
+    | Str.Delim s -> Ant (Location.add loc (Xml.pos input), find_antiquotation s) in
+  t_of_list (List.map aux split)
 
 let decode_quoted loc input str =
   if mem_antiquotation str && str.[0] = '$' then
@@ -90,7 +90,7 @@ let decode_quoted loc input str =
   else
     decode loc input str
 
-(*** XHTML parsing (using Xmlm) ***)
+(*** XHTML parsing (using Xml) ***)
 let input_tree loc input =
   let el (name, attrs) body =
     let (_,name) = name in
@@ -103,7 +103,7 @@ let input_tree loc input =
     Tag (name, t_of_list attrs, t_of_list body) in
   let data str =
     decode loc input str in
-  Xmlm.input_tree ~el ~data input
+  Xml.input_tree ~el ~data input
   
 let parse loc ?enc str =
   (* It is illegal to write <:html<<b>foo</b>>> so we use a small trick and write
@@ -112,20 +112,20 @@ let parse loc ?enc str =
     String.sub str 0 (String.length str - 1)
   else
     str in
-  (* Xmlm.input needs a root tag *)
+  (* Xml.input needs a root tag *)
   let str = Printf.sprintf "<htcaml>%s</htcaml>" str in
   let str = encode str in
   try
-    let input = Xmlm.make_input ~enc ~entity:Xhtml.entity (`String (0,str)) in
-    (* Xmlm.make_input builds a well-formed document, so discard the Dtd *)
-    (match Xmlm.peek input with
-      | `Dtd _ -> let _ = Xmlm.input input in ()
+    let input = Xml.make_input ~enc ~entity:Xhtml.entity (`String (0,str)) in
+    (* Xml.make_input builds a well-formed document, so discard the Dtd *)
+    (match Xml.peek input with
+      | `Dtd _ -> let _ = Xml.input input in ()
       | _      -> ());
     (* Remove the dummy root tag *)
     match input_tree loc input with
       | Tag (String "htcaml", Nil, body) -> body
-      | _ -> Htcaml_location.raise loc (0,1) Parsing.Parse_error
-  with Xmlm.Error (pos, e) ->
-    Printf.eprintf "[XMLM:%d-%d] %s: %s\n"(fst pos) (snd pos) str (Xmlm.error_message e);
-    Htcaml_location.raise loc pos Parsing.Parse_error
+      | _ -> Location.raise loc (0,1) Parsing.Parse_error
+  with Xml.Error (pos, e) ->
+    Printf.eprintf "[XMLM:%d-%d] %s: %s\n"(fst pos) (snd pos) str (Xml.error_message e);
+    Location.raise loc pos Parsing.Parse_error
 

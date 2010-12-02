@@ -14,21 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t = (('a Xmlm.frag as 'a) Xmlm.frag) list
+open Format
+open Html_ast
 
-val to_string : t -> string
+let rec t ppf = function
+  | String s        -> fprintf ppf "%s" s
+  | Tag (s,Nil, t') -> fprintf ppf "<%a>%a</%a>" t s t t' t s
+  | Tag (s,l,t')    -> fprintf ppf "<%a %a>%a</%a>" t s t l t t' t s
+  | Prop (k,v)      -> fprintf ppf "%a=\"%a\"" t k t v
+  | Seq (t', Nil)   -> t ppf t'
+  | Seq (t1, t2)    -> fprintf ppf "%a @;<1 2>%a" t t1 t t2
+  | Nil             -> ()
 
-(** {2 HTML library} *)
+  | Ant (_, s)      -> fprintf ppf "$%s$" s
 
-type link = {
-  text : string;
-  href: string;
-}
-
-val html_of_link : link -> t
-
-val interleave : string array -> t list -> t list
-
-module Code : sig
-  val ocaml : string -> t
-end
+let to_string t' =
+  t str_formatter t';
+  flush_str_formatter ()

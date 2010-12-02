@@ -1,1 +1,2 @@
-<*>: package(camlp4), syntax(camlp4o), package(camlp4.quotations.o), package(camlp4.extend)
+<*>: package(camlp4), syntax(camlp4o)
+<pa_lwt.*>: package(camlp4.quotations.o), package(camlp4.extend)

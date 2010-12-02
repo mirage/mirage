@@ -11,7 +11,7 @@ clean:
 	cd std && $(MAKE) clean
 	cd os && $(MAKE) clean
 	cd net && $(MAKE) clean
-	cd dyntype && $(MAKE)
+	cd dyntype && $(MAKE) clean
 	cd cow && $(MAKE) clean
 
 PREFIX ?= ~/mir-inst

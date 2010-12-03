@@ -53,6 +53,6 @@ and img_ref = { img_src : string; img_alt : string; }
 
 and t = paragraph list 
 
-val html_of_t : t -> Html.t
+val to_html : t -> Html.t
 
 val of_string : string -> t

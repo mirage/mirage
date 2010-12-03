@@ -17,6 +17,9 @@ syntax/html/xhtml.ml:
 lib: syntax
 	ocamlbuild lib.otarget
 
+test:
+	cd tests && mir test.bin && _build/test.bin
+
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/cow
 
 install:

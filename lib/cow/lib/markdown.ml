@@ -27,28 +27,6 @@
 
 open Printf
 
-let junk q =
-  try ignore (Queue.pop q)
-  with _ -> ()
-
-let get q =
-  try Some (Queue.pop q)
-  with _ -> None
-
-let peek q =
-  try Some (Queue.peek q)
-  with _ -> None
-
-let map f q1 =
-  let q2 = Queue.create () in
-  Queue.iter (fun x -> Queue.add (f x) q2) q1;
-  q2
-
-let of_list l =
-  let q = Queue.create () in
-  List.iter (fun x -> Queue.add x q) l;
-  q
-
 type ref = { src : string; desc : string }
 
 type paragraph =
@@ -75,7 +53,7 @@ and href = { href_target : string; href_desc : string; }
 
 and img_ref = { img_src : string; img_alt : string; }
 
-and t = paragraph list 
+type t = paragraph list 
 
 type parse_state = { max : int; current : Buffer.t; fragments : text list; }
 
@@ -138,7 +116,7 @@ let collect f x =
 let push_remainder ?(first=2) indent s e =
   let s = slice ~first s in
   let s' = strip s in
-    Queue.push (indent + first + indentation s, s', s' = "") e
+    Enum.push e (indent + first + indentation s, s', s' = "")
 
 let adds = Buffer.add_string
 
@@ -151,23 +129,23 @@ let push_current st =
     Text (Buffer.contents st.current) :: st.fragments
   else st.fragments
 
-let rec read_paragraph ?(skip_blank=true) indent e = match peek e with
+let rec read_paragraph ?(skip_blank=true) indent e = match Enum.peek e with
     None -> None
   | Some (indentation, line, isblank) -> match isblank with
         true ->
-          junk e;
+          Enum.junk e;
           if skip_blank then read_paragraph indent e else None
       | false ->
           if indentation < indent then
             None
           else begin
-            junk e;
+            Enum.junk e;
             read_nonempty indentation e line
           end
 
-and skip_blank_line e = match peek e with
+and skip_blank_line e = match Enum.peek e with
     None | Some (_, _, false) -> ()
-  | Some (_, _, true) -> junk e; skip_blank_line e
+  | Some (_, _, true) -> Enum.junk e; skip_blank_line e
 
 and read_nonempty indent e s = match s.[0] with
     '!' -> read_heading s
@@ -176,8 +154,8 @@ and read_nonempty indent e s = match s.[0] with
   | '{' when snd_is s '{' -> read_pre (slice s ~first:2) e
   | '>' when snd_is_space s || s = ">" ->
       (* last check needed because "> " becomes ">" *)
-      Queue.push (indent, s, false) e; read_quote indent e
-  | _ -> Queue.push (indent, s, false) e; read_normal e
+      Enum.push e (indent, s, false); read_quote indent e
+  | _ -> Enum.push e (indent, s, false); read_normal e
 
 and read_heading s =
   let s' = strip ~chars:"!" s in
@@ -200,9 +178,9 @@ and read_list f is_item indent e =
   let read_item indent ps = collect (read_paragraph (indent + 1)) e in
   let rec read_all fst others =
     skip_blank_line e;
-    match peek e with
+    match Enum.peek e with
       | Some (indentation, s, _) when indentation >= indent && is_item s ->
-          junk e;
+          Enum.junk e;
           push_remainder indentation s e;
           read_all fst (read_item indentation [] :: others)
       | None | Some _ -> f fst (List.rev others)
@@ -216,17 +194,17 @@ and read_pre kind e =
     | s -> s in
   (*  don't forget the last \n *)
   let ret ls = Some (Pre (String.concat "\n" (List.rev ("" :: ls)), kind)) in
-  let rec read_until_end fstindent ls = match get e with
+  let rec read_until_end fstindent ls = match Enum.get e with
       None | Some (_, "}}", _) -> ret ls
     | Some (indentation, s, _) ->
         let spaces = String.make (max 0 (indentation - fstindent)) ' ' in
           read_until_end fstindent ((spaces ^ unescape s) :: ls)
-  in match get e with
+  in match Enum.get e with
       None | Some (_, "}}", _) -> ret []
     | Some (indentation, s, _) -> read_until_end indentation [s]
 
 and read_quote indent e =
-  let push_and_finish e elm = Queue.push elm e; raise Queue.Empty in
+  let push_and_finish e elm = Enum.push e elm; raise Enum.No_more_elements in
   let next_without_lt e = function
     | (_, _, true) as line -> push_and_finish e line
     | (n, s, false) as line ->
@@ -237,19 +215,19 @@ and read_quote indent e =
           let s' = strip s in
             (String.length s - String.length s', s', s' = "")
 
-  in match collect (read_paragraph 0) (map (next_without_lt e) e) with
+  in match collect (read_paragraph 0) (Enum.map (next_without_lt e) e) with
       [] -> None
     | ps -> Some (Quote ps)
 
 and read_normal e =
   let rec gettxt ls =
     let return () = String.concat " " (List.rev ls) in
-    match peek e with
+    match Enum.peek e with
       None | Some (_, _, true) -> return ()
     | Some (_, l, _) -> match l.[0] with
             '!' | '*' | '#' | '>' when snd_is_space l -> return ()
           | '{' when snd_is l '{' -> return ()
-          | _ -> junk e; gettxt (l :: ls) in
+          | _ -> Enum.junk e; gettxt (l :: ls) in
   let txt = gettxt [] in
     Some (Normal (parse_text txt))
 
@@ -371,17 +349,17 @@ and matches_at s ~max n delim =
 
 let parse_enum e =
   collect (read_paragraph 0)
-    (map (fun l -> let l' = strip l in (indentation l, l', l' = "")) e)
+    (Enum.map (fun l -> let l' = strip l in (indentation l, l', l' = "")) e)
 
-let parse_lines ls = parse_enum (of_list ls)
+let parse_lines ls = parse_enum (Enum.of_list ls)
 let parse_text s = parse_lines ((Str.split (Str.regexp "\n") s))
 
 let rec text = function
-  | Text t    -> <:html< $str:t$ >>
+    Text t    -> <:html< $str:t$ >>
   | Emph t    -> <:html< <i>$str:t$</i> >>
   | Bold t    -> <:html< <b>$str:t$</b> >>
   | Struck pt -> <:html< <del>$par_text pt$</del> >>
-  | Code t    -> <:html< <code>$str:t$</code> >>
+  | Code t    -> <:html< <code>$str:t$ </code> >>
   | Link href -> <:html< <a href=$str:href.href_target$>$str:href.href_desc$</a> >>
   | Anchor a  -> <:html< <a name=$str:a$/> >>
   | Image img -> <:html< <img src=$str:img.img_src$ alt=$str:img.img_alt$/> >>
@@ -407,7 +385,7 @@ and paras ps =
   let aux p = <:html< <p>$para p$</p> >> in
   <:html< $list:List.map aux  ps$ >>
 
-let html_of_t ps =
+let to_html ps =
   <:html< <div class="post"> $paras ps$ </div> >>
 
 let of_string = parse_text

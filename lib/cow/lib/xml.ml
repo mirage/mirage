@@ -1174,6 +1174,26 @@ module Buffer = struct
 end
 
 include Make(String) (Buffer)
+
+(* XXX: add a proper output_subtree function*)
+let id x = x
+
+let rec output_t o = function
+  | (`Data _ as d) :: t ->
+    output o d;
+    output_t o t
+  | (`El _ as e) :: t   ->
+    output_tree id o e;
+    output o (`Dtd None);
+    output_t o t
+  | [] -> ()
+
+let to_string t =
+  let buf = Buffer.create 1024 in
+  let o = make_output (`Buffer buf) in
+  output o (`Dtd None);
+  output_t o t;
+  Buffer.contents buf
     
 (*----------------------------------------------------------------------------
   Copyright (c) 2007-2009, Daniel C. Bünzli

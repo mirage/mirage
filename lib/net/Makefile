@@ -6,10 +6,9 @@ LIBS = mpl mlnet dns dhcp http
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)
 
-ifeq ($(OS) $(ARCH),linux x86_64)
-XEN_INSTALL=install-xen
 #off by default until working fully
-#XEN_BUILD=xen
+ifeq ($(OS) $(ARCH),linux x86_64xxx)
+XEN_INSTALL=install-xen
 XEN_BUILD=
 else
 XEN_BUILD=

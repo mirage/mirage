@@ -5,11 +5,14 @@ PREFIX ?= ~/mir-inst/lib
 all: syntax lib
 	@ :
 
-syntax: syntax/xml/xml.ml
+syntax: syntax/xml/xml.ml syntax/html/xhtml.ml
 	ocamlbuild -I syntax syntax.otarget
 
 syntax/xml/xml.ml:
 	@cd syntax/xml && ln -nsf ../../lib/xml.ml .
+
+syntax/html/xhtml.ml:
+	@cd syntax/html && ln -nsf ../../lib/xhtml.ml .
 
 lib: syntax
 	ocamlbuild lib.otarget
@@ -23,5 +26,5 @@ install:
 	cp _build/syntax/pa_xml.cmo $(TARGETDIR)/syntax
 
 clean:
-	rm -f syntax/xml/xml.ml
+	rm -f syntax/xml/xml.ml syntax/html/xhtml.ml
 	ocamlbuild -clean

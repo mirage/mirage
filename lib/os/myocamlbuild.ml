@@ -146,6 +146,7 @@ let _ = dispatch begin function
     flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
     flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
     flag ["c"; "compile"; "optimization_ok"] & S [A"-O2"];
+    flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
    
   | _ -> ()
 end

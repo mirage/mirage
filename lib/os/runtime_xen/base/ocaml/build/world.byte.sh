@@ -1,9 +1,0 @@
-#!/bin/sh
-# $Id: world.byte.sh 10443 2010-05-20 09:44:25Z doligez $
-set -e
-cd `dirname $0`/..
-. build/targets.sh
-set -x
-$OCAMLBUILD $@ \
-  $STDLIB_BYTE $OCAMLC_BYTE $OCAMLLEX_BYTE $OCAMLOPT_BYTE $TOPLEVEL $TOOLS_BYTE \
-  $OTHERLIBS_BYTE $OCAMLBUILD_BYTE $DEBUGGER $OCAMLDOC_BYTE $CAMLP4_BYTE

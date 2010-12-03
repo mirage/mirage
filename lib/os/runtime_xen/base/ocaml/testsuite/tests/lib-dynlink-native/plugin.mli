@@ -1,1 +1,0 @@
-val facts: int list

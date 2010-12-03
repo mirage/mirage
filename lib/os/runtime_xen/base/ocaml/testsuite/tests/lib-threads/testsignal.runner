@@ -1,4 +1,0 @@
-./program > testsignal.result &
-pid=$!
-sleep 3
-kill -INT $pid

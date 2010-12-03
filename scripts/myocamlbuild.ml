@@ -108,7 +108,7 @@ let _ = dispatch begin function
     let pa_lwt = ps "-I %s/std/syntax pa_lwt.cmo" lib in
     let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
     let pa_dyntype = ps "%s -I %s/dyntype/syntax pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations lib in
-    let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_html.cmo" pa_dyntype lib in
+    let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_xml.cmo pa_html.cmo" pa_dyntype lib in
     let pp_pa = ps "camlp4o %s %s" pa_lwt pa_cow in
     let libs = [
       (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa";

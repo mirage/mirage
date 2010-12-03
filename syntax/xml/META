@@ -1,5 +1,0 @@
-version = "1.0.2"
-description = "Streaming XML input/output for OCaml"
-archive(byte) = "xmlm.cmo"
-archive(native) = "xmlm.cmx"
-archive(plugin,native) = "xmlm.cmxs"

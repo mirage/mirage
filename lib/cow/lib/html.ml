@@ -16,24 +16,7 @@
 
 type t = Xml.t
 
-let id x = x
-
-let rec output_t output = function
-  | (`Data _ as d) :: t ->
-    Xml.output output d;
-    output_t output t
-  | (`El _ as e) :: t   ->
-    Xml.output_tree id output e;
-    Xml.output output (`Dtd None);
-    output_t output t
-  | [] -> ()
-
-let to_string t =
-  let buf = Buffer.create 1024 in
-  let output = Xml.make_output (`Buffer buf) in
-  Xml.output output (`Dtd None);
-  output_t output t;
-  Buffer.contents buf
+let to_string = Xml.to_string
 
 type link = {
   text : string;

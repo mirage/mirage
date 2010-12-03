@@ -762,6 +762,8 @@ let out_w3c_bureaucrats dst bl =
   out (`El_end)]}
 *)
 
+val to_string : t -> string
+
 (*----------------------------------------------------------------------------
   Copyright (c) 2007-2009, Daniel C. Bünzli
   All rights reserved.

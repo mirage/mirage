@@ -27,13 +27,13 @@ unix_gettimeofday(value v_unit)
   struct timeval tp;
   if (gettimeofday(&tp, NULL) == -1)
     caml_failwith("gettimeofday");
-  return copy_double((double) tp.tv_sec + (double) tp.tv_usec / 1e6);
+  return caml_copy_double((double) tp.tv_sec + (double) tp.tv_usec / 1e6);
 }
 
 static value alloc_tm(struct tm *tm)
 {
   value res;
-  res = alloc_small(9, 0);
+  res = caml_alloc_small(9, 0);
   Field(res,0) = Val_int(tm->tm_sec);
   Field(res,1) = Val_int(tm->tm_min);
   Field(res,2) = Val_int(tm->tm_hour);

@@ -91,7 +91,7 @@ void vwarn(const char *format, va_list ap)
         print(format, ap);
         printk(", ");
     }
-    printk("%s", strerror(the_errno));
+//    printk("%s", strerror(the_errno));
 }
 
 void warn(const char *format, ...)

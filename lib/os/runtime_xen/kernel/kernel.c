@@ -42,7 +42,7 @@
 #include <xen/version.h>
 
 int app_main(start_info_t *);
-
+void do_exit(void);
 uint8_t xen_features[XENFEAT_NR_SUBMAPS * 32];
 
 void setup_xen_features(void)
@@ -106,6 +106,10 @@ void start_kernel(start_info_t *si)
 
     /* Call (possibly overridden) app_main() */
     app_main(&start_info);
+
+    /* If we do end up here, then do a clean shutdown */
+    printk("app_main finished\n");
+    do_exit();
 }
 
 void stop_kernel(void)

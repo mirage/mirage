@@ -51,8 +51,6 @@ void* memrchr(const void *s, int c, size_t n) __THROW __pure __nonnull((1));
 /* I would like to make this const, but Paul Jarc points out it has to
  * be char* :-( */
 char *strerror(int errnum) __THROW __attribute_const__;
-/* work around b0rken GNU crapware like tar 1.13.19 */
-#define strerror strerror
 int strerror_r(int errnum,char* buf,size_t n) __THROW __attribute_dontuse__;
 
 #ifdef _GNU_SOURCE

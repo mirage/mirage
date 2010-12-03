@@ -1,2 +1,2 @@
-<*.c>: include_libev
+<*.c>: include_libev,pic
 <*_stubs.c>: include_ocaml

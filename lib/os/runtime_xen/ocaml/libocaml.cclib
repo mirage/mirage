@@ -39,3 +39,5 @@ startup.o
 str.o
 sys.o
 weak.o
+str_stubs.o
+bigarray_stubs.o

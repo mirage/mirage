@@ -1,4 +1,0 @@
-unix/oS.cmxa
-xen/oS.cmxa
-runtime_unix/libunixrun.a
-runtime_unix/main.o

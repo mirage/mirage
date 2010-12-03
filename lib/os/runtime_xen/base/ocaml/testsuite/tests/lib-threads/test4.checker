@@ -1,1 +1,0 @@
-sort -u test4.result | diff -q test4.reference -

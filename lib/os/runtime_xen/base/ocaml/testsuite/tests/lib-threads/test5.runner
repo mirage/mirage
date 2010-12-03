@@ -1,4 +1,0 @@
-./program > test5.result &
-pid=$!
-sleep 1
-kill -9 $pid

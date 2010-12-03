@@ -1,6 +1,7 @@
 #!/bin/sh -e
 
 MIRAGELIB=${MIRAGELIB:-@MIRAGELIB@}
+MIRAGEOS=@MIRAGEOS@
 OCAMLBUILD=${OCAMLBUILD:-ocamlbuild}
 
 if [ ! -e "${MIRAGELIB}/scripts/myocamlbuild.ml" ]; then
@@ -9,5 +10,6 @@ if [ ! -e "${MIRAGELIB}/scripts/myocamlbuild.ml" ]; then
 fi
 
 export MIRAGELIB
+export MIRAGEOS
 ln -nfs ${MIRAGELIB}/scripts/myocamlbuild.ml
 ocamlbuild $*

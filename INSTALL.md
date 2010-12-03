@@ -30,8 +30,8 @@ This installs the build tools and syntax extensions into the install PREFIX.
 
     make PREFIX=<location> tools
 
-The tools include the 'mir' build utility and the MPL protocol
-specification meta-compiler.
+The tools include the `mir-unix` and `mir-xen` build wrappers and the
+MPL protocol specification meta-compiler.
 
 Libraries
 ---------
@@ -53,15 +53,23 @@ To try out basic functionality, do `cd tests/basic/sleep`.
 
 Build a UNIX binary:
 
-    mir sleep.unix
+    mir-unix sleep.bin
 
-output will be in `_build/sleep.unix`
+output will be in `_build/sleep.bin`
 
 Build a Xen kernel:
 
-    mir sleep.xen
+    mir-xen sleep.bin
 
-output will be in `_build/sleep.xen`
+output will be in `_build/sleep.bin`, and you can boot it up in Xen with
+a config file like:
+
+    $ cat > sleep.cfg
+    name="sleep"
+    memory=1024
+    kernel="_build/sleep.bin"
+    <control-d>
+    $ sudo xm create -c sleep.cfg
 
 This runs a simple interlocking sleep test which tries out the
 console and timer support for the various supported platforms.

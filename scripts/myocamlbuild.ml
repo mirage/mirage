@@ -6,6 +6,9 @@ open Ocamlbuild_pack.Tools
 
 let ps = Printf.sprintf
 
+(* This decides the global OS backend. It could be moved into explicit
+   dependencies in the future, but for now is set as an environment
+   variable *)
 let os =
   let os = getenv "MIRAGEOS" ~default:"unix" in
   if os <> "unix" && os <> "xen" then
@@ -20,6 +23,7 @@ let stdlib = ps "%s/std/lib" lib
 let oslib = ps "%s/os/%s" lib os
 let cowlib = ps "%s/cow/lib" lib
 let netlib = ps "%s/net" oslib
+let xenlib = ps "%s/os/xen" lib
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
@@ -41,10 +45,17 @@ end
 
 (* OS detection *)
 module OS = struct
-  type t = Linux | Darwin
-  let t = match String.lowercase (Util.run_and_read "uname -s") with
-    |"linux" -> Linux |"darwin" -> Darwin
-    |os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
+
+  type u = Linux | Darwin
+  type t = Unix of u | Xen
+  let host = match String.lowercase (Util.run_and_read "uname -s") with
+    | "linux" -> Unix Linux
+    | "darwin" -> Unix Darwin
+    | os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
+  let target = match String.lowercase os with
+    | "unix" -> host (* Map the target to the current host, as cross-compiling is no use *)
+    | "xen" -> Xen
+    | x -> failwith ("unknown target os: " ^ x)
 end
 
 (* Rules for MIR *)
@@ -73,13 +84,16 @@ module Mir = struct
     link_from_file native_output_obj_modules
 
   let cc = ref (A"cc")
+  let ld = ref (A"ld")
   let ocamlc_libdir = "-L" ^ (Lazy.force stdlib_dir)
   let oslib_unixrun = oslib ^ "/libunixrun.a"
   let oslib_unixmain = oslib ^ "/main.o"
-  let cc_link tags arg out =
-    let dl_libs = match OS.t with
-      |OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
-      |OS.Darwin ->  [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
+
+  let cc_unix_link tags arg out =
+    let dl_libs = match OS.host with
+      |OS.Xen -> assert false
+      |OS.Unix OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
+      |OS.Unix OS.Darwin ->  [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
@@ -87,9 +101,21 @@ module Mir = struct
              A oslib_unixrun;
              A oslib_unixmain] @ dl_libs))
 
+  let cc_xen_link tags arg out =
+    let head_obj = Px (xenlib / "x86_64.o") in
+    let ldlibs = List.map (fun x -> Px (xenlib / ("lib" ^ x ^ ".a")))
+      ["ocaml"; "xen"; "xencaml"; "diet"; "m"] in
+    Cmd (S ( !ld :: [ T(tags++"link"++"xen");
+      A"-d"; A"-nostdlib"; A"-m"; A"elf_x86_64"; A"-T";
+      Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
+      @ ldlibs @ [A"-o"; Px out]))
+ 
   let cc_link_c_implem ?tag c o env build =
     let c = env c and o = env o in
-    cc_link (tags_of_pathname c++"implem"+++tag) c o
+    let fn = match OS.target with
+      | OS.Unix _ -> cc_unix_link
+      | OS.Xen -> cc_xen_link in
+    fn (tags_of_pathname c++"implem"+++tag) c o
 
   let () =
     rule "output-obj: mir -> o"
@@ -97,10 +123,11 @@ module Mir = struct
       ~dep:"%.mir"
       (native_output_obj_mir "%.mir" "%.m.o");
 
-    rule "final unix link: m.o -> .unix"
-      ~prod:"%.unix"
+    rule "final link: m.o -> .bin"
+      ~prod:"%.bin"
       ~dep:"%.m.o"
-      (cc_link_c_implem "%.m.o" "%.unix")
+      (cc_link_c_implem "%.m.o" "%.bin")
+
 end
 
 let _ = dispatch begin function
@@ -110,12 +137,16 @@ let _ = dispatch begin function
     let pa_dyntype = ps "%s -I %s/dyntype/syntax pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations lib in
     let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_xml.cmo pa_html.cmo" pa_dyntype lib in
     let pp_pa = ps "camlp4o %s %s" pa_lwt pa_cow in
+    let net_libs = match OS.target with
+     | OS.Xen -> []
+     | _ -> [ A "mpl.cmxa"; A "mlnet.cmxa"; A "dns.cmxa"; A "http.cmxa" ; A "dhcp.cmxa" ] in
+    let cow_libs = match OS.target with
+     | OS.Xen -> []
+     | _ -> [ A "cow.cmx" ] in
     let libs = [
       (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa";
-      (* os lib *)   A "oS.cmxa";                   
-      (* net libs *) A "mpl.cmxa"; A "mlnet.cmxa"; A "dns.cmxa"; A "http.cmxa" ; A "dhcp.cmxa";
-      (* cow lib *)  A "cow.cmx";
-    ] in
+      (* os lib *)   A "oS.cmxa";
+    ] @ net_libs @ cow_libs in
     let mirage_flags = [
       A"-nostdlib"; A"-I"; A stdlib;
       A"-I"; A oslib;

@@ -36,7 +36,7 @@ let xml_of_date (year,month,day,hour,min) =
 type meta = {
   id: string;
   title: string;
-  subtitle: string;
+  subtitle: string option;
   author: author option;
   contributors: author list;
   rights: string option;
@@ -53,7 +53,7 @@ let xml_of_content c = <:xml<
 
 type entry = {
   entry: meta;
-  summary: string;
+  summary: string option;
   content: content;
 } with xml
 
@@ -69,6 +69,11 @@ let xml_of_feed f = <:xml<
   </feed>
 >>
 
-(* polymorphic compare should do the right thing with a tuple of dates *)
-let sort a b =
-  compare a.entry.updated b.entry.updated
+let compare (yr1,mn1,da1,_,_) (yr2,mn2,da2,_,_) =
+  match yr1 - yr2 with
+    | 0 ->
+      (match mn1 - mn2 with
+        | 0 -> da1 - da2
+        | n -> n
+      )
+    | n -> n

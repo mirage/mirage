@@ -15,20 +15,36 @@
  *
  *)
 
-type author = { name : string; uri : string option; email : string option; }
-type date = int * int * int * int * int
-type meta = {
-  id : string;
-  title : string;
-  subtitle : string;
-  author : author option;
-  contributors : author list;
-  rights : string option;
-  updated: date;
+type author = {
+  name  : string;
+  uri   : string option;
+  email : string option;
 }
-type entry = { entry : meta; summary : string; content : Xml.t; }
-type feed = { feed : meta; entries : entry list; }
+
+type date = int * int * int * int * int
+
+val compare : date -> date -> int
+
+type meta = {
+  id           : string;
+  title        : string;
+  subtitle     : string option;
+  author       : author option;
+  contributors : author list;
+  rights       : string option;
+  updated      : date;
+}
+
+type entry = {
+  entry   : meta;
+  summary : string option;
+  content : Xml.t;
+}
+
+type feed = {
+  feed    : meta;
+  entries : entry list;
+}
 
 val xml_of_feed : feed -> Xml.t
 
-val sort : entry -> entry -> int

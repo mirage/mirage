@@ -17,7 +17,7 @@
 /* want fread to read() directly if size of data is larger than buffer?
  * This costs a few bytes but is worth it if the application is already
  * buffering. */
-#define WANT_FREAD_OPTIMIZATION
+#undef WANT_FREAD_OPTIMIZATION
 
 /* this is only for meaningful for ttyname and sysconf_cpus so far */
 #define SLASH_PROC_OK
@@ -46,11 +46,11 @@
 /* 20040118: enabling this breaks User Mode Linux!  It's their fault. */
 #undef WANT_SYSENTER
 
-#undef WANT_LINKER_WARNINGS
+#define WANT_LINKER_WARNINGS
 
 /* you need to define this if you want to run your programs with large
  * file support on kernel 2.2 or 2.0 */
-#define WANT_LARGEFILE_BACKCOMPAT
+#undef WANT_LARGEFILE_BACKCOMPAT
 
 /* do you want localtime(3) to read /etc/localtime?
  * Needed for daylight saving time etc. */

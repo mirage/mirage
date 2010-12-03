@@ -18,7 +18,7 @@ FILE *fdopen (int fildes, const char *mode) __THROW;
 FILE *freopen (const char *path, const char *mode, FILE *stream) __THROW;
 
 int printf(const char *format, ...) __THROW __attribute__((__format__(__printf__,1,2)));
-int fprintf(FILE *stream, const char *format, ...) __THROW __attribute__((__format__(__printf__,2,3)));
+#define fprintf(x,rest...) printk(rest)
 int sprintf(char *str, const char *format, ...) __THROW __attribute__((__format__(__printf__,2,3)));
 int snprintf(char *str, size_t size, const char *format, ...) __THROW __attribute__((__format__(__printf__,3,4)));
 int asprintf(char **ptr, const char* format, ...) __THROW __attribute_malloc__ __attribute__((__format__(__printf__,2,3)));

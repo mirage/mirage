@@ -10,7 +10,7 @@ module Std_buffer = Buffer
 type std_string = string
 type std_buffer = Buffer.t
       
-module type String = sig
+module type XMLString = sig
   type t
   val empty : t
   val length : t -> int
@@ -22,7 +22,7 @@ module type String = sig
   val compare : t -> t -> int
 end
       
-module type Buffer = sig
+module type XMLBuffer = sig
   type string
   type t 
   exception Full
@@ -68,9 +68,11 @@ module type S = sig
 
   type input 
 	
-  val make_input : ?enc:encoding option -> ?strip:bool -> 
-                   ?ns:(string -> string option) -> 
-		   ?entity: (string -> string option) -> source -> input
+  val make_input :
+    ?enc:encoding option ->
+    ?strip:bool -> 
+    ?ns:(string -> string option) -> 
+	  ?entity: (string -> string option) -> source -> input
 	  
   val input : input -> signal
 
@@ -175,7 +177,7 @@ let uchar_ascii i = let b = i () in if b > 127 then raise Malformed else b
 
 (* Functorized streaming XML IO *)
 
-module Make (String : String) (Buffer : Buffer with type string = String.t) = 
+module Make (String : XMLString) (Buffer : XMLBuffer with type string = String.t) = 
 struct
   type string = String.t
 	
@@ -259,7 +261,7 @@ struct
     | `Unexpected_eoi
     | `Malformed_char_stream
     | `Unknown_encoding of string
-    | `Unknown_entity_ref of string				 
+    | `Unknown_entity_ref of string
     | `Unknown_ns_prefix of string				
     | `Illegal_char_ref of string 
     | `Illegal_char_seq of string 
@@ -337,8 +339,12 @@ struct
   let u_end_doc = u_start_doc - 1
   let signal_start_stream = `Data String.empty
 
-  let make_input ?(enc = None) ?(strip = false) ?(ns = fun _ -> None) 
-                 ?(entity = fun _ -> None) src = 
+  let make_input
+      ?(enc = None)
+      ?(strip = false)
+      ?(ns = fun _ -> None) 
+      ?(entity = fun _ -> None)
+      src = 
     let i = match src with
     | `Fun f -> f 
     | `String (pos, s) -> 
@@ -641,7 +647,7 @@ struct
       if i.c <> u_gt then err_expected_chars i [ u_gt ];
       nextc_eof i
     end
-      
+
   let rec skip_pi i =                          (* {PI}, '<?' qname was eaten *)
     while (i.c <> u_qmark) do nextc i done;
     nextc i;
@@ -1122,7 +1128,7 @@ end
 
 (* Default streaming XML IO *)
 
-module String = struct
+module XMLString = struct
   type t = string
   let empty = ""
   let length = String.length
@@ -1140,10 +1146,10 @@ module String = struct
 
   let of_string s = s    
   let to_utf_8 f v x = f v x
-  let compare = String.compare 
+  let compare = String.compare
 end
     
-module Buffer = struct
+module XMLBuffer = struct
   type string = String.t
   type t = Buffer.t
   exception Full 
@@ -1173,7 +1179,7 @@ module Buffer = struct
   let length = Buffer.length
 end
 
-include Make(String) (Buffer)
+include Make(XMLString) (XMLBuffer)
 
 (* XXX: add a proper output_subtree function*)
 let id x = x
@@ -1194,7 +1200,43 @@ let to_string t =
   output o (`Dtd None);
   output_t o t;
   Buffer.contents buf
-    
+
+(* XXX: do a proper input_subtree integration *)
+(*** XHTML parsing (using Xml) ***)
+let _input_tree input =
+  let el (name, attrs) body = `El ((name, attrs), body) in
+  let data str = `Data str in
+  input_tree ~el ~data input
+
+let subst_re ~frm ~tos s =
+  let rex = Str.regexp_string ("$"^frm^"$") in
+  Str.global_replace rex tos s
+
+let of_string ?entity ?(templates : (string * t) list = []) ?enc str =
+  let templates = List.map (fun (name,xml) -> name, to_string xml) templates in
+  (* It is illegal to write <:html<<b>foo</b>>> so we use a small trick and write
+     <:html<<b>foo</b>&>> *)
+  let str = if str.[String.length str - 1] = '&' then
+    String.sub str 0 (String.length str - 1)
+  else
+    str in
+  (* input needs a root tag *)
+  let str = List.fold_left (fun accu (name, txt) -> subst_re ~frm:name ~tos:txt accu) str templates in
+  let str = Printf.sprintf "<xxx>%s</xxx>" str in
+  try
+    let i = make_input ~enc ?entity (`String (0,str)) in
+    (* make_input builds a well-formed document, so discard the Dtd *)
+    (match peek i with
+      | `Dtd _ -> let _ = input i in ()
+      | _      -> ());
+    (* Remove the dummy root tag *)
+    match _input_tree i with
+      | `El ((("","xxx"), []), body) -> body
+      | _ -> raise Parsing.Parse_error
+  with Error (pos, e) ->
+    Printf.eprintf "[XMLM:%d-%d] %s: %s\n"(fst pos) (snd pos) str (error_message e);
+    raise Parsing.Parse_error
+  
 (*----------------------------------------------------------------------------
   Copyright (c) 2007-2009, Daniel C. Bünzli
   All rights reserved.

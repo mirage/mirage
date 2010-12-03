@@ -249,7 +249,7 @@ type std_string = string
 type std_buffer = Buffer.t
 
 (** Input signature for strings. *)
-module type String = sig
+module type XMLString = sig
   
   type t
   (** The type for strings. *)
@@ -285,7 +285,7 @@ module type String = sig
 end
 
 (** Input signature for internal buffers. *)
-module type Buffer = sig
+module type XMLBuffer = sig
 
   type string
   (** The type for strings. *)
@@ -393,7 +393,7 @@ module type S = sig
 end
 
 (** Functor building streaming XML IO with the given strings and buffers. *)
-module Make (String : String) (Buffer : Buffer with type string = String.t) : S
+module Make (String : XMLString) (Buffer : XMLBuffer with type string = String.t) : S
 with type string = String.t
 
 (** {1:io Features and limitations}
@@ -763,6 +763,11 @@ let out_w3c_bureaucrats dst bl =
 *)
 
 val to_string : t -> string
+val of_string :
+  ?entity:(string -> string option) ->
+  ?templates:( (string * t) list ) ->
+  ?enc:encoding ->
+  string -> t
 
 (*----------------------------------------------------------------------------
   Copyright (c) 2007-2009, Daniel C. Bünzli

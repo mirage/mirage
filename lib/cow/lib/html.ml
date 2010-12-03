@@ -18,6 +18,9 @@ type t = Xml.t
 
 let to_string = Xml.to_string
 
+let of_string ?templates ?enc str =
+  Xml.of_string ~entity:Xhtml.entity ?templates ?enc str
+
 type link = {
   text : string;
   href: string;

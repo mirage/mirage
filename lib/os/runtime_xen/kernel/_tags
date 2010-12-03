@@ -1,1 +1,2 @@
 <*.c> or <*.S>: include_xen
+<*.c> and not <hypervisor.c>: optimization_ok

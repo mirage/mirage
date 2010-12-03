@@ -1,0 +1,9 @@
+exit_stubs.o
+mmap_stubs.o
+domain_stubs.o
+page_stubs.o
+ring_stubs.o
+xb_stubs.o
+xencons_ring.o
+clock_stubs.o
+gnttab_stubs.o

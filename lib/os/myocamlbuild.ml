@@ -32,7 +32,7 @@ module CC = struct
  
   let cc = getenv "CC" ~default:"cc"
   let ar = getenv "AR" ~default:"ar"
-  let cflags = ref ["-O2"; "-Wall"; "-fPIC"; "-g"]
+  let cflags = ref ["-Wall"; "-g"]
 
   (* All the xen cflags for compiling against an embedded environment *)
   let xen_incs =
@@ -47,15 +47,15 @@ module CC = struct
     let all_cflags = List.map (fun x -> A x)
       [ "-U"; "__linux__"; "-U"; "__FreeBSD__"; 
         "-U"; "__sun__"; "-D__MiniOS__";
-        "-DHAVE_LIBC"; "-D__x86_64__";
+        "-D__MiniOS__"; "-D__x86_64__";
         "-D__XEN_INTERFACE_VERSION__=0x00030205";
         "-D__INSIDE_MINIOS__";
-        "-nostdinc"; "-std=gnu99"; "-fno-stack-protector";
+        "-nostdinc"; "-std=gnu99"; "-fno-stack-protector"; 
         "-m64"; "-mno-red-zone"; "-fno-reorder-blocks";
-        "-fno-asynchronous-unwind-tables"; (* TODO: this will screw up backtraces, review *)
+        "-fstrict-aliasing"; "-momit-leaf-frame-pointer"; "-mfancy-math-387"
       ] in
     (* Include dirs *)
-    let incdirs= A ("-I"^gcc_install) :: List.flatten (
+    let incdirs= A ("-I"^gcc_install^"include") :: List.flatten (
       List.map (fun x ->[A"-isystem"; A (sf "%s/%s" root_incdir x)])
         [""; "mini-os"; "mini-os/x86"]) in
     all_cflags @ incdirs 
@@ -66,14 +66,14 @@ module CC = struct
 
   (* defines used by the ocaml runtime, as well as includes *)
   let ocaml_incs = [ 
-    A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen"; A "-DDBEUG";
+    A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen"; A "-DDEBUG";
     A (sf "-I%s/runtime_xen/ocaml" Pathname.pwd) 
   ]
  
   (* dietlibc bits, mostly extra warnings *)
   let dietlibc_incs = [
     A "-Wextra"; A "-Wchar-subscripts"; A "-Wmissing-prototypes";
-    A "-Wmissing-declarations"; A "-Wno-switch"; A "-Wno-unused"; A "-Wredundant-decls";
+    A "-Wmissing-declarations"; A "-Wno-switch"; A "-Wno-unused"; A "-Wredundant-decls"; A "-D__dietlibc__";
     A (sf "-I%s/runtime_xen/dietlibc" Pathname.pwd)
   ]
 
@@ -145,5 +145,7 @@ let _ = dispatch begin function
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
     flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
     flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
+    flag ["c"; "compile"; "optimization_ok"] & S [A"-O2"];
+   
   | _ -> ()
 end

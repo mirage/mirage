@@ -1,3 +1,0 @@
-<*>: pkg_camlp4,syntax_camlp4o,pkg_camlp4.quotations
-
-<pa*>: pkg_type-conv.syntax

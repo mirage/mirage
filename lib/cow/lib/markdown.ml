@@ -385,7 +385,6 @@ and paras ps =
   let aux p = <:html< <p>$para p$</p> >> in
   <:html< $list:List.map aux  ps$ >>
 
-let to_html ps =
-  <:html< <div class="post"> $paras ps$ </div> >>
+let to_html ps = paras ps
 
 let of_string = parse_text

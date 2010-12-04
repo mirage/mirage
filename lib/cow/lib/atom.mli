@@ -35,9 +35,11 @@ type meta = {
   updated      : date;
 }
 
+type summary = string option
+
 type entry = {
   entry   : meta;
-  summary : string option;
+  summary : summary;
   content : Xml.t;
 }
 

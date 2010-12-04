@@ -31,7 +31,7 @@ with xml
 
 let xml_of_date (year,month,day,hour,min) =
   let str = Printf.sprintf "%.4d-%.2d-%.2dT%.2d:%.2d:00Z" year month day hour min in
-  <:xml< $str:str$ >>
+  <:xml<$str:str$>>
 
 type meta = {
   id: string;
@@ -46,16 +46,32 @@ type meta = {
 type content = Xml.t
 
 let xml_of_content c = <:xml<
-  <content type="xhtml" xml:lang="en" xml:base="http://diveintomark.org/">
-    $c$
+  <content type="xhtml">
+   <xhtml:div xmlns:xhtml="http://www.w3.org/1999/xhtml">
+     $c$
+   </xhtml:div>
   </content>
 >>
 
+type summary = string option
+
+let xml_of_summary = function
+  | None     -> []
+  | Some str -> <:xml<<summary>$str:str$</summary>&>>
+
 type entry = {
   entry: meta;
-  summary: string option;
+  summary: summary;
   content: content;
-} with xml
+}
+
+let xml_of_entry e = <:xml<
+  <entry>
+    $xml_of_meta e.entry$
+    $xml_of_summary e.summary$
+    $xml_of_content e.content$
+  </entry>
+>>
 
 type feed = {
   feed: meta;

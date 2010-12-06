@@ -1197,7 +1197,7 @@ let rec output_t o = function
 let to_string t =
   let buf = Buffer.create 1024 in
   let o = make_output (`Buffer buf) in
-  output o (`Dtd None);
+  output o (`Dtd (Some ""));
   output_t o t;
   Buffer.contents buf
 

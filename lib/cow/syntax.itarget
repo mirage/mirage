@@ -1,3 +1,2 @@
-syntax/pa_xml.cmo
-syntax/pa_html.cmo
+syntax/pa_cow.cmo
 

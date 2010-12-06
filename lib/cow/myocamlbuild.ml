@@ -57,7 +57,7 @@ module Flags = struct
     sf "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" deps dyntype_syntax
 
   let cow_includes =
-    sf "%s -I syntax str.cma pa_xml.cmo pa_html.cmo" dyntype_includes
+    sf "%s -I syntax str.cma pa_cow.cmo" dyntype_includes
 
   let camlp4 includes =
     sf "camlp4o %s" includes

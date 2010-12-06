@@ -11,9 +11,15 @@ XEN_BUILD=
 XEN_INSTALL=
 endif
 
-.PHONY: clean all depend install
+.PHONY: clean all depend install unix xen
 all: depend
 	ocamlbuild unix.otarget $(XEN_BUILD)
+
+unix:
+	ocamlbuild unix.otarget
+
+xen:
+	ocamlbuild xen.otarget
 
 depend: $(EVMAKE) $(EVLIB)
 	ln -nfs tap_stubs_$(OS).c runtime_unix/tap_stubs_os.c

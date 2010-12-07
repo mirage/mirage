@@ -21,7 +21,8 @@ lib: syntax
 	ocamlbuild lib.otarget
 
 test:
-	cd tests && mir test.bin && _build/test.bin
+	ocamlbuild -I tests tests.otarget
+	_build/tests/json/json.native
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/cow
 

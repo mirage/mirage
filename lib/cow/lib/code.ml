@@ -196,16 +196,19 @@ let ocaml str : Html.t =
         let str = Ulexing.utf8_lexeme lexbuf in
         comments (str :: accu) lexbuf in
 
-  <:html<<pre><code>$main [] (Ulexing.from_utf8_string str)$</code></pre>&>>
+  <:html<<div class="ocaml"><pre><code>$main [] (Ulexing.from_utf8_string str)$</code></pre></div>&>>
 
 let ocaml_css = <:css<
-  .keyword1 { display: inline; color: #15317E; }
-  .keyword2 { display: inline; color: #7D2252; }
-  .keyword3 { display: inline; color: #C48189; }
-  .keyword4 { display: inline; color: #F88017; }
-  .keyword5 { display: inline; color: #4E9258; }
-  .keyword6 { display: inline; color: #347C17; }
-  .keyword7 { display: inline; color: #8BB381; }
-  .keyword8 { display: inline; color: #EE9A4D; }
-  .comments { display: inline; color: #990000; }
+  .ocaml {
+    code      { font-family: monospace; }
+    .keyword1 { display: inline; color: #15317E; }
+    .keyword2 { display: inline; color: #7D2252; }
+    .keyword3 { display: inline; color: #C48189; }
+    .keyword4 { display: inline; color: #F88017; }
+    .keyword5 { display: inline; color: #4E9258; }
+    .keyword6 { display: inline; color: #347C17; }
+    .keyword7 { display: inline; color: #8BB381; }
+    .keyword8 { display: inline; color: #EE9A4D; }
+    .comments { display: inline; color: #990000; }
+  }
 >>

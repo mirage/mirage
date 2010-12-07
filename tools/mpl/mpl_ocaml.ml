@@ -819,7 +819,7 @@ let print_struct env e l =
                        let _ = match v with
                        |V.Packet (p,_) ->
                          e.p (sprintf "let ___env = View.sub env (%s) 0 in" (foldfn !szs));
-                         e.p (sprintf "let %s = %s.m %s ___env in let %s___len = size ___env in" id p id id);
+                         e.p (sprintf "let %s = %s.m %s ___env in let %s___len = View.length ___env in" id p id id);
                        |V.Array (_,V.UInt V.I8,at) ->
                          let needalign,alignamt = match at with
                          |{V.aa_align=Some alval} -> true,(alval/8)
@@ -839,13 +839,13 @@ let print_struct env e l =
                          end
                        |V.Class cid ->
                          let off = foldfn !szs in
-                         e.p (sprintf "let ___env = env_at env (%s) 0 in" off);
+                         e.p (sprintf "let ___env = View.sub env (%s) 0 in" off);
                          e.p (sprintf "let %s = Array.init (List.length %s) (fun i -> List.nth %s i) in" id id id);
                          e.p (sprintf "let %s = Array.map (fun x ->" id);
-                         indent_fn e (fun e -> e.p "let __e = env_at ___env (View.pos ___env) 0 in";
-                             e.p (sprintf "let __r = %s.m x __e in View.skip ___env (size __e); __r" (modname ~sub:env.mods cid)));
+                         indent_fn e (fun e -> e.p "let __e = View.sub ___env (View.pos ___env) 0 in";
+                             e.p (sprintf "let __r = %s.m x __e in View.skip ___env (View.length __e); __r" (modname ~sub:env.mods cid)));
                          e.p (sprintf ") %s in" id);
-                         e.p (sprintf "let %s___len = size ___env in" id);
+                         e.p (sprintf "let %s___len = View.length ___env in" id);
                        |_ -> () in
                        let n = ocaml_size_of_ty env id szo v in
                        szs := n :: !szs;

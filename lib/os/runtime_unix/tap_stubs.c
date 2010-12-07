@@ -29,17 +29,15 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <caml/mlvalues.h>
-#include <caml/memory.h>
-#include <caml/alloc.h>
-#include <caml/fail.h>
+#include "istring.h"
 #include <err.h>
 
 CAMLprim value
-tap_read(value v_fd, value v_buf, value v_off, value v_len)
+tap_read(value v_fd, value v_istr, value v_len)
 {
   int fd = Int_val(v_fd);
-  int res = read(fd, String_val(v_buf) + Int_val(v_off), Int_val(v_len));
+  unsigned char *buf = Istring_val(v_istr)->buf;
+  int res = read(fd, buf, Int_val(v_len));
   if (res < 0) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return Val_int(-1);
@@ -50,11 +48,12 @@ tap_read(value v_fd, value v_buf, value v_off, value v_len)
 }
 
 CAMLprim value
-tap_write(value v_fd, value v_buf, value v_off, value v_len)
+tap_write(value v_fd, value v_istr, value v_len)
 {
   int fd = Int_val(v_fd);
   size_t len = Int_val(v_len);
-  int res = write(fd, String_val(v_buf) + Int_val(v_off), len);
+  unsigned char *buf = Istring_val(v_istr)->buf;
+  int res = write(fd, buf, len);
   if (res != len) {
     fprintf(stderr, "tap_write: not full res=%d len=%lu (%s)\n", res, len, strerror(errno));
     err(1, "tap_write");

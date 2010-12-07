@@ -17,25 +17,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <caml/mlvalues.h>
-#include <caml/memory.h>
-#include <caml/fail.h>
-#include <caml/alloc.h>
-#include <caml/custom.h>
-#include <caml/callback.h>
+#include "istring.h"
 
-#define Istring_val(x) (*((istring **)(Data_custom_val(x))))
-
-typedef struct istring {
-  unsigned char *buf;         /* Pointer to buffer */
-  size_t size;       /* Total length of buffer */
-  unsigned int ref;  /* Reference count */
-} istring;
-
-typedef struct iview {
-  istring *s;
-} iview;
-
+/* Finalizer just sanity checks that the ref count is 0 */
 static void
 istring_finalize(value v_istring)
 {
@@ -43,14 +27,12 @@ istring_finalize(value v_istring)
   fprintf(stderr, "istring_finalize\n");
   if (istr->ref != 0) 
     caml_failwith("istr ref != 0");
-  free(istr->buf);
-  istr->buf = NULL;
   return;
 }
 
 /* C function to wrap a buffer in an istring caml heap val */
 value
-alloc_istring(unsigned char *buf, size_t size)
+istring_alloc(unsigned char *buf, size_t size)
 {
   istring *s = caml_stat_alloc(sizeof (struct istring));
   s->buf = buf;
@@ -59,16 +41,47 @@ alloc_istring(unsigned char *buf, size_t size)
   return caml_alloc_final(2, istring_finalize, 1, 100);
 }
 
+/* Free an allocated istring via free */
+CAMLprim value
+caml_istring_free(value v_istr)
+{
+  istring *s = Istring_val(v_istr);
+  if (s->ref != 0) 
+    caml_failwith("caml_istring_free: ref!=0");
+  free(s->buf);
+  s->buf = NULL;
+  s->size = 0;
+  s->ref = 0;
+  return Val_unit;
+}
+
 /* Allocate an istring via malloc */
 CAMLprim value
-caml_alloc_istring(value v_size)
+caml_istring_alloc(value v_size)
 {
   CAMLparam1(v_size);
   CAMLlocal1(v_istr);
   size_t size = Int_val(v_size);
   unsigned char *buf = caml_stat_alloc(size);
-  v_istr = alloc_istring(buf, size);
+  v_istr = istring_alloc(buf, size);
   CAMLreturn(v_istr);
+}
+
+/* Increment istring ref count */
+CAMLprim value
+caml_istring_ref_incr(value v_istr)
+{
+  istring *i = Istring_val(v_istr);
+  i->ref++;
+  return Val_unit;
+}
+
+CAMLprim value
+caml_istring_ref_decr(value v_istr)
+{
+  istring *i = Istring_val(v_istr);
+  i->ref--;
+  return Val_unit;
 }
 
 /* Get total size of istring */

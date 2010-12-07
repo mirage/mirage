@@ -136,6 +136,9 @@ let _ = dispatch begin function
     (* some C code will use local ev.h *)
     dep  ["c"; "compile"; "include_libev"] libev_files;
 
+    (* unix code deps *)
+    dep ["c"; "compile"; "unix_header"] ["runtime_unix/istring.h"];
+
     (* base cflags for C code *)
     flag ["c"; "compile"] & S CC.cc_cflags;
     flag ["asm"; "compile"] & S [A "-D__ASSEMBLY__"];

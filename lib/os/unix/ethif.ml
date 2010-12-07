@@ -20,8 +20,8 @@ open Printf
 module Tap = struct
   type t = int
   external opendev: string -> t = "tap_opendev"
-  external read: t -> Hw_page.t -> int -> int -> int = "tap_read"
-  external write: t -> Hw_page.t -> int -> int -> unit = "tap_write"
+  external read: t -> Istring.Raw.t -> int -> int = "tap_read"
+  external write: t -> Istring.Raw.t -> int -> unit = "tap_write"
 end
 
 type t = {
@@ -68,8 +68,9 @@ let t_wait_read t =
 
 (* Input a frame, and block if nothing is available *)
 let rec input t =
-  let sub = Hw_page.alloc_sub () in
-  let len = Tap.read t.dev sub.Hw_page.page 0 4096 in
+  let sz = 4096 in
+  let page = Istring.Raw.alloc sz in
+  let len = Tap.read t.dev page sz in
   match len with
   | (-1) -> (* EAGAIN or EWOULDBLOCK *)
       t_wait_read t >>
@@ -79,8 +80,7 @@ let rec input t =
       t_wait_read t >>
       input t
   | n ->
-      let sub = { sub with Hw_page.len=len } in
-      return sub
+      return (Istring.View.t page n)
 
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
@@ -97,12 +97,16 @@ let destroy nf =
   printf "tap_destroy\n%!";
   return ()
 
-(* Transmit a packet from a Hw_page, with offset and length 
+(* Transmit a packet from an istring suspension.
    For now, just assume the Tap write wont block for long as this
    is not a performance-critical backend
 *)
-let output t sub =
-  Hw_page.(Tap.write t.dev sub.page sub.off sub.len);
+let output t fn =
+  let sz = 4096 in
+  let page = Istring.Raw.alloc sz in
+  let v = Istring.View.t page 0 in
+  let _ = fn v in
+  Tap.write t.dev v.Istring.View.i v.Istring.View.len;
   return ()  
 
 (** Return a list of valid VIF IDs *)

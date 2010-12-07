@@ -5,7 +5,7 @@ PREFIX ?= ~/mir-inst
 all: syntax lib
 	@ :
 
-syntax: syntax/xml/xml.ml syntax/html/xhtml.ml
+syntax: syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
 	ocamlbuild -I syntax syntax.otarget
 
 syntax/xml/xml.ml:
@@ -13,6 +13,9 @@ syntax/xml/xml.ml:
 
 syntax/html/xhtml.ml:
 	@cd syntax/html && ln -nsf ../../lib/xhtml.ml .
+
+syntax/json/json.ml:
+	@cd syntax/json && ln -nsf ../../lib/json.ml .
 
 lib: syntax
 	ocamlbuild lib.otarget
@@ -28,5 +31,5 @@ install:
 	cp _build/syntax/pa_cow.cmo $(TARGETDIR)/syntax
 
 clean:
-	rm -f syntax/xml/xml.ml syntax/html/xhtml.ml
+	rm -f syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
 	ocamlbuild -clean

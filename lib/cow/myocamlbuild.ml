@@ -30,15 +30,17 @@ end
 
 module Ocamlfind = struct
   let query package predicates =
-    let predicates = match predicates with
+    let str_predicates = match predicates with
       | `native -> "native"
       | `byte   -> "byte"
-      | `syntax -> "preprocessor,syntax" in
+      | `syntax -> "preprocessor,syntax -r" in
     let incls =
-      Util.run_and_read (sf "ocamlfind -query %s -predicates %s -r -i-format" package predicates) in
+      Util.run_and_read (sf "ocamlfind -query %s -predicates %s -i-format" package str_predicates) in
     let files =
-      Util.run_and_read (sf "ocamlfind -query %s -predicates %s -r -a-format" package predicates) in
-    String.concat " " (incls @ files)
+      Util.run_and_read (sf "ocamlfind -query %s -predicates %s -a-format" package str_predicates) in
+    match predicates with
+      | `syntax -> String.concat " " (incls @ files)
+      | _       -> String.concat " " incls
 end
 
 let stdlib =
@@ -56,8 +58,14 @@ module Flags = struct
     let deps = Ocamlfind.query "camlp4.quotations" `syntax in
     sf "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" deps dyntype_syntax
 
+  let pa_ulex_includes =
+    Ocamlfind.query "ulex" `syntax
+
+  let ulex_includes =
+    Ocamlfind.query "ulex" `native
+
   let cow_includes =
-    sf "%s -I syntax str.cma pa_cow.cmo" dyntype_includes
+    sf "%s %s -I syntax str.cma pa_cow.cmo" pa_ulex_includes dyntype_includes
 
   let camlp4 includes =
     sf "camlp4o %s" includes
@@ -73,8 +81,12 @@ module Flags = struct
 
   let cow = [
     A"-pp"; A (camlp4 cow_includes);
+    Sh ulex_includes;
   ]
 
+  let ulex = [
+    A"-pp"; A (camlp4 ulex_includes);
+  ]
 end
 
 let _ = dispatch begin function

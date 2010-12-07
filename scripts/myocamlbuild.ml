@@ -132,11 +132,11 @@ end
 
 let _ = dispatch begin function
   | After_rules ->
-    let pa_lwt = ps "-I %s/std/syntax pa_lwt.cmo" lib in
+    let pa_std = ps "-I %s/std/syntax pa_ulex.cmo pa_lwt.cmo" lib in
     let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
     let pa_dyntype = ps "%s -I %s/dyntype/syntax pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations lib in
     let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_cow.cmo" pa_dyntype lib in
-    let pp_pa = ps "camlp4o %s %s" pa_lwt pa_cow in
+    let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
     let net_libs = match OS.target with
      | OS.Xen -> []
      | _ -> [ A "mpl.cmxa"; A "mlnet.cmxa"; A "dns.cmxa"; A "http.cmxa" ; A "dhcp.cmxa" ] in
@@ -144,7 +144,7 @@ let _ = dispatch begin function
      | OS.Xen -> []
      | _ -> [ A "cow.cmx" ] in
     let libs = [
-      (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa";
+      (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa"; A "ulex.cmxa";
       (* os lib *)   A "oS.cmxa";
     ] @ net_libs @ cow_libs in
     let mirage_flags = [

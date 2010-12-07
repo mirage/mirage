@@ -11,6 +11,7 @@ Nativeint
 Marshal
 Map
 Lazy
+Stream
 List
 Lexing
 Int64

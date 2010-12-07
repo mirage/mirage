@@ -1,9 +1,10 @@
-Mpl_stdlib
+Mpl_dns_label
+Mpl_string8
 protocols/Ethernet
 protocols/Ipv4
 protocols/Udp
 protocols/Icmp
 protocols/Dhcp
+protocols/Tcp
 protocols/Dns_rr
 protocols/Dns
-protocols/Tcp

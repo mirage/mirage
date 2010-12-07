@@ -70,7 +70,7 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
 
   (* Receive a DHCP UDP packet *)
   let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
-    let dhcp = Mpl.Dhcp.unmarshal udp#data_env in 
+    let dhcp = Mpl.Dhcp.unmarshal udp#data_sub_view in 
     let packet = Option.Packet.of_bytes dhcp#options in
     (* See what state our Netif is in and if this packet is useful *)
     Option.Packet.(match t.state with

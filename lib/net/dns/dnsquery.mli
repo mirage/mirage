@@ -19,10 +19,10 @@
 
 type query_answer = {
   rcode : Mpl.Dns.rcode_t;
-  aa : bool;
-  answer : (Mpl.Mpl_stdlib.env -> Mpl.Dns.Answers.o) list;
-  authority : (Mpl.Mpl_stdlib.env -> Mpl.Dns.Authority.o) list;
-  additional : (Mpl.Mpl_stdlib.env -> Mpl.Dns.Additional.o) list;
+  aa: bool;
+  answer: (OS.Istring.View.t -> Mpl.Dns.Answers.o) list;
+  authority: (OS.Istring.View.t -> Mpl.Dns.Authority.o) list;
+  additional: (OS.Istring.View.t -> Mpl.Dns.Additional.o) list;
 }
 
 val answer_query : string list -> 

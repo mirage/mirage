@@ -18,6 +18,6 @@ open Nettypes
 
 type t
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val output: t -> dest_ip:ipv4_addr -> (Mpl.Mpl_stdlib.env -> Mpl.Tcp.o) -> unit Lwt.t
+val output: t -> dest_ip:ipv4_addr -> (OS.Istring.View.t -> Mpl.Tcp.o) -> unit Lwt.t
 val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t) -> unit
 val create : Ipv4.t -> t * unit Lwt.t

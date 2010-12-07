@@ -29,11 +29,10 @@ module H = Hashcons
 type query_answer = {
     rcode : Mpl.Dns.rcode_t;
     aa: bool;
-    answer: (Mpl_stdlib.env -> Mpl.Dns.Answers.o) list;
-    authority: (Mpl_stdlib.env -> Mpl.Dns.Authority.o) list;
-    additional: (Mpl_stdlib.env -> Mpl.Dns.Additional.o) list;
+    answer: (OS.Istring.View.t -> Mpl.Dns.Answers.o) list;
+    authority: (OS.Istring.View.t -> Mpl.Dns.Authority.o) list;
+    additional: (OS.Istring.View.t -> Mpl.Dns.Additional.o) list;
   } 
-
 
 let answer_query qname qtype trie = 
 

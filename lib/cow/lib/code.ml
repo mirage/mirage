@@ -196,9 +196,7 @@ let ocaml str : Html.t =
         let str = Ulexing.utf8_lexeme lexbuf in
         comments (str :: accu) lexbuf in
 
-  <:html<
-  <pre>$main [] (Ulexing.from_utf8_string str)$</pre>
-  >>
+  <:html<<pre><code>$main [] (Ulexing.from_utf8_string str)$</code></pre>&>>
 
 let ocaml_css = <:css<
   .keyword1 { display: inline; color: #15317E; }

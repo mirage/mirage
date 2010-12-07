@@ -43,11 +43,11 @@ end
 let _ = dispatch begin function
   | After_rules ->
     Pathname.define_context "mpl/protocols" ["mpl"];
-    Pathname.define_context "mlnet" ["mpl"; "api"];
+    Pathname.define_context "mlnet" ["mpl"; "nettypes"];
     Pathname.define_context "dns" ["mpl"];
-    Pathname.define_context "dhcp" ["mpl"; "api"; "mlnet"];
-    Pathname.define_context ("socket/"^os) ["api"];
-    Pathname.define_context "http" ["api"; "socket/"^os];
+    Pathname.define_context "dhcp" ["mpl"; "nettypes"; "mlnet"];
+    Pathname.define_context ("socket/"^os) ["nettypes"];
+    Pathname.define_context "http" ["nettypes"; "socket/"^os];
 
     (* do not compile and pack with the standard lib, and point to right OS module *)
     flag ["ocaml"; "compile"] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];

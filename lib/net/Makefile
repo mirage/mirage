@@ -1,7 +1,7 @@
 .PHONY: clean all install
 
 PREFIX ?= _build/root
-LIBS = mpl mlnet dns dhcp http
+LIBS = nettypes mpl mlnet dns dhcp http
 
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)

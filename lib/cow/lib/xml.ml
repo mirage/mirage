@@ -1228,7 +1228,6 @@ let to_string t =
 let _input_tree (templates : (string * t) list) input : t =
   let el (name, attrs) body : t = [ `El ((name, attrs), List.flatten body) ] in
   let data str : t =
-    Printf.printf "[DATA] %s \n%!" str;
     if List.mem_assoc str templates then
       List.assoc str templates
     else

@@ -359,7 +359,7 @@ let rec text = function
   | Emph t    -> <:html< <i>$str:t$</i> >>
   | Bold t    -> <:html< <b>$str:t$</b> >>
   | Struck pt -> <:html< <del>$par_text pt$</del> >>
-  | Code t    -> <:html< <code>$str:t$ </code> >>
+  | Code t    -> <:html< <code>$Code.ocaml t$</code> >> (* XXX: we assume that this is ocaml code *)
   | Link href -> <:html< <a href=$str:href.href_target$>$str:href.href_desc$</a> >>
   | Anchor a  -> <:html< <a name=$str:a$/> >>
   | Image img -> <:html< <img src=$str:img.img_src$ alt=$str:img.img_alt$/> >>

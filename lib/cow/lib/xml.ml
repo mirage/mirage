@@ -351,7 +351,7 @@ struct
       ?(entity = fun _ -> None)
       src = 
     let i = match src with
-    | `Fun f -> f 
+    | `Fun f -> f
     | `String (pos, s) -> 
 	let len = Std_string.length s in
 	let pos = ref (pos - 1) in

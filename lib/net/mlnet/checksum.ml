@@ -18,29 +18,34 @@
 open Nettypes
 
 let ones_checksum sum =
-    0xffff - ((sum lsr 16) + (sum land 0xffff))
+  0xffff - ((sum lsr 16) + (sum land 0xffff))
 
+(* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
 let ip sz env =
-    let sum = ref 0 in
-    for i = 1 to sz do
-        let x = Mpl.Mpl_stdlib.Mpl_uint16.(to_int (unmarshal env)) in
-        let y = Mpl.Mpl_stdlib.Mpl_uint16.(to_int (unmarshal env)) in
-        let y = if i = 3 then 0 else y in (* zero out checksum header *)
-        sum := !sum + x + y;
-    done;
-    ones_checksum !sum
+  let env = OS.Istring.View.copy env in
+  let sum = ref 0 in
+  for i = 1 to sz do
+    let x = OS.Istring.View.unmarshal_uint16_be env in
+    let y = OS.Istring.View.unmarshal_uint16_be env in
+    let y = if i = 3 then 0 else y in (* zero out checksum header *)
+    sum := !sum + x + y;
+  done;
+  ones_checksum !sum
 
+(* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
 let icmp env =
-    let sum = ref 0 in
-    let sz = Mpl.Mpl_stdlib.size env / 4 in
-    for i = 1 to sz do
-        let x = Mpl.Mpl_stdlib.Mpl_uint16.(to_int (unmarshal env)) in
-        let y = Mpl.Mpl_stdlib.Mpl_uint16.(to_int (unmarshal env)) in
-        let y = if i = 1 then 0 else y in (* zero out checksum header *)
-        sum := !sum + x + y;
-    done;
-    ones_checksum !sum
+  let env = OS.Istring.View.copy env in
+  let sum = ref 0 in
+  let sz = OS.Istring.View.length env / 4 in
+  for i = 1 to sz do
+    let x = OS.Istring.View.unmarshal_uint16_be env in
+    let y = OS.Istring.View.unmarshal_uint16_be env in
+    let y = if i = 1 then 0 else y in (* zero out checksum header *)
+    sum := !sum + x + y;
+  done;
+  ones_checksum !sum
 
+(* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
 let udp ip_src ip_dest (udp:Mpl.Udp.o)  =
   let sum = ref 0 in
   let addsum x = sum := !sum + x in
@@ -55,10 +60,10 @@ let udp ip_src ip_dest (udp:Mpl.Udp.o)  =
   (* udp packet *)
   let env = udp#env in
   for i = 1 to len / 2 do
-    addsum (Mpl.Mpl_stdlib.Mpl_uint16.(to_int (unmarshal env)))
+    addsum (OS.Istring.View.unmarshal_uint16_be env)
   done;
   if len mod 2 = 1 then
-    addsum (Mpl.Mpl_stdlib.Mpl_byte.(to_int (unmarshal env) lsl 8));
+    addsum (OS.Istring.View.unmarshal_byte env lsl 8);
   let csum = match ones_checksum !sum with
     | 0 -> 0xffff
     | n -> n in
@@ -77,9 +82,9 @@ let tcp ip_src ip_dest (tcp:Mpl.Tcp.o) =
   addsum len;
   let env = tcp#env in
   for i = 1 to len / 2 do
-    addsum Mpl.Mpl_stdlib.Mpl_uint16.(to_int (unmarshal env))
+    addsum (OS.Istring.View.unmarshal_uint16_be env);
   done;
   if len mod 2 = 1 then
-    addsum Mpl.Mpl_stdlib.Mpl_byte.(to_int (unmarshal env) lsl 8);
+    addsum (OS.Istring.View.unmarshal_byte env lsl 8);
   let csum = ones_checksum !sum in
   csum

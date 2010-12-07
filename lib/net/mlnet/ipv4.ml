@@ -20,8 +20,8 @@ open Nettypes
 
 module ARP = Arp
 
-type 'a ip_output = Mpl.Mpl_stdlib.env -> ttl:int -> checksum:int -> dest:int32 ->
-    options:('a Mpl.Mpl_stdlib.data) -> Mpl.Ipv4.o
+type 'a ip_output = OS.Istring.View.t -> ttl:int -> checksum:int -> dest:int32 ->
+    options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
 
 type state =
   |Obtaining_ip
@@ -79,8 +79,7 @@ let output t ~dest_ip (ip:'a ip_output) =
     end in
   let ipfn env = 
     let p = ip env ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None in
-    let csum = Checksum.ip (p#header_end / 4)
-      (Mpl.Mpl_stdlib.env_pos env 0) in
+    let csum = Checksum.ip (p#header_end / 4) p#env in
     p#set_checksum csum;
   in
   let etherfn = Mpl.Ethernet.IPv4.t
@@ -91,9 +90,9 @@ let output t ~dest_ip (ip:'a ip_output) =
 
 let input t (ip:Mpl.Ipv4.o) =
   match ip#protocol with
-  |`UDP -> t.udp ip (Mpl.Udp.unmarshal ip#data_env)
-  |`TCP -> t.tcp ip (Mpl.Tcp.unmarshal ip#data_env)
-  |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal ip#data_env)
+  |`UDP -> t.udp ip (Mpl.Udp.unmarshal ip#data_sub_view)
+  |`TCP -> t.tcp ip (Mpl.Tcp.unmarshal ip#data_sub_view)
+  |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal ip#data_sub_view)
   |`IGMP |`Unknown _ -> return ()
 
 let create id = 

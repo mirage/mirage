@@ -28,11 +28,11 @@ let input t ip = function
     let dest_ip = ipv4_addr_of_uint32 ip#src in
     let sequence = icmp#sequence in
     let identifier = icmp#identifier in
-    let data = `Frag icmp#data_frag in
+    let data = `Frag icmp#data_sub_view in
     let icmpfn env =
-      let packet = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
-      let csum = Checksum.icmp (Mpl.Mpl_stdlib.env_pos env 0) in
-      packet#set_checksum csum;
+      let p = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
+      let csum = Checksum.icmp p#env in
+      p#set_checksum csum;
     in
     (* Create the IPv4 packet *)
     let id = ip#id in 

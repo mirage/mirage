@@ -16,8 +16,8 @@
 
 open Nettypes
 
-type 'a ip_output = Mpl.Mpl_stdlib.env -> ttl:int -> checksum:int -> dest:int32 ->
-  options:('a Mpl.Mpl_stdlib.data) -> Mpl.Ipv4.o
+type 'a ip_output = OS.Istring.View.t -> ttl:int -> checksum:int -> dest:int32 ->
+  options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
 
 type t
 val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> unit Lwt.t
@@ -31,5 +31,5 @@ val attach: t ->
      | `TCP of Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
      | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
     ] -> unit
-val detach: t -> [  `UDP | `TCP | `ICMP ] -> unit
+val detach: t -> [ `UDP | `TCP | `ICMP ] -> unit
 val create : OS.Ethif.id -> (t * unit Lwt.t) Lwt.t

@@ -74,7 +74,7 @@ let request outchan headers meth body (address, _, path) =
     | None   -> return ()
     | Some s -> Flow.write_all outchan s
 
-let read inchan =
+let read_response inchan =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
@@ -87,7 +87,7 @@ let connect (address, port, _) iofn =
   lwt sockaddr = Http_misc.build_sockaddr (address, port) in
   Flow.with_connection sockaddr iofn
     
-let call headers kind body url =
+let call headers kind request_body url =
   let meth = match kind with
     | `GET -> "GET"
     | `HEAD -> "HEAD"
@@ -97,10 +97,10 @@ let call headers kind body url =
   let endp = parse_url url in
   try_lwt connect endp
     (fun t ->
-	    (try_lwt request t headers meth body endp
+	    (try_lwt request t headers meth request_body endp
 	     with exn -> fail (Tcp_error (Write, exn))
 	    ) >>
-      (try_lwt read t
+      (try_lwt read_response t
 	     with
 		     | (Http_error _) as e -> fail e
 		     | exn                 -> fail (Tcp_error (Read, exn))))

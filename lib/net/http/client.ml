@@ -57,7 +57,7 @@ let default_content_type_h =
 
 let build_req_header headers meth address path =
   let content_length_h s = content_length_header (string_of_int (String.length s)) in
-	let headers = default_content_type_h :: content_length_h :: headers in
+  let headers = default_content_type_h :: content_length_h :: headers in
   let hdrcnt = List.length headers in
   let add_header ht (n, v) = (Hashtbl.replace ht n v; ht) in
   let hdrht = List.fold_left add_header (Hashtbl.create hdrcnt) headers in
@@ -97,13 +97,13 @@ let call headers kind request_body url =
   let endp = parse_url url in
   try_lwt connect endp
     (fun t ->
-	    (try_lwt request t headers meth request_body endp
-	     with exn -> fail (Tcp_error (Write, exn))
-	    ) >>
+      (try_lwt request t headers meth request_body endp
+       with exn -> fail (Tcp_error (Write, exn))
+      ) >>
       (try_lwt read_response t
-	     with
-		     | (Http_error _) as e -> fail e
-		     | exn                 -> fail (Tcp_error (Read, exn))))
+       with
+         | (Http_error _) as e -> fail e
+         | exn                 -> fail (Tcp_error (Read, exn))))
   with
     | (Tcp_error _ | Http_error _) as e -> fail e
     | exn                               -> fail (Tcp_error (Connect, exn))

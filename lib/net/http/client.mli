@@ -34,7 +34,7 @@ exception Http_error of (int * headers * string)  (* code, headers, body *)
   (**
      @param headers optional overriding headers
      @param url an HTTP url
-     @return HTTP response's body
+     @return HTTP GET response's body
      @raise Http_error when response code <> 200 *)
 val get : ?headers:headers -> string -> (headers * string) Lwt.t
 
@@ -49,7 +49,23 @@ val head : ?headers:headers -> string -> (headers * string) Lwt.t
      @param headers optional overriding headers
      @param body optional message
      @param url an HTTP url
-     @return HTTP HEAD raw response
+     @return HTTP POST raw response
      @raise Http_error when response code <> 200 *)
 val post : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
+
+  (**
+     @param headers optional overriding headers
+     @param body optional message
+     @param url an HTTP url
+     @return HTTP PUT raw response
+     @raise Http_error when response code <> 200 *)
+val put : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
+
+  (**
+     @param headers optional overriding headers
+     @param body optional message
+     @param url an HTTP url
+     @return HTTP DELETE raw response
+     @raise Http_error when response code <> 200 *)
+val delete : ?headers:headers -> string -> (headers * string) Lwt.t
 

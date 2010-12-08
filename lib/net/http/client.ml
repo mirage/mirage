@@ -85,6 +85,8 @@ let call headers kind body url =
   let meth = match kind with
     | `GET -> "GET"
     | `HEAD -> "HEAD"
+    | `PUT -> "PUT" 
+    | `DELETE -> "DELETE" 
     | `POST -> "POST" in
   let endp = parse_url url in
     try_lwt connect endp
@@ -103,3 +105,5 @@ let call headers kind body url =
 let head ?headers url = call headers `HEAD None url
 let get  ?headers url = call headers `GET None url
 let post ?headers ?body url = call headers `POST body url
+let put  ?headers ?body url = call headers `PUT body url
+let delete  ?headers url = call headers `DELETE None url

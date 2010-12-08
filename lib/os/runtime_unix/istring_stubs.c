@@ -38,7 +38,9 @@ istring_alloc(unsigned char *buf, size_t size)
   s->buf = buf;
   s->size = size;
   s->ref = 0;
-  return caml_alloc_final(2, istring_finalize, 1, 100);
+  value v = caml_alloc_final(2, istring_finalize, 1, 100);
+  Istring_val(v) = s;
+  return v;
 }
 
 /* Free an allocated istring via free */

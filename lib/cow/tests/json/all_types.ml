@@ -1,5 +1,6 @@
 (*
  * Copyright (C) 2006-2009 Citrix Systems Inc.
+ * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -12,10 +13,16 @@
  * GNU Lesser General Public License for more details.
  *)
 
+open Cow
+
 type t = Foo of int | Bar of (int * float) with json
 
 module M = struct
 	type m = t with json
+end
+
+module K = struct
+  type k = M.m with json
 end
 
 (* XXX: support 'a t *)
@@ -34,6 +41,7 @@ type x = {
  } with json
 
 let run () =
+
 	let x = {
 		foo= Foo 3;
 		bar= "ha          ha";
@@ -48,9 +56,9 @@ let run () =
 		progress = [| 0; 1; 2; 3; 4; 5 |];
 	} in
 
-	Printf.printf "Testing basic marshalling/unmarshalling for JSON:\n"
+	Printf.printf "Testing basic marshalling/unmarshalling for JSON:\n";
 	
-	let json = json_of_x_m x in
+	let json = json_of_x x in
 	Printf.printf "\n==json==\n%s\n" (Json.to_string json);
 
   let x_json = x_of_json json in

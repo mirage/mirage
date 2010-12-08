@@ -1,7 +1,8 @@
-(* XXX: this doesn't work yet *)
+open Cow
+
 type key = string with json
 
-type t = ((* XXX: key*) string * float) list with json
+type t = ((* XXX this doesn't work yet : key*) string * float) list with json
 
 let run () = 
 	let t = [ "foo", 3. ; "bar", 4. ] in

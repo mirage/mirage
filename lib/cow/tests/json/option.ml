@@ -1,3 +1,5 @@
+open Cow
+
 type t = {
 	foo : int option;
 	bar : int list option;
@@ -5,7 +7,7 @@ type t = {
 	gna : int * (int option)
 } with json
 
-let _ =
+let run () =
 	let t1 = { foo = None; bar = None; gni = []; gna = 1, None } in
 	let t2 = { foo = None; bar = Some []; gni = [1]; gna = 1, None } in
 	let r1 = json_of_t t1 in

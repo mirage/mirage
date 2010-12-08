@@ -1,3 +1,5 @@
+open Cow
+
 type t = [ `foo | `bar of int * string ] with json
 
 let run () =
@@ -9,7 +11,7 @@ let run () =
 	let j1 = json_of_t t1 in
 	let j2 = json_of_t t2 in
 
-	Printf.printf "r1 = %s\nr2 = %s\n%!" (Json.to_string r1) (Json.to_string r2);
+	Printf.printf "j1 = %s\nj2 = %s\n%!" (Json.to_string j1) (Json.to_string j2);
 
 	let t1' = t_of_json j1 in
 	let t2' = t_of_json j2 in

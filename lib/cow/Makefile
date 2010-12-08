@@ -20,9 +20,14 @@ syntax/json/json.ml:
 lib: syntax
 	ocamlbuild lib.otarget
 
-test:
-	ocamlbuild -I tests tests.otarget
-	_build/tests/json/json.native
+test: syntax lib
+	ocamlbuild tests.otarget
+	_build/tests/json/main.native
+
+test_exp: syntax lib
+	rm -f  _build/tests/json/*_exp.ml
+	ocamlbuild tests_exp.otarget
+	_build/tests/json/main_exp.native
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/cow
 

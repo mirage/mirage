@@ -74,13 +74,50 @@ let request outchan headers meth body (address, _, path) =
     | None   -> return ()
     | Some s -> Flow.write_all outchan s
 
+let id x = x
+
+let parse_content_range s =
+  try
+    let start, fini, total = Scanf.sscanf s "bytes %d-%d/%d" 
+      (fun start fini total -> start, fini, total) 
+    in
+    Some (start, fini, total)
+  with Scanf.Scan_failure _ ->
+    None
+
+(* if we see a "Content-Range" header, than we should limit the
+   number of bytes we attempt to read *)
+let content_length_of_content_range headers = 
+  try
+    (* assuming header keys were downcased in previous step *)
+    let range_s = List.assoc "content-range" headers in
+    match parse_content_range range_s with
+      | Some (start, fini, total) ->
+        (* some sanity checking before we act on these values *)
+        if fini < total && start <= total && 0 <= start && 0 <= total then (
+          let num_bytes_to_read = fini - start + 1 in
+          Some num_bytes_to_read
+        ) else
+          None
+      | None -> 
+        None
+  with Not_found ->
+    None
+
 let read_response inchan =
   lwt (_, status) = Http_parser.parse_response_fst_line inchan in
   lwt headers = Http_parser.parse_headers inchan in
   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
+  let content_length_opt = content_length_of_content_range headers in
+  (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
+    response header *)
+  lwt resp = 
+    match content_length_opt with
+      | Some count -> failwith "XXX: Flow.read ~count.TODO"; (* Flow.readn ~count inchan *)
+      | None       -> Flow.read_all inchan in
   lwt resp = Flow.read_all inchan in
   match code_of_status status with
-    | 200 -> return (headers, resp)
+    | 200 | 206 -> return (headers, resp)
     | code -> fail (Http_error (code, headers, resp))
 
 let connect (address, port, _) iofn =

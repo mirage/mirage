@@ -45,7 +45,7 @@ let run () =
 	let x = {
 		foo= Foo 3;
 		bar= "ha          ha";
-		gna=[1.; 2.; 3.; 4. ];
+		gna=[1.; 2.; 3.5; 4. ];
 		f2 = [| "hi",["hi"]; "hou",["hou";"hou"]; "foo", ["b";"a";"r"] |];
 		f1 = Some (None, [true], [[1.]; [2.;3.]]);
 		f3 = Int32.max_int;
@@ -56,12 +56,22 @@ let run () =
 		progress = [| 0; 1; 2; 3; 4; 5 |];
 	} in
 
-	Printf.printf "Testing basic marshalling/unmarshalling for JSON:\n";
+	Printf.printf "\n==Testing basic marshalling/unmarshalling for JSON==\n";
 	
 	let json = json_of_x x in
-	Printf.printf "\n==json==\n%s\n" (Json.to_string json);
+  let str  = Json.to_string json in 
+	Printf.printf "\n * json:\n%s\n" str;
 
-  let x_json = x_of_json json in
-	Printf.printf "\n==Sanity check 1==\nx=x_json: %b\n" (x = x_json);
-	assert (x = x_json)
+  let x_json     = x_of_json json in
+  let json_str   = Json.of_string str in
+  let x_json_str = x_of_json json_str in
+
+	Printf.printf "\n * Sanity check:\n";
+
+  Printf.printf "   - x=x_json    : %b\n%!" (x = x_json);
+	assert (x = x_json);
+
+  Printf.printf "   - x=x_json_str: %b\n%!" (x = x_json_str);
+	assert (x = x_json_str)
+
 

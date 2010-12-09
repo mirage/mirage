@@ -6,15 +6,21 @@ let run () =
 	let t1 = `foo in
 	let t2 = `bar (3, "bar") in
 
-  Printf.printf "Testing variant encoding\n";
+  Printf.printf "\n==Testing variant encoding==\n";
 
 	let j1 = json_of_t t1 in
 	let j2 = json_of_t t2 in
 
-	Printf.printf "j1 = %s\nj2 = %s\n%!" (Json.to_string j1) (Json.to_string j2);
+	Printf.printf "\n * json:\n";
+  Printf.printf "    - j1 = %s\n    - j2 = %s\n%!" (Json.to_string j1) (Json.to_string j2);
 
 	let t1' = t_of_json j1 in
 	let t2' = t_of_json j2 in
 
-	Printf.printf "t1 = t1' : %b\nt2 = t2' : %b\n%!" (t1 = t1') (t2 = t2');
-	assert (t1 = t1' && t2 = t2')
+	Printf.printf "\n * sanity check:\n";
+
+	Printf.printf "    - t1 = t1' :%b\n%!" (t1 = t1');
+	assert (t1 = t1');
+
+  Printf.printf "    - t2 = t2' :%b\n%!" (t2 = t2');
+	assert (t2 = t2')

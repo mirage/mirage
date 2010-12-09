@@ -16,7 +16,7 @@ module User : sig
   
   type t = {
     id_str     : string;
-    scree_name : string;
+    screen_name : string;
   }
 
   val json_of_t : t -> Json.t
@@ -38,5 +38,5 @@ module Status : sig
   val json_of_t_list : t list -> Json.t
   val t_list_of_json : Json.t -> t list
 
-  val user_timeline : string -> t list Lwt.t
+  val user_timeline : ?screen_name:string -> unit -> t list Lwt.t
 end

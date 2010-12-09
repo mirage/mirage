@@ -15,13 +15,12 @@
 open Lwt
 
 (* XXX: no DNS client yet *)
-let twitter = "http://128.242.245.244"
-
+let twitter = "http://168.143.162.45"
 module User = struct
   
   type t = {
     id_str     : string;
-    scree_name : string;
+    screen_name : string;
   } with json
 
 end
@@ -38,9 +37,15 @@ module Status = struct
       t list
   with json
 
-  let user_timeline user =
-    let uri = Printf.sprintf "%s/statuses/user_timeline/%s.json" twitter user in
-    lwt _, body = Http.Client.post uri in
+  let user_timeline ?screen_name () =
+    let filter = match screen_name with
+      | Some n -> "?screen_name=" ^ n
+      | None   -> "" in
+    let uri = Printf.sprintf "%s/1/statuses/user_timeline.json%s" twitter filter in
+    let headers =
+      ["Host", "api.twitter.com";
+       "Connection", "keep-alive" ] in
+    lwt _, body = Http.Client.get ~headers uri in
     let str = Json.of_string body in
     return (t_list_of_json str)
 

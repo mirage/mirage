@@ -21,8 +21,9 @@ lib: syntax
 	ocamlbuild lib.otarget
 
 test: syntax lib
-	ocamlbuild tests.otarget
-	_build/tests/json/main.native
+	rm -rf tests/_build
+	cd tests && MIRAGELIB=$(DESTDIR)/$(PREFIX)/mirage && mir json/main.bin
+	tests/_build/json/main.bin
 
 test_exp: syntax lib
 	rm -f  _build/tests/json/*_exp.ml
@@ -38,4 +39,5 @@ install:
 
 clean:
 	rm -f syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
+	cd tests && ocamlbuild -clean && rm myocamlbuild.ml
 	ocamlbuild -clean

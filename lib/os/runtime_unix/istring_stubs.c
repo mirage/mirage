@@ -38,6 +38,7 @@ istring_alloc(unsigned char *buf, size_t size)
   s->buf = buf;
   s->size = size;
   s->ref = 0;
+  s->valid = 0;
   value v = caml_alloc_final(2, istring_finalize, 1, 100);
   Istring_val(v) = s;
   return v;
@@ -93,6 +94,22 @@ caml_istring_size(value v_istr)
   return Val_int(Istring_val(v_istr)->size);
 }
 
+/* Get valid size of buffer contents */
+CAMLprim value
+caml_istring_valid(value v_istr)
+{
+  return Val_int(Istring_val(v_istr)->valid);
+}
+
+CAMLprim value
+caml_istring_incr_valid(value v_istr, value v_off, value v_size)
+{
+  istring *i = Istring_val(v_istr);
+  size_t nv = Int_val(v_size) + Int_val(v_off);
+  i->valid = (i->valid > nv ? i->valid : nv);
+  return Val_unit;
+}
+
 /* Get a character from an istring */
 CAMLprim value
 caml_istring_safe_get_char(value v_istr, value v_off)
@@ -101,7 +118,8 @@ caml_istring_safe_get_char(value v_istr, value v_off)
   int off = Int_val(v_off);
   if (off >= i->size)
     caml_array_bound_error();
-  return Val_int(i->buf[off]);
+  unsigned char c = i->buf[off];
+  return Val_int(c);
 }
 
 /* Get an ocaml string from an istring */

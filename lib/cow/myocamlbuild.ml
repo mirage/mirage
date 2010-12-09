@@ -40,6 +40,13 @@ let dyntype_lib =
 let dyntype_syntax =
   Util.get_lib "dyntype" ^ "/syntax"
 
+let net_lib lib =
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
+  sf "%s/%s/%s" (Util.get_lib "net") os lib
+
+let http_lib = 
+  net_lib "http"
+
 module Flags = struct
 
   let camlp4_magic =
@@ -51,8 +58,11 @@ module Flags = struct
   let pa_ulex_deps =
     sf "-I %s pa_ulex.cmo" std_syntax
 
+  let pa_lwt_deps =
+    sf "-I %s pa_lwt.cmo" std_syntax
+
   let pa_cow_deps =
-    sf "%s %s -I syntax str.cma pa_cow.cmo" pa_ulex_deps pa_dyntype_deps
+    sf "%s %s %s -I syntax str.cma pa_cow.cmo" pa_ulex_deps pa_lwt_deps pa_dyntype_deps
 
   let camlp4 deps = [
     A"-pp"; A (sf "camlp4o %s" deps)
@@ -63,22 +73,25 @@ module Flags = struct
     A"-I"; A dyntype_syntax;
   ] @ camlp4 pa_dyntype_deps
 
-  let pa_ulex    = camlp4 pa_ulex_deps
-  let pa_cow     = camlp4 pa_cow_deps
+  let pa_ulex = camlp4 pa_ulex_deps
+  let pa_cow  = camlp4 pa_cow_deps
 
   let stdlib  = [ A"-nostdlib"; A"-I"; A std_lib; ]
   let dyntype = [ A"-I"; A dyntype_lib ]
   let ulex    = [ A"-I"; A std_lib ]
   let cow     = [ A"-I"; A "lib" ]
+  let http    = [ A"-I"; A http_lib ]
 
   let all_deps = [
     A"dyntype.cmx";
     A"ulex.cmxa";
     A"cow.cmx";
+    A"http.cmxa";
+    A"lwt.cmxa";
   ]
 
   let all =
-    stdlib @ dyntype @ ulex @ cow
+    stdlib @ dyntype @ ulex @ http @ cow
 
 end
 
@@ -108,6 +121,10 @@ let _ = dispatch begin function
     (* use pa_dyntype syntax extension if the _tags file specifies it *)
     flag ["ocaml"; "compile" ; "pa_dyntype"] & S Flags.pa_dyntype;
     flag ["ocaml"; "ocamldep"; "pa_dyntype"] & S Flags.pa_dyntype;
+
+    (* use http if the _tags file specifies it *)
+    flag ["ocaml"; "compile" ; "use_http"] & S Flags.http;
+    flag ["ocaml"; "ocamldep"; "use_http"] & S Flags.http;
 
     (* use pa_cow syntax extension if the _tags file specifies it *)
     flag ["ocaml"; "compile" ; "pa_cow"] & S Flags.pa_cow;

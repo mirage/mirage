@@ -73,5 +73,7 @@ tap_opendev(value v_str)
   setnonblock(fd);
   snprintf(buf, sizeof buf, "ip link set %s up", dev);
   system(buf);
+  snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.0.0.1 netmask 255.255.255.0 up", String_val(v_str));
+  system(buf);
   return Val_int(fd);
 }

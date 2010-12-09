@@ -6,6 +6,7 @@ val read: t -> string -> int -> int -> int Lwt.t
 val really_read: t -> string -> int -> int -> unit Lwt.t
 val read_line: t -> string Lwt.t
 val read_all: t -> string Lwt.t
+val readn : t -> int -> string Lwt.t
 
 val write: t -> string -> int -> int -> int Lwt.t
 val really_write: t -> string -> int -> int -> unit Lwt.t

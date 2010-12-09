@@ -222,3 +222,13 @@ let rec read_all ic =
       Buffer.add_substring buf str 0 n;
       aux () in
   aux ()
+
+let rec readn inchan count =
+  let buf = String.create count in
+  let rec aux to_read =
+    if to_read = 0 then
+      return buf
+    else
+      lwt n = read inchan buf  (count - to_read) to_read in
+      aux (to_read - n) in
+  aux count

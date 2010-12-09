@@ -105,7 +105,7 @@ let parse_headers ic =
               try_lwt 
                 return (Parser_sanity.normalize_header_value value)
               with _ -> return "" in
-            parse_headers' ((header, value) :: headers)
+            parse_headers' ((String.lowercase header, norm_value) :: headers)
         | _ -> fail (Invalid_header line) 
       end
   in

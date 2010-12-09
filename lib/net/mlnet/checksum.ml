@@ -22,28 +22,28 @@ let ones_checksum sum =
 
 (* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
 let ip sz env =
-  let env = OS.Istring.View.copy env in
   let sum = ref 0 in
-  for i = 1 to sz do
-    let x = OS.Istring.View.unmarshal_uint16_be env in
-    let y = OS.Istring.View.unmarshal_uint16_be env in
-    let y = if i = 3 then 0 else y in (* zero out checksum header *)
+  let sz = OS.Istring.View.length env / 4 in
+  for i = 0 to sz - 1 do
+    let x = OS.Istring.View.to_uint16_be env (i * 4) in
+    let y = OS.Istring.View.to_uint16_be env (i * 4 + 2) in
     sum := !sum + x + y;
   done;
   ones_checksum !sum
 
-(* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
+(* TODO: coalesce bounds checking as MPL.dissect used to -avsm 
+   TODO: broken for x % 4 != 0 length packets *)
 let icmp env =
-  let env = OS.Istring.View.copy env in
   let sum = ref 0 in
-  let sz = OS.Istring.View.length env / 4 in
-  for i = 1 to sz do
-    let x = OS.Istring.View.unmarshal_uint16_be env in
-    let y = OS.Istring.View.unmarshal_uint16_be env in
-    let y = if i = 1 then 0 else y in (* zero out checksum header *)
+  let sz = OS.Istring.View.length env in
+  for i = 0 to sz / 4 - 1 do
+    let x = OS.Istring.View.to_uint16_be env (i * 4) in
+    let y = OS.Istring.View.to_uint16_be env (i * 4 + 2) in
     sum := !sum + x + y;
   done;
-  ones_checksum !sum
+  let csum = ones_checksum !sum in
+  Printf.eprintf "sum=%d csum=%d" !sum csum;
+  csum
 
 (* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
 let udp ip_src ip_dest (udp:Mpl.Udp.o)  =
@@ -59,11 +59,11 @@ let udp ip_src ip_dest (udp:Mpl.Udp.o)  =
   addsum len;
   (* udp packet *)
   let env = udp#env in
-  for i = 1 to len / 2 do
-    addsum (OS.Istring.View.unmarshal_uint16_be env)
+  for i = 0 to len / 2 - 1 do
+    addsum (OS.Istring.View.to_uint16_be env (i*2))
   done;
   if len mod 2 = 1 then
-    addsum (OS.Istring.View.unmarshal_byte env lsl 8);
+    addsum (OS.Istring.View.to_byte env (len-1) lsl 8);
   let csum = match ones_checksum !sum with
     | 0 -> 0xffff
     | n -> n in
@@ -81,10 +81,11 @@ let tcp ip_src ip_dest (tcp:Mpl.Tcp.o) =
   let len = tcp#sizeof in
   addsum len;
   let env = tcp#env in
-  for i = 1 to len / 2 do
-    addsum (OS.Istring.View.unmarshal_uint16_be env);
+  for i = 0 to len / 2 - 1 do
+    addsum (OS.Istring.View.to_uint16_be env (i*2));
   done;
   if len mod 2 = 1 then
-    addsum (OS.Istring.View.unmarshal_byte env lsl 8);
+    addsum (OS.Istring.View.to_uint16_be env (len-1) lsl 8);
   let csum = ones_checksum !sum in
   csum
+

@@ -157,30 +157,29 @@ module View = struct
 
   (* Copy a view. *)
   let copy t = 
-    eprintf "copy: off=%d len=%d pos=%d\n%!" t.off t.len t.pos;
     ref_wrap { i=t.i; off=t.off; len=t.len; pos=t.pos }
 
   (** Marshal functions *)
 
   let set_string t off src =
     Raw.blit t.i (t.off+off) src;
-    Raw.incr_valid t.i t.off (String.length src)
+    Raw.incr_valid t.i (t.off+off) (String.length src)
 
   let set_byte t off (v:byte) =
     Raw.set_byte t.i (t.off+off) v;
-    Raw.incr_valid t.i t.off 1
+    Raw.incr_valid t.i (t.off+off) 1
 
   let set_uint16_be t off (v:uint16) =
     Raw.set_uint16_be t.i (t.off+off) v;
-    Raw.incr_valid t.i t.off 2
+    Raw.incr_valid t.i (t.off+off) 2
     
   let set_uint32_be t off v =
     Raw.set_uint32_be t.i (t.off+off) v;
-    Raw.incr_valid t.i t.off 4
+    Raw.incr_valid t.i (t.off+off) 4
 
   let set_uint64_be t off v =
     Raw.set_uint64_be t.i (t.off+off) v;
-    Raw.incr_valid t.i t.off 8
+    Raw.incr_valid t.i (t.off+off) 8
 
   (* Append an OCaml string into the view *)
   let append_string t src =
@@ -190,8 +189,8 @@ module View = struct
   (* Append another view into this view *)
   let append_view dst src =
     Raw.blit_istring dst.i (dst.off+dst.len) src.i src.off src.len;
-    dst.len <- src.len + dst.len;
-    Raw.incr_valid dst.i dst.off src.len
+    Raw.incr_valid dst.i dst.off src.len;
+    dst.len <- src.len + dst.len
 
   (* Append a byte to the view *)
   let append_byte t (v:byte) =

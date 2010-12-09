@@ -230,6 +230,7 @@ module Of_json = struct
       | Float ->
         <:expr< match $id$ with [
           Json.Float x  -> x
+        | Json.Int x    -> Int64.to_float x
         | Json.String s -> float_of_string s
         | $runtime_error _loc n id "Float"$ ] >>
 

@@ -22,7 +22,7 @@ lib: syntax
 
 test: syntax lib
 	rm -rf tests/_build
-	cd tests && MIRAGELIB=$(DESTDIR)/$(PREFIX)/mirage && mir json/main.bin
+	cd tests && MIRAGELIB=$(DESTDIR)/$(PREFIX)/mirage && make
 	tests/_build/json/main.bin
 
 test_exp: syntax lib
@@ -39,5 +39,5 @@ install:
 
 clean:
 	rm -f syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
-	cd tests && ocamlbuild -clean && rm myocamlbuild.ml
+	cd tests && make clean
 	ocamlbuild -clean

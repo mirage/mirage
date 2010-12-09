@@ -55,7 +55,7 @@ tap_write(value v_fd, value v_istr, value v_len)
   unsigned char *buf = Istring_val(v_istr)->buf;
   int res = write(fd, buf, len);
   if (res != len) {
-    fprintf(stderr, "tap_write: not full res=%d len=%lu (%s)\n", res, len, strerror(errno));
+    fprintf(stderr, "tap_write: not full fd=%d res=%d len=%lu (%s)\n", fd, res, len,strerror(errno));
     err(1, "tap_write");
   }
   return Val_unit;

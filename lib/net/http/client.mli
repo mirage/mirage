@@ -32,14 +32,6 @@
 
 type headers = (string * string) list
 
-type request_body = [ 
-| `None 
-| `String of string 
-| `InChannel of (int * Lwt_io.input_channel) 
-(* a channel from which to fill the request's body, and its length,
-   which must be known in advance *)
-]
-
 type tcp_error_source = Connect | Read | Write
 exception Tcp_error of tcp_error_source * exn
 exception Http_error of (int * headers * string)  (* code, headers, body *)
@@ -51,7 +43,6 @@ exception Http_error of (int * headers * string)  (* code, headers, body *)
    @raise Http_error when response code <> 200 
 *)
 val get : ?headers:headers -> string -> (headers * string) Lwt.t
-val get_to_chan : ?headers:headers -> string -> Lwt_io.output_channel -> headers Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -60,22 +51,15 @@ val get_to_chan : ?headers:headers -> string -> Lwt_io.output_channel -> headers
    @raise Http_error when response code <> 200 
 *)
 val head : ?headers:headers -> string -> (headers * string) Lwt.t
-val head_to_chan : ?headers:headers -> string -> Lwt_io.output_channel -> headers Lwt.t
 
 (**
    @param headers optional overriding headers
-   @param body optional message, whose source is either a string or an input channel
+   @param body optional message
    @param url an HTTP url
    @return HTTP POST raw response
    @raise Http_error when response code <> 200 
 *)
-val post : ?headers:headers -> ?body:request_body -> string -> (headers * string) Lwt.t
-val post_to_chan : 
-  ?headers:headers -> 
-  ?body:request_body -> 
-  string -> 
-  Lwt_io.output_channel -> 
-  headers Lwt.t
+val post : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -84,13 +68,7 @@ val post_to_chan :
    @return HTTP PUT raw response
    @raise Http_error when response code <> 200 
 *)
-val put : ?headers:headers -> ?body:request_body -> string -> (headers * string) Lwt.t
-val put_to_chan :
-  ?headers:headers -> 
-  ?body:request_body -> 
-  string -> 
-  Lwt_io.output_channel -> 
-  headers Lwt.t
+val put : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -99,4 +77,3 @@ val put_to_chan :
    @raise Http_error when response code <> 200 
 *)
 val delete : ?headers:headers -> string -> (headers * string) Lwt.t
-val delete_to_chan: ?headers:headers -> string -> Lwt_io.output_channel -> headers Lwt.t

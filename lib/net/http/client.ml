@@ -20,7 +20,7 @@
 *)
 
 open Printf
-open Http_common
+open Common
 open Lwt
 
 type headers = (string * string) list
@@ -55,9 +55,13 @@ let content_length_header s =
 let default_content_type_h =
   "Content-Type", "application/x-www-form-urlencoded"
 
-let build_req_header headers meth address path =
-  let content_length_h s = content_length_header (string_of_int (String.length s)) in
-  let headers = default_content_type_h :: content_length_h :: headers in
+let build_req_header headers meth address path body =
+  let headers =
+    match body with
+      | None   -> headers
+      | Some s ->
+        let content_length_h = content_length_header (string_of_int (String.length s)) in
+        default_content_type_h :: content_length_h :: headers in
   let hdrcnt = List.length headers in
   let add_header ht (n, v) = (Hashtbl.replace ht n v; ht) in
   let hdrht = List.fold_left add_header (Hashtbl.create hdrcnt) headers in
@@ -68,9 +72,9 @@ let build_req_header headers meth address path =
 
 let request outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
-  let req_header = build_req_header headers meth address path in
+  let req_header = build_req_header headers meth address path body in
   lwt () = Flow.write_all outchan req_header in
-  lwt () = match body with
+  match body with
     | None   -> return ()
     | Some s -> Flow.write_all outchan s
 
@@ -105,8 +109,8 @@ let content_length_of_content_range headers =
     None
 
 let read_response inchan =
-  lwt (_, status) = Http_parser.parse_response_fst_line inchan in
-  lwt headers = Http_parser.parse_headers inchan in
+  lwt (_, status) = Parser.parse_response_fst_line inchan in
+  lwt headers = Parser.parse_headers inchan in
   let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
   let content_length_opt = content_length_of_content_range headers in
   (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
@@ -121,7 +125,7 @@ let read_response inchan =
     | code -> fail (Http_error (code, headers, resp))
 
 let connect (address, port, _) iofn =
-  lwt sockaddr = Http_misc.build_sockaddr (address, port) in
+  lwt sockaddr = Misc.build_sockaddr (address, port) in
   Flow.with_connection sockaddr iofn
     
 let call headers kind request_body url =

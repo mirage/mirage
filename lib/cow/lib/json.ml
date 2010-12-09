@@ -53,7 +53,7 @@ let rec to_fct t f =
 	match t with
 	| Int i    -> f (Printf.sprintf "%Ld" i)
 	| Bool b   -> f (string_of_bool b)
-	| Float r  -> f (Printf.sprintf "%f" r)
+	| Float r  -> f (Printf.sprintf "%g" r)
 	| String s -> f (escape_string s)
 	| Null     -> f "null"
 	| Array a   ->

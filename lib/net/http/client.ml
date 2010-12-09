@@ -30,19 +30,17 @@ exception Tcp_error of tcp_error_source * exn
 exception Http_error of (int * headers * string)  (* code, body *)
 exception Invalid_url
 
-let url_RE = Str.regexp "^[hH][tT][tT][pP]://\\([a-zA-Z.-]+\\)\\(:[0-9]+\\)?\\(/.*\\)?"
-
 let tcp_bufsiz = 4096 (* for TCP I/O *)
 
 let parse_url url =
   try
-    if not (Str.string_match url_RE url 0) then raise Invalid_url;
-    let host = Str.matched_group 1 url in
-    let port = try
-        let port_s = Str.matched_group 2 url in
-        int_of_string (String.sub port_s 1 (String.length port_s - 1))
-      with _ -> 80 in
-    let path = try Str.matched_group 3 url with Not_found -> "/" in
+    let url  = Url.of_string url in
+    let host = Url.host url in
+    let port = match Url.port url with
+      | None   -> 80
+      | Some p -> p in
+    let path = Url.full_path url in
+    OS.Console.log (Printf.sprintf "[PARSE_URL] host=%s port=%d path=%s" host port path);
     (host, port, path)
   with exc ->
     failwith
@@ -73,6 +71,7 @@ let build_req_header headers meth address path body =
 let request outchan headers meth body (address, _, path) =
   let headers = match headers with None -> [] | Some hs -> hs in
   let req_header = build_req_header headers meth address path body in
+  OS.Console.log (Printf.sprintf "[REQUEST] %s" req_header);
   lwt () = Flow.write_all outchan req_header in
   match body with
     | None   -> return ()
@@ -92,8 +91,14 @@ let parse_content_range s =
 (* if we see a "Content-Range" header, than we should limit the
    number of bytes we attempt to read *)
 let content_length_of_content_range headers = 
-  try
-    (* assuming header keys were downcased in previous step *)
+  (* assuming header keys were downcased in previous step *)
+  if List.mem_assoc "content-length" headers then
+    try (let str = List.assoc "content-length" headers in
+         let str = Parser_sanity.normalize_header_value str in
+         OS.Console.log (Printf.sprintf "---get(%s)" str)
+        ; Some (int_of_string str))
+    with _ -> (OS.Console.log "---exn"; None)
+  else if List.mem_assoc "content-range" headers then
     let range_s = List.assoc "content-range" headers in
     match parse_content_range range_s with
       | Some (start, fini, total) ->
@@ -105,24 +110,22 @@ let content_length_of_content_range headers =
           None
       | None -> 
         None
-  with Not_found ->
-    None
+  else
+    None    
 
 let read_response inchan =
   lwt (_, status) = Parser.parse_response_fst_line inchan in
   lwt headers = Parser.parse_headers inchan in
-  let headers = List.map (fun (h, v) -> (String.lowercase h, v)) headers in
   let content_length_opt = content_length_of_content_range headers in
   (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
     response header *)
   lwt resp = 
     match content_length_opt with
-      | Some count -> failwith "XXX: Flow.read ~count.TODO"; (* Flow.readn ~count inchan *)
+      | Some count -> Flow.readn inchan count
       | None       -> Flow.read_all inchan in
-  lwt resp = Flow.read_all inchan in
   match code_of_status status with
     | 200 | 206 -> return (headers, resp)
-    | code -> fail (Http_error (code, headers, resp))
+    | code      -> fail (Http_error (code, headers, resp))
 
 let connect (address, port, _) iofn =
   lwt sockaddr = Misc.build_sockaddr (address, port) in

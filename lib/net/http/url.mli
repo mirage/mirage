@@ -17,11 +17,20 @@
 (** URL type *)
 type t
 
+(** Get the host out of the URL *)
+val host : t -> string
+
+(** Get the port out of the URL *)
+val port : t -> int option
+
 (** Get the path out of the URL *)
 val path : t -> string option
 
 (** Get the query out of an URL *)
 val query : t -> string option
+
+(** Get the full path of an url (ie. including leading /, queries and fragments *)
+val full_path : t -> string
 
 (** Build an encoded string from an URL *)
 val to_string : t -> string

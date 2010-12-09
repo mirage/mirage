@@ -63,6 +63,19 @@ type t = {
 
 let path t = t.path
 let query t = t.query
+let host t = t.host
+let port t = t.port
+let full_path t =
+  let p1 = match t.path with
+    | None   -> "/"
+    | Some p -> "/" ^ p in
+  let p2 = match t.query with
+    | None   -> ""
+    | Some q -> "?" ^ q in
+  let p3 = match t.fragment with
+    | None   -> ""
+    | Some f -> "#" ^ f in
+  p1 ^ p2 ^ p3
 
 (* From http://www.filbar.org/weblog/parsing_incomplete_or_malformed_urls_with_regular_expressions *)
 let url_regexp = Str.regexp (

@@ -23,7 +23,7 @@
 open Printf
 open Lwt
 
-open Http_types
+open Types
 open Nettypes
 
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; 

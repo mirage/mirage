@@ -22,9 +22,9 @@
 open Printf
 open Lwt
 
-open Http_common
-open Http_types
-open Http_constants
+open Common
+open Types
+open Constants
 
 let bindings_sep, binding_sep, pieces_sep, header_sep =
   Str.(regexp_string "&", regexp_string "=", 
@@ -32,7 +32,7 @@ let bindings_sep, binding_sep, pieces_sep, header_sep =
 
 let header_RE = Str.regexp "([^:]*):(.*)"
 
-let url_decode url = Http_url.decode url
+let url_decode url = Url.decode url
 
 let split_query_params query =
   let bindings = Str.split bindings_sep query in
@@ -64,7 +64,7 @@ let parse_request_fst_line ic =
     match Str.split pieces_sep request_line with
       | [ meth_raw; uri_raw; http_version_raw ] ->
           return (method_of_string meth_raw,
-		  Http_url.of_string uri_raw,
+		  Url.of_string uri_raw,
 		  version_of_string http_version_raw)
       | _ -> fail (Malformed_request request_line)
   end with | Malformed_URL url -> fail (Malformed_request_URI url)
@@ -86,11 +86,11 @@ let parse_response_fst_line ic =
      fail (Malformed_response response_line)
   | e -> fail e
 
-let parse_path uri = match Http_url.path uri with None -> "/" | Some x -> x
+let parse_path uri = match Url.path uri with None -> "/" | Some x -> x
 
 let parse_query_get_params uri =
   try (* act on HTTP encoded URIs *)
-    match Http_url.query uri with None -> [] | Some x -> split_query_params x
+    match Url.query uri with None -> [] | Some x -> split_query_params x
   with Not_found -> []
 
 let parse_headers ic =
@@ -103,7 +103,7 @@ let parse_headers ic =
         | [header; value] ->
             lwt norm_value =
               try_lwt 
-                return (Http_parser_sanity.normalize_header_value value)
+                return (Parser_sanity.normalize_header_value value)
               with _ -> return "" in
             parse_headers' ((header, value) :: headers)
         | _ -> fail (Invalid_header line) 

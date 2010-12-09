@@ -19,9 +19,9 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   USA
 *)
-open Http_common
-open Http_constants
-open Http_types
+open Common
+open Constants
+open Types
 open Printf
 open Lwt
 
@@ -121,8 +121,8 @@ let version msg = msg.m_version
 
 let init ~body ~headers ~version ~clisockaddr ~srvsockaddr =
   let ((cliaddr, cliport), (srvaddr, srvport)) =
-    (Http_misc.explode_sockaddr clisockaddr,
-     Http_misc.explode_sockaddr srvsockaddr) in
+    (Misc.explode_sockaddr clisockaddr,
+     Misc.explode_sockaddr srvsockaddr) in
   let msg = { m_contents = body;
 	      m_headers = Hashtbl.create 11;
 	      m_version = version;

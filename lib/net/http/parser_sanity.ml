@@ -21,8 +21,8 @@
 
 open Printf
 
-open Http_types
-open Http_constants
+open Types
+open Constants
 
 let lws_RE_raw = "(\r\n)?[ \t]"
 let heading_lws_RE = Str.regexp "^\\(\r\n\\)?[ \t]*"

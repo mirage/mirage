@@ -20,7 +20,7 @@
   USA
 *)
 
-open Http_types;;
+open Types;;
 open Printf;;
 
 let debug = ref false

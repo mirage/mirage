@@ -21,7 +21,7 @@
 
 (** Common functionalities shared by other OCaml HTTP modules *)
 
-open Http_types;;
+open Types;;
 
   (** whether debugging messages are enabled or not, can be changed at runtime
   *)

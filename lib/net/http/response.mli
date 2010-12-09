@@ -2,18 +2,18 @@ open Nettypes
 
 type response
 val init :
-  ?body:Http_message.contents list ->
+  ?body:Message.contents list ->
   ?headers:(string * string) list ->
-  ?version:Http_types.version ->
-  ?status:Http_types.status_code ->
+  ?version:Types.version ->
+  ?status:Types.status_code ->
   ?reason:string ->
   ?clisockaddr:sockaddr ->
   ?srvsockaddr:sockaddr -> unit -> response
 val version_string : response -> string
 val code : response -> int
 val set_code : response -> int -> unit
-val status : response -> Http_types.status
-val set_status : response -> Http_types.status -> unit
+val status : response -> Types.status
+val set_status : response -> Types.status -> unit
 val reason : response -> string
 val set_reason : response -> string -> unit
 val status_line : response -> string

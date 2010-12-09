@@ -21,9 +21,9 @@
   USA
 *)
 
-open Http_types
-open Http_constants
-open Http_common
+open Types
+open Constants
+open Common
 open Printf
 open Lwt
 open Nettypes
@@ -37,21 +37,21 @@ let anyize = function
     TCP (addr, -1)
 
 type response = {
-  r_msg: Http_message.message;
+  r_msg: Message.message;
   mutable r_code: int;
   mutable r_reason: string option;
 }
 
 let add_basic_headers r =
-  Http_message.add_header r.r_msg ~name:"Date" ~value:(Http_misc.date_822 ());
-  Http_message.add_header r.r_msg ~name:"Server" ~value:server_string
+  Message.add_header r.r_msg ~name:"Date" ~value:(Misc.date_822 ());
+  Message.add_header r.r_msg ~name:"Server" ~value:server_string
 
 let init
     ?(body = [`String ""]) ?(headers = []) ?(version = default_version)
     ?(status=`Code 200) ?reason ?clisockaddr ?srvsockaddr ()
     =
   let (clisockaddr, srvsockaddr) = (anyize clisockaddr, anyize srvsockaddr) in
-  let r = { r_msg = Http_message.init ~body ~headers ~version ~clisockaddr ~srvsockaddr;
+  let r = { r_msg = Message.init ~body ~headers ~version ~clisockaddr ~srvsockaddr;
 	    r_code = begin match status with
 	      | `Code c -> c
 	      | #status as s -> code_of_status s
@@ -59,33 +59,33 @@ let init
 	    r_reason = reason } in
   let () = add_basic_headers r in r
 
-let version_string r = string_of_version (Http_message.version r.r_msg)
+let version_string r = string_of_version (Message.version r.r_msg)
 
 let code r = r.r_code
 let set_code r c = 
    ignore (status_of_code c);  (* sanity check on c *)
    r.r_code <- c
 let status r = status_of_code (code r)
-let set_status r (s: Http_types.status) = r.r_code <- code_of_status s
+let set_status r (s: Types.status) = r.r_code <- code_of_status s
 let reason r =
    match r.r_reason with
-      | None -> Http_misc.reason_phrase_of_code r.r_code
+      | None -> Misc.reason_phrase_of_code r.r_code
       | Some r -> r
 let set_reason r rs = r.r_reason <- Some rs
 let status_line r =
       String.concat " "
         [version_string r; string_of_int (code r); reason r ]
 
-let is_informational r = Http_common.is_informational r.r_code
-let is_success r = Http_common.is_success r.r_code
-let is_redirection r = Http_common.is_redirection r.r_code
-let is_client_error r = Http_common.is_client_error r.r_code
-let is_server_error r = Http_common.is_server_error r.r_code
-let is_error r = Http_common.is_error r.r_code
+let is_informational r = Common.is_informational r.r_code
+let is_success r = Common.is_success r.r_code
+let is_redirection r = Common.is_redirection r.r_code
+let is_client_error r = Common.is_client_error r.r_code
+let is_server_error r = Common.is_server_error r.r_code
+let is_error r = Common.is_error r.r_code
 
 let gh name r =
-  match Http_message.header r.r_msg ~name with [] -> None | x :: _ -> Some x
-let rh name r = Http_message.replace_header r.r_msg ~name
+  match Message.header r.r_msg ~name with [] -> None | x :: _ -> Some x
+let rh name r = Message.replace_header r.r_msg ~name
 
 let content_type = gh "Content-Type"
 let set_content_type = rh "Content-Type"
@@ -103,12 +103,12 @@ let fstLineToString r =
 
 let serialize r outchan write write_from_exactly = 
   let fstLineToString = fstLineToString r in
-  Http_message.serialize r.r_msg outchan write write_from_exactly ~fstLineToString
+  Message.serialize r.r_msg outchan write write_from_exactly ~fstLineToString
 
 let serialize_to_output_channel r outchan =
   let fstLineToString = fstLineToString r in
-  Http_message.serialize_to_output_channel r.r_msg outchan ~fstLineToString
+  Message.serialize_to_output_channel r.r_msg outchan ~fstLineToString
 
 let serialize_to_stream r =
   let fstLineToString = fstLineToString r in
-  Http_message.serialize_to_stream r.r_msg ~fstLineToString
+  Message.serialize_to_stream r.r_msg ~fstLineToString

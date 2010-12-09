@@ -20,10 +20,10 @@
 *)
 open Printf
 
-open Http_common
-open Http_types
-open Http_constants
-open Http_parser
+open Common
+open Types
+open Constants
+open Parser
 
 open Lwt
 
@@ -33,7 +33,7 @@ let string_of_conn_id = string_of_int
 type daemon_spec = {
   address: string;
   auth: auth_info;
-  callback: conn_id -> Http_request.request -> string Lwt_stream.t Lwt.t;
+  callback: conn_id -> Request.request -> string Lwt_stream.t Lwt.t;
   conn_closed : conn_id -> unit;
   port: int;
   exn_handler: exn -> unit Lwt.t;
@@ -46,16 +46,16 @@ exception Http_daemon_failure of string
   representing an HTML document that explains the meaning of given status code.
   Additional data can be added to the body via 'body' argument *)
 let control_body code body =
-  let reason_phrase = Http_misc.reason_phrase_of_code code in
+  let reason_phrase = Misc.reason_phrase_of_code code in
   sprintf "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>%d %s</TITLE></HEAD><BODY><H1>%d - %s</H1>%s</BODY></HTML>" code reason_phrase code reason_phrase body
 
 let respond_with response =
-  return (Http_response.serialize_to_stream response)
+  return (Response.serialize_to_stream response)
 
-  (* Warning: keep default values in sync with Http_response.response class *)
+  (* Warning: keep default values in sync with Response.response class *)
 let respond ?(body = "") ?(headers = []) ?version ?(status = `Code 200) () =
   let headers = ("connection","close")  :: headers  in
-  let resp = Http_response.init ~body:[`String body] ~headers ?version ~status () in
+  let resp = Response.init ~body:[`String body] ~headers ?version ~status () in
   respond_with resp
 
 let respond_control
@@ -133,9 +133,9 @@ let handle_parse_exn e =
 
   (** - handle HTTP authentication
    *  - handle automatic closures of client connections *)
-let invoke_callback conn_id (req:Http_request.request) spec =
+let invoke_callback conn_id (req:Request.request) spec =
   try_lwt 
-    (match (spec.auth, (Http_request.authorization req)) with
+    (match (spec.auth, (Request.authorization req)) with
        | `None, _ -> spec.callback conn_id req (* no auth required *)
        | `Basic (realm, authfn), Some (`Basic (username, password)) ->
 	   if authfn username password then spec.callback conn_id req (* auth ok *)
@@ -169,7 +169,7 @@ let daemon_callback spec =
 
         let stream =
           try_lwt
-            lwt req = Http_request.init_request ~clisockaddr ~srvsockaddr finished_u flow in
+            lwt req = Request.init_request ~clisockaddr ~srvsockaddr finished_u flow in
             invoke_callback conn_id req spec
           with e -> begin
             try_lwt
@@ -199,7 +199,7 @@ let daemon_callback spec =
   daemon_callback
 
 let main spec =
-  lwt srvsockaddr = Http_misc.build_sockaddr (spec.address, spec.port) in
+  lwt srvsockaddr = Misc.build_sockaddr (spec.address, spec.port) in
   Flow.listen (fun clisockaddr flow ->
       match spec.timeout with
       | None -> daemon_callback spec ~clisockaddr ~srvsockaddr flow

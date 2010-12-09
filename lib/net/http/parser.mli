@@ -21,7 +21,7 @@
 
 (** HTTP messages parsing *)
 
-open Http_types;;
+open Types;;
 
   (** given an HTTP like query string (e.g. "name1=value1&name2=value2&...")
   @return a list of pairs [("name1", "value1"); ("name2", "value2")]
@@ -37,7 +37,7 @@ val split_query_params: string -> (string * string) list
   was specified
   @raise Malformed_request if request 1st linst isn't well formed
   @raise Malformed_request_URI if requested URI isn't well formed *)
-val parse_request_fst_line: Flow.t -> (meth * Http_url.t * version) Lwt.t
+val parse_request_fst_line: Flow.t -> (meth * Url.t * version) Lwt.t
 
   (** parse 1st line of an HTTP response
    * @param inchan input channel from which parse response
@@ -49,10 +49,10 @@ val parse_response_fst_line: Flow.t -> (version * status) Lwt.t
   value (like 'x' in "/foo.cgi?a=10&x=&c=9") are returned associated with the
   empty ("") string.
   @return a list of pairs param_name * param_value *)
-val parse_query_get_params: Http_url.t -> (string * string) list
+val parse_query_get_params: Url.t -> (string * string) list
 
   (** parse the base path (removing query string, fragment, ....) from an URL *)
-val parse_path: Http_url.t -> string
+val parse_path: Url.t -> string
 
   (** parse HTTP headers. Consumes also trailing CRLF at the end of header list
   @param inchan input channel from which parse headers

@@ -59,7 +59,7 @@ let serialize_1_1 (n, c) =
     ("Set-Cookie2", String.concat "; " attrs)
   
 let serialize_1_0 (n, c) =
-  let fmt_time a = Http_misc.rfc822_of_float a in
+  let fmt_time a = Misc.rfc822_of_float a in
   let attrs = if c.secure then ["secure"] else [] in
   let attrs = match c.path with None -> attrs
     | Some p -> ("path=" ^ p) :: attrs in
@@ -92,4 +92,4 @@ let extract req =
          | n :: [] -> (n, "")
          | n :: v :: _ -> (n, v)
        in (List.map split_pair cookies) @ acc
-    ) [] (Http_request.header req "Cookie")
+    ) [] (Request.header req "Cookie")

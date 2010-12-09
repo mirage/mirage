@@ -23,8 +23,8 @@
 open Printf
 open Lwt
 
-open Http_common
-open Http_types
+open Common
+open Types
 
 let debug_dump_request path params =
   debug_print ("request path = " ^ path);
@@ -37,7 +37,7 @@ let auth_sep_RE = Str.regexp_string ":"
 let basic_auth_RE = Str.regexp "^Basic +"
 
 type request = {
-  r_msg: Http_message.message;
+  r_msg: Message.message;
   r_params: (string, string) Hashtbl.t;
   r_get_params: (string * string) list;
   r_post_params: (string * string) list;
@@ -49,12 +49,12 @@ type request = {
  
 let init_request ~clisockaddr ~srvsockaddr finished ic =
   debug_print "init_request";
-  lwt (meth, uri, version) = Http_parser.parse_request_fst_line ic in
-  let uri_str = Http_url.to_string uri in
+  lwt (meth, uri, version) = Parser.parse_request_fst_line ic in
+  let uri_str = Url.to_string uri in
   debug_print (Printf.sprintf ">>> URL=%s" uri_str);
-  let path = Http_parser.parse_path uri in
-  let query_get_params = Http_parser.parse_query_get_params uri in
-  lwt headers = Http_parser.parse_headers ic in
+  let path = Parser.parse_path uri in
+  let query_get_params = Parser.parse_query_get_params uri in
+  lwt headers = Parser.parse_headers ic in
   let headers = List.map (fun (h,v) -> (String.lowercase h, v)) headers in
   lwt body = (if meth = `POST then begin
 		let limit = try Some 
@@ -72,7 +72,7 @@ let init_request ~clisockaddr ~srvsockaddr finished ic =
           try
 	    let ct = List.assoc "content-type" headers in
 	      if ct = "application/x-www-form-urlencoded" then
-		(Http_message.string_of_body body) >|= (fun s -> Http_parser.split_query_params s, [`String s])
+		(Message.string_of_body body) >|= (fun s -> Parser.split_query_params s, [`String s])
 	      else return ([], body)
 	  with Not_found -> return ([], body)
 	end
@@ -80,7 +80,7 @@ let init_request ~clisockaddr ~srvsockaddr finished ic =
   in
   let params = query_post_params @ query_get_params in (* prefers POST params *)
   let _ = debug_dump_request path params in
-  let msg = Http_message.init ~body ~headers ~version ~clisockaddr ~srvsockaddr in
+  let msg = Message.init ~body ~headers ~version ~clisockaddr ~srvsockaddr in
   let params_tbl =
     let tbl = Hashtbl.create (List.length params) in
       List.iter (fun (n,v) -> Hashtbl.add tbl n v) params;
@@ -92,9 +92,9 @@ let init_request ~clisockaddr ~srvsockaddr finished ic =
 let meth r = r.r_meth
 let uri r = r.r_uri
 let path r = r.r_path
-let body r = Http_message.body r.r_msg
-let header r ~name = Http_message.header r.r_msg ~name
-let client_addr r = Http_message.client_addr r.r_msg
+let body r = Message.body r.r_msg
+let header r ~name = Message.header r.r_msg ~name
+let client_addr r = Message.client_addr r.r_msg
 
 let param ?meth ?default r name =
   try
@@ -112,15 +112,15 @@ let param_all ?meth r name =
    | None -> List.rev (Hashtbl.find_all r.r_params name)
    | Some `DELETE
    | Some `HEAD
-   | Some `GET -> Http_misc.list_assoc_all name r.r_get_params
-   | Some `POST -> Http_misc.list_assoc_all name r.r_post_params)
+   | Some `GET -> Misc.list_assoc_all name r.r_get_params
+   | Some `POST -> Misc.list_assoc_all name r.r_post_params)
 
 let params r = r.r_params
 let params_get r = r.r_get_params
 let params_post r = r.r_post_params
 
 let authorization r = 
-  match Http_message.header r.r_msg ~name:"authorization" with
+  match Message.header r.r_msg ~name:"authorization" with
     | [] -> None
     | h :: _ -> 
 	let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in

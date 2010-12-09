@@ -181,15 +181,17 @@ module View = struct
     Raw.set_uint64_be t.i (t.off+off) v;
     Raw.incr_valid t.i (t.off+off) 8
 
-  (* Append an OCaml string into the view *)
+  let set_view dst off src =
+    Raw.blit_istring dst.i (dst.off+off) src.i src.off src.len;
+    Raw.incr_valid dst.i (dst.off+off) src.len
+
   let append_string t src =
     set_string t t.len src;
     t.len <- String.length src + t.len
 
   (* Append another view into this view *)
   let append_view dst src =
-    Raw.blit_istring dst.i (dst.off+dst.len) src.i src.off src.len;
-    Raw.incr_valid dst.i dst.off src.len;
+    set_view dst dst.len src;
     dst.len <- src.len + dst.len
 
   (* Append a byte to the view *)

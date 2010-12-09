@@ -830,7 +830,7 @@ let print_struct env e l =
                          e.p (sprintf "|`Str x -> View.set_string env (%s) x; String.length x" off);
                          e.p (sprintf "|`Sub fn -> let view = View.sub env (%s) 0 in fn view; View.length view" off);
                          e.p (sprintf "|`None -> 0");
-                         e.p (sprintf "|`Frag t -> let view = View.sub env (%s) 0 in View.append_view view t; View.length view in" off);
+                         e.p (sprintf "|`Frag t -> View.set_view env (%s) t; View.length t in" off);
                          if needalign then begin
                            e.p (sprintf "let ___al = (%d - (%s___len mod %d)) mod %d in for i = 1 to ___al do" alignamt id alignamt alignamt);
                            indent_fn e (fun e -> e.p "View.append_byte env 0;");

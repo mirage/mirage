@@ -714,16 +714,16 @@ let print_struct env e l =
                   unsup "bit";
                 |V.Value ("byte",V.UInt V.I8,_) ->
                   let tsz = foldfn [ocaml_size_of_ty env id szo v] in
-                  prfn (sprintf "View.append_byte (View.sub env %s %s) v" off tsz);
+                  prfn (sprintf "View.set_byte env %s v" off);
                 |V.Value (_,V.UInt V.I16,_) ->
                   let tsz = foldfn [ocaml_size_of_ty env id szo v] in
-                  prfn (sprintf "View.append_uint16_be (View.sub env %s %s) v" off tsz);
+                  prfn (sprintf "View.set_uint16_be env %s v" off);
                 |V.Value (_,V.UInt V.I32,_) ->
                   let tsz = foldfn [ocaml_size_of_ty env id szo v] in
-                  prfn (sprintf "View.append_uint32_be (View.sub env %s %s) v" off tsz);
+                  prfn (sprintf "View.set_uint32_be env %s v" off);
                 |V.Value (_,V.UInt V.I64,_) ->
                   let tsz = foldfn [ocaml_size_of_ty env id szo v] in
-                  prfn (sprintf "View.append_uint64_be (View.sub env %s %s) v" off tsz);
+                  prfn (sprintf "View.set_uint64_be env %s v" off);
                 |V.Array (_,V.UInt V.I8,_) ->
                   unsup "byte array"; 
                 |V.Class _ ->

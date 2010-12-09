@@ -40,12 +40,23 @@ let dyntype_lib =
 let dyntype_syntax =
   Util.get_lib "dyntype" ^ "/syntax"
 
+let os_lib =
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
+  Util.get_lib "os" ^ (sf "/%s" os)
+
+let os_runtime_lib = 
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
+  Util.get_lib "os" ^ (sf "/runtime_%s" os)
+
 let net_lib lib =
   let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
   sf "%s/%s/%s" (Util.get_lib "net") os lib
 
 let http_lib = 
   net_lib "http"
+
+let caml_lib =
+  List.hd (Util.run_and_read "ocamlc -where")
 
 module Flags = struct
 
@@ -80,19 +91,21 @@ module Flags = struct
   let dyntype = [ A"-I"; A dyntype_lib ]
   let ulex    = [ A"-I"; A std_lib ]
   let cow     = [ A"-I"; A "lib" ]
+  let os      = [ A"-I"; A os_lib ]
   let http    = [ A"-I"; A http_lib ]
 
   let all_deps = [
+    A"-ccopt"; A (sf "-L%s" caml_lib); A"-verbose";
     A"dyntype.cmx";
     A"ulex.cmxa";
-    A"cow.cmx";
-    A"http.cmxa";
     A"lwt.cmxa";
+    A"oS.cmxa";
+    A"http.cmxa";
+    A"cow.cmx";
   ]
 
   let all =
-    stdlib @ dyntype @ ulex @ http @ cow
-
+    stdlib @ dyntype @ ulex @ http @ os @ cow
 end
 
 module Expand = struct

@@ -826,12 +826,11 @@ let print_struct env e l =
                          |_ -> false,0
                          in
                          let off = foldfn !szs in
-                         e.p (sprintf "let ___env = View.sub env (%s) 0 in" off);
                          e.p (sprintf "let %s___len = match %s with " id id);
-                         e.p (sprintf "|`Str x -> View.append_string ___env x; String.length x");
-                         e.p (sprintf "|`Sub fn -> ignore(fn ___env); View.length ___env");
+                         e.p (sprintf "|`Str x -> View.set_string env (%s) x; String.length x" off);
+                         e.p (sprintf "|`Sub fn -> let view = View.sub env (%s) 0 in fn view; View.length view" off);
                          e.p (sprintf "|`None -> 0");
-                         e.p (sprintf "|`Frag t -> View.append_view ___env t; View.length ___env in");
+                         e.p (sprintf "|`Frag t -> let view = View.sub env (%s) 0 in View.append_view view t; View.length view in" off);
                          if needalign then begin
                            e.p (sprintf "let ___al = (%d - (%s___len mod %d)) mod %d in for i = 1 to ___al do" alignamt id alignamt alignamt);
                            indent_fn e (fun e -> e.p "View.append_byte env 0;");

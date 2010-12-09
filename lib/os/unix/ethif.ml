@@ -106,7 +106,7 @@ let output t fn =
   let page = Istring.Raw.alloc sz in
   let v = Istring.View.t page 0 in
   let _ = fn v in
-  Tap.write t.dev v.Istring.View.i v.Istring.View.len;
+  Tap.write t.dev v.Istring.View.i (Istring.View.valid v);
   return ()  
 
 (** Return a list of valid VIF IDs *)

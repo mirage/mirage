@@ -8,9 +8,11 @@ let _ = dispatch begin function
     flag ["ocaml"; "compile"; "nostdlib"] & S [A"-I"; A"lib/"; A"-nostdlib"];
     flag ["ocaml"; "pack"   ; "nostdlib"] & S [A"-I"; A"lib/"; A"-nostdlib"];
 
-    (* use pa_lwt syntax extension if the _tags file specifies it *)
-    flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A"camlp4o -I syntax pa_lwt.cmo"];
-    flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A"camlp4o -I syntax pa_lwt.cmo"];
+    List.iter (fun lib ->
+      (* use pa_`lib` syntax extension if the _tags file specifies it *)
+      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (Printf.sprintf "camlp4o -I syntax pa_%s.cmo" lib)];
+      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (Printf.sprintf "camlp4o -I syntax pa_%s.cmo" lib)];
+    ) [ "lwt"; "ulex" ];
 
     (* add a dependency to the local pervasives *)
     dep ["ocaml"; "compile"; "need_pervasives"] ["lib/pervasives.cmi"];

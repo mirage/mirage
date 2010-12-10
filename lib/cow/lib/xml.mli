@@ -124,9 +124,11 @@ type source = [
 type input
 (** The type for input abstractions. *)
 
-val make_input : ?enc:encoding option -> ?strip:bool -> 
-                 ?ns:(string -> string option) -> 
-		 ?entity: (string -> string option) -> source -> input
+val make_input :
+  ?templates:bool ->
+  ?enc:encoding option -> ?strip:bool -> 
+  ?ns:(string -> string option) -> 
+	?entity: (string -> string option) -> source -> input
 (** Returns a new input abstraction reading from the given source.
     {ul 
     {- [enc], character encoding of the document, {{:#inenc} details}. 
@@ -358,9 +360,11 @@ module type S = sig
 
   type input
 
-  val make_input : ?enc:encoding option -> ?strip:bool -> 
-                   ?ns:(string -> string option) -> 
-		   ?entity: (string -> string option) -> source -> input
+  val make_input :
+    ?templates:bool ->
+    ?enc:encoding option -> ?strip:bool -> 
+    ?ns:(string -> string option) -> 
+		?entity: (string -> string option) -> source -> input
 
   val input : input -> signal
 

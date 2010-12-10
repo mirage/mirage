@@ -1,2 +1,3 @@
 lib/stdlib.cmxa
 lib/lwt.cmxa
+lib/ulex.cmxa

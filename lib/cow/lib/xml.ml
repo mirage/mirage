@@ -69,6 +69,7 @@ module type S = sig
   type input 
 	
   val make_input :
+    ?templates:bool ->
     ?enc:encoding option ->
     ?strip:bool -> 
     ?ns:(string -> string option) -> 
@@ -217,6 +218,7 @@ struct
   let u_9 = 0x0039      (* 9 *)
   let u_F = 0x0046      (* F *)
   let u_D = 0X0044      (* D *)
+  let u_dollar = 0X0024 (* dollar *)
       
   let s_cdata = str "CDATA["      
   let ns_xml = str "http://www.w3.org/XML/1998/namespace"
@@ -300,6 +302,7 @@ struct
     | Dtd            (* '<!' *) 
     | Text           (* other character *)
     | Eoi            (* End of input *)
+    | Dollar         (* Template *)
 	
   type source = [ 
     | `String of int * std_string
@@ -311,6 +314,7 @@ struct
       fun_ns : string -> string option;                (* Namespace callback. *)
       fun_entity : string -> string option;     (* Entity reference callback. *)
       i : unit -> int;                                   (* Byte level input. *)
+      templates : bool;                                    (* parse templates *)
       mutable uchar : (unit -> int) -> int;       (* Unicode character lexer. *)
       mutable c : int;                                (* Character lookahead. *)
       mutable cr : bool;                          (* True if last u was '\r'. *)
@@ -340,13 +344,14 @@ struct
   let signal_start_stream = `Data String.empty
 
   let make_input
+      ?(templates = false)
       ?(enc = None)
       ?(strip = false)
       ?(ns = fun _ -> None) 
       ?(entity = fun _ -> None)
       src = 
     let i = match src with
-    | `Fun f -> f 
+    | `Fun f -> f
     | `String (pos, s) -> 
 	let len = Std_string.length s in
 	let pos = ref (pos - 1) in
@@ -362,7 +367,7 @@ struct
       Ht.add h n_xmlns ns_xmlns;
       h
     in
-    { enc = enc; strip = strip; fun_ns  = ns; fun_entity = entity;
+    { enc = enc; strip = strip; fun_ns  = ns; fun_entity = entity; templates;
       i = i; uchar = uchar_byte; c = u_start_doc; cr = false;
       line = 1; col = 0; limit = Text; peek = signal_start_stream; 
       stripping = strip; last_white = true; scopes = []; ns = bindings; 
@@ -605,6 +610,7 @@ struct
 
   let p_limit i =                                   (* Parses a markup limit *)
     i.limit <-
+      if i.c = u_dollar then Dollar else
       if i.c = u_eoi then Eoi else
       if i.c <> u_lt then Text else 
       begin
@@ -662,8 +668,21 @@ struct
       skip_white_eof i; p_limit i; skip_misc i ~allow_xmlpi
   | _ -> ()
       
+  let p_dollar addc i =
+    clear_data i;
+    addc i i.c;
+    nextc i;
+    while (i.c <> u_dollar) do
+      addc i i.c;
+      nextc i;
+    done;
+    addc i i.c;
+    nextc i;
+    p_limit i;
+    Buffer.contents i.data
+
   let p_chardata addc i =           (* {CharData}* ({Reference}{Chardata})* *)
-    while (i.c <> u_lt) do 
+    while (i.c <> u_lt) && (not i.templates || i.c <> u_dollar) do 
       if i.c = u_amp then String.iter (addc i) (p_reference i)
       else if i.c = u_rbrack then 
 	begin 
@@ -679,6 +698,7 @@ struct
       else
 	(addc i i.c; nextc i)
     done
+
 
   let rec p_cdata addc i =                               (* {CData} {CDEnd} *)
     try while (true) do 
@@ -790,9 +810,10 @@ struct
       	  
   let p_data i = 
     let rec bufferize addc i = match i.limit with 
-    | Text -> p_chardata addc i; p_limit i; bufferize addc i
+    | Dollar when i.templates -> ()
+    | Text | Dollar -> p_chardata addc i; p_limit i; bufferize addc i
     | Cdata -> p_cdata addc i; p_limit i; bufferize addc i
-    | (Stag _ | Etag _) -> ()
+    | Stag _ | Etag _ -> ()
     | Pi _ -> skip_pi i; p_limit i; bufferize addc i
     | Comment -> skip_comment i; p_limit i; bufferize addc i
     | Dtd -> err i (`Illegal_char_seq (str "<!D"))
@@ -835,7 +856,8 @@ struct
       let rec find i = match i.limit with 
       | Stag n -> p_el_start_signal i n
       | Etag n -> p_el_end_signal i n
-      | Text | Cdata -> 
+      | Dollar when i.templates -> `Data (p_dollar addc_data i)
+      | Text | Cdata | Dollar ->
 	  let d = p_data i in
 	  if str_empty d then find i else `Data d
       | Pi _ -> skip_pi i; p_limit i; find i
@@ -1203,17 +1225,17 @@ let to_string t =
 
 (* XXX: do a proper input_subtree integration *)
 (*** XHTML parsing (using Xml) ***)
-let _input_tree input =
-  let el (name, attrs) body = `El ((name, attrs), body) in
-  let data str = `Data str in
+let _input_tree (templates : (string * t) list) input : t =
+  let el (name, attrs) body : t = [ `El ((name, attrs), List.flatten body) ] in
+  let data str : t =
+    if List.mem_assoc str templates then
+      List.assoc str templates
+    else
+      [`Data str] in
   input_tree ~el ~data input
 
-let subst_re ~frm ~tos s =
-  let rex = Str.regexp_string ("$"^frm^"$") in
-  Str.global_replace rex tos s
-
 let of_string ?entity ?(templates : (string * t) list = []) ?enc str =
-  let templates = List.map (fun (name,xml) -> name, to_string xml) templates in
+  let templates = List.map (fun (k,v) -> "$"^k^"$", v) templates in
   (* It is illegal to write <:html<<b>foo</b>>> so we use a small trick and write
      <:html<<b>foo</b>&>> *)
   let str = if str.[String.length str - 1] = '&' then
@@ -1221,17 +1243,16 @@ let of_string ?entity ?(templates : (string * t) list = []) ?enc str =
   else
     str in
   (* input needs a root tag *)
-  let str = List.fold_left (fun accu (name, txt) -> subst_re ~frm:name ~tos:txt accu) str templates in
   let str = Printf.sprintf "<xxx>%s</xxx>" str in
   try
-    let i = make_input ~enc ?entity (`String (0,str)) in
+    let i = make_input ~templates:true ~enc ?entity (`String (0,str)) in
     (* make_input builds a well-formed document, so discard the Dtd *)
     (match peek i with
       | `Dtd _ -> let _ = input i in ()
       | _      -> ());
     (* Remove the dummy root tag *)
-    match _input_tree i with
-      | `El ((("","xxx"), []), body) -> body
+    match _input_tree templates i with
+      | [ `El ((("","xxx"), []), body) ]-> body
       | _ -> raise Parsing.Parse_error
   with Error (pos, e) ->
     Printf.eprintf "[XMLM:%d-%d] %s: %s\n"(fst pos) (snd pos) str (error_message e);

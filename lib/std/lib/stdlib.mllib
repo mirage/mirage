@@ -1,4 +1,5 @@
 # Standard lib
+Base64
 String
 Str
 Stack
@@ -11,6 +12,7 @@ Nativeint
 Marshal
 Map
 Lazy
+Stream
 List
 Lexing
 Int64

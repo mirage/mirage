@@ -28,21 +28,11 @@ module Util = struct
         sf "../../%s/_build" lib
 end
 
-module Ocamlfind = struct
-  let query package predicates =
-    let predicates = match predicates with
-      | `native -> "native"
-      | `byte   -> "byte"
-      | `syntax -> "preprocessor,syntax" in
-    let incls =
-      Util.run_and_read (sf "ocamlfind -query %s -predicates %s -r -i-format" package predicates) in
-    let files =
-      Util.run_and_read (sf "ocamlfind -query %s -predicates %s -r -a-format" package predicates) in
-    String.concat " " (incls @ files)
-end
-
-let stdlib =
+let std_lib =
   Util.get_lib "std" ^ "/lib"
+
+let std_syntax =
+  Util.get_lib "std" ^ "/syntax"
 
 let dyntype_lib =
   Util.get_lib "dyntype" ^ "/lib"
@@ -50,31 +40,88 @@ let dyntype_lib =
 let dyntype_syntax =
   Util.get_lib "dyntype" ^ "/syntax"
 
+let os_lib =
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
+  Util.get_lib "os" ^ (sf "/%s" os)
+
+let os_runtime_lib = 
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
+  Util.get_lib "os" ^ (sf "/runtime_%s" os)
+
+let net_lib lib =
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
+  sf "%s/%s/%s" (Util.get_lib "net") os lib
+
+let http_lib = 
+  net_lib "http"
+
+let caml_lib =
+  List.hd (Util.run_and_read "ocamlc -where")
+
 module Flags = struct
 
-  let dyntype_includes =
-    let deps = Ocamlfind.query "camlp4.quotations" `syntax in
-    sf "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" deps dyntype_syntax
+  let camlp4_magic =
+    "-parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander"
 
-  let cow_includes =
-    sf "%s -I syntax str.cma pa_xml.cmo pa_html.cmo" dyntype_includes
+  let pa_dyntype_deps =
+    sf "-I +camlp4 %s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" camlp4_magic dyntype_syntax
 
-  let camlp4 includes =
-    sf "camlp4o %s" includes
+  let pa_ulex_deps =
+    sf "-I %s pa_ulex.cmo" std_syntax
 
-  let stdlib = [
-    A"-nostdlib"; A"-I"; A stdlib;
+  let pa_lwt_deps =
+    sf "-I %s pa_lwt.cmo" std_syntax
+
+  let pa_cow_deps =
+    sf "%s %s %s -I syntax str.cma pa_cow.cmo" pa_ulex_deps pa_lwt_deps pa_dyntype_deps
+
+  let camlp4 deps = [
+    A"-pp"; A (sf "camlp4o %s" deps)
   ]
 
-  let dyntype = [
-    A"-I"; A"+camlp4"; A"-pp" ; A(camlp4 dyntype_includes);
+  let pa_dyntype = [
+    A"-I"; A"+camlp4";
     A"-I"; A dyntype_syntax;
+  ] @ camlp4 pa_dyntype_deps
+
+  let pa_ulex = camlp4 pa_ulex_deps
+  let pa_cow  = camlp4 pa_cow_deps
+
+  let stdlib  = [ A"-nostdlib"; A"-I"; A std_lib; ]
+  let dyntype = [ A"-I"; A dyntype_lib ]
+  let ulex    = [ A"-I"; A std_lib ]
+  let cow     = [ A"-I"; A "lib" ]
+  let os      = [ A"-I"; A os_lib ]
+  let http    = [ A"-I"; A http_lib ]
+
+  let all_deps = [
+    A"-ccopt"; A (sf "-L%s" caml_lib); A"-verbose";
+    A"dyntype.cmx";
+    A"ulex.cmxa";
+    A"lwt.cmxa";
+    A"oS.cmxa";
+    A"http.cmxa";
+    A"cow.cmx";
   ]
 
-  let cow = [
-    A"-pp"; A (camlp4 cow_includes);
-  ]
+  let all =
+    stdlib @ dyntype @ ulex @ http @ os @ cow
+end
 
+module Expand = struct
+  let camlp4o tags arg out =
+    Cmd (S [A"camlp4o"; A"-printer"; A"o"; T(tags++"ocaml"++"camlp4"++"pa_exp"); P arg; Sh">"; Px out])
+
+  let camlp4o_expand ml exp_ml env build =
+    let ml = env ml and exp_ml = env exp_ml in
+    let tags = tags_of_pathname ml in
+    camlp4o tags ml exp_ml
+
+  let () =
+    rule "expand: ml -> _exp.ml"
+      ~prod:"%_exp.ml"
+      ~dep:"%.ml"
+      (camlp4o_expand "%.ml" "%_exp.ml");
 end
 
 let _ = dispatch begin function
@@ -85,12 +132,22 @@ let _ = dispatch begin function
     flag ["ocaml"; "pack"   ; "use_mirage_stdlib"] & S Flags.stdlib;
 
     (* use pa_dyntype syntax extension if the _tags file specifies it *)
-    flag ["ocaml"; "compile" ; "pa_dyntype"] & S Flags.dyntype;
-    flag ["ocaml"; "ocamldep"; "pa_dyntype"] & S Flags.dyntype;
+    flag ["ocaml"; "compile" ; "pa_dyntype"] & S Flags.pa_dyntype;
+    flag ["ocaml"; "ocamldep"; "pa_dyntype"] & S Flags.pa_dyntype;
+
+    (* use http if the _tags file specifies it *)
+    flag ["ocaml"; "compile" ; "use_http"] & S Flags.http;
+    flag ["ocaml"; "ocamldep"; "use_http"] & S Flags.http;
 
     (* use pa_cow syntax extension if the _tags file specifies it *)
-    flag ["ocaml"; "compile" ; "pa_cow"] & S Flags.cow;
-    flag ["ocaml"; "ocamldep"; "pa_cow"] & S Flags.cow;
+    flag ["ocaml"; "compile" ; "pa_cow"] & S Flags.pa_cow;
+    flag ["ocaml"; "ocamldep"; "pa_cow"] & S Flags.pa_cow;
+    flag ["ocaml"; "camlp4"  ; "pa_exp"] & Sh Flags.pa_cow_deps;
+
+    (* use pa_cow syntax extension if the _tags file specifies it *)
+    flag ["ocaml"; "compile" ; "use_cow"]        & S Flags.all;
+    flag ["ocaml"; "link" ; "native"; "use_cow"] & S (Flags.all @ Flags.all_deps);
+    flag ["ocaml"; "ocamldep"; "use_cow"]        & S Flags.cow;
 
   | _ -> ()
 end

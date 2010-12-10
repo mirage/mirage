@@ -11,7 +11,7 @@ syntax/dyntype.ml:
 	@cd syntax && ln -nfs ../lib/dyntype.ml .
 
 syntax: syntax/dyntype.ml
-	ocamlbuild -I syntax -use-ocamlfind syntax.otarget
+	ocamlbuild syntax.otarget
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/dyntype
 install:

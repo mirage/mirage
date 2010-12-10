@@ -1,5 +1,4 @@
 clock_stubs.o
-page_stubs.o
 socket_stubs.o
 console_stubs.o
 evtchn_stubs.o

@@ -26,7 +26,6 @@
 typedef struct istring {
   unsigned char *buf; /* Pointer to buffer */
   size_t size;        /* Total length of buffer */
-  size_t valid;       /* Valid length of buffer */
   unsigned int ref;   /* Reference count */
 } istring;
 

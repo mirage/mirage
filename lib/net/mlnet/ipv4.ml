@@ -78,8 +78,8 @@ let output t ~dest_ip (ip:'a ip_output) =
           fail (No_route_to_destination_address dest_ip)
     end in
   let ipfn env = 
-    let p = ip env ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None in
-    let csum = Checksum.ip p in
+    let p = ip ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None env in
+    let csum = OS.Istring.View.ones_complement_checksum p#env p#header_end 0l in
     p#set_checksum csum;
   in
   let etherfn = Mpl.Ethernet.IPv4.t

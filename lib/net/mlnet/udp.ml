@@ -38,9 +38,14 @@ let output t ~dest_ip udp =
   let src_ip = Ipv4.get_ip t.ip in
   let src = ipv4_addr_to_uint32 src_ip in
   let udpfn env =
-     let p = udp env in
-     let _ (* csum *) = Checksum.udp src_ip dest_ip p in
-     (* p#set_checksum csum *) () in
+    let p = udp env in
+    let src_ip_i32 = ipv4_addr_to_uint32 src_ip in
+    let dest_ip_i32 = ipv4_addr_to_uint32 dest_ip in
+    let pseudo = Int32.(add (add src_ip_i32 dest_ip_i32) (of_int (17+p#total_length))) in
+    let _csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof pseudo in
+    (* XXX off by one somewhere here? very odd - avsm *)
+    (* p#set_checksum csum *)
+    () in
   let ipfn env =
     Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
   Ipv4.output t.ip ~dest_ip ipfn

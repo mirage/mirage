@@ -119,7 +119,10 @@ let sequence_between seq base off =
 let output_tcp_low t ~dest_ip fn =
   let tcpfn env = 
     let p = fn env in
-    let csum = Checksum.tcp (IP.get_ip t.ip) dest_ip p in
+    let src_ip_i32 = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
+    let dest_ip_i32 = ipv4_addr_to_uint32 dest_ip in
+    let pseudo = Int32.(add (add src_ip_i32 dest_ip_i32) (of_int (6+p#sizeof))) in
+    let csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof pseudo in
     p#set_checksum csum;
     Mpl.Tcp.prettyprint p;
   in

@@ -79,7 +79,7 @@ let output t ~dest_ip (ip:'a ip_output) =
     end in
   let ipfn env = 
     let p = ip env ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None in
-    let csum = Checksum.ip (p#header_end / 4) p#env in
+    let csum = Checksum.ip p in
     p#set_checksum csum;
   in
   let etherfn = Mpl.Ethernet.IPv4.t

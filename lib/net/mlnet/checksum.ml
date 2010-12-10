@@ -21,29 +21,25 @@ let ones_checksum sum =
   0xffff - ((sum lsr 16) + (sum land 0xffff))
 
 (* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
-let ip sz env =
+let ip (ip:Mpl.Ipv4.o) =
   let sum = ref 0 in
-  let sz = OS.Istring.View.length env / 4 in
+  let env = ip#env in
+  let sz = ip#header_end / 2 in
   for i = 0 to sz - 1 do
-    let x = OS.Istring.View.to_uint16_be env (i * 4) in
-    let y = OS.Istring.View.to_uint16_be env (i * 4 + 2) in
-    sum := !sum + x + y;
+    sum := OS.Istring.View.to_uint16_be env (i * 2) + !sum
   done;
   ones_checksum !sum
 
 (* TODO: coalesce bounds checking as MPL.dissect used to -avsm 
    TODO: broken for x % 4 != 0 length packets *)
-let icmp env =
+let icmp (icmp:Mpl.Icmp.o) =
   let sum = ref 0 in
-  let sz = OS.Istring.View.length env in
-  for i = 0 to sz / 4 - 1 do
-    let x = OS.Istring.View.to_uint16_be env (i * 4) in
-    let y = OS.Istring.View.to_uint16_be env (i * 4 + 2) in
-    sum := !sum + x + y;
+  let env = Mpl.Icmp.env icmp in
+  let sz = Mpl.Icmp.sizeof icmp / 2 in
+  for i = 0 to sz - 1 do
+    sum := OS.Istring.View.to_uint16_be env (i * 2) + !sum
   done;
-  let csum = ones_checksum !sum in
-  Printf.eprintf "sum=%d csum=%d" !sum csum;
-  csum
+  ones_checksum !sum
 
 (* TODO: coalesce bounds checking as MPL.dissect used to -avsm *)
 let udp ip_src ip_dest (udp:Mpl.Udp.o)  =
@@ -79,8 +75,8 @@ let tcp ip_src ip_dest (tcp:Mpl.Tcp.o) =
   add32 (ipv4_addr_to_uint32 ip_dest);
   addsum 6;
   let len = tcp#sizeof in
-  addsum len;
   let env = tcp#env in
+  addsum len;
   for i = 0 to len / 2 - 1 do
     addsum (OS.Istring.View.to_uint16_be env (i*2));
   done;
@@ -88,4 +84,3 @@ let tcp ip_src ip_dest (tcp:Mpl.Tcp.o) =
     addsum (OS.Istring.View.to_uint16_be env (len-1) lsl 8);
   let csum = ones_checksum !sum in
   csum
-

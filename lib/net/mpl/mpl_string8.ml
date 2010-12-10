@@ -24,7 +24,6 @@ let size (s:t) =
 
 let unmarshal env pos : t =
   let sz = to_byte env pos in
-  skip env ~pos (sz+1);
   to_string env (pos+1) sz
 
 let to_string (t:t) = t

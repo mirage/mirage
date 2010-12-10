@@ -31,7 +31,7 @@ let input t ip = function
     let data = `Frag icmp#data_sub_view in
     let icmpfn env =
       let p = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
-      let csum = Checksum.icmp p#env in
+      let csum = Checksum.icmp (`EchoReply p) in
       p#set_checksum csum;
     in
     (* Create the IPv4 packet *)

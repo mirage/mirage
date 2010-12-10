@@ -67,6 +67,7 @@ module Raw = struct
   (* Get and set valid size of an istring buffer. *)
   external valid: t -> int = "caml_istring_valid" "noalloc"
   external incr_valid: t -> int -> int -> unit = "caml_istring_incr_valid" "noalloc"
+  external set_valid: t -> int -> unit = "caml_istring_incr_valid" "noalloc"
   
   (* Increment and decrement reference count *)
   external incr: t -> unit = "caml_istring_ref_incr" "noalloc"
@@ -211,8 +212,9 @@ module View = struct
     Raw.to_uint64_be t.i (t.off+off)
 
   (* Skip forward a number of bytes, extending length if needed *)
-  let skip t ~pos x =
-    if pos > t.len then t.len <- t.len + x;
-    (* TODO set raw length *) ()
-
+  let seek t pos =
+    if pos > t.len then begin
+      t.len <- pos;
+      Raw.set_valid t.i (t.off+pos)
+    end
 end

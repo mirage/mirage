@@ -110,6 +110,16 @@ caml_istring_incr_valid(value v_istr, value v_off, value v_size)
   return Val_unit;
 }
 
+CAMLprim value
+caml_istring_set_valid(value v_istr, value v_off)
+{
+  istring *i = Istring_val(v_istr);
+  size_t nv = Int_val(v_off);
+  i->valid = (i->valid > nv ? i->valid : nv);
+  return Val_unit;
+}
+
+
 /* Get a character from an istring */
 CAMLprim value
 caml_istring_safe_get_char(value v_istr, value v_off)

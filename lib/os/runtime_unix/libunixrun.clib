@@ -2,7 +2,6 @@ clock_stubs.o
 socket_stubs.o
 console_stubs.o
 evtchn_stubs.o
-time_stubs.o
 istring_stubs.o
 tap_stubs.o
 tap_stubs_os.o

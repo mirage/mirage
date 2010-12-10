@@ -184,7 +184,7 @@ endif
 export OCAMLC
 
 ifndef OCAMLOPT
-  OCAMLOPT := ocamlopt
+  OCAMLOPT := ocamlopt.opt
 endif
 export OCAMLOPT
 

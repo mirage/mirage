@@ -50,17 +50,17 @@ let is_custom_type = function
 
 let custom_type_marshal = function
    |V.Value ("dns_label",_,_) ->
-      sprintf "Mpl_dns_label.marshal env"
+      sprintf "Mpl_dns_label.marshal"
    |V.Value ("dns_label_comp",_,_) ->
-      sprintf "Mpl_dns_label.marshal ~comp:true env"
+      sprintf "Mpl_dns_label.marshal ~comp:true"
    |V.Value ("string32",_,_) ->
-      sprintf "Mpl_string32.marshal env"
+      sprintf "Mpl_string32.marshal"
    |V.Value ("string8",_,_) ->
-      sprintf "Mpl_string8.marshal env"
+      sprintf "Mpl_string8.marshal"
    |V.Value ("mpint",_,_) ->
-      sprintf "Mpl_mpint.marshal env"
+      sprintf "Mpl_mpint.marshal"
    |V.Value ("boolean",_,_) ->
-      sprintf "Mpl_boolean.marshal env"
+      sprintf "Mpl_boolean.marshal"
    |x -> failwith (sprintf "custom_type_marshal: %s" (V.to_string x))
 
 let custom_type_prettyprint id = function
@@ -268,7 +268,7 @@ let ocaml_string_of_expr ?(statevar=false) ?(rfn=None) ?(toint=false) ty env =
         |V.UInt V.I64 -> sprintf "(Int64.of_int %s)" x
         |_ -> failwith "ocaml_string_of_expr: sizeof"
         in s
-    | S.Function_call ("remaining",None) -> "(View.remaining env)"
+    | S.Function_call ("remaining",None) -> "(env.View.len - __pos)"
     | S.Function_call ("array_length",Some f) -> sprintf "(Array.length %s)" f
     | S.Function_call (x,y) -> interr (sprintf "func '%s' not implemented yet" x)
     in fn
@@ -412,10 +412,11 @@ let print_unmarshal env e l =
     );
     e --> (fun e ->
       e += "(env:View.t) : o =";
+      e += "let __pos = 0 in";
       let rec fn envstr dum env e = function
       |V.S_var (id,szo,ty) :: r -> begin
         let env = var_bind_env env id szo ty in
-        let prfn x = e += "let %s = %s in" $ id $ x in
+        let prfn x sz = e += "let %s = %s in let __pos = __pos + %s in" $ id $ x $ sz in
         let dum = match ty with
         |V.Value (_,_,{V.av_bitdummy=true}) -> dum @ [id]
         |_ -> dum in
@@ -423,24 +424,27 @@ let print_unmarshal env e l =
         let _ =  match ty with
         |V.Array (_,(V.UInt V.I8 as b),_) ->
           let sz = must (fun x -> x) szo in
-          if not (E.is_const sz) then
+          if not (E.is_const sz) then (
             e += "let %s_length = %s in" $ id $ (ocaml_string_of_expr ~toint:true b env sz);
+          )
         |_ -> () in
         if List.mem id vvars then begin
           match ty with
           |V.Value ("bit",V.UInt V.I8,at) ->
             e += "let %s = %s in (* bitu *)" $ id $ (B.to_expr dum at.V.av_bitops);
           |V.Value ("byte",V.UInt V.I8,at) ->
-            prfn (sprintf "View.unmarshal_byte env ");
+            prfn "View.to_byte env __pos" "1";
           |V.Value (_,V.UInt V.I8,_) -> interr "print_unmarshal"
-          |V.Value (_,V.UInt V.I16,_) -> prfn "View.unmarshal_uint16_be env";
-          |V.Value (_,V.UInt V.I32,_) -> prfn "View.unmarshal_uint32_be env";
-          |V.Value (_,V.UInt V.I64,_) -> prfn "View.unmarshal_uint64_be env";
+          |V.Value (_,V.UInt V.I16,_) -> prfn "View.to_uint16_be env __pos" "2";
+          |V.Value (_,V.UInt V.I32,_) -> prfn "View.to_uint32_be env __pos" "4";
+          |V.Value (_,V.UInt V.I64,_) -> prfn "View.to_uint64_be env __pos" "8";
           |V.Array (xt,(V.UInt V.I8 as b),_) ->
             let sz = must (fun x -> x) szo in
-            prfn (sprintf "View.unmarshal_string env %s" (ocaml_string_of_expr ~toint:true b env sz));
+            let osz = ocaml_string_of_expr ~toint:true b env sz in
+            prfn (sprintf "View.to_string env __pos (%s)" osz) osz;
           |V.Label -> ()
-          |a -> prfn (custom_type_unmarshal a ^ " env")
+          |ty ->
+            prfn (custom_type_unmarshal ty ^ " env __pos") (foldfn1 [ocaml_size_of_ty env id szo ty])
         end else begin
           match ty with
           |V.Value ("bit",V.UInt V.I8,at) -> ()
@@ -448,21 +452,22 @@ let print_unmarshal env e l =
             if List.length args > 0 then
               failwith "propagating args across packets not yet supported, sorry!";
             (* need to rebase the environment since this packet is foreign *)
-            e += "let ___%s___env = View.sub env (View.pos env) 0 in" $ id;
+            e += "let ___%s___env = View.sub env __pos 0 in" $ id;
             e += "let %s = %s.unmarshal ___%s___env in" $ id $ p $ id;
             (* skip forward by the amount of  unmarshalling that happened *)
-            e += "View.skip env (View.pos ___%s___env);" $ id;
+            e += "View.skip env ~pos:__pos (View.length ___%s___env);" $ id;
           |ty -> 
             if is_custom_type ty then begin
-              e += "let %s = %s env in (* custom *)" $ id $ (custom_type_unmarshal ty);
+              e += "let %s = %s env __pos in (* custom *)" $ id $ (custom_type_unmarshal ty);
+              e += "let __pos = %s + __pos in" $ (foldfn1 [ocaml_size_of_ty env id szo ty]);
             end else begin
               let size = ocaml_size_of_ty env id szo ty in
               let sst = foldfn1 [size] in
-              e += "View.skip env %s; (* skipped %s *)" $ sst $ id;
+              e += "let __pos = View.skip env ~pos:__pos %s; __pos + %s in (* skipped %s *)" $ sst $ sst $ id ;
             end;
         end;
         if Hashtbl.mem env.offsets id then
-          e += "let %s___offset = View.pos env in" $ id;
+          e += "let %s___offset = __pos in" $ id;
         fn envstr dum env e r;
       end
       |V.S_class (id, idty, l) :: r ->
@@ -487,12 +492,23 @@ let print_unmarshal env e l =
       |V.S_array (id,sz,xs) :: r ->
         let aenv = array_bind_env env id sz in
         let nenv = {aenv with vars=[]; inarr=true; mods=id::env.mods} in
-        e += "let %s = Array.init %s (fun _ ->" $ id $ (ocaml_string_of_expr (V.UInt V.I16) env sz);
+        e += "let __lpos = ref __pos in";
+        e += "let %s =" $ id;
         e --> (fun e ->
-          e += "let __oldpos = View.pos env in";
-          fn (sprintf "(View.sub env __oldpos 0)") dum nenv e xs);
+          e += "Array.init %s (fun _ ->" $ (ocaml_string_of_expr (V.UInt V.I16) env sz);
+          e --> (fun e ->
+            e += "let __start_pos = !__lpos in";
+            e += "let __pos = __start_pos in";
+            e += "let __res =";
+            e --> (fun e ->
+              fn (sprintf "(View.sub env __start_pos (__pos - __start_pos))") dum nenv e xs;
+            );
+            e += "in __lpos := __pos; __res"
+          );
           e += ") in";
-          fn envstr dum aenv e r
+        );
+        e += "let __pos = !__lpos in";
+        fn envstr dum aenv e r
       |V.S_unit :: r->
         fn envstr dum env e r
       |[] ->
@@ -713,16 +729,12 @@ let print_struct env e l =
                 |V.Value ("bit",V.UInt V.I8,at) ->
                   unsup "bit";
                 |V.Value ("byte",V.UInt V.I8,_) ->
-                  let tsz = foldfn [ocaml_size_of_ty env id szo v] in
                   prfn (sprintf "View.set_byte env %s v" off);
                 |V.Value (_,V.UInt V.I16,_) ->
-                  let tsz = foldfn [ocaml_size_of_ty env id szo v] in
                   prfn (sprintf "View.set_uint16_be env %s v" off);
                 |V.Value (_,V.UInt V.I32,_) ->
-                  let tsz = foldfn [ocaml_size_of_ty env id szo v] in
                   prfn (sprintf "View.set_uint32_be env %s v" off);
                 |V.Value (_,V.UInt V.I64,_) ->
-                  let tsz = foldfn [ocaml_size_of_ty env id szo v] in
                   prfn (sprintf "View.set_uint64_be env %s v" off);
                 |V.Array (_,V.UInt V.I8,_) ->
                   unsup "byte array"; 
@@ -828,21 +840,24 @@ let print_struct env e l =
                          let off = foldfn !szs in
                          e.p (sprintf "let %s___len = match %s with " id id);
                          e.p (sprintf "|`Str x -> View.set_string env (%s) x; String.length x" off);
-                         e.p (sprintf "|`Sub fn -> let view = View.sub env (%s) 0 in fn view; View.length view" off);
+                         e.p (sprintf "|`Sub fn -> let view = View.sub env (%s) 0 in fn view; Printf.eprintf \"%s: %%d\\n\" (View.length view); View.length view" off id);
                          e.p (sprintf "|`None -> 0");
                          e.p (sprintf "|`Frag t -> View.set_view env (%s) t; View.length t in" off);
                          if needalign then begin
-                           e.p (sprintf "let ___al = (%d - (%s___len mod %d)) mod %d in for i = 1 to ___al do" alignamt id alignamt alignamt);
-                           indent_fn e (fun e -> e.p "View.append_byte env 0;");
+                           e.p (sprintf "let ___al = (%d - (%s___len mod %d)) mod %d in" alignamt id alignamt alignamt);
+                           e.p (sprintf "for i = 1 to ___al do");
+                           indent_fn e (fun e -> e.p (sprintf "View.set_byte env ((%s) + %s___len + i) 0" off id));
                            e.p (sprintf "done; let %s___len = %s___len + ___al in" id id);
                          end
                        |V.Class cid ->
                          let off = foldfn !szs in
                          e.p (sprintf "let ___env = View.sub env (%s) 0 in" off);
                          e.p (sprintf "let %s = Array.init (List.length %s) (fun i -> List.nth %s i) in" id id id);
+                         e.p (sprintf "let pos = ref 0 in");
                          e.p (sprintf "let %s = Array.map (fun x ->" id);
-                         indent_fn e (fun e -> e.p "let __e = View.sub ___env (View.pos ___env) 0 in";
-                             e.p (sprintf "let __r = %s.m x __e in View.skip ___env (View.length __e); __r" (modname ~sub:env.mods cid)));
+                         indent_fn e (fun e ->
+                           e.p "let env' = View.sub ___env !pos 0 in";
+                           e.p (sprintf "let __r = %s.m x env' in let len = View.length env' in View.skip env' ~pos:(!pos) len; pos := !pos + len; __r" (modname ~sub:env.mods cid)));
                          e.p (sprintf ") %s in" id);
                          e.p (sprintf "let %s___len = View.length ___env in" id);
                        |_ -> () in
@@ -938,29 +953,29 @@ let print_struct env e l =
                 |`Bound _
                 |_ -> ()
                 ) fvars;
+                e.p (sprintf "let __pos = 0 in");
                 List.iter (function
                 |`Free (id,szo,ty)
                 |`Bound (id,szo,ty) -> begin
                     let isvar = function
                     |V.Value (_,_,{V.av_variant=Some _}) -> true
                     |_ -> false in
-                    let prfn x = e.p (sprintf "%s %s%s;" x (if isvar ty then "__" else "") id) in
+                    let prfn x sz = e.p (sprintf "let __pos = %s %s%s; __pos + %s in" x (if isvar ty then "__" else "") id sz) in
                     match ty with
                     |V.Value ("bit",V.UInt V.I8,_) -> e.p (sprintf  "(* bit %s *)" id);
-                    |V.Value ("byte",V.UInt V.I8,_) ->
-                        prfn (sprintf "View.append_byte env");
+                    |V.Value ("byte",V.UInt V.I8,_) -> prfn "View.set_byte env __pos" "1"
                     |V.Value (_,V.UInt V.I8,_) -> interr "print_marshal"
-                    |V.Value (_,V.UInt V.I16,_) -> prfn "View.append_uint16_be env";
-                    |V.Value (_,V.UInt V.I32,_) -> prfn "View.append_uint32_be env";
-                    |V.Value (_,V.UInt V.I64,_) -> prfn "View.append_uint64_be env";
-                    |V.Array (xt,(V.UInt V.I8),_) ->
-                        e.p (sprintf "View.skip env %s___len;" id);
-                    |V.Class cid ->
-                        e.p (sprintf "View.skip env %s___len;" id);
-                    |V.Packet (p,_) ->
-                        e.p (sprintf "View.skip env %s___len;" id);
+                    |V.Value (_,V.UInt V.I16,_) -> prfn "View.set_uint16_be env __pos" "2"; 
+                    |V.Value (_,V.UInt V.I32,_) -> prfn "View.set_uint32_be env __pos" "4";
+                    |V.Value (_,V.UInt V.I64,_) -> prfn "View.set_uint64_be env __pos" "8";
+                    |V.Array (_,(V.UInt V.I8),_)
+                    |V.Class _
+                    |V.Packet _ ->
+                      e.p (sprintf "let __pos = View.skip env ~pos:__pos %s___len; __pos + %s___len in" id id);
                     |V.Label -> ()
-                    |x -> e.p (sprintf "let %s = %s %s%s in" id (custom_type_marshal x) (if isvar ty then "__" else "") id);
+                    |ty ->
+                      e.p (sprintf "let %s = %s env __pos %s%s in" id (custom_type_marshal ty) (if isvar ty then "__" else "") id);
+                      e.p (sprintf "let __pos = __pos + %s in" (foldfn1 [ocaml_size_of_ty env id szo ty]))
                 end 
                 ) fvars;
                 e.p "new o";

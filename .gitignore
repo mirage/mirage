@@ -20,7 +20,7 @@ _build/
 CVS/
 doc/html/
 runtime/*/obj/
-tests/*/.depend
+tests/*/*/myocamlbuild.ml
 tools/mpl/._d/
 tools/mpl/._ncdi/
 tools/mpl/mpl_lexer.ml
@@ -34,3 +34,4 @@ lib/os/runtime_unix/tap_stubs_os.c
 lib/cow/syntax/html/xhtml.ml
 lib/cow/syntax/xml/xml.ml
 lib/dyntype/syntax/dyntype.ml
+

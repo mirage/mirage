@@ -455,15 +455,14 @@ let print_unmarshal env e l =
             e += "let ___%s___env = View.sub env __pos 0 in" $ id;
             e += "let %s = %s.unmarshal ___%s___env in" $ id $ p $ id;
             (* skip forward by the amount of  unmarshalling that happened *)
-            e += "View.skip env ~pos:__pos (View.length ___%s___env);" $ id;
+            e += "let __pos = __pos + (View.length ___%s___env) in" $ id;
           |ty -> 
+            let sst = foldfn1 [ocaml_size_of_ty env id szo ty] in
             if is_custom_type ty then begin
               e += "let %s = %s env __pos in (* custom *)" $ id $ (custom_type_unmarshal ty);
-              e += "let __pos = %s + __pos in" $ (foldfn1 [ocaml_size_of_ty env id szo ty]);
+              e += "let __pos = %s + __pos in" $ sst;
             end else begin
-              let size = ocaml_size_of_ty env id szo ty in
-              let sst = foldfn1 [size] in
-              e += "let __pos = View.skip env ~pos:__pos %s; __pos + %s in (* skipped %s *)" $ sst $ sst $ id ;
+              e += "let __pos = %s + __pos in (* skipped %s *)" $ sst $ id ;
             end;
         end;
         if Hashtbl.mem env.offsets id then
@@ -512,8 +511,10 @@ let print_unmarshal env e l =
       |V.S_unit :: r->
         fn envstr dum env e r
       |[] ->
+        e += "View.seek env __pos;";
         e += "new %s %s" $ (objname env.mods) $ envstr;
-        List.iter (function
+        e --> (fun e ->
+          List.iter (function
             |`Free (id,szo,V.Array (_,V.UInt V.I8,_))
             |`Bound (id,szo,V.Array (_,V.UInt V.I8,_)) ->
                if not (must E.is_const szo) then 
@@ -528,7 +529,8 @@ let print_unmarshal env e l =
                if is_custom_type vty then 
                  e += "~%s:%s" $ id $ id
             |_ -> ()
-        ) (get_free_vars env)
+          ) (get_free_vars env)
+        )
     in fn "env" [] env e l
     )
 
@@ -840,7 +842,7 @@ let print_struct env e l =
                          let off = foldfn !szs in
                          e.p (sprintf "let %s___len = match %s with " id id);
                          e.p (sprintf "|`Str x -> View.set_string env (%s) x; String.length x" off);
-                         e.p (sprintf "|`Sub fn -> let view = View.sub env (%s) 0 in fn view; Printf.eprintf \"%s: %%d\\n\" (View.length view); View.length view" off id);
+                         e.p (sprintf "|`Sub fn -> let view = View.sub env (%s) 0 in fn view; View.length view" off);
                          e.p (sprintf "|`None -> 0");
                          e.p (sprintf "|`Frag t -> View.set_view env (%s) t; View.length t in" off);
                          if needalign then begin
@@ -857,7 +859,7 @@ let print_struct env e l =
                          e.p (sprintf "let %s = Array.map (fun x ->" id);
                          indent_fn e (fun e ->
                            e.p "let env' = View.sub ___env !pos 0 in";
-                           e.p (sprintf "let __r = %s.m x env' in let len = View.length env' in View.skip env' ~pos:(!pos) len; pos := !pos + len; __r" (modname ~sub:env.mods cid)));
+                           e.p (sprintf "let __r = %s.m x env' in pos := !pos + (View.length env'); __r" (modname ~sub:env.mods cid)));
                          e.p (sprintf ") %s in" id);
                          e.p (sprintf "let %s___len = View.length ___env in" id);
                        |_ -> () in
@@ -968,16 +970,15 @@ let print_struct env e l =
                     |V.Value (_,V.UInt V.I16,_) -> prfn "View.set_uint16_be env __pos" "2"; 
                     |V.Value (_,V.UInt V.I32,_) -> prfn "View.set_uint32_be env __pos" "4";
                     |V.Value (_,V.UInt V.I64,_) -> prfn "View.set_uint64_be env __pos" "8";
-                    |V.Array (_,(V.UInt V.I8),_)
-                    |V.Class _
-                    |V.Packet _ ->
-                      e.p (sprintf "let __pos = View.skip env ~pos:__pos %s___len; __pos + %s___len in" id id);
+                    |V.Array (_,(V.UInt V.I8),_) |V.Class _ |V.Packet _ ->
+                      e.p (sprintf "let __pos = __pos + %s___len in" id);
                     |V.Label -> ()
                     |ty ->
                       e.p (sprintf "let %s = %s env __pos %s%s in" id (custom_type_marshal ty) (if isvar ty then "__" else "") id);
                       e.p (sprintf "let __pos = __pos + %s in" (foldfn1 [ocaml_size_of_ty env id szo ty]))
                 end 
                 ) fvars;
+                e.p "View.seek env __pos;";
                 e.p "new o";
                 List.iter (function
                   |`Free (id,szo,V.Array (_,V.UInt V.I8,_))

@@ -22,18 +22,17 @@ type t = string
 let size (s:t) =
   String.length s + 1 (* for the length prefix *)
 
-let unmarshal env : t =
-  let sz = unmarshal_byte env in
-  let off = env.pos in
-  skip env sz;
-  to_string env off sz
+let unmarshal env pos : t =
+  let sz = to_byte env pos in
+  skip env ~pos (sz+1);
+  to_string env (pos+1) sz
 
 let to_string (t:t) = t
 let of_string s : t = s
 
-let marshal env (t:t) =
-  append_byte env (String.length t);
-  append_string env t;
+let marshal env pos (t:t) =
+  set_byte env pos (String.length t);
+  set_string env (pos+1) t;
   t
 
 let prettyprint t =

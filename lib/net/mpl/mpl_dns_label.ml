@@ -63,17 +63,19 @@ let of_string_list ?(comp=false) s : t =
 let to_string_list (s:t) =
   snd s
 
-let marshal ?(comp=false) env ((psz,t):t) =
-  let abspos env = env.off - !marshal_base + env.pos in
-  let start_pos = env.pos in
+let marshal ?(comp=false) env start_pos ((psz,t):t) =
+  let pos = ref start_pos in
+  let abspos env = env.off - !marshal_base + !pos in
   let insert_string env bit x =
     Hashtbl.add marshal_labels x (Some (abspos env));
-    append_byte env (String.length bit);
-    append_string env bit;
+    set_byte env !pos (String.length bit);
+    incr pos;
+    set_string env !pos bit;
+    pos := String.length bit + !pos
   in
   (* for each bit, figure out if it can be pointer instead of a label *)
   let rec fn = function
-  | bit::r as x ->
+    | bit::r as x ->
       if comp then begin
         try
           match Hashtbl.find marshal_labels x with
@@ -85,7 +87,8 @@ let marshal ?(comp=false) env ((psz,t):t) =
                 let off' = off land 0b11111111111111 in
                 if off <> off' then raise Bad_dns_label; (* only got 14 bits for the offset *)
                 let b = (0b11 lsl 14) + off' in
-                append_uint16_be env b
+                set_uint16_be env !pos b;
+                pos := !pos + 2
               end
         with
           | Not_found -> begin
@@ -96,19 +99,21 @@ let marshal ?(comp=false) env ((psz,t):t) =
         insert_string env bit x;
         fn r
       end
-  | [] ->
-      append_byte env 0 in
-      fn t;
-      let size = env.pos - start_pos in
-      (* our precalculated size and the actual size better match *)
-      assert(psz=size);
-      size,t
+    | [] ->
+      set_byte env !pos 0;
+      incr pos
+  in
+  fn t;
+  (* our precalculated size and the actual size better match *)
+  assert(psz=(!pos));
+  (!pos),t
 
-let unmarshal env =
-  let base_loc = env.off + env.pos in
-  let start_size = env.pos in
+let unmarshal env start_pos =
+  let pos = ref start_pos in
+  let base_loc = env.off + start_pos in
   let rec fn acc toadd =
-    let sz = unmarshal_byte env in
+    let sz = to_byte env !pos in
+    incr pos;
     let ty = sz lsr 6 in
     let cnt = sz land 0b111111 in
     match ty,cnt with
@@ -121,12 +126,13 @@ let unmarshal env =
         ) [] acc toadd in
         acc
     | 0b00,x (* lab *) ->
-        let off = env.off + env.pos - 1 - !unmarshal_base in
-        let str = to_string env env.pos cnt in
-        skip env cnt;
+        let off = env.off + !pos - 1 - !unmarshal_base in
+        let str = to_string env !pos cnt in
+        pos := !pos + cnt;
         fn (str :: acc) (off :: toadd)
     | 0b11,x (* offset *) ->
-        let off = (x lsl 8) + (unmarshal_byte env) in
+        let off = (x lsl 8) + (to_byte env !pos) in
+        incr pos;
         if off >= base_loc then raise Bad_dns_label;
         let remainder =
           try
@@ -143,7 +149,7 @@ let unmarshal env =
         List.rev_append remainder acc
     | _ -> raise Bad_dns_label in
     let res = List.rev (fn [] []) in
-    let endsz = env.pos - start_size in
+    let endsz = !pos - start_pos in
     endsz, res
 
 let size (x:t) = fst x

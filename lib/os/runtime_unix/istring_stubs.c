@@ -257,3 +257,29 @@ caml_istring_safe_set_byte(value v_istr, value v_off, value v_val)
   i->buf[off] = (unsigned char)(Int_val(v_val));
   return Val_unit;
 }
+
+CAMLprim value
+caml_istring_ones_complement_checksum(value v_istr, value v_off, value v_len, value v_initial)
+{
+  istring *i = Istring_val(v_istr);
+  int off = Int_val(v_off);
+  int count = Int_val(v_len);
+  if (off+count >= i->size)
+    caml_array_bound_error ();
+
+  u_int32_t sum = Int32_val(v_initial);
+  unsigned char *addr = i->buf + off;
+  u_int16_t checksum;
+  while (count > 1) {
+    u_int16_t v = (*addr << 8) + (*(addr+1));
+    sum += v;
+    count -= 2;
+    addr += 2;
+  }
+  if (count > 0)
+    sum += *(unsigned char *)addr;
+  while (sum >> 16)
+    sum = (sum & 0xffff) + (sum >> 16);
+  checksum = ~sum;
+  return Val_int(checksum);
+}

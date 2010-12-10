@@ -106,6 +106,10 @@ module Raw = struct
 
   (* Get a big-endian uint64 out of the view *)
   external to_uint64_be: t -> int -> int64 = "caml_istring_get_uint64_be"
+
+  (* One's complement checksum, RFC1071 *)
+  external ones_complement_checksum: t -> int -> int -> int32 -> int = "caml_istring_ones_complement_checksum"
+
 end
 
 module View = struct
@@ -200,4 +204,8 @@ module View = struct
   let seek t pos =
     if pos > t.len then
       t.len <- pos
+
+  let ones_complement_checksum t len initial =
+    Raw.ones_complement_checksum t.i t.off len initial
+
 end

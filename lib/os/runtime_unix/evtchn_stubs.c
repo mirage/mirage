@@ -47,7 +47,7 @@ io_watcher_callback(ev_io *w, int revents)
     flags |= 1;
   if (revents & EV_WRITE)
     flags |= 2;
-  fprintf(stderr, "io_watcher_callback: flags=%d\n", flags);
+//  fprintf(stderr, "io_watcher_callback: flags=%d\n", flags);
   caml_callback(v_cb, Val_unit);
   if (run_callback)
     caml_callback(*run_callback, Val_unit);
@@ -58,7 +58,7 @@ io_watcher_callback(ev_io *w, int revents)
 static void
 timer_watcher_callback(ev_timer *w, int revents)
 {
-  fprintf(stderr, "timer_watcher_callback: w=%p revents=%d\n", w, revents);
+//  fprintf(stderr, "timer_watcher_callback: w=%p revents=%d\n", w, revents);
   if (run_callback)
     caml_callback(*run_callback, Val_unit);
 }
@@ -110,7 +110,7 @@ CAMLprim value
 caml_unregister_fd(value v_watcher)
 {
   CAMLparam1(v_watcher);
-  fprintf(stderr, "caml_unregister_fd\n");
+//  fprintf(stderr, "caml_unregister_fd\n");
   ev_io *w = Watcher_val(v_watcher);
   caml_remove_generational_global_root((value *)&w->data);
   ev_io_stop(w);
@@ -124,7 +124,7 @@ caml_unregister_fd(value v_watcher)
 CAMLprim value
 caml_block_domain(value v_unit)
 {
-  fprintf(stderr, "caml_block_domain\n");
+//  fprintf(stderr, "caml_block_domain\n");
   if (!run_callback)
     run_callback = caml_named_value("Main.run");
   return Val_unit;
@@ -134,7 +134,7 @@ caml_block_domain(value v_unit)
 CAMLprim value
 caml_block_domain_with_timeout(value v_timeout)
 {
-  fprintf(stderr, "caml_block_domain_with_timeout: %f\n", Double_val(v_timeout));
+//  fprintf(stderr, "caml_block_domain_with_timeout: %f\n", Double_val(v_timeout));
   if (!run_callback)
     run_callback = caml_named_value("Main.run");
   ev_timer_init(&timeout_watcher, timer_watcher_callback, Double_val(v_timeout), 0.0);

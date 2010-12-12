@@ -115,41 +115,44 @@ let string_of_state = function
 let sequence_between seq base off = 
   Int32.( (seq >= base) || (seq <= (add base off) ) )
 
-(* Output a general TCP packet and checksum it *)
-let output_tcp_low t ~dest_ip fn =
-  let tcpfn env = 
-    let p = fn env in
-    let src_ip_i32 = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
-    let dest_ip_i32 = ipv4_addr_to_uint32 dest_ip in
-    let pseudo = Int32.(add (add src_ip_i32 dest_ip_i32) (of_int (6+p#sizeof))) in
-    let csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof pseudo in
-    p#set_checksum csum;
-    Mpl.Tcp.prettyprint p;
-  in
-  let src_ip = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
-  let id = 30 in (* XXX random *)
-  let ipfn env = Mpl.Ipv4.t ~src:src_ip ~protocol:`TCP ~id ~data:(`Sub tcpfn) env in
-  IP.output ~dest_ip t.ip ipfn
+module Out = struct
+  (* Output a general TCP packet and checksum it *)
+  let packet t ~dest_ip fn =
+    let tcpfn env = 
+      let p = fn env in
+      let src_ip_i32 = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
+      let dest_ip_i32 = ipv4_addr_to_uint32 dest_ip in
+      let pseudo = Int32.(add (add src_ip_i32 dest_ip_i32) (of_int (6+p#sizeof))) in
+      let csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof pseudo in
+      p#set_checksum csum;
+      Mpl.Tcp.prettyprint p;
+    in
+    let src_ip = ipv4_addr_to_uint32 (IP.get_ip t.ip) in
+    let id = 30 in (* XXX random *)
+    let ipfn env = Mpl.Ipv4.t ~src:src_ip ~protocol:`TCP ~id ~data:(`Sub tcpfn) env in
+    IP.output ~dest_ip t.ip ipfn
 
-(* Output a RST control packet to reset a connection *) 
-let output_tcp_rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number =
-  printf "TCP: xmit RST -> %s:%d\n%!" (ipv4_addr_to_string dest_ip) dest_port;
-  output_tcp_low t ~dest_ip (
-    Mpl.Tcp.t ~rst:1 ~ack:1
-      ~source_port ~dest_port ~sequence ~ack_number 
-      ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None)
+  (* Output a RST control packet to reset a connection *) 
+  let rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number =
+    printf "TCP: xmit RST -> %s:%d\n%!" (ipv4_addr_to_string dest_ip) dest_port;
+    packet t ~dest_ip (
+      Mpl.Tcp.t ~rst:1 ~ack:1
+        ~source_port ~dest_port ~sequence ~ack_number 
+        ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None)
 
-(* Output a SYN ACK control packet to open a connection *)
-let output_syn_ack t ~dest_ip pcb =
-  printf "TCP: xmit SYN/ACK -> %s:%d\n%!" (ipv4_addr_to_string pcb.remote_ip) pcb.remote_port;
-  let sequence = 0xdeadbeefl in (* XXX obviously *)
-  pcb.wnd.snd_nxt <- sequence;
-  let ack_number = pcb.wnd.rcv_nxt in
-  pcb.wnd.last_ack <- ack_number;
-  output_tcp_low t ~dest_ip (
-    Mpl.Tcp.t ~syn:1 ~ack:1
-      ~source_port:pcb.local_port ~dest_port:pcb.remote_port ~sequence ~ack_number
-      ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None)
+  (* Output a SYN ACK control packet to open a connection *)
+  let syn_ack t ~dest_ip pcb =
+    printf "TCP: xmit SYN/ACK -> %s:%d\n%!" (ipv4_addr_to_string pcb.remote_ip) pcb.remote_port;
+    let sequence = 0xdeadbeefl in (* XXX obviously *)
+    pcb.wnd.snd_nxt <- sequence;
+    let ack_number = pcb.wnd.rcv_nxt in
+    pcb.wnd.last_ack <- ack_number;
+    packet t ~dest_ip (
+      Mpl.Tcp.t ~syn:1 ~ack:1
+        ~source_port:pcb.local_port ~dest_port:pcb.remote_port ~sequence ~ack_number
+        ~window:tcp_wnd ~checksum:0 ~data:`None ~options:`None)
+
+end
 
 (* Process an incoming TCP packet that has an active PCB *)
 let tcp_process_input t ~dest_ip ip tcp pcb =
@@ -173,7 +176,7 @@ let tcp_process_input t ~dest_ip ip tcp pcb =
               let dest_port = tcp#source_port in 
               let sequence = tcp#ack_number in
               let ack_number = Int32.(add tcp#sequence (of_int tcp#data_length)) in
-              output_tcp_rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number 
+              Out.rst t ~dest_ip ~source_port ~dest_port ~sequence ~ack_number 
         end   
       | false ->
          return ()
@@ -227,10 +230,10 @@ let input t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) =
             (* Add the PCB to our connection table *)
             Hashtbl.add t.pcbs conn_id pcb;
             (* Reply with SYN ACK *)
-            output_syn_ack t ~dest_ip pcb;
+            Out.syn_ack t ~dest_ip pcb;
           )
           (* Send a TCP RST since we dont have a listener *)
-          (fun () -> output_tcp_rst t
+          (fun () -> Out.rst t
               ~dest_ip
               ~source_port:local_port
               ~dest_port:remote_port

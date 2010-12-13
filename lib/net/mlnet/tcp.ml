@@ -46,10 +46,10 @@ and flags = {
 }
 
 and wnd = {
-  mutable rcv_nxt: int32;     (* Next expected sequence no *)
+  mutable rcv_nxt: int32;      (* Next expected sequence no *)
   mutable rcv_wnd: int;        (* Receiver window available *)
   mutable rcv_ann_wnd: int;    (* Receiver window to announce *)
-  mutable rcv_ann_edge: int; (* Announced right edge of window *)
+  mutable rcv_ann_edge: int;   (* Announced right edge of window *)
   mss: int;                    (* Maximum segment size *)
   mutable snd_nxt: int32;      (* Next new seqno to be sent *)
   mutable snd_wnd: int;        (* Sender window *)

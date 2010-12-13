@@ -1,7 +1,6 @@
 .PHONY: clean all install
 
 PREFIX ?= _build/root
-LIBS = nettypes mpl mlnet dns dhcp http
 
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)
@@ -20,10 +19,10 @@ all: unix $(XEN_BUILD)
 	@ :
 
 unix:
-	env MIRAGEOS=unix ocamlbuild all.otarget
+	env MIRAGEOS=unix ocamlbuild net.cmxa
 
 xen:
-	env MIRAGEOS=xen ocamlbuild all.otarget
+	env MIRAGEOS=xen ocamlbuild net.cmxa
 
 install: install-unix $(XEN_INSTALL)
 	@ :
@@ -31,11 +30,9 @@ install: install-unix $(XEN_INSTALL)
 install-%:
 	TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/os/$*/net; \
 	mkdir -p $$TARGETDIR; \
-	for i in $(LIBS); do \
-		cp _build/$*/$$i/$$i.cmi $$TARGETDIR/; \
-		cp _build/$*/$$i/$$i.cmxa $$TARGETDIR/; \
-		cp _build/$*/$$i/$$i.a $$TARGETDIR/; \
-	done
+	cp _build/$*/net.cmxa $$TARGETDIR/; \
+	cp _build/$*/net.a $$TARGETDIR/; \
+	cp _build/$*/net.cmi $$TARGETDIR/
 
 clean:
 	ocamlbuild -clean

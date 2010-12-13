@@ -26,7 +26,7 @@ let oslib =
 module MPL = struct
 
   let mpl_c tags arg out =
-    Cmd (S [A mplc; A"-v"; T(tags++"mpl"); P arg; Sh">"; Px out])
+    Cmd (S [A mplc; A"-q"; T(tags++"mpl"); P arg; Sh">"; Px out])
 
   let mpl_compile mpl ml env build =
     let mpl = env mpl and ml = env ml in
@@ -48,10 +48,11 @@ let _ = dispatch begin function
     Pathname.define_context "dhcp" ["mpl"; "nettypes"; "mlnet"];
     Pathname.define_context ("socket/"^os) ["nettypes"];
     Pathname.define_context "http" ["nettypes"; "socket/"^os];
-
+    Pathname.define_context "" ["socket/"^os];
     (* do not compile and pack with the standard lib, and point to right OS module *)
     flag ["ocaml"; "compile"] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];
     flag ["ocaml"; "pack"   ] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"];
+    pflag ["ocaml"; "pack"] "for-pack" (fun param -> S [A "-for-pack"; A param]);
 
     (* use pa_lwt syntax extension if needed *)
     flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (stdlib "syntax"))];

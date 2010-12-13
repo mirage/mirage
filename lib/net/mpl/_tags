@@ -1,2 +1,4 @@
-<**/*.cmx>: for-pack(Mpl)
+<**/*.cmx> and not "mpl.cmx": for-pack(Net.Mpl)
 <*.ml>: use_stdlib
+<**/*.ml>: warn_y
+"mpl.cmx": for-pack(Net)

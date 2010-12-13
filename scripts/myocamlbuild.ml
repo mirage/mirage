@@ -139,7 +139,7 @@ let _ = dispatch begin function
     let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
     let net_libs = match OS.target with
      | OS.Xen -> []
-     | _ -> [ A "nettypes.cmxa"; A "mpl.cmxa"; A "mlnet.cmxa"; A "dns.cmxa"; A "http.cmxa" ; A "dhcp.cmxa" ] in
+     | _ -> [ A "net.cmxa" ] in
     let cow_libs = match OS.target with
      | OS.Xen -> []
      | _ -> [ A "cow.cmx" ] in

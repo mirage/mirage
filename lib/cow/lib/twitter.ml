@@ -45,7 +45,7 @@ module Status = struct
     let headers =
       ["Host", "api.twitter.com";
        "Connection", "keep-alive" ] in
-    lwt _, body = Http.Client.get ~headers uri in
+    lwt _, body = Net.Http.Client.get ~headers uri in
     let str = Json.of_string body in
     return (t_list_of_json str)
 

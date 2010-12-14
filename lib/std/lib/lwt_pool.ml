@@ -32,7 +32,7 @@ type 'a t =
     max : int;
     mutable count : int;
     list : 'a Queue.t;
-    waiters : 'a Lwt.u Queue.t }
+    waiters : 'a Lwt.u Lwt_sequence.t }
 
 let create m ?(check = fun _ f -> f true) create =
   { max = m;
@@ -40,7 +40,7 @@ let create m ?(check = fun _ f -> f true) create =
     check = check;
     count = 0;
     list = Queue.create ();
-    waiters = Queue.create () }
+    waiters = Lwt_sequence.create () }
 
 let create_member p =
   try_lwt
@@ -50,7 +50,7 @@ let create_member p =
   with exn ->
     (* create failed, so don't increment count *)
     p.count <- p.count - 1;
-    fail exn
+    raise_lwt exn
 
 let acquire p =
   try
@@ -59,15 +59,16 @@ let acquire p =
     if p.count < p.max then
       create_member p
     else begin
-      let (r, w) = wait () in
-      Queue.push w p.waiters;
-      r
+      let waiter, wakener = task () in
+      let node = Lwt_sequence.add_r wakener p.waiters in
+      on_cancel waiter (fun () -> Lwt_sequence.remove node);
+      waiter
     end
 
 let release p c =
   try
-    wakeup (Queue.take p.waiters) c
-  with Queue.Empty ->
+    wakeup (Lwt_sequence.take_l p.waiters) c
+  with Lwt_sequence.Empty ->
     Queue.push c p.list
 
 let checked_release p c =
@@ -89,4 +90,4 @@ let use p f =
     return r
   with e ->
     checked_release p c;
-    fail e
+    raise_lwt e

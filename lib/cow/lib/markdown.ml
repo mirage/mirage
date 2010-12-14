@@ -31,6 +31,7 @@ type ref = { src : string; desc : string }
 
 type paragraph =
     Normal of par_text
+  | Html of Html.t
   | Pre of string * string option
   | Heading of int * par_text
   | Quote of paragraph list
@@ -149,6 +150,7 @@ and skip_blank_line e = match Enum.peek e with
 
 and read_nonempty indent e s = match s.[0] with
     '!' -> read_heading s
+  | '<' -> read_html e s
   | '*' when snd_is_space s -> push_remainder indent s e; read_ul indent e
   | '#' when snd_is_space s -> push_remainder indent s e; read_ol indent e
   | '{' when snd_is s '{' -> read_pre (slice s ~first:2) e
@@ -161,6 +163,23 @@ and read_heading s =
   let s' = strip ~chars:"!" s in
   let level = String.length s - (String.length s') in
     Some (Heading (level, parse_text s'))
+
+and read_html e s =
+  let is_closing_tag e s = (* ends by '>' and next line is blank *)
+    String.length s > 2 && s.[String.length s - 1] = '>' &&
+    match Enum.peek e with Some (_,_,x) -> x | _ -> true in
+    let make_html ls =
+      Some (Html (Html.of_string (String.concat "" (List.rev ls)))) in
+    let rec read_all accu =
+    match Enum.get e  with 
+      | Some (_, s, _)
+          when is_closing_tag e s -> make_html (s::accu)
+      | Some (_,s,_)              -> read_all (s::accu)
+      | None                      -> make_html accu in
+  if is_closing_tag e s then
+    make_html [s]
+  else
+    read_all [s]
 
 and read_ul indent e =
   read_list
@@ -366,6 +385,7 @@ let rec text = function
 
 and para = function
     Normal pt        -> <:html< $par_text pt$ >>
+  | Html html        -> <:html< <p>$html$</p> >>
   (* XXX: we assume that this is ocaml code *)
   | Pre (t,kind)     -> <:html< $Code.ocaml t$ >> 
   | Heading (1,pt)   -> <:html< <h1>$par_text pt$</h1> >>

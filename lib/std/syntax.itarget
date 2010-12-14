@@ -1,2 +1,2 @@
-syntax/pa_lwt.cmo
-syntax/pa_ulex.cmo
+syntax/pa_lwt.cma
+syntax/pa_ulex.cma

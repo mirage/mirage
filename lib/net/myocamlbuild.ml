@@ -55,8 +55,8 @@ let _ = dispatch begin function
     pflag ["ocaml"; "pack"] "for-pack" (fun param -> S [A "-for-pack"; A param]);
 
     (* use pa_lwt syntax extension if needed *)
-    flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (stdlib "syntax"))];
-    flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cmo" (stdlib "syntax"))];
+    flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cma" (stdlib "syntax"))];
+    flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cma" (stdlib "syntax"))];
 
   | _ -> ()
 end

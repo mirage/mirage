@@ -132,7 +132,7 @@ end
 
 let _ = dispatch begin function
   | After_rules ->
-    let pa_std = ps "-I %s/std/syntax pa_ulex.cmo pa_lwt.cmo" lib in
+    let pa_std = ps "-I %s/std/syntax pa_ulex.cma pa_lwt.cma" lib in
     let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
     let pa_dyntype = ps "%s -I %s/dyntype/syntax pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations lib in
     let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_cow.cmo" pa_dyntype lib in

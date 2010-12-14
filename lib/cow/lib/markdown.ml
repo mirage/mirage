@@ -170,8 +170,7 @@ and read_html e s =
     match Enum.peek e with Some (_,_,x) -> x | _ -> true in
     let make_html ls =
       Some (Html (Html.of_string (String.concat "" (List.rev ls)))) in
-    let rec read_all accu =
-    match Enum.get e  with 
+    let rec read_all accu = match Enum.get e with 
       | Some (_, s, _)
           when is_closing_tag e s -> make_html (s::accu)
       | Some (_,s,_)              -> read_all (s::accu)

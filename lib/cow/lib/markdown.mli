@@ -29,6 +29,7 @@ type ref = { src : string; desc : string }
 
 type paragraph =
     Normal of par_text
+  | Html of Html.t
   | Pre of string * string option
   | Heading of int * par_text
   | Quote of paragraph list

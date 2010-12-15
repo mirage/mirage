@@ -64,10 +64,10 @@ module Flags = struct
     sf "-I +camlp4 %s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" camlp4_magic dyntype_syntax
 
   let pa_ulex_deps =
-    sf "-I %s pa_ulex.cmo" std_syntax
+    sf "-I %s pa_ulex.cma" std_syntax
 
   let pa_lwt_deps =
-    sf "-I %s pa_lwt.cmo" std_syntax
+    sf "-I %s pa_lwt.cma" std_syntax
 
   let pa_cow_deps =
     sf "%s %s %s -I syntax str.cma pa_cow.cmo" pa_ulex_deps pa_lwt_deps pa_dyntype_deps

@@ -104,7 +104,7 @@ let leave_region reg sz =
 let run_in_region_1 reg sz thr =
   (catch
      (fun () -> thr () >>= (fun v -> leave_region reg sz; return v))
-     (fun e -> leave_region reg sz; fail e))
+     (fun e -> leave_region reg sz; raise_lwt e))
 
 let run_in_region reg sz thr =
   if reg.count >= reg.size then begin

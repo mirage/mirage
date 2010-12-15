@@ -1,4 +1,3 @@
-(* -*- Mode: Caml; indent-tabs-mode: nil -*- *)
 (******************************************************************************)
 (* Lightweight thread library for Objective Caml
  * http://www.ocsigen.org/lwt

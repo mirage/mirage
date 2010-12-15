@@ -43,7 +43,10 @@ val create : unit -> 'a t * ('a option -> unit)
   (** [create ()] returns a new stream and a push function *)
 
 val of_list : 'a list -> 'a t
-  (** [of_list l] creates a stream returns all elements of [l] *)
+  (** [of_list l] creates a stream returning all elements of [l] *)
+
+val of_array : 'a array -> 'a t
+  (** [of_array a] creates a stream returning all elements of [a] *)
 
 val of_string : string -> char t
   (** [of_string str] creates a stream returning all characters of

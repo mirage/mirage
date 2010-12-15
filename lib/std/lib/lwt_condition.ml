@@ -1,4 +1,3 @@
-(* -*- Mode: Caml; indent-tabs-mode: nil -*- *)
 (******************************************************************************)
 (* Lightweight thread library for Objective Caml
  * http://www.ocsigen.org/lwt
@@ -32,34 +31,33 @@
 
 open Lwt
 
-type 'a t = 'a Lwt.u Queue.t
+type 'a t = 'a Lwt.u Lwt_sequence.t
 
-let create = Queue.create
+let create = Lwt_sequence.create
 
 let wait ?mutex cvar =
-  let (thread, w) = Lwt.wait () in
-  Queue.add w cvar;
-  let () = match mutex with
-    | Some m -> Lwt_mutex.unlock m
-    | None -> ()
+  let waiter, wakener = Lwt.task () in
+  let node = Lwt_sequence.add_r wakener cvar in
+  on_cancel waiter (fun () -> Lwt_sequence.remove node);
+  let () =
+    match mutex with
+      | Some m -> Lwt_mutex.unlock m
+      | None -> ()
   in
-  lwt arg = thread in
-  lwt () = match mutex with
-    | Some m -> Lwt_mutex.lock m
-    | None -> return ()
-  in
-  return arg
+  try_lwt
+    waiter
+  finally
+    match mutex with
+      | Some m -> Lwt_mutex.lock m
+      | None -> return ()
 
 let signal cvar arg =
   try
-    let thread = Queue.take cvar in
-    wakeup thread arg
-  with Queue.Empty -> ()
+    wakeup (Lwt_sequence.take_l cvar) arg
+  with Lwt_sequence.Empty ->
+    ()
 
 let broadcast cvar arg =
-  try
-    while true do
-      let thread = Queue.take cvar in
-      wakeup thread arg
-    done
-  with Queue.Empty -> ()
+  let wakeners = Lwt_sequence.fold_r (fun x l -> x :: l) cvar [] in
+  Lwt_sequence.iter_node_l Lwt_sequence.remove cvar;
+  List.iter (fun wakener -> wakeup wakener arg) wakeners

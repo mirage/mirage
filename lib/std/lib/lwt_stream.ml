@@ -80,6 +80,17 @@ let of_list l =
             | [] -> return None
             | x :: l' -> l := l'; return (Some x))
 
+let of_array a =
+  let len = Array.length a and i = ref 0 in
+  from (fun () ->
+          if !i = len then
+            return None
+          else begin
+            let c = Array.unsafe_get a !i in
+            incr i;
+            return (Some c)
+          end)
+
 let of_string s =
   let len = String.length s and i = ref 0 in
   from (fun () ->
@@ -278,16 +289,16 @@ let get_while_s f s =
 
 let next s = get s >>= function
   | Some x -> return x
-  | None -> fail Empty
+  | None -> raise_lwt Empty
 
 let last_new s =
   match Lwt.state (peek s) with
     | Return None ->
-        fail Empty
+        raise_lwt Empty
     | Sleep ->
         next s
     | Fail exn ->
-        fail exn
+        raise_lwt exn
     | Return(Some x) ->
         let _ = Queue.take s.queue in
         let rec loop last =
@@ -298,7 +309,7 @@ let last_new s =
                 let _ = Queue.take s.queue in
                 loop x
             | Fail exn ->
-                fail exn
+                raise_lwt exn
         in
         loop x
 
@@ -707,7 +718,7 @@ let parse s f =
   with exn ->
     Queue.clear s.queue;
     Queue.transfer s'.queue s.queue;
-    fail exn
+    raise_lwt exn
 
 let hexdump stream =
   let buf = Buffer.create 80 and num = ref 0 in

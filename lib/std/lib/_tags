@@ -1,5 +1,5 @@
 <pervasives.*>: nopervasives
 <*> and not <pervasives.*>: need_pervasives
 <*>: nostdlib, annot
-<lwt_stream.*> or <lwt_mutex.*> or <lwt_list.*> or <lwt_pool.*> or <lwt_condition.*>: pa_lwt
+<lwt_*.ml>: pa_lwt
 "ulexing.ml": pa_ulex

@@ -63,7 +63,10 @@ let gen_bind l e =
     | [] ->
         e
     | (_loc, p, e) :: l ->
-        <:expr< Lwt.bind $lid:"__pa_lwt_" ^ string_of_int n$ (fun $p$ -> $aux (n + 1) l$) >>
+        if !Pa_lwt_options.debug then
+          <:expr< Lwt.backtrace_bind (fun exn -> try raise exn with exn -> exn) $lid:"__pa_lwt_" ^ string_of_int n$ (fun $p$ -> $aux (n + 1) l$) >>
+        else
+          <:expr< Lwt.bind $lid:"__pa_lwt_" ^ string_of_int n$ (fun $p$ -> $aux (n + 1) l$) >>
   in
   aux 0 l
 
@@ -73,7 +76,10 @@ let gen_top_bind _loc l =
         <:expr< Lwt.return ($tup:Ast.exCom_of_list (List.rev vars)$) >>
     | (_loc, p, e) :: l ->
         let id = "__pa_lwt_" ^ string_of_int n in
-        <:expr< Lwt.bind $lid:id$ (fun $lid:id$ -> $aux (n + 1) (<:expr< $lid:id$ >> :: vars) l$) >>
+        if !Pa_lwt_options.debug then
+          <:expr< Lwt.backtrace_bind (fun exn -> try raise exn with exn -> exn) $lid:id$ (fun $lid:id$ -> $aux (n + 1) (<:expr< $lid:id$ >> :: vars) l$) >>
+        else
+          <:expr< Lwt.bind $lid:id$ (fun $lid:id$ -> $aux (n + 1) (<:expr< $lid:id$ >> :: vars) l$) >>
   in
   aux 0 [] l
 
@@ -105,16 +111,31 @@ EXTEND Gram
       [ [ "try_lwt"; e = expr LEVEL ";"; c = cases; f = finally ->
             begin match c, f with
               | None, None ->
-                  <:expr< Lwt.catch (fun _ -> $e$) (fun e -> Lwt.fail e) >>
+                  if !Pa_lwt_options.debug then
+                    <:expr< Lwt.backtrace_catch (fun exn -> try raise exn with exn -> exn) (fun () -> $e$) Lwt.fail >>
+                  else
+                    <:expr< Lwt.catch (fun () -> $e$) Lwt.fail >>
               | Some c, None ->
-                  <:expr< Lwt.catch (fun _ -> $e$) (function $c$) >>
+                  if !Pa_lwt_options.debug then
+                    <:expr< Lwt.backtrace_catch (fun exn -> try raise exn with exn -> exn) (fun () -> $e$) (function $c$) >>
+                  else
+                    <:expr< Lwt.catch (fun () -> $e$) (function $c$) >>
               | None, Some f ->
-                  <:expr< Lwt.finalize (fun _ -> $e$) (fun _ -> (begin $f$ end)) >>
+                  if !Pa_lwt_options.debug then
+                    <:expr< Lwt.backtrace_finalize (fun exn -> try raise exn with exn -> exn) (fun () -> $e$) (fun () -> (begin $f$ end)) >>
+                  else
+                    <:expr< Lwt.finalize (fun () -> $e$) (fun () -> (begin $f$ end)) >>
               | Some c, Some f ->
-                  <:expr< Lwt.try_bind (fun _ -> $e$)
-                            (fun __pa_lwt_x -> Lwt.bind (begin $f$ end) (fun () -> Lwt.return __pa_lwt_x))
-                            (fun __pa_lwt_e -> Lwt.bind (begin $f$ end) (fun () -> match __pa_lwt_e with $c$))
-                  >>
+                  if !Pa_lwt_options.debug then
+                    <:expr< Lwt.backtrace_try_bind (fun exn -> try raise exn with exn -> exn) (fun () -> $e$)
+                              (fun __pa_lwt_x -> Lwt.backtrace_bind (fun exn -> try raise exn with exn -> exn) (begin $f$ end) (fun () -> Lwt.return __pa_lwt_x))
+                              (fun __pa_lwt_e -> Lwt.backtrace_bind (fun exn -> try raise exn with exn -> exn) (begin $f$ end) (fun () -> match __pa_lwt_e with $c$))
+                    >>
+                  else
+                    <:expr< Lwt.try_bind (fun () -> $e$)
+                              (fun __pa_lwt_x -> Lwt.bind (begin $f$ end) (fun () -> Lwt.return __pa_lwt_x))
+                              (fun __pa_lwt_e -> Lwt.bind (begin $f$ end) (fun () -> match __pa_lwt_e with $c$))
+                    >>
             end
 
         | "lwt"; l = letb_binding; "in"; e = expr LEVEL ";" ->
@@ -149,6 +170,12 @@ EXTEND Gram
 
                | _ ->
                    Loc.raise _loc (Failure "syntax error"))
+
+        | "raise_lwt"; e = SELF ->
+            if !Pa_lwt_options.debug then
+              <:expr< Lwt.fail (try raise $e$ with exn -> exn) >>
+            else
+              <:expr< Lwt.fail $e$ >>
         ] ];
 
     str_item:

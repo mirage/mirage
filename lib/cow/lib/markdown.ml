@@ -384,7 +384,7 @@ let rec text = function
 
 and para = function
     Normal pt        -> <:html<$par_text pt$>>
-  | Html html        -> <:html<<p>$html$</p>>>
+  | Html html        -> <:html<<p>$html$</p>&>>
   (* XXX: we assume that this is ocaml code *)
   | Pre (t,kind)     -> <:html<$Code.ocaml t$>> 
   | Heading (1,pt)   -> <:html<<h1>$par_text pt$</h1>&>>

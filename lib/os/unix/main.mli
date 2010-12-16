@@ -15,3 +15,4 @@
  *)
 
 val run : unit Lwt.t -> unit
+val set_control_thread: unit Lwt.t -> unit

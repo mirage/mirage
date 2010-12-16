@@ -26,10 +26,21 @@ open Lwt
 external block_domain_timeout : float -> unit = "caml_block_domain_with_timeout"
 external block_domain : unit -> unit = "caml_block_domain"
 
+let control_thread : unit Lwt.t option ref = ref None
+
+let set_control_thread t =
+  control_thread := Some t
+
+let merge_control_thread t =
+  match !control_thread with
+    | None   -> t
+    | Some c -> c <?> t
+
 (* Main runloop, which registers a callback so it can be invoked
    when timeouts expire. Thus, the program may only call this function
    once and once only. *)
 let run t =
+  let t = merge_control_thread  t in
   let fn () =
     (* Wake up any paused threads, and restart threads waiting on timeout *)
     Lwt.wakeup_paused ();

@@ -33,3 +33,13 @@ type link = {
 val html_of_link : link -> t
 
 val interleave : string array -> t list -> t list
+
+val html_of_string : string -> t
+val html_of_int : int -> t
+val html_of_float : float -> t
+
+type table = t array array
+
+val html_of_table : ?headings:bool -> table -> t
+
+val nil : t

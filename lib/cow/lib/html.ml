@@ -38,3 +38,29 @@ let interleave classes l =
     incr i;
     res in
   List.map (fun elt -> <:html< <div class=$str:get ()$>$elt$</div> >>) l
+
+let html_of_string s = <:html<$str:s$>>
+let html_of_int i = <:html<$int:i$>>
+let html_of_float f = <:html<$flo:f$>>
+
+type table = t array array
+
+let html_of_table ?(headings=false) t =
+  let tr x = <:html<<tr>$list:x$</tr>&>> in
+  let th x = <:html<<th>$x$</th>&>> in
+  let td x = <:html<<td>$x$</td>&>> in
+  let hd =
+    if Array.length t > 0 && headings then
+      let l = Array.to_list t.(0) in
+      Some (tr (List.map th l))
+    else
+      None in
+  let tl =
+    if Array.length t > 1 && headings then
+      List.map Array.to_list (List.tl (Array.to_list t))
+    else
+      List.map Array.to_list (Array.to_list t) in
+  let tl = List.map (fun l -> tr (List.map td l)) tl in
+  <:html<<table>$opt:hd$ $list:tl$</table>&>>
+    
+let nil : t = []

@@ -22,7 +22,7 @@ let section = "Debugger.Server"
 (* handle exceptions with a 500 *)
 let exn_handler exn =
   let body = Printexc.to_string exn in
-  Log.debug section "ERROR: %s" body;
+  Log.error section "ERROR: %s" body;
   return ()
 
 (* main callback function *)
@@ -61,6 +61,6 @@ let spec = {
 
 let _ =
   OS.Main.set_control_thread ( 
-    Printf.printf "listening to HTTP on port %d" spec.port;
+    Log.info section "listening to HTTP on port %d" spec.port;
     main spec
   )

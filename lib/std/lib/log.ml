@@ -40,7 +40,7 @@ let text_logger ~date ~level ~section ?backtrace ~message =
     | `warn  -> " warn"
     | `info  -> " info"
     | `error -> "error" in
-  let all = Printf.sprintf "[%s] %s %.10s %s %s" date level section message backtrace in
+  let all = Printf.sprintf "%s %s %.20s: %s %s" date level section message backtrace in
   Printf.printf "%s\n%!" all
 
 let text_logger_name =

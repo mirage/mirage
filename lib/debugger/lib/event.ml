@@ -38,8 +38,13 @@ let default = {
 }
   
 let css = <:css<
-  .date, .message {
+  .date, .section, .message {
     display: inline;
+    padding-left: 1em;
+  }
+  .section {
+    color: white;
+    font-style: italic;
   }
   .debug {
     background-color: blue;

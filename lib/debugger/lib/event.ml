@@ -24,20 +24,23 @@ with json
 type t = {
   date      : string;
   level     : level;
-  filename  : string;
+  section   : string;
   message   : string;
   backtrace : string option;
 } with json
 
 let default = {
-  date      = "-";
+  date      = "<not set>";
   level     = `error;
-  filename  = "-";
+  section   = "<not set>";
   message   = "<not set>";
   backtrace = None;
 }
   
 let css = <:css<
+  .date, .message {
+    display: inline;
+  }
   .debug {
     background-color: blue;
   }
@@ -51,7 +54,7 @@ let css = <:css<
     background-color: red;
   }
   .message {
-    color: blue;
+    color: white;
   }
 >>
 
@@ -81,19 +84,22 @@ let push r t =
 
 let state = make 128
 
-let stream () =
+let stream last_id =
+  let init = match last_id with
+    | None    -> state.init
+    | Some id -> max id state.init in
   let accu = ref [] in
-  for i = state.init to state.current do
+  for i = init to state.current do
     let str = Printf.sprintf "data: %s\nid: %i\n" (Json.to_string (json_of_t (get state i))) i in
     accu := str :: !accu
   done;
   String.concat "\n" (List.rev !accu)
 
-let logger ~date ~level ~filename ?backtrace ~message =
+let logger ~date ~level ~section ?backtrace ~message =
   let t = {
     date;
     level;
-    filename;
+    section;
     message;
     backtrace;
   } in

@@ -23,11 +23,11 @@ type level =
 
 (** Logger arguments *)
 type logger =
-  date:string -> 
-  level:level ->
-  filename:string ->
-  ?backtrace:string ->
-  message:string ->
+  date       : string -> 
+  level      : level  ->
+  section    : string ->
+  ?backtrace : string ->
+  message    : string ->
   unit
 
 (** Add a named logger, which will be called on each new log event *)
@@ -42,12 +42,15 @@ val get_loggers : unit -> string list
 (** Default logger : display all the result to stdout *)
 val text_logger : logger
 
+(** Name of the default text logger (usefull if one wants to uninstall it) *)
+val text_logger_name : string
+
 (** {2 Log functions} *)
 
-val debug: filename:string -> ('a, unit, string, unit) format4 -> 'a
-val info : filename:string -> ('a, unit, string, unit) format4 -> 'a
-val warn : filename:string -> ('a, unit, string, unit) format4 -> 'a
-val error: filename:string -> ('a, unit, string, unit) format4 -> 'a
+val debug: string -> ('a, unit, string, unit) format4 -> 'a
+val info : string -> ('a, unit, string, unit) format4 -> 'a
+val warn : string -> ('a, unit, string, unit) format4 -> 'a
+val error: string -> ('a, unit, string, unit) format4 -> 'a
 
 (** {2 Date functions} *)
 

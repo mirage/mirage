@@ -19,11 +19,11 @@ type level =
   | `error ]
 
 type logger =
-  date:string -> 
-  level:level ->
-  filename:string ->
-  ?backtrace:string ->
-  message:string ->
+  date       : string -> 
+  level      : level  ->
+  section    : string ->
+  ?backtrace : string ->
+  message    : string ->
   unit
 
 type named_logger = {
@@ -31,7 +31,7 @@ type named_logger = {
   fn   : logger;
 }
 
-let text_logger ~date ~level ~filename ?backtrace ~message =
+let text_logger ~date ~level ~section ?backtrace ~message =
   let backtrace = match backtrace with
     | None    -> "" 
     | Some bt -> Printf.sprintf "(backtrace: %s)" bt in
@@ -40,9 +40,11 @@ let text_logger ~date ~level ~filename ?backtrace ~message =
     | `warn  -> " warn"
     | `info  -> " info"
     | `error -> "error" in
-  let all = Printf.sprintf "[%s] %s %.10s %s %s" date level filename message backtrace in
+  let all = Printf.sprintf "[%s] %s %.10s %s %s" date level section message backtrace in
   Printf.printf "%s\n%!" all
 
+let text_logger_name =
+  "Default text logger"
 
 type state = {
   mutable readers  : named_logger list;
@@ -54,14 +56,14 @@ let state = {
   get_date = (fun () -> "<not set>");
 }
 
-let broadcast ~level ~filename ~message =
+let broadcast ~level ~section ~message =
   let date = state.get_date () in
   let backtrace =
     if Printexc.backtrace_status () then
       Some (Printexc.get_backtrace ())
     else
       None in
-  List.iter (fun r -> r.fn ~date ~level ~filename ?backtrace ~message) state.readers
+  List.iter (fun r -> r.fn ~date ~level ~section ?backtrace ~message) state.readers
 
 let add_logger name fn =
   if not (List.exists (fun r -> r.name = name) state.readers) then
@@ -77,12 +79,15 @@ let set_date date =
   state.get_date <- date
 
 
-let log ~level ~filename fmt =
+let log ~level ~section fmt =
   let fn message =
-    broadcast ~level ~filename ~message in
+    broadcast ~level ~section ~message in
   Printf.kprintf fn fmt
 
-let debug ~filename fmt = log ~level:`debug ~filename fmt
-let info  ~filename fmt = log ~level:`info  ~filename fmt
-let warn  ~filename fmt = log ~level:`warn  ~filename fmt
-let error ~filename fmt = log ~level:`error ~filename fmt
+let debug section fmt = log ~level:`debug ~section fmt
+let info  section fmt = log ~level:`info  ~section fmt
+let warn  section fmt = log ~level:`warn  ~section fmt
+let error section fmt = log ~level:`error ~section fmt
+
+let _ =
+  add_logger text_logger_name text_logger

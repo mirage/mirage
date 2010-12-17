@@ -17,12 +17,12 @@ open Cow
 open Net.Http.Daemon
 open Net.Http.Request
 
-let filename = "server.ml"
+let section = "Debugger.Server"
 
 (* handle exceptions with a 500 *)
 let exn_handler exn =
   let body = Printexc.to_string exn in
-  Log.debug ~filename "ERROR: %s" body;
+  Log.debug section "ERROR: %s" body;
   return ()
 
 (* main callback function *)
@@ -39,7 +39,12 @@ let dispatch conn_id req =
   match path_elem with
     | []
     | ["index.html"]  -> static "index.html"
-    | ["events"]      -> dyn req (Event.stream ())
+    | ["events"]      ->
+      let last_id =
+        try Some (int_of_string (List.hd (header req ~name:"last-event-id")))
+        with _ -> None in
+      let headers = ["content-type","text/event-stream"] in
+      dyn ~headers req (Event.stream last_id)
     | ["index.css"]   -> dyn req Style.main
     | ["index.js"]    -> static "index.js"
     | x -> (respond_not_found ~url:(path req) ())
@@ -49,7 +54,7 @@ let spec = {
   auth = `None;
   callback = dispatch;
   conn_closed = (fun _ -> ());
-  port = 6666;
+  port = 8081;
   exn_handler = exn_handler;
   timeout = Some 300.;
 }

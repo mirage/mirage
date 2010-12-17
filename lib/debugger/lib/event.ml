@@ -23,6 +23,7 @@ with json
 
 type t = {
   date      : string;
+  id        : int;
   level     : level;
   section   : string;
   message   : string;
@@ -31,6 +32,7 @@ type t = {
 
 let default = {
   date      = "<not set>";
+  id        = 0;
   level     = `error;
   section   = "<not set>";
   message   = "<not set>";
@@ -38,7 +40,7 @@ let default = {
 }
   
 let css = <:css<
-  .date, .section, .message {
+  .date, .section, .message, .id {
     display: inline;
     padding-left: 1em;
   }
@@ -60,6 +62,12 @@ let css = <:css<
   }
   .message {
     color: white;
+  }
+  div[class="info"] {
+    display: none;
+  }
+  input:checked + div[class="info"] {
+    display: block;
   }
 >>
 
@@ -100,9 +108,10 @@ let stream last_id =
   done;
   String.concat "\n" (List.rev !accu)
 
-let logger ~date ~level ~section ?backtrace ~message =
+let logger ~date ~id ~level ~section ?backtrace ~message =
   let t = {
     date;
+    id;
     level;
     section;
     message;

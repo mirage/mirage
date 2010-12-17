@@ -87,10 +87,10 @@ let state = make 128
 let stream last_id =
   let init = match last_id with
     | None    -> state.init
-    | Some id -> max id state.init in
+    | Some id -> max (id+1) state.init in
   let accu = ref [] in
-  for i = init to state.current do
-    let str = Printf.sprintf "data: %s\nid: %i\n" (Json.to_string (json_of_t (get state i))) i in
+  for i = init to state.current - 1 do
+    let str = Printf.sprintf "id: %d\ndata: %s\n" i (Json.to_string (json_of_t (get state i))) in
     accu := str :: !accu
   done;
   String.concat "\n" (List.rev !accu)

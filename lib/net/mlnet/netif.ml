@@ -29,7 +29,6 @@ type t = {
 (* Handle a single input frame, input as an istring view *)
 let input t i = 
   let x = Mpl.Ethernet.unmarshal i in 
-  Mpl.Ethernet.prettyprint x;
   match x with
   | `ARP arp -> t.arp arp
   | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_sub_view)

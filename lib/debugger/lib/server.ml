@@ -27,26 +27,22 @@ let exn_handler exn =
 
 (* main callback function *)
 let dispatch conn_id req =
-  let path_elem = path req in
-  let path_elem = Str.split (Str.regexp_string "/") path_elem in
+  let req_path = path req in
+  let req_path = if req_path = "/" || req_path = "" then "index.html" else req_path in
+  let path_elem = Str.split (Str.regexp_string "/") req_path in
   let dyn ?(headers=[]) req body =
     let status = `OK in
     respond ~body ~headers ~status () in
-  let static p =
-    match Static.t p with
-      | None      -> failwith (p ^ ": not found")
-      | Some body -> respond ~body () in
+  match Static.t req_path with
+    | Some body -> respond ~body ()
+    | None ->
   match path_elem with
-    | []
-    | ["index.html"]  -> static "index.html"
     | ["events"]      ->
       let last_id =
         try Some (int_of_string (List.hd (header req ~name:"last-event-id")))
         with _ -> None in
       let headers = ["content-type","text/event-stream"] in
       dyn ~headers req (Event.stream last_id)
-    | ["index.css"]   -> dyn req Style.main
-    | ["index.js"]    -> static "index.js"
     | x -> (respond_not_found ~url:(path req) ())
 
 let spec = {

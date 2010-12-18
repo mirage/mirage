@@ -24,6 +24,7 @@ let oslib = ps "%s/os/%s" lib os
 let cowlib = ps "%s/cow/lib" lib
 let netlib = ps "%s/net" oslib
 let xenlib = ps "%s/os/xen" lib
+let debuglib = ps "%s/debugger/lib" lib
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
@@ -143,15 +144,19 @@ let _ = dispatch begin function
     let cow_libs = match OS.target with
      | OS.Xen -> []
      | _ -> [ A "cow.cmx" ] in
+    let debug_libs = match OS.target with
+     | OS.Xen -> []
+     | _ -> [ A "debugger.cmx" ] in
     let libs = [
       (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa"; A "ulex.cmxa";
       (* os lib *)   A "oS.cmxa";
-    ] @ net_libs @ cow_libs in
+    ] @ net_libs @ cow_libs @ debug_libs in
     let mirage_flags = [
       A"-nostdlib"; A"-I"; A stdlib;
       A"-I"; A oslib;
       A"-I"; A netlib;
       A"-I"; A cowlib;
+      A"-I"; A debuglib;
       A"-pp"; A pp_pa ] in
 
     (* do not compile and pack with the standard lib *)

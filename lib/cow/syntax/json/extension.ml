@@ -51,7 +51,7 @@ let expr_list_of_opt_list _loc exprs =
   | (`Option (eid, pid), h) ::t ->
     List.fold_left aux
       <:expr< match $eid$ with [
-        None -> <:expr< [] >>
+        None       -> []
       | Some $pid$ -> $h$ ] >>
       t
   | (`Regular, h) ::t -> List.fold_left aux <:expr< [ $h$ ] >> t
@@ -125,7 +125,7 @@ module Json_of = struct
         | `O -> <:expr< $id$#$lid:n$ >> in
       let exprs =
         List.map (function
-          | (n,_,Option t) -> (`Option (new_id n, pid), <:expr< ($`str:n$, $aux eid t$) >>)
+          | (n,_,Option t) -> (`Option (new_id n, pid), <:expr< [($`str:n$, $aux eid t$)] >>)
           | (n,_,t)        -> (`Regular, <:expr< ($`str:n$, $aux (new_id n) t$) >>))
           d in
       let expr = expr_list_of_opt_list _loc exprs in

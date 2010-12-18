@@ -6,6 +6,7 @@ all:
 	cd net && $(MAKE)
 	cd dyntype && $(MAKE)
 	cd cow && $(MAKE)
+	cd debugger && $(MAKE)
 
 clean:
 	cd std && $(MAKE) clean
@@ -13,6 +14,7 @@ clean:
 	cd net && $(MAKE) clean
 	cd dyntype && $(MAKE) clean
 	cd cow && $(MAKE) clean
+	cd debugger && $(MAKE) clean
 
 PREFIX ?= ~/mir-inst
 install:
@@ -21,3 +23,4 @@ install:
 	cd net && $(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 	cd dyntype && $(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
 	cd cow && $(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install
+	cd debugger && $(MAKE) DESTDIR=$(DESTDIR) PREFIX=$(PREFIX) install

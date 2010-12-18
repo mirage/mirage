@@ -17,7 +17,15 @@
 open Nettypes
 
 type t
+type pcb
+type channel = {
+  pcb: pcb;
+  th: unit Lwt.t;
+  buf: OS.Istring.View.t Lwt_sequence.t;
+  cond: unit Lwt_condition.t;
+}
+
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
 val output: t -> dest_ip:ipv4_addr -> (OS.Istring.View.t -> Mpl.Tcp.o) -> unit Lwt.t
-val listen: t -> int -> (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t) -> unit
+val listen: t -> int -> (pcb -> channel) -> unit
 val create : Ipv4.t -> t * unit Lwt.t

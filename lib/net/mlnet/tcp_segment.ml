@@ -14,60 +14,117 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Individual TCP segment *)
-type seg = {
-  seq: int32;           (* Sequence number *)
-  len: int;             (* Length          *)
-  packet: Mpl.Tcp.o;    (* Packet contents *)
-}
+open Printf
 
-(* Set of segments, ordered by position.
-   TODO: Potentially not mod32 safe with overflow *)
-module SegmentSet = Set.Make (
-  struct
+(* Received segments may be received out of order, and so
+   are stored as an ordered set *)
+module Rx = struct
+
+  (* Individual received TCP segment *)
+  type seg = {
+    seq: int32;                 (* Sequence number *)
+    len: int;                   (* Length          *)
+    fin: bool;                  (* Fin flag        *)
+    view: OS.Istring.View.t;    (* Packet contents *)
+  }
+
+  let seg (packet:Mpl.Tcp.o) =
+    let len = packet#data_length in
+    let seq = packet#sequence in
+    let view = packet#data_sub_view in
+    let fin = packet#fin = 1 in
+    { len; seq; fin; view }
+ 
+  (* Set of segments, ordered by position.
+     TODO: not mod32 safe with overflow *)
+  module S = Set.Make ( struct
     type t = seg
     let compare a b = Pervasives.compare a b
-  end
-)
+  end)
 
-let segment_set_to_string segs =
-  String.concat ", "
-    (List.map (fun x -> Printf.sprintf "%lu[%d]" x.seq x.len)
-      (SegmentSet.elements segs)
-    )
-    
-(* Segment state for a connection *)
-type t = {
-  segs: SegmentSet.t; (* set of outstanding segments *)
-  next_seq: int32;    (* next valid sequence number *)
-}
+  type t = S.t
 
-let t next_seq =
-  let segs = SegmentSet.empty in
-  { segs; next_seq }
+  let empty = S.empty
 
-(* Given an input segment, return a list of in-order
-   views to pass up to the application (and ack) *)
-let coalesce (packet:Mpl.Tcp.o) con =
-  (* Insert the latest segment *)
-  let seg = { len=packet#data_length; seq=packet#sequence; packet } in
-  Printf.printf "TCP Segment add: %lu\n%!" seg.seq;
-  let segs = SegmentSet.add seg con.segs in
-  (* Walk through the Set and get a list of contiguous segments *)
-  let seq = ref con.next_seq in
-  let ready,waiting = SegmentSet.partition
-    (fun seg ->
-       match seg.seq <= !seq with
-       |true ->
-          (* This is the next segment, or an overlapping earlier one *)
-          seq := Int32.add !seq (Int32.of_int seg.len);
-          true
-       |false -> 
-          (* Sequence is in the future, so can't use it yet *)
-          false
-    ) segs in
-  (* Check for coalescing segments here *)
-  Printf.printf "TCP Segments usable: %s, waiting: %s\n%!"
-    (segment_set_to_string ready) (segment_set_to_string waiting);
-  let con = { segs=waiting; next_seq=(!seq) } in
-  ready, con
+  let iter fn =
+    S.iter (fun seg -> fn seg.view)
+
+  let to_string segs =
+    String.concat ", "
+      (List.map (fun x -> sprintf "%lu[%d]" x.seq x.len)
+        (S.elements segs)
+      )
+
+  (* Given an input segment and the next expected sequence
+     number, return (ready segments, waiting segments) *)
+  let input ~seg ~rcv_nxt ~segs =
+    (* Insert the latest segment *)
+    printf "TCP Segment add: %lu\n%!" seg.seq;
+    let segs = S.add seg segs in
+    (* Walk through the Set and get a list of contiguous segments *)
+    let seq = ref rcv_nxt in
+    let ready, waiting = S.partition
+      (fun seg ->
+         printf "found: seq=%lu seg.seq=%lu\n%!" !seq seg.seq;
+         match seg.seq <= !seq with
+         | true ->
+            (* This is the next segment, or an overlapping earlier one *)
+            seq := Int32.add !seq (Int32.of_int seg.len);
+            printf "usable!\n%!";
+            true
+         | false -> 
+            (* Sequence is in the future, so can't use it yet *)
+            false
+      ) segs in
+    (* Check for coalescing segments here *)
+    printf "TCP Segments usable: [%s] waiting: %s\n%!"
+      (to_string ready) (to_string waiting);
+    ready, waiting
+
+end
+
+(* Transmitted segments are sent in-order, and may also be marked
+   with control flags (such as urgent, or fin to mark the end).
+   TODO: coalescion based on MSS, retransmission.
+*)
+module Tx = struct
+
+  type seg = {
+    urg: bool;
+    fin: bool;
+    data: Mpl.Tcp.o OS.Istring.View.data;
+  }
+
+  let seg ?(urg=false) ?(fin=false) data =
+    { urg; fin; data }
+
+  type t = seg list
+
+  let empty : t = [] 
+
+  (* Given a maximum size, collect a set of data for
+     transmission.
+     TODO: this currently just selects one, as we need composition
+     operators for istrings (to append suspensions).
+  *)
+  let output mss (segs:t) : (seg option * t) =
+    match segs with
+    | hd :: tl ->
+        Some hd, tl
+    | [] -> None, []
+
+  let to_string (segs:t) =
+    String.concat ", " (List.map (fun x -> ".") segs)
+
+  let is_empty (t:t) =
+    match t with
+    | [] -> true
+    | _ -> false
+
+  let with_fin seg = { seg with fin=true }
+  let fin seg = seg.fin
+  let data seg = seg.data
+  let urg seg = seg.urg
+
+end
+

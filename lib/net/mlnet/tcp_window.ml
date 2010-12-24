@@ -83,8 +83,9 @@ let rx_fin t =
   ack_immediate t
 
 (* Next expected receive sequence number *)
-let rx_next t =
-  t.rcv_nxt 
+let rx_next t = t.rcv_nxt 
+let rx_wnd t = t.rcv_wnd
+let tx_next t = t.snd_nxt 
 
 (* transmit MSS of current connection *)
 let tx_mss t =

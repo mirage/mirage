@@ -107,7 +107,8 @@ module Tx = struct
      TODO: this currently just selects one, as we need composition
      operators for istrings (to append suspensions).
   *)
-  let output mss (segs:t) : (seg option * t) =
+  let output (mss:int) (segs:t) : (seg option * t) =
+    (* XXX TODO: enforce mss *)
     match segs with
     | hd :: tl ->
         Some hd, tl

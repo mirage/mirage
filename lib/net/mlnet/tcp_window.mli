@@ -25,7 +25,7 @@ val t : snd_isn:int32 -> rcv_wnd:int -> t
 val valid : t -> int32 -> bool
 val rx_advance : t -> int -> unit
 val tx_advance : t -> int -> unit
-val ack_send : t -> int32
+val ack_send : t -> unit
 val ack_needed : t -> bool
 val tx_fin : t -> unit
 val rx_fin : t -> unit

@@ -61,8 +61,7 @@ let tx_advance t b =
 
 let ack_send t =
   t.ack_cnt <- 0;
-  t.ack_last <- t.rcv_nxt;
-  t.rcv_nxt
+  t.ack_last <- t.rcv_nxt
 
 let ack_timeout t =
   let x = OS.Clock.time () -. t.ack_time in

@@ -30,14 +30,20 @@ type channel = {
   mutable tx_closed: bool;    (* If our transmit side is closed *)
 }
 
+module Tx: sig
+  val closed : channel -> bool
+  val close : channel -> unit
+end
+
+module Rx: sig
+  val closed : channel -> bool
+end
+
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
 val output: t -> dest_ip:ipv4_addr -> (OS.Istring.View.t -> Mpl.Tcp.o) -> unit Lwt.t
 val listen: t -> int -> (pcb -> (channel * unit Lwt.t)) -> unit
 val create : Ipv4.t -> t * unit Lwt.t
 
-val rx_closed : channel -> bool
-val tx_closed : channel -> bool
-val tx_close : channel -> unit
 
 (* Temporary XXX *)
 val output_timer: t -> channel -> unit Lwt.t

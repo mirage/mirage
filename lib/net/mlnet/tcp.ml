@@ -71,176 +71,184 @@ let string_of_state = function
   |Last_ack -> "last_ack"
   |Time_wait -> "time_wait"
 
-(* Output a general TCP packet and checksum it *)
-let tx_packet t id (fn: view->Mpl.Tcp.o) =
-  let src = ipv4_addr_to_uint32 (Ipv4.get_ip t.ip) in
-  let tcpfn env = 
-    let tcp = fn env in
-    let dest_ip = ipv4_addr_to_uint32 id.dest_ip in
-    let pseudo_header = Int32.(add (add src dest_ip) (of_int (6+tcp#sizeof))) in
-    let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof pseudo_header in
-    tcp#set_checksum checksum;
+module Tx = struct
+
+  (* Output a general TCP packet and checksum it *)
+  let packet t id (fn: view->Mpl.Tcp.o) =
+    let src = ipv4_addr_to_uint32 (Ipv4.get_ip t.ip) in
+    let tcpfn env = 
+      let tcp = fn env in
+      let dest_ip = ipv4_addr_to_uint32 id.dest_ip in
+      let pseudo_header = Int32.(add (add src dest_ip) (of_int (6+tcp#sizeof))) in
+      let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof pseudo_header in
+      tcp#set_checksum checksum;
   in
   let ip_id = 30 in (* XXX TODO random *)
   let data = `Sub tcpfn in
   let ipfn env = Mpl.Ipv4.t ~src ~protocol:`TCP ~id:ip_id ~data env in
   Ipv4.output ~dest_ip:id.dest_ip t.ip ipfn
 
-(* Output a RST control packet to reset a connection *) 
-let tx_rst t pcb =
-  printf "TCP: xmit RST -> %s:%d\n%!" (ipv4_addr_to_string pcb.id.dest_ip) pcb.id.dest_port;
-  let window = pcb.wnd.Tcp_window.rcv_wnd in (* XXX check *)
-  let sequence = pcb.wnd.Tcp_window.snd_nxt in
-  let ack_number = pcb.wnd.Tcp_window.rcv_nxt in
-  tx_packet t pcb.id (fun env ->
-    Mpl.Tcp.t ~rst:1 ~ack:1 ~sequence ~ack_number
-      ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
-      ~window ~data:`None ~options:`None env
-  )
+  (* Output a RST control packet to reset a connection *) 
+  let rst t pcb =
+    printf "TCP: xmit RST -> %s:%d\n%!" (ipv4_addr_to_string pcb.id.dest_ip) pcb.id.dest_port;
+    let window = Tcp_window.rx_wnd pcb.wnd in
+    let sequence = Tcp_window.tx_next pcb.wnd in
+    let ack_number = Tcp_window.rx_next pcb.wnd in
+    packet t pcb.id (fun env ->
+      Mpl.Tcp.t ~rst:1 ~ack:1 ~sequence ~ack_number
+        ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
+        ~window ~data:`None ~options:`None env
+    )
 
-(* Output an RST when we dont have a PCB *)
-let tx_rst_no_pcb ~sequence ~ack_number t id = 
-  printf "TCP: xmit RST no pcb -> %s:%d\n%!" (ipv4_addr_to_string id.dest_ip) id.dest_port;
-  tx_packet t id (fun env ->
-    Mpl.Tcp.t ~rst:1 ~ack:1 ~sequence ~ack_number
-      ~source_port:id.local_port ~dest_port:id.dest_port
-      ~window:0 ~data:`None ~options:`None env
-  )
+  (* Output an RST when we dont have a PCB *)
+  let rst_no_pcb ~sequence ~ack_number t id = 
+    printf "TCP: xmit RST no pcb -> %s:%d\n%!"
+      (ipv4_addr_to_string id.dest_ip) id.dest_port;
+    packet t id (fun env ->
+      Mpl.Tcp.t ~rst:1 ~ack:1 ~sequence ~ack_number
+        ~source_port:id.local_port ~dest_port:id.dest_port
+        ~window:0 ~data:`None ~options:`None env
+    )
 
-(* Output a SYN ACK packet *)
-let tx_syn_ack t pcb =
-  printf "TCP: xmit SYN_ACK -> %s:%d\n%!"
-    (ipv4_addr_to_string pcb.id.dest_ip) pcb.id.dest_port;
-  let window = pcb.wnd.Tcp_window.rcv_wnd in
-  let sequence = pcb.wnd.Tcp_window.snd_nxt in
-  let ack_number = pcb.wnd.Tcp_window.rcv_nxt in
-  tx_packet t pcb.id (fun env ->
-    Mpl.Tcp.t ~syn:1 ~ack:1 ~sequence ~ack_number
-      ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
-      ~window ~data:`None ~options:`None env
-  )
+  (* Output a SYN ACK packet *)
+  let syn_ack t pcb =
+    printf "TCP: xmit SYN_ACK -> %s:%d\n%!"
+      (ipv4_addr_to_string pcb.id.dest_ip) pcb.id.dest_port;
+    let window = Tcp_window.rx_wnd pcb.wnd in
+    let sequence = Tcp_window.tx_next pcb.wnd in
+    let ack_number = Tcp_window.rx_next pcb.wnd in
+    packet t pcb.id (fun env ->
+      Mpl.Tcp.t ~syn:1 ~ack:1 ~sequence ~ack_number
+        ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
+        ~window ~data:`None ~options:`None env
+    )
 
-(* Transmit a single TCP segment *)
-let tx_segment t chan seg =
-  let { pcb; txq; txc } = chan in
-  let ack_number = Tcp_window.ack_send pcb.wnd in
-  let window = pcb.wnd.Tcp_window.rcv_wnd in
-  let sequence = pcb.wnd.Tcp_window.snd_nxt in
-  let data = Tcp_segment.Tx.data seg in
-  let fin = if Tcp_segment.Tx.fin seg then
-    (Tcp_window.tx_fin pcb.wnd; 1) else 0 in
-  let urg = if Tcp_segment.Tx.urg seg then 1 else 0 in
-  tx_packet t pcb.id (fun env ->
-    Mpl.Tcp.t ~ack:1 ~fin ~urg ~sequence ~ack_number
-      ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
-      ~window ~data ~options:`None env
-  )
+  (* Transmit a single TCP segment *)
+  let segment t chan seg =
+    let { pcb; txq; txc } = chan in
+    let fin = if Tcp_segment.Tx.fin seg then
+      (Tcp_window.tx_fin pcb.wnd; 1) else 0 in
+    Tcp_window.ack_send pcb.wnd;
+    let window = Tcp_window.rx_wnd pcb.wnd in
+    let sequence = Tcp_window.tx_next pcb.wnd in
+    let ack_number = Tcp_window.rx_next pcb.wnd in
+    let data = Tcp_segment.Tx.data seg in
+    let urg = if Tcp_segment.Tx.urg seg then 1 else 0 in
+    packet t pcb.id (fun env ->
+      Mpl.Tcp.t ~ack:1 ~fin ~urg ~sequence ~ack_number
+        ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
+        ~window ~data ~options:`None env
+    )
 
-(* Process the transmit queue for a PCB *)
-let rec process_output t chan =
-  let { pcb; txq; txc } = chan in
-  let tx_mss = Tcp_window.tx_mss pcb.wnd in
-  let seg, waiting = Tcp_segment.Tx.output tx_mss pcb.txsegs in
-  pcb.txsegs <- waiting;
-  match seg with
-  |Some seg ->
-     let seg =
-       (* If this is the last data segment and the TX channel
-          is closed, then mark the segment with a FIN flag before
-          transmitting it *)
-       if chan.tx_closed && (Tcp_segment.Tx.is_empty waiting) then (
-         printf "TCP: process_output, sending FIN\n%!";
-         Tcp_segment.Tx.with_fin seg)
-       else seg in
-     tx_segment t chan seg >>
-     process_output t chan
-  |None -> begin
-     (* If the transmit channel is closed and we haven't already
-        sent a FIN, do so now *)
-     let ack = Tcp_window.ack_needed pcb.wnd in
-     let fin = 
-       if chan.tx_closed then begin
-         match pcb.state with
-         (* These all indicate we have already sent a FIN *)
-         |Fin_wait_1 |Closing |Last_ack
-         |Time_wait  |Closed -> false
-         |_ -> true
-       end else false in
-     (* If we need either, then construct a new tx segment *)
-     if fin || ack then
-       let seg = Tcp_segment.Tx.seg ~fin `None in
-       tx_segment t chan seg
-     else
-       return ()
-  end
- 
+  (* Test if our side has closed the connection *)
+  let closed chan = chan.tx_closed
+
+  (* Close our (transmit) side of the connection *)
+  let close chan =
+    printf "TCP: tx_close\n%!";
+    (* No state transition here until our tx queue is
+       flushed and the FIN is sent. The tx queue will reject
+       any further additions after this. Repeated close
+       on the same channel is fine. *)
+    chan.tx_closed <- true
+
+  (* Process the transmit queue for a PCB *)
+  let rec output t chan =
+    let { pcb; txq; txc } = chan in
+    let tx_mss = Tcp_window.tx_mss pcb.wnd in
+    let seg, waiting = Tcp_segment.Tx.output tx_mss pcb.txsegs in
+    pcb.txsegs <- waiting;
+    match seg with
+    |Some seg ->
+      let seg =
+        (* If this is the last data segment and the TX channel
+           is closed, then mark the segment with a FIN flag before
+           transmitting it *)
+      if (closed chan) && (Tcp_segment.Tx.is_empty waiting) then (
+        printf "TCP: process_output, sending FIN\n%!";
+        Tcp_segment.Tx.with_fin seg)
+      else seg in
+      segment t chan seg >>
+      output t chan
+    |None -> begin
+      (* If the transmit channel is closed and we haven't already
+         sent a FIN, do so now *)
+      let ack = Tcp_window.ack_needed pcb.wnd in
+      let fin = 
+        if chan.tx_closed then begin
+          match pcb.state with
+          (* These all indicate we have already sent a FIN *)
+          |Fin_wait_1 |Fin_wait_2 |Closing
+          |Last_ack |Time_wait |Closed -> false
+          |Established -> pcb.state <- Fin_wait_1; true
+          |Close_wait -> pcb.state <- Closing; true
+          |Syn_received |Syn_sent |Listen -> printf "TCP: output odd state\n%!"; false
+        end else false in
+       (* If we need either, then construct a new tx segment *)
+       if fin || ack then
+         segment t chan (Tcp_segment.Tx.seg ~fin `None)
+       else
+         return ()
+    end
+end
+
+module Rx = struct
+
+  (* Test if the other side has closed the connection *)
+  let closed chan =
+    match chan.pcb.state with
+    |Close_wait 
+    |Closing -> true
+    |_ -> false
+
+  (* Queue the data in a received packet up *)
+  let input chan (tcp:Mpl.Tcp.o) =
+    let {pcb; rxq; rxc} = chan in
+    match Tcp_window.valid pcb.wnd tcp#sequence with
+    |true ->
+      (* Wrap the incoming segment in a segment type *)
+      let seg = Tcp_segment.Rx.seg tcp in
+      (* Coalesce any outstanding segments *)
+      let rcv_nxt = Tcp_window.rx_next pcb.wnd in
+      let ready, waiting = Tcp_segment.Rx.input
+        ~rcv_nxt ~segs:pcb.rxsegs ~seg in
+      (* Update PCB with any remaining outstanding segments *)
+      pcb.rxsegs <- waiting;
+      (* Add the views to the receive queue, 
+         and advance rx seq. It will be acked from the 
+         transmit queue processor (so acks can be delayed). *)
+      Tcp_segment.Rx.iter (fun p ->
+        let _ = Lwt_sequence.add_r p rxq in
+        Tcp_window.rx_advance pcb.wnd (OS.Istring.View.length p);
+      ) ready;
+      Lwt_condition.signal rxc ();
+      (* Check if there is an incoming FIN to close the connection *)
+      if tcp#fin = 1 then begin
+        printf "TCP: transitioning to Close_wait\n%!";
+        Tcp_window.rx_fin pcb.wnd;
+        chan.pcb.state <- Close_wait;
+      end;
+      true
+    |false ->
+      printf "TCP: bad sequence number, ignoring\n%!"; 
+      false
+end
+
 (* TODO: start and stop timer on the tx condition var *) 
 let rec output_timer t ch = 
   OS.Time.sleep 0.05 >>
-  process_output t ch >>
+  Tx.output t ch >>
   output_timer t ch
 
 (* Queue some data for transmission *)
 let tx_queue chan output =
   failwith "todo"
 
-(* Queue the data in a received packet up *)
-let rx_queue chan (tcp:Mpl.Tcp.o) =
-  let {pcb; rxq; rxc} = chan in
-  match Tcp_window.valid pcb.wnd tcp#sequence with
-  |true ->
-    (* Wrap the incoming segment in a segment type *)
-    let seg = Tcp_segment.Rx.seg tcp in
-    (* Coalesce any outstanding segments *)
-    let rcv_nxt = Tcp_window.rx_next pcb.wnd in
-    let ready, waiting = Tcp_segment.Rx.input
-      ~rcv_nxt ~segs:pcb.rxsegs ~seg in
-    (* Update PCB with any remaining outstanding segments *)
-    pcb.rxsegs <- waiting;
-    (* Add the views to the receive queue, 
-       and advance rx seq. It will be acked from the 
-       transmit queue processor (so acks can be delayed). *)
-    Tcp_segment.Rx.iter (fun p ->
-      let _ = Lwt_sequence.add_r p rxq in
-      Tcp_window.rx_advance pcb.wnd (OS.Istring.View.length p);
-    ) ready;
-    Lwt_condition.signal rxc ();
-    (* Check if there is an incoming FIN to close the connection *)
-    if tcp#fin = 1 then begin
-      printf "TCP: transitioning to Close_wait\n%!";
-      Tcp_window.rx_fin pcb.wnd;
-      chan.pcb.state <- Close_wait;
-    end;
-    true
-  |false ->
-    printf "TCP: bad sequence number, ignoring\n%!"; 
-    false
-
-(* Test if the other side has closed the connection *)
-let rx_closed chan =
-  match chan.pcb.state with
-  |Close_wait 
-  |Closing -> true
-  |_ -> false
-
-(* Test if our side has closed the connection *)
-let tx_closed chan =
-  chan.tx_closed
-
-(* Close our (transmit) side of the connection *)
-let tx_close chan =
-  printf "TCP: tx_close\n%!";
-  (* No state transition here until our tx queue is
-     flushed and the FIN is sent. The tx queue will reject
-     any further additions after this. Repeated close
-     on the same channel is fine. *)
-  chan.tx_closed <- true
-
 (* Process an incoming TCP packet that has an active PCB *)
 let process_input t ip tcp (chan,_) =
   match chan.pcb.state with
   |Syn_received -> begin
-     match tcp#ack = 1 && (rx_queue chan tcp) with
+     match tcp#ack = 1 && (Rx.input chan tcp) with
      |true ->
         (* ack number was good, so connection is established *)
         printf "TCP: connection established\n%!";
@@ -249,10 +257,10 @@ let process_input t ip tcp (chan,_) =
      |false ->
         (* invalid sequence number, send back an RST *)
         printf "TCP: invalid SYN, sending RST\n";
-        tx_rst t chan.pcb
+        Tx.rst t chan.pcb
      end
-  |Established |Close_wait -> begin
-     match rx_queue chan tcp with
+  |Established |Close_wait |Closing -> begin
+     match Rx.input chan tcp with
      |true ->
         printf "TCP: received packet\n%!";
         return ()
@@ -287,13 +295,13 @@ let new_connection t ip tcp id =
         (* Add the PCB to our connection table *)
         Hashtbl.add t.channels id (listener pcb);
         (* Reply with SYN ACK *)
-        tx_syn_ack t pcb;
+        Tx.syn_ack t pcb;
       )
       (* Send a TCP RST since we dont have a listener *)
       (fun source_port ->
          let sequence = 0l in
          let ack_number = Int32.succ tcp#sequence in
-         tx_rst_no_pcb ~sequence ~ack_number t id
+         Tx.rst_no_pcb ~sequence ~ack_number t id
       )
   |false -> (* Got an older SYN ACK perhaps, discard it *)
     printf "TCP: discarding unknown TCP packet\n%!";

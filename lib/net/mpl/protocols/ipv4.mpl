@@ -19,7 +19,7 @@ packet ipv4 {
     frag_offset: bit[13] default(0);
     ttl: byte;
     protocol: byte variant {|1->ICMP |2->IGMP |6->TCP |17->UDP};
-    checksum: uint16;
+    checksum: uint16 default(0);
     src: uint32;
     dest: uint32;
     options: byte[(ihl * 4) - offset(dest)] align(32);

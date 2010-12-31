@@ -20,16 +20,23 @@ type t
 val tcp_mss : int
 val tcp_wnd : int
 
-val t : snd_isn:int32 -> rcv_wnd:int -> t
+val t : ack:(Tcp_sequence.t -> Tcp_sequence.t -> unit) -> t
 
-val valid : t -> int32 -> bool
+val valid : t -> Tcp_sequence.t -> bool
+
+val rx_open: rcv_wnd:int -> isn:Tcp_sequence.t -> t -> unit
+val rx_close : t -> unit
+val rx_closed : t -> bool
 val rx_advance : t -> int -> unit
+val rx_fin : t -> unit
+val rx_next : t -> Tcp_sequence.t
+val rx_wnd : t -> int
+
 val tx_advance : t -> int -> unit
+val tx_ack: t -> Tcp_sequence.t -> unit
+val tx_fin : t -> unit
+val tx_next : t -> Tcp_sequence.t
+val tx_mss : t -> int
+
 val ack_send : t -> unit
 val ack_needed : t -> bool
-val tx_fin : t -> unit
-val rx_fin : t -> unit
-val rx_next : t -> int32
-val rx_wnd : t -> int
-val tx_next : t -> int32
-val tx_mss : t -> int

@@ -46,4 +46,4 @@ val create : Ipv4.t -> t * unit Lwt.t
 
 
 (* Temporary XXX *)
-val output_timer: t -> channel -> unit Lwt.t
+val output_timer: t -> pcb -> unit Lwt.t

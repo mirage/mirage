@@ -41,3 +41,4 @@ val compare: t -> t -> int
 val of_int32: int32 -> t
 val of_int: int -> t
 val to_int32: t -> int32
+val to_string: t -> string

@@ -44,3 +44,4 @@ let compare a b = Int32.compare a b
 let of_int32 t = t
 let of_int t = Int32.of_int t
 let to_int32 t = t
+let to_string t = Printf.sprintf "%lu" t

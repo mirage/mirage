@@ -48,7 +48,7 @@ let output t ~dest_ip udp =
     () in
   let ipfn env =
     Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
-  Ipv4.output t.ip ~dest_ip ipfn
+  Ipv4.output t.ip ~dest_ip ipfn >> return ()
 
 let listen t port fn =
   if Hashtbl.mem t.listeners port then

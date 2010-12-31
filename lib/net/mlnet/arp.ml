@@ -45,7 +45,8 @@ let prettyprint t =
 
 (* Transmit an ARP packet *)
 let output t arp =
-  Netif.output t.netif (`ARP (Mpl.Ethernet.ARP.m arp))
+  Netif.output t.netif (`ARP (Mpl.Ethernet.ARP.m arp)) >>
+  return ()
 
 (* Input handler for an ARP packet, registered through attach() *)
 let input t (arp:Mpl.Ethernet.ARP.o) =
@@ -63,10 +64,11 @@ let input t (arp:Mpl.Ethernet.ARP.o) =
         let dest_mac = `Str arp#src_mac in
         let spa = `Str arp#tpa in (* the requested IP *)
         let tpa = `Str arp#spa in (* the requesting host's IP *)
-        output t (Mpl.Ethernet.ARP.t
+        lwt _ = output t (Mpl.Ethernet.ARP.t
           ~src_mac ~dest_mac ~ptype:`IPv4 ~operation:`Reply
           ~sha:src_mac ~spa ~tha:dest_mac ~tpa
-        )
+        ) in
+        return ()
       end else return ()
     |`Reply ->
       let frm_mac = ethernet_mac_of_bytes arp#sha in
@@ -109,6 +111,7 @@ let output_garp t =
       ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Reply
       ~sha:src_mac ~spa:ip ~tha:dest_mac ~tpa
     )
+   
   ) t.bound_ips
 
 (* Send a query for a particular IP *)

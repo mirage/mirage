@@ -40,8 +40,7 @@ let rec listen t =
 
 (* Output an istring view *)
 let output t x =
-  let fn env = ignore(Mpl.Ethernet.m x env) in
-  OS.Ethif.output t.ethif fn
+  OS.Ethif.output t.ethif (Mpl.Ethernet.m x)
 
 let create id = 
   lwt ethif = OS.Ethif.create id in

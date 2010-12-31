@@ -16,11 +16,11 @@
 
 open Nettypes
 
-type 'a ip_output = OS.Istring.View.t -> ttl:int -> checksum:int -> dest:int32 ->
+type 'a ip_output = OS.Istring.View.t -> ttl:int -> dest:int32 ->
   options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
 
 type t
-val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> unit Lwt.t
+val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> Mpl.Ethernet.o Lwt.t
 val set_ip: t -> ipv4_addr -> unit Lwt.t
 val get_ip: t -> ipv4_addr
 val mac: t -> ethernet_mac

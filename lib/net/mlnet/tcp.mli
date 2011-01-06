@@ -23,9 +23,6 @@ type data = Mpl.Tcp.o OS.Istring.View.data
 
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
 val output: t -> dest_ip:ipv4_addr -> (OS.Istring.View.t -> Mpl.Tcp.o) -> unit Lwt.t
-val listen: t -> int -> (pcb -> (pcb * unit Lwt.t)) -> unit
+val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
 val create : Ipv4.t -> t * unit Lwt.t
 
-
-(* Temporary XXX *)
-val output_timer: t -> pcb -> unit Lwt.t

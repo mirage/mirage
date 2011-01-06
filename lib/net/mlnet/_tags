@@ -1,4 +1,4 @@
 <*.cmx> and not "mlnet.cmx": for-pack(Net.Mlnet)
-"netif.ml" or "ipv4.ml" or "arp.ml" or "tcp.ml" or "icmp.ml" or "udp.ml": pa_lwt
+"netif.ml" or "ipv4.ml" or "arp.ml" or "tcp.ml" or "icmp.ml" or "udp.ml" or "tcp_ack.ml": pa_lwt
 <*.ml>: use_stdlib
 "mlnet.cmx": for-pack(Net)

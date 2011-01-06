@@ -18,42 +18,48 @@ module Rx :
   sig
     type seg
     val seg : Mpl.Tcp.o -> seg
-    type seg_q
-    val seg_q : unit -> seg_q
-    val to_string : seg_q -> string
-    val iter : (seg -> unit) -> seg_q -> unit
+    type q
+    val q : unit -> q
+    val to_string : q -> string
+    val iter : (seg -> unit) -> q -> unit
     val view : seg -> OS.Istring.View.t
     val syn: seg -> bool
     val ack: seg -> Tcp_sequence.t option
-    val input : wnd:Tcp_window.t -> seg:seg -> seg_q -> seg_q
+    val input : wnd:Tcp_window.t -> seg:seg -> q -> q
   end
 
+(* Pre-transmission queue *)
 module Tx :
   sig
 
-    (* Pre-transmission queue *)
     type seg
-    type seg_q
+    type q
     val seg : ?syn:bool -> ?ack:Tcp_sequence.t option ->
       ?fin:bool -> Mpl.Tcp.o OS.Istring.View.data -> seg
-    val seg_q : unit -> seg_q
+    val q : unit -> q
 
     val ack: seg -> Tcp_sequence.t option
     val fin: seg -> bool
     val syn: seg -> bool
     val data: seg -> Mpl.Tcp.o OS.Istring.View.data
 
-    (* Retransmission queue *)
-    type xseg
-    type xseg_q
-    val xseg : Mpl.Tcp.o -> xseg
-    val xseg_q : unit -> xseg_q
-
     (* Operations on the pre-transmission queue *)
-    val coalesce : mss:int -> seg_q -> seg option
-    val queue : seg -> seg_q -> unit Lwt.t
+    val coalesce : mss:int -> q -> seg option
+    val queue : seg -> q -> unit Lwt.t
    
+  end
+
+(* Retransmission queue *)
+module Rtx :
+  sig
+    type seg
+    type q
+    val seg : Mpl.Tcp.o -> seg
+    val q : unit -> q
+
+    val queue : wnd:Tcp_window.t -> seg -> q -> unit Lwt.t
+
     (* Indicate that a range of sequence numbers have been ACKed and
        can be removed *)
-    val mark_ack : xseg_q -> Tcp_sequence.t -> Tcp_sequence.t -> unit
+    val mark_ack : int Lwt_condition.t -> q -> Tcp_sequence.t -> Tcp_sequence.t -> unit
   end

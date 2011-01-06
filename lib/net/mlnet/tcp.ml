@@ -41,9 +41,6 @@ type pcb = {
   mutable state: Tcp_state.t;   (* Connection state *)
 }
 
-type view = OS.Istring.View.t
-type data = Mpl.Tcp.o OS.Istring.View.data
-
 type t = {
   ip : Ipv4.t;
   channels: (id, (pcb * unit Lwt.t)) Hashtbl.t ;
@@ -74,7 +71,7 @@ module Tx = struct
 
   (* Output a general TCP packet, checksum it, and if a reference is provided,
      also record the sent packet for retranmission purposes *)
-  let packet ?memo t id (fn: view->Mpl.Tcp.o) =
+  let packet ?memo t id (fn:OS.Istring.View.t->Mpl.Tcp.o) =
     let src = ipv4_addr_to_uint32 (Ipv4.get_ip t.ip) in
     let tcpfn env = 
       let tcp = fn env in

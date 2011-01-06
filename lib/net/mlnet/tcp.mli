@@ -18,8 +18,6 @@ open Nettypes
 
 type t
 type pcb
-type view = OS.Istring.View.t
-type data = Mpl.Tcp.o OS.Istring.View.data
 
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
 val output: t -> dest_ip:ipv4_addr -> (OS.Istring.View.t -> Mpl.Tcp.o) -> unit Lwt.t

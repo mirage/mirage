@@ -31,9 +31,12 @@ val geq : t -> t -> bool
 (* b <= a <= c *)
 val between : t -> t -> t -> bool
 
-(* add *)
+(* a + b *)
 val add: t -> t -> t
 
+(* a - b *)
+val sub: t -> t -> t
+ 
 (* a++ *)
 val incr: t -> t
 
@@ -41,4 +44,5 @@ val compare: t -> t -> int
 val of_int32: int32 -> t
 val of_int: int -> t
 val to_int32: t -> int32
+val to_int: t -> int
 val to_string: t -> string

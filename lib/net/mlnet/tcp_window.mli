@@ -20,7 +20,8 @@ type t
 val tcp_mss : int
 val tcp_wnd : int
 
-val t : ack:(Tcp_sequence.t -> Tcp_sequence.t -> unit) -> t
+val t : tx:(Tcp_sequence.t -> Tcp_sequence.t -> unit) ->
+  rx:(Tcp_sequence.t -> unit) -> t
 
 val valid : t -> Tcp_sequence.t -> bool
 
@@ -37,6 +38,4 @@ val tx_ack: t -> Tcp_sequence.t -> unit
 val tx_fin : t -> unit
 val tx_next : t -> Tcp_sequence.t
 val tx_mss : t -> int
-
-val ack_send : t -> unit
-val ack_needed : t -> bool
+val tx_wnd : t -> int

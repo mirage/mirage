@@ -14,102 +14,52 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Printf
 
 type i = [
-  | `Listen
-  | `Rx_fin
-  | `Rx_fin_ack
-  | `Syn_acked
-  | `Syn_received
-  | `Syn_sent
-  | `Timeout
-  | `Tx_close
-  | `Tx_fin
+  | `syn
+  | `fin
 ]
 
-type t =
+type chan = 
   | Closed
-  | Listen
-  | Syn_sent
-  | Syn_received
   | Established
-  | Fin_wait_1
-  | Fin_wait_2
-  | Close_wait
-  | Closing
-  | Last_ack
-  | Time_wait
+  | Shutdown
 
-exception Bad_transition of (t * i)
-exception Bad_state of t * string
+type t = {
+  mutable rx: chan;
+  mutable tx: chan;
+}
 
-let to_string = function
+exception Bad_transition of (chan * i)
+
+let t () = { rx=Closed; tx=Closed }
+
+let rx t = t.rx
+let tx t = t.tx
+
+let tick chan (i:i) =
+  match chan, i with
+  | Closed, `syn -> Established
+  | Established, `fin -> Shutdown
+  | x,_ -> x
+
+let i_to_string = function
+  | `fin -> "fin"
+  | `syn -> "syn"
+
+let chan_to_string = function
   | Closed -> "Closed"
-  | Listen -> "Listen"
-  | Syn_sent -> "Syn_sent"
-  | Syn_received -> "Syn_received"
   | Established -> "Established"
-  | Fin_wait_1 -> "Fin_wait_1"
-  | Fin_wait_2 -> "Fin_wait_2"
-  | Close_wait -> "Close_wait"
-  | Closing -> "Closing"
-  | Last_ack -> "Last_ack"
-  | Time_wait -> "Time_wait"
+  | Shutdown -> "Shutdown"
 
-let i_to_string (i:i) =
-  match i with
-  | `Listen -> "listen"
-  | `Rx_fin -> "rx_fin"
-  | `Rx_fin_ack -> "rx_fin_ack"
-  | `Syn_acked -> "syn_acked"
-  | `Syn_received -> "syn_received"
-  | `Syn_sent -> "syn_sent"
-  | `Timeout -> "timeout"
-  | `Tx_close -> "tx_close"
-  | `Tx_fin  -> "tx_fin"
+let to_string t =
+  sprintf "{ tx=%s rx=%s }" (chan_to_string t.tx) (chan_to_string t.rx)
 
-let tick t (i:i) =
-  match t,i with
-  | Closed,`Listen -> Listen
-  | Listen,`Syn_received -> Syn_received
-  | Syn_received, `Syn_sent -> Syn_received
-  | Syn_received, `Syn_acked -> Established
-  | Established, `Tx_fin -> Fin_wait_1
-  | Established, `Rx_fin -> Close_wait
-  | Fin_wait_1, `Rx_fin_ack -> Fin_wait_2
-  | Fin_wait_1, `Rx_fin -> Closing
-  | Fin_wait_2, `Rx_fin -> Time_wait
-  | Close_wait, `Tx_close -> Last_ack
-  | Closing, `Rx_fin_ack -> Time_wait
-  | Last_ack, `Rx_fin_ack -> Closed
-  | Time_wait, `Timeout -> Closed
-  | _ -> raise (Bad_transition (t,i))
+let tick_rx t (i:i) =
+  t.rx <- tick t.rx i;
+  printf "TCP_STATE: tick_rx: %s -> %s\n%!" (i_to_string i) (to_string t)
 
-(* True if we have sent a fin indicating tx connection close *)
-let fin_sent = function
-  | Listen
-  | Closed
-  | Syn_sent
-  | Syn_received
-  | Established
-  | Close_wait  -> false
-  | Closing
-  | Last_ack
-  | Fin_wait_1
-  | Fin_wait_2
-  | Time_wait -> true
-
-(* True if we have received a fin indicating rx connection close *)
-let fin_received = function
-  | Listen
-  | Closed
-  | Syn_sent
-  | Syn_received
-  | Established
-  | Fin_wait_1
-  | Fin_wait_2 -> false
-  | Close_wait
-  | Closing
-  | Last_ack
-  | Time_wait -> true
-
+let tick_tx t (i:i) =
+  t.tx <- tick t.tx i;
+  printf "TCP_STATE: tick_tx: %s -> %s\n%!" (i_to_string i) (to_string t)

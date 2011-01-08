@@ -62,26 +62,27 @@ module Rx = struct
   (* If there is a FIN flag at the end of this segment set.
      TODO: should probably look for a FIN and chop off the rest
      of the set as they may be orphan segments *)
-  let fin t =
+  let fin q =
     try
-      (S.max_elt t).fin
+      let seg = S.max_elt q.segs in
+      if seg.fin then Some seg.seq else None
     with
-      Not_found -> false
+      Not_found -> None
 
   (* If there is a SYN flag in this segment set *)
-  let syn t =
+  let syn q =
     try
-      (S.min_elt t).syn
+      let seg = S.max_elt q.segs in
+      if seg.syn then Some seg.seq else None
     with 
-      Not_found -> true
+      Not_found -> None
 
   (* View of the segment *)
   let view seg = seg.view
    
   (* If there is a SYN or ACK flag in this segment *)
-  let syn seg = seg.syn
   let ack seg = seg.ack 
- 
+
   (* Iterate over segment set *)
   let iter fn t = S.iter fn t.segs
 
@@ -122,16 +123,17 @@ module Rx = struct
         |_ -> assert false
         ) segs (S.empty, S.empty) in
       t.segs <- waiting;
+      let rq = { segs=ready } in
       (* If the last ready segment has a FIN, then mark the receive
          window as closed (this consumes a sequence number also ) *)
-      if fin ready then begin
+      if match fin rq with Some _ -> true |None -> false then begin
         Tcp_window.rx_close wnd;
         if S.cardinal waiting != 0 then
           printf "TCP: warning, rx closed but waiting segs != 0\n%!"
       end;
       printf "TCP Segments usable %d: waiting: [%s]\n%!"
         (S.cardinal ready) (to_string t);
-      {segs=ready}
+      rq
     end
 
 end
@@ -243,36 +245,30 @@ module Rtx = struct
   (* Indicate that a range of sequence numbers have been ACKed and
      can be removed. Also tell another thread if a non-zero amount
      has been acked *)
-  let mark_ack cond xseg_q seq_l seq_r =
+  let mark_ack cond xseg_q ~l ~r =
     printf "TCP_segment.Tx: mark ack segment %s-%s\n%!"
-      (Tcp_sequence.to_string seq_l) (Tcp_sequence.to_string seq_r);
+      (Tcp_sequence.to_string l) (Tcp_sequence.to_string r);
     let acked,unacked = S.partition
       (fun xseg ->
          (* Check if the acked segment fully overlaps this segment *)
-         match Tcp_sequence.leq seq_l xseg.seq with
+         match Tcp_sequence.leq l xseg.seq with
          |true -> begin (* Acked segment starts before or on this segment *)
            let xseg_r = Tcp_sequence.(add xseg.seq (of_int xseg.len)) in
-           match Tcp_sequence.geq seq_r xseg_r with
+           match Tcp_sequence.geq r xseg_r with
            |true -> (* ack edge is greater than this segment, so it is acked *)
              true
            |false -> begin (* ack edge is less than this segment, so check if partial ack *)
-             match Tcp_sequence.leq seq_r xseg.seq with
+             match Tcp_sequence.leq r xseg.seq with
              |true -> (* TODO: possibly a duplicate ACK , see RFC2581 heuristics *)
                false
              |false -> (* this is a partial ack *)
-               partial_ack xseg seq_l seq_r
+               partial_ack xseg l r
            end
          end
          |false -> (* starts after this segment, so is a partial ack *)
-           partial_ack xseg seq_l seq_r 
+           partial_ack xseg l r 
       ) xseg_q.segs in
     xseg_q.segs <- unacked;
-    (* Calculate the total sequence length of acked segments *)
-    let len = try
-      Tcp_sequence.(to_int (sub seq_r (S.min_elt acked).seq))
-    with
-      Not_found -> 0 in
-    if len > 0 then
-      Lwt_condition.signal cond len
+    Lwt_condition.signal cond ()
 
 end

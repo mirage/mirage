@@ -23,8 +23,9 @@ module Rx :
     val to_string : q -> string
     val iter : (seg -> unit) -> q -> unit
     val view : seg -> OS.Istring.View.t
-    val syn: seg -> bool
+    val syn: q -> Tcp_sequence.t option
     val ack: seg -> Tcp_sequence.t option
+    val fin: q -> Tcp_sequence.t option
     val input : wnd:Tcp_window.t -> seg:seg -> q -> q
   end
 
@@ -61,5 +62,5 @@ module Rtx :
 
     (* Indicate that a range of sequence numbers have been ACKed and
        can be removed *)
-    val mark_ack : int Lwt_condition.t -> q -> Tcp_sequence.t -> Tcp_sequence.t -> unit
+    val mark_ack : unit Lwt_condition.t -> q -> l:Tcp_sequence.t -> r:Tcp_sequence.t -> unit
   end

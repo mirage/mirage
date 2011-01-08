@@ -28,7 +28,7 @@ type t = {
   mutable snd_wnd: int;
   mutable rcv_closed: bool;
   mutable rcv_wnd: int;
-  tx: Tcp_sequence.t -> Tcp_sequence.t -> unit;
+  tx: l:Tcp_sequence.t -> r:Tcp_sequence.t -> unit;
   rx: Tcp_sequence.t -> unit;
 }
 
@@ -97,14 +97,14 @@ let tx_advance t b =
   t.snd_nxt <- Tcp_sequence.add t.snd_nxt (Tcp_sequence.of_int b)
 
 (* Notify the send window has been acknowledged *)
-let tx_ack t ack_number =
-  if Tcp_sequence.gt ack_number t.snd_una then begin
-    let seq_l = t.snd_una in
-    t.snd_una <- ack_number;
+let tx_ack t r =
+  if Tcp_sequence.gt r t.snd_una then begin
+    let l = t.snd_una in
+    t.snd_una <- r;
     printf "TCP: ACK, snd.una=%lu snd.nxt=%lu\n%!"
       (Tcp_sequence.to_int32 t.snd_una) (Tcp_sequence.to_int32 t.snd_nxt);
     (* Notify the ack listener *)
-    t.tx seq_l ack_number;
+    t.tx ~l ~r;
   end
 
 (* Notification that we have transmitted a FIN *)

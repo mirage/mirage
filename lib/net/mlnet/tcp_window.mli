@@ -20,7 +20,7 @@ type t
 val tcp_mss : int
 val tcp_wnd : int
 
-val t : tx:(Tcp_sequence.t -> Tcp_sequence.t -> unit) ->
+val t : tx:(l:Tcp_sequence.t -> r:Tcp_sequence.t -> unit) ->
   rx:(Tcp_sequence.t -> unit) -> t
 
 val valid : t -> Tcp_sequence.t -> bool

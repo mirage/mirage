@@ -33,12 +33,12 @@ type pcb = {
   wnd: Tcp_window.t;            (* Window information *)
   rxq: Tcp_segment.Rx.q;        (* Received segments queue *)
   txq: Tcp_segment.Tx.q;        (* Transmit segments queue *)
-  rtxq: Tcp_segment.Rtx.q;      (* Retransmit segments queue *)
   txc: unit Lwt_condition.t;    (* Transmit wake up that queue is non-empty *)
-  rtxc: int Lwt_condition.t;    (* Retransmit wake up that window space is free *)
+  rtxq: Tcp_segment.Rtx.q;      (* Retransmit segments queue *)
+  rtxc: unit Lwt_condition.t;   (* Retransmit wake up that window space is free *)
   ack: Tcp_ack.Delayed.t;       (* Ack state *)
   ackc: unit Lwt_condition.t;   (* Ack wake up *)
-  mutable state: Tcp_state.t;   (* Connection state *)
+  state: Tcp_state.t;           (* Connection state *)
 }
 
 type t = {
@@ -46,16 +46,6 @@ type t = {
   channels: (id, (pcb * unit Lwt.t)) Hashtbl.t ;
   listeners: (int, (pcb -> unit Lwt.t)) Hashtbl.t ;
 }
-
-(* Advance the TCP state machine as an event happens *)
-let tick pcb sc =
-  let open Tcp_state in
-  try 
-    let t = tick pcb.state sc in
-    printf "TCP: tick %s from %s -> %s\n%!" (i_to_string sc) (to_string pcb.state) (to_string t);
-    pcb.state <- t
-  with Bad_transition (t,sc) -> printf "TCP: bad statecall %s from %s\n%!"
-    (i_to_string sc) (to_string pcb.state)
 
 module Tx = struct
 
@@ -106,20 +96,24 @@ module Tx = struct
     match Tcp_segment.Tx.coalesce tx_mss pcb.txq with
     |Some seg -> (* Transmit outstanding packet *)
        let window = Tcp_window.tx_wnd pcb.wnd in
-       let sequence = Tcp_sequence.to_int32 (Tcp_window.tx_next pcb.wnd) in
+       let sequence = Tcp_window.tx_next pcb.wnd in
        let data = Tcp_segment.Tx.data seg in
        let syn =
          if Tcp_segment.Tx.syn seg then
            (* signal a SYN is going out to the state machine *)
-           (tick pcb `Syn_sent; 1)
+           (Tcp_state.tick_tx pcb.state `syn; 1)
          else 0 in
-       let fin = if Tcp_segment.Tx.fin seg then 1 else 0 in
+       let fin = if Tcp_segment.Tx.fin seg then
+          (* signal a FIN is going out to the state machine *)
+          (Tcp_state.tick_tx pcb.state `fin; 1)
+         else 0 in
        let ack, ack_number = match Tcp_segment.Tx.ack seg with
          |Some ack_number -> 1, (Tcp_sequence.to_int32 ack_number)
          |None -> 0, 0l in
        let memo = ref None in
        printf "TCP.Tx.output: transmitting packet to wire\n%!";
        packet ~memo t pcb.id (fun env ->
+         let sequence = Tcp_sequence.to_int32 sequence in
          Mpl.Tcp.t ~ack ~syn ~fin ~sequence ~ack_number
            ~source_port:pcb.id.local_port ~dest_port:pcb.id.dest_port
            ~window ~data ~options:`None env
@@ -134,8 +128,15 @@ module Tx = struct
     |None -> (* Wait for something to wake up the transmit queue *)
       Lwt_condition.wait pcb.txc >>
       output t pcb
-   
-   (* Thread to listen for ACKs and transmit them directly *)
+  
+   (* Queue up an immediate close segment *)
+   let close pcb =
+     Tcp_state.tick_tx pcb.state `fin;
+     let seg = Tcp_segment.Tx.seg ~fin:true `None in
+     queue_segment pcb seg
+
+   (* Thread that transmits ACKs in response to received packets, 
+      thus telling the other side that more can be sent *)
    let rec ack_thread t pcb =
      let {wnd} = pcb in
      lwt seq = Lwt_condition.wait pcb.ackc in
@@ -157,23 +158,28 @@ module Rx = struct
   (* Process an incoming TCP packet that has an active PCB *)
   let input t ip tcp (pcb,_) =
     let {wnd; rxq} = pcb in
-    (* Wrap packet into an Rx segment *)
-    let seg = Tcp_segment.Rx.seg tcp in
     (* Coalesce any outstanding segments and retrieve ready segments *)
+    let seg = Tcp_segment.Rx.seg tcp in
     let segs = Tcp_segment.Rx.input ~wnd ~seg rxq in
-    match pcb.state with 
-    |Tcp_state.Syn_sent ->
-      (* TODO: RFC793 pg66 *)
-      raise_lwt (Not_implemented "input: syn_sent")
-    |Tcp_state.Syn_received -> begin
-      printf "Syn_received input\n%!";
-      return ()
-    end
-    |Tcp_state.Closed ->
-      printf "TCP: discarding segment for closed pcb\n%!";
-      return ()
-    | _ ->
-      raise_lwt (Not_implemented "input: unknown state")
+    (match Tcp_segment.Rx.syn segs with
+     |Some seq ->
+       Tcp_state.tick_rx pcb.state `syn;
+       (* TODO signal to the application layer that RX is open *)
+     |None -> ());
+    (match Tcp_segment.Rx.fin segs with
+     |Some seq ->
+       Tcp_state.tick_rx pcb.state `fin;
+       (* TODO signal to the application layer that RX is closed *)
+     |None -> ());
+    (* TODO: pass data onto app *)
+    return ()
+
+  (* Thread that waits for acks to transmitted packets and
+     triggers window updates *)
+  let rec control_thread t pcb =
+    Lwt_condition.wait pcb.rtxc >>
+    control_thread t pcb
+    
 end
 
 (* Helper function to apply function with contents of hashtbl, or take default action *)
@@ -188,28 +194,29 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   let txc = Lwt_condition.create () in
   let rtxc = Lwt_condition.create () in
   let ackc = Lwt_condition.create () in
-  
-  let isn = Tcp_sequence.of_int32 tcp#sequence in
-  let ack = Tcp_ack.Delayed.t ackc isn in
+ 
+  let rx_isn = Tcp_sequence.of_int32 tcp#sequence in
+  let ack = Tcp_ack.Delayed.t ackc rx_isn in
 
   (* Construct window handler *)
   let wnd = Tcp_window.t
     ~tx:(Tcp_segment.Rtx.mark_ack rtxc rtxq) 
     ~rx:(Tcp_ack.Delayed.receive ack) in
 
-  Tcp_window.rx_open wnd ~rcv_wnd:tcp#window ~isn;
+  Tcp_window.rx_open wnd ~rcv_wnd:tcp#window ~isn:rx_isn;
   (* Construct ACK handers *)
   (* Construct basic PCB in Syn_received state *)
-  let state = Tcp_state.Listen in
+  let state = Tcp_state.t () in
   let pcb = { state; rxq; txq; rtxq;
     txc; rtxc; wnd; id; ack; ackc } in
-  tick pcb `Syn_received;
+  Tcp_state.tick_rx pcb.state `syn;
   (* Compose the overall thread from the various tx/rx threads
      and the main listener function *)
   let th =
     listener pcb <?>
     (Tx.output t pcb) <?>
-    (Tx.ack_thread t pcb) 
+    (Tx.ack_thread t pcb) <?>
+    (Rx.control_thread t pcb)
   in
   (* Add the PCB to our connection table *)
   Hashtbl.add t.channels id (pcb, th);

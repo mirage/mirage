@@ -16,51 +16,28 @@
 
 module Rx :
   sig
-    type seg
-    val seg : Mpl.Tcp.o -> seg
     type q
-    val q : unit -> q
+    val q : urx:OS.Istring.View.t list option Lwt_mvar.t ->
+      wnd:Tcp_window.t ->
+      rx_ack:Tcp_sequence.t Lwt_mvar.t ->
+      tx_ack:Tcp_sequence.t Lwt_mvar.t -> q
     val to_string : q -> string
-    val iter : (seg -> unit) -> q -> unit
-    val view : seg -> OS.Istring.View.t
-    val syn: q -> Tcp_sequence.t option
-    val ack: seg -> Tcp_sequence.t option
-    val fin: q -> Tcp_sequence.t option
-    val input : wnd:Tcp_window.t -> seg:seg -> q -> q
+    val is_empty : q -> bool
+    val input : q -> Mpl.Tcp.o -> unit Lwt.t
   end
 
 (* Pre-transmission queue *)
 module Tx :
   sig
 
-    type seg
+    type flags = |No_flags |Syn |Fin |Rst
+    type xmit = flags:flags -> rx_ack:Tcp_sequence.t option -> seq:Tcp_sequence.t -> window:int -> unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
     type q
-    val seg : ?syn:bool -> ?ack:Tcp_sequence.t option ->
-      ?fin:bool -> Mpl.Tcp.o OS.Istring.View.data -> seg
-    val q : unit -> q
+    val q : xmit:xmit -> wnd:Tcp_window.t ->
+      rx_ack:Tcp_sequence.t Lwt_mvar.t ->
+      tx_ack:Tcp_sequence.t Lwt_mvar.t -> q * unit Lwt.t
 
-    val ack: seg -> Tcp_sequence.t option
-    val fin: seg -> bool
-    val syn: seg -> bool
-    val data: seg -> Mpl.Tcp.o OS.Istring.View.data
-
-    (* Operations on the pre-transmission queue *)
-    val coalesce : mss:int -> q -> seg option
-    val queue : seg -> q -> unit Lwt.t
+    val output : ?flags:flags -> q -> unit OS.Istring.View.data -> unit Lwt.t
    
   end
 
-(* Retransmission queue *)
-module Rtx :
-  sig
-    type seg
-    type q
-    val seg : Mpl.Tcp.o -> seg
-    val q : unit -> q
-
-    val queue : wnd:Tcp_window.t -> seg -> q -> unit Lwt.t
-
-    (* Indicate that a range of sequence numbers have been ACKed and
-       can be removed *)
-    val mark_ack : unit Lwt_condition.t -> q -> l:Tcp_sequence.t -> r:Tcp_sequence.t -> unit
-  end

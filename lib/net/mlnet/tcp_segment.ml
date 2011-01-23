@@ -17,104 +17,102 @@
 open Printf
 open Lwt
 
-(* Received segments may be received out of order, and so
-   are stored as an ordered list *)
+exception Not_implemented of string
+
+(* The receive queue stores out-of-order segments, and can
+   coalesece them on input and pass on an ordered list up the
+   stack to the application.
+  
+   It also looks for control messages and dispatches them to
+   the Rtx queue to ack messages or close channels.
+ *)
 module Rx = struct
 
-  (* Individual received TCP segment *)
-  type seg = {
-    seq: Tcp_sequence.t;        (* Sequence number *)
-    ack: Tcp_sequence.t option; (* Ack number      *)
-    len: int;                   (* Length          *)
-    fin: bool;                  (* Fin flag        *)
-    syn: bool;                  (* Syn flag        *)
-    view: OS.Istring.View.t;    (* Packet contents *)
-  }
+  (* Individual received TCP segment 
+     TODO: this will change when IP fragments work *)
+  type seg = Mpl.Tcp.o
 
-  let seg (packet:Mpl.Tcp.o) =
-    let seq = Tcp_sequence.of_int32 packet#sequence in
-    let len = packet#data_length in
-    let view = packet#data_sub_view in
-    let fin = packet#fin = 1 in
-    let syn = packet#syn = 1 in
-    let ack = if packet#ack = 1 then 
-        Some (Tcp_sequence.of_int32 packet#ack_number)
-      else
-        None in
-    { len; seq; fin; ack; syn; view }
+  let seq (seg:seg) = Tcp_sequence.of_int32 seg#sequence
+  let len (seg:seg) = seg#data_length + seg#fin + seg#syn
+  let view (seg:seg) = seg#data_sub_view
+  let ack (seg:seg) = seg#ack = 1
+  let ack_number (seg:seg) = Tcp_sequence.of_int32 seg#ack_number
 
   (* Set of segments, ordered by sequence number *)
   module S = Set.Make(struct
     type t = seg
-    let compare a b = Tcp_sequence.compare a.seq b.seq
+    let compare a b = Tcp_sequence.compare (seq a) (seq b)
   end)
 
   type t = S.t
 
-  type q = { mutable segs: S.t }
-  let q () = { segs=S.empty }
+  type q = {
+    mutable segs: S.t;
+    urx: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
+    tx_ack: Tcp_sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
+    rx_ack: Tcp_sequence.t Lwt_mvar.t; (* Acks to received segments *)
+    wnd: Tcp_window.t;
+  }
+
+  let q ~urx ~wnd ~rx_ack ~tx_ack =
+    let segs = S.empty in
+    { segs; urx; tx_ack; rx_ack; wnd }
 
   let to_string t =
     String.concat ", " 
       (List.map (fun x -> sprintf "%lu[%d]"
-      (Tcp_sequence.to_int32 x.seq) x.len) (S.elements t.segs))
+      (Tcp_sequence.to_int32 (seq x)) (len x)) (S.elements t.segs))
 
   (* If there is a FIN flag at the end of this segment set.
-     TODO: should probably look for a FIN and chop off the rest
+     TODO: should look for a FIN and chop off the rest
      of the set as they may be orphan segments *)
   let fin q =
-    try
-      let seg = S.max_elt q.segs in
-      if seg.fin then Some seg.seq else None
-    with
-      Not_found -> None
+    try (S.max_elt q.segs)#fin = 1
+    with Not_found -> false
 
   (* If there is a SYN flag in this segment set *)
   let syn q =
-    try
-      let seg = S.max_elt q.segs in
-      if seg.syn then Some seg.seq else None
-    with 
-      Not_found -> None
+    try (S.max_elt q.segs)#syn = 1
+    with Not_found -> false
 
-  (* View of the segment *)
-  let view seg = seg.view
-   
-  (* If there is a SYN or ACK flag in this segment *)
-  let ack seg = seg.ack 
+  let is_empty q = S.is_empty q.segs
 
-  (* Iterate over segment set *)
-  let iter fn t = S.iter fn t.segs
+  (* Retrieve an istring list from a segment set and
+     consume from the queue *)
+  let views q =
+    (* TODO: deal with overlapping fragments with istring
+       subviews *)
+    let vs = List.rev (S.fold (fun seg acc -> (view seg) :: acc) q.segs []) in
+    q.segs <- S.empty;
+    vs
 
-  (* Given an input segment and the window information,
-     update the window and extract any ready segments *)
-  let input ~wnd ~seg t =
+  (* Given an input segment, the window information,
+     and a receive queue, update the window,
+     extract any ready segments into the user receive queue,
+     and signal any acks to the Tx queue *)
+  let input q seg =
     (* Check that the segment fits into the valid receive 
        window *)
-    match Tcp_window.valid wnd seg.seq with
+    match Tcp_window.valid q.wnd (seq seg) with
     |false ->
       printf "TCP: rx invalid sequence, discarding\n%!";
-      {segs=S.empty}
+      return ()
     |true -> begin
-      (* If the segment has an ACK, update our transmit window *)
-      (match seg.ack with
-        |None -> ()
-        |Some ack -> Tcp_window.tx_ack wnd ack);
       (* Insert the latest segment *)
-      let segs = S.add seg t.segs in
+      let segs = S.add seg q.segs in
       (* Walk through the set and get a list of contiguous segments *)
       let ready, waiting = S.fold (fun seg acc ->
-        match Tcp_sequence.compare seg.seq (Tcp_window.rx_next wnd) with
+        match Tcp_sequence.compare (seq seg) (Tcp_window.rx_next q.wnd) with
         |(-1) ->
            (* Sequence number is in the past, probably an overlapping
               segment. Drop it for now, but TODO segment coalescing *)
-           printf "TCP: segment in past %s\n%!" (Tcp_sequence.to_string seg.seq);
+           printf "TCP: segment in past %s\n%!" (Tcp_sequence.to_string (seq seg));
            acc
         |0 ->
            (* This is the next segment, so put it into the ready set
               and update the receive ack number *)
            let (ready,waiting) = acc in
-           Tcp_window.rx_advance wnd seg.len;
+           Tcp_window.rx_advance q.wnd (len seg);
            (S.add seg ready), waiting
         |1 -> 
            (* Sequence is in the future, so can't use it yet *)
@@ -122,18 +120,33 @@ module Rx = struct
            ready, (S.add seg waiting)
         |_ -> assert false
         ) segs (S.empty, S.empty) in
-      t.segs <- waiting;
-      let rq = { segs=ready } in
-      (* If the last ready segment has a FIN, then mark the receive
-         window as closed (this consumes a sequence number also ) *)
-      if match fin rq with Some _ -> true |None -> false then begin
-        Tcp_window.rx_close wnd;
-        if S.cardinal waiting != 0 then
-          printf "TCP: warning, rx closed but waiting segs != 0\n%!"
+      q.segs <- waiting;
+      (* If the first segment is a SYN, then open the receive
+         window *)
+      if syn q then begin
+        Tcp_window.rx_open ~rcv_wnd:seg#window ~isn:(seq seg) q.wnd;
+        (* TODO: signal to user application that the channel is open?
+           Doesn't seem to matter much at that level *)
       end;
-      printf "TCP Segments usable %d: waiting: [%s]\n%!"
-        (S.cardinal ready) (to_string t);
-      rq
+      (* If the segment has an ACK, tell the transmit side *)
+      let tx_ack =
+        if ack seg then
+          Lwt_mvar.put q.tx_ack (ack_number seg)
+        else
+          return () in
+      (* Inform the user application of new data *)
+      let urx_inform =
+        Lwt_mvar.put q.urx (Some (List.map view (S.elements ready))) >>
+        (* If the last ready segment has a FIN, then mark the receive
+           window as closed and tell the application *)
+        (if fin q then begin
+          Tcp_window.rx_close q.wnd;
+          if S.cardinal waiting != 0 then
+            printf "TCP: warning, rx closed but waiting segs != 0\n%!"; 
+          Lwt_mvar.put q.urx None
+         end else return ())
+      in
+      tx_ack <&> urx_inform
     end
 
 end
@@ -143,132 +156,116 @@ end
 *)
 module Tx = struct
 
-  (* A seg has been queued up for transmission, but not yet sent.
-     It may be coalesced with other segs in the queue depending on 
-     the MSS and congestion status, or broken up into multiple
-     segments if it's too large *)
+  type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
+
+  type xmit = flags:flags -> rx_ack:Tcp_sequence.t option -> seq:Tcp_sequence.t -> window:int -> unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+
   type seg = {
-    syn: bool;
-    ack: Tcp_sequence.t option;
-    fin: bool;
-    data: Mpl.Tcp.o OS.Istring.View.data;
+    view: OS.Istring.View.t;
+    flags: flags;
   }
 
-  let seg ?(syn=false) ?(ack=None) ?(fin=false) data =
-    { fin; syn; ack; data }
+  (* Sequence length of the segment *)
+  let len seg =
+    (match seg.flags with |No_flags |Rst -> 0 |Syn |Fin -> 1) +
+    (OS.Istring.View.length seg.view)
 
-  let ack seg = seg.ack
-  let syn seg = seg.syn
-  let fin seg = seg.fin
-  let data seg = seg.data
- 
   (* Queue of pre-transmission segments *)
-  type q = seg Lwt_sequence.t
-  let q () = Lwt_sequence.create ()
+  type q = {
+    segs: seg Lwt_sequence.t;          (* Retransmitted segment queue *)
+    xmit: xmit;                        (* Transmit packet to the wire *)
+    rx_ack: Tcp_sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
+    tx_ack: Tcp_sequence.t Lwt_mvar.t; (* TX Ack thread we've received an ack *)
+    rto: seg Lwt_mvar.t;               (* Mvar to append to retransmit queue *)
+    wnd: Tcp_window.t;                 (* TCP Window information *)
+  }
 
   let to_string seg =
-    sprintf "[%s%s%s%s]" 
-      (if seg.syn then "SYN " else "")
-      (match seg.ack with
-        |Some ack -> sprintf "ACK(%s) " (Tcp_sequence.to_string ack)
-        |None -> "")
-      (if seg.fin then "FIN " else "")
-      (match seg.data with `Frag _ -> "frag" 
-        |`Str _ -> "str" |`Sub _ -> "sub" |`None -> "empty")
+    sprintf "[%s%d]" 
+      (match seg.flags with |No_flags->"" |Syn->"SYN " |Fin ->"FIN " |Rst -> "RST ")
+      (OS.Istring.View.length seg.view)
 
-  (* Queue a segment for eventual transmission.
-     TODO: queue limit size and block if full *)
-  let queue seg t = 
-    printf "TCP_segment.Tx.queue: added segment %s\n%!" (to_string seg);
-    let _ = Lwt_sequence.add_r seg t in
-    return ()
+  let ack_segment q seg =
+    printf "Tcp_segment.Tx.ack_segment: %s\n%!" (to_string seg);
+    (* Take any action to the user transmit queue due to this being successfully
+       ACKed *)
+    ()
 
-  (* Given a maximum size, collect the next segment for
-     transmission to the wire and return it.
-     TODO: this currently just selects one, as we need composition
-     operators for istrings (to append suspensions).
-  *)
-  let coalesce ~mss t =
-    (* XXX TODO: enforce mss, and actually do some coalescion *)
-    Lwt_sequence.take_opt_l t
+  let rto_t q =
+    printf "Tcp_segment.Tx.rto_thread: start\n%!";
+    (* Mutex for q.segs *)
+    let mutex = Lwt_mutex.create () in
+    (* Listener thread for segments to hold for retransmission or ACK *)
+    let rec rto_queue_t mutex =
+      lwt seg = Lwt_mvar.take q.rto in
+      Lwt_mutex.with_lock mutex (fun () ->
+        printf "Tcp_segment.Tx.rto_queue: received seg\n%!";
+        let _ = Lwt_sequence.add_r seg q.segs in
+        (* TODO: kick the timer thread for retransmit *)
+        return ()
+      ) >>
+      rto_queue_t mutex
+    in
+    (* Listen for incoming TX acks from the receive queue and ACK
+       segments in our retransmission queue *)
+    let rec tx_ack_t mutex =
+      lwt seq_l = Lwt_mvar.take q.tx_ack in
+      Lwt_mutex.with_lock mutex (fun () ->
+        printf "Tcp_segment.Tx.tx_ack_t: received TX ack\n%!";
+        (* Iterate through all the active segments, marking the ACK *)
+        let ack_len = ref (Tcp_sequence.sub seq_l (Tcp_window.tx_una q.wnd)) in
+        Lwt_sequence.iter_node_l (fun node ->
+          let seg = Lwt_sequence.get node in
+          let seg_len = Tcp_sequence.of_int (len seg) in
+          if Tcp_sequence.geq !ack_len seg_len then begin
+            (* This segment is now fully ack'ed *)
+            Lwt_sequence.remove node;
+            ack_segment q seg;
+            ack_len := Tcp_sequence.sub !ack_len seg_len
+          end else begin
+            (* TODO: support partial ack *)
+            printf "Tcp_segment.Tx.tx_ack_t: partial ack not yet supported\n%!";
+            ack_len := Tcp_sequence.of_int32 0l
+          end
+        ) q.segs;
+        Tcp_window.tx_ack q.wnd seq_l;
+        tx_ack_t mutex
+      )
+    in
+    (rto_queue_t mutex) <&> (tx_ack_t mutex)
+
+  let q ~xmit ~wnd ~rx_ack ~tx_ack =
+    let rto = Lwt_mvar.create_empty () in
+    let segs = Lwt_sequence.create () in
+    let q = { xmit; wnd; rx_ack; rto; tx_ack; segs } in
+    let t = rto_t q in
+    q, t
+
+  (* Queue a segment for transmission. May block if:
+       - There is no transmit window available.
+       - The wire transmit function blocks.
+     The transmitter should check that the segment size will
+     will not be greater than the transmit window.
+   *)
+  let output ?(flags=No_flags) q data = 
+    (* Stamp the packet with the latest ack number *)
+    let ack = Tcp_window.rx_next q.wnd in
+    (* Transmit the packet to the wire
+         TODO: deal with transmission soft/hard errors here RFC5461 *)
+    let seq = Tcp_window.tx_nxt q.wnd in
+    let window = Tcp_window.rx_wnd q.wnd in
+    lwt view = q.xmit ~flags ~rx_ack:(Some ack) ~seq ~window data in
+    (* Inform the RX ack thread that we've just sent one *)
+    Lwt_mvar.put q.rx_ack ack >>
+    (* Queue up segment just sent for retransmission if needed *)
+    let seg = { view; flags } in
+    printf "TCP_segment.Tx.queue: sent segment %s\n%!" (to_string seg);
+    let seq_len = len seg in
+    if seq_len > 0 then begin
+      Tcp_window.tx_advance q.wnd seq_len;
+      Lwt_mvar.put q.rto seg
+    end else
+      (* Segment is sequence-empty (e.g. an empty ACK or RST) so ignore it *)
+      return ()
 end
 
-module Rtx = struct
-  (* A txseg has been transmitted, and is awaiting an ack from the 
-     other side before it can be freed. We store the memoized 
-     packet so it can be retransmitted without having to reevaluate
-     the packet suspension. *)
-  type seg = {
-    seq: Tcp_sequence.t;
-    len: int;  (* This is the sequence number length, including flags *)
-    packet: Mpl.Tcp.o;
-  }
-
-  let seg packet =
-    let seq = Tcp_sequence.of_int32 packet#sequence in
-    (* SYN and FIN both consume 1 sequence space each *)
-    let flags = packet#syn + packet#fin in
-    let len = packet#data_length + flags in 
-    { seq; len; packet }
-
-  let to_string xseg =
-    sprintf "[xseg seq %s len %d syn %d ack %d,%lu fin %d]"
-      (Tcp_sequence.to_string xseg.seq) xseg.len xseg.packet#syn
-      xseg.packet#ack xseg.packet#ack_number xseg.packet#fin
-
- (* Set of transmitted segments, ordered by sequence number *)
-  module S = Set.Make(struct
-    type t = seg
-    let compare a b = Tcp_sequence.compare a.seq b.seq
-  end)
-
-  (* Queue of post-transmission segments awaiting acks *)
-  type q = { mutable segs: S.t }
-  let q () = { segs=S.empty }
-
-  (* Queue a segment on the retransmission queue *)
-  let queue ~wnd seg t =
-    printf "Tcp_segment.Rtx: queued segment %s\n%!" (to_string seg);
-    (* TODO: dont queue up empty data segments like ACKS *)
-    t.segs <- S.add seg t.segs;
-    (* Advance the transmit window *)
-    Tcp_window.tx_advance wnd seg.len;
-    return ()
-
-  (* Register a partial ack, and return true if this fully acks the 
-     segment.
-     TODO: not yet supported *)
-  let partial_ack xseg seq_l seq_r =
-    printf "TCP_segment.Tx: ERROR partial ack not supported yet\n%!";
-    false
-
-  (* Indicate that a range of sequence numbers have been ACKed and
-     can be removed. Also tell another thread if a non-zero amount
-     has been acked *)
-  let mark_ack cond xseg_q ~l ~r =
-    printf "TCP_segment.Tx: mark ack segment %s-%s\n%!"
-      (Tcp_sequence.to_string l) (Tcp_sequence.to_string r);
-    let acked,unacked = S.partition
-      (fun xseg ->
-         (* Check if the acked segment fully overlaps this segment *)
-         match Tcp_sequence.leq l xseg.seq with
-         |true -> begin (* Acked segment starts before or on this segment *)
-           let xseg_r = Tcp_sequence.(add xseg.seq (of_int xseg.len)) in
-           match Tcp_sequence.geq r xseg_r with
-           |true -> (* ack edge is greater than this segment, so it is acked *)
-             true
-           |false -> begin (* ack edge is less than this segment, so check if partial ack *)
-             match Tcp_sequence.leq r xseg.seq with
-             |true -> (* TODO: possibly a duplicate ACK , see RFC2581 heuristics *)
-               false
-             |false -> (* this is a partial ack *)
-               partial_ack xseg l r
-           end
-         end
-         |false -> (* starts after this segment, so is a partial ack *)
-           partial_ack xseg l r 
-      ) xseg_q.segs in
-    xseg_q.segs <- unacked;
-    Lwt_condition.signal cond ()
-
-end

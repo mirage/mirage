@@ -175,7 +175,6 @@ module Tx = struct
     segs: seg Lwt_sequence.t;          (* Retransmitted segment queue *)
     xmit: xmit;                        (* Transmit packet to the wire *)
     rx_ack: Tcp_sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
-    tx_ack: Tcp_sequence.t Lwt_mvar.t; (* TX Ack thread we've received an ack *)
     rto: seg Lwt_mvar.t;               (* Mvar to append to retransmit queue *)
     wnd: Tcp_window.t;                 (* TCP Window information *)
   }
@@ -191,7 +190,7 @@ module Tx = struct
        ACKed *)
     ()
 
-  let rto_t q =
+  let rto_t q tx_ack =
     printf "Tcp_segment.Tx.rto_thread: start\n%!";
     (* Mutex for q.segs *)
     let mutex = Lwt_mutex.create () in
@@ -209,7 +208,7 @@ module Tx = struct
     (* Listen for incoming TX acks from the receive queue and ACK
        segments in our retransmission queue *)
     let rec tx_ack_t mutex =
-      lwt seq_l = Lwt_mvar.take q.tx_ack in
+      lwt seq_l = Lwt_mvar.take tx_ack in
       Lwt_mutex.with_lock mutex (fun () ->
         printf "Tcp_segment.Tx.tx_ack_t: received TX ack\n%!";
         (* Iterate through all the active segments, marking the ACK *)
@@ -237,8 +236,8 @@ module Tx = struct
   let q ~xmit ~wnd ~rx_ack ~tx_ack =
     let rto = Lwt_mvar.create_empty () in
     let segs = Lwt_sequence.create () in
-    let q = { xmit; wnd; rx_ack; rto; tx_ack; segs } in
-    let t = rto_t q in
+    let q = { xmit; wnd; rx_ack; rto; segs } in
+    let t = rto_t q tx_ack in
     q, t
 
   (* Queue a segment for transmission. May block if:

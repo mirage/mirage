@@ -20,68 +20,73 @@ open Printf
 (* General signature for all the ack modules *)
 module type M = sig
   type t
-  val t : unit Lwt_condition.t -> Tcp_sequence.t -> t
 
-  val receive: t -> Tcp_sequence.t -> unit
-  val transmit: t -> Tcp_sequence.t -> unit
+  (* ack: put mvar to trigger the transmission of an ack *)
+  val t : ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t 
+
+  (* called when new data is received *)
+  val receive: t -> Tcp_sequence.t -> unit Lwt.t
+
+  (* called when an ack is transmitted from elsewhere *)
+  val transmit: t -> Tcp_sequence.t -> unit Lwt.t
 end
 
 (* Transmit ACKs immediately, the dumbest (and simplest) way *)
 module Immediate : M = struct
 
-  type t = unit Lwt_condition.t
+  type t = Tcp_sequence.t Lwt_mvar.t
 
-  let t ack_cond last = ack_cond
+  let t ~ack ~last = ack
 
   let receive t ack_number =
-    Lwt_condition.signal t ()
+    Lwt_mvar.put t ack_number
 
   let transmit t ack_number =
-    ()
+    return ()
 end
 
 (* Delayed ACKs *)
 module Delayed : M = struct
 
-  (* rx_cond: When new data is received, the highest new sequence number sent here.
-     tx_cond: When any ack update is sent (e.g. piggybacked on tx data), tx_cond is notified.
+  (* rx: When new data is received, the highest new sequence number sent here.
+     tx: When any ack update is sent (e.g. piggybacked on tx data), tx is notified.
      ack_cond: When a delayed ack timer fires, ack_cond is notified.
   *)
   type r = {
     mutable count: int;
     mutable last: Tcp_sequence.t;
-    rx_cond: Tcp_sequence.t Lwt_condition.t;
-    tx_cond: Tcp_sequence.t Lwt_condition.t;
-    ack_cond: unit Lwt_condition.t;
+    rx: Tcp_sequence.t Lwt_mvar.t;
+    tx: Tcp_sequence.t Lwt_mvar.t;
+    ack: Tcp_sequence.t Lwt_mvar.t;
   }
 
   type t = r * unit Lwt.t
 
   let transmit t ack_number =
-    Lwt_condition.signal t.ack_cond ()
+    Lwt_mvar.put t.ack ack_number
  
   let rec timer t =
     (* Wait for a received segment update *)
-    lwt ack_number = Lwt_condition.wait t.rx_cond in
+    lwt ack_number = Lwt_mvar.take t.rx in
     t.count <- t.count + 1;
     (* Decide if we need to send an ack straight away *)
     if t.count > 2 then begin
       (* TODO: RFC1122 4.2.3.2 actually says that in a stream of
          "full-sized" segments there should be an ACK every two
          seconds. We just do it for every other segment right now *)
-      transmit t ack_number;
+      transmit t ack_number >>
       timer t
     end else begin
       (* Delay thread that transmits after 200ms *)
       let delay =
         OS.Time.sleep 0.1 >>
         (printf "ACK delay thread fired\n%!";
-        transmit t ack_number;
+        transmit t ack_number >>
         timer t) in
       (* Continuation thread that cancels the timer if something
          else transmits an ACK in the meanwhile *)
       let continue =
-        Lwt_condition.wait t.tx_cond >>
+        lwt _ = Lwt_mvar.take t.tx in
         (printf "ACK delay thread cancelled\n%!";
         Lwt.cancel delay;
         timer t) in
@@ -89,22 +94,25 @@ module Delayed : M = struct
       continue <?> delay
     end
 
-  let t ack_cond last : t =
-    let rx_cond = Lwt_condition.create () in
-    let tx_cond = Lwt_condition.create () in
-    let r = { count=0; last; ack_cond; rx_cond; tx_cond } in
+  let t ~ack ~last : t =
+    let rx = Lwt_mvar.create_empty () in
+    let tx = Lwt_mvar.create_empty () in
+    let r = { count=0; last; ack; rx; tx } in
     (r, timer r)
 
   (* Advance the received ACK count *)
   let receive (t,_) ack_number = 
     if Tcp_sequence.lt t.last ack_number then
-      Lwt_condition.signal t.rx_cond ack_number
+      Lwt_mvar.put t.rx ack_number
+    else
+      return ()
 
   (* Indicate that an ACK has been transmitted *)
   let transmit (t,_) ack_number =
     if Tcp_sequence.lt t.last ack_number then begin
       t.last <- ack_number;
       t.count <- 0;
-      Lwt_condition.signal t.tx_cond ack_number
-    end
+      Lwt_mvar.put t.tx ack_number
+    end else
+      return ()
 end

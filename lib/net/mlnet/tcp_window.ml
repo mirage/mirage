@@ -26,23 +26,18 @@ type t = {
   mutable snd_nxt: Tcp_sequence.t;
   mutable rcv_nxt: Tcp_sequence.t;
   mutable snd_wnd: int;
-  mutable rcv_closed: bool;
   mutable rcv_wnd: int;
-  tx: l:Tcp_sequence.t -> r:Tcp_sequence.t -> unit;
-  rx: Tcp_sequence.t -> unit;
 }
 
 (* Initialise the sequence space *)
-let t ~tx ~rx =
+let t () =
   (* XXX need random ISN *)
   let snd_nxt = Tcp_sequence.of_int32 7l in
   let snd_una = snd_nxt in
   let snd_wnd = tcp_wnd in (* XXX? *)
   let rcv_nxt = Tcp_sequence.of_int32 0l in
   let rcv_wnd = 0 in
-  let rcv_closed = false in
-  { snd_una; snd_nxt; snd_wnd; rcv_nxt; rcv_wnd;
-    rcv_closed; tx; rx }
+  { snd_una; snd_nxt; snd_wnd; rcv_nxt; rcv_wnd }
 
 (* Check if a sequence number is in the right range
    TODO: modulo 32 for wrap
@@ -63,26 +58,13 @@ let rx_open ~rcv_wnd ~isn t =
 
 (* Indicate a received FIN and advance the window by 1 *)
 let rx_close t =
-  if t.rcv_closed then 
-    printf "TCP: warning, double rx FIN close\n%!"
-  else begin
-    t.rcv_closed <- true;
-    t.rcv_nxt <- Tcp_sequence.incr t.rcv_nxt;
-    printf "TCP: rx_close, seq=%lu\n%!" (Tcp_sequence.to_int32 t.rcv_nxt);
-  end
-
-(* Have we received a FIN from the other side? *)
-let rx_closed t = t.rcv_closed
+  t.rcv_nxt <- Tcp_sequence.incr t.rcv_nxt;
+  printf "TCP: rx_close, seq=%lu\n%!" (Tcp_sequence.to_int32 t.rcv_nxt)
 
 (* Advance received packet sequence number *)
 let rx_advance t b =
   printf "TCP_window: advancing window by %d\n%!" b;
-  t.rcv_nxt <- Tcp_sequence.add t.rcv_nxt (Tcp_sequence.of_int b);
-  t.rx t.rcv_nxt
-
-(* Notification that we have received a FIN *)
-let rx_fin t =
-  rx_advance t 1
+  t.rcv_nxt <- Tcp_sequence.add t.rcv_nxt (Tcp_sequence.of_int b)
 
 (* Next expected receive sequence number *)
 let rx_next t = t.rcv_nxt 
@@ -99,18 +81,11 @@ let tx_advance t b =
 (* Notify the send window has been acknowledged *)
 let tx_ack t r =
   if Tcp_sequence.gt r t.snd_una then begin
-    let l = t.snd_una in
     t.snd_una <- r;
     printf "TCP: ACK, snd.una=%lu snd.nxt=%lu\n%!"
       (Tcp_sequence.to_int32 t.snd_una) (Tcp_sequence.to_int32 t.snd_nxt);
-    (* Notify the ack listener *)
-    t.tx ~l ~r;
   end
 
-(* Notification that we have transmitted a FIN *)
-let tx_fin t =
-  tx_advance t 1
-
-let tx_next t = t.snd_nxt 
-
+let tx_nxt t = t.snd_nxt 
 let tx_wnd t = t.snd_wnd
+let tx_una t = t.snd_una

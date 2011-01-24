@@ -26,4 +26,4 @@ val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
 val create : Ipv4.t -> t * unit Lwt.t
 
 val close: pcb -> unit Lwt.t
-val read: pcb -> OS.Istring.View.t Lwt_sequence.t Lwt.t
+val read: pcb -> OS.Istring.View.t list option Lwt.t

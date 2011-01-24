@@ -22,7 +22,7 @@ module type M = sig
   type t
 
   (* ack: put mvar to trigger the transmission of an ack *)
-  val t : ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t 
+  val t : send_ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t 
 
   (* called when new data is received *)
   val receive: t -> Tcp_sequence.t -> unit Lwt.t
@@ -36,7 +36,7 @@ module Immediate : M = struct
 
   type t = Tcp_sequence.t Lwt_mvar.t
 
-  let t ~ack ~last = ack
+  let t ~send_ack ~last = send_ack
 
   let receive t ack_number =
     Lwt_mvar.put t ack_number
@@ -52,67 +52,63 @@ module Delayed : M = struct
      tx: When any ack update is sent (e.g. piggybacked on tx data), tx is notified.
      ack_cond: When a delayed ack timer fires, ack_cond is notified.
   *)
+  type ev = Tx of Tcp_sequence.t | Rx of Tcp_sequence.t
+
   type r = {
-    mutable count: int;
-    mutable last: Tcp_sequence.t;
-    rx: Tcp_sequence.t Lwt_mvar.t;
-    tx: Tcp_sequence.t Lwt_mvar.t;
-    ack: Tcp_sequence.t Lwt_mvar.t;
+    ev: ev Lwt_mvar.t;
+    send_ack: Tcp_sequence.t Lwt_mvar.t;
   }
 
   type t = r * unit Lwt.t
 
-  let transmit t ack_number =
-    Lwt_mvar.put t.ack ack_number
+  let transmit r ack_number =
+    Lwt_mvar.put r.send_ack ack_number
  
-  let rec timer t =
-    (* Wait for a received segment update *)
-    lwt ack_number = Lwt_mvar.take t.rx in
-    t.count <- t.count + 1;
-    (* Decide if we need to send an ack straight away *)
-    if t.count > 2 then begin
-      (* TODO: RFC1122 4.2.3.2 actually says that in a stream of
-         "full-sized" segments there should be an ACK every two
-         seconds. We just do it for every other segment right now *)
-      transmit t ack_number >>
-      timer t
-    end else begin
+  let rec timer r =
+    (* Wait for a received segment update to start the timer *)
+    lwt ev = Lwt_mvar.take r.ev in
+    match ev with 
+    |Tx seq ->
+      timer r
+    |Rx seq ->
+      (* Start the delayed ACK timer *)
+      printf "ACK delayed timer started \n%!";
       (* Delay thread that transmits after 200ms *)
+      let max_time = 0.2 in
       let delay =
-        OS.Time.sleep 0.1 >>
-        (printf "ACK delay thread fired\n%!";
-        transmit t ack_number >>
-        timer t) in
+        OS.Time.sleep max_time >>
+        transmit r seq >>
+        timer r 
+      in
       (* Continuation thread that cancels the timer if something
          else transmits an ACK in the meanwhile *)
-      let continue =
-        lwt _ = Lwt_mvar.take t.tx in
-        (printf "ACK delay thread cancelled\n%!";
-        Lwt.cancel delay;
-        timer t) in
-      (* Pick between the two threads *)
-      continue <?> delay
-    end
-
-  let t ~ack ~last : t =
-    let rx = Lwt_mvar.create_empty () in
-    let tx = Lwt_mvar.create_empty () in
-    let r = { count=0; last; ack; rx; tx } in
+      let other_ev =
+        lwt ev = Lwt_mvar.take r.ev in
+        match ev with
+        |Rx seq ->
+          (* If another packet is received, transmit an immediate ACK 
+             to the newest sequence number just received *)
+          Lwt.cancel delay;
+          transmit r seq >>
+          timer r
+        |Tx seq' ->
+          (* TODO: assert seq' == seq *)
+          Lwt.cancel delay;
+          timer r
+       in
+       (* Pick between the two threads *)
+       delay <?> other_ev
+    
+  let t ~send_ack ~last : t =
+    let ev = Lwt_mvar.create_empty () in
+    let r = { send_ack; ev } in
     (r, timer r)
 
   (* Advance the received ACK count *)
-  let receive (t,_) ack_number = 
-    if Tcp_sequence.lt t.last ack_number then
-      Lwt_mvar.put t.rx ack_number
-    else
-      return ()
+  let receive (r,t) ack_number = 
+    Lwt_mvar.put r.ev (Rx ack_number)
 
   (* Indicate that an ACK has been transmitted *)
-  let transmit (t,_) ack_number =
-    if Tcp_sequence.lt t.last ack_number then begin
-      t.last <- ack_number;
-      t.count <- 0;
-      Lwt_mvar.put t.tx ack_number
-    end else
-      return ()
+  let transmit (r,t) ack_number =
+    Lwt_mvar.put r.ev (Tx ack_number)
 end

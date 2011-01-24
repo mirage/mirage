@@ -17,7 +17,7 @@
 module type M =
   sig
     type t
-    val t : ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t
+    val t : send_ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t
 
     val receive : t -> Tcp_sequence.t -> unit Lwt.t
     val transmit : t -> Tcp_sequence.t -> unit Lwt.t

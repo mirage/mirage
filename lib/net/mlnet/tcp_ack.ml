@@ -48,9 +48,8 @@ end
 (* Delayed ACKs *)
 module Delayed : M = struct
 
-  (* rx: When new data is received, the highest new sequence number sent here.
-     tx: When any ack update is sent (e.g. piggybacked on tx data), tx is notified.
-     ack_cond: When a delayed ack timer fires, ack_cond is notified.
+  (* ev: Event mvar of transmitted/received packets
+     send_ack: Write to this mvar to transmit an empty ACK
   *)
   type ev = Tx of Tcp_sequence.t | Rx of Tcp_sequence.t
 

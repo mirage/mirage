@@ -31,10 +31,10 @@ let main () =
         lwt r = Tcp.read pcb in
         match r with
         |None ->
-           print_endline "RX Connection closed";
+           print_endline "RX Connection closed"; 
            Tcp.close pcb
-        |Some l ->
-          List.iter (fun v -> printf "Recv: %d\n%!" (OS.Istring.View.length v)) l;
+        |Some v ->
+          printf "Recv: %d\n%!" (OS.Istring.View.length v);
           fn ()
       in fn ()
     );

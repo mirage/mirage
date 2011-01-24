@@ -18,10 +18,6 @@ open Lwt
 open Nettypes
 open Printf
 
-exception Not_implemented of string
-exception Assert_failure of string
-exception Closed
-
 type id = {
   dest_port: int;               (* Remote TCP port *)
   dest_ip: ipv4_addr;           (* Remote IP address *)
@@ -36,7 +32,9 @@ type pcb = {
   txq: Tcp_segment.Tx.q;        (* Transmit segments queue *)
   ack: Tcp_ack.Delayed.t;       (* Ack state *)
   state: Tcp_state.t;           (* Connection state *)
-  urx: OS.Istring.View.t list option Lwt_mvar.t;
+  urx: Tcp_buffer.t;            (* App rx buffer *)
+  urx_close_t: unit Lwt.t;      (* App rx close thread *)
+  urx_close_u: unit Lwt.u;      (* App rx connection close wakener *)
 }
 
 type t = {
@@ -135,20 +133,22 @@ module Rx = struct
   (* Thread that spools the data into an application receive buffer,
      and notifies the ACK subsystem that new data is here *)
   let rec thread pcb ~rx_data =
-    let {wnd; ack; urx} = pcb in
+    let {wnd; ack; urx; urx_close_u} = pcb in
     lwt data = Lwt_mvar.take rx_data in
     printf "Tcp.RX.thread: received\n%!";
     Tcp_ack.Delayed.receive ack (Tcp_window.rx_nxt wnd) >>
-    (match data with
+    match data with
     |None ->
       Tcp_state.tick_rx pcb.state `fin;
-      Lwt_mvar.put urx None
+      Lwt.wakeup urx_close_u ();
+      thread pcb ~rx_data
     |Some data ->
-      List.iter (fun x -> 
-       printf "%s\n%!" (OS.Istring.(Prettyprint.hexdump (View.to_string x 0 (View.length x))))) data;
-      Lwt_mvar.put urx (Some data)
-    ) >>
-    thread pcb ~rx_data 
+      let rec queue = function
+        |hd::tl ->
+           Tcp_buffer.add_r urx hd >>
+           queue tl
+        |[] -> return () in
+      queue data <&> (thread pcb ~rx_data)
         
 end
 
@@ -167,8 +167,9 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   let rx_data = Lwt_mvar.create_empty () in
   (* Write to this mvar to transmit an empty ACK to the remote side *) 
   let send_ack = Lwt_mvar.create_empty () in
-  (* The user application receive mvar TODO make it a parqueue *)
-  let urx = Lwt_mvar.create_empty () in
+  (* The user application receive buffer and close notification *)
+  let urx = Tcp_buffer.create ~max_size:16384l in (* TODO: too small, but useful for debugging *)
+  let urx_close_t, urx_close_u = Lwt.task () in
   (* Set up transmit and receive queues *)
   let txq, tx_t = Tcp_segment.Tx.q ~xmit:(Tx.xmit t.ip id) ~wnd ~rx_ack ~tx_ack in
   let rxq = Tcp_segment.Rx.q ~rx_data ~wnd ~tx_ack in
@@ -179,7 +180,8 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   Tcp_window.rx_open wnd ~rcv_wnd:tcp#window ~isn:rx_isn;
   (* Construct basic PCB in Syn_received state *)
   let state = Tcp_state.t () in
-  let pcb = { state; rxq; txq; wnd; id; ack; urx } in
+  let pcb = { state; rxq; txq; wnd; id; ack;
+    urx; urx_close_t; urx_close_u } in
   Tcp_state.tick_rx pcb.state `syn;
   (* Compose the overall thread from the various tx/rx threads
      and the main listener function *)
@@ -239,11 +241,15 @@ let input t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) =
     (* No existing PCB, so check if it is a SYN for a listening function *)
     (input_no_pcb t ip tcp)
 
-(* Blocking read on a PCB, with None returned if the connection
-   is closed.
-   TODO: make this a queue so we can advertise window *)
+(* Blocking read on a PCB *)
 let rec read pcb =
-  Lwt_mvar.take pcb.urx
+  let data =
+    lwt d = Tcp_buffer.take_l pcb.urx in 
+    return (Some d) in
+  let closed =
+    pcb.urx_close_t >>
+    return None in
+  data <?> closed
 
 (* Block until both sides of the connection are closed *)
 let close pcb =

@@ -24,7 +24,7 @@ static void
 istring_finalize(value v_istring)
 {
   istring *istr = Istring_val(v_istring);
-  fprintf(stderr, "istring_finalize\n");
+//  fprintf(stderr, "istring_finalize\n");
   if (istr->ref != 0) 
     caml_failwith("istr ref != 0");
   return;

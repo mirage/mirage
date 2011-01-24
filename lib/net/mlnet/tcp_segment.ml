@@ -17,8 +17,6 @@
 open Printf
 open Lwt
 
-exception Not_implemented of string
-
 (* The receive queue stores out-of-order segments, and can
    coalesece them on input and pass on an ordered list up the
    stack to the application.
@@ -66,12 +64,12 @@ module Rx = struct
      TODO: should look for a FIN and chop off the rest
      of the set as they may be orphan segments *)
   let fin q =
-    try (S.max_elt q.segs)#fin = 1
+    try (S.max_elt q)#fin = 1
     with Not_found -> false
 
   (* If there is a SYN flag in this segment set *)
   let syn q =
-    try (S.max_elt q.segs)#syn = 1
+    try (S.max_elt q)#syn = 1
     with Not_found -> false
 
   let is_empty q = S.is_empty q.segs
@@ -101,7 +99,7 @@ module Rx = struct
       let segs = S.add seg q.segs in
       (* Walk through the set and get a list of contiguous segments *)
       let ready, waiting = S.fold (fun seg acc ->
-        match Tcp_sequence.compare (seq seg) (Tcp_window.rx_next q.wnd) with
+        match Tcp_sequence.compare (seq seg) (Tcp_window.rx_nxt q.wnd) with
         |(-1) ->
            (* Sequence number is in the past, probably an overlapping
               segment. Drop it for now, but TODO segment coalescing *)
@@ -122,7 +120,7 @@ module Rx = struct
       q.segs <- waiting;
       (* If the first segment is a SYN, then open the receive
          window *)
-      if syn q then begin
+      if syn ready then begin
         Tcp_window.rx_open ~rcv_wnd:seg#window ~isn:(seq seg) q.wnd;
         (* TODO: signal to user application that the channel is open?
            Doesn't seem to matter much at that level *)
@@ -138,8 +136,7 @@ module Rx = struct
         Lwt_mvar.put q.rx_data (Some (List.map view (S.elements ready))) >>
         (* If the last ready segment has a FIN, then mark the receive
            window as closed and tell the application *)
-        (if fin q then begin
-          Tcp_window.rx_close q.wnd;
+        (if fin ready then begin
           if S.cardinal waiting != 0 then
             printf "TCP: warning, rx closed but waiting segs != 0\n%!"; 
           Lwt_mvar.put q.rx_data None
@@ -247,7 +244,7 @@ module Tx = struct
    *)
   let output ?(flags=No_flags) q data = 
     (* Stamp the packet with the latest ack number *)
-    let ack = Tcp_window.rx_next q.wnd in
+    let ack = Tcp_window.rx_nxt q.wnd in
     (* Transmit the packet to the wire
          TODO: deal with transmission soft/hard errors here RFC5461 *)
     let seq = Tcp_window.tx_nxt q.wnd in

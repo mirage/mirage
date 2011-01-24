@@ -25,9 +25,8 @@ val t : unit -> t
 val valid : t -> Tcp_sequence.t -> bool
 
 val rx_open: rcv_wnd:int -> isn:Tcp_sequence.t -> t -> unit
-val rx_close : t -> unit
 val rx_advance : t -> int -> unit
-val rx_next : t -> Tcp_sequence.t
+val rx_nxt : t -> Tcp_sequence.t
 val rx_wnd : t -> int
 
 val tx_advance : t -> int -> unit

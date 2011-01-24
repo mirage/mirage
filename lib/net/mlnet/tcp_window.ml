@@ -56,18 +56,13 @@ let rx_open ~rcv_wnd ~isn t =
   t.rcv_wnd <- rcv_wnd;
   t.rcv_nxt <- Tcp_sequence.incr isn
 
-(* Indicate a received FIN and advance the window by 1 *)
-let rx_close t =
-  t.rcv_nxt <- Tcp_sequence.incr t.rcv_nxt;
-  printf "TCP: rx_close, seq=%lu\n%!" (Tcp_sequence.to_int32 t.rcv_nxt)
-
 (* Advance received packet sequence number *)
 let rx_advance t b =
   printf "TCP_window: advancing window by %d\n%!" b;
   t.rcv_nxt <- Tcp_sequence.add t.rcv_nxt (Tcp_sequence.of_int b)
 
 (* Next expected receive sequence number *)
-let rx_next t = t.rcv_nxt 
+let rx_nxt t = t.rcv_nxt 
 let rx_wnd t = t.rcv_wnd
 
 (* transmit MSS of current connection *)

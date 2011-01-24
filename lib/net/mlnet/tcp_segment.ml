@@ -74,15 +74,6 @@ module Rx = struct
 
   let is_empty q = S.is_empty q.segs
 
-  (* Retrieve an istring list from a segment set and
-     consume from the queue *)
-  let views q =
-    (* TODO: deal with overlapping fragments with istring
-       subviews *)
-    let vs = List.rev (S.fold (fun seg acc -> (view seg) :: acc) q.segs []) in
-    q.segs <- S.empty;
-    vs
-
   (* Given an input segment, the window information,
      and a receive queue, update the window,
      extract any ready segments into the user receive queue,
@@ -133,7 +124,10 @@ module Rx = struct
           return () in
       (* Inform the user application of new data *)
       let urx_inform =
-        Lwt_mvar.put q.rx_data (Some (List.map view (S.elements ready))) >>
+        (* TODO: deal with overlapping fragments *)
+        let elems = List.rev (S.fold (fun seg acc ->
+          if seg#data_length > 0 then seg#data_sub_view :: acc else acc) ready []) in
+        Lwt_mvar.put q.rx_data (Some elems) >>
         (* If the last ready segment has a FIN, then mark the receive
            window as closed and tell the application *)
         (if fin ready then begin

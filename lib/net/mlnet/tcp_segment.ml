@@ -48,15 +48,14 @@ module Rx = struct
 
   type q = {
     mutable segs: S.t;
-    urx: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
+    rx_data: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
     tx_ack: Tcp_sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
-    rx_ack: Tcp_sequence.t Lwt_mvar.t; (* Acks to received segments *)
     wnd: Tcp_window.t;
   }
 
-  let q ~urx ~wnd ~rx_ack ~tx_ack =
+  let q ~rx_data ~wnd ~tx_ack =
     let segs = S.empty in
-    { segs; urx; tx_ack; rx_ack; wnd }
+    { segs; rx_data; tx_ack; wnd }
 
   let to_string t =
     String.concat ", " 
@@ -136,14 +135,14 @@ module Rx = struct
           return () in
       (* Inform the user application of new data *)
       let urx_inform =
-        Lwt_mvar.put q.urx (Some (List.map view (S.elements ready))) >>
+        Lwt_mvar.put q.rx_data (Some (List.map view (S.elements ready))) >>
         (* If the last ready segment has a FIN, then mark the receive
            window as closed and tell the application *)
         (if fin q then begin
           Tcp_window.rx_close q.wnd;
           if S.cardinal waiting != 0 then
             printf "TCP: warning, rx closed but waiting segs != 0\n%!"; 
-          Lwt_mvar.put q.urx None
+          Lwt_mvar.put q.rx_data None
          end else return ())
       in
       tx_ack <&> urx_inform

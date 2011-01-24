@@ -17,9 +17,8 @@
 module Rx :
   sig
     type q
-    val q : urx:OS.Istring.View.t list option Lwt_mvar.t ->
+    val q : rx_data:OS.Istring.View.t list option Lwt_mvar.t ->
       wnd:Tcp_window.t ->
-      rx_ack:Tcp_sequence.t Lwt_mvar.t ->
       tx_ack:Tcp_sequence.t Lwt_mvar.t -> q
     val to_string : q -> string
     val is_empty : q -> bool

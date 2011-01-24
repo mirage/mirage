@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 barko@github.com
+ * Copyright (c) 2010 http://github.com/barko 00336ea19fcb53de187740c490f764f4
  * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any

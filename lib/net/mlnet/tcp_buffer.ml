@@ -34,22 +34,31 @@ let create ~max_size =
   let cur_size = 0l in
   { q; writers; readers; max_size; cur_size; watcher }
 
+let notify_size_watcher t =
+  match t.watcher with
+  |None -> return ()
+  |Some w -> Lwt_mvar.put w t.cur_size
+  
 let add_r t s =
-  if t.cur_size >= t.max_size then
+  if t.cur_size > t.max_size then
     let th,u = Lwt.task () in
     let node = Lwt_sequence.add_r u t.writers in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-    lwt () = th in
-    let _ = Lwt_sequence.add_r s t.q in
+    (* Update size before blocking, which may push cur_size above max_size *)
     t.cur_size <- Int32.(add t.cur_size (of_int (OS.Istring.View.length s)));
-    match t.watcher with
-    |None -> return ()
-    |Some w -> Lwt_mvar.put w t.cur_size
+    notify_size_watcher t >>
+    lwt () = th in
+    ignore(Lwt_sequence.add_r s t.q);
+    return ()
   else begin
     (match Lwt_sequence.take_opt_l t.readers with
-    |None -> ignore(Lwt_sequence.add_r s t.q);
-    |Some u -> Lwt.wakeup u s);
-    return ()
+    |None ->
+      t.cur_size <- Int32.(add t.cur_size (of_int (OS.Istring.View.length s)));
+      ignore(Lwt_sequence.add_r s t.q);
+      notify_size_watcher t
+    |Some u -> 
+      return (Lwt.wakeup u s)
+    );
   end
     
 let take_l t =
@@ -58,17 +67,17 @@ let take_l t =
     let node = Lwt_sequence.add_r u t.readers in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
     th
-  end else
+  end else begin
     let s = Lwt_sequence.take_l t.q in
     t.cur_size <- Int32.(sub t.cur_size (of_int (OS.Istring.View.length s)));
+    notify_size_watcher t >>
     if t.cur_size < t.max_size then begin
       match Lwt_sequence.take_opt_l t.writers with
       |None -> ()
       |Some w -> Lwt.wakeup w ()
     end;
-    match t.watcher with
-    |None -> return s
-    |Some w -> Lwt_mvar.put w t.cur_size >> return s
+    return s
+  end
 
 let cur_size t = t.cur_size
 let max_size t = t.max_size

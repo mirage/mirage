@@ -23,3 +23,4 @@ val take_l : t -> OS.Istring.View.t Lwt.t
 val cur_size : t -> int32
 val max_size : t -> int32
 val set_max_size : t -> int32 -> unit
+val monitor: t -> int32 Lwt_mvar.t -> unit

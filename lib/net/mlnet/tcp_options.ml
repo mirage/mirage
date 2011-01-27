@@ -26,6 +26,8 @@ type t =
   |Timestamp of (int32 * int32)    (* RFC1323 3.2 *)
   |Unknown of (int * string)       (* RFC793 *)
 
+type ts = t list
+
 let rec parse v off acc =
   match I.to_byte v off with
   |0 -> acc             (* End of options *)
@@ -46,6 +48,55 @@ let rec parse v off acc =
     let len = I.to_byte v (off+1) in
     let r = Unknown (x,(I.to_string v (off+2) len)) in
     parse v (off+2+len) (r::acc)
+
+let marshal ts = 
+  let open OS.Istring.View in
+  (fun env ->
+    (* Write type, length, apply function, return total length *)
+    let set_tl off t l fn =
+      set_byte env off t;
+      set_byte env (off+1) l;
+      fn (off+2);
+      l in
+    (* Walk through the options and write them to the view *)
+    let rec write off = function
+    |hd :: tl -> begin
+      match hd with
+      |MSS sz ->
+         set_tl off 2 4 (fun off ->
+           set_uint16_be env off sz;
+         )
+      |Window_size_shift shift ->
+         set_tl off 3 3 (fun off ->
+           set_byte env off shift;
+         );
+      |SACK_ok ->
+         set_tl off 4 2 (fun off -> ())
+      |SACK acks ->
+         let len = Array.length acks * 8 + 2 in
+         set_tl off 5 len (fun off ->
+           Array.iteri (fun i (l,r) -> 
+             set_uint32_be env (i*8+off) l;
+             set_uint32_be env (i*8+off+4) r;
+           ) acks
+         )
+      |Timestamp (a,b) ->
+         set_tl off 8 10 (fun off ->
+           set_uint32_be env off a;
+           set_uint32_be env (off+4) b
+         )
+      |Unknown (t,v) ->
+         set_tl off t (String.length v + 2) (fun off ->
+           set_string env off v
+         )
+    end
+    |[] ->
+      (* Write end of options field *)
+      set_byte env off 0;
+      0
+    in
+    ignore(write 0 ts)
+  )
 
 let of_packet (tcp:Mpl.Tcp.o) =
   if tcp#options_length = 0 then []

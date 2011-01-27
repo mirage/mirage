@@ -109,13 +109,6 @@ module Rx = struct
         |_ -> assert false
         ) segs (S.empty, S.empty) in
       q.segs <- waiting;
-      (* If the first segment is a SYN, then open the receive
-         window *)
-      if syn ready then begin
-        Tcp_window.rx_open ~rcv_wnd:seg#window ~isn:(seq seg) q.wnd;
-        (* TODO: signal to user application that the channel is open?
-           Doesn't seem to matter much at that level *)
-      end;
       (* If the segment has an ACK, tell the transmit side *)
       let tx_ack =
         if ack seg then
@@ -148,7 +141,8 @@ module Tx = struct
 
   type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
 
-  type xmit = flags:flags -> rx_ack:Tcp_sequence.t option -> seq:Tcp_sequence.t -> window:int -> unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+  type xmit = flags:flags -> wnd:Tcp_window.t -> options:Tcp_options.ts ->
+    unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
 
   type seg = {
     view: OS.Istring.View.t;
@@ -236,14 +230,12 @@ module Tx = struct
      The transmitter should check that the segment size will
      will not be greater than the transmit window.
    *)
-  let output ?(flags=No_flags) q data = 
-    (* Stamp the packet with the latest ack number *)
-    let ack = Tcp_window.rx_nxt q.wnd in
+  let output ?(flags=No_flags) ?(options=[]) q data = 
     (* Transmit the packet to the wire
          TODO: deal with transmission soft/hard errors here RFC5461 *)
-    let seq = Tcp_window.tx_nxt q.wnd in
-    let window = Tcp_window.rx_wnd q.wnd in
-    lwt view = q.xmit ~flags ~rx_ack:(Some ack) ~seq ~window data in
+    let {wnd} = q in
+    let ack = Tcp_window.tx_nxt wnd in
+    lwt view = q.xmit ~flags ~wnd ~options data in
     (* Inform the RX ack thread that we've just sent one *)
     Lwt_mvar.put q.rx_ack ack >>
     (* Queue up segment just sent for retransmission if needed *)

@@ -30,13 +30,15 @@ module Tx :
   sig
 
     type flags = |No_flags |Syn |Fin |Rst
-    type xmit = flags:flags -> rx_ack:Tcp_sequence.t option -> seq:Tcp_sequence.t -> window:int -> unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+
+    type xmit = flags:flags -> wnd:Tcp_window.t -> options:Tcp_options.ts -> unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+
     type q
+
     val q : xmit:xmit -> wnd:Tcp_window.t ->
       rx_ack:Tcp_sequence.t Lwt_mvar.t ->
       tx_ack:Tcp_sequence.t Lwt_mvar.t -> q * unit Lwt.t
 
-    val output : ?flags:flags -> q -> unit OS.Istring.View.data -> unit Lwt.t
+    val output : ?flags:flags -> ?options:Tcp_options.ts -> q -> unit OS.Istring.View.data -> unit Lwt.t
    
   end
-

@@ -39,15 +39,17 @@ type pcb = {
 
 type t = {
   ip : Ipv4.t;
-  channels: (id, (pcb * unit Lwt.t)) Hashtbl.t ;
-  listeners: (int, (pcb -> unit Lwt.t)) Hashtbl.t ;
+  channels: (id, (pcb * unit Lwt.t)) Hashtbl.t;
+  listeners: (int, (pcb -> unit Lwt.t)) Hashtbl.t;
 }
 
 module Tx = struct
 
+  exception IO_error
+
   (* Output a general TCP packet, checksum it, and if a reference is provided,
      also record the sent packet for retranmission purposes *)
-  let rec xmit ip id ~flags ~rx_ack ~seq ~window data =
+  let rec xmit ip id ~flags ~rx_ack ~seq ~window ~options data =
     (* Construct TCP closure *)
     let memo = ref None in
     let src = ipv4_addr_to_uint32 (Ipv4.get_ip ip) in
@@ -57,8 +59,8 @@ module Tx = struct
     let ack = match rx_ack with Some _ -> 1 |None -> 0 in
     let ack_number = match rx_ack with Some n -> Tcp_sequence.to_int32 n |None -> 0l in
     let sequence = Tcp_sequence.to_int32 seq in
-    let options = `None in
     let source_port = id.local_port in
+    let options = `Sub (Tcp_options.marshal options) in
     let {dest_port; dest_ip} = id in
     let tcpfn env = 
       let tcp = Mpl.Tcp.t ~syn ~fin ~rst ~ack ~ack_number
@@ -78,17 +80,24 @@ module Tx = struct
     |Some x -> 
       return x#data_sub_view
     |None -> 
-      printf "TCP.Tx.xmit: failed, retrying\n%!";
-      OS.Time.sleep 0.01 >>
-      xmit ip id ~flags ~rx_ack ~seq ~window data
+      printf "TCP.Tx.xmit: failed\n%!";
+      raise_lwt IO_error
+
+  (* Output a TCP packet, and calculate some settings from a state descriptor *)
+  let xmit_pcb ip id ~flags ~wnd ~options data =
+    let window = Int32.to_int (Tcp_window.rx_wnd wnd) in (* TODO scaling *)
+    let rx_ack = Some (Tcp_window.rx_nxt wnd) in
+    let seq = Tcp_window.tx_nxt wnd in
+    xmit ip id ~flags ~rx_ack ~seq ~window ~options data
 
   (* Output an RST when we dont have a PCB *)
-  let rst_no_pcb ~seq ~ack_number t id = 
+  let rst_no_pcb ~seq ~rx_ack t id = 
     printf "TCP: transmit RST no pcb -> %s:%d\n%!"
       (ipv4_addr_to_string id.dest_ip) id.dest_port;
     let window = 0 in
+    let options = [] in
     let data = `None in
-    xmit t.ip id ~flags:Tcp_segment.Tx.Rst ~rx_ack:ack_number ~seq ~window data >>
+    xmit t.ip id ~flags:Tcp_segment.Tx.Rst ~rx_ack ~seq ~window ~options data >>
     return ()
 
   (* Queue up an immediate close segment *)
@@ -106,12 +115,10 @@ module Tx = struct
     let {wnd; ack} = pcb in
     let rec send () =
       lwt ack_number = Lwt_mvar.take send_ack in
-      let rx_ack = Some ack_number in
-      let seq = Tcp_window.tx_nxt wnd in
-      let window = Tcp_window.tx_wnd wnd in
       let flags = Tcp_segment.Tx.No_flags in
       printf "TCP.Tx.ack_thread: sending empty ACK\n%!";
-      xmit t.ip pcb.id ~flags ~rx_ack ~seq ~window `None >>
+      let options = [] in
+      xmit_pcb t.ip pcb.id ~flags ~wnd ~options `None >>
       Tcp_ack.Delayed.transmit ack ack_number >>
       send () in
     let rec notify () =
@@ -132,24 +139,38 @@ module Rx = struct
    
   (* Thread that spools the data into an application receive buffer,
      and notifies the ACK subsystem that new data is here *)
-  let rec thread pcb ~rx_data =
+  let thread pcb ~rx_data =
     let {wnd; ack; urx; urx_close_u} = pcb in
-    lwt data = Lwt_mvar.take rx_data in
-    printf "Tcp.RX.thread: received\n%!";
-    Tcp_ack.Delayed.receive ack (Tcp_window.rx_nxt wnd) >>
-    match data with
-    |None ->
-      Tcp_state.tick_rx pcb.state `fin;
-      Lwt.wakeup urx_close_u ();
-      thread pcb ~rx_data
-    |Some data ->
-      let rec queue = function
+    (* Thread to monitor RX window and send updates *)
+    let window_mvar = Lwt_mvar.create_empty () in
+    Tcp_buffer.monitor urx window_mvar;
+    let rec rx_window_t () =
+      lwt rx_cur_size = Lwt_mvar.take window_mvar in
+      let rx_wnd = max 0l (Int32.sub (Tcp_buffer.max_size urx) rx_cur_size) in
+      Tcp_window.set_rx_wnd wnd rx_wnd;
+      (* TODO: kick the ack thread to send window update if it was 0 *)
+      rx_window_t ()
+    in
+    (* Thread to monitor application receive and pass it up *)
+    let rec rx_application_t () =
+      lwt data = Lwt_mvar.take rx_data in
+      printf "Tcp.RX.thread: received\n%!";
+      Tcp_ack.Delayed.receive ack (Tcp_window.rx_nxt wnd) >>
+      match data with
+      |None ->
+        Tcp_state.tick_rx pcb.state `fin;
+        Lwt.wakeup urx_close_u ();
+        rx_application_t ()
+      |Some data ->
+        let rec queue = function
         |hd::tl ->
            Tcp_buffer.add_r urx hd >>
            queue tl
         |[] -> return () in
-      queue data <&> (thread pcb ~rx_data)
-        
+       queue data <&> (rx_application_t ())
+    in   
+    rx_window_t () <?> (rx_application_t ())
+    
 end
 
 (* Helper function to apply function with contents of hashtbl, or take default action *)
@@ -158,7 +179,11 @@ let with_hashtbl h k fn default =
 
 let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   (* Set up the windowing variables *)
-  let wnd = Tcp_window.t () in
+  let rx_wnd_scale = 0 in
+  let tx_wnd_scale = 0 in
+  let rx_isn = Tcp_sequence.of_int32 tcp#sequence in
+  let rx_wnd = tcp#window in
+  let wnd = Tcp_window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~rx_isn in
   (* When we transmit an ACK for a received segment, rx_ack is written to *)
   let rx_ack = Lwt_mvar.create_empty () in
   (* When we receive an ACK for a transmitted segment, tx_ack is written to *)
@@ -171,13 +196,10 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   let urx = Tcp_buffer.create ~max_size:16384l in (* TODO: too small, but useful for debugging *)
   let urx_close_t, urx_close_u = Lwt.task () in
   (* Set up transmit and receive queues *)
-  let txq, tx_t = Tcp_segment.Tx.q ~xmit:(Tx.xmit t.ip id) ~wnd ~rx_ack ~tx_ack in
+  let txq, tx_t = Tcp_segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack in
   let rxq = Tcp_segment.Rx.q ~rx_data ~wnd ~tx_ack in
   (* Set up ACK module *)
-  let rx_isn = Tcp_sequence.of_int32 tcp#sequence in
   let ack = Tcp_ack.Delayed.t ~send_ack ~last:rx_isn in
-  (* Mark receive window as open since we got a SYN *)
-  Tcp_window.rx_open wnd ~rcv_wnd:tcp#window ~isn:rx_isn;
   (* Construct basic PCB in Syn_received state *)
   let state = Tcp_state.t () in
   let pcb = { state; rxq; txq; wnd; id; ack;
@@ -206,8 +228,8 @@ let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
        (* ACK to a listen socket results in an RST with
           <SEQ=SEG.ACK><CTL=RST> RFC793 pg65 *)
        let seq = Tcp_sequence.of_int32 tcp#ack_number in
-       let ack_number = None in
-       Tx.rst_no_pcb ~seq ~ack_number t id
+       let rx_ack = None in
+       Tx.rst_no_pcb ~seq ~rx_ack t id
     |false -> begin
        (* Check for a SYN, RFC793 pg65 *)
        match tcp#syn = 1 with
@@ -217,8 +239,8 @@ let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
            (new_connection t ip tcp id)
            (fun source_port ->
              let seq = Tcp_sequence.of_int32 0l in
-             let ack_number = Some (Tcp_sequence.(incr (of_int32 tcp#sequence))) in
-             Tx.rst_no_pcb ~seq ~ack_number t id
+             let rx_ack = Some (Tcp_sequence.(incr (of_int32 tcp#sequence))) in
+             Tx.rst_no_pcb ~seq ~rx_ack t id
            )
        |false ->
          (* What the hell is this packet? No SYN,ACK,RST *)

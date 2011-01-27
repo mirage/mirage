@@ -21,7 +21,7 @@ type pcb
 
 val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
 val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create : Ipv4.t -> t * unit Lwt.t
+val create: Ipv4.t -> t * unit Lwt.t
 
 val close: pcb -> unit Lwt.t
 val read: pcb -> OS.Istring.View.t option Lwt.t

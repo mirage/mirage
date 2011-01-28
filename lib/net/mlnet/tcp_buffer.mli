@@ -15,12 +15,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t
+module Rx : sig
+  type t
 
-val create : max_size:int32 -> t
-val add_r : t -> OS.Istring.View.t -> unit Lwt.t
-val take_l : t -> OS.Istring.View.t Lwt.t
-val cur_size : t -> int32
-val max_size : t -> int32
-val set_max_size : t -> int32 -> unit
-val monitor: t -> int32 Lwt_mvar.t -> unit
+  val create : max_size:int32 -> t
+  val add_r : t -> OS.Istring.View.t -> unit Lwt.t
+  val take_l : t -> OS.Istring.View.t Lwt.t
+  val cur_size : t -> int32
+  val max_size : t -> int32
+  val set_max_size : t -> int32 -> unit
+  val monitor: t -> int32 Lwt_mvar.t -> unit
+end
+
+module Tx : sig
+  type t
+
+  val create: wnd:Tcp_window.t -> t
+  val available: t -> int32
+  val wait_for: t -> int32 -> unit Lwt.t
+  val free: t -> int -> unit
+end

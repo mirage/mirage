@@ -31,10 +31,12 @@ let main () =
         lwt r = Tcp.read pcb in
         match r with
         |None ->
-           print_endline "RX Connection closed"; 
-           Tcp.close pcb
+          print_endline "MAIN: RX Connection closed"; 
+          Tcp.close pcb
         |Some v ->
-          printf "Recv: %d\n%!" (OS.Istring.View.length v);
+          let len = Int32.of_int (OS.Istring.View.length v) in
+          Tcp.write_wait_for pcb len >>
+          Tcp.write pcb (`Frag v) >>
           fn ()
       in fn ()
     );

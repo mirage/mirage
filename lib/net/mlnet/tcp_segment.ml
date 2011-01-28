@@ -48,12 +48,13 @@ module Rx = struct
     mutable segs: S.t;
     rx_data: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
     tx_ack: Tcp_sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
+    tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     wnd: Tcp_window.t;
   }
 
-  let q ~rx_data ~wnd ~tx_ack =
+  let q ~rx_data ~wnd ~tx_ack ~tx_wnd_update =
     let segs = S.empty in
-    { segs; rx_data; tx_ack; wnd }
+    { segs; rx_data; tx_ack; wnd; tx_wnd_update }
 
   let to_string t =
     String.concat ", " 
@@ -71,6 +72,11 @@ module Rx = struct
   let syn q =
     try (S.max_elt q)#syn = 1
     with Not_found -> false
+
+  (* Determine the transmit window, from the last segment *)
+  let window q =
+    try (S.max_elt q)#window
+    with Not_found -> 0
 
   let is_empty q = S.is_empty q.segs
 
@@ -109,12 +115,18 @@ module Rx = struct
         |_ -> assert false
         ) segs (S.empty, S.empty) in
       q.segs <- waiting;
+
       (* If the segment has an ACK, tell the transmit side *)
       let tx_ack =
         if ack seg then
           Lwt_mvar.put q.tx_ack (ack_number seg)
         else
           return () in
+
+      (* Inform the window thread of updates to the transmit window *)
+      let window_update =
+        Lwt_mvar.put q.tx_wnd_update (window ready) in
+
       (* Inform the user application of new data *)
       let urx_inform =
         (* TODO: deal with overlapping fragments *)
@@ -129,7 +141,7 @@ module Rx = struct
           Lwt_mvar.put q.rx_data None
          end else return ())
       in
-      tx_ack <&> urx_inform
+      tx_ack <&> urx_inform <&> window_update
     end
 
 end
@@ -177,45 +189,39 @@ module Tx = struct
   let rto_t q tx_ack =
     printf "Tcp_segment.Tx.rto_thread: start\n%!";
     (* Mutex for q.segs *)
-    let mutex = Lwt_mutex.create () in
     (* Listener thread for segments to hold for retransmission or ACK *)
-    let rec rto_queue_t mutex =
+    let rec rto_queue_t () =
       lwt seg = Lwt_mvar.take q.rto in
-      Lwt_mutex.with_lock mutex (fun () ->
-        printf "Tcp_segment.Tx.rto_queue: received seg\n%!";
-        let _ = Lwt_sequence.add_r seg q.segs in
-        (* TODO: kick the timer thread for retransmit *)
-        return ()
-      ) >>
-      rto_queue_t mutex
+      printf "Tcp_segment.Tx.rto_queue: received seg\n%!";
+      let _ = Lwt_sequence.add_r seg q.segs in
+      (* TODO: kick the timer thread for retransmit *)
+      rto_queue_t ()
     in
     (* Listen for incoming TX acks from the receive queue and ACK
        segments in our retransmission queue *)
-    let rec tx_ack_t mutex =
+    let rec tx_ack_t () =
       lwt seq_l = Lwt_mvar.take tx_ack in
-      Lwt_mutex.with_lock mutex (fun () ->
-        printf "Tcp_segment.Tx.tx_ack_t: received TX ack\n%!";
-        (* Iterate through all the active segments, marking the ACK *)
-        let ack_len = ref (Tcp_sequence.sub seq_l (Tcp_window.tx_una q.wnd)) in
-        Lwt_sequence.iter_node_l (fun node ->
-          let seg = Lwt_sequence.get node in
-          let seg_len = Tcp_sequence.of_int (len seg) in
-          if Tcp_sequence.geq !ack_len seg_len then begin
-            (* This segment is now fully ack'ed *)
-            Lwt_sequence.remove node;
-            ack_segment q seg;
-            ack_len := Tcp_sequence.sub !ack_len seg_len
-          end else begin
-            (* TODO: support partial ack *)
-            printf "Tcp_segment.Tx.tx_ack_t: partial ack not yet supported\n%!";
-            ack_len := Tcp_sequence.of_int32 0l
-          end
-        ) q.segs;
-        Tcp_window.tx_ack q.wnd seq_l;
-        tx_ack_t mutex
-      )
+      printf "Tcp_segment.Tx.tx_ack_t: received TX ack\n%!";
+      (* Iterate through all the active segments, marking the ACK *)
+      let ack_len = ref (Tcp_sequence.sub seq_l (Tcp_window.tx_una q.wnd)) in
+      Lwt_sequence.iter_node_l (fun node ->
+        let seg = Lwt_sequence.get node in
+        let seg_len = Tcp_sequence.of_int (len seg) in
+        if Tcp_sequence.geq !ack_len seg_len then begin
+          (* This segment is now fully ack'ed *)
+          Lwt_sequence.remove node;
+          ack_segment q seg;
+          ack_len := Tcp_sequence.sub !ack_len seg_len
+        end else begin
+          (* TODO: support partial ack *)
+          printf "Tcp_segment.Tx.tx_ack_t: partial ack not yet supported\n%!";
+          ack_len := Tcp_sequence.of_int32 0l
+        end
+      ) q.segs;
+      Tcp_window.tx_ack q.wnd seq_l;
+      tx_ack_t ()
     in
-    (rto_queue_t mutex) <&> (tx_ack_t mutex)
+    (rto_queue_t ()) <?> (tx_ack_t ())
 
   let q ~xmit ~wnd ~rx_ack ~tx_ack =
     let rto = Lwt_mvar.create_empty () in

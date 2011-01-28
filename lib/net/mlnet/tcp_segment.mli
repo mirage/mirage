@@ -19,7 +19,8 @@ module Rx :
     type q
     val q : rx_data:OS.Istring.View.t list option Lwt_mvar.t ->
       wnd:Tcp_window.t ->
-      tx_ack:Tcp_sequence.t Lwt_mvar.t -> q
+      tx_ack:Tcp_sequence.t Lwt_mvar.t -> 
+      tx_wnd_update:int Lwt_mvar.t -> q
     val to_string : q -> string
     val is_empty : q -> bool
     val input : q -> Mpl.Tcp.o -> unit Lwt.t
@@ -31,7 +32,8 @@ module Tx :
 
     type flags = |No_flags |Syn |Fin |Rst
 
-    type xmit = flags:flags -> wnd:Tcp_window.t -> options:Tcp_options.ts -> unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+    type xmit = flags:flags -> wnd:Tcp_window.t -> options:Tcp_options.ts ->
+      unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
 
     type q
 

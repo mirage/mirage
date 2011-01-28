@@ -17,28 +17,24 @@
 open Lwt
 open Printf
 
-(* Global values for TCP parameters *)
-let tcp_mss = 566
-let tcp_wnd = Int32.of_int (tcp_mss * 4)
-
 type t = {
   mutable snd_una: Tcp_sequence.t;
   mutable tx_nxt: Tcp_sequence.t;
   mutable rx_nxt: Tcp_sequence.t;
-  mutable tx_wnd: int32;  (* TX Window size after scaling *)
-  mutable rx_wnd: int32;  (* RX Window size after scaling *)
-  mutable tx_wnd_scale: int;  (* TX Window scaling option *)
-  mutable rx_wnd_scale: int;  (* RX Window scaling option *)
+  mutable tx_wnd: int32;           (* TX Window size after scaling *)
+  mutable rx_wnd: int32;           (* RX Window size after scaling *)
+  mutable tx_wnd_scale: int;       (* TX Window scaling option     *)
+  mutable rx_wnd_scale: int;       (* RX Window scaling option     *)
 }
 
 (* Initialise the sequence space *)
-let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~rx_isn =
-  (* XXX need random ISN *)
+let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn =
+  (* XXX need random ISN XXX *)
   let tx_nxt = Tcp_sequence.of_int32 7l in
   let rx_nxt = Tcp_sequence.(incr rx_isn) in
   let snd_una = tx_nxt in
-  let tx_wnd = Int32.shift_left tcp_wnd tx_wnd_scale in (* TODO: tx window size *)
   let rx_wnd = Int32.(shift_left (of_int rx_wnd) rx_wnd_scale) in
+  let tx_wnd = Int32.(shift_left (of_int tx_wnd) tx_wnd_scale) in
   { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_wnd; tx_wnd_scale; rx_wnd_scale }
 
 (* Check if a sequence number is in the right range
@@ -58,11 +54,20 @@ let rx_advance t b =
 (* Next expected receive sequence number *)
 let rx_nxt t = t.rx_nxt 
 let rx_wnd t = t.rx_wnd
-let set_rx_wnd t sz = t.rx_wnd <- sz
 
-(* transmit MSS of current connection *)
+(* TODO: scale the window down so we can advertise it correctly with
+   window scaling on the wire *)
+let set_rx_wnd t sz =
+  t.rx_wnd <- sz
+
+(* Take an unscaled value and scale it up *)
+let set_tx_wnd t sz =
+  let wnd = Int32.(shift_left (of_int sz) t.tx_wnd_scale) in
+  t.tx_wnd <- wnd
+
+(* transmit MSS of current connection TODO: read the TCP option from other side *)
 let tx_mss t =
-  min t.tx_wnd tcp_wnd
+  t.tx_wnd
 
 (* Advance transmitted packet sequence number *)
 let tx_advance t b =

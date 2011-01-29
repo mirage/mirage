@@ -44,8 +44,7 @@ let wait cons =
 
 let create () =
     let backend_id = 0 in 
-    let gnt = Gnttab.Reserved.console () in
-    let ring = Ring.Console.start_init gnt in
+    let gnt, ring = Ring.Console.alloc_initial () in
     let evtchn = Evtchn.console_port () in
     let waiters = Lwt_sequence.create () in
     let con = { backend_id=backend_id; gnt=gnt; ring=ring;

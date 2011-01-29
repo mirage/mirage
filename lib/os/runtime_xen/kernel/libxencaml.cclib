@@ -1,4 +1,5 @@
 exit_stubs.o
+istring_stubs.o
 mmap_stubs.o
 domain_stubs.o
 page_stubs.o

@@ -139,7 +139,7 @@ let _ = dispatch begin function
     let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_cow.cmo" pa_dyntype lib in
     let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
     let net_libs = match OS.target with
-     | OS.Xen -> []
+     | OS.Xen -> [ A "net.cmxa" ]
      | _ -> [ A "net.cmxa" ] in
     let cow_libs = match OS.target with
      | OS.Xen -> []

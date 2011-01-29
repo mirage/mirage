@@ -24,6 +24,7 @@
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
+#include <istring.h>
 
 /* The DEFINE_TYPED_RING_OPS macro defines OCaml functions to initialise and
    perform common ring operations on a specified type that has been
@@ -39,13 +40,11 @@
 
 #define DEFINE_TYPED_RING_OPS(xtype) \
 CAMLprim value \
-caml_##xtype##_ring_init(value v_gw) \
+caml_##xtype##_ring_init(value v_istr) \
 { \
-   gnttab_wrap *gw = Gnttab_wrap_val(v_gw); \
-   if (gw->page == NULL) gw->page = (void *)alloc_page(); \
    struct xtype##_sring *r; \
    struct xtype##_front_ring *fr = caml_stat_alloc(sizeof(struct xtype##_front_ring)); \
-   r = (struct xtype##_sring *) gw->page; \
+   r = (struct xtype##_sring *) (Istring_val(v_istr)->buf); \
    memset(r, 0, PAGE_SIZE); \
    SHARED_RING_INIT(r); \
    FRONT_RING_INIT(fr, r, PAGE_SIZE); \
@@ -119,17 +118,15 @@ DEFINE_TYPED_RING_OPS(netif_rx);
 
 #define DEFINE_RAW_RING_OPS(xname,xtype,xin,xout) \
 CAMLprim value \
-caml_##xname##_ring_init(value v_gw) \
+caml_##xname##_ring_init(value v_istr) \
 { \
-   gnttab_wrap *gw = Gnttab_wrap_val(v_gw); \
-   if (gw->page == NULL) gw->page = (void *)alloc_page(); \
-   memset(gw->page, 0, PAGE_SIZE); \
-   return (value)gw->page; \
+   memset(Istring_val(v_istr)->buf, 0, PAGE_SIZE); \
+   return Val_unit; \
 } \
 CAMLprim value \
-caml_##xname##_ring_write(value v_ring, value v_str, value v_len) \
+caml_##xname##_ring_write(value v_istr, value v_str, value v_len) \
 { \
-   struct xtype *intf = (struct xtype *)v_ring; \
+   struct xtype *intf = (struct xtype *)(Istring_val(v_istr)->buf); \
    int can_write = 0, len = Int_val(v_len); \
    XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
    cons = intf->xout##_cons; \
@@ -151,9 +148,9 @@ caml_##xname##_ring_write(value v_ring, value v_str, value v_len) \
    return Val_int(len); \
 } \
 CAMLprim value \
-caml_##xname##_ring_read(value v_ring, value v_str, value v_len) \
+caml_##xname##_ring_read(value v_istr, value v_str, value v_len) \
 { \
-   struct xtype *intf = (struct xtype *)v_ring; \
+   struct xtype *intf = (struct xtype *)(Istring_val(v_istr)->buf); \
    int to_read, len = Int_val(v_len); \
    XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
    mb (); \
@@ -179,31 +176,33 @@ DEFINE_RAW_RING_OPS(console,xencons_interface,in,out);
 DEFINE_RAW_RING_OPS(xenstore,xenstore_domain_interface,rsp,req);
 
 CAMLprim value
-caml_console_start_ring_init(value v_gw)
+caml_console_start_page(value v_unit)
 {
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    ASSERT(gw->page == NULL);
-    gw->page = mfn_to_virt(start_info.console.domU.mfn);
-    return (value)gw->page;
+  CAMLparam1(v_unit);
+  CAMLlocal1(v_ret);
+  unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
+  v_ret = istring_alloc(page, 4096);
+  CAMLreturn(v_ret);
 }
 
 CAMLprim value
-caml_xenstore_start_ring_init(value v_gw)
+caml_xenstore_start_page(value v_unit)
 {
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    ASSERT(gw->page == NULL);
-    gw->page = mfn_to_virt(start_info.store_mfn);
-    return (value)gw->page;
+  CAMLparam1(v_unit);
+  CAMLlocal1(v_ret);
+  unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
+  v_ret = istring_alloc(page, 4096);
+  CAMLreturn(v_ret);
 }
 
 /* Manually fill in functions to set parameters in requests */
 
 CAMLprim value
-caml_netif_rx_ring_req_set(value v_req, value v_id, value v_gw)
+caml_netif_rx_ring_req_set(value v_req, value v_id, value v_ref)
 {
     netif_rx_request_t *r = (netif_rx_request_t *)v_req;
     r->id = Int_val(v_id);
-    r->gref = Gnttab_wrap_val(v_gw)->ref;
+    r->gref = Int32_val(v_ref);
     return Val_unit;
 }
 
@@ -219,10 +218,10 @@ caml_netif_tx_ring_req_set(value v_req, value v_off, value v_flags, value v_id, 
 }
 
 CAMLprim value
-caml_netif_tx_ring_req_set_gnt(value v_req, value v_gw)
+caml_netif_tx_ring_req_set_gnt(value v_req, value v_ref)
 {
     netif_tx_request_t *r = (netif_tx_request_t *)v_req;
-    r->gref = Gnttab_wrap_val(v_gw)->ref;
+    r->gref = Int32_val(v_ref);
     return Val_unit;
 }
 

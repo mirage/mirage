@@ -15,19 +15,16 @@
  *)
 
 type r
+type num = int32
 type perm = RO | RW
+
+val alloc: ?page:Istring.Raw.t -> num -> r
+val num: r -> num
 val put_free_entry : r -> unit
 val get_free_entry : unit -> r Lwt.t
-val grant_access : r -> int -> perm -> unit
-val read : r -> int -> int -> string
-val write : r -> string -> int -> int -> unit
+val grant_access : domid:int -> perm:perm -> r -> unit
 val end_access : r -> unit
-val gnttab_ref : r -> int
 val to_string : r -> string
-val detach : r -> int -> int -> Hw_page.sub
-val attach : Hw_page.sub -> r -> unit
+val detach : r -> Istring.Raw.t
+val attach : r -> Istring.Raw.t -> unit
 
-module Reserved : sig
-   val xenstore : unit -> r
-   val console : unit -> r
-end

@@ -73,8 +73,8 @@ let create (num,backend_id) =
   lwt rx_slots = Ring.Netif_rx.(iter_n 
     (fun id gnt ->
       let req = req_get rx_ring id in
-      req_set req ~id ~gnt;
-      Gnttab.grant_access gnt backend_id Gnttab.RW;
+      req_set ~id ~gnt req;
+      Gnttab.grant_access ~domid:backend_id ~perm:Gnttab.RW gnt;
       return (id,gnt,req)
     ) size []
   ) in
@@ -103,7 +103,7 @@ let create (num,backend_id) =
 let input nf =
   Ring.Netif_rx.(read_responses nf.rx_ring (fun pos res ->
     let id = res_get_id res in
-    let offset = res_get_offset res in
+    let off = res_get_offset res in
     let status = res_get_status res in
     let id', gnt, req = nf.rx_slots.(id) in
     assert(id' = id);
@@ -111,13 +111,14 @@ let input nf =
     Gnttab.end_access gnt;
     (* detach the data page from the grant and give it to the receive
        function to queue up for the application *)
-    let sub = Gnttab.detach gnt offset status in
+    let page = Gnttab.detach gnt in
+    let istr = Istring.View.t ~off page status in
     (* Queue up the recv grant again *)
     req_set req ~id ~gnt;
-    Gnttab.grant_access gnt nf.backend_id Gnttab.RW;
+    Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RW gnt;
     req_push nf.rx_ring 1 nf.evtchn;
     (* Pass up the received page to the listener *)
-    sub
+    istr
   ))
 
 (* Loop permanently and listen for packets *)
@@ -153,22 +154,26 @@ let rec get_tx_gnt nf =
     return (id, gnt)
 
 (* Transmit a packet from buffer, with offset and length *)  
-let output nf sub =
+let output nf fn =
+  (* Allocate an istring and apply the suspension to it *)
+  let page = Istring.Raw.alloc () in
+  let size = 4096 in
+  let offset = 0 in
+  let view = Istring.View.t page size in
+  let res = fn view in
   (* Grab a free grant slot from the free list, which may block *)
   lwt (id, gnt) = get_tx_gnt nf in
   (* Attach the incoming sub-page to the free grant *)
-  Gnttab.attach sub gnt;
+  Gnttab.attach gnt page;
   (* Find our current request slot on the xmit queue *)
   let cur_slot = Ring.Netif_tx.req_get_prod nf.tx_ring in
   let req = Ring.Netif_tx.req_get nf.tx_ring cur_slot in
   (* Grant read accesss to the backend and setup the request *)
-  let offset = sub.Hw_page.off in
-  let size = sub.Hw_page.len in
-  Gnttab.grant_access gnt nf.backend_id Gnttab.RO;
+  Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt;
   Ring.Netif_tx.req_set_gnt req gnt;
   Ring.Netif_tx.req_set req ~offset ~flags:0 ~id ~size;
   Ring.Netif_tx.req_push nf.tx_ring 1 nf.evtchn;
-  return ()  
+  return res
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

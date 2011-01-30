@@ -59,10 +59,10 @@ output will be in `_build/sleep.bin`
 
 Build a Xen kernel:
 
-    mir-xen sleep.bin
+    mir-xen sleep.xen
 
-output will be in `_build/sleep.bin`, and you can boot it up in Xen with
-a config file like:
+output will be in `_build/sleep.{bin,xen}`, and you can boot it up
+in Xen with a config file like:
 
     $ cat > sleep.cfg
     name="sleep"

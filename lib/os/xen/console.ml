@@ -18,22 +18,22 @@ open Lwt
 open Printf
 
 type t = {
-    backend_id: int;
-    gnt: Gnttab.r;
-    ring: Ring.Console.t;
-    evtchn: int;
-    waiters: unit Lwt.u Lwt_sequence.t;
+  backend_id: int;
+  gnt: Gnttab.r;
+  ring: Ring.Console.t;
+  evtchn: int;
+  waiters: unit Lwt.u Lwt_sequence.t;
 }
 
 exception Internal_error of string
 
 (** Callback to go through the active waiting threads and wake them *)
 let perform_actions waiters () =
-    Lwt_sequence.iter_node_l
-      (fun node ->
-         Lwt_sequence.remove node;
-         Lwt.wakeup (Lwt_sequence.get node) ();
-      ) waiters
+  Lwt_sequence.iter_node_l
+    (fun node ->
+      Lwt_sequence.remove node;
+      Lwt.wakeup (Lwt_sequence.get node) ();
+    ) waiters
 
 (** Called by a console thread that wishes to sleep (or be cancelled) *)
 let wait cons =
@@ -94,3 +94,7 @@ let t = create ()
 let log s = 
   let s = s ^ "\n" in
   write t s 0 (String.length s)
+
+let log_s s =
+  let s = s ^ "\n" in
+  sync_write t s 0 (String.length s)

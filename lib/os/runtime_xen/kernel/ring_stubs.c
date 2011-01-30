@@ -176,7 +176,7 @@ caml_xenstore_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
-  unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
+  unsigned char *page = mfn_to_virt(start_info.store_mfn);
   v_ret = istring_alloc(page, 4096);
   CAMLreturn(v_ret);
 }

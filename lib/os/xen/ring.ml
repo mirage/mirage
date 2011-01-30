@@ -39,6 +39,16 @@ let alloc fn domid =
   Gnttab.grant_access ~domid ~perm gnt;
   return (gnt, ring)
 
+(* Allocate a new grant entry for a raw ring *)
+let alloc_raw zero domid =
+  lwt gnt = Gnttab.get_free_entry () in
+  let page = Istring.Raw.alloc () in
+  Gnttab.attach gnt page;
+  zero page;
+  let perm = Gnttab.RW in
+  Gnttab.grant_access ~domid ~perm gnt;
+  return (gnt, page)
+
 (* Read all responses on a ring, and ack them all at the end *)
 let read_responses ring waiting get_cons get ack fn =
   let res = ref [] in
@@ -110,10 +120,10 @@ module Console = struct
     type t = Istring.Raw.t
     let initial_grant_num : Gnttab.num = 2l
     external start_page: unit -> t = "caml_console_start_page"
-    external init: Istring.Raw.t -> t = "caml_console_ring_init"
+    external zero: Istring.Raw.t -> unit = "caml_console_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
-    let alloc domid = alloc init domid
+    let alloc domid = alloc_raw zero domid
     let alloc_initial () =
       let num = initial_grant_num in
       let page = start_page () in
@@ -125,11 +135,13 @@ module Xenstore = struct
     type t = Istring.Raw.t
     let initial_grant_num : Gnttab.num = 1l
     external start_page: unit -> t = "caml_xenstore_start_page"
+    external zero: Istring.Raw.t -> unit = "caml_xenstore_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_xenstore_ring_read"
     let alloc_initial () =
       let num = initial_grant_num in
       let page = start_page () in
+      zero page;
       let gnt = Gnttab.alloc ~page num in
       gnt, page
 end

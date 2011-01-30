@@ -127,49 +127,35 @@ CAMLprim value \
 caml_##xname##_ring_write(value v_istr, value v_str, value v_len) \
 { \
    struct xtype *intf = (struct xtype *)(Istring_val(v_istr)->buf); \
-   int can_write = 0, len = Int_val(v_len); \
-   XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
+   int sent = 0, len = Int_val(v_len); \
+   char *data = String_val(v_str); \
+   XENCONS_RING_IDX cons, prod; \
    cons = intf->xout##_cons; \
    prod = intf->xout##_prod; \
-   cons_mask = cons & (sizeof(intf->xout) - 1); \
-   prod_mask = prod & (sizeof(intf->xout) - 1); \
    mb(); \
-   if ( (prod-cons) >= sizeof(intf->xout) ) \
-     return(Val_int(0)); \
-   if (prod_mask >= cons_mask) \
-     can_write = sizeof(intf->xout) - prod_mask; \
-   else \
-     can_write = cons_mask - prod_mask; \
-   if (can_write < len) \
-     len = can_write; \
-   memcpy(intf->xout + prod_mask, String_val(v_str), len); \
-   mb (); \
-   intf->xout##_prod += len; \
+   BUG_ON((prod - cons) > sizeof(intf->xout)); \
+   while ((sent < len) && ((prod - cons) < sizeof(intf->xout))) \
+     intf->xout[MASK_XENCONS_IDX(prod++, intf->xout)] = data[sent++]; \
+   wmb(); \
+   intf->xout##_prod = prod; \
    return Val_int(len); \
 } \
 CAMLprim value \
 caml_##xname##_ring_read(value v_istr, value v_str, value v_len) \
 { \
    struct xtype *intf = (struct xtype *)(Istring_val(v_istr)->buf); \
-   int to_read, len = Int_val(v_len); \
-   XENCONS_RING_IDX cons, prod, cons_mask, prod_mask; \
-   mb (); \
+   int pos=0, len = Int_val(v_len); \
+   char *data = String_val(v_str); \
+   XENCONS_RING_IDX cons, prod; \
    cons = intf->xin##_cons; \
    prod = intf->xin##_prod; \
-   cons_mask = cons & (sizeof(intf->xin) - 1); \
-   prod_mask = prod & (sizeof(intf->xin) - 1); \
-   if (prod == cons) \
-     return (Val_int(0)); \
-   if (prod_mask > cons_mask) \
-     to_read = prod - cons; \
-   else \
-     to_read = sizeof(intf->xin) - cons_mask; \
-   if (to_read < len) \
-     len = to_read; \
-   memcpy(String_val(v_str), intf->xin + cons_mask, len); \
-   mb (); \
-   intf->xin##_cons += len; \
-   return Val_int(len); \
+   mb(); \
+   BUG_ON((prod - cons) > sizeof(intf->xin)); \
+   while (cons != prod && pos < len) \
+     data[pos++] = intf->xin[MASK_XENCONS_IDX(cons++, intf->xin)]; \
+   mb(); \
+   intf->xin##_cons = cons; \
+   return Val_int(pos); \
 }
 
 DEFINE_RAW_RING_OPS(console,xencons_interface,in,out);

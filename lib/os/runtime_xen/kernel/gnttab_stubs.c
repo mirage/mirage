@@ -46,8 +46,8 @@ caml_gnttab_grant_access(value v_ref, value v_istr, value v_domid, value v_reado
     CAMLparam4(v_ref, v_istr, v_domid, v_readonly);
     grant_ref_t ref = Int32_val(v_ref);
     unsigned char *page = Istring_val(v_istr)->buf;
-    printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
-        ref, page, Int_val(v_domid), Int_val(v_readonly));
+//    printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
+//        ref, page, Int_val(v_domid), Int_val(v_readonly));
     gnttab_table[ref].frame = virt_to_mfn(page);
     gnttab_table[ref].domid = Int_val(v_domid);
     wmb();

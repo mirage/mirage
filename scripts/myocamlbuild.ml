@@ -122,6 +122,11 @@ module Mir = struct
       | OS.Unix _ -> cc_unix_link
       | OS.Xen -> cc_xen_link in
     fn (tags_of_pathname c++"implem"+++tag) c o
+ 
+  let final_prod =
+    match OS.target with
+    |OS.Xen -> "%.xen"
+    |OS.Unix _ -> "%.bin"
 
   let () =
     rule "output-obj: mir -> o"
@@ -129,10 +134,10 @@ module Mir = struct
       ~dep:"%.mir"
       (native_output_obj_mir "%.mir" "%.m.o");
 
-    rule "final link: m.o -> .bin"
-      ~prod:"%.bin"
+    rule ("final link: m.o -> " ^ final_prod)
+      ~prod:final_prod
       ~dep:"%.m.o"
-      (cc_link_c_implem "%.m.o" "%.bin")
+      (cc_link_c_implem "%.m.o" final_prod)
 
 end
 
@@ -144,7 +149,7 @@ let _ = dispatch begin function
     let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_cow.cmo" pa_dyntype lib in
     let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
     let net_libs = match OS.target with
-     | OS.Xen -> []
+     | OS.Xen -> [ A "net.cmxa" ]
      | _ -> [ A "net.cmxa" ] in
     let cow_libs = match OS.target with
      | OS.Xen -> []

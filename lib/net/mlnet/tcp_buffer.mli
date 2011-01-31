@@ -1,5 +1,6 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010 http://github.com/barko 00336ea19fcb53de187740c490f764f4
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,22 +15,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
+module Rx : sig
+  type t
 
-type t
-type pcb
+  val create : max_size:int32 -> t
+  val add_r : t -> OS.Istring.View.t -> unit Lwt.t
+  val take_l : t -> OS.Istring.View.t Lwt.t
+  val cur_size : t -> int32
+  val max_size : t -> int32
+  val set_max_size : t -> int32 -> unit
+  val monitor: t -> int32 Lwt_mvar.t -> unit
+end
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
+module Tx : sig
+  type t
 
-val close: pcb -> unit Lwt.t
-
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
-
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+  val create: wnd:Tcp_window.t -> t
+  val available: t -> int32
+  val wait_for: t -> int32 -> unit Lwt.t
+  val free: t -> int -> unit
+end

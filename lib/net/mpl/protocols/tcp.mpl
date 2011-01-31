@@ -14,7 +14,7 @@ packet tcp {
   syn: bit[1] default(0);
   fin: bit[1] default(0);
   window: uint16;
-  checksum: uint16;
+  checksum: uint16 default(0);
   urgent: uint16 default(0);
   header_end: label;
   options: byte[(offset * 4) - offset(header_end)] align(32);

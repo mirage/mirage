@@ -1,5 +1,6 @@
 open Lwt 
 open Printf
+open Net
 open Nettypes
 open Mlnet
 
@@ -15,7 +16,7 @@ let main () =
     let _ = Icmp.create t in
     thread
   ) vifs in
-  pick (OS.Time.sleep 40. :: arp_t) >>
+  pick (OS.Time.sleep 360. :: arp_t) >>
   return (printf "success\n%!")
 
 let _ = OS.Main.run (main ())

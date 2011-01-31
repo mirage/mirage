@@ -14,22 +14,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
 
-type t
-type pcb
+type t 
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
+val t : rx_wnd_scale:int -> tx_wnd_scale:int ->
+  rx_wnd:int -> tx_wnd:int -> rx_isn:Tcp_sequence.t -> t
 
-val close: pcb -> unit Lwt.t
+val valid : t -> Tcp_sequence.t -> bool
 
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
+val rx_advance : t -> int -> unit
+val rx_nxt : t -> Tcp_sequence.t
 
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+val tx_advance : t -> int -> unit
+val tx_ack: t -> Tcp_sequence.t -> unit
+val tx_nxt : t -> Tcp_sequence.t
+val tx_una : t -> Tcp_sequence.t
+val tx_mss : t -> int32
+
+(* RCV.WND: Size of traffic we are willing to accept *)
+val rx_wnd : t -> int32
+val set_rx_wnd : t -> int32 -> unit
+
+(* SND.WND: Size of traffic we are allowed to send *)
+val tx_wnd : t -> int32
+val set_tx_wnd : t -> int -> unit

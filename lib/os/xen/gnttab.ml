@@ -16,27 +16,32 @@
 
 open Lwt
 
-type r (* Grant ref and its memory page *)
-type num = int (* Grant ref number *)
+exception Grant_page_not_found
+
+type num = int32                      (* Grant ref type (grant_ref_t) *)
+
+type r = {
+  num: num;                           (* Grant ref number *)
+  mutable page: Istring.Raw.t option; (* The memory page *)
+}
+
 type perm = RO |RW
 
-external gnttab_init : unit -> unit = "caml_gnttab_init"
-external gnttab_fini : unit -> unit = "caml_gnttab_fini"
-external gnttab_new : num -> r = "caml_gnttab_new"
-external gnttab_ref : r -> num = "caml_gnttab_ref"
-external gnttab_grant_access : r -> int -> bool -> unit = "caml_gnttab_grant_access"
-external gnttab_nr_entries : unit -> int = "caml_gnttab_nr_entries"
-external gnttab_nr_reserved : unit -> int = "caml_gnttab_reserved"
-external gnttab_end_access : r -> unit = "caml_gnttab_end_access"
-external gnttab_read : r -> int -> int -> string = "caml_gnttab_read"
-external gnttab_write : r -> string -> int -> int -> unit = "caml_gnttab_write"
-
-module Reserved = struct
-    let xenstore () = gnttab_new 1
-    let console () = gnttab_new 2
+module Raw = struct
+  external nr_entries : unit -> int = "caml_gnttab_nr_entries"
+  external nr_reserved : unit -> int = "caml_gnttab_reserved"
+  external init : unit -> unit = "caml_gnttab_init"
+  external fini : unit -> unit = "caml_gnttab_fini"
+  external grant_access : num -> Istring.Raw.t -> int -> bool -> unit = "caml_gnttab_grant_access"
+  external end_access : num -> unit = "caml_gnttab_end_access"
 end
 
-let free_list = Queue.create ()
+let alloc ?page (num:num) =
+  { num; page }
+
+let num gnt = gnt.num
+
+let free_list : r Queue.t = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
 
 let put_free_entry r =
@@ -51,29 +56,38 @@ let rec get_free_entry () =
     | false ->
         return (Queue.pop free_list)
 
-let to_string (r:r) = string_of_int (gnttab_ref r)
+let to_string (r:r) = Int32.to_string r.num
 
-let grant_access r domid perm =
-    gnttab_grant_access r domid (match perm with RO -> true |RW -> false)
+let grant_access ~domid ~perm r =
+  let page = match r.page with
+    |None ->
+      let p = Istring.Raw.alloc () in
+      r.page <- Some p;
+      p
+   |Some p -> p in
+  Raw.grant_access r.num page domid
+    (match perm with RO -> true |RW -> false)
 
 let end_access r =
-    gnttab_end_access r
+  Raw.end_access r.num
 
-external release_page: r -> Hw_page.t = "caml_gnt_release_page"
-external attach_page: Hw_page.t -> r -> unit = "caml_gnt_attach_page"
-
-(* Read/write bytes directly to a grant page *)
-let read r off sz = gnttab_read r off sz
-let write r buf off sz = gnttab_write r buf off sz
-
-(* Detach a grant into a separate sub-page *)
-let detach gnt off len = { Hw_page.page=(release_page gnt); off; len }
-(* Attach a subpage to a grant entry *)
-let attach sub gnt = attach_page sub.Hw_page.page gnt
-
+(* Detach an IString from the grant *)
+let detach r =
+  let page =
+    match r.page with
+    |None -> raise Grant_page_not_found
+    |Some p -> p
+  in
+  r.page <- None;
+  page
+  
+(* Attach an istring to the grant *)
+let attach r i =
+  r.page <- Some i
+  
 let _ =
-    Printf.printf "gnttab_init: %d\n%!" (gnttab_nr_entries () - 1);
-    for i = gnttab_nr_reserved () to gnttab_nr_entries () - 1 do
-        put_free_entry (gnttab_new i);
+    Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);
+    for i = Raw.nr_reserved () to Raw.nr_entries () - 1 do
+        put_free_entry (alloc (Int32.of_int i));
     done;
-    gnttab_init ()
+    Raw.init ()

@@ -3,4 +3,11 @@ Arp
 Ipv4
 Icmp
 Udp
+Tcp_options
+Tcp_buffer
+Tcp_state
+Tcp_sequence
+Tcp_window
+Tcp_ack
+Tcp_segment
 Tcp

@@ -19,6 +19,7 @@
 #include <mini-os/x86/os.h>
 #include <mini-os/mm.h>
 #include <mini-os/gnttab.h>
+#include <istring.h>
 
 static grant_entry_t *gnttab_table;
 static grant_ref_t gnttab_list[NR_GRANT_ENTRIES];
@@ -39,93 +40,26 @@ caml_gnttab_reserved(value unit)
     CAMLreturn(Val_int(NR_RESERVED_ENTRIES));
 }
 
-static gnttab_wrap *
-gnttab_wrap_alloc(grant_ref_t ref)
+CAMLprim value
+caml_gnttab_grant_access(value v_ref, value v_istr, value v_domid, value v_readonly)
 {
-    gnttab_wrap *gw = caml_stat_alloc(sizeof(gnttab_wrap));
-    gw->ref = ref;
-    gw->page = NULL;
-    return gw;
-}
-
-static void 
-gnttab_finalize(value v_gw)
-{
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    printk("gnttab_finalize %d\n", gw->ref);
-    if (gw->page != NULL) {
-        free_page(gw->page);
-        gw->page = NULL;
-    }
-    free(gw);
+    CAMLparam4(v_ref, v_istr, v_domid, v_readonly);
+    grant_ref_t ref = Int32_val(v_ref);
+    unsigned char *page = Istring_val(v_istr)->buf;
+//    printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
+//        ref, page, Int_val(v_domid), Int_val(v_readonly));
+    gnttab_table[ref].frame = virt_to_mfn(page);
+    gnttab_table[ref].domid = Int_val(v_domid);
+    wmb();
+    gnttab_table[ref].flags = GTF_permit_access | (Bool_val(v_readonly) * GTF_readonly);
+    CAMLreturn(Val_unit);
 }
 
 CAMLprim value
-caml_gnttab_new(value v_ref)
+caml_gnttab_end_access(value v_ref)
 {
     CAMLparam1(v_ref);
-    CAMLlocal1(v_gw);
-    gnttab_wrap *gw;
-    //printk("%d\n", Int_val(v_ref));
-    v_gw = caml_alloc_final(2, gnttab_finalize, 1, 100);
-    Gnttab_wrap_val(v_gw) = NULL;
-    gw = gnttab_wrap_alloc(Int_val(v_ref));
-    Gnttab_wrap_val(v_gw) = gw;
-    CAMLreturn(v_gw);
-}
-
-CAMLprim value
-caml_gnttab_ref(value v_gw)
-{
-    CAMLparam1(v_gw);
-    CAMLreturn(Val_int(Gnttab_wrap_val(v_gw)->ref));
-}
-
-CAMLprim value
-caml_gnttab_grant_access(value v_gw, value v_domid, value v_readonly)
-{
-    CAMLparam3(v_gw, v_domid, v_readonly);
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    if (gw->page == NULL)
-       gw->page = (void *)alloc_page();
-    //printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
-     //   gw->ref, gw->page, Int_val(v_domid), Int_val(v_readonly));
-    gnttab_table[gw->ref].frame = virt_to_mfn(gw->page);
-    gnttab_table[gw->ref].domid = Int_val(v_domid);
-    wmb();
-    gnttab_table[gw->ref].flags = GTF_permit_access | (Bool_val(v_readonly) * GTF_readonly);
-    CAMLreturn(Val_unit);
-}
-
-CAMLprim value
-caml_gnttab_read(value v_gw, value v_off, value v_size)
-{
-    CAMLparam3(v_gw, v_off, v_size);
-    CAMLlocal1(v_ret);
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    BUG_ON(gw->page == NULL);
-    v_ret = caml_alloc_string(Int_val(v_size));
-    memcpy(String_val(v_ret), gw->page + Int_val(v_off), Int_val(v_size));
-    CAMLreturn(v_ret);
-}
-
-CAMLprim value
-caml_gnttab_write(value v_gw, value v_str, value v_off, value v_size)
-{
-    CAMLparam4(v_gw, v_str, v_off, v_size);
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    if (gw->page == NULL)
-        gw->page = (void *)alloc_page();
-    memcpy(gw->page + Int_val(v_off), String_val(v_str), Int_val(v_size));
-    CAMLreturn(Val_unit);
-}
-
-CAMLprim value
-caml_gnttab_end_access(value v_gw)
-{
-    CAMLparam1(v_gw);
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    grant_ref_t ref = gw->ref;
+    grant_ref_t ref = Int32_val(v_ref);
     uint16_t flags, nflags;
 
     BUG_ON(ref >= NR_GRANT_ENTRIES || ref < NR_RESERVED_ENTRIES);
@@ -174,31 +108,5 @@ caml_gnttab_fini(value unit)
 
     HYPERVISOR_grant_table_op(GNTTABOP_setup_table, &setup, 1);
     CAMLreturn(Val_unit);
-}
-
-/* Generate a Hw_page.t from a grant reference.  Be careful to remove
-   any external grants before calling this as it dissociates the
-   underlying page from the grant reference structure. */
-CAMLprim value
-caml_gnt_release_page(value v_gw)
-{
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    void *page = gw->page;
-    gw->page = NULL;
-    if (page == NULL)
-        page = (void *)alloc_page();
-    return (value)page;
-}
-
-/* Attaches a raw page to a grant entry. Panics as a sanity check
-   if another page is already part of the grant */
-CAMLprim value
-caml_gnt_attach_page(value v_page, value v_gw)
-{
-    gnttab_wrap *gw = Gnttab_wrap_val(v_gw);
-    void *page = (void *)v_page;
-    BUG_ON(gw->page != NULL);
-    gw->page = page;
-    return Val_unit;
 }
 

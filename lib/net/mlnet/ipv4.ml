@@ -20,7 +20,7 @@ open Nettypes
 
 module ARP = Arp
 
-type 'a ip_output = OS.Istring.View.t -> ttl:int -> checksum:int -> dest:int32 ->
+type 'a ip_output = OS.Istring.View.t -> ttl:int -> dest:int32 ->
     options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
 
 type state =
@@ -78,7 +78,8 @@ let output t ~dest_ip (ip:'a ip_output) =
           fail (No_route_to_destination_address dest_ip)
     end in
   let ipfn env = 
-    let p = ip ~ttl:38 ~dest:(ipv4_addr_to_uint32 dest_ip) ~checksum:0 ~options:`None env in
+    let ttl = 38 in (* TODO ttl tracking *)
+    let p = ip ~ttl ~dest:(ipv4_addr_to_uint32 dest_ip) ~options:`None env in
     let csum = OS.Istring.View.ones_complement_checksum p#env p#header_end 0l in
     p#set_checksum csum;
   in

@@ -23,3 +23,4 @@ val create_additional_console : unit -> t Lwt.t
 val sync_write : t -> string -> int -> int -> unit Lwt.t
 val write : t -> string -> int -> int -> unit
 val log : string -> unit
+val log_s : string -> unit Lwt.t

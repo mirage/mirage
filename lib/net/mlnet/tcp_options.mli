@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,22 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
+type t =
+  |MSS of int                      (* RFC793 *)
+  |Window_size_shift of int        (* RFC1323 2.2 *)
+  |SACK_ok                         (* RFC2018 *)
+  |SACK of (int32 * int32) array   (* RFC2018 *)
+  |Timestamp of (int32 * int32)    (* RFC1323 3.2 *)
+  |Unknown of (int * string)       (* RFC793 *)
 
-type t
-type pcb
-
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
-
-val close: pcb -> unit Lwt.t
-
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
-
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+type ts = t list
+val marshal: ts -> (OS.Istring.View.t -> unit)
+val of_packet : Mpl.Tcp.o -> t list
+val prettyprint : t list -> string

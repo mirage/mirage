@@ -14,22 +14,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
-
 type t
-type pcb
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
+(* a < b *)
+val lt : t -> t -> bool
 
-val close: pcb -> unit Lwt.t
+(* a <= b *)
+val leq : t -> t -> bool
 
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
+(* a > b *)
+val gt : t -> t -> bool
 
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+(* a >= b *)
+val geq : t -> t -> bool
+
+(* b <= a <= c *)
+val between : t -> t -> t -> bool
+
+(* a + b *)
+val add: t -> t -> t
+
+(* a - b *)
+val sub: t -> t -> t
+ 
+(* a++ *)
+val incr: t -> t
+
+val compare: t -> t -> int
+val of_int32: int32 -> t
+val of_int: int -> t
+val to_int32: t -> int32
+val to_int: t -> int
+val to_string: t -> string

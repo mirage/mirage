@@ -29,7 +29,6 @@ type t = {
 (* Handle a single input frame, input as an istring view *)
 let input t i = 
   let x = Mpl.Ethernet.unmarshal i in 
-  Mpl.Ethernet.prettyprint x;
   match x with
   | `ARP arp -> t.arp arp
   | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_sub_view)
@@ -41,8 +40,7 @@ let rec listen t =
 
 (* Output an istring view *)
 let output t x =
-  let fn env = ignore(Mpl.Ethernet.m x env) in
-  OS.Ethif.output t.ethif fn
+  OS.Ethif.output t.ethif (Mpl.Ethernet.m x)
 
 let create id = 
   lwt ethif = OS.Ethif.create id in

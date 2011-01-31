@@ -14,22 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
+module type M =
+  sig
+    type t
+    val t : send_ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t
 
-type t
-type pcb
+    val receive : t -> Tcp_sequence.t -> unit Lwt.t
+    val transmit : t -> Tcp_sequence.t -> unit Lwt.t
+  end
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
+module Immediate : M
 
-val close: pcb -> unit Lwt.t
-
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
-
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+module Delayed : M

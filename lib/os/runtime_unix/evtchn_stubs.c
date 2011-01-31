@@ -82,7 +82,7 @@ caml_register_fd(value v_fd, value v_mask)
   CAMLparam2(v_fd, v_mask);
   CAMLlocal1(v_watcher);
   int fd = Int_val(v_fd);
-  fprintf(stderr, "caml_register_fd: fd=%d mask=%d\n", fd, Int_val(v_mask));
+//  fprintf(stderr, "caml_register_fd: fd=%d mask=%d\n", fd, Int_val(v_mask));
   /* Allocate an IO watcher, associate the OCaml callback with it,
      and register the callback as a generational root */
   ev_io *watcher = caml_stat_alloc(sizeof (struct ev_io));

@@ -14,22 +14,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
+(* TCP sequence numbers must work with overflow, so this puts them in a
+   separate type to make sure they dont get mixed up *)
 
-type t
-type pcb
+type t = int32
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
+(* a < b *)
+let lt a b = (Int32.sub a b) < 0l
 
-val close: pcb -> unit Lwt.t
+(* a <= b *)
+let leq a b = (Int32.sub a b) <= 0l
 
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
+(* a > b *)
+let gt a b = (Int32.sub a b) > 0l
 
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+(* a >= b *)
+let geq a b = (Int32.sub a b) >= 0l
+
+(* b <= a <= c *)
+let between a b c = (geq a b) && (leq a c)
+
+(* a + b *)
+let add a b = Int32.add a b
+
+(* a - b *)
+let sub a b = Int32.sub a b
+
+(* a++ *)
+let incr a = Int32.add a 1l
+
+let compare a b = Int32.compare a b 
+let of_int32 t = t
+let of_int t = Int32.of_int t
+let to_int32 t = t
+let to_int t = Int32.to_int t
+let to_string t = Printf.sprintf "%lu" t

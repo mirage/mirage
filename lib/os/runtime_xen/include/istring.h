@@ -1,4 +1,4 @@
-(*
+/*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,24 +12,21 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-open Nettypes
+#include <caml/mlvalues.h>
+#include <caml/memory.h>
+#include <caml/fail.h>
+#include <caml/alloc.h>
+#include <caml/custom.h>
+#include <caml/callback.h>
 
-type t
-type pcb
+#define Istring_val(x) (*((istring **)(Data_custom_val(x))))
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-val listen: t -> int -> (pcb -> unit Lwt.t) -> unit
-val create: Ipv4.t -> t * unit Lwt.t
+typedef struct istring {
+  unsigned char *buf; /* Pointer to buffer */
+  size_t size;        /* Total length of buffer */
+  unsigned int ref;   /* Reference count */
+} istring;
 
-val close: pcb -> unit Lwt.t
-
-(* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
-
-(* Low-level write interface that lets the application
-   decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
-val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t
+value istring_alloc(unsigned char *, size_t);

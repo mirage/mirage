@@ -16,6 +16,11 @@ let os =
   else
     (Ocamlbuild_pack.Log.dprintf 0 "OS: %s" os; os)
 
+(* This decides to run (or not) the debug HTTP callback on port 8081 *)
+let debugmode =
+  let debugmode = getenv "MIRAGEDEBUG" ~default:"0" in
+  debugmode <> "0"
+
 (* Points to the root of the installed Mirage stdlibs *)
 let lib = getenv "MIRAGELIB"
 
@@ -144,9 +149,9 @@ let _ = dispatch begin function
     let cow_libs = match OS.target with
      | OS.Xen -> []
      | _ -> [ A "cow.cmx" ] in
-    let debug_libs = match OS.target with
-     | OS.Xen -> []
-     | _ -> [ A "debugger.cmx" ] in
+    let debug_libs = match debugmode, OS.target with
+     | true, (OS.Unix _) -> [ A "debugger.cmx" ]
+     | _ -> [] in
     let libs = [
       (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa"; A "ulex.cmxa";
       (* os lib *)   A "oS.cmxa";

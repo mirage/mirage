@@ -20,6 +20,7 @@ type level =
 
 type logger =
   date       : string -> 
+  id         : int    ->
   level      : level  ->
   section    : string ->
   ?backtrace : string ->
@@ -31,7 +32,7 @@ type named_logger = {
   fn   : logger;
 }
 
-let text_logger ~date ~level ~section ?backtrace ~message =
+let text_logger ~date ~id ~level ~section ?backtrace ~message =
   let backtrace = match backtrace with
     | None    -> "" 
     | Some bt -> Printf.sprintf "(backtrace: %s)" bt in
@@ -40,7 +41,7 @@ let text_logger ~date ~level ~section ?backtrace ~message =
     | `warn  -> " warn"
     | `info  -> " info"
     | `error -> "error" in
-  let all = Printf.sprintf "%s %s %.20s: %s %s" date level section message backtrace in
+  let all = Printf.sprintf "[%.5d] %s %s %.20s: %s %s" id date level section message backtrace in
   Printf.printf "%s\n%!" all
 
 let text_logger_name =
@@ -49,21 +50,24 @@ let text_logger_name =
 type state = {
   mutable readers  : named_logger list;
   mutable get_date : unit -> string;
+  mutable get_id   : unit -> int;
 }
 
 let state = {
   readers  = [];
   get_date = (fun () -> "<not set>");
+  get_id   = (fun () -> 0);
 }
 
 let broadcast ~level ~section ~message =
   let date = state.get_date () in
+  let id   = state.get_id () in
   let backtrace =
     if Printexc.backtrace_status () then
       Some (Printexc.get_backtrace ())
     else
       None in
-  List.iter (fun r -> r.fn ~date ~level ~section ?backtrace ~message) state.readers
+  List.iter (fun r -> r.fn ~date ~id ~level ~section ?backtrace ~message) state.readers
 
 let add_logger name fn =
   if not (List.exists (fun r -> r.name = name) state.readers) then
@@ -78,6 +82,8 @@ let get_loggers () =
 let set_date date =
   state.get_date <- date
 
+let set_id id =
+  state.get_id <- id
 
 let log ~level ~section fmt =
   let fn message =

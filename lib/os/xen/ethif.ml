@@ -38,7 +38,7 @@ type id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let create (num,backend_id) =
-  Printf.printf "Netfront.create: start num=%d domid=%d\n%!" num backend_id;
+  Console.log (sprintf "Netfront.create: start num=%d domid=%d\n%!" num backend_id);
 
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (tx_ring_ref, tx_ring) = Ring.Netif_tx.alloc backend_id in
@@ -91,7 +91,7 @@ let create (num,backend_id) =
       return (id,gnt)
     ) size []) in
 
-  Activations.register evtchn (Activations.Event_condition rx_cond);
+  Activations.(register evtchn (Event_condition rx_cond));
   Evtchn.unmask evtchn;
   let active = true in
 

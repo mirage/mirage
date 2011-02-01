@@ -98,6 +98,7 @@ let listen nf fn =
   let rec poll_t () =
     lwt () = Lwt_condition.wait nf.rx_cond in
     Ring.Netif.Rx_t.poll nf.rx; 
+    Ring.Netif.Tx_t.poll nf.tx; 
     poll_t () in
   poll_t () <?> listen_t
 

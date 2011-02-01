@@ -124,7 +124,6 @@ caml_netif_rx_response(value v_ring)
   /* Allocate an OCaml list for the responses
      (so remember they will be returned in reverse order!) */
   v_responses = Val_emptylist;
-  printk("nr_responses=%d\n", nr_responses);
 
   while (more) {
     /* Walk through the outstanding responses and add to list */

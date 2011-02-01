@@ -41,6 +41,15 @@ let alloc ?page (num:num) =
 
 let num gnt = gnt.num
 
+let page gnt = 
+  match gnt.page with
+  |None ->
+    let p = Istring.Raw.alloc () in
+    gnt.page <- Some p;
+    p
+  |Some p ->
+    p
+
 let free_list : r Queue.t = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
 
@@ -59,14 +68,8 @@ let rec get_free_entry () =
 let to_string (r:r) = Int32.to_string r.num
 
 let grant_access ~domid ~perm r =
-  let page = match r.page with
-    |None ->
-      let p = Istring.Raw.alloc () in
-      r.page <- Some p;
-      p
-   |Some p -> p in
-  Raw.grant_access r.num page domid
-    (match perm with RO -> true |RW -> false)
+  let page = page r in
+  Raw.grant_access r.num page domid (match perm with RO -> true |RW -> false)
 
 let end_access r =
   Raw.end_access r.num
@@ -84,6 +87,20 @@ let detach r =
 (* Attach an istring to the grant *)
 let attach r i =
   r.page <- Some i
+
+let with_grant ~domid ~perm fn =
+  lwt gnt = get_free_entry () in
+  grant_access ~domid ~perm gnt;
+  try_lwt
+    lwt res = fn gnt in
+    end_access gnt;
+    put_free_entry gnt;
+    return res
+  with exn -> begin
+    end_access gnt;
+    put_free_entry gnt;
+    fail exn
+  end
   
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);

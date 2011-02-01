@@ -20,6 +20,7 @@ type perm = RO | RW
 
 val alloc: ?page:Istring.Raw.t -> num -> r
 val num: r -> num
+val page: r -> Istring.Raw.t
 val put_free_entry : r -> unit
 val get_free_entry : unit -> r Lwt.t
 val grant_access : domid:int -> perm:perm -> r -> unit
@@ -28,3 +29,4 @@ val to_string : r -> string
 val detach : r -> Istring.Raw.t
 val attach : r -> Istring.Raw.t -> unit
 
+val with_grant : domid:int -> perm:perm -> (r -> 'a Lwt.t) -> 'a Lwt.t

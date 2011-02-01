@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,28 +21,24 @@ type t = {
   backend_id: int;
   backend: string;
   mac: string;
-  tx_ring: Ring.Netif_tx.t;
-  tx_ring_ref: Gnttab.r;
-  tx_slots: (int * Gnttab.r) array;
-  tx_freelist: int Queue.t;
-  tx_freelist_cond: unit Lwt_condition.t;
-  rx_ring: Ring.Netif_rx.t;
-  rx_ring_ref: Gnttab.r;
-  rx_slots: (int * Gnttab.r * Ring.Netif_rx.req) array;
+  tx: Ring.Netif.Tx_t.t;
+  tx_gnt: Gnttab.r;
+  rx: Ring.Netif.Rx_t.t;
+  rx_gnt: Gnttab.r;
   evtchn: int;
   mutable rx_cond: unit Lwt_condition.t;
-  mutable active: bool;
 }
 
 type id = (int * int)
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let create (num,backend_id) =
-  Console.log (sprintf "Netfront.create: start num=%d domid=%d\n%!" num backend_id);
+  Console.log (sprintf "Netfront.create: start num=%d domid=%d\n%!"
+    num backend_id);
 
   (* Allocate a transmit and receive ring, and event channel for them *)
-  lwt (tx_ring_ref, tx_ring) = Ring.Netif_tx.alloc backend_id in
-  lwt (rx_ring_ref, rx_ring)  = Ring.Netif_rx.alloc backend_id in
+  lwt (tx_gnt, tx) = Ring.Netif.Tx_t.t backend_id in
+  lwt (rx_gnt, rx)  = Ring.Netif.Rx_t.t backend_id in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
 
   (* Read xenstore info and set state to Connected *)
@@ -51,129 +47,85 @@ let create (num,backend_id) =
   lwt mac = Xs.(t.read (node ^ "mac")) in
   lwt () = Xs.(transaction t (fun xst ->
     let wrfn k v = xst.Xst.write (node ^ k) v in
-    wrfn "tx-ring-ref" (Gnttab.to_string tx_ring_ref) >>
-    wrfn "rx-ring-ref" (Gnttab.to_string rx_ring_ref) >>
+    wrfn "tx-ring-ref" (Gnttab.to_string tx_gnt) >>
+    wrfn "rx-ring-ref" (Gnttab.to_string rx_gnt) >>
     wrfn "event-channel" (string_of_int evtchn) >>
     wrfn "request-rx-copy" "1" >>
     wrfn "state" Xb.State.(to_string Connected)
   )) in
-
-  (* Helper function to iterate through the rings and return
-     an array of grant slots *)
-  let rec iter_n fn num acc =
-    match num with
-    | 0 -> return (Array.of_list acc)
-    | num -> 
-        lwt gnt = Gnttab.get_free_entry () in
-        let id = num - 1 in
-        lwt r = fn id gnt in
-        iter_n fn id (r :: acc) in
-
-  (* Push all the recv grants to the recv ring *)
-  lwt rx_slots = Ring.Netif_rx.(iter_n 
-    (fun id gnt ->
-      let req = req_get rx_ring id in
-      req_set ~id ~gnt req;
-      Gnttab.grant_access ~domid:backend_id ~perm:Gnttab.RW gnt;
-      return (id,gnt,req)
-    ) size []
-  ) in
-  Ring.Netif_rx.req_push rx_ring Ring.Netif_rx.size evtchn;
+  (* Register callback activation *)
   let rx_cond = Lwt_condition.create () in
-
-  (* Record all the xmit grants in a freelist array, along
-     with the indices in tx_freelist to look them up *)
-  let tx_freelist = Queue.create () in
-  let tx_freelist_cond = Lwt_condition.create () in
-  lwt tx_slots = Ring.Netif_tx.(iter_n
-    (fun id gnt ->
-      Queue.push id tx_freelist;
-      return (id,gnt)
-    ) size []) in
-
+  let t = { backend_id; tx; tx_gnt; rx_gnt; rx; rx_cond; 
+   evtchn; mac; backend } in
   Activations.(register evtchn (Event_condition rx_cond));
   Evtchn.unmask evtchn;
-  let active = true in
+  return t
 
-  return { backend_id; tx_ring; tx_ring_ref; rx_ring_ref; rx_ring; rx_cond;
-    evtchn; rx_slots; tx_slots; mac; tx_freelist; tx_freelist_cond; 
-    backend; active }
+let listen nf fn =
+  let rec one_request () =
+    lwt (res,page) = Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RW
+      (fun gnt ->
+        (* Ensure grant has a page associated with it *)
+        let _ = Gnttab.page gnt in 
+        (* Set up the request and push it to the ring *)
+        let gref = Gnttab.num gnt in
+        let req id = { Ring.Netif.Rx.Req.id; gref } in
+        lwt res = Ring.Netif.Rx_t.push_one nf.rx ~evtchn:nf.evtchn req in
+        let page = Gnttab.detach gnt in
+        return (res, page)
+      ) in
+    (* Break open the response.
+       TODO: handle the full rx protocol (in flags) *)
+    let open Ring.Netif.Rx.Res in
+    match res.status with
+    |Size size ->
+      let view = Istring.View.t ~off:res.off page size in
+      fn view >>
+      one_request ()
+    |Err _ ->
+      Console.log "Warning: Netif.Rx_t error";
+      one_request ()
+  in
+  let reqs =
+    Array.to_list (
+      Array.init (Ring.Netif.Rx_t.max_requests nf.rx)
+        (fun i -> one_request ())
+    ) in
+  (* These requests will all requeue more requests, so this will
+     never terminate until cancelled *)
+  let listen_t = join reqs in
+  (* Listen for the activation to poll the interface *)
+  let rec poll_t () =
+    lwt () = Lwt_condition.wait nf.rx_cond in
+    Ring.Netif.Rx_t.poll nf.rx; 
+    poll_t () in
+  poll_t () <?> listen_t
 
-(* Input all available pages from receive ring and return detached page list *)
-let input nf =
-  Ring.Netif_rx.(read_responses nf.rx_ring (fun pos res ->
-    let id = res_get_id res in
-    let off = res_get_offset res in
-    let status = res_get_status res in
-    let id', gnt, req = nf.rx_slots.(id) in
-    assert(id' = id);
-    assert(id = pos); (* XXX this SHOULD fail when it overflows, just here to make sure it does and then remove *)
-    Gnttab.end_access gnt;
-    (* detach the data page from the grant and give it to the receive
-       function to queue up for the application *)
-    let page = Gnttab.detach gnt in
-    let istr = Istring.View.t ~off page status in
-    (* Queue up the recv grant again *)
-    req_set req ~id ~gnt;
-    Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RW gnt;
-    req_push nf.rx_ring 1 nf.evtchn;
-    (* Pass up the received page to the listener *)
-    istr
-  ))
-
-(* Loop permanently and listen for packets *)
-let rec listen nf fn =
-  match nf.active with
-  |true -> begin
-    match input nf with
-    | [] -> (* no input, so block *)
-        Lwt_condition.wait nf.rx_cond >>
-        listen nf fn
-    | frames -> (* handle inputs *)
-        let th = Lwt_list.iter_s fn frames in
-        listen nf fn <&> th
-  end  
-  |false ->
-     return ()
-  
 (* Shutdown a netfront *)
 let destroy nf =
   printf "netfront_destroy\n%!";
   return ()
 
-(* Get a xmit grant slot from the free list *)
-let rec get_tx_gnt nf =
-  match Queue.is_empty nf.tx_freelist with
-  |true ->
-    Lwt_condition.wait nf.tx_freelist_cond >> 
-    get_tx_gnt nf
-  |false ->
-    let id = Queue.take nf.tx_freelist in
-    let slot_id, gnt = nf.tx_slots.(id) in
-    assert(slot_id = id);
-    return (id, gnt)
-
 (* Transmit a packet from buffer, with offset and length *)  
 let output nf fn =
-  (* Allocate an istring and apply the suspension to it *)
-  let page = Istring.Raw.alloc () in
-  let size = 4096 in
-  let offset = 0 in
-  let view = Istring.View.t page size in
-  let res = fn view in
-  (* Grab a free grant slot from the free list, which may block *)
-  lwt (id, gnt) = get_tx_gnt nf in
-  (* Attach the incoming sub-page to the free grant *)
-  Gnttab.attach gnt page;
-  (* Find our current request slot on the xmit queue *)
-  let cur_slot = Ring.Netif_tx.req_get_prod nf.tx_ring in
-  let req = Ring.Netif_tx.req_get nf.tx_ring cur_slot in
-  (* Grant read accesss to the backend and setup the request *)
-  Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt;
-  Ring.Netif_tx.req_set_gnt req gnt;
-  Ring.Netif_tx.req_set req ~offset ~flags:0 ~id ~size;
-  Ring.Netif_tx.req_push nf.tx_ring 1 nf.evtchn;
-  return res
+  Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO (fun gnt ->
+    let gref = Gnttab.num gnt in
+    let page = Gnttab.page gnt in
+    let offset = 0 in
+    let view = Istring.View.t page 0 in
+    let packet = fn view in
+    let size = Istring.View.length view in
+    let open Ring.Netif.Tx in
+    let flags = 0 (* checksum offload *) in
+    let req id = Req.Normal { Req.gref; offset; flags; id; size } in
+    (* Push request *)
+    lwt res = Ring.Netif.Tx_t.push_one nf.tx ~evtchn:nf.evtchn req in
+    match res.Res.status with
+    |Res.OK -> return packet
+    |Res.Dropped | Res.Error |Res.Null ->
+      Console.log "Netif.Tx_t: packet transmit error\n";
+      return packet
+  ) 
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

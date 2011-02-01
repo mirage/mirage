@@ -35,8 +35,6 @@ netif_rx_alloc_response(struct netif_rx_response *response)
   Store_field(v, 1, Val_int(response->offset));
   Store_field(v, 2, Val_int(response->flags));
   Store_field(v, 3, Val_int(response->status));
-  printk("netif_rx_alloc_response: id=%d off=%d flags=%d st=%d\n",
-    response->id, response->offset, response->flags, response->status);
   return v;
 }
 
@@ -55,8 +53,6 @@ netif_tx_alloc_response(struct netif_tx_response *response)
   value v = alloc_small(2,0);
   Store_field(v, 0, Val_int(response->id));
   Store_field(v, 1, Val_int(response->status));
-  printk("netif_tx_alloc_response: id=%d status=%d\n", 
-    response->id, response->status);
   return v;
 }
 
@@ -81,7 +77,6 @@ netif_tx_set_request(value v_req, struct netif_tx_request *req)
       req->flags = Int_val(Field(v, 2));
       req->id = Int_val(Field(v, 3));
       req->size = Int_val(Field(v, 4));
-      printk("tx_set_req: gref=%lu off=%d fl=%d id=%d size=%d\n", req->gref, req->offset, req->flags, req->id, req->size);
       break;
     case 1: /* Extra */
       ex = (netif_extra_info_t *)req;
@@ -178,10 +173,6 @@ caml_netif_rx_max_requests(value v_ring)
   return Val_int(RING_SIZE((struct netif_rx_front_ring *)v_ring)-1);
 }
 
-
-
-
-
 value
 caml_netif_tx_response(value v_ring)
 {
@@ -199,7 +190,6 @@ caml_netif_tx_response(value v_ring)
   /* Allocate an OCaml list for the responses
      (so remember they will be returned in reverse order!) */
   v_responses = Val_emptylist;
-  printk("nr_responses=%d\n", nr_responses);
 
   while (more) {
     /* Walk through the outstanding responses and add to list */
@@ -265,7 +255,6 @@ caml_netif_rx_init(value v_istr)
   SHARED_RING_INIT(sring);
   fring = caml_stat_alloc(sizeof (struct netif_rx_front_ring));
   FRONT_RING_INIT(fring, sring, PAGE_SIZE);
-  printk("netif_rx_init: sring=%p fring=%p\n", sring, fring);
   CAMLreturn((value)fring);
 }
  
@@ -279,10 +268,8 @@ caml_netif_tx_init(value v_istr)
   SHARED_RING_INIT(sring);
   fring = caml_stat_alloc(sizeof (struct netif_tx_front_ring));
   FRONT_RING_INIT(fring, sring, PAGE_SIZE);
-  printk("netif_tx_init: sring=%p fring=%p\n", sring, fring);
   CAMLreturn((value)fring);
 } 
-
 
 /* Raw ring operations
    These have no request/response structs, just byte strings
@@ -352,4 +339,3 @@ caml_xenstore_start_page(value v_unit)
   v_ret = istring_alloc(page, 4096);
   CAMLreturn(v_ret);
 }
-

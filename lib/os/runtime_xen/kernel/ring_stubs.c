@@ -26,95 +26,268 @@
 #include <caml/memory.h>
 #include <istring.h>
 
-/* The DEFINE_TYPED_RING_OPS macro defines OCaml functions to initialise and
-   perform common ring operations on a specified type that has been
-   previously declared using the DEFINE_RING_TYPES macro. This must be
-   done using separate functions since the RING_* macros need to know
-   the type of the ring at compile-time */
+/* netif_rx_response { id:int; off: int; flags: int; status: int } */
+value
+netif_rx_alloc_response(struct netif_rx_response *response)
+{
+  value v = alloc_small(4,0);
+  Store_field(v, 0, Val_int(response->id));
+  Store_field(v, 1, Val_int(response->offset));
+  Store_field(v, 2, Val_int(response->flags));
+  Store_field(v, 3, Val_int(response->status));
+  printk("netif_rx_alloc_response: id=%d off=%d flags=%d st=%d\n",
+    response->id, response->offset, response->flags, response->status);
+  return v;
+}
 
-/* Note that this is 64-bit safe only, as the indices for producer
-   and consumer must be at least 32-bit wide (as they are incremented
-   until they wrap, and so a 31-bit native int is not enough. However,
-   to avoid allocation and since Mirage is 64-bit only, we use Val_int
-   here without problem, but beware if you want to run on x86_32 */
+/* netif_rx_request { id: int; gref: int32; } */
+static void
+netif_rx_set_request(value v_req, struct netif_rx_request *req)
+{
+  req->id = Int_val(Field(v_req, 0));
+  req->gref = Int32_val(Field(v_req, 1));
+}
 
-#define DEFINE_TYPED_RING_OPS(xtype) \
-CAMLprim value \
-caml_##xtype##_ring_init(value v_istr) \
-{ \
-   struct xtype##_sring *r; \
-   struct xtype##_front_ring *fr = caml_stat_alloc(sizeof(struct xtype##_front_ring)); \
-   r = (struct xtype##_sring *) (Istring_val(v_istr)->buf); \
-   memset(r, 0, PAGE_SIZE); \
-   SHARED_RING_INIT(r); \
-   FRONT_RING_INIT(fr, r, PAGE_SIZE); \
-   return (value)fr; \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_req_get(value v_ring, value v_idx) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   return (value)RING_GET_REQUEST(r, Int_val(v_idx)); \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_res_get(value v_ring, value v_idx) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   return (value)RING_GET_RESPONSE(r, Int_val(v_idx)); \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_req_push(value v_ring, value v_num, value v_evtchn) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   int notify; \
-   r->req_prod_pvt += Int_val(v_num); \
-   wmb (); \
-   RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(r, notify); \
-   if (notify) notify_remote_via_evtchn(Int_val(v_evtchn)); \
-   return Val_unit; \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_res_waiting(value v_ring) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   return Val_int(RING_HAS_UNCONSUMED_RESPONSES(r)); \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_res_ack(value v_ring, value v_num) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   int more; \
-   r->rsp_cons += Int_val(v_num); \
-   RING_FINAL_CHECK_FOR_RESPONSES(r, more); \
-   return Val_bool(more ? 1 : 0); \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_size(value v_unit) \
-{ \
-   return Val_int(__RING_SIZE((struct xtype##_sring *)0, PAGE_SIZE)); \
-} \
-\
-CAMLprim value \
-caml_##xtype##_ring_res_get_cons(value v_ring) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   return Val_int(r->rsp_cons); \
-} \
-CAMLprim value \
-caml_##xtype##_ring_req_get_prod(value v_ring) \
-{ \
-   struct xtype##_front_ring *r = (struct xtype##_front_ring *)v_ring; \
-   return Val_int(r->req_prod_pvt); \
-} \
+/* netif_tx_response { id: int; status: int } */
+value
+netif_tx_alloc_response(struct netif_tx_response *response)
+{
+  value v = alloc_small(2,0);
+  Store_field(v, 0, Val_int(response->id));
+  Store_field(v, 1, Val_int(response->status));
+  printk("netif_tx_alloc_response: id=%d status=%d\n", 
+    response->id, response->status);
+  return v;
+}
 
-DEFINE_TYPED_RING_OPS(netif_tx);
-DEFINE_TYPED_RING_OPS(netif_rx);
+/* netif_tx_request:
+   type extra = 
+     | GSO of { size: int; type: int; features: int }
+     | Mcast_add of string
+     | Mcast_del of string
+   type req = 
+     | Req of { gref: int32; offset: int; flags: int; id: int; size: int }
+     | Extra of { ty: int; more: bool }
+ */
+static void
+netif_tx_set_request(value v_req, struct netif_tx_request *req)
+{
+  value v = Field(v_req, 0);
+  netif_extra_info_t *ex;
+  switch (Tag_val(v_req)) {
+    case 0: /* Request */
+      req->gref = Int32_val(Field(v, 0));
+      req->offset = Int_val(Field(v, 1));
+      req->flags = Int_val(Field(v, 2));
+      req->id = Int_val(Field(v, 3));
+      req->size = Int_val(Field(v, 4));
+      printk("tx_set_req: gref=%lu off=%d fl=%d id=%d size=%d\n", req->gref, req->offset, req->flags, req->id, req->size);
+      break;
+    case 1: /* Extra */
+      ex = (netif_extra_info_t *)req;
+      switch (Tag_val(v)) {
+        case 0: /* GSO */
+          v = Field(v, 0);
+          ex->u.gso.size = Int_val(Field(v, 0));
+          ex->u.gso.type = Int_val(Field(v, 1));
+          ex->u.gso.features = Int_val(Field(v, 2));
+          break;
+        case 1: /* Mcast_add */
+          memcpy(ex->u.mcast.addr, String_val(Field(v,0)), 6);
+          break;
+        case 2: /* Mcast_del */
+          memcpy(ex->u.mcast.addr, String_val(Field(v,0)), 6);
+          break;
+        default:
+          BUG_ON("netif_tx_set_request: unknown Tag_val extra");
+      }
+      break;
+    default:
+      BUG_ON("netif_tx_set_request: unknown Tag_val");
+  }
+}
+
+value
+caml_netif_rx_response(value v_ring)
+{
+  CAMLparam1(v_ring);
+  CAMLlocal2(v_responses, v_cons);
+  RING_IDX rp, cons;
+  struct netif_rx_front_ring *fring = (struct netif_rx_front_ring *)v_ring;
+  struct netif_rx_response *response;
+  int nr_responses = 0, more=1;
+ 
+  rp = fring->sring->rsp_prod;
+  rmb(); /* Ensure we see queued responses up to rp */
+  cons = fring->rsp_cons;
+
+  /* Allocate an OCaml list for the responses
+     (so remember they will be returned in reverse order!) */
+  v_responses = Val_emptylist;
+  printk("nr_responses=%d\n", nr_responses);
+
+  while (more) {
+    /* Walk through the outstanding responses and add to list */
+    for (; cons != rp; cons++) {
+      response = RING_GET_RESPONSE(fring, cons);
+      /* Append response to the OCaml response list */ 
+      v_cons = caml_alloc(2, 0);
+      Store_field(v_cons, 0, netif_rx_alloc_response(response)); /* head */
+      Store_field(v_cons, 1, v_responses); /* tail */
+      v_responses = v_cons;
+    }
+    /* Mark responses as consumed */
+    fring->rsp_cons = cons;
+    RING_FINAL_CHECK_FOR_RESPONSES(fring, more);
+  }
+  CAMLreturn(v_responses);
+}
+
+/* ring -> req list -> int (if notify required to evtchn) */
+CAMLprim value
+caml_netif_rx_request(value v_ring, value v_reqs)
+{
+  CAMLparam1(v_ring);
+  CAMLlocal1(v_req); /* Head of reqs list */
+  struct netif_rx_front_ring *fring = (struct netif_rx_front_ring *)v_ring;
+  netif_rx_request_t *req;
+  RING_IDX req_prod;
+  int notify;
+
+  req_prod = fring->req_prod_pvt;
+  while (v_reqs != Val_emptylist) {
+    v_req = Field(v_reqs, 0);
+    req = RING_GET_REQUEST(fring, req_prod++);
+    netif_rx_set_request(v_req, req);
+    v_reqs = Field(v_reqs, 1);
+  }
+  wmb();
+  fring->req_prod_pvt = req_prod;
+  RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
+  CAMLreturn(Val_int(notify));
+}
+
+value
+caml_netif_rx_free_requests(value v_ring)
+{
+  return Val_int(RING_FREE_REQUESTS((struct netif_rx_front_ring *)v_ring));
+}
+
+value
+caml_netif_rx_max_requests(value v_ring)
+{
+  return Val_int(RING_SIZE((struct netif_rx_front_ring *)v_ring)-1);
+}
+
+
+
+
+
+value
+caml_netif_tx_response(value v_ring)
+{
+  CAMLparam1(v_ring);
+  CAMLlocal2(v_responses, v_cons);
+  RING_IDX rp, cons;
+  struct netif_tx_front_ring *fring = (struct netif_tx_front_ring *)v_ring;
+  struct netif_tx_response *response;
+  int nr_responses = 0, more=1;
+ 
+  rp = fring->sring->rsp_prod;
+  rmb(); /* Ensure we see queued responses up to rp */
+  cons = fring->rsp_cons;
+
+  /* Allocate an OCaml list for the responses
+     (so remember they will be returned in reverse order!) */
+  v_responses = Val_emptylist;
+  printk("nr_responses=%d\n", nr_responses);
+
+  while (more) {
+    /* Walk through the outstanding responses and add to list */
+    for (; cons != rp; cons++) {
+      response = RING_GET_RESPONSE(fring, cons);
+      /* Append response to the OCaml response list */ 
+      v_cons = caml_alloc(2, 0);
+      Store_field(v_cons, 0, netif_tx_alloc_response(response)); /* head */
+      Store_field(v_cons, 1, v_responses); /* tail */
+      v_responses = v_cons;
+    }
+    /* Mark responses as consumed */
+    fring->rsp_cons = cons;
+    RING_FINAL_CHECK_FOR_RESPONSES(fring, more);
+  }
+  CAMLreturn(v_responses);
+}
+
+/* ring -> req list -> int (if notify required to evtchn) */
+CAMLprim value
+caml_netif_tx_request(value v_ring, value v_reqs)
+{
+  CAMLparam1(v_ring);
+  CAMLlocal1(v_req); /* Head of reqs list */
+  struct netif_tx_front_ring *fring = (struct netif_tx_front_ring *)v_ring;
+  netif_tx_request_t *req;
+  RING_IDX req_prod;
+  int notify;
+
+  req_prod = fring->req_prod_pvt;
+  while (v_reqs != Val_emptylist) {
+    v_req = Field(v_reqs, 0);
+    req = RING_GET_REQUEST(fring, req_prod++);
+    netif_tx_set_request(v_req, req);
+    v_reqs = Field(v_reqs, 1);
+  }
+  wmb();
+  fring->req_prod_pvt = req_prod;
+  RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
+  CAMLreturn(Val_int(notify));
+}
+
+value
+caml_netif_tx_free_requests(value v_ring)
+{
+  return Val_int(RING_FREE_REQUESTS((struct netif_tx_front_ring *)v_ring));
+}
+
+value
+caml_netif_tx_max_requests(value v_ring)
+{
+  return Val_int(RING_SIZE((struct netif_tx_front_ring *)v_ring)-1);
+}
+
+
+value
+caml_netif_rx_init(value v_istr)
+{
+  CAMLparam1(v_istr);
+  struct netif_rx_front_ring *fring;
+  struct netif_rx_sring *sring;
+  sring = (struct netif_rx_sring *)(Istring_val(v_istr)->buf);
+  SHARED_RING_INIT(sring);
+  fring = caml_stat_alloc(sizeof (struct netif_rx_front_ring));
+  FRONT_RING_INIT(fring, sring, PAGE_SIZE);
+  printk("netif_rx_init: sring=%p fring=%p\n", sring, fring);
+  CAMLreturn((value)fring);
+}
+ 
+value
+caml_netif_tx_init(value v_istr)
+{
+  CAMLparam1(v_istr);
+  struct netif_tx_front_ring *fring;
+  struct netif_tx_sring *sring;
+  sring = (struct netif_tx_sring *)(Istring_val(v_istr)->buf);
+  SHARED_RING_INIT(sring);
+  fring = caml_stat_alloc(sizeof (struct netif_tx_front_ring));
+  FRONT_RING_INIT(fring, sring, PAGE_SIZE);
+  printk("netif_tx_init: sring=%p fring=%p\n", sring, fring);
+  CAMLreturn((value)fring);
+} 
+
+
+/* Raw ring operations
+   These have no request/response structs, just byte strings
+ */
 
 #define DEFINE_RAW_RING_OPS(xname,xtype,xin,xout) \
 CAMLprim value \
@@ -180,50 +353,4 @@ caml_xenstore_start_page(value v_unit)
   v_ret = istring_alloc(page, 4096);
   CAMLreturn(v_ret);
 }
-
-/* Manually fill in functions to set parameters in requests */
-
-CAMLprim value
-caml_netif_rx_ring_req_set(value v_req, value v_id, value v_ref)
-{
-    netif_rx_request_t *r = (netif_rx_request_t *)v_req;
-    r->id = Int_val(v_id);
-    r->gref = Int32_val(v_ref);
-    return Val_unit;
-}
-
-CAMLprim value
-caml_netif_tx_ring_req_set(value v_req, value v_off, value v_flags, value v_id, value v_size)
-{
-    netif_tx_request_t *r = (netif_tx_request_t *)v_req;
-    r->offset = Int_val(v_off);
-    r->flags = Int_val(v_flags);
-    r->id = Int_val(v_id);
-    r->size = Int_val(v_size);
-    return Val_unit;
-}
-
-CAMLprim value
-caml_netif_tx_ring_req_set_gnt(value v_req, value v_ref)
-{
-    netif_tx_request_t *r = (netif_tx_request_t *)v_req;
-    r->gref = Int32_val(v_ref);
-    return Val_unit;
-}
-
-/* These macros define direct accessor functions from OCaml
-   to access individual structures in the response pointers */
-
-#define DEFINE_RING_RESP_GET_INT(xtype, xfield) \
-CAMLprim value \
-caml_##xtype##_ring_res_get_##xfield(value v_resp) \
-{ \
-    xtype##_response_t *r = (xtype##_response_t *)v_resp; \
-    return Val_int(r->xfield); \
-}
-
-DEFINE_RING_RESP_GET_INT(netif_rx, id);
-DEFINE_RING_RESP_GET_INT(netif_rx, offset);
-DEFINE_RING_RESP_GET_INT(netif_rx, flags);
-DEFINE_RING_RESP_GET_INT(netif_rx, status);
 

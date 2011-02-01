@@ -22,22 +22,288 @@
 
 (* For every ring, we need to have bindings that define the type
    of a request and response, and accessor functions for those
-   structs to set fields.  Note that this will directly write to 
-   that entry in the ring, without OCaml allocation involved. *)
+   structs to set fields.
+ *)
 
 open Lwt
-type port = int
-type ('a,'b) ring 
 
 (* Allocate a new grant entry and initialise a ring using it *)
 let alloc fn domid =
   lwt gnt = Gnttab.get_free_entry () in
-  let page = Istring.Raw.alloc () in
-  Gnttab.attach gnt page;
+  let page = Gnttab.page gnt in
   let ring = fn page in
   let perm = Gnttab.RW in
   Gnttab.grant_access ~domid ~perm gnt;
   return (gnt, ring)
+
+(* Module type of any request/response ring *)
+module type RING = sig
+  type req                              (* Request *)
+  type res                              (* Response *)
+  type fring                            (* Front end ring *)
+
+  val alloc: int -> (Gnttab.r * fring) Lwt.t (* Allocate a ring *)
+  val free_requests: fring -> int       (* Available req slots *)
+  val max_requests: fring -> int        (* Max req slots *)
+
+  val write: fring -> req list -> bool  (* Write requests to ring *)
+
+  val read: fring -> res list           (* Read responses from ring *)
+  val id_of_res: res -> int             (* Get id number in response *)
+end
+
+(* A bounded queue model that will block after a max
+   number of requests. There are a fixed number of slots
+   available, each with a grant id associated with it.
+   A push to a ring will 'use up' an id, and a wakener
+   will be called with the response when it's done. *)
+module Bounded_ring (Ring:RING) = struct
+
+  type id = int
+
+  type t = {
+    fring: Ring.fring;
+    free_list: id Queue.t;
+    push_waiters: unit Lwt.u Lwt_sequence.t;
+    response_waiters: Ring.res Lwt.u option array;
+  }
+
+  let t ~backend_domid = 
+    lwt gnt, fring = Ring.alloc backend_domid in
+    let max_reqs = Ring.max_requests fring in
+    Printf.printf "max_reqs=%d\n%!" max_reqs;
+    let free_list = Queue.create () in
+    (* Freelist queue of ids *)
+    for id = 0 to max_reqs-1 do
+      Queue.push id free_list
+    done;
+    let push_waiters = Lwt_sequence.create () in
+    let response_waiters = Array.create max_reqs None in
+    let r =  { fring; free_list; push_waiters; response_waiters } in
+    return (gnt, r)
+
+  let rec push t ~evtchn reqfns =
+    let free_reqs = Queue.length t.free_list in
+    let num_reqs = List.length reqfns in
+    if num_reqs = 0 then
+      return []
+    else begin
+      if free_reqs > num_reqs then begin
+        (* Get a list of threads and wakeners for them *)
+        let reqs, resps_t = List.split (List.map 
+          (fun reqfn ->
+            let id = Queue.pop t.free_list in
+            let req = reqfn id in
+            let th, u = Lwt.task () in
+            t.response_waiters.(id) <- Some u;
+            req, th
+          ) reqfns) in
+        (* Write to ring and notify if needed *)
+        if Ring.write t.fring reqs then
+          Evtchn.notify evtchn;
+        (* Return the wakeners for the request *)
+        return resps_t
+      end else begin
+        (* Too many requests, so wait for some slots to free up *)
+        (* TODO: chunk the requests to fit whatever can go now *)
+        let th, u = Lwt.task () in
+        let node = Lwt_sequence.add_r u t.push_waiters in
+        Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+        th >>
+        push t ~evtchn reqfns
+      end
+    end      
+
+  let rec push_one t ~evtchn reqfn =
+    let free_reqs = Queue.length t.free_list in
+    if free_reqs > 0 then begin
+      let th, u = Lwt.task () in
+      let id = Queue.pop t.free_list in
+      let req = reqfn id in
+      t.response_waiters.(id) <- Some u;
+      if Ring.write t.fring [req] then
+        Evtchn.notify evtchn;
+      th
+    end else begin
+      let th, u = Lwt.task () in
+      let node = Lwt_sequence.add_r u t.push_waiters in
+      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+      th >>
+      push_one t ~evtchn reqfn
+    end
+      
+  (* Check for any responses and activate wakeners as they come in *)
+  let poll t =
+    List.iter
+      (fun res ->
+        let id = Ring.id_of_res res in
+        match t.response_waiters.(id) with
+        |None -> ()
+        |Some u ->
+          t.response_waiters.(id) <- None;
+          Lwt.wakeup u res
+      ) (Ring.read t.fring);
+    match Lwt_sequence.take_opt_l t.push_waiters with
+    |None -> ()
+    |Some u -> Lwt.wakeup u ()
+
+  let max_requests t = Ring.max_requests t.fring
+end
+
+module Netif = struct
+
+  module Rx = struct
+
+    module Req =  struct
+      type t = {                (* request type *)
+        id: int;
+        gref: int32;
+      }
+    end
+
+    module Res = struct
+      (* id, off, flags, status *)
+      type raw = (int * int * int * int)
+
+      type flags = {
+        checksum_blank: bool;
+        data_validated: bool;
+        more_data: bool;
+        extra_info: bool;
+      }
+
+      type status =
+      |Size of int
+      |Err of int
+
+      type t = {
+        id: int;
+        off: int;
+        flags: flags;
+        status: status;
+      }
+
+      let t_of_raw (id, off, fbits, code) =
+        let flags = {
+          checksum_blank = (fbits land 0b1 > 0);
+          data_validated = (fbits land 0b10 > 0);
+          more_data = (fbits land 0b100 > 0);
+          extra_info = (fbits land 0b1000 > 0);
+        } in
+        let status = if code < 0 then Err code else Size code in
+        {id; off; flags; status}
+    end
+
+    type id = int
+    type req = Req.t
+    type res = Res.t
+
+    type sring = Istring.Raw.t  (* shared ring *)
+    type fring                  (* front end ring *)
+
+    module External = struct
+      (* Initialise the shared ring and return a front ring *)
+      external init: sring -> fring = "caml_netif_rx_init"
+      (* Push a list of requests, bool return indicates notify needed *)
+      external write: fring -> Req.t list -> bool = "caml_netif_rx_request"
+      (* Read a list of responses to the request *)
+      external read: fring -> Res.raw list = "caml_netif_rx_response"
+      (* Maximum number of requests *)
+      external max_requests: fring -> int = "caml_netif_rx_max_requests"
+      (* Number of free requests *)
+      external free_requests: fring -> int = "caml_netif_rx_free_requests"
+    end
+
+    let alloc = alloc External.init
+    let id_of_res res = res.Res.id
+    let read fring = List.map Res.t_of_raw (External.read fring) 
+    let write = External.write
+    let max_requests = External.max_requests
+    let free_requests = External.free_requests
+
+  end
+
+  module Rx_t = Bounded_ring(Rx)
+
+  module Tx = struct
+
+    module Req = struct
+      type gso_type = GSO_none | GSO_TCPv4
+      type gso = { gso_size: int; gso_type: gso_type; gso_features: int }
+      type extra = 
+      |GSO of gso
+      |Mcast_add of string (* [6] *)
+      |Mcast_del of string (* [6] *)
+
+      (* TODO: NETTXF_*: flags as a variant *)
+      type flags = int
+
+      type normal = {
+        gref: int32;
+        offset: int;
+        flags: flags;
+        id: int;
+        size: int;
+      }
+
+      type t =
+      |Normal of normal
+      |Extra of extra
+    end 
+
+    module Res = struct
+      type status = 
+      |Dropped
+      |Error
+      |OK
+      |Null
+
+      (* id * status_code *)
+      type raw = int * int 
+
+      type t = {
+        id: int;
+        status: status;
+      }
+
+      let status_of_code = function
+      |(-2) -> Dropped
+      |(-1) -> Error
+      |0 -> OK
+      |_ -> Null
+
+      let t_of_raw (id, code) =
+        let status = status_of_code code in
+        { id; status }
+    end
+
+    type id = int
+    type req = Req.t
+    type res = Res.t
+
+    type sring = Istring.Raw.t
+    type fring 
+
+    module External = struct
+      external init: sring -> fring = "caml_netif_tx_init"
+      external write: fring -> Req.t list -> bool = "caml_netif_tx_request"
+      external read: fring -> Res.raw list = "caml_netif_tx_response"
+      external max_requests: fring -> int = "caml_netif_tx_max_requests"
+      external free_requests: fring -> int = "caml_netif_tx_free_requests"
+    end
+
+    let alloc = alloc External.init
+    let id_of_res res = res.Res.id
+    let read fring = List.map Res.t_of_raw (External.read fring) 
+    let write = External.write
+    let max_requests = External.max_requests
+    let free_requests = External.free_requests
+  end
+
+  module Tx_t = Bounded_ring(Tx)
+end
+
+(* Raw ring handling section *)
 
 (* Allocate a new grant entry for a raw ring *)
 let alloc_raw zero domid =
@@ -48,73 +314,6 @@ let alloc_raw zero domid =
   let perm = Gnttab.RW in
   Gnttab.grant_access ~domid ~perm gnt;
   return (gnt, page)
-
-(* Read all responses on a ring, and ack them all at the end *)
-let read_responses ring waiting get_cons get ack fn =
-  let res = ref [] in
-  let rec loop () = 
-    let num = waiting ring in
-    let cons = get_cons ring in
-    for i = cons to (cons + num - 1) do
-      res := (fn i (get ring i)) :: !res
-    done;
-    if ack ring ~num then
-      loop ()
-  in
-  loop ();
-  List.rev !res
-
-module Netif_tx = struct
-  type req
-  type res
-  type t = (req, res) ring
-
-  external init: Istring.Raw.t -> t = "caml_netif_tx_ring_init"
-  external req_get: t -> int -> req = "caml_netif_tx_ring_req_get" 
-  external res_get: t -> int -> res = "caml_netif_tx_ring_res_get"
-  external req_push: t -> int -> port -> unit = "caml_netif_tx_ring_req_push" 
-  external res_waiting: t -> int = "caml_netif_tx_ring_res_waiting"
-  external res_get_cons: t -> int = "caml_netif_tx_ring_res_get_cons"
-  external req_get_prod: t -> int = "caml_netif_tx_ring_req_get_prod"
-  external res_ack: t -> num:int -> bool = "caml_netif_tx_ring_res_ack"
-  external get_size: unit -> int = "caml_netif_tx_ring_size"
-
-  external req_set: req -> offset:int -> flags:int -> id:int -> 
-        size:int -> unit = "caml_netif_tx_ring_req_set" 
-  external req_set_gnt_num: req -> Gnttab.num -> unit = "caml_netif_tx_ring_req_set_gnt"
-  let req_set_gnt req ~gnt = req_set_gnt_num req (Gnttab.num gnt)
-  let size = get_size ()
-  let alloc domid = alloc init domid
-  let read_responses ring fn =
-    read_responses ring res_waiting res_get_cons res_get res_ack fn
-end
-
-module Netif_rx = struct
-    type req
-    type res
-    type t = (req, res) ring
-
-    external init: Istring.Raw.t -> t = "caml_netif_rx_ring_init"
-    external req_get: t -> int -> req = "caml_netif_rx_ring_req_get"
-    external res_get: t -> int -> res = "caml_netif_rx_ring_res_get"
-    external req_push: t -> int -> port -> unit = "caml_netif_rx_ring_req_push"
-    external res_waiting: t -> int = "caml_netif_rx_ring_res_waiting"
-    external res_get_cons: t -> int = "caml_netif_rx_ring_res_get_cons"
-    external req_get_prod: t -> int = "caml_netif_rx_ring_req_get_prod"
-    external res_ack: t -> num:int -> bool = "caml_netif_rx_ring_res_ack"
-    external get_size: unit -> int = "caml_netif_rx_ring_size" 
-
-    external req_set_num: req -> id:int -> Gnttab.num -> unit = "caml_netif_rx_ring_req_set"
-    let req_set req ~id ~gnt = req_set_num req ~id (Gnttab.num gnt)
-    external res_get_id: res -> int = "caml_netif_rx_ring_res_get_id"
-    external res_get_offset: res -> int = "caml_netif_rx_ring_res_get_offset"
-    external res_get_flags: res -> int = "caml_netif_rx_ring_res_get_flags"
-    external res_get_status: res -> int = "caml_netif_rx_ring_res_get_status"
-
-    let size = get_size ()
-    let alloc domid = alloc init domid
-    let read_responses ring fn = read_responses ring res_waiting res_get_cons res_get res_ack fn
-end
 
 module Console = struct
     type t = Istring.Raw.t

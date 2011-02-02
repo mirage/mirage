@@ -110,17 +110,17 @@ caml_netif_rx_response(value v_ring)
   RING_IDX rp, cons;
   struct netif_rx_front_ring *fring = (struct netif_rx_front_ring *)v_ring;
   struct netif_rx_response *response;
-  int nr_responses = 0, more=1;
+  int more=1;
  
-  rp = fring->sring->rsp_prod;
-  rmb(); /* Ensure we see queued responses up to rp */
-  cons = fring->rsp_cons;
-
   /* Allocate an OCaml list for the responses
      (so remember they will be returned in reverse order!) */
   v_responses = Val_emptylist;
 
   while (more) {
+    rp = fring->sring->rsp_prod;
+    rmb(); /* Ensure we see queued responses up to rp */
+    cons = fring->rsp_cons;
+    printk("rx_response check\n");
     /* Walk through the outstanding responses and add to list */
     for (; cons != rp; cons++) {
       response = RING_GET_RESPONSE(fring, cons);
@@ -181,17 +181,16 @@ caml_netif_tx_response(value v_ring)
   RING_IDX rp, cons;
   struct netif_tx_front_ring *fring = (struct netif_tx_front_ring *)v_ring;
   struct netif_tx_response *response;
-  int nr_responses = 0, more=1;
+  int more=1;
  
-  rp = fring->sring->rsp_prod;
-  rmb(); /* Ensure we see queued responses up to rp */
-  cons = fring->rsp_cons;
-
   /* Allocate an OCaml list for the responses
      (so remember they will be returned in reverse order!) */
   v_responses = Val_emptylist;
 
   while (more) {
+    rp = fring->sring->rsp_prod;
+    rmb(); /* Ensure we see queued responses up to rp */
+    cons = fring->rsp_cons;
     /* Walk through the outstanding responses and add to list */
     for (; cons != rp; cons++) {
       response = RING_GET_RESPONSE(fring, cons);

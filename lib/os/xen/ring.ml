@@ -141,6 +141,7 @@ module Bounded_ring (Ring:RING) = struct
         |None -> ()
         |Some u ->
           t.response_waiters.(id) <- None;
+          Queue.push id t.free_list;
           Lwt.wakeup u res
       ) (Ring.read t.fring);
     match Lwt_sequence.take_opt_l t.push_waiters with

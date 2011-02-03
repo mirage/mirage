@@ -54,16 +54,17 @@ let free_list : r Queue.t = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
 
 let put_free_entry r =
-    Queue.push r free_list;
-    Lwt_condition.signal free_list_condition ()
+  (match r.page with |None -> () |_ -> r.page <- None);
+  Queue.push r free_list;
+  Lwt_condition.signal free_list_condition ()
 
 let rec get_free_entry () =
-    match Queue.is_empty free_list with
-    | true ->
-        Lwt_condition.wait free_list_condition >>
-        get_free_entry ()
-    | false ->
-        return (Queue.pop free_list)
+  match Queue.is_empty free_list with
+  |true ->
+    Lwt_condition.wait free_list_condition >>
+    get_free_entry ()
+  | false ->
+    return (Queue.pop free_list)
 
 let to_string (r:r) = Int32.to_string r.num
 

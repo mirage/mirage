@@ -28,11 +28,11 @@ let unmarshal_base = ref 0
 
 let init_unmarshal env =
   Hashtbl.clear unmarshal_labels; 
-  unmarshal_base := env.off
+  unmarshal_base := (off env)
 
 let init_marshal env = 
   Hashtbl.clear marshal_labels;
-  marshal_base := env.off
+  marshal_base := (off env)
 
 let dump () =
   Hashtbl.iter (fun k v ->
@@ -65,7 +65,7 @@ let to_string_list (s:t) =
 
 let marshal ?(comp=false) env start_pos ((psz,t):t) =
   let pos = ref start_pos in
-  let abspos env = env.off - !marshal_base + !pos in
+  let abspos env = (off env) - !marshal_base + !pos in
   let insert_string env bit x =
     Hashtbl.add marshal_labels x (Some (abspos env));
     set_byte env !pos (String.length bit);
@@ -110,7 +110,7 @@ let marshal ?(comp=false) env start_pos ((psz,t):t) =
 
 let unmarshal env start_pos =
   let pos = ref start_pos in
-  let base_loc = env.off + start_pos in
+  let base_loc = (off env) + start_pos in
   let rec fn acc toadd =
     let sz = to_byte env !pos in
     incr pos;
@@ -126,7 +126,7 @@ let unmarshal env start_pos =
         ) [] acc toadd in
         acc
     | 0b00,x (* lab *) ->
-        let off = env.off + !pos - 1 - !unmarshal_base in
+        let off = (off env) + !pos - 1 - !unmarshal_base in
         let str = to_string env !pos cnt in
         pos := !pos + cnt;
         fn (str :: acc) (off :: toadd)

@@ -60,7 +60,7 @@ let merge_control_thread t =
 
 let run t =
   let t = merge_control_thread t in
-  let aux () =
+  let rec aux () =
     Lwt.wakeup_paused ();
     try
       match Lwt.poll t with

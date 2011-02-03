@@ -33,16 +33,20 @@ module FD = struct
   
 end
 
-(* Register a read file descriptor and a one-shot callback function
-   for when it is ready *)
-let register_read fd cb =
+(* Register a read file descriptor and a thread that
+   returns when it is ready *)
+let read fd =
+  let th, u = Lwt.task () in
   let watcher = FD.(add fd read_mask) in
-  let cb' () = cb (); FD.remove watcher in
-  FD.callback watcher cb'
+  Lwt.on_cancel th (fun _ -> FD.remove watcher);
+  FD.callback watcher (fun () -> FD.remove watcher; Lwt.wakeup u ());
+  th
 
-(* Register a write file descriptor and a one-shot callback function
-   for when it is ready *)
-let register_write fd cb =
+(* Register a write file descriptor and a thread that
+   returns when it is ready *)
+let write fd =
+  let th, u = Lwt.task () in
   let watcher = FD.(add fd write_mask) in
-  let cb' () = cb (); FD.remove watcher in
-  FD.callback watcher cb'
+  Lwt.on_cancel th (fun _ -> FD.remove watcher);
+  FD.callback watcher (fun () -> FD.remove watcher; Lwt.wakeup u ());
+  th

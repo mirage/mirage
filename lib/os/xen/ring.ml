@@ -309,8 +309,7 @@ end
 (* Allocate a new grant entry for a raw ring *)
 let alloc_raw zero domid =
   lwt gnt = Gnttab.get_free_entry () in
-  let page = Istring.Raw.alloc () in
-  Gnttab.attach gnt page;
+  let page = Gnttab.page gnt in
   zero page;
   let perm = Gnttab.RW in
   Gnttab.grant_access ~domid ~perm gnt;

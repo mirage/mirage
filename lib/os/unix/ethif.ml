@@ -27,7 +27,6 @@ end
 type t = {
   id: string;
   dev: Tap.t;
-  rx_cond: unit Lwt_condition.t;
   mutable active: bool;
   mac: string;
 }
@@ -52,19 +51,10 @@ let generate_local_mac () =
 
 let create (id:id) =
   let dev = Tap.opendev id in
-  let rx_cond = Lwt_condition.create () in
   let mac = generate_local_mac () in
   let active = true in
-  let t = { id; dev; rx_cond; active; mac } in
+  let t = { id; dev; active; mac } in
   return t
-
-let t_wait_read t =
-  match t.active with
-  |true -> 
-    Activations.register_read t.dev (Lwt_condition.signal t.rx_cond);
-    Lwt_condition.wait t.rx_cond
-  |false ->
-    fail Ethif_closed
 
 (* Input a frame, and block if nothing is available *)
 let rec input t =
@@ -72,15 +62,15 @@ let rec input t =
   let page = Istring.Raw.alloc () in
   let len = Tap.read t.dev page sz in
   match len with
-  | (-1) -> (* EAGAIN or EWOULDBLOCK *)
-      t_wait_read t >>
-      input t
-  | 0 -> (* EOF *)
-      t.active <- false;
-      t_wait_read t >>
-      input t
-  | n ->
-      return (Istring.View.t page n)
+  |(-1) -> (* EAGAIN or EWOULDBLOCK *)
+    Activations.read t.dev >>
+    input t
+  |0 -> (* EOF *)
+    t.active <- false;
+    Activations.read t.dev >>
+    input t
+  |n ->
+    return (Istring.View.t page n)
 
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
@@ -111,9 +101,6 @@ let output t fn =
 (** Return a list of valid VIF IDs *)
 let enumerate () =
   return [ "tap0" ]
-
-let wait nf =
-  Lwt_condition.wait nf.rx_cond
 
 let mac t =
   t.mac

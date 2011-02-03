@@ -33,12 +33,12 @@ let xs_test () =
    let timeout = 9.5 in
    p ("sleeping to watch " ^ watchpath ^ " for " ^ (string_of_float timeout));
    try_lwt
-       OS.Xs.monitor_paths xsh [ watchpath, "XXX" ] timeout
-           (fun (k,v) ->
-               printf "watch callback: [ %s = %s ]\n%!" k v;
-               match k with
-               | "device/vif/foo" -> true
-               | _ -> false)
+     OS.Xs.monitor_paths xsh [ watchpath, "XXX" ] timeout
+       (fun (k,v) ->
+         printf "watch callback: [ %s = %s ]\n%!" k v;
+         match k with
+         | "device/vif/foo" -> true
+         | _ -> false)
    with
        OS.Xs.Timeout -> begin
            OS.Console.log "timed out";

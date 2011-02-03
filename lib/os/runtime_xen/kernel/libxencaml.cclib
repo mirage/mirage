@@ -2,7 +2,6 @@ exit_stubs.o
 istring_stubs.o
 mmap_stubs.o
 domain_stubs.o
-page_stubs.o
 ring_stubs.o
 xb_stubs.o
 xencons_ring.o

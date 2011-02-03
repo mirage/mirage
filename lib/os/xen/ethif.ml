@@ -80,8 +80,7 @@ let listen nf fn =
     match res.status with
     |Size size ->
       let view = Istring.View.t ~off:res.off page size in
-      fn view >>
-      one_request ()
+      fn view <&> (one_request ()) 
     |Err _ ->
       Console.log "Warning: Netif.Rx_t error";
       one_request ()
@@ -121,6 +120,7 @@ let output nf fn =
     let req id = Req.Normal { Req.gref; offset; flags; id; size } in
     (* Push request *)
     lwt res = Ring.Netif.Tx_t.push_one nf.tx ~evtchn:nf.evtchn req in
+    let _ = Gnttab.detach gnt in
     match res.Res.status with
     |Res.OK -> return packet
     |Res.Dropped | Res.Error |Res.Null ->

@@ -108,6 +108,22 @@ let take_r seq =
     node.node_data
   end
 
+let peek_l seq =
+  if is_empty seq then
+    raise Empty
+  else begin
+    let node = node_of_seq seq.next in
+    node.node_data
+  end
+
+let peek_r seq =
+  if is_empty seq then
+    raise Empty
+  else begin
+    let node = node_of_seq seq.prev in
+    node.node_data
+  end
+
 let take_opt_l seq =
   if is_empty seq then
     None
@@ -123,6 +139,22 @@ let take_opt_r seq =
   else begin
     let node = node_of_seq seq.prev in
     remove node;
+    Some node.node_data
+  end
+
+let peek_opt_l seq =
+  if is_empty seq then
+    None
+  else begin
+   let node = node_of_seq seq.next in
+   Some node.node_data
+  end
+
+let peek_opt_r seq =
+  if is_empty seq then
+    None
+  else begin
+    let node = node_of_seq seq.prev in
     Some node.node_data
   end
 

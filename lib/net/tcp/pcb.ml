@@ -27,15 +27,15 @@ type id = {
 
 type pcb = {
   id: id;
-  wnd: Tcp_window.t;            (* Window information *)
-  rxq: Tcp_segment.Rx.q;        (* Received segments queue for out-of-order data *)
-  txq: Tcp_segment.Tx.q;        (* Transmit segments queue *)
-  ack: Tcp_ack.Delayed.t;       (* Ack state *)
-  state: Tcp_state.t;           (* Connection state *)
-  urx: Tcp_buffer.Rx.t;         (* App rx buffer *)
+  wnd: Window.t;            (* Window information *)
+  rxq: Segment.Rx.q;        (* Received segments queue for out-of-order data *)
+  txq: Segment.Tx.q;        (* Transmit segments queue *)
+  ack: Ack.Delayed.t;       (* Ack state *)
+  state: State.t;           (* Connection state *)
+  urx: User_buffer.Rx.t;         (* App rx buffer *)
   urx_close_t: unit Lwt.t;      (* App rx close thread *)
   urx_close_u: unit Lwt.u;      (* App rx connection close wakener *)
-  utx: Tcp_buffer.Tx.t;         (* App tx buffer *)
+  utx: User_buffer.Tx.t;         (* App tx buffer *)
 }
 
 type t = {
@@ -54,14 +54,14 @@ module Tx = struct
     (* Construct TCP closure *)
     let memo = ref None in
     let src = ipv4_addr_to_uint32 (Ipv4.get_ip ip) in
-    let rst = match flags with Tcp_segment.Tx.Rst -> 1 |_ -> 0 in
-    let syn = match flags with Tcp_segment.Tx.Syn -> 1 |_ -> 0 in
-    let fin = match flags with Tcp_segment.Tx.Fin -> 1 |_ -> 0 in
+    let rst = match flags with Segment.Tx.Rst -> 1 |_ -> 0 in
+    let syn = match flags with Segment.Tx.Syn -> 1 |_ -> 0 in
+    let fin = match flags with Segment.Tx.Fin -> 1 |_ -> 0 in
     let ack = match rx_ack with Some _ -> 1 |None -> 0 in
-    let ack_number = match rx_ack with Some n -> Tcp_sequence.to_int32 n |None -> 0l in
-    let sequence = Tcp_sequence.to_int32 seq in
+    let ack_number = match rx_ack with Some n -> Sequence.to_int32 n |None -> 0l in
+    let sequence = Sequence.to_int32 seq in
     let source_port = id.local_port in
-    let options = `Sub (Tcp_options.marshal options) in
+    let options = `Sub (Options.marshal options) in
     let {dest_port; dest_ip} = id in
     let tcpfn env = 
       let tcp = Mpl.Tcp.t ~syn ~fin ~rst ~ack ~ack_number
@@ -86,9 +86,9 @@ module Tx = struct
 
   (* Output a TCP packet, and calculate some settings from a state descriptor *)
   let xmit_pcb ip id ~flags ~wnd ~options data =
-    let window = Int32.to_int (Tcp_window.rx_wnd wnd) in (* TODO scaling *)
-    let rx_ack = Some (Tcp_window.rx_nxt wnd) in
-    let seq = Tcp_window.tx_nxt wnd in
+    let window = Int32.to_int (Window.rx_wnd wnd) in (* TODO scaling *)
+    let rx_ack = Some (Window.rx_nxt wnd) in
+    let seq = Window.tx_nxt wnd in
     xmit ip id ~flags ~rx_ack ~seq ~window ~options data
 
   (* Output an RST when we dont have a PCB *)
@@ -98,16 +98,16 @@ module Tx = struct
     let window = 0 in
     let options = [] in
     let data = `None in
-    xmit t.ip id ~flags:Tcp_segment.Tx.Rst ~rx_ack ~seq ~window ~options data >>
+    xmit t.ip id ~flags:Segment.Tx.Rst ~rx_ack ~seq ~window ~options data >>
     return ()
 
   (* Queue up an immediate close segment *)
   let close pcb =
-    let open Tcp_state in
+    let open State in
     match tx pcb.state with
     |Established ->
       tick_tx pcb.state `fin;
-      Tcp_segment.Tx.(output ~flags:Fin pcb.txq `None)
+      Segment.Tx.(output ~flags:Fin pcb.txq `None)
     |_ -> return ()
      
   (* Thread that transmits ACKs in response to received packets,
@@ -120,16 +120,16 @@ module Tx = struct
     (* Transmit an empty ack when prompted by the Ack thread *)
     let rec send_empty_ack () =
       lwt ack_number = Lwt_mvar.take send_ack in
-      let flags = Tcp_segment.Tx.No_flags in
+      let flags = Segment.Tx.No_flags in
       printf "TCP.Tx.ack_thread: sending empty ACK\n%!";
       let options = [] in
       xmit_pcb t.ip pcb.id ~flags ~wnd ~options `None >>
-      Tcp_ack.Delayed.transmit ack ack_number >>
+      Ack.Delayed.transmit ack ack_number >>
       send_empty_ack () in
     (* When something transmits an ACK, tell the delayed ACK thread *)
     let rec notify () =
       lwt ack_number = Lwt_mvar.take rx_ack in
-      Tcp_ack.Delayed.transmit ack ack_number >>
+      Ack.Delayed.transmit ack ack_number >>
       notify () in
     send_empty_ack () <&> (notify ())
 
@@ -141,7 +141,7 @@ module Rx = struct
   let input t ip tcp (pcb,_) =
     let {rxq} = pcb in
     (* Coalesce any outstanding segments and retrieve ready segments *)
-    Tcp_segment.Rx.input rxq tcp
+    Segment.Rx.input rxq tcp
    
   (* Thread that spools the data into an application receive buffer,
      and notifies the ACK subsystem that new data is here *)
@@ -150,16 +150,16 @@ module Rx = struct
     (* Thread to monitor application receive and pass it up *)
     let rec rx_application_t () =
       lwt data = Lwt_mvar.take rx_data in
-      Tcp_ack.Delayed.receive ack (Tcp_window.rx_nxt wnd) >>
+      Ack.Delayed.receive ack (Window.rx_nxt wnd) >>
       match data with
       |None ->
-        Tcp_state.tick_rx pcb.state `fin;
+        State.tick_rx pcb.state `fin;
         Lwt.wakeup urx_close_u ();
         rx_application_t ()
       |Some data ->
         let rec queue = function
         |hd::tl ->
-           Tcp_buffer.Rx.add_r urx hd >>
+           User_buffer.Rx.add_r urx hd >>
            queue tl
         |[] -> return () in
        queue data <&> (rx_application_t ())
@@ -167,17 +167,17 @@ module Rx = struct
     rx_application_t ()
 end
 
-module Window = struct
+module Wnd = struct
 
   let thread ~urx ~utx ~wnd ~tx_wnd_update =
     (* Monitor our advertised receive window, and update the
        PCB window when the application consumes data. *)
     let rx_window_mvar = Lwt_mvar.create_empty () in
-    Tcp_buffer.Rx.monitor urx rx_window_mvar;
+    User_buffer.Rx.monitor urx rx_window_mvar;
     let rec rx_window_t () =
       lwt rx_cur_size = Lwt_mvar.take rx_window_mvar in
-      let rx_wnd = max 0l (Int32.sub (Tcp_buffer.Rx.max_size urx) rx_cur_size) in
-      Tcp_window.set_rx_wnd wnd rx_wnd;
+      let rx_wnd = max 0l (Int32.sub (User_buffer.Rx.max_size urx) rx_cur_size) in
+      Window.set_rx_wnd wnd rx_wnd;
       (* TODO: kick the ack thread to send window update if it was 0 *)
       rx_window_t ()
     in
@@ -185,7 +185,7 @@ module Window = struct
        and tell the application that new space is available when it is blocked *)
     let rec tx_window_t () =
       lwt tx_wnd = Lwt_mvar.take tx_wnd_update in
-      Tcp_buffer.Tx.free utx tx_wnd;
+      User_buffer.Tx.free utx tx_wnd;
       tx_window_t ()
     in
     rx_window_t () <?> (tx_window_t ())
@@ -202,8 +202,8 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   let tx_wnd_scale = 0 in
   let tx_wnd = tcp#window in
   let rx_wnd = 16384 in (* TODO: too small *)
-  let rx_isn = Tcp_sequence.of_int32 tcp#sequence in
-  let wnd = Tcp_window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn in
+  let rx_isn = Sequence.of_int32 tcp#sequence in
+  let wnd = Window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn in
   (* When we transmit an ACK for a received segment, rx_ack is written to *)
   let rx_ack = Lwt_mvar.create_empty () in
   (* When we receive an ACK for a transmitted segment, tx_ack is written to *)
@@ -213,34 +213,34 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   (* Write to this mvar to transmit an empty ACK to the remote side *) 
   let send_ack = Lwt_mvar.create_empty () in
   (* The user application receive buffer and close notification *)
-  let urx = Tcp_buffer.Rx.create ~max_size:16384l in (* TODO: too small, but useful for debugging *)
+  let urx = User_buffer.Rx.create ~max_size:16384l in (* TODO: too small, but useful for debugging *)
   let urx_close_t, urx_close_u = Lwt.task () in
   (* The user application transmit buffer *)
-  let utx = Tcp_buffer.Tx.create ~wnd in
+  let utx = User_buffer.Tx.create ~wnd in
   (* The window handling thread *)
   let tx_wnd_update = Lwt_mvar.create_empty () in
   (* Set up transmit and receive queues *)
-  let txq, tx_t = Tcp_segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack in
-  let rxq = Tcp_segment.Rx.q ~rx_data ~wnd ~tx_ack ~tx_wnd_update in
+  let txq, tx_t = Segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack in
+  let rxq = Segment.Rx.q ~rx_data ~wnd ~tx_ack ~tx_wnd_update in
   (* Set up ACK module *)
-  let ack = Tcp_ack.Delayed.t ~send_ack ~last:rx_isn in
+  let ack = Ack.Delayed.t ~send_ack ~last:rx_isn in
   (* Construct basic PCB in Syn_received state *)
-  let state = Tcp_state.t () in
+  let state = State.t () in
   let pcb = { state; rxq; txq; wnd; id; ack; urx; urx_close_t; urx_close_u; utx } in
-  Tcp_state.tick_rx pcb.state `syn;
+  State.tick_rx pcb.state `syn;
   (* Compose the overall thread from the various tx/rx threads
      and the main listener function *)
   let th =
     listener pcb <?>
     (Tx.thread t pcb ~send_ack ~rx_ack) <?>
     (Rx.thread pcb ~rx_data) <?>
-    (Window.thread ~utx ~urx ~wnd ~tx_wnd_update)
+    (Wnd.thread ~utx ~urx ~wnd ~tx_wnd_update)
   in
   (* Add the PCB to our connection table *)
   Hashtbl.add t.channels id (pcb, th);
   (* Queue a SYN ACK for transmission *)
-  Tcp_state.tick_tx pcb.state `syn;
-  Tcp_segment.Tx.output ~flags:Tcp_segment.Tx.Syn txq `None
+  State.tick_tx pcb.state `syn;
+  Segment.Tx.output ~flags:Segment.Tx.Syn txq `None
 
 let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
   match tcp#rst = 1 with
@@ -252,7 +252,7 @@ let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
     |true ->
        (* ACK to a listen socket results in an RST with
           <SEQ=SEG.ACK><CTL=RST> RFC793 pg65 *)
-       let seq = Tcp_sequence.of_int32 tcp#ack_number in
+       let seq = Sequence.of_int32 tcp#ack_number in
        let rx_ack = None in
        Tx.rst_no_pcb ~seq ~rx_ack t id
     |false -> begin
@@ -263,8 +263,8 @@ let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
          with_hashtbl t.listeners id.local_port
            (new_connection t ip tcp id)
            (fun source_port ->
-             let seq = Tcp_sequence.of_int32 0l in
-             let rx_ack = Some (Tcp_sequence.(incr (of_int32 tcp#sequence))) in
+             let seq = Sequence.of_int32 0l in
+             let rx_ack = Some (Sequence.(incr (of_int32 tcp#sequence))) in
              Tx.rst_no_pcb ~seq ~rx_ack t id
            )
        |false ->
@@ -291,7 +291,7 @@ let input t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) =
 (* Blocking read on a PCB *)
 let rec read pcb =
   let data =
-    lwt d = Tcp_buffer.Rx.take_l pcb.urx in 
+    lwt d = User_buffer.Rx.take_l pcb.urx in 
     return (Some d) in
   let closed =
     pcb.urx_close_t >>
@@ -300,15 +300,15 @@ let rec read pcb =
 
 (* Maximum allowed write *)
 let write_available pcb =
-  Tcp_buffer.Tx.available pcb.utx
+  User_buffer.Tx.available pcb.utx
 
 (* Wait for more write space *)
 let write_wait_for pcb sz =
-  Tcp_buffer.Tx.wait_for pcb.utx sz
+  User_buffer.Tx.wait_for pcb.utx sz
 
 (* Write a segment *)
 let write pcb data =
-  Tcp_segment.Tx.output pcb.txq data
+  Segment.Tx.output pcb.txq data
 
 (* Block until both sides of the connection are closed *)
 let close pcb =

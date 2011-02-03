@@ -18,9 +18,9 @@ open Lwt
 open Printf
 
 type t = {
-  mutable snd_una: Tcp_sequence.t;
-  mutable tx_nxt: Tcp_sequence.t;
-  mutable rx_nxt: Tcp_sequence.t;
+  mutable snd_una: Sequence.t;
+  mutable tx_nxt: Sequence.t;
+  mutable rx_nxt: Sequence.t;
   mutable tx_wnd: int32;           (* TX Window size after scaling *)
   mutable rx_wnd: int32;           (* RX Window size after scaling *)
   mutable tx_wnd_scale: int;       (* TX Window scaling option     *)
@@ -30,8 +30,8 @@ type t = {
 (* Initialise the sequence space *)
 let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn =
   (* XXX need random ISN XXX *)
-  let tx_nxt = Tcp_sequence.of_int32 7l in
-  let rx_nxt = Tcp_sequence.(incr rx_isn) in
+  let tx_nxt = Sequence.of_int32 7l in
+  let rx_nxt = Sequence.(incr rx_isn) in
   let snd_una = tx_nxt in
   let rx_wnd = Int32.(shift_left (of_int rx_wnd) rx_wnd_scale) in
   let tx_wnd = Int32.(shift_left (of_int tx_wnd) tx_wnd_scale) in
@@ -41,15 +41,15 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn =
    TODO: modulo 32 for wrap
  *)
 let valid t seq =
-  let redge = Tcp_sequence.(add t.rx_nxt (of_int32 t.rx_wnd)) in
-  let r = Tcp_sequence.between seq t.rx_nxt redge in
+  let redge = Sequence.(add t.rx_nxt (of_int32 t.rx_wnd)) in
+  let r = Sequence.between seq t.rx_nxt redge in
   printf "TCP_window: valid check for seq=%s for range %s[%lu] res=%b\n%!"
-    (Tcp_sequence.to_string seq) (Tcp_sequence.to_string t.rx_nxt) t.rx_wnd r;
+    (Sequence.to_string seq) (Sequence.to_string t.rx_nxt) t.rx_wnd r;
   r
 
 (* Advance received packet sequence number *)
 let rx_advance t b =
-  t.rx_nxt <- Tcp_sequence.add t.rx_nxt (Tcp_sequence.of_int b)
+  t.rx_nxt <- Sequence.add t.rx_nxt (Sequence.of_int b)
 
 (* Next expected receive sequence number *)
 let rx_nxt t = t.rx_nxt 
@@ -71,14 +71,14 @@ let tx_mss t =
 
 (* Advance transmitted packet sequence number *)
 let tx_advance t b =
-  t.tx_nxt <- Tcp_sequence.add t.tx_nxt (Tcp_sequence.of_int b)
+  t.tx_nxt <- Sequence.add t.tx_nxt (Sequence.of_int b)
 
 (* Notify the send window has been acknowledged *)
 let tx_ack t r =
-  if Tcp_sequence.gt r t.snd_una then begin
+  if Sequence.gt r t.snd_una then begin
     t.snd_una <- r;
     printf "TCP: ACK, snd.una=%lu snd.nxt=%lu\n%!"
-      (Tcp_sequence.to_int32 t.snd_una) (Tcp_sequence.to_int32 t.tx_nxt);
+      (Sequence.to_int32 t.snd_una) (Sequence.to_int32 t.tx_nxt);
   end
 
 let tx_nxt t = t.tx_nxt 

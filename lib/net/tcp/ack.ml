@@ -22,19 +22,19 @@ module type M = sig
   type t
 
   (* ack: put mvar to trigger the transmission of an ack *)
-  val t : send_ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t 
+  val t : send_ack:Sequence.t Lwt_mvar.t -> last:Sequence.t -> t 
 
   (* called when new data is received *)
-  val receive: t -> Tcp_sequence.t -> unit Lwt.t
+  val receive: t -> Sequence.t -> unit Lwt.t
 
   (* called when an ack is transmitted from elsewhere *)
-  val transmit: t -> Tcp_sequence.t -> unit Lwt.t
+  val transmit: t -> Sequence.t -> unit Lwt.t
 end
 
 (* Transmit ACKs immediately, the dumbest (and simplest) way *)
 module Immediate : M = struct
 
-  type t = Tcp_sequence.t Lwt_mvar.t
+  type t = Sequence.t Lwt_mvar.t
 
   let t ~send_ack ~last = send_ack
 
@@ -51,11 +51,11 @@ module Delayed : M = struct
   (* ev: Event mvar of transmitted/received packets
      send_ack: Write to this mvar to transmit an empty ACK
   *)
-  type ev = Tx of Tcp_sequence.t | Rx of Tcp_sequence.t
+  type ev = Tx of Sequence.t | Rx of Sequence.t
 
   type r = {
     ev: ev Lwt_mvar.t;
-    send_ack: Tcp_sequence.t Lwt_mvar.t;
+    send_ack: Sequence.t Lwt_mvar.t;
   }
 
   type t = r * unit Lwt.t

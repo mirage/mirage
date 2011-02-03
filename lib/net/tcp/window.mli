@@ -17,18 +17,17 @@
 
 type t 
 
-val t : rx_wnd_scale:int -> tx_wnd_scale:int ->
-  rx_wnd:int -> tx_wnd:int -> rx_isn:Tcp_sequence.t -> t
+val t : rx_wnd_scale:int -> tx_wnd_scale:int -> rx_wnd:int -> tx_wnd:int -> rx_isn:Sequence.t -> t
 
-val valid : t -> Tcp_sequence.t -> bool
+val valid : t -> Sequence.t -> bool
 
 val rx_advance : t -> int -> unit
-val rx_nxt : t -> Tcp_sequence.t
+val rx_nxt : t -> Sequence.t
 
 val tx_advance : t -> int -> unit
-val tx_ack: t -> Tcp_sequence.t -> unit
-val tx_nxt : t -> Tcp_sequence.t
-val tx_una : t -> Tcp_sequence.t
+val tx_ack: t -> Sequence.t -> unit
+val tx_nxt : t -> Sequence.t
+val tx_una : t -> Sequence.t
 val tx_mss : t -> int32
 
 (* RCV.WND: Size of traffic we are willing to accept *)

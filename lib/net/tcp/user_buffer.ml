@@ -118,7 +118,7 @@ end
 module Tx = struct
 
   type t = {
-    wnd: Tcp_window.t;
+    wnd: Window.t;
     writers: unit Lwt.u Lwt_sequence.t;
   }
 
@@ -128,7 +128,7 @@ module Tx = struct
 
   (* Check how many bytes are available to write *)
   let available t = 
-    Tcp_window.tx_wnd t.wnd
+    Window.tx_wnd t.wnd
 
   (* Wait until at least sz bytes are available *)
   let rec wait_for t sz =
@@ -146,9 +146,9 @@ module Tx = struct
   (* Indicate that more bytes are available for waiting writers.
      Note that sz does not take window scaling into account, and so
      should be passed as unscaled (i.e. from the wire) here.
-     Tcp_window will internally scale it up. *)
+     Window will internally scale it up. *)
   let free t sz =
-    Tcp_window.set_tx_wnd t.wnd sz;
+    Window.set_tx_wnd t.wnd sz;
     match Lwt_sequence.take_opt_l t.writers with
     |None -> ()
     |Some w -> Lwt.wakeup w ()

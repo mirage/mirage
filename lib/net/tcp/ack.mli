@@ -17,10 +17,10 @@
 module type M =
   sig
     type t
-    val t : send_ack:Tcp_sequence.t Lwt_mvar.t -> last:Tcp_sequence.t -> t
+    val t : send_ack:Sequence.t Lwt_mvar.t -> last:Sequence.t -> t
 
-    val receive : t -> Tcp_sequence.t -> unit Lwt.t
-    val transmit : t -> Tcp_sequence.t -> unit Lwt.t
+    val receive : t -> Sequence.t -> unit Lwt.t
+    val transmit : t -> Sequence.t -> unit Lwt.t
   end
 
 module Immediate : M

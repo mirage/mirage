@@ -30,7 +30,7 @@ end
 module Tx : sig
   type t
 
-  val create: wnd:Tcp_window.t -> t
+  val create: wnd:Window.t -> t
   val available: t -> int32
   val wait_for: t -> int32 -> unit Lwt.t
   val free: t -> int -> unit

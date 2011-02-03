@@ -30,16 +30,16 @@ module Rx = struct
      TODO: this will change when IP fragments work *)
   type seg = Mpl.Tcp.o
 
-  let seq (seg:seg) = Tcp_sequence.of_int32 seg#sequence
+  let seq (seg:seg) = Sequence.of_int32 seg#sequence
   let len (seg:seg) = seg#data_length + seg#fin + seg#syn
   let view (seg:seg) = seg#data_sub_view
   let ack (seg:seg) = seg#ack = 1
-  let ack_number (seg:seg) = Tcp_sequence.of_int32 seg#ack_number
+  let ack_number (seg:seg) = Sequence.of_int32 seg#ack_number
 
   (* Set of segments, ordered by sequence number *)
   module S = Set.Make(struct
     type t = seg
-    let compare a b = Tcp_sequence.compare (seq a) (seq b)
+    let compare a b = Sequence.compare (seq a) (seq b)
   end)
 
   type t = S.t
@@ -47,9 +47,9 @@ module Rx = struct
   type q = {
     mutable segs: S.t;
     rx_data: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
-    tx_ack: Tcp_sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
+    tx_ack: Sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
-    wnd: Tcp_window.t;
+    wnd: Window.t;
   }
 
   let q ~rx_data ~wnd ~tx_ack ~tx_wnd_update =
@@ -59,7 +59,7 @@ module Rx = struct
   let to_string t =
     String.concat ", " 
       (List.map (fun x -> sprintf "%lu[%d]"
-      (Tcp_sequence.to_int32 (seq x)) (len x)) (S.elements t.segs))
+      (Sequence.to_int32 (seq x)) (len x)) (S.elements t.segs))
 
   (* If there is a FIN flag at the end of this segment set.
      TODO: should look for a FIN and chop off the rest
@@ -87,7 +87,7 @@ module Rx = struct
   let input q seg =
     (* Check that the segment fits into the valid receive 
        window *)
-    match Tcp_window.valid q.wnd (seq seg) with
+    match Window.valid q.wnd (seq seg) with
     |false ->
       printf "TCP: rx invalid sequence, discarding\n%!";
       return ()
@@ -96,17 +96,17 @@ module Rx = struct
       let segs = S.add seg q.segs in
       (* Walk through the set and get a list of contiguous segments *)
       let ready, waiting = S.fold (fun seg acc ->
-        match Tcp_sequence.compare (seq seg) (Tcp_window.rx_nxt q.wnd) with
+        match Sequence.compare (seq seg) (Window.rx_nxt q.wnd) with
         |(-1) ->
            (* Sequence number is in the past, probably an overlapping
               segment. Drop it for now, but TODO segment coalescing *)
-           printf "TCP: segment in past %s\n%!" (Tcp_sequence.to_string (seq seg));
+           printf "TCP: segment in past %s\n%!" (Sequence.to_string (seq seg));
            acc
         |0 ->
            (* This is the next segment, so put it into the ready set
               and update the receive ack number *)
            let (ready,waiting) = acc in
-           Tcp_window.rx_advance q.wnd (len seg);
+           Window.rx_advance q.wnd (len seg);
            (S.add seg ready), waiting
         |1 -> 
            (* Sequence is in the future, so can't use it yet *)
@@ -153,7 +153,7 @@ module Tx = struct
 
   type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
 
-  type xmit = flags:flags -> wnd:Tcp_window.t -> options:Tcp_options.ts ->
+  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
     unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
 
   type seg = {
@@ -170,9 +170,9 @@ module Tx = struct
   type q = {
     segs: seg Lwt_sequence.t;          (* Retransmitted segment queue *)
     xmit: xmit;                        (* Transmit packet to the wire *)
-    rx_ack: Tcp_sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
+    rx_ack: Sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
     rto: seg Lwt_mvar.t;               (* Mvar to append to retransmit queue *)
-    wnd: Tcp_window.t;                 (* TCP Window information *)
+    wnd: Window.t;                 (* TCP Window information *)
   }
 
   let to_string seg =
@@ -203,22 +203,22 @@ module Tx = struct
       lwt seq_l = Lwt_mvar.take tx_ack in
       printf "Tcp_segment.Tx.tx_ack_t: received TX ack\n%!";
       (* Iterate through all the active segments, marking the ACK *)
-      let ack_len = ref (Tcp_sequence.sub seq_l (Tcp_window.tx_una q.wnd)) in
+      let ack_len = ref (Sequence.sub seq_l (Window.tx_una q.wnd)) in
       Lwt_sequence.iter_node_l (fun node ->
         let seg = Lwt_sequence.get node in
-        let seg_len = Tcp_sequence.of_int (len seg) in
-        if Tcp_sequence.geq !ack_len seg_len then begin
+        let seg_len = Sequence.of_int (len seg) in
+        if Sequence.geq !ack_len seg_len then begin
           (* This segment is now fully ack'ed *)
           Lwt_sequence.remove node;
           ack_segment q seg;
-          ack_len := Tcp_sequence.sub !ack_len seg_len
+          ack_len := Sequence.sub !ack_len seg_len
         end else begin
           (* TODO: support partial ack *)
           printf "Tcp_segment.Tx.tx_ack_t: partial ack not yet supported\n%!";
-          ack_len := Tcp_sequence.of_int32 0l
+          ack_len := Sequence.of_int32 0l
         end
       ) q.segs;
-      Tcp_window.tx_ack q.wnd seq_l;
+      Window.tx_ack q.wnd seq_l;
       tx_ack_t ()
     in
     (rto_queue_t ()) <?> (tx_ack_t ())
@@ -240,7 +240,7 @@ module Tx = struct
     (* Transmit the packet to the wire
          TODO: deal with transmission soft/hard errors here RFC5461 *)
     let {wnd} = q in
-    let ack = Tcp_window.tx_nxt wnd in
+    let ack = Window.tx_nxt wnd in
     lwt view = q.xmit ~flags ~wnd ~options data in
     (* Inform the RX ack thread that we've just sent one *)
     Lwt_mvar.put q.rx_ack ack >>
@@ -249,7 +249,7 @@ module Tx = struct
     printf "TCP_segment.Tx.queue: sent segment %s\n%!" (to_string seg);
     let seq_len = len seg in
     if seq_len > 0 then begin
-      Tcp_window.tx_advance q.wnd seq_len;
+      Window.tx_advance q.wnd seq_len;
       Lwt_mvar.put q.rto seg
     end else
       (* Segment is sequence-empty (e.g. an empty ACK or RST) so ignore it *)

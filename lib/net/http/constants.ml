@@ -21,5 +21,5 @@
 *)
 
 let default_version = `HTTP_1_1
-let server_string = "CoHTTP Daemon"
+let server_string = "Mirage: Net.Http.Daemon"
 let crlf = "\r\n"

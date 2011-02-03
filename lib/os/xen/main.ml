@@ -48,18 +48,29 @@ let default_iteration () =
   Lwt.wakeup_paused ();
   apply_filters default_select None
 
-let rec run t =
-  Lwt.wakeup_paused ();
-  try
-    match Lwt.poll t with
-    | Some x ->
-        x
-    | None ->
+let control_thread : unit Lwt.t option ref = ref None
+
+let set_control_thread t =
+  control_thread := Some t
+
+let merge_control_thread t =
+  match !control_thread with
+  | None   -> t
+  | Some c -> c <?> t
+
+let run t =
+  let t = merge_control_thread t in
+  let aux () =
+    Lwt.wakeup_paused ();
+    try
+      match Lwt.poll t with
+      | Some x -> x
+      | None   ->
         let _ = default_iteration () in
-        run t 
-  with
-   exn ->
-     Printf.printf "Top level exception: %s\n%!" (Printexc.to_string exn)
+        aux ()
+    with exn ->
+      Printf.printf "Top level exception: %s\n%!" (Printexc.to_string exn) in
+  aux ()
 
 let exit_hooks = Lwt_sequence.create ()
 

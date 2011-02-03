@@ -98,6 +98,14 @@ let with_connection sockaddr fn =
   lwt t = connect sockaddr in
   close_on_exit t fn
 
+let id = new_key ()
+let new_id () = Some (Oo.id (object end))
+let () =
+  Log.set_id (fun () ->
+    match get id with
+      | None    -> 0
+      | Some id -> id)
+
 let listen fn = function
   | TCP (addr, port) -> begin
     Printf.printf "listen: TCP port %d\n%!" port;
@@ -107,6 +115,7 @@ let listen fn = function
       (* Listen in a loop for new connections *)
       let abort_waiter, abort_wakener = Lwt.task () in
       let rec loop () =
+        with_value id (new_id ()) (fun () ->
         t_wait_read lt >>
         (match unix_tcp_accept fd with
         | OK (afd,caddr_i,cport) ->
@@ -118,7 +127,7 @@ let listen fn = function
             loop () 
         | Err err ->
             Lwt.wakeup_exn abort_wakener (Accept_error err);
-            loop ())
+            loop ()))
       in
       let x = loop () in
       Lwt.on_cancel x (fun () -> close lt);

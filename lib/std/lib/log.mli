@@ -24,6 +24,7 @@ type level =
 (** Logger arguments *)
 type logger =
   date       : string -> 
+  id         : int    ->
   level      : level  ->
   section    : string ->
   ?backtrace : string ->
@@ -56,3 +57,6 @@ val error: string -> ('a, unit, string, unit) format4 -> 'a
 
 (** Hook to get the date (OS modules might init it) *)
 val set_date : (unit -> string) -> unit
+
+(** Hook to get the current thread's id *)
+val set_id : (unit -> int) -> unit

@@ -120,7 +120,6 @@ caml_netif_rx_response(value v_ring)
     rp = fring->sring->rsp_prod;
     rmb(); /* Ensure we see queued responses up to rp */
     cons = fring->rsp_cons;
-    printk("rx_response check\n");
     /* Walk through the outstanding responses and add to list */
     for (; cons != rp; cons++) {
       response = RING_GET_RESPONSE(fring, cons);

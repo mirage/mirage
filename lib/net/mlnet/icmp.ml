@@ -38,7 +38,6 @@ let input t ip = function
     let id = ip#id in 
     let src = ip#dest in
     let ipfn env = Mpl.Ipv4.t ~id ~protocol:`ICMP ~src ~data:(`Sub icmpfn) env in
-    printf "ICMP: response seq=%d\n%!" sequence;
     Ipv4.output t.ip ~dest_ip ipfn >> return ()
 
   |_ -> print_endline "dropped icmp"; return ()

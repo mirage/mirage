@@ -2,6 +2,8 @@ open Ocamlbuild_plugin
 open Command
 open Ocamlbuild_pack.Ocaml_utils
 
+let debug = false (* compile in debug mode with additional checks *)
+
 let sf = Printf.sprintf
 let lib x =
   try 
@@ -29,10 +31,11 @@ end
 
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
- 
+
+  let opt_level = if debug then [] else ["-O2"]  
   let cc = getenv "CC" ~default:"cc"
   let ar = getenv "AR" ~default:"ar"
-  let cflags = ref ["-Wall"; "-g"]
+  let cflags = ref (["-Wall"; "-g"] @ opt_level)
 
   (* All the xen cflags for compiling against an embedded environment *)
   let xen_incs =
@@ -65,10 +68,10 @@ module CC = struct
     [ A (sf "-I%s/runtime_xen/libm" Pathname.pwd) ]
 
   (* defines used by the ocaml runtime, as well as includes *)
+  let ocaml_debug_inc = if debug then [A "-DDEBUG"] else []
   let ocaml_incs = [ 
-    A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen"; A "-DDEBUG";
-    A (sf "-I%s/runtime_xen/ocaml" Pathname.pwd) 
-  ]
+    A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen";
+    A (sf "-I%s/runtime_xen/ocaml" Pathname.pwd) ] @ ocaml_debug_inc
  
   (* dietlibc bits, mostly extra warnings *)
   let dietlibc_incs = [

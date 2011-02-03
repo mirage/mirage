@@ -120,10 +120,8 @@ let print_gc () =
   printf "allocation_policy: %d\n" c.allocation_policy ;
   printf "\n%!"
 
-let () =
-  let _ = Gc.create_alarm (fun () -> printf "gc\n%!") in
+let t =
   let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000; 50000000; 200000000 ] in
-  print_gc ();
   List.iter (fun n ->
     offset_momentum bodies;
     let e1 = energy bodies in

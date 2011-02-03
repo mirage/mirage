@@ -144,6 +144,7 @@ module View = struct
   let length t = t.len
 
   let off t = t.off
+  let raw t = t.i
 
   (* Generate a sub-view *)
   let sub t off len =

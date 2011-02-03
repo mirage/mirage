@@ -34,6 +34,7 @@ module View : sig
   val sub : t -> int -> int -> t
   val copy : t -> t
   val off : t -> int
+  val raw : t -> Raw.t
   val set_string : t -> int -> string -> unit
   val set_byte : t -> int -> byte -> unit
   val set_uint16_be : t -> int -> uint16 -> unit

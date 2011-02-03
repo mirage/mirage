@@ -158,6 +158,7 @@ module View = struct
     v
 
   let off t = t.off
+  let raw t = t.i
 
   (** Marshal functions *)
 

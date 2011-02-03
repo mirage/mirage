@@ -82,12 +82,30 @@ val take_r : 'a t -> 'a
 
       @raise Empty if the sequence is empty *)
 
+val peek_l : 'a t -> 'a
+  (** [peek_l x s] returns the leftmost element of [s]
+
+      @raise Empty if the sequence is empty *)
+
+val peek_r : 'a t -> 'a
+  (** [peek_r x s] returns the rightmost element of [s]
+
+      @raise Empty if the sequence is empty *)
+
 val take_opt_l : 'a t -> 'a option
   (** [take_opt_l x s] remove and returns [Some x] where [x] is the
       leftmost element of [s] or [None] if [s] is empty *)
 
 val take_opt_r : 'a t -> 'a option
   (** [take_opt_l x s] remove and returns [Some x] where [x] is the
+      rightmost element of [s] or [None] if [s] is empty *)
+
+val peek_opt_l : 'a t -> 'a option
+  (** [peek_opt_l x s] returns [Some x] where [x] is the
+      leftmost element of [s] or [None] if [s] is empty *)
+
+val peek_opt_r : 'a t -> 'a option
+  (** [peek_opt_r x s] returns [Some x] where [x] is the
       rightmost element of [s] or [None] if [s] is empty *)
 
 val transfer_l : 'a t -> 'a t -> unit

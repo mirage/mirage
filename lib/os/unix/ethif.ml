@@ -69,7 +69,7 @@ let t_wait_read t =
 (* Input a frame, and block if nothing is available *)
 let rec input t =
   let sz = 4096 in
-  let page = Istring.Raw.alloc sz in
+  let page = Istring.Raw.alloc () in
   let len = Tap.read t.dev page sz in
   match len with
   | (-1) -> (* EAGAIN or EWOULDBLOCK *)
@@ -102,11 +102,10 @@ let destroy nf =
    is not a performance-critical backend
 *)
 let output t fn =
-  let sz = 4096 in
-  let page = Istring.Raw.alloc sz in
+  let page = Istring.Raw.alloc () in
   let v = Istring.View.t page 0 in
   let p = fn v in
-  Tap.write t.dev v.Istring.View.i (Istring.View.length v);
+  Tap.write t.dev page (Istring.View.length v);
   return p
 
 (** Return a list of valid VIF IDs *)

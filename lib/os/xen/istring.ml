@@ -58,9 +58,6 @@ module Raw = struct
   (* Allocate an istring 4k page *)
   external alloc: unit -> t = "caml_istring_alloc_page"
 
-  (* Free an istring *)
-  external free: t -> unit = "caml_istring_free"
-
   (* Get total size of an istring buffer.  *)
   external size: t -> int = "caml_istring_size" "noalloc"
 
@@ -132,31 +129,33 @@ module View = struct
   type byte = int
   type uint16 = int
 
-  (* Increment a view reference count, and decrement it as 
-     a GC finaliser *)
-  let ref_wrap t =
-    Raw.incr t.i;
-    Gc.finalise (fun x -> Raw.decr t.i) t;
-    t
+  (* Finaliser function for a view that decrements the ref count *)
+  let final t = 
+    Raw.decr t.i
 
   (* Generate a new view onto a raw istring *)
   let t ?(off=0) i len = 
-    ref_wrap { i; off; len }
-
-  (* Retrieve the underlying raw buffer, along with its length and offset *)
-  let raw t =
-    (t.i, t.off, t.len)
+    let v = { i; off; len } in
+    Raw.incr i;
+    Gc.finalise final v;
+    v
 
   (* Get length of the view *)
   let length t = t.len
 
   (* Generate a sub-view *)
   let sub t off len =
-    ref_wrap { t with off=t.off+off; len=len }
+    let v = { t with off=t.off+off; len=len } in
+    Raw.incr t.i;
+    Gc.finalise final v;
+    v
 
   (* Copy a view. *)
   let copy t = 
-    ref_wrap { i=t.i; off=t.off; len=t.len; }
+    let v = { i=t.i; off=t.off; len=t.len } in
+    Raw.incr t.i;
+    Gc.finalise final v;
+    v
 
   (** Marshal functions *)
 

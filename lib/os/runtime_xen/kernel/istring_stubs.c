@@ -23,9 +23,11 @@
 static void
 istring_finalize(value v_istring)
 {
-  istring *istr = Istring_val(v_istring);
-  if (istr->ref != 0) 
-    caml_failwith("istr ref != 0");
+  istring *i = Istring_val(v_istring);
+  BUG_ON(i->ref != 0);
+  free_page(i->buf);
+  Istring_val(v_istring) = NULL;
+  free(i);
   return;
 }
 
@@ -42,27 +44,13 @@ istring_alloc(unsigned char *buf, size_t size)
   return v;
 }
 
-/* Free an allocated istring via free */
-CAMLprim value
-caml_istring_free(value v_istr)
-{
-  istring *s = Istring_val(v_istr);
-  if (s->ref != 0) 
-    caml_failwith("caml_istring_free: ref!=0");
-  free(s->buf);
-  s->buf = NULL;
-  s->size = 0;
-  s->ref = 0;
-  return Val_unit;
-}
-
 /* Allocate a raw page as an istring */
 CAMLprim value
 caml_istring_alloc_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_istr);
-  unsigned char *page = alloc_page();
+  unsigned char *page = (unsigned char *)alloc_page();
   v_istr = istring_alloc(page, 4096);
   CAMLreturn(v_istr);
 }

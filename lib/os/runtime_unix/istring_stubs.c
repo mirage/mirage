@@ -16,17 +16,19 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
+#include <caml/mlvalues.h>
 #include "istring.h"
 
 /* Finalizer just sanity checks that the ref count is 0 */
 static void
 istring_finalize(value v_istring)
 {
-  istring *istr = Istring_val(v_istring);
-//  fprintf(stderr, "istring_finalize\n");
-  if (istr->ref != 0) 
-    caml_failwith("istr ref != 0");
+  istring *i = Istring_val(v_istring);
+  free(i->buf);
+  Istring_val(v_istring) = NULL;
+  free(i);
   return;
 }
 
@@ -43,29 +45,14 @@ istring_alloc(unsigned char *buf, size_t size)
   return v;
 }
 
-/* Free an allocated istring via free */
+/* Allocate a raw page as an istring */
 CAMLprim value
-caml_istring_free(value v_istr)
+caml_istring_alloc_page(value v_unit)
 {
-  istring *s = Istring_val(v_istr);
-  if (s->ref != 0) 
-    caml_failwith("caml_istring_free: ref!=0");
-  free(s->buf);
-  s->buf = NULL;
-  s->size = 0;
-  s->ref = 0;
-  return Val_unit;
-}
-
-/* Allocate an istring via malloc */
-CAMLprim value
-caml_istring_alloc(value v_size)
-{
-  CAMLparam1(v_size);
+  CAMLparam1(v_unit);
   CAMLlocal1(v_istr);
-  size_t size = Int_val(v_size);
-  unsigned char *buf = caml_stat_alloc(size);
-  v_istr = istring_alloc(buf, size);
+  unsigned char *page = (unsigned char *)caml_stat_alloc(4096);
+  v_istr = istring_alloc(page, 4096);
   CAMLreturn(v_istr);
 }
 
@@ -157,8 +144,8 @@ caml_istring_get_uint16_be(value v_istr, value v_off)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  u_int16_t r = ((u_int16_t)*(i->buf+off+0) << 8) +
-                ((u_int16_t)*(i->buf+off+1) << 0);
+  uint16_t r = ((uint16_t)*(i->buf+off+0) << 8) +
+                ((uint16_t)*(i->buf+off+1) << 0);
   return Val_int(r);
 }
 
@@ -168,7 +155,7 @@ caml_istring_set_uint16_be(value v_istr, value v_off, value v_val)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  u_int16_t v = (u_int16_t)Int_val(v_val);
+  uint16_t v = (uint16_t)Int_val(v_val);
   if (i->size < off+2)
     caml_array_bound_error();
   unsigned char *p = i->buf + off;
@@ -183,7 +170,7 @@ caml_istring_set_uint32_be(value v_istr, value v_off, value v_val)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  u_int32_t v = Int32_val(v_val);
+  uint32_t v = Int32_val(v_val);
   if (i->size < off+4)
     caml_array_bound_error();
   unsigned char *p = i->buf + off;
@@ -200,7 +187,7 @@ caml_istring_set_uint64_be(value v_istr, value v_off, value v_val)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  u_int64_t v = Int64_val(v_val);
+  uint64_t v = Int64_val(v_val);
   if (i->size < off+8)
     caml_array_bound_error();
   unsigned char *p = i->buf + off;
@@ -221,10 +208,10 @@ caml_istring_get_uint32_be(value v_istr, value v_off)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  u_int32_t r = ((u_int32_t)*(i->buf+off+0) << 24) +
-                ((u_int32_t)*(i->buf+off+1) << 16) +
-                ((u_int32_t)*(i->buf+off+2) <<  8) +
-                ((u_int32_t)*(i->buf+off+3) <<  0);
+  uint32_t r = ((uint32_t)*(i->buf+off+0) << 24) +
+                ((uint32_t)*(i->buf+off+1) << 16) +
+                ((uint32_t)*(i->buf+off+2) <<  8) +
+                ((uint32_t)*(i->buf+off+3) <<  0);
   return caml_copy_int32(r);
 }
 
@@ -235,15 +222,15 @@ caml_istring_get_uint64_be(value v_istr, value v_off)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  u_int32_t a = ((u_int32_t)*(i->buf+off+0) << 24) +
-                ((u_int32_t)*(i->buf+off+1) << 16) +
-                ((u_int32_t)*(i->buf+off+2) <<  8) +
-                ((u_int32_t)*(i->buf+off+3) <<  0);
-  u_int32_t b = ((u_int32_t)*(i->buf+off+4) << 24) +
-                ((u_int32_t)*(i->buf+off+5) << 16) +
-                ((u_int32_t)*(i->buf+off+6) <<  8) +
-                ((u_int32_t)*(i->buf+off+7) <<  0);
-  u_int64_t c = ((u_int64_t)a << 32) + b;
+  uint32_t a = ((uint32_t)*(i->buf+off+0) << 24) +
+                ((uint32_t)*(i->buf+off+1) << 16) +
+                ((uint32_t)*(i->buf+off+2) <<  8) +
+                ((uint32_t)*(i->buf+off+3) <<  0);
+  uint32_t b = ((uint32_t)*(i->buf+off+4) << 24) +
+                ((uint32_t)*(i->buf+off+5) << 16) +
+                ((uint32_t)*(i->buf+off+6) <<  8) +
+                ((uint32_t)*(i->buf+off+7) <<  0);
+  uint64_t c = ((uint64_t)a << 32) + b;
   return caml_copy_int64(c);
 }
 
@@ -267,11 +254,11 @@ caml_istring_ones_complement_checksum(value v_istr, value v_off, value v_len, va
   if (off+count >= i->size)
     caml_array_bound_error ();
 
-  u_int32_t sum = Int32_val(v_initial);
+  uint32_t sum = Int32_val(v_initial);
   unsigned char *addr = i->buf + off;
-  u_int16_t checksum;
+  uint16_t checksum;
   while (count > 1) {
-    u_int16_t v = (*addr << 8) + (*(addr+1));
+    uint16_t v = (*addr << 8) + (*(addr+1));
     sum += v;
     count -= 2;
     addr += 2;

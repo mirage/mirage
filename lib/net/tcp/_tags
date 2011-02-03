@@ -1,0 +1,4 @@
+<*.cmx> and not "tcp.cmx": for-pack(Net.Tcp)
+"ack.ml" or "buffer.ml" or "segment.ml" or "tcp.ml": pa_lwt
+<*.ml>: use_stdlib
+"tcp.cmx": for-pack(Net)

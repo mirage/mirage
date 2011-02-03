@@ -31,6 +31,8 @@
 #include <caml/memory.h>
 #include <caml/alloc.h>
 
+#include "istring.h"
+
 static void
 setnonblock(int fd)
 {
@@ -175,11 +177,12 @@ caml_tcp_accept(value v_fd)
 }
 
 CAMLprim value
-caml_socket_read(value v_fd, value v_buf, value v_off, value v_len)
+caml_socket_read(value v_fd, value v_istr, value v_off, value v_len)
 {
-  CAMLparam4(v_fd ,v_buf, v_off, v_len);
+  CAMLparam4(v_fd ,v_istr, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
-  int r = read(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
+  unsigned char *buf = Istring_val(v_istr)->buf;
+  int r = read(Int_val(v_fd), buf + Int_val(v_off), Int_val(v_len));
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
       Val_WouldBlock(v_ret);
@@ -193,11 +196,12 @@ caml_socket_read(value v_fd, value v_buf, value v_off, value v_len)
 }
 
 CAMLprim value
-caml_socket_write(value v_fd, value v_buf, value v_off, value v_len)
+caml_socket_write(value v_fd, value v_istr, value v_off, value v_len)
 {
-  CAMLparam4(v_fd, v_buf, v_off, v_len);
+  CAMLparam4(v_fd, v_istr, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
-  int r = write(Int_val(v_fd), String_val(v_buf) + Int_val(v_off), Int_val(v_len));
+  unsigned char *buf = Istring_val(v_istr)->buf;
+  int r = write(Int_val(v_fd), buf + Int_val(v_off), Int_val(v_len));
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
       Val_WouldBlock(v_ret);

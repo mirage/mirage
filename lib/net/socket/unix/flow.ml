@@ -119,7 +119,7 @@ let listen fn = function
 
 (* Read a buffer off the wire *)
 let rec read_buf t istr =
-  match unix_socket_read t.fd (view buffer_len with
+  match unix_socket_read t.fd istr 0 (Istring.View.length istr) with
   |Retry ->
     Activations.read t.fd >>
     read_buf t

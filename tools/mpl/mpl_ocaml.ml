@@ -268,7 +268,7 @@ let ocaml_string_of_expr ?(statevar=false) ?(rfn=None) ?(toint=false) ty env =
         |V.UInt V.I64 -> sprintf "(Int64.of_int %s)" x
         |_ -> failwith "ocaml_string_of_expr: sizeof"
         in s
-    | S.Function_call ("remaining",None) -> "(env.View.len - __pos)"
+    | S.Function_call ("remaining",None) -> "(View.length env - __pos)"
     | S.Function_call ("array_length",Some f) -> sprintf "(Array.length %s)" f
     | S.Function_call (x,y) -> interr (sprintf "func '%s' not implemented yet" x)
     in fn

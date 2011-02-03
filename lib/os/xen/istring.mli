@@ -33,6 +33,7 @@ module View : sig
   val length : t -> int
   val sub : t -> int -> int -> t
   val copy : t -> t
+  val off : t -> int
   val set_string : t -> int -> string -> unit
   val set_byte : t -> int -> byte -> unit
   val set_uint16_be : t -> int -> uint16 -> unit

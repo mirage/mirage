@@ -157,6 +157,8 @@ module View = struct
     Gc.finalise final v;
     v
 
+  let off t = t.off
+
   (** Marshal functions *)
 
   let set_string t off src =

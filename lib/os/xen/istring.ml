@@ -143,6 +143,8 @@ module View = struct
   (* Get length of the view *)
   let length t = t.len
 
+  let off t = t.off
+
   (* Generate a sub-view *)
   let sub t off len =
     let v = { t with off=t.off+off; len=len } in

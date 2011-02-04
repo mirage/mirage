@@ -28,7 +28,6 @@ type t = {
   netif: Netif.t;
   cache: (ipv4_addr, entry) Hashtbl.t;
   mutable bound_ips: ipv4_addr list;
-  thread: unit Lwt.t;
  }
 
 (* Prettyprint cache contents *)
@@ -85,19 +84,17 @@ let input t (arp:Mpl.Ethernet.ARP.o) =
   end
   |`IPv6 |`Unknown _ -> return ()
 
-(* Detach an ARP handler and remove the handler from the interface *)
-let destroy t = Lwt.cancel t.thread
-
 (* Create an ARP handler and attach it to the Ethernet interface *)
 let create netif =
-  let thread,_ = Lwt.task () in
-  let t = { cache=Hashtbl.create 1; bound_ips=[]; thread; netif } in
-  Lwt.on_cancel thread (fun () -> 
+  let th,u = Lwt.task () in
+  let t = { cache=Hashtbl.create 1; bound_ips=[]; netif } in
+  Lwt.on_cancel th (fun () -> 
     printf "ARP shutdown\n%!";
     Netif.detach t.netif `ARP);
   Netif.attach t.netif (`ARP (input t));
   printf "ARP created\n%!";
-  t, thread
+  (* TODO join an ARP timeout thread to th *)
+  t, th
 
 (* Send a gratuitous ARP for our IP addresses *)
 let output_garp t =
@@ -111,7 +108,6 @@ let output_garp t =
       ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Reply
       ~sha:src_mac ~spa:ip ~tha:dest_mac ~tpa
     )
-   
   ) t.bound_ips
 
 (* Send a query for a particular IP *)

@@ -31,7 +31,6 @@ exception No_route_to_destination_address of ipv4_addr
 type t = {
   netif: Netif.t;
   arp: Arp.t;
-  thread: unit Lwt.t;
   mutable ip: ipv4_addr;
   mutable netmask: ipv4_addr;
   mutable gateways: ipv4_addr list;
@@ -91,16 +90,17 @@ let input t (ip:Mpl.Ipv4.o) =
 let create id = 
   lwt (netif, netif_t) = Netif.create id in
   let arp, arp_t = Arp.create netif in
-  let thread,_ = Lwt.task () in
+  let ipv4_t,_ = Lwt.task () in
   let udp = (fun _ _ -> return (print_endline "dropped udp")) in
   let tcp = (fun _ _ -> return (print_endline "dropped tcp")) in
   let icmp = (fun _ _ -> return (print_endline "dropped icmp")) in
   let ip = ipv4_blank in
   let netmask = ipv4_blank in
   let gateways = [] in
-  let t = { netif; arp; thread; udp; tcp; icmp; ip; netmask; gateways } in
+  let t = { netif; arp; udp; tcp; icmp; ip; netmask; gateways } in
+  Lwt.on_cancel ipv4_t (fun _ -> Netif.detach t.netif `IPv4);
   Netif.attach t.netif (`IPv4 (input t));
-  let th = join [netif_t; arp_t; thread ] in
+  let th = pick [ netif_t; arp_t; ipv4_t ] in
   return (t, th)
 
 let set_ip t ip = 

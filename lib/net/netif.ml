@@ -23,7 +23,6 @@ type t = {
   mutable arp: (Mpl.Ethernet.ARP.o -> unit Lwt.t);
   mutable ipv4: (Mpl.Ipv4.o -> unit Lwt.t);
   mutable ipv6: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
-  mutable active: bool;
 }
 
 (* Handle a single input frame, input as an istring view *)
@@ -48,8 +47,7 @@ let create id =
   let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
   let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in
   let mac = ethernet_mac_of_bytes (OS.Ethif.mac ethif) in
-  let active = true in
-  let t = { ethif; arp; ipv4; ipv6; mac; active }  in
+  let t = { ethif; arp; ipv4; ipv6; mac }   in
   let listen = listen t in
   return (t, listen)
  

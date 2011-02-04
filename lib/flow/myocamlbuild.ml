@@ -26,6 +26,8 @@ let _ = dispatch begin function
   | After_rules ->
     (* Need this for Nettypes module *)
     Pathname.define_context "socket" [lib "net" os];
+    Pathname.define_context "direct" [lib "net" os];
+
     (* do not compile and pack with the standard lib, and point to right OS module *)
     flag ["ocaml"; "compile"] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];
     flag ["ocaml"; "pack"   ] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"];

@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,41 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Flow library that uses the TCP/UDP Net library *)
-
-open Lwt
-open OS
 open Nettypes
-
-exception Not_implemented
 
 type t
 
-let connect t =
-  fail Not_implemented 
+val with_connection: sockaddr -> (t -> 'a Lwt.t) -> 'a Lwt.t
+val listen: (sockaddr -> t -> unit Lwt.t) -> sockaddr -> unit Lwt.t
 
-let close t =
-  return ()
-
-let close_on_exit t fn =
-  try_lwt
-    lwt x = fn t in
-    close t >>
-    return x
-  with exn ->
-    close t >>
-    fail exn
-
-let read t =
-   fail Not_implemented 
-
-let write t view =
-   fail Not_implemented 
-
-let listen fn = function
-  | TCP (addr, port) -> fail Not_implemented
-  | UDP _ -> fail Not_implemented
-  
-let with_connection sockaddr fn =
-  lwt t = connect sockaddr in
-  close_on_exit t fn
+val read: t -> OS.Istring.View.t option Lwt.t
+val write: t -> OS.Istring.View.t -> unit Lwt.t

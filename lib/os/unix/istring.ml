@@ -56,7 +56,7 @@ module Raw = struct
   type t
 
   (* Allocate an istring 4k page *)
-  external alloc: unit -> t = "caml_istring_alloc"
+  external alloc: unit -> t = "caml_istring_alloc_page"
 
   (* Get total size of an istring buffer.  *)
   external size: t -> int = "caml_istring_size" "noalloc"

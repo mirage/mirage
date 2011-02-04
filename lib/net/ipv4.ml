@@ -21,12 +21,6 @@ open Nettypes
 type 'a ip_output = OS.Istring.View.t -> ttl:int -> dest:int32 ->
     options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
 
-type state =
-  |Obtaining_ip
-  |Up
-  |Down
-  |Shutting_down
-
 type classify =
   |Broadcast
   |Gateway

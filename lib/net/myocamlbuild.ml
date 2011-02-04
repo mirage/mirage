@@ -43,9 +43,11 @@ end
 let _ = dispatch begin function
   | After_rules ->
     Pathname.define_context "mpl/protocols" ["mpl"];
-    Pathname.define_context "mlnet" ["mpl"; "nettypes"];
+    Pathname.define_context "ip" ["mpl"; "nettypes"];
+    Pathname.define_context "tcp" ["mpl"; "nettypes"; "ip"];
     Pathname.define_context "dns" ["mpl"];
-    Pathname.define_context "dhcp" ["mpl"; "nettypes"; "mlnet"];
+    Pathname.define_context "" ["mpl"; "ip"];
+    Pathname.define_context "dhcp" ["mpl"; "nettypes";];
     Pathname.define_context ("socket/"^os) ["nettypes"];
     Pathname.define_context "http" ["nettypes"; "socket/"^os];
     Pathname.define_context "" ["socket/"^os];

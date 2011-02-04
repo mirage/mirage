@@ -1,7 +1,5 @@
 Nettypes
-Flow
 mpl/Mpl
-mlnet/Mlnet
-dhcp/Dhcp
-dns/Dns
-http/Http
+ip/iP
+tcp/Tcp
+Udp

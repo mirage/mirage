@@ -18,7 +18,6 @@
 open Lwt
 open Printf
 open Nettypes
-open Mlnet
 
 type offer = {
   ip_addr: ipv4_addr;

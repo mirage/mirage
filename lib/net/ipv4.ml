@@ -18,8 +18,6 @@ open Lwt
 open Printf
 open Nettypes
 
-module ARP = Arp
-
 type 'a ip_output = OS.Istring.View.t -> ttl:int -> dest:int32 ->
     options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
 
@@ -38,7 +36,7 @@ exception No_route_to_destination_address of ipv4_addr
 
 type t = {
   netif: Netif.t;
-  arp: ARP.t;
+  arp: Arp.t;
   thread: unit Lwt.t;
   mutable ip: ipv4_addr;
   mutable netmask: ipv4_addr;
@@ -69,10 +67,10 @@ let output t ~dest_ip (ip:'a ip_output) =
   (* Query ARP for destination MAC address to send this to *)
   lwt dest_mac = match classify_ip t dest_ip with
   | Broadcast -> return ethernet_mac_broadcast
-  | Local -> ARP.query t.arp dest_ip
+  | Local -> Arp.query t.arp dest_ip
   | Gateway -> begin
       match t.gateways with 
-      | hd :: _ -> ARP.query t.arp hd
+      | hd :: _ -> Arp.query t.arp hd
       | [] -> 
           printf "IP.output: no route to %s\n%!" (ipv4_addr_to_string dest_ip);
           fail (No_route_to_destination_address dest_ip)
@@ -98,7 +96,7 @@ let input t (ip:Mpl.Ipv4.o) =
 
 let create id = 
   lwt (netif, netif_t) = Netif.create id in
-  let arp, arp_t = ARP.create netif in
+  let arp, arp_t = Arp.create netif in
   let thread,_ = Lwt.task () in
   let udp = (fun _ _ -> return (print_endline "dropped udp")) in
   let tcp = (fun _ _ -> return (print_endline "dropped tcp")) in
@@ -114,7 +112,7 @@ let create id =
 let set_ip t ip = 
   t.ip <- ip;
   (* Inform ARP layer of new IP *)
-  ARP.set_bound_ips t.arp [ip]
+  Arp.set_bound_ips t.arp [ip]
 
 let get_ip t = t.ip
 

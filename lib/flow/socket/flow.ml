@@ -30,11 +30,13 @@ exception Not_implemented of string
 exception Listen_error of string
 exception Accept_error of string
 exception Connect_error of string
+exception Read_error of string
+exception Write_error of string
 
 external unix_close: int -> unit = "caml_socket_close"
 external unix_tcp_connect: int32 -> int -> int resp = "caml_tcp_connect"
-external unix_socket_read: int -> string -> int -> int -> int resp = "caml_socket_read"
-external unix_socket_write: int -> string -> int -> int -> int resp = "caml_socket_write"
+external unix_socket_read: int -> Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
+external unix_socket_write: int -> Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
 external unix_tcp_connect_result: int -> unit resp = "caml_tcp_connect_result"
 external unix_tcp_listen: int32 -> int -> int resp = "caml_tcp_listen"
 external unix_tcp_accept: int -> (int * int32 * int) resp = "caml_tcp_accept"
@@ -93,22 +95,20 @@ let listen fn = function
     Printf.printf "listen: TCP port %d\n%!" port;
     match unix_tcp_listen (ipv4_addr_to_uint32 addr) port with
     |OK fd ->
-      let lt = t_of_fd fd in
-      let rec loop () =
+      let rec loop t =
         with_value id (new_id ()) (fun () ->
           Activations.read t.fd >>
           (match unix_tcp_accept fd with
            |OK (afd,caddr_i,cport) ->
              let caddr = ipv4_addr_of_uint32 caddr_i in
              let csa = TCP (caddr, cport) in
-             let t = t_of_fd afd in
-             close_on_exit t (fn csa) <&> (loop ())
-           |Retry -> loop () 
-           |Err err ->
-            Lwt.wakeup_exn abort_wakener (Accept_error err);
-            loop ())
+             let t' = t_of_fd afd in
+             close_on_exit t' (fn csa) <&> (loop t)
+           |Retry -> loop t
+           |Err err -> fail (Accept_error err))
          ) in
-      let listen_t = close_on_exit (loop ()) in
+      let t = t_of_fd fd in
+      let listen_t = close_on_exit t loop in
       t.abort_t <?> listen_t
     |Err s ->
        fail (Listen_error s)
@@ -118,13 +118,13 @@ let listen fn = function
   | UDP _ -> fail (Not_implemented "UDP")
 
 (* Read a buffer off the wire *)
-let rec read_buf t istr =
-  match unix_socket_read t.fd istr 0 (Istring.View.length istr) with
+let rec read_buf t istr off len =
+  match unix_socket_read t.fd istr off len with
   |Retry ->
     Activations.read t.fd >>
-    read_buf t
+    read_buf t istr off len
   |OK r -> return r
-  |Err e -> fail e
+  |Err e -> fail (Read_error e)
 
 let rec write_buf t istr off len =
   match unix_socket_write t.fd istr off len with 
@@ -134,13 +134,13 @@ let rec write_buf t istr off len =
   |OK amt ->
     if amt = len then return ()
     else write_buf t istr (off+amt) (len-amt)
-  |Err e -> fail e
+  |Err e -> fail (Write_error e)
 
 let read t =
   let istr = OS.Istring.Raw.alloc () in
-  let view = OS.Istring.View.t ~off:0 istr 4096 in
-  read_buf t view
-
+  lwt len = read_buf t istr 0 4096 in
+  return (Some (OS.Istring.View.t ~off:0 istr len))
+  
 let write t view =
   let istr = OS.Istring.View.raw view in
   let off = OS.Istring.View.off view in

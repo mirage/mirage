@@ -1,0 +1,8 @@
+There are two alternative Flow implementations:
+
+Flow_socket: Directly uses the Unix socket API to expose a Flow and has no
+dependency on the low-level Net except for Nettypes.
+Does not compile against Xen.
+
+Flow_direct: Works against the Net module and handles incoming TCP/UDP
+frames directly

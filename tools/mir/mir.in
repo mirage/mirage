@@ -2,6 +2,7 @@
 
 MIRAGELIB=${MIRAGELIB:-@MIRAGELIB@}
 MIRAGEOS=@MIRAGEOS@
+MIRAGEFLOW=@MIRAGEFLOW@
 OCAMLBUILD=${OCAMLBUILD:-ocamlbuild}
 
 if [ ! -e "${MIRAGELIB}/scripts/myocamlbuild.ml" ]; then
@@ -11,5 +12,7 @@ fi
 
 export MIRAGELIB
 export MIRAGEOS
+export MIRAGEFLOW
 ln -nfs ${MIRAGELIB}/scripts/myocamlbuild.ml
+ocamlbuild -clean
 ocamlbuild $*

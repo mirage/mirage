@@ -18,8 +18,10 @@ tools:
 	@cd tools && $(MAKE) tools
 
 install:
-	@cd lib && $(MAKE) install
-	@cd scripts && $(MAKE) install
+	rm -rf _build
+	./assemble.sh
+	mkdir -p $(PREFIX)
+	cp -r _build/* $(PREFIX)/
 
 clean:
 	@cd tools && $(MAKE) clean

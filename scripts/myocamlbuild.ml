@@ -16,6 +16,14 @@ let os =
   else
     (Ocamlbuild_pack.Log.dprintf 0 "OS: %s" os; os)
 
+(* This decides which Flow module to use (direct or socket) *)
+let flow = 
+  let flow = getenv "MIRAGEFLOW" ~default:"direct" in
+  if flow <> "direct" && flow <> "socket" then
+    (Printf.eprintf "`%s` is not a supported Flow type\n" flow; exit (-1))
+  else
+    (Ocamlbuild_pack.Log.dprintf 0 "Flow: %s" flow; flow)
+
 (* This decides to run (or not) the debug HTTP callback on port 8081 *)
 let debugmode =
   let debugmode = getenv "MIRAGEDEBUG" ~default:"0" in
@@ -24,12 +32,17 @@ let debugmode =
 (* Points to the root of the installed Mirage stdlibs *)
 let lib = getenv "MIRAGELIB"
 
-let stdlib = ps "%s/std/lib" lib
-let oslib = ps "%s/os/%s" lib os
-let cowlib = ps "%s/cow/lib" lib
-let netlib = ps "%s/net" oslib
-let xenlib = ps "%s/os/xen" lib
-let debuglib = ps "%s/debugger/lib" lib
+let libdir =
+  let root = getenv "MIRAGELIB" in
+  let subdir = match os,flow with
+  |"unix","socket" -> "unix-socket"
+  |"unix","direct" -> "unix-direct"
+  |"xen","direct" -> "xen-direct"
+  |_ -> Printf.eprintf "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
+  ps "%s/%s/lib" root subdir
+ 
+let syntaxdir = 
+  ps "%s/syntax" (getenv "MIRAGELIB")
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
@@ -92,6 +105,7 @@ module Mir = struct
   let cc = ref (A"cc")
   let ld = ref (A"ld")
   let ocamlc_libdir = "-L" ^ (Lazy.force stdlib_dir)
+  let oslib = libdir 
   let oslib_unixrun = oslib ^ "/libunixrun.a"
   let oslib_unixmain = oslib ^ "/main.o"
 
@@ -108,6 +122,7 @@ module Mir = struct
              A oslib_unixmain] @ dl_libs))
 
   let cc_xen_link tags arg out =
+    let xenlib = libdir in   
     let head_obj = Px (xenlib / "x86_64.o") in
     let ldlibs = List.map (fun x -> Px (xenlib / ("lib" ^ x ^ ".a")))
       ["ocaml"; "xen"; "xencaml"; "diet"; "m"] in
@@ -143,14 +158,11 @@ end
 
 let _ = dispatch begin function
   | After_rules ->
-    let pa_std = ps "-I %s/std/syntax pa_ulex.cma pa_lwt.cma" lib in
+    let pa_std = ps "-I %s pa_ulex.cma pa_lwt.cma" syntaxdir in
     let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
-    let pa_dyntype = ps "%s -I %s/dyntype/syntax pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations lib in
-    let pa_cow = ps "%s -I %s/cow/syntax str.cma pa_cow.cmo" pa_dyntype lib in
-    let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
-    let net_libs = match OS.target with
-     | OS.Xen -> [ A "net.cmxa" ]
-     | _ -> [ A "net.cmxa" ] in
+    let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
+    let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
+    let pp_pa = ps "camlp4o %s" pa_std in (* TODO add pa_cow in here *)
     let cow_libs = match OS.target with
      | OS.Xen -> []
      | _ -> [ A "cow.cmx" ] in
@@ -160,13 +172,12 @@ let _ = dispatch begin function
     let libs = [
       (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa"; A "ulex.cmxa";
       (* os lib *)   A "oS.cmxa";
-    ] @ net_libs @ cow_libs @ debug_libs in
+      (* net lib *)  A "net.cmxa";
+      (* flow lib *) A "flow.cmxa"; ]
+    in
+
     let mirage_flags = [
-      A"-nostdlib"; A"-I"; A stdlib;
-      A"-I"; A oslib;
-      A"-I"; A netlib;
-      A"-I"; A cowlib;
-      A"-I"; A debuglib;
+      A"-nostdlib"; A"-I"; A libdir;
       A"-pp"; A pp_pa ] in
 
     (* do not compile and pack with the standard lib *)

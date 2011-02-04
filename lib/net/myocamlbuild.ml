@@ -43,14 +43,10 @@ end
 let _ = dispatch begin function
   | After_rules ->
     Pathname.define_context "mpl/protocols" ["mpl"];
-    Pathname.define_context "ip" ["mpl"; "nettypes"];
     Pathname.define_context "tcp" ["mpl"; "nettypes"; "ip"];
-    Pathname.define_context "dns" ["mpl"];
-    Pathname.define_context "" ["mpl"; "ip"];
+    Pathname.define_context "" ["mpl"];
     Pathname.define_context "dhcp" ["mpl"; "nettypes";];
-    Pathname.define_context ("socket/"^os) ["nettypes"];
-    Pathname.define_context "http" ["nettypes"; "socket/"^os];
-    Pathname.define_context "" ["socket/"^os];
+
     (* do not compile and pack with the standard lib, and point to right OS module *)
     flag ["ocaml"; "compile"] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];
     flag ["ocaml"; "pack"   ] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"];

@@ -1,5 +1,9 @@
 Nettypes
 mpl/Mpl
-ip/iP
-tcp/Tcp
+Netif
+Arp
+Icmp
+Ipv4
 Udp
+tcp/Tcp
+dhcp/Dhcp

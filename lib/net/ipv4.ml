@@ -87,8 +87,7 @@ let input t (ip:Mpl.Ipv4.o) =
   |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal ip#data_sub_view)
   |`IGMP |`Unknown _ -> return ()
 
-let create id = 
-  lwt (netif, netif_t) = Netif.create id in
+let create netif = 
   let arp, arp_t = Arp.create netif in
   let ipv4_t,_ = Lwt.task () in
   let udp = (fun _ _ -> return (print_endline "dropped udp")) in
@@ -100,8 +99,8 @@ let create id =
   let t = { netif; arp; udp; tcp; icmp; ip; netmask; gateways } in
   Lwt.on_cancel ipv4_t (fun _ -> Netif.detach t.netif `IPv4);
   Netif.attach t.netif (`IPv4 (input t));
-  let th = pick [ netif_t; arp_t; ipv4_t ] in
-  return (t, th)
+  let th = pick [ arp_t; ipv4_t ] in
+  t, th
 
 let set_ip t ip = 
   t.ip <- ip;

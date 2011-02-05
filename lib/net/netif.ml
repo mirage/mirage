@@ -41,15 +41,14 @@ let rec listen t =
 let output t x =
   OS.Ethif.output t.ethif (Mpl.Ethernet.m x)
 
-let create id = 
-  lwt ethif = OS.Ethif.create id in
+let create ethif = 
   let arp = (fun _ -> return (print_endline "dropped arp")) in
   let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
   let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in
   let mac = ethernet_mac_of_bytes (OS.Ethif.mac ethif) in
-  let t = { ethif; arp; ipv4; ipv6; mac }   in
+  let t = { ethif; arp; ipv4; ipv6; mac } in
   let listen = listen t in
-  return (t, listen)
+  (t, listen)
  
 let attach t = function
   |`ARP fn -> t.arp <- fn

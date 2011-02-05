@@ -6,13 +6,13 @@ let lib p x =
   try
     sf "%s/%s/%s" (Sys.getenv "MIRAGELIB") p x
   with Not_found ->
-    sf "../../../%s/_build/%s" p x
+    sf "../../../../%s/_build/%s" p x
 
 let mplc =
   try
     sf "%s/../bin/mplc" (Sys.getenv "MIRAGELIB") 
   with Not_found ->
-    "../../../../tools/mpl/mplc" 
+    "../../../../../tools/mpl/mplc" 
 
 let stdlib = lib "std"
 (* Set the build directory to reflect the OS chosen,

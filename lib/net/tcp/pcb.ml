@@ -41,7 +41,7 @@ type pcb = {
 type t = {
   ip : Ipv4.t;
   channels: (id, (pcb * unit Lwt.t)) Hashtbl.t;
-  listeners: (int, (pcb -> unit Lwt.t)) Hashtbl.t;
+  listeners: (int, (ipv4_addr -> pcb -> unit Lwt.t)) Hashtbl.t;
 }
 
 module Tx = struct
@@ -231,7 +231,7 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   (* Compose the overall thread from the various tx/rx threads
      and the main listener function *)
   let th =
-    listener pcb <?>
+    listener (ipv4_addr_of_uint32 ip#src) pcb <?>
     (Tx.thread t pcb ~send_ack ~rx_ack) <?>
     (Rx.thread pcb ~rx_data) <?>
     (Wnd.thread ~utx ~urx ~wnd ~tx_wnd_update)

@@ -22,33 +22,24 @@ open Nettypes
 
 exception Not_implemented
 
-type t
+type t = Tcp.Pcb.pcb
 
 let connect t =
   fail Not_implemented 
 
 let close t =
-  return ()
-
-let close_on_exit t fn =
-  try_lwt
-    lwt x = fn t in
-    close t >>
-    return x
-  with exn ->
-    close t >>
-    fail exn
+  Tcp.Pcb.close t
 
 let read t =
-   fail Not_implemented 
+  Tcp.Pcb.read t
 
 let write t view =
-   fail Not_implemented 
+  let len = Int32.of_int (OS.Istring.View.length view) in
+  Tcp.Pcb.write_wait_for t len >>
+  Tcp.Pcb.write t (`Frag view)
 
-let listen fn = function
-  | TCP (addr, port) -> fail Not_implemented
-  | UDP _ -> fail Not_implemented
+let listen mgr ?addr ~port fn =
+  Manager.listen mgr (`TCP (addr, port, fn)) 
   
-let with_connection sockaddr fn =
-  lwt t = connect sockaddr in
-  close_on_exit t fn
+let connect mgr ~addr ~port fn =
+  Manager.connect mgr (`TCP (addr, port, fn))

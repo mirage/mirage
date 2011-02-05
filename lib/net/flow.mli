@@ -16,10 +16,16 @@
 
 open Nettypes
 
+(* Stream-oriented flow API *)
+
 type t
 
-val with_connection: sockaddr -> (t -> 'a Lwt.t) -> 'a Lwt.t
-val listen: (sockaddr -> t -> unit Lwt.t) -> sockaddr -> unit Lwt.t
+val connect: Manager.t -> addr:ipv4_addr -> port:int ->
+  (t -> 'a Lwt.t) -> 'a Lwt.t
+
+val listen: Manager.t -> ?addr:ipv4_addr -> port:int ->
+  (ipv4_addr -> t -> unit Lwt.t) -> unit Lwt.t
 
 val read: t -> OS.Istring.View.t option Lwt.t
+
 val write: t -> OS.Istring.View.t -> unit Lwt.t

@@ -18,6 +18,7 @@
    will eventually deal with load balancing and route determination
    (e.g. if a remote target is on the same host, swap to shared memory *)
 
+open Nettypes
 exception Error of string
 
 type t
@@ -25,7 +26,6 @@ type t
 val create : unit -> t Lwt.t
 val destroy : t -> unit
 
-val listen : t ->
-  [< `TCP of Nettypes.ipv4_addr * int * (Tcp.Pcb.pcb -> unit Lwt.t)
-   | `UDP of Nettypes.ipv4_addr * int * (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t) ] ->
-  unit Lwt.t
+val listen : t -> [< `TCP of ipv4_addr option * int * (ipv4_addr -> Tcp.Pcb.pcb -> unit Lwt.t) ] -> unit Lwt.t
+
+val connect : t -> [< `TCP of ipv4_addr * int * (Tcp.Pcb.pcb -> 'a Lwt.t) ] -> 'a Lwt.t

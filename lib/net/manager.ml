@@ -51,10 +51,14 @@ let destroy t =
 
 (* Find the interface associated with the address *)
 let i_of_ip t addr =
-  try return (List.find (fun (i,_) -> Ipv4.get_ip i.ipv4 = addr) t)
-  with Not_found -> fail (Error "No interface found for IP")
+  try
+    (match addr with
+     |None -> return (List.hd t) (* TODO: bind to all interfaces *)
+     |Some addr -> return (List.find (fun (i,_) -> Ipv4.get_ip i.ipv4 = addr) t)
+    )
+  with _ -> fail (Error "No interface found for IP")
  
-let listen t = function
+let listen (t:t) = function
   |`TCP (addr, port, fn) -> begin
     lwt i,_ = i_of_ip t addr in
     return (Tcp.Pcb.listen i.tcp port fn)
@@ -63,3 +67,6 @@ let listen t = function
     lwt i,_ = i_of_ip t addr in
     return (Udp.listen i.udp port fn)
   end
+
+let connect t = function
+  |`TCP (addr, port, fn) -> fail (Error "not implemented yet")

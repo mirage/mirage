@@ -44,11 +44,11 @@ let _ = dispatch begin function
   | After_rules ->
     Pathname.define_context "mpl/protocols" ["mpl"];
     Pathname.define_context "tcp" ["mpl"; "nettypes"; "ip"];
-    Pathname.define_context "" ["mpl"];
+    Pathname.define_context "" ["mpl"; "tcp"];
     Pathname.define_context "dhcp" ["mpl"; "nettypes";];
 
     (* do not compile and pack with the standard lib, and point to right OS module *)
-    flag ["ocaml"; "compile"] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];
+    flag ["ocaml"; "compile"] & S [A"-annot"; A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];
     flag ["ocaml"; "pack"   ] & S [A"-I"; A (stdlib "lib"); A"-nostdlib"];
     pflag ["ocaml"; "pack"] "for-pack" (fun param -> S [A "-for-pack"; A param]);
 

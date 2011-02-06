@@ -14,32 +14,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Flow library that uses the TCP/UDP Net library *)
-
 open Lwt
-open OS
 open Nettypes
 
-exception Not_implemented
+module TCPv4 = struct
 
-type t = Tcp.Pcb.pcb
+  type t = Tcp.Pcb.pcb
+  type mgr = Manager.t
+  type src = ipv4_addr option * int   (* optional IP address * port *)
+  type dst = ipv4_addr * int          (* specific IP address * port *)
 
-let connect t =
-  fail Not_implemented 
+  let read t =
+    Tcp.Pcb.read t
 
-let close t =
-  Tcp.Pcb.close t
+  let write t view =
+    let len = Int32.of_int (OS.Istring.View.length view) in
+    Tcp.Pcb.write_wait_for t len >>
+    Tcp.Pcb.write t (`Frag view)
 
-let read t =
-  Tcp.Pcb.read t
+  let close t =
+    Tcp.Pcb.close t
 
-let write t view =
-  let len = Int32.of_int (OS.Istring.View.length view) in
-  Tcp.Pcb.write_wait_for t len >>
-  Tcp.Pcb.write t (`Frag view)
+  let listen (mgr:mgr) src fn =
+    let addr, port = src in
+    lwt tcp = Manager.tcpv4_of_addr mgr addr in
+    Tcp.Pcb.listen tcp port fn
 
-let listen mgr ?addr ~port fn =
-  Manager.listen mgr (`TCP (addr, port, fn)) 
-  
-let connect mgr ~addr ~port fn =
-  Manager.connect mgr (`TCP (addr, port, fn))
+  let connect mgr src dst fn =
+    fail (Failure "Not_implemented")
+
+end
+

@@ -26,6 +26,4 @@ type t
 val create : unit -> t Lwt.t
 val destroy : t -> unit
 
-val listen : t -> [< `TCP of ipv4_addr option * int * (ipv4_addr -> Tcp.Pcb.pcb -> unit Lwt.t) ] -> unit Lwt.t
-
-val connect : t -> [< `TCP of ipv4_addr * int * (Tcp.Pcb.pcb -> 'a Lwt.t) ] -> 'a Lwt.t
+val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t Lwt.t

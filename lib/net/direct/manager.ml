@@ -57,16 +57,8 @@ let i_of_ip t addr =
      |Some addr -> return (List.find (fun (i,_) -> Ipv4.get_ip i.ipv4 = addr) t)
     )
   with _ -> fail (Error "No interface found for IP")
- 
-let listen (t:t) = function
-  |`TCP (addr, port, fn) -> begin
-    lwt i,_ = i_of_ip t addr in
-    return (Tcp.Pcb.listen i.tcp port fn)
-  end
-  |`UDP (addr, port, fn) -> begin
-    lwt i,_ = i_of_ip t addr in
-    return (Udp.listen i.udp port fn)
-  end
 
-let connect t = function
-  |`TCP (addr, port, fn) -> fail (Error "not implemented yet")
+(* Match an address and port to a TCP thread *)
+let tcpv4_of_addr (t:t) addr =
+  lwt i,_ = i_of_ip t addr in
+  return i.tcp

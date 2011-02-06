@@ -41,7 +41,7 @@ type pcb = {
 type t = {
   ip : Ipv4.t;
   channels: (id, (pcb * unit Lwt.t)) Hashtbl.t;
-  listeners: (int, (ipv4_addr -> pcb -> unit Lwt.t)) Hashtbl.t;
+  listeners: (int, ((ipv4_addr * int) -> pcb -> unit Lwt.t)) Hashtbl.t;
 }
 
 module Tx = struct
@@ -231,7 +231,8 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   (* Compose the overall thread from the various tx/rx threads
      and the main listener function *)
   let th =
-    listener (ipv4_addr_of_uint32 ip#src) pcb <?>
+    let dst = (ipv4_addr_of_uint32 ip#src), tcp#source_port in
+    listener dst pcb <?>
     (Tx.thread t pcb ~send_ack ~rx_ack) <?>
     (Rx.thread pcb ~rx_data) <?>
     (Wnd.thread ~utx ~urx ~wnd ~tx_wnd_update)
@@ -319,7 +320,8 @@ let close pcb =
 let listen t port fn =
   if Hashtbl.mem t.listeners port then
     printf "WARNING: TCP listen port %d already used\n%!" port;
-  Hashtbl.replace t.listeners port fn
+  Hashtbl.replace t.listeners port fn;
+  return ()
 
 (* Construct the main TCP thread *)
 let create ip =

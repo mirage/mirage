@@ -107,11 +107,21 @@ let ipv4_addr_to_string x =
     Printf.sprintf "%d.%d.%d.%d" 
       (chri 0) (chri 1) (chri 2) (chri 3)
 
-type 'a resp =
-  | OK of 'a      (* Result *)
-  | Err of string (* Hard error *)
-  | Retry         (* Would block *)
+module type FLOW = sig                                                                                   
+  (* Type of an individual flow *)                                                                       
+  type t                                                                                                 
+  (* Type that manages a collection of flows *)                                                          
+  type mgr                                                                                               
+  (* Type that identifies a flow source and destination endpoint *)
+  type src
+  type dst
 
-type sockaddr = 
-  | TCP of ipv4_addr * int
-  | UDP of ipv4_addr * int
+  (* Read and write to a flow *)                                                                         
+  val read: t -> OS.Istring.View.t option Lwt.t
+  val write: t -> OS.Istring.View.t -> unit Lwt.t                                                        
+  val close: t -> unit Lwt.t
+  
+  (* Flow construction *)                                                                                
+  val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t                             
+  val connect: mgr -> src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t                           
+end 

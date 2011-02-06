@@ -35,11 +35,14 @@ val ipv4_blank : ipv4_addr
 val ipv4_broadcast : ipv4_addr
 val ipv4_localhost : ipv4_addr
 
-type 'a resp =
-  | OK of 'a
-  | Err of string
-  | Retry
-
-type sockaddr = 
-  | TCP of ipv4_addr * int
-  | UDP of ipv4_addr * int
+module type FLOW = sig
+  type t
+  type mgr
+  type src
+  type dst
+  val read : t -> OS.Istring.View.t option Lwt.t
+  val write : t -> OS.Istring.View.t -> unit Lwt.t
+  val close : t -> unit Lwt.t
+  val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
+  val connect : mgr -> src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t
+end

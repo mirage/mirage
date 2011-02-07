@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -38,11 +38,26 @@ val ipv4_localhost : ipv4_addr
 module type FLOW = sig
   type t
   type mgr
+
   type src
   type dst
+
   val read : t -> OS.Istring.View.t option Lwt.t
   val write : t -> OS.Istring.View.t -> unit Lwt.t
   val close : t -> unit Lwt.t
+
   val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
   val connect : mgr -> src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t
+end
+
+module type DATAGRAM = sig
+  type mgr
+
+  type src
+  type dst
+
+  type msg
+ 
+  val recv : mgr -> src -> (dst -> msg -> unit Lwt.t) -> unit Lwt.t
+  val send : mgr -> dst -> msg -> unit Lwt.t
 end

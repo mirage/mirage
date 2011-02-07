@@ -125,3 +125,20 @@ module type FLOW = sig
   val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t                             
   val connect: mgr -> src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t                           
 end 
+
+module type DATAGRAM = sig
+  (* Datagram manager *)
+  type mgr
+
+  (* Identify flow and destination endpoints *)
+  type src
+  type dst
+
+  (* Types of msg *)
+  type msg
+
+  (* Receive and send functions *)
+  val recv : mgr -> src -> (dst -> msg -> unit Lwt.t) -> unit Lwt.t
+  val send : mgr -> dst -> msg -> unit Lwt.t
+end
+

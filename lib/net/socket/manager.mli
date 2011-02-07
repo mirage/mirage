@@ -25,3 +25,5 @@ type t
 
 val create : unit -> t Lwt.t
 val destroy : t -> unit
+
+val get_udpv4 : t -> int

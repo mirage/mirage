@@ -17,12 +17,15 @@
 open Lwt
 open Nettypes
 
+type ipv4_src = ipv4_addr option * int   (* optional IP address * port *)
+type ipv4_dst = ipv4_addr * int          (* specific IP address * port *)
+
 module TCPv4 = struct
 
   type t = Tcp.Pcb.pcb
   type mgr = Manager.t
-  type src = ipv4_addr option * int   (* optional IP address * port *)
-  type dst = ipv4_addr * int          (* specific IP address * port *)
+  type src = ipv4_src
+  type dst = ipv4_dst
 
   let read t =
     Tcp.Pcb.read t
@@ -35,7 +38,7 @@ module TCPv4 = struct
   let close t =
     Tcp.Pcb.close t
 
-  let listen (mgr:mgr) src fn =
+  let listen mgr src fn =
     let addr, port = src in
     lwt tcp = Manager.tcpv4_of_addr mgr addr in
     Tcp.Pcb.listen tcp port fn
@@ -45,3 +48,29 @@ module TCPv4 = struct
 
 end
 
+module UDPv4 = struct
+
+  type mgr = Manager.t
+  type src = ipv4_src
+  type dst = ipv4_dst
+  type msg = OS.Istring.View.t
+
+  let send mgr (dest_ip, dest_port) msg =
+    lwt udp = Manager.udpv4_of_addr mgr None in
+    Udp.output udp ~dest_ip (
+      let source_port = 37 in (* XXX TODO *)
+      let data = `Frag msg in
+      Mpl.Udp.t ~source_port ~dest_port ~data
+    )
+
+  let recv mgr (src_addr, src_port) fn =
+    lwt udp = Manager.udpv4_of_addr mgr src_addr in
+    Udp.listen udp src_port
+      (fun ip udp ->
+        let dst_port = udp#source_port in
+        let dst_ip = ipv4_addr_of_uint32 ip#src in
+        let dst = dst_ip, dst_port in
+        let data = udp#data_sub_view in
+        fn dst data
+      )
+end

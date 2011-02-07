@@ -206,11 +206,109 @@ caml_socket_write(value v_fd, value v_istr, value v_off, value v_len)
     if (errno == EAGAIN || errno==EWOULDBLOCK)
       Val_WouldBlock(v_ret);
     else {
-      fprintf(stderr, "   err=%s\n", strerror(errno));
       v_err = caml_copy_string(strerror(errno));
       Val_Err(v_ret, v_err);
     }
   } else
     Val_OK(v_ret, Val_int(r));
+  CAMLreturn(v_ret);
+}
+
+/* Bind a UDP socket to a local v4 addr and return it */
+CAMLprim value
+caml_udp_bind_ipv4(value v_src)
+{
+  CAMLparam1(v_src);
+  CAMLlocal2(v_ret, v_err);
+  int s = socket(PF_INET, SOCK_DGRAM, 0);
+  if (s < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    CAMLreturn(v_ret);
+  }
+  struct sockaddr_in sa;
+  bzero(&sa, sizeof sa);
+  sa.sin_family = AF_INET;
+  sa.sin_addr.s_addr = ntohl(Int32_val(Field(v_src,0)));
+  sa.sin_port = htons(Int_val(Field(v_src,1)));
+ 
+  int r = bind(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
+  if (r < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+    CAMLreturn(v_ret);
+  }
+  Val_OK(v_ret, Val_int(s));
+  CAMLreturn(v_ret);
+}
+
+/* Get a UDP socket suitable for sendto(2).
+   Only used at start-of-day so failwith ok here for now */
+CAMLprim value
+caml_udp_socket_ipv4(value v_unit)
+{
+  CAMLparam1(v_unit);
+  int s = socket(PF_INET, SOCK_DGRAM, 0);
+  if (s < 0)
+    caml_failwith("socket() failed");
+  else
+    CAMLreturn(Val_int(s));
+}
+
+CAMLprim value
+caml_socket_recvfrom_ipv4(value v_fd, value v_istr, value v_off, value v_len, value v_src)
+{
+  CAMLparam5(v_fd, v_istr, v_off, v_len, v_src);
+  CAMLlocal3(v_ret, v_err, v_inf);
+  unsigned char *buf = Istring_val(v_istr)->buf + Int_val(v_off);
+  size_t len = Int_val(v_len);
+  int fd = Int_val(v_fd);
+  struct sockaddr_in sa;
+  socklen_t sa_len = sizeof(sa);
+  int r = recvfrom(fd, (void *)buf, len, MSG_DONTWAIT, (struct sockaddr *)&sa, &sa_len);
+  if (r < 0) {
+    if (errno == EAGAIN || errno==EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
+    else {
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }
+  } else {
+    v_inf = caml_alloc_tuple(3);
+    Store_field(v_inf, 0, caml_copy_int32(ntohl(sa.sin_addr.s_addr)));
+    Store_field(v_inf, 1, Val_int(sa.sin_port));
+    Store_field(v_inf, 2, Val_int(r));
+    Val_OK(v_ret, v_inf);
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_socket_sendto_ipv4(value v_fd, value v_istr, value v_off, value v_len, value v_dst)
+{
+  CAMLparam5(v_fd, v_istr, v_off, v_len, v_dst);
+  CAMLlocal2(v_ret, v_err);
+  unsigned char *buf = Istring_val(v_istr)->buf + Int_val(v_off);
+  size_t len = Int_val(v_len);
+  int fd = Int_val(v_fd);
+  struct sockaddr_in sa;
+  socklen_t sa_len = sizeof(sa);
+  bzero(&sa, sizeof sa);
+  sa.sin_family = AF_INET;
+  sa.sin_addr.s_addr = htonl(Int32_val(Field(v_dst, 0)));
+  sa.sin_port = htons(Int_val(Field(v_dst, 1)));
+
+  int r = sendto(fd, buf, len, MSG_DONTWAIT, (struct sockaddr *)&sa, sa_len);
+  if (r < 0) {
+    if (errno == EAGAIN || errno==EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
+    else {
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }
+  } else {
+    Val_OK(v_ret, Val_int(r));
+  }
   CAMLreturn(v_ret);
 }

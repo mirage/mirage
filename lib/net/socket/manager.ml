@@ -23,11 +23,20 @@ open Nettypes
 
 exception Error of string
 
-type t = unit
+type t = {
+  udpv4: int;
+}
+
+(* TODO: abstract type for UDP socket *)
+external unix_udp_socket_ipv4: unit -> int = "caml_udp_socket_ipv4"
 
 (* Enumerate interfaces and manage the protocol threads *)
-let create () : t Lwt.t =
-  return ()
+let create () =
+  let udpv4 = unix_udp_socket_ipv4 () in
+  return { udpv4 }
   
 let destroy t =
   ()
+
+let get_udpv4 t =
+  t.udpv4

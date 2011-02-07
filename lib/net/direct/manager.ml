@@ -62,3 +62,9 @@ let i_of_ip t addr =
 let tcpv4_of_addr (t:t) addr =
   lwt i,_ = i_of_ip t addr in
   return i.tcp
+
+(* TODO: do actual route selection *)
+let udpv4_of_addr (t:t) addr =
+  lwt i,_ = i_of_ip t addr in
+  return i.udp
+

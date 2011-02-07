@@ -26,12 +26,14 @@ type fdwrap = {
   abort_u: unit Lwt.u;  (* wakener for socket close *)
 }
 
+type ipv4_src = ipv4_addr option * int
+type ipv4_dst = ipv4_addr * int
+
 type 'a resp =
   | OK of 'a
   | Err of string
   | Retry
 
-exception Not_implemented of string
 exception Listen_error of string
 exception Accept_error of string
 exception Connect_error of string
@@ -45,6 +47,10 @@ external unix_socket_write: int -> Istring.Raw.t -> int -> int -> int resp = "ca
 external unix_tcp_connect_result: int -> unit resp = "caml_tcp_connect_result"
 external unix_tcp_listen: int32 -> int -> int resp = "caml_tcp_listen"
 external unix_tcp_accept: int -> (int * int32 * int) resp = "caml_tcp_accept"
+(* recvfrom return = from_ip * from_port * length *)
+external unix_recvfrom_ipv4: int -> Istring.Raw.t -> int -> int -> (int32 * int * int) resp = "caml_socket_recvfrom_ipv4"
+external unix_sendto_ipv4: int -> Istring.Raw.t -> int -> int -> (int32 * int) -> int resp = "caml_socket_sendto_ipv4"
+external unix_bind_ipv4: (int32 * int) -> int resp = "caml_udp_bind_ipv4"
 
 let t_of_fd fd =
   let abort_t,abort_u = Lwt.task () in
@@ -167,3 +173,51 @@ module TCPv4 = struct
     connect_tcpv4 dst fn
 end
 
+module UDPv4 = struct
+  type mgr = Manager.t
+  type src = ipv4_addr option * int
+  type dst = ipv4_addr * int
+
+  type msg = OS.Istring.View.t
+
+  let rec send mgr (dstaddr, dstport) req =
+    let fd = Manager.get_udpv4 mgr in
+    Activations.write fd >>
+    let raw = OS.Istring.View.raw req in
+    let off = OS.Istring.View.off req in
+    let len = OS.Istring.View.length req in
+    let dst = (ipv4_addr_to_uint32 dstaddr, dstport) in
+    match unix_sendto_ipv4 fd raw off len dst with
+    |OK len' ->
+      if len' != len then
+        fail (Write_error "partial UDP send")
+      else
+        return ()
+    |Retry -> send mgr (dstaddr, dstport) req
+    |Err err -> fail (Write_error err)
+
+  let recv mgr (addr,port) fn =
+    let addr = match addr with
+      |None -> 0l
+      |Some addr -> ipv4_addr_to_uint32 addr
+    in
+    match unix_bind_ipv4 (addr,port) with
+    |OK lfd -> begin
+      let rec listen lfd =
+        lwt () = Activations.read lfd in
+        let istr = OS.Istring.Raw.alloc () in
+        match unix_recvfrom_ipv4 lfd istr 0 4096 with
+        |OK (frm_addr, frm_port, len) ->
+          let frm_addr = ipv4_addr_of_uint32 frm_addr in
+          let dst = (frm_addr, frm_port) in
+          let req = OS.Istring.View.t ~off:0 istr len in
+          let resp_t = fn dst req in
+          listen lfd <&> resp_t
+        |Retry -> listen lfd
+        |Err _ -> return ()
+      in listen lfd
+    end
+    |Err s -> fail (Listen_error s)
+    |Retry -> assert false
+    
+end

@@ -1,0 +1,11 @@
+The Net module covers external communication.
+
+The direct/ module is an OCaml implementation of the network stack,
+from Ethernet up.  It has individual modules for applications to mess
+around at the protocol level, all the way up to a stream-based Flow
+module which abstracts away the protocol details.
+
+The socket/ module is a mapping of the high-level stream/message modules
+to UNIX sockets.
+
+Applications that use the common modules will thus interoperate.

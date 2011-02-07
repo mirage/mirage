@@ -25,7 +25,7 @@ function assemble_xen {
   for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
     cp ${ROOT}/lib/os/_build/runtime_xen/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/net/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/ 
+  cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
 }
 
 function assemble_unix_direct {
@@ -37,7 +37,7 @@ function assemble_unix_direct {
   for i in libunixrun.a main.o; do
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/net/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/ 
+  cp ${ROOT}/lib/net/direct/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
 }
 
 function assemble_unix_socket {
@@ -49,7 +49,7 @@ function assemble_unix_socket {
   for i in libunixrun.a main.o; do
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/net/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/ 
+  cp ${ROOT}/lib/net/socket/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
 }
 
 function assemble_syntax {

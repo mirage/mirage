@@ -5,7 +5,6 @@ PREFIX ?= _build/root
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)
 
-#off by default until working fully
 ifeq ($(OS) $(ARCH),linux x86_64)
 XEN_INSTALL=install-xen
 XEN_BUILD=xen

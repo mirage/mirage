@@ -158,10 +158,11 @@ let create ip udp =
   let thread,_ = Lwt.task () in
   let state = Disabled in
   let t = { ip; udp; state } in
-  Udp.listen t.udp 68 (input t);
+  let listen_t = Udp.listen t.udp 68 (input t) in
   Lwt.on_cancel thread (fun () ->
     printf "DHCP: shutting down\n%!";
     t.state <- Shutting_down;
+    Lwt.cancel listen_t
   );
   let thread = join [ dhcp_thread t; thread ] in
   return (t, thread)

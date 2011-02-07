@@ -52,8 +52,13 @@ let output t ~dest_ip udp =
 
 let listen t port fn =
   if Hashtbl.mem t.listeners port then
-    printf "WARNING: UDP listen port %d already used\n%!" port;
-  Hashtbl.replace t.listeners port fn
+    fail (Failure "UDP port already bound")
+  else begin
+    let th, u = Lwt.task () in
+    Hashtbl.add t.listeners port fn;
+    Lwt.on_cancel th (fun _ -> Hashtbl.remove t.listeners port);
+    th
+  end
 
 let create ip =
   let listeners = Hashtbl.create 1 in

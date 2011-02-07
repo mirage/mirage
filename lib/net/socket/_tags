@@ -1,1 +1,2 @@
-"flow.ml": pa_lwt, use_oS
+<*.ml>: for-pack(Net)
+"flow.ml": pa_lwt

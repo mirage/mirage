@@ -20,11 +20,16 @@ open Nettypes
 open Lwt
 open OS
 
-type t = {
+type fdwrap = {
   fd: int;
   abort_t: unit Lwt.t;  (* abort thread *)
   abort_u: unit Lwt.u;  (* wakener for socket close *)
 }
+
+type 'a resp =
+  | OK of 'a
+  | Err of string
+  | Retry
 
 exception Not_implemented of string
 exception Listen_error of string
@@ -59,28 +64,22 @@ let close_on_exit t fn =
     close t >>
     fail exn
 
-let connect = function
-  |TCP (addr, port) -> begin
-    match unix_tcp_connect (ipv4_addr_to_uint32 addr) port with
-    |OK fd ->
-      (* Wait for the connect to complete *)
-      let t = t_of_fd fd in
-      let rec loop () =
-        Activations.write t.fd >>
-        match unix_tcp_connect_result t.fd with
-        |OK _ -> return t
-        |Err s -> fail (Connect_error s)
-        |Retry -> loop () in
-      let cancel_t = t.abort_t >> fail (Connect_error "cancelled") in
-      loop () <?> cancel_t
-    |Err s -> failwith s
-    |Retry -> assert false (* initial connect cannot request a retry *)
-  end
-  |UDP _ -> fail (Not_implemented "UDP")
-
-let with_connection sockaddr fn =
-  lwt t = connect sockaddr in
-  close_on_exit t fn
+let connect_tcpv4 (addr,port) fn =
+  match unix_tcp_connect (ipv4_addr_to_uint32 addr) port with
+  |OK fd ->
+    (* Wait for the connect to complete *)
+    let t = t_of_fd fd in
+    let rec loop () =
+      Activations.write t.fd >>
+      match unix_tcp_connect_result t.fd with
+      |OK _ ->
+        close_on_exit t fn
+      |Err s -> fail (Connect_error s)
+      |Retry -> loop () in
+    let cancel_t = t.abort_t >> fail (Connect_error "cancelled") in
+    loop () <?> cancel_t
+  |Err s -> failwith s
+  |Retry -> assert false (* initial connect cannot request a retry *)
 
 let id = new_key ()
 let new_id () = Some (Oo.id (object end))
@@ -90,32 +89,29 @@ let () =
       | None    -> 0
       | Some id -> id)
 
-let listen fn = function
-  |TCP (addr, port) -> begin
-    Printf.printf "listen: TCP port %d\n%!" port;
-    match unix_tcp_listen (ipv4_addr_to_uint32 addr) port with
-    |OK fd ->
-      let rec loop t =
-        with_value id (new_id ()) (fun () ->
-          Activations.read t.fd >>
-          (match unix_tcp_accept fd with
-           |OK (afd,caddr_i,cport) ->
-             let caddr = ipv4_addr_of_uint32 caddr_i in
-             let csa = TCP (caddr, cport) in
-             let t' = t_of_fd afd in
-             close_on_exit t' (fn csa) <&> (loop t)
-           |Retry -> loop t
-           |Err err -> fail (Accept_error err))
-         ) in
-      let t = t_of_fd fd in
-      let listen_t = close_on_exit t loop in
-      t.abort_t <?> listen_t
-    |Err s ->
-       fail (Listen_error s)
-    |Retry ->
-       fail (Listen_error "listen retry") (* Listen never blocks *)
-  end
-  | UDP _ -> fail (Not_implemented "UDP")
+let listen_tcpv4 addr port fn =
+  Printf.printf "listen: TCP port %d\n%!" port;
+  match unix_tcp_listen (ipv4_addr_to_uint32 addr) port with
+  |OK fd ->
+    let rec loop t =
+      with_value id (new_id ()) (fun () ->
+        Activations.read t.fd >>
+        (match unix_tcp_accept fd with
+         |OK (afd,caddr_i,cport) ->
+           let caddr = ipv4_addr_of_uint32 caddr_i in
+           let csa = (caddr, cport) in
+           let t' = t_of_fd afd in
+           close_on_exit t' (fn csa) <&> (loop t)
+         |Retry -> loop t
+         |Err err -> fail (Accept_error err))
+      ) in
+    let t = t_of_fd fd in
+    let listen_t = close_on_exit t loop in
+    t.abort_t <?> listen_t
+  |Err s ->
+    fail (Listen_error s)
+  |Retry ->
+    fail (Listen_error "listen retry") (* Listen never blocks *)
 
 (* Read a buffer off the wire *)
 let rec read_buf t istr off len =
@@ -146,3 +142,26 @@ let write t view =
   let off = OS.Istring.View.off view in
   let len = OS.Istring.View.length view in
   write_buf t istr off len
+
+module TCPv4 = struct
+  type t = fdwrap
+  type mgr = Manager.t
+  type src = ipv4_addr option * int
+  type dst = ipv4_addr * int
+
+  (* TODO put an istring pool in the manager? *)
+
+  let read = read
+  let write = write
+  let close = close
+
+  let listen mgr src fn =
+    let addr, port = match src with
+      |None, port -> ipv4_blank, port
+      |Some addr, port -> addr, port in
+    listen_tcpv4 addr port fn
+
+  let connect mgr src dst fn =
+    connect_tcpv4 dst fn
+end
+

@@ -14,19 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* The manager process binds application ports to interfaces, and
+   will eventually deal with load balancing and route determination
+   (e.g. if a remote target is on the same host, swap to shared memory *)
 
 open Nettypes
+exception Error of string
 
-module TCPv4 : sig
-  type t
-  type mgr = Manager.t
-  type src = ipv4_addr option * int  
-  type dst = ipv4_addr * int
+type t
 
-  val read : t -> OS.Istring.View.t option Lwt.t
-  val write : t -> OS.Istring.View.t -> unit Lwt.t
-  val close : t -> unit Lwt.t
-
-  val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
-  val connect : mgr -> src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t
-end
+val create : unit -> t Lwt.t
+val destroy : t -> unit

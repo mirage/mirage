@@ -26,7 +26,6 @@ function assemble_xen {
     cp ${ROOT}/lib/os/_build/runtime_xen/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/ 
-  cp ${ROOT}/lib/flow/_build/xen/direct/flow.{cmi,cmxa,a} ${OBJ}/lib/ 
 }
 
 function assemble_unix_direct {
@@ -39,7 +38,6 @@ function assemble_unix_direct {
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/ 
-  cp ${ROOT}/lib/flow/_build/unix/direct/flow.{cmi,cmxa,a} ${OBJ}/lib/ 
 }
 
 function assemble_unix_socket {
@@ -52,7 +50,6 @@ function assemble_unix_socket {
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/ 
-  cp ${ROOT}/lib/flow/_build/unix/socket/flow.{cmi,cmxa,a} ${OBJ}/lib/ 
 }
 
 function assemble_syntax {

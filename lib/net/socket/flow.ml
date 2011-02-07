@@ -90,7 +90,6 @@ let () =
       | Some id -> id)
 
 let listen_tcpv4 addr port fn =
-  Printf.printf "listen: TCP port %d\n%!" port;
   match unix_tcp_listen (ipv4_addr_to_uint32 addr) port with
   |OK fd ->
     let rec loop t =
@@ -99,11 +98,12 @@ let listen_tcpv4 addr port fn =
         (match unix_tcp_accept fd with
          |OK (afd,caddr_i,cport) ->
            let caddr = ipv4_addr_of_uint32 caddr_i in
-           let csa = (caddr, cport) in
            let t' = t_of_fd afd in
-           close_on_exit t' (fn csa) <&> (loop t)
+           let conn_t = close_on_exit t' (fn (caddr, cport)) in
+           loop t <&> conn_t
          |Retry -> loop t
-         |Err err -> fail (Accept_error err))
+         |Err err -> fail (Accept_error err)
+        )
       ) in
     let t = t_of_fd fd in
     let listen_t = close_on_exit t loop in
@@ -135,7 +135,9 @@ let rec write_buf t istr off len =
 let read t =
   let istr = OS.Istring.Raw.alloc () in
   lwt len = read_buf t istr 0 4096 in
-  return (Some (OS.Istring.View.t ~off:0 istr len))
+  match len with
+  |0 -> return None
+  |len -> return (Some (OS.Istring.View.t ~off:0 istr len))
   
 let write t view =
   let istr = OS.Istring.View.raw view in

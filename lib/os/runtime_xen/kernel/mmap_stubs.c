@@ -44,7 +44,6 @@ caml_evtchn_init(value v_unit)
     int rc;
     rc = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
     rc = bind_evtchn(start_info.console.domU.evtchn, caml_evtchn_handler, NULL);
-    unmask_evtchn(time_port ());
     CAMLreturn(Val_unit);
 }
 

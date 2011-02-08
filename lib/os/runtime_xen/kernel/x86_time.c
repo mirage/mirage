@@ -209,13 +209,9 @@ static evtchn_port_t port;
 void init_time(void)
 {
     port = bind_virq(VIRQ_TIMER, &timer_handler, NULL);
+    unmask_evtchn(port);
     get_time_values_from_xen();
     update_wallclock();
-}
-
-evtchn_port_t time_port(void)
-{
-   return port;
 }
 
 void fini_time(void)

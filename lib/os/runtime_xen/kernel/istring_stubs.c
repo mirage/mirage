@@ -51,6 +51,7 @@ caml_istring_alloc_page(value v_unit)
   CAMLparam1(v_unit);
   CAMLlocal1(v_istr);
   unsigned char *page = (unsigned char *)alloc_page();
+  ASSERT(page != NULL);
   v_istr = istring_alloc(page, 4096);
   CAMLreturn(v_istr);
 }

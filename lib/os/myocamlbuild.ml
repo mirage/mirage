@@ -2,7 +2,7 @@ open Ocamlbuild_plugin
 open Command
 open Ocamlbuild_pack.Ocaml_utils
 
-let debug = false (* compile in debug mode with additional checks *)
+let debug = true (* compile in debug mode with additional checks *)
 
 let sf = Printf.sprintf
 let lib x =
@@ -32,10 +32,9 @@ end
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
 
-  let opt_level = if debug then [] else ["-O2"]  
   let cc = getenv "CC" ~default:"cc"
   let ar = getenv "AR" ~default:"ar"
-  let cflags = ref (["-Wall"; "-g"] @ opt_level)
+  let cflags = ref ["-Wall"; "-g"]
 
   (* All the xen cflags for compiling against an embedded environment *)
   let xen_incs =

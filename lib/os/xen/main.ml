@@ -23,54 +23,28 @@
 
 open Lwt
 
-type current_time = float Lazy.t
-type select = float option -> current_time
-
-external block_domain : float -> unit = "mirage_block_domain"
-
-let select_filters = Lwt_sequence.create ()
-
-let min_timeout a b = match a, b with
-  | None, b -> b
-  | a, None -> a
-  | Some a, Some b -> Some(min a b)
-
-let apply_filters select =
-  let now = Lazy.lazy_from_fun Clock.time in
-  Lwt_sequence.fold_l (fun filter select -> filter now select) select_filters select
-
-let default_select timeout =
-  block_domain (match timeout with None -> 10. |Some t -> t);
-  Activations.run ();
-  Lazy.lazy_from_fun Clock.time
+external block_domain : float -> unit = "caml_block_domain"
 
 let default_iteration () =
+  Activations.run ();
   Lwt.wakeup_paused ();
-  apply_filters default_select None
+  let now = Clock.time () in
+  Time.restart_threads now;
+  let timeout = Time.process_timeouts now in
+  block_domain (match timeout with None -> 10. |Some t -> t)
 
-let control_thread : unit Lwt.t option ref = ref None
-
-let set_control_thread t =
-  control_thread := Some t
-
-let merge_control_thread t =
-  match !control_thread with
-  | None   -> t
-  | Some c -> c <?> t
-
+(* Execute one iteration and register a callback function *)
 let run t =
-  let t = merge_control_thread t in
   let rec aux () =
     Lwt.wakeup_paused ();
     try
       match Lwt.poll t with
-      | Some x -> x
-      | None   ->
-        let _ = default_iteration () in
-        aux ()
+      | Some _ -> true
+      | None   -> default_iteration (); false
     with exn ->
-      Printf.printf "Top level exception: %s\n%!" (Printexc.to_string exn) in
-  aux ()
+      (Printf.printf "Top level exception: %s\n%!" 
+         (Printexc.to_string exn); true) in
+  ignore(Callback.register "OS.Main.run" aux)
 
 let exit_hooks = Lwt_sequence.create ()
 

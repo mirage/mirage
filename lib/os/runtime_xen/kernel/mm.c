@@ -375,29 +375,6 @@ int free_physical_pages(xen_pfn_t *mfns, int n)
     return HYPERVISOR_memory_op(XENMEM_decrease_reservation, &reservation);
 }
 
-void *sbrk(ptrdiff_t increment)
-{
-    unsigned long old_brk = brk;
-    unsigned long new_brk = old_brk + increment;
-
-    if (new_brk > heap_end) {
-    printk("Heap exhausted: %p + %lx = %p > %p\n", old_brk, increment, new_brk, heap_end);
-    return NULL;
-    }
-    
-    if (new_brk > heap_mapped) {
-        unsigned long n = (new_brk - heap_mapped + PAGE_SIZE - 1) / PAGE_SIZE;
-        do_map_zero(heap_mapped, n);
-        heap_mapped += n * PAGE_SIZE;
-    }
-
-    brk = new_brk;
-
-    return (void *) old_brk;
-}
-
-
-
 void init_mm(void)
 {
 
@@ -409,9 +386,7 @@ void init_mm(void)
     /*
      * now we can initialise the page allocator
      */
-    printk("MM: Initialise page allocator for %lx(%lx)-%lx(%lx)\n",
-           (unsigned long)to_virt(PFN_PHYS(start_pfn)), PFN_PHYS(start_pfn), 
-           (unsigned long)to_virt(PFN_PHYS(max_pfn)), PFN_PHYS(max_pfn));
+    printk("MM: Initialise page allocator for %p -> %p\n", pfn_to_virt(start_pfn), pfn_to_virt(max_pfn));
     init_page_allocator(PFN_PHYS(start_pfn), PFN_PHYS(max_pfn));
     printk("MM: done\n");
 

@@ -22,7 +22,6 @@
 #include <istring.h>
 
 static grant_entry_t *gnttab_table;
-static grant_ref_t gnttab_list[NR_GRANT_ENTRIES];
 
 /* Return the size of the grant table */
 CAMLprim value

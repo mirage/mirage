@@ -25,6 +25,7 @@ function assemble_xen {
   for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
     cp ${ROOT}/lib/os/_build/runtime_xen/$i ${OBJ}/lib/
   done
+  cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
   cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
 }
 

@@ -14,6 +14,7 @@
  */
 
 #include <mini-os/x86/os.h>
+#include <mini-os/time.h>
 #include <mini-os/events.h>
 
 #include <caml/mlvalues.h>
@@ -43,6 +44,7 @@ caml_evtchn_init(value v_unit)
     int rc;
     rc = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
     rc = bind_evtchn(start_info.console.domU.evtchn, caml_evtchn_handler, NULL);
+    unmask_evtchn(time_port ());
     CAMLreturn(Val_unit);
 }
 
@@ -68,7 +70,8 @@ stub_evtchn_alloc_unbound(value v_domid)
 {
     CAMLparam1(v_domid);
     domid_t domid = Int_val(v_domid);
-    int rc, port;
+    int rc;
+    evtchn_port_t port;
 
     rc = evtchn_alloc_unbound(domid, caml_evtchn_handler, NULL, &port);
     if (rc)
@@ -106,4 +109,3 @@ stub_console_evtchn_port(value unit)
 	CAMLparam1(unit);
 	CAMLreturn(Val_int(start_info.console.domU.evtchn));
 }
-

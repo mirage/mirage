@@ -17,16 +17,20 @@ ROOT=`pwd`
 BUILDDIR=${ROOT}/_build
 
 function assemble_xen {
-  echo Assembling: Xen
-  OBJ=${BUILDDIR}/xen-direct
-  mkdir -p ${OBJ}/lib ${OBJ}/syntax
-  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
-  cp ${ROOT}/lib/os/_build/xen/oS.{cmi,cmxa,a} ${OBJ}/lib/
-  for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
-    cp ${ROOT}/lib/os/_build/runtime_xen/$i ${OBJ}/lib/
-  done
-  cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
-  cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
+  if [ -d ${ROOT}/lib/os/_build/xen ]; then
+    echo Assembling: Xen
+    OBJ=${BUILDDIR}/xen-direct
+    mkdir -p ${OBJ}/lib ${OBJ}/syntax
+    cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
+    cp ${ROOT}/lib/os/_build/xen/oS.{cmi,cmxa,a} ${OBJ}/lib/
+    for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
+      cp ${ROOT}/lib/os/_build/runtime_xen/$i ${OBJ}/lib/
+    done
+    cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
+    cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
+  else
+    echo Skipping: Xen
+  fi
 }
 
 function assemble_unix_direct {

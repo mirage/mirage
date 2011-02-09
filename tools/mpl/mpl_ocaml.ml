@@ -859,9 +859,10 @@ let print_struct env e l =
                          e.p (sprintf "let %s = Array.map (fun x ->" id);
                          indent_fn e (fun e ->
                            e.p "let env' = View.sub ___env !pos 0 in";
-                           e.p (sprintf "let __r = %s.m x env' in pos := !pos + (View.length env'); __r" (modname ~sub:env.mods cid)));
+                           e.p (sprintf "let __r = %s.m x env' in pos := !pos + (View.length env'); __r" (modname ~sub:env.mods cid));
+                         );
                          e.p (sprintf ") %s in" id);
-                         e.p (sprintf "let %s___len = View.length ___env in" id);
+                         e.p (sprintf "let %s___len = !pos in" id);
                        |_ -> () in
                        let n = ocaml_size_of_ty env id szo v in
                        szs := n :: !szs;

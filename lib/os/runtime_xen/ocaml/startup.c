@@ -153,7 +153,9 @@ void caml_main(char **argv)
   caml_verb_gc = 63;
 #endif
   caml_top_of_stack = &tos;
+#ifndef SYS_xen
   parse_camlrunparam();
+#endif
   caml_init_gc (minor_heap_init, heap_size_init, heap_chunk_init,
                 percent_free_init, max_percent_free_init);
   init_atoms();

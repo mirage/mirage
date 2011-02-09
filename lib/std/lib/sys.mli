@@ -16,19 +16,6 @@ open Pervasives
 
 (** System interface. *)
 
-val argv : string array
-(** The command line arguments given to the process.
-   The first element is the command name used to invoke the program.
-   The following elements are the command-line arguments
-   given to the program. *)
-
-val executable_name : string
-(** The name of the file containing the executable currently running. *)
-
-external time : unit -> float = "caml_sys_time"
-(** Return the processor time, in seconds, used by the program
-   since the beginning of execution. *)
-
 val os_type : string
 (** Operating system currently executing the Caml program. One of
 -  ["Unix"] (for all Unix versions, including Linux and Mac OS X),

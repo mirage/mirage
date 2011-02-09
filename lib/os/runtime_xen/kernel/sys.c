@@ -85,7 +85,6 @@ struct file files[NOFILE] = {
 
 void vwarn(const char *format, va_list ap)
 {
-    int the_errno = errno;
     printk("stubdom: ");
     if (format) {
         print(format, ap);
@@ -151,49 +150,6 @@ void errx(int eval, const char *format, ...)
     va_end(ap);
 }
 
-int clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-    switch (clk_id) {
-    case CLOCK_MONOTONIC:
-    {
-        struct timeval tv;
-
-        gettimeofday(&tv, NULL);
-
-        tp->tv_sec = tv.tv_sec;
-        tp->tv_nsec = tv.tv_usec * 1000;
-
-        break;
-    }
-    case CLOCK_REALTIME:
-    {
-        uint64_t nsec = monotonic_clock();
-
-        tp->tv_sec = nsec / 1000000000ULL;
-        tp->tv_nsec = nsec % 1000000000ULL;
-
-        break;
-    }
-    default:
-        print_unsupported("clock_gettime(%d)", clk_id);
-        errno = EINVAL;
-        return -1;
-    }
-
-    return 0;
-}
-
-clock_t times(struct tms *buf)
-{
-     uint64_t nsec;
-     nsec = monotonic_clock ();
-     buf->tms_utime = nsec / CLK_TCK;
-     buf->tms_stime = 0;
-     buf->tms_cutime = 0;
-     buf->tms_cstime = 0;
-     return 0;
-}
-
 size_t getpagesize(void)
 {
     return PAGE_SIZE;
@@ -243,89 +199,3 @@ unsupported_function(int, __sigsetjmp, 0);
 unsupported_function(int, sigaltstack, -1);
 unsupported_function_crash(kill);
 
-/* Unsupported */
-unsupported_function_crash(pipe);
-unsupported_function_crash(fork);
-unsupported_function_crash(execv);
-unsupported_function_crash(execve);
-unsupported_function_crash(waitpid);
-unsupported_function_crash(wait);
-unsupported_function_crash(lockf);
-unsupported_function_crash(sysconf);
-unsupported_function(int, tcsetattr, -1);
-unsupported_function(int, tcgetattr, 0);
-unsupported_function(int, grantpt, -1);
-unsupported_function(int, unlockpt, -1);
-unsupported_function(char *, ptsname, NULL);
-unsupported_function(int, poll, -1);
-
-/* net/if.h */
-unsupported_function_log(unsigned int, if_nametoindex, -1);
-unsupported_function_log(char *, if_indextoname, (char *) NULL);
-unsupported_function_log(struct  if_nameindex *, if_nameindex, (struct  if_nameindex *) NULL);
-
-/* Linuxish abi for the Caml runtime, don't support 
-   Log, and return an error code if possible.  If it is not possible
-   to inform the application of an error, then crash instead!
-*/
-unsupported_function_log(char *, getenv, (char *) NULL);
-unsupported_function_log(int, system, -1);
-unsupported_function_log(struct dirent *, readdir64, NULL);
-unsupported_function_log(int, getrusage, -1);
-unsupported_function_log(int, getrlimit, -1);
-unsupported_function_log(int, getrlimit64, -1);
-unsupported_function_log(int, __xstat64, -1);
-unsupported_function_log(int, utime, -1);
-unsupported_function_log(int, truncate64, -1);
-unsupported_function_log(int, tcflow, -1);
-unsupported_function_log(int, tcflush, -1);
-unsupported_function_log(int, tcdrain, -1);
-unsupported_function_log(int, tcsendbreak, -1);
-unsupported_function_log(int, cfsetospeed, -1);
-unsupported_function_log(int, cfsetispeed, -1);
-unsupported_function_crash(cfgetospeed);
-unsupported_function_crash(cfgetispeed);
-unsupported_function_log(int, symlink, -1);
-unsupported_function_log(const char*, inet_ntop, NULL);
-unsupported_function_crash(__fxstat64);
-unsupported_function_crash(__lxstat64);
-unsupported_function_log(int, socketpair, -1);
-unsupported_function_crash(sigsuspend);
-unsupported_function_log(int, sigpending, -1);
-unsupported_function_log(int, shutdown, -1);
-unsupported_function_log(int, setuid, -1);
-unsupported_function_log(int, setgid, -1);
-unsupported_function_crash(rewinddir);
-unsupported_function_log(int, getpriority, -1);
-unsupported_function_log(int, setpriority, -1);
-unsupported_function_log(int, mkfifo, -1);
-unsupported_function_log(int, getitimer, -1);
-unsupported_function_log(int, setitimer, -1);
-unsupported_function_log(void *, getservbyport, NULL);
-unsupported_function_log(void *, getservbyname, NULL);
-unsupported_function_log(void *, getpwuid, NULL);
-unsupported_function_log(void *, getpwnam, NULL);
-unsupported_function_log(void *, getprotobynumber, NULL);
-unsupported_function_log(void *, getprotobyname, NULL);
-unsupported_function_log(int, getpeername, -1);
-unsupported_function_log(int, getnameinfo, -1);
-unsupported_function_log(char *, getlogin, NULL);
-unsupported_function_crash(__h_errno_location);
-unsupported_function_log(int, gethostbyname_r, -1);
-unsupported_function_log(int, gethostbyaddr_r, -1);
-unsupported_function_log(int, getgroups, -1);
-unsupported_function_log(void *, getgrgid, NULL);
-unsupported_function_log(void *, getgrnam, NULL);
-unsupported_function_log(int, getaddrinfo, -1);
-unsupported_function_log(int, freeaddrinfo, -1);
-unsupported_function_log(int, ftruncate64, -1);
-unsupported_function_log(int, fchown, -1);
-unsupported_function_log(int, fchmod, -1);
-unsupported_function_crash(execvp);
-unsupported_function_log(int, dup, -1)
-unsupported_function_log(int, chroot, -1)
-unsupported_function_log(int, chown, -1);
-unsupported_function_log(int, chmod, -1);
-unsupported_function_crash(alarm);
-unsupported_function_log(int, inet_pton, -1);
-unsupported_function_log(int, access, -1);

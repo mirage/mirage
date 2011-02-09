@@ -17,7 +17,6 @@
 open Lwt 
 open Printf
 
-module M = Mpl.Mpl_stdlib
 module DL = Dnsloader
 module DQ = Dnsquery
 module DR = Dnsrr
@@ -25,32 +24,32 @@ module DR = Dnsrr
 let dnstrie = DL.(state.db.trie)
 
 (* Specialise dns packet to a smaller closure *)
-let dnsfn = Mpl.Dns.t ~qr:`Answer ~opcode:`Query ~truncation:0 ~rd:0 ~ra:0 
+let dnsfn = Packet.t ~qr:`Answer ~opcode:`Query ~truncation:0 ~rd:0 ~ra:0 
 
-let log (ipv4:Mpl.Ipv4.o) (dnsq:Mpl.Dns.Questions.o) =
+let log (ipv4:Mpl.Ipv4.o) (dnsq:Packet.Questions.o) =
   printf "%.0f: %s %s %s (%s)\n%!" (OS.Clock.time())
     (String.concat "." dnsq#qname)
-    (Mpl.Dns.Questions.qtype_to_string dnsq#qtype)
-    (Mpl.Dns.Questions.qclass_to_string dnsq#qclass)
+    (Packet.Questions.qtype_to_string dnsq#qtype)
+    (Packet.Questions.qclass_to_string dnsq#qclass)
     (Mlnet.Types.(ipv4_addr_to_string (ipv4_addr_of_uint32 ipv4#src)))
 
 let get_answer (qname,qtype) id =
   let qname = List.map String.lowercase qname in  
   let ans = DQ.answer_query qname qtype dnstrie in
   let authoritative = if ans.DQ.aa then 1 else 0 in
-  let questions = [Mpl.Dns.Questions.t ~qname:qname ~qtype:qtype ~qclass:`IN] in
-  let rcode = (ans.DQ.rcode :> Mpl.Dns.rcode_t) in
+  let questions = [Packet.Questions.t ~qname:qname ~qtype:qtype ~qclass:`IN] in
+  let rcode = (ans.DQ.rcode :> Packet.rcode_t) in
   dnsfn ~id ~authoritative ~rcode
     ~questions ~answers:ans.DQ.answer
     ~authority:ans.DQ.authority
     ~additional:ans.DQ.additional
 
 let dns_thread t =
-  Mldns.Dnsserver.load_zone [] zonebuf;
+  Dnsserver.load_zone [] zonebuf;
     (fun ip udp ->
       let env = udp#data_env in
       Mpl.Mpl_stdlib.Mpl_dns_label.init_unmarshal env;
-      let d = Mpl.Dns.unmarshal env in
+      let d = Packet.unmarshal env in
       let q = d#questions.(0) in
       log ip d#questions.(0);
       let r = get_answer (q#qname, q#qtype) d#id in

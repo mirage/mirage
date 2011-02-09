@@ -39,12 +39,12 @@ packet dns {
             |3 -> CHAOS |4 -> HS |254 -> NONE |255 -> ANY};
     };
     answers: array (ancount) {
-         rr: packet dns_rr();
+         rr: packet rR();
     };
     authority: array (nscount) {
-         rr: packet dns_rr();
+         rr: packet rR();
     };
     additional: array (arcount) {
-         rr: packet dns_rr();
+         rr: packet rR();
     };
 }

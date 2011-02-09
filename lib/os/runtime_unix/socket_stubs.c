@@ -170,7 +170,7 @@ caml_tcp_accept(value v_fd)
     v_ca = caml_alloc(3,0);
     Store_field(v_ca, 0, Val_int(r));
     Store_field(v_ca, 1, v_ip);
-    Store_field(v_ca, 2, Val_int(sa.sin_port));
+    Store_field(v_ca, 2, Val_int(ntohs(sa.sin_port)));
     Val_OK(v_ret, v_ca);
   }
   CAMLreturn(v_ret);
@@ -277,7 +277,7 @@ caml_socket_recvfrom_ipv4(value v_fd, value v_istr, value v_off, value v_len, va
   } else {
     v_inf = caml_alloc_tuple(3);
     Store_field(v_inf, 0, caml_copy_int32(ntohl(sa.sin_addr.s_addr)));
-    Store_field(v_inf, 1, Val_int(sa.sin_port));
+    Store_field(v_inf, 1, Val_int(ntohs(sa.sin_port)));
     Store_field(v_inf, 2, Val_int(r));
     Val_OK(v_ret, v_inf);
   }

@@ -492,9 +492,6 @@ pgentry_t *need_pgt(unsigned long va, int superpage, int do_alloc)
 static unsigned long demand_map_area_start;
 #define DEMAND_MAP_PAGES ((128ULL << 30) / PAGE_SIZE)
 
-unsigned long heap, brk, heap_mapped, heap_end;
-#define HEAP_PAGES ((128ULL << 30) / PAGE_SIZE)
-
 void arch_init_demand_mapping_area(unsigned long cur_pfn)
 {
     cur_pfn++;
@@ -503,12 +500,6 @@ void arch_init_demand_mapping_area(unsigned long cur_pfn)
     cur_pfn += DEMAND_MAP_PAGES;
     printk("Demand map pfns at %lx-%lx.\n", 
            demand_map_area_start, pfn_to_virt(cur_pfn));
-
-    cur_pfn++;
-    heap_mapped = brk = heap = (unsigned long) pfn_to_virt(cur_pfn);
-    cur_pfn += HEAP_PAGES;
-    heap_end = (unsigned long) pfn_to_virt(cur_pfn);
-    printk("Heap resides at %lx-%lx.\n", brk, heap_end);
 }
 
 unsigned long allocate_ondemand(unsigned long n, unsigned long alignment)
@@ -911,7 +902,7 @@ void arch_init_mm(unsigned long* start_pfn_p, unsigned long* max_pfn_p)
         start_info.nr_pt_frames + 3;
     max_pfn = start_info.nr_pages;
 
-    /* We need room for demand mapping and heap, clip available memory */
+    /* We need room for demand mapping, clip available memory */
 
     printk("  start_pfn: %lx\n", start_pfn);
     printk("    max_pfn: %lx\n", max_pfn);

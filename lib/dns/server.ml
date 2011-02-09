@@ -24,14 +24,13 @@ module DR = Dnsrr
 let dnstrie = DL.(state.db.trie)
 
 (* Specialise dns packet to a smaller closure *)
-let dnsfn = Packet.t ~qr:`Answer ~opcode:`Query ~truncation:0 ~rd:0 ~ra:0 
 
-let log (ipv4:Mpl.Ipv4.o) (dnsq:Packet.Questions.o) =
-  printf "%.0f: %s %s %s (%s)\n%!" (OS.Clock.time())
+let log (addr,port) (dnsq:Packet.Questions.o) =
+  printf "%.0f: %s %s %s (%s:%d)\n%!" (OS.Clock.time())
     (String.concat "." dnsq#qname)
     (Packet.Questions.qtype_to_string dnsq#qtype)
     (Packet.Questions.qclass_to_string dnsq#qclass)
-    (Mlnet.Types.(ipv4_addr_to_string (ipv4_addr_of_uint32 ipv4#src)))
+    (Net.Nettypes.ipv4_addr_to_string addr) port
 
 let get_answer (qname,qtype) id =
   let qname = List.map String.lowercase qname in  
@@ -39,25 +38,26 @@ let get_answer (qname,qtype) id =
   let authoritative = if ans.DQ.aa then 1 else 0 in
   let questions = [Packet.Questions.t ~qname:qname ~qtype:qtype ~qclass:`IN] in
   let rcode = (ans.DQ.rcode :> Packet.rcode_t) in
-  dnsfn ~id ~authoritative ~rcode
-    ~questions ~answers:ans.DQ.answer
-    ~authority:ans.DQ.authority
-    ~additional:ans.DQ.additional
+  Packet.t ~qr:`Answer ~opcode:`Query ~truncation:0 ~rd:0 ~ra:0 ~id
+    ~authoritative ~rcode ~questions
+    ~answers:ans.DQ.answer ~authority:ans.DQ.authority ~additional:ans.DQ.additional
 
-let dns_thread t =
+let listen mgr src ~zonebuf =
   Dnsserver.load_zone [] zonebuf;
-    (fun ip udp ->
-      let env = udp#data_env in
-      Mpl.Mpl_stdlib.Mpl_dns_label.init_unmarshal env;
+  Net.Flow.UDPv4.(recv mgr src 
+    (fun dst env ->
+      Mpl_dns_label.init_unmarshal env;
       let d = Packet.unmarshal env in
       let q = d#questions.(0) in
-      log ip d#questions.(0);
+      log dst q;
       let r = get_answer (q#qname, q#qtype) d#id in
-      let dnsfn env = 
-        Mpl.Mpl_stdlib.Mpl_dns_label.init_marshal env;
-        ignore(r env) in
-      let dest_ip = Mlnet.Types.ipv4_addr_of_uint32 ip#src in
-      let udp = Mpl.Udp.t ~source_port:53 ~dest_port:udp#source_port
-        ~checksum:0 ~data:(`Sub dnsfn) in
-      UDP.output t ~dest_ip udp
+      let dnsfn env =
+        Mpl_dns_label.init_marshal env;
+        r env
+      in
+      let renv = OS.Istring.Raw.alloc () in
+      let rview = OS.Istring.View.t renv 0 in
+      dnsfn rview;
+      send mgr ~src dst rview
     )
+  )

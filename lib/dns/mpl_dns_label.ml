@@ -105,8 +105,8 @@ let marshal ?(comp=false) env start_pos ((psz,t):t) =
   in
   fn t;
   (* our precalculated size and the actual size better match *)
-  assert(psz=(!pos));
-  (!pos),t
+  assert(psz=(!pos-start_pos));
+  (!pos-start_pos),t
 
 let unmarshal env start_pos =
   let pos = ref start_pos in

@@ -23,7 +23,7 @@ let oslib =
   Options.build_dir := sf "_build/%s-%s" os flow;
   lib "os" os
 let flowlib =
-  lib "net" flow
+  lib (sf "net/%s" flow) os
 
 (* Rules for MPL *)
 module MPL = struct

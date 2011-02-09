@@ -1,3 +1,5 @@
+Mpl_dns_label
+Mpl_string8
 Packet
 RR
 Dnsparameters
@@ -9,3 +11,4 @@ Dnsloader
 Dnsparser
 Dnslexer
 Dnsserver
+Server

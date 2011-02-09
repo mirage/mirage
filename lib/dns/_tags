@@ -1,2 +1,1 @@
-<*.cmx> and not "dns.cmx": for-pack(Net.Dns)
-"dns.cmx": for-pack(Net)
+<*.cmx> and not "dns.cmx": for-pack(Dns)

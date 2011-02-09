@@ -55,10 +55,13 @@ module UDPv4 = struct
   type dst = ipv4_dst
   type msg = OS.Istring.View.t
 
-  let send mgr (dest_ip, dest_port) msg =
+  let send mgr ?src (dest_ip, dest_port) msg =
+    (* TODO: set src addr here also *)
+    let source_port = match src with
+      |None -> 37 (* XXX eventually random *)
+      |Some (_,p) -> p in
     lwt udp = Manager.udpv4_of_addr mgr None in
     Udp.output udp ~dest_ip (
-      let source_port = 37 in (* XXX TODO *)
       let data = `Frag msg in
       Mpl.Udp.t ~source_port ~dest_port ~data
     )

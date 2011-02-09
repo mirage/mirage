@@ -43,5 +43,5 @@ module UDPv4 : sig
   type msg = OS.Istring.View.t
  
   val recv : mgr -> src -> (dst -> msg -> unit Lwt.t) -> unit Lwt.t
-  val send : mgr -> dst -> msg -> unit Lwt.t
+  val send : mgr -> ?src:src -> dst -> msg -> unit Lwt.t
 end

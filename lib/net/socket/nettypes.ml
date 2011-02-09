@@ -102,6 +102,11 @@ let ipv4_addr_of_tuple (a,b,c,d) =
     s.[3] <- Char.chr d;
     s
 
+type 'a resp =
+  |OK of 'a
+  |Err of string
+  |Retry
+
 let ipv4_addr_to_string x =
     let chri i = Char.code x.[i] in
     Printf.sprintf "%d.%d.%d.%d" 

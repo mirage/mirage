@@ -27,3 +27,5 @@ val create : unit -> t Lwt.t
 val destroy : t -> unit
 
 val get_udpv4 : t -> int
+val register_udpv4_listener : t -> (ipv4_addr option * int) -> int -> unit
+val get_udpv4_listener : t -> (ipv4_addr option * int) -> int Lwt.t

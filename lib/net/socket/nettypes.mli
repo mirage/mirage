@@ -61,3 +61,11 @@ module type DATAGRAM = sig
   val recv : mgr -> src -> (dst -> msg -> unit Lwt.t) -> unit Lwt.t
   val send : mgr -> dst -> msg -> unit Lwt.t
 end
+
+(* Internal use only *)
+type 'a resp =
+  |OK of 'a
+  |Err of string
+  |Retry
+
+

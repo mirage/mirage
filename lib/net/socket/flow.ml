@@ -29,11 +29,6 @@ type fdwrap = {
 type ipv4_src = ipv4_addr option * int
 type ipv4_dst = ipv4_addr * int
 
-type 'a resp =
-  | OK of 'a
-  | Err of string
-  | Retry
-
 exception Listen_error of string
 exception Accept_error of string
 exception Connect_error of string
@@ -180,8 +175,11 @@ module UDPv4 = struct
 
   type msg = OS.Istring.View.t
 
-  let rec send mgr (dstaddr, dstport) req =
-    let fd = Manager.get_udpv4 mgr in
+  let rec send mgr ?src (dstaddr, dstport) req =
+    lwt fd = match src with
+      |None -> return (Manager.get_udpv4 mgr)
+      |Some src -> Manager.get_udpv4_listener mgr src
+    in
     Activations.write fd >>
     let raw = OS.Istring.View.raw req in
     let off = OS.Istring.View.off req in
@@ -197,27 +195,20 @@ module UDPv4 = struct
     |Err err -> fail (Write_error err)
 
   let recv mgr (addr,port) fn =
-    let addr = match addr with
-      |None -> 0l
-      |Some addr -> ipv4_addr_to_uint32 addr
-    in
-    match unix_bind_ipv4 (addr,port) with
-    |OK lfd -> begin
-      let rec listen lfd =
-        lwt () = Activations.read lfd in
-        let istr = OS.Istring.Raw.alloc () in
-        match unix_recvfrom_ipv4 lfd istr 0 4096 with
-        |OK (frm_addr, frm_port, len) ->
-          let frm_addr = ipv4_addr_of_uint32 frm_addr in
-          let dst = (frm_addr, frm_port) in
-          let req = OS.Istring.View.t ~off:0 istr len in
-          let resp_t = fn dst req in
-          listen lfd <&> resp_t
-        |Retry -> listen lfd
-        |Err _ -> return ()
-      in listen lfd
-    end
-    |Err s -> fail (Listen_error s)
-    |Retry -> assert false
+    lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
+    let rec listen lfd =
+      lwt () = Activations.read lfd in
+      let istr = OS.Istring.Raw.alloc () in
+      match unix_recvfrom_ipv4 lfd istr 0 4096 with
+      |OK (frm_addr, frm_port, len) ->
+        let frm_addr = ipv4_addr_of_uint32 frm_addr in
+        let dst = (frm_addr, frm_port) in
+        let req = OS.Istring.View.t ~off:0 istr len in
+        let resp_t = fn dst req in
+        listen lfd <&> resp_t
+      |Retry -> listen lfd
+      |Err _ -> return ()
+    in 
+    listen lfd
     
 end

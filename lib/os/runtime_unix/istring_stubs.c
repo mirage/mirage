@@ -270,3 +270,20 @@ caml_istring_ones_complement_checksum(value v_istr, value v_off, value v_len, va
   checksum = ~sum;
   return Val_int(checksum);
 }
+
+CAMLprim value
+caml_istring_scan_char(value v_istr, value v_off, value v_char)
+{
+  istring *i = Istring_val(v_istr);
+  unsigned char *buf = i->buf;
+  int off = Int_val(v_off);
+  char c = Int_val(v_char);
+  if (off > i->size)
+    return Val_int(-1);
+  while (off < i->size) {
+    if (buf[off] == c)
+      return Val_int(off);
+    off++;
+  }
+  return Val_int(-1);
+}

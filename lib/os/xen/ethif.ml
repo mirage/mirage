@@ -155,3 +155,5 @@ let mac nf =
       s.[5] <- Char.chr f;
     );
   s
+
+let string_of_id t = string_of_int (fst t)

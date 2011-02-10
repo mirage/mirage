@@ -22,3 +22,4 @@ val destroy : t -> unit Lwt.t
 val output : t -> (Istring.View.t -> 'a) -> 'a Lwt.t
 val enumerate : unit -> id list Lwt.t
 val mac : t -> string
+val string_of_id : id -> string

@@ -104,3 +104,5 @@ let enumerate () =
 
 let mac t =
   t.mac
+
+let string_of_id id = id

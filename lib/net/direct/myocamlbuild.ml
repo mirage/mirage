@@ -46,6 +46,7 @@ let _ = dispatch begin function
     Pathname.define_context "tcp" ["mpl"; "nettypes"; "ip"];
     Pathname.define_context "" ["mpl"; "tcp"];
     Pathname.define_context "dhcp" ["mpl"; "nettypes";];
+    Pathname.define_context "" ["dhcp"];
 
     (* do not compile and pack with the standard lib, and point to right OS module *)
     flag ["ocaml"; "compile"] & S [A"-annot"; A"-I"; A (stdlib "lib"); A"-nostdlib"; A"-I"; A oslib];

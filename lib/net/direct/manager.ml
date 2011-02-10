@@ -26,11 +26,29 @@ exception Error of string
 type i = {
   netif: Netif.t;
   ipv4: Ipv4.t;
+  icmp: Icmp.t;
   udp: Udp.t;
   tcp: Tcp.Pcb.t;
 }
 
 type t = (i * unit Lwt.t) list
+
+(* Configure an interface based on the Config module *)
+let configure id t =
+  match Config.t id with
+  |`DHCP ->
+      OS.Console.log (Printf.sprintf "Manager: VIF %s to DHCP" (OS.Ethif.string_of_id id));
+      lwt t, th = Dhcp.Client.create t.ipv4 t.udp in
+      th
+  |`IPv4 (addr, netmask, gateways) ->
+      OS.Console.log (Printf.sprintf "Manager: VIF %s to %s nm %s gw [%s]"
+        (OS.Ethif.string_of_id id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
+        (String.concat ", " (List.map ipv4_addr_to_string gateways)));
+      Ipv4.set_ip t.ipv4 addr >>
+      Ipv4.set_netmask t.ipv4 netmask >>
+      Ipv4.set_gateways t.ipv4 gateways >>
+      let th, _ = Lwt.task () in
+      th (* Never return from this thread *)
 
 (* Enumerate interfaces and manage the protocol threads *)
 let create () : t Lwt.t =
@@ -39,10 +57,12 @@ let create () : t Lwt.t =
     lwt vif = OS.Ethif.create id in
     let (netif, netif_t) = Netif.create vif in
     let (ipv4, ipv4_t) = Ipv4.create netif in
+    let (icmp, icmp_t) = Icmp.create ipv4 in
     let (tcp, tcp_t) = Tcp.Pcb.create ipv4 in
     let (udp, udp_t) = Udp.create ipv4 in
-    let th = pick [udp_t; tcp_t; ipv4_t; netif_t] in
-    let t = { ipv4; tcp; udp; netif } in
+    let t = { ipv4; tcp; udp; icmp; netif } in
+    let config_t = configure id t in
+    let th = pick [udp_t; tcp_t; ipv4_t; netif_t; icmp_t; config_t] in
     return (t, th)
   ) ids
   

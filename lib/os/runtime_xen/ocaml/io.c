@@ -154,7 +154,7 @@ CAMLexport int caml_channel_binary_mode(struct channel *channel)
 static int do_write(int fd, char *p, int n)
 {
   console_print(p, n);
-  return Val_int(n);
+  return n;
 }
 
 /* Attempt to flush the buffer. This will make room in the buffer for

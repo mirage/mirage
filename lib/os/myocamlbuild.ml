@@ -2,7 +2,7 @@ open Ocamlbuild_plugin
 open Command
 open Ocamlbuild_pack.Ocaml_utils
 
-let debug = true (* compile in debug mode with additional checks *)
+let debug = false (* compile in debug mode with additional checks *)
 
 let sf = Printf.sprintf
 let lib x =
@@ -150,7 +150,7 @@ let _ = dispatch begin function
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
     flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
     flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
-    flag ["c"; "compile"; "optimization_ok"] & S [A"-O2"];
+    flag ["c"; "compile"; "optimization_ok"] & S [A"-O3"];
     flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
    
   | _ -> ()

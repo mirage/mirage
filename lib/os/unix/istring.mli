@@ -49,4 +49,5 @@ module View : sig
   val to_uint64_be : t -> int -> int64
   val seek : t -> int -> unit
   val ones_complement_checksum : t -> int -> int32 -> int
+  val scan_char: t -> int -> char -> int
 end

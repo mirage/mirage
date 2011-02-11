@@ -17,15 +17,22 @@
 
 (* Buffered reading and writing over the flow API *)
 open Lwt
+open Printf
 
 module type CHAN = sig
+
   type flow
   type chan
+
   val t: flow -> chan
+
+  val read_char: chan -> char Lwt.t
   val read_until: chan -> char -> OS.Istring.View.t Lwt_sequence.t Lwt.t
+
 end
 
-module Make(Flow:Nettypes.FLOW) : CHAN = struct
+module Make(Flow:Nettypes.FLOW) : (CHAN with type flow = Flow.t) = struct
+
   type flow = Flow.t
 
   type chan = {
@@ -120,9 +127,12 @@ module Make(Flow:Nettypes.FLOW) : CHAN = struct
     |idx ->
       let seg = Lwt_sequence.create () in
       let len = idx - t.ipos in
-      if len > 0 then begin
-        let _ = Lwt_sequence.add_l (OS.Istring.View.sub view t.ipos (idx-t.ipos)) in
+      if len >= 0 then begin
+        let _ = Lwt_sequence.add_l 
+          (OS.Istring.View.sub view t.ipos (idx-t.ipos)) seg in
         ibuf_incr t (len+1);
       end;
       return seg
 end
+
+module TCPv4 = Make(Flow.TCPv4)

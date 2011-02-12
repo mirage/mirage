@@ -59,5 +59,5 @@ module type DATAGRAM = sig
   type msg
  
   val recv : mgr -> src -> (dst -> msg -> unit Lwt.t) -> unit Lwt.t
-  val send : mgr -> dst -> msg -> unit Lwt.t
+  val send : mgr -> ?src:src -> dst -> msg -> unit Lwt.t
 end

@@ -147,3 +147,19 @@ module type DATAGRAM = sig
   val send : mgr -> ?src:src -> dst -> msg -> unit Lwt.t
 end
 
+module type CHANNEL = sig
+
+  type flow
+  type chan
+
+  val t: flow -> chan
+
+  val read_char: chan -> char Lwt.t
+  val read_until: chan -> char -> OS.Istring.View.t Lwt_sequence.t Lwt.t
+
+  val write_char : chan -> char -> unit Lwt.t
+  val write_string : chan -> string -> unit Lwt.t
+  val write_line : chan -> string -> unit Lwt.t
+
+  val flush : chan -> unit Lwt.t
+end

@@ -18,27 +18,16 @@
 (* Buffered reading and writing over the flow API *)
 open Lwt
 open Printf
+open Nettypes
 
-module type CHAN = sig
-
-  type flow
-  type chan
-
-  val t: flow -> chan
-
-  val read_char: chan -> char Lwt.t
-  val read_until: chan -> char -> OS.Istring.View.t Lwt_sequence.t Lwt.t
-
-end
-
-module Make(Flow:Nettypes.FLOW) : (CHAN with type flow = Flow.t) = struct
+module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
 
   type flow = Flow.t
 
   type chan = {
     flow: flow;
     ibuf: OS.Istring.View.t Lwt_sequence.t;
-    obuf: OS.Istring.View.t Lwt_sequence.t;
+    mutable obuf: OS.Istring.View.t option;
     mutable ilen: int;
     mutable ipos: int;
     mutable opos: int;
@@ -50,7 +39,7 @@ module Make(Flow:Nettypes.FLOW) : (CHAN with type flow = Flow.t) = struct
 
   let t flow =
     let ibuf = Lwt_sequence.create () in
-    let obuf = Lwt_sequence.create () in
+    let obuf = None in
     let ilen = 0 in
     let ipos = 0 in
     let opos = 0 in
@@ -118,7 +107,8 @@ module Make(Flow:Nettypes.FLOW) : (CHAN with type flow = Flow.t) = struct
           scan ()
         |idx ->
           (* Add head sub-view to the result segment list *)
-          let _ = Lwt_sequence.add_l (OS.Istring.View.sub headview start_pos start_len) segs in
+          let _ = Lwt_sequence.add_l (OS.Istring.View.sub headview
+            start_pos start_len) segs in
           (* Append last subview in *)
           let _ = Lwt_sequence.add_r (OS.Istring.View.sub view 0 idx) segs in
           ibuf_incr t (idx+1);
@@ -133,6 +123,56 @@ module Make(Flow:Nettypes.FLOW) : (CHAN with type flow = Flow.t) = struct
         ibuf_incr t (len+1);
       end;
       return seg
+
+    let flush t =
+      match t.obuf with
+      |Some v ->
+        Flow.write t.flow v >>
+        return (t.obuf <- None)
+      |None -> return ()
+
+    let get_obuf t =
+      match t.obuf with 
+      |None ->
+        let buf = OS.Istring.Raw.alloc () in
+        let view = OS.Istring.View.t buf 0 in
+        t.obuf <- Some view;
+        view
+      |Some v -> v
+
+    let write_char t ch =
+      let view = get_obuf t in
+      let viewlen = OS.Istring.View.length view in
+      printf "write_char: %d\n" viewlen;
+      OS.Istring.View.set_char view viewlen ch;
+      OS.Istring.View.seek view (viewlen+1);
+      if OS.Istring.View.length view = 4096 then
+        flush t
+      else
+        return ()
+
+    let rec write_string t buf =
+      let view = get_obuf t in
+      let buflen = String.length buf in
+      let viewlen = OS.Istring.View.length view in
+      let remaining = 4096 - viewlen in
+      if buflen <= remaining then begin
+        OS.Istring.View.set_string view viewlen buf;
+        OS.Istring.View.seek view (viewlen + buflen);
+        if viewlen = 4096 then flush t else return ();
+      end else begin
+        (* String is too big for one istring, so split it *)
+        let b1 = String.sub buf 0 remaining in
+        let b2 = String.sub buf remaining (buflen - remaining) in
+        OS.Istring.View.set_string view viewlen b1;
+        OS.Istring.View.seek view (viewlen + remaining);
+        flush t >>
+        write_string t b2
+      end
+
+    let write_line t buf =
+      write_string t buf >>
+      write_char t '\n'
 end
 
 module TCPv4 = Make(Flow.TCPv4)

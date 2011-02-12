@@ -37,6 +37,7 @@ module View : sig
   val raw : t -> Raw.t
   val set_string : t -> int -> string -> unit
   val set_byte : t -> int -> byte -> unit
+  val set_char : t -> int -> char -> unit
   val set_uint16_be : t -> int -> uint16 -> unit
   val set_uint32_be : t -> int -> int32 -> unit
   val set_uint64_be : t -> int -> int64 -> unit

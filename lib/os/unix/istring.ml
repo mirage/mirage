@@ -171,6 +171,9 @@ module View = struct
   let set_byte t off (v:byte) =
     Raw.set_byte t.i (t.off+off) v
 
+  let set_char t off (v:char) =
+    Raw.set_byte t.i (t.off+off) (Char.code v)
+
   let set_uint16_be t off (v:uint16) =
     Raw.set_uint16_be t.i (t.off+off) v
     

@@ -107,6 +107,9 @@ module Raw = struct
   (* One's complement checksum, RFC1071 *)
   external ones_complement_checksum: t -> int -> int -> int32 -> int = "caml_istring_ones_complement_checksum"
 
+  (* Scan for a character from a specified offset.
+     Return (-1) if not found, or else the index within the raw buffer *)
+  external scan_char: t -> int -> char -> int = "caml_istring_scan_char"
 end
 
 module View = struct
@@ -168,6 +171,9 @@ module View = struct
   let set_byte t off (v:byte) =
     Raw.set_byte t.i (t.off+off) v
 
+  let set_char t off (v:char) =
+    Raw.set_byte t.i (t.off+off) (Char.code v)
+
   let set_uint16_be t off (v:uint16) =
     Raw.set_uint16_be t.i (t.off+off) v
     
@@ -214,4 +220,10 @@ module View = struct
   let ones_complement_checksum t len initial =
     Raw.ones_complement_checksum t.i t.off len initial
 
+  (* Scan for a character from an offset.
+     Return (-1) if not found, or index within view if it is found *)
+  let scan_char t off c =
+    match Raw.scan_char t.i (t.off+off) c with
+    | (-1) -> (-1)
+    | r -> r - t.off
 end

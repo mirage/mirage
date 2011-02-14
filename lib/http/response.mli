@@ -7,8 +7,7 @@ val init :
   ?version:Types.version ->
   ?status:Types.status_code ->
   ?reason:string ->
-  ?clisockaddr:sockaddr ->
-  ?srvsockaddr:sockaddr -> unit -> response
+  unit -> response
 val version_string : response -> string
 val code : response -> int
 val set_code : response -> int -> unit
@@ -34,9 +33,4 @@ val expires : response -> string option
 val set_expires : response -> value:string -> unit
 val server : response -> string option
 val set_server : response -> value:string -> unit
-val serialize :
-  response ->
-  'a -> ('a -> string -> unit Lwt.t) -> ('a -> string -> int -> int -> unit Lwt.t) ->
-  unit Lwt.t
-val serialize_to_output_channel : response -> Flow.t -> unit Lwt.t
 val serialize_to_stream : response -> string Lwt_stream.t

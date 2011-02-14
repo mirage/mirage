@@ -127,9 +127,8 @@ let read_response inchan =
     | 200 | 206 -> return (headers, resp)
     | code      -> fail (Http_error (code, headers, resp))
 
-let connect (address, port, _) iofn =
-  lwt sockaddr = Misc.build_sockaddr (address, port) in
-  Flow.with_connection sockaddr iofn
+let connect mgr src dst iofn =
+  Flow.TCPv4.connect mgr src dst fn
     
 let call headers kind request_body url =
   let meth = match kind with

@@ -102,22 +102,6 @@ let reason_phrase_of_code = function
   | 505 -> "HTTP version not supported"
   | invalid_code -> raise (Invalid_code invalid_code)
 
-let build_sockaddr (addr, port) =
-  try_lwt
-    (* should this be lwt hent = Lwt_lib.gethostbyname addr ? *)
-    (* XXX: no DNS client at the moment *)
-    (* let hent = Unix.gethostbyname addr in *)
-    (* return (Unix.ADDR_INET (hent.Unix.h_addr_list.(0), port)) *)
-    let ip = match ipv4_addr_of_string addr with
-      | Some x -> x
-      | None -> failwith "ip" in
-    return (TCP (ip, port))
-  with _ -> failwith ("ocaml-cohttp, cant resolve hostname: " ^ addr)
-     
-let explode_sockaddr = function
-  | TCP (ip, port) -> (ipv4_addr_to_string ip, port)
-  | _ -> assert false (* can explode only inet address *)
-
 let list_assoc_all key pairs =
   snd (List.split (List.filter (fun (k, v) -> k = key) pairs))
 

@@ -28,14 +28,6 @@ open Printf
 open Lwt
 open Nettypes
 
-let anyize = function
-  | Some addr -> addr
-  | None ->
-    let addr = match ipv4_addr_of_string "0.0.0.0" with
-      | Some x -> x
-      | None   -> failwith "anyize" in
-    TCP (addr, -1)
-
 type response = {
   r_msg: Message.message;
   mutable r_code: int;
@@ -46,12 +38,10 @@ let add_basic_headers r =
   Message.add_header r.r_msg ~name:"Date" ~value:(Misc.date_822 ());
   Message.add_header r.r_msg ~name:"Server" ~value:server_string
 
-let init
-    ?(body = [`String ""]) ?(headers = []) ?(version = default_version)
-    ?(status=`Code 200) ?reason ?clisockaddr ?srvsockaddr ()
+let init ?(body = [`String ""]) ?(headers = []) ?(version = default_version)
+    ?(status=`Code 200) ?reason ()
     =
-  let (clisockaddr, srvsockaddr) = (anyize clisockaddr, anyize srvsockaddr) in
-  let r = { r_msg = Message.init ~body ~headers ~version ~clisockaddr ~srvsockaddr;
+  let r = { r_msg = Message.init ~body ~headers ~version;
 	    r_code = begin match status with
 	      | `Code c -> c
 	      | #status as s -> code_of_status s
@@ -100,14 +90,6 @@ let set_server = rh "Server"
 
 let fstLineToString r =
   sprintf "%s %d %s" (version_string r) (code r) (reason r)
-
-let serialize r outchan write write_from_exactly = 
-  let fstLineToString = fstLineToString r in
-  Message.serialize r.r_msg outchan write write_from_exactly ~fstLineToString
-
-let serialize_to_output_channel r outchan =
-  let fstLineToString = fstLineToString r in
-  Message.serialize_to_output_channel r.r_msg outchan ~fstLineToString
 
 let serialize_to_stream r =
   let fstLineToString = fstLineToString r in

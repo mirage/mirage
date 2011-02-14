@@ -33,7 +33,7 @@ let string_of_conn_id = string_of_int
 type daemon_spec = {
   address: string;
   auth: auth_info;
-  callback: conn_id -> Request.request -> string Lwt_stream.t Lwt.t;
+  callback: conn_id -> Net.Flow.ipv4_src -> Net.Flow.ipv4_dst -> Request.request -> string Lwt_stream.t Lwt.t;
   conn_closed : conn_id -> unit;
   port: int;
   exn_handler: exn -> unit Lwt.t;
@@ -133,22 +133,27 @@ let handle_parse_exn e =
 
   (** - handle HTTP authentication
    *  - handle automatic closures of client connections *)
-let invoke_callback conn_id (req:Request.request) spec =
+let invoke_callback conn_id src dst (req:Request.request) spec =
   try_lwt 
     (match (spec.auth, (Request.authorization req)) with
-       | `None, _ -> spec.callback conn_id req (* no auth required *)
-       | `Basic (realm, authfn), Some (`Basic (username, password)) ->
-	   if authfn username password then spec.callback conn_id req (* auth ok *)
-	   else fail (Unauthorized realm)
-       | `Basic (realm, _), _ -> fail (Unauthorized realm)) (* auth failure *)
+     |`None, _ -> (* no auth required *)
+       spec.callback conn_id src dst req
+     |`Basic (realm, authfn), Some (`Basic (username, password)) ->
+       if authfn username password then
+         spec.callback conn_id src dst req (* auth ok *)
+       else
+         fail (Unauthorized realm)  (* auth failed *)
+     |`Basic (realm, _), _ -> fail (Unauthorized realm)
+    )
   with
-    | Unauthorized realm -> respond_unauthorized ~realm ()
-    | e ->
-        respond_error ~status:`Internal_server_error ~body:(Printexc.to_string e) ()
+    |Unauthorized realm -> respond_unauthorized ~realm ()
+    |exn ->
+      respond_error ~status:`Internal_server_error
+        ~body:(Printexc.to_string exn) ()
 
 let daemon_callback spec =
   let conn_id = ref 0 in
-  let daemon_callback ~clisockaddr ~srvsockaddr flow =
+  let daemon_callback src dst channel =
     let conn_id = incr conn_id; !conn_id in
 
     let streams, push_streams = Lwt_stream.create () in
@@ -156,21 +161,21 @@ let daemon_callback spec =
       try_lwt
         Lwt_stream.iter_s (fun stream_t ->
           lwt stream = stream_t in
-          (* Temporary until buffered IO *)
-          let output = Buffer.create 4096 in
-          Lwt_stream.iter (Buffer.add_string output) stream >>
-          Flow.write_all flow (Buffer.contents output))
-        streams
-      with _ -> return ()
+          Lwt_stream.iter_s (Net.Channel.TCPv4.write_string channel) stream
+        ) streams
+      with exn -> begin
+        Printf.printf "daemon_callback: exn %d: %s\n%!"
+          conn_id (Printexc.to_string exn);
+        return ()
+      end
     in
     let rec loop () =
       try_lwt
-        let (finished_t, finished_u) = Lwt.wait () in
-
+        let finished_t, finished_u = Lwt.wait () in
         let stream =
           try_lwt
-            lwt req = Request.init_request ~clisockaddr ~srvsockaddr finished_u flow in
-            invoke_callback conn_id req spec
+            lwt req = Request.init_request finished_u channel in
+            invoke_callback conn_id src dst req spec
           with e -> begin
             try_lwt
               lwt s = handle_parse_exn e in
@@ -198,10 +203,14 @@ let daemon_callback spec =
   in
   daemon_callback
 
-let main spec =
-  lwt srvsockaddr = Misc.build_sockaddr (spec.address, spec.port) in
-  Flow.listen (fun clisockaddr flow ->
-      match spec.timeout with
-      | None -> daemon_callback spec ~clisockaddr ~srvsockaddr flow
-      | Some tm -> daemon_callback spec ~clisockaddr ~srvsockaddr flow <?> (OS.Time.sleep tm)
-  ) srvsockaddr
+let main mgr src spec =
+  Net.Flow.TCPv4.listen mgr src (fun dst t ->
+    let channel = Net.Channel.TCPv4.create t in
+    match spec.timeout with
+    |None -> 
+      daemon_callback spec src dst channel
+    |Some tm ->
+      let timeout_t = OS.Time.sleep tm in
+      let callback_t = daemon_callback spec src dst channel in
+      timeout_t <?> callback_t
+  )

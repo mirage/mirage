@@ -32,9 +32,8 @@
 
 type headers = (string * string) list
 
-type tcp_error_source = Connect | Read | Write
-exception Tcp_error of tcp_error_source * exn
-exception Http_error of (int * headers * string)  (* code, headers, body *)
+type response_body = OS.Istring.View.t Lwt_sequence.t Lwt.t
+exception Http_error of int * headers * response_body
 
 (**
    @param headers optional overriding headers
@@ -42,7 +41,7 @@ exception Http_error of (int * headers * string)  (* code, headers, body *)
    @return HTTP GET response's body
    @raise Http_error when response code <> 200 
 *)
-val get : ?headers:headers -> string -> (headers * string) Lwt.t
+val get : Net.Flow.TCPv4.mgr -> ?src:Net.Flow.TCPv4.src -> ?headers:headers -> string -> (headers * response_body) Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -50,7 +49,7 @@ val get : ?headers:headers -> string -> (headers * string) Lwt.t
    @return HTTP HEAD raw response
    @raise Http_error when response code <> 200 
 *)
-val head : ?headers:headers -> string -> (headers * string) Lwt.t
+val head : Net.Flow.TCPv4.mgr -> ?src:Net.Flow.TCPv4.src -> ?headers:headers -> string -> (headers * response_body) Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -59,7 +58,7 @@ val head : ?headers:headers -> string -> (headers * string) Lwt.t
    @return HTTP POST raw response
    @raise Http_error when response code <> 200 
 *)
-val post : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
+val post : Net.Flow.TCPv4.mgr -> ?src:Net.Flow.TCPv4.src -> ?headers:headers -> ?body:string -> string -> (headers * response_body) Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -68,7 +67,7 @@ val post : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.
    @return HTTP PUT raw response
    @raise Http_error when response code <> 200 
 *)
-val put : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
+val put : Net.Flow.TCPv4.mgr -> ?src:Net.Flow.TCPv4.src -> ?headers:headers -> ?body:string -> string -> (headers * response_body) Lwt.t
 
 (**
    @param headers optional overriding headers
@@ -76,4 +75,4 @@ val put : ?headers:headers -> ?body:string -> string -> (headers * string) Lwt.t
    @return HTTP DELETE raw response
    @raise Http_error when response code <> 200 
 *)
-val delete : ?headers:headers -> string -> (headers * string) Lwt.t
+val delete : Net.Flow.TCPv4.mgr -> ?src:Net.Flow.TCPv4.src -> ?headers:headers -> string -> (headers * response_body) Lwt.t

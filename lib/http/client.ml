@@ -25,10 +25,10 @@ open Common
 open Lwt
 
 type headers = (string * string) list
-
-type tcp_error_source = Connect | Read | Write
-exception Http_error of (int * headers * string)  (* code, body *)
+type response_body = OS.Istring.View.t Lwt_sequence.t Lwt.t
 exception Invalid_url
+exception Http_error of int * headers * response_body
+exception Not_implemented of string
 
 let parse_url url =
   try
@@ -66,14 +66,15 @@ let build_req_header headers meth address path body =
   let hdrst = Hashtbl.fold serialize_header hdrht "" in
   sprintf "%s %s HTTP/1.0%s\r\n\r\n" meth path hdrst
 
-let request outchan headers meth body (address, _, path) =
+let do_request chan headers meth body (address, _, path) : unit Lwt.t =
   let headers = match headers with None -> [] | Some hs -> hs in
   let req_header = build_req_header headers meth address path body in
   OS.Console.log (Printf.sprintf "[REQUEST] %s" req_header);
-  lwt () = Flow.write_all outchan req_header in
-  match body with
-    | None   -> return ()
-    | Some s -> Flow.write_all outchan s
+  Net.Channel.TCPv4.write_string chan req_header >>
+  (match body with
+  |None -> return ()
+  |Some s -> Net.Channel.TCPv4.write_string chan s) >>
+  Net.Channel.TCPv4.flush chan
 
 let id x = x
 
@@ -111,46 +112,46 @@ let content_length_of_content_range headers =
   else
     None    
 
-let read_response inchan =
-  lwt (_, status) = Parser.parse_response_fst_line inchan in
-  lwt headers = Parser.parse_headers inchan in
+let read_response (chan:Net.Channel.TCPv4.t) : (headers * response_body) Lwt.t =
+  let read_line () = Net.Channel.TCPv4.read_line chan in
+  lwt (_, status) = Parser.parse_response_fst_line read_line in
+  lwt headers = Parser.parse_headers read_line in
   let content_length_opt = content_length_of_content_range headers in
-  (* a status code of 206 (Partial) will typicall accompany "Content-Range" 
-    response header *)
-  lwt resp = 
+  (* a status code of 206 (Partial) will typically
+     accompany "Content-Range" response header *)
+  let (resp: OS.Istring.View.t Lwt_sequence.t Lwt.t) = 
     match content_length_opt with
-      | Some count -> Flow.readn inchan count
-      | None       -> Flow.read_all inchan in
+      |Some (count:int) -> Net.Channel.TCPv4.read_view chan count
+      |None -> Net.Channel.TCPv4.read_all chan
+  in
   match code_of_status status with
-    | 200 | 206 -> return (headers, resp)
-    | code      -> fail (Http_error (code, headers, resp))
+    |200 |206 -> return (headers, resp)
+    |code      -> fail (Http_error (code, headers, resp))
 
-let connect mgr src dst iofn =
-  Flow.TCPv4.connect mgr src dst fn
-    
-let call headers kind request_body url =
+let call mgr ?src ?headers kind request_body url: (headers * response_body) Lwt.t  =
   let meth = match kind with
-    | `GET -> "GET"
-    | `HEAD -> "HEAD"
-    | `PUT -> "PUT" 
-    | `DELETE -> "DELETE" 
-    | `POST -> "POST" in
+    |`GET -> "GET"
+    |`HEAD -> "HEAD"
+    |`PUT -> "PUT" 
+    |`DELETE -> "DELETE" 
+    |`POST -> "POST"
+  in
   let endp = parse_url url in
-  try_lwt connect endp
-    (fun t ->
-      (try_lwt request t headers meth request_body endp
-       with exn -> fail (Tcp_error (Write, exn))
-      ) >>
-      (try_lwt read_response t
-       with
-         | (Http_error _) as e -> fail e
-         | exn                 -> fail (Tcp_error (Read, exn))))
-  with
-    | (Tcp_error _ | Http_error _) as e -> fail e
-    | exn                               -> fail (Tcp_error (Connect, exn))
+  let host, port, path = endp in
+  (* TODO DNS resolution! *)
+  lwt dst_ip = match Net.Nettypes.ipv4_addr_of_string host with
+    |Some ip -> return ip
+    |None -> fail (Not_implemented "dns resolution: specify url as ip")
+  in
+  let dst = dst_ip, port in
+  Net.Flow.TCPv4.connect mgr ?src dst (fun t ->
+    let channel = Net.Channel.TCPv4.create t in
+    lwt () = do_request channel headers meth request_body endp in
+    lwt res = read_response channel in return res
+  )
 
-let head   ?headers       url = call headers `HEAD   None url
-let get    ?headers       url = call headers `GET    None url
-let post   ?headers ?body url = call headers `POST   body url
-let put    ?headers ?body url = call headers `PUT    body url
-let delete ?headers       url = call headers `DELETE None url
+let head   mgr ?src ?headers       url = call mgr ?src ?headers `HEAD   None url
+let get    mgr ?src ?headers       url = call mgr ?src ?headers `GET    None url
+let post   mgr ?src ?headers ?body url = call mgr ?src ?headers `POST   body url
+let put    mgr ?src ?headers ?body url = call mgr ?src ?headers `PUT    body url
+let delete mgr ?src ?headers       url = call mgr ?src ?headers `DELETE None url

@@ -64,21 +64,6 @@ caml_socket_close(value v_fd)
 #define Val_Err(v, x) do { (v)=caml_alloc(1,1); Store_field((v),0,(x)); } while (0)
 #define Val_WouldBlock(v) do { (v)=Val_int(2); } while (0)
 
-/* Allocate tcp socket */
-CAMLprim value
-caml_tcpv4_socket(value v_ipaddr, value v_port)
-{
-  int s;
-  struct sockaddr_in sa;
-  bzero(&sa, sizeof sa);
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons(Int_val(v_port));
-  sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
-  s = socket(PF_INET, SOCK_STREAM, 0);
-  setnonblock(s); 
-  return Val_int(s);
-}
-
 /* Get a UDP socket suitable for sendto(2).
    Only used at start-of-day so failwith ok here for now */
 CAMLprim value

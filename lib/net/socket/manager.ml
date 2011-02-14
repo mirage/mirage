@@ -24,10 +24,6 @@ open Nettypes
 exception Error of string
 
 module Unix = struct
-  type tcpv4
-  type udpv4
-  type pipe
-
   type ipv4 = int32
   type port = int
   type 'a fd
@@ -37,29 +33,28 @@ module Unix = struct
   |Err of string
   |Retry
 
-  external tcpv4_socket: ipv4 -> port -> tcpv4 fd = "caml_tcpv4_socket"
-  external tcpv4_connect: ipv4 -> port -> tcpv4 fd resp = "caml_tcpv4_connect"
-  external tcpv4_connect_result: tcpv4 fd -> unit resp = "caml_socket_connect_result"
-  external tcpv4_bind: ipv4 -> port -> tcpv4 fd resp = "caml_tcpv4_bind"
-  external tcpv4_listen: tcpv4 fd -> unit resp = "caml_socket_listen"
-  external tcpv4_accept: tcpv4 fd -> (tcpv4 fd * ipv4 * port) resp = "caml_tcpv4_accept"
+  external tcpv4_connect: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_connect"
+  external tcpv4_connect_result: [`tcpv4] fd -> unit resp = "caml_socket_connect_result"
+  external tcpv4_bind: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_bind"
+  external tcpv4_listen: [`tcpv4] fd -> unit resp = "caml_socket_listen"
+  external tcpv4_accept: [`tcpv4] fd -> ([`tcpv4] fd * ipv4 * port) resp = "caml_tcpv4_accept"
 
-  external udpv4_socket: unit -> udpv4 fd = "caml_udpv4_socket"
-  external udpv4_bind: ipv4 -> port -> udpv4 fd resp = "caml_udpv4_bind"
-  external udpv4_recvfrom: udpv4 fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port * int) resp = "caml_udpv4_recvfrom"
-  external udpv4_sendto: udpv4 fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port) -> int resp = "caml_udpv4_sendto"
+  external udpv4_socket: unit -> [`udpv4] fd = "caml_udpv4_socket"
+  external udpv4_bind: ipv4 -> port -> [`udpv4] fd resp = "caml_udpv4_bind"
+  external udpv4_recvfrom: [`udpv4] fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port * int) resp = "caml_udpv4_recvfrom"
+  external udpv4_sendto: [`udpv4] fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port) -> int resp = "caml_udpv4_sendto"
 
-  external read: 'a fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
-  external write: 'a fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
-  external close: 'a fd -> unit = "caml_socket_close"
+  external read: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
+  external write: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
+  external close: [<`tcpv4|`udpv4|`domain|`pipe] fd -> unit = "caml_socket_close"
 
   external fd : 'a fd -> int = "%identity"
 
 end
 
 type t = {
-  udpv4: Unix.udpv4 Unix.fd;
-  udpv4_listen_ports: ((ipv4_addr option * int), Unix.udpv4 Unix.fd) Hashtbl.t;
+  udpv4: [`udpv4] Unix.fd;
+  udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] Unix.fd) Hashtbl.t;
 }
 
 (* Enumerate interfaces and manage the protocol threads *)

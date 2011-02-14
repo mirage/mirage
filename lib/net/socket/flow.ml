@@ -118,7 +118,7 @@ let read t =
   |len -> return (Some (OS.Istring.View.t ~off:0 istr len))
   
 module TCPv4 = struct
-  type t = R.tcpv4 fdwrap
+  type t = [`tcpv4] fdwrap
   type mgr = Manager.t
   type src = ipv4_addr option * int
   type dst = ipv4_addr * int
@@ -159,7 +159,7 @@ module TCPv4 = struct
 end
 
 module Pipe = struct
-  type t = R.pipe fdwrap
+  type t = [`pipe] fdwrap
   type mgr = Manager.t
   type src = int32
   type dst = int32

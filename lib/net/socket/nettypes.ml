@@ -123,7 +123,7 @@ module type FLOW = sig
   
   (* Flow construction *)                                                                                
   val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t                             
-  val connect: mgr -> src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t                           
+  val connect: mgr -> ?src:src -> dst -> (t -> 'a Lwt.t) -> 'a Lwt.t                           
 end 
 
 module type DATAGRAM = sig
@@ -154,6 +154,7 @@ module type CHANNEL = sig
   val read_view: t -> int -> OS.Istring.View.t Lwt_sequence.t Lwt.t
   val read_string: t -> string -> int -> int -> unit Lwt.t 
   val read_line : t -> string Lwt.t
+  val read_all : t -> OS.Istring.View.t Lwt_sequence.t Lwt.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t

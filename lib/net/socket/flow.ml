@@ -71,7 +71,7 @@ let close_on_exit t fn =
     close t >>
     fail exn
 
-let connect_tcpv4 (addr,port) fn =
+let connect_tcpv4 src (addr,port) fn =
   match unix_tcp_connect (ipv4_addr_to_uint32 addr) port with
   |OK fd ->
     (* Wait for the connect to complete *)
@@ -170,8 +170,8 @@ module TCPv4 = struct
       |Some addr, port -> addr, port in
     listen_tcpv4 addr port fn
 
-  let connect mgr src dst fn =
-    connect_tcpv4 dst fn
+  let connect mgr ?src dst fn =
+    connect_tcpv4 src dst fn
 end
 
 module UDPv4 = struct

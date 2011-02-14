@@ -43,7 +43,7 @@ module TCPv4 = struct
     lwt tcp = Manager.tcpv4_of_addr mgr addr in
     Tcp.Pcb.listen tcp port fn
 
-  let connect mgr src dst fn =
+  let connect mgr ?src dst fn =
     fail (Failure "Not_implemented")
 
 end

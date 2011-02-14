@@ -155,6 +155,17 @@ module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
       end;
       return seg
 
+  (* Read all data until EOF *)
+  let read_all t =
+    let segs = Lwt_sequence.create () in
+    let rec read () =
+      Flow.read t.flow >>= function
+        |None -> return segs
+        |Some v ->
+          let _ = Lwt_sequence.add_r v segs in
+          read ()
+    in read ()
+      
   (* Read until the next \r\n or \n *)
   let read_line_view t =
     lwt segs = read_until t '\n' in

@@ -50,4 +50,4 @@ val respond_unauthorized :
 val respond_with :
   Response.response -> string Lwt_stream.t Lwt.t
 
-val main : Net.Flow.TCPv4.mgr -> Net.Flow.TCPv4.src -> daemon_spec -> unit Lwt.t
+val listen : Net.Flow.TCPv4.mgr -> Net.Flow.TCPv4.src -> daemon_spec -> unit Lwt.t

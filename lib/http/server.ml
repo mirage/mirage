@@ -205,7 +205,7 @@ let daemon_callback spec =
   in
   daemon_callback
 
-let main mgr src spec =
+let listen mgr src spec =
   Net.Flow.TCPv4.listen mgr src (fun dst t ->
     let channel = Net.Channel.TCPv4.create t in
     match spec.timeout with

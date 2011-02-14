@@ -174,6 +174,7 @@ let _ = dispatch begin function
       (* os lib *)   A "oS.cmxa";
       (* net lib *)  A "net.cmxa";
       (* dns lib *)  A "dns.cmxa";
+      (* http lib *)  A "http.cmxa";
     ] in
 
     let mirage_flags = [

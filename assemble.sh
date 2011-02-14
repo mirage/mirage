@@ -29,7 +29,9 @@ function assemble_xen {
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
     cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
     cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
-    cp ${ROOT}/lib/dns/_build/xen-direct/dns.{cmi,cmxa,a} ${OBJ}/lib/
+    for i in dns http; do 
+      cp ${ROOT}/lib/$i/_build/xen-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
+    done
   else
     echo Skipping: Xen
   fi
@@ -45,7 +47,9 @@ function assemble_unix_direct {
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/direct/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
-  cp ${ROOT}/lib/dns/_build/unix-direct/dns.{cmi,cmxa,a} ${OBJ}/lib/
+  for i in dns http; do 
+    cp ${ROOT}/lib/$i/_build/unix-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
+  done
 }
 
 function assemble_unix_socket {
@@ -58,7 +62,9 @@ function assemble_unix_socket {
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/socket/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
-  cp ${ROOT}/lib/dns/_build/unix-socket/dns.{cmi,cmxa,a} ${OBJ}/lib/
+  for i in dns http; do 
+    cp ${ROOT}/lib/$i/_build/unix-socket/$i.{cmi,cmxa,a} ${OBJ}/lib/;
+  done
 }
 
 function assemble_syntax {

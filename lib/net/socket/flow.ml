@@ -20,6 +20,12 @@ open Nettypes
 open Lwt
 open OS
 
+(* Internal use only *)
+type 'a resp =
+  |OK of 'a
+  |Err of string
+  |Retry
+
 type fdwrap = {
   fd: int;
   abort_t: unit Lwt.t;  (* abort thread *)

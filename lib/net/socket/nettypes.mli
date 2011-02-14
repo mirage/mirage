@@ -80,11 +80,3 @@ module type CHANNEL = sig
 
   val flush : t -> unit Lwt.t
 end
-
-(* Internal use only *)
-type 'a resp =
-  |OK of 'a
-  |Err of string
-  |Retry
-
-

@@ -23,6 +23,12 @@ open Nettypes
 
 exception Error of string
 
+(* Internal use only *)
+type 'a resp =
+  |OK of 'a
+  |Err of string
+  |Retry
+
 type fd = int
 type t = {
   udpv4: fd;

@@ -108,22 +108,22 @@ let ipv4_addr_to_string x =
       (chri 0) (chri 1) (chri 2) (chri 3)
 
 module type FLOW = sig                                                                                   
-  (* Type of an individual flow *)                                                                       
+  (* Type of an individual flow *)
   type t                                                                                                 
-  (* Type that manages a collection of flows *)                                                          
+  (* Type that manages a collection of flows *)
   type mgr                                                                                               
   (* Type that identifies a flow source and destination endpoint *)
   type src
   type dst
 
-  (* Read and write to a flow *)                                                                         
+  (* Read and write to a flow *)
   val read: t -> OS.Istring.View.t option Lwt.t
-  val write: t -> OS.Istring.View.t -> unit Lwt.t                                                        
+  val write: t -> OS.Istring.View.t -> unit Lwt.t
   val close: t -> unit Lwt.t
   
-  (* Flow construction *)                                                                                
-  val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t                             
-  val connect: mgr -> ?src:src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t                           
+  (* Flow construction *)
+  val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
+  val connect: mgr -> ?src:src -> dst -> (t -> 'a Lwt.t) -> 'a Lwt.t
 end 
 
 module type DATAGRAM = sig

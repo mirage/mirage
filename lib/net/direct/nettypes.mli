@@ -47,7 +47,7 @@ module type FLOW = sig
   val close : t -> unit Lwt.t
 
   val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
-  val connect : mgr -> ?src:src -> dst -> (t -> unit Lwt.t) -> unit Lwt.t
+  val connect : mgr -> ?src:src -> dst -> (t -> 'a Lwt.t) -> 'a Lwt.t
 end
 
 module type DATAGRAM = sig

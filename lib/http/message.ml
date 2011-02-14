@@ -122,6 +122,5 @@ let serialize_to_stream msg ~fstLineToString =
     |`Buffer b -> push (Some (Buffer.contents b))
     |`Inchan t -> eprintf "warning: inchan not supported in output\n%!"
   ) body;
-  printf "serialise to stream None\n%!";
   push None;
   stream

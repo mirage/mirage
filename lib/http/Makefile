@@ -11,7 +11,7 @@ else
 XEN_BUILD=
 endif
 
-all: unix-socket xen-direct unix-direct
+all: unix-socket unix-direct $(XEN_BUILD)
 	@ :
 
 unix-%:

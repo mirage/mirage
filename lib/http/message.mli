@@ -1,5 +1,3 @@
-open Nettypes
-
 type contents = [
  | `Buffer of Buffer.t
  | `String of string

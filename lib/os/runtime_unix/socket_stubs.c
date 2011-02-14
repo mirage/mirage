@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/un.h>
 #include <arpa/inet.h>
 
 #include <caml/mlvalues.h>
@@ -323,5 +324,58 @@ caml_udpv4_sendto(value v_fd, value v_istr, value v_off, value v_len, value v_ds
   } else {
     Val_OK(v_ret, Val_int(r));
   }
+  CAMLreturn(v_ret);
+}
+
+/* Get a unique name for this process (just PID atm) */
+CAMLprim value
+caml_domain_name(value v_unit)
+{
+  CAMLparam1(v_unit);
+  CAMLlocal1(v_str);
+  char buf[16];
+  snprintf(buf, sizeof buf, "%d", getpid());
+  CAMLreturn(caml_copy_string(buf));
+}
+
+/* Bind a domain socket to the given name in the mirage runtime dir,
+   and listen for connections */
+CAMLprim value
+caml_domain_bind(value v_name)
+{
+  CAMLparam1(v_name);
+  CAMLlocal2(v_ret, v_err);
+  struct sockaddr_un sa;
+  size_t len;
+  int s,r;
+  char *basedir = getenv("MIRAGE_RUNDIR");
+  if (!basedir) basedir="/tmp";
+  s = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (s < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    CAMLreturn(v_ret);
+  }  
+  bzero(&sa, sizeof sa);
+  sa.sun_family = AF_UNIX;
+  snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%s", basedir, String_val(v_name));
+  unlink(sa.sun_path);
+  fprintf(stderr, "sunpath %s\n", sa.sun_path);
+  len = strlen(sa.sun_path) + sizeof(sa.sun_family) + 1;
+  r = bind(s, (struct sockaddr *)&sa, len);
+  if (r < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+    CAMLreturn(v_ret);
+  }
+  r = listen(s,5);
+  if (r < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+    CAMLreturn(v_ret);
+  }
+  Val_OK(v_ret, Val_int(s));
   CAMLreturn(v_ret);
 }

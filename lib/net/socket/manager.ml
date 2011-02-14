@@ -26,6 +26,7 @@ exception Error of string
 module Unix = struct
   type ipv4 = int32
   type port = int
+  type uid
   type 'a fd
 
   type 'a resp =
@@ -44,15 +45,18 @@ module Unix = struct
   external udpv4_recvfrom: [`udpv4] fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port * int) resp = "caml_udpv4_recvfrom"
   external udpv4_sendto: [`udpv4] fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port) -> int resp = "caml_udpv4_sendto"
 
+  external domain_uid: unit -> uid = "caml_domain_name"
+  external domain_bind: uid -> [`domain] fd resp = "caml_domain_bind"
+
   external read: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
   external write: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
   external close: [<`tcpv4|`udpv4|`domain|`pipe] fd -> unit = "caml_socket_close"
 
   external fd : 'a fd -> int = "%identity"
-
 end
 
 type t = {
+  domain: [`domain] Unix.fd;
   udpv4: [`udpv4] Unix.fd;
   udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] Unix.fd) Hashtbl.t;
 }
@@ -61,7 +65,12 @@ type t = {
 let create () =
   let udpv4 = Unix.udpv4_socket () in
   let udpv4_listen_ports = Hashtbl.create 7 in
-  return { udpv4; udpv4_listen_ports }
+  lwt domain = match Unix.(domain_bind (domain_uid ())) with
+    |Unix.OK fd -> return fd 
+    |Unix.Err err -> fail (Failure ("control domain socket: " ^ err))
+    |Unix.Retry -> assert false in
+  (* TODO: cleanup the domain socket atexit *)
+  return { udpv4; udpv4_listen_ports; domain }
   
 let destroy t =
   ()

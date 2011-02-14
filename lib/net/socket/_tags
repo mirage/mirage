@@ -1,2 +1,2 @@
 <*.ml>: for-pack(Net)
-"flow.ml" or "channel.ml": pa_lwt
+"manager.ml" or "flow.ml" or "channel.ml": pa_lwt

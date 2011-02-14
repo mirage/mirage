@@ -1,7 +1,6 @@
 Common
 Constants
 Cookie
-Daemon
 Message
 Misc
 Parser
@@ -10,3 +9,4 @@ Request
 Response
 Types
 Url
+Server

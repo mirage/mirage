@@ -3,6 +3,7 @@
 
   Copyright (C) <2002-2005> Stefano Zacchiroli <zack@cs.unibo.it>
   Copyright (C) <2009> David Sheets <sheets@alum.mit.edu>
+  Copyright (C) <2011> Anil Madhavapeddy <anil@recoil.org>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU Library General Public License as
@@ -26,11 +27,8 @@ open Lwt
 type headers = (string * string) list
 
 type tcp_error_source = Connect | Read | Write
-exception Tcp_error of tcp_error_source * exn
 exception Http_error of (int * headers * string)  (* code, body *)
 exception Invalid_url
-
-let tcp_bufsiz = 4096 (* for TCP I/O *)
 
 let parse_url url =
   try

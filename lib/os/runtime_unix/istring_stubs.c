@@ -138,6 +138,22 @@ caml_istring_safe_blit_view(value v_dst, value v_dstoff, value v_src, value v_sr
   return Val_unit;
 }
 
+/* Blit from a view to an OCaml string */
+CAMLprim value
+caml_istring_safe_blit_to_string(value v_dst, value v_dstoff, value v_src, value v_srcoff, value v_len)
+{
+  istring *src = Istring_val(v_src);
+  int dstoff = Int_val(v_dstoff);
+  int srcoff = Int_val(v_srcoff);
+  int len = Int_val(v_len);
+  /* no need to check src bounds as it will have been safely constructed
+     at the ocaml level */
+  if (caml_string_length(v_dst) < dstoff + len)
+    caml_array_bound_error();
+  memcpy(String_val(v_dst) + dstoff, src->buf + srcoff, len);
+  return Val_unit;
+}
+
 /* Get a uint16_t from an istring. big endian */
 CAMLprim value
 caml_istring_get_uint16_be(value v_istr, value v_off)

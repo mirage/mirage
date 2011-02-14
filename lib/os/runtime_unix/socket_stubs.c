@@ -64,8 +64,36 @@ caml_socket_close(value v_fd)
 #define Val_Err(v, x) do { (v)=caml_alloc(1,1); Store_field((v),0,(x)); } while (0)
 #define Val_WouldBlock(v) do { (v)=Val_int(2); } while (0)
 
+/* Allocate tcp socket */
 CAMLprim value
-caml_tcp_connect(value v_ipaddr, value v_port)
+caml_tcpv4_socket(value v_ipaddr, value v_port)
+{
+  int s;
+  struct sockaddr_in sa;
+  bzero(&sa, sizeof sa);
+  sa.sin_family = AF_INET;
+  sa.sin_port = htons(Int_val(v_port));
+  sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
+  s = socket(PF_INET, SOCK_STREAM, 0);
+  setnonblock(s); 
+  return Val_int(s);
+}
+
+/* Get a UDP socket suitable for sendto(2).
+   Only used at start-of-day so failwith ok here for now */
+CAMLprim value
+caml_udpv4_socket(value v_unit)
+{
+  CAMLparam1(v_unit);
+  int s = socket(PF_INET, SOCK_DGRAM, 0);
+  if (s < 0)
+    caml_failwith("socket() failed");
+  else
+    CAMLreturn(Val_int(s));
+}
+
+CAMLprim value
+caml_tcpv4_connect(value v_ipaddr, value v_port)
 {
   CAMLparam2(v_ipaddr, v_port);
   CAMLlocal2(v_ret, v_err);
@@ -77,8 +105,11 @@ caml_tcp_connect(value v_ipaddr, value v_port)
   sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
   s = socket(PF_INET, SOCK_STREAM, 0);
   setnonblock(s); 
-  if (s < 0)
-    err(1, "caml_tcp_connect: socket");
+  if (s < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    CAMLreturn(v_ret);
+  }
   r = connect(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
   if (r == 0 || (r == -1 && errno == EINPROGRESS)) {
     fprintf(stderr, "connect: OK %d \n", r);
@@ -93,7 +124,7 @@ caml_tcp_connect(value v_ipaddr, value v_port)
 }
 
 CAMLprim value
-caml_tcp_connect_result(value v_fd)
+caml_socket_connect_result(value v_fd)
 {
   CAMLparam1(v_fd);
   CAMLlocal2(v_ret, v_err);
@@ -115,7 +146,7 @@ caml_tcp_connect_result(value v_fd)
 }
 
 CAMLprim value
-caml_tcp_listen(value v_ipaddr, value v_port)
+caml_tcpv4_bind(value v_ipaddr, value v_port)
 {
   CAMLparam2(v_ipaddr, v_port);
   CAMLlocal2(v_ret, v_err);
@@ -127,17 +158,10 @@ caml_tcp_listen(value v_ipaddr, value v_port)
   sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
   s = socket(PF_INET, SOCK_STREAM, 0);
   if (s < 0)
-    err(1, "caml_tcp_listen: socket");
+    err(1, "caml_tcp_bind: socket");
+  setnonblock(s);
   setreuseaddr(s);
   r = bind(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
-  if (r < 0) {
-    v_err = caml_copy_string(strerror(errno));
-    Val_Err(v_ret, v_err);
-    close(s);
-    CAMLreturn(v_ret);
-  }
-  r = listen(s, 25);
-  setnonblock(s);
   if (r < 0) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
@@ -149,7 +173,24 @@ caml_tcp_listen(value v_ipaddr, value v_port)
 }
 
 CAMLprim value
-caml_tcp_accept(value v_fd)
+caml_socket_listen(value v_socket)
+{
+  CAMLparam1(v_socket);
+  CAMLlocal2(v_err, v_ret);
+  int r, s = Int_val(v_socket);
+  r = listen(s, 25);
+  if (r < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+    CAMLreturn(v_ret);
+  }
+  Val_OK(v_ret, Val_unit);
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_tcpv4_accept(value v_fd)
 {
   CAMLparam1(v_fd);
   CAMLlocal4(v_ret,v_err,v_ca,v_ip);
@@ -216,9 +257,9 @@ caml_socket_write(value v_fd, value v_istr, value v_off, value v_len)
 
 /* Bind a UDP socket to a local v4 addr and return it */
 CAMLprim value
-caml_udp_bind_ipv4(value v_src)
+caml_udpv4_bind(value v_ipaddr, value v_port)
 {
-  CAMLparam1(v_src);
+  CAMLparam2(v_ipaddr, v_port);
   CAMLlocal2(v_ret, v_err);
   int s = socket(PF_INET, SOCK_DGRAM, 0);
   if (s < 0) {
@@ -229,8 +270,8 @@ caml_udp_bind_ipv4(value v_src)
   struct sockaddr_in sa;
   bzero(&sa, sizeof sa);
   sa.sin_family = AF_INET;
-  sa.sin_addr.s_addr = ntohl(Int32_val(Field(v_src,0)));
-  sa.sin_port = htons(Int_val(Field(v_src,1)));
+  sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
+  sa.sin_port = htons(Int_val(v_port));
  
   int r = bind(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
   if (r < 0) {
@@ -243,21 +284,8 @@ caml_udp_bind_ipv4(value v_src)
   CAMLreturn(v_ret);
 }
 
-/* Get a UDP socket suitable for sendto(2).
-   Only used at start-of-day so failwith ok here for now */
 CAMLprim value
-caml_udp_socket_ipv4(value v_unit)
-{
-  CAMLparam1(v_unit);
-  int s = socket(PF_INET, SOCK_DGRAM, 0);
-  if (s < 0)
-    caml_failwith("socket() failed");
-  else
-    CAMLreturn(Val_int(s));
-}
-
-CAMLprim value
-caml_socket_recvfrom_ipv4(value v_fd, value v_istr, value v_off, value v_len, value v_src)
+caml_udpv4_recvfrom(value v_fd, value v_istr, value v_off, value v_len, value v_src)
 {
   CAMLparam5(v_fd, v_istr, v_off, v_len, v_src);
   CAMLlocal3(v_ret, v_err, v_inf);
@@ -285,7 +313,7 @@ caml_socket_recvfrom_ipv4(value v_fd, value v_istr, value v_off, value v_len, va
 }
 
 CAMLprim value
-caml_socket_sendto_ipv4(value v_fd, value v_istr, value v_off, value v_len, value v_dst)
+caml_udpv4_sendto(value v_fd, value v_istr, value v_off, value v_len, value v_dst)
 {
   CAMLparam5(v_fd, v_istr, v_off, v_len, v_dst);
   CAMLlocal2(v_ret, v_err);

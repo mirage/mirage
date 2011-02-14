@@ -1,5 +1,2 @@
-<*.cmx> and not "http.cmx": for-pack(Net.Http)
-"daemon.ml" or "message.ml" or "misc.ml" or "parser.ml" or "request.ml": pa_lwt
-"client.ml": pa_lwt
-<*.ml>: use_flow
-"http.cmx": for-pack(Net)
+<*.cmx> and not "http.cmx": for-pack(Http)
+"daemon.ml" or "message.ml" or "misc.ml" or "parser.ml" or "request.ml" or "client.ml": pa_lwt

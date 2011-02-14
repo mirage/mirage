@@ -59,6 +59,7 @@ let init_request finished ic =
   lwt headers = Parser.parse_headers ic in
   let headers = List.map (fun (h,v) -> (String.lowercase h, v)) headers in
   lwt body = match meth with
+(* TODO XXX
     |`POST -> begin
       let limit =
         try
@@ -74,6 +75,8 @@ let init_request finished ic =
           return segs in
         return [`Inchan read_t]
     end
+*)
+    
     |_ ->  (* Empty body for methods other than POST *)
        Lwt.wakeup finished ();
        return [`String ""]

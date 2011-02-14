@@ -37,13 +37,13 @@ val split_query_params: string -> (string * string) list
   was specified
   @raise Malformed_request if request 1st linst isn't well formed
   @raise Malformed_request_URI if requested URI isn't well formed *)
-val parse_request_fst_line: Net.Channel.TCPv4.t -> (meth * Url.t * version) Lwt.t
+val parse_request_fst_line: (unit -> string Lwt.t) -> (meth * Url.t * version) Lwt.t
 
   (** parse 1st line of an HTTP response
    * @param inchan input channel from which parse response
    * @raise Malformed_response if first line isn't well formed
   *)
-val parse_response_fst_line: Net.Channel.TCPv4.t -> (version * status) Lwt.t
+val parse_response_fst_line: (unit -> string Lwt.t) -> (version * status) Lwt.t
 
   (** parse HTTP GET parameters from an URL; paramater which were passed with no
   value (like 'x' in "/foo.cgi?a=10&x=&c=9") are returned associated with the
@@ -58,11 +58,11 @@ val parse_path: Url.t -> string
   @param inchan input channel from which parse headers
   @return a list of pairs header_name * header_value
   @raise Invalid_header if a not well formed header is encountered *)
-val parse_headers: Net.Channel.TCPv4.t -> ((string * string) list) Lwt.t
+val parse_headers: (unit -> string Lwt.t) -> ((string * string) list) Lwt.t
 
   (** given an input channel, reads from it a GET HTTP request and
   @return a pair <path, query_params> where path is a string representing the
   requested path and query_params is a list of pairs <name, value> (the GET
   parameters) *)
-val parse_request: Net.Channel.TCPv4.t -> (string * (string * string) list) Lwt.t
+val parse_request: (unit -> string Lwt.t) -> (string * (string * string) list) Lwt.t
 

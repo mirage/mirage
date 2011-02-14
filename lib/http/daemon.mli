@@ -4,8 +4,7 @@ val string_of_conn_id : conn_id -> string
 type daemon_spec = {
   address : string;
   auth : Types.auth_info;
-  callback : conn_id -> Net.Flow.ipv4_src -> Net.Flow.ipv4_dst ->
-    Request.request -> string Lwt_stream.t Lwt.t;
+  callback : conn_id -> Request.request -> string Lwt_stream.t Lwt.t;
   conn_closed : conn_id -> unit;
   port : int;
   exn_handler : exn -> unit Lwt.t;
@@ -50,8 +49,5 @@ val respond_unauthorized :
 
 val respond_with :
   Response.response -> string Lwt_stream.t Lwt.t
-
-val daemon_callback :
-  daemon_spec -> Net.Flow.ipv4_src -> Net.Flow.ipv4_dst -> Net.Channel.TCPv4.t -> unit Lwt.t
 
 val main : Net.Flow.TCPv4.mgr -> Net.Flow.TCPv4.src -> daemon_spec -> unit Lwt.t

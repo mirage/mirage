@@ -33,7 +33,7 @@ let string_of_conn_id = string_of_int
 type daemon_spec = {
   address: string;
   auth: auth_info;
-  callback: conn_id -> Net.Flow.ipv4_src -> Net.Flow.ipv4_dst -> Request.request -> string Lwt_stream.t Lwt.t;
+  callback: conn_id -> Request.request -> string Lwt_stream.t Lwt.t;
   conn_closed : conn_id -> unit;
   port: int;
   exn_handler: exn -> unit Lwt.t;
@@ -133,14 +133,14 @@ let handle_parse_exn e =
 
   (** - handle HTTP authentication
    *  - handle automatic closures of client connections *)
-let invoke_callback conn_id src dst (req:Request.request) spec =
+let invoke_callback conn_id (req:Request.request) spec =
   try_lwt 
     (match (spec.auth, (Request.authorization req)) with
      |`None, _ -> (* no auth required *)
-       spec.callback conn_id src dst req
+       spec.callback conn_id req
      |`Basic (realm, authfn), Some (`Basic (username, password)) ->
        if authfn username password then
-         spec.callback conn_id src dst req (* auth ok *)
+         spec.callback conn_id req (* auth ok *)
        else
          fail (Unauthorized realm)  (* auth failed *)
      |`Basic (realm, _), _ -> fail (Unauthorized realm)
@@ -153,7 +153,7 @@ let invoke_callback conn_id src dst (req:Request.request) spec =
 
 let daemon_callback spec =
   let conn_id = ref 0 in
-  let daemon_callback src dst channel =
+  let daemon_callback channel =
     let conn_id = incr conn_id; !conn_id in
 
     let streams, push_streams = Lwt_stream.create () in
@@ -161,7 +161,8 @@ let daemon_callback spec =
       try_lwt
         Lwt_stream.iter_s (fun stream_t ->
           lwt stream = stream_t in
-          Lwt_stream.iter_s (Net.Channel.TCPv4.write_string channel) stream
+          Lwt_stream.iter_s (Net.Channel.TCPv4.write_string channel) stream >>
+          Net.Channel.TCPv4.flush channel (* TODO: autoflush *)
         ) streams
       with exn -> begin
         Printf.printf "daemon_callback: exn %d: %s\n%!"
@@ -174,8 +175,9 @@ let daemon_callback spec =
         let finished_t, finished_u = Lwt.wait () in
         let stream =
           try_lwt
-            lwt req = Request.init_request finished_u channel in
-            invoke_callback conn_id src dst req spec
+            let input_line () = Net.Channel.TCPv4.read_line channel in
+            lwt req = Request.init_request finished_u input_line in
+            invoke_callback conn_id req spec
           with e -> begin
             try_lwt
               lwt s = handle_parse_exn e in
@@ -208,9 +210,9 @@ let main mgr src spec =
     let channel = Net.Channel.TCPv4.create t in
     match spec.timeout with
     |None -> 
-      daemon_callback spec src dst channel
+      daemon_callback spec channel
     |Some tm ->
       let timeout_t = OS.Time.sleep tm in
-      let callback_t = daemon_callback spec src dst channel in
+      let callback_t = daemon_callback spec channel in
       timeout_t <?> callback_t
   )

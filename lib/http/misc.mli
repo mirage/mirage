@@ -44,14 +44,6 @@ val string_implode: char list -> string
   (** given an HTTP response code return the corresponding reason phrase *)
 val reason_phrase_of_code: int -> string
 
-  (** build a Channel.sockaddr inet address from a string representation of an IP
-  address and a port number *)
-val build_sockaddr: string * int -> Nettypes.sockaddr Lwt.t
-
-  (** explode an _inet_ Channel.sockaddr address in a string representation of an
-  IP address and a port number *)
-val explode_sockaddr: Nettypes.sockaddr -> string * int
-
   (** like List.assoc but return all bindings of a given key instead of the
   leftmost one only *)
 val list_assoc_all: 'a -> ('a * 'b) list -> 'b list

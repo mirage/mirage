@@ -85,7 +85,11 @@ module Raw = struct
 
   (* Blit istring to istring.
      Cannot be noalloc as it can raise an exception *)
-  external blit_istring: t -> int -> t -> int -> int -> unit = "caml_istring_safe_blit_view"
+  external blit_to_istring: t -> int -> t -> int -> int -> unit = "caml_istring_safe_blit_view"
+
+  (* Blit istring to string.
+     Cannot be noalloc as it can raise an exception *)
+  external blit_to_string: string -> int -> t -> int -> int -> unit = "caml_istring_safe_blit_to_string"
 
   (* Get character.
      Cannot be noalloc as it can raise an exception
@@ -146,9 +150,6 @@ module View = struct
   (* Get length of the view *)
   let length t = t.len
 
-  let off t = t.off
-  let raw t = t.i
-
   (* Generate a sub-view *)
   let sub t off len =
     let v = { t with off=t.off+off; len=len } in
@@ -162,6 +163,9 @@ module View = struct
     Raw.incr t.i;
     Gc.finalise final v;
     v
+
+  let off t = t.off
+  let raw t = t.i
 
   (** Marshal functions *)
 
@@ -184,7 +188,7 @@ module View = struct
     Raw.set_uint64_be t.i (t.off+off) v
 
   let set_view dst off src =
-    Raw.blit_istring dst.i (dst.off+off) src.i src.off src.len
+    Raw.blit_to_istring dst.i (dst.off+off) src.i src.off src.len
 
   (** Type cast functions *)
 
@@ -195,6 +199,10 @@ module View = struct
   (* Copy out an OCaml string from the view *)
   let to_string t off len =
     Raw.to_string t.i (t.off+off) len
+
+  (* Blit to an OCaml string from the view *)
+  let blit_to_string dst off t off len =
+    Raw.blit_to_string dst off t.i (t.off+off) len
 
   (* Get a single byte from the view, as an OCaml int *)
   let to_byte t off : byte =

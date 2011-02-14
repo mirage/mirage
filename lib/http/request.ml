@@ -2,7 +2,7 @@
   OCaml HTTP - do it yourself (fully OCaml) HTTP daemon
 
   Copyright (C) <2002-2005> Stefano Zacchiroli <zack@cs.unibo.it>
-  Copyright (C) <2009> Anil Madhavapeddy <anil@recoil.org>
+  Copyright (C) <2009-2011> Anil Madhavapeddy <anil@recoil.org>
   Copyright (C) <2009> David Sheets <sheets@alum.mit.edu>
 
   This program is free software; you can redistribute it and/or modify
@@ -46,8 +46,10 @@ type request = {
   r_version: version;
   r_path: string;
 }
+
+exception Length_required (* HTTP 411 *)
  
-let init_request ~clisockaddr ~srvsockaddr finished ic =
+let init_request finished ic =
   debug_print "init_request";
   lwt (meth, uri, version) = Parser.parse_request_fst_line ic in
   let uri_str = Url.to_string uri in
@@ -56,45 +58,60 @@ let init_request ~clisockaddr ~srvsockaddr finished ic =
   let query_get_params = Parser.parse_query_get_params uri in
   lwt headers = Parser.parse_headers ic in
   let headers = List.map (fun (h,v) -> (String.lowercase h, v)) headers in
-  lwt body = (if meth = `POST then begin
-		let limit = try Some 
-                  (Int64.of_string (List.assoc "content-length" headers))
-		with Not_found -> None in
-		  match limit with 
-		    |None -> Flow.read_all ic >|= (fun s -> Lwt.wakeup finished (); [`String s])
-		    |Some count -> return [`Inchan (count, ic, finished)]
-              end
-              else  (* TODO empty body for methods other than POST, is ok? *)
-		(Lwt.wakeup finished (); return [`String ""])) in
+  lwt body = match meth with
+    |`POST -> begin
+      let limit =
+        try
+          Some (Int64.of_string (List.assoc "content-length" headers))
+        with Not_found -> None
+      in
+      match limit with 
+      |None -> fail Length_required (* TODO replace with HTTP 411 response *)
+      |Some count ->
+        let read_t =
+          lwt segs = Net.Channel.TCPv4.read_view ic (Int64.to_int count) in
+          Lwt.wakeup finished ();
+          return segs in
+        return [`Inchan read_t]
+    end
+    |_ ->  (* Empty body for methods other than POST *)
+       Lwt.wakeup finished ();
+       return [`String ""]
+  in
   lwt query_post_params, body =
     match meth with
-      | `POST -> begin
-          try
-	    let ct = List.assoc "content-type" headers in
-	      if ct = "application/x-www-form-urlencoded" then
-		(Message.string_of_body body) >|= (fun s -> Parser.split_query_params s, [`String s])
-	      else return ([], body)
-	  with Not_found -> return ([], body)
-	end
-      | _ -> return ([], body)
+    |`POST -> begin
+ (* TODO
+      try
+        let ct = List.assoc "content-type" headers in (* TODO Not_found *)
+        if ct = "application/x-www-form-urlencoded" then
+          (Message.string_of_body body) >|=
+          (fun s -> Parser.split_query_params s, [`String s])
+         else
+          return ([], body)
+      with Not_found ->
+  *)
+        return ([], body)
+    end
+    | _ -> return ([], body)
   in
   let params = query_post_params @ query_get_params in (* prefers POST params *)
   let _ = debug_dump_request path params in
-  let msg = Message.init ~body ~headers ~version ~clisockaddr ~srvsockaddr in
+  let msg = Message.init ~body ~headers ~version in
   let params_tbl =
     let tbl = Hashtbl.create (List.length params) in
-      List.iter (fun (n,v) -> Hashtbl.add tbl n v) params;
-      tbl in
-    return { r_msg=msg; r_params=params_tbl; r_get_params = query_get_params; 
-             r_post_params = query_post_params; r_uri=uri_str; r_meth=meth; 
-             r_version=version; r_path=path }
+    List.iter (fun (n,v) -> Hashtbl.add tbl n v) params;
+    tbl
+  in
+  return { r_msg=msg; r_params=params_tbl; r_get_params = query_get_params; 
+    r_post_params = query_post_params; r_uri=uri_str; r_meth=meth; 
+    r_version=version; r_path=path }
 
 let meth r = r.r_meth
 let uri r = r.r_uri
 let path r = r.r_path
 let body r = Message.body r.r_msg
 let header r ~name = Message.header r.r_msg ~name
-let client_addr r = Message.client_addr r.r_msg
 
 let param ?meth ?default r name =
   try
@@ -123,9 +140,9 @@ let authorization r =
   match Message.header r.r_msg ~name:"authorization" with
     | [] -> None
     | h :: _ -> 
-	let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in
-	  debug_print ("HTTP Basic auth credentials: " ^ credentials);
-	  (match Str.split auth_sep_RE credentials with
-	     | [username; password] -> Some (`Basic (username, password))
-	     | l -> None)
+    let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in
+      debug_print ("HTTP Basic auth credentials: " ^ credentials);
+      (match Str.split auth_sep_RE credentials with
+         | [username; password] -> Some (`Basic (username, password))
+         | l -> None)
 

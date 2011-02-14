@@ -44,10 +44,12 @@ module View : sig
   val set_view : t -> int -> t -> unit
   val to_char : t -> int -> char
   val to_string : t -> int -> int -> string
+  val blit_to_string: string -> int -> t -> int -> int -> unit
   val to_byte : t -> int -> byte
   val to_uint16_be : t -> int -> uint16
   val to_uint32_be : t -> int -> int32
   val to_uint64_be : t -> int -> int64
   val seek : t -> int -> unit
   val ones_complement_checksum : t -> int -> int32 -> int
+  val scan_char: t -> int -> char -> int
 end

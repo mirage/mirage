@@ -1,6 +1,5 @@
 (* Simple hello world webserver *)
 
-open Http
 open Printf
 open Lwt
 
@@ -13,7 +12,7 @@ let port = 8081
 
 let callback id req =
   printf "callback start\n%!";
-  Daemon.respond ~body:"hello mirage world"
+  Http.Server.respond ~body:"hello mirage world"
     ~headers:["x-foo","bar"] () 
 
 let exn_handler exn =
@@ -21,7 +20,7 @@ let exn_handler exn =
   return ()
 
 let spec = {
-  Daemon.address="foo";
+  Http.Server.address="foo";
   auth = `None;
   callback;
   conn_closed;
@@ -33,7 +32,7 @@ let spec = {
 let main () =
   lwt mgr = Net.Manager.create () in
   let src = None,port in (* Listen on all interfaces *)
-  Daemon.main mgr src spec
+  Http.Server.main mgr src spec
 
 let _ =
   OS.Main.run (main ())

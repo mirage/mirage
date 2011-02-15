@@ -2,7 +2,18 @@ PREFIX ?= ~/mir-inst
 
 .PHONY: all lib syntax clean
 
-all: syntax lib
+PREFIX ?= _build/root
+
+OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
+ARCH = $(shell uname -m)
+
+ifeq ($(OS) $(ARCH),linux x86_64)
+XEN_BUILD=xen-direct
+else
+XEN_BUILD=
+endif
+
+all: syntax unix-direct unix-socket $(XEN_BUILD)
 	@ :
 
 syntax: syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
@@ -17,8 +28,13 @@ syntax/html/xhtml.ml:
 syntax/json/json.ml:
 	@cd syntax/json && ln -nsf ../../lib/json.ml .
 
-lib: syntax
-	ocamlbuild lib.otarget
+unix-%: 
+	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild -I syntax syntax.otarget
+	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild lib.otarget
+
+xen-%: syntax
+	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild -I syntax syntax.otarget
+	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild lib.otarget
 
 test: syntax lib
 	rm -rf tests/_build

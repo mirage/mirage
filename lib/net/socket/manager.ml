@@ -20,6 +20,7 @@
 
 open Lwt
 open Nettypes
+open Printf
 
 exception Error of string
 
@@ -47,14 +48,16 @@ module Unix = struct
   external domain_uid: unit -> uid = "caml_domain_name"
   external domain_bind: uid -> [`domain] fd resp = "caml_domain_bind"
   external domain_connect: uid -> [`domain] fd resp = "caml_domain_connect"
-  external domain_accept: [`domain] fd -> ([`domain] fd * uid) = "caml_domain_accept"
+  external domain_accept: [`domain] fd -> [`domain] fd resp = "caml_domain_accept"
   external domain_list: unit -> uid list = "caml_domain_list"
+
+  external pipe: unit -> ([`rd_pipe] fd * [`wr_pipe] fd) resp = "caml_alloc_pipe"
 
   external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
 
   external read: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
   external write: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
-  external close: [<`tcpv4|`udpv4|`domain|`pipe] fd -> unit = "caml_socket_close"
+  external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe] fd -> unit = "caml_socket_close"
 
   external fd : 'a fd -> int = "%identity"
 end
@@ -65,6 +68,48 @@ type t = {
   udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] Unix.fd) Hashtbl.t;
 }
 
+let control_t fd =
+  let rec accept () = 
+    OS.Activations.read (Unix.fd fd) >>
+    match Unix.domain_accept fd with
+    |Unix.OK lfd ->
+      (* TODO: do something interesting *)
+      Unix.close lfd;
+      accept ()
+    |Unix.Retry ->
+      printf "Manager.control_t: retry\n%!";
+      accept ()
+    |Unix.Err err ->
+      printf "Manager.control_t: ERR\n%!";
+      fail (Error err)
+  in accept ()
+
+(* Get a set of all the local peers *)
+let local_peers t = Unix.domain_list ()
+
+(* Get our local UID *)
+let local_uid t = Unix.domain_uid ()
+
+(* Ping a peer and see if it is alive *)
+let ping_peer t uid =
+  let rec connect () =
+    match Unix.domain_connect uid with
+    |Unix.OK fd ->
+      let rec loop () =
+        OS.Activations.write (Unix.fd fd) >>
+        match Unix.connect_result fd with
+        |Unix.OK () ->
+          printf "Manager.contact_uid: OK -> %d\n%!" uid;
+          Unix.close fd;
+          return true
+        |Unix.Err err ->
+          return false
+        |Unix.Retry -> loop ()
+      in loop ()
+   |Unix.Err err -> return false
+   |Unix.Retry -> connect ()
+ in connect ()
+       
 (* Enumerate interfaces and manage the protocol threads *)
 let create () =
   let udpv4 = Unix.udpv4_socket () in
@@ -80,10 +125,9 @@ let create () =
   Printf.printf "Our uid: %d Others: %s\n%!" our_uid
     (String.concat ", " (List.map string_of_int other_uids));
   Gc.compact (); (* XXX debug *)
-  return { udpv4; udpv4_listen_ports; domain }
-  
-let destroy t =
-  ()
+  let t = { udpv4; udpv4_listen_ports; domain } in
+  let th = control_t domain in
+  return (t, th)
 
 let get_udpv4 t =
   t.udpv4

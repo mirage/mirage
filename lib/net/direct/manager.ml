@@ -51,9 +51,9 @@ let configure id t =
       th (* Never return from this thread *)
 
 (* Enumerate interfaces and manage the protocol threads *)
-let create () : t Lwt.t =
+let create () =
   lwt ids = OS.Ethif.enumerate () in
-  Lwt_list.map_p (fun id ->
+  lwt t = Lwt_list.map_p (fun id ->
     lwt vif = OS.Ethif.create id in
     let (netif, netif_t) = Netif.create vif in
     let (ipv4, ipv4_t) = Ipv4.create netif in
@@ -64,10 +64,10 @@ let create () : t Lwt.t =
     let config_t = configure id t in
     let th = pick [udp_t; tcp_t; ipv4_t; netif_t; icmp_t; config_t] in
     return (t, th)
-  ) ids
-  
-let destroy t =
-  List.iter (fun (_,th) -> Lwt.cancel th) t
+  ) ids in
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> List.iter (fun (_,th) -> Lwt.cancel th) t);
+  return (t, th)
 
 (* Find the interface associated with the address *)
 let i_of_ip t addr =

@@ -99,10 +99,8 @@ caml_tcpv4_connect(value v_ipaddr, value v_port)
   }
   r = connect(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
   if (r == 0 || (r == -1 && errno == EINPROGRESS)) {
-    fprintf(stderr, "connect: OK %d \n", r);
     Val_OK(v_ret, Val_int(s));
   } else {
-    fprintf(stderr, "connect: ERR: %s\n", strerror(errno));
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
     close(s);
@@ -121,10 +119,8 @@ caml_socket_connect_result(value v_fd)
   if (getsockopt(fd, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0)
     err(1, "tcp_connect_result: getsockopt");
   if (!valopt) { 
-    fprintf(stderr, "connect_result: OK\n");
     Val_OK(v_ret, Val_unit);
   } else {
-    fprintf(stderr, "connect_result: ERR\n");
     v_err = caml_copy_string(strerror(valopt));
     Val_Err(v_ret, v_err);
     close(fd);
@@ -363,7 +359,6 @@ caml_domain_bind(value v_uid)
   sa.sun_family = AF_UNIX;
   snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));
   unlink(sa.sun_path);
-  fprintf(stderr, "sunpath %s\n", sa.sun_path);
   len = strlen(sa.sun_path) + sizeof(sa.sun_family) + 1;
   r = bind(s, (struct sockaddr *)&sa, len);
   if (r < 0) {
@@ -372,6 +367,7 @@ caml_domain_bind(value v_uid)
     close(s);
     CAMLreturn(v_ret);
   }
+
   r = listen(s,5);
   if (r < 0) {
     v_err = caml_copy_string(strerror(errno));
@@ -408,25 +404,25 @@ caml_domain_connect(value v_uid)
 {
   CAMLparam1(v_uid);
   CAMLlocal2(v_ret, v_err);
-  int s,r;
+  int s,r,len;
   struct sockaddr_un sa;
-  bzero(&sa, sizeof sa);
-  sa.sun_family = AF_UNIX;
-  snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));
-  s = socket(PF_INET, SOCK_STREAM, 0);
+  s = socket(PF_LOCAL, SOCK_STREAM, 0);
   setnonblock(s); 
   if (s < 0) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
     CAMLreturn(v_ret);
   }
-  int len = strlen(sa.sun_path) + sizeof(sa.sun_family) + 1;
+  bzero(&sa, sizeof sa);
+  sa.sun_family = AF_UNIX;
+  snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));
+  len = strlen(sa.sun_path) + sizeof(sa.sun_family) + 1;
   r = connect(s, (struct sockaddr *)&sa, len);
   if (r == 0 || (r == -1 && errno == EINPROGRESS)) {
-    fprintf(stderr, "domain_connect: OK %d \n", r);
     Val_OK(v_ret, Val_int(s));
   } else {
-    fprintf(stderr, "domain_connect: ERR: %s\n", strerror(errno));
+    if (errno == ECONNREFUSED)
+      unlink(sa.sun_path); /* Garbage collect the stale domain socket */
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
     close(s);
@@ -440,10 +436,10 @@ caml_domain_accept(value v_fd)
 {
   CAMLparam1(v_fd);
   CAMLlocal2(v_ret,v_err);
-  int r, fd=Int_val(v_fd);
+  int r, s=Int_val(v_fd);
   struct sockaddr_un sa;
   socklen_t len = sizeof sa;
-  r = accept(fd, (struct sockaddr *)&sa, &len);
+  r = accept(s, (struct sockaddr *)&sa, &len);
   if (r < 0) {
     if (errno == EWOULDBLOCK || errno == EAGAIN)
       Val_WouldBlock(v_ret);
@@ -453,12 +449,7 @@ caml_domain_accept(value v_fd)
     }
   } else {
     setnonblock(r);
-    int uid;
-    char fmt[128];
-    snprintf(fmt, sizeof fmt, "%s/mirage.%%d", get_domaindir());
-    if (sscanf(sa.sun_path, fmt, &uid) != 1) 
-      err(1, "unexpected connect from %s", sa.sun_path);
-    Val_OK(v_ret, Val_int(uid));
+    Val_OK(v_ret, Val_int(r));
   }
   CAMLreturn(v_ret);
 }

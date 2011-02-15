@@ -23,8 +23,7 @@ exception Error of string
 
 type t
 
-val create : unit -> t Lwt.t
-val destroy : t -> unit
+val create : unit -> (t * unit Lwt.t) Lwt.t
 
 val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t Lwt.t
 val udpv4_of_addr : t -> ipv4_addr option -> Udp.t Lwt.t

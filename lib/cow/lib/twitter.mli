@@ -38,5 +38,5 @@ module Status : sig
   val json_of_t_list : t list -> Json.t
   val t_list_of_json : Json.t -> t list
 
-  val user_timeline : ?screen_name:string -> unit -> t list Lwt.t
+  val user_timeline : Net.Flow.TCPv4.mgr -> ?screen_name:string -> unit -> t list Lwt.t
 end

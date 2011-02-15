@@ -37,7 +37,7 @@ module Status = struct
       t list
   with json
 
-  let user_timeline ?screen_name () =
+  let user_timeline mgr ?screen_name () =
     let filter = match screen_name with
       | Some n -> "?screen_name=" ^ n
       | None   -> "" in
@@ -45,7 +45,9 @@ module Status = struct
     let headers =
       ["Host", "api.twitter.com";
        "Connection", "keep-alive" ] in
-    lwt _, body = Net.Http.Client.get ~headers uri in
+    lwt _, body_t = Http.Client.get mgr ~headers uri in
+    (* TODO use istring directly *)
+    lwt body = map OS.Istring.View.ts_to_string body_t in
     let str = Json.of_string body in
     return (t_list_of_json str)
 

@@ -32,6 +32,7 @@ function assemble_xen {
     for i in dns http; do 
       cp ${ROOT}/lib/$i/_build/xen-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
     done
+    cp ${ROOT}/lib/cow/_build/xen-direct/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
   else
     echo Skipping: Xen
   fi
@@ -50,6 +51,7 @@ function assemble_unix_direct {
   for i in dns http; do 
     cp ${ROOT}/lib/$i/_build/unix-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
   done
+  cp ${ROOT}/lib/cow/_build/unix-direct/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
 }
 
 function assemble_unix_socket {
@@ -65,6 +67,7 @@ function assemble_unix_socket {
   for i in dns http; do 
     cp ${ROOT}/lib/$i/_build/unix-socket/$i.{cmi,cmxa,a} ${OBJ}/lib/;
   done
+  cp ${ROOT}/lib/cow/_build/unix-socket/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
 }
 
 function assemble_syntax {

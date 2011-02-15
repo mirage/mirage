@@ -52,4 +52,7 @@ module View : sig
   val seek : t -> int -> unit
   val ones_complement_checksum : t -> int -> int32 -> int
   val scan_char: t -> int -> char -> int
+
+  type ts = t Lwt_sequence.t (* Sequence of views *)
+  val ts_to_string: ts -> string
 end

@@ -234,4 +234,22 @@ module View = struct
     match Raw.scan_char t.i (t.off+off) c with
     | (-1) -> (-1)
     | r -> r - t.off
+
+  (* Sequences of istrings are held as a sequence internally *)
+  type ts = t Lwt_sequence.t
+
+  (* Copy a set of views into an OCaml string.
+     TODO: this should be hidden behind a String-like module
+     that hides the grungy copying.
+   *)
+  let ts_to_string ts =
+    let len = Lwt_sequence.fold_l (fun view acc -> length view + acc) ts 0 in
+    let buf = String.create len in
+    let _ = Lwt_sequence.fold_l (fun view off ->
+      let viewlen = length view in
+      blit_to_string buf off view 0 viewlen;
+      off + viewlen
+    ) ts 0 in
+    buf
+  
 end

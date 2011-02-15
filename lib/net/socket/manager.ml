@@ -26,7 +26,7 @@ exception Error of string
 module Unix = struct
   type ipv4 = int32
   type port = int
-  type uid
+  type uid = int
   type 'a fd
 
   type 'a resp =
@@ -35,7 +35,6 @@ module Unix = struct
   |Retry
 
   external tcpv4_connect: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_connect"
-  external tcpv4_connect_result: [`tcpv4] fd -> unit resp = "caml_socket_connect_result"
   external tcpv4_bind: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_bind"
   external tcpv4_listen: [`tcpv4] fd -> unit resp = "caml_socket_listen"
   external tcpv4_accept: [`tcpv4] fd -> ([`tcpv4] fd * ipv4 * port) resp = "caml_tcpv4_accept"
@@ -47,6 +46,11 @@ module Unix = struct
 
   external domain_uid: unit -> uid = "caml_domain_name"
   external domain_bind: uid -> [`domain] fd resp = "caml_domain_bind"
+  external domain_connect: uid -> [`domain] fd resp = "caml_domain_connect"
+  external domain_accept: [`domain] fd -> ([`domain] fd * uid) = "caml_domain_accept"
+  external domain_list: unit -> uid list = "caml_domain_list"
+
+  external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
 
   external read: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
   external write: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
@@ -70,6 +74,12 @@ let create () =
     |Unix.Err err -> fail (Failure ("control domain socket: " ^ err))
     |Unix.Retry -> assert false in
   (* TODO: cleanup the domain socket atexit *)
+  (* List all other domains at startup *)
+  let other_uids = Unix.domain_list () in
+  let our_uid = Unix.domain_uid () in
+  Printf.printf "Our uid: %d Others: %s\n%!" our_uid
+    (String.concat ", " (List.map string_of_int other_uids));
+  Gc.compact (); (* XXX debug *)
   return { udpv4; udpv4_listen_ports; domain }
   
 let destroy t =

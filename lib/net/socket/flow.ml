@@ -147,7 +147,7 @@ module TCPv4 = struct
       let t = t_of_fd fd in
       let rec loop () =
         Activations.write (R.fd t.fd) >>
-        match R.tcpv4_connect_result t.fd with
+        match R.connect_result t.fd with
         |R.OK _ ->
           close_on_exit t fn
         |R.Err s -> fail (Connect_error s)

@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include <dirent.h>
 #include <arpa/inet.h>
 
 #include <caml/mlvalues.h>
@@ -331,25 +332,27 @@ caml_udpv4_sendto(value v_fd, value v_istr, value v_off, value v_len, value v_ds
 CAMLprim value
 caml_domain_name(value v_unit)
 {
-  CAMLparam1(v_unit);
-  CAMLlocal1(v_str);
-  char buf[16];
-  snprintf(buf, sizeof buf, "%d", getpid());
-  CAMLreturn(caml_copy_string(buf));
+  return (Val_int(getpid()));
+}
+
+static char *
+get_domaindir(void)
+{
+  char *basedir = getenv("MIRAGE_RUNDIR");
+  if (!basedir) basedir="/tmp";
+  return basedir;
 }
 
 /* Bind a domain socket to the given name in the mirage runtime dir,
    and listen for connections */
 CAMLprim value
-caml_domain_bind(value v_name)
+caml_domain_bind(value v_uid)
 {
-  CAMLparam1(v_name);
+  CAMLparam1(v_uid);
   CAMLlocal2(v_ret, v_err);
   struct sockaddr_un sa;
   size_t len;
   int s,r;
-  char *basedir = getenv("MIRAGE_RUNDIR");
-  if (!basedir) basedir="/tmp";
   s = socket(AF_UNIX, SOCK_STREAM, 0);
   if (s < 0) {
     v_err = caml_copy_string(strerror(errno));
@@ -358,7 +361,7 @@ caml_domain_bind(value v_name)
   }  
   bzero(&sa, sizeof sa);
   sa.sun_family = AF_UNIX;
-  snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%s", basedir, String_val(v_name));
+  snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));
   unlink(sa.sun_path);
   fprintf(stderr, "sunpath %s\n", sa.sun_path);
   len = strlen(sa.sun_path) + sizeof(sa.sun_family) + 1;
@@ -378,4 +381,110 @@ caml_domain_bind(value v_name)
   }
   Val_OK(v_ret, Val_int(s));
   CAMLreturn(v_ret);
+}
+
+/* Allocate a pipe and return (readpipe,writepipe) */
+CAMLprim value
+caml_alloc_pipe(value v_unit)
+{
+  CAMLparam1(v_unit);
+  CAMLlocal3(v_ret, v_err, v_fd);
+  int pipefd[2] = { -1, -1 };
+  if (pipe(pipefd) == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    CAMLreturn(v_ret);
+  }
+  v_fd = caml_alloc(2,0);
+  Store_field(v_fd, 0, Val_int(pipefd[0]));
+  Store_field(v_fd, 1, Val_int(pipefd[1]));
+  Val_OK(v_ret, v_fd);
+  CAMLreturn(v_ret);
+}
+
+/* Connect to a local unix domain socket */
+CAMLprim value
+caml_domain_connect(value v_uid)
+{
+  CAMLparam1(v_uid);
+  CAMLlocal2(v_ret, v_err);
+  int s,r;
+  struct sockaddr_un sa;
+  bzero(&sa, sizeof sa);
+  sa.sun_family = AF_UNIX;
+  snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));
+  s = socket(PF_INET, SOCK_STREAM, 0);
+  setnonblock(s); 
+  if (s < 0) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    CAMLreturn(v_ret);
+  }
+  int len = strlen(sa.sun_path) + sizeof(sa.sun_family) + 1;
+  r = connect(s, (struct sockaddr *)&sa, len);
+  if (r == 0 || (r == -1 && errno == EINPROGRESS)) {
+    fprintf(stderr, "domain_connect: OK %d \n", r);
+    Val_OK(v_ret, Val_int(s));
+  } else {
+    fprintf(stderr, "domain_connect: ERR: %s\n", strerror(errno));
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+    close(s);
+  }
+  CAMLreturn(v_ret);
+}
+
+/* Accept a connection from another UNIX domain socket */
+CAMLprim value
+caml_domain_accept(value v_fd)
+{
+  CAMLparam1(v_fd);
+  CAMLlocal2(v_ret,v_err);
+  int r, fd=Int_val(v_fd);
+  struct sockaddr_un sa;
+  socklen_t len = sizeof sa;
+  r = accept(fd, (struct sockaddr *)&sa, &len);
+  if (r < 0) {
+    if (errno == EWOULDBLOCK || errno == EAGAIN)
+      Val_WouldBlock(v_ret);
+    else {
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }
+  } else {
+    setnonblock(r);
+    int uid;
+    char fmt[128];
+    snprintf(fmt, sizeof fmt, "%s/mirage.%%d", get_domaindir());
+    if (sscanf(sa.sun_path, fmt, &uid) != 1) 
+      err(1, "unexpected connect from %s", sa.sun_path);
+    Val_OK(v_ret, Val_int(uid));
+  }
+  CAMLreturn(v_ret);
+}
+
+/* Walk through the socket directory and list all the domains.
+   TODO This is racy, and will eventually work via a control daemon */
+CAMLprim value
+caml_domain_list(value v_unit)
+{
+  CAMLparam1(v_unit);
+  CAMLlocal2(v_head, v_cons);
+  v_head = Val_emptylist;
+  DIR *dirp = opendir(get_domaindir());
+  struct dirent *dp;
+  if (!dirp)
+    err(1, "opendir");
+  while ((dp = readdir(dirp))) {
+    int uid = -1;
+    if (sscanf(dp->d_name, "mirage.%d", &uid) == 1 &&
+        uid != getpid()) {
+      v_cons = caml_alloc(2, 0);
+      Store_field(v_cons, 0, Val_int(uid));
+      Store_field(v_cons, 1, v_head);
+      v_head = v_cons;
+    }
+  }
+  closedir(dirp);
+  CAMLreturn(v_head);
 }

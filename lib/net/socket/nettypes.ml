@@ -162,3 +162,18 @@ module type CHANNEL = sig
 
   val flush : t -> unit Lwt.t
 end
+
+module type RPC = sig
+
+  type req
+  type res
+
+  type mgr
+
+  type src
+  type dst
+
+  val request : mgr -> ?src:src -> dst -> req -> res Lwt.t
+  val respond : mgr -> src -> (dst -> req -> res Lwt.t) -> unit Lwt.t
+
+end

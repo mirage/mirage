@@ -25,7 +25,16 @@ module Util = struct
     try 
       sf "%s/%s" (Sys.getenv "MIRAGELIB") lib
     with Not_found ->
-      sf "../../%s/_build" lib
+      sf "../../../%s/_build" lib
+
+  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix"
+  let flow = try Sys.getenv "MIRAGEFLOW" with Not_found -> "direct"
+
+  let () = Options.build_dir := sf "_build/%s-%s" os flow
+
+  let get_net_lib base =
+    sf "../../../%s/_build/%s-%s" base os flow
+
 end
 
 let std_lib =
@@ -44,13 +53,11 @@ let os_lib =
   let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
   Util.get_lib "os" ^ (sf "/%s" os)
 
-let os_runtime_lib = 
-  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
-  Util.get_lib "os" ^ (sf "/runtime_%s" os)
-
 let net_lib =
-  let os = try Sys.getenv "MIRAGEOS" with Not_found -> "unix" in
-  sf "%s/%s" (Util.get_lib "net") os
+  Util.get_lib (sf "net/%s" Util.flow) ^ "/" ^ Util.os
+
+let http_lib =
+  Util.get_net_lib "http"
 
 let caml_lib =
   List.hd (Util.run_and_read "ocamlc -where")
@@ -84,12 +91,11 @@ module Flags = struct
   let pa_ulex = camlp4 pa_ulex_deps
   let pa_cow  = camlp4 pa_cow_deps
 
-  let stdlib  = [ A"-nostdlib"; A"-I"; A std_lib; ]
+  let stdlib  = [ A"-nostdlib"; A"-I"; A std_lib; A "-I"; A os_lib; A "-I"; A net_lib ]
   let dyntype = [ A"-I"; A dyntype_lib ]
   let ulex    = [ A"-I"; A std_lib ]
   let cow     = [ A"-I"; A "lib" ]
-  let os      = [ A"-I"; A os_lib ]
-  let http    = [ A"-I"; A net_lib ]
+  let http    = [ A"-I"; A http_lib ]
 
   let all_deps = [
     A"-ccopt"; A (sf "-L%s" caml_lib); A"-verbose";
@@ -102,7 +108,7 @@ module Flags = struct
   ]
 
   let all =
-    stdlib @ dyntype @ ulex @ http @ os @ cow
+    stdlib @ dyntype @ ulex @ http @ cow
 end
 
 module Expand = struct

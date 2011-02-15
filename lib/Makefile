@@ -7,7 +7,7 @@ all:
 	cd dns && $(MAKE)
 	cd dyntype && $(MAKE)
 	cd http && $(MAKE)
-#	cd cow && $(MAKE)
+	cd cow && $(MAKE)
 #	cd debugger && $(MAKE)
 
 clean:
@@ -17,5 +17,5 @@ clean:
 	cd dns && $(MAKE) clean
 	cd dyntype && $(MAKE) clean
 	cd http && $(MAKE) clean
-#	cd cow && $(MAKE) clean
+	cd cow && $(MAKE) clean
 #	cd debugger && $(MAKE) clean

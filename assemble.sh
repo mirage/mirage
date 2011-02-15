@@ -72,6 +72,8 @@ function assemble_syntax {
   OBJ=${BUILDDIR}/syntax
   mkdir -p ${OBJ}
   cp ${ROOT}/lib/std/_build/syntax/pa_*.cma ${OBJ}/
+  cp ${ROOT}/lib/dyntype/_build/syntax/*.{cmi,cmo} ${OBJ}/
+  cp ${ROOT}/lib/cow/_build/unix-direct/syntax/pa_cow.cmo ${OBJ}/
 }
 
 function assemble_scripts {

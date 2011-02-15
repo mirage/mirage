@@ -7,7 +7,7 @@ open Net
 module F = Flow.TCPv4
 
 let echo () =
-  lwt mgr = Manager.create () in
+  lwt mgr,mgr_t = Manager.create () in
   (* Listen on all interfaces, port 8081 *)
   let src = (None, 8081) in 
   F.listen mgr src

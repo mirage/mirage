@@ -8,7 +8,7 @@ open Net
 module F = Flow.UDPv4
 
 let echo () =
-  lwt mgr = Manager.create () in
+  lwt mgr,_ = Manager.create () in
   (* Listen on all interfaces, port 8081 *)
   let port = 8081 in
   let src = (None, port) in 

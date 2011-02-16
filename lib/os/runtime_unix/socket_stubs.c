@@ -479,3 +479,128 @@ caml_domain_list(value v_unit)
   closedir(dirp);
   CAMLreturn(v_head);
 }
+
+/* Send a fd over to another process */
+CAMLprim value
+caml_domain_send_fd(value v_dstfd, value v_fd)
+{
+  CAMLparam2(v_dstfd, v_fd);
+  CAMLlocal2(v_err, v_ret);
+
+  struct msghdr msg;
+  char tmp[CMSG_SPACE(sizeof(int))];
+  struct cmsghdr *cmsg;
+  struct iovec vec;
+  int result = 0;
+  ssize_t n;
+
+  bzero(&msg, sizeof(msg));
+  msg.msg_control = (caddr_t)tmp;
+  msg.msg_controllen = CMSG_LEN(sizeof(int));
+  cmsg = CMSG_FIRSTHDR(&msg);
+  cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+  cmsg->cmsg_level = SOL_SOCKET;
+  cmsg->cmsg_type = SCM_RIGHTS;
+  *(int *)CMSG_DATA(cmsg) = Int_val(v_fd);
+
+  vec.iov_base = &result;
+  vec.iov_len = sizeof(int);
+  msg.msg_iov = &vec;
+  msg.msg_iovlen = 1;
+
+  if ((n = sendmsg(Int_val(v_dstfd), &msg, 0)) != sizeof(int)) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else
+    Val_OK(v_ret, Val_unit);
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_domain_recv_fd(value v_fd)
+{
+  CAMLparam1(v_fd);
+  CAMLlocal2(v_err, v_ret);
+
+  struct msghdr msg;
+  char tmp[CMSG_SPACE(sizeof(int))];
+  struct cmsghdr *cmsg;
+  struct iovec vec;
+  ssize_t n;
+  int result;
+
+  bzero(&msg, sizeof(msg));
+  vec.iov_base = &result;
+  vec.iov_len = sizeof(int);
+  msg.msg_iov = &vec;
+  msg.msg_iovlen = 1;
+  msg.msg_control = tmp;
+  msg.msg_controllen = sizeof(tmp);
+
+  if ((n = recvmsg(Int_val(v_fd), &msg, 0)) == -1) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      Val_WouldBlock(v_ret);
+      CAMLreturn(v_ret);
+    }
+    goto err;
+  }
+
+  if (result == 0) {
+    cmsg = CMSG_FIRSTHDR(&msg);
+    if (cmsg == NULL)
+      goto err;
+    if (cmsg->cmsg_type != SCM_RIGHTS)
+      goto err;
+    Val_OK(v_ret, Val_int((*(int *)CMSG_DATA(cmsg))));
+    CAMLreturn(v_ret);
+  }
+err:
+  v_err = caml_copy_string(strerror(errno));
+  Val_Err(v_ret, v_err);
+  CAMLreturn(v_ret);
+}
+
+/* Read from a connected domain socket, intended for small control
+   messages only (such as peer uid) */
+CAMLprim value
+caml_domain_read(value v_fd)
+{
+  CAMLparam1(v_fd);
+  CAMLlocal2(v_ret, v_err);
+  char buf[64];
+  int r = read(Int_val(v_fd), buf, sizeof(buf));
+  if (r < 0) {
+    if (errno == EAGAIN || errno==EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
+    else {
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }   
+  } else
+    Val_OK(v_ret, caml_copy_string(buf));
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_domain_write(value v_fd, value v_str)
+{
+  CAMLparam2(v_fd, v_str);
+  CAMLlocal2(v_ret, v_err);
+  int len = caml_string_length(v_str);
+  int r = write(Int_val(v_fd), String_val(v_str), len);
+  if (r < 0) {
+    if (errno == EAGAIN || errno==EWOULDBLOCK)
+      Val_WouldBlock(v_ret);
+    else {
+      v_err = caml_copy_string(strerror(errno));
+      Val_Err(v_ret, v_err);
+    }
+  } else if (r != len) {
+    v_err = caml_copy_string("domain_write: partial write");
+    Val_Err(v_ret, v_err);
+  } else {
+    Val_OK(v_ret, Val_unit);
+  }
+  CAMLreturn(v_ret);
+}
+

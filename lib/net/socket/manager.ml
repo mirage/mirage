@@ -31,9 +31,9 @@ module Unix = struct
   type 'a fd
 
   type 'a resp =
-  |OK of 'a
-  |Err of string
-  |Retry
+  | OK of 'a
+  | Err of string
+  | Retry
 
   external tcpv4_connect: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_connect"
   external tcpv4_bind: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_bind"
@@ -50,7 +50,11 @@ module Unix = struct
   external domain_connect: uid -> [`domain] fd resp = "caml_domain_connect"
   external domain_accept: [`domain] fd -> [`domain] fd resp = "caml_domain_accept"
   external domain_list: unit -> uid list = "caml_domain_list"
-
+  external domain_read: [`domain] fd -> string resp = "caml_domain_read"
+  external domain_write: [`domain] fd -> string -> unit resp = "caml_domain_write"
+  external domain_send_pipe: [`domain] fd -> [<`rd_pipe|`wr_pipe] fd -> unit resp = "caml_domain_send_fd"
+  external domain_recv_pipe: [`domain] fd -> [<`rd_pipe|`wr_pipe] fd resp = "caml_domain_recv_fd"
+ 
   external pipe: unit -> ([`rd_pipe] fd * [`wr_pipe] fd) resp = "caml_alloc_pipe"
 
   external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
@@ -59,65 +63,67 @@ module Unix = struct
   external write: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
   external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe] fd -> unit = "caml_socket_close"
 
-  external fd : 'a fd -> int = "%identity"
+  external fd_to_int : 'a fd -> int = "%identity"
+
+  let rec fdbind actfn iofn fd =
+    actfn (fd_to_int fd) >>
+    match iofn fd with
+    |OK x -> return x
+    |Err err -> fail (Error err)
+    |Retry -> fdbind actfn iofn fd
+
+  let rec iobind iofn arg =
+    match iofn arg with
+    |OK x -> return x
+    |Err err -> fail (Error err)
+    |Retry -> assert false
 end
 
+open Unix
+
 type t = {
-  domain: [`domain] Unix.fd;
-  udpv4: [`udpv4] Unix.fd;
-  udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] Unix.fd) Hashtbl.t;
+  domain: [`domain] fd;
+  udpv4: [`udpv4] fd;
+  udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] fd) Hashtbl.t;
 }
 
 let control_t fd =
-  let rec accept () = 
-    OS.Activations.read (Unix.fd fd) >>
-    match Unix.domain_accept fd with
-    |Unix.OK lfd ->
-      (* TODO: do something interesting *)
-      Unix.close lfd;
-      accept ()
-    |Unix.Retry ->
-      printf "Manager.control_t: retry\n%!";
-      accept ()
-    |Unix.Err err ->
-      printf "Manager.control_t: ERR\n%!";
-      fail (Error err)
+  let rec accept () =
+    lwt lfd = fdbind OS.Activations.read domain_accept fd in
+    (* Read the peer uid, uint32_t *)
+    lwt uid_s = fdbind OS.Activations.read domain_read lfd in
+    let uid = int_of_string uid_s in
+    printf "Connection from peer %d\n%!" uid;
+    close lfd;
+    accept ()
   in accept ()
 
 (* Get a set of all the local peers *)
-let local_peers t = Unix.domain_list ()
+let local_peers t = domain_list ()
 
 (* Get our local UID *)
-let local_uid t = Unix.domain_uid ()
+let local_uid t = domain_uid ()
 
 (* Ping a peer and see if it is alive *)
 let ping_peer t uid =
   let rec connect () =
-    match Unix.domain_connect uid with
-    |Unix.OK fd ->
-      let rec loop () =
-        OS.Activations.write (Unix.fd fd) >>
-        match Unix.connect_result fd with
-        |Unix.OK () ->
-          printf "Manager.contact_uid: OK -> %d\n%!" uid;
-          Unix.close fd;
-          return true
-        |Unix.Err err ->
-          return false
-        |Unix.Retry -> loop ()
-      in loop ()
-   |Unix.Err err -> return false
-   |Unix.Retry -> connect ()
+    try_lwt
+      lwt fd = iobind domain_connect uid in
+      let our_uid = string_of_int (domain_uid ()) in
+      fdbind OS.Activations.write connect_result fd >>
+      lwt () = fdbind OS.Activations.write (fun fd -> domain_write fd our_uid) fd in
+      close fd;
+      printf "Manager.contact_uid: OK -> %d\n%!" uid;
+      return true
+    with exn ->
+      return false
  in connect ()
        
 (* Enumerate interfaces and manage the protocol threads *)
 let create () =
-  let udpv4 = Unix.udpv4_socket () in
+  let udpv4 = udpv4_socket () in
   let udpv4_listen_ports = Hashtbl.create 7 in
-  lwt domain = match Unix.(domain_bind (domain_uid ())) with
-    |Unix.OK fd -> return fd 
-    |Unix.Err err -> fail (Failure ("control domain socket: " ^ err))
-    |Unix.Retry -> assert false in
+  lwt domain = iobind domain_bind (domain_uid ()) in
   (* TODO: cleanup the domain socket atexit *)
   (* List all other domains at startup *)
   let other_uids = Unix.domain_list () in
@@ -139,13 +145,9 @@ let register_udpv4_listener mgr src fd =
 let get_udpv4_listener mgr (addr,port) =
   try
     return (Hashtbl.find mgr.udpv4_listen_ports (addr,port))
-  with
-    Not_found -> begin
-      let iaddr = match addr with None -> 0l |Some a -> ipv4_addr_to_uint32 a in
-      match Unix.udpv4_bind iaddr port with
-      |Unix.OK fd ->
-         register_udpv4_listener mgr (addr,port) fd;
-         return fd
-      |Unix.Err e -> fail (Failure e)
-      |Unix.Retry -> assert false
-    end
+  with Not_found -> begin
+    let iaddr = match addr with None -> 0l |Some a -> ipv4_addr_to_uint32 a in
+    lwt fd = iobind (udpv4_bind iaddr) port in
+    register_udpv4_listener mgr (addr,port) fd;
+    return fd
+  end

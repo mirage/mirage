@@ -72,7 +72,7 @@ let listen_tcpv4 addr port fn =
   |R.OK () ->
     let rec loop t =
       with_value id (new_id ()) (fun () ->
-        Activations.read (R.fd t.fd) >>
+        Activations.read (R.fd_to_int t.fd) >>
         (match R.tcpv4_accept fd with
          |R.OK (afd,caddr_i,cport) ->
            let caddr = ipv4_addr_of_uint32 caddr_i in
@@ -95,7 +95,7 @@ let listen_tcpv4 addr port fn =
 let rec read_buf t istr off len =
   match R.read t.fd istr off len with
   |R.Retry ->
-    Activations.read (R.fd t.fd) >>
+    Activations.read (R.fd_to_int t.fd) >>
     read_buf t istr off len
   |R.OK r -> return r
   |R.Err e -> fail (Read_error e)
@@ -103,7 +103,7 @@ let rec read_buf t istr off len =
 let rec write_buf t istr off len =
   match R.write t.fd istr off len with 
   |R.Retry ->
-    Activations.write (R.fd t.fd) >>
+    Activations.write (R.fd_to_int t.fd) >>
     write_buf t istr off len
   |R.OK amt ->
     if amt = len then return ()
@@ -146,7 +146,7 @@ module TCPv4 = struct
       (* Wait for the connect to complete *)
       let t = t_of_fd fd in
       let rec loop () =
-        Activations.write (R.fd t.fd) >>
+        Activations.write (R.fd_to_int t.fd) >>
         match R.connect_result t.fd with
         |R.OK _ ->
           close_on_exit t fn
@@ -185,7 +185,7 @@ module UDPv4 = struct
       |None -> return (Manager.get_udpv4 mgr)
       |Some src -> Manager.get_udpv4_listener mgr src
     in
-    Activations.write (R.fd fd) >>
+    Activations.write (R.fd_to_int fd) >>
     let raw = OS.Istring.View.raw req in
     let off = OS.Istring.View.off req in
     let len = OS.Istring.View.length req in
@@ -202,7 +202,7 @@ module UDPv4 = struct
   let recv mgr (addr,port) fn =
     lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
     let rec listen lfd =
-      lwt () = Activations.read (R.fd lfd) in
+      lwt () = Activations.read (R.fd_to_int lfd) in
       let istr = OS.Istring.Raw.alloc () in
       match R.udpv4_recvfrom lfd istr 0 4096 with
       |R.OK (frm_addr, frm_port, len) ->

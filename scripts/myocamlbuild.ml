@@ -162,7 +162,7 @@ let _ = dispatch begin function
     let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
     let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
     let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
-    let pp_pa = ps "camlp4o %s %s" pa_std pa_dyntype in (* TODO add pa_cow in here *)
+    let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
     let _ = match debugmode, OS.target with
      | true, (OS.Unix _) -> [ A "debugger.cmx" ]
      | _ -> [] in
@@ -188,9 +188,6 @@ let _ = dispatch begin function
     flag ["ocaml"; "pack"]    & S mirage_flags;
     flag ["ocaml"; "link"]    & S (mirage_flags @ libs);
     flag ["ocamldep"]         & S[A"-pp"; A pp_pa];
-
-    (* use pa_mirage syntax extension *)
-    flag ["ocaml"; "compile"] & S[A"-pp"; A pp_pa];
 
   | _ -> ()
 end

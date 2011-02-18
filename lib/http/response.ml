@@ -38,33 +38,36 @@ let add_basic_headers r =
   Message.add_header r.r_msg ~name:"Date" ~value:(Misc.date_822 ());
   Message.add_header r.r_msg ~name:"Server" ~value:server_string
 
-let init ?(body = [`String ""]) ?(headers = []) ?(version = default_version)
-    ?(status=`Code 200) ?reason ()
-    =
-  let r = { r_msg = Message.init ~body ~headers ~version;
-	    r_code = begin match status with
-	      | `Code c -> c
-	      | #status as s -> code_of_status s
-	    end;
-	    r_reason = reason } in
-  let () = add_basic_headers r in r
+let init ?(body = [`String ""]) ?(headers = []) ?(version = default_version) ?(status=`Code 200) ?reason () =
+  let r_msg = Message.init ~body ~headers ~version in
+  let r_code = match status with
+  | `Code c -> c
+  | #status as s -> code_of_status s in
+  let r = { r_msg; r_code; r_reason = reason } in
+  add_basic_headers r;
+  r
 
 let version_string r = string_of_version (Message.version r.r_msg)
 
 let code r = r.r_code
+
 let set_code r c = 
    ignore (status_of_code c);  (* sanity check on c *)
    r.r_code <- c
+
 let status r = status_of_code (code r)
+
 let set_status r (s: Types.status) = r.r_code <- code_of_status s
+
 let reason r =
-   match r.r_reason with
-      | None -> Misc.reason_phrase_of_code r.r_code
-      | Some r -> r
+  match r.r_reason with
+  | None -> Misc.reason_phrase_of_code r.r_code
+  | Some r -> r
+
 let set_reason r rs = r.r_reason <- Some rs
+
 let status_line r =
-      String.concat " "
-        [version_string r; string_of_int (code r); reason r ]
+  String.concat " " [version_string r; string_of_int (code r); reason r ]
 
 let is_informational r = Common.is_informational r.r_code
 let is_success r = Common.is_success r.r_code
@@ -74,7 +77,10 @@ let is_server_error r = Common.is_server_error r.r_code
 let is_error r = Common.is_error r.r_code
 
 let gh name r =
-  match Message.header r.r_msg ~name with [] -> None | x :: _ -> Some x
+  match Message.header r.r_msg ~name with
+  |[] -> None
+  |x :: _ -> Some x
+
 let rh name r = Message.replace_header r.r_msg ~name
 
 let content_type = gh "Content-Type"

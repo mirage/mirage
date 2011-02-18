@@ -256,3 +256,4 @@ module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
 end
 
 module TCPv4 = Make(Flow.TCPv4)
+module Pipe = Make(Flow.Pipe)

@@ -59,12 +59,14 @@ module Unix = struct
 
   external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
 
-  external read: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
-  external write: [<`udpv4|`tcpv4] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
+  external read: [<`udpv4|`tcpv4|`rd_pipe] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
+  external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
   external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe] fd -> unit = "caml_socket_close"
 
   external fd_to_int : 'a fd -> int = "%identity"
 
+  (* Given an activation function actfn (to know when the FD is ready),
+     perform an iofn repeatedly until either error or value is obtained *)
   let rec fdbind actfn iofn fd =
     actfn (fd_to_int fd) >>
     match iofn fd with
@@ -72,6 +74,7 @@ module Unix = struct
     |Err err -> fail (Error err)
     |Retry -> fdbind actfn iofn fd
 
+  (* As fdbind, except on functions that will either be Some or None *)
   let rec iobind iofn arg =
     match iofn arg with
     |OK x -> return x
@@ -81,22 +84,14 @@ end
 
 open Unix
 
+type uid = Unix.uid
+
 type t = {
   domain: [`domain] fd;
+  peers: (uid, [`domain] fd) Hashtbl.t;
   udpv4: [`udpv4] fd;
   udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] fd) Hashtbl.t;
 }
-
-let control_t fd =
-  let rec accept () =
-    lwt lfd = fdbind OS.Activations.read domain_accept fd in
-    (* Read the peer uid, uint32_t *)
-    lwt uid_s = fdbind OS.Activations.read domain_read lfd in
-    let uid = int_of_string uid_s in
-    printf "Connection from peer %d\n%!" uid;
-    close lfd;
-    accept ()
-  in accept ()
 
 (* Get a set of all the local peers *)
 let local_peers t = domain_list ()
@@ -104,21 +99,55 @@ let local_peers t = domain_list ()
 (* Get our local UID *)
 let local_uid t = domain_uid ()
 
-(* Ping a peer and see if it is alive *)
-let ping_peer t uid =
-  let rec connect () =
-    try_lwt
-      lwt fd = iobind domain_connect uid in
-      let our_uid = string_of_int (domain_uid ()) in
-      fdbind OS.Activations.write connect_result fd >>
-      lwt () = fdbind OS.Activations.write (fun fd -> domain_write fd our_uid) fd in
-      close fd;
-      printf "Manager.contact_uid: OK -> %d\n%!" uid;
-      return true
-    with exn ->
-      return false
- in connect ()
-       
+(* Connect to a peer and return a control socket to it *)
+let connect_to_peer t uid =
+ if Hashtbl.mem t.peers uid then
+   return (Some (Hashtbl.find t.peers uid))
+ else begin
+   try_lwt
+     lwt fd = iobind domain_connect uid in
+     let our_uid = string_of_int (domain_uid ()) in
+     fdbind OS.Activations.write connect_result fd >>
+     lwt () = fdbind OS.Activations.write (fun fd -> domain_write fd our_uid) fd in
+     Hashtbl.add t.peers uid fd;
+     return (Some fd)
+   with exn ->
+     return None
+  end
+
+(* Loop and listen for incoming domain socket connections from peers *)
+let listen_to_peers t fn =
+  let fd = t.domain in
+  let rec accept_t () =
+    lwt lfd = fdbind OS.Activations.read domain_accept fd in
+    (* Read the peer uid, uint32_t *)
+    lwt uid_s = fdbind OS.Activations.read domain_read lfd in
+    let uid = int_of_string uid_s in
+    printf "Connection from peer %d\n%!" uid;
+    (* Loop and listen for incoming pipe FDs *)
+    let rec get_pipe () = 
+      lwt wr_pipe = fdbind OS.Activations.read domain_recv_pipe lfd in
+      lwt rd_pipe = fdbind OS.Activations.read domain_recv_pipe lfd in
+      fn uid (rd_pipe, wr_pipe)
+    in accept_t () <&> (get_pipe ())
+  in accept_t ()
+
+(* Exchange a pipe pair with a peer *)
+let rec connect t uid fn =
+  (* First get the domain socket connection to the peer *)
+  connect_to_peer t uid >>= function
+  |None ->
+    printf "Manager: no control socket to %d\n%!" uid;
+    fail (Error "connect")
+  |Some fd -> begin
+    (* Generate a pipe pair for bi-direction comms *)
+    lwt rd_pipe, wr_pipe = iobind pipe () in
+    lwt rd_pipe', wr_pipe' = iobind pipe () in
+    iobind (domain_send_pipe fd) wr_pipe >>
+    iobind (domain_send_pipe fd) rd_pipe' >>
+    fn (rd_pipe, wr_pipe') 
+  end 
+ 
 (* Enumerate interfaces and manage the protocol threads *)
 let create () =
   let udpv4 = udpv4_socket () in
@@ -131,8 +160,9 @@ let create () =
   Printf.printf "Our uid: %d Others: %s\n%!" our_uid
     (String.concat ", " (List.map string_of_int other_uids));
   Gc.compact (); (* XXX debug *)
-  let t = { udpv4; udpv4_listen_ports; domain } in
-  let th = control_t domain in
+  let peers = Hashtbl.create 7 in
+  let t = { udpv4; udpv4_listen_ports; domain; peers } in
+  let th, _ = Lwt.task () in
   return (t, th)
 
 let get_udpv4 t =

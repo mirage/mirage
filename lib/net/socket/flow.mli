@@ -26,8 +26,8 @@ module TCPv4 : FLOW with
 
 module Pipe : FLOW with
       type mgr = Manager.t
-  and type src = int32
-  and type dst = int32
+  and type src = Manager.uid
+  and type dst = Manager.uid
 
 module UDPv4 : DATAGRAM with
       type mgr = Manager.t

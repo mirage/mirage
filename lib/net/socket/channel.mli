@@ -16,3 +16,6 @@
 
 module TCPv4 : Nettypes.CHANNEL with
   type flow = Flow.TCPv4.t
+
+module Pipe : Nettypes.CHANNEL with
+   type flow = Flow.Pipe.t

@@ -116,7 +116,13 @@ let read t =
   match len with
   |0 -> return None
   |len -> return (Some (OS.Istring.View.t ~off:0 istr len))
-  
+
+let write t view =
+  let istr = OS.Istring.View.raw view in
+  let off = OS.Istring.View.off view in
+  let len = OS.Istring.View.length view in
+  write_buf t istr off len
+
 module TCPv4 = struct
   type t = [`tcpv4] fdwrap
   type mgr = Manager.t
@@ -127,12 +133,7 @@ module TCPv4 = struct
 
   let read = read
   let close = close
-
-  let write t view =
-    let istr = OS.Istring.View.raw view in
-    let off = OS.Istring.View.off view in
-    let len = OS.Istring.View.length view in
-    write_buf t istr off len
+  let write = write
 
   let listen mgr src fn =
     let addr, port = match src with
@@ -159,18 +160,28 @@ module TCPv4 = struct
 end
 
 module Pipe = struct
-  type t = [`pipe] fdwrap
+  type t = [`rd_pipe] fdwrap * [`wr_pipe] fdwrap
   type mgr = Manager.t
-  type src = int32
-  type dst = int32
+  type src = int (* process pid *)
+  type dst = int (* process pid *)
 
   type msg = OS.Istring.View.t
 
-  let read t = fail (Failure "read")
-  let write t view = fail (Failure "write")
-  let close t = fail (Failure "close")
-  let connect mgr ?src dstid fn = fail (Failure "connect")
-  let listen mgr src fn = fail (Failure "listen")
+  let read (rd,_) = read rd
+  let write (_,wr) view = write wr view
+  let close (rd,wr) = close rd <&> (close wr)
+
+  let listen mgr src fn =
+    Manager.listen_to_peers mgr
+     (fun dst (rd,wr) ->
+       fn dst (t_of_fd rd, (t_of_fd wr))
+     )
+
+  let connect mgr ?src dstid fn =
+    Manager.connect mgr dstid
+      (fun (rd,wr) ->
+        fn (t_of_fd rd, (t_of_fd wr))
+      )
 end
 
 module UDPv4 = struct

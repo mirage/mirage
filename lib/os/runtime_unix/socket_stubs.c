@@ -75,8 +75,10 @@ caml_udpv4_socket(value v_unit)
   int s = socket(PF_INET, SOCK_DGRAM, 0);
   if (s < 0)
     caml_failwith("socket() failed");
-  else
+  else {
+    setnonblock(s);
     CAMLreturn(Val_int(s));
+  }
 }
 
 CAMLprim value
@@ -91,12 +93,12 @@ caml_tcpv4_connect(value v_ipaddr, value v_port)
   sa.sin_port = htons(Int_val(v_port));
   sa.sin_addr.s_addr = ntohl(Int32_val(v_ipaddr));
   s = socket(PF_INET, SOCK_STREAM, 0);
-  setnonblock(s); 
   if (s < 0) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
     CAMLreturn(v_ret);
   }
+  setnonblock(s); 
   r = connect(s, (struct sockaddr *)&sa, sizeof(struct sockaddr));
   if (r == 0 || (r == -1 && errno == EINPROGRESS)) {
     Val_OK(v_ret, Val_int(s));
@@ -250,6 +252,7 @@ caml_udpv4_bind(value v_ipaddr, value v_port)
     Val_Err(v_ret, v_err);
     CAMLreturn(v_ret);
   }
+  setnonblock(s);
   struct sockaddr_in sa;
   bzero(&sa, sizeof sa);
   sa.sin_family = AF_INET;
@@ -355,6 +358,7 @@ caml_domain_bind(value v_uid)
     Val_Err(v_ret, v_err);
     CAMLreturn(v_ret);
   }  
+  setnonblock(s);
   bzero(&sa, sizeof sa);
   sa.sun_family = AF_UNIX;
   snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));
@@ -391,6 +395,8 @@ caml_alloc_pipe(value v_unit)
     Val_Err(v_ret, v_err);
     CAMLreturn(v_ret);
   }
+  setnonblock(pipefd[0]);
+  setnonblock(pipefd[1]);
   v_fd = caml_alloc(2,0);
   Store_field(v_fd, 0, Val_int(pipefd[0]));
   Store_field(v_fd, 1, Val_int(pipefd[1]));
@@ -407,12 +413,12 @@ caml_domain_connect(value v_uid)
   int s,r,len;
   struct sockaddr_un sa;
   s = socket(PF_LOCAL, SOCK_STREAM, 0);
-  setnonblock(s); 
   if (s < 0) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
     CAMLreturn(v_ret);
   }
+  setnonblock(s); 
   bzero(&sa, sizeof sa);
   sa.sun_family = AF_UNIX;
   snprintf(sa.sun_path, sizeof(sa.sun_path), "%s/mirage.%d", get_domaindir(), Int_val(v_uid));

@@ -92,6 +92,21 @@ caml_istring_safe_get_char(value v_istr, value v_off)
   return Val_int(c);
 }
 
+/* Get a character from an istring, no bounds checking */
+CAMLprim value
+caml_istring_unsafe_get_char(value v_istr, value v_off)
+{
+  return Val_int(Istring_val(v_istr)->buf[Int_val(v_off)]);
+}
+
+/* Set a character in an istring, no bounds checking */
+CAMLprim value
+caml_istring_unsafe_set_char(value v_istr, value v_off, value v_ch)
+{
+  Istring_val(v_istr)->buf[Int_val(v_off)] = Int_val(v_ch);
+  return Val_unit;
+}
+
 /* Get an ocaml string from an istring */
 CAMLprim value
 caml_istring_safe_get_string(value v_istr, value v_off, value v_len)

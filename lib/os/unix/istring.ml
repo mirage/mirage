@@ -96,6 +96,10 @@ module Raw = struct
    *)
   external to_char: t -> int -> char = "caml_istring_safe_get_char"
 
+  external unsafe_to_char: t -> int -> char = "caml_istring_unsafe_get_char"
+
+  external unsafe_set_char: t -> int -> char -> unit = "caml_istring_unsafe_set_char"
+
   (* Get an OCaml string slice. *)
   external to_string: t -> int -> int -> string = "caml_istring_safe_get_string"
 
@@ -152,7 +156,9 @@ module View = struct
 
   (* Generate a sub-view *)
   let sub t off len =
-    let v = { t with off=t.off+off; len=len } in
+    let off = t.off+off in
+    if off >= Raw.size t.i then raise (Invalid_argument "Istring.sub out of bounds");
+    let v = { t with off; len } in
     Raw.incr t.i;
     Gc.finalise final v;
     v
@@ -252,4 +258,33 @@ module View = struct
     ) ts 0 in
     buf
   
+end
+
+module S = struct
+
+  type t = View.t
+
+  let length t = View.length t
+
+  let get t off = View.to_char t off
+
+  let set t off ch = View.set_char t off ch
+
+  let create i = raise (Invalid_argument "Istring.create not supported")
+    
+  let make i = raise (Invalid_argument "Istring.make not supported")
+
+  let sub t off len = View.sub t off len
+
+  let iter fn t =
+    for i = 0 to length t - 1 do 
+      fn (Raw.unsafe_to_char t.View.i (t.View.off+i))
+    done
+   
+  let fill t off len ch =
+    let v = sub t off len in
+    for i = 0 to length v - 1 do
+      Raw.unsafe_set_char v.View.i (v.View.off+i) ch
+    done
+
 end

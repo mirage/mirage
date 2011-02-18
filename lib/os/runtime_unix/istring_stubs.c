@@ -115,7 +115,7 @@ caml_istring_safe_blit(value v_istr, value v_off, value v_str)
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
   int len = caml_string_length(v_str);
-  if (len+off >= i->size)
+  if (len+off > i->size)
     caml_array_bound_error();
   memcpy(i->buf + off, String_val(v_str), len);
   return Val_unit;

@@ -195,14 +195,7 @@ module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
   (* Read until the next \r\n or \n and return an ocaml string *)
   let read_line t =
     lwt segs = read_line_view t in
-    let buflen = Lwt_sequence.fold_l (fun view len ->
-      OS.Istring.View.length view + len) segs 0 in
-    let buf = String.create buflen in
-    let _ = Lwt_sequence.fold_l (fun view off ->
-      let viewlen = OS.Istring.View.length view in
-      OS.Istring.View.blit_to_string buf off view 0 viewlen;
-      off + viewlen
-    ) segs 0 in
+    let buf = OS.Istring.View.ts_to_string segs in
     return buf
 
   let flush t =

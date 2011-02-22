@@ -55,4 +55,5 @@ module View : sig
 
   type ts = t Lwt_sequence.t (* Sequence of views *)
   val ts_to_string: ts -> string
+  val ts_of_stream: t Lwt_stream.t -> ts Lwt.t
 end

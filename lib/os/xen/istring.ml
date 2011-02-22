@@ -257,7 +257,13 @@ module View = struct
       off + viewlen
     ) ts 0 in
     buf
-  
+
+  (* Converts a Lwt_stream of views into a view sequence *) 
+  let ts_of_stream s =
+    let ts = Lwt_sequence.create () in
+    Lwt_stream.iter (fun v -> ignore(Lwt_sequence.add_r v ts)) s >>
+    Lwt.return ts
+
 end
 
 module S = struct

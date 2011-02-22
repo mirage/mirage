@@ -48,6 +48,22 @@ module TCPv4 = struct
 
 end
 
+(* Shared mem communication across VMs, not yet implemented *)
+module Pipe = struct
+  type t = unit
+  type mgr = Manager.t
+  type src = int
+  type dst = int
+
+  let read t = fail (Failure "read")
+  let write t view = fail (Failure "write")
+  let close t = fail (Failure "close")
+
+  let listen mgr src fn = fail (Failure "listen")
+  let connect mgr ?src dst fn = fail (Failure "connect")
+
+end
+
 module UDPv4 = struct
 
   type mgr = Manager.t

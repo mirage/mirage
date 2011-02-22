@@ -24,8 +24,14 @@ module TCPv4 : FLOW with
   and type src = ipv4_src
   and type dst = ipv4_dst
 
+module Pipe : FLOW with
+      type mgr = Manager.t
+  and type src = int
+  and type dst = int
+
 module UDPv4 : DATAGRAM with
       type mgr = Manager.t
   and type src = ipv4_src
   and type dst = ipv4_dst
   and type msg = OS.Istring.View.t
+

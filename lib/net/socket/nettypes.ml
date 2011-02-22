@@ -144,36 +144,41 @@ end
 
 module type CHANNEL = sig
 
-  type flow
+  type mgr
   type t
+  type src
+  type dst
 
-  val create: flow -> t
+  val read_char: t -> char option Lwt.t
+  val read_until: t -> char -> (bool * OS.Istring.View.t option) option Lwt.t
+  val read_view: ?len:int -> t -> OS.Istring.View.t option Lwt.t
 
-  val read_char: t -> char Lwt.t
-  val read_until: t -> char -> OS.Istring.View.t Lwt_sequence.t Lwt.t
-  val read_view: t -> int -> OS.Istring.View.t Lwt_sequence.t Lwt.t
-  val read_string: t -> string -> int -> int -> unit Lwt.t 
-  val read_line : t -> string Lwt.t
-  val read_all : t -> OS.Istring.View.t Lwt_sequence.t Lwt.t
+  val read_crlf: t -> OS.Istring.View.t Lwt_stream.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t
   val write_line : t -> string -> unit Lwt.t
 
   val flush : t -> unit Lwt.t
+  val close : t -> unit Lwt.t
+
+  val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
+  val connect : mgr -> ?src:src -> dst -> (t -> 'a Lwt.t) -> 'a Lwt.t
 end
 
 module type RPC = sig
 
-  type req
-  type res
+  type tx
+  type rx
+
+  type 'a req
+  type 'a res
 
   type mgr
 
   type src
   type dst
 
-  val request : mgr -> ?src:src -> dst -> req -> res Lwt.t
-  val respond : mgr -> src -> (dst -> req -> res Lwt.t) -> unit Lwt.t
-
+  val request : mgr -> ?src:src -> dst -> tx req -> rx res Lwt.t
+  val respond : mgr -> src -> (dst -> rx req -> tx res Lwt.t) -> unit Lwt.t
 end

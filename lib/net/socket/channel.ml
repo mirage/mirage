@@ -20,16 +20,21 @@ open Lwt
 open Printf
 open Nettypes
 
-module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
+module Make(Flow:FLOW) : 
+  (CHANNEL with type src = Flow.src
+            and type dst = Flow.dst
+            and type mgr = Flow.mgr)  = struct
 
   type flow = Flow.t
+  type src = Flow.src
+  type dst = Flow.dst
+  type mgr = Flow.mgr
 
   type t = {
     flow: flow;
-    ibuf: OS.Istring.View.t Lwt_sequence.t;
-    mutable obuf: OS.Istring.View.t option;
-    mutable ilen: int;
+    mutable ibuf: OS.Istring.View.t option;
     mutable ipos: int;
+    mutable obuf: OS.Istring.View.t option;
     mutable opos: int;
     abort_t: unit Lwt.t;
     abort_u: unit Lwt.u;
@@ -38,134 +43,127 @@ module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
   exception Closed
 
   let create flow =
-    let ibuf = Lwt_sequence.create () in
+    let ibuf = None in
     let obuf = None in
-    let ilen = 0 in
     let ipos = 0 in
     let opos = 0 in
     let abort_t, abort_u = Lwt.task () in
-    { ibuf; obuf; ilen; ipos; opos; flow; abort_t; abort_u }
-
-  (* Ensure the input buffer has enough for our purposes *)
-  let rec ibuf_need t amt =
-    if t.ilen < t.ipos + amt then begin
-      lwt res = Flow.read t.flow in
-      match res with
-      |None -> fail Closed
-      |Some view ->
-        let _ = Lwt_sequence.add_r view t.ibuf in
-        t.ilen <- OS.Istring.View.length view + t.ilen;
-        ibuf_need t amt
-    end else
-      return (Lwt_sequence.peek_l t.ibuf)
+    { ibuf; obuf; ipos; opos; flow; abort_t; abort_u }
 
   (* Increment the input buffer position *)
-  let rec ibuf_incr t amt =
-    let buf = Lwt_sequence.peek_r t.ibuf in
-    let buf_len = OS.Istring.View.length buf in
-    let ipos = t.ipos in
-    if (ipos + amt) >= buf_len then begin
-      (* This buf has been consumed. Free it *)
-      let _ = Lwt_sequence.take_l t.ibuf in
-      t.ilen <- t.ilen - buf_len;
-      t.ipos <- 0;
-      if ipos + amt - buf_len > 0 then begin
-        (* More buffers need removing *)
-        ibuf_incr t (ipos + amt - buf_len)
-      end
-    end else begin
-      (* Continue to partially consume head buf *)
-      t.ipos <- t.ipos + amt
-    end
+  let ibuf_incr t amt =
+    let newpos = t.ipos + amt in 
+    match t.ibuf with
+    |Some view ->
+      if newpos >= OS.Istring.View.length view then begin
+        t.ibuf <- None;
+        t.ipos <- 0;
+      end else
+        t.ipos <- newpos;
+    |None -> assert false
+
+  (* Fill the input buffer with a view and return it,
+     or the existing one if already there *)
+  let ibuf_fill t =
+    Flow.read t.flow >>= function
+    |Some buf as x ->
+      t.ibuf <- x;
+      return (Some buf)
+    |None ->
+      return None
 
   (* Read one character from the input channel *)
-  let read_char t =
-    lwt view = ibuf_need t 1 in
-    let ch = OS.Istring.View.to_char view t.ipos in
-    ibuf_incr t 1;
-    return ch
+  let rec read_char t =
+    ibuf_fill t >>= function
+    |Some buf ->
+      (* This buffer will always have at least one character
+         spare, or it wouldn't be here *)
+      let ch = OS.Istring.View.to_char buf t.ipos in
+      ibuf_incr t 1;
+      return (Some ch)
+    |None -> return None
 
-  let read_view t len =
-    let segs = Lwt_sequence.create () in
-    let rec copy len =
-      lwt view = ibuf_need t len in
-      (* See if this buffer has enough for this request *)
-      if t.ipos + len < (OS.Istring.View.length view) then begin
-        (* This view is sufficent *)
-        let _ = Lwt_sequence.add_r (OS.Istring.View.sub view t.ipos len) segs in
-        ibuf_incr t len;
-        return segs
-      end else begin
-        (* Retrieve the chunk and get more *)
-        let this_len = 4096 - t.ipos in
-        let _ = Lwt_sequence.add_r (OS.Istring.View.sub view t.ipos this_len) segs in
-        ibuf_incr t this_len;
-        copy (len - this_len)
-      end
-    in
-    copy len  
-    
-  (* Blit len bytes into the dst string at offset off *)
-  let read_string t dst off len =
-    lwt segs = read_view t len in
-    let _ = Lwt_sequence.fold_l (fun view off ->
-      let viewlen = OS.Istring.View.length view in
-      OS.Istring.View.blit_to_string dst off view 0 viewlen;
-      off + viewlen
-    ) segs off in
-    return ()
+  (* Read up to len characters from the input channel
+     and at most a full view. If not specified, read all *)
+  let read_view ?len t =
+    ibuf_fill t >>= function
+    |Some buf ->
+      (* Read at most one view *)
+      let n = match len with
+      |Some len -> min (OS.Istring.View.length buf - t.ipos) len 
+      |None -> OS.Istring.View.length buf - t.ipos in
+      let v = OS.Istring.View.sub buf t.ipos n in
+      ibuf_incr t n;
+      return (Some v)
+    |None -> return None
       
-  (* Read until a character is encountered *)
+  (* Read until a character is encountered. This can also
+     be a short read, and return a short view that does
+     not yet have the character.
+     @return (bool * view option) option where bool=character found
+      along with the view portion consumed, and the outer option
+      signifies EOF *)
   let read_until t ch =
-    (* require at least one character to start with *)
-    lwt view = ibuf_need t 1 in
-    match OS.Istring.View.scan_char view t.ipos ch with
-    |(-1) -> 
-      (* slow path, need another segment *)
-      let segs = Lwt_sequence.create () in
-      let headview = Lwt_sequence.take_l t.ibuf in
-      let start_pos = t.ipos in
-      let start_len = OS.Istring.View.length headview - start_pos in
-      t.ipos <- 0;
-      t.ilen <- t.ilen - (OS.Istring.View.length headview);
-      let rec scan () =
-        lwt view = ibuf_need t 1 in
-        match OS.Istring.View.scan_char view 0 ch with
-        |(-1) ->
-          let view = Lwt_sequence.take_l t.ibuf in
-          let _ = Lwt_sequence.add_r view segs in
-          t.ilen <- t.ilen - (OS.Istring.View.length view);
-          scan ()
-        |idx ->
-          (* Add head sub-view to the result segment list *)
-          let _ = Lwt_sequence.add_l (OS.Istring.View.sub headview
-            start_pos start_len) segs in
-          (* Append last subview in *)
-          let _ = Lwt_sequence.add_r (OS.Istring.View.sub view 0 idx) segs in
-          ibuf_incr t (idx+1);
-          return segs
-      in scan ()
-    |idx ->
-      let seg = Lwt_sequence.create () in
-      let len = idx - t.ipos in
-      if len >= 0 then begin
-        let _ = Lwt_sequence.add_l 
-          (OS.Istring.View.sub view t.ipos (idx-t.ipos)) seg in
-        ibuf_incr t (len+1);
-      end;
-      return seg
+    ibuf_fill t >>= function
+    |Some buf -> begin
+      match OS.Istring.View.scan_char buf t.ipos ch with
+      |(-1) ->  (* not found, so return the partial view *)
+        let v = OS.Istring.View.sub buf t.ipos (OS.Istring.View.length buf - t.ipos) in
+        return (Some (false, Some v))
+      |idx ->
+        let len = idx - t.ipos in
+        if len >= 0 then begin
+          let v = OS.Istring.View.sub buf t.ipos (idx-t.ipos) in
+          ibuf_incr t (len+1);
+          return (Some (true, Some v))
+        end else begin (* Consume just the divider character *)
+          ibuf_incr t 1;
+          return (Some (true, None))
+        end
+    end
+    |None -> return None
 
-  (* Read all data until EOF *)
-  let read_all t =
-    let segs = Lwt_sequence.create () in
-    let rec read () =
-      Flow.read t.flow >>= function
-        |None -> return segs
-        |Some v ->
-          let _ = Lwt_sequence.add_r v segs in
-          read ()
-    in read ()
-      
+  (* Read a "chunk" of data (where the chunk size is dependent on the
+     underlying protocol and available data, and raise Closed when EOF *)
+  let read_opt t =
+    ibuf_fill t >>= function
+    |Some buf ->
+      let len = OS.Istring.View.length buf - t.ipos in
+      let v = OS.Istring.View.sub buf t.ipos len in
+      ibuf_incr t len;
+      return (Some v)
+    |None -> return None
+
+  (* This reads a line of input, which is terminated either by a CRLF
+     sequence, or the end of the channel (which counts as a line).
+     @return Returns a stream of views that terminates at EOF *)
+  let read_crlf t =
+    let fin = ref false in
+    Lwt_stream.from (fun () ->
+      match !fin with
+      |true -> return None
+      |false -> begin
+        read_until t '\n' >>= function
+        |None -> return None  (* EOF *)
+        |Some (_, None) -> assert false
+        |Some (false, Some v) -> return (Some v) (* Continue scanning *)
+        |Some (true, Some v) -> begin (* Found (CR?)LF *)
+          fin := true;
+          (* chop the CR if present *)
+          let vlen = OS.Istring.View.length v in
+          match OS.Istring.View.to_char v (vlen - 1) with
+          |'\r' ->
+            if vlen > 1 then
+              return (Some (OS.Istring.View.(sub v 0 (vlen-1))))
+            else
+              return None
+          |_ ->
+            return (Some v)
+        end
+      end
+    )
+    
+(*     
   (* Read until the next \r\n or \n *)
   let read_line_view t =
     lwt segs = read_until t '\n' in
@@ -181,22 +179,9 @@ module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
        |_ -> 
          ignore(Lwt_sequence.add_r view segs));
       return segs
+*)
 
-  (* Blit len bytes into the dst string at offset off *)
-  let read_string t dst off len =
-    lwt segs = read_view t len in
-    let _ = Lwt_sequence.fold_l (fun view off ->
-      let viewlen = OS.Istring.View.length view in
-      OS.Istring.View.blit_to_string dst off view 0 viewlen;
-      off + viewlen
-    ) segs off in
-    return ()
-
-  (* Read until the next \r\n or \n and return an ocaml string *)
-  let read_line t =
-    lwt segs = read_line_view t in
-    let buf = OS.Istring.View.ts_to_string segs in
-    return buf
+  (* Output functions *)
 
   let flush t =
     match t.obuf with
@@ -246,6 +231,17 @@ module Make(Flow:FLOW) : (CHANNEL with type flow = Flow.t) = struct
   let write_line t buf =
     write_string t buf >>
     write_char t '\n'
+
+  let close t =
+    flush t >>
+    Flow.close t.flow
+
+  let connect mgr ?src dst fn =
+    Flow.connect mgr ?src dst (fun f -> fn (create f))
+
+  let listen mgr src fn =
+    Flow.listen mgr src (fun dst f -> fn dst (create f))
+
 end
 
 module TCPv4 = Make(Flow.TCPv4)

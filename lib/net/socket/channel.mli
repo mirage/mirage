@@ -15,7 +15,11 @@
  *)
 
 module TCPv4 : Nettypes.CHANNEL with
-  type flow = Flow.TCPv4.t
+      type src = Flow.TCPv4.src
+  and type dst = Flow.TCPv4.dst
+  and type mgr = Flow.TCPv4.mgr
 
 module Pipe : Nettypes.CHANNEL with
-   type flow = Flow.Pipe.t
+      type src = Flow.Pipe.src
+  and type dst = Flow.Pipe.dst
+  and type mgr = Flow.Pipe.mgr

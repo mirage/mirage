@@ -163,24 +163,6 @@ module Make(Flow:FLOW) :
       end
     )
     
-(*     
-  (* Read until the next \r\n or \n *)
-  let read_line_view t =
-    lwt segs = read_until t '\n' in
-    (* Chop \r if it is the last character *) 
-    match Lwt_sequence.take_opt_r segs with
-    |None -> return segs
-    |Some view ->
-      let viewlen = OS.Istring.View.length view in
-      (match OS.Istring.View.to_char view (viewlen - 1) with
-       |'\r' -> 
-         if viewlen > 1 then
-           ignore(Lwt_sequence.add_r (OS.Istring.View.(sub view 0 (viewlen-1))) segs)
-       |_ -> 
-         ignore(Lwt_sequence.add_r view segs));
-      return segs
-*)
-
   (* Output functions *)
 
   let flush t =

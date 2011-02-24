@@ -165,7 +165,7 @@ module Pipe = struct
   type src = int (* process pid *)
   type dst = int (* process pid *)
 
-  type msg = OS.Istring.View.t
+  type msg = OS.Istring.t
 
   let read (rd,_) = read rd
   let write (_,wr) view = write wr view

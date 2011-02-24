@@ -46,7 +46,7 @@ module Rx = struct
 
   type q = {
     mutable segs: S.t;
-    rx_data: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
+    rx_data: OS.Istring.t list option Lwt_mvar.t; (* User receive channel *)
     tx_ack: Sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     wnd: Window.t;
@@ -154,10 +154,10 @@ module Tx = struct
   type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
 
   type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-    unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+    unit OS.Istring.View.data -> OS.Istring.t Lwt.t
 
   type seg = {
-    view: OS.Istring.View.t;
+    view: OS.Istring.t;
     flags: flags;
   }
 

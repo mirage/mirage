@@ -29,10 +29,10 @@ module Shmem : CHANNEL with
 type t
 
 val read_char: t -> char option Lwt.t
-val read_until: t -> char -> (bool * OS.Istring.View.t option) option Lwt.t
-val read_view: ?len:int -> t -> OS.Istring.View.t option Lwt.t
+val read_until: t -> char -> (bool * OS.Istring.t option) option Lwt.t
+val read_view: ?len:int -> t -> OS.Istring.t option Lwt.t
 
-val read_crlf: t -> OS.Istring.View.t Lwt_stream.t
+val read_crlf: t -> OS.Istring.t Lwt_stream.t
 
 val write_char : t -> char -> unit Lwt.t
 val write_string : t -> string -> unit Lwt.t

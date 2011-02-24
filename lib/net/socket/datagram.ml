@@ -29,7 +29,7 @@ module UDPv4 = struct
   type src = ipv4_addr option * int
   type dst = ipv4_addr * int
 
-  type msg = OS.Istring.View.t
+  type msg = OS.Istring.t
 
   let rec send mgr ?src (dstaddr, dstport) req =
     lwt fd = match src with

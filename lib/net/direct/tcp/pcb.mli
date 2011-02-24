@@ -26,7 +26,7 @@ val create: Ipv4.t -> t * unit Lwt.t
 val close: pcb -> unit Lwt.t
 
 (* Blocking read for a segment *)
-val read: pcb -> OS.Istring.View.t option Lwt.t
+val read: pcb -> OS.Istring.t option Lwt.t
 
 (* Low-level write interface that lets the application
    decide on a write strategy *)

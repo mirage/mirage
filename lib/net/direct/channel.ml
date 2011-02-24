@@ -32,9 +32,9 @@ module Make(Flow:FLOW) :
 
   type t = {
     flow: flow;
-    mutable ibuf: OS.Istring.View.t option;
+    mutable ibuf: OS.Istring.t option;
     mutable ipos: int;
-    mutable obuf: OS.Istring.View.t option;
+    mutable obuf: OS.Istring.t option;
     mutable opos: int;
     abort_t: unit Lwt.t;
     abort_u: unit Lwt.u;

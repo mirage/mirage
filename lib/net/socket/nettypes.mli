@@ -47,8 +47,8 @@ module type FLOW = sig
   type src
   type dst
 
-  val read : t -> OS.Istring.View.t option Lwt.t
-  val write : t -> OS.Istring.View.t -> unit Lwt.t
+  val read : t -> OS.Istring.t option Lwt.t
+  val write : t -> OS.Istring.t -> unit Lwt.t
   val close : t -> unit Lwt.t
 
   val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
@@ -75,10 +75,10 @@ module type CHANNEL = sig
   type dst
 
   val read_char: t -> char option Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.View.t option) option Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.View.t option Lwt.t
+  val read_until: t -> char -> (bool * OS.Istring.t option) option Lwt.t
+  val read_view: ?len:int -> t -> OS.Istring.t option Lwt.t
 
-  val read_crlf: t -> OS.Istring.View.t Lwt_stream.t
+  val read_crlf: t -> OS.Istring.t Lwt_stream.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t

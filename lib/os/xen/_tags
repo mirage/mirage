@@ -1,4 +1,4 @@
 <*.cmx>: for-pack(OS)
 <*.ml>: annot
 "ring.ml" or "xb.ml" or "xsraw.ml" or "xst.ml" or "main.ml" or "xs.ml": pa_lwt
-"ethif.ml" or "console.ml" or "gnttab.ml" or "time.ml": pa_lwt
+"ethif.ml" or "console.ml" or "gnttab.ml" or "time.ml" or "istring.ml": pa_lwt

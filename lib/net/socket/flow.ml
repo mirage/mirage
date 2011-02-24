@@ -207,9 +207,12 @@ let connect mgr = function
      TCPv4.connect mgr ?src dst (fun t -> fn (TCPv4 t))
   |`Pipe (src, dst, fn) ->
      Pipe.connect mgr ?src dst (fun t -> fn (Pipe t))
+  |_ -> fail (Failure "unknown protocol")
 
 let listen mgr = function
   |`TCPv4 (src, fn) ->
      TCPv4.listen mgr src (fun dst t -> fn dst (TCPv4 t))
   |`Pipe (src, fn) ->
      Pipe.listen mgr src (fun dst t -> fn dst (Pipe t))
+  |_ -> fail (Failure "unknown protocol")
+

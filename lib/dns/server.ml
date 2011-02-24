@@ -44,7 +44,7 @@ let get_answer (qname,qtype) id =
 
 let listen mgr src ~zonebuf =
   Dnsserver.load_zone [] zonebuf;
-  Net.Flow.UDPv4.(recv mgr src 
+  Net.Datagram.UDPv4.(recv mgr src 
     (fun dst env ->
       Mpl_dns_label.init_unmarshal env;
       let d = Packet.unmarshal env in

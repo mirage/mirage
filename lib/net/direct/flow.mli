@@ -26,22 +26,17 @@ module TCPv4 : FLOW with
 
 module Shmem : FLOW with
       type mgr = Manager.t
-  and type src = int
-  and type dst = int
+  and type src = peer_uid
+  and type dst = peer_uid
 
-(* Experimental types to represent run-time flows *)
+val connect :
+  Manager.t -> [<
+   | `Shmem of peer_uid option * peer_uid * (Shmem.t -> 'a Lwt.t)
+   | `TCPv4 of ipv4_src option * ipv4_dst * (TCPv4.t -> 'a Lwt.t)
+  ] -> 'a Lwt.t
 
-module TypEq : sig
-  type ('a, 'b) t
-  val apply : ('a, 'b) t -> 'a -> 'b
-end
-
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, TCPv4.t) TypEq.t
-  | Shmem of ('a, Shmem.t) TypEq.t
-end
-
-val tcpv4 : TCPv4.t Typ.typ
-val shmem : Shmem.t Typ.typ
-
+val listen :
+  Manager.t -> [<
+   | `Shmem of peer_uid * (peer_uid -> Shmem.t -> unit Lwt.t)
+   | `TCPv4 of ipv4_src * (ipv4_dst -> TCPv4.t -> unit Lwt.t)
+  ] -> unit Lwt.t

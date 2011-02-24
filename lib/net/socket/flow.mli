@@ -14,29 +14,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module TCPv4 : Nettypes.FLOW with
+open Nettypes
+
+module TCPv4 : FLOW with
       type mgr = Manager.t
-  and type src = Nettypes.ipv4_src
-  and type dst = Nettypes.ipv4_dst
+  and type src = ipv4_src
+  and type dst = ipv4_dst
 
-module Pipe : Nettypes.FLOW with
+module Pipe : FLOW with
       type mgr = Manager.t
-  and type src = Manager.uid
-  and type dst = Manager.uid
+  and type src = peer_uid
+  and type dst = peer_uid
 
-(* Experimental types to represent run-time flows *)
+val connect :
+  Manager.t -> [< 
+   | `Pipe of peer_uid option * peer_uid * (Pipe.t -> 'a Lwt.t)
+   | `TCPv4 of ipv4_src option * ipv4_dst * (TCPv4.t -> 'a Lwt.t)
+  ] -> 'a Lwt.t
 
-module TypEq : sig
-  type ('a, 'b) t
-  val apply : ('a, 'b) t -> 'a -> 'b
-end
-
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, TCPv4.t) TypEq.t
-  | Pipe of ('a, Pipe.t) TypEq.t
-end
-
-val tcpv4 : TCPv4.t Typ.typ
-val pipe : Pipe.t Typ.typ
+val listen :
+  Manager.t -> [< 
+   | `Pipe of peer_uid * (peer_uid -> Pipe.t -> unit Lwt.t)
+   | `TCPv4 of ipv4_src * (ipv4_dst -> TCPv4.t -> unit Lwt.t)
+  ] -> unit Lwt.t
 

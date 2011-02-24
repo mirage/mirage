@@ -229,26 +229,11 @@ end
 module TCPv4 = Make(Flow.TCPv4)
 module Pipe = Make(Flow.Pipe)
 
-(* very experimental existential type encodings of the modules
-   for runtime use *)
-module TypEq : sig
-  type ('a, 'b) t
-  val apply: ('a, 'b) t -> 'a -> 'b
-  val refl: ('a, 'a) t
-  val sym: ('a, 'b) t -> ('b, 'a) t
-end = struct
-  type ('a, 'b) t = ('a -> 'b) * ('b -> 'a)
-  let refl = (fun x -> x), (fun x -> x)
-  let apply (f, _) x = f x
-  let sym (f, g) = (g, f)
-end
+let connect mgr = function
+  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
+  |`Pipe (src, dst, fn) -> Pipe.connect mgr ?src dst fn
 
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, TCPv4.t) TypEq.t
-  | Pipe of ('a, Pipe.t) TypEq.t
-end = Typ
-
-let tcpv4 = Typ.TCPv4 TypEq.refl
-let pipe = Typ.Pipe TypEq.refl
+let listen mgr = function
+  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
+  |`Pipe (src, fn) -> Pipe.listen mgr src fn
 

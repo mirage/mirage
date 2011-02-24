@@ -38,6 +38,8 @@ val ipv4_localhost : ipv4_addr
 type ipv4_src = ipv4_addr option * int
 type ipv4_dst = ipv4_addr * int
 
+type peer_uid = int
+
 module type FLOW = sig
   type t
   type mgr

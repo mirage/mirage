@@ -110,6 +110,8 @@ let ipv4_addr_to_string x =
 type ipv4_src = ipv4_addr option * int
 type ipv4_dst = ipv4_addr * int
 
+type peer_uid = int
+
 module type FLOW = sig                                                                                   
   (* Type of an individual flow *)                                                                       
   type t                                                                                                 

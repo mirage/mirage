@@ -64,23 +64,11 @@ module Shmem = struct
 
 end
 
-module TypEq : sig
-  type ('a, 'b) t
-  val apply: ('a, 'b) t -> 'a -> 'b
-  val refl: ('a, 'a) t
-  val sym: ('a, 'b) t -> ('b, 'a) t
-end = struct
-  type ('a, 'b) t = ('a -> 'b) * ('b -> 'a)
-  let refl = (fun x -> x), (fun x -> x)
-  let apply (f, _) x = f x
-  let sym (f, g) = (g, f)
-end
+let connect mgr = function
+  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
+  |`Shmem (src, dst, fn) -> Shmem.connect mgr ?src dst fn
 
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, TCPv4.t) TypEq.t
-  | Shmem of ('a, Shmem.t) TypEq.t
-end = Typ
+let listen mgr = function
+  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
+  |`Shmem (src, fn) -> Shmem.listen mgr src fn
 
-let tcpv4 = Typ.TCPv4 TypEq.refl
-let shmem = Typ.Shmem TypEq.refl

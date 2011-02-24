@@ -14,12 +14,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module TCPv4 : Nettypes.CHANNEL with
+open Nettypes
+
+module TCPv4 : CHANNEL with
       type src = Flow.TCPv4.src
   and type dst = Flow.TCPv4.dst
   and type mgr = Flow.TCPv4.mgr
 
-module Shmem : Nettypes.CHANNEL with
+module Shmem : CHANNEL with
       type src = Flow.Shmem.src
   and type dst = Flow.Shmem.dst
   and type mgr = Flow.Shmem.mgr
+
+val connect :
+  Manager.t -> [<
+   | `Shmem of peer_uid option * peer_uid * (Shmem.t -> 'a Lwt.t)
+   | `TCPv4 of ipv4_src option * ipv4_dst * (TCPv4.t -> 'a Lwt.t)
+  ] -> 'a Lwt.t
+
+val listen :
+  Manager.t -> [<
+   | `Shmem of peer_uid * (peer_uid -> Shmem.t -> unit Lwt.t)
+   | `TCPv4 of ipv4_src * (ipv4_dst -> TCPv4.t -> unit Lwt.t)
+  ] -> unit Lwt.t
+

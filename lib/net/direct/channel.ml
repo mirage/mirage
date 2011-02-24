@@ -229,3 +229,10 @@ end
 module TCPv4 = Make(Flow.TCPv4)
 module Shmem = Make(Flow.Shmem)
 
+let connect mgr = function
+  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
+  |`Shmem (src, dst, fn) -> Shmem.connect mgr ?src dst fn
+
+let listen mgr = function
+  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
+  |`Shmem (src, fn) -> Shmem.listen mgr src fn

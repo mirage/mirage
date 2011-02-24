@@ -141,7 +141,7 @@ module TCPv4 = struct
       |Some addr, port -> addr, port in
     listen_tcpv4 addr port fn
 
-  let connect mgr ?src (addr,port) fn =
+  let connect mgr ?src ((addr,port):ipv4_dst) (fn: t -> 'a Lwt.t) =
     match R.tcpv4_connect (ipv4_addr_to_uint32 addr) port with
     |R.OK fd ->
       (* Wait for the connect to complete *)
@@ -177,30 +177,17 @@ module Pipe = struct
        fn dst (t_of_fd rd, (t_of_fd wr))
      )
 
-  let connect mgr ?src dstid fn =
+  let connect mgr ?src dstid (fn: t -> 'a Lwt.t) =
     Manager.connect mgr dstid
       (fun (rd,wr) ->
         fn (t_of_fd rd, (t_of_fd wr))
       )
 end
 
-module TypEq : sig
-  type ('a, 'b) t
-  val apply: ('a, 'b) t -> 'a -> 'b
-  val refl: ('a, 'a) t
-  val sym: ('a, 'b) t -> ('b, 'a) t
-end = struct
-  type ('a, 'b) t = ('a -> 'b) * ('b -> 'a)
-  let refl = (fun x -> x), (fun x -> x)
-  let apply (f, _) x = f x
-  let sym (f, g) = (g, f)
-end
+let connect mgr = function
+  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
+  |`Pipe (src, dst, fn) -> Pipe.connect mgr ?src dst fn
 
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, TCPv4.t) TypEq.t
-  | Pipe of ('a, Pipe.t) TypEq.t
-end = Typ
-
-let tcpv4 = Typ.TCPv4 TypEq.refl
-let pipe = Typ.Pipe TypEq.refl
+let listen mgr = function
+  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
+  |`Pipe (src, fn) -> Pipe.listen mgr src fn

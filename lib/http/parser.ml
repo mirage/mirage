@@ -119,3 +119,33 @@ let parse_request ic =
   debug_dump_request path query_get_params;
   return (path, query_get_params)
 
+let parse_content_range s =
+  try
+    let start, fini, total = Scanf.sscanf s "bytes %d-%d/%d" 
+      (fun start fini total -> start, fini, total) in
+    Some (start, fini, total)
+  with Scanf.Scan_failure _ -> None
+
+(* If we see a "Content-Range" header, than we should limit the
+   number of bytes we attempt to read *)
+let parse_content_range headers = 
+  (* assuming header keys were downcased in previous step *)
+  if List.mem_assoc "content-length" headers then begin
+    try 
+      let str = List.assoc "content-length" headers in
+      let str = Parser_sanity.normalize_header_value str in
+      Some (int_of_string str)
+    with _ ->
+      None
+  end else if List.mem_assoc "content-range" headers then begin
+    let range_s = List.assoc "content-range" headers in
+    match parse_content_range range_s with
+    |Some (start, fini, total) ->
+      (* some sanity checking before we act on these values *)
+      if fini < total && start <= total && 0 <= start && 0 <= total then (
+        let num_bytes_to_read = fini - start + 1 in
+        Some num_bytes_to_read
+      ) else None
+    |None -> None
+  end else None    
+

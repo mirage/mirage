@@ -57,3 +57,5 @@ module View : sig
   val ts_to_string: ts -> string
   val ts_of_stream: t Lwt_stream.t -> ts Lwt.t
 end
+
+type t = View.t

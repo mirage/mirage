@@ -26,15 +26,30 @@ module Shmem : CHANNEL with
   and type dst = Flow.Shmem.dst
   and type mgr = Flow.Shmem.mgr
 
+type t
+
+val read_char: t -> char option Lwt.t
+val read_until: t -> char -> (bool * OS.Istring.View.t option) option Lwt.t
+val read_view: ?len:int -> t -> OS.Istring.View.t option Lwt.t
+
+val read_crlf: t -> OS.Istring.View.t Lwt_stream.t
+
+val write_char : t -> char -> unit Lwt.t
+val write_string : t -> string -> unit Lwt.t
+val write_line : t -> string -> unit Lwt.t
+
+val flush : t -> unit Lwt.t
+val close : t -> unit Lwt.t
+
 val connect :
-  Manager.t -> [<
-   | `Shmem of peer_uid option * peer_uid * (Shmem.t -> 'a Lwt.t)
-   | `TCPv4 of ipv4_src option * ipv4_dst * (TCPv4.t -> 'a Lwt.t)
+  Manager.t -> [< 
+   | `Shmem of peer_uid option * peer_uid * (t -> 'a Lwt.t)
+   | `TCPv4 of ipv4_src option * ipv4_dst * (t -> 'a Lwt.t)
   ] -> 'a Lwt.t
 
 val listen :
-  Manager.t -> [<
-   | `Shmem of peer_uid * (peer_uid -> Shmem.t -> unit Lwt.t)
-   | `TCPv4 of ipv4_src * (ipv4_dst -> TCPv4.t -> unit Lwt.t)
+  Manager.t -> [< 
+   | `Shmem of peer_uid * (peer_uid -> t -> unit Lwt.t)
+   | `TCPv4 of ipv4_src * (ipv4_dst -> t -> unit Lwt.t)
   ] -> unit Lwt.t
 

@@ -184,10 +184,32 @@ module Pipe = struct
       )
 end
 
+type t =
+  | TCPv4 of TCPv4.t
+  | Pipe of Pipe.t
+
+type mgr = Manager.t
+
+let read = function
+  | TCPv4 t -> TCPv4.read t
+  | Pipe t -> Pipe.read t
+
+let write = function
+  | TCPv4 t -> TCPv4.write t
+  | Pipe t -> Pipe.write t
+
+let close = function
+  | TCPv4 t -> TCPv4.close t
+  | Pipe t -> Pipe.close t
+
 let connect mgr = function
-  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
-  |`Pipe (src, dst, fn) -> Pipe.connect mgr ?src dst fn
+  |`TCPv4 (src, dst, fn) ->
+     TCPv4.connect mgr ?src dst (fun t -> fn (TCPv4 t))
+  |`Pipe (src, dst, fn) ->
+     Pipe.connect mgr ?src dst (fun t -> fn (Pipe t))
 
 let listen mgr = function
-  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
-  |`Pipe (src, fn) -> Pipe.listen mgr src fn
+  |`TCPv4 (src, fn) ->
+     TCPv4.listen mgr src (fun dst t -> fn dst (TCPv4 t))
+  |`Pipe (src, fn) ->
+     Pipe.listen mgr src (fun dst t -> fn dst (Pipe t))

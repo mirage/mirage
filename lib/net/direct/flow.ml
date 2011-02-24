@@ -64,11 +64,33 @@ module Shmem = struct
 
 end
 
+type t =
+  | TCPv4 of TCPv4.t
+  | Shmem of Shmem.t
+
+type mgr = Manager.t
+
+let read = function
+  | TCPv4 t -> TCPv4.read t
+  | Shmem t -> Shmem.read t
+
+let write = function
+  | TCPv4 t -> TCPv4.write t
+  | Shmem t -> Shmem.write t
+
+let close = function
+  | TCPv4 t -> TCPv4.close t
+  | Shmem t -> Shmem.close t
+
 let connect mgr = function
-  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
-  |`Shmem (src, dst, fn) -> Shmem.connect mgr ?src dst fn
+  |`TCPv4 (src, dst, fn) ->
+     TCPv4.connect mgr ?src dst (fun t -> fn (TCPv4 t))
+  |`Shmem (src, dst, fn) ->
+     Shmem.connect mgr ?src dst (fun t -> fn (Shmem t))
 
 let listen mgr = function
-  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
-  |`Shmem (src, fn) -> Shmem.listen mgr src fn
+  |`TCPv4 (src, fn) ->
+     TCPv4.listen mgr src (fun dst t -> fn dst (TCPv4 t))
+  |`Shmem (src, fn) ->
+     Shmem.listen mgr src (fun dst t -> fn dst (Shmem t))
 

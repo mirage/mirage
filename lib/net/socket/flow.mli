@@ -26,15 +26,20 @@ module Pipe : FLOW with
   and type src = peer_uid
   and type dst = peer_uid
 
+type t
+val read: t -> OS.Istring.View.t option Lwt.t
+val write: t -> OS.Istring.View.t -> unit Lwt.t
+val close: t -> unit Lwt.t
+
 val connect :
   Manager.t -> [< 
-   | `Pipe of peer_uid option * peer_uid * (Pipe.t -> 'a Lwt.t)
-   | `TCPv4 of ipv4_src option * ipv4_dst * (TCPv4.t -> 'a Lwt.t)
+   | `Pipe of peer_uid option * peer_uid * (t -> 'a Lwt.t)
+   | `TCPv4 of ipv4_src option * ipv4_dst * (t -> 'a Lwt.t)
   ] -> 'a Lwt.t
 
 val listen :
   Manager.t -> [< 
-   | `Pipe of peer_uid * (peer_uid -> Pipe.t -> unit Lwt.t)
-   | `TCPv4 of ipv4_src * (ipv4_dst -> TCPv4.t -> unit Lwt.t)
+   | `Pipe of peer_uid * (peer_uid -> t -> unit Lwt.t)
+   | `TCPv4 of ipv4_src * (ipv4_dst -> t -> unit Lwt.t)
   ] -> unit Lwt.t
 

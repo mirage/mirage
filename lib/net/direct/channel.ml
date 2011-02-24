@@ -229,10 +229,55 @@ end
 module TCPv4 = Make(Flow.TCPv4)
 module Shmem = Make(Flow.Shmem)
 
+type t =
+  | TCPv4 of TCPv4.t
+  | Shmem of Shmem.t
+
+let read_char = function
+  | TCPv4 t -> TCPv4.read_char t
+  | Shmem t -> Shmem.read_char t
+
+let read_until = function
+  | TCPv4 t -> TCPv4.read_until t
+  | Shmem t -> Shmem.read_until t
+
+let read_view ?len = function
+  | TCPv4 t -> TCPv4.read_view ?len t
+  | Shmem t -> Shmem.read_view ?len t
+
+let read_crlf = function
+  | TCPv4 t -> TCPv4.read_crlf t
+  | Shmem t -> Shmem.read_crlf t
+
+let write_char = function
+  | TCPv4 t -> TCPv4.write_char t
+  | Shmem t -> Shmem.write_char t
+
+let write_string = function
+  | TCPv4 t -> TCPv4.write_string t
+  | Shmem t -> Shmem.write_string t
+
+let write_line = function
+  | TCPv4 t -> TCPv4.write_line t
+  | Shmem t -> Shmem.write_line t
+
+let flush = function
+  | TCPv4 t -> TCPv4.flush t
+  | Shmem t -> Shmem.flush t
+
+let close = function
+  | TCPv4 t -> TCPv4.close t
+  | Shmem t -> Shmem.close t
+
 let connect mgr = function
-  |`TCPv4 (src, dst, fn) -> TCPv4.connect mgr ?src dst fn
-  |`Shmem (src, dst, fn) -> Shmem.connect mgr ?src dst fn
+  |`TCPv4 (src, dst, fn) ->
+     TCPv4.connect mgr ?src dst (fun t -> fn (TCPv4 t))
+  |`Shmem (src, dst, fn) ->
+     Shmem.connect mgr ?src dst (fun t -> fn (Shmem t))
 
 let listen mgr = function
-  |`TCPv4 (src, fn) -> TCPv4.listen mgr src fn
-  |`Shmem (src, fn) -> Shmem.listen mgr src fn
+  |`TCPv4 (src, fn) ->
+     TCPv4.listen mgr src (fun dst t -> fn dst (TCPv4 t))
+  |`Shmem (src, fn) ->
+     Shmem.listen mgr src (fun dst t -> fn dst (Shmem t))
+

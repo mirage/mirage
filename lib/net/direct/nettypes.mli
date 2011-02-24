@@ -35,6 +35,9 @@ val ipv4_blank : ipv4_addr
 val ipv4_broadcast : ipv4_addr
 val ipv4_localhost : ipv4_addr
 
+type ipv4_src = ipv4_addr option * int
+type ipv4_dst = ipv4_addr * int
+
 module type FLOW = sig
   type t
   type mgr

@@ -19,7 +19,7 @@ module TCPv4 : Nettypes.CHANNEL with
   and type dst = Flow.TCPv4.dst
   and type mgr = Flow.TCPv4.mgr
 
-module Pipe : Nettypes.CHANNEL with
-      type src = Flow.Pipe.src
-  and type dst = Flow.Pipe.dst
-  and type mgr = Flow.Pipe.mgr
+module Shmem : Nettypes.CHANNEL with
+      type src = Flow.Shmem.src
+  and type dst = Flow.Shmem.dst
+  and type mgr = Flow.Shmem.mgr

@@ -14,34 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
-
-type ipv4_src = ipv4_addr option * int
-type ipv4_dst = ipv4_addr * int
-
-module TCPv4 : FLOW with
+module UDPv4 : Nettypes.DATAGRAM with
       type mgr = Manager.t
-  and type src = ipv4_src
-  and type dst = ipv4_dst
-
-module Shmem : FLOW with
-      type mgr = Manager.t
-  and type src = int
-  and type dst = int
-
-(* Experimental types to represent run-time flows *)
-
-module TypEq : sig
-  type ('a, 'b) t
-  val apply : ('a, 'b) t -> 'a -> 'b
-end
-
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, TCPv4.t) TypEq.t
-  | Shmem of ('a, Shmem.t) TypEq.t
-end
-
-val tcpv4 : TCPv4.t Typ.typ
-val shmem : Shmem.t Typ.typ
+  and type src = Nettypes.ipv4_src
+  and type dst = Nettypes.ipv4_dst
+  and type msg = OS.Istring.View.t
 

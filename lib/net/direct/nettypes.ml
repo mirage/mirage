@@ -107,6 +107,9 @@ let ipv4_addr_to_string x =
     Printf.sprintf "%d.%d.%d.%d" 
       (chri 0) (chri 1) (chri 2) (chri 3)
 
+type ipv4_src = ipv4_addr option * int
+type ipv4_dst = ipv4_addr * int
+
 module type FLOW = sig                                                                                   
   (* Type of an individual flow *)                                                                       
   type t                                                                                                 

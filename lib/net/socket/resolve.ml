@@ -22,24 +22,6 @@ open Lwt
 type uid = int
 type domain = string
 
-module TypEq : sig
-  type ('a, 'b) t
-  val apply: ('a, 'b) t -> 'a -> 'b
-  val refl: ('a, 'a) t
-  val sym: ('a, 'b) t -> ('b, 'a) t
-end = struct
-  type ('a, 'b) t = ('a -> 'b) * ('b -> 'a)
-  let refl = (fun x -> x), (fun x -> x)
-  let apply (f, _) x = f x
-  let sym (f, g) = (g, f)
-end
-
-module rec Typ : sig
-  type 'a typ =
-  | TCPv4 of ('a, Flow.TCPv4.t) TypEq.t
-  | Pipe of ('a, Flow.Pipe.t) TypEq.t
-end = Typ
-
 type service = [
  | `HTTP
  | `SMTP
@@ -50,42 +32,11 @@ let port_of_service = function
  | `SMTP -> 25
 
 type flow = [
- | `TCPv4 of Flow.ipv4_dst
+ | `TCPv4 of ipv4_dst
  | `Pipe of uid
 ]
 
 type datagram = [
- | `UDPv4 of Flow.ipv4_dst
+ | `UDPv4 of ipv4_dst
  | `Pipe of uid
 ]
-
-(* open a direct flow *)
-let with_flow name fn =
-  match name with
-  |`Service (domain, svc) ->
-    (* do a DNS SRV lookup *)
-    fail (Failure "not implemented")
-  |`Host (`TCPv4 dst) ->
-    fn (module Flow.TCPv4 : FLOW)
-  |`Node (`Uid uid) ->
-    fn (module Flow.Pipe : FLOW)
-
-(* open a buffered channel *) 
-let with_channel name fn =
-  match name with
-  |`Service (domain, svc) ->
-    (* do a DNS SRV lookup *)
-    fail (Failure "not implemented")
-  |`Host (`TCPv4 dst) ->
-    fn (module Channel.TCPv4 : CHANNEL)
-  |`Node (`Uid uid) ->
-    fn (module Channel.Pipe : CHANNEL)
- 
-(* open a datagram connection *)
-let with_datagram name fn =
-  match name with
-  |`Service (domain, svc) ->
-    (* do a DNS SRV lookup *)
-    fail (Failure "not implemented")
-  |`Host (`UDPv4 dst) ->
-    fn (module Flow.UDPv4 : DATAGRAM)

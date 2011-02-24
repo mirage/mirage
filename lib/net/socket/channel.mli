@@ -23,3 +23,20 @@ module Pipe : Nettypes.CHANNEL with
       type src = Flow.Pipe.src
   and type dst = Flow.Pipe.dst
   and type mgr = Flow.Pipe.mgr
+
+(* Existential types to represent run-time channels *)
+
+module TypEq : sig
+  type ('a, 'b) t
+  val apply : ('a, 'b) t -> 'a -> 'b
+end
+
+module rec Typ : sig
+  type 'a typ =
+  | TCPv4 of ('a, TCPv4.t) TypEq.t
+  | Pipe of ('a, Pipe.t) TypEq.t
+end
+
+val tcpv4 : TCPv4.t Typ.typ
+val pipe : Pipe.t Typ.typ
+

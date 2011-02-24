@@ -14,23 +14,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
-
-type ipv4_src = ipv4_addr option * int
-type ipv4_dst = ipv4_addr * int
-
-module TCPv4 : FLOW with
+module TCPv4 : Nettypes.FLOW with
       type mgr = Manager.t
-  and type src = ipv4_src
-  and type dst = ipv4_dst
+  and type src = Nettypes.ipv4_src
+  and type dst = Nettypes.ipv4_dst
 
-module Pipe : FLOW with
+module Pipe : Nettypes.FLOW with
       type mgr = Manager.t
   and type src = Manager.uid
   and type dst = Manager.uid
 
-module UDPv4 : DATAGRAM with
-      type mgr = Manager.t
-  and type src = ipv4_src
-  and type dst = ipv4_dst
-  and type msg = OS.Istring.View.t
+(* Experimental types to represent run-time flows *)
+
+module TypEq : sig
+  type ('a, 'b) t
+  val apply : ('a, 'b) t -> 'a -> 'b
+end
+
+module rec Typ : sig
+  type 'a typ =
+  | TCPv4 of ('a, TCPv4.t) TypEq.t
+  | Pipe of ('a, Pipe.t) TypEq.t
+end
+
+val tcpv4 : TCPv4.t Typ.typ
+val pipe : Pipe.t Typ.typ
+

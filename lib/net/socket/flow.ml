@@ -184,46 +184,23 @@ module Pipe = struct
       )
 end
 
-module UDPv4 = struct
-  type mgr = Manager.t
-  type src = ipv4_addr option * int
-  type dst = ipv4_addr * int
-
-  type msg = OS.Istring.View.t
-
-  let rec send mgr ?src (dstaddr, dstport) req =
-    lwt fd = match src with
-      |None -> return (Manager.get_udpv4 mgr)
-      |Some src -> Manager.get_udpv4_listener mgr src
-    in
-    Activations.write (R.fd_to_int fd) >>
-    let raw = OS.Istring.View.raw req in
-    let off = OS.Istring.View.off req in
-    let len = OS.Istring.View.length req in
-    let dst = (ipv4_addr_to_uint32 dstaddr, dstport) in
-    match R.udpv4_sendto fd raw off len dst with
-    |R.OK len' ->
-      if len' != len then
-        fail (Write_error "partial UDP send")
-      else
-        return ()
-    |R.Retry -> send mgr (dstaddr, dstport) req
-    |R.Err err -> fail (Write_error err)
-
-  let recv mgr (addr,port) fn =
-    lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
-    let rec listen lfd =
-      lwt () = Activations.read (R.fd_to_int lfd) in
-      let istr = OS.Istring.Raw.alloc () in
-      match R.udpv4_recvfrom lfd istr 0 4096 with
-      |R.OK (frm_addr, frm_port, len) ->
-        let frm_addr = ipv4_addr_of_uint32 frm_addr in
-        let dst = (frm_addr, frm_port) in
-        let req = OS.Istring.View.t ~off:0 istr len in
-        let resp_t = fn dst req in
-        listen lfd <&> resp_t
-      |R.Retry -> listen lfd
-      |R.Err _ -> return ()
-    in 
-    listen lfd
+module TypEq : sig
+  type ('a, 'b) t
+  val apply: ('a, 'b) t -> 'a -> 'b
+  val refl: ('a, 'a) t
+  val sym: ('a, 'b) t -> ('b, 'a) t
+end = struct
+  type ('a, 'b) t = ('a -> 'b) * ('b -> 'a)
+  let refl = (fun x -> x), (fun x -> x)
+  let apply (f, _) x = f x
+  let sym (f, g) = (g, f)
 end
+
+module rec Typ : sig
+  type 'a typ =
+  | TCPv4 of ('a, TCPv4.t) TypEq.t
+  | Pipe of ('a, Pipe.t) TypEq.t
+end = Typ
+
+let tcpv4 = Typ.TCPv4 TypEq.refl
+let pipe = Typ.Pipe TypEq.refl

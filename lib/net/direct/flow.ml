@@ -49,7 +49,7 @@ module TCPv4 = struct
 end
 
 (* Shared mem communication across VMs, not yet implemented *)
-module Pipe = struct
+module Shmem = struct
   type t = unit
   type mgr = Manager.t
   type src = int
@@ -64,32 +64,23 @@ module Pipe = struct
 
 end
 
-module UDPv4 = struct
-
-  type mgr = Manager.t
-  type src = ipv4_src
-  type dst = ipv4_dst
-  type msg = OS.Istring.View.t
-
-  let send mgr ?src (dest_ip, dest_port) msg =
-    (* TODO: set src addr here also *)
-    let source_port = match src with
-      |None -> 37 (* XXX eventually random *)
-      |Some (_,p) -> p in
-    lwt udp = Manager.udpv4_of_addr mgr None in
-    Udp.output udp ~dest_ip (
-      let data = `Frag msg in
-      Mpl.Udp.t ~source_port ~dest_port ~data
-    )
-
-  let recv mgr (src_addr, src_port) fn =
-    lwt udp = Manager.udpv4_of_addr mgr src_addr in
-    Udp.listen udp src_port
-      (fun ip udp ->
-        let dst_port = udp#source_port in
-        let dst_ip = ipv4_addr_of_uint32 ip#src in
-        let dst = dst_ip, dst_port in
-        let data = udp#data_sub_view in
-        fn dst data
-      )
+module TypEq : sig
+  type ('a, 'b) t
+  val apply: ('a, 'b) t -> 'a -> 'b
+  val refl: ('a, 'a) t
+  val sym: ('a, 'b) t -> ('b, 'a) t
+end = struct
+  type ('a, 'b) t = ('a -> 'b) * ('b -> 'a)
+  let refl = (fun x -> x), (fun x -> x)
+  let apply (f, _) x = f x
+  let sym (f, g) = (g, f)
 end
+
+module rec Typ : sig
+  type 'a typ =
+  | TCPv4 of ('a, TCPv4.t) TypEq.t
+  | Shmem of ('a, Shmem.t) TypEq.t
+end = Typ
+
+let tcpv4 = Typ.TCPv4 TypEq.refl
+let shmem = Typ.Shmem TypEq.refl

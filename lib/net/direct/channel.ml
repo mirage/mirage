@@ -227,4 +227,5 @@ module Make(Flow:FLOW) :
 end
 
 module TCPv4 = Make(Flow.TCPv4)
-module Pipe = Make(Flow.Pipe)
+module Shmem = Make(Flow.Shmem)
+

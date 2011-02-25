@@ -91,7 +91,7 @@ module Flags = struct
   let pa_ulex = camlp4 pa_ulex_deps
   let pa_cow  = camlp4 pa_cow_deps
 
-  let stdlib  = [ A"-nostdlib"; A"-I"; A std_lib; A "-I"; A os_lib; A "-I"; A net_lib ]
+  let stdlib  = [ A"-nostdlib"; A"-I"; A std_lib; A "-I"; A os_lib; A "-I"; A net_lib; A "-I"; A http_lib ]
   let dyntype = [ A"-I"; A dyntype_lib ]
   let ulex    = [ A"-I"; A std_lib ]
   let cow     = [ A"-I"; A "lib" ]

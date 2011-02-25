@@ -15,6 +15,7 @@
 open Lwt
 
 (* XXX: no DNS client yet *)
+let twitter_ip = Net.Nettypes.ipv4_addr_of_tuple (168,143,162,45)
 let twitter = "http://168.143.162.45"
 module User = struct
   
@@ -37,19 +38,20 @@ module Status = struct
       t list
   with json
 
+(*
   let user_timeline mgr ?screen_name () =
     let filter = match screen_name with
       | Some n -> "?screen_name=" ^ n
       | None   -> "" in
-    let uri = Printf.sprintf "%s/1/statuses/user_timeline.json%s" twitter filter in
-    let headers =
+    let req_url = Printf.sprintf "%s/1/statuses/user_timeline.json%s" twitter filter in
+    let req_headers =
       ["Host", "api.twitter.com";
        "Connection", "keep-alive" ] in
-    lwt _, body_t = Http.Client.get mgr ~headers uri in
-    (* TODO use istring directly *)
-    lwt body = map OS.Istring.View.ts_to_string body_t in
+    let req = { req_meth=`GET; req_url; req_headers; req_body=None } in
+    lwt res = request mgr (twitter_ip,80) req in
+    lwt body = OS.Istring.View.(ts_of_stream res.res_body >|= ts_to_string) in
     let str = Json.of_string body in
     return (t_list_of_json str)
-
+*)
 end
 

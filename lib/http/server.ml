@@ -2,7 +2,7 @@
   OCaml HTTP - do it yourself (fully OCaml) HTTP daemon
 
   Copyright (C) <2002-2005> Stefano Zacchiroli <zack@cs.unibo.it>
-  Copyright (C) <2009> Anil Madhavapeddy <anil@recoil.org>
+  Copyright (C) <2009-2011> Anil Madhavapeddy <anil@recoil.org>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU Library General Public License as
@@ -40,9 +40,7 @@ type daemon_spec = {
   timeout: float option;
 }
 
-exception Http_daemon_failure of string
-
-  (** internal: given a status code and an additional body return a string
+(** internal: given a status code and an additional body return a string
   representing an HTML document that explains the meaning of given status code.
   Additional data can be added to the body via 'body' argument *)
 let control_body code body =
@@ -52,33 +50,26 @@ let control_body code body =
 let respond_with response =
   return (Response.serialize_to_stream response)
 
-  (* Warning: keep default values in sync with Response.response class *)
+(* Warning: keep default values in sync with Response.response class *)
 let respond ?(body = "") ?(headers = []) ?version ?(status = `Code 200) () =
   let headers = ("connection","close")  :: headers  in
   let resp = Response.init ~body:[`String body] ~headers ?version ~status () in
   respond_with resp
 
-let respond_control
-    func_name ?(is_valid_status = fun _ -> true) ?(headers=[]) ?(body="")
-    ?version status =
+let respond_control func_name ?(is_valid_status = fun _ -> true) ?(headers=[]) ?(body="") ?version status =
   let code = match status with `Code c -> c | #status as s -> code_of_status s in
   if is_valid_status code then
-    let headers =
-      [ "Content-Type", "text/html; charset=iso-8859-1" ] @ headers
-    in
+    let headers = [ "Content-Type", "text/html; charset=iso-8859-1" ] @ headers in
     let body = (control_body code body) ^ body in
-      respond ?version ~status ~headers ~body ()
+    respond ?version ~status ~headers ~body ()
   else
-    failwith
-      (sprintf "'%d' isn't a valid status code for %s" code func_name)
+    failwith (sprintf "'%d' isn't a valid status code for %s" code func_name)
       
 let respond_redirect ~location ?body ?version ?(status = `Code 301) () =
-  respond_control "Daemon.respond_redirect" ~is_valid_status:is_redirection
-    ~headers:["Location", location] ?body ?version status
+  respond_control "Daemon.respond_redirect" ~is_valid_status:is_redirection ~headers:["Location", location] ?body ?version status
 
 let respond_error ?body ?version ?(status = `Code 400) () =
-  respond_control "Daemon.respond_error" ~is_valid_status:is_error
-    ?body ?version status
+  respond_control "Daemon.respond_error" ~is_valid_status:is_error ?body ?version status
     
 let respond_not_found ~url ?version () =
   respond_control "Daemon.respond_not_found" ?version (`Code 404)
@@ -87,11 +78,8 @@ let respond_forbidden ~url ?version () =
   respond_control "Daemon.respond_forbidden" ?version (`Code 403)
     
 let respond_unauthorized ?version ?(realm = server_string) () =
-  let body =
-    sprintf "401 - Unauthorized - Authentication failed for realm \"%s\"" realm
-  in
-    respond ~headers:["WWW-Authenticate", sprintf "Basic realm=\"%s\"" realm]
-      ~status:(`Code 401) ~body ()
+  let body = sprintf "401 - Unauthorized - Authentication failed for realm \"%s\"" realm in
+  respond ~headers:["WWW-Authenticate", sprintf "Basic realm=\"%s\"" realm] ~status:(`Code 401) ~body ()
 
 let handle_parse_exn e =
   let r =
@@ -124,49 +112,45 @@ let handle_parse_exn e =
              (sprintf "Malformed query part '%s' in query '%s'" binding query))
       | _ -> None in
 
-  match r with
+    match r with
     | Some (status, body) ->
         debug_print (sprintf "HTTP request parse error: %s" (Printexc.to_string e));
         respond_error ~status ~body ()
     | None ->
         fail e
 
-  (** - handle HTTP authentication
-   *  - handle automatic closures of client connections *)
+(** - handle HTTP authentication
+ *  - handle automatic closures of client connections *)
 let invoke_callback conn_id (req:Request.request) spec =
   try_lwt 
-    (match (spec.auth, (Request.authorization req)) with
-     |`None, _ -> (* no auth required *)
-       spec.callback conn_id req
-     |`Basic (realm, authfn), Some (`Basic (username, password)) ->
-       if authfn username password then
-         spec.callback conn_id req (* auth ok *)
-       else
-         fail (Unauthorized realm)  (* auth failed *)
-     |`Basic (realm, _), _ -> fail (Unauthorized realm)
-    )
+  (match (spec.auth, (Request.authorization req)) with
+   |`None, _ -> (* no auth required *)
+     spec.callback conn_id req
+   |`Basic (realm, authfn), Some (`Basic (username, password)) ->
+     if authfn username password then
+       spec.callback conn_id req (* auth ok *)
+     else
+       fail (Unauthorized realm)  (* auth failed *)
+   |`Basic (realm, _), _ -> fail (Unauthorized realm)
+  )
   with
     |Unauthorized realm -> respond_unauthorized ~realm ()
-    |exn ->
-      respond_error ~status:`Internal_server_error
-        ~body:(Printexc.to_string exn) ()
+    |exn -> respond_error ~status:`Internal_server_error ~body:(Printexc.to_string exn) ()
 
 let daemon_callback spec =
   let conn_id = ref 0 in
   let daemon_callback channel =
     let conn_id = incr conn_id; !conn_id in
-
     let streams, push_streams = Lwt_stream.create () in
     let write_streams =
       try_lwt
         Lwt_stream.iter_s (fun stream_t ->
           lwt stream = stream_t in
-          Lwt_stream.iter_s (Net.Channel.TCPv4.write_string channel) stream >>
-          Net.Channel.TCPv4.flush channel (* TODO: autoflush *)
+          Lwt_stream.iter_s (Net.Channel.write_string channel) stream >>
+          Net.Channel.flush channel (* TODO: autoflush *)
         ) streams
       with exn -> begin
-        Printf.printf "daemon_callback: exn %d: %s\n%!"
-          conn_id (Printexc.to_string exn);
+        printf "daemon_callback: exn %d: %s\n%!" conn_id (Printexc.to_string exn);
         return ()
       end
     in
@@ -175,9 +159,13 @@ let daemon_callback spec =
         let finished_t, finished_u = Lwt.wait () in
         let stream =
           try_lwt
-            let input_line () = Net.Channel.TCPv4.read_line channel in
-            lwt req = Request.init_request finished_u input_line in
-            invoke_callback conn_id req spec
+            let read_line () =
+              let stream = Net.Channel.read_crlf channel in
+              lwt ts = OS.Istring.View.ts_of_stream stream in
+              return (OS.Istring.View.ts_to_string ts)
+            in
+            lwt req = Request.init_request finished_u read_line in
+            invoke_callback conn_id req spec 
           with e -> begin
             try_lwt
               lwt s = handle_parse_exn e in
@@ -186,7 +174,7 @@ let daemon_callback spec =
             with e ->
               wakeup_exn finished_u e;
               fail e
-          end
+            end
         in
         push_streams (Some stream);
         finished_t >>= loop (* wait for request to finish before reading another *)
@@ -194,25 +182,24 @@ let daemon_callback spec =
         | End_of_file -> debug_print "done with connection"; spec.conn_closed conn_id; return ()
         | Canceled -> debug_print "cancelled"; spec.conn_closed conn_id; return ()
         | e -> fail e
-    in
-    try_lwt
-      loop () <&> write_streams
-    with
-      | exn ->
-	  debug_print (sprintf "uncaught exception: %s" (Printexc.to_string exn));
-          (* XXX perhaps there should be a higher-level exn handler for 500s *)
-	  spec.exn_handler exn
+      in
+      try_lwt
+        loop () <&> write_streams
+      with exn ->
+	debug_print (sprintf "uncaught exception: %s" (Printexc.to_string exn));
+        (* XXX perhaps there should be a higher-level exn handler for 500s *)
+	spec.exn_handler exn
   in
   daemon_callback
 
-let listen mgr src spec =
-  Net.Flow.TCPv4.listen mgr src (fun dst t ->
-    let channel = Net.Channel.TCPv4.create t in
-    match spec.timeout with
-    |None -> 
-      daemon_callback spec channel
-    |Some tm ->
-      let timeout_t = OS.Time.sleep tm in
-      let callback_t = daemon_callback spec channel in
-      timeout_t <?> callback_t
-  )
+let with_timeout tm fn t =
+  match tm with
+  |None -> fn t
+  |Some tm -> fn t <?> (OS.Time.sleep tm)
+
+let listen mgr sa =
+  let cb spec dst = with_timeout spec.timeout (daemon_callback spec) in
+  match sa with
+    |`TCPv4 (src,spec) -> Net.Channel.listen mgr (`TCPv4 (src, cb spec))
+    |`Pipe (src,spec) -> Net.Channel.listen mgr (`Pipe (src,cb spec))
+    |`Shmem (src,spec) -> Net.Channel.listen mgr (`Shmem (src,cb spec))

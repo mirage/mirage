@@ -9,5 +9,6 @@ Request
 Response
 Types
 Url
-Server
+Proxy
 Client
+Server

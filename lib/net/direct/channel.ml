@@ -140,7 +140,8 @@ module Make(Flow:FLOW) :
 
   (* This reads a line of input, which is terminated either by a CRLF
      sequence, or the end of the channel (which counts as a line).
-     @return Returns a stream of views that terminates at EOF *)
+     @return Returns a stream of views that terminates at EOF.
+     @raise Closed to signify EOF  *)
   let read_crlf t =
     let fin = ref false in
     Lwt_stream.from (fun () ->
@@ -148,7 +149,7 @@ module Make(Flow:FLOW) :
       |true -> return None
       |false -> begin
         read_until t '\n' >>= function
-        |None -> return None  (* EOF *)
+        |None -> fail Closed  (* EOF *)
         |Some (_, None) -> assert false
         |Some (false, Some v) -> return (Some v) (* Continue scanning *)
         |Some (true, Some v) -> begin (* Found (CR?)LF *)

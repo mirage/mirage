@@ -65,12 +65,16 @@ module Make(Flow:FLOW) :
   (* Fill the input buffer with a view and return it,
      or the existing one if already there *)
   let ibuf_fill t =
-    Flow.read t.flow >>= function
-    |Some buf as x ->
-      t.ibuf <- x;
-      return (Some buf)
-    |None ->
-      return None
+    match t.ibuf with
+    |Some buf -> return (Some buf)
+    |None -> begin
+      Flow.read t.flow >>= function
+      |Some buf as x ->
+        t.ibuf <- x;
+        return (Some buf)
+      |None ->
+        return None
+    end
 
   (* Read one character from the input channel *)
   let rec read_char t =

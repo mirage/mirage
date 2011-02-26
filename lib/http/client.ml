@@ -67,7 +67,7 @@ let read_response chan =
   lwt headers = Parser.parse_headers read_line in
   let resp =
     let len = Parser.parse_content_range headers in
-    Lwt_stream.from (fun () -> Net.Channel.read_view ?len chan)
+    Net.Channel.read_stream ?len chan
   in
   match code_of_status status with
   |200 |206 -> return (headers, resp)

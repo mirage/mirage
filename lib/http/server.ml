@@ -114,28 +114,10 @@ let handle_parse_exn e =
 
     match r with
     | Some (status, body) ->
-        debug_print (sprintf "HTTP request parse error: %s" (Printexc.to_string e));
+        printf "HTTP request parse error: %s\n%!" (Printexc.to_string e);
         respond_error ~status ~body ()
     | None ->
         fail e
-
-(** - handle HTTP authentication
- *  - handle automatic closures of client connections *)
-let invoke_callback conn_id (req:Request.request) spec =
-  try_lwt 
-  (match (spec.auth, (Request.authorization req)) with
-   |`None, _ -> (* no auth required *)
-     spec.callback conn_id req
-   |`Basic (realm, authfn), Some (`Basic (username, password)) ->
-     if authfn username password then
-       spec.callback conn_id req (* auth ok *)
-     else
-       fail (Unauthorized realm)  (* auth failed *)
-   |`Basic (realm, _), _ -> fail (Unauthorized realm)
-  )
-  with
-    |Unauthorized realm -> respond_unauthorized ~realm ()
-    |exn -> respond_error ~status:`Internal_server_error ~body:(Printexc.to_string exn) ()
 
 let daemon_callback spec =
   let conn_id = ref 0 in
@@ -144,8 +126,7 @@ let daemon_callback spec =
     let streams, push_streams = Lwt_stream.create () in
     let write_streams =
       try_lwt
-        Lwt_stream.iter_s (fun stream_t ->
-          lwt stream = stream_t in
+        Lwt_stream.iter_s (fun stream ->
           Lwt_stream.iter_s (Net.Channel.write_string channel) stream >>
           Net.Channel.flush channel (* TODO: autoflush *)
         ) streams
@@ -157,7 +138,7 @@ let daemon_callback spec =
     let rec loop () =
       try_lwt
         let finished_t, finished_u = Lwt.wait () in
-        let stream =
+        let stream_t =
           try_lwt
             let read_line () =
               let stream = Net.Channel.read_crlf channel in
@@ -165,28 +146,34 @@ let daemon_callback spec =
               return (OS.Istring.View.ts_to_string ts)
             in
             lwt req = Request.init_request finished_u read_line in
-            invoke_callback conn_id req spec 
+            spec.callback conn_id req
           with e -> begin
             try_lwt
               lwt s = handle_parse_exn e in
               wakeup finished_u (); (* read another request *)
               return s
-            with e ->
+            with
+             |e ->
               wakeup_exn finished_u e;
               fail e
             end
         in
-        push_streams (Some stream);
+        lwt stream =
+          try_lwt
+            lwt s = stream_t in
+            return (Some s) 
+          with Net.Nettypes.Closed -> return None in
+        push_streams stream;
         finished_t >>= loop (* wait for request to finish before reading another *)
       with
-        | End_of_file -> debug_print "done with connection"; spec.conn_closed conn_id; return ()
-        | Canceled -> debug_print "cancelled"; spec.conn_closed conn_id; return ()
+        | Net.Nettypes.Closed -> return (spec.conn_closed conn_id)
+        | Canceled -> return (spec.conn_closed conn_id)
         | e -> fail e
       in
       try_lwt
         loop () <&> write_streams
       with exn ->
-	debug_print (sprintf "uncaught exception: %s" (Printexc.to_string exn));
+	printf "HTTP: uncaught exception: %s\n%!" (Printexc.to_string exn);
         (* XXX perhaps there should be a higher-level exn handler for 500s *)
 	spec.exn_handler exn
   in

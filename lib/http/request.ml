@@ -26,13 +26,6 @@ open Lwt
 open Common
 open Types
 
-let debug_dump_request path params =
-  debug_print ("request path = " ^ path);
-  debug_print (
-    sprintf"request params = %s"
-      (String.concat ";"
-        (List.map (fun (h,v) -> String.concat "=" [h;v]) params)))
-
 let auth_sep_RE = Str.regexp_string ":"
 let basic_auth_RE = Str.regexp "^Basic +"
 
@@ -50,10 +43,8 @@ type request = {
 exception Length_required (* HTTP 411 *)
  
 let init_request finished ic =
-  debug_print "init_request";
   lwt (meth, uri, version) = Parser.parse_request_fst_line ic in
   let uri_str = Url.to_string uri in
-  debug_print (Printf.sprintf ">>> URL=%s" uri_str);
   let path = Parser.parse_path uri in
   let query_get_params = Parser.parse_query_get_params uri in
   lwt headers = Parser.parse_headers ic in
@@ -99,7 +90,6 @@ let init_request finished ic =
     | _ -> return ([], body)
   in
   let params = query_post_params @ query_get_params in (* prefers POST params *)
-  let _ = debug_dump_request path params in
   let msg = Message.init ~body ~headers ~version in
   let params_tbl =
     let tbl = Hashtbl.create (List.length params) in
@@ -144,7 +134,6 @@ let authorization r =
     | [] -> None
     | h :: _ -> 
     let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in
-      debug_print ("HTTP Basic auth credentials: " ^ credentials);
       (match Str.split auth_sep_RE credentials with
          | [username; password] -> Some (`Basic (username, password))
          | l -> None)

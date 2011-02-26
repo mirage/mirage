@@ -112,6 +112,8 @@ type ipv4_dst = ipv4_addr * int
 
 type peer_uid = int
 
+exception Closed
+
 module type FLOW = sig                                                                                   
   (* Type of an individual flow *)                                                                       
   type t                                                                                                 
@@ -154,9 +156,10 @@ module type CHANNEL = sig
   type src
   type dst
 
-  val read_char: t -> char option Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.t option) option Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.t option Lwt.t
+  val read_char: t -> char Lwt.t
+  val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
+  val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
+  val read_stream: ?len:int -> t -> OS.Istring.t Lwt_stream.t
 
   val read_crlf: t -> OS.Istring.t Lwt_stream.t
 

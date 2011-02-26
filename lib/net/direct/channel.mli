@@ -17,20 +17,21 @@
 open Nettypes
 
 module TCPv4 : CHANNEL with
-      type src = Flow.TCPv4.src
-  and type dst = Flow.TCPv4.dst
-  and type mgr = Flow.TCPv4.mgr
+      type src = ipv4_src
+  and type dst = ipv4_dst
+  and type mgr = Manager.t
 
 module Shmem : CHANNEL with
-      type src = Flow.Shmem.src
-  and type dst = Flow.Shmem.dst
-  and type mgr = Flow.Shmem.mgr
+      type src = peer_uid
+  and type dst = peer_uid
+  and type mgr = Manager.t
 
 type t
 
-val read_char: t -> char option Lwt.t
-val read_until: t -> char -> (bool * OS.Istring.t option) option Lwt.t
-val read_view: ?len:int -> t -> OS.Istring.t option Lwt.t
+val read_char: t -> char Lwt.t
+val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
+val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
+val read_stream: ?len:int -> t -> OS.Istring.t Lwt_stream.t
 
 val read_crlf: t -> OS.Istring.t Lwt_stream.t
 

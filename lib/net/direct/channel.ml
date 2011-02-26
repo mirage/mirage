@@ -66,77 +66,79 @@ module Make(Flow:FLOW) :
      or the existing one if already there *)
   let ibuf_fill t =
     match t.ibuf with
-    |Some buf -> return (Some buf)
+    |Some buf ->
+      return buf
     |None -> begin
       Flow.read t.flow >>= function
       |Some buf as x ->
         t.ibuf <- x;
-        return (Some buf)
+        return buf
       |None ->
-        return None
+        fail Closed
     end
 
   (* Read one character from the input channel *)
-  let rec read_char t =
-    ibuf_fill t >>= function
-    |Some buf ->
-      (* This buffer will always have at least one character
-         spare, or it wouldn't be here *)
-      let ch = OS.Istring.View.to_char buf t.ipos in
-      ibuf_incr t 1;
-      return (Some ch)
-    |None -> return None
+  let read_char t =
+    lwt buf = ibuf_fill t in
+    let ch = OS.Istring.View.to_char buf t.ipos in
+    ibuf_incr t 1;
+    return ch
 
   (* Read up to len characters from the input channel
      and at most a full view. If not specified, read all *)
   let read_view ?len t =
-    ibuf_fill t >>= function
-    |Some buf ->
-      (* Read at most one view *)
-      let n = match len with
+    lwt buf = ibuf_fill t in
+    (* Read at most one view *)
+    let n = match len with
       |Some len -> min (OS.Istring.View.length buf - t.ipos) len 
       |None -> OS.Istring.View.length buf - t.ipos in
-      let v = OS.Istring.View.sub buf t.ipos n in
-      ibuf_incr t n;
-      return (Some v)
-    |None -> return None
-      
+    let v = OS.Istring.View.sub buf t.ipos n in
+    ibuf_incr t n;
+    return v
+    
+  (* Read up to len characters from the input channel as a 
+     stream (and read all available if no length specified *)
+  let read_stream ?len t =
+    Lwt_stream.from (fun () ->
+      try_lwt
+        lwt v = read_view ?len t in
+        return (Some v)
+      with Closed ->
+        return None
+    )
+  
   (* Read until a character is encountered. This can also
      be a short read, and return a short view that does
      not yet have the character.
-     @return (bool * view option) option where bool=character found
-      along with the view portion consumed, and the outer option
-      signifies EOF *)
+     @return (bool * view option) where bool=character found
+      along with the view portion consumed.
+     @raise Closed on EOF
+   *)
   let read_until t ch =
-    ibuf_fill t >>= function
-    |Some buf -> begin
-      match OS.Istring.View.scan_char buf t.ipos ch with
-      |(-1) ->  (* not found, so return the partial view *)
-        let v = OS.Istring.View.sub buf t.ipos (OS.Istring.View.length buf - t.ipos) in
-        return (Some (false, Some v))
-      |idx ->
-        let len = idx - t.ipos in
-        if len >= 0 then begin
-          let v = OS.Istring.View.sub buf t.ipos (idx-t.ipos) in
-          ibuf_incr t (len+1);
-          return (Some (true, Some v))
-        end else begin (* Consume just the divider character *)
-          ibuf_incr t 1;
-          return (Some (true, None))
-        end
-    end
-    |None -> return None
+    lwt buf = ibuf_fill t in
+    match OS.Istring.View.scan_char buf t.ipos ch with
+    |(-1) ->  (* not found, so return the partial view *)
+      let v = OS.Istring.View.sub buf t.ipos (OS.Istring.View.length buf - t.ipos) in
+      return (false, Some v)
+    |idx ->
+      let len = idx - t.ipos in
+      if len >= 0 then begin
+        let v = OS.Istring.View.sub buf t.ipos (idx-t.ipos) in
+        ibuf_incr t (len+1);
+        return (true, Some v)
+      end else begin (* Consume just the divider character *)
+        ibuf_incr t 1;
+        return (true, None)
+      end
 
   (* Read a "chunk" of data (where the chunk size is dependent on the
      underlying protocol and available data, and raise Closed when EOF *)
   let read_opt t =
-    ibuf_fill t >>= function
-    |Some buf ->
-      let len = OS.Istring.View.length buf - t.ipos in
-      let v = OS.Istring.View.sub buf t.ipos len in
-      ibuf_incr t len;
-      return (Some v)
-    |None -> return None
+    lwt buf = ibuf_fill t in
+    let len = OS.Istring.View.length buf - t.ipos in
+    let v = OS.Istring.View.sub buf t.ipos len in
+    ibuf_incr t len;
+    return v
 
   (* This reads a line of input, which is terminated either by a CRLF
      sequence, or the end of the channel (which counts as a line).
@@ -149,10 +151,10 @@ module Make(Flow:FLOW) :
       |true -> return None
       |false -> begin
         read_until t '\n' >>= function
-        |None -> fail Closed  (* EOF *)
-        |Some (_, None) -> assert false
-        |Some (false, Some v) -> return (Some v) (* Continue scanning *)
-        |Some (true, Some v) -> begin (* Found (CR?)LF *)
+        |true, None -> return None
+        |false, None -> assert false
+        |false, Some v -> return (Some v) (* Continue scanning *)
+        |true, Some v -> begin (* Found (CR?)LF *)
           fin := true;
           (* chop the CR if present *)
           let vlen = OS.Istring.View.length v in
@@ -249,6 +251,10 @@ let read_until = function
 let read_view ?len = function
   | TCPv4 t -> TCPv4.read_view ?len t
   | Shmem t -> Shmem.read_view ?len t
+
+let read_stream ?len = function
+  | TCPv4 t -> TCPv4.read_stream ?len t
+  | Shmem t -> Shmem.read_stream ?len t
 
 let read_crlf = function
   | TCPv4 t -> TCPv4.read_crlf t

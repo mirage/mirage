@@ -60,7 +60,6 @@ module UDPv4 = struct
         let frm_addr = ipv4_addr_of_uint32 frm_addr in
         let dst = (frm_addr, frm_port) in
         let req = OS.Istring.View.t ~off:0 istr len in
-        Lwt.ignore_result (fn dst req);
         (* Be careful to catch an exception here, as otherwise
            ignore_result may raise it at some other random point *)
         Lwt.ignore_result (

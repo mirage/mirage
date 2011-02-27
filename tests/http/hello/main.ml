@@ -6,12 +6,11 @@ open Lwt
 let auth = `None
 
 let conn_closed id =
-  printf "conn closed\n%!"
+  ()
 
 let port = 8081
 
 let callback id req =
-  printf "callback start\n%!";
   Http.Server.respond ~body:"hello mirage world"
     ~headers:["x-foo","bar"] () 
 
@@ -30,9 +29,9 @@ let spec = {
 }
 
 let main () =
-  lwt mgr = Net.Manager.create () in
+  lwt mgr, mgr_t = Net.Manager.create () in
   let src = None,port in (* Listen on all interfaces *)
-  Http.Server.main mgr src spec
+  Http.Server.listen mgr (`TCPv4 (src, spec))
 
 let _ =
   OS.Main.run (main ())

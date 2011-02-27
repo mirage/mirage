@@ -23,8 +23,6 @@ module DR = Dnsrr
 
 let dnstrie = DL.(state.db.trie)
 
-(* Specialise dns packet to a smaller closure *)
-
 let log (addr,port) (dnsq:Packet.Questions.o) =
   printf "%.0f: %s %s %s (%s:%d)\n%!" (OS.Clock.time())
     (String.concat "." dnsq#qname)
@@ -49,7 +47,6 @@ let listen mgr src ~zonebuf =
       Mpl_dns_label.init_unmarshal env;
       let d = Packet.unmarshal env in
       let q = d#questions.(0) in
-      log dst q;
       let r = get_answer (q#qname, q#qtype) d#id in
       let dnsfn env =
         Mpl_dns_label.init_marshal env;

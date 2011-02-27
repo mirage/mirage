@@ -77,8 +77,17 @@ let listen_tcpv4 addr port fn =
          |R.OK (afd,caddr_i,cport) ->
            let caddr = ipv4_addr_of_uint32 caddr_i in
            let t' = t_of_fd afd in
-           let conn_t = close_on_exit t' (fn (caddr, cport)) in
-           loop t <&> conn_t
+           (* Be careful to catch an exception here, as otherwise
+              ignore_result may raise it at some other random point *)
+           Lwt.ignore_result (
+             close_on_exit t' (fun t ->
+               try_lwt
+                fn (caddr, cport) t
+               with exn ->
+                return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
+             )
+           );
+           loop t
          |R.Retry -> loop t
          |R.Err err -> fail (Accept_error err)
         )

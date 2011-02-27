@@ -52,7 +52,7 @@ module UDPv4 = struct
 
   let recv mgr (addr,port) fn =
     lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
-    let rec listen lfd =
+    let rec listen () =
       lwt () = Activations.read (R.fd_to_int lfd) in
       let istr = OS.Istring.Raw.alloc () in
       match R.udpv4_recvfrom lfd istr 0 4096 with
@@ -60,10 +60,18 @@ module UDPv4 = struct
         let frm_addr = ipv4_addr_of_uint32 frm_addr in
         let dst = (frm_addr, frm_port) in
         let req = OS.Istring.View.t ~off:0 istr len in
-        let resp_t = fn dst req in
-        listen lfd <&> resp_t
-      |R.Retry -> listen lfd
+        Lwt.ignore_result (fn dst req);
+        (* Be careful to catch an exception here, as otherwise
+           ignore_result may raise it at some other random point *)
+        Lwt.ignore_result (
+          try_lwt
+            fn dst req
+          with exn ->
+            return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
+        );
+        listen ()
+      |R.Retry -> listen ()
       |R.Err _ -> return ()
     in 
-    listen lfd
+    listen ()
 end

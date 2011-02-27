@@ -13,13 +13,14 @@ let echo () =
        OS.Console.log (sprintf "Connection from %s:%d"
          (Nettypes.ipv4_addr_to_string remote_addr) remote_port);
        let rec echo () =
-         let res = Channel.read_crlf t in
-         lwt ts = OS.Istring.View.ts_of_stream res in
-         let str = OS.Istring.View.ts_to_string ts in
-         printf "read: %s\n%!" str;
-         Channel.write_line t str >>
-         Channel.flush t >>
-         echo ()
+         try_lwt
+           let res = Channel.read_crlf t in
+           lwt ts = OS.Istring.View.ts_of_stream res in
+           let str = OS.Istring.View.ts_to_string ts in
+           Channel.write_line t str >>
+           Channel.flush t >>
+           echo ()
+         with Nettypes.Closed -> return ()
        in
        echo () 
     )

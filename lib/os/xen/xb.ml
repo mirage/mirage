@@ -31,20 +31,9 @@ type backend =
     notify: unit -> unit; (* function to notify through eventchn *)
 }
 
-(** Callback to go through the active waiting threads and wake them *)
-let perform_actions backend () =
-    Lwt_sequence.iter_node_l
-      (fun node ->
-         Lwt_sequence.remove node;
-         Lwt.wakeup (Lwt_sequence.get node) ();
-      ) backend.waiters
-
 (** Called by a Xenstore thread that wishes to sleep (or be cancelled) *)
 let wait backend =
-   let t,u = Lwt.task () in
-   let node = Lwt_sequence.add_r u backend.waiters in
-   Lwt.on_cancel t (fun _ -> Lwt_sequence.remove node);
-   t
+  Activations.wait (Evtchn.xenstore_port ())
 
 type partial_buf = HaveHdr of Xb_partial.pkt | NoHdr of int * string
 
@@ -136,18 +125,16 @@ let input con =
     return (!newpacket)
 
 let init () =
-    let gnt,ring = Ring.Xenstore.alloc_initial () in
-    let evtchn = Evtchn.xenstore_port () in
-    let notify () = Evtchn.notify evtchn in
-    let waiters = Lwt_sequence.create () in
-    let backend = { ring=ring; notify=notify; waiters=waiters } in
-    let con = { backend=backend; pkt_in=Queue.create ();
-        pkt_out=Queue.create (); partial_in = init_partial_in ();
-        partial_out = "" } in
-    Activations.register evtchn 
-      (Activations.Event_direct (perform_actions backend));
-    Evtchn.unmask evtchn;
-    con
+  let gnt,ring = Ring.Xenstore.alloc_initial () in
+  let evtchn = Evtchn.xenstore_port () in
+  let notify () = Evtchn.notify evtchn in
+  let waiters = Lwt_sequence.create () in
+  let backend = { ring=ring; notify=notify; waiters=waiters } in
+  let con = { backend=backend; pkt_in=Queue.create ();
+    pkt_out=Queue.create (); partial_in = init_partial_in ();
+    partial_out = "" } in
+  Evtchn.unmask evtchn;
+  con
 
 let output_len con = Queue.length con.pkt_out
 let has_new_output con = Queue.length con.pkt_out > 0

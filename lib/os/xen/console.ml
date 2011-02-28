@@ -27,20 +27,9 @@ type t = {
 
 exception Internal_error of string
 
-(** Callback to go through the active waiting threads and wake them *)
-let perform_actions waiters () =
-  Lwt_sequence.iter_node_l
-    (fun node ->
-      Lwt_sequence.remove node;
-      Lwt.wakeup (Lwt_sequence.get node) ();
-    ) waiters
-
 (** Called by a console thread that wishes to sleep (or be cancelled) *)
 let wait cons =
-  let t,u = Lwt.task () in
-  let node = Lwt_sequence.add_r u cons.waiters in
-  Lwt.on_cancel t (fun _ -> Lwt_sequence.remove node);
-  t
+  Activations.wait cons.evtchn
 
 let create () =
   let backend_id = 0 in 
@@ -48,7 +37,6 @@ let create () =
   let evtchn = Evtchn.console_port () in
   let waiters = Lwt_sequence.create () in
   let con = { backend_id; gnt; ring; evtchn; waiters } in
-  Activations.(register evtchn (Event_direct (perform_actions waiters)));
   Evtchn.unmask evtchn;
   Evtchn.notify evtchn;
   con

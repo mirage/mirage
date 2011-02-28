@@ -26,7 +26,6 @@ type t = {
   rx: Ring.Netif.Rx_t.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
-  mutable rx_cond: unit Lwt_condition.t;
 }
 
 type id = (int * int)
@@ -45,6 +44,7 @@ let create (num,backend_id) =
   let node = Printf.sprintf "device/vif/%d/" num in
   lwt backend = Xs.(t.read (node ^ "backend")) in
   lwt mac = Xs.(t.read (node ^ "mac")) in
+  printf "MAC: %s\n%!" mac;
   lwt () = Xs.(transaction t (fun xst ->
     let wrfn k v = xst.Xst.write (node ^ k) v in
     wrfn "tx-ring-ref" (Gnttab.to_string tx_gnt) >>
@@ -54,10 +54,8 @@ let create (num,backend_id) =
     wrfn "state" Xb.State.(to_string Connected)
   )) in
   (* Register callback activation *)
-  let rx_cond = Lwt_condition.create () in
-  let t = { backend_id; tx; tx_gnt; rx_gnt; rx; rx_cond; 
+  let t = { backend_id; tx; tx_gnt; rx_gnt; rx; 
    evtchn; mac; backend } in
-  Activations.(register evtchn (Event_condition rx_cond));
   Evtchn.unmask evtchn;
   return t
 
@@ -91,21 +89,20 @@ let listen nf fn =
       Console.log "Warning: Netif.Rx_t error";
       one_request ()
   in
-  let reqs =
+  let _ =
     Array.to_list (
       Array.init (Ring.Netif.Rx_t.max_requests nf.rx)
         (fun i -> one_request ())
     ) in
-  (* These requests will all requeue more requests, so this will
-     never terminate until cancelled *)
-  let listen_t = join reqs in
   (* Listen for the activation to poll the interface *)
   let rec poll_t () =
-    lwt () = Lwt_condition.wait nf.rx_cond in
+    lwt () = Activations.wait nf.evtchn in
+    Ring.Netif.Tx_t.poll nf.tx; 
     Ring.Netif.Rx_t.poll nf.rx; 
     Ring.Netif.Tx_t.poll nf.tx; 
+    Ring.Netif.Rx_t.poll nf.rx; 
     poll_t () in
-  poll_t () <?> listen_t
+  poll_t ()
 
 (* Shutdown a netfront *)
 let destroy nf =

@@ -80,7 +80,13 @@ let listen nf fn =
     match res.status with
     |Size size ->
       let view = Istring.View.t ~off:res.off page size in
-      fn view <&> (one_request ()) 
+      Lwt.ignore_result (
+        try_lwt
+          fn view
+        with exn -> 
+          return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
+      );
+      one_request ()
     |Err _ ->
       Console.log "Warning: Netif.Rx_t error";
       one_request ()

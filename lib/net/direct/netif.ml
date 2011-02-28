@@ -27,11 +27,14 @@ type t = {
 
 (* Handle a single input frame, input as an istring view *)
 let input t i = 
-  let x = Mpl.Ethernet.unmarshal i in 
-  match x with
-  | `ARP arp -> t.arp arp
-  | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_sub_view)
-  | `IPv6 ipv6 -> t.ipv6 ipv6
+  try_lwt
+    let x = Mpl.Ethernet.unmarshal i in 
+    match x with
+    | `ARP arp -> t.arp arp
+    | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_sub_view)
+    | `IPv6 ipv6 -> t.ipv6 ipv6
+  with exn ->
+    return (print_endline (Printexc.to_string exn))
 
 (* Loop and listen for frames *)
 let rec listen t =

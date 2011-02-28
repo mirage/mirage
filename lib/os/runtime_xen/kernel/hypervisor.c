@@ -30,63 +30,9 @@
 #include <mini-os/hypervisor.h>
 #include <mini-os/events.h>
 
-#define active_evtchns(cpu,sh,idx)              \
-    ((sh)->evtchn_pending[idx] &                \
-     ~(sh)->evtchn_mask[idx])
-
-int in_callback;
-
 void do_hypervisor_callback(struct pt_regs *regs)
 {
-    unsigned long  l1, l2, l1i, l2i;
-    unsigned int   port;
-    int            cpu = 0;
-    shared_info_t *s = HYPERVISOR_shared_info;
-    vcpu_info_t   *vcpu_info = &s->vcpu_info[cpu];
-
-    in_callback = 1;
-
-    /* Adjust the stack to be 16-byte aligned, so that functions
-       called from an event callback will respect the x86_64 ABI.
-       The Xen IRQ injection is only 8-bytes */
-    asm("andl $0xfffffff0, %esp");
-
-    vcpu_info->evtchn_upcall_pending = 0;
-    /* NB x86. No need for a barrier here -- XCHG is a barrier on x86. */
-    l1 = xchg(&vcpu_info->evtchn_pending_sel, 0);
-    while ( l1 != 0 )
-    {
-        l1i = __ffs(l1);
-        l1 &= ~(1UL << l1i);
-        
-        while ( (l2 = active_evtchns(cpu, s, l1i)) != 0 )
-        {
-            l2i = __ffs(l2);
-            l2 &= ~(1UL << l2i);
-
-            port = (l1i * (sizeof(unsigned long) * 8)) + l2i;
-            do_event(port, regs);
-        }
-    }
-
-    in_callback = 0;
-}
-
-void force_evtchn_callback(void)
-{
-    int save;
-    vcpu_info_t *vcpu;
-    vcpu = &HYPERVISOR_shared_info->vcpu_info[smp_processor_id()];
-    save = vcpu->evtchn_upcall_mask;
-
-    while (vcpu->evtchn_upcall_pending) {
-        vcpu->evtchn_upcall_mask = 1;
-        barrier();
-        do_hypervisor_callback(NULL);
-        barrier();
-        vcpu->evtchn_upcall_mask = save;
-        barrier();
-    };
+  printk("hypervisor_callback\n");
 }
 
 inline void mask_evtchn(uint32_t port)
@@ -101,19 +47,6 @@ inline void unmask_evtchn(uint32_t port)
     vcpu_info_t *vcpu_info = &s->vcpu_info[smp_processor_id()];
 
     synch_clear_bit(port, &s->evtchn_mask[0]);
-
-    /*
-     * The following is basically the equivalent of 'hw_resend_irq'. Just like
-     * a real IO-APIC we 'lose the interrupt edge' if the channel is masked.
-     */
-    if (  synch_test_bit        (port,    &s->evtchn_pending[0]) && 
-         !synch_test_and_set_bit(port / (sizeof(unsigned long) * 8),
-              &vcpu_info->evtchn_pending_sel) )
-    {
-        vcpu_info->evtchn_upcall_pending = 1;
-        if ( !vcpu_info->evtchn_upcall_mask )
-            force_evtchn_callback();
-    }
 }
 
 inline void clear_evtchn(uint32_t port)

@@ -4,6 +4,7 @@
  * (C) 2002-2003 - Keir Fraser - University of Cambridge 
  * (C) 2005 - Grzegorz Milos - Intel Research Cambridge
  * (C) 2006 - Robert Kaiser - FH Wiesbaden
+ * (C) 2010 - Anil Madhavapeddy - University of Cambridge
  ****************************************************************************
  *
  *        File: time.c
@@ -45,7 +46,7 @@
  * Time functions
  *************************************************************************/
 
-/* These are peridically updated in shared_info, and then copied here. */
+/* These are periodically updated in shared_info, and then copied here. */
 struct shadow_time_info {
     uint64_t tsc_timestamp;     /* TSC at last update of time vals.  */
     uint64_t system_timestamp;  /* Time, in nanosecs, since boot.    */
@@ -181,42 +182,19 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
     return 0;
 }
 
-
-void block_domain(s_time_t until)
-{
-    ASSERT(irqs_disabled());
-
-    if(monotonic_clock() < until)
-    {
-        int ret;
-
-        HYPERVISOR_set_timer_op(until);
-        ret=HYPERVISOR_sched_op(SCHEDOP_block, 0);
-        local_irq_disable();
-        if (ret != 0)
-           printk("block_domain failed: diff=%Lu ret=%d\n", (until - (monotonic_clock ())), ret);
-    }
-}
-
-static void timer_handler(evtchn_port_t ev, struct pt_regs *regs, void *ign)
+void update_time(void)
 {
     get_time_values_from_xen();
     update_wallclock();
 }
-
-static evtchn_port_t port;
 
 void init_time(void)
 {
-    port = bind_virq(VIRQ_TIMER, &timer_handler, NULL);
-    unmask_evtchn(port);
-    get_time_values_from_xen();
-    update_wallclock();
+    update_time();
 }
 
 void fini_time(void)
 {
     /* Clear any pending timer */
     HYPERVISOR_set_timer_op(0);
-    unbind_evtchn(port);
 }

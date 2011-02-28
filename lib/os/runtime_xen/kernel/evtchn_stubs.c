@@ -26,24 +26,45 @@
 #define NR_EVENTS 16 /* same as events.c XXX */
 static uint8_t ev_callback_ml[NR_EVENTS];
 
-/* Called with interrupts enabled to mark an event channel as being
-   active. Safe to call multiple times... */
-static void
-caml_evtchn_handler(evtchn_port_t port, struct pt_regs *regs, void *ign)
+#define active_evtchns(cpu,sh,idx)              \
+    ((sh)->evtchn_pending[idx] &                \
+     ~(sh)->evtchn_mask[idx])
+
+/* Walk through the ports, setting the OCaml callback
+   mask for any active ones, and clear the Xen side */
+void
+evtchn_poll(void)
 {
-    ASSERT(port < NR_EVENTS);
-    ev_callback_ml[port] = 1;
+  unsigned long  l1, l2, l1i, l2i;
+  unsigned int   port;
+  int            cpu = 0;
+  shared_info_t *s = HYPERVISOR_shared_info;
+  vcpu_info_t   *vcpu_info = &s->vcpu_info[cpu];
+
+  vcpu_info->evtchn_upcall_pending = 0;
+  /* NB x86. No need for a barrier here -- XCHG is a barrier on x86. */
+  l1 = xchg(&vcpu_info->evtchn_pending_sel, 0);
+  while ( l1 != 0 ) {
+    l1i = __ffs(l1);
+    l1 &= ~(1UL << l1i);
+
+   while ( (l2 = active_evtchns(cpu, s, l1i)) != 0 ) {
+      l2i = __ffs(l2);
+      l2 &= ~(1UL << l2i);
+
+      port = (l1i * (sizeof(unsigned long) * 8)) + l2i;
+      clear_evtchn(port);
+      ev_callback_ml[port] = 1;
+    }
+  }
 }
 
-/* Initialise the events Bigarray and bind the predefined ports */
+/* Initialise and bind the predefined ports */
 CAMLprim value
 caml_evtchn_init(value v_unit)
 {
     CAMLparam1(v_unit);
     CAMLlocal1(v_arr);
-    int rc;
-    rc = bind_evtchn(start_info.store_evtchn, caml_evtchn_handler, NULL);
-    rc = bind_evtchn(start_info.console.domU.evtchn, caml_evtchn_handler, NULL);
     CAMLreturn(Val_unit);
 }
 
@@ -72,7 +93,7 @@ stub_evtchn_alloc_unbound(value v_domid)
     int rc;
     evtchn_port_t port;
 
-    rc = evtchn_alloc_unbound(domid, caml_evtchn_handler, NULL, &port);
+    rc = evtchn_alloc_unbound(domid, &port);
     if (rc)
        CAMLreturn(Val_int(-1));
     else

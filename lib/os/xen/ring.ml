@@ -149,6 +149,7 @@ module Bounded_ring (Ring:RING) = struct
     |Some u -> Lwt.wakeup u ()
 
   let max_requests t = Ring.max_requests t.fring
+  let free_requests t = Ring.free_requests t.fring
 end
 
 module Netif = struct

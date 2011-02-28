@@ -56,6 +56,7 @@ module Netif : sig
     val push_one : t -> evtchn:int -> (id -> Rx.Req.t) -> Rx.Res.t Lwt.t
     val poll : t -> unit
     val max_requests : t -> int
+    val free_requests : t -> int
   end
 
   module Tx : sig
@@ -105,6 +106,7 @@ module Netif : sig
     val push_one : t -> evtchn:int -> (id -> Tx.Req.t) -> Tx.Res.t Lwt.t
     val poll : t -> unit
     val max_requests : t -> int
+    val free_requests : t -> int
   end
 end
 

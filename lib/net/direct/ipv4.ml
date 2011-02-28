@@ -97,7 +97,10 @@ let create netif =
   let netmask = ipv4_blank in
   let gateways = [] in
   let t = { netif; arp; udp; tcp; icmp; ip; netmask; gateways } in
-  Lwt.on_cancel ipv4_t (fun _ -> Netif.detach t.netif `IPv4);
+  Lwt.on_cancel ipv4_t (fun _ ->
+    print_endline "IPV4 shutdown";
+    Netif.detach t.netif `IPv4
+  );
   Netif.attach t.netif (`IPv4 (input t));
   let th = pick [ arp_t; ipv4_t ] in
   t, th

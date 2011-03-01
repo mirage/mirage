@@ -314,7 +314,7 @@ caml_istring_ones_complement_checksum(value v_istr, value v_off, value v_len, va
     addr += 2;
   }
   if (count > 0)
-    sum += *(unsigned char *)addr;
+    sum += (*(unsigned char *)addr) << 8;
   while (sum >> 16)
     sum = (sum & 0xffff) + (sum >> 16);
   checksum = ~sum;

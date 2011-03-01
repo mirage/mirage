@@ -301,11 +301,11 @@ let rec read pcb =
 
 (* Maximum allowed write *)
 let write_available pcb =
-  User_buffer.Tx.available pcb.utx
+  min 1500 (Int32.to_int (User_buffer.Tx.available pcb.utx))
 
 (* Wait for more write space *)
 let write_wait_for pcb sz =
-  User_buffer.Tx.wait_for pcb.utx sz
+  User_buffer.Tx.wait_for pcb.utx (Int32.of_int sz)
 
 (* Write a segment *)
 let write pcb data =

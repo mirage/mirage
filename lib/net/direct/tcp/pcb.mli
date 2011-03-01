@@ -30,6 +30,6 @@ val read: pcb -> OS.Istring.t option Lwt.t
 
 (* Low-level write interface that lets the application
    decide on a write strategy *)
-val write_available: pcb -> int32
-val write_wait_for: pcb -> int32 -> unit Lwt.t
+val write_available: pcb -> int
+val write_wait_for: pcb -> int -> unit Lwt.t
 val write: pcb -> unit OS.Istring.View.data -> unit Lwt.t

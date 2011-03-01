@@ -30,10 +30,19 @@ module TCPv4 = struct
   let read t =
     Tcp.Pcb.read t
 
-  let write t view =
-    let len = Int32.of_int (OS.Istring.View.length view) in
-    Tcp.Pcb.write_wait_for t len >>
-    Tcp.Pcb.write t (`Frag view)
+  let rec write t view =
+    let vlen = OS.Istring.View.length view in
+    Printf.printf "Flow.write: %d\n%!" vlen;
+    match Tcp.Pcb.write_available t with
+    |0 -> (* block for window to open *)
+      Tcp.Pcb.write_wait_for t 1 >>
+      write t view
+    |len when len < vlen -> (* do a short write *)
+      let v' = OS.Istring.View.sub view 0 len in
+      Tcp.Pcb.write t (`Frag v') >>
+      write t (OS.Istring.View.sub view len (vlen - len))
+    |len -> (* full write *)
+      Tcp.Pcb.write t (`Frag view)
 
   let close t =
     Tcp.Pcb.close t

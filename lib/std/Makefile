@@ -5,10 +5,10 @@ all: syntax lib
 	@ :
 
 syntax:
-	ocamlbuild -use-ocamlfind syntax.otarget
+	ocamlbuild $(JOBS) -use-ocamlfind syntax.otarget
 
 lib: syntax
-	ocamlbuild -X syntax lib.otarget
+	ocamlbuild $(JOBS) -X syntax lib.otarget
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/std
 install:

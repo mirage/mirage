@@ -13,13 +13,13 @@ endif
 
 .PHONY: clean all depend install unix xen
 all: depend
-	ocamlbuild unix.otarget $(XEN_BUILD)
+	ocamlbuild $(JOBS) unix.otarget $(XEN_BUILD)
 
 unix:
-	ocamlbuild unix.otarget
+	ocamlbuild $(JOBS) unix.otarget
 
 xen:
-	ocamlbuild xen.otarget
+	ocamlbuild $(JOBS) xen.otarget
 
 depend: $(EVMAKE) $(EVLIB)
 	ln -nfs tap_stubs_$(OS).c runtime_unix/tap_stubs_os.c

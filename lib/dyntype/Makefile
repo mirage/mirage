@@ -5,13 +5,13 @@ all: lib syntax
 	@ :
 
 lib:
-	ocamlbuild lib/dyntype.cmx
+	ocamlbuild $(JOBS) lib/dyntype.cmx
 
 syntax/dyntype.ml:
 	@cd syntax && ln -nfs ../lib/dyntype.ml .
 
 syntax: syntax/dyntype.ml
-	ocamlbuild syntax.otarget
+	ocamlbuild $(JOBS) syntax.otarget
 
 TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/dyntype
 install:

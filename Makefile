@@ -11,6 +11,9 @@ export DESTDIR
 PREFIX ?= $(HOME)/mir-inst
 export PREFIX
 
+JOBS=-j 6
+export JOBS
+
 all: tools
 	cd lib && $(MAKE)
 

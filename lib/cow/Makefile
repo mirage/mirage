@@ -17,7 +17,7 @@ all: syntax unix-direct unix-socket $(XEN_BUILD)
 	@ :
 
 syntax: syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
-	ocamlbuild -I syntax syntax.otarget
+	ocamlbuild $(JOBS) -I syntax syntax.otarget
 
 syntax/xml/xml.ml:
 	@cd syntax/xml && ln -nsf ../../lib/xml.ml .
@@ -29,12 +29,12 @@ syntax/json/json.ml:
 	@cd syntax/json && ln -nsf ../../lib/json.ml .
 
 unix-%: 
-	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild -I syntax syntax.otarget
-	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild lib.otarget
+	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild $(JOBS) -I syntax syntax.otarget
+	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild $(JOBS) lib.otarget
 
 xen-%: syntax
-	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild -I syntax syntax.otarget
-	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild lib.otarget
+	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) -I syntax syntax.otarget
+	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) lib.otarget
 
 test: syntax lib
 	rm -rf tests/_build

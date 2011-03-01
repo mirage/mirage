@@ -15,10 +15,10 @@ all: unix-direct unix-socket $(XEN_BUILD)
 	@ :
 
 unix-%:
-	env MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild dns.cmxa
+	env MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild $(JOBS) dns.cmxa
 
 xen-%:
-	env MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild dns.cmxa
+	env MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) dns.cmxa
 
 clean:
 	ocamlbuild -clean

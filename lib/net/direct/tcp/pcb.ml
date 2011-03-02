@@ -318,10 +318,11 @@ let close pcb =
      
 (* Register a TCP listener on a port *)
 let listen t port fn =
+  let th,_ = Lwt.task () in
   if Hashtbl.mem t.listeners port then
     printf "WARNING: TCP listen port %d already used\n%!" port;
   Hashtbl.replace t.listeners port fn;
-  return ()
+  th
 
 (* Construct the main TCP thread *)
 let create ip =

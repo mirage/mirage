@@ -52,7 +52,6 @@ let respond_with response =
 
 (* Warning: keep default values in sync with Response.response class *)
 let respond ?(body = "") ?(headers = []) ?version ?(status = `Code 200) () =
-  let headers = ("connection","close")  :: headers  in
   let resp = Response.init ~body:[`String body] ~headers ?version ~status () in
   respond_with resp
 
@@ -128,7 +127,7 @@ let daemon_callback spec =
       try_lwt
         Lwt_stream.iter_s (fun stream ->
           Lwt_stream.iter_s (Net.Channel.write_string channel) stream >>
-          Net.Channel.flush channel (* TODO: autoflush *)
+          Net.Channel.flush channel (* TODO: autoflush *) 
         ) streams
       with exn -> begin
         printf "daemon_callback: exn %d: %s\n%!" conn_id (Printexc.to_string exn);

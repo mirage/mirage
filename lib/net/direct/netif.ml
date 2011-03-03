@@ -34,7 +34,7 @@ let input t i =
     | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_sub_view)
     | `IPv6 ipv6 -> t.ipv6 ipv6
   with exn ->
-    return (print_endline (Printexc.to_string exn))
+    return ()
 
 (* Loop and listen for frames *)
 let rec listen t =

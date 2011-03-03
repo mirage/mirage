@@ -66,9 +66,16 @@ module Tx = struct
     let tcpfn env = 
       let tcp = Mpl.Tcp.t ~syn ~fin ~rst ~ack ~ack_number
         ~sequence ~source_port ~dest_port ~window ~data ~options env in
-      let dest_ip = ipv4_addr_to_uint32 dest_ip in
-      let pseudo_header = Int32.(add (add src dest_ip) (of_int (6+tcp#sizeof))) in
-      let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof pseudo_header in
+      let src_ip = ipv4_addr_to_bytes (Ipv4.get_ip ip) in
+      let dest_ip = ipv4_addr_to_bytes dest_ip in
+      let i32l x = Int32.of_int ((Char.code x.[0] lsl 8) + (Char.code x.[1])) in
+      let i32r x = Int32.of_int ((Char.code x.[2] lsl 8) + (Char.code x.[3])) in
+      let ph = Int32.of_int (6+tcp#sizeof) in
+      let ph = Int32.add ph (i32l dest_ip) in
+      let ph = Int32.add ph (i32r dest_ip) in
+      let ph = Int32.add ph (i32l src_ip) in
+      let ph = Int32.add ph (i32r src_ip) in
+      let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof ph in
       tcp#set_checksum checksum;
       memo := Some tcp
     in

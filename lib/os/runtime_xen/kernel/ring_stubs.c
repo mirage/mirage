@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,6 +18,7 @@
 #include <mini-os/gnttab.h>
 #include <mini-os/events.h>
 #include <xen/io/netif.h>
+#include <xen/io/blkif.h>
 #include <xen/io/console.h>
 #include <xen/io/xs_wire.h>
 
@@ -25,6 +26,39 @@
 #include <caml/alloc.h>
 #include <caml/memory.h>
 #include <istring.h>
+
+/* blkif_request { op:op; handle:int; id:int;
+     sector:int64; segs:array(gref*int*int)[11] } */
+static void
+blkif_set_request(value v_req, struct blkif_request *req)
+{
+  value v_segs;
+  req->operation = Int_val(Field(v_req,0));
+  req->handle = Int_val(Field(v_req,1));
+  req->id = Int_val(Field(v_req, 2));
+  req->sector_number = Int64_val(Field(v_req, 3));
+  v_segs = Field(v_req,4);
+  req->nr_segments = Wosize_val(v_segs);
+  BUG_ON(req->nr_segments > BLKIF_MAX_SEGMENTS_PER_REQUEST);
+  for (int i=0; i < req->nr_segments; i++) {
+    struct blkif_request_segment seg = req->seg[i];
+    value v = Field(v_segs,i);
+    seg.gref = Int32_val(Field(v,0));
+    seg.first_sect = Int_val(Field(v,1));
+    seg.last_sect = Int_val(Field(v,2));
+  }
+}
+
+/* blkif_response { id:int; op:int; status:int } */
+value
+blkif_alloc_response(struct blkif_response *res)
+{
+  value v = alloc_small(3, 0);
+  Store_field(v, 0, Val_int((uint32_t)res->id));
+  Store_field(v, 1, Val_int(res->operation));
+  Store_field(v, 2, Val_int(res->status));
+  return v;
+}
 
 /* netif_rx_response { id:int; off: int; flags: int; status: int } */
 value
@@ -242,7 +276,6 @@ caml_netif_tx_max_requests(value v_ring)
   return Val_int(RING_SIZE((struct netif_tx_front_ring *)v_ring)-1);
 }
 
-
 value
 caml_netif_rx_init(value v_istr)
 {
@@ -268,6 +301,89 @@ caml_netif_tx_init(value v_istr)
   FRONT_RING_INIT(fring, sring, PAGE_SIZE);
   CAMLreturn((value)fring);
 } 
+
+value
+caml_blkif_init(value v_istr)
+{
+  CAMLparam1(v_istr);
+  struct blkif_front_ring *fring;
+  struct blkif_sring *sring;
+  sring = (struct blkif_sring *)(Istring_val(v_istr)->buf);
+  SHARED_RING_INIT(sring);
+  fring = caml_stat_alloc(sizeof (struct blkif_front_ring));
+  FRONT_RING_INIT(fring, sring, PAGE_SIZE);
+  CAMLreturn((value)fring);
+} 
+
+value
+caml_blkif_response(value v_ring)
+{
+  CAMLparam1(v_ring);
+  CAMLlocal2(v_responses, v_cons);
+  RING_IDX rp, cons;
+  struct blkif_front_ring *fring = (struct blkif_front_ring *)v_ring;
+  struct blkif_response *response;
+  int more=1;
+ 
+  /* Allocate an OCaml list for the responses
+     (so remember they will be returned in reverse order!) */
+  v_responses = Val_emptylist;
+
+  while (more) {
+    rp = fring->sring->rsp_prod;
+    rmb(); /* Ensure we see queued responses up to rp */
+    cons = fring->rsp_cons;
+    /* Walk through the outstanding responses and add to list */
+    for (; cons != rp; cons++) {
+      response = RING_GET_RESPONSE(fring, cons);
+      /* Append response to the OCaml response list */ 
+      v_cons = caml_alloc(2, 0);
+      Store_field(v_cons, 0, blkif_alloc_response(response)); /* head */
+      Store_field(v_cons, 1, v_responses); /* tail */
+      v_responses = v_cons;
+    }
+    /* Mark responses as consumed */
+    fring->rsp_cons = cons;
+    RING_FINAL_CHECK_FOR_RESPONSES(fring, more);
+  }
+  CAMLreturn(v_responses);
+}
+
+/* ring -> req list -> int (if notify required to evtchn) */
+CAMLprim value
+caml_blkif_request(value v_ring, value v_reqs)
+{
+  CAMLparam1(v_ring);
+  CAMLlocal1(v_req); /* Head of reqs list */
+  struct blkif_front_ring *fring = (struct blkif_front_ring *)v_ring;
+  blkif_request_t *req;
+  RING_IDX req_prod;
+  int notify;
+
+  req_prod = fring->req_prod_pvt;
+  while (v_reqs != Val_emptylist) {
+    v_req = Field(v_reqs, 0);
+    req = RING_GET_REQUEST(fring, req_prod++);
+    blkif_set_request(v_req, req);
+    v_reqs = Field(v_reqs, 1);
+  }
+  wmb();
+  fring->req_prod_pvt = req_prod;
+  RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
+  CAMLreturn(Val_int(notify));
+}
+
+value
+caml_blkif_free_requests(value v_ring)
+{
+  return Val_int(RING_FREE_REQUESTS((struct blkif_front_ring *)v_ring));
+}
+
+value
+caml_blkif_max_requests(value v_ring)
+{
+  return Val_int(RING_SIZE((struct blkif_front_ring *)v_ring)-1);
+}
 
 /* Raw ring operations
    These have no request/response structs, just byte strings

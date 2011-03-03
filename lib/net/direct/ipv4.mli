@@ -32,4 +32,4 @@ val attach: t ->
      | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
     ] -> unit
 val detach: t -> [ `UDP | `TCP | `ICMP ] -> unit
-val create : Netif.t -> t * unit Lwt.t
+val create : Ethif.t -> t * unit Lwt.t

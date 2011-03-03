@@ -18,7 +18,7 @@ open Lwt
 open Nettypes
 
 type t = {
-  ethif: OS.Ethif.t;
+  ethif: OS.Netif.t;
   mac: ethernet_mac;
   mutable arp: (Mpl.Ethernet.ARP.o -> unit Lwt.t);
   mutable ipv4: (Mpl.Ipv4.o -> unit Lwt.t);
@@ -38,17 +38,17 @@ let input t i =
 
 (* Loop and listen for frames *)
 let rec listen t =
-  OS.Ethif.listen t.ethif (input t)
+  OS.Netif.listen t.ethif (input t)
 
 (* Output an istring view *)
 let output t x =
-  OS.Ethif.output t.ethif (Mpl.Ethernet.m x)
+  OS.Netif.output t.ethif (Mpl.Ethernet.m x)
 
 let create ethif = 
   let arp = (fun _ -> return (print_endline "dropped arp")) in
   let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
   let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in
-  let mac = ethernet_mac_of_bytes (OS.Ethif.mac ethif) in
+  let mac = ethernet_mac_of_bytes (OS.Netif.mac ethif) in
   let t = { ethif; arp; ipv4; ipv6; mac } in
   let listen = listen t in
   (t, listen)
@@ -64,4 +64,4 @@ let detach t = function
   |`IPv6 -> t.ipv6 <- (fun _ -> return ())
 
 let mac t = t.mac
-let enumerate = OS.Ethif.enumerate
+let enumerate = OS.Netif.enumerate

@@ -24,7 +24,7 @@ open Nettypes
 exception Error of string
 
 type i = {
-  netif: Netif.t;
+  netif: Ethif.t;
   ipv4: Ipv4.t;
   icmp: Icmp.t;
   udp: Udp.t;
@@ -37,13 +37,13 @@ type t = (i * unit Lwt.t) list
 let configure id t =
   match Config.t id with
   |`DHCP ->
-      Printf.printf "Manager: VIF %s to DHCP\n%!" (OS.Ethif.string_of_id id);
+      Printf.printf "Manager: VIF %s to DHCP\n%!" (OS.Netif.string_of_id id);
       lwt t, th = Dhcp.Client.create t.ipv4 t.udp in
       Printf.printf "Manager: DHCP done\n%!";
       return th
   |`IPv4 (addr, netmask, gateways) ->
       OS.Console.log (Printf.sprintf "Manager: VIF %s to %s nm %s gw [%s]"
-        (OS.Ethif.string_of_id id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
+        (OS.Netif.string_of_id id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
         (String.concat ", " (List.map ipv4_addr_to_string gateways)));
       Ipv4.set_ip t.ipv4 addr >>
       Ipv4.set_netmask t.ipv4 netmask >>
@@ -53,12 +53,12 @@ let configure id t =
 
 (* Enumerate interfaces and manage the protocol threads *)
 let create () =
-  lwt ids = OS.Ethif.enumerate () in
+  lwt ids = OS.Netif.enumerate () in
   let wrap t = try_lwt t >>= return with
     exn -> (OS.Console.log ("Manager: exn=" ^ (Printexc.to_string exn)); fail exn) in
   lwt t = Lwt_list.map_p (fun id ->
-    lwt vif = OS.Ethif.create id in
-    let (netif, netif_t) = Netif.create vif in
+    lwt vif = OS.Netif.create id in
+    let (netif, netif_t) = Ethif.create vif in
     let (ipv4, ipv4_t) = Ipv4.create netif in
     let (icmp, icmp_t) = Icmp.create ipv4 in
     let (tcp, tcp_t) = Tcp.Pcb.create ipv4 in

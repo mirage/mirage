@@ -1,2 +1,2 @@
 <*.ml>: for-pack(Net)
-"netif.ml" or "ipv4.ml" or "arp.ml" or "icmp.ml" or "udp.ml" or "manager.ml" or "flow.ml" or "channel.ml" or "resolve.ml" or "datagram.ml": pa_lwt
+"ethif.ml" or "ipv4.ml" or "arp.ml" or "icmp.ml" or "udp.ml" or "manager.ml" or "flow.ml" or "channel.ml" or "resolve.ml" or "datagram.ml": pa_lwt

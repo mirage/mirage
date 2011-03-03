@@ -29,7 +29,7 @@ type classify =
 exception No_route_to_destination_address of ipv4_addr
 
 type t = {
-  netif: Netif.t;
+  netif: Ethif.t;
   arp: Arp.t;
   mutable ip: ipv4_addr;
   mutable netmask: ipv4_addr;
@@ -42,9 +42,9 @@ type t = {
 let output_broadcast t ip =
   let etherfn = Mpl.Ethernet.IPv4.t
     ~dest_mac:(`Str (ethernet_mac_to_bytes ethernet_mac_broadcast))
-    ~src_mac:(`Str (ethernet_mac_to_bytes (Netif.mac t.netif)))
+    ~src_mac:(`Str (ethernet_mac_to_bytes (Ethif.mac t.netif)))
     ~data:(`Sub ip) in
-  Netif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
+  Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
 let is_local t ip =
   let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
@@ -76,9 +76,9 @@ let output t ~dest_ip (ip:'a ip_output) =
   in
   let etherfn = Mpl.Ethernet.IPv4.t
     ~dest_mac:(`Str (ethernet_mac_to_bytes dest_mac))
-    ~src_mac:(`Str (ethernet_mac_to_bytes (Netif.mac t.netif)))
+    ~src_mac:(`Str (ethernet_mac_to_bytes (Ethif.mac t.netif)))
     ~data:(`Sub ipfn) in
-  Netif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
+  Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
 let input t (ip:Mpl.Ipv4.o) =
   match ip#protocol with
@@ -99,9 +99,9 @@ let create netif =
   let t = { netif; arp; udp; tcp; icmp; ip; netmask; gateways } in
   Lwt.on_cancel ipv4_t (fun _ ->
     print_endline "IPV4 shutdown";
-    Netif.detach t.netif `IPv4
+    Ethif.detach t.netif `IPv4
   );
-  Netif.attach t.netif (`IPv4 (input t));
+  Ethif.attach t.netif (`IPv4 (input t));
   let th = pick [ arp_t; ipv4_t ] in
   t, th
 
@@ -120,7 +120,7 @@ let set_gateways t gateways =
   t.gateways <- gateways;
   return ()
 
-let mac t = Netif.mac t.netif
+let mac t = Ethif.mac t.netif
 
 let attach t = function
   |`UDP f -> t.udp <- f

@@ -66,6 +66,7 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
       ~checksum:0
       ~data:(`Sub dhcpfn)
   in
+  Printf.printf "Sending DHCP broadcast\n%!";
   Udp.output t.udp ~dest_ip udpfn
 
 (* Receive a DHCP UDP packet *)
@@ -120,6 +121,7 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
  
 (* Start a DHCP discovery off on an interface *)
 let start_discovery t =
+  OS.Time.sleep 0.2 >>
   (* XXX TODO this Random needs to be functorized! *)
   let xid = Random.int32 Int32.max_int in
   let yiaddr = ipv4_blank in
@@ -174,7 +176,7 @@ let create ip udp =
     t.state <- Shutting_down;
     Lwt.cancel listen_t
   );
-  let th = dhcp_thread t <?> thread in
+  let th = dhcp_thread t <&> listen_t <&> thread in
   Printf.printf "DHCP: waiting for first offer\n%!";
   first_t >>
   return (t, th)

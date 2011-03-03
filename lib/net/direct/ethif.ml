@@ -45,9 +45,9 @@ let output t x =
   OS.Netif.output t.ethif (Mpl.Ethernet.m x)
 
 let create ethif = 
-  let arp = (fun _ -> return (print_endline "dropped arp")) in
-  let ipv4 = (fun _ -> return (print_endline "dropped ipv4")) in
-  let ipv6 = (fun _ -> return (print_endline "dropped ipv6")) in
+  let arp = (fun _ -> return ()) in
+  let ipv4 = (fun _ -> return ()) in
+  let ipv6 = (fun _ -> return ()) in
   let mac = ethernet_mac_of_bytes (OS.Netif.mac ethif) in
   let t = { ethif; arp; ipv4; ipv6; mac } in
   let listen = listen t in

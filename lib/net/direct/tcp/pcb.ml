@@ -210,7 +210,11 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   let tx_wnd = tcp#window in
   let rx_wnd = 16384 in (* TODO: too small *)
   let rx_isn = Sequence.of_int32 tcp#sequence in
-  let wnd = Window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn in
+  (* Parse options and get the receive MSS *)
+  let options = Options.of_packet tcp in
+  let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
+  (* Initialise the window handler *)
+  let wnd = Window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss in
   (* When we transmit an ACK for a received segment, rx_ack is written to *)
   let rx_ack = Lwt_mvar.create_empty () in
   (* When we receive an ACK for a transmitted segment, tx_ack is written to *)
@@ -308,7 +312,9 @@ let rec read pcb =
 
 (* Maximum allowed write *)
 let write_available pcb =
-  min 1300 (Int32.to_int (User_buffer.Tx.available pcb.utx))
+  (* Our effective outgoing MTU is what can fit in a page *)
+  min 4000 (min (Window.tx_mss pcb.wnd)
+    (Int32.to_int (User_buffer.Tx.available pcb.utx)))
 
 (* Wait for more write space *)
 let write_wait_for pcb sz =

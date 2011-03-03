@@ -18,6 +18,7 @@ open Lwt
 open Printf
 
 type t = {
+  tx_mss: int;
   mutable snd_una: Sequence.t;
   mutable tx_nxt: Sequence.t;
   mutable rx_nxt: Sequence.t;
@@ -27,15 +28,17 @@ type t = {
   mutable rx_wnd_scale: int;       (* RX Window scaling option     *)
 }
 
+let default_mss = 536
 (* Initialise the sequence space *)
-let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn =
+let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   (* XXX need random ISN XXX *)
   let tx_nxt = Sequence.of_int32 7l in
   let rx_nxt = Sequence.(incr rx_isn) in
+  let tx_mss = match tx_mss with |None -> default_mss |Some mss -> mss in
   let snd_una = tx_nxt in
   let rx_wnd = Int32.(shift_left (of_int rx_wnd) rx_wnd_scale) in
   let tx_wnd = Int32.(shift_left (of_int tx_wnd) tx_wnd_scale) in
-  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_wnd; tx_wnd_scale; rx_wnd_scale }
+  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_wnd; tx_wnd_scale; rx_wnd_scale; tx_mss }
 
 (* Check if a sequence number is in the right range
    TODO: modulo 32 for wrap
@@ -65,9 +68,9 @@ let set_tx_wnd t sz =
   let wnd = Int32.(shift_left (of_int sz) t.tx_wnd_scale) in
   t.tx_wnd <- wnd
 
-(* transmit MSS of current connection TODO: read the TCP option from other side *)
+(* transmit MSS of current connection *)
 let tx_mss t =
-  t.tx_wnd
+  t.tx_mss
 
 (* Advance transmitted packet sequence number *)
 let tx_advance t b =

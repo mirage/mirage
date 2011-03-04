@@ -41,11 +41,11 @@ blkif_set_request(value v_req, struct blkif_request *req)
   req->nr_segments = Wosize_val(v_segs);
   BUG_ON(req->nr_segments > BLKIF_MAX_SEGMENTS_PER_REQUEST);
   for (int i=0; i < req->nr_segments; i++) {
-    struct blkif_request_segment seg = req->seg[i];
+    struct blkif_request_segment *seg = &req->seg[i];
     value v = Field(v_segs,i);
-    seg.gref = Int32_val(Field(v,0));
-    seg.first_sect = Int_val(Field(v,1));
-    seg.last_sect = Int_val(Field(v,2));
+    seg->gref = Int32_val(Field(v,0));
+    seg->first_sect = Int_val(Field(v,1));
+    seg->last_sect = Int_val(Field(v,2));
   }
 }
 

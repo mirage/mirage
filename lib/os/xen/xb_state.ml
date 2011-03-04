@@ -49,3 +49,14 @@ let to_string = function
     |Closed -> "6"
     |Reconfiguring -> "7"
     |Reconfigured -> "8"
+
+let prettyprint = function
+    |Unknown -> "Unknown"
+    |Initialising -> "Initialising"
+    |InitWait -> "InitWait"
+    |Initialised -> "Initalised"
+    |Connected -> "Connected"
+    |Closing -> "Closing"
+    |Closed -> "Closed"
+    |Reconfiguring -> "Reconfiguring"
+    |Reconfigured -> "Reconfigured"

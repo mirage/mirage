@@ -104,8 +104,8 @@ let read_512 t sector num_sectors =
   let start_sector = Int64.(mul 8L (div sector 8L)) in
   let start_offset = Int64.(to_int (sub sector start_sector)) in
   (* Round up the ending sector to get the final page size *)
-  let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 8L) 8L)) in
-  let end_offset = Int64.(to_int (sub 8L (sub end_sector (add sector num_sectors)))) in
+  let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
+  let end_offset = Int64.(to_int (sub 7L (sub end_sector (add sector num_sectors)))) in
   printf "sector=%Lu num=%Lu start=%Lu[%d] end=%Lu[%d]\n%!"
     sector num_sectors start_sector start_offset end_sector end_offset;
   (* Calculate number of 4K pages needed *)

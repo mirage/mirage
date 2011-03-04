@@ -5,7 +5,7 @@ INCLUDES=  -I.
 LIBS=
 
 DEFINES= $(INCLUDES) $(DEFS)
-CFLAGS= -g $(DEFINES)
+CFLAGS= -g $(DEFINES) -Wall
 
 SRCS = fsutil.c create.c extract.c  
 

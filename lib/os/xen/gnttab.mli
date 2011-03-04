@@ -30,3 +30,4 @@ val detach : r -> Istring.Raw.t
 val attach : r -> Istring.Raw.t -> unit
 
 val with_grant : domid:int -> perm:perm -> (r -> 'a Lwt.t) -> 'a Lwt.t
+val with_grants : domid:int -> perm:perm -> int -> (r array -> 'a Lwt.t) -> 'a Lwt.t

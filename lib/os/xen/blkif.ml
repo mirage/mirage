@@ -96,6 +96,29 @@ let enumerate () =
   return (List.fold_left (fun a b ->
     try int_of_string b :: a with _ -> a) [] vbds)
 
+(* Read a single page from disk.
+   Offset is the sector number, which must be page-aligned *)
+let read_page t sector =
+  if Int64.(rem sector t.features.sector_size) <> 0L then
+    fail (Failure "unaligned read_page")
+  else begin
+    Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW
+      (fun gnt ->
+        let _ = Gnttab.page gnt in
+        let gref = Gnttab.num gnt in
+        let segs =[| { Ring.Blkif.Req.gref; first_sector=0; last_sector=7 } |] in
+        let req id = Ring.Blkif.Req.({op=Read; handle=t.vdev; id; sector; segs}) in
+        lwt res = Ring.Blkif_t.push_one t.ring ~evtchn:t.evtchn req in
+        match res.Ring.Blkif.Res.status with
+          |Ring.Blkif.Res.Error -> fail (Error "read")
+          |Ring.Blkif.Res.Not_supported -> fail (Error "unsupported")
+          |Ring.Blkif.Res.Unknown x -> fail (Error "unknown error")
+          |Ring.Blkif.Res.OK ->
+            let raw = Gnttab.detach gnt in
+            return (Istring.View.t raw 4096)
+      )
+  end
+
 (** Read a number of contiguous sectors off disk.
     This function assumes a 512 byte sector size.
   *)
@@ -147,5 +170,5 @@ let read_512 t sector num_sectors =
             let bytes = end_offset - start_offset in
             Istring.View.t ~off:start_offset page bytes;
           ) gnts in
-        return (res, pages)
+        return pages
     )

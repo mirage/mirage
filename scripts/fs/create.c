@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Julian Chesterfield <julian.chesterfield@citrix.com>
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,55 +17,61 @@
 
 
 #include "mirage-fs.h"
+#include <stdio.h>
 #include <err.h>
 
-void usage() {
-  printf("Usage:\n\tcreate <Dir> <OUTPUT>\n");
-}
+void start_write(char *, char *);
 
-int main(int argc, char *argv[]) {
-  struct dirent* dirp;
-  DIR* d;
-  char *dir, *path;
-  int outfd, infd;
-  struct stat st;
-  struct fs_hdr *fsh;
-  int fseek = START_OFFSET;
-  int mseek = 0;
-  int size;
+int outfd, mseek;
 
+int
+main(int argc, char *argv[])
+{
   if (argc != 3) {
-    usage();
-    return -1;
+    printf("Usage: %s <root-dir> <output-device>\n", argv[0]);
+    return 1;
   } 
 
   outfd = open(argv[2],O_WRONLY);
   if (outfd == -1 && errno == ENOENT) {
     outfd = open(argv[2],O_CREAT|O_WRONLY);
   }
-  if (outfd == -1) {
-    printf("Failed to open output file\n");
-    return -1;
-  }
+  if (outfd == -1)
+    err(2, "open output file");
 
-  //Zero out metadata region and reset filehandle
+  // Zero out metadata region and reset filehandle
   fzero(outfd, START_OFFSET);
-  lseek(outfd,mseek,SEEK_SET);
+  lseek(outfd, mseek, SEEK_SET);
   
+  start_write(argv[1],"");
+  lseek(outfd, mseek, SEEK_SET);
+  close(outfd);
+  return 0;
+}
 
-  dir = strdup(argv[1]);
-  if ((d = opendir(argv[1])) == NULL) {
-    return -1;
-  }
+void
+start_write(char *dirname, char *prefix)
+{
+  struct dirent* dirp;
+  DIR* d;
+  char *path;
+  int infd;
+  struct stat st;
+  struct fs_hdr *fsh;
+  int fseek = START_OFFSET;
+  int size;
+
+  if ((d = opendir(dirname)) == NULL)
+    err(1, "opendir");
 
   while ((dirp = readdir(d)) != NULL) {
-    if (dirp->d_type == DT_REG) {
-      printf("%s/%s\n", dir, dirp->d_name);
-      size = strlen(dir) + strlen(dirp->d_name) + 2;
+    switch (dirp->d_type) {
+    case DT_REG:
+      size = strlen(dirname) + strlen(dirp->d_name) + 2;
       path = malloc(size);
       if(!path)
 	err(1, path);
-      snprintf(path,size,"%s/%s", dir, dirp->d_name);
+      snprintf(path, size, "%s/%s", dirname, dirp->d_name);
 
       //Open the file and write to dst
       infd = open(path, O_RDONLY);
@@ -82,8 +89,12 @@ int main(int argc, char *argv[]) {
       close(infd);
 
       //Seek to location and Write FS metadata
-      fsh = init_hdr(dirp->d_name, st.st_size, fseek);
-      lseek(outfd,mseek,SEEK_SET);
+      char *fname = malloc(512);
+      if (!fname) err(1, "malloc");
+      snprintf(fname, 512, "%s%s", prefix, dirp->d_name);
+      fsh = init_hdr(fname, st.st_size, fseek);
+      free(fname);
+      lseek(outfd, mseek, SEEK_SET);
       write(outfd, fsh, sizeof(struct fs_hdr));
 
       //Reset FD pointers
@@ -92,10 +103,26 @@ int main(int argc, char *argv[]) {
 
       free(fsh);
       close(infd);
+      break;
+    case DT_DIR:
+      if (!strcmp(dirp->d_name,".") || !strcmp(dirp->d_name,".."))
+        break;
+      char *subdir, *newprefix;
+      subdir=malloc(4096);
+      if (!subdir)
+        err(1, "malloc");
+      newprefix=malloc(512);
+      if (!newprefix)
+        err(1, "malloc");
+      snprintf(subdir, 4096, "%s/%s", dirname, dirp->d_name);
+      snprintf(newprefix, 512, "%s%s/", prefix, dirp->d_name);
+      start_write(subdir, newprefix);
+      free(subdir);
+      free(newprefix);
+      break;
+    default:
+      break;
     }
   }
-  lseek(outfd,fseek,SEEK_SET);
-  close(outfd);
   closedir(d);
-  return 0;
 }

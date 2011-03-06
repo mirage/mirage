@@ -16,6 +16,7 @@
 
 
 #include "mirage-fs.h"
+#include <err.h>
 
 void usage() {
   printf("Usage:\n\tcreate <Dir> <OUTPUT>\n");
@@ -61,23 +62,21 @@ int main(int argc, char *argv[]) {
       printf("%s/%s\n", dir, dirp->d_name);
       size = strlen(dir) + strlen(dirp->d_name) + 2;
       path = malloc(size);
-      if(!path) {
-	printf("Failed to malloc %d bytes\n",size);
-	continue;
-      }
+      if(!path)
+	err(1, path);
       snprintf(path,size,"%s/%s", dir, dirp->d_name);
 
       //Open the file and write to dst
       infd = open(path, O_RDONLY);
+      if (infd < 0)
+        err(1, "open");
       free(path);
 
-      if(fstat(infd, &st)!=0) {
-	printf("Failed to stat input file, continuing...\n");
-	continue;
-      }
+      if(fstat(infd, &st)!=0)
+        err(1, "fstat");
 
-      lseek(outfd, fseek,SEEK_SET);
-      size = fcopy(infd,outfd,roundup(st.st_size,SECTOR_SIZE));
+      lseek(outfd, fseek, SEEK_SET);
+      size = fcopy(infd, outfd, roundup(st.st_size,SECTOR_SIZE));
       if (size < st.st_size)
 	printf("Short file write [%s,%lu,%d]\n",dirp->d_name,st.st_size,size);
       close(infd);
@@ -86,9 +85,6 @@ int main(int argc, char *argv[]) {
       fsh = init_hdr(dirp->d_name, st.st_size, fseek);
       lseek(outfd,mseek,SEEK_SET);
       write(outfd, fsh, sizeof(struct fs_hdr));
-
-      printf("Wrote Node: %s, size: %llu, offset: %llu\n",
-	     fsh->filename, fsh->length, fsh->offset);
 
       //Reset FD pointers
       mseek += SECTOR_SIZE;

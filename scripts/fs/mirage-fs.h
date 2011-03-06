@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <pwd.h>
@@ -33,18 +34,17 @@
 #define PAGE_SIZE SECTOR_SIZE << 3
 #define START_OFFSET PAGE_SIZE << 10
 
-#define MAGIC_HDR 0xF0E0
-
+#define MAGIC_HDR 0xDEADBEEF
 
 struct fs_hdr {
-  u_int16_t magic;
+  u_int32_t magic;
   u_int64_t offset;
   u_int64_t length;
   u_int32_t namelen;
-  char filename[486];
+  char filename[488];
 } __attribute__((__packed__));
 
-struct fs_hdr *init_hdr(char *filename, int length, u_long offset);
+struct fs_hdr *init_hdr(char *filename, uint64_t length, uint64_t offset);
 struct fs_hdr *read_hdr(int fd);
 int fcopy(int infd, int outfd, u_long length);
 int fzero(int, int);

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2011 Julian Chesterfield <julian.chesterfield@citrix.com>
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,25 +16,19 @@
  */
 
 #include "mirage-fs.h"
-#include <arpa/inet.h>
+#include <err.h>
+#include <endian.h>
 
-#define htonll(x) \
-((((x) & 0xff00000000000000LL) >> 56) | \
-(((x) & 0x00ff000000000000LL) >> 40) | \
-(((x) & 0x0000ff0000000000LL) >> 24) | \
-(((x) & 0x000000ff00000000LL) >> 8) | \
-(((x) & 0x00000000ff000000LL) << 8) | \
-(((x) & 0x0000000000ff0000LL) << 24) | \
-(((x) & 0x000000000000ff00LL) << 40) | \
-(((x) & 0x00000000000000ffLL) << 56))
-
-struct fs_hdr *init_hdr(char *filename, int length, u_long offset) {
+struct fs_hdr *init_hdr(char *filename, uint64_t length, uint64_t offset) {
   struct fs_hdr *fsh;
+  printf("%s %lu [%lu]\n", filename, length, offset);
   fsh = malloc(sizeof(struct fs_hdr));
-  fsh->magic = htons(MAGIC_HDR);
-  fsh->offset = htonll(offset);
-  fsh->length = htonll(length);
-  fsh->namelen = htonl(strlen(filename));
+  if (!fsh)
+    err(1, "malloc");
+  fsh->magic = htobe32(MAGIC_HDR);
+  fsh->offset = htobe64(offset);
+  fsh->length = htobe64(length);
+  fsh->namelen = htobe32(strlen(filename));
   strncpy(fsh->filename, filename, 485);
   return fsh;
 }
@@ -42,11 +37,14 @@ struct fs_hdr *read_hdr(int fd) {
   struct fs_hdr *fsh;
 
   fsh = malloc(sizeof(struct fs_hdr));
-
+  if (!fsh)
+    err(1, "malloc");
+  bzero(fsh, sizeof(struct fs_hdr));
   //only handle sector reads
   if (read(fd, fsh, SECTOR_SIZE)!=SECTOR_SIZE)
     goto exit;
-  if(fsh->magic != MAGIC_HDR)
+  fprintf(stderr, "fsh->magic = %x\n", fsh->magic);
+  if(be32toh(fsh->magic) != MAGIC_HDR)
     goto exit;
 
   return fsh;
@@ -56,7 +54,7 @@ struct fs_hdr *read_hdr(int fd) {
 }
 
 int fcopy(int infd, int outfd, u_long length) {
-  char buf[SECTOR_SIZE], *p;
+  char buf[SECTOR_SIZE];
   int inbytes, outbytes, count=0;
 
   while(length > 0) {
@@ -80,6 +78,8 @@ int fzero(int outfd, int length) {
   int i;
 
   buf = calloc(1,4096);
+  if (!buf)
+    err(1, "calloc");
   for(i=0; i<(length/4096); i++)
     write(outfd, buf, 4096);
   free(buf);

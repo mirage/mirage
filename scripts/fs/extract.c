@@ -21,13 +21,9 @@ void usage() {
 }
 
 int main(int argc, char *argv[]) {
-  struct dirent* dirp;
-  DIR* d;
-  char *dir, *path;
+  char *dir;
   int outfd, infd;
-  struct stat st;
   struct fs_hdr *fsh;
-  int fseek = START_OFFSET;
   int mseek = 0;
   int size, i;
 
@@ -49,18 +45,20 @@ int main(int argc, char *argv[]) {
   }
   
   for(i=0; i<(START_OFFSET >> 9); i++) {
+    uint64_t offset, length;
     mseek = i * SECTOR_SIZE;
     lseek(infd, mseek, SEEK_SET);
     fsh = read_hdr(infd);
     if(!fsh) break;
-    printf("Node: %s, size: %llu, offset %llu\n",
-	   fsh->filename, fsh->length, fsh->offset);
+    offset = be64toh(fsh->offset);
+    length = be64toh(fsh->length);
+    printf("Node: %s %lu [%lu]\n", fsh->filename, length, offset);
 
     //Extract file to dir location
     outfd = open(fsh->filename, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
-    lseek(infd, fsh->offset,SEEK_SET);
-    size = fcopy(infd,outfd,roundup(fsh->length,SECTOR_SIZE));
-    ftruncate(outfd,fsh->length);
+    lseek(infd, offset,SEEK_SET);
+    size = fcopy(infd, outfd, length);
+    ftruncate(outfd, length);
 
     free(fsh);
     close(outfd);

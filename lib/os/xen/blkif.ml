@@ -35,7 +35,7 @@ type t = {
 }
 
 type id = int
-exception Error of string
+exception Read_error of string
 
 let rec poll t =
   lwt () = Activations.wait t.evtchn in
@@ -99,25 +99,22 @@ let enumerate () =
 (* Read a single page from disk.
    Offset is the sector number, which must be page-aligned *)
 let read_page t sector =
-  if Int64.(rem sector t.features.sector_size) <> 0L then
-    fail (Failure "unaligned read_page")
-  else begin
-    Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW
-      (fun gnt ->
-        let _ = Gnttab.page gnt in
-        let gref = Gnttab.num gnt in
-        let segs =[| { Ring.Blkif.Req.gref; first_sector=0; last_sector=7 } |] in
-        let req id = Ring.Blkif.Req.({op=Read; handle=t.vdev; id; sector; segs}) in
-        lwt res = Ring.Blkif_t.push_one t.ring ~evtchn:t.evtchn req in
-        match res.Ring.Blkif.Res.status with
-          |Ring.Blkif.Res.Error -> fail (Error "read")
-          |Ring.Blkif.Res.Not_supported -> fail (Error "unsupported")
-          |Ring.Blkif.Res.Unknown x -> fail (Error "unknown error")
-          |Ring.Blkif.Res.OK ->
-            let raw = Gnttab.detach gnt in
-            return (Istring.View.t raw 4096)
-      )
-  end
+  Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW
+    (fun gnt ->
+      let _ = Gnttab.page gnt in
+      let gref = Gnttab.num gnt in
+      let segs =[| { Ring.Blkif.Req.gref; first_sector=0; last_sector=7 } |] in
+      let req id = Ring.Blkif.Req.({op=Read; handle=t.vdev; id; sector; segs}) in
+      lwt res = Ring.Blkif_t.push_one t.ring ~evtchn:t.evtchn req in
+      let open Ring.Blkif.Res in
+      match res.status with
+      |Error -> fail (Read_error "read")
+      |Not_supported -> fail (Read_error "unsupported")
+      |Unknown _ -> fail (Read_error "unknown error")
+      |OK ->
+        let raw = Gnttab.detach gnt in
+        return (Istring.View.t raw 4096)
+    )
 
 (** Read a number of contiguous sectors off disk.
     This function assumes a 512 byte sector size.
@@ -152,11 +149,12 @@ let read_512 t sector num_sectors =
         ) gnts in
       let req id = Ring.Blkif.Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
       lwt res = Ring.Blkif_t.push_one t.ring ~evtchn:t.evtchn req in
-      match res.Ring.Blkif.Res.status with
-      |Ring.Blkif.Res.Error -> fail (Error "read")
-      |Ring.Blkif.Res.Not_supported -> fail (Error "unsupported")
-      |Ring.Blkif.Res.Unknown x -> fail (Error "unknown error")
-      |Ring.Blkif.Res.OK ->
+      let open Ring.Blkif.Res in
+      match res.status with
+      |Error -> fail (Read_error "read")
+      |Not_supported -> fail (Read_error "unsupported")
+      |Unknown x -> fail (Read_error "unknown error")
+      |OK ->
         (* Get the pages, and convert them into Istring views *)
         let pages = Array.mapi
           (fun i gnt ->

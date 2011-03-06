@@ -10,7 +10,7 @@ Requirements:
 start of the disk aligned to a sector boundary
 
 Format:
-Magic String - 2 bytes (set to 0xF0F0)
+Magic String - 4 bytes (set to 0xDEADBEED)
 64 bit offset - 8 bytes
 64 bit length - 8 bytes
-Filename - variable length (up to 490), null terminated
+Filename - variable length (up to 488), null terminated

@@ -25,7 +25,7 @@ open Common
 open Lwt
 
 type headers = (string * string) list
-type response_body = OS.Istring.View.t Lwt_stream.t
+type response_body = OS.Istring.t Lwt_stream.t
 exception Http_error of int * headers * response_body
 
 let content_length_header s = "Content-Length", s 
@@ -60,8 +60,8 @@ let id x = x
 let read_response chan =
   let read_line () =
     let stream = Net.Channel.read_crlf chan in
-    lwt ts = OS.Istring.View.ts_of_stream stream in
-    return (OS.Istring.View.ts_to_string ts)
+    lwt ts = OS.Istring.ts_of_stream stream in
+    return (OS.Istring.ts_to_string ts)
   in
   lwt (_, status) = Parser.parse_response_fst_line read_line in
   lwt headers = Parser.parse_headers read_line in

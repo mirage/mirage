@@ -37,7 +37,7 @@ let rec hashtbl_remove_all tbl name =
 type contents = [
   | `Buffer of Buffer.t
   | `String of string
-  | `Inchan of OS.Istring.View.t Lwt_sequence.t Lwt.t
+  | `Inchan of OS.Istring.t Lwt_sequence.t Lwt.t
 ]
 
 type message = {

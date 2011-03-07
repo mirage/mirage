@@ -154,7 +154,7 @@ module Tx = struct
   type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
 
   type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-    unit OS.Istring.View.data -> OS.Istring.t Lwt.t
+    unit OS.Istring.data -> OS.Istring.t Lwt.t
 
   type seg = {
     view: OS.Istring.t;
@@ -164,7 +164,7 @@ module Tx = struct
   (* Sequence length of the segment *)
   let len seg =
     (match seg.flags with |No_flags |Rst -> 0 |Syn |Fin -> 1) +
-    (OS.Istring.View.length seg.view)
+    (OS.Istring.length seg.view)
 
   (* Queue of pre-transmission segments *)
   type q = {
@@ -178,7 +178,7 @@ module Tx = struct
   let to_string seg =
     sprintf "[%s%d]" 
       (match seg.flags with |No_flags->"" |Syn->"SYN " |Fin ->"FIN " |Rst -> "RST ")
-      (OS.Istring.View.length seg.view)
+      (OS.Istring.length seg.view)
 
   let ack_segment q seg =
     printf "Tcp_segment.Tx.ack_segment: %s\n%!" (to_string seg);

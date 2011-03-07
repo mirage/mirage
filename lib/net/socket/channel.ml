@@ -55,7 +55,7 @@ module Make(Flow:FLOW) :
     let newpos = t.ipos + amt in 
     match t.ibuf with
     |Some view ->
-      if newpos >= OS.Istring.View.length view then begin
+      if newpos >= OS.Istring.length view then begin
         t.ibuf <- None;
         t.ipos <- 0;
       end else
@@ -80,7 +80,7 @@ module Make(Flow:FLOW) :
   (* Read one character from the input channel *)
   let read_char t =
     lwt buf = ibuf_fill t in
-    let ch = OS.Istring.View.to_char buf t.ipos in
+    let ch = OS.Istring.to_char buf t.ipos in
     ibuf_incr t 1;
     return ch
 
@@ -90,9 +90,9 @@ module Make(Flow:FLOW) :
     lwt buf = ibuf_fill t in
     (* Read at most one view *)
     let n = match len with
-      |Some len -> min (OS.Istring.View.length buf - t.ipos) len 
-      |None -> OS.Istring.View.length buf - t.ipos in
-    let v = OS.Istring.View.sub buf t.ipos n in
+      |Some len -> min (OS.Istring.length buf - t.ipos) len 
+      |None -> OS.Istring.length buf - t.ipos in
+    let v = OS.Istring.sub buf t.ipos n in
     ibuf_incr t n;
     return v
     
@@ -116,14 +116,14 @@ module Make(Flow:FLOW) :
    *)
   let read_until t ch =
     lwt buf = ibuf_fill t in
-    match OS.Istring.View.scan_char buf t.ipos ch with
+    match OS.Istring.scan_char buf t.ipos ch with
     |(-1) ->  (* not found, so return the partial view *)
-      let v = OS.Istring.View.sub buf t.ipos (OS.Istring.View.length buf - t.ipos) in
+      let v = OS.Istring.sub buf t.ipos (OS.Istring.length buf - t.ipos) in
       return (false, Some v)
     |idx ->
       let len = idx - t.ipos in
       if len >= 0 then begin
-        let v = OS.Istring.View.sub buf t.ipos (idx-t.ipos) in
+        let v = OS.Istring.sub buf t.ipos (idx-t.ipos) in
         ibuf_incr t (len+1);
         return (true, Some v)
       end else begin (* Consume just the divider character *)
@@ -135,8 +135,8 @@ module Make(Flow:FLOW) :
      underlying protocol and available data, and raise Closed when EOF *)
   let read_opt t =
     lwt buf = ibuf_fill t in
-    let len = OS.Istring.View.length buf - t.ipos in
-    let v = OS.Istring.View.sub buf t.ipos len in
+    let len = OS.Istring.length buf - t.ipos in
+    let v = OS.Istring.sub buf t.ipos len in
     ibuf_incr t len;
     return v
 
@@ -157,11 +157,11 @@ module Make(Flow:FLOW) :
         |true, Some v -> begin (* Found (CR?)LF *)
           fin := true;
           (* chop the CR if present *)
-          let vlen = OS.Istring.View.length v in
-          match OS.Istring.View.to_char v (vlen - 1) with
+          let vlen = OS.Istring.length v in
+          match OS.Istring.to_char v (vlen - 1) with
           |'\r' ->
             if vlen > 1 then
-              return (Some (OS.Istring.View.(sub v 0 (vlen-1))))
+              return (Some (OS.Istring.(sub v 0 (vlen-1))))
             else
               return None
           |_ ->
@@ -183,17 +183,17 @@ module Make(Flow:FLOW) :
     match t.obuf with 
     |None ->
         let buf = OS.Istring.Raw.alloc () in
-        let view = OS.Istring.View.t buf 0 in
+        let view = OS.Istring.t buf 0 in
         t.obuf <- Some view;
         view
       |Some v -> v
 
   let write_char t ch =
     let view = get_obuf t in
-    let viewlen = OS.Istring.View.length view in
-    OS.Istring.View.set_char view viewlen ch;
-    OS.Istring.View.seek view (viewlen+1);
-    if OS.Istring.View.length view = 4096 then
+    let viewlen = OS.Istring.length view in
+    OS.Istring.set_char view viewlen ch;
+    OS.Istring.seek view (viewlen+1);
+    if OS.Istring.length view = 4096 then
       flush t
     else
       return ()
@@ -201,18 +201,18 @@ module Make(Flow:FLOW) :
   let rec write_string t buf =
     let view = get_obuf t in
     let buflen = String.length buf in
-    let viewlen = OS.Istring.View.length view in
+    let viewlen = OS.Istring.length view in
     let remaining = 4096 - viewlen in
     if buflen <= remaining then begin
-      OS.Istring.View.set_string view viewlen buf;
-      OS.Istring.View.seek view (viewlen + buflen);
+      OS.Istring.set_string view viewlen buf;
+      OS.Istring.seek view (viewlen + buflen);
       if viewlen = 4096 then flush t else return ();
     end else begin
       (* String is too big for one istring, so split it *)
       let b1 = String.sub buf 0 remaining in
       let b2 = String.sub buf remaining (buflen - remaining) in
-      OS.Istring.View.set_string view viewlen b1;
-      OS.Istring.View.seek view (viewlen + remaining);
+      OS.Istring.set_string view viewlen b1;
+      OS.Istring.seek view (viewlen + remaining);
       flush t >>
       write_string t b2
     end

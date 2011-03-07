@@ -16,7 +16,7 @@
 
 (* TCP options parsing *)
 
-module I = OS.Istring.View
+module I = OS.Istring
 
 type t =
   |MSS of int                      (* RFC793 *)
@@ -50,7 +50,7 @@ let rec parse v off acc =
     parse v (off+2+len) (r::acc)
 
 let marshal ts = 
-  let open OS.Istring.View in
+  let open OS.Istring in
   (fun env ->
     (* Write type, length, apply function, return total length *)
     let set_tl off t l fn =

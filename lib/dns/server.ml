@@ -53,7 +53,7 @@ let listen mgr src ~zonebuf =
         r env
       in
       let renv = OS.Istring.Raw.alloc () in
-      let rview = OS.Istring.View.t renv 0 in
+      let rview = OS.Istring.t renv 0 in
       ignore(dnsfn rview);
       send mgr ~src dst rview
     )

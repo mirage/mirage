@@ -141,8 +141,8 @@ let daemon_callback spec =
           try_lwt
             let read_line () =
               let stream = Net.Channel.read_crlf channel in
-              lwt ts = OS.Istring.View.ts_of_stream stream in
-              return (OS.Istring.View.ts_to_string ts)
+              lwt ts = OS.Istring.ts_of_stream stream in
+              return (OS.Istring.ts_to_string ts)
             in
             lwt req = Request.init_request finished_u read_line in
             spec.callback conn_id req

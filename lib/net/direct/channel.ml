@@ -217,6 +217,20 @@ module Make(Flow:FLOW) :
       write_string t b2
     end
 
+  let write_view t view =
+    (* First, flush any outstanding string writes *)
+    lwt () = match t.obuf with 
+    |Some x -> flush t
+    |None -> return () in
+    Flow.write t.flow view
+
+  let write_views t views =
+    (* First, flush any outstanding string writes *)
+    lwt () = match t.obuf with 
+    |Some x -> flush t
+    |None -> return () in
+    Lwt_stream.iter_s (Flow.write t.flow) views
+    
   let write_line t buf =
     write_string t buf >>
     write_char t '\n'
@@ -271,6 +285,14 @@ let write_string = function
 let write_line = function
   | TCPv4 t -> TCPv4.write_line t
   | Shmem t -> Shmem.write_line t
+
+let write_view = function
+  | TCPv4 t -> TCPv4.write_view t
+  | Shmem t -> Shmem.write_view t
+
+let write_views = function
+  | TCPv4 t -> TCPv4.write_views t
+  | Shmem t -> Shmem.write_views t
 
 let flush = function
   | TCPv4 t -> TCPv4.flush t

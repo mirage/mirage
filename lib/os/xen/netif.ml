@@ -102,7 +102,7 @@ let listen nf fn =
     let open Ring.Netif.Rx.Res in
     match res.status with
     |Size size ->
-      let view = Istring.View.t ~off:res.off page size in
+      let view = Istring.t ~off:res.off page size in
       Lwt.ignore_result (
         try_lwt
           fn view
@@ -140,9 +140,9 @@ let output nf fn =
     let gref = Gnttab.num gnt in
     let page = Gnttab.page gnt in
     let offset = 0 in
-    let view = Istring.View.t page 0 in
+    let view = Istring.t page 0 in
     let packet = fn view in
-    let size = Istring.View.length view in
+    let size = Istring.length view in
     let open Ring.Netif.Tx in
     let flags = 0 (* checksum offload *) in
     let req id = Req.Normal { Req.gref; offset; flags; id; size } in

@@ -36,7 +36,7 @@ let main () =
           OS.Console.log "MAIN: RX Connection closed"; 
           Tcp.close pcb
         |Some v ->
-          let len = Int32.of_int (OS.Istring.View.length v) in
+          let len = Int32.of_int (OS.Istring.length v) in
           Tcp.write_wait_for pcb len >>
           Tcp.write pcb (`Frag v) >>
           fn ()

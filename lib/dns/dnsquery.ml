@@ -27,9 +27,9 @@ module H = Hashcons
 type query_answer = {
     rcode : Packet.rcode_t;
     aa: bool;
-    answer: (OS.Istring.View.t -> Packet.Answers.o) list;
-    authority: (OS.Istring.View.t -> Packet.Authority.o) list;
-    additional: (OS.Istring.View.t -> Packet.Additional.o) list;
+    answer: (OS.Istring.t -> Packet.Answers.o) list;
+    authority: (OS.Istring.t -> Packet.Authority.o) list;
+    additional: (OS.Istring.t -> Packet.Additional.o) list;
   } 
 
 let answer_query qname qtype trie = 

@@ -37,9 +37,9 @@ module UDPv4 = struct
       |Some src -> Manager.get_udpv4_listener mgr src
     in
     Activations.write (R.fd_to_int fd) >>
-    let raw = OS.Istring.View.raw req in
-    let off = OS.Istring.View.off req in
-    let len = OS.Istring.View.length req in
+    let raw = OS.Istring.raw req in
+    let off = OS.Istring.off req in
+    let len = OS.Istring.length req in
     let dst = (ipv4_addr_to_uint32 dstaddr, dstport) in
     match R.udpv4_sendto fd raw off len dst with
     |R.OK len' ->
@@ -59,7 +59,7 @@ module UDPv4 = struct
       |R.OK (frm_addr, frm_port, len) ->
         let frm_addr = ipv4_addr_of_uint32 frm_addr in
         let dst = (frm_addr, frm_port) in
-        let req = OS.Istring.View.t ~off:0 istr len in
+        let req = OS.Istring.t ~off:0 istr len in
         (* Be careful to catch an exception here, as otherwise
            ignore_result may raise it at some other random point *)
         Lwt.ignore_result (

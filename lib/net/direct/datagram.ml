@@ -22,7 +22,7 @@ module UDPv4 = struct
   type mgr = Manager.t
   type src = ipv4_src
   type dst = ipv4_dst
-  type msg = OS.Istring.View.t
+  type msg = OS.Istring.t
 
   let send mgr ?src (dest_ip, dest_port) msg =
     (* TODO: set src addr here also *)

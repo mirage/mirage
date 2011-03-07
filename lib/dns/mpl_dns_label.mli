@@ -17,13 +17,13 @@
 
 type t
 
-val init_unmarshal: OS.Istring.View.t -> unit
-val init_marshal: OS.Istring.View.t -> unit
+val init_unmarshal: OS.Istring.t -> unit
+val init_marshal: OS.Istring.t -> unit
 
 val of_string_list: ?comp:bool -> string list -> t
 val to_string_list: t -> string list
 
-val marshal: ?comp:bool -> OS.Istring.View.t -> int -> t -> t
-val unmarshal: OS.Istring.View.t -> int -> t
+val marshal: ?comp:bool -> OS.Istring.t -> int -> t -> t
+val unmarshal: OS.Istring.t -> int -> t
 val size: t -> int
 val prettyprint : string list -> string

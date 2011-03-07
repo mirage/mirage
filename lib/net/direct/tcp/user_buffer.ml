@@ -50,7 +50,7 @@ module Rx = struct
       let node = Lwt_sequence.add_r u t.writers in
       Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
       (* Update size before blocking, which may push cur_size above max_size *)
-      t.cur_size <- Int32.(add t.cur_size (of_int (OS.Istring.View.length s)));
+      t.cur_size <- Int32.(add t.cur_size (of_int (OS.Istring.length s)));
       notify_size_watcher t >>
       lwt () = th in
       ignore(Lwt_sequence.add_r s t.q);
@@ -58,7 +58,7 @@ module Rx = struct
     else begin
       (match Lwt_sequence.take_opt_l t.readers with
       |None ->
-        t.cur_size <- Int32.(add t.cur_size (of_int (OS.Istring.View.length s)));
+        t.cur_size <- Int32.(add t.cur_size (of_int (OS.Istring.length s)));
         ignore(Lwt_sequence.add_r s t.q);
         notify_size_watcher t
       |Some u -> 
@@ -74,7 +74,7 @@ module Rx = struct
       th
     end else begin
       let s = Lwt_sequence.take_l t.q in
-      t.cur_size <- Int32.(sub t.cur_size (of_int (OS.Istring.View.length s)));
+      t.cur_size <- Int32.(sub t.cur_size (of_int (OS.Istring.length s)));
       notify_size_watcher t >>
       if t.cur_size < t.max_size then begin
         match Lwt_sequence.take_opt_l t.writers with

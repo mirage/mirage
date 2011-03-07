@@ -33,7 +33,7 @@ let string_of_conn_id = string_of_int
 type daemon_spec = {
   address: string;
   auth: auth_info;
-  callback: conn_id -> Request.request -> string Lwt_stream.t Lwt.t;
+  callback: conn_id -> Request.request -> (Net.Channel.t -> unit Lwt.t) Lwt.t;
   conn_closed : conn_id -> unit;
   port: int;
   exn_handler: exn -> unit Lwt.t;
@@ -48,7 +48,7 @@ let control_body code body =
   sprintf "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>%d %s</TITLE></HEAD><BODY><H1>%d - %s</H1>%s</BODY></HTML>" code reason_phrase code reason_phrase body
 
 let respond_with response =
-  return (Response.serialize_to_stream response)
+  return (Response.serialize_to_channel response)
 
 (* Warning: keep default values in sync with Response.response class *)
 let respond ?(body = "") ?(headers = []) ?version ?(status = `Code 200) () =
@@ -125,8 +125,8 @@ let daemon_callback spec =
     let streams, push_streams = Lwt_stream.create () in
     let write_streams =
       try_lwt
-        Lwt_stream.iter_s (fun stream ->
-          Lwt_stream.iter_s (Net.Channel.write_string channel) stream >>
+        Lwt_stream.iter_s (fun outfn ->
+          outfn channel >>
           Net.Channel.flush channel (* TODO: autoflush *) 
         ) streams
       with exn -> begin
@@ -141,8 +141,8 @@ let daemon_callback spec =
           try_lwt
             let read_line () =
               let stream = Net.Channel.read_crlf channel in
-              lwt ts = OS.Istring.View.ts_of_stream stream in
-              return (OS.Istring.View.ts_to_string ts)
+              lwt ts = OS.Istring.ts_of_stream stream in
+              return (OS.Istring.ts_to_string ts)
             in
             lwt req = Request.init_request finished_u read_line in
             spec.callback conn_id req

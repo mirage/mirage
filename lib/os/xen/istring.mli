@@ -23,39 +23,35 @@ module Raw : sig
   val alloc : unit -> t
 end
 
-module View : sig
-  type t
-  type 'a data = [ `Frag of t | `None | `Str of string | `Sub of t -> 'a ]
-  type byte = int
-  type uint16 = int
+type t
+type 'a data = [ `Frag of t | `None | `Str of string | `Sub of t -> 'a ]
+type byte = int
+type uint16 = int
 
-  val t : ?off:int -> Raw.t -> int -> t
-  val length : t -> int
-  val sub : t -> int -> int -> t
-  val copy : t -> t
-  val off : t -> int
-  val raw : t -> Raw.t
-  val set_string : t -> int -> string -> unit
-  val set_byte : t -> int -> byte -> unit
-  val set_char : t -> int -> char -> unit
-  val set_uint16_be : t -> int -> uint16 -> unit
-  val set_uint32_be : t -> int -> int32 -> unit
-  val set_uint64_be : t -> int -> int64 -> unit
-  val set_view : t -> int -> t -> unit
-  val to_char : t -> int -> char
-  val to_string : t -> int -> int -> string
-  val blit_to_string: string -> int -> t -> int -> int -> unit
-  val to_byte : t -> int -> byte
-  val to_uint16_be : t -> int -> uint16
-  val to_uint32_be : t -> int -> int32
-  val to_uint64_be : t -> int -> int64
-  val seek : t -> int -> unit
-  val ones_complement_checksum : t -> int -> int32 -> int
-  val scan_char: t -> int -> char -> int
+val t : ?off:int -> Raw.t -> int -> t
+val length : t -> int
+val sub : t -> int -> int -> t
+val copy : t -> t
+val off : t -> int
+val raw : t -> Raw.t
+val set_string : t -> int -> string -> unit
+val set_byte : t -> int -> byte -> unit
+val set_char : t -> int -> char -> unit
+val set_uint16_be : t -> int -> uint16 -> unit
+val set_uint32_be : t -> int -> int32 -> unit
+val set_uint64_be : t -> int -> int64 -> unit
+val set_view : t -> int -> t -> unit
+val to_char : t -> int -> char
+val to_string : t -> int -> int -> string
+val blit_to_string: string -> int -> t -> int -> int -> unit
+val to_byte : t -> int -> byte
+val to_uint16_be : t -> int -> uint16
+val to_uint32_be : t -> int -> int32
+val to_uint64_be : t -> int -> int64
+val seek : t -> int -> unit
+val ones_complement_checksum : t -> int -> int32 -> int
+val scan_char: t -> int -> char -> int
 
-  type ts = t Lwt_sequence.t (* Sequence of views *)
-  val ts_to_string: ts -> string
-  val ts_of_stream: t Lwt_stream.t -> ts Lwt.t
-end
-
-type t = View.t
+type ts = t Lwt_sequence.t (* Sequence of views *)
+val ts_to_string: ts -> string
+val ts_of_stream: t Lwt_stream.t -> ts Lwt.t

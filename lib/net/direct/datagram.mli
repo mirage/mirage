@@ -18,5 +18,5 @@ module UDPv4 : Nettypes.DATAGRAM with
       type mgr = Manager.t
   and type src = Nettypes.ipv4_src
   and type dst = Nettypes.ipv4_dst
-  and type msg = OS.Istring.View.t
+  and type msg = OS.Istring.t
 

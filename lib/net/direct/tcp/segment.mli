@@ -33,7 +33,7 @@ module Tx :
     type flags = |No_flags |Syn |Fin |Rst
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-      unit OS.Istring.View.data -> OS.Istring.t Lwt.t
+      unit OS.Istring.data -> OS.Istring.t Lwt.t
 
     type q
 
@@ -41,6 +41,6 @@ module Tx :
       rx_ack:Sequence.t Lwt_mvar.t ->
       tx_ack:Sequence.t Lwt_mvar.t -> q * unit Lwt.t
 
-    val output : ?flags:flags -> ?options:Options.ts -> q -> unit OS.Istring.View.data -> unit Lwt.t
+    val output : ?flags:flags -> ?options:Options.ts -> q -> unit OS.Istring.data -> unit Lwt.t
    
   end

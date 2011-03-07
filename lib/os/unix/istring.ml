@@ -120,179 +120,146 @@ module Raw = struct
   external scan_char: t -> int -> char -> int = "caml_istring_scan_char"
 end
 
-module View = struct
-  open Printf
+open Printf
 
-  (* A view into a portion of an istring *)
-  type t = { 
-    i: Raw.t;          (* Reference to immutable string *)
-    off: int;          (* Start offset within the istring *)
-    mutable len: int;  (* Valid size of istring relative to offset *)
-  }
-  and 'a data =
-  [
-    | `Sub of (t -> 'a)
-    | `Str of string
-    | `Frag of t
-    | `None
-  ]
+(* A view into a portion of an istring *)
+type t = { 
+  i: Raw.t;          (* Reference to immutable string *)
+  off: int;          (* Start offset within the istring *)
+  mutable len: int;  (* Valid size of istring relative to offset *)
+}
+and 'a data =
+[
+  | `Sub of (t -> 'a)
+  | `Str of string
+  | `Frag of t
+  | `None
+]
 
-  type byte = int
-  type uint16 = int
+type byte = int
+type uint16 = int
 
-  (* Finaliser function for a view that decrements the ref count *)
-  let final t = 
-    Raw.decr t.i
+(* Finaliser function for a view that decrements the ref count *)
+let final t = 
+  Raw.decr t.i
 
-  (* Generate a new view onto a raw istring *)
-  let t ?(off=0) i len = 
-    let v = { i; off; len } in
-    Raw.incr i;
-    Gc.finalise final v;
-    v
+(* Generate a new view onto a raw istring *)
+let t ?(off=0) i len = 
+  let v = { i; off; len } in
+  Raw.incr i;
+  Gc.finalise final v;
+  v
 
-  (* Get length of the view *)
-  let length t = t.len
+(* Get length of the view *)
+let length t = t.len
 
-  (* Generate a sub-view *)
-  let sub t off len =
-    let off = t.off+off in
-    if off >= Raw.size t.i then raise (Invalid_argument "Istring.sub out of bounds");
-    let v = { t with off; len } in
-    Raw.incr t.i;
-    Gc.finalise final v;
-    v
+(* Generate a sub-view *)
+let sub t off len =
+  let off = t.off+off in
+  if off >= Raw.size t.i then
+    raise (Invalid_argument "Istring.sub out of bounds");
+  let v = { t with off; len } in
+  Raw.incr t.i;
+  Gc.finalise final v;
+  v
 
-  (* Copy a view. *)
-  let copy t = 
-    let v = { i=t.i; off=t.off; len=t.len } in
-    Raw.incr t.i;
-    Gc.finalise final v;
-    v
+(* Copy a view. *)
+let copy t = 
+  let v = { i=t.i; off=t.off; len=t.len } in
+  Raw.incr t.i;
+  Gc.finalise final v;
+  v
 
-  let off t = t.off
-  let raw t = t.i
+let off t = t.off
+let raw t = t.i
 
-  (** Marshal functions *)
+(** Marshal functions *)
 
-  let set_string t off src =
-    Raw.blit t.i (t.off+off) src
+let set_string t off src =
+  Raw.blit t.i (t.off+off) src
 
-  let set_byte t off (v:byte) =
-    Raw.set_byte t.i (t.off+off) v
+let set_byte t off (v:byte) =
+  Raw.set_byte t.i (t.off+off) v
 
-  let set_char t off (v:char) =
-    Raw.set_byte t.i (t.off+off) (Char.code v)
+let set_char t off (v:char) =
+  Raw.set_byte t.i (t.off+off) (Char.code v)
 
-  let set_uint16_be t off (v:uint16) =
-    Raw.set_uint16_be t.i (t.off+off) v
+let set_uint16_be t off (v:uint16) =
+  Raw.set_uint16_be t.i (t.off+off) v
     
-  let set_uint32_be t off v =
-    Raw.set_uint32_be t.i (t.off+off) v
+let set_uint32_be t off v =
+  Raw.set_uint32_be t.i (t.off+off) v
 
-  let set_uint64_be t off v =
-    Raw.set_uint64_be t.i (t.off+off) v
+let set_uint64_be t off v =
+  Raw.set_uint64_be t.i (t.off+off) v
 
-  let set_view dst off src =
-    Raw.blit_to_istring dst.i (dst.off+off) src.i src.off src.len
+let set_view dst off src =
+  Raw.blit_to_istring dst.i (dst.off+off) src.i src.off src.len
 
-  (** Type cast functions *)
+(** Type cast functions *)
 
-  (* Get a single character from the view *)
-  let to_char t off =
-    Raw.to_char t.i (t.off+off)
+(* Get a single character from the view *)
+let to_char t off =
+  Raw.to_char t.i (t.off+off)
 
-  (* Copy out an OCaml string from the view *)
-  let to_string t off len =
-    Raw.to_string t.i (t.off+off) len
+(* Copy out an OCaml string from the view *)
+let to_string t off len =
+  Raw.to_string t.i (t.off+off) len
 
-  (* Blit to an OCaml string from the view *)
-  let blit_to_string dst off t off len =
-    Raw.blit_to_string dst off t.i (t.off+off) len
+(* Blit to an OCaml string from the view *)
+let blit_to_string dst off t off len =
+  Raw.blit_to_string dst off t.i (t.off+off) len
 
-  (* Get a single byte from the view, as an OCaml int *)
-  let to_byte t off : byte =
-    int_of_char (to_char t off)
+(* Get a single byte from the view, as an OCaml int *)
+let to_byte t off : byte =
+  int_of_char (to_char t off)
 
-  (* Get a uint16 out of the view. *)
-  let to_uint16_be t off : uint16 =
-    Raw.to_uint16_be t.i (t.off+off)
+(* Get a uint16 out of the view. *)
+let to_uint16_be t off : uint16 =
+  Raw.to_uint16_be t.i (t.off+off)
 
-  (* Get a uint32 out of the view. *)
-  let to_uint32_be t off =
-    Raw.to_uint32_be t.i (t.off+off)
+(* Get a uint32 out of the view. *)
+let to_uint32_be t off =
+  Raw.to_uint32_be t.i (t.off+off)
 
-  (* Get a uint64 out of the view. *)
-  let to_uint64_be t off =
-    Raw.to_uint64_be t.i (t.off+off)
+(* Get a uint64 out of the view. *)
+let to_uint64_be t off =
+  Raw.to_uint64_be t.i (t.off+off)
 
-  (* Skip forward a number of bytes, extending length if needed *)
-  let seek t pos =
-    if pos > t.len then
-      t.len <- pos
+(* Skip forward a number of bytes, extending length if needed *)
+let seek t pos =
+  if pos > t.len then
+    t.len <- pos
 
-  let ones_complement_checksum t len initial =
-    Raw.ones_complement_checksum t.i t.off len initial
+let ones_complement_checksum t len initial =
+  Raw.ones_complement_checksum t.i t.off len initial
 
-  (* Scan for a character from an offset.
-     Return (-1) if not found, or index within view if it is found *)
-  let scan_char t off c =
-    match Raw.scan_char t.i (t.off+off) c with
+(* Scan for a character from an offset.
+   Return (-1) if not found, or index within view if it is found *)
+let scan_char t off c =
+  match Raw.scan_char t.i (t.off+off) c with
     | (-1) -> (-1)
     | r -> r - t.off
 
-  (* Sequences of istrings are held as a sequence internally *)
-  type ts = t Lwt_sequence.t
+(* Sequences of istrings are held as a sequence internally *)
+type ts = t Lwt_sequence.t
 
-  (* Copy a set of views into an OCaml string.
-     TODO: this should be hidden behind a String-like module
-     that hides the grungy copying.
-   *)
-  let ts_to_string ts =
-    let len = Lwt_sequence.fold_l (fun view acc -> length view + acc) ts 0 in
-    let buf = String.create len in
-    let _ = Lwt_sequence.fold_l (fun view off ->
-      let viewlen = length view in
-      blit_to_string buf off view 0 viewlen;
-      off + viewlen
-    ) ts 0 in
-    buf
+(* Copy a set of views into an OCaml string.
+   TODO: this should be hidden behind a String-like module
+   that hides the grungy copying.
+*)
+let ts_to_string ts =
+  let len = Lwt_sequence.fold_l (fun view acc -> length view + acc) ts 0 in
+  let buf = String.create len in
+  let _ = Lwt_sequence.fold_l (fun view off ->
+    let viewlen = length view in
+    blit_to_string buf off view 0 viewlen;
+    off + viewlen
+  ) ts 0 in
+  buf
 
-  (* Converts a Lwt_stream of views into a view sequence *) 
-  let ts_of_stream s =
-    let ts = Lwt_sequence.create () in
-    Lwt_stream.iter (fun v -> ignore(Lwt_sequence.add_r v ts)) s >>
-    Lwt.return ts
-
-end
-
-type t = View.t
-
-module S = struct
-
-  type t = View.t
-
-  let length t = View.length t
-
-  let get t off = View.to_char t off
-
-  let set t off ch = View.set_char t off ch
-
-  let create i = raise (Invalid_argument "Istring.create not supported")
-    
-  let make i = raise (Invalid_argument "Istring.make not supported")
-
-  let sub t off len = View.sub t off len
-
-  let iter fn t =
-    for i = 0 to length t - 1 do 
-      fn (Raw.unsafe_to_char t.View.i (t.View.off+i))
-    done
-   
-  let fill t off len ch =
-    let v = sub t off len in
-    for i = 0 to length v - 1 do
-      Raw.unsafe_set_char v.View.i (v.View.off+i) ch
-    done
-
-end
+(* Converts a Lwt_stream of views into a view sequence *) 
+let ts_of_stream s =
+  let ts = Lwt_sequence.create () in
+  Lwt_stream.iter (fun v -> ignore(Lwt_sequence.add_r v ts)) s >>
+  Lwt.return ts

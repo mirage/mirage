@@ -75,7 +75,7 @@ module Tx = struct
       let ph = Int32.add ph (i32r dest_ip) in
       let ph = Int32.add ph (i32l src_ip) in
       let ph = Int32.add ph (i32r src_ip) in
-      let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof ph in
+      let checksum = OS.Istring.ones_complement_checksum tcp#env tcp#sizeof ph in
       tcp#set_checksum checksum;
       memo := Some tcp
     in

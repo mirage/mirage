@@ -35,9 +35,8 @@ let rec hashtbl_remove_all tbl name =
   if Hashtbl.mem tbl name then hashtbl_remove_all tbl name
 
 type contents = [
-  | `Buffer of Buffer.t
   | `String of string
-  | `Inchan of OS.Istring.View.t Lwt_sequence.t Lwt.t
+  | `Inchan of (int64 * OS.Istring.t Lwt_stream.t) (* size * stream *)
 ]
 
 type message = {
@@ -53,8 +52,7 @@ let body_size cl =
   List.fold_left (fun a -> 
     function
     |`String s -> Int64.(add a (of_int (String.length s)))
-    |`Buffer b -> Int64.(add a (of_int (Buffer.length b)))
-    |`Inchan t -> a
+    |`Inchan (sz,_) -> sz
   ) Int64.zero cl
 
 let set_body msg contents =
@@ -105,22 +103,19 @@ let headers msg =
 let version msg = msg.m_version
 
 let init ~body ~headers ~version =
-  let msg = { m_contents = body; m_headers = Hashtbl.create 11; m_version = version } in
+  let msg = { m_contents=body; m_headers = Hashtbl.create 11; 
+    m_version = version } in
   add_headers msg headers;
   msg
-      
-let serialize_to_stream msg ~fstLineToString =
-  let stream, push = Lwt_stream.create () in
+
+let serialize_to_channel msg ~fstLineToString chan =
   let body = body msg in
   let bodylen = body_size body in
-  push (Some (fstLineToString ^ crlf));
-  List.iter (fun (h,v) -> push (Some (sprintf "%s: %s\r\n" h v))) (headers msg);
-  if bodylen != Int64.zero then
-    push (Some (sprintf "Content-Length: %Ld\r\n\r\n" bodylen));
-  List.iter (function
-    |`String s -> push (Some s)
-    |`Buffer b -> push (Some (Buffer.contents b))
-    |`Inchan t -> eprintf "warning: inchan not supported in output\n%!"
-  ) body;
-  push None;
-  stream
+  Net.Channel.write_string chan (fstLineToString ^ crlf) >>
+  Lwt_list.iter_s (fun (h,v) ->
+    Net.Channel.write_string chan (sprintf "%s: %s\r\n" h v)) (headers msg) >>
+  Net.Channel.write_string chan (sprintf "Content-Length: %Ld\r\n\r\n" bodylen) >>
+  Lwt_list.iter_s (function
+    |`String s -> Net.Channel.write_string chan s
+    |`Inchan (_,t) -> Lwt_stream.iter_s (Net.Channel.write_view chan) t
+  ) body

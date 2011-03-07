@@ -35,12 +35,12 @@ let create vbd =
     lwt v = OS.Blkif.read_page vbd off in
     let rec parse_page num =
       let loff = num * 512 in
-      match OS.Istring.View.to_uint32_be v loff with
+      match OS.Istring.to_uint32_be v loff with
       |0xDEADBEEFl -> begin
-        let offset = OS.Istring.View.to_uint64_be v (loff+4) in
-        let len = OS.Istring.View.to_uint64_be v (loff+12) in
-        let namelen = OS.Istring.View.to_uint32_be v (loff+20) in
-        let name = OS.Istring.View.to_string v (loff+24) (Int32.to_int namelen) in
+        let offset = OS.Istring.to_uint64_be v (loff+4) in
+        let len = OS.Istring.to_uint64_be v (loff+12) in
+        let namelen = OS.Istring.to_uint32_be v (loff+20) in
+        let name = OS.Istring.to_string v (loff+24) (Int32.to_int namelen) in
         if Int64.rem len 512L <> 0L then
           fail (Failure "unaligned length file found")
         else begin

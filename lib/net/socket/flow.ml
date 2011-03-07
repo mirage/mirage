@@ -124,12 +124,12 @@ let read t =
   lwt len = read_buf t istr 0 4096 in
   match len with
   |0 -> return None
-  |len -> return (Some (OS.Istring.View.t ~off:0 istr len))
+  |len -> return (Some (OS.Istring.t ~off:0 istr len))
 
 let write t view =
-  let istr = OS.Istring.View.raw view in
-  let off = OS.Istring.View.off view in
-  let len = OS.Istring.View.length view in
+  let istr = OS.Istring.raw view in
+  let off = OS.Istring.off view in
+  let len = OS.Istring.length view in
   write_buf t istr off len
 
 module TCPv4 = struct

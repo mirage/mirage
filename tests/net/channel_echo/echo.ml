@@ -15,8 +15,8 @@ let echo () =
        let rec echo () =
          try_lwt
            let res = Channel.read_crlf t in
-           lwt ts = OS.Istring.View.ts_of_stream res in
-           let str = OS.Istring.View.ts_to_string ts in
+           lwt ts = OS.Istring.ts_of_stream res in
+           let str = OS.Istring.ts_to_string ts in
            Channel.write_line t str >>
            Channel.flush t >>
            echo ()

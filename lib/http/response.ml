@@ -97,6 +97,6 @@ let set_server = rh "Server"
 let fstLineToString r =
   sprintf "%s %d %s" (version_string r) (code r) (reason r)
 
-let serialize_to_stream r =
+let serialize_to_channel r =
   let fstLineToString = fstLineToString r in
-  Message.serialize_to_stream r.r_msg ~fstLineToString
+  Message.serialize_to_channel r.r_msg ~fstLineToString

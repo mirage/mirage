@@ -1,7 +1,6 @@
 type contents = [
- | `Buffer of Buffer.t
  | `String of string
- | `Inchan of OS.Istring.t Lwt_sequence.t Lwt.t
+ | `Inchan of int64 * OS.Istring.t Lwt_stream.t
 ]
 
 type message
@@ -22,5 +21,5 @@ val init :
   body:contents list ->
   headers:(string * string) list ->
   version:Types.version -> message
-val serialize_to_stream :
-  message -> fstLineToString:string -> string Lwt_stream.t
+val serialize_to_channel :
+  message -> fstLineToString:string -> Net.Channel.t -> unit Lwt.t

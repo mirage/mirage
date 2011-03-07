@@ -116,7 +116,8 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
        |_ -> printf "DHCP: ack not for us\n%!"; return ()
     end
     |Shutting_down -> return ()
-    |_ -> printf "DHCP: unknown DHCP state\n%!"; return ()
+    |Lease_held info -> printf "DHCP input: lease already held\n%!"; return ()
+    |Disabled -> printf "DHCP input: disabled\n%!"; return ()
   )
  
 (* Start a DHCP discovery off on an interface *)

@@ -29,6 +29,8 @@ module Util = struct
   let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
 end
 
+let find_path p = Util.run_and_read (sf "ocamlfind query %s -i-format" p)
+
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
 
@@ -134,6 +136,14 @@ let _ = dispatch begin function
     (* use pa_lwt syntax extension if needed *)
     flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cma" (lib "syntax"))];
     flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A(sf "camlp4o -I %s pa_lwt.cma" (lib "syntax"))];
+
+    (* use pa_js syntax extension if needed *)
+    flag ["ocaml"; "compile" ; "js_of_ocaml"] & S[A"-pp"; A(sf "camlp4o %s pa_js.cmo" (find_path "js_of_ocaml.syntax"))];
+    flag ["ocaml"; "ocamldep"; "js_of_ocaml"] & S[A"-pp"; A(sf "camlp4o %s pa_js.cmo" (find_path "js_of_ocaml.syntax"))];
+
+    (* XXX: this link to linux lwt, should we built js_of_ocaml on top of mirage as well ? *)
+    (* flag ["ocaml"; "compile" ; "js_of_ocaml"] & S[A"-pp"; A(sf "camlp4o %s pa_js.cmo" (find_path "js_of_ocaml.syntax"))];
+    flag ["ocaml"; "ocamldep"; "js_of_ocaml"] & S[A"-pp"; A(sf "camlp4o %s pa_js.cmo" (find_path "js_of_ocaml.syntax"))]; *)
 
     (* some C code will use local ev.h *)
     dep  ["c"; "compile"; "include_libev"] libev_files;

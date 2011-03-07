@@ -11,9 +11,9 @@ XEN_BUILD=
 XEN_INSTALL=
 endif
 
-.PHONY: clean all depend install unix xen
+.PHONY: clean all depend install unix xen node
 all: depend
-	ocamlbuild unix.otarget $(XEN_BUILD)
+	ocamlbuild unix.otarget $(XEN_BUILD) node.otarget
 
 unix:
 	ocamlbuild unix.otarget
@@ -21,11 +21,14 @@ unix:
 xen:
 	ocamlbuild xen.otarget
 
+node:
+	ocamlbuild node.otarget
+
 depend: $(EVMAKE) $(EVLIB)
 	ln -nfs tap_stubs_$(OS).c runtime_unix/tap_stubs_os.c
 	ln -nfs ev_$(OS).c runtime_unix/ev_os.c
 
-install: install-unix $(XEN_INSTALL)
+install: install-unix $(XEN_INSTALL) install-node
 	@ :
 
 install-unix:
@@ -43,6 +46,12 @@ install-xen:
 	cp _build/runtime_xen/kernel/libxen.a $(TARGETDIR)/xen/
 	cp _build/runtime_xen/kernel/libxencaml.a $(TARGETDIR)/xen/
 	cp _build/runtime_xen/kernel/x86_64.o $(TARGETDIR)/xen/
+
+install-node:
+	mkdir -p $(TARGETDIR)/node
+	cp _build/node/oS.cmi _build/node/oS.cma $(TARGETDIR)/node
+	cp runtime_node/runtime.js $(TARGETDIR)/node
+	cp runtime_node/mirage.js $(TARGETDIR)/node
 
 clean:
 	ocamlbuild -clean

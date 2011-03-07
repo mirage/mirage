@@ -11,7 +11,7 @@ let ps = Printf.sprintf
    variable *)
 let os =
   let os = getenv "MIRAGEOS" ~default:"unix" in
-  if os <> "unix" && os <> "xen" then
+  if os <> "unix" && os <> "xen" && os <> "node" then
     (Printf.eprintf "`%s` is not a supported OS\n" os; exit (-1))
   else
     (Ocamlbuild_pack.Log.dprintf 0 "OS: %s" os; os)
@@ -37,7 +37,8 @@ let libdir =
   let subdir = match os,flow with
   |"unix","socket" -> "unix-socket"
   |"unix","direct" -> "unix-direct"
-  |"xen","direct" -> "xen-direct"
+  |"xen" ,"direct" -> "xen-direct"
+  |"node","socket" -> "node-socket"
   |_ -> Printf.eprintf "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
   ps "%s/%s/lib" root subdir
  
@@ -66,14 +67,15 @@ end
 module OS = struct
 
   type u = Linux | Darwin
-  type t = Unix of u | Xen
+  type t = Unix of u | Xen | Node
   let host = match String.lowercase (Util.run_and_read "uname -s") with
-    | "linux" -> Unix Linux
+    | "linux"  -> Unix Linux
     | "darwin" -> Unix Darwin
     | os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
   let target = match String.lowercase os with
     | "unix" -> host (* Map the target to the current host, as cross-compiling is no use *)
-    | "xen" -> Xen
+    | "xen"  -> Xen
+    | "node" -> Node
     | x -> failwith ("unknown target os: " ^ x)
 end
 
@@ -111,9 +113,10 @@ module Mir = struct
 
   let cc_unix_link tags arg out =
     let dl_libs = match OS.host with
-      |OS.Xen -> assert false
-      |OS.Unix OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
-      |OS.Unix OS.Darwin ->  [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
+      |OS.Xen            -> assert false
+      |OS.Node
+      |OS.Unix OS.Linux  -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
+      |OS.Unix OS.Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
@@ -131,17 +134,13 @@ module Mir = struct
       Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
       @ ldlibs @ [A"-o"; Px out]))
  
-  let cc_link_c_implem ?tag c o env build =
+  let cc_link_c_implem ?tag fn c o env build =
     let c = env c and o = env o in
-    let fn = match OS.target with
-      | OS.Unix _ -> cc_unix_link
-      | OS.Xen -> cc_xen_link in
     fn (tags_of_pathname c++"implem"+++tag) c o
- 
-  let final_prod =
-    match OS.target with
-    |OS.Xen -> "%.xen"
-    |OS.Unix _ -> "%.bin"
+
+  let js_of_ocaml ?tag byte js env build =
+    let byte = env byte and js = env js in
+    Cmd (S [ "js_of_ocaml"; Px js ])
 
   let () =
     rule "output-obj: mir -> o"
@@ -149,10 +148,20 @@ module Mir = struct
       ~dep:"%.mir"
       (native_output_obj_mir "%.mir" "%.m.o");
 
-    rule ("final link: m.o -> " ^ final_prod)
-      ~prod:final_prod
+    rule ("final link: m.o -> .xen")
+      ~prod:"%.xen"
       ~dep:"%.m.o"
-      (cc_link_c_implem "%.m.o" final_prod)
+      (cc_kink_implem cc_xen_link "%.m.o" "%.xen");
+
+    rule ("final link: m.o -> .bin")
+      ~prod:"%.bin"
+      ~dep:"%.m.o"
+      (cc_link_c_implem cc_unix_link "%.m.o" "%.bin");
+
+    rule ("js_of_ocaml: %.byte -> %.js")
+      ~prod:"%.js"
+      ~dep:"%.byte"
+      (js_of_ocaml "%.byte" "%.js")
 
 end
 

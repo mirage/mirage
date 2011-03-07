@@ -15,24 +15,11 @@
  *)
 
 open Lwt
-exception Internal_error of string
 
-type t
+(* Register a read file descriptor and a thread that
+   returns when it is ready *)
+let read fd = return ()
 
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
-
-let sync_write t buf off len =
-   write t buf off len;
-   return ()
-
-let create_additional_console () = return (create ())
-
-let t = create ()
-
-let log s =
-	write t s 0 (String.length s)
-
-let printf (fmt : ('a, unit, string, unit) format4) =
-  Printf.kprintf (fun str -> log str) fmt
-
+(* Register a write file descriptor and a thread that
+   returns when it is ready *)
+let write fd = return ()

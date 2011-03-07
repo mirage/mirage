@@ -23,32 +23,33 @@
 
 open Lwt
 
-external block_domain : float -> unit = "evtchn_block_domain"
+external block_domain_timeout : float -> unit = "caml_block_domain_with_timeout"
+external block_domain : unit -> unit = "caml_block_domain"
+external callback_register : (unit -> unit) -> unit = "caml_callback_register"
 
 (* Main runloop, which registers a callback so it can be invoked
    when timeouts expire. Thus, the program may only call this function
    once and once only. *)
 let run t =
   let fn () =
-    (* We have just been woken up, so check for event activations *)
-    Activations.run ();
     (* Wake up any paused threads, and restart threads waiting on timeout *)
     Lwt.wakeup_paused ();
     Time.restart_threads Clock.time;
     (* Attempt to advance the main loop thread *)
     match Lwt.poll t with
-    | Some x -> x
+    | Some x ->
+       (* The main thread has completed, so return the value *)
+       x
     | None -> 
        (* If we have nothing to do, then check for the next
           timeout and block the domain *)
        let timeout = Time.select_next Clock.time in
-       (* XXX: the 0.1 is very hackish ...
-          XXX: need to find a better solution than active polling here
-          XXX: doesn't the above Lwt.poll should avoid such kind of situation ? *)
-       block_domain (match timeout with None -> -1. |Some x -> x)
+       (match timeout with 
+        | None -> block_domain ()
+        | Some tm -> block_domain_timeout tm)
   in
   (* Register a callback for the JS runtime to restart this function *)
-  let _ = Callback.register "evtchn_run" fn in
+  callback_register fn;
   fn ()
 
 let exit_hooks = Lwt_sequence.create ()

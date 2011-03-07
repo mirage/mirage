@@ -14,5 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val run : unit Lwt.t -> unit
-
+let time () = Js.to_float (Js.date##now ()) /. 1000.

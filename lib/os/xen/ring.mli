@@ -18,6 +18,7 @@ module type RING = sig
   type req
   type res
   type fring
+
   val alloc : int -> (Gnttab.r * fring) Lwt.t
   val free_requests : fring -> int
   val max_requests : fring -> int
@@ -56,6 +57,7 @@ module Netif : sig
     val push_one : t -> evtchn:int -> (id -> Rx.Req.t) -> Rx.Res.t Lwt.t
     val poll : t -> unit
     val max_requests : t -> int
+    val free_requests : t -> int
   end
 
   module Tx : sig
@@ -105,9 +107,56 @@ module Netif : sig
     val push_one : t -> evtchn:int -> (id -> Tx.Req.t) -> Tx.Res.t Lwt.t
     val poll : t -> unit
     val max_requests : t -> int
+    val free_requests : t -> int
   end
 end
 
+module Blkif : sig
+  type id = int
+  type vdev = int
+
+  module Req : sig
+    type op =
+      |Read |Write |Write_barrier |Flush
+
+    type seg = {
+      gref: int32;
+      first_sector: int;
+      last_sector: int;
+    }
+
+    type t = {
+      op: op;
+      handle: vdev;
+      id: int;
+      sector: int64;
+      segs: seg array;
+    }
+  end
+
+  module Res : sig
+    type status = 
+      |OK |Error |Not_supported |Unknown of int
+
+    type t = {
+      id: int;
+      op: Req.op;
+      status: status;
+    }
+  end
+end  
+
+module Blkif_t : sig
+  type id = int
+  type t
+  val t : backend_domid:int -> (Gnttab.r * t) Lwt.t
+  val push : t -> evtchn:int -> (id -> Blkif.Req.t) list -> Blkif.Res.t Lwt.t list Lwt.t
+  val push_one : t -> evtchn:int -> (id -> Blkif.Req.t) -> Blkif.Res.t Lwt.t
+  val poll : t -> unit
+  val max_requests : t -> int
+  val free_requests : t -> int
+end
+ 
 module Console : sig
   type t
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"

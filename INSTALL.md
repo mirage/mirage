@@ -67,7 +67,7 @@ in Xen with a config file like:
     $ cat > sleep.cfg
     name="sleep"
     memory=1024
-    kernel="_build/sleep.bin"
+    kernel="_build/sleep.xen"
     <control-d>
     $ sudo xm create -c sleep.cfg
 

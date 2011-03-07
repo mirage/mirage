@@ -77,8 +77,13 @@ let rec listen t fn =
   match t.active with
   |true ->
     lwt frame = input t in
-    let ft = fn frame in
-    listen t fn <&> ft
+    Lwt.ignore_result (
+      try_lwt 
+        fn frame
+      with exn ->
+        return (printf "EXN: %s\n%!" (Printexc.to_string exn))
+    );
+    listen t fn
   |false ->
     return ()
 

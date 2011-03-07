@@ -3,7 +3,7 @@ all: unix
 	@ :
 
 unix:
-	env MIRAGEOS=unix ocamlbuild -classic-display net.cmxa
+	env MIRAGEOS=unix ocamlbuild $(JOBS) net.cmxa
 
 clean:
 	ocamlbuild -clean

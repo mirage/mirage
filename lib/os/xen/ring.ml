@@ -149,6 +149,7 @@ module Bounded_ring (Ring:RING) = struct
     |Some u -> Lwt.wakeup u ()
 
   let max_requests t = Ring.max_requests t.fring
+  let free_requests t = Ring.free_requests t.fring
 end
 
 module Netif = struct
@@ -303,6 +304,76 @@ module Netif = struct
 
   module Tx_t = Bounded_ring(Tx)
 end
+
+module Blkif = struct
+
+  type vdev = int
+
+  module Req = struct
+    type op =
+      |Read |Write |Write_barrier |Flush
+
+    type seg = {
+      gref: int32;
+      first_sector: int;
+      last_sector: int;
+    }
+
+    type t = {
+      op: op;
+      handle: vdev;
+      id: int;
+      sector: int64;
+      segs: seg array;
+    }
+  end
+
+  module Res = struct
+    type status =
+      |OK |Error |Not_supported |Unknown of int
+
+    (* id * op * BLKIF_RSP *)
+    type raw = (int * Req.op * int)
+
+    type t = {
+      id: int;
+      op: Req.op;
+      status: status;
+    }
+
+    let t_of_raw (id, op, rsp) =
+      let status = match rsp with
+      |0 -> OK
+      |(-1) -> Error
+      |(-2) -> Not_supported
+      |x -> Unknown x in
+      { id; op; status }
+  end
+
+  type id = int
+  type req = Req.t
+  type res = Res.t
+
+  type sring = Istring.Raw.t
+  type fring 
+
+  module External = struct
+    external init: sring -> fring = "caml_blkif_init"
+    external write: fring -> Req.t list -> bool = "caml_blkif_request"
+    external read: fring -> Res.raw list = "caml_blkif_response"
+    external max_requests: fring -> int = "caml_blkif_max_requests"
+    external free_requests: fring -> int = "caml_blkif_free_requests"
+  end
+
+  let alloc = alloc External.init
+  let id_of_res res = res.Res.id
+  let read fring = List.map Res.t_of_raw (External.read fring) 
+  let write = External.write
+  let max_requests = External.max_requests
+  let free_requests = External.free_requests
+end
+
+module Blkif_t = Bounded_ring(Blkif)
 
 (* Raw ring handling section *)
 

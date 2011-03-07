@@ -266,6 +266,8 @@ module View = struct
 
 end
 
+type t = View.t
+
 module S = struct
 
   type t = View.t

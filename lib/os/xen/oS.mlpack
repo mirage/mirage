@@ -15,5 +15,6 @@ Clock
 Time
 Xs
 Console
-Ethif
+Netif
+Blkif
 Main

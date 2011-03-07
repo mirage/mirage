@@ -66,9 +66,16 @@ module Tx = struct
     let tcpfn env = 
       let tcp = Mpl.Tcp.t ~syn ~fin ~rst ~ack ~ack_number
         ~sequence ~source_port ~dest_port ~window ~data ~options env in
-      let dest_ip = ipv4_addr_to_uint32 dest_ip in
-      let pseudo_header = Int32.(add (add src dest_ip) (of_int (6+tcp#sizeof))) in
-      let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof pseudo_header in
+      let src_ip = ipv4_addr_to_bytes (Ipv4.get_ip ip) in
+      let dest_ip = ipv4_addr_to_bytes dest_ip in
+      let i32l x = Int32.of_int ((Char.code x.[0] lsl 8) + (Char.code x.[1])) in
+      let i32r x = Int32.of_int ((Char.code x.[2] lsl 8) + (Char.code x.[3])) in
+      let ph = Int32.of_int (6+tcp#sizeof) in
+      let ph = Int32.add ph (i32l dest_ip) in
+      let ph = Int32.add ph (i32r dest_ip) in
+      let ph = Int32.add ph (i32l src_ip) in
+      let ph = Int32.add ph (i32r src_ip) in
+      let checksum = OS.Istring.View.ones_complement_checksum tcp#env tcp#sizeof ph in
       tcp#set_checksum checksum;
       memo := Some tcp
     in
@@ -203,7 +210,11 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   let tx_wnd = tcp#window in
   let rx_wnd = 16384 in (* TODO: too small *)
   let rx_isn = Sequence.of_int32 tcp#sequence in
-  let wnd = Window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn in
+  (* Parse options and get the receive MSS *)
+  let options = Options.of_packet tcp in
+  let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
+  (* Initialise the window handler *)
+  let wnd = Window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss in
   (* When we transmit an ACK for a received segment, rx_ack is written to *)
   let rx_ack = Lwt_mvar.create_empty () in
   (* When we receive an ACK for a transmitted segment, tx_ack is written to *)
@@ -301,11 +312,13 @@ let rec read pcb =
 
 (* Maximum allowed write *)
 let write_available pcb =
-  User_buffer.Tx.available pcb.utx
+  (* Our effective outgoing MTU is what can fit in a page *)
+  min 4000 (min (Window.tx_mss pcb.wnd)
+    (Int32.to_int (User_buffer.Tx.available pcb.utx)))
 
 (* Wait for more write space *)
 let write_wait_for pcb sz =
-  User_buffer.Tx.wait_for pcb.utx sz
+  User_buffer.Tx.wait_for pcb.utx (Int32.of_int sz)
 
 (* Write a segment *)
 let write pcb data =
@@ -318,10 +331,11 @@ let close pcb =
      
 (* Register a TCP listener on a port *)
 let listen t port fn =
+  let th,_ = Lwt.task () in
   if Hashtbl.mem t.listeners port then
     printf "WARNING: TCP listen port %d already used\n%!" port;
   Hashtbl.replace t.listeners port fn;
-  return ()
+  th
 
 (* Construct the main TCP thread *)
 let create ip =

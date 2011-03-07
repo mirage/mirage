@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+(*
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,27 +12,11 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *)
 
-/* The Mirage "select" loop which decides to wake up timeouts, I/O or
-   Xenstore traffic. */
+module UDPv4 : Nettypes.DATAGRAM with
+      type mgr = Manager.t
+  and type src = Nettypes.ipv4_src
+  and type dst = Nettypes.ipv4_dst
+  and type msg = OS.Istring.View.t
 
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <mini-os/x86/os.h>
-#include <mini-os/sched.h>
-
-CAMLprim value 
-mirage_block_domain(value v_timeout)
-{
-    CAMLparam1(v_timeout);
-    unsigned long flags;
-    s_time_t secs = (s_time_t)(Double_val(v_timeout) * 1000000000);
-    s_time_t until = NOW() + secs;
-    local_irq_save(flags);
-    block_domain(until);
-    force_evtchn_callback();
-    local_irq_restore(flags);
-    CAMLreturn(Val_unit);
-}

@@ -31,7 +31,7 @@ let default_iteration () =
   let now = Clock.time () in
   Time.restart_threads now;
   let timeout = Time.process_timeouts now in
-  block_domain (match timeout with None -> 10. |Some t -> t)
+  block_domain (match timeout with None -> 10.0 |Some t -> t)
 
 (* Execute one iteration and register a callback function *)
 let run t =

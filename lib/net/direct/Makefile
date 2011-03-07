@@ -18,10 +18,10 @@ all: unix $(XEN_BUILD)
 	@ :
 
 unix:
-	env MIRAGEOS=unix ocamlbuild net.cmxa
+	env MIRAGEOS=unix ocamlbuild $(JOBS) net.cmxa
 
 xen:
-	env MIRAGEOS=xen ocamlbuild net.cmxa
+	env MIRAGEOS=xen ocamlbuild $(JOBS) net.cmxa
 
 install: install-unix $(XEN_INSTALL)
 	@ :

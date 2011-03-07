@@ -23,6 +23,6 @@ type t =
   |Unknown of (int * string)       (* RFC793 *)
 
 type ts = t list
-val marshal: ts -> (OS.Istring.View.t -> unit)
+val marshal: ts -> (OS.Istring.t -> unit)
 val of_packet : Mpl.Tcp.o -> t list
 val prettyprint : t list -> string

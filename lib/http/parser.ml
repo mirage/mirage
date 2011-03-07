@@ -49,44 +49,31 @@ let split_query_params query =
           | _ -> raise (Malformed_query_part (binding, query)))
         bindings
 
-let debug_dump_request path params =
-  debug_print
-    (sprintf
-      "recevied request; path: %s; params: %s"
-      path
-      (String.concat ", " (List.map (fun (n, v) -> n ^ "=" ^ v) params)))
-
 let parse_request_fst_line ic =
-  debug_print "parse_request_fst_line";
   lwt request_line = ic () in
-  debug_print (sprintf "HTTP request line (not yet parsed): %s" request_line);
   try_lwt begin
     match Str.split pieces_sep request_line with
-      | [ meth_raw; uri_raw; http_version_raw ] ->
-          return (method_of_string meth_raw,
-		  Url.of_string uri_raw,
-		  version_of_string http_version_raw)
-      | _ -> fail (Malformed_request request_line)
+    | [ meth_raw; uri_raw; http_version_raw ] ->
+        return (method_of_string meth_raw, Url.of_string uri_raw, version_of_string http_version_raw)
+    | _ -> fail (Malformed_request request_line)
   end with | Malformed_URL url -> fail (Malformed_request_URI url)
 
 let parse_response_fst_line ic =
   lwt response_line = ic () in
-  debug_print (sprintf "HTTP response line (not yet parsed): %s" response_line);
   try_lwt
     (match Str.split pieces_sep response_line with
     | version_raw :: code_raw :: _ ->
-        debug_print (Printf.sprintf "version_raw=%s; code_raw=%s" version_raw code_raw);
-        return (version_of_string version_raw,      (* method *)
-        status_of_code (int_of_string code_raw))    (* status *)
+       return (version_of_string version_raw,      (* method *)
+       status_of_code (int_of_string code_raw))    (* status *)
     | _ ->
-		debug_print "Malformed_response";
-		fail (Malformed_response response_line))
+   fail (Malformed_response response_line))
   with 
   | Malformed_URL _ | Invalid_code _ | Failure "int_of_string" ->
      fail (Malformed_response response_line)
   | e -> fail e
 
-let parse_path uri = match Url.path uri with None -> "/" | Some x -> x
+let parse_path uri =
+  match Url.path uri with None -> "/" | Some x -> x
 
 let parse_query_get_params uri =
   try (* act on HTTP encoded URIs *)
@@ -112,10 +99,38 @@ let parse_headers ic =
   parse_headers' []
 
 let parse_request ic =
-  debug_print "parse_request";
   lwt (meth, uri, version) = parse_request_fst_line ic in
   let path = parse_path uri in
   let query_get_params = parse_query_get_params uri in
-  debug_dump_request path query_get_params;
   return (path, query_get_params)
+
+let parse_content_range s =
+  try
+    let start, fini, total = Scanf.sscanf s "bytes %d-%d/%d" 
+      (fun start fini total -> start, fini, total) in
+    Some (start, fini, total)
+  with Scanf.Scan_failure _ -> None
+
+(* If we see a "Content-Range" header, than we should limit the
+   number of bytes we attempt to read *)
+let parse_content_range headers = 
+  (* assuming header keys were downcased in previous step *)
+  if List.mem_assoc "content-length" headers then begin
+    try 
+      let str = List.assoc "content-length" headers in
+      let str = Parser_sanity.normalize_header_value str in
+      Some (int_of_string str)
+    with _ ->
+      None
+  end else if List.mem_assoc "content-range" headers then begin
+    let range_s = List.assoc "content-range" headers in
+    match parse_content_range range_s with
+    |Some (start, fini, total) ->
+      (* some sanity checking before we act on these values *)
+      if fini < total && start <= total && 0 <= start && 0 <= total then (
+        let num_bytes_to_read = fini - start + 1 in
+        Some num_bytes_to_read
+      ) else None
+    |None -> None
+  end else None    
 

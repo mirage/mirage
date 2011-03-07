@@ -13,13 +13,13 @@ endif
 
 .PHONY: clean all depend install unix xen node
 all: depend
-	ocamlbuild unix.otarget $(XEN_BUILD) node.otarget
+	ocamlbuild $(JOBS) unix.otarget $(XEN_BUILD) node.otarget
 
 unix:
-	ocamlbuild unix.otarget
+	ocamlbuild $(JOBS) unix.otarget
 
 xen:
-	ocamlbuild xen.otarget
+	ocamlbuild $(JOBS) xen.otarget
 
 node:
 	ocamlbuild node.otarget

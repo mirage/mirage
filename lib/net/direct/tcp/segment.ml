@@ -46,7 +46,7 @@ module Rx = struct
 
   type q = {
     mutable segs: S.t;
-    rx_data: OS.Istring.View.t list option Lwt_mvar.t; (* User receive channel *)
+    rx_data: OS.Istring.t list option Lwt_mvar.t; (* User receive channel *)
     tx_ack: Sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     wnd: Window.t;
@@ -154,10 +154,10 @@ module Tx = struct
   type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
 
   type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-    unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+    unit OS.Istring.View.data -> OS.Istring.t Lwt.t
 
   type seg = {
-    view: OS.Istring.View.t;
+    view: OS.Istring.t;
     flags: flags;
   }
 
@@ -207,16 +207,21 @@ module Tx = struct
       Lwt_sequence.iter_node_l (fun node ->
         let seg = Lwt_sequence.get node in
         let seg_len = Sequence.of_int (len seg) in
-        if Sequence.geq !ack_len seg_len then begin
-          (* This segment is now fully ack'ed *)
-          Lwt_sequence.remove node;
-          ack_segment q seg;
-          ack_len := Sequence.sub !ack_len seg_len
-        end else begin
-          (* TODO: support partial ack *)
-          printf "Tcp_segment.Tx.tx_ack_t: partial ack not yet supported\n%!";
-          ack_len := Sequence.of_int32 0l
-        end
+        match Sequence.to_int32 !ack_len with
+        |0l -> ()
+        |_ ->
+          if Sequence.geq !ack_len seg_len then begin
+            (* This segment is now fully ack'ed *)
+            Lwt_sequence.remove node;
+            ack_segment q seg;
+            printf "Tcp_segment.Tx: full ack seg len %d\n%!" (Sequence.to_int seg_len);
+            ack_len := Sequence.sub !ack_len seg_len
+          end else begin
+            (* TODO: support partial ack *)
+            printf "Tcp_segment.Tx. partial ack not yet supported (%d/%d)\n%!"
+              (Sequence.to_int !ack_len) (Sequence.to_int seg_len);
+           ack_len := Sequence.of_int32 0l
+          end
       ) q.segs;
       Window.tx_ack q.wnd seq_l;
       tx_ack_t ()

@@ -17,6 +17,14 @@
 open Lwt
 open Printf
 
+type features = {
+  sg: bool;
+  gso_tcpv4: bool;
+  rx_copy: bool;
+  rx_flip: bool;
+  smart_poll: bool;
+}
+
 type t = {
   backend_id: int;
   backend: string;
@@ -26,7 +34,7 @@ type t = {
   rx: Ring.Netif.Rx_t.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
-  mutable rx_cond: unit Lwt_condition.t;
+  features: features;
 }
 
 type id = (int * int)
@@ -42,24 +50,39 @@ let create (num,backend_id) =
   let evtchn = Evtchn.alloc_unbound_port backend_id in
 
   (* Read xenstore info and set state to Connected *)
-  let node = Printf.sprintf "device/vif/%d/" num in
+  let node = sprintf "device/vif/%d/" num in
   lwt backend = Xs.(t.read (node ^ "backend")) in
   lwt mac = Xs.(t.read (node ^ "mac")) in
-  lwt () = Xs.(transaction t (fun xst ->
+  printf "MAC: %s\n%!" mac;
+  Xs.(transaction t (fun xst ->
     let wrfn k v = xst.Xst.write (node ^ k) v in
     wrfn "tx-ring-ref" (Gnttab.to_string tx_gnt) >>
     wrfn "rx-ring-ref" (Gnttab.to_string rx_gnt) >>
     wrfn "event-channel" (string_of_int evtchn) >>
     wrfn "request-rx-copy" "1" >>
     wrfn "state" Xb.State.(to_string Connected)
+  )) >>
+  (* Read backend features *)
+  lwt features = Xs.(transaction t (fun xst ->
+    let rdfn k =
+      try_lwt xst.Xst.read (sprintf "%s/feature-%s" backend k) >>= 
+        function
+        |"1" -> return true
+        |_ -> return false
+      with exn -> return false in
+    lwt sg = rdfn "sg" in
+    lwt gso_tcpv4 = rdfn "gso-tcpv4" in
+    lwt rx_copy = rdfn "rx-copy" in
+    lwt rx_flip = rdfn "rx-flip" in
+    lwt smart_poll = rdfn "smart-poll" in
+    return { sg; gso_tcpv4; rx_copy; rx_flip; smart_poll }
   )) in
-  (* Register callback activation *)
-  let rx_cond = Lwt_condition.create () in
-  let t = { backend_id; tx; tx_gnt; rx_gnt; rx; rx_cond; 
-   evtchn; mac; backend } in
-  Activations.(register evtchn (Event_condition rx_cond));
+  Console.log (sprintf " sg:%b gso_tcpv4:%b rx_copy:%b rx_flip:%b smart_poll:%b"
+    features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
-  return t
+  (* Register callback activation *)
+  return { backend_id; tx; tx_gnt; rx_gnt; rx; 
+   evtchn; mac; backend; features }
 
 let listen nf fn =
   let rec one_request () =
@@ -69,7 +92,7 @@ let listen nf fn =
         let _ = Gnttab.page gnt in 
         (* Set up the request and push it to the ring *)
         let gref = Gnttab.num gnt in
-        let req id = { Ring.Netif.Rx.Req.id; gref } in
+	let req id = { Ring.Netif.Rx.Req.id; gref } in
         lwt res = Ring.Netif.Rx_t.push_one nf.rx ~evtchn:nf.evtchn req in
         let page = Gnttab.detach gnt in
         return (res, page)
@@ -80,26 +103,31 @@ let listen nf fn =
     match res.status with
     |Size size ->
       let view = Istring.View.t ~off:res.off page size in
-      fn view <&> (one_request ()) 
+      Lwt.ignore_result (
+        try_lwt
+          fn view
+        with exn -> 
+          return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
+      );
+      one_request ()
     |Err _ ->
       Console.log "Warning: Netif.Rx_t error";
       one_request ()
   in
-  let reqs =
+  let _ =
     Array.to_list (
       Array.init (Ring.Netif.Rx_t.max_requests nf.rx)
         (fun i -> one_request ())
     ) in
-  (* These requests will all requeue more requests, so this will
-     never terminate until cancelled *)
-  let listen_t = join reqs in
   (* Listen for the activation to poll the interface *)
   let rec poll_t () =
-    lwt () = Lwt_condition.wait nf.rx_cond in
+    lwt () = Activations.wait nf.evtchn in
+    Ring.Netif.Tx_t.poll nf.tx; 
     Ring.Netif.Rx_t.poll nf.rx; 
     Ring.Netif.Tx_t.poll nf.tx; 
+    Ring.Netif.Rx_t.poll nf.rx; 
     poll_t () in
-  poll_t () <?> listen_t
+  poll_t ()
 
 (* Shutdown a netfront *)
 let destroy nf =

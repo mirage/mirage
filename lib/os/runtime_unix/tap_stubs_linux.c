@@ -21,6 +21,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <err.h>
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>

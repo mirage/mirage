@@ -66,3 +66,7 @@ val parse_headers: (unit -> string Lwt.t) -> ((string * string) list) Lwt.t
   parameters) *)
 val parse_request: (unit -> string Lwt.t) -> (string * (string * string) list) Lwt.t
 
+  (** parse content-range header in a request
+  @return number of bytes to read, or None if all available should be read
+  *)
+val parse_content_range: (string * string) list -> int option

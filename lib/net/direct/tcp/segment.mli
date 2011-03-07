@@ -17,7 +17,7 @@
 module Rx :
   sig
     type q
-    val q : rx_data:OS.Istring.View.t list option Lwt_mvar.t ->
+    val q : rx_data:OS.Istring.t list option Lwt_mvar.t ->
       wnd:Window.t ->
       tx_ack:Sequence.t Lwt_mvar.t -> 
       tx_wnd_update:int Lwt_mvar.t -> q
@@ -33,7 +33,7 @@ module Tx :
     type flags = |No_flags |Syn |Fin |Rst
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-      unit OS.Istring.View.data -> OS.Istring.View.t Lwt.t
+      unit OS.Istring.View.data -> OS.Istring.t Lwt.t
 
     type q
 

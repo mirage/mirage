@@ -37,17 +37,25 @@ let input t ip udp =
 let output t ~dest_ip udp =
   let src_ip = Ipv4.get_ip t.ip in
   let src = ipv4_addr_to_uint32 src_ip in
-  let udpfn env =
+  (* Disabled checksumming for UDP as it is optional
+  let udpfn_checksum env =
     let p = udp env in
-    let src_ip_i32 = ipv4_addr_to_uint32 src_ip in
-    let dest_ip_i32 = ipv4_addr_to_uint32 dest_ip in
-    let pseudo = Int32.(add (add src_ip_i32 dest_ip_i32) (of_int (17+p#total_length))) in
-    let _csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof pseudo in
-    (* XXX off by one somewhere here? very odd - avsm *)
-    (* p#set_checksum csum *)
-    () in
+    let src_ip = ipv4_addr_to_bytes src_ip in
+    let dest_ip = ipv4_addr_to_bytes dest_ip in
+    let i32l x = Int32.of_int ((Char.code x.[0] lsl 8) + (Char.code x.[1])) in
+    let i32r x = Int32.of_int ((Char.code x.[2] lsl 8) + (Char.code x.[3])) in
+    let ph = Int32.of_int (17+p#sizeof) in
+    let ph = Int32.add ph (i32l dest_ip) in
+    let ph = Int32.add ph (i32r dest_ip) in
+    let ph = Int32.add ph (i32l src_ip) in
+    let ph = Int32.add ph (i32r src_ip) in
+    let csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof ph in
+    p#set_checksum csum 
+  in 
+  *)
+  let udpfn_nochecksum env = udp env in
   let ipfn env =
-    Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn) env in
+    Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn_nochecksum) env in
   Ipv4.output t.ip ~dest_ip ipfn >> return ()
 
 let listen t port fn =

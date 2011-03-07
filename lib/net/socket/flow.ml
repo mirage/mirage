@@ -77,8 +77,17 @@ let listen_tcpv4 addr port fn =
          |R.OK (afd,caddr_i,cport) ->
            let caddr = ipv4_addr_of_uint32 caddr_i in
            let t' = t_of_fd afd in
-           let conn_t = close_on_exit t' (fn (caddr, cport)) in
-           loop t <&> conn_t
+           (* Be careful to catch an exception here, as otherwise
+              ignore_result may raise it at some other random point *)
+           Lwt.ignore_result (
+             close_on_exit t' (fun t ->
+               try_lwt
+                fn (caddr, cport) t
+               with exn ->
+                return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
+             )
+           );
+           loop t
          |R.Retry -> loop t
          |R.Err err -> fail (Accept_error err)
         )
@@ -141,7 +150,7 @@ module TCPv4 = struct
       |Some addr, port -> addr, port in
     listen_tcpv4 addr port fn
 
-  let connect mgr ?src (addr,port) fn =
+  let connect mgr ?src ((addr,port):ipv4_dst) (fn: t -> 'a Lwt.t) =
     match R.tcpv4_connect (ipv4_addr_to_uint32 addr) port with
     |R.OK fd ->
       (* Wait for the connect to complete *)
@@ -165,7 +174,7 @@ module Pipe = struct
   type src = int (* process pid *)
   type dst = int (* process pid *)
 
-  type msg = OS.Istring.View.t
+  type msg = OS.Istring.t
 
   let read (rd,_) = read rd
   let write (_,wr) view = write wr view
@@ -177,53 +186,42 @@ module Pipe = struct
        fn dst (t_of_fd rd, (t_of_fd wr))
      )
 
-  let connect mgr ?src dstid fn =
+  let connect mgr ?src dstid (fn: t -> 'a Lwt.t) =
     Manager.connect mgr dstid
       (fun (rd,wr) ->
         fn (t_of_fd rd, (t_of_fd wr))
       )
 end
 
-module UDPv4 = struct
-  type mgr = Manager.t
-  type src = ipv4_addr option * int
-  type dst = ipv4_addr * int
+type t =
+  | TCPv4 of TCPv4.t
+  | Pipe of Pipe.t
 
-  type msg = OS.Istring.View.t
+type mgr = Manager.t
 
-  let rec send mgr ?src (dstaddr, dstport) req =
-    lwt fd = match src with
-      |None -> return (Manager.get_udpv4 mgr)
-      |Some src -> Manager.get_udpv4_listener mgr src
-    in
-    Activations.write (R.fd_to_int fd) >>
-    let raw = OS.Istring.View.raw req in
-    let off = OS.Istring.View.off req in
-    let len = OS.Istring.View.length req in
-    let dst = (ipv4_addr_to_uint32 dstaddr, dstport) in
-    match R.udpv4_sendto fd raw off len dst with
-    |R.OK len' ->
-      if len' != len then
-        fail (Write_error "partial UDP send")
-      else
-        return ()
-    |R.Retry -> send mgr (dstaddr, dstport) req
-    |R.Err err -> fail (Write_error err)
+let read = function
+  | TCPv4 t -> TCPv4.read t
+  | Pipe t -> Pipe.read t
 
-  let recv mgr (addr,port) fn =
-    lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
-    let rec listen lfd =
-      lwt () = Activations.read (R.fd_to_int lfd) in
-      let istr = OS.Istring.Raw.alloc () in
-      match R.udpv4_recvfrom lfd istr 0 4096 with
-      |R.OK (frm_addr, frm_port, len) ->
-        let frm_addr = ipv4_addr_of_uint32 frm_addr in
-        let dst = (frm_addr, frm_port) in
-        let req = OS.Istring.View.t ~off:0 istr len in
-        let resp_t = fn dst req in
-        listen lfd <&> resp_t
-      |R.Retry -> listen lfd
-      |R.Err _ -> return ()
-    in 
-    listen lfd
-end
+let write = function
+  | TCPv4 t -> TCPv4.write t
+  | Pipe t -> Pipe.write t
+
+let close = function
+  | TCPv4 t -> TCPv4.close t
+  | Pipe t -> Pipe.close t
+
+let connect mgr = function
+  |`TCPv4 (src, dst, fn) ->
+     TCPv4.connect mgr ?src dst (fun t -> fn (TCPv4 t))
+  |`Pipe (src, dst, fn) ->
+     Pipe.connect mgr ?src dst (fun t -> fn (Pipe t))
+  |_ -> fail (Failure "unknown protocol")
+
+let listen mgr = function
+  |`TCPv4 (src, fn) ->
+     TCPv4.listen mgr src (fun dst t -> fn dst (TCPv4 t))
+  |`Pipe (src, fn) ->
+     Pipe.listen mgr src (fun dst t -> fn dst (Pipe t))
+  |_ -> fail (Failure "unknown protocol")
+

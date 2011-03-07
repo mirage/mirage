@@ -23,7 +23,7 @@ let ethernet_mac_of_bytes x =
     x
 
 (* Read a MAC address colon-separated string *)
-let ethernet_mac_of_string x = 
+let ethernet_mac_of_string x =
     try
       let s = String.create 6 in
       Scanf.sscanf x "%2x:%2x:%2x:%2x:%2x:%2x"
@@ -43,14 +43,14 @@ let ethernet_mac_to_string x =
     Printf.sprintf "%02x:%02x:%02x:%02x:%02x:%02x"
        (chri 0) (chri 1) (chri 2) (chri 3) (chri 4) (chri 5)
 
-let ethernet_mac_to_bytes x = x 
+let ethernet_mac_to_bytes x = x
 
 let ethernet_mac_broadcast = String.make 6 '\255'
 
 type ipv4_addr = string (* length 4 only *)
 
 (* Raw IPv4 address of the wire (network endian) *)
-let ipv4_addr_of_bytes x = 
+let ipv4_addr_of_bytes x =
     assert(String.length x = 4);
     x
 
@@ -76,15 +76,15 @@ let ipv4_blank = String.make 4 '\000'
 (* Broadcast 255.255.255.255 IPv4 address *)
 let ipv4_broadcast = String.make 4 '\255'
 (* Localhost 127.0.0.1 ipv4 address  *)
-let ipv4_localhost = 
+let ipv4_localhost =
   match ipv4_addr_of_string "127.0.0.1" with |Some x -> x |None -> assert false
 
 let ipv4_addr_of_uint32 s =
     let (>!) x y = Char.chr (Int32.to_int (Int32.logand (Int32.shift_right x y) 255l)) in
     let x = String.create 4 in
     x.[0] <- (s >! 24);
-    x.[1] <- (s >! 16); 
-    x.[2] <- (s >! 8); 
+    x.[1] <- (s >! 16);
+    x.[2] <- (s >! 8);
     x.[3] <- (s >! 0);
     x
 
@@ -104,27 +104,35 @@ let ipv4_addr_of_tuple (a,b,c,d) =
 
 let ipv4_addr_to_string x =
     let chri i = Char.code x.[i] in
-    Printf.sprintf "%d.%d.%d.%d" 
+    Printf.sprintf "%d.%d.%d.%d"
       (chri 0) (chri 1) (chri 2) (chri 3)
 
-module type FLOW = sig                                                                                   
-  (* Type of an individual flow *)                                                                       
-  type t                                                                                                 
-  (* Type that manages a collection of flows *)                                                          
-  type mgr                                                                                               
+type ipv4_src = ipv4_addr option * int
+type ipv4_dst = ipv4_addr * int
+
+type peer_uid = int
+
+exception Closed
+
+module type FLOW = sig
+  (* Type of an individual flow *)
+  type t
+  (* Type that manages a collection of flows *)
+  type mgr
   (* Type that identifies a flow source and destination endpoint *)
   type src
   type dst
 
-  (* Read and write to a flow *)                                                                         
-  val read: t -> OS.Istring.View.t option Lwt.t
-  val write: t -> OS.Istring.View.t -> unit Lwt.t                                                        
+  (* Read and write to a flow *)
+  val read: t -> OS.Istring.t option Lwt.t
+  val write: t -> OS.Istring.t -> unit Lwt.t
+
   val close: t -> unit Lwt.t
-  
-  (* Flow construction *)                                                                                
-  val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t                             
-  val connect: mgr -> ?src:src -> dst -> (t -> 'a Lwt.t) -> 'a Lwt.t                           
-end 
+
+  (* Flow construction *)
+  val listen: mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
+  val connect: mgr -> ?src:src -> dst -> (t -> 'a Lwt.t) -> 'a Lwt.t
+end
 
 module type DATAGRAM = sig
   (* Datagram manager *)
@@ -149,11 +157,12 @@ module type CHANNEL = sig
   type src
   type dst
 
-  val read_char: t -> char option Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.View.t option) option Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.View.t option Lwt.t
+  val read_char: t -> char Lwt.t
+  val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
+  val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
+  val read_stream: ?len:int -> t -> OS.Istring.t Lwt_stream.t
 
-  val read_crlf: t -> OS.Istring.View.t Lwt_stream.t
+  val read_crlf: t -> OS.Istring.t Lwt_stream.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t

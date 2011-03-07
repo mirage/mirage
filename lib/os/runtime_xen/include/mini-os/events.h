@@ -32,8 +32,7 @@ evtchn_port_t bind_evtchn(evtchn_port_t port, evtchn_handler_t handler,
 						  void *data);
 void unbind_evtchn(evtchn_port_t port);
 void init_events(void);
-int evtchn_alloc_unbound(domid_t pal, evtchn_handler_t handler,
-						 void *data, evtchn_port_t *port);
+int evtchn_alloc_unbound(domid_t pal, evtchn_port_t *port);
 int evtchn_bind_interdomain(domid_t pal, evtchn_port_t remote_port,
 							evtchn_handler_t handler, void *data,
 							evtchn_port_t *local_port);

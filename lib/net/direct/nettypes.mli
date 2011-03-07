@@ -35,6 +35,13 @@ val ipv4_blank : ipv4_addr
 val ipv4_broadcast : ipv4_addr
 val ipv4_localhost : ipv4_addr
 
+type ipv4_src = ipv4_addr option * int
+type ipv4_dst = ipv4_addr * int
+
+type peer_uid = int
+
+exception Closed
+
 module type FLOW = sig
   type t
   type mgr
@@ -42,8 +49,8 @@ module type FLOW = sig
   type src
   type dst
 
-  val read : t -> OS.Istring.View.t option Lwt.t
-  val write : t -> OS.Istring.View.t -> unit Lwt.t
+  val read : t -> OS.Istring.t option Lwt.t
+  val write : t -> OS.Istring.t -> unit Lwt.t
   val close : t -> unit Lwt.t
 
   val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
@@ -57,7 +64,7 @@ module type DATAGRAM = sig
   type dst
 
   type msg
- 
+
   val recv : mgr -> src -> (dst -> msg -> unit Lwt.t) -> unit Lwt.t
   val send : mgr -> ?src:src -> dst -> msg -> unit Lwt.t
 end
@@ -69,11 +76,12 @@ module type CHANNEL = sig
   type src
   type dst
 
-  val read_char: t -> char option Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.View.t option) option Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.View.t option Lwt.t
+  val read_char: t -> char Lwt.t
+  val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
+  val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
+  val read_stream: ?len: int -> t -> OS.Istring.t Lwt_stream.t
 
-  val read_crlf: t -> OS.Istring.View.t Lwt_stream.t
+  val read_crlf: t -> OS.Istring.t Lwt_stream.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t

@@ -102,7 +102,28 @@ let with_grant ~domid ~perm fn =
     put_free_entry gnt;
     fail exn
   end
-  
+ 
+let with_grants ~domid ~perm num fn =
+  let rec gen_gnts num acc =
+    match num with
+    |0 -> return acc
+    |n -> 
+      lwt gnt = get_free_entry () in
+      grant_access ~domid ~perm gnt;
+      gen_gnts (n-1) (gnt :: acc)
+  in
+  lwt gnts = gen_gnts num [] in
+  try_lwt
+    lwt res = fn (Array.of_list gnts) in
+    List.iter end_access gnts;
+    List.iter put_free_entry gnts;
+    return res
+  with exn -> begin
+    List.iter end_access gnts;
+    List.iter put_free_entry gnts;
+    fail exn
+  end
+
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);
     for i = Raw.nr_reserved () to Raw.nr_entries () - 1 do

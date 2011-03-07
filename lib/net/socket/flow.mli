@@ -16,9 +16,6 @@
 
 open Nettypes
 
-type ipv4_src = ipv4_addr option * int
-type ipv4_dst = ipv4_addr * int
-
 module TCPv4 : FLOW with
       type mgr = Manager.t
   and type src = ipv4_src
@@ -26,11 +23,23 @@ module TCPv4 : FLOW with
 
 module Pipe : FLOW with
       type mgr = Manager.t
-  and type src = Manager.uid
-  and type dst = Manager.uid
+  and type src = peer_uid
+  and type dst = peer_uid
 
-module UDPv4 : DATAGRAM with
-      type mgr = Manager.t
-  and type src = ipv4_src
-  and type dst = ipv4_dst
-  and type msg = OS.Istring.View.t
+type t
+val read: t -> OS.Istring.t option Lwt.t
+val write: t -> OS.Istring.t -> unit Lwt.t
+val close: t -> unit Lwt.t
+
+val connect :
+  Manager.t -> [> 
+   | `Pipe of peer_uid option * peer_uid * (t -> 'a Lwt.t)
+   | `TCPv4 of ipv4_src option * ipv4_dst * (t -> 'a Lwt.t)
+  ] -> 'a Lwt.t
+
+val listen :
+  Manager.t -> [> 
+   | `Pipe of peer_uid * (peer_uid -> t -> unit Lwt.t)
+   | `TCPv4 of ipv4_src * (ipv4_dst -> t -> unit Lwt.t)
+  ] -> unit Lwt.t
+

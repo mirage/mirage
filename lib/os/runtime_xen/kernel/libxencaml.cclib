@@ -1,7 +1,6 @@
 exit_stubs.o
 istring_stubs.o
 evtchn_stubs.o
-domain_stubs.o
 ring_stubs.o
 xb_stubs.o
 xencons_ring.o

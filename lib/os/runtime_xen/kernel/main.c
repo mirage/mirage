@@ -26,14 +26,22 @@ int errno;
 static char *argv[] = { "mirage", NULL };
 static unsigned long irqflags;
 
+/* TODO: make dynamic when binding/unbinding ports */
+static evtchn_port_t ports[] = { 1,2,3,4,5,6,7,8,9,10 };
+
+void evtchn_poll(void);
+
 CAMLprim value
 caml_block_domain(value v_timeout)
 {
   CAMLparam1(v_timeout);
+  struct sched_poll sched_poll;
   s_time_t secs = (s_time_t)(Double_val(v_timeout) * 1000000000);
   s_time_t until = NOW() + secs;
-  local_irq_save(irqflags);
-  block_domain(until);
+  set_xen_guest_handle(sched_poll.ports, ports);
+  sched_poll.nr_ports = sizeof(ports);
+  sched_poll.timeout = until;
+  HYPERVISOR_sched_op(SCHEDOP_poll, &sched_poll);
   CAMLreturn(Val_unit);
 }
 
@@ -41,13 +49,12 @@ void app_main(start_info_t *si)
 {
   value *v_main;
   int caml_completed = 0;
+  local_irq_save(irqflags);
   caml_startup(argv);
   v_main = caml_named_value("OS.Main.run");
   ASSERT(v_main != NULL);
-  local_irq_save(irqflags);
   while (caml_completed == 0) {
-    force_evtchn_callback ();
-    local_irq_restore(irqflags);
+    evtchn_poll();
     caml_completed = Bool_val(caml_callback(*v_main, Val_unit));
   }
   _exit(0);

@@ -23,13 +23,6 @@
 
 open Types;;
 
-  (** whether debugging messages are enabled or not, can be changed at runtime
-  *)
-val debug: bool ref
-
-  (** print a string on stderr only if debugging is enabled *)
-val debug_print: string -> unit
-
   (** pretty print an HTTP version *)
 val string_of_version: version -> string
 

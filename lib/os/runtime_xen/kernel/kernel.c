@@ -91,9 +91,6 @@ void start_kernel(start_info_t *si)
     /* Set up events. */
     init_events();
     
-    /* ENABLE EVENT DELIVERY. This is disabled at start of day. */
-    __sti();
-
     arch_print_info();
 
     setup_xen_features();

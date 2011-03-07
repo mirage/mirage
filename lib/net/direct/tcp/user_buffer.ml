@@ -23,9 +23,9 @@ open Lwt
 module Rx = struct
   
   type t = {
-    q: OS.Istring.View.t Lwt_sequence.t; 
+    q: OS.Istring.t Lwt_sequence.t; 
     writers: unit Lwt.u Lwt_sequence.t;
-    readers: OS.Istring.View.t Lwt.u Lwt_sequence.t;
+    readers: OS.Istring.t Lwt.u Lwt_sequence.t;
     mutable watcher: int32 Lwt_mvar.t option;
     mutable max_size: int32;
     mutable cur_size: int32;

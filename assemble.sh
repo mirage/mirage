@@ -28,7 +28,7 @@ function assemble_xen {
     done
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
     cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
-    cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
+    cp ${ROOT}/lib/block/direct/_build/xen/block.{cmi,cmxa,a} ${OBJ}/lib/
     for i in dns http; do 
       cp ${ROOT}/lib/$i/_build/xen-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
     done

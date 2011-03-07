@@ -24,7 +24,7 @@ open Nettypes
 exception Error of string
 
 type i = {
-  netif: Netif.t;
+  netif: Ethif.t;
   ipv4: Ipv4.t;
   icmp: Icmp.t;
   udp: Udp.t;
@@ -37,32 +37,36 @@ type t = (i * unit Lwt.t) list
 let configure id t =
   match Config.t id with
   |`DHCP ->
-      OS.Console.log (Printf.sprintf "Manager: VIF %s to DHCP" (OS.Ethif.string_of_id id));
+      Printf.printf "Manager: VIF %s to DHCP\n%!" (OS.Netif.string_of_id id);
       lwt t, th = Dhcp.Client.create t.ipv4 t.udp in
-      th
+      Printf.printf "Manager: DHCP done\n%!";
+      return th
   |`IPv4 (addr, netmask, gateways) ->
       OS.Console.log (Printf.sprintf "Manager: VIF %s to %s nm %s gw [%s]"
-        (OS.Ethif.string_of_id id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
+        (OS.Netif.string_of_id id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
         (String.concat ", " (List.map ipv4_addr_to_string gateways)));
       Ipv4.set_ip t.ipv4 addr >>
       Ipv4.set_netmask t.ipv4 netmask >>
       Ipv4.set_gateways t.ipv4 gateways >>
       let th, _ = Lwt.task () in
-      th (* Never return from this thread *)
+      return th (* Never return from this thread *)
 
 (* Enumerate interfaces and manage the protocol threads *)
 let create () =
-  lwt ids = OS.Ethif.enumerate () in
+  lwt ids = OS.Netif.enumerate () in
+  let wrap t = try_lwt t >>= return with
+    exn -> (OS.Console.log ("Manager: exn=" ^ (Printexc.to_string exn)); fail exn) in
   lwt t = Lwt_list.map_p (fun id ->
-    lwt vif = OS.Ethif.create id in
-    let (netif, netif_t) = Netif.create vif in
+    lwt vif = OS.Netif.create id in
+    let (netif, netif_t) = Ethif.create vif in
     let (ipv4, ipv4_t) = Ipv4.create netif in
     let (icmp, icmp_t) = Icmp.create ipv4 in
     let (tcp, tcp_t) = Tcp.Pcb.create ipv4 in
     let (udp, udp_t) = Udp.create ipv4 in
     let t = { ipv4; tcp; udp; icmp; netif } in
-    let config_t = configure id t in
-    let th = pick [udp_t; tcp_t; ipv4_t; netif_t; icmp_t; config_t] in
+    lwt config_t = configure id t in
+    let th = pick [wrap udp_t; wrap tcp_t; wrap ipv4_t; wrap netif_t;
+      wrap icmp_t; wrap config_t] in
     return (t, th)
   ) ids in
   let th,_ = Lwt.task () in
@@ -87,4 +91,3 @@ let tcpv4_of_addr (t:t) addr =
 let udpv4_of_addr (t:t) addr =
   lwt i,_ = i_of_ip t addr in
   return i.udp
-

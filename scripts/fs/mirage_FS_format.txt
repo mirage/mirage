@@ -1,0 +1,16 @@
+
+Purpose:
+Generate a simple flat file metadata format to enable fast IO 
+access to static data. 
+
+Requirements:
+1] No directory structure (can be added later)
+2] Each file must start on a 4k boundary
+3] Each file must have a metadata entry held at the 
+start of the disk aligned to a sector boundary
+
+Format:
+Magic String - 4 bytes (set to 0xDEADBEED)
+64 bit offset - 8 bytes
+64 bit length - 8 bytes
+Filename - variable length (up to 488), null terminated

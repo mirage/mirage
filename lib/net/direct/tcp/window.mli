@@ -17,7 +17,8 @@
 
 type t 
 
-val t : rx_wnd_scale:int -> tx_wnd_scale:int -> rx_wnd:int -> tx_wnd:int -> rx_isn:Sequence.t -> t
+val t : rx_wnd_scale:int -> tx_wnd_scale:int -> rx_wnd:int ->
+  tx_wnd:int -> rx_isn:Sequence.t -> tx_mss:int option -> t
 
 val valid : t -> Sequence.t -> bool
 
@@ -28,7 +29,7 @@ val tx_advance : t -> int -> unit
 val tx_ack: t -> Sequence.t -> unit
 val tx_nxt : t -> Sequence.t
 val tx_una : t -> Sequence.t
-val tx_mss : t -> int32
+val tx_mss : t -> int
 
 (* RCV.WND: Size of traffic we are willing to accept *)
 val rx_wnd : t -> int32

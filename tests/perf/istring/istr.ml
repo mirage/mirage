@@ -5,8 +5,11 @@ open Lwt
 let num = ref 0 
 
 let rec watchdog () =
-  printf "watchdog: %f %d\n%!" (OS.Clock.time ()) !num;
-  OS.Time.sleep 1.0 >>
+  let open Gc in
+  Gc.compact ();
+  let s = stat () in
+  printf "blocks: l=%d f=%d\n%!" s.live_blocks s.free_blocks;
+  OS.Time.sleep 2. >>
   watchdog ()
 
 let rec loop () =

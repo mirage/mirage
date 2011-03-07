@@ -30,10 +30,19 @@ module TCPv4 = struct
   let read t =
     Tcp.Pcb.read t
 
-  let write t view =
-    let len = Int32.of_int (OS.Istring.View.length view) in
-    Tcp.Pcb.write_wait_for t len >>
-    Tcp.Pcb.write t (`Frag view)
+  let rec write t view =
+    let vlen = OS.Istring.View.length view in
+    Printf.printf "Flow.write: %d\n%!" vlen;
+    match Tcp.Pcb.write_available t with
+    |0 -> (* block for window to open *)
+      Tcp.Pcb.write_wait_for t 1 >>
+      write t view
+    |len when len < vlen -> (* do a short write *)
+      let v' = OS.Istring.View.sub view 0 len in
+      Tcp.Pcb.write t (`Frag v') >>
+      write t (OS.Istring.View.sub view len (vlen - len))
+    |len -> (* full write *)
+      Tcp.Pcb.write t (`Frag view)
 
   let close t =
     Tcp.Pcb.close t
@@ -49,7 +58,7 @@ module TCPv4 = struct
 end
 
 (* Shared mem communication across VMs, not yet implemented *)
-module Pipe = struct
+module Shmem = struct
   type t = unit
   type mgr = Manager.t
   type src = int
@@ -64,32 +73,34 @@ module Pipe = struct
 
 end
 
-module UDPv4 = struct
+type t =
+  | TCPv4 of TCPv4.t
+  | Shmem of Shmem.t
 
-  type mgr = Manager.t
-  type src = ipv4_src
-  type dst = ipv4_dst
-  type msg = OS.Istring.View.t
+type mgr = Manager.t
 
-  let send mgr ?src (dest_ip, dest_port) msg =
-    (* TODO: set src addr here also *)
-    let source_port = match src with
-      |None -> 37 (* XXX eventually random *)
-      |Some (_,p) -> p in
-    lwt udp = Manager.udpv4_of_addr mgr None in
-    Udp.output udp ~dest_ip (
-      let data = `Frag msg in
-      Mpl.Udp.t ~source_port ~dest_port ~data
-    )
+let read = function
+  | TCPv4 t -> TCPv4.read t
+  | Shmem t -> Shmem.read t
 
-  let recv mgr (src_addr, src_port) fn =
-    lwt udp = Manager.udpv4_of_addr mgr src_addr in
-    Udp.listen udp src_port
-      (fun ip udp ->
-        let dst_port = udp#source_port in
-        let dst_ip = ipv4_addr_of_uint32 ip#src in
-        let dst = dst_ip, dst_port in
-        let data = udp#data_sub_view in
-        fn dst data
-      )
-end
+let write = function
+  | TCPv4 t -> TCPv4.write t
+  | Shmem t -> Shmem.write t
+
+let close = function
+  | TCPv4 t -> TCPv4.close t
+  | Shmem t -> Shmem.close t
+
+let connect mgr = function
+  |`TCPv4 (src, dst, fn) ->
+     TCPv4.connect mgr ?src dst (fun t -> fn (TCPv4 t))
+  |`Shmem (src, dst, fn) ->
+     Shmem.connect mgr ?src dst (fun t -> fn (Shmem t))
+  |_ -> fail (Failure "unknown protocol")
+
+let listen mgr = function
+  |`TCPv4 (src, fn) ->
+     TCPv4.listen mgr src (fun dst t -> fn dst (TCPv4 t))
+  |`Shmem (src, fn) ->
+     Shmem.listen mgr src (fun dst t -> fn dst (Shmem t))
+  |_ -> fail (Failure "unknown protocol")

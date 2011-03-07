@@ -84,11 +84,9 @@ end
 
 open Unix
 
-type uid = Unix.uid
-
 type t = {
   domain: [`domain] fd;
-  peers: (uid, [`domain] fd) Hashtbl.t;
+  peers: (peer_uid, [`domain] fd) Hashtbl.t;
   udpv4: [`udpv4] fd;
   udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] fd) Hashtbl.t;
 }

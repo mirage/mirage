@@ -23,11 +23,6 @@
 open Types;;
 open Printf;;
 
-let debug = ref false
-let debug_print s =
-  if !debug then
-    prerr_endline (sprintf "[OCaml HTTP] DEBUG: %s" s)
-
 let string_of_version = function
   | `HTTP_1_0 -> "HTTP/1.0"
   | `HTTP_1_1 -> "HTTP/1.1"

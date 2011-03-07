@@ -17,7 +17,7 @@
 open Nettypes
 
 type 'a ip_output = OS.Istring.t -> ttl:int -> dest:int32 ->
-  options:('a OS.Istring.View.data) -> Mpl.Ipv4.o
+  options:('a OS.Istring.data) -> Mpl.Ipv4.o
 
 type t
 val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> Mpl.Ethernet.o Lwt.t

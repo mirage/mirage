@@ -49,7 +49,7 @@ let output t ~dest_ip udp =
     let ph = Int32.add ph (i32r dest_ip) in
     let ph = Int32.add ph (i32l src_ip) in
     let ph = Int32.add ph (i32r src_ip) in
-    let csum = OS.Istring.View.ones_complement_checksum p#env p#sizeof ph in
+    let csum = OS.Istring.ones_complement_checksum p#env p#sizeof ph in
     p#set_checksum csum 
   in 
   *)

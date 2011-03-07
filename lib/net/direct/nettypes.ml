@@ -167,6 +167,8 @@ module type CHANNEL = sig
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t
   val write_line : t -> string -> unit Lwt.t
+  val write_view : t -> OS.Istring.t -> unit Lwt.t
+  val write_views : t -> OS.Istring.t Lwt_stream.t -> unit Lwt.t
 
   val flush : t -> unit Lwt.t
   val close : t -> unit Lwt.t

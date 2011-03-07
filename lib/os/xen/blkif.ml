@@ -113,7 +113,7 @@ let read_page t sector =
       |Unknown _ -> fail (Read_error "unknown error")
       |OK ->
         let raw = Gnttab.detach gnt in
-        return (Istring.View.t raw 4096)
+        return (Istring.t raw 4096)
     )
 
 (** Read a number of contiguous sectors off disk.
@@ -166,7 +166,7 @@ let read_512 t sector num_sectors =
               |n when n == len-1 -> end_offset * 512
               |_ -> 4096 in
             let bytes = end_offset - start_offset in
-            Istring.View.t ~off:start_offset page bytes;
+            Istring.t ~off:start_offset page bytes;
           ) gnts in
         return pages
     )

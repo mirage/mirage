@@ -15,7 +15,7 @@
  *
  *)
 
-open OS.Istring.View
+open OS.Istring
 
 type t = string
 

@@ -33,4 +33,4 @@ val expires : response -> string option
 val set_expires : response -> value:string -> unit
 val server : response -> string option
 val set_server : response -> value:string -> unit
-val serialize_to_stream : response -> string Lwt_stream.t
+val serialize_to_channel : response -> Net.Channel.t -> unit Lwt.t

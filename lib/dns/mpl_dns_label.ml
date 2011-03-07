@@ -15,7 +15,7 @@
  *
  *)
 
-open OS.Istring.View
+open OS.Istring
 
 exception Bad_dns_label
 type t = int * string list (* size * (bits list) *)

@@ -51,7 +51,7 @@ type mgr = Proxy.t
 module HTTP_wire = struct
 
   type tx = (Net.Channel.t -> unit Lwt.t) option
-  type rx = OS.Istring.View.t Lwt_stream.t
+  type rx = OS.Istring.t Lwt_stream.t
   type 'a req = http_req * 'a
   type 'a res = http_res * 'a
 
@@ -78,8 +78,8 @@ module HTTP_wire = struct
   let res_unmarshal chan =
     let read_line () =
       let stream = Channel.read_crlf chan in 
-      lwt ts = OS.Istring.View.ts_of_stream stream in
-      return (OS.Istring.View.ts_to_string ts)
+      lwt ts = OS.Istring.ts_of_stream stream in
+      return (OS.Istring.ts_to_string ts)
     in
     lwt (_, res_status) = Parser.parse_response_fst_line read_line in
     lwt res_headers = Parser.parse_headers read_line in

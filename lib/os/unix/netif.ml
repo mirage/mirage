@@ -70,7 +70,7 @@ let rec input t =
     Activations.read t.dev >>
     input t
   |n ->
-    return (Istring.View.t page n)
+    return (Istring.t page n)
 
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
@@ -98,9 +98,9 @@ let destroy nf =
 *)
 let output t fn =
   let page = Istring.Raw.alloc () in
-  let v = Istring.View.t page 0 in
+  let v = Istring.t page 0 in
   let p = fn v in
-  Tap.write t.dev page (Istring.View.length v);
+  Tap.write t.dev page (Istring.length v);
   return p
 
 (** Return a list of valid VIF IDs *)

@@ -13,7 +13,7 @@ else
 XEN_BUILD=
 endif
 
-all: syntax unix-direct unix-socket $(XEN_BUILD)
+all: syntax unix-direct unix-socket $(XEN_BUILD) node-socket
 	@ :
 
 syntax: syntax/xml/xml.ml syntax/html/xhtml.ml syntax/json/json.ml
@@ -30,11 +30,15 @@ syntax/json/json.ml:
 
 unix-%: 
 	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild $(JOBS) -I syntax syntax.otarget
-	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild $(JOBS) lib.otarget
+	MIRAGEOS=unix MIRAGEFLOW=$* ocamlbuild $(JOBS) lib/cow.cmxa
 
 xen-%: syntax
 	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) -I syntax syntax.otarget
-	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) lib.otarget
+	MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) lib/cow.cmxa
+
+node-%:
+	MIRAGEOS=node MIRAGEFLOW=$* ocamlbuild $(JOBS) -I syntax syntax.otarget
+	MIRAGEOS=node MIRAGEFLOW=$* ocamlbuild $(JOBS) lib/cow.cma
 
 test: syntax lib
 	rm -rf tests/_build

@@ -17,6 +17,7 @@ You need to have the following installed and available on your PATH:
 
 * OCaml 3.12.0
 * OCamlfind
+* OCaml_of_JS from http://ocsigen.org/js_of_ocaml/install
 
 Debian Squeeze and Ubuntu are still at 3.11, but you can grab the latest
 packages from: http://ocaml.debian.net/debian/ocaml-3.12.0/

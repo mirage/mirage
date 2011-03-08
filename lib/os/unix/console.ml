@@ -34,3 +34,7 @@ let t =
 let log s =
   write t s 0 (String.length s);
   write t "\n" 0 1
+
+let log_s s =
+  let s = s ^ "\n" in
+  sync_write t s 0 (String.length s)

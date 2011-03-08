@@ -1,1 +1,3 @@
 node/oS.cma
+runtime_node/libos.a
+runtime_node/dllos.so

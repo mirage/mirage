@@ -15,18 +15,27 @@ endif
 all: depend
 	ocamlbuild $(JOBS) unix.otarget $(XEN_BUILD) node.otarget
 
-unix:
+unix: depend
 	ocamlbuild $(JOBS) unix.otarget
 
 xen:
 	ocamlbuild $(JOBS) xen.otarget
 
-node:
+node: depend
 	ocamlbuild node.otarget
 
-depend: $(EVMAKE) $(EVLIB)
+depend: $(EVMAKE) $(EVLIB) runtime_node/dummy_stubs.c
 	ln -nfs tap_stubs_$(OS).c runtime_unix/tap_stubs_os.c
 	ln -nfs ev_$(OS).c runtime_unix/ev_os.c
+
+NODE_FILES=console activations clock time main istring lib/js
+runtime_node/dummy_stubs.c: $(NODE_FILES:%=node/%.ml)
+	(echo "#include <stdlib.h>"; \
+	 echo "#include <stdio.h>"; \
+	 echo "#define D(f) void f () { fprintf(stderr, \"Unimplemented Javascript primitive %s!\\\\n\", #f); exit(1); }"; \
+	(sed -n -e 's/.*external[^"]*"\([^"%]*\)".*/D(\1)/p' $^ | \
+	 sort | uniq)) \
+	> $@
 
 install: install-unix $(XEN_INSTALL) install-node
 	@ :
@@ -56,3 +65,4 @@ install-node:
 clean:
 	ocamlbuild -clean
 	rm -f runtime_unix/tap_stubs_os.c runtime_unix/ev_os.c
+	rm -f runtime_node/dummy_stubs.c

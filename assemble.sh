@@ -30,7 +30,7 @@ function assemble_xen {
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
     cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
     cp ${ROOT}/lib/block/direct/_build/xen/block.{cmi,cmxa,a} ${OBJ}/lib/
-    for i in dns http; do 
+    for i in dns http; do
       cp ${ROOT}/lib/$i/_build/xen-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
     done
     cp ${ROOT}/lib/cow/_build/xen-direct/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
@@ -49,7 +49,7 @@ function assemble_unix_direct {
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/direct/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
-  for i in dns http; do 
+  for i in dns http; do
     cp ${ROOT}/lib/$i/_build/unix-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
   done
   cp ${ROOT}/lib/cow/_build/unix-direct/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
@@ -65,7 +65,7 @@ function assemble_unix_socket {
     cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
   done
   cp ${ROOT}/lib/net/socket/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
-  for i in dns http; do 
+  for i in dns http; do
     cp ${ROOT}/lib/$i/_build/unix-socket/$i.{cmi,cmxa,a} ${OBJ}/lib/;
   done
   cp ${ROOT}/lib/cow/_build/unix-socket/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
@@ -75,13 +75,16 @@ function assemble_node {
   echo Assembling: node
   OBJ=${BUILDDIR}/node-socket
   mkdir -p ${OBJ}/lib ${OBJ}/syntax
-  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
-  cp ${ROOT}/lib/os/_build/unix/oS.{cmi,cmxa,a} ${OBJ}/lib/
+  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cma,cmo} ${OBJ}/lib/
+  cp ${ROOT}/lib/os/_build/node/oS.{cmi,cma} ${OBJ}/lib/
   for i in runtime.js mirage.js; do
     cp ${ROOT}/lib/os/runtime_node/$i ${OBJ}/lib/
   done
+  for i in dllos.so libos.a; do
+    cp ${ROOT}/lib/os/_build/runtime_node/$i ${OBJ}/lib/
+  done
   cp ${ROOT}/lib/net/socket/_build/node/net.{cmi,cma} ${OBJ}/lib/
-  for i in dns http; do 
+  for i in dns http; do
     cp ${ROOT}/lib/$i/_build/node-socket/$i.{cmi,cma} ${OBJ}/lib/;
   done
   cp ${ROOT}/lib/cow/_build/node-socket/lib/cow.{cmi,cma} ${OBJ}/lib/

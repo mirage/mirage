@@ -1,3 +1,3 @@
 "console.ml" or "clock.ml": js_of_ocaml
-"time.ml" or "main.ml": pa_lwt
+"time.ml" or "main.ml" or "istring.ml": pa_lwt
 "lib": include

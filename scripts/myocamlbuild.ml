@@ -140,7 +140,11 @@ module Mir = struct
 
   let js_of_ocaml ?tag byte js env build =
     let byte = env byte and js = env js in
-    Cmd (S [ "js_of_ocaml"; Px js ])
+    Cmd (S [ A"js_of_ocaml"; Px js; A"-o"; Px byte ])
+
+  let concat_files ?tag partial js env build =
+    let partial = env partial and js = env js in
+    Cmd (Sh (ps "cat %s/mirage.js %s > %s" libdir partial js))
 
   let () =
     rule "output-obj: mir -> o"
@@ -151,19 +155,43 @@ module Mir = struct
     rule ("final link: m.o -> .xen")
       ~prod:"%.xen"
       ~dep:"%.m.o"
-      (cc_kink_implem cc_xen_link "%.m.o" "%.xen");
+      (cc_link_c_implem cc_xen_link "%.m.o" "%.xen");
 
     rule ("final link: m.o -> .bin")
       ~prod:"%.bin"
       ~dep:"%.m.o"
       (cc_link_c_implem cc_unix_link "%.m.o" "%.bin");
 
-    rule ("js_of_ocaml: %.byte -> %.js")
-      ~prod:"%.js"
+    rule ("byte_link: .mir -> .cma")
+      ~tags:["ocaml"; "byte"; "library"]
+      ~prod:"%.cma"
+      ~dep:"%.mir"
+      (byte_library_link_mllib "%.mir" "%.cma");
+
+    rule ("byte_compile: .cma -> .byte")
+      ~tags:["ocaml"; "byte"; "program"]
+      ~prod:"%.byte"
+      ~dep:"%.cma"
+      (byte_link "%.cma" "%.byte");
+
+    rule ("js_of_ocaml: %.byte -> %.partial.js")
+      ~prod:"%.partial.js"
       ~dep:"%.byte"
-      (js_of_ocaml "%.byte" "%.js")
+      (js_of_ocaml "%.partial.js" "%.byte");
+    
+    rule ("js_of_ocaml: %.partial.js -> %.js")
+      ~prod:"%.js"
+      ~dep:"%.partial.js"
+      (concat_files "%.partial.js" "%.js");
+    
 
 end
+
+let lib file =
+  if OS.target = OS.Node then
+    A (file ^ ".cma")
+  else
+    A (file ^ ".cmxa")
 
 let _ = dispatch begin function
   | After_rules ->
@@ -172,16 +200,19 @@ let _ = dispatch begin function
     let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
     let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
     let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
+    let node_cclib = [
+      A"-dllpath"; A Mir.oslib; A"-dllib"; A"-los";
+      A"-cclib"; A"-los" ] in
     let _ = match debugmode, OS.target with
      | true, (OS.Unix _) -> [ A "debugger.cmx" ]
      | _ -> [] in
     let libs = [
-      (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa"; A "ulex.cmxa";
-      (* os lib *)   A "oS.cmxa";
-      (* net lib *)  A "net.cmxa";
-      (* dns lib *)  A "dns.cmxa";
-      (* http lib *)  A "http.cmxa";
-      (* cow lib *)  A "cow.cmxa";
+      (* std libs *) lib "stdlib"; lib "lwt"; lib "ulex";
+      (* os lib *)   lib "oS";
+      (* net lib *)  lib "net";
+      (* dns lib *)  lib "dns";
+      (* http lib *) lib "http";
+      (* cow lib *)  lib "cow";
     ] in
 
     let mirage_flags = [
@@ -190,7 +221,10 @@ let _ = dispatch begin function
 
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";
-    flag ["ocaml"; "pack"; "nostdlib"] & A"-nostdlib";
+    flag ["ocaml"; "pack"   ; "nostdlib"] & A"-nostdlib";
+
+    (* link with dummy libnode when needed *)
+    flag ["ocaml"; "byte"; "program"] & S node_cclib;
 
     (* Configure the mirage lib *)
     flag ["ocaml"; "compile"] & S mirage_flags;

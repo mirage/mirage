@@ -6,6 +6,7 @@
 # xen:           direct microkernel
 # unix_direct:   UNIX tun/tap with ML net stack
 # unix_socket:   UNIX with kernel sockets and no access to lower layers
+# node:          node.js backend
 #
 # These all end up with a set of packed OCaml modules in one directory
 # that can be pointed to with -I for compilation against that "kernel".
@@ -70,6 +71,22 @@ function assemble_unix_socket {
   cp ${ROOT}/lib/cow/_build/unix-socket/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
 }
 
+function assemble_node {
+  echo Assembling: node
+  OBJ=${BUILDDIR}/node-socket
+  mkdir -p ${OBJ}/lib ${OBJ}/syntax
+  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
+  cp ${ROOT}/lib/os/_build/unix/oS.{cmi,cmxa,a} ${OBJ}/lib/
+  for i in runtime.js mirage.js; do
+    cp ${ROOT}/lib/os/runtime_node/$i ${OBJ}/lib/
+  done
+  cp ${ROOT}/lib/net/socket/_build/node/net.{cmi,cma} ${OBJ}/lib/
+  for i in dns http; do 
+    cp ${ROOT}/lib/$i/_build/node-socket/$i.{cmi,cma} ${OBJ}/lib/;
+  done
+  cp ${ROOT}/lib/cow/_build/node-socket/lib/cow.{cmi,cma} ${OBJ}/lib/
+}
+
 function assemble_syntax {
   echo Assembling: camlp4 extensions
   OBJ=${BUILDDIR}/syntax
@@ -90,4 +107,5 @@ assemble_syntax
 assemble_xen
 assemble_unix_direct
 assemble_unix_socket
+assemble_node
 assemble_scripts

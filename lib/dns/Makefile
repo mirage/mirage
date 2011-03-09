@@ -11,7 +11,7 @@ else
 XEN_BUILD=
 endif
 
-all: unix-direct unix-socket $(XEN_BUILD)
+all: unix-direct unix-socket $(XEN_BUILD) node-socket
 	@ :
 
 unix-%:
@@ -19,6 +19,9 @@ unix-%:
 
 xen-%:
 	env MIRAGEOS=xen MIRAGEFLOW=$* ocamlbuild $(JOBS) dns.cmxa
+
+node-%:
+	env MIRAGEOS=node MIRAGEFLOW=$* ocamlbuild $(JOBS) dns.cma
 
 clean:
 	ocamlbuild -clean

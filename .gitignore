@@ -19,7 +19,6 @@ syntax.init
 _build/
 CVS/
 doc/html/
-runtime/*/obj/
 tests/*/*/myocamlbuild.ml
 tools/mpl/._d/
 tools/mpl/._ncdi/
@@ -31,6 +30,7 @@ tools/mpl/mplc
 tools/crunch/mlcrunch
 lib/os/runtime_unix/ev_os.c
 lib/os/runtime_unix/tap_stubs_os.c
+lib/os/runtime_node/dummy_stubs.c
 lib/cow/syntax/html/xhtml.ml
 lib/cow/syntax/xml/xml.ml
 lib/dyntype/syntax/dyntype.ml

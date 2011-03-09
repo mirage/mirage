@@ -16,25 +16,10 @@
 
 open Lwt
 
-type t
+(* Register a read file descriptor and a thread that
+   returns when it is ready *)
+let read fd = return ()
 
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
-
-let sync_write t buf off len =
-  write t buf off len;
-  return ()
-
-let create_additional_console () =
-  return (create ())
-
-let t =
-  create ()
-
-let log s =
-  write t s 0 (String.length s);
-  write t "\n" 0 1
-
-let log_s s =
-  let s = s ^ "\n" in
-  sync_write t s 0 (String.length s)
+(* Register a write file descriptor and a thread that
+   returns when it is ready *)
+let write fd = return ()

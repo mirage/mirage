@@ -14,27 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
-
-type t
-
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
-
-let sync_write t buf off len =
-  write t buf off len;
-  return ()
-
-let create_additional_console () =
-  return (create ())
-
-let t =
-  create ()
-
-let log s =
-  write t s 0 (String.length s);
-  write t "\n" 0 1
-
-let log_s s =
-  let s = s ^ "\n" in
-  sync_write t s 0 (String.length s)
+val run : unit Lwt.t -> unit

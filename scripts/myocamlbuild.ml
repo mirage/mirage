@@ -11,7 +11,7 @@ let ps = Printf.sprintf
    variable *)
 let os =
   let os = getenv "MIRAGEOS" ~default:"unix" in
-  if os <> "unix" && os <> "xen" then
+  if os <> "unix" && os <> "xen" && os <> "node" then
     (Printf.eprintf "`%s` is not a supported OS\n" os; exit (-1))
   else
     (Ocamlbuild_pack.Log.dprintf 0 "OS: %s" os; os)
@@ -37,7 +37,8 @@ let libdir =
   let subdir = match os,flow with
   |"unix","socket" -> "unix-socket"
   |"unix","direct" -> "unix-direct"
-  |"xen","direct" -> "xen-direct"
+  |"xen" ,"direct" -> "xen-direct"
+  |"node","socket" -> "node-socket"
   |_ -> Printf.eprintf "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
   ps "%s/%s/lib" root subdir
  
@@ -66,14 +67,15 @@ end
 module OS = struct
 
   type u = Linux | Darwin
-  type t = Unix of u | Xen
+  type t = Unix of u | Xen | Node
   let host = match String.lowercase (Util.run_and_read "uname -s") with
-    | "linux" -> Unix Linux
+    | "linux"  -> Unix Linux
     | "darwin" -> Unix Darwin
     | os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
   let target = match String.lowercase os with
     | "unix" -> host (* Map the target to the current host, as cross-compiling is no use *)
-    | "xen" -> Xen
+    | "xen"  -> Xen
+    | "node" -> Node
     | x -> failwith ("unknown target os: " ^ x)
 end
 
@@ -111,9 +113,10 @@ module Mir = struct
 
   let cc_unix_link tags arg out =
     let dl_libs = match OS.host with
-      |OS.Xen -> assert false
-      |OS.Unix OS.Linux -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
-      |OS.Unix OS.Darwin ->  [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
+      |OS.Xen            -> assert false
+      |OS.Node
+      |OS.Unix OS.Linux  -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
+      |OS.Unix OS.Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
@@ -131,17 +134,17 @@ module Mir = struct
       Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
       @ ldlibs @ [A"-o"; Px out]))
  
-  let cc_link_c_implem ?tag c o env build =
+  let cc_link_c_implem ?tag fn c o env build =
     let c = env c and o = env o in
-    let fn = match OS.target with
-      | OS.Unix _ -> cc_unix_link
-      | OS.Xen -> cc_xen_link in
     fn (tags_of_pathname c++"implem"+++tag) c o
- 
-  let final_prod =
-    match OS.target with
-    |OS.Xen -> "%.xen"
-    |OS.Unix _ -> "%.bin"
+
+  let js_of_ocaml ?tag byte js env build =
+    let byte = env byte and js = env js in
+    Cmd (S [ A"js_of_ocaml"; Px js; A"-o"; Px byte ])
+
+  let concat_files ?tag partial js env build =
+    let partial = env partial and js = env js in
+    Cmd (Sh (ps "cat %s/mirage.js %s > %s" libdir partial js))
 
   let () =
     rule "output-obj: mir -> o"
@@ -149,12 +152,46 @@ module Mir = struct
       ~dep:"%.mir"
       (native_output_obj_mir "%.mir" "%.m.o");
 
-    rule ("final link: m.o -> " ^ final_prod)
-      ~prod:final_prod
+    rule ("final link: m.o -> .xen")
+      ~prod:"%.xen"
       ~dep:"%.m.o"
-      (cc_link_c_implem "%.m.o" final_prod)
+      (cc_link_c_implem cc_xen_link "%.m.o" "%.xen");
+
+    rule ("final link: m.o -> .bin")
+      ~prod:"%.bin"
+      ~dep:"%.m.o"
+      (cc_link_c_implem cc_unix_link "%.m.o" "%.bin");
+
+    rule ("byte_link: .mir -> .cma")
+      ~tags:["ocaml"; "byte"; "library"]
+      ~prod:"%.cma"
+      ~dep:"%.mir"
+      (byte_library_link_mllib "%.mir" "%.cma");
+
+    rule ("byte_compile: .cma -> .byte")
+      ~tags:["ocaml"; "byte"; "program"]
+      ~prod:"%.byte"
+      ~dep:"%.cma"
+      (byte_link "%.cma" "%.byte");
+
+    rule ("js_of_ocaml: %.byte -> %.partial.js")
+      ~prod:"%.partial.js"
+      ~dep:"%.byte"
+      (js_of_ocaml "%.partial.js" "%.byte");
+    
+    rule ("js_of_ocaml: %.partial.js -> %.js")
+      ~prod:"%.js"
+      ~dep:"%.partial.js"
+      (concat_files "%.partial.js" "%.js");
+    
 
 end
+
+let lib file =
+  if OS.target = OS.Node then
+    A (file ^ ".cma")
+  else
+    A (file ^ ".cmxa")
 
 let _ = dispatch begin function
   | After_rules ->
@@ -163,16 +200,19 @@ let _ = dispatch begin function
     let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
     let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
     let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
+    let node_cclib = [
+      A"-dllpath"; A Mir.oslib; A"-dllib"; A"-los";
+      A"-cclib"; A"-los" ] in
     let _ = match debugmode, OS.target with
      | true, (OS.Unix _) -> [ A "debugger.cmx" ]
      | _ -> [] in
     let libs = [
-      (* std libs *) A "stdlib.cmxa"; A "lwt.cmxa"; A "ulex.cmxa";
-      (* os lib *)   A "oS.cmxa";
-      (* net lib *)  A "net.cmxa";
-      (* dns lib *)  A "dns.cmxa";
-      (* http lib *)  A "http.cmxa";
-      (* cow lib *)  A "cow.cmxa";
+      (* std libs *) lib "stdlib"; lib "lwt"; lib "ulex";
+      (* os lib *)   lib "oS";
+      (* net lib *)  lib "net";
+      (* dns lib *)  lib "dns";
+      (* http lib *) lib "http";
+      (* cow lib *)  lib "cow";
     ] in
 
     let mirage_flags = [
@@ -181,7 +221,10 @@ let _ = dispatch begin function
 
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";
-    flag ["ocaml"; "pack"; "nostdlib"] & A"-nostdlib";
+    flag ["ocaml"; "pack"   ; "nostdlib"] & A"-nostdlib";
+
+    (* link with dummy libnode when needed *)
+    flag ["ocaml"; "byte"; "program"] & S node_cclib;
 
     (* Configure the mirage lib *)
     flag ["ocaml"; "compile"] & S mirage_flags;

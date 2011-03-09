@@ -11,21 +11,33 @@ XEN_BUILD=
 XEN_INSTALL=
 endif
 
-.PHONY: clean all depend install unix xen
+.PHONY: clean all depend install unix xen node
 all: depend
-	ocamlbuild $(JOBS) unix.otarget $(XEN_BUILD)
+	ocamlbuild $(JOBS) unix.otarget $(XEN_BUILD) node.otarget
 
-unix:
+unix: depend
 	ocamlbuild $(JOBS) unix.otarget
 
 xen:
 	ocamlbuild $(JOBS) xen.otarget
 
-depend: $(EVMAKE) $(EVLIB)
+node: depend
+	ocamlbuild node.otarget
+
+depend: $(EVMAKE) $(EVLIB) runtime_node/dummy_stubs.c
 	ln -nfs tap_stubs_$(OS).c runtime_unix/tap_stubs_os.c
 	ln -nfs ev_$(OS).c runtime_unix/ev_os.c
 
-install: install-unix $(XEN_INSTALL)
+NODE_FILES=console activations clock time main istring lib/js
+runtime_node/dummy_stubs.c: $(NODE_FILES:%=node/%.ml)
+	(echo "#include <stdlib.h>"; \
+	 echo "#include <stdio.h>"; \
+	 echo "#define D(f) void f () { fprintf(stderr, \"Unimplemented Javascript primitive %s!\\\\n\", #f); exit(1); }"; \
+	(sed -n -e 's/.*external[^"]*"\([^"%]*\)".*/D(\1)/p' $^ | \
+	 sort | uniq)) \
+	> $@
+
+install: install-unix $(XEN_INSTALL) install-node
 	@ :
 
 install-unix:
@@ -44,6 +56,13 @@ install-xen:
 	cp _build/runtime_xen/kernel/libxencaml.a $(TARGETDIR)/xen/
 	cp _build/runtime_xen/kernel/x86_64.o $(TARGETDIR)/xen/
 
+install-node:
+	mkdir -p $(TARGETDIR)/node
+	cp _build/node/oS.cmi _build/node/oS.cma $(TARGETDIR)/node
+	cp runtime_node/runtime.js $(TARGETDIR)/node
+	cp runtime_node/mirage.js $(TARGETDIR)/node
+
 clean:
 	ocamlbuild -clean
 	rm -f runtime_unix/tap_stubs_os.c runtime_unix/ev_os.c
+	rm -f runtime_node/dummy_stubs.c

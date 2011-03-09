@@ -1,6 +1,8 @@
+
 Mirage has been tested on:
 
 * Debian Squeeze x86_64 and x86_32
+* Ubuntu Lucid 10.04 x86_64
 * MacOS X 10.6 Snow Leopard x86_64
 * MacOS X 10.5 Snow Leopard x86_32
 
@@ -23,6 +25,50 @@ Debian Squeeze and Ubuntu are still at 3.11, but you can grab the latest
 packages from: http://ocaml.debian.net/debian/ocaml-3.12.0/
 
 Then: apt-get install ocaml-findlib camlp4-extra ocaml-native-compilers
+
+### Ubuntu
+
+    sudo apt-get remove ocaml-findlib camlp4-extra ocaml-native-compilers
+    sudo apt-get autoremove
+
+There are then package conflicts with the following, which must be
+downloaded and installed separately:
+
+    ncurses-bin_5.7+20100626-0ubuntu1_amd64.deb
+    libncurses5-dev_5.7+20100626-0ubuntu1_amd64.deb
+    libncurses5_5.7+20100626-0ubuntu1_amd64.deb
+
+    sudo dpkg --install ~/libncurses5-dev_5.7+20100626-0ubuntu1_amd64.deb 
+    sudo dpkg --install ~/ncurses-bin_5.7+20100626-0ubuntu1_amd64.deb 
+    sudo dpkg --install ~/libncurses5-dev_5.7+20100626-0ubuntu1_amd64.deb 
+    sudo apt-get install ocaml-findlib camlp4-extra ocaml-native-compilers ocaml-nox 
+
+The necessary GPG key must be installed to use the package source for
+the latest OCaml versions:
+
+    gpg -a --export 49881AD3 > glondu.gpg
+    apt-key add glondu.gpg
+
+Then add the following to `/etc/apt/sources.list`
+
+    deb     http://ocaml.debian.net/debian/ocaml-3.12.0 sid main
+    deb-src http://ocaml.debian.net/debian/ocaml-3.12.0 sid main
+
+And finally execute apt-get update:
+
+    sudo apt-get update
+    sudo apt-get upgrade
+
+To install tuntap device, required for unix-direct:
+
+    sudo modprobe tun
+    
+
+All-in-one
+----------
+
+    make PREFIX=<location> all install
+
 
 Tools
 -----
@@ -68,12 +114,16 @@ in Xen with a config file like:
     $ cat > sleep.cfg
     name="sleep"
     memory=1024
-    kernel="_build/sleep.xen"
+    kernel="sleep.xen"
     <control-d>
     $ sudo xm create -c sleep.cfg
 
 This runs a simple interlocking sleep test which tries out the
 console and timer support for the various supported platforms.
+
+Note that the `kernel` variable only accepts an absolute path or the
+name of a file in the current directory.
+
 
 Network
 -------

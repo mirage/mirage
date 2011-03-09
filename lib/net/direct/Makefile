@@ -4,13 +4,18 @@ PREFIX ?= _build/root
 
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)
+NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)
 
 ifeq ($(OS) $(ARCH),linux x86_64)
-XEN_INSTALL=install-xen
 XEN_BUILD=xen
 else
 XEN_BUILD=
-XEN_INSTALL=
+endif
+
+ifeq ($(NODE),)
+NODE_BUILD=
+else 
+NODE_BUILD=node
 endif
 
 .PHONY: all install unix xen
@@ -22,16 +27,6 @@ unix:
 
 xen:
 	env MIRAGEOS=xen ocamlbuild $(JOBS) net.cmxa
-
-install: install-unix $(XEN_INSTALL)
-	@ :
-
-install-%:
-	TARGETDIR=$(DESTDIR)$(PREFIX)/mirage/os/$*/net; \
-	mkdir -p $$TARGETDIR; \
-	cp _build/$*/net.cmxa $$TARGETDIR/; \
-	cp _build/$*/net.a $$TARGETDIR/; \
-	cp _build/$*/net.cmi $$TARGETDIR/
 
 clean:
 	ocamlbuild -clean

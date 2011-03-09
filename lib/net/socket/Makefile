@@ -1,5 +1,13 @@
+NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)
+
+ifeq ($(NODE),)
+NODE_BUILD=
+else
+NODE_BUILD=node
+endif
+
 .PHONY: all unix clean
-all: unix node
+all: unix $(NODE_BUILD)
 	@ :
 
 unix:

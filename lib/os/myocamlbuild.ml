@@ -26,10 +26,10 @@ module Util = struct
 
   let split_nl s = split s '\n'
 
-  let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
+  let run_and_read x = try List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x)) with _ -> ""
 end
 
-let find_path p = Util.run_and_read (sf "ocamlfind query %s -i-format" p)
+let find_path p = Util.run_and_read (sf "ocamlfind query %s -i-format 2>/dev/null || true" p)
 
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct

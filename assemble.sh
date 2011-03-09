@@ -72,22 +72,26 @@ function assemble_unix_socket {
 }
 
 function assemble_node {
-  echo Assembling: node
-  OBJ=${BUILDDIR}/node-socket
-  mkdir -p ${OBJ}/lib ${OBJ}/syntax
-  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cma,cmo} ${OBJ}/lib/
-  cp ${ROOT}/lib/os/_build/node/oS.{cmi,cma} ${OBJ}/lib/
-  for i in runtime.js mirage.js; do
-    cp ${ROOT}/lib/os/runtime_node/$i ${OBJ}/lib/
-  done
-  for i in dllos.so libos.a; do
-    cp ${ROOT}/lib/os/_build/runtime_node/$i ${OBJ}/lib/
-  done
-  cp ${ROOT}/lib/net/socket/_build/node/net.{cmi,cma} ${OBJ}/lib/
-  for i in dns http; do
-    cp ${ROOT}/lib/$i/_build/node-socket/$i.{cmi,cma} ${OBJ}/lib/;
-  done
-  cp ${ROOT}/lib/cow/_build/node-socket/lib/cow.{cmi,cma} ${OBJ}/lib/
+  if [ -d ${ROOT}/lib/os/_build/node ]; then
+    echo Assembling: node
+    OBJ=${BUILDDIR}/node-socket
+    mkdir -p ${OBJ}/lib ${OBJ}/syntax
+    cp ${ROOT}/lib/std/_build/lib/*.{cmi,cma,cmo} ${OBJ}/lib/
+    cp ${ROOT}/lib/os/_build/node/oS.{cmi,cma} ${OBJ}/lib/
+    for i in runtime.js mirage.js; do
+      cp ${ROOT}/lib/os/runtime_node/$i ${OBJ}/lib/
+    done
+    for i in dllos.so libos.a; do
+      cp ${ROOT}/lib/os/_build/runtime_node/$i ${OBJ}/lib/
+    done
+    cp ${ROOT}/lib/net/socket/_build/node/net.{cmi,cma} ${OBJ}/lib/
+    for i in dns http; do
+      cp ${ROOT}/lib/$i/_build/node-socket/$i.{cmi,cma} ${OBJ}/lib/;
+    done
+    cp ${ROOT}/lib/cow/_build/node-socket/lib/cow.{cmi,cma} ${OBJ}/lib/
+  else
+    echo Skipping: node
+  fi
 }
 
 function assemble_syntax {

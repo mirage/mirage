@@ -6,7 +6,7 @@ ARCH = $(shell uname -m)
 NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)
 
 ifeq ($(OS) $(ARCH),linux x86_64)
-XEN_BUILD=xen.otarget
+XEN_BUILD=xen
 else
 XEN_BUILD=
 endif

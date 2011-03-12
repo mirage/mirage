@@ -71,7 +71,7 @@ ${XE} vbd-plug uuid=${VBD}
 
 # mount vdi disk
 XVD=('' a b c d e f g h i j k l m n)
-XVD_='xvd${XVD[${VBD_DEV}]}'
+XVD_="xvd${XVD[${VBD_DEV}]}"
 ${SUDO} mke2fs -j /dev/${XVD_}
 ${SUDO} mount /dev/${XVD_} -t ext3 ${MNT}
 

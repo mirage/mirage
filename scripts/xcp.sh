@@ -86,7 +86,7 @@ ${SUDO} mv menu.lst ${MNT}/boot/grub/menu.lst
 
 # copy kernel image to vdi disk
 gzip ${KERNEL_PATH}
-${SUDO} cp ${KERNEL_NAME}.gz ${MNT}/boot/${KERNEL_NAME}.gz
+${SUDO} cp ${KERNEL_PATH}.gz ${MNT}/boot/${KERNEL_NAME}.gz
 
 # unmount and unplug vbd
 ${SUDO} umount ${MNT}
@@ -94,7 +94,7 @@ ${XE} vbd-unplug uuid=${VBD}
 ${XE} vbd-destroy uuid=${VBD}
 
 # create mirage vm
-MIRAGE_VM=$(xe vm-install template=Other\ install\ media new-name-label=${KERNEL_NAME})
+MIRAGE_VM=$(xe vm-install template=Other\\ install\\ media new-name-label=${KERNEL_NAME})
 xe vm-param-set uuid=${MIRAGE_VM} PV-bootloader=pygrub
 xe vm-param-set uuid=${MIRAGE_VM} HVM-boot-policy=
 xe vm-param-clear uuid=${MIRAGE_VM} param-name=HVM-boot-params
@@ -104,3 +104,5 @@ VBD_DEV=$(${XE} vm-param-get uuid=${MIRAGE_VM} \
     param-name=allowed-VBD-devices | cut -f 1 -d \;)
 VBD=$(${XE} vbd-create vm-uuid=${MIRAGE_VM} vdi-uuid=${VDI} device=${VBD_DEV} type=Disk)
 xe vbd-param-set uuid=$VBD bootable=true
+
+echo ${MIRAGE_VM}

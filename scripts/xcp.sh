@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build a mirage VM on XCP
+# Build a mirage VM on Xen Cloud Platform
 
 set -e
 
@@ -74,21 +74,22 @@ if [ -z "${DOM0_HOST}" ]; then
     SSH="ssh localhost"
     XE="${SSH} xe"
     MY_VM=$(xenstore-read /local/domain/0/vm | cut -f 3 -d /)
-    echo "Using '${XE}', this VM's uuid is ${MY_VM}"
 else
     SSH="ssh root@${DOM0_HOST}"
     XE="${SSH} xe"
     # if we're not in dom0, then we need the domU vm name
     if [ -z ${MY_VM_NAME} ]; then
         usage
-        echo "If we aren't running in dom0, then you need to specify your domU's VM name (not hostname)."
+        echo "If we aren't running in dom0, then you need to specify your domU VM's name-label (not hostname)."
         exit 1
     else
         MY_VM=$(${XE} vm-list name-label=${MY_VM_NAME} --minimal)
     fi
-    echo "Using '${XE}', this VM's uuid is ${MY_VM}"
 fi
 
+echo "Using xe command '${XE}', this VM's uuid is ${MY_VM}"
+
+# Default to local SR
 if [ -z "${SR_UUID}" ]; then
     SR_UUID=$(${XE} sr-list name-label=Local\\ storage --minimal)
 fi
@@ -147,7 +148,7 @@ ${SUDO} mv ${MENU_LST} ${MNT}/boot/grub/${MENU_LST}
 ${SUDO} cp ${KERNEL_PATH}.gz ${MNT}/boot/${KERNEL_NAME}.gz
 gunzip ${KERNEL_PATH}
 
-echo "Wrote grub.conf and copied kernel to ${MNT}/boot"
+echo "Wrote ${MENU_LST} and copied kernel to ${MNT}/boot"
 
 # Unmount and unplug vbd
 ${SUDO} umount ${MNT}

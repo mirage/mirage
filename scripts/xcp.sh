@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build an XCP VM disk and run it
+# Build a mirage VM on XCP
 
 set -e
 
@@ -68,7 +68,11 @@ MENU_LST='menu.lst'
 
 # Set XE command depending on whether we're in dom0 or domU
 if [ -z "${DOM0_HOST}" ]; then
-    XE="xe"
+    # This is a little ugly, but it let's us use ${XE} throughout the
+    # script, and simplifies the logic a bit. Otherwise, we have
+    # problems with sending '\\ ' over ssh versus within the shell.
+    SSH="ssh localhost"
+    XE="${SSH} xe"
     MY_VM=$(xenstore-read /local/domain/0/vm | cut -f 3 -d /)
     echo "Using '${XE}', this VM's uuid is ${MY_VM}"
 else

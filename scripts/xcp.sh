@@ -24,6 +24,14 @@ function on_exit () {
         echo "Destroying mirage VM ${MIRAGE_VM}"
         ${XE} vm-destroy uuid=${MIRAGE_VM}
     fi
+    if [ -e "${MENU_LST}" ]; then
+        echo "Removing ${MENU_LST}"
+        rm ${MENU_LST}
+    fi
+    if [ -e "${KERNEL_PATH}.gz" ]; then
+        echo "Uncompressing ${KERNEL_PATH}"
+        gunzip "${KERNEL_PATH}.gz"
+    fi
     echo "Quitting"
 }
 
@@ -56,7 +64,7 @@ fi
 KERNEL_NAME=$(basename ${KERNEL_PATH})
 MNT='/mnt'
 SUDO='sudo'
-SIZE='10MiB' # TODO: figure this out based on compressed kernel size plus some offset.
+MENU_LST='menu.lst'
 
 # Set XE command depending on whether we're in dom0 or domU
 if [ -z "${DOM0_HOST}" ]; then
@@ -85,6 +93,26 @@ echo "Using SR ${SR_UUID}"
 # Set error handler trap to clean up after an error
 trap on_exit EXIT
 
+# Write grub conf to disk
+echo "default 0" > ${MENU_LST}
+echo "timeout 1" >> ${MENU_LST}
+echo "title Mirage" >> ${MENU_LST}
+echo " root (hd0)" >> ${MENU_LST}
+echo " kernel /boot/${KERNEL_NAME}.gz" >> ${MENU_LST}
+
+# Gzip kernel image
+gzip ${KERNEL_PATH}
+
+# Calculate necessary size of VDI
+SIZE=0
+for i in $(ls -s -1 -k ${KERNEL_PATH}.gz ${MENU_LST} | awk '{print $1}')
+do
+    SIZE=$((i + SIZE))
+done
+SIZE=${SIZE}KiB
+
+echo "VDI size will be ${SIZE}"
+
 # Create VDI
 VDI=$(${XE} vdi-create name-label=${KERNEL_NAME}-vdi sharable=true \
    type=user virtual-size=${SIZE} sr-uuid=${SR_UUID})
@@ -103,21 +131,15 @@ ${XE} vbd-plug uuid=${VBD}
 XVD=(a b c d e f g h i j k l m n)
 XVD_="xvd${XVD[${VBD_DEV}]}"
 echo "Making ext3 filesystem on /dev/${XVD_}"
-mke2fs -j /dev/${XVD_}
-echo "Filesystem mounted at ${MNT}"
+mke2fs -q -j /dev/${XVD_}
+echo "Mounting /dev/${XVD_} at ${MNT}"
 ${SUDO} mount -t ext3 /dev/${XVD_} ${MNT}
 
-# Write grub.conf to vdi disk
+# Copy grub conf to vdi disk
 ${SUDO} mkdir -p ${MNT}/boot/grub
-echo default 0 > menu.lst
-echo timeout 1 >> menu.lst
-echo title Mirage >> menu.lst
-echo " root (hd0)" >> menu.lst
-echo " kernel /boot/${KERNEL_NAME}.gz" >> menu.lst
-${SUDO} mv menu.lst ${MNT}/boot/grub/menu.lst
+${SUDO} mv ${MENU_LST} ${MNT}/boot/grub/${MENU_LST}
 
 # Copy kernel image to vdi disk
-gzip ${KERNEL_PATH}
 ${SUDO} cp ${KERNEL_PATH}.gz ${MNT}/boot/${KERNEL_NAME}.gz
 gunzip ${KERNEL_PATH}
 
@@ -128,7 +150,7 @@ ${SUDO} umount ${MNT}
 ${XE} vbd-unplug uuid=${VBD}
 ${XE} vbd-destroy uuid=${VBD}
 
-echo "Unmounted and destroyed VBD."
+echo "Unmounted /dev/${XVD_} and destroyed VBD ${VBD}."
 
 # Create mirage vm
 MIRAGE_VM=$(${XE} vm-install template=Other\\ install\\ media new-name-label=${KERNEL_NAME})
@@ -145,4 +167,4 @@ ${XE} vbd-param-set uuid=$VBD bootable=true
 # Turn off error handling
 trap - EXIT
 
-echo "Created Mirage VM ${MIRAGE_VM}"
+echo "Created VM ${KERNEL_NAME}: ${MIRAGE_VM}"

@@ -35,7 +35,7 @@ let new_id _loc _ =
 
 let create_tag _loc n body =
   let tag = <:expr< ((("",$`str:n$), []) : Xml.tag) >> in
-  <:expr< `El $tag$ $body$ >>
+  <:expr< match $body$ with [ [] -> [] | _ -> [`El $tag$ $body$] ] >>
 
 let gen_xml (_loc, n, t_exp) =
   let t = match t_exp with Ext (_,t) | Rec (_,t) -> t | _ -> assert false in
@@ -76,7 +76,7 @@ let gen_xml (_loc, n, t_exp) =
       let exprs =
         List.map (fun (n,_,t) -> create_tag _loc n (aux (new_id n) t)) d in
       let expr = expr_list_of_list _loc exprs in
-      <:expr< $expr$ >>
+      <:expr< List.flatten $expr$ >>
 	  | Sum (k, s) ->
       let mc (n, args) =
         let ids = List.map (new_id _loc) args in

@@ -38,7 +38,6 @@ type meta = {
   title: string;
   subtitle: string option;
   author: author option;
-  contributors: author list;
   rights: string option;
   updated: date;
 } with xml
@@ -47,9 +46,9 @@ type content = Xml.t
 
 let xml_of_content c = <:xml<
   <content type="xhtml">
-   <xhtml:div xmlns:xhtml="http://www.w3.org/1999/xhtml">
+   <div xmlns="http://www.w3.org/1999/xhtml">
      $c$
-   </xhtml:div>
+   </div>
   </content>
 >>
 
@@ -73,14 +72,31 @@ let xml_of_entry e = <:xml<
   </entry>
 >>
 
+let contributors entries =
+  List.fold_left
+    (fun accu e -> match e.entry.author with
+      | None   -> accu
+      | Some a -> if List.mem a accu then accu else a::accu)
+    []
+    entries
+
+let xml_of_contributor c =
+  <:xml<<contributor>$xml_of_author c$</contributor>&>>
+
 type feed = {
   feed: meta;
   entries: entry list;
 }
 
-let xml_of_feed f = <:xml<
+let xml_of_feed ? self f =
+  let self = match self with
+    | None   -> []
+    | Some s -> <:xml<<link rel="self" href=$str:s$/>&>> in
+<:xml<
   <feed xmlns="http://www.w3.org/2005/Atom">
+     $self$
      $xml_of_meta f.feed$
+     $list:List.map xml_of_contributor (contributors f.entries)$
      $list:List.map xml_of_entry f.entries$
   </feed>
 >>

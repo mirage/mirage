@@ -130,15 +130,12 @@ let regexp keywords8 =
         ['0' - '9']+
   | '-' ['0' - '9']+
 
-type keyword1 = string with html
-type keyword2 = string with html
-type keyword3 = string with html
-type keyword4 = string with html
-type keyword5 = string with html
-type keyword6 = string with html
-type keyword7 = string with html
-type keyword8 = string with html
-type comments = string with html
+let html_of_keyword i str =
+  let k = "keyword" ^ string_of_int i in
+  <:xml<<span class=$str:k$>$str:str$</span>&>>
+
+let html_of_comments str =
+  <:xml<<span class="comments">$str:str$</span>&>>
 
 let ocaml str : Html.t =
 
@@ -148,35 +145,35 @@ let ocaml str : Html.t =
 
   | keywords8 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword8 str @ accu) lexbuf
+    main (html_of_keyword 8 str @ accu) lexbuf
 
   | keywords7 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword7 str @ accu) lexbuf
+    main (html_of_keyword 7 str @ accu) lexbuf
 
   | keywords6 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword6 str @ accu) lexbuf
+    main (html_of_keyword 6 str @ accu) lexbuf
 
   | keywords5 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword5 str @ accu) lexbuf
+    main (html_of_keyword 5 str @ accu) lexbuf
 
   | keywords4 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword4 str @ accu) lexbuf
+    main (html_of_keyword 4 str @ accu) lexbuf
 
   | keywords3 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword3 str @ accu) lexbuf
+    main (html_of_keyword 3 str @ accu) lexbuf
 
   | keywords2 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword2 str @ accu) lexbuf
+    main (html_of_keyword 2 str @ accu) lexbuf
 
   | keywords1 ->
     let str = Ulexing.utf8_lexeme lexbuf in
-    main (html_of_keyword1 str @ accu) lexbuf
+    main (html_of_keyword 1 str @ accu) lexbuf
 
   | ident | blank+ | _ ->
     let str = Ulexing.utf8_lexeme lexbuf in

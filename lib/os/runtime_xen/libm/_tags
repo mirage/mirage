@@ -1,1 +1,1 @@
-<*.S> or <*.c>: include_xen,include_libm,optimization_ok
+<*.S> or <*.c>: include_xen,include_libm

@@ -36,7 +36,7 @@ module CC = struct
 
   let cc = getenv "CC" ~default:"cc"
   let ar = getenv "AR" ~default:"ar"
-  let cflags = ref ["-Wall"; "-g"]
+  let cflags = ref ["-Wall"; "-g"; "-O3"]
 
   (* All the xen cflags for compiling against an embedded environment *)
   let xen_incs =
@@ -160,7 +160,6 @@ let _ = dispatch begin function
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
     flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
     flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
-    flag ["c"; "compile"; "optimization_ok"] & S [A"-O3"];
     flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
    
   | _ -> ()

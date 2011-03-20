@@ -1,1 +1,1 @@
-<*.c>: include_dietlibc,include_xen,optimization_ok
+<*.c>: include_dietlibc,include_xen

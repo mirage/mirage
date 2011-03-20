@@ -1,1 +1,1 @@
-<*.c> or <*.S>: include_xen,include_ocaml,optimization_ok
+<*.c> or <*.S>: include_xen,include_ocaml

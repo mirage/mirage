@@ -36,7 +36,6 @@ module UDPv4 = struct
       |None -> return (Manager.get_udpv4 mgr)
       |Some src -> Manager.get_udpv4_listener mgr src
     in
-    Activations.write (R.fd_to_int fd) >>
     let raw = OS.Istring.raw req in
     let off = OS.Istring.off req in
     let len = OS.Istring.length req in
@@ -47,14 +46,15 @@ module UDPv4 = struct
         fail (Error "partial UDP send")
       else
         return ()
-    |R.Retry -> send mgr (dstaddr, dstport) req
+    |R.Retry -> 
+      Activations.write (R.fd_to_int fd) >>
+      send mgr (dstaddr, dstport) req
     |R.Err err -> fail (Error err)
 
   let recv mgr (addr,port) fn =
     lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
+    let istr = OS.Istring.Raw.alloc () in
     let rec listen () =
-      lwt () = Activations.read (R.fd_to_int lfd) in
-      let istr = OS.Istring.Raw.alloc () in
       match R.udpv4_recvfrom lfd istr 0 4096 with
       |R.OK (frm_addr, frm_port, len) ->
         let frm_addr = ipv4_addr_of_uint32 frm_addr in
@@ -69,7 +69,8 @@ module UDPv4 = struct
             return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
         );
         listen ()
-      |R.Retry -> listen ()
+      |R.Retry -> 
+        lwt () = Activations.read (R.fd_to_int lfd) in listen ()
       |R.Err _ -> return ()
     in 
     listen ()

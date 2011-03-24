@@ -72,7 +72,6 @@ let listen_tcpv4 addr port fn =
   |R.OK () ->
     let rec loop t =
       with_value id (new_id ()) (fun () ->
-        Activations.read (R.fd_to_int t.fd) >>
         (match R.tcpv4_accept fd with
          |R.OK (afd,caddr_i,cport) ->
            let caddr = ipv4_addr_of_uint32 caddr_i in
@@ -88,7 +87,7 @@ let listen_tcpv4 addr port fn =
              )
            );
            loop t
-         |R.Retry -> loop t
+         |R.Retry -> Activations.read (R.fd_to_int t.fd) >> loop t
          |R.Err err -> fail (Accept_error err)
         )
       ) in
@@ -156,12 +155,13 @@ module TCPv4 = struct
       (* Wait for the connect to complete *)
       let t = t_of_fd fd in
       let rec loop () =
-        Activations.write (R.fd_to_int t.fd) >>
         match R.connect_result t.fd with
         |R.OK _ ->
           close_on_exit t fn
-        |R.Err s -> fail (Connect_error s)
-        |R.Retry -> loop () in
+        |R.Retry -> 
+          Activations.write (R.fd_to_int t.fd) >>
+          loop ()
+        |R.Err s -> fail (Connect_error s) in
       let cancel_t = t.abort_t >> fail (Connect_error "cancelled") in
       loop () <?> cancel_t
     |R.Err s -> failwith s

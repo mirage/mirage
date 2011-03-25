@@ -30,7 +30,6 @@ type meta = {
   title        : string;
   subtitle     : string option;
   author       : author option;
-  contributors : author list;
   rights       : string option;
   updated      : date;
 }
@@ -48,5 +47,5 @@ type feed = {
   entries : entry list;
 }
 
-val xml_of_feed : feed -> Xml.t
+val xml_of_feed : ?self:string -> feed -> Xml.t
 

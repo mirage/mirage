@@ -46,7 +46,7 @@ let rec watchdog () =
 let main () =
   lwt mgr, mgr_t = Net.Manager.create () in
   let th = Dns.Server.listen mgr (None, 53) zonebuf in
-  watchdog () <&> th
+  th
 
 let _ = OS.Main.run (main ())
 

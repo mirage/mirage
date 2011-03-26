@@ -1,3 +1,4 @@
 <**/packet.ml>: warn_y
 <**/rR.ml>: warn_y
+"server.ml": pa_lwt
 <*.cmx> and not "dns.cmx": for-pack(Dns)

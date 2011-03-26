@@ -20,6 +20,7 @@ module type RING = sig
   type fring
 
   val alloc : int -> (Gnttab.r * fring) Lwt.t
+  val pending_responses : fring -> int
   val free_requests : fring -> int
   val max_requests : fring -> int
   val write : fring -> req list -> bool
@@ -56,6 +57,7 @@ module Netif : sig
     val push : t -> evtchn:int -> (id -> Rx.Req.t) list -> Rx.Res.t Lwt.t list Lwt.t
     val push_one : t -> evtchn:int -> (id -> Rx.Req.t) -> Rx.Res.t Lwt.t
     val poll : t -> unit
+    val pending_responses : t -> int
     val max_requests : t -> int
     val free_requests : t -> int
   end
@@ -106,6 +108,7 @@ module Netif : sig
     val push : t -> evtchn:int -> (id -> Tx.Req.t) list -> Tx.Res.t Lwt.t list Lwt.t
     val push_one : t -> evtchn:int -> (id -> Tx.Req.t) -> Tx.Res.t Lwt.t
     val poll : t -> unit
+    val pending_responses : t -> int
     val max_requests : t -> int
     val free_requests : t -> int
   end
@@ -153,6 +156,7 @@ module Blkif_t : sig
   val push : t -> evtchn:int -> (id -> Blkif.Req.t) list -> Blkif.Res.t Lwt.t list Lwt.t
   val push_one : t -> evtchn:int -> (id -> Blkif.Req.t) -> Blkif.Res.t Lwt.t
   val poll : t -> unit
+  val pending_responses : t -> int
   val max_requests : t -> int
   val free_requests : t -> int
 end

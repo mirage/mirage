@@ -201,6 +201,12 @@ caml_netif_rx_free_requests(value v_ring)
 }
 
 value
+caml_netif_rx_pending_responses(value v_ring)
+{
+  return Val_int(RING_HAS_UNCONSUMED_RESPONSES((struct netif_rx_front_ring *)v_ring));
+}
+
+value
 caml_netif_rx_max_requests(value v_ring)
 {
   return Val_int(RING_SIZE((struct netif_rx_front_ring *)v_ring)-1);
@@ -262,6 +268,12 @@ caml_netif_tx_request(value v_ring, value v_reqs)
   fring->req_prod_pvt = req_prod;
   RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
   CAMLreturn(Val_int(notify));
+}
+
+value
+caml_netif_tx_pending_responses(value v_ring)
+{
+  return Val_int(RING_HAS_UNCONSUMED_RESPONSES((struct netif_tx_front_ring *)v_ring));
 }
 
 value
@@ -371,6 +383,12 @@ caml_blkif_request(value v_ring, value v_reqs)
   fring->req_prod_pvt = req_prod;
   RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
   CAMLreturn(Val_int(notify));
+}
+
+value
+caml_blkif_pending_responses(value v_ring)
+{
+  return Val_int(RING_HAS_UNCONSUMED_RESPONSES((struct blkif_front_ring *)v_ring));
 }
 
 value

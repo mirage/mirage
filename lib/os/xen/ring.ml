@@ -43,6 +43,7 @@ module type RING = sig
   type fring                            (* Front end ring *)
 
   val alloc: int -> (Gnttab.r * fring) Lwt.t (* Allocate a ring *)
+  val pending_responses: fring -> int   (* Pending responses *)
   val free_requests: fring -> int       (* Available req slots *)
   val max_requests: fring -> int        (* Max req slots *)
 
@@ -148,6 +149,7 @@ module Bounded_ring (Ring:RING) = struct
     |None -> ()
     |Some u -> Lwt.wakeup u ()
 
+  let pending_responses t = Ring.pending_responses t.fring
   let max_requests t = Ring.max_requests t.fring
   let free_requests t = Ring.free_requests t.fring
 end
@@ -210,6 +212,8 @@ module Netif = struct
       external write: fring -> Req.t list -> bool = "caml_netif_rx_request"
       (* Read a list of responses to the request *)
       external read: fring -> Res.raw list = "caml_netif_rx_response"
+      (* Number of responses pending *)
+      external pending_responses: fring -> int = "caml_netif_rx_pending_responses"
       (* Maximum number of requests *)
       external max_requests: fring -> int = "caml_netif_rx_max_requests"
       (* Number of free requests *)
@@ -220,6 +224,7 @@ module Netif = struct
     let id_of_res res = res.Res.id
     let read fring = List.map Res.t_of_raw (External.read fring) 
     let write = External.write
+    let pending_responses = External.pending_responses
     let max_requests = External.max_requests
     let free_requests = External.free_requests
 
@@ -290,6 +295,7 @@ module Netif = struct
       external init: sring -> fring = "caml_netif_tx_init"
       external write: fring -> Req.t list -> bool = "caml_netif_tx_request"
       external read: fring -> Res.raw list = "caml_netif_tx_response"
+      external pending_responses: fring -> int = "caml_netif_tx_pending_responses"
       external max_requests: fring -> int = "caml_netif_tx_max_requests"
       external free_requests: fring -> int = "caml_netif_tx_free_requests"
     end
@@ -297,6 +303,7 @@ module Netif = struct
     let alloc = alloc External.init
     let id_of_res res = res.Res.id
     let read fring = List.map Res.t_of_raw (External.read fring) 
+    let pending_responses = External.pending_responses
     let write = External.write
     let max_requests = External.max_requests
     let free_requests = External.free_requests
@@ -361,6 +368,7 @@ module Blkif = struct
     external init: sring -> fring = "caml_blkif_init"
     external write: fring -> Req.t list -> bool = "caml_blkif_request"
     external read: fring -> Res.raw list = "caml_blkif_response"
+    external pending_responses: fring -> int = "caml_blkif_pending_responses"
     external max_requests: fring -> int = "caml_blkif_max_requests"
     external free_requests: fring -> int = "caml_blkif_free_requests"
   end
@@ -369,6 +377,7 @@ module Blkif = struct
   let id_of_res res = res.Res.id
   let read fring = List.map Res.t_of_raw (External.read fring) 
   let write = External.write
+  let pending_responses = External.pending_responses
   let max_requests = External.max_requests
   let free_requests = External.free_requests
 end

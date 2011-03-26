@@ -121,12 +121,17 @@ let listen nf fn =
     ) in
   (* Listen for the activation to poll the interface *)
   let rec poll_t () =
-    lwt () = Activations.wait nf.evtchn in
-    Ring.Netif.Tx_t.poll nf.tx; 
-    Ring.Netif.Rx_t.poll nf.rx; 
-    Ring.Netif.Tx_t.poll nf.tx; 
-    Ring.Netif.Rx_t.poll nf.rx; 
-    poll_t () in
+    if (Ring.Netif.Tx_t.pending_responses nf.tx) +
+       (Ring.Netif.Rx_t.pending_responses nf.rx) > 0 then begin
+      Ring.Netif.Tx_t.poll nf.tx; 
+      Ring.Netif.Rx_t.poll nf.rx; 
+      Evtchn.notify nf.evtchn;
+      poll_t ()
+    end else begin
+      Activations.wait nf.evtchn >>=
+      poll_t
+    end
+  in
   poll_t ()
 
 (* Shutdown a netfront *)

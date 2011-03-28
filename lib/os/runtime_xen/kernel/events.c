@@ -54,9 +54,6 @@ void init_events(void)
     cpu0_pda.irqcount = -1;
     cpu0_pda.irqstackptr = (void*) (((unsigned long)irqstack + 2 * STACK_SIZE)
                                     & ~(STACK_SIZE - 1));
-    /* initialize event handler */
-//    for ( i = 0; i < NR_EVS; i++ )
-//        mask_evtchn(i);
 }
 
 void fini_events(void)

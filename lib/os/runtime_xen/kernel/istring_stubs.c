@@ -17,15 +17,28 @@
 #include <mini-os/x86/os.h>
 #include <mini-os/mm.h>
 
+#include <caml/mlvalues.h>
 #include "istring.h"
+
+/* Pool to cache istring I/O buffers. 
+   If it's full excess buffers are freed, and if
+   empty malloc() is used as normal */
+#define POOL_SIZE 1024
+static unsigned char *pool[POOL_SIZE];
+static int pool_pos = -1;
 
 /* Finalizer just sanity checks that the ref count is 0 */
 static void
 istring_finalize(value v_istring)
 {
   istring *i = Istring_val(v_istring);
-  BUG_ON(i->ref != 0);
-  free_page(i->buf);
+  if (pool_pos < (POOL_SIZE-1)) {
+    pool_pos++;
+    pool[pool_pos] = i->buf;
+  } else {
+    free(i->buf);
+  }
+  i->buf = NULL;
   Istring_val(v_istring) = NULL;
   free(i);
   return;
@@ -50,8 +63,13 @@ caml_istring_alloc_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_istr);
-  unsigned char *page = (unsigned char *)alloc_page();
-  ASSERT(page != NULL);
+  unsigned char *page;
+  if (pool_pos >= 0) {
+    page = pool[pool_pos];
+    pool_pos--;
+  } else {
+    page = (unsigned char *)caml_stat_alloc(4096);
+  }
   v_istr = istring_alloc(page, 4096);
   CAMLreturn(v_istr);
 }
@@ -296,7 +314,6 @@ caml_istring_ones_complement_checksum(value v_istr, value v_off, value v_len, va
   }
   if (count > 0)
     sum += (*(unsigned char *)addr) << 8;
-
   while (sum >> 16)
     sum = (sum & 0xffff) + (sum >> 16);
   checksum = ~sum;

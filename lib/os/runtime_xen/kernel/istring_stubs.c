@@ -36,7 +36,7 @@ istring_finalize(value v_istring)
     pool_pos++;
     pool[pool_pos] = i->buf;
   } else {
-    free(i->buf);
+    free_page(i->buf);
   }
   i->buf = NULL;
   Istring_val(v_istring) = NULL;
@@ -68,7 +68,8 @@ caml_istring_alloc_page(value v_unit)
     page = pool[pool_pos];
     pool_pos--;
   } else {
-    page = (unsigned char *)caml_stat_alloc(4096);
+    page = (unsigned char *)alloc_page();
+    ASSERT(page != NULL);
   }
   v_istr = istring_alloc(page, 4096);
   CAMLreturn(v_istr);

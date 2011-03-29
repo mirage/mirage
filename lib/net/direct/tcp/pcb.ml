@@ -70,13 +70,13 @@ module Tx = struct
       let dest_ip = ipv4_addr_to_bytes dest_ip in
       let i32l x = Int32.of_int ((Char.code x.[0] lsl 8) + (Char.code x.[1])) in
       let i32r x = Int32.of_int ((Char.code x.[2] lsl 8) + (Char.code x.[3])) in
-      let ph = Int32.of_int (6+tcp#sizeof) in
+      let ph = Int32.of_int (Mpl.Tcp.sizeof tcp + 6) in
       let ph = Int32.add ph (i32l dest_ip) in
       let ph = Int32.add ph (i32r dest_ip) in
       let ph = Int32.add ph (i32l src_ip) in
       let ph = Int32.add ph (i32r src_ip) in
-      let checksum = OS.Istring.ones_complement_checksum tcp#env tcp#sizeof ph in
-      tcp#set_checksum checksum;
+      let checksum = OS.Istring.ones_complement_checksum (Mpl.Tcp.env tcp) (Mpl.Tcp.sizeof tcp) ph in
+      Mpl.Tcp.set_checksum tcp checksum;
       memo := Some tcp
     in
     (* Construct IP closure *)
@@ -86,7 +86,7 @@ module Tx = struct
     Ipv4.output ~dest_ip:id.dest_ip ip ipfn >>
     match !memo with
     |Some x -> 
-      return x#data_sub_view
+      return (Mpl.Tcp.data_sub_view x)
     |None -> 
       printf "TCP.Tx.xmit: failed\n%!";
       raise_lwt IO_error
@@ -207,9 +207,9 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   (* Set up the windowing variables *)
   let rx_wnd_scale = 0 in
   let tx_wnd_scale = 0 in
-  let tx_wnd = tcp#window in
+  let tx_wnd = Mpl.Tcp.window tcp in
   let rx_wnd = 16384 in (* TODO: too small *)
-  let rx_isn = Sequence.of_int32 tcp#sequence in
+  let rx_isn = Sequence.of_int32 (Mpl.Tcp.sequence tcp) in
   (* Parse options and get the receive MSS *)
   let options = Options.of_packet tcp in
   let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
@@ -242,7 +242,7 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   (* Compose the overall thread from the various tx/rx threads
      and the main listener function *)
   let th =
-    let dst = (ipv4_addr_of_uint32 ip#src), tcp#source_port in
+    let dst = (ipv4_addr_of_uint32 (Mpl.Ipv4.src ip)), (Mpl.Tcp.source_port tcp) in
     listener dst pcb <?>
     (Tx.thread t pcb ~send_ack ~rx_ack) <?>
     (Rx.thread pcb ~rx_data) <?>
@@ -255,28 +255,28 @@ let new_connection t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id listener =
   Segment.Tx.output ~flags:Segment.Tx.Syn txq `None
 
 let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
-  match tcp#rst = 1 with
+  match Mpl.Tcp.rst tcp = 1 with
   |true ->
     (* Incoming RST should be ignored, RFC793 pg65 *)
     return ()
   |false -> begin
-    match tcp#ack = 1 with
+    match Mpl.Tcp.ack tcp = 1 with
     |true ->
        (* ACK to a listen socket results in an RST with
           <SEQ=SEG.ACK><CTL=RST> RFC793 pg65 *)
-       let seq = Sequence.of_int32 tcp#ack_number in
+       let seq = Sequence.of_int32 (Mpl.Tcp.ack_number tcp) in
        let rx_ack = None in
        Tx.rst_no_pcb ~seq ~rx_ack t id
     |false -> begin
        (* Check for a SYN, RFC793 pg65 *)
-       match tcp#syn = 1 with
+       match Mpl.Tcp.syn tcp = 1 with
        |true ->
          (* Try to find a listener *)
          with_hashtbl t.listeners id.local_port
            (new_connection t ip tcp id)
            (fun source_port ->
              let seq = Sequence.of_int32 0l in
-             let rx_ack = Some (Sequence.(incr (of_int32 tcp#sequence))) in
+             let rx_ack = Some (Sequence.(incr (of_int32 (Mpl.Tcp.sequence tcp)))) in
              Tx.rst_no_pcb ~seq ~rx_ack t id
            )
        |false ->
@@ -288,10 +288,10 @@ let input_no_pcb t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) id =
 (* Main input function for TCP packets *)
 let input t (ip:Mpl.Ipv4.o) (tcp:Mpl.Tcp.o) =
   (* Construct a connection ID from the input packet *)
-  let dest_ip = ipv4_addr_of_uint32 ip#src in
-  let dest_port = tcp#source_port in
+  let dest_ip = ipv4_addr_of_uint32 (Mpl.Ipv4.src ip) in
+  let dest_port = Mpl.Tcp.source_port tcp in
   let local_ip = Ipv4.get_ip t.ip in
-  let local_port = tcp#dest_port in
+  let local_port = Mpl.Tcp.dest_port tcp in
   let id = { dest_port; dest_ip; local_ip; local_port } in
   (* Lookup connection from the active PCB hash *)
   with_hashtbl t.channels id

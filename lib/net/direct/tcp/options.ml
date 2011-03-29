@@ -99,8 +99,8 @@ let marshal ts =
   )
 
 let of_packet (tcp:Mpl.Tcp.o) =
-  if tcp#options_length = 0 then []
-  else parse tcp#options_sub_view 0 []
+  if (Mpl.Tcp.options_length tcp)= 0 then []
+  else parse (Mpl.Tcp.options_sub_view tcp) 0 []
 
 let to_string = function
   |MSS m -> Printf.sprintf "MSS=%d" m

@@ -22,7 +22,7 @@ type t = {
   mac: ethernet_mac;
   mutable arp: (Mpl.Ethernet.ARP.o -> unit Lwt.t);
   mutable ipv4: (Mpl.Ipv4.o -> unit Lwt.t);
-  mutable ipv6: (Mpl.Ethernet.IPv4.o -> unit Lwt.t);
+  mutable ipv6: (Mpl.Ethernet.IPv6.o -> unit Lwt.t);
 }
 
 (* Handle a single input frame, input as an istring view *)
@@ -31,7 +31,7 @@ let input t i =
     let x = Mpl.Ethernet.unmarshal i in 
     match x with
     | `ARP arp -> t.arp arp
-    | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal ipv4#data_sub_view)
+    | `IPv4 ipv4 -> t.ipv4 (Mpl.Ipv4.unmarshal (Mpl.Ethernet.IPv4.data_sub_view ipv4))
     | `IPv6 ipv6 -> t.ipv6 ipv6
   with exn ->
     return ()

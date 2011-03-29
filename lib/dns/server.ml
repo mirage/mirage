@@ -25,9 +25,9 @@ let dnstrie = DL.(state.db.trie)
 
 let log (addr,port) (dnsq:Packet.Questions.o) =
   printf "%.0f: %s %s %s (%s:%d)\n%!" (OS.Clock.time())
-    (String.concat "." dnsq#qname)
-    (Packet.Questions.qtype_to_string dnsq#qtype)
-    (Packet.Questions.qclass_to_string dnsq#qclass)
+    (String.concat "." (Packet.Questions.qname dnsq))
+    (Packet.Questions.qtype_to_string (Packet.Questions.qtype dnsq))
+    (Packet.Questions.qclass_to_string (Packet.Questions.qclass dnsq))
     (Net.Nettypes.ipv4_addr_to_string addr) port
 
 let get_answer (qname,qtype) id =
@@ -46,8 +46,8 @@ let listen mgr src ~zonebuf =
     (fun dst env ->
       Mpl_dns_label.init_unmarshal env;
       let d = Packet.unmarshal env in
-      let q = d#questions.(0) in
-      let r = get_answer (q#qname, q#qtype) d#id in
+      let q = (Packet.questions d).(0) in
+      let r = get_answer ((Packet.Questions.qname q), (Packet.Questions.qtype q)) (Packet.id d) in
       let dnsfn env =
         Mpl_dns_label.init_marshal env;
         r env

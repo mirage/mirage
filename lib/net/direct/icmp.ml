@@ -25,18 +25,18 @@ type t = {
 let input t ip = function
   |`EchoRequest icmp ->
     (* Create the ICMP echo reply *)
-    let dest_ip = ipv4_addr_of_uint32 ip#src in
-    let sequence = icmp#sequence in
-    let identifier = icmp#identifier in
-    let data = `Frag icmp#data_sub_view in
+    let dest_ip = ipv4_addr_of_uint32 (Mpl.Ipv4.src ip) in
+    let sequence = (Mpl.Icmp.EchoRequest.sequence icmp) in
+    let identifier = (Mpl.Icmp.EchoRequest.identifier icmp) in
+    let data = `Frag (Mpl.Icmp.EchoRequest.data_sub_view icmp) in
     let icmpfn env =
       let p = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
-      let csum = OS.Istring.(ones_complement_checksum env p#sizeof 0l) in
-      p#set_checksum csum;
+      let csum = OS.Istring.(ones_complement_checksum env (Mpl.Icmp.EchoReply.sizeof p) 0l) in
+      Mpl.Icmp.EchoReply.set_checksum p csum;
     in
     (* Create the IPv4 packet *)
-    let id = ip#id in 
-    let src = ip#dest in
+    let id = Mpl.Ipv4.id ip in
+    let src = Mpl.Ipv4.dest ip in
     let ipfn env = Mpl.Ipv4.t ~id ~protocol:`ICMP ~src ~data:(`Sub icmpfn) env in
     Ipv4.output t.ip ~dest_ip ipfn >> return ()
 

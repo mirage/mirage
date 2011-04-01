@@ -71,8 +71,8 @@ let output t ~dest_ip (ip:'a ip_output) =
   let ipfn env = 
     let ttl = 38 in (* TODO ttl tracking *)
     let p = ip ~ttl ~dest:(ipv4_addr_to_uint32 dest_ip) ~options:`None env in
-    let csum = OS.Istring.ones_complement_checksum p#env p#header_end 0l in
-    p#set_checksum csum;
+    let csum = OS.Istring.ones_complement_checksum (Mpl.Ipv4.env p) (Mpl.Ipv4.header_end p) 0l in
+    Mpl.Ipv4.set_checksum p csum;
   in
   let etherfn = Mpl.Ethernet.IPv4.t
     ~dest_mac:(`Str (ethernet_mac_to_bytes dest_mac))
@@ -80,11 +80,11 @@ let output t ~dest_ip (ip:'a ip_output) =
     ~data:(`Sub ipfn) in
   Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
 
-let input t (ip:Mpl.Ipv4.o) =
-  match ip#protocol with
-  |`UDP -> t.udp ip (Mpl.Udp.unmarshal ip#data_sub_view)
-  |`TCP -> t.tcp ip (Mpl.Tcp.unmarshal ip#data_sub_view)
-  |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal ip#data_sub_view)
+let input t ip =
+  match Mpl.Ipv4.protocol ip with
+  |`UDP -> t.udp ip (Mpl.Udp.unmarshal (Mpl.Ipv4.data_sub_view ip))
+  |`TCP -> t.tcp ip (Mpl.Tcp.unmarshal (Mpl.Ipv4.data_sub_view ip))
+  |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal (Mpl.Ipv4.data_sub_view ip))
   |`IGMP |`Unknown _ -> return ()
 
 let create netif = 

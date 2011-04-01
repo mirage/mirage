@@ -25,23 +25,23 @@ module E = Mpl_typechk.Expr
 module B = Mpl_bits
 
 type vt = {
-    vt_ty: V.b;                  (* type of the mapping *)
-    vt_b: (expr * string) list;  (* actual mappings, expr -> variant id *)
-    vt_def: string option;       (* default variant, if any *)
+  vt_ty: V.b;                  (* type of the mapping *)
+  vt_b: (expr * string) list;  (* actual mappings, expr -> variant id *)
+  vt_def: string option;       (* default variant, if any *)
 }
 and vts = (string,vt) Hashtbl.t (* variant name -> vt Hashtable *)
 
 type env = {
-    vars: (string * V.x) list;
-     statevars: (string * V.b) list;
-    offsets: (string, unit) Hashtbl.t;
-    sizes: (string, unit) Hashtbl.t;
-     vts: vts;
-     mods: string list;
-     custom: (string, unit) Hashtbl.t;
-     pname: string;
-    inarr: bool; (* hack to disable statecalls in arrays *)
-    wantsc: bool;
+  vars: (string * V.x) list;
+  statevars: (string * V.b) list;
+  offsets: (string, unit) Hashtbl.t;
+  sizes: (string, unit) Hashtbl.t;
+  vts: vts;
+  mods: string list;
+  custom: (string, unit) Hashtbl.t;
+  pname: string;
+  inarr: bool; (* hack to disable statecalls in arrays *)
+  wantsc: bool;
 }
 
 exception Internal_error of string
@@ -66,11 +66,11 @@ let modname ?(sub=[]) mods =
         if List.hd !mods <> x then failwith "modname";
         mods := List.tl !mods;
     ) sub;
-    String.concat "." (List.map String.capitalize !mods)
+    if List.length !mods > 0 then
+      String.concat "." (List.map String.capitalize !mods) ^ "."
+    else
+      ""
 
-let objname ?(sub=[]) mods =
-    sprintf "%s%so" (modname ~sub:sub mods) (if List.length mods > 0 then "." else "")
-    
 let dump_env env =
     print_endline (sprintf "env=[%s]" (String.concat ", " (List.map (fun (a,b) -> a) env.vars)))
 

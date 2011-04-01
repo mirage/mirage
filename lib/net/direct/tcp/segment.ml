@@ -30,11 +30,11 @@ module Rx = struct
      TODO: this will change when IP fragments work *)
   type seg = Mpl.Tcp.o
 
-  let seq (seg:seg) = Sequence.of_int32 seg#sequence
-  let len (seg:seg) = seg#data_length + seg#fin + seg#syn
-  let view (seg:seg) = seg#data_sub_view
-  let ack (seg:seg) = seg#ack = 1
-  let ack_number (seg:seg) = Sequence.of_int32 seg#ack_number
+  let seq (seg:seg) = Sequence.of_int32 (Mpl.Tcp.sequence seg)
+  let len (seg:seg) = Mpl.Tcp.( (data_length seg) + (fin seg) + (syn seg) )
+  let view (seg:seg) = Mpl.Tcp.data_sub_view seg
+  let ack (seg:seg) = Mpl.Tcp.ack seg = 1
+  let ack_number (seg:seg) = Sequence.of_int32 (Mpl.Tcp.ack_number seg)
 
   (* Set of segments, ordered by sequence number *)
   module S = Set.Make(struct
@@ -65,17 +65,17 @@ module Rx = struct
      TODO: should look for a FIN and chop off the rest
      of the set as they may be orphan segments *)
   let fin q =
-    try (S.max_elt q)#fin = 1
+    try (Mpl.Tcp.fin (S.max_elt q)) = 1
     with Not_found -> false
 
   (* If there is a SYN flag in this segment set *)
   let syn q =
-    try (S.max_elt q)#syn = 1
+    try (Mpl.Tcp.syn (S.max_elt q)) = 1
     with Not_found -> false
 
   (* Determine the transmit window, from the last segment *)
   let window q =
-    try (S.max_elt q)#window
+    try (Mpl.Tcp.window (S.max_elt q))
     with Not_found -> 0
 
   let is_empty q = S.is_empty q.segs
@@ -131,7 +131,9 @@ module Rx = struct
       let urx_inform =
         (* TODO: deal with overlapping fragments *)
         let elems = List.rev (S.fold (fun seg acc ->
-          if seg#data_length > 0 then seg#data_sub_view :: acc else acc) ready []) in
+          if (Mpl.Tcp.data_length seg) > 0 then
+            (Mpl.Tcp.data_sub_view seg) :: acc
+          else acc) ready []) in
         Lwt_mvar.put q.rx_data (Some elems) >>
         (* If the last ready segment has a FIN, then mark the receive
            window as closed and tell the application *)

@@ -71,15 +71,15 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
 
 (* Receive a DHCP UDP packet *)
 let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
-  let dhcp = Mpl.Dhcp.unmarshal udp#data_sub_view in 
-  let packet = Option.Packet.of_bytes dhcp#options in
+  let dhcp = Mpl.Dhcp.unmarshal (Mpl.Udp.data_sub_view udp) in
+  let packet = Option.Packet.of_bytes (Mpl.Dhcp.options dhcp) in
   (* See what state our Netif is in and if this packet is useful *)
   Option.Packet.(match t.state with
     | Request_sent xid -> begin
         (* we are expecting an offer *)
-        match packet.op, dhcp#xid with 
+        match packet.op, (Mpl.Dhcp.xid dhcp) with 
         |`Offer, offer_xid when offer_xid=xid ->  begin
-            let ip_addr = ipv4_addr_of_uint32 dhcp#yiaddr in
+            let ip_addr = ipv4_addr_of_uint32 (Mpl.Dhcp.yiaddr dhcp) in
             printf "DHCP: offer received: %s\n%!" (ipv4_addr_to_string ip_addr);
             let netmask = find packet
               (function `Subnet_mask addr -> Some addr |_ -> None) in
@@ -89,8 +89,8 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
               (function `DNS_server addrs -> Some addrs |_ -> None) in
             let lease = 0l in
             let offer = { ip_addr; netmask; gateways; dns; lease; xid } in
-            let yiaddr = ipv4_addr_of_uint32 dhcp#yiaddr in
-            let siaddr = ipv4_addr_of_uint32 dhcp#siaddr in
+            let yiaddr = ipv4_addr_of_uint32 (Mpl.Dhcp.yiaddr dhcp) in
+            let siaddr = ipv4_addr_of_uint32 (Mpl.Dhcp.siaddr dhcp) in
             let options = { op=`Request; opts= [
                 `Requested_ip ip_addr;
                 `Server_identifier siaddr;
@@ -102,7 +102,7 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
     end
     | Offer_accepted info -> begin
         (* we are expecting an ACK *)
-        match packet.op, dhcp#xid with 
+        match packet.op, (Mpl.Dhcp.xid dhcp) with 
         |`Ack, ack_xid when ack_xid = info.xid -> begin
             let lease =
               match find packet (function `Lease_time lt -> Some lt |_ -> None) with

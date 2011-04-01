@@ -39,10 +39,10 @@ module UDPv4 = struct
     lwt udp = Manager.udpv4_of_addr mgr src_addr in
     Udp.listen udp src_port
       (fun ip udp ->
-        let dst_port = udp#source_port in
-        let dst_ip = ipv4_addr_of_uint32 ip#src in
+        let dst_port = Mpl.Udp.source_port udp in
+        let dst_ip = ipv4_addr_of_uint32 (Mpl.Ipv4.src ip) in
         let dst = dst_ip, dst_port in
-        let data = udp#data_sub_view in
+        let data = Mpl.Udp.data_sub_view udp in
         fn dst data
       )
 end

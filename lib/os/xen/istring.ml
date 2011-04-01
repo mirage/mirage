@@ -104,7 +104,7 @@ module Raw = struct
   external to_string: t -> int -> int -> string = "caml_istring_safe_get_string"
 
   (* Get a big-endian uint16 out of the view *)
-  external to_uint16_be: t -> int -> int = "caml_istring_get_uint16_be"
+  external to_uint16_be: t -> int -> int = "caml_istring_get_uint16_be" "noalloc"
 
   (* Get a big-endian uint32 out of the view *)
   external to_uint32_be: t -> int -> int32 = "caml_istring_get_uint32_be"

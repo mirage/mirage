@@ -12,8 +12,6 @@ lib/errlistu.o
 lib/errno_location.o
 lib/ffs.o
 lib/__finite.o
-lib/htonl.o
-lib/htons.o
 lib/isalnum.o
 lib/isalpha.o
 lib/isascii.o

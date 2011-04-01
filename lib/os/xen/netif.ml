@@ -31,7 +31,8 @@ type t = {
   mac: string;
   tx: Ring.Netif.Tx_t.t;
   tx_gnt: Gnttab.r;
-  rx: Ring.Netif.Rx_t.t;
+  rx: Ring.Netif.Rx.fring;
+  rx_map: (int, Gnttab.r) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
   features: features;
@@ -46,7 +47,7 @@ let create (num,backend_id) =
 
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (tx_gnt, tx) = Ring.Netif.Tx_t.t backend_id in
-  lwt (rx_gnt, rx)  = Ring.Netif.Rx_t.t backend_id in
+  lwt (rx_gnt, rx)  = Ring.Netif.Rx.alloc backend_id in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
 
   (* Read xenstore info and set state to Connected *)
@@ -60,6 +61,8 @@ let create (num,backend_id) =
     wrfn "rx-ring-ref" (Gnttab.to_string rx_gnt) >>
     wrfn "event-channel" (string_of_int evtchn) >>
     wrfn "request-rx-copy" "1" >>
+    wrfn "feature-rx-notify" "1" >>
+    wrfn "feature-sg" "1" >>
     wrfn "state" Xb.State.(to_string Connected)
   )) >>
   (* Read backend features *)
@@ -77,60 +80,59 @@ let create (num,backend_id) =
     lwt smart_poll = rdfn "smart-poll" in
     return { sg; gso_tcpv4; rx_copy; rx_flip; smart_poll }
   )) in
+  let rx_map = Hashtbl.create 1 in
   Console.log (sprintf " sg:%b gso_tcpv4:%b rx_copy:%b rx_flip:%b smart_poll:%b"
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  return { backend_id; tx; tx_gnt; rx_gnt; rx; 
+  return { backend_id; tx; tx_gnt; rx_gnt; rx; rx_map;
    evtchn; mac; backend; features }
 
-let listen nf fn =
-  let rec one_request () =
-    lwt (res,page) = Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RW
-      (fun gnt ->
-        (* Ensure grant has a page associated with it *)
-        let _ = Gnttab.page gnt in 
-        (* Set up the request and push it to the ring *)
-        let gref = Gnttab.num gnt in
-	let req id = { Ring.Netif.Rx.Req.id; gref } in
-        lwt res = Ring.Netif.Rx_t.push_one nf.rx ~evtchn:nf.evtchn req in
-        let page = Gnttab.detach gnt in
-        return (res, page)
-      ) in
-    (* Break open the response.
-       TODO: handle the full rx protocol (in flags) *)
-    let open Ring.Netif.Rx.Res in
-    match res.status with
-    |Size size ->
-      let view = Istring.t ~off:res.off page size in
+let refill_requests nf =
+  let num = Ring.Netif.Rx.free_requests nf.rx - 1 in
+  lwt gnts = Gnttab.get_n ~domid:nf.backend_id ~perm:Gnttab.RW num in
+  let reqs = List.map (fun gnt ->
+    let _ = Gnttab.page gnt in
+    let gref = Gnttab.num gnt in
+    let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
+    Hashtbl.add nf.rx_map id gnt;
+    { Ring.Netif.Rx.Req.id; gref }
+  ) gnts in
+  if Ring.Netif.Rx.write nf.rx reqs then
+    Evtchn.notify nf.evtchn;
+  return ()
+
+let rx_poll nf fn =
+  let open Ring.Netif.Rx in
+  let resps = read nf.rx in
+  List.iter (fun res ->
+    let id = res.Res.id in
+    let gnt = Hashtbl.find nf.rx_map id in
+    Hashtbl.remove nf.rx_map id;
+    let page = Gnttab.detach gnt in
+    Gnttab.end_access gnt;
+    Gnttab.put_free_entry gnt;
+    match res.Res.status with
+    |Res.Size sz ->
+      let view = Istring.t ~off:res.Res.off page sz in
       Lwt.ignore_result (
         try_lwt
-          fn view
+          lwt _ = fn view in return ()
         with exn -> 
-          return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
-      );
-      one_request ()
-    |Err _ ->
-      Console.log "Warning: Netif.Rx_t error";
-      one_request ()
-  in
-  let _ =
-    Array.to_list (
-      Array.init (Ring.Netif.Rx_t.max_requests nf.rx)
-        (fun i -> one_request ())
-    ) in
+          return (printf "EXN: %s\n%!" (Printexc.to_string exn))
+      )
+    |Res.Err _ -> printf "RX ERR\n%!"
+  ) resps
+
+let listen nf fn =
   (* Listen for the activation to poll the interface *)
   let rec poll_t () =
-    if (Ring.Netif.Tx_t.pending_responses nf.tx) +
-       (Ring.Netif.Rx_t.pending_responses nf.rx) > 0 then begin
-      Ring.Netif.Tx_t.poll nf.tx; 
-      Ring.Netif.Rx_t.poll nf.rx; 
-      Evtchn.notify nf.evtchn;
-      poll_t ()
-    end else begin
-      Activations.wait nf.evtchn >>=
-      poll_t
-    end
+    lwt () = refill_requests nf in
+    rx_poll nf fn;
+    Ring.Netif.Tx_t.poll nf.tx; 
+    Evtchn.notify nf.evtchn;
+    Activations.wait nf.evtchn >>
+    poll_t ()
   in
   poll_t ()
 
@@ -149,7 +151,7 @@ let output nf fn =
     let packet = fn view in
     let size = Istring.length view in
     let open Ring.Netif.Tx in
-    let flags = 0 (* checksum offload *) in
+    let flags = 0 in
     let req id = Req.Normal { Req.gref; offset; flags; id; size } in
     (* Push request *)
     lwt res = Ring.Netif.Tx_t.push_one nf.tx ~evtchn:nf.evtchn req in

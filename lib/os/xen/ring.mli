@@ -48,13 +48,24 @@ module Netif : sig
         | Err of int
       type t = { id : int; off : int; flags : flags; status : status; }
     end
+    type req = Req.t
+    type res = Res.t
+    type fring
+    val alloc: int -> (Gnttab.r * fring) Lwt.t (* Allocate a ring *)
+    val pending_responses: fring -> int   (* Pending responses *)
+    val free_requests: fring -> int       (* Available req slots *)
+    val max_requests: fring -> int        (* Max req slots *)
+
+    val write: fring -> req list -> bool  (* Write requests to ring *)
+    val read: fring -> res list           (* Read responses from ring *)
+ 
   end
 
   module Rx_t : sig
     type id = int
     type t
     val t : backend_domid:int -> (Gnttab.r * t) Lwt.t
-    val push : t -> evtchn:int -> (id -> Rx.Req.t) list -> Rx.Res.t Lwt.t list Lwt.t
+    val push : t -> evtchn:int -> (id -> Rx.Req.t * (Rx.Res.t -> unit Lwt.t)) list -> unit Lwt.t
     val push_one : t -> evtchn:int -> (id -> Rx.Req.t) -> Rx.Res.t Lwt.t
     val poll : t -> unit
     val pending_responses : t -> int
@@ -105,7 +116,6 @@ module Netif : sig
     type id = int
     type t
     val t : backend_domid:int -> (Gnttab.r * t) Lwt.t
-    val push : t -> evtchn:int -> (id -> Tx.Req.t) list -> Tx.Res.t Lwt.t list Lwt.t
     val push_one : t -> evtchn:int -> (id -> Tx.Req.t) -> Tx.Res.t Lwt.t
     val poll : t -> unit
     val pending_responses : t -> int
@@ -153,7 +163,6 @@ module Blkif_t : sig
   type id = int
   type t
   val t : backend_domid:int -> (Gnttab.r * t) Lwt.t
-  val push : t -> evtchn:int -> (id -> Blkif.Req.t) list -> Blkif.Res.t Lwt.t list Lwt.t
   val push_one : t -> evtchn:int -> (id -> Blkif.Req.t) -> Blkif.Res.t Lwt.t
   val poll : t -> unit
   val pending_responses : t -> int

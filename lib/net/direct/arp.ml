@@ -49,20 +49,20 @@ let output t arp =
 
 (* Input handler for an ARP packet, registered through attach() *)
 let input t (arp:Mpl.Ethernet.ARP.o) =
-  match arp#ptype with
+  match Mpl.Ethernet.ARP.ptype arp with
   |`IPv4 -> begin
-    match arp#operation with
+    match Mpl.Ethernet.ARP.operation arp with
     |`Request ->
       (* Received ARP request, check if we can satisfy it from
          our own IPv4 list *)
-      let req_ipv4 = ipv4_addr_of_bytes arp#tpa in
+      let req_ipv4 = ipv4_addr_of_bytes (Mpl.Ethernet.ARP.tpa arp) in
       (* printf "ARP: who-has %s?\n%!" (ipv4_addr_to_string req_ipv4); *)
       if List.mem req_ipv4 t.bound_ips then begin
         (* We own this IP, so reply with our MAC *)
         let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.netif)) in
-        let dest_mac = `Str arp#src_mac in
-        let spa = `Str arp#tpa in (* the requested IP *)
-        let tpa = `Str arp#spa in (* the requesting host's IP *)
+        let dest_mac = `Str (Mpl.Ethernet.ARP.src_mac arp) in
+        let spa = `Str (Mpl.Ethernet.ARP.tpa arp) in (* the requested IP *)
+        let tpa = `Str (Mpl.Ethernet.ARP.spa arp) in (* the requesting host's IP *)
         lwt _ = output t (Mpl.Ethernet.ARP.t
           ~src_mac ~dest_mac ~ptype:`IPv4 ~operation:`Reply
           ~sha:src_mac ~spa ~tha:dest_mac ~tpa
@@ -70,8 +70,8 @@ let input t (arp:Mpl.Ethernet.ARP.o) =
         return ()
       end else return ()
     |`Reply ->
-      let frm_mac = ethernet_mac_of_bytes arp#sha in
-      let frm_ip = ipv4_addr_of_bytes arp#spa in
+      let frm_mac = ethernet_mac_of_bytes (Mpl.Ethernet.ARP.sha arp) in
+      let frm_ip = ipv4_addr_of_bytes (Mpl.Ethernet.ARP.spa arp) in
       printf "ARP: updating %s -> %s\n%!" (ipv4_addr_to_string frm_ip) (ethernet_mac_to_string frm_mac);
       (* If we have a pending entry, notify the waiters that an answer is ready *)
       if Hashtbl.mem t.cache frm_ip then begin

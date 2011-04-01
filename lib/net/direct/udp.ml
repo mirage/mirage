@@ -24,7 +24,7 @@ type t = {
 }
 
 let input t ip udp =
-  let dest_port = udp#dest_port in
+  let dest_port = Mpl.Udp.dest_port udp in
   if Hashtbl.mem t.listeners dest_port then begin
     let fn = Hashtbl.find t.listeners dest_port in
     fn ip udp

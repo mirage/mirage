@@ -23,6 +23,7 @@ val num: r -> num
 val page: r -> Istring.Raw.t
 val put_free_entry : r -> unit
 val get_free_entry : unit -> r Lwt.t
+val get_n : domid:int -> perm:perm -> int -> r list Lwt.t
 val grant_access : domid:int -> perm:perm -> r -> unit
 val end_access : r -> unit
 val to_string : r -> string

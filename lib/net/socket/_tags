@@ -1,2 +1,3 @@
+true: mirage
 <*.ml>: for-pack(Net)
 "manager.ml" or "flow.ml" or "datagram.ml" or "channel.ml" or "resolve.ml": pa_lwt

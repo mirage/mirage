@@ -39,30 +39,19 @@ function assemble_xen {
   fi
 }
 
-function assemble_unix_direct {
-  echo Assembling: UNIX_direct
-  OBJ=${BUILDDIR}/unix-direct
+function assemble_unix {
+  mode=$1
+  echo Assembling: UNIX $1
+  OBJ=${BUILDDIR}/unix-$1
+  if [ ! -d ${ROOT}/lib/_build/unix-$1 ]; then
+    echo Must build unix-$1 first
+    exit 1
+  fi
   mkdir -p ${OBJ}/lib 
   for i in libunixrun.a main.o; do
-    cp ${ROOT}/lib/_build/unix-direct/os/runtime_unix/$i ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/unix-$1/os/runtime_unix/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/_build/unix-direct/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
-}
-
-function assemble_unix_socket {
-  echo Assembling: UNIX_socket
-  OBJ=${BUILDDIR}/unix-socket
-  mkdir -p ${OBJ}/lib ${OBJ}/syntax
-  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
-  cp ${ROOT}/lib/os/_build/unix/oS.{cmi,cmxa,a} ${OBJ}/lib/
-  for i in libunixrun.a main.o; do
-    cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
-  done
-  cp ${ROOT}/lib/net/socket/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
-  for i in dns http; do
-    cp ${ROOT}/lib/$i/_build/unix-socket/$i.{cmi,cmxa,a} ${OBJ}/lib/;
-  done
-  cp ${ROOT}/lib/cow/_build/unix-socket/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
+  cp ${ROOT}/lib/_build/unix-$1/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
 }
 
 function assemble_node {
@@ -104,7 +93,7 @@ function assemble_scripts {
 
 assemble_syntax
 #assemble_xen
-assemble_unix_direct
-#assemble_unix_socket
+assemble_unix "direct"
+assemble_unix "socket"
 #assemble_node
 assemble_scripts

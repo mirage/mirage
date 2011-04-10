@@ -8,6 +8,7 @@ let ps = Printf.sprintf
 let ep = Printf.eprintf
 
 let debug = false
+let profiling = false
 
 (* This decides the global OS backend. It could be moved into explicit
    dependencies in the future, but for now is set as an environment
@@ -230,6 +231,8 @@ let _ = dispatch begin function
      (* do not compile and pack with the standard lib *)
      flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"];
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
+     if profiling then
+       flag ["ocaml"; "compile"; "native" ] & S [A"-p"];
 
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
@@ -264,6 +267,8 @@ let _ = dispatch begin function
      (* base cflags for C code *)
      flag ["c"; "compile"] & S CC.cc_cflags;
      flag ["asm"; "compile"] & S [A "-D__ASSEMBLY__"];
+     if profiling then
+       flag ["c"; "compile"] & S [A"-pg"];
 
      (* xen code needs special cflags *)
      flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;

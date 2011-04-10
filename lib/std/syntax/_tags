@@ -1,2 +1,0 @@
-<pa_lwt*.ml>: camlp4o_syntax
-<*ulex.ml>: camlp4_syntax

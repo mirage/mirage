@@ -229,7 +229,7 @@ let _ = dispatch begin function
     (* Configure the mirage lib *)
     flag ["ocaml"; "compile"] & S mirage_flags;
     flag ["ocaml"; "pack"]    & S mirage_flags;
-    flag ["ocaml"; "link"]    & S (mirage_flags @ libs);
+    flag ["ocaml"; "link"]    & S mirage_flags;
     flag ["ocamldep"]         & S[A"-pp"; A pp_pa];
 
   | _ -> ()

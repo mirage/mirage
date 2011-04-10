@@ -1,9 +1,14 @@
-.PHONY: all
+.PHONY: all unix clean
 
 JOBS ?= -j 4
 
-all:
-	ocamlbuild $(JOBS) std/all.otarget
+all: unix
+
+unix:
+	ocamlbuild $(JOBS) unix.otarget
+
+xen:
+	ocamlbuild $(JOBS) xen.otarget
 
 clean:
 	ocamlbuild -clean

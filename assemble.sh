@@ -42,17 +42,11 @@ function assemble_xen {
 function assemble_unix_direct {
   echo Assembling: UNIX_direct
   OBJ=${BUILDDIR}/unix-direct
-  mkdir -p ${OBJ}/lib ${OBJ}/syntax
-  cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
-  cp ${ROOT}/lib/os/_build/unix/oS.{cmi,cmxa,a} ${OBJ}/lib/
+  mkdir -p ${OBJ}/lib 
   for i in libunixrun.a main.o; do
-    cp ${ROOT}/lib/os/_build/runtime_unix/$i ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/unix-direct/os/runtime_unix/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/net/direct/_build/unix/net.{cmi,cmxa,a} ${OBJ}/lib/
-  for i in dns http; do
-    cp ${ROOT}/lib/$i/_build/unix-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
-  done
-  cp ${ROOT}/lib/cow/_build/unix-direct/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
+  cp ${ROOT}/lib/_build/unix-direct/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
 }
 
 function assemble_unix_socket {
@@ -98,9 +92,7 @@ function assemble_syntax {
   echo Assembling: camlp4 extensions
   OBJ=${BUILDDIR}/syntax
   mkdir -p ${OBJ}
-  cp ${ROOT}/lib/std/_build/syntax/pa_*.cma ${OBJ}/
-  cp ${ROOT}/lib/dyntype/_build/syntax/*.{cmi,cmo} ${OBJ}/
-  cp ${ROOT}/lib/cow/_build/unix-direct/syntax/pa_cow.cmo ${OBJ}/
+  cp ${ROOT}/syntax/_build/*.{cma,cmi,cmo} ${OBJ}/
 }
 
 function assemble_scripts {
@@ -111,8 +103,8 @@ function assemble_scripts {
 }
 
 assemble_syntax
-assemble_xen
+#assemble_xen
 assemble_unix_direct
-assemble_unix_socket
-assemble_node
+#assemble_unix_socket
+#assemble_node
 assemble_scripts

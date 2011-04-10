@@ -1,1 +1,1 @@
-../../lib/cow/lib/xhtml.ml
+../../lib/cow/xhtml.ml

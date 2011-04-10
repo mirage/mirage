@@ -1,1 +1,1 @@
-../../lib/cow/lib/xml.ml
+../../lib/cow/xml.ml

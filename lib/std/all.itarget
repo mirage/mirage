@@ -56,3 +56,4 @@ utf8.cmx
 utf16.cmx
 ulexing.cmx
 dyntype.cmx
+cow.cmx

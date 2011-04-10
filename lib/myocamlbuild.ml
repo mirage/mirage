@@ -187,7 +187,6 @@ module CC = struct
       ~prod:"%(path:<**/>)lib%(libname:<*> and not <*.*>).a"
       ~dep:"%(path)lib%(libname).cclib"
       (cc_archive "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)")
-
 end
 
 (* Need to register manual dependency on libev included files/
@@ -218,7 +217,7 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
-let otherlibs = ["http";"dns"; "dyntype"]
+let otherlibs = ["http";"dns"; "dyntype"; "cow"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->
@@ -234,10 +233,15 @@ let _ = dispatch begin function
 
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
+     let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-     ) [ "lwt"; "ulex" ];
+     ) [ "lwt"; "ulex"];
+     List.iter (fun lib ->
+      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+     ) ["cow"; "css"; "html"; "xml" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)
      dep ["ocaml"; "compile"; "need_pervasives"] ["std/pervasives.cmi"];

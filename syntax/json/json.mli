@@ -1,1 +1,1 @@
-../../lib/cow/lib/json.mli
+../../lib/cow/json.mli

@@ -243,8 +243,6 @@ let _ = dispatch begin function
      flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"];
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
 
-     dep ["pa_lwt"] ["std/syntax/pa_lwt.cma"];
-
      (* for building syntax extensions *)
      flag ["ocaml"; "ocamldep"; "camlp4o_syntax"] & camlp4_pp `orig;
      flag ["ocaml"; "compile"; "camlp4o_syntax"] & camlp4_pp `orig;
@@ -252,9 +250,10 @@ let _ = dispatch begin function
      flag ["ocaml"; "compile"; "camlp4_syntax"] & camlp4_pp `rev; 
 
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
+     let p4_build = "../../../syntax/_build" in
      List.iter (fun lib ->
-      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" "std/syntax" lib)];
-      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" "std/syntax" lib)];
+      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
+      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
      ) [ "lwt"; "ulex" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)

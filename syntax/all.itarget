@@ -2,3 +2,7 @@ pa_lwt.cma
 pa_ulex.cma
 pa_type_conv.cma
 pa_dyntype.cma
+pa_cow.cma
+pa_css.cma
+pa_xml.cma
+pa_html.cma

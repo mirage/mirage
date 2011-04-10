@@ -1,1 +1,1 @@
-../lib/dyntype/lib/dyntype.ml
+../lib/dyntype/dyntype.ml

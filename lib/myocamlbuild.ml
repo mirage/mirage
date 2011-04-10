@@ -218,7 +218,7 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
-let otherlibs = ["http";"dns"]
+let otherlibs = ["http";"dns"; "dyntype"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->

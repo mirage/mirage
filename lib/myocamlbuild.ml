@@ -218,6 +218,14 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std/lib" / "net." ^ f)) libexts)
    )
 
+let otherlibs = ["http";"dns"]
+(* Copy over independent modules *)
+let () =
+  List.iter (fun lib ->
+    rule ~prods:(libbits "std/lib" lib) ~deps:(libbits lib lib) (lib ^ " lib")
+      (fun env _ -> Seq (List.map (fun f -> cp (lib / lib ^ "." ^ f) ("std/lib" / lib ^ "." ^ f)) libexts))
+  ) otherlibs     
+
 let camlp4_pp mode =
   let camlp4_dir = P (Lazy.force stdlib_dir ^ "/camlp4") in
   let exp =

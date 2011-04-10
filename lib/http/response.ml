@@ -26,7 +26,7 @@ open Constants
 open Common
 open Printf
 open Lwt
-open Nettypes
+open Net.Nettypes
 
 type response = {
   r_msg: Message.message;

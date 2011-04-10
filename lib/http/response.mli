@@ -1,4 +1,4 @@
-open Nettypes
+open Net.Nettypes
 
 type response
 val init :

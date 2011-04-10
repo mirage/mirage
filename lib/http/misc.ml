@@ -24,7 +24,7 @@ open Printf
 open Lwt
 
 open Types
-open Nettypes
+open Net.Nettypes
 
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; 
    							"Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]

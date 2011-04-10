@@ -3,7 +3,7 @@
 JOBS ?= -j 4
 
 all:
-	ocamlbuild $(JOBS) std/lib/all.otarget
+	ocamlbuild $(JOBS) std/all.otarget
 
 clean:
 	ocamlbuild -clean

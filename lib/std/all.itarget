@@ -52,3 +52,7 @@ lwt_switch.cmx
 oS.cmx
 dns.cmx
 http.cmx
+utf8.cmx
+utf16.cmx
+ulexing.cmx
+

@@ -202,52 +202,35 @@ let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
 (* Compile the right OS module *)
 let () = rule
-  ~prods:(libbits "std/lib" "oS")
+  ~prods:(libbits "std" "oS")
   ~deps:(libbits ("os" / os) "oS")
    "OS link"
    (fun env builder ->
-     Seq (List.map (fun f -> cp ("os" / os / "oS." ^ f) ("std/lib" / "oS." ^ f)) libexts)
+     Seq (List.map (fun f -> cp ("os" / os / "oS." ^ f) ("std" / "oS." ^ f)) libexts)
    )
 
 (* Compile the right Net module *)
 let () = rule
-  ~prods:(libbits "std/lib" "net")
+  ~prods:(libbits "std" "net")
   ~deps:(libbits ("net" / flow) "net")
    "Net link"
    (fun env builder ->
-     Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std/lib" / "net." ^ f)) libexts)
+     Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
 let otherlibs = ["http";"dns"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->
-    rule ~prods:(libbits "std/lib" lib) ~deps:(libbits lib lib) (lib ^ " lib")
-      (fun env _ -> Seq (List.map (fun f -> cp (lib / lib ^ "." ^ f) ("std/lib" / lib ^ "." ^ f)) libexts))
+    rule ~prods:(libbits "std" lib) ~deps:(libbits lib lib) (lib ^ " lib")
+      (fun env _ -> Seq (List.map (fun f -> cp (lib / lib ^ "." ^ f) ("std" / lib ^ "." ^ f)) libexts))
   ) otherlibs     
-
-let camlp4_pp mode =
-  let camlp4_dir = P (Lazy.force stdlib_dir ^ "/camlp4") in
-  let exp =
-    match mode with
-    |`orig -> A "Camlp4OCamlOriginalQuotationExpander"
-    |`rev -> A "Camlp4OCamlRevisedQuotationExpander" in
-  S [ A"-pp"; Quote (S [A"camlp4"; A"-I"; camlp4_dir;
-      A"-parser"; A"o"; A"-parser"; A"op"; A"-printer"; A"p";
-      A"-parser"; A"Camlp4GrammarParser"; A"-parser"; A"Camlp4QuotationCommon";
-      A"-parser"; exp ]); A"-I"; camlp4_dir ]
 
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)
      flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"];
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
-
-     (* for building syntax extensions *)
-     flag ["ocaml"; "ocamldep"; "camlp4o_syntax"] & camlp4_pp `orig;
-     flag ["ocaml"; "compile"; "camlp4o_syntax"] & camlp4_pp `orig;
-     flag ["ocaml"; "ocamldep"; "camlp4_syntax"] & camlp4_pp `rev; 
-     flag ["ocaml"; "compile"; "camlp4_syntax"] & camlp4_pp `rev; 
 
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
@@ -257,7 +240,7 @@ let _ = dispatch begin function
      ) [ "lwt"; "ulex" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)
-     dep ["ocaml"; "compile"; "need_pervasives"] ["std/lib/pervasives.cmi"];
+     dep ["ocaml"; "compile"; "need_pervasives"] ["std/pervasives.cmi"];
 
      (* For re-packing libraries (ocamlbuild doesnt pick up for-pack in a pack target) *)
      pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);

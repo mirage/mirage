@@ -1,3 +1,0 @@
-true: use_mirage_stdlib,pa_cow
-"twitter.ml": pa_lwt,use_http
-<*.cmx>: for-pack(Cow)

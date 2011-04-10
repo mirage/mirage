@@ -1,4 +1,3 @@
-<**/*.cmx> and not "mpl.cmx": for-pack(Net.Mpl)
-<*.ml>: use_stdlib
+true: mirage
 <**/*.ml>: warn_y
-"mpl.cmx": for-pack(Net)
+"mpl.cmx": for-repack(Net)

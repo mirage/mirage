@@ -26,6 +26,7 @@
  *)
 
 open Lwt
+open Printf
 
 (* Allocate a new grant entry and initialise a ring using it *)
 let alloc fn domid =
@@ -86,24 +87,25 @@ module Bounded_ring (Ring:RING) = struct
   let rec push t ~evtchn reqfns =
     let free_reqs = Queue.length t.free_list in
     let num_reqs = List.length reqfns in
-    if num_reqs = 0 then
-      return []
+    if num_reqs < 1 then
+      return ()
     else begin
-      if free_reqs > num_reqs then begin
+      if free_reqs >= num_reqs then begin
         (* Get a list of threads and wakeners for them *)
-        let reqs, resps_t = List.split (List.map 
-          (fun reqfn ->
-            let id = Queue.pop t.free_list in
-            let req = reqfn id in
-            let th, u = Lwt.task () in
-            t.response_waiters.(id) <- Some u;
-            req, th
-          ) reqfns) in
+        let reqs, res_t = List.split (List.map (fun reqfn ->
+          let id = Queue.pop t.free_list in
+          let req, resfn = reqfn id in
+          let th, u = Lwt.task () in
+          let res_t =
+            lwt res = th in 
+            resfn res in
+          t.response_waiters.(id) <- Some u;
+          req, res_t
+        ) reqfns) in
         (* Write to ring and notify if needed *)
         if Ring.write t.fring reqs then
           Evtchn.notify evtchn;
-        (* Return the wakeners for the request *)
-        return resps_t
+        join res_t
       end else begin
         (* Too many requests, so wait for some slots to free up *)
         (* TODO: chunk the requests to fit whatever can go now *)
@@ -123,7 +125,7 @@ module Bounded_ring (Ring:RING) = struct
       let req = reqfn id in
       t.response_waiters.(id) <- Some u;
       if Ring.write t.fring [req] then
-        Evtchn.notify evtchn;
+        ();
       th
     end else begin
       let th, u = Lwt.task () in

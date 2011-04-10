@@ -1,23 +1,20 @@
-.PHONY: all
+.PHONY: all unix clean
 
-all:
-	cd std && $(MAKE)
-	cd os && $(MAKE)
-	cd net && $(MAKE)
-	cd block && $(MAKE)
-	cd dns && $(MAKE)
-	cd dyntype && $(MAKE)
-	cd http && $(MAKE)
-	cd cow && $(MAKE)
-#	cd debugger && $(MAKE)
+JOBS ?= -j 4
+
+all: unix-direct unix-socket
+
+unix-direct:
+	@mkdir -p _build
+	@env MIRAGEOS=unix MIRAGEFLOW=direct ocamlbuild $(JOBS) unix.otarget
+
+unix-socket:
+	@mkdir -p _build
+	@env MIRAGEOS=unix MIRAGEFLOW=socket ocamlbuild $(JOBS) unix.otarget
+
+xen-direct:
+	@mkdir -p _build
+	@env MIRAGEOS=unix MIRAGEFLOW=direct ocamlbuild $(JOBS) xen.otarget
 
 clean:
-	cd std && $(MAKE) clean
-	cd os && $(MAKE) clean
-	cd net && $(MAKE) clean
-	cd block && $(MAKE) clean
-	cd dns && $(MAKE) clean
-	cd dyntype && $(MAKE) clean
-	cd http && $(MAKE) clean
-	cd cow && $(MAKE) clean
-#	cd debugger && $(MAKE) clean
+	@ocamlbuild -clean

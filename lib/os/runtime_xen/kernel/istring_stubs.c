@@ -16,6 +16,8 @@
 
 #include <mini-os/x86/os.h>
 #include <mini-os/mm.h>
+#include <sys/endian.h>
+
 
 #include <caml/mlvalues.h>
 #include "istring.h"
@@ -36,7 +38,7 @@ istring_finalize(value v_istring)
     pool_pos++;
     pool[pool_pos] = i->buf;
   } else {
-    free(i->buf);
+    free_page(i->buf);
   }
   i->buf = NULL;
   Istring_val(v_istring) = NULL;
@@ -68,7 +70,8 @@ caml_istring_alloc_page(value v_unit)
     page = pool[pool_pos];
     pool_pos--;
   } else {
-    page = (unsigned char *)caml_stat_alloc(4096);
+    page = (unsigned char *)alloc_page();
+    ASSERT(page != NULL);
   }
   v_istr = istring_alloc(page, 4096);
   CAMLreturn(v_istr);
@@ -193,8 +196,7 @@ caml_istring_get_uint16_be(value v_istr, value v_off)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  uint16_t r = ((uint16_t)*(i->buf+off+0) << 8) +
-                ((uint16_t)*(i->buf+off+1) << 0);
+  uint16_t r = __ntohs(*((uint16_t *)(i->buf+off)));
   return Val_int(r);
 }
 
@@ -204,12 +206,10 @@ caml_istring_set_uint16_be(value v_istr, value v_off, value v_val)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  uint16_t v = (uint16_t)Int_val(v_val);
   if (i->size < off+2)
     caml_array_bound_error();
-  unsigned char *p = i->buf + off;
-  p[0] = (v >> 8) & 255;
-  p[1] = v & 255;
+  uint16_t *p = (uint16_t *)(i->buf + off);
+  p[0] = __htons(Int_val(v_val));
   return Val_unit;
 }
 
@@ -219,14 +219,10 @@ caml_istring_set_uint32_be(value v_istr, value v_off, value v_val)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  uint32_t v = Int32_val(v_val);
   if (i->size < off+4)
     caml_array_bound_error();
-  unsigned char *p = i->buf + off;
-  p[0] = (v >> 24) & 255;
-  p[1] = (v >> 16) & 255;
-  p[2] = (v >> 8) & 255;
-  p[3] = v & 255;
+  uint32_t *p = (uint32_t *)(i->buf + off);
+  p[0] = __htonl(Int32_val(v_val));
   return Val_unit;
 }
 
@@ -236,18 +232,10 @@ caml_istring_set_uint64_be(value v_istr, value v_off, value v_val)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  uint64_t v = Int64_val(v_val);
   if (i->size < off+8)
     caml_array_bound_error();
-  unsigned char *p = i->buf + off;
-  p[0] = (v >> 56) & 255;
-  p[1] = (v >> 48) & 255;
-  p[2] = (v >> 40) & 255;
-  p[3] = (v >> 32) & 255;
-  p[4] = (v >> 24) & 255;
-  p[5] = (v >> 16) & 255;
-  p[6] = (v >> 8) & 255;
-  p[7] = v & 255;
+  uint64_t *p = (uint64_t *)(i->buf + off);
+  p[0] = __htonll(Int64_val(v_val));
   return Val_unit;
 }
 
@@ -257,11 +245,8 @@ caml_istring_get_uint32_be(value v_istr, value v_off)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  uint32_t r = ((uint32_t)*(i->buf+off+0) << 24) +
-                ((uint32_t)*(i->buf+off+1) << 16) +
-                ((uint32_t)*(i->buf+off+2) <<  8) +
-                ((uint32_t)*(i->buf+off+3) <<  0);
-  return caml_copy_int32(r);
+  uint32_t p = *((uint32_t *)(i->buf + off));
+  return caml_copy_int32(__htonl(p));
 }
 
 /* Get a uint64_t from an istring. big endian.
@@ -271,16 +256,8 @@ caml_istring_get_uint64_be(value v_istr, value v_off)
 {
   istring *i = Istring_val(v_istr);
   int off = Int_val(v_off);
-  uint32_t a = ((uint32_t)*(i->buf+off+0) << 24) +
-                ((uint32_t)*(i->buf+off+1) << 16) +
-                ((uint32_t)*(i->buf+off+2) <<  8) +
-                ((uint32_t)*(i->buf+off+3) <<  0);
-  uint32_t b = ((uint32_t)*(i->buf+off+4) << 24) +
-                ((uint32_t)*(i->buf+off+5) << 16) +
-                ((uint32_t)*(i->buf+off+6) <<  8) +
-                ((uint32_t)*(i->buf+off+7) <<  0);
-  uint64_t c = ((uint64_t)a << 32) + b;
-  return caml_copy_int64(c);
+  uint64_t p = *((uint64_t *)(i->buf + off));
+  return caml_copy_int64(__htonll(p));
 }
 
 CAMLprim value

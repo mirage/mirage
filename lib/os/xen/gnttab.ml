@@ -102,7 +102,17 @@ let with_grant ~domid ~perm fn =
     put_free_entry gnt;
     fail exn
   end
- 
+
+let get_n ~domid ~perm num =
+  let rec gen_gnts num acc =
+    match num with
+    |0 -> return acc
+    |n -> 
+      lwt gnt = get_free_entry () in
+      grant_access ~domid ~perm gnt;
+      gen_gnts (n-1) (gnt :: acc)
+  in gen_gnts num []
+
 let with_grants ~domid ~perm num fn =
   let rec gen_gnts num acc =
     match num with

@@ -1,4 +1,4 @@
-open Nettypes
+open Net.Nettypes
 
 type request
 val init_request : unit Lwt.u -> (unit -> string Lwt.t) -> request Lwt.t

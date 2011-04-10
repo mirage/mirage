@@ -1,5 +1,0 @@
-<pervasives.*>: nopervasives
-<*> and not <pervasives.*>: need_pervasives
-<*>: nostdlib, annot
-<lwt_*.ml>: pa_lwt
-"ulexing.ml": pa_ulex

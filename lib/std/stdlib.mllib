@@ -50,6 +50,7 @@ lwt_condition
 lwt_pqueue
 lwt_switch
 oS
+net
 dns
 http
 utf8

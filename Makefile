@@ -26,6 +26,7 @@ endif
 WITH_UNIX ?= y
 
 all: tools
+	cd syntax && $(MAKE)
 	cd lib && $(MAKE)
 
 tools:
@@ -38,5 +39,6 @@ install:
 	cp -r _build/* $(PREFIX)/
 
 clean:
+	@cd syntax && $(MAKE) clean
 	@cd tools && $(MAKE) clean
 	@cd lib && $(MAKE) clean

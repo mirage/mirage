@@ -26,17 +26,17 @@ endif
 WITH_UNIX ?= y
 
 all: tools
-	cd syntax && $(MAKE)
-	cd lib && $(MAKE)
+	@cd syntax && $(MAKE)
+	@cd lib && $(MAKE)
 
 tools:
-	@cd tools && $(MAKE) tools
+	@cd tools && $(MAKE)
 
 install:
-	rm -rf _build
-	./assemble.sh
-	mkdir -p $(PREFIX)
-	cp -r _build/* $(PREFIX)/
+	@rm -rf _build
+	@./assemble.sh
+	@mkdir -p $(PREFIX)
+	@cp -r _build/* $(PREFIX)/
 
 clean:
 	@cd syntax && $(MAKE) clean

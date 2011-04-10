@@ -3,7 +3,7 @@
 JOBS ?= -j 4
 
 all:
-	ocamlbuild $(JOBS) -use-ocamlfind all.otarget
+	@ocamlbuild $(JOBS) -use-ocamlfind all.otarget
 
 clean:
-	ocamlbuild -clean
+	@ocamlbuild -clean

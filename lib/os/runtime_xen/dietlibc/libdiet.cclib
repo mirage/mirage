@@ -7,11 +7,11 @@ lib/bsearch.o
 lib/btowc.o
 lib/cfmakeraw.o
 lib/div.o
-lib/__dtostr.o
+lib/dtostr.o
 lib/errlistu.o
 lib/errno_location.o
 lib/ffs.o
-lib/__finite.o
+lib/finite.o
 lib/isalnum.o
 lib/isalpha.o
 lib/isascii.o
@@ -42,10 +42,10 @@ lib/lc_ctype.o
 lib/ldiv.o
 lib/llabs.o
 lib/lldiv.o
-lib/__lltostr.o
+lib/lltostr.o
 lib/longjmp.o
 lib/lseek64.o
-lib/__ltostr.o
+lib/ltostr.o
 lib/mblen.o
 lib/mbrlen.o
 lib/mbrtowc.o
@@ -69,7 +69,7 @@ lib/rand_r.o
 lib/snprintf.o
 lib/sprintf.o
 lib/sscanf.o
-lib/__stime.o
+lib/stime.o
 lib/strcasecmp.o
 lib/strcat.o
 lib/strchr.o
@@ -105,8 +105,8 @@ lib/tolower.o
 lib/toupper.o
 lib/towlower.o
 lib/towupper.o
-lib/__v_printf.o
-lib/__v_scanf.o
+lib/v_printf.o
+lib/v_scanf.o
 lib/vsnprintf.o
 lib/vsprintf.o
 lib/vsscanf.o

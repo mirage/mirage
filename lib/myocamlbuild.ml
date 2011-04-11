@@ -111,8 +111,8 @@ module CC = struct
       let cmd = ps "LANG=C %s -print-search-dirs | sed -n -e 's/install: \\(.*\\)/\\1/p'" cc in
       Util.run_and_read cmd in
     (* root dir of xen bits *)
-    let rootdir = ps "os/%s/runtime_xen" Pathname.pwd in
-    let root_incdir = ps "os/%s/include" rootdir in
+    let rootdir = ps "%s/os/runtime_xen" Pathname.pwd in
+    let root_incdir = ps "%s/include" rootdir in
     (* Basic cflags *)
     let all_cflags = List.map (fun x -> A x)
       [ "-U"; "__linux__"; "-U"; "__FreeBSD__";
@@ -132,19 +132,19 @@ module CC = struct
 
   (* The private libm include dir *)
   let libm_incs =
-    [ A (ps "-Ios/%s/runtime_xen/libm" Pathname.pwd) ]
+    [ A (ps "-I%s/os/runtime_xen/libm" Pathname.pwd) ]
 
   (* defines used by the ocaml runtime, as well as includes *)
   let ocaml_debug_inc = if debug then [A "-DDEBUG"] else []
   let ocaml_incs = [
     A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen";
-    A (ps "-Ios/%s/runtime_xen/ocaml" Pathname.pwd) ] @ ocaml_debug_inc
+    A (ps "-I%s/os/runtime_xen/ocaml" Pathname.pwd) ] @ ocaml_debug_inc
 
   (* dietlibc bits, mostly extra warnings *)
   let dietlibc_incs = [
     A "-Wextra"; A "-Wchar-subscripts"; A "-Wmissing-prototypes";
     A "-Wmissing-declarations"; A "-Wno-switch"; A "-Wno-unused"; A "-Wredundant-decls"; A "-D__dietlibc__";
-    A (ps "-Ios/%s/runtime_xen/dietlibc" Pathname.pwd)
+    A (ps "-I%s/os/runtime_xen/dietlibc" Pathname.pwd)
   ]
 
   let cc_cflags = List.map (fun x -> A x) !cflags

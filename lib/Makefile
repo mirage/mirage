@@ -15,7 +15,7 @@ unix-socket:
 
 xen-direct:
 	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=direct ocamlbuild $(JOBS) xen.otarget
+	@env MIRAGEOS=xen MIRAGEFLOW=direct ocamlbuild $(JOBS) xen.otarget
 
 clean:
 	@ocamlbuild -clean

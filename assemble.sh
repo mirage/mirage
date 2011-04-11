@@ -18,22 +18,15 @@ ROOT=`pwd`
 BUILDDIR=${ROOT}/_build
 
 function assemble_xen {
-  if [ -d ${ROOT}/lib/os/_build/xen ]; then
+  if [ -d ${ROOT}/lib/_build/xen-direct ]; then
     echo Assembling: Xen
     OBJ=${BUILDDIR}/xen-direct
     mkdir -p ${OBJ}/lib ${OBJ}/syntax
-    cp ${ROOT}/lib/std/_build/lib/*.{cmi,cmxa,a} ${OBJ}/lib/
-    cp ${ROOT}/lib/os/_build/xen/oS.{cmi,cmxa,a} ${OBJ}/lib/
     for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
-      cp ${ROOT}/lib/os/_build/runtime_xen/$i ${OBJ}/lib/
+      cp ${ROOT}/lib/_build/xen-direct/os/runtime_xen/$i ${OBJ}/lib/
     done
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
-    cp ${ROOT}/lib/net/direct/_build/xen/net.{cmi,cmxa,a} ${OBJ}/lib/
-    cp ${ROOT}/lib/block/direct/_build/xen/block.{cmi,cmxa,a} ${OBJ}/lib/
-    for i in dns http; do
-      cp ${ROOT}/lib/$i/_build/xen-direct/$i.{cmi,cmxa,a} ${OBJ}/lib/;
-    done
-    cp ${ROOT}/lib/cow/_build/xen-direct/lib/cow.{cmi,cmxa,a} ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/xen-direct/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
   else
     echo Skipping: Xen
   fi
@@ -92,7 +85,7 @@ function assemble_scripts {
 }
 
 assemble_syntax
-#assemble_xen
+assemble_xen
 assemble_unix "direct"
 assemble_unix "socket"
 #assemble_node

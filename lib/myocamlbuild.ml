@@ -30,11 +30,11 @@ let flow =
 
 let _ =
   let subdir = match os,flow with
-  |"unix","socket" -> "unix-socket"
-  |"unix","direct" -> "unix-direct"
-  |"xen" ,"direct" -> "xen-direct"
-  |"node","socket" -> "node-socket"
-  |_ -> ep "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
+  | "unix","socket" -> "unix-socket"
+  | "unix","direct" -> "unix-direct"
+  | "xen" ,"direct" -> "xen-direct"
+  | "node","socket" -> "node-socket"
+  | _ -> ep "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
   Options.build_dir := "_build/" ^ subdir
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
@@ -66,8 +66,8 @@ module OS = struct
     | os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
 
   let unix_ext = match host with
-    |Unix Linux -> "linux"
-    |Unix Darwin -> "macosx"
+    | Unix Linux  -> "linux"
+    | Unix Darwin -> "macosx"
     | _ -> Printf.eprintf "unix_ext called on a non-UNIX host OS\n"; exit (-1)
 
   let target = match String.lowercase os with
@@ -197,7 +197,11 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
   ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
-let libexts = (match OS.target with |OS.Node ->  "cmo" |OS.Xen |OS.Unix _ -> "cmx") :: ["cmi";"a";"o"]
+let libexts = match OS.target with
+  | OS.Node  -> ["cmo"; "cmi" ]
+  | OS.Xen
+  |OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
+
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
 (* Compile the right OS module *)
@@ -240,7 +244,7 @@ let _ = dispatch begin function
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-     ) [ "lwt"; "ulex"];
+     ) [ "lwt"; "ulex"; "js" ];
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];

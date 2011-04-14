@@ -7,6 +7,11 @@ BUCKET=mirage-apps
 MNT=/mnt/mirage
 SUDO=sudo
 
+if [ ! -e "$1" ]; then
+  echo Usage: $0 kernel.xen
+  exit 1
+fi
+
 ${SUDO} mkdir -p /mnt/mirage
 rm -f ${IMG}
 dd if=/dev/zero of=${IMG} bs=1M count=5
@@ -21,7 +26,7 @@ echo " root (hd0)" >> menu.lst
 echo " kernel /boot/mirage-os.gz" >> menu.lst
 ${SUDO} mv menu.lst ${MNT}/boot/grub/menu.lst
 
-${SUDO} cp mirage-os.gz ${MNT}/boot/mirage-os.gz
+${SUDO} gzip $1 > ${MNT}/boot/mirage-os.gz
 ${SUDO} umount -d ${MNT}
 
 rm -rf ec2_tmp

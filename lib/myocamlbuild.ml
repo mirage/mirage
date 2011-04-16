@@ -240,10 +240,12 @@ let _ = dispatch begin function
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
+      flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
      ) [ "lwt"; "ulex"];
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+      flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
      ) ["cow"; "css"; "html"; "xml" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)

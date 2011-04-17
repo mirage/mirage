@@ -3,3 +3,4 @@
 <pp_ulex.*>: package(camlp4.quotations), package(camlp4.extend)
 <pa_type_conv.*>: package(camlp4.quotations), package(camlp4.extend)
 <pa_dyntype.*>: package(camlp4.quotations), package(camlp4.extend)
+<pa_js.*>: package(camlp4.quotations), package(camlp4.extend)

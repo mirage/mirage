@@ -16,4 +16,6 @@
 
 (* Listening thread that parses the zonebuf (in BIND zonefile format)
    and replies to clients on the specified Flow *)
-val listen : Net.Datagram.UDPv4.mgr -> Net.Datagram.UDPv4.src -> zonebuf:string -> unit Lwt.t
+val listen : ?mode:[< `leaky | `none > `none ] -> zonebuf:string ->
+  Net.Datagram.UDPv4.mgr ->
+  Net.Datagram.UDPv4.src -> unit Lwt.t

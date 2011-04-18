@@ -45,8 +45,8 @@ let rec watchdog () =
 
 let main () =
   lwt mgr, mgr_t = Net.Manager.create () in
-  let th = Dns.Server.listen mgr (None, 53) zonebuf in
-  th
+  let mode = `leaky in
+  Dns.Server.listen ~mode ~zonebuf mgr (None, 53)
 
 let _ = OS.Main.run (main ())
 

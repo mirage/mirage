@@ -132,8 +132,9 @@ let start_discovery t =
     (`Host_name "miragevm")
   ] } in
   Printf.printf "DHCP: start discovery\n%!";
+  t.state <- Request_sent xid;
   output_broadcast t ~xid ~yiaddr ~siaddr ~options >>
-  return (t.state <- Request_sent xid)
+  return ()
 
 (* DHCP state thred *)
 let rec dhcp_thread t =

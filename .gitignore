@@ -11,5 +11,4 @@ tests/*/*/myocamlbuild.ml
 /screenlog.*
 tools/crunch/crunch.native
 tools/mpl/mplc.native
-lib/os/runtime_node/dummy_stubs.c
 

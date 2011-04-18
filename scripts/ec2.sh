@@ -26,7 +26,7 @@ echo " root (hd0)" >> menu.lst
 echo " kernel /boot/mirage-os.gz" >> menu.lst
 ${SUDO} mv menu.lst ${MNT}/boot/grub/menu.lst
 
-${SUDO} gzip $1 > ${MNT}/boot/mirage-os.gz
+${SUDO} gzip -c $1 > ${MNT}/boot/mirage-os.gz
 ${SUDO} umount -d ${MNT}
 
 rm -rf ec2_tmp

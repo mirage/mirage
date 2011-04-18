@@ -57,9 +57,7 @@ let to_string t =
   sprintf "{ tx=%s rx=%s }" (chan_to_string t.tx) (chan_to_string t.rx)
 
 let tick_rx t (i:i) =
-  t.rx <- tick t.rx i;
-  printf "TCP_STATE: tick_rx: %s -> %s\n%!" (i_to_string i) (to_string t)
+  t.rx <- tick t.rx i
 
 let tick_tx t (i:i) =
-  t.tx <- tick t.tx i;
-  printf "TCP_STATE: tick_tx: %s -> %s\n%!" (i_to_string i) (to_string t)
+  t.tx <- tick t.tx i

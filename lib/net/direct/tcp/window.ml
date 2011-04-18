@@ -80,8 +80,6 @@ let tx_advance t b =
 let tx_ack t r =
   if Sequence.gt r t.snd_una then begin
     t.snd_una <- r;
-    printf "TCP: ACK, snd.una=%lu snd.nxt=%lu\n%!"
-      (Sequence.to_int32 t.snd_una) (Sequence.to_int32 t.tx_nxt);
   end
 
 let tx_nxt t = t.tx_nxt 

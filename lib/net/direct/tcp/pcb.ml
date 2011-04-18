@@ -100,8 +100,6 @@ module Tx = struct
 
   (* Output an RST when we dont have a PCB *)
   let rst_no_pcb ~seq ~rx_ack t id = 
-    printf "TCP: transmit RST no pcb -> %s:%d\n%!"
-      (ipv4_addr_to_string id.dest_ip) id.dest_port;
     let window = 0 in
     let options = [] in
     let data = `None in
@@ -128,7 +126,6 @@ module Tx = struct
     let rec send_empty_ack () =
       lwt ack_number = Lwt_mvar.take send_ack in
       let flags = Segment.Tx.No_flags in
-      printf "TCP.Tx.ack_thread: sending empty ACK\n%!";
       let options = [] in
       xmit_pcb t.ip pcb.id ~flags ~wnd ~options `None >>
       Ack.Delayed.transmit ack ack_number >>

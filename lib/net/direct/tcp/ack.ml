@@ -71,7 +71,6 @@ module Delayed : M = struct
       timer r
     |Rx seq ->
       (* Start the delayed ACK timer *)
-      printf "ACK delayed timer started \n%!";
       (* Delay thread that transmits after 200ms *)
       let max_time = 0.2 in
       let delay =

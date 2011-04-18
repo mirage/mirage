@@ -89,7 +89,6 @@ module Rx = struct
        window *)
     match Window.valid q.wnd (seq seg) with
     |false ->
-      printf "TCP: rx invalid sequence, discarding\n%!";
       return ()
     |true -> begin
       (* Insert the latest segment *)
@@ -100,7 +99,6 @@ module Rx = struct
         |(-1) ->
            (* Sequence number is in the past, probably an overlapping
               segment. Drop it for now, but TODO segment coalescing *)
-           printf "TCP: segment in past %s\n%!" (Sequence.to_string (seq seg));
            acc
         |0 ->
            (* This is the next segment, so put it into the ready set
@@ -183,18 +181,15 @@ module Tx = struct
       (OS.Istring.length seg.view)
 
   let ack_segment q seg =
-    printf "Tcp_segment.Tx.ack_segment: %s\n%!" (to_string seg);
     (* Take any action to the user transmit queue due to this being successfully
        ACKed *)
     ()
 
   let rto_t q tx_ack =
-    printf "Tcp_segment.Tx.rto_thread: start\n%!";
     (* Mutex for q.segs *)
     (* Listener thread for segments to hold for retransmission or ACK *)
     let rec rto_queue_t () =
       lwt seg = Lwt_mvar.take q.rto in
-      printf "Tcp_segment.Tx.rto_queue: received seg\n%!";
       let _ = Lwt_sequence.add_r seg q.segs in
       (* TODO: kick the timer thread for retransmit *)
       rto_queue_t ()
@@ -203,7 +198,6 @@ module Tx = struct
        segments in our retransmission queue *)
     let rec tx_ack_t () =
       lwt seq_l = Lwt_mvar.take tx_ack in
-      printf "Tcp_segment.Tx.tx_ack_t: received TX ack\n%!";
       (* Iterate through all the active segments, marking the ACK *)
       let ack_len = ref (Sequence.sub seq_l (Window.tx_una q.wnd)) in
       Lwt_sequence.iter_node_l (fun node ->
@@ -216,12 +210,9 @@ module Tx = struct
             (* This segment is now fully ack'ed *)
             Lwt_sequence.remove node;
             ack_segment q seg;
-            printf "Tcp_segment.Tx: full ack seg len %d\n%!" (Sequence.to_int seg_len);
             ack_len := Sequence.sub !ack_len seg_len
           end else begin
             (* TODO: support partial ack *)
-            printf "Tcp_segment.Tx. partial ack not yet supported (%d/%d)\n%!"
-              (Sequence.to_int !ack_len) (Sequence.to_int seg_len);
            ack_len := Sequence.of_int32 0l
           end
       ) q.segs;
@@ -253,7 +244,6 @@ module Tx = struct
     Lwt_mvar.put q.rx_ack ack >>
     (* Queue up segment just sent for retransmission if needed *)
     let seg = { view; flags } in
-    printf "TCP_segment.Tx.queue: sent segment %s\n%!" (to_string seg);
     let seq_len = len seg in
     if seq_len > 0 then begin
       Window.tx_advance q.wnd seq_len;

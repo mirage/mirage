@@ -23,6 +23,8 @@ open Nettypes
    which compiles in the correct set of options based on user choice *)
 
 (* Just use DHCP for the interface *)
+let t id =
+  `DHCP 
 
 (* Static IPv4 address *)
 let t id =
@@ -31,6 +33,3 @@ let t id =
     ipv4_addr_of_tuple (255,255,255,0),
     [ ipv4_addr_of_tuple (10,0,0,1) ]
   )
-
-let t id =
-  `DHCP 

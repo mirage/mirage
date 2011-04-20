@@ -117,6 +117,15 @@
     The construction [try_lwt <expr>] just catch regular exception
     into lwt exception. i.e. it is the same as [catch (fun _ -> <expr>) fail].
 
+    - exception raising:
+
+      {[
+        raise_lwt <expr>
+      ]}
+
+      This allow exception to be traced when the -lwt-debug switch is passed
+      to the syntax extension.
+
     - for loop:
 
       {[
@@ -139,5 +148,22 @@
         for_lwt <patt> in <expr> do
           <expr>
         done
+      ]}
+
+    - while loop:
+
+      {[
+        while_lwt <expr> do
+          <expr>
+        done
+      ]}
+
+    - pattern mattching:
+
+      {[
+        match_lwt <expr> with
+          | <patt_1> -> <expr_1>
+          ...
+          | <patt_n> -> <expr_n>
       ]}
 *)

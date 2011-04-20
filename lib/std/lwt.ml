@@ -343,9 +343,10 @@ let add_removable_waiter sleeper waiter =
 let on_cancel t f =
   match (repr t).state with
     | Sleep sleeper ->
+        let data = !current_data in
         add_immutable_waiter sleeper
           (function
-             | Fail Canceled -> (try f () with _ -> ())
+             | Fail Canceled -> current_data := data; (try f () with _ -> ())
              | _ -> ())
     | Fail Canceled ->
         f ()
@@ -367,6 +368,22 @@ let bind t f =
              | Fail exn -> fast_connect res (Fail exn)
              | _ -> assert false);
         res
+    | Repr _ ->
+        assert false
+
+let on_success t f =
+  match (repr t).state with
+    | Return v ->
+        f v
+    | Fail exn ->
+        raise exn
+    | Sleep sleeper ->
+        let data = !current_data in
+        add_immutable_waiter sleeper
+          (function
+             | Return v -> current_data := data; f v
+             | Fail exn -> raise exn
+             | _ -> assert false)
     | Repr _ ->
         assert false
 
@@ -410,6 +427,22 @@ let catch x f =
              | Fail exn -> current_data := data; connect res (try f exn with exn -> fail exn)
              | _ -> assert false);
         res
+    | Repr _ ->
+        assert false
+
+let on_failure t f =
+  match (repr t).state with
+    | Return v ->
+        ()
+    | Fail exn ->
+        f exn
+    | Sleep sleeper ->
+        let data = !current_data in
+        add_immutable_waiter sleeper
+          (function
+             | Return v -> ()
+             | Fail exn -> current_data := data; f exn
+             | _ -> assert false)
     | Repr _ ->
         assert false
 
@@ -514,8 +547,8 @@ let choose l =
       thread { state = nth_ready l (Random.int ready) }
   else begin
     let res = temp (ref (fun () -> List.iter cancel l)) in
-    let rec waiter = ref (Some handle_result)
-    and handle_result state =
+    let waiter = ref None in
+    let handle_result state =
       (* Disable the waiter now: *)
       waiter := None;
       (* Removes all waiters so we do not leak memory: *)
@@ -524,6 +557,7 @@ let choose l =
          since all other waiters have been removed: *)
       fast_connect res state
     in
+    waiter := (Some handle_result);
     List.iter
       (fun t ->
          match (repr t).state with
@@ -593,6 +627,62 @@ let nchoose l =
               collect acc l
   in
   init l
+
+let rec nchoose_split_terminate res acc_terminated acc_sleeping = function
+  | [] ->
+      fast_connect res (Return(List.rev acc_terminated, List.rev acc_sleeping))
+  | t :: l ->
+      match (repr t).state with
+        | Return x ->
+            nchoose_split_terminate res (x :: acc_terminated) acc_sleeping l
+        | Fail e ->
+            fast_connect res (Fail e)
+        | _ ->
+            nchoose_split_terminate res acc_terminated (t :: acc_sleeping) l
+
+let nchoose_split_sleep l =
+  let res = temp (ref (fun () -> List.iter cancel l)) in
+  let rec waiter = ref (Some handle_result)
+  and handle_result state =
+    waiter := None;
+    remove_waiters l;
+    nchoose_split_terminate res [] [] l
+  in
+  List.iter
+    (fun t ->
+       match (repr t).state with
+         | Sleep sleeper ->
+             add_removable_waiter sleeper waiter;
+         | _ ->
+             assert false)
+    l;
+  res
+
+let nchoose_split l =
+  let rec init acc_sleeping = function
+    | [] ->
+        nchoose_split_sleep l
+    | t :: l ->
+        match (repr t).state with
+          | Return x ->
+              collect [x] acc_sleeping l
+          | Fail exn ->
+              fail exn
+          | _ ->
+              init (t :: acc_sleeping) l
+  and collect acc_terminated acc_sleeping = function
+    | [] ->
+        return (List.rev acc_terminated, acc_sleeping)
+    | t :: l ->
+        match (repr t).state with
+          | Return x ->
+              collect (x :: acc_terminated) acc_sleeping l
+          | Fail exn ->
+              fail exn
+          | _ ->
+              collect acc_terminated (t :: acc_sleeping) l
+  in
+  init [] l
 
 (* Return the nth ready thread, and cancel all others *)
 let rec cancel_and_nth_ready l n =
@@ -769,21 +859,30 @@ let with_value key value f =
    | Paused threads                                                  |
    +-----------------------------------------------------------------+ *)
 
+let pause_hook = ref ignore
+
 let paused = Lwt_sequence.create ()
+let paused_count = ref 0
 
 let pause () =
   let waiter, wakener = task () in
   let node = Lwt_sequence.add_r wakener paused in
   on_cancel waiter (fun () -> Lwt_sequence.remove node);
+  incr paused_count;
+  !pause_hook !paused_count;
   waiter
 
-let rec wakeup_paused () =
-  match Lwt_sequence.take_opt_l paused with
-    | None ->
-        ()
-    | Some wakener ->
-        wakeup wakener ();
-        wakeup_paused ()
+let wakeup_paused () =
+  if not (Lwt_sequence.is_empty paused) then begin
+    let tmp = Lwt_sequence.create () in
+    Lwt_sequence.transfer_r paused tmp;
+    paused_count := 0;
+    Lwt_sequence.iter_l (fun wakener -> wakeup wakener ()) tmp
+  end
+
+let register_pause_notifier f = pause_hook := f
+
+let paused_count () = !paused_count
 
 (* +-----------------------------------------------------------------+
    | Bakctrace support                                               |

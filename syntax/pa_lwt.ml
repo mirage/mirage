@@ -176,10 +176,26 @@ EXTEND Gram
               <:expr< Lwt.fail (try raise $e$ with exn -> exn) >>
             else
               <:expr< Lwt.fail $e$ >>
+
+        | "while_lwt"; cond = sequence; "do"; body = sequence; "done" ->
+            <:expr<
+              let rec __pa_lwt_loop () =
+                if $cond$ then
+                  Lwt.bind (begin $body$ end) __pa_lwt_loop
+                else
+                  Lwt.return ()
+              in
+              __pa_lwt_loop ()
+            >>
+
+        | "match_lwt"; e = sequence; "with"; c = match_case ->
+            <:expr<
+              Lwt.bind (begin $e$ end) (function $c$)
+            >>
         ] ];
 
     str_item:
-      [ [ "lwt"; l = letb_binding ->
+      [ [ "lwt"; l = letb_binding -> begin
             match l with
               | [(_loc, p, e)] ->
                   <:str_item<
@@ -193,6 +209,9 @@ EXTEND Gram
                         $gen_top_bind _loc l$
                       end
                   >>
+          end
+        | "lwt"; l = letb_binding; "in"; e = expr ->
+            <:str_item< let () = Lwt_main.run (let $gen_binding l$ in $gen_bind l e$) >>
         ] ];
 END
 

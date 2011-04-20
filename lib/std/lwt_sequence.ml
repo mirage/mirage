@@ -65,6 +65,19 @@ let create () =
 
 let is_empty seq = seq.next == seq
 
+let length seq =
+  let rec loop curr len =
+    if curr == seq then
+      len
+    else
+      let node = node_of_seq curr in
+      if node.node_active then
+        loop node.node_next (len + 1)
+      else
+        loop node.node_next len
+  in
+  loop seq.next 0
+
 let add_l data seq =
   let node = { node_prev = seq; node_next = seq.next; node_data = data; node_active = true } in
   seq.next.prev <- seq_of_node node;
@@ -95,22 +108,6 @@ let take_r seq =
     node.node_data
   end
 
-let peek_l seq =
-  if is_empty seq then
-    raise Empty
-  else begin
-    let node = node_of_seq seq.next in
-    node.node_data
-  end
-
-let peek_r seq =
-  if is_empty seq then
-    raise Empty
-  else begin
-    let node = node_of_seq seq.prev in
-    node.node_data
-  end
-
 let take_opt_l seq =
   if is_empty seq then
     None
@@ -126,22 +123,6 @@ let take_opt_r seq =
   else begin
     let node = node_of_seq seq.prev in
     remove node;
-    Some node.node_data
-  end
-
-let peek_opt_l seq =
-  if is_empty seq then
-    None
-  else begin
-   let node = node_of_seq seq.next in
-   Some node.node_data
-  end
-
-let peek_opt_r seq =
-  if is_empty seq then
-    None
-  else begin
-    let node = node_of_seq seq.prev in
     Some node.node_data
   end
 

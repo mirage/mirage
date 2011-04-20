@@ -120,17 +120,22 @@ struct
 
   let create () =
     let box = { state = No_mail } in
+    let weak_box = Weak.create 1 in
+    Weak.set weak_box 0 (Some box);
     let push v =
-      match box.state with
-	| No_mail ->
-	    let q = Queue.create () in
-	    Queue.push v q;
-	    box.state <- Full q
-	| Waiting wakener ->
-            box.state <- No_mail;
-            wakeup wakener v
-	| Full q ->
-	    Queue.push v q
+      match Weak.get weak_box 0 with
+        | None -> ()
+        | Some box ->
+          match box.state with
+            | No_mail ->
+              let q = Queue.create () in
+              Queue.push v q;
+              box.state <- Full q
+            | Waiting wakener ->
+              box.state <- No_mail;
+              wakeup wakener v
+            | Full q ->
+              Queue.push v q
     in
     (box, push)
 

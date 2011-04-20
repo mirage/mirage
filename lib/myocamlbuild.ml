@@ -222,7 +222,22 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
-let otherlibs = ["http";"dns"; "dyntype"; "cow"]
+(* Block is only direct for Xen and socket/ for UNIX *)
+let () =
+   let mode = match OS.target with
+     |OS.Xen -> "direct"
+     |OS.Unix _ -> "socket"
+     |OS.Node -> failwith "add block support to Node"
+   in
+   rule
+  ~prods:(libbits "std" "block")
+  ~deps:(libbits ("block" / mode) "block")
+   "Block link"
+   (fun env builder ->
+     Seq (List.map (fun f -> cp ("block" / mode / "block." ^ f) ("std" / "block." ^ f)) libexts)
+   )
+
+let otherlibs = ["http"; "dns"; "dyntype"; "cow"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->

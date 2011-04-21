@@ -258,8 +258,14 @@ let ts_to_string ts =
   ) ts 0 in
   buf
 
-(* Converts a Lwt_stream of views into a view sequence *) 
+open Lwt
+
+(* Converts a Lwt_stream of views into a view sequence *)
 let ts_of_stream s =
   let ts = Lwt_sequence.create () in
   Lwt_stream.iter (fun v -> ignore(Lwt_sequence.add_r v ts)) s >>
-  Lwt.return ts
+  return ts
+
+(* Converts an Lwt_stream into an OCaml string *)
+let string_of_stream s =
+  ts_of_stream s >|= ts_to_string

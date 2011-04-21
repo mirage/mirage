@@ -58,7 +58,7 @@ let create vbd =
   read_page 0L >>
   return { vbd; files }
 
-exception Not_found
+exception Error of string
 
 (* Read directly from the disk, no caching *)
 let read t filename =
@@ -71,7 +71,7 @@ let read t filename =
        11 * 8 512-byte sectors (44KB) per scatter-gather request *)
     let cur_seg = ref None in
     let pos = ref 0L in
-    Some (Lwt_stream.from (fun () ->
+    return (Lwt_stream.from (fun () ->
       (* Check if we have an active segment *)
       match !cur_seg with
       |Some (idx, arr) ->
@@ -92,4 +92,5 @@ let read t filename =
           return (Some arr.(0));
         end
     ))
-  with Not_found -> None
+  with
+  | Not_found -> fail (Error "file not found")

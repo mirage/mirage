@@ -610,3 +610,23 @@ caml_domain_write(value v_fd, value v_str)
   CAMLreturn(v_ret);
 }
 
+/* Open a non-blocking file socket and return it.
+   Note that non-blocking file I/O is a bit unreliable, so
+   this is only a temporary measure (see mincore usage in Lwt_unix
+   for another approach) */
+CAMLprim value
+caml_file_open_readonly(value v_filename)
+{
+  CAMLparam1(v_filename);
+  CAMLlocal2(v_ret, v_err);
+  int r = open(String_val(v_filename), O_RDONLY);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    setnonblock(r);
+    Val_OK(v_ret, Val_int(r));
+  }
+  CAMLreturn(v_ret);
+}
+

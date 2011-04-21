@@ -14,35 +14,31 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* A blocking (so not for heavy use) read-only filesystem interface *)
+(* The manager binds the external functions we need from the platform.
+   Some duplication with the Net manager *)
+
 open Lwt
 open Printf
 
-type t = {
-  rootdir: string;
-}
-
-let create rootdir =
-  { rootdir }
-
 exception Error of string
 
-let read t filename =
-  (* Open the FD using the manager bindings *)
-  lwt fd = 
-    let open Manager.Unix in
-    match file_open_readonly filename with
-    | OK fd -> return fd
-    | Err x -> fail (Error x)
-    | Retry -> assert false 
-  in
-  (* Construct a stream that reads pages of istrings *)
-  return (Lwt_stream.from (fun () ->
-    let istr = OS.Istring.Raw.alloc () in
-    lwt len = Manager.Unix.(iobind (read fd istr 0) 4096) in
-    match len with
-    | 0 -> return None
-    | len -> 
-        let view = OS.Istring.t istr len in
-        return (Some view)
-  ))
+module Unix = struct
+  type 'a fd
+
+  type 'a resp =
+  | OK of 'a
+  | Err of string
+  | Retry
+
+  external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_readonly"
+
+  external read: [`ro_file] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
+  external close: [`ro_file] fd -> unit = "caml_socket_close"
+
+  (* As fdbind, except on functions that will either be Some or None *)
+  let rec iobind iofn arg =
+    match iofn arg with
+    |OK x -> return x
+    |Err err -> fail (Error err)
+    |Retry -> assert false
+end

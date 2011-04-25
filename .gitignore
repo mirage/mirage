@@ -9,6 +9,6 @@ CVS/
 doc/html/
 tests/*/*/myocamlbuild.ml
 /screenlog.*
-tools/crunch/crunch.native
-tools/mpl/mplc.native
-
+tools/*/*.native
+tools/fs/*.o
+tools/fs/mir-fs-*

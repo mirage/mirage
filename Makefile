@@ -24,6 +24,8 @@ tools:
 	@cd tools/mir && $(MAKE) install
 	@cp tools/mpl/_build/mplc.native $(PREFIX)/bin/mplc
 	@cp tools/crunch/_build/crunch.native $(PREFIX)/bin/mlcrunch
+	@$(MAKE) -C tools/fs all
+	@cp tools/fs/mir-fs-create $(PREFIX)/bin/mir-fs-create
 
 install:
 	@rm -rf _build

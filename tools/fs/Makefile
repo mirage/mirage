@@ -1,6 +1,6 @@
 CC=gcc
 DEFS=  
-PROGNAME= create extract
+PROGNAME= mir-fs-create mir-fs-extract
 INCLUDES=  -I.
 LIBS=
 
@@ -18,11 +18,11 @@ OBJS = $(CREAT_OBJS) $(EXTRACT_OBJS)
 
 all: $(PROGNAME)
 
-create : $(CREAT_OBJS)
-	$(CC) $(CFLAGS) -o create $(CREAT_OBJS) $(LIBS)
+mir-fs-create : $(CREAT_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(CREAT_OBJS) $(LIBS)
 
-extract : $(EXTRACT_OBJS)
-	$(CC) $(CFLAGS) -o extract $(EXTRACT_OBJS) $(LIBS)
+mir-fs-extract : $(EXTRACT_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(EXTRACT_OBJS) $(LIBS)
 
 clean:
 	rm -f $(OBJS) $(PROGNAME) core *~

@@ -41,8 +41,8 @@ let create vbd =
         let len = OS.Istring.to_uint64_be v (loff+12) in
         let namelen = OS.Istring.to_uint32_be v (loff+20) in
         let name = OS.Istring.to_string v (loff+24) (Int32.to_int namelen) in
-        if Int64.rem len 512L <> 0L then
-          fail (Failure "unaligned length file found")
+        if Int64.rem offset 512L <> 0L then
+          fail (Failure (sprintf "unaligned offset file found: offset=%Lu" offset))
         else begin
           Hashtbl.add files name { name; offset; len };
           printf "Read file: %s %Lu[%Lu]\n%!" name offset len;
@@ -64,33 +64,44 @@ exception Error of string
 let read t filename =
   try
     let file = Hashtbl.find t.files filename in
-    (* File length is guaranteed to be sector aligned by the construction
-       tool, and we assume sector size = 512 bytes in this function *)
-    let sectors = Int64.div file.len 512L in
-    (* Assuming a sector size of 512, we can read a maximum of 
-       11 * 8 512-byte sectors (44KB) per scatter-gather request *)
+    let offset = Int64.div file.offset 512L in
+    assert(Int64.rem file.offset 512L = 0L);
     let cur_seg = ref None in
     let pos = ref 0L in
-    return (Lwt_stream.from (fun () ->
+    let rec readfn () =
       (* Check if we have an active segment *)
       match !cur_seg with
       |Some (idx, arr) ->
         (* Traversing an existing segment, so get next in element *)
-        let r = arr.(idx) in
-        cur_seg := if idx < Array.length arr - 1 then Some (idx+1, arr) else None;
-        return  (Some r)
+        let r =
+          (* If this is the end of the file, might need to be a partial view *)
+          if Int64.add !pos 512L >= file.len then begin
+            let sz = Int64.sub file.len !pos in
+            pos := Int64.add !pos sz;
+            cur_seg := None;
+            OS.Istring.sub arr.(idx) 0 (Int64.to_int sz)
+          end else begin
+            pos := Int64.add !pos 512L;
+            cur_seg := if idx < Array.length arr - 1 then Some (idx+1, arr) else None;
+            arr.(idx)
+          end
+        in
+        return (Some r)
       |None ->
-        if !pos >= sectors then
+        if !pos >= file.len then begin
           return None (* EOF *)
-        else begin
+        end else begin
           (* Need to retrieve more data *)
-          let need_sectors = min 88L (Int64.sub sectors !pos) in
-          lwt arr = OS.Blkif.read_512 t.vbd !pos need_sectors in
-          pos := Int64.add !pos need_sectors;
-          if Array.length arr > 1 then
-            cur_seg := Some (1, arr);
-          return (Some arr.(0));
+          (* Assuming a sector size of 512, we can read a maximum of 
+             11 * 8 512-byte sectors (44KB=45056b) per scatter-gather request *)
+          let need_bytes = min 45056L (Int64.sub file.len !pos) in
+          (* Get rounded up number of sectors *)
+          let need_sectors = Int64.(div (add need_bytes 511L) 512L) in
+          lwt arr = OS.Blkif.read_512 t.vbd (Int64.add offset !pos) need_sectors in
+          cur_seg := Some (0, arr);
+          readfn ()
         end
-    ))
+    in
+    return (Lwt_stream.from readfn)
   with
   | Not_found -> fail (Error "file not found")

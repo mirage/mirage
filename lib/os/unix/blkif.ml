@@ -14,32 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* A blocking (so not for heavy use) read-only filesystem interface *)
 open Lwt
 open Printf
 
-type t = OS.Blkif.t
+type t = unit
+type id = int
 
-let create t = return t
+let create (id:id) =
+  let th, _ = Lwt.task () in
+  return ((), th)
 
-exception Error of string
-
-let read t filename =
-  (* Open the FD using the manager bindings *)
-  lwt fd = 
-    let open Manager.Unix in
-    match file_open_readonly filename with
-    | OK fd -> return fd
-    | Err x -> fail (Error x)
-    | Retry -> assert false 
-  in
-  (* Construct a stream that reads pages of istrings *)
-  return (Lwt_stream.from (fun () ->
-    let istr = OS.Istring.Raw.alloc () in
-    lwt len = Manager.Unix.(iobind (read fd istr 0) 4096) in
-    match len with
-    | 0 -> return None
-    | len -> 
-        let view = OS.Istring.t istr len in
-        return (Some view)
-  ))
+(** Return a list of valid VBDs *)
+let enumerate () : id list Lwt.t =
+  return [ 0 ]

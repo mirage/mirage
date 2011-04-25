@@ -75,13 +75,13 @@ let read t filename =
         (* Traversing an existing segment, so get next in element *)
         let r =
           (* If this is the end of the file, might need to be a partial view *)
-          if Int64.add !pos 512L >= file.len then begin
+          if Int64.add !pos 512L > file.len then begin
             let sz = Int64.sub file.len !pos in
             pos := Int64.add !pos sz;
             cur_seg := None;
             OS.Istring.sub arr.(idx) 0 (Int64.to_int sz)
           end else begin
-            pos := Int64.add !pos 512L;
+            pos := Int64.add !pos 4096L;
             cur_seg := if idx < Array.length arr - 1 then Some (idx+1, arr) else None;
             arr.(idx)
           end
@@ -97,7 +97,7 @@ let read t filename =
           let need_bytes = min 45056L (Int64.sub file.len !pos) in
           (* Get rounded up number of sectors *)
           let need_sectors = Int64.(div (add need_bytes 511L) 512L) in
-          lwt arr = OS.Blkif.read_512 t.vbd (Int64.add offset !pos) need_sectors in
+          lwt arr = OS.Blkif.read_512 t.vbd (Int64.add offset (Int64.div !pos 512L)) need_sectors in
           cur_seg := Some (0, arr);
           readfn ()
         end

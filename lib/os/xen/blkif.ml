@@ -131,7 +131,7 @@ let read_512 t sector num_sectors =
   (* Calculate number of 4K pages needed *)
   let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in
   if len > 11 then
-    fail (Failure (sprintf "len > 11 sec=%Lu num=%Lu" sector num_sectors)) 
+    fail (Failure (sprintf "len > 11 sec=%Lu num=%Lu" sector num_sectors))
   else Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW len
     (fun gnts ->
       let segs = Array.mapi
@@ -162,7 +162,7 @@ let read_512 t sector num_sectors =
               |0 -> start_offset * 512
               |_ -> 0 in
             let end_offset = match i with
-              |n when n == len-1 -> end_offset * 512
+              |n when n = len-1 -> (end_offset + 1) * 512
               |_ -> 4096 in
             let bytes = end_offset - start_offset in
             Istring.t ~off:start_offset page bytes;

@@ -19,10 +19,11 @@ open Printf
 
 let main () =
   lwt mgr, mgr_t = Net.Manager.create () in
-  let vbd = Block.RO.create "" in
+  lwt vbd_ids = OS.Blkif.enumerate () in
+  lwt vbd, _ = match vbd_ids with |[x] -> OS.Blkif.create x |_ -> fail (Failure "1 vbd only") in
+  lwt fs = Block.RO.create vbd in
   let zonefile = "openmirage.org.zone" in
-  lwt stream = Block.RO.read vbd zonefile in
-  lwt zonebuf = OS.Istring.string_of_stream stream in
+  lwt zonebuf = Block.RO.read fs zonefile >>= OS.Istring.string_of_stream in
   let mode = `leaky in
   Dns.Server.listen ~mode ~zonebuf mgr (None, 53)
 

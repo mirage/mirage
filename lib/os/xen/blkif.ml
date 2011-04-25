@@ -126,12 +126,12 @@ let read_512 t sector num_sectors =
   (* Round up the ending sector to get the final page size *)
   let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
   let end_offset = Int64.(to_int (sub 7L (sub end_sector (add sector num_sectors)))) in
-  printf "sector=%Lu num=%Lu start=%Lu[%d] end=%Lu[%d]\n%!"
-    sector num_sectors start_sector start_offset end_sector end_offset;
+  (* printf "sector=%Lu num=%Lu start=%Lu[%d] end=%Lu[%d]\n%!"
+    sector num_sectors start_sector start_offset end_sector end_offset; *)
   (* Calculate number of 4K pages needed *)
   let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in
   if len > 11 then
-    fail (Failure "len > 11") 
+    fail (Failure (sprintf "len > 11 sec=%Lu num=%Lu" sector num_sectors)) 
   else Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW len
     (fun gnts ->
       let segs = Array.mapi
@@ -144,7 +144,6 @@ let read_512 t sector num_sectors =
             |_ -> 7 in
           let _ = Gnttab.page gnt in
           let gref = Gnttab.num gnt in
-          printf "  gref=%lu %d -> %d\n%!" gref first_sector last_sector;
           { Ring.Blkif.Req.gref; first_sector; last_sector }
         ) gnts in
       let req id = Ring.Blkif.Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in

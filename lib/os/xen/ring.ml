@@ -125,7 +125,7 @@ module Bounded_ring (Ring:RING) = struct
       let req = reqfn id in
       t.response_waiters.(id) <- Some u;
       if Ring.write t.fring [req] then
-        ();
+        Evtchn.notify evtchn;
       th
     end else begin
       let th, u = Lwt.task () in

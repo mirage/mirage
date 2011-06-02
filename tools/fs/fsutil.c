@@ -17,7 +17,6 @@
 
 #include "mirage-fs.h"
 #include <err.h>
-#include <endian.h>
 
 struct fs_hdr *init_hdr(char *filename, uint64_t length, uint64_t offset) {
   struct fs_hdr *fsh;

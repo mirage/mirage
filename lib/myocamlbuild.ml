@@ -237,7 +237,7 @@ let () =
      Seq (List.map (fun f -> cp ("block" / mode / "block." ^ f) ("std" / "block." ^ f)) libexts)
    )
 
-let otherlibs = ["http"; "dns"; "dyntype"; "cow"]
+let otherlibs = ["http"; "dns"; "dyntype"; "cow"; "resolv"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->

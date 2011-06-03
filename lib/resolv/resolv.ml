@@ -15,6 +15,12 @@
  *)
 
 open Printf
+open Lwt
+open Mlnet
+
+type t = {
+}
+
 
 let resolv s = 
   printf "resolv: %s" s;

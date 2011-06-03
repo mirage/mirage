@@ -200,7 +200,7 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
 let libexts = match OS.target with
   | OS.Node  -> ["cmo"; "cmi" ]
   | OS.Xen
-  |OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
+  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 

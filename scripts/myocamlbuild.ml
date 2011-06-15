@@ -120,9 +120,11 @@ module Mir = struct
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
-             A"-o"; Px out; P arg;
+             A"-o"; Px out; 
+             A oslib_unixmain;
+             P arg;
              A oslib_unixrun;
-             A oslib_unixmain] @ dl_libs))
+           ] @ dl_libs))
 
   let cc_xen_link tags arg out =
     let xenlib = libdir in   

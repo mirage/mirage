@@ -60,3 +60,5 @@ ulexing
 dyntype
 cow
 bitstring
+bitstring_types
+bitstring_config

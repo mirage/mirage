@@ -1,5 +1,5 @@
 <*>: package(camlp4), syntax(camlp4o)
-<pa_bitstring.*>: package(camlp4.quotations.o), package(camlp4.extend)
+<pp_bitstring.*>: package(camlp4.quotations.o), package(camlp4.extend)
 <bitstring_persistent.*>: package(camlp4.quotations.o), package(camlp4.extend)
 <pa_lwt.*>: package(camlp4.quotations.o), package(camlp4.extend)
 <pp_ulex.*>: package(camlp4.quotations), package(camlp4.extend)

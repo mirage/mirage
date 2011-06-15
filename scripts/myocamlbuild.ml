@@ -199,7 +199,8 @@ let _ = dispatch begin function
     let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
     let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
     let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
-    let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
+    let pa_bitstring = ps "-I %s pa_bitstring.cma" syntaxdir in
+    let pp_pa = ps "camlp4o %s %s %s" pa_std pa_cow pa_bitstring in
     let node_cclib = [
       A"-dllpath"; A Mir.oslib; A"-dllib"; A"-los";
       A"-cclib"; A"-los" ] in

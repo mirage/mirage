@@ -70,7 +70,7 @@ start_write(char *dirname, char *prefix)
       size = strlen(dirname) + strlen(dirp->d_name) + 2;
       path = malloc(size);
       if(!path)
-	err(1, path);
+	err(1, "%s", path);
       snprintf(path, size, "%s/%s", dirname, dirp->d_name);
 
       //Open the file and write to dst

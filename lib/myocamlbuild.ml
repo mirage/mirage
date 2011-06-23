@@ -194,7 +194,7 @@ end
    The C files below are #included, so need to be present but are
    not picked up by dependency analysis *)
 let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
-  ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c";
+  ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c"; "byteswap.h";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
 let libexts = match OS.target with

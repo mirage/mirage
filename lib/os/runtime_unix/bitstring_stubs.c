@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <byteswap.h>
+#include "byteswap.h"
 
 #include <caml/mlvalues.h>
 #include <caml/fail.h>

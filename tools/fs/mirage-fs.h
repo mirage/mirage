@@ -48,3 +48,47 @@ struct fs_hdr *init_hdr(char *filename, uint64_t length, uint64_t offset);
 struct fs_hdr *read_hdr(int fd);
 int fcopy(int infd, int outfd, u_long length);
 int fzero(int, int);
+
+#if HAVE_BYTESWAP_H
+#  include <byteswap.h>
+#else
+#  define bswap_16(v) ((((v) & 0xff) << 8) | ((v) >> 8))
+#  define bswap_32(v)                                       \
+    (((uint32_t)bswap_16((uint16_t)((v) & 0xffff)) << 16)   \
+     | (uint32_t)bswap_16((uint16_t)((v) >> 16)))
+#  define bswap_64(v)                                         \
+    (((uint64_t)bswap_32((uint32_t)((v) & 0xffffffff)) << 32) \
+     | (uint64_t)bswap_32((uint32_t)((v) >> 32)))
+#endif
+
+#if !defined(be32toh)
+#  if defined(__LITTLE_ENDIAN__)
+#    define be32toh(x) bswap_32(x)
+#  else
+#    define be32toh(x) (x)
+#  endif
+#endif
+
+#if !defined(htobe32)
+#  if defined(__LITTLE_ENDIAN__)
+#    define htobe32(x) bswap_32(x)
+#  else
+#    define htobe32(x) (x)
+#  endif
+#endif
+
+#if !defined(htobe64)
+#  if defined(__LITTLE_ENDIAN__)
+#    define htobe64(x) bswap_64(x)
+#  else
+#    define htobe64(x) (x)
+#  endif
+#endif
+
+#if !defined(be64toh)
+#  if defined(__LITTLE_ENDIAN__)
+#    define be64toh(x) bswap_64(x)
+#  else
+#    define be64toh(x) (x)
+#  endif
+#endif

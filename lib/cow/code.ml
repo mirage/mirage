@@ -123,7 +123,6 @@ let regexp keywords6 =
 
 let regexp keywords7 =
     '"'    ("\\\"" | [^ '"']   )* '"'
-  | '\039' ("\\\'" | [^ '\039'])* '\039'
   | '#' identchar+
 
 let regexp keywords8 =

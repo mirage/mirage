@@ -256,11 +256,17 @@ let _ = dispatch begin function
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
      let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
+(*
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-     ) [ "lwt"; "ulex"; "js"];
+     ) [ "lwt"; "ulex"; "js"; "bitstring"];
+*)
+     let corep4 = "pa_lwt.cma pa_bitstring.cma" in
+     flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
+     flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
+     flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
@@ -274,16 +280,12 @@ let _ = dispatch begin function
      pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
 
      (* net/direct includes *)
-     Pathname.define_context "net/direct/mpl/protocols" ["mpl"];
      Pathname.define_context "net/direct/tcp" ["net/direct/mpl"; "net/direct"];
      Pathname.define_context "net/direct" ["net/direct/mpl"; "net/direct/tcp"; "net/direct/dhcp"];
      Pathname.define_context "net/direct/dhcp" ["net/direct/mpl"; "net/direct" ];
 
      (* some C code will use local ev.h *)
      dep  ["c"; "compile"; "include_libev"] libev_files;
-
-     (* unix code deps *)
-     dep ["c"; "compile"; "unix_header"] ["os/runtime_unix/istring.h"];
 
      (* base cflags for C code *)
      flag ["c"; "compile"] & S CC.cc_cflags;

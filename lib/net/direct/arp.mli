@@ -22,5 +22,7 @@ type t
  
 val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
 val get_bound_ips: t -> ipv4_addr list
+
+val input: t -> arp -> unit Lwt.t
 val query: t -> ipv4_addr -> ethernet_mac Lwt.t
 val create: output:(arp -> unit Lwt.t) -> get_mac:(unit -> ethernet_mac) -> t

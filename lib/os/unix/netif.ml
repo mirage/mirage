@@ -21,7 +21,7 @@ module Tap = struct
   type t = int
   external opendev: string -> t = "tap_opendev"
   external read: t -> string -> int -> int = "tap_read"
-  external write: t -> string -> int -> unit = "tap_write"
+  external write: t -> Bitstring.t -> unit = "tap_write"
 end
 
 type t = {
@@ -92,17 +92,12 @@ let destroy nf =
   printf "tap_destroy\n%!";
   return ()
 
-(* Transmit a packet from an istring suspension.
+(* Transmit a packet from a bitstring
    For now, just assume the Tap write wont block for long as this
    is not a performance-critical backend
 *)
-let output t fn =
-  let sz = 4096 in
-  let page =  String.create sz in
-  let v = page, 0, sz lsl 3 in
-  let p = fn v in
-  Tap.write t.dev page sz;
-  return p
+let output t bs =
+  return (Tap.write t.dev bs)
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

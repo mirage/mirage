@@ -51,8 +51,8 @@ CAMLprim value
 tap_write(value v_fd, value v_bitstr)
 {
   int fd = Int_val(v_fd);
-  size_t off = Int_val(Field(v_bitstr,1));
-  size_t len = Int_val(Field(v_bitstr,2));
+  size_t off = Int_val(Field(v_bitstr,1)) / 8;
+  size_t len = Int_val(Field(v_bitstr,2)) / 8;
   char *buf = String_val(Field(v_bitstr, 0));
   fprintf(stderr, "tap_write: off=%ld len=%ld\n", off, len);
   int res = write(fd, buf, len);

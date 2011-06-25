@@ -20,8 +20,10 @@ open Printf
 
 type t
  
-val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
-val get_bound_ips: t -> ipv4_addr list
+val set_ips: t -> ipv4_addr list -> unit Lwt.t
+val get_ips: t -> ipv4_addr list
+val add_ip: t -> ipv4_addr -> unit Lwt.t
+val remove_ip: t -> ipv4_addr -> unit Lwt.t
 
 val input: t -> arp -> unit Lwt.t
 val query: t -> ipv4_addr -> ethernet_mac Lwt.t

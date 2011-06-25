@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,9 +18,6 @@ open Lwt
 open Printf
 open Nettypes
 
-type 'a ip_output = OS.Istring.t -> ttl:int -> dest:int32 ->
-    options:('a OS.Istring.data) -> Mpl.Ipv4.o
-
 type classify =
   |Broadcast
   |Gateway
@@ -29,23 +26,21 @@ type classify =
 exception No_route_to_destination_address of ipv4_addr
 
 type t = {
-  netif: Ethif.t;
-  arp: Arp.t;
+  ethif: Ethif.t;
   mutable ip: ipv4_addr;
   mutable netmask: ipv4_addr;
   mutable gateways: ipv4_addr list;
-  mutable udp: (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t);
-  mutable tcp: (Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t);
-  mutable icmp: (Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t);
 }
 
-let output_broadcast t ip =
+(*let output_broadcast t ip =
   let etherfn = Mpl.Ethernet.IPv4.t
     ~dest_mac:(`Str (ethernet_mac_to_bytes ethernet_mac_broadcast))
     ~src_mac:(`Str (ethernet_mac_to_bytes (Ethif.mac t.netif)))
     ~data:(`Sub ip) in
   Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
+*)
 
+(* XXX should optimise this! *)
 let is_local t ip =
   let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
   (ipand t.ip t.netmask) = (ipand ip t.netmask)
@@ -56,19 +51,22 @@ let classify_ip t = function
   | ip when is_local t ip -> Local
   | ip -> Gateway
 
-let output t ~dest_ip (ip:'a ip_output) =
-  (* Query ARP for destination MAC address to send this to *)
-  lwt dest_mac = match classify_ip t dest_ip with
-  | Broadcast -> return ethernet_mac_broadcast
-  | Local -> Arp.query t.arp dest_ip
-  | Gateway -> begin
+let destination_mac t = function
+  | ip when ip = ipv4_broadcast || ip = ipv4_blank -> (* Broadcast *)
+      return ethernet_mac_broadcast
+  | ip when is_local t ip -> (* Local *)
+      Ethif.query_arp t.ethif ip
+  | ip -> begin (* Gateway *)
       match t.gateways with 
-      | hd :: _ -> Arp.query t.arp hd
+      | hd :: _ -> Ethif.query_arp t.ethif hd
       | [] -> 
-          printf "IP.output: no route to %s\n%!" (ipv4_addr_to_string dest_ip);
-          fail (No_route_to_destination_address dest_ip)
-    end in
-  let ipfn env = 
+          printf "IP.output: no route to %s\n%!" (ipv4_addr_to_string ip);
+          fail (No_route_to_destination_address ip)
+    end
+
+(* 
+let output t ~dest_ip pkt =
+ let ipfn env = 
     let ttl = 38 in (* TODO ttl tracking *)
     let p = ip ~ttl ~dest:(ipv4_addr_to_uint32 dest_ip) ~options:`None env in
     let csum = OS.Istring.ones_complement_checksum (Mpl.Ipv4.env p) (Mpl.Ipv4.header_end p) 0l in
@@ -79,36 +77,28 @@ let output t ~dest_ip (ip:'a ip_output) =
     ~src_mac:(`Str (ethernet_mac_to_bytes (Ethif.mac t.netif)))
     ~data:(`Sub ipfn) in
   Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
+*)
 
-let input t ip =
-  match Mpl.Ipv4.protocol ip with
-  |`UDP -> t.udp ip (Mpl.Udp.unmarshal (Mpl.Ipv4.data_sub_view ip))
-  |`TCP -> t.tcp ip (Mpl.Tcp.unmarshal (Mpl.Ipv4.data_sub_view ip))
-  |`ICMP -> t.icmp ip (Mpl.Icmp.unmarshal (Mpl.Ipv4.data_sub_view ip))
-  |`IGMP |`Unknown _ -> return ()
-
-let create netif = 
-  let arp, arp_t = Arp.create netif in
-  let ipv4_t,_ = Lwt.task () in
-  let udp = (fun _ _ -> return (print_endline "dropped udp")) in
-  let tcp = (fun _ _ -> return (print_endline "dropped tcp")) in
-  let icmp = (fun _ _ -> return (print_endline "dropped icmp")) in
+let input t pkt =
+  bitmatch pkt with
+  |{4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
+    ttl:8; proto:8; checksum:16; src:32; dst:32;
+    options:(ihl-5)*32:bitstring; data:-1:bitstring } ->
+      printf "Packet: proto=%d src=%ld dst=%ld\n%!" proto src dst;
+      return ()
+  |{_} ->
+      return (printf "IPv4: not an IP packet, discarding\n%!")
+ 
+let create ethif = 
   let ip = ipv4_blank in
   let netmask = ipv4_blank in
   let gateways = [] in
-  let t = { netif; arp; udp; tcp; icmp; ip; netmask; gateways } in
-  Lwt.on_cancel ipv4_t (fun _ ->
-    print_endline "IPV4 shutdown";
-    Ethif.detach t.netif `IPv4
-  );
-  Ethif.attach t.netif (`IPv4 (input t));
-  let th = pick [ arp_t; ipv4_t ] in
-  t, th
+  { ethif; ip; netmask; gateways }
 
 let set_ip t ip = 
   t.ip <- ip;
   (* Inform ARP layer of new IP *)
-  Arp.set_bound_ips t.arp [ip]
+  Ethif.add_ip t.ethif ip
 
 let get_ip t = t.ip
 
@@ -120,15 +110,5 @@ let set_gateways t gateways =
   t.gateways <- gateways;
   return ()
 
-let mac t = Ethif.mac t.netif
-
-let attach t = function
-  |`UDP f -> t.udp <- f
-  |`TCP f -> t.tcp <- f
-  |`ICMP f -> t.icmp <- f
-
-let detach t = function
-  |`UDP -> t.udp <- (fun _ _ -> return ())
-  |`TCP -> t.tcp <- (fun _ _ -> return ())
-  |`ICMP -> t.icmp <- (fun _ _ -> return ())
+let mac t = Ethif.mac t.ethif
 

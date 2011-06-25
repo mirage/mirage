@@ -91,12 +91,22 @@ let output_probe t tpa =
     | hd::tl -> hd | [] -> ipv4_blank in
   t.output { op=`Reply; tha; sha; tpa; spa }
 
-let get_bound_ips t = t.bound_ips
+let get_ips t = t.bound_ips
 
 (* Set the bound IP address list, which will xmit a GARP packet also *)
-let set_bound_ips t ips =
+let set_ips t ips =
   t.bound_ips <- ips;
   output_garp t
+
+let add_ip t ip =
+  if not (List.mem ip t.bound_ips) then
+    set_ips t (ip :: t.bound_ips)
+  else return ()
+
+let remove_ip t ip =
+  if List.mem ip t.bound_ips then
+    set_ips t (List.filter ((<>) ip) t.bound_ips)
+  else return ()
 
 (* Query the cache for an ARP entry, which may result in the sender sleeping
    waiting for a response *)

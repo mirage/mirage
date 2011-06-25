@@ -101,7 +101,11 @@ let create ethif =
   let t = { ethif; ipv4; mac; arp } in
   let listen = listen t in
   (t, listen)
- 
+
+let add_ip t = Arp.add_ip t.arp
+let remove_ip t = Arp.remove_ip t.arp
+let query_arp t = Arp.query t.arp
+
 let attach t = function
   |`IPv4 fn -> t.ipv4 <- fn
 

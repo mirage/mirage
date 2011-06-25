@@ -73,8 +73,10 @@ tap_opendev(value v_str)
   fd = tun_alloc(dev);
   setnonblock(fd);
   snprintf(buf, sizeof buf, "ip link set %s up", dev);
-  system(buf);
+  if (system(buf) < 0) err(1, "system");
   snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.0.0.1 netmask 255.255.255.0 up", String_val(v_str));
   system(buf);
+  if (system(buf) < 0) err(1, "system");
+  fprintf(stderr, "tap_opendev: %s\n", dev);
   return Val_int(fd);
 }

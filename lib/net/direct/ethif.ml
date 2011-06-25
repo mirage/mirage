@@ -28,7 +28,7 @@ type t = {
   ethif: OS.Netif.t;
   mac: ethernet_mac;
   arp: Arp.t;
-  mutable ipv4: (frame -> Bitstring.t -> unit Lwt.t);
+  mutable ipv4: (Bitstring.t -> unit Lwt.t);
 }
 
 let gen_frame dmac smac =
@@ -60,7 +60,7 @@ let input t frame =
     etype:16; bits:-1:bitstring } -> 
       let frame = gen_frame dmac smac in
       begin match etype with
-      | 0x0800 (* IPv4 *) -> t.ipv4 frame bits
+      | 0x0800 (* IPv4 *) -> t.ipv4 bits
       | 0x86dd (* IPv6 *) -> return (Printf.printf "Ethif: discarding ipv6\n%!")
       | etype -> return (Printf.printf "Ethif: unknown frame %x\n%!" etype)
       end
@@ -94,7 +94,7 @@ let output_arp ethif arp =
   OS.Netif.output ethif frame
 
 let create ethif = 
-  let ipv4 = (fun _ _ -> return ()) in
+  let ipv4 = (fun _ -> return ()) in
   let mac = ethernet_mac_of_bytes (OS.Netif.mac ethif) in
   let get_mac () = mac in
   let arp = Arp.create ~output:(output_arp ethif) ~get_mac in
@@ -110,7 +110,7 @@ let attach t = function
   |`IPv4 fn -> t.ipv4 <- fn
 
 let detach t = function
-  |`IPv4 -> t.ipv4 <- (fun _ _ -> return ())
+  |`IPv4 -> t.ipv4 <- (fun _ -> return ())
 
 let mac t = t.mac
 let enumerate = OS.Netif.enumerate

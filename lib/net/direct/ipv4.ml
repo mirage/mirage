@@ -87,7 +87,9 @@ let create ethif =
   let ip = ipv4_blank in
   let netmask = ipv4_blank in
   let gateways = [] in
-  { ethif; ip; netmask; gateways }
+  let t = { ethif; ip; netmask; gateways } in
+  Ethif.attach ethif (`IPv4 (input t));
+  t
 
 let set_ip t ip = 
   t.ip <- ip;

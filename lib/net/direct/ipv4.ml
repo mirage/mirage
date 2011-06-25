@@ -45,12 +45,6 @@ let is_local t ip =
   let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
   (ipand t.ip t.netmask) = (ipand ip t.netmask)
 
-let classify_ip t = function
-  | ip when ip = ipv4_broadcast -> Broadcast
-  | ip when ip = ipv4_blank -> Broadcast
-  | ip when is_local t ip -> Local
-  | ip -> Gateway
-
 let destination_mac t = function
   | ip when ip = ipv4_broadcast || ip = ipv4_blank -> (* Broadcast *)
       return ethernet_mac_broadcast

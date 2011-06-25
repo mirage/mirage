@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,8 @@ type entry =
   | Verified of ethernet_mac
 
 type t = {
-  netif: Ethif.t;
+  output: arp -> unit Lwt.t;
+  get_mac: unit -> ethernet_mac;
   cache: (ipv4_addr, entry) Hashtbl.t;
   mutable bound_ips: ipv4_addr list;
  }
@@ -42,87 +43,53 @@ let prettyprint t =
      )
   ) t.cache
 
-(* Transmit an ARP packet *)
-let output t arp =
-  Ethif.output t.netif (`ARP (Mpl.Ethernet.ARP.m arp)) >>
-  return ()
-
 (* Input handler for an ARP packet, registered through attach() *)
-let input t (arp:Mpl.Ethernet.ARP.o) =
-  match Mpl.Ethernet.ARP.ptype arp with
-  |`IPv4 -> begin
-    match Mpl.Ethernet.ARP.operation arp with
-    |`Request ->
-      (* Received ARP request, check if we can satisfy it from
-         our own IPv4 list *)
-      let req_ipv4 = ipv4_addr_of_bytes (Mpl.Ethernet.ARP.tpa arp) in
-      (* printf "ARP: who-has %s?\n%!" (ipv4_addr_to_string req_ipv4); *)
-      if List.mem req_ipv4 t.bound_ips then begin
-        (* We own this IP, so reply with our MAC *)
-        let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.netif)) in
-        let dest_mac = `Str (Mpl.Ethernet.ARP.src_mac arp) in
-        let spa = `Str (Mpl.Ethernet.ARP.tpa arp) in (* the requested IP *)
-        let tpa = `Str (Mpl.Ethernet.ARP.spa arp) in (* the requesting host's IP *)
-        lwt _ = output t (Mpl.Ethernet.ARP.t
-          ~src_mac ~dest_mac ~ptype:`IPv4 ~operation:`Reply
-          ~sha:src_mac ~spa ~tha:dest_mac ~tpa
-        ) in
-        return ()
-      end else return ()
-    |`Reply ->
-      let frm_mac = ethernet_mac_of_bytes (Mpl.Ethernet.ARP.sha arp) in
-      let frm_ip = ipv4_addr_of_bytes (Mpl.Ethernet.ARP.spa arp) in
-      printf "ARP: updating %s -> %s\n%!" (ipv4_addr_to_string frm_ip) (ethernet_mac_to_string frm_mac);
-      (* If we have a pending entry, notify the waiters that an answer is ready *)
-      if Hashtbl.mem t.cache frm_ip then begin
-        match Hashtbl.find t.cache frm_ip with
-        | Incomplete cond -> Lwt_condition.broadcast cond frm_mac
-        | _ -> ()
-      end;
-      return (Hashtbl.replace t.cache frm_ip (Verified frm_mac));
-    |`Unknown _ -> return ()
-  end
-  |`IPv6 |`Unknown _ -> return ()
-
-(* Create an ARP handler and attach it to the Ethernet interface *)
-let create netif =
-  let th,u = Lwt.task () in
-  let t = { cache=Hashtbl.create 1; bound_ips=[]; netif } in
-  Lwt.on_cancel th (fun () -> 
-    printf "ARP shutdown\n%!";
-    Ethif.detach t.netif `ARP);
-  Ethif.attach t.netif (`ARP (input t));
-  printf "ARP created\n%!";
-  (* TODO join an ARP timeout thread to th *)
-  t, th
+let input t arp =
+  match arp.op with
+  |`Request ->
+    (* Received ARP request, check if we can satisfy it from
+       our own IPv4 list *)
+    let req_ipv4 = arp.tpa in
+    printf "ARP: who-has %s?\n%!" (ipv4_addr_to_string req_ipv4);
+    if List.mem req_ipv4 t.bound_ips then begin
+      (* We own this IP, so reply with our MAC *)
+      let sha = t.get_mac () in
+      let tha = arp.sha in
+      let spa = arp.tpa in (* the requested address *)
+      let tpa = arp.spa in (* the requesting host IPv4 *)
+      t.output { op=`Reply; sha; tha; spa; tpa }
+    end else return ()
+  |`Reply ->
+    printf "ARP: updating %s -> %s\n%!"
+      (ipv4_addr_to_string arp.spa) (ethernet_mac_to_string arp.sha);
+    (* If we have pending entry, notify the waiters that answer is ready *)
+    if Hashtbl.mem t.cache arp.spa then begin
+      match Hashtbl.find t.cache arp.spa with
+      |Incomplete cond -> Lwt_condition.broadcast cond arp.sha
+      |_ -> ()
+    end;
+    Hashtbl.replace t.cache arp.spa (Verified arp.sha);
+    return ()
+  |`Unknown _ -> return ()
 
 (* Send a gratuitous ARP for our IP addresses *)
 let output_garp t =
-  let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
-  let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.netif)) in
-  let tpa = `Str (ipv4_addr_to_bytes ipv4_blank) in
-  Lwt_list.iter_s (fun ip ->
-    Printf.printf "ARP: sending gratuitous from %s\n%!" (ipv4_addr_to_string ip);
-    let ip = `Str (ipv4_addr_to_bytes ip) in
-    output t (Mpl.Ethernet.ARP.t
-      ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Reply
-      ~sha:src_mac ~spa:ip ~tha:dest_mac ~tpa
-    )
+  let tha = ethernet_mac_broadcast in
+  let sha = t.get_mac () in
+  let tpa = ipv4_blank in
+  Lwt_list.iter_s (fun spa ->
+    printf "ARP: sending gratuitous from %s\n%!" (ipv4_addr_to_string spa);
+    t.output { op=`Reply; tha; sha; tpa; spa }
   ) t.bound_ips
 
 (* Send a query for a particular IP *)
-let output_probe t ip =
-  let dest_mac = `Str (ethernet_mac_to_bytes ethernet_mac_broadcast) in
-  let src_mac = `Str (ethernet_mac_to_bytes (Ethif.mac t.netif)) in
+let output_probe t tpa =
+  let tha = ethernet_mac_broadcast in
+  let sha = t.get_mac () in
   (* Source protocol address, pick one of our IP addresses *)
   let spa = match t.bound_ips with
-    |hd::tl -> `Str (ipv4_addr_to_bytes hd)
-    |[] -> `Str (ipv4_addr_to_bytes ipv4_blank) in
-  (* Target protocol address, the desired IP address *)
-  let tpa = `Str (ipv4_addr_to_bytes ip) in
-  output t (Mpl.Ethernet.ARP.t
-    ~dest_mac ~src_mac ~ptype:`IPv4 ~operation:`Request
-    ~sha:src_mac ~spa ~tha:dest_mac ~tpa)
+    | hd::tl -> hd | [] -> ipv4_blank in
+  t.output { op=`Reply; tha; sha; tpa; spa }
 
 let get_bound_ips t = t.bound_ips
 
@@ -140,15 +107,19 @@ let query t ip =
        printf "ARP query: %s -> [incomplete]\n%!" (ipv4_addr_to_string ip);
        Lwt_condition.wait cond
     | Verified mac ->
-       (* printf "ARP query: %s -> %s\n%!" 
-          (ipv4_addr_to_string ip) (ethernet_mac_to_string mac); *)
+       printf "ARP query: %s -> %s\n%!"
+         (ipv4_addr_to_string ip) (ethernet_mac_to_string mac);
        return mac
   ) else (
     let cond = Lwt_condition.create () in
     printf "ARP query: %s -> [probe]\n%!" (ipv4_addr_to_string ip);
     Hashtbl.add t.cache ip (Incomplete cond);
     (* First request, so send a query packet *)
-    output_probe t ip >>
+    lwt () = output_probe t ip in
     Lwt_condition.wait cond
   )
 
+let create ~output ~get_mac =
+  let cache = Hashtbl.create 7 in
+  let bound_ips = [] in
+  { output; get_mac; cache; bound_ips }

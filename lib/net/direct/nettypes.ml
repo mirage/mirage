@@ -110,6 +110,14 @@ let ipv4_addr_to_string x =
 type ipv4_src = ipv4_addr option * int
 type ipv4_dst = ipv4_addr * int
 
+type arp = {
+  op: [ `Request |`Reply |`Unknown of int ];
+  sha: ethernet_mac;
+  spa: ipv4_addr;
+  tha: ethernet_mac;
+  tpa: ipv4_addr;
+}
+
 type peer_uid = int
 
 exception Closed
@@ -124,8 +132,8 @@ module type FLOW = sig
   type dst
 
   (* Read and write to a flow *)
-  val read: t -> OS.Istring.t option Lwt.t
-  val write: t -> OS.Istring.t -> unit Lwt.t
+  val read: t -> Bitstring.t option Lwt.t
+  val write: t -> Bitstring.t -> unit Lwt.t
 
   val close: t -> unit Lwt.t
 
@@ -158,17 +166,17 @@ module type CHANNEL = sig
   type dst
 
   val read_char: t -> char Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
-  val read_stream: ?len:int -> t -> OS.Istring.t Lwt_stream.t
+  val read_until: t -> char -> (bool * Bitstring.t option) Lwt.t
+  val read_view: ?len:int -> t -> Bitstring.t Lwt.t
+  val read_stream: ?len:int -> t -> Bitstring.t Lwt_stream.t
 
-  val read_crlf: t -> OS.Istring.t Lwt_stream.t
+  val read_crlf: t -> Bitstring.t Lwt_stream.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t
   val write_line : t -> string -> unit Lwt.t
-  val write_view : t -> OS.Istring.t -> unit Lwt.t
-  val write_views : t -> OS.Istring.t Lwt_stream.t -> unit Lwt.t
+  val write_view : t -> Bitstring.t -> unit Lwt.t
+  val write_views : t -> Bitstring.t Lwt_stream.t -> unit Lwt.t
 
   val flush : t -> unit Lwt.t
   val close : t -> unit Lwt.t

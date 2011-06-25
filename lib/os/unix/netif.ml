@@ -20,8 +20,8 @@ open Printf
 module Tap = struct
   type t = int
   external opendev: string -> t = "tap_opendev"
-  external read: t -> Istring.Raw.t -> int -> int = "tap_read"
-  external write: t -> Istring.Raw.t -> int -> unit = "tap_write"
+  external read: t -> string -> int -> int = "tap_read"
+  external write: t -> string -> int -> unit = "tap_write"
 end
 
 type t = {
@@ -59,7 +59,7 @@ let create (id:id) =
 (* Input a frame, and block if nothing is available *)
 let rec input t =
   let sz = 4096 in
-  let page = Istring.Raw.alloc () in
+  let page = String.create sz in
   let len = Tap.read t.dev page sz in
   match len with
   |(-1) -> (* EAGAIN or EWOULDBLOCK *)
@@ -70,7 +70,7 @@ let rec input t =
     Activations.read t.dev >>
     input t
   |n ->
-    return (Istring.t page n)
+    return (page, 0, n lsl 3)
 
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
@@ -97,10 +97,11 @@ let destroy nf =
    is not a performance-critical backend
 *)
 let output t fn =
-  let page = Istring.Raw.alloc () in
-  let v = Istring.t page 0 in
+  let sz = 4096 in
+  let page =  String.create sz in
+  let v = page, 0, sz lsl 3 in
   let p = fn v in
-  Tap.write t.dev page (Istring.length v);
+  Tap.write t.dev page sz;
   return p
 
 (** Return a list of valid VIF IDs *)

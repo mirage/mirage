@@ -36,7 +36,7 @@ CAMLprim value
 tap_read(value v_fd, value v_str, value v_len)
 {
   int fd = Int_val(v_fd);
-  unsigned char *buf = String_val(v_str);
+  char *buf = String_val(v_str);
   int res = read(fd, buf, Int_val(v_len));
   if (res < 0) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -48,11 +48,13 @@ tap_read(value v_fd, value v_str, value v_len)
 }
 
 CAMLprim value
-tap_write(value v_fd, value v_str, value v_len)
+tap_write(value v_fd, value v_bitstr)
 {
   int fd = Int_val(v_fd);
-  size_t len = Int_val(v_len);
-  unsigned char *buf = String_val(v_str);
+  size_t off = Int_val(Field(v_bitstr,1));
+  size_t len = Int_val(Field(v_bitstr,2));
+  char *buf = String_val(Field(v_bitstr, 0));
+  fprintf(stderr, "tap_write: off=%ld len=%ld\n", off, len);
   int res = write(fd, buf, len);
   if (res != len) {
     fprintf(stderr, "tap_write: not full fd=%d res=%d len=%lu (%s)\n", fd, res, len,strerror(errno));
@@ -60,4 +62,3 @@ tap_write(value v_fd, value v_str, value v_len)
   }
   return Val_unit;
 }
-

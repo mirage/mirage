@@ -59,13 +59,14 @@ let destination_mac t = function
           fail (No_route_to_destination_address ip)
     end
 
-let output t ~proto ~dest_ip pkt =
+let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
   let ttl = 38 in (* TODO TTL *)
   lwt dmac = destination_mac t dest_ip >|= ethernet_mac_to_bytes in
   let smac = ethernet_mac_to_bytes (Ethif.mac t.ethif) in
   let options_len = 0 in (* no options support yet *)
   let ihl = options_len + 5 in
-  let tlen = Bitstring.bitstring_length pkt / 8 + (ihl * 4) in
+  let tlen = (List.fold_left (fun a b -> 
+    Bitstring.bitstring_length b + a) 0 pkt) / 8 + (ihl * 4) in
   let tos = 0 in
   let ipid = 17 in (* TODO support ipid *)
   let flags = 0 in (* TODO expose DF/MF frag flags *)
@@ -73,13 +74,19 @@ let output t ~proto ~dest_ip pkt =
   let proto = match proto with |`ICMP -> 1 |`TCP -> 6 |`UDP -> 17 in
   let src = ipv4_addr_to_uint32 t.ip in
   let dst = ipv4_addr_to_uint32 dest_ip in
-  let checksum = 0 in
   let frame = BITSTRING {
-    dmac:48:string; smac:48:string; 0x0800:16; (* Ethernet header *)
-    4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
-    ttl:8; proto:8; checksum:16; src:32; dst:32; pkt:-1:bitstring 
+    dmac:48:string; smac:48:string; 0x0800:16
   } in
-  Ethif.output t.ethif frame
+  let ipv4_header = BITSTRING {
+    4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
+    ttl:8; proto:8; 0:16; src:32; dst:32 } in
+  let checksum = Checksum.ones_complement ipv4_header 0l in
+  let checksum_bs,_,_ = BITSTRING { checksum:16 } in
+  let checksum_offset = (4+4+8+16+16+3+13+8+8) / 8 in
+  let ipv4_header_buf, _, _ = ipv4_header in
+  ipv4_header_buf.[checksum_offset] <- checksum_bs.[0];
+  ipv4_header_buf.[checksum_offset+1] <- checksum_bs.[1];
+  Ethif.output t.ethif (frame :: ipv4_header :: pkt)
 
 let input t pkt =
   bitmatch pkt with

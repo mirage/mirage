@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
-
-type t
-val output: t -> proto:[< `ICMP | `TCP | `UDP ] -> dest_ip:ipv4_addr -> Bitstring.t list -> unit Lwt.t
-val set_ip: t -> ipv4_addr -> unit Lwt.t
-val get_ip: t -> ipv4_addr
-val mac: t -> ethernet_mac
-val set_netmask: t -> ipv4_addr -> unit Lwt.t
-val set_gateways: t -> ipv4_addr list -> unit Lwt.t
-val create : Ethif.t -> t
-val attach : t -> [< `ICMP of ipv4_addr -> Bitstring.t -> unit Lwt.t ] -> unit
+(* One's complement checksum, RFC1071 *)
+external ones_complement: Bitstring.t -> int32 -> int = "caml_ones_complement_checksum"

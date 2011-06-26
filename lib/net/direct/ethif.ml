@@ -91,7 +91,7 @@ let output_arp ethif arp =
     smac:48:string; spa:32;
     dmac:48:string; tpa:32
   } in
-  OS.Netif.output ethif frame
+  OS.Netif.output ethif [frame]
 
 let create ethif = 
   let ipv4 = (fun _ -> return ()) in

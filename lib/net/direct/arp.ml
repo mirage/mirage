@@ -70,7 +70,9 @@ let input t arp =
     end;
     Hashtbl.replace t.cache arp.spa (Verified arp.sha);
     return ()
-  |`Unknown _ -> return ()
+  |`Unknown n ->
+    printf "ARP: Unknown message %d ignored\n%!" n;
+    return ()
 
 (* Send a gratuitous ARP for our IP addresses *)
 let output_garp t =
@@ -84,12 +86,13 @@ let output_garp t =
 
 (* Send a query for a particular IP *)
 let output_probe t tpa =
+  printf "ARP: transmitting probe -> %s\n%!" (ipv4_addr_to_string tpa);
   let tha = ethernet_mac_broadcast in
   let sha = t.get_mac () in
   (* Source protocol address, pick one of our IP addresses *)
   let spa = match t.bound_ips with
     | hd::tl -> hd | [] -> ipv4_blank in
-  t.output { op=`Reply; tha; sha; tpa; spa }
+  t.output { op=`Request; tha; sha; tpa; spa }
 
 let get_ips t = t.bound_ips
 

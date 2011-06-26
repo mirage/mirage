@@ -40,6 +40,5 @@ caml_ones_complement_checksum(value v_bitstr, value v_initial)
   while (sum >> 16)
     sum = (sum & 0xffff) + (sum >> 16);
   checksum = ~sum;
-  fprintf(stderr, "CHECKSUM = %lx\n", checksum);
   return Val_int(checksum);
 }

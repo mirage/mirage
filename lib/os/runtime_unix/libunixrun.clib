@@ -1,6 +1,7 @@
 clock_stubs.o
 bitstring_stubs.o
 socket_stubs.o
+checksum_stubs.o
 console_stubs.o
 evtchn_stubs.o
 tap_stubs.o

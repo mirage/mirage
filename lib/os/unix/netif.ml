@@ -96,8 +96,10 @@ let destroy nf =
    For now, just assume the Tap write wont block for long as this
    is not a performance-critical backend
 *)
-let output t bs =
-  return (Tap.write t.dev bs)
+let output t bss =
+  (* Do a very slow concat of all the bitstrings here; TODO speedup! *)
+  let s = String.concat "" (List.map Bitstring.string_of_bitstring bss) in
+  return (Tap.write t.dev (Bitstring.bitstring_of_string s))
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

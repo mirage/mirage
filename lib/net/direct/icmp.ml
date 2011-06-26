@@ -25,7 +25,7 @@ type t = {
 let input t src pkt =
   bitmatch pkt with
   |{0:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* echo reply *)
-    printf "ICMP: discarding echo reply\n%!"
+    return (printf "ICMP: discarding echo reply\n%!")
   |{8:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* echo req *)
     (* Adjust checksum for reply and transmit EchoReply *)
     let dest_ip = src in

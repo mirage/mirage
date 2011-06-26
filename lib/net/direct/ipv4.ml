@@ -31,6 +31,7 @@ type t = {
   mutable netmask: ipv4_addr;
   mutable gateways: ipv4_addr list;
   mutable icmp: ipv4_addr -> Bitstring.t -> unit Lwt.t;
+  mutable udp: src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t;
 }
 
 (*let output_broadcast t ip =
@@ -99,25 +100,34 @@ let input t pkt =
         t.icmp src data
       |6 -> (* TCP *)
         return ()
-      |17 -> (* IPv4 *)
-        return ()
+      |17 -> (* UDP *)
+        t.udp ~src ~dst data
       |_ ->
         return (printf "IPv4: dropping proto %d\n%!" proto)
       end
   |{_} ->
       return (printf "IPv4: not an IP packet, discarding\n%!")
+
+let default_icmp = fun _ _ -> return ()
+let default_udp = fun ~src ~dst _ -> return ()
  
 let create ethif = 
   let ip = ipv4_blank in
   let netmask = ipv4_blank in
   let gateways = [] in
-  let icmp = fun _ _ -> return () in
-  let t = { ethif; ip; netmask; gateways; icmp } in
+  let icmp = default_icmp in
+  let udp = default_udp in
+  let t = { ethif; ip; netmask; gateways; icmp; udp } in
   Ethif.attach ethif (`IPv4 (input t));
   t
 
 let attach t = function
   |`ICMP x -> t.icmp <- x
+  |`UDP x -> t.udp <- x
+
+let detach t = function
+  |`ICMP -> t.icmp <- default_icmp
+  |`UDP -> t.udp <- default_udp
 
 let set_ip t ip = 
   t.ip <- ip;

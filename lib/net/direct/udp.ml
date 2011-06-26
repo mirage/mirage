@@ -20,43 +20,27 @@ open Printf
 
 type t = {
   ip : Ipv4.t;
-  listeners: (int, (Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t)) Hashtbl.t
+  listeners: (int, (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> unit Lwt.t)) Hashtbl.t
 }
 
-let input t ip udp =
-  let dest_port = Mpl.Udp.dest_port udp in
+let input t ~src ~dst pkt =
+  bitmatch pkt with
+  | { source_port:16; dest_port:16; length:16;
+      checksum:16; data:length-8:bitstring } ->
   if Hashtbl.mem t.listeners dest_port then begin
     let fn = Hashtbl.find t.listeners dest_port in
-    fn ip udp
+    fn ~src ~dst ~source_port 
   end else
     return ()
 
 (* UDP output needs the IPv4 header to generate the pseudo
    header for checksum calculation. Although we currently just
    set the checksum to 0 as it is optional *)
-let output t ~dest_ip udp =
-  let src_ip = Ipv4.get_ip t.ip in
-  let src = ipv4_addr_to_uint32 src_ip in
-  (* Disabled checksumming for UDP as it is optional
-  let udpfn_checksum env =
-    let p = udp env in
-    let src_ip = ipv4_addr_to_bytes src_ip in
-    let dest_ip = ipv4_addr_to_bytes dest_ip in
-    let i32l x = Int32.of_int ((Char.code x.[0] lsl 8) + (Char.code x.[1])) in
-    let i32r x = Int32.of_int ((Char.code x.[2] lsl 8) + (Char.code x.[3])) in
-    let ph = Int32.of_int (17+p#sizeof) in
-    let ph = Int32.add ph (i32l dest_ip) in
-    let ph = Int32.add ph (i32r dest_ip) in
-    let ph = Int32.add ph (i32l src_ip) in
-    let ph = Int32.add ph (i32r src_ip) in
-    let csum = OS.Istring.ones_complement_checksum p#env p#sizeof ph in
-    p#set_checksum csum 
-  in 
-  *)
-  let udpfn_nochecksum env = udp env in
-  let ipfn env =
-    Mpl.Ipv4.t ~src ~protocol:`UDP ~id:36 ~data:(`Sub udpfn_nochecksum) env in
-  Ipv4.output t.ip ~dest_ip ipfn >> return ()
+let output t ~dest_ip ~source_port ~dest_port pkt =
+  let src = ipv4_addr_to_uint32 (Ipv4.get_ip t.ip) in
+  let length = Bitstring.bitstring_length pkt / 8 + 8 in
+  let header = BITSTRING { source_port:16; dest_port:16; length:16; 0:16 } in
+  Ipv4.output t.ip ~proto:`UDP ~dest_ip [header; pkt]
 
 let listen t port fn =
   if Hashtbl.mem t.listeners port then

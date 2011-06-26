@@ -46,12 +46,12 @@ let input t frame =
     6:8;           (* hlen const 6 *)
     4:8;           (* plen const, ND used for IPv6 now *)
     op:16;
-    sha:48:string; spa:32:string;
-    tha:48:string; tpa:32:string } ->
+    sha:48:string; spa:32;
+    tha:48:string; tpa:32 } ->
       let sha = ethernet_mac_of_bytes sha in
-      let spa = ipv4_addr_of_bytes spa in
+      let spa = ipv4_addr_of_uint32 spa in
       let tha = ethernet_mac_of_bytes tha in
-      let tpa = ipv4_addr_of_bytes tpa in
+      let tpa = ipv4_addr_of_uint32 tpa in
       let op = match op with |1->`Request |2 -> `Reply |n -> `Unknown n in
       let arp = { op; sha; spa; tha; tpa } in
       Arp.input t.arp arp
@@ -77,8 +77,8 @@ let output t frame =
 let output_arp ethif arp =
   let dmac = ethernet_mac_to_bytes arp.tha in
   let smac = ethernet_mac_to_bytes arp.sha in
-  let spa = ipv4_addr_to_bytes arp.spa in
-  let tpa = ipv4_addr_to_bytes arp.tpa in
+  let spa = ipv4_addr_to_uint32 arp.spa in
+  let tpa = ipv4_addr_to_uint32 arp.tpa in
   let op = match arp.op with |`Request->1 |`Reply->2 |`Unknown n -> n in
   let frame = BITSTRING {
     dmac:48:string; smac:48:string;
@@ -88,8 +88,8 @@ let output_arp ethif arp =
     6:8;        (* hlen *)
     4:8;        (* plen *)
     op:16;
-    smac:48:string; spa:32:string;
-    dmac:48:string; tpa:32:string
+    smac:48:string; spa:32;
+    dmac:48:string; tpa:32
   } in
   OS.Netif.output ethif frame
 

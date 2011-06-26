@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,25 @@ type t = {
   ip: Ipv4.t;
 }
 
-let input t ip = function
+let input t src pkt =
+  bitmatch pkt with
+  |{0:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* echo reply *)
+    return ()
+  |{8:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* echo req *)
+    let dest_ip = src in
+    let csum = 0 in
+    let reply = BITSTRING {
+      0:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring
+    } in
+    printf "Icmp.input: echo req -> reply\n%!";
+    Ipv4.output t.ip ~proto:`ICMP ~dest_ip:src reply
+
+let create ip =
+  let t = { ip } in
+  Ipv4.attach ip (`ICMP (input t));
+  t
+
+(* 
   |`EchoRequest icmp ->
     (* Create the ICMP echo reply *)
     let dest_ip = ipv4_addr_of_uint32 (Mpl.Ipv4.src ip) in
@@ -39,17 +57,5 @@ let input t ip = function
     let src = Mpl.Ipv4.dest ip in
     let ipfn env = Mpl.Ipv4.t ~id ~protocol:`ICMP ~src ~data:(`Sub icmpfn) env in
     Ipv4.output t.ip ~dest_ip ipfn >> return ()
-
-  |_ -> print_endline "dropped icmp"; return ()
-
-let create ip =
-  let thread,_ = Lwt.task () in
-  let t = { ip } in
-  Ipv4.attach ip (`ICMP (input t));
-  Lwt.on_cancel thread (fun () ->
-    printf "ICMP shutdown\n%!";
-    Ipv4.detach ip `ICMP
-  );
-  printf "ICMP created\n%!";
-  t, thread
+*)
 

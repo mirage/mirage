@@ -2,7 +2,7 @@ Nettypes
 Arp
 Ethif
 Ipv4
-#Icmp
+Icmp
 #Udp
 #tcp/Tcp
 #dhcp/Dhcp

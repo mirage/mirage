@@ -248,7 +248,7 @@ let () =
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)
-     flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"];
+     flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"; A"-annot"];
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
      if profiling then
        flag ["ocaml"; "compile"; "native" ] & S [A"-p"];

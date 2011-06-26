@@ -30,6 +30,7 @@ type t = {
   mutable ip: ipv4_addr;
   mutable netmask: ipv4_addr;
   mutable gateways: ipv4_addr list;
+  mutable icmp: ipv4_addr -> Bitstring.t -> unit Lwt.t;
 }
 
 (*let output_broadcast t ip =
@@ -58,28 +59,44 @@ let destination_mac t = function
           fail (No_route_to_destination_address ip)
     end
 
-(* 
-let output t ~dest_ip pkt =
- let ipfn env = 
-    let ttl = 38 in (* TODO ttl tracking *)
-    let p = ip ~ttl ~dest:(ipv4_addr_to_uint32 dest_ip) ~options:`None env in
-    let csum = OS.Istring.ones_complement_checksum (Mpl.Ipv4.env p) (Mpl.Ipv4.header_end p) 0l in
-    Mpl.Ipv4.set_checksum p csum;
-  in
-  let etherfn = Mpl.Ethernet.IPv4.t
-    ~dest_mac:(`Str (ethernet_mac_to_bytes dest_mac))
-    ~src_mac:(`Str (ethernet_mac_to_bytes (Ethif.mac t.netif)))
-    ~data:(`Sub ipfn) in
-  Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
-*)
+let output t ~proto ~dest_ip pkt =
+  let ttl = 38 in (* TODO TTL *)
+  lwt dmac = destination_mac t dest_ip >|= ethernet_mac_to_bytes in
+  let smac = ethernet_mac_to_bytes (Ethif.mac t.ethif) in
+  let options_len = 0 in (* no options support yet *)
+  let ihl = options_len + 5 in
+  let tlen = Bitstring.bitstring_length pkt / 8 + (ihl * 4) in
+  let tos = 0 in
+  let ipid = 17 in (* TODO support ipid *)
+  let flags = 0 in (* TODO expose DF/MF frag flags *)
+  let fragoff = 0 in
+  let proto = match proto with |`ICMP -> 1 |`TCP -> 6 |`UDP -> 17 in
+  let src = ipv4_addr_to_uint32 t.ip in
+  let dst = ipv4_addr_to_uint32 dest_ip in
+  let checksum = 0 in
+  let frame = BITSTRING {
+    dmac:48:string; smac:48:string; 0x0800:16; (* Ethernet header *)
+    4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
+    ttl:8; proto:8; checksum:16; src:32; dst:32; pkt:-1:bitstring 
+  } in
+  Ethif.output t.ethif frame
 
 let input t pkt =
   bitmatch pkt with
   |{4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
-    ttl:8; proto:8; checksum:16; src:32; dst:32;
+    ttl:8; proto:8; checksum:16; src:32:bind(ipv4_addr_of_uint32 src); dst:32:bind(ipv4_addr_of_uint32 dst);
     options:(ihl-5)*32:bitstring; data:-1:bitstring } ->
-      printf "Packet: proto=%d src=%ld dst=%ld\n%!" proto src dst;
-      return ()
+      printf "Packet: proto=%d src=%s dst=%s\n%!" proto (ipv4_addr_to_string src) (ipv4_addr_to_string dst);
+      begin match proto with
+      |1 -> (* ICMP *)
+        t.icmp src data
+      |6 -> (* TCP *)
+        return ()
+      |17 -> (* IPv4 *)
+        return ()
+      |_ ->
+        return (printf "IPv4: dropping proto %d\n%!" proto)
+      end
   |{_} ->
       return (printf "IPv4: not an IP packet, discarding\n%!")
  
@@ -87,9 +104,13 @@ let create ethif =
   let ip = ipv4_blank in
   let netmask = ipv4_blank in
   let gateways = [] in
-  let t = { ethif; ip; netmask; gateways } in
+  let icmp = fun _ _ -> return () in
+  let t = { ethif; ip; netmask; gateways; icmp } in
   Ethif.attach ethif (`IPv4 (input t));
   t
+
+let attach t = function
+  |`ICMP x -> t.icmp <- x
 
 let set_ip t ip = 
   t.ip <- ip;

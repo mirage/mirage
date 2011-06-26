@@ -10,6 +10,7 @@ let main () =
      lwt netif = OS.Netif.create id in
      let ethif, ethif_t = Net.Ethif.create netif in
      let ipv4 = Net.Ipv4.create ethif in
+     let icmp = Net.Icmp.create ipv4 in
      Net.Ipv4.set_ip ipv4 addr >>
      ethif_t
   |_ -> fail (Failure "only 1 netif supported")

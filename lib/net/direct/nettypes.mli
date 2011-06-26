@@ -24,10 +24,8 @@ val ethernet_mac_to_string : ethernet_mac -> string
 val ethernet_mac_broadcast: ethernet_mac
 
 type ipv4_addr
-val ipv4_addr_of_bytes : string -> ipv4_addr
-val ipv4_addr_of_tuple : (int * int * int * int) -> ipv4_addr
+val ipv4_addr_of_tuple : (int32 * int32 * int32 * int32) -> ipv4_addr
 val ipv4_addr_of_string : string -> ipv4_addr option
-val ipv4_addr_to_bytes : ipv4_addr -> bytes
 val ipv4_addr_to_string : ipv4_addr -> string
 val ipv4_addr_of_uint32 : int32 -> ipv4_addr
 val ipv4_addr_to_uint32 : ipv4_addr -> int32

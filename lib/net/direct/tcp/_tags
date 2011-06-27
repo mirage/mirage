@@ -1,5 +1,4 @@
 true: mirage
 <*.cmx> and not "tcp.cmx": for-pack(Net.Tcp)
-"ack.ml" or "user_buffer.ml" or "segment.ml" or "pcb.ml": pa_lwt
-<*.ml>: use_stdlib
+"options.ml" or "ack.ml" or "user_buffer.ml" or "segment.ml" or "pcb.ml": pa_lwt
 "tcp.cmx": for-repack(Net)

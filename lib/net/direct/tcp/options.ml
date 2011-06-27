@@ -16,98 +16,76 @@
 
 (* TCP options parsing *)
 
-module I = OS.Istring
-
 type t =
-  |MSS of int                      (* RFC793 *)
-  |Window_size_shift of int        (* RFC1323 2.2 *)
-  |SACK_ok                         (* RFC2018 *)
-  |SACK of (int32 * int32) array   (* RFC2018 *)
-  |Timestamp of (int32 * int32)    (* RFC1323 3.2 *)
-  |Unknown of (int * string)       (* RFC793 *)
+  |MSS of int                    (* RFC793 *)
+  |Window_size_shift of int      (* RFC1323 2.2 *)
+  |SACK_ok                       (* RFC2018 *)
+  |SACK of (int32 * int32) list  (* RFC2018 *)
+  |Timestamp of int32 * int32    (* RFC1323 3.2 *)
+  |Unknown of int * string       (* RFC793 *)
 
 type ts = t list
 
-let rec parse v off acc =
-  match I.to_byte v off with
-  |0 -> acc             (* End of options *)
-  |1 -> parse v (off+1) acc  (* NOOP *)
-  |2 -> parse v (off+4) (MSS (I.to_uint16_be v (off+2)) :: acc)
-  |3 -> parse v (off+3) (Window_size_shift (I.to_byte v (off+2)) :: acc)
-  |4 -> parse v (off+2) (SACK_ok :: acc)
-  |5 ->
-    let len = I.to_byte v (off+1) in
-    let num = (len - 2) / 8 in
-    let blocks = Array.init num (fun i ->
-      (I.to_uint32_be v (off+2+(i*4))), (I.to_uint32_be v (off+4+(i*4)))) in
-    parse v (off+2+len) (SACK blocks :: acc)
-  |8 ->
-    let r = (I.to_uint32_be v (off+2)), (I.to_uint32_be v (off+6)) in
-    parse v (off+10) (Timestamp r :: acc) 
-  |x ->
-    let len = I.to_byte v (off+1) in
-    let r = Unknown (x,(I.to_string v (off+2) len)) in
-    parse v (off+2+len) (r::acc)
+let rec parse bs acc =
+  bitmatch bs with
+  | { 0:8; tl:-1:bitstring } -> 
+      acc
+  | { 1:8; tl:-1:bitstring } -> 
+      parse tl acc
+  | { 2:8; 4:8; mss:16; tl:-1:bitstring } ->
+      parse tl (MSS mss :: acc)
+  | { 3:8; 3:8; shift:8; tl:-1:bitstring } ->
+      parse tl (Window_size_shift shift :: acc)
+  | { 4:8; 2:8; tl:-1:bitstring } ->
+      parse tl (SACK_ok :: acc)
+  | { 5:8; len:8; sack:len-2:bitstring; tl:-1:bitstring } ->
+      let num = (len - 2) / 8 in
+      let rec to_int32_list bs acc = function
+      |0 -> acc
+      |n ->
+        bitmatch bs with 
+        | { le:32; re:32; rest:-1:bitstring } ->
+          to_int32_list rest ((le,re) :: acc) (n-1)
+      in
+      let sacks = to_int32_list sack [] num in
+      parse tl (SACK sacks :: acc)
+  | { 8:8; 10:8; tsval:32; tsecr:32; tl:-1:bitstring } ->
+      parse tl (Timestamp (tsval,tsecr) :: acc)
+  | { kind:8; len:8; pkt:len-2:string; tl:-1:bitstring } ->
+      parse tl (Unknown (kind,pkt) :: acc)
+  | { _ } -> acc
 
 let marshal ts = 
-  let open OS.Istring in
-  (fun env ->
-    (* Write type, length, apply function, return total length *)
-    let set_tl off t l fn =
-      set_byte env off t;
-      set_byte env (off+1) l;
-      fn (off+2);
-      l in
-    (* Walk through the options and write them to the view *)
-    let rec write off = function
-    |hd :: tl -> begin
-      match hd with
-      |MSS sz ->
-         set_tl off 2 4 (fun off ->
-           set_uint16_be env off sz;
-         )
-      |Window_size_shift shift ->
-         set_tl off 3 3 (fun off ->
-           set_byte env off shift;
-         );
-      |SACK_ok ->
-         set_tl off 4 2 (fun off -> ())
-      |SACK acks ->
-         let len = Array.length acks * 8 + 2 in
-         set_tl off 5 len (fun off ->
-           Array.iteri (fun i (l,r) -> 
-             set_uint32_be env (i*8+off) l;
-             set_uint32_be env (i*8+off+4) r;
-           ) acks
-         )
-      |Timestamp (a,b) ->
-         set_tl off 8 10 (fun off ->
-           set_uint32_be env off a;
-           set_uint32_be env (off+4) b
-         )
-      |Unknown (t,v) ->
-         set_tl off t (String.length v + 2) (fun off ->
-           set_string env off v
-         )
-    end
-    |[] ->
-      (* Write end of options field *)
-      set_byte env off 0;
-      0
-    in
-    ignore(write 0 ts)
-  )
+  let opts = List.rev_map (function
+    |MSS sz ->
+       BITSTRING { 2:8; 4:8; sz:16 }
+    |Window_size_shift shift ->
+       BITSTRING { 3:8; 3:8; shift:8 }
+    |SACK_ok ->
+       BITSTRING { 4:8; 2:8 }
+    |SACK acks ->
+       let edges = Bitstring.concat (
+         List.map (fun (le,re) -> BITSTRING { le:32; re:32 }) acks) in
+       let len = List.length acks * 8 + 2 in
+       BITSTRING { 5:8; len:8; edges:-1:bitstring } 
+    |Timestamp (tsval,tsecr) ->
+       BITSTRING { 8:8; 10:8; tsval:32; tsecr:32 }
+    |Unknown (kind,contents) ->
+       let len = String.length contents + 2 in
+       BITSTRING { kind:8; len:8; contents:-1:string }
+  ) ts in
+  let eopt = BITSTRING { 0:8 } in
+  List.rev (eopt :: opts)
 
-let of_packet (tcp:Mpl.Tcp.o) =
-  if (Mpl.Tcp.options_length tcp)= 0 then []
-  else parse (Mpl.Tcp.options_sub_view tcp) 0 []
+let of_packet bs =
+  parse bs []
 
 let to_string = function
   |MSS m -> Printf.sprintf "MSS=%d" m
   |Window_size_shift b -> Printf.sprintf "Window>>%d" b
   |SACK_ok -> "SACK_ok"
   |SACK x -> Printf.(sprintf "SACK=(%s)" (String.concat ","
-    (List.map (fun (l,r) -> sprintf "%lu,%lu" l r) (Array.to_list x))))
+    (List.map (fun (l,r) -> sprintf "%lu,%lu" l r) x)))
   |Timestamp (a,b) -> Printf.sprintf "Timestamp(%lu,%lu)" a b
   |Unknown (t,_) -> Printf.sprintf "%d?" t
 

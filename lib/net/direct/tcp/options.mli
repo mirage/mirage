@@ -18,11 +18,11 @@ type t =
   |MSS of int                      (* RFC793 *)
   |Window_size_shift of int        (* RFC1323 2.2 *)
   |SACK_ok                         (* RFC2018 *)
-  |SACK of (int32 * int32) array   (* RFC2018 *)
-  |Timestamp of (int32 * int32)    (* RFC1323 3.2 *)
-  |Unknown of (int * string)       (* RFC793 *)
+  |SACK of (int32 * int32) list    (* RFC2018 *)
+  |Timestamp of int32 * int32      (* RFC1323 3.2 *)
+  |Unknown of int * string         (* RFC793 *)
 
 type ts = t list
-val marshal: ts -> (OS.Istring.t -> unit)
-val of_packet : Mpl.Tcp.o -> t list
+val marshal: ts -> Bitstring.t list
+val of_packet : Bitstring.t -> t list
 val prettyprint : t list -> string

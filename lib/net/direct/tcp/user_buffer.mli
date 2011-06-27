@@ -19,8 +19,8 @@ module Rx : sig
   type t
 
   val create : max_size:int32 -> t
-  val add_r : t -> OS.Istring.t -> unit Lwt.t
-  val take_l : t -> OS.Istring.t Lwt.t
+  val add_r : t -> Bitstring.t -> unit Lwt.t
+  val take_l : t -> Bitstring.t Lwt.t
   val cur_size : t -> int32
   val max_size : t -> int32
   val set_max_size : t -> int32 -> unit

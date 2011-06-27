@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,25 +28,35 @@ module Rx = struct
 
   (* Individual received TCP segment 
      TODO: this will change when IP fragments work *)
-  type seg = Mpl.Tcp.o
+  type seg = {
+    sequence: Sequence.t;
+    data: Bitstring.t;
+    fin: bool;
+    syn: bool;
+    ack: bool;
+    ack_number: Sequence.t;
+    window: int;
+  }
 
-  let seq (seg:seg) = Sequence.of_int32 (Mpl.Tcp.sequence seg)
-  let len (seg:seg) = Mpl.Tcp.( (data_length seg) + (fin seg) + (syn seg) )
-  let view (seg:seg) = Mpl.Tcp.data_sub_view seg
-  let ack (seg:seg) = Mpl.Tcp.ack seg = 1
-  let ack_number (seg:seg) = Sequence.of_int32 (Mpl.Tcp.ack_number seg)
+  let make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data =
+    { sequence; fin; syn; ack; ack_number; window; data }
+
+  let len seg = 
+    Bitstring.bitstring_length seg.data +
+    (if seg.fin then 1 else 0) +
+    (if seg.syn then 1 else 0)
 
   (* Set of segments, ordered by sequence number *)
   module S = Set.Make(struct
     type t = seg
-    let compare a b = Sequence.compare (seq a) (seq b)
+    let compare a b = Sequence.compare a.sequence b.sequence
   end)
 
   type t = S.t
 
   type q = {
     mutable segs: S.t;
-    rx_data: OS.Istring.t list option Lwt_mvar.t; (* User receive channel *)
+    rx_data: Bitstring.t list option Lwt_mvar.t; (* User receive channel *)
     tx_ack: Sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     wnd: Window.t;
@@ -58,24 +68,24 @@ module Rx = struct
 
   let to_string t =
     String.concat ", " 
-      (List.map (fun x -> sprintf "%lu[%d]"
-      (Sequence.to_int32 (seq x)) (len x)) (S.elements t.segs))
+      (List.map (fun seg -> sprintf "%lu[%d]" (Sequence.to_int32 seg.sequence) (len seg))
+       (S.elements t.segs))
 
   (* If there is a FIN flag at the end of this segment set.
      TODO: should look for a FIN and chop off the rest
      of the set as they may be orphan segments *)
   let fin q =
-    try (Mpl.Tcp.fin (S.max_elt q)) = 1
+    try (S.max_elt q).fin
     with Not_found -> false
 
   (* If there is a SYN flag in this segment set *)
   let syn q =
-    try (Mpl.Tcp.syn (S.max_elt q)) = 1
+    try (S.max_elt q).syn
     with Not_found -> false
 
   (* Determine the transmit window, from the last segment *)
   let window q =
-    try (Mpl.Tcp.window (S.max_elt q))
+    try (S.max_elt q).window
     with Not_found -> 0
 
   let is_empty q = S.is_empty q.segs
@@ -87,15 +97,14 @@ module Rx = struct
   let input q seg =
     (* Check that the segment fits into the valid receive 
        window *)
-    match Window.valid q.wnd (seq seg) with
-    |false ->
-      return ()
+    match Window.valid q.wnd seg.sequence with
+    |false -> return ()
     |true -> begin
       (* Insert the latest segment *)
       let segs = S.add seg q.segs in
       (* Walk through the set and get a list of contiguous segments *)
       let ready, waiting = S.fold (fun seg acc ->
-        match Sequence.compare (seq seg) (Window.rx_nxt q.wnd) with
+        match Sequence.compare seg.sequence (Window.rx_nxt q.wnd) with
         |(-1) ->
            (* Sequence number is in the past, probably an overlapping
               segment. Drop it for now, but TODO segment coalescing *)
@@ -116,8 +125,8 @@ module Rx = struct
 
       (* If the segment has an ACK, tell the transmit side *)
       let tx_ack =
-        if ack seg then
-          Lwt_mvar.put q.tx_ack (ack_number seg)
+        if seg.ack then
+          Lwt_mvar.put q.tx_ack seg.ack_number
         else
           return () in
 
@@ -129,9 +138,8 @@ module Rx = struct
       let urx_inform =
         (* TODO: deal with overlapping fragments *)
         let elems = List.rev (S.fold (fun seg acc ->
-          if (Mpl.Tcp.data_length seg) > 0 then
-            (Mpl.Tcp.data_sub_view seg) :: acc
-          else acc) ready []) in
+          if Bitstring.bitstring_length seg.data > 0 then seg.data :: acc else acc
+         )ready []) in
         Lwt_mvar.put q.rx_data (Some elems) >>
         (* If the last ready segment has a FIN, then mark the receive
            window as closed and tell the application *)
@@ -151,20 +159,23 @@ end
 *)
 module Tx = struct
 
-  type flags = |No_flags |Syn |Fin |Rst (* Either Syn/Fin/Rst allowed, but not combinations *)
+  type flags = (* Either Syn/Fin/Rst allowed, but not combinations *)
+    No_flags
+   |Syn
+   |Fin
+   |Rst
 
-  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-    unit OS.Istring.data -> OS.Istring.t Lwt.t
+  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts -> Bitstring.t -> Bitstring.t Lwt.t
 
   type seg = {
-    view: OS.Istring.t;
+    data: Bitstring.t;
     flags: flags;
   }
 
   (* Sequence length of the segment *)
   let len seg =
     (match seg.flags with |No_flags |Rst -> 0 |Syn |Fin -> 1) +
-    (OS.Istring.length seg.view)
+    (Bitstring.bitstring_length seg.data / 8)
 
   (* Queue of pre-transmission segments *)
   type q = {
@@ -178,7 +189,7 @@ module Tx = struct
   let to_string seg =
     sprintf "[%s%d]" 
       (match seg.flags with |No_flags->"" |Syn->"SYN " |Fin ->"FIN " |Rst -> "RST ")
-      (OS.Istring.length seg.view)
+      (len seg)
 
   let ack_segment q seg =
     (* Take any action to the user transmit queue due to this being successfully
@@ -243,7 +254,7 @@ module Tx = struct
     (* Inform the RX ack thread that we've just sent one *)
     Lwt_mvar.put q.rx_ack ack >>
     (* Queue up segment just sent for retransmission if needed *)
-    let seg = { view; flags } in
+    let seg = { data; flags } in
     let seq_len = len seg in
     if seq_len > 0 then begin
       Window.tx_advance q.wnd seq_len;

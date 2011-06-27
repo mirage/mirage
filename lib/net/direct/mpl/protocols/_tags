@@ -1,2 +1,0 @@
-true: mirage
-<*.cmx>: for-pack(Net.Mpl)

@@ -19,10 +19,8 @@ all: tools
 	@cd lib && $(MAKE)
 
 tools:
-	@cd tools/mpl && ocamlbuild $(JOBS) mplc.native
 	@cd tools/crunch && ocamlbuild $(JOBS) crunch.native
 	@cd tools/mir && $(MAKE) install
-	@cp tools/mpl/_build/mplc.native $(PREFIX)/bin/mplc
 	@cp tools/crunch/_build/crunch.native $(PREFIX)/bin/mlcrunch
 	@$(MAKE) -C tools/fs all
 	@cp tools/fs/mir-fs-create $(PREFIX)/bin/mir-fs-create
@@ -36,5 +34,4 @@ install:
 clean:
 	@cd syntax && $(MAKE) clean
 	@cd lib && $(MAKE) clean
-	@cd tools/mpl && ocamlbuild -clean
 	@cd tools/crunch && ocamlbuild -clean

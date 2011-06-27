@@ -77,26 +77,6 @@ module OS = struct
     | x -> failwith ("unknown target os: " ^ x)
 end
 
-(* Rules for MPL compiler *)
-module MPL = struct
-
-  let mplc_bin = "mplc" 
-
-  let mpl_c tags arg out =
-    Cmd (S [A mplc_bin; A"-q"; T(tags++"mpl"); P arg; Sh">"; Px out])
-
-  let mpl_compile mpl ml env build =
-    let mpl = env mpl and ml = env ml in
-    let tags = tags_of_pathname mpl in
-    mpl_c tags mpl ml
-
-  let () =
-    rule "mpl: mpl -> ml"
-      ~prod:"%.ml"
-      ~dep:"%.mpl"
-      (mpl_compile "%.mpl" "%.ml")
-end
-
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
 
@@ -280,9 +260,8 @@ let _ = dispatch begin function
      pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
 
      (* net/direct includes *)
-     Pathname.define_context "net/direct/tcp" ["net/direct/mpl"; "net/direct"];
-     Pathname.define_context "net/direct" ["net/direct/mpl"; "net/direct/tcp"; "net/direct/dhcp"];
-     Pathname.define_context "net/direct/dhcp" ["net/direct/mpl"; "net/direct" ];
+     Pathname.define_context "net/direct" ["net/direct/tcp"; "net/direct/dhcp"];
+     Pathname.define_context "net/direct/dhcp" ["net/direct" ];
 
      (* some C code will use local ev.h *)
      dep  ["c"; "compile"; "include_libev"] libev_files;

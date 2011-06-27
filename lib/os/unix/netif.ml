@@ -97,9 +97,8 @@ let destroy nf =
    is not a performance-critical backend
 *)
 let output t bss =
-  (* Do a very slow concat of all the bitstrings here; TODO speedup! *)
-  let s = String.concat "" (List.map Bitstring.string_of_bitstring bss) in
-  return (Tap.write t.dev (Bitstring.bitstring_of_string s))
+  let s = Bitstring.concat bss in
+  return (Tap.write t.dev s)
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

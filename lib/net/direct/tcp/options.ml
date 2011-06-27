@@ -28,7 +28,7 @@ type ts = t list
 
 let rec parse bs acc =
   bitmatch bs with
-  | { 0:8; tl:-1:bitstring } -> 
+  | { 0:8 } -> 
       acc
   | { 1:8; tl:-1:bitstring } -> 
       parse tl acc
@@ -56,26 +56,34 @@ let rec parse bs acc =
   | { _ } -> acc
 
 let marshal ts = 
+  let tlen = ref 0 in
   let opts = List.rev_map (function
     |MSS sz ->
-       BITSTRING { 2:8; 4:8; sz:16 }
+       tlen := !tlen + 4;
+       (BITSTRING { 2:8; 4:8; sz:16 })
     |Window_size_shift shift ->
-       BITSTRING { 3:8; 3:8; shift:8 }
+       tlen := !tlen + 3;
+       (BITSTRING { 3:8; 3:8; shift:8 })
     |SACK_ok ->
-       BITSTRING { 4:8; 2:8 }
+       tlen := !tlen + 2;
+       (BITSTRING { 4:8; 2:8 })
     |SACK acks ->
        let edges = Bitstring.concat (
          List.map (fun (le,re) -> BITSTRING { le:32; re:32 }) acks) in
        let len = List.length acks * 8 + 2 in
-       BITSTRING { 5:8; len:8; edges:-1:bitstring } 
+       tlen := !tlen + len;
+       (BITSTRING { 5:8; len:8; edges:-1:bitstring })
     |Timestamp (tsval,tsecr) ->
-       BITSTRING { 8:8; 10:8; tsval:32; tsecr:32 }
+       tlen := !tlen + 10;
+       (BITSTRING { 8:8; 10:8; tsval:32; tsecr:32 })
     |Unknown (kind,contents) ->
        let len = String.length contents + 2 in
-       BITSTRING { kind:8; len:8; contents:-1:string }
+       tlen := !tlen + len;
+       (BITSTRING { kind:8; len:8; contents:-1:string })
   ) ts in
-  let eopt = BITSTRING { 0:8 } in
-  List.rev (eopt :: opts)
+  let padlen = 32 - (!tlen mod 32) in
+  let eopt = BITSTRING { 0L:padlen } in
+  Bitstring.concat (List.rev (eopt :: opts))
 
 let of_packet bs =
   parse bs []

@@ -37,7 +37,7 @@ module Tx :
     type flags = |No_flags |Syn |Fin |Rst
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-      Bitstring.t -> Bitstring.t Lwt.t
+      Bitstring.t -> Bitstring.t list Lwt.t
 
     type q
 

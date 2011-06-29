@@ -165,7 +165,7 @@ module Tx = struct
    |Fin
    |Rst
 
-  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts -> Bitstring.t -> Bitstring.t Lwt.t
+  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts -> Bitstring.t -> Bitstring.t list Lwt.t
 
   type seg = {
     data: Bitstring.t;

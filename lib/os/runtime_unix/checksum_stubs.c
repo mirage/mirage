@@ -19,13 +19,12 @@
 #include <caml/mlvalues.h>
 #include <caml/fail.h>
 
-CAMLprim value
-caml_ones_complement_checksum(value v_bitstr, value v_initial)
+static uint32_t
+checksum_bitstring(value v_bitstr, uint32_t sum)
 {
   char *buf = String_val(Field(v_bitstr, 0));
   size_t off = Int_val(Field(v_bitstr,1)) / 8;
   size_t count = Int_val(Field(v_bitstr,2)) / 8;
-  uint32_t sum = Int32_val(v_initial);
 
   unsigned char *addr = buf + off;
   uint16_t checksum;
@@ -39,6 +38,31 @@ caml_ones_complement_checksum(value v_bitstr, value v_initial)
     sum += (*(unsigned char *)addr) << 8;
   while (sum >> 16)
     sum = (sum & 0xffff) + (sum >> 16);
+  return sum;
+}
+
+CAMLprim value
+caml_ones_complement_checksum_list(value v_bitstrs)
+{
+  uint32_t sum = 0;
+  uint16_t checksum = 0;
+  value v_head;
+  while (v_bitstrs != Val_emptylist) {
+    v_head = Field(v_bitstrs, 0);
+    v_bitstrs = Field(v_bitstrs, 1);
+    sum = checksum_bitstring(v_head, sum);
+  }
   checksum = ~sum;
   return Val_int(checksum);
 }
+
+CAMLprim value
+caml_ones_complement_checksum(value v_bitstr)
+{
+  uint32_t sum;
+  uint16_t checksum = 0;
+  sum = checksum_bitstring (v_bitstr, 0);
+  checksum = ~sum;
+  return Val_int(checksum);
+}
+

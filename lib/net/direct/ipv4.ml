@@ -32,6 +32,7 @@ type t = {
   mutable gateways: ipv4_addr list;
   mutable icmp: ipv4_addr -> Bitstring.t -> unit Lwt.t;
   mutable udp: src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t;
+  mutable tcp: src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t;
 }
 
 (*let output_broadcast t ip =
@@ -81,7 +82,7 @@ let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
   let ipv4_header = BITSTRING {
     4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
     ttl:8; proto:8; 0:16; src:32; dst:32 } in
-  let checksum = Checksum.ones_complement ipv4_header 0l in
+  let checksum = Checksum.ones_complement ipv4_header in
   let checksum_bs,_,_ = BITSTRING { checksum:16 } in
   let checksum_offset = (4+4+8+16+16+3+13+8+8) / 8 in
   let ipv4_header_buf, _, _ = ipv4_header in
@@ -99,7 +100,7 @@ let input t pkt =
       |1 -> (* ICMP *)
         t.icmp src data
       |6 -> (* TCP *)
-        return ()
+        t.tcp ~src ~dst data
       |17 -> (* UDP *)
         t.udp ~src ~dst data
       |_ ->
@@ -110,6 +111,7 @@ let input t pkt =
 
 let default_icmp = fun _ _ -> return ()
 let default_udp = fun ~src ~dst _ -> return ()
+let default_tcp = fun ~src ~dst _ -> return ()
  
 let create ethif = 
   let ip = ipv4_blank in
@@ -117,17 +119,20 @@ let create ethif =
   let gateways = [] in
   let icmp = default_icmp in
   let udp = default_udp in
-  let t = { ethif; ip; netmask; gateways; icmp; udp } in
+  let tcp = default_tcp in
+  let t = { ethif; ip; netmask; gateways; icmp; udp; tcp } in
   Ethif.attach ethif (`IPv4 (input t));
   t
 
 let attach t = function
   |`ICMP x -> t.icmp <- x
   |`UDP x -> t.udp <- x
+  |`TCP x -> t.tcp <- x
 
 let detach t = function
   |`ICMP -> t.icmp <- default_icmp
   |`UDP -> t.udp <- default_udp
+  |`TCP -> t.tcp <- default_tcp
 
 let set_ip t ip = 
   t.ip <- ip;

@@ -26,5 +26,6 @@ val set_gateways: t -> ipv4_addr list -> unit Lwt.t
 val create : Ethif.t -> t
 val attach : t ->
   [<  `ICMP of ipv4_addr -> Bitstring.t -> unit Lwt.t
-    | `UDP of src:Nettypes.ipv4_addr -> dst:Nettypes.ipv4_addr -> Bitstring.t -> unit Lwt.t ] -> unit
-val detach : t -> [< `ICMP | `UDP ] -> unit
+    | `UDP of src:Nettypes.ipv4_addr -> dst:Nettypes.ipv4_addr -> Bitstring.t -> unit Lwt.t 
+    | `TCP of src:Nettypes.ipv4_addr -> dst:Nettypes.ipv4_addr -> Bitstring.t -> unit Lwt.t ] -> unit
+val detach : t -> [< `ICMP | `UDP | `TCP ] -> unit

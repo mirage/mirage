@@ -20,7 +20,7 @@ open Printf
 
 type t = {
   ip : Ipv4.t;
-  listeners: (int, (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> unit Lwt.t)) Hashtbl.t
+  listeners: (int, (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> Bitstring.t -> unit Lwt.t)) Hashtbl.t
 }
 
 let input t ~src ~dst pkt =
@@ -29,7 +29,7 @@ let input t ~src ~dst pkt =
       checksum:16; data:length-8:bitstring } ->
   if Hashtbl.mem t.listeners dest_port then begin
     let fn = Hashtbl.find t.listeners dest_port in
-    fn ~src ~dst ~source_port 
+    fn ~src ~dst ~source_port data
   end else
     return ()
 

@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2006-2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2006-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,45 +42,65 @@ type t = {
   new_offer: offer -> unit Lwt.t;
 }
 
+(*  DHCP MPL packet format:
+    op: byte variant { |1 -> BootRequest |2-> BootReply };
+    htype: byte const(1);
+    hlen: byte const(6);
+    hops: byte default(0);
+    xid: uint32;
+    secs: uint16;
+    broadcast: bit[1];
+    reserved: bit[15] const(0);
+    ciaddr: uint32;
+    yiaddr: uint32;
+    siaddr: uint32;
+    giaddr: uint32;
+    chaddr: byte[16];
+    sname: byte[64];
+    file: byte[128];
+    cookie: uint32 const(0x63825363);
+    options: byte[remaining()];
+*)
+
 (* Send a client broadcast packet *)
 let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
-  (* DHCP pads the MAC address to 16 bytes *)
-  let chaddr = `Str ((ethernet_mac_to_bytes (Ipv4.mac t.ip)) ^ 
-    (String.make 10 '\000')) in
-
-  let options = `Str (Option.Packet.to_bytes options) in
-
-  let dhcpfn env =
-      ignore(Mpl.Dhcp.t
-        ~op:`BootRequest ~xid ~secs:10 ~broadcast:0
-        ~ciaddr:0l ~yiaddr:(ipv4_addr_to_uint32 yiaddr) 
-        ~siaddr:(ipv4_addr_to_uint32 siaddr)
-        ~giaddr:0l ~chaddr
-        ~sname:(`Str (String.make 64 '\000'))
-        ~file:(`Str (String.make 128 '\000'))
-        ~options env)
-  in
-  let dest_ip = ipv4_broadcast in
-  let udpfn = Mpl.Udp.t
-      ~source_port:68 ~dest_port:67
-      ~checksum:0
-      ~data:(`Sub dhcpfn)
-  in
+  let secs = 10 in
+  (* We pad the MAC address to 16 bytes in the bitstring below *)
+  let chaddr = ethernet_mac_to_bytes (Ipv4.mac t.ip) in
+  let siaddr = ipv4_addr_to_uint32 siaddr in
+  let yiaddr = ipv4_addr_to_uint32 yiaddr in
+  let giaddr = 0l in
+  let ciaddr = 0l in
+  let sname = String.make 64 '\000' in
+  let file = String.make 128 '\000' in
+  let pad = String.make 10 '\000' in
+  let options = Option.Packet.to_bytes options in
+  let pkt = BITSTRING {
+    1:8; 1:8; 0:8; xid:32; secs:16; false:1; 0:15; 
+    ciaddr:32; yiaddr:32; siaddr:32; giaddr:32; chaddr:48:string; pad:80:string;
+    sname:512:string; file:1024:string; 0x63825363l:32; options:-1:string
+  } in
   Printf.printf "Sending DHCP broadcast\n%!";
-  Udp.output t.udp ~dest_ip udpfn
+  Udp.output t.udp ~dest_ip:ipv4_broadcast ~source_port:68 ~dest_port:67 pkt
 
 (* Receive a DHCP UDP packet *)
-let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
-  let dhcp = Mpl.Dhcp.unmarshal (Mpl.Udp.data_sub_view udp) in
-  let packet = Option.Packet.of_bytes (Mpl.Dhcp.options dhcp) in
-  (* See what state our Netif is in and if this packet is useful *)
-  Option.Packet.(match t.state with
+let input t ~src ~dst ~source_port pkt =
+  bitmatch pkt with
+  | { op:8; 1:8; 6:8; 0:8; xid:32; secs:16; broadcast:1; 0:15;
+      ciaddr:32:bind(ipv4_addr_of_uint32 ciaddr);
+      yiaddr:32:bind(ipv4_addr_of_uint32 yiaddr);
+      siaddr:32:bind(ipv4_addr_of_uint32 siaddr);
+      giaddr:32:bind(ipv4_addr_of_uint32 giaddr);
+      chaddr:48:bitstring; pad:80:bitstring;
+      sname:512:bitstring; file:1024:bitstring; 0x63825363l:32; options:-1:string } ->
+    let packet = Option.Packet.of_bytes options in
+    (* See what state our Netif is in and if this packet is useful *)
+    Option.Packet.(match t.state with
     | Request_sent xid -> begin
         (* we are expecting an offer *)
-        match packet.op, (Mpl.Dhcp.xid dhcp) with 
+        match packet.op, xid with 
         |`Offer, offer_xid when offer_xid=xid ->  begin
-            let ip_addr = ipv4_addr_of_uint32 (Mpl.Dhcp.yiaddr dhcp) in
-            printf "DHCP: offer received: %s\n%!" (ipv4_addr_to_string ip_addr);
+            printf "DHCP: offer received: %s\n%!" (ipv4_addr_to_string yiaddr);
             let netmask = find packet
               (function `Subnet_mask addr -> Some addr |_ -> None) in
             let gateways = findl packet 
@@ -88,11 +108,9 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
             let dns = findl packet 
               (function `DNS_server addrs -> Some addrs |_ -> None) in
             let lease = 0l in
-            let offer = { ip_addr; netmask; gateways; dns; lease; xid } in
-            let yiaddr = ipv4_addr_of_uint32 (Mpl.Dhcp.yiaddr dhcp) in
-            let siaddr = ipv4_addr_of_uint32 (Mpl.Dhcp.siaddr dhcp) in
+            let offer = { ip_addr=yiaddr; netmask; gateways; dns; lease; xid } in
             let options = { op=`Request; opts= [
-                `Requested_ip ip_addr;
+                `Requested_ip yiaddr;
                 `Server_identifier siaddr;
               ] } in
             t.state <- Offer_accepted offer;
@@ -102,7 +120,7 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
     end
     | Offer_accepted info -> begin
         (* we are expecting an ACK *)
-        match packet.op, (Mpl.Dhcp.xid dhcp) with 
+        match packet.op, xid with
         |`Ack, ack_xid when ack_xid = info.xid -> begin
             let lease =
               match find packet (function `Lease_time lt -> Some lt |_ -> None) with
@@ -123,7 +141,6 @@ let input t (ip:Mpl.Ipv4.o) (udp:Mpl.Udp.o) =
 (* Start a DHCP discovery off on an interface *)
 let start_discovery t =
   OS.Time.sleep 0.2 >>
-  (* XXX TODO this Random needs to be functorized! *)
   let xid = Random.int32 Int32.max_int in
   let yiaddr = ipv4_blank in
   let siaddr = ipv4_blank in

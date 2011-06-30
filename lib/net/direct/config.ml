@@ -29,7 +29,7 @@ let t id =
 (* Static IPv4 address *)
 let t id =
   `IPv4 (
-    ipv4_addr_of_tuple (10,0,0,2),
-    ipv4_addr_of_tuple (255,255,255,0),
-    [ ipv4_addr_of_tuple (10,0,0,1) ]
+    ipv4_addr_of_tuple (10l,0l,0l,2l),
+    ipv4_addr_of_tuple (255l,255l,255l,0l),
+    [ ipv4_addr_of_tuple (10l,0l,0l,1l) ]
   )

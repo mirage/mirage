@@ -23,7 +23,7 @@ val get_ip: t -> ipv4_addr
 val mac: t -> ethernet_mac
 val set_netmask: t -> ipv4_addr -> unit Lwt.t
 val set_gateways: t -> ipv4_addr list -> unit Lwt.t
-val create : Ethif.t -> t
+val create : Ethif.t -> t * unit Lwt.t
 val attach : t ->
   [<  `ICMP of ipv4_addr -> Bitstring.t -> unit Lwt.t
     | `UDP of src:Nettypes.ipv4_addr -> dst:Nettypes.ipv4_addr -> Bitstring.t -> unit Lwt.t 

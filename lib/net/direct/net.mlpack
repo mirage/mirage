@@ -8,7 +8,7 @@ Udp
 tcp/Tcp
 dhcp/Dhcp
 Config
-#Manager
+Manager
 #Flow
 #Datagram
 #Channel

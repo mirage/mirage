@@ -36,3 +36,9 @@ let input t src pkt =
 let create ip =
   let t = { ip } in
   Ipv4.attach ip (`ICMP (input t));
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun () ->
+    printf "ICMP: shutting down\n%!";
+    Ipv4.detach ip `ICMP;
+  );
+  t, th

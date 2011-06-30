@@ -35,14 +35,6 @@ type t = {
   mutable tcp: src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t;
 }
 
-(*let output_broadcast t ip =
-  let etherfn = Mpl.Ethernet.IPv4.t
-    ~dest_mac:(`Str (ethernet_mac_to_bytes ethernet_mac_broadcast))
-    ~src_mac:(`Str (ethernet_mac_to_bytes (Ethif.mac t.netif)))
-    ~data:(`Sub ip) in
-  Ethif.output t.netif (`IPv4 (Mpl.Ethernet.IPv4.m etherfn))
-*)
-
 (* XXX should optimise this! *)
 let is_local t ip =
   let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
@@ -122,7 +114,11 @@ let create ethif =
   let tcp = default_tcp in
   let t = { ethif; ip; netmask; gateways; icmp; udp; tcp } in
   Ethif.attach ethif (`IPv4 (input t));
-  t
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun () ->
+    printf "IPv4: shutting down\n%!";
+    Ethif.detach ethif `IPv4);
+  t, th
 
 let attach t = function
   |`ICMP x -> t.icmp <- x

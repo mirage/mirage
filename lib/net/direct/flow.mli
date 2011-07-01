@@ -32,6 +32,7 @@ module Shmem : FLOW with
 type t
 val read: t -> Bitstring.t option Lwt.t
 val write: t -> Bitstring.t -> unit Lwt.t
+val writev: t -> Bitstring.t list -> Bitstring.t Lwt.t
 val close: t -> unit Lwt.t
 
 val connect :

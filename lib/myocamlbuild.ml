@@ -260,6 +260,7 @@ let _ = dispatch begin function
      pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
 
      (* net/direct includes *)
+     Pathname.define_context "net/direct" ["net/direct/tcp"; "net/direct/dhcp" ];
      Pathname.define_context "net/direct/dhcp" ["net/direct" ];
      Pathname.define_context "net/direct/tcp" ["net/direct" ];
 

@@ -42,7 +42,7 @@ module Rx = struct
     { sequence; fin; syn; ack; ack_number; window; data }
 
   let len seg = 
-    Bitstring.bitstring_length seg.data +
+    (Bitstring.bitstring_length seg.data / 8) +
     (if seg.fin then 1 else 0) +
     (if seg.syn then 1 else 0)
 

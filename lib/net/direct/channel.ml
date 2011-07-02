@@ -117,22 +117,18 @@ module Make(Flow:FLOW) :
      @raise Closed to signify EOF  *)
   let read_crlf t =
     let fin = ref false in
-    Lwt_stream.from (fun () ->
-      match !fin with
-      |true -> return None
-      |false -> begin
-        match_lwt read_until t '\n' with
-        |(false, v) ->
-          return (Some v)  (* Continue scanning *)
-        |(true, v) -> begin      (* Found (CR?)LF *)
-          fin := true;
-          (* chop the CR if present *)
-          (bitmatch v with
-          | { 13:8; rest:-1:bitstring } -> return (Some rest)
-          | { _ } -> return (Some v))
-        end
-      end
-    )
+    let rec get acc =
+      match_lwt read_until t '\n' with
+      |(false, v) -> get (v :: acc)
+      |(true, v) ->
+        (* chop the CR if present *)
+        let v = bitmatch v with
+          | { 13:8; rest:-1:bitstring } -> rest
+          | { _ } -> v in
+        return (v :: acc) 
+    in
+    lwt res = get [] >|= List.rev in
+    return (Bitstring.concat res)
     
   (* Output functions *)
 

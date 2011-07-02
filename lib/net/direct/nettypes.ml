@@ -140,8 +140,7 @@ module type CHANNEL = sig
   val read_until: t -> char -> (bool * Bitstring.t) Lwt.t
   val read_some: ?len:int -> t -> Bitstring.t Lwt.t
   val read_stream: ?len:int -> t -> Bitstring.t Lwt_stream.t
-
-  val read_crlf: t -> Bitstring.t Lwt_stream.t
+  val read_crlf: t -> Bitstring.t Lwt.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t

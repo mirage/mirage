@@ -14,10 +14,9 @@ let echo () =
          (Nettypes.ipv4_addr_to_string remote_addr) remote_port);
        let rec echo () =
          try_lwt
-           let res = Channel.read_crlf t in
-           lwt ts = OS.Istring.ts_of_stream res in
-           let str = OS.Istring.ts_to_string ts in
-           Channel.write_line t str >>
+           lwt res = Channel.read_crlf t in
+           Channel.write_bitstring t res >>
+           Channel.write_char t '\n' >>
            Channel.flush t >>
            echo ()
          with Nettypes.Closed -> return ()

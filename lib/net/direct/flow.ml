@@ -32,7 +32,6 @@ module TCPv4 = struct
 
   let rec write t view =
     let vlen = Bitstring.bitstring_length view / 8 in
-    Printf.printf "Flow.write: %d\n%!" vlen;
     match Tcp.Pcb.write_available t with
     |0 -> (* block for window to open *)
       Tcp.Pcb.write_wait_for t 1 >>

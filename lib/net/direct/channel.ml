@@ -93,18 +93,19 @@ module Make(Flow:FLOW) :
  
   (* Read until a character is found *)
   let read_until t ch =
-    lwt bs = read_some t in
+    lwt () = if Bitstring.bitstring_length t.ibuf = 0 then
+      ibuf_refill t else return () in
     try_lwt
       let buf,off,len = t.ibuf in
       let idx = (String.index_from buf (off/8) ch) * 8 in
       let rlen = idx - off in
-      bitmatch t.ibuf with
+      (bitmatch t.ibuf with
       | { _:8; rest:-1:bitstring } when rlen = 0 ->
           t.ibuf <- rest;
           return (true, Bitstring.empty_bitstring)
-      | { r:rlen-8:bitstring; _:8; rest:-1:bitstring } ->
+      | { r:rlen:bitstring; _:8; rest:-1:bitstring } ->
           t.ibuf <- rest;
-          return (true, r)
+          return (true, r))
     with Not_found -> begin
       let r = t.ibuf in
       t.ibuf <- "",0,0; 
@@ -119,7 +120,8 @@ module Make(Flow:FLOW) :
     let fin = ref false in
     let rec get acc =
       match_lwt read_until t '\n' with
-      |(false, v) -> get (v :: acc)
+      |(false, v) ->
+        get (v :: acc)
       |(true, v) ->
         (* chop the CR if present *)
         let v = bitmatch v with

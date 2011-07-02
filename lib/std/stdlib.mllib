@@ -56,7 +56,7 @@ oS
 net
 #block
 #dns
-#http
+http
 #utf8
 #utf16
 #ulexing

@@ -1,6 +1,6 @@
 type contents = [
  | `String of string
- | `Inchan of int64 * OS.Istring.t Lwt_stream.t
+ | `Inchan of int64 * Bitstring.t Lwt_stream.t
 ]
 
 type message

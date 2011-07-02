@@ -139,11 +139,7 @@ let daemon_callback spec =
         let finished_t, finished_u = Lwt.wait () in
         let stream_t =
           try_lwt
-            let read_line () =
-              let stream = Net.Channel.read_crlf channel in
-              lwt ts = OS.Istring.ts_of_stream stream in
-              return (OS.Istring.ts_to_string ts)
-            in
+            let read_line () = Net.Channel.read_crlf channel >|= Bitstring.string_of_bitstring in
             lwt req = Request.init_request finished_u read_line in
             spec.callback conn_id req
           with e -> begin

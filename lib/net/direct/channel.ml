@@ -122,12 +122,14 @@ module Make(Flow:FLOW) :
       match_lwt read_until t '\n' with
       |(false, v) ->
         get (v :: acc)
-      |(true, v) ->
+      |(true, v) -> begin
         (* chop the CR if present *)
+        let vlen = Bitstring.bitstring_length v in
         let v = bitmatch v with
-          | { 13:8; rest:-1:bitstring } -> rest
+          | { rest:vlen-8:bitstring; 13:8 } when vlen >= 8 -> rest
           | { _ } -> v in
         return (v :: acc) 
+      end
     in
     lwt res = get [] >|= List.rev in
     return (Bitstring.concat res)

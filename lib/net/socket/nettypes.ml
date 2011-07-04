@@ -47,68 +47,46 @@ let ethernet_mac_to_bytes x = x
 
 let ethernet_mac_broadcast = String.make 6 '\255'
 
-type ipv4_addr = string (* length 4 only *)
+type ipv4_addr = int32
 
-(* Raw IPv4 address of the wire (network endian) *)
-let ipv4_addr_of_bytes x =
-    assert(String.length x = 4);
-    x
-
-(* Identity function to convert ipv4_addr back to bytes *)
-let ipv4_addr_to_bytes x = x
-
+let ipv4_addr_of_tuple (a,b,c,d) =
+   let (+) = Int32.add in
+   (Int32.shift_left a 24) +
+   (Int32.shift_left b 16) + 
+   (Int32.shift_left c 8) + d
+ 
 (* Read an IPv4 address dot-separated string *)
 let ipv4_addr_of_string x =
-    try
-        let s = String.create 4 in
-        Scanf.sscanf x "%d.%d.%d.%d"
-          (fun a b c d ->
-              s.[0] <- Char.chr a;
-              s.[1] <- Char.chr b;
-              s.[2] <- Char.chr c;
-              s.[3] <- Char.chr d;
-          );
-        Some s
-    with _ -> None
+    let ip = ref None in
+    (try Scanf.sscanf x "%ld.%ld.%ld.%ld"
+      (fun a b c d -> ip := Some (ipv4_addr_of_tuple (a,b,c,d)));
+    with _ -> ());
+    !ip
 
 (* Blank 0.0.0.0 IPv4 address *)
-let ipv4_blank = String.make 4 '\000'
+let ipv4_blank = 0l
 (* Broadcast 255.255.255.255 IPv4 address *)
-let ipv4_broadcast = String.make 4 '\255'
+let ipv4_broadcast = ipv4_addr_of_tuple (255l,255l,255l,255l)
 (* Localhost 127.0.0.1 ipv4 address  *)
-let ipv4_localhost =
-  match ipv4_addr_of_string "127.0.0.1" with |Some x -> x |None -> assert false
+let ipv4_localhost = ipv4_addr_of_tuple (127l,0l,0l,1l)
 
-let ipv4_addr_of_uint32 s =
-    let (>!) x y = Char.chr (Int32.to_int (Int32.logand (Int32.shift_right x y) 255l)) in
-    let x = String.create 4 in
-    x.[0] <- (s >! 24);
-    x.[1] <- (s >! 16);
-    x.[2] <- (s >! 8);
-    x.[3] <- (s >! 0);
-    x
+let ipv4_addr_to_string s =
+    let (>!) x y = Int32.to_int (Int32.logand (Int32.shift_right x y) 255l) in
+    Printf.sprintf "%d.%d.%d.%d" (s >! 24) (s >! 16) (s >! 8) (s >! 0)
 
-let ipv4_addr_to_uint32 a =
-    let s x y = Int32.shift_left (Int32.of_int (Char.code a.[x])) (y*8) in
-    let (++) = Int32.add in
-    (s 0 3) ++ (s 1 2) ++ (s 2 1) ++ (s 3 0)
-
-(* Read an IPv4 address from a tuple *)
-let ipv4_addr_of_tuple (a,b,c,d) =
-    let s = String.create 4 in
-    s.[0] <- Char.chr a;
-    s.[1] <- Char.chr b;
-    s.[2] <- Char.chr c;
-    s.[3] <- Char.chr d;
-    s
-
-let ipv4_addr_to_string x =
-    let chri i = Char.code x.[i] in
-    Printf.sprintf "%d.%d.%d.%d"
-      (chri 0) (chri 1) (chri 2) (chri 3)
+external ipv4_addr_of_uint32: int32 -> ipv4_addr = "%identity"
+external ipv4_addr_to_uint32: ipv4_addr -> int32 = "%identity"
 
 type ipv4_src = ipv4_addr option * int
 type ipv4_dst = ipv4_addr * int
+
+type arp = {
+  op: [ `Request |`Reply |`Unknown of int ];
+  sha: ethernet_mac;
+  spa: ipv4_addr;
+  tha: ethernet_mac;
+  tpa: ipv4_addr;
+}
 
 type peer_uid = int
 
@@ -124,8 +102,9 @@ module type FLOW = sig
   type dst
 
   (* Read and write to a flow *)
-  val read: t -> OS.Istring.t option Lwt.t
-  val write: t -> OS.Istring.t -> unit Lwt.t
+  val read: t -> Bitstring.t option Lwt.t
+  val write: t -> Bitstring.t -> unit Lwt.t
+  val writev: t -> Bitstring.t list -> Bitstring.t Lwt.t
 
   val close: t -> unit Lwt.t
 
@@ -158,17 +137,15 @@ module type CHANNEL = sig
   type dst
 
   val read_char: t -> char Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
-  val read_stream: ?len:int -> t -> OS.Istring.t Lwt_stream.t
-
-  val read_crlf: t -> OS.Istring.t Lwt_stream.t
+  val read_until: t -> char -> (bool * Bitstring.t) Lwt.t
+  val read_some: ?len:int -> t -> Bitstring.t Lwt.t
+  val read_stream: ?len:int -> t -> Bitstring.t Lwt_stream.t
+  val read_crlf: t -> Bitstring.t Lwt.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t
+  val write_bitstring : t -> Bitstring.t -> unit Lwt.t
   val write_line : t -> string -> unit Lwt.t
-  val write_view : t -> OS.Istring.t -> unit Lwt.t
-  val write_views : t -> OS.Istring.t Lwt_stream.t -> unit Lwt.t
 
   val flush : t -> unit Lwt.t
   val close : t -> unit Lwt.t

@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-
 (* Buffered reading and writing over the flow API *)
 open Lwt
 open Printf
@@ -32,10 +31,8 @@ module Make(Flow:FLOW) :
 
   type t = {
     flow: flow;
-    mutable ibuf: OS.Istring.t option;
-    mutable ipos: int;
-    mutable obuf: OS.Istring.t option;
-    mutable opos: int;
+    mutable ibuf: Bitstring.t;
+    mutable obuf: Bitstring.t list;
     abort_t: unit Lwt.t;
     abort_u: unit Lwt.u;
   }
@@ -43,102 +40,77 @@ module Make(Flow:FLOW) :
   exception Closed
 
   let create flow =
-    let ibuf = None in
-    let obuf = None in
-    let ipos = 0 in
-    let opos = 0 in
+    let ibuf = "",0,0 in
+    let obuf = [] in
     let abort_t, abort_u = Lwt.task () in
-    { ibuf; obuf; ipos; opos; flow; abort_t; abort_u }
+    { ibuf; obuf; flow; abort_t; abort_u }
 
-  (* Increment the input buffer position *)
-  let ibuf_incr t amt =
-    let newpos = t.ipos + amt in 
-    match t.ibuf with
-    |Some view ->
-      if newpos >= OS.Istring.length view then begin
-        t.ibuf <- None;
-        t.ipos <- 0;
-      end else
-        t.ipos <- newpos;
-    |None -> assert false
-
-  (* Fill the input buffer with a view and return it,
-     or the existing one if already there *)
-  let ibuf_fill t =
-    match t.ibuf with
+  let ibuf_refill t = 
+    match_lwt Flow.read t.flow with
     |Some buf ->
-      return buf
-    |None -> begin
-      Flow.read t.flow >>= function
-      |Some buf as x ->
-        t.ibuf <- x;
-        return buf
-      |None ->
-        fail Closed
-    end
+      t.ibuf <- buf;
+      return ()
+    |None ->
+      fail Closed
 
   (* Read one character from the input channel *)
-  let read_char t =
-    lwt buf = ibuf_fill t in
-    let ch = OS.Istring.to_char buf t.ipos in
-    ibuf_incr t 1;
-    return ch
+  let rec read_char t =
+    bitmatch t.ibuf with
+    | { c:8; rest:-1:bitstring } ->
+        t.ibuf <- rest;
+        return (Char.chr c)
+    | { rest:-1:bitstring } when Bitstring.bitstring_length rest = 0 ->
+        ibuf_refill t >>
+        read_char t
 
   (* Read up to len characters from the input channel
      and at most a full view. If not specified, read all *)
-  let read_view ?len t =
-    lwt buf = ibuf_fill t in
-    (* Read at most one view *)
-    let n = match len with
-      |Some len -> min (OS.Istring.length buf - t.ipos) len 
-      |None -> OS.Istring.length buf - t.ipos in
-    let v = OS.Istring.sub buf t.ipos n in
-    ibuf_incr t n;
-    return v
+  let read_some ?len t =
+    lwt () = if Bitstring.bitstring_length t.ibuf = 0 then
+      ibuf_refill t else return () in
+    let avail = Bitstring.bitstring_length t.ibuf in
+    let len = match len with |Some len -> len * 8 |None -> avail in
+    if len < avail then begin 
+      let r = Bitstring.subbitstring t.ibuf 0 len in
+      t.ibuf <- Bitstring.subbitstring t.ibuf len (avail-len);
+      return r
+    end else begin 
+      let r = t.ibuf in
+      t.ibuf <- "",0,0;
+      return r
+    end
     
   (* Read up to len characters from the input channel as a 
      stream (and read all available if no length specified *)
   let read_stream ?len t =
     Lwt_stream.from (fun () ->
       try_lwt
-        lwt v = read_view ?len t in
+        lwt v = read_some ?len t in
         return (Some v)
       with Closed ->
         return None
     )
-  
-  (* Read until a character is encountered. This can also
-     be a short read, and return a short view that does
-     not yet have the character.
-     @return (bool * view option) where bool=character found
-      along with the view portion consumed.
-     @raise Closed on EOF
-   *)
+ 
+  (* Read until a character is found *)
   let read_until t ch =
-    lwt buf = ibuf_fill t in
-    match OS.Istring.scan_char buf t.ipos ch with
-    |(-1) ->  (* not found, so return the partial view *)
-      let v = OS.Istring.sub buf t.ipos (OS.Istring.length buf - t.ipos) in
-      return (false, Some v)
-    |idx ->
-      let len = idx - t.ipos in
-      if len >= 0 then begin
-        let v = OS.Istring.sub buf t.ipos (idx-t.ipos) in
-        ibuf_incr t (len+1);
-        return (true, Some v)
-      end else begin (* Consume just the divider character *)
-        ibuf_incr t 1;
-        return (true, None)
-      end
-
-  (* Read a "chunk" of data (where the chunk size is dependent on the
-     underlying protocol and available data, and raise Closed when EOF *)
-  let read_opt t =
-    lwt buf = ibuf_fill t in
-    let len = OS.Istring.length buf - t.ipos in
-    let v = OS.Istring.sub buf t.ipos len in
-    ibuf_incr t len;
-    return v
+    lwt () = if Bitstring.bitstring_length t.ibuf = 0 then
+      ibuf_refill t else return () in
+    try_lwt
+      let buf,off,len = t.ibuf in
+      let idx = (String.index_from buf (off/8) ch) * 8 in
+      let rlen = idx - off in
+      (bitmatch t.ibuf with
+      | { _:8; rest:-1:bitstring } when rlen = 0 ->
+          t.ibuf <- rest;
+          return (true, Bitstring.empty_bitstring)
+      | { r:rlen:bitstring; _:8; rest:-1:bitstring } ->
+          t.ibuf <- rest;
+          return (true, r))
+    with Not_found -> begin
+      let r = t.ibuf in
+      t.ibuf <- "",0,0; 
+      return (false,r)
+    end
 
   (* This reads a line of input, which is terminated either by a CRLF
      sequence, or the end of the channel (which counts as a line).
@@ -146,91 +118,45 @@ module Make(Flow:FLOW) :
      @raise Closed to signify EOF  *)
   let read_crlf t =
     let fin = ref false in
-    Lwt_stream.from (fun () ->
-      match !fin with
-      |true -> return None
-      |false -> begin
-        read_until t '\n' >>= function
-        |true, None -> return None
-        |false, None -> assert false
-        |false, Some v -> return (Some v) (* Continue scanning *)
-        |true, Some v -> begin (* Found (CR?)LF *)
-          fin := true;
-          (* chop the CR if present *)
-          let vlen = OS.Istring.length v in
-          match OS.Istring.to_char v (vlen - 1) with
-          |'\r' ->
-            if vlen > 1 then
-              return (Some (OS.Istring.(sub v 0 (vlen-1))))
-            else
-              return None
-          |_ ->
-            return (Some v)
-        end
+    let rec get acc =
+      match_lwt read_until t '\n' with
+      |(false, v) ->
+        get (v :: acc)
+      |(true, v) -> begin
+        (* chop the CR if present *)
+        let vlen = Bitstring.bitstring_length v in
+        let v = bitmatch v with
+          | { rest:vlen-8:bitstring; 13:8 } when vlen >= 8 -> rest
+          | { _ } -> v in
+        return (v :: acc) 
       end
-    )
+    in
+    lwt res = get [] >|= List.rev in
+    return (Bitstring.concat res)
     
   (* Output functions *)
 
-  let flush t =
-    match t.obuf with
-    |Some v ->
-      Flow.write t.flow v >>
-      return (t.obuf <- None)
-    |None -> return ()
-
-  let get_obuf t =
-    match t.obuf with 
-    |None ->
-        let buf = OS.Istring.Raw.alloc () in
-        let view = OS.Istring.t buf 0 in
-        t.obuf <- Some view;
-        view
-      |Some v -> v
-
-  let write_char t ch =
-    let view = get_obuf t in
-    let viewlen = OS.Istring.length view in
-    OS.Istring.set_char view viewlen ch;
-    OS.Istring.seek view (viewlen+1);
-    if OS.Istring.length view = 4096 then
+  let rec flush t =
+    let l = List.rev t.obuf in
+    lwt res = Flow.writev t.flow l in
+    t.obuf <- [res];
+    if Bitstring.bitstring_length res > 0 then
       flush t
     else
       return ()
 
-  let rec write_string t buf =
-    let view = get_obuf t in
-    let buflen = String.length buf in
-    let viewlen = OS.Istring.length view in
-    let remaining = 4096 - viewlen in
-    if buflen <= remaining then begin
-      OS.Istring.set_string view viewlen buf;
-      OS.Istring.seek view (viewlen + buflen);
-      if viewlen = 4096 then flush t else return ();
-    end else begin
-      (* String is too big for one istring, so split it *)
-      let b1 = String.sub buf 0 remaining in
-      let b2 = String.sub buf remaining (buflen - remaining) in
-      OS.Istring.set_string view viewlen b1;
-      OS.Istring.seek view (viewlen + remaining);
-      flush t >>
-      write_string t b2
-    end
+  (* Stonkingly inefficient *)
+  let write_char t ch =
+    t.obuf <- ((String.make 1 ch),0,8) :: t.obuf;
+    return ()
 
-  let write_view t view =
-    (* First, flush any outstanding string writes *)
-    lwt () = match t.obuf with 
-    |Some x -> flush t
-    |None -> return () in
-    Flow.write t.flow view
+  let write_bitstring t buf =
+    t.obuf <- buf :: t.obuf;
+    return ()
 
-  let write_views t views =
-    (* First, flush any outstanding string writes *)
-    lwt () = match t.obuf with 
-    |Some x -> flush t
-    |None -> return () in
-    Lwt_stream.iter_s (Flow.write t.flow) views
-    
+  let write_string t buf =
+    write_bitstring t (Bitstring.bitstring_of_string buf)
+
   let write_line t buf =
     write_string t buf >>
     write_char t '\n'
@@ -262,9 +188,9 @@ let read_until = function
   | TCPv4 t -> TCPv4.read_until t
   | Pipe t -> Pipe.read_until t
 
-let read_view ?len = function
-  | TCPv4 t -> TCPv4.read_view ?len t
-  | Pipe t -> Pipe.read_view ?len t
+let read_some ?len = function
+  | TCPv4 t -> TCPv4.read_some ?len t
+  | Pipe t -> Pipe.read_some ?len t
 
 let read_stream ?len = function
   | TCPv4 t -> TCPv4.read_stream ?len t
@@ -282,17 +208,13 @@ let write_string = function
   | TCPv4 t -> TCPv4.write_string t
   | Pipe t -> Pipe.write_string t
 
+let write_bitstring = function
+  | TCPv4 t -> TCPv4.write_bitstring t
+  | Pipe t -> Pipe.write_bitstring t
+
 let write_line = function
   | TCPv4 t -> TCPv4.write_line t
   | Pipe t -> Pipe.write_line t
-
-let write_view = function
-  | TCPv4 t -> TCPv4.write_view t
-  | Pipe t -> Pipe.write_view t
-
-let write_views = function
-  | TCPv4 t -> TCPv4.write_views t
-  | Pipe t -> Pipe.write_views t
 
 let flush = function
   | TCPv4 t -> TCPv4.flush t

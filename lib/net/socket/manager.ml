@@ -42,8 +42,8 @@ module Unix = struct
 
   external udpv4_socket: unit -> [`udpv4] fd = "caml_udpv4_socket"
   external udpv4_bind: ipv4 -> port -> [`udpv4] fd resp = "caml_udpv4_bind"
-  external udpv4_recvfrom: [`udpv4] fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port * int) resp = "caml_udpv4_recvfrom"
-  external udpv4_sendto: [`udpv4] fd -> OS.Istring.Raw.t -> int -> int -> (ipv4 * port) -> int resp = "caml_udpv4_sendto"
+  external udpv4_recvfrom: [`udpv4] fd -> string -> int -> int -> (ipv4 * port * int) resp = "caml_udpv4_recvfrom"
+  external udpv4_sendto: [`udpv4] fd -> string -> int -> int -> (ipv4 * port) -> int resp = "caml_udpv4_sendto"
 
   external domain_uid: unit -> uid = "caml_domain_name"
   external domain_bind: uid -> [`domain] fd resp = "caml_domain_bind"
@@ -59,8 +59,8 @@ module Unix = struct
 
   external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
 
-  external read: [<`udpv4|`tcpv4|`rd_pipe] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
-  external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_write"
+  external read: [<`udpv4|`tcpv4|`rd_pipe] fd -> string -> int -> int -> int resp = "caml_socket_read"
+  external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> string -> int -> int -> int resp = "caml_socket_write"
   external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe] fd -> unit = "caml_socket_close"
 
   external fd_to_int : 'a fd -> int = "%identity"

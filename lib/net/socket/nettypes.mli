@@ -24,10 +24,8 @@ val ethernet_mac_to_string : ethernet_mac -> string
 val ethernet_mac_broadcast: ethernet_mac
 
 type ipv4_addr
-val ipv4_addr_of_bytes : string -> ipv4_addr
-val ipv4_addr_of_tuple : (int * int * int * int) -> ipv4_addr
+val ipv4_addr_of_tuple : (int32 * int32 * int32 * int32) -> ipv4_addr
 val ipv4_addr_of_string : string -> ipv4_addr option
-val ipv4_addr_to_bytes : ipv4_addr -> bytes
 val ipv4_addr_to_string : ipv4_addr -> string
 val ipv4_addr_of_uint32 : int32 -> ipv4_addr
 val ipv4_addr_to_uint32 : ipv4_addr -> int32
@@ -37,6 +35,14 @@ val ipv4_localhost : ipv4_addr
 
 type ipv4_src = ipv4_addr option * int
 type ipv4_dst = ipv4_addr * int
+
+type arp = {
+  op: [ `Request |`Reply |`Unknown of int ];
+  sha: ethernet_mac;
+  spa: ipv4_addr;
+  tha: ethernet_mac;
+  tpa: ipv4_addr;
+}
 
 type peer_uid = int
 
@@ -49,8 +55,9 @@ module type FLOW = sig
   type src
   type dst
 
-  val read : t -> OS.Istring.t option Lwt.t
-  val write : t -> OS.Istring.t -> unit Lwt.t
+  val read : t -> Bitstring.t option Lwt.t
+  val write : t -> Bitstring.t -> unit Lwt.t
+  val writev : t -> Bitstring.t list -> Bitstring.t Lwt.t
   val close : t -> unit Lwt.t
 
   val listen : mgr -> src -> (dst -> t -> unit Lwt.t) -> unit Lwt.t
@@ -77,17 +84,15 @@ module type CHANNEL = sig
   type dst
 
   val read_char: t -> char Lwt.t
-  val read_until: t -> char -> (bool * OS.Istring.t option) Lwt.t
-  val read_view: ?len:int -> t -> OS.Istring.t Lwt.t
-  val read_stream: ?len: int -> t -> OS.Istring.t Lwt_stream.t
-
-  val read_crlf: t -> OS.Istring.t Lwt_stream.t
+  val read_until: t -> char -> (bool * Bitstring.t) Lwt.t
+  val read_some: ?len:int -> t -> Bitstring.t Lwt.t
+  val read_stream: ?len: int -> t -> Bitstring.t Lwt_stream.t
+  val read_crlf: t -> Bitstring.t Lwt.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t
+  val write_bitstring : t -> Bitstring.t -> unit Lwt.t
   val write_line : t -> string -> unit Lwt.t
-  val write_view : t -> OS.Istring.t -> unit Lwt.t
-  val write_views : t -> OS.Istring.t Lwt_stream.t -> unit Lwt.t
 
   val flush : t -> unit Lwt.t
   val close : t -> unit Lwt.t

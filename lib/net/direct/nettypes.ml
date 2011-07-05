@@ -104,6 +104,7 @@ module type FLOW = sig
   (* Read and write to a flow *)
   val read: t -> Bitstring.t option Lwt.t
   val write: t -> Bitstring.t -> unit Lwt.t
+  val writev: t -> Bitstring.t list -> Bitstring.t Lwt.t
 
   val close: t -> unit Lwt.t
 
@@ -136,17 +137,15 @@ module type CHANNEL = sig
   type dst
 
   val read_char: t -> char Lwt.t
-  val read_until: t -> char -> (bool * Bitstring.t option) Lwt.t
-  val read_view: ?len:int -> t -> Bitstring.t Lwt.t
+  val read_until: t -> char -> (bool * Bitstring.t) Lwt.t
+  val read_some: ?len:int -> t -> Bitstring.t Lwt.t
   val read_stream: ?len:int -> t -> Bitstring.t Lwt_stream.t
-
-  val read_crlf: t -> Bitstring.t Lwt_stream.t
+  val read_crlf: t -> Bitstring.t Lwt.t
 
   val write_char : t -> char -> unit Lwt.t
   val write_string : t -> string -> unit Lwt.t
+  val write_bitstring : t -> Bitstring.t -> unit Lwt.t
   val write_line : t -> string -> unit Lwt.t
-  val write_view : t -> Bitstring.t -> unit Lwt.t
-  val write_views : t -> Bitstring.t Lwt_stream.t -> unit Lwt.t
 
   val flush : t -> unit Lwt.t
   val close : t -> unit Lwt.t

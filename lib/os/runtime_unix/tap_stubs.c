@@ -54,7 +54,6 @@ tap_write(value v_fd, value v_bitstr)
   size_t off = Int_val(Field(v_bitstr,1)) / 8;
   size_t len = Int_val(Field(v_bitstr,2)) / 8;
   char *buf = String_val(Field(v_bitstr, 0));
-  fprintf(stderr, "tap_write: off=%ld len=%ld\n", off, len);
   int res = write(fd, buf, len);
   if (res != len) {
     fprintf(stderr, "tap_write: not full fd=%d res=%d len=%lu (%s)\n", fd, res, len,strerror(errno));

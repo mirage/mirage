@@ -54,12 +54,11 @@ lwt_pqueue
 lwt_switch
 oS
 net
-block
-dns
+#block
+#dns
 http
 utf8
 utf16
 ulexing
 dyntype
 cow
-resolv

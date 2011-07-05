@@ -87,19 +87,13 @@ let input t pkt =
   |{4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
     ttl:8; proto:8; checksum:16; src:32:bind(ipv4_addr_of_uint32 src); dst:32:bind(ipv4_addr_of_uint32 dst);
     options:(ihl-5)*32:bitstring; data:-1:bitstring } ->
-      printf "Packet: proto=%d src=%s dst=%s\n%!" proto (ipv4_addr_to_string src) (ipv4_addr_to_string dst);
       begin match proto with
-      |1 -> (* ICMP *)
-        t.icmp src data
-      |6 -> (* TCP *)
-        t.tcp ~src ~dst data
-      |17 -> (* UDP *)
-        t.udp ~src ~dst data
-      |_ ->
-        return (printf "IPv4: dropping proto %d\n%!" proto)
+      |1 -> (* ICMP *) t.icmp src data
+      |6 -> (* TCP *) t.tcp ~src ~dst data
+      |17 -> (* UDP *) t.udp ~src ~dst data
+      |_ -> return (printf "IPv4: dropping proto %d\n%!" proto)
       end
-  |{_} ->
-      return (printf "IPv4: not an IP packet, discarding\n%!")
+  |{_} -> return (printf "IPv4: not an IP packet, discarding\n%!")
 
 let default_icmp = fun _ _ -> return ()
 let default_udp = fun ~src ~dst _ -> return ()

@@ -48,4 +48,4 @@ let of_int32 t = t
 let of_int t = Int32.of_int t
 let to_int32 t = t
 let to_int t = Int32.to_int t
-let to_string t = Int32.to_string t
+let to_string t = Printf.sprintf "%lu" t

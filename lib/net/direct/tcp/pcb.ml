@@ -64,9 +64,9 @@ module Tx = struct
     let fin = flags = Segment.Tx.Fin in
     let ack = match rx_ack with Some _ -> true |None -> false in
     let ack_number = match rx_ack with Some n -> Sequence.to_int32 n |None -> 0l in
-    printf "TCP xmit: dest_ip=%s %s %s %s %s\n%!" (ipv4_addr_to_string dest_ip)
+    printf "TCP xmit: dest_ip=%s %s %s %s %s ack=%lu\n%!" (ipv4_addr_to_string dest_ip)
       (if rst then "RST " else "") (if syn then "SYN " else "")
-      (if fin then "FIN " else "") (if ack then "ACK " else ""); 
+      (if fin then "FIN " else "") (if ack then "ACK " else "") ack_number; 
     let sequence = Sequence.to_int32 seq in
     let options = Options.marshal options in
     let data_offset = (Bitstring.bitstring_length options + 160) / 32 in
@@ -144,8 +144,7 @@ module Rx = struct
         urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
         checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
         data:-1:bitstring } ->
-          let seg = Segment.Rx.make ~sequence ~fin ~syn ~ack ~ack_number
-            ~window ~data in
+          let seg = Segment.Rx.make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data in
           let {rxq} = pcb in
           (* Coalesce any outstanding segments and retrieve ready segments *)
           Segment.Rx.input rxq seg

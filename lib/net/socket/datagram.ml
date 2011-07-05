@@ -29,18 +29,18 @@ module UDPv4 = struct
   type src = ipv4_addr option * int
   type dst = ipv4_addr * int
 
-  type msg = OS.Istring.t
+  type msg = Bitstring.t
 
   let rec send mgr ?src (dstaddr, dstport) req =
+    let (buf,off,len) = req in
     lwt fd = match src with
       |None -> return (Manager.get_udpv4 mgr)
       |Some src -> Manager.get_udpv4_listener mgr src
     in
-    let raw = OS.Istring.raw req in
-    let off = OS.Istring.off req in
-    let len = OS.Istring.length req in
+    let off = off / 8 in
+    let len = len / 8 in
     let dst = (ipv4_addr_to_uint32 dstaddr, dstport) in
-    match R.udpv4_sendto fd raw off len dst with
+    match R.udpv4_sendto fd buf off len dst with
     |R.OK len' ->
       if len' != len then
         fail (Error "partial UDP send")
@@ -53,13 +53,13 @@ module UDPv4 = struct
 
   let recv mgr (addr,port) fn =
     lwt lfd = Manager.get_udpv4_listener mgr (addr,port) in
-    let istr = OS.Istring.Raw.alloc () in
+    let buf = String.create 4096 in
     let rec listen () =
-      match R.udpv4_recvfrom lfd istr 0 4096 with
+      match R.udpv4_recvfrom lfd buf 0 (String.length buf) with
       |R.OK (frm_addr, frm_port, len) ->
         let frm_addr = ipv4_addr_of_uint32 frm_addr in
         let dst = (frm_addr, frm_port) in
-        let req = OS.Istring.t ~off:0 istr len in
+        let req = (buf,0,(len * 8)) in
         (* Be careful to catch an exception here, as otherwise
            ignore_result may raise it at some other random point *)
         Lwt.ignore_result (

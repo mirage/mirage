@@ -15,7 +15,7 @@
 open Lwt
 
 (* XXX: no DNS client yet *)
-let twitter_ip = Net.Nettypes.ipv4_addr_of_tuple (168,143,162,45)
+let twitter_ip = Net.Nettypes.ipv4_addr_of_tuple (168l,143l,162l,45l)
 let twitter = "http://168.143.162.45"
 module User = struct
   

@@ -18,11 +18,11 @@
  *)
 
 type query_answer = {
-  rcode : Packet.rcode_t;
+  rcode : Dnspacket.rcode;
   aa: bool;
-  answer: (OS.Istring.t -> Packet.Answers.o) list;
-  authority: (OS.Istring.t -> Packet.Authority.o) list;
-  additional: (OS.Istring.t -> Packet.Additional.o) list;
+  answer: Bitstring.t list;
+  authority: Bitstring.t list;
+  additional: Bitstring.t list;
 }
 
 val answer_query : string list -> 

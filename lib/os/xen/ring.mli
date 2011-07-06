@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(*
 module type RING = sig
   type req
   type res
@@ -169,12 +170,12 @@ module Blkif_t : sig
   val max_requests : t -> int
   val free_requests : t -> int
 end
- 
+
+*) 
 module Console : sig
   type t
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"
   external unsafe_read : t -> string -> int -> int = "caml_console_ring_read"
-  val alloc : int -> (Gnttab.r * t) Lwt.t
   val alloc_initial : unit -> Gnttab.r * t
 end
 

@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,20 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type r
-type num = int32
-type perm = RO | RW
-
-val alloc: ?page:Bitstring.t -> num -> r
-val num: r -> num
-val page: r -> Bitstring.t
-val put_free_entry : r -> unit
-val get_free_entry : unit -> r Lwt.t
-val get_n : domid:int -> perm:perm -> int -> r list Lwt.t
-val grant_access : domid:int -> perm:perm -> r -> unit
-val end_access : r -> unit
-val to_string : r -> string
-val detach : r -> Bitstring.t
-
-val with_grant : domid:int -> perm:perm -> (r -> 'a Lwt.t) -> 'a Lwt.t
-val with_grants : domid:int -> perm:perm -> int -> (r array -> 'a Lwt.t) -> 'a Lwt.t
+val get_free: unit -> Bitstring.t
+val put_free: Bitstring.t -> unit

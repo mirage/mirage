@@ -22,17 +22,17 @@ type num = int32                      (* Grant ref type (grant_ref_t) *)
 
 type r = {
   num: num;                           (* Grant ref number *)
-  mutable page: Istring.Raw.t option; (* The memory page *)
+  mutable page: Bitstring.t option;   (* The memory page *)
 }
 
-type perm = RO |RW
+type perm = RO | RW
 
 module Raw = struct
   external nr_entries : unit -> int = "caml_gnttab_nr_entries"
   external nr_reserved : unit -> int = "caml_gnttab_reserved"
   external init : unit -> unit = "caml_gnttab_init"
   external fini : unit -> unit = "caml_gnttab_fini"
-  external grant_access : num -> Istring.Raw.t -> int -> bool -> unit = "caml_gnttab_grant_access"
+  external grant_access : num -> (string*int*int) -> int -> bool -> unit = "caml_gnttab_grant_access"
   external end_access : num -> unit = "caml_gnttab_end_access"
 end
 
@@ -44,7 +44,7 @@ let num gnt = gnt.num
 let page gnt = 
   match gnt.page with
   |None ->
-    let p = Istring.Raw.alloc () in
+    let p = Io_page.get_free () in
     gnt.page <- Some p;
     p
   |Some p ->
@@ -75,20 +75,17 @@ let grant_access ~domid ~perm r =
 let end_access r =
   Raw.end_access r.num
 
-(* Detach an IString from the grant *)
+(* Detach a string from the grant *)
 let detach r =
   let page =
     match r.page with
     |None -> raise Grant_page_not_found
     |Some p -> p
   in
+  Io_page.put_free page;
   r.page <- None;
   page
   
-(* Attach an istring to the grant *)
-let attach r i =
-  r.page <- Some i
-
 let with_grant ~domid ~perm fn =
   lwt gnt = get_free_entry () in
   grant_access ~domid ~perm gnt;

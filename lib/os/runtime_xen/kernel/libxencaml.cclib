@@ -1,4 +1,5 @@
 exit_stubs.o
+page_stubs.o
 evtchn_stubs.o
 ring_stubs.o
 xb_stubs.o

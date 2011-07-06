@@ -388,6 +388,131 @@ end
 module Blkif_t = Bounded_ring(Blkif)
 
 *)
+
+(*
+  struct sring {
+    RING_IDX req_prod, req_event;
+    RING_IDX rsp_prod, rsp_event;
+    uint8_t  netfront_smartpoll_active;
+    uint8_t  pad[47];
+  };
+*)
+
+type sring = {
+  buf: string;      (* Overall I/O buffer *)
+  off: int;         (* Offset into I/O buffer (in bits, not bytes *)
+  header_size: int; (* Header of shared ring variables, in bits *)
+  idx_size: int;    (* Size in bits of an index slot *)
+  nr_ents: int;     (* Number of index entries *)
+  name: string;     (* For pretty printing only *)
+}
+
+let init (buf,off,len) ~idx_size ~name =
+  assert (len = (4096 * 8));
+  let header_size = (32+32+32+32+1+47) * 8 in (* header bits size of struct sring *)
+  (* Round down to the nearest power of 2, so we can mask indices easily *)
+  let round_down_to_nearest_2 x =
+    int_of_float (2. ** (floor ( (log (float x)) /. (log 2.)))) in
+  (* Free space in shared ring after header is accounted for *)
+  let free_bytes = 4096 - (header_size / 8) in
+  let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
+  (* We store idx_size in bits, for easier Bitstring offset calculations *)
+  let idx_size = idx_size * 8 in
+  let t = { name; buf; off; idx_size; nr_ents; header_size } in
+  printf "Shared.init: %s off=%d idxsize=%d nr_ents=%d\n%!" name off idx_size nr_ents;
+  (* initialise the *_event fields to 1, and the rest to 0 *)
+  let src,srcoff,_ = BITSTRING { 0l:32; 1l:32; 0l:32; 1l:32; 0L:64 } in
+  String.blit src (srcoff/8) buf (off/8) (len/8);
+  t
+
+external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
+external sring_req_prod: sring -> int = "caml_sring_req_prod" "noalloc"
+external sring_req_event: sring -> int = "caml_sring_req_event" "noalloc"
+external sring_rsp_event: sring -> int = "caml_sring_rsp_event" "noalloc"
+
+external sring_push_requests: sring -> int -> unit = "caml_sring_push_requests" "noalloc"
+external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses" "noalloc"
+
+external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event" "noalloc"
+external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event" "noalloc"
+
+let slot sring idx =
+  (* TODO should precalculate these and store in the sring? this is fast-path *)
+  let idx = idx land (sring.nr_ents - 1) in
+  let off = sring.off + sring.header_size + (idx * sring.idx_size) in
+  (sring.buf, off, sring.idx_size)
+
+module Front = struct
+
+  type t = {
+    mutable req_prod_pvt: int;
+    mutable rsp_cons: int;
+    sring: sring;
+  }
+
+  let init ~size ~sring =
+    let req_prod_pvt = 0 in
+    let rsp_cons = 0 in
+    { req_prod_pvt; rsp_cons; sring }
+
+  let get_free_requests t =
+    t.sring.nr_ents - (t.req_prod_pvt - t.rsp_cons)
+
+  let ring_full t =
+    get_free_requests t = 0
+
+  let has_unconsumed_responses t =
+    ((sring_rsp_prod t.sring) - t.rsp_cons) > 0
+
+  let push_requests t =
+    sring_push_requests t.sring t.req_prod_pvt
+
+  let push_requests_and_check_notify t =
+    let old_idx = sring_req_prod t.sring in
+    let new_idx = t.req_prod_pvt in
+    push_requests t;
+    (new_idx - (sring_req_event t.sring)) < (new_idx - old_idx)
+
+  let check_for_responses t =
+    if has_unconsumed_responses t then
+      true
+    else begin
+      sring_set_rsp_event t.sring (t.rsp_cons + 1);
+      has_unconsumed_responses t
+    end 
+end
+
+module Back = struct
+
+  type t = {
+    mutable rsp_prod_pvt: int;
+    mutable req_cons: int;
+    sring: sring;
+  }
+
+  let has_unconsumed_requests t =
+    let req = (sring_req_prod t.sring) - t.req_cons in
+    let rsp = t.sring.nr_ents - (t.req_cons - t.rsp_prod_pvt) in
+    if req < rsp then (req > 0) else (rsp > 0)
+ 
+  let push_responses t =
+    sring_push_responses t.sring t.rsp_prod_pvt 
+
+  let push_responses_and_check_notify t =
+    let old_idx = sring_rsp_prod t.sring in
+    let new_idx = t.rsp_prod_pvt in
+    push_responses t;
+    (new_idx - (sring_rsp_event t.sring)) < (new_idx - old_idx)
+
+  let check_for_requests t =
+    if has_unconsumed_requests t then
+      true
+    else begin
+      sring_set_req_event t.sring (t.req_cons + 1);
+      has_unconsumed_requests t
+    end
+end
+
 (* Raw ring handling section *)
 
 (* Allocate a new grant entry for a raw ring *)

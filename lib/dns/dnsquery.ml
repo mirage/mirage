@@ -28,9 +28,9 @@ module H = Hashcons
 type query_answer = {
   rcode : DP.rcode;
   aa: bool;
-  answer: Bitstring.t list;
-  authority: Bitstring.t list;
-  additional: Bitstring.t list;
+  answer: DP.rsrc_record list;
+  authority: DP.rsrc_record list;
+  additional: DP.rsrc_record list;
 } 
 
 let answer_query qname qtype trie = 
@@ -66,108 +66,132 @@ let answer_query qname qtype trie =
     then addqueue := (dnsnode, rrtype) :: !addqueue 
   in
 
-  (* Map an RRSet into MPL closures and include it in the response *)
   let add_rrset owner ttl rdata section = 
-    let addfn rr = match section with 
-        `Answer -> ans_rrs := (Packet.Answers.t ~rr) :: !ans_rrs 
-      | `Authority -> auth_rrs := (Packet.Authority.t ~rr) :: !auth_rrs 
-      | `Additional -> add_rrs := (Packet.Additional.t ~rr) :: !add_rrs 
+    let addrr ?(rrclass = Some `IN) rr = 
+      let rrclass = match rrclass with
+        | Some x -> x
+        | None   -> failwith "unknown rrclass"
+      in
+      let rr = DP.({ rr_name = owner; 
+                     rr_class = rrclass; 
+                     rr_ttl = ttl; 
+                     rr_rdata = rr}) 
+      in
+      match section with 
+        | `Answer     -> ans_rrs  := rr :: !ans_rrs 
+        | `Authority  -> auth_rrs := rr :: !auth_rrs 
+        | `Additional -> add_rrs  := rr :: !add_rrs 
     in
-    let mapfn ?(aclass = Some `IN) x = x ?aclass ~name:owner ~ttl in
+    
+    (* having extracted record from trie, partially marshal it *)
     match rdata with 
-        A l -> log_rrset owner `A; 
-          List.iter (fun ip -> addfn (`A (mapfn RR.A.t ~ip))) l
+      | A l -> log_rrset owner `A; 
+        List.iter (fun ip -> addrr (`A ip)) l
+          
       | NS l -> log_rrset owner `NS;
 	    List.iter (fun d -> 
-	      enqueue_additional d `A;
-	      enqueue_additional d `AAAA;
-          addfn (`NS (mapfn RR.NS.t ~hostname:d.owner.H.node))) l
+	      enqueue_additional d `A; enqueue_additional d `AAAA;
+          addrr (`NS d.owner.H.node)
+        ) l 
+          
       | CNAME l -> 
 	    List.iter (fun d -> 
-	      addfn (`CNAME (mapfn RR.CNAME.t ~cname:d.owner.H.node))) l
+	      addrr (`CNAME d.owner.H.node)) l
+          
       | SOA l -> log_rrset owner `SOA;
 	    List.iter (fun (prim,admin,serial,refresh,retry,expiration,minttl) ->
-          addfn (`SOA (mapfn RR.SOA.t ~primary_ns:prim.owner.H.node
-			             ~admin_mb:admin.owner.H.node ~serial
-			             ~refresh ~retry
-			             ~expiration ~minttl))) l
+          addrr (`SOA (prim.owner.H.node,
+			           admin.owner.H.node, 
+                       serial, refresh, retry, expiration, minttl))) l
+
       | MB l -> 
 	    List.iter (fun d -> 
 	      enqueue_additional d `A;
 	      enqueue_additional d `AAAA;
-	      addfn (`MB (mapfn RR.MB.t ~madname:d.owner.H.node))) l
+	      addrr (`MB d.owner.H.node)) l
+          
       | MG l -> 
 	    List.iter (fun d -> 
-	      addfn (`MG (mapfn RR.MG.t ~mgmname:d.owner.H.node))) l
+	      addrr (`MG d.owner.H.node)) l
+          
       | MR l -> 
 	    List.iter (fun d -> 
-	      addfn (`MR (mapfn RR.MR.t ~newname:d.owner.H.node))) l
+	      addrr (`MR d.owner.H.node)) l
+          
       | WKS l -> 
 	    List.iter (fun (address, protocol, bitmap) -> 
-	      addfn (`WKS (mapfn RR.WKS.t ~address
-			             ~protocol ~bitmap:(`Str bitmap.H.node)))) l
+	      addrr (`WKS (address, DP.byte protocol, bitmap.H.node))) l
+
       | PTR l -> 
 	    List.iter (fun d -> 
-	      addfn (`PTR (mapfn RR.PTR.t ~ptrdname:d.owner.H.node))) l
+	      addrr (`PTR d.owner.H.node)) l
+          
       | HINFO l -> 
 	    List.iter (fun (cpu, os) -> 
-	      addfn (`HINFO (mapfn RR.HINFO.t ~cpu:cpu.H.node 
-			               ~os:os.H.node))) l
+	      addrr (`HINFO (cpu.H.node, os.H.node))) l
+          
       | MINFO l -> 
 	    List.iter (fun (rm, em) -> 
-	      addfn (`MINFO (mapfn RR.MINFO.t ~rmailbox:rm.owner.H.node
-			               ~emailbox:em.owner.H.node))) l
+	      addrr (`MINFO (rm.owner.H.node, em.owner.H.node))) l
+          
       | MX l -> 
 	    List.iter (fun (preference, d) -> 
 	      enqueue_additional d `A;
 	      enqueue_additional d `AAAA;
-	      addfn (`MX (mapfn RR.MX.t ~preference
-			            ~hostname:d.owner.H.node))) l
+	      addrr (`MX (preference, d.owner.H.node))) l
+          
       | TXT l ->
 	    List.iter (fun sl -> (* XXX handle multiple TXT cstrings properly *)
-	      let data = String.concat "" (List.map (fun x -> x.H.node) sl) in 
-          addfn (`TXT (mapfn RR.TXT.t ~data ~misc:`None))) l
+	      let data = List.map (fun x -> x.H.node) sl in 
+          addrr (`TXT data)) l
+          
       | RP l -> 
 	    List.iter (fun (mbox, txt) -> 
-	      addfn (`RP (mapfn RR.RP.t ~mbox_dname:mbox.owner.H.node
-			            ~txt_dname:txt.owner.H.node))) l
+	      addrr (`RP (mbox.owner.H.node, txt.owner.H.node))) l
+          
       | AFSDB l ->
 	    List.iter (fun (t, d) -> 
 	      enqueue_additional d `A;
 	      enqueue_additional d `AAAA;
-	      addfn (`AFSDB (mapfn RR.AFSDB.t ~subtype:t
-			               ~hostname:d.owner.H.node))) l
+	      addrr (`AFSDB (t, d.owner.H.node))) l
+          
       | X25 l -> log_rrset owner `X25;
 	    List.iter (fun s -> 
-	      addfn (`X25 (mapfn RR.X25.t ~psdn_address:s.H.node))) l
+	      addrr (`X25 s.H.node)) l
+          
       | ISDN l -> log_rrset owner `ISDN;
 	    List.iter (function (* XXX handle multiple cstrings properly *)
-	    (addr, None) -> 
-	      addfn (`ISDN (mapfn RR.ISDN.t ~data:addr.H.node))
-          | (addr, Some sa) -> (* XXX Handle multiple charstrings properly *)
-	        addfn (`ISDN (mapfn RR.ISDN.t 
-			                ~data:(addr.H.node ^ sa.H.node)))) l
+          | (addr, None) 
+            -> addrr (`ISDN addr.H.node)
+          | (addr, Some sa) (* XXX Handle multiple charstrings properly *)
+            -> addrr (`ISDN (addr.H.node ^ sa.H.node))) l
+          
       | RT l -> 
 	    List.iter (fun (preference, d) -> 
 	      enqueue_additional d `A;
 	      enqueue_additional d `AAAA;
 	      enqueue_additional d `X25;
 	      enqueue_additional d `ISDN;
-	      addfn (`RT (mapfn RR.RT.t ~preference
-			            ~intermediate_host:d.owner.H.node))) l
+	      addrr (`RT (~preference, d.owner.H.node))) l
+          
       | AAAA l -> log_rrset owner `AAAA;
-	    List.iter (fun i -> 
-	      addfn (`AAAA (mapfn RR.AAAA.t ~ip:(`Str i.H.node)))) l 
-      | SRV l -> 
-        List.iter (fun (priority, weight, port, d) -> 
+	    List.iter (fun i -> addrr (`AAAA i.H.node)) l 
+          
+      | SRV l 
+        -> List.iter (fun (priority, weight, port, d) -> 
 	      enqueue_additional d `A;
 	      enqueue_additional d `AAAA;
-	      addfn (`SRV (mapfn RR.SRV.t ~priority ~weight
-			             ~port ~target:d.owner.H.node))) l
-      | UNSPEC l -> 
-	    List.iter (fun s -> 
-	      addfn (`UNSPEC (mapfn RR.UNSPEC.t ~data:(`Str s.H.node)))) l
-      | Unknown (t, l) -> () (* XXX Support unknowype responses *)
+	      addrr (`SRV (priority, weight, port, d.owner.H.node))) l
+        
+      | UNSPEC l 
+        -> List.iter (fun s -> addrr (`UNSPEC s.H.node)) l
+
+      | Unknown (t,l)
+        -> DP.(
+          let s = l ||> (fun x -> x.H.node) |> String.concat "" in 
+          addrr (`UNKNOWN (t, s))
+        )
+
   in
   
   (* Get an RRSet, which may not exist *)

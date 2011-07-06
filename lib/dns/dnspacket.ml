@@ -14,10 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Bitstring
+module DT = Dnstrie
+module DL = Dnsloader
+
+module Bitstring = struct
+  include Bitstring
+  let offset_of_bitstring bits = 
+    let (_, offset, _) = bits in offset
+end
+
 let sp = Printf.sprintf
 
-exception Unparsable of string * bitstring
+exception Unparsable of string * Bitstring.bitstring
 
 let (|>) x f = f x (* pipe *)
 let (>>) f g x = g (f x) (* functor pipe *)
@@ -32,18 +40,20 @@ let (>>>) x y = Int32.shift_right_logical x y
 let join c l = List.fold_left (fun x y -> y ^ c ^ x) "" l
 let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *) 
 
-type domain_name = string
+type domain_name = string list
 type int16 = int
+type ipv4 = int32
 
 type byte = char
 let byte (i:int) : byte = Char.chr i
 let int_of_byte b = int_of_char b
 let int32_of_byte b = b |> int_of_char |> Int32.of_int
+let int32_of_int i = i |> Int32.of_int
 
 type bytes = string
 let bytes_to_hex_string bs = 
   bs |> Array.map (fun b -> sp "%02x." (int_of_byte b))
-let bytes_of_bitstring bits = string_of_bitstring bits
+let bytes_of_bitstring bits = Bitstring.string_of_bitstring bits
 let ipv4_addr_of_bytes bs = 
   ((bs.[0] |> int32_of_byte <<< 24) ||| (bs.[1] |> int32_of_byte <<< 16) 
     ||| (bs.[2] |> int32_of_byte <<< 8) ||| (bs.[3] |> int32_of_byte))
@@ -58,11 +68,8 @@ let parse_charstr bits =
     | { len: 8; str: (len*8): string; bits: -1: bitstring }
       -> str, bits
 
-let bitstring_offset bits = 
-  let (_, offset, _) = bits in offset
-
 let parse_label base bits = 
-  let cur = bitstring_offset bits in
+  let cur = Bitstring.offset_of_bitstring bits in
   let offset = (cur-base)/8 in
   (bitmatch bits with
     | { length: 8: check(length != 0 && length < 64); 
@@ -95,7 +102,7 @@ let parse_name names base bits =
              ns |> List.iter (fun n -> Hashtbl.add names off n)
            );
            ((ns |> List.rev
-             ||> (fun n -> match n with 
+             ||> (function
                  | L (nm,_) -> nm
                  | _ -> raise(Unparsable ("parse_name", bits)))) 
             @ name), data
@@ -104,118 +111,260 @@ let parse_name names base bits =
           (name, data)
   in 
   let name, bits = aux [] [] bits in
-  (join "." name, bits)
-
-
-type resource = [
-| `Hostinfo  of string * string
-| `Domain    of domain_name
-| `Mailbox   of domain_name * domain_name
-| `Exchange  of int * domain_name
-| `Data      of bytes
-| `Text      of string list
-| `Authority of domain_name * domain_name * int32 * int32 * int32 * int32 * int32
-| `Address   of int32
-| `Services  of int32 * byte * bytes
-]
-
-let parse_resource names base t bits = 
-  match t with
-    | `HINFO -> let (cpu, bits) = parse_charstr bits in
-                let os = bits |> parse_charstr |> stop in
-                `Hostinfo (cpu, os)
-    | `MB | `MD | `MF | `MG | `MR | `NS
-    | `CNAME | `PTR -> `Domain (bits |> parse_name names base |> stop)
-    | `MINFO -> let (rm, bits) = parse_name names base bits in
-                let em = bits |> parse_name names base |> stop in
-                `Mailbox (rm, em)
-    | `MX -> (bitmatch bits with
-        | { preference: 16; bits: -1: bitstring } 
-          -> `Exchange (preference, bits |> parse_name names base |> stop)
-    )
-    | `NULL -> `Data (string_of_bitstring bits)    
-    | `TXT -> let names, _ = 
-                let rec aux ns bits = 
-                  let n, bits = parse_name names base bits in
-                  aux (n :: ns) bits
-                in
-                aux [] bits
-              in
-              `Text names
-    | `SOA -> let mn, bits = parse_name names base bits in
-              let rn, bits = parse_name names base bits in 
-              (bitmatch bits with
-                | { serial: 32; refresh: 32; retry: 32; expire: 32;
-                    minimum: 32 }
-                  -> `Authority (mn, rn, 
-                                 serial, refresh, retry, expire, minimum)
-              )
-    | `A -> `Address (bits |> bytes_of_bitstring |> ipv4_addr_of_bytes)
-    | `WKS -> (bitmatch bits with
-        | { addr: 32; proto: 8; bitmap: -1: string } 
-          -> `Services (addr, proto |> byte, bitmap)
-    )
+  (List.rev name, bits)
 
 type rr_type = [
-| `A | `NS | `MD | `MF | `CNAME | `SOA | `MB | `MG
-| `MR | `NULL | `WKS | `PTR | `HINFO | `MINFO | `MX | `TXT
+| `A | `NS | `MD | `MF | `CNAME | `SOA | `MB | `MG | `MR | `NULL 
+| `WKS | `PTR | `HINFO | `MINFO | `MX | `TXT | `RP | `AFSDB | `X25 
+| `ISDN | `RT | `NSAP | `NSAP_PTR | `SIG | `KEY | `PX | `GPOS | `AAAA 
+| `LOC | `NXT | `EID | `NIMLOC | `SRV | `ATMA | `NAPTR | `KM | `CERT 
+| `A6 | `DNAME | `SINK | `OPT | `APL | `DS | `SSHFP | `IPSECKEY 
+| `RRSIG | `NSEC | `DNSKEY | `SPF | `UINFO | `UID | `GID | `UNSPEC
+| `Unknown of int * bytes
 ]
 
 let int_of_rr_type : rr_type -> int = function
-  | `A     ->  1
-  | `NS    ->  2
-  | `MD    ->  3
-  | `MF    ->  4
-  | `CNAME ->  5
-  | `SOA   ->  6
-  | `MB    ->  7
-  | `MG    ->  8
-  | `MR    ->  9
-  | `NULL  -> 10
-  | `WKS   -> 11
-  | `PTR   -> 12
-  | `HINFO -> 13
-  | `MINFO -> 14
-  | `MX    -> 15
-  | `TXT   -> 16
+  | `A        -> 1
+  | `NS       -> 2
+  | `MD       -> 3
+  | `MF       -> 4
+  | `CNAME    -> 5
+  | `SOA      -> 6
+  | `MB       -> 7
+  | `MG       -> 8
+  | `MR       -> 9
+  | `NULL     -> 10
+  | `WKS      -> 11
+  | `PTR      -> 12
+  | `HINFO    -> 13
+  | `MINFO    -> 14
+  | `MX       -> 15
+  | `TXT      -> 16
+  | `RP       -> 17
+  | `AFSDB    -> 18
+  | `X25      -> 19
+  | `ISDN     -> 20
+  | `RT       -> 21
+  | `NSAP     -> 22
+  | `NSAP_PTR -> 23
+  | `SIG      -> 24
+  | `KEY      -> 25
+  | `PX       -> 26
+  | `GPOS     -> 27
+  | `AAAA     -> 28
+  | `LOC      -> 29
+  | `NXT      -> 30
+  | `EID      -> 31
+  | `NIMLOC   -> 32
+  | `SRV      -> 33
+  | `ATMA     -> 34
+  | `NAPTR    -> 35
+  | `KM       -> 36
+  | `CERT     -> 37
+  | `A6       -> 38
+  | `DNAME    -> 39
+  | `SINK     -> 40
+  | `OPT      -> 41
+  | `APL      -> 42
+  | `DS       -> 43
+  | `SSHFP    -> 44
+  | `IPSECKEY -> 45
+  | `RRSIG    -> 46
+  | `NSEC     -> 47
+  | `DNSKEY   -> 48
+    
+  | `SPF      -> 99
+  | `UINFO    -> 100
+  | `UID      -> 101
+  | `GID      -> 102
+  | `UNSPEC   -> 103
+   
+  | `Unknown _ -> -1
 and rr_type_of_int : int -> rr_type = function
-  |  1     -> `A
-  |  2     -> `NS
-  |  3     -> `MD
-  |  4     -> `MF
-  |  5     -> `CNAME
-  |  6     -> `SOA
-  |  7     -> `MB
-  |  8     -> `MG
-  |  9     -> `MR
-  | 10     -> `NULL
-  | 11     -> `WKS
-  | 12     -> `PTR
-  | 13     -> `HINFO
-  | 14     -> `MINFO
-  | 15     -> `MX
-  | 16     -> `TXT
-  | _      -> invalid_arg "rr_type_of_int"
+  | 1  -> `A
+  | 2  -> `NS
+  | 3  -> `MD
+  | 4  -> `MF
+  | 5  -> `CNAME
+  | 6  -> `SOA
+  | 7  -> `MB
+  | 8  -> `MG
+  | 9  -> `MR
+  | 10 -> `NULL
+  | 11 -> `WKS
+  | 12 -> `PTR
+  | 13 -> `HINFO
+  | 14 -> `MINFO
+  | 15 -> `MX
+  | 16 -> `TXT
+  | 17 -> `RP
+  | 18 -> `AFSDB 
+  | 19 -> `X25 
+  | 20 -> `ISDN 
+  | 21 -> `RT
+  | 22 -> `NSAP 
+  | 23 -> `NSAP_PTR 
+  | 24 -> `SIG 
+  | 25 -> `KEY
+  | 26 -> `PX 
+  | 27 -> `GPOS 
+  | 28 -> `AAAA 
+  | 29 -> `LOC
+  | 30 -> `NXT 
+  | 31 -> `EID 
+  | 32 -> `NIMLOC 
+  | 33 -> `SRV 
+  | 34 -> `ATMA 
+  | 35 -> `NAPTR 
+  | 36 -> `KM 
+  | 37 -> `CERT 
+  | 38 -> `A6 
+  | 39 -> `DNAME 
+  | 40 -> `SINK 
+  | 41 -> `OPT 
+  | 42 -> `APL 
+  | 43 -> `DS 
+  | 44 -> `SSHFP 
+  | 45 -> `IPSECKEY 
+  | 46 -> `RRSIG 
+  | 47 -> `NSEC 
+  | 48 -> `DNSKEY 
+    
+  | 99  -> `SPF 
+  | 100 -> `UINFO 
+  | 101 -> `UID 
+  | 102 -> `GID 
+  | 103 -> `UNSPEC
+
+  | _ -> invalid_arg "rr_type_of_int"
 and string_of_rr_type:rr_type -> string = function
-  | `A     ->  "A"
-  | `NS    ->  "NS"
-  | `MD    ->  "MD"
-  | `MF    ->  "MF"
-  | `CNAME ->  "CNAME"
-  | `SOA   ->  "SOA"
-  | `MB    ->  "MB"
-  | `MG    ->  "MG"
-  | `MR    ->  "MR"
-  | `NULL  -> "NULL"
-  | `WKS   -> "WKS"
-  | `PTR   -> "PTR"
-  | `HINFO -> "HINFO"
-  | `MINFO -> "MINFO"
-  | `MX    -> "MX"
-  | `TXT   -> "TXT"
+  | `A        -> "A"
+  | `NS       -> "NS"
+  | `MD       -> "MD"
+  | `MF       -> "MF"
+  | `CNAME    -> "CNAME"
+  | `SOA      -> "SOA"
+  | `MB       -> "MB"
+  | `MG       -> "MG"
+  | `MR       -> "MR"
+  | `NULL     -> "NULL"
+  | `WKS      -> "WKS"
+  | `PTR      -> "PTR"
+  | `HINFO    -> "HINFO"
+  | `MINFO    -> "MINFO"
+  | `MX       -> "MX"
+  | `TXT      -> "TXT"
+  | `RP       -> "RP"
+  | `AFSDB    -> "AFSDB"
+  | `X25      -> "X25"
+  | `ISDN     -> "ISDN"
+  | `RT       -> "RT"
+  | `NSAP     -> "NSAP"
+  | `NSAP_PTR -> "NSAP"
+  | `SIG      -> "SIG"
+  | `KEY      -> "KEY"
+  | `PX       -> "PX"
+  | `GPOS     -> "GPOS"
+  | `AAAA     -> "AAAA"
+  | `LOC      -> "LOC"
+  | `NXT      -> "NXT"
+  | `EID      -> "EID"
+  | `NIMLOC   -> "NIMLOC"
+  | `SRV      -> "SRV"
+  | `ATMA     -> "ATMA"
+  | `NAPTR    -> "NAPTR"
+  | `KM       -> "KM"
+  | `CERT     -> "CERT"
+  | `A6       -> "A6"
+  | `DNAME    -> "DNAME"
+  | `SINK     -> "SINK"
+  | `OPT      -> "OPT"
+  | `APL      -> "APL"
+  | `DS       -> "DS"
+  | `SSHFP    -> "SSHFP"
+  | `IPSECKEY -> "IPSECKEY"
+  | `RRSIG    -> "RRSIG"
+  | `NSEC     -> "NSEC"
+  | `DNSKEY   -> "DNSKEY"
+  | `SPF      -> "SPF"
+  | `UINFO    -> "UINFO"
+  | `UID      -> "UID"
+  | `GID      -> "GID"
+  | `UNSPEC   -> "UNSPEC"
+  | `Unknown (i, _) -> Printf.sprintf "Unknown (%d)" i
+
+type rr_rdata = [
+| `A of int32
+| `NS of domain_name
+| `MD of domain_name
+| `MF of domain_name
+| `CNAME of domain_name
+| `SOA of 
+    domain_name * domain_name * int32 * int32 * int32 * int32 * int32 
+| `HINFO of string * string
+| `MB of domain_name
+| `MG of domain_name
+| `MR of domain_name
+| `MINFO of domain_name * domain_name
+| `MX of int16 * domain_name
+| `PTR of domain_name
+| `TXT of string list
+| `WKS of int32 * byte * string
+| `RP of domain_name * domain_name
+| `AFSDB of int16 * domain_name
+| `X25 of string
+| `ISDN of string
+| `RT of int16 * domain_name
+| `AAAA of bytes
+| `SRV of int16 * int16 * int16 * domain_name
+| `UNSPEC of bytes
+| `UNKNOWN of int * bytes
+]
+
+let parse_rdata names base t bits = 
+  Dnsrr.(
+    match t with
+      | `A -> `A (bits |> bytes_of_bitstring |> ipv4_addr_of_bytes)
+      | `NS -> `NS (bits |> parse_name names base |> stop)
+      | `CNAME -> `CNAME (bits |> parse_name names base |> stop)
+        
+      | `SOA -> let mn, bits = parse_name names base bits in
+                let rn, bits = parse_name names base bits in 
+                (bitmatch bits with
+                  | { serial: 32; refresh: 32; retry: 32; expire: 32;
+                      minimum: 32 }
+                    -> `SOA (mn, rn, serial, refresh, retry, expire, minimum)
+                )
+                  
+      | `WKS -> (
+        bitmatch bits with 
+          | { addr: 32; proto: 8; bitmap: -1: string } 
+            -> `WKS (addr, byte proto, bitmap)
+      )
+      | `PTR -> `PTR (bits |> parse_name names base |> stop)
+      | `HINFO -> let cpu, bits = parse_charstr bits in
+                  let os = bits |> parse_charstr |> stop in
+                  `HINFO (cpu, os)
+      | `MINFO -> let rm, bits = parse_name names base bits in
+                  let em = bits |> parse_name names base |> stop in
+                  `MINFO (rm, em)
+      | `MX -> (
+        bitmatch bits with
+          | { preference: 16; bits: -1: bitstring } 
+            -> `MX ((preference, bits |> parse_name names base |> stop))
+      )
+      | `TXT -> let names, _ = 
+                  let rec aux ns bits = 
+                    let n, bits = parse_name names base bits in
+                    aux (n :: ns) bits
+                  in
+                  aux [] bits
+                in
+                `TXT names
+      | t -> `UNKNOWN (int_of_rr_type t, Bitstring.string_of_bitstring bits)
+  )
 
 type rr_class = [ `IN | `CS | `CH | `HS ]
-
 let int_of_rr_class : rr_class -> int = function
   | `IN -> 1
   | `CS -> 2
@@ -235,10 +384,9 @@ and string_of_rr_class : rr_class -> string = function
 
 type rsrc_record = {
   rr_name  : domain_name;
-  rr_type  : rr_type;
   rr_class : rr_class;
   rr_ttl   : int32;
-  rr_rdata : resource;
+  rr_rdata : rr_rdata;
 }
 
 let parse_rr names base bits =
@@ -247,43 +395,52 @@ let parse_rr names base bits =
     | { t: 16; c: 16; ttl: 32; 
         rdlen: 16; rdata: (rdlen*8): bitstring;
         data: -1: bitstring } 
-      -> { rr_name = name;
-           rr_type = rr_type_of_int t;
+      -> let rdata = parse_rdata names base (rr_type_of_int t) rdata in
+         { rr_name = name;
            rr_class = rr_class_of_int c;
            rr_ttl = ttl;
-           rr_rdata = parse_resource names base (rr_type_of_int t) rdata;
+           rr_rdata = rdata;
          }, data
     | { _ } -> raise (Unparsable ("parse_rr", bits))
 
-type q_type = [ rr_type | `AXFR | `MAILB | `MAILA | `ANY ]
+type q_type = [ rr_type | `AXFR | `MAILB | `MAILA | `ANY | `TA | `DLV ]
 let int_of_q_type : q_type -> int = function
   | `AXFR         -> 252
   | `MAILB        -> 253
   | `MAILA        -> 254
   | `ANY          -> 255
+  | `TA           -> 32768
+  | `DLV          -> 32769
   | #rr_type as t -> int_of_rr_type t
 and q_type_of_int : int -> q_type = function
   | 252           -> `AXFR
   | 253           -> `MAILB
   | 254           -> `MAILA
   | 255           -> `ANY
+  | 32768         -> `TA
+  | 32769         -> `DLV
   | n             -> (rr_type_of_int n :> q_type)
 and string_of_q_type:q_type -> string = function
   | `AXFR         -> "AXFR"
   | `MAILB        -> "MAILB"
   | `MAILA        -> "MAILA"
   | `ANY          -> "ANY"
+  | `TA           -> "TA"
+  | `DLV          -> "DLV"
   | #rr_type as t -> string_of_rr_type t
 
-type q_class = [ rr_class | `ANY ]
+type q_class = [ rr_class | `NONE | `ANY ]
 
 let int_of_q_class : q_class -> int = function
+  | `NONE          -> 254
   | `ANY           -> 255
   | #rr_class as c -> int_of_rr_class c
 and q_class_of_int : int -> q_class = function
+  | 254            -> `NONE
   | 255            -> `ANY
   | n              -> (rr_class_of_int n :> q_class)
 and string_of_q_class : q_class -> string = function
+  | `NONE          -> "NONE"
   | `ANY           -> "ANY"
   | #rr_class as c -> string_of_rr_class c
 
@@ -303,12 +460,12 @@ let parse_question names base bits =
          }, data
     | { _ } -> raise (Unparsable ("parse_question", bits))
 
-type qr = [ | `Query | `Answer ]
+type qr = [ `Query | `Answer ]
 let qr_of_bool = function
   | false -> `Query
-  | true -> `Answer
+  | true  -> `Answer
 let bool_of_qr = function
-  | `Query -> false
+  | `Query  -> false
   | `Answer -> true
 
 type opcode = [ qr | `Status | `Reserved | `Notify | `Update ]
@@ -329,51 +486,52 @@ let int_of_opcode = function
   | `Update -> 5
   | _ -> failwith "dnspacket: unknown opcode"
 
-type rcode = 
-| NoError  | FormErr
-| ServFail | NXDomain | NotImp  | Refused
-| YXDomain | YXRRSet  | NXRRSet | NotAuth
-| NotZone  | BadVers  | BadKey  | BadTime
-| BadMode  | BadName  | BadAlg 
+type rcode = [
+| `NoError  | `FormErr
+| `ServFail | `NXDomain | `NotImp  | `Refused
+| `YXDomain | `YXRRSet  | `NXRRSet | `NotAuth
+| `NotZone  | `BadVers  | `BadKey  | `BadTime
+| `BadMode  | `BadName  | `BadAlg 
+]
 let rcode_of_int = function
-  | 0 -> NoError
-  | 1 -> FormErr
-  | 2 -> ServFail
-  | 3 -> NXDomain
-  | 4 -> NotImp
-  | 5 -> Refused
-  | 6 -> YXDomain
-  | 7 -> YXRRSet
-  | 8 -> NXRRSet
-  | 9 -> NotAuth
-  | 10 -> NotZone
-  
-  | 16-> BadVers
-  | 17-> BadKey
-  | 18-> BadTime
-  | 19-> BadMode
-  | 20-> BadName
-  | 21-> BadAlg
+  | 0 -> `NoError
+  | 1 -> `FormErr
+  | 2 -> `ServFail
+  | 3 -> `NXDomain
+  | 4 -> `NotImp
+  | 5 -> `Refused
+  | 6 -> `YXDomain
+  | 7 -> `YXRRSet
+  | 8 -> `NXRRSet
+  | 9 -> `NotAuth
+  | 10 -> `NotZone
+    
+  | 16-> `BadVers
+  | 17-> `BadKey
+  | 18-> `BadTime
+  | 19-> `BadMode
+  | 20-> `BadName
+  | 21-> `BadAlg
   | _ -> failwith "dnspacket: unknown rcode"
-let int_of_rcode = function
-  | NoError -> 0
-  | FormErr -> 1
-  | ServFail -> 2
-  | NXDomain -> 3
-  | NotImp -> 4
-  | Refused -> 5
-  | YXDomain -> 6
-  | YXRRSet -> 7
-  | NXRRSet -> 8
-  | NotAuth -> 9
-  | NotZone -> 10
-  
-  | BadVers -> 16
-  | BadKey -> 17
-  | BadTime -> 18
-  | BadMode -> 19
-  | BadName -> 20
-  | BadAlg -> 21
+and int_of_rcode = function
+  | `NoError -> 0
+  | `FormErr -> 1
+  | `ServFail -> 2
+  | `NXDomain -> 3
+  | `NotImp -> 4
+  | `Refused -> 5
+  | `YXDomain -> 6
+  | `YXRRSet -> 7
+  | `NXRRSet -> 8
+  | `NotAuth -> 9
+  | `NotZone -> 10
+    
+  | `BadVers -> 16
+  | `BadKey -> 17
+  | `BadTime -> 18
+  | `BadMode -> 19
+  | `BadName -> 20
+  | `BadAlg -> 21
   | _ -> failwith "dnspacket: unknown rcode"
 
 type detail = {
@@ -419,7 +577,7 @@ let parse_dns names bits =
     in
     aux [] n bits
   in
-  let base = bitstring_offset bits in
+  let base = Bitstring.offset_of_bitstring bits in
   bitmatch bits with
     | { id: 16; detail: 16: bitstring;
         qdcount: 16; ancount: 16; nscount: 16; arcount: 16;
@@ -433,15 +591,7 @@ let parse_dns names bits =
 
     | { _ } -> raise (Unparsable ("parse_dns", bits))
 
-let build_dns id detail questions answers authorities additionals = 
-  let qdcount = List.length questions in
-  let ancount = List.length answers in
-  let nscount = List.length authorities in
-  let arcount = List.length additionals in
-  let h = 
-    (BITSTRING {
-      id: 16; detail: 16;
-      qdcount: 16; ancount: 16; nscount: 16; arcount: 16
-    }) 
-  in
-  h :: questions @ answers @ authorities @ additionals
+let marshal dns = 
+  (BITSTRING {
+    0:8
+  })

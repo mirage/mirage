@@ -20,34 +20,10 @@
 type query_answer = {
   rcode : Dnspacket.rcode;
   aa: bool;
-  answer: Bitstring.t list;
-  authority: Bitstring.t list;
-  additional: Bitstring.t list;
+  answer: Dnspacket.rsrc_record list;
+  authority: Dnspacket.rsrc_record list;
+  additional: Dnspacket.rsrc_record list;
 }
 
 val answer_query : string list -> 
-  [> `A
-   | `AAAA
-   | `AFSDB
-   | `ANY
-   | `CNAME
-   | `HINFO
-   | `ISDN
-   | `MAILB
-   | `MB
-   | `MG
-   | `MINFO
-   | `MR
-   | `MX
-   | `NS
-   | `PTR
-   | `RP
-   | `RT
-   | `SOA
-   | `SRV
-   | `TXT
-   | `UNSPEC
-   | `Unknown of int
-   | `WKS
-   | `X25 ] -> 
-  Dnstrie.dnstrie -> query_answer
+  Dnspacket.q_type -> Dnstrie.dnstrie -> query_answer

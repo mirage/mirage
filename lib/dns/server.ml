@@ -68,7 +68,7 @@ let get_answer_memo qname qtype id =
       r
     )
   in
-  DP.({ r with id=id })
+  DP.({ r with id })
 
 let no_memo mgr src dst bits =
   let names = Hashtbl.create 8 in

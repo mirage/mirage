@@ -592,6 +592,52 @@ let parse_dns names bits =
     | { _ } -> raise (Unparsable ("parse_dns", bits))
 
 let marshal dns = 
-  (BITSTRING {
-    0:8
-  })
+  let names = Hashtbl.create 8 in
+  let mn n = ignore(names); "a" in
+  let mrd rd = match rd with
+    | `A ip -> BITSTRING { ip:32 }, `A
+    | `NS n 
+      -> let n = mn n in
+         let nl = String.length n in
+         BITSTRING { n:nl:string }, `NS
+    | _ -> failwith "not done yet"
+  in
+  let mq q =
+    let bits = mn q.q_name in
+    let len = String.length bits in
+    (BITSTRING {
+      bits:len:string; 
+      (int_of_q_type q.q_type):16;
+      (int_of_q_class q.q_class):16
+    })
+  in
+  let mr r = 
+    let name = mn r.rr_name in 
+    let nlen = String.length name in
+    let rdata, rtype = mrd r.rr_rdata in
+    let rdlength = Bitstring.bitstring_length rdata in
+    (BITSTRING {
+      name:nlen:string;
+      (int_of_rr_type rtype):16;
+      (int_of_rr_class r.rr_class):16;
+      r.rr_ttl:32;
+      (rdlength/8):16;
+      rdata:rdlength:bitstring
+    }) 
+  in
+  let header = 
+    (BITSTRING {
+      dns.id:16; 
+      dns.detail:16:bitstring; 
+      (List.length dns.questions):16;
+      (List.length dns.answers):16;
+      (List.length dns.authorities):16;
+      (List.length dns.additionals):16
+    })
+  in
+  let bs =
+    ([ header ] @ (dns.questions ||> mq)
+     @ (dns.answers ||> mr) @ (dns.authorities ||> mr) @ (dns.additionals ||> mr)
+    )
+  in Bitstring.concat bs
+

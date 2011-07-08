@@ -48,7 +48,7 @@ type byte = char
 let byte (i:int) : byte = Char.chr i
 let int_of_byte b = int_of_char b
 let int32_of_byte b = b |> int_of_char |> Int32.of_int
-let int32_of_int i = i |> Int32.of_int
+let int32_of_int (i:int) = Int32.of_int i
 
 type bytes = string
 let bytes_to_hex_string bs = 
@@ -592,32 +592,57 @@ let parse_dns names bits =
     | { _ } -> raise (Unparsable ("parse_dns", bits))
 
 let marshal dns = 
-  let names = Hashtbl.create 8 in
-  let mn n = ignore(names); "a" in
-  let mrd rd = match rd with
-    | `A ip -> BITSTRING { ip:32 }, `A
-    | `NS n 
-      -> let n = mn n in
-         let nl = String.length n in
-         BITSTRING { n:nl:string }, `NS
-    | _ -> failwith "not done yet"
+  let pos = ref 0 in
+  let (names:(string list,int) Hashtbl.t) = Hashtbl.create 8 in
+
+  let lookup h k =
+    if Hashtbl.mem h k then Some (Hashtbl.find h k) else None
   in
-  let mq q =
-    let bits = mn q.q_name in
-    let len = String.length bits in
-    (BITSTRING {
-      bits:len:string; 
-      (int_of_q_type q.q_type):16;
-      (int_of_q_class q.q_class):16
-    })
+  let mn (labels:domain_name) = 
+    let lset = 
+      let rec aux = function
+        | [] -> failwith "never reached"
+        | x :: [] -> [ x :: [] ]
+        | hd :: tl -> (hd :: tl) :: (aux tl)
+      in aux labels
+    in 
+    
+    let bits = ref [] in    
+    List.iter (fun l ->
+      match lookup names l with
+        | None 
+          -> (Hashtbl.add names l !pos;
+              let label = List.hd l in
+              let len = String.length label in
+              assert(len < 64);
+              bits := label :: (len |> Char.chr |> Printf.sprintf "%c") :: !bits;
+              pos := !pos + len              
+          )
+        | Some off
+          -> let ptr = Int32.add (0b11_l <<< 14) (int32_of_int off) in
+             let hi = (ptr &&& 0xff00_l) >>> 8 |> Int32.to_int |> Char.chr in
+             let lo = (ptr &&& 0x00ff_l) |> Int32.to_int |> Char.chr in
+             bits := (Printf.sprintf "%c%c" hi lo) :: !bits;
+             pos := !pos + 2
+    ) lset;
+    !bits |> List.rev |> String.concat ""
+    |> (fun s -> BITSTRING { s:((String.length s)*8):string })
   in
+
   let mr r = 
+    let mrd (rd:rr_rdata) = match rd with
+      | `A ip -> BITSTRING { ip:32 }, `A
+      | `NS n 
+        -> let n = mn n in
+           BITSTRING { n:-1:bitstring }, `NS
+      | _ -> failwith "not done yet"
+    in
     let name = mn r.rr_name in 
-    let nlen = String.length name in
+    pos := !pos + 2+2+4+2;
     let rdata, rtype = mrd r.rr_rdata in
     let rdlength = Bitstring.bitstring_length rdata in
     (BITSTRING {
-      name:nlen:string;
+      name:-1:bitstring;
       (int_of_rr_type rtype):16;
       (int_of_rr_class r.rr_class):16;
       r.rr_ttl:32;
@@ -625,6 +650,17 @@ let marshal dns =
       rdata:rdlength:bitstring
     }) 
   in
+  
+  let mq q =
+    let bits = mn q.q_name in
+    pos := !pos + 2+2;
+    (BITSTRING {
+      bits:-1:bitstring; 
+      (int_of_q_type q.q_type):16;
+      (int_of_q_class q.q_class):16
+    })
+  in
+  
   let header = 
     (BITSTRING {
       dns.id:16; 
@@ -635,9 +671,13 @@ let marshal dns =
       (List.length dns.additionals):16
     })
   in
-  let bs =
-    ([ header ] @ (dns.questions ||> mq)
-     @ (dns.answers ||> mr) @ (dns.authorities ||> mr) @ (dns.additionals ||> mr)
-    )
-  in Bitstring.concat bs
+  let hl = 2+2+2+2+2+2 in  
+  pos := !pos + hl;
 
+  let qs = dns.questions ||> mq in
+  let ans = dns.answers ||> mr in
+  let auths = dns.answers ||> mr in
+  let adds = dns.additionals ||> mr in
+  
+  let bs = header :: qs @ ans @ auths @ adds
+  in Bitstring.concat bs

@@ -41,25 +41,6 @@ let create () =
   Evtchn.notify evtchn;
   con
     
-let create_additional_console () =
-  let node = "device/console/0/" in
-  lwt backend = Xs.t.Xs.read (node ^ "backend-id") in
-  lwt backend_id =
-    try return (int_of_string backend)
-    with _ -> fail (Internal_error "backend id is not an integer") in
-  lwt gnt, ring = Ring.Console.alloc backend_id in
-  let evtchn = Evtchn.alloc_unbound_port backend_id in
-  let waiters = Lwt_sequence.create () in
-  Xs.transaction Xs.t (fun xst ->
-    let wrfn k v = xst.Xst.write (node ^ k) v in
-    wrfn "ring-ref" (Gnttab.to_string gnt) >> 
-    wrfn "port" (string_of_int evtchn) >>
-    wrfn "protocol" "x86_64-abi" >>
-    wrfn "type" "ioemu" >> (* XXX whats this for? *)
-    wrfn "state" (Xb.State.to_string Xb.State.Connected)
-  ) >>
-  return { backend_id; gnt; ring; evtchn; waiters }
-
 let rec sync_write cons buf off len =
   assert(len <= String.length buf + off);
   let w = Ring.Console.unsafe_write cons.ring buf (String.length buf) in

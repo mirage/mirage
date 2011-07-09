@@ -1,8 +1,12 @@
 Io_page
 Gnttab
 Ring
-#Evtchn
-#Activations
+Evtchn
+Activations
+Console
+Clock
+Time
+Main
 #Xb_op
 #Xb_partial
 #Xb_state
@@ -11,10 +15,6 @@ Ring
 #Queueop
 #Xsraw
 #Xst
-#Clock
-#Time
 #Xs
-#Console
 #Netif
 #Blkif
-#Main

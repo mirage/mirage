@@ -628,7 +628,6 @@ let parse_dns names bits =
           let authorities, bits = parsen parse_rr names base nscount bits in
           let additionals, _ = parsen parse_rr names base arcount bits in 
           let dns = { id; detail; questions; answers; authorities; additionals } in
-          pr "DNS: %s\n" (dns_to_string dns);
           dns
       )
 
@@ -636,7 +635,6 @@ let parse_dns names bits =
   )
 
 let marshal dns = 
-  pr "DNS OUT: %s\n" (dns_to_string dns);
   let pos = ref 0 in
   let (names:(string list,int) Hashtbl.t) = Hashtbl.create 8 in
 
@@ -726,5 +724,4 @@ let marshal dns =
   let adds = dns.additionals ||> mr in
   
   let bs = Bitstring.concat (header :: qs @ ans @ auths @ adds) in 
-  pr "DNS OUT BITS:\n"; Bitstring.hexdump_bitstring stdout bs;
   bs

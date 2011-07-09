@@ -617,7 +617,6 @@ let parse_dns names bits =
     aux [] n bits
   in
   let base = Bitstring.offset_of_bitstring bits in
-  Bitstring.hexdump_bitstring stdout bits;
   (bitmatch bits with
     | { id:16; detail:16:bitstring;
         qdcount:16; ancount:16; nscount:16; arcount:16;
@@ -651,26 +650,30 @@ let marshal dns =
     in 
     
     let bits = ref [] in    
+    let pointed = ref false in
     List.iter (fun l ->
-      match lookup names l with
-        | None 
-          -> (Hashtbl.add names l !pos;
-              let label = List.hd l in
-              let len = String.length label in
-              assert(len < 64);
-              bits := label :: (len |> Char.chr |> Printf.sprintf "%c") :: !bits;
-              pos := !pos + len +1
-          )
-        | Some off
-          -> let ptr = Int32.add (0b11_l <<< 14) (int32_of_int off) in
-             let hi = (ptr &&& 0xff00_l) >>> 8 |> Int32.to_int |> Char.chr in
-             let lo = (ptr &&& 0x00ff_l) |> Int32.to_int |> Char.chr in
-             bits := (Printf.sprintf "%c%c" hi lo) :: !bits;
-             pos := !pos + 2
+      if (not !pointed) then (
+        match lookup names l with
+          | None 
+            -> (Hashtbl.add names l !pos;
+                let label = List.hd l in
+                let len = String.length label in
+                assert(len < 64);
+                bits := label :: (len |> Char.chr |> Printf.sprintf "%c") :: !bits;
+                pos := !pos + len +1
+            )
+          | Some off
+            -> let ptr = Int32.add (0b11_l <<< 14) (int32_of_int off) in
+               let hi = (ptr &&& 0xff00_l) >>> 8 |> Int32.to_int |> Char.chr in
+               let lo = (ptr &&& 0x00ff_l) |> Int32.to_int |> Char.chr in
+               bits := (Printf.sprintf "%c%c" hi lo) :: !bits;
+               pos := !pos + 2;
+               pointed := true
+      )
     ) lset;
-    pos := !pos + 1;
+    if (not !pointed) then bits := "\000" :: !bits;
     !bits |> List.rev |> String.concat "" |> (fun s -> 
-      BITSTRING { s:((String.length s)*8):string; 0:8 })
+      BITSTRING { s:((String.length s)*8):string })
   in
 
   let mr r = 
@@ -694,7 +697,7 @@ let marshal dns =
       rdata:rdlength:bitstring
     }) 
   in
-  
+
   let mq q =
     let bits = mn q.q_name in
     pos := !pos + 2+2;
@@ -704,7 +707,7 @@ let marshal dns =
       (int_of_q_class q.q_class):16
     })
   in
-  
+
   let header = 
     (BITSTRING {
       dns.id:16; 
@@ -722,6 +725,6 @@ let marshal dns =
   let ans = dns.answers ||> mr in
   let auths = dns.answers ||> mr in
   let adds = dns.additionals ||> mr in
-  
+
   let bs = Bitstring.concat (header :: qs @ ans @ auths @ adds) in 
   bs

@@ -75,7 +75,7 @@ let answer_query qname qtype trie =
       let rr = DP.({ rr_name = owner; 
                      rr_class = rrclass; 
                      rr_ttl = ttl; 
-                     rr_rdata = rr}) 
+                     rr_rdata = rr }) 
       in
       match section with 
         | `Answer     -> ans_rrs  := rr :: !ans_rrs 

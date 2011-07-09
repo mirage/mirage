@@ -24,15 +24,6 @@ module DP = Dnspacket
 
 let dnstrie = DL.(state.db.trie)
 
-(*
-let log (addr,port) (dnsq:DP.question) =
-  printf "%.0f: %s %s %s (%s:%d)\n%!" (OS.Clock.time())
-    (String.concat "." (DP.qname dnsq))
-    (DP.qtype_to_string (DP.qtype dnsq))
-    (DP.qclass_to_string (DP.qclass dnsq))
-    (Net.Nettypes.ipv4_addr_to_string addr) port
-*)
-
 let get_answer qname qtype id =
   let qname = List.map String.lowercase qname in  
   let ans = DQ.answer_query qname qtype dnstrie in
@@ -87,6 +78,7 @@ let leaky mgr src dst bits =
     let q = List.hd d.questions in
     let r = get_answer_memo q.q_name q.q_type d.id in
     let p = marshal r in
+
     Net.Datagram.UDPv4.send mgr ~src dst p
   )
    

@@ -57,7 +57,7 @@ val clear_cons_tables : unit -> unit
 val get_rrsets :
     [> `A | `AAAA | `AFSDB | `ANY | `CNAME | `HINFO | `ISDN | `MAILB | `MB 
      | `MG | `MINFO | `MR | `MX | `NS | `PTR | `RP | `RT | `SOA 
-     | `SRV | `TXT | `UNSPEC | `Unknown of int | `WKS | `X25 ] ->
+     | `SRV | `TXT | `UNSPEC | `Unknown of int * string | `WKS | `X25 ] ->
 	 rrset list -> bool -> rrset list
 
 (* Merge a new RRSet into a list of RRSets. 

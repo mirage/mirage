@@ -331,7 +331,7 @@ let string_of_rdata r =
   match r with
     | `A ip -> sp "A (%s)" (ipv4_to_string ip)
     | `NS n -> sp "NS (%s)" (join "." n)
-    | _ -> "XXX"
+    | _     -> failwith "string_of_rdata: unknown rdata type"
 
 let parse_rdata names base t bits = 
   Dnsrr.(
@@ -679,11 +679,38 @@ let marshal dns =
   let mr r = 
     let mrd (rd:rr_rdata) = match rd with
       | `A ip -> BITSTRING { ip:32 }, `A
-      | `NS n 
-        -> let n = mn n in
-           BITSTRING { n:-1:bitstring }, `NS
+      | `NS n -> BITSTRING { (mn n):-1:bitstring }, `NS
+      | `MD n -> BITSTRING { (mn n):-1:bitstring }, `MD
+      | `MF n -> BITSTRING { (mn n):-1:bitstring }, `MF
+      | `CNAME n -> BITSTRING { (mn n):-1:bitstring }, `CNAME
+      | `SOA (mname, rname, serial, refresh, retry, expire, minimum)
+        -> (BITSTRING { 
+          (mn mname):-1:bitstring;
+          (mn rname):-1:bitstring;
+          serial:32; refresh:32; retry:32; expire:32; minimum:32 
+        }), `SOA
+      | `HINFO (cpu, os) 
+        -> BITSTRING { cpu:-1:string; os:-1:string }, `HINFO
+      | `MB n -> BITSTRING { (mn n):-1:bitstring }, `MB
+      | `MG n -> BITSTRING { (mn n):-1:bitstring }, `MG
+      | `MR n -> BITSTRING { (mn n):-1:bitstring }, `MR
+      | `MINFO (rm,em) 
+        -> BITSTRING { 
+          (mn rm):-1:bitstring; 
+          (mn em):-1:bitstring 
+        }, `MINFO
+      | `MX (pref, exchange) 
+        -> BITSTRING { 
+          pref:16; 
+          (mn exchange):-1:bitstring
+        }, `MX
+      | `TXT sl
+        -> let s = (sl ||> (fun s -> sp "%c%s" (s |> String.length |> byte) s) 
+                       |> join "")
+           in BITSTRING { s:-1:string }, `TXT
       | _ -> failwith "not done yet"
     in
+
     let name = mn r.rr_name in 
     pos := !pos + 2+2+4+2;
     let rdata, rtype = mrd r.rr_rdata in

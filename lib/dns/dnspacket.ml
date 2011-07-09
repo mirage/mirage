@@ -33,13 +33,15 @@ let (|>) x f = f x (* pipe *)
 let (>>) f g x = g (f x) (* functor pipe *)
 let (||>) l f = List.map f l (* element-wise pipe *)
 
+let (+++) x y = Int32.add x y
+
 let (&&&) x y = Int32.logand x y
 let (|||) x y = Int32.logor x y
 let (^^^) x y = Int32.logxor x y
 let (<<<) x y = Int32.shift_left x y
 let (>>>) x y = Int32.shift_right_logical x y
 
-let join c l = List.fold_left (fun x y -> y ^ c ^ x) "" l
+let join c l = List.fold_left (fun x y -> x ^ c ^ y) "" l
 let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *) 
 
 type domain_name = string list
@@ -640,15 +642,27 @@ let marshal dns =
   let lookup h k =
     if Hashtbl.mem h k then Some (Hashtbl.find h k) else None
   in
+
+  let charstr s =
+    sp "%c%s" (s |> String.length |> byte) s 
+  in
+
+  let pointer off = 
+    let ptr = (0b11_l <<< 14) +++ (int32_of_int off) in
+    let hi = ((ptr &&& 0xff00_l) >>> 8) |> Int32.to_int |> byte in
+    let lo =  (ptr &&& 0x00ff_l)        |> Int32.to_int |> byte in
+    sp "%c%c" hi lo
+  in
+  
   let mn (labels:domain_name) = 
     let lset = 
       let rec aux = function
-        | [] -> failwith "never reached"
+        | [] -> [ [] ]
         | x :: [] -> [ x :: [] ]
         | hd :: tl -> (hd :: tl) :: (aux tl)
       in aux labels
     in 
-    
+
     let bits = ref [] in    
     let pointed = ref false in
     List.iter (fun l ->
@@ -656,26 +670,50 @@ let marshal dns =
         match lookup names l with
           | None 
             -> (Hashtbl.add names l !pos;
-                let label = List.hd l in
-                let len = String.length label in
-                assert(len < 64);
-                bits := label :: (len |> Char.chr |> Printf.sprintf "%c") :: !bits;
-                pos := !pos + len +1
+                match l with 
+                  | [] 
+                    -> (bits := "\000" :: !bits; 
+                        pos := !pos + 1
+                    )
+                  | label :: tail
+                    -> (let len = String.length label in
+                        assert(len < 64);
+                        bits := (charstr label) :: !bits;
+                        pos := !pos + len +1
+                    )
             )
           | Some off
-            -> let ptr = Int32.add (0b11_l <<< 14) (int32_of_int off) in
-               let hi = (ptr &&& 0xff00_l) >>> 8 |> Int32.to_int |> Char.chr in
-               let lo = (ptr &&& 0x00ff_l) |> Int32.to_int |> Char.chr in
-               bits := (Printf.sprintf "%c%c" hi lo) :: !bits;
-               pos := !pos + 2;
-               pointed := true
+            -> (bits := (pointer off) :: !bits;
+                pos := !pos + 2;
+                pointed := true
+            )
       )
     ) lset;
-    if (not !pointed) then bits := "\000" :: !bits;
+    if (not !pointed) then (
+      bits := "\000" :: !bits;
+      pos := !pos + 1
+    );
     !bits |> List.rev |> String.concat "" |> (fun s -> 
       BITSTRING { s:((String.length s)*8):string })
   in
 
+(*
+  let mn (labels:domain_name) =
+    let bits = ref [] in
+    List.iter (fun s -> 
+      let cs = charstr s in
+      bits := cs :: !bits
+    ) labels;
+    !bits |> List.rev |> String.concat ""
+           |> (fun s -> 
+             if String.length s > 0 then
+               BITSTRING { s:((String.length s)*8):string; 0:8 }
+             else
+               BITSTRING { 0:8 }
+           )
+  in
+*)
+  
   let mr r = 
     let mrd (rd:rr_rdata) = match rd with
       | `A ip -> BITSTRING { ip:32 }, `A
@@ -684,36 +722,30 @@ let marshal dns =
       | `MF n -> BITSTRING { (mn n):-1:bitstring }, `MF
       | `CNAME n -> BITSTRING { (mn n):-1:bitstring }, `CNAME
       | `SOA (mname, rname, serial, refresh, retry, expire, minimum)
-        -> (BITSTRING { 
-          (mn mname):-1:bitstring;
-          (mn rname):-1:bitstring;
-          serial:32; refresh:32; retry:32; expire:32; minimum:32 
-        }), `SOA
+        -> BITSTRING { (mn mname):-1:bitstring;
+                       (mn rname):-1:bitstring;
+                       serial:32; refresh:32; retry:32; expire:32; minimum:32 
+                     }, `SOA
       | `HINFO (cpu, os) 
         -> BITSTRING { cpu:-1:string; os:-1:string }, `HINFO
       | `MB n -> BITSTRING { (mn n):-1:bitstring }, `MB
       | `MG n -> BITSTRING { (mn n):-1:bitstring }, `MG
       | `MR n -> BITSTRING { (mn n):-1:bitstring }, `MR
       | `MINFO (rm,em) 
-        -> BITSTRING { 
-          (mn rm):-1:bitstring; 
-          (mn em):-1:bitstring 
-        }, `MINFO
+        -> BITSTRING { (mn rm):-1:bitstring; (mn em):-1:bitstring }, `MINFO
       | `MX (pref, exchange) 
-        -> BITSTRING { 
-          pref:16; 
-          (mn exchange):-1:bitstring
-        }, `MX
+        -> BITSTRING { pref:16; (mn exchange):-1:bitstring }, `MX
       | `TXT sl
-        -> let s = (sl ||> (fun s -> sp "%c%s" (s |> String.length |> byte) s) 
-                       |> join "")
-           in BITSTRING { s:-1:string }, `TXT
+        -> (let s = sl ||> charstr |> join "" in
+            (BITSTRING { s:-1:string }), `TXT
+        )
+        
       | _ -> failwith "not done yet"
     in
 
     let name = mn r.rr_name in 
     pos := !pos + 2+2+4+2;
-    let rdata, rtype = mrd r.rr_rdata in
+    let rdata, rtype = mrd r.rr_rdata in    
     let rdlength = Bitstring.bitstring_length rdata in
     (BITSTRING {
       name:-1:bitstring;
@@ -750,7 +782,7 @@ let marshal dns =
 
   let qs = dns.questions ||> mq in
   let ans = dns.answers ||> mr in
-  let auths = dns.answers ||> mr in
+  let auths = dns.authorities ||> mr in
   let adds = dns.additionals ||> mr in
 
   let bs = Bitstring.concat (header :: qs @ ans @ auths @ adds) in 

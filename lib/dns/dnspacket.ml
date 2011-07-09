@@ -659,7 +659,7 @@ let marshal dns =
               let len = String.length label in
               assert(len < 64);
               bits := label :: (len |> Char.chr |> Printf.sprintf "%c") :: !bits;
-              pos := !pos + len              
+              pos := !pos + len +1
           )
         | Some off
           -> let ptr = Int32.add (0b11_l <<< 14) (int32_of_int off) in

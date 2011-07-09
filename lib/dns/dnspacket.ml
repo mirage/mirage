@@ -24,6 +24,8 @@ module Bitstring = struct
 end
 
 let sp = Printf.sprintf
+let pr = Printf.printf
+let ep = Printf.eprintf
 
 exception Unparsable of string * Bitstring.bitstring
 
@@ -43,6 +45,10 @@ let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *)
 type domain_name = string list
 type int16 = int
 type ipv4 = int32
+let ipv4_to_string i =   
+  sp "%ld.%ld.%ld.%ld" 
+    ((i &&& 0x0_ff000000_l) >>> 24) ((i &&& 0x0_00ff0000_l) >>> 16)
+    ((i &&& 0x0_0000ff00_l) >>>  8) ((i &&& 0x0_000000ff_l)       )
 
 type byte = char
 let byte (i:int) : byte = Char.chr i
@@ -321,6 +327,12 @@ type rr_rdata = [
 | `UNKNOWN of int * bytes
 ]
 
+let string_of_rdata r = 
+  match r with
+    | `A ip -> sp "A (%s)" (ipv4_to_string ip)
+    | `NS n -> sp "NS (%s)" (join "." n)
+    | _ -> "XXX"
+
 let parse_rdata names base t bits = 
   Dnsrr.(
     match t with
@@ -389,6 +401,11 @@ type rsrc_record = {
   rr_rdata : rr_rdata;
 }
 
+let rr_to_string rr = 
+  sp "%s <%s|%ld> %s" 
+    (join "." rr.rr_name) (string_of_rr_class rr.rr_class) 
+    rr.rr_ttl (string_of_rdata rr.rr_rdata)
+
 let parse_rr names base bits =
   let name, bits = parse_name names base bits in
   bitmatch bits with
@@ -449,6 +466,11 @@ type question = {
   q_type  : q_type;
   q_class : q_class;
 }
+
+let question_to_string q = 
+  sp "%s <%s|%s>" 
+    (join "." q.q_name) 
+    (string_of_q_type q.q_type) (string_of_q_class q.q_class)
 
 let parse_question names base bits = 
   let n, bits = parse_name names base bits in
@@ -543,6 +565,15 @@ type detail = {
   ra: bool;
   rcode: rcode;
 }
+let detail_to_string d = 
+  sp "%c:%02x %s:%s:%s:%s %d"
+    (match d.qr with `Query -> 'Q' | `Answer -> 'R')
+    (int_of_opcode d.opcode)
+    (if d.aa then "a" else "na") (* authoritative vs not *)
+    (if d.tc then "t" else "c") (* truncated vs complete *)
+    (if d.rd then "r" else "nr") (* recursive vs not *)
+    (if d.ra then "ra" else "rn") (* recursion available vs not *)
+    (int_of_rcode d.rcode)
 
 let parse_detail bits = 
   bitmatch bits with
@@ -557,7 +588,7 @@ let build_detail d =
     d.aa:1; d.tc:1; d.rd:1; d.ra:1; (* z *) 0:3;
     (int_of_rcode d.rcode):4
   })
-    
+
 type dns = {
   id          : int16;
   detail      : Bitstring.t;
@@ -566,6 +597,14 @@ type dns = {
   authorities : rsrc_record list;
   additionals : rsrc_record list;
 }
+
+let dns_to_string d = 
+  sp "%04x %s <qs:%s> <an:%s> <au:%s> <ad:%s>"
+    d.id (d.detail |> parse_detail |> detail_to_string)
+    (d.questions ||> question_to_string |> join ",")
+    (d.answers ||> rr_to_string |> join ",")
+    (d.authorities ||> rr_to_string |> join ",")
+    (d.additionals ||> rr_to_string |> join ",")
 
 let parse_dns names bits = 
   let parsen pf ns b n bits = 
@@ -578,20 +617,26 @@ let parse_dns names bits =
     aux [] n bits
   in
   let base = Bitstring.offset_of_bitstring bits in
-  bitmatch bits with
-    | { id: 16; detail: 16: bitstring;
-        qdcount: 16; ancount: 16; nscount: 16; arcount: 16;
-        bits: -1: bitstring
+  Bitstring.hexdump_bitstring stdout bits;
+  (bitmatch bits with
+    | { id:16; detail:16:bitstring;
+        qdcount:16; ancount:16; nscount:16; arcount:16;
+        bits:-1:bitstring
       }
-      -> let questions, bits = parsen parse_question names base qdcount bits in
-         let answers, bits = parsen parse_rr names base ancount bits in
-         let authorities, bits = parsen parse_rr names base nscount bits in
-         let additionals, bits = parsen parse_rr names base arcount bits in
-         { id; detail; questions; answers; authorities; additionals }
+      -> (let questions, bits = parsen parse_question names base qdcount bits in
+          let answers, bits = parsen parse_rr names base ancount bits in
+          let authorities, bits = parsen parse_rr names base nscount bits in
+          let additionals, _ = parsen parse_rr names base arcount bits in 
+          let dns = { id; detail; questions; answers; authorities; additionals } in
+          pr "DNS: %s\n" (dns_to_string dns);
+          dns
+      )
 
     | { _ } -> raise (Unparsable ("parse_dns", bits))
+  )
 
 let marshal dns = 
+  pr "DNS OUT: %s\n" (dns_to_string dns);
   let pos = ref 0 in
   let (names:(string list,int) Hashtbl.t) = Hashtbl.create 8 in
 
@@ -625,8 +670,9 @@ let marshal dns =
              bits := (Printf.sprintf "%c%c" hi lo) :: !bits;
              pos := !pos + 2
     ) lset;
-    !bits |> List.rev |> String.concat ""
-    |> (fun s -> BITSTRING { s:((String.length s)*8):string })
+    pos := !pos + 1;
+    !bits |> List.rev |> String.concat "" |> (fun s -> 
+      BITSTRING { s:((String.length s)*8):string; 0:8 })
   in
 
   let mr r = 
@@ -679,5 +725,6 @@ let marshal dns =
   let auths = dns.answers ||> mr in
   let adds = dns.additionals ||> mr in
   
-  let bs = header :: qs @ ans @ auths @ adds
-  in Bitstring.concat bs
+  let bs = Bitstring.concat (header :: qs @ ans @ auths @ adds) in 
+  pr "DNS OUT BITS:\n"; Bitstring.hexdump_bitstring stdout bs;
+  bs

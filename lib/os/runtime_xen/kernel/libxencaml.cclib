@@ -1,3 +1,4 @@
+bitstring_stubs.o
 exit_stubs.o
 page_stubs.o
 evtchn_stubs.o

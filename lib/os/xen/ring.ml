@@ -29,13 +29,12 @@ open Lwt
 open Printf
 
 (* Allocate a new grant entry and initialise a ring using it *)
-let alloc fn domid =
+let alloc domid =
   lwt gnt = Gnttab.get_free_entry () in
   let page = Gnttab.page gnt in
-  let ring = fn page in
   let perm = Gnttab.RW in
   Gnttab.grant_access ~domid ~perm gnt;
-  return (gnt, ring)
+  return (gnt, page)
 
 (*
 (* Module type of any request/response ring *)
@@ -421,8 +420,8 @@ let init (buf,off,len) ~idx_size ~name =
   let t = { name; buf; off; idx_size; nr_ents; header_size } in
   printf "Shared.init: %s off=%d idxsize=%d nr_ents=%d\n%!" name off idx_size nr_ents;
   (* initialise the *_event fields to 1, and the rest to 0 *)
-  let src,srcoff,_ = BITSTRING { 0l:32; 1l:32; 0l:32; 1l:32; 0L:64 } in
-  String.blit src (srcoff/8) buf (off/8) (len/8);
+  let src,_,_ = BITSTRING { 0l:32; 1l:32; 0l:32; 1l:32; 0L:64 } in
+  String.blit src 0 buf (off/8) (String.length src);
   t
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
@@ -435,6 +434,8 @@ external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses
 
 external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event" "noalloc"
 external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event" "noalloc"
+
+let nr_ents sring = sring.nr_ents
 
 let slot sring idx =
   (* TODO should precalculate these and store in the sring? this is fast-path *)
@@ -450,7 +451,7 @@ module Front = struct
     sring: sring;
   }
 
-  let init ~size ~sring =
+  let init ~sring =
     let req_prod_pvt = 0 in
     let rsp_cons = 0 in
     { req_prod_pvt; rsp_cons; sring }
@@ -552,3 +553,4 @@ module Xenstore = struct
       let gnt = Gnttab.alloc num in
       gnt, page
 end
+

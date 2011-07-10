@@ -172,6 +172,25 @@ module Blkif_t : sig
 end
 
 *) 
+
+val alloc: int -> (Gnttab.r * Bitstring.t) Lwt.t
+type sring
+
+val init : Bitstring.t -> idx_size:int -> name:string -> sring
+val nr_ents: sring -> int
+val slot : sring -> int -> Bitstring.t
+
+module Front : sig
+  type t
+  val init : sring:sring -> t
+  val get_free_requests : t -> int
+  val ring_full : t -> bool
+  val has_unconsumed_responses : t -> bool
+  val push_requests : t -> unit
+  val push_requests_and_check_notify : t -> bool
+  val check_for_responses : t -> bool
+end
+
 module Console : sig
   type t
   external unsafe_write : t -> string -> int -> int = "caml_console_ring_write"

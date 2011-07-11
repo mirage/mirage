@@ -37,7 +37,7 @@ caml_wire_string_pages(value v_str)
     caml_failwith("pages_of_string: len < PAGE_SIZE");
   bufoff = PAGE_ALIGN(buf) - buf;
   nr_pages = (buflen-bufoff) / PAGE_SIZE;
-  caml_register_generational_global_root(&v_str);
+  caml_register_generational_global_root(&v_str); /* Essential to prevent it being moved by GC */
   v_ret = caml_alloc(2, 0);
   Store_field(v_ret, 0, Val_int(bufoff));
   Store_field(v_ret, 1, Val_int(nr_pages));

@@ -17,9 +17,11 @@
 type t
 type id
 val create : id -> t Lwt.t
-val listen : t -> (Istring.t -> unit Lwt.t) -> unit Lwt.t
 val destroy : t -> unit Lwt.t
+(*
 val output : t -> (Istring.t -> 'a) -> 'a Lwt.t
+*)
+val listen : t -> (Bitstring.t -> unit Lwt.t) -> unit Lwt.t
 val enumerate : unit -> id list Lwt.t
 val mac : t -> string
 val string_of_id : id -> string

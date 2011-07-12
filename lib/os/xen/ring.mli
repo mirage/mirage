@@ -182,13 +182,16 @@ val slot : sring -> int -> Bitstring.t
 
 module Front : sig
   type t
+  val dump : t -> unit
   val init : sring:sring -> t
   val get_free_requests : t -> int
-  val ring_full : t -> bool
+  val is_ring_full : t -> bool
   val has_unconsumed_responses : t -> bool
   val push_requests : t -> unit
   val push_requests_and_check_notify : t -> bool
   val check_for_responses : t -> bool
+  val next_req_slot : t -> Bitstring.t
+  val ack_responses : t -> (Bitstring.t -> unit) -> unit
 end
 
 module Console : sig

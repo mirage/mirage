@@ -17,6 +17,49 @@
 open Lwt
 open Printf
 
+module RX = struct
+
+  let idx_size = 8 (* max of sizeof(request), sizeof(response) *)
+
+  let create (num,domid) =
+    let name = sprintf "Netif.RX.%d" num in
+    lwt (rx_gnt, rx) = Ring.alloc domid in
+    let sring = Ring.init rx ~idx_size ~name in
+    let fring = Ring.Front.init ~sring in
+    return (rx_gnt, sring, fring)
+
+  let write_request ~id ~gref (bs,bsoff,_) =
+    let req,_,reqlen = BITSTRING { id:16:littleendian; 0:16; gref:32:littleendian } in
+    String.blit req 0 bs (bsoff/8) (reqlen/8)
+
+  let read_response bs =
+    bitmatch bs with
+    | { id:16:littleendian; offset:16:littleendian; flags:16:littleendian; status:16:littleendian } ->
+        (id, offset, flags, status)
+
+end
+
+module TX = struct
+
+  let idx_size = 12 (* in bytes *)
+
+  let create (num,domid) =
+    let name = sprintf "Netif.TX.%d" num in
+    lwt (tx_gnt, tx) = Ring.alloc domid in
+    let sring = Ring.init tx ~idx_size ~name in
+    let fring = Ring.Front.init ~sring in
+    return (tx_gnt, sring, fring)
+
+  let request ~gref ~offset ~flags ~id ~size (bs,bsoff,_) =
+    ()
+
+  let response bs =
+    bitmatch bs with
+    | { id:16; status:16 } ->
+        (id, status)
+
+end
+
 type features = {
   sg: bool;
   gso_tcpv4: bool;
@@ -29,9 +72,11 @@ type t = {
   backend_id: int;
   backend: string;
   mac: string;
-  tx: Ring.Netif.Tx_t.t;
+  tx_sring: Ring.sring;
+  tx_fring: Ring.Front.t;
   tx_gnt: Gnttab.r;
-  rx: Ring.Netif.Rx.fring;
+  rx_sring: Ring.sring;
+  rx_fring: Ring.Front.t;
   rx_map: (int, Gnttab.r) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
@@ -46,10 +91,10 @@ let create (num,backend_id) =
     num backend_id);
 
   (* Allocate a transmit and receive ring, and event channel for them *)
-  lwt (tx_gnt, tx) = Ring.Netif.Tx_t.t backend_id in
-  lwt (rx_gnt, rx)  = Ring.Netif.Rx.alloc backend_id in
+  lwt (rx_gnt, rx_sring, rx_fring) = RX.create (num,backend_id) in
+  lwt (tx_gnt, tx_sring, tx_fring) = TX.create (num,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
-
+  printf "nr_ents in rx: %d\n%!" (Ring.nr_ents rx_sring);
   (* Read xenstore info and set state to Connected *)
   let node = sprintf "device/vif/%d/" num in
   lwt backend = Xs.(t.read (node ^ "backend")) in
@@ -68,7 +113,8 @@ let create (num,backend_id) =
   (* Read backend features *)
   lwt features = Xs.(transaction t (fun xst ->
     let rdfn k =
-      try_lwt xst.Xst.read (sprintf "%s/feature-%s" backend k) >>= 
+      try_lwt
+        xst.Xst.read (sprintf "%s/feature-%s" backend k) >>= 
         function
         |"1" -> return true
         |_ -> return false
@@ -85,52 +131,46 @@ let create (num,backend_id) =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  return { backend_id; tx; tx_gnt; rx_gnt; rx; rx_map;
-   evtchn; mac; backend; features }
+  return { backend_id; tx_sring; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_sring; rx_map; evtchn; mac; backend; features }
 
 let refill_requests nf =
-  let num = Ring.Netif.Rx.free_requests nf.rx - 1 in
+  let num = Ring.Front.get_free_requests nf.rx_fring in
+  printf "refill rx: %d\n%!" num;
   lwt gnts = Gnttab.get_n ~domid:nf.backend_id ~perm:Gnttab.RW num in
-  let reqs = List.map (fun gnt ->
+  List.iter (fun gnt ->
     let _ = Gnttab.page gnt in
     let gref = Gnttab.num gnt in
     let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
     Hashtbl.add nf.rx_map id gnt;
-    { Ring.Netif.Rx.Req.id; gref }
-  ) gnts in
-  if Ring.Netif.Rx.write nf.rx reqs then
+    let slot = Ring.Front.next_req_slot nf.rx_fring in
+    RX.write_request ~id ~gref slot;
+  ) gnts;
+  if Ring.Front.push_requests_and_check_notify nf.rx_fring then
     Evtchn.notify nf.evtchn;
   return ()
 
 let rx_poll nf fn =
-  let open Ring.Netif.Rx in
-  let resps = read nf.rx in
-  List.iter (fun res ->
-    let id = res.Res.id in
+  Ring.Front.ack_responses nf.rx_fring (fun bs ->
+    let id,offset,flags,status = RX.read_response bs in
     let gnt = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
     let page = Gnttab.detach gnt in
     Gnttab.end_access gnt;
     Gnttab.put_free_entry gnt;
-    match res.Res.status with
-    |Res.Size sz ->
-      let view = Istring.t ~off:res.Res.off page sz in
-      Lwt.ignore_result (
-        try_lwt
-          lwt _ = fn view in return ()
-        with exn -> 
-          return (printf "EXN: %s\n%!" (Printexc.to_string exn))
-      )
-    |Res.Err _ -> printf "RX ERR\n%!"
-  ) resps
+    match status with
+    |sz when status > 0 ->
+      let packet = Bitstring.subbitstring page 0 (sz*8) in
+      Bitstring.hexdump_bitstring stdout packet
+    |err -> printf "RX error %d\n%!" err
+  )
 
 let listen nf fn =
   (* Listen for the activation to poll the interface *)
   let rec poll_t () =
     lwt () = refill_requests nf in
     rx_poll nf fn;
-    Ring.Netif.Tx_t.poll nf.tx; 
-    Evtchn.notify nf.evtchn;
+    (* Ring.Netif.Tx_t.poll nf.tx;  *)
+    (* Evtchn.notify nf.evtchn; *)
     Activations.wait nf.evtchn >>
     poll_t ()
   in
@@ -141,6 +181,7 @@ let destroy nf =
   printf "netfront_destroy\n%!";
   return ()
 
+(*
 (* Transmit a packet from buffer, with offset and length *)  
 let output nf fn =
   Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO (fun gnt ->
@@ -162,13 +203,14 @@ let output nf fn =
       Console.log "Netif.Tx_t: packet transmit error\n";
       return packet
   ) 
+*)
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =
   (* Find out how many VIFs we have *)
   let rec read_vif num acc =
     try_lwt
-      lwt sid = Xs.t.Xs.read (sprintf "device/vif/%d/backend-id" num) in
+      lwt sid = Xs.(t.read (sprintf "device/vif/%d/backend-id" num)) in
       let domid = int_of_string sid in
       printf "found: num=%d backend-id=%d\n%!" num domid;
       read_vif (succ num) ((num,domid) :: acc)

@@ -14,14 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-external wire_string: string -> int * int = "caml_wire_string_pages"
-external unwire_string: string -> unit = "caml_unwire_string_pages"
+
+external alloc_external_string: int -> string = "caml_alloc_external_string"
+external chunk_external_string: string -> int * int = "caml_chunk_string_pages"
 
 let free_list = Queue.create ()
 
 let alloc ~nr_pages =
-  let buf = String.make ((nr_pages+1) * 4096) '\000' in
-  let off, nr = wire_string buf in
+  let buf = alloc_external_string ((nr_pages+1) * 4096) in
+  let off, nr = chunk_external_string buf in
   assert (nr = nr_pages);
   let off = off * 8 in (* bitstrings offsets are in bits *)
   let page_size = 4096 * 8 in (* PAGE_SIZE==4096, in bits *)

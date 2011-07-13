@@ -31,15 +31,13 @@ caml_alloc_external_string(value v_len)
   size_t len = Int_val(v_len);
   mlsize_t offset_index;
   mlsize_t wosize = (len + sizeof (value)) / sizeof (value);
-  printk("sizeof value=%d\n", sizeof(value));
-  char *hp = caml_stat_alloc(sizeof(value) + wosize);
+  char *hp = caml_stat_alloc(sizeof(value) + (wosize * 8));
   Hd_hp(hp) = Make_header(wosize, String_tag, Caml_white);
   value v_buf = Val_hp(hp);
   /* Pad the end of the string */
   Field(v_buf, wosize-1) = 0;
   offset_index = Bsize_wsize(wosize)-1;
   Byte(v_buf, offset_index) = offset_index - len;
-  printk("STRING %p %p\n", hp, (void *)v_buf);
   return v_buf;
 }
 

@@ -31,7 +31,7 @@ caml_alloc_external_string(value v_len)
   size_t len = Int_val(v_len);
   mlsize_t offset_index;
   mlsize_t wosize = (len + sizeof (value)) / sizeof (value);
-  char *hp = caml_stat_alloc(sizeof(value) + (wosize * (sizeof(value)));
+  char *hp = caml_stat_alloc(sizeof(value) + (wosize * (sizeof(value))));
   Hd_hp(hp) = Make_header(wosize, String_tag, Caml_white);
   value v_buf = Val_hp(hp);
   /* Pad the end of the string */

@@ -35,11 +35,10 @@ let rec get_free () =
   try
     Queue.pop free_list
   with Queue.Empty -> begin
-    alloc 128;
+    alloc ~nr_pages:128;
     get_free ()
   end
 
 let put_free bs =
   (* TODO: assert that the buf is a page aligned one we allocated above *)
   Queue.add bs free_list
-

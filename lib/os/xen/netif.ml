@@ -50,13 +50,16 @@ module TX = struct
     let fring = Ring.Front.init ~sring in
     return (tx_gnt, sring, fring)
 
-  let request ~gref ~offset ~flags ~id ~size (bs,bsoff,_) =
-    ()
+  let write_request ~gref ~offset ~flags ~id ~size (bs,bsoff,_) =
+    let req,_,reqlen = BITSTRING { gref:32:littleendian; offset:16:littleendian;
+      flags:16:littleendian; id:16:littleendian; size:16:littleendian } in
+    String.blit req 0 bs (bsoff/8) (reqlen/8)
 
-  let response bs =
-    bitmatch bs with
-    | { id:16; status:16 } ->
-        (id, status)
+  let read_response bs =
+    Bitstring.hexdump_bitstring stdout bs;
+    (bitmatch bs with
+    | { id:16:littleendian; status:16:littleendian } ->
+        (id, status))
 
 end
 
@@ -135,7 +138,6 @@ let create (num,backend_id) =
 
 let refill_requests nf =
   let num = Ring.Front.get_free_requests nf.rx_fring in
-  printf "refill rx: %d\n%!" num;
   lwt gnts = Gnttab.get_n ~domid:nf.backend_id ~perm:Gnttab.RW num in
   List.iter (fun gnt ->
     let _ = Gnttab.page gnt in
@@ -160,8 +162,38 @@ let rx_poll nf fn =
     match status with
     |sz when status > 0 ->
       let packet = Bitstring.subbitstring page 0 (sz*8) in
-      Bitstring.hexdump_bitstring stdout packet
+      ignore_result (try_lwt fn packet
+        with exn -> return (printf "RX exn %s\n%!" (Printexc.to_string exn)))
     |err -> printf "RX error %d\n%!" err
+  )
+
+(* Transmit a packet from buffer, with offset and length *)  
+let output nf bsv =
+  Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO (fun gnt ->
+    let gref = Gnttab.num gnt in
+    let id = Int32.to_int gref in
+    let page = Gnttab.page gnt in
+    let (pagebuf, pageoffbits, _) = page in
+    let pageoff = pageoffbits / 8 in
+    let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->
+      let srclen = srclenbits / 8 in
+      String.blit src (srcoff/8) pagebuf (pageoff+offset) srclen;
+      offset+srclen) 0 bsv in
+    let slot = Ring.Front.next_req_slot nf.tx_fring in
+    let flags = 0 in
+    let offset = 0 in
+    TX.write_request ~gref ~offset ~flags ~id ~size slot;
+    printf "TX output: len=%d\n%!" size;
+    Bitstring.hexdump_bitstring stdout (pagebuf,pageoffbits,size*8);
+    if Ring.Front.push_requests_and_check_notify nf.tx_fring then
+      Evtchn.notify nf.evtchn;
+    return ()
+  )
+
+let tx_poll nf =
+  Ring.Front.ack_responses nf.tx_fring (fun bs ->
+    let id,status = TX.read_response bs in
+    printf "TX resp %d %d\n%!" id status
   )
 
 let listen nf fn =
@@ -169,7 +201,7 @@ let listen nf fn =
   let rec poll_t () =
     lwt () = refill_requests nf in
     rx_poll nf fn;
-    (* Ring.Netif.Tx_t.poll nf.tx;  *)
+    tx_poll nf;
     (* Evtchn.notify nf.evtchn; *)
     Activations.wait nf.evtchn >>
     poll_t ()
@@ -180,30 +212,6 @@ let listen nf fn =
 let destroy nf =
   printf "netfront_destroy\n%!";
   return ()
-
-(*
-(* Transmit a packet from buffer, with offset and length *)  
-let output nf fn =
-  Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO (fun gnt ->
-    let gref = Gnttab.num gnt in
-    let page = Gnttab.page gnt in
-    let offset = 0 in
-    let view = Istring.t page 0 in
-    let packet = fn view in
-    let size = Istring.length view in
-    let open Ring.Netif.Tx in
-    let flags = 0 in
-    let req id = Req.Normal { Req.gref; offset; flags; id; size } in
-    (* Push request *)
-    lwt res = Ring.Netif.Tx_t.push_one nf.tx ~evtchn:nf.evtchn req in
-    let _ = Gnttab.detach gnt in
-    match res.Res.status with
-    |Res.OK -> return packet
-    |Res.Dropped | Res.Error |Res.Null ->
-      Console.log "Netif.Tx_t: packet transmit error\n";
-      return packet
-  ) 
-*)
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

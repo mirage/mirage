@@ -14,17 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Type-safe OCaml wrapper for single-page Xen I/O rings
-    Every ring is a 4K page, with separate types for requests
-    and responses. The size of the number of requests is cunningly
-    set to a power of 2, so the producer/consumer ints can wrap
-    safely without needing to mask them. *)
-
-(* For every ring, we need to have bindings that define the type
-   of a request and response, and accessor functions for those
-   structs to set fields.
- *)
-
 open Lwt
 open Printf
 
@@ -76,10 +65,8 @@ external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod"
 external sring_req_prod: sring -> int = "caml_sring_req_prod" 
 external sring_req_event: sring -> int = "caml_sring_req_event"
 external sring_rsp_event: sring -> int = "caml_sring_rsp_event"
-
 external sring_push_requests: sring -> int -> unit = "caml_sring_push_requests"
 external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses" 
-
 external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event"
 external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event"
 
@@ -113,12 +100,6 @@ module Front = struct
   let has_unconsumed_responses t =
     ((sring_rsp_prod t.sring) - t.rsp_cons) > 0
 
-  let dump t =
-    let sring = t.sring in
-    printf "ring req_prod=%d req_event=%d rsp_prod=%d rsp_event=%d\n%!" (sring_req_prod sring)
-     (sring_req_event sring) (sring_rsp_prod sring) (sring_rsp_event sring);
-    Bitstring.hexdump_bitstring stdout (t.sring.buf,t.sring.off,128*8)
-
   let push_requests t =
     sring_push_requests t.sring t.req_prod_pvt
 
@@ -143,6 +124,7 @@ module Front = struct
 
   (* consume outstanding responses and apply fn to the slots *)
   let rec ack_responses t fn =
+    Gc.compact ();
     let rsp_prod = sring_rsp_prod t.sring in
     while t.rsp_cons != rsp_prod do
       printf "response: slot %d\n%!" t.rsp_cons;
@@ -183,126 +165,6 @@ module Back = struct
       has_unconsumed_requests t
     end
 end
-
-(*
-(* Module type of any request/response ring *)
-module type RING = sig
-  type req                              (* Request *)
-  type res                              (* Response *)
-
-  val alloc: int -> (Gnttab.r * Front.t) Lwt.t (* Allocate a ring *)
-  val pending_responses: fring -> int   (* Pending responses *)
-  val free_requests: fring -> int       (* Available req slots *)
-  val max_requests: fring -> int        (* Max req slots *)
-
-  val write: fring -> req list -> bool  (* Write requests to ring *)
-  val read: fring -> res list           (* Read responses from ring *)
-  val id_of_res: res -> int             (* Get id number in response *)
-end
-*)
-(*
-(* A bounded queue model that will block after a max
-   number of requests. There are a fixed number of slots
-   available, each with a grant id associated with it.
-   A push to a ring will 'use up' an id, and a wakener
-   will be called with the response when it's done. *)
-module Bounded_ring (Ring:RING) = struct
-
-  type id = int
-
-  type t = {
-    fring: Ring.fring;
-    free_list: id Queue.t;
-    push_waiters: unit Lwt.u Lwt_sequence.t;
-    response_waiters: Ring.res Lwt.u option array;
-  }
-
-  let t ~backend_domid = 
-    lwt gnt, fring = Ring.alloc backend_domid in
-    let max_reqs = Ring.max_requests fring in
-    Printf.printf "max_reqs=%d\n%!" max_reqs;
-    let free_list = Queue.create () in
-    (* Freelist queue of ids *)
-    for id = 0 to max_reqs-1 do
-      Queue.push id free_list
-    done;
-    let push_waiters = Lwt_sequence.create () in
-    let response_waiters = Array.create max_reqs None in
-    let r =  { fring; free_list; push_waiters; response_waiters } in
-    return (gnt, r)
-
-  let rec push t ~evtchn reqfns =
-    let free_reqs = Queue.length t.free_list in
-    let num_reqs = List.length reqfns in
-    if num_reqs < 1 then
-      return ()
-    else begin
-      if free_reqs >= num_reqs then begin
-        (* Get a list of threads and wakeners for them *)
-        let reqs, res_t = List.split (List.map (fun reqfn ->
-          let id = Queue.pop t.free_list in
-          let req, resfn = reqfn id in
-          let th, u = Lwt.task () in
-          let res_t =
-            lwt res = th in 
-            resfn res in
-          t.response_waiters.(id) <- Some u;
-          req, res_t
-        ) reqfns) in
-        (* Write to ring and notify if needed *)
-        if Ring.write t.fring reqs then
-          Evtchn.notify evtchn;
-        join res_t
-      end else begin
-        (* Too many requests, so wait for some slots to free up *)
-        (* TODO: chunk the requests to fit whatever can go now *)
-        let th, u = Lwt.task () in
-        let node = Lwt_sequence.add_r u t.push_waiters in
-        Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-        th >>
-        push t ~evtchn reqfns
-      end
-    end      
-
-  let rec push_one t ~evtchn reqfn =
-    let free_reqs = Queue.length t.free_list in
-    if free_reqs > 0 then begin
-      let th, u = Lwt.task () in
-      let id = Queue.pop t.free_list in
-      let req = reqfn id in
-      t.response_waiters.(id) <- Some u;
-      if Ring.write t.fring [req] then
-        Evtchn.notify evtchn;
-      th
-    end else begin
-      let th, u = Lwt.task () in
-      let node = Lwt_sequence.add_r u t.push_waiters in
-      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-      th >>
-      push_one t ~evtchn reqfn
-    end
-      
-  (* Check for any responses and activate wakeners as they come in *)
-  let poll t =
-    List.iter
-      (fun res ->
-        let id = Ring.id_of_res res in
-        match t.response_waiters.(id) with
-        |None -> ()
-        |Some u ->
-          t.response_waiters.(id) <- None;
-          Queue.push id t.free_list;
-          Lwt.wakeup u res
-      ) (Ring.read t.fring);
-    match Lwt_sequence.take_opt_l t.push_waiters with
-    |None -> ()
-    |Some u -> Lwt.wakeup u ()
-
-  let pending_responses t = Ring.pending_responses t.fring
-  let max_requests t = Ring.max_requests t.fring
-  let free_requests t = Ring.free_requests t.fring
-end
-*)
 
 (* Raw ring handling section *)
 

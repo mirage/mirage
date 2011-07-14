@@ -19,7 +19,6 @@
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/fail.h>
-#include <caml/memory.h>
 
 CAMLprim value 
 unix_gettimeofday(value v_unit)

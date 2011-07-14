@@ -22,7 +22,7 @@ type num = int32                      (* Grant ref type (grant_ref_t) *)
 
 type r = {
   num: num;                           (* Grant ref number *)
-  mutable page: Bitstring.t option;   (* The memory page *)
+  mutable page: Bitstring.t;          (* The memory page *)
 }
 
 type perm = RO | RW
@@ -37,24 +37,17 @@ module Raw = struct
 end
 
 let alloc ?page (num:num) =
+  let page = match page with None -> Io_page.get_free () |Some p -> p in
   { num; page }
 
 let num gnt = gnt.num
 
-let page gnt = 
-  match gnt.page with
-  |None ->
-    let p = Io_page.get_free () in
-    gnt.page <- Some p;
-    p
-  |Some p ->
-    p
+let page gnt = gnt.page
 
 let free_list : r Queue.t = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
 
 let put_free_entry r =
-  (match r.page with |None -> () |_ -> r.page <- None);
   Queue.push r free_list;
   Lwt_condition.signal free_list_condition ()
 
@@ -69,21 +62,17 @@ let rec get_free_entry () =
 let to_string (r:r) = Int32.to_string r.num
 
 let grant_access ~domid ~perm r =
-  let page = page r in
-  Raw.grant_access r.num page domid (match perm with RO -> true |RW -> false)
+  Raw.grant_access r.num r.page domid (match perm with RO -> true |RW -> false)
 
 let end_access r =
   Raw.end_access r.num
 
 (* Detach a string from the grant *)
 let detach r =
-  let page =
-    match r.page with
-    |None -> raise Grant_page_not_found
-    |Some p -> p
-  in
-  Io_page.put_free page;
-  r.page <- None;
+  let page = r.page in
+  let final x = Io_page.put_free x in
+  Gc.finalise final page;
+  r.page <- Io_page.get_free ();
   page
   
 let with_grant ~domid ~perm fn =

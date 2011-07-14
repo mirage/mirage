@@ -192,9 +192,8 @@ let output nf bsv =
       (TX.write_request ~id ~gref ~offset~flags ~size) in
     if Ring.Front.push_requests_and_check_notify nf.tx_fring then
       Evtchn.notify nf.evtchn;
-    Bitstring.hexdump_bitstring stdout (pagebuf,pageoffbits,size*8);
     match_lwt res with
-    |status when status = 0 -> return (printf "TX: success\n")
+    |status when status = 0 -> return ()
     |errcode -> return (printf "TX: error %d\n%!" errcode)
   )
 

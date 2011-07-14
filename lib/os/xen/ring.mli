@@ -22,16 +22,18 @@ val nr_ents: sring -> int
 val slot : sring -> int -> Bitstring.t
 
 module Front : sig
-  type t
-  val init : sring:sring -> t
-  val get_free_requests : t -> int
-  val is_ring_full : t -> bool
-  val has_unconsumed_responses : t -> bool
-  val push_requests : t -> unit
-  val push_requests_and_check_notify : t -> bool
-  val check_for_responses : t -> bool
-  val next_req_slot : t -> Bitstring.t
-  val ack_responses : t -> (Bitstring.t -> unit) -> unit
+  type 'a t
+  val init : sring:sring -> 'a t
+  val get_free_requests : 'a t -> int
+  val is_ring_full : 'a t -> bool
+  val has_unconsumed_responses : 'a t -> bool
+  val push_requests : 'a t -> unit
+  val push_requests_and_check_notify : 'a t -> bool
+  val check_for_responses : 'a t -> bool
+  val next_req_id : 'a t -> int
+  val ack_responses : 'a t -> (Bitstring.t -> unit) -> unit
+  val poll : 'a t -> (Bitstring.t -> (int * 'a)) -> unit
+  val push_request_and_wait : 'a t -> (Bitstring.t -> int) -> 'a Lwt.t
 end
 
 module Console : sig

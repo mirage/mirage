@@ -21,6 +21,8 @@ module RX = struct
 
   let idx_size = 8 (* max of sizeof(request), sizeof(response) *)
 
+  type response = int * int * int
+
   let create (num,domid) =
     let name = sprintf "Netif.RX.%d" num in
     lwt (rx_gnt, rx) = Ring.alloc domid in
@@ -30,18 +32,22 @@ module RX = struct
 
   let write_request ~id ~gref (bs,bsoff,_) =
     let req,_,reqlen = BITSTRING { id:16:littleendian; 0:16; gref:32:littleendian } in
-    String.blit req 0 bs (bsoff/8) (reqlen/8)
+    String.blit req 0 bs (bsoff/8) (reqlen/8);
+    id
 
   let read_response bs =
     bitmatch bs with
-    | { id:16:littleendian; offset:16:littleendian; flags:16:littleendian; status:16:littleendian } ->
-        (id, offset, flags, status)
+    | { id:16:littleendian; offset:16:littleendian; flags:16:littleendian;
+        status:16:littleendian } ->
+          (id, (offset, flags, status))
 
 end
 
 module TX = struct
 
   let idx_size = 12 (* in bytes *)
+
+  type response = int
 
   let create (num,domid) =
     let name = sprintf "Netif.TX.%d" num in
@@ -53,13 +59,13 @@ module TX = struct
   let write_request ~gref ~offset ~flags ~id ~size (bs,bsoff,_) =
     let req,_,reqlen = BITSTRING { gref:32:littleendian; offset:16:littleendian;
       flags:16:littleendian; id:16:littleendian; size:16:littleendian } in
-    String.blit req 0 bs (bsoff/8) (reqlen/8)
+    String.blit req 0 bs (bsoff/8) (reqlen/8);
+    id
 
   let read_response bs =
-    Bitstring.hexdump_bitstring stdout bs;
-    (bitmatch bs with
+    bitmatch bs with
     | { id:16:littleendian; status:16:littleendian } ->
-        (id, status))
+        (id, status)
 
 end
 
@@ -76,10 +82,10 @@ type t = {
   backend: string;
   mac: string;
   tx_sring: Ring.sring;
-  tx_fring: Ring.Front.t;
+  tx_fring: TX.response Ring.Front.t;
   tx_gnt: Gnttab.r;
   rx_sring: Ring.sring;
-  rx_fring: Ring.Front.t;
+  rx_fring: RX.response Ring.Front.t;
   rx_map: (int, Gnttab.r) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
@@ -144,8 +150,9 @@ let refill_requests nf =
     let gref = Gnttab.num gnt in
     let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
     Hashtbl.add nf.rx_map id gnt;
-    let slot = Ring.Front.next_req_slot nf.rx_fring in
-    RX.write_request ~id ~gref slot;
+    let slot_id = Ring.Front.next_req_id nf.rx_fring in
+    let slot = Ring.slot nf.rx_sring slot_id in
+    ignore(RX.write_request ~id ~gref slot);
   ) gnts;
   if Ring.Front.push_requests_and_check_notify nf.rx_fring then
     Evtchn.notify nf.evtchn;
@@ -153,7 +160,7 @@ let refill_requests nf =
 
 let rx_poll nf fn =
   Ring.Front.ack_responses nf.rx_fring (fun bs ->
-    let id,offset,flags,status = RX.read_response bs in
+    let id,(offset,flags,status) = RX.read_response bs in
     let gnt = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
     let page = Gnttab.detach gnt in
@@ -179,22 +186,20 @@ let output nf bsv =
       let srclen = srclenbits / 8 in
       String.blit src (srcoff/8) pagebuf (pageoff+offset) srclen;
       offset+srclen) 0 bsv in
-    let slot = Ring.Front.next_req_slot nf.tx_fring in
     let flags = 0 in
     let offset = 0 in
-    TX.write_request ~gref ~offset ~flags ~id ~size slot;
-    printf "TX output: len=%d\n%!" size;
-    Bitstring.hexdump_bitstring stdout (pagebuf,pageoffbits,size*8);
+    let res = Ring.Front.push_request_and_wait nf.tx_fring
+      (TX.write_request ~id ~gref ~offset~flags ~size) in
     if Ring.Front.push_requests_and_check_notify nf.tx_fring then
       Evtchn.notify nf.evtchn;
-    return ()
+    Bitstring.hexdump_bitstring stdout (pagebuf,pageoffbits,size*8);
+    match_lwt res with
+    |status when status = 0 -> return (printf "TX: success\n")
+    |errcode -> return (printf "TX: error %d\n%!" errcode)
   )
 
 let tx_poll nf =
-  Ring.Front.ack_responses nf.tx_fring (fun bs ->
-    let id,status = TX.read_response bs in
-    printf "TX resp %d %d\n%!" id status
-  )
+  Ring.Front.poll nf.tx_fring (TX.read_response)
 
 let listen nf fn =
   (* Listen for the activation to poll the interface *)

@@ -80,16 +80,20 @@ let slot sring idx =
 
 module Front = struct
 
-  type t = {
+  type 'a t = {
     mutable req_prod_pvt: int;
     mutable rsp_cons: int;
     sring: sring;
+    wakers: (int, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
+    waiters: unit Lwt.u Lwt_sequence.t;
   }
 
   let init ~sring =
     let req_prod_pvt = 0 in
     let rsp_cons = 0 in
-    { req_prod_pvt; rsp_cons; sring }
+    let wakers = Hashtbl.create 7 in
+    let waiters = Lwt_sequence.create () in
+    { req_prod_pvt; rsp_cons; sring; wakers; waiters }
 
   let get_free_requests t =
     t.sring.nr_ents - (t.req_prod_pvt - t.rsp_cons)
@@ -117,22 +121,51 @@ module Front = struct
       has_unconsumed_responses t
     end 
 
-  let next_req_slot t =
-    let s = slot t.sring t.req_prod_pvt in
+  let next_req_id t =
+    let s = t.req_prod_pvt in
     t.req_prod_pvt <- t.req_prod_pvt + 1;
     s
 
-  (* consume outstanding responses and apply fn to the slots *)
   let rec ack_responses t fn =
-    Gc.compact ();
     let rsp_prod = sring_rsp_prod t.sring in
     while t.rsp_cons != rsp_prod do
-      printf "response: slot %d\n%!" t.rsp_cons;
-      let () = fn (slot t.sring t.rsp_cons) in
+      let slot_id = t.rsp_cons in
+      let slot = slot t.sring slot_id in
+      fn slot;
       t.rsp_cons <- t.rsp_cons + 1;
     done;
     if check_for_responses t then ack_responses t fn
-     
+
+  let poll t respfn =
+    ack_responses t (fun slot ->
+      let id, resp = respfn slot in
+      try
+         let u = Hashtbl.find t.wakers id in
+         Lwt.wakeup u resp
+       with Not_found ->
+         printf "RX: ack id %d wakener not found\n%!" id
+    );
+    (* Check for any sleepers waiting for free space *)
+    match Lwt_sequence.take_opt_l t.waiters with
+    |None -> ()
+    |Some u -> Lwt.wakeup u ()
+ 
+  let rec push_request_and_wait t reqfn =
+    if get_free_requests t > 0 then begin
+      let slot_id = next_req_id t in
+      let slot = slot t.sring slot_id in
+      let th,u = Lwt.task () in
+      let id = reqfn slot in
+      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
+      Hashtbl.add t.wakers id u;
+      th
+    end else begin
+      let th,u = Lwt.task () in
+      let node = Lwt_sequence.add_r u t.waiters in
+      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+      th >>
+      push_request_and_wait t reqfn
+    end
 end
 
 module Back = struct
@@ -167,7 +200,7 @@ module Back = struct
 end
 
 (* Raw ring handling section *)
-
+(* TODO both of these can be combined into one set of bindings now *)
 module Console = struct
     type t
     let initial_grant_num : Gnttab.num = 2l

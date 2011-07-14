@@ -15,5 +15,6 @@ available at <http://www.openmirage.org/>
 This repository is still in a pre-alpha state and not suitable for use. If
 you are interested in working with it, please contact:
 
-> Anil Madhavapeddy <anil@recoil.org>
-> Thomas Gazagnaire <thomas@gazagnaire.org>
+*  Anil Madhavapeddy <anil@recoil.org>
+*  Richard Mortier <richard.mortier@nottingham.ac.uk>
+*  Thomas Gazagnaire <thomas@gazagnaire.org>

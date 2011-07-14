@@ -26,7 +26,7 @@ type t = {
 let input t ~src ~dst pkt =
   bitmatch pkt with
   | { source_port:16; dest_port:16; length:16;
-      checksum:16; data:length-8:bitstring } ->
+      checksum:16; data:(length-8)*8:bitstring } ->
   if Hashtbl.mem t.listeners dest_port then begin
     let fn = Hashtbl.find t.listeners dest_port in
     fn ~src ~dst ~source_port data

@@ -28,7 +28,7 @@ module RX = struct
     lwt (rx_gnt, rx) = Ring.alloc domid in
     let sring = Ring.init rx ~idx_size ~name in
     let fring = Ring.Front.init ~sring in
-    return (rx_gnt, sring, fring)
+    return (rx_gnt, fring)
 
   let write_request ~id ~gref (bs,bsoff,_) =
     let req,_,reqlen = BITSTRING { id:16:littleendian; 0:16; gref:32:littleendian } in
@@ -54,7 +54,7 @@ module TX = struct
     lwt (tx_gnt, tx) = Ring.alloc domid in
     let sring = Ring.init tx ~idx_size ~name in
     let fring = Ring.Front.init ~sring in
-    return (tx_gnt, sring, fring)
+    return (tx_gnt, fring)
 
   let write_request ~gref ~offset ~flags ~id ~size (bs,bsoff,_) =
     let req,_,reqlen = BITSTRING { gref:32:littleendian; offset:16:littleendian;
@@ -81,10 +81,8 @@ type t = {
   backend_id: int;
   backend: string;
   mac: string;
-  tx_sring: Ring.sring;
   tx_fring: TX.response Ring.Front.t;
   tx_gnt: Gnttab.r;
-  rx_sring: Ring.sring;
   rx_fring: RX.response Ring.Front.t;
   rx_map: (int, Gnttab.r) Hashtbl.t;
   rx_gnt: Gnttab.r;
@@ -100,10 +98,9 @@ let create (num,backend_id) =
     num backend_id);
 
   (* Allocate a transmit and receive ring, and event channel for them *)
-  lwt (rx_gnt, rx_sring, rx_fring) = RX.create (num,backend_id) in
-  lwt (tx_gnt, tx_sring, tx_fring) = TX.create (num,backend_id) in
+  lwt (rx_gnt, rx_fring) = RX.create (num,backend_id) in
+  lwt (tx_gnt, tx_fring) = TX.create (num,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
-  printf "nr_ents in rx: %d\n%!" (Ring.nr_ents rx_sring);
   (* Read xenstore info and set state to Connected *)
   let node = sprintf "device/vif/%d/" num in
   lwt backend = Xs.(t.read (node ^ "backend")) in
@@ -140,7 +137,7 @@ let create (num,backend_id) =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  return { backend_id; tx_sring; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_sring; rx_map; evtchn; mac; backend; features }
+  return { backend_id; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_map; evtchn; mac; backend; features }
 
 let refill_requests nf =
   let num = Ring.Front.get_free_requests nf.rx_fring in
@@ -151,7 +148,7 @@ let refill_requests nf =
     let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
     Hashtbl.add nf.rx_map id gnt;
     let slot_id = Ring.Front.next_req_id nf.rx_fring in
-    let slot = Ring.slot nf.rx_sring slot_id in
+    let slot = Ring.Front.slot nf.rx_fring slot_id in
     ignore(RX.write_request ~id ~gref slot);
   ) gnts;
   if Ring.Front.push_requests_and_check_notify nf.rx_fring then

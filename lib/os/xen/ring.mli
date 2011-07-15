@@ -18,12 +18,12 @@ val alloc: int -> (Gnttab.r * Bitstring.t) Lwt.t
 type sring
 
 val init : Bitstring.t -> idx_size:int -> name:string -> sring
-val nr_ents: sring -> int
-val slot : sring -> int -> Bitstring.t
 
 module Front : sig
   type 'a t
   val init : sring:sring -> 'a t
+  val slot : 'a t -> int -> Bitstring.t
+  val nr_ents : 'a t -> int
   val get_free_requests : 'a t -> int
   val is_ring_full : 'a t -> bool
   val has_unconsumed_responses : 'a t -> bool

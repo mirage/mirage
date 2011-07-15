@@ -95,6 +95,9 @@ module Front = struct
     let waiters = Lwt_sequence.create () in
     { req_prod_pvt; rsp_cons; sring; wakers; waiters }
 
+  let slot t idx = slot t.sring idx
+  let nr_ents t = t.sring.nr_ents
+
   let get_free_requests t =
     t.sring.nr_ents - (t.req_prod_pvt - t.rsp_cons)
 
@@ -130,7 +133,7 @@ module Front = struct
     let rsp_prod = sring_rsp_prod t.sring in
     while t.rsp_cons != rsp_prod do
       let slot_id = t.rsp_cons in
-      let slot = slot t.sring slot_id in
+      let slot = slot t slot_id in
       fn slot;
       t.rsp_cons <- t.rsp_cons + 1;
     done;
@@ -154,7 +157,7 @@ module Front = struct
   let rec push_request_and_wait t reqfn =
     if get_free_requests t > 0 then begin
       let slot_id = next_req_id t in
-      let slot = slot t.sring slot_id in
+      let slot = slot t slot_id in
       let th,u = Lwt.task () in
       let id = reqfn slot in
       Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);

@@ -120,6 +120,9 @@ module CC = struct
     A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen";
     A (ps "-I%s/os/runtime_xen/ocaml" Pathname.pwd) ] @ ocaml_debug_inc
 
+  (* ocaml system include directory i.e. /usr/lib/ocaml *)
+  let ocaml_sys_incs = [ A"-I"; Px (Util.run_and_read "ocamlc -where"); ]
+
   (* dietlibc bits, mostly extra warnings *)
   let dietlibc_incs = [
     A "-Wextra"; A "-Wchar-subscripts"; A "-Wmissing-prototypes";
@@ -277,6 +280,7 @@ let _ = dispatch begin function
      flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;
      flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
      flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
+     flag ["c"; "compile"; "include_system_ocaml"] & S CC.ocaml_sys_incs;
      flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
      flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
 

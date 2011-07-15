@@ -5,7 +5,7 @@ set -e
 
 function usage () {
     echo "Usage:"
-    echo "   `basename $0` [-x <xenserver host> -u <name of this domU vm>] [-s <sr-uuid to place vdi>] <kernel name>"
+    echo "   `basename $0` [-x <xenserver host>] [-s <sr-uuid to place vdi>] <kernel name>"
 }
 
 function on_exit () {
@@ -39,7 +39,6 @@ while getopts ":x:u:s:" option
 do
     case $option in
         x ) DOM0_HOST=${OPTARG} ;;
-        u ) MY_VM_NAME=${OPTARG} ;;
         s ) SR_UUID=${OPTARG} ;;
         : ) usage
             echo "Option -${OPTARG} requires an argument."
@@ -68,30 +67,22 @@ MENU_LST='menu.lst'
 
 # Set XE command depending on whether we're in dom0 or domU
 if [ -z "${DOM0_HOST}" ]; then
-    # This is a little ugly, but it let's us use ${XE} throughout the
-    # script, and simplifies the logic a bit. Otherwise, we have
-    # problems with sending '\\ ' over ssh versus within the shell.
-    SSH="ssh localhost"
-    XE="${SSH} xe"
-    MY_VM=$(xenstore-read /local/domain/0/vm | cut -f 3 -d /)
+    XE="xe"
 else
-    SSH="ssh root@${DOM0_HOST}"
-    XE="${SSH} xe"
-    # if we're not in dom0, then we need the domU vm name
-    if [ -z ${MY_VM_NAME} ]; then
-        usage
-        echo "If we aren't running in dom0, then you need to specify your domU VM's name-label (not hostname)."
-        exit 1
-    else
-        MY_VM=$(${XE} vm-list name-label=${MY_VM_NAME} --minimal)
+    XE="xe -s ${DOM0_HOST}"
+    if [ ! -e ${HOME}/.xe ]; then
+	echo Please add username= and password= lines to ${HOME}/.xe
+	exit 1
     fi
 fi
+
+MY_VM=$(xenstore-read vm | cut -f 3 -d /)
 
 echo "Using xe command '${XE}', this VM's uuid is ${MY_VM}"
 
 # Default to local SR
 if [ -z "${SR_UUID}" ]; then
-    SR_UUID=$(${XE} sr-list name-label=Local\\ storage --minimal)
+    SR_UUID=$(${XE} sr-list name-label="Local storage" --minimal)
 fi
 echo "Using SR ${SR_UUID}"
 
@@ -119,7 +110,7 @@ SIZE=${SIZE}KiB
 echo "VDI size will be ${SIZE}"
 
 # Create VDI
-VDI=$(${XE} vdi-create name-label=${KERNEL_NAME}-vdi sharable=true \
+VDI=$(${XE} vdi-create name-label="${KERNEL_NAME}-vdi" sharable=true \
    type=user virtual-size=${SIZE} sr-uuid=${SR_UUID})
 echo "Created VDI ${VDI}"
 
@@ -133,12 +124,11 @@ echo "Created VBD ${VBD} as virtual device number ${VBD_DEV}"
 ${XE} vbd-plug uuid=${VBD}
 
 # Mount vdi disk
-XVD=(a b c d e f g h i j k l m n)
-XVD_="xvd${XVD[${VBD_DEV}]}"
-echo "Making ext3 filesystem on /dev/${XVD_}"
-mke2fs -q -j /dev/${XVD_}
-echo "Mounting /dev/${XVD_} at ${MNT}"
-${SUDO} mount -t ext3 /dev/${XVD_} ${MNT}
+XVD=$(${XE} vbd-list uuid=${VBD} params=device --minimal)
+echo "Making ext3 filesystem on /dev/${XVD}"
+mke2fs -q -j /dev/${XVD}
+echo "Mounting /dev/${XVD} at ${MNT}"
+${SUDO} mount -t ext3 /dev/${XVD} ${MNT}
 
 # Copy grub conf to vdi disk
 ${SUDO} mkdir -p ${MNT}/boot/grub
@@ -158,7 +148,7 @@ ${XE} vbd-destroy uuid=${VBD}
 echo "Unmounted /dev/${XVD_} and destroyed VBD ${VBD}."
 
 # Create mirage vm
-MIRAGE_VM=$(${XE} vm-install template=Other\\ install\\ media new-name-label=${KERNEL_NAME})
+MIRAGE_VM=$(${XE} vm-install template="Other install media" new-name-label="${KERNEL_NAME}")
 ${XE} vm-param-set uuid=${MIRAGE_VM} PV-bootloader=pygrub
 ${XE} vm-param-set uuid=${MIRAGE_VM} HVM-boot-policy=
 ${XE} vm-param-clear uuid=${MIRAGE_VM} param-name=HVM-boot-params

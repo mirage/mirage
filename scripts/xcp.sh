@@ -5,7 +5,7 @@ set -e
 
 function usage () {
     echo "Usage:"
-    echo "   `basename $0` [-x <xenserver host> -u <name of this domU vm>] [-s <sr-uuid to place vdi>] <kernel name>"
+    echo "   `basename $0` [-x <xenserver host>] [-s <sr-uuid to place vdi>] <kernel name>"
 }
 
 function on_exit () {
@@ -39,7 +39,6 @@ while getopts ":x:u:s:" option
 do
     case $option in
         x ) DOM0_HOST=${OPTARG} ;;
-        u ) MY_VM_NAME=${OPTARG} ;;
         s ) SR_UUID=${OPTARG} ;;
         : ) usage
             echo "Option -${OPTARG} requires an argument."
@@ -69,18 +68,15 @@ MENU_LST='menu.lst'
 # Set XE command depending on whether we're in dom0 or domU
 if [ -z "${DOM0_HOST}" ]; then
     XE="xe"
-    MY_VM=$(xenstore-read /local/domain/0/vm | cut -f 3 -d /)
 else
     XE="xe -s ${DOM0_HOST}"
-    # if we're not in dom0, then we need the domU vm name
-    if [ -z "${MY_VM_NAME}" ]; then
-        usage
-        echo "If we aren't running in dom0, then you need to specify your domU VM's name-label (not hostname)."
-        exit 1
-    else
-        MY_VM=$(${XE} vm-list name-label="${MY_VM_NAME}" --minimal)
+    if [ ! -e ${HOME}/.xe ]; then
+	echo Please add username= and password= lines to ${HOME}/.xe
+	exit 1
     fi
 fi
+
+MY_VM=$(xenstore-read vm | cut -f 3 -d /)
 
 echo "Using xe command '${XE}', this VM's uuid is ${MY_VM}"
 

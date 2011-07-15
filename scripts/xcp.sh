@@ -68,22 +68,17 @@ MENU_LST='menu.lst'
 
 # Set XE command depending on whether we're in dom0 or domU
 if [ -z "${DOM0_HOST}" ]; then
-    # This is a little ugly, but it let's us use ${XE} throughout the
-    # script, and simplifies the logic a bit. Otherwise, we have
-    # problems with sending '\\ ' over ssh versus within the shell.
-    SSH="ssh localhost"
-    XE="${SSH} xe"
+    XE="xe"
     MY_VM=$(xenstore-read /local/domain/0/vm | cut -f 3 -d /)
 else
-    SSH="ssh root@${DOM0_HOST}"
-    XE="${SSH} xe"
+    XE="xe -s ${DOM0_HOST}"
     # if we're not in dom0, then we need the domU vm name
-    if [ -z ${MY_VM_NAME} ]; then
+    if [ -z "${MY_VM_NAME}" ]; then
         usage
         echo "If we aren't running in dom0, then you need to specify your domU VM's name-label (not hostname)."
         exit 1
     else
-        MY_VM=$(${XE} vm-list name-label=${MY_VM_NAME} --minimal)
+        MY_VM=$(${XE} vm-list name-label="${MY_VM_NAME}" --minimal)
     fi
 fi
 
@@ -91,7 +86,7 @@ echo "Using xe command '${XE}', this VM's uuid is ${MY_VM}"
 
 # Default to local SR
 if [ -z "${SR_UUID}" ]; then
-    SR_UUID=$(${XE} sr-list name-label=Local\\ storage --minimal)
+    SR_UUID=$(${XE} sr-list name-label="Local storage" --minimal)
 fi
 echo "Using SR ${SR_UUID}"
 
@@ -119,7 +114,7 @@ SIZE=${SIZE}KiB
 echo "VDI size will be ${SIZE}"
 
 # Create VDI
-VDI=$(${XE} vdi-create name-label=${KERNEL_NAME}-vdi sharable=true \
+VDI=$(${XE} vdi-create name-label="${KERNEL_NAME}-vdi" sharable=true \
    type=user virtual-size=${SIZE} sr-uuid=${SR_UUID})
 echo "Created VDI ${VDI}"
 
@@ -158,7 +153,7 @@ ${XE} vbd-destroy uuid=${VBD}
 echo "Unmounted /dev/${XVD_} and destroyed VBD ${VBD}."
 
 # Create mirage vm
-MIRAGE_VM=$(${XE} vm-install template=Other\\ install\\ media new-name-label=${KERNEL_NAME})
+MIRAGE_VM=$(${XE} vm-install template="Other install media" new-name-label="${KERNEL_NAME}")
 ${XE} vm-param-set uuid=${MIRAGE_VM} PV-bootloader=pygrub
 ${XE} vm-param-set uuid=${MIRAGE_VM} HVM-boot-policy=
 ${XE} vm-param-clear uuid=${MIRAGE_VM} param-name=HVM-boot-params

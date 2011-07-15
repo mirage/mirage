@@ -101,25 +101,10 @@ caml_xenstore_start_page(value v_unit)
 struct sring {
   RING_IDX req_prod, req_event;
   RING_IDX rsp_prod, rsp_event;
-  uint8_t  netfront_smartpoll_active;
-  uint8_t  pad[47];
+  uint8_t  pad[64];
 };
 
-struct front_ring {
-  RING_IDX req_prod_pvt;
-  RING_IDX rsp_cons;
-  unsigned int nr_ents;
-  struct sring *sring;
-};
-
-struct back_ring {
-  RING_IDX rsp_prod_pvt;
-  RING_IDX req_cons;
-  unsigned int nr_ents;
-  struct sring *sring;
-};
-
-#define SRING_VAL(x) ((struct sring *)(String_val(Field((x),0))+Int_val(Field((x),1)/8)))
+#define SRING_VAL(x) ((struct sring *)(String_val(Field((x),0))+(Int_val(Field((x),1))/8)))
 CAMLprim value
 caml_sring_rsp_prod(value v_sring)
 {
@@ -150,6 +135,7 @@ CAMLprim value
 caml_sring_push_requests(value v_sring, value v_req_prod_pvt)
 {
   struct sring *sring = SRING_VAL(v_sring);
+  ASSERT(((unsigned long)sring % PAGE_SIZE) == 0);
   xen_wmb(); /* ensure requests are seen before the index is updated */
   sring->req_prod = Int_val(v_req_prod_pvt);
   return Val_unit;

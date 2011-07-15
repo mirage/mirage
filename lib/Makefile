@@ -19,7 +19,7 @@ else
 NODE_BUILD=node-socket
 endif
 
-all: unix-socket unix-direct
+all: $(XEN_BUILD) unix-socket unix-direct
 	@ :
 
 unix-direct:

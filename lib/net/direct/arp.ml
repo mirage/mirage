@@ -117,15 +117,15 @@ let query t ip =
   if Hashtbl.mem t.cache ip then (
     match Hashtbl.find t.cache ip with
     | Incomplete cond ->
-       printf "ARP query: %s -> [incomplete]\n%!" (ipv4_addr_to_string ip);
+       (* printf "ARP query: %s -> [incomplete]\n%!" (ipv4_addr_to_string ip); *)
        Lwt_condition.wait cond
     | Verified mac ->
-       printf "ARP query: %s -> %s\n%!"
-         (ipv4_addr_to_string ip) (ethernet_mac_to_string mac);
+       (* printf "ARP query: %s -> %s\n%!"
+         (ipv4_addr_to_string ip) (ethernet_mac_to_string mac); *)
        return mac
   ) else (
     let cond = Lwt_condition.create () in
-    printf "ARP query: %s -> [probe]\n%!" (ipv4_addr_to_string ip);
+    (* printf "ARP query: %s -> [probe]\n%!" (ipv4_addr_to_string ip); *)
     Hashtbl.add t.cache ip (Incomplete cond);
     (* First request, so send a query packet *)
     lwt () = output_probe t ip in

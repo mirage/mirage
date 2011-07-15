@@ -18,14 +18,33 @@
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
+#include <caml/gc.h>
 #include <caml/alloc.h>
 #include <caml/fail.h>
 
-/* Given a string, determine the offset at which a page begins,
-   how many pages there are. Also wire the page as a generational
-   root so we can grant those pages to Xen. */
+/* Allocate an 'out of heap' string that is not scanned by the GC */
 CAMLprim value
-caml_wire_string_pages(value v_str)
+caml_alloc_external_string(value v_len)
+{
+  /* We must follow the string encoding out of alloc.c here, 
+     specifically the padding rules (although we are word-aligned in practise) */
+  size_t len = Int_val(v_len);
+  mlsize_t offset_index;
+  mlsize_t wosize = (len + sizeof (value)) / sizeof (value);
+  char *hp = caml_stat_alloc(sizeof(value) + (wosize * (sizeof(value))));
+  Hd_hp(hp) = Make_header(wosize, String_tag, Caml_white);
+  value v_buf = Val_hp(hp);
+  /* Pad the end of the string */
+  Field(v_buf, wosize-1) = 0;
+  offset_index = Bsize_wsize(wosize)-1;
+  Byte(v_buf, offset_index) = offset_index - len;
+  return v_buf;
+}
+
+/* Given a string, determine the offset at which a page begins,
+   how many pages there are. */
+CAMLprim value
+caml_chunk_string_pages(value v_str)
 {
   CAMLparam1(v_str);
   CAMLlocal1(v_ret);
@@ -37,18 +56,9 @@ caml_wire_string_pages(value v_str)
     caml_failwith("pages_of_string: len < PAGE_SIZE");
   bufoff = PAGE_ALIGN(buf) - buf;
   nr_pages = (buflen-bufoff) / PAGE_SIZE;
-  caml_register_generational_global_root(&v_str);
   v_ret = caml_alloc(2, 0);
   Store_field(v_ret, 0, Val_int(bufoff));
   Store_field(v_ret, 1, Val_int(nr_pages));
   CAMLreturn(v_ret);
 }  
-
-CAMLprim value
-caml_unwire_string_pages(value v_str)
-{
-  CAMLparam1(v_str);
-  caml_remove_generational_global_root(&v_str);
-  CAMLreturn(Val_unit);
-}
 

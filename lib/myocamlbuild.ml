@@ -131,7 +131,7 @@ module CC = struct
 
   let cc_c tags arg out =
     let tags = tags++"cc"++"c" in
-    Cmd (S (A cc :: [ A"-c"; T(tags++"compile"); A"-I"; Px (Lazy.force stdlib_dir); A"-o"; Px out; P arg]))
+    Cmd (S (A cc :: [ A"-c"; T(tags++"compile"); A"-o"; Px out; P arg]))
 
   let cc_compile_c_implem ?tag c o env build =
     let c = env c and o = env o in

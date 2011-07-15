@@ -1,3 +1,4 @@
+bitstring_stubs.o
 exit_stubs.o
 page_stubs.o
 evtchn_stubs.o
@@ -6,3 +7,4 @@ xb_stubs.o
 xencons_ring.o
 clock_stubs.o
 gnttab_stubs.o
+checksum_stubs.o

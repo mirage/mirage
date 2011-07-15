@@ -124,12 +124,11 @@ echo "Created VBD ${VBD} as virtual device number ${VBD_DEV}"
 ${XE} vbd-plug uuid=${VBD}
 
 # Mount vdi disk
-XVD=(a b c d e f g h i j k l m n)
-XVD_="xvd${XVD[${VBD_DEV}]}"
-echo "Making ext3 filesystem on /dev/${XVD_}"
-mke2fs -q -j /dev/${XVD_}
-echo "Mounting /dev/${XVD_} at ${MNT}"
-${SUDO} mount -t ext3 /dev/${XVD_} ${MNT}
+XVD=$(${XE} vbd-list uuid=${VBD} params=device --minimal)
+echo "Making ext3 filesystem on /dev/${XVD}"
+mke2fs -q -j /dev/${XVD}
+echo "Mounting /dev/${XVD} at ${MNT}"
+${SUDO} mount -t ext3 /dev/${XVD} ${MNT}
 
 # Copy grub conf to vdi disk
 ${SUDO} mkdir -p ${MNT}/boot/grub

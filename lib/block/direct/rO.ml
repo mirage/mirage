@@ -32,27 +32,23 @@ type t = {
 let create vbd =
   let files = Hashtbl.create 7 in
   let rec read_page off =
-    lwt v = OS.Blkif.read_page vbd off in
+    lwt page = OS.Blkif.read_page vbd off in
     let rec parse_page num =
       let loff = num * 512 in
-      match OS.Istring.to_uint32_be v loff with
-      |0xDEADBEEFl -> begin
-        let offset = OS.Istring.to_uint64_be v (loff+4) in
-        let len = OS.Istring.to_uint64_be v (loff+12) in
-        let namelen = OS.Istring.to_uint32_be v (loff+20) in
-        let name = OS.Istring.to_string v (loff+24) (Int32.to_int namelen) in
-        if Int64.rem offset 512L <> 0L then
-          fail (Failure (sprintf "unaligned offset file found: offset=%Lu" offset))
-        else begin
-          Hashtbl.add files name { name; offset; len };
-          printf "Read file: %s %Lu[%Lu]\n%!" name offset len;
-          if num = 7 then
-            read_page (Int64.add off 8L)
-          else
-            parse_page (num+1)
-        end
-      end
-      |_ -> return ()
+      let bs = Bitstring.subbitstring page (loff * 8) (512 * 8) in
+      bitmatch bs with
+      | { 0xDEADBEEFl:32; offset:64; len:64; namelen:32:bind(Int32.to_int namelen * 8); name:namelen:string } ->
+          if Int64.rem offset 512L <> 0L then
+            fail (Failure (sprintf "unaligned offset file found: offset=%Lu" offset))
+          else begin
+            Hashtbl.add files name { name; offset; len };
+            printf "Read file: %s %Lu[%Lu]\n%!" name offset len;
+            if num = 7 then
+              read_page (Int64.add off 8L)
+            else
+              parse_page (num+1)
+          end
+      | { _ } -> return ()
     in
     parse_page 0 in
   read_page 0L >>
@@ -79,7 +75,7 @@ let read t filename =
             let sz = Int64.sub file.len !pos in
             pos := Int64.add !pos sz;
             cur_seg := None;
-            OS.Istring.sub arr.(idx) 0 (Int64.to_int sz)
+            Bitstring.subbitstring arr.(idx) 0 (Int64.to_int sz * 8)
           end else begin
             pos := Int64.add !pos 4096L;
             cur_seg := if idx < Array.length arr - 1 then Some (idx+1, arr) else None;

@@ -20,20 +20,21 @@ type sring
 val init : Bitstring.t -> idx_size:int -> name:string -> sring
 
 module Front : sig
-  type 'a t
-  val init : sring:sring -> 'a t
-  val slot : 'a t -> int -> Bitstring.t
-  val nr_ents : 'a t -> int
-  val get_free_requests : 'a t -> int
-  val is_ring_full : 'a t -> bool
-  val has_unconsumed_responses : 'a t -> bool
-  val push_requests : 'a t -> unit
-  val push_requests_and_check_notify : 'a t -> bool
-  val check_for_responses : 'a t -> bool
-  val next_req_id : 'a t -> int
-  val ack_responses : 'a t -> (Bitstring.t -> unit) -> unit
-  val poll : 'a t -> (Bitstring.t -> (int * 'a)) -> unit
-  val push_request_and_wait : 'a t -> (Bitstring.t -> int) -> 'a Lwt.t
+  (* 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
+  type ('a,'b) t
+  val init : sring:sring -> ('a,'b) t
+  val slot : ('a,'b) t -> int -> Bitstring.t
+  val nr_ents : ('a,'b) t -> int
+  val get_free_requests : ('a,'b) t -> int
+  val is_ring_full : ('a,'b) t -> bool
+  val has_unconsumed_responses : ('a,'b) t -> bool
+  val push_requests : ('a,'b) t -> unit
+  val push_requests_and_check_notify : ('a,'b) t -> bool
+  val check_for_responses : ('a,'b) t -> bool
+  val next_req_id : ('a,'b) t -> int
+  val ack_responses : ('a,'b) t -> (Bitstring.t -> unit) -> unit
+  val poll : ('a,'b) t -> (Bitstring.t -> ('b * 'a)) -> unit
+  val push_request_and_wait : ('a,'b) t -> (Bitstring.t -> 'b) -> 'a Lwt.t
 end
 
 module Console : sig

@@ -52,6 +52,7 @@ let init (buf,off,len) ~idx_size ~name =
   (* Free space in shared ring after header is accounted for *)
   let free_bytes = 4096 - (header_size / 8) in
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
+  printf "%s: ix_size=%d nr_ents=%d\n" name idx_size nr_ents;
   (* We store idx_size in bits, for easier Bitstring offset calculations *)
   let idx_size = idx_size * 8 in
   let t = { name; buf; off; idx_size; nr_ents; header_size } in
@@ -80,11 +81,11 @@ let slot sring idx =
 
 module Front = struct
 
-  type 'a t = {
+  type ('a,'b) t = {
     mutable req_prod_pvt: int;
     mutable rsp_cons: int;
     sring: sring;
-    wakers: (int, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
+    wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
     waiters: unit Lwt.u Lwt_sequence.t;
   }
 
@@ -147,7 +148,7 @@ module Front = struct
          Hashtbl.remove t.wakers id;
          Lwt.wakeup u resp
        with Not_found ->
-         printf "RX: ack id %d wakener not found\n%!" id
+         printf "RX: ack id wakener not found\n%!"
     );
     (* Check for any sleepers waiting for free space *)
     match Lwt_sequence.take_opt_l t.waiters with

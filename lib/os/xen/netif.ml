@@ -81,9 +81,9 @@ type t = {
   backend_id: int;
   backend: string;
   mac: string;
-  tx_fring: TX.response Ring.Front.t;
+  tx_fring: (TX.response,int) Ring.Front.t;
   tx_gnt: Gnttab.r;
-  rx_fring: RX.response Ring.Front.t;
+  rx_fring: (RX.response,int) Ring.Front.t;
   rx_map: (int, Gnttab.r) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;

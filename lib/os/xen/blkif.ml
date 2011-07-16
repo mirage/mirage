@@ -110,7 +110,6 @@ module Res = struct
 
   (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
   let read_response bs =
-    Bitstring.hexdump_bitstring stdout bs;
     (bitmatch bs with
     | { id:64:littleendian; op:8:littleendian; _:8;
         st:16:littleendian } ->

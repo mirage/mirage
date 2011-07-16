@@ -52,11 +52,9 @@ let init (buf,off,len) ~idx_size ~name =
   (* Free space in shared ring after header is accounted for *)
   let free_bytes = 4096 - (header_size / 8) in
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
-  printf "%s: ix_size=%d nr_ents=%d\n" name idx_size nr_ents;
   (* We store idx_size in bits, for easier Bitstring offset calculations *)
   let idx_size = idx_size * 8 in
   let t = { name; buf; off; idx_size; nr_ents; header_size } in
-  printf "Shared.init: %s off=%d idxsize=%d nr_ents=%d\n%!" name off idx_size nr_ents;
   (* initialise the *_event fields to 1, and the rest to 0 *)
   let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
   String.blit src 0 buf (off/8) (String.length src);

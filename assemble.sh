@@ -87,6 +87,6 @@ function assemble_scripts {
 assemble_syntax
 assemble_xen
 assemble_unix "direct"
-#assemble_unix "socket"
+assemble_unix "socket"
 #assemble_node
 assemble_scripts

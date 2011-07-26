@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,8 +32,7 @@
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 #include <caml/alloc.h>
-
-#include "istring.h"
+#include <caml/fail.h>
 
 static void
 setnonblock(int fd)
@@ -203,11 +202,11 @@ caml_tcpv4_accept(value v_fd)
 }
 
 CAMLprim value
-caml_socket_read(value v_fd, value v_istr, value v_off, value v_len)
+caml_socket_read(value v_fd, value v_str, value v_off, value v_len)
 {
-  CAMLparam4(v_fd ,v_istr, v_off, v_len);
+  CAMLparam4(v_fd ,v_str, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
-  unsigned char *buf = Istring_val(v_istr)->buf;
+  unsigned char *buf = String_val(v_str);
   int r = read(Int_val(v_fd), buf + Int_val(v_off), Int_val(v_len));
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
@@ -222,11 +221,11 @@ caml_socket_read(value v_fd, value v_istr, value v_off, value v_len)
 }
 
 CAMLprim value
-caml_socket_write(value v_fd, value v_istr, value v_off, value v_len)
+caml_socket_write(value v_fd, value v_str, value v_off, value v_len)
 {
-  CAMLparam4(v_fd, v_istr, v_off, v_len);
+  CAMLparam4(v_fd, v_str, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
-  unsigned char *buf = Istring_val(v_istr)->buf;
+  unsigned char *buf = String_val(v_str);
   int r = write(Int_val(v_fd), buf + Int_val(v_off), Int_val(v_len));
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
@@ -271,11 +270,11 @@ caml_udpv4_bind(value v_ipaddr, value v_port)
 }
 
 CAMLprim value
-caml_udpv4_recvfrom(value v_fd, value v_istr, value v_off, value v_len, value v_src)
+caml_udpv4_recvfrom(value v_fd, value v_str, value v_off, value v_len, value v_src)
 {
-  CAMLparam5(v_fd, v_istr, v_off, v_len, v_src);
+  CAMLparam5(v_fd, v_str, v_off, v_len, v_src);
   CAMLlocal3(v_ret, v_err, v_inf);
-  unsigned char *buf = Istring_val(v_istr)->buf + Int_val(v_off);
+  unsigned char *buf = String_val(v_str) + Int_val(v_off);
   size_t len = Int_val(v_len);
   int fd = Int_val(v_fd);
   struct sockaddr_in sa;
@@ -299,11 +298,11 @@ caml_udpv4_recvfrom(value v_fd, value v_istr, value v_off, value v_len, value v_
 }
 
 CAMLprim value
-caml_udpv4_sendto(value v_fd, value v_istr, value v_off, value v_len, value v_dst)
+caml_udpv4_sendto(value v_fd, value v_str, value v_off, value v_len, value v_dst)
 {
-  CAMLparam5(v_fd, v_istr, v_off, v_len, v_dst);
+  CAMLparam5(v_fd, v_str, v_off, v_len, v_dst);
   CAMLlocal2(v_ret, v_err);
-  unsigned char *buf = Istring_val(v_istr)->buf + Int_val(v_off);
+  unsigned char *buf = String_val(v_str) + Int_val(v_off);
   size_t len = Int_val(v_len);
   int fd = Int_val(v_fd);
   struct sockaddr_in sa;

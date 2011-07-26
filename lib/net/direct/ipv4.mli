@@ -16,20 +16,16 @@
 
 open Nettypes
 
-type 'a ip_output = OS.Istring.t -> ttl:int -> dest:int32 ->
-  options:('a OS.Istring.data) -> Mpl.Ipv4.o
-
 type t
-val output: t -> dest_ip:ipv4_addr -> 'a ip_output -> Mpl.Ethernet.o Lwt.t
+val output: t -> proto:[< `ICMP | `TCP | `UDP ] -> dest_ip:ipv4_addr -> Bitstring.t list -> unit Lwt.t
 val set_ip: t -> ipv4_addr -> unit Lwt.t
 val get_ip: t -> ipv4_addr
 val mac: t -> ethernet_mac
 val set_netmask: t -> ipv4_addr -> unit Lwt.t
 val set_gateways: t -> ipv4_addr list -> unit Lwt.t
-val attach: t -> 
-    [  `UDP of Mpl.Ipv4.o -> Mpl.Udp.o -> unit Lwt.t
-     | `TCP of Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
-     | `ICMP of Mpl.Ipv4.o -> Mpl.Icmp.o -> unit Lwt.t
-    ] -> unit
-val detach: t -> [ `UDP | `TCP | `ICMP ] -> unit
 val create : Ethif.t -> t * unit Lwt.t
+val attach : t ->
+  [<  `ICMP of ipv4_addr -> Bitstring.t -> unit Lwt.t
+    | `UDP of src:Nettypes.ipv4_addr -> dst:Nettypes.ipv4_addr -> Bitstring.t -> unit Lwt.t 
+    | `TCP of src:Nettypes.ipv4_addr -> dst:Nettypes.ipv4_addr -> Bitstring.t -> unit Lwt.t ] -> unit
+val detach : t -> [< `ICMP | `UDP | `TCP ] -> unit

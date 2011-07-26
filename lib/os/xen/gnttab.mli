@@ -18,17 +18,16 @@ type r
 type num = int32
 type perm = RO | RW
 
-val alloc: ?page:Istring.Raw.t -> num -> r
+val alloc: ?page:Bitstring.t -> num -> r
 val num: r -> num
-val page: r -> Istring.Raw.t
+val page: r -> Bitstring.t
 val put_free_entry : r -> unit
 val get_free_entry : unit -> r Lwt.t
 val get_n : domid:int -> perm:perm -> int -> r list Lwt.t
 val grant_access : domid:int -> perm:perm -> r -> unit
 val end_access : r -> unit
 val to_string : r -> string
-val detach : r -> Istring.Raw.t
-val attach : r -> Istring.Raw.t -> unit
+val detach : r -> Bitstring.t
 
 val with_grant : domid:int -> perm:perm -> (r -> 'a Lwt.t) -> 'a Lwt.t
 val with_grants : domid:int -> perm:perm -> int -> (r array -> 'a Lwt.t) -> 'a Lwt.t

@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,11 @@ open Printf
 
 type t
  
-val set_bound_ips: t -> ipv4_addr list -> unit Lwt.t
-val get_bound_ips: t -> ipv4_addr list
-val create: Ethif.t -> (t * unit Lwt.t)
+val set_ips: t -> ipv4_addr list -> unit Lwt.t
+val get_ips: t -> ipv4_addr list
+val add_ip: t -> ipv4_addr -> unit Lwt.t
+val remove_ip: t -> ipv4_addr -> unit Lwt.t
+
+val input: t -> arp -> unit Lwt.t
 val query: t -> ipv4_addr -> ethernet_mac Lwt.t
+val create: output:(arp -> unit Lwt.t) -> get_mac:(unit -> ethernet_mac) -> t

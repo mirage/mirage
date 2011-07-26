@@ -157,6 +157,14 @@ let t_to_string (t:t) =
   | `Unknown (c,x) -> sprintf "Unknown(%d[%d])" (Char.code c) (String.length x)
   | `End -> "End"
 
+let ipv4_addr_to_bytes x =
+  let x = ipv4_addr_to_uint32 x in
+  Bitstring.string_of_bitstring (BITSTRING { x:32 })
+
+let ipv4_addr_of_bytes x =
+  bitmatch (Bitstring.bitstring_of_string x) with
+  | { v:32 } -> ipv4_addr_of_uint32 v
+
 module Marshal = struct
   let t_to_code (x:msg) =
     match x with

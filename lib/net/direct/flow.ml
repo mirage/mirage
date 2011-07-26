@@ -31,18 +31,25 @@ module TCPv4 = struct
     Tcp.Pcb.read t
 
   let rec write t view =
-    let vlen = OS.Istring.length view in
-    Printf.printf "Flow.write: %d\n%!" vlen;
+    let vlen = Bitstring.bitstring_length view / 8 in
     match Tcp.Pcb.write_available t with
     |0 -> (* block for window to open *)
       Tcp.Pcb.write_wait_for t 1 >>
       write t view
     |len when len < vlen -> (* do a short write *)
-      let v' = OS.Istring.sub view 0 len in
-      Tcp.Pcb.write t (`Frag v') >>
-      write t (OS.Istring.sub view len (vlen - len))
+      let v' = Bitstring.subbitstring view 0 (len * 8) in
+      Tcp.Pcb.write t v' >>
+      write t (Bitstring.subbitstring view (len*8) ((vlen-len)*8))
     |len -> (* full write *)
-      Tcp.Pcb.write t (`Frag view)
+      Tcp.Pcb.write t view
+
+  (* For now this is the slow "just concat bitstrings"
+     but it should be rewritten to block intelligently based
+     on the available write space XXX TODO *)
+  let writev t views =
+    let view = Bitstring.concat views in
+    write t view >>
+    return Bitstring.empty_bitstring
 
   let close t =
     Tcp.Pcb.close t
@@ -66,6 +73,7 @@ module Shmem = struct
 
   let read t = fail (Failure "read")
   let write t view = fail (Failure "write")
+  let writev t views = fail (Failure "writev")
   let close t = fail (Failure "close")
 
   let listen mgr src fn = fail (Failure "listen")
@@ -86,6 +94,10 @@ let read = function
 let write = function
   | TCPv4 t -> TCPv4.write t
   | Shmem t -> Shmem.write t
+
+let writev = function
+  | TCPv4 t -> TCPv4.writev t
+  | Shmem t -> Shmem.writev t
 
 let close = function
   | TCPv4 t -> TCPv4.close t

@@ -16,14 +16,18 @@
 
 module Rx :
   sig
+    type seg
+    val make: sequence:Sequence.t -> fin:bool -> syn:bool -> ack:bool ->
+      ack_number:Sequence.t -> window:int -> data:Bitstring.t -> seg
+
     type q
-    val q : rx_data:OS.Istring.t list option Lwt_mvar.t ->
+    val q : rx_data:Bitstring.t list option Lwt_mvar.t ->
       wnd:Window.t ->
       tx_ack:Sequence.t Lwt_mvar.t -> 
       tx_wnd_update:int Lwt_mvar.t -> q
     val to_string : q -> string
     val is_empty : q -> bool
-    val input : q -> Mpl.Tcp.o -> unit Lwt.t
+    val input : q -> seg -> unit Lwt.t
   end
 
 (* Pre-transmission queue *)
@@ -33,7 +37,7 @@ module Tx :
     type flags = |No_flags |Syn |Fin |Rst
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-      unit OS.Istring.data -> OS.Istring.t Lwt.t
+      Bitstring.t -> Bitstring.t list Lwt.t
 
     type q
 
@@ -41,6 +45,6 @@ module Tx :
       rx_ack:Sequence.t Lwt_mvar.t ->
       tx_ack:Sequence.t Lwt_mvar.t -> q * unit Lwt.t
 
-    val output : ?flags:flags -> ?options:Options.ts -> q -> unit OS.Istring.data -> unit Lwt.t
+    val output : ?flags:flags -> ?options:Options.ts -> q -> Bitstring.t -> unit Lwt.t
    
   end

@@ -38,6 +38,9 @@ camlinternalMod
 std_exit
 log
 oo
+bitstring
+bitstring_types
+bitstring_config
 lwt
 lwt_util
 lwt_stream
@@ -59,4 +62,3 @@ utf16
 ulexing
 dyntype
 cow
-resolv

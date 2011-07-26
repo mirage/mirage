@@ -19,17 +19,17 @@ open Nettypes
 type t
 type pcb
 
-val input: t -> Mpl.Ipv4.o -> Mpl.Tcp.o -> unit Lwt.t
+val input: t -> src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t
 val listen: t -> int -> ((ipv4_addr * int) -> pcb -> unit Lwt.t) -> unit Lwt.t
 val create: Ipv4.t -> t * unit Lwt.t
 
 val close: pcb -> unit Lwt.t
 
 (* Blocking read for a segment *)
-val read: pcb -> OS.Istring.t option Lwt.t
+val read: pcb -> Bitstring.t option Lwt.t
 
 (* Low-level write interface that lets the application
    decide on a write strategy *)
 val write_available: pcb -> int
 val write_wait_for: pcb -> int -> unit Lwt.t
-val write: pcb -> unit OS.Istring.data -> unit Lwt.t
+val write: pcb -> Bitstring.t -> unit Lwt.t

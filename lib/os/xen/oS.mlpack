@@ -1,8 +1,12 @@
-Istring
+Io_page
 Gnttab
 Ring
 Evtchn
 Activations
+Console
+Clock
+Time
+Main
 Xb_op
 Xb_partial
 Xb_state
@@ -11,10 +15,6 @@ Xb
 Queueop
 Xsraw
 Xst
-Clock
-Time
 Xs
-Console
 Netif
 Blkif
-Main

@@ -108,28 +108,34 @@ let rec read_buf t istr off len =
   |R.OK r -> return r
   |R.Err e -> fail (Read_error e)
 
-let rec write_buf t istr off len =
-  match R.write t.fd istr off len with 
+let rec write_buf t (buf,off,len) =
+  match R.write t.fd buf (off/8) (len/8) with 
   |R.Retry ->
     Activations.write (R.fd_to_int t.fd) >>
-    write_buf t istr off len
+    write_buf t (buf,off,len)
   |R.OK amt ->
+    let amt = amt * 8 in
     if amt = len then return ()
-    else write_buf t istr (off+amt) (len-amt)
+    else write_buf t (buf,(off+amt),(len-amt))
   |R.Err e -> fail (Write_error e)
 
 let read t =
-  let istr = OS.Istring.Raw.alloc () in
-  lwt len = read_buf t istr 0 4096 in
+  let buf = String.create 4096 in
+  lwt len = read_buf t buf 0 (String.length buf) in
   match len with
   |0 -> return None
-  |len -> return (Some (OS.Istring.t ~off:0 istr len))
+  |len -> return (Some (buf, 0, (len * 8)))
 
-let write t view =
-  let istr = OS.Istring.raw view in
-  let off = OS.Istring.off view in
-  let len = OS.Istring.length view in
-  write_buf t istr off len
+let write t bs =
+  write_buf t bs
+
+(* For now this is the slow "just concat bitstrings"
+   but it should be rewritten to block intelligently based
+   on the available write space XXX TODO *)
+let writev t views =
+  let view = Bitstring.concat views in
+  write t view >>
+  return Bitstring.empty_bitstring
 
 module TCPv4 = struct
   type t = [`tcpv4] fdwrap
@@ -140,6 +146,7 @@ module TCPv4 = struct
   (* TODO put an istring pool in the manager? *)
 
   let read = read
+  let writev = writev
   let close = close
   let write = write
 
@@ -174,10 +181,19 @@ module Pipe = struct
   type src = int (* process pid *)
   type dst = int (* process pid *)
 
-  type msg = OS.Istring.t
+  type msg = Bitstring.t
 
   let read (rd,_) = read rd
   let write (_,wr) view = write wr view
+
+  (* For now this is the slow "just concat bitstrings"
+     but it should be rewritten to block intelligently based
+     on the available write space XXX TODO *)
+  let writev t views =
+    let view = Bitstring.concat views in
+    write t view >>
+    return Bitstring.empty_bitstring
+
   let close (rd,wr) = close rd <&> (close wr)
 
   let listen mgr src fn =
@@ -206,6 +222,10 @@ let read = function
 let write = function
   | TCPv4 t -> TCPv4.write t
   | Pipe t -> Pipe.write t
+
+let writev = function
+  | TCPv4 t -> TCPv4.writev t
+  | Pipe t -> Pipe.writev t
 
 let close = function
   | TCPv4 t -> TCPv4.close t

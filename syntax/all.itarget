@@ -1,3 +1,4 @@
+pa_bitstring.cma
 pa_lwt.cma
 pa_ulex.cma
 pa_type_conv.cma

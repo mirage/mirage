@@ -17,6 +17,108 @@
 open Lwt
 open Printf
 
+(* Request of a page *)
+module Req = struct
+  type op = 
+    |Read
+    |Write
+    |Write_barrier
+    |Flush
+    |Unknown of int
+
+  type seg = {
+    gref: int32;
+    first_sector: int;
+    last_sector: int;
+  }
+
+  (* Defined in include/xen/io/blkif.h : blkif_request_t *)
+  type t = {
+    op: op;
+    handle: int;
+    id: int64;
+    sector: int64;
+    segs: seg array;
+  }
+
+  let segments_per_request = 11 (* Defined by the protocol *)
+  let seg_size = 8 (* bytes, 6 +2 struct padding *)
+  let idx_size =  (* total size of a request structure, in bytes *)
+    1 + (* operation *)
+    1 + (* nr_segments *)
+    2 + (* handle *)
+    4 + (* struct padding to 64-bit *)
+    8 + (* id *)
+    8 + (* sector number *)
+    (seg_size * segments_per_request) 
+
+  (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
+  let op_to_int = function
+    |Read->0 |Write->1 |Write_barrier->2 |Flush->3 |Unknown n -> n
+
+  let op_of_int = function
+    |0->Read |1->Write |2->Write_barrier |3->Flush |n->Unknown n
+
+  (* Marshal an individual segment request *)
+  let make_seg seg =
+    BITSTRING { seg.gref:32:littleendian; seg.first_sector:8:littleendian;
+      seg.last_sector:8:littleendian; 0:16 }
+
+  (* Write a request to a slot in the shared ring. Could be optimised a little
+     more to minimise allocation, if it matters. *)
+  let write_request req (bs,bsoff,bslen) =
+    let op = op_to_int req.op in
+    let nr_segs = Array.length req.segs in
+    let segs = Bitstring.concat (Array.to_list (Array.map make_seg req.segs)) in
+    let reqbuf,_,reqlen = BITSTRING {
+      op:8:littleendian; nr_segs:8:littleendian;
+      req.handle:16:littleendian; 0l:32; req.id:64:littleendian;
+      req.sector:64:littleendian; segs:-1:bitstring } in
+    String.blit reqbuf 0 bs (bsoff/8) (reqlen/8);
+    req.id
+
+  (* Read a request out of a bitstring; to be used by the Ring.Back for serving
+     requests, so this is untested for now *)
+  let read_request bs =
+    bitmatch bs with
+    | { op:8:littleendian; nr_segs:8:littleendian; handle:16:littleendian;
+        id:64:littleendian; sector:64:littleendian; segs:-1:bitstring } ->
+          let seglen = seg_size * 8 in
+          let segs = Array.init nr_segs (fun i ->
+            bitmatch (Bitstring.subbitstring segs (i*seglen) seglen) with
+            | { gref:32:littleendian; first_sector:8:littleendian;
+                last_sector:8:littleendian } ->
+                 {gref; first_sector; last_sector }
+          ) in
+          let op = op_of_int op in
+          { op; handle; id; sector; segs }
+end
+
+module Res = struct
+
+  type rsp = 
+   |OK
+   |Error
+   |Not_supported
+   |Unknown of int
+ 
+  (* Defined in include/xen/io/blkif.h, blkif_response_t *)
+  type t = {
+    op: Req.op;
+    st: rsp;
+  }
+
+  (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
+  let read_response bs =
+    (bitmatch bs with
+    | { id:64:littleendian; op:8:littleendian; _:8;
+        st:16:littleendian } ->
+          let op = Req.op_of_int op in
+          let st = match st with 
+            |0 -> OK |0xffff -> Error |0xfffe -> Not_supported |n -> Unknown n in
+          (id, { op; st }))
+end
+
 type features = {
   barrier: bool;
   removable: bool;
@@ -28,7 +130,7 @@ type t = {
   backend_id: int;
   backend: string;
   vdev: int;
-  ring: Ring.Blkif_t.t;
+  ring: (Res.t,int64) Ring.Front.t;
   gnt: Gnttab.r;
   evtchn: int;
   features: features;
@@ -37,9 +139,19 @@ type t = {
 type id = int
 exception Read_error of string
 
+(* Allocate a ring, given the vdev and backend domid *)
+let alloc (num,domid) =
+  let name = sprintf "Blkif.%d" num in
+  lwt (rx_gnt, rx) = Ring.alloc domid in
+  let idx_size = Req.idx_size in (* bigger than res *)
+  let sring = Ring.init rx ~idx_size ~name in
+  let fring = Ring.Front.init ~sring in
+  return (rx_gnt, fring)
+
+(* Thread to poll for responses and activate wakeners *)
 let rec poll t =
-  lwt () = Activations.wait t.evtchn in
-  Ring.Blkif_t.poll t.ring;
+  Activations.wait t.evtchn >>
+  let () = Ring.Front.poll t.ring (Res.read_response) in
   poll t
 
 (* Given a VBD ID and a backend domid, construct a blkfront record *)
@@ -49,7 +161,7 @@ let create vdev =
   lwt backend_id = Xs.(t.read (node "backend-id")) in
   lwt backend_id = try_lwt return (int_of_string backend_id)
     with _ -> fail (Failure "invalid backend_id") in
-  lwt (gnt, ring) = Ring.Blkif_t.t backend_id in
+  lwt (gnt, ring) = alloc(vdev,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
   (* Read xenstore info and set state to Connected *)
   lwt backend = Xs.(t.read (node "backend")) in
@@ -88,13 +200,16 @@ let create vdev =
   Evtchn.unmask evtchn;
   let t = { backend_id; backend; vdev; ring; gnt; evtchn; features } in
   let th = poll t in
-  return (t,th)
+  Lwt.on_cancel th (fun _ ->
+    printf "Blkfront.cancel; vdev=%d\n%!" vdev;
+    (* TODO shutdown *)
+  );
+  return (t, th)
       
 (** Return a list of valid VBDs *)
 let enumerate () =
   lwt vbds = Xs.(t.directory "device/vbd") in
-  return (List.fold_left (fun a b ->
-    try int_of_string b :: a with _ -> a) [] vbds)
+  return (List.fold_left (fun a b -> try int_of_string b :: a with _ -> a) [] vbds)
 
 (* Read a single page from disk.
    Offset is the sector number, which must be page-aligned *)
@@ -103,17 +218,19 @@ let read_page t sector =
     (fun gnt ->
       let _ = Gnttab.page gnt in
       let gref = Gnttab.num gnt in
-      let segs =[| { Ring.Blkif.Req.gref; first_sector=0; last_sector=7 } |] in
-      let req id = Ring.Blkif.Req.({op=Read; handle=t.vdev; id; sector; segs}) in
-      lwt res = Ring.Blkif_t.push_one t.ring ~evtchn:t.evtchn req in
-      let open Ring.Blkif.Res in
-      match res.status with
+      let id = Int64.of_int32 gref in
+      let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+      let req = Req.({op=Read; handle=t.vdev; id; sector; segs}) in
+      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+      if Ring.Front.push_requests_and_check_notify t.ring then
+        Evtchn.notify t.evtchn;
+      let open Res in
+      lwt res = res in
+      Res.(match res.st with
       |Error -> fail (Read_error "read")
       |Not_supported -> fail (Read_error "unsupported")
       |Unknown _ -> fail (Read_error "unknown error")
-      |OK ->
-        let raw = Gnttab.detach gnt in
-        return (Istring.t raw 4096)
+      |OK -> return (Gnttab.detach gnt))
     )
 
 (** Read a number of contiguous sectors off disk.
@@ -126,8 +243,6 @@ let read_512 t sector num_sectors =
   (* Round up the ending sector to get the final page size *)
   let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
   let end_offset = Int64.(to_int (sub 7L (sub end_sector (add sector num_sectors)))) in
-  (* printf "sector=%Lu num=%Lu start=%Lu[%d] end=%Lu[%d]\n%!"
-    sector num_sectors start_sector start_offset end_sector end_offset; *)
   (* Calculate number of 4K pages needed *)
   let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in
   if len > 11 then
@@ -144,12 +259,16 @@ let read_512 t sector num_sectors =
             |_ -> 7 in
           let _ = Gnttab.page gnt in
           let gref = Gnttab.num gnt in
-          { Ring.Blkif.Req.gref; first_sector; last_sector }
+          { Req.gref; first_sector; last_sector }
         ) gnts in
-      let req id = Ring.Blkif.Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
-      lwt res = Ring.Blkif_t.push_one t.ring ~evtchn:t.evtchn req in
-      let open Ring.Blkif.Res in
-      match res.status with
+      let id = Int64.of_int32 (Gnttab.num gnts.(0)) in
+      let req = Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
+      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+      if Ring.Front.push_requests_and_check_notify t.ring then
+        Evtchn.notify t.evtchn;
+      let open Res in
+      lwt res = res in
+      match res.st with
       |Error -> fail (Read_error "read")
       |Not_supported -> fail (Read_error "unsupported")
       |Unknown x -> fail (Read_error "unknown error")
@@ -165,7 +284,7 @@ let read_512 t sector num_sectors =
               |n when n = len-1 -> (end_offset + 1) * 512
               |_ -> 4096 in
             let bytes = end_offset - start_offset in
-            Istring.t ~off:start_offset page bytes;
+            Bitstring.subbitstring page (start_offset * 8) (bytes * 8)
           ) gnts in
         return pages
     )

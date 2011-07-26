@@ -1,4 +1,4 @@
-<**/packet.ml>: warn_y
-<**/rR.ml>: warn_y
-"server.ml": pa_lwt
+true: mirage
+<**/*.ml> : annot
+<*.ml>: pa_lwt
 <*.cmx> and not "dns.cmx": for-pack(Dns)

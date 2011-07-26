@@ -35,11 +35,9 @@ let read t filename =
   in
   (* Construct a stream that reads pages of istrings *)
   return (Lwt_stream.from (fun () ->
-    let istr = OS.Istring.Raw.alloc () in
-    lwt len = Manager.Unix.(iobind (read fd istr 0) 4096) in
+    let str = String.create 4096 in
+    lwt len = Manager.Unix.(iobind (read fd str 0) 4096) in
     match len with
     | 0 -> return None
-    | len -> 
-        let view = OS.Istring.t istr len in
-        return (Some view)
+    | len -> return (Some (str, 0, len*8))
   ))

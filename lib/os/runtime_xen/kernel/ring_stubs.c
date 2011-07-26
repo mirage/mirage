@@ -25,383 +25,7 @@
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
-#include <istring.h>
 
-/* blkif_request { op:op; handle:int; id:int;
-     sector:int64; segs:array(gref*int*int)[11] } */
-static void
-blkif_set_request(value v_req, struct blkif_request *req)
-{
-  value v_segs;
-  req->operation = Int_val(Field(v_req,0));
-  req->handle = Int_val(Field(v_req,1));
-  req->id = Int_val(Field(v_req, 2));
-  req->sector_number = Int64_val(Field(v_req, 3));
-  v_segs = Field(v_req,4);
-  req->nr_segments = Wosize_val(v_segs);
-  BUG_ON(req->nr_segments > BLKIF_MAX_SEGMENTS_PER_REQUEST);
-  for (int i=0; i < req->nr_segments; i++) {
-    struct blkif_request_segment *seg = &req->seg[i];
-    value v = Field(v_segs,i);
-    seg->gref = Int32_val(Field(v,0));
-    seg->first_sect = Int_val(Field(v,1));
-    seg->last_sect = Int_val(Field(v,2));
-  }
-}
-
-/* blkif_response { id:int; op:int; status:int } */
-value
-blkif_alloc_response(struct blkif_response *res)
-{
-  value v = alloc_small(3, 0);
-  Store_field(v, 0, Val_int((uint32_t)res->id));
-  Store_field(v, 1, Val_int(res->operation));
-  Store_field(v, 2, Val_int(res->status));
-  return v;
-}
-
-/* netif_rx_response { id:int; off: int; flags: int; status: int } */
-value
-netif_rx_alloc_response(struct netif_rx_response *response)
-{
-  value v = alloc_small(4,0);
-  Store_field(v, 0, Val_int(response->id));
-  Store_field(v, 1, Val_int(response->offset));
-  Store_field(v, 2, Val_int(response->flags));
-  Store_field(v, 3, Val_int(response->status));
-  return v;
-}
-
-/* netif_rx_request { id: int; gref: int32; } */
-static void
-netif_rx_set_request(value v_req, struct netif_rx_request *req)
-{
-  req->id = Int_val(Field(v_req, 0));
-  req->gref = Int32_val(Field(v_req, 1));
-}
-
-/* netif_tx_response { id: int; status: int } */
-value
-netif_tx_alloc_response(struct netif_tx_response *response)
-{
-  value v = alloc_small(2,0);
-  Store_field(v, 0, Val_int(response->id));
-  Store_field(v, 1, Val_int(response->status));
-  return v;
-}
-
-/* netif_tx_request:
-   type extra = 
-     | GSO of { size: int; type: int; features: int }
-     | Mcast_add of string
-     | Mcast_del of string
-   type req = 
-     | Req of { gref: int32; offset: int; flags: int; id: int; size: int }
-     | Extra of { ty: int; more: bool }
- */
-static void
-netif_tx_set_request(value v_req, struct netif_tx_request *req)
-{
-  value v = Field(v_req, 0);
-  netif_extra_info_t *ex;
-  switch (Tag_val(v_req)) {
-    case 0: /* Request */
-      req->gref = Int32_val(Field(v, 0));
-      req->offset = Int_val(Field(v, 1));
-      req->flags = Int_val(Field(v, 2));
-      req->id = Int_val(Field(v, 3));
-      req->size = Int_val(Field(v, 4));
-      break;
-    case 1: /* Extra */
-      ex = (netif_extra_info_t *)req;
-      switch (Tag_val(v)) {
-        case 0: /* GSO */
-          v = Field(v, 0);
-          ex->u.gso.size = Int_val(Field(v, 0));
-          ex->u.gso.type = Int_val(Field(v, 1));
-          ex->u.gso.features = Int_val(Field(v, 2));
-          break;
-        case 1: /* Mcast_add */
-          memcpy(ex->u.mcast.addr, String_val(Field(v,0)), 6);
-          break;
-        case 2: /* Mcast_del */
-          memcpy(ex->u.mcast.addr, String_val(Field(v,0)), 6);
-          break;
-        default:
-          BUG_ON("netif_tx_set_request: unknown Tag_val extra");
-      }
-      break;
-    default:
-      BUG_ON("netif_tx_set_request: unknown Tag_val");
-  }
-}
-
-value
-caml_netif_rx_response(value v_ring)
-{
-  CAMLparam1(v_ring);
-  CAMLlocal2(v_responses, v_cons);
-  RING_IDX rp, cons;
-  struct netif_rx_front_ring *fring = (struct netif_rx_front_ring *)v_ring;
-  struct netif_rx_response *response;
-  int more=1;
- 
-  /* Allocate an OCaml list for the responses
-     (so remember they will be returned in reverse order!) */
-  v_responses = Val_emptylist;
-
-  while (more) {
-    rp = fring->sring->rsp_prod;
-    rmb(); /* Ensure we see queued responses up to rp */
-    cons = fring->rsp_cons;
-    /* Walk through the outstanding responses and add to list */
-    for (; cons != rp; cons++) {
-      response = RING_GET_RESPONSE(fring, cons);
-      /* Append response to the OCaml response list */ 
-      v_cons = caml_alloc(2, 0);
-      Store_field(v_cons, 0, netif_rx_alloc_response(response)); /* head */
-      Store_field(v_cons, 1, v_responses); /* tail */
-      v_responses = v_cons;
-    }
-    /* Mark responses as consumed */
-    fring->rsp_cons = cons;
-    RING_FINAL_CHECK_FOR_RESPONSES(fring, more);
-  }
-  CAMLreturn(v_responses);
-}
-
-/* ring -> req list -> int (if notify required to evtchn) */
-CAMLprim value
-caml_netif_rx_request(value v_ring, value v_reqs)
-{
-  CAMLparam1(v_ring);
-  CAMLlocal1(v_req); /* Head of reqs list */
-  struct netif_rx_front_ring *fring = (struct netif_rx_front_ring *)v_ring;
-  netif_rx_request_t *req;
-  RING_IDX req_prod;
-  int notify;
-
-  req_prod = fring->req_prod_pvt;
-  while (v_reqs != Val_emptylist) {
-    v_req = Field(v_reqs, 0);
-    req = RING_GET_REQUEST(fring, req_prod++);
-    netif_rx_set_request(v_req, req);
-    v_reqs = Field(v_reqs, 1);
-  }
-  wmb();
-  fring->req_prod_pvt = req_prod;
-  RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
-  CAMLreturn(Val_int(notify));
-}
-
-value
-caml_netif_rx_free_requests(value v_ring)
-{
-  return Val_int(RING_FREE_REQUESTS((struct netif_rx_front_ring *)v_ring));
-}
-
-value
-caml_netif_rx_pending_responses(value v_ring)
-{
-  return Val_int(RING_HAS_UNCONSUMED_RESPONSES((struct netif_rx_front_ring *)v_ring));
-}
-
-value
-caml_netif_rx_max_requests(value v_ring)
-{
-  return Val_int(RING_SIZE((struct netif_rx_front_ring *)v_ring)-1);
-}
-
-value
-caml_netif_tx_response(value v_ring)
-{
-  CAMLparam1(v_ring);
-  CAMLlocal2(v_responses, v_cons);
-  RING_IDX rp, cons;
-  struct netif_tx_front_ring *fring = (struct netif_tx_front_ring *)v_ring;
-  struct netif_tx_response *response;
-  int more=1;
- 
-  /* Allocate an OCaml list for the responses
-     (so remember they will be returned in reverse order!) */
-  v_responses = Val_emptylist;
-
-  while (more) {
-    rp = fring->sring->rsp_prod;
-    rmb(); /* Ensure we see queued responses up to rp */
-    cons = fring->rsp_cons;
-    /* Walk through the outstanding responses and add to list */
-    for (; cons != rp; cons++) {
-      response = RING_GET_RESPONSE(fring, cons);
-      /* Append response to the OCaml response list */ 
-      v_cons = caml_alloc(2, 0);
-      Store_field(v_cons, 0, netif_tx_alloc_response(response)); /* head */
-      Store_field(v_cons, 1, v_responses); /* tail */
-      v_responses = v_cons;
-    }
-    /* Mark responses as consumed */
-    fring->rsp_cons = cons;
-    RING_FINAL_CHECK_FOR_RESPONSES(fring, more);
-  }
-  CAMLreturn(v_responses);
-}
-
-/* ring -> req list -> int (if notify required to evtchn) */
-CAMLprim value
-caml_netif_tx_request(value v_ring, value v_reqs)
-{
-  CAMLparam1(v_ring);
-  CAMLlocal1(v_req); /* Head of reqs list */
-  struct netif_tx_front_ring *fring = (struct netif_tx_front_ring *)v_ring;
-  netif_tx_request_t *req;
-  RING_IDX req_prod;
-  int notify;
-
-  req_prod = fring->req_prod_pvt;
-  while (v_reqs != Val_emptylist) {
-    v_req = Field(v_reqs, 0);
-    req = RING_GET_REQUEST(fring, req_prod++);
-    netif_tx_set_request(v_req, req);
-    v_reqs = Field(v_reqs, 1);
-  }
-  wmb();
-  fring->req_prod_pvt = req_prod;
-  RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
-  CAMLreturn(Val_int(notify));
-}
-
-value
-caml_netif_tx_pending_responses(value v_ring)
-{
-  return Val_int(RING_HAS_UNCONSUMED_RESPONSES((struct netif_tx_front_ring *)v_ring));
-}
-
-value
-caml_netif_tx_free_requests(value v_ring)
-{
-  return Val_int(RING_FREE_REQUESTS((struct netif_tx_front_ring *)v_ring));
-}
-
-value
-caml_netif_tx_max_requests(value v_ring)
-{
-  return Val_int(RING_SIZE((struct netif_tx_front_ring *)v_ring)-1);
-}
-
-value
-caml_netif_rx_init(value v_istr)
-{
-  CAMLparam1(v_istr);
-  struct netif_rx_front_ring *fring;
-  struct netif_rx_sring *sring;
-  sring = (struct netif_rx_sring *)(Istring_val(v_istr)->buf);
-  SHARED_RING_INIT(sring);
-  fring = caml_stat_alloc(sizeof (struct netif_rx_front_ring));
-  FRONT_RING_INIT(fring, sring, PAGE_SIZE);
-  CAMLreturn((value)fring);
-}
- 
-value
-caml_netif_tx_init(value v_istr)
-{
-  CAMLparam1(v_istr);
-  struct netif_tx_front_ring *fring;
-  struct netif_tx_sring *sring;
-  sring = (struct netif_tx_sring *)(Istring_val(v_istr)->buf);
-  SHARED_RING_INIT(sring);
-  fring = caml_stat_alloc(sizeof (struct netif_tx_front_ring));
-  FRONT_RING_INIT(fring, sring, PAGE_SIZE);
-  CAMLreturn((value)fring);
-} 
-
-value
-caml_blkif_init(value v_istr)
-{
-  CAMLparam1(v_istr);
-  struct blkif_front_ring *fring;
-  struct blkif_sring *sring;
-  sring = (struct blkif_sring *)(Istring_val(v_istr)->buf);
-  SHARED_RING_INIT(sring);
-  fring = caml_stat_alloc(sizeof (struct blkif_front_ring));
-  FRONT_RING_INIT(fring, sring, PAGE_SIZE);
-  CAMLreturn((value)fring);
-} 
-
-value
-caml_blkif_response(value v_ring)
-{
-  CAMLparam1(v_ring);
-  CAMLlocal2(v_responses, v_cons);
-  RING_IDX rp, cons;
-  struct blkif_front_ring *fring = (struct blkif_front_ring *)v_ring;
-  struct blkif_response *response;
-  int more=1;
- 
-  /* Allocate an OCaml list for the responses
-     (so remember they will be returned in reverse order!) */
-  v_responses = Val_emptylist;
-
-  while (more) {
-    rp = fring->sring->rsp_prod;
-    rmb(); /* Ensure we see queued responses up to rp */
-    cons = fring->rsp_cons;
-    /* Walk through the outstanding responses and add to list */
-    for (; cons != rp; cons++) {
-      response = RING_GET_RESPONSE(fring, cons);
-      /* Append response to the OCaml response list */ 
-      v_cons = caml_alloc(2, 0);
-      Store_field(v_cons, 0, blkif_alloc_response(response)); /* head */
-      Store_field(v_cons, 1, v_responses); /* tail */
-      v_responses = v_cons;
-    }
-    /* Mark responses as consumed */
-    fring->rsp_cons = cons;
-    RING_FINAL_CHECK_FOR_RESPONSES(fring, more);
-  }
-  CAMLreturn(v_responses);
-}
-
-/* ring -> req list -> int (if notify required to evtchn) */
-CAMLprim value
-caml_blkif_request(value v_ring, value v_reqs)
-{
-  CAMLparam1(v_ring);
-  CAMLlocal1(v_req); /* Head of reqs list */
-  struct blkif_front_ring *fring = (struct blkif_front_ring *)v_ring;
-  blkif_request_t *req;
-  RING_IDX req_prod;
-  int notify;
-
-  req_prod = fring->req_prod_pvt;
-  while (v_reqs != Val_emptylist) {
-    v_req = Field(v_reqs, 0);
-    req = RING_GET_REQUEST(fring, req_prod++);
-    blkif_set_request(v_req, req);
-    v_reqs = Field(v_reqs, 1);
-  }
-  wmb();
-  fring->req_prod_pvt = req_prod;
-  RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(fring, notify);
-  CAMLreturn(Val_int(notify));
-}
-
-value
-caml_blkif_pending_responses(value v_ring)
-{
-  return Val_int(RING_HAS_UNCONSUMED_RESPONSES((struct blkif_front_ring *)v_ring));
-}
-
-value
-caml_blkif_free_requests(value v_ring)
-{
-  return Val_int(RING_FREE_REQUESTS((struct blkif_front_ring *)v_ring));
-}
-
-value
-caml_blkif_max_requests(value v_ring)
-{
-  return Val_int(RING_SIZE((struct blkif_front_ring *)v_ring)-1);
-}
 
 /* Raw ring operations
    These have no request/response structs, just byte strings
@@ -409,15 +33,15 @@ caml_blkif_max_requests(value v_ring)
 
 #define DEFINE_RAW_RING_OPS(xname,xtype,xin,xout) \
 CAMLprim value \
-caml_##xname##_ring_init(value v_istr) \
+caml_##xname##_ring_init(value v_ptr) \
 { \
-   memset(Istring_val(v_istr)->buf, 0, PAGE_SIZE); \
+   memset((void *)v_ptr, 0, PAGE_SIZE); \
    return Val_unit; \
 } \
 CAMLprim value \
-caml_##xname##_ring_write(value v_istr, value v_str, value v_len) \
+caml_##xname##_ring_write(value v_ptr, value v_str, value v_len) \
 { \
-   struct xtype *intf = (struct xtype *)(Istring_val(v_istr)->buf); \
+   struct xtype *intf = (struct xtype *)v_ptr; \
    int sent = 0, len = Int_val(v_len); \
    char *data = String_val(v_str); \
    XENCONS_RING_IDX cons, prod; \
@@ -432,9 +56,9 @@ caml_##xname##_ring_write(value v_istr, value v_str, value v_len) \
    return Val_int(len); \
 } \
 CAMLprim value \
-caml_##xname##_ring_read(value v_istr, value v_str, value v_len) \
+caml_##xname##_ring_read(value v_ptr, value v_str, value v_len) \
 { \
-   struct xtype *intf = (struct xtype *)(Istring_val(v_istr)->buf); \
+   struct xtype *intf = (struct xtype *)v_ptr; \
    int pos=0, len = Int_val(v_len); \
    char *data = String_val(v_str); \
    XENCONS_RING_IDX cons, prod; \
@@ -458,7 +82,7 @@ caml_console_start_page(value v_unit)
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
   unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
-  v_ret = istring_alloc(page, 4096);
+  v_ret = (value)page;
   CAMLreturn(v_ret);
 }
 
@@ -468,6 +92,79 @@ caml_xenstore_start_page(value v_unit)
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
   unsigned char *page = mfn_to_virt(start_info.store_mfn);
-  v_ret = istring_alloc(page, 4096);
+  v_ret = (value)page;
   CAMLreturn(v_ret);
 }
+
+/* Shared ring with request/response structs */
+
+struct sring {
+  RING_IDX req_prod, req_event;
+  RING_IDX rsp_prod, rsp_event;
+  uint8_t  pad[64];
+};
+
+#define SRING_VAL(x) ((struct sring *)(String_val(Field((x),0))+(Int_val(Field((x),1))/8)))
+CAMLprim value
+caml_sring_rsp_prod(value v_sring)
+{
+  return Val_int(SRING_VAL(v_sring)->rsp_prod);
+}
+
+CAMLprim value
+caml_sring_req_prod(value v_sring)
+{
+  return Val_int(SRING_VAL(v_sring)->req_prod);
+}
+
+CAMLprim value
+caml_sring_req_event(value v_sring)
+{
+  xen_mb ();
+  return Val_int(SRING_VAL(v_sring)->req_event);
+}
+
+CAMLprim value
+caml_sring_rsp_event(value v_sring)
+{
+  xen_mb ();
+  return Val_int(SRING_VAL(v_sring)->rsp_event);
+}
+
+CAMLprim value
+caml_sring_push_requests(value v_sring, value v_req_prod_pvt)
+{
+  struct sring *sring = SRING_VAL(v_sring);
+  ASSERT(((unsigned long)sring % PAGE_SIZE) == 0);
+  xen_wmb(); /* ensure requests are seen before the index is updated */
+  sring->req_prod = Int_val(v_req_prod_pvt);
+  return Val_unit;
+}
+
+CAMLprim value
+caml_sring_push_responses(value v_sring, value v_rsp_prod_pvt)
+{
+  struct sring *sring = SRING_VAL(v_sring);
+  xen_wmb(); /* ensure requests are seen before the index is updated */
+  sring->rsp_prod = Int_val(v_rsp_prod_pvt);
+  return Val_unit;
+}
+
+CAMLprim value
+caml_sring_set_rsp_event(value v_sring, value v_rsp_cons)
+{
+  struct sring *sring = SRING_VAL(v_sring);
+  sring->rsp_event = Int_val(v_rsp_cons);
+  xen_mb();
+  return Val_unit;
+}
+
+CAMLprim value
+caml_sring_set_req_event(value v_sring, value v_req_cons)
+{
+  struct sring *sring = SRING_VAL(v_sring);
+  sring->req_event = Int_val(v_req_cons);
+  xen_mb();
+  return Val_unit;
+}
+

@@ -77,26 +77,6 @@ module OS = struct
     | x -> failwith ("unknown target os: " ^ x)
 end
 
-(* Rules for MPL compiler *)
-module MPL = struct
-
-  let mplc_bin = "mplc" 
-
-  let mpl_c tags arg out =
-    Cmd (S [A mplc_bin; A"-q"; T(tags++"mpl"); P arg; Sh">"; Px out])
-
-  let mpl_compile mpl ml env build =
-    let mpl = env mpl and ml = env ml in
-    let tags = tags_of_pathname mpl in
-    mpl_c tags mpl ml
-
-  let () =
-    rule "mpl: mpl -> ml"
-      ~prod:"%.ml"
-      ~dep:"%.mpl"
-      (mpl_compile "%.mpl" "%.ml")
-end
-
 (* Rules to directly invoke GCC rather than go through OCaml. *)
 module CC = struct
 
@@ -140,6 +120,9 @@ module CC = struct
     A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen";
     A (ps "-I%s/os/runtime_xen/ocaml" Pathname.pwd) ] @ ocaml_debug_inc
 
+  (* ocaml system include directory i.e. /usr/lib/ocaml *)
+  let ocaml_sys_incs = [ A"-I"; Px (Util.run_and_read "ocamlc -where"); ]
+
   (* dietlibc bits, mostly extra warnings *)
   let dietlibc_incs = [
     A "-Wextra"; A "-Wchar-subscripts"; A "-Wmissing-prototypes";
@@ -151,7 +134,7 @@ module CC = struct
 
   let cc_c tags arg out =
     let tags = tags++"cc"++"c" in
-    Cmd (S (A cc :: [ A"-c"; T(tags++"compile"); A"-I"; Px (Lazy.force stdlib_dir); A"-o"; Px out; P arg]))
+    Cmd (S (A cc :: [ A"-c"; T(tags++"compile"); A"-o"; Px out; P arg]))
 
   let cc_compile_c_implem ?tag c o env build =
     let c = env c and o = env o in
@@ -194,13 +177,13 @@ end
    The C files below are #included, so need to be present but are
    not picked up by dependency analysis *)
 let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
-  ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c";
+  ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c"; "byteswap.h";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
 let libexts = match OS.target with
   | OS.Node  -> ["cmo"; "cmi" ]
   | OS.Xen
-  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
+  |OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
@@ -237,7 +220,7 @@ let () =
      Seq (List.map (fun f -> cp ("block" / mode / "block." ^ f) ("std" / "block." ^ f)) libexts)
    )
 
-let otherlibs = ["http"; "dns"; "dyntype"; "cow"; "resolv"]
+let otherlibs = ["http"; "dns"; "dyntype"; "cow"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->
@@ -248,7 +231,7 @@ let () =
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)
-     flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"];
+     flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"; A"-annot"];
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
      if profiling then
        flag ["ocaml"; "compile"; "native" ] & S [A"-p"];
@@ -256,11 +239,17 @@ let _ = dispatch begin function
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
      let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
+(*
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-     ) [ "lwt"; "ulex"; "js"];
+     ) [ "lwt"; "ulex"; "js"; "bitstring"];
+*)
+     let corep4 = "pa_lwt.cma pa_bitstring.cma" in
+     flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
+     flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
+     flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      List.iter (fun lib ->
       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
@@ -274,16 +263,12 @@ let _ = dispatch begin function
      pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
 
      (* net/direct includes *)
-     Pathname.define_context "net/direct/mpl/protocols" ["mpl"];
-     Pathname.define_context "net/direct/tcp" ["net/direct/mpl"; "net/direct"];
-     Pathname.define_context "net/direct" ["net/direct/mpl"; "net/direct/tcp"; "net/direct/dhcp"];
-     Pathname.define_context "net/direct/dhcp" ["net/direct/mpl"; "net/direct" ];
+     Pathname.define_context "net/direct" ["net/direct/tcp"; "net/direct/dhcp" ];
+     Pathname.define_context "net/direct/dhcp" ["net/direct" ];
+     Pathname.define_context "net/direct/tcp" ["net/direct" ];
 
      (* some C code will use local ev.h *)
      dep  ["c"; "compile"; "include_libev"] libev_files;
-
-     (* unix code deps *)
-     dep ["c"; "compile"; "unix_header"] ["os/runtime_unix/istring.h"];
 
      (* base cflags for C code *)
      flag ["c"; "compile"] & S CC.cc_cflags;
@@ -295,6 +280,7 @@ let _ = dispatch begin function
      flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;
      flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
      flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
+     flag ["c"; "compile"; "include_system_ocaml"] & S CC.ocaml_sys_incs;
      flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
      flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
 

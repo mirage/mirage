@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  * Copyright (c) 2006 Steven Smith <sos22@cam.ac.uk>
  * Copyright (c) 2006 Grzegorz Milos <gm281@cam.ac.uk>
  *
@@ -19,7 +19,9 @@
 #include <mini-os/x86/os.h>
 #include <mini-os/mm.h>
 #include <mini-os/gnttab.h>
-#include <istring.h>
+
+#include <caml/mlvalues.h>
+#include <caml/memory.h>
 
 static grant_entry_t *gnttab_table;
 
@@ -39,18 +41,23 @@ caml_gnttab_reserved(value unit)
     CAMLreturn(Val_int(NR_RESERVED_ENTRIES));
 }
 
-CAMLprim value
-caml_gnttab_grant_access(value v_ref, value v_istr, value v_domid, value v_readonly)
+static void
+gnttab_grant_access(grant_ref_t ref, void *page, int domid, int ro)
 {
-    CAMLparam4(v_ref, v_istr, v_domid, v_readonly);
-    grant_ref_t ref = Int32_val(v_ref);
-    unsigned char *page = Istring_val(v_istr)->buf;
-//    printk("gnttab_grant_access: ref=%d pg=%p domid=%d ro=%d\n", 
-//        ref, page, Int_val(v_domid), Int_val(v_readonly));
     gnttab_table[ref].frame = virt_to_mfn(page);
-    gnttab_table[ref].domid = Int_val(v_domid);
+    gnttab_table[ref].domid = domid;
     wmb();
-    gnttab_table[ref].flags = GTF_permit_access | (Bool_val(v_readonly) * GTF_readonly);
+    gnttab_table[ref].flags = GTF_permit_access | (ro * GTF_readonly);
+}
+
+CAMLprim value
+caml_gnttab_grant_access(value v_ref, value v_bs, value v_domid, value v_readonly)
+{
+    CAMLparam4(v_ref, v_bs, v_domid, v_readonly);
+    grant_ref_t ref = Int32_val(v_ref);
+    char *page = String_val(Field(v_bs, 0)) + (Int_val(Field(v_bs,1)) / 8);
+    ASSERT(((unsigned long)page) % PAGE_SIZE == 0);
+    gnttab_grant_access(ref, page, Int_val(v_domid), Bool_val(v_readonly));
     CAMLreturn(Val_unit);
 }
 

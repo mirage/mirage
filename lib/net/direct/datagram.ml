@@ -22,7 +22,7 @@ module UDPv4 = struct
   type mgr = Manager.t
   type src = ipv4_src
   type dst = ipv4_dst
-  type msg = OS.Istring.t
+  type msg = Bitstring.t
 
   let send mgr ?src (dest_ip, dest_port) msg =
     (* TODO: set src addr here also *)
@@ -30,19 +30,11 @@ module UDPv4 = struct
       |None -> 37 (* XXX eventually random *)
       |Some (_,p) -> p in
     lwt udp = Manager.udpv4_of_addr mgr None in
-    Udp.output udp ~dest_ip (
-      let data = `Frag msg in
-      Mpl.Udp.t ~source_port ~dest_port ~data
-    )
+    Udp.output udp ~dest_ip ~source_port ~dest_port msg
 
   let recv mgr (src_addr, src_port) fn =
     lwt udp = Manager.udpv4_of_addr mgr src_addr in
-    Udp.listen udp src_port
-      (fun ip udp ->
-        let dst_port = Mpl.Udp.source_port udp in
-        let dst_ip = ipv4_addr_of_uint32 (Mpl.Ipv4.src ip) in
-        let dst = dst_ip, dst_port in
-        let data = Mpl.Udp.data_sub_view udp in
-        fn dst data
-      )
+    Udp.listen udp src_port (fun ~src ~dst ~source_port pkt ->
+      fn (src,source_port) pkt
+    )
 end

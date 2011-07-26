@@ -18,13 +18,13 @@ let echo () =
   let src = (None, 8081) in 
   Flow.listen mgr (`TCPv4 (src,
     (fun (remote_addr, remote_port) t ->
-(*       OS.Console.log (sprintf "Connection from %s:%d"
-         (Nettypes.ipv4_addr_to_string remote_addr) remote_port); *)
+       OS.Console.log (sprintf "Connection from %s:%d"
+         (Nettypes.ipv4_addr_to_string remote_addr) remote_port);
        let rec echo () =
          lwt res = Flow.read t in
          match res with
          |None ->
-(*            OS.Console.log "Connection closed"; *)
+            OS.Console.log "Connection closed";
            return ()
          |Some data ->
            Flow.write t data >>

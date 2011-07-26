@@ -120,9 +120,11 @@ module Mir = struct
     let tags = tags++"cc"++"c" in
     Cmd (S (!cc :: [ T(tags++"link");
              A ocamlc_libdir;
-             A"-o"; Px out; P arg;
+             A"-o"; Px out; 
+             A oslib_unixmain;
+             P arg;
              A oslib_unixrun;
-             A oslib_unixmain] @ dl_libs))
+           ] @ dl_libs))
 
   let cc_xen_link tags arg out =
     let xenlib = libdir in   
@@ -193,14 +195,22 @@ let lib file =
   else
     A (file ^ ".cmxa")
 
+(* All the syntax extensions *)
+let pp_pa =
+  let pa_std = ps "-I %s pa_ulex.cma pa_lwt.cma" syntaxdir in
+  let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
+  let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
+  let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
+  let pa_bitstring = ps "-I %s pa_bitstring.cma" syntaxdir in
+  ps "camlp4o %s %s %s" pa_std pa_cow pa_bitstring
+
+(* Apply the global option *)
+let _ =
+  Options.ocaml_ppflags := [pp_pa]
+
 let _ = dispatch begin function
   | After_rules ->
-    let pa_std = ps "-I %s pa_ulex.cma pa_lwt.cma" syntaxdir in
-    let pa_quotations = "-I +camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
-    let pa_dyntype = ps "%s -I %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations syntaxdir in
-    let pa_cow = ps "%s -I %s str.cma pa_cow.cmo" pa_dyntype syntaxdir in
-    let pp_pa = ps "camlp4o %s %s" pa_std pa_cow in
-    let node_cclib = [
+   let node_cclib = [
       A"-dllpath"; A Mir.oslib; A"-dllib"; A"-los";
       A"-cclib"; A"-los" ] in
     let _ = match debugmode, OS.target with
@@ -217,8 +227,7 @@ let _ = dispatch begin function
 
     let mirage_flags = [
       A"-nostdlib"; A"-I"; A libdir;
-      A"-pp"; A pp_pa ] in
-
+    ] in
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";
     flag ["ocaml"; "pack"   ; "nostdlib"] & A"-nostdlib";

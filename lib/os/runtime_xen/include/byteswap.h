@@ -1,8 +1,6 @@
 #ifndef _BYTESWAP_H
 #define _BYTESWAP_H
 
-#warning "byteswap.h is an unportable GNU extension!  Don't use!"
-
 static inline unsigned short bswap_16(unsigned short x) {
   return (x>>8) | (x<<8);
 }

@@ -77,8 +77,7 @@ This installs the build tools and syntax extensions into the install PREFIX.
 
     make PREFIX=<location> tools
 
-The tools include the `mir-unix-*` and `mir-xen` build wrappers and the
-MPL protocol specification meta-compiler.
+The tools include the `mir-unix-*` and `mir-xen` build wrappers.
 
 Libraries
 ---------

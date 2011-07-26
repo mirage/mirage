@@ -20,8 +20,8 @@ open Printf
 module Tap = struct
   type t = int
   external opendev: string -> t = "tap_opendev"
-  external read: t -> Istring.Raw.t -> int -> int = "tap_read"
-  external write: t -> Istring.Raw.t -> int -> unit = "tap_write"
+  external read: t -> string -> int -> int = "tap_read"
+  external write: t -> Bitstring.t -> unit = "tap_write"
 end
 
 type t = {
@@ -59,7 +59,7 @@ let create (id:id) =
 (* Input a frame, and block if nothing is available *)
 let rec input t =
   let sz = 4096 in
-  let page = Istring.Raw.alloc () in
+  let page = String.create sz in
   let len = Tap.read t.dev page sz in
   match len with
   |(-1) -> (* EAGAIN or EWOULDBLOCK *)
@@ -70,7 +70,7 @@ let rec input t =
     Activations.read t.dev >>
     input t
   |n ->
-    return (Istring.t page n)
+    return (page, 0, n lsl 3)
 
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
@@ -92,16 +92,13 @@ let destroy nf =
   printf "tap_destroy\n%!";
   return ()
 
-(* Transmit a packet from an istring suspension.
+(* Transmit a packet from a bitstring
    For now, just assume the Tap write wont block for long as this
    is not a performance-critical backend
 *)
-let output t fn =
-  let page = Istring.Raw.alloc () in
-  let v = Istring.t page 0 in
-  let p = fn v in
-  Tap.write t.dev page (Istring.length v);
-  return p
+let output t bss =
+  let s = Bitstring.concat bss in
+  return (Tap.write t.dev s)
 
 (** Return a list of valid VIF IDs *)
 let enumerate () =

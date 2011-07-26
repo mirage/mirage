@@ -1,2 +1,1 @@
-<*.c>: include_libev,pic,unix_header
-<*_stubs.c>: include_ocaml
+<*.c>: include_libev,pic,unix_header,include_system_ocaml

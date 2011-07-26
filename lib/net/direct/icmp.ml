@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,34 +22,23 @@ type t = {
   ip: Ipv4.t;
 }
 
-let input t ip = function
-  |`EchoRequest icmp ->
-    (* Create the ICMP echo reply *)
-    let dest_ip = ipv4_addr_of_uint32 (Mpl.Ipv4.src ip) in
-    let sequence = (Mpl.Icmp.EchoRequest.sequence icmp) in
-    let identifier = (Mpl.Icmp.EchoRequest.identifier icmp) in
-    let data = `Frag (Mpl.Icmp.EchoRequest.data_sub_view icmp) in
-    let icmpfn env =
-      let p = Mpl.Icmp.EchoReply.t ~identifier ~sequence ~data env in
-      let csum = OS.Istring.(ones_complement_checksum env (Mpl.Icmp.EchoReply.sizeof p) 0l) in
-      Mpl.Icmp.EchoReply.set_checksum p csum;
-    in
-    (* Create the IPv4 packet *)
-    let id = Mpl.Ipv4.id ip in
-    let src = Mpl.Ipv4.dest ip in
-    let ipfn env = Mpl.Ipv4.t ~id ~protocol:`ICMP ~src ~data:(`Sub icmpfn) env in
-    Ipv4.output t.ip ~dest_ip ipfn >> return ()
-
-  |_ -> print_endline "dropped icmp"; return ()
+let input t src pkt =
+  bitmatch pkt with
+  |{0:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* echo reply *)
+    return (printf "ICMP: discarding echo reply\n%!")
+  |{8:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* echo req *)
+    (* Adjust checksum for reply and transmit EchoReply *)
+    let dest_ip = src in
+    let csum = (csum + 0x0800) land 0xffff in
+    let reply = BITSTRING { 0:8; code:8; csum:16; id:16; seq:16 } in
+    Ipv4.output t.ip ~proto:`ICMP ~dest_ip:src [reply; data]
 
 let create ip =
-  let thread,_ = Lwt.task () in
   let t = { ip } in
   Ipv4.attach ip (`ICMP (input t));
-  Lwt.on_cancel thread (fun () ->
-    printf "ICMP shutdown\n%!";
-    Ipv4.detach ip `ICMP
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun () ->
+    printf "ICMP: shutting down\n%!";
+    Ipv4.detach ip `ICMP;
   );
-  printf "ICMP created\n%!";
-  t, thread
-
+  t, th

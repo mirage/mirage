@@ -32,7 +32,7 @@ module Unix = struct
 
   external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_readonly"
 
-  external read: [`ro_file] fd -> OS.Istring.Raw.t -> int -> int -> int resp = "caml_socket_read"
+  external read: [`ro_file] fd -> string -> int -> int -> int resp = "caml_socket_read"
   external close: [`ro_file] fd -> unit = "caml_socket_close"
 
   (* As fdbind, except on functions that will either be Some or None *)

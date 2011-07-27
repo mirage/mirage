@@ -2,4 +2,5 @@
 <*> and not <pervasives.*>: need_pervasives
 true: mirage
 <lwt_*.ml>: pa_lwt
+"oS.ml" or "net.ml" or "block.ml": pa_lwt
 "ulexing.ml": pa_ulex

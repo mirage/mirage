@@ -143,10 +143,10 @@ module CC = struct
   let cc_archive clib a path env build =
     let clib = env clib and a = env a and path = env path in
     let objs = List.map (fun x -> path / x) (string_list_of_file clib) in
-    let resluts = build (List.map (fun x -> [x]) objs) in
+    let results = build (List.map (fun x -> [x]) objs) in
     let objs = List.map (function
       | Outcome.Good o -> o
-      | Outcome.Bad exn -> raise exn) resluts in
+      | Outcome.Bad exn -> raise exn) results in
     Cmd(S[A ar; A"rc"; Px a; T(tags_of_pathname a++"c"++"archive"); atomize objs])
 
   let () =
@@ -183,10 +183,16 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
 let libexts = match OS.target with
   | OS.Node  -> ["cmo"; "cmi" ]
   | OS.Xen
-  |OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
+  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
+(* XXX pack_in_one should not use relative paths; figure out how to get 
+   the source directory to reference pack_in_one with absolute path *)
+let pack_in_one out files env builder =
+  Cmd (S ([A "ocaml"; A"str.cma"; A"../../pack_in_one.ml"; A"-o"; Px out]
+    @ (List.map (fun x -> A x) files)))
+ 
 (* Compile the right OS module *)
 let () = rule
   ~prods:(libbits "std" "oS")
@@ -195,6 +201,17 @@ let () = rule
    (fun env builder ->
      Seq (List.map (fun f -> cp ("os" / os / "oS." ^ f) ("std" / "oS." ^ f)) libexts)
    )
+
+(* Do a source pack of the OS module in order for ocamldoc to run *)
+let () =
+  let mlmods = string_list_of_file ("os"/os/"oS.mlpack") in
+  let mldeps = List.flatten (List.map (fun x ->
+    let ml = ps "os/%s/%s.ml" os (String.lowercase x) in 
+    let mli = ml ^ "i" in
+    if Sys.file_exists mli then [mli;ml] else [ml]) mlmods) in
+  rule
+  ~prods:["std"/"oS.ml"]
+  ~deps:mldeps "OS all-in-one source pack" (pack_in_one "std/oS.ml" mldeps)
 
 (* Compile the right Net module *)
 let () = rule
@@ -205,20 +222,43 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
+(* Do a source pack of the Net module in order for ocamldoc to run *)
+let () =
+  let mlmods = string_list_of_file ("net"/flow/"net.mlpack") in
+  let mldeps = List.flatten (List.map (fun x ->
+    let ml = ps "net/%s/%s.ml" flow (String.lowercase x) in 
+    let mli = ml ^ "i" in
+    if Sys.file_exists mli then [mli;ml] else [ml]) mlmods) in
+  rule
+  ~prods:["std"/"net.ml"]
+  ~deps:mldeps "Net all-in-one source pack" (pack_in_one "std/net.ml" mldeps)
+
+let block = match OS.target with
+  |OS.Xen -> "direct"
+  |OS.Unix _ -> "socket"
+  |OS.Node -> failwith "add block support to Node"
+ 
 (* Block is only direct for Xen and socket/ for UNIX *)
 let () =
-   let mode = match OS.target with
-     |OS.Xen -> "direct"
-     |OS.Unix _ -> "socket"
-     |OS.Node -> failwith "add block support to Node"
-   in
-   rule
+  rule
   ~prods:(libbits "std" "block")
-  ~deps:(libbits ("block" / mode) "block")
+  ~deps:(libbits ("block" / block) "block")
    "Block link"
    (fun env builder ->
-     Seq (List.map (fun f -> cp ("block" / mode / "block." ^ f) ("std" / "block." ^ f)) libexts)
+     Seq (List.map (fun f -> cp ("block" / block / "block." ^ f) ("std" / "block." ^ f)) libexts)
    )
+
+(* Do a source pack of the Block module in order for ocamldoc to run
+   XXX combine with Net/OS source packs into one rule possibly *)
+let () =
+  let mlmods = string_list_of_file ("block"/block/"block.mlpack") in
+  let mldeps = List.flatten (List.map (fun x ->
+    let ml = ps "block/%s/%s.ml" block (String.lowercase x) in 
+    let mli = ml ^ "i" in
+    if Sys.file_exists mli then [mli;ml] else [ml]) mlmods) in
+  rule
+  ~prods:["std"/"block.ml"]
+  ~deps:mldeps "Block all-in-one source pack" (pack_in_one "std/block.ml" mldeps)
 
 let otherlibs = ["http"; "dns"; "dyntype"; "cow"]
 (* Copy over independent modules *)
@@ -239,21 +279,14 @@ let _ = dispatch begin function
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
      let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
-(*
-     List.iter (fun lib ->
-      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-      flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-     ) [ "lwt"; "ulex"; "js"; "bitstring"];
-*)
      let corep4 = "pa_lwt.cma pa_bitstring.cma" in
      flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      List.iter (fun lib ->
-      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-      flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
      ) ["cow"; "css"; "html"; "xml" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)
@@ -282,8 +315,6 @@ let _ = dispatch begin function
      flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
      flag ["c"; "compile"; "include_system_ocaml"] & S CC.ocaml_sys_incs;
      flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
-     flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
-
-     ()
+     flag ["c"; "compile"; "pic"] & S [A"-fPIC"]
   | _ -> ()
 end

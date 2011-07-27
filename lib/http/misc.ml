@@ -50,15 +50,6 @@ let strip_heading_slash s =
   |0 -> s
   |n -> if s.[0] = '/' then String.sub s 1 (n-1) else s
 
-let string_explode s =
-  let rec string_explode' acc = function
-    | "" -> acc
-    | s -> string_explode' (s.[0] :: acc) (String.sub s 1 (String.length s - 1))
-  in
-  List.rev (string_explode' [] s)
-
-let string_implode = List.fold_left (fun s c -> s ^ (String.make 1 c)) ""
-
 let reason_phrase_of_code = function
   | 100 -> "Continue"
   | 101 -> "Switching protocols"

@@ -41,7 +41,7 @@ let (^^^) x y = Int32.logxor x y
 let (<<<) x y = Int32.shift_left x y
 let (>>>) x y = Int32.shift_right_logical x y
 
-let join c l = List.fold_left (fun x y -> x ^ c ^ y) "" l
+let join c l = String.concat c l
 let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *) 
 
 type domain_name = string list

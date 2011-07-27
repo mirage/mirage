@@ -35,12 +35,6 @@ val strip_trailing_slash: string -> string
   (** strip heading '/', if any, from a string and @return the new string *)
 val strip_heading_slash: string -> string
 
-  (** explode a string in a char list *)
-val string_explode: string -> char list
-
-  (** implode a char list in a string *)
-val string_implode: char list -> string
-
   (** given an HTTP response code return the corresponding reason phrase *)
 val reason_phrase_of_code: int -> string
 

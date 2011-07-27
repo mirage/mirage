@@ -1,10 +1,10 @@
 Hashcons
 Dnsrr
 Dnstrie
-Dnsquery
 Dnsloader
-Dnsparser
 Dnspacket
+Dnsquery
+Dnsparser
 Dnslexer
 Dnsserver
 Server

@@ -18,6 +18,9 @@ all: tools
 	@cd syntax && $(MAKE)
 	@cd lib && $(MAKE)
 
+doc:
+	@cd lib && $(MAKE) doc
+
 tools:
 	@cd tools/crunch && ocamlbuild $(JOBS) crunch.native
 	@cd tools/mir && $(MAKE) install

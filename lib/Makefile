@@ -8,9 +8,8 @@ ARCH = $(shell uname -m)
 #NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)
 
 ifeq ($(OS) $(ARCH),linux x86_64)
-XEN_BUILD=xen-direct
-else
-XEN_BUILD=
+XEN_BUILD=xen-direct-xen
+XEN_DOC=xen-direct-doc
 endif
 
 ifeq ($(NODE),)
@@ -19,20 +18,23 @@ else
 NODE_BUILD=node-socket
 endif
 
-all: $(XEN_BUILD) unix-socket unix-direct
+all: $(XEN_BUILD) unix-socket-unix unix-direct-unix
 	@ :
 
-unix-direct:
-	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=direct ocamlbuild $(OFLAGS) $(JOBS) unix.otarget
+doc: $(XEN_DOC) unix-socket-doc unix-direct-doc
+	@ :
 
-unix-socket:
+unix-direct-%:
 	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=socket ocamlbuild $(OFLAGS) $(JOBS) unix.otarget
+	@env MIRAGEOS=unix MIRAGEFLOW=direct ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
-xen-direct:
+unix-socket-%:
 	@mkdir -p _build
-	@env MIRAGEOS=xen MIRAGEFLOW=direct ocamlbuild $(OFLAGS) $(JOBS) xen.otarget
+	@env MIRAGEOS=unix MIRAGEFLOW=socket ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+
+xen-direct-%:
+	@mkdir -p _build
+	@env MIRAGEOS=xen MIRAGEFLOW=direct ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 node-socket:
 	@mkdir -p _build

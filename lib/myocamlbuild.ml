@@ -181,9 +181,9 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
 let libexts = match OS.target with
-  | OS.Node  -> ["cmo"; "cmi" ]
+  | OS.Node  -> ["cmo"; "cmi"; "ml" ]
   | OS.Xen
-  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
+  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"; "ml"]
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
@@ -202,17 +202,6 @@ let () = rule
      Seq (List.map (fun f -> cp ("os" / os / "oS." ^ f) ("std" / "oS." ^ f)) libexts)
    )
 
-(* Do a source pack of the OS module in order for ocamldoc to run *)
-let () =
-  let mlmods = string_list_of_file ("os"/os/"oS.mlpack") in
-  let mldeps = List.flatten (List.map (fun x ->
-    let ml = ps "os/%s/%s.ml" os (String.lowercase x) in 
-    let mli = ml ^ "i" in
-    if Sys.file_exists mli then [mli;ml] else [ml]) mlmods) in
-  rule
-  ~prods:["std"/"oS.ml"]
-  ~deps:mldeps "OS all-in-one source pack" (pack_in_one "std/oS.ml" mldeps)
-
 (* Compile the right Net module *)
 let () = rule
   ~prods:(libbits "std" "net")
@@ -222,16 +211,26 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
-(* Do a source pack of the Net module in order for ocamldoc to run *)
+(* Do a source pack of an mlpack in order for ocamldoc to run *)
 let () =
-  let mlmods = string_list_of_file ("net"/flow/"net.mlpack") in
-  let mldeps = List.flatten (List.map (fun x ->
-    let ml = ps "net/%s/%s.ml" flow (String.lowercase x) in 
-    let mli = ml ^ "i" in
-    if Sys.file_exists mli then [mli;ml] else [ml]) mlmods) in
   rule
-  ~prods:["std"/"net.ml"]
-  ~deps:mldeps "Net all-in-one source pack" (pack_in_one "std/net.ml" mldeps)
+  ~prods:["%.ml"]
+  ~deps:["%.mlpack"] "all-in-one source pack from .mlpack"
+    (fun env builder ->
+      let mlpack = env "%.mlpack" in
+      let mlname = env "%.ml" in
+      let mlmods = string_list_of_file mlpack in
+      let mldir = Filename.dirname mlname in
+      let mldeps = List.flatten (List.map (fun x ->
+        let ml = mldir / x ^ ".ml" in
+        (* uncapitalize the filename *)
+        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
+        let _ = builder [[ml]] in
+        let mli = ml ^ "i" in
+        if Sys.file_exists mli then [mli;ml] else [ml]) 
+      mlmods) in
+      pack_in_one mlname mldeps env builder
+    )
 
 let block = match OS.target with
   |OS.Xen -> "direct"
@@ -247,18 +246,6 @@ let () =
    (fun env builder ->
      Seq (List.map (fun f -> cp ("block" / block / "block." ^ f) ("std" / "block." ^ f)) libexts)
    )
-
-(* Do a source pack of the Block module in order for ocamldoc to run
-   XXX combine with Net/OS source packs into one rule possibly *)
-let () =
-  let mlmods = string_list_of_file ("block"/block/"block.mlpack") in
-  let mldeps = List.flatten (List.map (fun x ->
-    let ml = ps "block/%s/%s.ml" block (String.lowercase x) in 
-    let mli = ml ^ "i" in
-    if Sys.file_exists mli then [mli;ml] else [ml]) mlmods) in
-  rule
-  ~prods:["std"/"block.ml"]
-  ~deps:mldeps "Block all-in-one source pack" (pack_in_one "std/block.ml" mldeps)
 
 let otherlibs = ["http"; "dns"; "dyntype"; "cow"]
 (* Copy over independent modules *)

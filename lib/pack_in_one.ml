@@ -36,13 +36,13 @@ let process_file fn =
   let module_comment, module_text = split_module_comment_and_text text in
     Printf.fprintf !ochan "%s\n" module_comment;
     if mli then (* .mli file *)
-      Printf.fprintf !ochan "module %s : sig %s end\n"
+      Printf.fprintf !ochan "module %s : sig\n%s\nend\n"
         module_name module_text
     else if !previous_module = module_name then (* .ml after .mli *)
       Printf.fprintf !ochan "= struct %s end\n\n"
         module_text
     else (* just .ml file *)
-      Printf.fprintf !ochan "module %s = struct %s end\n\n"
+      Printf.fprintf !ochan "module %s = struct\n%s\nend\n\n"
         module_name module_text;
     previous_module := module_name
     

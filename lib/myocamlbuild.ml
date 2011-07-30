@@ -180,10 +180,16 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
   ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c"; "byteswap.h";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
-let libexts = match OS.target with
+
+(* For now, just compile the pack_in_one version of the ML file in the
+   std/ directory, instead of copying across the packed file, although we
+   will still need to compile those separately to make it easier to develop
+   and preserve error messages in the individual modules
+ let libexts = match OS.target with
   | OS.Node  -> ["cmo"; "cmi"; "ml" ]
   | OS.Xen
-  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"; "ml"]
+  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"; "ml"; "cma"] *)
+let libexts = ["ml"]
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
@@ -235,7 +241,7 @@ let () =
 let block = match OS.target with
   |OS.Xen -> "direct"
   |OS.Unix _ -> "socket"
-  |OS.Node -> failwith "add block support to Node"
+  |OS.Node -> "socket"
  
 (* Block is only direct for Xen and socket/ for UNIX *)
 let () =
@@ -255,6 +261,10 @@ let () =
       (fun env _ -> Seq (List.map (fun f -> cp (lib / lib ^ "." ^ f) ("std" / lib ^ "." ^ f)) libexts))
   ) otherlibs     
 
+let corep4 = match OS.target with
+  |OS.Xen |OS.Unix _ ->  "pa_lwt.cma pa_bitstring.cma"
+  |OS.Node ->  "pa_lwt.cma pa_bitstring.cma pa_js.cma"
+
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)
@@ -262,11 +272,9 @@ let _ = dispatch begin function
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
      if profiling then
        flag ["ocaml"; "compile"; "native" ] & S [A"-p"];
-
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
      let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
-     let corep4 = "pa_lwt.cma pa_bitstring.cma" in
      flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];

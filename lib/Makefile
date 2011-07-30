@@ -5,7 +5,7 @@ OFLAGS ?= -classic-display
 
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)
-#NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)
+NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)
 
 ifeq ($(OS) $(ARCH),linux x86_64)
 XEN_BUILD=xen-direct-xen
@@ -18,7 +18,7 @@ else
 NODE_BUILD=node-socket
 endif
 
-all: $(XEN_BUILD) unix-socket-unix unix-direct-unix
+all: $(XEN_BUILD) $(NODE_BUILD) unix-socket-unix unix-direct-unix
 	@ :
 
 doc: $(XEN_DOC) unix-socket-doc unix-direct-doc

@@ -399,6 +399,14 @@ end
 val date : date_constr t
   (** The date constructor, as an object. *)
 
+(** Specification of Javascript math object. *)
+class type math = object
+  method random : float t meth
+end
+
+val math : math t
+  (** The Math object *)
+
 (** {2 Standard Javascript functions} *)
 
 val decodeURI : js_string t -> js_string t
@@ -513,6 +521,9 @@ module Unsafe : sig
   external pure_expr : (unit -> 'a) -> 'a = "caml_js_pure_expr"
     (** Asserts that an expression is pure, and can therefore be
         optimized away by the compiler if unused. *)
+
+  external eval_string : string -> 'a = "caml_js_eval_string"
+    (** Evaluate Javascript code *)
 
 (*FIX also, object/array literals *)
 end

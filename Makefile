@@ -38,3 +38,4 @@ clean:
 	@cd syntax && $(MAKE) clean
 	@cd lib && $(MAKE) clean
 	@cd tools/crunch && ocamlbuild -clean
+	@rm -rf _build

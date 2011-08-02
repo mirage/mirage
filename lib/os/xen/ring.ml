@@ -18,7 +18,7 @@ open Lwt
 open Printf
 
 (* Allocate a new grant entry and initialise a ring using it *)
-let alloc domid =
+let alloc ~domid =
   lwt gnt = Gnttab.get_free_entry () in
   let page = Gnttab.page gnt in
   let perm = Gnttab.RW in
@@ -43,7 +43,8 @@ type sring = {
   name: string;     (* For pretty printing only *)
 }
 
-let init (buf,off,len) ~idx_size ~name =
+let init ~domid ~idx_size ~name =
+  lwt gnt, (buf, off, len) = alloc ~domid in
   assert (len = (4096 * 8));
   let header_size = 32+32+32+32+(48*8) in (* header bits size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
@@ -58,7 +59,7 @@ let init (buf,off,len) ~idx_size ~name =
   (* initialise the *_event fields to 1, and the rest to 0 *)
   let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
   String.blit src 0 buf (off/8) (String.length src);
-  t
+  return (gnt,t)
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod"
 external sring_req_prod: sring -> int = "caml_sring_req_prod" 
@@ -173,10 +174,12 @@ end
 
 module Back = struct
 
-  type t = {
+  type ('a,'b) t = {
     mutable rsp_prod_pvt: int;
     mutable req_cons: int;
     sring: sring;
+    wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
+    waiters: unit Lwt.u Lwt_sequence.t;
   }
 
   let has_unconsumed_requests t =

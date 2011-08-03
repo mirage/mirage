@@ -212,12 +212,16 @@ let add_pack_rules () =
       let mldir = Filename.dirname mlname in
       let header = mldir / "intro.txt" in
       ignore (builder [[header]]);
-      let mldeps = List.map (fun x ->
+      let mldeps = List.flatten (List.map (fun x ->
         let ml = mldir / x ^ ".mli" in
         (* uncapitalize the filename *)
         let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
-        let _ = builder [[ml]] in ml
-       ) mlmods in
+        let result = builder [[ml]] in
+        match result with
+        | [ Outcome.Good o ] -> [ml]
+        | [ Outcome.Bad exn ] -> []
+        | _ -> assert false
+       ) mlmods) in
       pack_in_one mlname header mldeps env builder
     )
 

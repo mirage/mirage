@@ -94,14 +94,38 @@ module Front : sig
   val poll : ('a,'b) t -> (Bitstring.t -> ('b * 'a)) -> unit
 end
 
-(*
 module Back : sig
+  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
+
+  (** Given a shared ring, initialise it for this backend module
+    * @param sring Shared ring to attach this backend to
+    * @return backend ring value
+    *)
   val init : sring:sring -> ('a,'b) t
-  val slot : ('a,'b) t -> int Bitstring.t
+
+  (** Retrieve the request/response slot at the specified index as
+    * a Bitstring.
+    * @param idx Index to retrieve, should be less than nr_ents
+    *)
+  val slot : ('a,'b) t -> int -> Bitstring.t
+
+  (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
+
+  (** Advance the response producer and return the latest slot id *)
+  val next_res_id: ('a,'b) t -> int
+
+  (** Update the shared response producer *)
+  val push_responses : ('a,'b) t -> unit
+
+  (** Update the shared response producer, and also check to see
+      if an event notification is required to wake up the remote
+      domain.
+      @return true if an event channel notification is required
+    *)
+  val push_responses_and_check_notify : ('a,'b) t -> bool
 end
-*)
 
 module Console : sig
   type t

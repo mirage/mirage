@@ -24,7 +24,7 @@ let split_module_comment_and_text fname =
         (String.sub module_text 0 (match_end ()),
          String.sub module_text (match_end ()) (String.length module_text - match_end ()))
       end
-      else fail ("no license header found in file " ^ fname)
+      else failwith ("no license header found in file " ^ fname)
 
 let previous_module = ref ""
 
@@ -45,8 +45,10 @@ let process_file fn =
     previous_module := module_name
 
 let header fn =
-  let text = raw_read_file fn in
-  Printf.fprintf !ochan "%s\n\n" text
+  try
+    let text = raw_read_file fn in
+    Printf.fprintf !ochan "%s\n\n" text
+  with _ -> ()
 
 let _ =
   Arg.(parse ["-o", Arg.String (fun s -> ochan := open_out s), ""; "-h", Arg.String header, ""] process_file "pack_in_one files")

@@ -33,6 +33,8 @@ module FD = struct
   
 end
 
+type fd = int
+
 (* Register a read file descriptor and a thread that
    returns when it is ready *)
 let read fd =

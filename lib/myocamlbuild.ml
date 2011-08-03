@@ -180,16 +180,19 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
   ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c"; "byteswap.h";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
-
-(* For now, just compile the pack_in_one version of the ML file in the
-   std/ directory, instead of copying across the packed file, although we
-   will still need to compile those separately to make it easier to develop
-   and preserve error messages in the individual modules
- let libexts = match OS.target with
-  | OS.Node  -> ["cmo"; "cmi"; "ml" ]
-  | OS.Xen
-  | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"; "ml"; "cma"] *)
-let libexts = ["ml"]
+(* Hack: if MIRAGETARGET is set to "doc", then copy over the huge
+   packed ML file into std/, otherwise copy the separately built 
+   files from the individual directories. Separate building makes it
+   possible to develop code more easily as errors are not reported from
+   the big packed file *)
+let libexts = match getenv "MIRAGETARGET" ~default:"" with
+  |"doc" -> [ "ml" ]
+  | _ -> begin
+    match OS.target with
+    | OS.Node  -> ["cmo"; "cmi"; "ml" ]
+    | OS.Xen
+    | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"; "ml";] 
+  end
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 

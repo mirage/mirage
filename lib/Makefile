@@ -15,7 +15,7 @@ endif
 ifeq ($(NODE),)
 NODE_BUILD=
 else
-NODE_BUILD=node-socket
+NODE_BUILD=node-socket-node
 endif
 
 all: $(XEN_BUILD) $(NODE_BUILD) unix-socket-unix unix-direct-unix
@@ -26,19 +26,19 @@ doc: $(XEN_DOC) unix-socket-doc unix-direct-doc
 
 unix-direct-%:
 	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=direct ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env MIRAGEOS=unix MIRAGEFLOW=direct MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 unix-socket-%:
 	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=socket ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env MIRAGEOS=unix MIRAGEFLOW=socket MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 xen-direct-%:
 	@mkdir -p _build
-	@env MIRAGEOS=xen MIRAGEFLOW=direct ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env MIRAGEOS=xen MIRAGEFLOW=direct MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
-node-socket:
+node-socket-%:
 	@mkdir -p _build
-	@env MIRAGEOS=node MIRAGEFLOW=socket ocamlbuild $(OFLAGS) $(JOBS) node.otarget
+	@env MIRAGEOS=node MIRAGEFLOW=socket MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 clean:
 	@ocamlbuild -clean

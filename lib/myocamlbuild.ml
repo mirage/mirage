@@ -180,28 +180,64 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
   ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c"; "byteswap.h";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
+let pack_in_one out header files env builder =
+  ignore(builder [["pack_in_one.ml"]]);
+  Cmd (S ([A "ocaml"; A"str.cma"; A"../../pack_in_one.ml"; A"-o"; Px out; A"-h"; Px header]
+    @ (List.map (fun x -> A x) files)))
+ 
+let add_pack_rules () =
+  rule
+  ~prods:["%.ml"]
+  ~deps:["%.mlpack"] "all-in-one source pack from .mlpack"
+    (fun env builder ->
+      let mlpack = env "%.mlpack" in
+      let mlname = env "%.ml" in
+      let mlmods = string_list_of_file mlpack in
+      let mldir = Filename.dirname mlname in
+      let mldeps = List.map (fun x ->
+        let ml = mldir / x ^ ".ml" in
+        (* uncapitalize the filename *)
+        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
+        let _ = builder [[ml]] in ml
+       ) mlmods in
+      pack_in_one mlname "" mldeps env builder
+    );
+  rule
+  ~prods:["%.mli"]
+  ~deps:["%.mlpack"] "all-in-one source mli pack from .mlpack"
+    (fun env builder ->
+      let mlpack = env "%.mlpack" in
+      let mlname = env "%.mli" in
+      let mlmods = string_list_of_file mlpack in
+      let mldir = Filename.dirname mlname in
+      let header = mldir / "intro.txt" in
+      ignore (builder [[header]]);
+      let mldeps = List.map (fun x ->
+        let ml = mldir / x ^ ".mli" in
+        (* uncapitalize the filename *)
+        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
+        let _ = builder [[ml]] in ml
+       ) mlmods in
+      pack_in_one mlname header mldeps env builder
+    )
+
+
 (* Hack: if MIRAGETARGET is set to "doc", then copy over the huge
    packed ML file into std/, otherwise copy the separately built 
    files from the individual directories. Separate building makes it
    possible to develop code more easily as errors are not reported from
    the big packed file *)
 let libexts = match getenv "MIRAGETARGET" ~default:"" with
-  |"doc" -> [ "ml" ]
+  |"doc" -> add_pack_rules (); [ "ml";"mli" ]
   | _ -> begin
     match OS.target with
-    | OS.Node  -> ["cmo"; "cmi"; "ml" ]
+    | OS.Node  -> ["cmo"; "cmi" ]
     | OS.Xen
-    | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"; "ml";] 
+    | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"] 
   end
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
-(* XXX pack_in_one should not use relative paths; figure out how to get 
-   the source directory to reference pack_in_one with absolute path *)
-let pack_in_one out files env builder =
-  Cmd (S ([A "ocaml"; A"str.cma"; A"../../pack_in_one.ml"; A"-o"; Px out]
-    @ (List.map (fun x -> A x) files)))
- 
 (* Compile the right OS module *)
 let () = rule
   ~prods:(libbits "std" "oS")
@@ -219,27 +255,6 @@ let () = rule
    (fun env builder ->
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
-
-(* Do a source pack of an mlpack in order for ocamldoc to run *)
-let () =
-  rule
-  ~prods:["%.ml"]
-  ~deps:["%.mlpack"] "all-in-one source pack from .mlpack"
-    (fun env builder ->
-      let mlpack = env "%.mlpack" in
-      let mlname = env "%.ml" in
-      let mlmods = string_list_of_file mlpack in
-      let mldir = Filename.dirname mlname in
-      let mldeps = List.flatten (List.map (fun x ->
-        let ml = mldir / x ^ ".ml" in
-        (* uncapitalize the filename *)
-        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
-        let _ = builder [[ml]] in
-        let mli = ml ^ "i" in
-        if Sys.file_exists mli then [mli;ml] else [ml]) 
-      mlmods) in
-      pack_in_one mlname mldeps env builder
-    )
 
 let block = match OS.target with
   |OS.Xen -> "direct"

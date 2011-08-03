@@ -24,7 +24,10 @@ let split_module_comment_and_text fname =
         (String.sub module_text 0 (match_end ()),
          String.sub module_text (match_end ()) (String.length module_text - match_end ()))
       end
-      else failwith ("no license header found in file " ^ fname)
+      else (
+        Printf.eprintf "no license header found in file %s\n%!" fname; 
+        "", module_text
+      )
 
 let previous_module = ref ""
 

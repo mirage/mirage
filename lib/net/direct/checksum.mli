@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,21 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Configuration modes for interfaces. 
-   Defaults to DHCP, and individual ids can be assigned static IPs *)
+(** Checksum functions for TCP/IP *)
 
-(* For now, uncomment the one you want until we have a p4 syntax extension
-   which compiles in the correct set of options based on user choice *)
+(** One's complement checksum, RFC1071 *)
+external ones_complement: Bitstring.t -> int = "caml_ones_complement_checksum"
 
-(* Just use DHCP for the interface *)
-let t id =
-  `DHCP 
+(** One's complement checksum, RFC1071 over a scatter-gather set of bitstrings *)
+external ones_complement_list: Bitstring.t list -> int = "caml_ones_complement_checksum_list"
 
-(* Static IPv4 address *)
-let t id =
-  let open Nettypes in
-  `IPv4 (
-    ipv4_addr_of_tuple (10l,0l,0l,2l),
-    ipv4_addr_of_tuple (255l,255l,255l,0l),
-    [ ipv4_addr_of_tuple (10l,0l,0l,1l) ]
-  )

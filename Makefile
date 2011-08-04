@@ -19,6 +19,7 @@ all: tools
 	@cd lib && $(MAKE)
 
 doc:
+	@cd docs && $(MAKE) all
 	@cd lib && $(MAKE) doc
 
 tools:

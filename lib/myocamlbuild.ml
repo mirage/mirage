@@ -294,6 +294,9 @@ let _ = dispatch begin function
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
      if profiling then
        flag ["ocaml"; "compile"; "native" ] & S [A"-p"];
+     (* ocamldoc always uses the JSON generator *)
+     let docgenerator = "../../../docs/_build/odoc_json.cmxs" in
+     flag ["ocaml"; "doc"] & S [A"-g"; Px docgenerator ];
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
      let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in

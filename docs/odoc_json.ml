@@ -75,20 +75,20 @@ open String
 let remove_asterisks str =
 	let n = String.length str in
 	let res = Buffer.create n in
-	let phase = ref 0 in
+	let phase = ref false in
 	for i = 0 to n-1 do
 		match !phase with
-		| 0 ->
+		| false ->
 			if str.[i] == '\n' then begin
-				phase := 1;
+				phase := true;
 				Buffer.add_char res ' '
 			end else if i == 0 && str.[i] == '*' then
-				phase := 1
+				phase := true
 			else
 				Buffer.add_char res str.[i]
-		| 1 -> 
+		| true -> 
 			if not (List.mem str.[i] ['\n'; '\t'; ' '; '*']) then begin
-				phase := 0;
+				phase := false;
 				Buffer.add_char res str.[i]
 			end
 	done;

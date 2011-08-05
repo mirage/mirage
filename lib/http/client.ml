@@ -73,10 +73,11 @@ exception Invalid_url
 let parse_url url =
   try
     let url  = Url.of_string url in
-    let host = Url.host url in
-    let port = match Url.port url with
+    let host = url.Url.host in
+    let port = match url.Url.port with
       |None -> 80
-      |Some p -> p in
+      |Some p -> p
+    in
     let path = Url.full_path url in
     OS.Console.log (Printf.sprintf "[PARSE_URL] host=%s port=%d path=%s" host port path);
     (host, port, path)

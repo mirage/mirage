@@ -19,6 +19,8 @@
   USA
 *)
 
+open Regexp
+
 type time = [ `Day of int | `Hour of int | `Minute of int | `Second of int ] list
 type expiration = [ `Discard | `Session | `Age of time | `Until of float ]
 
@@ -84,12 +86,14 @@ let serialize ?(version=`HTTP_1_0) cp =
 let extract req =
   List.fold_left
     (fun acc header ->
-       let comps = Str.(split (regexp "(?:;|,)\\s") header) in
-       let cookies = List.filter (fun s -> s.[0] != '$') comps in
-       let split_pair nvp =
-         match Str.(split (regexp_string "=")) nvp with
-         | [] -> ("","")
-         | n :: [] -> (n, "")
-         | n :: v :: _ -> (n, v)
-       in (List.map split_pair cookies) @ acc
+        let comps =
+          Re.(split_delim (from_string "\\(\\?:;\\|,\\)\\\\s") header)
+        in
+        let cookies = List.filter (fun s -> s.[0] != '$') comps in
+        let split_pair nvp =
+          match Re.(split_delim (from_string "=")) nvp with
+          | [] -> ("","")
+          | n :: [] -> (n, "")
+          | n :: v :: _ -> (n, v)
+        in (List.map split_pair cookies) @ acc
     ) [] (Request.header req "Cookie")

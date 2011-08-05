@@ -24,9 +24,10 @@ open Printf
 open Types
 open Constants
 
-let lws_RE_raw = "(\r\n)?[ \t]"
+(*
 let heading_lws_RE = Str.regexp "^\\(\r\n\\)?[ \t]*"
 let trailing_lws_RE = Str.regexp "\\(\r\n\\)?[ \t]*$"
+*)
 
 let normalize_header_value s =
-  Str.replace_first trailing_lws_RE "" (Str.replace_first heading_lws_RE "" s)
+  failwith "TODO"

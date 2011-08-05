@@ -25,9 +25,14 @@ open Lwt
 
 open Common
 open Types
+open Regexp (*makes Re available*)
 
-let auth_sep_RE = Str.regexp_string ":"
-let basic_auth_RE = Str.regexp "^Basic +"
+let auth_sep_RE = Re.compile (Re.string ":")
+let remove_basic_auth s =
+  let re = Re.from_string "Basic +" in
+  match Re.match_string re s 0 with
+  | None -> s
+  | Some e -> String.sub s e (String.length s - e)
 
 type request = {
   r_msg: Message.message;
@@ -133,8 +138,8 @@ let authorization r =
   match Message.header r.r_msg ~name:"authorization" with
     | [] -> None
     | h :: _ -> 
-    let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in
-      (match Str.split auth_sep_RE credentials with
+    let credentials = Base64.decode (remove_basic_auth h) in
+      (match Re.split_delim auth_sep_RE credentials with
          | [username; password] -> Some (`Basic (username, password))
          | l -> None)
 

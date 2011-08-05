@@ -24,18 +24,17 @@
 open Dnsloader
 open Dnsparser
 open Lexing
-open Str
 
 (* Remove magic escapes from a string *)
 let unescape s = 
-  let re_escape = regexp "\\\\." in
-  let re_octet = regexp "\\\\[0-9][0-9][0-9]" in
+  let re_escape = Regexp.Re.from_string "\\\\." in
+  let re_octet = Regexp.Re.from_string "\\\\[0-9][0-9][0-9]" in
   let rec copy_unescaped src dst slen soff doff = 
     if soff >= slen then doff 
-    else if string_match re_octet src soff then begin
+    else if Regexp.Re.match_string re_octet src soff <> None then begin
       dst.[doff] <- char_of_int (int_of_string (String.sub s (soff + 1) 3));
       copy_unescaped src dst slen (soff + 4) (doff + 1)
-    end else if string_match re_escape src soff then begin 
+    end else if Regexp.Re.match_string re_escape src soff <> None then begin 
       dst.[doff] <- src.[soff + 1]; 
       copy_unescaped src dst slen (soff + 2) (doff + 1)
     end else begin

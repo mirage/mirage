@@ -25,6 +25,7 @@
   OTHER DEALINGS IN THE SOFTWARE.
 *)
 
+module Re = Regexp.Re
 open Printf
 
 type ref = { src : string; desc : string }
@@ -206,9 +207,9 @@ and read_list f is_item indent e =
 
 and read_pre kind e =
   let kind = match kind with "" -> None | s -> Some s in
-  let re = Str.regexp "^\\\\+}}$" in
+  let re = Re.from_string "^\\\\+}}$" in
   let unescape = function
-      s when Str.string_match re s 0 -> slice ~first:1 s
+      s when Re.match_string re s 0 <> None -> slice ~first:1 s
     | s -> s in
   (*  don't forget the last \n *)
   let ret ls = Some (Pre (String.concat "\n" (List.rev ("" :: ls)), kind)) in
@@ -324,12 +325,15 @@ and maybe_link delim f s st n = match scan_link s ~max:st.max n with
 
 (* return None if delim not found, else Some (offset of char *after* delim) *)
 and scan_past ~delim s ~max n =
-  let re = Str.regexp (Str.quote delim) in
+  let re = Re.compile (Re.string delim) in
   let rec loop m ~max =
     if m >= max then None else
-      match (try Some (Str.search_forward re s m) with Not_found -> None) with
-        | Some m when m < max && s.[m-1] <> '\\' -> Some (m + String.length delim)
-        | Some m when m < max -> loop (m + 1) ~max
+      match Re.search_forward re s m with
+        (*what if m = 0 ?*)
+        | Some (m,_) when m < max && s.[m-1] <> '\\'
+          -> Some (m + String.length delim)
+        | Some (m,_) when m < max
+          -> loop (m + 1) ~max
         | _ -> None (* no match or >= max  *)
   in loop n ~max
 
@@ -370,7 +374,7 @@ let parse_enum e =
     (Enum.map (fun l -> let l' = strip l in (indentation l, l', l' = "")) e)
 
 let parse_lines ls = parse_enum (Enum.of_list ls)
-let parse_text s = parse_lines ((Str.split (Str.regexp "\n") s))
+let parse_text s = parse_lines ((Re.split_delim (Re.from_string "\n") s))
 
 let rec text = function
     Text t    -> <:html<$str:t$&>>

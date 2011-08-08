@@ -18,7 +18,7 @@
 type t = {
   scheme       : string option;
   userinfo     : string option;
-  host         : string;
+  host         : string option;
   port         : int option;
   path         : string list option;
   path_string  : string option;

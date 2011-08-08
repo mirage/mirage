@@ -73,7 +73,7 @@ exception Invalid_url
 let parse_url url =
   try
     let url  = Url.of_string url in
-    let host = url.Url.host in
+    let host = (match url.Url.host with None -> "" | Some s -> s) in
     let port = match url.Url.port with
       |None -> 80
       |Some p -> p

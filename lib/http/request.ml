@@ -29,7 +29,7 @@ open Regexp (*makes Re available*)
 
 let auth_sep_RE = Re.compile (Re.string ":")
 let remove_basic_auth s =
-  let re = Re.from_string "Basic +" in
+  let re = Re.from_string "Basic( +)" in
   match Re.match_string re s 0 with
   | None -> s
   | Some e -> String.sub s e (String.length s - e)

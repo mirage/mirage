@@ -87,7 +87,7 @@ let extract req =
   List.fold_left
     (fun acc header ->
         let comps =
-          Re.(split_delim (from_string "\\(\\?:;\\|,\\)\\\\s") header)
+          Re.(split_delim (from_string "(\\?:;\\|,)([ \t])") header)
         in
         let cookies = List.filter (fun s -> s.[0] != '$') comps in
         let split_pair nvp =

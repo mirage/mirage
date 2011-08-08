@@ -116,7 +116,6 @@ let parse_content_range headers =
   if List.mem_assoc "content-length" headers then begin
     try 
       let str = List.assoc "content-length" headers in
-      let str = Parser_sanity.normalize_header_value str in
       Some (int_of_string str)
     with _ ->
       None

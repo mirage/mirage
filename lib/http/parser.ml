@@ -91,11 +91,7 @@ let parse_headers ic =
           | [] | [_] -> fail (Invalid_header line)
           | hd :: tl -> Lwt.return (hd, String.concat ":" tl)
         in
-        lwt norm_value =
-          try_lwt 
-            return (Parser_sanity.normalize_header_value value)
-          with _ -> return "" in
-        parse_headers' ((String.lowercase header, norm_value) :: headers)
+        parse_headers' ((String.lowercase header, value) :: headers)
       end
   in
   parse_headers' []

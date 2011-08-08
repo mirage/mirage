@@ -11,31 +11,31 @@
 %start  regexp_start
 %type <Regular_expr.regexp> regexp_start
 
-%left ALT 
+%left ALT
 %left CONCAT CHAR CHARSET OPENPAR
 %nonassoc STAR PLUS QUESTION
 
 %%
-regexp_start: 
-  | regexp EOF 
+regexp_start:
+  | regexp EOF
       { $1 }
 ;
 
 regexp:
-  | CHAR 
+  | CHAR
       { char $1 }
-  | CHARSET 
+  | CHARSET
       { $1 }
   | regexp STAR
       { star $1 }
   | regexp PLUS
       { some $1 }
-  | regexp QUESTION 
+  | regexp QUESTION
       { opt $1 }
-  | regexp ALT regexp 
+  | regexp ALT regexp
       { alt $1 $3 }
   | regexp regexp %prec CONCAT
       { seq $1 $2 }
-  | OPENPAR regexp CLOSEPAR 
+  | OPENPAR regexp CLOSEPAR
       { $2 }
 ;

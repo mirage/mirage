@@ -165,7 +165,7 @@ let rec json_to_string n = function
 | Object l -> (endl n) ^ "{ " ^ (String.concat ("," ^ (endl (n+1))) (List.map (fun (s, j) -> "\"" ^ s ^ "\": " ^ (json_to_string (n+2) j)) l)) ^ " }"
 | Array l -> "[ " ^ (String.concat ", " (List.map (fun j -> (json_to_string n j)) l)) ^ " ]"
 | String s -> "\"" ^ (escape_json s) ^ "\""
-| Number n -> string_of_float n
+| Number n -> Printf.sprintf "%.4f" n
 | True -> "true"
 | False -> "false"
 | Empty -> "\"\""

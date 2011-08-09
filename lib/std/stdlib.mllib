@@ -1,6 +1,5 @@
 base64
 string
-str
 stack
 sort
 set
@@ -52,6 +51,7 @@ lwt_pool
 lwt_condition
 lwt_pqueue
 lwt_switch
+regexp
 oS
 net
 block

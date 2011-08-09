@@ -23,13 +23,6 @@
 
 open Types;;
 
-  (** given an HTTP like query string (e.g. "name1=value1&name2=value2&...")
-  @return a list of pairs [("name1", "value1"); ("name2", "value2")]
-  @raise Malformed_query if the string isn't a valid query string
-  @raise Malformed_query_part if some piece of the query isn't valid
-  *)
-val split_query_params: string -> (string * string) list
-
   (** parse 1st line of an HTTP request
   @param inchan input channel from which parse request
   @return a triple meth * url * version, meth is the HTTP method invoked, url is
@@ -44,15 +37,6 @@ val parse_request_fst_line: (unit -> string Lwt.t) -> (meth * Url.t * version) L
    * @raise Malformed_response if first line isn't well formed
   *)
 val parse_response_fst_line: (unit -> string Lwt.t) -> (version * status) Lwt.t
-
-  (** parse HTTP GET parameters from an URL; paramater which were passed with no
-  value (like 'x' in "/foo.cgi?a=10&x=&c=9") are returned associated with the
-  empty ("") string.
-  @return a list of pairs param_name * param_value *)
-val parse_query_get_params: Url.t -> (string * string) list
-
-  (** parse the base path (removing query string, fragment, ....) from an URL *)
-val parse_path: Url.t -> string
 
   (** parse HTTP headers. Consumes also trailing CRLF at the end of header list
   @param inchan input channel from which parse headers

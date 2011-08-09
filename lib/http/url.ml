@@ -30,7 +30,7 @@ let encoding str =
 let encode str =
   Re.substitute url_encoding str encoding
 
-let url_decoding = Re.from_string "%[0-9][0-9]"
+let url_decoding = Re.from_string "%[0-9a-fA-F][0-9a-fA-F]"
 
 let decoding str =
   let s = String.create 4 in

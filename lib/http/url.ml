@@ -55,6 +55,7 @@ type t = {
   fragment     : string option;
 }
 
+(*
 let debug_print s t =
   let unopt = function
     | None -> ""
@@ -70,6 +71,7 @@ let debug_print s t =
     (unopt t.path_string)
     (unopt t.query_string)
     (unopt t.fragment)
+*)
 
 let host u = u.host
 let port u = u.port
@@ -217,12 +219,14 @@ module Of_string = struct
 
 end
 
+let of_string str = Of_string.polish (Of_string.of_string str)
+
+(* Only for debugging purpose
 let of_string str =
-  let r =
-    Of_string.polish (Of_string.of_string str)
-  in
+  let r = of_string str in
   print_endline (debug_print str r);
   r
+*)
 
 
 

@@ -544,7 +544,7 @@ class gen () =
 	method generate (modules_list : t_module list) =
 		let write_module_json (name, json, _) =
 			let oc = open_out (!Odoc_args.target_dir ^ "/" ^ name ^ ".json") in
-			output_string oc ("odoc = " ^ (json_to_string 0 json));
+			output_string oc (json_to_string 0 json);
 			close_out oc
 		in
 		let write_index_json ml =
@@ -556,15 +556,7 @@ class gen () =
 			| _ -> Empty
 			in
 			let modules = Array (List.map make_record ml) in
-			let component =
-				try
-					let n = String.rindex !Odoc_args.target_dir '/' in
-					slice !Odoc_args.target_dir (n+1) (-1)
-				with _ -> !Odoc_args.target_dir
-			in
-			output_string oc ("modules_" ^ (replace "-" "" component) ^ " = " ^ (json_to_string 0 modules) ^ ";\n");
-			let stats = Object ["descr_cnt", Number (float_of_int descr_cnt); "completed_descr_cnt", Number (float_of_int completed_descr_cnt)] in
-			output_string oc ("stats_" ^ (replace "-" "" component) ^ " = " ^ (json_to_string 0 stats) ^ ";\n");
+			output_string oc (json_to_string 0 modules);
 			close_out oc
 		in
 		let create_module_json m =

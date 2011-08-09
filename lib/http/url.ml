@@ -160,7 +160,7 @@ module Of_string = struct
 
   let path_delim     = Re.from_string "/"
   let query_delim    = Re.from_string "&"
-  let query_subdelim = Re.from_string "   = "
+  let query_subdelim = Re.from_string "="
   let userinfo_delim = Re.from_string "@"
   let port_delim     = Re.from_string ":"
 

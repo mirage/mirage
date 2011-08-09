@@ -48,10 +48,14 @@ type request = {
 exception Length_required (* HTTP 411 *)
  
 let init_request finished ic =
+  let unopt def = function
+    | None -> def
+    | Some v -> v
+  in
   lwt (meth, uri, version) = Parser.parse_request_fst_line ic in
   let uri_str = Url.to_string uri in
-  let path = Parser.parse_path uri in
-  let query_get_params = Parser.parse_query_get_params uri in
+  let path = unopt "/" uri.Url.path_string in
+  let query_get_params = unopt [] uri.Url.query in
   lwt headers = Parser.parse_headers ic in
   let headers = List.map (fun (h,v) -> (String.lowercase h, v)) headers in
   lwt body = match meth with

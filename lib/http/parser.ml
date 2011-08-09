@@ -36,21 +36,6 @@ let bindings_sep, binding_sep, pieces_sep, header_sep =
 
 let url_decode url = Url.decode url
 
-let split_query_params query =
-  let bindings = Re.split_delim bindings_sep query in
-  match bindings with
-  | [] -> raise (Malformed_query query)
-  | bindings ->
-      List.map
-        (fun binding ->
-          match Re.split_delim binding_sep binding with
-          | [ ""; b ] -> (* '=b' *)
-              raise (Malformed_query_part (binding, query))
-          | [ a; "" ] | [ a ] -> (* 'a=' *) (url_decode a, "")
-          | [ a; b ]  -> (* 'a=b' *) (url_decode a, url_decode b)
-          | _ -> raise (Malformed_query_part (binding, query)))
-        bindings
-
 let parse_request_fst_line ic =
   lwt request_line = ic () in
   try_lwt begin
@@ -77,19 +62,6 @@ let parse_response_fst_line ic =
      fail (Malformed_response response_line)
   | e -> fail e
 
-let parse_path uri =
-  match uri.Url.path_string with None -> "/" | Some x -> x
-
-let parse_query_get_params uri =
-  try (* act on HTTP encoded URIs *)
-(*
-    match uri.Url.query_string with
-      | None -> []
-      | Some x -> split_query_params x
- *)
-    match uri.Url.query with None -> [] | Some l -> l
-  with Not_found -> []
-
 let parse_headers ic =
   (* consume also trailing "^\r\n$" line *)
   let rec parse_headers' headers =
@@ -108,8 +80,8 @@ let parse_headers ic =
 
 let parse_request ic =
   lwt (meth, uri, version) = parse_request_fst_line ic in
-  let path = parse_path uri in
-  let query_get_params = parse_query_get_params uri in
+  let path = match uri.Url.path_string with None -> "/" | Some p -> p in
+  let query_get_params = match uri.Url.query with None -> [] | Some l -> l in
   return (path, query_get_params)
 
 let parse_content_range s =

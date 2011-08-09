@@ -121,14 +121,16 @@ module Of_string = struct
     | Some o ->
       { none_url with
         fragment = Some (String.sub str (succ off) (o - (succ off)))
+                                        (*'succ' gets rid of '#'*)
       }
 
   let of_string_query str off =
     match query str off with
     | None -> of_string_fragment str off
     | Some o ->
-      {(of_string_fragment str o)
-        with query_string = Some (String.sub str (succ off) (o - (succ off)))
+      {(of_string_fragment str o) with
+        query_string = Some (String.sub str (succ off) (o - (succ off)))
+                                            (*'succ' gets rid of '?'*)
       }
 
   let of_string_path str off =
@@ -143,16 +145,17 @@ module Of_string = struct
     match host str off with
     | None -> of_string_path str off
     | Some o ->
-      {(of_string_path str o)
-        with host = Some (String.sub str (off + 2) (o - (off + 2)))
+      {(of_string_path str o) with
+        host = Some (String.sub str (off + 2) (o - (off + 2)))
+                                    (*'+ 2' gets rid of '//'*)
       }
 
   let of_string str =
     match scheme str with
     | None -> of_string_host str 0
     | Some o ->
-      {(of_string_host str o)
-        with scheme = Some (String.sub str 0 (pred o))
+      {(of_string_host str o) with
+        scheme = Some (String.sub str 0 (pred o))(*'pred' gets rid of ':'*)
       }
 
   let path_delim     = Re.from_string "/"

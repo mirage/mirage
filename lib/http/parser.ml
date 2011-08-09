@@ -28,10 +28,11 @@ open Constants
 open Regexp
 
 let bindings_sep, binding_sep, pieces_sep, header_sep =
-  Re.(compile (string "&"),
-      compile (string "="),
-      compile (string " "),
-      compile (string ":") )
+  Re.(compile (char '&'),
+      compile (char '='),
+      compile (char ' '),
+      compile (char ':')
+     )
 
 let url_decode url = Url.decode url
 
@@ -45,8 +46,8 @@ let split_query_params query =
           match Re.split_delim binding_sep binding with
           | [ ""; b ] -> (* '=b' *)
               raise (Malformed_query_part (binding, query))
+          | [ a; "" ] | [ a ] -> (* 'a=' *) (url_decode a, "")
           | [ a; b ]  -> (* 'a=b' *) (url_decode a, url_decode b)
-          | [ a ]     -> (* 'a=' || 'a' *) (url_decode a, "")
           | _ -> raise (Malformed_query_part (binding, query)))
         bindings
 
@@ -54,8 +55,11 @@ let parse_request_fst_line ic =
   lwt request_line = ic () in
   try_lwt begin
     match Re.split_delim pieces_sep request_line with
-    | [ meth_raw; uri_raw; http_version_raw ] ->
-        return (method_of_string meth_raw, Url.of_string uri_raw, version_of_string http_version_raw)
+    | [ meth_raw; uri_raw; http_version_raw ] -> return
+      ( method_of_string meth_raw
+      , Url.of_string uri_raw
+      , version_of_string http_version_raw
+      )
     | _ -> fail (Malformed_request request_line)
   end with | Malformed_URL url -> fail (Malformed_request_URI url)
 
@@ -78,7 +82,12 @@ let parse_path uri =
 
 let parse_query_get_params uri =
   try (* act on HTTP encoded URIs *)
-    match uri.Url.query_string with None -> [] | Some x -> split_query_params x
+(*
+    match uri.Url.query_string with
+      | None -> []
+      | Some x -> split_query_params x
+ *)
+    match uri.Url.query with None -> [] | Some l -> l
   with Not_found -> []
 
 let parse_headers ic =
@@ -87,6 +96,7 @@ let parse_headers ic =
     ic () >>= function
     | "" -> return (List.rev headers)
     | line -> begin
+        (*TODO: optimize by not going through the whole header and cat-ing it*)
         lwt (header, value) = match Re.(split_delim (from_string ":") line) with
           | [] | [_] -> fail (Invalid_header line)
           | hd :: tl -> Lwt.return (hd, String.concat ":" tl)

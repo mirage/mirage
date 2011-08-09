@@ -153,13 +153,13 @@ struct
         else
           if m > n && match_prefix p q n
           then
-    	(* [p] contains [q]. Merge [s] with a subtree of [t]. *)
-    	if zero_bit p n
-    	then Branch(q, n, merge s t0, t1)
-    	else Branch(q, n, t0, merge s t1)
+        (* [p] contains [q]. Merge [s] with a subtree of [t]. *)
+        if zero_bit p n
+        then Branch(q, n, merge s t0, t1)
+        else Branch(q, n, t0, merge s t1)
           else
-    	(* The prefixes disagree. *)
-    	join p s q t
+        (* The prefixes disagree. *)
+        join p s q t
 
   let union s t = merge s t
 
@@ -222,17 +222,17 @@ struct
         then
           if match_prefix p2 p1 m1
           then
-    	if zero_bit p2 m1
-    	then merge (diff l1 s2) r1
-    	else merge l1 (diff r1 s2)
+        if zero_bit p2 m1
+        then merge (diff l1 s2) r1
+        else merge l1 (diff r1 s2)
           else
-    	s1
+        s1
         else
           if match_prefix p1 p2 m2
           then
-    	if zero_bit p1 m2 then diff s1 l2 else diff s1 r2
+        if zero_bit p1 m2 then diff s1 l2 else diff s1 r2
           else
-    	s1
+        s1
 
   let rec cardinal = function
     | Empty -> 0

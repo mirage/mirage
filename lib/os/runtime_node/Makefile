@@ -1,4 +1,4 @@
-FILES=console activations clock time main istring js
+FILES=console activations clock time main js
 STUBS=dummy_stubs.c
 
 .PHONY: stubs clean

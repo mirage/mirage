@@ -18,7 +18,7 @@ open Lwt
 open Printf
 
 (* Allocate a new grant entry and initialise a ring using it *)
-let alloc domid =
+let alloc ~domid =
   lwt gnt = Gnttab.get_free_entry () in
   let page = Gnttab.page gnt in
   let perm = Gnttab.RW in
@@ -43,7 +43,8 @@ type sring = {
   name: string;     (* For pretty printing only *)
 }
 
-let init (buf,off,len) ~idx_size ~name =
+let init ~domid ~idx_size ~name =
+  lwt gnt, (buf, off, len) = alloc ~domid in
   assert (len = (4096 * 8));
   let header_size = 32+32+32+32+(48*8) in (* header bits size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
@@ -58,7 +59,7 @@ let init (buf,off,len) ~idx_size ~name =
   (* initialise the *_event fields to 1, and the rest to 0 *)
   let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
   String.blit src 0 buf (off/8) (String.length src);
-  t
+  return (gnt,t)
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod"
 external sring_req_prod: sring -> int = "caml_sring_req_prod" 
@@ -173,12 +174,24 @@ end
 
 module Back = struct
 
-  type t = {
+  type ('a,'b) t = {
     mutable rsp_prod_pvt: int;
     mutable req_cons: int;
     sring: sring;
+    wakers: ('b, 'a Lwt.u) Hashtbl.t; (* id * wakener *)
+    waiters: unit Lwt.u Lwt_sequence.t;
   }
 
+  let init ~sring =
+    let rsp_prod_pvt = 0 in
+    let req_cons = 0 in
+    let wakers = Hashtbl.create 7 in
+    let waiters = Lwt_sequence.create () in
+    { rsp_prod_pvt; req_cons; sring; wakers; waiters }
+
+  let slot t idx = slot t.sring idx
+  let nr_ents t = t.sring.nr_ents
+ 
   let has_unconsumed_requests t =
     let req = (sring_req_prod t.sring) - t.req_cons in
     let rsp = t.sring.nr_ents - (t.req_cons - t.rsp_prod_pvt) in
@@ -200,6 +213,12 @@ module Back = struct
       sring_set_req_event t.sring (t.req_cons + 1);
       has_unconsumed_requests t
     end
+
+  let next_res_id t =
+    let s = t.rsp_prod_pvt in
+    t.rsp_prod_pvt <- t.rsp_prod_pvt + 1;
+    s
+
 end
 
 (* Raw ring handling section *)

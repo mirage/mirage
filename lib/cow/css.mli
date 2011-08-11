@@ -24,11 +24,9 @@ and expr = elt list
 
 (** We allow nested declarations *)
 type prop_decl =
-
-  (** Property: `background-color: blue, red;` *)
+  (** Property: {v `background-color: blue, red;` v} *)
   | Prop of string * expr list
 
-  (** Declarations: `contents, header { color: white; }` *)
   | Decl of expr list * prop_decl list
 
 (** The type of CSS fragment *)

@@ -38,6 +38,8 @@ module Unsafe = struct
   external equals : 'a -> 'b -> bool = "caml_js_equals"
 
   external pure_expr : (unit -> 'a) -> 'a = "caml_js_pure_expr"
+
+  external eval_string : string -> 'a = "caml_js_eval_string"
 end
 
 (****)
@@ -308,6 +310,12 @@ let date_sec : (int -> int -> int -> int -> int -> int -> date t) constr =
 let date_ms :
   (int -> int -> int -> int -> int -> int -> int -> date t) constr =
   date_constr
+
+class type math = object
+  method random : float t meth
+end
+
+let math = Unsafe.variable "Math"
 
 let decodeURI (s : js_string t) : js_string t =
   Unsafe.fun_call (Unsafe.variable "decodeURI") [|Unsafe.inject s|]

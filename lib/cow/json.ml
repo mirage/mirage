@@ -419,7 +419,6 @@ module Parser = struct
 		| Json_parse_incomplete of parse_state
 
 	let parse state str =
-		begin try
 			while get_parse_result state = None do
 				parse_char state (str ());
 				(* This is here instead of inside parse_char since
@@ -428,7 +427,6 @@ module Parser = struct
 				*)
 				state.num_chars_parsed <- state.num_chars_parsed + 1;
 			done;
-		with _ -> () end;
 		match get_parse_result state with
 		| Some v -> Json_value v
 		| None -> Json_parse_incomplete state

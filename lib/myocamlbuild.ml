@@ -143,10 +143,10 @@ module CC = struct
   let cc_archive clib a path env build =
     let clib = env clib and a = env a and path = env path in
     let objs = List.map (fun x -> path / x) (string_list_of_file clib) in
-    let resluts = build (List.map (fun x -> [x]) objs) in
+    let results = build (List.map (fun x -> [x]) objs) in
     let objs = List.map (function
       | Outcome.Good o -> o
-      | Outcome.Bad exn -> raise exn) resluts in
+      | Outcome.Bad exn -> raise exn) results in
     Cmd(S[A ar; A"rc"; Px a; T(tags_of_pathname a++"c"++"archive"); atomize objs])
 
   let () =
@@ -180,10 +180,65 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
   ["ev.h"; "ev_vars.h"; "ev_wrap.h"; "ev.c"; "byteswap.h";
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
-let libexts = match OS.target with
-  | OS.Node  -> ["cmo"; "cmi" ]
-  | OS.Xen
-  |OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"]
+let pack_in_one out header files env builder =
+  ignore(builder [["pack_in_one.ml"]]);
+  Cmd (S ([A "ocaml"; A"str.cma"; A"../../pack_in_one.ml"; A"-o"; Px out; A"-h"; Px header]
+    @ (List.map (fun x -> A x) files)))
+ 
+let add_pack_rules () =
+  rule
+  ~prods:["%.ml"]
+  ~deps:["%.mlpack"] "all-in-one source pack from .mlpack"
+    (fun env builder ->
+      let mlpack = env "%.mlpack" in
+      let mlname = env "%.ml" in
+      let mlmods = string_list_of_file mlpack in
+      let mldir = Filename.dirname mlname in
+      let mldeps = List.map (fun x ->
+        let ml = mldir / x ^ ".ml" in
+        (* uncapitalize the filename *)
+        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
+        let _ = builder [[ml]] in ml
+       ) mlmods in
+      pack_in_one mlname "" mldeps env builder
+    );
+  rule
+  ~prods:["%.mli"]
+  ~deps:["%.mlpack"] "all-in-one source mli pack from .mlpack"
+    (fun env builder ->
+      let mlpack = env "%.mlpack" in
+      let mlname = env "%.mli" in
+      let mlmods = string_list_of_file mlpack in
+      let mldir = Filename.dirname mlname in
+      let header = mldir / "intro.txt" in
+      ignore (builder [[header]]);
+      let mldeps = List.flatten (List.map (fun x ->
+        let ml = mldir / x ^ ".mli" in
+        (* uncapitalize the filename *)
+        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
+        let result = builder [[ml]] in
+        match result with
+        | [ Outcome.Good o ] -> [ml]
+        | [ Outcome.Bad exn ] -> []
+        | _ -> assert false
+       ) mlmods) in
+      pack_in_one mlname header mldeps env builder
+    )
+
+
+(* Hack: if MIRAGETARGET is set to "doc", then copy over the huge
+   packed ML file into std/, otherwise copy the separately built 
+   files from the individual directories. Separate building makes it
+   possible to develop code more easily as errors are not reported from
+   the big packed file *)
+let libexts = match getenv "MIRAGETARGET" ~default:"" with
+  |"doc" -> add_pack_rules (); [ "ml";"mli" ]
+  | _ -> begin
+    match OS.target with
+    | OS.Node  -> ["cmo"; "cmi" ]
+    | OS.Xen
+    | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"] 
+  end
 
 let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
 
@@ -205,28 +260,32 @@ let () = rule
      Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
    )
 
+let block = match OS.target with
+  |OS.Xen -> "direct"
+  |OS.Unix _ -> "socket"
+  |OS.Node -> "socket"
+ 
 (* Block is only direct for Xen and socket/ for UNIX *)
 let () =
-   let mode = match OS.target with
-     |OS.Xen -> "direct"
-     |OS.Unix _ -> "socket"
-     |OS.Node -> failwith "add block support to Node"
-   in
-   rule
+  rule
   ~prods:(libbits "std" "block")
-  ~deps:(libbits ("block" / mode) "block")
+  ~deps:(libbits ("block" / block) "block")
    "Block link"
    (fun env builder ->
-     Seq (List.map (fun f -> cp ("block" / mode / "block." ^ f) ("std" / "block." ^ f)) libexts)
+     Seq (List.map (fun f -> cp ("block" / block / "block." ^ f) ("std" / "block." ^ f)) libexts)
    )
 
-let otherlibs = ["http"; "dns"; "dyntype"; "cow"]
+let otherlibs = ["regexp"; "http"; "dns"; "dyntype"; "cow"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->
     rule ~prods:(libbits "std" lib) ~deps:(libbits lib lib) (lib ^ " lib")
       (fun env _ -> Seq (List.map (fun f -> cp (lib / lib ^ "." ^ f) ("std" / lib ^ "." ^ f)) libexts))
   ) otherlibs     
+
+let corep4 = match OS.target with
+  |OS.Xen |OS.Unix _ ->  "pa_lwt.cma pa_bitstring.cma"
+  |OS.Node ->  "pa_lwt.cma pa_bitstring.cma pa_js.cma"
 
 let _ = dispatch begin function
   | After_rules ->
@@ -235,25 +294,21 @@ let _ = dispatch begin function
      flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
      if profiling then
        flag ["ocaml"; "compile"; "native" ] & S [A"-p"];
-
+     (* ocamldoc always uses the JSON generator *)
+     let docgenerator = "../../../docs/_build/odoc_json.cmxs" in
+     flag ["ocaml"; "doc"] & S [A"-g"; Px docgenerator ];
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
      let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
-(*
-     List.iter (fun lib ->
-      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-      flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s pa_%s.cma" p4_build lib)];
-     ) [ "lwt"; "ulex"; "js"; "bitstring"];
-*)
-     let corep4 = "pa_lwt.cma pa_bitstring.cma" in
      flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
+     flag ["ocaml"; "infer_interface"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      List.iter (fun lib ->
-      flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-      flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-      flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "infer_interface"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
      ) ["cow"; "css"; "html"; "xml" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)
@@ -282,8 +337,6 @@ let _ = dispatch begin function
      flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
      flag ["c"; "compile"; "include_system_ocaml"] & S CC.ocaml_sys_incs;
      flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
-     flag ["c"; "compile"; "pic"] & S [A"-fPIC"];
-
-     ()
+     flag ["c"; "compile"; "pic"] & S [A"-fPIC"]
   | _ -> ()
 end

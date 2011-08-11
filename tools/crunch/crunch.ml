@@ -60,7 +60,7 @@ let output_header () =
   printf "let t = function\n"
 
 let output_file root name =
-  printf " | \"%s\" -> Some \"" (String.escaped name);
+  printf " | \"/%s\" -> Some \"" (String.escaped name);
   let fin = open_in (Filename.concat root name) in
   repeat_until_eof (fun () -> print_endline (String.escaped (input_line fin)));
   close_in fin;

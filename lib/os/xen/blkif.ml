@@ -142,9 +142,8 @@ exception Read_error of string
 (* Allocate a ring, given the vdev and backend domid *)
 let alloc (num,domid) =
   let name = sprintf "Blkif.%d" num in
-  lwt (rx_gnt, rx) = Ring.alloc domid in
   let idx_size = Req.idx_size in (* bigger than res *)
-  let sring = Ring.init rx ~idx_size ~name in
+  lwt (rx_gnt, sring) = Ring.init ~domid ~idx_size ~name in
   let fring = Ring.Front.init ~sring in
   return (rx_gnt, fring)
 

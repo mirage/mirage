@@ -560,7 +560,7 @@ struct
   let p_attr_value i =                                   (* {S}? {AttValue} *)
     skip_white i;
     let delim = 
-      if i.c = u_quot or i.c = u_apos then i.c else 
+      if i.c = u_quot || i.c = u_apos then i.c else 
       err_expected_chars i [ u_quot; u_apos]
     in
     nextc i;

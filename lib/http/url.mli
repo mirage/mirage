@@ -15,19 +15,17 @@
  *)
 
 (** URL type *)
-type t
-
-(** Get the host out of the URL *)
-val host : t -> string
-
-(** Get the port out of the URL *)
-val port : t -> int option
-
-(** Get the path out of the URL *)
-val path : t -> string option
-
-(** Get the query out of an URL *)
-val query : t -> string option
+type t = {
+  scheme       : string option;
+  userinfo     : string option;
+  host         : string option;
+  port         : int option;
+  path         : string list option;
+  path_string  : string option;
+  query        : (string * string) list option;
+  query_string : string option;
+  fragment     : string option;
+}
 
 (** Get the full path of an url (ie. including leading /, queries and fragments *)
 val full_path : t -> string

@@ -25,9 +25,14 @@ open Lwt
 
 open Common
 open Types
+open Regexp (*makes Re available*)
 
-let auth_sep_RE = Str.regexp_string ":"
-let basic_auth_RE = Str.regexp "^Basic +"
+let auth_sep_RE = Re.compile (Re.string ":")
+let remove_basic_auth s =
+  let re = Re.from_string "Basic( +)" in
+  match Re.match_string re s 0 with
+  | None -> s
+  | Some e -> String.sub s e (String.length s - e)
 
 type request = {
   r_msg: Message.message;
@@ -43,10 +48,14 @@ type request = {
 exception Length_required (* HTTP 411 *)
  
 let init_request finished ic =
+  let unopt def = function
+    | None -> def
+    | Some v -> v
+  in
   lwt (meth, uri, version) = Parser.parse_request_fst_line ic in
   let uri_str = Url.to_string uri in
-  let path = Parser.parse_path uri in
-  let query_get_params = Parser.parse_query_get_params uri in
+  let path = unopt "/" uri.Url.path_string in
+  let query_get_params = unopt [] uri.Url.query in
   lwt headers = Parser.parse_headers ic in
   let headers = List.map (fun (h,v) -> (String.lowercase h, v)) headers in
   lwt body = match meth with
@@ -133,8 +142,8 @@ let authorization r =
   match Message.header r.r_msg ~name:"authorization" with
     | [] -> None
     | h :: _ -> 
-    let credentials = Base64.decode (Str.replace_first basic_auth_RE "" h) in
-      (match Str.split auth_sep_RE credentials with
+    let credentials = Base64.decode (remove_basic_auth h) in
+      (match Re.split_delim auth_sep_RE credentials with
          | [username; password] -> Some (`Basic (username, password))
          | l -> None)
 

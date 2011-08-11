@@ -44,30 +44,23 @@ function assemble_unix {
   for i in libunixrun.a main.o; do
     cp ${ROOT}/lib/_build/unix-$1/os/runtime_unix/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/_build/unix-$1/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
+  cp ${ROOT}/lib/_build/unix-$1/std/*.{cmi,cmx,cmxa,a,o,cmo} ${OBJ}/lib/
 }
 
 function assemble_node {
-  if [ -d ${ROOT}/lib/os/_build/node ]; then
-    echo Assembling: node
-    OBJ=${BUILDDIR}/node-socket
-    mkdir -p ${OBJ}/lib ${OBJ}/syntax
-    cp ${ROOT}/lib/std/_build/lib/*.{cmi,cma,cmo} ${OBJ}/lib/
-    cp ${ROOT}/lib/os/_build/node/oS.{cmi,cma} ${OBJ}/lib/
-    for i in runtime.js mirage.js; do
-      cp ${ROOT}/lib/os/runtime_node/$i ${OBJ}/lib/
-    done
-    for i in dllos.so libos.a; do
-      cp ${ROOT}/lib/os/_build/runtime_node/$i ${OBJ}/lib/
-    done
-    cp ${ROOT}/lib/net/socket/_build/node/net.{cmi,cma} ${OBJ}/lib/
-    for i in dns http; do
-      cp ${ROOT}/lib/$i/_build/node-socket/$i.{cmi,cma} ${OBJ}/lib/;
-    done
-    cp ${ROOT}/lib/cow/_build/node-socket/lib/cow.{cmi,cma} ${OBJ}/lib/
-  else
-    echo Skipping: node
+  mode=$1
+  echo Assembling: node $1
+  OBJ=${BUILDDIR}/node-$1
+  if [ ! -d ${ROOT}/lib/_build/node-$1 ]; then
+    echo Must build node-$1 first
+    exit 1
   fi
+  mkdir -p ${OBJ}/lib 
+  for i in libos.a dllos.so; do
+    cp ${ROOT}/lib/_build/node-$1/os/runtime_node/$i ${OBJ}/lib/
+  done
+  cp ${ROOT}/lib/_build/node-$1/std/*.{cmi,cmo,cma} ${OBJ}/lib/
+  cp ${ROOT}/lib/os/runtime_node/*.js ${OBJ}/lib/
 }
 
 function assemble_syntax {
@@ -88,5 +81,5 @@ assemble_syntax
 assemble_xen
 assemble_unix "direct"
 assemble_unix "socket"
-#assemble_node
+assemble_node "socket"
 assemble_scripts

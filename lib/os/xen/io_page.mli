@@ -14,5 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** I/O page allocator.
+    Xen requires that pages used for I/O with other domains are never moved
+    in memory once they are granted to the remote domain. Bitstrings allocated
+    via this module are guaranteed to never be moved by the garbage collector,
+    as they are heap-allocated outside of the OCaml heap, and not registered
+    as roots.
+   *)
+
+(** Get free I/O page from the free pool *)
 val get_free: unit -> Bitstring.t
+
+(** Return an I/O Page to the free pool *)
 val put_free: Bitstring.t -> unit

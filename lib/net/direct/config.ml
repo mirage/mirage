@@ -14,10 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Configuration modes for interfaces. 
+(** Configuration modes for interfaces. 
    Defaults to DHCP, and individual ids can be assigned static IPs *)
-
-open Nettypes
 
 (* For now, uncomment the one you want until we have a p4 syntax extension
    which compiles in the correct set of options based on user choice *)
@@ -28,6 +26,7 @@ let t id =
 
 (* Static IPv4 address *)
 let t id =
+  let open Nettypes in
   `IPv4 (
     ipv4_addr_of_tuple (10l,0l,0l,2l),
     ipv4_addr_of_tuple (255l,255l,255l,0l),

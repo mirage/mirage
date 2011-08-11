@@ -14,11 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Nettypes
-
-(* One's complement checksum, RFC1071 *)
+(** One's complement checksum, RFC1071 *)
 external ones_complement: Bitstring.t -> int = "caml_ones_complement_checksum"
 
-(* One's complement checksum, RFC1071 over a scatter-gather set of bitstrings *)
+(** One's complement checksum, RFC1071 over a scatter-gather set of bitstrings *)
 external ones_complement_list: Bitstring.t list -> int = "caml_ones_complement_checksum_list"
 

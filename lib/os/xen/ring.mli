@@ -14,27 +14,117 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val alloc: int -> (Gnttab.r * Bitstring.t) Lwt.t
+(** Shared ring handling to communicate with other Xen domains *)
+
+(** Abstract type for a shared ring *)
 type sring
 
-val init : Bitstring.t -> idx_size:int -> name:string -> sring
+(** Allocate an I/O page that is shared with domain number {[domid]},
+    with the maximum size of each request/response in {[idx_size]}.
+    @param domid domain id to share the I/O page with
+    @param idx_size maximum size of each slot, in bytes
+    @param name Name of the shared ring, for pretty-printing
+    @return Grant table entry and shared ring value
+  *)
+val init : domid:int -> idx_size:int -> name:string -> (Gnttab.r * sring) Lwt.t
 
+(** The front-end of the shared ring, which issues requests and reads
+    responses from the remote domain. 
+  *)
 module Front : sig
-  (* 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
+
+  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
   type ('a,'b) t
+
+  (** Given a shared ring, initialise it for this front-end module
+    * @param sring Shared ring to attach this front end to
+    * @return front end ring value
+    *)
   val init : sring:sring -> ('a,'b) t
+
+  (** Retrieve the request/response slot at the specified index as
+    * a Bitstring.
+    * @param idx Index to retrieve, should be less than nr_ents
+    *)
   val slot : ('a,'b) t -> int -> Bitstring.t
+
+  (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
+
+  (** Retrieve the number of free request slots remaining *)
   val get_free_requests : ('a,'b) t -> int
-  val is_ring_full : ('a,'b) t -> bool
-  val has_unconsumed_responses : ('a,'b) t -> bool
-  val push_requests : ('a,'b) t -> unit
-  val push_requests_and_check_notify : ('a,'b) t -> bool
-  val check_for_responses : ('a,'b) t -> bool
-  val next_req_id : ('a,'b) t -> int
+
+  (** Advance the request producer and return the latest slot id *)
+  val next_req_id: ('a,'b) t -> int
+
+  (** Read all the outstanding responses from the remote domain,
+    * calling {[fn]} on them, and updating the response
+    * consumer pointer after each individual slot has been processed.
+    *
+    * This is the low-level function which is only used if some
+    * sort of batching of requests is being performed, and normally
+    * you should use the flow-controlled {[poll]} that will ack
+    * the responses and wake up any sleeping threads that were
+    * waiting for that particular response.
+    *)
   val ack_responses : ('a,'b) t -> (Bitstring.t -> unit) -> unit
-  val poll : ('a,'b) t -> (Bitstring.t -> ('b * 'a)) -> unit
+
+  (** Update the shared request producer *)
+  val push_requests : ('a,'b) t -> unit
+
+  (** Update the shared request producer, and also check to see
+      if an event notification is required to wake up the remote
+      domain.
+      @return true if an event channel notification is required
+    *)
+  val push_requests_and_check_notify : ('a,'b) t -> bool
+
+  (** Given a function {[fn]} which writes to a slot and returns
+      the request id, this will wait for a free request slot,
+      write the request, and return with the response when it
+      is available.
+      @param fn Function that writes to a request slot and returns the request id
+      @return Thread which returns the response value to the input request
+    *)
   val push_request_and_wait : ('a,'b) t -> (Bitstring.t -> 'b) -> 'a Lwt.t
+
+  (** Poll the ring for responses, and wake up any threads that are
+      sleeping (as a result of calling {[push_request_and_wait]}).
+    *)
+  val poll : ('a,'b) t -> (Bitstring.t -> ('b * 'a)) -> unit
+end
+
+module Back : sig
+  (** 'a is the response type, and 'b is the request id type (e.g. int or int64) *)
+  type ('a,'b) t
+
+  (** Given a shared ring, initialise it for this backend module
+    * @param sring Shared ring to attach this backend to
+    * @return backend ring value
+    *)
+  val init : sring:sring -> ('a,'b) t
+
+  (** Retrieve the request/response slot at the specified index as
+    * a Bitstring.
+    * @param idx Index to retrieve, should be less than nr_ents
+    *)
+  val slot : ('a,'b) t -> int -> Bitstring.t
+
+  (** Retrieve number of slots in the shared ring *)
+  val nr_ents : ('a,'b) t -> int
+
+  (** Advance the response producer and return the latest slot id *)
+  val next_res_id: ('a,'b) t -> int
+
+  (** Update the shared response producer *)
+  val push_responses : ('a,'b) t -> unit
+
+  (** Update the shared response producer, and also check to see
+      if an event notification is required to wake up the remote
+      domain.
+      @return true if an event channel notification is required
+    *)
+  val push_responses_and_check_notify : ('a,'b) t -> bool
 end
 
 module Console : sig

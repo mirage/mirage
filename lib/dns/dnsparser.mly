@@ -19,7 +19,6 @@
 %{
 
 open Dnsloader
-open Str
 
 let parse_error s = 
   prerr_endline ("Error (" ^ state.filename
@@ -103,12 +102,12 @@ let parse_wks proto services =
 
 (* Parse an IPv6 address.  (RFC 3513 section 2.2) *)
 let parse_ipv6 s = 
-  let singledot = regexp_string "." in
-  let singlecolon = regexp_string ":" in
-  let doublecolon = regexp_string "::" in
+  let singledot = Regexp.Re.from_string "\\." in
+  let singlecolon = Regexp.Re.from_string ":" in
+  let doublecolon = Regexp.Re.from_string "::" in
   (* Parse an IPv4 dotted-quad into big-endian bytes *)
   let ipv4_chunk s = 
-    match (split singledot s) with
+    match (Regexp.Re.split_delim singledot s) with
       a :: b :: c :: d :: [] -> 
 	let abyte = String.make 1 (char_of_int (parse_uint8 a)) in 
 	let bbyte = String.make 1 (char_of_int (parse_uint8 b)) in 
@@ -140,17 +139,17 @@ let parse_ipv6 s =
 	end
     | chunk :: rest -> ipv6_chunk chunk ^ (ipv6_rhs rest)
   in
-  let halves = bounded_split_delim doublecolon s 2 in 
+  let halves = Regexp.Re.split_delim doublecolon s in 
   match halves with 
     [] -> String.make 16 '\000'
   | [ a ] -> 
-      let r = ipv6_rhs (split singlecolon a) in
+      let r = ipv6_rhs (Regexp.Re.split_delim singlecolon a) in
       let len = String.length r in 
       if not (len = 16) then raise Parsing.Parse_error;
       r
   | [ a ; b ] -> 
-      let l = ipv6_lhs (split singlecolon a) in
-      let r = ipv6_rhs (split singlecolon b) in 
+      let l = ipv6_lhs (Regexp.Re.split_delim singlecolon a) in
+      let r = ipv6_rhs (Regexp.Re.split_delim singlecolon b) in 
       let len = String.length r + (String.length l) in 
       if len > 16 then raise Parsing.Parse_error;
       l ^ (String.make (16 - len) '\000') ^ r

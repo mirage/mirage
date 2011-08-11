@@ -18,6 +18,10 @@ all: tools
 	@cd syntax && $(MAKE)
 	@cd lib && $(MAKE)
 
+doc:
+	@cd docs && $(MAKE) all
+	@cd lib && $(MAKE) doc
+
 tools:
 	@cd tools/crunch && ocamlbuild $(JOBS) crunch.native
 	@cd tools/mir && $(MAKE) install
@@ -35,3 +39,4 @@ clean:
 	@cd syntax && $(MAKE) clean
 	@cd lib && $(MAKE) clean
 	@cd tools/crunch && ocamlbuild -clean
+	@rm -rf _build

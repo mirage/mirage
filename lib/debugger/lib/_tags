@@ -1,1 +1,2 @@
+true: mirage
 <*.cmx>: for-pack(Debugger)

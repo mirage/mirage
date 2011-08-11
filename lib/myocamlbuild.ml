@@ -275,7 +275,7 @@ let () =
      Seq (List.map (fun f -> cp ("block" / block / "block." ^ f) ("std" / "block." ^ f)) libexts)
    )
 
-let otherlibs = ["regexp"; "http"; "dns"; "dyntype"; "cow"]
+let otherlibs = ["regexp"; "http"; "dns"; "dyntype"; "cow"; "openflow"]
 (* Copy over independent modules *)
 let () =
   List.iter (fun lib ->

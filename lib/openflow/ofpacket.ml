@@ -322,9 +322,7 @@ and string_of_msg = function
   | `Queue_get_config_req  -> sp "Queue_get_config_req"
   | `Queue_get_config_resp -> sp "Queue_get_config_resp"
 
-type vendor = {
-  vendor : uint32;
-}
+type vendor = uint32
 
 type features = {
   datapath_id : uint64;
@@ -446,6 +444,20 @@ type phy_port = {
 	supported: phy_port_feature;
 	peer: phy_port_feature;
 }
+
+type port_status_reason = [ ADD | DEL | MOD ]
+let port_status_reason_of_int = function
+  | 0 -> ADD
+  | 1 -> DEL
+  | 2 -> MOD
+and int_of_port_status_reason = function
+  | ADD -> 0
+  | DEL -> 1
+  | MOD -> 2
+and string_of_port_status_reason = function
+  | ADD -> sp "ADD"
+  | DEL -> sp "DEL"
+  | MOD -> sp "MOD"
 
 type port_status = {
   reason: port_status_reason;

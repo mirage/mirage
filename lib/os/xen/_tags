@@ -1,3 +1,4 @@
+true: mirage
 <*.cmx>: for-pack(OS)
 <*.ml>: annot
 "ring.ml" or "xb.ml" or "xsraw.ml" or "xst.ml" or "main.ml" or "xs.ml": pa_lwt

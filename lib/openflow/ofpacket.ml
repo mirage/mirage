@@ -72,257 +72,255 @@ let ipv4_addr_of_bytes bs =
 
 (* ********************************************************************** *)
 
-type port = [ 
-| `Max | `In_port | `Table | `Normal | `Flood | `All 
-| `Controller | `Local | `No_port
-| `Port of uint16
-]
+type port = 
+  | Max | In_port | Table | Normal | Flood | All 
+  | Controller | Local | No_port
+  | Port of uint16
 let port_of_int = function
-  | 0xff00 -> `Max
-  | 0xfff8 -> `In_port
-  | 0xfff9 -> `Table
-  | 0xfffa -> `Normal
-  | 0xfffb -> `Flood
-  | 0xfffc -> `All
-  | 0xfffd -> `Controller
-  | 0xfffe -> `Local
-  | 0xffff -> `No_port
-  | p      -> `Port p
+  | 0xff00 -> Max
+  | 0xfff8 -> In_port
+  | 0xfff9 -> Table
+  | 0xfffa -> Normal
+  | 0xfffb -> Flood
+  | 0xfffc -> All
+  | 0xfffd -> Controller
+  | 0xfffe -> Local
+  | 0xffff -> No_port
+  | p      -> Port p
 and int_of_port = function
-  | `Max        -> 0xff00
-  | `In_port    -> 0xfff8
-  | `Table      -> 0xfff9
-  | `Normal     -> 0xfffa
-  | `Flood      -> 0xfffb
-  | `All        -> 0xfffc
-  | `Controller -> 0xfffd
-  | `Local      -> 0xfffe
-  | `No_port    -> 0xffff
-  | `Port p     -> p
+  | Max        -> 0xff00
+  | In_port    -> 0xfff8
+  | Table      -> 0xfff9
+  | Normal     -> 0xfffa
+  | Flood      -> 0xfffb
+  | All        -> 0xfffc
+  | Controller -> 0xfffd
+  | Local      -> 0xfffe
+  | No_port    -> 0xffff
+  | Port p     -> p
 and string_of_port = function
-  | `Max        -> sp "MAX"
-  | `In_port    -> sp "IN_PORT"
-  | `Table      -> sp "TABLE"
-  | `Normal     -> sp "NORMAL"
-  | `Flood      -> sp "FLOOD"
-  | `All        -> sp "ALL"
-  | `Controller -> sp "CONTROLLER"
-  | `Local      -> sp "LOCAL"
-  | `No_port    -> sp "NO_PORT"
-  | `Port p     -> sp "PORT(%d)" p
+  | Max        -> sp "MAX"
+  | In_port    -> sp "IN_PORT"
+  | Table      -> sp "TABLE"
+  | Normal     -> sp "NORMAL"
+  | Flood      -> sp "FLOOD"
+  | All        -> sp "ALL"
+  | Controller -> sp "CONTROLLER"
+  | Local      -> sp "LOCAL"
+  | No_port    -> sp "NO_PORT"
+  | Port p     -> sp "PORT(%d)" p
 
-type error_code = [
-| `HELLO_INCOMPATIBLE
-| `HELLO_EPERM
-| `REQUEST_BAD_VERSION
-| `REQUEST_BAD_TYPE
-| `REQUEST_BAD_STAT
-| `REQUEST_BAD_VENDOR
-| `REQUEST_BAD_SUBTYPE
-| `REQUEST_REQUEST_EPERM
-| `REQUEST_BAD_LEN
-| `REQUEST_BUFFER_EMPTY
-| `REQUEST_BUFFER_UNKNOWN
-| `ACTION_BAD_TYPE
-| `ACTION_BAD_LEN
-| `ACTION_BAD_VENDOR
-| `ACTION_BAD_VENDOR_TYPE
-| `ACTION_BAD_OUT_PORT
-| `ACTION_BAD_ARGUMENT
-| `ACTION_EPERM
-| `ACTION_TOO_MANY
-| `ACTION_BAD_QUEUE
-| `FLOW_MOD_ALL_TABLES_FULL
-| `FLOW_MOD_OVERLAP
-| `FLOW_MOD_EPERM
-| `FLOW_MOD_EMERG_TIMEOUT
-| `FLOW_MOD_BAD_COMMAND
-| `FLOW_MOD_UNSUPPORTED
-| `PORT_MOD_BAD_PORT
-| `PORT_MOD_BAD_HW_ADDR
-| `QUEUE_OP_BAD_PORT
-| `QUEUE_OP_BAD_QUEUE
-| `QUEUE_OP_EPERM	
-]
+type error_code = 
+  | HELLO_INCOMPATIBLE
+  | HELLO_EPERM
+  | REQUEST_BAD_VERSION
+  | REQUEST_BAD_TYPE
+  | REQUEST_BAD_STAT
+  | REQUEST_BAD_VENDOR
+  | REQUEST_BAD_SUBTYPE
+  | REQUEST_REQUEST_EPERM
+  | REQUEST_BAD_LEN
+  | REQUEST_BUFFER_EMPTY
+  | REQUEST_BUFFER_UNKNOWN
+  | ACTION_BAD_TYPE
+  | ACTION_BAD_LEN
+  | ACTION_BAD_VENDOR
+  | ACTION_BAD_VENDOR_TYPE
+  | ACTION_BAD_OUT_PORT
+  | ACTION_BAD_ARGUMENT
+  | ACTION_EPERM
+  | ACTION_TOO_MANY
+  | ACTION_BAD_QUEUE
+  | FLOW_MOD_ALL_TABLES_FULL
+  | FLOW_MOD_OVERLAP
+  | FLOW_MOD_EPERM
+  | FLOW_MOD_EMERG_TIMEOUT
+  | FLOW_MOD_BAD_COMMAND
+  | FLOW_MOD_UNSUPPORTED
+  | PORT_MOD_BAD_PORT
+  | PORT_MOD_BAD_HW_ADDR
+  | QUEUE_OP_BAD_PORT
+  | QUEUE_OP_BAD_QUEUE
+  | QUEUE_OP_EPERM	
 let error_code_of_int = function
-  | 0x00000000 -> `HELLO_INCOMPATIBLE
-  | 0x00000001 -> `HELLO_EPERM
-  | 0x00010000 -> `REQUEST_BAD_VERSION
-  | 0x00010001 -> `REQUEST_BAD_TYPE
-  | 0x00010002 -> `REQUEST_BAD_STAT
-  | 0x00010003 -> `REQUEST_BAD_VENDOR
-  | 0x00010004 -> `REQUEST_BAD_SUBTYPE
-  | 0x00010005 -> `REQUEST_REQUEST_EPERM
-  | 0x00010006 -> `REQUEST_BAD_LEN
-  | 0x00010007 -> `REQUEST_BUFFER_EMPTY
-  | 0x00010008 -> `REQUEST_BUFFER_UNKNOWN
-  | 0x00020000 -> `ACTION_BAD_TYPE
-  | 0x00020001 -> `ACTION_BAD_LEN
-  | 0x00020002 -> `ACTION_BAD_VENDOR
-  | 0x00020003 -> `ACTION_BAD_VENDOR_TYPE
-  | 0x00020004 -> `ACTION_BAD_OUT_PORT
-  | 0x00020005 -> `ACTION_BAD_ARGUMENT
-  | 0x00020006 -> `ACTION_EPERM
-  | 0x00020007 -> `ACTION_TOO_MANY
-  | 0x00020008 -> `ACTION_BAD_QUEUE
-  | 0x00030000 -> `FLOW_MOD_ALL_TABLES_FULL
-  | 0x00030001 -> `FLOW_MOD_OVERLAP
-  | 0x00030002 -> `FLOW_MOD_EPERM
-  | 0x00030003 -> `FLOW_MOD_EMERG_TIMEOUT
-  | 0x00030004 -> `FLOW_MOD_BAD_COMMAND
-  | 0x00030004 -> `FLOW_MOD_UNSUPPORTED
-  | 0x00040000 -> `PORT_MOD_BAD_PORT
-  | 0x00040001 -> `PORT_MOD_BAD_HW_ADDR
-  | 0x00050000 -> `QUEUE_OP_BAD_PORT
-  | 0x00050001 -> `QUEUE_OP_BAD_QUEUE
-  | 0x00050002 -> `QUEUE_OP_EPERM	
+  | 0x00000000 -> HELLO_INCOMPATIBLE
+  | 0x00000001 -> HELLO_EPERM
+  | 0x00010000 -> REQUEST_BAD_VERSION
+  | 0x00010001 -> REQUEST_BAD_TYPE
+  | 0x00010002 -> REQUEST_BAD_STAT
+  | 0x00010003 -> REQUEST_BAD_VENDOR
+  | 0x00010004 -> REQUEST_BAD_SUBTYPE
+  | 0x00010005 -> REQUEST_REQUEST_EPERM
+  | 0x00010006 -> REQUEST_BAD_LEN
+  | 0x00010007 -> REQUEST_BUFFER_EMPTY
+  | 0x00010008 -> REQUEST_BUFFER_UNKNOWN
+  | 0x00020000 -> ACTION_BAD_TYPE
+  | 0x00020001 -> ACTION_BAD_LEN
+  | 0x00020002 -> ACTION_BAD_VENDOR
+  | 0x00020003 -> ACTION_BAD_VENDOR_TYPE
+  | 0x00020004 -> ACTION_BAD_OUT_PORT
+  | 0x00020005 -> ACTION_BAD_ARGUMENT
+  | 0x00020006 -> ACTION_EPERM
+  | 0x00020007 -> ACTION_TOO_MANY
+  | 0x00020008 -> ACTION_BAD_QUEUE
+  | 0x00030000 -> FLOW_MOD_ALL_TABLES_FULL
+  | 0x00030001 -> FLOW_MOD_OVERLAP
+  | 0x00030002 -> FLOW_MOD_EPERM
+  | 0x00030003 -> FLOW_MOD_EMERG_TIMEOUT
+  | 0x00030004 -> FLOW_MOD_BAD_COMMAND
+  | 0x00030004 -> FLOW_MOD_UNSUPPORTED
+  | 0x00040000 -> PORT_MOD_BAD_PORT
+  | 0x00040001 -> PORT_MOD_BAD_HW_ADDR
+  | 0x00050000 -> QUEUE_OP_BAD_PORT
+  | 0x00050001 -> QUEUE_OP_BAD_QUEUE
+  | 0x00050002 -> QUEUE_OP_EPERM	
   | _ -> invalid_arg "error_code_of_int"
 and int_of_error_code = function
-  | `HELLO_INCOMPATIBLE       -> 0x00000000
-  | `HELLO_EPERM              -> 0x00000001
-  | `REQUEST_BAD_VERSION      -> 0x00010000
-  | `REQUEST_BAD_TYPE         -> 0x00010001
-  | `REQUEST_BAD_STAT         -> 0x00010002
-  | `REQUEST_BAD_VENDOR       -> 0x00010003
-  | `REQUEST_BAD_SUBTYPE      -> 0x00010004
-  | `REQUEST_REQUEST_EPERM    -> 0x00010005
-  | `REQUEST_BAD_LEN          -> 0x00010006
-  | `REQUEST_BUFFER_EMPTY     -> 0x00010007
-  | `REQUEST_BUFFER_UNKNOWN   -> 0x00010008
-  | `ACTION_BAD_TYPE          -> 0x00020000
-  | `ACTION_BAD_LEN           -> 0x00020001
-  | `ACTION_BAD_VENDOR        -> 0x00020002
-  | `ACTION_BAD_VENDOR_TYPE   -> 0x00020003
-  | `ACTION_BAD_OUT_PORT      -> 0x00020004
-  | `ACTION_BAD_ARGUMENT      -> 0x00020005
-  | `ACTION_EPERM             -> 0x00020006
-  | `ACTION_TOO_MANY          -> 0x00020007
-  | `ACTION_BAD_QUEUE         -> 0x00020008
-  | `FLOW_MOD_ALL_TABLES_FULL -> 0x00030000
-  | `FLOW_MOD_OVERLAP         -> 0x00030001
-  | `FLOW_MOD_EPERM           -> 0x00030002
-  | `FLOW_MOD_EMERG_TIMEOUT   -> 0x00030003
-  | `FLOW_MOD_BAD_COMMAND     -> 0x00030004
-  | `FLOW_MOD_UNSUPPORTED     -> 0x00030004
-  | `PORT_MOD_BAD_PORT        -> 0x00040000
-  | `PORT_MOD_BAD_HW_ADDR     -> 0x00040001
-  | `QUEUE_OP_BAD_PORT        -> 0x00050000
-  | `QUEUE_OP_BAD_QUEUE       -> 0x00050001
-  | `QUEUE_OP_EPERM           -> 0x00050002
+  | HELLO_INCOMPATIBLE       -> 0x00000000
+  | HELLO_EPERM              -> 0x00000001
+  | REQUEST_BAD_VERSION      -> 0x00010000
+  | REQUEST_BAD_TYPE         -> 0x00010001
+  | REQUEST_BAD_STAT         -> 0x00010002
+  | REQUEST_BAD_VENDOR       -> 0x00010003
+  | REQUEST_BAD_SUBTYPE      -> 0x00010004
+  | REQUEST_REQUEST_EPERM    -> 0x00010005
+  | REQUEST_BAD_LEN          -> 0x00010006
+  | REQUEST_BUFFER_EMPTY     -> 0x00010007
+  | REQUEST_BUFFER_UNKNOWN   -> 0x00010008
+  | ACTION_BAD_TYPE          -> 0x00020000
+  | ACTION_BAD_LEN           -> 0x00020001
+  | ACTION_BAD_VENDOR        -> 0x00020002
+  | ACTION_BAD_VENDOR_TYPE   -> 0x00020003
+  | ACTION_BAD_OUT_PORT      -> 0x00020004
+  | ACTION_BAD_ARGUMENT      -> 0x00020005
+  | ACTION_EPERM             -> 0x00020006
+  | ACTION_TOO_MANY          -> 0x00020007
+  | ACTION_BAD_QUEUE         -> 0x00020008
+  | FLOW_MOD_ALL_TABLES_FULL -> 0x00030000
+  | FLOW_MOD_OVERLAP         -> 0x00030001
+  | FLOW_MOD_EPERM           -> 0x00030002
+  | FLOW_MOD_EMERG_TIMEOUT   -> 0x00030003
+  | FLOW_MOD_BAD_COMMAND     -> 0x00030004
+  | FLOW_MOD_UNSUPPORTED     -> 0x00030004
+  | PORT_MOD_BAD_PORT        -> 0x00040000
+  | PORT_MOD_BAD_HW_ADDR     -> 0x00040001
+  | QUEUE_OP_BAD_PORT        -> 0x00050000
+  | QUEUE_OP_BAD_QUEUE       -> 0x00050001
+  | QUEUE_OP_EPERM           -> 0x00050002
 and string_of_error_code = function
-  | `HELLO_INCOMPATIBLE       -> sp "HELLO_INCOMPATIBLE"
-  | `HELLO_EPERM              -> sp "HELLO_EPERM"
-  | `REQUEST_BAD_VERSION      -> sp "REQUEST_BAD_VERSION"
-  | `REQUEST_BAD_TYPE         -> sp "REQUEST_BAD_TYPE"
-  | `REQUEST_BAD_STAT         -> sp "REQUEST_BAD_STAT"
-  | `REQUEST_BAD_VENDOR       -> sp "REQUEST_BAD_VENDOR"
-  | `REQUEST_BAD_SUBTYPE      -> sp "REQUEST_BAD_SUBTYPE"
-  | `REQUEST_REQUEST_EPERM    -> sp "REQUEST_REQUEST_EPERM"
-  | `REQUEST_BAD_LEN          -> sp "REQUEST_BAD_LEN"
-  | `REQUEST_BUFFER_EMPTY     -> sp "REQUEST_BUFFER_EMPTY"
-  | `REQUEST_BUFFER_UNKNOWN   -> sp "REQUEST_BUFFER_UNKNOWN"
-  | `ACTION_BAD_TYPE          -> sp "ACTION_BAD_TYPE"
-  | `ACTION_BAD_LEN           -> sp "ACTION_BAD_LEN"
-  | `ACTION_BAD_VENDOR        -> sp "ACTION_BAD_VENDOR"
-  | `ACTION_BAD_VENDOR_TYPE   -> sp "ACTION_BAD_VENDOR_TYPE"
-  | `ACTION_BAD_OUT_PORT      -> sp "ACTION_BAD_OUT_PORT"
-  | `ACTION_BAD_ARGUMENT      -> sp "ACTION_BAD_ARGUMENT"
-  | `ACTION_EPERM             -> sp "ACTION_EPERM"
-  | `ACTION_TOO_MANY          -> sp "ACTION_TOO_MANY"
-  | `ACTION_BAD_QUEUE         -> sp "ACTION_BAD_QUEUE"
-  | `FLOW_MOD_ALL_TABLES_FULL -> sp "FLOW_MOD_ALL_TABLES_FULL"
-  | `FLOW_MOD_OVERLAP         -> sp "FLOW_MOD_OVERLAP"
-  | `FLOW_MOD_EPERM           -> sp "FLOW_MOD_EPERM"
-  | `FLOW_MOD_EMERG_TIMEOUT   -> sp "FLOW_MOD_EMERG_TIMEOUT"
-  | `FLOW_MOD_BAD_COMMAND     -> sp "FLOW_MOD_BAD_COMMAND"
-  | `FLOW_MOD_UNSUPPORTED     -> sp "FLOW_MOD_UNSUPPORTED"
-  | `PORT_MOD_BAD_PORT        -> sp "PORT_MOD_BAD_PORT"
-  | `PORT_MOD_BAD_HW_ADDR     -> sp "PORT_MOD_BAD_HW_ADDR"
-  | `QUEUE_OP_BAD_PORT        -> sp "QUEUE_OP_BAD_PORT"
-  | `QUEUE_OP_BAD_QUEUE       -> sp "QUEUE_OP_BAD_QUEUE"
-  | `QUEUE_OP_EPERM           -> sp "QUEUE_OP_EPERM"
+  | HELLO_INCOMPATIBLE       -> sp "HELLO_INCOMPATIBLE"
+  | HELLO_EPERM              -> sp "HELLO_EPERM"
+  | REQUEST_BAD_VERSION      -> sp "REQUEST_BAD_VERSION"
+  | REQUEST_BAD_TYPE         -> sp "REQUEST_BAD_TYPE"
+  | REQUEST_BAD_STAT         -> sp "REQUEST_BAD_STAT"
+  | REQUEST_BAD_VENDOR       -> sp "REQUEST_BAD_VENDOR"
+  | REQUEST_BAD_SUBTYPE      -> sp "REQUEST_BAD_SUBTYPE"
+  | REQUEST_REQUEST_EPERM    -> sp "REQUEST_REQUEST_EPERM"
+  | REQUEST_BAD_LEN          -> sp "REQUEST_BAD_LEN"
+  | REQUEST_BUFFER_EMPTY     -> sp "REQUEST_BUFFER_EMPTY"
+  | REQUEST_BUFFER_UNKNOWN   -> sp "REQUEST_BUFFER_UNKNOWN"
+  | ACTION_BAD_TYPE          -> sp "ACTION_BAD_TYPE"
+  | ACTION_BAD_LEN           -> sp "ACTION_BAD_LEN"
+  | ACTION_BAD_VENDOR        -> sp "ACTION_BAD_VENDOR"
+  | ACTION_BAD_VENDOR_TYPE   -> sp "ACTION_BAD_VENDOR_TYPE"
+  | ACTION_BAD_OUT_PORT      -> sp "ACTION_BAD_OUT_PORT"
+  | ACTION_BAD_ARGUMENT      -> sp "ACTION_BAD_ARGUMENT"
+  | ACTION_EPERM             -> sp "ACTION_EPERM"
+  | ACTION_TOO_MANY          -> sp "ACTION_TOO_MANY"
+  | ACTION_BAD_QUEUE         -> sp "ACTION_BAD_QUEUE"
+  | FLOW_MOD_ALL_TABLES_FULL -> sp "FLOW_MOD_ALL_TABLES_FULL"
+  | FLOW_MOD_OVERLAP         -> sp "FLOW_MOD_OVERLAP"
+  | FLOW_MOD_EPERM           -> sp "FLOW_MOD_EPERM"
+  | FLOW_MOD_EMERG_TIMEOUT   -> sp "FLOW_MOD_EMERG_TIMEOUT"
+  | FLOW_MOD_BAD_COMMAND     -> sp "FLOW_MOD_BAD_COMMAND"
+  | FLOW_MOD_UNSUPPORTED     -> sp "FLOW_MOD_UNSUPPORTED"
+  | PORT_MOD_BAD_PORT        -> sp "PORT_MOD_BAD_PORT"
+  | PORT_MOD_BAD_HW_ADDR     -> sp "PORT_MOD_BAD_HW_ADDR"
+  | QUEUE_OP_BAD_PORT        -> sp "QUEUE_OP_BAD_PORT"
+  | QUEUE_OP_BAD_QUEUE       -> sp "QUEUE_OP_BAD_QUEUE"
+  | QUEUE_OP_EPERM           -> sp "QUEUE_OP_EPERM"
 
-type msg = [
-| `Hello | `Error | `Echo_req | `Echo_resp | `Vendor 
-| `Features_req | `Features_resp
-| `Get_config_req | `Get_config_resp | `Set_config
-| `Packet_in | `Flow_removed | `Port_status | `Packet_out
-| `Flow_mod | `Port_mod | `Stats_req | `Stats_resp
-| `Barrier_req | `Barrier_resp 
-| `Queue_get_config_req | `Queue_get_config_resp
-]
-let msg_of_int = function
-  |  0 -> `Hello 
-  |  1 -> `Error 
-  |  2 -> `Echo_req
-  |  3 -> `Echo_resp
-  |  4 -> `Vendor 
-  |  5 -> `Features_req
-  |  6 -> `Features_resp
-  |  7 -> `Get_config_req
-  |  8 -> `Get_config_resp
-  |  9 -> `Set_config
-  | 10 -> `Packet_in
-  | 11 -> `Flow_removed
-  | 12 -> `Port_status
-  | 13 -> `Packet_out
-  | 14 -> `Flow_mod
-  | 15 -> `Port_mod
-  | 16 -> `Stats_req
-  | 17 -> `Stats_resp
-  | 18 -> `Barrier_req
-  | 19 -> `Barrier_resp 
-  | 20 -> `Queue_get_config_req
-  | 21 -> `Queue_get_config_resp
+type msg_code =
+| Hello | Error | Echo_req | Echo_resp | Vendor 
+| Features_req | Features_resp
+| Get_config_req | Get_config_resp | Set_config
+| Packet_in | Flow_removed | Port_status | Packet_out
+| Flow_mod | Port_mod | Stats_req | Stats_resp
+| Barrier_req | Barrier_resp 
+| Queue_get_config_req | Queue_get_config_resp
+let msg_code_of_int = function
+  |  0 -> Hello 
+  |  1 -> Error 
+  |  2 -> Echo_req
+  |  3 -> Echo_resp
+  |  4 -> Vendor 
+  |  5 -> Features_req
+  |  6 -> Features_resp
+  |  7 -> Get_config_req
+  |  8 -> Get_config_resp
+  |  9 -> Set_config
+  | 10 -> Packet_in
+  | 11 -> Flow_removed
+  | 12 -> Port_status
+  | 13 -> Packet_out
+  | 14 -> Flow_mod
+  | 15 -> Port_mod
+  | 16 -> Stats_req
+  | 17 -> Stats_resp
+  | 18 -> Barrier_req
+  | 19 -> Barrier_resp 
+  | 20 -> Queue_get_config_req
+  | 21 -> Queue_get_config_resp
   | _ -> invalid_arg "msg_of_int"
-and int_of_msg = function
-  | `Hello                 ->  0
-  | `Error                 ->  1
-  | `Echo_req              ->  2
-  | `Echo_resp             ->  3
-  | `Vendor                ->  4
-  | `Features_req          ->  5
-  | `Features_resp         ->  6
-  | `Get_config_req        ->  7
-  | `Get_config_resp       ->  8
-  | `Set_config            ->  9
-  | `Packet_in             -> 10
-  | `Flow_removed          -> 11
-  | `Port_status           -> 12
-  | `Packet_out            -> 13
-  | `Flow_mod              -> 14
-  | `Port_mod              -> 15
-  | `Stats_req             -> 16
-  | `Stats_resp            -> 17
-  | `Barrier_req           -> 18
-  | `Barrier_resp          -> 19
-  | `Queue_get_config_req  -> 20
-  | `Queue_get_config_resp -> 21
-and string_of_msg = function
-  | `Hello                 -> sp "Hello"
-  | `Error                 -> sp "Error"
-  | `Echo_req              -> sp "Echo_req"
-  | `Echo_resp             -> sp "Echo_resp"
-  | `Vendor                -> sp "Vendor"
-  | `Features_req          -> sp "Features_req"
-  | `Features_resp         -> sp "Features_resp"
-  | `Get_config_req        -> sp "Get_config_req"
-  | `Get_config_resp       -> sp "Get_config_resp"
-  | `Set_config            -> sp "Set_config"
-  | `Packet_in             -> sp "Packet_in"
-  | `Flow_removed          -> sp "Flow_removed"
-  | `Port_status           -> sp "Port_status"
-  | `Packet_out            -> sp "Packet_out"
-  | `Flow_mod              -> sp "Flow_mod"
-  | `Port_mod              -> sp "Port_mod"
-  | `Stats_req             -> sp "Stats_req"
-  | `Stats_resp            -> sp "Stats_resp"
-  | `Barrier_req           -> sp "Barrier_req"
-  | `Barrier_resp          -> sp "Barrier_resp"
-  | `Queue_get_config_req  -> sp "Queue_get_config_req"
-  | `Queue_get_config_resp -> sp "Queue_get_config_resp"
+and int_of_msg_code = function
+  | Hello                 ->  0
+  | Error                 ->  1
+  | Echo_req              ->  2
+  | Echo_resp             ->  3
+  | Vendor                ->  4
+  | Features_req          ->  5
+  | Features_resp         ->  6
+  | Get_config_req        ->  7
+  | Get_config_resp       ->  8
+  | Set_config            ->  9
+  | Packet_in             -> 10
+  | Flow_removed          -> 11
+  | Port_status           -> 12
+  | Packet_out            -> 13
+  | Flow_mod              -> 14
+  | Port_mod              -> 15
+  | Stats_req             -> 16
+  | Stats_resp            -> 17
+  | Barrier_req           -> 18
+  | Barrier_resp          -> 19
+  | Queue_get_config_req  -> 20
+  | Queue_get_config_resp -> 21
+and string_of_msg_code = function
+  | Hello                 -> sp "Hello"
+  | Error                 -> sp "Error"
+  | Echo_req              -> sp "Echo_req"
+  | Echo_resp             -> sp "Echo_resp"
+  | Vendor                -> sp "Vendor"
+  | Features_req          -> sp "Features_req"
+  | Features_resp         -> sp "Features_resp"
+  | Get_config_req        -> sp "Get_config_req"
+  | Get_config_resp       -> sp "Get_config_resp"
+  | Set_config            -> sp "Set_config"
+  | Packet_in             -> sp "Packet_in"
+  | Flow_removed          -> sp "Flow_removed"
+  | Port_status           -> sp "Port_status"
+  | Packet_out            -> sp "Packet_out"
+  | Flow_mod              -> sp "Flow_mod"
+  | Port_mod              -> sp "Port_mod"
+  | Stats_req             -> sp "Stats_req"
+  | Stats_resp            -> sp "Stats_resp"
+  | Barrier_req           -> sp "Barrier_req"
+  | Barrier_resp          -> sp "Barrier_resp"
+  | Queue_get_config_req  -> sp "Queue_get_config_req"
+  | Queue_get_config_resp -> sp "Queue_get_config_resp"
 
 type vendor = uint32
+type queue_id = uint32
 
 type features = {
   datapath_id : uint64;
@@ -345,16 +343,17 @@ type config = {
   miss_send_len: uint16;
 }
 
-type in_reason = [ `No_match | `Action ]
+type in_reason = No_match | Action
 let in_reason_of_int = function
-  | 0 -> `No_match
-  | 1 -> `Action
+  | 0 -> No_match
+  | 1 -> Action
+  | _ -> invalid_arg "in_reason_of_int"
 and int_of_in_reason = function
-  | `No_match -> 0
-  | `Action -> 1
+  | No_match -> 0
+  | Action   -> 1
 and string_of_in_reason = function
-  | `No_match -> sp "NO_MATCH"
-  | `Action -> sp "ACTION"
+  | No_match -> sp "NO_MATCH"
+  | Action   -> sp "ACTION"
   
 type packet_in = {
   buffer_id : uint32;
@@ -393,6 +392,21 @@ type of_match = {
 	tp_src: uint16;
 	tp_dst: uint16;
 }
+
+type removed_reason = IDLE_TIMEOUT | HARD_TIMEOUT | DELETE
+let removed_reason_of_int = function
+  | 0 -> IDLE_TIMEOUT
+  | 1 -> HARD_TIMEOUT
+  | 2 -> DELETE
+  | _ -> invalid_arg "removed_reason_of_int"
+and int_of_removed_reason = function
+  | IDLE_TIMEOUT -> 0
+  | HARD_TIMEOUT -> 1
+  | DELETE -> 2
+and string_of_removed_reason = function
+  | IDLE_TIMEOUT -> 0
+  | HARD_TIMEOUT -> 1
+  | DELETE -> 2
 
 type flow = {
   of_match : of_match;
@@ -445,11 +459,12 @@ type phy_port = {
 	peer: phy_port_feature;
 }
 
-type port_status_reason = [ ADD | DEL | MOD ]
+type port_status_reason = ADD | DEL | MOD
 let port_status_reason_of_int = function
   | 0 -> ADD
   | 1 -> DEL
   | 2 -> MOD
+  | _ -> invalid_arg "port_status_reason_of_int"
 and int_of_port_status_reason = function
   | ADD -> 0
   | DEL -> 1
@@ -470,6 +485,27 @@ type packet_out = {
   actions_len : uint16;
   actions: bytes;
 }
+
+type command = ADD | MODIFY | MODIFY_STRICT | DELETE | DELETE_STRICT
+let command_of_int = function
+  | 0 -> ADD
+  | 1 -> MODIFY
+  | 2 -> MODIFY_STRICT
+  | 3 -> DELETE
+  | 4 -> DELETE_STRICT
+  | _ -> invalid_arg "command_of_int"
+and int_of_command = function
+  | ADD -> 0
+  | MODIFY -> 1
+  | MODIFY_STRICT -> 2
+  | DELETE -> 3
+  | DELETE_STRICT -> 4
+and string_of_command = function
+  | ADD -> sp "ADD"
+  | MODIFY -> sp "MODIFY"
+  | MODIFY_STRICT -> sp "MODIFY_STRICT"
+  | DELETE -> sp "DELETE"
+  | DELETE_STRICT -> sp "DELETE_STRICT"
 
 type flow_mod = {
   of_match : of_match;
@@ -493,26 +529,26 @@ type port_mod = {
   advertise : phy_port_feature;
 }
 
-type table_id = [ `All | `Emergency ]
+type table_id = All | Emergency 
 let table_id_of_int = function
-  | 0xff -> `All
-  | 0xfe -> `Emergency
+  | 0xff -> All
+  | 0xfe -> Emergency
+  | _ -> invalid_arg "table_id_of_int"
 and int_of_table_id = function
-  | `All -> 0xff
-  | `Emergency -> 0xfe
+  | All -> 0xff
+  | Emergency -> 0xfe
 and string_of_table_id = function
-  | `All -> sp "All"
-  | `Emergency -> sp "Emergency"
+  | All -> sp "All"
+  | Emergency -> sp "Emergency"
 
-type stats_req_payload = [
-| `Desc
-| `Flow of of_match * table_id * port
-| `Aggregate of of_match * table_id * port
-| `Table
-| `Port of port
-| `Queue of port * queue_id
-| `Vendor
-]
+type stats_req_payload = 
+  | Desc
+  | Flow of of_match * table_id * port
+  | Aggregate of of_match * table_id * port
+  | Table
+  | Port of port
+  | Queue of port * queue_id
+  | Vendor
 
 type stats_req_h = {
   ty : uint16;
@@ -526,6 +562,57 @@ type desc = {
   serial_num: bytes;
   dp_desc: bytes;
 }
+
+type action = 
+  | OUTPUT 
+  | SET_VLAN_VID | SET_VLAN_PCP | STRIP_VLAN 
+  | SET_DL_SRC | SET_DL_DST 
+  | SET_NW_SRC | SET_NW_DST | SET_NW_TOS 
+  | SET_TP_SRC | SET_TP_DST
+  | ENQUEUE | VENDOR
+let action_of_int = function
+  |  0 -> OUTPUT 
+  |  1 -> SET_VLAN_VID
+  |  2 -> SET_VLAN_PCP
+  |  3 -> STRIP_VLAN 
+  |  4 -> SET_DL_SRC
+  |  5 -> SET_DL_DST 
+  |  6 -> SET_NW_SRC
+  |  7 -> SET_NW_DST
+  |  8 -> SET_NW_TOS 
+  |  9 -> SET_TP_SRC
+  | 10 -> SET_TP_DST
+  | 11 -> ENQUEUE
+  | 0xffff -> VENDOR
+  | _ -> invalid_arg "action_of_int"
+and int_of_action = function
+  | OUTPUT       -> 0
+  | SET_VLAN_VID -> 1
+  | SET_VLAN_PCP -> 2
+  | STRIP_VLAN   -> 3
+  | SET_DL_SRC   -> 4
+  | SET_DL_DST   -> 5
+  | SET_NW_SRC   -> 6
+  | SET_NW_DST   -> 7
+  | SET_NW_TOS   -> 8
+  | SET_TP_SRC   -> 9
+  | SET_TP_DST   -> 10
+  | ENQUEUE      -> 11
+  | VENDOR       -> 0xffff
+and string_of_action = function
+  | OUTPUT       -> sp "OUTPUT"
+  | SET_VLAN_VID -> sp "SET_VLAN_VID"
+  | SET_VLAN_PCP -> sp "SET_VLAN_PCP"
+  | STRIP_VLAN   -> sp "STRIP_VLAN"
+  | SET_DL_SRC   -> sp "SET_DL_SRC"
+  | SET_DL_DST   -> sp "SET_DL_DST"
+  | SET_NW_SRC   -> sp "SET_NW_SRC"
+  | SET_NW_DST   -> sp "SET_NW_DST"
+  | SET_NW_TOS   -> sp "SET_NW_TOS"
+  | SET_TP_SRC   -> sp "SET_TP_SRC"
+  | SET_TP_DST   -> sp "SET_TP_DST"
+  | ENQUEUE      -> sp "ENQUEUE"
+  | VENDOR       -> sp "VENDOR"
 
 type flow_stats = {
   entry_length : uint16;
@@ -582,49 +669,47 @@ type queue_stats = {
   tx_errors: uint64;
 }
 
-type stats_resp_payload = [
-| `Desc of desc
-| `Flow of flow_stats
-| `Aggregate of aggregate_stats
-| `Table of table_stats
-| `Port of port_stats
-| `Queue of queue_stats
-| `Vendor
-]
+type stats_resp_payload = 
+  | Desc of desc
+  | Flow of flow_stats
+  | Aggregate of aggregate_stats
+  | Table of table_stats
+  | Port of port_stats
+  | Queue of queue_stats
+  | Vendor
 
 type stats_resp_h = {
   ty : uint16;
   more_to_follow : bool;
 }
 
-type payload = [
-| `Hello of bytes
-| `Error of error_code
-| `Echo_req of bytes
-| `Echo_resp of bytes
-| `Vendor of vendor * bytes
-| `Features_req of bytes
-| `Features_resp of features * bytes
-| `Get_config_req
-| `Get_config_resp of config    
-| `Set_config of config    
-| `Packet_in of packet_in * bytes
-| `Flow_removed of flow
-| `Port_status of port_status
-| `Packet_out of packet_out * bytes
-| `Flow_mod of flow_mod * bytes
-| `Port_mod of port_mod
-| `Stats_req of stats_req_h * stats_req_payload
-| `Stats_resp of stats_resp_h * stats_resp_payload
-| `Barrier_req
-| `Barrier_resp
-| `Queue_get_config_req of port
-| `Queue_get_config_resp of port * bytes    
-]
+type payload =
+  | Hello of bytes
+  | Error of error_code
+  | Echo_req of bytes
+  | Echo_resp of bytes
+  | Vendor of vendor * bytes
+  | Features_req of bytes
+  | Features_resp of features * bytes
+  | Get_config_req
+  | Get_config_resp of config    
+  | Set_config of config    
+  | Packet_in of packet_in * bytes
+  | Flow_removed of flow
+  | Port_status of port_status
+  | Packet_out of packet_out * bytes
+  | Flow_mod of flow_mod * bytes
+  | Port_mod of port_mod
+  | Stats_req of stats_req_h * stats_req_payload
+  | Stats_resp of stats_resp_h * stats_resp_payload
+  | Barrier_req
+  | Barrier_resp
+  | Queue_get_config_req of port
+  | Queue_get_config_resp of port * bytes    
 
 type h = {
   version : byte;
-  ty : msg;
+  ty : msg_code;
   length : uint16;
   xid : uint32;
 }

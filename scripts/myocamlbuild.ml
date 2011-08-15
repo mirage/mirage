@@ -216,18 +216,7 @@ let _ = dispatch begin function
     let _ = match debugmode, OS.target with
      | true, (OS.Unix _) -> [ A "debugger.cmx" ]
      | _ -> [] in
-    let libs = [
-      (* std libs *) lib "stdlib"; lib "lwt"; lib "ulex";
-      (* os lib *)   lib "oS";
-      (* net lib *)  lib "net";
-      (* dns lib *)  lib "dns";
-      (* http lib *) lib "http";
-      (* cow lib *)  lib "cow";
-    ] in
-
-    let mirage_flags = [
-      A"-nostdlib"; A"-I"; A libdir;
-    ] in
+    let mirage_flags = [ A"-nostdlib"; A"-I"; A libdir; ] in
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";
     flag ["ocaml"; "pack"   ; "nostdlib"] & A"-nostdlib";

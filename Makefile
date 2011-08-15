@@ -24,6 +24,7 @@ doc:
 
 tools:
 	@cd tools/crunch && ocamlbuild $(JOBS) crunch.native
+	@cd tools/ocp && ocamlbuild $(JOBS) pack.native
 	@cd tools/mir && $(MAKE) install
 	@cp tools/crunch/_build/crunch.native $(PREFIX)/bin/mlcrunch
 	@$(MAKE) -C tools/fs all

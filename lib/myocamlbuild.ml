@@ -1,3 +1,20 @@
+(*
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Thomas Gazagnaire <thomas@gazangaire.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
 open Ocamlbuild_plugin
 open Command
 open Ocamlbuild_pack.Ocaml_compiler
@@ -10,32 +27,40 @@ let ep = Printf.eprintf
 let debug = false
 let profiling = false
 
-(* This decides the global OS backend. It could be moved into explicit
-   dependencies in the future, but for now is set as an environment
-   variable *)
-let os =
-  let os = getenv "MIRAGEOS" ~default:"unix" in
-  if os <> "unix" && os <> "xen" && os <> "node" then
-    (ep "`%s` is not a supported OS\n" os; exit (-1))
-  else
-    (Ocamlbuild_pack.Log.dprintf 0 "OS: %s" os; os)
+module Spec = struct
+  type t = { os: string; net: string; block: string; syntax: string; }
+  
+  let specs = Hashtbl.create 1
+  let add k v = Hashtbl.add specs k v
+  
+  let () = add "unix-direct" { os="unix"; net="direct"; block="socket"; syntax="" }
+  let () = add "unix-socket" { os="unix"; net="socket"; block="socket"; syntax="" }
+  let () = add "xen" { os="xen"; net="direct"; block="direct"; syntax="" }
+  let () = add "node" { os="node"; net="socket"; block="socket"; syntax="pa_js.cma" }
 
-(* This decides which Net module to use (direct or socket) *)
-let flow = 
-  let flow = getenv "MIRAGEFLOW" ~default:"direct" in
-  if flow <> "direct" && flow <> "socket" then
-    (ep "`%s` is not a supported Flow type\n" flow; exit (-1))
-  else
-    (Ocamlbuild_pack.Log.dprintf 0 "Flow: %s" flow; flow)
+  (* Current spec *)
+  let t =
+    let spec = getenv "SPEC" ~default:"unix-socket" in
+    try
+      let t = Hashtbl.find specs spec in
+      Options.build_dir := "_build/" ^ spec;
+      t
+    with Not_found ->
+     let keys = Hashtbl.fold (fun k _ a -> ("  " ^ k) :: a) specs [] in
+     ep "SPEC '%s' is unknown. Valid values are:\n%s\n%!" spec (String.concat "\n" keys);
+     exit 1
 
-let _ =
-  let subdir = match os,flow with
-  | "unix","socket" -> "unix-socket"
-  | "unix","direct" -> "unix-direct"
-  | "xen" ,"direct" -> "xen-direct"
-  | "node","socket" -> "node-socket"
-  | _ -> ep "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
-  Options.build_dir := "_build/" ^ subdir
+  let os = "oS", (ps "os/%s/oS" t.os)
+  let net = "net", (ps "net/%s/net" t.net)
+  let block = "block", (ps "block/%s/block" t.block)
+
+  (* The modules to copy into std/ are specified as (<dest file in std/> * "<subdirectory>/<file>") *)
+  let modules =
+    let baselibs = ["regexp"; "dns"; "http"; "dyntype"; "cow" ] in
+    let libs = List.map (fun lib -> lib, (ps "%s/%s" lib lib)) baselibs in
+    os :: net :: block :: libs
+
+end
 
 (* Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
@@ -60,7 +85,9 @@ module OS = struct
 
   type u = Linux | Darwin
   type t = Unix of u | Xen | Node
-  let host = match String.lowercase (Util.run_and_read "uname -s") with
+
+  let host =
+    match String.lowercase (Util.run_and_read "uname -s") with
     | "linux"  -> Unix Linux
     | "darwin" -> Unix Darwin
     | os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
@@ -70,11 +97,6 @@ module OS = struct
     | Unix Darwin -> "macosx"
     | _ -> Printf.eprintf "unix_ext called on a non-UNIX host OS\n"; exit (-1)
 
-  let target = match String.lowercase os with
-    | "unix" -> host (* Map the target to the current host, as cross-compiling is no use *)
-    | "xen"  -> Xen
-    | "node" -> Node
-    | x -> failwith ("unknown target os: " ^ x)
 end
 
 (* Rules to directly invoke GCC rather than go through OCaml. *)
@@ -173,6 +195,15 @@ module CC = struct
       (cc_archive "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)")
 end
 
+(* For a given platform, link all the supported variant modules *)
+let () =
+  let files = Spec.modules in
+  List.iter (fun (dst, src) ->
+    let prod = ps "std/%s.ml" dst in
+    let dep = ps "%s.ml" src in
+    rule (ps "cp %s -> %s std" dep prod) ~prod ~dep (fun env builder -> cp dep prod)
+  ) files
+
 (* Need to register manual dependency on libev included files/
    The C files below are #included, so need to be present but are
    not picked up by dependency analysis *)
@@ -181,16 +212,14 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
 let pack_in_one out header files env builder =
-  ignore(builder [["pack_in_one.ml"]]);
-  Cmd (S ([A "ocaml"; A"str.cma"; A"../../pack_in_one.ml"; A"-o"; Px out; A"-h"; Px header]
-    @ (List.map (fun x -> A x) files)))
+  let packer = "../../../tools/ocp/_build/pack.native" in
+  Cmd (S ([A packer; A"-o"; Px out; A"-mli"] @ (List.map (fun x -> A x) files)))
  
-let add_pack_rules () =
-  rule
-  ~prods:["%.ml"]
-  ~deps:["%.mlpack"] "all-in-one source pack from .mlpack"
+let () = rule
+  ~prods:["%.ml"; "%.mli"]
+  ~deps:["%.smlpack"] "source pack from .mlpack"
     (fun env builder ->
-      let mlpack = env "%.mlpack" in
+      let mlpack = env "%.smlpack" in
       let mlname = env "%.ml" in
       let mlmods = string_list_of_file mlpack in
       let mldir = Filename.dirname mlname in
@@ -198,94 +227,15 @@ let add_pack_rules () =
         let ml = mldir / x ^ ".ml" in
         (* uncapitalize the filename *)
         let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
-        let _ = builder [[ml]] in ml
-       ) mlmods in
+        let mli = ml ^ "i" in
+        (* The build result doesnt matter as ocp picks up the .mli file only if it exists *)
+        ignore(builder [[ml];[mli]]);
+        ml
+      ) mlmods in
       pack_in_one mlname "" mldeps env builder
-    );
-  rule
-  ~prods:["%.mli"]
-  ~deps:["%.mlpack"] "all-in-one source mli pack from .mlpack"
-    (fun env builder ->
-      let mlpack = env "%.mlpack" in
-      let mlname = env "%.mli" in
-      let mlmods = string_list_of_file mlpack in
-      let mldir = Filename.dirname mlname in
-      let header = mldir / "intro.txt" in
-      ignore (builder [[header]]);
-      let mldeps = List.flatten (List.map (fun x ->
-        let ml = mldir / x ^ ".mli" in
-        (* uncapitalize the filename *)
-        let ml = Filename.dirname ml / (String.uncapitalize (Filename.basename ml)) in
-        let result = builder [[ml]] in
-        match result with
-        | [ Outcome.Good o ] -> [ml]
-        | [ Outcome.Bad exn ] -> []
-        | _ -> assert false
-       ) mlmods) in
-      pack_in_one mlname header mldeps env builder
     )
 
-
-(* Hack: if MIRAGETARGET is set to "doc", then copy over the huge
-   packed ML file into std/, otherwise copy the separately built 
-   files from the individual directories. Separate building makes it
-   possible to develop code more easily as errors are not reported from
-   the big packed file *)
-let libexts = match getenv "MIRAGETARGET" ~default:"" with
-  |"doc" -> add_pack_rules (); [ "ml";"mli" ]
-  | _ -> begin
-    match OS.target with
-    | OS.Node  -> ["cmo"; "cmi" ]
-    | OS.Xen
-    | OS.Unix _ -> ["cmx"; "cmi"; "a"; "o"] 
-  end
-
-let libbits dir name = List.map (fun e -> dir / name ^ "." ^ e) libexts
-
-(* Compile the right OS module *)
-let () = rule
-  ~prods:(libbits "std" "oS")
-  ~deps:(libbits ("os" / os) "oS")
-   "OS link"
-   (fun env builder ->
-     Seq (List.map (fun f -> cp ("os" / os / "oS." ^ f) ("std" / "oS." ^ f)) libexts)
-   )
-
-(* Compile the right Net module *)
-let () = rule
-  ~prods:(libbits "std" "net")
-  ~deps:(libbits ("net" / flow) "net")
-   "Net link"
-   (fun env builder ->
-     Seq (List.map (fun f -> cp ("net" / flow / "net." ^ f) ("std" / "net." ^ f)) libexts)
-   )
-
-let block = match OS.target with
-  |OS.Xen -> "direct"
-  |OS.Unix _ -> "socket"
-  |OS.Node -> "socket"
- 
-(* Block is only direct for Xen and socket/ for UNIX *)
-let () =
-  rule
-  ~prods:(libbits "std" "block")
-  ~deps:(libbits ("block" / block) "block")
-   "Block link"
-   (fun env builder ->
-     Seq (List.map (fun f -> cp ("block" / block / "block." ^ f) ("std" / "block." ^ f)) libexts)
-   )
-
-let otherlibs = ["regexp"; "http"; "dns"; "dyntype"; "cow"]
-(* Copy over independent modules *)
-let () =
-  List.iter (fun lib ->
-    rule ~prods:(libbits "std" lib) ~deps:(libbits lib lib) (lib ^ " lib")
-      (fun env _ -> Seq (List.map (fun f -> cp (lib / lib ^ "." ^ f) ("std" / lib ^ "." ^ f)) libexts))
-  ) otherlibs     
-
-let corep4 = match OS.target with
-  |OS.Xen |OS.Unix _ ->  "pa_lwt.cma pa_bitstring.cma"
-  |OS.Node ->  "pa_lwt.cma pa_bitstring.cma pa_js.cma"
+let corep4 = "pa_lwt.cma pa_bitstring.cma " ^ Spec.(t.syntax)
 
 let _ = dispatch begin function
   | After_rules ->
@@ -313,9 +263,6 @@ let _ = dispatch begin function
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)
      dep ["ocaml"; "compile"; "need_pervasives"] ["std/pervasives.cmi"];
-
-     (* For re-packing libraries (ocamlbuild doesnt pick up for-pack in a pack target) *)
-     pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
 
      (* net/direct includes *)
      Pathname.define_context "net/direct" ["net/direct/tcp"; "net/direct/dhcp" ];

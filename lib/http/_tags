@@ -1,3 +1,2 @@
 true: mirage
-<*.cmx> and not "http.cmx": for-pack(Http)
 "server.ml" or "message.ml" or "misc.ml" or "parser.ml" or "request.ml" or "client.ml" or "manager.ml" or "rpc.ml": pa_lwt

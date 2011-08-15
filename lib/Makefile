@@ -26,19 +26,19 @@ doc: $(XEN_DOC) unix-socket-doc unix-direct-doc
 
 unix-direct-%:
 	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=direct MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env SPEC=unix-direct ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 unix-socket-%:
 	@mkdir -p _build
-	@env MIRAGEOS=unix MIRAGEFLOW=socket MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env SPEC=unix-socket ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 xen-direct-%:
 	@mkdir -p _build
-	@env MIRAGEOS=xen MIRAGEFLOW=direct MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env SPEC=xen MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 node-socket-%:
 	@mkdir -p _build
-	@env MIRAGEOS=node MIRAGEFLOW=socket MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
+	@env SPEC=node MIRAGETARGET=$* ocamlbuild $(OFLAGS) $(JOBS) $*.otarget
 
 clean:
 	@ocamlbuild -clean

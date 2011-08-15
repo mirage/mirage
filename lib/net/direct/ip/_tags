@@ -1,5 +1,2 @@
 true: mirage
-<*.cmx> and not "iP.cmx": for-pack(Net.IP)
 "netif.ml" or "ipv4.ml" or "arp.ml" or "icmp.ml": pa_lwt
-<*.ml>: use_stdlib
-"iP.cmx": for-pack(Net)

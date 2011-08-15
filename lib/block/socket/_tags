@@ -1,3 +1,2 @@
 true: mirage
-<*.ml>: for-pack(Block)
 "manager.ml" or "rO.ml": pa_lwt

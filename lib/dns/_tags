@@ -1,4 +1,3 @@
 true: mirage
 <**/*.ml> : annot
 <*.ml>: pa_lwt
-<*.cmx> and not "dns.cmx": for-pack(Dns)

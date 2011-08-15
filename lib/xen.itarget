@@ -1,2 +1,2 @@
 std/stdlib.cmxa
-os/xen.otarget
+os/runtime_xen/all.otarget

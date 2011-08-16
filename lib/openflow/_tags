@@ -1,4 +1,2 @@
 true: mirage
-<**/*.ml> : annot
 <*.ml>: pa_lwt
-<*.cmx> and not "openflow.cmx": for-pack(Openflow)

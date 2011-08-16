@@ -212,7 +212,7 @@ let libev_files = List.map (fun x -> "os/runtime_unix/" ^ x)
    "ev_select.c"; "ev_epoll.c"; "ev_kqueue.c"; "ev_poll.c"; "ev_port.c"]
 
 let pack_in_one out header files env builder =
-  let packer = "../../../tools/ocp/_build/pack.native" in
+  let packer = "../../../tools/ocp-pack/_build/pack.native" in
   Cmd (S ([A packer; A"-o"; Px out; A"-mli"] @ (List.map (fun x -> A x) files)))
  
 let () = rule

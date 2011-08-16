@@ -713,3 +713,17 @@ type h = {
   length : uint16;
   xid : uint32;
 }
+
+let parse_of of_pkt bits = 
+	let base = Bitstring.offset_of_bitstring bits in 
+		( bitmatch bits with 
+			| { version:8; of_type:8;
+					len:16; xid:32;bits:-1:bitstring } -> (
+					OS.Console.log( Printf.sprintf "t:%d l:%d x:%ld "
+					 of_type len xid 
+					);
+				let of_h = {version='a';ty=(msg_code_of_int of_type);length=len;xid=xid} in 
+				of_h
+			)
+			| { _ } -> raise (Unparsable ("parse_of", bits))
+		)	 

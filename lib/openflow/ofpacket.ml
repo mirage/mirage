@@ -341,7 +341,7 @@ type features = {
   port_stats: bool;
   table_stats: bool;
   flow_stats: bool;
-  actions: uint32;
+  actions_supported: uint32;
 }
 
 type config = {
@@ -686,7 +686,7 @@ type stats_resp_payload =
   | Vendor
 
 type stats_resp_h = {
-  ty : uint16;
+  st_ty : uint16;
   more_to_follow : bool;
 }
 
@@ -736,13 +736,39 @@ let parse_of_header bits =
  
 let parse_of bits = 
 	let base = Bitstring.offset_of_bitstring bits in 
-		( bitmatch bits with 
-			| { version : 8 : int; of_type:8;
-					len:16; xid:32; bits:-1:bitstring} -> (
+		( bitmatch bits with  
+			| { 1:8; 6:8; len:16; xid:32; datapath_id:64; n_buffers:32; n_tables:8; unused_caps: 24:string;
+					arp_match_ip : 1; queue_stats: 1; ip_reasm: 1; stp: 1; port_stats:1;
+					table_stats: 1; flow_stats: 1; actions: 32; bits:-1:bitstring}  -> (
+										 {version= (char_of_int 1);ty=(msg_code_of_int 6);length=len;xid=xid; 
+										 data=Features_resp({datapath_id = datapath_id;n_buffers = n_buffers;n_tables = (char_of_int n_tables); 
+														 unused_caps = unused_caps;arp_match_ip = arp_match_ip;queue_stats = queue_stats;
+														 ip_reasm = ip_reasm;stp = stp;port_stats = port_stats;table_stats = table_stats;
+														 flow_stats = flow_stats;actions_supported = actions }, "")}
+				) 
+					| { 1:8; 0:8; len:16; xid:32; bits:-1:bitstring} -> 
 				(* TODO: Raise an exeption and close connection if openfow version is not valid *)
-				let of_pkt = {version= (char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")} in 
-				of_pkt
-			)
-			| { _ } -> raise (Unparsable ("parse_of", bits))
-		)	
+				({version=(char_of_int 1);ty=(msg_code_of_int 0);length=len;xid=xid; data=Hello("")})
+				|  { 1:8; 2:8; len:16; xid:32; bits:-1:bitstring} -> 
+				({version=(char_of_int 1);ty=(msg_code_of_int 2);length=len;xid=xid; data=Echo_req("")})
+				| { version:8; of_type:8; len:16; xid:32; bits:-1:bitstring} -> 
+				({version=(char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")})
+				| {_ } -> raise (Unparsable ("parse_of", bits))
+)	
+(*
 
+type features = {
+  datapath_id : uint64;
+  n_buffers : uint32;
+  n_tables : byte;
+  unused_caps : byte 
+  arp_match_ip : bool;
+  queue_stats: bool;
+  ip_reasm: bool;
+  stp: bool;
+  port_stats: bool;
+  table_stats: bool;
+  flow_stats: bool;
+  actions: uint32;
+}
+*)

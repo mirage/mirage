@@ -6,6 +6,9 @@ open Lwt
 
 let port = 6633
 
+let datapath_join_cb controller dpid =
+	printf "Datapath %s joined\n" dpid 
+
 let main () =
   lwt mgr, mgr_t = Net.Manager.create () in
   Openflow.Controller.listen mgr port

@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
+(** Activations provides an interface to wait for a file descriptor
+    to become available for either reading or writing *)
 
+(** File descriptor *)
 type fd = int
 
-(* Register a read file descriptor and a thread that
-   returns when it is ready *)
-let read fd = return ()
+(** Wait for the file descriptor to become ready for reading 
+    @param fd file descriptor 
+    @return a thread that blocks until the [fd] is ready for reading *)
+val read: fd -> unit Lwt.t
 
-(* Register a write file descriptor and a thread that
-   returns when it is ready *)
-let write fd = return ()
+(** Wait for the file descriptor to become ready for writing 
+    @param fd file descriptor 
+    @return a thread that blocks until the [fd] is ready for writing *)
+val write: fd -> unit Lwt.t

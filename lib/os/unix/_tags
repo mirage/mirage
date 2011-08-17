@@ -1,4 +1,3 @@
 true: mirage
-<*.cmx>: for-pack(OS)
 <*.ml>: annot
 "netif.ml" or "main.ml" or "time.ml": pa_lwt

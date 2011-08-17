@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
+external evtchn_init : unit -> unit = "caml_evtchn_init"
+external evtchn_nr_events : unit -> int = "caml_nr_events"
+external evtchn_test_and_clear : int -> bool = "caml_evtchn_test_and_clear" "noalloc"
 
-type fd = int
+val nr_events : int
 
-(* Register a read file descriptor and a thread that
-   returns when it is ready *)
-let read fd = return ()
-
-(* Register a write file descriptor and a thread that
-   returns when it is ready *)
-let write fd = return ()
+val wait : int -> unit Lwt.t
+val run : unit -> unit

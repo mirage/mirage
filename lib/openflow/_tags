@@ -1,3 +1,2 @@
 true: mirage
-<**/*.ml> : annot
 <*.ml>: pa_lwt

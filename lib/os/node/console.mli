@@ -14,14 +14,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
+(** Text console input/output operations. *)
 
-type fd = int
+(** Abstract type of a console instance *)
+type t
 
-(* Register a read file descriptor and a thread that
-   returns when it is ready *)
-let read fd = return ()
+(** The default console, attached from the start of the program *)
+val t : t
 
-(* Register a write file descriptor and a thread that
-   returns when it is ready *)
-let write fd = return ()
+(** Create an additional console. Not implemented yet. *)
+val create : unit -> t
+
+(** Write a string with offset/length to the console *)
+val write : t -> string -> int -> int -> unit
+
+(** Same as {!OS.Console.write} except that the operation is synchronous *)
+val sync_write : t -> string -> int -> int -> unit Lwt.t
+
+val log : string -> unit
+
+val log_s : string -> unit Lwt.t

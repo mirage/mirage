@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
+(** Dummy Block module, not implemented yet *)
 
-type fd = int
+type t
+type id
 
-(* Register a read file descriptor and a thread that
-   returns when it is ready *)
-let read fd = return ()
+val enumerate: unit -> id list Lwt.t
+val create: id -> (t * unit Lwt.t) Lwt.t
 
-(* Register a write file descriptor and a thread that
-   returns when it is ready *)
-let write fd = return ()
+

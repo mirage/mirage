@@ -51,12 +51,12 @@ function assemble_node {
   mode=$1
   echo Assembling: node $1
   OBJ=${BUILDDIR}/node-$1
-  if [ -d ${ROOT}/lib/_build/node-$1 ]; then
+  if [ -d ${ROOT}/lib/_build/node ]; then
     mkdir -p ${OBJ}/lib 
     for i in libos.a dllos.so; do
-      cp ${ROOT}/lib/_build/node-$1/os/runtime_node/$i ${OBJ}/lib/
+      cp ${ROOT}/lib/_build/node/os/runtime_node/$i ${OBJ}/lib/
     done
-    cp ${ROOT}/lib/_build/node-$1/std/*.{cmi,cmo,cma} ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/node/std/*.{cmi,cmo,cma} ${OBJ}/lib/
     cp ${ROOT}/lib/os/runtime_node/*.js ${OBJ}/lib/
   else
     echo Skipping: Node

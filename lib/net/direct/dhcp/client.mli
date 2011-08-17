@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2006-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,16 +12,26 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
  *)
 
-open Lwt
+type offer = {
+  ip_addr : Nettypes.ipv4_addr;
+  netmask : Nettypes.ipv4_addr option;
+  gateways : Nettypes.ipv4_addr list;
+  dns : Nettypes.ipv4_addr list;
+  lease : int32;
+  xid : int32;
+}
 
-type fd = int
+type state =
+    Disabled
+  | Request_sent of int32
+  | Offer_accepted of offer
+  | Lease_held of offer
+  | Shutting_down
 
-(* Register a read file descriptor and a thread that
-   returns when it is ready *)
-let read fd = return ()
+type t
 
-(* Register a write file descriptor and a thread that
-   returns when it is ready *)
-let write fd = return ()
+val input : t -> src:'a -> dst:'b -> source_port:'c -> Bitstring.t -> unit Lwt.t
+val create : Ipv4.t -> Udp.t -> (t * unit Lwt.t) Lwt.t

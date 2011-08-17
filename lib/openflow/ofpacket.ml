@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Lwt
+
 module Bitstring = struct
   include Bitstring
   let offset_of_bitstring bits = 
@@ -43,6 +45,11 @@ let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *)
 
 type int16 = int
 
+(*
+let test_hello_world () = 
+	OS.Console.log "Hello World"
+
+*)
 (* XXX definitely of dubious merit - but we don't do arithmetic... *)
 type uint16 = int
 type uint32 = int32
@@ -712,18 +719,30 @@ type h = {
   ty : msg_code;
   length : uint16;
   xid : uint32;
+	data : payload;
 }
 
-let parse_of of_pkt bits = 
+let parse_of_header bits = 
 	let base = Bitstring.offset_of_bitstring bits in 
 		( bitmatch bits with 
-			| { version:8; of_type:8;
-					len:16; xid:32;bits:-1:bitstring } -> (
-					OS.Console.log( Printf.sprintf "t:%d l:%d x:%ld "
-					 of_type len xid 
-					);
-				let of_h = {version='a';ty=(msg_code_of_int of_type);length=len;xid=xid} in 
-				of_h
+			| { version : 8 : int; of_type:8;
+					len:16; xid:32; bits:-1:bitstring} -> (
+				(* TODO: Raise an exeption and close connection if openfow version is not valid *)
+				let of_pkt = {version= (char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")} in 
+				of_pkt
 			)
 			| { _ } -> raise (Unparsable ("parse_of", bits))
-		)	 
+		)	
+ 
+let parse_of bits = 
+	let base = Bitstring.offset_of_bitstring bits in 
+		( bitmatch bits with 
+			| { version : 8 : int; of_type:8;
+					len:16; xid:32; bits:-1:bitstring} -> (
+				(* TODO: Raise an exeption and close connection if openfow version is not valid *)
+				let of_pkt = {version= (char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")} in 
+				of_pkt
+			)
+			| { _ } -> raise (Unparsable ("parse_of", bits))
+		)	
+

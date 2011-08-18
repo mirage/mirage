@@ -381,12 +381,12 @@ type wildcards = {
 	dl_dst: bool; 
 	dl_src: bool; 
 	dl_vlan: bool; 
-	in_port: bool; 
+	wildcard_in_port: bool; 
 }
 
 type of_match = {
 	wildcards: wildcards;
-	in_port: port;
+	match_in_port: port;
 	dl_src: eaddr;
 	dl_dst: eaddr;
 	dl_vlan: uint16;
@@ -419,7 +419,7 @@ type flow = {
   of_match : of_match;
   cookie : uint64;
   priority : uint16;
-  reason : removed_reason;
+  flow_reason : removed_reason;
   duration_sec: uint32;
   duration_usec: uint32;
   idle_timeout : uint16;
@@ -482,13 +482,13 @@ and string_of_port_status_reason = function
   | MOD -> sp "MOD"
 
 type port_status = {
-  reason: port_status_reason;
+  port_reason: port_status_reason;
   phy_port : phy_port;
 }
 
 type packet_out = {
-  buffer_id : uint32;
-  in_port : port;
+  packet_out_buffer_id : uint32;
+  packet_out_in_port : port;
   actions_len : uint16;
   actions: bytes;
 }
@@ -521,7 +521,7 @@ type flow_mod = {
   idle_timeout : uint16;
   hard_timeout : uint16;
   priority : uint16;
-  buffer_id : uint32;
+  flow_mod_buffer_id : uint32;
   out_port : port;
   emerg: bool;
   overlap: bool;
@@ -725,10 +725,10 @@ type h = {
 let parse_of_header bits = 
 	let base = Bitstring.offset_of_bitstring bits in 
 		( bitmatch bits with 
-			| { version : 8 : int; of_type:8;
+			| { 1 : 8 : int; of_type:8;
 					len:16; xid:32; bits:-1:bitstring} -> (
 				(* TODO: Raise an exeption and close connection if openfow version is not valid *)
-				let of_pkt = {version= (char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")} in 
+				let of_pkt = {version= (char_of_int 1);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")} in 
 				of_pkt
 			)
 			| { _ } -> raise (Unparsable ("parse_of", bits))
@@ -737,16 +737,26 @@ let parse_of_header bits =
 let parse_of bits = 
 	let base = Bitstring.offset_of_bitstring bits in 
 		( bitmatch bits with  
-			| { 1:8; 6:8; len:16; xid:32; datapath_id:64; n_buffers:32; n_tables:8; unused_caps: 24:string;
-					arp_match_ip : 1; queue_stats: 1; ip_reasm: 1; stp: 1; port_stats:1;
-					table_stats: 1; flow_stats: 1; actions: 32; bits:-1:bitstring}  -> (
+			| { 1:8; 6:8; len:16; xid:32; datapath_id:64; n_buffers:32; n_tables:8; 
+					unused_caps: 24:string; arp_match_ip : 1; queue_stats: 1; ip_reasm: 1; 
+					stp: 1; port_stats:1; table_stats: 1; flow_stats: 1; actions: 32; 
+					bits:-1:bitstring}  -> (
 										 {version= (char_of_int 1);ty=(msg_code_of_int 6);length=len;xid=xid; 
-										 data=Features_resp({datapath_id = datapath_id;n_buffers = n_buffers;n_tables = (char_of_int n_tables); 
-														 unused_caps = unused_caps;arp_match_ip = arp_match_ip;queue_stats = queue_stats;
-														 ip_reasm = ip_reasm;stp = stp;port_stats = port_stats;table_stats = table_stats;
-														 flow_stats = flow_stats;actions_supported = actions }, "")}
-				) 
-					| { 1:8; 0:8; len:16; xid:32; bits:-1:bitstring} -> 
+										 data=Features_resp({datapath_id = datapath_id;n_buffers = n_buffers;
+														 n_tables = (char_of_int n_tables); unused_caps = unused_caps;
+ 														 arp_match_ip = arp_match_ip;queue_stats = queue_stats;
+														 ip_reasm = ip_reasm;stp = stp;port_stats = port_stats;
+														 table_stats = table_stats; flow_stats = flow_stats;
+														 actions_supported = actions }, "")}
+					)
+			| { 1:8; 10:8; len:16; xid:32; buffer_id:32; total_len:16; in_port : 16; reason:8;
+					bits:-1:bitstring}  -> (
+										 {version= (char_of_int 1);ty=(msg_code_of_int 10);length=len;xid=xid; 
+										 data=Packet_in({buffer_id=buffer_id;total_len=total_len;
+										 in_port=(port_of_int in_port); 
+  									 reason=(in_reason_of_int reason)}, (bytes_of_bitstring bits))}
+				)			
+		| { 1:8; 0:8; len:16; xid:32; bits:-1:bitstring} -> 
 				(* TODO: Raise an exeption and close connection if openfow version is not valid *)
 				({version=(char_of_int 1);ty=(msg_code_of_int 0);length=len;xid=xid; data=Hello("")})
 				|  { 1:8; 2:8; len:16; xid:32; bits:-1:bitstring} -> 
@@ -755,20 +765,4 @@ let parse_of bits =
 				({version=(char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")})
 				| {_ } -> raise (Unparsable ("parse_of", bits))
 )	
-(*
 
-type features = {
-  datapath_id : uint64;
-  n_buffers : uint32;
-  n_tables : byte;
-  unused_caps : byte 
-  arp_match_ip : bool;
-  queue_stats: bool;
-  ip_reasm: bool;
-  stp: bool;
-  port_stats: bool;
-  table_stats: bool;
-  flow_stats: bool;
-  actions: uint32;
-}
-*)

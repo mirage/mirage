@@ -143,11 +143,11 @@ type wildcards = {
   dl_dst : bool;
   dl_src : bool;
   dl_vlan : bool;
-  in_port : bool;
+  wildcard_in_port : bool;
 }
 type of_match = {
   wildcards : wildcards;
-  in_port : port;
+  match_in_port : port;
   dl_src : eaddr;
   dl_dst : eaddr;
   dl_vlan : uint16;
@@ -168,7 +168,7 @@ type flow = {
   of_match : of_match;
   cookie : uint64;
   priority : uint16;
-  reason : removed_reason;
+  flow_reason : removed_reason;
   duration_sec : uint32;
   duration_usec : uint32;
   idle_timeout : uint16;
@@ -215,10 +215,10 @@ type port_status_reason = ADD | DEL | MOD
 val port_status_reason_of_int : int -> port_status_reason
 val int_of_port_status_reason : port_status_reason -> int
 val string_of_port_status_reason : port_status_reason -> string
-type port_status = { reason : port_status_reason; phy_port : phy_port; }
+type port_status = { port_reason : port_status_reason; phy_port : phy_port; }
 type packet_out = {
-  buffer_id : uint32;
-  in_port : port;
+  packet_out_buffer_id : uint32;
+  packet_out_in_port : port;
   actions_len : uint16;
   actions : bytes;
 }
@@ -233,7 +233,7 @@ type flow_mod = {
   idle_timeout : uint16;
   hard_timeout : uint16;
   priority : uint16;
-  buffer_id : uint32;
+  flow_mod_buffer_id : uint32;
   out_port : port;
   emerg : bool;
   overlap : bool;

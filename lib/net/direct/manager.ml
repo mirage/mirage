@@ -23,7 +23,10 @@ open Nettypes
 
 exception Error of string
 
-type i = {
+type id = OS.Netif.id
+
+type interface = {
+  id: id;
   netif: Ethif.t;
   ipv4: Ipv4.t;
   icmp: Icmp.t;
@@ -31,63 +34,89 @@ type i = {
   tcp: Tcp.Pcb.t;
 }
 
-type t = (i * unit Lwt.t) list
+type interface_t = interface * unit Lwt.t
+
+type t = {
+  listener: t -> interface -> id -> unit Lwt.t;
+  listeners: (id, interface_t) Hashtbl.t;
+}
+
+type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
 
 (* Configure an interface based on the Config module *)
-let configure id t =
-  match Config.t id with
+let configure i =
+  function
   |`DHCP ->
-      Printf.printf "Manager: VIF %s to DHCP\n%!" (OS.Netif.string_of_id id);
-      lwt t, th = Dhcp.Client.create t.ipv4 t.udp in
-      Printf.printf "Manager: DHCP done\n%!";
-      return th
+    Printf.printf "Manager: VIF %s to DHCP\n%!" (OS.Netif.string_of_id i.id);
+    lwt t, th = Dhcp.Client.create i.ipv4 i.udp in
+    Printf.printf "Manager: DHCP done\n%!";
+    th >>
+    return ()
   |`IPv4 (addr, netmask, gateways) ->
-      OS.Console.log (Printf.sprintf "Manager: VIF %s to %s nm %s gw [%s]"
-        (OS.Netif.string_of_id id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
-        (String.concat ", " (List.map ipv4_addr_to_string gateways)));
-      Ipv4.set_ip t.ipv4 addr >>
-      Ipv4.set_netmask t.ipv4 netmask >>
-      Ipv4.set_gateways t.ipv4 gateways >>
-      let th, _ = Lwt.task () in
-      return th (* Never return from this thread *)
+    Printf.sprintf "Manager: VIF %s to %s nm %s gw [%s]"
+      (OS.Netif.string_of_id i.id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
+      (String.concat ", " (List.map ipv4_addr_to_string gateways));
+    Ipv4.set_ip i.ipv4 addr >>
+    Ipv4.set_netmask i.ipv4 netmask >>
+    Ipv4.set_gateways i.ipv4 gateways >>
+    return ()
 
-(* Enumerate interfaces and manage the protocol threads *)
-let create () =
-  lwt ids = OS.Netif.enumerate () in
-  let wrap t = try_lwt t >>= return with
-    exn -> (OS.Console.log ("Manager: exn=" ^ (Printexc.to_string exn)); fail exn) in
-  lwt t = Lwt_list.map_p (fun id ->
-    lwt vif = OS.Netif.create id in
-    let (netif, netif_t) = Ethif.create vif in
-    let (ipv4, ipv4_t) = Ipv4.create netif in
-    let (icmp, icmp_t) = Icmp.create ipv4 in
-    let (tcp, tcp_t) = Tcp.Pcb.create ipv4 in
-    let (udp, udp_t) = Udp.create ipv4 in
-    let t = { ipv4; tcp; udp; icmp; netif } in
-    lwt config_t = configure id t in
-    let th = pick [wrap udp_t; wrap tcp_t; wrap ipv4_t; wrap netif_t;
-      wrap icmp_t; wrap config_t] in
-    return (t, th)
-  ) ids in
-  let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> List.iter (fun (_,th) -> Lwt.cancel th) t);
-  return (t, th)
+(* Plug in a new network interface with given id *)
+let plug t id = 
+  let wrap (s,t) = try_lwt t >>= return with exn ->
+    (Printf.printf "Manager: exn=%s %s\n%!" s (Printexc.to_string exn); fail exn) in
+  lwt vif = OS.Netif.create id in
+  let (netif, netif_t) = Ethif.create vif in
+  let (ipv4, ipv4_t) = Ipv4.create netif in
+  let (icmp, icmp_t) = Icmp.create ipv4 in
+  let (tcp, tcp_t) = Tcp.Pcb.create ipv4 in
+  let (udp, udp_t) = Udp.create ipv4 in
+  let i = { id; ipv4; tcp; udp; icmp; netif } in
+  (* The interface thread can be cancelled by exceptions from the
+     rest of the threads, as a debug measure.
+     TODO: think about restart strategies here *)
+  let th = join (List.map wrap ["udp",udp_t; "tcp",tcp_t; "ipv4",ipv4_t;
+    "netif", netif_t; "icmp", icmp_t]) in
+  (* Register the interface_t with the manager interface *)
+  Hashtbl.add t.listeners id (i,th);
+  t.listener t i id
 
-(* Find the interface associated with the address *)
-let i_of_ip t addr =
+(* Unplug a network interface and cancel all its threads. *)
+let unplug t id =
   try
-    (match addr with
-     |None -> return (List.hd t) (* TODO: bind to all interfaces *)
-     |Some addr -> return (List.find (fun (i,_) -> Ipv4.get_ip i.ipv4 = addr) t)
-    )
-  with _ -> fail (Error "No interface found for IP")
+    let i, th = Hashtbl.find t.listeners id in
+    Lwt.cancel th;
+    Hashtbl.remove t.listeners id
+  with Not_found -> ()
+
+(* Enumerate interfaces and manage the protocol threads.
+   The listener becomes a new thread that is spawned when a 
+   new interface shows up. *)
+let create listener =
+  let listeners = Hashtbl.create 1 in
+  let t = { listener; listeners } in
+  lwt ids = OS.Netif.enumerate () in
+  Lwt_list.iter_s (plug t) ids >>
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug t id) listeners);
+  th
+
+(* Find the interfaces associated with the address *)
+let i_of_ip t addr =
+  match addr with
+  |None ->
+    Hashtbl.fold (fun _ (i,_) a ->
+      i :: a) t.listeners []
+  |Some addr -> begin
+    Hashtbl.fold (fun _ (i,_) a ->
+      if Ipv4.get_ip i.ipv4 = addr then i :: a else a
+    ) t.listeners [];
+  end
 
 (* Match an address and port to a TCP thread *)
-let tcpv4_of_addr (t:t) addr =
-  lwt i,_ = i_of_ip t addr in
-  return i.tcp
+let tcpv4_of_addr t addr =
+  List.map (fun x -> x.tcp) (i_of_ip t addr)
 
 (* TODO: do actual route selection *)
 let udpv4_of_addr (t:t) addr =
-  lwt i,_ = i_of_ip t addr in
-  return i.udp
+  List.map (fun x -> x.udp) (i_of_ip t addr)

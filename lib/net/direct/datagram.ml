@@ -29,12 +29,17 @@ module UDPv4 = struct
     let source_port = match src with
       |None -> 37 (* XXX eventually random *)
       |Some (_,p) -> p in
-    lwt udp = Manager.udpv4_of_addr mgr None in
-    Udp.output udp ~dest_ip ~source_port ~dest_port msg
+    let udps = Manager.udpv4_of_addr mgr None in
+    (* TODO: select the right interface to route from *)
+    match udps with
+    |hd :: tl -> Udp.output hd ~dest_ip ~source_port ~dest_port msg
+    |[] -> Printf.printf "UDP: no route to send packet, discarding\n%!"; return ()
 
   let recv mgr (src_addr, src_port) fn =
-    lwt udp = Manager.udpv4_of_addr mgr src_addr in
-    Udp.listen udp src_port (fun ~src ~dst ~source_port pkt ->
-      fn (src,source_port) pkt
-    )
+    let udps = Manager.udpv4_of_addr mgr src_addr in
+    Lwt_list.iter_p (fun udp ->
+      Udp.listen udp src_port (fun ~src ~dst ~source_port pkt ->
+        fn (src,source_port) pkt
+      )
+    ) udps
 end

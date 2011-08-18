@@ -3,26 +3,34 @@
 open Lwt
 open Printf
 open Net
+open Nettypes
+
+let addr = ipv4_addr_of_tuple (10l,0l,0l,2l)
+let netmask = ipv4_addr_of_tuple (255l,255l,255l,0l)
+let gw = [ipv4_addr_of_tuple (10l,0l,0l,1l)]
 
 let echo () =
-  lwt mgr,mgr_t = Manager.create () in
-  (* Listen on all interfaces, port 8081 *)
-  let src = (None, 8081) in 
-  Channel.listen mgr (`TCPv4 (src,
-    (fun (remote_addr, remote_port) t ->
-       OS.Console.log (sprintf "Connection from %s:%d"
-         (Nettypes.ipv4_addr_to_string remote_addr) remote_port);
-       let rec echo () =
-         try_lwt
-           lwt res = Channel.read_crlf t in
-           Channel.write_bitstring t res >>
-           Channel.write_char t '\n' >>
-           Channel.flush t >>
-           echo ()
-         with Nettypes.Closed -> return ()
-       in
-       echo () 
+  lwt t = Manager.create (fun mgr interface id ->
+    Manager.configure interface (`IPv4 (addr, netmask, gw)) >>
+    let src = (None, 8081) in 
+    Channel.listen mgr (
+      `TCPv4 (src,
+        (fun (remote_addr, remote_port) t ->
+           printf "Connection from %s:%d" (Nettypes.ipv4_addr_to_string remote_addr) remote_port;
+           let rec echo () =
+             try_lwt
+               lwt res = Channel.read_crlf t in
+               Channel.write_bitstring t res >>
+               Channel.write_char t '\n' >>
+               Channel.flush t >>
+               echo ()
+             with Nettypes.Closed -> return ()
+           in
+           echo () 
+        )
+      )
     )
-  ))
+  ) in
+  return ()
 
 let _ = OS.Main.run (echo ())

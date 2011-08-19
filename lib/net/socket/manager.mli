@@ -50,8 +50,8 @@ module Unix :
   end
 
 type t
-type id = OS.Netif.id
 type interface
+type id
 val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
 val local_peers : 'a -> Unix.uid list
 val local_uid : 'a -> Unix.uid

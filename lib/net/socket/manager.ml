@@ -82,10 +82,11 @@ module Unix = struct
     |Retry -> assert false
 end
 
+type id = string
+
 open Unix
 
 type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
-type id = OS.Netif.id
 
 (* Interfaces are a NOOP for the moment, as we depend on them being
    configured externally *)
@@ -167,7 +168,7 @@ let create listener =
     (String.concat ", " (List.map string_of_int other_uids));
   let peers = Hashtbl.create 7 in
   let t = { udpv4; udpv4_listen_ports; domain; peers } in
-  OS.Netif.create (fun id vif -> listener t () id)
+  listener t () ""
 
 let get_udpv4 t =
   t.udpv4

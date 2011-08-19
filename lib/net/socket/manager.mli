@@ -50,12 +50,15 @@ module Unix :
   end
 
 type t
+type id = OS.Netif.id
+type interface
+val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
 val local_peers : 'a -> Unix.uid list
 val local_uid : 'a -> Unix.uid
 val connect_to_peer : t -> Nettypes.peer_uid -> [ `domain ] Unix.fd option Lwt.t
 val listen_to_peers : t -> (int -> [< `rd_pipe | `wr_pipe ] Unix.fd * [< `rd_pipe | `wr_pipe ] Unix.fd -> unit Lwt.t) -> unit Lwt.t
 val connect : t -> Nettypes.peer_uid -> ([ `rd_pipe ] Unix.fd * [ `wr_pipe ] Unix.fd -> 'a Lwt.t) -> 'a Lwt.t
-val create : unit -> (t * 'a Lwt.t) Lwt.t
 val get_udpv4 : t -> [ `udpv4 ] Unix.fd
 val register_udpv4_listener : t -> Nettypes.ipv4_addr option * int -> [ `udpv4 ] Unix.fd -> unit
 val get_udpv4_listener : t -> Nettypes.ipv4_addr option * Unix.port -> [ `udpv4 ] Unix.fd Lwt.t
+

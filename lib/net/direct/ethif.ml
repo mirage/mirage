@@ -61,11 +61,11 @@ let input t frame =
       let frame = gen_frame dmac smac in
       begin match etype with
       | 0x0800 (* IPv4 *) -> t.ipv4 bits
-      | 0x86dd (* IPv6 *) -> return (Printf.printf "Ethif: discarding ipv6\n%!")
-      | etype -> return (Printf.printf "Ethif: unknown frame %x\n%!" etype)
+      | 0x86dd (* IPv6 *) -> return (printf "Ethif: discarding ipv6\n%!")
+      | etype -> return (printf "Ethif: unknown frame %x\n%!" etype)
       end
   |{_} ->
-      return (Printf.printf "Ethif: dropping input\n%!")
+      return (printf "Ethif: dropping input\n%!")
 
 (* Loop and listen for frames *)
 let rec listen t =

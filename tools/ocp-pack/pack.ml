@@ -62,7 +62,7 @@ let rec close_ns_open ns =
 let dump_file _p filename =
   if !verbosity > 0 then
     Printf.eprintf "dump_file %s\n" filename;
-  _p (Printf.sprintf "#0 \"%s\"\n" filename);
+  _p (Printf.sprintf "#1 \"%s\"\n" filename);
   let ic = open_in filename in
   try
     while true do

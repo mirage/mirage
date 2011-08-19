@@ -84,6 +84,14 @@ end
 
 open Unix
 
+type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
+type id = OS.Netif.id
+
+(* Interfaces are a NOOP for the moment, as we depend on them being
+   configured externally *)
+type interface = unit
+let configure () config = return ()
+
 type t = {
   domain: [`domain] fd;
   peers: (peer_uid, [`domain] fd) Hashtbl.t;
@@ -147,7 +155,7 @@ let rec connect t uid fn =
   end 
  
 (* Enumerate interfaces and manage the protocol threads *)
-let create () =
+let create listener =
   let udpv4 = udpv4_socket () in
   let udpv4_listen_ports = Hashtbl.create 7 in
   lwt domain = iobind domain_bind (domain_uid ()) in
@@ -157,11 +165,12 @@ let create () =
   let our_uid = Unix.domain_uid () in
   Printf.printf "Our uid: %d Others: %s\n%!" our_uid
     (String.concat ", " (List.map string_of_int other_uids));
-  Gc.compact (); (* XXX debug *)
   let peers = Hashtbl.create 7 in
   let t = { udpv4; udpv4_listen_ports; domain; peers } in
   let th, _ = Lwt.task () in
-  return (t, th)
+  lwt ids = OS.Netif.enumerate () in
+  let if_t = Lwt_list.iter_p (listener t ()) ids in
+  if_t <&> th
 
 let get_udpv4 t =
   t.udpv4

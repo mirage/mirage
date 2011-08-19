@@ -15,7 +15,7 @@
  *)
 
 type t
-type id
+type id = string
 val create : id -> t Lwt.t
 val listen : t -> (Bitstring.t -> unit Lwt.t) -> unit Lwt.t
 val destroy : t -> unit Lwt.t

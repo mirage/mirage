@@ -167,10 +167,7 @@ let create listener =
     (String.concat ", " (List.map string_of_int other_uids));
   let peers = Hashtbl.create 7 in
   let t = { udpv4; udpv4_listen_ports; domain; peers } in
-  let th, _ = Lwt.task () in
-  lwt ids = OS.Netif.enumerate () in
-  let if_t = Lwt_list.iter_p (listener t ()) ids in
-  if_t <&> th
+  OS.Netif.create (fun id vif -> listener t () id)
 
 let get_udpv4 t =
   t.udpv4

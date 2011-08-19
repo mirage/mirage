@@ -20,6 +20,7 @@
 
 open Lwt
 open Nettypes
+open Printf
 
 exception Error of string
 
@@ -47,14 +48,14 @@ type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
 let configure i =
   function
   |`DHCP ->
-    Printf.printf "Manager: VIF %s to DHCP\n%!" (OS.Netif.string_of_id i.id);
+    printf "Manager: VIF %s to DHCP\n%!" i.id;
     lwt t, th = Dhcp.Client.create i.ipv4 i.udp in
-    Printf.printf "Manager: DHCP done\n%!";
+    printf "Manager: DHCP done\n%!";
     th >>
     return ()
   |`IPv4 (addr, netmask, gateways) ->
-    Printf.sprintf "Manager: VIF %s to %s nm %s gw [%s]"
-      (OS.Netif.string_of_id i.id) (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
+    printf "Manager: VIF %s to %s nm %s gw [%s]\n%!"
+      i.id (ipv4_addr_to_string addr) (ipv4_addr_to_string netmask)
       (String.concat ", " (List.map ipv4_addr_to_string gateways));
     Ipv4.set_ip i.ipv4 addr >>
     Ipv4.set_netmask i.ipv4 netmask >>
@@ -62,10 +63,10 @@ let configure i =
     return ()
 
 (* Plug in a new network interface with given id *)
-let plug t id = 
+let plug t id vif =
+  printf "Manager: plug %s\n%!" id; 
   let wrap (s,t) = try_lwt t >>= return with exn ->
-    (Printf.printf "Manager: exn=%s %s\n%!" s (Printexc.to_string exn); fail exn) in
-  lwt vif = OS.Netif.create id in
+    (printf "Manager: exn=%s %s\n%!" s (Printexc.to_string exn); fail exn) in
   let (netif, netif_t) = Ethif.create vif in
   let (ipv4, ipv4_t) = Ipv4.create netif in
   let (icmp, icmp_t) = Icmp.create ipv4 in
@@ -79,6 +80,7 @@ let plug t id =
     "netif", netif_t; "icmp", icmp_t]) in
   (* Register the interface_t with the manager interface *)
   Hashtbl.add t.listeners id (i,th);
+  printf "Manager: plug done, to listener\n%!";
   t.listener t i id
 
 (* Unplug a network interface and cancel all its threads. *)
@@ -93,12 +95,15 @@ let unplug t id =
    The listener becomes a new thread that is spawned when a 
    new interface shows up. *)
 let create listener =
+  printf "Manager: create\n%!";
   let listeners = Hashtbl.create 1 in
   let t = { listener; listeners } in
-  lwt ids = OS.Netif.enumerate () in
-  Lwt_list.iter_s (plug t) ids >>
+  let os = OS.Netif.create (plug t) in
   let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug t id) listeners);
+  Lwt.on_cancel th (fun _ ->
+    printf "Manager: cancel\n%!";
+    Hashtbl.iter (fun id _ -> unplug t id) listeners);
+  printf "Manager: init done\n%!";
   th
 
 (* Find the interfaces associated with the address *)

@@ -113,4 +113,3 @@ let detach t = function
   |`IPv4 -> t.ipv4 <- (fun _ -> return ())
 
 let mac t = t.mac
-let enumerate = OS.Netif.enumerate

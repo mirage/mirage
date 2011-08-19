@@ -24,14 +24,15 @@ module Tap = struct
   external write: t -> Bitstring.t -> unit = "tap_write"
 end
 
+type id = string
+
 type t = {
-  id: string;
+  id: id;
   dev: Tap.t;
   mutable active: bool;
   mac: string;
 }
 
-type id = string
 exception Ethif_closed
 
 (* We must generate a fake MAC for the Unix "VM", as using the
@@ -49,12 +50,31 @@ let generate_local_mac () =
   x.[5] <- i ();
   x
 
-let create (id:id) =
+let devices = Hashtbl.create 1
+
+let plug id =
   let dev = Tap.opendev id in
   let mac = generate_local_mac () in
   let active = true in
   let t = { id; dev; active; mac } in
+  Hashtbl.add devices id t;
+  printf "Netif: plug %s\n%!" id;
   return t
+
+let unplug id =
+  try
+    let t = Hashtbl.find devices id in
+    t.active <- false;
+    printf "Netif: unplug %s\n%!" id;
+    Hashtbl.remove devices id
+  with Not_found -> ()
+   
+let create fn =
+  lwt t = plug "tap0" in (* Just hardcode a tap device for the moment *)
+  let user = fn "tap0" t in
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> unplug "tap0");
+  th <?> user
 
 (* Input a frame, and block if nothing is available *)
 let rec input t =
@@ -100,11 +120,6 @@ let output t bss =
   let s = Bitstring.concat bss in
   return (Tap.write t.dev s)
 
-(** Return a list of valid VIF IDs *)
-let enumerate () =
-  return [ "tap0" ]
-
 let mac t =
   t.mac
 
-let string_of_id id = id

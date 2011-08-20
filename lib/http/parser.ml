@@ -31,7 +31,7 @@ let bindings_sep, binding_sep, pieces_sep, header_sep =
   Re.(compile (char '&'),
       compile (char '='),
       compile (char ' '),
-      compile (char ':')
+      from_string ": *"
      )
 
 let url_decode url = Url.decode url
@@ -69,7 +69,7 @@ let parse_headers ic =
     | "" -> return (List.rev headers)
     | line -> begin
         (*TODO: optimize by not going through the whole header and cat-ing it*)
-        lwt (header, value) = match Re.(split_delim (from_string ":") line) with
+        lwt (header, value) = match Re.(split_delim header_sep line) with
           | [] | [_] -> fail (Invalid_header line)
           | hd :: tl -> Lwt.return (hd, String.concat ":" tl)
         in

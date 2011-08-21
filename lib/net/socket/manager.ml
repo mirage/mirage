@@ -22,70 +22,9 @@ open Lwt
 open Nettypes
 open Printf
 
-exception Error of string
-
-module Unix = struct
-  type ipv4 = int32
-  type port = int
-  type uid = int
-  type 'a fd
-
-  type 'a resp =
-  | OK of 'a
-  | Err of string
-  | Retry
-
-  external tcpv4_connect: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_connect"
-  external tcpv4_bind: ipv4 -> port -> [`tcpv4] fd resp = "caml_tcpv4_bind"
-  external tcpv4_listen: [`tcpv4] fd -> unit resp = "caml_socket_listen"
-  external tcpv4_accept: [`tcpv4] fd -> ([`tcpv4] fd * ipv4 * port) resp = "caml_tcpv4_accept"
-
-  external udpv4_socket: unit -> [`udpv4] fd = "caml_udpv4_socket"
-  external udpv4_bind: ipv4 -> port -> [`udpv4] fd resp = "caml_udpv4_bind"
-  external udpv4_recvfrom: [`udpv4] fd -> string -> int -> int -> (ipv4 * port * int) resp = "caml_udpv4_recvfrom"
-  external udpv4_sendto: [`udpv4] fd -> string -> int -> int -> (ipv4 * port) -> int resp = "caml_udpv4_sendto"
-
-  external domain_uid: unit -> uid = "caml_domain_name"
-  external domain_bind: uid -> [`domain] fd resp = "caml_domain_bind"
-  external domain_connect: uid -> [`domain] fd resp = "caml_domain_connect"
-  external domain_accept: [`domain] fd -> [`domain] fd resp = "caml_domain_accept"
-  external domain_list: unit -> uid list = "caml_domain_list"
-  external domain_read: [`domain] fd -> string resp = "caml_domain_read"
-  external domain_write: [`domain] fd -> string -> unit resp = "caml_domain_write"
-  external domain_send_pipe: [`domain] fd -> [<`rd_pipe|`wr_pipe] fd -> unit resp = "caml_domain_send_fd"
-  external domain_recv_pipe: [`domain] fd -> [<`rd_pipe|`wr_pipe] fd resp = "caml_domain_recv_fd"
- 
-  external pipe: unit -> ([`rd_pipe] fd * [`wr_pipe] fd) resp = "caml_alloc_pipe"
-
-  external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
-
-  external read: [<`udpv4|`tcpv4|`rd_pipe] fd -> string -> int -> int -> int resp = "caml_socket_read"
-  external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> string -> int -> int -> int resp = "caml_socket_write"
-  external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe] fd -> unit = "caml_socket_close"
-
-  external fd_to_int : 'a fd -> int = "%identity"
-
-  (* Given an activation function actfn (to know when the FD is ready),
-     perform an iofn repeatedly until either error or value is obtained *)
-  let rec fdbind actfn iofn fd =
-    actfn (fd_to_int fd) >>
-    match iofn fd with
-    |OK x -> return x
-    |Err err -> fail (Error err)
-    |Retry -> fdbind actfn iofn fd
-
-  (* As fdbind, except on functions that will either be Some or None *)
-  let rec iobind iofn arg =
-    match iofn arg with
-    |OK x -> return x
-    |Err err -> fail (Error err)
-    |Retry -> assert false
-end
+open OS.Socket
 
 type id = string
-
-open Unix
-
 type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
 
 (* Interfaces are a NOOP for the moment, as we depend on them being
@@ -162,8 +101,8 @@ let create listener =
   lwt domain = iobind domain_bind (domain_uid ()) in
   (* TODO: cleanup the domain socket atexit *)
   (* List all other domains at startup *)
-  let other_uids = Unix.domain_list () in
-  let our_uid = Unix.domain_uid () in
+  let other_uids = OS.Socket.domain_list () in
+  let our_uid = OS.Socket.domain_uid () in
   Printf.printf "Our uid: %d Others: %s\n%!" our_uid
     (String.concat ", " (List.map string_of_int other_uids));
   let peers = Hashtbl.create 7 in

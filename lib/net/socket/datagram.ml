@@ -20,7 +20,7 @@ open Nettypes
 open Lwt
 open OS
 
-module R = Manager.Unix
+module R = OS.Socket
 
 exception Error of string
 

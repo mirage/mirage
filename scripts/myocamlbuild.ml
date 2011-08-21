@@ -37,7 +37,7 @@ let libdir =
   let subdir = match os,flow with
   |"unix","socket" -> "unix-socket"
   |"unix","direct" -> "unix-direct"
-  |"xen" ,"direct" -> "xen-direct"
+  |"xen" ,"direct" -> "xen"
   |"node","socket" -> "node-socket"
   |_ -> Printf.eprintf "%s-%s is not a supported kernel combination\n" os flow; exit (-1) in
   ps "%s/%s/lib" root subdir

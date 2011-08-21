@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,13 +14,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t
-type id = string
+open Nettypes
+open Lwt
+open OS
 
-val create : (id -> t -> unit Lwt.t) -> unit Lwt.t
-val plug: id -> t Lwt.t
-val unplug: id -> unit
-val output : t -> Bitstring.t list -> unit Lwt.t
-val listen : t -> (Bitstring.t -> unit Lwt.t) -> unit Lwt.t
-val enumerate : unit -> id list Lwt.t
-val mac : t -> string
+exception Not_implemented
+module UDPv4 = struct
+  type mgr = Manager.t
+  type src = ipv4_addr option * int
+  type dst = ipv4_addr * int
+
+  type msg = Bitstring.t
+
+  let rec send mgr ?src (dstaddr, dstport) req =
+    fail Not_implemented
+
+  let recv mgr (addr,port) fn =
+    fail Not_implemented
+end

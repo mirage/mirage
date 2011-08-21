@@ -18,15 +18,15 @@ ROOT=`pwd`
 BUILDDIR=${ROOT}/_build
 
 function assemble_xen {
-  if [ -d ${ROOT}/lib/_build/xen-direct ]; then
+  if [ -d ${ROOT}/lib/_build/xen ]; then
     echo Assembling: Xen
-    OBJ=${BUILDDIR}/xen-direct
+    OBJ=${BUILDDIR}/xen
     mkdir -p ${OBJ}/lib ${OBJ}/syntax
     for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
-      cp ${ROOT}/lib/_build/xen-direct/os/runtime_xen/$i ${OBJ}/lib/
+      cp ${ROOT}/lib/_build/xen/os/runtime_xen/$i ${OBJ}/lib/
     done
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
-    cp ${ROOT}/lib/_build/xen-direct/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/xen/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
   else
     echo Skipping: Xen
   fi

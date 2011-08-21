@@ -54,9 +54,11 @@ external pipe: unit -> ([`rd_pipe] fd * [`wr_pipe] fd) resp = "caml_alloc_pipe"
 
 external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
 
-external read: [<`udpv4|`tcpv4|`rd_pipe] fd -> string -> int -> int -> int resp = "caml_socket_read"
+external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_readonly"
+
+external read: [<`udpv4|`tcpv4|`rd_pipe|`ro_file] fd -> string -> int -> int -> int resp = "caml_socket_read"
 external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> string -> int -> int -> int resp = "caml_socket_write"
-external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe] fd -> unit = "caml_socket_close"
+external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe|`ro_file] fd -> unit = "caml_socket_close"
 
 external fd_to_int : 'a fd -> int = "%identity"
 

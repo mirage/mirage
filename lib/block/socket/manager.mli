@@ -14,12 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-exception Error of string
-module Unix : sig
-    type 'a fd
-    type 'a resp = OK of 'a | Err of string | Retry
-    external file_open_readonly : string -> [ `ro_file ] fd resp = "caml_file_open_readonly"
-    external read : [ `ro_file ] fd -> string -> int -> int -> int resp = "caml_socket_read"
-    external close : [ `ro_file ] fd -> unit = "caml_socket_close"
-    val iobind : ('a -> 'b resp) -> 'a -> 'b Lwt.t
-end
+type t

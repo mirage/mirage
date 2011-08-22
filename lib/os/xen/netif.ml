@@ -90,7 +90,7 @@ type t = {
 
 type id = string
 
-let devices : (string, t) Hashtbl.t = Hashtbl.create 1
+let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let plug id =

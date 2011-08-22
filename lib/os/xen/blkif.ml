@@ -136,8 +136,12 @@ type t = {
   features: features;
 }
 
-type id = int
+type id = string
+exception Error of string
 exception Read_error of string
+
+(** Set of active block devices *)
+let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
 (* Allocate a ring, given the vdev and backend domid *)
 let alloc (num,domid) =
@@ -154,7 +158,9 @@ let rec poll t =
   poll t
 
 (* Given a VBD ID and a backend domid, construct a blkfront record *)
-let create vdev =
+let plug (id:id) =
+  lwt vdev = try return (int_of_string id)
+    with _ -> fail (Error "invalid vdev") in
   printf "Blkfront.create; vdev=%d\n%!" vdev;
   let node = sprintf "device/vbd/%d/%s" vdev in
   lwt backend_id = Xs.(t.read (node "backend-id")) in
@@ -198,17 +204,27 @@ let create vdev =
     features.barrier features.removable features.sector_size features.sectors;
   Evtchn.unmask evtchn;
   let t = { backend_id; backend; vdev; ring; gnt; evtchn; features } in
-  let th = poll t in
-  Lwt.on_cancel th (fun _ ->
-    printf "Blkfront.cancel; vdev=%d\n%!" vdev;
-    (* TODO shutdown *)
-  );
-  return (t, th)
-      
+  Hashtbl.add devices id t;
+  return t
+
+(* Unplug shouldn't block, although the Xen one might need to due
+   to Xenstore? XXX *)
+let unplug id =
+  Console.log (sprintf "Blkif.unplug %s: not implemented yet" id);
+  ()
+
 (** Return a list of valid VBDs *)
 let enumerate () =
-  lwt vbds = Xs.(t.directory "device/vbd") in
-  return (List.fold_left (fun a b -> try int_of_string b :: a with _ -> a) [] vbds)
+  Xs.(t.directory "device/vbd")
+
+let create fn =
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
+  lwt ids = enumerate () in
+  let pt = Lwt_list.iter_p (fun id ->
+    lwt t = plug id in
+    fn id t) ids in
+  th <?> pt
 
 (* Read a single page from disk.
    Offset is the sector number, which must be page-aligned *)

@@ -22,7 +22,7 @@ type num = int32                      (* Grant ref type (grant_ref_t) *)
 
 type r = {
   num: num;                           (* Grant ref number *)
-  mutable page: Bitstring.t;          (* The memory page *)
+  mutable page: Bitstring.t option;   (* The memory page *)
 }
 
 type perm = RO | RW
@@ -36,18 +36,26 @@ module Raw = struct
   external end_access : num -> unit = "caml_gnttab_end_access"
 end
 
-let alloc ?page (num:num) =
-  let page = match page with None -> Io_page.get_free () |Some p -> p in
-  { num; page }
+let alloc (num:num) =
+  { num = num; page = None }
 
 let num gnt = gnt.num
 
-let page gnt = gnt.page
+let page gnt = match gnt.page with
+  | None -> raise Grant_page_not_found
+  | Some p -> p
 
 let free_list : r Queue.t = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
 
+let iter_option f = function
+  | None -> ()
+  | Some x -> f x
+
 let put_free_entry r =
+  (* Return any Io_page to the separate Io_page free list *)
+  iter_option Io_page.put_free r.page;
+  r.page <- None;
   Queue.push r free_list;
   Lwt_condition.signal free_list_condition ()
 
@@ -62,21 +70,24 @@ let rec get_free_entry () =
 let to_string (r:r) = Int32.to_string r.num
 
 let grant_access ~domid ~perm r =
-  Raw.grant_access r.num r.page domid (match perm with RO -> true |RW -> false)
+  (* lazily allocate a free Io_page, if none has been provided *)
+  r.page <- if r.page <> None then r.page else Some (Io_page.get_free ());
+  Raw.grant_access r.num (page r) domid (match perm with RO -> true |RW -> false)
 
 let end_access r =
   Raw.end_access r.num
 
 (* Detach a string from the grant *)
 let detach r =
-  let page = r.page in
+  let page = page r in
   let final x = Io_page.put_free x in
   Gc.finalise final page;
-  r.page <- Io_page.get_free ();
+  r.page <- None;
   page
   
-let with_grant ~domid ~perm fn =
-  lwt gnt = get_free_entry () in
+let with_grant ?page ~domid ~perm fn =
+  lwt gnt = get_free_entry () in (* gnt.page is always None *)
+  gnt.page <- page;
   grant_access ~domid ~perm gnt;
   try_lwt
     lwt res = fn gnt in

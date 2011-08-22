@@ -137,7 +137,7 @@ type t = {
 }
 
 type id = int
-exception Read_error of string
+exception IO_error of string
 
 (* Allocate a ring, given the vdev and backend domid *)
 let alloc (num,domid) =
@@ -219,18 +219,40 @@ let read_page t sector =
       let gref = Gnttab.num gnt in
       let id = Int64.of_int32 gref in
       let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-      let req = Req.({op=Read; handle=t.vdev; id; sector; segs}) in
+      let req = Req.({op=Req.Read; handle=t.vdev; id; sector; segs}) in
+      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+      if Ring.Front.push_requests_and_check_notify t.ring then
+        Evtchn.notify t.evtchn;
+      lwt res = res in
+      Res.(match res.st with
+      |Error -> fail (IO_error "read")
+      |Not_supported -> fail (IO_error "unsupported")
+      |Unknown _ -> fail (IO_error "unknown error")
+      |OK -> return (Gnttab.detach gnt))
+    )
+
+(* Write a single page to disk.
+   Offset is the sector number, which must be page-aligned.
+   Page must be an Io_page *)
+let write_page t sector page =
+  Gnttab.with_grant ~page ~domid:t.backend_id ~perm:Gnttab.RW
+    (fun gnt ->
+      let gref = Gnttab.num gnt in
+      let id = Int64.of_int32 gref in
+      let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+      let req = Req.({op=Req.Write; handle=t.vdev; id; sector; segs}) in
       let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
       if Ring.Front.push_requests_and_check_notify t.ring then
         Evtchn.notify t.evtchn;
       let open Res in
       lwt res = res in
       Res.(match res.st with
-      |Error -> fail (Read_error "read")
-      |Not_supported -> fail (Read_error "unsupported")
-      |Unknown _ -> fail (Read_error "unknown error")
-      |OK -> return (Gnttab.detach gnt))
+      |Error -> fail (IO_error "write")
+      |Not_supported -> fail (IO_error "unsupported")
+      |Unknown _ -> fail (IO_error "unknown error")
+      |OK -> return ())
     )
+
 
 (** Read a number of contiguous sectors off disk.
     This function assumes a 512 byte sector size.
@@ -268,9 +290,9 @@ let read_512 t sector num_sectors =
       let open Res in
       lwt res = res in
       match res.st with
-      |Error -> fail (Read_error "read")
-      |Not_supported -> fail (Read_error "unsupported")
-      |Unknown x -> fail (Read_error "unknown error")
+      |Error -> fail (IO_error "read")
+      |Not_supported -> fail (IO_error "unsupported")
+      |Unknown x -> fail (IO_error "unknown error")
       |OK ->
         (* Get the pages, and convert them into Istring views *)
         let pages = Array.mapi

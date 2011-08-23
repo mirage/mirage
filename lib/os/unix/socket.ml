@@ -57,6 +57,12 @@ external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connec
 external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_ro"
 external file_open_readwrite: string -> [`rw_file] fd resp = "caml_file_open_rw"
 external lseek: [< `ro_file | `rw_file ] fd -> int64 -> unit resp = "caml_lseek"
+external file_size: string -> int64 resp = "caml_stat_size"
+
+type dir
+external opendir: string -> dir resp = "caml_opendir"
+external readdir: dir -> string resp = "caml_readdir"
+external closedir: dir -> unit resp = "caml_closedir"
 
 external read: [<`udpv4|`tcpv4|`rd_pipe|`ro_file] fd -> string -> int -> int -> int resp = "caml_socket_read"
 external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> string -> int -> int -> int resp = "caml_socket_write"

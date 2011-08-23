@@ -223,6 +223,7 @@ let _ = dispatch begin function
       (* dns lib *)  lib "dns";
       (* http lib *) lib "http";
       (* cow lib *)  lib "cow";
+    (* openflow lib *) lib "openflow";
     ] in
 
     let mirage_flags = [

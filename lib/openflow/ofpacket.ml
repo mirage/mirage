@@ -43,11 +43,6 @@ let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *)
 
 type int16 = int
 
-(* XXX definitely of dubious merit - but we don't do arithmetic... *)
-type uint16 = int
-type uint32 = int32
-type uint64 = int64
-
 type ipv4 = int32
 let ipv4_to_string i =   
   sp "%ld.%ld.%ld.%ld" 
@@ -75,7 +70,7 @@ let ipv4_addr_of_bytes bs =
 type port = 
   | Max | In_port | Table | Normal | Flood | All 
   | Controller | Local | No_port
-  | Port of uint16
+  | Port of int16
 let port_of_int = function
   | 0xff00 -> Max
   | 0xfff8 -> In_port
@@ -168,7 +163,7 @@ let error_code_of_int = function
   | 0x00030002 -> FLOW_MOD_EPERM
   | 0x00030003 -> FLOW_MOD_EMERG_TIMEOUT
   | 0x00030004 -> FLOW_MOD_BAD_COMMAND
-  | 0x00030004 -> FLOW_MOD_UNSUPPORTED
+  | 0x00030005 -> FLOW_MOD_UNSUPPORTED
   | 0x00040000 -> PORT_MOD_BAD_PORT
   | 0x00040001 -> PORT_MOD_BAD_HW_ADDR
   | 0x00050000 -> QUEUE_OP_BAD_PORT
@@ -319,12 +314,12 @@ and string_of_msg_code = function
   | Queue_get_config_req  -> sp "Queue_get_config_req"
   | Queue_get_config_resp -> sp "Queue_get_config_resp"
 
-type vendor = uint32
-type queue_id = uint32
+type vendor = int32
+type queue_id = int32
 
 type features = {
-  datapath_id : uint64;
-  n_buffers : uint32;
+  datapath_id : int64;
+  n_buffers : int32;
   n_tables : byte;
   unused_caps : bytes;
   arp_match_ip : bool;
@@ -334,13 +329,13 @@ type features = {
   port_stats: bool;
   table_stats: bool;
   flow_stats: bool;
-  actions: uint32;
+  actions: int32;
 }
 
 type config = {
   reasm: bool;
   drop: bool;
-  miss_send_len: uint16;
+  miss_send_len: int16;
 }
 
 type in_reason = No_match | Action
@@ -356,8 +351,8 @@ and string_of_in_reason = function
   | Action   -> sp "ACTION"
   
 type packet_in = {
-  buffer_id : uint32;
-  total_len : uint16;
+  buffer_id : int32;
+  total_len : int16;
   in_port : port;
   reason : in_reason;
 }
@@ -382,15 +377,15 @@ type of_match = {
 	in_port: port;
 	dl_src: eaddr;
 	dl_dst: eaddr;
-	dl_vlan: uint16;
+	dl_vlan: int16;
 	dl_vlan_pcp: byte;
-	dl_type: uint16;
+	dl_type: int16;
 	nw_tos: byte;
 	nw_proto: byte;
-	nw_src: uint32;
-	nw_dst: uint32;
-	tp_src: uint16;
-	tp_dst: uint16;
+	nw_src: int32;
+	nw_dst: int32;
+	tp_src: int16;
+	tp_dst: int16;
 }
 
 type removed_reason = IDLE_TIMEOUT | HARD_TIMEOUT | DELETE
@@ -410,14 +405,14 @@ and string_of_removed_reason = function
 
 type flow = {
   of_match : of_match;
-  cookie : uint64;
-  priority : uint16;
+  cookie : int64;
+  priority : int16;
   reason : removed_reason;
-  duration_sec: uint32;
-  duration_usec: uint32;
-  idle_timeout : uint16;
-  packet_count : uint64;
-  byte_count : uint64;
+  duration_sec: int32;
+  duration_usec: int32;
+  idle_timeout : int16;
+  packet_count : int64;
+  byte_count : int64;
 }
   
 type port_config = {
@@ -446,7 +441,7 @@ type phy_port_feature = {
 }
 
 type phy_port = {
-	port_no: uint16;
+	port_no: int16;
 	hw_addr: eaddr;
 	name: string;
 	config: port_config;  
@@ -480,9 +475,9 @@ type port_status = {
 }
 
 type packet_out = {
-  buffer_id : uint32;
+  buffer_id : int32;
   in_port : port;
-  actions_len : uint16;
+  actions_len : int16;
   actions: bytes;
 }
 
@@ -509,12 +504,12 @@ and string_of_command = function
 
 type flow_mod = {
   of_match : of_match;
-  cookie : uint64;
+  cookie : int64;
   command : command;
-  idle_timeout : uint16;
-  hard_timeout : uint16;
-  priority : uint16;
-  buffer_id : uint32;
+  idle_timeout : int16;
+  hard_timeout : int16;
+  priority : int16;
+  buffer_id : int32;
   out_port : port;
   emerg: bool;
   overlap: bool;
@@ -551,8 +546,8 @@ type stats_req_payload =
   | Vendor
 
 type stats_req_h = {
-  ty : uint16;
-  flags: uint16;
+  ty : int16;
+  flags: int16;
 }
 
 type desc = {
@@ -615,58 +610,58 @@ and string_of_action = function
   | VENDOR       -> sp "VENDOR"
 
 type flow_stats = {
-  entry_length : uint16;
+  entry_length : int16;
   table_id: byte;
   of_match: of_match;
-  duration_sec: uint32;
-  duration_usec: uint32;
-  priority: uint16;
-  idle_timeout: uint16;
-  hard_timeout: uint16;
-  cookie: uint64;
-  packet_count: uint64;
-  byte_count: uint64;
+  duration_sec: int32;
+  duration_usec: int32;
+  priority: int16;
+  idle_timeout: int16;
+  hard_timeout: int16;
+  cookie: int64;
+  packet_count: int64;
+  byte_count: int64;
   action: action;
 }
 
 type aggregate_stats = {
-  packet_count: uint64;
-  byte_count: uint64;
-  flow_count: uint32;
+  packet_count: int64;
+  byte_count: int64;
+  flow_count: int32;
 }
 
 type table_stats = {
   table_id: byte;
   name : string;
   wildcards : wildcards;
-  max_entries: uint32;
-  active_count: uint32;
-  lookup_count: uint64;
-  matched_count: uint64;
+  max_entries: int32;
+  active_count: int32;
+  lookup_count: int64;
+  matched_count: int64;
 }
 
 type port_stats = {
-  port_no: uint16;
-  rx_packets: uint64;
-  tx_packets: uint64;
-  rx_bytes: uint64;
-  tx_bytes: uint64;
-  rx_dropped: uint64;
-  tx_dropped: uint64;
-  rx_errors: uint64;
-  tx_errors: uint64;
-  rx_frame_err: uint64;
-  rx_over_err: uint64;
-  rx_crc_err: uint64;
-  collisions: uint64;
+  port_no: int16;
+  rx_packets: int64;
+  tx_packets: int64;
+  rx_bytes: int64;
+  tx_bytes: int64;
+  rx_dropped: int64;
+  tx_dropped: int64;
+  rx_errors: int64;
+  tx_errors: int64;
+  rx_frame_err: int64;
+  rx_over_err: int64;
+  rx_crc_err: int64;
+  collisions: int64;
 }
 
 type queue_stats = {
-  port_no: uint16;
-  queue_id: uint32;
-  tx_bytes: uint64;
-  tx_packets: uint64;
-  tx_errors: uint64;
+  port_no: int16;
+  queue_id: int32;
+  tx_bytes: int64;
+  tx_packets: int64;
+  tx_errors: int64;
 }
 
 type stats_resp_payload = 
@@ -679,7 +674,7 @@ type stats_resp_payload =
   | Vendor
 
 type stats_resp_h = {
-  ty : uint16;
+  ty : int16;
   more_to_follow : bool;
 }
 
@@ -707,9 +702,9 @@ type payload =
   | Queue_get_config_req of port
   | Queue_get_config_resp of port * bytes    
 
-type h = {
+type header = {
   version : byte;
   ty : msg_code;
-  length : uint16;
-  xid : uint32;
+  length : int16;
+  xid : int32;
 }

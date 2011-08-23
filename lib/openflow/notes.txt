@@ -1,0 +1,1 @@
+For the controller, we are interested to create a description object, on which lib users can register for callback for specific events. Not sure whether the list of event will be constant, or we can expand it. 

@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Lwt
+
 module Bitstring = struct
   include Bitstring
   let offset_of_bitstring bits = 
@@ -42,6 +44,13 @@ let join c l = String.concat c l
 let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *) 
 
 type int16 = int
+
+(* Of dubious merit - but we don't do arithmetic so prefer the
+   documentation benefits for now *)
+type uint8  = char
+type uint16 = int
+type uint32 = int32
+type uint64 = int64
 
 type ipv4 = int32
 let ipv4_to_string i =   
@@ -196,7 +205,7 @@ and int_of_error_code = function
   | FLOW_MOD_EPERM           -> 0x00030002
   | FLOW_MOD_EMERG_TIMEOUT   -> 0x00030003
   | FLOW_MOD_BAD_COMMAND     -> 0x00030004
-  | FLOW_MOD_UNSUPPORTED     -> 0x00030004
+  | FLOW_MOD_UNSUPPORTED     -> 0x00030005
   | PORT_MOD_BAD_PORT        -> 0x00040000
   | PORT_MOD_BAD_HW_ADDR     -> 0x00040001
   | QUEUE_OP_BAD_PORT        -> 0x00050000
@@ -314,12 +323,12 @@ and string_of_msg_code = function
   | Queue_get_config_req  -> sp "Queue_get_config_req"
   | Queue_get_config_resp -> sp "Queue_get_config_resp"
 
-type vendor = int32
-type queue_id = int32
+type vendor = uint32
+type queue_id = uint32
 
 type features = {
-  datapath_id : int64;
-  n_buffers : int32;
+  datapath_id : uint64;
+  n_buffers : uint32;
   n_tables : byte;
   unused_caps : bytes;
   arp_match_ip : bool;
@@ -329,13 +338,13 @@ type features = {
   port_stats: bool;
   table_stats: bool;
   flow_stats: bool;
-  actions: int32;
+  actions_supported: uint32;
 }
 
 type config = {
   reasm: bool;
   drop: bool;
-  miss_send_len: int16;
+  miss_send_len: uint16;
 }
 
 type in_reason = No_match | Action
@@ -351,8 +360,8 @@ and string_of_in_reason = function
   | Action   -> sp "ACTION"
   
 type packet_in = {
-  buffer_id : int32;
-  total_len : int16;
+  buffer_id : uint32;
+  total_len : uint16;
   in_port : port;
   reason : in_reason;
 }
@@ -369,23 +378,23 @@ type wildcards = {
 	dl_dst: bool; 
 	dl_src: bool; 
 	dl_vlan: bool; 
-	in_port: bool; 
+	wildcard_in_port: bool; 
 }
 
 type of_match = {
 	wildcards: wildcards;
-	in_port: port;
+	match_in_port: port;
 	dl_src: eaddr;
 	dl_dst: eaddr;
-	dl_vlan: int16;
+	dl_vlan: uint16;
 	dl_vlan_pcp: byte;
-	dl_type: int16;
+	dl_type: uint16;
 	nw_tos: byte;
 	nw_proto: byte;
-	nw_src: int32;
-	nw_dst: int32;
-	tp_src: int16;
-	tp_dst: int16;
+	nw_src: uint32;
+	nw_dst: uint32;
+	tp_src: uint16;
+	tp_dst: uint16;
 }
 
 type removed_reason = IDLE_TIMEOUT | HARD_TIMEOUT | DELETE
@@ -405,14 +414,14 @@ and string_of_removed_reason = function
 
 type flow = {
   of_match : of_match;
-  cookie : int64;
-  priority : int16;
-  reason : removed_reason;
-  duration_sec: int32;
-  duration_usec: int32;
-  idle_timeout : int16;
-  packet_count : int64;
-  byte_count : int64;
+  cookie : uint64;
+  priority : uint16;
+  flow_reason : removed_reason;
+  duration_sec: uint32;
+  duration_usec: uint32;
+  idle_timeout : uint16;
+  packet_count : uint64;
+  byte_count : uint64;
 }
   
 type port_config = {
@@ -441,7 +450,7 @@ type phy_port_feature = {
 }
 
 type phy_port = {
-	port_no: int16;
+	port_no: uint16;
 	hw_addr: eaddr;
 	name: string;
 	config: port_config;  
@@ -470,14 +479,14 @@ and string_of_port_status_reason = function
   | MOD -> sp "MOD"
 
 type port_status = {
-  reason: port_status_reason;
+  port_reason: port_status_reason;
   phy_port : phy_port;
 }
 
 type packet_out = {
-  buffer_id : int32;
-  in_port : port;
-  actions_len : int16;
+  packet_out_buffer_id : uint32;
+  packet_out_in_port : port;
+  actions_len : uint16;
   actions: bytes;
 }
 
@@ -504,12 +513,12 @@ and string_of_command = function
 
 type flow_mod = {
   of_match : of_match;
-  cookie : int64;
+  cookie : uint64;
   command : command;
-  idle_timeout : int16;
-  hard_timeout : int16;
-  priority : int16;
-  buffer_id : int32;
+  idle_timeout : uint16;
+  hard_timeout : uint16;
+  priority : uint16;
+  flow_mod_buffer_id : uint32;
   out_port : port;
   emerg: bool;
   overlap: bool;
@@ -536,18 +545,18 @@ and string_of_table_id = function
   | All -> sp "All"
   | Emergency -> sp "Emergency"
 
-type stats_req_payload = 
-  | Desc
-  | Flow of of_match * table_id * port
-  | Aggregate of of_match * table_id * port
-  | Table
-  | Port of port
-  | Queue of port * queue_id
-  | Vendor
+type stats_req = 
+  | Desc of stats_req_hdr
+  | Flow of stats_req_hdr * of_match * table_id * port
+  | Aggregate of stats_req_hdr * of_match * table_id * port
+  | Table of stats_req_hdr
+  | Port of stats_req_hdr * port
+  | Queue of stats_req_hdr * port * queue_id
+  | Vendor of stats_req_hdr
 
-type stats_req_h = {
-  ty : int16;
-  flags: int16;
+type stats_req_hdr = {
+  ty : uint16;
+  flags: uint16;
 }
 
 type desc = {
@@ -610,101 +619,162 @@ and string_of_action = function
   | VENDOR       -> sp "VENDOR"
 
 type flow_stats = {
-  entry_length : int16;
+  entry_length : uint16;
   table_id: byte;
   of_match: of_match;
-  duration_sec: int32;
-  duration_usec: int32;
-  priority: int16;
-  idle_timeout: int16;
-  hard_timeout: int16;
-  cookie: int64;
-  packet_count: int64;
-  byte_count: int64;
+  duration_sec: uint32;
+  duration_usec: uint32;
+  priority: uint16;
+  idle_timeout: uint16;
+  hard_timeout: uint16;
+  cookie: uint64;
+  packet_count: uint64;
+  byte_count: uint64;
   action: action;
 }
 
 type aggregate_stats = {
-  packet_count: int64;
-  byte_count: int64;
-  flow_count: int32;
+  packet_count: uint64;
+  byte_count: uint64;
+  flow_count: uint32;
 }
 
 type table_stats = {
   table_id: byte;
   name : string;
   wildcards : wildcards;
-  max_entries: int32;
-  active_count: int32;
-  lookup_count: int64;
-  matched_count: int64;
+  max_entries: uint32;
+  active_count: uint32;
+  lookup_count: uint64;
+  matched_count: uint64;
 }
 
 type port_stats = {
-  port_no: int16;
-  rx_packets: int64;
-  tx_packets: int64;
-  rx_bytes: int64;
-  tx_bytes: int64;
-  rx_dropped: int64;
-  tx_dropped: int64;
-  rx_errors: int64;
-  tx_errors: int64;
-  rx_frame_err: int64;
-  rx_over_err: int64;
-  rx_crc_err: int64;
-  collisions: int64;
+  port_no: uint16;
+  rx_packets: uint64;
+  tx_packets: uint64;
+  rx_bytes: uint64;
+  tx_bytes: uint64;
+  rx_dropped: uint64;
+  tx_dropped: uint64;
+  rx_errors: uint64;
+  tx_errors: uint64;
+  rx_frame_err: uint64;
+  rx_over_err: uint64;
+  rx_crc_err: uint64;
+  collisions: uint64;
 }
 
 type queue_stats = {
-  port_no: int16;
-  queue_id: int32;
-  tx_bytes: int64;
-  tx_packets: int64;
-  tx_errors: int64;
+  port_no: uint16;
+  queue_id: uint32;
+  tx_bytes: uint64;
+  tx_packets: uint64;
+  tx_errors: uint64;
 }
 
-type stats_resp_payload = 
-  | Desc of desc
-  | Flow of flow_stats
-  | Aggregate of aggregate_stats
-  | Table of table_stats
-  | Port of port_stats
-  | Queue of queue_stats
-  | Vendor
+type stats_resp_hdr = {
+  st_ty: uint16;
+  more_to_follow: bool;
+}
 
-type stats_resp_h = {
-  ty : int16;
-  more_to_follow : bool;
+type stats_resp = 
+  | Desc of stats_resp_hdr * desc
+  | Flow of stats_resp_hdr * flow_stats
+  | Aggregate of stats_resp_hdr * aggregate_stats
+  | Table of stats_resp_hdr * table_stats
+  | Port of stats_resp_hdr * port_stats
+  | Queue of stats_resp_hdr * queue_stats
+  | Vendor of stats_resp_hdr
+
+type hdr = {
+  version: byte;
+  ty: msg_code;
+  length: uint16;
+  xid: uint32;
 }
 
 type payload =
-  | Hello of bytes
-  | Error of error_code
-  | Echo_req of bytes
-  | Echo_resp of bytes
-  | Vendor of vendor * bytes
-  | Features_req of bytes
-  | Features_resp of features * bytes
-  | Get_config_req
-  | Get_config_resp of config    
-  | Set_config of config    
-  | Packet_in of packet_in * bytes
-  | Flow_removed of flow
-  | Port_status of port_status
-  | Packet_out of packet_out * bytes
-  | Flow_mod of flow_mod * bytes
-  | Port_mod of port_mod
-  | Stats_req of stats_req_h * stats_req_payload
-  | Stats_resp of stats_resp_h * stats_resp_payload
-  | Barrier_req
-  | Barrier_resp
-  | Queue_get_config_req of port
-  | Queue_get_config_resp of port * bytes    
+  | Hello of hdr * bytes
+  | Error of hdr * error_code
+  | Echo_req of hdr * bytes
+  | Echo_resp of hdr * bytes
+  | Vendor of hdr * vendor * bytes
+  | Features_req of hdr * bytes
+  | Features_resp of hdr * features * bytes
+  | Get_config_req of hdr
+  | Get_config_resp of hdr * config    
+  | Set_config of hdr * config    
+  | Packet_in of hdr * packet_in * bytes
+  | Flow_removed of hdr * flow
+  | Port_status of hdr * port_status
+  | Packet_out of hdr * packet_out * bytes
+  | Flow_mod of hdr * flow_mod * bytes
+  | Port_mod of hdr * port_mod
+  | Stats_req of hdr * stats_req
+  | Stats_resp of hdr * stats_resp
+  | Barrier_req of hdr
+  | Barrier_resp of hdr
+  | Queue_get_config_req of hdr * port
+  | Queue_get_config_resp of hdr * port * bytes
 
-type header = {
-  version : byte;
-  ty : msg_code;
-  length : int16;
-  xid : int32;
-}
+let parse_of_header bits = 
+  (bitmatch bits with 
+	| { 1:8:int; of_type:8; len:16; xid:32; 
+        bits:-1:bitstring } 
+      -> ( (* TODO: Raise an exeption and close connection if openfow version is not valid *)
+	  let of_pkt = { version=(char_of_int 1);
+                     ty=(msg_code_of_int of_type);
+                     length=len;
+                     xid=xid; 
+                     data=Hello("")
+                   } 
+      in of_pkt
+      )
+	| { _ } -> raise (Unparsable ("parse_of", bits))
+  )	
+ 
+let parse_of bits = 
+  (bitmatch bits with  
+	| { 1:8; 6:8; len:16; xid:32; datapath_id:64; n_buffers:32; n_tables:8; 
+		unused_caps: 24:string; arp_match_ip : 1; queue_stats: 1; ip_reasm: 1; 
+		stp: 1; port_stats:1; table_stats: 1; flow_stats: 1; actions: 32; 
+		bits:-1:bitstring }  
+      -> ({ version=(char_of_int 1);
+            ty=(msg_code_of_int 6);
+            length=len;
+            xid=xid; 
+	        data=Features_resp({ datapath_id = datapath_id;n_buffers = n_buffers;
+						         n_tables = (char_of_int n_tables); unused_caps = unused_caps;
+ 						         arp_match_ip = arp_match_ip;queue_stats = queue_stats;
+						         ip_reasm = ip_reasm;stp = stp;port_stats = port_stats;
+						         table_stats = table_stats; flow_stats = flow_stats;
+						         actions_supported = actions 
+                               }, "")
+          })
+	| { 1:8; 10:8; len:16; xid:32; buffer_id:32; total_len:16; in_port : 16; reason:8;
+		bits:-1:bitstring}  
+      -> ({ version=(char_of_int 1);
+            ty=(msg_code_of_int 10);
+            length=len;
+            xid=xid; 
+            data=Packet_in({ buffer_id=buffer_id;total_len=total_len;
+					         in_port=(port_of_int in_port); 
+  					         reason=(in_reason_of_int reason)
+                           }, (bytes_of_bitstring bits))
+          })			
+	| { 1:8; 0:8; len:16; xid:32; bits:-1:bitstring} 
+      -> (* TODO: Raise an exeption and close connection if openfow version is not valid *)
+	  ({version=(char_of_int 1);
+        ty=(msg_code_of_int 0);
+        length=len;
+        xid=xid;
+        data=Hello("")
+       })
+	|  { 1:8; 2:8; len:16; xid:32; bits:-1:bitstring} -> 
+	  ({version=(char_of_int 1);ty=(msg_code_of_int 2);length=len;xid=xid; data=Echo_req("")})
+	| { version:8; of_type:8; len:16; xid:32; bits:-1:bitstring} -> 
+	  ({version=(char_of_int version);ty=(msg_code_of_int of_type);length=len;xid=xid; data=Hello("")})
+	| {_ } -> raise (Unparsable ("parse_of", bits))
+  )	
+

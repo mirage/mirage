@@ -142,11 +142,7 @@ module Mir = struct
 
   let js_of_ocaml ?tag byte js env build =
     let byte = env byte and js = env js in
-    Cmd (S [ A"js_of_ocaml"; Px js; A"-o"; Px byte ])
-
-  let concat_files ?tag partial js env build =
-    let partial = env partial and js = env js in
-    Cmd (Sh (ps "cat %s/mirage.js %s > %s" libdir partial js))
+    Cmd (S [ A"js_of_ocaml"; A (ps "%s/mirage.js" libdir) ; Px js; A"-o"; Px byte ])
 
   let () =
     rule "output-obj: mir -> o"
@@ -176,16 +172,10 @@ module Mir = struct
       ~dep:"%.cma"
       (byte_link "%.cma" "%.byte");
 
-    rule ("js_of_ocaml: %.byte -> %.partial.js")
-      ~prod:"%.partial.js"
-      ~dep:"%.byte"
-      (js_of_ocaml "%.partial.js" "%.byte");
-    
-    rule ("js_of_ocaml: %.partial.js -> %.js")
+    rule ("js_of_ocaml: %.byte -> %.js")
       ~prod:"%.js"
-      ~dep:"%.partial.js"
-      (concat_files "%.partial.js" "%.js");
-    
+      ~dep:"%.byte"
+      (js_of_ocaml "%.js" "%.byte");
 
 end
 

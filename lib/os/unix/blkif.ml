@@ -18,12 +18,12 @@ open Lwt
 open Printf
 
 type t = unit
-type id = int
+type id = string
 
-let create (id:id) =
+let create fn =
   let th, _ = Lwt.task () in
-  return ((), th)
+  th
 
 (** Return a list of valid VBDs *)
 let enumerate () : id list Lwt.t =
-  return [ 0 ]
+  return [ ]

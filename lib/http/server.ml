@@ -139,27 +139,35 @@ let daemon_callback spec =
         let finished_t, finished_u = Lwt.wait () in
         let stream_t =
           try_lwt
-            let read_line () = Net.Channel.read_crlf channel >|= Bitstring.string_of_bitstring in
+            let read_line () = Net.Channel.read_crlf channel >|=
+              Bitstring.string_of_bitstring in
             lwt req = Request.init_request finished_u read_line in
-            spec.callback conn_id req
+            let close = match Request.header req ~name:"connection" with
+              | ["close"] -> true
+              | x -> false in
+            lwt s = spec.callback conn_id req in
+            return (s, close)
           with e -> begin
             try_lwt
               lwt s = handle_parse_exn e in
               wakeup finished_u (); (* read another request *)
-              return s
+              return (s, true)
             with
              |e ->
               wakeup_exn finished_u e;
               fail e
             end
         in
-        lwt stream =
+        lwt stream, close =
           try_lwt
-            lwt s = stream_t in
-            return (Some s) 
-          with Net.Nettypes.Closed -> return None in
+            lwt (s, close) = stream_t in
+            return ((Some s), close)
+          with Net.Nettypes.Closed -> return (None,true) in
         push_streams stream;
-        finished_t >>= loop (* wait for request to finish before reading another *)
+        if close then (
+          Net.Channel.close channel >>
+          fail Net.Nettypes.Closed) 
+        else finished_t >>= loop (* wait for request to finish before reading another *)
       with
         | Net.Nettypes.Closed -> return (spec.conn_closed conn_id)
         | Canceled -> return (spec.conn_closed conn_id)

@@ -27,7 +27,7 @@ exception Error of string
 let read t filename =
   (* Open the FD using the manager bindings *)
   lwt fd = 
-    let open Manager.Unix in
+    let open OS.Socket in
     match file_open_readonly filename with
     | OK fd -> return fd
     | Err x -> fail (Error x)
@@ -36,7 +36,7 @@ let read t filename =
   (* Construct a stream that reads pages of istrings *)
   return (Lwt_stream.from (fun () ->
     let str = String.create 4096 in
-    lwt len = Manager.Unix.(iobind (read fd str 0) 4096) in
+    lwt len = OS.Socket.(iobind (read fd str 0) 4096) in
     match len with
     | 0 -> return None
     | len -> return (Some (str, 0, len*8))

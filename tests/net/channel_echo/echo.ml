@@ -10,9 +10,12 @@ let netmask = ipv4_addr_of_tuple (255l,255l,255l,0l)
 let gw = [ipv4_addr_of_tuple (10l,0l,0l,1l)]
 
 let echo () =
-  lwt t = Manager.create (fun mgr interface id ->
+  printf "start\n%!";
+  Manager.create (fun mgr interface id ->
+    printf "create %s\n%!" id;
     Manager.configure interface (`IPv4 (addr, netmask, gw)) >>
     let src = (None, 8081) in 
+    printf "listen\n%!";
     Channel.listen mgr (
       `TCPv4 (src,
         (fun (remote_addr, remote_port) t ->
@@ -30,7 +33,7 @@ let echo () =
         )
       )
     )
-  ) in
-  return ()
-
+  ) >>
+  return (printf "done\n%!")
+ 
 let _ = OS.Main.run (echo ())

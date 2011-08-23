@@ -14,16 +14,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Nettypes
+
+module TCPv4 : FLOW with
+      type mgr = Manager.t
+  and type src = ipv4_src
+  and type dst = ipv4_dst
+
 type t
-type interface
-type id
-val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
-val local_peers : 'a -> OS.Socket.uid list
-val local_uid : 'a -> OS.Socket.uid
-val connect_to_peer : t -> Nettypes.peer_uid -> [ `domain ] OS.Socket.fd option Lwt.t
-val listen_to_peers : t -> (int -> [< `rd_pipe | `wr_pipe ] OS.Socket.fd * [< `rd_pipe | `wr_pipe ] OS.Socket.fd -> unit Lwt.t) -> unit Lwt.t
-val connect : t -> Nettypes.peer_uid -> ([ `rd_pipe ] OS.Socket.fd * [ `wr_pipe ] OS.Socket.fd -> 'a Lwt.t) -> 'a Lwt.t
-val get_udpv4 : t -> [ `udpv4 ] OS.Socket.fd
-val register_udpv4_listener : t -> Nettypes.ipv4_addr option * int -> [ `udpv4 ] OS.Socket.fd -> unit
-val get_udpv4_listener : t -> Nettypes.ipv4_addr option * OS.Socket.port -> [ `udpv4 ] OS.Socket.fd Lwt.t
+val read: t -> Bitstring.t option Lwt.t
+val write: t -> Bitstring.t -> unit Lwt.t
+val close: t -> unit Lwt.t
+
+val connect :
+  Manager.t -> [> 
+   | `TCPv4 of ipv4_src option * ipv4_dst * (t -> 'a Lwt.t)
+  ] -> 'a Lwt.t
+
+val listen :
+  Manager.t -> [> 
+   | `TCPv4 of ipv4_src * (ipv4_dst -> t -> unit Lwt.t)
+  ] -> unit Lwt.t
 

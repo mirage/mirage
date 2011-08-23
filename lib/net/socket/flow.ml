@@ -29,7 +29,7 @@ exception Connect_error of string
 exception Read_error of string
 exception Write_error of string
 
-module R = Manager.Unix
+module R = OS.Socket
 
 type 'a fdwrap = {
   fd: 'a R.fd;

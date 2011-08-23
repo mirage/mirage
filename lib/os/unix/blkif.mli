@@ -17,7 +17,7 @@
 (** Dummy Block module, not implemented yet *)
 
 type t
-type id
+type id = string
 
+val create: (id -> t -> unit Lwt.t) -> unit Lwt.t
 val enumerate: unit -> id list Lwt.t
-val create: id -> (t * unit Lwt.t) Lwt.t

@@ -27,7 +27,7 @@ type id = OS.Netif.id
 type interface
 type t
 
-val plug: t -> id -> unit Lwt.t
+val plug: t -> id -> OS.Netif.t -> unit Lwt.t
 val unplug: t -> id -> unit
 
 val configure: interface -> config -> unit Lwt.t

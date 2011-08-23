@@ -54,7 +54,9 @@ external pipe: unit -> ([`rd_pipe] fd * [`wr_pipe] fd) resp = "caml_alloc_pipe"
 
 external connect_result: [<`tcpv4|`domain] fd -> unit resp = "caml_socket_connect_result"
 
-external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_readonly"
+external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_ro"
+external file_open_readwrite: string -> [`rw_file] fd resp = "caml_file_open_rw"
+external lseek: [< `ro_file | `rw_file ] fd -> int64 -> unit resp = "caml_lseek"
 
 external read: [<`udpv4|`tcpv4|`rd_pipe|`ro_file] fd -> string -> int -> int -> int resp = "caml_socket_read"
 external write: [<`udpv4|`tcpv4|`wr_pipe] fd -> string -> int -> int -> int resp = "caml_socket_write"

@@ -614,7 +614,7 @@ caml_domain_write(value v_fd, value v_str)
    this is only a temporary measure (see mincore usage in Lwt_unix
    for another approach) */
 CAMLprim value
-caml_file_open_readonly(value v_filename)
+caml_file_open_ro(value v_filename)
 {
   CAMLparam1(v_filename);
   CAMLlocal2(v_ret, v_err);
@@ -625,6 +625,41 @@ caml_file_open_readonly(value v_filename)
   } else {
     setnonblock(r);
     Val_OK(v_ret, Val_int(r));
+  }
+  CAMLreturn(v_ret);
+}
+
+/* Open a non-blocking file socket for read/write and return it.
+   Note that non-blocking file I/O is a bit unreliable, so
+   this is only a temporary measure (see mincore usage in Lwt_unix
+   for another approach) */
+CAMLprim value
+caml_file_open_rw(value v_filename)
+{
+  CAMLparam1(v_filename);
+  CAMLlocal2(v_ret, v_err);
+  int r = open(String_val(v_filename), O_RDWR);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    setnonblock(r);
+    Val_OK(v_ret, Val_int(r));
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_lseek(value v_fd, value v_off)
+{
+  CAMLparam2(v_fd, v_off);
+  CAMLlocal2(v_ret, v_err);
+  off_t r = lseek(Int_val(v_fd), Int64_val(v_off), SEEK_SET);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    Val_OK(v_ret, Val_unit);
   }
   CAMLreturn(v_ret);
 }

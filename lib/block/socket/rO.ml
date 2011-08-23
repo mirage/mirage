@@ -14,11 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* A blocking (so not for heavy use) read-only filesystem interface *)
+(** A blocking (so not for heavy use) read-only filesystem interface. *)
+
 open Lwt
 open Printf
+open OS.Socket
 
-type t = OS.Blkif.t
+type t = Manager.interface
+
+type file = unit
 
 let create t = return t
 
@@ -27,7 +31,6 @@ exception Error of string
 let read t filename =
   (* Open the FD using the manager bindings *)
   lwt fd = 
-    let open OS.Socket in
     match file_open_readonly filename with
     | OK fd -> return fd
     | Err x -> fail (Error x)
@@ -36,8 +39,33 @@ let read t filename =
   (* Construct a stream that reads pages of istrings *)
   return (Lwt_stream.from (fun () ->
     let str = String.create 4096 in
-    lwt len = OS.Socket.(iobind (read fd str 0) 4096) in
+    lwt len = iobind (read fd str 0) 4096 in
     match len with
     | 0 -> return None
     | len -> return (Some (str, 0, len*8))
   ))
+
+let iter_s t fn =
+  match opendir "." with
+  | Err x -> fail (Error x)
+  | Retry -> assert false
+  | OK dir -> begin
+      let rec loop () =
+        match readdir dir with
+        |Err x -> return ()
+        |Retry -> loop ()
+        |OK fname -> fn fname >>= loop
+      in
+      try_lwt
+        loop ()
+      finally (match closedir dir with
+        | Err x -> fail (Error x)
+        | OK () -> return ()
+        | Retry -> assert false)
+  end
+
+let size t name =
+  match file_size name with
+  | Err x -> fail (Error x)
+  | Retry -> assert false
+  | OK sz -> return sz

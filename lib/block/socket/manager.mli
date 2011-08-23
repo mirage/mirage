@@ -14,4 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+type id = string
+type interface 
 type t
+
+val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t

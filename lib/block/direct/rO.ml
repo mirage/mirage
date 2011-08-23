@@ -18,6 +18,8 @@
 open Lwt
 open Printf
 
+exception Error of string
+
 type file = {
   name: string;
   offset: int64;
@@ -54,7 +56,14 @@ let create vbd =
   read_page 0L >>
   return { vbd; files }
 
-exception Error of string
+(** Read list of keys *)
+let iter_s t fn =
+  let files = Hashtbl.fold (fun k v a -> k :: a) t.files [] in
+  Lwt_list.iter_s fn files
+
+let size t name =
+  try return (Hashtbl.find t.files name).len
+  with Not_found -> fail (Error "file not found")
 
 (* Read directly from the disk, no caching *)
 let read t filename =

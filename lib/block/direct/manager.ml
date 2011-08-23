@@ -64,5 +64,5 @@ let create listener =
   Lwt.on_cancel th (fun _ ->
     printf "Block.Manager: cancel\n%!";
     Hashtbl.iter (fun id _ -> unplug t id) listeners);
-  th
+  th <?> os
 

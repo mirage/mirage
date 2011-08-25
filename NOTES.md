@@ -1,4 +1,4 @@
-Useful build targets:
+Useful build targets. These must be run from the `lib/` directory only, and will not work in subdirectories.
 
 Given an input foo.ml:
 

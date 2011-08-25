@@ -1,3 +1,20 @@
+(*
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Thomas Gazagnaire <thomas@gazagnaire.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
 open Ocamlbuild_plugin
 open Command
 open Ocamlbuild_pack.Ocaml_compiler
@@ -23,11 +40,6 @@ let flow =
     (Printf.eprintf "`%s` is not a supported Flow type\n" flow; exit (-1))
   else
     (Ocamlbuild_pack.Log.dprintf 0 "Flow: %s" flow; flow)
-
-(* This decides to run (or not) the debug HTTP callback on port 8081 *)
-let debugmode =
-  let debugmode = getenv "MIRAGEDEBUG" ~default:"0" in
-  debugmode <> "0"
 
 (* Points to the root of the installed Mirage stdlibs *)
 let lib = getenv "MIRAGELIB"
@@ -101,8 +113,8 @@ module Mir = struct
     link_modules [("cmx",[!Options.ext_obj])] "cmx" "o"
       !Options.ext_lib native_output_obj native_output_obj_tags
 
-  let native_output_obj_mir =
-    link_from_file native_output_obj_modules
+  let native_output_obj_mir module_name =
+    native_output_obj_modules [module_name]
 
   let cc = ref (A"cc")
   let ld = ref (A"ld")
@@ -144,38 +156,51 @@ module Mir = struct
     let byte = env byte and js = env js in
     Cmd (S [ A"js_of_ocaml"; A (ps "%s/mirage.js" libdir) ; Px js; A"-o"; Px byte ])
 
-  let () =
-    rule "output-obj: mir -> o"
-      ~prod:"%.m.o"
-      ~dep:"%.mir"
-      (native_output_obj_mir "%.mir" "%.m.o");
+  let ml_main mirfile mlprod main_module env build =
+    let mirfile = env mirfile in
+    let mains = string_list_of_file mirfile in
+    let mlprod = env mlprod in
+    let main_module = env main_module in
+    Echo ((List.map (ps "let _ = OS.Main.run (%s ())\n") mains), mlprod)
 
-    rule ("final link: m.o -> .xen")
+  (* Copied from ocaml/ocamlbuild/ocaml_specific.ml and modified to add
+     the output_obj tag *)
+  let native_output_obj x =
+    link_gen "cmx" "cmxa" !Options.ext_lib [!Options.ext_obj; "cmi"]
+       ocamlopt_link_prog
+      (fun tags -> tags++"ocaml"++"link"++"native"++"output_obj") x
+
+  let () =
+    (* Copied from ocaml/ocamlbuild/ocaml_specific.ml *)
+    let ext_obj = !Options.ext_obj in
+    let x_o = "%"-.-ext_obj in
+
+    rule "exec_ml: %.mir -> %__.ml"
+      ~prod:"%__.ml"
+      ~dep:"%.mir"
+      (ml_main "%.mir" "%__.ml" "%__");
+
+    (* Rule to link a module and output a standalone object file *)
+    rule "ocaml: cmx* & o* -> .m.o"
+      ~tags:["ocaml"; "native"; "output_obj"]
+      ~prod:"%.m.o"
+      ~deps:["%.cmx"; x_o]
+      (native_output_obj "%.cmx" "%.m.o");
+
+    rule ("final link: %__.m.o -> %.xen")
       ~prod:"%.xen"
-      ~dep:"%.m.o"
+      ~dep:"%__.m.o"
       (cc_link_c_implem cc_xen_link "%.m.o" "%.xen");
 
-    rule ("final link: m.o -> .bin")
+    rule ("final link: %__.m.o -> %.bin")
       ~prod:"%.bin"
-      ~dep:"%.m.o"
-      (cc_link_c_implem cc_unix_link "%.m.o" "%.bin");
+      ~dep:"%__.m.o"
+      (cc_link_c_implem cc_unix_link "%__.m.o" "%.bin");
 
-    rule ("byte_link: .mir -> .cma")
-      ~tags:["ocaml"; "byte"; "library"]
-      ~prod:"%.cma"
-      ~dep:"%.mir"
-      (byte_library_link_mllib "%.mir" "%.cma");
-
-    rule ("byte_compile: .cma -> .byte")
-      ~tags:["ocaml"; "byte"; "program"]
-      ~prod:"%.byte"
-      ~dep:"%.cma"
-      (byte_link "%.cma" "%.byte");
-
-    rule ("js_of_ocaml: %.byte -> %.js")
+    rule ("final link: %__.byte -> %.js")
       ~prod:"%.js"
-      ~dep:"%.byte"
-      (js_of_ocaml "%.js" "%.byte");
+      ~dep:"%__.byte"
+      (js_of_ocaml "%.js" "%__.byte");
 
 end
 
@@ -203,9 +228,6 @@ let _ = dispatch begin function
    let node_cclib = [
       A"-dllpath"; A Mir.oslib; A"-dllib"; A"-los";
       A"-cclib"; A"-los" ] in
-    let _ = match debugmode, OS.target with
-     | true, (OS.Unix _) -> [ A "debugger.cmx" ]
-     | _ -> [] in
     let mirage_flags = [ A"-nostdlib"; A"-I"; A libdir; ] in
     (* do not compile and pack with the standard lib *)
     flag ["ocaml"; "compile"; "nostdlib"] & A"-nostdlib";

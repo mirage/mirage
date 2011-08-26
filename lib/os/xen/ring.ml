@@ -23,7 +23,7 @@ let alloc ~domid =
   let page = Io_page.get () in
   let perm = Gnttab.RW in
   Gnttab.grant_access ~domid ~perm gnt page;
-  return (gnt, Io_page.page page)
+  return (gnt, Io_page.to_bitstring page)
 
 (*
   struct sring {

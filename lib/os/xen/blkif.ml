@@ -231,7 +231,7 @@ let read_page t sector =
               |Error -> fail (IO_error "read")
               |Not_supported -> fail (IO_error "unsupported")
               |Unknown _ -> fail (IO_error "unknown error")
-              |OK -> return (Io_page.detach page; Io_page.page page))
+              |OK -> return (Io_page.to_bitstring page))
             )
         )
     )
@@ -243,7 +243,7 @@ let read_page t sector =
 let write_page t sector page =
   Gnttab.with_ref
     (fun r ->
-      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
+      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r (Io_page.of_bitstring page)
         (fun () ->
           let gref = Gnttab.to_int32 r in
           let id = Int64.of_int32 gref in
@@ -310,8 +310,7 @@ let read_512 t sector num_sectors =
         (* Get the pages, and convert them into Istring views *)
         let pages = Array.mapi
           (fun i page ->
-	    Io_page.detach page;
-            let bs = Io_page.page page in
+            let bs = Io_page.to_bitstring page in
             let start_offset = match i with
               |0 -> start_offset * 512
               |_ -> 0 in

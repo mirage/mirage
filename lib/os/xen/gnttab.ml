@@ -84,7 +84,7 @@ let with_refs n f =
   end
 
 let grant_access ~domid ~perm r page =
-  Raw.grant_access r (Io_page.page page) domid (match perm with RO -> true |RW -> false)
+  Raw.grant_access r (Io_page.to_bitstring page) domid (match perm with RO -> true |RW -> false)
 
 let end_access r =
   Raw.end_access r

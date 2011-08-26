@@ -20,14 +20,10 @@ external chunk_external_string: string -> int * int = "caml_chunk_string_pages"
 
 open Lwt
 
-type page = Bitstring.t
-
 type t = {
-  page: page;
+  page: Bitstring.t;
   mutable detached: bool;
 }
-
-let page (x: t) = x.page
 
 let free_list = Queue.create ()
 
@@ -56,7 +52,7 @@ let rec get_n = function
   | 0 -> []
   | n -> get () :: (get_n (n - 1))
 
-let return_to_free_list (x: page) =
+let return_to_free_list (x: Bitstring.t) =
   (* TODO: assert that the buf is a page aligned one we allocated above *)
   Queue.add x free_list
 
@@ -80,6 +76,13 @@ let with_pages n f =
   List.iter put pages;
   return res
 
-let detach (x: t) =
+let to_bitstring (x: t) =
   Gc.finalise return_to_free_list x.page;
-  x.detached <- true    
+  x.detached <- true;
+  x.page
+
+let of_bitstring (x: Bitstring.t) = {
+  page = x;
+  detached = true (* XXX: assume this page has already been detached *)
+}
+

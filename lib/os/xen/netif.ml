@@ -170,8 +170,7 @@ let rx_poll nf fn =
     let id,(offset,flags,status) = RX.read_response bs in
     let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    Io_page.detach page;
-    let page = Io_page.page page in
+    let page = Io_page.to_bitstring page in
     Gnttab.end_access gnt;
     Gnttab.put gnt;
     match status with
@@ -192,7 +191,7 @@ let output nf bsv =
             (fun () ->
     let gref = Gnttab.to_int32 gnt in
     let id = Int32.to_int gref in
-    let page = Io_page.page page in
+    let page = Io_page.to_bitstring page in
     let (pagebuf, pageoffbits, _) = page in
     let pageoff = pageoffbits / 8 in
     let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->

@@ -15,109 +15,134 @@
  *)
 
 open Lwt
-open Printf
 open Net
-open Nettypes
+  
+let sp = Printf.sprintf
+let pr = Printf.printf
+let ep = Printf.eprintf
+let cp = OS.Console.log
+let (|>) x f = f x
 
-open Ofpacket
-open Controller_event
+module OP = Ofpacket
 
-open Hashtbl
+module Event = struct
+  type t = DATAPATH_JOIN | DATAPATH_LEAVE | PACKET_IN
+  type e = 
+    | Datapath_join of OP.datapath_id
+    | Datapath_leave of OP.datapath_id
+    | Packet_in of OP.port * Bitstring.t * OP.datapath_id
+
+  let string_of_event = function
+    | Datapath_join dpid -> sp "Datapath_join: dpid:0x%012Lx" dpid
+    | Datapath_leave dpid -> sp "Datapath_leave: dpid:0x%012Lx" dpid
+    | Packet_in (port, bs, dpid) 
+      -> (sp "Packet_in: port:%s ... dpid:0x%012Lx" 
+            (OP.string_of_port port) dpid)
+      
+end
 
 type endhost = {
-  ip : Net.Nettypes.ipv4_addr;
-  port : int
+  ip: Nettypes.ipv4_addr;
+  port: int;
 }
 
-type controller_state = {
-  mutable dp_db :  (string, Channel.t) Hashtbl.t;
-  mutable channel_dp : (endhost, string) Hashtbl.t;
-  mutable datapath_join_cb : (controller_state -> string -> of_event -> unit) list;
-  mutable datapath_leave_cb : (controller_state -> string -> of_event -> unit) list;
-  mutable pkt_in_cb : (controller_state -> string -> of_event -> unit) list;
+type state = {
+  mutable dp_db:  (OP.datapath_id, Channel.t) Hashtbl.t;
+  mutable channel_dp: (endhost, OP.datapath_id) Hashtbl.t;
+
+  mutable datapath_join_cb:
+    (state -> OP.datapath_id -> Event.e -> unit) list;
+  mutable datapath_leave_cb:
+    (state -> OP.datapath_id -> Event.e -> unit) list;
+  mutable packet_in_cb:
+    (state -> OP.datapath_id -> Event.e -> unit) list;
 }
 
-let register_cb controller event_type cb =
-  match event_type with 
-      1 -> controller.datapath_join_cb <- List.append controller.datapath_join_cb [cb]
-    | 2 -> controller.datapath_leave_cb <- List.append controller.datapath_leave_cb [cb]
-    | 3 -> controller.pkt_in_cb <-  List.append controller.pkt_in_cb [cb]
-  
+let register_cb controller e cb =
+  Event.(
+    match e with 
+      | DATAPATH_JOIN
+        -> controller.datapath_join_cb <- List.append controller.datapath_join_cb [cb]
+      | DATAPATH_LEAVE 
+        -> controller.datapath_leave_cb <- List.append controller.datapath_leave_cb [cb]
+      | PACKET_IN
+        -> controller.packet_in_cb <- List.append controller.packet_in_cb [cb]
+  )
+   
+let process_of_packet state (remote_addr, remote_port) ofp t = 
+  OP.(
+    let ep = { ip=remote_addr; port=remote_port } in
+    match ofp with
+      | Hello (h, _) (* Reply to a hello msg with a hello and a feature request *)
+        -> (cp "HELLO";
+            Channel.write_bitstring t (build_h h) 
+            >> Channel.write_bitstring t (build_features_req 0_l) 
+            >> Channel.flush t
+        )
+        
+      | Echo_req (h, bs)  (* Reply to echo requests *)
+        -> (cp "ECHO_REQ";
+            Channel.write_bitstring t (build_echo_resp h bs) >> Channel.flush t)
+        
+      | Features_resp (h, sfs) (* Generate a datapath join event *)
+        -> (cp "FEATURES_RESP";
+            let dpid = sfs.Switch.datapath_id in
+            let evt = Event.Datapath_join dpid in
+            if not (Hashtbl.mem state.dp_db dpid) then (
+              Hashtbl.add state.dp_db dpid t;
+              Hashtbl.add state.channel_dp ep dpid
+            );
+            List.iter (fun cb -> cb state dpid evt) state.datapath_join_cb;
+            return ()
+        )
 
-let process_of_packet controller_state (remote_addr, remote_port) of_pkt t = 
-  match int_of_msg_code of_pkt.ty with
-    (* Reply to a hello msg with a hello and a feature request *)
-      0 -> Channel.write_bitstring t (BITSTRING{1:8; (int_of_msg_code of_pkt.ty ):8; 
-                                                      8:16; (of_pkt.xid):32;
-                                                 1:8;5:8;8:16;( Int32.of_int 0):32}); 
-               Channel.flush t 
-    (* Reply to echo requests *)
-    | 2 -> Channel.write_bitstring t (BITSTRING{1:8; 3:8; 8:16; (of_pkt.xid):32});
-                  Channel.flush t
+      | Packet_in (h, p) (* Generate a packet_in event *) 
+        -> (cp (sp "+ %s|%s" 
+                  (OP.string_of_h h) (OP.Packet_in.string_of_packet_in p));
+            let dpid = Hashtbl.find state.channel_dp ep in
+            let evt = Event.Packet_in (p.Packet_in.in_port, p.Packet_in.data, dpid) in
+            List.iter (fun cb -> cb state dpid evt) state.packet_in_cb;
+            return ()
+        )
 
-    (* Generate a datapath join event *)
-    | 6 ->  let get_datapathid = function 
-          Features_resp (c,a) -> Int64.to_string c.datapath_id
-        | _ ->  "" in
-      let dpid = Datapath_join(get_datapathid of_pkt.data) in 
-        if not (Hashtbl.mem controller_state.dp_db (get_datapathid of_pkt.data)) then
-           (Hashtbl.add controller_state.dp_db (get_datapathid of_pkt.data) t;
-            Hashtbl.add controller_state.channel_dp {ip = remote_addr; port = remote_port} 
-              (get_datapathid of_pkt.data));
-              List.iter (fun v -> v controller_state (get_datapathid of_pkt.data) dpid ) controller_state.datapath_join_cb;
-        return ();
-
-    (* Generate a pkt_in event *)
-    | 10 -> let get_pkt_in = function 
-          Packet_in (pkt_in,data) -> pkt_in.in_port, Bitstring.bitstring_of_string data
-      in
-      let port, data = get_pkt_in of_pkt.data in
-(*        printf "received packet on port %d\n" (int_of_port port);
-        if not (Hashtbl.mem controller_state.channel_dp  {ip = remote_addr; port = remote_port}) then
-          printf "channel found on the hashtable\n";*) 
-        let dpid = (Hashtbl.find controller_state.channel_dp {ip = remote_addr; port = remote_port}) in  
-        let evnt = Pkt_in(port, data, dpid) in
-          List.iter (fun v -> v controller_state dpid evnt) 
-            controller_state.pkt_in_cb;
-          return ();
-    | _ -> OS.Console.log "New packet received"; return () 
-    
- 
+      | _ -> OS.Console.log "New packet received"; return () 
+  )
+   
 let send_of_data controller dpid data = 
   let t = Hashtbl.find controller.dp_db dpid in
-    return (Channel.write_bitstring t data >> Channel.flush t)
-
-let get_data t len =
+  Channel.write_bitstring t data >> Channel.flush t
+  
+let rd_data len t = 
   match len with
-      0 -> return Bitstring.empty_bitstring
-    | _ -> let res = (Channel.read_some ~len:len t) in res
+    | 0 -> return Bitstring.empty_bitstring
+    | _ -> Channel.read_some ~len:len t
 
+let listen mgr ip port init =
+  let src = (ip, port) in
 
-
-let listen mgr port init =
-  let src = (None, port) in (* Listen on all interfaces *)
-  (* Flow.listen mgr (`TCPv4 (src, controller)) *)
-
-  (* Main controller method *)
-  let controller  (remote_addr, remote_port) t =
-    OS.Console.log( sprintf "Connection  from %s:%d "
-                      (Net.Nettypes.ipv4_addr_to_string remote_addr) remote_port);
-    let controller_st = {dp_db = Hashtbl.create 0 ; channel_dp =  Hashtbl.create 0; 
-                         datapath_join_cb = []; 
-                         datapath_leave_cb = []; pkt_in_cb = [] } in
-      init controller_st;
+  let controller (remote_addr, remote_port) t =
+    cp (sp "+ %s:%d" (Nettypes.ipv4_addr_to_string remote_addr) remote_port);
+    let st = { dp_db = Hashtbl.create 0; 
+               channel_dp = Hashtbl.create 0; 
+               datapath_join_cb = []; 
+               datapath_leave_cb = []; 
+               packet_in_cb = [] 
+             }
+    in 
+    init st;    
     let rec echo () =
       try_lwt
-        (* Parse firstly the header to see how much data we need to pull from them channel *)
-        lwt res = Channel.read_some ~len:8 t in
-    let buf = Bitstring.takebits 64 res in 
-    let of_header = parse_of_header buf in
-      lwt buf = get_data t (of_header.length - 8) in  
-  let buf = Bitstring.concat [res; buf] in
-  let of_pkt = parse_of buf in
-    process_of_packet controller_st (remote_addr, remote_port) of_pkt t ; 
-    echo ()
-      with Nettypes.Closed -> return ()
-                                in echo () 
-                                     in
-  Net.Channel.listen mgr (`TCPv4 (src, controller)) 
+        lwt hbuf = Channel.read_some ~len:OP.h_len t in
+        let ofh = OP.parse_h hbuf in
+        let dlen = ofh.OP.len - OP.h_len in 
+        lwt dbuf = rd_data dlen t in
+        let ofp = OP.parse ofh dbuf in
+        process_of_packet st (remote_addr, remote_port) ofp t;
+        echo ()
+      with
+        | Nettypes.Closed -> return ()
+        | OP.Unparsed (m, bs) -> cp (sp "# unparsed! m=%s" m); echo ()
+          
+    in echo () 
+  in
+  Channel.listen mgr (`TCPv4 (src, controller));

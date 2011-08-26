@@ -213,44 +213,53 @@ let enumerate () =
 (* Read a single page from disk.
    Offset is the sector number, which must be page-aligned *)
 let read_page t sector =
-  Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW
-    (fun gnt ->
-      let _ = Gnttab.page gnt in
-      let gref = Gnttab.num gnt in
-      let id = Int64.of_int32 gref in
-      let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-      let req = Req.({op=Req.Read; handle=t.vdev; id; sector; segs}) in
-      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
-      if Ring.Front.push_requests_and_check_notify t.ring then
-        Evtchn.notify t.evtchn;
-      lwt res = res in
-      Res.(match res.st with
-      |Error -> fail (IO_error "read")
-      |Not_supported -> fail (IO_error "unsupported")
-      |Unknown _ -> fail (IO_error "unknown error")
-      |OK -> return (Gnttab.detach gnt))
+  Io_page.with_page
+    (fun page ->
+      Gnttab.with_ref
+        (fun r ->
+          Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
+            (fun () ->
+	      let gref = Gnttab.to_int32 r in
+	      let id = Int64.of_int32 (Gnttab.to_int32 r) in
+              let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+              let req = Req.({op=Req.Read; handle=t.vdev; id; sector; segs}) in
+              let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+              if Ring.Front.push_requests_and_check_notify t.ring then
+                Evtchn.notify t.evtchn;
+              lwt res = res in
+              Res.(match res.st with
+              |Error -> fail (IO_error "read")
+              |Not_supported -> fail (IO_error "unsupported")
+              |Unknown _ -> fail (IO_error "unknown error")
+              |OK -> return (Io_page.detach page; Io_page.page page))
+            )
+        )
     )
+      
 
 (* Write a single page to disk.
    Offset is the sector number, which must be page-aligned.
    Page must be an Io_page *)
 let write_page t sector page =
-  Gnttab.with_grant ~page ~domid:t.backend_id ~perm:Gnttab.RW
-    (fun gnt ->
-      let gref = Gnttab.num gnt in
-      let id = Int64.of_int32 gref in
-      let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-      let req = Req.({op=Req.Write; handle=t.vdev; id; sector; segs}) in
-      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
-      if Ring.Front.push_requests_and_check_notify t.ring then
-        Evtchn.notify t.evtchn;
-      let open Res in
-      lwt res = res in
-      Res.(match res.st with
-      |Error -> fail (IO_error "write")
-      |Not_supported -> fail (IO_error "unsupported")
-      |Unknown _ -> fail (IO_error "unknown error")
-      |OK -> return ())
+  Gnttab.with_ref
+    (fun r ->
+      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
+        (fun () ->
+          let gref = Gnttab.to_int32 r in
+          let id = Int64.of_int32 gref in
+          let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+          let req = Req.({op=Req.Write; handle=t.vdev; id; sector; segs}) in
+          let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+          if Ring.Front.push_requests_and_check_notify t.ring then
+            Evtchn.notify t.evtchn;
+          let open Res in
+          lwt res = res in
+          Res.(match res.st with
+          |Error -> fail (IO_error "write")
+          |Not_supported -> fail (IO_error "unsupported")
+          |Unknown _ -> fail (IO_error "unknown error")
+          |OK -> return ())
+        )
     )
 
 
@@ -268,21 +277,25 @@ let read_512 t sector num_sectors =
   let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in
   if len > 11 then
     fail (Failure (sprintf "len > 11 sec=%Lu num=%Lu" sector num_sectors))
-  else Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW len
-    (fun gnts ->
+  else 
+  Io_page.with_pages len
+    (fun pages ->
+      Gnttab.with_refs len
+        (fun rs ->
+          Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW rs pages
+    (fun () ->
       let segs = Array.mapi
-        (fun i gnt ->
+        (fun i r ->
           let first_sector = match i with
             |0 -> start_offset
             |_ -> 0 in
           let last_sector = match i with
             |n when n == len-1 -> end_offset
             |_ -> 7 in
-          let _ = Gnttab.page gnt in
-          let gref = Gnttab.num gnt in
+          let gref = Gnttab.to_int32 r in
           { Req.gref; first_sector; last_sector }
-        ) gnts in
-      let id = Int64.of_int32 (Gnttab.num gnts.(0)) in
+        ) (Array.of_list rs) in
+      let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
       let req = Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
       let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
       if Ring.Front.push_requests_and_check_notify t.ring then
@@ -296,8 +309,9 @@ let read_512 t sector num_sectors =
       |OK ->
         (* Get the pages, and convert them into Istring views *)
         let pages = Array.mapi
-          (fun i gnt ->
-            let page = Gnttab.detach gnt in
+          (fun i page ->
+	    Io_page.detach page;
+            let bs = Io_page.page page in
             let start_offset = match i with
               |0 -> start_offset * 512
               |_ -> 0 in
@@ -305,7 +319,9 @@ let read_512 t sector num_sectors =
               |n when n = len-1 -> (end_offset + 1) * 512
               |_ -> 4096 in
             let bytes = end_offset - start_offset in
-            Bitstring.subbitstring page (start_offset * 8) (bytes * 8)
-          ) gnts in
+            Bitstring.subbitstring bs (start_offset * 8) (bytes * 8)
+          ) (Array.of_list pages) in
         return pages
     )
+)
+)

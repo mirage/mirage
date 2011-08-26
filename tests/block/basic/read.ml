@@ -3,6 +3,7 @@ open Printf
 
 let main () =
   lwt ids = OS.Blkif.enumerate () in
+  printf "VM has %d block devices configured\n%!" (List.length ids);
   let id = List.hd ids in
   lwt vbd,vbd_t = OS.Blkif.create id in
   lwt ro = Block.RO.create vbd in

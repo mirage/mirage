@@ -19,11 +19,11 @@ open Printf
 
 (* Allocate a new grant entry and initialise a ring using it *)
 let alloc ~domid =
-  lwt gnt = Gnttab.get_free_entry () in
-  let page = Gnttab.page gnt in
+  lwt gnt = Gnttab.get () in
+  let page = Io_page.get () in
   let perm = Gnttab.RW in
-  Gnttab.grant_access ~domid ~perm gnt;
-  return (gnt, page)
+  Gnttab.grant_access ~domid ~perm gnt page;
+  return (gnt, Io_page.page page)
 
 (*
   struct sring {
@@ -225,30 +225,26 @@ end
 (* TODO both of these can be combined into one set of bindings now *)
 module Console = struct
     type t
-    let initial_grant_num : Gnttab.num = 2l
+    let initial_grant_num : Gnttab.r = Gnttab.of_int32 2l
     external start_page: unit -> t = "caml_console_start_page"
     external zero: t -> unit = "caml_console_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_console_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_console_ring_read"
     let alloc_initial () =
-      let num = initial_grant_num in
       let page = start_page () in
-      let gnt = Gnttab.alloc num in
-      gnt, page
+      initial_grant_num, page
 end
 
 module Xenstore = struct
     type t
-    let initial_grant_num : Gnttab.num = 1l
+    let initial_grant_num : Gnttab.r = Gnttab.of_int32 1l
     external start_page: unit -> t = "caml_xenstore_start_page"
     external zero: t -> unit = "caml_xenstore_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_xenstore_ring_read"
     let alloc_initial () =
-      let num = initial_grant_num in
       let page = start_page () in
       zero page;
-      let gnt = Gnttab.alloc num in
-      gnt, page
+      initial_grant_num, page
 end
 

@@ -16,14 +16,7 @@
 
 open Lwt
 
-exception Grant_page_not_found
-
-type num = int32                      (* Grant ref type (grant_ref_t) *)
-
-type r = {
-  num: num;                           (* Grant ref number *)
-  mutable page: Bitstring.t option;   (* The memory page *)
-}
+type r = int32 (* Grant ref number *)
 
 type perm = RO | RW
 
@@ -32,18 +25,13 @@ module Raw = struct
   external nr_reserved : unit -> int = "caml_gnttab_reserved"
   external init : unit -> unit = "caml_gnttab_init"
   external fini : unit -> unit = "caml_gnttab_fini"
-  external grant_access : num -> (string*int*int) -> int -> bool -> unit = "caml_gnttab_grant_access"
-  external end_access : num -> unit = "caml_gnttab_end_access"
+  external grant_access : r -> (string*int*int) -> int -> bool -> unit = "caml_gnttab_grant_access"
+  external end_access : r -> unit = "caml_gnttab_end_access"
 end
 
-let alloc (num:num) =
-  { num = num; page = None }
-
-let num gnt = gnt.num
-
-let page gnt = match gnt.page with
-  | None -> raise Grant_page_not_found
-  | Some p -> p
+let to_int32 x = x
+let of_int32 x = x
+let to_string (r:r) = Int32.to_string (to_int32 r)
 
 let free_list : r Queue.t = Queue.create ()
 let free_list_condition = Lwt_condition.create ()
@@ -52,88 +40,80 @@ let iter_option f = function
   | None -> ()
   | Some x -> f x
 
-let put_free_entry r =
-  (* Return any Io_page to the separate Io_page free list *)
-  iter_option Io_page.put_free r.page;
-  r.page <- None;
+let put r =
   Queue.push r free_list;
   Lwt_condition.signal free_list_condition ()
 
-let rec get_free_entry () =
+let rec get () =
   match Queue.is_empty free_list with
   |true ->
     Lwt_condition.wait free_list_condition >>
-    get_free_entry ()
+    get ()
   | false ->
     return (Queue.pop free_list)
 
-let to_string (r:r) = Int32.to_string r.num
-
-let grant_access ~domid ~perm r =
-  (* lazily allocate a free Io_page, if none has been provided *)
-  r.page <- if r.page <> None then r.page else Some (Io_page.get_free ());
-  Raw.grant_access r.num (page r) domid (match perm with RO -> true |RW -> false)
-
-let end_access r =
-  Raw.end_access r.num
-
-(* Detach a string from the grant *)
-let detach r =
-  let page = page r in
-  let final x = Io_page.put_free x in
-  Gc.finalise final page;
-  r.page <- None;
-  page
-  
-let with_grant ?page ~domid ~perm fn =
-  lwt gnt = get_free_entry () in (* gnt.page is always None *)
-  gnt.page <- page;
-  grant_access ~domid ~perm gnt;
-  try_lwt
-    lwt res = fn gnt in
-    end_access gnt;
-    put_free_entry gnt;
-    return res
-  with exn -> begin
-    end_access gnt;
-    put_free_entry gnt;
-    fail exn
-  end
-
-let get_n ~domid ~perm num =
+let get_n num =
   let rec gen_gnts num acc =
     match num with
     |0 -> return acc
     |n -> 
-      lwt gnt = get_free_entry () in
-      grant_access ~domid ~perm gnt;
+      lwt gnt = get () in
       gen_gnts (n-1) (gnt :: acc)
   in gen_gnts num []
 
-let with_grants ~domid ~perm num fn =
-  let rec gen_gnts num acc =
-    match num with
-    |0 -> return acc
-    |n -> 
-      lwt gnt = get_free_entry () in
-      grant_access ~domid ~perm gnt;
-      gen_gnts (n-1) (gnt :: acc)
-  in
-  lwt gnts = gen_gnts num [] in
+let with_ref f =
+  lwt gnt = get () in
   try_lwt
-    lwt res = fn (Array.of_list gnts) in
-    List.iter end_access gnts;
-    List.iter put_free_entry gnts;
+    lwt res = f gnt in
+    put gnt;
     return res
   with exn -> begin
+    put gnt;
+    fail exn
+  end
+
+let with_refs n f =
+  lwt gnts = get_n n in
+  try_lwt
+    let res = f gnts in
+    List.iter put gnts;
+    res
+  with exn -> begin
+    List.iter put gnts;
+    fail exn
+  end
+
+let grant_access ~domid ~perm r page =
+  Raw.grant_access r (Io_page.page page) domid (match perm with RO -> true |RW -> false)
+
+let end_access r =
+  Raw.end_access r
+
+let with_grant ~domid ~perm gnt page fn =
+  grant_access ~domid ~perm gnt page;
+  try_lwt
+    lwt res = fn () in
+    end_access gnt;
+    return res
+  with exn -> begin
+    end_access gnt;
+    fail exn
+  end
+
+let with_grants ~domid ~perm gnts pages fn =
+  try_lwt
+    List.iter (fun (gnt, page) -> grant_access ~domid ~perm gnt page) (List.combine gnts pages);
+    let res = fn () in
     List.iter end_access gnts;
-    List.iter put_free_entry gnts;
+    res
+  with exn -> begin
+    List.iter end_access gnts;
     fail exn
   end
 
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);
     for i = Raw.nr_reserved () to Raw.nr_entries () - 1 do
-        put_free_entry (alloc (Int32.of_int i));
+        put (Int32.of_int i);
     done;
     Raw.init ()

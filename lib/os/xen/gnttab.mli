@@ -15,19 +15,23 @@
  *)
 
 type r
-type num = int32
 type perm = RO | RW
 
-val alloc: num -> r
-val num: r -> num
-val page: r -> Bitstring.t
-val put_free_entry : r -> unit
-val get_free_entry : unit -> r Lwt.t
-val get_n : domid:int -> perm:perm -> int -> r list Lwt.t
-val grant_access : domid:int -> perm:perm -> r -> unit
-val end_access : r -> unit
+val to_int32: r -> int32
+val of_int32: int32 -> r
 val to_string : r -> string
-val detach : r -> Bitstring.t
 
-val with_grant : ?page:Bitstring.t -> domid:int -> perm:perm -> (r -> 'a Lwt.t) -> 'a Lwt.t
-val with_grants : domid:int -> perm:perm -> int -> (r array -> 'a Lwt.t) -> 'a Lwt.t
+val put : r -> unit
+val get : unit -> r Lwt.t
+val get_n : int -> r list Lwt.t
+
+val with_ref: (r -> 'a Lwt.t) -> 'a Lwt.t
+val with_refs: int -> (r list -> 'a Lwt.t) -> 'a Lwt.t
+
+val grant_access : domid:int -> perm:perm -> r -> Io_page.t -> unit
+val end_access : r -> unit
+
+val with_grant : domid:int -> perm:perm -> r -> Io_page.t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+
+val with_grants : domid:int -> perm:perm -> r list -> Io_page.t list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+

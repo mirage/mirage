@@ -22,8 +22,28 @@
     as roots.
    *)
 
-(** Get free I/O page from the free pool *)
-val get_free: unit -> Bitstring.t
+type t
 
-(** Return an I/O Page to the free pool *)
-val put_free: Bitstring.t -> unit
+(** Return the aligned page as a bitstring *)
+val page: t -> Bitstring.t
+
+(** Get free I/O page from the free pool *)
+val get: unit -> t
+
+(** Get n free I/O pages from the free pool *)
+val get_n: int -> t list
+
+(** Signal that we nolonger need an I/O page *)
+val put: t -> unit
+
+(** [with_page f] calls [f t] where [t] is a fresh page and then returns
+    [t] to the free pool unless the user has called [detach] *)
+val with_page: (t -> 'a Lwt.t) -> 'a Lwt.t
+
+(** [with_pages n f] calls [f pages] where [pages] is a list of fresh pages
+    where each page is returned to the pool unless the user has called [detach]*)
+val with_pages: int -> (t list -> 'a Lwt.t) -> 'a Lwt.t
+
+(** Signal that this I/O page should be returned to the free pool by
+    the GC and not automatically via the with_page function. *)
+val detach: t -> unit

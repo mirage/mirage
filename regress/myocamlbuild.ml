@@ -74,10 +74,9 @@ end
 (* Rules for building from a .mir build *)
 module Mir = struct
 
-  let ocamlc_libdir = "-L" ^ (Lazy.force stdlib_dir)
-
   (** Link to a UNIX executable binary *)
   let cc_unix_link tags arg out env =
+    let ocamlc_libdir = "-L" ^ (Lazy.force stdlib_dir) in
     let open OS in
     let unixrun mode = lib / mode / "lib" / "libunixrun.a" in
     let unixmain mode = lib / mode / "lib" / "main.o" in
@@ -237,58 +236,28 @@ module Spec = struct
     in {backends}
 
   let rules () =
-    rule "exec"
-      ~prod:"%(test).exec"
+    rule "build and execute spec backend target"
+      ~prod:"%(test).%(backend).exec"
       ~dep:"%(test).spec"
       (fun env build ->
-        let spec = parse (env "%(test).spec") in
-        let prod = env "%(test).exec" in
-        let outcomes = build (backends_map (fun be ->
-          [ backend_target be (env "%(test)") ]
-        ) spec) in
-        let cmds = List.map (function
-          |Outcome.Good o -> 
-             sprintf "OK BUILD %s" o
-          |Outcome.Bad exn -> 
-             sprintf "FAIL BUILD %s" (Printexc.to_string exn)
-        ) outcomes in
-        Echo ([String.concat "\n" cmds], prod)
-      )
+        let backend = backend_of_string (env "%(backend)") in
+        (* Build the target for this backend *)
+        let prod = env "%(test).%(backend).exec" in
+        List.map Outcome.ignore_good (build [[ backend_target backend (env "%(test)") ]]);
+        Echo (["OK "; env "%(backend)"], prod)
+      );
+    rule "build and execute all supported backend targets"
+     ~prod:"%(test).exec"
+     ~dep:"%(test).spec"
+     (fun env build ->
+       let test = env "%(test)" in
+       let spec = parse (env "%(test).spec") in
+       List.map Outcome.ignore_good (build (backends_map 
+         (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)]) spec));
+       Nop
+     )
 end
 
-(*
-let () =
-  rule "end" 
-    ~prod:"%.end"
-    ~dep:"%.start"
-    (fun env builder ->
-      printf "end %s\n%!" (env "%.end");
-      Cmd (S[ A"echo"; A"shell end"; A (env "%.end")])
-    )
-
-let () =
-  rule "run"
-    ~prod:"%(spec).run"
-    ~dep:"%(spec).suite"
-    (fun env builder ->
-       let spec = env "%(spec)" in
-       let deps = string_list_of_file (spec ^ ".spec") in
-       let targets = List.map (fun dep ->
-         [dep ^ ".start"]
-       ) deps in
-       ignore(builder targets);
-       let targets = List.map (fun dep ->
-         [dep ^ ".exec"]
-       ) deps in
-       ignore(builder targets);
-        let targets = List.map (fun dep ->
-         [dep ^ ".end"]
-       ) deps in
-       ignore(builder targets);
-       Nop
-    )
-
-*)
 (* Alias source files into their repsective backend/ subdirs *)
 let () =
   let source_exts = [".ml"; ".mli"; ".mll"; ".mly"] in

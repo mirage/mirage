@@ -51,13 +51,24 @@ end
 module OS = struct
 
   type unix = Linux | Darwin
-  type t = Unix of unix | Xen | Node
+  type arch = X86_32 | X86_64
 
   let host =
     match String.lowercase (Util.run_and_read "uname -s") with
-    | "linux"  -> Unix Linux
-    | "darwin" -> Unix Darwin
+    | "linux"  -> Linux
+    | "darwin" -> Darwin
     | os -> eprintf "`%s` is not a supported host OS\n" os; exit (-1)
+
+  let arch =
+    match String.lowercase (Util.run_and_read "uname -m") with
+    | "x86_32"  -> X86_32
+    | "x86_64" -> X86_64
+    | arch -> eprintf "`%s` is not a supported arch\n" arch; exit (-1)
+
+  let js_of_ocaml_installed =
+    try
+      Ocamlbuild_pack.My_unix.run_and_read "which js_of_ocaml" <> ""
+    with _ -> false
 end
 
 (* Rules for building from a .mir build *)
@@ -72,9 +83,8 @@ module Mir = struct
     let unixmain mode = lib / mode / "lib" / "main.o" in
     let mode = sprintf "unix-%s" (env "%(mode)") in
     let dl_libs = match host with
-      |Xen |Node   -> assert false
-      |Unix Linux  -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
-      |Unix Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
+      |Linux  -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
+      |Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (A cc :: [ T(tags++"link"); A ocamlc_libdir; A"-o"; Px out; 
              A (unixrun mode); P arg; A (unixmain mode); ] @ dl_libs))
@@ -182,10 +192,28 @@ module Spec = struct
     |Unix_direct -> "unix-direct"
     |Unix_socket -> "unix-socket"
 
-  let all_backends = [Xen; Node; Unix_socket; Unix_direct]
+  (* List of all supported backends on this build host *)
+  let all_backends =
+    let open OS in
+    let xen = match host,arch with
+    |Linux, X86_64 -> [Xen]
+    |_ -> [] in
+    let node = if OS.js_of_ocaml_installed then [Node] else [] in
+    [Unix_socket; Unix_direct] @ xen @ node
 
   let backend_is_supported b spec =
     List.mem b spec.backends
+
+  let backends_iter fn spec = List.iter fn spec.backends
+  let backends_map fn spec = List.map fn spec.backends
+
+  (* Get the build target of a given backend *)
+  let backend_target be name =
+    let dir = backend_to_string be in
+    match be with
+    |Xen -> sprintf "%s/%s.xen" dir name 
+    |Node -> sprintf "%s/%s.js" dir name
+    |Unix_direct |Unix_socket -> sprintf "%s/%s.bin" dir name
 
   (** Spec file contains key:value pairs: 
 
@@ -208,29 +236,27 @@ module Spec = struct
       ) with Not_found -> all_backends
     in {backends}
 
+  let rules () =
+    rule "exec"
+      ~prod:"%(test).exec"
+      ~dep:"%(test).spec"
+      (fun env build ->
+        let spec = parse (env "%(test).spec") in
+        let prod = env "%(test).exec" in
+        let outcomes = build (backends_map (fun be ->
+          [ backend_target be (env "%(test)") ]
+        ) spec) in
+        let cmds = List.map (function
+          |Outcome.Good o -> 
+             sprintf "OK BUILD %s" o
+          |Outcome.Bad exn -> 
+             sprintf "FAIL BUILD %s" (Printexc.to_string exn)
+        ) outcomes in
+        Echo ([String.concat "\n" cmds], prod)
+      )
 end
+
 (*
-let () =
-  rule "start"
-    ~prod:"%.start"
-    ~dep:"%.spec"
-    (fun env builder ->
-       printf "start %s\n%!" (env "%.start");
-       Cmd (S[ A"echo"; A"shell start"; A (env "%.start")])
-    )
-
-let () =
-  rule "build"
-    ~prod:"tests/%(test).%(backend).build"
-    ~dep:"tests/%(test).mir"
-    (fun env build ->
-       let log = env "%(test).%(backend).build" in
-       let backend = Spec.backend_of_string (env "%(backend)") in
-       let cmd = Spec.command (env "%(test)") backend in
-       Seq [
-      ]
-    )
-
 let () =
   rule "end" 
     ~prod:"%.end"
@@ -238,21 +264,6 @@ let () =
     (fun env builder ->
       printf "end %s\n%!" (env "%.end");
       Cmd (S[ A"echo"; A"shell end"; A (env "%.end")])
-    )
-
-let () =
-  rule "exec"
-    ~prod:"%(test).%(backend).exec"
-    ~dep:"%(test).spec"
-    (fun env build ->
-      let spec = Spec.parse (env "%(test).spec") in
-      let os = Spec.backend_of_string (env "%(backend)") in
-      let prod = env "%(test).%(backend).exec" in
-      if Spec.backend_is_supported os spec then begin
-        ignore (build [[ env "%(test).%(backend).build" ]]);
-        Echo (["OK"], prod)
-      end else
-        Echo (["SKIPPED (backend not supported for this test)"],prod)
     )
 
 let () =
@@ -332,6 +343,7 @@ let _ = dispatch begin function
       flag ["ocaml"; "link"; betag] & S [A"-I"; Px (lib / be / "lib")];
     ) Spec.all_backends;
     Mir.rules ();
+    Spec.rules ();
     (* Link with dummy libnode when needed *)
     let node_cclib = [ A"-dllpath"; Px (lib/"node"/"lib"); A"-dllib";
       A"-los"; A"-cclib"; A"-los" ] in

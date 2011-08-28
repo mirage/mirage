@@ -25,11 +25,10 @@ open Printf
 (* Points to the root of the installed Mirage stdlibs *)
 let home = getenv ~default:"/usr/bin" "HOME"
 let lib = getenv ~default:(home / "mir-inst") "MIRAGELIB"
-let syntaxdir = lib / "syntax"
 let cc = getenv ~default:"cc" "CC"
 let ld = getenv ~default:"ld" "LD"
 
-(* Utility functions (e.g. to execute a command and return lines read) *)
+(** Utility functions (e.g. to execute a command and return lines read) *)
 module Util = struct
   let split s ch =
     let x = ref [] in
@@ -90,16 +89,19 @@ module Mir = struct
       A"-d"; A"-nostdlib"; A"-m"; A"elf_x86_64"; A"-T";
       Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
       @ ldlibs @ [A"-o"; Px out]))
- 
+
+  (** Generic CC linking rule that wraps both Xen and C *) 
   let cc_link_c_implem ?tag fn c o env build =
     let c = env c and o = env o in
     fn (tags_of_pathname c++"implem"+++tag) c o env
 
+  (** Invoke js_of_ocaml from .byte file to Javascript *)
   let js_of_ocaml ?tag byte js env build =
     let byte = env byte and js = env js in
     let libdir = lib / "node" / "lib" in
     Cmd (S [ A"js_of_ocaml"; P (libdir / "mirage.js") ; Px js; A"-o"; Px byte ])
 
+  (** Generate an ML entry point file that spins up the Mirage runtime *)
   let ml_main mirfile mlprod env build =
     let mirfile = env mirfile in
     let mains = string_list_of_file mirfile in
@@ -109,19 +111,20 @@ module Mir = struct
       Echo ((List.map (sprintf "let _ = OS.Main.run (%s ())\n") mains), mlprod)
     ]
 
-  (* Copied from ocaml/ocamlbuild/ocaml_specific.ml and modified to add
-     the output_obj tag *)
+  (** Copied from ocaml/ocamlbuild/ocaml_specific.ml and modified to add
+      the output_obj tag *)
   let native_output_obj x =
     link_gen "cmx" "cmxa" !Options.ext_lib [!Options.ext_obj; "cmi"]
        ocamlopt_link_prog
       (fun tags -> tags++"ocaml"++"link"++"native"++"output_obj") x
 
-  (* Generate all the rules for mir *)
+  (** Generate all the rules for mir *)
   let rules () =
     (* Copied from ocaml/ocamlbuild/ocaml_specific.ml *)
     let ext_obj = !Options.ext_obj in
     let x_o = "%"-.-ext_obj in
 
+    (* Generate the source stub that calls OS.Main.run *)
     rule "exec_ml: %.mir -> %__.ml"
       ~prod:"%(backend)/%(file)__.ml"
       ~dep:"%(file).mir"
@@ -129,29 +132,30 @@ module Mir = struct
 
     (* Rule to link a module and output a standalone native object file *)
     rule "ocaml: cmx* & o* -> .m.o"
-      ~tags:["ocaml"; "native"; "output_obj"]
       ~prod:"%.m.o"
       ~deps:["%.cmx"; x_o]
       (native_output_obj "%.cmx" "%.m.o");
 
-    rule ("final link: xen/**/%__.m.o -> xen/**/%.bin")
-      ~prod:"xen/%(file).bin"
+    (* Xen link rule *)
+    rule ("final link: xen/%__.m.o -> xen/%.xen")
+      ~prod:"xen/%(file).xen"
       ~dep:"xen/%(file)__.m.o"
-      (cc_link_c_implem cc_xen_link "xen/%(file)__.m.o" "xen/%(file).bin");
+      (cc_link_c_implem cc_xen_link "xen/%(file)__.m.o" "xen/%(file).xen");
 
+    (* UNIX link rule *)
     rule ("final link: %__.m.o -> %.unix-%(mode).bin")
       ~prod:"unix-%(mode)/%(file).bin"
       ~dep:"unix-%(mode)/%(file)__.m.o"
       (cc_link_c_implem cc_unix_link "unix-%(mode)/%(file)__.m.o" "unix-%(mode)/%(file).bin");
 
-    rule ("final link: %__.byte -> %.js")
-      ~prod:"%.js"
-      ~dep:"%__.byte"
-      (js_of_ocaml "%.js" "%__.byte");
-
+    (* Node link rule *)
+    rule ("final link: node/%__.byte -> node/%.js")
+      ~prod:"node/%.js"
+      ~dep:"node/%__.byte"
+      (js_of_ocaml "node/%.js" "node/%__.byte");
 end
 
-(** Testing specification *)
+(** Testing specifications module *)
 module Spec = struct
   (** Supported Mirage backends *)
   type backend =  
@@ -300,6 +304,7 @@ let _ = dispatch begin function
     ) Spec.all_backends
 
   | After_options ->
+    let syntaxdir = lib / "syntax" in
     let pp_pa =
       let pa_inc = sprintf "-I %s -I +camlp4" syntaxdir in
       let pa_std = "pa_ulex.cma pa_lwt.cma" in

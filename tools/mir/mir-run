@@ -86,9 +86,8 @@ run_xl_domain() {
     cat > $CONF << EOF
 name="$NAME"
 kernel="$BINARY"
-superpages=1
 memory=$MEMORY
-on_crash=preserve
+on_crash="preserve"
 EOF
     echo -n "disk=[ " >> $CONF
     for vbd in ${VBDS[@]}; do
@@ -170,6 +169,11 @@ done
 
 if [[ -z "$BACKEND" ]] || [[ -z "$BINARY" ]]; then
   usage
+fi
+
+if [ ! -e "$BINARY" ]; then
+  echo Binary $BINARY not found
+  exit 1
 fi
 
 supported $BACKEND

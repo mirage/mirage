@@ -7,9 +7,6 @@ all:
 .PHONY: install
 install:
 	@mkdir -p $(PREFIX)/bin
-	sed -e 's,@MIRAGELIB@,$(PREFIX),g' < mir.in > $(PREFIX)/bin/mir-xen
-	for i in unix-direct unix-socket node; do \
-	  ln -nf $(PREFIX)/bin/mir-xen $(PREFIX)/bin/mir-$$i; \
-	done
+	sed -e 's,@MIRAGELIB@,$(PREFIX),g' < mir.in > $(PREFIX)/bin/mir-build
 	cp mir-run $(PREFIX)/bin/mir-run
-	chmod 755 $(PREFIX)/bin/mir-xen $(PREFIX)/bin/mir-run
+	chmod 755 $(PREFIX)/bin/mir-build $(PREFIX)/bin/mir-run

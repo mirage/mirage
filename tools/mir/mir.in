@@ -28,15 +28,6 @@ if [ ! -e "${MIRAGELIB}/scripts/myocamlbuild.ml" ]; then
   exit 1
 fi
 
-# Detect which backend we are from the name of the binary
-BINARY=$(basename $0)
-BACKEND=$(echo $BINARY | cut -f "2-" -d "-")
-
-if [ ! -d "$MIRAGELIB/$BACKEND/lib" ]; then
-  echo Invalid backend: $MIRAGELIB/$BACKEND/lib not present
-  exit 1
-fi
-  
 export MIRAGELIB
 if [ -e myocamlbuild.ml ]; then
   if [ ! -h myocamlbuild.ml ]; then
@@ -47,4 +38,4 @@ else
   ln -nfs ${MIRAGELIB}/scripts/myocamlbuild.ml
 fi
 
-ocamlbuild $BACKEND/$*
+ocamlbuild $*

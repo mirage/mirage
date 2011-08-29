@@ -19,6 +19,12 @@ let read_block n =
   really_read !f results 0 sector_size;
   results
 
+type format = FAT12 | FAT16 | FAT32
+let string_of_format = function
+  | FAT12 -> "FAT12"
+  | FAT16 -> "FAT16"
+  | FAT32 -> "FAT32"
+
 module Boot_sector = struct
   type t = {
       oem_name: string;
@@ -68,13 +74,31 @@ module Boot_sector = struct
       printf "sectors_per_cluster: %d\n" x.sectors_per_cluster;
       printf "total_sectors: %ld\n" x.total_sectors;
 	  printf "reserved_sectors: %d\n" x.reserved_sectors;
+      printf "number of FATs: %d\n" x.number_of_fats;
       printf "number_of_root_dir_entries: %d\n" x.number_of_root_dir_entries;
 	  printf "hidden_preceeding_sectors: %ld\n" x.hidden_preceeding_sectors;
       ()
+
+  (* Choose between FAT12, FAT16 and FAT32 using heuristic from:
+     http://averstak.tripod.com/fatdox/bootsec.htm *)
+  let detect_format x =
+    let root_start = x.reserved_sectors + x.number_of_fats * x.sectors_per_fat in
+    let cluster_start = root_start + (x.number_of_root_dir_entries * 32) / x.bytes_per_sector in
+    let number_of_clusters = 2 + (Int32.to_int (Int32.div (Int32.sub x.total_sectors (Int32.of_int cluster_start)) (Int32.of_int x.sectors_per_cluster))) in
+    if number_of_clusters < 4087 then Some FAT12
+    else if number_of_clusters < 65527 then Some FAT16
+    else if number_of_clusters < 268435457 then Some FAT32
+    else None
+
 end
+
+
+
+
+
 (*
 module Fat = struct
-
+  (* located at sector Boot_sector.reserved_sectors *)
   let of_bitstring bits =
   bitmatch bits with
   | { _: 24: string; (* JMP instruction *)
@@ -97,7 +121,12 @@ let () =
   (* Load the boot sector *)
   let bits = Bitstring.bitstring_of_string (read_block 0) in
   let boot = Boot_sector.of_bitstring bits in
-  Boot_sector.debug_print boot
+  Boot_sector.debug_print boot;
+  let format = Boot_sector.detect_format boot in
+  match format with
+  | None -> failwith "Failed to detect FAT format"
+  | Some format ->
+    Printf.printf "Format: %s\n" (string_of_format format)
 
 
 

@@ -42,9 +42,15 @@ module Util = struct
     go s;
     List.rev !x
 
-    let split_nl s = split s '\n'
+  let split_nl s = split s '\n'
 
-    let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
+  let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
+
+  (* ocamlbuild does not mkdir before an Echo to a file, so force one here *)
+  let safe_echo lines file =
+    let buf = String.concat "\n" lines ^ "\n" in
+    Seq [ Cmd (S[A"mkdir"; A"-p"; Px (Pathname.dirname file)]); Echo ([buf], file) ]
+
 end
 
 (** Host OS detection *)
@@ -115,10 +121,7 @@ module Mir = struct
     let mirfile = env mirfile in
     let mains = string_list_of_file mirfile in
     let mlprod = env mlprod in
-    Seq [ (* XXX not sure if bug or feature, but Echo doesnt mkdir_p *)
-      Cmd (S[A"mkdir"; A"-p"; Px (Pathname.dirname mlprod)]);
-      Echo ((List.map (sprintf "let _ = OS.Main.run (%s ())\n") mains), mlprod)
-    ]
+    Util.safe_echo (List.map (sprintf "let _ = OS.Main.run (%s ())\n") mains) mlprod
 
   (** Copied from ocaml/ocamlbuild/ocaml_specific.ml and modified to add
       the output_obj tag *)
@@ -136,8 +139,8 @@ module Mir = struct
     (* Generate the source stub that calls OS.Main.run *)
     rule "exec_ml: %.mir -> %__.ml"
       ~prod:"%(backend)/%(file)__.ml"
-      ~dep:"%(file).mir"
-      (ml_main "%(file).mir" "%(backend)/%(file)__.ml");
+      ~dep:"%(backend)/%(file).mir"
+      (ml_main "%(backend)/%(file).mir" "%(backend)/%(file)__.ml");
 
     (* Rule to link a module and output a standalone native object file *)
     rule "ocaml: cmx* & o* -> .m.o"
@@ -166,11 +169,10 @@ module Mir = struct
     (* Generate a default %.mir if one doesnt exist *)
     rule "default mir file"
       ~prod:"%(test).mir"
-      ~dep:"%(test).ml"
      (fun env build ->
         let mir = env "%(test).mir" in 
         let modu = String.capitalize (Pathname.basename (env "%(test)")) in
-        Echo ([sprintf "%s.main" modu], mir)
+        Util.safe_echo [modu-.-"main"] mir
      )
 end
 
@@ -242,6 +244,13 @@ module Spec = struct
       ) with Not_found -> all_backends
     in {backends}
 
+  (* Convert a list of Outcomes into a logging Echo command *)
+  let log_outcomes file ocs =
+    Util.safe_echo (List.map (function
+      |Outcome.Good o -> sprintf "ok %s" o
+      |Outcome.Bad exn -> sprintf "not ok %s" (Printexc.to_string exn)
+    ) ocs) file
+
   let rules () =
     rule "build and execute spec backend target"
       ~prod:"%(test).%(backend).exec"
@@ -256,24 +265,40 @@ module Spec = struct
         Cmd (S [A "mir-run"; A"-b"; A (env "%(backend)"); A"-o"; P prod; A binary])
       );
     rule "build and execute all supported backend targets"
-     ~prod:"%(test).exec"
-     ~dep:"%(test).spec"
-     (fun env build ->
-       let test = env "%(test)" in
-       let spec = parse (env "%(test).spec") in
-       let _ = List.map Outcome.ignore_good (build (backends_map 
-         (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)]) spec)) in
-       Nop
-     )
+       ~prod:"%(test).exec"
+       ~dep:"%(test).spec"
+       (fun env build ->
+         let test = env "%(test)" in
+         let spec = parse (env "%(test).spec") in
+         log_outcomes (env "%(test).exec") (build (backends_map 
+           (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)]) spec))
+       );
+    rule "execute a suite of tests"
+      ~prod:"%(test).run"
+      ~dep:"%(test).suite"
+      (fun env build ->
+        let suite = env "%(test).suite" in
+        let tests = List.map (fun x -> x-.-"exec") (string_list_of_file suite) in
+        let _ = build (List.map (fun x -> [x]) tests) in
+        (* concat all the sub-files into one *)
+        Cmd (S (A"cat" :: (List.map (fun x -> P x) tests) @ [ Sh ">"; P (env "%(test).run") ]))
+      );
+    (* If a default spec file does not exist, then just construct one with "backend:*" *)
+    rule "default spec file if one doesnt exist"
+     ~prod:"%(test).spec"
+     (fun env build -> Util.safe_echo ["backend:*"] (env "%(test).spec"))
+
 end
 
 (* Alias source files into their repsective backend/ subdirs *)
 let () =
-  let source_exts = [".ml"; ".mli"; ".mll"; ".mly"] in
+  let source_exts = [".ml"; ".mli"; ".mll"; ".mly"; ".mir"] in
   List.iter (fun ext ->
     let prod = "%(backend)/%(file)"^ext and dep = "%(file)"^ext in
     rule (sprintf "alias from %%.%s -> <backend>/%%.%s" ext ext)
-      ~prod ~dep (fun env build -> cp (env dep) (env prod))
+      ~prod ~dep (fun env build ->
+        Seq [ Cmd (S [A"mkdir";A"-p";P (Pathname.dirname (env prod))]);
+              cp (env dep) (env prod) ])
   ) source_exts
 
 (* XXX tag_file in ocamlbuild forces quotes around the filename,
@@ -330,5 +355,3 @@ let _ = dispatch begin function
   end
   | _ -> ()
 end
-
-

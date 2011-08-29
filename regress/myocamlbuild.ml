@@ -243,7 +243,7 @@ module Spec = struct
         let backend = backend_of_string (env "%(backend)") in
         (* Build the target for this backend *)
         let prod = env "%(test).%(backend).exec" in
-        List.map Outcome.ignore_good (build [[ backend_target backend (env "%(test)") ]]);
+        let _ = List.map Outcome.ignore_good (build [[ backend_target backend (env "%(test)") ]]) in
         Echo (["OK "; env "%(backend)"], prod)
       );
     rule "build and execute all supported backend targets"
@@ -252,8 +252,8 @@ module Spec = struct
      (fun env build ->
        let test = env "%(test)" in
        let spec = parse (env "%(test).spec") in
-       List.map Outcome.ignore_good (build (backends_map 
-         (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)]) spec));
+       let _ = List.map Outcome.ignore_good (build (backends_map 
+         (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)]) spec)) in
        Nop
      )
 end

@@ -97,11 +97,19 @@ module Boot_sector = struct
     else if number_of_clusters < 268435457 then Some FAT32
     else None
 
-  let sectors_of_fat x =
+  let ints start length =
     let rec enumerate start length acc = match length with
       | 0 -> acc
       | _ -> enumerate (start + 1) (length - 1) (start :: acc) in
-    List.rev (enumerate x.reserved_sectors x.sectors_per_fat [])
+    List.rev (enumerate start length [])
+
+  let sectors_of_fat x =
+    ints x.reserved_sectors x.sectors_per_fat
+
+  let sectors_of_root_dir x =
+    let start = x.reserved_sectors + x.sectors_per_fat * x.number_of_fats in
+    let length = (x.number_of_root_dir_entries * 32) / x.bytes_per_sector in
+    ints start length
 end
 
 module Fat_entry = struct
@@ -150,6 +158,161 @@ module Fat_entry = struct
     | FAT12 -> of_fat12
 end
 
+module Dir_entry = struct
+
+  type datetime = {
+    year: int;
+    month: int;
+    day: int;
+    hours: int;
+    mins: int;
+    secs: int
+  }
+
+  type lfn = {
+    lfn_deleted: bool;
+    lfn_last: bool; (** marks the highest sequence number *)
+    lfn_seq: int;
+    (* checksum *)
+    lfn_utf16_name: string
+  }
+
+  type t = {
+    filename: string; (** 8 chars *)
+    ext: string;      (** 3 chars *)
+    utf_filename: string;
+    deleted: bool;
+    read_only: bool;
+    hidden: bool;
+    system: bool;
+    volume: bool;
+    subdir: bool;
+    archive: bool;
+    create: datetime;
+    access: datetime;
+	modify: datetime;
+	start_cluster: int;
+	file_size: int32;
+  }
+
+  type entry =
+  | Old of t
+  | Lfn of lfn
+  | End
+
+  let to_string x =
+    let trim_utf16 x =
+      let chars = ref (String.length x / 2) in
+      for i = 0 to String.length x / 2 - 1 do
+        let a = int_of_char x.[i * 2] and b = int_of_char x.[i * 2 + 1] in
+        if a = 0xff && b = 0xff && i < !chars then chars := i
+      done;
+      String.sub x 0 (!chars * 2) in
+    Printf.sprintf "%8s %3s %10ld %04d-%02d-%02d  %02d:%02d  %s"
+      x.filename x.ext x.file_size
+      x.create.year x.create.month x.create.day
+      x.create.hours x.create.mins
+      (trim_utf16 x.utf_filename)
+
+  let time_of_int date time =
+    let day = date land 0b11111 in
+    let month = (date lsr 5) land 0b1111 in
+    let year = (date lsr 9) + 1980 in
+    let secs = (time land 0b11111) * 2 in
+    let mins = (time lsr 5) land 0b111111 in
+	let hours = (time lsr 10) land 0b11111 in
+    { day = day; month = month; year = year;
+      hours = hours; mins = mins; secs = secs }
+    
+  let of_bitstring bits =
+    bitmatch bits with
+    | { seq: 8;
+        utf1: (10 * 8): string;
+        0x0f: 8;
+        0: 8;
+        checksum: 8;
+        utf2: (12 * 8): string;
+        0: 16;
+        utf3: (4 * 8): string
+      } ->
+      Lfn {
+        lfn_deleted = seq land 0x80 = 1;
+        lfn_last = seq land 0x40 = 1;
+        lfn_seq = seq land 0x3f;
+        (* checksum *)
+        lfn_utf16_name = utf1 ^ utf2 ^ utf3;
+      }
+    | { filename: (8 * 8): string;
+        ext: (3 * 8): string;
+        read_only: 1;
+        hidden: 1;
+        system: 1;
+        volume: 1;
+        subdir: 1;
+        archive: 1;
+        _: 1; (* device *)
+        _: 1; (* unused *)
+        _: 8; (* reserved *)
+        _: 8; (* high precision create time 0-199 in units of 10ms *)
+        create_time: 16: littleendian;
+		create_date: 16: littleendian;
+		last_access_date: 16: littleendian;
+		ea_index: 16: littleendian;
+		last_modify_time: 16: littleendian;
+		last_modify_date: 16: littleendian;
+		start_cluster: 16: littleendian;
+		file_size: 32: littleendian
+      } ->
+        let x = int_of_char filename.[0] in
+        if x = 0
+        then End
+        else
+          let deleted = x = 0xe5 in
+          filename.[0] <- char_of_int (if x = 0x05 then 0xe5 else x);
+          Old {
+            filename = filename;
+            ext = ext;
+            utf_filename = "";
+            read_only = read_only;
+            deleted = deleted;
+            hidden = hidden;
+            system = system;
+            volume = volume;
+            subdir = subdir;
+            archive = archive;
+            create = time_of_int create_date create_time;
+            access = time_of_int last_access_date 0;
+            modify = time_of_int last_modify_date last_modify_time;
+            start_cluster = start_cluster;
+            file_size = file_size
+          }
+    | { _ } ->
+      let (s, off, len) = bits in
+      failwith (Printf.sprintf "Not a dir entry off=%d len=%d" off len)
+
+    let chop n bits =
+      let open Bitstring in
+      let rec inner acc bits =
+        if bitstring_length bits <= n then bits :: acc
+        else inner (takebits n bits :: acc) (dropbits n bits) in
+      List.rev (inner [] bits)
+
+    let list bits =
+      (* Stop as soon as we find a None *)
+      let rec inner lfns acc = function
+        | [] -> acc
+        | b :: bs -> 
+                     begin match of_bitstring b with
+                     | Lfn lfn -> inner (lfn :: lfns) acc bs
+                     | Old d ->
+                       (* reconstruct UTF text from LFNs *)
+                       let utfs = List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns in
+                       inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
+                     | End -> acc
+                     end in
+      inner [] [] (chop (8 * 32) bits)
+end
+
 let () =
   let usage () =
     Printf.fprintf stderr "Usage:\n";
@@ -174,11 +337,18 @@ let () =
   | None -> failwith "Failed to detect FAT format"
   | Some format ->
     Printf.printf "Format: %s\n" (string_of_format format);
+(*
+    Printf.printf "FAT:\n";
     let fat = read_sectors (Boot_sector.sectors_of_fat boot) in
     for i = 0 to Boot_sector.clusters boot - 1 do
       let x = Fat_entry.of_bitstring format i fat in
       Printf.printf "%s%!" (Fat_entry.to_string x)
-    done
+    done;*)
+    Printf.printf "Root directory:\n";
+    let root = read_sectors (Boot_sector.sectors_of_root_dir boot) in
+    let dirs = Dir_entry.list root in
+    List.iter
+      (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs
 
 
 

@@ -81,7 +81,7 @@ function assemble_bin {
   echo Assembling: binaries
   OBJ=${BUILDDIR}/bin
   mkdir -p ${OBJ}
-  sed -e 's,@MIRAGELIB@,$PREFIX,g' < ${ROOT}/scripts/mir-build > ${OBJ}/mir-build
+  sed -e "s,@MIRAGELIB@,${PREFIX},g" < ${ROOT}/scripts/mir-build > ${OBJ}/mir-build
   cp ${ROOT}/scripts/mir-run ${OBJ}/mir-run
   chmod 755 ${OBJ}/mir-build ${OBJ}/mir-run
   cp ${ROOT}/tools/crunch/_build/crunch.native ${OBJ}/mir-crunch

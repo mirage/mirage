@@ -53,7 +53,7 @@ supported() {
     fi
     ;;
   node)
-   NODE="$(which nodex >/dev/null 2>&1)"
+   NODE="$(which node >/dev/null 2>&1)"
    if [ $? -ne 0 ]; then
      echo "Node binary not found"
      exit 1

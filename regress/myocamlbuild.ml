@@ -86,7 +86,7 @@ module Mir = struct
       |Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (A cc :: [ T(tags++"link"); A ocamlc_libdir; A"-o"; Px out; 
-             A (unixrun mode); P arg; A (unixmain mode); ] @ dl_libs))
+             A (unixmain mode); P arg; A (unixrun mode); ] @ dl_libs))
 
   (** Link to a standalone Xen microkernel *)
   let cc_xen_link tags arg out env =

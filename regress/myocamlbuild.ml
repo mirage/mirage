@@ -243,7 +243,7 @@ module Spec = struct
         let binary = backend_target backend (env "%(test)") in
         let _ = List.map Outcome.ignore_good (build [[ binary ]]) in
         (* Execute the binary using the mir-run wrapper and log its output to prod *)
-        Cmd (S [A "mir-run"; A"-b"; A backend; A"-o"; prod; A binary])
+        Cmd (S [A "mir-run"; A"-b"; A (env "%(backend)"); A"-o"; P prod; A binary])
       );
     rule "build and execute all supported backend targets"
      ~prod:"%(test).exec"

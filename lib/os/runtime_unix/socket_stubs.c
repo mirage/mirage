@@ -693,9 +693,7 @@ caml_readdir(value v_dir)
     Val_Err(v_ret, v_err);
   } else {
     if (de->d_type == DT_REG) {
-      size_t len = de->d_namlen;
-      v_de = caml_alloc_string(len);
-      memcpy(String_val(v_de), de->d_name, len);
+      v_de = caml_copy_string(de->d_name);
       Val_OK(v_ret, v_de);
     } else {
       Val_WouldBlock(v_ret);

@@ -17,6 +17,7 @@ OBJS = $(CREAT_OBJS) $(EXTRACT_OBJS)
 	$(CC) $(CFLAGS) -c $*.c
 
 all: $(PROGNAME)
+	@ :
 
 mir-fs-create : $(CREAT_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(CREAT_OBJS) $(LIBS)

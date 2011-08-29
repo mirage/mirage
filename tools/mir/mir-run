@@ -5,6 +5,7 @@ set -e
 
 SUDO=${SUDO:-sudo}
 BACKEND=${MIRAGE_DEFAULT_BACKEND:-unix-socket}
+XEN_BIN=${XEN_BIN:-xl}
 
 usage() {
   cat << EOF

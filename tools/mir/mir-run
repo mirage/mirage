@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+# Wrapper script to execute a Mirage binary across multiple backends
+
+set -e
+
+SUDO=${SUDO:-sudo}
+BACKEND=${MIRAGE_DEFAULT_BACKEND:-unix-socket}
+
+usage() {
+  cat << EOF
+Execute Mirage binaries across various backends.
+Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
+          [-vif <if>] [-vbd <file>] [-n <string>]
+
+BACKENDS:
+  unix-socket (default)
+  unix-direct
+  node
+  xen
+  
+OPTIONS:
+   -vif   Virtual network interface, bridged to <if>.
+          Can specify this multiple times.
+   -vbd   Virtual block device, mapped to <file>.
+          Can specify this multiple times.
+   -o     Log all output to <file>.
+   -b     Mirage backend to use (see BACKENDS above)
+   -n     Name of service (defaults to binary name)
+   -m     Memory in megabytes assigned to container
+   -h     Show this usage message.
+EOF
+  exit 1
+}
+
+OUTPUT=
+BINARY=
+declare -a VIFS
+declare -a VBDS
+NVIFS=0
+NVBDS=0
+MEMORY=128
+NAME=
+
+# Test if a backend is supported or not, exit if not
+supported() {
+  be=$1
+  case $1 in
+  xen)
+    if [ ! -e /proc/xen/capabilities ]; then
+      echo "Not running on a Xen host (no /proc/xen/capabilities found)"
+      exit 1
+    fi
+    ;;
+  node)
+   NODE=which node >/dev/null 2>&1 || (echo "Node binary not found"; exit 1)
+   ;;
+  unix-*)
+   # We assume tap is present for unix-direct and unix-socket to always work
+   ;;
+  *)
+   echo Unknown backend $1
+   exit 1
+   ;;
+  esac
+  echo Backend: $1
+}
+
+# Redirect stdout/stderr if OUTPUT is set to a file 
+redirect_shell_output() {
+  if [ "$OUTPUT" != "" ]; then
+    exec >"$OUTPUT" 2>&1
+  fi
+}
+
+# Construct a xend/xl config file and start the domain
+run_xl_domain() {
+    # cd to the kernel directory
+    # Cant readlink earlier as -f doesnt work on MacOS 
+    BINARY=$(readlink -f "$BINARY")
+    cd $(dirname "$BINARY")
+    if [ -z "$NAME" ]; then
+      NAME=$(basename "$BINARY")
+    fi
+    CONF="mirage-xen-$NAME.conf"
+    rm -f "$CONF"
+    cat > $CONF << EOF
+name="$NAME"
+kernel="$BINARY"
+superpages=1
+memory=$MEMORY
+on_crash=preserve
+EOF
+    echo -n "disk=[ " >> $CONF
+    for vbd in ${VBDS[@]}; do
+      if [ ! -e "$vbd" ]; then
+        echo VBD file $vbd not found, must exist before domain can be started
+        exit 1
+      fi
+      echo -n "'file:$vbd', "  >> $CONF
+    done
+    echo " ]" >> $CONF
+    echo -n "vif=[ " >> $CONF
+    for vif in ${VIFS[@]}; do
+      echo -n "'bridge=$vif', " >> $CONF
+    done
+    echo " ]" >> $CONF
+    # XXX how to redirect console output to $OUTPUT? tee?
+    ${SUDO} ${XEN_BIN} create -c $CONF
+}
+ 
+# Run binary for a backend $1=backend $2=binary
+run() {
+  be=$1
+  bin=$2
+  case $1 in
+  xen)
+    # XXX just use XL for now, but should have a XAPI option too (see scripts/xcp.sh)
+    run_xl_domain
+    ;;
+  unix-*)
+    redirect_shell_output;
+    exec $bin 
+    ;;
+  node)
+    redirect_shell_output;
+    exec node $bin
+    ;;
+  *)
+    ;;
+  esac
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  -b)
+    shift
+    BACKEND=$1
+    ;;
+  -o)
+    shift
+    OUTPUT="$1"
+    ;;
+  -n)
+    shift
+    NAME="$1"
+    ;;
+  -m)
+    shift
+    MEMORY="$1"
+    ;;
+  -h)
+    usage
+    ;;
+  -vif)
+    shift
+    let "NVIFS = $NVIFS + 1"
+    VIFS[$NVIFS]=$1
+    ;;
+  -vbd)
+    shift
+    let "NVBDS = $NVBDS + 1"
+    VBDS[$NVBDS]=$1
+    ;;
+  *)
+    BINARY="$1"
+    ;;
+  esac
+  shift
+done
+
+if [[ -z "$BACKEND" ]] || [[ -z "$BINARY" ]]; then
+  usage
+fi
+
+supported $BACKEND
+run $BACKEND "$BINARY"

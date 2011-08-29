@@ -162,6 +162,16 @@ module Mir = struct
       ~prod:"node/%.js"
       ~dep:"node/%__.byte"
       (js_of_ocaml "node/%.js" "node/%__.byte");
+
+    (* Generate a default %.mir if one doesnt exist *)
+    rule "default mir file"
+      ~prod:"%(test).mir"
+      ~dep:"%(test).ml"
+     (fun env build ->
+        let mir = env "%(test).mir" in 
+        let modu = String.capitalize (Pathname.basename (env "%(test)")) in
+        Echo ([sprintf "%s.main" modu], mir)
+     )
 end
 
 (** Testing specifications module *)

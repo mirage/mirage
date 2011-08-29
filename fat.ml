@@ -13,11 +13,14 @@ let rec really_read fd string off n =
     if m = 0 then raise End_of_file;
     really_read fd string (off+m) (n-m)
 
-let read_block n =
+let read_sector n =
   Unix.lseek !f (n * sector_size) Unix.SEEK_SET;
   let results = String.create sector_size in
   really_read !f results 0 sector_size;
   results
+
+let read_sectors ss =
+  Bitstring.concat (List.map Bitstring.bitstring_of_string (List.map read_sector ss))
 
 type format = FAT12 | FAT16 | FAT32
 let string_of_format = function
@@ -79,30 +82,74 @@ module Boot_sector = struct
 	  printf "hidden_preceeding_sectors: %ld\n" x.hidden_preceeding_sectors;
       ()
 
+  (** Return the number of clusters *)
+  let clusters x =
+    let root_start = x.reserved_sectors + x.number_of_fats * x.sectors_per_fat in
+    let cluster_start = root_start + (x.number_of_root_dir_entries * 32) / x.bytes_per_sector in
+    2 + (Int32.to_int (Int32.div (Int32.sub x.total_sectors (Int32.of_int cluster_start)) (Int32.of_int x.sectors_per_cluster)))
+
   (* Choose between FAT12, FAT16 and FAT32 using heuristic from:
      http://averstak.tripod.com/fatdox/bootsec.htm *)
   let detect_format x =
-    let root_start = x.reserved_sectors + x.number_of_fats * x.sectors_per_fat in
-    let cluster_start = root_start + (x.number_of_root_dir_entries * 32) / x.bytes_per_sector in
-    let number_of_clusters = 2 + (Int32.to_int (Int32.div (Int32.sub x.total_sectors (Int32.of_int cluster_start)) (Int32.of_int x.sectors_per_cluster))) in
+    let number_of_clusters = clusters x in
     if number_of_clusters < 4087 then Some FAT12
     else if number_of_clusters < 65527 then Some FAT16
     else if number_of_clusters < 268435457 then Some FAT32
     else None
 
+  let sectors_of_fat x =
+    let rec enumerate start length acc = match length with
+      | 0 -> acc
+      | _ -> enumerate (start + 1) (length - 1) (start :: acc) in
+    List.rev (enumerate x.reserved_sectors x.sectors_per_fat [])
 end
 
+module Fat_entry = struct
+  type t = 
+    | Free
+    | Used of int (** points to the next in the chain *)
+	| End         (** end of a chain *)
+    | Bad         (** bad sector or illegal FAT entry *)
+  let to_string = function
+    | Free -> "F"
+    | Used x -> "U"
+    | End -> "E"
+    | Bad -> "B"
 
+  let of_fat16 n fat =
+    bitmatch fat with
+      | { x: 16: littleendian, offset(16*n) } ->
+	    if x = 0 then Free
+        else if x >= 0x0002 && x <= 0xffef then Used x
+        else if x >= 0xfff8 && x <= 0xffff then End
+        else Bad
+      | { _ } -> Bad
+  let of_fat32 n fat =
+    bitmatch fat with
+      | { x: 32: littleendian, offset(32 * n) } ->
+        if x = 0l then Free
+        else if x >= 0x00000002l && x <= 0x0fffffefl then Used (Int32.to_int x)
+        else if x >= 0x0ffffff8l && x <= 0x0fffffffl then End
+        else Bad
+      | { _ } -> Bad
+  let of_fat12 n fat =
+    (* 2 entries span groups of 3 bytes *)
+    bitmatch fat with
+      | { x: 16: littleendian, offset((3 * n)/2) } ->
+        let x = if n mod 2 = 0 then x land 0xfff else x lsr 4 in
+        if x = 0 then Free
+        else if x >= 0x002 && x <= 0xfef then Used x
+        else if x >= 0xff8 && x <= 0xfff then End
+        else Bad
+      | { _ } -> Bad
 
+  (** Return the bitstring containing the nth FAT entry *)
+  let of_bitstring format = match format with
+    | FAT16 -> of_fat16
+    | FAT32 -> of_fat32
+    | FAT12 -> of_fat12
+end
 
-
-(*
-module Fat = struct
-  (* located at sector Boot_sector.reserved_sectors *)
-  let of_bitstring bits =
-  bitmatch bits with
-  | { _: 24: string; (* JMP instruction *)
-*)
 let () =
   let usage () =
     Printf.fprintf stderr "Usage:\n";
@@ -119,14 +166,19 @@ let () =
   opendevice !fs;  
 
   (* Load the boot sector *)
-  let bits = Bitstring.bitstring_of_string (read_block 0) in
+  let bits = Bitstring.bitstring_of_string (read_sector 0) in
   let boot = Boot_sector.of_bitstring bits in
   Boot_sector.debug_print boot;
   let format = Boot_sector.detect_format boot in
   match format with
   | None -> failwith "Failed to detect FAT format"
   | Some format ->
-    Printf.printf "Format: %s\n" (string_of_format format)
+    Printf.printf "Format: %s\n" (string_of_format format);
+    let fat = read_sectors (Boot_sector.sectors_of_fat boot) in
+    for i = 0 to Boot_sector.clusters boot - 1 do
+      let x = Fat_entry.of_bitstring format i fat in
+      Printf.printf "%s%!" (Fat_entry.to_string x)
+    done
 
 
 

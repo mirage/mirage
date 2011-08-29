@@ -74,7 +74,7 @@ function assemble_scripts {
   echo Assembling: scripts
   OBJ=${BUILDDIR}/scripts
   mkdir -p ${OBJ}
-  cp ${ROOT}/scripts/myocamlbuild.ml ${OBJ}/
+  cp ${ROOT}/regress/myocamlbuild.ml ${OBJ}/
 }
 
 assemble_syntax

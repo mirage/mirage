@@ -200,9 +200,6 @@ module Spec = struct
     let node = if OS.js_of_ocaml_installed then [Node] else [] in
     [Unix_socket; Unix_direct] @ xen @ node
 
-  let backend_is_supported b spec =
-    List.mem b spec.backends
-
   let backends_iter fn spec = List.iter fn spec.backends
   let backends_map fn spec = List.map fn spec.backends
 

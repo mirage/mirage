@@ -204,8 +204,9 @@ module Dir_entry = struct
         if a = 0xff && b = 0xff && i < !chars then chars := i
       done;
       String.sub x 0 (!chars * 2) in
-    Printf.sprintf "%8s %3s %10ld %04d-%02d-%02d  %02d:%02d  %s"
-      x.filename x.ext x.file_size
+    Printf.sprintf "%8s %3s %10s %04d-%02d-%02d  %02d:%02d  %s"
+      x.filename x.ext
+      (if x.subdir then "<DIR>     " else (Printf.sprintf "%10ld" x.file_size))
       x.create.year x.create.month x.create.day
       x.create.hours x.create.mins
       (trim_utf16 x.utf_filename)
@@ -240,14 +241,14 @@ module Dir_entry = struct
       }
     | { filename: (8 * 8): string;
         ext: (3 * 8): string;
-        read_only: 1;
-        hidden: 1;
-        system: 1;
-        volume: 1;
-        subdir: 1;
-        archive: 1;
-        _: 1; (* device *)
         _: 1; (* unused *)
+        _: 1; (* device *)
+        archive: 1;
+        subdir: 1;
+        volume: 1;
+        system: 1;
+        hidden: 1;
+        read_only: 1;
         _: 8; (* reserved *)
         _: 8; (* high precision create time 0-199 in units of 10ms *)
         create_time: 16: littleendian;
@@ -517,7 +518,7 @@ let () =
     | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
     | No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
     | Dir dirs ->
-      Printf.printf "Directory for A:/%s\n\n" (path_to_string path);
+      Printf.printf "Directory for A:%s\n\n" (path_to_string path);
       List.iter
         (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
       Printf.printf "%9d files\n%!" (List.length dirs)

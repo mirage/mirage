@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Dummy Block module, not implemented yet *)
-
 type t
 type id = string
 
-val create: (id -> t -> unit Lwt.t) -> unit Lwt.t
-val enumerate: unit -> id list Lwt.t
+val create : (id -> t -> unit Lwt.t) -> unit Lwt.t
+val destroy : t -> unit Lwt.t
+val read_page : t -> int64 -> Bitstring.t Lwt.t
+val sector_size: t -> int

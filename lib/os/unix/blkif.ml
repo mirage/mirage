@@ -17,13 +17,52 @@
 open Lwt
 open Printf
 
-type t = unit
+exception Error of string
+
 type id = string
 
-let create fn =
-  let th, _ = Lwt.task () in
-  th
+type t = {
+  id: id;
+  fd: [`rw_file] Socket.fd;
+}
 
-(** Return a list of valid VBDs *)
-let enumerate () : id list Lwt.t =
-  return [ ]
+let devices = Hashtbl.create 1
+
+let plug id =
+  lwt fd = Socket.(iobind file_open_readwrite id) in
+  let t = {id; fd} in
+  Hashtbl.add devices id t;
+  printf "Blkif: plug %s\n%!" id;
+  return t
+
+let unplug id =
+  try
+    let t = Hashtbl.find devices id in
+    printf "Blkif: unplug %s\n%!" id;
+    Socket.close t.fd;
+    Hashtbl.remove devices id
+  with Not_found -> ()
+
+let create fn =
+  let default = "disk0.img" in
+  lwt t = plug default in (* Just hardcode disk0.img as the sole device for now *)
+  let user = fn default t in
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> unplug default);
+  th <?> user
+
+let destroy nf =
+  (* XXX TODO unplug devices *)
+  printf "Blkif.destroy\n%!";
+  return ()
+
+let read_page t offset =
+  Socket.(iobind (lseek t.fd) offset) >>
+  let buf = String.create 4096 in (* XXX pool? *)
+  lwt rd = Socket.(iobind (read t.fd buf 0) 4096) in
+  if rd <> 4096 then
+    fail (Error "short read") 
+  else
+    return (buf,0,4096*8)
+
+let sector_size t = 4096

@@ -188,6 +188,7 @@ module Spec = struct
   (** Spec file describing the test and dependencies *)
   type t = {
     backends: backend list;
+    expect: int;  (* return code to expect from the script *)
   }
 
   let backend_of_string = function
@@ -203,17 +204,23 @@ module Spec = struct
     |Unix_direct -> "unix-direct"
     |Unix_socket -> "unix-socket"
 
-  (* List of all supported backends on this build host *)
+  (* List of all backends (not all need to be supported) *)
   let all_backends =
+    [ Xen; Node; Unix_direct; Unix_socket ]
+
+  (* Check if a backend is supported on this host *)
+  let is_supported =
     let open OS in
-    let xen = match host,arch with
-    |Linux, X86_64 -> [Xen]
-    |_ -> [] in
-    let node = if OS.js_of_ocaml_installed then [Node] else [] in
-    [Unix_socket; Unix_direct] @ xen @ node
+    function
+    |Xen -> (host,arch) = (Linux,X86_64)
+    |Node -> js_of_ocaml_installed
+    |Unix_direct |Unix_socket -> true
 
   let backends_iter fn spec = List.iter fn spec.backends
-  let backends_map fn spec = List.map fn spec.backends
+  (* Map over backends, calling supported or unsupported on them appropriately *)
+  let backends_map supported unsupported spec = 
+    let sup,unsup = List.partition is_supported spec.backends in
+    (List.map supported sup), (List.map unsupported unsup)
 
   (* Get the build target of a given backend *)
   let backend_target be name =
@@ -242,7 +249,11 @@ module Spec = struct
        |"*" -> all_backends
        |backends -> List.map backend_of_string (Util.split backends ',')
       ) with Not_found -> all_backends
-    in {backends}
+    in
+    let expect =
+      try (int_of_string (List.assoc "expect" kvs))
+      with Not_found -> 0
+    in {backends; expect}
 
   (* Convert a list of Outcomes into a logging Echo command *)
   let log_outcomes file ocs =
@@ -257,12 +268,21 @@ module Spec = struct
       ~dep:"%(test).spec"
       (fun env build ->
         let backend = backend_of_string (env "%(backend)") in
-        (* Build the target for this backend *)
-        let prod = env "%(test).%(backend).exec" in
-        let binary = backend_target backend (env "%(test)") in
-        let _ = List.map Outcome.ignore_good (build [[ binary ]]) in
-        (* Execute the binary using the mir-run wrapper and log its output to prod *)
-        Cmd (S [A "mir-run"; A"-b"; A (env "%(backend)"); A"-o"; P prod; A binary])
+        let spec = parse (env "%(test).spec") in
+        if is_supported backend then begin
+          (* Build the target for this backend *)
+          let prod = env "%(test).%(backend).exec" in
+          let binary = backend_target backend (env "%(test)") in
+          let _ = List.map Outcome.ignore_good (build [[ binary ]]) in
+          (* If a test is expected to fail, then we need to pass this to mir-run *)
+          let return = match spec.expect with
+             |0 -> [N] |e -> [A"-e"; A(string_of_int e)] in
+          (* Execute the binary using the mir-run wrapper and log its output to prod *)
+          Cmd (S ([A "mir-run"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ return @[A binary]))
+        end else begin
+          (* Unsupported backend for this test, so mark as skipped in the log *)
+          Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 
+        end
       );
     rule "build and execute all supported backend targets"
        ~prod:"%(test).exec"
@@ -270,8 +290,14 @@ module Spec = struct
        (fun env build ->
          let test = env "%(test)" in
          let spec = parse (env "%(test).spec") in
-         log_outcomes (env "%(test).exec") (build (backends_map 
-           (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)]) spec))
+         let sup, unsup = backends_map
+           (fun be -> [sprintf "%s.%s.exec" test (backend_to_string be)])
+           (fun be -> sprintf "skipped %s.%s.exec" test (backend_to_string be)) spec in
+         let sup_results = List.map (function 
+           | Outcome.Good o -> sprintf "ok %s" o
+           | Outcome.Bad exn -> sprintf "not ok %s" (Printexc.to_string exn)
+         ) (build sup) in
+         Util.safe_echo (sup_results @ unsup) (env "%(test).exec")
        );
     rule "execute a suite of tests"
       ~prod:"%(test).run"

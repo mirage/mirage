@@ -137,7 +137,7 @@ let listen mgr ip port init =
         let dlen = ofh.OP.len - OP.h_len in 
         lwt dbuf = rd_data dlen t in
         let ofp = OP.parse ofh dbuf in
-        process_of_packet st (remote_addr, remote_port) ofp t;
+        process_of_packet st (remote_addr, remote_port) ofp t >>
         echo ()
       with
         | Nettypes.Closed -> return ()

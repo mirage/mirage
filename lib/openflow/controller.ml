@@ -60,12 +60,12 @@ type state = {
 let register_cb controller e cb =
   Event.(
     match e with 
-      | DATAPATH_JOIN
-        -> controller.datapath_join_cb <- List.append controller.datapath_join_cb [cb]
-      | DATAPATH_LEAVE 
-        -> controller.datapath_leave_cb <- List.append controller.datapath_leave_cb [cb]
-      | PACKET_IN
-        -> controller.packet_in_cb <- List.append controller.packet_in_cb [cb]
+      | DATAPATH_JOIN ->
+          controller.datapath_join_cb <- cb :: controller.datapath_join_cb
+      | DATAPATH_LEAVE ->
+          controller.datapath_leave_cb <- cb :: controller.datapath_leave_cb
+      | PACKET_IN ->
+          controller.packet_in_cb <- cb :: controller.packet_in_cb
   )
    
 let process_of_packet state (remote_addr, remote_port) ofp t = 

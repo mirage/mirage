@@ -510,9 +510,13 @@ let () =
 
   let cwd = ref [] in
   let path_to_string p = "/" ^ (String.concat "/" p) in
+  let string_to_path s = if s = "/" then [] else Stringext.split '/' s in
+  let abspath dir =
+    if dir = "" then !cwd
+    else if dir.[0] = '/' then (string_to_path dir)
+    else !cwd @ (string_to_path dir) in
   let do_dir dir =
-    let path = List.rev (if dir = "" then !cwd else dir :: !cwd) in
-    Printf.printf "do_dir %s\n%!" (path_to_string path);
+    let path = abspath dir in
     let open Test in
     match find fs path with
     | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
@@ -524,7 +528,7 @@ let () =
       Printf.printf "%9d files\n%!" (List.length dirs)
     | File _ -> Printf.printf "Not a directory.\n%!" in
   let do_type file =
-    let path = List.rev (file :: !cwd) in
+    let path = abspath file in
     let open Test in
     match find fs path with
     | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
@@ -535,7 +539,16 @@ let () =
       Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
       let data = Test.read_file fs d in
       Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data) in
-  let do_cd dir = Printf.printf "Not implemented.\n%!" in
+  let do_cd dir =
+    let path = abspath dir in
+    Printf.printf "path = [%s]\n%!" (String.concat ";" path);
+    let open Test in
+    match find fs path with
+    | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
+    | No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
+    | Dir _ ->
+      cwd := (string_to_path dir);
+    | File _ -> Printf.printf "Not a directory.\n%!" in
 
   let finished = ref false in
   while not !finished do

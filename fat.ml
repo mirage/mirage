@@ -1,27 +1,5 @@
 open Printf
 
-let sector_size = 512
-
-let f = ref Unix.stdin
-
-let opendevice filename =
-  f := Unix.openfile filename [ Unix.O_RDONLY ] 0o0
-
-let rec really_read fd string off n =
-  if n=0 then () else
-    let m = Unix.read fd string off n in
-    if m = 0 then raise End_of_file;
-    really_read fd string (off+m) (n-m)
-
-let read_sector n =
-  Unix.lseek !f (n * sector_size) Unix.SEEK_SET;
-  let results = String.create sector_size in
-  really_read !f results 0 sector_size;
-  results
-
-let read_sectors ss =
-  Bitstring.concat (List.map Bitstring.bitstring_of_string (List.map read_sector ss))
-
 type format = FAT12 | FAT16 | FAT32
 let string_of_format = function
   | FAT12 -> "FAT12"
@@ -311,7 +289,81 @@ module Dir_entry = struct
                      | End -> acc
                      end in
       inner [] [] (chop (8 * 32) bits)
+
+    (** [sectors_of_file format fat x] returns the list of sectors containing
+        data from file [x] according to FAT [fat] which is of type [format].
+        Note the last sector may contain undefined data after the file ends. *)
+    let sectors_of_file format fat x =
+      let open Fat_entry in
+      let rec follow_chain acc i = match of_bitstring format i fat with
+      | End -> i :: acc
+      | Free | Bad -> acc (* corrupt file *)
+      | Used j -> follow_chain (i :: acc) j in
+      List.rev (follow_chain [] x.start_cluster)
 end
+
+module type BLOCK = sig
+  val read_sector: int -> Bitstring.t
+  val read_sectors: int list -> Bitstring.t
+end
+
+module FATFilesystem = functor(B: BLOCK) -> struct
+  type t = {
+    boot: Boot_sector.t;
+    format: format;      (** FAT12, 16 or 32 *)
+    fat: Bitstring.t;    (** contains the whole FAT *)
+    root: Bitstring.t;   (** contains the root directory *)
+  }
+  let make () = 
+    let boot_sector = B.read_sector 0 in
+    let boot = Boot_sector.of_bitstring boot_sector in
+    let format = match Boot_sector.detect_format boot with
+    | None -> failwith "Failed to detect FAT format"
+    | Some format -> format in
+    let fat = B.read_sectors (Boot_sector.sectors_of_fat boot) in
+    let root = B.read_sectors (Boot_sector.sectors_of_root_dir boot) in
+    { boot = boot; format = format; fat = fat; root = root }
+end
+
+let filename = ref ""
+let sector_size = 512
+
+module UnixBlock = struct
+
+  let rec really_read fd string off n =
+    if n=0 then () else
+      let m = Unix.read fd string off n in
+      if m = 0 then raise End_of_file;
+      really_read fd string (off+m) (n-m)
+
+  let finally f g =
+    try
+      let result = f () in
+      g ();
+      result
+    with e ->
+      g ();
+      raise e
+
+  let with_file flags filename f =
+    let file = Unix.openfile filename flags 0o0 in
+    finally (fun () -> f file) (fun () -> Unix.close file)
+
+  let read_sector n =
+    with_file [ Unix.O_RDONLY ] !filename
+      (fun f ->
+        Unix.lseek f (n * sector_size) Unix.SEEK_SET;
+        let results = String.create sector_size in
+        really_read f results 0 sector_size;
+        Bitstring.bitstring_of_string results
+      )
+
+  let read_sectors ss =
+    Bitstring.concat (List.map read_sector ss)
+
+end
+
+module Test = FATFilesystem(UnixBlock)
 
 let () =
   let usage () =
@@ -319,24 +371,15 @@ let () =
     Printf.fprintf stderr "  %s -fs <filesystem>\n" Sys.argv.(0);
     exit 1 in
 
-  let fs = ref "" in
   Arg.parse
-    [ ("-fs", Arg.Set_string fs, "Filesystem to open") ]
+    [ ("-fs", Arg.Set_string filename, "Filesystem to open") ]
     (fun x -> Printf.fprintf stderr "Skipping unknown argument: %s\n" x)
     "Examine the contents of a fat filesystem";
-  if !fs = "" then usage ();
+  if !filename = "" then usage ();
 
-  opendevice !fs;  
+  let fs = Test.make () in
 
-  (* Load the boot sector *)
-  let bits = Bitstring.bitstring_of_string (read_sector 0) in
-  let boot = Boot_sector.of_bitstring bits in
-  Boot_sector.debug_print boot;
-  let format = Boot_sector.detect_format boot in
-  match format with
-  | None -> failwith "Failed to detect FAT format"
-  | Some format ->
-    Printf.printf "Format: %s\n" (string_of_format format);
+  Boot_sector.debug_print fs.Test.boot;
 (*
     Printf.printf "FAT:\n";
     let fat = read_sectors (Boot_sector.sectors_of_fat boot) in
@@ -345,8 +388,7 @@ let () =
       Printf.printf "%s%!" (Fat_entry.to_string x)
     done;*)
     Printf.printf "Root directory:\n";
-    let root = read_sectors (Boot_sector.sectors_of_root_dir boot) in
-    let dirs = Dir_entry.list root in
+    let dirs = Dir_entry.list fs.Test.root in
     List.iter
       (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs
 

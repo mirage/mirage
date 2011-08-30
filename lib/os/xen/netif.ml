@@ -82,7 +82,7 @@ type t = {
   tx_fring: (TX.response,int) Ring.Front.t;
   tx_gnt: Gnttab.r;
   rx_fring: (RX.response,int) Ring.Front.t;
-  rx_map: (int, Gnttab.r) Hashtbl.t;
+  rx_map: (int, Gnttab.r * Io_page.t) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
   features: features;
@@ -149,16 +149,18 @@ let unplug id =
 
 let refill_requests nf =
   let num = Ring.Front.get_free_requests nf.rx_fring in
-  lwt gnts = Gnttab.get_n ~domid:nf.backend_id ~perm:Gnttab.RW num in
-  List.iter (fun gnt ->
-    let _ = Gnttab.page gnt in
-    let gref = Gnttab.num gnt in
-    let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
-    Hashtbl.add nf.rx_map id gnt;
-    let slot_id = Ring.Front.next_req_id nf.rx_fring in
-    let slot = Ring.Front.slot nf.rx_fring slot_id in
-    ignore(RX.write_request ~id ~gref slot);
-  ) gnts;
+  lwt gnts = Gnttab.get_n num in
+  let pages = Io_page.get_n num in
+  List.iter
+    (fun (gnt, page) ->
+      Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RW gnt page;
+      let gref = Gnttab.to_int32 gnt in
+      let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
+      Hashtbl.add nf.rx_map id (gnt, page);
+      let slot_id = Ring.Front.next_req_id nf.rx_fring in
+      let slot = Ring.Front.slot nf.rx_fring slot_id in
+      ignore(RX.write_request ~id ~gref slot)
+    ) (List.combine gnts pages);
   if Ring.Front.push_requests_and_check_notify nf.rx_fring then
     Evtchn.notify nf.evtchn;
   return ()
@@ -166,11 +168,11 @@ let refill_requests nf =
 let rx_poll nf fn =
   Ring.Front.ack_responses nf.rx_fring (fun bs ->
     let id,(offset,flags,status) = RX.read_response bs in
-    let gnt = Hashtbl.find nf.rx_map id in
+    let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    let page = Gnttab.detach gnt in
+    let page = Io_page.to_bitstring page in
     Gnttab.end_access gnt;
-    Gnttab.put_free_entry gnt;
+    Gnttab.put gnt;
     match status with
     |sz when status > 0 ->
       let packet = Bitstring.subbitstring page 0 (sz*8) in
@@ -181,10 +183,15 @@ let rx_poll nf fn =
 
 (* Transmit a packet from buffer, with offset and length *)  
 let output nf bsv =
-  Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO (fun gnt ->
-    let gref = Gnttab.num gnt in
+  Io_page.with_page
+    (fun page ->
+      Gnttab.with_ref
+        (fun gnt ->
+          Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO gnt page
+            (fun () ->
+    let gref = Gnttab.to_int32 gnt in
     let id = Int32.to_int gref in
-    let page = Gnttab.page gnt in
+    let page = Io_page.to_bitstring page in
     let (pagebuf, pageoffbits, _) = page in
     let pageoff = pageoffbits / 8 in
     let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->
@@ -201,6 +208,8 @@ let output nf bsv =
     |status when status = 0 -> return ()
     |errcode -> return (printf "TX: error %d\n%!" errcode)
   )
+))
+
 
 let tx_poll nf =
   Ring.Front.poll nf.tx_fring (TX.read_response)

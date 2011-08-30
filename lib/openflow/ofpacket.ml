@@ -16,12 +16,6 @@
 
 open Lwt
 
-module Bitstring = struct
-  include Bitstring
-  let offset_of_bitstring bits = 
-    let (_, offset, _) = bits in offset
-end
-
 let sp = Printf.sprintf
 let pr = Printf.printf
 let ep = Printf.eprintf

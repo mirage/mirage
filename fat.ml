@@ -60,10 +60,25 @@ module Boot_sector = struct
 	  printf "hidden_preceeding_sectors: %ld\n" x.hidden_preceeding_sectors;
       ()
 
+  let ints start length =
+    let rec enumerate start length acc = match length with
+      | 0 -> acc
+      | _ -> enumerate (start + 1) (length - 1) (start :: acc) in
+    List.rev (enumerate start length [])
+
+  (** Return the sector number of the first cluster *)
+  let initial_cluster x =
+    let root_start = x.reserved_sectors + x.number_of_fats * x.sectors_per_fat in
+    root_start + (x.number_of_root_dir_entries * 32) / x.bytes_per_sector
+
+  (** Return a list of sectors corresponding to cluster n *)
+  let sectors_of_cluster x n =
+	(* NB clusters 0 and 1 are not on disk *)
+    ints (initial_cluster x + x.sectors_per_cluster * (n - 2))	 x.sectors_per_cluster
+
   (** Return the number of clusters *)
   let clusters x =
-    let root_start = x.reserved_sectors + x.number_of_fats * x.sectors_per_fat in
-    let cluster_start = root_start + (x.number_of_root_dir_entries * 32) / x.bytes_per_sector in
+    let cluster_start = initial_cluster x in
     2 + (Int32.to_int (Int32.div (Int32.sub x.total_sectors (Int32.of_int cluster_start)) (Int32.of_int x.sectors_per_cluster)))
 
   (* Choose between FAT12, FAT16 and FAT32 using heuristic from:
@@ -74,12 +89,6 @@ module Boot_sector = struct
     else if number_of_clusters < 65527 then Some FAT16
     else if number_of_clusters < 268435457 then Some FAT32
     else None
-
-  let ints start length =
-    let rec enumerate start length acc = match length with
-      | 0 -> acc
-      | _ -> enumerate (start + 1) (length - 1) (start :: acc) in
-    List.rev (enumerate start length [])
 
   let sectors_of_fat x =
     ints x.reserved_sectors x.sectors_per_fat
@@ -135,14 +144,14 @@ module Fat_entry = struct
     | FAT32 -> of_fat32
     | FAT12 -> of_fat12
 
-    (** [follow_chain format fat cluster] returns the list of sectors containing
-        data according to FAT [fat] which is of type [format]. *)
-    let follow_chain format fat cluster =
-      let rec inner acc i = match of_bitstring format i fat with
-      | End -> i :: acc
-      | Free | Bad -> acc (* corrupt file *)
-      | Used j -> inner (i :: acc) j in
-      List.rev (inner [] cluster)
+  (** [follow_chain format fat cluster] returns the list of sectors containing
+      data according to FAT [fat] which is of type [format]. *)
+  let follow_chain format fat cluster =
+    let rec inner acc i = match of_bitstring format i fat with
+    | End -> i :: acc
+    | Free | Bad -> acc (* corrupt file *)
+    | Used j -> inner (i :: acc) j in
+    List.rev (inner [] cluster)
 end
 
 module Dir_entry = struct
@@ -299,12 +308,6 @@ module Dir_entry = struct
                      end in
       inner [] [] (chop (8 * 32) bits)
 
-    (** [sectors_of_file format fat x] returns the list of sectors containing
-        data from file [x] according to FAT [fat] which is of type [format].
-        Note the last sector may contain undefined data after the file ends. *)
-    let sectors_of_file format fat x =
-      Fat_entry.follow_chain format fat x.start_cluster
-
     let ascii_to_utf16 x =
       let l = String.length x in
       (* round up to next multiple of 13 *)
@@ -362,10 +365,13 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     | Dir of Dir_entry.t list
     | File of Dir_entry.t
 
-  let read_file x { Dir_entry.start_cluster = cluster } =
+  let read_file x { Dir_entry.start_cluster = cluster; file_size = file_size } =
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
     Printf.printf "chain = [ %s ]\n%!" (String.concat "; " (List.map string_of_int chain));
-    B.read_sectors chain
+    let sectors = List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain) in
+    Printf.printf "sectors = [ %s ]\n%!" (String.concat "; " (List.map string_of_int sectors));
+    let all = B.read_sectors sectors in
+    Bitstring.subbitstring all 0 (Int32.to_int file_size * 8)
 
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)
@@ -422,7 +428,7 @@ module UnixBlock = struct
   let read_sector n =
     with_file [ Unix.O_RDONLY ] !filename
       (fun f ->
-        Unix.lseek f (n * sector_size) Unix.SEEK_SET;
+        ignore(Unix.lseek f (n * sector_size) Unix.SEEK_SET);
         let results = String.create sector_size in
         really_read f results 0 sector_size;
         Bitstring.bitstring_of_string results

@@ -21,7 +21,6 @@ let sp = Printf.sprintf
 let pr = Printf.printf
 let ep = Printf.eprintf
 let cp = OS.Console.log
-let (|>) x f = f x
 
 module OP = Ofpacket
 

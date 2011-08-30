@@ -98,6 +98,7 @@ let process_of_packet state (remote_addr, remote_port) ofp t =
       | Packet_in (h, p) (* Generate a packet_in event *) 
         -> (cp (sp "+ %s|%s" 
                   (OP.string_of_h h) (OP.Packet_in.string_of_packet_in p));
+            (* XXX no Hashtbl.mem check here? *)
             let dpid = Hashtbl.find state.channel_dp ep in
             let evt = Event.Packet_in (p.Packet_in.in_port, p.Packet_in.data, dpid) in
             List.iter (fun cb -> cb state dpid evt) state.packet_in_cb;

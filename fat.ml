@@ -134,6 +134,15 @@ module Fat_entry = struct
     | FAT16 -> of_fat16
     | FAT32 -> of_fat32
     | FAT12 -> of_fat12
+
+    (** [follow_chain format fat cluster] returns the list of sectors containing
+        data according to FAT [fat] which is of type [format]. *)
+    let follow_chain format fat cluster =
+      let rec inner acc i = match of_bitstring format i fat with
+      | End -> i :: acc
+      | Free | Bad -> acc (* corrupt file *)
+      | Used j -> inner (i :: acc) j in
+      List.rev (inner [] cluster)
 end
 
 module Dir_entry = struct
@@ -294,12 +303,16 @@ module Dir_entry = struct
         data from file [x] according to FAT [fat] which is of type [format].
         Note the last sector may contain undefined data after the file ends. *)
     let sectors_of_file format fat x =
-      let open Fat_entry in
-      let rec follow_chain acc i = match of_bitstring format i fat with
-      | End -> i :: acc
-      | Free | Bad -> acc (* corrupt file *)
-      | Used j -> follow_chain (i :: acc) j in
-      List.rev (follow_chain [] x.start_cluster)
+      Fat_entry.follow_chain format fat x.start_cluster
+
+    (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
+        name [name] (or None) *)
+    let rec find name list = match list with
+    | [] -> None
+    | x :: xs ->
+      if x.filename ^ "." ^ x.ext = name then Some x
+      else if x.utf_filename = name then Some x
+      else find name xs
 end
 
 module type BLOCK = sig
@@ -323,6 +336,43 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let fat = B.read_sectors (Boot_sector.sectors_of_fat boot) in
     let root = B.read_sectors (Boot_sector.sectors_of_root_dir boot) in
     { boot = boot; format = format; fat = fat; root = root }
+
+  type find_result =
+    | Not_a_directory of string list
+    | No_directory_entry of string list * string
+    | Dir of Dir_entry.t list
+    | File of Dir_entry.t
+
+  let read_file x { Dir_entry.start_cluster = cluster } =
+    let chain = Fat_entry.follow_chain x.format x.fat cluster in
+    B.read_sectors chain
+
+  (** [find x path] returns a [find_result] corresponding to the object
+      stored at [path] *)
+  let find x path =
+    let readdir = function
+      | Dir ds -> ds
+      | File d -> Dir_entry.list (read_file x d)
+      | _ -> assert false in
+    let rec inner sofar current = function
+    | [] ->
+      begin match current with
+      | Dir ds -> Dir ds
+      | File { Dir_entry.subdir = true } -> Dir (readdir current)
+      | File ({ Dir_entry.subdir = false } as d) -> File d
+      | _ -> assert false
+      end
+    | p :: ps ->
+      let entries = readdir current in
+      begin match Dir_entry.find p entries, ps with
+      | Some { Dir_entry.subdir = false }, _ :: _ ->
+        Not_a_directory (List.rev (p :: sofar))
+      | Some d, _ ->
+        inner (p::sofar) (File d) ps
+      | None, _ ->
+        No_directory_entry (List.rev sofar, p)
+      end in
+    inner [] (Dir (Dir_entry.list x.root)) path    
 end
 
 let filename = ref ""
@@ -365,6 +415,58 @@ end
 
 module Test = FATFilesystem(UnixBlock)
 
+module Stringext = struct
+open String
+
+let of_char c = String.make 1 c
+
+let fold_right f string accu =
+        let accu = ref accu in
+        for i = length string - 1 downto 0 do
+                accu := f string.[i] !accu
+        done;
+        !accu
+
+let explode string =
+        fold_right (fun h t -> h :: t) string []
+
+let implode list =
+        concat "" (List.map of_char list)
+
+(** True if string 'x' ends with suffix 'suffix' *)
+let endswith suffix x =
+        let x_l = String.length x and suffix_l = String.length suffix in
+        suffix_l <= x_l && String.sub x (x_l - suffix_l) suffix_l = suffix
+
+(** True if string 'x' starts with prefix 'prefix' *)
+let startswith prefix x =
+        let x_l = String.length x and prefix_l = String.length prefix in
+        prefix_l <= x_l && String.sub x 0 prefix_l  = prefix
+
+(** Returns true for whitespace characters, false otherwise *)
+let isspace = function
+        | ' ' | '\n' | '\r' | '\t' -> true
+        | _ -> false
+
+(** Removes all the characters from the ends of a string for which the predicate is true *)
+let strip predicate string =
+        let rec remove = function
+        | [] -> []
+        | c :: cs -> if predicate c then remove cs else c :: cs in
+        implode (List.rev (remove (List.rev (remove (explode string)))))
+
+let rec split ?limit:(limit=(-1)) c s =
+        let i = try String.index s c with Not_found -> -1 in
+        let nlimit = if limit = -1 || limit = 0 then limit else limit - 1 in
+        if i = -1 || nlimit = 0 then
+                [ s ]
+        else
+                let a = String.sub s 0 i
+                and b = String.sub s (i + 1) (String.length s - i - 1) in
+                a :: (split ~limit: nlimit c b)
+
+end
+
 let () =
   let usage () =
     Printf.fprintf stderr "Usage:\n";
@@ -379,6 +481,35 @@ let () =
 
   let fs = Test.make () in
 
+  let cwd = ref [] in
+  let path_to_string p = String.concat "/" p in
+  let do_dir dir =
+    let path = List.rev (if dir = "" then !cwd else dir :: !cwd) in
+    Printf.printf "do_dir %s\n%!" (path_to_string path);
+    let open Test in
+    match find fs path with
+    | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
+    | No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
+    | Dir dirs ->
+      Printf.printf "Directory for A:/%s\n\n" (path_to_string path);
+      List.iter
+        (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
+      Printf.printf "%9d files\n%!" (List.length dirs)
+    | File _ -> Printf.printf "Not a directory.\n%!" in
+  let do_cd dir = Printf.printf "Not implemented.\n%!" in
+
+  let finished = ref false in
+  while not !finished do
+    Printf.printf "A:%s> %!" (path_to_string !cwd);
+    match Stringext.split ~limit:2 ' ' (input_line stdin) with
+    | [ "dir" ] -> do_dir ""
+    | [ "dir"; path ] -> do_dir path
+    | [ "cd"; path ] -> do_cd path
+    | [ "exit" ] -> finished := true
+    | [] -> ()
+    | cmd :: _ -> Printf.printf "Unknown command: %s\n%!" cmd
+  done;
+
   Boot_sector.debug_print fs.Test.boot;
 (*
     Printf.printf "FAT:\n";
@@ -388,9 +519,7 @@ let () =
       Printf.printf "%s%!" (Fat_entry.to_string x)
     done;*)
     Printf.printf "Root directory:\n";
-    let dirs = Dir_entry.list fs.Test.root in
-    List.iter
-      (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs
+
 
 
 

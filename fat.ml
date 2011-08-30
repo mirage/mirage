@@ -305,14 +305,33 @@ module Dir_entry = struct
     let sectors_of_file format fat x =
       Fat_entry.follow_chain format fat x.start_cluster
 
+    let ascii_to_utf16 x =
+      let l = String.length x in
+      (* round up to next multiple of 13 *)
+      let padto = (l + 1 + 12) / 13 * 13 in
+      let total = max (l + 1) padto in (* NULL *)
+      let results = String.make (total * 2) (char_of_int 0xff) in
+	  for i = 0 to l - 1 do
+        results.[i*2] <- x.[i];
+        results.[i*2+1] <- char_of_int 0;
+      done;
+      results.[l*2] <- char_of_int 0;
+      results.[l*2+1] <- char_of_int 0;
+      results
+
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)
-    let rec find name list = match list with
-    | [] -> None
-    | x :: xs ->
-      if x.filename ^ "." ^ x.ext = name then Some x
-      else if x.utf_filename = name then Some x
-      else find name xs
+    let find name list =
+      let utf_name = ascii_to_utf16 name in
+      let dos_name = name in (* XXX *)
+      let rec inner = function
+      | [] -> None
+      | x :: xs ->
+        let dos_filename = x.filename ^ "." ^ x.ext in
+        if dos_filename = dos_name then Some x
+        else if x.utf_filename = utf_name then Some x
+        else inner xs in
+      inner list
 end
 
 module type BLOCK = sig
@@ -345,6 +364,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 
   let read_file x { Dir_entry.start_cluster = cluster } =
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
+    Printf.printf "chain = [ %s ]\n%!" (String.concat "; " (List.map string_of_int chain));
     B.read_sectors chain
 
   (** [find x path] returns a [find_result] corresponding to the object
@@ -482,7 +502,7 @@ let () =
   let fs = Test.make () in
 
   let cwd = ref [] in
-  let path_to_string p = String.concat "/" p in
+  let path_to_string p = "/" ^ (String.concat "/" p) in
   let do_dir dir =
     let path = List.rev (if dir = "" then !cwd else dir :: !cwd) in
     Printf.printf "do_dir %s\n%!" (path_to_string path);
@@ -496,6 +516,18 @@ let () =
         (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
       Printf.printf "%9d files\n%!" (List.length dirs)
     | File _ -> Printf.printf "Not a directory.\n%!" in
+  let do_type file =
+    let path = List.rev (file :: !cwd) in
+    let open Test in
+    match find fs path with
+    | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
+    | No_directory_entry (path, name) -> Printf.printf "File (%s) not found (in %s)\n%!" name (path_to_string path)
+    | Dir dirs ->
+      Printf.printf "Is a directory.\n%!";
+    | File d ->
+      Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
+      let data = Test.read_file fs d in
+      Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data) in
   let do_cd dir = Printf.printf "Not implemented.\n%!" in
 
   let finished = ref false in
@@ -505,6 +537,7 @@ let () =
     | [ "dir" ] -> do_dir ""
     | [ "dir"; path ] -> do_dir path
     | [ "cd"; path ] -> do_cd path
+    | [ "type"; path ] -> do_type path
     | [ "exit" ] -> finished := true
     | [] -> ()
     | cmd :: _ -> Printf.printf "Unknown command: %s\n%!" cmd

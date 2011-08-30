@@ -366,13 +366,13 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     | Dir of Dir_entry.t list
     | File of Dir_entry.t
 
-  let read_file x { Dir_entry.start_cluster = cluster; file_size = file_size } =
+  let read_file x { Dir_entry.start_cluster = cluster; file_size = file_size; subdir = subdir } =
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
     Printf.printf "chain = [ %s ]\n%!" (String.concat "; " (List.map string_of_int chain));
     let sectors = List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain) in
     Printf.printf "sectors = [ %s ]\n%!" (String.concat "; " (List.map string_of_int sectors));
     let all = B.read_sectors sectors in
-    Bitstring.subbitstring all 0 (Int32.to_int file_size * 8)
+    if subdir then all else Bitstring.subbitstring all 0 (Int32.to_int file_size * 8)
 
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)

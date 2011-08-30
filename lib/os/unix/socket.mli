@@ -42,6 +42,7 @@ external domain_recv_pipe : [ `domain ] fd -> [< `rd_pipe | `wr_pipe ] fd resp =
 external pipe : unit -> ([ `rd_pipe ] fd * [ `wr_pipe ] fd) resp = "caml_alloc_pipe"
 external connect_result : [< `domain | `tcpv4 ] fd -> unit resp = "caml_socket_connect_result"
 external file_open_readonly: string -> [`ro_file] fd resp = "caml_file_open_ro"
+external file_open_readwrite: string -> [`rw_file] fd resp = "caml_file_open_rw"
 external file_size: string -> int64 resp = "caml_stat_size"
 external lseek: [< `ro_file | `rw_file ] fd -> int64 -> unit resp = "caml_lseek"
 
@@ -50,9 +51,9 @@ external opendir: string -> dir resp = "caml_opendir"
 external readdir: dir -> string resp = "caml_readdir"
 external closedir: dir -> unit resp = "caml_closedir"
 
-external read : [< `rd_pipe | `tcpv4 | `udpv4 | `ro_file ] fd -> string -> int -> int -> int resp = "caml_socket_read"
+external read : [< `rd_pipe | `tcpv4 | `udpv4 | `ro_file |`rw_file] fd -> string -> int -> int -> int resp = "caml_socket_read"
 external write : [< `tcpv4 | `udpv4 | `wr_pipe ] fd -> string -> int -> int -> int resp = "caml_socket_write"
-external close : [< `domain | `rd_pipe | `tcpv4 | `udpv4 | `wr_pipe | `ro_file ] fd -> unit = "caml_socket_close"
+external close : [< `domain | `rd_pipe | `tcpv4 | `udpv4 | `wr_pipe | `ro_file |`rw_file] fd -> unit = "caml_socket_close"
 external fd_to_int : 'a fd -> int = "%identity"
 val fdbind : (int -> 'a Lwt.t) -> ('b fd -> 'c resp) -> 'b fd -> 'c Lwt.t
 val iobind : ('a -> 'b resp) -> 'a -> 'b Lwt.t

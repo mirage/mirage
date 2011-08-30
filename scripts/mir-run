@@ -11,7 +11,7 @@ usage() {
   cat << EOF
 Execute Mirage binaries across various backends.
 Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
-          [-vif <if>] [-vbd <file>] [-n <string>]
+          [-vif <if>] [-vbd <file>] [-n <name>] [-e <error code>]
 
 BACKENDS:
   unix-socket (default)
@@ -29,6 +29,8 @@ OPTIONS:
    -n     Name of service (defaults to binary name)
    -m     Memory in megabytes assigned to container
    -h     Show this usage message.
+   -e     Expect a non-zero error code from the binary,
+          to help with unit tests (not for normal use)
 EOF
   exit 1
 }
@@ -41,6 +43,7 @@ NVIFS=0
 NVBDS=0
 MEMORY=128
 NAME=
+EXPECT_ERROR=
 
 # Test if a backend is supported or not, exit if not
 supported() {
@@ -111,6 +114,28 @@ EOF
     # XXX how to redirect console output to $OUTPUT? tee?
     ${SUDO} ${XEN_BIN} create -c $CONF
 }
+
+# Run binary and check the return code is as expected
+exec_and_check_error() {
+  echo expect = $EXPECT_ERROR
+  if [ $EXPECT_ERROR -ne 0 ]; then
+    set +e
+    $1
+    ret=$?
+    if [ $ret -eq 0 ]; then
+      echo Expected non-zero return code, but exited cleanly
+      exit 1
+    elif [ $ret -ne $EXPECT_ERROR ]; then
+      # Some of the backends dont quite match up in the exact error code, so just warn
+      echo Warning: expected non-zero return code $EXPECT_ERROR, got $ret instead
+      exit 0
+    else
+      exit 0
+    fi
+  else
+    exec $1
+  fi
+}
  
 # Run binary for a backend $1=backend $2=binary
 run() {
@@ -123,11 +148,11 @@ run() {
     ;;
   unix-*)
     redirect_shell_output;
-    exec $bin 
+    exec_and_check_error $bin
     ;;
   node)
     redirect_shell_output;
-    exec node $bin
+    exec_and_check_error "node $bin"
     ;;
   *)
     ;;
@@ -164,6 +189,10 @@ while [ $# -gt 0 ]; do
     shift
     let "NVBDS = $NVBDS + 1"
     VBDS[$NVBDS]=$1
+    ;;
+  -e)
+    shift
+    EXPECT_ERROR="$1"
     ;;
   *)
     BINARY="$1"

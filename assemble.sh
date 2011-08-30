@@ -49,8 +49,8 @@ function assemble_unix {
 
 function assemble_node {
   mode=$1
-  echo Assembling: node $1
-  OBJ=${BUILDDIR}/node-$1
+  echo Assembling: node
+  OBJ=${BUILDDIR}/node
   if [ -d ${ROOT}/lib/_build/node ]; then
     mkdir -p ${OBJ}/lib 
     for i in libos.a dllos.so; do
@@ -74,12 +74,24 @@ function assemble_scripts {
   echo Assembling: scripts
   OBJ=${BUILDDIR}/scripts
   mkdir -p ${OBJ}
-  cp ${ROOT}/scripts/myocamlbuild.ml ${OBJ}/
+  cp ${ROOT}/regress/myocamlbuild.ml ${OBJ}/
+}
+
+function assemble_bin {
+  echo Assembling: binaries
+  OBJ=${BUILDDIR}/bin
+  mkdir -p ${OBJ}
+  sed -e "s,@MIRAGELIB@,${PREFIX},g" < ${ROOT}/scripts/mir-build > ${OBJ}/mir-build
+  cp ${ROOT}/scripts/mir-run ${OBJ}/mir-run
+  chmod 755 ${OBJ}/mir-build ${OBJ}/mir-run
+  cp ${ROOT}/tools/crunch/_build/crunch.native ${OBJ}/mir-crunch
+  cp ${ROOT}/tools/fs/mir-fs-create ${OBJ}/mir-fs-create
 }
 
 assemble_syntax
 assemble_xen
 assemble_unix "direct"
 assemble_unix "socket"
-assemble_node "socket"
+assemble_node
 assemble_scripts
+assemble_bin

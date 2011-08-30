@@ -1,4 +1,4 @@
-.PHONY: all clean tools
+.PHONY: all clean
 .DEFAULT: all
 -include Makefile.config
 
@@ -14,21 +14,14 @@ export PREFIX
 JOBS=-j 6
 export JOBS
 
-all: tools
+all:
+	@cd tools && $(MAKE)
 	@cd syntax && $(MAKE)
 	@cd lib && $(MAKE)
 
 doc:
 	@cd docs && $(MAKE) all
 	@cd lib && $(MAKE) doc
-
-tools:
-	@cd tools/crunch && ocamlbuild $(JOBS) crunch.native
-	@cd tools/ocp-pack && ocamlbuild $(JOBS) pack.native
-	@cd tools/mir && $(MAKE) install
-	@cp tools/crunch/_build/crunch.native $(PREFIX)/bin/mlcrunch
-	@$(MAKE) -C tools/fs all
-	@cp tools/fs/mir-fs-create $(PREFIX)/bin/mir-fs-create
 
 install:
 	@rm -rf _build
@@ -39,6 +32,5 @@ install:
 clean:
 	@cd syntax && $(MAKE) clean
 	@cd lib && $(MAKE) clean
-	@cd tools/crunch && ocamlbuild -clean
-	@cd tools/ocp-pack && ocamlbuild -clean
+	@cd tools && $(MAKE) clean
 	@rm -rf _build

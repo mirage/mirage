@@ -30,14 +30,15 @@ module Event = struct
   type e = 
     | Datapath_join of OP.datapath_id
     | Datapath_leave of OP.datapath_id
-    | Packet_in of OP.port * Bitstring.t * OP.datapath_id
+    | Packet_in of OP.port * int32 * Bitstring.t * OP.datapath_id
+    | Flow_removed of OP.Match.t * OP.datapath_id 
 
   let string_of_event = function
     | Datapath_join dpid -> sp "Datapath_join: dpid:0x%012Lx" dpid
     | Datapath_leave dpid -> sp "Datapath_leave: dpid:0x%012Lx" dpid
-    | Packet_in (port, bs, dpid) 
-      -> (sp "Packet_in: port:%s ... dpid:0x%012Lx" 
-            (OP.string_of_port port) dpid)
+    | Packet_in (port, buffer_id, bs, dpid) 
+      -> (sp "Packet_in: port:%s ... dpid:0x%012Lx buffer_id:%ld" 
+            (OP.string_of_port port) dpid buffer_id ) 
       
 end
 
@@ -75,7 +76,7 @@ let process_of_packet state (remote_addr, remote_port) ofp t =
     match ofp with
       | Hello (h, _) (* Reply to a hello msg with a hello and a feature request *)
         -> (cp "HELLO";
-            Channel.write_bitstring t (build_h h) 
+            Channel.write_bitstring t (Header.build_h h) 
             >> Channel.write_bitstring t (build_features_req 0_l) 
             >> Channel.flush t
         )
@@ -98,16 +99,49 @@ let process_of_packet state (remote_addr, remote_port) ofp t =
 
       | Packet_in (h, p) (* Generate a packet_in event *) 
         -> (cp (sp "+ %s|%s" 
-                  (OP.string_of_h h) (OP.Packet_in.string_of_packet_in p));
+                  (OP.Header.string_of_h h) (OP.Packet_in.string_of_packet_in p));
             let dpid = Hashtbl.find state.channel_dp ep in
-            let evt = Event.Packet_in (p.Packet_in.in_port, p.Packet_in.data, dpid) in
+            let evt = Event.Packet_in (p.Packet_in.in_port, p.Packet_in.buffer_id , p.Packet_in.data, dpid) in
             List.iter (fun cb -> cb state dpid evt) state.packet_in_cb;
             return ()
         )
 
       | _ -> OS.Console.log "New packet received"; return () 
   )
-   
+
+    (*
+(* Handle a single input frame *)
+let packet_to_flow frame = 
+  bitmatch frame with
+  |{dmac:48:string; smac:48:string;
+    0x0806:16;     (* ethertype *)
+    1:16;          (* htype const 1 *)
+    0x0800:16;     (* ptype const, ND used for IPv6 now *)
+    6:8;           (* hlen const 6 *)
+    4:8;           (* plen const, ND used for IPv6 now *)
+    op:16;
+    sha:48:string; spa:32;
+    tha:48:string; tpa:32 } ->
+      let sha = ethernet_mac_of_bytes sha in
+      let spa = ipv4_addr_of_uint32 spa in
+      let tha = ethernet_mac_of_bytes tha in
+      let tpa = ipv4_addr_of_uint32 tpa in
+      let op = match op with |1->`Request |2 -> `Reply |n -> `Unknown n in
+      let arp = { op; sha; spa; tha; tpa } in
+      Arp.input t.arp arp
+
+  |{dmac:48:string; smac:48:string;
+    etype:16; bits:-1:bitstring } -> 
+      let frame = gen_frame dmac smac in
+      begin match etype with
+      | 0x0800 (* IPv4 *) -> t.ipv4 bits
+      | 0x86dd (* IPv6 *) -> return (Printf.printf "Ethif: discarding ipv6\n%!")
+      | etype -> return (Printf.printf "Ethif: unknown frame %x\n%!" etype)
+      end
+  |{_} ->
+      return (Printf.printf "Ethif: dropping input\n%!")
+     *)
+
 let send_of_data controller dpid data = 
   let t = Hashtbl.find controller.dp_db dpid in
   Channel.write_bitstring t data >> Channel.flush t
@@ -132,9 +166,9 @@ let listen mgr ip port init =
     init st;    
     let rec echo () =
       try_lwt
-        lwt hbuf = Channel.read_some ~len:OP.h_len t in
-        let ofh = OP.parse_h hbuf in
-        let dlen = ofh.OP.len - OP.h_len in 
+        lwt hbuf = Channel.read_some ~len:OP.Header.get_len t in
+        let ofh = OP.Header.parse_h hbuf in
+        let dlen = ofh.OP.Header.len - OP.Header.get_len in 
         lwt dbuf = rd_data dlen t in
         let ofp = OP.parse ofh dbuf in
         process_of_packet st (remote_addr, remote_port) ofp t;

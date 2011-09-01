@@ -142,7 +142,7 @@ module Mir = struct
 
   let js_of_ocaml ?tag byte js env build =
     let byte = env byte and js = env js in
-    Cmd (S [ A"js_of_ocaml"; A (ps "%s/mirage.js" libdir) ; Px js; A"-o"; Px byte ])
+    Cmd (S [ A"js_of_ocaml"; A "-noruntime"; A (ps "%s/runtime.js" libdir); A (ps "%s/mirage.js" libdir) ; Px js; A"-o"; Px byte ])
 
   let () =
     rule "output-obj: mir -> o"

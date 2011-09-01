@@ -1,5 +1,13 @@
 open Printf
 
+module Write = struct
+  (** Describes an update to a block device *)
+  type t = {
+    offset: int64;
+    data: Bitstring.t;
+  }
+end
+
 type format = FAT12 | FAT16 | FAT32
 let string_of_format = function
   | FAT12 -> "FAT12"
@@ -119,6 +127,13 @@ module Fat_entry = struct
         else if x >= 0xfff8 && x <= 0xffff then End
         else Bad
       | { _ } -> Bad
+  let to_fat16 boot n fat x =
+    let x' = match x with
+    | Free -> 0 | End -> 0xffff | Bad -> 0xfff7 | Used x -> x in
+    let bs = BITSTRING {
+      x' : 16 : littleendian
+    } in
+    { Write.offset = boot.Boot_sector.reserved_sectors + 16 * n; data = bs }
   let of_fat32 n fat =
     bitmatch fat with
       | { x: 32: littleendian, offset(32 * n) } ->
@@ -127,6 +142,7 @@ module Fat_entry = struct
         else if x >= 0x0ffffff8l && x <= 0x0fffffffl then End
         else Bad
       | { _ } -> Bad
+  let to_fat32 boot n fat x = failwith "Unimplemented"
   let of_fat12 n fat =
     (* 2 entries span groups of 3 bytes *)
     bitmatch fat with
@@ -137,12 +153,20 @@ module Fat_entry = struct
         else if x >= 0xff8 && x <= 0xfff then End
         else Bad
       | { _ } -> Bad
+  let to_fat12 boot n fat x = failwith "Unimplemented"
 
   (** Return the bitstring containing the nth FAT entry *)
   let of_bitstring format = match format with
     | FAT16 -> of_fat16
     | FAT32 -> of_fat32
     | FAT12 -> of_fat12
+
+  (** Return the bitstring describing the FAT delta and the offset within
+      the FAT table. *)
+  let to_bitstring boot format = match format with
+    | FAT16 -> to_fat16 boot
+    | FAT32 -> to_fat32 boot
+    | FAT12 -> to_fat12 boot
 
   (** [follow_chain format fat cluster] returns the list of sectors containing
       data according to FAT [fat] which is of type [format]. *)
@@ -152,6 +176,36 @@ module Fat_entry = struct
     | Free | Bad -> acc (* corrupt file *)
     | Used j -> inner (i :: acc) j in
     List.rev (inner [] cluster)
+
+  (** [find_free_from boot format fat start] returns an unallocated cluster
+      after [start] *)
+  let find_free_from boot format fat start =
+    let n = Boot_sector.clusters boot in
+    let rec inner i =
+      if i = n then None
+      else match of_bitstring format i fat with
+      | Free -> Some i
+      | _ -> inner (i + 1) in
+    inner start
+
+  (** [allocate boot format fat] allocates a free cluster suitable for a
+      new file *)
+  let allocate boot format fat =
+    match find_free_from boot format fat 0 with
+    | Some start ->
+      Some [ to_bitstring boot format start fat End ]
+    | None -> None
+ 
+  (** [extend boot format fat last] allocates a free cluster and extends
+      the chain whose last element is [last] *)
+  let extend boot format fat last =
+    match find_free_from boot format fat last with
+    | Some next ->
+      Some [
+        to_bitstring boot format next fat End;
+        to_bitstring boot format last fat (Used next);
+      ]
+    | None -> None
 end
 
 module Dir_entry = struct

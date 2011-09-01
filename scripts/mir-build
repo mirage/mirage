@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#
+# Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# Build Mirage binaries. This is a thin wrapper to ocamlbuild that symlinks
+# in the myocamlbuild plugin (with the Mirage build rules), and prepends
+# the name of the build target
+
+set -e
+
+MIRAGELIB=${MIRAGELIB:-@MIRAGELIB@}
+OCAMLBUILD=${OCAMLBUILD:-ocamlbuild}
+
+if [ ! -e "${MIRAGELIB}/scripts/myocamlbuild.ml" ]; then
+  echo No Mirage installation found at: ${MIRAGELIB}
+  exit 1
+fi
+
+export MIRAGELIB
+if [ -e myocamlbuild.ml ]; then
+  if [ ! -h myocamlbuild.ml ]; then
+    echo Error: myocamlbuild.ml already exists and is not a symlink to the Mirage one. Aborting build.
+    exit 1
+  fi
+else 
+  ln -nfs ${MIRAGELIB}/scripts/myocamlbuild.ml
+fi
+
+ocamlbuild $*

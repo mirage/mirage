@@ -204,7 +204,7 @@ module Dir_entry = struct
         if a = 0xff && b = 0xff && i < !chars then chars := i
       done;
       String.sub x 0 (!chars * 2) in
-    Printf.sprintf "%8s %3s %10s %04d-%02d-%02d  %02d:%02d  %s"
+    Printf.sprintf "%-8s %-3s %10s %04d-%02d-%02d  %02d:%02d  %s"
       x.filename x.ext
       (if x.subdir then "<DIR>     " else (Printf.sprintf "%10ld" x.file_size))
       x.create.year x.create.month x.create.day
@@ -266,9 +266,15 @@ module Dir_entry = struct
         else
           let deleted = x = 0xe5 in
           filename.[0] <- char_of_int (if x = 0x05 then 0xe5 else x);
+          let remove_trailing_spaces x =
+            let rec inner = function
+            | -1 -> x
+            | n when x.[n] = ' ' -> inner (n-1)
+            | n -> String.sub x 0 (n + 1) in
+            inner (String.length x - 1) in
           Old {
-            filename = filename;
-            ext = ext;
+            filename = remove_trailing_spaces filename;
+            ext = remove_trailing_spaces ext;
             utf_filename = "";
             read_only = read_only;
             deleted = deleted;
@@ -288,10 +294,10 @@ module Dir_entry = struct
       failwith (Printf.sprintf "Not a dir entry off=%d len=%d" off len)
 
     let chop n bits =
-      let open Bitstring in
+      let module B = Bitstring in
       let rec inner acc bits =
-        if bitstring_length bits <= n then bits :: acc
-        else inner (takebits n bits :: acc) (dropbits n bits) in
+        if B.bitstring_length bits <= n then bits :: acc
+        else inner (B.takebits n bits :: acc) (B.dropbits n bits) in
       List.rev (inner [] bits)
 
     let list bits =
@@ -515,40 +521,38 @@ let () =
     if dir = "" then !cwd
     else if dir.[0] = '/' then (string_to_path dir)
     else !cwd @ (string_to_path dir) in
+  let module T = Test in
   let do_dir dir =
     let path = abspath dir in
-    let open Test in
-    match find fs path with
-    | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
-    | No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
-    | Dir dirs ->
+    match T.find fs path with
+    | T.Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
+    | T.No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
+    | T.Dir dirs ->
       Printf.printf "Directory for A:%s\n\n" (path_to_string path);
       List.iter
         (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
       Printf.printf "%9d files\n%!" (List.length dirs)
-    | File _ -> Printf.printf "Not a directory.\n%!" in
+    | T.File _ -> Printf.printf "Not a directory.\n%!" in
   let do_type file =
     let path = abspath file in
-    let open Test in
-    match find fs path with
-    | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
-    | No_directory_entry (path, name) -> Printf.printf "File (%s) not found (in %s)\n%!" name (path_to_string path)
-    | Dir dirs ->
+    match T.find fs path with
+    | T.Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
+    | T.No_directory_entry (path, name) -> Printf.printf "File (%s) not found (in %s)\n%!" name (path_to_string path)
+    | T.Dir dirs ->
       Printf.printf "Is a directory.\n%!";
-    | File d ->
+    | T.File d ->
       Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
-      let data = Test.read_file fs d in
+      let data = T.read_file fs d in
       Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data) in
   let do_cd dir =
     let path = abspath dir in
     Printf.printf "path = [%s]\n%!" (String.concat ";" path);
-    let open Test in
-    match find fs path with
-    | Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
-    | No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
-    | Dir _ ->
+    match T.find fs path with
+    | T.Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
+    | T.No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
+    | T.Dir _ ->
       cwd := (string_to_path dir);
-    | File _ -> Printf.printf "Not a directory.\n%!" in
+    | T.File _ -> Printf.printf "Not a directory.\n%!" in
 
   let finished = ref false in
   while not !finished do

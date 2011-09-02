@@ -133,7 +133,7 @@ module Fat_entry = struct
     let bs = BITSTRING {
       x' : 16 : littleendian
     } in
-    { Write.offset = boot.Boot_sector.reserved_sectors + 16 * n; data = bs }
+    { Write.offset = Int64.of_int (boot.Boot_sector.reserved_sectors + 16 * n); data = bs }
   let of_fat32 n fat =
     bitmatch fat with
       | { x: 32: littleendian, offset(32 * n) } ->
@@ -287,8 +287,8 @@ module Dir_entry = struct
         utf3: (4 * 8): string
       } ->
       Lfn {
-        lfn_deleted = seq land 0x80 = 1;
-        lfn_last = seq land 0x40 = 1;
+        lfn_deleted = seq land 0x80 = 0x80;
+        lfn_last = seq land 0x40 = 0x40;
         lfn_seq = seq land 0x3f;
         (* checksum *)
         lfn_utf16_name = utf1 ^ utf2 ^ utf3;
@@ -358,12 +358,13 @@ module Dir_entry = struct
       (* Stop as soon as we find a None *)
       let rec inner lfns acc = function
         | [] -> acc
-        | b :: bs -> 
+        | b :: bs ->
                      begin match of_bitstring b with
                      | Lfn lfn -> inner (lfn :: lfns) acc bs
                      | Old d ->
                        (* reconstruct UTF text from LFNs *)
-                       let utfs = List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns in
+		       let lfns = List.sort (fun a b -> compare a.lfn_seq b.lfn_seq) lfns in
+                       let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
                        inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
                      | End -> acc
                      end in

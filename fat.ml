@@ -223,7 +223,7 @@ module Dir_entry = struct
     lfn_deleted: bool;
     lfn_last: bool; (** marks the highest sequence number *)
     lfn_seq: int;
-    (* checksum *)
+    lfn_checksum: int;
     lfn_utf16_name: string
   }
 
@@ -301,6 +301,16 @@ module Dir_entry = struct
       String.blit x 0 y 0 (String.length x);
       y
 
+  (** Returns the checksum corresponding to the 8.3 DOS filename *)
+  let compute_checksum x =
+    let y = add_padding ' ' 8 x.filename ^ (add_padding ' ' 3 x.ext) in
+    let rec inner sum i =
+      if i = String.length y then sum
+      else
+	let sum' = (sum land 1) lsl 7 + (sum lsr 1) + (int_of_char y.[i]) in
+	inner sum' (i + 1) in
+    (inner 0 0) land 0xff
+
   let of_bitstring bits =
     bitmatch bits with
     | { seq: 8;
@@ -316,7 +326,7 @@ module Dir_entry = struct
         lfn_deleted = seq land 0x80 = 0x80;
         lfn_last = seq land 0x40 = 0x40;
         lfn_seq = seq land 0x3f;
-        (* checksum *)
+	lfn_checksum = checksum;
         lfn_utf16_name = utf1 ^ utf2 ^ utf3;
       }
     | { filename: (8 * 8): string;

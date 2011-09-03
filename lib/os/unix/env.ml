@@ -1,4 +1,4 @@
-/*
+(*
  * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,22 +12,7 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *)
 
-#include <stdio.h>
-#include <signal.h>
-#include <caml/callback.h>
-#include "ev.h"
-
-int
-main(int argc, char **argv)
-{
-  signal(SIGPIPE, SIG_IGN);
-  ev_default_loop(0);
-  fprintf(stderr, "Main: startup\n");
-  caml_startup(argv);
-  fprintf(stderr, "Main: entering runloop\n");
-  ev_loop(0);
-  fprintf(stderr, "Main: end\n");
-  return 0;
-}
+external get_argv: unit -> string * string array = "caml_sys_get_argv"
+let (executable_name, argv) = get_argv()

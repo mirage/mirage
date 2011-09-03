@@ -1,11 +1,30 @@
 open Printf
 
-module Write = struct
-  (** Describes an update to a block device *)
-  type t = {
-    offset: int64;
-    data: Bitstring.t;
-  }
+let bitstring_is_byte_aligned (_, off, len) = off mod 8 = 0 && (len mod 8 = 0)
+
+(** [bitstring_write src offset dest] modifies the bitstring [dest] by writing
+    [src] at [offset] in [dest] *)
+let bitstring_write ((src_s, src_off, src_len) as src) offset_bytes ((dest_s, dest_off, dest_len) as dest) =
+  (* We don't expect to run off the end of the target bitstring *)
+  assert (dest_len - offset_bytes * 8 - src_len >= 0);
+  assert (bitstring_is_byte_aligned src);
+  assert (bitstring_is_byte_aligned dest);
+  String.blit src_s (src_off / 8) dest_s (dest_off / 8 + offset_bytes) (dest_len / 8)
+
+module Buf = struct
+  type t =
+    | Base of Bitstring.t
+    | Update of (int * Bitstring.t * t)
+
+  let make x = Base x
+  let write x offset bs = Update(offset, bs, x)
+
+  let rec flatten = function
+    | Base x -> Bitstring.bitstring_of_string (Bitstring.string_of_bitstring x)
+    | Update (offset_bytes, bs, x) ->
+      let x' = flatten x in
+      bitstring_write bs offset_bytes x';
+      x'
 end
 
 type format = FAT12 | FAT16 | FAT32
@@ -133,7 +152,7 @@ module Fat_entry = struct
     let bs = BITSTRING {
       x' : 16 : littleendian
     } in
-    { Write.offset = Int64.of_int (boot.Boot_sector.reserved_sectors + 16 * n); data = bs }
+    Buf.write (Buf.make fat) (boot.Boot_sector.reserved_sectors + 16 * n) bs
   let of_fat32 n fat =
     bitmatch fat with
       | { x: 32: littleendian, offset(32 * n) } ->

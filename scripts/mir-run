@@ -43,7 +43,7 @@ NVIFS=0
 NVBDS=0
 MEMORY=128
 NAME=
-EXPECT_ERROR=
+EXPECT_ERROR=0
 
 # Test if a backend is supported or not, exit if not
 supported() {

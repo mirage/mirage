@@ -15,4 +15,5 @@
  *)
 
 external get_argv: unit -> string * string array = "caml_sys_get_argv"
-let (executable_name, argv) = get_argv()
+let (executable_name, av) = get_argv ()
+let argv () = Lwt.return av

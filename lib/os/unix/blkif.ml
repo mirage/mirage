@@ -65,5 +65,12 @@ let _ =
      method unplug = unplug_mvar
   end in
   Devices.Blkif.new_provider provider;
-  let _ = Lwt_mvar.put plug_mvar "disk0" in
-  ()
+  (* Iterate over the plugged in VBDs and plug them in *)
+  Main.at_enter (fun () ->
+    let vbds = ref [] in
+    lwt env = Env.argv () in
+    Array.iteri (fun i -> function
+      |"-vbd" -> vbds := env.(i+1) :: !vbds
+      |_ -> ()) env;
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !vbds
+  )

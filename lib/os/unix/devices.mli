@@ -14,7 +14,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t
 type id = string
 
-val create : id -> Types.blkif Lwt.t
+type 'a provider = <
+  create : id -> 'a Lwt.t;
+  destroy : 'a -> unit;
+  id : string;
+  plug : id Lwt_mvar.t;
+  unplug : id Lwt_mvar.t 
+>
+
+type 'a mgr
+
+module Blkif : sig
+  val new_provider : Types.blkif provider -> unit
+  val manager : (Types.blkif mgr -> id -> Types.blkif -> unit Lwt.t) -> unit Lwt.t
+end

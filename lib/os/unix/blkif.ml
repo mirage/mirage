@@ -26,36 +26,6 @@ type t = {
   fd: [`rw_file] Socket.fd;
 }
 
-let devices = Hashtbl.create 1
-
-let plug id =
-  lwt fd = Socket.(iobind file_open_readwrite id) in
-  let t = {id; fd} in
-  Hashtbl.add devices id t;
-  printf "Blkif: plug %s\n%!" id;
-  return t
-
-let unplug id =
-  try
-    let t = Hashtbl.find devices id in
-    printf "Blkif: unplug %s\n%!" id;
-    Socket.close t.fd;
-    Hashtbl.remove devices id
-  with Not_found -> ()
-
-let create fn =
-  let default = "disk0.img" in
-  lwt t = plug default in (* Just hardcode disk0.img as the sole device for now *)
-  let user = fn default t in
-  let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> unplug default);
-  th <?> user
-
-let destroy nf =
-  (* XXX TODO unplug devices *)
-  printf "Blkif.destroy\n%!";
-  return ()
-
 let read_page t offset =
   Socket.(iobind (lseek t.fd) offset) >>
   let buf = String.create 4096 in (* XXX pool? *)
@@ -65,4 +35,35 @@ let read_page t offset =
   else
     return (buf,0,4096*8)
 
-let sector_size t = 4096
+let create id : Types.blkif Lwt.t =
+  printf "Blkif: plug %s\n%!" id;
+  lwt fd =
+    try_lwt
+      Socket.(iobind file_open_readwrite id)
+    with Socket.Error err -> 
+      printf "Blkif: failed to open VBD %s\n%!" id;
+      fail (Error err)
+  in
+  let t = {id; fd} in
+  printf "Blkif: plug done\n%!";
+  return (object
+    method read_page = read_page t
+    method sector_size = 4096
+    method ppname = "Unix.blkif."^id
+    method destroy = Socket.close t.fd
+  end)
+
+(* Register Unix.Blkif provider with the device manager *)
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  let provider = object
+     method id = "Unix.Blkif"
+     method create id = create id
+     method destroy blkif = blkif#destroy
+     method plug = plug_mvar 
+     method unplug = unplug_mvar
+  end in
+  Devices.Blkif.new_provider provider;
+  let _ = Lwt_mvar.put plug_mvar "disk0" in
+  ()

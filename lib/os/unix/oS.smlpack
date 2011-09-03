@@ -3,7 +3,8 @@ Clock
 Time
 Socket
 Console
-Netif
-Main
-Blkif
 Types
+Devices
+Netif
+Blkif
+Main

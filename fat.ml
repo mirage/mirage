@@ -18,11 +18,11 @@ module Boot_sector = struct
   type t = {
       oem_name: string;
       bytes_per_sector: int;
-	  sectors_per_cluster: int;
+      sectors_per_cluster: int;
       reserved_sectors: int;
-	  number_of_fats: int;
-	  number_of_root_dir_entries: int;
-	  total_sectors: int32;
+      number_of_fats: int;
+      number_of_root_dir_entries: int;
+      total_sectors: int32;
       sectors_per_fat: int;
       hidden_preceeding_sectors: int32;
   }
@@ -31,11 +31,11 @@ module Boot_sector = struct
   | { _: 24: string; (* JMP instruction *)
       oem_name: (8 * 8): string;
       bytes_per_sector: (2 * 8): littleendian;
-	  sectors_per_cluster: (1 * 8): littleendian;
+      sectors_per_cluster: (1 * 8): littleendian;
       reserved_sectors: (2 * 8): littleendian;
-	  number_of_fats: (1 * 8): littleendian;
-	  number_of_root_dir_entries: (2 * 8): littleendian;
-	  total_sectors_small: (2 * 8): littleendian;
+      number_of_fats: (1 * 8): littleendian;
+      number_of_root_dir_entries: (2 * 8): littleendian;
+      total_sectors_small: (2 * 8): littleendian;
       media_descriptor: (1 * 8): littleendian;
       sectors_per_fat: (2 * 8): littleendian;
       sectors_per_track: (2 * 8): littleendian;
@@ -47,11 +47,11 @@ module Boot_sector = struct
     {
       oem_name = oem_name;
       bytes_per_sector = bytes_per_sector;
-	  sectors_per_cluster = sectors_per_cluster;
+      sectors_per_cluster = sectors_per_cluster;
       reserved_sectors = reserved_sectors;
-	  number_of_fats = number_of_fats;
-	  number_of_root_dir_entries = number_of_root_dir_entries;
-	  total_sectors = max (Int32.of_int total_sectors_small) total_sectors_large;
+      number_of_fats = number_of_fats;
+      number_of_root_dir_entries = number_of_root_dir_entries;
+      total_sectors = max (Int32.of_int total_sectors_small) total_sectors_large;
       sectors_per_fat = sectors_per_fat;
       hidden_preceeding_sectors = hidden_preceeding_sectors;
     }
@@ -62,10 +62,10 @@ module Boot_sector = struct
       printf "bytes_per_sector: %d\n" x.bytes_per_sector;
       printf "sectors_per_cluster: %d\n" x.sectors_per_cluster;
       printf "total_sectors: %ld\n" x.total_sectors;
-	  printf "reserved_sectors: %d\n" x.reserved_sectors;
+      printf "reserved_sectors: %d\n" x.reserved_sectors;
       printf "number of FATs: %d\n" x.number_of_fats;
       printf "number_of_root_dir_entries: %d\n" x.number_of_root_dir_entries;
-	  printf "hidden_preceeding_sectors: %ld\n" x.hidden_preceeding_sectors;
+      printf "hidden_preceeding_sectors: %ld\n" x.hidden_preceeding_sectors;
       ()
 
   let ints start length =
@@ -81,7 +81,7 @@ module Boot_sector = struct
 
   (** Return a list of sectors corresponding to cluster n *)
   let sectors_of_cluster x n =
-	(* NB clusters 0 and 1 are not on disk *)
+    (* NB clusters 0 and 1 are not on disk *)
     ints (initial_cluster x + x.sectors_per_cluster * (n - 2))	 x.sectors_per_cluster
 
   (** Return the number of clusters *)
@@ -111,7 +111,7 @@ module Fat_entry = struct
   type t = 
     | Free
     | Used of int (** points to the next in the chain *)
-	| End         (** end of a chain *)
+    | End         (** end of a chain *)
     | Bad         (** bad sector or illegal FAT entry *)
   let to_string = function
     | Free -> "F"
@@ -122,7 +122,7 @@ module Fat_entry = struct
   let of_fat16 n fat =
     bitmatch fat with
       | { x: 16: littleendian, offset(16*n) } ->
-	    if x = 0 then Free
+	if x = 0 then Free
         else if x >= 0x0002 && x <= 0xffef then Used x
         else if x >= 0xfff8 && x <= 0xffff then End
         else Bad
@@ -240,9 +240,9 @@ module Dir_entry = struct
     archive: bool;
     create: datetime;
     access: datetime;
-	modify: datetime;
-	start_cluster: int;
-	file_size: int32;
+    modify: datetime;
+    start_cluster: int;
+    file_size: int32;
   }
 
   type entry =
@@ -306,13 +306,13 @@ module Dir_entry = struct
         _: 8; (* reserved *)
         _: 8; (* high precision create time 0-199 in units of 10ms *)
         create_time: 16: littleendian;
-		create_date: 16: littleendian;
-		last_access_date: 16: littleendian;
-		ea_index: 16: littleendian;
-		last_modify_time: 16: littleendian;
-		last_modify_date: 16: littleendian;
-		start_cluster: 16: littleendian;
-		file_size: 32: littleendian
+	create_date: 16: littleendian;
+	last_access_date: 16: littleendian;
+	ea_index: 16: littleendian;
+	last_modify_time: 16: littleendian;
+	last_modify_date: 16: littleendian;
+	start_cluster: 16: littleendian;
+	file_size: 32: littleendian
       } ->
         let x = int_of_char filename.[0] in
         if x = 0
@@ -359,15 +359,15 @@ module Dir_entry = struct
       let rec inner lfns acc = function
         | [] -> acc
         | b :: bs ->
-                     begin match of_bitstring b with
-                     | Lfn lfn -> inner (lfn :: lfns) acc bs
-                     | Old d ->
+          begin match of_bitstring b with
+            | Lfn lfn -> inner (lfn :: lfns) acc bs
+            | Old d ->
                        (* reconstruct UTF text from LFNs *)
-		       let lfns = List.sort (fun a b -> compare a.lfn_seq b.lfn_seq) lfns in
-                       let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
-                       inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
-                     | End -> acc
-                     end in
+	      let lfns = List.sort (fun a b -> compare a.lfn_seq b.lfn_seq) lfns in
+              let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
+              inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
+            | End -> acc
+          end in
       inner [] [] (chop (8 * 32) bits)
 
     let ascii_to_utf16 x =
@@ -376,7 +376,7 @@ module Dir_entry = struct
       let padto = (l + 1 + 12) / 13 * 13 in
       let total = max (l + 1) padto in (* NULL *)
       let results = String.make (total * 2) (char_of_int 0xff) in
-	  for i = 0 to l - 1 do
+      for i = 0 to l - 1 do
         results.[i*2] <- x.[i];
         results.[i*2+1] <- char_of_int 0;
       done;

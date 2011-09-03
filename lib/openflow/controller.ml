@@ -26,12 +26,14 @@ let (|>) x f = f x
 module OP = Ofpacket
 
 module Event = struct
-  type t = DATAPATH_JOIN | DATAPATH_LEAVE | PACKET_IN
+  type t = DATAPATH_JOIN | DATAPATH_LEAVE | PACKET_IN |FLOW_REMOVED
   type e = 
     | Datapath_join of OP.datapath_id
     | Datapath_leave of OP.datapath_id
     | Packet_in of OP.port * int32 * Bitstring.t * OP.datapath_id
-    | Flow_removed of OP.Match.t * OP.datapath_id 
+   (* Flow match | reason | duration_sec | duration_usec | packet_count |
+ * byte_count *)
+    | Flow_removed of OP.Match.t * OP.Flow_removed.reason * int32 * int32 * int64 * int64 * OP.datapath_id 
 
   let string_of_event = function
     | Datapath_join dpid -> sp "Datapath_join: dpid:0x%012Lx" dpid
@@ -39,6 +41,10 @@ module Event = struct
     | Packet_in (port, buffer_id, bs, dpid) 
       -> (sp "Packet_in: port:%s ... dpid:0x%012Lx buffer_id:%ld" 
             (OP.string_of_port port) dpid buffer_id ) 
+    | Flow_removed (flow, reason, duration_sec, duration_usec, packet_count, byte_count, dpid) ->
+        (sp "Flow_removed: flow: %s reason:%s duration:%ld.%ld packets:%s bytes:%s dpid:0x%012Lx"
+        (OP.Match.match_to_string flow) (OP.Flow_removed.string_of_reason reason)  duration_sec duration_usec
+         (Int64.to_string packet_count) (Int64.to_string byte_count)  dpid )
       
 end
 
@@ -57,6 +63,8 @@ type state = {
     (state -> OP.datapath_id -> Event.e -> unit) list;
   mutable packet_in_cb:
     (state -> OP.datapath_id -> Event.e -> unit) list;
+  mutable flow_removed_cb:
+    (state -> OP.datapath_id -> Event.e -> unit) list;
 }
 
 let register_cb controller e cb =
@@ -68,6 +76,8 @@ let register_cb controller e cb =
         -> controller.datapath_leave_cb <- List.append controller.datapath_leave_cb [cb]
       | PACKET_IN
         -> controller.packet_in_cb <- List.append controller.packet_in_cb [cb]
+      | FLOW_REMOVED
+        -> controller.flow_removed_cb <- List.append controller.flow_removed_cb [cb]
   )
    
 let process_of_packet state (remote_addr, remote_port) ofp t = 
@@ -105,7 +115,16 @@ let process_of_packet state (remote_addr, remote_port) ofp t =
             List.iter (fun cb -> cb state dpid evt) state.packet_in_cb;
             return ()
         )
-
+      | Flow_removed (h, p)
+        -> (cp (sp "+ %s|%s" 
+                  (OP.Header.string_of_h h) (OP.Flow_removed.string_of_flow_removed p));
+            let dpid = Hashtbl.find state.channel_dp ep in
+            let evt = Event.Flow_removed (p.Flow_removed.of_match, p.Flow_removed.reason, p.Flow_removed.duration_sec,
+                                         p.Flow_removed.duration_nsec, p.Flow_removed.packet_count, p.Flow_removed.byte_count
+                                          , dpid) in
+            List.iter (fun cb -> cb state dpid evt) state.flow_removed_cb;
+            return ()
+        )
       | _ -> OS.Console.log "New packet received"; return () 
   )
 
@@ -160,7 +179,8 @@ let listen mgr ip port init =
                channel_dp = Hashtbl.create 0; 
                datapath_join_cb = []; 
                datapath_leave_cb = []; 
-               packet_in_cb = [] 
+               packet_in_cb = [];
+               flow_removed_cb = [] 
              }
     in 
     init st;    

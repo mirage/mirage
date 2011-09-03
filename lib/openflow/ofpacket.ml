@@ -647,6 +647,12 @@ module Match = struct
   let get_dl_src m = m.dl_src
   let get_dl_dst m = m.dl_dst
 
+  let create_flow_match wildcards ?(in_port = 0) ?(dl_src="\x00\x00\x00\x00\x00\x00") ?(dl_dst="\x00\x00\x00\x00\x00\x00") 
+                        ?(dl_vlan=0xffff) ?(dl_vlan_pcp=(char_of_int 0)) ?(dl_type=0) ?(nw_tos=(char_of_int 0)) 
+                        ?(nw_proto=(char_of_int 0)) ?(nw_src=(Int32.of_int 0)) ?(nw_dst=(Int32.of_int 0)) ?(tp_src=0) ?(tp_dst=0) () = 
+                            { wildcards; in_port=(port_of_int in_port); dl_src; dl_dst; dl_vlan; dl_vlan_pcp; dl_type; 
+                              nw_src; nw_dst; nw_tos; nw_proto; tp_src; tp_dst;}
+
   let parse_from_raw_packet in_port bits = 
     bitmatch bits with
         (* TODO: add 802.11q case *)
@@ -849,7 +855,7 @@ module Flow_mod = struct
   let create flow_match cookie command ?(priority = 0) 
         ?(idle_timeout = 60) ?(hard_timeout = 0)
         ?(buffer_id =  -1 ) ?(out_port = No_port) 
-        ?(flags ={send_flow_rem=false;emerg=false;overlap=false;}) actions =
+        ?(flags ={send_flow_rem=false;emerg=false;overlap=false;}) actions () =
     let size = ref (total_len) in 
       (Array.iter (fun a -> size:= !size + (len_of_action a) ) actions);
 
@@ -864,35 +870,57 @@ module Flow_mod = struct
                                 (Match.match_to_bitstring m.of_match);
                                 (BITSTRING{m.cookie:64; (int_of_command m.command):16; m.idle_timeout:16;
                                                          m.hard_timeout:16; m.priority:16; m.buffer_id:32; 
-                                                         (int_of_port m.out_port):16; 0:16})]
+                                                         (int_of_port m.out_port):16; 0:13; 
+                                m.flags.overlap:1; m.flags.emerg:1; m.flags.send_flow_rem:1})]
                      (Array.to_list (Array.map (fun a -> (action_to_bitstring a) ) m.actions ) ) ) in 
                  Bitstring.concat packet
 end
 
 module Flow_removed = struct
+  type reason = IDLE_TIMEOUT | HARD_TIMEOUT | DELETE
+  let reason_of_int = function
+    | 0 -> IDLE_TIMEOUT
+    | 1 -> HARD_TIMEOUT
+    | 2 -> DELETE
+    | _ -> invalid_arg "reason_of_int"
+  and int_of_reason = function
+    | IDLE_TIMEOUT -> 0
+    | HARD_TIMEOUT -> 1
+    | DELETE -> 2
+  and string_of_reason = function
+    | IDLE_TIMEOUT -> "IDLE_TIMEOUT"
+    | HARD_TIMEOUT -> "HARD_TIMEOUT"
+    | DELETE -> "DELETE"
+
+
   type t = { 
-        of_header:Header.h;
         of_match:Match.t;
         cookie:uint64;
         priority:uint16;
-        reason:byte;
+        reason:reason;
         duration_sec:uint32;
         duration_nsec:uint32;
         idle_timeout:uint16;
         packet_count:uint64;
         byte_count:uint64;
   }
-  let bitstring_to_flow_removed bits =
+  let flow_removed_of_bitstring bits =
     (bitmatch bits with
-      | { header:(Header.get_len * 8):bitstring; of_match:(Match.get_len * 8):bitstring;
+      | { of_match:(Match.get_len * 8):bitstring;
         cookie:64; priority:16; reason:8; _:8; duration_sec:32;
         duration_nsec:32; idle_timeout:16; _:16; packet_count:64; byte_count:64}
-        -> { of_header=(Header.parse_h header);  of_match=(Match.bitstring_to_match of_match);
-             cookie; priority; reason=(char_of_int reason); duration_sec; duration_nsec; 
+        -> { of_match=(Match.bitstring_to_match of_match);
+             cookie; priority; reason=(reason_of_int reason); duration_sec; duration_nsec; 
              idle_timeout; packet_count; byte_count;}
-    )        
-end
+    )
 
+  let string_of_flow_removed m = 
+    sp "flow:%s cookie:%s priority:%d reason:%s duration:%s.%s ifle_timeout:%d packet:%s bytes:%s"   
+        (Match.match_to_string m.of_match) (Int64.to_string m.cookie) m.priority (string_of_reason m.reason) 
+      (Int32.to_string m.duration_sec) (Int32.to_string m.duration_nsec)  m.idle_timeout (Int64.to_string m.packet_count)
+    (Int64.to_string  m.byte_count)
+end
+  
 module Port_mod = struct
   type t = {
     port_no: port;
@@ -1117,7 +1145,7 @@ type t =
   | Set_config of Header.h  * Switch.config    
 
   | Packet_in of Header.h  * Packet_in.t
-  | Flow_removed of Header.h  * Flow.t
+  | Flow_removed of Header.h  * Flow_removed.t
   | Port_status of Header.h  * Port.status
 
   | Packet_out of Header.h  * Packet_out.t * Bitstring.t
@@ -1146,6 +1174,7 @@ let parse h bits =
     | GET_CONFIG_RESP -> raise (Unparsed ("GET_CONFIG_RESP", bits))
     | SET_CONFIG -> raise (Unparsed ("SET_CONFIG", bits))
     | PACKET_IN -> Packet_in (h, Packet_in.parse_packet_in bits)
+    | FLOW_REMOVED -> Flow_removed(h, (Flow_removed.flow_removed_of_bitstring bits))
     | _ -> raise (Unparsed ("_", bits))
 
 (*

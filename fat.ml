@@ -274,7 +274,33 @@ module Dir_entry = struct
 	let hours = (time lsr 10) land 0b11111 in
     { day = day; month = month; year = year;
       hours = hours; mins = mins; secs = secs }
-    
+
+  let int_of_time x =
+    let h = (x.hours land 0b11111) lsl 10 in
+    let m = (x.mins land 0b111111) lsl 5 in
+    let s = ((x.secs/2) land 0b11111) in
+    h lor m lor s
+
+  let int_of_date x =
+    let d = x.day land 0b11111 in
+    let m = (x.month land 0b1111) lsl 5 in
+    let y = (x.year - 1980) lsl 9 in
+    d lor m lor y
+
+  let remove_padding p x =
+    let rec inner = function
+      | -1 -> x
+      | n when x.[n] = p -> inner (n-1)
+      | n -> String.sub x 0 (n + 1) in
+    inner (String.length x - 1)
+
+  let add_padding p n x =
+    if String.length x >= n then x
+    else
+      let y = String.make n p in
+      String.blit x 0 y 0 (String.length x);
+      y
+
   let of_bitstring bits =
     bitmatch bits with
     | { seq: 8;
@@ -320,15 +346,9 @@ module Dir_entry = struct
         else
           let deleted = x = 0xe5 in
           filename.[0] <- char_of_int (if x = 0x05 then 0xe5 else x);
-          let remove_trailing_spaces x =
-            let rec inner = function
-            | -1 -> x
-            | n when x.[n] = ' ' -> inner (n-1)
-            | n -> String.sub x 0 (n + 1) in
-            inner (String.length x - 1) in
           Old {
-            filename = remove_trailing_spaces filename;
-            ext = remove_trailing_spaces ext;
+            filename = remove_padding ' ' filename;
+            ext = remove_padding ' ' ext;
             utf_filename = "";
             read_only = read_only;
             deleted = deleted;
@@ -346,6 +366,61 @@ module Dir_entry = struct
     | { _ } ->
       let (s, off, len) = bits in
       failwith (Printf.sprintf "Not a dir entry off=%d len=%d" off len)
+
+    let to_bitstring = function
+      | End ->
+	let zeroes = String.make 32 (char_of_int 0) in
+	BITSTRING {
+	  zeroes: (32 * 8): string
+	}
+      | Lfn l ->
+	let seq = l.lfn_seq lor (if l.lfn_last then 0x40 else 0) lor (if l.lfn_deleted then 0x80 else 0) in
+	let utf = add_padding (char_of_int 0xff) 26 l.lfn_utf16_name in
+	let utf1 = String.sub utf 0 10 in
+	let utf2 = String.sub utf 10 12 in
+	let utf3 = String.sub utf 22 4 in
+	let checksum = 0 in (* XXX **)
+	BITSTRING {
+	  seq: 8;
+          utf1: (10 * 8): string;
+          0x0f: 8;
+          0: 8;
+          checksum: 8;
+          utf2: (12 * 8): string;
+          0: 16;
+          utf3: (4 * 8): string
+	}
+      | Old x ->
+	let filename = add_padding ' ' 8 x.filename in
+	let ext = add_padding ' ' 3 x.ext in
+	let create_time = int_of_time x.create in
+	let create_date = int_of_date x.create in
+	let last_access_date = int_of_date x.access in
+	let last_modify_time = int_of_time x.modify in
+	let last_modify_date = int_of_date x.modify in
+	
+	BITSTRING {
+	  filename: (8 * 8): string;
+          ext: (3 * 8): string;
+          false: 1; (* unused *)
+          false: 1; (* device *)
+          x.archive: 1;
+          x.subdir: 1;
+          x.volume: 1;
+          x.system: 1;
+          x.hidden: 1;
+          x.read_only: 1;
+          0: 8; (* reserved *)
+          0: 8; (* high precision create time 0-199 in units of 10ms *)
+          create_time: 16: littleendian;
+          create_date: 16: littleendian;
+	  last_access_date: 16: littleendian;
+	  0: 16: littleendian;
+	  last_modify_time: 16: littleendian;
+	  last_modify_date: 16: littleendian;
+	  x.start_cluster: 16: littleendian;
+	  x.file_size: 32: littleendian
+	}
 
     let chop n bits =
       let module B = Bitstring in

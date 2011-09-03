@@ -1,5 +1,6 @@
 open Printf
 
+(** [bitstring_is_byte_aligned b] true if the data within [b] is byte aligned *)
 let bitstring_is_byte_aligned (_, off, len) = off mod 8 = 0 && (len mod 8 = 0)
 
 (** [bitstring_write src offset dest] modifies the bitstring [dest] by writing
@@ -9,7 +10,12 @@ let bitstring_write ((src_s, src_off, src_len) as src) offset_bytes ((dest_s, de
   assert (dest_len - offset_bytes * 8 - src_len >= 0);
   assert (bitstring_is_byte_aligned src);
   assert (bitstring_is_byte_aligned dest);
-  String.blit src_s (src_off / 8) dest_s (dest_off / 8 + offset_bytes) (dest_len / 8)
+  String.blit src_s (src_off / 8) dest_s (dest_off / 8 + offset_bytes) (src_len / 8)
+
+(** [bitstring_compare a b] compares the contents of bitstrings *)
+let bitstring_compare ((a_s, a_off, a_len) as a) ((b_s, b_off, b_len) as b) =
+  (* We don't expect unaligned strings *)
+  compare (Bitstring.string_of_bitstring a) (Bitstring.string_of_bitstring b)
 
 module Buf = struct
   type t =
@@ -146,13 +152,25 @@ module Fat_entry = struct
         else if x >= 0xfff8 && x <= 0xffff then End
         else Bad
       | { _ } -> Bad
-  let to_fat16 boot n fat x =
+  let to_fat16 n fat x =
     let x' = match x with
     | Free -> 0 | End -> 0xffff | Bad -> 0xfff7 | Used x -> x in
     let bs = BITSTRING {
       x' : 16 : littleendian
     } in
-    Buf.write (Buf.make fat) (boot.Boot_sector.reserved_sectors + 16 * n) bs
+    Buf.write (Buf.make fat) (2 * n) bs
+
+  (* TESTING only *)
+  let of_fat16 n fat =
+    let x = of_fat16 n fat in
+    let fat' = Buf.flatten (to_fat16 n fat x) in
+    if bitstring_compare fat fat' <> 0 then begin
+      Printf.printf "before =\n";
+      Bitstring.hexdump_bitstring stdout fat;
+      Printf.printf "after =\n";
+      Bitstring.hexdump_bitstring stdout fat';
+    end;
+    x
   let of_fat32 n fat =
     bitmatch fat with
       | { x: 32: littleendian, offset(32 * n) } ->
@@ -161,7 +179,7 @@ module Fat_entry = struct
         else if x >= 0x0ffffff8l && x <= 0x0fffffffl then End
         else Bad
       | { _ } -> Bad
-  let to_fat32 boot n fat x = failwith "Unimplemented"
+  let to_fat32 n fat x = failwith "Unimplemented"
   let of_fat12 n fat =
     (* 2 entries span groups of 3 bytes *)
     bitmatch fat with
@@ -172,7 +190,7 @@ module Fat_entry = struct
         else if x >= 0xff8 && x <= 0xfff then End
         else Bad
       | { _ } -> Bad
-  let to_fat12 boot n fat x = failwith "Unimplemented"
+  let to_fat12 n fat x = failwith "Unimplemented"
 
   (** Return the bitstring containing the nth FAT entry *)
   let of_bitstring format = match format with
@@ -182,10 +200,10 @@ module Fat_entry = struct
 
   (** Return the bitstring describing the FAT delta and the offset within
       the FAT table. *)
-  let to_bitstring boot format = match format with
-    | FAT16 -> to_fat16 boot
-    | FAT32 -> to_fat32 boot
-    | FAT12 -> to_fat12 boot
+  let to_bitstring format = match format with
+    | FAT16 -> to_fat16
+    | FAT32 -> to_fat32
+    | FAT12 -> to_fat12
 
   (** [follow_chain format fat cluster] returns the list of sectors containing
       data according to FAT [fat] which is of type [format]. *)
@@ -212,7 +230,7 @@ module Fat_entry = struct
   let allocate boot format fat =
     match find_free_from boot format fat 0 with
     | Some start ->
-      Some [ to_bitstring boot format start fat End ]
+      Some [ to_bitstring format start fat End ]
     | None -> None
  
   (** [extend boot format fat last] allocates a free cluster and extends
@@ -221,8 +239,8 @@ module Fat_entry = struct
     match find_free_from boot format fat last with
     | Some next ->
       Some [
-        to_bitstring boot format next fat End;
-        to_bitstring boot format last fat (Used next);
+        to_bitstring format next fat End;
+        to_bitstring format last fat (Used next);
       ]
     | None -> None
 end
@@ -476,8 +494,9 @@ module Dir_entry = struct
           begin match of_bitstring b with
             | Lfn lfn -> inner (lfn :: lfns) acc bs
             | Old d ->
+	      (* TESTING ONLY *)
               let b' = to_bitstring (Old d) in
-	      if (Bitstring.string_of_bitstring b) <> (Bitstring.string_of_bitstring b') then begin
+	      if bitstring_compare b b' <> 0 then begin
                 Printf.printf "On disk:\n";
 		Bitstring.hexdump_bitstring stdout b;
 		Printf.printf "Regenerated:\n";

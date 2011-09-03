@@ -216,7 +216,8 @@ module Dir_entry = struct
     day: int;
     hours: int;
     mins: int;
-    secs: int
+    secs: int;
+    ms: int;
   }
 
   type lfn = {
@@ -265,21 +266,29 @@ module Dir_entry = struct
       x.create.hours x.create.mins
       (trim_utf16 x.utf_filename)
 
-  let time_of_int date time =
+  let int_to_hms time =
+    let hours = ((time lsr 11) land 0b11111) in
+    let mins = (time lsr 5) land 0b111111 in
+    let secs = (time land 0b11111) * 2 in
+    hours, mins, secs
+
+  let hms_to_int (hours, mins, secs) =
+    let h = (hours land 0b11111) lsl 11 in
+    let m = (mins land 0b111111) lsl 5 in
+    let s = ((secs/2) land 0b11111) in
+    h lor m lor s
+
+  let f x = hms_to_int (int_to_hms x)
+
+  let int_of_time time = hms_to_int (time.hours, time.mins, time.secs)
+
+  let time_of_int date time ms =
     let day = date land 0b11111 in
     let month = (date lsr 5) land 0b1111 in
     let year = (date lsr 9) + 1980 in
-    let secs = (time land 0b11111) * 2 in
-    let mins = (time lsr 5) land 0b111111 in
-	let hours = (time lsr 10) land 0b11111 in
+    let hours, mins, secs = int_to_hms time in
     { day = day; month = month; year = year;
-      hours = hours; mins = mins; secs = secs }
-
-  let int_of_time x =
-    let h = (x.hours land 0b11111) lsl 10 in
-    let m = (x.mins land 0b111111) lsl 5 in
-    let s = ((x.secs/2) land 0b11111) in
-    h lor m lor s
+      hours = hours; mins = mins; secs = secs; ms = ms }
 
   let int_of_date x =
     let d = x.day land 0b11111 in
@@ -340,7 +349,7 @@ module Dir_entry = struct
         hidden: 1;
         read_only: 1;
         _: 8; (* reserved *)
-        _: 8; (* high precision create time 0-199 in units of 10ms *)
+        create_time_ms: 8; (* high precision create time 0-199 in units of 10ms *)
         create_time: 16: littleendian;
 	create_date: 16: littleendian;
 	last_access_date: 16: littleendian;
@@ -367,9 +376,9 @@ module Dir_entry = struct
             volume = volume;
             subdir = subdir;
             archive = archive;
-            create = time_of_int create_date create_time;
-            access = time_of_int last_access_date 0;
-            modify = time_of_int last_modify_date last_modify_time;
+            create = time_of_int create_date create_time create_time_ms;
+            access = time_of_int last_access_date 0 0;
+            modify = time_of_int last_modify_date last_modify_time 0;
             start_cluster = start_cluster;
             file_size = file_size
           }
@@ -403,6 +412,7 @@ module Dir_entry = struct
       | Old x ->
 	let filename = add_padding ' ' 8 x.filename in
 	let ext = add_padding ' ' 3 x.ext in
+	let create_time_ms = x.create.ms in
 	let create_time = int_of_time x.create in
 	let create_date = int_of_date x.create in
 	let last_access_date = int_of_date x.access in
@@ -421,7 +431,7 @@ module Dir_entry = struct
           x.hidden: 1;
           x.read_only: 1;
           0: 8; (* reserved *)
-          0: 8; (* high precision create time 0-199 in units of 10ms *)
+          create_time_ms: 8; (* high precision create time 0-199 in units of 10ms *)
           create_time: 16: littleendian;
           create_date: 16: littleendian;
 	  last_access_date: 16: littleendian;
@@ -447,6 +457,13 @@ module Dir_entry = struct
           begin match of_bitstring b with
             | Lfn lfn -> inner (lfn :: lfns) acc bs
             | Old d ->
+              let b' = to_bitstring (Old d) in
+	      if (Bitstring.string_of_bitstring b) <> (Bitstring.string_of_bitstring b') then begin
+                Printf.printf "On disk:\n";
+		Bitstring.hexdump_bitstring stdout b;
+		Printf.printf "Regenerated:\n";
+		Bitstring.hexdump_bitstring stdout b'
+	      end;
                        (* reconstruct UTF text from LFNs *)
 	      let lfns = List.sort (fun a b -> compare a.lfn_seq b.lfn_seq) lfns in
               let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in

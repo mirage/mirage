@@ -12,7 +12,7 @@ usage() {
 Execute Mirage binaries across various backends.
 Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
           [-vif <if>] [-vbd <file>] [-n <name>] [-e <error code>]
-
+          [-create-vbds <megabytes>]
 BACKENDS:
   unix-socket (default)
   unix-direct
@@ -29,8 +29,13 @@ OPTIONS:
    -n     Name of service (defaults to binary name)
    -m     Memory in megabytes assigned to container
    -h     Show this usage message.
+ADVANCED OPTIONS:
    -e     Expect a non-zero error code from the binary,
-          to help with unit tests (not for normal use)
+          to help with unit tests (not for normal use).
+   -create-vbds
+          Auto-create a blank VBD if the file does not
+          exist. The argument is the size in megabytes.
+          If the VBD exists, it is re-used.
 EOF
   exit 1
 }
@@ -44,6 +49,7 @@ NVBDS=0
 MEMORY=128
 NAME=
 EXPECT_ERROR=0
+CREATE_VBDS=
 
 # Test if a backend is supported or not, exit if not
 supported() {
@@ -120,7 +126,7 @@ exec_and_check_error() {
   echo expect = $EXPECT_ERROR
   if [ $EXPECT_ERROR -ne 0 ]; then
     set +e
-    $1
+    $*
     ret=$?
     if [ $ret -eq 0 ]; then
       echo Expected non-zero return code, but exited cleanly
@@ -133,7 +139,7 @@ exec_and_check_error() {
       exit 0
     fi
   else
-    exec $1
+    exec $*
   fi
 }
  
@@ -147,8 +153,21 @@ run() {
     run_xl_domain
     ;;
   unix-*)
+    VBDFLAGS=""
+    for vbd in ${VBDS[@]}; do
+      if [ ! -e "$vbd" ]; then
+        if [ -z "${CREATE_VBDS}" ]; then
+          echo VBD file $vbd not found, must exist before domain can be started.
+          echo Specify the -create-vbds flag to auto-create VBD.
+          exit 1
+        else 
+          dd if=/dev/zero of="$vbd" bs=1048576 count=${CREATE_VBDS}
+        fi
+      fi
+      VBDFLAGS="$VBDFLAGS -vbd ${vbd}"
+    done
     redirect_shell_output;
-    exec_and_check_error $bin
+    exec_and_check_error $bin $VBDFLAGS
     ;;
   node)
     redirect_shell_output;
@@ -189,6 +208,10 @@ while [ $# -gt 0 ]; do
     shift
     let "NVBDS = $NVBDS + 1"
     VBDS[$NVBDS]=$1
+    ;;
+  -create-vbds)
+    shift
+    CREATE_VBDS="$1"
     ;;
   -e)
     shift

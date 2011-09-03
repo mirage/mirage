@@ -26,21 +26,27 @@ open Lwt
 external block_domain_timeout : float -> unit = "caml_block_domain_with_timeout"
 external block_domain : unit -> unit = "caml_block_domain"
 
-let control_thread : unit Lwt.t option ref = ref None
+let exit_hooks = Lwt_sequence.create ()
+let enter_hooks = Lwt_sequence.create ()
 
-let set_control_thread t =
-  control_thread := Some t
-
-let merge_control_thread t =
-  match !control_thread with
-    | None   -> t
-    | Some c -> c <?> t
+let rec call_hooks hooks  =
+  match Lwt_sequence.take_opt_l hooks with
+    | None ->
+        return ()
+    | Some f ->
+        lwt () =
+          try_lwt
+            f ()
+          with exn ->
+            return ()
+        in
+        call_hooks hooks
 
 (* Main runloop, which registers a callback so it can be invoked
    when timeouts expire. Thus, the program may only call this function
    once and once only. *)
 let run t =
-  let t = merge_control_thread  t in
+  let t = call_hooks enter_hooks <&> t in
   let fn () =
     (* Wake up any paused threads, and restart threads waiting on timeout *)
     Lwt.wakeup_paused ();
@@ -62,20 +68,6 @@ let run t =
   let _ = Callback.register "Main.run" fn in
   fn ()
 
-let exit_hooks = Lwt_sequence.create ()
-
-let rec call_hooks () =
-  match Lwt_sequence.take_opt_l exit_hooks with
-    | None ->
-        return ()
-    | Some f ->
-        lwt () =
-          try_lwt
-            f ()
-          with exn ->
-            return ()
-        in
-        call_hooks ()
-
-let () = at_exit (fun () -> run (call_hooks ()))
+let () = at_exit (fun () -> run (call_hooks exit_hooks))
 let at_exit f = ignore (Lwt_sequence.add_l f exit_hooks)
+let at_enter f = ignore (Lwt_sequence.add_l f enter_hooks)

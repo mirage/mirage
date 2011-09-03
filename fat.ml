@@ -179,7 +179,13 @@ module Fat_entry = struct
         else if x >= 0x0ffffff8l && x <= 0x0fffffffl then End
         else Bad
       | { _ } -> Bad
-  let to_fat32 n fat x = failwith "Unimplemented"
+  let to_fat32 n fat x =
+    let x' = match x with
+      | Free -> 0l | End -> 0x0fffffffl | Bad -> 0x0ffffff7l | Used x -> Int32.of_int x in
+    let bs = BITSTRING {
+      x' : 32 : littleendian
+    } in
+    Buf.write (Buf.make fat) (4 * n) bs
   let of_fat12 n fat =
     (* 2 entries span groups of 3 bytes *)
     bitmatch fat with

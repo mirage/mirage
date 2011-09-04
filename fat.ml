@@ -399,31 +399,20 @@ module Dir_entry = struct
     results.[l*2+1] <- char_of_int 0;
     results
 
+  (** Returns the checksum corresponding to the 8.3 DOS filename *)
+  let compute_checksum x =
+    let y = add_padding ' ' 8 x.filename ^ (add_padding ' ' 3 x.ext) in
+    let rec inner sum i =
+      if i = String.length y then sum
+      else
+	let sum' = (sum land 1) lsl 7 + (sum lsr 1) + (int_of_char y.[i]) in
+	inner sum' (i + 1) in
+    (inner 0 0) land 0xff
+
+
   let make ?(read_only=false) ?(system=false) ?(subdir=false) filename =
     (* entries with file size 0 should have start cluster 0 *)
     let start_cluster = 0 and file_size = 0l in
-    let legal = is_legal_dos_name filename in
-    let lfns =
-      if legal
-      then []
-      else
-        (* chop filename into 13 character / 26 byte chunks *)
-	let padded_utf16 = ascii_to_utf16 filename in
-	let rec inner acc seq i =
-	  let last = i + 26 = String.length padded_utf16 in
-	  let finished = i + 26 > String.length padded_utf16 in
-	  if finished then acc
-	  else
-	    let chunk = String.sub padded_utf16 i 26 in
-	    let lfn = {
-	      lfn_deleted = false;
-	      lfn_last = last;
-	      lfn_seq = seq;
-	      lfn_checksum = 0;
-	      lfn_utf16_name = chunk;
-	    } in
-	    inner (lfn :: acc) (seq + 1) (i + 26) in
-	inner [] 1 0 in
     let filename, ext = dos_name_of_filename filename in
     let dos = {
       filename = filename;
@@ -442,6 +431,28 @@ module Dir_entry = struct
       start_cluster = start_cluster;
       file_size = file_size
     } in
+    let checksum = compute_checksum dos in
+    let lfns =
+      if is_legal_dos_name filename
+      then []
+      else
+        (* chop filename into 13 character / 26 byte chunks *)
+	let padded_utf16 = ascii_to_utf16 filename in
+	let rec inner acc seq i =
+	  let last = i + 26 = String.length padded_utf16 in
+	  let finished = i + 26 > String.length padded_utf16 in
+	  if finished then acc
+	  else
+	    let chunk = String.sub padded_utf16 i 26 in
+	    let lfn = {
+	      lfn_deleted = false;
+	      lfn_last = last;
+	      lfn_seq = seq;
+	      lfn_checksum = checksum;
+	      lfn_utf16_name = chunk;
+	    } in
+	    inner (lfn :: acc) (seq + 1) (i + 26) in
+	inner [] 1 0 in
     Old dos :: (List.map (fun l -> Lfn l) lfns)
 
   let to_string x =
@@ -495,16 +506,6 @@ module Dir_entry = struct
       | n when x.[n] = p -> inner (n-1)
       | n -> String.sub x 0 (n + 1) in
     inner (String.length x - 1)
-
-  (** Returns the checksum corresponding to the 8.3 DOS filename *)
-  let compute_checksum x =
-    let y = add_padding ' ' 8 x.filename ^ (add_padding ' ' 3 x.ext) in
-    let rec inner sum i =
-      if i = String.length y then sum
-      else
-	let sum' = (sum land 1) lsl 7 + (sum lsr 1) + (int_of_char y.[i]) in
-	inner sum' (i + 1) in
-    (inner 0 0) land 0xff
 
   let of_bitstring bits =
     bitmatch bits with

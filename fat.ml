@@ -17,6 +17,59 @@ let bitstring_compare ((a_s, a_off, a_len) as a) ((b_s, b_off, b_len) as b) =
   (* We don't expect unaligned strings *)
   compare (Bitstring.string_of_bitstring a) (Bitstring.string_of_bitstring b)
 
+module Stringext = struct
+open String
+
+let of_char c = String.make 1 c
+
+let fold_right f string accu =
+        let accu = ref accu in
+        for i = length string - 1 downto 0 do
+                accu := f string.[i] !accu
+        done;
+        !accu
+
+let explode string =
+        fold_right (fun h t -> h :: t) string []
+
+let implode list =
+        concat "" (List.map of_char list)
+
+(** True if string 'x' ends with suffix 'suffix' *)
+let endswith suffix x =
+        let x_l = String.length x and suffix_l = String.length suffix in
+        suffix_l <= x_l && String.sub x (x_l - suffix_l) suffix_l = suffix
+
+(** True if string 'x' starts with prefix 'prefix' *)
+let startswith prefix x =
+        let x_l = String.length x and prefix_l = String.length prefix in
+        prefix_l <= x_l && String.sub x 0 prefix_l  = prefix
+
+(** Returns true for whitespace characters, false otherwise *)
+let isspace = function
+        | ' ' | '\n' | '\r' | '\t' -> true
+        | _ -> false
+
+(** Removes all the characters from the ends of a string for which the predicate is true *)
+let strip predicate string =
+        let rec remove = function
+        | [] -> []
+        | c :: cs -> if predicate c then remove cs else c :: cs in
+        implode (List.rev (remove (List.rev (remove (explode string)))))
+
+let rec split ?limit:(limit=(-1)) c s =
+        let i = try String.index s c with Not_found -> -1 in
+        let nlimit = if limit = -1 || limit = 0 then limit else limit - 1 in
+        if i = -1 || nlimit = 0 then
+                [ s ]
+        else
+                let a = String.sub s 0 i
+                and b = String.sub s (i + 1) (String.length s - i - 1) in
+                a :: (split ~limit: nlimit c b)
+
+end
+
+
 module Buf = struct
   type t =
     | Base of Bitstring.t
@@ -262,6 +315,10 @@ module Dir_entry = struct
     secs: int;
     ms: int;
   }
+  let epoch = {
+    year = 0; month = 0; day = 0;
+    hours = 0; mins = 0; secs = 0; ms = 0;
+  }
 
   type lfn = {
     lfn_deleted: bool;
@@ -293,6 +350,99 @@ module Dir_entry = struct
   | Old of t
   | Lfn of lfn
   | End
+
+  let legal_dos_char = function
+    | 'A' .. 'Z'
+    | '0' .. '9'
+    | ' '
+    | '!' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' 
+    | '-' | '@' | '^' | '_' | '`' | '{'  | '}' | '~' -> true
+    | c -> int_of_char c >= 128
+
+  let legal_dos_string x = Stringext.fold_right (fun c sofar -> sofar && (legal_dos_char c)) x true
+
+  let is_legal_dos_name filename = match Stringext.split '.' filename with
+    | [ one ] -> String.length one <= 8 && (legal_dos_string one)
+    | [ one; two ] -> String.length one <= 8 && (String.length two <= 3) && (legal_dos_string one) && (legal_dos_string two)
+    | _ -> false
+
+  let add_padding p n x =
+    if String.length x >= n then x
+    else
+      let y = String.make n p in
+      String.blit x 0 y 0 (String.length x);
+      y
+
+  let dos_name_of_filename filename =
+    if is_legal_dos_name filename
+    then match Stringext.split '.' filename with
+      | [ one ] -> add_padding ' ' 8 one, "   "
+      | [ one; two ] -> add_padding ' ' 8 one, add_padding ' ' 3 two
+      | _ -> assert false (* implied by is_legal_dos_name *)
+    else
+      let all = Digest.to_hex (Digest.string filename) in
+      let base = String.sub all 0 8 in
+      let ext = String.sub all 8 3 in
+      base, ext
+
+  let ascii_to_utf16 x =
+    let l = String.length x in
+      (* round up to next multiple of 13 *)
+    let padto = (l + 1 + 12) / 13 * 13 in
+    let total = max (l + 1) padto in (* NULL *)
+    let results = String.make (total * 2) (char_of_int 0xff) in
+    for i = 0 to l - 1 do
+      results.[i*2] <- x.[i];
+      results.[i*2+1] <- char_of_int 0;
+    done;
+    results.[l*2] <- char_of_int 0;
+    results.[l*2+1] <- char_of_int 0;
+    results
+
+  let make ?(read_only=false) ?(system=false) ?(subdir=false) filename =
+    (* entries with file size 0 should have start cluster 0 *)
+    let start_cluster = 0 and file_size = 0l in
+    let legal = is_legal_dos_name filename in
+    let lfns =
+      if legal
+      then []
+      else
+        (* chop filename into 13 character / 26 byte chunks *)
+	let padded_utf16 = ascii_to_utf16 filename in
+	let rec inner acc seq i =
+	  let last = i + 26 = String.length padded_utf16 in
+	  let finished = i + 26 > String.length padded_utf16 in
+	  if finished then acc
+	  else
+	    let chunk = String.sub padded_utf16 i 26 in
+	    let lfn = {
+	      lfn_deleted = false;
+	      lfn_last = last;
+	      lfn_seq = seq;
+	      lfn_checksum = 0;
+	      lfn_utf16_name = chunk;
+	    } in
+	    inner (lfn :: acc) (seq + 1) (i + 26) in
+	inner [] 1 0 in
+    let filename, ext = dos_name_of_filename filename in
+    let dos = {
+      filename = filename;
+      ext = ext;
+      utf_filename = "";
+      deleted = false;
+      read_only = read_only;
+      hidden = false;
+      system = system;
+      volume = false;
+      subdir = subdir;
+      archive = false;
+      create = epoch;
+      access = epoch;
+      modify = epoch;
+      start_cluster = start_cluster;
+      file_size = file_size
+    } in
+    Old dos :: (List.map (fun l -> Lfn l) lfns)
 
   let to_string x =
     let trim_utf16 x =
@@ -345,13 +495,6 @@ module Dir_entry = struct
       | n when x.[n] = p -> inner (n-1)
       | n -> String.sub x 0 (n + 1) in
     inner (String.length x - 1)
-
-  let add_padding p n x =
-    if String.length x >= n then x
-    else
-      let y = String.make n p in
-      String.blit x 0 y 0 (String.length x);
-      y
 
   (** Returns the checksum corresponding to the 8.3 DOS filename *)
   let compute_checksum x =
@@ -516,20 +659,6 @@ module Dir_entry = struct
           end in
       inner [] [] (chop (8 * 32) bits)
 
-    let ascii_to_utf16 x =
-      let l = String.length x in
-      (* round up to next multiple of 13 *)
-      let padto = (l + 1 + 12) / 13 * 13 in
-      let total = max (l + 1) padto in (* NULL *)
-      let results = String.make (total * 2) (char_of_int 0xff) in
-      for i = 0 to l - 1 do
-        results.[i*2] <- x.[i];
-        results.[i*2+1] <- char_of_int 0;
-      done;
-      results.[l*2] <- char_of_int 0;
-      results.[l*2+1] <- char_of_int 0;
-      results
-
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)
     let find name list =
@@ -648,58 +777,6 @@ module UnixBlock = struct
 end
 
 module Test = FATFilesystem(UnixBlock)
-
-module Stringext = struct
-open String
-
-let of_char c = String.make 1 c
-
-let fold_right f string accu =
-        let accu = ref accu in
-        for i = length string - 1 downto 0 do
-                accu := f string.[i] !accu
-        done;
-        !accu
-
-let explode string =
-        fold_right (fun h t -> h :: t) string []
-
-let implode list =
-        concat "" (List.map of_char list)
-
-(** True if string 'x' ends with suffix 'suffix' *)
-let endswith suffix x =
-        let x_l = String.length x and suffix_l = String.length suffix in
-        suffix_l <= x_l && String.sub x (x_l - suffix_l) suffix_l = suffix
-
-(** True if string 'x' starts with prefix 'prefix' *)
-let startswith prefix x =
-        let x_l = String.length x and prefix_l = String.length prefix in
-        prefix_l <= x_l && String.sub x 0 prefix_l  = prefix
-
-(** Returns true for whitespace characters, false otherwise *)
-let isspace = function
-        | ' ' | '\n' | '\r' | '\t' -> true
-        | _ -> false
-
-(** Removes all the characters from the ends of a string for which the predicate is true *)
-let strip predicate string =
-        let rec remove = function
-        | [] -> []
-        | c :: cs -> if predicate c then remove cs else c :: cs in
-        implode (List.rev (remove (List.rev (remove (explode string)))))
-
-let rec split ?limit:(limit=(-1)) c s =
-        let i = try String.index s c with Not_found -> -1 in
-        let nlimit = if limit = -1 || limit = 0 then limit else limit - 1 in
-        if i = -1 || nlimit = 0 then
-                [ s ]
-        else
-                let a = String.sub s 0 i
-                and b = String.sub s (i + 1) (String.length s - i - 1) in
-                a :: (split ~limit: nlimit c b)
-
-end
 
 let () =
   let usage () =

@@ -691,19 +691,15 @@ module Dir_entry = struct
           end in
       inner 0 (chop (8 * 32) bits)
 
+    let name_match name d =
+      let utf_name = ascii_to_utf16 name in
+      let dos_filename = d.filename ^ "." ^ d.ext in
+      dos_filename = name || (utf_name = d.utf_filename)
+
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)
     let find name list =
-      let utf_name = ascii_to_utf16 name in
-      let dos_name = name in (* XXX *)
-      let rec inner = function
-      | [] -> None
-      | x :: xs ->
-        let dos_filename = x.filename ^ "." ^ x.ext in
-        if dos_filename = dos_name then Some x
-        else if x.utf_filename = utf_name then Some x
-        else inner xs in
-      inner list
+      try Some (List.find (name_match name) list) with Not_found -> None
 end
 
 module type BLOCK = sig
@@ -731,6 +727,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   type error =
     | Not_a_directory of string list
     | No_directory_entry of string list * string
+    | File_already_exists of string
   type 'a result =
     | Error of error
     | Success of 'a
@@ -771,11 +768,20 @@ module FATFilesystem = functor(B: BLOCK) -> struct
         Error(No_directory_entry (List.rev sofar, p))
       end in
     inner [] (Dir (Dir_entry.list x.root)) path    
-(*
+
   let create x path =
-    let dirname = Filename.dirname path in
+    let rev_path = List.rev path in
+    let dirname = List.rev (List.tl rev_path) in
+    let filename = List.hd rev_path in
     match find x dirname with
-*)
+      | Error x -> Error x
+      | Success (File _) -> Error(Not_a_directory dirname)
+      | Success (Dir ds) ->
+	if Dir_entry.find filename ds <> None
+	then Error (File_already_exists filename)
+	else
+	  (Printf.printf "Allocate slot in dir entry.\n%!";
+	   Success ())
 end
 
 let filename = ref ""
@@ -840,6 +846,7 @@ let () =
   let handle_error f = function
     | Error (Not_a_directory path) -> Printf.printf "Not a directory (%s).\n%!" (path_to_string path)
     | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s.\n%!" name (path_to_string path)
+    | Error (File_already_exists name) -> Printf.printf "File already exists (%s).\n%!" name
     | Success x -> f x in
 
   let abspath dir =
@@ -878,6 +885,12 @@ let () =
 	  cwd := (string_to_path dir);
 	| File _ -> Printf.printf "Not a directory.\n%!"
       ) (find fs path) in
+  let do_touch x =
+    let path = abspath x in
+    Printf.printf "path = [%s]\n%!" (String.concat ";" path);
+    handle_error
+      (fun () -> ())
+      (create fs path) in
   let finished = ref false in
   while not !finished do
     Printf.printf "A:%s> %!" (path_to_string !cwd);
@@ -886,6 +899,7 @@ let () =
     | [ "dir"; path ] -> do_dir path
     | [ "cd"; path ] -> do_cd path
     | [ "type"; path ] -> do_type path
+    | [ "touch"; path ] -> do_touch path
     | [ "exit" ] -> finished := true
     | [] -> ()
     | cmd :: _ -> Printf.printf "Unknown command: %s\n%!" cmd

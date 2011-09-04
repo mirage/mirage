@@ -405,10 +405,11 @@ module Dir_entry = struct
     let rec inner sum i =
       if i = String.length y then sum
       else
-	let sum' = (sum land 1) lsl 7 + (sum lsr 1) + (int_of_char y.[i]) in
+	(* In [*] below: note the algorithm given by wikipedia uses arithmetic
+	   modulo 256 to make things less obvious than using natural numbers. *)
+	let sum' = (sum land 1) lsl 7 + ((sum (* [*] *) land 0xff) lsr 1) + (int_of_char y.[i]) in
 	inner sum' (i + 1) in
     (inner 0 0) land 0xff
-
 
   let make ?(read_only=false) ?(system=false) ?(subdir=false) filename =
     (* entries with file size 0 should have start cluster 0 *)
@@ -454,6 +455,19 @@ module Dir_entry = struct
 	    inner (lfn :: acc) (seq + 1) (i + 26) in
 	inner [] 1 0 in
     Old dos :: (List.map (fun l -> Lfn l) lfns)
+
+  let _ =
+    let checksum_tests = [
+      make "MAKEFILE", 193;
+      make "FAT.ML", 223;
+    ] in
+    List.iter (fun (d, expected) -> match d with
+      | [ Old d ] ->
+	let checksum = compute_checksum d in
+	if checksum <> expected then failwith (Printf.sprintf "checksum_tests: %s.%s expected=%d actual=%d" d.filename d.ext expected checksum)
+      | _ -> failwith "checksum_tests: didn't recognise a pure DOS name"
+    ) checksum_tests
+
 
   let to_string x =
     let trim_utf16 x =
@@ -644,6 +658,7 @@ module Dir_entry = struct
           begin match of_bitstring b with
             | Lfn lfn -> inner (lfn :: lfns) acc bs
             | Old d ->
+	      let expected_checksum = compute_checksum d in
 	      (* TESTING ONLY *)
               let b' = to_bitstring (Old d) in
 	      if bitstring_compare b b' <> 0 then begin
@@ -654,6 +669,10 @@ module Dir_entry = struct
 	      end;
                        (* reconstruct UTF text from LFNs *)
 	      let lfns = List.sort (fun a b -> compare a.lfn_seq b.lfn_seq) lfns in
+	      List.iter
+		(fun l -> if l.lfn_checksum <> expected_checksum then begin
+		  Printf.printf "Filename: %s.%s; expected_checksum = %d; actual = %d\n%!" d.filename d.ext expected_checksum l.lfn_checksum
+		end) lfns;
               let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
               inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
             | End -> acc

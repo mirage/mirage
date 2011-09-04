@@ -728,9 +728,14 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let root = B.read_sectors (Boot_sector.sectors_of_root_dir boot) in
     { boot = boot; format = format; fat = fat; root = root }
 
-  type find_result =
+  type error =
     | Not_a_directory of string list
     | No_directory_entry of string list * string
+  type 'a result =
+    | Error of error
+    | Success of 'a
+
+  type find =
     | Dir of Dir_entry.t list
     | File of Dir_entry.t
 
@@ -744,30 +749,33 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)
-  let find x path =
+  let find x path : find result =
     let readdir = function
       | Dir ds -> ds
-      | File d -> Dir_entry.list (read_file x d)
-      | _ -> assert false in
+      | File d -> Dir_entry.list (read_file x d) in
     let rec inner sofar current = function
     | [] ->
       begin match current with
-      | Dir ds -> Dir ds
-      | File { Dir_entry.subdir = true } -> Dir (readdir current)
-      | File ({ Dir_entry.subdir = false } as d) -> File d
-      | _ -> assert false
+      | Dir ds -> Success (Dir ds)
+      | File { Dir_entry.subdir = true } -> Success (Dir (readdir current))
+      | File ({ Dir_entry.subdir = false } as d) -> Success (File d)
       end
     | p :: ps ->
       let entries = readdir current in
       begin match Dir_entry.find p entries, ps with
       | Some { Dir_entry.subdir = false }, _ :: _ ->
-        Not_a_directory (List.rev (p :: sofar))
+        Error (Not_a_directory (List.rev (p :: sofar)))
       | Some d, _ ->
         inner (p::sofar) (File d) ps
       | None, _ ->
-        No_directory_entry (List.rev sofar, p)
+        Error(No_directory_entry (List.rev sofar, p))
       end in
     inner [] (Dir (Dir_entry.list x.root)) path    
+(*
+  let create x path =
+    let dirname = Filename.dirname path in
+    match find x dirname with
+*)
 end
 
 let filename = ref ""
@@ -831,38 +839,38 @@ let () =
     if dir = "" then !cwd
     else if dir.[0] = '/' then (string_to_path dir)
     else !cwd @ (string_to_path dir) in
-  let module T = Test in
+  let open Test in
   let do_dir dir =
     let path = abspath dir in
-    match T.find fs path with
-    | T.Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
-    | T.No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
-    | T.Dir dirs ->
+    match find fs path with
+    | Error (Not_a_directory _) -> Printf.printf "Not a directory.\n%!"
+    | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
+    | Success (Dir dirs) ->
       Printf.printf "Directory for A:%s\n\n" (path_to_string path);
       List.iter
         (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
       Printf.printf "%9d files\n%!" (List.length dirs)
-    | T.File _ -> Printf.printf "Not a directory.\n%!" in
+    | Success (File _) -> Printf.printf "Not a directory.\n%!" in
   let do_type file =
     let path = abspath file in
-    match T.find fs path with
-    | T.Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
-    | T.No_directory_entry (path, name) -> Printf.printf "File (%s) not found (in %s)\n%!" name (path_to_string path)
-    | T.Dir dirs ->
+    match find fs path with
+    | Error (Not_a_directory _) -> Printf.printf "Not a directory.\n%!"
+    | Error (No_directory_entry (path, name)) -> Printf.printf "File (%s) not found (in %s)\n%!" name (path_to_string path)
+    | Success (Dir dirs) ->
       Printf.printf "Is a directory.\n%!";
-    | T.File d ->
+    | Success (File d) ->
       Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
-      let data = T.read_file fs d in
+      let data = read_file fs d in
       Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data) in
   let do_cd dir =
     let path = abspath dir in
     Printf.printf "path = [%s]\n%!" (String.concat ";" path);
-    match T.find fs path with
-    | T.Not_a_directory _ -> Printf.printf "Not a directory.\n%!"
-    | T.No_directory_entry (path, name) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
-    | T.Dir _ ->
+    match find fs path with
+    | Error (Not_a_directory _) -> Printf.printf "Not a directory.\n%!"
+    | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s\n%!" name (path_to_string path)
+    | Success (Dir _) ->
       cwd := (string_to_path dir);
-    | T.File _ -> Printf.printf "Not a directory.\n%!" in
+    | Success (File _) -> Printf.printf "Not a directory.\n%!" in
 
   let finished = ref false in
   while not !finished do

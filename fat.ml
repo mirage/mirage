@@ -679,6 +679,18 @@ module Dir_entry = struct
           end in
       inner [] [] (chop (8 * 32) bits)
 
+    (** [next bits] returns the bit offset of a free directory slot. Note this
+        function does not recycle deleted elements. *)
+    let next bits =
+      let rec inner offset = function
+        | [] -> None
+        | b :: bs ->
+          begin match of_bitstring b with
+            | End -> Some offset
+            | _ -> inner (8 * 32 + offset) bs
+          end in
+      inner 0 (chop (8 * 32) bits)
+
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)
     let find name list =

@@ -702,6 +702,29 @@ module Dir_entry = struct
       try Some (List.find (name_match name) list) with Not_found -> None
 end
 
+module Path = (struct
+  type t = string list (* stored in reverse order *)
+  let of_string_list x = List.rev x
+  let to_string_list x = List.rev x
+
+  let directory = List.tl
+  let filename = List.hd
+
+  let to_string p = "/" ^ (String.concat "/" (to_string_list p))
+  let of_string s = if s = "/" || s = "" then [] else of_string_list (Stringext.split '/' s)
+
+  let cd path x = of_string x @ (if x <> "" && x.[0] = '/' then [] else path)
+end: sig
+  type t
+  val of_string_list: string list -> t
+  val to_string_list: t -> string list
+  val directory: t -> t
+  val filename: t -> string
+  val to_string: t -> string
+  val of_string: string -> t
+  val cd: t -> string -> t
+end)
+
 module type BLOCK = sig
   val read_sector: int -> Bitstring.t
   val read_sectors: int list -> Bitstring.t
@@ -725,8 +748,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     { boot = boot; format = format; fat = fat; root = root }
 
   type error =
-    | Not_a_directory of string list
-    | No_directory_entry of string list * string
+    | Not_a_directory of Path.t
+    | No_directory_entry of Path.t * string
     | File_already_exists of string
   type 'a result =
     | Error of error
@@ -761,21 +784,20 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       let entries = readdir current in
       begin match Dir_entry.find p entries, ps with
       | Some { Dir_entry.subdir = false }, _ :: _ ->
-        Error (Not_a_directory (List.rev (p :: sofar)))
+        Error (Not_a_directory (Path.of_string_list (List.rev (p :: sofar))))
       | Some d, _ ->
         inner (p::sofar) (File d) ps
       | None, _ ->
-        Error(No_directory_entry (List.rev sofar, p))
+        Error(No_directory_entry (Path.of_string_list (List.rev sofar), p))
       end in
-    inner [] (Dir (Dir_entry.list x.root)) path    
+    inner [] (Dir (Dir_entry.list x.root)) (Path.to_string_list path)
 
   let create x path =
-    let rev_path = List.rev path in
-    let dirname = List.rev (List.tl rev_path) in
-    let filename = List.hd rev_path in
-    match find x dirname with
+    let filename = Path.filename path in
+    let dir = Path.directory path in
+    match find x dir with
       | Error x -> Error x
-      | Success (File _) -> Error(Not_a_directory dirname)
+      | Success (File _) -> Error(Not_a_directory dir)
       | Success (Dir ds) ->
 	if Dir_entry.find filename ds <> None
 	then Error (File_already_exists filename)
@@ -838,35 +860,28 @@ let () =
 
   let fs = Test.make () in
 
-  let cwd = ref [] in
-  let path_to_string p = "/" ^ (String.concat "/" p) in
-  let string_to_path s = if s = "/" then [] else Stringext.split '/' s in
-
   let open Test in
   let handle_error f = function
-    | Error (Not_a_directory path) -> Printf.printf "Not a directory (%s).\n%!" (path_to_string path)
-    | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s.\n%!" name (path_to_string path)
+    | Error (Not_a_directory path) -> Printf.printf "Not a directory (%s).\n%!" (Path.to_string path)
+    | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s.\n%!" name (Path.to_string path)
     | Error (File_already_exists name) -> Printf.printf "File already exists (%s).\n%!" name
     | Success x -> f x in
 
-  let abspath dir =
-    if dir = "" then !cwd
-    else if dir.[0] = '/' then (string_to_path dir)
-    else !cwd @ (string_to_path dir) in
+  let cwd = ref (Path.of_string "/") in
 
   let do_dir dir =
-    let path = abspath dir in
+    let path = Path.cd !cwd dir in
     handle_error
       (function
 	| Dir dirs ->
-	  Printf.printf "Directory for A:%s\n\n" (path_to_string path);
+	  Printf.printf "Directory for A:%s\n\n" (Path.to_string path);
 	  List.iter
             (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
 	  Printf.printf "%9d files\n%!" (List.length dirs)
 	| File _ -> Printf.printf "Not a directory.\n%!"
       ) (find fs path) in
   let do_type file =
-    let path = abspath file in
+    let path = Path.cd !cwd file in
     handle_error
       (function
 	| Dir dirs ->
@@ -877,23 +892,23 @@ let () =
 	  Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data)
       ) (find fs path) in
   let do_cd dir =
-    let path = abspath dir in
-    Printf.printf "path = [%s]\n%!" (String.concat ";" path);
+    let path = Path.cd !cwd dir in
+    Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
       (function
 	| Dir _ ->
-	  cwd := (string_to_path dir);
+	  cwd := path
 	| File _ -> Printf.printf "Not a directory.\n%!"
       ) (find fs path) in
   let do_touch x =
-    let path = abspath x in
-    Printf.printf "path = [%s]\n%!" (String.concat ";" path);
+    let path = Path.cd !cwd x in
+    Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
       (fun () -> ())
       (create fs path) in
   let finished = ref false in
   while not !finished do
-    Printf.printf "A:%s> %!" (path_to_string !cwd);
+    Printf.printf "A:%s> %!" (Path.to_string !cwd);
     match Stringext.split ~limit:2 ' ' (input_line stdin) with
     | [ "dir" ] -> do_dir ""
     | [ "dir"; path ] -> do_dir path

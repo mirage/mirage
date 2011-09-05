@@ -70,20 +70,16 @@ let rec split ?limit:(limit=(-1)) c s =
 end
 
 
-module Buf = struct
-  type t =
-    | Base of Bitstring.t
-    | Update of (int * Bitstring.t * t)
+module Update = struct
+  type t = { offset: int64; data: Bitstring.t }
 
-  let make x = Base x
-  let write x offset bs = Update(offset, bs, x)
+  let make offset data = { offset = offset; data = data }
+  let move offset x = { x with offset = Int64.add x.offset offset }
 
-  let rec flatten = function
-    | Base x -> Bitstring.bitstring_of_string (Bitstring.string_of_bitstring x)
-    | Update (offset_bytes, bs, x) ->
-      let x' = flatten x in
-      bitstring_write bs offset_bytes x';
-      x'
+  let apply bs x =
+    let data = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring x.data) in
+    bitstring_write data (Int64.to_int x.offset) bs;
+    data
 end
 
 type format = FAT12 | FAT16 | FAT32
@@ -211,12 +207,12 @@ module Fat_entry = struct
     let bs = BITSTRING {
       x' : 16 : littleendian
     } in
-    Buf.write (Buf.make fat) (2 * n) bs
+    Update.make (Int64.of_int (2 * n)) bs
 
   (* TESTING only *)
   let of_fat16 n fat =
     let x = of_fat16 n fat in
-    let fat' = Buf.flatten (to_fat16 n fat x) in
+    let fat' = Update.apply fat (to_fat16 n fat x) in
     if bitstring_compare fat fat' <> 0 then begin
       Printf.printf "before =\n";
       Bitstring.hexdump_bitstring stdout fat;
@@ -238,7 +234,7 @@ module Fat_entry = struct
     let bs = BITSTRING {
       x' : 32 : littleendian
     } in
-    Buf.write (Buf.make fat) (4 * n) bs
+    Update.make (Int64.of_int (4 * n)) bs
   let of_fat12 n fat =
     (* 2 entries span groups of 3 bytes *)
     bitmatch fat with
@@ -316,7 +312,7 @@ module Dir_entry = struct
     ms: int;
   }
   let epoch = {
-    year = 0; month = 0; day = 0;
+    year = 1980; month = 0; day = 0;
     hours = 0; mins = 0; secs = 0; ms = 0;
   }
 
@@ -380,7 +376,7 @@ module Dir_entry = struct
       | [ one; two ] -> add_padding ' ' 8 one, add_padding ' ' 3 two
       | _ -> assert false (* implied by is_legal_dos_name *)
     else
-      let all = Digest.to_hex (Digest.string filename) in
+      let all = String.uppercase (Digest.to_hex (Digest.string filename)) in
       let base = String.sub all 0 8 in
       let ext = String.sub all 8 3 in
       base, ext
@@ -414,9 +410,9 @@ module Dir_entry = struct
   let make ?(read_only=false) ?(system=false) ?(subdir=false) filename =
     (* entries with file size 0 should have start cluster 0 *)
     let start_cluster = 0 and file_size = 0l in
-    let filename, ext = dos_name_of_filename filename in
+    let filename', ext = dos_name_of_filename filename in
     let dos = {
-      filename = filename;
+      filename = filename';
       ext = ext;
       utf_filename = "";
       deleted = false;
@@ -619,7 +615,6 @@ module Dir_entry = struct
 	let last_access_date = int_of_date x.access in
 	let last_modify_time = int_of_time x.modify in
 	let last_modify_date = int_of_date x.modify in
-	
 	BITSTRING {
 	  filename: (8 * 8): string;
           ext: (3 * 8): string;
@@ -691,6 +686,19 @@ module Dir_entry = struct
           end in
       inner 0 (chop (8 * 32) bits)
 
+    (** [update block dir_entries] return the update required to add [dir_entries]
+        to the directory [block]. None indicates the [dir_entries] don't fit. *)
+    let update block dir_entries =
+      let needed = 32 * (List.length dir_entries) * 8 in
+      match next block with
+	| None -> None
+	| Some free_bit ->
+	  if Bitstring.bitstring_length block - free_bit < needed
+	  then None
+	  else
+	    let bits = Bitstring.concat (List.map to_bitstring dir_entries) in
+	    Some (Update.make (Int64.of_int (free_bit / 8)) bits)
+
     let name_match name d =
       let utf_name = ascii_to_utf16 name in
       let dos_filename = d.filename ^ "." ^ d.ext in
@@ -714,6 +722,7 @@ module Path = (struct
   let of_string s = if s = "/" || s = "" then [] else of_string_list (Stringext.split '/' s)
 
   let cd path x = of_string x @ (if x <> "" && x.[0] = '/' then [] else path)
+  let is_root p = p = []
 end: sig
   type t
   val of_string_list: string list -> t
@@ -723,6 +732,7 @@ end: sig
   val to_string: t -> string
   val of_string: string -> t
   val cd: t -> string -> t
+  val is_root: t -> bool
 end)
 
 module type BLOCK = sig
@@ -751,6 +761,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     | Not_a_directory of Path.t
     | No_directory_entry of Path.t * string
     | File_already_exists of string
+    | No_space
   type 'a result =
     | Error of error
     | Success of 'a
@@ -794,6 +805,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 
   let create x path =
     let filename = Path.filename path in
+    let dir_entries = Dir_entry.make filename in
+
     let dir = Path.directory path in
     match find x dir with
       | Error x -> Error x
@@ -802,8 +815,13 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	if Dir_entry.find filename ds <> None
 	then Error (File_already_exists filename)
 	else
-	  (Printf.printf "Allocate slot in dir entry.\n%!";
-	   Success ())
+	  (* Unfortunately we have to special-case the root dir *)
+	  let block =
+	    if Path.is_root dir then x.root
+	    else failwith "XXX" (* need to read the chain *) in
+	  match Dir_entry.update block dir_entries with
+	    | None -> Error No_space
+	    | Some update -> Success update
 end
 
 let filename = ref ""
@@ -865,6 +883,7 @@ let () =
     | Error (Not_a_directory path) -> Printf.printf "Not a directory (%s).\n%!" (Path.to_string path)
     | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s.\n%!" name (Path.to_string path)
     | Error (File_already_exists name) -> Printf.printf "File already exists (%s).\n%!" name
+    | Error No_space -> Printf.printf "Out of space.\n%!"
     | Success x -> f x in
 
   let cwd = ref (Path.of_string "/") in
@@ -904,7 +923,10 @@ let () =
     let path = Path.cd !cwd x in
     Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
-      (fun () -> ())
+      (fun update ->
+	Printf.printf "Write at offset %Ld:\n" update.Update.offset;
+	Bitstring.hexdump_bitstring stdout update.Update.data;
+      )
       (create fs path) in
   let finished = ref false in
   while not !finished do

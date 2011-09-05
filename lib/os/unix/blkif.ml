@@ -35,7 +35,7 @@ let read_page t offset =
   else
     return (buf,0,4096*8)
 
-let create id : Types.blkif Lwt.t =
+let create id : Devices.blkif Lwt.t =
   printf "Blkif: plug %s\n%!" id;
   lwt fd =
     try_lwt

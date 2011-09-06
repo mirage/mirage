@@ -14,7 +14,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t
 type id = string
 
-val create : id -> Devices.blkif Lwt.t
+type 'a provider = <
+  create : id -> 'a Lwt.t;
+  destroy : 'a -> unit;
+  id : string;
+  plug : id Lwt_mvar.t;
+  unplug : id Lwt_mvar.t 
+>
+
+type blkif = <
+  read_page: int64 -> Bitstring.t Lwt.t;
+  sector_size: int;
+  ppname: string;
+  destroy: unit;
+>
+
+type kv_ro = <
+  iter_s: (string -> unit Lwt.t) -> unit Lwt.t;
+  read: string -> Bitstring.t Lwt_stream.t option Lwt.t;
+  size: string -> int64 option Lwt.t;
+>
+
+type 'a mgr
+
+module Blkif : sig
+  val new_provider : blkif provider -> unit
+  val manager : (blkif mgr -> id -> blkif -> unit Lwt.t) -> unit Lwt.t
+end
+
+module KV_RO : sig
+  val new_provider : kv_ro provider -> unit
+  val manager : (kv_ro mgr -> id -> kv_ro -> unit Lwt.t) -> unit Lwt.t
+end

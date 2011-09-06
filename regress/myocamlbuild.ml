@@ -187,8 +187,9 @@ module Spec = struct
 
   (** Spec file describing the test and dependencies *)
   type t = {
-    backends: backend list;
+    backends: backend list; (* supported backends *)
     expect: int;  (* return code to expect from the script *)
+    vbds: string list;
   }
 
   let backend_of_string = function
@@ -253,7 +254,10 @@ module Spec = struct
     let expect =
       try (int_of_string (List.assoc "expect" kvs))
       with Not_found -> 0
-    in {backends; expect}
+    in 
+    let vbds = 
+       List.fold_left (fun a (k,v) -> if k = "vbd" then v :: a else a) [] kvs in
+    {backends; expect; vbds}
 
   (* Convert a list of Outcomes into a logging Echo command *)
   let log_outcomes file ocs =
@@ -277,8 +281,19 @@ module Spec = struct
           (* If a test is expected to fail, then we need to pass this to mir-run *)
           let return = match spec.expect with
              |0 -> [N] |e -> [A"-e"; A(string_of_int e)] in
+          (* Add -vbd command line. "*" will generate a new temporary vbd *)
+          let vbdnum = ref 0 in
+          let vbds = List.flatten (List.map (fun vbd ->
+            let name =
+              if vbd = "*" then
+                (incr vbdnum; env "%(test).%(backend).disk" ^ (string_of_int !vbdnum))
+              else 
+                Pathname.dirname prod / vbd
+            in
+            [A"-vbd";P name]) spec.vbds) 
+          in
           (* Execute the binary using the mir-run wrapper and log its output to prod *)
-          Cmd (S ([A "mir-run"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ return @[A binary]))
+          Cmd (S ([A "mir-run"; A"-create-vbds"; A"10"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ return @[A binary]))
         end else begin
           (* Unsupported backend for this test, so mark as skipped in the log *)
           Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 

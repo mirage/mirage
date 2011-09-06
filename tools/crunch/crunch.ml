@@ -99,45 +99,62 @@ let output_footer () =
   printf " |_ -> None\n\n";
   printf "end\n\n"
 
-let output_skeleton () =
+let output_skeleton name =
+  printf "let name=\"%s\"\n" name;
   let skeleton="
 open Lwt
 
 exception Error of string
 
-type t = unit
+let iter_s fn = Lwt_list.iter_s fn Internal.file_list
 
-let create vbd : t Lwt.t = return ()
+let size name = return (Internal.size name)
 
-let iter_s vbd fn = Lwt_list.iter_s fn Internal.file_list
+let read name =
+  match Internal.file_chunks name with
+  |None -> return None
+  |Some c ->
+     let chunks = ref c in
+     return (Some (Lwt_stream.from (fun () ->
+       match !chunks with
+       |hd :: tl -> return (Some (Bitstring.bitstring_of_string hd))
+       |[] -> return None
+     )))
 
-let size vbd name = return (Internal.size name)
+let create vbd : OS.Devices.kv_ro Lwt.t =  
+  return (object
+    method iter_s fn = iter_s fn
+    method read name = read name
+    method size name = size name
+  end)
 
-let read vbd name =
-  Lwt.bind (
-    match Internal.file_chunks name with
-    |Some c -> return (ref c)
-    |None -> fail (Error (\"File not found: \" ^ name))
-  ) (fun chunks ->
-      return (Lwt_stream.from (fun () ->
-      match !chunks with
-      |hd :: tl -> return (Some (Bitstring.bitstring_of_string hd))
-      |[] -> return None
-      ))
-    ) 
+let _ =
+  let plug = Lwt_mvar.create_empty () in
+  let unplug = Lwt_mvar.create_empty () in
+  let provider = object
+    method id = name
+    method create id = create id
+    method destroy x = ()
+    method plug = plug
+    method unplug = unplug
+  end in
+  OS.Devices.KV_RO.new_provider provider;
+  OS.Main.at_enter (fun () -> Lwt_mvar.put plug name)
 " in
   print_endline skeleton
 
 let _ =
   let dirs = ref [] in
   let ext = ref None in
-  let spec = [("-ext", String (fun e -> ext := Some e), "filter only these extensions")] in
+  let name = ref "crunch" in
+  let spec = [("-ext", String (fun e -> ext := Some e), "filter only these extensions");
+               "-name", Set_string name, "Name of the VBD"] in
   parse spec (fun s -> dirs := (realpath s) :: !dirs) 
     (sprintf "Usage: %s [-ext <filter extension>] <dir1> <dir2> ..." Sys.argv.(0));
   let ext = !ext in
   output_header ();
   List.iter (walk_directory_tree ?ext output_file) !dirs;
   output_footer ();
-  output_skeleton ()
+  output_skeleton !name
   
 

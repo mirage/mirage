@@ -17,6 +17,26 @@ let bitstring_compare ((a_s, a_off, a_len) as a) ((b_s, b_off, b_len) as b) =
   (* We don't expect unaligned strings *)
   compare (Bitstring.string_of_bitstring a) (Bitstring.string_of_bitstring b)
 
+(** [bitstring_chop n b] splits [b] into a list of bitstrings, all but possibly
+    the last of size [n] *)
+let bitstring_chop n bits =
+  let module B = Bitstring in
+  let rec inner acc bits =
+    if B.bitstring_length bits <= n then bits :: acc
+    else inner (B.takebits n bits :: acc) (B.dropbits n bits) in
+  List.rev (inner [] bits)
+
+(** [bitstring_clip s offset length] returns the sub-bitstring which exists
+    between [offset] and [length] *)
+let bitstring_clip (s_s, s_off, s_len) offset length =
+  let s_end = s_off + s_len in
+  let the_end = offset + length in
+  let offset' = max s_off offset in
+  let end' = min s_end the_end in
+  let length' = max 0 (end' - offset') in
+  s_s, offset', length'
+
+
 module Stringext = struct
 open String
 
@@ -80,6 +100,13 @@ module Update = struct
     let data = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring x.data) in
     bitstring_write data (Int64.to_int x.offset) bs;
     data
+
+  let clip x offset length = failwith "Unimplemented"
+
+  (** [split x sectors] maps a single update over a list of sectors. *)
+  let split x sectors sector_size =
+    let regions = List.map (fun s -> s * sector_size * 8, sector_size * 8) sectors in
+    List.map (fun (offset, length) -> clip x offset length) regions
 end
 
 type format = FAT12 | FAT16 | FAT32
@@ -638,13 +665,6 @@ module Dir_entry = struct
 	  x.file_size: 32: littleendian
 	}
 
-    let chop n bits =
-      let module B = Bitstring in
-      let rec inner acc bits =
-        if B.bitstring_length bits <= n then bits :: acc
-        else inner (B.takebits n bits :: acc) (B.dropbits n bits) in
-      List.rev (inner [] bits)
-
     let list bits =
       (* Stop as soon as we find a None *)
       let rec inner lfns acc = function
@@ -672,7 +692,7 @@ module Dir_entry = struct
               inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
             | End -> acc
           end in
-      inner [] [] (chop (8 * 32) bits)
+      inner [] [] (bitstring_chop (8 * 32) bits)
 
     (** [next bits] returns the bit offset of a free directory slot. Note this
         function does not recycle deleted elements. *)
@@ -684,7 +704,7 @@ module Dir_entry = struct
             | End -> Some offset
             | _ -> inner (8 * 32 + offset) bs
           end in
-      inner 0 (chop (8 * 32) bits)
+      inner 0 (bitstring_chop (8 * 32) bits)
 
     (** [update block dir_entries] return the update required to add [dir_entries]
         to the directory [block]. None indicates the [dir_entries] don't fit. *)
@@ -770,12 +790,12 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     | Dir of Dir_entry.t list
     | File of Dir_entry.t
 
-  let read_file x { Dir_entry.start_cluster = cluster; file_size = file_size; subdir = subdir } =
+  let sectors_of_file x { Dir_entry.start_cluster = cluster; file_size = file_size; subdir = subdir } =
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
-    Printf.printf "chain = [ %s ]\n%!" (String.concat "; " (List.map string_of_int chain));
-    let sectors = List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain) in
-    Printf.printf "sectors = [ %s ]\n%!" (String.concat "; " (List.map string_of_int sectors));
-    let all = B.read_sectors sectors in
+    List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain)
+
+  let read_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
+    let all = B.read_sectors (sectors_of_file x f) in
     if subdir then all else Bitstring.subbitstring all 0 (Int32.to_int file_size * 8)
 
   (** [find x path] returns a [find_result] corresponding to the object
@@ -816,12 +836,22 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	then Error (File_already_exists filename)
 	else
 	  (* Unfortunately we have to special-case the root dir *)
-	  let block =
-	    if Path.is_root dir then x.root
-	    else failwith "XXX" (* need to read the chain *) in
-	  match Dir_entry.update block dir_entries with
+	  let sectors =
+	    if Path.is_root dir
+	    then Boot_sector.sectors_of_root_dir x.boot
+	    else match find x (Path.directory dir) with
+	      | Error x -> assert false
+	      | Success (File _) -> assert false
+	      | Success (Dir ds) ->
+		begin match Dir_entry.find filename ds with
+		  | None -> assert false
+		  | Some f ->
+		    sectors_of_file x f
+		end in
+	  let contents = B.read_sectors sectors in
+	  match Dir_entry.update contents dir_entries with
 	    | None -> Error No_space
-	    | Some update -> Success update
+	    | Some big_update -> Success (Update.split big_update sectors x.boot.Boot_sector.bytes_per_sector)
 end
 
 let filename = ref ""
@@ -923,9 +953,12 @@ let () =
     let path = Path.cd !cwd x in
     Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
-      (fun update ->
-	Printf.printf "Write at offset %Ld:\n" update.Update.offset;
-	Bitstring.hexdump_bitstring stdout update.Update.data;
+      (fun updates ->
+	List.iter
+	  (fun update ->
+	    Printf.printf "Write at offset %Ld:\n" update.Update.offset;
+	    Bitstring.hexdump_bitstring stdout update.Update.data
+	  ) updates
       )
       (create fs path) in
   let finished = ref false in

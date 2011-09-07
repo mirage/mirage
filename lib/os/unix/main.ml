@@ -33,10 +33,12 @@ let rec call_hooks hooks  =
     | None ->
         return ()
     | Some f ->
-        lwt () =
+        (* Run the hooks in parallel *)
+        let _ =
           try_lwt
             f ()
           with exn ->
+            Printf.printf "enter_t: exn %s\n%!" (Printexc.to_string exn);
             return ()
         in
         call_hooks hooks

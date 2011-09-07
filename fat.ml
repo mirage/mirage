@@ -836,9 +836,12 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     | Dir of Dir_entry.t list
     | File of Dir_entry.t
 
+  let sectors_of_chain x chain =
+    List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain)
+       
   let sectors_of_file x { Dir_entry.start_cluster = cluster; file_size = file_size; subdir = subdir } =
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
-    List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain)
+    sectors_of_chain x chain
 
   let read_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
     let all = B.read_sectors (sectors_of_file x f) in
@@ -869,6 +872,22 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       end in
     inner [] (Dir (Dir_entry.list x.root)) (Path.to_string_list path)
 
+  (** [chain_of_file x path] returns [Some chain] where [chain] is the chain
+      corresponding to [path] or [None] if [path] cannot be found or if it
+      is / and hasn't got a chain. *)
+  let chain_of_file x path =
+    if Path.is_root path then None
+    else
+      let parent_path = Path.directory path in
+      match find x parent_path with
+	| Success (Dir ds) ->
+	  begin match Dir_entry.find (Path.filename path) ds with
+	    | None -> assert false
+	    | Some f ->
+	      Some(Fat_entry.follow_chain x.format x.fat f.Dir_entry.start_cluster)
+	  end
+	| _ -> None
+
   let create x path =
     let filename = Path.filename path in
     let dir_entries = Dir_entry.make filename in
@@ -882,22 +901,10 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	then Error (File_already_exists filename)
 	else
 	  (* Unfortunately we have to special-case the root dir *)
-	  let sectors, chain =
-	    if Path.is_root parent_path
-	    then Boot_sector.sectors_of_root_dir x.boot, None (* no chain *)
-	    else
-	      (* We need to look for the Dir_entry.t in the grandparent
-		 directory which corresponds to the parent (Dir ds) *)
-	      let grandparent_path = Path.directory parent_path in
-	      match find x grandparent_path with
-	      | Error x -> assert false
-	      | Success (File _) -> assert false
-	      | Success (Dir ds) ->
-		begin match Dir_entry.find (Path.filename parent_path) ds with
-		  | None -> assert false
-		  | Some f ->
-		    sectors_of_file x f, Some(Fat_entry.follow_chain x.format x.fat f.Dir_entry.start_cluster)
-		end in
+	  let chain = chain_of_file x parent_path in
+	  let sectors = match chain with
+	    | None -> Boot_sector.sectors_of_root_dir x.boot
+	    | Some c -> sectors_of_chain x c in
 	  Printf.printf "Directory occupies sectors: [ %s ]\n%!" (String.concat ", " (List.map string_of_int sectors));
 	  let contents = B.read_sectors sectors in
 	  let bps = x.boot.Boot_sector.bytes_per_sector in
@@ -916,7 +923,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	    | Some cs ->
 	      let last = List.hd(List.tl cs) in
 	      let allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
-	      let new_sectors = List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) new_clusters) in
+	      let new_sectors = sectors_of_chain x new_clusters in
 	      let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
 	      Success (allocations @ data_writes)
 end

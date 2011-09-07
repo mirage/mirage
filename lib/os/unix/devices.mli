@@ -16,35 +16,42 @@
 
 type id = string
 
-type 'a provider = <
-  create : id -> 'a Lwt.t;
-  destroy : 'a -> unit;
+type blkif = <
+  id : string;
+  destroy : unit;
+  ppname : string;
+  read_page : int64 -> Bitstring.t Lwt.t;
+  sector_size : int 
+>
+
+type kv_ro = <
+  iter_s : (string -> unit Lwt.t) -> unit Lwt.t;
+  read : string -> Bitstring.t Lwt_stream.t option Lwt.t;
+  size : string -> int64 option Lwt.t 
+>
+
+type entry = {
+  provider : provider;
+  id : string;
+  depends : entry list;
+  node : device;
+}
+
+and device =
+  | Blkif of blkif
+  | KV_RO of kv_ro
+
+and provider = <
+  create : id -> entry Lwt.t;
   id : string;
   plug : id Lwt_mvar.t;
   unplug : id Lwt_mvar.t 
 >
 
-type blkif = <
-  read_page: int64 -> Bitstring.t Lwt.t;
-  sector_size: int;
-  ppname: string;
-  destroy: unit;
->
+val new_provider : provider -> unit
 
-type kv_ro = <
-  iter_s: (string -> unit Lwt.t) -> unit Lwt.t;
-  read: string -> Bitstring.t Lwt_stream.t option Lwt.t;
-  size: string -> int64 option Lwt.t;
->
+val find : (entry -> 'a) -> id -> 'a Lwt.t
+val find_blkif : id -> blkif option Lwt.t
+val find_kv_ro : id -> kv_ro option Lwt.t
 
-type 'a mgr
-
-module Blkif : sig
-  val new_provider : blkif provider -> unit
-  val manager : (blkif mgr -> id -> blkif -> unit Lwt.t) -> unit Lwt.t
-end
-
-module KV_RO : sig
-  val new_provider : kv_ro provider -> unit
-  val manager : (kv_ro mgr -> id -> kv_ro -> unit Lwt.t) -> unit Lwt.t
-end
+val listen : (id -> unit Lwt.t) -> unit Lwt.t

@@ -97,16 +97,46 @@ module Update = struct
   let move offset x = { x with offset = Int64.add x.offset offset }
 
   let apply bs x =
-    let data = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring x.data) in
-    bitstring_write data (Int64.to_int x.offset) bs;
-    data
+    let result = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring bs) in
+    bitstring_write x.data (Int64.to_int x.offset) result;
+    result
 
-  let clip x offset length = failwith "Unimplemented"
+  (** [clip x offset length] returns the fraction of the update between
+      [offset] and [offset+length] in bytes *)
+  let clip x offset length =
+    let new_offset = max x.offset offset in
+    let drop_bytes_from_start = Int64.(to_int(sub new_offset x.offset)) in
+    let original_end = Int64.(add x.offset (of_int (Bitstring.bitstring_length x.data * 8))) in
+    let proposed_end = Int64.(add offset (of_int length)) in
+    let new_end = min original_end proposed_end in
+    let new_length = Int64.(to_int(sub new_end new_offset)) in
+    { offset = new_offset; data = bitstring_clip x.data (8 * drop_bytes_from_start) (8 * new_length) }
 
-  (** [split x sectors] maps a single update over a list of sectors. *)
-  let split x sectors sector_size =
-    let regions = List.map (fun s -> s * sector_size * 8, sector_size * 8) sectors in
-    List.map (fun (offset, length) -> clip x offset length) regions
+  let is_empty x = Bitstring.equals Bitstring.empty_bitstring x.data
+  let is_nonempty x = not(is_empty x)
+
+  (** [split x sector_size] returns [x] as a sequence of consecutive updates,
+      each of which corresponds to a region of length [sector_size] *)
+  let split x sector_size =
+    let rec inner acc start =
+      if Int64.(add x.offset (mul 8L (of_int (Bitstring.bitstring_length x.data)))) <= start
+      then List.rev acc
+      else
+	let this = clip x start sector_size in
+	let new_start = Int64.(add start (of_int sector_size)) in
+	inner (this :: acc) new_start in
+    inner [] 0L
+
+  (** [map_updates xs offsets] takes a sequence of virtual sector updates (eg within the
+      virtual address space of a file) and a sequence of physical offsets (eg the
+      location of physical sectors on disk) and returns a sequence of physical
+      sector updates. *)
+  let map_updates xs offsets =
+    let rec inner acc xs offsets = match xs, offsets with
+      | [], _ -> List.rev acc
+      | x :: xs, o :: os -> inner ({ x with offset = Int64.add x.offset o } :: acc) xs os
+      | _, _ -> failwith "not enough sectors" in
+    inner [] xs offsets
 end
 
 type format = FAT12 | FAT16 | FAT32
@@ -851,7 +881,13 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  let contents = B.read_sectors sectors in
 	  match Dir_entry.update contents dir_entries with
 	    | None -> Error No_space
-	    | Some big_update -> Success (Update.split big_update sectors x.boot.Boot_sector.bytes_per_sector)
+	    | Some big_update ->
+	      let bps = x.boot.Boot_sector.bytes_per_sector in
+	      let updates = Update.split big_update bps in
+	      (* This would be a good point to see whether we need to allocate
+		 new sectors and do that too. *)
+	      let offsets = List.map (fun s -> Int64.(mul (of_int bps) (of_int s))) sectors in
+	      Success (List.filter Update.is_nonempty (Update.map_updates updates offsets))
 end
 
 let filename = ref ""

@@ -888,6 +888,38 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  end
 	| _ -> None
 
+  type location =
+    | Chain of int list (** write to a file/directory stored in a chain *)
+    | Rootdir           (** write to the root directory area *)
+
+  (** [write_to_file x location update] applies [update] to the file given by
+      [location]. This will also allocate any additional clusters necessary *)
+  let write_to_file x location update =
+    let bps = x.boot.Boot_sector.bytes_per_sector in
+    let spc = x.boot.Boot_sector.sectors_per_cluster in
+    let updates = Update.split update bps in
+    let sectors = match location with 
+      | Chain clusters -> sectors_of_chain x clusters
+      | Rootdir -> Boot_sector.sectors_of_root_dir x.boot in
+    (* This would be a good point to see whether we need to allocate
+       new sectors and do that too. *)
+    let current_bytes = bps * (List.length sectors) in
+    let bytes_needed = max 0L (Int64.(sub (Update.total_length update) (of_int current_bytes))) in
+    let clusters_needed = Int64.(to_int(div bytes_needed (mul (of_int spc) (of_int bps)))) in
+    match location, bytes_needed > 0L with
+      | Rootdir, true ->
+	Error No_space
+      | (Rootdir | Chain _), false ->
+	Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
+      | Chain cs, true ->
+	let last = List.hd(List.tl cs) in
+	(* XXX: these Fat_entry updates aren't in sector co-ordinates *)
+	let allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
+	let new_sectors = sectors_of_chain x new_clusters in
+	let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
+	Success (allocations @ data_writes)
+
+  (** [create x path] create a zero-length file at [path] *)
   let create x path =
     let filename = Path.filename path in
     let dir_entries = Dir_entry.make filename in
@@ -900,32 +932,12 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	if Dir_entry.find filename ds <> None
 	then Error (File_already_exists filename)
 	else
-	  (* Unfortunately we have to special-case the root dir *)
-	  let chain = chain_of_file x parent_path in
-	  let sectors = match chain with
-	    | None -> Boot_sector.sectors_of_root_dir x.boot
-	    | Some c -> sectors_of_chain x c in
-	  Printf.printf "Directory occupies sectors: [ %s ]\n%!" (String.concat ", " (List.map string_of_int sectors));
+	  let sectors, location = match (chain_of_file x parent_path) with
+	    | None -> Boot_sector.sectors_of_root_dir x.boot, Rootdir
+	    | Some c -> sectors_of_chain x c, Chain c in
 	  let contents = B.read_sectors sectors in
-	  let bps = x.boot.Boot_sector.bytes_per_sector in
 	  let update = Dir_entry.update contents dir_entries in
-	  Printf.printf "Update to virtual file = %s\n%!" (Update.to_string update);
-	  let updates = Update.split update bps in
-	  (* This would be a good point to see whether we need to allocate
-	     new sectors and do that too. *)
-	  let bytes_needed = max 0L (Int64.(sub (Update.total_length update) (of_int (Bitstring.bitstring_length contents / 8)))) in
-	  let clusters_needed = Int64.(to_int(div bytes_needed (mul (of_int x.boot.Boot_sector.sectors_per_cluster) (of_int bps)))) in
-	  if bytes_needed = 0L
-	  then Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
-	  else match chain with
-	    | None -> Error No_space (* cannot extend the root dir *)
-	    | Some [] -> assert false (* XXX? is this a zero-length file? *)
-	    | Some cs ->
-	      let last = List.hd(List.tl cs) in
-	      let allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
-	      let new_sectors = sectors_of_chain x new_clusters in
-	      let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
-	      Success (allocations @ data_writes)
+	  write_to_file x location update
 end
 
 let filename = ref ""

@@ -24,7 +24,6 @@
 open Lwt
 
 external block_domain_timeout : float -> unit = "caml_block_domain_with_timeout"
-external block_domain : unit -> unit = "caml_block_domain"
 
 let exit_hooks = Lwt_sequence.create ()
 let enter_hooks = Lwt_sequence.create ()
@@ -59,10 +58,12 @@ let run t =
     | None -> 
        (* If we have nothing to do, then check for the next
           timeout and block the domain *)
-       let timeout = Time.select_next Clock.time in
-       (match timeout with 
-        |None -> block_domain ()
-        |Some tm -> block_domain_timeout tm)
+       let timeout =
+         match Time.select_next Clock.time with
+         |None -> 86400.0
+         |Some tm -> tm
+       in
+       block_domain_timeout timeout
   in
   (* Register a callback for the JS runtime to restart this function *)
   let _ = Callback.register "Main.run" fn in

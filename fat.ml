@@ -903,17 +903,22 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  let bps = x.boot.Boot_sector.bytes_per_sector in
 	  let update = Dir_entry.update contents dir_entries in
 	  Printf.printf "Update to virtual file = %s\n%!" (Update.to_string update);
+	  let updates = Update.split update bps in
 	  (* This would be a good point to see whether we need to allocate
 	     new sectors and do that too. *)
-	  let extra_space_bytes = max 0L (Int64.(sub (Update.total_length update) (of_int (Bitstring.bitstring_length contents / 8)))) in
-	  let extra_space_clusters = Int64.(div extra_space_bytes (mul (of_int x.boot.Boot_sector.sectors_per_cluster) (of_int bps))) in
-	  let extra_sectors = [] in
-
-	  let updates = Update.split update bps in
-	  Printf.printf "Split into sectors:\n%!";
-	  List.iter (fun x -> Printf.printf "%s\n" (Update.to_string x)) updates;
-
-	  Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
+	  let bytes_needed = max 0L (Int64.(sub (Update.total_length update) (of_int (Bitstring.bitstring_length contents / 8)))) in
+	  let clusters_needed = Int64.(to_int(div bytes_needed (mul (of_int x.boot.Boot_sector.sectors_per_cluster) (of_int bps)))) in
+	  if bytes_needed = 0L
+	  then Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
+	  else match chain with
+	    | None -> Error No_space (* cannot extend the root dir *)
+	    | Some [] -> assert false (* XXX? is this a zero-length file? *)
+	    | Some cs ->
+	      let last = List.hd(List.tl cs) in
+	      let allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
+	      let new_sectors = List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) new_clusters) in
+	      let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
+	      Success (allocations @ data_writes)
 end
 
 let filename = ref ""

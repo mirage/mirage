@@ -98,6 +98,9 @@ module Update = struct
   let make offset data = { offset = offset; data = data }
   let move offset x = { x with offset = Int64.add x.offset offset }
 
+  (** [total_length x] returns the minimum size of the buffer needed to apply this update. *)
+  let total_length x = Int64.add x.offset (Int64.of_int (Bitstring.bitstring_length x.data / 8))
+
   let apply bs x =
     let result = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring bs) in
     bitstring_write x.data (Int64.to_int x.offset) result;
@@ -347,24 +350,29 @@ module Fat_entry = struct
       | _ -> inner (i + 1) in
     inner start
 
-  (** [allocate boot format fat] allocates a free cluster suitable for a
-      new file *)
-  let allocate boot format fat =
-    match find_free_from boot format fat 0 with
-    | Some start ->
-      Some [ to_bitstring format start fat End ]
-    | None -> None
- 
-  (** [extend boot format fat last] allocates a free cluster and extends
-      the chain whose last element is [last] *)
-  let extend boot format fat last =
-    match find_free_from boot format fat last with
-    | Some next ->
-      Some [
-        to_bitstring format next fat End;
-        to_bitstring format last fat (Used next);
-      ]
-    | None -> None
+  (** [extend boot format fat last n] allocates [n] free clusters to extend
+      the chain whose current end is [last] *)
+  let extend boot format fat last n =
+    let rec inner acc start = function
+      | 0 -> acc (* in reverse disk order *)
+      | i ->
+	match find_free_from boot format fat start with
+	  | None -> acc (* out of space *)
+	  | Some c -> inner (c :: acc) (c + 1) (i - 1) in
+    let to_allocate = inner [] last n in
+    if n = 0
+    then [], []
+    else
+      if List.length to_allocate <> n
+      then [], [] (* allocation failed *)
+      else
+	let final = List.hd to_allocate in
+	let to_allocate = List.rev to_allocate in
+	let updates = fst(List.fold_left (fun (acc, last) next ->
+	  to_bitstring format last fat (Used next) :: acc, next
+	) ([], last) to_allocate) in
+
+	to_bitstring format final fat End :: updates (* reverse order *), to_allocate
 end
 
 module Dir_entry = struct
@@ -747,17 +755,15 @@ module Dir_entry = struct
       inner 0 (bitstring_chop (8 * 32) bits)
 
     (** [update block dir_entries] return the update required to add [dir_entries]
-        to the directory [block]. None indicates the [dir_entries] don't fit. *)
+        to the directory [block]. Note the update may be beyond the end of [block],
+        indicating that more space needs to be allocated. *)
     let update block dir_entries =
-      let needed = 32 * (List.length dir_entries) * 8 in
-      match next block with
-	| None -> None
-	| Some free_bit ->
-	  if Bitstring.bitstring_length block - free_bit < needed
-	  then None
-	  else
-	    let bits = Bitstring.concat (List.map to_bitstring dir_entries) in
-	    Some (Update.make (Int64.of_int (free_bit / 8)) bits)
+      let after_block = Bitstring.bitstring_length block in
+      let next_bit = match next block with
+	| Some b -> b
+	| None -> after_block in
+      let bits = Bitstring.concat (List.map to_bitstring dir_entries) in
+      Update.make (Int64.of_int (next_bit / 8)) bits
 
     let name_match name d =
       let utf_name = ascii_to_utf16 name in
@@ -876,9 +882,9 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	then Error (File_already_exists filename)
 	else
 	  (* Unfortunately we have to special-case the root dir *)
-	  let sectors =
+	  let sectors, chain =
 	    if Path.is_root parent_path
-	    then Boot_sector.sectors_of_root_dir x.boot
+	    then Boot_sector.sectors_of_root_dir x.boot, None (* no chain *)
 	    else
 	      (* We need to look for the Dir_entry.t in the grandparent
 		 directory which corresponds to the parent (Dir ds) *)
@@ -890,21 +896,24 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 		begin match Dir_entry.find (Path.filename parent_path) ds with
 		  | None -> assert false
 		  | Some f ->
-		    sectors_of_file x f
+		    sectors_of_file x f, Some(Fat_entry.follow_chain x.format x.fat f.Dir_entry.start_cluster)
 		end in
 	  Printf.printf "Directory occupies sectors: [ %s ]\n%!" (String.concat ", " (List.map string_of_int sectors));
 	  let contents = B.read_sectors sectors in
-	  match Dir_entry.update contents dir_entries with
-	    | None -> Error No_space
-	    | Some big_update ->
-	      Printf.printf "Update to virtual file = %s\n%!" (Update.to_string big_update);
-	      let bps = x.boot.Boot_sector.bytes_per_sector in
-	      let updates = Update.split big_update bps in
-	      Printf.printf "Split into sectors:\n%!";
-	      List.iter (fun x -> Printf.printf "%s\n" (Update.to_string x)) updates;
-	      (* This would be a good point to see whether we need to allocate
-		 new sectors and do that too. *)
-	      Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
+	  let bps = x.boot.Boot_sector.bytes_per_sector in
+	  let update = Dir_entry.update contents dir_entries in
+	  Printf.printf "Update to virtual file = %s\n%!" (Update.to_string update);
+	  (* This would be a good point to see whether we need to allocate
+	     new sectors and do that too. *)
+	  let extra_space_bytes = max 0L (Int64.(sub (Update.total_length update) (of_int (Bitstring.bitstring_length contents / 8)))) in
+	  let extra_space_clusters = Int64.(div extra_space_bytes (mul (of_int x.boot.Boot_sector.sectors_per_cluster) (of_int bps))) in
+	  let extra_sectors = [] in
+
+	  let updates = Update.split update bps in
+	  Printf.printf "Split into sectors:\n%!";
+	  List.iter (fun x -> Printf.printf "%s\n" (Update.to_string x)) updates;
+
+	  Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
 end
 
 let filename = ref ""

@@ -184,6 +184,7 @@ module Spec = struct
    |Node
    |Unix_direct
    |Unix_socket
+   |External
 
   (** Spec file describing the test and dependencies *)
   type t = {
@@ -198,6 +199,7 @@ module Spec = struct
     |"unix-direct" -> Unix_direct
     |"node" -> Node 
     |"unix-socket" -> Unix_socket
+    |"external" -> External
     |x -> failwith ("unknown backend: " ^ x)
 
   let backend_to_string = function
@@ -205,6 +207,7 @@ module Spec = struct
     |Node -> "node"
     |Unix_direct -> "unix-direct"
     |Unix_socket -> "unix-socket"
+    |External -> "external"
 
   (* List of all backends (not all need to be supported) *)
   let all_backends =
@@ -214,14 +217,16 @@ module Spec = struct
   let is_supported =
     let open OS in
     function
-    |Xen -> (host,arch) = (Linux,X86_64)
-    |Node -> js_of_ocaml_installed
-    |Unix_direct |Unix_socket -> true
+    |Xen -> if (host,arch) = (Linux,X86_64) then `Yes else `No
+    |Node -> if js_of_ocaml_installed then `Yes else `No
+    |Unix_direct |Unix_socket -> `Yes
+    |External -> `External
 
   let backends_iter fn spec = List.iter fn spec.backends
   (* Map over backends, calling supported or unsupported on them appropriately *)
   let backends_map supported unsupported spec = 
-    let sup,unsup = List.partition is_supported spec.backends in
+    let sup,unsup = List.partition (fun be ->
+      match is_supported be with |`Yes|`External->true |`No->false) spec.backends in
     (List.map supported sup), (List.map unsupported unsup)
 
   (* Get the build target of a given backend *)
@@ -231,6 +236,7 @@ module Spec = struct
     |Xen -> sprintf "%s/%s.xen" dir name 
     |Node -> sprintf "%s/%s.js" dir name
     |Unix_direct |Unix_socket -> sprintf "%s/%s.bin" dir name
+    |External -> assert false
 
   (** Spec file contains key:value pairs: 
 
@@ -257,8 +263,8 @@ module Spec = struct
       with Not_found -> 0
     in 
     let target =
-      try Some (List.assoc "name" kvs) with
-      Not_found -> None 
+      try Some (List.assoc "name" kvs)
+      with Not_found -> None 
     in
     let vbds = 
        List.fold_left (fun a (k,v) -> if k = "vbd" then v :: a else a) [] kvs in
@@ -278,12 +284,13 @@ module Spec = struct
       (fun env build ->
         let backend = backend_of_string (env "%(backend)") in
         let spec = parse (env "%(test).spec") in
-        if is_supported backend then begin
+        let root_target = match spec.target with
+          |None -> env "%(test)"
+          |Some x -> Pathname.dirname (env "%(test)") / x in
+        match is_supported backend with
+        |`Yes ->
           (* Build the target for this backend *)
           let prod = env "%(test).%(backend).exec" in
-          let root_target = match spec.target with
-            |None -> env "%(test)"
-            |Some x -> Pathname.dirname (env "%(test)") / x in
           let binary = backend_target backend root_target in
           let _ = List.map Outcome.ignore_good (build [[ binary ]]) in
           (* If a test is expected to fail, then we need to pass this to mir-run *)
@@ -302,10 +309,14 @@ module Spec = struct
           in
           (* Execute the binary using the mir-run wrapper and log its output to prod *)
           Cmd (S ([A "mir-run"; A"-create-vbds"; A"10"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ return @[A binary]))
-        end else begin
+        |`No ->
           (* Unsupported backend for this test, so mark as skipped in the log *)
           Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 
-        end
+        |`External ->
+          (* Run a shell script to support external test *)
+          let script = root_target-.-"sh" in
+          List.iter Outcome.ignore_good (build [[script]]);
+          Cmd (S ([A "bash"; P script; A"run"]))
       );
     rule "build and execute all supported backend targets"
        ~prod:"%(test).exec"

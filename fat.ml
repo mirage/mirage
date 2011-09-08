@@ -95,6 +95,8 @@ module Update = struct
 
   let to_string x = Printf.sprintf "Update[offset=%Ld length=%d]" x.offset (Bitstring.bitstring_length x.data / 8)
 
+  let hexdump x = Printf.printf "%s:\n%!" (to_string x); Bitstring.hexdump_bitstring stdout x.data
+
   let make offset data = { offset = offset; data = data }
   let move offset x = { x with offset = Int64.add x.offset offset }
 
@@ -854,8 +856,11 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let sector_offset = Int64.(sub offset (mul sector_number (of_int bps))) in
     let sector = B.read_sector (Int64.to_int sector_number) in
     let sector' = Update.apply sector { update with Update.offset = sector_offset } in
+    Update.hexdump update;
+    ()
+(*
     B.write_sector (Int64.to_int sector_number) sector'
-
+*)
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)
   let find x path : find result =

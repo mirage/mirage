@@ -287,7 +287,8 @@ module Spec = struct
         let root_target = match spec.target with
           |None -> env "%(test)"
           |Some x -> Pathname.dirname (env "%(test)") / x in
-        match is_supported backend with
+        let test_sh = root_target-.-"sh" in
+        let exec_cmd = match is_supported backend with
         |`Yes ->
           (* Build the target for this backend *)
           let prod = env "%(test).%(backend).exec" in
@@ -314,9 +315,16 @@ module Spec = struct
           Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 
         |`External ->
           (* Run a shell script to support external test *)
-          let script = root_target-.-"sh" in
-          List.iter Outcome.ignore_good (build [[script]]);
-          Cmd (S ([A "bash"; P script; A"run"]))
+          Cmd (S ([A "bash"; P test_sh; A"run"]))
+        in
+        (* If a support shell script exists, then run that to prepare the test and clean up after *)
+        match build [[test_sh]] with
+          |[Outcome.Good o] -> 
+             Seq [ Cmd (S [A "bash"; P test_sh; A"prerun"]);
+                   exec_cmd;
+                   Cmd (S [A "bash"; P test_sh; A"postrun"]) ]
+          |[Outcome.Bad o] -> exec_cmd
+          |_ -> assert false
       );
     rule "build and execute all supported backend targets"
        ~prod:"%(test).exec"

@@ -187,6 +187,7 @@ module Spec = struct
 
   (** Spec file describing the test and dependencies *)
   type t = {
+    target: string option; (* the name of the mirage target, defaults to the spec file root *)
     backends: backend list; (* supported backends *)
     expect: int;  (* return code to expect from the script *)
     vbds: string list;
@@ -255,9 +256,13 @@ module Spec = struct
       try (int_of_string (List.assoc "expect" kvs))
       with Not_found -> 0
     in 
+    let target =
+      try Some (List.assoc "name" kvs) with
+      Not_found -> None 
+    in
     let vbds = 
        List.fold_left (fun a (k,v) -> if k = "vbd" then v :: a else a) [] kvs in
-    {backends; expect; vbds}
+    {target; backends; expect; vbds}
 
   (* Convert a list of Outcomes into a logging Echo command *)
   let log_outcomes file ocs =
@@ -276,7 +281,10 @@ module Spec = struct
         if is_supported backend then begin
           (* Build the target for this backend *)
           let prod = env "%(test).%(backend).exec" in
-          let binary = backend_target backend (env "%(test)") in
+          let root_target = match spec.target with
+            |None -> env "%(test)"
+            |Some x -> Pathname.dirname (env "%(test)") / x in
+          let binary = backend_target backend root_target in
           let _ = List.map Outcome.ignore_good (build [[ binary ]]) in
           (* If a test is expected to fail, then we need to pass this to mir-run *)
           let return = match spec.expect with

@@ -527,7 +527,7 @@ module Dir_entry = struct
 	    } in
 	    inner (lfn :: acc) (seq + 1) (i + 26) in
 	inner [] 1 0 in
-    Old dos :: (List.map (fun l -> Lfn l) lfns)
+    List.rev (Old dos :: (List.map (fun l -> Lfn l) lfns))
 
   let _ =
     let checksum_tests = [

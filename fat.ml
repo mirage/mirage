@@ -672,7 +672,7 @@ module Dir_entry = struct
 	let utf1 = String.sub utf 0 10 in
 	let utf2 = String.sub utf 10 12 in
 	let utf3 = String.sub utf 22 4 in
-	let checksum = 0 in (* XXX **)
+	let checksum = l.lfn_checksum in
 	BITSTRING {
 	  seq: 8;
           utf1: (10 * 8): string;

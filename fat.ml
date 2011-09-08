@@ -857,10 +857,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let sector = B.read_sector (Int64.to_int sector_number) in
     let sector' = Update.apply sector { update with Update.offset = sector_offset } in
     Update.hexdump update;
-    ()
-(*
     B.write_sector (Int64.to_int sector_number) sector'
-*)
+
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)
   let find x path : find result =

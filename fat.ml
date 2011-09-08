@@ -804,14 +804,15 @@ end)
 module type BLOCK = sig
   val read_sector: int -> Bitstring.t
   val read_sectors: int list -> Bitstring.t
+  val write_sector: int -> Bitstring.t -> unit
 end
 
 module FATFilesystem = functor(B: BLOCK) -> struct
   type t = {
     boot: Boot_sector.t;
     format: format;      (** FAT12, 16 or 32 *)
-    fat: Bitstring.t;    (** contains the whole FAT *)
-    root: Bitstring.t;   (** contains the root directory *)
+    mutable fat: Bitstring.t;    (** contains the whole FAT *)
+    mutable root: Bitstring.t;   (** contains the root directory *)
   }
   let make () = 
     let boot_sector = B.read_sector 0 in
@@ -846,6 +847,14 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   let read_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
     let all = B.read_sectors (sectors_of_file x f) in
     if subdir then all else Bitstring.subbitstring all 0 (Int32.to_int file_size * 8)
+
+  let write_update x ({ Update.offset = offset; data = data } as update) =
+    let bps = x.boot.Boot_sector.bytes_per_sector in
+    let sector_number = Int64.(div offset (of_int bps)) in
+    let sector_offset = Int64.(sub offset (mul sector_number (of_int bps))) in
+    let sector = B.read_sector (Int64.to_int sector_number) in
+    let sector' = Update.apply sector { update with Update.offset = sector_offset } in
+    B.write_sector (Int64.to_int sector_number) sector'
 
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)
@@ -910,19 +919,25 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | Rootdir, true ->
 	Error No_space
       | (Rootdir | Chain _), false ->
-	Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
+	let writes = Update.map_updates updates (List.map Int64.of_int sectors) bps in
+	List.iter (write_update x) writes;
+	if location = Rootdir then x.root <- Update.apply x.root update;
+	Success ()
       | Chain cs, true ->
 	let last = List.hd(List.tl cs) in
 	let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
 	(* Split the FAT allocations into multiple sectors. Note there might be more than one
 	   per sector. *)
-	let fat_allocations = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
+	let fat_allocations_sectors = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
 	let fat_sectors = Boot_sector.sectors_of_fat x.boot in
-	let fat_writes = Update.map_updates fat_allocations (List.map Int64.of_int fat_sectors) bps in
+	let fat_writes = Update.map_updates fat_allocations_sectors (List.map Int64.of_int fat_sectors) bps in
 
 	let new_sectors = sectors_of_chain x new_clusters in
 	let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
-	Success (data_writes @ fat_writes)
+	List.iter (write_update x) data_writes;
+	List.iter (write_update x) fat_writes;
+	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
+	Success ()
 
   (** [create x path] create a zero-length file at [path] *)
   let create x path =
@@ -976,6 +991,15 @@ module UnixBlock = struct
         let results = String.create sector_size in
         really_read f results 0 sector_size;
         Bitstring.bitstring_of_string results
+      )
+
+  let write_sector n bs =
+    assert(Bitstring.bitstring_length bs / 8 = sector_size);
+    with_file [ Unix.O_WRONLY ] !filename
+      (fun f ->
+	ignore(Unix.lseek f (n * sector_size) Unix.SEEK_SET);
+	let m = Unix.write f (Bitstring.string_of_bitstring bs) 0 sector_size in
+	if m <> sector_size then failwith (Printf.sprintf "short write: sector=%d written=%d" n m)
       )
 
   let read_sectors ss =
@@ -1044,12 +1068,7 @@ let () =
     let path = Path.cd !cwd x in
     Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
-      (fun updates ->
-	List.iter
-	  (fun update ->
-	    Printf.printf "Write at offset %Ld:\n" update.Update.offset;
-	    Bitstring.hexdump_bitstring stdout update.Update.data
-	  ) updates
+      (fun () -> ()
       )
       (create fs path) in
   let finished = ref false in

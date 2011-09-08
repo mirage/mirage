@@ -131,14 +131,21 @@ let create vbd : OS.Devices.kv_ro Lwt.t =
 let _ =
   let plug = Lwt_mvar.create_empty () in
   let unplug = Lwt_mvar.create_empty () in
-  let provider = object
+  let provider = object(self)
     method id = name
-    method create id = create id
-    method destroy x = ()
     method plug = plug
     method unplug = unplug
+    method create id =
+      Lwt.bind (create id) (fun kv ->
+        let entry = OS.Devices.({
+           provider=self;
+           id=self#id;
+           depends=[];
+           node=KV_RO kv }) in
+        return entry
+      )
   end in
-  OS.Devices.KV_RO.new_provider provider;
+  OS.Devices.new_provider provider;
   OS.Main.at_enter (fun () -> Lwt_mvar.put plug name)
 " in
   print_endline skeleton

@@ -913,11 +913,16 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	Success (Update.map_updates updates (List.map Int64.of_int sectors) bps)
       | Chain cs, true ->
 	let last = List.hd(List.tl cs) in
-	(* XXX: these Fat_entry updates aren't in sector co-ordinates *)
-	let allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
+	let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
+	(* Split the FAT allocations into multiple sectors. Note there might be more than one
+	   per sector. *)
+	let fat_allocations = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
+	let fat_sectors = Boot_sector.sectors_of_fat x.boot in
+	let fat_writes = Update.map_updates fat_allocations (List.map Int64.of_int fat_sectors) bps in
+
 	let new_sectors = sectors_of_chain x new_clusters in
 	let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
-	Success (allocations @ data_writes)
+	Success (data_writes @ fat_writes)
 
   (** [create x path] create a zero-length file at [path] *)
   let create x path =

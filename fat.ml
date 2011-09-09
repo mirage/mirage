@@ -822,6 +822,8 @@ module type FS = sig
   (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [x] *)
   val write: t -> Path.t -> int64 -> Bitstring.t -> unit
+
+  val read: t -> Path.t -> Bitstring.t
 end
 
 module FATFilesystem = functor(B: BLOCK) -> struct
@@ -852,9 +854,13 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
     sectors_of_chain x chain
 
-  let read_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
-    let all = B.read_sectors (sectors_of_file x f) in
-    if subdir then all else Bitstring.subbitstring all 0 (Int32.to_int file_size * 8)
+  let read_whole_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
+    B.read_sectors (sectors_of_file x f)
+
+  let read x ({ Dir_entry.file_size = file_size } as f) =
+    let all = read_whole_file x f in (* XXX inefficient! *)
+    let bits = Int32.to_int file_size * 8 in
+    Bitstring.subbitstring all 0 bits
 
   let write_update x ({ Update.offset = offset; data = data } as update) =
     let bps = x.boot.Boot_sector.bytes_per_sector in
@@ -870,7 +876,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   let find x path : find result =
     let readdir = function
       | Dir ds -> ds
-      | File d -> Dir_entry.list (read_file x d) in
+      | File d -> Dir_entry.list (read_whole_file x d) in
     let rec inner sofar current = function
     | [] ->
       begin match current with
@@ -1070,7 +1076,7 @@ let () =
 	  Printf.printf "Is a directory.\n%!";
 	| File d ->
 	  Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
-	  let data = read_file fs d in
+	  let data = read fs d in
 	  Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data)
       ) (find fs path) in
   let do_cd dir =

@@ -804,6 +804,26 @@ module type BLOCK = sig
   val write_sector: int -> Bitstring.t -> unit
 end
 
+type error =
+  | Not_a_directory of Path.t
+  | No_directory_entry of Path.t * string
+  | File_already_exists of string
+  | No_space
+type 'a result =
+  | Error of error
+  | Success of 'a
+
+module type FS = sig
+  type t
+  val make: unit -> t
+
+  val create: t -> Path.t -> unit
+
+  (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
+      filesystem [x] *)
+  val write: t -> Path.t -> int64 -> Bitstring.t -> unit
+end
+
 module FATFilesystem = functor(B: BLOCK) -> struct
   type t = {
     boot: Boot_sector.t;
@@ -820,15 +840,6 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let fat = B.read_sectors (Boot_sector.sectors_of_fat boot) in
     let root = B.read_sectors (Boot_sector.sectors_of_root_dir boot) in
     { boot = boot; format = format; fat = fat; root = root }
-
-  type error =
-    | Not_a_directory of Path.t
-    | No_directory_entry of Path.t * string
-    | File_already_exists of string
-    | No_space
-  type 'a result =
-    | Error of error
-    | Success of 'a
 
   type find =
     | Dir of Dir_entry.t list
@@ -936,6 +947,15 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	List.iter (write_update x) fat_writes;
 	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
 	Success ()
+
+  (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
+      filesystem [x] *)
+  let write x f offset bs =
+    let u = Update.make offset bs in
+    let location = match chain_of_file x f with
+      | None -> Rootdir
+      | Some c -> Chain (sectors_of_chain x c) in
+    write_to_file x location u
 
   (** [create x path] create a zero-length file at [path] *)
   let create x path =

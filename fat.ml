@@ -12,11 +12,6 @@ let bitstring_write ((src_s, src_off, src_len) as src) offset_bytes ((dest_s, de
   assert (bitstring_is_byte_aligned dest);
   String.blit src_s (src_off / 8) dest_s (dest_off / 8 + offset_bytes) (src_len / 8)
 
-(** [bitstring_compare a b] compares the contents of bitstrings *)
-let bitstring_compare ((a_s, a_off, a_len) as a) ((b_s, b_off, b_len) as b) =
-  (* We don't expect unaligned strings *)
-  compare (Bitstring.string_of_bitstring a) (Bitstring.string_of_bitstring b)
-
 (** [bitstring_chop n b] splits [b] into a list of bitstrings, all but possibly
     the last of size [n] *)
 let bitstring_chop n bits =
@@ -285,7 +280,7 @@ module Fat_entry = struct
   let of_fat16 n fat =
     let x = of_fat16 n fat in
     let fat' = Update.apply fat (to_fat16 n fat x) in
-    if bitstring_compare fat fat' <> 0 then begin
+    if Bitstring.compare fat fat' <> 0 then begin
       Printf.printf "before =\n";
       Bitstring.hexdump_bitstring stdout fat;
       Printf.printf "after =\n";
@@ -726,7 +721,7 @@ module Dir_entry = struct
 	      let expected_checksum = compute_checksum d in
 	      (* TESTING ONLY *)
               let b' = to_bitstring (Old d) in
-	      if bitstring_compare b b' <> 0 then begin
+	      if Bitstring.compare b b' <> 0 then begin
                 Printf.printf "On disk:\n";
 		Bitstring.hexdump_bitstring stdout b;
 		Printf.printf "Regenerated:\n";

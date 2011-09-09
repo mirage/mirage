@@ -40,27 +40,6 @@ val ( @? ) : string -> bool -> unit
     @raise Failure signal a failure *) 
 val assert_string : string -> unit
 
-(** [assert_command prg args] Run the command provided.
-
-    @param exit_code expected exit code
-    @param sinput provide this [char Stream.t] as input of the process
-    @param foutput run this function on output, it can contains an
-                   [assert_equal] to check it
-    @param use_stderr redirect [stderr] to [stdout]
-    @param env Unix environment
-    @param verbose if a failure arise, dump stdout/stderr of the process to stderr
-
-    @since 1.1.0
-  *)
-val assert_command : 
-    ?exit_code:Unix.process_status ->
-    ?sinput:char Stream.t ->
-    ?foutput:(char Stream.t -> unit) ->
-    ?use_stderr:bool ->
-    ?env:string array ->
-    ?verbose:bool ->
-    string -> string list -> unit
-
 (** [assert_equal expected real] Compares two values, when they are not equal a
     failure is signaled.
 
@@ -239,17 +218,3 @@ val perform_test : (test_event -> 'a) -> test -> test_result list
     @param verbose print verbose message
   *)
 val run_test_tt : ?verbose:bool -> test -> test_result list
-
-(** Main version of the text based test runner. It reads the supplied command 
-    line arguments to set the verbose level and limit the number of test to 
-    run.
-    
-    @param arg_specs add extra command line arguments
-    @param set_verbose call a function to set verbosity
-
-    @version 1.1.0
-  *)
-val run_test_tt_main : 
-    ?arg_specs:(Arg.key * Arg.spec * Arg.doc) list -> 
-    ?set_verbose:(bool -> unit) -> 
-    test -> test_result list

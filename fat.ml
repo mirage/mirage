@@ -1069,6 +1069,12 @@ let () =
       (fun () -> ()
       )
       (create fs path) in
+  let do_copy x y =
+    let parse_path x =
+      if Stringext.startswith "u:" x
+      then `Outside (String.sub x 2 (String.length x - 2))
+      else `Inside x in
+    () in
   let finished = ref false in
   while not !finished do
     Printf.printf "A:%s> %!" (Path.to_string !cwd);
@@ -1078,6 +1084,7 @@ let () =
     | [ "cd"; path ] -> do_cd path
     | [ "type"; path ] -> do_type path
     | [ "touch"; path ] -> do_touch path
+    | [ "copy"; a; b ] -> do_copy a b
     | [ "exit" ] -> finished := true
     | [] -> ()
     | cmd :: _ -> Printf.printf "Unknown command: %s\n%!" cmd

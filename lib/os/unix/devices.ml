@@ -125,7 +125,7 @@ let rec find matchfn id =
     let th,u = Lwt.task () in
     let node = Lwt_sequence.add_r u seq in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-    th >> find matchfn id
+    th >|= matchfn 
   end
 
 let iter_s fn =

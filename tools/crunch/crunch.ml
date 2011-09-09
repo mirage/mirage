@@ -117,7 +117,9 @@ let read name =
      let chunks = ref c in
      return (Some (Lwt_stream.from (fun () ->
        match !chunks with
-       |hd :: tl -> return (Some (Bitstring.bitstring_of_string hd))
+       |hd :: tl -> 
+         chunks := tl;
+         return (Some (Bitstring.bitstring_of_string hd))
        |[] -> return None
      )))
 

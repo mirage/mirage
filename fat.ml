@@ -84,6 +84,29 @@ let rec split ?limit:(limit=(-1)) c s =
 
 end
 
+(** Instances of SectorMap will map virtual sectors within a file to physical
+    sector numbers on disk *)
+module SectorMap = struct
+  include Map.Make(struct type t = int let compare = compare end)
+
+  let make sectors =
+    fst (List.fold_left (fun (m, i) o -> add i o m, i + 1) (empty,0) sectors)
+
+  (** [find x sector] returns the physical address on disk corresponding to the
+      virtual sector [sector] according to SectorMap [x] *)
+  let find (x: int t) sector =
+    if not (mem sector x) then failwith "fault";
+    find sector x
+
+  (** [transform_offset x sector_size vaddr] returns the physical address on disk
+     corresponding to virtual address [vaddr] according to SectorMap [x] *)
+  let transform_offset (x: int t) sector_size vaddr =
+    let s = Int64.of_int sector_size in
+    let vsector = Int64.(div vaddr s) in
+    let psector = find x (Int64.to_int vsector) in
+    let voffset = Int64.(sub vaddr (mul vsector s)) in
+    Int64.(add voffset (mul (of_int psector) s))
+end
 
 module Update = struct
   type t = { offset: int64; data: Bitstring.t }
@@ -129,24 +152,13 @@ module Update = struct
 	inner (if is_empty this then acc else this :: acc) new_start in
     inner [] 0L
 
-  module IMap = Map.Make(struct type t = int64 let compare = Int64.compare end)
-
   (** [map_updates xs offsets] takes a sequence of virtual sector updates (eg within the
       virtual address space of a file) and a sequence of physical offsets (eg the
       location of physical sectors on disk) and returns a sequence of physical
       sector updates. *)
   let map_updates xs sectors sector_size =
-    (* m maps virtual sector number to physical sector number *)
-    let m = fst (List.fold_left (fun (m, i) o -> IMap.add i o m, Int64.succ i) (IMap.empty,0L) sectors) in
-    (* transform a virtual address to a physical address *)
-    let transform vaddr =
-      let s = Int64.of_int sector_size in
-      let vsector = Int64.(div vaddr s) in
-      let voffset = Int64.(sub vaddr (mul vsector s)) in
-      if not (IMap.mem vsector m) then failwith "fault";
-      let psector = IMap.find vsector m in
-      Int64.(add voffset (mul s psector)) in
-    List.map (fun x -> { x with offset = transform x.offset}) xs
+    let m = SectorMap.make sectors in
+    List.map (fun x -> { x with offset = SectorMap.transform_offset m sector_size x.offset}) xs
 end
 
 type format = FAT12 | FAT16 | FAT32
@@ -857,11 +869,30 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   let read_whole_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
     B.read_sectors (sectors_of_file x f)
 
-  let read x ({ Dir_entry.file_size = file_size } as f) =
-    let all = read_whole_file x f in (* XXX inefficient! *)
-    let bits = Int32.to_int file_size * 8 in
-    Bitstring.subbitstring all 0 bits
-
+  let read x ({ Dir_entry.file_size = file_size } as f) the_start length =
+    let bps = x.boot.Boot_sector.bytes_per_sector in
+    let sm = SectorMap.make (sectors_of_file x f) in
+    (* Clip [length] so that the region is within [file_size] *)
+    let length = min (the_start + length) (Int32.to_int file_size) - the_start in
+    (* Compute the list of sectors from the_start to length inclusive *)
+    let the_end = the_start + length in
+    let start_sector = the_start / bps in
+    let end_sector = the_end / bps in
+    let rec inner acc sector =
+      if sector > end_sector
+      then List.rev acc
+      else
+	let data = B.read_sector (SectorMap.find sm sector) in
+        (* consider whether this sector needs to be clipped to be within the range *)
+	let bs_start = max 0 (the_start - sector * bps) in
+	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
+	let bs_length = bps - bs_start - bs_trim_from_end in
+	if bs_length <> 0
+	then inner (bitstring_clip data bs_start bs_length :: acc) (sector + 1)
+	else inner (data :: acc) (sector + 1) in
+    let bitstrings = inner [] start_sector in
+    Bitstring.concat bitstrings
+      
   let write_update x ({ Update.offset = offset; data = data } as update) =
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let sector_number = Int64.(div offset (of_int bps)) in
@@ -934,7 +965,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | Rootdir, true ->
 	Error No_space
       | (Rootdir | Chain _), false ->
-	let writes = Update.map_updates updates (List.map Int64.of_int sectors) bps in
+	let writes = Update.map_updates updates sectors bps in
 	List.iter (write_update x) writes;
 	if location = Rootdir then x.root <- Update.apply x.root update;
 	Success ()
@@ -945,10 +976,10 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	   per sector. *)
 	let fat_allocations_sectors = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
 	let fat_sectors = Boot_sector.sectors_of_fat x.boot in
-	let fat_writes = Update.map_updates fat_allocations_sectors (List.map Int64.of_int fat_sectors) bps in
+	let fat_writes = Update.map_updates fat_allocations_sectors fat_sectors bps in
 
 	let new_sectors = sectors_of_chain x new_clusters in
-	let data_writes = Update.map_updates updates (List.map Int64.of_int (sectors @ new_sectors)) bps in
+	let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
 	List.iter (write_update x) data_writes;
 	List.iter (write_update x) fat_writes;
 	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
@@ -1076,7 +1107,7 @@ let () =
 	  Printf.printf "Is a directory.\n%!";
 	| File d ->
 	  Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
-	  let data = read fs d in
+	  let data = read fs d 0 1024 in
 	  Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data)
       ) (find fs path) in
   let do_cd dir =

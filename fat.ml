@@ -741,6 +741,7 @@ module Dir_entry = struct
 	}
 
     let list bits =
+      let entry_size = 32 in (* bytes *)
       (* Stop as soon as we find a None *)
       let rec inner lfns acc = function
         | [] -> acc
@@ -767,7 +768,7 @@ module Dir_entry = struct
               inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
             | End -> acc
           end in
-      inner [] [] (bitstring_chop (8 * 32) bits)
+      inner [] [] (bitstring_chop (8 * entry_size) bits)
 
     (** [next bits] returns the bit offset of a free directory slot. Note this
         function does not recycle deleted elements. *)
@@ -781,16 +782,20 @@ module Dir_entry = struct
           end in
       inner 0 (bitstring_chop (8 * 32) bits)
 
-    (** [update block dir_entries] return the update required to add [dir_entries]
+    (** [add block dir_entries] return the update required to add [dir_entries]
         to the directory [block]. Note the update may be beyond the end of [block],
         indicating that more space needs to be allocated. *)
-    let update block dir_entries =
+    let add block dir_entries =
       let after_block = Bitstring.bitstring_length block in
       let next_bit = match next block with
 	| Some b -> b
 	| None -> after_block in
       let bits = Bitstring.concat (List.map to_bitstring dir_entries) in
       Update.make (Int64.of_int (next_bit / 8)) bits
+
+    let remove block filename =
+      (* We only mark the entry as deleted, and will GC asynchronously *)
+      failwith "Unimplemented"
 
     let name_match name d =
       let utf_name = ascii_to_utf16 name in
@@ -856,7 +861,10 @@ module type FS = sig
 
   type file
 
-  val create: fs -> Path.t -> file result
+  val create: fs -> Path.t -> unit result
+
+  (** [destroy fs path] removes a file corresponding to [path] on filesystem [fs] *)
+  val destroy: fs -> Path.t -> unit result
 
   (** [file_of_path fs path] returns a [file] corresponding to [path] on
       filesystem [fs] *)
@@ -1010,28 +1018,45 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | Some c -> Chain (sectors_of_chain x c) in
     write_to_file x location u
 
-  (** [create x path] create a zero-length file at [path] *)
-  let create x path : file result =
-    let filename = Path.filename path in
-    let dir_entries = Dir_entry.make filename in
-
+  let update_directory x path f =
     let parent_path = Path.directory path in
     match find x parent_path with
       | Error x -> Error x
       | Success (File _) -> Error(Not_a_directory parent_path)
       | Success (Dir ds) ->
+	let sectors, location = match (chain_of_file x parent_path) with
+	  | None -> Boot_sector.sectors_of_root_dir x.boot, Rootdir
+	  | Some c -> sectors_of_chain x c, Chain c in
+	let contents = B.read_sectors sectors in
+	begin match f contents ds with
+	  | Error x -> Error x
+	  | Success update ->
+	    begin match write_to_file x location update with
+	      | Success () -> Success ()
+	      | Error x -> Error x
+	    end
+	end
+
+  (** [create x path] create a zero-length file at [path] *)
+  let create x path : unit result =
+    let filename = Path.filename path in
+    update_directory x path
+      (fun contents ds ->
 	if Dir_entry.find filename ds <> None
 	then Error (File_already_exists filename)
-	else
-	  let sectors, location = match (chain_of_file x parent_path) with
-	    | None -> Boot_sector.sectors_of_root_dir x.boot, Rootdir
-	    | Some c -> sectors_of_chain x c, Chain c in
-	  let contents = B.read_sectors sectors in
-	  let update = Dir_entry.update contents dir_entries in
-	  begin match write_to_file x location update with
-	    | Success () -> Success path
-	    | Error x -> Error x
-	  end
+	else Success (Dir_entry.add contents (Dir_entry.make filename))
+      )
+
+  (** [destroy x path] deletes the entry at [path] *)
+  let destroy x path : unit result =
+    let filename = Path.filename path in
+    update_directory x path
+      (fun contents ds ->
+	(* XXX check for nonempty *)
+	if Dir_entry.find filename ds = None
+	then Error (No_directory_entry(Path.directory path, filename))
+	else Success (Dir_entry.remove contents filename)
+      )
 
   let stat x path =
     let entry_of_file f = f in
@@ -1186,6 +1211,11 @@ let () =
 	      then Printf.printf "Short read; expected %d got %d\n%!" (Int32.to_int s.Dir_entry.file_size) (String.length data)
 	    ) (read fs (file_of_path fs path) 0 (Int32.to_int s.Dir_entry.file_size))
       ) (stat fs path) in
+  let do_del file =
+    let path = Path.cd !cwd file in
+    handle_error
+      (fun () -> ())
+      (destroy fs path) in
   let do_cd dir =
     let path = Path.cd !cwd dir in
     Printf.printf "path = %s\n%!" (Path.to_string path);
@@ -1199,8 +1229,7 @@ let () =
     let path = Path.cd !cwd x in
     Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
-      (fun _ -> ()
-      )
+      (fun () -> ())
       (create fs path) in
   let do_copy x y =
     let is_outside = Stringext.startswith "u:" in
@@ -1244,6 +1273,7 @@ let () =
     | [ "type"; path ] -> do_type path
     | [ "touch"; path ] -> do_touch path
     | [ "copy"; a; b ] -> do_copy a b
+    | [ "del"; a ] -> do_del a
     | [ "exit" ] -> finished := true
     | [] -> ()
     | cmd :: _ -> Printf.printf "Unknown command: %s\n%!" cmd

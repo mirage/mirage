@@ -137,7 +137,7 @@ let _ =
     method id = name
     method plug = plug
     method unplug = unplug
-    method create ~deps id =
+    method create ~deps ~cfg id =
       Lwt.bind (create id) (fun kv ->
         let entry = OS.Devices.({
            provider=self;
@@ -148,7 +148,7 @@ let _ =
       )
   end in
   OS.Devices.new_provider provider;
-  OS.Main.at_enter (fun () -> Lwt_mvar.put plug (name,[]))
+  OS.Main.at_enter (fun () -> Lwt_mvar.put plug {OS.Devices.p_id=name; p_dep_ids=[]; p_cfg=[]})
 " in
   print_endline skeleton
 

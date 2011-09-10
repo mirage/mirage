@@ -30,6 +30,12 @@ type kv_ro = <
   size : string -> int64 option Lwt.t 
 >
 
+type plug = {
+  p_id: string;  (* ID of device to plug in *)
+  p_dep_ids: string list; (* Dependent ids that must be plugged in *)
+  p_cfg: (string * string) list; (* Configuration keys, provider-dependent *)
+}
+
 type entry = {
   provider : provider;
   id : string;
@@ -42,9 +48,9 @@ and device =
   | KV_RO of kv_ro
 
 and provider = <
-  create : deps:entry list -> id -> entry Lwt.t;
+  create : deps:entry list -> cfg:(string*string) list -> id -> entry Lwt.t;
   id : string;
-  plug : (id * id list) Lwt_mvar.t;
+  plug : plug Lwt_mvar.t;
   unplug : id Lwt_mvar.t 
 >
 

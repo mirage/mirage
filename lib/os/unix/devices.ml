@@ -35,6 +35,12 @@ type kv_ro = <
   size: string -> int64 option Lwt.t;
 >
 
+type plug = {
+  p_id: string;  (* ID of device to plug in *)
+  p_dep_ids: string list; (* Dependent ids that must be plugged in *)
+  p_cfg: (string * string) list; (* Configuration keys, provider-dependent *)
+}
+
 (** An individual entry in the device tree *)
 type entry = {
   provider: provider;    (* Provider that created this entry *)
@@ -51,8 +57,8 @@ and device =
 (** A provider listens for new device ids, and create/destroy them *)
 and provider = <
   id: string;             (* Human-readable name of provider *)
-  create: deps:entry list -> id -> entry Lwt.t; (* Create a device from an id *)
-  plug: (id*id list) Lwt_mvar.t;    (* Read this mvar when new devices show up *)
+  create: deps:entry list -> cfg:(string * string) list -> id -> entry Lwt.t; (* Create a device from an id *)
+  plug: plug Lwt_mvar.t;    (* Read this mvar when new devices show up *)
   unplug: id Lwt_mvar.t;  (* Read this mvar for when devices are unplugged *)
 >
 
@@ -101,24 +107,24 @@ let device_t () =
   in
   (* For each provider, set up a thread that listens for incoming plug events *)
   let provider_t provider =
-    mvar_loop provider#plug (fun (id,deps) ->
-      printf "Devices: plug %s from %s\n%!" id provider#id;
+    mvar_loop provider#plug (fun {p_id; p_dep_ids; p_cfg } ->
+      printf "Devices: plug %s from %s\n%!" p_id provider#id;
       (* Satisfy all the dependencies *)
-      lwt deps = Lwt_list.map_p find deps in
-      lwt entry = provider#create ~deps id in
+      lwt deps = Lwt_list.map_p find p_dep_ids in
+      lwt entry = provider#create ~deps ~cfg:p_cfg p_id in
       (* Check if the device already exists (or any waiters are present *)
-      if Hashtbl.mem device_tree id then begin
-        printf "Devices: repeat device plug id %s from provider %s. Ignoring\n%!" id provider#id;
+      if Hashtbl.mem device_tree p_id then begin
+        printf "Devices: repeat device plug id %s from provider %s. Ignoring\n%!" p_id provider#id;
         return ()
       end else begin
-        Hashtbl.add device_tree id entry;
+        Hashtbl.add device_tree p_id entry;
         (* Inform any wildcard listeners of the new device *)
-        Lwt_sequence.iter_l (fun mvar -> ignore(Lwt_mvar.put mvar id)) wildcard_waiters;
+        Lwt_sequence.iter_l (fun mvar -> ignore(Lwt_mvar.put mvar p_id)) wildcard_waiters;
         (* Check for any waiting threads *)
-        match Hashtbl.find_all device_waiters id with
+        match Hashtbl.find_all device_waiters p_id with
         |[] -> return ()
         |[waiters] ->
-           Hashtbl.remove device_waiters id;
+           Hashtbl.remove device_waiters p_id;
            Lwt_sequence.iter_l (fun w -> Lwt.wakeup w entry) waiters;
            return ()
         |_ -> assert false

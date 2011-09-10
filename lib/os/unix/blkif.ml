@@ -60,7 +60,7 @@ let _ =
      method id = "Unix.Blkif"
      method plug = plug_mvar 
      method unplug = unplug_mvar
-     method create ~deps id =
+     method create ~deps ~cfg id =
        lwt blkif = create id in
        let entry = Devices.({
          provider=self; 
@@ -71,11 +71,14 @@ let _ =
   end in
   Devices.new_provider provider;
   (* Iterate over the plugged in VBDs and plug them in *)
+  (* TODO right now the id is the name of the block file; we should
+     pass that in as a configuration variable somehow (perhaps : separated
+     in the VBD argument *)
   Main.at_enter (fun () ->
     let vbds = ref [] in
     lwt env = Env.argv () in
     Array.iteri (fun i -> function
-      |"-vbd" -> vbds := (env.(i+1),[]) :: !vbds
+      |"-vbd" -> vbds := ({Devices.p_id=env.(i+1);p_dep_ids=[];p_cfg=[]}) :: !vbds
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !vbds
   )

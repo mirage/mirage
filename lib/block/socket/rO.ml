@@ -96,14 +96,17 @@ let _ =
     end
   in
   OS.Devices.new_provider provider;
-  (* TODO right now the id is the name of the file; we should
-     pass that in as a configuration variable somehow (perhaps : separated
-     in the VBD argument *)
   OS.Main.at_enter (fun () ->
     let fs = ref [] in
     lwt env = OS.Env.argv () in
     Array.iteri (fun i -> function
-      |"-kv_ro_socket" -> fs := ({OS.Devices.p_id=env.(i+1);p_dep_ids=[];p_cfg=[]}) :: !fs
+      |"-kv_ro_socket" -> begin
+         match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
+         |[p_id;root] -> 
+           let p_cfg = ["root",root] in
+           fs := ({OS.Devices.p_dep_ids=[]; p_cfg; p_id}) :: !fs
+         |_ -> failwith "bad -kv_ro_socket flag, must be id:root_dir"
+      end
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
   )

@@ -818,6 +818,7 @@ end
 
 type error =
   | Not_a_directory of Path.t
+  | Is_a_directory of Path.t
   | No_directory_entry of Path.t * string
   | File_already_exists of string
   | No_space
@@ -825,11 +826,24 @@ type 'a result =
   | Error of error
   | Success of 'a
 
+module Stat = struct
+  type file_type =
+    | File
+    | Dir
+  type t = {
+    file_type: file_type;
+    file_size: int;
+  }
+end
+
 module type FS = sig
   type t
   val make: unit -> t
 
   val create: t -> Path.t -> unit
+
+  (** [stat x f] returns information about file [f] on filesystem [x] *)
+  val stat: t -> Path.t -> Stat.t result
 
   (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [x] *)
@@ -872,30 +886,6 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   let read_whole_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
     B.read_sectors (sectors_of_file x f)
 
-  let read x ({ Dir_entry.file_size = file_size } as f) the_start length =
-    let bps = x.boot.Boot_sector.bytes_per_sector in
-    let sm = SectorMap.make (sectors_of_file x f) in
-    (* Clip [length] so that the region is within [file_size] *)
-    let length = min (the_start + length) (Int32.to_int file_size) - the_start in
-    (* Compute the list of sectors from the_start to length inclusive *)
-    let the_end = the_start + length in
-    let start_sector = the_start / bps in
-    let end_sector = the_end / bps in
-    let rec inner acc sector =
-      if sector > end_sector
-      then List.rev acc
-      else
-	let data = B.read_sector (SectorMap.find sm sector) in
-        (* consider whether this sector needs to be clipped to be within the range *)
-	let bs_start = max 0 (the_start - sector * bps) in
-	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
-	let bs_length = bps - bs_start - bs_trim_from_end in
-	if bs_length <> 0
-	then inner (bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1)
-	else inner (data :: acc) (sector + 1) in
-    let bitstrings = inner [] start_sector in
-    Bitstring.concat bitstrings
-      
   let write_update x ({ Update.offset = offset; data = data } as update) =
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let sector_number = Int64.(div offset (of_int bps)) in
@@ -1016,6 +1006,53 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  let contents = B.read_sectors sectors in
 	  let update = Dir_entry.update contents dir_entries in
 	  write_to_file x location update
+
+  let stat x path =
+    match find x path with
+      | Error x -> Error x
+      | Success (File f) -> Success ({Stat.file_type = Stat.File; file_size = Int32.to_int (f.Dir_entry.file_size)})
+      | Success (Dir _) ->
+	let filename = Path.filename path in
+	let parent_path = Path.directory path in
+	match find x parent_path with
+	  | Error x -> Error x
+	  | Success (File _) -> assert false (* impossible by initial match *)
+	  | Success (Dir ds) ->
+	    match Dir_entry.find filename ds with
+	      | None -> assert false (* impossible by initial match *)
+	      | Some f ->
+		Success ({Stat.file_type = Stat.Dir; file_size = Int32.to_int (f.Dir_entry.file_size)})
+
+  let read_file x ({ Dir_entry.file_size = file_size } as f) the_start length =
+    let bps = x.boot.Boot_sector.bytes_per_sector in
+    let sm = SectorMap.make (sectors_of_file x f) in
+    (* Clip [length] so that the region is within [file_size] *)
+    let length = min (the_start + length) (Int32.to_int file_size) - the_start in
+    (* Compute the list of sectors from the_start to length inclusive *)
+    let the_end = the_start + length in
+    let start_sector = the_start / bps in
+    let end_sector = the_end / bps in
+    let rec inner acc sector =
+      if sector > end_sector
+      then List.rev acc
+      else
+	let data = B.read_sector (SectorMap.find sm sector) in
+        (* consider whether this sector needs to be clipped to be within the range *)
+	let bs_start = max 0 (the_start - sector * bps) in
+	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
+	let bs_length = bps - bs_start - bs_trim_from_end in
+	if bs_length <> 0
+	then inner (bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1)
+	else inner (data :: acc) (sector + 1) in
+    let bitstrings = inner [] start_sector in
+    Bitstring.concat bitstrings
+      
+  let read x path the_start length =
+    match find x path with
+      | Success (Dir _) -> Error (Is_a_directory path)
+      | Success (File f) -> Success (read_file x f the_start length)
+      | Error x -> Error x
+
 end
 
 let filename = ref ""
@@ -1084,6 +1121,7 @@ let () =
   let open Test in
   let handle_error f = function
     | Error (Not_a_directory path) -> Printf.printf "Not a directory (%s).\n%!" (Path.to_string path)
+    | Error (Is_a_directory path) -> Printf.printf "Is a directory (%s).\n%!" (Path.to_string path)
     | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s.\n%!" name (Path.to_string path)
     | Error (File_already_exists name) -> Printf.printf "File already exists (%s).\n%!" name
     | Error No_space -> Printf.printf "Out of space.\n%!"
@@ -1104,15 +1142,16 @@ let () =
       ) (find fs path) in
   let do_type file =
     let path = Path.cd !cwd file in
-    handle_error
-      (function
-	| Dir dirs ->
-	  Printf.printf "Is a directory.\n%!";
-	| File d ->
-	  Printf.printf "File starts at cluster: %d; has length = %ld\n%!" (d.Dir_entry.start_cluster) (d.Dir_entry.file_size);
-	  let data = read fs d 0 1024 in
-	  Printf.printf "%s\n%!" (Bitstring.string_of_bitstring data)
-      ) (find fs path) in
+    handle_error 
+      (fun s ->
+	handle_error
+	  (fun data ->
+	    let data = Bitstring.string_of_bitstring data in
+	    Printf.printf "%s\n%!" data;
+	    if String.length data <> s.Stat.file_size
+	    then Printf.printf "Short read; expected %d got %d\n%!" s.Stat.file_size (String.length data)
+	  ) (read fs path 0 s.Stat.file_size)
+      ) (stat fs path) in
   let do_cd dir =
     let path = Path.cd !cwd dir in
     Printf.printf "path = %s\n%!" (Path.to_string path);

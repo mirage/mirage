@@ -1069,7 +1069,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	let bs_start = max 0 (the_start - sector * bps) in
 	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
 	let bs_length = bps - bs_start - bs_trim_from_end in
-	if bs_length <> 0
+	if bs_length <> bps
 	then inner (bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1)
 	else inner (data :: acc) (sector + 1) in
     let bitstrings = inner [] start_sector in

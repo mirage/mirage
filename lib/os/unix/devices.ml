@@ -51,8 +51,8 @@ and device =
 (** A provider listens for new device ids, and create/destroy them *)
 and provider = <
   id: string;             (* Human-readable name of provider *)
-  create: id -> entry Lwt.t; (* Create a device from an id *)
-  plug: id Lwt_mvar.t;    (* Read this mvar when new devices show up *)
+  create: deps:entry list -> id -> entry Lwt.t; (* Create a device from an id *)
+  plug: (id*id list) Lwt_mvar.t;    (* Read this mvar when new devices show up *)
   unplug: id Lwt_mvar.t;  (* Read this mvar for when devices are unplugged *)
 >
 
@@ -70,22 +70,42 @@ let providers : provider list ref = ref []
 let new_provider p =
   providers := p :: !providers
 
+(** Find a device node for id and return the entry *)
+let rec find id =
+  try
+    let entry = Hashtbl.find device_tree id in
+    return entry
+  with Not_found -> begin
+    let seq = 
+      try
+        Hashtbl.find device_waiters id
+      with Not_found ->
+        let seq = Lwt_sequence.create () in
+        Hashtbl.add device_waiters id seq;
+        seq
+    in
+    let th,u = Lwt.task () in
+    let node = Lwt_sequence.add_r u seq in
+    Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+    th
+  end
+
 (** Main device manager thread *)
 let device_t () =
   let th,u = Lwt.task () in
   Lwt.on_cancel th (fun () -> () (* TODO *));
-  (** Loop to read a value from an mvar and apply function to it repeatedly *)
-  let mvar_loop mvar fn =
-    while_lwt true do
-       lwt x = Lwt_mvar.take mvar in
-       fn x
-    done
+  (** Loop to read a value from an mvar and apply function to it in parallel *)
+  let rec mvar_loop mvar fn =
+    lwt x = Lwt_mvar.take mvar in
+    fn x <&> (mvar_loop mvar fn)
   in
   (* For each provider, set up a thread that listens for incoming plug events *)
   let provider_t provider =
-    mvar_loop provider#plug (fun id ->
+    mvar_loop provider#plug (fun (id,deps) ->
       printf "Devices: plug %s from %s\n%!" id provider#id;
-      lwt entry = provider#create id in
+      (* Satisfy all the dependencies *)
+      lwt deps = Lwt_list.map_p find deps in
+      lwt entry = provider#create ~deps id in
       (* Check if the device already exists (or any waiters are present *)
       if Hashtbl.mem device_tree id then begin
         printf "Devices: repeat device plug id %s from provider %s. Ignoring\n%!" id provider#id;
@@ -107,26 +127,6 @@ let device_t () =
   in
   let p_t = Lwt_list.iter_p provider_t !providers in
   p_t <&> th
-
-(** Find a device node for id and pass it to matchfn *)
-let rec find matchfn id =
-  try
-    let entry = Hashtbl.find device_tree id in
-    return (matchfn entry);
-  with Not_found -> begin
-    let seq = 
-      try
-        Hashtbl.find device_waiters id
-      with Not_found ->
-        let seq = Lwt_sequence.create () in
-        Hashtbl.add device_waiters id seq;
-        seq
-    in
-    let th,u = Lwt.task () in
-    let node = Lwt_sequence.add_r u seq in
-    Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-    th >|= matchfn 
-  end
 
 let iter_s fn =
   let ids = Hashtbl.fold (fun k v a -> k :: a) device_tree [] in
@@ -152,8 +152,8 @@ let listen fn =
   Lwt.on_cancel th (fun () -> Lwt.cancel listen_t);
   try_lwt th with Canceled -> return ()
   
-let find_blkif = find (function |{node=Blkif b} -> Some b |_ -> None)
-let find_kv_ro = find (function |{node=KV_RO b} -> Some b |_ -> None)
+let find_blkif id = find id >|= function |{node=Blkif b} -> Some b |_ -> None
+let find_kv_ro id = find id >|= function |{node=KV_RO b} -> Some b |_ -> None
 
 (* Start the device manager thread when the system "boots" *) 
 let _ = Main.at_enter device_t

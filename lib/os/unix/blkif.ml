@@ -60,7 +60,7 @@ let _ =
      method id = "Unix.Blkif"
      method plug = plug_mvar 
      method unplug = unplug_mvar
-     method create id =
+     method create ~deps id =
        lwt blkif = create id in
        let entry = Devices.({
          provider=self; 
@@ -75,7 +75,7 @@ let _ =
     let vbds = ref [] in
     lwt env = Env.argv () in
     Array.iteri (fun i -> function
-      |"-vbd" -> vbds := env.(i+1) :: !vbds
+      |"-vbd" -> vbds := (env.(i+1),[]) :: !vbds
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !vbds
   )

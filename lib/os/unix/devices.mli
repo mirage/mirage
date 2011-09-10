@@ -42,15 +42,15 @@ and device =
   | KV_RO of kv_ro
 
 and provider = <
-  create : id -> entry Lwt.t;
+  create : deps:entry list -> id -> entry Lwt.t;
   id : string;
-  plug : id Lwt_mvar.t;
+  plug : (id * id list) Lwt_mvar.t;
   unplug : id Lwt_mvar.t 
 >
 
 val new_provider : provider -> unit
 
-val find : (entry -> 'a) -> id -> 'a Lwt.t
+val find : id -> entry Lwt.t
 val find_blkif : id -> blkif option Lwt.t
 val find_kv_ro : id -> kv_ro option Lwt.t
 

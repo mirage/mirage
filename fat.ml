@@ -835,7 +835,10 @@ module type FS = sig
       filesystem [x] *)
   val write: t -> Path.t -> int64 -> Bitstring.t -> unit
 
-  val read: t -> Path.t -> Bitstring.t
+  (** [read x f offset length] reads up to [length] bytes from file [f] on
+      filesystem [x]. If less data is returned than requested, this indicates
+      end-of-file. *)
+  val read: t -> Path.t -> int -> int -> Bitstring.t
 end
 
 module FATFilesystem = functor(B: BLOCK) -> struct

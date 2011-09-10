@@ -346,13 +346,17 @@ module Fat_entry = struct
   let follow_chain format fat cluster =
     (* the elements will be returned in order as 'list'; 'set' is used to
        check that we aren't going round in an infinite loop. *)
-    let rec inner (list, set) i = match of_bitstring format i fat with
-    | End -> i :: list
-    | Free | Bad -> list (* corrupt file *)
-    | Used j ->
-      if IntSet.mem i set
-      then list (* infinite loop: corrupt file *)
-      else inner (i :: list, IntSet.add i set) j in
+    let rec inner (list, set) = function
+      | 0 -> list (* either zero-length chain if list = [] or corrupt file *)
+      | 1 -> list (* corrupt file *)
+      | i -> begin match of_bitstring format i fat with
+	  | End -> i :: list
+	  | Free | Bad -> list (* corrupt file *)
+	  | Used j ->
+	    if IntSet.mem i set
+	    then list (* infinite loop: corrupt file *)
+	    else inner (i :: list, IntSet.add i set) j
+      end in
     List.rev (inner ([], IntSet.empty) cluster)
 
   (** [find_free_from boot format fat start] returns an unallocated cluster

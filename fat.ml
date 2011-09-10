@@ -828,14 +828,18 @@ type 'a result =
 
 module Stat = struct
   type file_type =
-    | File
-    | Dir
-  type t = {
+    | F 
+    | D
+  type entry = {
     file_name: string;
     file_type: file_type;
     file_size: int;
   }
-  let make file_name file_type file_size = {
+  type t = 
+    | File of entry
+    | Dir of entry * (entry list) (** the directory itself and its immediate children *)
+
+  let make_entry file_name file_type file_size = {
     file_name = file_name;
     file_type = file_type;
     file_size = file_size;
@@ -1026,10 +1030,15 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  end
 
   let stat x path =
+    let entry_of_file f =
+      Stat.make_entry f.Dir_entry.utf_filename
+	(if f.Dir_entry.subdir then Stat.D else Stat.F)
+	(Int32.to_int f.Dir_entry.file_size) in
+
     match find x path with
       | Error x -> Error x
-      | Success (File f) -> Success (Stat.make f.Dir_entry.utf_filename Stat.File (Int32.to_int f.Dir_entry.file_size))
-      | Success (Dir _) ->
+      | Success (File f) -> Success (Stat.File (entry_of_file f))
+      | Success (Dir ds) ->
 	let filename = Path.filename path in
 	let parent_path = Path.directory path in
 	match find x parent_path with
@@ -1039,7 +1048,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	    match Dir_entry.find filename ds with
 	      | None -> assert false (* impossible by initial match *)
 	      | Some f ->
-		Success (Stat.make f.Dir_entry.utf_filename Stat.Dir (Int32.to_int f.Dir_entry.file_size))
+		Success (Stat.Dir (entry_of_file f, List.map entry_of_file ds))
 
   let read_file x ({ Dir_entry.file_size = file_size } as f) the_start length =
     let bps = x.boot.Boot_sector.bytes_per_sector in
@@ -1161,14 +1170,16 @@ let () =
   let do_type file =
     let path = Path.cd !cwd file in
     handle_error 
-      (fun s ->
-	handle_error
-	  (fun data ->
-	    let data = Bitstring.string_of_bitstring data in
-	    Printf.printf "%s\n%!" data;
-	    if String.length data <> s.Stat.file_size
-	    then Printf.printf "Short read; expected %d got %d\n%!" s.Stat.file_size (String.length data)
-	  ) (read fs path 0 s.Stat.file_size)
+      (function
+	| Stat.Dir (_, _) -> Printf.printf "Is a directory.\n%!"
+	| Stat.File s ->
+	  handle_error
+	    (fun data ->
+	      let data = Bitstring.string_of_bitstring data in
+	      Printf.printf "%s\n%!" data;
+	      if String.length data <> s.Stat.file_size
+	      then Printf.printf "Short read; expected %d got %d\n%!" s.Stat.file_size (String.length data)
+	    ) (read fs path 0 s.Stat.file_size)
       ) (stat fs path) in
   let do_cd dir =
     let path = Path.cd !cwd dir in

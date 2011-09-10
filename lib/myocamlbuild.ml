@@ -202,6 +202,11 @@ let () =
     let prod = ps "std/%s.ml" dst in
     let dep = ps "%s.ml" src in
     rule (ps "cp %s -> %s std" dep prod) ~prod ~dep (fun env builder -> cp dep prod)
+  ) files;
+  List.iter (fun (dst, src) ->
+    let prod = ps "std/%s.mli" dst in
+    let dep = ps "%s.mli" src in
+    rule (ps "cp %s -> %s std" dep prod) ~prod ~dep (fun env builder -> cp dep prod)
   ) files
 
 (* Need to register manual dependency on libev included files/

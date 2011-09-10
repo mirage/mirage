@@ -837,26 +837,32 @@ module Stat = struct
 end
 
 module type FS = sig
-  type t
-  val make: unit -> t
+  type fs
+  val make: unit -> fs
 
-  val create: t -> Path.t -> unit
+  type file
 
-  (** [stat x f] returns information about file [f] on filesystem [x] *)
-  val stat: t -> Path.t -> Stat.t result
+  val create: fs -> Path.t -> file
 
-  (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
-      filesystem [x] *)
-  val write: t -> Path.t -> int64 -> Bitstring.t -> unit
+  (** [file_of_path fs path] returns a [file] corresponding to [path] on
+      filesystem [fs] *)
+  val file_of_path: fs -> Path.t -> file
 
-  (** [read x f offset length] reads up to [length] bytes from file [f] on
-      filesystem [x]. If less data is returned than requested, this indicates
+  (** [stat fs f] returns information about file [f] on filesystem [fs] *)
+  val stat: fs -> Path.t -> Stat.t result
+
+  (** [write fs f offset bs] writes bitstring [bs] at [offset] in file [f] on
+      filesystem [fs] *)
+  val write: fs -> Path.t -> int64 -> Bitstring.t -> unit
+
+  (** [read fs f offset length] reads up to [length] bytes from file [f] on
+      filesystem [fs]. If less data is returned than requested, this indicates
       end-of-file. *)
-  val read: t -> Path.t -> int -> int -> Bitstring.t
+  val read: fs -> Path.t -> int -> int -> Bitstring.t
 end
 
 module FATFilesystem = functor(B: BLOCK) -> struct
-  type t = {
+  type fs = {
     boot: Boot_sector.t;
     format: format;      (** FAT12, 16 or 32 *)
     mutable fat: Bitstring.t;    (** contains the whole FAT *)
@@ -871,6 +877,9 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let fat = B.read_sectors (Boot_sector.sectors_of_fat boot) in
     let root = B.read_sectors (Boot_sector.sectors_of_root_dir boot) in
     { boot = boot; format = format; fat = fat; root = root }
+
+  type file = Path.t
+  let file_of_path x = x
 
   type find =
     | Dir of Dir_entry.t list
@@ -942,7 +951,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 
   (** [write_to_file x location update] applies [update] to the file given by
       [location]. This will also allocate any additional clusters necessary *)
-  let write_to_file x location update =
+  let write_to_file x location update : unit result =
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let spc = x.boot.Boot_sector.sectors_per_cluster in
     let updates = Update.split update bps in
@@ -988,7 +997,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     write_to_file x location u
 
   (** [create x path] create a zero-length file at [path] *)
-  let create x path =
+  let create x path : file result =
     let filename = Path.filename path in
     let dir_entries = Dir_entry.make filename in
 
@@ -1005,7 +1014,10 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	    | Some c -> sectors_of_chain x c, Chain c in
 	  let contents = B.read_sectors sectors in
 	  let update = Dir_entry.update contents dir_entries in
-	  write_to_file x location update
+	  begin match write_to_file x location update with
+	    | Success () -> Success path
+	    | Error x -> Error x
+	  end
 
   let stat x path =
     match find x path with
@@ -1165,7 +1177,7 @@ let () =
     let path = Path.cd !cwd x in
     Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
-      (fun () -> ()
+      (fun _ -> ()
       )
       (create fs path) in
   let do_copy x y =

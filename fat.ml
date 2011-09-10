@@ -856,7 +856,7 @@ module type FS = sig
 
   (** [write fs f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [fs] *)
-  val write: fs -> file -> int64 -> Bitstring.t -> unit result
+  val write: fs -> file -> int -> Bitstring.t -> unit result
 
   (** [read fs f offset length] reads up to [length] bytes from file [f] on
       filesystem [fs]. If less data is returned than requested, this indicates
@@ -993,7 +993,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [x] *)
   let write x f offset bs =
-    let u = Update.make offset bs in
+    let u = Update.make (Int64.of_int offset) bs in
     let location = match chain_of_file x f with
       | None -> Rootdir
       | Some c -> Chain (sectors_of_chain x c) in
@@ -1192,15 +1192,41 @@ let () =
       )
       (create fs path) in
   let do_copy x y =
+    let is_outside = Stringext.startswith "u:" in
     let parse_path x =
       if Stringext.startswith "u:" x
-      then `Outside (String.sub x 2 (String.length x - 2))
-      else `Inside x in
-    () in
+      then Path.of_string (String.sub x 2 (String.length x - 2))
+      else Path.of_string x in
+    let x' = parse_path x and y' = parse_path y in
+    match is_outside x, is_outside y with
+      | true, false ->
+	(* copying to the filesystem *)
+	UnixBlock.with_file [ Unix.O_RDONLY ] ("." ^ (Path.to_string x'))
+	  (fun ifd ->
+	    let filename = Path.filename y' in
+	    let path = Path.cd !cwd filename in
+	    handle_error (fun _ ->
+	      let block_size = 1024 in
+              let results = String.create block_size in
+	      let bs = Bitstring.bitstring_of_string results in
+	      let finished = ref false in
+	      let offset = ref 0 in
+	      while not !finished do
+		let n = Unix.read ifd results 0 block_size in
+		finished := n <> block_size;
+		handle_error
+		  (fun () ->
+		    offset := !offset + block_size;
+		  ) (write fs (file_of_path fs path) !offset bs)
+	      done
+	    ) (create fs path)
+	  )
+      | _, _ -> failwith "Unimplemented" in
+  
   let finished = ref false in
   while not !finished do
     Printf.printf "A:%s> %!" (Path.to_string !cwd);
-    match Stringext.split ~limit:2 ' ' (input_line stdin) with
+    match Stringext.split ' ' (input_line stdin) with
     | [ "dir" ] -> do_dir ""
     | [ "dir"; path ] -> do_dir path
     | [ "cd"; path ] -> do_cd path

@@ -831,8 +831,14 @@ module Stat = struct
     | File
     | Dir
   type t = {
+    file_name: string;
     file_type: file_type;
     file_size: int;
+  }
+  let make file_name file_type file_size = {
+    file_name = file_name;
+    file_type = file_type;
+    file_size = file_size;
   }
 end
 
@@ -1022,7 +1028,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   let stat x path =
     match find x path with
       | Error x -> Error x
-      | Success (File f) -> Success ({Stat.file_type = Stat.File; file_size = Int32.to_int (f.Dir_entry.file_size)})
+      | Success (File f) -> Success (Stat.make f.Dir_entry.utf_filename Stat.File (Int32.to_int f.Dir_entry.file_size))
       | Success (Dir _) ->
 	let filename = Path.filename path in
 	let parent_path = Path.directory path in
@@ -1033,7 +1039,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	    match Dir_entry.find filename ds with
 	      | None -> assert false (* impossible by initial match *)
 	      | Some f ->
-		Success ({Stat.file_type = Stat.Dir; file_size = Int32.to_int (f.Dir_entry.file_size)})
+		Success (Stat.make f.Dir_entry.utf_filename Stat.Dir (Int32.to_int f.Dir_entry.file_size))
 
   let read_file x ({ Dir_entry.file_size = file_size } as f) the_start length =
     let bps = x.boot.Boot_sector.bytes_per_sector in

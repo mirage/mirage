@@ -1,2 +1,1 @@
-true: mirage
-"manager.ml" or "rO.ml": pa_lwt
+"rO.ml": pa_lwt

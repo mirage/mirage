@@ -14,13 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-
-type t
-
-exception Error of string
-
-val create : Manager.interface -> t Lwt.t
-val iter_s : t -> (string -> unit Lwt.t) -> unit Lwt.t
-
-val size : t -> string -> int64 Lwt.t
-val read : t -> string -> Bitstring.t Lwt_stream.t Lwt.t
+val create : id:string -> root:string -> OS.Devices.kv_ro Lwt.t

@@ -20,52 +20,91 @@ open Lwt
 open Printf
 open OS.Socket
 
-type t = Manager.interface
+(* The state is just the root directory which is mapped through *)
+type t = {
+  id: string;
+  root: string;
+}
 
-type file = unit
+let create ~id ~root =
+  return (object
+    method read filename =
+      let fullname = sprintf "%s/%s" root filename in
+      (* Open the FD using the manager bindings *)
+      match file_open_readonly fullname with
+      | Err x -> return None
+      | Retry -> assert false 
+      | OK fd ->
+        (* Construct a stream that reads pages of istrings *)
+        return (Some (Lwt_stream.from (fun () ->
+          let str = String.create 4096 in
+          lwt len = iobind (read fd str 0) 4096 in
+          match len with
+          | 0 -> return None
+          | len -> return (Some (str, 0, len*8))
+        )))
 
-let create t = return t
+    method iter_s fn =
+      match opendir root with
+      | Err x -> fail (Failure x)
+      | Retry -> assert false
+      | OK dir -> begin
+          let rec loop () =
+            match readdir dir with
+            |Err x -> return ()
+            |Retry -> loop ()
+            |OK fname -> fn fname >>= loop
+          in
+          try_lwt
+            loop ()
+          finally (match closedir dir with
+            | Err x -> fail (Error x)
+            | OK () -> return ()
+            | Retry -> assert false)
+      end
 
-exception Error of string
+    method size filename =
+      let fullname = sprintf "%s/%s" root filename in
+      match file_size fullname with
+      | Err x -> return None
+      | Retry -> assert false
+      | OK sz -> return (Some sz)
+  end)
 
-let read t filename =
-  (* Open the FD using the manager bindings *)
-  lwt fd = 
-    match file_open_readonly filename with
-    | OK fd -> return fd
-    | Err x -> fail (Error x)
-    | Retry -> assert false 
-  in
-  (* Construct a stream that reads pages of istrings *)
-  return (Lwt_stream.from (fun () ->
-    let str = String.create 4096 in
-    lwt len = iobind (read fd str 0) 4096 in
-    match len with
-    | 0 -> return None
-    | len -> return (Some (str, 0, len*8))
-  ))
-
-let iter_s t fn =
-  match opendir "." with
-  | Err x -> fail (Error x)
-  | Retry -> assert false
-  | OK dir -> begin
-      let rec loop () =
-        match readdir dir with
-        |Err x -> return ()
-        |Retry -> loop ()
-        |OK fname -> fn fname >>= loop
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  (* KV_RO provider *)
+  let provider = object(self)
+    method id = "RO.Socket"
+    method plug = plug_mvar
+    method unplug = unplug_mvar
+    method create ~deps ~cfg id =
+      (* Configuration key "root" defines where to map the K/V filesystem *)
+      lwt root = 
+        try
+          return (List.assoc "root" cfg)
+        with Not_found ->
+          raise_lwt (Failure "RO.socket: 'root' configuration key not found")
       in
-      try_lwt
-        loop ()
-      finally (match closedir dir with
-        | Err x -> fail (Error x)
-        | OK () -> return ()
-        | Retry -> assert false)
-  end
+      lwt t = create ~id ~root in
+      return OS.Devices.({
+        provider=self;
+        id=self#id;
+        depends=[];
+        node=KV_RO t })
+    end
+  in
+  OS.Devices.new_provider provider;
+  (* TODO right now the id is the name of the file; we should
+     pass that in as a configuration variable somehow (perhaps : separated
+     in the VBD argument *)
+  OS.Main.at_enter (fun () ->
+    let fs = ref [] in
+    lwt env = OS.Env.argv () in
+    Array.iteri (fun i -> function
+      |"-kv_ro_socket" -> fs := ({OS.Devices.p_id=env.(i+1);p_dep_ids=[];p_cfg=[]}) :: !fs
+      |_ -> ()) env;
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
+  )
 
-let size t name =
-  match file_size name with
-  | Err x -> fail (Error x)
-  | Retry -> assert false
-  | OK sz -> return sz

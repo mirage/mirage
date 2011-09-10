@@ -8,6 +8,7 @@
 (***********************************************************************)
 
 open Format 
+open Lwt
 
 (* TODO: really use Format in printf call. Most of the time, not
  * cuts/spaces/boxes are used
@@ -43,43 +44,17 @@ let todo msg =
   raise (Todo msg)
 
 let assert_failure msg = 
-  failwith ("OUnit: " ^ msg)
+  fail (Failure ("OUnit: " ^ msg))
 
 let assert_bool msg b =
-  if not b then assert_failure msg
+  if not b then assert_failure msg else return ()
 
 let assert_string str =
-  if not (str = "") then assert_failure str
+  if not (str = "") then assert_failure str else return ()
 
 let assert_equal ?(cmp = ( = )) ?printer ?pp_diff ?msg expected actual =
   let get_error_string () =
-(*     let max_len = pp_get_margin fmt () in *)
-(*     let ellipsis_text = "[...]" in *)
     let print_ellipsis p fmt s = 
-        (* TODO: find a way to do this
-      let res = p s in
-      let len = String.length res in
-        if diff <> None && len > max_len then
-          begin
-            let len_with_ellipsis =
-              (max_len - (String.length ellipsis_text)) / 2
-            in
-              (* TODO: we should use %a here to print values *)
-              fprintf fmt
-                "@[%s[...]%s@]"
-                (String.sub res 
-                   0 
-                   len_with_ellipsis)
-                (String.sub res 
-                   (len - len_with_ellipsis) 
-                   len_with_ellipsis)
-          end
-        else
-          begin
-            (* TODO: we should use %a here to print values *)
-            fprintf fmt "@[%s@]" res
-          end
-         *)
       pp_print_string fmt (p s)
     in
 
@@ -136,13 +111,15 @@ let assert_equal ?(cmp = ( = )) ?printer ?pp_diff ?msg expected actual =
 
     if not (cmp expected actual) then 
       assert_failure (get_error_string ())
+    else
+      return ()
 
 let raises f =
-  try
-    f ();
-    None
+  try_lwt
+    f () >>
+    return None
   with e -> 
-    Some e
+    return (Some e)
 
 let assert_raises ?msg exn (f: unit -> 'a) = 
   let pexn = 
@@ -161,9 +138,9 @@ let assert_raises ?msg exn (f: unit -> 'a) =
         | Some s -> 
             assert_failure (Format.sprintf "%s\n%s" s str)
   in    
-    match raises f with
+    match_lwt raises f with
       | None -> 
-          assert_failure (get_error_string ())
+          get_error_string () >>= assert_failure
 
       | Some e -> 
           assert_equal ?msg ~printer:pexn exn e
@@ -177,7 +154,7 @@ let cmp_float ?(epsilon = 0.00001) a b =
 let (@?) = assert_bool
 
 (* The type of test function *)
-type test_fun = unit -> unit 
+type test_fun = unit -> unit Lwt.t
 
 (* The type of tests *)
 type test = 
@@ -254,6 +231,19 @@ let fold_lefti f accu l =
           rfold_lefti (cnt + 1) (f accup h cnt) t
   in
     rfold_lefti 0 accu l
+
+let fold_lefti_s f accu l =
+  let rec rfold_lefti cnt accup l = 
+    match l with
+      | [] -> 
+          return accup
+
+      | h::t -> 
+          lwt x = f accup h cnt in
+          rfold_lefti (cnt + 1) x t
+  in
+    rfold_lefti 0 accu l
+
 
 (* Returns all possible paths in the test. The order is from test case
    to root 
@@ -432,38 +422,38 @@ let maybe_backtrace () =
 (* Run all tests, report starts, errors, failures, and return the results *)
 let perform_test report test =
   let run_test_case f path =
-    try 
-      f ();
-      RSuccess path
+    try_lwt 
+      f () >>
+      return (RSuccess path)
     with
       | Failure s -> 
-          RFailure (path, s ^ (maybe_backtrace ()))
+          return (RFailure (path, s ^ (maybe_backtrace ())))
 
       | Skip s -> 
-          RSkip (path, s)
+          return (RSkip (path, s))
 
       | Todo s -> 
-          RTodo (path, s)
+          return (RTodo (path, s))
 
       | s -> 
-          RError (path, (Printexc.to_string s) ^ (maybe_backtrace ()))
+          return (RError (path, (Printexc.to_string s) ^ (maybe_backtrace ())))
   in
   let rec run_test path results = 
     function
       | TestCase(f) -> 
           begin
-            let result = 
+            lwt result = 
               report (EStart path);
               run_test_case f path 
             in
               report (EResult result);
               report (EEnd path);
-              result::results
+              return (result::results)
           end
 
       | TestList (tests) ->
           begin
-            fold_lefti 
+            fold_lefti_s
               (fun results t cnt -> 
                  run_test 
                    ((ListItem cnt)::path) 
@@ -482,7 +472,9 @@ let perform_test report test =
    of the function, and the original result in a tuple *)
 let time_fun f x y =
   let begin_time = OS.Clock.time () in
-    (OS.Clock.time () -. begin_time, f x y)
+  lwt res = f x y in
+  let end_time = OS.Clock.time () in
+  return (end_time -. begin_time, res)
 
 (* A simple (currently too simple) text based test runner *)
 let run_test_tt ?verbose test =
@@ -533,7 +525,7 @@ let run_test_tt ?verbose test =
   in
     
   (* Now start the test *)
-  let running_time, results = time_fun perform_test report_event test in
+  lwt running_time, results = time_fun perform_test report_event test in
   let errors = List.filter is_error results in
   let failures = List.filter is_failure results in
   let skips = List.filter is_skip results in
@@ -564,4 +556,4 @@ let run_test_tt ?verbose test =
         (List.length skips) (List.length todos);
 
     (* Return the results possibly for further processing *)
-    results
+    return results

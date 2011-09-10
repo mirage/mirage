@@ -21,24 +21,24 @@
     string. 
 
     @raise Failure signal a failure *)
-val assert_failure : string -> 'a
+val assert_failure : string -> 'a Lwt.t
 
 (** Signals a failure when bool is false. The string identifies the 
     failure.
     
     @raise Failure signal a failure *)
-val assert_bool : string -> bool -> unit
+val assert_bool : string -> bool -> unit Lwt.t
 
 (** Shorthand for assert_bool 
 
     @raise Failure to signal a failure *)
-val ( @? ) : string -> bool -> unit
+val ( @? ) : string -> bool -> unit Lwt.t
 
 (** Signals a failure when the string is non-empty. The string identifies the
     failure. 
     
     @raise Failure signal a failure *) 
-val assert_string : string -> unit
+val assert_string : string -> unit Lwt.t
 
 (** [assert_equal expected real] Compares two values, when they are not equal a
     failure is signaled.
@@ -57,14 +57,14 @@ val assert_equal :
   ?cmp:('a -> 'a -> bool) ->
   ?printer:('a -> string) -> 
   ?pp_diff:(Format.formatter -> ('a * 'a) -> unit) ->
-  ?msg:string -> 'a -> 'a -> unit
+  ?msg:string -> 'a -> 'a -> unit Lwt.t
 
 (** Asserts if the expected exception was raised. 
    
     @param msg identify the failure
 
     @raise Failure description *)
-val assert_raises : ?msg:string -> exn -> (unit -> 'a) -> unit
+val assert_raises : ?msg:string -> exn -> (unit -> 'a Lwt.t) -> unit Lwt.t
 
 (** {2 Skipping tests } 
   
@@ -113,26 +113,10 @@ val cmp_float : ?epsilon:float -> float -> float -> bool
   *)
 val bracket: (unit -> 'a) -> ('a -> 'c) -> ('a -> 'b) -> unit -> 'b
 
-(** [bracket_tmpfile test] The [test] function takes a temporary filename
-    and matching output channel as arguments. The temporary file is created
-    before the test and removed after the test.
-
-    @param prefix see [Filename.open_temp_file]
-    @param suffix see [Filename.open_temp_file]
-    @param mode see [Filename.open_temp_file]
-    
-    @since 1.1.0
-  *)
-val bracket_tmpfile: 
-  ?prefix:string -> 
-  ?suffix:string -> 
-  ?mode:open_flag list ->
-  ((string * out_channel) -> unit) -> unit -> unit 
-
 (** {2 Constructing Tests} *)
 
 (** The type of test function *)
-type test_fun = unit -> unit
+type test_fun = unit -> unit Lwt.t
 
 (** The type of tests *)
 type test =
@@ -210,11 +194,11 @@ type test_event =
   | EResult of test_result
 
 (** Perform the test, allows you to build your own test runner *)
-val perform_test : (test_event -> 'a) -> test -> test_result list
+val perform_test : (test_event -> 'a) -> test -> test_result list Lwt.t
 
 (** A simple text based test runner. It prints out information
     during the test. 
 
     @param verbose print verbose message
   *)
-val run_test_tt : ?verbose:bool -> test -> test_result list
+val run_test_tt : ?verbose:bool -> test -> test_result list Lwt.t

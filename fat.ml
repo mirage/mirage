@@ -426,6 +426,14 @@ module Dir_entry = struct
     file_size: int32;
   }
 
+  (* Make the tree more uniform by creating a "fake root" node above the
+     root directory entries *)
+  let fake_root_entry = {
+    filename = ""; ext = ""; utf_filename = ""; deleted = false; read_only = false;
+    hidden = false; system = false; volume = false; subdir = true; archive = false;
+    create = epoch; access = epoch; modify = epoch; start_cluster = 0; file_size = 0l
+  }
+
   type entry =
   | Old of t
   | Lfn of lfn
@@ -547,7 +555,6 @@ module Dir_entry = struct
 	if checksum <> expected then failwith (Printf.sprintf "checksum_tests: %s.%s expected=%d actual=%d" d.filename d.ext expected checksum)
       | _ -> failwith "checksum_tests: didn't recognise a pure DOS name"
     ) checksum_tests
-
 
   let to_string x =
     let trim_utf16 x =
@@ -827,23 +834,9 @@ type 'a result =
   | Success of 'a
 
 module Stat = struct
-  type file_type =
-    | F 
-    | D
-  type entry = {
-    file_name: string;
-    file_type: file_type;
-    file_size: int;
-  }
   type t = 
-    | File of entry
-    | Dir of entry * (entry list) (** the directory itself and its immediate children *)
-
-  let make_entry file_name file_type file_size = {
-    file_name = file_name;
-    file_type = file_type;
-    file_size = file_size;
-  }
+    | File of Dir_entry.t
+    | Dir of Dir_entry.t * (Dir_entry.t list) (** the directory itself and its immediate children *)
 end
 
 module type FS = sig
@@ -1030,25 +1023,26 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  end
 
   let stat x path =
-    let entry_of_file f =
-      Stat.make_entry f.Dir_entry.utf_filename
-	(if f.Dir_entry.subdir then Stat.D else Stat.F)
-	(Int32.to_int f.Dir_entry.file_size) in
-
+    let entry_of_file f = f in
     match find x path with
       | Error x -> Error x
       | Success (File f) -> Success (Stat.File (entry_of_file f))
       | Success (Dir ds) ->
-	let filename = Path.filename path in
-	let parent_path = Path.directory path in
-	match find x parent_path with
-	  | Error x -> Error x
-	  | Success (File _) -> assert false (* impossible by initial match *)
-	  | Success (Dir ds) ->
-	    match Dir_entry.find filename ds with
-	      | None -> assert false (* impossible by initial match *)
-	      | Some f ->
-		Success (Stat.Dir (entry_of_file f, List.map entry_of_file ds))
+	let ds' = List.map entry_of_file ds in
+	if Path.is_root path
+	then Success (Stat.Dir (entry_of_file Dir_entry.fake_root_entry, ds'))
+	else
+	  let filename = Path.filename path in
+	  let parent_path = Path.directory path in
+	  match find x parent_path with
+	    | Error x -> Error x
+	    | Success (File _) -> assert false (* impossible by initial match *)
+	    | Success (Dir ds) ->
+	      begin match Dir_entry.find filename ds with
+		| None -> assert false (* impossible by initial match *)
+		| Some f ->
+		  Success (Stat.Dir (entry_of_file f, ds'))
+	      end
 
   let read_file x ({ Dir_entry.file_size = file_size } as f) the_start length =
     let bps = x.boot.Boot_sector.bytes_per_sector in
@@ -1160,13 +1154,13 @@ let () =
     let path = Path.cd !cwd dir in
     handle_error
       (function
-	| Dir dirs ->
+	| Stat.Dir (_, dirs) ->
 	  Printf.printf "Directory for A:%s\n\n" (Path.to_string path);
 	  List.iter
             (fun x -> Printf.printf "%s\n" (Dir_entry.to_string x)) dirs;
 	  Printf.printf "%9d files\n%!" (List.length dirs)
-	| File _ -> Printf.printf "Not a directory.\n%!"
-      ) (find fs path) in
+	| Stat.File _ -> Printf.printf "Not a directory.\n%!"
+      ) (stat fs path) in
   let do_type file =
     let path = Path.cd !cwd file in
     handle_error 
@@ -1177,19 +1171,19 @@ let () =
 	    (fun data ->
 	      let data = Bitstring.string_of_bitstring data in
 	      Printf.printf "%s\n%!" data;
-	      if String.length data <> s.Stat.file_size
-	      then Printf.printf "Short read; expected %d got %d\n%!" s.Stat.file_size (String.length data)
-	    ) (read fs path 0 s.Stat.file_size)
+	      if String.length data <> Int32.to_int s.Dir_entry.file_size
+	      then Printf.printf "Short read; expected %d got %d\n%!" (Int32.to_int s.Dir_entry.file_size) (String.length data)
+	    ) (read fs path 0 (Int32.to_int s.Dir_entry.file_size))
       ) (stat fs path) in
   let do_cd dir =
     let path = Path.cd !cwd dir in
     Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
       (function
-	| Dir _ ->
+	| Stat.Dir (_, _) ->
 	  cwd := path
-	| File _ -> Printf.printf "Not a directory.\n%!"
-      ) (find fs path) in
+	| Stat.File _ -> Printf.printf "Not a directory.\n%!"
+      ) (stat fs path) in
   let do_touch x =
     let path = Path.cd !cwd x in
     Printf.printf "path = %s\n%!" (Path.to_string path);

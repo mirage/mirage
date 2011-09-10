@@ -845,7 +845,7 @@ module type FS = sig
 
   type file
 
-  val create: fs -> Path.t -> file
+  val create: fs -> Path.t -> file result
 
   (** [file_of_path fs path] returns a [file] corresponding to [path] on
       filesystem [fs] *)
@@ -856,12 +856,12 @@ module type FS = sig
 
   (** [write fs f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [fs] *)
-  val write: fs -> Path.t -> int64 -> Bitstring.t -> unit
+  val write: fs -> file -> int64 -> Bitstring.t -> unit result
 
   (** [read fs f offset length] reads up to [length] bytes from file [f] on
       filesystem [fs]. If less data is returned than requested, this indicates
       end-of-file. *)
-  val read: fs -> Path.t -> int -> int -> Bitstring.t
+  val read: fs -> file -> int -> int -> Bitstring.t result
 end
 
 module FATFilesystem = functor(B: BLOCK) -> struct
@@ -882,7 +882,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     { boot = boot; format = format; fat = fat; root = root }
 
   type file = Path.t
-  let file_of_path x = x
+  let file_of_path fs x = x
 
   type find =
     | Dir of Dir_entry.t list
@@ -1123,7 +1123,7 @@ module UnixBlock = struct
 
 end
 
-module Test = FATFilesystem(UnixBlock)
+module Test = (FATFilesystem(UnixBlock) : FS)
 
 let () =
   let usage () =
@@ -1173,7 +1173,7 @@ let () =
 	      Printf.printf "%s\n%!" data;
 	      if String.length data <> Int32.to_int s.Dir_entry.file_size
 	      then Printf.printf "Short read; expected %d got %d\n%!" (Int32.to_int s.Dir_entry.file_size) (String.length data)
-	    ) (read fs path 0 (Int32.to_int s.Dir_entry.file_size))
+	    ) (read fs (file_of_path fs path) 0 (Int32.to_int s.Dir_entry.file_size))
       ) (stat fs path) in
   let do_cd dir =
     let path = Path.cd !cwd dir in
@@ -1210,18 +1210,6 @@ let () =
     | [ "exit" ] -> finished := true
     | [] -> ()
     | cmd :: _ -> Printf.printf "Unknown command: %s\n%!" cmd
-  done;
-
-  Boot_sector.debug_print fs.Test.boot;
-(*
-    Printf.printf "FAT:\n";
-    let fat = read_sectors (Boot_sector.sectors_of_fat boot) in
-    for i = 0 to Boot_sector.clusters boot - 1 do
-      let x = Fat_entry.of_bitstring format i fat in
-      Printf.printf "%s%!" (Fat_entry.to_string x)
-    done;*)
-    Printf.printf "Root directory:\n";
-
-
+  done
 
 

@@ -339,14 +339,21 @@ module Fat_entry = struct
     | FAT32 -> to_fat32
     | FAT12 -> to_fat12
 
+  module IntSet = Set.Make(struct type t = int let compare = compare end)
+
   (** [follow_chain format fat cluster] returns the list of sectors containing
       data according to FAT [fat] which is of type [format]. *)
   let follow_chain format fat cluster =
-    let rec inner acc i = match of_bitstring format i fat with
-    | End -> i :: acc
-    | Free | Bad -> acc (* corrupt file *)
-    | Used j -> inner (i :: acc) j in
-    List.rev (inner [] cluster)
+    (* the elements will be returned in order as 'list'; 'set' is used to
+       check that we aren't going round in an infinite loop. *)
+    let rec inner (list, set) i = match of_bitstring format i fat with
+    | End -> i :: list
+    | Free | Bad -> list (* corrupt file *)
+    | Used j ->
+      if IntSet.mem i set
+      then list (* infinite loop: corrupt file *)
+      else inner (i :: list, IntSet.add i set) j in
+    List.rev (inner ([], IntSet.empty) cluster)
 
   (** [find_free_from boot format fat start] returns an unallocated cluster
       after [start] *)

@@ -846,7 +846,7 @@ module type FS = sig
 
   (** [file_of_path fs path] returns a [file] corresponding to [path] on
       filesystem [fs] *)
-  val file_of_path: fs -> Path.t -> file
+  val file_of_path: fs -> Path.t -> file result
 
   (** [stat fs f] returns information about file [f] on filesystem [fs] *)
   val stat: fs -> Path.t -> Stat.t result
@@ -879,7 +879,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     { boot = boot; format = format; fat = fat; root = root }
 
   type file = Path.t
-  let file_of_path x = x
+  let file_of_path x = Success x
 
   type find =
     | Dir of Dir_entry.t list

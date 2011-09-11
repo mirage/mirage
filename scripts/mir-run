@@ -11,7 +11,9 @@ usage() {
   cat << EOF
 Execute Mirage binaries across various backends.
 Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
-          [-vif <if>] [-vbd <file>] [-n <name>] [-e <error code>]
+          [-n <name>] [-e <error code>]
+          [-vif <if>] [-vbd <file>]
+          [kv_ro <cfg>]
           [-create-vbds <megabytes>]
 BACKENDS:
   unix-socket (default)
@@ -24,6 +26,9 @@ OPTIONS:
           Can specify this multiple times.
    -vbd   Virtual block device, mapped to <file>.
           Can specify this multiple times.
+   -kv_ro Filesystem mapped in as a read-only k/v store.
+          The <cfg> string is id:root_dir for UNIX, and
+          still unsupported for other backends.
    -o     Log all output to <file>.
    -b     Mirage backend to use (see BACKENDS above)
    -n     Name of service (defaults to binary name)
@@ -44,6 +49,7 @@ OUTPUT=
 BINARY=
 declare -a VIFS
 declare -a VBDS
+declare -a KV_ROS
 NVIFS=0
 NVBDS=0
 MEMORY=128
@@ -153,7 +159,7 @@ run() {
     run_xl_domain
     ;;
   unix-*)
-    VBDFLAGS=""
+    CMDFLAGS=""
     for vbd in ${VBDS[@]}; do
       if [ ! -e "$vbd" ]; then
         if [ -z "${CREATE_VBDS}" ]; then
@@ -164,10 +170,20 @@ run() {
           dd if=/dev/zero of="$vbd" bs=1048576 count=${CREATE_VBDS}
         fi
       fi
-      VBDFLAGS="$VBDFLAGS -vbd ${vbd}"
+      CMDFLAGS="$CMDFLAGS -vbd ${vbd}"
     done
+    case $1 in
+    unix-socket)
+      for kv_ro in ${KV_ROS[@]}; do
+        CMDFLAGS="$CMDFLAGS -kv_ro ${kv_ro}"
+      done
+      ;;
+    *)
+      echo Warning: unsupported kv_ro in unix-direct for now
+      ;;
+    esac
     redirect_shell_output;
-    exec_and_check_error $bin $VBDFLAGS
+    exec_and_check_error $bin $CMDFLAGS
     ;;
   node)
     redirect_shell_output;
@@ -208,6 +224,11 @@ while [ $# -gt 0 ]; do
     shift
     let "NVBDS = $NVBDS + 1"
     VBDS[$NVBDS]=$1
+    ;;
+  -kv_ro)
+    shift
+    let "NKV_ROS = $NKV_ROS + 1"
+    KV_ROS[$NKV_ROS]=$1
     ;;
   -create-vbds)
     shift

@@ -710,6 +710,9 @@ module Dir_entry = struct
 	}
       | Old x ->
 	let filename = add_padding ' ' 8 x.filename in
+	let y = int_of_char filename.[0] in
+        filename.[0] <- char_of_int (if y = 0xe5 then 0x05 else y);
+	if x.deleted then filename.[0] <- char_of_int 0xe5;
 	let ext = add_padding ' ' 3 x.ext in
 	let create_time_ms = x.create.ms in
 	let create_time = int_of_time x.create in
@@ -740,12 +743,18 @@ module Dir_entry = struct
 	  x.file_size: 32: littleendian
 	}
 
-    let list bits =
+    (** [blocks bits] returns the directory chopped into individual bitstrings,
+	each one containing a possible Dir_entry (fragment) *)
+    let blocks bits =
       let entry_size = 32 in (* bytes *)
+      let list = bitstring_chop (8 * entry_size) bits in
+      List.rev (fst (List.fold_left (fun (acc, offset) bs -> ((offset, bs)::acc, offset + entry_size)) ([], 0) list))
+
+    let list bits =
       (* Stop as soon as we find a None *)
       let rec inner lfns acc = function
         | [] -> acc
-        | b :: bs ->
+        | (_, b) :: bs ->
           begin match of_bitstring b with
             | Lfn lfn -> inner (lfn :: lfns) acc bs
             | Old d ->
@@ -768,7 +777,7 @@ module Dir_entry = struct
               inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
             | End -> acc
           end in
-      inner [] [] (bitstring_chop (8 * entry_size) bits)
+      inner [] [] (blocks bits)
 
     (** [next bits] returns the bit offset of a free directory slot. Note this
         function does not recycle deleted elements. *)
@@ -791,11 +800,7 @@ module Dir_entry = struct
 	| Some b -> b
 	| None -> after_block in
       let bits = Bitstring.concat (List.map to_bitstring dir_entries) in
-      Update.make (Int64.of_int (next_bit / 8)) bits
-
-    let remove block filename =
-      (* We only mark the entry as deleted, and will GC asynchronously *)
-      failwith "Unimplemented"
+      [ Update.make (Int64.of_int (next_bit / 8)) bits ]
 
     let name_match name d =
       let utf_name = ascii_to_utf16 name in
@@ -806,6 +811,38 @@ module Dir_entry = struct
         name [name] (or None) *)
     let find name list =
       try Some (List.find (name_match name) list) with Not_found -> None
+
+    let remove block filename =
+      match find filename (list block) with
+	| Some d ->
+	  let checksum = compute_checksum d in
+	  (* Any LFN whose checksum matches 'checksum' or DOS entry whose filename.ext
+	     matches d, should be deleted. *)
+	  let rec inner acc = 
+	    (* assume it's better to write forwards rather than backwards *)
+	    let ok () = List.rev acc in function
+	      | [] -> ok ()
+	      | (offset, b) :: bs ->
+		begin match of_bitstring b with
+		  | Lfn lfn ->
+		    if lfn.lfn_checksum = checksum
+		    then
+		      let lfn' = { lfn with lfn_deleted = true } in
+		      let update = Update.make (Int64.of_int offset) (to_bitstring (Lfn lfn')) in
+		      inner (update :: acc) bs
+		    else inner acc bs
+		  | Old dos ->
+		    if dos.filename = d.filename && dos.ext = d.ext
+		    then
+		      let dos' = { dos with deleted = true } in
+		      let update = Update.make (Int64.of_int offset) (to_bitstring (Old dos')) in
+		      inner (update :: acc) bs
+		    else inner acc bs
+		  | End -> ok ()
+		end in
+	  inner [] (blocks block)
+	| None -> [] (* no updates implies nothing to remove *)
+
 end
 
 module Path = (struct
@@ -848,6 +885,7 @@ type error =
 type 'a result =
   | Error of error
   | Success of 'a
+let iter f xs = List.fold_left (fun r x -> match r with Error _ -> r | _ -> f x) (Success ()) xs
 
 module Stat = struct
   type t = 
@@ -1030,8 +1068,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	let contents = B.read_sectors sectors in
 	begin match f contents ds with
 	  | Error x -> Error x
-	  | Success update ->
-	    begin match write_to_file x location update with
+	  | Success updates ->
+	    begin match iter (write_to_file x location) updates with
 	      | Success () -> Success ()
 	      | Error x -> Error x
 	    end

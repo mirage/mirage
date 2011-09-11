@@ -750,12 +750,17 @@ module Dir_entry = struct
       let list = bitstring_chop (8 * entry_size) bits in
       List.rev (fst (List.fold_left (fun (acc, offset) bs -> ((offset, bs)::acc, offset + entry_size)) ([], 0) list))
 
+    (** [list bits] returns a list of valid (not deleted) directory entries
+        contained within the directory [bits] *)
     let list bits =
       (* Stop as soon as we find a None *)
       let rec inner lfns acc = function
         | [] -> acc
         | (_, b) :: bs ->
           begin match of_bitstring b with
+	    | Old { deleted = true }
+	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
+
             | Lfn lfn -> inner (lfn :: lfns) acc bs
             | Old d ->
 	      let expected_checksum = compute_checksum d in

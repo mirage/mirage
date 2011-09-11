@@ -1037,6 +1037,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	if location = Rootdir then x.root <- Update.apply x.root update;
 	Success ()
       | Chain cs, true ->
+	(* XXX: need to ensure chain has at least 1 element *)
 	let last = List.hd(List.tl cs) in
 	let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
 	(* Split the FAT allocations into multiple sectors. Note there might be more than one
@@ -1096,6 +1097,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     update_directory x path
       (fun contents ds ->
 	(* XXX check for nonempty *)
+	(* XXX delete chain *)
 	if Dir_entry.find filename ds = None
 	then Error (No_directory_entry(Path.directory path, filename))
 	else Success (Dir_entry.remove contents filename)

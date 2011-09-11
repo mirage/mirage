@@ -7,8 +7,8 @@ PACKS = bitstring
 .PHONY: all clean
 all: fat.opt
 
-%.opt: %.cmx
-	$(OCAMLOPT) -linkpkg -package $(PACKS) -o $@ $<
+fat.opt: fat_utils.cmx fat.cmx fat_shell.cmx
+	$(OCAMLOPT) -linkpkg -package $(PACKS) -o $@ fat_utils.cmx fat.cmx fat_shell.cmx
 
 %.cmx: %.ml
 	$(OCAMLOPT) $(OCAMLFLAGS) -package $(PACKS),bitstring.syntax -syntax camlp4o -c -o $@ $<

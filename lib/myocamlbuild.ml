@@ -33,7 +33,7 @@ module Spec = struct
   let specs = Hashtbl.create 1
   let add k v = Hashtbl.add specs k v
   
-  let () = add "unix-direct" { os="unix"; net="direct"; block="socket"; syntax="" }
+  let () = add "unix-direct" { os="unix"; net="direct"; block="direct"; syntax="" }
   let () = add "unix-socket" { os="unix"; net="socket"; block="socket"; syntax="" }
   let () = add "xen" { os="xen"; net="direct"; block="direct"; syntax="" }
   let () = add "node" { os="node"; net="node"; block="node"; syntax="pa_js.cma" }

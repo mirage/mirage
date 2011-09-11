@@ -18,23 +18,17 @@
 open Lwt
 open Printf
 
-exception Error of string
-
 type file = {
   name: string;
   offset: int64;
   len: int64;
 }
 
-type t = {
-  vbd: OS.Blkif.t;
-  files: (string, file) Hashtbl.t;
-}
-
-let create vbd =
+let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
+  (* Attach and parse the index file *)
   let files = Hashtbl.create 7 in
   let rec read_page off =
-    lwt page = OS.Blkif.read_page vbd off in
+    lwt page = vbd#read_page off in
     let rec parse_page num =
       let loff = num * 512 in
       let bs = Bitstring.subbitstring page (loff * 8) (512 * 8) in
@@ -54,59 +48,95 @@ let create vbd =
     in
     parse_page 0 in
   read_page 0L >>
-  return { vbd; files }
+  return (object
+    method iter_s fn =
+      let files = Hashtbl.fold (fun k v a -> k :: a) files [] in
+      Lwt_list.iter_s fn files
 
-(** Read list of keys *)
-let iter_s t fn =
-  let files = Hashtbl.fold (fun k v a -> k :: a) t.files [] in
-  Lwt_list.iter_s fn files
+    method size name =
+      try return (Some (Hashtbl.find files name).len)
+      with Not_found -> return None
 
-let size t name =
-  try return (Hashtbl.find t.files name).len
-  with Not_found -> fail (Error "file not found")
-
-(* Read directly from the disk, no caching *)
-let read t filename =
-  try
-    let file = Hashtbl.find t.files filename in
-    let offset = Int64.div file.offset 512L in
-    assert(Int64.rem file.offset 512L = 0L);
-    let cur_seg = ref None in
-    let pos = ref 0L in
-    let rec readfn () =
-      (* Check if we have an active segment *)
-      match !cur_seg with
-      |Some (idx, arr) ->
-        (* Traversing an existing segment, so get next in element *)
-        let r =
-          (* If this is the end of the file, might need to be a partial view *)
-          if Int64.add !pos 512L > file.len then begin
-            let sz = Int64.sub file.len !pos in
-            pos := Int64.add !pos sz;
-            cur_seg := None;
-            Bitstring.subbitstring arr.(idx) 0 (Int64.to_int sz * 8)
+    method read filename =
+      try
+      let file = Hashtbl.find files filename in
+      let offset = Int64.div file.offset 512L in
+      assert(Int64.rem file.offset 512L = 0L);
+      let cur_seg = ref None in
+      let pos = ref 0L in
+      let rec readfn () =
+        (* Check if we have an active segment *)
+        match !cur_seg with
+        |Some page ->
+          (* Traversing an existing segment, so get next in element *)
+          let r =
+            (* If this is the end of the file, might need to be a partial view *)
+            let pos' = Int64.add !pos 4096L in
+            if pos' > file.len then begin
+              let sz = Int64.sub file.len !pos in
+              pos := Int64.add !pos sz;
+              cur_seg := None;
+              Bitstring.subbitstring page 0 (Int64.to_int sz * 8)
+            end else begin
+              pos := pos';
+              cur_seg := None;
+              page
+            end
+          in
+          return (Some r)
+        |None ->
+          if !pos >= file.len then begin
+            return None (* EOF *)
           end else begin
-            pos := Int64.add !pos 4096L;
-            cur_seg := if idx < Array.length arr - 1 then Some (idx+1, arr) else None;
-            arr.(idx)
+            (* Need to retrieve more data, get another page *)
+            (* TODO readv instead of one page at a time *)
+            lwt page = vbd#read_page (Int64.add offset (Int64.div !pos 512L)) in
+            cur_seg := Some page;
+            readfn ()
           end
         in
-        return (Some r)
-      |None ->
-        if !pos >= file.len then begin
-          return None (* EOF *)
-        end else begin
-          (* Need to retrieve more data *)
-          (* Assuming a sector size of 512, we can read a maximum of 
-             11 * 8 512-byte sectors (44KB=45056b) per scatter-gather request *)
-          let need_bytes = min 45056L (Int64.sub file.len !pos) in
-          (* Get rounded up number of sectors *)
-          let need_sectors = Int64.(div (add need_bytes 511L) 512L) in
-          lwt arr = OS.Blkif.read_512 t.vbd (Int64.add offset (Int64.div !pos 512L)) need_sectors in
-          cur_seg := Some (0, arr);
-          readfn ()
-        end
-    in
-    return (Lwt_stream.from readfn)
-  with
-  | Not_found -> fail (Error "file not found")
+        return (Some (Lwt_stream.from readfn))
+      with
+      | Not_found -> return None
+   end )
+
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  (* KV_RO provider *)
+  let provider = object(self)
+    method id = "Direct.SimpleKV"
+    method plug = plug_mvar
+    method unplug = unplug_mvar
+    method create ~deps ~cfg id =
+      let open OS.Devices in
+      (* One dependency: a Blkif entry to mount *)
+      match deps with 
+      |[{node=Blkif vbd} as ent] ->
+         printf "dep %s\n%!" ent.id;
+         lwt t = create ~id ~vbd in
+         return OS.Devices.({
+           provider=self;
+           id=self#id;
+           depends=deps;
+           node=KV_RO t 
+         })
+      |_ -> raise_lwt (Failure "bad deps")
+    end
+  in
+  OS.Devices.new_provider provider;
+  OS.Main.at_enter (fun () ->
+    let fs = ref [] in
+    lwt env = OS.Env.argv () in
+    Array.iteri (fun i -> function
+      |"-kv_ro" -> begin
+         match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
+         |[p_id;p_dep_id] ->
+           let p_dep_ids=[p_dep_id] in
+           fs := ({OS.Devices.p_dep_ids; p_cfg=[]; p_id}) :: !fs
+         |_ -> failwith "Direct.SimpleKV: bad -kv_ro flag, must be id:root_dir"
+      end
+      |_ -> ()) env;
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
+  )
+

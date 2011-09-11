@@ -120,9 +120,16 @@ module Mir = struct
   (** Generate an ML entry point file that spins up the Mirage runtime *)
   let ml_main mirfile mlprod env build =
     let mirfile = env mirfile in
-    let mains = string_list_of_file mirfile in
-    let mlprod = env mlprod in
-    Util.safe_echo (List.map (sprintf "let _ = OS.Main.run (%s ())\n") mains) mlprod
+    (* The first line is the function entry point, and subsequent ones are additional
+       modules to be linked in *)
+    match string_list_of_file mirfile with
+    |main::mods ->
+      let mlprod = env mlprod in
+      let acc = ref 0 in
+      let mods = List.map (fun m -> incr acc; sprintf "module ForceLink%d = %s" !acc m) mods in
+      let main = sprintf "let _ = OS.Main.run (%s ())" main in
+      Util.safe_echo (mods @ [main]) mlprod
+    |[] -> failwith "empty .mir file"
 
   (** Copied from ocaml/ocamlbuild/ocaml_specific.ml and modified to add
       the output_obj tag *)
@@ -193,6 +200,7 @@ module Spec = struct
     backends: backend list; (* supported backends *)
     expect: int;  (* return code to expect from the script *)
     vbds: string list;
+    kv_ros: string list;
   }
 
   let backend_of_string = function
@@ -251,7 +259,8 @@ module Spec = struct
     let kvs = List.map (fun line ->
       match Util.split line ':' with
       |[k;v] -> (String.lowercase k), (String.lowercase v)
-      |_ -> failwith (sprintf "unknown spec entry '%s'" line)
+      |k::v -> (String.lowercase k), (String.lowercase (String.concat ":" v))
+      |[] -> failwith (sprintf "empty spec entry '%s'" line)
     ) lines in
     let backends =
       try (match List.assoc "backend" kvs with
@@ -269,7 +278,9 @@ module Spec = struct
     in
     let vbds = 
        List.fold_left (fun a (k,v) -> if k = "vbd" then v :: a else a) [] kvs in
-    {target; backends; expect; vbds}
+    let kv_ros = 
+       List.fold_left (fun a (k,v) -> if k = "kv_ro" then v :: a else a) [] kvs in
+    {target; backends; expect; vbds; kv_ros}
 
   (* Convert a list of Outcomes into a logging Echo command *)
   let log_outcomes file ocs =
@@ -309,8 +320,10 @@ module Spec = struct
             in
             [A"-vbd";P name]) spec.vbds) 
           in
+          let kv_ros = List.flatten (List.map (fun kv_ro ->
+            [A"-kv_ro";P kv_ro]) spec.kv_ros) in
           (* Execute the binary using the mir-run wrapper and log its output to prod *)
-          Cmd (S ([A "mir-run"; A"-create-vbds"; A"10"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ return @[A binary]))
+          Cmd (S ([A "mir-run"; A"-create-vbds"; A"10"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ kv_ros @ return @[A binary]))
         |`No ->
           (* Unsupported backend for this test, so mark as skipped in the log *)
           Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 

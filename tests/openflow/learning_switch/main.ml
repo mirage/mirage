@@ -64,12 +64,13 @@ let packet_in_cb controller dpid evt =
                      ~data:data ~in_port:in_port () ) in
           resolve (OC.send_of_data controller dpid (OP.Packet_out.packet_out_to_bitstring pkt))
           else
-        let out_port = Hashtbl.find switch_data.mac_cache ix in
-        let pkt = OP.Flow_mod.create m (Int64.of_int 0) (OP.Flow_mod.ADD)  
-                    [| OP.Output(out_port, 2000) |] in 
-      resolve (OC.send_of_data controller dpid (OP.Flow_mod.flow_mod_to_bitstring pkt));
+        let out_port = (Hashtbl.find switch_data.mac_cache ix) in
 
-      printf "%s\n" (OP.Match.match_to_string m)
+        let pkt = (OP.Flow_mod.create m (Int64.of_int 0) (OP.Flow_mod.ADD) 
+                     [| OP.Output(out_port, 2000) |])  () in 
+          resolve (OC.send_of_data controller dpid (OP.Flow_mod.flow_mod_to_bitstring pkt));
+
+          printf "%s\n" (OP.Match.match_to_string m)
 
 
 let init controller = 

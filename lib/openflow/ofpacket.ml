@@ -991,6 +991,17 @@ module Stats = struct
     | Port of resp_hdr * Port.stats
     | Queue of resp_hdr * queue
     | Vendor of resp_hdr
+
+  let get_len typ =
+    match typ with
+    | Flow(_,_) -> (Header.get_len  )
+    | _ -> 8;
+
+(*  let create_flow_stat_req typ ?(xid=0) () = 
+    let snd_xid = if xid == 0 then Random.int32 else xid in
+      match typ with
+        | Flow -> (BITSTRING{Header.build_h(Header.create FLOW_STATS (get_len typ) snd_xid):(Header.get_len*8)}) 
+ *)  
 end
 
 type error_code = 

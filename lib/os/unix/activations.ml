@@ -33,11 +33,10 @@ module FD = struct
   
 end
 
-type fd = int
-
 (* Register a read file descriptor and a thread that
    returns when it is ready *)
 let read fd =
+  let fd = Socket.fd_to_int fd in
   let th, u = Lwt.task () in
   let watcher = FD.(add fd read_mask) in
   Lwt.on_cancel th (fun _ -> FD.remove watcher);
@@ -47,6 +46,7 @@ let read fd =
 (* Register a write file descriptor and a thread that
    returns when it is ready *)
 let write fd =
+  let fd = Socket.fd_to_int fd in
   let th, u = Lwt.task () in
   let watcher = FD.(add fd write_mask) in
   Lwt.on_cancel th (fun _ -> FD.remove watcher);

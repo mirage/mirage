@@ -17,15 +17,12 @@
 (** Activations provides an interface to wait for a file descriptor
     to become available for either reading or writing *)
 
-(** File descriptor *)
-type fd = int
-
 (** Wait for the file descriptor to become ready for reading 
     @param fd file descriptor 
     @return a thread that blocks until the [fd] is ready for reading *)
-val read: fd -> unit Lwt.t
+val read: 'a Socket.fd -> unit Lwt.t
 
 (** Wait for the file descriptor to become ready for writing 
     @param fd file descriptor 
     @return a thread that blocks until the [fd] is ready for writing *)
-val write: fd -> unit Lwt.t
+val write: 'a Socket.fd -> unit Lwt.t

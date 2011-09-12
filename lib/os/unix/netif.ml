@@ -17,18 +17,11 @@
 open Lwt
 open Printf
 
-module Tap = struct
-  type t = int
-  external opendev: string -> t = "tap_opendev"
-  external read: t -> string -> int -> int = "tap_read"
-  external write: t -> Bitstring.t -> unit = "tap_write"
-end
-
 type id = string
 
 type t = {
   id: id;
-  dev: Tap.t;
+  dev: [`tap] Socket.fd;
   mutable active: bool;
   mac: string;
 }
@@ -53,7 +46,7 @@ let generate_local_mac () =
 let devices = Hashtbl.create 1
 
 let plug id =
-  let dev = Tap.opendev id in
+  let dev = Socket.opentap id in
   let mac = generate_local_mac () in
   let active = true in
   let t = { id; dev; active; mac } in
@@ -80,14 +73,12 @@ let create fn =
 let rec input t =
   let sz = 4096 in
   let page = String.create sz in
-  let len = Tap.read t.dev page sz in
+  lwt len = Socket.fdbind Activations.read (fun fd -> Socket.read fd page 0 sz) t.dev in
   match len with
   |(-1) -> (* EAGAIN or EWOULDBLOCK *)
-    Activations.read t.dev >>
     input t
   |0 -> (* EOF *)
     t.active <- false;
-    Activations.read t.dev >>
     input t
   |n ->
     return (page, 0, n lsl 3)
@@ -112,13 +103,14 @@ let destroy nf =
   printf "tap_destroy\n%!";
   return ()
 
-(* Transmit a packet from a bitstring
-   For now, just assume the Tap write wont block for long as this
-   is not a performance-critical backend
-*)
+(* Transmit a packet from a bitstring *)
 let output t bss =
-  let s = Bitstring.concat bss in
-  return (Tap.write t.dev s)
+  let buf,off,len = Bitstring.concat bss in
+  lwt len' = Socket.fdbind Activations.write (fun fd -> Socket.write fd buf (off/8) (len/8)) t.dev in
+  if len' <> len then
+    raise_lwt (Failure "tap: partial write")
+  else
+    return ()
 
 let mac t =
   t.mac

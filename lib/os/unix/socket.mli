@@ -51,9 +51,11 @@ external opendir: string -> dir resp = "caml_opendir"
 external readdir: dir -> string resp = "caml_readdir"
 external closedir: dir -> unit resp = "caml_closedir"
 
-external read : [< `rd_pipe | `tcpv4 | `udpv4 | `ro_file |`rw_file] fd -> string -> int -> int -> int resp = "caml_socket_read"
-external write : [< `tcpv4 | `udpv4 | `wr_pipe ] fd -> string -> int -> int -> int resp = "caml_socket_write"
-external close : [< `domain | `rd_pipe | `tcpv4 | `udpv4 | `wr_pipe | `ro_file |`rw_file] fd -> unit = "caml_socket_close"
+external opentap: string -> [`tap ] fd = "tap_opendev"
+
+external read : [< `rd_pipe | `tcpv4 | `udpv4 | `ro_file |`rw_file |`tap] fd -> string -> int -> int -> int resp = "caml_socket_read"
+external write : [< `tcpv4 | `udpv4 | `wr_pipe |`tap] fd -> string -> int -> int -> int resp = "caml_socket_write"
+external close : [< `domain | `rd_pipe | `tcpv4 | `udpv4 | `wr_pipe | `ro_file |`rw_file |`tap] fd -> unit = "caml_socket_close"
 external fd_to_int : 'a fd -> int = "%identity"
-val fdbind : (int -> 'a Lwt.t) -> ('b fd -> 'c resp) -> 'b fd -> 'c Lwt.t
+val fdbind : ('b fd -> 'a Lwt.t) -> ('b fd -> 'c resp) -> 'b fd -> 'c Lwt.t
 val iobind : ('a -> 'b resp) -> 'a -> 'b Lwt.t

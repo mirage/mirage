@@ -277,6 +277,8 @@ module Fat_entry = struct
       end in
     List.rev (inner ([], IntSet.empty) cluster)
 
+  let initial = 2 (* first valid entry *)
+
   (** [find_free_from boot format fat start] returns an unallocated cluster
       after [start] *)
   let find_free_from boot format fat start =
@@ -290,14 +292,14 @@ module Fat_entry = struct
 
   (** [extend boot format fat last n] allocates [n] free clusters to extend
       the chain whose current end is [last] *)
-  let extend boot format fat last n =
+  let extend boot format fat (last: int option) n =
     let rec inner acc start = function
       | 0 -> acc (* in reverse disk order *)
       | i ->
 	match find_free_from boot format fat start with
 	  | None -> acc (* out of space *)
 	  | Some c -> inner (c :: acc) (c + 1) (i - 1) in
-    let to_allocate = inner [] last n in
+    let to_allocate = inner [] (match last with None -> initial | Some x -> x) n in
     if n = 0
     then [], []
     else
@@ -307,7 +309,10 @@ module Fat_entry = struct
 	let final = List.hd to_allocate in
 	let to_allocate = List.rev to_allocate in
 	let updates = fst(List.fold_left (fun (acc, last) next ->
-	  to_bitstring format last fat (Used next) :: acc, next
+	  (match last with
+	    | Some last ->
+	      to_bitstring format last fat (Used next) :: acc
+	    | None -> acc), Some next
 	) ([], last) to_allocate) in
 
 	to_bitstring format final fat End :: updates (* reverse order *), to_allocate
@@ -766,6 +771,17 @@ module Dir_entry = struct
 	  inner [] (blocks block)
 	| None -> [] (* no updates implies nothing to remove *)
 
+    let set_start_cluster block filename cluster =
+      let rec inner = function
+	| [] -> None
+	| (offset, b) :: bs ->
+	  match of_bitstring b with
+	    | Old dos when name_match filename dos ->
+	      let dos' = { dos with start_cluster = cluster } in
+	      Some (Update.make (Int64.of_int offset) (to_bitstring (Old dos')))
+	    | _ -> inner bs in
+      inner (blocks block)
+
 end
 
 module Path = (struct
@@ -912,6 +928,12 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       end in
     inner [] (Dir (Dir_entry.list x.root)) (Path.to_string_list path)
 
+  (** Updates to files and directories involve writing to the following disk areas: *)
+  type location =
+    | Chain of int list (** write to a file/directory stored in a chain *)
+    | Rootdir           (** write to the root directory area *)
+
+
   (** [chain_of_file x path] returns [Some chain] where [chain] is the chain
       corresponding to [path] or [None] if [path] cannot be found or if it
       is / and hasn't got a chain. *)
@@ -928,13 +950,9 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  end
 	| _ -> None
 
-  type location =
-    | Chain of int list (** write to a file/directory stored in a chain *)
-    | Rootdir           (** write to the root directory area *)
-
-  (** [write_to_file x location update] applies [update] to the file given by
-      [location]. This will also allocate any additional clusters necessary *)
-  let write_to_file x location update : unit result =
+  (** [write_to_location x path location update] applies [update] to the data given by
+      [location]. This will also allocate any additional clusters necessary. *)
+  let rec write_to_location x path location update : unit result =
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let spc = x.boot.Boot_sector.sectors_per_cluster in
     let updates = Update.split update bps in
@@ -945,7 +963,9 @@ module FATFilesystem = functor(B: BLOCK) -> struct
        new sectors and do that too. *)
     let current_bytes = bps * (List.length sectors) in
     let bytes_needed = max 0L (Int64.(sub (Update.total_length update) (of_int current_bytes))) in
-    let clusters_needed = Int64.(to_int(div bytes_needed (mul (of_int spc) (of_int bps)))) in
+    let clusters_needed =
+      let bpc = Int64.of_int(spc * bps) in
+      Int64.(to_int(div (add bytes_needed (sub bpc 1L)) bpc)) in
     match location, bytes_needed > 0L with
       | Rootdir, true ->
 	Error No_space
@@ -955,9 +975,10 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	if location = Rootdir then x.root <- Update.apply x.root update;
 	Success ()
       | Chain cs, true ->
-	(* XXX: need to ensure chain has at least 1 element *)
-	let last = List.hd(List.tl cs) in
+	Printf.printf "current chain = [ %s ] needed = %d\n%!" (String.concat ", " (List.map string_of_int cs)) clusters_needed;
+	let last = if cs = [] then None else Some (List.hd (List.tl cs)) in
 	let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
+	Printf.printf "new_clusters = [ %s ]\n%!" (String.concat ", " (List.map string_of_int new_clusters));
 	(* Split the FAT allocations into multiple sectors. Note there might be more than one
 	   per sector. *)
 	let fat_allocations_sectors = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
@@ -968,19 +989,18 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
 	List.iter (write_update x) data_writes;
 	List.iter (write_update x) fat_writes;
+	update_directory_containing x path
+	  (fun bits ds ->
+	    (* XXX: update length as well *)
+	    match Dir_entry.set_start_cluster bits (Path.filename path) (List.hd (cs @ new_clusters)) with
+	      | None ->
+		Error(No_directory_entry (Path.directory path, Path.filename path))
+	      | Some x -> Success [ x ]
+	  );
 	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
 	Success ()
 
-  (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
-      filesystem [x] *)
-  let write x f offset bs =
-    let u = Update.make (Int64.of_int offset) bs in
-    let location = match chain_of_file x f with
-      | None -> Rootdir
-      | Some c -> Chain (sectors_of_chain x c) in
-    write_to_file x location u
-
-  let update_directory x path f =
+  and update_directory_containing x path f =
     let parent_path = Path.directory path in
     match find x parent_path with
       | Error x -> Error x
@@ -993,16 +1013,26 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	begin match f contents ds with
 	  | Error x -> Error x
 	  | Success updates ->
-	    begin match iter (write_to_file x location) updates with
+	    begin match iter (write_to_location x parent_path location) updates with
 	      | Success () -> Success ()
 	      | Error x -> Error x
 	    end
 	end
 
+  (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
+      filesystem [x] *)
+  let write x f offset bs =
+    let u = Update.make (Int64.of_int offset) bs in
+    let location = match chain_of_file x f with
+      | None -> Rootdir
+      | Some c -> Chain (sectors_of_chain x c) in
+    write_to_location x f location u
+
+
   (** [create x path] create a zero-length file at [path] *)
   let create x path : unit result =
     let filename = Path.filename path in
-    update_directory x path
+    update_directory_containing x path
       (fun contents ds ->
 	if Dir_entry.find filename ds <> None
 	then Error (File_already_exists filename)
@@ -1012,7 +1042,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   (** [destroy x path] deletes the entry at [path] *)
   let destroy x path : unit result =
     let filename = Path.filename path in
-    update_directory x path
+    update_directory_containing x path
       (fun contents ds ->
 	(* XXX check for nonempty *)
 	(* XXX delete chain *)

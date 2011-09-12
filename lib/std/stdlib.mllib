@@ -37,9 +37,6 @@ camlinternalMod
 std_exit
 log
 oo
-bitstring
-bitstring_types
-bitstring_config
 lwt
 lwt_util
 lwt_stream
@@ -51,6 +48,10 @@ lwt_pool
 lwt_condition
 lwt_pqueue
 lwt_switch
+bitstring
+bitstring_types
+bitstring_config
+bitstring_stream
 regexp
 oS
 net

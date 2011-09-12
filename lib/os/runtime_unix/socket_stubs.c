@@ -619,13 +619,26 @@ caml_file_open_ro(value v_filename)
 {
   CAMLparam1(v_filename);
   CAMLlocal2(v_ret, v_err);
-  int r = open(String_val(v_filename), O_RDONLY);
+  /* Ensure that the requested file is not a directory */
+  struct stat buf;
+  int r = stat(String_val(v_filename), &buf);
   if (r == -1) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
   } else {
-    setnonblock(r);
-    Val_OK(v_ret, Val_int(r));
+    if (buf.st_mode & S_IFDIR) {
+      v_err = caml_copy_string("cannot open directory");
+      Val_Err(v_ret, v_err);
+    } else {
+      int r = open(String_val(v_filename), O_RDONLY);
+      if (r == -1) {
+        v_err = caml_copy_string(strerror(errno));
+        Val_Err(v_ret, v_err);
+      } else {
+        setnonblock(r);
+        Val_OK(v_ret, Val_int(r));
+      }
+    }
   }
   CAMLreturn(v_ret);
 }
@@ -639,13 +652,26 @@ caml_file_open_rw(value v_filename)
 {
   CAMLparam1(v_filename);
   CAMLlocal2(v_ret, v_err);
-  int r = open(String_val(v_filename), O_RDWR);
+  /* Ensure that the requested file is not a directory */
+  struct stat buf;
+  int r = stat(String_val(v_filename), &buf);
   if (r == -1) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
   } else {
-    setnonblock(r);
-    Val_OK(v_ret, Val_int(r));
+    if (buf.st_mode & S_IFDIR) {
+      v_err = caml_copy_string("cannot open directory");
+      Val_Err(v_ret, v_err);
+    } else {
+      int r = open(String_val(v_filename), O_RDWR);
+      if (r == -1) {
+        v_err = caml_copy_string(strerror(errno));
+        Val_Err(v_ret, v_err);
+      } else {
+        setnonblock(r);
+        Val_OK(v_ret, Val_int(r));
+      }
+    }
   }
   CAMLreturn(v_ret);
 }

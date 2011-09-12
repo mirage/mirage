@@ -129,12 +129,12 @@ let _ =
     let fs = ref [] in
     lwt env = OS.Env.argv () in
     Array.iteri (fun i -> function
-      |"-kv_ro" -> begin
+      |"-simple_kv_ro" -> begin
          match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
          |[p_id;p_dep_id] ->
            let p_dep_ids=[p_dep_id] in
            fs := ({OS.Devices.p_dep_ids; p_cfg=[]; p_id}) :: !fs
-         |_ -> failwith "Direct.SimpleKV: bad -kv_ro flag, must be id:root_dir"
+         |_ -> failwith "Direct.SimpleKV: bad -simple_kv_ro flag, must be id:dep_id"
       end
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs

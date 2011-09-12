@@ -100,12 +100,12 @@ let _ =
     let fs = ref [] in
     lwt env = OS.Env.argv () in
     Array.iteri (fun i -> function
-      |"-kv_ro" -> begin
+      |"-simple_kv_ro" -> begin
          match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
          |[p_id;root] -> 
            let p_cfg = ["root",root] in
            fs := ({OS.Devices.p_dep_ids=[]; p_cfg; p_id}) :: !fs
-         |_ -> failwith "Socket.RO: bad -kv_ro flag, must be id:root_dir"
+         |_ -> failwith "Socket.RO: bad -simple_kv_ro flag, must be id:root_dir"
       end
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs

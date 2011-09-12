@@ -175,7 +175,7 @@ run() {
     case $1 in
     unix-socket)
       for kv_ro in ${KV_ROS[@]}; do
-        CMDFLAGS="$CMDFLAGS -kv_ro ${kv_ro}"
+        CMDFLAGS="$CMDFLAGS -simple_kv_ro ${kv_ro}"
       done
       ;;
     *)

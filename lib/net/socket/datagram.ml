@@ -47,7 +47,7 @@ module UDPv4 = struct
       else
         return ()
     |R.Retry -> 
-      Activations.write (R.fd_to_int fd) >>
+      Activations.write fd >>
       send mgr (dstaddr, dstport) req
     |R.Err err -> fail (Error err)
 
@@ -69,8 +69,7 @@ module UDPv4 = struct
             return (Printf.printf "EXN: %s\n%!" (Printexc.to_string exn))
         );
         listen ()
-      |R.Retry -> 
-        lwt () = Activations.read (R.fd_to_int lfd) in listen ()
+      |R.Retry -> Activations.read lfd >> listen ()
       |R.Err _ -> return ()
     in 
     listen ()

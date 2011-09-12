@@ -161,5 +161,15 @@ let listen fn =
 let find_blkif id = find id >|= function |{node=Blkif b} -> Some b |_ -> None
 let find_kv_ro id = find id >|= function |{node=KV_RO b} -> Some b |_ -> None
 
+let with_blkif id fn =
+  find_blkif id >>= function
+  |None -> raise_lwt (Failure "with_blkif")
+  |Some b -> fn b
+
+let with_kv_ro id fn =
+  find_kv_ro id >>= function
+  |None -> raise_lwt (Failure "with_kv_ro")
+  |Some b -> fn b
+
 (* Start the device manager thread when the system "boots" *) 
 let _ = Main.at_enter device_t

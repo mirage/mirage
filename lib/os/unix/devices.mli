@@ -60,4 +60,7 @@ val find : id -> entry Lwt.t
 val find_blkif : id -> blkif option Lwt.t
 val find_kv_ro : id -> kv_ro option Lwt.t
 
+val with_blkif : id -> (blkif -> 'a Lwt.t) -> 'a Lwt.t
+val with_kv_ro : id -> (kv_ro -> 'a Lwt.t) -> 'a Lwt.t
+
 val listen : (id -> unit Lwt.t) -> unit Lwt.t

@@ -26,7 +26,7 @@ type daemon_spec = {
   address : string;
   auth : Types.auth_info;
   callback :
-    conn_id -> Request.request -> (Net.Channel.t -> unit Lwt.t) Lwt.t;
+  conn_id -> Request.request -> (Net.Channel.t -> unit Lwt.t) Lwt.t;
   conn_closed : conn_id -> unit;
   port : int;
   exn_handler : exn -> unit Lwt.t;

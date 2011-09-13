@@ -705,7 +705,7 @@ module Dir_entry = struct
 	    | Dos { deleted = true }
 	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
 
-            | Lfn lfn -> inner (lfn :: lfns) acc bs
+            | Lfn lfn -> inner ((offset, lfn) :: lfns) acc bs
             | Dos d ->
 	      let expected_checksum = compute_checksum d in
 	      (* TESTING ONLY *)
@@ -717,17 +717,16 @@ module Dir_entry = struct
 		Bitstring.hexdump_bitstring stdout b'
 	      end;
                        (* reconstruct UTF text from LFNs *)
-	      let lfns = List.sort (fun a b -> compare a.lfn_seq b.lfn_seq) lfns in
+	      let lfns = List.sort (fun a b -> compare (snd a).lfn_seq (snd b).lfn_seq) lfns in
 	      List.iter
-		(fun l -> if l.lfn_checksum <> expected_checksum then begin
+		(fun (_, l) -> if l.lfn_checksum <> expected_checksum then begin
 		  Printf.printf "Filename: %s.%s; expected_checksum = %d; actual = %d\n%!" d.filename d.ext expected_checksum l.lfn_checksum
 		end) lfns;
-              let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
+              let utfs = List.rev (List.fold_left (fun acc (_, lfn) -> lfn.lfn_utf16_name :: acc) [] lfns) in
 	      let reconstructed = {
 		utf_filename = String.concat "" utfs;
 		dos = offset, d;
-		(* XXX: store the lfn offsets properly *)
-		lfns = List.map (fun l -> 0, l) lfns;
+		lfns = lfns;
 	      } in
 	      let acc' = f acc offset reconstructed in
               inner [] acc' bs

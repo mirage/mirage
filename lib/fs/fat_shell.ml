@@ -123,6 +123,11 @@ let () =
     handle_error
       (fun () -> ())
       (create fs path) in
+  let do_mkdir x = 
+    let path = Path.cd !cwd x in
+    handle_error
+      (fun () -> ())
+      (mkdir fs path) in
   let do_copy x y =
     let is_outside = Stringext.startswith "u:" in
     let parse_path x =
@@ -164,6 +169,7 @@ let () =
     | [ "cd"; path ] -> do_cd path
     | [ "type"; path ] -> do_type path
     | [ "touch"; path ] -> do_touch path
+    | [ "mkdir"; path ] -> do_mkdir path
     | [ "copy"; a; b ] -> do_copy a b
     | [ "del"; a ] -> do_del a
     | [ "exit" ] -> finished := true

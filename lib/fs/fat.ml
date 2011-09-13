@@ -862,7 +862,9 @@ module type FS = sig
 
   val create: fs -> Path.t -> unit result
 
-  (** [destroy fs path] removes a file corresponding to [path] on filesystem [fs] *)
+  val mkdir: fs -> Path.t -> unit result
+
+  (** [destroy fs path] removes a [path] on filesystem [fs] *)
   val destroy: fs -> Path.t -> unit result
 
   (** [file_of_path fs path] returns a [file] corresponding to [path] on
@@ -1068,16 +1070,22 @@ Success x
       | Some c -> Chain (sectors_of_chain x c) in
     write_to_location x f location u
 
-
-  (** [create x path] create a zero-length file at [path] *)
-  let create x path : unit result =
+  let create_common x path dir_entry =
     let filename = Path.filename path in
     update_directory_containing x path
       (fun contents ds ->
 	if Dir_entry.find filename ds <> None
 	then Error (File_already_exists filename)
-	else Success (Dir_entry.add contents (Dir_entry.make filename))
+	else Success (Dir_entry.add contents dir_entry)
       )
+
+  (** [create x path] create a zero-length file at [path] *)
+  let create x path : unit result =
+    create_common x path (Dir_entry.make (Path.filename path))
+
+  (** [mkdir x path] create an empty directory at [path] *)
+  let mkdir x path : unit result =
+    create_common x path (Dir_entry.make ~subdir:true (Path.filename path))
 
   (** [destroy x path] deletes the entry at [path] *)
   let destroy x path : unit result =

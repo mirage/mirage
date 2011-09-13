@@ -14,4 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val run : 'a Lwt.t -> unit
+val run : unit Lwt.t -> unit
+val at_enter : (unit -> unit Lwt.t) -> unit

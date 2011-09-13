@@ -134,36 +134,46 @@ let () =
     handle_error
       (fun () -> ())
       (destroy fs path) in
+  let copy_file_in outside inside =
+    UnixBlock.with_file [ Unix.O_RDONLY ] (Path.to_string outside)
+      (fun ifd ->
+	handle_error (fun _ ->
+	  let block_size = 1024 in
+          let results = String.create block_size in
+	  let bs = Bitstring.bitstring_of_string results in
+	  let finished = ref false in
+	  let offset = ref 0 in
+	  while not !finished do
+	    let n = Unix.read ifd results 0 block_size in
+	    finished := n <> block_size;
+	    handle_error
+	      (fun () ->
+		offset := !offset + block_size;
+	      ) (write fs (file_of_path fs inside) !offset (Bitstring.takebits (n * 8) bs))
+	  done
+	) (create fs inside)
+      ) in
+  let parse_path x =
+    (* return a pair of (outside filesystem bool, absolute path) *)
+    let is_outside = Stringext.startswith "u:" x in
+    (* strip off the drive prefix *)
+    let x' = if is_outside then String.sub x 2 (String.length x - 2) else x in
+    let is_absolute = x' <> "" && x'.[0] = '/' in
+    let abspath =
+      if is_absolute
+      then Path.of_string x'
+      else
+	let wd = if is_outside then Path.of_string (Unix.getcwd ()) else !cwd in
+	Path.cd wd x' in
+    Printf.printf "%s = %b, %s\n%!" x is_absolute (Path.to_string abspath);
+    is_outside, abspath in
+
   let do_copy x y =
-    let is_outside = Stringext.startswith "u:" in
-    let parse_path x =
-      if Stringext.startswith "u:" x
-      then Path.of_string (String.sub x 2 (String.length x - 2))
-      else Path.of_string x in
-    let x' = parse_path x and y' = parse_path y in
-    match is_outside x, is_outside y with
+    let x_outside, x_path = parse_path x in
+    let y_outside, y_path = parse_path y in
+    match x_outside, y_outside with
       | true, false ->
-	(* copying to the filesystem *)
-	UnixBlock.with_file [ Unix.O_RDONLY ] ("." ^ (Path.to_string x'))
-	  (fun ifd ->
-	    let filename = Path.filename y' in
-	    let path = Path.cd !cwd filename in
-	    handle_error (fun _ ->
-	      let block_size = 1024 in
-              let results = String.create block_size in
-	      let bs = Bitstring.bitstring_of_string results in
-	      let finished = ref false in
-	      let offset = ref 0 in
-	      while not !finished do
-		let n = Unix.read ifd results 0 block_size in
-		finished := n <> block_size;
-		handle_error
-		  (fun () ->
-		    offset := !offset + block_size;
-		  ) (write fs (file_of_path fs path) !offset (Bitstring.takebits (n * 8) bs))
-	      done
-	    ) (create fs path)
-	  )
+	copy_file_in x_path y_path
       | _, _ -> failwith "Unimplemented" in
   
   let finished = ref false in

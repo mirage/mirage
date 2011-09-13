@@ -111,7 +111,6 @@ let () =
       (destroy fs path) in
   let do_cd dir =
     let path = Path.cd !cwd dir in
-    Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
       (function
 	| Stat.Dir (_, _) ->
@@ -120,7 +119,6 @@ let () =
       ) (stat fs path) in
   let do_touch x =
     let path = Path.cd !cwd x in
-    Printf.printf "path = %s\n%!" (Path.to_string path);
     handle_error
       (fun () -> ())
       (create fs path) in
@@ -177,7 +175,6 @@ let () =
       else
 	let wd = if is_outside then Path.of_string (Unix.getcwd ()) else !cwd in
 	Path.cd wd x' in
-    Printf.printf "%s = %b, %s\n%!" x is_absolute (Path.to_string abspath);
     is_outside, abspath in
 
   let do_copy x y =

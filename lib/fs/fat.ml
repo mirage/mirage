@@ -812,7 +812,6 @@ module Dir_entry = struct
 
     let modify block filename file_size start_cluster =
       fold (fun acc offset x ->
-	Printf.printf "Considering [%s] (%b)\n%!" x.utf_filename (name_match filename x);
 	if name_match filename x
 	then
 	  let offset, dos = x.dos in
@@ -941,7 +940,6 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let sector_offset = Int64.(sub offset (mul sector_number (of_int bps))) in
     let sector = B.read_sector (Int64.to_int sector_number) in
     let sector' = Update.apply sector { update with Update.offset = sector_offset } in
-    Update.hexdump update;
     B.write_sector (Int64.to_int sector_number) sector'
 
   (** [find x path] returns a [find_result] corresponding to the object
@@ -1017,10 +1015,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	if location = Rootdir then x.root <- Update.apply x.root update;
 	Success ()
       | Chain cs, true ->
-	Printf.printf "current chain = [ %s ] needed = %d\n%!" (String.concat ", " (List.map string_of_int cs)) clusters_needed;
 	let last = if cs = [] then None else Some (List.hd (List.tl cs)) in
 	let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
-	Printf.printf "new_clusters = [ %s ]\n%!" (String.concat ", " (List.map string_of_int new_clusters));
 	(* Split the FAT allocations into multiple sectors. Note there might be more than one
 	   per sector. *)
 	let fat_allocations_sectors = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
@@ -1029,31 +1025,24 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 
 	let new_sectors = sectors_of_chain x new_clusters in
 	let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
-	Printf.printf "Updating data region\n%!";
 	List.iter (write_update x) data_writes;
-	Printf.printf "Updating FAT\n%!";
 	List.iter (write_update x) fat_writes;
-	Printf.printf "Updating directory entry %s in %s\n%!" (Path.filename path) (Path.to_string (Path.directory path));
 	update_directory_containing x path
 	  (fun bits ds ->
 	    let enoent = Error(No_directory_entry (Path.directory path, Path.filename path)) in
 	    let filename = Path.filename path in
 	    match Dir_entry.find filename ds with
 	      | None ->
-		Printf.printf "Failed to find %s\n%!" filename;
 		enoent
 	      | Some d ->
 		let file_size = Dir_entry.file_size_of d in
 		let new_file_size = max file_size (Int32.of_int (Int64.to_int (Update.total_length update))) in
 		let start_cluster = List.hd (cs @ new_clusters) in
-		Printf.printf "new_file_size=%ld start_cluster=%d\n%!" new_file_size start_cluster;
 		begin match Dir_entry.modify bits filename new_file_size start_cluster with
 		  | [] ->
-		    Printf.printf "modify fail\n%!";
-enoent
+		    enoent
 		  | x ->
-		    Printf.printf "OK\n%!";
-Success x
+		    Success x
 		end
 	  );
 	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;

@@ -89,6 +89,18 @@ let bitstring_of_chan_max chan max =
 
 let bitstring_length (_, _, len) = len
 
+let bitstring_is_byte_aligned (_, off, len) =
+  off mod 8 = 0 && (len mod 8 = 0)
+
+let bitstring_write ((src_s, src_off, src_len) as src) offset_bytes
+  ((dest_s, dest_off, dest_len) as dest) =
+  (* We don't expect to run off the end of the target bitstring *)
+  assert (dest_len - offset_bytes * 8 - src_len >= 0);
+  assert (bitstring_is_byte_aligned src);
+  assert (bitstring_is_byte_aligned dest);
+  String.blit src_s (src_off / 8) dest_s (dest_off / 8 + offset_bytes)
+    (src_len / 8)
+
 let subbitstring (data, off, len) off' len' =
   let off = off + off' in
   if len < off' + len' then invalid_arg "subbitstring";
@@ -103,6 +115,21 @@ let dropbits n (data, off, len) =
 let takebits n (data, off, len) =
   if len < n then invalid_arg "takebits";
   (data, off, n)
+
+let bitstring_chop n bits =
+  let rec inner acc bits =
+    if bitstring_length bits <= n then bits :: acc
+    else inner (takebits n bits :: acc) (dropbits n bits) in
+  List.rev (inner [] bits)
+
+let bitstring_clip (s_s, s_off, s_len) offset length =
+  let s_end = s_off + s_len in
+  let the_end = offset + length in
+  let offset' = max s_off offset in
+  let end' = min s_end the_end in
+  let length' = max 0 (end' - offset') in
+  s_s, offset', length'
+
 
 (*----------------------------------------------------------------------*)
 (* Bitwise functions.

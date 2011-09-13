@@ -153,6 +153,18 @@ let () =
 	  done
 	) (create fs inside)
       ) in
+  let rec copy_in outside inside =
+    if Sys.is_directory (Path.to_string outside) then begin
+      handle_error (fun () -> ()) (mkdir fs inside);
+      Array.iter
+	(fun x ->
+	  let outside' = Path.cd outside x and inside' = Path.cd inside x in
+	  copy_in outside' inside'
+	) (Sys.readdir (Path.to_string outside))
+    end else begin
+      copy_file_in outside inside
+    end in
+    
   let parse_path x =
     (* return a pair of (outside filesystem bool, absolute path) *)
     let is_outside = Stringext.startswith "u:" x in
@@ -173,7 +185,7 @@ let () =
     let y_outside, y_path = parse_path y in
     match x_outside, y_outside with
       | true, false ->
-	copy_file_in x_path y_path
+	copy_in x_path y_path
       | _, _ -> failwith "Unimplemented" in
   
   let finished = ref false in

@@ -687,10 +687,11 @@ module Dir_entry = struct
 	  x.file_size: 32: littleendian
 	}
 
+    let entry_size = 32 (* bytes *)
+
     (** [blocks bits] returns the directory chopped into individual bitstrings,
 	each one containing a possible Dir_entry (fragment) *)
     let blocks bits =
-      let entry_size = 32 in (* bytes *)
       let list = bitstring_chop (8 * entry_size) bits in
       List.rev (fst (List.fold_left (fun (acc, offset) bs -> ((offset, bs)::acc, offset + entry_size)) ([], 0) list))
 
@@ -775,35 +776,22 @@ module Dir_entry = struct
 
     let remove block filename =
       match find filename (list block) with
-	| Some d ->
-	  (* XXX: can use the reconstructed information directly *)
-	  let d = snd d.dos in
-	  let checksum = compute_checksum d in
-	  (* Any LFN whose checksum matches 'checksum' or DOS entry whose filename.ext
-	     matches d, should be deleted. *)
-	  let rec inner acc = 
-	    (* assume it's better to write forwards rather than backwards *)
-	    let ok () = List.rev acc in function
-	      | [] -> ok ()
-	      | (offset, b) :: bs ->
-		begin match of_bitstring b with
-		  | Lfn lfn ->
-		    if lfn.lfn_checksum = checksum
-		    then
-		      let lfn' = { lfn with lfn_deleted = true } in
-		      let update = Update.make (Int64.of_int offset) (to_bitstring (Lfn lfn')) in
-		      inner (update :: acc) bs
-		    else inner acc bs
-		  | Dos dos ->
-		    if dos.filename = d.filename && dos.ext = d.ext
-		    then
-		      let dos' = { dos with deleted = true } in
-		      let update = Update.make (Int64.of_int offset) (to_bitstring (Dos dos')) in
-		      inner (update :: acc) bs
-		    else inner acc bs
-		  | End -> ok ()
-		end in
-	  inner [] (blocks block)
+	| Some r ->
+	  let offsets = fst r.dos :: (List.map fst r.lfns) in
+	  List.rev (List.fold_left
+	    (fun acc offset ->
+	      let b = Bitstring.takebits (8 * entry_size) (Bitstring.dropbits (8 * offset) block) in
+	      let update = match of_bitstring b with
+		| Lfn lfn ->
+		  let lfn' = { lfn with lfn_deleted = true } in
+		  Update.make (Int64.of_int offset) (to_bitstring (Lfn lfn'))
+		| Dos dos ->
+		  let dos' = { dos with deleted = true } in
+		  Update.make (Int64.of_int offset) (to_bitstring (Dos dos'))
+		| End -> assert false
+	      in
+	      update :: acc
+	    ) [] offsets)
 	| None -> [] (* no updates implies nothing to remove *)
 
     let modify block filename file_size start_cluster =

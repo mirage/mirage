@@ -388,6 +388,7 @@ module Dir_entry = struct
   }
 
   let file_size_of r = (snd r.dos).file_size
+  let deleted r = (snd r.dos).deleted
 
   let to_single_entries r =
     List.rev ((Dos (snd r.dos)) :: (List.map (fun l -> Lfn (snd l)) r.lfns))
@@ -842,6 +843,7 @@ end
 type error =
   | Not_a_directory of Path.t
   | Is_a_directory of Path.t
+  | Directory_not_empty of Path.t
   | No_directory_entry of Path.t * string
   | File_already_exists of string
   | No_space
@@ -1092,14 +1094,20 @@ Success x
   (** [destroy x path] deletes the entry at [path] *)
   let destroy x path : unit result =
     let filename = Path.filename path in
-    update_directory_containing x path
-      (fun contents ds ->
+    let do_destroy () =
+      update_directory_containing x path
+	(fun contents ds ->
 	(* XXX check for nonempty *)
 	(* XXX delete chain *)
-	if Dir_entry.find filename ds = None
-	then Error (No_directory_entry(Path.directory path, filename))
-	else Success (Dir_entry.remove contents filename)
-      )
+	  if Dir_entry.find filename ds = None
+	  then Error (No_directory_entry(Path.directory path, filename))
+	  else Success (Dir_entry.remove contents filename)
+	) in
+    match find x path with
+      | Error x -> Error x
+      | Success (File _) -> do_destroy ()
+      | Success (Dir []) -> do_destroy ()
+      | Success (Dir (_::_)) -> Error(Directory_not_empty(path))
 
   let stat x path =
     let entry_of_file f = f in

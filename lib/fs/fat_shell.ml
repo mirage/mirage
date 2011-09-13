@@ -70,6 +70,7 @@ let () =
   let handle_error f = function
     | Error (Not_a_directory path) -> Printf.printf "Not a directory (%s).\n%!" (Path.to_string path)
     | Error (Is_a_directory path) -> Printf.printf "Is a directory (%s).\n%!" (Path.to_string path)
+    | Error (Directory_not_empty path) -> Printf.printf "Directory isn't empty (%s).\n%!" (Path.to_string path)
     | Error (No_directory_entry (path, name)) -> Printf.printf "No directory %s in %s.\n%!" name (Path.to_string path)
     | Error (File_already_exists name) -> Printf.printf "File already exists (%s).\n%!" name
     | Error No_space -> Printf.printf "Out of space.\n%!"
@@ -128,6 +129,11 @@ let () =
     handle_error
       (fun () -> ())
       (mkdir fs path) in
+  let do_rmdir x = 
+    let path = Path.cd !cwd x in
+    handle_error
+      (fun () -> ())
+      (destroy fs path) in
   let do_copy x y =
     let is_outside = Stringext.startswith "u:" in
     let parse_path x =
@@ -170,6 +176,7 @@ let () =
     | [ "type"; path ] -> do_type path
     | [ "touch"; path ] -> do_touch path
     | [ "mkdir"; path ] -> do_mkdir path
+    | [ "rmdir"; path ] -> do_rmdir path
     | [ "copy"; a; b ] -> do_copy a b
     | [ "del"; a ] -> do_del a
     | [ "exit" ] -> finished := true

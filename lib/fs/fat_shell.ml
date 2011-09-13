@@ -94,13 +94,14 @@ let () =
       (function
 	| Stat.Dir (_, _) -> Printf.printf "Is a directory.\n%!"
 	| Stat.File s ->
+	  let file_size = Int32.to_int (Dir_entry.file_size_of s) in
 	  handle_error
 	    (fun data ->
 	      let data = Bitstring.string_of_bitstring data in
 	      Printf.printf "%s\n%!" data;
-	      if String.length data <> Int32.to_int s.Dir_entry.file_size
-	      then Printf.printf "Short read; expected %d got %d\n%!" (Int32.to_int s.Dir_entry.file_size) (String.length data)
-	    ) (read fs (file_of_path fs path) 0 (Int32.to_int s.Dir_entry.file_size))
+	      if String.length data <> file_size
+	      then Printf.printf "Short read; expected %d got %d\n%!" file_size (String.length data)
+	    ) (read fs (file_of_path fs path) 0 file_size)
       ) (stat fs path) in
   let do_del file =
     let path = Path.cd !cwd file in

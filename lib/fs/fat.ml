@@ -334,6 +334,7 @@ module Dir_entry = struct
     hours = 0; mins = 0; secs = 0; ms = 0;
   }
 
+  (** Long filename entry: the same size as an original DOS disk entry *)
   type lfn = {
     lfn_deleted: bool;
     lfn_last: bool; (** marks the highest sequence number *)
@@ -342,10 +343,10 @@ module Dir_entry = struct
     lfn_utf16_name: string
   }
 
-  type t = {
+  (** A DOS disk entry *)
+  type dos = {
     filename: string; (** 8 chars *)
     ext: string;      (** 3 chars *)
-    utf_filename: string;
     deleted: bool;
     read_only: bool;
     hidden: bool;
@@ -360,18 +361,36 @@ module Dir_entry = struct
     file_size: int32;
   }
 
+  (** Useful for streaming entries to/from the disk *)
+  type single_entry =
+  | Dos of dos
+  | Lfn of lfn
+  | End
+
+  (** A high-level directory entry, complete with reconstructed UTF name and
+      offsets of each individual entry on the disk *)
+  type r = {
+    utf_filename: string;
+    dos: int * dos;
+    lfns: (int * lfn) list;
+  }
+
   (* Make the tree more uniform by creating a "fake root" node above the
      root directory entries *)
   let fake_root_entry = {
-    filename = ""; ext = ""; utf_filename = ""; deleted = false; read_only = false;
-    hidden = false; system = false; volume = false; subdir = true; archive = false;
-    create = epoch; access = epoch; modify = epoch; start_cluster = 0; file_size = 0l
+    utf_filename = "";
+    dos = 0, {
+      filename = ""; ext = ""; deleted = false; read_only = false;
+      hidden = false; system = false; volume = false; subdir = true; archive = false;
+      create = epoch; access = epoch; modify = epoch; start_cluster = 0; file_size = 0l
+    };
+    lfns = []
   }
 
-  type entry =
-  | Old of t
-  | Lfn of lfn
-  | End
+  let file_size_of r = (snd r.dos).file_size
+
+  let to_single_entries r =
+    List.rev ((Dos (snd r.dos)) :: (List.map (fun l -> Lfn (snd l)) r.lfns))
 
   let legal_dos_char = function
     | 'A' .. 'Z'
@@ -440,7 +459,6 @@ module Dir_entry = struct
     let dos = {
       filename = filename';
       ext = ext;
-      utf_filename = "";
       deleted = false;
       read_only = read_only;
       hidden = false;
@@ -476,18 +494,21 @@ module Dir_entry = struct
 	    } in
 	    inner (lfn :: acc) (seq + 1) (i + 26) in
 	inner [] 1 0 in
-    List.rev (Old dos :: (List.map (fun l -> Lfn l) lfns))
+    {
+      utf_filename = filename;
+      dos = 0, dos;
+      lfns = List.map (fun l -> 0, l) lfns
+    }
 
   let _ =
     let checksum_tests = [
       make "MAKEFILE", 193;
       make "FAT.ML", 223;
     ] in
-    List.iter (fun (d, expected) -> match d with
-      | [ Old d ] ->
-	let checksum = compute_checksum d in
-	if checksum <> expected then failwith (Printf.sprintf "checksum_tests: %s.%s expected=%d actual=%d" d.filename d.ext expected checksum)
-      | _ -> failwith "checksum_tests: didn't recognise a pure DOS name"
+    List.iter (fun (d, expected) ->
+      let d = snd d.dos in
+      let checksum = compute_checksum d in
+      if checksum <> expected then failwith (Printf.sprintf "checksum_tests: %s.%s expected=%d actual=%d" d.filename d.ext expected checksum)
     ) checksum_tests
 
   let to_string x =
@@ -498,11 +519,12 @@ module Dir_entry = struct
         if a = 0xff && b = 0xff && i < !chars then chars := i
       done;
       String.sub x 0 (!chars * 2) in
+    let d = snd x.dos in
     Printf.sprintf "%-8s %-3s %10s %04d-%02d-%02d  %02d:%02d  %s"
-      x.filename x.ext
-      (if x.subdir then "<DIR>     " else (Printf.sprintf "%10ld" x.file_size))
-      x.create.year x.create.month x.create.day
-      x.create.hours x.create.mins
+      d.filename d.ext
+      (if d.subdir then "<DIR>     " else (Printf.sprintf "%10ld" d.file_size))
+      d.create.year d.create.month d.create.day
+      d.create.hours d.create.mins
       (trim_utf16 x.utf_filename)
 
   let int_to_hms time =
@@ -587,10 +609,9 @@ module Dir_entry = struct
         else
           let deleted = x = 0xe5 in
           filename.[0] <- char_of_int (if x = 0x05 then 0xe5 else x);
-          Old {
+          Dos {
             filename = remove_padding ' ' filename;
             ext = remove_padding ' ' ext;
-            utf_filename = "";
             read_only = read_only;
             deleted = deleted;
             hidden = hidden;
@@ -631,7 +652,7 @@ module Dir_entry = struct
           0: 16;
           utf3: (4 * 8): string
 	}
-      | Old x ->
+      | Dos x ->
 	let filename = add_padding ' ' 8 x.filename in
 	let y = int_of_char filename.[0] in
         filename.[0] <- char_of_int (if y = 0xe5 then 0x05 else y);
@@ -681,14 +702,14 @@ module Dir_entry = struct
         | [] -> acc
         | (offset, b) :: bs ->
           begin match of_bitstring b with
-	    | Old { deleted = true }
+	    | Dos { deleted = true }
 	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
 
             | Lfn lfn -> inner (lfn :: lfns) acc bs
-            | Old d ->
+            | Dos d ->
 	      let expected_checksum = compute_checksum d in
 	      (* TESTING ONLY *)
-              let b' = to_bitstring (Old d) in
+              let b' = to_bitstring (Dos d) in
 	      if Bitstring.compare b b' <> 0 then begin
                 Printf.printf "On disk:\n";
 		Bitstring.hexdump_bitstring stdout b;
@@ -702,7 +723,12 @@ module Dir_entry = struct
 		  Printf.printf "Filename: %s.%s; expected_checksum = %d; actual = %d\n%!" d.filename d.ext expected_checksum l.lfn_checksum
 		end) lfns;
               let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
-	      let reconstructed = { d with utf_filename = String.concat "" utfs } in
+	      let reconstructed = {
+		utf_filename = String.concat "" utfs;
+		dos = offset, d;
+		(* XXX: store the lfn offsets properly *)
+		lfns = List.map (fun l -> 0, l) lfns;
+	      } in
 	      let acc' = f acc offset reconstructed in
               inner [] acc' bs
             | End -> acc
@@ -725,21 +751,23 @@ module Dir_entry = struct
           end in
       inner 0 (bitstring_chop (8 * 32) bits)
 
-    (** [add block dir_entries] return the update required to add [dir_entries]
-        to the directory [block]. Note the update may be beyond the end of [block],
-        indicating that more space needs to be allocated. *)
-    let add block dir_entries =
+    (** [add block t] return the update required to add [t] to the directory [block].
+        Note the update may be beyond the end of [block] indicating more space needs 
+        to be allocated. *)
+    let add block r =
       let after_block = Bitstring.bitstring_length block in
       let next_bit = match next block with
 	| Some b -> b
 	| None -> after_block in
+      let dir_entries = to_single_entries r in
       let bits = Bitstring.concat (List.map to_bitstring dir_entries) in
       [ Update.make (Int64.of_int (next_bit / 8)) bits ]
 
-    let name_match name d =
+    let name_match name x =
       let utf_name = ascii_to_utf16 name in
+      let d = snd x.dos in
       let dos_filename = d.filename ^ "." ^ d.ext in
-      dos_filename = name || (utf_name = d.utf_filename)
+      dos_filename = name || (utf_name = x.utf_filename)
 
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)
@@ -749,6 +777,8 @@ module Dir_entry = struct
     let remove block filename =
       match find filename (list block) with
 	| Some d ->
+	  (* XXX: can use the reconstructed information directly *)
+	  let d = snd d.dos in
 	  let checksum = compute_checksum d in
 	  (* Any LFN whose checksum matches 'checksum' or DOS entry whose filename.ext
 	     matches d, should be deleted. *)
@@ -765,11 +795,11 @@ module Dir_entry = struct
 		      let update = Update.make (Int64.of_int offset) (to_bitstring (Lfn lfn')) in
 		      inner (update :: acc) bs
 		    else inner acc bs
-		  | Old dos ->
+		  | Dos dos ->
 		    if dos.filename = d.filename && dos.ext = d.ext
 		    then
 		      let dos' = { dos with deleted = true } in
-		      let update = Update.make (Int64.of_int offset) (to_bitstring (Old dos')) in
+		      let update = Update.make (Int64.of_int offset) (to_bitstring (Dos dos')) in
 		      inner (update :: acc) bs
 		    else inner acc bs
 		  | End -> ok ()
@@ -778,12 +808,13 @@ module Dir_entry = struct
 	| None -> [] (* no updates implies nothing to remove *)
 
     let modify block filename file_size start_cluster =
-      fold (fun acc offset dos ->
-	Printf.printf "Considering [%s] (%b)\n%!" dos.utf_filename (name_match filename dos);
-	if name_match filename dos
+      fold (fun acc offset x ->
+	Printf.printf "Considering [%s] (%b)\n%!" x.utf_filename (name_match filename x);
+	if name_match filename x
 	then
+	  let offset, dos = x.dos in
 	  let dos' = { dos with file_size = file_size; start_cluster = start_cluster } in
-	  (Update.make (Int64.of_int offset) (to_bitstring (Old dos'))) :: acc
+	  (Update.make (Int64.of_int offset) (to_bitstring (Dos dos'))) :: acc
 	else acc
       ) [] block
 end
@@ -832,8 +863,8 @@ let iter f xs = List.fold_left (fun r x -> match r with Error _ -> r | _ -> f x)
 
 module Stat = struct
   type t = 
-    | File of Dir_entry.t
-    | Dir of Dir_entry.t * (Dir_entry.t list) (** the directory itself and its immediate children *)
+    | File of Dir_entry.r
+    | Dir of Dir_entry.r * (Dir_entry.r list) (** the directory itself and its immediate children *)
 end
 
 module type FS = sig
@@ -885,8 +916,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   let file_of_path fs x = x
 
   type find =
-    | Dir of Dir_entry.t list
-    | File of Dir_entry.t
+    | Dir of Dir_entry.r list
+    | File of Dir_entry.r
 
   let sectors_of_chain x chain =
     List.concat (List.map (Boot_sector.sectors_of_cluster x.boot) chain)
@@ -895,7 +926,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let chain = Fat_entry.follow_chain x.format x.fat cluster in
     sectors_of_chain x chain
 
-  let read_whole_file x ({ Dir_entry.file_size = file_size; subdir = subdir } as f) =
+  let read_whole_file x { Dir_entry.dos = _, ({ Dir_entry.file_size = file_size; subdir = subdir } as f) } =
     B.read_sectors (sectors_of_file x f)
 
   let write_update x ({ Update.offset = offset; data = data } as update) =
@@ -917,13 +948,13 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     | [] ->
       begin match current with
       | Dir ds -> Success (Dir ds)
-      | File { Dir_entry.subdir = true } -> Success (Dir (readdir current))
-      | File ({ Dir_entry.subdir = false } as d) -> Success (File d)
+      | File { Dir_entry.dos = _, { Dir_entry.subdir = true } } -> Success (Dir (readdir current))
+      | File ( { Dir_entry.dos = _, { Dir_entry.subdir = false } } as d ) -> Success (File d)
       end
     | p :: ps ->
       let entries = readdir current in
       begin match Dir_entry.find p entries, ps with
-      | Some { Dir_entry.subdir = false }, _ :: _ ->
+      | Some { Dir_entry.dos = _, { Dir_entry.subdir = false } }, _ :: _ ->
         Error (Not_a_directory (Path.of_string_list (List.rev (p :: sofar))))
       | Some d, _ ->
         inner (p::sofar) (File d) ps
@@ -950,7 +981,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	  begin match Dir_entry.find (Path.filename path) ds with
 	    | None -> assert false
 	    | Some f ->
-	      Some(Fat_entry.follow_chain x.format x.fat f.Dir_entry.start_cluster)
+	      let start_cluster = (snd f.Dir_entry.dos).Dir_entry.start_cluster in
+	      Some(Fat_entry.follow_chain x.format x.fat start_cluster)
 	  end
 	| _ -> None
 
@@ -1005,7 +1037,8 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 		Printf.printf "Failed to find %s\n%!" filename;
 		enoent
 	      | Some d ->
-		let new_file_size = max d.Dir_entry.file_size (Int32.of_int (Int64.to_int (Update.total_length update))) in
+		let file_size = Dir_entry.file_size_of d in
+		let new_file_size = max file_size (Int32.of_int (Int64.to_int (Update.total_length update))) in
 		let start_cluster = List.hd (cs @ new_clusters) in
 		Printf.printf "new_file_size=%ld start_cluster=%d\n%!" new_file_size start_cluster;
 		begin match Dir_entry.modify bits filename new_file_size start_cluster with
@@ -1093,7 +1126,7 @@ Success x
 		  Success (Stat.Dir (entry_of_file f, ds'))
 	      end
 
-  let read_file x ({ Dir_entry.file_size = file_size } as f) the_start length =
+  let read_file x { Dir_entry.dos = _, ({ Dir_entry.file_size = file_size } as f) } the_start length =
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let sm = SectorMap.make (sectors_of_file x f) in
     (* Clip [length] so that the region is within [file_size] *)

@@ -164,7 +164,7 @@ let () =
     end else begin
       copy_file_in outside inside
     end in
-    
+
   let parse_path x =
     (* return a pair of (outside filesystem bool, absolute path) *)
     let is_outside = Stringext.startswith "u:" x in
@@ -187,7 +187,22 @@ let () =
       | true, false ->
 	copy_in x_path y_path
       | _, _ -> failwith "Unimplemented" in
-  
+
+  let deltree x =
+    let rec inner path =
+      handle_error
+	(function
+	  | Stat.Dir (_, dirs) ->
+	    List.iter
+	      (fun dir ->
+		inner (Path.cd path (Dir_entry.filename_of dir))
+	      ) dirs;
+	    handle_error (fun () -> ()) (destroy fs path)
+	  | Stat.File _ ->
+	    handle_error (fun () -> ()) (destroy fs path)  
+	) (stat fs path) in
+    inner (snd(parse_path x)) in
+
   let finished = ref false in
   while not !finished do
     Printf.printf "A:%s> %!" (Path.to_string !cwd);
@@ -200,6 +215,7 @@ let () =
     | [ "mkdir"; path ] -> do_mkdir path
     | [ "rmdir"; path ] -> do_rmdir path
     | [ "copy"; a; b ] -> do_copy a b
+    | [ "deltree"; a ] -> deltree a
     | [ "del"; a ] -> do_del a
     | [ "exit" ] -> finished := true
     | [] -> ()

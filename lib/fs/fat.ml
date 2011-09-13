@@ -627,7 +627,9 @@ module Dir_entry = struct
           }
     | { _ } ->
       let (s, off, len) = bits in
-      failwith (Printf.sprintf "Not a dir entry off=%d len=%d" off len)
+      if len = 0
+      then End
+      else failwith (Printf.sprintf "Not a dir entry off=%d len=%d" off len)
 
     let to_bitstring = function
       | End ->

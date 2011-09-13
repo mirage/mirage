@@ -179,7 +179,9 @@ run() {
       done
       ;;
     *)
-      echo Warning: unsupported kv_ro in unix-direct for now
+      for kv_ro in ${KV_ROS[@]}; do
+        echo Warning: unsupported kv_ro in unix-direct for now
+      done
       ;;
     esac
     redirect_shell_output;

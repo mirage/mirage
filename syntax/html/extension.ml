@@ -35,12 +35,12 @@ let new_id _loc _ =
 
 let create_class _loc n body =
   let tag = <:expr<
-    ((("","div"), [(("","class"), $`str:n$)]) : Xml.tag) >> in
+    ((("","div"), [(("","class"), $`str:n$)]) : Cow.Xml.tag) >> in
   <:expr< `El $tag$ $body$ >>
 
 let create_id_class _loc n id body =
   let tag = <:expr<
-    ((("","div"), [(("","id"), html_id); (("","class"), $`str:n$)]) : Xml.tag) >> in
+    ((("","div"), [(("","id"), html_id); (("","class"), $`str:n$)]) : Cow.Xml.tag) >> in
   <:expr<
     match id with [
       None         -> $create_class _loc n body$
@@ -114,8 +114,10 @@ let gen_html (_loc, n, t_exp) =
 
 	  | Arrow _  -> failwith "arrow type is not yet supported"
 
-	  | Ext ("Html.t",_)
-    | Var "Html.t"     -> <:expr< $id$ >>
+          | Ext ("Cow.Html.t",_)
+          | Var "Cow.Html.t"
+          | Ext ("Html.t",_)
+          | Var "Html.t"     -> <:expr< $id$ >>
 
 	  | Ext (n,_)
 	  | Rec (n,_)
@@ -124,7 +126,7 @@ let gen_html (_loc, n, t_exp) =
       <:expr< $Pa_dyntype.gen_ident _loc html_of n$ $id$ >>
   in
   let id = <:expr< $lid:n$ >> in
-  <:binding< $lid:html_of n$ ?id $lid:n$ : Html.t =
+  <:binding< $lid:html_of n$ ?id $lid:n$ : Cow.Html.t =
       [ $create_id_class _loc n id (aux id t)$ ]
   >>
 

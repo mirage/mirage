@@ -182,3 +182,46 @@ let rcontains_from s i c =
 type t = string
 
 let compare = Pervasives.compare
+
+(** True if string 'x' ends with suffix 'suffix' *)
+let endswith suffix x =
+  let x_l = length x and suffix_l = length suffix in
+  suffix_l <= x_l && sub x (x_l - suffix_l) suffix_l = suffix
+
+let implode list =
+  concat "" (List.map (make 1) list)
+
+let fold_right f string accu =
+  let accu = ref accu in
+  for i = length string - 1 downto 0 do
+    accu := f (unsafe_get string i) !accu
+  done;
+  !accu
+
+let explode string =
+  fold_right (fun h t -> h :: t) string []
+
+let strip predicate string =
+  let rec remove = function
+  | [] -> []
+  | c :: cs -> if predicate c then remove cs else c :: cs in
+  implode (List.rev (remove (List.rev (remove (explode string)))))
+
+let rec split ?limit:(limit=(-1)) c s =
+  let i = try index s c with Not_found -> -1 in
+  let nlimit = if limit = -1 || limit = 0 then limit else limit - 1 in
+  if i = -1 || nlimit = 0 then
+    [ s ]
+  else
+    let a = sub s 0 i
+    and b = sub s (i + 1) (length s - i - 1) in
+    a :: (split ~limit: nlimit c b)
+
+let startswith prefix x =
+  let x_l = length x and prefix_l = length prefix in
+  prefix_l <= x_l && sub x 0 prefix_l  = prefix
+
+let isspace = function
+  | ' ' | '\n' | '\r' | '\t' -> true
+  | _ -> false
+

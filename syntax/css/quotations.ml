@@ -40,8 +40,8 @@ object
           let n, c = destruct_aq s in
           let e = AQ.parse_expr _loc c in
           begin match n with
-            | "expr" -> <:expr< Css.Exprs [List.flatten (List.map Css.expr $e$)] >> 
-            | "prop" -> <:expr< Css.Props $e$ >>
+            | "expr" -> <:expr< Cow.Css.Exprs [List.flatten (List.map Cow.Css.expr $e$)] >> 
+            | "prop" -> <:expr< Cow.Css.Props $e$ >>
             | "" -> e
             | t ->
               Printf.eprintf "[ERROR] \"%s\" is not a valid tag. Valid tags are [expr|prop]\n" t;

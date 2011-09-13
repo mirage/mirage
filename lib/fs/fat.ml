@@ -387,8 +387,21 @@ module Dir_entry = struct
     lfns = []
   }
 
+  let remove_padding x =
+    let rec inner = function
+      | -1 -> x
+      | n when x.[n] = ' ' -> inner (n-1)
+      | n -> String.sub x 0 (n + 1) in
+    inner (String.length x - 1)
+
   let file_size_of r = (snd r.dos).file_size
   let deleted r = (snd r.dos).deleted
+  let filename_of r =
+    if r.lfns <> []
+    then r.utf_filename
+    else
+      let d = snd(r.dos) in
+      (remove_padding d.filename) ^ "." ^ (remove_padding d.ext)
 
   let to_single_entries r =
     List.rev ((Dos (snd r.dos)) :: (List.map (fun l -> Lfn (snd l)) r.lfns))
@@ -557,13 +570,6 @@ module Dir_entry = struct
     let m = (x.month land 0b1111) lsl 5 in
     let y = (x.year - 1980) lsl 9 in
     d lor m lor y
-
-  let remove_padding x =
-    let rec inner = function
-      | -1 -> x
-      | n when x.[n] = ' ' -> inner (n-1)
-      | n -> String.sub x 0 (n + 1) in
-    inner (String.length x - 1)
 
   let of_bitstring bits =
     bitmatch bits with
@@ -777,7 +783,7 @@ module Dir_entry = struct
 	let filename = remove_padding filename and ext = remove_padding ext in
 	filename = d_filename && ext = d_ext
       end else
-	utf_name = x.utf_filename
+	utf_name = x.utf_filename || name = x.utf_filename
 
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)

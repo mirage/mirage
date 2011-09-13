@@ -10,7 +10,6 @@ let map f m_in =
     fun () -> map_h () in
   let t = map_h () in
   m_out
-   
  
 let split mab =
   let ma = Lwt_mvar.create_empty () in
@@ -18,14 +17,13 @@ let split mab =
   let rec split_h () =
     Lwt_mvar.take mab >>=
       fun (va, vb) ->
-        Lwt.join [
+        join [
           Lwt_mvar.put ma va;
           Lwt_mvar.put mb vb;
         ] >>=
       fun () -> split_h () in
   let t = split_h () in
   (ma, mb)
-   
  
 let filter f a =
   let m = Lwt_mvar.create_empty () in
@@ -39,21 +37,19 @@ let filter f a =
   m
 
 let add_mult (a, b) =
-  Lwt.return (a + b, a * b) 
+  return (a + b, a * b) 
 
 let print_and_go str a =
   Console.log (Printf.sprintf "%s %d" str a);
-  Lwt.return a
+  return a
 
 let test_odd a =
   return (1 == (a mod 2))
 
 let rec print_odd m = 
-  Lwt_mvar.take m >>=
-  fun a -> 
-    Console.log (Printf.sprintf "Odd: %d" a);
-    print_odd m
-
+  lwt a = Lwt_mvar.take m in
+  Console.log (Printf.sprintf "Odd: %d" a);
+  print_odd m
 
 let main () =
   Random.self_init ();
@@ -64,13 +60,11 @@ let main () =
   let ma_p_f = filter test_odd ma_p in
   let mm_p = map (print_and_go "Mult:") mm in
   let mm_p_f = filter test_odd mm_p in
-  let rec inp () =
+  let rec inp () = (* XXX test never terminates *)
     Console.log "----";
-    Lwt_mvar.put m_input (Random.int 1000, Random.int 1000) >>=
-    fun () -> Time.sleep 1. >>=
-    fun () -> inp () in
+    Lwt_mvar.put m_input (Random.int 1000, Random.int 1000) >>
+    Time.sleep 1. >>
+    inp () in
   let _ = print_odd ma_p_f in
   let _ = print_odd mm_p_f in
   inp ()
-
-

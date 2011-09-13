@@ -8,7 +8,6 @@ let timeout f t =
     | Return v -> return (Some v)
     | _ -> cancel t; return None
 
-
 let main () =
   Random.self_init ();
   let t =
@@ -19,6 +18,5 @@ let main () =
   timeout 2.0 t >>=
   fun v ->
     match v with
-    | Some s -> Console.log (Printf.sprintf "Some %s" s); return ()
-    | None   -> Console.log (Printf.sprintf "None"); return ()
-
+    | Some s -> Console.log_s (Printf.sprintf "Some %s" s)
+    | None   -> Console.log_s (Printf.sprintf "None")

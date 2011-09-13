@@ -103,8 +103,6 @@ let create listener =
   (* List all other domains at startup *)
   let other_uids = OS.Socket.domain_list () in
   let our_uid = OS.Socket.domain_uid () in
-  Printf.printf "Our uid: %d Others: %s\n%!" our_uid
-    (String.concat ", " (List.map string_of_int other_uids));
   let peers = Hashtbl.create 7 in
   let t = { udpv4; udpv4_listen_ports; domain; peers } in
   listener t () ""

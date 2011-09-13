@@ -558,10 +558,10 @@ module Dir_entry = struct
     let y = (x.year - 1980) lsl 9 in
     d lor m lor y
 
-  let remove_padding p x =
+  let remove_padding x =
     let rec inner = function
       | -1 -> x
-      | n when x.[n] = p -> inner (n-1)
+      | n when x.[n] = ' ' -> inner (n-1)
       | n -> String.sub x 0 (n + 1) in
     inner (String.length x - 1)
 
@@ -611,8 +611,8 @@ module Dir_entry = struct
           let deleted = x = 0xe5 in
           filename.[0] <- char_of_int (if x = 0x05 then 0xe5 else x);
           Dos {
-            filename = remove_padding ' ' filename;
-            ext = remove_padding ' ' ext;
+            filename = remove_padding filename;
+            ext = remove_padding ext;
             read_only = read_only;
             deleted = deleted;
             hidden = hidden;
@@ -769,8 +769,15 @@ module Dir_entry = struct
     let name_match name x =
       let utf_name = ascii_to_utf16 name in
       let d = snd x.dos in
-      let dos_filename = d.filename ^ "." ^ d.ext in
-      dos_filename = name || (utf_name = x.utf_filename)
+      let d_filename = remove_padding d.filename in
+      let d_ext = remove_padding d.ext in
+      if is_legal_dos_name name
+      then begin
+	let filename, ext = dos_name_of_filename name in
+	let filename = remove_padding filename and ext = remove_padding ext in
+	filename = d_filename && ext = d_ext
+      end else
+	utf_name = x.utf_filename
 
     (** [find name list] returns [Some d] where [d] is a Dir_entry.t with
         name [name] (or None) *)

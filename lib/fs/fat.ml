@@ -1146,9 +1146,8 @@ Success x
     (* Compute the list of sectors from the_start to length inclusive *)
     let the_end = the_start + length in
     let start_sector = the_start / bps in
-    let end_sector = the_end / bps in
-    let rec inner acc sector =
-      if sector > end_sector
+    let rec inner acc sector bytes_read =
+      if bytes_read >= length
       then List.rev acc
       else
 	let data = B.read_sector (SectorMap.find sm sector) in
@@ -1157,9 +1156,9 @@ Success x
 	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
 	let bs_length = bps - bs_start - bs_trim_from_end in
 	if bs_length <> bps
-	then inner (bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1)
-	else inner (data :: acc) (sector + 1) in
-    let bitstrings = inner [] start_sector in
+	then inner (bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
+	else inner (data :: acc) (sector + 1) (bytes_read + bs_length) in
+    let bitstrings = inner [] start_sector 0 in
     Bitstring.concat bitstrings
       
   let read x path the_start length =

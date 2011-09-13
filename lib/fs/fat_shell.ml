@@ -148,7 +148,7 @@ let () =
 		handle_error
 		  (fun () ->
 		    offset := !offset + block_size;
-		  ) (write fs (file_of_path fs path) !offset bs)
+		  ) (write fs (file_of_path fs path) !offset (Bitstring.takebits (n * 8) bs))
 	      done
 	    ) (create fs path)
 	  )

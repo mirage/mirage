@@ -673,13 +673,13 @@ module Dir_entry = struct
       let list = bitstring_chop (8 * entry_size) bits in
       List.rev (fst (List.fold_left (fun (acc, offset) bs -> ((offset, bs)::acc, offset + entry_size)) ([], 0) list))
 
-    (** [list bits] returns a list of valid (not deleted) directory entries
-        contained within the directory [bits] *)
-    let list bits =
+    (** [fold f initial bits] folds [f acc offset dir_entry] across all the
+        reconstructed directory entries contained in bits. *)
+    let fold f initial bits =
       (* Stop as soon as we find a None *)
       let rec inner lfns acc = function
         | [] -> acc
-        | (_, b) :: bs ->
+        | (offset, b) :: bs ->
           begin match of_bitstring b with
 	    | Old { deleted = true }
 	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
@@ -702,10 +702,16 @@ module Dir_entry = struct
 		  Printf.printf "Filename: %s.%s; expected_checksum = %d; actual = %d\n%!" d.filename d.ext expected_checksum l.lfn_checksum
 		end) lfns;
               let utfs = List.rev (List.fold_left (fun acc lfn -> lfn.lfn_utf16_name :: acc) [] lfns) in
-              inner [] ({d with utf_filename = String.concat "" utfs} :: acc) bs
+	      let reconstructed = { d with utf_filename = String.concat "" utfs } in
+	      let acc' = f acc offset reconstructed in
+              inner [] acc' bs
             | End -> acc
           end in
-      inner [] [] (blocks bits)
+      inner [] initial (blocks bits)
+
+    (** [list bits] returns a list of valid (not deleted) directory entries
+        contained within the directory [bits] *)
+    let list = fold (fun acc _ d -> d :: acc) []
 
     (** [next bits] returns the bit offset of a free directory slot. Note this
         function does not recycle deleted elements. *)
@@ -771,17 +777,15 @@ module Dir_entry = struct
 	  inner [] (blocks block)
 	| None -> [] (* no updates implies nothing to remove *)
 
-    let set_start_cluster block filename cluster =
-      let rec inner = function
-	| [] -> None
-	| (offset, b) :: bs ->
-	  match of_bitstring b with
-	    | Old dos when name_match filename dos ->
-	      let dos' = { dos with start_cluster = cluster } in
-	      Some (Update.make (Int64.of_int offset) (to_bitstring (Old dos')))
-	    | _ -> inner bs in
-      inner (blocks block)
-
+    let modify block filename file_size start_cluster =
+      fold (fun acc offset dos ->
+	Printf.printf "Considering [%s] (%b)\n%!" dos.utf_filename (name_match filename dos);
+	if name_match filename dos
+	then
+	  let dos' = { dos with file_size = file_size; start_cluster = start_cluster } in
+	  (Update.make (Int64.of_int offset) (to_bitstring (Old dos'))) :: acc
+	else acc
+      ) [] block
 end
 
 module Path = (struct
@@ -987,15 +991,31 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 
 	let new_sectors = sectors_of_chain x new_clusters in
 	let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
+	Printf.printf "Updating data region\n%!";
 	List.iter (write_update x) data_writes;
+	Printf.printf "Updating FAT\n%!";
 	List.iter (write_update x) fat_writes;
+	Printf.printf "Updating directory entry %s in %s\n%!" (Path.filename path) (Path.to_string (Path.directory path));
 	update_directory_containing x path
 	  (fun bits ds ->
-	    (* XXX: update length as well *)
-	    match Dir_entry.set_start_cluster bits (Path.filename path) (List.hd (cs @ new_clusters)) with
+	    let enoent = Error(No_directory_entry (Path.directory path, Path.filename path)) in
+	    let filename = Path.filename path in
+	    match Dir_entry.find filename ds with
 	      | None ->
-		Error(No_directory_entry (Path.directory path, Path.filename path))
-	      | Some x -> Success [ x ]
+		Printf.printf "Failed to find %s\n%!" filename;
+		enoent
+	      | Some d ->
+		let new_file_size = max d.Dir_entry.file_size (Int32.of_int (Int64.to_int (Update.total_length update))) in
+		let start_cluster = List.hd (cs @ new_clusters) in
+		Printf.printf "new_file_size=%ld start_cluster=%d\n%!" new_file_size start_cluster;
+		begin match Dir_entry.modify bits filename new_file_size start_cluster with
+		  | [] ->
+		    Printf.printf "modify fail\n%!";
+enoent
+		  | x ->
+		    Printf.printf "OK\n%!";
+Success x
+		end
 	  );
 	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
 	Success ()

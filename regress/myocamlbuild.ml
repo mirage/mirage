@@ -115,7 +115,7 @@ module Mir = struct
     let byte = env byte and js = env js in
     let libdir = lib / "node" / "lib" in
     Cmd (S [ A"js_of_ocaml"; A "-noruntime";
-      A (sprintf "%s/runtime.js" libdir); P (libdir / "mirage.js") ; Px js; A"-o"; Px byte ])
+      P (libdir / "runtime.js"); P (libdir / "mirage.js") ; Px js; A"-o"; Px byte ])
 
   (** Generate an ML entry point file that spins up the Mirage runtime *)
   let ml_main mirfile mlprod env build =

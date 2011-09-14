@@ -44,22 +44,21 @@ let print_and_go str a =
   return a
 
 let test_odd a =
-  return (1 == (a mod 2))
+  return (1 = (a mod 2))
 
 let rec print_odd m = 
   lwt a = Lwt_mvar.take m in
   Console.log (Printf.sprintf "Odd: %d" a);
   print_odd m
 
+let ( |> ) x f = f x
+
 let main () =
   Random.self_init ();
   let m_input = Lwt_mvar.create_empty () in
-  let m_add_mult = map add_mult m_input in
-  let (ma, mm) = split m_add_mult in
-  let ma_p = map (print_and_go "Add:") ma in
-  let ma_p_f = filter test_odd ma_p in
-  let mm_p = map (print_and_go "Mult:") mm in
-  let mm_p_f = filter test_odd mm_p in
+  let (ma, mm) = m_input |> map m_add_mult |> split in
+  let ma_p_f = ma |> map (print_and_go "Add:") |> filter test_odd in
+  let mm_p_f = mm |> map (print_and_go "Mult:") |> filter test_odd in
   let rec inp () = (* XXX test never terminates *)
     Console.log "----";
     Lwt_mvar.put m_input (Random.int 1000, Random.int 1000) >>

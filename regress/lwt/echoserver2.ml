@@ -48,20 +48,29 @@ let rec print_mvar m =
   Console.log s;
   print_mvar m
 
+let ( |> ) x f = f x
+
 let echo_server () =
-  let m = Lwt_mvar.create_empty () in
-  let m_delayed = map wait_strlen m in
-  let m_cap = map cap_str m_delayed in
-  let _ = print_mvar m_cap in
-  let rec one_line n = 
-    lwt s = read_line () in
-    let str = Printf.sprintf "%d: %s" n s in
-    Console.log str;
-    Lwt_mvar.put m str >>
-    one_line (n + 1) 
+  (*define mailboxes*)
+  let m_input = Lwt_mvar.create_empty () in
+  let m_output = m_input |> map wait_strlen |> map cap_str in
+  (*define loops*)
+  let rec read () =
+    read_line ()           >>= fun s ->
+    Lwt_mvar.put m_input s >>=
+    read
   in
-  one_line 1
+  let rec write () =
+    Lwt_mvar.take m_output >>= fun r ->
+    Console.log r;
+    write ()
+  in
+  (*starts loops*)
+  (read ()) <&> (write ())
+
 
 let main () =
   Random.self_init ();
-  echo_server ()
+  let t = echo_server () in
+  Time.sleep 5. >>
+  (cancel t; return ())

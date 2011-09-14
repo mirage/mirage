@@ -1,7 +1,5 @@
 (* This contains the FAT-specific library stuff *)
 
-open Fat_utils
-
 (** Instances of SectorMap will map virtual sectors within a file to physical
     sector numbers on disk *)
 module SectorMap = struct
@@ -41,7 +39,7 @@ module Update = struct
 
   let apply bs x =
     let result = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring bs) in
-    bitstring_write x.data (Int64.to_int x.offset) result;
+    Bitstring.bitstring_write x.data (Int64.to_int x.offset) result;
     result
 
   (** [clip x offset length] returns the fraction of the update between
@@ -53,7 +51,7 @@ module Update = struct
     let proposed_end = Int64.(add offset (of_int length)) in
     let new_end = min original_end proposed_end in
     let new_length = Int64.(to_int(sub new_end new_offset)) in
-    { offset = new_offset; data = bitstring_clip x.data (8 * drop_bytes_from_start) (8 * new_length) }
+    { offset = new_offset; data = Bitstring.bitstring_clip x.data (8 * drop_bytes_from_start) (8 * new_length) }
 
   let is_empty x = Bitstring.equals Bitstring.empty_bitstring x.data
 
@@ -414,9 +412,9 @@ module Dir_entry = struct
     | '-' | '@' | '^' | '_' | '`' | '{'  | '}' | '~' -> true
     | c -> int_of_char c >= 128
 
-  let legal_dos_string x = Stringext.fold_right (fun c sofar -> sofar && (legal_dos_char c)) x true
+  let legal_dos_string x = String.fold_right (fun c sofar -> sofar && (legal_dos_char c)) x true
 
-  let is_legal_dos_name filename = match Stringext.split '.' filename with
+  let is_legal_dos_name filename = match String.split '.' filename with
     | [ one ] -> String.length one <= 8 && (legal_dos_string one)
     | [ one; two ] -> String.length one <= 8 && (String.length two <= 3) && (legal_dos_string one) && (legal_dos_string two)
     | _ -> false
@@ -430,7 +428,7 @@ module Dir_entry = struct
 
   let dos_name_of_filename filename =
     if is_legal_dos_name filename
-    then match Stringext.split '.' filename with
+    then match String.split '.' filename with
       | [ one ] -> add_padding ' ' 8 one, "   "
       | [ one; two ] -> add_padding ' ' 8 one, add_padding ' ' 3 two
       | _ -> assert false (* implied by is_legal_dos_name *)
@@ -701,7 +699,7 @@ module Dir_entry = struct
     (** [blocks bits] returns the directory chopped into individual bitstrings,
 	each one containing a possible Dir_entry (fragment) *)
     let blocks bits =
-      let list = bitstring_chop (8 * entry_size) bits in
+      let list = Bitstring.bitstring_chop (8 * entry_size) bits in
       List.rev (fst (List.fold_left (fun (acc, offset) bs -> ((offset, bs)::acc, offset + entry_size)) ([], 0) list))
 
     (** [fold f initial bits] folds [f acc offset dir_entry] across all the
@@ -758,7 +756,7 @@ module Dir_entry = struct
             | End -> Some offset
             | _ -> inner (8 * 32 + offset) bs
           end in
-      inner 0 (bitstring_chop (8 * 32) bits)
+      inner 0 (Bitstring.bitstring_chop (8 * 32) bits)
 
     (** [add block t] return the update required to add [t] to the directory [block].
         Note the update may be beyond the end of [block] indicating more space needs 
@@ -830,7 +828,7 @@ module Path = (struct
   let filename = List.hd
 
   let to_string p = "/" ^ (String.concat "/" (to_string_list p))
-  let of_string s = if s = "/" || s = "" then [] else of_string_list (Stringext.split '/' s)
+  let of_string s = if s = "/" || s = "" then [] else of_string_list (String.split '/' s)
 
   let cd path x = of_string x @ (if x <> "" && x.[0] = '/' then [] else path)
   let is_root p = p = []
@@ -1151,7 +1149,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
 	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
 	let bs_length = bps - bs_start - bs_trim_from_end in
 	if bs_length <> bps
-	then inner (bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
+	then inner (Bitstring.bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
 	else inner (data :: acc) (sector + 1) (bytes_read + bs_length) in
     let bitstrings = inner [] start_sector 0 in
     Bitstring.concat bitstrings

@@ -34,7 +34,7 @@ let new_id _loc _ =
 ;;
 
 let create_tag _loc n body =
-  let tag = <:expr< ((("",$`str:n$), []) : Cow.Xml.tag) >> in
+  let tag = <:expr< ((("",$`str:n$), []) : Xml.tag) >> in
   <:expr< match $body$ with [ [] -> [] | _ -> [`El $tag$ $body$] ] >>
 
 let gen_xml (_loc, n, t_exp) =
@@ -103,8 +103,6 @@ let gen_xml (_loc, n, t_exp) =
 
     | Arrow _  -> failwith "arrow type is not yet supported"
 
-    | Ext ("Cow.Xml.t",_)
-    | Var "Cow.Xml.t"
     | Ext ("Xml.t",_)
     | Var "Xml.t"     -> <:expr< $id$ >>
 
@@ -115,7 +113,7 @@ let gen_xml (_loc, n, t_exp) =
       <:expr< $Pa_dyntype.gen_ident _loc xml_of n$ $id$ >>
   in
   let id = <:expr< $lid:n$ >> in
-  <:binding< $lid:xml_of n$ $lid:n$ : Cow.Xml.t = $aux id t$ >>
+  <:binding< $lid:xml_of n$ $lid:n$ : Xml.t = $aux id t$ >>
 
 let () =
   Pa_type_conv.add_generator "xml"

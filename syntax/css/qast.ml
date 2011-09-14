@@ -30,60 +30,60 @@ type t =
 
 let get_expr _loc m =
   match m with
-    | <:expr< Cow.Css.Exprs [ $e$ ] >> -> <:expr< $e$ >>
+    | <:expr< Css.Exprs [ $e$ ] >> -> <:expr< $e$ >>
     | m -> <:expr< Css.expr $m$ >>
 
 let get_exprs _loc m =
   match m with
-    | <:expr< Cow.Css.Exprs $e$ >> -> <:expr< $e$ >>
-    | m -> <:expr< Cow.Css.exprs $m$ >>
+    | <:expr< Css.Exprs $e$ >> -> <:expr< $e$ >>
+    | m -> <:expr< Css.exprs $m$ >>
 
 let get_props _loc m =
   match m with
-    | <:expr< Cow.Css.Props $e$ >> -> <:expr< $e$ >>
-    | m -> <:expr< Cow.Css.props $m$ >>
+    | <:expr< Css.Props $e$ >> -> <:expr< $e$ >>
+    | m -> <:expr< Css.props $m$ >>
 
 let get_string _loc m =
   match m with
-    | <:expr< Cow.Css.Exprs [ [Cow.Css.Str $e$] ] >> -> <:expr< $e$ >>
-    | m -> <:expr< Cow.Css.string $m$ >>
+    | <:expr< Css.Exprs [ [Css.Str $e$] ] >> -> <:expr< $e$ >>
+    | m -> <:expr< Css.string $m$ >>
 
 let rec meta_t _loc = function
   | String s ->
-    <:expr< Cow.Css.Exprs [[Cow.Css.Str $`str:s$]] >>
+    <:expr< Css.Exprs [[Css.Str $`str:s$]] >>
 
   | Decl (a,b) ->
     let elts  = get_exprs _loc (meta_t _loc a) in
     let props = get_props _loc (meta_t _loc b) in
-    <:expr< Cow.Css.Props [ Cow.Css.Decl ($elts$, $props$) ] >>
+    <:expr< Css.Props [ Css.Decl ($elts$, $props$) ] >>
 
   | Rule (a,b) ->
     let name  = get_string _loc (meta_t _loc a) in
     let props = get_exprs _loc (meta_t _loc b) in
-    <:expr< Cow.Css.Props [ Cow.Css.Prop ($name$, $props$) ] >>
+    <:expr< Css.Props [ Css.Prop ($name$, $props$) ] >>
 
   | Fun (a,b) ->
     let name = get_string _loc (meta_t _loc a) in
     let args = get_exprs _loc (meta_t _loc b) in
-    <:expr< Cow.Css.Exprs [[Cow.Css.Fun ($name$, $args$) ]] >>
+    <:expr< Css.Exprs [[Css.Fun ($name$, $args$) ]] >>
 
   | Comma (a,b) ->
     let e1 = get_exprs _loc (meta_t _loc a) in
     let e2 = get_exprs _loc (meta_t _loc b) in
-    <:expr< Cow.Css.Exprs ($e1$ @ $e2$) >>
+    <:expr< Css.Exprs ($e1$ @ $e2$) >>
 
   | ESeq (a,b) ->
     let e1 = get_expr _loc (meta_t _loc a) in
     let e2 = get_expr _loc (meta_t _loc b) in
-    <:expr< Cow.Css.Exprs [ ($e1$ @ $e2$) ] >>
+    <:expr< Css.Exprs [ ($e1$ @ $e2$) ] >>
 
   | RSeq (a,b) ->
     let e1 = get_props _loc (meta_t _loc a) in
     let e2 = get_props _loc (meta_t _loc b) in
-    <:expr< Cow.Css.Props ($e1$ @ $e2$) >>
+    <:expr< Css.Props ($e1$ @ $e2$) >>
 
   | Nil ->
-    <:expr< Cow.Css.Exprs [[]] >>
+    <:expr< Css.Exprs [[]] >>
 
   | Ant (l, str) ->
     Ast.ExAnt (l, str)
@@ -91,6 +91,6 @@ let rec meta_t _loc = function
 let meta_t _loc t =
   let m = meta_t _loc t in
   match m with
-    | <:expr< Cow.Css.Exprs $_$ >> -> m
-    | t -> <:expr< Cow.Css.unroll $m$ >>
+    | <:expr< Css.Exprs $_$ >> -> m
+    | t -> <:expr< Css.unroll $m$ >>
 

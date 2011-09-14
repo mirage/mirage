@@ -845,8 +845,8 @@ end: sig
 end)
 
 module type BLOCK = sig
-  val read_sector: int -> Bitstring.t
-  val write_sector: int -> Bitstring.t -> unit
+  val read_sector: int -> Bitstring.t Lwt.t
+  val write_sector: int -> Bitstring.t -> unit Lwt.t
 end
 
 type error =
@@ -869,32 +869,32 @@ end
 
 module type FS = sig
   type fs
-  val make: unit -> fs
+  val make: unit -> fs Lwt.t
 
   type file
 
-  val create: fs -> Path.t -> unit result
+  val create: fs -> Path.t -> unit result Lwt.t
 
-  val mkdir: fs -> Path.t -> unit result
+  val mkdir: fs -> Path.t -> unit result Lwt.t
 
   (** [destroy fs path] removes a [path] on filesystem [fs] *)
-  val destroy: fs -> Path.t -> unit result
+  val destroy: fs -> Path.t -> unit result Lwt.t
 
   (** [file_of_path fs path] returns a [file] corresponding to [path] on
       filesystem [fs] *)
   val file_of_path: fs -> Path.t -> file
 
   (** [stat fs f] returns information about file [f] on filesystem [fs] *)
-  val stat: fs -> Path.t -> Stat.t result
+  val stat: fs -> Path.t -> Stat.t result Lwt.t
 
   (** [write fs f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [fs] *)
-  val write: fs -> file -> int -> Bitstring.t -> unit result
+  val write: fs -> file -> int -> Bitstring.t -> unit result Lwt.t
 
   (** [read fs f offset length] reads up to [length] bytes from file [f] on
       filesystem [fs]. If less data is returned than requested, this indicates
       end-of-file. *)
-  val read: fs -> file -> int -> int -> Bitstring.t result
+  val read: fs -> file -> int -> int -> Bitstring.t result Lwt.t
 end
 
 module FATFilesystem = functor(B: BLOCK) -> struct
@@ -904,18 +904,18 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     mutable fat: Bitstring.t;    (** contains the whole FAT *)
     mutable root: Bitstring.t;   (** contains the root directory *)
   }
-  let read_sectors ss = 
-    Bitstring.concat (List.map B.read_sector ss)
+  let read_sectors ss =
+    Lwt.map Bitstring.concat (Lwt_util.map B.read_sector ss)
 
   let make () = 
-    let boot_sector = B.read_sector 0 in
+    lwt boot_sector = B.read_sector 0 in
     let boot = Boot_sector.of_bitstring boot_sector in
     let format = match Boot_sector.detect_format boot with
     | None -> failwith "Failed to detect FAT format"
     | Some format -> format in
-    let fat = read_sectors (Boot_sector.sectors_of_fat boot) in
-    let root = read_sectors (Boot_sector.sectors_of_root_dir boot) in
-    { boot = boot; format = format; fat = fat; root = root }
+    lwt fat = read_sectors (Boot_sector.sectors_of_fat boot) in
+    lwt root = read_sectors (Boot_sector.sectors_of_root_dir boot) in
+    Lwt.return { boot = boot; format = format; fat = fat; root = root }
 
   type file = Path.t
   let file_of_path fs x = x
@@ -938,33 +938,37 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let sector_number = Int64.(div offset (of_int bps)) in
     let sector_offset = Int64.(sub offset (mul sector_number (of_int bps))) in
-    let sector = B.read_sector (Int64.to_int sector_number) in
+    lwt sector = B.read_sector (Int64.to_int sector_number) in
     let sector' = Update.apply sector { update with Update.offset = sector_offset } in
     B.write_sector (Int64.to_int sector_number) sector'
 
   (** [find x path] returns a [find_result] corresponding to the object
       stored at [path] *)
-  let find x path : find result =
-    let readdir = function
-      | Dir ds -> ds
-      | File d -> Dir_entry.list (read_whole_file x d) in
+  let find x path : find result Lwt.t =
+    let readdir : find -> Dir_entry.r list Lwt.t = function
+      | Dir ds -> Lwt.return ds
+      | File d -> Lwt.map Dir_entry.list (read_whole_file x d) in
     let rec inner sofar current = function
     | [] ->
       begin match current with
-      | Dir ds -> Success (Dir ds)
-      | File { Dir_entry.dos = _, { Dir_entry.subdir = true } } -> Success (Dir (readdir current))
-      | File ( { Dir_entry.dos = _, { Dir_entry.subdir = false } } as d ) -> Success (File d)
+      | Dir ds ->
+		  Lwt.return (Success (Dir ds))
+      | File { Dir_entry.dos = _, { Dir_entry.subdir = true } } ->
+		  let ds = readdir current in
+		  Lwt.map (fun ds -> Success (Dir ds)) ds
+      | File ( { Dir_entry.dos = _, { Dir_entry.subdir = false } } as d ) ->
+		  Lwt.return (Success (File d))
       end
     | p :: ps ->
-      let entries = readdir current in
-      begin match Dir_entry.find p entries, ps with
-      | Some { Dir_entry.dos = _, { Dir_entry.subdir = false } }, _ :: _ ->
-        Error (Not_a_directory (Path.of_string_list (List.rev (p :: sofar))))
-      | Some d, _ ->
-        inner (p::sofar) (File d) ps
-      | None, _ ->
-        Error(No_directory_entry (Path.of_string_list (List.rev sofar), p))
-      end in
+      lwt entries = readdir current in
+	  begin match Dir_entry.find p entries, ps with
+		  | Some { Dir_entry.dos = _, { Dir_entry.subdir = false } }, _ :: _ ->
+			  Lwt.return (Error (Not_a_directory (Path.of_string_list (List.rev (p :: sofar)))))
+		  | Some d, _ ->
+			  inner (p::sofar) (File d) ps
+		  | None, _ ->
+			  Lwt.return (Error(No_directory_entry (Path.of_string_list (List.rev sofar), p)))
+	  end in
     inner [] (Dir (Dir_entry.list x.root)) (Path.to_string_list path)
 
   (** Updates to files and directories involve writing to the following disk areas: *)
@@ -976,23 +980,24 @@ module FATFilesystem = functor(B: BLOCK) -> struct
   (** [chain_of_file x path] returns [Some chain] where [chain] is the chain
       corresponding to [path] or [None] if [path] cannot be found or if it
       is / and hasn't got a chain. *)
-  let chain_of_file x path =
-    if Path.is_root path then None
-    else
-      let parent_path = Path.directory path in
-      match find x parent_path with
-	| Success (Dir ds) ->
-	  begin match Dir_entry.find (Path.filename path) ds with
-	    | None -> assert false
-	    | Some f ->
-	      let start_cluster = (snd f.Dir_entry.dos).Dir_entry.start_cluster in
-	      Some(Fat_entry.follow_chain x.format x.fat start_cluster)
-	  end
-	| _ -> None
+  let chain_of_file x path : int list option Lwt.t =
+	let parent_path = Path.directory path in
+	let chain_of_find_result : find result -> int list option = function
+	  | Success (Dir ds) ->
+		begin match Dir_entry.find (Path.filename path) ds with
+		  | None -> assert false
+		  | Some f ->
+			let start_cluster = (snd f.Dir_entry.dos).Dir_entry.start_cluster in
+			Some(Fat_entry.follow_chain x.format x.fat start_cluster)
+        end
+      | _ -> None in
+    if Path.is_root path 
+	then Lwt.return None
+    else Lwt.map chain_of_find_result (find x parent_path)
 
   (** [write_to_location x path location update] applies [update] to the data given by
       [location]. This will also allocate any additional clusters necessary. *)
-  let rec write_to_location x path location update : unit result =
+  let rec write_to_location x path location update : unit result Lwt.t =
     let bps = x.boot.Boot_sector.bytes_per_sector in
     let spc = x.boot.Boot_sector.sectors_per_cluster in
     let updates = Update.split update bps in
@@ -1008,70 +1013,77 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       Int64.(to_int(div (add bytes_needed (sub bpc 1L)) bpc)) in
     match location, bytes_needed > 0L with
       | Rootdir, true ->
-	Error No_space
+        Lwt.return (Error No_space)
       | (Rootdir | Chain _), false ->
-	let writes = Update.map_updates updates sectors bps in
-	List.iter (write_update x) writes;
-	if location = Rootdir then x.root <- Update.apply x.root update;
-	Success ()
+        let writes = Update.map_updates updates sectors bps in
+        lwt () = Lwt_util.iter_serial (write_update x) writes in
+        if location = Rootdir then x.root <- Update.apply x.root update;
+        Lwt.return (Success ())
       | Chain cs, true ->
-	let last = if cs = [] then None else Some (List.hd (List.tl cs)) in
-	let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
-	(* Split the FAT allocations into multiple sectors. Note there might be more than one
-	   per sector. *)
-	let fat_allocations_sectors = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
-	let fat_sectors = Boot_sector.sectors_of_fat x.boot in
-	let fat_writes = Update.map_updates fat_allocations_sectors fat_sectors bps in
+        let last = if cs = [] then None else Some (List.hd (List.tl cs)) in
+        let fat_allocations, new_clusters = Fat_entry.extend x.boot x.format x.fat last clusters_needed in
+        (* Split the FAT allocations into multiple sectors. Note there might
+           be more than one per sector. *)
+        let fat_allocations_sectors = List.concat (List.map (fun x -> Update.split x bps) fat_allocations) in
+        let fat_sectors = Boot_sector.sectors_of_fat x.boot in
+        let fat_writes = Update.map_updates fat_allocations_sectors fat_sectors bps in
 
-	let new_sectors = sectors_of_chain x new_clusters in
-	let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
-	List.iter (write_update x) data_writes;
-	List.iter (write_update x) fat_writes;
-	update_directory_containing x path
-	  (fun bits ds ->
-	    let enoent = Error(No_directory_entry (Path.directory path, Path.filename path)) in
-	    let filename = Path.filename path in
-	    match Dir_entry.find filename ds with
-	      | None ->
-		enoent
-	      | Some d ->
-		let file_size = Dir_entry.file_size_of d in
-		let new_file_size = max file_size (Int32.of_int (Int64.to_int (Update.total_length update))) in
-		let start_cluster = List.hd (cs @ new_clusters) in
-		begin match Dir_entry.modify bits filename new_file_size start_cluster with
-		  | [] ->
-		    enoent
-		  | x ->
-		    Success x
-		end
-	  );
-	x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
-	Success ()
+        let new_sectors = sectors_of_chain x new_clusters in
+        let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
+        lwt () = Lwt_util.iter_serial (write_update x) data_writes in
+        lwt () = Lwt_util.iter_serial (write_update x) fat_writes in
+        update_directory_containing x path
+          (fun bits ds ->
+            let enoent = Error(No_directory_entry (Path.directory path, Path.filename path)) in
+	        let filename = Path.filename path in
+            match Dir_entry.find filename ds with
+            | None ->
+              enoent
+            | Some d ->
+              let file_size = Dir_entry.file_size_of d in
+              let new_file_size = max file_size (Int32.of_int (Int64.to_int (Update.total_length update))) in
+              let start_cluster = List.hd (cs @ new_clusters) in
+              begin match Dir_entry.modify bits filename new_file_size start_cluster with
+              | [] ->
+                enoent
+              | x ->
+                Success x
+              end
+         );
+       x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
+       Lwt.return (Success ())
 
   and update_directory_containing x path f =
     let parent_path = Path.directory path in
-    match find x parent_path with
-      | Error x -> Error x
-      | Success (File _) -> Error(Not_a_directory parent_path)
+	lwt file = find x parent_path in
+    match file with
+      | Error x -> Lwt.return (Error x)
+      | Success (File _) -> Lwt.return (Error(Not_a_directory parent_path))
       | Success (Dir ds) ->
-	let sectors, location = match (chain_of_file x parent_path) with
-	  | None -> Boot_sector.sectors_of_root_dir x.boot, Rootdir
-	  | Some c -> sectors_of_chain x c, Chain c in
-	let contents = read_sectors sectors in
-	begin match f contents ds with
-	  | Error x -> Error x
-	  | Success updates ->
-	    begin match iter (write_to_location x parent_path location) updates with
-	      | Success () -> Success ()
-	      | Error x -> Error x
-	    end
-	end
+		  lwt c = chain_of_file x parent_path in
+          let sectors, location = match c with
+			  | None -> Boot_sector.sectors_of_root_dir x.boot, Rootdir
+			  | Some c -> sectors_of_chain x c, Chain c in
+		  lwt contents = read_sectors sectors in
+          begin match f contents ds with
+	        | Error x -> Lwt.return (Error x)
+			| Success updates ->
+				(* XXX: need to rewrite the Success/Error stuff in terms of
+                   Lwt exceptions. *)
+                lwt _ = Lwt_util.iter_serial
+				  (fun update ->
+					  lwt _ = write_to_location x parent_path location update in
+		              Lwt.return ()
+		          ) updates in
+		        Lwt.return (Success ())
+          end
 
   (** [write x f offset bs] writes bitstring [bs] at [offset] in file [f] on
       filesystem [x] *)
   let write x f offset bs =
     let u = Update.make (Int64.of_int offset) bs in
-    let location = match chain_of_file x f with
+    lwt c = chain_of_file x f in
+    let location = match c with
       | None -> Rootdir
       | Some c -> Chain (sectors_of_chain x c) in
     write_to_location x f location u
@@ -1080,58 +1092,60 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let filename = Path.filename path in
     update_directory_containing x path
       (fun contents ds ->
-	if Dir_entry.find filename ds <> None
-	then Error (File_already_exists filename)
-	else Success (Dir_entry.add contents dir_entry)
+        if Dir_entry.find filename ds <> None
+        then Error (File_already_exists filename)
+        else Success (Dir_entry.add contents dir_entry)
       )
 
   (** [create x path] create a zero-length file at [path] *)
-  let create x path : unit result =
+  let create x path : unit result Lwt.t =
     create_common x path (Dir_entry.make (Path.filename path))
 
   (** [mkdir x path] create an empty directory at [path] *)
-  let mkdir x path : unit result =
+  let mkdir x path : unit result Lwt.t =
     create_common x path (Dir_entry.make ~subdir:true (Path.filename path))
 
   (** [destroy x path] deletes the entry at [path] *)
-  let destroy x path : unit result =
+  let destroy x path : unit result Lwt.t =
     let filename = Path.filename path in
     let do_destroy () =
       update_directory_containing x path
-	(fun contents ds ->
-	(* XXX check for nonempty *)
-	(* XXX delete chain *)
-	  if Dir_entry.find filename ds = None
-	  then Error (No_directory_entry(Path.directory path, filename))
-	  else Success (Dir_entry.remove contents filename)
-	) in
-    match find x path with
-      | Error x -> Error x
+        (fun contents ds ->
+          (* XXX check for nonempty *)
+          (* XXX delete chain *)
+          if Dir_entry.find filename ds = None
+          then Error (No_directory_entry(Path.directory path, filename))
+          else Success (Dir_entry.remove contents filename)
+	    ) in
+    lwt f = find x path in
+    match f with
+      | Error x -> Lwt.return (Error x)
       | Success (File _) -> do_destroy ()
       | Success (Dir []) -> do_destroy ()
-      | Success (Dir (_::_)) -> Error(Directory_not_empty(path))
+      | Success (Dir (_::_)) -> Lwt.return (Error(Directory_not_empty(path)))
 
   let stat x path =
     let entry_of_file f = f in
-    match find x path with
-      | Error x -> Error x
-      | Success (File f) -> Success (Stat.File (entry_of_file f))
+    lwt f = find x path in
+    match f with
+      | Error x -> Lwt.return (Error x)
+      | Success (File f) -> Lwt.return (Success (Stat.File (entry_of_file f)))
       | Success (Dir ds) ->
-	let ds' = List.map entry_of_file ds in
-	if Path.is_root path
-	then Success (Stat.Dir (entry_of_file Dir_entry.fake_root_entry, ds'))
-	else
-	  let filename = Path.filename path in
-	  let parent_path = Path.directory path in
-	  match find x parent_path with
-	    | Error x -> Error x
-	    | Success (File _) -> assert false (* impossible by initial match *)
-	    | Success (Dir ds) ->
-	      begin match Dir_entry.find filename ds with
-		| None -> assert false (* impossible by initial match *)
-		| Some f ->
-		  Success (Stat.Dir (entry_of_file f, ds'))
-	      end
+        let ds' = List.map entry_of_file ds in
+        if Path.is_root path
+        then Lwt.return (Success (Stat.Dir (entry_of_file Dir_entry.fake_root_entry, ds')))
+        else
+          let filename = Path.filename path in
+          let parent_path = Path.directory path in
+          lwt f = find x parent_path in
+          match f with
+            | Error x -> Lwt.return (Error x)
+            | Success (File _) -> assert false (* impossible by initial match *)
+            | Success (Dir ds) ->
+            begin match Dir_entry.find filename ds with
+              | None -> assert false (* impossible by initial match *)
+              | Some f -> Lwt.return (Success (Stat.Dir (entry_of_file f, ds')))
+            end
 
   let read_file x { Dir_entry.dos = _, ({ Dir_entry.file_size = file_size } as f) } the_start length =
     let bps = x.boot.Boot_sector.bytes_per_sector in
@@ -1143,23 +1157,26 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     let start_sector = the_start / bps in
     let rec inner acc sector bytes_read =
       if bytes_read >= length
-      then List.rev acc
+      then Lwt.return (List.rev acc)
       else
-	let data = B.read_sector (SectorMap.find sm sector) in
+        lwt data = B.read_sector (SectorMap.find sm sector) in
         (* consider whether this sector needs to be clipped to be within the range *)
-	let bs_start = max 0 (the_start - sector * bps) in
-	let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
-	let bs_length = bps - bs_start - bs_trim_from_end in
-	if bs_length <> bps
-	then inner (Bitstring.bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
-	else inner (data :: acc) (sector + 1) (bytes_read + bs_length) in
-    let bitstrings = inner [] start_sector 0 in
-    Bitstring.concat bitstrings
+        let bs_start = max 0 (the_start - sector * bps) in
+        let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
+        let bs_length = bps - bs_start - bs_trim_from_end in
+        if bs_length <> bps
+        then inner (Bitstring.bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
+        else inner (data :: acc) (sector + 1) (bytes_read + bs_length) in
+    lwt bitstrings = inner [] start_sector 0 in
+    Lwt.return (Bitstring.concat bitstrings)
       
   let read x path the_start length =
-    match find x path with
-      | Success (Dir _) -> Error (Is_a_directory path)
-      | Success (File f) -> Success (read_file x f the_start length)
-      | Error x -> Error x
+    lwt f = find x path in
+    match f with
+      | Success (Dir _) -> Lwt.return (Error (Is_a_directory path))
+      | Success (File f) -> 
+        lwt contents = read_file x f the_start length in
+        Lwt.return (Success contents)
+      | Error x -> Lwt.return (Error x)
 
 end

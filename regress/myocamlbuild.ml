@@ -226,7 +226,7 @@ module Spec = struct
   let is_supported =
     let open OS in
     function
-    |Xen -> if (host,arch) = (Linux,X86_64) then `Yes else `No
+    |Xen -> if (host,arch) = (Linux,X86_64) && Sys.file_exists "/proc/xen/capabilities" then `Yes else `No
     |Node -> if js_of_ocaml_installed then `Yes else `No
     |Unix_direct |Unix_socket -> `Yes
     |External -> `External

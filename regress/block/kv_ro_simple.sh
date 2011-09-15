@@ -1,9 +1,4 @@
 #!/bin/sh
 
-case $1 in
-prerun)
-  echo 12345 > block/bar
-  ;;
-*)
-  ;;
-esac
+# should not be called ever
+exit 1

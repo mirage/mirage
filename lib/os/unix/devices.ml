@@ -93,7 +93,10 @@ let rec find id =
     let th,u = Lwt.task () in
     let node = Lwt_sequence.add_r u seq in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-    th
+    printf "Devices: sleeping on %s\n%!" id;
+    lwt ent = th in
+    printf "Devices: woke up on %s %s\n%!" id ent.id;
+    return ent 
   end
 
 (** Main device manager thread *)
@@ -107,6 +110,7 @@ let device_t () =
   in
   (* For each provider, set up a thread that listens for incoming plug events *)
   let provider_t provider =
+    printf "Devices: starting provider %s\n%!" provider#id;
     mvar_loop provider#plug (fun {p_id; p_dep_ids; p_cfg } ->
       printf "Devices: plug %s from %s\n%!" p_id provider#id;
       (* Satisfy all the dependencies *)
@@ -122,8 +126,11 @@ let device_t () =
         Lwt_sequence.iter_l (fun mvar -> ignore(Lwt_mvar.put mvar p_id)) wildcard_waiters;
         (* Check for any waiting threads *)
         match Hashtbl.find_all device_waiters p_id with
-        |[] -> return ()
+        |[] ->
+          printf "Devices: no waiters for %s from %s\n%!" p_id provider#id;
+          return ()
         |[waiters] ->
+          printf "Devices: waking waiters for %s from %s\n%!" p_id provider#id;
            Hashtbl.remove device_waiters p_id;
            Lwt_sequence.iter_l (fun w -> Lwt.wakeup w entry) waiters;
            return ()

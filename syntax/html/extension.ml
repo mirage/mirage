@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010-11 Thomas Gazagnaire <thomas@ocamlpro.com>
+ * Copyright (c) 2010-2011 Thomas Gazagnaire <thomas@ocamlpro.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,10 +18,10 @@ open Dyntype
 open Camlp4.PreCast
 
 let expr_list_of_list _loc exprs =
-        match List.rev exprs with
-        | []   -> <:expr< [] >>
-        | h::t ->
-    List.fold_left (fun accu x -> <:expr< [ $x$ :: $accu$ ] >>) <:expr< [ $h$ ] >> t 
+  match List.rev exprs with
+    | []   -> <:expr< [] >>
+    | h::t ->
+      List.fold_left (fun accu x -> <:expr< [ $x$ :: $accu$ ] >>) <:expr< [ $h$ ] >> t 
 
 let html_of t = "html_of_" ^ t
 
@@ -70,7 +70,7 @@ let gen_html (_loc, n, t_exp) =
     | Float    -> <:expr< [`Data (string_of_float $id$)] >>
     | Char     -> <:expr< [`Data (String.make 1 $id$)] >>
     | String   -> <:expr< [`Data $id$] >>
-          | Int (Some i) when i <= 64 ->
+    | Int (Some i) when i <= 64 ->
       if i + 1 = Sys.word_size then
         <:expr< [`Data (string_of_int $id$)] >>
       else if i <= 32 then
@@ -79,14 +79,14 @@ let gen_html (_loc, n, t_exp) =
         <:expr< [`Data (Int64.to_string $id$)] >>
     | Int _ ->
       <:expr< [`Data (Bigint.to_string $id$)] >>
-          | List t   ->
+    | List t   ->
       let pid, eid = new_id _loc () in
       <:expr< List.fold_left (fun accu $pid$ -> $aux eid t$ @ accu) [] $id$ >>
-          | Array t  ->
+    | Array t  ->
       let pid, eid = new_id _loc () in
       let array = <:expr< Array.map (fun $pid$ -> $aux eid t$) $id$ >> in
       <:expr< List.flatten (Array.to_list $array$) >>
-          | Tuple t  ->
+    | Tuple t  ->
       let ids = List.map (new_id _loc) t in
       let patts,exprs = List.split ids in
       let exprs = List.map2 aux exprs t in
@@ -94,7 +94,7 @@ let gen_html (_loc, n, t_exp) =
         let $tup:Ast.paCom_of_list patts$ = $id$ in
         List.flatten $expr_list_of_list _loc exprs$
         >>
-          | Dict(k,d) ->
+    | Dict(k,d) ->
       let new_id n = match k with
         | `R -> <:expr< $id$.$lid:n$ >>
         | `O -> <:expr< $id$#$lid:n$ >> in
@@ -102,7 +102,7 @@ let gen_html (_loc, n, t_exp) =
         List.map (fun (n,_,t) -> create_class _loc n (aux (new_id n) t)) d in
       let expr = expr_list_of_list _loc exprs in
       <:expr< $expr$ >>
-          | Sum (k, s) ->
+    | Sum (k, s) ->
       let mc (n, args) =
         let ids = List.map (new_id _loc) args in
         let patts, exprs = List.split ids in
@@ -118,7 +118,7 @@ let gen_html (_loc, n, t_exp) =
           | `P, _ -> <:patt< `$uid:n$ $tup:patt$ >> in
         <:match_case< $patt$ -> $exprs$ >> in
       <:expr< match $id$ with [ $list:List.map mc s$ ] >>
-          | Option o ->
+    | Option o ->
       let pid, eid = new_id _loc () in
       <:expr<
         match $id$ with [
@@ -126,16 +126,16 @@ let gen_html (_loc, n, t_exp) =
           | Some $pid$ -> $aux eid o$
         ] >>
 
-          | Arrow _  -> failwith "arrow type is not yet supported"
+    | Arrow _  -> failwith "arrow type is not yet supported"
             
-          | Ext ("Cow.Html.t",_)
-          | Var "Cow.Html.t"
-          | Ext ("Html.t",_)
-          | Var "Html.t"     -> <:expr< $id$ >>
+    | Ext ("Cow.Html.t",_)
+    | Var "Cow.Html.t"
+    | Ext ("Html.t",_)
+    | Var "Html.t"     -> <:expr< $id$ >>
 
-          | Ext (n,_)
-          | Rec (n,_)
-          | Var n    ->
+    | Ext (n,_)
+    | Rec (n,_)
+    | Var n    ->
       (* XXX: This will not work for recursive values *)
       <:expr< $Pa_dyntype.gen_ident _loc html_of n$ $id$ >>
   in

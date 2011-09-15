@@ -300,11 +300,7 @@ module Spec = struct
         let root_target = match spec.target with
           |None -> env "%(test)"
           |Some x -> Pathname.dirname (env "%(test)") / x in
-        let test_sh = Pathname.dirname (env "%(test)") /
-          match spec.target with
-            | None -> env "%(test).sh"
-            | Some t -> t ^ ".sh"
-        in
+        let test_sh = env "%(test).sh" in
         let exec_cmd = match is_supported backend with
         |`Yes ->
           (* Build the target for this backend *)

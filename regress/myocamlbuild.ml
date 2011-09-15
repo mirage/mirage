@@ -67,7 +67,8 @@ module OS = struct
 
   let arch =
     match String.lowercase (Util.run_and_read "uname -m") with
-    | "x86_32" |"i386" |"i686"  -> X86_32
+    | "x86_32" | "i686"  -> X86_32
+    | "i386" -> (match host with Linux -> X86_32 | Darwin -> X86_64)
     | "x86_64" -> X86_64
     | arch -> eprintf "`%s` is not a supported arch\n" arch; exit (-1)
 
@@ -249,7 +250,7 @@ module Spec = struct
 
   (** Spec file contains key:value pairs: 
 
-    backend:node,xen,unix-direct
+    backend:xen,node,unix-direct,unix-socket
     backend:* (short form of above)
     no backend key results in "backend:*" being default
 

@@ -33,8 +33,15 @@ let new_id _loc _ =
   <:patt< $lid:v$ >>, <:expr< $lid:v$ >>
 ;;
 
+let xml_type _loc id =
+  if !Options.needsopen then
+    <:ctyp< Cow.Xml.$lid:id$ >>
+  else
+    <:ctyp< Xml.$lid:id$ >>
+
 let create_tag _loc n body =
-  let tag = <:expr< ((("",$`str:n$), []) : Xml.tag) >> in
+  let typ = xml_type _loc "tag" in
+  let tag = <:expr< ((("",$`str:n$), []) : $typ$)>> in
   <:expr< match $body$ with [ [] -> [] | _ -> [`El $tag$ $body$] ] >>
 
 let gen_xml (_loc, n, t_exp) =
@@ -103,8 +110,10 @@ let gen_xml (_loc, n, t_exp) =
 
     | Arrow _  -> failwith "arrow type is not yet supported"
 
+    | Ext ("Cow.Xml.t",_)
+    | Var "Cow.Xml.t"
     | Ext ("Xml.t",_)
-    | Var "Xml.t"     -> <:expr< $id$ >>
+    | Var "Xml.t" -> <:expr< $id$ >>
 
     | Ext (n,_)
     | Rec (n,_)
@@ -113,17 +122,18 @@ let gen_xml (_loc, n, t_exp) =
       <:expr< $Pa_dyntype.gen_ident _loc xml_of n$ $id$ >>
   in
   let id = <:expr< $lid:n$ >> in
-  <:binding< $lid:xml_of n$ $lid:n$ : Xml.t = $aux id t$ >>
+  let typ = xml_type _loc "t" in
+  <:binding< $lid:xml_of n$ $lid:n$ : $typ$ = $aux id t$ >>
 
 let () =
   Pa_type_conv.add_generator "xml"
     (fun tds ->
-       try
-         let _loc = Ast.loc_of_ctyp tds in
-         <:str_item<
-           value rec $Ast.biAnd_of_list (List.map gen_xml (Pa_dyntype.create tds))$;
-         >>
-       with Not_found ->
-         Printf.eprintf "[Internal Error]\n";
-         Printexc.print_backtrace stderr;
-         exit (-1))
+      try
+        let _loc = Ast.loc_of_ctyp tds in
+        <:str_item<
+          value rec $Ast.biAnd_of_list (List.map gen_xml (Pa_dyntype.create tds))$;
+        >>
+      with Not_found ->
+        Printf.eprintf "[Internal Error]\n";
+        Printexc.print_backtrace stderr;
+        exit (-1))

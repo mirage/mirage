@@ -95,11 +95,14 @@ end
 let expand_expr entity =
   fun _loc _ s ->
     let meta_ast = parse_quot_string entity _loc s in
-    <:expr< ($aq_expander#expr meta_ast$ : Xml.t) >>
+    if !Options.needsopen then
+      <:expr< let open Cow in ($aq_expander#expr meta_ast$ : Xml.t) >>
+    else
+      <:expr< ($aq_expander#expr meta_ast$ : Xml.t) >>
 
 let expand_str_item entity _loc _ s =
   let exp_ast = expand_expr entity _loc None s in
-  <:str_item< ($exp:exp_ast$ : Xml.t) >>
+  <:str_item< $exp:exp_ast$ >>
 
 let () =
   Q.add "xml" Q.DynAst.expr_tag (expand_expr None);

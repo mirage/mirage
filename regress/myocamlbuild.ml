@@ -249,7 +249,7 @@ module Spec = struct
 
   (** Spec file contains key:value pairs: 
 
-    backend:node,xen,unix-direct
+    backend:xen,node,unix-direct,unix-socket
     backend:* (short form of above)
     no backend key results in "backend:*" being default
 

@@ -67,7 +67,7 @@ module OS = struct
 
   let arch =
     match String.lowercase (Util.run_and_read "uname -m") with
-    | "x86_32" |"i386"  -> X86_32
+    | "x86_32" |"i386" |"i686"  -> X86_32
     | "x86_64" -> X86_64
     | arch -> eprintf "`%s` is not a supported arch\n" arch; exit (-1)
 

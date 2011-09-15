@@ -1,37 +1,41 @@
 open Lwt (* provides >>= and join *)
 open OS  (* provides Time, Console and Main *)
 
-let map f a =
-  let m = Lwt_mvar.create_empty () in
+let map f m_in =
+  let m_out = Lwt_mvar.create_empty () in
   let rec map_h () =
-    Lwt_mvar.take a >>=
-    f  >>=
-    fun b -> Lwt_mvar.put m b >>=
-    fun () -> map_h () in
-  let _ = map_h () in (* XXX should this be ignored? - avsm *)
-  m
+    Lwt_mvar.take m_in >>=
+    f  >>= fun b ->
+    Lwt_mvar.put m_out b >>
+    map_h () in
+  (* t is left unused in this implementation, but should really be
+     returned and used to cancel the thread when no longer needed. *)
+  let t = map_h () in
+  m_out
 
 let split ab =
   let ma = Lwt_mvar.create_empty () in
   let mb = Lwt_mvar.create_empty () in
   let rec split_h () =
-    Lwt_mvar.take ab >>=
-      fun (va, vb) ->
-	join [Lwt_mvar.put ma va; Lwt_mvar.put mb vb;] >>=
-	fun _ -> split_h () in
-  let _ = split_h () in (* XXX should this be ignored? - avsm *)
+    Lwt_mvar.take ab >>= fun (va, vb) ->
+    join [Lwt_mvar.put ma va; Lwt_mvar.put mb vb;] >>
+    split_h () in
+  (* this t is also left unused but shoule be returned *)
+  let t = split_h () in  
   (ma, mb)
   
-let filter f a =
-  let m = Lwt_mvar.create_empty () in
-  let rec filter_h () = Lwt_mvar.take a >>=
-    fun v -> f v >>=
-    fun w -> match w with
-               | true -> (Lwt_mvar.put m v >>=
-	                  fun _ -> filter_h ())
-	     | false -> filter_h () in
-  let _ = filter_h () in (* XXX should this be ignored? - avsm *)
-  m
+let filter f m_in =
+  let m_out = Lwt_mvar.create_empty () in
+  let rec filter_h () =
+    Lwt_mvar.take m_in >>= fun v ->
+    f v                >>= function
+    | true -> (Lwt_mvar.put m_out v >>
+               filter_h ())
+    | false -> filter_h ()
+  in
+  (* this t is also left unused but shoule be returned *)
+  let t = filter_h () in
+  m_out
 
 let read_line () =
   return (String.make (Random.int 20) 'a')

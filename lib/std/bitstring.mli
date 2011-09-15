@@ -715,6 +715,26 @@ val bitstring_length : bitstring -> int
 
     Note this just returns the third field in the {!bitstring} tuple. *)
 
+val bitstring_is_byte_aligned : bitstring -> bool
+(** [bitstring_is_byte_aligned b] returns true if the data in
+    [b] is byte-aligned. *)
+
+val bitstring_write : bitstring -> int -> bitstring -> unit
+(** [bitstring_write src offset dest] modifies [dest] in place
+    by writing [src] starting at [offset] in [dest].
+
+    Note that [offset] is currently in bytes *not* bits. *)
+
+val bitstring_chop : int -> bitstring -> bitstring list
+(** [bitstring_chop n bits] splits [bits] into a sequence of bitstrings,
+    each of which (except maybe the last) having length [n] bits. *)
+
+val bitstring_clip : bitstring -> int -> int -> bitstring
+(** [bitstring_clip bits offset length] returns the bitstring which
+    exists between [offset] and [offset + length] in [bits]. A bit is
+    present in the result if it is both in [bits] and between [offset]
+    and [offset + length]. *)
+
 val subbitstring : bitstring -> int -> int -> bitstring
 (** [subbitstring bits off len] returns a sub-bitstring
     of the bitstring, starting at offset [off] bits and

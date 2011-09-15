@@ -1,6 +1,5 @@
 open Lwt 
 open Printf
-open Net
 
 let ip = match Nettypes.ipv4_addr_of_string "10.0.0.2" with Some x -> x |None -> assert false
 let nm = match Nettypes.ipv4_addr_of_string "255.255.255.0" with Some x -> x |None -> assert false
@@ -18,5 +17,3 @@ let main () =
   ) ids in
   join vif_t >>
   return (printf "success\n%!")
-
-let _ = OS.Main.run (main ())

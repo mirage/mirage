@@ -1,2 +1,3 @@
-<*>: pa_dyntype
+true: pa_dyntype
 <parser.ml*>: pkg_str
+<*.ml>: for-pack(Pa_xml)

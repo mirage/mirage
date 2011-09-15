@@ -28,7 +28,7 @@ module Flags = struct
     "-parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander"
 
   let pa_dyntype_deps =
-    sf "-I +camlp4 %s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" camlp4_magic 
+    sf "-I +camlp4 %s pa_type_conv.cmxs pa_dyntype.cmxs" camlp4_magic 
 
   let pa_ulex_deps =
     sf "pa_ulex.cma" 
@@ -54,7 +54,7 @@ end
 
 module Expand = struct
   let camlp4o tags arg out =
-    Cmd (S [A"camlp4o"; A"-printer"; A"o"; T(tags++"ocaml"++"camlp4"++"pa_exp"); P arg; Sh">"; Px out])
+    Cmd (S [A"camlp4o.opt"; A"-printer"; A"o"; T(tags++"ocaml"++"camlp4"++"pa_exp"); P arg; Sh">"; Px out])
 
   let camlp4o_expand ml exp_ml env build =
     let ml = env ml and exp_ml = env exp_ml in

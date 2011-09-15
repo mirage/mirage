@@ -60,8 +60,7 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
     method read filename =
       try
       let file = Hashtbl.find files filename in
-      let offset = Int64.div file.offset 512L in
-      assert(Int64.rem file.offset 512L = 0L);
+      printf "SimpleKV.read: %s offset %Lu\n%!" filename file.offset;
       let cur_seg = ref None in
       let pos = ref 0L in
       let rec readfn () =
@@ -90,7 +89,7 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
           end else begin
             (* Need to retrieve more data, get another page *)
             (* TODO readv instead of one page at a time *)
-            lwt page = vbd#read_page (Int64.add offset (Int64.div !pos 512L)) in
+            lwt page = vbd#read_page (Int64.add file.offset !pos) in
             cur_seg := Some page;
             readfn ()
           end

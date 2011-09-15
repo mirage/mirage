@@ -17,4 +17,4 @@
 type t
 type id = string
 
-val create : id -> Devices.blkif Lwt.t
+val create : id:string -> filename:string -> Devices.blkif Lwt.t

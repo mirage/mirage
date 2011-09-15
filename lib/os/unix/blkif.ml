@@ -27,6 +27,7 @@ type t = {
 }
 
 let read_page t offset =
+  printf "UNIX.Blkif: read_page from %s offset %Lu\n%!" t.id offset;
   Socket.(iobind (lseek t.fd) offset) >>
   let buf = String.create 4096 in (* XXX pool? *)
   lwt rd = Socket.(iobind (read t.fd buf 0) 4096) in
@@ -35,20 +36,22 @@ let read_page t offset =
   else
     return (buf,0,4096*8)
 
-let create id : Devices.blkif Lwt.t =
+let create ~id ~filename : Devices.blkif Lwt.t =
+  printf "Unix.Blkif: create %s %s\n%!" id filename;
   lwt fd =
     try_lwt
-      Socket.(iobind file_open_readwrite id)
+      Socket.(iobind file_open_readwrite filename)
     with Socket.Error err -> 
-      printf "Blkif: failed to open VBD %s\n%!" id;
+      printf "Blkif: failed to open VBD %s\n%!" filename;
       fail (Error err)
   in
+  printf "Unix.Blkif: success\n%!";
   let t = {id; fd} in
   return (object
     method id = id
     method read_page = read_page t
     method sector_size = 4096
-    method ppname = "Unix.blkif."^id
+    method ppname = sprintf "Unix.blkif:%s(%s)" id filename
     method destroy = Socket.close t.fd
   end)
 
@@ -61,24 +64,36 @@ let _ =
      method plug = plug_mvar 
      method unplug = unplug_mvar
      method create ~deps ~cfg id =
-       lwt blkif = create id in
-       let entry = Devices.({
-         provider=self; 
-         id=self#id; 
-         depends=[];
-         node=Blkif blkif }) in
-       return entry
+      (* Config key "filename" decides the name of the VBD *)
+      lwt filename =
+        try
+          return (List.assoc "filename" cfg)
+        with Not_found ->
+          raise_lwt (Failure "UNIX.Blkif: 'filename' configuration key not found")
+      in
+      lwt blkif = create ~id ~filename in
+      let entry = Devices.({
+        provider=self; 
+        id=self#id; 
+        depends=[];
+        node=Blkif blkif }) in
+      return entry
   end in
   Devices.new_provider provider;
   (* Iterate over the plugged in VBDs and plug them in *)
-  (* TODO right now the id is the name of the block file; we should
-     pass that in as a configuration variable somehow (perhaps : separated
-     in the VBD argument *)
   Main.at_enter (fun () ->
     let vbds = ref [] in
     lwt env = Env.argv () in
     Array.iteri (fun i -> function
-      |"-vbd" -> vbds := ({Devices.p_id=env.(i+1);p_dep_ids=[];p_cfg=[]}) :: !vbds
+      |"-vbd" -> begin
+        match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
+        |[p_id;filename] ->
+          let p_cfg = ["filename",filename] in
+          let p_dep_ids=[] in
+          printf "found vbd %s filename %s\n%!" p_id filename;
+          vbds := ({Devices.p_dep_ids; p_cfg; p_id}) :: !vbds
+        |_ -> failwith "Unix.Blkif: bad -vbd flag, must be id:filename"
+      end
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !vbds
   )

@@ -1,10 +1,2 @@
-pa_bitstring.cma
-pa_lwt.cma
-pa_ulex.cma
-pa_type_conv.cma
-pa_dyntype.cma
-pa_css.cma
-pa_xml.cma
-pa_html.cma
-pa_cow.cma
-#pa_js.cma
+pa_mirage.cmxs
+pa_mirage.cma

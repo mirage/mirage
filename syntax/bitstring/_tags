@@ -1,5 +1,4 @@
 true: package(camlp4), syntax(camlp4o)
-<pp_bitstring.*>: package(camlp4.quotations.o), package(camlp4.extend)
-true: for-pack(Pa_bitstring)
-<bitstring_persistent.*>: package(camlp4.quotations.o), package(camlp4.extend)
+"pp_bitstring.ml" or "bitstring_persistent.ml": package(camlp4.quotations.o), package(camlp4.extend)
+true: for-pack(Pa_mirage.Pa_bitstring)
 true: linkall

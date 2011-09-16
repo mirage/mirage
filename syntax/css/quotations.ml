@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2010-2011 Thomas Gazagnaire <thomas@ocamlpro.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -58,7 +58,10 @@ let parse_quot_string fn _loc s =
 let expand_expr fn _loc _ s =
   let ast = parse_quot_string fn _loc s in
   let meta_ast = Qast.meta_t _loc ast in
-  aq_expander#expr meta_ast
+  if !Options.needsopen then
+    <:expr< let open Cow in $aq_expander#expr meta_ast$ >>
+  else
+    aq_expander#expr meta_ast
 
 let expand_str_item fn _loc _ s =
   let exp_ast = expand_expr fn _loc None s in

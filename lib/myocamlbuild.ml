@@ -1,6 +1,6 @@
 (*
  * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
- * Copyright (c) 2010-2011 Thomas Gazagnaire <thomas@gazangaire.org>
+ * Copyright (c) 2010-2011 Thomas Gazagnaire <thomas@ocamlpro.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -56,7 +56,7 @@ module Spec = struct
 
   (* The modules to copy into std/ are specified as (<dest file in std/> * "<subdirectory>/<file>") *)
   let modules =
-    let baselibs = ["regexp"; "dns"; "http"; "dyntype"; "cow"; "openflow"; "oUnit" ] in
+    let baselibs = ["regexp"; "dns"; "http"; "dyntype"; "cow"; "openflow"; "oUnit"; "fs" ] in
     let libs = List.map (fun lib -> lib, (ps "%s/%s" lib lib)) baselibs in
     os :: net :: block :: libs
 
@@ -260,10 +260,13 @@ let _ = dispatch begin function
      flag ["ocaml"; "infer_interface"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
      List.iter (fun lib ->
-       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-       flag ["ocaml"; "infer_interface"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
-       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo" p4_build cow_deps lib)];
+       let options = match lib with
+         | "cow" -> " -cow-no-open"
+         | _     -> "" in
+       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
+       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
+       flag ["ocaml"; "infer_interface"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
+       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
      ) ["cow"; "css"; "html"; "xml" ];
 
      (* add a dependency to the local pervasives, only used in stdlib compile *)

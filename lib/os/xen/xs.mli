@@ -64,7 +64,7 @@ val read_watchevent : xsh -> (string * string) Lwt.t
 val monitor_paths : xsh
                  -> (string * string) list
                  -> float
-                 -> (string * string -> bool)
+                 -> (string * string -> bool Lwt.t)
                  -> unit Lwt.t
 
 val t : xsh

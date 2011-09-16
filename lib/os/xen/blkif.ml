@@ -177,9 +177,11 @@ let plug (id:id) =
     wrfn "state" Xb.State.(to_string Connected) 
   )) >>
   lwt monitor_t = Xs.(monitor_paths Xs.t
-    [sprintf "%s/state" backend, (Xb_state.(to_string Connected))] 20. 
-    (fun (k,v) -> Xb_state.(of_string v = Connected))
-  ) in
+    [sprintf "%s/state" backend, "XXX"] 20. 
+    (fun (k,_) ->
+        lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
+	    return Xb_state.(of_string state = Connected)
+	)) in
   (* XXX bug: the xenstore watches seem to come in before the
      actual update. A short sleep here for the race, but not ideal *)
   Time.sleep 0.1 >>

@@ -225,9 +225,9 @@ let create fn =
     fn id t) ids in
   th <?> pt
 
-(* Read a single page from disk.
-   Offset is the sector number, which must be page-aligned *)
-let read_page t sector =
+(* Read a single page from disk. The offset must be sector-aligned *)
+let read_page t offset =
+  let sector = Int64.div offset t.features.sector_size in
   Io_page.with_page
     (fun page ->
       Gnttab.with_ref
@@ -250,12 +250,12 @@ let read_page t sector =
             )
         )
     )
-      
 
 (* Write a single page to disk.
-   Offset is the sector number, which must be page-aligned.
+   Offset is the sector number, which must be sector-aligned
    Page must be an Io_page *)
-let write_page t sector page =
+let write_page t offset page =
+  let sector = Int64.div offset t.features.sector_size in
   Gnttab.with_ref
     (fun r ->
       Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r (Io_page.of_bitstring page)

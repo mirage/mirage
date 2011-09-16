@@ -14,7 +14,6 @@ Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
           [-n <name>] [-e <error code>]
           [-vif <if>] [-vbd <file>]
           [kv_ro <cfg>]
-          [-create-vbds <megabytes>]
 BACKENDS:
   unix-socket (default)
   unix-direct
@@ -37,10 +36,6 @@ OPTIONS:
 ADVANCED OPTIONS:
    -e     Expect a non-zero error code from the binary,
           to help with unit tests (not for normal use).
-   -create-vbds
-          Auto-create a blank VBD if the file does not
-          exist. The argument is the size in megabytes.
-          If the VBD exists, it is re-used.
 EOF
   exit 1
 }
@@ -161,29 +156,11 @@ run() {
   unix-*)
     CMDFLAGS=""
     for vbd in ${VBDS[@]}; do
-      if [ ! -e "$vbd" ]; then
-        if [ -z "${CREATE_VBDS}" ]; then
-          echo VBD file $vbd not found, must exist before domain can be started.
-          echo Specify the -create-vbds flag to auto-create VBD.
-          exit 1
-        else 
-          dd if=/dev/zero of="$vbd" bs=1048576 count=${CREATE_VBDS}
-        fi
-      fi
       CMDFLAGS="$CMDFLAGS -vbd ${vbd}"
     done
-    case $1 in
-    unix-socket)
-      for kv_ro in ${KV_ROS[@]}; do
-        CMDFLAGS="$CMDFLAGS -simple_kv_ro ${kv_ro}"
-      done
-      ;;
-    *)
-      for kv_ro in ${KV_ROS[@]}; do
-        echo Warning: unsupported kv_ro in unix-direct for now
-      done
-      ;;
-    esac
+    for kv_ro in ${KV_ROS[@]}; do
+      CMDFLAGS="$CMDFLAGS -simple_kv_ro ${kv_ro}"
+    done
     redirect_shell_output;
     exec_and_check_error $bin $CMDFLAGS
     ;;

@@ -299,7 +299,7 @@ module Spec = struct
         let root_target = match spec.target with
           |None -> env "%(test)"
           |Some x -> Pathname.dirname (env "%(test)") / x in
-        let test_sh = root_target-.-"sh" in
+        let test_sh = env "%(test).sh" in
         let exec_cmd = match is_supported backend with
         |`Yes ->
           (* Build the target for this backend *)
@@ -316,14 +316,14 @@ module Spec = struct
               if vbd = "*" then
                 (incr vbdnum; env "%(test).%(backend).disk" ^ (string_of_int !vbdnum))
               else 
-                Pathname.dirname prod / vbd
+                vbd
             in
             [A"-vbd";P name]) spec.vbds) 
           in
           let kv_ros = List.flatten (List.map (fun kv_ro ->
             [A"-kv_ro";P kv_ro]) spec.kv_ros) in
           (* Execute the binary using the mir-run wrapper and log its output to prod *)
-          Cmd (S ([A "mir-run"; A"-create-vbds"; A"10"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ kv_ros @ return @[A binary]))
+          Cmd (S ([A "mir-run"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ kv_ros @ return @[A binary]))
         |`No ->
           (* Unsupported backend for this test, so mark as skipped in the log *)
           Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 
@@ -331,12 +331,14 @@ module Spec = struct
           (* Run a shell script to support external test *)
           Cmd (S ([A "bash"; P test_sh; A"run"]))
         in
-        (* If a support shell script exists, then run that to prepare the test and clean up after *)
+        (* If a support shell script exists, then run that to prepare the test and clean up after 
+           Args: $1=[prerun|postrun] $2=backend
+         *)
         match build [[test_sh]] with
           |[Outcome.Good o] -> 
-             Seq [ Cmd (S [A "bash"; P test_sh; A"prerun"]);
+             Seq [ Cmd (S [A "bash"; P test_sh; A"prerun"; A (env "%(backend)")]);
                    exec_cmd;
-                   Cmd (S [A "bash"; P test_sh; A"postrun"]) ]
+                   Cmd (S [A "bash"; P test_sh; A"postrun"; A (env "%(backend)")])]
           |[Outcome.Bad o] -> exec_cmd
           |_ -> assert false
       );

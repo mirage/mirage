@@ -7,4 +7,4 @@ pa_css.cma
 pa_xml.cma
 pa_html.cma
 pa_cow.cma
-pa_js.cma
+#pa_js.cma

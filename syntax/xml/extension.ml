@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Dyntype
+open Pa_dyntype.Dyntype
 open Camlp4.PreCast
 
 let expr_list_of_list _loc exprs =

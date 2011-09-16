@@ -214,7 +214,7 @@ let unplug id =
 
 (** Return a list of valid VBDs *)
 let enumerate () =
-  Xs.(t.directory "device/vbd")
+  try_lwt Xs.(t.directory "device/vbd") with Xb.Noent -> return []
 
 let create fn =
   let th,_ = Lwt.task () in

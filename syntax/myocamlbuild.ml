@@ -7,5 +7,8 @@ let _ = dispatch begin function
      (let src = Lazy.force Ocamlbuild_pack.Ocaml_utils.stdlib_dir / "str.cmxa" in
       Ocamlbuild_pack.Ocaml_compiler.native_shared_library_link ~tags:["linkall"] src "str.cmxs"
      )
+  |After_rules ->
+     (* Required to repack sub-packs (like Pa_css) into Pa_mirage *)
+     pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
   |_ -> ()
 end

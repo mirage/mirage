@@ -26,6 +26,7 @@ let ep = Printf.eprintf
 
 let debug = false
 let profiling = false
+let native_p4 = true (* In case you have problems with natdynlink, set this to false *)
 
 module Spec = struct
   type t = { os: string; net: string; block: string; syntax: string; }
@@ -240,8 +241,6 @@ let () = rule
       pack_in_one mlname "" mldeps env builder
     )
 
-let corep4 = "pa_lwt.cma pa_bitstring.cma " ^ Spec.(t.syntax)
-
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)
@@ -254,24 +253,15 @@ let _ = dispatch begin function
      flag ["ocaml"; "doc"] & S [A"-g"; Px docgenerator ];
      (* use pa_`lib` syntax extension if the _tags file specifies it *)
      let p4_build = "../../../syntax/_build" in
-     let cow_deps = "pa_ulex.cma pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo str.cma" in
-     flag ["ocaml"; "compile" ; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
-     flag ["ocaml"; "ocamldep"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
-     flag ["ocaml"; "infer_interface"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
-     flag ["ocaml"; "doc"; "pa_lwt"] & S[A"-pp"; A (ps "camlp4o -I %s %s" p4_build corep4)];
-     List.iter (fun lib ->
-       let options = match lib with
-         | "cow" -> " -cow-no-open"
-         | _     -> "" in
-       flag ["ocaml"; "compile" ; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
-       flag ["ocaml"; "ocamldep"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
-       flag ["ocaml"; "infer_interface"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
-       flag ["ocaml"; "doc"; "pa_" ^ lib] & S[A"-pp"; A (ps "camlp4o -I %s %s pa_%s.cmo%s" p4_build cow_deps lib options)];
-     ) ["cow"; "css"; "html"; "xml" ];
-
+     let camlp4_bc = S[A"-pp"; A (ps "camlp4o -I %s str.cma pa_mirage.cma -cow-no-open" p4_build)] in
+     let camlp4_nc = S[A"-pp"; A (ps "camlp4o.opt -I %s str.cmxs pa_mirage.cmxs -cow-no-open" p4_build)] in
+     let camlp4_cmd = if native_p4 then camlp4_nc else camlp4_bc in
+     flag ["ocaml"; "compile" ; "pa_mirage"] & camlp4_cmd;
+     flag ["ocaml"; "ocamldep"; "pa_mirage"] & camlp4_cmd;
+     flag ["ocaml"; "infer_interface"; "pa_mirage"] & camlp4_cmd;
+     flag ["ocaml"; "doc"; "pa_mirage"] & camlp4_cmd;
      (* add a dependency to the local pervasives, only used in stdlib compile *)
      dep ["ocaml"; "compile"; "need_pervasives"] ["std/pervasives.cmi"];
-
      (* net/direct includes *)
      Pathname.define_context "net/direct" ["net/direct/tcp"; "net/direct/dhcp" ];
      Pathname.define_context "net/direct/dhcp" ["net/direct" ];

@@ -1,3 +1,2 @@
 <*.ml>: for-pack(Pa_mirage.Pa_dyntype)
-<*>: package(camlp4), syntax(camlp4o)
-<pp_dyntype.*>: package(camlp4.quotations), package(camlp4.extend)
+<*.ml>: use_camlp4_r

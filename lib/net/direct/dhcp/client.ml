@@ -109,10 +109,21 @@ let input t ~src ~dst ~source_port pkt =
               (function `DNS_server addrs -> Some addrs |_ -> None) in
             let lease = 0l in
             let offer = { ip_addr=yiaddr; netmask; gateways; dns; lease; xid } in
-            let options = { op=`Request; opts= [
-                `Requested_ip yiaddr;
-                `Server_identifier siaddr;
-              ] } in
+            (* RFC2131 defines the 'siaddr' as the address of the server which
+               will take part in the next stage of the bootstrap process (eg
+               'delivery of an operating system executable image'). This
+               may or may not be the address of the DHCP server. However
+               'a DHCP server always returns its own address in the server
+               identifier option' *)
+            let server_identifier = find packet
+              (function `Server_identifier addr -> Some addr | _ -> None) in
+            let options = { op=`Request; opts=
+                `Requested_ip yiaddr :: (
+                  match server_identifier with
+                  | Some x -> [ `Server_identifier x ]
+                  | None -> []
+                )
+            } in
             t.state <- Offer_accepted offer;
             output_broadcast t ~xid ~yiaddr ~siaddr ~options
         end

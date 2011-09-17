@@ -76,7 +76,7 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
   let pad = String.make 10 '\000' in
   let options = Option.Packet.to_bytes options in
   let pkt = BITSTRING {
-    1:8; 1:8; 0:8; xid:32; secs:16; false:1; 0:15; 
+    1:8; 1:8; 6:8; 0:8; xid:32; secs:16; false:1; 0:15; 
     ciaddr:32; yiaddr:32; siaddr:32; giaddr:32; chaddr:48:string; pad:80:string;
     sname:512:string; file:1024:string; 0x63825363l:32; options:-1:string
   } in

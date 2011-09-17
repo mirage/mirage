@@ -20,7 +20,7 @@
 
 struct fs_hdr *init_hdr(char *filename, uint64_t length, uint64_t offset) {
   struct fs_hdr *fsh;
-  printf("%s %lu [%lu]\n", filename, length, offset);
+  printf("%s %Lu [%Lu]\n", filename, length, offset);
   fsh = malloc(sizeof(struct fs_hdr));
   if (!fsh)
     err(1, "malloc");

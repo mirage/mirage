@@ -85,7 +85,7 @@ start_write(char *dirname, char *prefix)
       lseek(outfd, fseek, SEEK_SET);
       size = fcopy(infd, outfd, roundup(st.st_size,SECTOR_SIZE));
       if (size < st.st_size)
-	printf("Short file write [%s,%lu,%d]\n",dirp->d_name,st.st_size,size);
+	printf("Short file write [%s,%Lu,%d]\n",dirp->d_name,st.st_size,size);
       close(infd);
 
       //Seek to location and Write FS metadata

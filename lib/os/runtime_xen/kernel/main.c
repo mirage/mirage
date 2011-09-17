@@ -39,7 +39,7 @@ caml_block_domain(value v_timeout)
   s_time_t secs = (s_time_t)(Double_val(v_timeout) * 1000000000);
   s_time_t until = NOW() + secs;
   set_xen_guest_handle(sched_poll.ports, ports);
-  sched_poll.nr_ports = sizeof(ports);
+  sched_poll.nr_ports = sizeof(ports) / sizeof(evtchn_port_t);
   sched_poll.timeout = until;
   HYPERVISOR_sched_op(SCHEDOP_poll, &sched_poll);
   CAMLreturn(Val_unit);

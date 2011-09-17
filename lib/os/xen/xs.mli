@@ -42,7 +42,7 @@ type xsh = {
 	release : domid -> unit Lwt.t;
 	resume : domid -> unit Lwt.t;
 	getdomainpath : domid -> string Lwt.t;
-	watch : string -> string -> unit Lwt.t;
+	watch : string -> string -> int Lwt.t;
 	unwatch : string -> string -> unit Lwt.t;
 }
 
@@ -54,15 +54,10 @@ val get_operations : con -> xsh
     into the transaction. *)
 val transaction : xsh -> (Xst.ops -> 'a Lwt.t) -> 'a Lwt.t
 
-(** watch manipulation on a connection *)
-val has_watchevents : xsh -> bool
-val get_watchevent : xsh -> string * string
-val read_watchevent : xsh -> (string * string) Lwt.t
-
 (** register a set of watches, then wait for watchevent.
     remove all watches previously set before giving back the hand. *)
-val monitor_paths : xsh
-                 -> (string * string) list
+val monitor_path : xsh
+                 -> (string * string)
                  -> float
                  -> (string * string -> bool Lwt.t)
                  -> unit Lwt.t

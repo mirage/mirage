@@ -176,8 +176,8 @@ let plug (id:id) =
     wrfn "protocol" "x86_64-abi" >>
     wrfn "state" Xb.State.(to_string Connected) 
   )) >>
-  lwt monitor_t = Xs.(monitor_paths Xs.t
-    [sprintf "%s/state" backend, "XXX"] 20. 
+  lwt monitor_t = Xs.(monitor_path Xs.t
+    (sprintf "%s/state" backend, "XXX") 20. 
     (fun (k,_) ->
         lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
 	    return Xb_state.(of_string state = Connected)

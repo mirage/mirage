@@ -7,6 +7,7 @@ all:
 	$(OC) basic.run
 	$(OC) lwt.run
 	$(OC) block.run
+	$(OC) regexps.run
 
 clean:
 	$(OC) -clean

@@ -93,9 +93,7 @@ let rec find id =
     let th,u = Lwt.task () in
     let node = Lwt_sequence.add_r u seq in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-    printf "Devices: sleeping on %s\n%!" id;
     lwt ent = th in
-    printf "Devices: woke up on %s %s\n%!" id ent.id;
     return ent 
   end
 

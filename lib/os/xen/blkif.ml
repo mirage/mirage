@@ -177,9 +177,11 @@ let plug (id:id) =
     wrfn "state" Xb.State.(to_string Connected) 
   )) >>
   lwt monitor_t = Xs.(monitor_paths Xs.t
-    [sprintf "%s/state" backend, (Xb_state.(to_string Connected))] 20. 
-    (fun (k,v) -> Xb_state.(of_string v = Connected))
-  ) in
+    [sprintf "%s/state" backend, "XXX"] 20. 
+    (fun (k,_) ->
+        lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
+	    return Xb_state.(of_string state = Connected)
+	)) in
   (* XXX bug: the xenstore watches seem to come in before the
      actual update. A short sleep here for the race, but not ideal *)
   Time.sleep 0.1 >>
@@ -214,7 +216,7 @@ let unplug id =
 
 (** Return a list of valid VBDs *)
 let enumerate () =
-  Xs.(t.directory "device/vbd")
+  try_lwt Xs.(t.directory "device/vbd") with Xb.Noent -> return []
 
 let create fn =
   let th,_ = Lwt.task () in
@@ -339,3 +341,44 @@ let read_512 t sector num_sectors =
     )
 )
 )
+
+let create ~id : Devices.blkif Lwt.t =
+  printf "Xen.Blkif: create %s\n%!" id;
+  lwt dev = plug id in
+  printf "Xen.Blkif: success\n%!";
+  return (object
+    method id = id
+    method read_page = read_page dev
+    method sector_size = 4096
+    method ppname = sprintf "Xen.blkif:%s" id
+    method destroy = unplug id
+  end)
+
+(* Register Xen.Blkif provider with the device manager *)
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  let provider = object(self)
+     method id = "Xen.Blkif"
+     method plug = plug_mvar 
+     method unplug = unplug_mvar
+     method create ~deps ~cfg id =
+	  (* no cfg required: we will check xenstore instead *)
+      lwt blkif = create ~id in
+      let entry = Devices.({
+        provider=self; 
+        id=self#id; 
+        depends=[];
+        node=Blkif blkif }) in
+      return entry
+  end in
+  Devices.new_provider provider;
+  (* Iterate over the plugged in VBDs and plug them in *)
+  Main.at_enter (fun () ->
+    lwt ids = enumerate () in
+	let vbds = List.map (fun id ->
+		{ Devices.p_dep_ids = []; p_cfg = []; p_id = id }
+	) ids in
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) vbds
+  )
+

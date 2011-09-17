@@ -85,20 +85,21 @@ let read_watchevent_timeout xsh timeout callback =
 	let left = ref timeout in
 
 	(* Returns true if a watch event in the queue satisfied us *)
-	let process_queued_events () = 
+	let process_queued_events () : bool Lwt.t = 
 		let success = ref false in
-                let rec loop () =
+                let rec loop () : bool Lwt.t =
 		    if Xsraw.has_watchevents xsh.con && not(!success) then (
-			success := callback (Xsraw.get_watchevent xsh.con);
+			lwt r = callback (Xsraw.get_watchevent xsh.con) in
+            success := r;
                         loop ()
                     ) else
-                        !success
+                        return (!success)
                 in loop ()
         in
 	(* Returns true if a watch event read from the socket satisfied us *)
 	let process_incoming_event () = 
 		lwt wev = Xsraw.read_watchevent xsh.con in
-                return (callback wev)
+                callback wev
         in
 
 	let success = ref false in
@@ -109,8 +110,13 @@ let read_watchevent_timeout xsh timeout callback =
 		   we must process the queue on every loop iteration *)
 
 		(* First process all queued watch events *)
-		if not(!success)
-		    then success := process_queued_events ();
+		lwt () = 
+            if not(!success) then (
+              lwt queued = process_queued_events () in
+              success := queued;
+			  return ()
+			) else
+              return () in
 		(* Then block for one more watch event *)
 		lwt () = 
                     if not(!success) then (
@@ -128,8 +134,13 @@ let read_watchevent_timeout xsh timeout callback =
 		(* Just in case our callback caused events to be queued
 		   and this is our last time round the loop: this prevents
 		   us throwing the Timeout_with_nonempty_queue spuriously *)
-		if not(!success)
-	      	    then success := process_queued_events ();
+        lwt () =
+		   if not(!success) then (
+                lwt queued = process_queued_events () in
+                success := queued;
+                return ()
+           ) else
+                return () in
 
 		(* Update the time left *)
 		let current_time = Clock.time () in

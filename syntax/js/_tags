@@ -1,3 +1,2 @@
-true: package(camlp4), syntax(camlp4o)
-true: package(camlp4.quotations), package(camlp4.extend)
+true: use_camlp4_r
 <*.ml>: for-pack(Pa_mirage.Pa_js)

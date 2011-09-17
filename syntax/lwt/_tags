@@ -1,4 +1,2 @@
-<*.ml>: for-pack(Pa_mirage.Pa_lwt)
-<*>: package(camlp4), syntax(camlp4o)
-<pp*.ml>: package(camlp4.quotations.o), package(camlp4.extend)
-
+true: for-pack(Pa_mirage.Pa_lwt)
+true: use_camlp4_o

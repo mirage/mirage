@@ -67,7 +67,8 @@ module OS = struct
 
   let arch =
     match String.lowercase (Util.run_and_read "uname -m") with
-    | "x86_32" |"i386" |"i686"  -> X86_32
+    | "x86_32" | "i686"  -> X86_32
+    | "i386" -> (match host with Linux -> X86_32 | Darwin -> X86_64)
     | "x86_64" -> X86_64
     | arch -> eprintf "`%s` is not a supported arch\n" arch; exit (-1)
 
@@ -249,7 +250,7 @@ module Spec = struct
 
   (** Spec file contains key:value pairs: 
 
-    backend:node,xen,unix-direct
+    backend:xen,node,unix-direct,unix-socket
     backend:* (short form of above)
     no backend key results in "backend:*" being default
 
@@ -403,15 +404,7 @@ let _ = dispatch begin function
 
   | After_options ->
     let syntaxdir = lib / "syntax" in
-    let pp_pa =
-      let pa_inc = sprintf "-I %s -I +camlp4" syntaxdir in
-      let pa_std = "pa_ulex.cma pa_lwt.cma" in
-      let pa_quotations = "-parser Camlp4QuotationCommon -parser Camlp4OCamlRevisedQuotationExpander" in
-      let pa_dyntype = sprintf "%s pa_type_conv.cmo dyntype.cmo pa_dyntype.cmo" pa_quotations in
-      let pa_cow = sprintf "%s str.cma pa_cow.cmo" pa_dyntype in
-      let pa_bitstring = "pa_bitstring.cma" in
-      (* XXX pa_js also needed here *)
-      sprintf "camlp4o %s %s %s %s" pa_inc pa_std pa_cow pa_bitstring
+    let pp_pa = sprintf "camlp4o.opt -I %s str.cmxs pa_mirage.cmxs"syntaxdir
     in
     Options.ocaml_ppflags := [pp_pa]
 

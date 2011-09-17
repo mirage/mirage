@@ -1,1 +1,3 @@
-true: pa_dyntype
+true: package(camlp4), syntax(camlp4o)
+true: package(camlp4.quotations), package(camlp4.extend)
+<*.ml>: for-pack(Pa_mirage.Pa_html)

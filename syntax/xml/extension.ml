@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Dyntype
+open Pa_dyntype.Dyntype
 open Camlp4.PreCast
 
 let expr_list_of_list _loc exprs =
@@ -119,7 +119,7 @@ let gen_xml (_loc, n, t_exp) =
     | Rec (n,_)
     | Var n    ->
       (* XXX: This will not work for recursive values *)
-      <:expr< $Pa_dyntype.gen_ident _loc xml_of n$ $id$ >>
+      <:expr< $Pa_dyntype.Pp_dyntype.gen_ident _loc xml_of n$ $id$ >>
   in
   let id = <:expr< $lid:n$ >> in
   let typ = xml_type _loc "t" in
@@ -131,7 +131,7 @@ let () =
       try
         let _loc = Ast.loc_of_ctyp tds in
         <:str_item<
-          value rec $Ast.biAnd_of_list (List.map gen_xml (Pa_dyntype.create tds))$;
+          value rec $Ast.biAnd_of_list (List.map gen_xml (Pa_dyntype.Pp_dyntype.create tds))$;
         >>
       with Not_found ->
         Printf.eprintf "[Internal Error]\n";

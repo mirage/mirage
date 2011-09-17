@@ -1,3 +1,6 @@
+open Printf
+open Lwt
+
 let count = 700000 
 
 let primes = 
@@ -21,8 +24,11 @@ let rec prime_n psize nr tog =
       else psize in 
     prime_n psize' (nr + tog) (6 - tog) 
 
-let _ =
+let main () =
   let t1 = OS.Clock.time () in
   prime_n 3 7 4; 
   let t2 = OS.Clock.time () in
-  Printf.printf "prime %d: %d (%.3fs)\n%!" count primes.(pred count) (t2 -. t1)
+  let s = 
+    sprintf "prime %d: %d (%.3fs)\n%!" count primes.(pred count) (t2 -. t1) 
+  in
+  OS.Console.log_s s

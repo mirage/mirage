@@ -1,8 +1,5 @@
 <*>: package(camlp4), syntax(camlp4o)
-<pp_bitstring.*>: package(camlp4.quotations.o), package(camlp4.extend)
-<bitstring_persistent.*>: package(camlp4.quotations.o), package(camlp4.extend)
-<pa_lwt.*>: package(camlp4.quotations.o), package(camlp4.extend)
-<pp_ulex.*>: package(camlp4.quotations), package(camlp4.extend)
-<pa_type_conv.*>: package(camlp4.quotations), package(camlp4.extend)
-<pa_dyntype.*>: package(camlp4.quotations), package(camlp4.extend)
-<pa_js.*>: package(camlp4.quotations), package(camlp4.extend)
+<pa_type_conv.*>: package(camlp4.quotations), package(camlp4.extend), for-pack(Pa_mirage)
+"pa_cow.ml": for-pack(Pa_mirage)
+"pa_js.cmx" or "pa_bitstring.cmx" or "pa_dyntype.cmx" or "pa_json.cmx" or "pa_xml.cmx" or "pa_css.cmx" or "pa_html.cmx" or "pa_lwt.cmx" or "pa_ulex.cmx" or "pa_cow.cmx": for-repack(Pa_mirage)
+true: linkall

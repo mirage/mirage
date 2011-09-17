@@ -46,7 +46,7 @@ type 'a field = {
 }
 and field_type = Int | String | Bitstring (* field type *)
 and endian_expr =
-  | ConstantEndian of Bitstring.endian	(* a constant little/big/nativeendian *)
+  | ConstantEndian of Bitstring_types.endian	(* a constant little/big/nativeendian *)
   | EndianExpr of expr			(* an endian expression *)
 
 type pattern = patt field list
@@ -119,7 +119,7 @@ let _string_of_field { flen = flen;
   let flen = expr_printer flen in
   let endian =
     match endian with
-    | ConstantEndian endian -> Bitstring.string_of_endian endian
+    | ConstantEndian endian -> Bitstring_types.string_of_endian endian
     | EndianExpr expr -> sprintf "endian(%s)" (expr_printer expr) in
   let signed = if signed then "signed" else "unsigned" in
   let t = string_of_field_type t in
@@ -185,7 +185,7 @@ let create_pattern_field _loc =
   {
     field = <:patt< _ >>;
     flen = <:expr< 32 >>;
-    endian = ConstantEndian Bitstring.BigEndian;
+    endian = ConstantEndian Bitstring_types.BigEndian;
     signed = false;
     t = Int;
     _loc = _loc;
@@ -238,7 +238,7 @@ let create_constructor_field _loc =
   {
     field = <:expr< 0 >>;
     flen = <:expr< 32 >>;
-    endian = ConstantEndian Bitstring.BigEndian;
+    endian = ConstantEndian Bitstring_types.BigEndian;
     signed = false;
     t = Int;
     _loc = _loc;

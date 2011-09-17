@@ -1,9 +1,9 @@
 .PHONY: all clean
 
-JOBS ?= -j 4
+JOBS ?= -j 5
 
 all:
-	@ocamlbuild $(JOBS) -use-ocamlfind all.otarget
+	@ocamlbuild $(JOBS) -classic-display -use-ocamlfind all.otarget
 
 clean:
 	@ocamlbuild -clean

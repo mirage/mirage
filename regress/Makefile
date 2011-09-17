@@ -6,6 +6,7 @@ OC=ocamlbuild $(JOBS)
 all:
 	$(OC) basic.run
 	$(OC) lwt.run
+	$(OC) block.run
 
 clean:
 	$(OC) -clean

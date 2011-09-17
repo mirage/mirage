@@ -25,7 +25,7 @@ open Camlp4.PreCast
 open Syntax
 open Ast
 
-open Bitstring
+open Bitstring_types
 module P = Bitstring_persistent
 
 (* If this is true then we emit some debugging code which can

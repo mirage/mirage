@@ -1,1 +1,2 @@
-true: pa_dyntype
+true: use_camlp4_r
+<*.ml>: for-pack(Pa_mirage.Pa_json)

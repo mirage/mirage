@@ -22,5 +22,5 @@ let () =
       Pa_css.Options.needsopen := false;
       Pa_xml.Options.needsopen := false;
       Pa_html.Options.needsopen := false))
-    "special mode to ompile the COW library (where files are not yet correctly packed)"
+    "special mode to compile the COW library (where files are not yet correctly packed)"
 

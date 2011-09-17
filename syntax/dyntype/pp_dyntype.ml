@@ -1,4 +1,3 @@
-(*pp camlp4orf *)
 (*
  * Copyright (c) 2009 Thomas Gazagnaire <thomas@gazagnaire.com>
  *

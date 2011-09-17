@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     if(!fsh) break;
     offset = be64toh(fsh->offset);
     length = be64toh(fsh->length);
-    printf("Node: %s %lu [%lu]\n", fsh->filename, length, offset);
+    printf("Node: %s %Lu [%Lu]\n", fsh->filename, length, offset);
 
     //Extract file to dir location
     outfd = open(fsh->filename, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);

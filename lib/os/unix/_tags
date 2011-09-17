@@ -1,3 +1,0 @@
-true: mirage
-<*.ml>: annot
-"netif.ml" or "socket.ml" or "main.ml" or "time.ml" or "devices.ml": pa_lwt

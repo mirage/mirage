@@ -31,6 +31,7 @@ let input t src pkt =
     let dest_ip = src in
     let csum = (csum + 0x0800) land 0xffff in
     let reply = BITSTRING { 0:8; code:8; csum:16; id:16; seq:16 } in
+    printf "ICMP: sending echo reply to id %d\n%!" id;
     Ipv4.output t.ip ~proto:`ICMP ~dest_ip:src [reply; data]
 
 let create ip =

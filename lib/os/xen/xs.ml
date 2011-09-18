@@ -37,8 +37,8 @@ type xsh =
 	release: domid -> unit Lwt.t;
 	resume: domid -> unit Lwt.t;
 	getdomainpath: domid -> string Lwt.t;
-	watch: string -> string -> int Lwt.t;
-	unwatch: string -> string -> unit Lwt.t;
+	watch: string -> Queueop.token -> unit Lwt.t;
+	unwatch: string -> Queueop.token -> unit Lwt.t;
 }
 
 let get_operations con = {
@@ -78,7 +78,7 @@ exception Timeout
 (* Should never be thrown, indicates a bug in the read_watchevent_timetout function *)
 exception Timeout_with_nonempty_queue
 
-let read_watchevent_timeout xsh rid timeout callback =
+let read_watchevent_timeout xsh token timeout callback =
 	let start_time = Clock.time () in
 	let end_time = start_time +. timeout in
 
@@ -88,8 +88,8 @@ let read_watchevent_timeout xsh rid timeout callback =
 	let process_queued_events () : bool Lwt.t = 
 		let success = ref false in
                 let rec loop () : bool Lwt.t =
-		    if Xsraw.has_watchevents xsh.con rid && not(!success) then (
-			lwt r = callback (Xsraw.get_watchevent xsh.con rid) in
+		    if Xsraw.has_watchevents xsh.con token && not(!success) then (
+			lwt r = callback (Xsraw.get_watchevent xsh.con token) in
             success := r;
                         loop ()
                     ) else
@@ -98,7 +98,7 @@ let read_watchevent_timeout xsh rid timeout callback =
         in
 	(* Returns true if a watch event read from the socket satisfied us *)
 	let process_incoming_event () = 
-		lwt wev = Xsraw.read_watchevent xsh.con rid in
+		lwt wev = Xsraw.read_watchevent xsh.con token in
                 callback wev
         in
 
@@ -155,7 +155,7 @@ let read_watchevent_timeout xsh rid timeout callback =
 	if not(!success) then begin
 		(* Sanity check: it should be impossible for any
 		   events to be queued here *)
-		if Xsraw.has_watchevents xsh.con rid then 
+		if Xsraw.has_watchevents xsh.con token then 
                     fail Timeout_with_nonempty_queue
 		else 
                     fail Timeout
@@ -164,11 +164,12 @@ let read_watchevent_timeout xsh rid timeout callback =
 
 
 let monitor_path xsh (w, v) time callback =
+    let token = Queueop.create_token v in
 	let unwatch () =
-	    try_lwt xsh.unwatch w v with _ -> return () in
-	lwt rid = xsh.watch w v in
+	    try_lwt xsh.unwatch w token with _ -> return () in
+	lwt () = xsh.watch w token in
 	try_lwt
-		read_watchevent_timeout xsh rid time callback >>
+		read_watchevent_timeout xsh token time callback >>
                 unwatch ()
 	with exn -> begin
                 unwatch () >>

@@ -12,14 +12,29 @@
  * GNU Lesser General Public License for more details.
  *)
 
+type token
+(** A token is associated with every watch and returned in the callback *)
+
+val token_to_string: token -> string
+(** [token_to_string token] returns a debug-printable version of [token] *)
+
+val create_token: string -> token
+(** [create_token x] transforms [x] into a fresh watch token *)
+
+val user_string_of_token: token -> string
+(** [user_string_of_token token] returns the user-supplied part of [token] *)
+
+val parse_token: string -> token
+(** [parse_token x] parses the marshalled token [x] *)
+
 val data_concat : string list -> string
 val with_path : Xb_op.operation -> int -> string -> Xs_packet.t
 val directory : int -> string -> Xs_packet.t
 val read : int -> string -> Xs_packet.t
 val getperms : int -> string -> Xs_packet.t
 val debug : string list -> Xs_packet.t
-val watch : string -> string -> Xs_packet.t
-val unwatch : string -> string -> Xs_packet.t
+val watch : string -> token -> Xs_packet.t
+val unwatch : string -> token -> Xs_packet.t
 val transaction_start : Xs_packet.t
 val transaction_end : int -> bool -> Xs_packet.t
 val introduce : int -> nativeint -> int -> Xs_packet.t

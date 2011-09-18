@@ -12,12 +12,32 @@
  * GNU Lesser General Public License for more details.
  *)
 
-let next_rid =
-    let last_rid = ref 0 in
+let unique_id () =
+    let last = ref 0 in
     fun () ->
-        let result = !last_rid in
-        incr last_rid;
+        let result = !last in
+        incr last;
         result
+
+(** [next_rid ()] returns a fresh request id, used to associate replies
+    with responses. *)
+let next_rid = unique_id ()
+
+type token = string
+
+(** [create_token x] takes a user-supplied watch token [x] and wraps it
+    with a unique integer so we can demux watch events to the appropriate
+    watcher. Note watch events are always transmitted with rid = 0 *)
+let create_token =
+    let next = unique_id () in
+    fun x -> Printf.sprintf "%d:%s" (next ()) x
+
+(** [user_string_of_token x] returns the user-supplied part of the watch token *)
+let user_string_of_token x = Scanf.sscanf x "%d:%s" (fun _ x -> x)
+
+let token_to_string x = x
+
+let parse_token x = x
 
 let data_concat ls = (String.concat "\000" ls) ^ "\000"
 let with_path ty (tid: int) (path: string) =

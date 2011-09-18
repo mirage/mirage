@@ -42,8 +42,8 @@ type xsh = {
 	release : domid -> unit Lwt.t;
 	resume : domid -> unit Lwt.t;
 	getdomainpath : domid -> string Lwt.t;
-	watch : string -> string -> int Lwt.t;
-	unwatch : string -> string -> unit Lwt.t;
+	watch : string -> Queueop.token -> unit Lwt.t;
+	unwatch : string -> Queueop.token -> unit Lwt.t;
 }
 
 (** get operations provide a vector of xenstore function that apply to one

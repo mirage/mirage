@@ -35,7 +35,7 @@ type watch_queue = {
 
 type con = {
 	xb: Xb.t;
-    watchevents: (int, watch_queue) Hashtbl.t;
+    watchevents: (Queueop.token, watch_queue) Hashtbl.t;
 }
 
 let rec split_string ?limit:(limit=(-1)) c s =
@@ -99,12 +99,18 @@ let pkt_recv_one con =
         lwt () = loop_input () in
 	return (Xb.get_in_packet con.xb)
 
-let find_watch_event_queue con rid =
-    if not(Hashtbl.mem con.watchevents rid) then begin
-        Printf.printf "queue_watchevent: creating new queue for rid:%d\n%!" rid;
-	    Hashtbl.replace con.watchevents rid { events = Queue.create (); c = Lwt_condition.create (); m = Lwt_mutex.create () }
-	end;
-    Hashtbl.find con.watchevents rid
+let find_watch_event_queue con token =
+    if not(Hashtbl.mem con.watchevents token) 
+	then Hashtbl.replace con.watchevents token {
+        events = Queue.create ();
+        c = Lwt_condition.create ();
+        m = Lwt_mutex.create ()
+    };
+    Hashtbl.find con.watchevents token
+
+let remove_watch_event_queue con token =
+    if Hashtbl.mem con.watchevents token
+    then Hashtbl.remove con.watchevents token
 
 let queue_watchevent con pkt =
     let data = Xs_packet.get_data pkt in
@@ -114,19 +120,19 @@ let queue_watchevent con pkt =
 (* XXX		raise (Xs_packet.DataError "arguments number mismatch"); *)
 	let event = List.nth ls 0
 	and event_data = List.nth ls 1 in
-    let rid = Xs_packet.get_rid pkt in
-    let w = find_watch_event_queue con rid in
-	Queue.push (event, event_data) w.events;
+    let token = Queueop.parse_token event_data in
+    let w = find_watch_event_queue con token in
+	Queue.push (event, Queueop.user_string_of_token token) w.events;
 	Lwt_condition.signal w.c ()
 
-let has_watchevents con rid =
-    let w = find_watch_event_queue con rid in
+let has_watchevents con token =
+    let w = find_watch_event_queue con token in
 	Queue.length w.events > 0
-let get_watchevent con rid =
-    let w = find_watch_event_queue con rid in
+let get_watchevent con token =
+    let w = find_watch_event_queue con token in
     Queue.pop w.events
-let read_watchevent con rid =
-    let w = find_watch_event_queue con rid in
+let read_watchevent con token =
+    let w = find_watch_event_queue con token in
     Lwt_mutex.with_lock w.m
         (fun () ->
             lwt () = Lwt_condition.wait ~mutex:w.m w.c in
@@ -224,14 +230,18 @@ let getperms tid path con =
 	lwt _, perms = rpc (Queueop.getperms tid path) con in
         return (perms_of_string perms)
 
-let watch path data con =
+let watch path token con =
 	validate_watch_path path;
-	lwt rid, _ = rpc (Queueop.watch path data) con in
-    return rid
+	lwt rid, _ = rpc (Queueop.watch path token) con in
+    return ()
 
-let unwatch path data con =
+let unwatch path token con =
 	validate_watch_path path;
-        ack (rpc (Queueop.unwatch path data) con)
+    lwt () = ack (rpc (Queueop.unwatch path token) con) in
+    (* No more events should be arriving in the queue, so it should be
+       ok to delete it without worrying about it coming back *)
+    remove_watch_event_queue con token;
+    return ()
 
 let transaction_start con =
 	lwt _, data = rpc (Queueop.transaction_start) con in

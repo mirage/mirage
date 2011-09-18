@@ -14,16 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Nettypes
+
 type t
 type interface
 type id
 val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
+
+type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
+val configure: interface -> config -> unit Lwt.t
+
 val local_peers : 'a -> OS.Socket.uid list
 val local_uid : 'a -> OS.Socket.uid
-val connect_to_peer : t -> Nettypes.peer_uid -> [ `domain ] OS.Socket.fd option Lwt.t
+val connect_to_peer : t -> peer_uid -> [ `domain ] OS.Socket.fd option Lwt.t
 val listen_to_peers : t -> (int -> [< `rd_pipe | `wr_pipe ] OS.Socket.fd * [< `rd_pipe | `wr_pipe ] OS.Socket.fd -> unit Lwt.t) -> unit Lwt.t
-val connect : t -> Nettypes.peer_uid -> ([ `rd_pipe ] OS.Socket.fd * [ `wr_pipe ] OS.Socket.fd -> 'a Lwt.t) -> 'a Lwt.t
+val connect : t -> peer_uid -> ([ `rd_pipe ] OS.Socket.fd * [ `wr_pipe ] OS.Socket.fd -> 'a Lwt.t) -> 'a Lwt.t
 val get_udpv4 : t -> [ `udpv4 ] OS.Socket.fd
-val register_udpv4_listener : t -> Nettypes.ipv4_addr option * int -> [ `udpv4 ] OS.Socket.fd -> unit
-val get_udpv4_listener : t -> Nettypes.ipv4_addr option * OS.Socket.port -> [ `udpv4 ] OS.Socket.fd Lwt.t
+val register_udpv4_listener : t -> ipv4_addr option * int -> [ `udpv4 ] OS.Socket.fd -> unit
+val get_udpv4_listener : t -> ipv4_addr option * OS.Socket.port -> [ `udpv4 ] OS.Socket.fd Lwt.t
 

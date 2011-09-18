@@ -26,8 +26,7 @@ checksum_bitstring(value v_bitstr, uint32_t sum)
   size_t off = Int_val(Field(v_bitstr,1)) / 8;
   size_t count = Int_val(Field(v_bitstr,2)) / 8;
 
-  unsigned char *addr = buf + off;
-  uint16_t checksum;
+  char *addr = buf + off;
   while (count > 1) {
     uint16_t v = (*addr << 8) + (*(addr+1));
     sum += v;

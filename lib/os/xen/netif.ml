@@ -170,13 +170,15 @@ let rx_poll nf fn =
     let id,(offset,flags,status) = RX.read_response bs in
     let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    let page = Io_page.to_bitstring page in
+    let bs = Io_page.to_bitstring page in
     Gnttab.end_access gnt;
     Gnttab.put gnt;
     match status with
     |sz when status > 0 ->
-      let packet = Bitstring.subbitstring page 0 (sz*8) in
-      ignore_result (try_lwt fn packet
+      let packet = Bitstring.subbitstring bs 0 (sz*8) in
+      let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring packet) in
+      Io_page.put page;
+      ignore_result (try_lwt fn copy 
         with exn -> return (printf "RX exn %s\n%!" (Printexc.to_string exn)))
     |err -> printf "RX error %d\n%!" err
   )

@@ -106,9 +106,11 @@ let destroy nf =
 (* Transmit a packet from a bitstring *)
 let output t bss =
   let buf,off,len = Bitstring.concat bss in
-  lwt len' = Socket.fdbind Activations.write (fun fd -> Socket.write fd buf (off/8) (len/8)) t.dev in
+  let off = off/8 in
+  let len = len/8 in
+  lwt len' = Socket.fdbind Activations.write (fun fd -> Socket.write fd buf off len) t.dev in
   if len' <> len then
-    raise_lwt (Failure "tap: partial write")
+    raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' len))
   else
     return ()
 

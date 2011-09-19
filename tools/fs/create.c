@@ -17,6 +17,7 @@
 
 
 #include "mirage-fs.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <err.h>
 
@@ -85,7 +86,7 @@ start_write(char *dirname, char *prefix)
       lseek(outfd, fseekv, SEEK_SET);
       size = fcopy(infd, outfd, roundup(st.st_size,SECTOR_SIZE));
       if (size < st.st_size)
-	printf("Short file write [%s,%Lu,%d]\n",dirp->d_name,st.st_size,size);
+	printf("Short file write [%s,0x%" PRIx64 ",%d]\n",dirp->d_name,st.st_size,size);
       close(infd);
 
       //Seek to location and Write FS metadata

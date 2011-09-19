@@ -32,16 +32,17 @@ let datapath_join_cb controller dpid evt =
   let flow_stats_req = (OP.Stats.create_flow_stat_req flow_match ())in 
   resolve(OC.send_of_data controller dpid flow_stats_req )
 
-let packet_in_cb controller dpid evt =
-  OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
+let flow_stats_reply_cb controller dpid evt =
+  match evt with 
+  | OE.Flow_stats_reply(xid, more, flows, dpid) -> 
+      OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
+  | _ -> invalid_arg "bogus flow_stats_reply event match!"
 
 let init controller = 
   pp "test controller register datapath cb\n";
   OC.register_cb controller OE.DATAPATH_JOIN datapath_join_cb;  
-  pp "test controller register datapath cb\n";
-  OC.register_cb controller OE.DATAPATH_JOIN datapath_join_cb;  
-  pp "test controller register packet_in cb\n";
-  OC.register_cb controller OE.PACKET_IN packet_in_cb
+  pp "test controller register flow stats cb\n";
+  OC.register_cb controller OE.FLOW_STATS_REPLY flow_stats_reply_cb 
 
 let main () =
   lwt mgr, mgr_t = Net.Manager.create () in

@@ -10,7 +10,7 @@ Darwin)
   exit 1
   ;;
 Linux)
-  dd if=/dev/zero of=miragefat.img bs=1024 count=128
+  dd if=/dev/zero of=miragefat.img bs=1 seek=128M count=0
   /sbin/mkfs.msdos -n MirageFAT -F 16 -v miragefat.img
   rm -rf tmpmount
   mkdir tmpmount

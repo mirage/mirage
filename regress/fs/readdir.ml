@@ -23,10 +23,10 @@ let main () =
     let sectors_per_page = page_size_bytes / sector_size_bytes
     let read_sector x =
       let page_no = x / sectors_per_page in
+      let sector_no = x mod sectors_per_page in
       let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
-	  printf "read_sector %d (offset: %Ld)\n%!" x offset;
       lwt page = blkif#read_page offset in
-      return (Bitstring.bitstring_clip page (page_no * sector_size_bytes * 8) (sector_size_bytes * 8))
+      return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
     let write_sector x bs =
       failwith "Writing currently unimplemented"
 (*

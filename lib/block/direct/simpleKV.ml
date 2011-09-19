@@ -85,7 +85,6 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
              return (Some p)
           |false -> (* EOF, short read *)
              (* printf "short page\n%!"; *)
-             Bitstring.hexdump_bitstring stdout p;
              let p' = Bitstring.subbitstring p 0 ((Int64.to_int (Int64.sub file.len !pos)) * 8) in
              pos := file.len; 
              return (Some p')

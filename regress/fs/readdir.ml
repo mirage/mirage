@@ -15,7 +15,6 @@ let main () =
   (* Cancel the listening thread *)
   Lwt.cancel listen_t;
   printf "Block device ID: %s\n%!" blkif#id;
-
   printf "Connected block device\n%!";
 
   let module M = struct

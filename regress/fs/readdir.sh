@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -ex
 
 if [ "$1" != "prerun" ]; then exit 0; fi
 
@@ -10,7 +10,13 @@ Darwin)
   exit 1
   ;;
 Linux)
-  echo Linux not supported yet
+  dd if=/dev/zero of=miragefat.img bs=1024 count=8192
+  /sbin/mkfs.msdos -n MirageFAT -v miragefat.img
+  rm -rf tmpmount
+  mkdir tmpmount
+  sudo mount -o loop miragefat.img tmpmount
+  sudo sh -c 'echo 12345 > tmpmount/bar1'
+  sudo umount tmpmount
   ;;
 *)
   echo Unknown OS detected

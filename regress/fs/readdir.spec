@@ -1,2 +1,2 @@
-backend:unix-direct,xen
-vbd:fatvbd:MirageFat.dmg
+backend:unix-direct
+vbd:fatvbd:miragefat.img

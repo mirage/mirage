@@ -58,7 +58,7 @@ let input t frame =
 
   |{dmac:48:string; smac:48:string;
     etype:16; bits:-1:bitstring } -> 
-      let frame = gen_frame dmac smac in
+      (* let _ = gen_frame dmac smac in *)
       begin match etype with
       | 0x0800 (* IPv4 *) -> t.ipv4 bits
       | 0x86dd (* IPv6 *) -> return (printf "Ethif: discarding ipv6\n%!")

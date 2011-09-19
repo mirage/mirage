@@ -91,9 +91,15 @@ let input t ~src ~dst ~source_port pkt =
       yiaddr:32:bind(ipv4_addr_of_uint32 yiaddr);
       siaddr:32:bind(ipv4_addr_of_uint32 siaddr);
       giaddr:32:bind(ipv4_addr_of_uint32 giaddr);
-      chaddr:48:bitstring; pad:80:bitstring;
+      chaddr:48:bitstring; _:80:bitstring; (* pad *)
       sname:512:bitstring; file:1024:bitstring; 0x63825363l:32; options:-1:string } ->
     let packet = Option.Packet.of_bytes options in
+    (* For debugging, print out the DHCP response *)
+    Printf.printf "DHCP: input ciaddr %s yiaddr %s siaddr %s giaddr %s chaddr %s sname %s file %s\n"
+      (ipv4_addr_to_string ciaddr) (ipv4_addr_to_string yiaddr)
+      (ipv4_addr_to_string siaddr) (ipv4_addr_to_string giaddr)
+      (Bitstring.string_of_bitstring chaddr) (Bitstring.string_of_bitstring sname)
+      (Bitstring.string_of_bitstring file);
     (* See what state our Netif is in and if this packet is useful *)
     Option.Packet.(match t.state with
     | Request_sent xid -> begin

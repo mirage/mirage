@@ -86,7 +86,7 @@ let input t pkt =
   bitmatch pkt with
   |{4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
     ttl:8; proto:8; checksum:16; src:32:bind(ipv4_addr_of_uint32 src); dst:32:bind(ipv4_addr_of_uint32 dst);
-    options:(ihl-5)*32:bitstring; data:-1:bitstring } ->
+    _ (* options *):(ihl-5)*32:bitstring; data:-1:bitstring } ->
       begin match proto with
       |1 -> (* ICMP *) t.icmp src data
       |6 -> (* TCP *) t.tcp ~src ~dst data

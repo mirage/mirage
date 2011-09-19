@@ -81,9 +81,9 @@ let rec fdbind actfn iofn fd =
   |Err err -> fail (Error err)
   |Retry -> fdbind actfn iofn fd
 
-(** Same as fdbind, except on functions that will either be Some or None *)
+(** Same as fdbind, except on functions that do not need an Activation (e.g. disk fds) *)
 let rec iobind iofn arg =
   match iofn arg with
   |OK x -> return x
   |Err err -> fail (Error err)
-  |Retry -> assert false
+  |Retry -> iobind iofn arg

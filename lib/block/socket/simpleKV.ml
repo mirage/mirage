@@ -38,7 +38,7 @@ let create ~id ~root =
         (* Construct a stream that reads pages of istrings *)
         return (Some (Lwt_stream.from (fun () ->
           let str = String.create 4096 in
-          lwt len = fdbind OS.Activations.read (fun fd -> OS.Socket.read fd str 0 4096) fd in
+          lwt len = iobind (fun fd -> OS.Socket.read fd str 0 4096) fd in
           match len with
           | 0 -> close fd; return None
           | len -> return (Some (str, 0, len*8))

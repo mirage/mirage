@@ -727,6 +727,7 @@ module Dir_entry = struct
         | (offset, b) :: bs ->
           begin match of_bitstring b with
 	    | Dos { deleted = true }
+        | Dos { volume = true } (* pretend the volume label doesn't exist *)
 	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
 
             | Lfn lfn -> inner ((offset, lfn) :: lfns) acc bs
@@ -921,7 +922,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     mutable root: Bitstring.t;   (** contains the root directory *)
   }
   let read_sectors ss =
-    Lwt.map Bitstring.concat (Lwt_util.map B.read_sector ss)
+    Lwt.map Bitstring.concat (Lwt_list.map_s B.read_sector ss)
 
   let make () = 
     lwt boot_sector = B.read_sector 0 in
@@ -1048,7 +1049,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
         let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
         lwt () = Lwt_util.iter_serial (write_update x) data_writes in
         lwt () = Lwt_util.iter_serial (write_update x) fat_writes in
-        update_directory_containing x path
+        lwt (_: unit result) = update_directory_containing x path
           (fun bits ds ->
             let enoent = Error(No_directory_entry (Path.directory path, Path.filename path)) in
 	        let filename = Path.filename path in
@@ -1065,7 +1066,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
               | x ->
                 Success x
               end
-         );
+         ) in
        x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
        Lwt.return (Success ())
 

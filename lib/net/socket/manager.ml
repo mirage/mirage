@@ -101,8 +101,10 @@ let create listener =
   lwt domain = iobind domain_bind (domain_uid ()) in
   (* TODO: cleanup the domain socket atexit *)
   (* List all other domains at startup *)
+  (*
   let other_uids = OS.Socket.domain_list () in
   let our_uid = OS.Socket.domain_uid () in
+  *)
   let peers = Hashtbl.create 7 in
   let t = { udpv4; udpv4_listen_ports; domain; peers } in
   listener t () ""

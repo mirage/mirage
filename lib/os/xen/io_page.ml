@@ -76,9 +76,13 @@ let with_pages n f =
   List.iter put pages;
   return res
 
-let to_bitstring (x: t) =
+(*
+let detach (x: t) =
   Gc.finalise return_to_free_list x.page;
-  x.detached <- true;
+  x.detached <- true
+*)
+
+let to_bitstring (x: t) =
   x.page
 
 let of_bitstring (x: Bitstring.t) = {

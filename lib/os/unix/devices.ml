@@ -82,6 +82,7 @@ let rec find id =
     let entry = Hashtbl.find device_tree id in
     return entry
   with Not_found -> begin
+    printf "Devices: sleeping on %s\n%!" id;
     let seq = 
       try
         Hashtbl.find device_waiters id
@@ -94,6 +95,7 @@ let rec find id =
     let node = Lwt_sequence.add_r u seq in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
     lwt ent = th in
+    printf "Devices: waking on %s\n%!" id;
     return ent 
   end
 
@@ -108,9 +110,9 @@ let device_t () =
   in
   (* For each provider, set up a thread that listens for incoming plug events *)
   let provider_t provider =
-    printf "Devices: starting provider %s\n%!" provider#id;
+    printf "Devices: provider %s start\n%!" provider#id;
     mvar_loop provider#plug (fun {p_id; p_dep_ids; p_cfg } ->
-      printf "Devices: plug %s from %s\n%!" p_id provider#id;
+      printf "Devices: provider %s plug %s\n%!" provider#id p_id;
       (* Satisfy all the dependencies *)
       lwt deps = Lwt_list.map_p find p_dep_ids in
       lwt entry = provider#create ~deps ~cfg:p_cfg p_id in

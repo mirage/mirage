@@ -30,7 +30,7 @@ type pcb = {
   wnd: Window.t;            (* Window information *)
   rxq: Segment.Rx.q;        (* Received segments queue for out-of-order data *)
   txq: Segment.Tx.q;        (* Transmit segments queue *)
-  ack: Ack.Delayed.t;       (* Ack state *)
+  ack: Ack.Immediate.t;       (* Ack state *)
   state: State.t;           (* Connection state *)
   urx: User_buffer.Rx.t;         (* App rx buffer *)
   urx_close_t: unit Lwt.t;      (* App rx close thread *)
@@ -48,9 +48,10 @@ module Tx = struct
 
   exception IO_error
 
-  let checksum ~src ~dst ~len pkt =
+  let checksum ~src ~dst pkt =
     let src = ipv4_addr_to_uint32 src in
     let dst = ipv4_addr_to_uint32 dst in
+    let len = (List.fold_left (fun a b -> Bitstring.bitstring_length b + a) 0 pkt) / 8 in
     let pseudo_header = BITSTRING { src:32; dst:32; 0:8; 6:8; len:16 } in
     Checksum.ones_complement_list (pseudo_header :: pkt)
 
@@ -58,13 +59,12 @@ module Tx = struct
      also record the sent packet for retranmission purposes *)
   let xmit ip id ~flags ~rx_ack ~seq ~window ~options data =
     let {dest_port; dest_ip; local_port; local_ip} = id in
-    let src = local_ip in
     let rst = flags = Segment.Tx.Rst in
     let syn = flags = Segment.Tx.Syn in
     let fin = flags = Segment.Tx.Fin in
     let ack = match rx_ack with Some _ -> true |None -> false in
     let ack_number = match rx_ack with Some n -> Sequence.to_int32 n |None -> 0l in
-    printf "TCP xmit: dest_ip=%s %s %s %s %s ack=%lu\n%!" (ipv4_addr_to_string dest_ip)
+    printf "TCP xmit: dest_ip=%s %s%s%s%sack=%lu\n%!" (ipv4_addr_to_string dest_ip)
       (if rst then "RST " else "") (if syn then "SYN " else "")
       (if fin then "FIN " else "") (if ack then "ACK " else "") ack_number; 
     let sequence = Sequence.to_int32 seq in
@@ -74,9 +74,8 @@ module Tx = struct
       local_port:16; dest_port:16; sequence:32; ack_number:32; 
       data_offset:4; 0:6; false:1; ack:1; false:1; rst:1; syn:1; fin:1; window:16; 
       0:16; 0:16 } in
-    let len = Bitstring.(bitstring_length header + (bitstring_length options) + (bitstring_length data)) / 8 in
     let frame = [header;options;data] in
-    let checksum = checksum ~src:local_ip ~dst:dest_ip ~len frame in
+    let checksum = checksum ~src:local_ip ~dst:dest_ip frame in
     let checksum_bs,_,_ = BITSTRING { checksum:16 } in
     let header_buf,_,_ = header in
     header_buf.[16] <- checksum_bs.[0];
@@ -122,12 +121,12 @@ module Tx = struct
       let options = [] in
       let data = "",0,0 in
       xmit_pcb t.ip pcb.id ~flags ~wnd ~options data >>
-      Ack.Delayed.transmit ack ack_number >>
+      Ack.Immediate.transmit ack ack_number >>
       send_empty_ack () in
     (* When something transmits an ACK, tell the delayed ACK thread *)
     let rec notify () =
       lwt ack_number = Lwt_mvar.take rx_ack in
-      Ack.Delayed.transmit ack ack_number >>
+      Ack.Immediate.transmit ack ack_number >>
       notify () in
     send_empty_ack () <&> (notify ())
 
@@ -144,6 +143,7 @@ module Rx = struct
         urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
         checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
         data:-1:bitstring } ->
+          let _ = Options.of_packet options in
           let seg = Segment.Rx.make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data in
           let {rxq} = pcb in
           (* Coalesce any outstanding segments and retrieve ready segments *)
@@ -157,7 +157,7 @@ module Rx = struct
     (* Thread to monitor application receive and pass it up *)
     let rec rx_application_t () =
       lwt data = Lwt_mvar.take rx_data in
-      Ack.Delayed.receive ack (Window.rx_nxt wnd) >>
+      Ack.Immediate.receive ack (Window.rx_nxt wnd) >>
       match data with
       |None ->
         State.tick_rx pcb.state `fin;
@@ -233,7 +233,7 @@ let new_connection t ~window ~sequence ~options id data listener =
   let txq, tx_t = Segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack in
   let rxq = Segment.Rx.q ~rx_data ~wnd ~tx_ack ~tx_wnd_update in
   (* Set up ACK module *)
-  let ack = Ack.Delayed.t ~send_ack ~last:rx_isn in
+  let ack = Ack.Immediate.t ~send_ack ~last:rx_isn in
   (* Construct basic PCB in Syn_received state *)
   let state = State.t () in
   let pcb = { state; rxq; txq; wnd; id; ack; urx; urx_close_t; urx_close_u; utx } in

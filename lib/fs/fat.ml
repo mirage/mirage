@@ -727,6 +727,7 @@ module Dir_entry = struct
         | (offset, b) :: bs ->
           begin match of_bitstring b with
 	    | Dos { deleted = true }
+        | Dos { volume = true } (* pretend the volume label doesn't exist *)
 	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
 
             | Lfn lfn -> inner ((offset, lfn) :: lfns) acc bs

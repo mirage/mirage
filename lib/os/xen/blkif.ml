@@ -250,7 +250,9 @@ let read_page t offset =
               |Error -> fail (IO_error "read")
               |Not_supported -> fail (IO_error "unsupported")
               |Unknown _ -> fail (IO_error "unknown error")
-              |OK -> return (Io_page.to_bitstring page))
+              |OK ->
+				  let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring (Io_page.to_bitstring page)) in
+				  return copy)
             )
         )
     )

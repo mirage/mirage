@@ -922,7 +922,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     mutable root: Bitstring.t;   (** contains the root directory *)
   }
   let read_sectors ss =
-    Lwt.map Bitstring.concat (Lwt_util.map B.read_sector ss)
+    Lwt.map Bitstring.concat (Lwt_list.map_s B.read_sector ss)
 
   let make () = 
     lwt boot_sector = B.read_sector 0 in

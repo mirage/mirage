@@ -26,7 +26,8 @@ let (|>) x f = f x
 module OP = Ofpacket
 
 module Event = struct
-  type t = DATAPATH_JOIN | DATAPATH_LEAVE | PACKET_IN |FLOW_REMOVED
+  type t = DATAPATH_JOIN | DATAPATH_LEAVE | PACKET_IN |FLOW_REMOVED |
+  FLOW_STATS_REPLY
   type e = 
     | Datapath_join of OP.datapath_id
     | Datapath_leave of OP.datapath_id
@@ -35,6 +36,7 @@ module Event = struct
    (* Flow match | reason | duration_sec | duration_usec | packet_count |
  * byte_count *)
     | Flow_removed of OP.Match.t * OP.Flow_removed.reason * int32 * int32 * int64 * int64 * OP.datapath_id 
+    | Flow_stats_reply of int32 * bool * (OP.Flow.stats list) * OP.datapath_id
 
   let string_of_event = function
     | Datapath_join dpid -> sp "Datapath_join: dpid:0x%012Lx" dpid
@@ -46,6 +48,9 @@ module Event = struct
         (sp "Flow_removed: flow: %s reason:%s duration:%ld.%ld packets:%s bytes:%s dpid:0x%012Lx"
         (OP.Match.match_to_string flow) (OP.Flow_removed.string_of_reason reason)  duration_sec duration_usec
          (Int64.to_string packet_count) (Int64.to_string byte_count)  dpid )
+    | Flow_stats_reply(xid, more, flows, dpid) ->
+                    (sp "Flow stats reply: dpid:%012Lx more:%s flows:%d xid:%ld")
+                    dpid (string_of_bool more) (List.length flows) xid
       
 end
 
@@ -66,6 +71,8 @@ type state = {
     (state -> OP.datapath_id -> Event.e -> unit) list;
   mutable flow_removed_cb:
     (state -> OP.datapath_id -> Event.e -> unit) list;
+  mutable flow_stats_reply_cb:
+    (state -> OP.datapath_id -> Event.e -> unit) list;
 }
 
 let register_cb controller e cb =
@@ -79,6 +86,8 @@ let register_cb controller e cb =
         -> controller.packet_in_cb <- List.append controller.packet_in_cb [cb]
       | FLOW_REMOVED
         -> controller.flow_removed_cb <- List.append controller.flow_removed_cb [cb]
+    | FLOW_STATS_REPLY 
+        -> controller.flow_stats_reply_cb <- List.append controller.flow_stats_reply_cb [cb]
   )
    
 let process_of_packet state (remote_addr, remote_port) ofp t = 
@@ -126,50 +135,65 @@ let process_of_packet state (remote_addr, remote_port) ofp t =
             List.iter (fun cb -> cb state dpid evt) state.flow_removed_cb;
             return ()
         )
-      | _ -> OS.Console.log "New packet received"; return () 
-  )
+      | Stats_resp(h, resp) -> (
+        cp (sp "+ %s|%s" (OP.Header.string_of_h h) (OP.Stats.string_of_stats resp));
+        match resp with 
+        | OP.Stats.Flow_resp(resp_h, flows) ->
+            (let dpid = Hashtbl.find state.channel_dp ep in
+            let evt = Event.Flow_stats_reply(h.Header.xid,
+            resp_h.Stats.more_to_follow, flows, dpid) in
+            List.iter (fun cb -> cb state dpid evt) state.flow_stats_reply_cb;
+            return ();
+            ) 
+        | _ -> OS.Console.log "New stats response received";
+        return ();
+        ) 
+        | _ -> OS.Console.log "New packet received"; return () 
+        )
 
-    (*
-(* Handle a single input frame *)
+      (*
+      (* Handle a single input frame *)
 let packet_to_flow frame = 
   bitmatch frame with
   |{dmac:48:string; smac:48:string;
-    0x0806:16;     (* ethertype *)
-    1:16;          (* htype const 1 *)
-    0x0800:16;     (* ptype const, ND used for IPv6 now *)
-    6:8;           (* hlen const 6 *)
-    4:8;           (* plen const, ND used for IPv6 now *)
-    op:16;
-    sha:48:string; spa:32;
-    tha:48:string; tpa:32 } ->
-      let sha = ethernet_mac_of_bytes sha in
-      let spa = ipv4_addr_of_uint32 spa in
-      let tha = ethernet_mac_of_bytes tha in
-      let tpa = ipv4_addr_of_uint32 tpa in
-      let op = match op with |1->`Request |2 -> `Reply |n -> `Unknown n in
-      let arp = { op; sha; spa; tha; tpa } in
-      Arp.input t.arp arp
+  0x0806:16;     (* ethertype *)
+  1:16;          (* htype const 1 *)
+  0x0800:16;     (* ptype const, ND used for IPv6 now *)
+  6:8;           (* hlen const 6 *)
+  4:8;           (* plen const, ND used for IPv6 now *)
+  op:16;
+  sha:48:string; spa:32;
+  tha:48:string; tpa:32 } ->
+    let sha = ethernet_mac_of_bytes sha in
+let spa = ipv4_addr_of_uint32 spa in
+let tha = ethernet_mac_of_bytes tha in
+let tpa = ipv4_addr_of_uint32 tpa in
+let op = match op with |1->`Request |2 -> `Reply |n -> `Unknown n in
+let arp = { op; sha; spa; tha; tpa } in
+Arp.input t.arp arp
 
-  |{dmac:48:string; smac:48:string;
-    etype:16; bits:-1:bitstring } -> 
-      let frame = gen_frame dmac smac in
-      begin match etype with
-      | 0x0800 (* IPv4 *) -> t.ipv4 bits
-      | 0x86dd (* IPv6 *) -> return (Printf.printf "Ethif: discarding ipv6\n%!")
-      | etype -> return (Printf.printf "Ethif: unknown frame %x\n%!" etype)
-      end
-  |{_} ->
-      return (Printf.printf "Ethif: dropping input\n%!")
-     *)
+        |{dmac:48:string; smac:48:string;
+        etype:16; bits:-1:bitstring } -> 
+          let frame = gen_frame dmac smac in
+begin match etype with
+| 0x0800 (* IPv4 *) -> t.ipv4 bits
+| 0x86dd (* IPv6 *) -> return (Printf.printf "Ethif: discarding ipv6\n%!")
+  | etype -> return (Printf.printf "Ethif: unknown frame %x\n%!" etype)
+end
+        |{_} ->
+            return (Printf.printf "Ethif: dropping input\n%!")
+  *)
 
 let send_of_data controller dpid data = 
   let t = Hashtbl.find controller.dp_db dpid in
   Channel.write_bitstring t data >> Channel.flush t
-  
-let rd_data len t = 
+
+let rec rd_data len t = 
   match len with
-    | 0 -> return Bitstring.empty_bitstring
-    | _ -> Channel.read_some ~len:len t
+  | 0 -> return Bitstring.empty_bitstring
+  | _ -> lwt data = (Channel.read_some ~len:len t) in 
+lwt  more_data = (rd_data (len - ((Bitstring.bitstring_length data)/8)) t) in
+return (Bitstring.concat [ data; more_data ])
 
 let listen mgr ip port init =
   let src = (ip, port) in
@@ -177,27 +201,30 @@ let listen mgr ip port init =
   let controller (remote_addr, remote_port) t =
     cp (sp "+ %s:%d" (Nettypes.ipv4_addr_to_string remote_addr) remote_port);
     let st = { dp_db = Hashtbl.create 0; 
-               channel_dp = Hashtbl.create 0; 
-               datapath_join_cb = []; 
-               datapath_leave_cb = []; 
-               packet_in_cb = [];
-               flow_removed_cb = [] 
+    channel_dp = Hashtbl.create 0; 
+    datapath_join_cb = []; 
+    datapath_leave_cb = []; 
+    packet_in_cb = [];
+    flow_removed_cb = []; 
+    flow_stats_reply_cb = []; 
              }
-    in 
-    init st;    
-    let rec echo () =
-      try_lwt
-        lwt hbuf = Channel.read_some ~len:OP.Header.get_len t in
-        let ofh = OP.Header.parse_h hbuf in
-        let dlen = ofh.OP.Header.len - OP.Header.get_len in 
-        lwt dbuf = rd_data dlen t in
-        let ofp = OP.parse ofh dbuf in
-        process_of_packet st (remote_addr, remote_port) ofp t;
-        echo ()
-      with
-        | Nettypes.Closed -> return ()
-        | OP.Unparsed (m, bs) -> cp (sp "# unparsed! m=%s" m); echo ()
-          
-    in echo () 
-  in
-  Channel.listen mgr (`TCPv4 (src, controller));
+  in 
+  init st;    
+  let rec echo () =
+    try_lwt
+    lwt hbuf = Channel.read_some ~len:OP.Header.get_len t in
+  let ofh = OP.Header.parse_h hbuf in
+  let dlen = ofh.OP.Header.len - OP.Header.get_len in 
+  lwt dbuf = rd_data dlen t in
+  (* pr "post request %d received %d\n" dlen ((Bitstring.bitstring_length
+   * dbuf)/8) ;*)
+  let ofp = OP.parse ofh dbuf in
+  process_of_packet st (remote_addr, remote_port) ofp t;
+  echo ()
+  with
+  | Nettypes.Closed -> return ()
+  | OP.Unparsed (m, bs) -> cp (sp "# unparsed! m=%s" m); echo ()
+
+  in echo () 
+in
+Channel.listen mgr (`TCPv4 (src, controller));

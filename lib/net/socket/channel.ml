@@ -117,7 +117,6 @@ module Make(Flow:FLOW) :
      @return Returns a stream of views that terminates at EOF.
      @raise Closed to signify EOF  *)
   let read_crlf t =
-    let fin = ref false in
     let rec get acc =
       match_lwt read_until t '\n' with
       |(false, v) ->

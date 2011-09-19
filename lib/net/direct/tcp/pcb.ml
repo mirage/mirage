@@ -59,7 +59,6 @@ module Tx = struct
      also record the sent packet for retranmission purposes *)
   let xmit ip id ~flags ~rx_ack ~seq ~window ~options data =
     let {dest_port; dest_ip; local_port; local_ip} = id in
-    let src = local_ip in
     let rst = flags = Segment.Tx.Rst in
     let syn = flags = Segment.Tx.Syn in
     let fin = flags = Segment.Tx.Fin in
@@ -144,6 +143,7 @@ module Rx = struct
         urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
         checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
         data:-1:bitstring } ->
+          let _ = Options.of_packet options in
           let seg = Segment.Rx.make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data in
           let {rxq} = pcb in
           (* Coalesce any outstanding segments and retrieve ready segments *)

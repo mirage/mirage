@@ -98,7 +98,7 @@ let create listener =
   printf "Manager: create\n%!";
   let listeners = Hashtbl.create 1 in
   let t = { listener; listeners } in
-  let os = OS.Netif.create (plug t) in
+  let _ = OS.Netif.create (plug t) in
   let th,_ = Lwt.task () in
   Lwt.on_cancel th (fun _ ->
     printf "Manager: cancel\n%!";

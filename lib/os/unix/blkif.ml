@@ -27,14 +27,10 @@ type t = {
 }
 
 let read_page t offset =
-  printf "UNIX.Blkif: read_page from %s offset %Lu\n%!" t.id offset;
   Socket.(iobind (lseek t.fd) offset) >>
   let buf = String.create 4096 in (* XXX pool? *)
   lwt rd = Socket.(iobind (read t.fd buf 0) 4096) in
-  if rd <> 4096 then
-    fail (Error "short read") 
-  else
-    return (buf,0,4096*8)
+  return (buf,0, rd*8)
 
 let create ~id ~filename : Devices.blkif Lwt.t =
   printf "Unix.Blkif: create %s %s\n%!" id filename;

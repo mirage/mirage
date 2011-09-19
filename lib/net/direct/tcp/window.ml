@@ -29,6 +29,13 @@ type t = {
 }
 
 let default_mss = 536
+
+(* To string for debugging *)
+let to_string t =
+  sprintf "rx_nxt=%s tx_nxt=%s rx_wnd=%lu tx_wnd=%lu snd_una=%s"
+    (Sequence.to_string t.rx_nxt) (Sequence.to_string t.tx_nxt)
+    t.rx_wnd t.tx_wnd (Sequence.to_string t.snd_una)
+
 (* Initialise the sequence space *)
 let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   (* XXX need random ISN XXX *)

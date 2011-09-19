@@ -25,6 +25,7 @@ type file = {
 }
 
 let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
+  printf "SimpleKV.create: creating %s from VBD %s\n%!" id vbd#id;
   (* Attach and parse the index file *)
   let files = Hashtbl.create 7 in
   let rec read_page off =
@@ -38,13 +39,15 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
             fail (Failure (sprintf "unaligned offset file found: offset=%Lu" offset))
           else begin
             Hashtbl.add files name { name; offset; len };
-            printf "Read file: %s %Lu[%Lu]\n%!" name offset len;
+            (* printf "SimpleKV: %s INIT: Read file: %s %Lu[%Lu]\n%!" id name offset len; *)
             if num = 7 then
-              read_page (Int64.add off 8L)
+              read_page (Int64.add off 4096L)
             else
               parse_page (num+1)
           end
-      | { _ } -> return ()
+      | { _ } ->
+          printf "SimpleKV: %s init done (%d files)\n%!" id (Hashtbl.length files);
+          return ()
     in
     parse_page 0 in
   read_page 0L >>
@@ -59,44 +62,42 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
 
     method read filename =
       try
+      (* Strip out any leading / character *)
+      let filename =
+        if String.length filename > 0 && filename.[0] = '/' then
+          String.sub filename 1 (String.length filename - 1)
+        else 
+          filename 
+      in
+      (* printf "SimpleKV.read %s\n%!" filename; *)
       let file = Hashtbl.find files filename in
-      printf "SimpleKV.read: %s offset %Lu\n%!" filename file.offset;
-      let cur_seg = ref None in
       let pos = ref 0L in
-      let rec readfn () =
-        (* Check if we have an active segment *)
-        match !cur_seg with
-        |Some page ->
-          (* Traversing an existing segment, so get next in element *)
-          let r =
-            (* If this is the end of the file, might need to be a partial view *)
-            let pos' = Int64.add !pos 4096L in
-            if pos' > file.len then begin
-              let sz = Int64.sub file.len !pos in
-              pos := Int64.add !pos sz;
-              cur_seg := None;
-              Bitstring.subbitstring page 0 (Int64.to_int sz * 8)
-            end else begin
-              pos := pos';
-              cur_seg := None;
-              page
-            end
-          in
-          return (Some r)
-        |None ->
-          if !pos >= file.len then begin
-            return None (* EOF *)
-          end else begin
-            (* Need to retrieve more data, get another page *)
-            (* TODO readv instead of one page at a time *)
-            lwt page = vbd#read_page (Int64.add file.offset !pos) in
-            cur_seg := Some page;
-            readfn ()
-          end
-        in
-        return (Some (Lwt_stream.from readfn))
+      (* Return a stream for the file *)
+      return (Some (Lwt_stream.from (fun () ->
+        if !pos < file.len then begin
+          (* Still data to read *)
+          (* printf "SimpleKV.read %s offset=%Lu pos=%Lu %!" filename file.offset !pos; *)
+          lwt p = vbd#read_page (Int64.add file.offset !pos) in
+          match (Int64.add !pos 4096L) < file.len with
+          |true -> (* Read full page *)
+             (* printf "full page\n%!"; *)
+             pos := Int64.add !pos 4096L;
+             return (Some p)
+          |false -> (* EOF, short read *)
+             (* printf "short page\n%!"; *)
+             Bitstring.hexdump_bitstring stdout p;
+             let p' = Bitstring.subbitstring p 0 ((Int64.to_int (Int64.sub file.len !pos)) * 8) in
+             pos := file.len; 
+             return (Some p')
+        end else begin
+          (* printf "SimpleKV.read CLOSE: %s\n%!" filename; *)
+          return None
+        end
+      )))
       with
-      | Not_found -> return None
+      | Not_found ->
+          printf "SimpleKV: file %s not found\n%!" filename;
+          return None
    end )
 
 let _ =
@@ -112,7 +113,7 @@ let _ =
       (* One dependency: a Blkif entry to mount *)
       match deps with 
       |[{node=Blkif vbd} as ent] ->
-         printf "dep %s\n%!" ent.id;
+         printf "SimpleKV.provider: %s depends on vbd %s\n%!" id ent.id;
          lwt t = create ~id ~vbd in
          return OS.Devices.({
            provider=self;

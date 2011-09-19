@@ -12,21 +12,36 @@
  * GNU Lesser General Public License for more details.
  *)
 
+type token
+(** A token is associated with every watch and returned in the callback *)
+
+val token_to_string: token -> string
+(** [token_to_string token] returns a debug-printable version of [token] *)
+
+val create_token: string -> token
+(** [create_token x] transforms [x] into a fresh watch token *)
+
+val user_string_of_token: token -> string
+(** [user_string_of_token token] returns the user-supplied part of [token] *)
+
+val parse_token: string -> token
+(** [parse_token x] parses the marshalled token [x] *)
+
 val data_concat : string list -> string
-val queue_path : Xb_op.operation -> int -> string -> Xb.t -> unit
-val directory : int -> string -> Xb.t -> unit
-val read : int -> string -> Xb.t -> unit
-val getperms : int -> string -> Xb.t -> unit
-val debug : string list -> Xb.t -> unit
-val watch : string -> string -> Xb.t -> unit
-val unwatch : string -> string -> Xb.t -> unit
-val transaction_start : Xb.t -> unit
-val transaction_end : int -> bool -> Xb.t -> unit
-val introduce : int -> nativeint -> int -> Xb.t -> unit
-val release : int -> Xb.t -> unit
-val resume : int -> Xb.t -> unit
-val getdomainpath : int -> Xb.t -> unit
-val write : int -> string -> string -> Xb.t -> unit
-val mkdir : int -> string -> Xb.t -> unit
-val rm : int -> string -> Xb.t -> unit
-val setperms : int -> string -> string -> Xb.t -> unit
+val with_path : Xb_op.operation -> int -> string -> Xs_packet.t
+val directory : int -> string -> Xs_packet.t
+val read : int -> string -> Xs_packet.t
+val getperms : int -> string -> Xs_packet.t
+val debug : string list -> Xs_packet.t
+val watch : string -> token -> Xs_packet.t
+val unwatch : string -> token -> Xs_packet.t
+val transaction_start : Xs_packet.t
+val transaction_end : int -> bool -> Xs_packet.t
+val introduce : int -> nativeint -> int -> Xs_packet.t
+val release : int -> Xs_packet.t
+val resume : int -> Xs_packet.t
+val getdomainpath : int -> Xs_packet.t
+val write : int -> string -> string -> Xs_packet.t
+val mkdir : int -> string -> Xs_packet.t
+val rm : int -> string -> Xs_packet.t
+val setperms : int -> string -> string -> Xs_packet.t

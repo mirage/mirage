@@ -21,7 +21,7 @@ let main () =
   Log.info "Ping" "starting server";
   Net.Manager.create (fun mgr interface id ->
     let ip = Net.Nettypes.(
-      (Net.Nettypes.ipv4_addr_of_tuple (10l,0l,0l,2l),
+      (ipv4_addr_of_tuple (10l,0l,0l,2l),
        ipv4_addr_of_tuple (255l,255l,255l,0l),
        [ ipv4_addr_of_tuple (10l,0l,0l,1l) ]
       ))

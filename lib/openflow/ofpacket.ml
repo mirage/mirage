@@ -582,24 +582,30 @@ module Wildcards = struct
     dl_vlan_pcp: bool;
     nw_tos: bool;
   }
+    let full_wildcard = 
+      {in_port=true; dl_vlan=true; dl_src=true; 
+       dl_dst=true; dl_type=true; nw_proto=true; 
+       tp_src=true; tp_dst=true; nw_src=(char_of_int 32); 
+       nw_dst=(char_of_int 32); dl_vlan_pcp=true; nw_tos=true;}
     let exact_match = 
       {in_port=false; dl_vlan=false; dl_src=false; 
        dl_dst=false; dl_type=false; nw_proto=false; 
        tp_src=false; tp_dst=false; nw_src=(char_of_int 0); 
        nw_dst=(char_of_int 0); dl_vlan_pcp=false; nw_tos=false;}
   let l2_match = 
-    {in_port=false;dl_vlan=false;dl_src=false;dl_dst=false;dl_type=false;nw_proto=true;  
-     tp_src=true;tp_dst=true;nw_src=(char_of_int 32);nw_dst=(char_of_int 32);dl_vlan_pcp=false; nw_tos=true}
+    {in_port=false;dl_vlan=false;dl_src=false;dl_dst=false;
+     dl_type=false;nw_proto=true;tp_src=true;tp_dst=true;
+     nw_src=(char_of_int 32);nw_dst=(char_of_int 32);dl_vlan_pcp=false; 
+     nw_tos=true}
   let l3_match = 
-    {in_port=false;dl_vlan=false;dl_vlan_pcp=false;dl_src=false;dl_dst=false;dl_type=false;nw_proto=false;  
-     nw_tos=false;nw_src=(char_of_int 0);nw_dst=(char_of_int 0);tp_src=true;tp_dst=true;}
-(*  let l4_match = 
-    {in_port=false;dl_vlan=false;dl_src=false;dl_dst=false;dl_type=false;nw_proto=true;  
-     tp_src=false;tp_dst=true;nw_src=(char_of_int 32);nw_dst=(char_of_int 32);dl_vlan_pcp=true; nw_tos=true} *)
+    {in_port=false;dl_vlan=false;dl_vlan_pcp=false;dl_src=false;
+     dl_dst=false;dl_type=false;nw_proto=false;nw_tos=false;
+     nw_src=(char_of_int 0);nw_dst=(char_of_int 0);tp_src=true;tp_dst=true;}
 
   let wildcard_to_bitstring m = 
-    BITSTRING{0:10; m.nw_tos:1;m.dl_vlan_pcp:1;(int_of_char m.nw_dst):6;(int_of_char m.nw_src):6;
-              m.tp_dst:1;m.tp_src:1;m.nw_proto:1;m.dl_type:1;m.dl_dst:1;m.dl_src:1;m.dl_vlan:1;m.in_port:1}
+    BITSTRING{0:10; m.nw_tos:1;m.dl_vlan_pcp:1;(int_of_char m.nw_dst):6;
+              (int_of_char m.nw_src):6;m.tp_dst:1;m.tp_src:1;m.nw_proto:1;
+               m.dl_type:1;m.dl_dst:1;m.dl_src:1;m.dl_vlan:1;m.in_port:1}
   let bitstring_to_wildcards bits = 
     (bitmatch bits with
        | {_:10; nw_tos:1;dl_vlan_pcp:1;nw_dst:6;nw_src:6; tp_dst:1;tp_src:1;nw_proto:1;dl_type:1;
@@ -852,6 +858,7 @@ module Flow_mod = struct
   let total_len = 
     let ret = 24 + (Header.get_len) + (Match.get_len) in 
       ret
+
   let create flow_match cookie command ?(priority = 0) 
         ?(idle_timeout = 60) ?(hard_timeout = 0)
         ?(buffer_id =  -1 ) ?(out_port = No_port) 
@@ -868,9 +875,10 @@ module Flow_mod = struct
     (* Fix flags *)
     let packet = ( List.append [(Header.build_h m.of_header); 
                                 (Match.match_to_bitstring m.of_match);
-                                (BITSTRING{m.cookie:64; (int_of_command m.command):16; m.idle_timeout:16;
-                                                         m.hard_timeout:16; m.priority:16; m.buffer_id:32; 
-                                                         (int_of_port m.out_port):16; 0:13; 
+                                (BITSTRING{m.cookie:64; (int_of_command m.command):16; 
+                                           m.idle_timeout:16;m.hard_timeout:16; 
+                                           m.priority:16; m.buffer_id:32; 
+                                           (int_of_port m.out_port):16; 0:13; 
                                 m.flags.overlap:1; m.flags.emerg:1; m.flags.send_flow_rem:1})]
                      (Array.to_list (Array.map (fun a -> (action_to_bitstring a) ) m.actions ) ) ) in 
                  Bitstring.concat packet
@@ -897,7 +905,7 @@ module Flow_removed = struct
         of_match:Match.t;
         cookie:uint64;
         priority:uint16;
-        reason:reason;
+       reason:reason;
         duration_sec:uint32;
         duration_nsec:uint32;
         idle_timeout:uint16;
@@ -916,8 +924,9 @@ module Flow_removed = struct
 
   let string_of_flow_removed m = 
     sp "flow:%s cookie:%s priority:%d reason:%s duration:%s.%s ifle_timeout:%d packet:%s bytes:%s"   
-        (Match.match_to_string m.of_match) (Int64.to_string m.cookie) m.priority (string_of_reason m.reason) 
-      (Int32.to_string m.duration_sec) (Int32.to_string m.duration_nsec)  m.idle_timeout (Int64.to_string m.packet_count)
+        (Match.match_to_string m.of_match) (Int64.to_string m.cookie) 
+      m.priority (string_of_reason m.reason) (Int32.to_string m.duration_sec) 
+      (Int32.to_string m.duration_nsec)  m.idle_timeout (Int64.to_string m.packet_count)
     (Int64.to_string  m.byte_count)
 end
   
@@ -964,10 +973,38 @@ module Stats = struct
     dp_desc: bytes;
   }
 
+  type flow = {
+(*    length: int; *)
+    table_id: uint8;
+    of_match: Match.t;
+    duration_sec: uint32;
+    duration_usec: uint32;
+    priority: uint16;
+    idle_timeout: uint16;
+    hard_timeout: uint16;
+    cookie: uint64;
+    packet_count: uint64;
+    byte_count: uint64;
+  }
+
   type req_hdr = {
     ty : uint16;
     flags: uint16;
   }
+
+  type req_type = 
+    | DESC | FLOW | AGGREGATION | TABLE | PORT | QUEUE | VENDOR
+
+  let int_of_req_type typ = 
+    match typ with 
+      | DESC -> 0
+      | FLOW -> 1
+      | AGGREGATION -> 2
+      | TABLE -> 3
+      | PORT -> 4
+      | QUEUE -> 5
+      | VENDOR -> 6
+      | _ -> -1
 
   type req = 
     | Desc of req_hdr
@@ -975,7 +1012,7 @@ module Stats = struct
     | Aggregate of req_hdr * Match.t * table_id * port
     | Table of req_hdr
     | Port of req_hdr * port
-    | Queue of req_hdr * port * queue_id
+    | Queue  of req_hdr * port * queue_id
     | Vendor of req_hdr
 
   type resp_hdr = {
@@ -985,7 +1022,7 @@ module Stats = struct
 
   type resp = 
     | Desc of resp_hdr * desc
-    | Flow of resp_hdr * Flow.stats
+    | Flow of resp_hdr * (Flow.stats list)
     | Aggregate of resp_hdr * aggregate
     | Table of resp_hdr * table
     | Port of resp_hdr * Port.stats
@@ -994,14 +1031,22 @@ module Stats = struct
 
   let get_len typ =
     match typ with
-    | Flow(_,_) -> (Header.get_len  )
-    | _ -> 8;
+    | FLOW -> (Header.get_len + 4 + Match.get_len + 4 )
+    | _ -> 8
 
-(*  let create_flow_stat_req typ ?(xid=0) () = 
-    let snd_xid = if xid == 0 then Random.int32 else xid in
-      match typ with
-        | Flow -> (BITSTRING{Header.build_h(Header.create FLOW_STATS (get_len typ) snd_xid):(Header.get_len*8)}) 
- *)  
+  let create_flow_stat_req flow_match ?(table_id=0xff) ?(out_port=No_port) 
+                           ?(xid=(Int32.of_int 0)) () = 
+    let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
+    let header = (Header.build_h (Header.create STATS_REQ (get_len FLOW) snd_xid)) in 
+      BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type FLOW):16;0:16;
+                 (Match.match_to_bitstring flow_match):(Match.get_len * 8):bitstring;
+                 table_id:8;0:8;(int_of_port out_port):16}
+
+  let flow_removed_of_bitstring bits =
+   bitmatch bits with 
+       {1:16;0:15;more_to_follow:1;data:-1:bitstring} -> (
+         let flows = Flow.flow_stat_of_bitstring data in  
+         Flow({st_ty=1;more_to_follow}, flows))  
 end
 
 type error_code = 

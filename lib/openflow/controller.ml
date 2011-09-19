@@ -31,6 +31,7 @@ module Event = struct
     | Datapath_join of OP.datapath_id
     | Datapath_leave of OP.datapath_id
     | Packet_in of OP.port * int32 * Bitstring.t * OP.datapath_id
+    | Flow_stats of OP.datapath_id * int32 * (OP.Flow.stats list) (*list OP.Flow.stats*)
    (* Flow match | reason | duration_sec | duration_usec | packet_count |
  * byte_count *)
     | Flow_removed of OP.Match.t * OP.Flow_removed.reason * int32 * int32 * int64 * int64 * OP.datapath_id 

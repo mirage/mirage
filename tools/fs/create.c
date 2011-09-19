@@ -23,6 +23,7 @@
 void start_write(char *, char *);
 
 int outfd, mseek;
+static int fseekv = START_OFFSET;
 
 int
 main(int argc, char *argv[])
@@ -58,7 +59,6 @@ start_write(char *dirname, char *prefix)
   int infd;
   struct stat st;
   struct fs_hdr *fsh;
-  int fseek = START_OFFSET;
   int size;
 
   if ((d = opendir(dirname)) == NULL)
@@ -82,7 +82,7 @@ start_write(char *dirname, char *prefix)
       if(fstat(infd, &st)!=0)
         err(1, "fstat");
 
-      lseek(outfd, fseek, SEEK_SET);
+      lseek(outfd, fseekv, SEEK_SET);
       size = fcopy(infd, outfd, roundup(st.st_size,SECTOR_SIZE));
       if (size < st.st_size)
 	printf("Short file write [%s,%Lu,%d]\n",dirp->d_name,st.st_size,size);
@@ -92,14 +92,14 @@ start_write(char *dirname, char *prefix)
       char *fname = malloc(512);
       if (!fname) err(1, "malloc");
       snprintf(fname, 512, "%s%s", prefix, dirp->d_name);
-      fsh = init_hdr(fname, st.st_size, fseek);
+      fsh = init_hdr(fname, st.st_size, fseekv);
       free(fname);
       lseek(outfd, mseek, SEEK_SET);
       write(outfd, fsh, sizeof(struct fs_hdr));
 
       //Reset FD pointers
       mseek += SECTOR_SIZE;
-      fseek += roundup(size,PAGE_SIZE);
+      fseekv += roundup(size,PAGE_SIZE);
 
       free(fsh);
       close(infd);

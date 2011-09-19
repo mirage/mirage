@@ -244,7 +244,7 @@ let unwatch path token con =
     return ()
 
 let transaction_start con =
-	lwt _, data = rpc (Queueop.transaction_start) con in
+	lwt _, data = rpc (Queueop.transaction_start ()) con in
 	try_lwt
 		return (int_of_string data)
 	with

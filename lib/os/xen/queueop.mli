@@ -35,7 +35,7 @@ val getperms : int -> string -> Xs_packet.t
 val debug : string list -> Xs_packet.t
 val watch : string -> token -> Xs_packet.t
 val unwatch : string -> token -> Xs_packet.t
-val transaction_start : Xs_packet.t
+val transaction_start : unit -> Xs_packet.t
 val transaction_end : int -> bool -> Xs_packet.t
 val introduce : int -> nativeint -> int -> Xs_packet.t
 val release : int -> Xs_packet.t

@@ -375,6 +375,8 @@ let _ =
   Devices.new_provider provider;
   (* Iterate over the plugged in VBDs and plug them in *)
   Main.at_enter (fun () ->
+    (* Hack to let console attach before crash :) *)
+    Time.sleep 10.0 >>
     lwt ids = enumerate () in
 	let vbds = List.map (fun id ->
 		{ Devices.p_dep_ids = []; p_cfg = []; p_id = id }

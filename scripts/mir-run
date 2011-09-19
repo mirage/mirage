@@ -92,11 +92,11 @@ run_xl_domain() {
     # cd to the kernel directory
     # Cant readlink earlier as -f doesnt work on MacOS 
     BINARY=$(readlink -f "$BINARY")
-    cd $(dirname "$BINARY")
+    BINARYDIR=$(dirname "$BINARY")
     if [ -z "$NAME" ]; then
       NAME=$(basename "$BINARY")
     fi
-    CONF="mirage-xen-$NAME.conf"
+    CONF="$BINARYDIR/mirage-xen-$NAME.conf"
     rm -f "$CONF"
     cat > $CONF << EOF
 name="$NAME"
@@ -106,7 +106,9 @@ on_crash="preserve"
 EOF
     echo -n "disk=[ " >> $CONF
     for vbd in ${VBDS[@]}; do
-      echo -n "'file://$vbd', "  >> $CONF
+      vbdid=$(echo ${vbd} | cut -d : -f 1)
+      vbdfile=$(readlink -f $(echo ${vbd} |cut -d : -f 2))
+      echo -n "'file://$vbdfile,$vbdid,r', "  >> $CONF
     done
     echo " ]" >> $CONF
     echo -n "vif=[ " >> $CONF

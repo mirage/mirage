@@ -206,6 +206,8 @@ let plug (id:id) =
   Evtchn.unmask evtchn;
   let t = { backend_id; backend; vdev; ring; gnt; evtchn; features } in
   Hashtbl.add devices id t;
+  (* Start the background poll thread *)
+  let _ = poll t in
   return t
 
 (* Unplug shouldn't block, although the Xen one might need to due

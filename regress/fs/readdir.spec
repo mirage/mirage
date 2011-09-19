@@ -1,1 +1,2 @@
-backend:unix-socket,unix-direct,xen
+backend:unix-direct,xen
+vbd:fatvbd:MirageFat.dmg

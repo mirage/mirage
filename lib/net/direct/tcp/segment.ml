@@ -38,6 +38,11 @@ module Rx = struct
     window: int;
   }
 
+  let seg_to_string seg =
+    sprintf "TCP: RX seg seq=%s fin=%b syn=%b ack=%b acknum=%s win=%d"
+       (Sequence.to_string seg.sequence) seg.fin seg.syn seg.ack
+       (Sequence.to_string seg.ack_number) seg.window
+
   let make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data =
     { sequence; fin; syn; ack; ack_number; window; data }
 

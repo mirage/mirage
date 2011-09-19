@@ -106,11 +106,7 @@ on_crash="preserve"
 EOF
     echo -n "disk=[ " >> $CONF
     for vbd in ${VBDS[@]}; do
-      if [ ! -e "$vbd" ]; then
-        echo VBD file $vbd not found, must exist before domain can be started
-        exit 1
-      fi
-      echo -n "'file:$vbd', "  >> $CONF
+      echo -n "'file://$vbd', "  >> $CONF
     done
     echo " ]" >> $CONF
     echo -n "vif=[ " >> $CONF

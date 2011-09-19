@@ -41,6 +41,7 @@
 #include <mini-os/lib.h>
 #include <mini-os/xmalloc.h>
 #include <xen/memory.h>
+#include <log.h>
 
 #ifdef MM_DEBUG
 #define DEBUG(_f, _a...) \

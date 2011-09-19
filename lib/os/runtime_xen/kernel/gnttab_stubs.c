@@ -23,6 +23,8 @@
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 
+#include <log.h>
+
 static grant_entry_t *gnttab_table;
 
 /* Return the size of the grant table */

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* TCP channel that uses the UNIX runtime to retrieve fds *)
+(* UDP channel that uses the UNIX runtime to retrieve fds *)
 
 open Nettypes
 open Lwt

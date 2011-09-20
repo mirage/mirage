@@ -61,7 +61,7 @@ let unwatch path data =
 	let data = data_concat [ path; data; ] in
 	Xb.Packet.create 0 (next_rid ()) Xb.Op.Unwatch data
 
-let transaction_start =
+let transaction_start () =
 	Xb.Packet.create 0 (next_rid ()) Xb.Op.Transaction_start (data_concat [])
 
 let transaction_end tid commit =

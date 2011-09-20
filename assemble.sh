@@ -75,7 +75,6 @@ function assemble_scripts {
   OBJ=${BUILDDIR}/scripts
   mkdir -p ${OBJ}
   cp ${ROOT}/scripts/myocamlbuild.ml ${OBJ}/
-  cp ${ROOT}/scripts/mir-fat-create ${OBJ}/
 }
 
 function assemble_bin {
@@ -87,6 +86,7 @@ function assemble_bin {
   chmod 755 ${OBJ}/mir-build ${OBJ}/mir-run
   cp ${ROOT}/tools/crunch/_build/crunch.native ${OBJ}/mir-crunch
   cp ${ROOT}/tools/fs/mir-fs-create ${OBJ}/mir-fs-create
+  cp ${ROOT}/scripts/mir-fat-create ${OBJ}/mir-fat-create
 }
 
 assemble_syntax

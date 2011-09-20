@@ -74,7 +74,8 @@ function assemble_scripts {
   echo Assembling: scripts
   OBJ=${BUILDDIR}/scripts
   mkdir -p ${OBJ}
-  cp ${ROOT}/regress/myocamlbuild.ml ${OBJ}/
+  cp ${ROOT}/scripts/myocamlbuild.ml ${OBJ}/
+  cp ${ROOT}/scripts/mir-fat-create ${OBJ}/
 }
 
 function assemble_bin {

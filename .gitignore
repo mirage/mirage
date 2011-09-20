@@ -12,5 +12,6 @@ tests/*/*/myocamlbuild.ml
 tools/*/*.native
 tools/fs/*.o
 tools/fs/mir-fs-*
+regress/myocamlbuild.ml
 regress/*/myocamlbuild.ml
 regress/*/*/myocamlbuild.ml

@@ -16,6 +16,19 @@ let sp = Printf.sprintf
  *  of the hashtbl *)
 
 let datapath_join_cb controller dpid evt = 
+  
+  let vendor_stat_req = (OP.Stats.create_vendor_stat_req ()) in 
+  resolve(OC.send_of_data controller dpid vendor_stat_req );
+
+  let port_stat_req = (OP.Stats.create_port_stat_req ()) in 
+  resolve(OC.send_of_data controller dpid port_stat_req );
+
+  let queue_stat_req = (OP.Stats.create_queue_stat_req ()) in 
+  resolve(OC.send_of_data controller dpid queue_stat_req );
+
+  let table_stat_req = (OP.Stats.create_table_stat_req ()) in 
+  resolve(OC.send_of_data controller dpid table_stat_req );
+
   for flow = 0 to 10 do
     let flow_match = (OP.Match.create_flow_match (OP.Wildcards.l3_match) ~in_port:1 
     ~dl_src:"\x11\x11\x11\x11\x11\x11" 
@@ -30,7 +43,22 @@ let datapath_join_cb controller dpid evt =
   done;
   let flow_match = (OP.Match.create_flow_match OP.Wildcards.full_wildcard ()) in 
   let flow_stats_req = (OP.Stats.create_flow_stat_req flow_match ())in 
-  resolve(OC.send_of_data controller dpid flow_stats_req )
+  let aggr_flow_stats_req = (OP.Stats.create_aggr_flow_stat_req flow_match ())
+  in 
+  resolve(OC.send_of_data controller dpid flow_stats_req );
+  resolve(OC.send_of_data controller dpid aggr_flow_stats_req )
+
+let aggr_flow_stats_reply_cb controller dpid evt =
+  match evt with 
+  | OE.Aggr_flow_stats_reply(xid, packets, bytes, flows, dpid) -> 
+      OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
+  | _ -> invalid_arg "bogus aggr_flow_stats_reply event match!"
+
+let desc_stats_reply_cb controller dpid evt =
+  match evt with 
+  | OE.Desc_stats_reply(mfr_desc, hw_desc, sw_desc, serial_num, dp_desc, dpid) -> 
+      OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
+  | _ -> invalid_arg "bogus desc_stats_reply event match!"
 
 let flow_stats_reply_cb controller dpid evt =
   match evt with 
@@ -38,9 +66,21 @@ let flow_stats_reply_cb controller dpid evt =
       OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
   | _ -> invalid_arg "bogus flow_stats_reply event match!"
 
+let port_status_cb controller dpid evt = 
+  match evt with 
+  | OE.Port_status (r, ph, dpid) ->
+      Printf.printf "Port status updated\n"
+        | _ ->  invalid_arg "bogus flow_stats_reply event match!"
+
 let init controller = 
   pp "test controller register datapath cb\n";
   OC.register_cb controller OE.DATAPATH_JOIN datapath_join_cb;  
+  pp "test controller register flow stats cb\n";
+  OC.register_cb controller OE.AGGR_FLOW_STATS_REPLY aggr_flow_stats_reply_cb;
+  pp "test controller register desc stats cb\n";
+  OC.register_cb controller OE. DESC_STATS_REPLY desc_stats_reply_cb;
+  pp "test controller register port status cb\n";
+  OC.register_cb controller OE. PORT_STATUS_CHANGE port_status_cb;
   pp "test controller register flow stats cb\n";
   OC.register_cb controller OE.FLOW_STATS_REPLY flow_stats_reply_cb 
 

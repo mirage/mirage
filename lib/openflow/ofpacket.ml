@@ -427,6 +427,10 @@ end
           }
           )
 
+        let string_of_phy ph = 
+          (sp "port_no:%d,hw_addr:%s,name:%s" ph.port_no (eaddr_to_string
+          ph.hw_addr) ph.name )
+
         type stats = {
           port_no: uint16;
           rx_packets: uint64;
@@ -442,6 +446,29 @@ end
           rx_crc_err: uint64;
           collisions: uint64;
         }
+
+        let rec parse_port_stats_reply data = 
+          bitmatch data with 
+          | {port_no:16; _:48; rx_packets:64; tx_packets:64;
+          rx_bytes:64; tx_bytes:64; rx_dropped:64; tx_dropped:64;
+          rx_errors:64; tx_errors:64; rx_frame_err:64; rx_over_err:64;
+          rx_crc_err:64; collisions:64;data_left:-1:bitstring} -> 
+            List.append [{port_no; rx_packets; tx_packets; rx_bytes; 
+            tx_bytes; rx_dropped; tx_dropped; rx_errors; tx_errors; 
+            rx_frame_err; rx_over_err; rx_crc_err; collisions;}] 
+            (parse_port_stats_reply data_left)
+          | {_} ->
+              []
+
+        let rec string_of_port_stats_reply ports = 
+          match ports with 
+          | [] -> ""
+          | h::q -> (sp "port_no:%d,rx_packets:%Ld,tx_packets:%Ld,rx_bytes:%Ld,
+          tx_bytes:%Ld,rx_dropped:%Ld,tx_dropped:%Ld,rx_errors:%Ld,tx_errors:%Ld,
+          rx_frame_err:%Ld,rx_over_err:%Ld,rx_crc_err:%Ld,collisions:%Ld\n%s" 
+          h.port_no h.rx_packets h.tx_packets h.rx_bytes h.tx_bytes h.rx_dropped 
+          h.tx_dropped h.rx_errors h.tx_errors h.rx_frame_err h.rx_over_err 
+          h.rx_crc_err h.collisions (string_of_port_stats_reply q))
 
         type reason = ADD | DEL | MOD
         let reason_of_int = function
@@ -462,6 +489,17 @@ end
           reason: reason;
           desc: phy;
         }
+
+        let string_of_status st = 
+          (sp "Port status,reason:%s,%s" (string_of_reason st.reason)
+          (string_of_phy st.desc) )
+
+        let status_of_bitstring bits =
+          bitmatch bits with 
+          | {reason:8:int;_:56;data:-1:bitstring} ->
+              {reason=(reason_of_int reason); desc=(parse_phy data)}
+
+          | {_} -> invalid_arg "Failed to parse port status message"
       end
 
       module Switch = struct
@@ -606,6 +644,17 @@ end
           BITSTRING{0:10; m.nw_tos:1;m.dl_vlan_pcp:1;(int_of_char m.nw_dst):6;
           (int_of_char m.nw_src):6;m.tp_dst:1;m.tp_src:1;m.nw_proto:1;
           m.dl_type:1;m.dl_dst:1;m.dl_src:1;m.dl_vlan:1;m.in_port:1}
+
+        let string_of_wildcard h = 
+          sp "in_port:%s,dl_vlan:%s,dl_src:%s,dl_dst:%s,dl_type:%s,nw_proto:%s,tp_src:%s,tp_dst:%s,nw_src:%d,nw_dst:%d,dl_vlan_pcp:%s,nw_tos:%s" 
+          (string_of_bool h.in_port) 
+          (string_of_bool h.dl_vlan) (string_of_bool h.dl_src)
+          (string_of_bool h.dl_dst) (string_of_bool h.dl_type)
+          (string_of_bool h.nw_proto) (string_of_bool h.tp_src)
+          (string_of_bool h.tp_dst) (int_of_char h.nw_src) 
+          (int_of_char h.nw_dst) (string_of_bool h.dl_vlan_pcp) 
+          (string_of_bool h.nw_tos)
+          
         let bitstring_to_wildcards bits = 
           (bitmatch bits with
           | {_:10; nw_tos:1;dl_vlan_pcp:1;nw_dst:6;nw_src:6; tp_dst:1;tp_src:1;nw_proto:1;dl_type:1;
@@ -1033,11 +1082,14 @@ end
           | PORT -> 4
           | QUEUE -> 5
           | VENDOR -> 6
-          | _ -> -1
+        
         let get_len typ =
           match typ with
           | FLOW -> (Header.get_len + 4 + Match.get_len + 4 )
-          | _ -> 8
+          | AGGREGATE -> (Header.get_len + 4 + Match.get_len + 4 )
+          | PORT ->  (Header.get_len + 12)
+          | QUEUE -> (Header.get_len + 12)
+          | _ -> (Header.get_len + 4)
 
 
         let create_flow_stat_req flow_match ?(table_id=0xff) ?(out_port=No_port) 
@@ -1047,6 +1099,38 @@ end
           BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type FLOW):16;0:16;
           (Match.match_to_bitstring flow_match):(Match.get_len * 8):bitstring;
           table_id:8;0:8;(int_of_port out_port):16}
+
+        let create_aggr_flow_stat_req flow_match ?(table_id=0xff) ?(out_port=No_port) 
+        ?(xid=(Int32.of_int 0)) () = 
+          let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
+          let header = (Header.build_h (Header.create STATS_REQ (get_len AGGREGATE) snd_xid)) in 
+          BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type AGGREGATE):16;0:16;
+          (Match.match_to_bitstring flow_match):(Match.get_len * 8):bitstring;
+          table_id:8;0:8;(int_of_port out_port):16}
+
+        let create_vendor_stat_req ?(xid=(Int32.of_int 0)) () = 
+          let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
+          let header = (Header.build_h (Header.create STATS_REQ (get_len VENDOR) snd_xid)) in 
+          BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type
+          DESC):16;0:16}
+
+        let create_table_stat_req ?(xid=(Int32.of_int 0)) () = 
+          let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
+          let header = (Header.build_h (Header.create STATS_REQ (get_len TABLE) snd_xid)) in 
+          BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type TABLE):16;0:16}
+
+        let create_queue_stat_req ?(xid=(Int32.of_int 0))
+        ?(queue_id=(Int32.of_int 0xffffffff)) ?(port=No_port) () = 
+          let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
+          let header = (Header.build_h (Header.create STATS_REQ (get_len QUEUE) snd_xid)) in 
+          BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type QUEUE):16;0:16;
+          (int_of_port port):16;0:16;queue_id:32}
+
+        let create_port_stat_req ?(xid=(Int32.of_int 0)) ?(port=No_port) () = 
+          let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
+          let header = (Header.build_h (Header.create STATS_REQ (get_len PORT) snd_xid)) in 
+          BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type PORT):16;
+          0:16;(int_of_port port):16;(Int64.of_int 0):48}
 
         type req = 
           | Desc_req of req_hdr
@@ -1064,14 +1148,13 @@ end
           }
 
         let int_of_stats_type = function
-          |  DESC -> 0
+          | DESC -> 0
           | FLOW -> 1
           | AGGREGATE -> 2 
           | TABLE -> 3 
           | PORT -> 4
           | QUEUE -> 5
           | VENDOR -> 0xffff
-          | _ -> -1
 
         let stats_type_of_int = function
           | 0 -> DESC
@@ -1081,24 +1164,61 @@ end
           | 4 -> PORT
           | 5 -> QUEUE
           | 0xffff -> VENDOR
-
+          | _ -> invalid_arg "stats type invalid int"
 
         type resp = 
           | Desc_resp of resp_hdr * desc
           | Flow_resp of resp_hdr * (Flow.stats list)
           | Aggregate_resp of resp_hdr * aggregate
-          | Table_resp of resp_hdr * table
-          | Port_resp of resp_hdr * Port.stats
-          | Queue_resp of resp_hdr * queue
+          | Table_resp of resp_hdr * (table list)
+          | Port_resp of resp_hdr * (Port.stats list)
+          | Queue_resp of resp_hdr * (queue list)
           | Vendor_resp of resp_hdr
+
+        let rec parse_table_stats_reply data = 
+          bitmatch data with 
+          | {table_id:8; _:24; name:32*8:string; wildcards:32:bitstring; 
+          max_entries:32;active_count:32;lookup_count:64;matched_count:64; 
+          data_left:-1:bitstring} -> 
+            List.append [{table_id=(table_id_of_int table_id); name;
+            wildcards=(Wildcards.bitstring_to_wildcards wildcards); max_entries;active_count;
+            lookup_count;matched_count;}] (parse_table_stats_reply data_left)
+          | {_} ->
+              []
+          
+        let rec string_of_table_stats_reply tables =
+          match tables with
+          | [] -> ""
+          | h::q -> sp "table_id:%s,name:%s,wildcard:%s,max_entries:%ld,
+          active_count:%ld,lookup_count:%Ld,matched_count:%Ld\n%s" 
+          (string_of_table_id h.table_id) h.name (Wildcards.string_of_wildcard
+          h.wildcards) h.max_entries h.active_count h.lookup_count 
+          h.matched_count (string_of_table_stats_reply q) 
 
         let parse_stats bits =
           ( bitmatch bits with 
+          | {0:16; _:15; more_to_follow:1; imfr_desc:256:string;
+          hw_desc:256:string; sw_desc:256:string; serial_num:32:string;
+          dp_desc:256:string} ->
+            Desc_resp({st_ty=DESC; more_to_follow=false;}, {imfr_desc; hw_desc;
+            sw_desc; serial_num; dp_desc;})
           | {1:16; _:15; more_to_follow:1; flows:-1:bitstring}
-          -> Flow_resp({st_ty=FLOW; more_to_follow;}, (Flow.parse_flow_stats flows)) 
+          -> Flow_resp({st_ty=FLOW; more_to_follow;}, (Flow.parse_flow_stats flows))
+          | {2:16; _:15; more_to_follow:1; data:-1:bitstring} ->
+              ( bitmatch data with 
+              | { packet_count:64; byte_count:64; flow_count:32 } ->
+                  Aggregate_resp({st_ty=AGGREGATE; more_to_follow;},
+                  {packet_count;  byte_count; flow_count;})
+              | {_} -> invalid_arg "Failed to parse aggr data" )
+          | {3:16; _:15; more_to_follow:1; data:-1:bitstring} ->
+              Table_resp({st_ty=TABLE; more_to_follow},
+              (parse_table_stats_reply data) )
+          | {4:16; more_to_follow:1; data:-1:bitstring} ->
+              Port_resp({st_ty=PORT;more_to_follow},
+              (Port.parse_port_stats_reply data)) 
           | {ty:16; 0:15; more_to_follow:1} -> 
               Vendor_resp({st_ty=(stats_type_of_int ty);
-              more_to_follow;}) ) 
+              more_to_follow;}))
 
         let rec string_of_flow_stats flows = 
           match flows with 
@@ -1113,17 +1233,17 @@ end
             desc.sw_desc desc.serial_num desc.dp_desc)
           | Flow_resp(hdr, flows) -> 
               (sp "Stats Flows %s" (string_of_flow_stats flows))
+          | Aggregate_resp (hdr, aggr) ->
+              (sp "Aggr flow stats %Ld %Ld %ld" aggr.packet_count
+              aggr.byte_count aggr.flow_count)
+          | Port_resp(resp, ports) ->
+              (sp "port stats %s" (Port.string_of_port_stats_reply ports))
+          | Table_resp(resp, tables) ->
+              (sp "table stats %s" ) (string_of_table_stats_reply tables)
+          | Vendor_resp(resp) ->
+              (sp "vendor resp")
+          | _ -> invalid_arg "Invalide stats resp object"
 
-        let get_len typ =
-          match typ with
-          | Flow_req(_,_,_,_) -> (Header.get_len  )
-          | _ -> 8;
-
-          (*  let create_flow_stat_req typ ?(xid=0) () = 
-            let snd_xid = if xid == 0 then Random.int32 else xid in
-        match typ with
-        | Flow -> (BITSTRING{Header.build_h(Header.create FLOW_STATS (get_len typ) snd_xid):(Header.get_len*8)}) 
- *)  
       end
 
         type error_code = 
@@ -1309,6 +1429,7 @@ end
           | PACKET_IN -> Packet_in (h, Packet_in.parse_packet_in bits)
           | FLOW_REMOVED -> Flow_removed(h, (Flow_removed.flow_removed_of_bitstring bits))
           | STATS_RESP -> Stats_resp (h, (Stats.parse_stats bits))
+          | PORT_STATUS -> Port_status(h, (Port.status_of_bitstring bits)) 
           | _ -> raise (Unparsed ("_", bits))
 
           (*

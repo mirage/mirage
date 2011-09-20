@@ -125,3 +125,6 @@ let tcpv4_of_addr t addr =
 (* TODO: do actual route selection *)
 let udpv4_of_addr (t:t) addr =
   List.map (fun x -> x.udp) (i_of_ip t addr)
+
+let ipv4_of_interface (t:interface) = 
+  t.ipv4

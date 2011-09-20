@@ -13,7 +13,7 @@ fi
   
 INPUT=$1
 OUTPUT=$2
-[ ! -d ${INPUT} && exit 1
+[ ! -d ${INPUT} ] && exit 1
 
 case `uname -s` in
   Darwin )
@@ -23,7 +23,7 @@ case `uname -s` in
     # NB. this creates a boot sector with reserved_sectors=0x08;
     # mirage fat implementation expects 0x00.
 
-    hdiutil create -ov -format UDRW -scrub \ 
+    hdiutil create -ov -format UDRW -scrub \
       -fsargs "-F 12 -f 2880" -fs MS-DOS -volname MirageFAT \
       -srcfolder ${INPUT} -o ${OUTPUT}
     mv ${OUTPUT}.dmg ${OUTPUT}

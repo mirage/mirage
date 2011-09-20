@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Richard Mortier <mort@cantab.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,26 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* The manager process binds application ports to interfaces, and
-   will eventually deal with load balancing and route determination
-   (e.g. if a remote target is on the same host, swap to shared memory *)
-
 open Nettypes
-exception Error of string
 
-type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
-
-type id = OS.Netif.id
-type interface
 type t
 
-val plug: t -> id -> OS.Netif.t -> unit Lwt.t
-val unplug: t -> id -> unit
-
-val configure: interface -> config -> unit Lwt.t
- 
-val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
-
-val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t list
-val udpv4_of_addr : t -> ipv4_addr option -> Udp.t list
-val ipv4_of_interface : interface -> Ipv4.t
+val create : Ipv4.t -> t * unit Lwt.t

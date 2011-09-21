@@ -22,6 +22,7 @@ all:
 doc:
 	@cd docs && $(MAKE) all
 	@cd lib && $(MAKE) doc
+	@./docs/_build/parse.native lib/_build/unix-direct > docs/info.json
 
 install:
 	@rm -rf _build

@@ -21,6 +21,7 @@ type blkif = <
   destroy : unit;
   ppname : string;
   read_page : int64 -> Bitstring.t Lwt.t;
+  write_page: int64 -> Bitstring.t -> unit Lwt.t;
   sector_size : int 
 >
 

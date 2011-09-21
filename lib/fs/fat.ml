@@ -838,14 +838,20 @@ end
 
 module Path = (struct
   type t = string list (* stored in reverse order *)
-  let of_string_list x = List.rev x
+  let of_string_list x =
+    (* Remove any preceeding '' *)
+    let rec remove_initial_blanks = function
+      | [] -> []
+      | "" :: xs -> remove_initial_blanks xs
+      | x :: xs -> x :: xs in
+    List.rev (remove_initial_blanks x)
   let to_string_list x = List.rev x
 
   let directory = List.tl
   let filename = List.hd
 
   let to_string p = "/" ^ (String.concat "/" (to_string_list p))
-  let of_string s = if s = "/" || s = "" then [] else of_string_list (String.split '/' s)
+  let of_string s = of_string_list (String.split '/' s)
 
   let cd path x = of_string x @ (if x <> "" && x.[0] = '/' then [] else path)
   let is_root p = p = []
@@ -998,7 +1004,6 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       corresponding to [path] or [None] if [path] cannot be found or if it
       is / and hasn't got a chain. *)
   let chain_of_file x path : int list option Lwt.t =
-	let parent_path = Path.directory path in
 	let chain_of_find_result : find result -> int list option = function
 	  | Success (Dir ds) ->
 		begin match Dir_entry.find (Path.filename path) ds with
@@ -1010,7 +1015,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | _ -> None in
     if Path.is_root path 
 	then Lwt.return None
-    else Lwt.map chain_of_find_result (find x parent_path)
+    else Lwt.map chain_of_find_result (find x (Path.directory path))
 
   (** [write_to_location x path location update] applies [update] to the data given by
       [location]. This will also allocate any additional clusters necessary. *)
@@ -1211,15 +1216,16 @@ let read_sector blkif x =
   Lwt.return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
 
 let write_sector blkif x bs =
-  failwith "Writing currently unimplemented"
-(*
-      let page_no = x / sectors_per_page in
-          let sector_no = x mod sectors_per_page in
-          lwt page = OS.Blkif.read_page blkif (Int64.of_int page_no) in
-      Bitstring.bitstring_write bs (Int64.of_int (sector_no * sector_size_bytes)) existing_page;
-          lwt () = OS.Blkif.write_page vbd (Int64.of_int page_no) page in
-      ()
-*)
+  let page_size_bytes = 4096 in
+  let sector_size_bytes = 512 in
+  let sectors_per_page = page_size_bytes / sector_size_bytes in
+  let page_no = x / sectors_per_page in
+  let sector_no = x mod sectors_per_page in
+  let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
+  lwt page = blkif#read_page offset in
+  Bitstring.bitstring_write bs (sector_no * sector_size_bytes) page;
+  lwt () = blkif#write_page offset page in
+  Lwt.return ()
 
 (* key/value pair interface *)
 

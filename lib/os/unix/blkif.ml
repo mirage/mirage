@@ -32,6 +32,11 @@ let read_page t offset =
   lwt rd = Socket.(iobind (read t.fd buf 0) 4096) in
   return (buf,0, rd*8)
 
+let write_page t offset data =
+  Socket.(iobind (lseek t.fd) offset) >>
+  lwt _ = Socket.(iobind (write t.fd (Bitstring.string_of_bitstring data) 0) 4096) in
+  return ()
+
 let create ~id ~filename : Devices.blkif Lwt.t =
   printf "Unix.Blkif: create %s %s\n%!" id filename;
   lwt fd =
@@ -46,6 +51,7 @@ let create ~id ~filename : Devices.blkif Lwt.t =
   return (object
     method id = id
     method read_page = read_page t
+    method write_page = write_page t
     method sector_size = 4096
     method ppname = sprintf "Unix.blkif:%s(%s)" id filename
     method destroy = Socket.close t.fd

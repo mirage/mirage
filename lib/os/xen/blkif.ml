@@ -353,6 +353,7 @@ let create ~id : Devices.blkif Lwt.t =
   return (object
     method id = id
     method read_page = read_page dev
+    method write_page = write_page dev
     method sector_size = 4096
     method ppname = sprintf "Xen.blkif:%s" id
     method destroy = unplug id

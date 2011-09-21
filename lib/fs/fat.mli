@@ -97,5 +97,8 @@ end
 
 module FATFilesystem : functor(B: BLOCK) -> FS
 
+val read_sector: OS.Devices.blkif -> int -> Bitstring.t Lwt.t
+val write_sector: OS.Devices.blkif -> int -> Bitstring.t -> unit Lwt.t
+
 val make_kvro: id:string -> vbd:OS.Devices.blkif -> OS.Devices.kv_ro Lwt.t
 

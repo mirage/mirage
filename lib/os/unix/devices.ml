@@ -23,6 +23,7 @@ type id = string
 type blkif = <
   id: string;
   read_page: int64 -> Bitstring.t Lwt.t;
+  write_page: int64 -> Bitstring.t -> unit Lwt.t;
   sector_size: int;
   ppname: string;
   destroy: unit;

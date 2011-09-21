@@ -1211,15 +1211,16 @@ let read_sector blkif x =
   Lwt.return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
 
 let write_sector blkif x bs =
-  failwith "Writing currently unimplemented"
-(*
-      let page_no = x / sectors_per_page in
-          let sector_no = x mod sectors_per_page in
-          lwt page = OS.Blkif.read_page blkif (Int64.of_int page_no) in
-      Bitstring.bitstring_write bs (Int64.of_int (sector_no * sector_size_bytes)) existing_page;
-          lwt () = OS.Blkif.write_page vbd (Int64.of_int page_no) page in
-      ()
-*)
+  let page_size_bytes = 4096 in
+  let sector_size_bytes = 512 in
+  let sectors_per_page = page_size_bytes / sector_size_bytes in
+  let page_no = x / sectors_per_page in
+  let sector_no = x mod sectors_per_page in
+  let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
+  lwt page = blkif#read_page offset in
+  Bitstring.bitstring_write bs (sector_no * sector_size_bytes) page;
+  lwt () = blkif#write_page offset page in
+  Lwt.return ()
 
 (* key/value pair interface *)
 

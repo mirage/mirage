@@ -1211,7 +1211,7 @@ let read_sector blkif x =
   Lwt.return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
 
 let write_sector blkif x bs =
-v  failwith "Writing currently unimplemented"
+  failwith "Writing currently unimplemented"
 (*
       let page_no = x / sectors_per_page in
           let sector_no = x mod sectors_per_page in
@@ -1222,32 +1222,43 @@ v  failwith "Writing currently unimplemented"
 *)
 
 (* key/value pair interface *)
+
+exception Unknown_key
+open Lwt
+
 let make_kvro blkif =
   let module FS = FATFilesystem(struct
     let read_sector = read_sector blkif
     let write_sector = write_sector blkif
   end) in
   let path_of_key = Path.of_string in
-  exception Unknown_key
   let size key =
     lwt fs = FS.make () in
     lwt s = FS.stat fs (path_of_key key) in
     match s with
-      | Success(Stat.File(f)) -> Dir_entry.file_size_of f
+      | Success(Stat.File(f)) -> return (Int64.of_int (Int32.to_int (Dir_entry.file_size_of f)))
       | _ -> fail (Unknown_key) in
   let read key =
     (* Treat the key as a path (a/b/c) etc *)
     lwt fs = FS.make () in
     let path = Path.of_string key in
     let offset = ref 0 in
-    let block_size = 4096;
+    let block_size = 4096 in
+	lwt file_size = size key in
     let next () =
-      let toread = max block_size (file_size - offset) in
-      lwt r = FS.read fs path offset block_size in
+      let toread = max block_size (Int64.to_int file_size - !offset) in
+      lwt r = FS.read fs path !offset toread in
       match r with
 	| Success bs ->
 	  offset := !offset + block_size;
-	  Some bs
-	| _ -> None in
+	  return (Some bs)
+	| _ -> return None in
     return (Some(Lwt_stream.from next)) in
-  ()
+  let iter_s f =
+    let file_list = [] in
+	Lwt_list.iter_s f file_list in
+  object
+    method iter_s = iter_s
+    method read = read
+    method size = size
+  end

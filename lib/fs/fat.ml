@@ -1236,8 +1236,8 @@ let make_kvro blkif =
     lwt fs = FS.make () in
     lwt s = FS.stat fs (path_of_key key) in
     match s with
-      | Success(Stat.File(f)) -> return (Int64.of_int (Int32.to_int (Dir_entry.file_size_of f)))
-      | _ -> fail (Unknown_key) in
+      | Success(Stat.File(f)) -> return (Some(Int64.of_int (Int32.to_int (Dir_entry.file_size_of f))))
+      | _ -> return None in
   let read key =
     (* Treat the key as a path (a/b/c) etc *)
     lwt fs = FS.make () in
@@ -1245,15 +1245,18 @@ let make_kvro blkif =
     let offset = ref 0 in
     let block_size = 4096 in
 	lwt file_size = size key in
-    let next () =
-      let toread = max block_size (Int64.to_int file_size - !offset) in
-      lwt r = FS.read fs path !offset toread in
-      match r with
-	| Success bs ->
-	  offset := !offset + block_size;
-	  return (Some bs)
-	| _ -> return None in
-    return (Some(Lwt_stream.from next)) in
+    match file_size with
+    | Some file_size ->
+      let next () =
+        let toread = max block_size (Int64.to_int file_size - !offset) in
+        lwt r = FS.read fs path !offset toread in
+        match r with
+	  | Success bs ->
+	    offset := !offset + block_size;
+	    return (Some bs)
+	  | _ -> return None in
+      return (Some(Lwt_stream.from next))
+   | None -> return (Some(Lwt_stream.from (fun () -> return None))) in
   let iter_s f =
     lwt fs = FS.make () in
     let rec ls_lR acc path =

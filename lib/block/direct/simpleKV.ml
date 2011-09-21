@@ -25,7 +25,7 @@ type file = {
 }
 
 let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
-  printf "SimpleKV.create: creating %s from VBD %s\n%!" id vbd#id;
+(*  printf "SimpleKV.create: creating %s from VBD %s\n%!" id vbd#id; *)
   (* Attach and parse the index file *)
   let files = Hashtbl.create 7 in
   let rec read_page off =
@@ -46,7 +46,7 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
               parse_page (num+1)
           end
       | { _ } ->
-          printf "SimpleKV: %s init done (%d files)\n%!" id (Hashtbl.length files);
+(*          printf "SimpleKV: %s init done (%d files)\n%!" id (Hashtbl.length files); *)
           return ()
     in
     parse_page 0 in
@@ -95,7 +95,7 @@ let create ~(id:string) ~(vbd:OS.Devices.blkif) : OS.Devices.kv_ro Lwt.t =
       )))
       with
       | Not_found ->
-          printf "SimpleKV: file %s not found\n%!" filename;
+(*          printf "SimpleKV: file %s not found\n%!" filename; *)
           return None
    end )
 
@@ -112,7 +112,7 @@ let _ =
       (* One dependency: a Blkif entry to mount *)
       match deps with 
       |[{node=Blkif vbd} as ent] ->
-         printf "SimpleKV.provider: %s depends on vbd %s\n%!" id ent.id;
+(*         printf "SimpleKV.provider: %s depends on vbd %s\n%!" id ent.id; *)
          lwt t = create ~id ~vbd in
          return OS.Devices.({
            provider=self;

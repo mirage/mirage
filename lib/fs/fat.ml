@@ -1302,7 +1302,7 @@ let _ =
       let open OS.Devices in
       (* One dependency: a Blkif entry to mount *)
       match deps with
-      |[{node=Blkif vbd} as ent] ->
+      |[{node=Blkif vbd} ] ->
 (*          Printf.printf "FS.FAT provider: %s depends on vbd %s\n%!" id ent.id;*)
          lwt t = make_kvro ~id ~vbd in
          return OS.Devices.({

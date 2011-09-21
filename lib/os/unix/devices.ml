@@ -83,7 +83,7 @@ let rec find id =
     let entry = Hashtbl.find device_tree id in
     return entry
   with Not_found -> begin
-    printf "Devices: sleeping on %s\n%!" id;
+    printf "Devices: [%s] sleeping\n%!" id;
     let seq = 
       try
         Hashtbl.find device_waiters id
@@ -96,7 +96,7 @@ let rec find id =
     let node = Lwt_sequence.add_r u seq in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
     lwt ent = th in
-    printf "Devices: waking on %s\n%!" id;
+    printf "Devices: [%s] waking\n%!" id;
     return ent 
   end
 
@@ -111,15 +111,15 @@ let device_t () =
   in
   (* For each provider, set up a thread that listens for incoming plug events *)
   let provider_t provider =
-    printf "Devices: provider %s start\n%!" provider#id;
+    printf "Devices: [%s] provider start\n%!" provider#id;
     mvar_loop provider#plug (fun {p_id; p_dep_ids; p_cfg } ->
-      printf "Devices: provider %s plug %s\n%!" provider#id p_id;
+      printf "Devices: [%s:%s] provider plug\n%!" provider#id p_id;
       (* Satisfy all the dependencies *)
       lwt deps = Lwt_list.map_p find p_dep_ids in
       lwt entry = provider#create ~deps ~cfg:p_cfg p_id in
       (* Check if the device already exists (or any waiters are present *)
       if Hashtbl.mem device_tree p_id then begin
-        printf "Devices: repeat device plug id %s from provider %s. Ignoring\n%!" p_id provider#id;
+        printf "Devices: [%s:%s] ignoring repeat device plug\n%!" provider#id p_id;
         return ()
       end else begin
         Hashtbl.add device_tree p_id entry;
@@ -128,10 +128,10 @@ let device_t () =
         (* Check for any waiting threads *)
         match Hashtbl.find_all device_waiters p_id with
         |[] ->
-          printf "Devices: no waiters for %s from %s\n%!" p_id provider#id;
+          printf "Devices: [%s:%s] no waiters\n%!" provider#id p_id;
           return ()
         |[waiters] ->
-          printf "Devices: waking waiters for %s from %s\n%!" p_id provider#id;
+          printf "Devices: [%s:%s] waking waiters\n%!" provider#id p_id;
            Hashtbl.remove device_waiters p_id;
            Lwt_sequence.iter_l (fun w -> Lwt.wakeup w entry) waiters;
            return ()

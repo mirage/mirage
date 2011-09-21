@@ -1197,3 +1197,86 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | Error x -> Lwt.return (Error x)
 
 end
+
+(* Helper function which uses a blkif#read_page function to implement
+   read_sector *)
+let read_sector blkif x =
+  let page_size_bytes = 4096 in
+  let sector_size_bytes = 512 in
+  let sectors_per_page = page_size_bytes / sector_size_bytes in
+  let page_no = x / sectors_per_page in
+  let sector_no = x mod sectors_per_page in
+  let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
+  lwt page = blkif#read_page offset in
+  Lwt.return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
+
+let write_sector blkif x bs =
+  failwith "Writing currently unimplemented"
+(*
+      let page_no = x / sectors_per_page in
+          let sector_no = x mod sectors_per_page in
+          lwt page = OS.Blkif.read_page blkif (Int64.of_int page_no) in
+      Bitstring.bitstring_write bs (Int64.of_int (sector_no * sector_size_bytes)) existing_page;
+          lwt () = OS.Blkif.write_page vbd (Int64.of_int page_no) page in
+      ()
+*)
+
+(* key/value pair interface *)
+
+exception Unknown_key
+open Lwt
+
+let make_kvro blkif =
+  let module FS = FATFilesystem(struct
+    let read_sector = read_sector blkif
+    let write_sector = write_sector blkif
+  end) in
+  let path_of_key = Path.of_string in
+  let size key =
+    lwt fs = FS.make () in
+    lwt s = FS.stat fs (path_of_key key) in
+    match s with
+      | Success(Stat.File(f)) -> return (Some(Int64.of_int (Int32.to_int (Dir_entry.file_size_of f))))
+      | _ -> return None in
+  let read key =
+    (* Treat the key as a path (a/b/c) etc *)
+    lwt fs = FS.make () in
+    let path = Path.of_string key in
+    let offset = ref 0 in
+    let block_size = 4096 in
+	lwt file_size = size key in
+    match file_size with
+    | Some file_size ->
+      let next () =
+        let toread = max block_size (Int64.to_int file_size - !offset) in
+        lwt r = FS.read fs path !offset toread in
+        match r with
+	  | Success bs ->
+	    offset := !offset + block_size;
+	    return (Some bs)
+	  | _ -> return None in
+      return (Some(Lwt_stream.from next))
+   | None -> return (Some(Lwt_stream.from (fun () -> return None))) in
+  let iter_s f =
+    lwt fs = FS.make () in
+    let rec ls_lR acc path =
+      lwt s = FS.stat fs path in
+      match s with
+      | Success(Stat.Dir(_, ds)) ->
+        let all = ref [] in
+        Lwt_list.fold_left_s
+          (fun acc d ->
+            let fn = Dir_entry.filename_of d in
+            let path' = Path.cd path fn in
+            ls_lR acc path') acc ds
+     | Success(Stat.File f) ->
+        let fn = Dir_entry.filename_of f in
+        return (fn :: acc)
+     | _ -> fail Unknown_key in
+    lwt file_list = ls_lR [] (Path.of_string "/") in
+	Lwt_list.iter_s f file_list in
+  object
+    method iter_s = iter_s
+    method read = read
+    method size = size
+  end

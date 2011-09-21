@@ -1,1 +1,7 @@
 Some helper scripts for Mirage testing and development.
+
+# caml-type.el
+
+Install:
+* replace your caml-types.el by the provided one (it is usually located in /usr/share/emacs/22.1/site-lisp/)
+* if needed (re)move the pre-installed compile file if any (caml-types.elc)

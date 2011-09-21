@@ -245,7 +245,7 @@ class gen () =
 	
 	method t_of_text = List.map self#t_of_text_element
 	
-	method t_of_raw s = Leaf (remove_asterisks s)
+	method t_of_raw s = Leaf s
 	
 	method t_of_text_element = function
 	| Odoc_info.Raw s -> self#t_of_raw s
@@ -316,9 +316,9 @@ class gen () =
 		| None -> Empty
 		| Some t -> String (Odoc_info.string_of_module_type t) (* self#json_of_module_type_expr t *)
 		in
-		let mk = "kind", match mt.Module.mt_kind with
-		| None -> Empty
-  		| Some t -> Empty (* self#json_of_module_type_kind t *)
+		let mk = match mt.Module.mt_kind with
+		| None -> "kind", Empty
+  		| Some t -> self#json_of_module_type_kind t
 		in
 		let file = "file", String mt.Module.mt_file in
 		Object (name :: file :: loc :: info :: mte :: mk :: [])
@@ -378,14 +378,15 @@ class gen () =
 		in *)
 		Object (name :: loc :: info :: args @ alias) (*  @ code *)
 
+        method json_of_mnt_option = function
+	  | None -> []
+	  | Some (Module.Mod _) -> ["kind", String "module"]
+	  | Some (Module.Modtype _) -> ["kind", String "module_type"]
+
 	method json_of_included_module im =
 		let name = "name", String im.Module.im_name in
 		let info = "info", self#json_of_info_opt im.Module.im_info in
-		let kind = match im.im_module with
-		| None -> []
-		| Some (Module.Mod _) -> ["kind", String "module"]
-		| Some (Module.Modtype _) -> ["kind", String "module_type"]
-		in
+		let kind = self#json_of_mnt_option im.im_module in
 		Object (name :: info :: kind @ [])
 
 	method json_of_comment t =
@@ -499,31 +500,53 @@ class gen () =
 
 	method json_of_module_parameter mparam =
 		let name = "name", String mparam.Module.mp_name in
-		Object (name :: [])
+                let typ = self#json_of_module_type_kind mparam.Module.mp_kind in
+		Object (name :: typ :: [])
 		
+        method json_of_module_alias al =
+          Object (("name"  , String al.Module.ma_name) :: self#json_of_mnt_option al.Module.ma_module)
+
+        method json_of_module_type_alias al =
+          (("name"  , String al.Module.mta_name) ::
+              match al.Module.mta_module with
+                | None   -> []
+                | Some m -> [ "module_type", self#json_of_module_type m ])
+
+        method json_of_module_type_kind = function
+          | Module_type_struct l ->
+            "module_structure", Array (List.map self#json_of_module_element l)
+          | Module_type_functor (mparam, mk) ->
+            "module_functor", Object ["parameter", self#json_of_module_parameter mparam;
+                                      self#json_of_module_type_kind mk]
+          | Module_type_alias ma ->
+            "module_alias", Object (self#json_of_module_type_alias ma)
+          | Module_type_with (mk, s) ->
+            "module_with", Object [ self#json_of_module_type_kind mk;
+                                    "with", String s]
+          | Module_type_typeof s ->
+            "module_typeof", String s
+
 	method json_of_module_kind = function
 	| Module_struct l ->
-		"module_structure", Array (List.map self#json_of_module_element l)
+	  "module_structure", Array (List.map self#json_of_module_element l)
 	| Module_alias ma ->
-		"module_alias", String "unavailable" (* self#t_of_module_alias ma *)
+	  "module_alias", self#json_of_module_alias ma
 	| Module_functor (mparam, mk) ->
-		"module_functor", Object (["parameter", self#json_of_module_parameter mparam; self#json_of_module_kind mk])
-(*		  node "module_functor"
-		[ self#t_of_module_parameter mparam ; self#t_of_module_kind mk]*)
+	  "module_functor", Object ["parameter", self#json_of_module_parameter mparam;
+                                    self#json_of_module_kind mk]
 	| Module_apply (mk1, mk2) ->
-		"module_apply", String "unavailable"
-(*		  node "module_apply"
-		[ self#t_of_module_kind mk1 ; self#t_of_module_kind mk2]*)
+	  "module_apply", Array [ Object [self#json_of_module_kind mk1];
+                                  Object [self#json_of_module_kind mk2]]
 	| Module_with (mk, s) ->
-		"module_with", String "unavailable"
-(*		  node "module_with"
-		[ self#t_of_module_type_kind mk; node "with" [Leaf s] ]*)
+	  "module_with", Object [self#json_of_module_type_kind mk;
+                                 "with", String s]
 	| Module_constraint (mk, mtk) ->
-		self#json_of_module_kind mk
-(*		  node "module_constraint"
-		[ self#t_of_module_kind mk ;
-		  self#t_of_module_type_kind mtk ;
-		]*)
+	  "module_constraint", Object [self#json_of_module_kind mk;
+                                       self#json_of_module_type_kind mtk]
+        | Module_typeof s ->
+          "module_typeof", String s
+        | Module_unpack (s, al) ->
+          "module_unpack", Object (("code", String s) :: self#json_of_module_type_alias al)
 
 	method json_of_module m =
 		let name = "name", String m.Module.m_name in
@@ -533,7 +556,6 @@ class gen () =
 		let mte = "type", String (Odoc_info.string_of_module_type m.Module.m_type) in
 		let mk = self#json_of_module_kind m.Module.m_kind in
 		let info = "info", self#json_of_info_opt m.Module.m_info in
-		
 		(* dependencies *)
 		let p = m.Module.m_name in
 		let ch = m.Module.m_top_deps in

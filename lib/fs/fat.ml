@@ -1255,7 +1255,22 @@ let make_kvro blkif =
 	| _ -> return None in
     return (Some(Lwt_stream.from next)) in
   let iter_s f =
-    let file_list = [] in
+    lwt fs = FS.make () in
+    let rec ls_lR acc path =
+      lwt s = FS.stat fs path in
+      match s with
+      | Success(Stat.Dir(_, ds)) ->
+        let all = ref [] in
+        Lwt_list.fold_left_s
+          (fun acc d ->
+            let fn = Dir_entry.filename_of d in
+            let path' = Path.cd path fn in
+            ls_lR acc path') acc ds
+     | Success(Stat.File f) ->
+        let fn = Dir_entry.filename_of f in
+        return (fn :: acc)
+     | _ -> fail Unknown_key in
+    lwt file_list = ls_lR [] (Path.of_string "/") in
 	Lwt_list.iter_s f file_list in
   object
     method iter_s = iter_s

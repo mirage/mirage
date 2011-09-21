@@ -96,3 +96,12 @@ module type BLOCK = sig
 end
 
 module FATFilesystem : functor(B: BLOCK) -> FS
+
+val make_kvro: <
+  read_page: int64 -> Bitstring.t Lwt.t;
+> ->  <
+  iter_s: (string -> unit Lwt.t) -> unit Lwt.t;
+  read: string -> Bitstring.t Lwt_stream.t option Lwt.t;
+  size: string -> int64 option Lwt.t;
+>
+

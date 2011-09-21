@@ -838,14 +838,20 @@ end
 
 module Path = (struct
   type t = string list (* stored in reverse order *)
-  let of_string_list x = List.rev x
+  let of_string_list x =
+    (* Remove any preceeding '' *)
+    let rec remove_initial_blanks = function
+      | [] -> []
+      | "" :: xs -> remove_initial_blanks xs
+      | x :: xs -> x :: xs in
+    List.rev (remove_initial_blanks x)
   let to_string_list x = List.rev x
 
   let directory = List.tl
   let filename = List.hd
 
   let to_string p = "/" ^ (String.concat "/" (to_string_list p))
-  let of_string s = if s = "/" || s = "" then [] else of_string_list (String.split '/' s)
+  let of_string s = of_string_list (String.split '/' s)
 
   let cd path x = of_string x @ (if x <> "" && x.[0] = '/' then [] else path)
   let is_root p = p = []

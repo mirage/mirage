@@ -998,7 +998,6 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       corresponding to [path] or [None] if [path] cannot be found or if it
       is / and hasn't got a chain. *)
   let chain_of_file x path : int list option Lwt.t =
-	let parent_path = Path.directory path in
 	let chain_of_find_result : find result -> int list option = function
 	  | Success (Dir ds) ->
 		begin match Dir_entry.find (Path.filename path) ds with
@@ -1010,7 +1009,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | _ -> None in
     if Path.is_root path 
 	then Lwt.return None
-    else Lwt.map chain_of_find_result (find x parent_path)
+    else Lwt.map chain_of_find_result (find x (Path.directory path))
 
   (** [write_to_location x path location update] applies [update] to the data given by
       [location]. This will also allocate any additional clusters necessary. *)

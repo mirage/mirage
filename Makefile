@@ -34,3 +34,6 @@ clean:
 	@cd lib && $(MAKE) clean
 	@cd tools && $(MAKE) clean
 	@rm -rf _build
+
+install-el:
+	@cd scripts/caml-mode && $(MAKE) install-el

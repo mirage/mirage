@@ -7,7 +7,7 @@ COMPILECMD=\
 	  (setq load-path (cons "." load-path)) \
 	  (byte-compile-file "caml-types.el"))
 
-nstall:
+install:
 	@if test "$(EMACSDIR)" = ""; then \
 	  set xxx `($(EMACS) --batch --eval "(mapcar 'print load-path)") \
 	           2>/dev/null | \

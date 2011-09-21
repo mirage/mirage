@@ -32,5 +32,5 @@ make install-el
 
 ### Vim
 
-You will the latest version [ocaml-annot](https://github.com/avsm/ocaml-annot) (>= 0.9.1), to be able to display type information for your Mirage projects.
+You will need the latest version [ocaml-annot](https://github.com/avsm/ocaml-annot) (>= 0.9.1), to be able to display type information for your Mirage projects.
 

@@ -1197,3 +1197,57 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | Error x -> Lwt.return (Error x)
 
 end
+
+(* Helper function which uses a blkif#read_page function to implement
+   read_sector *)
+let read_sector blkif x =
+  let page_size_bytes = 4096 in
+  let sector_size_bytes = 512 in
+  let sectors_per_page = page_size_bytes / sector_size_bytes in
+  let page_no = x / sectors_per_page in
+  let sector_no = x mod sectors_per_page in
+  let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
+  lwt page = blkif#read_page offset in
+  Lwt.return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
+
+let write_sector blkif x bs =
+v  failwith "Writing currently unimplemented"
+(*
+      let page_no = x / sectors_per_page in
+          let sector_no = x mod sectors_per_page in
+          lwt page = OS.Blkif.read_page blkif (Int64.of_int page_no) in
+      Bitstring.bitstring_write bs (Int64.of_int (sector_no * sector_size_bytes)) existing_page;
+          lwt () = OS.Blkif.write_page vbd (Int64.of_int page_no) page in
+      ()
+*)
+
+(* key/value pair interface *)
+let make_kvro blkif =
+  let module FS = FATFilesystem(struct
+    let read_sector = read_sector blkif
+    let write_sector = write_sector blkif
+  end) in
+  let path_of_key = Path.of_string in
+  exception Unknown_key
+  let size key =
+    lwt fs = FS.make () in
+    lwt s = FS.stat fs (path_of_key key) in
+    match s with
+      | Success(Stat.File(f)) -> Dir_entry.file_size_of f
+      | _ -> fail (Unknown_key) in
+  let read key =
+    (* Treat the key as a path (a/b/c) etc *)
+    lwt fs = FS.make () in
+    let path = Path.of_string key in
+    let offset = ref 0 in
+    let block_size = 4096;
+    let next () =
+      let toread = max block_size (file_size - offset) in
+      lwt r = FS.read fs path offset block_size in
+      match r with
+	| Success bs ->
+	  offset := !offset + block_size;
+	  Some bs
+	| _ -> None in
+    return (Some(Lwt_stream.from next)) in
+  ()

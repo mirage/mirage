@@ -97,11 +97,5 @@ end
 
 module FATFilesystem : functor(B: BLOCK) -> FS
 
-val make_kvro: <
-  read_page: int64 -> Bitstring.t Lwt.t;
-> ->  <
-  iter_s: (string -> unit Lwt.t) -> unit Lwt.t;
-  read: string -> Bitstring.t Lwt_stream.t option Lwt.t;
-  size: string -> int64 option Lwt.t;
->
+val make_kvro: id:string -> vbd:OS.Devices.blkif -> OS.Devices.kv_ro Lwt.t
 

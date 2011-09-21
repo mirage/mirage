@@ -1223,13 +1223,12 @@ let write_sector blkif x bs =
 
 (* key/value pair interface *)
 
-exception Unknown_key
 open Lwt
 
-let make_kvro blkif =
+let make_kvro ~id ~vbd =
   let module FS = FATFilesystem(struct
-    let read_sector = read_sector blkif
-    let write_sector = write_sector blkif
+    let read_sector = read_sector vbd
+    let write_sector = write_sector vbd
   end) in
   let path_of_key = Path.of_string in
   let size key =
@@ -1263,7 +1262,6 @@ let make_kvro blkif =
       lwt s = FS.stat fs path in
       match s with
       | Success(Stat.Dir(_, ds)) ->
-        let all = ref [] in
         Lwt_list.fold_left_s
           (fun acc d ->
             let fn = Dir_entry.filename_of d in
@@ -1272,11 +1270,53 @@ let make_kvro blkif =
      | Success(Stat.File f) ->
         let fn = Dir_entry.filename_of f in
         return (fn :: acc)
-     | _ -> fail Unknown_key in
+     | _ -> fail (Failure "assert false") in
     lwt file_list = ls_lR [] (Path.of_string "/") in
-	Lwt_list.iter_s f file_list in
-  object
-    method iter_s = iter_s
-    method read = read
-    method size = size
-  end
+    Lwt_list.iter_s f file_list 
+  in
+  return (object
+    method iter_s fn = iter_s fn
+    method read filename = read filename
+    method size filename = size filename
+  end)
+
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  (* KV_RO provider for FAT *)
+  let provider = object(self)
+    method id = "FS.FAT"
+    method plug = plug_mvar
+    method unplug = unplug_mvar
+    method create ~deps ~cfg id =
+      let open OS.Devices in
+      (* One dependency: a Blkif entry to mount *)
+      match deps with
+      |[{node=Blkif vbd} as ent] ->
+         Printf.printf "FS.FAT provider: %s depends on vbd %s\n%!" id ent.id;
+         lwt t = make_kvro ~id ~vbd in
+         return OS.Devices.({
+           provider=self;
+           id=self#id;
+           depends=deps;
+           node=KV_RO t
+         })
+      |_ -> raise_lwt (Failure "bad deps")
+    end
+  in
+  OS.Devices.new_provider provider;
+  OS.Main.at_enter (fun () ->
+    let fs = ref [] in
+    lwt env = OS.Env.argv () in
+    Array.iteri (fun i -> function
+      |"-fat_kv_ro" -> begin
+         match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
+         |[p_id;p_dep_id] ->
+           let p_dep_ids=[p_dep_id] in
+           fs := ({OS.Devices.p_dep_ids; p_cfg=[]; p_id}) :: !fs
+         |_ -> failwith "FS.FAT: bad -fat_kv_ro flag, must be id:dep_id"
+      end
+      |_ -> ()) env;
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
+  )
+

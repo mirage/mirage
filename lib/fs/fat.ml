@@ -1182,7 +1182,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
         let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
         let bs_length = bps - bs_start - bs_trim_from_end in
         if bs_length <> bps
-        then inner (Bitstring.bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
+        then inner (Bitstring.takebits (bs_length * 8) (Bitstring.dropbits (bs_start * 8) data) :: acc) (sector + 1) (bytes_read + bs_length)
         else inner (data :: acc) (sector + 1) (bytes_read + bs_length) in
     lwt bitstrings = inner [] start_sector 0 in
     Lwt.return (Bitstring.concat bitstrings)
@@ -1247,15 +1247,19 @@ let make_kvro ~id ~vbd =
     match file_size with
     | Some file_size ->
       let next () =
-        let toread = max block_size (Int64.to_int file_size - !offset) in
-        lwt r = FS.read fs path !offset toread in
-        match r with
-	  | Success bs ->
-	    offset := !offset + block_size;
-	    return (Some bs)
-	  | _ -> return None in
-      return (Some(Lwt_stream.from next))
-   | None -> return (Some(Lwt_stream.from (fun () -> return None))) in
+        let toread = max 0 (min block_size (Int64.to_int file_size - !offset)) in
+        if toread = 0
+        then return None
+        else begin
+          lwt r = FS.read fs path !offset toread in
+          match r with
+          | Success bs ->
+            offset := !offset + block_size;
+            return (Some bs)
+          | _ -> return None
+        end in
+        return (Some(Lwt_stream.from next))
+	| None -> return (Some(Lwt_stream.from (fun () -> return None))) in
   let iter_s f =
     lwt fs = FS.make () in
     let rec ls_lR acc path =

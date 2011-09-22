@@ -7,6 +7,7 @@ all:
 	$(MB) basic.run
 	$(MB) lwt.run
 	$(MB) block.run
+	$(MB) regexps.run
 
 clean:
 	$(MB) -clean

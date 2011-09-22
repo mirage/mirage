@@ -22,7 +22,13 @@ all:
 doc:
 	@cd docs && $(MAKE) all
 	@cd lib && $(MAKE) doc
-	@./docs/_build/parse.native lib/_build/unix-direct > docs/_build/info.json
+
+doc-json:
+	@./docs/_build/parse.native lib/_build/unix-socket > docs/_build/unix-socket.json
+	@./docs/_build/parse.native lib/_build/unix-direct > docs/_build/unix-direct.json
+	@./docs/_build/parse.native lib/_build/node > docs/_build/node.json
+#	@./docs/_build/parse.native lib/_build/xen > docs/_build/xen.json
+
 
 install:
 	@rm -rf _build

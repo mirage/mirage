@@ -51,7 +51,6 @@ let configure i =
     printf "Manager: VIF %s to DHCP\n%!" i.id;
     lwt t, th = Dhcp.Client.create i.ipv4 i.udp in
     printf "Manager: DHCP done\n%!";
-    th >>
     return ()
   |`IPv4 (addr, netmask, gateways) ->
     printf "Manager: VIF %s to %s nm %s gw [%s]\n%!"

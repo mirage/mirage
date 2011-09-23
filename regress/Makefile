@@ -9,4 +9,6 @@ all:
 	$(MB) block.run
 
 clean:
-	$(MB) -clean
+	# not mir-build as might be cleaning entire install, and have lost
+	# mir-build
+	ocamlbuild -clean 

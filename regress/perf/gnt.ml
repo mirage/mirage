@@ -15,18 +15,16 @@ let rec watchdog () =
 let rec loop () =
   Gnttab.with_grant ~domid:100 ~perm:Gnttab.RW
     (fun gnt ->
-       let _ = Gnttab.page gnt in
-       let _ = Gnttab.detach gnt in
-       incr num;
-       Gc.full_major ();
-       Time.sleep 0.001
+      let _ = Gnttab.page gnt in
+      let _ = Gnttab.detach gnt in
+      incr num;
+      Gc.full_major ();
+      Time.sleep 0.001
     )
-  >>
-  loop ()
+  >> loop ()
 
 let main () =
-  OS.Time.sleep 2.0 >>
-  (printf "start\n%!";
-  watchdog () <&> (loop ()) )
-
-let _ = Main.run (main ())
+  OS.Time.sleep 2.0 
+  >> (printf "start\n%!";
+      watchdog () <&> (loop ())
+  )

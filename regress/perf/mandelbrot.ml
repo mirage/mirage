@@ -30,39 +30,41 @@ let calc size =
     let b = Buffer.create (((ymax - ymin + 1) * w + 7) / 8) in
     for y = ymin to ymax do
       let ci = 2. *. float y /. fh -. 1. in
-        for x = 0 to w - 1 do
-          let cr = 2. *. float x /. fw -. 1.5 in
-            z.r <- 0.; z.i <- 0.;
-            let bit = ref 1 and i = ref niter in
-              while !i > 0 do
-                let zr = z.r and zi = z.i in
-                let zi = 2. *. zr *. zi +. ci and zr = zr *. zr -. zi *. zi +. cr in
-                  z.r <- zr;
-                  z.i <- zi;
-                  decr i;
-                  if zr *. zr +. zi *. zi > limit2 then begin
-                    bit := 0;
-                    i := 0;
-                  end;
-              done;
-              byte := (!byte lsl 1) lor !bit;
-              if x land 0x7 = 7 then Buffer.add_char b (Char.unsafe_chr !byte);
+      for x = 0 to w - 1 do
+        let cr = 2. *. float x /. fw -. 1.5 in
+        z.r <- 0.; z.i <- 0.;
+        let bit = ref 1 and i = ref niter in
+        while !i > 0 do
+          let zr = z.r and zi = z.i in
+          let zi = 2. *. zr *. zi +. ci and zr = zr *. zr -. zi *. zi +. cr in
+          z.r <- zr;
+          z.i <- zi;
+          decr i;
+          if zr *. zr +. zi *. zi > limit2 then begin
+            bit := 0;
+            i := 0;
+          end;
         done;
-        if w mod 8 != 0 then (* the row doesnt divide evenly by 8*)
-          Buffer.add_char b (Char.unsafe_chr (!byte lsl (8-w mod 8)));
-        byte := 0;
+        byte := (!byte lsl 1) lor !bit;
+        if x land 0x7 = 7 then Buffer.add_char b (Char.unsafe_chr !byte);
+      done;
+      if w mod 8 != 0 then (* the row doesnt divide evenly by 8*)
+        Buffer.add_char b (Char.unsafe_chr (!byte lsl (8-w mod 8)));
+      byte := 0;
     done;
     Buffer.contents b in
 
   let dy = h / nworkers in
   let y = ref 0 in
   let rs = Array.init (nworkers - 1)
-             (fun _ -> let y'= !y + dy in let r = (!y, y') in y := y'+1; r) in
+    (fun _ -> let y'= !y + dy in let r = (!y, y') in y := y'+1; r) in
   let _ = Array.map (invoke mandelbrot) (Array.append rs [|!y, h-1|]) in
   w, h
 (* Array.iter (fun w -> output_string stdout (w ())) workers *)
 
-let _ =
+open Lwt
+
+let main () =
   let _ = Gc.create_alarm (fun () -> Printf.printf "gc\n%!") in 
   let sizes = [ 1600; 3200; 10000 ] in
   List.iter (fun sz ->
@@ -70,4 +72,5 @@ let _ =
     let w,h = calc sz in
     let t2 = OS.Clock.time () in
     Printf.printf "%d,%d,%d,%.3f\n%!" sz w h (t2 -. t1)
-  ) sizes
+  ) sizes;
+  return ()

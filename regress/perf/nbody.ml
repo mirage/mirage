@@ -7,7 +7,6 @@
  * Adapted to Mirage by Anil Madhavapeddy
  *)
 
-
 let pi = 3.141592653589793
 let solar_mass = 4. *. pi *. pi
 let days_per_year = 365.24
@@ -20,7 +19,7 @@ let advance bodies dt =
   let n = Array.length bodies - 1 in
   for i = 0 to Array.length bodies - 1 do
     let b = bodies.(i) in
-  for j = i+1 to Array.length bodies - 1 do
+    for j = i+1 to Array.length bodies - 1 do
       let b' = bodies.(j) in
       let dx = b.x -. b'.x  and dy = b.y -. b'.y  and dz = b.z -. b'.z in
       let dist2 = dx *. dx +. dy *. dy +. dz *. dz in
@@ -42,7 +41,6 @@ let advance bodies dt =
     b.z <- b.z +. dt *. b.vz;
   done
 
-
 let energy bodies =
   let e = ref 0. in
   for i = 0 to Array.length bodies - 1 do
@@ -57,7 +55,6 @@ let energy bodies =
   done;
   !e
 
-
 let offset_momentum bodies =
   let px = ref 0. and py = ref 0. and pz = ref 0. in
   for i = 0 to Array.length bodies - 1 do
@@ -68,7 +65,6 @@ let offset_momentum bodies =
   bodies.(0).vx <- -. !px /. solar_mass;
   bodies.(0).vy <- -. !py /. solar_mass;
   bodies.(0).vz <- -. !pz /. solar_mass
-
 
 let jupiter = { x = 4.84143144246472090e+00;
                 y = -1.16032004402742839e+00;
@@ -107,6 +103,7 @@ let sun = { x = 0.;  y = 0.;  z = 0.;  vx = 0.;  vy = 0.; vz = 0.;
 
 let bodies = [| sun; jupiter; saturn; uranus; neptune |]
 
+open Lwt
 open Printf
 open Gc
 
@@ -120,8 +117,12 @@ let print_gc () =
   printf "allocation_policy: %d\n" c.allocation_policy ;
   printf "\n%!"
 
-let t =
-  let ns = [ 50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000; 50000000; 200000000 ] in
+let main () =
+  let ns = [ 
+    50000; 100000; 200000; 500000; 750000; 1000000; 3000000; 10000000;
+    50000000; 200000000 
+  ] 
+  in
   List.iter (fun n ->
     offset_momentum bodies;
     let e1 = energy bodies in
@@ -132,4 +133,5 @@ let t =
     let t2 = OS.Clock.time () in
     printf "%d,%.9f,%.9f,%.3f\n%!" n e1 (energy bodies) (t2 -. t1);
   ) ns;
-  printf "done\n%!"
+  printf "done\n%!";
+  return ()

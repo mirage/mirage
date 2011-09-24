@@ -176,8 +176,8 @@ let plug (id:id) =
     wrfn "protocol" "x86_64-abi" >>
     wrfn "state" Xb.State.(to_string Connected) 
   )) >>
-  lwt monitor_t = Xs.(monitor_paths Xs.t
-    [sprintf "%s/state" backend, "XXX"] 20. 
+  lwt monitor_t = Xs.(monitor_path Xs.t
+    (sprintf "%s/state" backend, "XXX") 20. 
     (fun (k,_) ->
         lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
 	    return Xb_state.(of_string state = Connected)
@@ -206,6 +206,8 @@ let plug (id:id) =
   Evtchn.unmask evtchn;
   let t = { backend_id; backend; vdev; ring; gnt; evtchn; features } in
   Hashtbl.add devices id t;
+  (* Start the background poll thread *)
+  let _ = poll t in
   return t
 
 (* Unplug shouldn't block, although the Xen one might need to due
@@ -248,7 +250,9 @@ let read_page t offset =
               |Error -> fail (IO_error "read")
               |Not_supported -> fail (IO_error "unsupported")
               |Unknown _ -> fail (IO_error "unknown error")
-              |OK -> return (Io_page.to_bitstring page))
+              |OK ->
+				  let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring (Io_page.to_bitstring page)) in
+				  return copy)
             )
         )
     )
@@ -349,6 +353,7 @@ let create ~id : Devices.blkif Lwt.t =
   return (object
     method id = id
     method read_page = read_page dev
+    method write_page = write_page dev
     method sector_size = 4096
     method ppname = sprintf "Xen.blkif:%s" id
     method destroy = unplug id
@@ -375,6 +380,8 @@ let _ =
   Devices.new_provider provider;
   (* Iterate over the plugged in VBDs and plug them in *)
   Main.at_enter (fun () ->
+    (* Hack to let console attach before crash :) *)
+    Time.sleep 1.0 >>
     lwt ids = enumerate () in
 	let vbds = List.map (fun id ->
 		{ Devices.p_dep_ids = []; p_cfg = []; p_id = id }

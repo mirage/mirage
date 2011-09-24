@@ -727,6 +727,7 @@ module Dir_entry = struct
         | (offset, b) :: bs ->
           begin match of_bitstring b with
 	    | Dos { deleted = true }
+        | Dos { volume = true } (* pretend the volume label doesn't exist *)
 	    | Lfn { lfn_deleted = true } -> inner lfns acc bs
 
             | Lfn lfn -> inner ((offset, lfn) :: lfns) acc bs
@@ -837,14 +838,20 @@ end
 
 module Path = (struct
   type t = string list (* stored in reverse order *)
-  let of_string_list x = List.rev x
+  let of_string_list x =
+    (* Remove any preceeding '' *)
+    let rec remove_initial_blanks = function
+      | [] -> []
+      | "" :: xs -> remove_initial_blanks xs
+      | x :: xs -> x :: xs in
+    List.rev (remove_initial_blanks x)
   let to_string_list x = List.rev x
 
   let directory = List.tl
   let filename = List.hd
 
   let to_string p = "/" ^ (String.concat "/" (to_string_list p))
-  let of_string s = if s = "/" || s = "" then [] else of_string_list (String.split '/' s)
+  let of_string s = of_string_list (String.split '/' s)
 
   let cd path x = of_string x @ (if x <> "" && x.[0] = '/' then [] else path)
   let is_root p = p = []
@@ -921,7 +928,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
     mutable root: Bitstring.t;   (** contains the root directory *)
   }
   let read_sectors ss =
-    Lwt.map Bitstring.concat (Lwt_util.map B.read_sector ss)
+    Lwt.map Bitstring.concat (Lwt_list.map_s B.read_sector ss)
 
   let make () = 
     lwt boot_sector = B.read_sector 0 in
@@ -997,7 +1004,6 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       corresponding to [path] or [None] if [path] cannot be found or if it
       is / and hasn't got a chain. *)
   let chain_of_file x path : int list option Lwt.t =
-	let parent_path = Path.directory path in
 	let chain_of_find_result : find result -> int list option = function
 	  | Success (Dir ds) ->
 		begin match Dir_entry.find (Path.filename path) ds with
@@ -1009,7 +1015,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | _ -> None in
     if Path.is_root path 
 	then Lwt.return None
-    else Lwt.map chain_of_find_result (find x parent_path)
+    else Lwt.map chain_of_find_result (find x (Path.directory path))
 
   (** [write_to_location x path location update] applies [update] to the data given by
       [location]. This will also allocate any additional clusters necessary. *)
@@ -1048,7 +1054,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
         let data_writes = Update.map_updates updates (sectors @ new_sectors) bps in
         lwt () = Lwt_util.iter_serial (write_update x) data_writes in
         lwt () = Lwt_util.iter_serial (write_update x) fat_writes in
-        update_directory_containing x path
+        lwt (_: unit result) = update_directory_containing x path
           (fun bits ds ->
             let enoent = Error(No_directory_entry (Path.directory path, Path.filename path)) in
 	        let filename = Path.filename path in
@@ -1065,7 +1071,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
               | x ->
                 Success x
               end
-         );
+         ) in
        x.fat <- List.fold_left (fun fat update -> Update.apply fat update) x.fat fat_allocations;
        Lwt.return (Success ())
 
@@ -1181,7 +1187,7 @@ module FATFilesystem = functor(B: BLOCK) -> struct
         let bs_trim_from_end = max 0 ((sector + 1) * bps - the_end) in
         let bs_length = bps - bs_start - bs_trim_from_end in
         if bs_length <> bps
-        then inner (Bitstring.bitstring_clip data bs_start (bs_length * 8) :: acc) (sector + 1) (bytes_read + bs_length)
+        then inner (Bitstring.takebits (bs_length * 8) (Bitstring.dropbits (bs_start * 8) data) :: acc) (sector + 1) (bytes_read + bs_length)
         else inner (data :: acc) (sector + 1) (bytes_read + bs_length) in
     lwt bitstrings = inner [] start_sector 0 in
     Lwt.return (Bitstring.concat bitstrings)
@@ -1196,3 +1202,131 @@ module FATFilesystem = functor(B: BLOCK) -> struct
       | Error x -> Lwt.return (Error x)
 
 end
+
+(* Helper function which uses a blkif#read_page function to implement
+   read_sector *)
+let read_sector blkif x =
+  let page_size_bytes = 4096 in
+  let sector_size_bytes = 512 in
+  let sectors_per_page = page_size_bytes / sector_size_bytes in
+  let page_no = x / sectors_per_page in
+  let sector_no = x mod sectors_per_page in
+  let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
+  lwt page = blkif#read_page offset in
+  Lwt.return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
+
+let write_sector blkif x bs =
+  let page_size_bytes = 4096 in
+  let sector_size_bytes = 512 in
+  let sectors_per_page = page_size_bytes / sector_size_bytes in
+  let page_no = x / sectors_per_page in
+  let sector_no = x mod sectors_per_page in
+  let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
+  lwt page = blkif#read_page offset in
+  Bitstring.bitstring_write bs (sector_no * sector_size_bytes) page;
+  lwt () = blkif#write_page offset page in
+  Lwt.return ()
+
+(* key/value pair interface *)
+
+open Lwt
+
+let make_kvro ~id ~vbd =
+  let module FS = FATFilesystem(struct
+    let read_sector = read_sector vbd
+    let write_sector = write_sector vbd
+  end) in
+  let path_of_key = Path.of_string in
+  let size key =
+    lwt fs = FS.make () in
+    lwt s = FS.stat fs (path_of_key key) in
+    match s with
+      | Success(Stat.File(f)) -> return (Some(Int64.of_int (Int32.to_int (Dir_entry.file_size_of f))))
+      | _ -> return None in
+  let read key =
+    (* Treat the key as a path (a/b/c) etc *)
+    lwt fs = FS.make () in
+    let path = Path.of_string key in
+    let offset = ref 0 in
+    let block_size = 4096 in
+	lwt file_size = size key in
+    match file_size with
+    | Some file_size ->
+      let next () =
+        let toread = max 0 (min block_size (Int64.to_int file_size - !offset)) in
+        if toread = 0
+        then return None
+        else begin
+          lwt r = FS.read fs path !offset toread in
+          match r with
+          | Success bs ->
+            offset := !offset + block_size;
+            return (Some bs)
+          | _ -> return None
+        end in
+        return (Some(Lwt_stream.from next))
+	| None -> return (Some(Lwt_stream.from (fun () -> return None))) in
+  let iter_s f =
+    lwt fs = FS.make () in
+    let rec ls_lR acc path =
+      lwt s = FS.stat fs path in
+      match s with
+      | Success(Stat.Dir(_, ds)) ->
+        Lwt_list.fold_left_s
+          (fun acc d ->
+            let fn = Dir_entry.filename_of d in
+            let path' = Path.cd path fn in
+            ls_lR acc path') acc ds
+     | Success(Stat.File f) ->
+        let fn = Dir_entry.filename_of f in
+        return (fn :: acc)
+     | _ -> fail (Failure "assert false") in
+    lwt file_list = ls_lR [] (Path.of_string "/") in
+    Lwt_list.iter_s f file_list 
+  in
+  return (object
+    method iter_s fn = iter_s fn
+    method read filename = read filename
+    method size filename = size filename
+  end)
+
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  (* KV_RO provider for FAT *)
+  let provider = object(self)
+    method id = "FS.FAT"
+    method plug = plug_mvar
+    method unplug = unplug_mvar
+    method create ~deps ~cfg id =
+      let open OS.Devices in
+      (* One dependency: a Blkif entry to mount *)
+      match deps with
+      |[{node=Blkif vbd} ] ->
+(*          Printf.printf "FS.FAT provider: %s depends on vbd %s\n%!" id ent.id;*)
+         lwt t = make_kvro ~id ~vbd in
+         return OS.Devices.({
+           provider=self;
+           id=self#id;
+           depends=deps;
+           node=KV_RO t
+         })
+      |_ -> raise_lwt (Failure "bad deps")
+    end
+  in
+  OS.Devices.new_provider provider;
+  OS.Main.at_enter (fun () ->
+    let fs = ref [] in
+    lwt env = OS.Env.argv () in
+    Array.iteri (fun i -> function
+      |"-fat_kv_ro" -> begin
+         match Regexp.Re.(split_delim (from_string ":") env.(i+1)) with
+         |[p_id;p_dep_id] ->
+           let p_dep_ids=[p_dep_id] in
+           fs := ({OS.Devices.p_dep_ids; p_cfg=[]; p_id}) :: !fs
+         |_ -> failwith "FS.FAT: bad -fat_kv_ro flag, must be id:dep_id"
+      end
+      |_ -> ()) env;
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
+  )
+

@@ -40,6 +40,7 @@
 #include <fcntl.h>
 #include <xen/features.h>
 #include <xen/version.h>
+#include <log.h>
 
 int app_main(start_info_t *);
 void do_exit(void);

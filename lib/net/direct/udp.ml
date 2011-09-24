@@ -37,7 +37,6 @@ let input t ~src ~dst pkt =
    header for checksum calculation. Although we currently just
    set the checksum to 0 as it is optional *)
 let output t ~dest_ip ~source_port ~dest_port pkt =
-  let src = ipv4_addr_to_uint32 (Ipv4.get_ip t.ip) in
   let length = Bitstring.bitstring_length pkt / 8 + 8 in
   let header = BITSTRING { source_port:16; dest_port:16; length:16; 0:16 } in
   Ipv4.output t.ip ~proto:`UDP ~dest_ip [header; pkt]

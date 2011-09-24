@@ -23,6 +23,13 @@ doc:
 	@cd docs && $(MAKE) all
 	@cd lib && $(MAKE) doc
 
+doc-json:
+	@./docs/_build/parse.native lib/_build/unix-socket > docs/_build/unix-socket.json
+	@./docs/_build/parse.native lib/_build/unix-direct > docs/_build/unix-direct.json
+	@./docs/_build/parse.native lib/_build/node > docs/_build/node.json
+#	@./docs/_build/parse.native lib/_build/xen > docs/_build/xen.json
+
+
 install:
 	@rm -rf _build
 	@./assemble.sh
@@ -34,3 +41,6 @@ clean:
 	@cd lib && $(MAKE) clean
 	@cd tools && $(MAKE) clean
 	@rm -rf _build
+
+install-el:
+	@cd scripts/caml-mode && $(MAKE) install-el

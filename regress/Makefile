@@ -1,13 +1,13 @@
 .PHONY: clean all
 
 JOBS ?= -j 5
-OC=ocamlbuild $(JOBS)
+MB=mir-build $(JOBS)
 
 all:
-	$(OC) basic.run
-	$(OC) lwt.run
-	$(OC) block.run
-	$(OC) regexps.run
+	$(MB) basic.run
+	$(MB) lwt.run
+	$(MB) block.run
+	$(MB) regexps.run
 
 clean:
-	$(OC) -clean
+	$(MB) -clean

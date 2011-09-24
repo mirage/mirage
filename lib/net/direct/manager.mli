@@ -36,3 +36,4 @@ val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
 
 val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t list
 val udpv4_of_addr : t -> ipv4_addr option -> Udp.t list
+val ipv4_of_interface : interface -> Ipv4.t

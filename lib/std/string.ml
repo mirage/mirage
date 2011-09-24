@@ -225,3 +225,6 @@ let isspace = function
   | ' ' | '\n' | '\r' | '\t' -> true
   | _ -> false
 
+let index_between s i l c =
+  if i < 0 || i > l || l > length s then invalid_arg "String.index_between" else
+  index_rec s l i c

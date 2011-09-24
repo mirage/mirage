@@ -203,7 +203,15 @@ val split: ?limit:int -> char -> t -> t list
     the maximum size of the resulting list, where the final element may
     contain further delimiter characters. *)
 
+val index_between : string -> int -> int -> char -> int
+(** [String.between s i l c] returns the character number of the
+   first occurrence of character [c] in string [s] after position [i]
+   and before position [l].
 
+   Raise [Invalid_argument] if [i] is not a valid position in [s] or
+   is greater than [l].
+   Raise [Not_found] if [c] does not occur in [s] after position [i]
+   and before position [l]. *)
 
 (**/**)
 

@@ -65,7 +65,7 @@ external readdir: dir -> string resp = "caml_readdir"
 external closedir: dir -> unit resp = "caml_closedir"
 
 external read: [<`udpv4|`tcpv4|`rd_pipe|`ro_file|`rw_file|`tap] fd -> string -> int -> int -> int resp = "caml_socket_read"
-external write: [<`udpv4|`tcpv4|`wr_pipe|`tap] fd -> string -> int -> int -> int resp = "caml_socket_write"
+external write: [<`udpv4|`tcpv4|`wr_pipe|`tap|`rw_file] fd -> string -> int -> int -> int resp = "caml_socket_write"
 external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe|`ro_file|`rw_file|`tap] fd -> unit = "caml_socket_close"
 
 external opentap: string -> [`tap ] fd = "tap_opendev"
@@ -81,9 +81,9 @@ let rec fdbind actfn iofn fd =
   |Err err -> fail (Error err)
   |Retry -> fdbind actfn iofn fd
 
-(** Same as fdbind, except on functions that will either be Some or None *)
+(** Same as fdbind, except on functions that do not need an Activation (e.g. disk fds) *)
 let rec iobind iofn arg =
   match iofn arg with
   |OK x -> return x
   |Err err -> fail (Error err)
-  |Retry -> assert false
+  |Retry -> iobind iofn arg

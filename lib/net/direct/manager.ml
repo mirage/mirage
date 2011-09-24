@@ -51,7 +51,6 @@ let configure i =
     printf "Manager: VIF %s to DHCP\n%!" i.id;
     lwt t, th = Dhcp.Client.create i.ipv4 i.udp in
     printf "Manager: DHCP done\n%!";
-    th >>
     return ()
   |`IPv4 (addr, netmask, gateways) ->
     printf "Manager: VIF %s to %s nm %s gw [%s]\n%!"
@@ -98,7 +97,7 @@ let create listener =
   printf "Manager: create\n%!";
   let listeners = Hashtbl.create 1 in
   let t = { listener; listeners } in
-  let os = OS.Netif.create (plug t) in
+  let _ = OS.Netif.create (plug t) in
   let th,_ = Lwt.task () in
   Lwt.on_cancel th (fun _ ->
     printf "Manager: cancel\n%!";
@@ -125,3 +124,6 @@ let tcpv4_of_addr t addr =
 (* TODO: do actual route selection *)
 let udpv4_of_addr (t:t) addr =
   List.map (fun x -> x.udp) (i_of_ip t addr)
+
+let ipv4_of_interface (t:interface) = 
+  t.ipv4

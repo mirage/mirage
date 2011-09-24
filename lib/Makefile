@@ -1,7 +1,7 @@
 .PHONY: all unix clean
 
 JOBS ?= -j 4
-OFLAGS ?= -classic-display
+OFLAGS ?= # -classic-display
 
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)

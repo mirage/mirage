@@ -6,6 +6,8 @@
 mkdir -p tmp
 cd tmp
 echo 12345 > bar
+# bigger file
+dd if=/dev/zero of=bar2 count=512 bs=1024
+echo 12345 >> bar2
 mir-crunch -name foo . > ../crunch_kv_ro.ml
-cd ..
 rm -rf tmp

@@ -76,7 +76,7 @@ let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
   let pad = String.make 10 '\000' in
   let options = Option.Packet.to_bytes options in
   let pkt = BITSTRING {
-    1:8; 1:8; 0:8; xid:32; secs:16; false:1; 0:15; 
+    1:8; 1:8; 6:8; 0:8; xid:32; secs:16; false:1; 0:15; 
     ciaddr:32; yiaddr:32; siaddr:32; giaddr:32; chaddr:48:string; pad:80:string;
     sname:512:string; file:1024:string; 0x63825363l:32; options:-1:string
   } in
@@ -91,9 +91,15 @@ let input t ~src ~dst ~source_port pkt =
       yiaddr:32:bind(ipv4_addr_of_uint32 yiaddr);
       siaddr:32:bind(ipv4_addr_of_uint32 siaddr);
       giaddr:32:bind(ipv4_addr_of_uint32 giaddr);
-      chaddr:48:bitstring; pad:80:bitstring;
+      chaddr:48:bitstring; _:80:bitstring; (* pad *)
       sname:512:bitstring; file:1024:bitstring; 0x63825363l:32; options:-1:string } ->
     let packet = Option.Packet.of_bytes options in
+    (* For debugging, print out the DHCP response *)
+    Printf.printf "DHCP: input ciaddr %s yiaddr %s siaddr %s giaddr %s chaddr %s sname %s file %s\n"
+      (ipv4_addr_to_string ciaddr) (ipv4_addr_to_string yiaddr)
+      (ipv4_addr_to_string siaddr) (ipv4_addr_to_string giaddr)
+      (Bitstring.string_of_bitstring chaddr) (Bitstring.string_of_bitstring sname)
+      (Bitstring.string_of_bitstring file);
     (* See what state our Netif is in and if this packet is useful *)
     Option.Packet.(match t.state with
     | Request_sent xid -> begin
@@ -109,10 +115,21 @@ let input t ~src ~dst ~source_port pkt =
               (function `DNS_server addrs -> Some addrs |_ -> None) in
             let lease = 0l in
             let offer = { ip_addr=yiaddr; netmask; gateways; dns; lease; xid } in
-            let options = { op=`Request; opts= [
-                `Requested_ip yiaddr;
-                `Server_identifier siaddr;
-              ] } in
+            (* RFC2131 defines the 'siaddr' as the address of the server which
+               will take part in the next stage of the bootstrap process (eg
+               'delivery of an operating system executable image'). This
+               may or may not be the address of the DHCP server. However
+               'a DHCP server always returns its own address in the server
+               identifier option' *)
+            let server_identifier = find packet
+              (function `Server_identifier addr -> Some addr | _ -> None) in
+            let options = { op=`Request; opts=
+                `Requested_ip yiaddr :: (
+                  match server_identifier with
+                  | Some x -> [ `Server_identifier x ]
+                  | None -> []
+                )
+            } in
             t.state <- Offer_accepted offer;
             output_broadcast t ~xid ~yiaddr ~siaddr ~options
         end

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [ $# -ne 2 ]; then
+  cat << __EOF__
+Construct FAT12 image for Mirage.
+Usage $0: <rootdir> <output.img>
+__EOF__
+
+  exit 1
+fi
+  
+INPUT=$1
+OUTPUT=$2
+[ ! -d ${INPUT} ] && exit 1
+
+case `uname -s` in
+  Darwin )
+    # -F 12 = FAT12
+    # -f 2880 = standard format, 1.4MB floppy :)
+    
+    # NB. this creates a boot sector with reserved_sectors=0x08;
+    # mirage fat implementation expects 0x00.
+
+    hdiutil create -ov -format UDRW -scrub \
+      -fsargs "-F 12 -f 2880" -fs MS-DOS -volname MirageFAT \
+      -srcfolder ${INPUT} -o ${OUTPUT}
+    mv ${OUTPUT}.dmg ${OUTPUT}
+  ;;
+
+  Linux )
+    dd if=/dev/zero of=${OUTPUT} bs=1 seek=128M count=0
+    /sbin/mkfs.msdos -n MirageFAT -F 16 -v ${OUTPUT}
+    rm -rf tmpmount && mkdir tmpmount
+    sudo mount -o loop ${OUTPUT} tmpmount
+    sudo cp -r ${INPUT} tmpmount
+    sudo umount tmpmount && rmdir tmpmount
+  ;;
+
+  * )
+    echo Unknown OS detected
+    exit 1
+  ;;
+esac

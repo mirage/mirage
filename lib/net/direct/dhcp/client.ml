@@ -174,9 +174,9 @@ let start_discovery t =
 let rec dhcp_thread t =
   (* For now, just send out regular discoveries until we have a lease *)
   match t.state with
-  |Disabled ->
+  |Disabled |Request_sent _ ->
     start_discovery t >>
-    OS.Time.sleep 60. >>
+    OS.Time.sleep 10. >>
     dhcp_thread t
   |Shutting_down ->
     printf "DHCP thread: done\n%!";

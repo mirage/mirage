@@ -50,7 +50,7 @@ let ethernet_mac_broadcast = String.make 6 '\255'
 type ipv4_addr = int32
 
 let ipv4_addr_of_tuple (a,b,c,d) =
-  let in_range x = Int32.zero = x && x <= 255l in
+  let in_range x = Int32.zero <= x && x <= 255l in
   assert (in_range a);
   assert (in_range b);
   assert (in_range c);

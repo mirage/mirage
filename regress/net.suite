@@ -2,3 +2,4 @@ net/ping
 net/flow_echo
 net/tcp_echo
 net/channel_echo
+net/datagram_echo

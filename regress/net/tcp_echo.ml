@@ -1,50 +1,67 @@
-open Net
+(*
+ * Copyright (c) 2011 Richard Mortier <mort@cantab.net>
+ * Derived from code by Anil Madhavapeddy <anil@recoil.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
 open Lwt 
 open Printf
-open Nettypes
-open Mlnet
 
-let ipaddr = match ipv4_addr_of_string "10.0.0.2" with Some x -> x |None -> assert false
-let nm = match ipv4_addr_of_string "255.255.255.0" with Some x -> x |None -> assert false
-
+let port = 55555
 let use_dhcp = false
 
-let main () =
-  OS.Console.log (sprintf "start");
-  lwt vifs = OS.Ethif.enumerate () in
-  OS.Console.log (sprintf "found %d VIFs" (List.length vifs));
-  let vif_t = List.map (fun id ->
-    lwt (ip,ip_t) = Ipv4.create id in
-    let (icmp,icmp_t) = Icmp.create ip in
-    let (udp,udp_t) = Udp.create ip in
-    let ipaddr_t = (match use_dhcp with
-    | true -> 
-      lwt (dhcp,dhcp_t) = Dhcp.Client.create ip udp in
-      dhcp_t
-    | false ->
-      Ipv4.set_netmask ip nm >>
-      Ipv4.set_ip ip ipaddr >>
-      return ()
-    ) in
-    let (tcp,tcp_t) = Tcp.create ip in
-    Tcp.listen tcp 23 (fun pcb ->
-      OS.Console.log "TCP: new connection on port 23";
-      let rec fn () =
-        lwt r = Tcp.read pcb in
-        match r with
-        |None ->
-          OS.Console.log "MAIN: RX Connection closed"; 
-          Tcp.close pcb
-        |Some v ->
-          let len = Int32.of_int (OS.Istring.length v) in
-          Tcp.write_wait_for pcb len >>
-          Tcp.write pcb (`Frag v) >>
-          fn ()
-      in fn ()
-    );
-    join [ ip_t; icmp_t; udp_t; ipaddr_t; tcp_t ]
-  ) vifs in
-  pick (OS.Time.sleep 120. :: vif_t) >>
-  return (OS.Console.log "success\n%!")
+let ip = Net.Nettypes.(
+  (ipv4_addr_of_tuple (10l,0l,0l,2l),
+   ipv4_addr_of_tuple (255l,255l,255l,0l),
+   [ ipv4_addr_of_tuple (10l,0l,0l,1l) ]
+  ))
 
-let _ = OS.Main.run (main ())
+let rec echo (rip,rpt) pcb = 
+  Log.info "Tcp_echo" "incoming: rem:%s:%d" 
+    (Net.Nettypes.ipv4_addr_to_string rip) rpt;
+
+  Net.(
+    match_lwt Tcp.Pcb.read pcb with
+      | None
+        -> (Log.info "Tcp_echo" "rem:%s:%d end"
+              (Nettypes.ipv4_addr_to_string rip) rpt;
+            Tcp.Pcb.close pcb
+        )
+      | Some bits
+        -> (let s = Bitstring.string_of_bitstring bits in
+            Log.info "Tcp_echo" "rem:%s:%d buf:\n%s"
+              (Nettypes.ipv4_addr_to_string rip) rpt s;
+            
+            let len = Bitstring.bitstring_length bits in
+            Tcp.Pcb.write_wait_for pcb len
+            >> Tcp.Pcb.write pcb bits
+            >> echo (rip,rpt) pcb
+        )
+  )
+
+let main () =
+  Log.info "Tcp_echo" "starting server";
+  Net.(Manager.create (fun mgr interface id ->
+    lwt () = (match use_dhcp with
+      | false -> Manager.configure interface (`IPv4 ip)
+      | true -> Manager.configure interface (`DHCP)
+    )
+    in
+    let ipv4 = Manager.ipv4_of_interface interface in
+    let _, icmp_th = Icmp.create ipv4 in
+    let tcp, tcp_th = Tcp.Pcb.create ipv4 in
+    Tcp.Pcb.listen tcp port echo
+    >> (icmp_th <?> tcp_th)
+  ))
+  >> return (Log.info "Tcp_echo" "success")

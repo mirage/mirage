@@ -37,8 +37,6 @@ module Make(Flow:FLOW) :
     abort_u: unit Lwt.u;
   }
 
-  exception Closed
-
   let create flow =
     let ibuf = "",0,0 in
     let obuf = [] in

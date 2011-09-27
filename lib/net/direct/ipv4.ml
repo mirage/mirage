@@ -62,7 +62,7 @@ let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
   let tlen = (List.fold_left (fun a b -> 
     Bitstring.bitstring_length b + a) 0 pkt) / 8 + (ihl * 4) in
   let tos = 0 in
-  let ipid = 17 in (* TODO support ipid *)
+  let ipid = Random.int 65535 in (* TODO support ipid *)
   let flags = 0 in (* TODO expose DF/MF frag flags *)
   let fragoff = 0 in
   let proto = match proto with |`ICMP -> 1 |`TCP -> 6 |`UDP -> 17 in

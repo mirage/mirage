@@ -34,7 +34,7 @@ case `uname -s` in
     /sbin/mkfs.msdos -n MirageFAT -F 16 -v ${OUTPUT}
     rm -rf tmpmount && mkdir tmpmount
     sudo mount -o loop ${OUTPUT} tmpmount
-    sudo cp -r ${INPUT} tmpmount
+    sudo cp -r ${INPUT}/* tmpmount
     sudo umount tmpmount && rmdir tmpmount
   ;;
 

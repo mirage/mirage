@@ -1,3 +1,5 @@
+(*pp camlp4orf *)
+
 (******************************************************************************
  *                             Type-conv                                      *
  *                                                                            *
@@ -160,46 +162,44 @@ let rm_sig_generator ?(is_exn = false) id =
 (* General purpose code generation module *)
 
 module Gen = struct
-
   let gensym =
     let cnt = ref 0 in
-    fun ?(prefix="_x") () ->
+    fun ?(prefix = "_x") () ->
       incr cnt;
       sprintf "%s__%03i_" prefix !cnt
 
-  (* Like ast.exSem_of_list but for application *)
+  (* Like Ast.exSem_of_list but for application *)
   let exApp_of_list l =
-    let rec aux =
-      function
-        | [] -> Ast.ExNil Loc.ghost
-        | [x] -> x
-        | x :: xs ->
-          let loc = Ast.loc_of_expr x
-          in <:expr@loc< $aux xs$ $x$ >>
-    (* App associativity *)
-    in aux (List.rev l)
+    let rec aux = function
+      | [] -> Ast.ExNil Loc.ghost
+      | [x] -> x
+      | x :: xs ->
+        let loc = Ast.loc_of_expr x in
+        <:expr@loc< $aux xs$ $x$ >>
+    in
+    aux (List.rev l)
 
   let rec tyArr_of_list = function
     | [] -> Ast.TyNil Loc.ghost
-    | [ x ] -> x
+    | [x] -> x
     | x :: xs ->
       let loc = loc_of_ctyp x in
       <:ctyp@loc< $x$ -> $tyArr_of_list xs$ >>
 
   let rec paOr_of_list = function
     | [] -> Ast.PaNil Loc.ghost
-    | [ x ] -> x
+    | [x] -> x
     | x :: xs ->
       let loc = loc_of_patt x in
       <:patt@loc< $x$ | $paOr_of_list xs$ >>
 
+  module PP = Camlp4.Printers.OCaml.Make (Syntax)
+  let conv_ctyp = (new PP.printer ())#ctyp
+
   let string_of_ctyp ctyp =
-    let module PP = Camlp4.Printers.OCaml.Make (Syntax) in
-    let conv_ctyp = (new PP.printer ())#ctyp in
-    let buffer    = Buffer.create 32 in
-    Format.bprintf buffer "%a%!" conv_ctyp ctyp;
-    let s = Buffer.contents buffer in
-    s
+    let buffer = Buffer.create 32 in
+    Format.bprintf buffer "%a@?" conv_ctyp ctyp;
+    Buffer.contents buffer
 
   let error tp ~fn ~msg =
     let loc = Ast.loc_of_ctyp tp in
@@ -239,9 +239,6 @@ module Gen = struct
   let abstract _loc = List.fold_right (fun p e -> <:expr< fun $p$ -> $e$ >>)
   let apply _loc = List.fold_left (fun f arg -> <:expr< $f$ $arg$ >>)
 
-  let idp _loc id = <:patt< $lid:id$ >>
-  let ide _loc id = <:expr< $lid:id$ >>
-
   let switch_tp_def ~alias ~sum ~record ~variants ~mani ~nil tp =
     let rec loop = function
       | <:ctyp< private $tp$ >> -> loop tp
@@ -273,6 +270,7 @@ module Gen = struct
     | tp -> error tp ~fn:"get_tparam_id" ~msg:"not a type parameter"
 
   let type_is_recursive type_name tp =
+    let bad_type tp = unknown_type tp "type_is_recursive" in
     let rec loop = function
       | <:ctyp< private $tp$>> -> loop tp
       | <:ctyp< $tp1$ $tp2$ >>
@@ -282,18 +280,19 @@ module Gen = struct
       | <:ctyp< $tp1$ == $tp2$ >>
       | <:ctyp< $tp1$ and $tp2$ >>
       | <:ctyp< $tp1$ & $tp2$ >>
-      | <:ctyp< $tp1$,$tp2$ >>
+      | <:ctyp< $tp1$, $tp2$ >>
+      | <:ctyp< [ < $tp1$ > $tp2$ ] >>
       | <:ctyp< $tp1$ | $tp2$ >> -> loop tp1 || loop tp2
       | <:ctyp< ( $tup:tp$ ) >> | <:ctyp< { $tp$ } >>
       | <:ctyp< [ $tp$ ] >>
       | <:ctyp< $_$ : $tp$ >>
       | <:ctyp< ~ $_$ : $tp$ >>
       | <:ctyp< ? $_$ : $tp$ >>
-      | <:ctyp< < $tp$ ; $..:_$ > >>
+      | <:ctyp< < $tp$; $..:_$ > >>
       | <:ctyp< mutable $tp$ >>
       | <:ctyp< $_$ of & $tp$ >>
       | <:ctyp< $_$ of $tp$ >>
-      | <:ctyp< [ < $_$ > $tp$ ] >>
+      | <:ctyp< $tp$ as $_$ >>
       | <:ctyp< [< $tp$ ] >> | <:ctyp< [> $tp$ ] >> | <:ctyp< [= $tp$ ] >>
       | <:ctyp< ! $_$ . $tp$ >> -> loop tp
       | <:ctyp< $lid:id$ >> -> id = type_name
@@ -305,11 +304,29 @@ module Gen = struct
       | <:ctyp< +'$_$ >>
       | <:ctyp< _ >>
       | <:ctyp< >> -> false
-      |( Ast.TyDcl _
-       | <:ctyp< $_$ as $_$ >>
-       | <:ctyp< (module $_$) >>
-       | (Ast.TyAnt _)) as tp ->
-        unknown_type tp "type_is_recursive"
+      | <:ctyp< (module $module_type$) >> -> loop_module_type module_type
+      | Ast.TyDcl _
+      | Ast.TyAnt _ as tp -> bad_type tp
+    and loop_module_type = function
+      | <:module_type< $module_type$ with $with_constr$ >> ->
+          let rec loop_with_constr = function
+            | <:with_constr< type $_$ = $tp$ >>
+            | <:with_constr< type $_$ := $tp$ >> -> loop tp
+            | <:with_constr< $wc1$ and $wc2$ >> ->
+                loop_with_constr wc1 || loop_with_constr wc2
+            | <:with_constr< module $_$ = $_$ >>
+            | <:with_constr< module $_$ := $_$ >>
+            | <:with_constr< >> -> false
+            | Ast.WcAnt _ -> bad_type tp
+          in
+          loop_with_constr with_constr || loop_module_type module_type
+      | <:module_type< $id:_$ >>
+      | <:module_type< '$_$ >>
+      | <:module_type< >> -> false
+      | <:module_type< functor ($_$ : $_$) -> $_$ >>
+      | <:module_type< sig $_$ end >>
+      | <:module_type< module type of $_$ >>
+      | Ast.MtAnt _ -> bad_type tp
     in
     loop tp
 

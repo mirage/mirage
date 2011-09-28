@@ -90,31 +90,32 @@ val hash_variant : string -> int
 (** {6 General purpose code generation module} *)
 
 module Gen : sig
-
   val exApp_of_list : expr list -> expr
-  (** [expr_app_of_list l] takes a list of expressions [e1;e2;e3...] and returns
-      the expression [e1 e2 e3]. c.f.: Ast.exSem_of_list *)
+  (** [expr_app_of_list l] takes list [l] of expressions [e1; e2; e3; ...]
+      and returns the expression [e1 e2 e3].  C.f.: [Ast.exSem_of_list]. *)
 
   val tyArr_of_list : ctyp list -> ctyp
-  (** [tyArr_of_list l] takes a list of types [e1;e2;e3...] and returns
-      the type [e1 e2 e3]. c.f.: Ast.exSem_of_list *)
+  (** [tyArr_of_list l] takes list [l] of types [e1; e2; e3; ...] and
+      returns the type [e1 e2 e3].  C.f.: [Ast.exSem_of_list]. *)
 
   val paOr_of_list : patt list -> patt
-  (** [paOr_of_list l] takes a list of patterns [p1;p2;p3...] and returns the
-      pattern [p1 | p2 | p3]... *)
+  (** [paOr_of_list l] takes list [l] of patterns [p1; p2; p3; ...] and returns
+      the pattern [p1 | p2 | p3 | ...] *)
 
-  val gensym : ?prefix:string -> unit -> string
-  (** [gensym ?prefix ()] generates a fresh variable name with the prefix
-      [prefix]. The default value for prefix is "_x". When used with the default
-      parameters it will generate return: [_x__001],[_x__002],[_x__003]...
+  val gensym : ?prefix : string -> unit -> string
+  (** [gensym ?prefix ()] generates a fresh variable name with [prefix].
+      When used with the default parameters, it will return: [_x__001],
+      [_x__002], [_x__003], ...
+
+      @param prefix default = "_x"
   *)
 
-  val error : ctyp -> fn:string -> msg:string -> _
-  (** [error tp ~fn ~msg] raises an error with [msg] on type [tp]
-      occuring in function [fn] *)
+  val error : ctyp -> fn : string -> msg : string -> _
+  (** [error tp ~fn ~msg] raises an error with [msg] on type [tp] occuring
+      in function [fn]. *)
 
   val unknown_type : ctyp -> string -> _
-  (** [unknown_type tp fn] type [tp] is not handled by the function [fn] *)
+  (** [unknown_type tp fn] type [tp] cannot be handled by function [fn]. *)
 
   val ty_var_list_of_ctyp : ctyp -> string list -> string list
   (** [ty_var_list_of_ctyp tp acc] accumulates a list of type parameters
@@ -145,16 +146,6 @@ module Gen : sig
       [arg_exprs].  @return an expression in which the function is
       applied to its arguments. *)
 
-  val idp : Loc.t -> string -> patt
-  (* DEPRECATED: use quotations instead*)
-  (** [idp loc name] @return a pattern matching a lowercase identifier
-      [name]. *)
-
-  val ide : Loc.t -> string -> expr
-  (* DEPRECATED: use quotations instead*)
-  (** [ide loc name] @return an expression of a lowercase identifier
-      [name]. *)
-
   val switch_tp_def :
     alias : (Loc.t -> ctyp -> 'a) ->
     sum : (Loc.t -> ctyp -> 'a) ->
@@ -181,11 +172,11 @@ module Gen : sig
       [tp] if it is a type parameter.  @raise Failure otherwise. *)
 
   val type_is_recursive : string -> ctyp -> bool
-  (** [type_is_recursive _loc id tp] @return whether the type [tp]
-      with name [id] refers to itself, assuming that it is not mutually
-      recursive with another type. *)
+  (** [type_is_recursive id tp] @return whether the type [tp] with name [id]
+      refers to itself, assuming that it is not mutually recursive with
+      another type. *)
 
   val drop_variance_annotations : ctyp -> ctyp
-  (** [drop_variance_annotations _loc tp] @return the type resulting
-      from dropping all variance annotations in [tp]. *)
+  (** [drop_variance_annotations tp] @return the type resulting from dropping
+      all variance annotations in [tp]. *)
 end

@@ -1,33 +1,26 @@
-(* File: pa_type_conv.ml
-
-    Copyright (C) 2005-
-
-      Jane Street Holding, LLC
-      Author: Markus Mottl
-      email: mmottl\@janestreet.com
-      WWW: http://www.janestreet.com/ocaml
-
-   This file is derived from file "pa_tywith.ml" of version 0.45 of the
-   library "Tywith".
-
-   Tywith is Copyright (C) 2004, 2005 by
-
-      Martin Sandin  <msandin@hotmail.com>
-
-   This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2 of the License, or (at your option) any later version.
-
-   This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public
-   License along with this library; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
+(******************************************************************************
+ *                             Type-conv                                      *
+ *                                                                            *
+ * Copyright (C) 2005- Jane Street Holding, LLC                               *
+ *    Contact: opensource@janestreet.com                                      *
+ *    WWW: http://www.janestreet.com/ocaml                                    *
+ *    Author: Markus Mottl                                                    *
+ *                                                                            *
+ * This library is free software; you can redistribute it and/or              *
+ * modify it under the terms of the GNU Lesser General Public                 *
+ * License as published by the Free Software Foundation; either               *
+ * version 2 of the License, or (at your option) any later version.           *
+ *                                                                            *
+ * This library is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU          *
+ * Lesser General Public License for more details.                            *
+ *                                                                            *
+ * You should have received a copy of the GNU Lesser General Public           *
+ * License along with this library; if not, write to the Free Software        *
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA  *
+ *                                                                            *
+ ******************************************************************************)
 
 (** Pa_type_conv: Preprocessing Module for Registering Type Conversions *)
 
@@ -66,6 +59,8 @@ val add_sig_generator :
     @param is_exn = [false]
 *)
 
+val set_conv_path_if_not_set : Loc.t -> unit
+
 val add_sig_generator_with_arg :
   ?is_exn : bool -> string -> 'a Camlp4.PreCast.Gram.Entry.t ->
   (ctyp -> 'a option -> sig_item) -> unit
@@ -95,6 +90,32 @@ val hash_variant : string -> int
 (** {6 General purpose code generation module} *)
 
 module Gen : sig
+
+  val exApp_of_list : expr list -> expr
+  (** [expr_app_of_list l] takes a list of expressions [e1;e2;e3...] and returns
+      the expression [e1 e2 e3]. c.f.: Ast.exSem_of_list *)
+
+  val tyArr_of_list : ctyp list -> ctyp
+  (** [tyArr_of_list l] takes a list of types [e1;e2;e3...] and returns
+      the type [e1 e2 e3]. c.f.: Ast.exSem_of_list *)
+
+  val paOr_of_list : patt list -> patt
+  (** [paOr_of_list l] takes a list of patterns [p1;p2;p3...] and returns the
+      pattern [p1 | p2 | p3]... *)
+
+  val gensym : ?prefix:string -> unit -> string
+  (** [gensym ?prefix ()] generates a fresh variable name with the prefix
+      [prefix]. The default value for prefix is "_x". When used with the default
+      parameters it will generate return: [_x__001],[_x__002],[_x__003]...
+  *)
+
+  val error : ctyp -> fn:string -> msg:string -> _
+  (** [error tp ~fn ~msg] raises an error with [msg] on type [tp]
+      occuring in function [fn] *)
+
+  val unknown_type : ctyp -> string -> _
+  (** [unknown_type tp fn] type [tp] is not handled by the function [fn] *)
+
   val ty_var_list_of_ctyp : ctyp -> string list -> string list
   (** [ty_var_list_of_ctyp tp acc] accumulates a list of type parameters
       contained in [tp] into [acc] as strings. *)
@@ -125,15 +146,16 @@ module Gen : sig
       applied to its arguments. *)
 
   val idp : Loc.t -> string -> patt
+  (* DEPRECATED: use quotations instead*)
   (** [idp loc name] @return a pattern matching a lowercase identifier
       [name]. *)
 
   val ide : Loc.t -> string -> expr
+  (* DEPRECATED: use quotations instead*)
   (** [ide loc name] @return an expression of a lowercase identifier
       [name]. *)
 
   val switch_tp_def :
-    Loc.t ->
     alias : (Loc.t -> ctyp -> 'a) ->
     sum : (Loc.t -> ctyp -> 'a) ->
     record : (Loc.t -> ctyp -> 'a) ->
@@ -142,7 +164,7 @@ module Gen : sig
     nil : (Loc.t -> 'a) ->
     ctyp
     -> 'a
-  (** [switch_tp_def loc ~alias ~sum ~record ~variants ~mani tp_def]
+  (** [switch_tp_def ~alias ~sum ~record ~variants ~mani tp_def]
       takes a handler function for each kind of type definition and
       applies the appropriate handler when [tp_def] matches. *)
 
@@ -158,12 +180,12 @@ module Gen : sig
   (** [get_tparam_id tp] @return the string identifier associated with
       [tp] if it is a type parameter.  @raise Failure otherwise. *)
 
-  val type_is_recursive : Loc.t -> string -> ctyp -> bool
+  val type_is_recursive : string -> ctyp -> bool
   (** [type_is_recursive _loc id tp] @return whether the type [tp]
       with name [id] refers to itself, assuming that it is not mutually
       recursive with another type. *)
 
-  val drop_variance_annotations : Loc.t -> ctyp -> ctyp
+  val drop_variance_annotations : ctyp -> ctyp
   (** [drop_variance_annotations _loc tp] @return the type resulting
       from dropping all variance annotations in [tp]. *)
 end

@@ -325,7 +325,6 @@ module Gen = struct
       | <:module_type< >> -> false
       | <:module_type< functor ($_$ : $_$) -> $_$ >>
       | <:module_type< sig $_$ end >>
-      | <:module_type< module type of $_$ >>
       | Ast.MtAnt _ -> bad_type tp
     in
     loop tp

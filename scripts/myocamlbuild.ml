@@ -89,7 +89,7 @@ module Mir = struct
     let unixmain mode = lib / mode / "lib" / "main.o" in
     let mode = sprintf "unix-%s" (env "%(mode)") in
     let dl_libs = match host with
-      |Linux  -> [A"-lm"; A"-ldl"; A"-lasmrun"; A"-lcamlstr"]
+      |Linux  -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"; A"-ldl"]
       |Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (A cc :: [ T(tags++"link"); A ocamlc_libdir; A"-o"; Px out; 

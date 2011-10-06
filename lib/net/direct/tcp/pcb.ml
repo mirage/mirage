@@ -157,13 +157,17 @@ module Rx = struct
     (* Thread to monitor application receive and pass it up *)
     let rec rx_application_t () =
       lwt data = Lwt_mvar.take rx_data in
-      Ack.Immediate.receive ack (Window.rx_nxt wnd) >>
       match data with
       |None ->
+        lwt _ = Ack.Immediate.receive ack (Window.rx_nxt wnd) in
         State.tick_rx pcb.state `fin;
         Lwt.wakeup urx_close_u ();
         rx_application_t ()
       |Some data ->
+        lwt _ = match data with
+        | [] -> return () 
+        | _ -> Ack.Immediate.receive ack (Window.rx_nxt wnd)
+        in
         let rec queue = function
         |hd::tl ->
            User_buffer.Rx.add_r urx hd >>
@@ -233,7 +237,7 @@ let new_connection t ~window ~sequence ~options id data listener =
   let txq, tx_t = Segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack in
   let rxq = Segment.Rx.q ~rx_data ~wnd ~tx_ack ~tx_wnd_update in
   (* Set up ACK module *)
-  let ack = Ack.Immediate.t ~send_ack ~last:rx_isn in
+  let ack = Ack.Immediate.t ~send_ack ~last:(Sequence.incr rx_isn) in
   (* Construct basic PCB in Syn_received state *)
   let state = State.t () in
   let pcb = { state; rxq; txq; wnd; id; ack; urx; urx_close_t; urx_close_u; utx } in

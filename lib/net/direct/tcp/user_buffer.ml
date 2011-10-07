@@ -128,7 +128,7 @@ module Tx = struct
 
   (* Check how many bytes are available to write *)
   let available t = 
-    Window.tx_wnd t.wnd
+    Window.tx_available t.wnd
 
   (* Wait until at least sz bytes are available *)
   let rec wait_for t sz =

@@ -159,7 +159,9 @@ let process_of_packet state (remote_addr, remote_port) ofp t =
               Hashtbl.add state.channel_dp ep dpid
             );
             List.iter (fun cb -> cb state dpid evt) state.datapath_join_cb;
-            return () )
+            return ()
+        )
+
       | Packet_in (h, p) (* Generate a packet_in event *) 
         -> (cp (sp "+ %s|%s" 
                   (OP.Header.string_of_h h) (OP.Packet_in.string_of_packet_in p));

@@ -14,16 +14,16 @@ module Re : sig
  *)
 
 
-(** # Basic regexps. *)
+(** {4 Basic regexps} *)
 
 
 (** The type of regexps.*)
 type regexp
 
 
-(** ## Regexp constructors.*)
+(** {5 Regexp constructors}*)
 
-(** ### Functional constructors.*)
+(** {6 Functional constructors}*)
 
 (** The regexp denoting the absence of word.*)
 val empty : regexp
@@ -56,10 +56,12 @@ val opt : regexp -> regexp
 (** The regexp matching 1 or more words matched by the given regexp.*)
 val some : regexp -> regexp
 
-(** ### Parsing constructor.*)
+(** {6 Parsing constructor}*)
 
 (** [from_string_raw s] parses the string [s] and returns the associated regexp.
 
+    The following constructions can be used in the given string:
+{v
  ________________________________________________________________
  |                                                              |
  | The following constructions can be used in the string [s]:   |
@@ -77,6 +79,7 @@ val some : regexp -> regexp
  | (regexp)         |   parentheses, denotes the same words as regexp.                                          |
  |__________________|___________________________________________________________________________________________|
 
+ v}
 
   *)
 val from_string_raw : string -> regexp
@@ -84,7 +87,7 @@ val from_string_raw : string -> regexp
 
 
 
-(** # Regexp compilation.*)
+(** {4 Regexp compilation}*)
 
 (** In order to improve the efficiency of regexps, they are compiled to a
     different internal representation. *)
@@ -92,7 +95,7 @@ val from_string_raw : string -> regexp
 (** The type of compiled regexps.*)
 type compiled_regexp
 
-(** ## Constructors for compiled regexps. *)
+(** {5 Constructors for compiled regexps} *)
 
 (** [compile re] compiles the regexp [re]. *)
 val compile : regexp -> compiled_regexp
@@ -103,11 +106,11 @@ val from_string : string -> compiled_regexp
 
 
 
-(** # Regexp usage. *)
+(** {5 Regexp usage} *)
 
 (** [search_forward cre s i] evaluates either to [Some (b, e)] is
     [String.sub s b (e - b)] is matched by [cre] (with [b >= i] or [None] if no
-    such tuple exists). In other words, [(e, b)] are the inclusive beginning and
+    such tuple exists. In other words, [(e, b)] are the inclusive begining and
     exclusive ending offset of a word of [s] starting from [i] matched by
     [cre]. [(b,e)] is such that [b] is minimal among all the possible values and
     [e] is maximal for the given [b] (greediness).

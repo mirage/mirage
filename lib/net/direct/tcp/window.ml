@@ -26,9 +26,17 @@ type t = {
   mutable rx_wnd: int32;           (* RX Window size after scaling *)
   mutable tx_wnd_scale: int;       (* TX Window scaling option     *)
   mutable rx_wnd_scale: int;       (* RX Window scaling option     *)
+  mutable ssthresh: int32;         (* threshold to switch from exponential
+				      slow start to linear congestion
+				      avoidance
+				    *)
+  mutable cwnd: int32;             (* congestion window *)
+  mutable fast_recovery: bool;     (* flag to mark if this tcp is in
+				      fast recovery *)
 }
 
 let default_mss = 536
+let max_mss = 1460
 
 (* To string for debugging *)
 let to_string t =
@@ -41,11 +49,18 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   (* XXX need random ISN XXX *)
   let tx_nxt = Sequence.of_int32 7l in
   let rx_nxt = Sequence.(incr rx_isn) in
-  let tx_mss = match tx_mss with |None -> default_mss |Some mss -> mss in
+  (* TODO: improve this sanity check of tx_mss *)
+  let tx_mss = match tx_mss with |None -> default_mss |Some mss -> min mss max_mss in
   let snd_una = tx_nxt in
   let rx_wnd = Int32.(shift_left (of_int rx_wnd) rx_wnd_scale) in
   let tx_wnd = Int32.(shift_left (of_int tx_wnd) tx_wnd_scale) in
-  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_wnd; tx_wnd_scale; rx_wnd_scale; tx_mss }
+  (* ssthresh is initialized per RFC 2581 to a large value so slow-start
+     can be used all the way till first loss *)
+  let ssthresh = tx_wnd in
+  let cwnd = Int32.of_int (tx_mss * 2) in
+  let fast_recovery = false in
+  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_wnd; tx_wnd_scale; rx_wnd_scale;
+    ssthresh; cwnd; tx_mss; fast_recovery }
 
 (* Check if a sequence number is in the right range
    TODO: modulo 32 for wrap
@@ -53,8 +68,8 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
 let valid t seq =
   let redge = Sequence.(add t.rx_nxt (of_int32 t.rx_wnd)) in
   let r = Sequence.between seq t.rx_nxt redge in
-  printf "TCP_window: valid check for seq=%s for range %s[%lu] res=%b\n%!"
-    (Sequence.to_string seq) (Sequence.to_string t.rx_nxt) t.rx_wnd r;
+  (* printf "TCP_window: valid check for seq=%s for range %s[%lu] res=%b\n%!"
+    (Sequence.to_string seq) (Sequence.to_string t.rx_nxt) t.rx_wnd r; *)
   r
 
 (* Advance received packet sequence number *)
@@ -83,12 +98,49 @@ let tx_mss t =
 let tx_advance t b =
   t.tx_nxt <- Sequence.add t.tx_nxt (Sequence.of_int b)
 
-(* Notify the send window has been acknowledged *)
+(* An ACK was received - use it to adjust cwnd *)
 let tx_ack t r =
-  if Sequence.gt r t.snd_una then begin
-    t.snd_una <- r;
+  if t.fast_recovery then begin
+    if Sequence.gt r t.snd_una then begin
+      printf "EXITING fast recovery\n%!";
+      t.snd_una <- r;
+      t.cwnd <- t.ssthresh;
+      t.fast_recovery <- false;
+    end else begin
+      t.cwnd <- (Int32.add t.cwnd (Int32.of_int t.tx_mss));
+    end
+  end else begin
+    if Sequence.gt r t.snd_una then begin
+      t.snd_una <- r;
+    end;
+    let cwnd_incr = match t.cwnd < t.ssthresh with
+    | true -> Int32.of_int t.tx_mss
+    | false -> max (Int32.div (Int32.of_int (t.tx_mss * t.tx_mss)) t.cwnd) 1l
+    in
+    t.cwnd <- Int32.add t.cwnd cwnd_incr
   end
 
 let tx_nxt t = t.tx_nxt 
 let tx_wnd t = t.tx_wnd
 let tx_una t = t.snd_una
+let tx_available t = 
+  let inflight = Sequence.to_int32 (Sequence.sub t.tx_nxt t.snd_una) in
+  let win = min t.cwnd t.tx_wnd in
+  let avail_win = Int32.sub win inflight in
+  let avail_win_norunts =
+    match avail_win < Int32.of_int t.tx_mss with | true -> 0l | false -> avail_win in
+  avail_win_norunts
+
+let alert_fast_rexmit t seq =
+  let inflight = Sequence.to_int32 (Sequence.sub t.tx_nxt t.snd_una) in
+  let newssthresh = max (Int32.div inflight 2l) (Int32.of_int (t.tx_mss * 2)) in
+  let newcwnd = Int32.add newssthresh (Int32.of_int (t.tx_mss * 2)) in
+  printf "ENTERING fast recovery inflight=%d, ssthresh=%d -> %d, cwnd=%d -> %d\n%!"
+    (Int32.to_int inflight)
+    (Int32.to_int t.ssthresh)
+    (Int32.to_int newssthresh)
+    (Int32.to_int t.cwnd)
+    (Int32.to_int newcwnd);
+  t.fast_recovery <- true;
+  t.ssthresh <- newssthresh;
+  t.cwnd <- newcwnd

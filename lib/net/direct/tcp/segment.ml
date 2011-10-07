@@ -62,14 +62,13 @@ module Rx = struct
   type q = {
     mutable segs: S.t;
     rx_data: Bitstring.t list option Lwt_mvar.t; (* User receive channel *)
-    tx_ack: Sequence.t Lwt_mvar.t; (* Acks of our transmitted segs *)
-    tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
+    tx_ack: (Sequence.t * int) Lwt_mvar.t; (* Acks of our transmitted segs *)
     wnd: Window.t;
   }
 
-  let q ~rx_data ~wnd ~tx_ack ~tx_wnd_update =
+  let q ~rx_data ~wnd ~tx_ack =
     let segs = S.empty in
-    { segs; rx_data; tx_ack; wnd; tx_wnd_update }
+    { segs; rx_data; tx_ack; wnd }
 
   let to_string t =
     String.concat ", " 
@@ -131,13 +130,9 @@ module Rx = struct
       (* If the segment has an ACK, tell the transmit side *)
       let tx_ack =
         if seg.ack then
-          Lwt_mvar.put q.tx_ack seg.ack_number
+          Lwt_mvar.put q.tx_ack (seg.ack_number, (window ready))
         else
           return () in
-
-      (* Inform the window thread of updates to the transmit window *)
-      let window_update =
-        Lwt_mvar.put q.tx_wnd_update (window ready) in
 
       (* Inform the user application of new data *)
       let urx_inform =
@@ -154,7 +149,7 @@ module Rx = struct
           Lwt_mvar.put q.rx_data None
          end else return ())
       in
-      tx_ack <&> urx_inform <&> window_update
+      tx_ack <&> urx_inform
     end
 
 end
@@ -170,11 +165,14 @@ module Tx = struct
    |Fin
    |Rst
 
-  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts -> Bitstring.t -> Bitstring.t list Lwt.t
+  type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
+              override_seq:(Sequence.t option) ->
+              Bitstring.t -> Bitstring.t list Lwt.t
 
   type seg = {
     data: Bitstring.t;
     flags: flags;
+    seq: Sequence.t;
   }
 
   (* Sequence length of the segment *)
@@ -189,6 +187,8 @@ module Tx = struct
     rx_ack: Sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
     rto: seg Lwt_mvar.t;               (* Mvar to append to retransmit queue *)
     wnd: Window.t;                 (* TCP Window information *)
+    tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
+    mutable dup_acks: int;         (* dup ack count for re-xmits *)
   }
 
   let to_string seg =
@@ -213,34 +213,64 @@ module Tx = struct
     (* Listen for incoming TX acks from the receive queue and ACK
        segments in our retransmission queue *)
     let rec tx_ack_t () =
-      lwt seq_l = Lwt_mvar.take tx_ack in
-      (* Iterate through all the active segments, marking the ACK *)
+      lwt (seq_l, win) = Lwt_mvar.take tx_ack in
       let ack_len = ref (Sequence.sub seq_l (Window.tx_una q.wnd)) in
-      Lwt_sequence.iter_node_l (fun node ->
-        let seg = Lwt_sequence.get node in
-        let seg_len = Sequence.of_int (len seg) in
-        match Sequence.to_int32 !ack_len with
-        |0l -> ()
-        |_ ->
-          if Sequence.geq !ack_len seg_len then begin
-            (* This segment is now fully ack'ed *)
-            Lwt_sequence.remove node;
-            ack_segment q seg;
-            ack_len := Sequence.sub !ack_len seg_len
-          end else begin
-            (* TODO: support partial ack *)
-           ack_len := Sequence.of_int32 0l
-          end
-      ) q.segs;
-      Window.tx_ack q.wnd seq_l;
-      tx_ack_t ()
+      let partial_ack_len = ref (Sequence.of_int32 0l) in
+      (* Check if this is a dup ack and take action *)
+      if ((0l = (Sequence.to_int32 !ack_len)) &&
+          ((Window.tx_wnd q.wnd) = (Int32.of_int win)) &&
+          (not (Lwt_sequence.is_empty q.segs))) then begin
+        q.dup_acks <- q.dup_acks + 1;
+        if 3 = q.dup_acks then begin
+          (* retransmit the bottom of the unacked list of packets *)
+	  let rexmit_seg = Lwt_sequence.take_l q.segs in
+	  printf "TCP retransmitting seq = %d, dupack = %d\n%!"
+	    (Sequence.to_int rexmit_seg.seq)
+	    (Sequence.to_int seq_l);
+	  let _ = Lwt_sequence.add_l rexmit_seg q.segs in
+	  let {wnd} = q in
+	  let flags=rexmit_seg.flags in
+	  let options=[] in (* TODO: put the right options *)
+	  let override_seq = Some seq_l in
+	  let _ = q.xmit ~flags ~wnd ~options ~override_seq rexmit_seg.data in
+          (* alert window module to fall into fast recovery *)
+	  Window.alert_fast_rexmit q.wnd seq_l
+        end
+      end else begin
+	q.dup_acks <- 0;
+        (* Iterate through all the active segments, marking the ACK *)
+        Lwt_sequence.iter_node_l (fun node ->
+          match Sequence.to_int32 !ack_len with
+          |0l -> ()  (* TODO: optimize this to not go thru any more
+			segments once ack_len goes to 0 *)
+          |_ ->
+            let seg = Lwt_sequence.get node in
+            let seg_len = Sequence.of_int (len seg) in
+            if Sequence.geq !ack_len seg_len then begin
+              (* This segment is now fully ack'ed *)
+              Lwt_sequence.remove node;
+              ack_segment q seg;
+              ack_len := Sequence.sub !ack_len seg_len
+            end else begin
+              (* TODO: support partial ack *)
+	      printf "TCP: Partial ACK received\n%!";
+  	      partial_ack_len := !ack_len;
+              ack_len := Sequence.of_int32 0l
+            end
+          ) q.segs
+	end;
+        Window.tx_ack q.wnd (Sequence.sub seq_l !partial_ack_len);
+        (* Inform the window thread of updates to the transmit window *)
+        Lwt_mvar.put q.tx_wnd_update win >>
+        tx_ack_t ()
     in
     (rto_queue_t ()) <?> (tx_ack_t ())
 
-  let q ~xmit ~wnd ~rx_ack ~tx_ack =
+  let q ~xmit ~wnd ~rx_ack ~tx_ack ~tx_wnd_update =
     let rto = Lwt_mvar.create_empty () in
     let segs = Lwt_sequence.create () in
-    let q = { xmit; wnd; rx_ack; rto; segs } in
+    let dup_acks = 0 in
+    let q = { xmit; wnd; rx_ack; rto; segs; tx_wnd_update; dup_acks } in
     let t = rto_t q tx_ack in
     q, t
 
@@ -255,11 +285,13 @@ module Tx = struct
          TODO: deal with transmission soft/hard errors here RFC5461 *)
     let {wnd} = q in
     let ack = Window.tx_nxt wnd in
-    lwt view = q.xmit ~flags ~wnd ~options data in
+    let override_seq = None in
+    lwt view = q.xmit ~flags ~wnd ~options ~override_seq data in
     (* Inform the RX ack thread that we've just sent one *)
     Lwt_mvar.put q.rx_ack ack >>
     (* Queue up segment just sent for retransmission if needed *)
-    let seg = { data; flags } in
+    let seq = Window.tx_nxt wnd in
+    let seg = { data; flags; seq } in
     let seq_len = len seg in
     if seq_len > 0 then begin
       Window.tx_advance q.wnd seq_len;

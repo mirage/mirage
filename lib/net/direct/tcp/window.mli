@@ -31,10 +31,15 @@ val tx_nxt : t -> Sequence.t
 val tx_una : t -> Sequence.t
 val tx_mss : t -> int
 
-(* RCV.WND: Size of traffic we are willing to accept *)
+(* rx_wnd: Size of traffic we are willing to accept *)
 val rx_wnd : t -> int32
 val set_rx_wnd : t -> int32 -> unit
 
-(* SND.WND: Size of traffic we are allowed to send *)
+(* tx_wnd: Size of traffic other side is willing to accept *)
 val tx_wnd : t -> int32
+(* tx_available: Size of traffic we can currently send after
+                 accounting for congestion *)
+val tx_available : t -> int32
 val set_tx_wnd : t -> int -> unit
+
+val alert_fast_rexmit : t -> Sequence.t -> unit

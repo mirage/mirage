@@ -136,8 +136,11 @@ type t = {
   features: features;
 }
 
-type id = int
-exception Read_error of string
+type id = string
+exception IO_error of string
+
+(** Set of active block devices *)
+let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
 (* Allocate a ring, given the vdev and backend domid *)
 let alloc (num,domid) =
@@ -154,7 +157,9 @@ let rec poll t =
   poll t
 
 (* Given a VBD ID and a backend domid, construct a blkfront record *)
-let create vdev =
+let plug (id:id) =
+  lwt vdev = try return (int_of_string id)
+    with _ -> fail (Failure "invalid vdev") in
   printf "Blkfront.create; vdev=%d\n%!" vdev;
   let node = sprintf "device/vbd/%d/%s" vdev in
   lwt backend_id = Xs.(t.read (node "backend-id")) in
@@ -171,10 +176,12 @@ let create vdev =
     wrfn "protocol" "x86_64-abi" >>
     wrfn "state" Xb.State.(to_string Connected) 
   )) >>
-  lwt monitor_t = Xs.(monitor_paths Xs.t
-    [sprintf "%s/state" backend, (Xb_state.(to_string Connected))] 20. 
-    (fun (k,v) -> Xb_state.(of_string v = Connected))
-  ) in
+  lwt monitor_t = Xs.(monitor_path Xs.t
+    (sprintf "%s/state" backend, "XXX") 20. 
+    (fun (k,_) ->
+        lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
+	    return Xb_state.(of_string state = Connected)
+	)) in
   (* XXX bug: the xenstore watches seem to come in before the
      actual update. A short sleep here for the race, but not ideal *)
   Time.sleep 0.1 >>
@@ -198,39 +205,84 @@ let create vdev =
     features.barrier features.removable features.sector_size features.sectors;
   Evtchn.unmask evtchn;
   let t = { backend_id; backend; vdev; ring; gnt; evtchn; features } in
-  let th = poll t in
-  Lwt.on_cancel th (fun _ ->
-    printf "Blkfront.cancel; vdev=%d\n%!" vdev;
-    (* TODO shutdown *)
-  );
-  return (t, th)
-      
+  Hashtbl.add devices id t;
+  (* Start the background poll thread *)
+  let _ = poll t in
+  return t
+
+(* Unplug shouldn't block, although the Xen one might need to due
+   to Xenstore? XXX *)
+let unplug id =
+  Console.log (sprintf "Blkif.unplug %s: not implemented yet" id);
+  ()
+
 (** Return a list of valid VBDs *)
 let enumerate () =
-  lwt vbds = Xs.(t.directory "device/vbd") in
-  return (List.fold_left (fun a b -> try int_of_string b :: a with _ -> a) [] vbds)
+  try_lwt Xs.(t.directory "device/vbd") with Xb.Noent -> return []
 
-(* Read a single page from disk.
-   Offset is the sector number, which must be page-aligned *)
-let read_page t sector =
-  Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW
-    (fun gnt ->
-      let _ = Gnttab.page gnt in
-      let gref = Gnttab.num gnt in
-      let id = Int64.of_int32 gref in
-      let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-      let req = Req.({op=Read; handle=t.vdev; id; sector; segs}) in
-      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
-      if Ring.Front.push_requests_and_check_notify t.ring then
-        Evtchn.notify t.evtchn;
-      let open Res in
-      lwt res = res in
-      Res.(match res.st with
-      |Error -> fail (Read_error "read")
-      |Not_supported -> fail (Read_error "unsupported")
-      |Unknown _ -> fail (Read_error "unknown error")
-      |OK -> return (Gnttab.detach gnt))
+let create fn =
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
+  lwt ids = enumerate () in
+  let pt = Lwt_list.iter_p (fun id ->
+    lwt t = plug id in
+    fn id t) ids in
+  th <?> pt
+
+(* Read a single page from disk. The offset must be sector-aligned *)
+let read_page t offset =
+  let sector = Int64.div offset t.features.sector_size in
+  Io_page.with_page
+    (fun page ->
+      Gnttab.with_ref
+        (fun r ->
+          Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
+            (fun () ->
+	      let gref = Gnttab.to_int32 r in
+	      let id = Int64.of_int32 (Gnttab.to_int32 r) in
+              let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+              let req = Req.({op=Req.Read; handle=t.vdev; id; sector; segs}) in
+              let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+              if Ring.Front.push_requests_and_check_notify t.ring then
+                Evtchn.notify t.evtchn;
+              lwt res = res in
+              Res.(match res.st with
+              |Error -> fail (IO_error "read")
+              |Not_supported -> fail (IO_error "unsupported")
+              |Unknown _ -> fail (IO_error "unknown error")
+              |OK ->
+				  let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring (Io_page.to_bitstring page)) in
+				  return copy)
+            )
+        )
     )
+
+(* Write a single page to disk.
+   Offset is the sector number, which must be sector-aligned
+   Page must be an Io_page *)
+let write_page t offset page =
+  let sector = Int64.div offset t.features.sector_size in
+  Gnttab.with_ref
+    (fun r ->
+      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r (Io_page.of_bitstring page)
+        (fun () ->
+          let gref = Gnttab.to_int32 r in
+          let id = Int64.of_int32 gref in
+          let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+          let req = Req.({op=Req.Write; handle=t.vdev; id; sector; segs}) in
+          let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+          if Ring.Front.push_requests_and_check_notify t.ring then
+            Evtchn.notify t.evtchn;
+          let open Res in
+          lwt res = res in
+          Res.(match res.st with
+          |Error -> fail (IO_error "write")
+          |Not_supported -> fail (IO_error "unsupported")
+          |Unknown _ -> fail (IO_error "unknown error")
+          |OK -> return ())
+        )
+    )
+
 
 (** Read a number of contiguous sectors off disk.
     This function assumes a 512 byte sector size.
@@ -246,21 +298,25 @@ let read_512 t sector num_sectors =
   let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in
   if len > 11 then
     fail (Failure (sprintf "len > 11 sec=%Lu num=%Lu" sector num_sectors))
-  else Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW len
-    (fun gnts ->
+  else 
+  Io_page.with_pages len
+    (fun pages ->
+      Gnttab.with_refs len
+        (fun rs ->
+          Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW rs pages
+    (fun () ->
       let segs = Array.mapi
-        (fun i gnt ->
+        (fun i r ->
           let first_sector = match i with
             |0 -> start_offset
             |_ -> 0 in
           let last_sector = match i with
             |n when n == len-1 -> end_offset
             |_ -> 7 in
-          let _ = Gnttab.page gnt in
-          let gref = Gnttab.num gnt in
+          let gref = Gnttab.to_int32 r in
           { Req.gref; first_sector; last_sector }
-        ) gnts in
-      let id = Int64.of_int32 (Gnttab.num gnts.(0)) in
+        ) (Array.of_list rs) in
+      let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
       let req = Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
       let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
       if Ring.Front.push_requests_and_check_notify t.ring then
@@ -268,14 +324,14 @@ let read_512 t sector num_sectors =
       let open Res in
       lwt res = res in
       match res.st with
-      |Error -> fail (Read_error "read")
-      |Not_supported -> fail (Read_error "unsupported")
-      |Unknown x -> fail (Read_error "unknown error")
+      |Error -> fail (IO_error "read")
+      |Not_supported -> fail (IO_error "unsupported")
+      |Unknown x -> fail (IO_error "unknown error")
       |OK ->
         (* Get the pages, and convert them into Istring views *)
         let pages = Array.mapi
-          (fun i gnt ->
-            let page = Gnttab.detach gnt in
+          (fun i page ->
+            let bs = Io_page.to_bitstring page in
             let start_offset = match i with
               |0 -> start_offset * 512
               |_ -> 0 in
@@ -283,7 +339,53 @@ let read_512 t sector num_sectors =
               |n when n = len-1 -> (end_offset + 1) * 512
               |_ -> 4096 in
             let bytes = end_offset - start_offset in
-            Bitstring.subbitstring page (start_offset * 8) (bytes * 8)
-          ) gnts in
+            Bitstring.subbitstring bs (start_offset * 8) (bytes * 8)
+          ) (Array.of_list pages) in
         return pages
     )
+)
+)
+
+let create ~id : Devices.blkif Lwt.t =
+  printf "Xen.Blkif: create %s\n%!" id;
+  lwt dev = plug id in
+  printf "Xen.Blkif: success\n%!";
+  return (object
+    method id = id
+    method read_page = read_page dev
+    method write_page = write_page dev
+    method sector_size = 4096
+    method ppname = sprintf "Xen.blkif:%s" id
+    method destroy = unplug id
+  end)
+
+(* Register Xen.Blkif provider with the device manager *)
+let _ =
+  let plug_mvar = Lwt_mvar.create_empty () in
+  let unplug_mvar = Lwt_mvar.create_empty () in
+  let provider = object(self)
+     method id = "Xen.Blkif"
+     method plug = plug_mvar 
+     method unplug = unplug_mvar
+     method create ~deps ~cfg id =
+	  (* no cfg required: we will check xenstore instead *)
+      lwt blkif = create ~id in
+      let entry = Devices.({
+        provider=self; 
+        id=self#id; 
+        depends=[];
+        node=Blkif blkif }) in
+      return entry
+  end in
+  Devices.new_provider provider;
+  (* Iterate over the plugged in VBDs and plug them in *)
+  Main.at_enter (fun () ->
+    (* Hack to let console attach before crash :) *)
+    Time.sleep 1.0 >>
+    lwt ids = enumerate () in
+	let vbds = List.map (fun id ->
+		{ Devices.p_dep_ids = []; p_cfg = []; p_id = id }
+	) ids in
+    Lwt_list.iter_s (Lwt_mvar.put plug_mvar) vbds
+  )
+

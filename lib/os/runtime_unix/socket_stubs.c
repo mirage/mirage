@@ -26,6 +26,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <arpa/inet.h>
 
@@ -206,7 +207,7 @@ caml_socket_read(value v_fd, value v_str, value v_off, value v_len)
 {
   CAMLparam4(v_fd ,v_str, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
-  unsigned char *buf = String_val(v_str);
+  char *buf = String_val(v_str);
   int r = read(Int_val(v_fd), buf + Int_val(v_off), Int_val(v_len));
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
@@ -225,7 +226,7 @@ caml_socket_write(value v_fd, value v_str, value v_off, value v_len)
 {
   CAMLparam4(v_fd, v_str, v_off, v_len);
   CAMLlocal2(v_ret, v_err);
-  unsigned char *buf = String_val(v_str);
+  char *buf = String_val(v_str);
   int r = write(Int_val(v_fd), buf + Int_val(v_off), Int_val(v_len));
   if (r < 0) {
     if (errno == EAGAIN || errno==EWOULDBLOCK)
@@ -274,7 +275,7 @@ caml_udpv4_recvfrom(value v_fd, value v_str, value v_off, value v_len, value v_s
 {
   CAMLparam5(v_fd, v_str, v_off, v_len, v_src);
   CAMLlocal3(v_ret, v_err, v_inf);
-  unsigned char *buf = String_val(v_str) + Int_val(v_off);
+  char *buf = String_val(v_str) + Int_val(v_off);
   size_t len = Int_val(v_len);
   int fd = Int_val(v_fd);
   struct sockaddr_in sa;
@@ -302,7 +303,7 @@ caml_udpv4_sendto(value v_fd, value v_str, value v_off, value v_len, value v_dst
 {
   CAMLparam5(v_fd, v_str, v_off, v_len, v_dst);
   CAMLlocal2(v_ret, v_err);
-  unsigned char *buf = String_val(v_str) + Int_val(v_off);
+  char *buf = String_val(v_str) + Int_val(v_off);
   size_t len = Int_val(v_len);
   int fd = Int_val(v_fd);
   struct sockaddr_in sa;
@@ -614,17 +615,147 @@ caml_domain_write(value v_fd, value v_str)
    this is only a temporary measure (see mincore usage in Lwt_unix
    for another approach) */
 CAMLprim value
-caml_file_open_readonly(value v_filename)
+caml_file_open_ro(value v_filename)
 {
   CAMLparam1(v_filename);
   CAMLlocal2(v_ret, v_err);
-  int r = open(String_val(v_filename), O_RDONLY);
+  /* Ensure that the requested file is not a directory */
+  struct stat buf;
+  int r = stat(String_val(v_filename), &buf);
   if (r == -1) {
     v_err = caml_copy_string(strerror(errno));
     Val_Err(v_ret, v_err);
   } else {
-    setnonblock(r);
-    Val_OK(v_ret, Val_int(r));
+    if (buf.st_mode & S_IFDIR) {
+      v_err = caml_copy_string("cannot open directory");
+      Val_Err(v_ret, v_err);
+    } else {
+      int r = open(String_val(v_filename), O_RDONLY);
+      if (r == -1) {
+        v_err = caml_copy_string(strerror(errno));
+        Val_Err(v_ret, v_err);
+      } else {
+        setnonblock(r);
+        Val_OK(v_ret, Val_int(r));
+      }
+    }
+  }
+  CAMLreturn(v_ret);
+}
+
+/* Open a non-blocking file socket for read/write and return it.
+   Note that non-blocking file I/O is a bit unreliable, so
+   this is only a temporary measure (see mincore usage in Lwt_unix
+   for another approach) */
+CAMLprim value
+caml_file_open_rw(value v_filename)
+{
+  CAMLparam1(v_filename);
+  CAMLlocal2(v_ret, v_err);
+  /* Ensure that the requested file is not a directory */
+  struct stat buf;
+  int r = stat(String_val(v_filename), &buf);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    if (buf.st_mode & S_IFDIR) {
+      v_err = caml_copy_string("cannot open directory");
+      Val_Err(v_ret, v_err);
+    } else {
+      int r = open(String_val(v_filename), O_RDWR);
+      if (r == -1) {
+        v_err = caml_copy_string(strerror(errno));
+        Val_Err(v_ret, v_err);
+      } else {
+        setnonblock(r);
+        Val_OK(v_ret, Val_int(r));
+      }
+    }
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_lseek(value v_fd, value v_off)
+{
+  CAMLparam2(v_fd, v_off);
+  CAMLlocal2(v_ret, v_err);
+  off_t r = lseek(Int_val(v_fd), Int64_val(v_off), SEEK_SET);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    Val_OK(v_ret, Val_unit);
+  }
+  CAMLreturn(v_ret);
+}
+
+
+/* Directory functions */
+CAMLprim value
+caml_opendir(value v_dirname)
+{
+  CAMLparam1(v_dirname);
+  CAMLlocal2(v_ret, v_err);
+  DIR *dir = opendir(String_val(v_dirname));
+  if (!dir) {
+     v_err = caml_copy_string(strerror(errno));
+     Val_Err(v_ret, v_err);
+  } else {
+    Val_OK(v_ret, (value)dir);
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_readdir(value v_dir)
+{
+  CAMLparam1(v_dir);
+  CAMLlocal3(v_de, v_ret, v_err);
+  struct dirent *de = readdir((DIR *)v_dir);
+  if (!de) { /* EOF */
+    v_err = caml_copy_string("");
+    Val_Err(v_ret, v_err);
+  } else {
+    if (de->d_type == DT_REG) {
+      v_de = caml_copy_string(de->d_name);
+      Val_OK(v_ret, v_de);
+    } else {
+      Val_WouldBlock(v_ret);
+    }
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_closedir(value v_dir)
+{
+  CAMLparam1(v_dir);
+  CAMLlocal2(v_ret, v_err);
+  int r = closedir((DIR *)v_dir);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    Val_OK(v_ret, Val_unit);
+  }
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_stat_size(value v_filename)
+{
+  CAMLparam1(v_filename);
+  CAMLlocal3(v_sz, v_ret, v_err);
+  struct stat buf;
+  int r = stat(String_val(v_filename), &buf);
+  if (r == -1) {
+    v_err = caml_copy_string(strerror(errno));
+    Val_Err(v_ret, v_err);
+  } else {
+    v_sz = caml_copy_int64(buf.st_size);
+    Val_OK(v_ret, v_sz);
   }
   CAMLreturn(v_ret);
 }

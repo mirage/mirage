@@ -1,1 +1,1 @@
-true: pa_dyntype
+<*.ml>: for-pack(Pa_mirage.Pa_html), use_camlp4_r

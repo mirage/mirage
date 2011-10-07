@@ -1,4 +1,0 @@
-true: mirage
-<*.cmx> and not "dhcp.cmx": for-pack(Net.Dhcp)
-"option.ml" or "client.ml": pa_lwt
-"dhcp.cmx": for-repack(Net)

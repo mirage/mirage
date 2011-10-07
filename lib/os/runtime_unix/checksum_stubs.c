@@ -22,12 +22,11 @@
 static uint32_t
 checksum_bitstring(value v_bitstr, uint32_t sum)
 {
-  char *buf = String_val(Field(v_bitstr, 0));
+  unsigned char *buf = (unsigned char *)String_val(Field(v_bitstr, 0));
   size_t off = Int_val(Field(v_bitstr,1)) / 8;
   size_t count = Int_val(Field(v_bitstr,2)) / 8;
 
   unsigned char *addr = buf + off;
-  uint16_t checksum;
   while (count > 1) {
     uint16_t v = (*addr << 8) + (*(addr+1));
     sum += v;

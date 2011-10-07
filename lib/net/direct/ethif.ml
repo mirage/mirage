@@ -58,14 +58,14 @@ let input t frame =
 
   |{dmac:48:string; smac:48:string;
     etype:16; bits:-1:bitstring } -> 
-      let frame = gen_frame dmac smac in
+      (* let _ = gen_frame dmac smac in *)
       begin match etype with
       | 0x0800 (* IPv4 *) -> t.ipv4 bits
-      | 0x86dd (* IPv6 *) -> return (Printf.printf "Ethif: discarding ipv6\n%!")
-      | etype -> return (Printf.printf "Ethif: unknown frame %x\n%!" etype)
+      | 0x86dd (* IPv6 *) -> return (printf "Ethif: discarding ipv6\n%!")
+      | etype -> return (printf "Ethif: unknown frame %x\n%!" etype)
       end
   |{_} ->
-      return (Printf.printf "Ethif: dropping input\n%!")
+      return (printf "Ethif: dropping input\n%!")
 
 (* Loop and listen for frames *)
 let rec listen t =
@@ -113,4 +113,3 @@ let detach t = function
   |`IPv4 -> t.ipv4 <- (fun _ -> return ())
 
 let mac t = t.mac
-let enumerate = OS.Netif.enumerate

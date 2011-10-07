@@ -15,3 +15,4 @@
  *)
 
 val run : unit Lwt.t -> unit
+val at_enter : (unit -> unit Lwt.t) -> unit

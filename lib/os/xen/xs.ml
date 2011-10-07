@@ -37,8 +37,8 @@ type xsh =
 	release: domid -> unit Lwt.t;
 	resume: domid -> unit Lwt.t;
 	getdomainpath: domid -> string Lwt.t;
-	watch: string -> string -> unit Lwt.t;
-	unwatch: string -> string -> unit Lwt.t;
+	watch: string -> Queueop.token -> unit Lwt.t;
+	unwatch: string -> Queueop.token -> unit Lwt.t;
 }
 
 let get_operations con = {
@@ -78,27 +78,28 @@ exception Timeout
 (* Should never be thrown, indicates a bug in the read_watchevent_timetout function *)
 exception Timeout_with_nonempty_queue
 
-let read_watchevent_timeout xsh timeout callback =
+let read_watchevent_timeout xsh token timeout callback =
 	let start_time = Clock.time () in
 	let end_time = start_time +. timeout in
 
 	let left = ref timeout in
 
 	(* Returns true if a watch event in the queue satisfied us *)
-	let process_queued_events () = 
+	let process_queued_events () : bool Lwt.t = 
 		let success = ref false in
-                let rec loop () =
-		    if Xsraw.has_watchevents xsh.con && not(!success) then (
-			success := callback (Xsraw.get_watchevent xsh.con);
+                let rec loop () : bool Lwt.t =
+		    if Xsraw.has_watchevents xsh.con token && not(!success) then (
+			lwt r = callback (Xsraw.get_watchevent xsh.con token) in
+            success := r;
                         loop ()
                     ) else
-                        !success
+                        return (!success)
                 in loop ()
         in
 	(* Returns true if a watch event read from the socket satisfied us *)
 	let process_incoming_event () = 
-		lwt wev = Xsraw.read_watchevent xsh.con in
-                return (callback wev)
+		lwt wev = Xsraw.read_watchevent xsh.con token in
+                callback wev
         in
 
 	let success = ref false in
@@ -109,8 +110,13 @@ let read_watchevent_timeout xsh timeout callback =
 		   we must process the queue on every loop iteration *)
 
 		(* First process all queued watch events *)
-		if not(!success)
-		    then success := process_queued_events ();
+		lwt () = 
+            if not(!success) then (
+              lwt queued = process_queued_events () in
+              success := queued;
+			  return ()
+			) else
+              return () in
 		(* Then block for one more watch event *)
 		lwt () = 
                     if not(!success) then (
@@ -128,8 +134,13 @@ let read_watchevent_timeout xsh timeout callback =
 		(* Just in case our callback caused events to be queued
 		   and this is our last time round the loop: this prevents
 		   us throwing the Timeout_with_nonempty_queue spuriously *)
-		if not(!success)
-	      	    then success := process_queued_events ();
+        lwt () =
+		   if not(!success) then (
+                lwt queued = process_queued_events () in
+                success := queued;
+                return ()
+           ) else
+                return () in
 
 		(* Update the time left *)
 		let current_time = Clock.time () in
@@ -144,7 +155,7 @@ let read_watchevent_timeout xsh timeout callback =
 	if not(!success) then begin
 		(* Sanity check: it should be impossible for any
 		   events to be queued here *)
-		if Xsraw.has_watchevents xsh.con then 
+		if Xsraw.has_watchevents xsh.con token then 
                     fail Timeout_with_nonempty_queue
 		else 
                     fail Timeout
@@ -152,12 +163,13 @@ let read_watchevent_timeout xsh timeout callback =
             return ()
 
 
-let monitor_paths xsh l time callback =
+let monitor_path xsh (w, v) time callback =
+    let token = Queueop.create_token v in
 	let unwatch () =
-	    Lwt_list.iter_s (fun (w,v) -> try_lwt xsh.unwatch w v with _ -> return ()) l in
-	Lwt_list.iter_s (fun (w,v) -> xsh.watch w v) l >>
+	    try_lwt xsh.unwatch w token with _ -> return () in
+	lwt () = xsh.watch w token in
 	try_lwt
-		read_watchevent_timeout xsh time callback >>
+		read_watchevent_timeout xsh token time callback >>
                 unwatch ()
 	with exn -> begin
                 unwatch () >>

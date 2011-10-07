@@ -12,6 +12,8 @@ project in the USENIX HotCloud paper available at:
 An early self-hosting website (that may be down fairly often!) is
 available at <http://www.openmirage.org/>
 
+Installation instructions: <http://www.openmirage.org/wiki/install>
+
 This repository is still in a pre-alpha state and not suitable for use. If
 you are interested in working with it, please contact:
 

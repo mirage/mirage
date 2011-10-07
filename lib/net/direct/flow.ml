@@ -56,8 +56,8 @@ module TCPv4 = struct
 
   let listen mgr src fn =
     let addr, port = src in
-    lwt tcp = Manager.tcpv4_of_addr mgr addr in
-    Tcp.Pcb.listen tcp port fn
+    let tcps = Manager.tcpv4_of_addr mgr addr in
+    Lwt_list.iter_p (fun tcp -> Tcp.Pcb.listen tcp port fn) tcps 
 
   let connect mgr ?src dst fn =
     fail (Failure "Not_implemented")

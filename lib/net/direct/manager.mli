@@ -21,9 +21,19 @@
 open Nettypes
 exception Error of string
 
+type config = [ `DHCP | `IPv4 of ipv4_addr * ipv4_addr * ipv4_addr list ]
+
+type id = OS.Netif.id
+type interface
 type t
 
-val create : unit -> (t * unit Lwt.t) Lwt.t
+val plug: t -> id -> OS.Netif.t -> unit Lwt.t
+val unplug: t -> id -> unit
 
-val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t Lwt.t
-val udpv4_of_addr : t -> ipv4_addr option -> Udp.t Lwt.t
+val configure: interface -> config -> unit Lwt.t
+ 
+val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
+
+val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t list
+val udpv4_of_addr : t -> ipv4_addr option -> Udp.t list
+val ipv4_of_interface : interface -> Ipv4.t

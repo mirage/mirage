@@ -23,8 +23,8 @@ module RX = struct
 
   type response = int * int * int
 
-  let create (num,domid) =
-    let name = sprintf "Netif.RX.%d" num in
+  let create (id,domid) =
+    let name = sprintf "Netif.RX.%s" id in
     lwt rx_gnt, sring = Ring.init ~domid ~idx_size ~name in
     let fring = Ring.Front.init ~sring in
     return (rx_gnt, fring)
@@ -48,8 +48,8 @@ module TX = struct
 
   type response = int
 
-  let create (num,domid) =
-    let name = sprintf "Netif.TX.%d" num in
+  let create (id,domid) =
+    let name = sprintf "Netif.TX.%s" id in
     lwt tx_gnt, sring = Ring.init ~domid ~idx_size ~name in
     let fring = Ring.Front.init ~sring in
     return (tx_gnt, fring)
@@ -82,25 +82,26 @@ type t = {
   tx_fring: (TX.response,int) Ring.Front.t;
   tx_gnt: Gnttab.r;
   rx_fring: (RX.response,int) Ring.Front.t;
-  rx_map: (int, Gnttab.r) Hashtbl.t;
+  rx_map: (int, Gnttab.r * Io_page.t) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
   features: features;
 }
 
-type id = (int * int)
+type id = string
+
+let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
-let create (num,backend_id) =
-  Console.log (sprintf "Netfront.create: start num=%d domid=%d\n%!"
-    num backend_id);
-
+let plug id =
+  lwt backend_id = Xs.(t.read (sprintf "device/vif/%s/backend-id" id)) >|= int_of_string in
+  Console.log (sprintf "Netfront.create: id=%s domid=%d\n%!" id backend_id);
   (* Allocate a transmit and receive ring, and event channel for them *)
-  lwt (rx_gnt, rx_fring) = RX.create (num,backend_id) in
-  lwt (tx_gnt, tx_fring) = TX.create (num,backend_id) in
+  lwt (rx_gnt, rx_fring) = RX.create (id, backend_id) in
+  lwt (tx_gnt, tx_fring) = TX.create (id, backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
-  (* Read xenstore info and set state to Connected *)
-  let node = sprintf "device/vif/%d/" num in
+  (* Read Xenstore info and set state to Connected *)
+  let node = sprintf "device/vif/%s/" id in
   lwt backend = Xs.(t.read (node ^ "backend")) in
   lwt mac = Xs.(t.read (node ^ "mac")) in
   printf "MAC: %s\n%!" mac;
@@ -135,20 +136,31 @@ let create (num,backend_id) =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  return { backend_id; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_map; evtchn; mac; backend; features }
+  let t = { backend_id; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_map;
+    evtchn; mac; backend; features } in
+  Hashtbl.add devices id t;
+  return t
+
+(* Unplug shouldn't block, although the Xen one might need to due
+   to Xenstore? XXX *)
+let unplug id =
+  Console.log (sprintf "Netif.unplug %s: not implemented yet" id);
+  ()
 
 let refill_requests nf =
   let num = Ring.Front.get_free_requests nf.rx_fring in
-  lwt gnts = Gnttab.get_n ~domid:nf.backend_id ~perm:Gnttab.RW num in
-  List.iter (fun gnt ->
-    let _ = Gnttab.page gnt in
-    let gref = Gnttab.num gnt in
-    let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
-    Hashtbl.add nf.rx_map id gnt;
-    let slot_id = Ring.Front.next_req_id nf.rx_fring in
-    let slot = Ring.Front.slot nf.rx_fring slot_id in
-    ignore(RX.write_request ~id ~gref slot);
-  ) gnts;
+  lwt gnts = Gnttab.get_n num in
+  let pages = Io_page.get_n num in
+  List.iter
+    (fun (gnt, page) ->
+      Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RW gnt page;
+      let gref = Gnttab.to_int32 gnt in
+      let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
+      Hashtbl.add nf.rx_map id (gnt, page);
+      let slot_id = Ring.Front.next_req_id nf.rx_fring in
+      let slot = Ring.Front.slot nf.rx_fring slot_id in
+      ignore(RX.write_request ~id ~gref slot)
+    ) (List.combine gnts pages);
   if Ring.Front.push_requests_and_check_notify nf.rx_fring then
     Evtchn.notify nf.evtchn;
   return ()
@@ -156,25 +168,32 @@ let refill_requests nf =
 let rx_poll nf fn =
   Ring.Front.ack_responses nf.rx_fring (fun bs ->
     let id,(offset,flags,status) = RX.read_response bs in
-    let gnt = Hashtbl.find nf.rx_map id in
+    let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    let page = Gnttab.detach gnt in
+    let bs = Io_page.to_bitstring page in
     Gnttab.end_access gnt;
-    Gnttab.put_free_entry gnt;
+    Gnttab.put gnt;
     match status with
     |sz when status > 0 ->
-      let packet = Bitstring.subbitstring page 0 (sz*8) in
-      ignore_result (try_lwt fn packet
+      let packet = Bitstring.subbitstring bs 0 (sz*8) in
+      let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring packet) in
+      Io_page.put page;
+      ignore_result (try_lwt fn copy 
         with exn -> return (printf "RX exn %s\n%!" (Printexc.to_string exn)))
     |err -> printf "RX error %d\n%!" err
   )
 
 (* Transmit a packet from buffer, with offset and length *)  
 let output nf bsv =
-  Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO (fun gnt ->
-    let gref = Gnttab.num gnt in
+  Io_page.with_page
+    (fun page ->
+      Gnttab.with_ref
+        (fun gnt ->
+          Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO gnt page
+            (fun () ->
+    let gref = Gnttab.to_int32 gnt in
     let id = Int32.to_int gref in
-    let page = Gnttab.page gnt in
+    let page = Io_page.to_bitstring page in
     let (pagebuf, pageoffbits, _) = page in
     let pageoff = pageoffbits / 8 in
     let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->
@@ -191,6 +210,8 @@ let output nf bsv =
     |status when status = 0 -> return ()
     |errcode -> return (printf "TX: error %d\n%!" errcode)
   )
+))
+
 
 let tx_poll nf =
   Ring.Front.poll nf.tx_fring (TX.read_response)
@@ -207,24 +228,27 @@ let listen nf fn =
   in
   poll_t ()
 
-(* Shutdown a netfront *)
-let destroy nf =
-  printf "netfront_destroy\n%!";
-  return ()
-
 (** Return a list of valid VIF IDs *)
 let enumerate () =
   (* Find out how many VIFs we have *)
   let rec read_vif num acc =
     try_lwt
       lwt sid = Xs.(t.read (sprintf "device/vif/%d/backend-id" num)) in
-      let domid = int_of_string sid in
-      printf "found: num=%d backend-id=%d\n%!" num domid;
-      read_vif (succ num) ((num,domid) :: acc)
+      printf "found: num=%d backend-id=%s\n%!" num sid;
+      read_vif (succ num) (sid :: acc)
     with
       Xb.Noent -> return (List.rev acc)
   in
   read_vif 0 []
+
+let create fn =
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
+  lwt ids = enumerate () in
+  let pt = Lwt_list.iter_p (fun id ->
+    lwt t = plug id in
+    fn id t) ids in
+  th <?> pt
 
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let mac nf = 
@@ -240,4 +264,3 @@ let mac nf =
     );
   s
 
-let string_of_id t = string_of_int (fst t)

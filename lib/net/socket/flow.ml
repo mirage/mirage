@@ -29,7 +29,7 @@ exception Connect_error of string
 exception Read_error of string
 exception Write_error of string
 
-module R = Manager.Unix
+module R = OS.Socket
 
 type 'a fdwrap = {
   fd: 'a R.fd;
@@ -87,7 +87,7 @@ let listen_tcpv4 addr port fn =
              )
            );
            loop t
-         |R.Retry -> Activations.read (R.fd_to_int t.fd) >> loop t
+         |R.Retry -> Activations.read t.fd >> loop t
          |R.Err err -> fail (Accept_error err)
         )
       ) in
@@ -103,7 +103,7 @@ let listen_tcpv4 addr port fn =
 let rec read_buf t istr off len =
   match R.read t.fd istr off len with
   |R.Retry ->
-    Activations.read (R.fd_to_int t.fd) >>
+    Activations.read t.fd >>
     read_buf t istr off len
   |R.OK r -> return r
   |R.Err e -> fail (Read_error e)
@@ -111,7 +111,7 @@ let rec read_buf t istr off len =
 let rec write_buf t (buf,off,len) =
   match R.write t.fd buf (off/8) (len/8) with 
   |R.Retry ->
-    Activations.write (R.fd_to_int t.fd) >>
+    Activations.write t.fd >>
     write_buf t (buf,off,len)
   |R.OK amt ->
     let amt = amt * 8 in
@@ -166,7 +166,7 @@ module TCPv4 = struct
         |R.OK _ ->
           close_on_exit t fn
         |R.Retry -> 
-          Activations.write (R.fd_to_int t.fd) >>
+          Activations.write t.fd >>
           loop ()
         |R.Err s -> fail (Connect_error s) in
       let cancel_t = t.abort_t >> fail (Connect_error "cancelled") in

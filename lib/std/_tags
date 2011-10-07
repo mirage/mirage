@@ -1,7 +1,3 @@
-true: mirage
 <pervasives.*>: nopervasives
 <*> and not <pervasives.*>: need_pervasives
-<lwt_*.ml>: pa_lwt
-"oS.ml" or "net.ml" or "block.ml" or "dns.ml" or "http.ml" or "cow.ml": pa_lwt
-"cow.ml": pa_cow
-"ulexing.ml": pa_ulex
+<pervasives.*> or <parsing.*>: -pa_mirage

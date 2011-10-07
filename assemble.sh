@@ -18,15 +18,15 @@ ROOT=`pwd`
 BUILDDIR=${ROOT}/_build
 
 function assemble_xen {
-  if [ -d ${ROOT}/lib/_build/xen-direct ]; then
+  if [ -d ${ROOT}/lib/_build/xen ]; then
     echo Assembling: Xen
-    OBJ=${BUILDDIR}/xen-direct
+    OBJ=${BUILDDIR}/xen
     mkdir -p ${OBJ}/lib ${OBJ}/syntax
     for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
-      cp ${ROOT}/lib/_build/xen-direct/os/runtime_xen/$i ${OBJ}/lib/
+      cp ${ROOT}/lib/_build/xen/os/runtime_xen/$i ${OBJ}/lib/
     done
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
-    cp ${ROOT}/lib/_build/xen-direct/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/xen/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
   else
     echo Skipping: Xen
   fi
@@ -49,14 +49,14 @@ function assemble_unix {
 
 function assemble_node {
   mode=$1
-  echo Assembling: node $1
-  OBJ=${BUILDDIR}/node-$1
-  if [ -d ${ROOT}/lib/_build/node-$1 ]; then
+  echo Assembling: node
+  OBJ=${BUILDDIR}/node
+  if [ -d ${ROOT}/lib/_build/node ]; then
     mkdir -p ${OBJ}/lib 
     for i in libos.a dllos.so; do
-      cp ${ROOT}/lib/_build/node-$1/os/runtime_node/$i ${OBJ}/lib/
+      cp ${ROOT}/lib/_build/node/os/runtime_node/$i ${OBJ}/lib/
     done
-    cp ${ROOT}/lib/_build/node-$1/std/*.{cmi,cmo,cma} ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/node/std/*.{cmi,cmo,cma} ${OBJ}/lib/
     cp ${ROOT}/lib/os/runtime_node/*.js ${OBJ}/lib/
   else
     echo Skipping: Node
@@ -67,7 +67,7 @@ function assemble_syntax {
   echo Assembling: camlp4 extensions
   OBJ=${BUILDDIR}/syntax
   mkdir -p ${OBJ}
-  cp ${ROOT}/syntax/_build/*.{cma,cmi,cmo} ${OBJ}/
+  cp ${ROOT}/syntax/_build/*.{cma,cmi,cmo,cmxs} ${OBJ}/
 }
 
 function assemble_scripts {
@@ -77,9 +77,22 @@ function assemble_scripts {
   cp ${ROOT}/scripts/myocamlbuild.ml ${OBJ}/
 }
 
+function assemble_bin {
+  echo Assembling: binaries
+  OBJ=${BUILDDIR}/bin
+  mkdir -p ${OBJ}
+  sed -e "s,@MIRAGELIB@,${PREFIX},g" < ${ROOT}/scripts/mir-build > ${OBJ}/mir-build
+  cp ${ROOT}/scripts/mir-run ${OBJ}/mir-run
+  chmod 755 ${OBJ}/mir-build ${OBJ}/mir-run
+  cp ${ROOT}/tools/crunch/_build/crunch.native ${OBJ}/mir-crunch
+  cp ${ROOT}/tools/fs/mir-fs-create ${OBJ}/mir-fs-create
+  cp ${ROOT}/scripts/mir-fat-create ${OBJ}/mir-fat-create
+}
+
 assemble_syntax
 assemble_xen
 assemble_unix "direct"
 assemble_unix "socket"
-assemble_node "socket"
+assemble_node
 assemble_scripts
+assemble_bin

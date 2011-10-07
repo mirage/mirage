@@ -15,6 +15,7 @@
  */
 
 #include "mirage-fs.h"
+#include <inttypes.h>
 
 void usage() {
   printf("Usage:\n\textract <Dir> <INPUT>\n");
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
   int outfd, infd;
   struct fs_hdr *fsh;
   int mseek = 0;
-  int size, i;
+  int i;
 
   if (argc != 3) {
     usage();
@@ -52,12 +53,12 @@ int main(int argc, char *argv[]) {
     if(!fsh) break;
     offset = be64toh(fsh->offset);
     length = be64toh(fsh->length);
-    printf("Node: %s %lu [%lu]\n", fsh->filename, length, offset);
+    printf("Node: %s 0x%" PRIx64 " [0x%016" PRIx64 "]\n", fsh->filename, length, offset);
 
     //Extract file to dir location
     outfd = open(fsh->filename, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
     lseek(infd, offset,SEEK_SET);
-    size = fcopy(infd, outfd, length);
+    fcopy(infd, outfd, length);
     ftruncate(outfd, length);
 
     free(fsh);

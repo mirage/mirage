@@ -174,6 +174,45 @@ val compare: t -> t -> int
     allows the module [String] to be passed as argument to the functors
     {!Set.Make} and {!Map.Make}. *)
 
+val fold_right: (char -> 'a -> 'a) -> t -> 'a -> 'a
+(** [fold_right f x initial] folds [f] across the characters of string
+    [x] with initial value [initial] *)
+
+val explode: t -> char list
+(** [explode x] returns the list of characters making string [x] *)
+
+val implode: char list -> t
+(** [implode cs] returns the string made from characters [cs] *)
+
+val endswith: t -> t -> bool
+(** [endswith suffix x] returns true if [x] has suffix [suffix] *)
+
+val startswith: t -> t -> bool
+(** [startswith prefix x] returns true if [x] has prefix [prefix] *)
+
+val isspace: char -> bool
+(** [isspace c] returns true if [c] is a whitespace character *)
+
+val strip: (char -> bool) -> t -> t
+(** [strip pred x] returns [x] with all characters for which predicate
+    [pred] is true removed from both the start and end of the string *)
+
+val split: ?limit:int -> char -> t -> t list
+(** [split ?limit c x] returns a list of substrings comprising [x] where
+    using [c] as a delimiter. If [limit] is set then [limit] indicates
+    the maximum size of the resulting list, where the final element may
+    contain further delimiter characters. *)
+
+val index_between : string -> int -> int -> char -> int
+(** [String.between s i l c] returns the character number of the
+   first occurrence of character [c] in string [s] after position [i]
+   and before position [l].
+
+   Raise [Invalid_argument] if [i] is not a valid position in [s] or
+   is greater than [l].
+   Raise [Not_found] if [c] does not occur in [s] after position [i]
+   and before position [l]. *)
+
 (**/**)
 
 external unsafe_get : string -> int -> char = "%string_unsafe_get"

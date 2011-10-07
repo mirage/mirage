@@ -17,21 +17,15 @@
 open Lwt
 open Printf
 
-module Tap = struct
-  type t = int
-  external opendev: string -> t = "tap_opendev"
-  external read: t -> string -> int -> int = "tap_read"
-  external write: t -> Bitstring.t -> unit = "tap_write"
-end
+type id = string
 
 type t = {
-  id: string;
-  dev: Tap.t;
+  id: id;
+  dev: [`tap] Socket.fd;
   mutable active: bool;
   mac: string;
 }
 
-type id = string
 exception Ethif_closed
 
 (* We must generate a fake MAC for the Unix "VM", as using the
@@ -49,25 +43,42 @@ let generate_local_mac () =
   x.[5] <- i ();
   x
 
-let create (id:id) =
-  let dev = Tap.opendev id in
+let devices = Hashtbl.create 1
+
+let plug id =
+  let dev = Socket.opentap id in
   let mac = generate_local_mac () in
   let active = true in
   let t = { id; dev; active; mac } in
+  Hashtbl.add devices id t;
+  printf "Netif: plug %s\n%!" id;
   return t
+
+let unplug id =
+  try
+    let t = Hashtbl.find devices id in
+    t.active <- false;
+    printf "Netif: unplug %s\n%!" id;
+    Hashtbl.remove devices id
+  with Not_found -> ()
+   
+let create fn =
+  lwt t = plug "tap0" in (* Just hardcode a tap device for the moment *)
+  let user = fn "tap0" t in
+  let th,_ = Lwt.task () in
+  Lwt.on_cancel th (fun _ -> unplug "tap0");
+  th <?> user
 
 (* Input a frame, and block if nothing is available *)
 let rec input t =
   let sz = 4096 in
   let page = String.create sz in
-  let len = Tap.read t.dev page sz in
+  lwt len = Socket.fdbind Activations.read (fun fd -> Socket.read fd page 0 sz) t.dev in
   match len with
   |(-1) -> (* EAGAIN or EWOULDBLOCK *)
-    Activations.read t.dev >>
     input t
   |0 -> (* EOF *)
     t.active <- false;
-    Activations.read t.dev >>
     input t
   |n ->
     return (page, 0, n lsl 3)
@@ -92,19 +103,17 @@ let destroy nf =
   printf "tap_destroy\n%!";
   return ()
 
-(* Transmit a packet from a bitstring
-   For now, just assume the Tap write wont block for long as this
-   is not a performance-critical backend
-*)
+(* Transmit a packet from a bitstring *)
 let output t bss =
-  let s = Bitstring.concat bss in
-  return (Tap.write t.dev s)
-
-(** Return a list of valid VIF IDs *)
-let enumerate () =
-  return [ "tap0" ]
+  let buf,off,len = Bitstring.concat bss in
+  let off = off/8 in
+  let len = len/8 in
+  lwt len' = Socket.fdbind Activations.write (fun fd -> Socket.write fd buf off len) t.dev in
+  if len' <> len then
+    raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' len))
+  else
+    return ()
 
 let mac t =
   t.mac
 
-let string_of_id id = id

@@ -37,8 +37,6 @@ module Make(Flow:FLOW) :
     abort_u: unit Lwt.u;
   }
 
-  exception Closed
-
   let create flow =
     let ibuf = "",0,0 in
     let obuf = [] in
@@ -97,7 +95,7 @@ module Make(Flow:FLOW) :
       ibuf_refill t else return () in
     try_lwt
       let buf,off,len = t.ibuf in
-      let idx = (String.index_from buf (off/8) ch) * 8 in
+      let idx = (String.index_between buf (off/8) ((off+len)/8) ch) * 8 in
       let rlen = idx - off in
       (bitmatch t.ibuf with
       | { _:8; rest:-1:bitstring } when rlen = 0 ->
@@ -105,7 +103,11 @@ module Make(Flow:FLOW) :
           return (true, Bitstring.empty_bitstring)
       | { r:rlen:bitstring; _:8; rest:-1:bitstring } ->
           t.ibuf <- rest;
-          return (true, r))
+          return (true, r)
+      | { _ } ->
+          printf "Flow: unexpected bitmatch failure in read_until\n%!";
+          exit 1
+      )
     with Not_found -> begin
       let r = t.ibuf in
       t.ibuf <- "",0,0; 
@@ -117,7 +119,6 @@ module Make(Flow:FLOW) :
      @return Returns a stream of views that terminates at EOF.
      @raise Closed to signify EOF  *)
   let read_crlf t =
-    let fin = ref false in
     let rec get acc =
       match_lwt read_until t '\n' with
       |(false, v) ->

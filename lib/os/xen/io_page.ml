@@ -18,6 +18,13 @@
 external alloc_external_string: int -> string = "caml_alloc_external_string"
 external chunk_external_string: string -> int * int = "caml_chunk_string_pages"
 
+open Lwt
+
+type t = {
+  page: Bitstring.t;
+  mutable detached: bool;
+}
+
 let free_list = Queue.create ()
 
 let alloc ~nr_pages =
@@ -31,14 +38,55 @@ let alloc ~nr_pages =
     Queue.add bs free_list;
   done
 
-let rec get_free () =
-  try
-    Queue.pop free_list
-  with Queue.Empty -> begin
-    alloc ~nr_pages:128;
-    get_free ()
+let get () =
+  let rec inner () =
+    try
+      Queue.pop free_list
+    with Queue.Empty -> begin
+      alloc ~nr_pages:128;
+      inner ()
+    end in
+  { page = inner (); detached = false }
+
+let rec get_n = function
+  | 0 -> []
+  | n -> get () :: (get_n (n - 1))
+
+let return_to_free_list (x: Bitstring.t) =
+  (* TODO: assert that the buf is a page aligned one we allocated above *)
+  Queue.add x free_list
+
+let put (x: t) =
+  if not x.detached then return_to_free_list x.page
+
+let with_page f =
+  let a = get () in
+  try_lwt
+    lwt res = f a in
+    put a;
+    return res
+  with exn -> begin
+    put a;
+    fail exn
   end
 
-let put_free bs =
-  (* TODO: assert that the buf is a page aligned one we allocated above *)
-  Queue.add bs free_list
+let with_pages n f =
+  let pages = get_n n in
+  lwt res = f pages in
+  List.iter put pages;
+  return res
+
+(*
+let detach (x: t) =
+  Gc.finalise return_to_free_list x.page;
+  x.detached <- true
+*)
+
+let to_bitstring (x: t) =
+  x.page
+
+let of_bitstring (x: Bitstring.t) = {
+  page = x;
+  detached = true (* XXX: assume this page has already been detached *)
+}
+

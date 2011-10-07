@@ -17,7 +17,7 @@
 open Camlp4.PreCast
 open Syntax
 
-open Dyntype 
+open Pa_dyntype.Dyntype 
 
 let json_of n = "json_of_" ^ n
 let of_json n = n ^ "_of_json"
@@ -165,7 +165,7 @@ module Json_of = struct
     | Rec (n,_)
     | Var n    ->
       (* XXX: This will not work for recursive values *)
-      <:expr< $Pa_dyntype.gen_ident _loc json_of n$ $id$ >> in
+      <:expr< $Pa_dyntype.Pp_dyntype.gen_ident _loc json_of n$ $id$ >> in
 
     let id = <:expr< $lid:n$ >> in
     <:binding<$lid:json_of n$ $lid:n$ : Json.t = $aux id t$>>
@@ -357,7 +357,7 @@ module Of_json = struct
 	  | Rec (n,_)
 	  | Var n    ->
       (* XXX: This will not work for recursive values *)
-      <:expr< $Pa_dyntype.gen_ident _loc of_json n$ $id$ >> in
+      <:expr< $Pa_dyntype.Pp_dyntype.gen_ident _loc of_json n$ $id$ >> in
 
     let id = <:expr< $lid:n$ >> in
     <:binding<$lid:of_json n$ $lid:n$ : $lid:n$ = $aux id t$>>
@@ -370,8 +370,8 @@ let () =
        try
          let _loc = Ast.loc_of_ctyp tds in
          <:str_item<
-           value rec $Ast.biAnd_of_list (List.map Json_of.gen (Pa_dyntype.create tds))$;
-           value rec $Ast.biAnd_of_list (List.map Of_json.gen (Pa_dyntype.create tds))$;
+           value rec $Ast.biAnd_of_list (List.map Json_of.gen (Pa_dyntype.Pp_dyntype.create tds))$;
+           value rec $Ast.biAnd_of_list (List.map Of_json.gen (Pa_dyntype.Pp_dyntype.create tds))$;
          >>
        with Not_found ->
          Printf.eprintf "[Internal Error]\n";

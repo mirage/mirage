@@ -62,7 +62,7 @@ let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
   let tlen = (List.fold_left (fun a b -> 
     Bitstring.bitstring_length b + a) 0 pkt) / 8 + (ihl * 4) in
   let tos = 0 in
-  let ipid = 17 in (* TODO support ipid *)
+  let ipid = Random.int 65535 in (* TODO support ipid *)
   let flags = 0 in (* TODO expose DF/MF frag flags *)
   let fragoff = 0 in
   let proto = match proto with |`ICMP -> 1 |`TCP -> 6 |`UDP -> 17 in
@@ -86,7 +86,7 @@ let input t pkt =
   bitmatch pkt with
   |{4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
     ttl:8; proto:8; checksum:16; src:32:bind(ipv4_addr_of_uint32 src); dst:32:bind(ipv4_addr_of_uint32 dst);
-    options:(ihl-5)*32:bitstring; data:-1:bitstring } ->
+    _ (* options *):(ihl-5)*32:bitstring; data:-1:bitstring } ->
       begin match proto with
       |1 -> (* ICMP *) t.icmp src data
       |6 -> (* TCP *) t.tcp ~src ~dst data

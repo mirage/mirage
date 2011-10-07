@@ -14,10 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Dummy Block module, not implemented yet *)
-
 type t
-type id
+type id = string
 
-val enumerate: unit -> id list Lwt.t
-val create: id -> (t * unit Lwt.t) Lwt.t
+val create : id:string -> filename:string -> Devices.blkif Lwt.t

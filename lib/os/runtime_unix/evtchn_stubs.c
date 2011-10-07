@@ -120,16 +120,6 @@ caml_unregister_fd(value v_watcher)
   CAMLreturn(Val_unit);
 }
 
-/* Block until an I/O event comes in */
-CAMLprim value
-caml_block_domain(value v_unit)
-{
-//  fprintf(stderr, "caml_block_domain\n");
-  if (!run_callback)
-    run_callback = caml_named_value("Main.run");
-  return Val_unit;
-}
-
 /* Block with a timeout */
 CAMLprim value
 caml_block_domain_with_timeout(value v_timeout)

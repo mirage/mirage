@@ -1,3 +1,1 @@
-true: mirage
-"console.ml" or "clock.ml": pa_lwt
-"time.ml" or "main.ml" or "istring.ml": pa_lwt
+true: pa_js

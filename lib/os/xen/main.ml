@@ -33,8 +33,27 @@ let default_iteration () =
   let timeout = Time.process_timeouts now in
   block_domain (match timeout with None -> 10.0 |Some t -> t)
 
+let exit_hooks = Lwt_sequence.create ()
+let enter_hooks = Lwt_sequence.create ()
+
+let rec call_hooks hooks  =
+  match Lwt_sequence.take_opt_l hooks with
+    | None ->
+        return ()
+    | Some f ->
+        (* Run the hooks in parallel *)
+        let _ =
+          try_lwt
+            f ()
+          with exn ->
+            Printf.printf "call_hooks: exn %s\n%!" (Printexc.to_string exn);
+            return ()
+        in
+        call_hooks hooks
+
 (* Execute one iteration and register a callback function *)
 let run t =
+  let t = call_hooks enter_hooks <&> t in
   let rec aux () =
     Lwt.wakeup_paused ();
     try
@@ -46,20 +65,6 @@ let run t =
          (Printexc.to_string exn); true) in
   ignore(Callback.register "OS.Main.run" aux)
 
-let exit_hooks = Lwt_sequence.create ()
-
-let rec call_hooks () =
-  match Lwt_sequence.take_opt_l exit_hooks with
-    | None ->
-        return ()
-    | Some f ->
-        lwt () =
-          try_lwt
-            f ()
-          with exn ->
-            return ()
-        in
-        call_hooks ()
-
-let () = at_exit (fun () -> run (call_hooks ()))
+let () = at_exit (fun () -> run (call_hooks exit_hooks))
 let at_exit f = ignore (Lwt_sequence.add_l f exit_hooks)
+let at_enter f = ignore (Lwt_sequence.add_l f enter_hooks)

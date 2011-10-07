@@ -27,14 +27,16 @@ let unexpected_packet expected received =
 	                       (Xb.Op.to_string received) in
 	fail (Unexpected_packet s)
 
-type con = {
-	xb: Xb.t;
-	watchevents: (string * string) Queue.t;
+type watch_queue = {
+    events: (string * string) Queue.t;
+    c: unit Lwt_condition.t;
+    m: Lwt_mutex.t;
 }
 
-let create () = 
-	let xb = Xb.init () in
-	{ xb = xb; watchevents = Queue.create () }
+type con = {
+	xb: Xb.t;
+    watchevents: (Queueop.token, watch_queue) Hashtbl.t;
+}
 
 let rec split_string ?limit:(limit=(-1)) c s =
 	let i = try String.index s c with Not_found -> -1 in
@@ -89,7 +91,7 @@ let pkt_send con =
         loop_output ()
 
 (* receive one packet - can sleep *)
-let pkt_recv con =
+let pkt_recv_one con =
         let rec loop_input () =
             lwt w = Xb.input con.xb in 
             if w then return () else loop_input ()
@@ -97,29 +99,77 @@ let pkt_recv con =
         lwt () = loop_input () in
 	return (Xb.get_in_packet con.xb)
 
-let queue_watchevent con data =
+let find_watch_event_queue con token =
+    if not(Hashtbl.mem con.watchevents token) 
+	then Hashtbl.replace con.watchevents token {
+        events = Queue.create ();
+        c = Lwt_condition.create ();
+        m = Lwt_mutex.create ()
+    };
+    Hashtbl.find con.watchevents token
+
+let remove_watch_event_queue con token =
+    if Hashtbl.mem con.watchevents token
+    then Hashtbl.remove con.watchevents token
+
+let queue_watchevent con pkt =
+    let data = Xs_packet.get_data pkt in
 	let ls = split_string ~limit:2 '\000' data in
 	if List.length ls != 2 then
                 print_endline "XXX queue_watchevent: arg mismatch";
 (* XXX		raise (Xs_packet.DataError "arguments number mismatch"); *)
 	let event = List.nth ls 0
 	and event_data = List.nth ls 1 in
-	Queue.push (event, event_data) con.watchevents
+    let token = Queueop.parse_token event_data in
+    let w = find_watch_event_queue con token in
+	Queue.push (event, Queueop.user_string_of_token token) w.events;
+	Lwt_condition.signal w.c ()
 
-let has_watchevents con = Queue.length con.watchevents > 0
-let get_watchevent con = Queue.pop con.watchevents
+let has_watchevents con token =
+    let w = find_watch_event_queue con token in
+	Queue.length w.events > 0
+let get_watchevent con token =
+    let w = find_watch_event_queue con token in
+    Queue.pop w.events
+let read_watchevent con token =
+    let w = find_watch_event_queue con token in
+    Lwt_mutex.with_lock w.m
+        (fun () ->
+            lwt () = Lwt_condition.wait ~mutex:w.m w.c in
+            return (Queue.pop w.events)
+        )
 
-let read_watchevent con =
-	lwt pkt = pkt_recv con in
+let rid_to_wakeup = Hashtbl.create 10
+
+let rec dispatcher con =
+    lwt pkt = pkt_recv_one con in
 	match Xs_packet.get_ty pkt with
-	| Xb.Op.Watchevent ->
-		queue_watchevent con (Xs_packet.get_data pkt);
-		return (Queue.pop con.watchevents)
-	| ty -> unexpected_packet Xb.Op.Watchevent ty
+	| Xb.Op.Watchevent  ->
+		queue_watchevent con pkt;
+		dispatcher con
+    | _ ->
+        let rid = Xs_packet.get_rid pkt in
+        if not(Hashtbl.mem rid_to_wakeup rid)
+        then Printf.printf "Unknown rid:%d in ty:%s\n%!" rid (Xb_op.to_string (Xs_packet.get_ty pkt))
+        else Lwt.wakeup (Hashtbl.find rid_to_wakeup rid) pkt;
+	    dispatcher con
 
-(* send one packet in the queue, and wait for reply *)
-let rec sync_recv ty con =
-	lwt pkt = pkt_recv con in
+let create () = 
+	let xb = Xb.init () in
+	let con = { xb = xb; watchevents = Hashtbl.create 10 } in
+	ignore(dispatcher con);
+	con
+    
+let rpc request con =
+    let th, wakeup = Lwt.wait () in
+    let rid = Xs_packet.get_rid request in
+	Hashtbl.replace rid_to_wakeup rid wakeup;
+    Xb.queue con.xb request;
+	lwt () = pkt_send con in
+    lwt pkt = th in
+    Hashtbl.remove rid_to_wakeup rid;
+
+    let request_ty = Xs_packet.get_ty request in
 	match Xs_packet.get_ty pkt with
 	| Xb.Op.Error       -> (
 		match Xs_packet.get_data pkt with
@@ -127,25 +177,16 @@ let rec sync_recv ty con =
 		| "EAGAIN" -> fail Xb.Eagain
 		| "EINVAL" -> fail Xb.Invalid
 		| s        -> fail (Xs_packet.Error s))
-	| Xb.Op.Watchevent  ->
-		queue_watchevent con (Xs_packet.get_data pkt);
-		sync_recv ty con
-	| rty when rty = ty -> return (Xs_packet.get_data pkt)
-	| rty -> unexpected_packet ty rty
-
-let sync f con =
-	(* queue a query using function f *)
-	f con.xb;
-	if Xb.output_len con.xb = 0 then
-		Printf.printf "output len = 0\n%!";
-	let ty = Xs_packet.get_ty (Xb.peek_output con.xb) in
-	pkt_send con >>
-	sync_recv ty con
+	| resp_ty when resp_ty = request_ty -> return (rid, Xs_packet.get_data pkt)
+	| resp_ty -> unexpected_packet request_ty resp_ty
 
 let ack s =
-        Lwt.bind s (fun s ->
+        Lwt.bind s (fun (_, s) ->
 	  if s = "OK" then return () else fail (Xs_packet.DataError s)
         ) 
+
+let data s =
+     Lwt.bind s (fun (_, s) -> return s)
 
 (** Check paths are suitable for read/write/mkdir/rm/directory etc (NOT watches) *)
 let validate_path path =
@@ -168,16 +209,16 @@ let validate_watch_path path =
 	else validate_path path
 
 let debug command con =
-	sync (Queueop.debug command) con
+	data (rpc (Queueop.debug command) con)
 
 let directory tid path con =
 	validate_path path;
-	lwt data = sync (Queueop.directory tid path) con in
+	lwt _, data = rpc (Queueop.directory tid path) con in
 	return (split_string '\000' data)
 
 let read tid path con =
 	validate_path path;
-	sync (Queueop.read tid path) con
+	data (rpc (Queueop.read tid path) con)
 
 let readv tid dir vec con =
 	Lwt_list.map_s (fun path -> validate_path path; read tid path con)
@@ -186,19 +227,24 @@ let readv tid dir vec con =
 
 let getperms tid path con =
 	validate_path path;
-	lwt perms = sync (Queueop.getperms tid path) con in
+	lwt _, perms = rpc (Queueop.getperms tid path) con in
         return (perms_of_string perms)
 
-let watch path data con =
+let watch path token con =
 	validate_watch_path path;
-	ack (sync (Queueop.watch path data) con)
+	lwt rid, _ = rpc (Queueop.watch path token) con in
+    return ()
 
-let unwatch path data con =
+let unwatch path token con =
 	validate_watch_path path;
-        ack (sync (Queueop.unwatch path data) con)
+    lwt () = ack (rpc (Queueop.unwatch path token) con) in
+    (* No more events should be arriving in the queue, so it should be
+       ok to delete it without worrying about it coming back *)
+    remove_watch_event_queue con token;
+    return ()
 
 let transaction_start con =
-	lwt data = sync (Queueop.transaction_start) con in
+	lwt _, data = rpc (Queueop.transaction_start ()) con in
 	try_lwt
 		return (int_of_string data)
 	with
@@ -206,26 +252,26 @@ let transaction_start con =
 
 let transaction_end tid commit con =
 	try_lwt
-		ack (sync (Queueop.transaction_end tid commit) con) >>
+		ack (rpc (Queueop.transaction_end tid commit) con) >>
                 return true
 	with | Xb.Eagain ->
                 return false
 
 let introduce domid mfn port con =
-	ack (sync (Queueop.introduce domid mfn port) con)
+	ack (rpc (Queueop.introduce domid mfn port) con)
 
 let release domid con =
-	ack (sync (Queueop.release domid) con)
+	ack (rpc (Queueop.release domid) con)
 
 let resume domid con =
-	ack (sync (Queueop.resume domid) con)
+	ack (rpc (Queueop.resume domid) con)
 
 let getdomainpath domid con =
-	sync (Queueop.getdomainpath domid) con
+	data (rpc (Queueop.getdomainpath domid) con)
 
 let write tid path value con =
 	validate_path path;
-	ack (sync (Queueop.write tid path value) con)
+	ack (rpc (Queueop.write tid path value) con)
 
 let writev tid dir vec con =
 	Lwt_list.iter_s (fun (entry, value) ->
@@ -235,18 +281,18 @@ let writev tid dir vec con =
 
 let mkdir tid path con =
 	validate_path path;
-	ack (sync (Queueop.mkdir tid path) con)
+	ack (rpc (Queueop.mkdir tid path) con)
 
 let rm tid path con =
         validate_path path;
 	try_lwt
-		ack (sync (Queueop.rm tid path) con)
+		ack (rpc (Queueop.rm tid path) con)
 	with
 		Xb.Noent -> return ()
 
 let setperms tid path perms con =
 	validate_path path;
-	ack (sync (Queueop.setperms tid path (string_of_perms perms)) con)
+	ack (rpc (Queueop.setperms tid path (string_of_perms perms)) con)
 
 let setpermsv tid dir vec perms con =
 	Lwt_list.iter_s (fun entry ->

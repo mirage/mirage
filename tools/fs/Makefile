@@ -14,15 +14,16 @@ EXTRACT_OBJS = fsutil.o extract.o
 OBJS = $(CREAT_OBJS) $(EXTRACT_OBJS)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	@$(CC) $(CFLAGS) -c $*.c
 
 all: $(PROGNAME)
+	@ :
 
 mir-fs-create : $(CREAT_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(CREAT_OBJS) $(LIBS)
+	@$(CC) $(CFLAGS) -o $@ $(CREAT_OBJS) $(LIBS)
 
 mir-fs-extract : $(EXTRACT_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(EXTRACT_OBJS) $(LIBS)
+	@$(CC) $(CFLAGS) -o $@ $(EXTRACT_OBJS) $(LIBS)
 
 clean:
 	rm -f $(OBJS) $(PROGNAME) core *~

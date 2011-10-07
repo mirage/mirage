@@ -22,11 +22,10 @@
 int
 main(int argc, char **argv)
 {
-  static char *fake_argv[] = { "mirage", NULL };
   signal(SIGPIPE, SIG_IGN);
   ev_default_loop(0);
   fprintf(stderr, "Main: startup\n");
-  caml_startup(fake_argv);
+  caml_startup(argv);
   fprintf(stderr, "Main: entering runloop\n");
   ev_loop(0);
   fprintf(stderr, "Main: end\n");

@@ -81,9 +81,12 @@ let marshal ts =
        tlen := !tlen + len;
        (BITSTRING { kind:8; len:8; contents:-1:string })
   ) ts in
-  let padlen = 32 - (!tlen mod 32) in
-  let eopt = BITSTRING { 0L:padlen } in
-  Bitstring.concat (List.rev (eopt :: opts))
+  match opts with 
+  |[] -> Bitstring.empty_bitstring
+  |opts ->
+    let padlen = 32 - (!tlen mod 32) in
+    let eopt = BITSTRING { 0L:padlen } in
+    Bitstring.concat (List.rev (eopt :: opts))
 
 let of_packet bs =
   parse bs []

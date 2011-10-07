@@ -64,10 +64,10 @@ module Tx = struct
     let fin = flags = Segment.Tx.Fin in
     let ack = match rx_ack with Some _ -> true |None -> false in
     let ack_number = match rx_ack with Some n -> Sequence.to_int32 n |None -> 0l in
-    printf "TCP xmit: dest_ip=%s %s%s%s%sack=%lu\n%!" (ipv4_addr_to_string dest_ip)
-      (if rst then "RST " else "") (if syn then "SYN " else "")
-      (if fin then "FIN " else "") (if ack then "ACK " else "") ack_number; 
     let sequence = Sequence.to_int32 seq in
+    printf "TCP xmit: dest_ip=%s %s%s%s%sseq=%lu ack=%lu\n%!" (ipv4_addr_to_string dest_ip)
+      (if rst then "RST " else "") (if syn then "SYN " else "")
+      (if fin then "FIN " else "") (if ack then "ACK " else "") sequence ack_number; 
     let options = Options.marshal options in
     let data_offset = (Bitstring.bitstring_length options + 160) / 32 in
     let header = BITSTRING {
@@ -84,10 +84,13 @@ module Tx = struct
     return frame
 
   (* Output a TCP packet, and calculate some settings from a state descriptor *)
-  let xmit_pcb ip id ~flags ~wnd ~options data =
+  let xmit_pcb ip id ~flags ~wnd ~options ~override_seq data =
     let window = Int32.to_int (Window.rx_wnd wnd) in (* TODO scaling *)
     let rx_ack = Some (Window.rx_nxt wnd) in
-    let seq = Window.tx_nxt wnd in
+    let seq = match override_seq with
+             | None -> Window.tx_nxt wnd
+             | Some s -> s
+    in
     xmit ip id ~flags ~rx_ack ~seq ~window ~options data
 
   (* Output an RST when we dont have a PCB *)
@@ -120,7 +123,8 @@ module Tx = struct
       let flags = Segment.Tx.No_flags in
       let options = [] in
       let data = "",0,0 in
-      xmit_pcb t.ip pcb.id ~flags ~wnd ~options data >>
+      let override_seq = None in
+      xmit_pcb t.ip pcb.id ~flags ~wnd ~options ~override_seq data >>
       Ack.Immediate.transmit ack ack_number >>
       send_empty_ack () in
     (* When something transmits an ACK, tell the delayed ACK thread *)
@@ -234,8 +238,8 @@ let new_connection t ~window ~sequence ~options id data listener =
   (* The window handling thread *)
   let tx_wnd_update = Lwt_mvar.create_empty () in
   (* Set up transmit and receive queues *)
-  let txq, tx_t = Segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack in
-  let rxq = Segment.Rx.q ~rx_data ~wnd ~tx_ack ~tx_wnd_update in
+  let txq, tx_t = Segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack ~tx_wnd_update in
+  let rxq = Segment.Rx.q ~rx_data ~wnd ~tx_ack in
   (* Set up ACK module *)
   let ack = Ack.Immediate.t ~send_ack ~last:(Sequence.incr rx_isn) in
   (* Construct basic PCB in Syn_received state *)

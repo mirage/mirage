@@ -6,3 +6,4 @@ lwt/timeout2
 lwt/echoserver1
 lwt/echoserver2
 lwt/intserver
+lwt/stream_processing

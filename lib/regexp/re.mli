@@ -5,16 +5,16 @@
  *)
 
 
-(** # Basic regexps. *)
+(** {4 Basic regexps} *)
 
 
 (** The type of regexps.*)
 type regexp
 
 
-(** ## Regexp constructors.*)
+(** {5 Regexp constructors}*)
 
-(** ### Functional constructors.*)
+(** {6 Functional constructors}*)
 
 (** The regexp denoting the absence of word.*)
 val empty : regexp
@@ -47,12 +47,30 @@ val opt : regexp -> regexp
 (** The regexp matching 1 or more words matched by the given regexp.*)
 val some : regexp -> regexp
 
-(** ### Parsing constructor.*)
+(** {6 Parsing constructor}*)
 
 (** [from_string_raw s] parses the string [s] and returns the associated regexp.
 
     The following constructions can be used in the given string:
-      TODO
+{v
+ ________________________________________________________________
+ |                                                              |
+ | The following constructions can be used in the string [s]:   |
+ |______________________________________________________________|_______________________________________________
+ | char             |   denotes the character char for all non-special chars                                    |
+ | \char            |   denotes the character char for special characters ., \, *, +, ?, |, [, ], ( and )       |
+ | [set]            |   denotes any single-character word belonging to set. Intervals may be given as in [a-z]. |
+ | [^set]           |   denotes any single-character word not belonging to set.                                 |
+ | .                |   denotes any single-character word (complete set of characters)                          |
+ | regexp*          |   denotes the Kleene star of regexp                                                       |
+ | regexp+          |   denotes any concatenation of one or more words of regexp                                |
+ | regexp?          |   denotes the empty word or any word denoted by regexp                                    |
+ | regexp1|regexp2  |   denotes any words in regexp1 or in regexp2                                              |
+ | regexp1regexp2   |   denotes any contecatenation of a word of regexp1 and a word of regexp2                  |
+ | (regexp)         |   parentheses, denotes the same words as regexp.                                          |
+ |__________________|___________________________________________________________________________________________|
+
+ v}
 
   *)
 val from_string_raw : string -> regexp
@@ -60,36 +78,39 @@ val from_string_raw : string -> regexp
 
 
 
-(** # Regexp compilation.*)
+(** {4 Regexp compilation}*)
 
 (** In order to improve the efficiency of regexps, they are compiled to a
-    different internal representation.*)
+    different internal representation. *)
 
 (** The type of compiled regexps.*)
 type compiled_regexp
 
-(** ## Constructors for compiled regexps. *)
+(** {5 Constructors for compiled regexps} *)
 
 (** [compile re] compiles the regexp [re]. *)
 val compile : regexp -> compiled_regexp
 
-(** [from_string s] is [compile (from_string_raw s)].*)
+(** [from_string s] is [compile (from_string_raw s)]. *)
 val from_string : string -> compiled_regexp
 
 
 
 
-(** # Regexp usage. *)
+(** {5 Regexp usage} *)
 
 (** [search_forward cre s i] evaluates either to [Some (b, e)] is
     [String.sub s b (e - b)] is matched by [cre] (with [b >= i] or [None] if no
     such tuple exists. In other words, [(e, b)] are the inclusive begining and
     exclusive ending offset of a word of [s] starting from [i] matched by
-    [cre].*)
+    [cre]. [(b,e)] is such that [b] is minimal among all the possible values and
+    [e] is maximal for the given [b] (greediness).
+  *)
 val search_forward : compiled_regexp -> string -> int -> (int * int) option
 
 (** [match_string cre s i] evaluates to either [Some e] if [String.sub s i (e -
-    i)] is matched by [cre] or [None] if no such [e] exists.*)
+    i)] is matched by [cre] or [None] if no such [e] exists. Matching is greedy.
+  *)
 val match_string : compiled_regexp -> string -> int -> int option
 
 (** [list_matches cre s] evaluates to a list of strings in which each element is
@@ -99,7 +120,7 @@ val list_matches : compiled_regexp -> string -> string list
 
 (** [split_delim cre s] evaluates to a list of string in which each element is a
     sub-string of the original one. Each two consecutive elements of the list of
-    sub-string was, in [s] separated by a word matched by [cre].
+    sub-string was, in [s], separated by a word matched by [cre].
   *)
 val split_delim : compiled_regexp -> string -> string list
 

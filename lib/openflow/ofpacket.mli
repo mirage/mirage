@@ -1,3 +1,6 @@
+val sp : ('a, unit, string) format -> 'a
+val pr : ('a, out_channel, unit) format -> 'a
+val ep : ('a, out_channel, unit) format -> 'a
 exception Unparsable of string * Bitstring.bitstring
 exception Unparsed of string * Bitstring.bitstring
 val ( |> ) : 'a -> ('a -> 'b) -> 'b
@@ -27,32 +30,54 @@ val int32_of_int : int -> int32
 type bytes = string
 type eaddr = bytes
 val bytes_to_hex_string : char array -> string array
+val eaddr_to_string : string -> string
+val eaddr_is_broadcast : string -> bool
 val bytes_of_bitstring : Bitstring.bitstring -> string
 val ipv4_addr_of_bytes : string -> int32
 type vendor = uint32
 type queue_id = uint32
 type datapath_id = uint64
+type msg_code =
+    HELLO
+  | ERROR
+  | ECHO_REQ
+  | ECHO_RESP
+  | VENDOR
+  | FEATURES_REQ
+  | FEATURES_RESP
+  | GET_CONFIG_REQ
+  | GET_CONFIG_RESP
+  | SET_CONFIG
+  | PACKET_IN
+  | FLOW_REMOVED
+  | PORT_STATUS
+  | PACKET_OUT
+  | FLOW_MOD
+  | PORT_MOD
+  | STATS_REQ
+  | STATS_RESP
+  | BARRIER_REQ
+  | BARRIER_RESP
+  | QUEUE_GET_CONFIG_REQ
+  | QUEUE_GET_CONFIG_RESP
+val msg_code_of_int : int -> msg_code
+val int_of_msg_code : msg_code -> int
+val string_of_msg_code : msg_code -> string
+module Header :
+  sig
+    type h = { ver : uint8; ty : msg_code; len : uint16; xid : uint32; }
+    val get_len : int
+    val parse_h : Bitstring.bitstring -> h
+    val string_of_h : h -> string
+    val create : msg_code -> uint16 -> uint32 -> h
+    val get_xid : h -> uint32
+    val get_ty : h -> msg_code
+    val build_h : h -> Bitstring.bitstring
+  end
 type table_id = All | Emergency | Table of uint8
 val table_id_of_int : int -> table_id
 val int_of_table_id : table_id -> int
 val string_of_table_id : table_id -> string
-type action =
-    OUTPUT
-  | SET_VLAN_VID
-  | SET_VLAN_PCP
-  | STRIP_VLAN
-  | SET_DL_SRC
-  | SET_DL_DST
-  | SET_NW_SRC
-  | SET_NW_DST
-  | SET_NW_TOS
-  | SET_TP_SRC
-  | SET_TP_DST
-  | ENQUEUE
-  | VENDOR
-val action_of_int : int -> action
-val int_of_action : action -> int
-val string_of_action : action -> string
 type port =
     Max
   | In_port
@@ -67,6 +92,24 @@ type port =
 val port_of_int : int16 -> port
 val int_of_port : port -> int16
 val string_of_port : port -> string
+type action =
+    Output of (port * int)
+  | SET_VLAN_VID
+  | SET_VLAN_PCP
+  | STRIP_VLAN
+  | SET_DL_SRC
+  | SET_DL_DST
+  | SET_NW_SRC
+  | SET_NW_DST
+  | SET_NW_TOS
+  | SET_TP_SRC
+  | SET_TP_DST
+  | ENQUEUE
+  | VENDOR_ACT
+val action_of_int : int -> action
+val string_of_action : action -> string
+val len_of_action : action -> int
+val action_to_bitstring : action -> Bitstring.bitstring
 module Queue :
   sig
     type h = { queue_id : queue_id; }
@@ -122,6 +165,7 @@ module Port :
     val max_name_len : int
     val phy_len : int
     val parse_phy : string * int * int -> phy
+    val string_of_phy : phy -> string
     type stats = {
       port_no : uint16;
       rx_packets : uint64;
@@ -137,11 +181,15 @@ module Port :
       rx_crc_err : uint64;
       collisions : uint64;
     }
+    val parse_port_stats_reply : string * int * int -> stats list
+    val string_of_port_stats_reply : stats list -> string
     type reason = ADD | DEL | MOD
     val reason_of_int : int -> reason
     val int_of_reason : reason -> int
     val string_of_reason : reason -> string
     type status = { reason : reason; desc : phy; }
+    val string_of_status : status -> string
+    val status_of_bitstring : string * int * int -> status
   end
 module Switch :
   sig
@@ -198,6 +246,13 @@ module Wildcards :
       dl_vlan_pcp : bool;
       nw_tos : bool;
     }
+    val full_wildcard : t
+    val exact_match : t
+    val l2_match : t
+    val l3_match : t
+    val wildcard_to_bitstring : t -> Bitstring.bitstring
+    val string_of_wildcard : t -> string
+    val bitstring_to_wildcards : string * int * int -> t
   end
 module Match :
   sig
@@ -216,6 +271,25 @@ module Match :
       tp_src : uint16;
       tp_dst : uint16;
     }
+    val match_to_bitstring : t -> Bitstring.bitstring
+    val bitstring_to_match : string * int * int -> t
+    val get_len : int
+    val get_dl_src : t -> eaddr
+    val get_dl_dst : t -> eaddr
+    val create_flow_match :
+      Wildcards.t ->
+      ?in_port:int16 ->
+      ?dl_src:eaddr ->
+      ?dl_dst:eaddr ->
+      ?dl_vlan:uint16 ->
+      ?dl_vlan_pcp:byte ->
+      ?dl_type:uint16 ->
+      ?nw_tos:byte ->
+      ?nw_proto:byte ->
+      ?nw_src:uint32 ->
+      ?nw_dst:uint32 -> ?tp_src:uint16 -> ?tp_dst:uint16 -> unit -> t
+    val parse_from_raw_packet : port -> string * int * int -> t
+    val match_to_string : t -> string
   end
 module Flow :
   sig
@@ -235,19 +309,10 @@ module Flow :
       cookie : uint64;
       packet_count : uint64;
       byte_count : uint64;
-      action : action;
+      action : action list;
     }
-    type t = {
-      cookie : uint64;
-      priority : uint16;
-      reason : reason;
-      table_id : byte;
-      duration_sec : uint32;
-      duration_usec : uint32;
-      idle_timeout : uint16;
-      packet_count : uint64;
-      byte_count : uint64;
-    }
+    val parse_flow_stats : string * int * int -> stats list
+    val string_of_flow_stat : stats -> string
   end
 module Packet_in :
   sig
@@ -266,7 +331,20 @@ module Packet_in :
   end
 module Packet_out :
   sig
-    type t = { buffer_id : uint32; in_port : port; actions : action array; }
+    type t = {
+      of_header : Header.h;
+      buffer_id : uint32;
+      in_port : port;
+      actions : action array;
+      data : Bitstring.t;
+    }
+    val get_len : int
+    val create :
+      ?xid:uint32 ->
+      ?buffer_id:uint32 ->
+      ?actions:action array ->
+      ?data:Bitstring.bitstring -> in_port:port -> unit -> t
+    val packet_out_to_bitstring : t -> Bitstring.bitstring
   end
 module Flow_mod :
   sig
@@ -276,19 +354,49 @@ module Flow_mod :
     val string_of_command : command -> string
     type flags = { send_flow_rem : bool; emerg : bool; overlap : bool; }
     type t = {
+      of_header : Header.h;
+      of_match : Match.t;
       cookie : uint64;
-      cookie_mask : uint64;
-      table_id : byte;
       command : command;
       idle_timeout : uint16;
       hard_timeout : uint16;
       priority : uint16;
-      buffer_id : uint32;
+      buffer_id : int32;
       out_port : port;
-      out_group : uint32;
       flags : flags;
-      of_match : Match.t;
+      actions : action array;
     }
+    val total_len : int
+    val create :
+      Match.t ->
+      uint64 ->
+      command ->
+      ?priority:uint16 ->
+      ?idle_timeout:uint16 ->
+      ?hard_timeout:uint16 ->
+      ?buffer_id:int ->
+      ?out_port:port -> ?flags:flags -> action array -> unit -> t
+    val flow_mod_to_bitstring : t -> Bitstring.bitstring
+  end
+module Flow_removed :
+  sig
+    type reason = IDLE_TIMEOUT | HARD_TIMEOUT | DELETE
+    val reason_of_int : int -> reason
+    val int_of_reason : reason -> int
+    val string_of_reason : reason -> string
+    type t = {
+      of_match : Match.t;
+      cookie : uint64;
+      priority : uint16;
+      reason : reason;
+      duration_sec : uint32;
+      duration_nsec : uint32;
+      idle_timeout : uint16;
+      packet_count : uint64;
+      byte_count : uint64;
+    }
+    val flow_removed_of_bitstring : string * int * int -> t
+    val string_of_flow_removed : t -> string
   end
 module Port_mod :
   sig
@@ -324,30 +432,55 @@ module Stats :
       tx_errors : uint64;
     }
     type desc = {
-      mfr_desc : bytes;
+      imfr_desc : bytes;
       hw_desc : bytes;
       sw_desc : bytes;
       serial_num : bytes;
       dp_desc : bytes;
     }
     type req_hdr = { ty : uint16; flags : uint16; }
+    type stats_type = DESC | FLOW | AGGREGATE | TABLE | PORT | QUEUE | VENDOR
+    val int_of_req_type : stats_type -> int
+    val get_len : stats_type -> int
+    val create_flow_stat_req :
+      Match.t ->
+      ?table_id:int ->
+      ?out_port:port -> ?xid:Int32.t -> unit -> Bitstring.bitstring
+    val create_aggr_flow_stat_req :
+      Match.t ->
+      ?table_id:int ->
+      ?out_port:port -> ?xid:Int32.t -> unit -> Bitstring.bitstring
+    val create_vendor_stat_req : ?xid:Int32.t -> unit -> Bitstring.bitstring
+    val create_table_stat_req : ?xid:Int32.t -> unit -> Bitstring.bitstring
+    val create_queue_stat_req :
+      ?xid:Int32.t ->
+      ?queue_id:int32 -> ?port:port -> unit -> Bitstring.bitstring
+    val create_port_stat_req :
+      ?xid:Int32.t -> ?port:port -> unit -> Bitstring.bitstring
     type req =
-        Desc of req_hdr
-      | Flow of req_hdr * Match.t * table_id * port
-      | Aggregate of req_hdr * Match.t * table_id * port
-      | Table of req_hdr
-      | Port of req_hdr * port
-      | Queue of req_hdr * port * queue_id
-      | Vendor of req_hdr
-    type resp_hdr = { st_ty : uint16; more_to_follow : bool; }
+        Desc_req of req_hdr
+      | Flow_req of req_hdr * Match.t * table_id * port
+      | Aggregate_req of req_hdr * Match.t * table_id * port
+      | Table_req of req_hdr
+      | Port_req of req_hdr * port
+      | Queue_req of req_hdr * port * queue_id
+      | Vendor_req of req_hdr
+    type resp_hdr = { st_ty : stats_type; more_to_follow : bool; }
+    val int_of_stats_type : stats_type -> int
+    val stats_type_of_int : int -> stats_type
     type resp =
-        Desc of resp_hdr * desc
-      | Flow of resp_hdr * Flow.stats
-      | Aggregate of resp_hdr * aggregate
-      | Table of resp_hdr * table
-      | Port of resp_hdr * Port.stats
-      | Queue of resp_hdr * queue
-      | Vendor of resp_hdr
+        Desc_resp of resp_hdr * desc
+      | Flow_resp of resp_hdr * Flow.stats list
+      | Aggregate_resp of resp_hdr * aggregate
+      | Table_resp of resp_hdr * table list
+      | Port_resp of resp_hdr * Port.stats list
+      | Queue_resp of resp_hdr * queue list
+      | Vendor_resp of resp_hdr
+    val parse_table_stats_reply : string * int * int -> table list
+    val string_of_table_stats_reply : table list -> string
+    val parse_stats : string * int * int -> resp
+    val string_of_flow_stats : Flow.stats list -> string
+    val string_of_stats : resp -> string
   end
 type error_code =
     HELLO_INCOMPATIBLE
@@ -384,60 +517,29 @@ type error_code =
 val error_code_of_int : int -> error_code
 val int_of_error_code : error_code -> int
 val string_of_error_code : error_code -> string
-type msg_code =
-    HELLO
-  | ERROR
-  | ECHO_REQ
-  | ECHO_RESP
-  | VENDOR
-  | FEATURES_REQ
-  | FEATURES_RESP
-  | GET_CONFIG_REQ
-  | GET_CONFIG_RESP
-  | SET_CONFIG
-  | PACKET_IN
-  | FLOW_REMOVED
-  | PORT_STATUS
-  | PACKET_OUT
-  | FLOW_MOD
-  | PORT_MOD
-  | STATS_REQ
-  | STATS_RESP
-  | BARRIER_REQ
-  | BARRIER_RESP
-  | QUEUE_GET_CONFIG_REQ
-  | QUEUE_GET_CONFIG_RESP
-val msg_code_of_int : int -> msg_code
-val int_of_msg_code : msg_code -> int
-val string_of_msg_code : msg_code -> string
-type h = { ver : uint8; ty : msg_code; len : uint16; xid : uint32; }
-val h_len : int
-val parse_h : Bitstring.bitstring -> h
-val string_of_h : h -> string
-val build_h : h -> Bitstring.bitstring
 val build_features_req : uint32 -> Bitstring.bitstring
-val build_echo_resp : h -> Bitstring.bitstring -> Bitstring.bitstring
+val build_echo_resp : Header.h -> Bitstring.bitstring -> Bitstring.bitstring
 type t =
-    Hello of h * Bitstring.t
-  | Error of h * error_code
-  | Echo_req of h * Bitstring.t
-  | Echo_resp of h * Bitstring.t
-  | Vendor of h * vendor * Bitstring.t
-  | Features_req of h
-  | Features_resp of h * Switch.features
-  | Get_config_req of h
-  | Get_config_resp of h * Switch.config
-  | Set_config of h * Switch.config
-  | Packet_in of h * Packet_in.t
-  | Flow_removed of h * Flow.t
-  | Port_status of h * Port.status
-  | Packet_out of h * Packet_out.t * Bitstring.t
-  | Flow_mod of h * Flow_mod.t
-  | Port_mod of h * Port_mod.t
-  | Stats_req of h * Stats.req
-  | Stats_resp of h * Stats.resp
-  | Barrier_req of h
-  | Barrier_resp of h
-  | Queue_get_config_req of h * port
-  | Queue_get_config_resp of h * port * Queue.t array
-val parse : h -> Bitstring.t -> t
+    Hello of Header.h * Bitstring.t
+  | Error of Header.h * error_code
+  | Echo_req of Header.h * Bitstring.t
+  | Echo_resp of Header.h * Bitstring.t
+  | Vendor of Header.h * vendor * Bitstring.t
+  | Features_req of Header.h
+  | Features_resp of Header.h * Switch.features
+  | Get_config_req of Header.h
+  | Get_config_resp of Header.h * Switch.config
+  | Set_config of Header.h * Switch.config
+  | Packet_in of Header.h * Packet_in.t
+  | Flow_removed of Header.h * Flow_removed.t
+  | Port_status of Header.h * Port.status
+  | Packet_out of Header.h * Packet_out.t * Bitstring.t
+  | Flow_mod of Header.h * Flow_mod.t
+  | Port_mod of Header.h * Port_mod.t
+  | Stats_req of Header.h * Stats.req
+  | Stats_resp of Header.h * Stats.resp
+  | Barrier_req of Header.h
+  | Barrier_resp of Header.h
+  | Queue_get_config_req of Header.h * port
+  | Queue_get_config_resp of Header.h * port * Queue.t array
+val parse : Header.h -> Bitstring.t -> t

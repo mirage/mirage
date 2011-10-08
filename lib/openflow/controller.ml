@@ -303,8 +303,8 @@ let listen mgr ip port init =
         (* pr "post request %d received %d\n" dlen ((Bitstring.bitstring_length
          * dbuf)/8) ;*)
         let ofp = OP.parse ofh dbuf in
-        process_of_packet st (remote_addr, remote_port) ofp t;
-        echo ()
+        process_of_packet st (remote_addr, remote_port) ofp t 
+        >> echo ()
       with
         | Nettypes.Closed -> return ()
         | OP.Unparsed (m, bs) -> cp (sp "# unparsed! m=%s" m); echo ()

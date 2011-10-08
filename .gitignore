@@ -3,6 +3,7 @@
 .#*
 *.annot
 *.o
+*.orig
 
 _build/
 

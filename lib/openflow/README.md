@@ -9,14 +9,9 @@ OSX Setup
 
 1. Manually configure `en3` on OSX to `172.16.0.1/255.255.255.0`.
 
-2. Setup `bootpd` on OSX:
+2. Setup `bootpd` on OSX: `sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist`
 
-```sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist```
-
-(To unload:
-
-```sudo /bin/launchctl unload -w /System/Library/LaunchDaemons/bootps.plist```
-)
+To unload: `sudo /bin/launchctl unload -w /System/Library/LaunchDaemons/bootps.plist`
 
 3. Create `/etc/bootpd.plist`:
 
@@ -63,13 +58,14 @@ OSX Setup
 
 4. Create `/etc/bootptab`, eg.,
     
-    %%
-    # machine entries have the following format:
-    #
-    # hostname        hwtype  hwaddr            ipaddr     bootfile
-    greyjay-ubuntu-1  1       08:00:27:38:72:c6 172.16.0.11
-    greyjay-ubuntu-2  1       08:00:27:11:dd:a0 172.16.0.12
-
+```
+%%
+# machine entries have the following format:
+#
+# hostname        hwtype  hwaddr            ipaddr     bootfile
+greyjay-ubuntu-1  1       08:00:27:38:72:c6 172.16.0.11
+greyjay-ubuntu-2  1       08:00:27:11:dd:a0 172.16.0.12
+```
 
 VirtualBox setup
 ----------------

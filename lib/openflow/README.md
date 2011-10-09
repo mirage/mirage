@@ -11,55 +11,55 @@ OSX Setup
 
 2. Setup `bootpd` on OSX:
 
-
-    sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist
+```sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist```
 
 (To unload:
 
-    sudo /bin/launchctl unload -w /System/Library/LaunchDaemons/bootps.plist
+```sudo /bin/launchctl unload -w /System/Library/LaunchDaemons/bootps.plist```
 )
 
 3. Create `/etc/bootpd.plist`:
 
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-    <dict>
-    	<key>Subnets</key>
-    	<array>
-    		<dict>
-    			<key>allocate</key>
-    			<true/>
-    			<key>lease_max</key>
-    			<integer>86400</integer>
-    			<key>lease_min</key>
-    			<integer>86400</integer>
-    			<key>name</key>
-    			<string>172.16.0</string>
-    			<key>net_address</key>
-    			<string>172.16.0.0</string>
-    			<key>net_mask</key>
-    			<string>255.255.255.0</string>
-    			<key>net_range</key>
-    			<array>
-    				<string>172.16.0.2</string>
-    				<string>172.16.0.254</string>
-    			</array>
-    		</dict>
-    	</array>
-    	<key>bootp_enabled</key>
-    	<false/>
-    	<key>detect_other_dhcp_server</key>
-    	<false/>
-    	<key>dhcp_enabled</key>
-    	<array>
-    		<string>en3</string>
-    	</array>
-    	<key>reply_threshold_seconds</key>
-    	<integer>0</integer>
-    </dict>
-    </plist>
-    
+```<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Subnets</key>
+    <array>
+      <dict>
+        <key>allocate</key>
+        <true/>
+        <key>lease_max</key>
+        <integer>86400</integer>
+        <key>lease_min</key>
+        <integer>86400</integer>
+        <key>name</key>
+        <string>172.16.0</string>
+        <key>net_address</key>
+        <string>172.16.0.0</string>
+        <key>net_mask</key>
+        <string>255.255.255.0</string>
+        <key>net_range</key>
+        <array>
+          <string>172.16.0.2</string>
+          <string>172.16.0.254</string>
+        </array>
+      </dict>
+    </array>
+    <key>bootp_enabled</key>
+    <false/>
+    <key>detect_other_dhcp_server</key>
+    <false/>
+    <key>dhcp_enabled</key>
+    <array>
+      <string>en3</string>
+    </array>
+    <key>reply_threshold_seconds</key>
+    <integer>0</integer>
+  </dict>
+</plist>
+```
+
 4. Create `/etc/bootptab`, eg.,
     
     %%

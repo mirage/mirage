@@ -90,7 +90,7 @@ Ubuntu setup
         libssl-dev swig
     ```
     
-3. Pull and build Open vSwitch and NOX.
+3. Pull and build Open vSwitch:
 
     ```
     git clone git://openvswitch.org/openvswitch
@@ -100,7 +100,9 @@ Ubuntu setup
     make -j6
     make && sudo make install
     cd ..
-
+    ```
+    and NOX:
+    ```
     git clone git://noxrepo.org/nox
     cd nox
     ./boot.sh
@@ -108,10 +110,11 @@ Ubuntu setup
     make -j5
     ```
     
-4. Install the kernel module
-    sudo insmod ~/openvswitch/datapath/linux/openvswitch_mod.ko
+4. Install the kernel module: `sudo insmod ~/openvswitch/datapath/linux/openvswitch_mod.ko`
 
 5. Setup Open vSwitch:
+
+    ```
     sudo ovsdb-server ./openvswitch/ovsdb.conf --remote=punix:/var/run/ovsdb-server
     ovsdb-tool create ovsdb.conf vswitchd/vswitch.ovsschema
     sudo ovs-vswitchd unix:/var/run/ovsdb-server
@@ -120,8 +123,10 @@ Ubuntu setup
     sudo ovs-vsctl --db=unix:/var/run/ovsdb-server set-fail-mode dp0 secure
     sudo ovs-vsctl --db=unix:/var/run/ovsdb-server set-controller dp0 tcp:172.16.0.1:6633
     sudo ovs-vsctl --db=unix:/var/run/ovsdb-server add-port dp0 eth0
-
+    ```
+    
 6. Set IP addresses on the interfaces:
+    ```
     sudo ifconfig eth0 0.0.0.0
     sudo ifconfig dp0 <whatever-eth0-was>
-
+    ```

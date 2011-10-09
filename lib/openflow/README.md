@@ -10,6 +10,7 @@ OSX Setup
 1. Manually configure `en3` on OSX to `172.16.0.1/255.255.255.0`.
 
 2. Setup `bootpd` on OSX:
+
     sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist
 
 (To unload:
@@ -18,6 +19,7 @@ OSX Setup
 )
 
 3. Create `/etc/bootpd.plist`:
+
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
     <plist version="1.0">

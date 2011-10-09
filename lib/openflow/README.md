@@ -102,6 +102,7 @@ Ubuntu setup
     cd ..
     ```
     and NOX:
+
     ```
     git clone git://noxrepo.org/nox
     cd nox

@@ -73,8 +73,8 @@ VirtualBox setup
 1. Build two Ubuntu 10.04 LTS server (64 bit) image. 
 
 2. Set each vm to have two adaptors:
-+ `eth0` bridged connected to `en1` (or `en0`)
-+ `eth1` bridged connected to `en3`
+    + `eth0` bridged connected to `en1` (or `en0`)
+    + `eth1` bridged connected to `en3`
 
 
 Ubuntu setup

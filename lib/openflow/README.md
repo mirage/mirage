@@ -58,15 +58,15 @@ OSX Setup
 
 4. Create `/etc/bootptab`, eg.,
     
-```
-%%
-# machine entries have the following format:
-#
-# hostname        hwtype  hwaddr            ipaddr     bootfile
-greyjay-ubuntu-1  1       08:00:27:38:72:c6 172.16.0.11
-greyjay-ubuntu-2  1       08:00:27:11:dd:a0 172.16.0.12
-```
-
+    ```
+    %%
+    # machine entries have the following format:
+    #
+    # hostname        hwtype  hwaddr            ipaddr     bootfile
+    greyjay-ubuntu-1  1       08:00:27:38:72:c6 172.16.0.11
+    greyjay-ubuntu-2  1       08:00:27:11:dd:a0 172.16.0.12
+    ```
+    
 VirtualBox setup
 ----------------
 
@@ -84,26 +84,30 @@ Ubuntu setup
 
 2. Install packages required to build Open vSwitch et al
 
-     apt-get install openssh-server git-core build-essential \
-         autoconf libtool pkg-config libboost1.40-all-dev \
-         libssl-dev swig
-
+    ```
+    apt-get install openssh-server git-core build-essential \
+        autoconf libtool pkg-config libboost1.40-all-dev \
+        libssl-dev swig
+    ```
+    
 3. Pull and build Open vSwitch and NOX.
 
-     git clone git://openvswitch.org/openvswitch
-     cd openvswitch/
-     ./boot.sh 
-     ./configure --with-linux=/lib/modules/`uname -r`/build
-     make -j6
-     make && sudo make install
-     cd ..
+    ```
+    git clone git://openvswitch.org/openvswitch
+    cd openvswitch/
+    ./boot.sh 
+    ./configure --with-linux=/lib/modules/`uname -r`/build
+    make -j6
+    make && sudo make install
+    cd ..
 
-     git clone git://noxrepo.org/nox
-     cd nox
-     ./boot.sh
-     ../configure
-     make -j5
-
+    git clone git://noxrepo.org/nox
+    cd nox
+    ./boot.sh
+    ../configure
+    make -j5
+    ```
+    
 4. Install the kernel module
     sudo insmod ~/openvswitch/datapath/linux/openvswitch_mod.ko
 

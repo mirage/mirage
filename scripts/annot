@@ -1,0 +1,3 @@
+#!/usr/bin/env bash -ex
+
+SPEC=unix-direct ocamlbuild -cflag -annot ${1%.ml}.cmo

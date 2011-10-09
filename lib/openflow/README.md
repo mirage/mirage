@@ -126,6 +126,7 @@ Ubuntu setup
     ```
     
 6. Set IP addresses on the interfaces:
+    
     ```
     sudo ifconfig eth0 0.0.0.0
     sudo ifconfig dp0 <whatever-eth0-was>

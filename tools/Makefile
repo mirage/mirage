@@ -4,7 +4,7 @@ JOBS ?= -j 4
 
 all:
 	@cd crunch && ocamlbuild -quiet $(JOBS) crunch.native
-	@cd ocp-pack && ocamlbuild -quiet $(JOBS) pack.native
+	@cd ocp-pack && ocamlbuild -quiet $(JOBS) pack.native split.native
 	@$(MAKE) -C fs
 
 clean:

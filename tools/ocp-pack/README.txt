@@ -16,3 +16,14 @@ ocp-pack -o target.ml [options] files
          file)
  -pack-functor <modname> : generate a functor of name <Modname>
  -functor <filename.mli> : specify the signature argument of the functor.
+
+
+ocp-split
+=========
+
+  Split a packed annot file into individual annot files.
+
+Usage:
+------
+
+ocp-split source.annot

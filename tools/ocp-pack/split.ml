@@ -84,7 +84,7 @@ let write_stuff (f, lines) =
   let oc = open_out file in
   List.iter (fun line -> output_string oc (line ^ "\n")) (List.rev lines);
   close_out oc
-    
+
 let read_stuff () =
   let lines = ref [] in
   let file = ref "" in
@@ -99,9 +99,11 @@ let read_stuff () =
         lines := [line]
     done
   with _ ->
+    if !file <> "" then
+      add_file !file !lines;
     List.iter write_stuff !files
 
 let _ =
   read_stuff ()
 
-  
+

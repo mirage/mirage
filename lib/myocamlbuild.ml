@@ -255,7 +255,6 @@ let () =
         Seq rules
     ) 
 
-
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)

@@ -1,134 +1,165 @@
 Mirage OpenFlow Implementation
 ==============================
 
-This setup describes using VirtualBox on OSX with Ubuntu images.
+OpenFlow is a switching standard and open protocol  enabling
+distributed control of the flow tables contained within Ethernet
+switches in a network. Each OpenFlow switch has three parts: 
+
++ A **datapath**, containing a *flow table*, associating set of
+  *actions* with each flow entry;
++ A **secure channel**, connecting to a controller; and
++ The **OpenFlow protocol**, used by the controller to talk to
+  switches.
+
+Following this standard model, the implementation comprises three parts: 
+
++ `switch.ml`, containing a skeleton OpenFlow switch;
++ `controller.ml`, containing a skeleton OpenFlow controller; and
++ `ofpacket.ml`, containing `Bitstring` parsers/writers for the
+  OpenFlow protocol.
+
+ofpacket.ml
+-----------
+
+The file begins with some utility functions, operators, types.  The
+bulk of the code is organised following the v1.0.0
+[protocol specification][of-1.0], as implemented by
+[Open vSwitch v1.2][ovs-1.2].  Each set of messages is contained
+within its own module, most of which contain a type `t` representing
+the entity named by the module, plus relevant parsers to convert a
+bitstring to a type (`parse_*`) and pretty printers for the type
+(`string_of_*`).  At the end of the file, in the root `Ofpacket`
+module scope, are definitions for interacting with the protocol as a
+whole, e.g., error codes, OpenFlow message types and standard header,
+root OpenFlow parser, OpenFlow packet builders. 
+
+### Queue, Port, Switch
+
+The `Queue` module is really a placeholder currently.  OpenFlow
+defines limited quality-of-service support via a simple queueing
+mechanism.  Flows are mapped to queues attached to ports, and each
+queue is then configured as desired.  The specification currently
+defines just a minimum rate, although specific implementations may
+provide more.
+
+The `Port` module wraps several port related elements:
+
++ _t_, where that is either simply the index of the port in the
+  switch, or the special indexes (> 0xff00) representing the
+  controller, flooding, etc.
++ _config_, a specific port's configuration (up/down, STP
+  supported, etc).
++ _features_, a port's feature set (rate, fiber/copper,
+  etc).
++ _state_, a port's current state (up/down, STP learning mode, etc).
++ _phy_, a port's physical details (index, address, name, etc).
++ _stats_, current statistics  of the port (packet and byte counters,
+  collisions, etc).
++ _reason_ and _status_, for reporting changes to a port's
+  configuration; _reason_ is one of `ADD|DEL|MOD`.
+  
+Finally, `Switch` wraps elements pertaining to a whole switch, that is
+a collection of ports, tables (including the _group table_), and the
+connection to the controller.
+
++ _capabilities_, the switch's capabilities in terms of supporting IP
+  fragment reassembly, various statistics, etc.
++ _action_, the types of action the switch's ports support (setting
+  various fields, etc).
++ _features_, the switch's id, number of buffers, tables, port list etc.
++ _config_, for masking against handling of IP fragments: no special
+  handling, drop, reassemble.
+
+### Wildcards, Match, Flow
+
+The `Wildcards` and `Match` modules both simply wrap types
+respectively representing the fields to wildcard in a flow match, and
+the flow match specification itself.
+
+The `Flow` module then contains structures representing:
+
++ _t_, the flow itself (its age, activity, priority, etc); and
++ _stats_, extended statistics association with a flow identified by a
+  64 bit  `cookie`.
+
+### Packet_in, Packet_out
+
+These represent messages associated with receipt or transmission of a
+packet in response to a controller initiated action.
+
+`Packet_in` is used where a packet arrives at the switch and is
+forwarded to the controller, either due to lack of matching entry, or
+an explicit action.
+
+`Packet_out` contains the structure used by the controller to indicate
+to the switch that a packet it has been buffering must now have some
+actions performed on it, typically culminating in it being forward out
+of one or more ports.
+
+### Flow_mod, Port_mod
+
+These represent modification messages to existing flow and port state
+in the switch.
+
+### Stats
+    
+Finally, the `Stats` module contains structures representing the
+different statistics messages available through OpenFlow, as well as
+the request and response messages that transport them. 
+
+[of-1.0]: http://www.openflow.org/documents/openflow-spec-v1.0.0.pdf
+[of-1.1]: http://www.openflow.org/documents/openflow-spec-v1.1.0.pdf
+[ovs-1.2]: http://openvswitch.org/releases/openvswitch-1.2.2.tar.gz
+
+controller.ml
+-------------
+
+Initially modelled after [NOX][], this is a skeleton controller
+that provides a simple event based wrapper around the OpenFlow
+protocol.  It currently provides the minimal set of  events
+corresponding to basic switch operation:
+
++ `DATAPATH_JOIN`, representing the connection of a datapath  to the
+  controller, i.e., notification of the existence of a switch.
++ `DATAPATH_LEAVE`, representing the disconnection of a datapath from
+  the controller, i.e., notification of the destruction of a switch.
++ `PACKET_IN`, representing the forwarding of a packet to the
+  controller, whether through an explicit action corresponding to a
+  flow match, or simply as the default when flow match is found.
+  
+The controller state is mutable and modelled as:
+
++ A list of callbacks per event, each taking the current state, the
+  originating datapath, and the event;
++ Mappings from switch (`datapath_id`) to a Mirage communications
+  channel (`Channel.t`); and 
++ Mappings from channel (`endhost` comprising an IPv4 address and
+  port) tp datapath (`datapath_id`).
+  
+The main work of the controller is carried out in `process_of_packet`
+which processes each received packet within the context given by the
+current state of the switch: this is where the OpenFlow state machine
+is implemented.  
+
+The controller entry point is via the `listen` function which
+effectively creates a receiving channel to parse OpenFlow packets,
+and pass them to `process_of_packet` which handles a range of standard
+protocol-level interactions, e.g., `ECHO_REQ`, `FEATURES_RESP`,
+generating Mirage events as appropriate.
+
+### Questions
+
+What's the best way to structure the controller so that application
+code can introduce generation and consumption of new events?  NOX
+permits this within a single event-handling framework -- is this
+simply out-of-scope here, or should we have a separate event-based
+programming framework available, or is there a straightforward
+Ocaml-ish way to incorporate this into the OpenFlow Controller?
+     
+[nox]: http://noxrepo.org/
 
 
-OSX Setup
+switch.ml
 ---------
 
-1. Manually configure `en3` on OSX to `172.16.0.1/255.255.255.0`.
-
-2. Setup `bootpd` on OSX: `sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist`
-
-    To unload: `sudo /bin/launchctl unload -w /System/Library/LaunchDaemons/bootps.plist`
-
-3. Create `/etc/bootpd.plist`:
-
-    ```xml
-    <?xml version="1.0" encoding="UTF-8"?>
-    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-    <plist version="1.0">
-      <dict>
-        <key>Subnets</key>
-        <array>
-          <dict>
-            <key>allocate</key>
-            <true/>
-            <key>lease_max</key>
-            <integer>86400</integer>
-            <key>lease_min</key>
-            <integer>86400</integer>
-            <key>name</key>
-            <string>172.16.0</string>
-            <key>net_address</key>
-            <string>172.16.0.0</string>
-            <key>net_mask</key>
-            <string>255.255.255.0</string>
-            <key>net_range</key>
-            <array>
-              <string>172.16.0.2</string>
-              <string>172.16.0.254</string>
-            </array>
-          </dict>
-        </array>
-        <key>bootp_enabled</key>
-        <false/>
-        <key>detect_other_dhcp_server</key>
-        <false/>
-        <key>dhcp_enabled</key>
-        <array>
-          <string>en3</string>
-        </array>
-        <key>reply_threshold_seconds</key>
-        <integer>0</integer>
-      </dict>
-    </plist>
-    ```
-
-4. Create `/etc/bootptab`, eg.,
-    
-    ```
-    %%
-    # machine entries have the following format:
-    #
-    # hostname        hwtype  hwaddr            ipaddr     bootfile
-    greyjay-ubuntu-1  1       08:00:27:38:72:c6 172.16.0.11
-    greyjay-ubuntu-2  1       08:00:27:11:dd:a0 172.16.0.12
-    ```
-    
-VirtualBox setup
-----------------
-
-1. Build two Ubuntu 10.04 LTS server (64 bit) image. 
-
-2. Set each VM to have two adaptors:
-    + `eth0` bridged connected to `en1` (or `en0`)
-    + `eth1` bridged connected to `en3`
-
-
-Ubuntu setup
-------------
-
-1. Set ssh keys and adjust `sshd_config` setting to disallow passwords.
-
-2. Install packages required to build Open vSwitch et al
-
-    ```
-    apt-get install openssh-server git-core build-essential \
-        autoconf libtool pkg-config libboost1.40-all-dev \
-        libssl-dev swig
-    ```
-    
-3. Pull and build Open vSwitch:
-
-    ```
-    git clone git://openvswitch.org/openvswitch
-    cd openvswitch/
-    ./boot.sh 
-    ./configure --with-linux=/lib/modules/`uname -r`/build
-    make -j6
-    make && sudo make install
-    cd ..
-    ```
-    and NOX:
-
-    ```
-    git clone git://noxrepo.org/nox
-    cd nox
-    ./boot.sh
-    ../configure
-    make -j5
-    ```
-    
-4. Install the kernel module: `sudo insmod ~/openvswitch/datapath/linux/openvswitch_mod.ko`
-
-5. Setup Open vSwitch:
-
-    ```
-    sudo ovsdb-server ./openvswitch/ovsdb.conf --remote=punix:/var/run/ovsdb-server
-    ovsdb-tool create ovsdb.conf vswitchd/vswitch.ovsschema
-    sudo ovs-vswitchd unix:/var/run/ovsdb-server
-    sudo ovs-vsctl --db=unix:/var/run/ovsdb-server init
-    sudo ovs-vsctl --db=unix:/var/run/ovsdb-server add-br dp0
-    sudo ovs-vsctl --db=unix:/var/run/ovsdb-server set-fail-mode dp0 secure
-    sudo ovs-vsctl --db=unix:/var/run/ovsdb-server set-controller dp0 tcp:172.16.0.1:6633
-    sudo ovs-vsctl --db=unix:/var/run/ovsdb-server add-port dp0 eth0
-    ```
-    
-6. Set IP addresses on the interfaces:
-    
-    ```
-    sudo ifconfig eth0 0.0.0.0
-    sudo ifconfig dp0 <whatever-eth0-was>
-    ```
+<< Unwritten as yet >>

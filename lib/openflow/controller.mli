@@ -43,35 +43,35 @@ module OP :
     type vendor = uint32
     type queue_id = uint32
     type datapath_id = uint64
-    type msg_code =
-      Ofpacket.msg_code =
-        HELLO
-      | ERROR
-      | ECHO_REQ
-      | ECHO_RESP
-      | VENDOR
-      | FEATURES_REQ
-      | FEATURES_RESP
-      | GET_CONFIG_REQ
-      | GET_CONFIG_RESP
-      | SET_CONFIG
-      | PACKET_IN
-      | FLOW_REMOVED
-      | PORT_STATUS
-      | PACKET_OUT
-      | FLOW_MOD
-      | PORT_MOD
-      | STATS_REQ
-      | STATS_RESP
-      | BARRIER_REQ
-      | BARRIER_RESP
-      | QUEUE_GET_CONFIG_REQ
-      | QUEUE_GET_CONFIG_RESP
-    val msg_code_of_int : int -> msg_code
-    val int_of_msg_code : msg_code -> int
-    val string_of_msg_code : msg_code -> string
     module Header :
       sig
+        type msg_code =
+          Ofpacket.Header.msg_code =
+            HELLO
+          | ERROR
+          | ECHO_REQ
+          | ECHO_RESP
+          | VENDOR
+          | FEATURES_REQ
+          | FEATURES_RESP
+          | GET_CONFIG_REQ
+          | GET_CONFIG_RESP
+          | SET_CONFIG
+          | PACKET_IN
+          | FLOW_REMOVED
+          | PORT_STATUS
+          | PACKET_OUT
+          | FLOW_MOD
+          | PORT_MOD
+          | STATS_REQ
+          | STATS_RESP
+          | BARRIER_REQ
+          | BARRIER_RESP
+          | QUEUE_GET_CONFIG_REQ
+          | QUEUE_GET_CONFIG_RESP
+        val msg_code_of_int : int -> msg_code
+        val int_of_msg_code : msg_code -> int
+        val string_of_msg_code : msg_code -> string
         type h =
           Ofpacket.Header.h = {
           ver : uint8;
@@ -87,44 +87,6 @@ module OP :
         val get_ty : h -> msg_code
         val build_h : h -> Bitstring.bitstring
       end
-    type table_id = Ofpacket.table_id = All | Emergency | Table of uint8
-    val table_id_of_int : int -> table_id
-    val int_of_table_id : table_id -> int
-    val string_of_table_id : table_id -> string
-    type port =
-      Ofpacket.port =
-        Max
-      | In_port
-      | Table
-      | Normal
-      | Flood
-      | All
-      | Controller
-      | Local
-      | No_port
-      | Port of int16
-    val port_of_int : int16 -> port
-    val int_of_port : port -> int16
-    val string_of_port : port -> string
-    type action =
-      Ofpacket.action =
-        Output of (port * int)
-      | SET_VLAN_VID
-      | SET_VLAN_PCP
-      | STRIP_VLAN
-      | SET_DL_SRC
-      | SET_DL_DST
-      | SET_NW_SRC
-      | SET_NW_DST
-      | SET_NW_TOS
-      | SET_TP_SRC
-      | SET_TP_DST
-      | ENQUEUE
-      | VENDOR_ACT
-    val action_of_int : int -> action
-    val string_of_action : action -> string
-    val len_of_action : action -> int
-    val action_to_bitstring : action -> Bitstring.bitstring
     module Queue :
       sig
         type h = Ofpacket.Queue.h = { queue_id : queue_id; }
@@ -132,6 +94,21 @@ module OP :
       end
     module Port :
       sig
+        type t =
+          Ofpacket.Port.t =
+            Max
+          | In_port
+          | Table
+          | Normal
+          | Flood
+          | All
+          | Controller
+          | Local
+          | No_port
+          | Port of int16
+        val port_of_int : int16 -> t
+        val int_of_port : t -> int16
+        val string_of_port : t -> string
         type config =
           Ofpacket.Port.config = {
           port_down : bool;
@@ -288,7 +265,7 @@ module OP :
         type t =
           Ofpacket.Match.t = {
           wildcards : Wildcards.t;
-          in_port : port;
+          in_port : Port.t;
           dl_src : eaddr;
           dl_dst : eaddr;
           dl_vlan : uint16;
@@ -306,6 +283,7 @@ module OP :
         val get_len : int
         val get_dl_src : t -> eaddr
         val get_dl_dst : t -> eaddr
+        val null_eaddr : string
         val create_flow_match :
           Wildcards.t ->
           ?in_port:int16 ->
@@ -318,11 +296,31 @@ module OP :
           ?nw_proto:byte ->
           ?nw_src:uint32 ->
           ?nw_dst:uint32 -> ?tp_src:uint16 -> ?tp_dst:uint16 -> unit -> t
-        val parse_from_raw_packet : port -> string * int * int -> t
+        val parse_from_raw_packet : Port.t -> string * int * int -> t
         val match_to_string : t -> string
       end
     module Flow :
       sig
+        type action =
+          Ofpacket.Flow.action =
+            Output of (Port.t * int)
+          | SET_VLAN_VID
+          | SET_VLAN_PCP
+          | STRIP_VLAN
+          | SET_DL_SRC
+          | SET_DL_DST
+          | SET_NW_SRC
+          | SET_NW_DST
+          | SET_NW_TOS
+          | SET_TP_SRC
+          | SET_TP_DST
+          | ENQUEUE
+          | VENDOR_ACT
+        val action_of_int : int -> action
+        val int_of_action : action -> int
+        val string_of_action : action -> string
+        val len_of_action : action -> int
+        val action_to_bitstring : action -> Bitstring.bitstring
         type reason =
           Ofpacket.Flow.reason =
             IDLE_TIMEOUT
@@ -358,7 +356,7 @@ module OP :
         type t =
           Ofpacket.Packet_in.t = {
           buffer_id : uint32;
-          in_port : port;
+          in_port : Port.t;
           reason : reason;
           data : Bitstring.t;
         }
@@ -371,16 +369,16 @@ module OP :
           Ofpacket.Packet_out.t = {
           of_header : Header.h;
           buffer_id : uint32;
-          in_port : port;
-          actions : action array;
+          in_port : Port.t;
+          actions : Flow.action array;
           data : Bitstring.t;
         }
         val get_len : int
         val create :
           ?xid:uint32 ->
           ?buffer_id:uint32 ->
-          ?actions:action array ->
-          ?data:Bitstring.bitstring -> in_port:port -> unit -> t
+          ?actions:Flow.action array ->
+          ?data:Bitstring.bitstring -> in_port:Port.t -> unit -> t
         val packet_out_to_bitstring : t -> Bitstring.bitstring
       end
     module Flow_mod :
@@ -411,9 +409,9 @@ module OP :
           hard_timeout : uint16;
           priority : uint16;
           buffer_id : int32;
-          out_port : port;
+          out_port : Port.t;
           flags : flags;
-          actions : action array;
+          actions : Flow.action array;
         }
         val total_len : int
         val create :
@@ -424,7 +422,7 @@ module OP :
           ?idle_timeout:uint16 ->
           ?hard_timeout:uint16 ->
           ?buffer_id:int ->
-          ?out_port:port -> ?flags:flags -> action array -> unit -> t
+          ?out_port:Port.t -> ?flags:flags -> Flow.action array -> unit -> t
         val flow_mod_to_bitstring : t -> Bitstring.bitstring
       end
     module Flow_removed :
@@ -456,7 +454,7 @@ module OP :
       sig
         type t =
           Ofpacket.Port_mod.t = {
-          port_no : port;
+          port_no : Port.t;
           hw_addr : eaddr;
           config : Port.config;
           mask : Port.config;
@@ -465,6 +463,14 @@ module OP :
       end
     module Stats :
       sig
+        type table_id =
+          Ofpacket.Stats.table_id =
+            All
+          | Emergency
+          | Table of uint8
+        val table_id_of_int : int -> table_id
+        val int_of_table_id : table_id -> int
+        val string_of_table_id : table_id -> string
         type aggregate =
           Ofpacket.Stats.aggregate = {
           packet_count : uint64;
@@ -516,28 +522,28 @@ module OP :
         val create_flow_stat_req :
           Match.t ->
           ?table_id:int ->
-          ?out_port:port -> ?xid:Int32.t -> unit -> Bitstring.bitstring
+          ?out_port:Port.t -> ?xid:Int32.t -> unit -> Bitstring.bitstring
         val create_aggr_flow_stat_req :
           Match.t ->
           ?table_id:int ->
-          ?out_port:port -> ?xid:Int32.t -> unit -> Bitstring.bitstring
+          ?out_port:Port.t -> ?xid:Int32.t -> unit -> Bitstring.bitstring
         val create_vendor_stat_req :
           ?xid:Int32.t -> unit -> Bitstring.bitstring
         val create_table_stat_req :
           ?xid:Int32.t -> unit -> Bitstring.bitstring
         val create_queue_stat_req :
           ?xid:Int32.t ->
-          ?queue_id:int32 -> ?port:port -> unit -> Bitstring.bitstring
+          ?queue_id:int32 -> ?port:Port.t -> unit -> Bitstring.bitstring
         val create_port_stat_req :
-          ?xid:Int32.t -> ?port:port -> unit -> Bitstring.bitstring
+          ?xid:Int32.t -> ?port:Port.t -> unit -> Bitstring.bitstring
         type req =
           Ofpacket.Stats.req =
             Desc_req of req_hdr
-          | Flow_req of req_hdr * Match.t * table_id * port
-          | Aggregate_req of req_hdr * Match.t * table_id * port
+          | Flow_req of req_hdr * Match.t * table_id * Port.t
+          | Aggregate_req of req_hdr * Match.t * table_id * Port.t
           | Table_req of req_hdr
-          | Port_req of req_hdr * port
-          | Queue_req of req_hdr * port * queue_id
+          | Port_req of req_hdr * Port.t
+          | Queue_req of req_hdr * Port.t * queue_id
           | Vendor_req of req_hdr
         type resp_hdr =
           Ofpacket.Stats.resp_hdr = {
@@ -622,8 +628,8 @@ module OP :
       | Stats_resp of Header.h * Stats.resp
       | Barrier_req of Header.h
       | Barrier_resp of Header.h
-      | Queue_get_config_req of Header.h * port
-      | Queue_get_config_resp of Header.h * port * Queue.t array
+      | Queue_get_config_req of Header.h * Port.t
+      | Queue_get_config_resp of Header.h * Port.t * Queue.t array
     val parse : Header.h -> Bitstring.t -> t
   end
 module Event :
@@ -642,7 +648,7 @@ module Event :
     type e =
         Datapath_join of OP.datapath_id
       | Datapath_leave of OP.datapath_id
-      | Packet_in of OP.port * int32 * Bitstring.t * OP.datapath_id
+      | Packet_in of OP.Port.t * int32 * Bitstring.t * OP.datapath_id
       | Flow_removed of OP.Match.t * OP.Flow_removed.reason * int32 * 
           int32 * int64 * int64 * OP.datapath_id
       | Flow_stats_reply of int32 * bool * OP.Flow.stats list *

@@ -25,14 +25,16 @@ let cp = OS.Console.log
 module OP = Ofpacket
 
 module Event = struct
-  type t = DATAPATH_JOIN | DATAPATH_LEAVE | PACKET_IN |FLOW_REMOVED |
-      FLOW_STATS_REPLY | AGGR_FLOW_STATS_REPLY | DESC_STATS_REPLY |
-          PORT_STATS_REPLY | TABLE_STATS_REPLY | PORT_STATUS_CHANGE 
+  type t = 
+    | DATAPATH_JOIN | DATAPATH_LEAVE
+    | PACKET_IN | FLOW_REMOVED 
+    | FLOW_STATS_REPLY | AGGR_FLOW_STATS_REPLY | DESC_STATS_REPLY 
+    | PORT_STATS_REPLY | TABLE_STATS_REPLY | PORT_STATUS_CHANGE 
 
   type e = 
     | Datapath_join of OP.datapath_id
     | Datapath_leave of OP.datapath_id
-    | Packet_in of OP.port * int32 * Bitstring.t * OP.datapath_id
+    | Packet_in of OP.Port.t * int32 * Bitstring.t * OP.datapath_id
     (* | Flow_stats of OP.datapath_id * int32 * (OP.Flow.stats list) (*list
      * OP.Flow.stats*) *)
     (* Flow match | reason | duration_sec | duration_usec | packet_count |
@@ -51,7 +53,7 @@ module Event = struct
     | Datapath_leave dpid -> sp "Datapath_leave: dpid:0x%012Lx" dpid
     | Packet_in (port, buffer_id, bs, dpid) 
       -> (sp "Packet_in: port:%s ... dpid:0x%012Lx buffer_id:%ld" 
-            (OP.string_of_port port) dpid buffer_id ) 
+            (OP.Port.string_of_port port) dpid buffer_id ) 
     | Flow_removed (flow, reason, duration_sec, duration_usec, packet_count, byte_count, dpid) ->
       (sp "Flow_removed: flow: %s reason:%s duration:%ld.%ld packets:%s bytes:%s dpid:0x%012Lx"
          (OP.Match.match_to_string flow) (OP.Flow_removed.string_of_reason reason)  duration_sec duration_usec
@@ -123,8 +125,9 @@ let register_cb controller e cb =
       | FLOW_STATS_REPLY 
         -> controller.flow_stats_reply_cb <- List.append controller.flow_stats_reply_cb [cb]
       | AGGR_FLOW_STATS_REPLY 
-        -> controller.aggr_flow_stats_reply_cb <- List.append
-        controller.aggr_flow_stats_reply_cb [cb]
+        -> (controller.aggr_flow_stats_reply_cb 
+            <- List.append controller.aggr_flow_stats_reply_cb [cb]
+        )
       | DESC_STATS_REPLY -> controller.desc_stats_reply_cb <- List.append
         controller.desc_stats_reply_cb [cb]
       | PORT_STATS_REPLY -> controller.port_stats_reply_cb <- List.append

@@ -136,11 +136,25 @@ The controller state is mutable and modelled as:
 + Mappings from channel (`endhost` comprising an IPv4 address and
   port) tp datapath (`datapath_id`).
   
-  
-  
+The main work of the controller is carried out in `process_of_packet`
+which processes each received packet within the context given by the
+current state of the switch: this is where the OpenFlow state machine
+is implemented.  
+
+The controller entry point is via the `listen` function which
+effectively creates a receiving channel to parse OpenFlow packets,
+and pass them to `process_of_packet` which handles a range of standard
+protocol-level interactions, e.g., `ECHO_REQ`, `FEATURES_RESP`,
+generating Mirage events as appropriate.
+
 ### Questions
 
-What's the best way to structure the controller so that 
+What's the best way to structure the controller so that application
+code can introduce generation and consumption of new events?  NOX
+permits this within a single event-handling framework -- is this
+simply out-of-scope here, or should we have a separate event-based
+programming framework available, or is there a straightforward
+Ocaml-ish way to incorporate this into the OpenFlow Controller?
      
 [nox]: http://noxrepo.org/
 

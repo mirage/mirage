@@ -40,8 +40,8 @@ let stop (x, bits) = x (* drop remainder to stop parsing and demuxing *)
 
 type int16 = int
 
-(* Of dubious merit - but we don't do arithmetic so prefer the
-documentation benefits for now *)
+(* XXX of dubious merit - but we don't do arithmetic so prefer the
+   documentation benefits for now *)
 type uint8  = char
 type uint16 = int
 type uint32 = int32
@@ -49,7 +49,7 @@ type uint64 = int64
 
 let uint8_of_int i = Char.chr i
 
-(* Network specific types *)
+(* XXX network specific types that should have a proper home *)
 
 type ipv4 = uint32
 let ipv4_to_string i =   
@@ -69,12 +69,13 @@ let bytes_to_hex_string bs =
   bs |> Array.map (fun b -> sp "%02x." (int_of_byte b))
 
 let eaddr_to_string s = 
-  String.concat ":" (Array.to_list  
-                       (Array.init (String.length s) (fun i -> sp "%02x" (int_of_char s.[i]) )))
+  let l = String.length s in
+  let hp s i = sp "%02x" (int_of_char s.[i]) in
+  String.concat ":" (Array.init l (fun i -> hp s i) |> Array.to_list)
 
 let eaddr_is_broadcast s =
   match s with
-      "\xFF\xFF\xFF\xFF\xFF\xFF" -> true
+    | "\xFF\xFF\xFF\xFF\xFF\xFF" -> true
     | _ -> false
 
 let bytes_of_bitstring bits = Bitstring.string_of_bitstring bits
@@ -84,231 +85,142 @@ let ipv4_addr_of_bytes bs =
 
 (*********************************************************************** *)
 
+(* for readability *)
 type vendor = uint32
 type queue_id = uint32
 type datapath_id = uint64
 
-type msg_code =
-  | HELLO | ERROR | ECHO_REQ | ECHO_RESP | VENDOR 
-  | FEATURES_REQ | FEATURES_RESP
-  | GET_CONFIG_REQ | GET_CONFIG_RESP | SET_CONFIG
-  | PACKET_IN | FLOW_REMOVED | PORT_STATUS | PACKET_OUT
-  | FLOW_MOD | PORT_MOD | STATS_REQ | STATS_RESP
-  | BARRIER_REQ | BARRIER_RESP 
-  | QUEUE_GET_CONFIG_REQ | QUEUE_GET_CONFIG_RESP
-let msg_code_of_int = function
-  |  0 -> HELLO 
-  |  1 -> ERROR 
-  |  2 -> ECHO_REQ
-  |  3 -> ECHO_RESP
-  |  4 -> VENDOR 
-  |  5 -> FEATURES_REQ
-  |  6 -> FEATURES_RESP
-  |  7 -> GET_CONFIG_REQ
-  |  8 -> GET_CONFIG_RESP
-  |  9 -> SET_CONFIG
-  | 10 -> PACKET_IN
-  | 11 -> FLOW_REMOVED
-  | 12 -> PORT_STATUS
-  | 13 -> PACKET_OUT
-  | 14 -> FLOW_MOD
-  | 15 -> PORT_MOD
-  | 16 -> STATS_REQ
-  | 17 -> STATS_RESP
-  | 18 -> BARRIER_REQ
-  | 19 -> BARRIER_RESP 
-  | 20 -> QUEUE_GET_CONFIG_REQ
-  | 21 -> QUEUE_GET_CONFIG_RESP
-  | _ -> invalid_arg "msg_of_int"
-and int_of_msg_code = function
-  | HELLO                 ->  0
-  | ERROR                 ->  1
-  | ECHO_REQ              ->  2
-  | ECHO_RESP             ->  3
-  | VENDOR                ->  4
-  | FEATURES_REQ          ->  5
-  | FEATURES_RESP         ->  6
-  | GET_CONFIG_REQ        ->  7
-  | GET_CONFIG_RESP       ->  8
-  | SET_CONFIG            ->  9
-  | PACKET_IN             -> 10
-  | FLOW_REMOVED          -> 11
-  | PORT_STATUS           -> 12
-  | PACKET_OUT            -> 13
-  | FLOW_MOD              -> 14
-  | PORT_MOD              -> 15
-  | STATS_REQ             -> 16
-  | STATS_RESP            -> 17
-  | BARRIER_REQ           -> 18
-  | BARRIER_RESP          -> 19
-  | QUEUE_GET_CONFIG_REQ  -> 20
-  | QUEUE_GET_CONFIG_RESP -> 21
-and string_of_msg_code = function
-  | HELLO                 -> sp "Hello"
-  | ERROR                 -> sp "Error"
-  | ECHO_REQ              -> sp "Echo_req"
-  | ECHO_RESP             -> sp "Echo_resp"
-  | VENDOR                -> sp "Vendor"
-  | FEATURES_REQ          -> sp "Features_req"
-  | FEATURES_RESP         -> sp "Features_resp"
-  | GET_CONFIG_REQ        -> sp "Get_config_req"
-  | GET_CONFIG_RESP       -> sp "Get_config_resp"
-  | SET_CONFIG            -> sp "Set_config"
-  | PACKET_IN             -> sp "Packet_in"
-  | FLOW_REMOVED          -> sp "Flow_removed"
-  | PORT_STATUS           -> sp "Port_status"
-  | PACKET_OUT            -> sp "Packet_out"
-  | FLOW_MOD              -> sp "Flow_mod"
-  | PORT_MOD              -> sp "Port_mod"
-  | STATS_REQ             -> sp "Stats_req"
-  | STATS_RESP            -> sp "Stats_resp"
-  | BARRIER_REQ           -> sp "Barrier_req"
-  | BARRIER_RESP          -> sp "Barrier_resp"
-  | QUEUE_GET_CONFIG_REQ  -> sp "Queue_get_config_req"
-  | QUEUE_GET_CONFIG_RESP -> sp "Queue_get_config_resp"
-
 module Header = struct 
+  type msg_code =
+    | HELLO | ERROR | ECHO_REQ | ECHO_RESP | VENDOR 
+    | FEATURES_REQ | FEATURES_RESP
+    | GET_CONFIG_REQ | GET_CONFIG_RESP | SET_CONFIG
+    | PACKET_IN | FLOW_REMOVED | PORT_STATUS | PACKET_OUT
+    | FLOW_MOD | PORT_MOD | STATS_REQ | STATS_RESP
+    | BARRIER_REQ | BARRIER_RESP 
+    | QUEUE_GET_CONFIG_REQ | QUEUE_GET_CONFIG_RESP
+
+  let msg_code_of_int = function
+    |  0 -> HELLO 
+    |  1 -> ERROR 
+    |  2 -> ECHO_REQ
+    |  3 -> ECHO_RESP
+    |  4 -> VENDOR 
+    |  5 -> FEATURES_REQ
+    |  6 -> FEATURES_RESP
+    |  7 -> GET_CONFIG_REQ
+    |  8 -> GET_CONFIG_RESP
+    |  9 -> SET_CONFIG
+    | 10 -> PACKET_IN
+    | 11 -> FLOW_REMOVED
+    | 12 -> PORT_STATUS
+    | 13 -> PACKET_OUT
+    | 14 -> FLOW_MOD
+    | 15 -> PORT_MOD
+    | 16 -> STATS_REQ
+    | 17 -> STATS_RESP
+    | 18 -> BARRIER_REQ
+    | 19 -> BARRIER_RESP 
+    | 20 -> QUEUE_GET_CONFIG_REQ
+    | 21 -> QUEUE_GET_CONFIG_RESP
+    | _ -> invalid_arg "msg_of_int"
+  and int_of_msg_code = function
+    | HELLO                 ->  0
+    | ERROR                 ->  1
+    | ECHO_REQ              ->  2
+    | ECHO_RESP             ->  3
+    | VENDOR                ->  4
+    | FEATURES_REQ          ->  5
+    | FEATURES_RESP         ->  6
+    | GET_CONFIG_REQ        ->  7
+    | GET_CONFIG_RESP       ->  8
+    | SET_CONFIG            ->  9
+    | PACKET_IN             -> 10
+    | FLOW_REMOVED          -> 11
+    | PORT_STATUS           -> 12
+    | PACKET_OUT            -> 13
+    | FLOW_MOD              -> 14
+    | PORT_MOD              -> 15
+    | STATS_REQ             -> 16
+    | STATS_RESP            -> 17
+    | BARRIER_REQ           -> 18
+    | BARRIER_RESP          -> 19
+    | QUEUE_GET_CONFIG_REQ  -> 20
+    | QUEUE_GET_CONFIG_RESP -> 21
+  and string_of_msg_code = function
+    | HELLO                 -> sp "Hello"
+    | ERROR                 -> sp "Error"
+    | ECHO_REQ              -> sp "Echo_req"
+    | ECHO_RESP             -> sp "Echo_resp"
+    | VENDOR                -> sp "Vendor"
+    | FEATURES_REQ          -> sp "Features_req"
+    | FEATURES_RESP         -> sp "Features_resp"
+    | GET_CONFIG_REQ        -> sp "Get_config_req"
+    | GET_CONFIG_RESP       -> sp "Get_config_resp"
+    | SET_CONFIG            -> sp "Set_config"
+    | PACKET_IN             -> sp "Packet_in"
+    | FLOW_REMOVED          -> sp "Flow_removed"
+    | PORT_STATUS           -> sp "Port_status"
+    | PACKET_OUT            -> sp "Packet_out"
+    | FLOW_MOD              -> sp "Flow_mod"
+    | PORT_MOD              -> sp "Port_mod"
+    | STATS_REQ             -> sp "Stats_req"
+    | STATS_RESP            -> sp "Stats_resp"
+    | BARRIER_REQ           -> sp "Barrier_req"
+    | BARRIER_RESP          -> sp "Barrier_resp"
+    | QUEUE_GET_CONFIG_REQ  -> sp "Queue_get_config_req"
+    | QUEUE_GET_CONFIG_RESP -> sp "Queue_get_config_resp"
+  
   type h = {
     ver: uint8;
     ty: msg_code;
     len: uint16;
     xid: uint32;
   }
+
   let get_len = 8 
+
   let parse_h bits = 
     (bitmatch bits with
       | { 1:8:int; t:8; len:16; xid:32 }
         -> { ver=byte 1; ty=msg_code_of_int t; len; xid }
       | { _ } -> raise (Unparsable ("parse_h", bits))
     )
+
   let string_of_h h =
     sp "ver:%d type:%s len:%d xid:0x%08lx" 
       (int_of_byte h.ver) (string_of_msg_code h.ty) h.len h.xid
+
   let create ty len xid  =
     { ver=byte 1; ty; len; xid }
+
   let get_xid m = m.xid
   let get_ty m = m.ty
+
   let build_h h = 
     BITSTRING { (int_of_byte h.ver):8; (int_of_msg_code h.ty):8;
                 h.len:16; h.xid:32
               }
 end
+    
+(*
+module Output = struct
+  type t = {
+    port:port;
+    max_len: int;
+  }
+  let get_len = 8
+  let bitstring_of_output port max_len =
+    {port=(port_of_int port); max_len=max_len}
+  let output_to_bitstring m = 
+    match m with  
+      | Output.t m 
+        -> (BITSTRING{0:16; 8:16; (int_of_port m.port):16; m.max_len:16})
+      | _            -> Bitstring.empty_bitstring 
 
-type table_id = All | Emergency | Table of uint8
-let table_id_of_int = function
-  | 0xff -> All
-  | 0xfe -> Emergency
-  | i when ((0 <= i) && (i < 0xfe)) -> Table (byte i)
-  | _ -> invalid_arg "table_id_of_int"
-and int_of_table_id = function
-  | All -> 0xff
-  | Emergency -> 0xfe
-  | Table i -> int_of_byte i
-and string_of_table_id = function
-  | All -> sp "All"
-  | Emergency -> sp "Emergency"
-  | Table i -> sp "Table (%d)" (int_of_byte i)
+end
+*)
 
-type port = 
-  | Max | In_port | Table | Normal | Flood | All 
-  | Controller | Local | No_port
-  | Port of int16
-let port_of_int = function
-  | 0xff00 -> Max
-  | 0xfff8 -> In_port
-  | 0xfff9 -> Table
-  | 0xfffa -> Normal
-  | 0xfffb -> Flood
-  | 0xfffc -> All
-  | 0xfffd -> Controller
-  | 0xfffe -> Local
-  | 0xffff -> No_port
-  | p      -> Port p
-and int_of_port = function
-  | Max        -> 0xff00
-  | In_port    -> 0xfff8
-  | Table      -> 0xfff9
-  | Normal     -> 0xfffa
-  | Flood      -> 0xfffb
-  | All        -> 0xfffc
-  | Controller -> 0xfffd
-  | Local      -> 0xfffe
-  | No_port    -> 0xffff
-  | Port p     -> p
-and string_of_port = function
-  | Max        -> sp "MAX"
-  | In_port    -> sp "IN_PORT"
-  | Table      -> sp "TABLE"
-  | Normal     -> sp "NORMAL"
-  | Flood      -> sp "FLOOD"
-  | All        -> sp "ALL"
-  | Controller -> sp "CONTROLLER"
-  | Local      -> sp "LOCAL"
-  | No_port    -> sp "NO_PORT"
-  | Port p     -> sp "PORT(%d)" p
-    (* module Output = struct
-       type t = {
-       port:port;
-       max_len: int;
-       }
-       let get_len = 8
-       let bitstring_of_output port max_len =
-       {port=(port_of_int port); max_len=max_len}
-       let output_to_bitstring m = 
-       match m with  
-       Output.t m -> (BITSTRING{0:16; 8:16; (int_of_port m.port):16; m.max_len:16})
-       | _            -> Bitstring.empty_bitstring 
-
-       end
-    *)
-type action = 
-    Output of (port * int)
-  | SET_VLAN_VID | SET_VLAN_PCP | STRIP_VLAN 
-  | SET_DL_SRC | SET_DL_DST 
-  | SET_NW_SRC | SET_NW_DST | SET_NW_TOS 
-  | SET_TP_SRC | SET_TP_DST
-  | ENQUEUE |VENDOR_ACT 
-let action_of_int = function
-  |  0 -> Output((port_of_int 0),0)
-  |  1 -> SET_VLAN_VID
-  |  2 -> SET_VLAN_PCP
-  |  3 -> STRIP_VLAN 
-  |  4 -> SET_DL_SRC
-  |  5 -> SET_DL_DST 
-  |  6 -> SET_NW_SRC
-  |  7 -> SET_NW_DST
-  |  8 -> SET_NW_TOS 
-  |  9 -> SET_TP_SRC
-  | 10 -> SET_TP_DST
-  | 11 -> ENQUEUE
-  | 0xffff -> VENDOR_ACT
-  | _ -> invalid_arg "action_of_int"
-(* and int_of_action = function | Output -> 0 | SET_VLAN_VID ->
-   1 | SET_VLAN_PCP -> 2 | STRIP_VLAN -> 3 | SET_DL_SRC -> 4 |
-   SET_DL_DST -> 5 | SET_NW_SRC -> 6 | SET_NW_DST -> 7 | SET_NW_TOS
-   -> 8 | SET_TP_SRC -> 9 | SET_TP_DST -> 10 | ENQUEUE -> 11 |
-   VENDOR_ACT -> 0xffff *)
-and string_of_action = function
-  | Output (port, max_len)      -> sp "OUTPUT %d %d " (int_of_port port) max_len
-  | SET_VLAN_VID -> sp "SET_VLAN_VID"
-  | SET_VLAN_PCP -> sp "SET_VLAN_PCP"
-  | STRIP_VLAN   -> sp "STRIP_VLAN"
-  | SET_DL_SRC   -> sp "SET_DL_SRC"
-  | SET_DL_DST   -> sp "SET_DL_DST"
-  | SET_NW_SRC   -> sp "SET_NW_SRC"
-  | SET_NW_DST   -> sp "SET_NW_DST"
-  | SET_NW_TOS   -> sp "SET_NW_TOS"
-  | SET_TP_SRC   -> sp "SET_TP_SRC"
-  | SET_TP_DST   -> sp "SET_TP_DST"
-  | ENQUEUE      -> sp "ENQUEUE"
-  | VENDOR_ACT   -> sp "VENDOR"
-let len_of_action = function
-  | Output (_,_) -> 8
-  | _            -> 8   
-let action_to_bitstring m =
-  match m with  
-      Output (port, max_len)     -> (BITSTRING{0:16; 8:16; (int_of_port port):16; max_len:16})
-    | _           -> Bitstring.empty_bitstring 
 module Queue = struct
   type h = {
     queue_id: queue_id;
@@ -317,8 +229,46 @@ module Queue = struct
   type t = NONE | MIN_RATE of uint16
 end
 
-
 module Port = struct
+  type t = 
+    | Max | In_port | Table | Normal | Flood | All 
+    | Controller | Local | No_port
+    | Port of int16
+  
+  let port_of_int = function
+    | 0xff00 -> Max
+    | 0xfff8 -> In_port
+    | 0xfff9 -> Table
+    | 0xfffa -> Normal
+    | 0xfffb -> Flood
+    | 0xfffc -> All
+    | 0xfffd -> Controller
+    | 0xfffe -> Local
+    | 0xffff -> No_port
+    | p      -> Port p
+  and int_of_port = function
+    | Max        -> 0xff00
+    | In_port    -> 0xfff8
+    | Table      -> 0xfff9
+    | Normal     -> 0xfffa
+    | Flood      -> 0xfffb
+    | All        -> 0xfffc
+    | Controller -> 0xfffd
+    | Local      -> 0xfffe
+    | No_port    -> 0xffff
+    | Port p     -> p
+  and string_of_port = function
+    | Max        -> sp "MAX"
+    | In_port    -> sp "IN_PORT"
+    | Table      -> sp "TABLE"
+    | Normal     -> sp "NORMAL"
+    | Flood      -> sp "FLOOD"
+    | All        -> sp "ALL"
+    | Controller -> sp "CONTROLLER"
+    | Local      -> sp "LOCAL"
+    | No_port    -> sp "NO_PORT"
+    | Port p     -> sp "PORT(%d)" p
+  
   type config = {
     port_down: bool;
     no_stp: bool;
@@ -413,8 +363,8 @@ module Port = struct
     )
 
   let string_of_phy ph = 
-    (sp "port_no:%d,hw_addr:%s,name:%s" ph.port_no (eaddr_to_string
-                                                      ph.hw_addr) ph.name )
+    (sp "port_no:%d,hw_addr:%s,name:%s" 
+       ph.port_no (eaddr_to_string ph.hw_addr) ph.name)
 
   type stats = {
     port_no: uint16;
@@ -448,12 +398,16 @@ module Port = struct
   let rec string_of_port_stats_reply ports = 
     match ports with 
       | [] -> ""
-      | h::q -> (sp "port_no:%d,rx_packets:%Ld,tx_packets:%Ld,rx_bytes:%Ld,
-          tx_bytes:%Ld,rx_dropped:%Ld,tx_dropped:%Ld,rx_errors:%Ld,tx_errors:%Ld,
-          rx_frame_err:%Ld,rx_over_err:%Ld,rx_crc_err:%Ld,collisions:%Ld\n%s" 
-                   h.port_no h.rx_packets h.tx_packets h.rx_bytes h.tx_bytes h.rx_dropped 
-                   h.tx_dropped h.rx_errors h.tx_errors h.rx_frame_err h.rx_over_err 
-                   h.rx_crc_err h.collisions (string_of_port_stats_reply q))
+      | h::q -> (
+        sp "port_no:%d,rx_packets:%Ld,tx_packets:%Ld,rx_bytes:%Ld,\
+            tx_bytes:%Ld,rx_dropped:%Ld,tx_dropped:%Ld,rx_errors:%Ld,\
+            tx_errors:%Ld,rx_frame_err:%Ld,rx_over_err:%Ld,rx_crc_err:%Ld,\
+            collisions:%Ld\n%s" 
+          h.port_no 
+          h.rx_packets h.tx_packets h.rx_bytes h.tx_bytes 
+          h.rx_dropped h.tx_dropped h.rx_errors h.tx_errors 
+          h.rx_frame_err h.rx_over_err h.rx_crc_err h.collisions
+          (string_of_port_stats_reply q))
 
   type reason = ADD | DEL | MOD
   let reason_of_int = function
@@ -524,10 +478,12 @@ module Switch = struct
   let parse_actions bits = 
     (bitmatch bits with
       | { (0xffff):16 }
-        -> { output=false; set_vlan_id=false; set_vlan_pcp=false; strip_vlan=false; 
-             set_dl_src=false; set_dl_dst=false; set_nw_src=false; set_nw_dst=false; 
-             set_nw_tos=false; set_tp_src=false; set_tp_dst=false; enqueue=false; 
-             vendor=true;
+        -> { output=false; 
+             set_vlan_id=false; set_vlan_pcp=false; strip_vlan=false; 
+             set_dl_src=false; set_dl_dst=false; 
+             set_nw_src=false; set_nw_dst=false; set_nw_tos=false; 
+             set_tp_src=false; set_tp_dst=false; 
+             enqueue=false; vendor=true; 
            }
 
       | { output:1; set_vlan_id:1; set_vlan_pcp:1; strip_vlan:1; 
@@ -549,6 +505,7 @@ module Switch = struct
     actions: actions;
     ports: Port.phy list;
   }
+  
   let parse_features bits = 
     let parse_phys bits = 
       let rec aux ports bits = 
@@ -606,32 +563,40 @@ module Wildcards = struct
     nw_tos: bool;
   }
   let full_wildcard = 
-    {in_port=true; dl_vlan=true; dl_src=true; 
-     dl_dst=true; dl_type=true; nw_proto=true; 
-     tp_src=true; tp_dst=true; nw_src=(char_of_int 32); 
-     nw_dst=(char_of_int 32); dl_vlan_pcp=true; nw_tos=true;}
+    { in_port=true; dl_vlan=true; dl_src=true; 
+      dl_dst=true; dl_type=true; nw_proto=true; 
+      tp_src=true; tp_dst=true; nw_src=(char_of_int 32); 
+      nw_dst=(char_of_int 32); dl_vlan_pcp=true; nw_tos=true;
+    }
   let exact_match = 
-    {in_port=false; dl_vlan=false; dl_src=false; 
-     dl_dst=false; dl_type=false; nw_proto=false; 
-     tp_src=false; tp_dst=false; nw_src=(char_of_int 0); 
-     nw_dst=(char_of_int 0); dl_vlan_pcp=false; nw_tos=false;}
+    { in_port=false; dl_vlan=false; dl_src=false; 
+      dl_dst=false; dl_type=false; nw_proto=false; 
+      tp_src=false; tp_dst=false; nw_src=(char_of_int 0); 
+      nw_dst=(char_of_int 0); dl_vlan_pcp=false; nw_tos=false;
+    }
   let l2_match = 
-    {in_port=false;dl_vlan=false;dl_src=false;dl_dst=false;
-     dl_type=false;nw_proto=true;tp_src=true;tp_dst=true;
-     nw_src=(char_of_int 32);nw_dst=(char_of_int 32);dl_vlan_pcp=false; 
-     nw_tos=true}
+    { in_port=false;dl_vlan=false;dl_src=false;dl_dst=false;
+      dl_type=false;nw_proto=true;tp_src=true;tp_dst=true;
+      nw_src=(char_of_int 32);nw_dst=(char_of_int 32);dl_vlan_pcp=false; 
+      nw_tos=true
+    }
   let l3_match = 
-    {in_port=false;dl_vlan=false;dl_vlan_pcp=false;dl_src=false;
-     dl_dst=false;dl_type=false;nw_proto=false;nw_tos=false;
-     nw_src=(char_of_int 0);nw_dst=(char_of_int 0);tp_src=true;tp_dst=true;}
+    { in_port=false;dl_vlan=false;dl_vlan_pcp=false;dl_src=false;
+      dl_dst=false;dl_type=false;nw_proto=false;nw_tos=false;
+      nw_src=(char_of_int 0);nw_dst=(char_of_int 0);tp_src=true;tp_dst=true;
+    }
 
   let wildcard_to_bitstring m = 
-    BITSTRING{0:10; m.nw_tos:1;m.dl_vlan_pcp:1;(int_of_char m.nw_dst):6;
-              (int_of_char m.nw_src):6;m.tp_dst:1;m.tp_src:1;m.nw_proto:1;
-              m.dl_type:1;m.dl_dst:1;m.dl_src:1;m.dl_vlan:1;m.in_port:1}
+    (BITSTRING {
+      0:10; m.nw_tos:1;m.dl_vlan_pcp:1;(int_of_char m.nw_dst):6;
+      (int_of_char m.nw_src):6;m.tp_dst:1;m.tp_src:1;m.nw_proto:1;
+      m.dl_type:1;m.dl_dst:1;m.dl_src:1;m.dl_vlan:1;m.in_port:1
+    })
 
   let string_of_wildcard h = 
-    sp "in_port:%s,dl_vlan:%s,dl_src:%s,dl_dst:%s,dl_type:%s,nw_proto:%s,tp_src:%s,tp_dst:%s,nw_src:%d,nw_dst:%d,dl_vlan_pcp:%s,nw_tos:%s" 
+    sp "in_port:%s,dl_vlan:%s,dl_src:%s,dl_dst:%s,dl_type:%s,\
+        nw_proto:%s,tp_src:%s,tp_dst:%s,nw_src:%d,nw_dst:%d,\
+        dl_vlan_pcp:%s,nw_tos:%s" 
       (string_of_bool h.in_port) 
       (string_of_bool h.dl_vlan) (string_of_bool h.dl_src)
       (string_of_bool h.dl_dst) (string_of_bool h.dl_type)
@@ -642,18 +607,21 @@ module Wildcards = struct
       
   let bitstring_to_wildcards bits = 
     (bitmatch bits with
-      | {_:10; nw_tos:1;dl_vlan_pcp:1;nw_dst:6;nw_src:6; tp_dst:1;tp_src:1;nw_proto:1;dl_type:1;
-         dl_dst:1;dl_src:1;dl_vlan:1;in_port:1} 
-        -> { nw_tos;dl_vlan_pcp;nw_dst=(char_of_int nw_dst);nw_src=(char_of_int nw_src); 
-             tp_dst; tp_src; nw_proto; dl_type; dl_dst; dl_src; dl_vlan; in_port}
+      | { _:10; nw_tos:1; dl_vlan_pcp:1; nw_dst:6; nw_src:6; 
+          tp_dst:1; tp_src:1; nw_proto:1; dl_type:1;
+          dl_dst:1; dl_src:1; dl_vlan:1; in_port:1 
+        } -> { nw_tos;dl_vlan_pcp;
+               nw_dst=(char_of_int nw_dst); nw_src=(char_of_int nw_src); 
+               tp_dst; tp_src; nw_proto; 
+               dl_type; dl_dst; dl_src; dl_vlan; in_port;
+             }
     )
-
 end     
 
 module Match = struct
   type t = {
     wildcards: Wildcards.t;
-    in_port: port;
+    in_port: Port.t;
     dl_src: eaddr;
     dl_dst: eaddr;
     dl_vlan: uint16;
@@ -668,18 +636,26 @@ module Match = struct
   }
 
   let match_to_bitstring m = 
-    Bitstring.concat [(Wildcards.wildcard_to_bitstring m.wildcards);  
-                      (BITSTRING{(int_of_port m.in_port):16; m.dl_src:48:string;
-                                 m.dl_dst:48:string; m.dl_vlan:16; (int_of_char m.dl_vlan_pcp):8; 0:8;
-                                 m.dl_type:16; (int_of_char m.nw_tos):8; (int_of_char m.nw_proto):8; 
-                                 0:16; m.nw_src:32; m.nw_dst:32; m.tp_src:16; m.tp_dst:16 })]
+    Bitstring.concat [
+      (Wildcards.wildcard_to_bitstring m.wildcards);  
+      (BITSTRING{(Port.int_of_port m.in_port):16; m.dl_src:48:string;
+                 m.dl_dst:48:string; m.dl_vlan:16; 
+                 (int_of_char m.dl_vlan_pcp):8; 0:8;
+                 m.dl_type:16; (int_of_char m.nw_tos):8; 
+                 (int_of_char m.nw_proto):8; 
+                 0:16; m.nw_src:32; m.nw_dst:32; m.tp_src:16; m.tp_dst:16 })]
   let bitstring_to_match bits = 
     (bitmatch bits with
       | { wildcards:32:bitstring;
-          in_port:16; dl_src:48:string; dl_dst:48:string; dl_vlan:16; dl_vlan_pcp:8; _:8;
-          dl_type:16; nw_tos:8; nw_proto:8; _:16; nw_src:32; nw_dst:32; tp_src:16; tp_dst:16 } 
-        -> { wildcards = (Wildcards.bitstring_to_wildcards wildcards); in_port=(port_of_int in_port); dl_src; dl_dst; dl_vlan;         
-             dl_vlan_pcp=(char_of_int dl_vlan_pcp); dl_type; nw_src; nw_dst; nw_tos=(char_of_int nw_tos); 
+          in_port:16; 
+          dl_src:48:string; dl_dst:48:string; dl_vlan:16; dl_vlan_pcp:8; 
+          _:8;
+          dl_type:16; nw_tos:8; nw_proto:8; _:16; nw_src:32; nw_dst:32; 
+          tp_src:16; tp_dst:16 } 
+        -> { wildcards = (Wildcards.bitstring_to_wildcards wildcards); 
+             in_port=(Port.port_of_int in_port); dl_src; dl_dst; dl_vlan;         
+             dl_vlan_pcp=(char_of_int dl_vlan_pcp); 
+             dl_type; nw_src; nw_dst; nw_tos=(char_of_int nw_tos); 
              nw_proto=(char_of_int nw_proto); tp_src; tp_dst;} 
     )
 
@@ -687,61 +663,150 @@ module Match = struct
   let get_dl_src m = m.dl_src
   let get_dl_dst m = m.dl_dst
 
-  let create_flow_match wildcards ?(in_port = 0) ?(dl_src="\x00\x00\x00\x00\x00\x00") ?(dl_dst="\x00\x00\x00\x00\x00\x00") 
-      ?(dl_vlan=0xffff) ?(dl_vlan_pcp=(char_of_int 0)) ?(dl_type=0) ?(nw_tos=(char_of_int 0)) 
-      ?(nw_proto=(char_of_int 0)) ?(nw_src=(Int32.of_int 0)) ?(nw_dst=(Int32.of_int 0)) ?(tp_src=0) ?(tp_dst=0) () = 
-    { wildcards; in_port=(port_of_int in_port); dl_src; dl_dst; dl_vlan; dl_vlan_pcp; dl_type; 
-      nw_src; nw_dst; nw_tos; nw_proto; tp_src; tp_dst;}
+  let null_eaddr = "\x00\x00\x00\x00\x00\x00"
+  let create_flow_match wildcards
+      ?(in_port = 0) ?(dl_src=null_eaddr) ?(dl_dst=null_eaddr) 
+      ?(dl_vlan=0xffff) ?(dl_vlan_pcp=(char_of_int 0)) ?(dl_type=0) 
+      ?(nw_tos=(char_of_int 0)) 
+      ?(nw_proto=(char_of_int 0)) 
+      ?(nw_src=(Int32.of_int 0)) ?(nw_dst=(Int32.of_int 0)) 
+      ?(tp_src=0) ?(tp_dst=0)
+      () = 
+    { wildcards; in_port=(Port.port_of_int in_port); 
+      dl_src; dl_dst; dl_vlan; dl_vlan_pcp; dl_type; 
+      nw_src; nw_dst; nw_tos; nw_proto; tp_src; tp_dst; }
 
   let parse_from_raw_packet in_port bits = 
     bitmatch bits with
         (* TODO: add 802.11q case *)
         (* TCP *)
-        {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; _:56; 6:8; _:16; 
-         nw_src:32; nw_dst:32; _:(ihl-5)*32:; tp_src:16; tp_dst:16; _:-1:bitstring } ->
-          {wildcards =Wildcards.exact_match; in_port=in_port;dl_src=smac; dl_dst=dmac; dl_vlan=0xffff;
-           dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
-           nw_dst=nw_dst; nw_tos=(char_of_int tos); nw_proto=(char_of_int 6); tp_src=tp_src;
-           tp_dst=tp_dst}
+        {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
+         _:56; 6:8; _:16; 
+         nw_src:32; nw_dst:32; _:(ihl-5)*32:; tp_src:16; tp_dst:16;
+         _:-1:bitstring }
+        -> { wildcards =Wildcards.exact_match; 
+             in_port=in_port;dl_src=smac; dl_dst=dmac; dl_vlan=0xffff;
+             dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
+             nw_dst=nw_dst; nw_tos=(char_of_int tos); 
+             nw_proto=(char_of_int 6); tp_src=tp_src;
+             tp_dst=tp_dst}
       (* UDP *)
-      | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; _:56; 17:8; _:16; 
-         nw_src:32; nw_dst:32; _:(ihl-5)*32; tp_src:16; tp_dst:16; _:-1:bitstring } ->
-        {wildcards =Wildcards.exact_match; in_port=in_port;dl_src=smac; dl_dst=dmac; dl_vlan=0xffff;
-         dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
-         nw_dst=nw_dst; nw_tos=(char_of_int tos); nw_proto=(char_of_int 17); tp_src=tp_src;
-         tp_dst=tp_dst}
+      | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
+         _:56; 17:8; _:16; 
+         nw_src:32; nw_dst:32; _:(ihl-5)*32; tp_src:16; tp_dst:16; 
+         _:-1:bitstring } 
+        -> { wildcards =Wildcards.exact_match; in_port=in_port;
+             dl_src=smac; dl_dst=dmac; dl_vlan=0xffff;
+             dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
+             nw_dst=nw_dst; nw_tos=(char_of_int tos); 
+             nw_proto=(char_of_int 17); tp_src=tp_src; tp_dst=tp_dst
+           }
       (* IP *)
-      | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; _:56; nw_proto:8; _:16; 
+      | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
+         _:56; nw_proto:8; _:16; 
          nw_src:32; nw_dst:32; _:(ihl-5)*32:bitstring; _:-1:bitstring } ->
-        {wildcards =Wildcards.l3_match; in_port=in_port;dl_src=smac; dl_dst=dmac; dl_vlan=0xffff;
+        {wildcards =Wildcards.l3_match; in_port=in_port;dl_src=smac; 
+         dl_dst=dmac; dl_vlan=0xffff;
          dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
-         nw_dst=nw_dst; nw_tos=(char_of_int tos); nw_proto=(char_of_int nw_proto); tp_src=0;
+         nw_dst=nw_dst; nw_tos=(char_of_int tos); 
+         nw_proto=(char_of_int nw_proto); tp_src=0;
          tp_dst=0}
       (* Ethernet only *)
       | {dmac:48:string; smac:48:string; etype:16; _:-1:bitstring}
         -> { wildcards=Wildcards.l2_match; 
              in_port=in_port;dl_src=smac; dl_dst=dmac; dl_vlan=0xffff;
-             dl_vlan_pcp=(char_of_int 0);dl_type=etype; nw_src=(Int32.of_int 0); 
-             nw_dst=(Int32.of_int 0); nw_tos=(char_of_int 0); nw_proto=(char_of_int 0); tp_src=0;
+             dl_vlan_pcp=(char_of_int 0);dl_type=etype; 
+             nw_src=(Int32.of_int 0); 
+             nw_dst=(Int32.of_int 0); nw_tos=(char_of_int 0); 
+             nw_proto=(char_of_int 0); tp_src=0;
              tp_dst=0}
 
   let match_to_string m = 
     match (m.dl_type, (int_of_char m.nw_proto)) with
-        (0x0800, 17) -> sp "dl_src:%s,dl_dst:%s,dl_type:ip,nw_src:%s,nw_dst:%s,nw_tos:%d,nw_proto:%d,tp_dst:%d,tp_src:%d" 
-          (eaddr_to_string m.dl_src) (eaddr_to_string m.dl_dst) 
-          (ipv4_to_string m.nw_src) (ipv4_to_string m.nw_dst)
-          (Char.code m.nw_tos) (Char.code m.nw_proto) m.tp_dst 
-          m.tp_src 
-      | (0x0800, _) -> sp "dl_src:%s,dl_dst:%s,dl_type:ip,nw_src:%s,nw_dst:%s,nw_tos:%d,nw_proto:%d" 
-        (eaddr_to_string m.dl_src) (eaddr_to_string m.dl_dst) 
-        (ipv4_to_string m.nw_src) (ipv4_to_string m.nw_dst)
-        (Char.code m.nw_tos) (Char.code m.nw_proto)
-      | (_, _) -> sp "dl_src:%s,dl_dst:%s,dl_type:0x%x" (eaddr_to_string m.dl_src) 
-        (eaddr_to_string m.dl_dst) m.dl_type  
+      | (0x0800, 17) 
+        -> (sp "dl_src:%s,dl_dst:%s,dl_type:ip,nw_src:%s,nw_dst:%s,\
+               nw_tos:%d,nw_proto:%d,tp_dst:%d,tp_src:%d" 
+              (eaddr_to_string m.dl_src) (eaddr_to_string m.dl_dst) 
+              (ipv4_to_string m.nw_src) (ipv4_to_string m.nw_dst)
+              (Char.code m.nw_tos) (Char.code m.nw_proto) m.tp_dst 
+              m.tp_src 
+        )
+      | (0x0800, _) 
+        -> (sp "dl_src:%s,dl_dst:%s,dl_type:ip,nw_src:%s,\
+                          nw_dst:%s,nw_tos:%d,nw_proto:%d" 
+              (eaddr_to_string m.dl_src) (eaddr_to_string m.dl_dst) 
+              (ipv4_to_string m.nw_src) (ipv4_to_string m.nw_dst)
+              (Char.code m.nw_tos) (Char.code m.nw_proto)
+        )
+      | (_, _) -> (sp "dl_src:%s,dl_dst:%s,dl_type:0x%x"
+                     (eaddr_to_string m.dl_src) 
+                     (eaddr_to_string m.dl_dst) m.dl_type  
+      )
 
 end
 
 module Flow = struct
+  type action = 
+    | Output of (Port.t * int)
+    | SET_VLAN_VID | SET_VLAN_PCP | STRIP_VLAN 
+    | SET_DL_SRC | SET_DL_DST 
+    | SET_NW_SRC | SET_NW_DST | SET_NW_TOS 
+    | SET_TP_SRC | SET_TP_DST
+    | ENQUEUE |VENDOR_ACT 
+
+  let action_of_int = function
+    |  0 -> Output((Port.port_of_int 0),0)
+    |  1 -> SET_VLAN_VID
+    |  2 -> SET_VLAN_PCP
+    |  3 -> STRIP_VLAN 
+    |  4 -> SET_DL_SRC
+    |  5 -> SET_DL_DST 
+    |  6 -> SET_NW_SRC
+    |  7 -> SET_NW_DST
+    |  8 -> SET_NW_TOS 
+    |  9 -> SET_TP_SRC
+    | 10 -> SET_TP_DST
+    | 11 -> ENQUEUE
+    | 0xffff -> VENDOR_ACT
+    | _ -> invalid_arg "action_of_int"
+  and int_of_action = function 
+    | Output _     -> 0 
+    | SET_VLAN_VID -> 1 
+    | SET_VLAN_PCP -> 2
+    | STRIP_VLAN -> 3
+    | SET_DL_SRC -> 4
+    | SET_DL_DST -> 5
+    | SET_NW_SRC -> 6
+    | SET_NW_DST -> 7
+    | SET_NW_TOS -> 8
+    | SET_TP_SRC -> 9
+    | SET_TP_DST -> 10
+    | ENQUEUE -> 11
+    | VENDOR_ACT -> 0xffff
+  and string_of_action = function
+    | Output (port, max_len) 
+      -> sp "OUTPUT %d %d " (Port.int_of_port port) max_len
+    | SET_VLAN_VID -> sp "SET_VLAN_VID"
+    | SET_VLAN_PCP -> sp "SET_VLAN_PCP"
+    | STRIP_VLAN   -> sp "STRIP_VLAN"
+    | SET_DL_SRC   -> sp "SET_DL_SRC"
+    | SET_DL_DST   -> sp "SET_DL_DST"
+    | SET_NW_SRC   -> sp "SET_NW_SRC"
+    | SET_NW_DST   -> sp "SET_NW_DST"
+    | SET_NW_TOS   -> sp "SET_NW_TOS"
+    | SET_TP_SRC   -> sp "SET_TP_SRC"
+    | SET_TP_DST   -> sp "SET_TP_DST"
+    | ENQUEUE      -> sp "ENQUEUE"
+    | VENDOR_ACT   -> sp "VENDOR"
+  let len_of_action = function
+    | Output (_,_) -> 8
+    | _            -> 8   
+  let action_to_bitstring m =
+    match m with  
+      | Output (port, max_len)
+        -> (BITSTRING{0:16; 8:16; (Port.int_of_port port):16; max_len:16})
+      | _ -> Bitstring.empty_bitstring 
+
   type reason = IDLE_TIMEOUT | HARD_TIMEOUT | DELETE
   let reason_of_int = function
     | 0 -> IDLE_TIMEOUT
@@ -772,41 +837,35 @@ module Flow = struct
     action: (action list);
   }
 
-        (* type t = {
-           cookie: uint64;
-           priority: uint16;
-           reason: reason;
-           table_id: byte;
-           duration_sec: uint32;
-           duration_usec: uint32;
-           idle_timeout: uint16;
-           packet_count: uint64;
-           byte_count: uint64;
-           } *)
-
   let parse_flow_stats bits =
     (* A recursive function to parse each entry *) 
     let rec parse_flow_stat bits =  
       (bitmatch bits with 
-        | {entry_length:16; table_id:8; _:8; of_match:(Match.get_len)*8:bitstring; duration_sec:32;
-           duration_usec:32;priority:16;idle_timeout:16;hard_timeout:16; _:48; cookie:64;
-           packet_count:64;byte_count:64; _:(entry_length - Match.get_len - 48)*8:bitstring; data:-1:bitstring} ->
-          (List.append [{entry_length; table_id=(char_of_int table_id); 
-                         of_match=(Match.bitstring_to_match of_match); duration_sec;
-                         duration_usec;priority;idle_timeout;hard_timeout;cookie;
-                         packet_count;byte_count;action=[];}] (parse_flow_stat data))
-        | {_} -> [] ) in 
+        | { entry_length:16; table_id:8; _:8; 
+            of_match:(Match.get_len)*8:bitstring; duration_sec:32;
+            duration_usec:32;priority:16;idle_timeout:16;
+            hard_timeout:16; _:48; cookie:64;
+            packet_count:64;byte_count:64; 
+            _:(entry_length - Match.get_len - 48)*8:bitstring;
+            data:-1:bitstring
+          } -> (List.append [{entry_length; table_id=(char_of_int table_id); 
+                              of_match=(Match.bitstring_to_match of_match); 
+                              duration_sec;
+                              duration_usec;priority;idle_timeout;
+                              hard_timeout;cookie;
+                              packet_count;byte_count;action=[];}] 
+                  (parse_flow_stat data))
+        | {_} -> [] 
+      ) in 
     parse_flow_stat bits
 
   let string_of_flow_stat flow = 
-    sp "table_id:%d,%s,duration:%ld.%ld,priority:%d,idle:%d,hard:%d,cookie:%Ld,packets:%Ld,bytes:%Ld" 
-      (int_of_char flow.table_id) (Match.match_to_string flow.of_match) flow.duration_sec flow.duration_usec
-      flow.priority flow.idle_timeout flow.hard_timeout flow.cookie flow.packet_count flow.byte_count
-
-(* let flow_removed_of_bitstring bits = bitmatch bits with
-   {1:16;0:15;more_to_follow:1;data:-1:bitstring} -> (
-   let flows = Flow.flow_stat_of_bitstring data in
-   Flow({st_ty=1;more_to_follow}, flows)) *)
+    sp "table_id:%d,%s,duration:%ld.%ld,priority:%d,idle:%d,hard:%d,\
+        cookie:%Ld,packets:%Ld,bytes:%Ld" 
+      (int_of_char flow.table_id) (Match.match_to_string flow.of_match)
+      flow.duration_sec flow.duration_usec
+      flow.priority flow.idle_timeout flow.hard_timeout flow.cookie 
+      flow.packet_count flow.byte_count
 
 end
 
@@ -825,7 +884,7 @@ module Packet_in = struct
 
   type t = {
     buffer_id: uint32;
-    in_port: port;
+    in_port: Port.t;
     reason: reason;
     data: Bitstring.t;
   }
@@ -834,37 +893,48 @@ module Packet_in = struct
       | { buffer_id:32; _:16; in_port:16; reason:8; _:8; 
           data:-1:bitstring }
         -> { buffer_id;
-             in_port=(port_of_int in_port);
+             in_port=(Port.port_of_int in_port);
              reason=(reason_of_int reason);
              data
            }
     )
   let string_of_packet_in p = 
     sp "Packet_in: buffer_id:%ld in_port:%s reason:%s"
-      p.buffer_id (string_of_port p.in_port) (string_of_reason p.reason)
+      p.buffer_id (Port.string_of_port p.in_port) (string_of_reason p.reason)
 end
 
 module Packet_out = struct
   type t = {
     of_header : Header.h;
     buffer_id: uint32;
-    in_port: port;
-    actions: action array;
+    in_port: Port.t;
+    actions: Flow.action array;
     data : Bitstring.t;
   }
 
   let get_len = Header.get_len + 8
-  let create ?(xid = (Int32.of_int 0)) ?(buffer_id =( Int32.of_int (-1) )) ?(actions = [| |] ) 
+  let create ?(xid = (Int32.of_int 0)) ?(buffer_id =( Int32.of_int (-1) )) 
+      ?(actions = [| |] ) 
       ?(data=Bitstring.empty_bitstring) ~in_port () =
     let size = ref (get_len + ((Bitstring.bitstring_length data) / 8)) in 
-    (Array.iter (fun a -> size:= !size + (len_of_action a) ) actions);
-    {of_header=(Header.create PACKET_OUT (!size) xid);buffer_id; in_port; actions; data;} 
+    (Array.iter (fun a -> size:= !size + (Flow.len_of_action a) ) actions);
+    {of_header=(Header.(create PACKET_OUT (!size) xid)); buffer_id; in_port; 
+     actions; data;} 
 
   let packet_out_to_bitstring m =
     let action_len = ref (0) in
-    (Array.iter (fun a -> action_len:= !action_len + (len_of_action a) ) m.actions);
-    let packet = ( [(Header.build_h m.of_header); (BITSTRING{m.buffer_id:32; (int_of_port m.in_port):16; (!action_len):16})] @
-                     (Array.to_list (Array.map (fun a -> (action_to_bitstring a) ) m.actions ) ) @ [m.data] ) in 
+    (Array.iter (fun a -> action_len := !action_len + (Flow.len_of_action a)) 
+       m.actions);
+    let packet = ( 
+      [(Header.build_h m.of_header); 
+       (BITSTRING{m.buffer_id:32; 
+                  (Port.int_of_port m.in_port):16; 
+                  (!action_len):16})
+      ] @ (
+        Array.to_list (Array.map (fun a -> (Flow.action_to_bitstring a)) 
+                         m.actions)
+      ) @ [m.data] ) 
+    in 
     Bitstring.concat packet
 end
 
@@ -909,10 +979,10 @@ module Flow_mod = struct
     hard_timeout: uint16;
     priority: uint16;
     buffer_id: int32;
-    out_port: port;
+    out_port: Port.t;
     (* out_group: uint32; *)
     flags: flags;
-    actions: action array;
+    actions: Flow.action array;
   }
 
   let total_len = 
@@ -921,12 +991,12 @@ module Flow_mod = struct
 
   let create flow_match cookie command ?(priority = 0) 
       ?(idle_timeout = 60) ?(hard_timeout = 0)
-      ?(buffer_id =  -1 ) ?(out_port = No_port) 
+      ?(buffer_id =  -1 ) ?(out_port = Port.No_port) 
       ?(flags ={send_flow_rem=false;emerg=false;overlap=false;}) actions () =
     let size = ref (total_len) in 
-    (Array.iter (fun a -> size:= !size + (len_of_action a) ) actions);
+    (Array.iter (fun a -> size:= !size + (Flow.len_of_action a) ) actions);
 
-    {of_header=(Header.create FLOW_MOD  !size (Int32.of_int 0)); 
+    {of_header=(Header.(create FLOW_MOD  !size (Int32.of_int 0))); 
      of_match=flow_match; cookie; command=command; 
      idle_timeout; hard_timeout; priority; buffer_id=(Int32.of_int buffer_id); 
      out_port;flags; actions;}
@@ -938,9 +1008,9 @@ module Flow_mod = struct
                                 (BITSTRING{m.cookie:64; (int_of_command m.command):16; 
                                            m.idle_timeout:16;m.hard_timeout:16; 
                                            m.priority:16; m.buffer_id:32; 
-                                           (int_of_port m.out_port):16; 0:13; 
+                                           (Port.int_of_port m.out_port):16; 0:13; 
                                            m.flags.overlap:1; m.flags.emerg:1; m.flags.send_flow_rem:1})]
-                     (Array.to_list (Array.map (fun a -> (action_to_bitstring a) ) m.actions ) ) ) in 
+                     (Array.to_list (Array.map (fun a -> (Flow.action_to_bitstring a) ) m.actions ) ) ) in 
     Bitstring.concat packet
 end
 
@@ -992,7 +1062,7 @@ end
 
 module Port_mod = struct
   type t = {
-    port_no: port;
+    port_no: Port.t;
     hw_addr: eaddr;
     config: Port.config;
     mask: Port.config;
@@ -1001,6 +1071,21 @@ module Port_mod = struct
 end
 
 module Stats = struct
+  type table_id = All | Emergency | Table of uint8
+  let table_id_of_int = function
+    | 0xff -> All
+    | 0xfe -> Emergency
+    | i when ((0 <= i) && (i < 0xfe)) -> Table (byte i)
+    | _ -> invalid_arg "table_id_of_int"
+  and int_of_table_id = function
+    | All -> 0xff
+    | Emergency -> 0xfe
+    | Table i -> int_of_byte i
+  and string_of_table_id = function
+    | All -> sp "All"
+    | Emergency -> sp "Emergency"
+    | Table i -> sp "Table (%d)" (int_of_byte i)
+  
   type aggregate = {
     packet_count: uint64;
     byte_count: uint64;
@@ -1038,9 +1123,7 @@ module Stats = struct
     flags: uint16;
   }
 
-  type stats_type = 
-      DESC | FLOW | AGGREGATE | TABLE | PORT |
-          QUEUE | VENDOR
+  type stats_type = DESC | FLOW | AGGREGATE | TABLE | PORT | QUEUE | VENDOR
 
         (*  type flow = {
         (*    length: int; *)
@@ -1076,53 +1159,53 @@ module Stats = struct
       | _ -> (Header.get_len + 4)
 
 
-  let create_flow_stat_req flow_match ?(table_id=0xff) ?(out_port=No_port) 
-      ?(xid=(Int32.of_int 0)) () = 
-    let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
-    let header = (Header.build_h (Header.create STATS_REQ (get_len FLOW) snd_xid)) in 
+  let create_flow_stat_req flow_match
+      ?(table_id=0xff) ?(out_port=Port.No_port) ?(xid=(Int32.of_int 0)) () = 
+    let snd_xid = if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid in 
+    let header = Header.build_h (Header.create Header.STATS_REQ (get_len FLOW) snd_xid) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type FLOW):16;0:16;
               (Match.match_to_bitstring flow_match):(Match.get_len * 8):bitstring;
-              table_id:8;0:8;(int_of_port out_port):16}
+              table_id:8;0:8;(Port.int_of_port out_port):16}
 
-  let create_aggr_flow_stat_req flow_match ?(table_id=0xff) ?(out_port=No_port) 
+  let create_aggr_flow_stat_req flow_match ?(table_id=0xff) ?(out_port=Port.No_port) 
       ?(xid=(Int32.of_int 0)) () = 
     let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
-    let header = (Header.build_h (Header.create STATS_REQ (get_len AGGREGATE) snd_xid)) in 
+    let header = (Header.build_h (Header.create Header.STATS_REQ (get_len AGGREGATE) snd_xid)) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type AGGREGATE):16;0:16;
               (Match.match_to_bitstring flow_match):(Match.get_len * 8):bitstring;
-              table_id:8;0:8;(int_of_port out_port):16}
+              table_id:8;0:8;(Port.int_of_port out_port):16}
 
   let create_vendor_stat_req ?(xid=(Int32.of_int 0)) () = 
     let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
-    let header = (Header.build_h (Header.create STATS_REQ (get_len VENDOR) snd_xid)) in 
+    let header = (Header.build_h (Header.create Header.STATS_REQ (get_len VENDOR) snd_xid)) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type
                                                           DESC):16;0:16}
 
   let create_table_stat_req ?(xid=(Int32.of_int 0)) () = 
     let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
-    let header = (Header.build_h (Header.create STATS_REQ (get_len TABLE) snd_xid)) in 
+    let header = (Header.build_h (Header.create Header.STATS_REQ (get_len TABLE) snd_xid)) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type TABLE):16;0:16}
 
   let create_queue_stat_req ?(xid=(Int32.of_int 0))
-      ?(queue_id=(Int32.of_int 0xffffffff)) ?(port=No_port) () = 
+      ?(queue_id=(Int32.of_int 0xffffffff)) ?(port=Port.No_port) () = 
     let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
-    let header = (Header.build_h (Header.create STATS_REQ (get_len QUEUE) snd_xid)) in 
+    let header = (Header.build_h (Header.create Header.STATS_REQ (get_len QUEUE) snd_xid)) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type QUEUE):16;0:16;
-              (int_of_port port):16;0:16;queue_id:32}
+              (Port.int_of_port port):16;0:16;queue_id:32}
 
-  let create_port_stat_req ?(xid=(Int32.of_int 0)) ?(port=No_port) () = 
+  let create_port_stat_req ?(xid=(Int32.of_int 0)) ?(port=Port.No_port) () = 
     let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
-    let header = (Header.build_h (Header.create STATS_REQ (get_len PORT) snd_xid)) in 
+    let header = (Header.build_h (Header.create Header.STATS_REQ (get_len PORT) snd_xid)) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type PORT):16;
-              0:16;(int_of_port port):16;(Int64.of_int 0):48}
+              0:16;(Port.int_of_port port):16;(Int64.of_int 0):48}
 
   type req = 
     | Desc_req of req_hdr
-    | Flow_req of req_hdr *  Match.t * table_id * port
-    | Aggregate_req of req_hdr * Match.t * table_id * port
+    | Flow_req of req_hdr *  Match.t * table_id * Port.t
+    | Aggregate_req of req_hdr * Match.t * table_id * Port.t
     | Table_req of req_hdr
-    | Port_req of req_hdr * port
-    | Queue_req of req_hdr * port * queue_id
+    | Port_req of req_hdr * Port.t
+    | Queue_req of req_hdr * Port.t * queue_id
     | Vendor_req of req_hdr
 
 
@@ -1167,8 +1250,7 @@ module Stats = struct
         List.append [{table_id=(table_id_of_int table_id); name;
                       wildcards=(Wildcards.bitstring_to_wildcards wildcards); max_entries;active_count;
                       lookup_count;matched_count;}] (parse_table_stats_reply data_left)
-      | {_} ->
-        []
+      | {_} -> []
           
   let rec string_of_table_stats_reply tables =
     match tables with
@@ -1362,11 +1444,11 @@ and string_of_error_code = function
 
 
 let build_features_req xid = 
-  Header.build_h (Header.create FEATURES_REQ 8 xid)
+  Header.build_h (Header.(create FEATURES_REQ 8 xid))
 
 let build_echo_resp h bs = 
-  let rh = Header.build_h ( Header.create ECHO_RESP (Header.get_len) (Header.get_xid h)) in
-  BITSTRING { rh:(8*(Header.get_len)):bitstring; bs:-1:bitstring }  
+  let rh = Header.(build_h (create ECHO_RESP get_len (get_xid h))) in
+  BITSTRING { rh:(8*(Header.get_len)):bitstring; bs:-1:bitstring }
 
 type t =
   | Hello of Header.h * Bitstring.t
@@ -1395,11 +1477,11 @@ type t =
   | Barrier_req of Header.h 
   | Barrier_resp of Header.h 
 
-  | Queue_get_config_req of Header.h  * port
-  | Queue_get_config_resp of Header.h  * port * Queue.t array
+  | Queue_get_config_req of Header.h * Port.t
+  | Queue_get_config_resp of Header.h * Port.t * Queue.t array
 
 let parse h bits = 
-  match (Header.get_ty h) with
+  Header.(match (get_ty h) with
     | HELLO -> Hello (h, bits)
     | ERROR -> raise (Unparsed ("ERROR", bits))
     | ECHO_REQ -> Echo_req (h, bits)
@@ -1415,7 +1497,7 @@ let parse h bits =
     | STATS_RESP -> Stats_resp (h, (Stats.parse_stats bits))
     | PORT_STATUS -> Port_status(h, (Port.status_of_bitstring bits)) 
     | _ -> raise (Unparsed ("_", bits))
-
+  )
           (*
           (bitmatch bits with  
           | { 1:8; 10:8; len:16; xid:32; buffer_id:32; total_len:16; in_port : 16; reason:8;

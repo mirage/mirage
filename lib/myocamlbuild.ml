@@ -221,7 +221,8 @@ let pack_in_one out header files env builder =
   let packer = "../../../tools/ocp-pack/_build/pack.native" in
   Cmd (S ([A packer; A"-o"; Px out; A"-mli"] @ (List.map (fun x -> A x) files)))
  
-let () = rule
+let () =
+  rule
   ~prods:["%.ml"; "%.mli"]
   ~deps:["%.smlpack"] "source pack from .mlpack"
     (fun env builder ->
@@ -239,13 +240,26 @@ let () = rule
         ml
       ) mlmods in
       pack_in_one mlname "" mldeps env builder
-    )
+    );
+  (* Split out the annot files into their subdirs *)
+  rule
+   ~stamp:"annots"
+   ~dep:"std/stdlib.mllib" "generate individual annot files"
+     (fun env builder ->
+        let splitter = "../../../tools/ocp-pack/_build/split.native" in
+        let mlmods = string_list_of_file "std/stdlib.mllib" in
+        let rules = List.map (fun m ->
+          let fname = "std"/m-.-"annot" in
+          Cmd (S [A splitter; P fname])
+        ) mlmods in
+        Seq rules
+    ) 
 
 let _ = dispatch begin function
   | After_rules ->
      (* do not compile and pack with the standard lib *)
-     flag ["ocaml"; "compile"; "mirage" ] & S [A"-nostdlib"; A"-annot"];
-     flag ["ocaml"; "pack"; "mirage"] & S [A"-nostdlib"];
+     flag ["ocaml"; "compile"; ] & S [A"-nostdlib"; A"-annot"];
+     flag ["ocaml"; "pack"; ] & S [A"-nostdlib"];
      if profiling then
        flag ["ocaml"; "compile"; "native" ] & S [A"-p"];
      (* ocamldoc always uses the JSON generator *)

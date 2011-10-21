@@ -1,0 +1,8 @@
+1.0.1 (19 Aug 2011)
+-----
+* Add ocp-split to split packed annot files
+* fix off-by-one in line number printing for sub-modules (from <avsm@recoil.org>)
+
+1.0.0 (10 Aug 2011)
+-----
+* Initial release

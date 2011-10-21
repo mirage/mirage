@@ -1,2 +1,2 @@
-let number = "1.0.0"
-let git_commit = "ccaa0e4"
+let number = "1.0.1"
+let git_commit = "1567d72"

@@ -248,6 +248,7 @@ let () =
      (fun env builder ->
         let splitter = "../../../tools/ocp-pack/_build/split.native" in
         let mlmods = string_list_of_file "std/stdlib.mllib" in
+        let _ = builder (List.map (fun x -> [Printf.sprintf "std/%s.ml" x]) mlmods) in
         let rules = List.map (fun m ->
           let fname = "std"/m-.-"annot" in
           Cmd (S [A splitter; P fname])

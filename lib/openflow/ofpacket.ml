@@ -843,7 +843,7 @@ module Flow = struct
     cookie: uint64;
     packet_count: uint64;
     byte_count: uint64;
-    action: (action list);
+    action: action list;
   }
 
   let parse_flow_stats bits =

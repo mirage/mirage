@@ -638,12 +638,14 @@ module Match = struct
   let match_to_bitstring m = 
     Bitstring.concat [
       (Wildcards.wildcard_to_bitstring m.wildcards);  
-      (BITSTRING{(Port.int_of_port m.in_port):16; m.dl_src:48:string;
-                 m.dl_dst:48:string; m.dl_vlan:16; 
-                 (int_of_char m.dl_vlan_pcp):8; 0:8;
-                 m.dl_type:16; (int_of_char m.nw_tos):8; 
-                 (int_of_char m.nw_proto):8; 
-                 0:16; m.nw_src:32; m.nw_dst:32; m.tp_src:16; m.tp_dst:16 })]
+      (BITSTRING{ (Port.int_of_port m.in_port):16; m.dl_src:48:string;
+                  m.dl_dst:48:string; m.dl_vlan:16; 
+                  (int_of_char m.dl_vlan_pcp):8; 0:8;
+                  m.dl_type:16; (int_of_char m.nw_tos):8; 
+                  (int_of_char m.nw_proto):8; 
+                  0:16; m.nw_src:32; m.nw_dst:32; m.tp_src:16; m.tp_dst:16 })
+    ]
+
   let bitstring_to_match bits = 
     (bitmatch bits with
       | { wildcards:32:bitstring;
@@ -653,7 +655,7 @@ module Match = struct
           dl_type:16; nw_tos:8; nw_proto:8; _:16; nw_src:32; nw_dst:32; 
           tp_src:16; tp_dst:16 } 
         -> { wildcards = (Wildcards.bitstring_to_wildcards wildcards); 
-             in_port=(Port.port_of_int in_port); dl_src; dl_dst; dl_vlan;         
+             in_port=(Port.port_of_int in_port); dl_src; dl_dst; dl_vlan;
              dl_vlan_pcp=(char_of_int dl_vlan_pcp); 
              dl_type; nw_src; nw_dst; nw_tos=(char_of_int nw_tos); 
              nw_proto=(char_of_int nw_proto); tp_src; tp_dst;} 
@@ -670,17 +672,18 @@ module Match = struct
       ?(nw_tos=(char_of_int 0)) 
       ?(nw_proto=(char_of_int 0)) 
       ?(nw_src=(Int32.of_int 0)) ?(nw_dst=(Int32.of_int 0)) 
-      ?(tp_src=0) ?(tp_dst=0)
+      ?(tp_src=0) ?(tp_dst=0) 
       () = 
     { wildcards; in_port=(Port.port_of_int in_port); 
       dl_src; dl_dst; dl_vlan; dl_vlan_pcp; dl_type; 
-      nw_src; nw_dst; nw_tos; nw_proto; tp_src; tp_dst; }
+      nw_src; nw_dst; nw_tos; nw_proto; tp_src; tp_dst; 
+    }
 
   let parse_from_raw_packet in_port bits = 
     bitmatch bits with
-        (* TODO: add 802.11q case *)
-        (* TCP *)
-        {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
+      (* TODO: add 802.11q case *)
+      (* TCP *)
+      | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
          _:56; 6:8; _:16; 
          nw_src:32; nw_dst:32; _:(ihl-5)*32:; tp_src:16; tp_dst:16;
          _:-1:bitstring }
@@ -689,7 +692,9 @@ module Match = struct
              dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
              nw_dst=nw_dst; nw_tos=(char_of_int tos); 
              nw_proto=(char_of_int 6); tp_src=tp_src;
-             tp_dst=tp_dst}
+             tp_dst=tp_dst
+           }
+        
       (* UDP *)
       | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
          _:56; 17:8; _:16; 
@@ -701,16 +706,19 @@ module Match = struct
              nw_dst=nw_dst; nw_tos=(char_of_int tos); 
              nw_proto=(char_of_int 17); tp_src=tp_src; tp_dst=tp_dst
            }
+        
       (* IP *)
       | {dmac:48:string; smac:48:string; 0x0800:16; 4:4; ihl:4; tos:8; 
          _:56; nw_proto:8; _:16; 
-         nw_src:32; nw_dst:32; _:(ihl-5)*32:bitstring; _:-1:bitstring } ->
-        {wildcards =Wildcards.l3_match; in_port=in_port;dl_src=smac; 
-         dl_dst=dmac; dl_vlan=0xffff;
-         dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
-         nw_dst=nw_dst; nw_tos=(char_of_int tos); 
-         nw_proto=(char_of_int nw_proto); tp_src=0;
-         tp_dst=0}
+         nw_src:32; nw_dst:32; _:(ihl-5)*32:bitstring; _:-1:bitstring } 
+        -> { wildcards =Wildcards.l3_match; in_port=in_port;dl_src=smac; 
+             dl_dst=dmac; dl_vlan=0xffff;
+             dl_vlan_pcp=(char_of_int 0);dl_type=0x0800; nw_src=nw_src; 
+             nw_dst=nw_dst; nw_tos=(char_of_int tos); 
+             nw_proto=(char_of_int nw_proto); tp_src=0;
+             tp_dst=0 
+           }
+        
       (* Ethernet only *)
       | {dmac:48:string; smac:48:string; etype:16; _:-1:bitstring}
         -> { wildcards=Wildcards.l2_match; 
@@ -719,7 +727,8 @@ module Match = struct
              nw_src=(Int32.of_int 0); 
              nw_dst=(Int32.of_int 0); nw_tos=(char_of_int 0); 
              nw_proto=(char_of_int 0); tp_src=0;
-             tp_dst=0}
+             tp_dst=0
+           }
 
   let match_to_string m = 
     match (m.dl_type, (int_of_char m.nw_proto)) with
@@ -972,45 +981,48 @@ module Flow_mod = struct
     of_header: Header.h;
     of_match: Match.t;
     cookie: uint64;
-    (*cookie_mask: uint64;
-      table_id: byte; *)
     command: command;
     idle_timeout: uint16;
     hard_timeout: uint16;
     priority: uint16;
     buffer_id: int32;
     out_port: Port.t;
-    (* out_group: uint32; *)
     flags: flags;
     actions: Flow.action array;
   }
 
-  let total_len = 
-    let ret = 24 + (Header.get_len) + (Match.get_len) in 
-    ret
+  let total_len = 24 + (Header.get_len) + (Match.get_len) 
 
   let create flow_match cookie command ?(priority = 0) 
       ?(idle_timeout = 60) ?(hard_timeout = 0)
       ?(buffer_id =  -1 ) ?(out_port = Port.No_port) 
       ?(flags ={send_flow_rem=false;emerg=false;overlap=false;}) actions () =
+    
     let size = ref (total_len) in 
-    (Array.iter (fun a -> size:= !size + (Flow.len_of_action a) ) actions);
-
-    {of_header=(Header.(create FLOW_MOD  !size (Int32.of_int 0))); 
-     of_match=flow_match; cookie; command=command; 
-     idle_timeout; hard_timeout; priority; buffer_id=(Int32.of_int buffer_id); 
-     out_port;flags; actions;}
+    (Array.iter (fun a -> size:= !size + (Flow.len_of_action a)) actions);
+    { of_header=(Header.(create FLOW_MOD !size (Int32.of_int 0))); 
+      of_match=flow_match; cookie; command=command; 
+      idle_timeout; hard_timeout; priority; 
+      buffer_id=(Int32.of_int buffer_id); out_port;flags; actions; 
+    }
 
   let flow_mod_to_bitstring m =
     (* Fix flags *)
-    let packet = ( List.append [(Header.build_h m.of_header); 
-                                (Match.match_to_bitstring m.of_match);
-                                (BITSTRING{m.cookie:64; (int_of_command m.command):16; 
-                                           m.idle_timeout:16;m.hard_timeout:16; 
-                                           m.priority:16; m.buffer_id:32; 
-                                           (Port.int_of_port m.out_port):16; 0:13; 
-                                           m.flags.overlap:1; m.flags.emerg:1; m.flags.send_flow_rem:1})]
-                     (Array.to_list (Array.map (fun a -> (Flow.action_to_bitstring a) ) m.actions ) ) ) in 
+    let bs = (BITSTRING { m.cookie:64; (int_of_command m.command):16; 
+                              m.idle_timeout:16;m.hard_timeout:16; 
+                              m.priority:16; m.buffer_id:32; 
+                              (Port.int_of_port m.out_port):16; 0:13; 
+                              m.flags.overlap:1; m.flags.emerg:1;
+                              m.flags.send_flow_rem:1 })
+
+    in 
+    let packet = [(Header.build_h m.of_header); 
+                  (Match.match_to_bitstring m.of_match);
+                  bs
+                 ] @ (m.actions
+                         |> Array.map (fun a -> (Flow.action_to_bitstring a))
+                         |> Array.to_list)
+    in
     Bitstring.concat packet
 end
 

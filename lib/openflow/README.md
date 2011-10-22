@@ -150,15 +150,6 @@ is passed as callback to `Channel.listen`, and recursively evaluates
 `echo` to read the incoming packet and pass it to
 `process_of_packet`. 
 
-### Questions
-
-What's the best way to structure the controller so that application
-code can introduce generation and consumption of new events?  NOX
-permits this within a single event-handling framework -- is this
-simply out-of-scope here, or should we have a separate event-based
-programming framework available, or is there a straightforward
-Ocaml-ish way to incorporate this into the OpenFlow Controller?
-     
 [nox]: http://noxrepo.org/
 
 
@@ -167,3 +158,27 @@ switch.ml
 
 __N.B.__ This is unwritten as yet, awaiting the new device model being
 applied to the network stack.
+
+
+Questions
+---------
+
+What's the best way to structure the controller so that application
+code can introduce generation and consumption of new events?  NOX
+permits this within a single event-handling framework -- is this
+simply out-of-scope here, or should we have a separate event-based
+programming framework available, or is there a straightforward
+Ocaml-ish way to incorporate this into the OpenFlow Controller?
+
+What's the best way to expose parsing as a separate activity to
+reading data off the wire?  Specifically, I'd really like to reuse
+functions from `Net.Ethif`, `Net.Ipv4`, etc to recover structure from
+the bitstring without need to have
+`OfPacket.Match.parse_from_raw_packet`.  Previously I have found
+having parsers that return structured data and then wrapping up the
+packet structure as a nested type, e.g., `PCAP(pcaph, ETH(ethh,
+IPv4(iph, payload)))` or `...TCP(tcph, payload))))` worked well,
+permitting fairly natural pattern matching.  The depth to which the
+packet was deumltiplexed was controlled by a parameter to the
+entry-point parser. 
+

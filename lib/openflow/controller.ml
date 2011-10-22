@@ -272,10 +272,10 @@ let send_of_data controller dpid data =
 
 let rec rd_data len t = 
   match len with
-  | 0 -> return Bitstring.empty_bitstring
-  | _ -> lwt data = (Channel.read_some ~len:len t) in 
-lwt  more_data = (rd_data (len - ((Bitstring.bitstring_length data)/8)) t) in
-return (Bitstring.concat [ data; more_data ])
+    | 0 -> return Bitstring.empty_bitstring
+    | _ -> lwt data = (Channel.read_some ~len:len t) in 
+           lwt more_data = (rd_data (len - ((Bitstring.bitstring_length data)/8)) t) in
+           return (Bitstring.concat [ data; more_data ])
 
 let listen mgr ip port init =
   let src = (ip, port) in

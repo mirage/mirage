@@ -142,10 +142,13 @@ current state of the switch: this is where the OpenFlow state machine
 is implemented.  
 
 The controller entry point is via the `listen` function which
-effectively creates a receiving channel to parse OpenFlow packets,
-and pass them to `process_of_packet` which handles a range of standard
+effectively creates a receiving channel to parse OpenFlow packets, and
+pass them to `process_of_packet` which handles a range of standard
 protocol-level interactions, e.g., `ECHO_REQ`, `FEATURES_RESP`,
-generating Mirage events as appropriate.
+generating Mirage events as appropriate.  Specifically, `controller`
+is passed as callback to `Channel.listen`, and recursively evaluates
+`echo` to read the incoming packet and pass it to
+`process_of_packet`. 
 
 ### Questions
 
@@ -162,4 +165,5 @@ Ocaml-ish way to incorporate this into the OpenFlow Controller?
 switch.ml
 ---------
 
-<< Unwritten as yet >>
+__N.B.__ This is unwritten as yet, awaiting the new device model being
+applied to the network stack.

@@ -13,20 +13,20 @@ let pp = Printf.printf
 let sp = Printf.sprintf
 
 (* TODO this the mapping is incorrect. the datapath must be moved to the key
-*  of the hashtbl *)
+ * of the hashtbl *)
 type mac_switch = {
   addr: OP.eaddr; 
   switch: OP.datapath_id;
 }
 
 type switch_state = {
-  mutable mac_cache: (mac_switch ,OC.OP.port ) Hashtbl.t;
+  mutable mac_cache: (mac_switch, OP.Port.t) Hashtbl.t;
   mutable dpid: OP.datapath_id list
 }
 
 let switch_data = { mac_cache = Hashtbl.create 0; 
-             dpid = [] 
-           } 
+                    dpid = [] 
+                  } 
 
 
 let datapath_join_cb controller dpid evt =
@@ -35,14 +35,14 @@ let datapath_join_cb controller dpid evt =
       | OE.Datapath_join c -> c
       | _ -> invalid_arg "bogus datapath_join event match!"
   in
-  List.append switch_data.dpid [dp];
+  switch_data.dpid <- switch_data.dpid @ [dp];
   pp "+ datapath:0x%012Lx\n" dp
 
 let packet_in_cb controller dpid evt =
   OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt));
   let (in_port, buffer_id, data, dp) = 
     match evt with
-      | OE.Packet_in (in_port, buffer_id, data, dp) -> (in_port, buffer_id, data, dp)
+      | OE.Packet_in (inp, buf, dat, dp) -> (inp, buf, dat, dp)
       | _ -> invalid_arg "bogus datapath_join event match!"
   in
 
@@ -51,27 +51,31 @@ let packet_in_cb controller dpid evt =
 
   (* save src mac address *)
   let ix = {addr= (OP.Match.get_dl_src m); switch=dpid} in
-    if not (Hashtbl.mem switch_data.mac_cache ix ) then
-      (Hashtbl.add switch_data.mac_cache ix in_port)
-    else 
-      (Hashtbl.replace switch_data.mac_cache ix in_port);
+  if not (Hashtbl.mem switch_data.mac_cache ix ) then
+    (Hashtbl.add switch_data.mac_cache ix in_port)
+  else 
+    (Hashtbl.replace switch_data.mac_cache ix in_port);
 
-  (* check if I know the output port in order to define what type of message we
-  * need to send *)
-    let ix = {addr= (OP.Match.get_dl_dst m); switch=dpid} in
-      if ( (OP.eaddr_is_broadcast ix.addr) || (not (Hashtbl.mem switch_data.mac_cache ix)) ) then
-        let pkt = (OP.Packet_out.create ~buffer_id:buffer_id ~actions:[| OP.Output(OP.All , 2000) |] 
-                     ~data:data ~in_port:in_port () ) in
-          resolve (OC.send_of_data controller dpid (OP.Packet_out.packet_out_to_bitstring pkt))
-          else
-        let out_port = (Hashtbl.find switch_data.mac_cache ix) in
-
-        let pkt = (OP.Flow_mod.create m (Int64.of_int 0) (OP.Flow_mod.ADD) 
-                     [| OP.Output(out_port, 2000) |])  () in 
-          resolve (OC.send_of_data controller dpid (OP.Flow_mod.flow_mod_to_bitstring pkt));
-
-          printf "%s\n" (OP.Match.match_to_string m)
-
+  (* check if I know the output port in order to define what type of message
+   * we need to send *)
+  let ix = {addr= (OP.Match.get_dl_dst m); switch=dpid} in
+  if ( (OP.eaddr_is_broadcast ix.addr)
+       || (not (Hashtbl.mem switch_data.mac_cache ix)) ) 
+  then (
+    let pkt = OP.Packet_out.create
+      ~buffer_id:buffer_id ~actions:[| OP.(Flow.Output(Port.All , 2000)) |] 
+      ~data:data ~in_port:in_port () 
+    in
+    let bs = OP.Packet_out.packet_out_to_bitstring pkt in 
+    resolve (OC.send_of_data controller dpid bs)
+  ) else (
+    let out_port = (Hashtbl.find switch_data.mac_cache ix) in
+    let actions = [| OP.Flow.Output(out_port, 2000) |] in
+    let pkt = OP.Flow_mod.create m 0_L OP.Flow_mod.ADD actions () in 
+    let bs = OP.Flow_mod.flow_mod_to_bitstring pkt in
+    resolve (OC.send_of_data controller dpid bs);
+    printf "%s\n" (OP.Match.match_to_string m)
+  )
 
 let init controller = 
   pp "test controller register datapath cb\n";
@@ -80,11 +84,10 @@ let init controller =
   OC.register_cb controller OE.PACKET_IN packet_in_cb
 
 let main () =
-  lwt mgr, mgr_t = Net.Manager.create () in
-  let port = 6633 in 
-  let ip = None in (* Net.Nettypes.ipv4_addr_of_string "172.16.0.1" in *)
-  OC.listen mgr ip port init
-
-let _ =
-  OS.Main.run (main ()) 
+  Log.info "OF Controller" "starting controller";
+  Net.Manager.create (fun mgr interface id ->
+    let port = 6633 in 
+    OC.listen mgr (None, port) init
+    >> return (Log.info "OF Controller" "done!")
+  )
 

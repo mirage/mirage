@@ -30,14 +30,16 @@ let datapath_join_cb controller dpid evt =
   resolve(OC.send_of_data controller dpid table_stat_req );
 
   for flow = 0 to 10 do
-    let flow_match = (OP.Match.create_flow_match (OP.Wildcards.l3_match) ~in_port:1 
-    ~dl_src:"\x11\x11\x11\x11\x11\x11" 
-    ~dl_dst:"\x22\x22\x22\x22\x22\x22" 
-    ~dl_type:0x0800 ~nw_src:(Int32.of_int 0x0a010001) 
-    ~nw_dst:(Int32.of_int(0x0a010101 + flow)) ()) in 
-    let pkt = (OP.Flow_mod.create flow_match (Int64.of_int 0) OP.Flow_mod.ADD ~hard_timeout:60  
-    ~flags:{OP.Flow_mod.send_flow_rem=true;emerg=false;overlap=false;} 
-    [|OP.Output(OP.All , 2000) |] () )
+    let flow_match = 
+      OP.Match.create_flow_match (OP.Wildcards.l3_match) ~in_port:1 
+        ~dl_src:"\x11\x11\x11\x11\x11\x11" ~dl_dst:"\x22\x22\x22\x22\x22\x22" 
+        ~dl_type:0x0800 ~nw_src:(Int32.of_int 0x0a010001) 
+        ~nw_dst:(Int32.of_int(0x0a010101 + flow)) ()
+    in 
+    let action = [| OP.(Flow.Output(Port.All , 2000)) |] in
+    let flags = {OP.Flow_mod.send_flow_rem=true;emerg=false;overlap=false;} in
+    let pkt = (OP.Flow_mod.create flow_match (Int64.of_int 0) OP.Flow_mod.ADD 
+                 ~hard_timeout:60 ~flags:flags action ())
     in 
     resolve(OC.send_of_data controller dpid (OP.Flow_mod.flow_mod_to_bitstring pkt))
   done;
@@ -50,27 +52,27 @@ let datapath_join_cb controller dpid evt =
 
 let aggr_flow_stats_reply_cb controller dpid evt =
   match evt with 
-  | OE.Aggr_flow_stats_reply(xid, packets, bytes, flows, dpid) -> 
+    | OE.Aggr_flow_stats_reply(xid, packets, bytes, flows, dpid) -> 
       OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
-  | _ -> invalid_arg "bogus aggr_flow_stats_reply event match!"
+    | _ -> invalid_arg "bogus aggr_flow_stats_reply event match!"
 
 let desc_stats_reply_cb controller dpid evt =
   match evt with 
-  | OE.Desc_stats_reply(mfr_desc, hw_desc, sw_desc, serial_num, dp_desc, dpid) -> 
+    | OE.Desc_stats_reply(mfr_desc, hw_desc, sw_desc, serial_num, dp_desc, dpid) -> 
       OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
-  | _ -> invalid_arg "bogus desc_stats_reply event match!"
+    | _ -> invalid_arg "bogus desc_stats_reply event match!"
 
 let flow_stats_reply_cb controller dpid evt =
   match evt with 
-  | OE.Flow_stats_reply(xid, more, flows, dpid) -> 
+    | OE.Flow_stats_reply(xid, more, flows, dpid) -> 
       OS.Console.log (sp "* dpid:0x%012Lx evt:%s" dpid (OE.string_of_event evt))
-  | _ -> invalid_arg "bogus flow_stats_reply event match!"
+    | _ -> invalid_arg "bogus flow_stats_reply event match!"
 
 let port_status_cb controller dpid evt = 
   match evt with 
-  | OE.Port_status (r, ph, dpid) ->
+    | OE.Port_status (r, ph, dpid) ->
       Printf.printf "Port status updated\n"
-        | _ ->  invalid_arg "bogus flow_stats_reply event match!"
+    | _ ->  invalid_arg "bogus flow_stats_reply event match!"
 
 let init controller = 
   pp "test controller register datapath cb\n";
@@ -85,11 +87,9 @@ let init controller =
   OC.register_cb controller OE.FLOW_STATS_REPLY flow_stats_reply_cb 
 
 let main () =
-  lwt mgr, mgr_t = Net.Manager.create () in
-let port = 6633 in 
-let ip = None in   
-OC.listen mgr ip port init
-
-let _ =
-  OS.Main.run (main ()) 
-
+  Log.info "OF FlowStats" "starting controller";
+  Net.Manager.create (fun mgr interface id ->
+    let port = 6633 in 
+    OC.listen mgr (None, port) init
+    >> return (Log.info "OF FlowStats" "done!")
+  )

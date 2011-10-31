@@ -48,12 +48,11 @@ let init controller =
   pp "test controller register packet_in cb\n";
   OC.register_cb controller OE.PACKET_IN packet_in_cb
 
-let main () =
-  lwt mgr, mgr_t = Net.Manager.create () in
-  let port = 6633 in 
-  let ip = None in (* Net.Nettypes.ipv4_addr_of_string "172.16.0.1" in *)
-  OC.listen mgr ip port init
-
-let _ =
-  OS.Main.run (main ()) 
+let run () =
+  Net.Manager.create (fun t interface id ->
+    Printf.printf "new if %s\n%!" id;
+    let port = 6633 in 
+    let ip = None in (* Net.Nettypes.ipv4_addr_of_string "172.16.0.1" in *)
+    OC.listen t ip port init
+  )
 

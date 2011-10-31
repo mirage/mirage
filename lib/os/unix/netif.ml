@@ -61,12 +61,16 @@ let unplug id =
     printf "Netif: unplug %s\n%!" id;
     Hashtbl.remove devices id
   with Not_found -> ()
+
+let tapnum = ref 0 
    
 let create fn =
-  lwt t = plug "tap0" in (* Just hardcode a tap device for the moment *)
-  let user = fn "tap0" t in
+  let name = Printf.sprintf "tap%d" !tapnum in
+  incr tapnum;
+  lwt t = plug name in
+  let user = fn name t in
   let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> unplug "tap0");
+  Lwt.on_cancel th (fun _ -> unplug name);
   th <?> user
 
 (* Input a frame, and block if nothing is available *)

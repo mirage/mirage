@@ -706,7 +706,7 @@ module Switch :
       mutable n_lost : uint64;
     }
     type t = {
-      mutable ports : port list;
+      mutable ports : (OS.Netif.id, int) Hashtbl.t; (* port list; *)
       table : Table.t;
       stats : stats;
       p_sflow : uint32;
@@ -714,5 +714,6 @@ module Switch :
   end
 val process_frame : 'a -> 'b -> unit Lwt.t
 val process_openflow : 'a -> unit Lwt.t
+val add_port : Switch.t -> Net.Manager.t -> OS.Netif.id -> unit 
 val listen :
-  Net.Manager.t -> Net.Nettypes.ipv4_src -> (Switch.t -> 'a) -> unit Lwt.t
+  Net.Manager.t -> Net.Nettypes.ipv4_src -> (Net.Manager.t -> Switch.t -> unit Lwt.t) -> unit Lwt.t

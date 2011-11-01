@@ -33,6 +33,7 @@ val unplug: t -> id -> unit
 val configure: interface -> config -> unit Lwt.t
  
 val create : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
+val create_raw : (t -> interface -> id -> unit Lwt.t) -> unit Lwt.t
 
 val tcpv4_of_addr : t -> ipv4_addr option -> Tcp.Pcb.t list
 val udpv4_of_addr : t -> ipv4_addr option -> Udp.t list

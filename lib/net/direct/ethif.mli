@@ -29,6 +29,7 @@ val listen : t -> unit Lwt.t
 val output : t -> Bitstring.t list -> unit Lwt.t
 val output_arp : OS.Netif.t -> Nettypes.arp -> unit Lwt.t
 val create : OS.Netif.t -> t * unit Lwt.t
+val create_raw : OS.Netif.t -> t * unit Lwt.t
 val add_ip : t -> Nettypes.ipv4_addr -> unit Lwt.t
 val remove_ip : t -> Nettypes.ipv4_addr -> unit Lwt.t
 val query_arp : t -> Nettypes.ipv4_addr -> Nettypes.ethernet_mac Lwt.t

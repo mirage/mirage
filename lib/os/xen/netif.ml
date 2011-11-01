@@ -264,3 +264,6 @@ let mac nf =
     );
   s
 
+(* The Xenstore MAC address is colon separated, very helpfully *)
+let ethid t = 
+  string_of_int t.backend_id

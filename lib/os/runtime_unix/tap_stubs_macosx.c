@@ -48,6 +48,13 @@ tap_opendev(value v_str)
 {
   char name[IFNAMSIZ];
   snprintf(name, sizeof name, "/dev/%s", String_val(v_str));
+
+  int dev_id;
+
+  //small hack to create multiple interfaces
+  sscanf(dev, "tap%d", &dev_id);
+  fprintf(stderr, "I should be opening 10.%d.0.1\n", dev_id);
+
   fprintf(stderr, "opendev: %s\n", name);
   int fd = open(name, O_RDWR);
   if (fd < 0)
@@ -57,7 +64,8 @@ tap_opendev(value v_str)
      Since MacOS doesnt have ethernet bridging built in, the
      IP binding is temporary until someone writes a KPI filter for Darwin */
   char buf[1024];
-  snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.0.0.1 netmask 255.255.255.0 up", String_val(v_str));
+  snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.%d.0.1 netmask 255.255.255.0 up", String_val(v_str), dev_id);
+  fprintf(stderr, "%s\n", buf);
   system(buf);
   return Val_int(fd);
 }

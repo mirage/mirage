@@ -26,6 +26,7 @@ type t = {
   mac: string;
 }
 
+
 exception Ethif_closed
 
 (* We must generate a fake MAC for the Unix "VM", as using the
@@ -118,6 +119,9 @@ let output t bss =
   else
     return ()
 
+let ethid t = 
+  t.id
+
 let mac t =
-  t.mac
+  t.mac 
 

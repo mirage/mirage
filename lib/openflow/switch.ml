@@ -111,6 +111,7 @@ module Switch = struct
   type port = {
     details: OP.Port.phy;
     device: device;
+    (* port_id: (OS.Netif.id, int) Hashtbl.t; *)
   }
 
   type stats = {
@@ -121,7 +122,7 @@ module Switch = struct
   }
 
   type t = {
-    mutable ports: port list;
+    mutable ports: (OS.Netif.id, int) Hashtbl.t;
     table: Table.t;
     stats: stats;
     p_sflow: uint32; (** probability for sFlow sampling *)
@@ -139,6 +140,11 @@ let process_frame st frame =
    *)
   return ()
 
+let portnum = ref 0 
+
+let add_port sw mgr id = 
+  Hashtbl.add sw.Switch.ports id  !portnum
+
 let process_openflow st =
   (* this is processing from a Channel, so roughly
    * + read OpenFlow message off Channel,
@@ -148,32 +154,30 @@ let process_openflow st =
   return ()
 
 let listen mgr loc init =
-  let (dummy:device) = "dummy_device" in
-
   let switch (rip, rpt) t = 
     let rs = ipv4_addr_to_string rip in
     Log.info "OpenFlow Switch" "+ %s:%d" rs rpt;
     
     let st = Switch.(
-      { ports = [];
+      { ports = (Hashtbl.create 0);
         table = Table.({ tid = 0_L; entries = [] });
         stats = { n_frags=0_L; n_hits=0_L; n_missed=0_L; n_lost=0_L };
         p_sflow = 0_l;
       })
     in
-    init st;
+    init mgr st;
 
     (* having initialised state, now need to 
      * + install input handler for each device
      * + wait on any device having input, and process when ready
      *)
-    
+(*    
     let rec input device = 
       lwt frame = return () in
       process_frame st frame
       >> input device
     in
     input dummy (* how to handle multiple devices *)
-    <?> process_openflow st 
+    <?> process_openflow st *)
   in    
   Net.Channel.listen mgr (`TCPv4 (loc, switch))

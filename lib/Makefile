@@ -1,4 +1,5 @@
 .PHONY: all unix clean
+-include Makefile.config
 
 JOBS ?= -j 4
 OFLAGS ?= # -classic-display

@@ -69,6 +69,7 @@ let run t =
   in
   (* Register a callback for the JS runtime to restart this function *)
   let _ = Callback.register "Main.run" fn in
+  Printexc.record_backtrace true;
   fn ()
 
 let () = at_exit (fun () -> run (call_hooks exit_hooks))

@@ -35,6 +35,9 @@ type interface = {
   tcp: Tcp.Pcb.t;
 }
 
+let get_netif t =
+  t.netif
+
 type interface_t = interface * unit Lwt.t
 
 type t = {
@@ -149,6 +152,8 @@ let create_raw listener =
   printf "Manager: init done\n%!";
   th
 
+let intercept t fn = 
+  Ethif.intercept t.netif fn
 
 (* Find the interfaces associated with the address *)
 let i_of_ip t addr =
@@ -172,3 +177,6 @@ let udpv4_of_addr (t:t) addr =
 
 let ipv4_of_interface (t:interface) = 
   t.ipv4
+
+let get_intf intf = 
+   intf.id

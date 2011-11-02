@@ -122,7 +122,7 @@ module Switch = struct
   }
 
   type t = {
-    mutable ports: (OS.Netif.id, int) Hashtbl.t;
+    mutable ports: (string, int) Hashtbl.t;
     table: Table.t;
     stats: stats;
     p_sflow: uint32; (** probability for sFlow sampling *)
@@ -130,7 +130,7 @@ module Switch = struct
 
 end
 
-let process_frame st frame = 
+let process_frame intf_name frame = 
   (* roughly,
    * + examine frame
    * + extract OF headers
@@ -138,12 +138,13 @@ let process_frame st frame =
    *   + if match, update counters, execute actions
    *   + else, forward to controller/drop, depending on config
    *)
-  return ()
+  Printf.printf "packet received from dev %s\n" intf_name
 
 let portnum = ref 0 
 
-let add_port sw mgr id = 
-  Hashtbl.add sw.Switch.ports id  !portnum
+let add_port sw mgr intf = 
+  Net.Manager.intercept intf process_frame;
+  Hashtbl.add sw.Switch.ports (Net.Manager.get_intf intf) !portnum
 
 let process_openflow st =
   (* this is processing from a Channel, so roughly
@@ -154,19 +155,23 @@ let process_openflow st =
   return ()
 
 let listen mgr loc init =
+
+  (* Switch initialization should be irrelevant to whether the switch is connected to a 
+   * to a controller. *)
+  let st = Switch.(
+    { ports = (Hashtbl.create 0);
+      table = Table.({ tid = 0_L; entries = [] });
+      stats = { n_frags=0_L; n_hits=0_L; n_missed=0_L; n_lost=0_L };
+      p_sflow = 0_l;
+    })
+  in
+  init mgr st;
+
   let switch (rip, rpt) t = 
     let rs = ipv4_addr_to_string rip in
     Log.info "OpenFlow Switch" "+ %s:%d" rs rpt;
+    return ()
     
-    let st = Switch.(
-      { ports = (Hashtbl.create 0);
-        table = Table.({ tid = 0_L; entries = [] });
-        stats = { n_frags=0_L; n_hits=0_L; n_missed=0_L; n_lost=0_L };
-        p_sflow = 0_l;
-      })
-    in
-    init mgr st;
-
     (* having initialised state, now need to 
      * + install input handler for each device
      * + wait on any device having input, and process when ready

@@ -36,4 +36,4 @@ val query_arp : t -> Nettypes.ipv4_addr -> Nettypes.ethernet_mac Lwt.t
 val attach : t -> [< `IPv4 of Bitstring.t -> unit Lwt.t ] -> unit
 val detach : t -> [< `IPv4 ] -> unit
 val mac : t -> Nettypes.ethernet_mac
-
+val intercept:  t -> (string -> string * int * int  -> unit) -> unit

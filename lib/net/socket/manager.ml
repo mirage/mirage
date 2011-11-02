@@ -39,11 +39,17 @@ type t = {
   udpv4_listen_ports: ((ipv4_addr option * int), [`udpv4] fd) Hashtbl.t;
 }
 
+let get_intf intf = 
+   ""
+
 (* Get a set of all the local peers *)
 let local_peers t = domain_list ()
 
 (* Get our local UID *)
 let local_uid t = domain_uid ()
+
+let intercept t fn =
+  Printf.printf "Intercept not implemented yet for socket mode "
 
 (* Connect to a peer and return a control socket to it *)
 let connect_to_peer t uid =

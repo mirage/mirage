@@ -712,8 +712,8 @@ module Switch :
       p_sflow : uint32;
     }
   end
-val process_frame : 'a -> 'b -> unit Lwt.t
+val process_frame : string -> string * int * int -> unit (* Lwt.t *)
 val process_openflow : 'a -> unit Lwt.t
-val add_port : Switch.t -> Net.Manager.t -> OS.Netif.id -> unit 
+val add_port : Switch.t -> Net.Manager.t -> Net.Manager.interface -> unit 
 val listen :
   Net.Manager.t -> Net.Nettypes.ipv4_src -> (Net.Manager.t -> Switch.t -> unit Lwt.t) -> unit Lwt.t

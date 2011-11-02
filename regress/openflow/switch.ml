@@ -28,15 +28,17 @@ let pp = Printf.printf
 let sp = Printf.sprintf
 
 
+
+
 let init controller sw =
   pp "init switch";
   Net.Manager.create_raw (fun mgr interface id ->
-      OS.add_port sw mgr id;
+      OS.add_port sw mgr interface;
       pp "Created raw socket";
       return ()
     );
   Net.Manager.create_raw (fun mgr interface id ->
-      OS.add_port sw mgr id; 
+      OS.add_port sw mgr interface; 
       return (pp "Created raw socket")
     );
   return () 

@@ -43,7 +43,7 @@ let t_of_fd fd =
 
 let close t =
   R.close t.fd;
-  Lwt.wakeup t.abort_u ();
+  (try Lwt.wakeup t.abort_u () with _ -> ());
   return ()
 
 let close_on_exit t fn =

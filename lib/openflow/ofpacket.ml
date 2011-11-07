@@ -73,6 +73,9 @@ let eaddr_to_string s =
   let hp s i = sp "%02x" (int_of_char s.[i]) in
   String.concat ":" (Array.init l (fun i -> hp s i) |> Array.to_list)
 
+let bitstring_of_eaddr s =
+       (BITSTRING{s:48:string})
+
 let eaddr_is_broadcast s =
   match s with
     | "\xFF\xFF\xFF\xFF\xFF\xFF" -> true

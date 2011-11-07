@@ -29,7 +29,7 @@ type t = {
   mac: ethernet_mac;
   arp: Arp.t;
   mutable ipv4: (Bitstring.t -> unit Lwt.t);
-  mutable raw_eth: (string -> string * int * int -> unit ) list;
+  mutable raw_eth: (string -> string * int * int -> unit Lwt.t) list;
 }
 
 let gen_frame dmac smac =
@@ -105,8 +105,8 @@ let create ethif =
   (t, listen)
 
 let input_raw t frame = 
-  List.iter (fun k -> ( k (OS.Netif.ethid t.ethif) frame ) ) t.raw_eth;
-  return (printf "Ethif: raw packet captured\n%!")
+  List.iter (fun k -> (k (OS.Netif.ethid t.ethif) frame ); () ) t.raw_eth;
+  return ()
 
 (* Loop and listen for frames *)
 let rec raw_listen t =
@@ -136,3 +136,8 @@ let detach t = function
   |`IPv4 -> t.ipv4 <- (fun _ -> return ())
 
 let mac t = t.mac
+let get_ethif t =
+  t.ethif
+
+let send_raw t frame =
+  OS.Netif.output t.ethif frame

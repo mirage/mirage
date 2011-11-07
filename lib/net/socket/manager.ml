@@ -51,6 +51,9 @@ let local_uid t = domain_uid ()
 let intercept t fn =
   Printf.printf "Intercept not implemented yet for socket mode "
 
+let send_raw t intf_name frame = 
+  return (Printf.printf "send_raw not implemented yet for socket mode ")
+
 (* Connect to a peer and return a control socket to it *)
 let connect_to_peer t uid =
  if Hashtbl.mem t.peers uid then

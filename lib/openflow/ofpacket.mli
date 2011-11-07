@@ -32,6 +32,7 @@ type eaddr = bytes
 val bytes_to_hex_string : char array -> string array
 val eaddr_to_string : string -> string
 val eaddr_is_broadcast : string -> bool
+val bitstring_of_eaddr: eaddr -> Bitstring.t
 val bytes_of_bitstring : Bitstring.bitstring -> string
 val ipv4_addr_of_bytes : string -> int32
 type vendor = uint32

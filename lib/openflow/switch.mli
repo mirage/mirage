@@ -689,16 +689,18 @@ module Entry :
       | SET_TP_SRC of port
       | SET_TP_DST of port
     type t = {
-      fields : OP.Match.t list;
-      counters : counters;
+      (* fields : OP.Match.t list; *)
+      counters : flow_counter;
       actions : action list;
     }
   end
 module Table :
-  sig type t = { tid : cookie; mutable entries : Entry.t list; } end
+  sig type t = { tid : cookie; 
+                 mutable entries : (OP.Match.t, Entry.t) Hashtbl.t; } end
 module Switch :
   sig
-    type port = { details : OP.Port.phy; device : device; }
+    (* type port = { details : OP.Port.phy; device : device; } *)
+    type port = { port_id: int; port_name : string;mgr: Net.Manager.t; }
     type stats = {
       mutable n_frags : uint64;
       mutable n_hits : uint64;
@@ -706,13 +708,15 @@ module Switch :
       mutable n_lost : uint64;
     }
     type t = {
-      mutable ports : (OS.Netif.id, int) Hashtbl.t; (* port list; *)
+      mutable ports : (OS.Netif.id, port) Hashtbl.t; (* port list; *)
+      mutable int_ports : (int, port) Hashtbl.t; 
       table : Table.t;
       stats : stats;
       p_sflow : uint32;
     }
   end
-val process_frame : string -> string * int * int -> unit (* Lwt.t *)
+val apply_of_actions: Switch.t -> OP.Match.t -> Entry.action list -> Bitstring.t -> unit Lwt.t
+val process_frame : string -> string * int * int -> unit Lwt.t
 val process_openflow : 'a -> unit Lwt.t
 val add_port : Switch.t -> Net.Manager.t -> Net.Manager.interface -> unit 
 val listen :

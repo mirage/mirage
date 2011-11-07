@@ -74,6 +74,12 @@ module Entry = struct
     per_queue: queue_counter list;
   }
 
+  let init_flow_counters () =
+    {n_packets=(Int64.of_int 0);
+    n_bytes= (Int64.of_int 0);
+    secs=(Int32.of_int 0);
+    nsecs=(Int32.of_int 0);}
+
   type action = 
     (** Required actions *)
     | FORWARD of OP.Port.t
@@ -93,8 +99,8 @@ module Entry = struct
     | SET_TP_DST of port
 
   type t = { 
-    fields: OP.Match.t list;
-    counters: counters;
+    (* fields: OP.Match.t list; *)
+    counters: flow_counter;
     actions: action list;
   }
 
@@ -103,14 +109,17 @@ end
 module Table = struct
   type t = {
     tid: cookie;
-    mutable entries: Entry.t list;
+    mutable entries: (OP.Match.t, Entry.t) Hashtbl.t;
   }
 end
 
 module Switch = struct
   type port = {
-    details: OP.Port.phy;
-    device: device;
+    (* details: OP.Port.phy; *)
+    port_id: int;
+    port_name: string;
+    mgr: Net.Manager.t;
+    (* device: device; *)
     (* port_id: (OS.Netif.id, int) Hashtbl.t; *)
   }
 
@@ -122,13 +131,87 @@ module Switch = struct
   }
 
   type t = {
-    mutable ports: (string, int) Hashtbl.t;
+    mutable ports: (string, port) Hashtbl.t;
+    mutable int_ports: (int, port) Hashtbl.t;
     table: Table.t;
     stats: stats;
     p_sflow: uint32; (** probability for sFlow sampling *)
   }
 
 end
+
+let st = Switch.(
+  { ports = (Hashtbl.create 0); int_ports = (Hashtbl.create 0);
+    table = Table.({ tid = 0_L; entries = (Hashtbl.create 0) });
+    stats = { n_frags=0_L; n_hits=0_L; n_missed=0_L; n_lost=0_L };
+    p_sflow = 0_l;
+  })
+
+let add_flow tuple actions = 
+  if (Hashtbl.mem st.Switch.table.Table.entries tuple) then
+    Printf.printf "Tuple already exists" 
+  else
+    Hashtbl.add st.Switch.table.Table.entries tuple 
+      Entry.({actions; counters=(init_flow_counters ())})
+
+let rec set_frame_bits frame start len bits = 
+  match len with 
+      (*TODO: Make the pattern match more accurate, read the match syntax*)
+    | 0 -> return ()
+    | len ->
+        Bitstring.put frame (start + len - 1) (Bitstring.get bits (len - 1));
+        set_frame_bits frame start (len-1) bits
+
+let forward_frame st tupple port frame =
+  Printf.printf "Outputing frame to port %s\n" (OP.Port.string_of_port port);
+  match port with 
+    | OP.Port.Port(port) -> 
+        if Hashtbl.mem st.Switch.int_ports port then
+          let out_p = ( Hashtbl.find st.Switch.int_ports port)  in
+            (Net.Manager.send_raw out_p.Switch.mgr out_p.Switch.port_name [frame];
+            return ())
+            else
+              return (Printf.printf "Port %d not registered \n" port)
+    | OP.Port.No_port -> return ()
+    | OP.Port.In_port ->
+        let port = (OP.Port.int_of_port tupple.OP.Match.in_port) in 
+          if Hashtbl.mem st.Switch.int_ports port then
+            let out_p = ( Hashtbl.find st.Switch.int_ports port)  in
+              (Net.Manager.send_raw out_p.Switch.mgr out_p.Switch.port_name [frame];
+              return ())
+              else
+                return (Printf.printf "Port %d not registered \n" port)
+                  (*           | Table
+                   *           | Normal
+                   *           | Flood
+                   *           | All 
+                   *           | Controller -> generate a packet out. 
+                   *           | Local -> can I inject this frame to the network
+                   *           stack?  *)
+    | _ -> return (Printf.printf "Not implemented output port\n")
+
+let rec apply_of_actions st tuple actions frame = 
+  match actions with 
+    | [] -> return ()
+    | head :: actions -> 
+        match head with
+          | Entry.FORWARD (port) ->
+              forward_frame st tuple port frame; 
+              apply_of_actions st tuple actions frame
+          | Entry.SET_DL_SRC(eaddr) ->
+             Printf.printf "setting src mac addr to %s\n" (OP.eaddr_to_string eaddr);
+              set_frame_bits frame 48 48 (OP.bitstring_of_eaddr eaddr);
+              apply_of_actions st tuple actions frame
+          | Entry.SET_DL_DST(eaddr) ->
+             Printf.printf "setting dst mac addr to %s\n" (OP.eaddr_to_string eaddr);
+              set_frame_bits frame 0 48 (OP.bitstring_of_eaddr eaddr);
+              apply_of_actions st tuple actions frame
+          | _ ->
+              (Printf.printf "Unsupported action\n");
+              apply_of_actions st tuple actions frame
+
+
+let portnum = ref 0
 
 let process_frame intf_name frame = 
   (* roughly,
@@ -138,13 +221,39 @@ let process_frame intf_name frame =
    *   + if match, update counters, execute actions
    *   + else, forward to controller/drop, depending on config
    *)
-  Printf.printf "packet received from dev %s\n" intf_name
+  if (Hashtbl.mem st.Switch.ports intf_name ) then
+    let p = (Hashtbl.find st.Switch.ports intf_name) in
+    let in_port = (OP.Port.port_of_int p.Switch.port_id) in (* Hashtbl.find   in *)
+    let tupple = (OP.Match.parse_from_raw_packet in_port frame ) in 
+      if (Hashtbl.mem st.Switch.table.Table.entries tupple) then 
+        let entry = (Hashtbl.find st.Switch.table.Table.entries tupple) in
+          (* st.Switch.stats.Switch.n_hits <- (st.Switch.stats.Switch.n_hits + 
+           * (Int64.of_int 1)); *)
+          (apply_of_actions st tupple entry.Entry.actions frame);
+         else
+           (Printf.printf "generating Packet_out\n"; 
+            (* st.Switch.stats.Switch.n_missed <-
+             * st.Switch.stats.Switch.n_missed + 1;*)
+            let addr = "\x11\x11\x11\x11\x11\x11" in 
+              Printf.printf "Dest addr: %s" (OP.eaddr_to_string addr);
+              add_flow tupple [(Entry.SET_DL_SRC ("\x11\x11\x11\x11\x11\x11"));
+                               (Entry.SET_DL_DST ("\x11\x11\x11\x11\x11\x11"));
+                               (Entry.FORWARD (OP.Port.port_of_int 2)) ; ]; 
+              return ())
 
-let portnum = ref 0 
+         else
+           return ()
+(* let rule = ( of_match sw tupple ) in 
+ apply_rule rule frame *)
+
 
 let add_port sw mgr intf = 
   Net.Manager.intercept intf process_frame;
-  Hashtbl.add sw.Switch.ports (Net.Manager.get_intf intf) !portnum
+  incr portnum;
+  let port =  Switch.({port_id=(!portnum); mgr=mgr; port_name=(Net.Manager.get_intf intf);}) in  
+    Hashtbl.add sw.Switch.int_ports !portnum port; 
+    Hashtbl.add sw.Switch.ports port.Switch.port_name port
+
 
 let process_openflow st =
   (* this is processing from a Channel, so roughly
@@ -152,37 +261,38 @@ let process_openflow st =
    * + match message and handle accordingly, possibly emitting one or more
    *   messages as a result
    *)
+
   return ()
 
 let listen mgr loc init =
 
   (* Switch initialization should be irrelevant to whether the switch is connected to a 
    * to a controller. *)
-  let st = Switch.(
-    { ports = (Hashtbl.create 0);
-      table = Table.({ tid = 0_L; entries = [] });
-      stats = { n_frags=0_L; n_hits=0_L; n_missed=0_L; n_lost=0_L };
-      p_sflow = 0_l;
-    })
-  in
+  (*  st <- Switch.(
+   { ports = (Hashtbl.create 0);
+   table = Table.({ tid = 0_L; entries = [] });
+   stats = { n_frags=0_L; n_hits=0_L; n_missed=0_L; n_lost=0_L };
+   p_sflow = 0_l;
+   })
+   in *)
   init mgr st;
 
   let switch (rip, rpt) t = 
     let rs = ipv4_addr_to_string rip in
-    Log.info "OpenFlow Switch" "+ %s:%d" rs rpt;
-    return ()
-    
-    (* having initialised state, now need to 
-     * + install input handler for each device
-     * + wait on any device having input, and process when ready
-     *)
-(*    
-    let rec input device = 
-      lwt frame = return () in
-      process_frame st frame
-      >> input device
-    in
-    input dummy (* how to handle multiple devices *)
-    <?> process_openflow st *)
+      Log.info "OpenFlow Switch" "+ %s:%d" rs rpt;
+      return ()
+
+  (* having initialised state, now need to 
+   * + install input handler for each device
+   * + wait on any device having input, and process when ready
+   *)
+  (*    
+   let rec input device = 
+   lwt frame = return () in
+   process_frame st frame
+   >> input device
+   in
+   input dummy (* how to handle multiple devices *)
+   <?> process_openflow st *)
   in    
-  Net.Channel.listen mgr (`TCPv4 (loc, switch))
+    Net.Channel.listen mgr (`TCPv4 (loc, switch))

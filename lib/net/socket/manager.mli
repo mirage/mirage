@@ -28,7 +28,8 @@ val local_peers : 'a -> OS.Socket.uid list
 val local_uid : 'a -> OS.Socket.uid
 val connect_to_peer : t -> peer_uid -> [ `domain ] OS.Socket.fd option Lwt.t
 
-val intercept : interface -> (string -> string * int * int  -> unit) -> unit 
+val intercept : interface -> (string -> string * int * int  -> unit Lwt.t) -> unit 
+val send_raw: t -> string -> (Bitstring.t list)  -> unit Lwt.t
 
 val listen_to_peers : t -> (int -> [< `rd_pipe | `wr_pipe ] OS.Socket.fd * [< `rd_pipe | `wr_pipe ] OS.Socket.fd -> unit Lwt.t) -> unit Lwt.t
 val connect : t -> peer_uid -> ([ `rd_pipe ] OS.Socket.fd * [ `wr_pipe ] OS.Socket.fd -> 'a Lwt.t) -> 'a Lwt.t

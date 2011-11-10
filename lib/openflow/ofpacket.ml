@@ -290,6 +290,10 @@ module Port = struct
              }
     )
 
+  let init_port_config = 
+    {port_down=false; no_stp=false; no_recv=false; no_recv_stp=false;
+    no_flood=false; no_fwd=false; no_packet_in=false; }
+
   type features = {
     pause_asym: bool;
     pause: bool;
@@ -315,6 +319,12 @@ module Port = struct
              }
     )
 
+  let init_port_features =
+    {pause_asym=false; pause=false; autoneg=false;
+    fiber=false; copper=false; f_10GB_FD=false; f_1GB_FD=false;
+    f_1GB_HD=false; f_100MB_FD=false; f_100MB_HD=false; f_10MB_FD=false;
+    f_10MB_HD=false; };
+
   type state = {
     link_down: bool;
     stp_listen: bool;
@@ -331,6 +341,10 @@ module Port = struct
                stp_block; stp_mask; 
              }
     )
+
+  let init_port_state = 
+    {link_down=false; stp_listen=false; stp_learn=false; stp_forward=false;
+    stp_block=false; stp_mask=false; }
 
   type phy = {
     port_no: uint16;
@@ -364,6 +378,19 @@ module Port = struct
                peer = parse_features peer;
              }
     )
+
+  let init_port_phy ?(port_no = 0) ?(hw_addr="\x11\x11\x11\x11\x11\x11") 
+                                  ?(name="") () = 
+    {port_no; hw_addr; name; config=init_port_config; 
+     state=init_port_state; curr=init_port_features; 
+    advertised=init_port_features; supported=init_port_features; 
+    peer=init_port_features;}
+
+   let bitstring_of_phy phy =
+     (BITSTRING{phy.port_no:16; phy.hw_addr:48:string;phy.name:32:string;
+               (Int64.of_int 0):64; (Int32.of_int 0):32; 
+     (Int32.of_int 0):32; (Int32.of_int 0):32; (Int32.of_int 0):32;  
+     (Int32.of_int 0):32; (Int32.of_int 0):32; (Int32.of_int 0):32})
 
   let string_of_phy ph = 
     (sp "port_no:%d,hw_addr:%s,name:%s" 
@@ -508,7 +535,27 @@ module Switch = struct
     actions: actions;
     ports: Port.phy list;
   }
-  
+ 
+  let get_len feat = 
+    (64+32+8+24+32+32)/8
+  let rec bitstring_list_of_ports_phy_list ports =
+    match ports with
+      | [] -> []
+      | head :: tail ->
+          [(Port.bitstring_of_phy head)] @ (bitstring_list_of_ports_phy_list tail)
+
+  let gen_reply_features req datapath_id ports_phy =
+     let ports_phy_bitstring = (Bitstring.concat (bitstring_list_of_ports_phy_list ports_phy)) in
+    let ports_count = (List.length ports_phy) in    
+    let header = (Header.create  Header.FEATURES_RESP (Header.get_len + 24 + ports_count*Port.phy_len) req.Header.xid) in
+     BITSTRING{ (Header.build_h header):(Header.get_len*8):bitstring
+       ;datapath_id:64; (Int32.of_int 0):32; 1:8; 0:24; (Int32.of_int 0):32;
+       (Int32.of_int 0):32 
+         ;ports_phy_bitstring:(Bitstring.bitstring_length
+         ports_phy_bitstring):bitstring  
+     } 
+(*       Printf.printf "Sending data %d\n" (Bitstring.bitstring_length data); *)
+
   let parse_features bits = 
     let parse_phys bits = 
       let rec aux ports bits = 
@@ -546,6 +593,17 @@ module Switch = struct
     reasm: bool;
     miss_send_len: uint16;
   }
+
+  let get_switch_config_len = 4
+
+  let init_switch_config = 
+        {drop=true; reasm=true;miss_send_len=1000;}
+
+  let bitstring_of_switch_config xid config =
+    let header = (Header.create  Header.GET_CONFIG_RESP 
+                    (Header.get_len + get_switch_config_len) xid) in
+     BITSTRING{ (Header.build_h header):(Header.get_len*8):bitstring;
+    0:16; config.miss_send_len:16}
 end
 
 module Wildcards = struct
@@ -721,7 +779,7 @@ module Match = struct
              nw_proto=(char_of_int nw_proto); tp_src=0;
              tp_dst=0 
            }
-        
+         
       (* Ethernet only *)
       | {dmac:48:string; smac:48:string; etype:16; _:-1:bitstring}
         -> { wildcards=Wildcards.l2_match; 
@@ -950,7 +1008,7 @@ module Packet_out = struct
     Bitstring.concat packet
 end
 
-(* this is a message only from the controller to the switch so
+(* this is a message only from the controller to the witch so
  * we can allow to parse inline the packet *)
 module Flow_mod = struct
   type command = ADD | MODIFY | MODIFY_STRICT | DELETE | DELETE_STRICT
@@ -1027,6 +1085,27 @@ module Flow_mod = struct
                          |> Array.to_list)
     in
     Bitstring.concat packet
+
+(*
+  let flow_mod_of_bitstring h bits = 
+    bitmatch h bits with
+      | { match_data:Match.get_len:bitstring;
+            cookie:64;command:16;idle_timeout:16;hard_timeout:16; 
+          priority:16; buffer_id:32;out_port:16; 0:13; 
+          overlap:1; emerg:1;flow_rem:1; bits:-1:bitstring} ->
+          {of_header=h; 
+           of_match=(Wildcards.bitstring_to_match match_data);
+           cookie; 
+           command=(command_of_int command); 
+           idle_timeout; hard_timeout;
+         priority; buffer_id; out_port=(Port.port_of_int out_port); 
+         flags={send_flow_rem=flow_rem; emerg; overlap; }; 
+         actions=[||] }
+
+ *)
+             
+
+
 end
 
 module Flow_removed = struct
@@ -1504,11 +1583,13 @@ let parse h bits =
     | VENDOR -> raise (Unparsed ("VENDOR", bits))
     | FEATURES_REQ -> Features_req (h)
     | FEATURES_RESP -> Features_resp (h, Switch.parse_features bits)
-    | GET_CONFIG_REQ -> raise (Unparsed ("GET_CONFIG_REQ", bits))
+    | GET_CONFIG_REQ -> Get_config_req(h)
     | GET_CONFIG_RESP -> raise (Unparsed ("GET_CONFIG_RESP", bits))
     | SET_CONFIG -> raise (Unparsed ("SET_CONFIG", bits))
     | PACKET_IN -> Packet_in (h, Packet_in.parse_packet_in bits)
     | FLOW_REMOVED -> Flow_removed(h, (Flow_removed.flow_removed_of_bitstring bits))
+    | FLOW_MOD -> raise (Unparsed ("GET_CONFIG_RESP", bits))
+(* Flow_mod(h, (Flow_mod.flow_mod_of_bitstring h bits)) *)
     | STATS_RESP -> Stats_resp (h, (Stats.parse_stats bits))
     | PORT_STATUS -> Port_status(h, (Port.status_of_bitstring bits)) 
     | _ -> raise (Unparsed ("_", bits))

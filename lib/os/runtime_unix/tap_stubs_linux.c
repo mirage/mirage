@@ -82,7 +82,7 @@ tap_opendev(value v_str)
 
   snprintf(buf, sizeof buf, "ip link set %s up", dev);
   if (system(buf) < 0) err(1, "system");
-  snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.%d.0.1 netmask 255.255.255.0 up", String_val(v_str), dev_id);
+  snprintf(buf, sizeof buf, "/sbin/ifconfig %s 10.%d.0.2 netmask 255.255.255.0 up", String_val(v_str), dev_id);
   fprintf(stderr, "%s\n", buf);
   system(buf);
   if (system(buf) < 0) err(1, "system");

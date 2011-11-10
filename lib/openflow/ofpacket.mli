@@ -141,6 +141,8 @@ module Port :
       supported : features;
       peer : features;
     }
+    val init_port_phy: ?port_no:int -> ?hw_addr:eaddr -> 
+      ?name:string -> unit -> phy 
     val max_name_len : int
     val phy_len : int
     val parse_phy : string * int * int -> phy
@@ -207,7 +209,12 @@ module Switch :
       ports : Port.phy list;
     }
     val parse_features : string * int * int -> features
+    (* val gen_reply_features : Header.h -> int64 -> Bitstring.t *)
+    val gen_reply_features : Header.h -> int64 -> Port.phy list -> Bitstring.t 
     type config = { drop : bool; reasm : bool; miss_send_len : uint16; }
+    val init_switch_config : config
+    val get_switch_config_len : int
+    val  bitstring_of_switch_config : int32 -> config -> Bitstring.bitstring 
   end
 module Wildcards :
   sig

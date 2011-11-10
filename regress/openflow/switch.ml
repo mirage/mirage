@@ -27,30 +27,35 @@ module OS = Openflow.Switch
 let pp = Printf.printf
 let sp = Printf.sprintf
 
-
-
-
 let init controller sw =
-  pp "init switch";
+
+  (* This is not correct as in the next connection this will fail *)
   Net.Manager.create_raw (fun mgr interface id ->
-      OS.add_port sw mgr interface;
-      pp "Created raw socket";
-      return ()
-    );
+                            OS.add_port sw mgr interface;
+                            return ()
+  );
   Net.Manager.create_raw (fun mgr interface id ->
-      OS.add_port sw mgr interface; 
-      return (pp "Created raw socket")
-    );
-  return () 
+                            OS.add_port sw mgr interface; 
+                            return ()
+  );
+                              return ()
+
+
+let ip = Net.Nettypes.(
+  (ipv4_addr_of_tuple (10l,0l,0l,1l),
+   ipv4_addr_of_tuple (255l,255l,255l,0l),
+   [ ipv4_addr_of_tuple (10l,0l,0l,2l) ]
+  ))
 
 let main () =
+
   Log.info "OF switch" "starting switch";
   Net.Manager.create (fun mgr interface id ->
-      let port = 6633 in 
-      OS.listen mgr (None, port) init
+  Net.Manager.configure interface (`IPv4 ip);
+  let port = 6633 in 
+    OS.listen mgr (None, port) init
       >> return (Log.info "OF Controller" "done!")
-    );
-
-  pp "Mian terminates\n" ; 
-	return () 
+  );
+  pp "Main terminates\n" ; 
+  return () 
 

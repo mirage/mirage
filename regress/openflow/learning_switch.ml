@@ -71,7 +71,9 @@ let packet_in_cb controller dpid evt =
   ) else (
     let out_port = (Hashtbl.find switch_data.mac_cache ix) in
     let actions = [| OP.Flow.Output(out_port, 2000) |] in
-    let pkt = OP.Flow_mod.create m 0_L OP.Flow_mod.ADD actions () in 
+    let pkt = OP.Flow_mod.create m 0_L OP.Flow_mod.ADD 
+                ~buffer_id:(Int32.to_int buffer_id)
+                actions () in 
     let bs = OP.Flow_mod.flow_mod_to_bitstring pkt in
     resolve (OC.send_of_data controller dpid bs);
     printf "%s\n" (OP.Match.match_to_string m)

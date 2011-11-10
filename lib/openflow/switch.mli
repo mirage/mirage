@@ -710,6 +710,8 @@ module Switch :
     type t = {
       mutable ports : (OS.Netif.id, port) Hashtbl.t; (* port list; *)
       mutable int_ports : (int, port) Hashtbl.t; 
+      mutable port_feat : OP.Port.phy list;
+      mutable controllers :  (Net.Channel.t) list; 
       table : Table.t;
       stats : stats;
       p_sflow : uint32;

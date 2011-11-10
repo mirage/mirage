@@ -67,31 +67,37 @@ let packet_in_cb controller dpid evt =
   (* save src mac address *)
   let ix = { addr=(OP.Match.get_dl_src m); switch=dpid } in
   if not (Hashtbl.mem switch_data.mac_cache ix) then
+    Printf.printf "adding mac %s on port %s" 
+      (OP.eaddr_to_string m.OP.Match.dl_src) 
+      (OP.Port.string_of_port in_port);
     Hashtbl.add switch_data.mac_cache ix in_port
   else 
+      Printf.printf "adding mac %s on port %s" 
+        (OP.eaddr_to_string m.OP.Match.dl_src) 
+        (OP.Port.string_of_port in_port);
     Hashtbl.replace switch_data.mac_cache ix in_port;
 
-  (* check if I know the output port in order to define what type of message
-   * we need to send *)
-  let ix = { addr=(OP.Match.get_dl_dst m); switch=dpid } in
-  if ((OP.eaddr_is_broadcast ix.addr) 
-      || (not (Hashtbl.mem switch_data.mac_cache ix))) 
-  then (
-    let pkt = (OP.Packet_out.create
-                 ~buffer_id:buffer_id
-                 ~actions:[| OP.Flow.Output(OP.Port.All, 2000) |] 
-                 ~data:data ~in_port:in_port () ) in
-    resolve (OC.send_of_data controller dpid
-               (OP.Packet_out.packet_out_to_bitstring pkt))
-  ) else (
-    let out_port = Hashtbl.find switch_data.mac_cache ix in
-    let actions = [| OP.Flow.Output(out_port, 2000) |] in
-    let pkt = OP.Flow_mod.create m 0_L OP.Flow_mod.ADD actions () in 
-    resolve (let bs = OP.Flow_mod.flow_mod_to_bitstring pkt in
-             OC.send_of_data controller dpid bs
-    );               
-    Log.info "OF Controller" "%s" (OP.Match.match_to_string m)
-  )
+    (* check if I know the output port in order to define what type of message
+     * we need to send *)
+    let ix = { addr=(OP.Match.get_dl_dst m); switch=dpid } in
+      if ((OP.eaddr_is_broadcast ix.addr) 
+        || (not (Hashtbl.mem switch_data.mac_cache ix))) 
+      then (
+        let pkt = (OP.Packet_out.create
+                     ~buffer_id:buffer_id
+                     ~actions:[| OP.Flow.Output(OP.Port.All, 2000) |] 
+                     ~data:data ~in_port:in_port () ) in
+          resolve (OC.send_of_data controller dpid
+                     (OP.Packet_out.packet_out_to_bitstring pkt))
+      ) else (
+        let out_port = Hashtbl.find switch_data.mac_cache ix in
+        let actions = [| OP.Flow.Output(out_port, 2000) |] in
+        let pkt = OP.Flow_mod.create m 0_L OP.Flow_mod.ADD actions () in 
+          resolve (let bs = OP.Flow_mod.flow_mod_to_bitstring pkt in
+                     OC.send_of_data controller dpid bs
+          );               
+          Log.info "OF Controller" "%s" (OP.Match.match_to_string m)
+      )
 
 let init controller = 
   Log.info "OF Controller" "register datapath cb";
@@ -102,7 +108,7 @@ let init controller =
 let main () =
   Log.info "OF Controller" "starting controller";
   Net.Manager.create (fun mgr interface id ->
-    let port = 6633 in 
-    OC.listen mgr (None, port) init
-    >> return (Log.info "OF Controller" "done!")
+                        let port = 6633 in 
+                          OC.listen mgr (None, port) init
+                            >> return (Log.info "OF Controller" "done!")
   )

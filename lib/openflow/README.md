@@ -18,6 +18,11 @@ Following this standard model, the implementation comprises three parts:
 + `ofpacket.ml`, containing `Bitstring` parsers/writers for the
   OpenFlow protocol.
 
+__N.B.__ _There are two versions of the OpenFlow protocol: v1.0.0 (`0x01` on
+the wire) and v1.1.0 (`0x02` on the wire).  The implementation supports wire
+protocol `0x01` as this is what is implemented in [Open vSwitch][ovs-1.2],
+used for debugging._ 
+
 ofpacket.ml
 -----------
 
@@ -142,24 +147,98 @@ current state of the switch: this is where the OpenFlow state machine
 is implemented.  
 
 The controller entry point is via the `listen` function which
-effectively creates a receiving channel to parse OpenFlow packets,
-and pass them to `process_of_packet` which handles a range of standard
+effectively creates a receiving channel to parse OpenFlow packets, and
+pass them to `process_of_packet` which handles a range of standard
 protocol-level interactions, e.g., `ECHO_REQ`, `FEATURES_RESP`,
-generating Mirage events as appropriate.
+generating Mirage events as appropriate.  Specifically, `controller`
+is passed as callback to `Channel.listen`, and recursively evaluates
+`echo` to read the incoming packet and pass it to
+`process_of_packet`. 
 
-### Questions
-
-What's the best way to structure the controller so that application
-code can introduce generation and consumption of new events?  NOX
-permits this within a single event-handling framework -- is this
-simply out-of-scope here, or should we have a separate event-based
-programming framework available, or is there a straightforward
-Ocaml-ish way to incorporate this into the OpenFlow Controller?
-     
 [nox]: http://noxrepo.org/
 
 
 switch.ml
 ---------
 
-<< Unwritten as yet >>
+__N.B.__ _This is unwritten as yet, awaiting the new device model being
+applied to the network stack._ 
+
+An OpenFlow _switch_ or _datapath_ consists of one or more _flow tables_, a
+_group table_ (in later versions, not supported in v1.0.0), and a _secure
+channel_ back to the controller.  Communication over the channel is via the
+OpenFlow protocol, and is how the controller manages the switch. 
+
+In short, each table contains flow entries consisting of _match fields_,
+_counters_, and _instructions_ to apply to packets.  Starting with the first
+flow table, if an incoming packet matches an entry, the counters are updated
+and the instructions carried out.  If no entry in the first table matches,
+(part of) the packet is forwarded to the controller, or it is dropped, or it
+proceeds to the next flow table. 
+
+Skeleton code is as follows:
+
+### Entry
+
+Represents a single flow table entry.  Each entry consists of:
+
++ _fields_, against which to match (`Ofpacket.Match.t list`);;
++ _counters_, to keep statistics per-table, -flow, -port, -queue
+  (`Entry.table_counter list`, `Entry.flow_counter list`, `Entry.port_counter
+  list`, `Entry.queue_counter list`); and   
++ _actions_, to perform on packets matching the fields (`Entry.action list`). 
+
+### Table
+
+A simple module representing a table of flow entries.  Currently just an id
+(`tid`) and a list of entries (`Entry.t list`).
+
+### Switch
+
+Encapsulating the switch (or datapath) itself.  Currently defines a _port_ as:
+
++ _details_, a physical port configuration (`Ofpacket.Port.phy`); and
++ _device_, some handle to the physical device (mocked out as a `string`).
+
+The switch is then modelled as:
+
++ _ports_, a list of physical ports (`Switch.port list`);
++ _table_, the table of flow entries for this switch;
++ _stats_, a set of per-switch counters (`Switch.stats`); and
++ *p_sflow*, the probability in use when sFlow sampling.
+                     
+Note that the vocabulary of a number of these changes with v1.1.0, in addition
+to the table structure becoming more complex (support for chains of tables,
+forwarding to tables, and the group table).
+
+Questions/Notes
+---------------
+
+What's the best way to structure the controller so that application code can
+introduce generation and consumption of new events?  NOX permits this within a
+single event-handling framework -- is this simply out-of-scope here, or should
+we have a separate event-based programming framework available, or is there a
+straightforward Ocaml-ish way to incorporate this into the OpenFlow
+Controller? 
+
+What's the best way to expose parsing as a separate activity to reading data
+off the wire?  Specifically, I'd really like to reuse functions from
+`Net.Ethif`, `Net.Ipv4`, etc to recover structure from the bitstring without
+need to have `OfPacket.Match.parse_from_raw_packet`.  Previously I have found
+having parsers that return structured data and then wrapping up the packet
+structure as a nested type, e.g., `PCAP(pcaph, ETH(ethh, IPv4(iph, payload)))`
+or `...TCP(tcph, payload))))` worked well, permitting fairly natural pattern
+matching.  The depth to which the packet was deumltiplexed was controlled by a
+parameter to the entry-point parser. 
+
+The `Switch` design is almost certainly very inefficient, and needs working
+on.  This is waiting on implementation -- although sketched out, waiting on
+network driver model to actually be able to get hold of physical devices and
+frames.  When we can, also need to consider how to control packet parsing, and
+demultiplexing of frames for switching from frames comprising the TCP stream
+carrying the controller channel.  Ideally, it would be transparent to have
+a `Channel` for the controller's OpenFlow messages  _and_ a per-device frame
+handler for everything else.  That is, Mirage would do the necessary
+demultiplexing -- but only what's necessary -- passing non-OpenFlow frames to
+the switch to be matched, but reassembling the TCP flow carrying the
+controller's OpenFlow traffic.

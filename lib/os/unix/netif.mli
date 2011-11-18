@@ -20,4 +20,5 @@ val listen : t -> (Bitstring.t -> unit Lwt.t) -> unit Lwt.t
 val destroy : t -> unit Lwt.t
 val output : t -> Bitstring.t list -> unit Lwt.t
 val create : (id -> t -> unit Lwt.t) -> unit Lwt.t
-val mac : t -> string
+val mac : t -> string 
+val ethid : t -> id

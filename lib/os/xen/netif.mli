@@ -48,4 +48,5 @@ val listen : t -> (Bitstring.t -> unit Lwt.t) -> unit Lwt.t
 val enumerate : unit -> id list Lwt.t
 
 (** Return the MAC address of the Netfront *)
+val ethid : t -> string
 val mac : t -> string

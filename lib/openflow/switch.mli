@@ -1,7 +1,3 @@
-val sp : ('a, unit, string) format -> 'a
-val pr : ('a, out_channel, unit) format -> 'a
-val ep : ('a, out_channel, unit) format -> 'a
-val cp : string -> unit
 module OP :
   sig
     val sp : ('a, unit, string) format -> 'a
@@ -632,65 +628,98 @@ module OP :
       | Queue_get_config_resp of Header.h * Port.t * Queue.t array
     val parse : Header.h -> Bitstring.t -> t
   end
-module Event :
+type uint16 = OP.uint16
+type uint32 = OP.uint32
+type uint64 = OP.uint64
+type byte = OP.byte
+type eaddr = OP.eaddr
+type port = uint16
+type cookie = uint64
+type device = string
+module Entry :
   sig
-    type t =
-        DATAPATH_JOIN
-      | DATAPATH_LEAVE
-      | PACKET_IN
-      | FLOW_REMOVED
-      | FLOW_STATS_REPLY
-      | AGGR_FLOW_STATS_REPLY
-      | DESC_STATS_REPLY
-      | PORT_STATS_REPLY
-      | TABLE_STATS_REPLY
-      | PORT_STATUS_CHANGE
-    type e =
-        Datapath_join of OP.datapath_id
-      | Datapath_leave of OP.datapath_id
-      | Packet_in of OP.Port.t * int32 * Bitstring.t * OP.datapath_id
-      | Flow_removed of OP.Match.t * OP.Flow_removed.reason * int32 * 
-          int32 * int64 * int64 * OP.datapath_id
-      | Flow_stats_reply of int32 * bool * OP.Flow.stats list *
-          OP.datapath_id
-      | Aggr_flow_stats_reply of int32 * int64 * int64 * int32 *
-          OP.datapath_id
-      | Port_stats_reply of int32 * OP.Port.stats list * OP.datapath_id
-      | Table_stats_reply of int32 * OP.Stats.table list * OP.datapath_id
-      | Desc_stats_reply of string * string * string * string * string *
-          OP.datapath_id
-      | Port_status of OP.Port.reason * OP.Port.phy * OP.datapath_id
-    val string_of_event : e -> string
+    type table_counter = {
+      n_active : uint32;
+      n_lookups : uint64;
+      n_matches : uint64;
+    }
+    type flow_counter = {
+      n_packets : uint64;
+      n_bytes : uint64;
+      secs : uint32;
+      nsecs : uint32;
+    }
+    type port_counter = {
+      rx_packets : uint64;
+      tx_packets : uint64;
+      rx_bytes : uint64;
+      tx_bytes : uint64;
+      rx_drops : uint64;
+      tx_drops : uint64;
+      rx_errors : uint64;
+      tx_errors : uint64;
+      rx_alignment_errors : uint64;
+      rx_overrun_errors : uint64;
+      rx_crc_errors : uint64;
+      n_collisions : uint64;
+    }
+    type queue_counter = {
+      tx_packets : uint64;
+      tx_bytes : uint64;
+      tx_overrun_errors : uint64;
+    }
+    type counters = {
+      per_table : table_counter list;
+      per_flow : flow_counter list;
+      per_port : port_counter list;
+      per_queue : queue_counter list;
+    }
+    type action =
+        FORWARD of OP.Port.t
+      | DROP
+      | ENQUEUE of OP.Queue.h
+      | SET_VLAN_ID of uint16
+      | SET_VLAN_PRIO of uint16
+      | STRIP_VLAN_HDR
+      | SET_DL_SRC of eaddr
+      | SET_DL_DST of eaddr
+      | SET_NW_SRC of Net.Nettypes.ipv4_addr
+      | SET_NW_DST of Net.Nettypes.ipv4_addr
+      | SET_NW_TOS of byte
+      | SET_TP_SRC of port
+      | SET_TP_DST of port
+    type t = {
+      (* fields : OP.Match.t list; *)
+      counters : flow_counter;
+      actions : action list;
+    }
   end
-type endhost = { ip : Net.Nettypes.ipv4_addr; port : int; }
-type state = {
-  mutable dp_db : (OP.datapath_id, Net.Channel.t) Hashtbl.t;
-  mutable channel_dp : (endhost, OP.datapath_id) Hashtbl.t;
-  mutable datapath_join_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable datapath_leave_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable packet_in_cb : (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable flow_removed_cb : (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable flow_stats_reply_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable aggr_flow_stats_reply_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable desc_stats_reply_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable port_stats_reply_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable table_stats_reply_cb :
-    (state -> OP.datapath_id -> Event.e -> unit) list;
-  mutable port_status_cb : (state -> OP.datapath_id -> Event.e -> unit) list;
-}
-val register_cb :
-  state -> Event.t -> (state -> OP.datapath_id -> Event.e -> unit) -> unit
-val process_of_packet :
-  state ->
-  Net.Nettypes.ipv4_addr * int -> OP.t -> Net.Channel.t -> unit Lwt.t
-val send_of_data : state -> OP.datapath_id -> Bitstring.t -> unit Lwt.t
-val rd_data : int -> Net.Channel.t -> Bitstring.bitstring Lwt.t
+module Table :
+  sig type t = { tid : cookie; 
+                 mutable entries : (OP.Match.t, Entry.t) Hashtbl.t; } end
+module Switch :
+  sig
+    (* type port = { details : OP.Port.phy; device : device; } *)
+    type port = { port_id: int; port_name : string;mgr: Net.Manager.t; }
+    type stats = {
+      mutable n_frags : uint64;
+      mutable n_hits : uint64;
+      mutable n_missed : uint64;
+      mutable n_lost : uint64;
+    }
+    type t = {
+      mutable ports : (OS.Netif.id, port) Hashtbl.t; (* port list; *)
+      mutable int_ports : (int, port) Hashtbl.t; 
+      mutable port_feat : OP.Port.phy list;
+      mutable controllers :  (Net.Channel.t) list; 
+      table : Table.t;
+      stats : stats;
+      p_sflow : uint32;
+    }
+  end
+val apply_of_actions: Switch.t -> OP.Match.t -> Entry.action list -> Bitstring.t -> unit Lwt.t
+val process_frame : string -> string * int * int -> unit Lwt.t
+val process_openflow : 'a -> unit Lwt.t
+val add_port : Switch.t -> Net.Manager.t -> Net.Manager.interface -> unit 
 val listen :
-  Net.Manager.t ->
-  Net.Nettypes.ipv4_src -> (state -> 'a) -> unit Lwt.t
+  Net.Manager.t -> Net.Nettypes.ipv4_src -> (Net.Manager.t -> Switch.t -> unit Lwt.t) -> unit Lwt.t

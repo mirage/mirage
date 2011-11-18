@@ -52,11 +52,9 @@ let init controller =
   OC.register_cb controller OE.FLOW_REMOVED flow_removed_cb
 
 let main () =
-  lwt mgr, mgr_t = Net.Manager.create () in
-  let port = 6633 in 
-  let ip = None in (* Net.Nettypes.ipv4_addr_of_string "172.16.0.1" in *)
-  OC.listen mgr ip port init
-
-let _ =
-  OS.Main.run (main ()) 
-
+  Log.info "OF FlowRemoval" "starting controller";
+  Net.Manager.create (fun mgr interface id ->
+    let port = 6633 in 
+    OC.listen mgr (None, port) init
+    >> return (Log.info "OF FlowRemoval" "done!")
+  )

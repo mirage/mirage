@@ -25,7 +25,7 @@ let ps = Printf.sprintf
 let ep = Printf.eprintf
 
 let debug = false
-let profiling = false
+let profiling = true
 let native_p4 = true (* In case you have problems with natdynlink, set this to false *)
 
 module Spec = struct

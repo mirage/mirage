@@ -1281,7 +1281,7 @@ module Stats = struct
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type TABLE):16;0:16}
 
   let create_queue_stat_req ?(xid=(Int32.of_int 0))
-      ?(queue_id=(Int32.of_int 0xffffffff)) ?(port=Port.No_port) () = 
+      ?(queue_id=0xffffffffl) ?(port=Port.No_port) () =
     let snd_xid = (if xid==(Int32.of_int 0) then (Random.int32 Int32.max_int) else xid) in 
     let header = (Header.build_h (Header.create Header.STATS_REQ (get_len QUEUE) snd_xid)) in 
     BITSTRING{(header):(Header.get_len * 8):bitstring; (int_of_req_type QUEUE):16;0:16;

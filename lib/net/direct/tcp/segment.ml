@@ -285,16 +285,16 @@ module Tx = struct
          TODO: deal with transmission soft/hard errors here RFC5461 *)
     let {wnd} = q in
     let ack = Window.tx_nxt wnd in
-    let override_seq = None in
+    let seq = Window.tx_nxt wnd in
+    let seg = { data; flags; seq } in
+    let seq_len = len seg in
+    let override_seq = Some seq in
+    Window.tx_advance q.wnd seq_len;
     lwt view = q.xmit ~flags ~wnd ~options ~override_seq data in
     (* Inform the RX ack thread that we've just sent one *)
     Lwt_mvar.put q.rx_ack ack >>
     (* Queue up segment just sent for retransmission if needed *)
-    let seq = Window.tx_nxt wnd in
-    let seg = { data; flags; seq } in
-    let seq_len = len seg in
     if seq_len > 0 then begin
-      Window.tx_advance q.wnd seq_len;
       Lwt_mvar.put q.rto seg
     end else
       (* Segment is sequence-empty (e.g. an empty ACK or RST) so ignore it *)

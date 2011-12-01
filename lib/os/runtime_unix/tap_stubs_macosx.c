@@ -52,7 +52,7 @@ tap_opendev(value v_str)
   int dev_id;
 
   //small hack to create multiple interfaces
-  sscanf(dev, "tap%d", &dev_id);
+  sscanf(name, "/dev/tap%d", &dev_id);
   fprintf(stderr, "I should be opening 10.%d.0.1\n", dev_id);
 
   fprintf(stderr, "opendev: %s\n", name);

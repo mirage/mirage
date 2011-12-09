@@ -21,7 +21,7 @@ module Rx :
       ack_number:Sequence.t -> window:int -> data:Bitstring.t -> seg
 
     type q
-    val q : rx_data:Bitstring.t list option Lwt_mvar.t ->
+    val q : rx_data:(Bitstring.t list option * int option) Lwt_mvar.t ->
       wnd:Window.t ->
       tx_ack:(Sequence.t * int) Lwt_mvar.t -> q
     val to_string : q -> string

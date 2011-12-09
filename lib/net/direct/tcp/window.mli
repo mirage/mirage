@@ -23,7 +23,11 @@ val t : rx_wnd_scale:int -> tx_wnd_scale:int -> rx_wnd:int ->
 val valid : t -> Sequence.t -> bool
 
 val rx_advance : t -> int -> unit
+val rx_advance_inseq : t -> int -> unit
 val rx_nxt : t -> Sequence.t
+val rx_nxt_inseq : t -> Sequence.t
+val rx_nxt_set_lastack : t -> Sequence.t
+val rx_pending_ack : t -> bool
 
 val tx_advance : t -> int -> unit
 val tx_ack: t -> Sequence.t -> unit

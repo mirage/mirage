@@ -61,7 +61,7 @@ module Rx = struct
 
   type q = {
     mutable segs: S.t;
-    rx_data: Bitstring.t list option Lwt_mvar.t; (* User receive channel *)
+    rx_data: (Bitstring.t list option * int option) Lwt_mvar.t; (* User receive channel *)
     tx_ack: (Sequence.t * int) Lwt_mvar.t; (* Acks of our transmitted segs *)
     wnd: Window.t;
   }
@@ -101,6 +101,7 @@ module Rx = struct
   let input q seg =
     (* Check that the segment fits into the valid receive 
        window *)
+    let force_ack = ref false in
     match Window.valid q.wnd seg.sequence with
     |false -> return ()
     |true -> begin
@@ -108,19 +109,21 @@ module Rx = struct
       let segs = S.add seg q.segs in
       (* Walk through the set and get a list of contiguous segments *)
       let ready, waiting = S.fold (fun seg acc ->
-        match Sequence.compare seg.sequence (Window.rx_nxt q.wnd) with
+        match Sequence.compare seg.sequence (Window.rx_nxt_inseq q.wnd) with
         |(-1) ->
            (* Sequence number is in the past, probably an overlapping
               segment. Drop it for now, but TODO segment coalescing *)
+	   force_ack := true;
            acc
         |0 ->
            (* This is the next segment, so put it into the ready set
               and update the receive ack number *)
            let (ready,waiting) = acc in
-           Window.rx_advance q.wnd (len seg);
+           Window.rx_advance_inseq q.wnd (len seg);
            (S.add seg ready), waiting
         |1 -> 
            (* Sequence is in the future, so can't use it yet *)
+	   force_ack := true;
            let (ready,waiting) = acc in
            ready, (S.add seg waiting)
         |_ -> assert false
@@ -137,16 +140,19 @@ module Rx = struct
       (* Inform the user application of new data *)
       let urx_inform =
         (* TODO: deal with overlapping fragments *)
-        let elems = List.rev (S.fold (fun seg acc ->
-          if Bitstring.bitstring_length seg.data > 0 then seg.data :: acc else acc
-         )ready []) in
-        Lwt_mvar.put q.rx_data (Some elems) >>
+        let elems_r, winadv = S.fold (fun seg (acc_l, acc_w) ->
+          (if Bitstring.bitstring_length seg.data > 0 then seg.data :: acc_l else acc_l), ((len seg) + acc_w)
+         )ready ([], 0) in
+        let elems = List.rev elems_r in
+
+	let w = if !force_ack || winadv > 0 then Some winadv else None in
+	Lwt_mvar.put q.rx_data (Some elems, w) >>
         (* If the last ready segment has a FIN, then mark the receive
            window as closed and tell the application *)
         (if fin ready then begin
           if S.cardinal waiting != 0 then
             printf "TCP: warning, rx closed but waiting segs != 0\n%!"; 
-          Lwt_mvar.put q.rx_data None
+          Lwt_mvar.put q.rx_data (None, Some 1)
          end else return ())
       in
       tx_ack <&> urx_inform

@@ -84,9 +84,10 @@ let marshal ts =
   match opts with 
   |[] -> Bitstring.empty_bitstring
   |opts ->
-    let padlen = 32 - (!tlen mod 32) in
-    let eopt = BITSTRING { 0L:padlen } in
-    Bitstring.concat (List.rev (eopt :: opts))
+    let padlen = ((4 - (!tlen mod 4)) mod 4) * 8 in
+    Bitstring.concat ( match padlen with
+                       | 0 -> opts
+                       | _ -> (List.rev ((BITSTRING { 0L:padlen }) :: opts)))
 
 let of_packet bs =
   parse bs []

@@ -65,9 +65,9 @@ module Tx = struct
     let ack = match rx_ack with Some _ -> true |None -> false in
     let ack_number = match rx_ack with Some n -> Sequence.to_int32 n |None -> 0l in
     let sequence = Sequence.to_int32 seq in
-    printf "TCP xmit: dest_ip=%s %s%s%s%sseq=%lu ack=%lu\n%!" (ipv4_addr_to_string dest_ip)
+    (* printf "TCP xmit: dest_ip=%s %s%s%s%sseq=%lu ack=%lu\n%!" (ipv4_addr_to_string dest_ip)
       (if rst then "RST " else "") (if syn then "SYN " else "")
-      (if fin then "FIN " else "") (if ack then "ACK " else "") sequence ack_number; 
+      (if fin then "FIN " else "") (if ack then "ACK " else "") sequence ack_number; *)
     let options = Options.marshal options in
     let data_offset = (Bitstring.bitstring_length options + 160) / 32 in
     let header = BITSTRING {
@@ -119,7 +119,8 @@ module Tx = struct
 
     (* Transmit an empty ack when prompted by the Ack thread *)
     let rec send_empty_ack () =
-      lwt ack_number = Lwt_mvar.take send_ack in
+      lwt _ = Lwt_mvar.take send_ack in
+      let ack_number = Window.rx_nxt_set_lastack wnd in
       let flags = Segment.Tx.No_flags in
       let options = [] in
       let data = "",0,0 in
@@ -160,7 +161,18 @@ module Rx = struct
     let {wnd; ack; urx; urx_close_u} = pcb in
     (* Thread to monitor application receive and pass it up *)
     let rec rx_application_t () =
-      lwt data = Lwt_mvar.take rx_data in
+      lwt data, winadv = Lwt_mvar.take rx_data in
+      lwt _ = match winadv with
+      | None -> return ()
+      | Some winadv -> begin
+	  if (winadv > 0 && Window.rx_pending_ack wnd) then begin
+	    Window.rx_advance wnd winadv;
+	    return ()
+          end else begin
+	    Window.rx_advance wnd winadv;
+	    Ack.Immediate.receive ack (Window.rx_nxt wnd)
+	  end
+      end in
       match data with
       |None ->
         lwt _ = Ack.Immediate.receive ack (Window.rx_nxt wnd) in
@@ -168,16 +180,13 @@ module Rx = struct
         Lwt.wakeup urx_close_u ();
         rx_application_t ()
       |Some data ->
-        lwt _ = match data with
-        | [] -> return () 
-        | _ -> Ack.Immediate.receive ack (Window.rx_nxt wnd)
-        in
         let rec queue = function
         |hd::tl ->
            User_buffer.Rx.add_r urx hd >>
            queue tl
         |[] -> return () in
-       queue data <&> (rx_application_t ())
+      lwt _ = queue data in
+      rx_application_t ()
     in   
     rx_application_t ()
 end
@@ -216,7 +225,7 @@ let new_connection t ~window ~sequence ~options id data listener =
   let rx_wnd_scale = 0 in
   let tx_wnd_scale = 0 in
   let tx_wnd = window in
-  let rx_wnd = 16384 in (* TODO: too small *)
+  let rx_wnd = 65535 in 
   let rx_isn = Sequence.of_int32 sequence in
   let options = Options.of_packet options in
   let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
@@ -259,7 +268,8 @@ let new_connection t ~window ~sequence ~options id data listener =
   Hashtbl.add t.channels id (pcb, th);
   (* Queue a SYN ACK for transmission *)
   State.tick_tx pcb.state `syn;
-  Segment.Tx.output ~flags:Segment.Tx.Syn txq ("",0,0)
+  let options = Options.MSS 1460 :: [] in
+  Segment.Tx.output ~flags:Segment.Tx.Syn ~options txq ("",0,0)
 
 let input_no_pcb t pkt id =
   bitmatch pkt with
@@ -314,13 +324,8 @@ let input t ~src ~dst data =
 
 (* Blocking read on a PCB *)
 let rec read pcb =
-  let data =
-    lwt d = User_buffer.Rx.take_l pcb.urx in 
-    return (Some d) in
-  let closed =
-    pcb.urx_close_t >>
-    return None in
-  data <?> closed
+  lwt d = User_buffer.Rx.take_l pcb.urx in 
+  return (Some d) 
 
 (* Maximum allowed write *)
 let write_available pcb =

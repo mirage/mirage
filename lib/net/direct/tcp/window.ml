@@ -22,6 +22,8 @@ type t = {
   mutable snd_una: Sequence.t;
   mutable tx_nxt: Sequence.t;
   mutable rx_nxt: Sequence.t;
+  mutable rx_nxt_inseq: Sequence.t;
+  mutable rx_nxt_lastack: Sequence.t;
   mutable tx_wnd: int32;           (* TX Window size after scaling *)
   mutable rx_wnd: int32;           (* RX Window size after scaling *)
   mutable tx_wnd_scale: int;       (* TX Window scaling option     *)
@@ -40,8 +42,10 @@ let max_mss = 1460
 
 (* To string for debugging *)
 let to_string t =
-  sprintf "rx_nxt=%s tx_nxt=%s rx_wnd=%lu tx_wnd=%lu snd_una=%s"
-    (Sequence.to_string t.rx_nxt) (Sequence.to_string t.tx_nxt)
+  sprintf "rx_nxt=%s rx_nxt_inseq=%s tx_nxt=%s rx_wnd=%lu tx_wnd=%lu snd_una=%s"
+    (Sequence.to_string t.rx_nxt)
+    (Sequence.to_string t.rx_nxt_inseq)
+    (Sequence.to_string t.tx_nxt)
     t.rx_wnd t.tx_wnd (Sequence.to_string t.snd_una)
 
 (* Initialise the sequence space *)
@@ -49,6 +53,8 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   (* XXX need random ISN XXX *)
   let tx_nxt = Sequence.of_int32 7l in
   let rx_nxt = Sequence.(incr rx_isn) in
+  let rx_nxt_inseq = Sequence.(incr rx_isn) in
+  let rx_nxt_lastack = Sequence.(incr rx_isn) in
   (* TODO: improve this sanity check of tx_mss *)
   let tx_mss = match tx_mss with |None -> default_mss |Some mss -> min mss max_mss in
   let snd_una = tx_nxt in
@@ -59,7 +65,7 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   let ssthresh = tx_wnd in
   let cwnd = Int32.of_int (tx_mss * 2) in
   let fast_recovery = false in
-  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_wnd; tx_wnd_scale; rx_wnd_scale;
+  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_nxt_inseq; rx_nxt_lastack; rx_wnd; tx_wnd_scale; rx_wnd_scale;
     ssthresh; cwnd; tx_mss; fast_recovery }
 
 (* Check if a sequence number is in the right range
@@ -76,9 +82,18 @@ let valid t seq =
 let rx_advance t b =
   t.rx_nxt <- Sequence.add t.rx_nxt (Sequence.of_int b)
 
+(* Early advance received packet sequence number for packet ordering *)
+let rx_advance_inseq t b =
+  t.rx_nxt_inseq <- Sequence.add t.rx_nxt_inseq (Sequence.of_int b)
+
 (* Next expected receive sequence number *)
 let rx_nxt t = t.rx_nxt 
+let rx_nxt_set_lastack t = t.rx_nxt_lastack <- t.rx_nxt; t.rx_nxt 
+let rx_nxt_inseq t = t.rx_nxt_inseq
 let rx_wnd t = t.rx_wnd
+
+(* Check if there is pending data for which an ack has to be sent *)
+let rx_pending_ack t = t.rx_nxt_lastack <> t.rx_nxt
 
 (* TODO: scale the window down so we can advertise it correctly with
    window scaling on the wire *)

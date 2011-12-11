@@ -38,6 +38,17 @@ case `uname -s` in
     sudo umount tmpmount && rmdir tmpmount
   ;;
 
+  FreeBSD )
+    dd if=/dev/zero of=${OUTPUT} bs=1 seek=128M count=0
+    /sbin/newfs_msdos -L MirageFAT -F 16 -v ${OUTPUT}
+    rm -rf tmpmount && mkdir tmpmount
+    MD=$(sudo mdconfig ${OUTPUT}) 
+    mount /dev/$MD tmpmount
+    sudo cp -r ${INPUT}/* tmpmount
+    sudo umount tmpmount && rmdir tmpmount
+    sudo mdconfig -d -u $MD
+  ;;
+
   * )
     echo Unknown OS detected
     exit 1

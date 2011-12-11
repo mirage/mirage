@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Build a mirage VM on Xen Cloud Platform
 
 set -e

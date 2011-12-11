@@ -56,20 +56,21 @@ end
 (** Host OS detection *)
 module OS = struct
 
-  type unix = Linux | Darwin
+  type unix = Linux | Darwin | FreeBSD
   type arch = X86_32 | X86_64
 
   let host =
     match String.lowercase (Util.run_and_read "uname -s") with
     | "linux"  -> Linux
     | "darwin" -> Darwin
+    | "freebsd" -> FreeBSD
     | os -> eprintf "`%s` is not a supported host OS\n" os; exit (-1)
 
   let arch =
     match String.lowercase (Util.run_and_read "uname -m") with
     | "x86_32" | "i686"  -> X86_32
-    | "i386" -> (match host with Linux -> X86_32 | Darwin -> X86_64)
-    | "x86_64" -> X86_64
+    | "i386" -> (match host with Linux | FreeBSD -> X86_32 | Darwin -> X86_64)
+    | "x86_64" | "amd64" -> X86_64
     | arch -> eprintf "`%s` is not a supported arch\n" arch; exit (-1)
 
   let js_of_ocaml_installed =
@@ -89,8 +90,8 @@ module Mir = struct
     let unixmain mode = lib / mode / "lib" / "main.o" in
     let mode = sprintf "unix-%s" (env "%(mode)") in
     let dl_libs = match host with
-      |Linux  -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"; A"-ldl"]
-      |Darwin -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
+      |Linux -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"; A"-ldl"]
+      |Darwin |FreeBSD -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (A cc :: [ T(tags++"link"); A ocamlc_libdir; A"-o"; Px out; 
              A (unixmain mode); P arg; A (unixrun mode); ] @ dl_libs))

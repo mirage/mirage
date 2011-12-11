@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/env bash -e
 #
 # Assemble a bunch of standard library kernels for the
 # various OS configurations:

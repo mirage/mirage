@@ -88,18 +88,20 @@ end
 (* OS detection *)
 module OS = struct
 
-  type u = Linux | Darwin
+  type u = Linux | Darwin | FreeBSD
   type t = Unix of u | Xen | Node
 
   let host =
     match String.lowercase (Util.run_and_read "uname -s") with
     | "linux"  -> Unix Linux
     | "darwin" -> Unix Darwin
+    | "freebsd" -> Unix FreeBSD
     | os -> Printf.eprintf "`%s` is not a supported host OS\n" os; exit (-1)
 
   let unix_ext = match host with
     | Unix Linux  -> "linux"
     | Unix Darwin -> "macosx"
+    | Unix FreeBSD -> "freebsd"
     | _ -> Printf.eprintf "unix_ext called on a non-UNIX host OS\n"; exit (-1)
 
 end

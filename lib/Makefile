@@ -4,6 +4,9 @@
 JOBS ?= -j 4
 OFLAGS ?= # -classic-display
 
+MIR-DEBUG ?= 1
+export MIR-DEBUG
+
 OS = $(shell uname -s | tr '[A-Z]' '[a-z]' | sed -e 's/darwin/macosx/g')
 ARCH = $(shell uname -m)
 NODE = $(shell ocamlfind query js_of_ocaml 2>/dev/null)

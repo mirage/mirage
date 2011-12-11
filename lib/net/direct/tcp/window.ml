@@ -73,7 +73,10 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
  *)
 let valid t seq =
   let redge = Sequence.(add t.rx_nxt (of_int32 t.rx_wnd)) in
-  let r = Sequence.between seq t.rx_nxt redge in
+  (* TODO: change temp fix to real max advertised window of the connection,
+     deal with scaling etc *)
+  let ledge = Sequence.(sub t.rx_nxt (Sequence.of_int 65535)) in 
+  let r = Sequence.between seq ledge redge in
   (* printf "TCP_window: valid check for seq=%s for range %s[%lu] res=%b\n%!"
     (Sequence.to_string seq) (Sequence.to_string t.rx_nxt) t.rx_wnd r; *)
   r

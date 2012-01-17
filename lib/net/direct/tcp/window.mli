@@ -46,3 +46,6 @@ val set_tx_wnd : t -> int -> unit
 
 val alert_fast_rexmit : t -> Sequence.t -> unit
 
+val rto : t -> float
+val backoff_rto : t -> unit
+val max_rexmits_done : t -> bool

@@ -36,8 +36,8 @@ let ip = Net.Nettypes.(
 let port = 5001
 
 let print_data st ts_now = 
-  Printf.printf ">>>>>>>>>>>>>>>> %f %Ld KBytes/s  totbytes = %Ld  live_words = %d\n%!" ts_now
-    (Int64.div st.bin_bytes 1000L) st.bytes Gc.((stat()).live_words); 
+  Printf.printf ">>>>>>>>>>>>>>>> %f %Ld KBits/s  totbytes = %Ld  live_words = %d\n%!" ts_now
+    (Int64.div st.bin_bytes 125L) st.bytes Gc.((stat()).live_words); 
   st.last_time <- ts_now;
   st.bin_bytes <- 0L;
   st.bin_packets <- 0L 

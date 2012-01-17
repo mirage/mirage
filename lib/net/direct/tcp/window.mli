@@ -26,8 +26,6 @@ val rx_advance : t -> int -> unit
 val rx_advance_inseq : t -> int -> unit
 val rx_nxt : t -> Sequence.t
 val rx_nxt_inseq : t -> Sequence.t
-val rx_nxt_set_lastack : t -> Sequence.t
-val rx_pending_ack : t -> bool
 
 val tx_advance : t -> int -> unit
 val tx_ack: t -> Sequence.t -> unit
@@ -35,15 +33,19 @@ val tx_nxt : t -> Sequence.t
 val tx_una : t -> Sequence.t
 val tx_mss : t -> int
 
-(* rx_wnd: Size of traffic we are willing to accept *)
+(* rx_wnd: number of bytes we are willing to accept *)
 val rx_wnd : t -> int32
 val set_rx_wnd : t -> int32 -> unit
 
-(* tx_wnd: Size of traffic other side is willing to accept *)
+(* tx_wnd: number of bytes other side is willing to accept *)
 val tx_wnd : t -> int32
-(* tx_available: Size of traffic we can currently send after
+(* tx_available: number of bytes we can currently send after
                  accounting for congestion *)
 val tx_available : t -> int32
 val set_tx_wnd : t -> int -> unit
 
 val alert_fast_rexmit : t -> Sequence.t -> unit
+
+val rto : t -> float
+val backoff_rto : t -> unit
+val max_rexmits_done : t -> bool

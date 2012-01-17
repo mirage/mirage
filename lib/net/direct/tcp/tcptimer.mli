@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2012 Balraj Singh <bs375@cl.cam.ac.uk>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,16 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module type M =
-  sig
-    type t
-    val t : send_ack:Sequence.t Lwt_mvar.t -> last:Sequence.t -> t
+type t 
 
-    val receive : t -> Sequence.t -> unit Lwt.t
-    val pushack : t -> Sequence.t -> unit Lwt.t
-    val transmit : t -> Sequence.t -> unit Lwt.t
-  end
+type tr =
+  | Stoptimer
+  | Continue of Sequence.t
+  | ContinueSetPeriod of (float * Sequence.t)
 
-module Immediate : M
+val t : period: float -> expire: (Sequence.t -> tr) -> t
 
-module Delayed : M
+val start : t -> ?p:float -> Sequence.t -> unit Lwt.t

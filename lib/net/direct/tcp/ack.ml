@@ -27,6 +27,9 @@ module type M = sig
   (* called when new data is received *)
   val receive: t -> Sequence.t -> unit Lwt.t
 
+  (* called when new data is received *)
+  val pushack: t -> Sequence.t -> unit Lwt.t
+
   (* called when an ack is transmitted from elsewhere *)
   val transmit: t -> Sequence.t -> unit Lwt.t
 end
@@ -34,79 +37,104 @@ end
 (* Transmit ACKs immediately, the dumbest (and simplest) way *)
 module Immediate : M = struct
 
-  type t = Sequence.t Lwt_mvar.t
+  type t = {
+    mutable send_ack: Sequence.t Lwt_mvar.t;
+    mutable pushpending: bool;
+  }
 
-  let t ~send_ack ~last = send_ack
+  let t ~send_ack ~last = 
+    let pushpending = false in
+    {send_ack; pushpending}
+
+  let pushack t ack_number =
+    t.pushpending <- true;
+    Lwt_mvar.put t.send_ack ack_number
 
   let receive t ack_number =
-    Lwt_mvar.put t ack_number
+    match t.pushpending with
+    | true -> return ()
+    | false -> pushack t ack_number
 
   let transmit t ack_number =
+    t.pushpending <- false;
     return ()
 end
+
 
 (* Delayed ACKs *)
 module Delayed : M = struct
 
-  (* ev: Event mvar of transmitted/received packets
-     send_ack: Write to this mvar to transmit an empty ACK
-  *)
-  type ev = Tx of Sequence.t | Rx of Sequence.t
-
-  type r = {
-    ev: ev Lwt_mvar.t;
+  type delayed_r = {
     send_ack: Sequence.t Lwt_mvar.t;
+    mutable delayedack: Sequence.t;
+    mutable delayed: bool;
+    mutable pushpending: bool;
   }
 
-  type t = r * unit Lwt.t
+  type t = {
+    r: delayed_r;
+    timer: Tcptimer.t;
+  }
 
-  let transmit r ack_number =
+  let transmitacknow r ack_number =
     Lwt_mvar.put r.send_ack ack_number
- 
-  let rec timer r =
-    (* Wait for a received segment update to start the timer *)
-    lwt ev = Lwt_mvar.take r.ev in
-    match ev with 
-    |Tx seq ->
-      timer r
-    |Rx seq ->
-      (* Start the delayed ACK timer *)
-      (* Delay thread that transmits after 200ms *)
-      let max_time = 0.2 in
-      let delay =
-        OS.Time.sleep max_time >>
-        transmit r seq >>
-        timer r 
-      in
-      (* Continuation thread that cancels the timer if something
-         else transmits an ACK in the meanwhile *)
-      let other_ev =
-        lwt ev = Lwt_mvar.take r.ev in
-        match ev with
-        |Rx seq ->
-          (* If another packet is received, transmit an immediate ACK 
-             to the newest sequence number just received *)
-          Lwt.cancel delay;
-          transmit r seq >>
-          timer r
-        |Tx seq' ->
-          (* TODO: assert seq' == seq *)
-          Lwt.cancel delay;
-          timer r
-       in
-       (* Pick between the two threads *)
-       delay <?> other_ev
-    
+
+  let transmitack r ack_number =
+    match r.pushpending with
+    | true -> return ()
+    | false -> r.pushpending <- true;
+	       transmitacknow r ack_number
+
+
+  let ontimer r s  =
+    match r.delayed with
+    | false ->
+	Tcptimer.Stoptimer
+    | true -> begin
+	match r.delayedack = s with
+	| false ->
+	    Tcptimer.Continue r.delayedack
+	| true -> 
+	    (* printf "Sending delayed ack on timer\n%!"; *)
+	    r.delayed <- false;
+	    let _ = transmitack r s in
+	    Tcptimer.Stoptimer
+      end
+
+
   let t ~send_ack ~last : t =
-    let ev = Lwt_mvar.create_empty () in
-    let r = { send_ack; ev } in
-    (r, timer r)
+    let pushpending = false in
+    let delayed = false in
+    let delayedack = last in
+    let r = {send_ack; delayedack; delayed; pushpending} in
+    let expire = ontimer r in
+    let period = 0.1 in
+    let timer = Tcptimer.t ~period ~expire in
+    {r; timer}
+
 
   (* Advance the received ACK count *)
-  let receive (r,t) ack_number = 
-    Lwt_mvar.put r.ev (Rx ack_number)
+  let receive t ack_number = 
+    match t.r.delayed with
+    | true ->
+      t.r.delayed <- false;
+      transmitack t.r ack_number
+    | false ->
+      t.r.delayed <- true;
+      t.r.delayedack <- ack_number;
+      Tcptimer.start t.timer ack_number
+
+
+  (* Force out an ACK *)
+  let pushack t ack_number = 
+    transmitacknow t.r ack_number
+
 
   (* Indicate that an ACK has been transmitted *)
-  let transmit (r,t) ack_number =
-    Lwt_mvar.put r.ev (Tx ack_number)
+  let transmit t ack_number =
+    t.r.pushpending <- false;
+    return ()
+
 end
+
+

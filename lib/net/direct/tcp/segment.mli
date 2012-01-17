@@ -36,8 +36,7 @@ module Tx :
     type flags = |No_flags |Syn |Fin |Rst
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-      override_seq:(Sequence.t option) ->
-      Bitstring.t -> Bitstring.t list Lwt.t
+      seq:Sequence.t -> Bitstring.t -> Bitstring.t list Lwt.t
 
     type q
 

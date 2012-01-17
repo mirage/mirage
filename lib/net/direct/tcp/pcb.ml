@@ -84,13 +84,9 @@ module Tx = struct
     return frame
 
   (* Output a TCP packet, and calculate some settings from a state descriptor *)
-  let xmit_pcb ip id ~flags ~wnd ~options ~override_seq data =
+  let xmit_pcb ip id ~flags ~wnd ~options ~seq data =
     let window = Int32.to_int (Window.rx_wnd wnd) in (* TODO scaling *)
     let rx_ack = Some (Window.rx_nxt wnd) in
-    let seq = match override_seq with
-             | None -> Window.tx_nxt wnd
-             | Some s -> s
-    in
     xmit ip id ~flags ~rx_ack ~seq ~window ~options data
 
   (* Output an RST when we dont have a PCB *)
@@ -124,8 +120,8 @@ module Tx = struct
       let flags = Segment.Tx.No_flags in
       let options = [] in
       let data = "",0,0 in
-      let override_seq = None in
-      xmit_pcb t.ip pcb.id ~flags ~wnd ~options ~override_seq data >>
+      let seq = Window.tx_nxt wnd in
+      xmit_pcb t.ip pcb.id ~flags ~wnd ~options ~seq data >>
       Ack.Immediate.transmit ack ack_number >>
       send_empty_ack () in
     (* When something transmits an ACK, tell the delayed ACK thread *)

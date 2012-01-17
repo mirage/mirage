@@ -207,14 +207,6 @@ module Tx = struct
     ()
 
   let rto_t q tx_ack =
-    (* Mutex for q.segs *)
-    (* Listener thread for segments to hold for retransmission or ACK *)
-    let rec rto_queue_t () =
-      lwt seg = Lwt_mvar.take q.rto in
-      let _ = Lwt_sequence.add_r seg q.segs in
-      (* TODO: kick the timer thread for retransmit *)
-      rto_queue_t ()
-    in
     (* Listen for incoming TX acks from the receive queue and ACK
        segments in our retransmission queue *)
     let rec tx_ack_t () =
@@ -268,7 +260,7 @@ module Tx = struct
         Lwt_mvar.put q.tx_wnd_update win >>
         tx_ack_t ()
     in
-    (rto_queue_t ()) <?> (tx_ack_t ())
+    tx_ack_t ()
 
   let q ~xmit ~wnd ~rx_ack ~tx_ack ~tx_wnd_update =
     let rto = Lwt_mvar.create_empty () in
@@ -288,19 +280,22 @@ module Tx = struct
     (* Transmit the packet to the wire
          TODO: deal with transmission soft/hard errors here RFC5461 *)
     let {wnd} = q in
-    let ack = Window.tx_nxt wnd in
+    let ack = Window.rx_nxt wnd in
     let seq = Window.tx_nxt wnd in
     let seg = { data; flags; seq } in
     let seq_len = len seg in
     Window.tx_advance q.wnd seq_len;
+    (* Queue up segment just sent for retransmission if needed *)
+    let q_rexmit () =
+      match seq_len > 0 with
+      | false -> return ()
+      | true ->
+          let _ = Lwt_sequence.add_r seg q.segs in
+	  return ()
+    in
+    q_rexmit () >> 
     lwt view = q.xmit ~flags ~wnd ~options ~seq data in
     (* Inform the RX ack thread that we've just sent one *)
-    Lwt_mvar.put q.rx_ack ack >>
-    (* Queue up segment just sent for retransmission if needed *)
-    if seq_len > 0 then begin
-      Lwt_mvar.put q.rto seg
-    end else
-      (* Segment is sequence-empty (e.g. an empty ACK or RST) so ignore it *)
-      return ()
+    Lwt_mvar.put q.rx_ack ack
 end
 

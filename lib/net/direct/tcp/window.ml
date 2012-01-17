@@ -23,7 +23,6 @@ type t = {
   mutable tx_nxt: Sequence.t;
   mutable rx_nxt: Sequence.t;
   mutable rx_nxt_inseq: Sequence.t;
-  mutable rx_nxt_lastack: Sequence.t;
   mutable tx_wnd: int32;           (* TX Window size after scaling *)
   mutable rx_wnd: int32;           (* RX Window size after scaling *)
   mutable tx_wnd_scale: int;       (* TX Window scaling option     *)
@@ -54,7 +53,6 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   let tx_nxt = Sequence.of_int32 7l in
   let rx_nxt = Sequence.(incr rx_isn) in
   let rx_nxt_inseq = Sequence.(incr rx_isn) in
-  let rx_nxt_lastack = Sequence.(incr rx_isn) in
   (* TODO: improve this sanity check of tx_mss *)
   let tx_mss = match tx_mss with |None -> default_mss |Some mss -> min mss max_mss in
   let snd_una = tx_nxt in
@@ -65,7 +63,7 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   let ssthresh = tx_wnd in
   let cwnd = Int32.of_int (tx_mss * 2) in
   let fast_recovery = false in
-  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_nxt_inseq; rx_nxt_lastack; rx_wnd; tx_wnd_scale; rx_wnd_scale;
+  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_nxt_inseq; rx_wnd; tx_wnd_scale; rx_wnd_scale;
     ssthresh; cwnd; tx_mss; fast_recovery }
 
 (* Check if a sequence number is in the right range
@@ -91,12 +89,8 @@ let rx_advance_inseq t b =
 
 (* Next expected receive sequence number *)
 let rx_nxt t = t.rx_nxt 
-let rx_nxt_set_lastack t = t.rx_nxt_lastack <- t.rx_nxt; t.rx_nxt 
 let rx_nxt_inseq t = t.rx_nxt_inseq
 let rx_wnd t = t.rx_wnd
-
-(* Check if there is pending data for which an ack has to be sent *)
-let rx_pending_ack t = t.rx_nxt_lastack <> t.rx_nxt
 
 (* TODO: scale the window down so we can advertise it correctly with
    window scaling on the wire *)
@@ -120,7 +114,7 @@ let tx_advance t b =
 let tx_ack t r =
   if t.fast_recovery then begin
     if Sequence.gt r t.snd_una then begin
-      printf "EXITING fast recovery\n%!";
+      printf "TCP - EXITING fast recovery\n%!";
       t.snd_una <- r;
       t.cwnd <- t.ssthresh;
       t.fast_recovery <- false;
@@ -153,7 +147,7 @@ let alert_fast_rexmit t seq =
   let inflight = Sequence.to_int32 (Sequence.sub t.tx_nxt t.snd_una) in
   let newssthresh = max (Int32.div inflight 2l) (Int32.of_int (t.tx_mss * 2)) in
   let newcwnd = Int32.add newssthresh (Int32.of_int (t.tx_mss * 2)) in
-  printf "ENTERING fast recovery inflight=%d, ssthresh=%d -> %d, cwnd=%d -> %d\n%!"
+  printf "TCP - ENTERING fast recovery inflight=%d, ssthresh=%d -> %d, cwnd=%d -> %d\n%!"
     (Int32.to_int inflight)
     (Int32.to_int t.ssthresh)
     (Int32.to_int newssthresh)
@@ -162,3 +156,4 @@ let alert_fast_rexmit t seq =
   t.fast_recovery <- true;
   t.ssthresh <- newssthresh;
   t.cwnd <- newcwnd
+

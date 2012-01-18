@@ -190,7 +190,6 @@ module Tx = struct
     segs: seg Lwt_sequence.t;          (* Retransmitted segment queue *)
     xmit: xmit;                        (* Transmit packet to the wire *)
     rx_ack: Sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
-    rto: seg Lwt_mvar.t;               (* Mvar to append to retransmit queue *)
     wnd: Window.t;                 (* TCP Window information *)
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     rexmit_timer: Tcptimer.t;      (* Retransmission timer for this connection *)
@@ -296,13 +295,12 @@ module Tx = struct
 
 
   let q ~xmit ~wnd ~rx_ack ~tx_ack ~tx_wnd_update =
-    let rto = Lwt_mvar.create_empty () in
     let segs = Lwt_sequence.create () in
     let dup_acks = 0 in
     let expire = ontimer xmit segs wnd in
     let period = Window.rto wnd in
     let rexmit_timer = Tcptimer.t ~period ~expire in
-    let q = { xmit; wnd; rx_ack; rto; segs; tx_wnd_update; rexmit_timer; dup_acks } in
+    let q = { xmit; wnd; rx_ack; segs; tx_wnd_update; rexmit_timer; dup_acks } in
     let t = rto_t q tx_ack in
     q, t
 

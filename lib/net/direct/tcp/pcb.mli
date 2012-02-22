@@ -32,4 +32,7 @@ val read: pcb -> Bitstring.t option Lwt.t
    decide on a write strategy *)
 val write_available: pcb -> int
 val write_wait_for: pcb -> int -> unit Lwt.t
+(* Write a segment *)
 val write: pcb -> Bitstring.t -> unit Lwt.t
+(* Write a segment without using Nagle's algorithm*)
+val write_nodelay: pcb -> Bitstring.t -> unit Lwt.t

@@ -239,7 +239,7 @@ module Tx = struct
     (* Listen for incoming TX acks from the receive queue and ACK
        segments in our retransmission queue *)
     let rec tx_ack_t () =
-      let serviceack dupack ack_len seq = match dupack with
+      let serviceack dupack ack_len seq win = match dupack with
       | true ->
           q.dup_acks <- q.dup_acks + 1;
           if 3 = q.dup_acks then begin
@@ -278,7 +278,7 @@ module Tx = struct
 			clearsegs (Int32.sub ack_remaining seg_len) segs
           in
           let partleft = clearsegs (Sequence.to_int32 ack_len) q.segs in
-          Window.tx_ack q.wnd (Sequence.sub seq (Sequence.of_int32 partleft))
+          Window.tx_ack q.wnd (Sequence.sub seq (Sequence.of_int32 partleft)) win
       in
       lwt (seq, win) = Lwt_mvar.take tx_ack in
       let ack_len = Sequence.sub seq (Window.tx_una q.wnd) in
@@ -286,7 +286,7 @@ module Tx = struct
                            ((Window.tx_wnd q.wnd) = (Int32.of_int win)) &&
                            (not (Lwt_sequence.is_empty q.segs)))
       in
-      serviceack (dupacktest ()) ack_len seq;
+      serviceack (dupacktest ()) ack_len seq win;
       (* Inform the window thread of updates to the transmit window *)
       Lwt_mvar.put q.tx_wnd_update win >>
       tx_ack_t ()

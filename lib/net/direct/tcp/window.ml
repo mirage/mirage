@@ -185,6 +185,8 @@ let tx_available t =
   | true -> 0l
   | false -> avail_win
 
+let tx_inflight t =
+  t.tx_nxt <> t.snd_una
 
 
 let alert_fast_rexmit t seq =

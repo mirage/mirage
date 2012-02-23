@@ -209,7 +209,8 @@ module Tx = struct
   let write t data =
     let l = len data in
     let mss = Int32.of_int (Window.tx_mss t.wnd) in
-    match Lwt_sequence.is_empty t.buffer && l = mss with
+    match Lwt_sequence.is_empty t.buffer &&
+      (l = mss || not (Window.tx_inflight t.wnd)) with
     | false -> 
 	t.bufbytes <- Int32.add t.bufbytes l;
         let _ = Lwt_sequence.add_r data t.buffer in

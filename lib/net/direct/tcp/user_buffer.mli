@@ -30,8 +30,10 @@ end
 module Tx : sig
   type t
 
-  val create: wnd:Window.t -> t
+  val create: max_size:int32 -> wnd:Window.t -> txq:Segment.Tx.q -> t
   val available: t -> int32
   val wait_for: t -> int32 -> unit Lwt.t
-  val free: t -> int -> unit
+  val write: t -> Bitstring.t -> unit Lwt.t
+  val write_nodelay: t -> Bitstring.t -> unit Lwt.t
+  val free: t -> int -> unit Lwt.t
 end

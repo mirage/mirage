@@ -95,7 +95,6 @@ module Delayed : M = struct
 	| false ->
 	    Tcptimer.Continue r.delayedack
 	| true -> 
-	    (* printf "Sending delayed ack on timer\n%!"; *)
 	    r.delayed <- false;
 	    let _ = transmitack r s in
 	    Tcptimer.Stoptimer
@@ -132,6 +131,7 @@ module Delayed : M = struct
 
   (* Indicate that an ACK has been transmitted *)
   let transmit t ack_number =
+    t.r.delayed <- false;
     t.r.pushpending <- false;
     return ()
 

@@ -190,7 +190,6 @@ module Tx = struct
     segs: seg Lwt_sequence.t;          (* Retransmitted segment queue *)
     xmit: xmit;                        (* Transmit packet to the wire *)
     rx_ack: Sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
-    rto: seg Lwt_mvar.t;               (* Mvar to append to retransmit queue *)
     wnd: Window.t;                 (* TCP Window information *)
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     rexmit_timer: Tcptimer.t;      (* Retransmission timer for this connection *)
@@ -240,7 +239,7 @@ module Tx = struct
     (* Listen for incoming TX acks from the receive queue and ACK
        segments in our retransmission queue *)
     let rec tx_ack_t () =
-      let serviceack dupack ack_len seq = match dupack with
+      let serviceack dupack ack_len seq win = match dupack with
       | true ->
           q.dup_acks <- q.dup_acks + 1;
           if 3 = q.dup_acks then begin
@@ -279,7 +278,7 @@ module Tx = struct
 			clearsegs (Int32.sub ack_remaining seg_len) segs
           in
           let partleft = clearsegs (Sequence.to_int32 ack_len) q.segs in
-          Window.tx_ack q.wnd (Sequence.sub seq (Sequence.of_int32 partleft))
+          Window.tx_ack q.wnd (Sequence.sub seq (Sequence.of_int32 partleft)) win
       in
       lwt (seq, win) = Lwt_mvar.take tx_ack in
       let ack_len = Sequence.sub seq (Window.tx_una q.wnd) in
@@ -287,7 +286,7 @@ module Tx = struct
                            ((Window.tx_wnd q.wnd) = (Int32.of_int win)) &&
                            (not (Lwt_sequence.is_empty q.segs)))
       in
-      serviceack (dupacktest ()) ack_len seq;
+      serviceack (dupacktest ()) ack_len seq win;
       (* Inform the window thread of updates to the transmit window *)
       Lwt_mvar.put q.tx_wnd_update win >>
       tx_ack_t ()
@@ -296,13 +295,12 @@ module Tx = struct
 
 
   let q ~xmit ~wnd ~rx_ack ~tx_ack ~tx_wnd_update =
-    let rto = Lwt_mvar.create_empty () in
     let segs = Lwt_sequence.create () in
     let dup_acks = 0 in
     let expire = ontimer xmit segs wnd in
     let period = Window.rto wnd in
     let rexmit_timer = Tcptimer.t ~period ~expire in
-    let q = { xmit; wnd; rx_ack; rto; segs; tx_wnd_update; rexmit_timer; dup_acks } in
+    let q = { xmit; wnd; rx_ack; segs; tx_wnd_update; rexmit_timer; dup_acks } in
     let t = rto_t q tx_ack in
     q, t
 

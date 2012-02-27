@@ -2,8 +2,8 @@ Sequence
 Window
 Options
 Tcptimer
-User_buffer
 State
 Ack
 Segment
+User_buffer
 Pcb

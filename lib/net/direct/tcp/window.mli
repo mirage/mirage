@@ -28,7 +28,7 @@ val rx_nxt : t -> Sequence.t
 val rx_nxt_inseq : t -> Sequence.t
 
 val tx_advance : t -> int -> unit
-val tx_ack: t -> Sequence.t -> unit
+val tx_ack: t -> Sequence.t -> int -> unit
 val tx_nxt : t -> Sequence.t
 val tx_una : t -> Sequence.t
 val tx_mss : t -> int
@@ -42,6 +42,8 @@ val tx_wnd : t -> int32
 (* tx_available: number of bytes we can currently send after
                  accounting for congestion *)
 val tx_available : t -> int32
+(* tx_inflight: is there any data in flight *)
+val tx_inflight : t -> bool
 val set_tx_wnd : t -> int -> unit
 
 val alert_fast_rexmit : t -> Sequence.t -> unit

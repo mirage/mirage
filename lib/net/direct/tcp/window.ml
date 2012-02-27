@@ -138,10 +138,11 @@ let tx_advance t b =
   t.tx_nxt <- Sequence.add t.tx_nxt (Sequence.of_int b)
 
 (* An ACK was received - use it to adjust cwnd *)
-let tx_ack t r =
+let tx_ack t r win =
+  set_tx_wnd t win;
   if t.fast_recovery then begin
     if Sequence.gt r t.snd_una then begin
-      printf "EXITING fast recovery\n%!";
+      (* printf "EXITING fast recovery\n%!"; *)
       t.snd_una <- r;
       t.cwnd <- t.ssthresh;
       t.fast_recovery <- false;
@@ -150,13 +151,13 @@ let tx_ack t r =
     end
   end else begin
     if Sequence.gt r t.snd_una then begin
+      t.backoff_count <- 0;
       t.snd_una <- r;
       if t.rtt_timer_on && Sequence.gt r t.rtt_timer_seq then begin
         t.rtt_timer_on <- false;
         let rtt_m = OS.Clock.time () -. t.rtt_timer_starttime in
 	if t.rtt_timer_reset then begin
 	  t.rtt_timer_reset <- false;
-	  t.backoff_count <- 0;
           t.rttvar <- (0.5 *. rtt_m);
           t.srtt <- rtt_m;
 	end else begin
@@ -180,33 +181,40 @@ let tx_available t =
   let inflight = Sequence.to_int32 (Sequence.sub t.tx_nxt t.snd_una) in
   let win = min t.cwnd t.tx_wnd in
   let avail_win = Int32.sub win inflight in
-  let avail_win_norunts =
-    match avail_win < Int32.of_int t.tx_mss with | true -> 0l | false -> avail_win in
-  avail_win_norunts
+  match avail_win < Int32.of_int t.tx_mss with
+  | true -> 0l
+  | false -> avail_win
+
+let tx_inflight t =
+  t.tx_nxt <> t.snd_una
+
 
 let alert_fast_rexmit t seq =
   let inflight = Sequence.to_int32 (Sequence.sub t.tx_nxt t.snd_una) in
   let newssthresh = max (Int32.div inflight 2l) (Int32.of_int (t.tx_mss * 2)) in
   let newcwnd = Int32.add newssthresh (Int32.of_int (t.tx_mss * 2)) in
+  (*
   printf "ENTERING fast recovery inflight=%d, ssthresh=%d -> %d, cwnd=%d -> %d\n%!"
     (Int32.to_int inflight)
     (Int32.to_int t.ssthresh)
     (Int32.to_int newssthresh)
     (Int32.to_int t.cwnd)
     (Int32.to_int newcwnd);
+    *)
   t.fast_recovery <- true;
   t.ssthresh <- newssthresh;
   t.rtt_timer_on <- false;  
   t.cwnd <- newcwnd
 
-let rto t = t.rto
+let rto t =
+  match t.backoff_count with
+  | 0 -> t.rto
+  | _ -> t.rto *. (2. ** (float_of_int t.backoff_count))
 
 let backoff_rto t =
   t.backoff_count <- t.backoff_count + 1;
   t.rtt_timer_on <- false;  
-  t.rtt_timer_reset <- true;  
-  t.rto <- (min 60.0 (t.rto *. 2.0))
-
+  t.rtt_timer_reset <- true  
 
 let max_rexmits_done t =
   (t.backoff_count > 5)

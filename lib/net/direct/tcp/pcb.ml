@@ -44,6 +44,9 @@ type t = {
   listeners: (int, ((ipv4_addr * int) -> pcb -> unit Lwt.t)) Hashtbl.t;
 }
 
+(* TODO: implement *)
+let verify_checksum pkt = true
+
 module Tx = struct
 
   exception IO_error
@@ -137,19 +140,23 @@ module Rx = struct
 
   (* Process an incoming TCP packet that has an active PCB *)
   let input t pkt (pcb,_) =
-    bitmatch pkt with
-    | { sequence:32:bind(Sequence.of_int32 sequence);
-        ack_number:32:bind(Sequence.of_int32 ack_number); 
-        data_offset:4:bind(data_offset * 32); _:6;
-        urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
-        checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
-        data:-1:bitstring } ->
-          let _ = Options.of_packet options in
-          let seg = Segment.Rx.make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data in
-          let {rxq} = pcb in
-          (* Coalesce any outstanding segments and retrieve ready segments *)
-          Segment.Rx.input rxq seg
-    | { _ } -> return (printf "RX.input: unknown\n%!")
+    (* TODO: implement verify checksum *)
+    match verify_checksum pkt with
+    | false -> return (printf "RX.input: checksum error\n%!")
+    | true ->
+	bitmatch pkt with
+        | { sequence:32:bind(Sequence.of_int32 sequence);
+            ack_number:32:bind(Sequence.of_int32 ack_number); 
+            data_offset:4:bind(data_offset * 32); _:6;
+            urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
+            checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
+            data:-1:bitstring } ->
+              let _ = Options.of_packet options in
+              let seg = Segment.Rx.make ~sequence ~fin ~syn ~ack ~ack_number ~window ~data in
+              let {rxq} = pcb in
+              (* Coalesce any outstanding segments and retrieve ready segments *)
+              Segment.Rx.input rxq seg
+	| { _ } -> return (printf "RX.input: unknown\n%!")
    
   (* Thread that spools the data into an application receive buffer,
      and notifies the ACK subsystem that new data is here *)
@@ -205,7 +212,7 @@ module Wnd = struct
        and tell the application that new space is available when it is blocked *)
     let rec tx_window_t () =
       lwt tx_wnd = Lwt_mvar.take tx_wnd_update in
-      User_buffer.Tx.free utx tx_wnd;
+      User_buffer.Tx.free utx tx_wnd >>
       tx_window_t ()
     in
     rx_window_t () <?> (tx_window_t ())
@@ -238,12 +245,13 @@ let new_connection t ~window ~sequence ~options id data listener =
   (* The user application receive buffer and close notification *)
   let urx = User_buffer.Rx.create ~max_size:16384l in (* TODO: too small, but useful for debugging *)
   let urx_close_t, urx_close_u = Lwt.task () in
-  (* The user application transmit buffer *)
-  let utx = User_buffer.Tx.create ~wnd in
   (* The window handling thread *)
   let tx_wnd_update = Lwt_mvar.create_empty () in
   (* Set up transmit and receive queues *)
   let txq, tx_t = Segment.Tx.q ~xmit:(Tx.xmit_pcb t.ip id) ~wnd ~rx_ack ~tx_ack ~tx_wnd_update in
+  (* The user application transmit buffer *)
+(*  let utx = User_buffer.Tx.create ~max_size:16384l ~wnd ~txq in*)
+  let utx = User_buffer.Tx.create ~max_size:16384l ~wnd ~txq in
   let rxq = Segment.Rx.q ~rx_data ~wnd ~tx_ack in
   (* Set up ACK module *)
   let ack = Ack.Delayed.t ~send_ack ~last:(Sequence.incr rx_isn) in
@@ -268,41 +276,45 @@ let new_connection t ~window ~sequence ~options id data listener =
   Segment.Tx.output ~flags:Segment.Tx.Syn ~options txq ("",0,0)
 
 let input_no_pcb t pkt id =
-  bitmatch pkt with
-  | { sequence:32; ack_number:32; 
-      data_offset:4:bind(data_offset * 32); _:6;
-      urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
-      checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
-      data:-1:bitstring } ->
-    match rst with
-    |true ->
-      (* Incoming RST should be ignored, RFC793 pg65 *)
-      return ()
-    |false -> begin
-      match ack with
-      |true ->
-         (* ACK to a listen socket results in an RST with
-            <SEQ=SEG.ACK><CTL=RST> RFC793 pg65 *)
-         let seq = Sequence.of_int32 ack_number in
-         let rx_ack = None in
-         Tx.rst_no_pcb ~seq ~rx_ack t id
-      |false -> begin
-         (* Check for a SYN, RFC793 pg65 *)
-         match syn with
-         |true ->
-           (* Try to find a listener *)
-           with_hashtbl t.listeners id.local_port
-             (new_connection t ~window ~sequence ~options id data)
-             (fun source_port ->
-               let seq = Sequence.of_int32 0l in
-               let rx_ack = Some (Sequence.(incr (of_int32 sequence))) in
-               Tx.rst_no_pcb ~seq ~rx_ack t id
-             )
-         |false ->
-           (* What the hell is this packet? No SYN,ACK,RST *)
-           return ()
-      end
-    end
+  (* TODO: implement verify checksum *)
+  match verify_checksum pkt with
+  | false -> return (printf "RX.input: checksum error\n%!")
+  | true ->
+      bitmatch pkt with
+      | { sequence:32; ack_number:32; 
+	  data_offset:4:bind(data_offset * 32); _:6;
+	  urg:1; ack:1; psh:1; rst:1; syn:1; fin:1; window:16; 
+	  checksum: 16; urg_ptr: 16; options:data_offset-160:bitstring;
+	  data:-1:bitstring } ->
+	    match rst with
+	    |true ->
+		(* Incoming RST should be ignored, RFC793 pg65 *)
+		return ()
+	    |false -> begin
+		match ack with
+		|true ->
+		    (* ACK to a listen socket results in an RST with
+		       <SEQ=SEG.ACK><CTL=RST> RFC793 pg65 *)
+		    let seq = Sequence.of_int32 ack_number in
+		    let rx_ack = None in
+		    Tx.rst_no_pcb ~seq ~rx_ack t id
+		|false -> begin
+		    (* Check for a SYN, RFC793 pg65 *)
+		    match syn with
+		    |true ->
+			(* Try to find a listener *)
+			with_hashtbl t.listeners id.local_port
+			  (new_connection t ~window ~sequence ~options id data)
+			  (fun source_port ->
+			    let seq = Sequence.of_int32 0l in
+			    let rx_ack = Some (Sequence.(incr (of_int32 sequence))) in
+			    Tx.rst_no_pcb ~seq ~rx_ack t id
+			  )
+		    |false ->
+			(* What the hell is this packet? No SYN,ACK,RST *)
+			return ()
+		end
+	    end
 
 (* Main input function for TCP packets *)
 let input t ~src ~dst data =
@@ -335,7 +347,11 @@ let write_wait_for pcb sz =
 
 (* Write a segment *)
 let write pcb data =
-  Segment.Tx.output pcb.txq data
+  User_buffer.Tx.write pcb.utx data
+
+(* Write a segment without using Nagle's algorithm*)
+let write_nodelay pcb data =
+  User_buffer.Tx.write_nodelay pcb.utx data
 
 (* Block until both sides of the connection are closed *)
 let close pcb =

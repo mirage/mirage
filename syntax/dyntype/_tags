@@ -1,2 +1,0 @@
-<*.ml>: for-pack(Pa_mirage.Pa_dyntype)
-<*.ml>: use_camlp4_r

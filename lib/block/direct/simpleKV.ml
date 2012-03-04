@@ -124,6 +124,7 @@ let _ =
     end
   in
   OS.Devices.new_provider provider;
+(*
   OS.Main.at_enter (fun () ->
     let fs = ref [] in
     lwt env = OS.Env.argv () in
@@ -139,3 +140,4 @@ let _ =
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
   )
 
+*) ()

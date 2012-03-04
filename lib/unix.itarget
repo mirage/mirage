@@ -1,4 +1,3 @@
 std/stdlib.cmxa
 os/runtime_unix/libunixrun.a
 os/runtime_unix/main.o
-annots

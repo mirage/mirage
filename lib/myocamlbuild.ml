@@ -60,7 +60,7 @@ module Spec = struct
 
   (* The modules to copy into std/ are specified as (<dest file in std/> * "<subdirectory>/<file>") *)
   let modules =
-    let baselibs = ["regexp"; "dns"; "http"; "dyntype"; "cow"; "openflow"; "oUnit"; "fs" ] in
+    let baselibs = [ "oUnit" ] in
     let libs = List.map (fun lib -> lib, (ps "%s/%s" lib lib)) baselibs in
     os :: net :: block :: libs
 
@@ -246,21 +246,7 @@ let () =
         ml
       ) mlmods in
       pack_in_one mlname "" mldeps env builder
-    );
-  (* Split out the annot files into their subdirs *)
-  rule
-   ~stamp:"annots"
-   ~dep:"std/stdlib.mllib" "generate individual annot files"
-     (fun env builder ->
-        let splitter = "../../../tools/ocp-pack/_build/split.native" in
-        let mlmods = string_list_of_file "std/stdlib.mllib" in
-        let _ = builder (List.map (fun x -> [Printf.sprintf "std/%s.ml" x]) mlmods) in
-        let rules = List.map (fun m ->
-          let fname = "std"/m-.-"annot" in
-          Cmd (S [A splitter; P fname])
-        ) mlmods in
-        Seq rules
-    ) 
+    )
 
 let _ = dispatch begin function
   | After_rules ->
@@ -278,12 +264,12 @@ let _ = dispatch begin function
     let p4_build = "../../../syntax/_build" in
     let camlp4_bc =
       S[A"-pp"; 
-        A (ps "camlp4o -I %s str.cma pa_mirage.cma -cow-no-open %s" 
+        A (ps "camlp4o -I %s str.cma pa_mirage.cma %s" 
              p4_build (if debug then "-lwt-debug" else ""))] 
     in
     let camlp4_nc = 
       S[A"-pp";
-        A (ps "camlp4o.opt -I %s str.cmxs pa_mirage.cmxs -cow-no-open %s"
+        A (ps "camlp4o.opt -I %s str.cmxs pa_mirage.cmxs %s"
              p4_build (if debug then "-lwt-debug" else ""))] 
     in
     let camlp4_cmd = if native_p4 then camlp4_nc else camlp4_bc in

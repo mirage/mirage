@@ -71,6 +71,7 @@ let create ~id ~root =
       | OK sz -> return (Some sz)
   end)
 
+(*
 let _ =
   let plug_mvar = Lwt_mvar.create_empty () in
   let unplug_mvar = Lwt_mvar.create_empty () in
@@ -110,4 +111,4 @@ let _ =
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !fs
   )
-
+*)

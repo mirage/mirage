@@ -83,6 +83,7 @@ let _ =
   end in
   Devices.new_provider provider;
   (* Iterate over the plugged in VBDs and plug them in *)
+(*
   Main.at_enter (fun () ->
     let vbds = ref [] in
     lwt env = Env.argv () in
@@ -99,3 +100,4 @@ let _ =
       |_ -> ()) env;
     Lwt_list.iter_s (Lwt_mvar.put plug_mvar) !vbds
   )
+*)

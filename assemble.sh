@@ -48,22 +48,6 @@ function assemble_unix {
   cp ${ROOT}/lib/_build/unix-$1/std/*.{cmi,cmx,cmxa,a,o,cmo} ${OBJ}/lib/
 }
 
-function assemble_node {
-  mode=$1
-  echo Assembling: node
-  OBJ=${BUILDDIR}/node
-  if [ -d ${ROOT}/lib/_build/node ]; then
-    mkdir -p ${OBJ}/lib 
-    for i in libos.a dllos.so; do
-      cp ${ROOT}/lib/_build/node/os/runtime_node/$i ${OBJ}/lib/
-    done
-    cp ${ROOT}/lib/_build/node/std/*.{cmi,cmo,cma} ${OBJ}/lib/
-    cp ${ROOT}/lib/os/runtime_node/*.js ${OBJ}/lib/
-  else
-    echo Skipping: Node
-  fi
-}
-
 function assemble_syntax {
   echo Assembling: camlp4 extensions
   OBJ=${BUILDDIR}/syntax
@@ -95,6 +79,5 @@ assemble_syntax
 assemble_xen
 assemble_unix "direct"
 assemble_unix "socket"
-assemble_node
 assemble_scripts
 assemble_bin

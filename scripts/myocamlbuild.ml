@@ -112,13 +112,6 @@ module Mir = struct
     let c = env c and o = env o in
     fn (tags_of_pathname c++"implem"+++tag) c o env
 
-  (** Invoke js_of_ocaml from .byte file to Javascript *)
-  let js_of_ocaml ?tag byte js env build =
-    let byte = env byte and js = env js in
-    let libdir = lib / "node" / "lib" in
-    Cmd (S [ A"js_of_ocaml"; A "-noruntime";
-      P (libdir / "runtime.js"); P (libdir / "mirage.js") ; Px js; A"-o"; Px byte ])
-
   (** Generate an ML entry point file that spins up the Mirage runtime *)
   let ml_main mirfile mlprod env build =
     let mirfile = env mirfile in
@@ -170,12 +163,6 @@ module Mir = struct
       ~dep:"unix-%(mode)/%(file)__.m.o"
       (cc_link_c_implem cc_unix_link "unix-%(mode)/%(file)__.m.o" "unix-%(mode)/%(file).bin");
 
-    (* Node link rule *)
-    rule ("final link: node/%__.byte -> node/%.js")
-      ~prod:"node/%.js"
-      ~dep:"node/%__.byte"
-      (js_of_ocaml "node/%.js" "node/%__.byte");
-
     (* Generate a default %.mir if one doesnt exist *)
     rule "default mir file"
       ~prod:"%(test).mir"
@@ -191,7 +178,6 @@ module Spec = struct
   (** Supported Mirage backends *)
   type backend =  
    |Xen
-   |Node
    |Unix_direct
    |Unix_socket
    |External
@@ -208,28 +194,25 @@ module Spec = struct
   let backend_of_string = function
     |"xen" -> Xen 
     |"unix-direct" -> Unix_direct
-    |"node" -> Node 
     |"unix-socket" -> Unix_socket
     |"external" -> External
     |x -> failwith ("unknown backend: " ^ x)
 
   let backend_to_string = function
     |Xen -> "xen"
-    |Node -> "node"
     |Unix_direct -> "unix-direct"
     |Unix_socket -> "unix-socket"
     |External -> "external"
 
   (* List of all backends (not all need to be supported) *)
   let all_backends =
-    [ Xen; Node; Unix_direct; Unix_socket ]
+    [ Xen; Unix_direct; Unix_socket ]
 
   (* Check if a backend is supported on this host *)
   let is_supported =
     let open OS in
     function
     |Xen -> if (host,arch) = (Linux,X86_64) && Sys.file_exists "/proc/xen/capabilities" then `Yes else `No
-    |Node -> if js_of_ocaml_installed then `Yes else `No
     |Unix_direct |Unix_socket -> `Yes
     |External -> `External
 
@@ -245,13 +228,12 @@ module Spec = struct
     let dir = backend_to_string be in
     match be with
     |Xen -> sprintf "%s/%s.xen" dir name 
-    |Node -> sprintf "%s/%s.js" dir name
     |Unix_direct |Unix_socket -> sprintf "%s/%s.bin" dir name
     |External -> assert false
 
   (** Spec file contains key:value pairs: 
 
-    backend:xen,node,unix-direct,unix-socket
+    backend:xen,unix-direct,unix-socket
     backend:* (short form of above)
     no backend key results in "backend:*" being default
 
@@ -424,11 +406,7 @@ let _ = dispatch begin function
       flag ["ocaml"; "link"; betag] & S [A"-I"; Px (lib / be / "lib")];
     ) Spec.all_backends;
     Mir.rules ();
-    Spec.rules ();
-    (* Link with dummy libnode when needed *)
-    let node_cclib = [ A"-dllpath"; Px (lib/"node"/"lib"); A"-dllib";
-      A"-los"; A"-cclib"; A"-los" ] in
-    flag ["ocaml"; "byte"; "program"; "backend:node"] & S node_cclib;
+    Spec.rules ()
 
   end
   | _ -> ()

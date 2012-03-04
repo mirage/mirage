@@ -17,7 +17,6 @@ Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
 BACKENDS:
   unix-socket (default)
   unix-direct
-  node
   xen
   
 OPTIONS:
@@ -62,13 +61,6 @@ supported() {
       exit 1
     fi
     ;;
-  node)
-   NODE="$(which node >/dev/null 2>&1)"
-   if [ $? -ne 0 ]; then
-     echo "Node binary not found"
-     exit 1
-   fi
-   ;;
   unix-*)
    # We assume tap is present for unix-direct and unix-socket to always work
    ;;
@@ -161,10 +153,6 @@ run() {
     done
     redirect_shell_output;
     exec_and_check_error $bin $CMDFLAGS
-    ;;
-  node)
-    redirect_shell_output;
-    exec_and_check_error "node $bin"
     ;;
   *)
     ;;

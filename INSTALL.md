@@ -5,7 +5,6 @@ Mirage has been tested on Debian Squeeze, Ubuntu Lucid and MacOS X 10.6. To comp
 You need to have the following installed and available on your `PATH`:
 
 * [OCaml](http://www.ocaml.org) 3.12.0
-* (optional) [Js_of_ocaml](http://ocsigen.org/js_of_ocaml/install)
 
 # Installation
 

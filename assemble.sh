@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -e
+#!/usr/bin/env bash 
 #
 # Assemble a bunch of standard library kernels for the
 # various OS configurations:
@@ -14,6 +14,7 @@
 # The myocamlbuild.ml in scripts/ understands the necessary runes to link
 # against each of these backends (mainly the library dependencies)
 
+set -e 
 ROOT=`pwd`
 BUILDDIR=${ROOT}/_build
 

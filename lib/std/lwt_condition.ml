@@ -53,11 +53,11 @@ let wait ?mutex cvar =
 
 let signal cvar arg =
   try
-    wakeup (Lwt_sequence.take_l cvar) arg
+    wakeup_later (Lwt_sequence.take_l cvar) arg
   with Lwt_sequence.Empty ->
     ()
 
 let broadcast cvar arg =
   let wakeners = Lwt_sequence.fold_r (fun x l -> x :: l) cvar [] in
   Lwt_sequence.iter_node_l Lwt_sequence.remove cvar;
-  List.iter (fun wakener -> wakeup wakener arg) wakeners
+  List.iter (fun wakener -> wakeup_later wakener arg) wakeners

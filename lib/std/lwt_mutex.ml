@@ -43,7 +43,9 @@ let unlock m =
     if Lwt_sequence.is_empty m.waiters then
       m.locked <- false
     else
-      Lwt.wakeup (Lwt_sequence.take_l m.waiters) ()
+      (* We do not use [Lwt.wakeup] here to avoid a stack overflow
+         when unlocking a lot of threads. *)
+      Lwt.wakeup_later (Lwt_sequence.take_l m.waiters) ()
   end
 
 let with_lock m f =

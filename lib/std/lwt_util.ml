@@ -97,7 +97,7 @@ let leave_region reg sz =
      if reg.count - sz >= reg.size then raise Queue.Empty;
      let (w, sz') = Queue.take reg.waiters in
      reg.count <- reg.count - sz + sz';
-     Lwt.wakeup w ()
+     Lwt.wakeup_later w ()
    with Queue.Empty ->
      reg.count <- reg.count - sz
 

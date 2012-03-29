@@ -60,7 +60,7 @@ let put mvar v =
           | None ->
               mvar.contents <- Some v
           | Some w ->
-              Lwt.wakeup w v
+              Lwt.wakeup_later w v
         end;
         return_unit
     | Some _ ->
@@ -75,7 +75,7 @@ let take mvar =
         begin match Lwt_sequence.take_opt_l mvar.writers with
           | Some(v', w) ->
               mvar.contents <- Some v';
-              Lwt.wakeup w ()
+              Lwt.wakeup_later w ()
           | None ->
               mvar.contents <- None
         end;

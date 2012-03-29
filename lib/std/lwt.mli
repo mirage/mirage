@@ -36,7 +36,8 @@
     Note that inside a Lwt thread, exceptions must be raised with
     {!fail} instead of [raise]. Also the [try ... with ...]
     construction will not catch Lwt errors. You must use {!catch}
-    instead.
+    instead. You can also use {!wrap} for functions that may raise
+    normal exception.
 
     Lwt also provides the syntax extension {!Pa_lwt} to make code
     using Lwt more readable.
@@ -121,6 +122,48 @@ val finalize : (unit -> 'a t) -> (unit -> unit t) -> 'a t
   (** [finalize f g] returns the same result as [f ()] whether it
       fails or not. In both cases, [g ()] is executed after [f]. *)
 
+val wrap : (unit -> 'a) -> 'a t
+  (** [wrap f] calls [f] and transform the result into a monad. If [f]
+      raise an exception, it is catched by Lwt.
+
+      This is actually the same as:
+
+      {[
+        try
+          return (f ())
+        with exn ->
+          fail exn
+      ]}
+  *)
+
+val wrap1 : ('a -> 'b) -> 'a -> 'b t
+  (** [wrap1 f x] applies [f] on [x] and returns the result as a
+      thread. If the application of [f] to [x] raise an exception it
+      is catched and a thread is returned.
+
+      Note that you must use {!wrap} instead of {!wrap1} if the
+      evaluation of [x] may raise an exception.
+
+      for example the following code is not ok:
+
+      {[
+        wrap1 f (Hashtbl.find table key)
+      ]}
+
+      you should write instead:
+
+      {[
+        wrap (fun () -> f (Hashtbl.find table key))
+      ]}
+  *)
+
+val wrap2 : ('a -> 'b -> 'c) -> 'a -> 'b -> 'c t
+val wrap3 : ('a -> 'b -> 'c -> 'd) -> 'a -> 'b -> 'c -> 'd t
+val wrap4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a -> 'b -> 'c -> 'd -> 'e t
+val wrap5 : ('a -> 'b -> 'c -> 'd -> 'e -> 'f) -> 'a -> 'b -> 'c -> 'd -> 'e -> 'f t
+val wrap6 : ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g) -> 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g t
+val wrap7 : ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h) -> 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h t
+
 (** {6 Multi-threads composition} *)
 
 val choose : 'a t list -> 'a t
@@ -190,6 +233,14 @@ val wakeup_exn : 'a u -> exn -> unit
   (** [wakeup_exn t e] makes the sleeping thread [t] fail with the
       exception [e]. *)
 
+val wakeup_later : 'a u -> 'a -> unit
+  (** Same as {!wakeup} but it is not guaranteed that the thread will
+      be wakeup immediately. *)
+
+val wakeup_later_exn : 'a u -> exn -> unit
+  (** Same as {!wakeup_exn} but it is not guaranteed that the thread
+      will be wakeup immediately. *)
+
 val waiter_of_wakener : 'a u -> 'a t
   (** Returns the thread associated to a wakener. *)
 
@@ -226,7 +277,7 @@ val on_cancel : 'a t -> (unit -> unit) -> unit
 val cancel : 'a t -> unit
   (** [cancel t] cancels the threads [t]. This means that the deepest
       sleeping thread created with [task] and connected to [t] is
-      wakeup with the exception {!Canceled}.
+      woken up with the exception {!Canceled}.
 
       For example, in the following code:
 
@@ -235,7 +286,7 @@ val cancel : 'a t -> unit
         cancel (waiter >> printl "plop")
       ]}
 
-      [waiter] will be waked up with {!Canceled}.
+      [waiter] will be woken up with {!Canceled}.
   *)
 
 val pick : 'a t list -> 'a t
@@ -256,6 +307,10 @@ val protected : 'a t -> 'a t
   (** [protected thread] creates a new cancelable thread which behave
       as [thread] except that cancelling it does not cancel
       [thread]. *)
+
+val no_cancel : 'a t -> 'a t
+  (** [no_cancel thread] creates a thread which behave as [thread]
+      except that it cannot be canceled. *)
 
 (** {6 Pause} *)
 
@@ -292,7 +347,7 @@ val on_success : 'a t -> ('a -> unit) -> unit
       failing. This is the same as:
 
       {[
-        ignore_result (bind t (fun x -> f x; return ()))
+        ignore (bind t (fun x -> f x; return ()))
       ]}
 
       but a bit more efficient.
@@ -303,7 +358,29 @@ val on_failure : 'a t -> (exn -> unit) -> unit
       fails. This is the same as:
 
       {[
-        ignore_result (catch t (fun e -> f e; return ()))
+        ignore (catch t (fun e -> f e; return ()))
+      ]}
+
+      but a bit more efficient.
+  *)
+
+val on_termination : 'a t -> (unit -> unit) -> unit
+  (** [on_termination t f] executes [f] when [t] terminates. This is
+      the same as:
+
+      {[
+        ignore (finalize (fun () -> t) (fun () -> f (); return ()))
+      ]}
+
+      but a bit more efficient.
+  *)
+
+val on_any : 'a t -> ('a -> unit) -> (exn -> unit) -> unit
+  (** [on_any t f g] executes [f] or [g] when [t] terminates. This is
+      the same as:
+
+      {[
+        ignore (try_bind (fun () -> t) (fun x -> f x; return ()) (fun e -> g e; return ()))
       ]}
 
       but a bit more efficient.

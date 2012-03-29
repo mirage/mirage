@@ -44,7 +44,8 @@ val lock : t -> unit Lwt.t
 
 val unlock : t -> unit
   (** [unlock mutex] unlock the mutex if no threads is waiting on
-      it. Otherwise it removes the first one and resumes it. *)
+      it. Otherwise it will eventually removes the first one and
+      resumes it. *)
 
 val is_locked : t -> bool
   (** [locked mutex] returns whether [mutex] is currently locked *)

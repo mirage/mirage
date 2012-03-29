@@ -29,14 +29,16 @@ XXX Close after some timeout
 type 'a t =
   { create : unit -> 'a Lwt.t;
     check : 'a -> (bool -> unit) -> unit;
+    validate : 'a -> bool Lwt.t;
     max : int;
     mutable count : int;
     list : 'a Queue.t;
     waiters : 'a Lwt.u Lwt_sequence.t }
 
-let create m ?(check = fun _ f -> f true) create =
+let create m ?(check = fun _ f -> f true) ?(validate = fun _ -> return true) create =
   { max = m;
     create = create;
+    validate = validate;
     check = check;
     count = 0;
     list = Queue.create ();
@@ -52,10 +54,22 @@ let create_member p =
     p.count <- p.count - 1;
     raise_lwt exn
 
-let acquire p =
+let release p c =
   try
-    return (Queue.take p.list)
-  with Queue.Empty ->
+    wakeup_later (Lwt_sequence.take_l p.waiters) c
+  with Lwt_sequence.Empty ->
+    Queue.push c p.list
+
+let replace_acquired p =
+  ignore_result (
+    p.count <- p.count - 1;
+    lwt c = create_member p in
+    release p c;
+    return ()
+  )
+
+let acquire p =
+  if Queue.is_empty p.list then
     if p.count < p.max then
       create_member p
     else begin
@@ -64,22 +78,28 @@ let acquire p =
       on_cancel waiter (fun () -> Lwt_sequence.remove node);
       waiter
     end
-
-let release p c =
-  try
-    wakeup (Lwt_sequence.take_l p.waiters) c
-  with Lwt_sequence.Empty ->
-    Queue.push c p.list
+  else
+    let c = Queue.take p.list in
+    lwt valid =
+      try_lwt
+        p.validate c
+      with e ->
+        replace_acquired p;
+        raise_lwt e
+    in
+    if valid then
+      return c
+    else begin
+      p.count <- p.count - 1;
+      create_member p
+    end
 
 let checked_release p c =
   p.check c begin fun ok ->
     if ok then
       release p c
     else
-      ignore (p.count <- p.count - 1;
-              lwt c = create_member p in
-              release p c;
-              return ())
+      replace_acquired p
   end
 
 let use p f =

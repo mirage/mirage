@@ -119,40 +119,44 @@ struct
   }
 
   let create () =
-    let box = { state = No_mail } in
     let weak_box = Weak.create 1 in
-    Weak.set weak_box 0 (Some box);
     let push v =
       match Weak.get weak_box 0 with
         | None -> ()
         | Some box ->
-          match box.state with
-            | No_mail ->
-              let q = Queue.create () in
-              Queue.push v q;
-              box.state <- Full q
-            | Waiting wakener ->
-              box.state <- No_mail;
-              wakeup wakener v
-            | Full q ->
-              Queue.push v q
+            match box.state with
+              | No_mail ->
+                  let q = Queue.create () in
+                  Queue.push v q;
+                  box.state <- Full q
+              | Waiting wakener ->
+                  box.state <- No_mail;
+                  wakeup_later wakener v
+              | Full q ->
+                  Queue.push v q
     in
+    let box = { state = No_mail } in
+    Weak.set weak_box 0 (Some box);
     (box, push)
 
-  let pop b = match b.state with
-    | No_mail ->
-	let waiter, wakener = task () in
-        Lwt.on_cancel waiter (fun () -> b.state <- No_mail);
-	b.state <- Waiting wakener;
-	waiter
-    | Waiting _ ->
-        (* Calls to next are serialized, so this case will never
-           happened *)
-	assert false
-    | Full q ->
-	let v = Queue.take q in
-	if Queue.is_empty q then b.state <- No_mail;
-        return v
+  let pop b =
+    match b.state with
+      | No_mail ->
+	  let waiter, wakener = task () in
+	  b.state <- Waiting wakener;
+	  (try_lwt
+             waiter
+           with exn ->
+             b.state <- No_mail;
+             raise_lwt exn)
+      | Waiting _ ->
+          (* Calls to next are serialized, so this case will never
+             happened *)
+	  assert false
+      | Full q ->
+	  let v = Queue.take q in
+	  if Queue.is_empty q then b.state <- No_mail;
+          return v
 end
 
 let create () =

@@ -30,9 +30,15 @@
 type 'a t
 
 (** [create n f] creates a new pool with at most [n] members.
-    [f] is the function to use to create a new pool member. *)
+    [f] is the function to use to create a new pool member.
+
+    An element of the pool is validated by the optional [valid] function before
+    its [use]. Invalid elements are re-created.
+
+    The optional function [check] is called after a [use] of an element failed.
+ *)
 val create :
-  int -> ?check:('a -> (bool -> unit) -> unit) -> (unit -> 'a Lwt.t) -> 'a t
+  int -> ?check:('a -> (bool -> unit) -> unit) -> ?validate:('a -> bool Lwt.t) -> (unit -> 'a Lwt.t) -> 'a t
 
 (** [use p f] takes one free member of the pool [p] and gives it to the function
     [f].

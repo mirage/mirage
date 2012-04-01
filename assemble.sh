@@ -14,7 +14,7 @@
 # The myocamlbuild.ml in scripts/ understands the necessary runes to link
 # against each of these backends (mainly the library dependencies)
 
-set -e 
+set -e
 ROOT=`pwd`
 BUILDDIR=${ROOT}/_build
 
@@ -68,7 +68,7 @@ function assemble_syntax {
   echo Assembling: camlp4 extensions
   OBJ=${BUILDDIR}/syntax
   mkdir -p ${OBJ}
-  cp ${ROOT}/syntax/_build/*.{cma,cmi,cmo,cmxs} ${OBJ}/
+  cp ${ROOT}/syntax/_build/*.{cma,cmi,cmo,cmxs} ${OBJ}/ || true
 }
 
 function assemble_scripts {

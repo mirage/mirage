@@ -52,7 +52,7 @@ function assemble_syntax {
   echo Assembling: camlp4 extensions
   OBJ=${BUILDDIR}/syntax
   mkdir -p ${OBJ}
-  cp ${ROOT}/syntax/_build/*.{cma,cmi,cmo,cmxs} ${OBJ}/ || true
+  cp ${ROOT}/syntax/_build/*.{cmi,cmxs} ${OBJ}/
 }
 
 function assemble_scripts {

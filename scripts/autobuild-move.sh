@@ -1,14 +1,8 @@
 #!/bin/bash 
 # 
 # Build script for CI server
+# Part 2
 # 
-
-#
-# Build mirage
-#
-
-make
-make install
 
 #
 # Move relevant files to www

@@ -85,6 +85,27 @@ int evtchn_alloc_unbound(domid_t pal, evtchn_port_t *port)
     return rc;
 }
 
+/* Connect to a port so as to allow the exchange of notifications with
+   the pal. Returns the result of the hypervisor call. */
+
+int evtchn_bind_interdomain(domid_t pal, evtchn_port_t remote_port,
+                            evtchn_port_t *local_port)
+{
+    int rc;
+    evtchn_bind_interdomain_t op;
+    op.remote_dom = pal;
+    op.remote_port = remote_port;
+    rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_interdomain, &op);
+    if ( rc )
+    {
+        printk("ERROR: bind_interdomain failed with rc=%d", rc);
+                return rc;
+    }
+    *local_port = op.local_port;
+    return rc;
+}
+
+
 /*
  * Local variables:
  * mode: C

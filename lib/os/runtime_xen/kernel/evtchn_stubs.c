@@ -101,6 +101,22 @@ stub_evtchn_alloc_unbound(value v_domid)
 }
 
 CAMLprim value
+stub_evtchn_bind_interdomain(value v_domid, evtchn_port_t v_remote_port)
+{
+    CAMLparam2(v_domid, v_remote_port);
+    domid_t domid = Int_val(v_domid);
+    evtchn_port_t remote_port = Int_val(v_remote_port);
+    evtchn_port_t local_port;
+    int rc;
+
+    rc = evtchn_bind_interdomain(domid, remote_port, &local_port);
+    if (rc)
+       CAMLreturn(Val_int(-1));
+    else
+       CAMLreturn(Val_int(local_port)); 
+}
+
+CAMLprim value
 stub_evtchn_unmask(value v_port)
 {
     CAMLparam1(v_port);

@@ -88,7 +88,6 @@ function assemble_bin {
   cp ${ROOT}/tools/crunch/_build/crunch.native ${OBJ}/mir-crunch
   cp ${ROOT}/tools/fs/mir-fs-create ${OBJ}/mir-fs-create
   cp ${ROOT}/scripts/mir-fat-create ${OBJ}/mir-fat-create
-  cp ${ROOT}/scripts/annot ${OBJ}/annot
 }
 
 assemble_syntax

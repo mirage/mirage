@@ -25,7 +25,7 @@ let ps = Printf.sprintf
 let ep = Printf.eprintf
 
 let debug = 
-  let e = getenv "MIR-DEBUG" ~default:"1" in
+  let e = getenv "MIR-DEBUG" ~default:"0" in
   match e with "0" -> false | _ -> true
 
 let profiling = false

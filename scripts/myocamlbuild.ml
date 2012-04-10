@@ -107,6 +107,14 @@ module Mir = struct
       Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
       @ ldlibs @ [A"-o"; Px out]))
 
+  (* Rewrite sections for Xen LDS layout *)
+  let xen_objcopy dst src env builder =
+    let dst = env dst in 
+    let src = env src in
+    let cmd = ["objcopy";"--rename-section";".bss=.mlbss";"--rename-section";".data=.mldata";"--rename-section";".rodata=.mlrodata";"--rename-section";".text=.mltext"] in
+    let cmds = List.map (fun x -> A x) cmd in
+    Cmd (S (cmds @ [Px src; Px dst]))
+
   (** Generic CC linking rule that wraps both Xen and C *) 
   let cc_link_c_implem ?tag fn c o env build =
     let c = env c and o = env o in
@@ -158,11 +166,17 @@ module Mir = struct
       ~deps:["%.cmx"; x_o]
       (native_output_obj "%.cmx" "%.m.o");
 
+    (* Rule to rename module sections to ml* equivalents for the static vmem layout *)
+    rule "ocaml: .m.o -> .mx.o"
+      ~prod:"%.mx.o"
+      ~dep:"%.m.o"
+      (xen_objcopy "%.mx.o" "%.m.o");
+
     (* Xen link rule *)
     rule ("final link: xen/%__.m.o -> xen/%.xen")
       ~prod:"xen/%(file).xen"
-      ~dep:"xen/%(file)__.m.o"
-      (cc_link_c_implem cc_xen_link "xen/%(file)__.m.o" "xen/%(file).xen");
+      ~dep:"xen/%(file)__.mx.o"
+      (cc_link_c_implem cc_xen_link "xen/%(file)__.mx.o" "xen/%(file).xen");
 
     (* UNIX link rule *)
     rule ("final link: %__.m.o -> %.unix-%(mode).bin")

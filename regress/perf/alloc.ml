@@ -9,9 +9,10 @@ let with_time i label fn =
 
 let main () =
   let sizes = [1; 500; 2500; 5000; 10000; 15000; 30000; 50000; 100000; 250000 ] in
+  let sizes = [1; 500; 2500; 5000; 10000; 15000; ] in
   List.iter (fun sz ->
     with_time sz sz (fun () -> 
-      for i = 0 to 100000000 do
+      for i = 0 to 1000000 do
         let _ = String.create sz in
         ()
       done;

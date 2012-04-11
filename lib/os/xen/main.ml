@@ -25,14 +25,6 @@ open Lwt
 
 external block_domain : float -> unit = "caml_block_domain"
 
-let default_iteration () =
-  Activations.run ();
-  Lwt.wakeup_paused ();
-  let now = Clock.time () in
-  Time.restart_threads now;
-  let timeout = Time.process_timeouts now in
-  block_domain (match timeout with None -> 10.0 |Some t -> t)
-
 let exit_hooks = Lwt_sequence.create ()
 let enter_hooks = Lwt_sequence.create ()
 
@@ -56,10 +48,22 @@ let run t =
   let t = call_hooks enter_hooks <&> t in
   let rec aux () =
     Lwt.wakeup_paused ();
+    Time.restart_threads Clock.time;
     try
       match Lwt.poll t with
-      | Some _ -> true
-      | None   -> default_iteration (); false
+      | Some x ->
+          true
+      | None ->
+          (* If we have nothing to do, check for next timeout and
+           * and block the domain *)
+          Activations.run ();
+          let timeout =
+            match Time.select_next Clock.time with
+            |None -> 86400000.0
+            |Some tm -> tm
+          in
+          block_domain timeout;
+          false
     with exn ->
       (Printf.printf "Top level exception: %s\n%!" 
          (Printexc.to_string exn); true) in

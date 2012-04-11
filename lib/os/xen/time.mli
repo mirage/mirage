@@ -1,35 +1,22 @@
-(* Lightweight thread library for Objective Caml
- * http://www.ocsigen.org/lwt
- * Module Lwt_mirage, based on Lwt_unix
- * Copyright (C) 2010 Anil Madhavapeddy
- * Copyright (C) 2005-2008 Jerome Vouillon
- * Laboratoire PPS - CNRS Universite Paris Diderot
- *                    2009 Jeremie Dimino
+(*
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, with linking exceptions;
- * either version 2.1 of the License, or (at your option) any later
- * version. See COPYING file for details.
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+val restart_threads: (unit -> float) -> unit
+val select_next : (unit -> float) -> float option
 val sleep : float -> unit Lwt.t
-val yield : unit -> unit Lwt.t
-val auto_yield : float -> unit -> unit Lwt.t
+
 exception Timeout
-val timeout : float -> 'a Lwt.t
 val with_timeout : float -> (unit -> 'a Lwt.t) -> 'a Lwt.t
-val restart_threads : float -> unit
-val min_timeout : 'a option -> 'a option -> 'a option
-val get_next_timeout : float -> float option -> float option
-val process_timeouts : float -> float option

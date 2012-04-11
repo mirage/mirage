@@ -162,15 +162,6 @@ static int caml_page_table_modify(uintnat page, int toclear, int toset)
 
   Assert ((page & ~Page_mask) == 0);
 
-#ifdef USE_STATIC_VMEM
-  /* All pages above HYPERVISOR_VIRT_END are part of the OCaml heap */
-  if (page >= MINOR_HEAP_BASE)
-    return 0;
-#if 0
-  else
-    fprintf(stderr, "modify: %p %d %d\n", page, toclear, toset);
-#endif
-#endif
   /* Resize to keep load factor below 1/2 */
   if (caml_page_table.occupancy * 2 >= caml_page_table.size) {
     if (caml_page_table_resize() != 0) return -1;

@@ -72,7 +72,6 @@ static struct page_table caml_page_table;
 #endif
 #define Hash(v) (((v) * HASH_FACTOR) >> caml_page_table.shift)
 
-
 #ifdef USE_STATIC_VMEM
 extern unsigned long _mlstart, _mlend;
 static unsigned long mlstart = (unsigned long)&_mlstart;
@@ -88,7 +87,6 @@ int caml_page_table_lookup(void * addr)
     return In_young;
   else if ((unsigned long)addr >= mlstart && (unsigned long)addr < mlend)
     return In_static_data;
-  /* XXX need minor heap area also. In_code area is mapped to In_static_data. */
 #endif
   uintnat h, e;
 

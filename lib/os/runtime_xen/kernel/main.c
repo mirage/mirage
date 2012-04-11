@@ -31,16 +31,17 @@ static evtchn_port_t ports[] = { 1,2,3,4,5,6,7,8,9,10 };
 
 void evtchn_poll(void);
 
+static struct sched_poll sched_poll;
+static s_time_t block_secs;
+
 CAMLprim value
 caml_block_domain(value v_timeout)
 {
   CAMLparam1(v_timeout);
-  struct sched_poll sched_poll;
-  s_time_t secs = (s_time_t)(Double_val(v_timeout) * 1000000000);
-  s_time_t until = NOW() + secs;
+  block_secs = (s_time_t)(Double_val(v_timeout) * 1000000000);
   set_xen_guest_handle(sched_poll.ports, ports);
   sched_poll.nr_ports = sizeof(ports) / sizeof(evtchn_port_t);
-  sched_poll.timeout = until;
+  sched_poll.timeout = NOW() + block_secs;
   HYPERVISOR_sched_op(SCHEDOP_poll, &sched_poll);
   CAMLreturn(Val_unit);
 }

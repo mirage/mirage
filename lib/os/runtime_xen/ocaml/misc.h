@@ -88,11 +88,14 @@ void caml_gc_message (int, char *, uintnat);
 
 /* Memory routines */
 
-char *caml_aligned_malloc (asize_t, int, void **);
+char *caml_aligned_malloc_for_minor (asize_t, int, void **);
+char *caml_aligned_malloc_for_major (asize_t, int, void **);
 
 /* Use Xen static virtual memory layout */
 #ifdef SYS_xen
-//#define USE_STATIC_VMEM
+#undef USE_STATIC_VMEM
+#define MINOR_HEAP_BASE HYPERVISOR_VIRT_END
+#define MAJOR_HEAP_BASE (HYPERVISOR_VIRT_END + (512 * 4096))
 #endif
 
 #ifdef DEBUG

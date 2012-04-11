@@ -100,6 +100,10 @@ typedef unsigned long pgentry_t;
 #define PAGE_SHIFT      __PAGE_SHIFT
 #define PAGE_MASK       (~(PAGE_SIZE-1))
 
+/* 2MB superpage only */
+#define SUPERPAGE_SHIFT 9
+#define SUPERPAGE_SIZE  PAGE_SIZE << SUPERPAGE_SHIFT
+
 #define PFN_UP(x)	(((x) + PAGE_SIZE-1) >> L1_PAGETABLE_SHIFT)
 #define PFN_DOWN(x)	((x) >> L1_PAGETABLE_SHIFT)
 #define PFN_PHYS(x)	((uint64_t)(x) << L1_PAGETABLE_SHIFT)

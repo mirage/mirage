@@ -29,6 +29,10 @@
 #include "roots.h"
 #include "weak.h"
 
+#ifdef USE_STATIC_VMEM
+#include <mini-os/lib.h>
+#endif
+
 uintnat caml_percent_free;
 uintnat caml_major_heap_increment;
 CAMLexport char *caml_heap_start;
@@ -455,7 +459,19 @@ static asize_t clip_heap_chunk_size (asize_t request)
   if (request < Bsize_wsize (Heap_chunk_min)){
     request = Bsize_wsize (Heap_chunk_min);
   }
+
+#ifdef USE_STATIC_VMEM
+  /* For superpages, round up to the nearest 2MB chunk. The additional 2
+   * 4KB pages account for the heap chunk (so that the caml_aligned_malloc
+   * receives precisely a 2MB request and not a page more.
+   */
+#define roundup(x,y) ((((x)+((y)-1))/(y))*(y))
+  asize_t result;
+  result = roundup(request + (Page_size*2), PAGE_SIZE << 9) - (Page_size*2);
+  return result;
+#else
   return ((request + Page_size - 1) >> Page_log) << Page_log;
+#endif 
 }
 
 /* Make sure the request is >= caml_major_heap_increment, then call

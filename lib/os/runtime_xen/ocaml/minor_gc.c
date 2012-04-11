@@ -84,15 +84,15 @@ void caml_set_minor_heap_size (asize_t size)
   Assert (size % sizeof (value) == 0);
   if (caml_young_ptr != caml_young_end) caml_minor_collection ();
                                     Assert (caml_young_ptr == caml_young_end);
-  new_heap = caml_aligned_malloc(size, 0, &new_heap_base);
+  new_heap = caml_aligned_malloc_for_minor(size, 0, &new_heap_base);
   if (new_heap == NULL) caml_raise_out_of_memory();
   if (caml_page_table_add(In_young, new_heap, new_heap + size) != 0)
     caml_raise_out_of_memory();
 
   if (caml_young_start != NULL){
 #ifdef SYS_xen
-/* XXX temporary until memory allocator works properly */
-    printk("caml_set_minor_heap_size: resize unsupported\n");
+    /* XXX temporary until memory allocator works properly */
+    fprintf(stderr, "caml_set_minor_heap_size: resize unsupported\n");
     caml_raise_out_of_memory();
 #else
     caml_page_table_remove(In_young, caml_young_start, caml_young_end);

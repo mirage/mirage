@@ -339,7 +339,7 @@ module Spec = struct
           let kv_ros = List.flatten (List.map (fun kv_ro ->
             [A"-kv_ro";P kv_ro]) spec.kv_ros) in
           (* Execute the binary using the mir-run wrapper and log its output to prod *)
-          Cmd (S ([A "mir-run"; A"-m"; A"1024"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ kv_ros @ return @[A binary]))
+          Cmd (S ([A "mir-run"; A"-m"; A"8192"; A"-b"; A (env "%(backend)"); A"-o"; P prod] @ vbds @ kv_ros @ return @[A binary]))
         |`No ->
           (* Unsupported backend for this test, so mark as skipped in the log *)
           Util.safe_echo ["skipped"] (env "%(test).%(backend).exec") 

@@ -30,8 +30,10 @@ let input t src pkt =
     (* Adjust checksum for reply and transmit EchoReply *)
     let csum = (csum + 0x0800) land 0xffff in
     let reply = BITSTRING { 0:8; code:8; csum:16; id:16; seq:16 } in
-    printf "ICMP: sending echo reply to id %d\n%!" id;
     Ipv4.output t.ip ~proto:`ICMP ~dest_ip:src [reply; data]
+  |{ty:8; code:8; csum:16; id:16; seq:16; data:-1:bitstring} -> (* unknown *)
+    printf "ICMP unknown ty %d code %d id %d\n%!" ty code id;
+    return ()
 
 let create ip =
   let t = { ip } in

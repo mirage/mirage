@@ -18,7 +18,7 @@ endif
 ifeq ($(NODE),)
 NODE_BUILD=
 else
-NODE_BUILD=node
+NODE_BUILD=
 endif
 
 UNIX_BUILD= unix-direct unix-socket

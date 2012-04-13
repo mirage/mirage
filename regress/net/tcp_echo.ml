@@ -28,27 +28,16 @@ let ip = Net.Nettypes.(
   ))
 
 let rec echo (rip,rpt) pcb = 
-  Log.info "Tcp_echo" "incoming: rem:%s:%d" 
-    (Net.Nettypes.ipv4_addr_to_string rip) rpt;
-
-  Net.(
-    match_lwt Tcp.Pcb.read pcb with
-      | None
-        -> (Log.info "Tcp_echo" "rem:%s:%d end"
-              (Nettypes.ipv4_addr_to_string rip) rpt;
-            Tcp.Pcb.close pcb
-        )
-      | Some bits
-        -> (let s = Bitstring.string_of_bitstring bits in
-            Log.info "Tcp_echo" "rem:%s:%d buf:\n%s"
-              (Nettypes.ipv4_addr_to_string rip) rpt s;
-            
-            let len = Bitstring.bitstring_length bits in
-            Tcp.Pcb.write_wait_for pcb len
-            >> Tcp.Pcb.write pcb bits
-            >> echo (rip,rpt) pcb
-        )
-  )
+  let open Net in
+  match_lwt Tcp.Pcb.read pcb with
+   | None -> Tcp.Pcb.close pcb
+   | Some bits -> begin
+       let s = Bitstring.string_of_bitstring bits in
+       let len = Bitstring.bitstring_length bits in
+       Tcp.Pcb.write_wait_for pcb len
+       >> Tcp.Pcb.write pcb bits
+       >> echo (rip,rpt) pcb
+   end
 
 let main () =
   Log.info "Tcp_echo" "starting server";

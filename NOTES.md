@@ -1,5 +1,7 @@
 ## Build targets
 
+The `mir-build` script is a wrapper over OCamlbuild, which symlinks in our plugin (from `scripts/myocamlbuild`).
+
 These must be run from the `lib/` directory only, and will not work in subdirectories.
 
 Given an input foo.ml:
@@ -14,13 +16,33 @@ Given an input foo.ml:
 
 ## Test suite targets
 
-    $ cd regress
-    
-    # run a single test, as listed in a .spec file
-    $ ocamlbuild lwt/heads1.exec
-    $ cat _build/lwt/heads1.exec
-    
-    # run a suite of tests, as listed in .suite
-    $ ocamlbuild lwt.run
-    $ cat _build/lwt.run
+These are useful to automatically run Xen kernels using `mir-run`.
 
+    $ cd regress
+   
+The general form is `<dir>/<base filename>.<backend>.exec` to run them.
+ 
+    # run the heads-and-tails test.
+    $ mir-build lwt/heads1.xen.exec
+    $ mir-build lwt/heads1.unix-socket.exec
+    $ cat _build/lwt/heads1.unix-socket.exec
+
+To build the raw kernel directly, prepend the backend as a virtual directory:
+
+    $ mir-build xen/lwt/heads1.xen
+    $ mir-build unix-direct/lwt/heads1.bin
+
+NOTE: if you use the automatic target, it will not have any VIFs or storage. Look at the `mir-run` script for arguments to plug in a VIF or block device or K/V store. E.g. to run the TCP echo test:
+
+    $ mir-build xen/net/tcp_echo.xen
+    $ mir-run -b xen _build/xen/net/tcp_echo.xen -vif br0
+
+This particular test defaults to `10.0.0.2` (look in the source), so you bridge will be `10.0.0.1` and you should be able to telnet to `10.0.0.2 55555`.
+
+In the build system, Xen kernels have a `.bin` extension, and all UNIX binaries are `.bin`.
+
+You can also define a suite of tests and run them all:
+
+    # run a suite of tests, as listed in .suite
+    $ mir-build lwt.run
+    $ cat _build/lwt.run

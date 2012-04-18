@@ -16,12 +16,9 @@ type results = {
 }
 
 let block_sizes =
-(*
   (* multiples of 2 from [start] to [limit] inclusive *)
   let rec powers limit start = if start > limit then [] else start :: (powers limit (start * 2)) in
-  powers (128 * 1048576) 512
-*)
-  [ 512; 1024; 2048; 4096; 8192; 16384; 32768 ]
+  powers 4194304 512
 
 type 'a ll = Cons of 'a * (unit -> 'a ll)
 

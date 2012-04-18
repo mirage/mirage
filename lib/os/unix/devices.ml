@@ -26,6 +26,7 @@ type blkif = <
   write_page: int64 -> Bitstring.t -> unit Lwt.t;
   sector_size: int;
   size: int64;
+  readwrite: bool;
   ppname: string;
   destroy: unit;
 >

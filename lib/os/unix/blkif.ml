@@ -61,6 +61,7 @@ let create ~id ~filename : Devices.blkif Lwt.t =
     method write_page = write_page t
     method sector_size = 4096
     method size = size
+    method readwrite = true
     method ppname = sprintf "Unix.blkif:%s(%s)" id filename
     method destroy = Socket.close t.fd
   end)

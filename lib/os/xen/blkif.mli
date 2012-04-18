@@ -45,6 +45,7 @@ type features = {
   removable : bool;
   sector_size : int64;
   sectors : int64;
+  readwrite: bool;
 }
 
 type t

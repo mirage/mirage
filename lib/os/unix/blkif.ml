@@ -46,6 +46,13 @@ let create ~id ~filename : Devices.blkif Lwt.t =
       printf "Blkif: failed to open VBD %s\n%!" filename;
       fail (Error err)
   in
+  lwt size =
+    try_lwt
+      Socket.(iobind file_size filename)
+    with Socket.Error err ->
+      printf "Blkif: failed to determine VBD size %s\n%!" filename;
+      fail (Error err)
+  in
   printf "Unix.Blkif: success\n%!";
   let t = {id; fd} in
   return (object
@@ -53,6 +60,8 @@ let create ~id ~filename : Devices.blkif Lwt.t =
     method read_page = read_page t
     method write_page = write_page t
     method sector_size = 4096
+    method size = size
+    method readwrite = true
     method ppname = sprintf "Unix.blkif:%s(%s)" id filename
     method destroy = Socket.close t.fd
   end)

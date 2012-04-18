@@ -124,6 +124,7 @@ type features = {
   removable: bool;
   sector_size: int64; (* stored as int64 for convenient division *)
   sectors: int64;
+  readwrite: bool;
 }
 
 type t = {
@@ -199,7 +200,8 @@ let plug (id:id) =
     lwt removable = rdfn ((=) "1") false "removable" in
     lwt sectors = rdfn Int64.of_string (-1L) "sectors" in
     lwt sector_size = rdfn Int64.of_string 0L "sector-size" in
-    return { barrier; removable; sector_size; sectors }
+    lwt readwrite = rdfn (fun x -> x = "w") false "mode" in
+    return { barrier; removable; sector_size; sectors; readwrite }
   )) in
   printf "Blkfront features: barrier=%b removable=%b sector_size=%Lu sectors=%Lu\n%!" 
     features.barrier features.removable features.sector_size features.sectors;
@@ -262,7 +264,9 @@ let read_page t offset =
    Page must be an Io_page *)
 let write_page t offset page =
   let sector = Int64.div offset t.features.sector_size in
-  Gnttab.with_ref
+  if not t.features.readwrite
+  then fail (IO_error "read-only")
+  else Gnttab.with_ref
     (fun r ->
       Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r (Io_page.of_bitstring page)
         (fun () ->
@@ -355,6 +359,8 @@ let create ~id : Devices.blkif Lwt.t =
     method read_page = read_page dev
     method write_page = write_page dev
     method sector_size = 4096
+    method size = Int64.mul dev.features.sectors dev.features.sector_size
+    method readwrite = dev.features.readwrite
     method ppname = sprintf "Xen.blkif:%s" id
     method destroy = unplug id
   end)

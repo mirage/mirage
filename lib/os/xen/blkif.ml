@@ -355,6 +355,7 @@ let create ~id : Devices.blkif Lwt.t =
     method read_page = read_page dev
     method write_page = write_page dev
     method sector_size = 4096
+    method size = Int64.mul dev.features.sectors dev.features.sector_size
     method ppname = sprintf "Xen.blkif:%s" id
     method destroy = unplug id
   end)

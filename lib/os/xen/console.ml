@@ -61,9 +61,9 @@ let write cons buf off len =
 let t = create ()
 
 let log s = 
-  let s = s ^ "\n" in
+  let s = s ^ "\r\n" in
   write t s 0 (String.length s)
 
 let log_s s =
-  let s = s ^ "\n" in
+  let s = s ^ "\r\n" in
   sync_write t s 0 (String.length s)

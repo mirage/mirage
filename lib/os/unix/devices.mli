@@ -22,7 +22,9 @@ type blkif = <
   ppname : string;
   read_page : int64 -> Bitstring.t Lwt.t;
   write_page: int64 -> Bitstring.t -> unit Lwt.t;
-  sector_size : int 
+  sector_size : int;
+  size: int64;
+  readwrite: bool;
 >
 
 type kv_ro = <

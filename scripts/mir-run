@@ -109,7 +109,7 @@ EOF
     for vbd in ${VBDS[@]}; do
       vbdid=$(echo ${vbd} | cut -d : -f 1)
       vbdfile=$(readlink -f $(echo ${vbd} |cut -d : -f 2))
-      echo -n "'file://$vbdfile,$vbdid,r', "  >> $CONF
+      echo -n "'file://$vbdfile,$vbdid,w', "  >> $CONF
     done
     echo " ]" >> $CONF
     echo -n "vif=[ " >> $CONF

@@ -125,6 +125,9 @@ void caml_stash_backtrace(value exn, code_t pc, value * sp)
 #define O_BINARY 0
 #endif
 
+#ifdef SYS_xen
+static value read_debug_info(void) { return Val_false; }
+#else
 static value read_debug_info(void)
 {
   CAMLparam0();
@@ -165,6 +168,7 @@ static value read_debug_info(void)
   caml_close_channel(chan);
   CAMLreturn(events);
 }
+#endif
 
 /* Search the event for the given PC.  Return Val_false if not found. */
 
@@ -263,6 +267,7 @@ CAMLexport void caml_print_exception_backtrace(void)
   struct loc_info li;
 
   events = read_debug_info();
+
   if (events == Val_false) {
     fprintf(stderr,
             "(Program not linked with -g, cannot print stack backtrace)\n");

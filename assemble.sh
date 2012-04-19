@@ -23,7 +23,7 @@ function assemble_xen {
     echo Assembling: Xen
     OBJ=${BUILDDIR}/xen
     mkdir -p ${OBJ}/lib ${OBJ}/syntax
-    for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a ocaml/libocamlbc.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
+    for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a ocaml/libocamlbc.a kernel/libxen.a kernel/libxencaml.a kernel/longjmp.o kernel/x86_64.o; do
       cp ${ROOT}/lib/_build/xen/os/runtime_xen/$i ${OBJ}/lib/
     done
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/

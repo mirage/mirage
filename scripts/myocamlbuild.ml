@@ -99,7 +99,18 @@ module Mir = struct
 
   let cc_unix_bytecode_link = cc_unix_link true
   let cc_unix_native_link = cc_unix_link false
-  
+
+   (** Link to a standalone Xen bytecode microkernel *)
+  let cc_xen_link tags arg out env =
+    let xenlib = lib / "xen" / "lib" in   
+    let head_obj = Px (xenlib / "x86_64.o") in
+    let ldlibs = List.map (fun x -> Px (xenlib / ("lib" ^ x ^ ".a")))
+      ["ocaml"; "xen"; "xencaml"; "diet"; "m"] in
+    Cmd (S ( A ld :: [ T(tags++"link"++"xen");
+      A"-d"; A"-nostdlib"; A"-m"; A"elf_x86_64"; A"-T";
+      Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
+      @ ldlibs @ [A"-o"; Px out]))
+
   (** Link to a standalone Xen microkernel *)
   let cc_xen_link tags arg out env =
     let xenlib = lib / "xen" / "lib" in   
@@ -202,10 +213,16 @@ module Mir = struct
       (xen_objcopy "%.mx.o" "%.m.o");
 
     (* Xen link rule *)
-    rule ("final link: xen/%__.m.o -> xen/%.xen")
+    rule ("final link: xen/%__.mx.o -> xen/%.xen")
       ~prod:"xen/%(file).xen"
       ~dep:"xen/%(file)__.mx.o"
       (cc_link_c_implem cc_xen_link "xen/%(file)__.mx.o" "xen/%(file).xen");
+
+    (* Xen bytecode link rule *)
+    rule ("final link: xen/%__.mb.o -> xen/%.bcxen")
+      ~prod:"xen/%(file).bcxen"
+      ~dep:"xen/%(file)__.mb.o"
+      (cc_link_c_implem cc_xen_link "xen/%(file)__.mb.o" "xen/%(file).bcxen");
 
     (* UNIX link rule *)
     rule ("final link: %__.m.o -> %.unix-%(mode).bin")

@@ -147,8 +147,11 @@ module CC = struct
   (* defines used by the ocaml runtime, as well as includes *)
   let ocaml_debug_inc = if debug then [A "-DDEBUG"] else []
   let ocaml_incs = [
-    A "-DCAML_NAME_SPACE"; A "-DNATIVE_CODE"; A "-DTARGET_amd64"; A "-DSYS_xen";
+    A "-DCAML_NAME_SPACE"; A "-DTARGET_amd64"; A "-DSYS_xen";
     A (ps "-I%s/os/runtime_xen/ocaml" Pathname.pwd) ] @ ocaml_debug_inc
+
+  let ocaml_asmrun = [ A"-DNATIVE_CODE" ]
+  let ocaml_byterun = [ ]
 
   (* ocaml system include directory i.e. /usr/lib/ocaml *)
   let ocaml_sys_incs = [ A"-I"; Px (Util.run_and_read "ocamlc -where"); ]
@@ -180,6 +183,14 @@ module CC = struct
     Cmd(S[A ar; A"rc"; Px a; T(tags_of_pathname a++"c"++"archive"); atomize objs])
 
   let () =
+    rule "cc: .nc.c -> .c"
+      ~prod:"%.nc.c" ~dep:"%.c"
+      (fun env _ -> cp (env "%.c") (env "%.nc.c"));
+
+    rule "cc: .bc.c -> .c"
+      ~prod:"%.bc.c" ~dep:"%.c"
+      (fun env _ -> cp (env "%.c") (env "%.bc.c"));
+
     rule "cc: .c -> .o include ocaml dir"
       ~tags:["cc"; "c"]
       ~prod:"%.o" ~dep:"%.c"
@@ -312,6 +323,8 @@ let _ = dispatch begin function
     flag ["c"; "compile"; "include_xen"] & S CC.xen_incs;
     flag ["c"; "compile"; "include_libm"] & S CC.libm_incs;
     flag ["c"; "compile"; "include_ocaml"] & S CC.ocaml_incs;
+    flag ["c"; "compile"; "ocaml_byterun"] & S CC.ocaml_byterun;
+    flag ["c"; "compile"; "ocaml_asmrun"] & S CC.ocaml_asmrun;
     flag ["c"; "compile"; "include_system_ocaml"] & S CC.ocaml_sys_incs;
     flag ["c"; "compile"; "include_dietlibc"] & S CC.dietlibc_incs;
     flag ["c"; "compile"; "pic"] & S [A"-fPIC"]

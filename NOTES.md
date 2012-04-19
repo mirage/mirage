@@ -24,3 +24,15 @@ Given an input foo.ml:
     $ ocamlbuild lwt.run
     $ cat _build/lwt.run
 
+## Bytecode targets
+
+For the UNIX targets, there are 3 targets (by the filename extension):
+
+* `.bin`: native code
+* `.bcbin`: bytecode as an embedded callback
+* `.bcxbin`: bytecode with deadcode-elimination via ocamlclean [1]
+
+Note that ocamlclean can be quite slow (minutes) for larger applications,
+hence it isnt done by default for the bytecode target.
+
+[1] Modified to support Mirage, at http://github.com/avsm/ocamlclean

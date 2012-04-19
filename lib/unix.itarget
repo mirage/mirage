@@ -1,4 +1,5 @@
 std/stdlib.cmxa
+std/stdlib.cma
 os/runtime_unix/libunixrun.a
 os/runtime_unix/main.o
 annots

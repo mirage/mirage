@@ -26,11 +26,16 @@ type t = {
   fd: [`rw_file] Socket.fd;
 }
 
-let read_page t offset =
+let read_n t (offset: int64) (length: int64) : Bitstring.t Lwt.t =
   Socket.(iobind (lseek t.fd) offset) >>
-  let buf = String.create 4096 in (* XXX pool? *)
-  lwt rd = Socket.(iobind (read t.fd buf 0) 4096) in
+  let buf = String.create (Int64.to_int length) in (* XXX pool? *)
+  lwt rd = Socket.(iobind (read t.fd buf 0) (Int64.to_int length)) in
   return (buf,0, rd*8)
+
+let read_page t offset = read_n t offset 4096L
+
+(* Just return an array with a single big element for now *)
+let read_512 t offset length = Int64.(map (fun x -> [| x |]) (read_n t (mul 512L offset) (mul 512L length)))
 
 let write_page t offset data =
   Socket.(iobind (lseek t.fd) offset) >>
@@ -58,6 +63,7 @@ let create ~id ~filename : Devices.blkif Lwt.t =
   return (object
     method id = id
     method read_page = read_page t
+    method read_512 = read_512 t
     method write_page = write_page t
     method sector_size = 4096
     method size = size

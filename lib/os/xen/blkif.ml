@@ -357,6 +357,7 @@ let create ~id : Devices.blkif Lwt.t =
   return (object
     method id = id
     method read_page = read_page dev
+    method read_512 = read_512 dev
     method write_page = write_page dev
     method sector_size = 4096
     method size = Int64.mul dev.features.sectors dev.features.sector_size

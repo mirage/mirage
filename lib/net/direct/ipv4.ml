@@ -57,8 +57,7 @@ let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
   let ttl = 38 in (* TODO TTL *)
   lwt dmac = destination_mac t dest_ip >|= ethernet_mac_to_bytes in
   let smac = ethernet_mac_to_bytes (Ethif.mac t.ethif) in
-  let options_len = 0 in (* no options support yet *)
-  let ihl = options_len + 5 in
+  let ihl = 0 + 5 in (* No IP options support yet *)
   let tlen = (List.fold_left (fun a b -> 
     Bitstring.bitstring_length b + a) 0 pkt) / 8 + (ihl * 4) in
   let tos = 0 in
@@ -69,18 +68,18 @@ let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
   let src = ipv4_addr_to_uint32 t.ip in
   let dst = ipv4_addr_to_uint32 dest_ip in
   let frame = BITSTRING {
-    dmac:48:string; smac:48:string; 0x0800:16
+    dmac:48:string; smac:48:string; 0x0800:16;
+    4:4; 5:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
+    ttl:8; proto:8; 0:16; src:32; dst:32
   } in
-  let ipv4_header = BITSTRING {
-    4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
-    ttl:8; proto:8; 0:16; src:32; dst:32 } in
+  let framebuf, frameoff, framelen = frame in
+  let ipv4_header = (framebuf, (frameoff + (48+48+16)), (framelen - (48+48+16))) in
   let checksum = Checksum.ones_complement ipv4_header in
   let checksum_bs,_,_ = BITSTRING { checksum:16 } in
-  let checksum_offset = (4+4+8+16+16+3+13+8+8) / 8 in
-  let ipv4_header_buf, _, _ = ipv4_header in
-  ipv4_header_buf.[checksum_offset] <- checksum_bs.[0];
-  ipv4_header_buf.[checksum_offset+1] <- checksum_bs.[1];
-  Ethif.output t.ethif (frame :: ipv4_header :: pkt)
+  let checksum_offset = (48+48+16+4+4+8+16+16+3+13+8+8) / 8 in
+  framebuf.[checksum_offset] <- Char.chr (checksum lsr 8);
+  framebuf.[checksum_offset+1] <- Char.chr (checksum land 255);
+  Ethif.output t.ethif (frame :: pkt)
 
 let input t pkt =
   bitmatch pkt with

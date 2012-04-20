@@ -182,6 +182,7 @@ external int_of_string : string -> int = "caml_int_of_string"
 
 module String = struct
   external get : string -> int -> char = "%string_safe_get"
+  external unsafe_get : string -> int -> char = "%string_unsafe_get"
 end
 
 let valid_float_lexem s =

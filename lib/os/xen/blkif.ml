@@ -287,68 +287,99 @@ let write_page t offset page =
         )
     )
 
+(* Issues a single request to read from [start_sector + start_offset] to [end_sector - end_offset]
+   where: [start_sector] and [end_sector] are page-aligned; and the total number of pages will fit
+   in a single request. *)
+let single_512_byte_page_aligned_read t (start_sector, start_offset) (end_sector, end_offset) =
+  let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in  
+  if len > 11 then
+    fail (Failure (sprintf "len > 11 (%Lu, %u) (%Lu, %u)" start_sector start_offset end_sector end_offset))
+  else 
+    Io_page.with_pages len
+      (fun pages ->
+	Gnttab.with_refs len
+          (fun rs ->
+            Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW rs pages
+	      (fun () ->
+		let segs = Array.mapi
+		  (fun i r ->
+		    let first_sector = match i with
+		      |0 -> start_offset
+		      |_ -> 0 in
+		    let last_sector = match i with
+		      |n when n == len-1 -> end_offset
+		      |_ -> 7 in
+		    let gref = Gnttab.to_int32 r in
+		    { Req.gref; first_sector; last_sector }
+		  ) (Array.of_list rs) in
+		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
+		let req = Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
+		let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+		if Ring.Front.push_requests_and_check_notify t.ring then
+		  Evtchn.notify t.evtchn;
+		let open Res in
+		    lwt res = res in
+		match res.st with
+		  |Error -> fail (IO_error "read")
+		  |Not_supported -> fail (IO_error "unsupported")
+		  |Unknown x -> fail (IO_error "unknown error")
+		  |OK ->
+		    (* Get the pages, and convert them into Istring views *)
+		    let pages = Array.mapi
+		      (fun i page ->
+			let bs = Io_page.to_bitstring page in
+			let start_offset = match i with
+			  |0 -> start_offset * 512
+			  |_ -> 0 in
+			let end_offset = match i with
+			  |n when n = len-1 -> (end_offset + 1) * 512
+			  |_ -> 4096 in
+			let bytes = end_offset - start_offset in
+			Bitstring.subbitstring bs (start_offset * 8) (bytes * 8)
+		      ) (Array.of_list pages) in
+		    return pages
+	      )
+	  )
+      )
 
-(** Read a number of contiguous sectors off disk.
-    This function assumes a 512 byte sector size.
-  *)
-let read_512 t sector num_sectors =
+(* Reads [num_sectors} 512-byte sectors starting at [sector] recursively. *)
+let rec read_512_chunks t sector num_sectors =
+  assert (sector >= 0L);
+  assert (num_sectors > 0L);
   (* Round down the starting sector in order to get a page aligned sector *)
   let start_sector = Int64.(mul 8L (div sector 8L)) in
   let start_offset = Int64.(to_int (sub sector start_sector)) in
-  (* Round up the ending sector to get the final page size *)
+  (* Round up the ending sector to the page boundary *)
   let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
-  let end_offset = Int64.(to_int (sub 7L (sub end_sector (add sector num_sectors)))) in
-  (* Calculate number of 4K pages needed *)
-  let len = Int64.(to_int (div (sub end_sector start_sector) 8L)) in
-  if len > 11 then
-    fail (Failure (sprintf "len > 11 sec=%Lu num=%Lu" sector num_sectors))
-  else 
-  Io_page.with_pages len
-    (fun pages ->
-      Gnttab.with_refs len
-        (fun rs ->
-          Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW rs pages
-    (fun () ->
-      let segs = Array.mapi
-        (fun i r ->
-          let first_sector = match i with
-            |0 -> start_offset
-            |_ -> 0 in
-          let last_sector = match i with
-            |n when n == len-1 -> end_offset
-            |_ -> 7 in
-          let gref = Gnttab.to_int32 r in
-          { Req.gref; first_sector; last_sector }
-        ) (Array.of_list rs) in
-      let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
-      let req = Req.({ op=Read; handle=t.vdev; id; sector=start_sector; segs }) in
-      let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
-      if Ring.Front.push_requests_and_check_notify t.ring then
-        Evtchn.notify t.evtchn;
-      let open Res in
-      lwt res = res in
-      match res.st with
-      |Error -> fail (IO_error "read")
-      |Not_supported -> fail (IO_error "unsupported")
-      |Unknown x -> fail (IO_error "unknown error")
-      |OK ->
-        (* Get the pages, and convert them into Istring views *)
-        let pages = Array.mapi
-          (fun i page ->
-            let bs = Io_page.to_bitstring page in
-            let start_offset = match i with
-              |0 -> start_offset * 512
-              |_ -> 0 in
-            let end_offset = match i with
-              |n when n = len-1 -> (end_offset + 1) * 512
-              |_ -> 4096 in
-            let bytes = end_offset - start_offset in
-            Bitstring.subbitstring bs (start_offset * 8) (bytes * 8)
-          ) (Array.of_list pages) in
-        return pages
-    )
-)
-)
+  (* Calculate number of sectors needed *)
+  let total_sectors_needed = Int64.(sub end_sector start_sector) in
+  (* Maximum of 11 segments per request; 1 page (8 sectors) per segment so: *)
+  let total_sectors_possible = min 88L total_sectors_needed in
+
+  let possible_end_sector = Int64.add start_sector total_sectors_possible in
+  let end_offset = min 7 (Int64.(to_int (sub 7L (sub possible_end_sector (add sector num_sectors))))) in
+
+  lwt pages = single_512_byte_page_aligned_read t (start_sector, start_offset) (possible_end_sector, end_offset) in
+  if total_sectors_possible < total_sectors_needed
+  then
+    let num_sectors = Int64.(sub num_sectors (sub total_sectors_possible (of_int start_offset))) in
+    lwt rest = Int64.(read_512_chunks t (add start_sector total_sectors_possible) num_sectors) in
+    return (Array.concat [ pages; rest ])
+  else
+    return pages
+
+(* Reads [num_sectors] starting at [sector], returning an array of bitstrings *)
+let read_512 t sector num_sectors =
+  lwt pages = read_512_chunks t sector num_sectors in
+  (* Sanity check that we read the right size of data *)
+  let total_size = Int64.of_int (Array.fold_left (fun acc bs -> Bitstring.bitstring_length bs / 8 + acc) 0 pages) in
+  let size_should_be = Int64.mul 512L num_sectors in
+  if total_size <> size_should_be then begin
+    printf "total_size = %Ld\n" total_size;
+    printf "size_should_be = %Ld\n%!" size_should_be;
+    fail (IO_error "size")
+  end else
+    return pages
 
 let create ~id : Devices.blkif Lwt.t =
   printf "Xen.Blkif: create %s\n%!" id;

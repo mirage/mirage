@@ -46,3 +46,21 @@ You can also define a suite of tests and run them all:
     # run a suite of tests, as listed in .suite
     $ mir-build lwt.run
     $ cat _build/lwt.run
+
+## Bytecode targets
+
+For the UNIX targets, there are 3 targets (by the filename extension):
+
+* `.bin`: native code
+* `.bcbin`: bytecode as an embedded callback
+* `.bcxbin`: bytecode with deadcode-elimination via ocamlclean [1]
+
+For Xen, there is a bytecode (that requires ocamlclean) and native code:
+
+* `.xen`: native code microkernel
+* `.bcxen`: bytecode microkernel with deadcode-elimination via ocamlclean [1]
+
+Note that ocamlclean can be quite slow (minutes) for larger applications,
+hence it isnt done by default for the bytecode target.
+
+[1] Modified to support Mirage, at http://github.com/avsm/ocamlclean

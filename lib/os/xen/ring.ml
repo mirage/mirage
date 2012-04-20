@@ -61,14 +61,14 @@ let init ~domid ~idx_size ~name =
   String.blit src 0 buf (off/8) (String.length src);
   return (gnt,t)
 
-external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod"
-external sring_req_prod: sring -> int = "caml_sring_req_prod" 
-external sring_req_event: sring -> int = "caml_sring_req_event"
-external sring_rsp_event: sring -> int = "caml_sring_rsp_event"
-external sring_push_requests: sring -> int -> unit = "caml_sring_push_requests"
-external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses" 
-external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event"
-external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event"
+external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
+external sring_req_prod: sring -> int = "caml_sring_req_prod" "noalloc"
+external sring_req_event: sring -> int = "caml_sring_req_event" "noalloc"
+external sring_rsp_event: sring -> int = "caml_sring_rsp_event" "noalloc"
+external sring_push_requests: sring -> int -> unit = "caml_sring_push_requests" "noalloc"
+external sring_push_responses: sring -> int -> unit = "caml_sring_push_responses" "noalloc"
+external sring_set_rsp_event: sring -> int -> unit = "caml_sring_set_rsp_event" "noalloc"
+external sring_set_req_event: sring -> int -> unit = "caml_sring_set_req_event" "noalloc"
 
 let nr_ents sring = sring.nr_ents
 

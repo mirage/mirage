@@ -3,7 +3,7 @@ open Lwt
 (* The performance test is functorised over a SYSTEM: *)
 module type SYSTEM = sig
   val sector_size: int
-  val read_sectors: int * int -> Bitstring.t Lwt.t
+  val read_sectors: int * int -> Bitstring.t array Lwt.t
 
   val gettimeofday: unit -> float
 end

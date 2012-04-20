@@ -72,9 +72,14 @@ let with_page f =
 
 let with_pages n f =
   let pages = get_n n in
-  lwt res = f pages in
-  List.iter put pages;
-  return res
+  try_lwt
+    lwt res = f pages in
+    List.iter put pages;
+    return res
+  with exn -> begin
+    List.iter put pages;
+    fail exn
+  end
 
 (*
 let detach (x: t) =

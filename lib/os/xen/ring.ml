@@ -17,13 +17,21 @@
 open Lwt
 open Printf
 
-(* Allocate a new grant entry and initialise a ring using it *)
-let alloc ~domid =
+let rec pow2 = function
+  | 0 -> 1
+  | n -> 2 * (pow2 (n - 1))
+
+(* Allocate a multi-page ring, returning the grants and pages *)
+let alloc ~domid ~order =
   lwt gnt = Gnttab.get () in
-  let page = Io_page.get () in
+  (* XXX: need to allocate (pow2 order) contiguous pages *)
+  let ring, pages =
+    let page = Io_page.get () in
+    Io_page.to_bitstring page, [ page ] in
+  lwt gnts = Gnttab.get_n (List.length pages) in
   let perm = Gnttab.RW in
-  Gnttab.grant_access ~domid ~perm gnt page;
-  return (gnt, Io_page.to_bitstring page)
+  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
+  return (gnts, ring)
 
 (*
   struct sring {
@@ -43,15 +51,15 @@ type sring = {
   name: string;     (* For pretty printing only *)
 }
 
-let init ~domid ~idx_size ~name =
-  lwt gnt, (buf, off, len) = alloc ~domid in
-  assert (len = (4096 * 8));
+let init ~domid ~order ~idx_size ~name =
+  lwt gnts, (buf, off, len) = alloc ~domid ~order in
+  assert (len = (4096 * (pow2 order) * 8));
   let header_size = 32+32+32+32+(48*8) in (* header bits size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
   let round_down_to_nearest_2 x =
     int_of_float (2. ** (floor ( (log (float x)) /. (log 2.)))) in
   (* Free space in shared ring after header is accounted for *)
-  let free_bytes = 4096 - (header_size / 8) in
+  let free_bytes = 4096 * (pow2 order) - (header_size / 8) in
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
   (* We store idx_size in bits, for easier Bitstring offset calculations *)
   let idx_size = idx_size * 8 in
@@ -59,7 +67,7 @@ let init ~domid ~idx_size ~name =
   (* initialise the *_event fields to 1, and the rest to 0 *)
   let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
   String.blit src 0 buf (off/8) (String.length src);
-  return (gnt,t)
+  return (gnts,t)
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod"
 external sring_req_prod: sring -> int = "caml_sring_req_prod" 

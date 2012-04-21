@@ -132,7 +132,7 @@ type t = {
   backend: string;
   vdev: int;
   ring: (Res.t,int64) Ring.Front.t;
-  gnt: Gnttab.r;
+  gnts: Gnttab.r list;
   evtchn: int;
   features: features;
 }
@@ -144,12 +144,12 @@ exception IO_error of string
 let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
 (* Allocate a ring, given the vdev and backend domid *)
-let alloc (num,domid) =
+let alloc ~order (num,domid) =
   let name = sprintf "Blkif.%d" num in
   let idx_size = Req.idx_size in (* bigger than res *)
-  lwt (rx_gnt, sring) = Ring.init ~domid ~idx_size ~name in
+  lwt (rx_gnts, sring) = Ring.init ~domid ~order ~idx_size ~name in
   let fring = Ring.Front.init ~sring in
-  return (rx_gnt, fring)
+  return (rx_gnts, fring)
 
 (* Thread to poll for responses and activate wakeners *)
 let rec poll t =
@@ -175,15 +175,35 @@ let plug (id:id) =
         return (fn s)
       with exn -> return default in
 
-  lwt (gnt, ring) = alloc(vdev,backend_id) in
+  (* The backend can advertise a multi-page ring: *)
+  lwt backend_max_ring_page_order = backend_read int_of_string 0 "max-ring-page-order" in
+  if backend_max_ring_page_order = 0
+  then printf "Blkback can only use a single-page ring\n%!"
+  else printf "Blkback advertises multi-page ring (size 2 ** %d pages)\n%!" backend_max_ring_page_order;
+
+  let our_max_ring_page_order = 0 in
+  let ring_page_order = min our_max_ring_page_order backend_max_ring_page_order in
+  printf "Negotiated a %s\n%!" (if ring_page_order = 0 then "singe-page ring" else sprintf "multi-page ring (size 2 ** %d pages)" ring_page_order);
+
+  lwt (gnts, ring) = alloc ~order:ring_page_order (vdev,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
-  (* Read xenstore info and set state to Connected *)
+
+  let ring_info =
+    (* The new protocol writes (ring-refN = G) where N=0,1,2 *)
+    let rfs = snd(List.fold_left (fun (i, acc) g ->
+      i + 1, ((sprintf "ring-ref%d" i, Gnttab.to_string g) :: acc)
+    ) (0, []) gnts) in
+    if ring_page_order = 0
+    then [ "ring-ref", Gnttab.to_string (List.hd gnts) ] (* backwards compat *)
+    else [ "ring-page-order", string_of_int ring_page_order ] @ rfs in
+  let info = [
+    "event-channel", string_of_int evtchn;
+    "protocol", "x86_64-abi";
+    "state", Xb.State.(to_string Connected)
+  ] @ ring_info in
   Xs.(transaction t (fun xst ->
     let wrfn k v = xst.Xst.write (node k) v in
-    wrfn "ring-ref" (Gnttab.to_string gnt) >>
-    wrfn "event-channel" (string_of_int evtchn) >>
-    wrfn "protocol" "x86_64-abi" >>
-    wrfn "state" Xb.State.(to_string Connected) 
+    Lwt_list.iter_s (fun (k, v) -> wrfn k v) info
   )) >>
   lwt monitor_t = Xs.(monitor_path Xs.t
     (sprintf "%s/state" backend, "XXX") 20. 
@@ -205,7 +225,7 @@ let plug (id:id) =
   printf "Blkfront features: barrier=%b removable=%b sector_size=%Lu sectors=%Lu\n%!" 
     features.barrier features.removable features.sector_size features.sectors;
   Evtchn.unmask evtchn;
-  let t = { backend_id; backend; vdev; ring; gnt; evtchn; features } in
+  let t = { backend_id; backend; vdev; ring; gnts; evtchn; features } in
   Hashtbl.add devices id t;
   (* Start the background poll thread *)
   let _ = poll t in

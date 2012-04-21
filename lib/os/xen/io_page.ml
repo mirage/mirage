@@ -27,16 +27,26 @@ type t = {
 
 let free_list = Queue.create ()
 
-let alloc ~nr_pages =
-  let buf = alloc_external_string ((nr_pages+1) * 4096) in
+let page_size_bytes = 4096
+let page_size_bits = 4096 * 8
+
+let alloc_contiguous nr_pages =
+  let buf = alloc_external_string ((nr_pages+1) * page_size_bytes) in
   let off, nr = chunk_external_string buf in
   assert (nr = nr_pages);
-  let off = off * 8 in (* bitstrings offsets are in bits *)
-  let page_size = 4096 * 8 in (* PAGE_SIZE==4096, in bits *)
-  for i = 0 to nr_pages - 1 do
-    let bs = buf, (off + (i*page_size)), page_size in
-    Queue.add bs free_list;
-  done
+  buf, off * 8, nr_pages * page_size_bits
+
+let (|>) a b = b a
+
+let alloc ~nr_pages =
+  alloc_contiguous nr_pages 
+	 |> Bitstring.bitstring_chop page_size_bits 
+	 |> List.iter (fun x -> Queue.add x free_list)
+
+let split_into_pages x =
+  x
+	 |> Bitstring.bitstring_chop page_size_bits
+	 |> List.map (fun x -> { page = x; detached = true })
 
 let get () =
   let rec inner () =

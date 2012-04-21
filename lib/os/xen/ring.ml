@@ -25,9 +25,8 @@ let rec pow2 = function
 let alloc ~domid ~order =
   lwt gnt = Gnttab.get () in
   (* XXX: need to allocate (pow2 order) contiguous pages *)
-  let ring, pages =
-    let page = Io_page.get () in
-    Io_page.to_bitstring page, [ page ] in
+  let ring = Io_page.alloc_contiguous (pow2 order) in
+  let pages = Io_page.split_into_pages ring in
   lwt gnts = Gnttab.get_n (List.length pages) in
   let perm = Gnttab.RW in
   List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);

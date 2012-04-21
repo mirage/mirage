@@ -19,14 +19,15 @@
 (** Abstract type for a shared ring *)
 type sring
 
-(** Allocate an I/O page that is shared with domain number {[domid]},
+(** Allocate contiguous I/O pages that are shared with domain number {[domid]},
     with the maximum size of each request/response in {[idx_size]}.
     @param domid domain id to share the I/O page with
+    @param order request 2 ** order contiguous pages
     @param idx_size maximum size of each slot, in bytes
     @param name Name of the shared ring, for pretty-printing
     @return Grant table entry and shared ring value
   *)
-val init : domid:int -> idx_size:int -> name:string -> (Gnttab.r * sring) Lwt.t
+val init : domid:int -> order:int -> idx_size:int -> name:string -> (Gnttab.r list * sring) Lwt.t
 
 (** The front-end of the shared ring, which issues requests and reads
     responses from the remote domain. 

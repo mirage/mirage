@@ -166,10 +166,18 @@ let plug (id:id) =
   lwt backend_id = Xs.(t.read (node "backend-id")) in
   lwt backend_id = try_lwt return (int_of_string backend_id)
     with _ -> fail (Failure "invalid backend_id") in
+  lwt backend = Xs.(t.read (node "backend")) in
+
+  let backend_read fn default k =
+    let backend = sprintf "%s/%s" backend in
+      try_lwt
+        lwt s = Xs.(t.read (backend k)) in
+        return (fn s)
+      with exn -> return default in
+
   lwt (gnt, ring) = alloc(vdev,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
   (* Read xenstore info and set state to Connected *)
-  lwt backend = Xs.(t.read (node "backend")) in
   Xs.(transaction t (fun xst ->
     let wrfn k v = xst.Xst.write (node k) v in
     wrfn "ring-ref" (Gnttab.to_string gnt) >>
@@ -184,22 +192,16 @@ let plug (id:id) =
 	    return Xb_state.(of_string state = Connected)
 	)) in
   (* Read backend features *)
-  lwt features = Xs.(transaction t (fun xst ->
-    let backend = sprintf "%s/%s" backend in
-    let rdfn fn default k =
-      try_lwt
-        lwt s = xst.Xst.read (backend k) in
-        return (fn s)
-      with exn -> return default in
-    lwt state = rdfn (Xb_state.of_string) Xb_state.Unknown "state" in
+  lwt features =
+    lwt state = backend_read (Xb_state.of_string) Xb_state.Unknown "state" in
     printf "state=%s\n%!" (Xb_state.prettyprint state);
-    lwt barrier = rdfn ((=) "1") false "feature-barrier" in
-    lwt removable = rdfn ((=) "1") false "removable" in
-    lwt sectors = rdfn Int64.of_string (-1L) "sectors" in
-    lwt sector_size = rdfn Int64.of_string 0L "sector-size" in
-    lwt readwrite = rdfn (fun x -> x = "w") false "mode" in
+    lwt barrier = backend_read ((=) "1") false "feature-barrier" in
+    lwt removable = backend_read ((=) "1") false "removable" in
+    lwt sectors = backend_read Int64.of_string (-1L) "sectors" in
+    lwt sector_size = backend_read Int64.of_string 0L "sector-size" in
+    lwt readwrite = backend_read (fun x -> x = "w") false "mode" in
     return { barrier; removable; sector_size; sectors; readwrite }
-  )) in
+  in
   printf "Blkfront features: barrier=%b removable=%b sector_size=%Lu sectors=%Lu\n%!" 
     features.barrier features.removable features.sector_size features.sectors;
   Evtchn.unmask evtchn;

@@ -181,7 +181,7 @@ let plug (id:id) =
   then printf "Blkback can only use a single-page ring\n%!"
   else printf "Blkback advertises multi-page ring (size 2 ** %d pages)\n%!" backend_max_ring_page_order;
 
-  let our_max_ring_page_order = 0 in
+  let our_max_ring_page_order = 2 in (* 4 pages *)
   let ring_page_order = min our_max_ring_page_order backend_max_ring_page_order in
   printf "Negotiated a %s\n%!" (if ring_page_order = 0 then "singe-page ring" else sprintf "multi-page ring (size 2 ** %d pages)" ring_page_order);
 

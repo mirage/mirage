@@ -183,9 +183,6 @@ let plug (id:id) =
         lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
 	    return Xb_state.(of_string state = Connected)
 	)) in
-  (* XXX bug: the xenstore watches seem to come in before the
-     actual update. A short sleep here for the race, but not ideal *)
-  Time.sleep 0.1 >>
   (* Read backend features *)
   lwt features = Xs.(transaction t (fun xst ->
     let backend = sprintf "%s/%s" backend in

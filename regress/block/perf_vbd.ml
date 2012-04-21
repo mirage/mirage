@@ -50,11 +50,12 @@ let main () =
 	blkif#write_page 0L bs
       ) in
 *)
-  lwt () = OS.Console.log_s "Sequential Read" in
-  lwt () = OS.Console.log_s "---------------" in
+  lwt () = OS.Console.log_s "Random Read" in
+  lwt () = OS.Console.log_s "-----------" in
+  lwt () = OS.Console.log_s "# block size, MiB/sec" in
   lwt () = Lwt_list.iter_s
     (fun (block_size, number) ->
-      OS.Console.log_s (sprintf "%d, %.0f" block_size (float_of_int block_size *. number))
-    ) results.Perf.seq_rd in
+      OS.Console.log_s (sprintf "%d, %.0f" block_size (float_of_int block_size *. number /. (1024.0 *. 1024.0)))
+    ) results.Perf.rand_rd in
   return ()
 

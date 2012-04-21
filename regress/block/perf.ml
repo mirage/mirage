@@ -10,9 +10,9 @@ end
 
 type results = {
   seq_rd: (int * float) list; (* sequential read: block size * bytes per sec *)
-  seq_wr: (int * int) list;   (* sequential write: block size * bytes per sec *)
-  rand_rd: (int * int) list;  (* random read: block size * bytes per sec *)
-  rand_wr: (int * int) list;  (* random write: block size * bytes per sec *)
+  seq_wr: (int * float) list;   (* sequential write: block size * bytes per sec *)
+  rand_rd: (int * float) list;  (* random read: block size * bytes per sec *)
+  rand_wr: (int * float) list;  (* random write: block size * bytes per sec *)
 }
 
 let block_sizes =
@@ -23,8 +23,10 @@ let block_sizes =
 type 'a ll = Cons of 'a * (unit -> 'a ll)
 
 let rec take n list = match n, list with
-  | 0, _ -> []
-  | n, Cons(x, xs) -> x :: (take (n-1) (xs ()))
+  | 0, _ -> [], list
+  | n, Cons(x, xs) ->
+    let xs, rest = take (n-1) (xs ()) in
+    x :: xs, rest
 
 (* A lazy-list of (offset, length) pairs corresponding to sequential blocks
    (size [block_size] from a disk of size [disk_size]. When we hit the end
@@ -59,26 +61,29 @@ module Test = functor(S: SYSTEM) -> struct
   (* return the total number of [operations] performed on [blocks] per second, averaging over [seconds] s *)
   let time seconds blocks operation =
     let start = S.gettimeofday () in
-    let rec loop blocks n = match blocks with
-      | Cons(x, xs) ->
-	lwt () = operation (to_sectors S.sector_size x) in
-        let now = S.gettimeofday () in
-        if start +. seconds < now
-        then return (float_of_int n /. seconds)
-        else loop (xs ()) (n + 1) in
+    let parallelism = 8 in
+    let rec loop blocks n =
+      let extents, rest = take parallelism blocks in
+      lwt () = Lwt_list.iter_p (fun x -> operation (to_sectors S.sector_size x)) extents in
+      let now = S.gettimeofday () in
+      if start +. seconds < now
+      then return (float_of_int n /. seconds)
+      else loop rest (n + parallelism) in
     loop blocks 0
 
   let seconds = 10.
 
   let go disk_size =
-    lwt seq_rd = Lwt_list.map_s (fun block_size ->
-      lwt t = time seconds (sequential block_size disk_size) (fun s -> Lwt.map (fun _ -> ()) (S.read_sectors s)) in
-      return (block_size, t)
-    ) block_sizes in
+    let rd sequence =
+      Lwt_list.map_s (fun block_size ->
+	lwt t = time seconds (sequence block_size disk_size) (fun s -> Lwt.map (fun _ -> ()) (S.read_sectors s)) in
+	return (block_size, t)
+      ) block_sizes in
+    lwt rand_rd = rd random in
     return {
-      seq_rd = seq_rd;
+      seq_rd = [];
       seq_wr = [];
-      rand_rd = [];
+      rand_rd = rand_rd;
       rand_wr = [];
     }
 end

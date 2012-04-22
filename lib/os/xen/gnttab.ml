@@ -75,9 +75,9 @@ let with_ref f =
 let with_refs n f =
   lwt gnts = get_n n in
   try_lwt
-    let res = f gnts in
+    lwt res = f gnts in
     List.iter put gnts;
-    res
+    return res
   with exn -> begin
     List.iter put gnts;
     fail exn
@@ -103,9 +103,9 @@ let with_grant ~domid ~perm gnt page fn =
 let with_grants ~domid ~perm gnts pages fn =
   try_lwt
     List.iter (fun (gnt, page) -> grant_access ~domid ~perm gnt page) (List.combine gnts pages);
-    let res = fn () in
+    lwt res = fn () in
     List.iter end_access gnts;
-    res
+    return res
   with exn -> begin
     List.iter end_access gnts;
     fail exn

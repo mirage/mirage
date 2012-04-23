@@ -46,3 +46,10 @@ val with_page: (t -> 'a Lwt.t) -> 'a Lwt.t
 (** [with_pages n f] calls [f pages] where [pages] is a list of fresh pages
     where each page is returned to the pool unless the user has called [detach]*)
 val with_pages: int -> (t list -> 'a Lwt.t) -> 'a Lwt.t
+
+(* XXX: multi-page ring requires a set of contiguous pages. We need some kind
+   of memory allocator (perhaps buddy since we're always dealing with 2**x pages
+   at a time *)
+val alloc_contiguous: int -> Bitstring.t
+
+val split_into_pages: Bitstring.t -> t list

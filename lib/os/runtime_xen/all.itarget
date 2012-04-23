@@ -3,4 +3,6 @@ libm/libm.a
 kernel/libxen.a
 kernel/libxencaml.a
 ocaml/libocaml.a
+ocaml/libocamlbc.a
+kernel/longjmp.o
 kernel/x86_64.o

@@ -23,11 +23,11 @@ function assemble_xen {
     echo Assembling: Xen
     OBJ=${BUILDDIR}/xen
     mkdir -p ${OBJ}/lib ${OBJ}/syntax
-    for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a kernel/libxen.a kernel/libxencaml.a kernel/x86_64.o; do
+    for i in dietlibc/libdiet.a libm/libm.a ocaml/libocaml.a ocaml/libocamlbc.a kernel/libxen.a kernel/libxencaml.a kernel/longjmp.o kernel/x86_64.o; do
       cp ${ROOT}/lib/_build/xen/os/runtime_xen/$i ${OBJ}/lib/
     done
     cp ${ROOT}/lib/os/runtime_xen/kernel/mirage-x86_64.lds ${OBJ}/lib/
-    cp ${ROOT}/lib/_build/xen/std/*.{cmi,cmx,a,o,cmxa} ${OBJ}/lib/
+    cp ${ROOT}/lib/_build/xen/std/*.{cmi,cmo,cma,cmx,a,o,cmxa} ${OBJ}/lib/
   else
     echo Skipping: Xen
   fi
@@ -45,7 +45,7 @@ function assemble_unix {
   for i in libunixrun.a main.o; do
     cp ${ROOT}/lib/_build/unix-$1/os/runtime_unix/$i ${OBJ}/lib/
   done
-  cp ${ROOT}/lib/_build/unix-$1/std/*.{cmi,cmx,cmxa,a,o,cmo} ${OBJ}/lib/
+  cp ${ROOT}/lib/_build/unix-$1/std/*.{cmi,cma,cmx,cmxa,a,o,cmo} ${OBJ}/lib/
 }
 
 function assemble_node {

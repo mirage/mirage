@@ -83,29 +83,38 @@ end
 module Mir = struct
 
   (** Link to a UNIX executable binary *)
-  let cc_unix_link tags arg out env =
+  let cc_unix_link bc tags arg out env =
     let ocamlc_libdir = "-L" ^ (Lazy.force stdlib_dir) in
     let open OS in
     let unixrun mode = lib / mode / "lib" / "libunixrun.a" in
     let unixmain mode = lib / mode / "lib" / "main.o" in
     let mode = sprintf "unix-%s" (env "%(mode)") in
+    let asmlib = match bc with |true -> A"-lcamlrun" |false -> A"-lasmrun" in
     let dl_libs = match host with
-      |Linux -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"; A"-ldl"]
-      |Darwin |FreeBSD -> [A"-lm"; A"-lasmrun"; A"-lcamlstr"] in
+      |Linux -> [A"-lm"; asmlib; A"-lcamlstr"; A"-ldl"; A"-ltermcap"]
+      |Darwin |FreeBSD -> [A"-lm"; asmlib; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     Cmd (S (A cc :: [ T(tags++"link"); A ocamlc_libdir; A"-o"; Px out; 
              A (unixmain mode); P arg; A (unixrun mode); ] @ dl_libs))
 
+  let cc_unix_bytecode_link = cc_unix_link true
+  let cc_unix_native_link = cc_unix_link false
+
   (** Link to a standalone Xen microkernel *)
-  let cc_xen_link tags arg out env =
+  let cc_xen_link bc tags arg out env =
     let xenlib = lib / "xen" / "lib" in   
+    let jmp_obj = Px (xenlib / "longjmp.o") in
     let head_obj = Px (xenlib / "x86_64.o") in
+    let ocamllib = match bc with true -> "ocamlbc" |false -> "ocaml" in
     let ldlibs = List.map (fun x -> Px (xenlib / ("lib" ^ x ^ ".a")))
-      ["ocaml"; "xen"; "xencaml"; "diet"; "m"] in
+      [ocamllib; "xen"; "xencaml"; "diet"; "m"] in
     Cmd (S ( A ld :: [ T(tags++"link"++"xen");
       A"-d"; A"-nostdlib"; A"-m"; A"elf_x86_64"; A"-T";
-      Px (xenlib / "mirage-x86_64.lds"); head_obj; P arg ]
-      @ ldlibs @ [A"-o"; Px out]))
+      Px (xenlib / "mirage-x86_64.lds");  head_obj; P arg ]
+      @ ldlibs @ [jmp_obj; A"-o"; Px out]))
+
+  let cc_xen_bc_link = cc_xen_link true
+  let cc_xen_nc_link = cc_xen_link false
 
   (* Rewrite sections for Xen LDS layout *)
   let xen_objcopy dst src env builder =
@@ -115,6 +124,13 @@ module Mir = struct
     let cmds = List.map (fun x -> A x) cmd in
     Cmd (S (cmds @ [Px src; Px dst]))
 
+  (* ocamlclean a bytecode c into a smaller one *)
+  let ocamlclean dst src env builder =
+    let dst = env dst in
+    let src = env src in
+    let cmd = [A"ocamlclean"; A"-verbose"; A"-o"; Px dst; Px src] in
+    Cmd (S cmd)
+ 
   (** Generic CC linking rule that wraps both Xen and C *) 
   let cc_link_c_implem ?tag fn c o env build =
     let c = env c and o = env o in
@@ -148,6 +164,11 @@ module Mir = struct
        ocamlopt_link_prog
       (fun tags -> tags++"ocaml"++"link"++"native"++"output_obj") x
 
+  let bytecode_output_obj x =
+    link_gen "cmo" "cma" !Options.ext_lib [!Options.ext_obj; "cmi"]
+       ocamlc_link_prog
+      (fun tags -> tags++"ocaml"++"link"++"byte"++"output_obj") x
+
   (** Generate all the rules for mir *)
   let rules () =
     (* Copied from ocaml/ocamlbuild/ocaml_specific.ml *)
@@ -166,6 +187,19 @@ module Mir = struct
       ~deps:["%.cmx"; x_o]
       (native_output_obj "%.cmx" "%.m.o");
 
+    (* Rule to link a module and output a standalone bytecode C file *)
+    rule "ocaml: cmo* & o* -> .mb.c"
+      ~prod:"%.mb.c"
+      ~deps:["%.cmo"; x_o]
+      (bytecode_output_obj "%.cmo" "%.mb.c");
+
+    (* Rule to ocamlclean a C file into a crunched version.
+     * Requires avsm/ocamlclean from github *)
+    rule "ocaml: .mb.c -> .mc.c"
+     ~prod:"%.mc.c"
+     ~dep:"%.mb.c"
+     (ocamlclean "%.mc.c" "%.mb.c");
+
     (* Rule to rename module sections to ml* equivalents for the static vmem layout *)
     rule "ocaml: .m.o -> .mx.o"
       ~prod:"%.mx.o"
@@ -173,16 +207,34 @@ module Mir = struct
       (xen_objcopy "%.mx.o" "%.m.o");
 
     (* Xen link rule *)
-    rule ("final link: xen/%__.m.o -> xen/%.xen")
+    rule ("final link: xen/%__.mx.o -> xen/%.xen")
       ~prod:"xen/%(file).xen"
       ~dep:"xen/%(file)__.mx.o"
-      (cc_link_c_implem cc_xen_link "xen/%(file)__.mx.o" "xen/%(file).xen");
+      (cc_link_c_implem cc_xen_nc_link "xen/%(file)__.mx.o" "xen/%(file).xen");
+
+    (* Xen bytecode link rule *)
+    rule ("final link: xen/%__.mb.o -> xen/%.bcxen")
+      ~prod:"xen/%(file).bcxen"
+      ~dep:"xen/%(file)__.mc.o"
+      (cc_link_c_implem cc_xen_bc_link "xen/%(file)__.mc.o" "xen/%(file).bcxen");
 
     (* UNIX link rule *)
     rule ("final link: %__.m.o -> %.unix-%(mode).bin")
       ~prod:"unix-%(mode)/%(file).bin"
       ~dep:"unix-%(mode)/%(file)__.m.o"
-      (cc_link_c_implem cc_unix_link "unix-%(mode)/%(file)__.m.o" "unix-%(mode)/%(file).bin");
+      (cc_link_c_implem cc_unix_native_link "unix-%(mode)/%(file)__.m.o" "unix-%(mode)/%(file).bin");
+
+    (* UNIX bytecode link rule with ocamlclean *)
+    rule ("final link: %__.mc.c -> %.unix-%(mode).bcxbin")
+      ~prod:"unix-%(mode)/%(file).bcxbin"
+      ~dep:"unix-%(mode)/%(file)__.mc.o"
+      (cc_link_c_implem cc_unix_bytecode_link "unix-%(mode)/%(file)__.mc.o" "unix-%(mode)/%(file).bcxbin");
+
+    (* UNIX bytecode link rule without ocamlclean *)
+    rule ("final link: %__.mb.c -> %.unix-%(mode).bcbin")
+      ~prod:"unix-%(mode)/%(file).bcbin"
+      ~dep:"unix-%(mode)/%(file)__.mb.o"
+      (cc_link_c_implem cc_unix_bytecode_link "unix-%(mode)/%(file)__.mb.o" "unix-%(mode)/%(file).bcbin");
 
     (* Node link rule *)
     rule ("final link: node/%__.byte -> node/%.js")

@@ -8,17 +8,40 @@ module type SYSTEM = sig
   val gettimeofday: unit -> float
 end
 
+module Normal_population = struct
+  (** Stats on a normally-distributed population *)
+  type t = { mutable sigma_x: float;
+             mutable sigma_xx: float;
+             mutable n: int }
+      
+  let make () = { sigma_x = 0.; sigma_xx = 0.; n = 0 }
+    
+  let sample (p: t) (x: float) = 
+    p.sigma_x <- p.sigma_x +. x;
+    p.sigma_xx <- p.sigma_xx +. x *. x;
+    p.n <- p.n + 1
+      
+  let mean (p: t) : float = p.sigma_x /. (float_of_int p.n)
+  let sd (p: t) : float option = 
+    if p.n = 0 
+    then None
+    else 
+      let n = float_of_int p.n in
+      Some (sqrt (n *. p.sigma_xx -. p.sigma_x *. p.sigma_x) /. n)
+end
+
+
 type results = {
   seq_rd: (int * float) list; (* sequential read: block size * bytes per sec *)
   seq_wr: (int * float) list;   (* sequential write: block size * bytes per sec *)
-  rand_rd: (int * float) list;  (* random read: block size * bytes per sec *)
+  rand_rd: (int * Normal_population.t) list;  (* random read: block size * MiB per sec *)
   rand_wr: (int * float) list;  (* random write: block size * bytes per sec *)
 }
 
 let block_sizes =
   (* multiples of 2 from [start] to [limit] inclusive *)
   let rec powers limit start = if start > limit then [] else start :: (powers limit (start * 2)) in
-  powers (16 * 4194304) 512
+  powers 4194304 512
 
 type 'a ll = Cons of 'a * (unit -> 'a ll)
 
@@ -61,7 +84,7 @@ module Test = functor(S: SYSTEM) -> struct
   (* return the total number of [operations] performed on [blocks] per second, averaging over [seconds] s *)
   let time seconds blocks operation =
     let start = S.gettimeofday () in
-    let parallelism = 16 in
+    let parallelism = 64 in
 
     let blocks = ref blocks in
 
@@ -80,18 +103,25 @@ module Test = functor(S: SYSTEM) -> struct
     lwt n = List.fold_left (fun acc t -> lwt n = t and acc = acc in return (n + acc)) (return 0) threads in
     return (float_of_int n /. seconds)
 
-  let seconds = 10.
+  let seconds = 1.
+  let samples = 50
 
   let go disk_size =
     let rd sequence =
       Lwt_list.map_s (fun block_size ->
-	lwt t = time seconds (sequence block_size disk_size)
-	  (fun s ->
-	    let stream = S.read_sectors s in
-	    (* Consume the stream *)
-	    Lwt_stream.junk_while_s (fun _ -> return true) stream
-	  ) in
-	return (block_size, t)
+	let stats = Normal_population.make () in
+	for_lwt i = 0 to samples - 1 do
+	  lwt t = time seconds (sequence block_size disk_size)
+	    (fun s ->
+	      let stream = S.read_sectors s in
+	      (* Consume the stream *)
+	      Lwt_stream.junk_while_s (fun _ -> return true) stream
+	    ) in
+	    let mib_per_sec = float_of_int block_size *. t /. (1024.0 *. 1024.0) in
+	    Normal_population.sample stats mib_per_sec;
+	    return ()
+        done >>
+	return (block_size, stats)
       ) block_sizes in
     lwt rand_rd = rd random in
     return {

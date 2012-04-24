@@ -52,8 +52,8 @@ let main () =
   lwt () = OS.Console.log_s "-----------" in
   lwt () = OS.Console.log_s "# block size, MiB/sec" in
   lwt () = Lwt_list.iter_s
-    (fun (block_size, number) ->
-      OS.Console.log_s (sprintf "%d, %.0f" block_size (float_of_int block_size *. number /. (1024.0 *. 1024.0)))
+    (fun (block_size, p) ->
+      OS.Console.log_s (sprintf "%d, %.1f, %s" block_size (Perf.Normal_population.mean p) (match Perf.Normal_population.sd p with Some x -> sprintf "%.1f" x | None -> "None"))
     ) results.Perf.rand_rd in
   return ()
 

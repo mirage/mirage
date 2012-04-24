@@ -3,7 +3,7 @@ open Lwt
 (* The performance test is functorised over a SYSTEM: *)
 module type SYSTEM = sig
   val sector_size: int
-  val read_sectors: int * int -> Bitstring.t array Lwt.t
+  val read_sectors: int * int -> Bitstring.t Lwt_stream.t
 
   val gettimeofday: unit -> float
 end
@@ -18,7 +18,7 @@ type results = {
 let block_sizes =
   (* multiples of 2 from [start] to [limit] inclusive *)
   let rec powers limit start = if start > limit then [] else start :: (powers limit (start * 2)) in
-  powers 4194304 512
+  powers (16 * 4194304) 512
 
 type 'a ll = Cons of 'a * (unit -> 'a ll)
 
@@ -61,22 +61,36 @@ module Test = functor(S: SYSTEM) -> struct
   (* return the total number of [operations] performed on [blocks] per second, averaging over [seconds] s *)
   let time seconds blocks operation =
     let start = S.gettimeofday () in
-    let parallelism = 8 in
-    let rec loop blocks n =
-      let extents, rest = take parallelism blocks in
+    let parallelism = 16 in
+
+    let blocks = ref blocks in
+
+    let rec loop n =
+      let extents, rest = take 1 !blocks in
+      blocks := rest;
       lwt () = Lwt_list.iter_p (fun x -> operation (to_sectors S.sector_size x)) extents in
       let now = S.gettimeofday () in
       if start +. seconds < now
-      then return (float_of_int n /. seconds)
-      else loop rest (n + parallelism) in
-    loop blocks 0
+      then return n
+      else loop (n + (List.length extents)) in
+    let rec start = function
+      | 0 -> []
+      | n -> loop 0 :: (start (n - 1)) in
+    let threads = start parallelism in
+    lwt n = List.fold_left (fun acc t -> lwt n = t and acc = acc in return (n + acc)) (return 0) threads in
+    return (float_of_int n /. seconds)
 
   let seconds = 10.
 
   let go disk_size =
     let rd sequence =
       Lwt_list.map_s (fun block_size ->
-	lwt t = time seconds (sequence block_size disk_size) (fun s -> Lwt.map (fun _ -> ()) (S.read_sectors s)) in
+	lwt t = time seconds (sequence block_size disk_size)
+	  (fun s ->
+	    let stream = S.read_sectors s in
+	    (* Consume the stream *)
+	    Lwt_stream.junk_while_s (fun _ -> return true) stream
+	  ) in
 	return (block_size, t)
       ) block_sizes in
     lwt rand_rd = rd random in

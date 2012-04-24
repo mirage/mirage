@@ -23,9 +23,7 @@ let main () =
     let page_size_bytes = 4096
     let sector_size = 512
     let sectors_per_page = page_size_bytes / sector_size
-    let read_sectors (start, length) =
-      lwt sectors = Int64.(blkif#read_512 (of_int start) (of_int length)) in
-      return sectors
+    let read_sectors (start, length) = Int64.(blkif#read_512 (of_int start) (of_int length))
     let gettimeofday = OS.Clock.time
   end in
   let module Test = Perf.Test(M) in

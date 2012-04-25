@@ -24,19 +24,8 @@ let main () =
     let sector_size = 512
     let sectors_per_page = page_size_bytes / sector_size
     let read_sectors (start, length) =
-      (* XXX: for performance testing, we read the correct pages but omit the clipping *)
-      let start_page_no = start / sectors_per_page in
-      let last_page_no = (start + length - 1) / sectors_per_page in
-      (* We must read all pages from start_page_no to last_page_no inclusive *)
-      let rec loop n =
-	if n > last_page_no
-	then return (Bitstring.bitstring_of_string "dummy data")
-	else
-	  let offset = Int64.(mul (of_int page_size_bytes) (of_int n)) in
-	  lwt _ = blkif#read_page offset in
-          loop (n + 1) in
-      loop start_page_no
-
+      lwt sectors = Int64.(blkif#read_512 (of_int start) (of_int length)) in
+      return sectors
     let gettimeofday = OS.Clock.time
   end in
   let module Test = Perf.Test(M) in
@@ -61,11 +50,12 @@ let main () =
 	blkif#write_page 0L bs
       ) in
 *)
-  lwt () = OS.Console.log_s "Sequential Read" in
-  lwt () = OS.Console.log_s "---------------" in
+  lwt () = OS.Console.log_s "Random Read" in
+  lwt () = OS.Console.log_s "-----------" in
+  lwt () = OS.Console.log_s "# block size, MiB/sec" in
   lwt () = Lwt_list.iter_s
     (fun (block_size, number) ->
-      OS.Console.log_s (sprintf "%d, %.0f" block_size (float_of_int block_size *. number))
-    ) results.Perf.seq_rd in
+      OS.Console.log_s (sprintf "%d, %.0f" block_size (float_of_int block_size *. number /. (1024.0 *. 1024.0)))
+    ) results.Perf.rand_rd in
   return ()
 

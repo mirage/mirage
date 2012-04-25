@@ -20,5 +20,5 @@ external console_port: unit -> int = "stub_console_evtchn_port"
 external alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
 external bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
 
-external unmask: int -> unit = "stub_evtchn_unmask"
-external notify: int -> unit = "stub_evtchn_notify"
+external unmask: int -> unit = "stub_evtchn_unmask" 
+external notify: int -> unit = "stub_evtchn_notify" "noalloc"

@@ -34,32 +34,36 @@ let get_answer qname qtype id =
                      })      
   in
   let questions = [ DP.({ q_name=qname; q_type=qtype; q_class=`IN }) ] in
-  DP.({ id; detail; questions;
+  let dp = DP.({ id; detail; questions;
         answers=ans.DQ.answer; 
         authorities=ans.DQ.authority; 
         additionals=ans.DQ.additional; 
       })
+  in
+  DP.marshal dp
 
 (* Space leaking hash table cache, always grows *)
 module Leaking_cache = Hashtbl.Make (struct
-  type t = string list * DP.q_type
-  let equal (a:t) (b:t) = a = b
-  let hash = Hashtbl.hash
+    type t = string list * Dnspacket.q_type
+    let equal (a:t) (b:t) = a = b
+    let hash = Hashtbl.hash
 end)
 
 let cache = Leaking_cache.create 1
 let get_answer_memo qname qtype id =
   let qargs = qname, qtype in
-  let r =
+  let rbuf,roff,rlen =
     try
       Leaking_cache.find cache qargs
-    with Not_found -> (
+    with Not_found -> begin
       let r = get_answer qname qtype id in
       Leaking_cache.add cache qargs r;
       r
-    )
+    end
   in
-  DP.({ r with id })
+  String.set rbuf 0 (char_of_int ((id lsr 8) land 255));
+  String.set rbuf 1 (char_of_int (id land 255));
+  rbuf, roff, rlen
 
 let no_memo mgr src dst bits =
   let names = Hashtbl.create 8 in
@@ -67,21 +71,17 @@ let no_memo mgr src dst bits =
     let d = parse_dns names bits in
     let q = List.hd d.questions in
     let r = get_answer q.q_name q.q_type d.id in
-    let p = marshal r in
-    Net.Datagram.UDPv4.send mgr ~src dst p
+    Net.Datagram.UDPv4.send mgr ~src dst r
   )
 
 let leaky mgr src dst bits =
   let names = Hashtbl.create 8 in
-  DP.(
-    let d = DP.parse_dns names bits in
-    let q = List.hd d.questions in
-    let r = get_answer_memo q.q_name q.q_type d.id in
-    let p = marshal r in
-
-    Net.Datagram.UDPv4.send mgr ~src dst p
-  )
-   
+  let open DP in
+  let d = parse_dns names bits in
+  let q = List.hd d.questions in
+  let r = get_answer_memo q.q_name q.q_type d.id in
+  Net.Datagram.UDPv4.send mgr ~src dst r
+  
 let listen ?(mode=`none) ~zonebuf mgr src =
   Dnsserver.load_zone [] zonebuf;
   Net.Datagram.UDPv4.(recv mgr src

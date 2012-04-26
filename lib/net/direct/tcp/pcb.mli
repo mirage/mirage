@@ -18,12 +18,19 @@ open Nettypes
 
 type t
 type pcb
+type listener
+type connection = (pcb * unit Lwt.t) 
 
 val input: t -> src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t
-val listen: t -> int -> ((ipv4_addr * int) -> pcb -> unit Lwt.t) -> unit Lwt.t
-val create: Ipv4.t -> t * unit Lwt.t
+
+val connect: t -> dest_ip:ipv4_addr -> dest_port:int -> connection option Lwt.t
+
+val listen: t -> int -> (connection Lwt_stream.t * listener)
+val closelistener: listener -> unit
 
 val close: pcb -> unit Lwt.t
+
+val get_dest: pcb -> (ipv4_addr * int)
 
 (* Blocking read for a segment *)
 val read: pcb -> Bitstring.t option Lwt.t
@@ -36,3 +43,6 @@ val write_wait_for: pcb -> int -> unit Lwt.t
 val write: pcb -> Bitstring.t -> unit Lwt.t
 (* Write a segment without using Nagle's algorithm*)
 val write_nodelay: pcb -> Bitstring.t -> unit Lwt.t
+
+val create: Ipv4.t -> t * unit Lwt.t
+val tcpstats: t -> unit

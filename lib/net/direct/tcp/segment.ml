@@ -16,6 +16,7 @@
 
 open Printf
 open Lwt
+open State
 
 (* The receive queue stores out-of-order segments, and can
    coalesece them on input and pass on an ordered list up the
@@ -64,11 +65,12 @@ module Rx = struct
     rx_data: (Bitstring.t list option * int option) Lwt_mvar.t; (* User receive channel *)
     tx_ack: (Sequence.t * int) Lwt_mvar.t; (* Acks of our transmitted segs *)
     wnd: Window.t;
+    state: State.t;
   }
 
-  let q ~rx_data ~wnd ~tx_ack =
+  let q ~rx_data ~wnd ~state ~tx_ack =
     let segs = S.empty in
-    { segs; rx_data; tx_ack; wnd }
+    { segs; rx_data; tx_ack; wnd; state }
 
   let to_string t =
     String.concat ", " 
@@ -132,9 +134,10 @@ module Rx = struct
 
       (* If the segment has an ACK, tell the transmit side *)
       let tx_ack =
-        if seg.ack then
+        if seg.ack then begin
+	  tick q.state (Recv_ack seg.ack_number);
           Lwt_mvar.put q.tx_ack (seg.ack_number, (window ready))
-        else
+        end else
           return () in
 
       (* Inform the user application of new data *)
@@ -170,6 +173,7 @@ module Tx = struct
    |Syn
    |Fin
    |Rst
+   |Psh
 
   type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
               seq:Sequence.t -> Bitstring.t -> Bitstring.t list Lwt.t
@@ -182,7 +186,7 @@ module Tx = struct
 
   (* Sequence length of the segment *)
   let len seg =
-    (match seg.flags with |No_flags |Rst -> 0 |Syn |Fin -> 1) +
+    (match seg.flags with |No_flags |Psh |Rst -> 0 |Syn |Fin -> 1) +
     (Bitstring.bitstring_length seg.data / 8)
 
   (* Queue of pre-transmission segments *)
@@ -191,6 +195,7 @@ module Tx = struct
     xmit: xmit;                        (* Transmit packet to the wire *)
     rx_ack: Sequence.t Lwt_mvar.t; (* RX Ack thread that we've sent one *)
     wnd: Window.t;                 (* TCP Window information *)
+    state: State.t;
     tx_wnd_update: int Lwt_mvar.t; (* Received updates to the transmit window *)
     rexmit_timer: Tcptimer.t;      (* Retransmission timer for this connection *)
     mutable dup_acks: int;         (* dup ack count for re-xmits *)
@@ -198,7 +203,7 @@ module Tx = struct
 
   let to_string seg =
     sprintf "[%s%d]" 
-      (match seg.flags with |No_flags->"" |Syn->"SYN " |Fin ->"FIN " |Rst -> "RST ")
+      (match seg.flags with |No_flags->"" |Syn->"SYN " |Fin ->"FIN " |Rst -> "RST " |Psh -> "PSH ")
       (len seg)
 
   let ack_segment q seg =
@@ -206,33 +211,38 @@ module Tx = struct
        ACKed *)
     ()
 
-  let ontimer xmit segs wnd seq =
-    match Lwt_sequence.peek_opt_l segs with 
-    | None ->
+  let ontimer xmit st segs wnd seq =
+    match state st with
+    | Syn_rcvd _ | Established | Fin_wait_1 _ | Close_wait | Last_ack _ -> begin
+	match Lwt_sequence.peek_opt_l segs with 
+	| None ->
+            Tcptimer.Stoptimer
+	| Some rexmit_seg ->
+            match rexmit_seg.seq = seq with
+            | false ->
+		(* printf "PUSHING TIMER - new time = %f, new seq = %d\n%!"
+		   (Window.rto wnd) (Sequence.to_int rexmit_seg.seq); *)
+		Tcptimer.ContinueSetPeriod (Window.rto wnd, rexmit_seg.seq)
+            | true ->
+		if (Window.max_rexmits_done wnd) then begin
+		  (* TODO - include more in log msg like ipaddrs *)
+		  printf "Max retransmits reached for connection - terminating\n%!";
+		  tick st Timeout;
+		  Tcptimer.Stoptimer
+		end else begin
+		  let flags = rexmit_seg.flags in
+		  let options = [] in (* TODO: put the right options *)
+		  printf "TCP retransmission on timer seq = %d\n%!"
+                    (Sequence.to_int rexmit_seg.seq);
+		  let _ = xmit ~flags ~wnd ~options ~seq rexmit_seg.data in
+		  Window.backoff_rto wnd;
+		  (* printf "PUSHING TIMER - new time = %f, new seq = %d\n%!"
+                     (Window.rto wnd) (Sequence.to_int rexmit_seg.seq); *)
+		  Tcptimer.ContinueSetPeriod (Window.rto wnd, rexmit_seg.seq)
+		end
+    end
+    | _ -> 
         Tcptimer.Stoptimer
-    | Some rexmit_seg ->
-        match rexmit_seg.seq = seq with
-        | false ->
-            (* printf "PUSHING TIMER - new time = %f, new seq = %d\n%!"
-               (Window.rto wnd) (Sequence.to_int rexmit_seg.seq); *)
-            Tcptimer.ContinueSetPeriod (Window.rto wnd, rexmit_seg.seq)
-        | true ->
-            if (Window.max_rexmits_done wnd) then begin
-              (* TODO - Terminate this connection *)
-              (* TODO - include more in log msg like ipaddrs *)
-              printf "Max retransmits reached for connection - STOPPING TIMER\n%!";
-              Tcptimer.Stoptimer
-            end else begin
-              let flags = rexmit_seg.flags in
-              let options = [] in (* TODO: put the right options *)
-              printf "TCP retransmission on timer seq = %d\n%!"
-                      (Sequence.to_int rexmit_seg.seq);
-              let _ = xmit ~flags ~wnd ~options ~seq rexmit_seg.data in
-              Window.backoff_rto wnd;
-              (* printf "PUSHING TIMER - new time = %f, new seq = %d\n%!"
-                 (Window.rto wnd) (Sequence.to_int rexmit_seg.seq); *)
-              Tcptimer.ContinueSetPeriod (Window.rto wnd, rexmit_seg.seq)
-            end
 
 
   let rto_t q tx_ack =
@@ -294,13 +304,13 @@ module Tx = struct
     tx_ack_t ()
 
 
-  let q ~xmit ~wnd ~rx_ack ~tx_ack ~tx_wnd_update =
+  let q ~xmit ~wnd ~state ~rx_ack ~tx_ack ~tx_wnd_update =
     let segs = Lwt_sequence.create () in
     let dup_acks = 0 in
-    let expire = ontimer xmit segs wnd in
+    let expire = ontimer xmit state segs wnd in
     let period = Window.rto wnd in
     let rexmit_timer = Tcptimer.t ~period ~expire in
-    let q = { xmit; wnd; rx_ack; segs; tx_wnd_update; rexmit_timer; dup_acks } in
+    let q = { xmit; wnd; state; rx_ack; segs; tx_wnd_update; rexmit_timer; dup_acks } in
     let t = rto_t q tx_ack in
     q, t
 

@@ -57,7 +57,23 @@ module TCPv4 = struct
   let listen mgr src fn =
     let addr, port = src in
     let tcps = Manager.tcpv4_of_addr mgr addr in
-    Lwt_list.iter_p (fun tcp -> Tcp.Pcb.listen tcp port fn) tcps 
+    lwt str_lst = Lwt_list.map_s (fun tcp -> return (Tcp.Pcb.listen tcp port)) tcps in
+    let rec accept (st, l) =
+      lwt c = Lwt_stream.get st in
+      match c with 
+      | None -> begin
+	  return ()
+      end
+      | Some (fl, th) -> begin
+        let _ = fn (Tcp.Pcb.get_dest fl) fl <?> th in
+        accept (st, l) 
+      end
+    in
+    let _ = Lwt_list.iter_p accept str_lst in
+    let th,_ = Lwt.task () in
+    let cancelone (_, l) = Tcp.Pcb.closelistener l in
+    Lwt.on_cancel th (fun () -> List.iter cancelone str_lst);
+    th
 
   let connect mgr ?src dst fn =
     fail (Failure "Not_implemented")
@@ -116,3 +132,5 @@ let listen mgr = function
   |`Shmem (src, fn) ->
      Shmem.listen mgr src (fun dst t -> fn dst (Shmem t))
   |_ -> fail (Failure "unknown protocol")
+
+

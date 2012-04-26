@@ -19,6 +19,8 @@ open Printf
 
 type t = {
   tx_mss: int;
+  tx_isn: Sequence.t;
+  rx_isn: Sequence.t;
   mutable snd_una: Sequence.t;
   mutable tx_nxt: Sequence.t;
   mutable rx_nxt: Sequence.t;
@@ -60,9 +62,8 @@ let to_string t =
     t.rx_wnd t.tx_wnd (Sequence.to_string t.snd_una)
 
 (* Initialise the sequence space *)
-let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
-  (* XXX need random ISN XXX *)
-  let tx_nxt = Sequence.of_int32 7l in
+let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss ~tx_isn =
+  let tx_nxt = tx_isn in
   let rx_nxt = Sequence.(incr rx_isn) in
   let rx_nxt_inseq = Sequence.(incr rx_isn) in
   (* TODO: improve this sanity check of tx_mss *)
@@ -83,7 +84,7 @@ let t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss =
   let rttvar = 0.0 in
   let rto = 3.0 in
   let backoff_count = 0 in
-  { snd_una; tx_nxt; tx_wnd; rx_nxt; rx_nxt_inseq; rx_wnd; tx_wnd_scale; rx_wnd_scale;
+  { tx_isn; rx_isn; snd_una; tx_nxt; tx_wnd; rx_nxt; rx_nxt_inseq; rx_wnd; tx_wnd_scale; rx_wnd_scale;
     ssthresh; cwnd; tx_mss; fast_recovery;
     rtt_timer_on; rtt_timer_reset;
     rtt_timer_seq; rtt_timer_starttime; srtt; rttvar; rto; backoff_count }
@@ -218,3 +219,11 @@ let backoff_rto t =
 
 let max_rexmits_done t =
   (t.backoff_count > 5)
+
+let tx_totalbytes t =
+  Sequence.(to_int (sub t.tx_nxt t.tx_isn))
+
+let rx_totalbytes t =
+  Sequence.(to_int (sub t.rx_nxt t.rx_isn))
+  
+

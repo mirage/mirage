@@ -19,8 +19,8 @@ module Rx : sig
   type t
 
   val create : max_size:int32 -> t
-  val add_r : t -> Bitstring.t -> unit Lwt.t
-  val take_l : t -> Bitstring.t Lwt.t
+  val add_r : t -> Bitstring.t option -> unit Lwt.t
+  val take_l : t -> Bitstring.t option Lwt.t
   val cur_size : t -> int32
   val max_size : t -> int32
   val set_max_size : t -> int32 -> unit
@@ -33,6 +33,7 @@ module Tx : sig
   val create: max_size:int32 -> wnd:Window.t -> txq:Segment.Tx.q -> t
   val available: t -> int32
   val wait_for: t -> int32 -> unit Lwt.t
+  val wait_for_flushed: t -> unit Lwt.t
   val write: t -> Bitstring.t -> unit Lwt.t
   val write_nodelay: t -> Bitstring.t -> unit Lwt.t
   val free: t -> int -> unit Lwt.t

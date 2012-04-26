@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open State
+
 module Rx :
   sig
     type seg
@@ -22,7 +24,7 @@ module Rx :
 
     type q
     val q : rx_data:(Bitstring.t list option * int option) Lwt_mvar.t ->
-      wnd:Window.t ->
+      wnd:Window.t -> state:State.t ->
       tx_ack:(Sequence.t * int) Lwt_mvar.t -> q
     val to_string : q -> string
     val is_empty : q -> bool
@@ -33,14 +35,14 @@ module Rx :
 module Tx :
   sig
 
-    type flags = |No_flags |Syn |Fin |Rst
+    type flags = |No_flags |Syn |Fin |Rst |Psh
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
       seq:Sequence.t -> Bitstring.t -> Bitstring.t list Lwt.t
 
     type q
 
-    val q : xmit:xmit -> wnd:Window.t ->
+    val q : xmit:xmit -> wnd:Window.t -> state:State.t ->
       rx_ack:Sequence.t Lwt_mvar.t ->
       tx_ack:(Sequence.t * int) Lwt_mvar.t ->
       tx_wnd_update:int Lwt_mvar.t -> q * unit Lwt.t

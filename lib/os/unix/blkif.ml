@@ -35,7 +35,17 @@ let read_n t (offset: int64) (length: int64) : Bitstring.t Lwt.t =
 let read_page t offset = read_n t offset 4096L
 
 (* Just return an array with a single big element for now *)
-let read_512 t offset length = Int64.(map (fun x -> [| x |]) (read_n t (mul 512L offset) (mul 512L length)))
+let read_512 t offset length =
+  let finished = ref false in
+  Lwt_stream.from
+    (fun () ->
+      match !finished with
+	| false ->
+	  finished := true;
+	  lwt data = Int64.(read_n t (mul 512L offset) (mul 512L length)) in
+          return (Some data)
+	| true -> return None
+    )
 
 let write_page t offset data =
   Socket.(iobind (lseek t.fd) offset) >>

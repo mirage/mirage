@@ -117,7 +117,7 @@ let tick t (i:action) =
     | Closed, Send_syn a -> Syn_sent a
     | Listen, Send_synack a -> Syn_rcvd a
     | Syn_rcvd a, Timeout -> t.on_close (); Closed
-    | Syn_rcvd a, Recv_rst -> t.on_close (); Closed
+    | Syn_rcvd a, Recv_rst -> Closed
     | Syn_sent a, Timeout -> t.on_close (); Closed
     | Syn_sent a, Recv_synack b-> if diffone b a then Established else Syn_sent a
     | Syn_rcvd a, Recv_ack b -> if diffone b a then Established else Syn_rcvd a

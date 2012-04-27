@@ -56,4 +56,4 @@ val create : id:id -> Devices.blkif Lwt.t
 val enumerate : unit -> id list Lwt.t
 val read_page : t -> int64 -> Bitstring.t Lwt.t
 val write_page : t -> int64 -> Bitstring.t -> unit Lwt.t
-val read_512 : t -> int64 -> int64 -> Bitstring.bitstring array Lwt.t
+val read_512 : t -> int64 -> int64 -> Bitstring.bitstring Lwt_stream.t

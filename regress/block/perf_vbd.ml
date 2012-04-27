@@ -23,9 +23,7 @@ let main () =
     let page_size_bytes = 4096
     let sector_size = 512
     let sectors_per_page = page_size_bytes / sector_size
-    let read_sectors (start, length) =
-      lwt sectors = Int64.(blkif#read_512 (of_int start) (of_int length)) in
-      return sectors
+    let read_sectors (start, length) = Int64.(blkif#read_512 (of_int start) (of_int length))
     let gettimeofday = OS.Clock.time
   end in
   let module Test = Perf.Test(M) in
@@ -54,8 +52,8 @@ let main () =
   lwt () = OS.Console.log_s "-----------" in
   lwt () = OS.Console.log_s "# block size, MiB/sec" in
   lwt () = Lwt_list.iter_s
-    (fun (block_size, number) ->
-      OS.Console.log_s (sprintf "%d, %.0f" block_size (float_of_int block_size *. number /. (1024.0 *. 1024.0)))
+    (fun (block_size, p) ->
+      OS.Console.log_s (sprintf "%d, %.1f, %s" block_size (Perf.Normal_population.mean p) (match Perf.Normal_population.sd p with Some x -> sprintf "%.1f" x | None -> "None"))
     ) results.Perf.rand_rd in
   return ()
 

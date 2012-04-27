@@ -18,7 +18,7 @@
 type t 
 
 val t : rx_wnd_scale:int -> tx_wnd_scale:int -> rx_wnd:int ->
-  tx_wnd:int -> rx_isn:Sequence.t -> tx_mss:int option -> t
+  tx_wnd:int -> rx_isn:Sequence.t -> tx_mss:int option -> tx_isn:Sequence.t -> t
 
 val valid : t -> Sequence.t -> bool
 
@@ -51,3 +51,6 @@ val alert_fast_rexmit : t -> Sequence.t -> unit
 val rto : t -> float
 val backoff_rto : t -> unit
 val max_rexmits_done : t -> bool
+
+val tx_totalbytes : t -> int
+val rx_totalbytes : t -> int

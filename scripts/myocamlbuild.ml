@@ -487,7 +487,8 @@ let _ = dispatch begin function
     flag ["ocaml"; "compile"] & std_flags;
     flag ["ocaml"; "pack"] & std_flags;
     flag ["ocaml"; "link"] & std_flags;
-    flag ["ocaml"; "compile"; "native" ] & S [A"-p"; A"-g"];
+    if profiling
+      flag ["ocaml"; "compile"; "native" ] & S [A"-p"; A"-g"];
 
     (* Include the correct stdlib depending on which backend is chosen *)
     List.iter (fun be ->

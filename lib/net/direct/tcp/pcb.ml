@@ -259,7 +259,7 @@ let clearpcb t id tx_isn =
   (* TODO: add more info to log msgs *)
   match (hashtbl_find t.channels id) with
   | Some _ ->
-      printf "TCP: removing pcb from tables\n%!";
+      (* printf "TCP: removing pcb from tables\n%!";*)
       Hashtbl.remove t.channels id
   | None ->
       match (hashtbl_find t.listens id) with
@@ -316,11 +316,13 @@ let new_pcb t ~window ~sequence ~options ~tx_isn id =
   in
   pcb, th
 
-let new_server_connection t ~window ~sequence ~options ~tx_isn id =
+let new_server_connection t ~window ~sequence ~options ~tx_isn ~pushf id =
   let pcb, th = new_pcb t ~window ~sequence ~options ~tx_isn id in
   State.tick pcb.state State.Passive_open;
   (* Queue a SYN ACK for transmission *)
   State.tick pcb.state (State.Send_synack tx_isn);
+  (* Add the PCB to our listens table *)
+  Hashtbl.add t.listens id (tx_isn, (pushf, (pcb, th)));
   let options = Options.MSS 1460 :: [] in
   Segment.Tx.output ~flags:Segment.Tx.Syn ~options pcb.txq ("",0,0) >>
   return (pcb, th)
@@ -358,8 +360,9 @@ let input_no_pcb t pkt id =
         end
         | None -> 
           match (hashtbl_find t.listens id) with
-          | Some (_, (_, (_, th))) -> begin
+          | Some (_, (_, (pcb, th))) -> begin
             Hashtbl.remove t.listens id;
+	    tick pcb.state Recv_rst;
             Lwt.cancel th;
             return ()
 	  end
@@ -394,9 +397,7 @@ let input_no_pcb t pkt id =
             match (hashtbl_find t.listeners id.local_port) with
             | Some (_, pushf) -> begin
               let tx_isn = Sequence.of_int ((Random.int 65535) + 2901213184) in
-              lwt newconn = new_server_connection t ~window ~sequence ~options ~tx_isn id in
-              (* Add the PCB to our listens table *)
-              Hashtbl.add t.listens id (tx_isn, (pushf, newconn));
+              lwt newconn = new_server_connection t ~window ~sequence ~options ~tx_isn ~pushf id in
               return ()
             end
             | None -> begin
@@ -417,14 +418,18 @@ let input_no_pcb t pkt id =
                 pushf (Some newconn);
                 Rx.input t pkt newconn
               end else begin
-                (* Normally sending a RST reply to a random pkt would be in order but 
-                   here we stay quiet since we are actively trying to connect this id *)
+                (* No RST because we are trying to connect on this id *)
                 return ()
               end
 	    end
             | None -> 
-              (* ACK but no matching pcb and no listen - send RST *)
-              Tx.send_rst t id ~sequence ~ack_number ~syn ~fin ~data
+              match (hashtbl_find t.connects id) with
+              | Some _ ->
+                (* No RST because we are trying to connect on this id *)
+                return ()
+              | None ->
+                (* ACK but no matching pcb and no listen - send RST *)
+                Tx.send_rst t id ~sequence ~ack_number ~syn ~fin ~data
           end
           | false ->
             (* What the hell is this packet? No SYN,ACK,RST *)

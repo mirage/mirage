@@ -102,7 +102,7 @@ module Tx = struct
 
   (* Output a TCP packet, and calculate some settings from a state descriptor *)
   let xmit_pcb ip id ~flags ~wnd ~options ~seq data =
-    let window = Int32.to_int (Window.rx_wnd wnd) in (* TODO scaling *)
+    let window = Int32.to_int (Window.rx_wnd_unscaled wnd) in
     let rx_ack = Some (Window.rx_nxt wnd) in
     xmit ip id ~flags ~rx_ack ~seq ~window ~options data
 
@@ -225,17 +225,6 @@ end
 module Wnd = struct
 
   let thread ~urx ~utx ~wnd ~tx_wnd_update =
-    (* Monitor our advertised receive window, and update the
-       PCB window when the application consumes data. *)
-    let rx_window_mvar = Lwt_mvar.create_empty () in
-    User_buffer.Rx.monitor urx rx_window_mvar;
-    let rec rx_window_t () =
-      lwt rx_cur_size = Lwt_mvar.take rx_window_mvar in
-      let rx_wnd = max 0l (Int32.sub (User_buffer.Rx.max_size urx) rx_cur_size) in
-      Window.set_rx_wnd wnd rx_wnd;
-      (* TODO: kick the ack thread to send window update if it was 0 *)
-      rx_window_t ()
-    in
     (* Monitor our transmit window when updates are received remotely,
        and tell the application that new space is available when it is blocked *)
     let rec tx_window_t () =
@@ -243,7 +232,7 @@ module Wnd = struct
       User_buffer.Tx.free utx tx_wnd >>
       tx_window_t ()
     in
-    rx_window_t () <?> (tx_window_t ())
+    tx_window_t ()
     
 end
 
@@ -272,15 +261,9 @@ let clearpcb t id tx_isn =
 	  printf "TCP: error in removing pcb - no such connection\n%!"
 
 
-let new_pcb t ~window ~sequence ~options ~tx_isn id =
+let new_pcb t ~rx_wnd ~rx_wnd_scale ~tx_wnd ~tx_wnd_scale ~sequence ~tx_mss ~tx_isn id =
   (* Set up the windowing variables *)
-  let rx_wnd_scale = 0 in
-  let tx_wnd_scale = 0 in
-  let tx_wnd = window in
-  let rx_wnd = 65535 in 
   let rx_isn = Sequence.of_int32 sequence in
-  let options = Options.of_packet options in
-  let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
   (* Initialise the window handler *)
   let wnd = Window.t ~rx_wnd_scale ~tx_wnd_scale ~rx_wnd ~tx_wnd ~rx_isn ~tx_mss ~tx_isn in
   (* When we transmit an ACK for a received segment, rx_ack is written to *)
@@ -292,7 +275,8 @@ let new_pcb t ~window ~sequence ~options ~tx_isn id =
   (* Write to this mvar to transmit an empty ACK to the remote side *) 
   let send_ack = Lwt_mvar.create_empty () in
   (* The user application receive buffer and close notification *)
-  let urx = User_buffer.Rx.create ~max_size:16384l in (* TODO: too small, but useful for debugging *)
+  let rx_buf_size = Window.rx_wnd wnd in
+  let urx = User_buffer.Rx.create ~max_size:rx_buf_size ~wnd in 
   let urx_close_t, urx_close_u = Lwt.task () in
   (* The window handling thread *)
   let tx_wnd_update = Lwt_mvar.create_empty () in
@@ -316,19 +300,35 @@ let new_pcb t ~window ~sequence ~options ~tx_isn id =
   in
   pcb, th
 
-let new_server_connection t ~window ~sequence ~options ~tx_isn ~pushf id =
-  let pcb, th = new_pcb t ~window ~sequence ~options ~tx_isn id in
+
+let resolve_wnd_scaling options rx_wnd_scaleoffer = 
+  let tx_wnd_scale = List.fold_left
+      (fun a -> function Options.Window_size_shift m -> Some m |_ -> a) None options in
+  match tx_wnd_scale with
+  | None -> (0, 0), []
+  | Some tx_f -> (rx_wnd_scaleoffer, tx_f), (Options.Window_size_shift rx_wnd_scaleoffer :: [])
+
+
+let new_server_connection t ~tx_wnd ~sequence ~options ~tx_isn ~rx_wnd ~rx_wnd_scaleoffer ~pushf id =
+  let options = Options.of_packet options in
+  let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
+  let (rx_wnd_scale, tx_wnd_scale), opts = resolve_wnd_scaling options rx_wnd_scaleoffer in
+  let pcb, th = new_pcb t ~rx_wnd ~rx_wnd_scale ~tx_wnd ~tx_wnd_scale ~sequence ~tx_mss ~tx_isn id in
   State.tick pcb.state State.Passive_open;
-  (* Queue a SYN ACK for transmission *)
   State.tick pcb.state (State.Send_synack tx_isn);
   (* Add the PCB to our listens table *)
   Hashtbl.add t.listens id (tx_isn, (pushf, (pcb, th)));
-  let options = Options.MSS 1460 :: [] in
+  (* Queue a SYN ACK for transmission *)
+  let options = Options.MSS 1460 :: opts in
   Segment.Tx.output ~flags:Segment.Tx.Syn ~options pcb.txq ("",0,0) >>
   return (pcb, th)
 
-let new_client_connection t ~window ~sequence ~ack_number ~options ~tx_isn id =
-  let pcb, th = new_pcb t ~window ~sequence ~options ~tx_isn:(Sequence.incr tx_isn) id in
+
+let new_client_connection t ~tx_wnd ~sequence ~ack_number ~options ~tx_isn ~rx_wnd ~rx_wnd_scaleoffer id =
+  let options = Options.of_packet options in
+  let tx_mss = List.fold_left (fun a -> function Options.MSS m -> Some m |_ -> a) None options in
+  let (rx_wnd_scale, tx_wnd_scale), _ = resolve_wnd_scaling options rx_wnd_scaleoffer in
+  let pcb, th = new_pcb t ~rx_wnd ~rx_wnd_scale ~tx_wnd ~tx_wnd_scale ~sequence ~tx_mss ~tx_isn:(Sequence.incr tx_isn) id in
   (* A hack here because we create the pcb only after the SYN-ACK is rx-ed*)
   State.tick pcb.state (State.Send_syn tx_isn);
   (* Add the PCB to our connection table *)
@@ -379,7 +379,12 @@ let input_no_pcb t pkt id =
             | Some (wakener, tx_isn) -> begin
               if Sequence.(to_int32 (incr tx_isn)) = ack_number then begin
                 Hashtbl.remove t.connects id;
-                lwt (pcb, th) = new_client_connection t ~window ~sequence ~ack_number ~options ~tx_isn id in
+		let tx_wnd = window in
+		let rx_wnd = 65535 in
+		(* TODO: fix hardcoded value - it assumes that this value was sent in the SYN *)
+		let rx_wnd_scaleoffer = 2 in
+                lwt (pcb, th) = new_client_connection
+                  t ~tx_wnd ~sequence ~ack_number ~options ~tx_isn ~rx_wnd ~rx_wnd_scaleoffer id in
                 Lwt.wakeup wakener (Some (pcb, th));
                 return ()
               end else begin
@@ -396,8 +401,13 @@ let input_no_pcb t pkt id =
           | false -> begin
             match (hashtbl_find t.listeners id.local_port) with
             | Some (_, pushf) -> begin
-              let tx_isn = Sequence.of_int ((Random.int 65535) + 2901213184) in
-              lwt newconn = new_server_connection t ~window ~sequence ~options ~tx_isn ~pushf id in
+              let tx_isn = Sequence.of_int ((Random.int 65535) + 0xCAFE0000) in
+	      let tx_wnd = window in
+	      (* TODO: make this configurable per listener *)
+	      let rx_wnd = 65535 in
+	      let rx_wnd_scaleoffer = 2 in
+              lwt newconn = new_server_connection
+		t ~tx_wnd ~sequence ~options ~tx_isn ~rx_wnd ~rx_wnd_scaleoffer ~pushf id in
               return ()
             end
             | None -> begin
@@ -535,9 +545,10 @@ let rec connecttimer t id tx_isn options window count =
 
 let connect t ~dest_ip ~dest_port = 
   let id = getid t dest_ip dest_port in
-  (* XXX need random ISN XXX *)
-  let tx_isn = Sequence.of_int32 77l in
-  let options = Options.MSS 1460 :: [] in
+  let tx_isn = Sequence.of_int ((Random.int 65535) + 0xABCD0000) in
+  (* TODO: This is hardcoded for now - make it configurable *)
+  let rx_wnd_scaleoffer = 2 in
+  let options = Options.MSS 1460 :: Options.Window_size_shift rx_wnd_scaleoffer :: [] in
   let window = 5840 in
   let th, wakener = Lwt.task () in
   if Hashtbl.mem t.connects id then begin

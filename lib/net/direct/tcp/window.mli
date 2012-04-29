@@ -35,6 +35,7 @@ val tx_mss : t -> int
 
 (* rx_wnd: number of bytes we are willing to accept *)
 val rx_wnd : t -> int32
+val rx_wnd_unscaled : t -> int32
 val set_rx_wnd : t -> int32 -> unit
 
 (* tx_wnd: number of bytes other side is willing to accept *)

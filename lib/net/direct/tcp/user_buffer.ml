@@ -25,6 +25,7 @@ module Rx = struct
   
   type t = {
     q: Bitstring.t option Lwt_sequence.t; 
+    wnd: Window.t;
     writers: unit Lwt.u Lwt_sequence.t;
     readers: Bitstring.t option Lwt.u Lwt_sequence.t;
     mutable watcher: int32 Lwt_mvar.t option;
@@ -32,15 +33,17 @@ module Rx = struct
     mutable cur_size: int32;
   }
   
-  let create ~max_size =
+  let create ~max_size ~wnd =
     let q = Lwt_sequence.create () in
     let writers = Lwt_sequence.create () in
     let readers = Lwt_sequence.create () in
     let watcher = None in
     let cur_size = 0l in
-    { q; writers; readers; max_size; cur_size; watcher }
+    { q; wnd; writers; readers; max_size; cur_size; watcher }
   
   let notify_size_watcher t =
+    let rx_wnd = max 0l (Int32.sub t.max_size t.cur_size) in
+    Window.set_rx_wnd t.wnd rx_wnd;
     match t.watcher with
     |None -> return ()
     |Some w -> Lwt_mvar.put w t.cur_size
@@ -95,25 +98,7 @@ module Rx = struct
   
   let monitor t mvar =
     t.watcher <- Some mvar
-  
-  let set_max_size t new_max_size =
-    if new_max_size > t.max_size then (
-      (* the new max size is bigger than the current one, wake up
-         writers (if any) until queue is full or all writers have
-         written *)
-      let rec loop () =
-        if t.cur_size < t.max_size then
-          match Lwt_sequence.take_opt_l t.writers with
-          |Some w -> Lwt.wakeup w (); loop ()
-          |None -> ()
-      in
-      (* commit to the new length before waking up writers, because
-         writers might again increase the max length *)
-      t.max_size <- new_max_size;
-      loop ()
-    )
-    else if new_max_size > 0l then
-      t.max_size <- new_max_size
+
 end
 
 (* The transmit queue simply advertises how much data is allowed to be

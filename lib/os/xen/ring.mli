@@ -93,6 +93,12 @@ module Front : sig
       sleeping (as a result of calling {[push_request_and_wait]}).
     *)
   val poll : ('a,'b) t -> (Bitstring.t -> ('b * 'a)) -> unit
+
+  (** Wait for free slot on the ring *)
+  val wait_for_free_slot : ('a,'b) t -> unit Lwt.t
+  
+  (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
+  val push_request_async : ('a,'b) t -> (Bitstring.t -> 'b) -> (unit -> unit) -> unit Lwt.t 
 end
 
 module Back : sig

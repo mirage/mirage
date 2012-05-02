@@ -160,7 +160,17 @@ module Front = struct
     match Lwt_sequence.take_opt_l t.waiters with
     |None -> ()
     |Some u -> Lwt.wakeup u ()
- 
+
+  let wait_for_free_slot t =
+    if get_free_requests t > 0 then
+      return ()
+    else begin
+      let th, u = Lwt.task () in
+      let node = Lwt_sequence.add_r u t.waiters in
+      Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+      th
+    end 
+
   let rec push_request_and_wait t reqfn =
     if get_free_requests t > 0 then begin
       let slot_id = next_req_id t in
@@ -177,6 +187,17 @@ module Front = struct
       th >>
       push_request_and_wait t reqfn
     end
+
+   let push_request_async t reqfn freefn =
+     lwt () = wait_for_free_slot t in
+     let slot_id = next_req_id t in
+     let slot = slot t slot_id in
+     let th,u = Lwt.task () in
+     let id = reqfn slot in
+     Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
+     Hashtbl.add t.wakers id u;
+     let _ = th >> return (freefn ()) in
+     return ()
 end
 
 module Back = struct

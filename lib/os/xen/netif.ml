@@ -194,6 +194,11 @@ let tx_poll nf =
 (* Transmit a packet from buffer, with offset and length *)  
 let rec output nf bsv =
   let page = Io_page.get () in
+  (* XXX below for debugging to avoid potential event deadlock. tell avsm if printf shows up *)
+  if Gnttab.num_free_grants () < 100 then begin
+    Printf.printf "low grants %d\n%!" (Gnttab.num_free_grants ());
+    let _ = Time.sleep 0.00001 in ()
+  end;
   lwt gnt = Gnttab.get () in
   Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page;
   let gref = Gnttab.to_int32 gnt in
@@ -211,8 +216,7 @@ let rec output nf bsv =
     (fun () ->
       Gnttab.end_access gnt; 
       Gnttab.put gnt;
-      Io_page.put page;
-    )
+      Io_page.put page)
   in
   if Ring.Front.push_requests_and_check_notify nf.tx_fring then
     Evtchn.notify nf.evtchn;

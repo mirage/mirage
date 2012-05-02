@@ -38,7 +38,7 @@ module Tx :
     type flags = |No_flags |Syn |Fin |Rst |Psh
 
     type xmit = flags:flags -> wnd:Window.t -> options:Options.ts ->
-      seq:Sequence.t -> Bitstring.t -> Bitstring.t list Lwt.t
+      seq:Sequence.t -> Bitstring.t -> unit Lwt.t
 
     type q
 

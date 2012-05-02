@@ -98,7 +98,7 @@ module Tx = struct
     header_buf.[16] <- checksum_bs.[0];
     header_buf.[17] <- checksum_bs.[1];
     Ipv4.output ip ~proto:`TCP ~dest_ip frame >>
-    return frame
+    return ()
 
   (* Output a TCP packet, and calculate some settings from a state descriptor *)
   let xmit_pcb ip id ~flags ~wnd ~options ~seq data =

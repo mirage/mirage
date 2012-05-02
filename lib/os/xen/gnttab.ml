@@ -34,7 +34,7 @@ let of_int32 x = x
 let to_string (r:r) = Int32.to_string (to_int32 r)
 
 let free_list : r Queue.t = Queue.create ()
-let free_list_condition = Lwt_condition.create ()
+let free_list_waiters = Lwt_sequence.create ()
 
 let iter_option f = function
   | None -> ()
@@ -42,13 +42,21 @@ let iter_option f = function
 
 let put r =
   Queue.push r free_list;
-  Lwt_condition.signal free_list_condition ()
+  match Lwt_sequence.take_opt_l free_list_waiters with
+  |None -> ()
+  |Some u -> Lwt.wakeup u ()
+
+let num_free_grants () = Queue.length free_list
 
 let rec get () =
+ if Queue.length free_list < 20 then
+Printf.printf "%d / %d\n%!" (Queue.length free_list) (Raw.nr_entries ());
   match Queue.is_empty free_list with
   |true ->
-    Lwt_condition.wait free_list_condition >>
-    get ()
+    let th, u = Lwt.task () in
+    let node = Lwt_sequence.add_r u free_list_waiters  in
+    Lwt.on_cancel th (fun () -> Lwt_sequence.remove node);
+    th >> get ()
   | false ->
     return (Queue.pop free_list)
 

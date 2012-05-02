@@ -25,6 +25,8 @@ val put : r -> unit
 val get : unit -> r Lwt.t
 val get_n : int -> r list Lwt.t
 
+val num_free_grants : unit -> int
+
 val with_ref: (r -> 'a Lwt.t) -> 'a Lwt.t
 val with_refs: int -> (r list -> 'a Lwt.t) -> 'a Lwt.t
 

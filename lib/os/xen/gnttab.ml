@@ -49,8 +49,6 @@ let put r =
 let num_free_grants () = Queue.length free_list
 
 let rec get () =
- if Queue.length free_list < 20 then
-Printf.printf "%d / %d\n%!" (Queue.length free_list) (Raw.nr_entries ());
   match Queue.is_empty free_list with
   |true ->
     let th, u = Lwt.task () in

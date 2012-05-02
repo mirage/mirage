@@ -187,38 +187,36 @@ let rx_poll nf fn =
     |err -> printf "RX error %d\n%!" err
   )
 
-(* Transmit a packet from buffer, with offset and length *)  
-let output nf bsv =
-  Io_page.with_page
-    (fun page ->
-      Gnttab.with_ref
-        (fun gnt ->
-          Gnttab.with_grant ~domid:nf.backend_id ~perm:Gnttab.RO gnt page
-            (fun () ->
-    let gref = Gnttab.to_int32 gnt in
-    let id = Int32.to_int gref in
-    let page = Io_page.to_bitstring page in
-    let (pagebuf, pageoffbits, _) = page in
-    let pageoff = pageoffbits / 8 in
-    let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->
-      let srclen = srclenbits / 8 in
-      String.blit src (srcoff/8) pagebuf (pageoff+offset) srclen;
-      offset+srclen) 0 bsv in
-    let flags = 0 in
-    let offset = 0 in
-    let res = Ring.Front.push_request_and_wait nf.tx_fring
-      (TX.write_request ~id ~gref ~offset~flags ~size) in
-    if Ring.Front.push_requests_and_check_notify nf.tx_fring then
-      Evtchn.notify nf.evtchn;
-    match_lwt res with
-    |status when status = 0 -> return ()
-    |errcode -> return (printf "TX: error %d\n%!" errcode)
-  )
-))
-
-
 let tx_poll nf =
   Ring.Front.poll nf.tx_fring (TX.read_response)
+
+
+(* Transmit a packet from buffer, with offset and length *)  
+let rec output nf bsv =
+  let page = Io_page.get () in
+  lwt gnt = Gnttab.get () in
+  Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page;
+  let gref = Gnttab.to_int32 gnt in
+  let id = Int32.to_int gref in
+  let (pagebuf, pageoffbits, _) = Io_page.to_bitstring page in
+  let pageoff = pageoffbits / 8 in
+  let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->
+    let srclen = srclenbits / 8 in
+    String.blit src (srcoff/8) pagebuf (pageoff+offset) srclen;
+      offset+srclen) 0 bsv in
+  let flags = 0 in
+  let offset = 0 in
+  lwt () = Ring.Front.push_request_async nf.tx_fring
+    (TX.write_request ~id ~gref ~offset~flags ~size) 
+    (fun () ->
+      Gnttab.end_access gnt; 
+      Gnttab.put gnt;
+      Io_page.put page;
+    )
+  in
+  if Ring.Front.push_requests_and_check_notify nf.tx_fring then
+    Evtchn.notify nf.evtchn;
+  return ()
 
 let listen nf fn =
   (* Listen for the activation to poll the interface *)

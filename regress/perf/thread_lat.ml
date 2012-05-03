@@ -14,7 +14,7 @@ let jitter_t t =
   return (t2 -. t1 -. duration)
 
 (* Cumulative distribution function of results list *)
-let maxt = 0.0005
+let maxt = 0.0002
 let mint = 0.000
 let diff = maxt -. mint
 let buckets = 50
@@ -51,7 +51,7 @@ let main () =
     (loop [] num), u
   in
   for_lwt i = 0 to 5 do
-    let reps = 50000 in
+    let reps = 1000 in
     (* Make threads and launch the parallel map *)
     let ths, u = make_threads reps in
     let result_t = Lwt_list.map_p (fun x -> x) ths in

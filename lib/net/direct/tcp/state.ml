@@ -17,6 +17,9 @@
 open Lwt
 open Printf
 
+let fin_wait_2_time = (* 60. *) 4.
+let time_wait_time = (* 30. *) 2.
+
 type action =
   | Passive_open
   | Recv_rst
@@ -128,7 +131,7 @@ let tick t (i:action) =
     | Fin_wait_1 a, Recv_ack b ->
 	if diffone b a then
 	  let count = 0 in
-	  let _ = finwait2timer t count 60. in
+	  let _ = finwait2timer t count fin_wait_2_time in
 	  Fin_wait_2 count
         else
 	  Fin_wait_1 a
@@ -136,7 +139,7 @@ let tick t (i:action) =
     | Fin_wait_1 a, Recv_finack b -> if diffone b a then Time_wait else Fin_wait_1 a
     | Fin_wait_1 a, Timeout -> t.on_close (); Closed
     | Fin_wait_2 i, Recv_ack _ -> Fin_wait_2 (i + 1)
-    | Fin_wait_2 i, Recv_fin -> let _ = timewait t 30. in Time_wait
+    | Fin_wait_2 i, Recv_fin -> let _ = timewait t time_wait_time in Time_wait
     | Closing a, Recv_ack b -> if diffone b a then Time_wait else Closing a
     | Time_wait, Timeout -> t.on_close (); Closed
     | Close_wait,  Send_fin a -> Last_ack a

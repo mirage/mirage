@@ -211,6 +211,7 @@ module Tx = struct
        ACKed *)
     ()
 
+  (* URG_TODO: Add sequence number to the Syn_rcvd rexmit to only rexmit most recent *)
   let ontimer xmit st segs wnd seq =
     match state st with
     | Syn_rcvd _ | Established | Fin_wait_1 _ | Close_wait | Last_ack _ -> begin

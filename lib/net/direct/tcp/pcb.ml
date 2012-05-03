@@ -60,6 +60,8 @@ type listener = {
 (* TODO: implement *)
 let verify_checksum pkt = true
 
+let wscale_default = 2
+
 module Tx = struct
 
   exception IO_error
@@ -261,6 +263,12 @@ let clearpcb t id tx_isn =
 	  printf "TCP: error in removing pcb - no such connection\n%!"
 
 
+let pcb_allocs = ref 0
+let th_allocs = ref 0
+let pcb_frees = ref 0
+let th_frees = ref 0
+
+
 let new_pcb t ~rx_wnd ~rx_wnd_scale ~tx_wnd ~tx_wnd_scale ~sequence ~tx_mss ~tx_isn id =
   (* Set up the windowing variables *)
   let rx_isn = Sequence.of_int32 sequence in
@@ -298,6 +306,12 @@ let new_pcb t ~rx_wnd ~rx_wnd_scale ~tx_wnd ~tx_wnd_scale ~sequence ~tx_mss ~tx_
     (Rx.thread pcb ~rx_data) <?>
     (Wnd.thread ~utx ~urx ~wnd ~tx_wnd_update)
   in
+  pcb_allocs := !pcb_allocs + 1;
+  th_allocs := !th_allocs + 1;
+  let fnpcb = fun x -> pcb_frees := !pcb_frees + 1 in
+  let fnth = fun x -> th_frees := !th_frees + 1 in
+  Gc.finalise fnpcb pcb;
+  Gc.finalise fnth th;
   pcb, th
 
 
@@ -317,7 +331,7 @@ let new_server_connection t ~tx_wnd ~sequence ~options ~tx_isn ~rx_wnd ~rx_wnd_s
   State.tick pcb.state State.Passive_open;
   State.tick pcb.state (State.Send_synack tx_isn);
   (* Add the PCB to our listens table *)
-  Hashtbl.add t.listens id (tx_isn, (pushf, (pcb, th)));
+  Hashtbl.replace t.listens id (tx_isn, (pushf, (pcb, th)));
   (* Queue a SYN ACK for transmission *)
   let options = Options.MSS 1460 :: opts in
   Segment.Tx.output ~flags:Segment.Tx.Syn ~options pcb.txq ("",0,0) >>
@@ -382,7 +396,7 @@ let input_no_pcb t pkt id =
 		let tx_wnd = window in
 		let rx_wnd = 65535 in
 		(* TODO: fix hardcoded value - it assumes that this value was sent in the SYN *)
-		let rx_wnd_scaleoffer = 2 in
+		let rx_wnd_scaleoffer = wscale_default in
                 lwt (pcb, th) = new_client_connection
                   t ~tx_wnd ~sequence ~ack_number ~options ~tx_isn ~rx_wnd ~rx_wnd_scaleoffer id in
                 Lwt.wakeup wakener (Some (pcb, th));
@@ -405,7 +419,7 @@ let input_no_pcb t pkt id =
 	      let tx_wnd = window in
 	      (* TODO: make this configurable per listener *)
 	      let rx_wnd = 65535 in
-	      let rx_wnd_scaleoffer = 2 in
+	      let rx_wnd_scaleoffer = wscale_default in
               lwt newconn = new_server_connection
 		t ~tx_wnd ~sequence ~options ~tx_isn ~rx_wnd ~rx_wnd_scaleoffer ~pushf id in
               return ()
@@ -505,7 +519,10 @@ let closelistener l =
 let get_dest pcb =
   (pcb.id.dest_ip, pcb.id.dest_port)
 
-let localport = ref 10000
+(* URG_TODO: move this elsewhere! *)
+let _ = Random.self_init ()
+
+let localport = ref (10000 + (Random.int 10000))
 
 let getid t dest_ip dest_port =
   (* TODO: make this more robust and recognise when all ports are gone *)
@@ -547,7 +564,7 @@ let connect t ~dest_ip ~dest_port =
   let id = getid t dest_ip dest_port in
   let tx_isn = Sequence.of_int ((Random.int 65535) + 0xABCD0000) in
   (* TODO: This is hardcoded for now - make it configurable *)
-  let rx_wnd_scaleoffer = 2 in
+  let rx_wnd_scaleoffer = wscale_default in
   let options = Options.MSS 1460 :: Options.Window_size_shift rx_wnd_scaleoffer :: [] in
   let window = 5840 in
   let th, wakener = Lwt.task () in
@@ -571,21 +588,6 @@ let listen t port =
   Hashtbl.replace t.listeners port (st, pushfn);
   (st, {t; port})
 
-
-(* Construct the main TCP thread *)
-let create ip =
-  let thread, _ = Lwt.task () in
-  let listeners = Hashtbl.create 1 in
-  let listens = Hashtbl.create 1 in
-  let connects = Hashtbl.create 1 in
-  let channels = Hashtbl.create 7 in
-  let t = { ip; channels; listeners; listens; connects } in
-  Ipv4.attach ip (`TCP (input t));
-  Lwt.on_cancel thread (fun () ->
-    printf "TCP: shutting down\n%!";
-    Ipv4.detach ip `TCP;
-  );
-  (t, thread)
 
 let print_onestat ~src ~sp ~dst ~dp ~st sent rxed =
   printf "%s\t%s\t%s\t%s\t%10d\t%10d\t%s\n%!" src sp dst dp sent rxed st
@@ -626,3 +628,112 @@ let tcpstats t =
   Hashtbl.iter listens_stats t.listens;
   Hashtbl.iter connects_stats t.connects;
   Hashtbl.iter channels_stats t.channels
+
+
+let get_onestat ~src ~sp ~dst ~dp ~st sent rxed =
+  (sprintf "%s\t%s\t%s\t%s\t%10d\t%10d\t%s\n" src sp dst dp sent rxed st)
+
+let get_listeners_stats t port _ s =
+  let src = ipv4_addr_to_string (Ipv4.get_ip t.ip) in
+  let sp = string_of_int port in
+  let dst = "*\t" in
+  let dp = "*" in
+  let st = tcpstates_to_string Listen in
+  s ^ (get_onestat ~src ~sp ~dst ~dp ~st 0 0)
+
+let get_connects_stats id (_, tx_isn) s =
+  let src = ipv4_addr_to_string id.local_ip in
+  let sp = string_of_int id.local_port in
+  let dst = ipv4_addr_to_string id.dest_ip in
+  let dp = string_of_int id.dest_port in
+  let st = tcpstates_to_string (Syn_sent tx_isn) in
+  s ^ (get_onestat ~src ~sp ~dst ~dp ~st 0 0)
+
+let get_pcb_stat pcb =
+  let src = ipv4_addr_to_string pcb.id.local_ip in
+  let sp = string_of_int pcb.id.local_port in
+  let dst = ipv4_addr_to_string pcb.id.dest_ip in
+  let dp = string_of_int pcb.id.dest_port in
+  let st = tcpstates_to_string (state pcb.state) in
+  get_onestat ~src ~sp ~dst ~dp ~st (Window.tx_totalbytes pcb.wnd) (Window.rx_totalbytes pcb.wnd)
+
+let get_listens_stats _ (_, (_, (pcb, _))) s =
+  s ^ (get_pcb_stat pcb)
+
+let get_channels_stats _ (pcb, _) s =
+  s ^ (get_pcb_stat pcb)
+
+let get_tcpstats t =
+  let s = sprintf "GC Stats\nlive_words = %d\npcb: \tallocs=%d\tfrees=%d\tdiff=%d\nth: \tallocs=%d\tfrees=%d\tdiff=%d\n\n"
+      Gc.((stat()).live_words) !pcb_allocs !pcb_frees (!pcb_allocs - !pcb_frees) !th_allocs !th_frees (!th_allocs - !th_frees) in
+  let s = s ^ "\nSrc \t\tSrc_P \tDst \t\tDst_P \tSent_bytes \tRxed_bytes \tState \n" in
+  let s = Hashtbl.fold (get_listeners_stats t) t.listeners s in
+  let s = Hashtbl.fold get_listens_stats t.listens s in
+  let s =  Hashtbl.fold get_connects_stats t.connects s in
+  let s =  Hashtbl.fold get_channels_stats t.channels s in
+  s
+
+
+let httphdr =
+  "HTTP/1.1 200 OK\nContent-Type: text/html\n\n"
+let htmltitle = 
+  "<html>\n<head>\n<title>Stats</title>\n</head>\n<body>\n"^
+  "<h1>Stats</h1>\n"^
+  "<p><h2>Status of current run: </h2><xmp>\n"
+let htmlend = 
+  "\n</xmp> End of data.</p>\n</body>\n</html>"
+
+
+let write_stat ch s =
+  let rec w_one start len ch s =
+    if (String.length s - start) > len then begin
+      let subs = String.sub s start len in
+      let bs = Bitstring.bitstring_of_string subs in
+      write ch bs >>
+      w_one (start + len) len ch s
+    end else begin
+      let subs = String.sub s start (String.length s - start) in
+      let bs = Bitstring.bitstring_of_string subs in
+      write ch bs
+    end
+  in
+  w_one 0 1460 ch s
+
+let statsprint t (ch, _) =
+  Gc.compact ();
+  let s = get_tcpstats t in
+  let rec onetxn ch = 
+    match_lwt read ch with
+    | None -> close ch 
+    | Some _ ->
+	write_stat ch httphdr >>
+	write_stat ch htmltitle >>
+	write_stat ch s >>
+	write_stat ch htmlend >>
+	close ch 
+  in
+  onetxn ch
+
+
+let startTcpStatsServer t ~port =
+  let st, l = listen t port in
+  Lwt_stream.iter_s (fun f -> statsprint t f) st
+
+
+(* Construct the main TCP thread *)
+let create ip =
+  let thread, _ = Lwt.task () in
+  let listeners = Hashtbl.create 1 in
+  let listens = Hashtbl.create 1 in
+  let connects = Hashtbl.create 1 in
+  let channels = Hashtbl.create 7 in
+  let t = { ip; channels; listeners; listens; connects } in
+  Ipv4.attach ip (`TCP (input t));
+  Lwt.on_cancel thread (fun () ->
+    printf "TCP: shutting down\n%!";
+    Ipv4.detach ip `TCP;
+  );
+  let statsport = 81 in
+  let _ = startTcpStatsServer t statsport in
+  (t, thread)
+

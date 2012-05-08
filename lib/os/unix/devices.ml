@@ -22,9 +22,9 @@ type id = string
 (** Block devices (read/write sectors *)
 type blkif = <
   id: string;
-  read_page: int64 -> Bitstring.t Lwt.t;
-  read_512: int64 -> int64 -> Bitstring.t Lwt_stream.t;
-  write_page: int64 -> Bitstring.t -> unit Lwt.t;
+  read_page: int64 -> Io_page.t Lwt.t;
+  read_512: int64 -> int64 -> Io_page.t Lwt_stream.t;
+  write_page: int64 -> Io_page.t -> unit Lwt.t;
   sector_size: int;
   size: int64;
   readwrite: bool;
@@ -35,7 +35,7 @@ type blkif = <
 (** Key/value read-only *)
 type kv_ro = <
   iter_s: (string -> unit Lwt.t) -> unit Lwt.t;
-  read: string -> Bitstring.t Lwt_stream.t option Lwt.t;
+  read: string -> Io_page.t Lwt_stream.t option Lwt.t;
   size: string -> int64 option Lwt.t;
 >
 

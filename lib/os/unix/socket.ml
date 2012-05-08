@@ -64,8 +64,8 @@ external opendir: string -> dir resp = "caml_opendir"
 external readdir: dir -> string resp = "caml_readdir"
 external closedir: dir -> unit resp = "caml_closedir"
 
-external read: [<`udpv4|`tcpv4|`rd_pipe|`ro_file|`rw_file|`tap] fd -> string -> int -> int -> int resp = "caml_socket_read"
-external write: [<`udpv4|`tcpv4|`wr_pipe|`tap|`rw_file] fd -> string -> int -> int -> int resp = "caml_socket_write"
+external read: [<`udpv4|`tcpv4|`rd_pipe|`ro_file|`rw_file|`tap] fd -> Io_page.t -> int -> int -> int resp = "caml_socket_read"
+external write: [<`udpv4|`tcpv4|`wr_pipe|`tap|`rw_file] fd -> Io_page.t -> int -> int -> int resp = "caml_socket_write"
 external close: [<`tcpv4|`udpv4|`domain|`rd_pipe|`wr_pipe|`ro_file|`rw_file|`tap] fd -> unit = "caml_socket_close"
 
 external opentap: string -> [`tap ] fd = "tap_opendev"

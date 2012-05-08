@@ -26,11 +26,11 @@ type t = {
   fd: [`rw_file] Socket.fd;
 }
 
-let read_n t (offset: int64) (length: int64) : Bitstring.t Lwt.t =
-  Socket.(iobind (lseek t.fd) offset) >>
-  let buf = String.create (Int64.to_int length) in (* XXX pool? *)
-  lwt rd = Socket.(iobind (read t.fd buf 0) (Int64.to_int length)) in
-  return (buf,0, rd*8)
+let read_n t (offset: int64) (length: int64) =
+  (* XXX not implemented yet; should we chunk it into multiple small
+   * pages, or mmap/mincore? Either way, should just use Lwt_unix *)
+  (* let page_length = Io_page.round_to_page_size length in *)
+  fail (Failure "not implemented: blkif.read_n")
 
 let read_page t offset = read_n t offset 4096L
 
@@ -47,10 +47,16 @@ let read_512 t offset length =
 	| true -> return None
     )
 
-let write_page t offset data =
-  Socket.(iobind (lseek t.fd) offset) >>
-  lwt _ = Socket.(iobind (write t.fd (Bitstring.string_of_bitstring data) 0) 4096) in
+let write_page t offset page =
+(* Similar to read_n *)
+ fail (Failure "not implemented: blkif.write_page")
+ (*
+  let off = 0L in
+  let len = Io_page.length page in
+  lwt () = Socket.(iobind (lseek t.fd) off) in
+  lwt _ = Socket.(iobind (write t.fd page off len)) in
   return ()
+*)
 
 let create ~id ~filename : Devices.blkif Lwt.t =
   printf "Unix.Blkif: create %s %s\n%!" id filename;

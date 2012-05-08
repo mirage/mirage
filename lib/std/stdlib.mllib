@@ -53,6 +53,7 @@ bitstring_types
 bitstring_config
 bitstring_stream
 regexp
+bigarray
 oS
 #net
 #block

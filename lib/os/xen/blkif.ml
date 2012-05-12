@@ -66,20 +66,21 @@ module Req = struct
 
   (* Write a request to a slot in the shared ring. Could be optimised a little
      more to minimise allocation, if it matters. *)
-  let write_request req (bs,bsoff,bslen) =
+  let write_request req slot =
     let op = op_to_int req.op in
     let nr_segs = Array.length req.segs in
     let segs = Bitstring.concat (Array.to_list (Array.map make_seg req.segs)) in
-    let reqbuf,_,reqlen = BITSTRING {
+    let reqbuf,_,_ = BITSTRING {
       op:8:littleendian; nr_segs:8:littleendian;
       req.handle:16:littleendian; 0l:32; req.id:64:littleendian;
       req.sector:64:littleendian; segs:-1:bitstring } in
-    String.blit reqbuf 0 bs (bsoff/8) (reqlen/8);
+    Io_page.string_blit reqbuf slot;
     req.id
 
   (* Read a request out of a bitstring; to be used by the Ring.Back for serving
      requests, so this is untested for now *)
-  let read_request bs =
+  let read_request slot =
+    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
     bitmatch bs with
     | { op:8:littleendian; nr_segs:8:littleendian; handle:16:littleendian;
         id:64:littleendian; sector:64:littleendian; segs:-1:bitstring } ->
@@ -109,7 +110,8 @@ module Res = struct
   }
 
   (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
-  let read_response bs =
+  let read_response slot =
+    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
     (bitmatch bs with
     | { id:64:littleendian; op:8:littleendian; _:8;
         st:16:littleendian } ->
@@ -253,8 +255,7 @@ let create fn =
 (* Read a single page from disk. The offset must be sector-aligned *)
 let read_page t offset =
   let sector = Int64.div offset t.features.sector_size in
-  Io_page.with_page
-    (fun page ->
+  let page = Io_page.get () in
       Gnttab.with_ref
         (fun r ->
           Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
@@ -271,12 +272,9 @@ let read_page t offset =
               |Error -> fail (IO_error "read")
               |Not_supported -> fail (IO_error "unsupported")
               |Unknown _ -> fail (IO_error "unknown error")
-              |OK ->
-				  let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring (Io_page.to_bitstring page)) in
-				  return copy)
+              |OK -> return page)
             )
         )
-    )
 
 (* Write a single page to disk.
    Offset is the sector number, which must be sector-aligned
@@ -287,7 +285,7 @@ let write_page t offset page =
   then fail (IO_error "read-only")
   else Gnttab.with_ref
     (fun r ->
-      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r (Io_page.of_bitstring page)
+      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
         (fun () ->
           let gref = Gnttab.to_int32 r in
           let id = Int64.of_int32 gref in
@@ -358,8 +356,7 @@ let read_single_request t r =
   if len > 11 then
     fail (Failure (sprintf "len > 11 (%Lu, %u) (%Lu, %u)" r.start_sector r.start_offset r.end_sector r.end_offset))
   else 
-    Io_page.with_pages len
-      (fun pages ->
+    let pages = Io_page.get_n len in
 	Gnttab.with_refs len
           (fun rs ->
             Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW rs pages
@@ -390,7 +387,6 @@ let read_single_request t r =
 		    (* Get the pages, and convert them into Istring views *)
 		    return (Lwt_stream.of_list (List.rev (snd (List.fold_left
 		      (fun (i, acc) page ->
-			let bs = Io_page.to_bitstring page in
 			let start_offset = match i with
 			  |0 -> r.start_offset * 512
 			  |_ -> 0 in
@@ -398,13 +394,12 @@ let read_single_request t r =
 			  |n when n = len-1 -> (r.end_offset + 1) * 512
 			  |_ -> 4096 in
 			let bytes = end_offset - start_offset in
-			let bs = Bitstring.subbitstring bs (start_offset * 8) (bytes * 8) in
-			i + 1, bs :: acc
+			let subpage = Io_page.sub page start_offset bytes in
+			i + 1, subpage :: acc
 		      ) (0, []) pages
 		    ))))
 	      )
 	  )
-      )
 
 (* Reads [num_sectors] starting at [sector], returning a stream of bitstrings *)
 let read_512 t sector num_sectors =

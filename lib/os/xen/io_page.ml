@@ -57,3 +57,18 @@ let rec get_n ?(pages_per_block=1) n = match n with
 let sub t off len = Bigarray.Array1.sub t off len
 
 let length t = Bigarray.Array1.dim t
+
+let page_size = 4096
+
+let to_pages t =
+  assert(length t mod page_size = 0);
+  let rec loop off acc =
+    if off < (length t)
+    then loop (off + page_size) (sub t off page_size :: acc)
+    else acc in
+  List.rev (loop 0 [])
+
+let string_blit src t =
+  for i = 0 to String.length src - 1 do
+    t.{i} <- src.[i]
+  done

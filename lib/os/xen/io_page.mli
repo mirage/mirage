@@ -21,3 +21,7 @@ val get_n : ?pages_per_block:int -> int -> t list
 
 val sub : t -> int -> int -> t
 val length : t -> int
+
+val to_pages : t -> t list
+
+val string_blit : string -> t -> unit 

@@ -25,7 +25,7 @@
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
-
+#include <caml/bigarray.h>
 
 /* Raw ring operations
    These have no request/response structs, just byte strings
@@ -104,7 +104,8 @@ struct sring {
   uint8_t  pad[64];
 };
 
-#define SRING_VAL(x) ((struct sring *)(String_val(Field((x),0))+(Int_val(Field((x),1))/8)))
+/* see ring.ml:type sring */
+#define SRING_VAL(x) ((struct sring *)(Data_bigarray_val(Field(x, 0))))
 CAMLprim value
 caml_sring_rsp_prod(value v_sring)
 {

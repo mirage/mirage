@@ -25,8 +25,8 @@ let rec pow2 = function
 let alloc ~domid ~order =
   lwt gnt = Gnttab.get () in
   (* XXX: need to allocate (pow2 order) contiguous pages *)
-  let ring = Io_page.alloc_contiguous (pow2 order) in
-  let pages = Io_page.split_into_pages ring in
+  let ring = Io_page.get ~pages_per_block:(pow2 order) () in
+  let pages = Io_page.to_pages ring in
   lwt gnts = Gnttab.get_n (List.length pages) in
   let perm = Gnttab.RW in
   List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
@@ -42,8 +42,7 @@ let alloc ~domid ~order =
 *)
 
 type sring = {
-  buf: string;      (* Overall I/O buffer *)
-  off: int;         (* Offset into I/O buffer (in bits, not bytes *)
+  buf: Io_page.t;   (* Overall I/O buffer *)
   header_size: int; (* Header of shared ring variables, in bits *)
   idx_size: int;    (* Size in bits of an index slot *)
   nr_ents: int;     (* Number of index entries *)
@@ -51,21 +50,20 @@ type sring = {
 }
 
 let init ~domid ~order ~idx_size ~name =
-  lwt gnts, (buf, off, len) = alloc ~domid ~order in
-  assert (len = (4096 * (pow2 order) * 8));
-  let header_size = 32+32+32+32+(48*8) in (* header bits size of struct sring *)
+  lwt gnts, buf = alloc ~domid ~order in
+  assert (Io_page.length buf = (4096 * (pow2 order)));
+  let header_size = 4+4+4+4+48 in (* header bytes size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
   let round_down_to_nearest_2 x =
     int_of_float (2. ** (floor ( (log (float x)) /. (log 2.)))) in
   (* Free space in shared ring after header is accounted for *)
-  let free_bytes = 4096 * (pow2 order) - (header_size / 8) in
+  let free_bytes = 4096 * (pow2 order) - header_size in
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
-  (* We store idx_size in bits, for easier Bitstring offset calculations *)
-  let idx_size = idx_size * 8 in
-  let t = { name; buf; off; idx_size; nr_ents; header_size } in
+  let t = { name; buf; idx_size; nr_ents; header_size } in
   (* initialise the *_event fields to 1, and the rest to 0 *)
+  (* XXX: cstruct? *)
   let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
-  String.blit src 0 buf (off/8) (String.length src);
+  Io_page.string_blit src buf;
   return (gnts,t)
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
@@ -82,8 +80,8 @@ let nr_ents sring = sring.nr_ents
 let slot sring idx =
   (* TODO should precalculate these and store in the sring? this is fast-path *)
   let idx = idx land (sring.nr_ents - 1) in
-  let off = sring.off + sring.header_size + (idx * sring.idx_size) in
-  (sring.buf, off, sring.idx_size)
+  let off = sring.header_size + (idx * sring.idx_size) in
+  Io_page.sub sring.buf off sring.idx_size
 
 module Front = struct
 

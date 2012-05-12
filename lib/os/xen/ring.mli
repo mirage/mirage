@@ -44,10 +44,10 @@ module Front : sig
   val init : sring:sring -> ('a,'b) t
 
   (** Retrieve the request/response slot at the specified index as
-    * a Bitstring.
+    * an Io_page.t.
     * @param idx Index to retrieve, should be less than nr_ents
     *)
-  val slot : ('a,'b) t -> int -> Bitstring.t
+  val slot : ('a,'b) t -> int -> Io_page.t
 
   (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int
@@ -68,7 +68,7 @@ module Front : sig
     * the responses and wake up any sleeping threads that were
     * waiting for that particular response.
     *)
-  val ack_responses : ('a,'b) t -> (Bitstring.t -> unit) -> unit
+  val ack_responses : ('a,'b) t -> (Io_page.t -> unit) -> unit
 
   (** Update the shared request producer *)
   val push_requests : ('a,'b) t -> unit
@@ -87,18 +87,18 @@ module Front : sig
       @param fn Function that writes to a request slot and returns the request id
       @return Thread which returns the response value to the input request
     *)
-  val push_request_and_wait : ('a,'b) t -> (Bitstring.t -> 'b) -> 'a Lwt.t
+  val push_request_and_wait : ('a,'b) t -> (Io_page.t -> 'b) -> 'a Lwt.t
 
   (** Poll the ring for responses, and wake up any threads that are
       sleeping (as a result of calling {[push_request_and_wait]}).
     *)
-  val poll : ('a,'b) t -> (Bitstring.t -> ('b * 'a)) -> unit
+  val poll : ('a,'b) t -> (Io_page.t -> ('b * 'a)) -> unit
 
   (** Wait for free slot on the ring *)
   val wait_for_free_slot : ('a,'b) t -> unit Lwt.t
   
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (Bitstring.t -> 'b) -> (unit -> unit) -> unit Lwt.t 
+  val push_request_async : ('a,'b) t -> (Io_page.t -> 'b) -> (unit -> unit) -> unit Lwt.t 
 end
 
 module Back : sig
@@ -112,10 +112,10 @@ module Back : sig
   val init : sring:sring -> ('a,'b) t
 
   (** Retrieve the request/response slot at the specified index as
-    * a Bitstring.
+    * a Io_page.
     * @param idx Index to retrieve, should be less than nr_ents
     *)
-  val slot : ('a,'b) t -> int -> Bitstring.t
+  val slot : ('a,'b) t -> int -> Io_page.t
 
   (** Retrieve number of slots in the shared ring *)
   val nr_ents : ('a,'b) t -> int

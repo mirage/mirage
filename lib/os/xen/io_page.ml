@@ -72,3 +72,12 @@ let string_blit src t =
   for i = 0 to String.length src - 1 do
     t.{i} <- src.[i]
   done
+
+let to_string t =
+  let result = String.create (length t) in
+  for i = 0 to length t - 1 do
+    result.[i] <- t.{i}
+  done;
+  result
+
+let blit src dest = Bigarray.Array1.blit src dest

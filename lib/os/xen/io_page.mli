@@ -24,4 +24,8 @@ val length : t -> int
 
 val to_pages : t -> t list
 
-val string_blit : string -> t -> unit 
+val string_blit : string -> t -> unit
+
+val to_string : t -> string
+
+val blit : t -> t -> unit

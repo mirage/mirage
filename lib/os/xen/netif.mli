@@ -38,7 +38,7 @@ val plug: id -> t Lwt.t
 val unplug: id -> unit
 
 (** Output a Bitstring vector to an interface *)
-val output : t -> Bitstring.t list -> unit Lwt.t
+val output : t -> Io_page.t list -> unit Lwt.t
 
 (** Listen endlesses on a Netfront, and invoke the callback function as frames are
     received. *)

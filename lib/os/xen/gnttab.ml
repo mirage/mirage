@@ -25,7 +25,7 @@ module Raw = struct
   external nr_reserved : unit -> int = "caml_gnttab_reserved"
   external init : unit -> unit = "caml_gnttab_init"
   external fini : unit -> unit = "caml_gnttab_fini"
-  external grant_access : r -> (string*int*int) -> int -> bool -> unit = "caml_gnttab_grant_access"
+  external grant_access : r -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
   external end_access : r -> unit = "caml_gnttab_end_access"
 end
 
@@ -90,7 +90,7 @@ let with_refs n f =
   end
 
 let grant_access ~domid ~perm r page =
-  Raw.grant_access r (Io_page.to_bitstring page) domid (match perm with RO -> true |RW -> false)
+  Raw.grant_access r page domid (match perm with RO -> true |RW -> false)
 
 let end_access r =
   Raw.end_access r

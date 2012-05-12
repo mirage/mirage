@@ -31,12 +31,13 @@ module RX = struct
     let fring = Ring.Front.init ~sring in
     return (rx_gnt, fring)
 
-  let write_request ~id ~gref (bs,bsoff,_) =
-    let req,_,reqlen = BITSTRING { id:16:littleendian; 0:16; gref:32:littleendian } in
-    String.blit req 0 bs (bsoff/8) (reqlen/8);
+  let write_request ~id ~gref slot =
+    let req,_,_ = BITSTRING { id:16:littleendian; 0:16; gref:32:littleendian } in
+    Io_page.string_blit req slot;
     id
 
-  let read_response bs =
+  let read_response slot =
+    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
     bitmatch bs with
     | { id:16:littleendian; offset:16:littleendian; flags:16:littleendian;
         status:16:littleendian } ->
@@ -58,13 +59,14 @@ module TX = struct
     let fring = Ring.Front.init ~sring in
     return (tx_gnt, fring)
 
-  let write_request ~gref ~offset ~flags ~id ~size (bs,bsoff,_) =
-    let req,_,reqlen = BITSTRING { gref:32:littleendian; offset:16:littleendian;
+  let write_request ~gref ~offset ~flags ~id ~size slot =
+    let req,_,_ = BITSTRING { gref:32:littleendian; offset:16:littleendian;
       flags:16:littleendian; id:16:littleendian; size:16:littleendian } in
-    String.blit req 0 bs (bsoff/8) (reqlen/8);
+    Io_page.string_blit req slot;
     id
 
-  let read_response bs =
+  let read_response slot =
+    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
     bitmatch bs with
     | { id:16:littleendian; status:16:littleendian } ->
         (id, status)
@@ -170,19 +172,17 @@ let refill_requests nf =
   return ()
 
 let rx_poll nf fn =
-  Ring.Front.ack_responses nf.rx_fring (fun bs ->
-    let id,(offset,flags,status) = RX.read_response bs in
+  Ring.Front.ack_responses nf.rx_fring (fun slot ->
+    let id,(offset,flags,status) = RX.read_response slot in
     let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    let bs = Io_page.to_bitstring page in
+    let bs = Bitstring.bitstring_of_string (Io_page.to_string page) in
     Gnttab.end_access gnt;
     Gnttab.put gnt;
     match status with
     |sz when status > 0 ->
       let packet = Bitstring.subbitstring bs 0 (sz*8) in
-      let copy = Bitstring.bitstring_of_string (Bitstring.string_of_bitstring packet) in
-      Io_page.put page;
-      ignore_result (try_lwt fn copy 
+      ignore_result (try_lwt fn packet
         with exn -> return (printf "RX exn %s\n%!" (Printexc.to_string exn)))
     |err -> printf "RX error %d\n%!" err
   )
@@ -203,20 +203,17 @@ let rec output nf bsv =
   Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page;
   let gref = Gnttab.to_int32 gnt in
   let id = Int32.to_int gref in
-  let (pagebuf, pageoffbits, _) = Io_page.to_bitstring page in
-  let pageoff = pageoffbits / 8 in
-  let size = List.fold_left (fun offset (src,srcoff,srclenbits) ->
-    let srclen = srclenbits / 8 in
-    String.blit src (srcoff/8) pagebuf (pageoff+offset) srclen;
-      offset+srclen) 0 bsv in
+  let size = List.fold_left (fun offset fragment ->
+    let fraglen = Io_page.length fragment in
+    Io_page.blit fragment (Io_page.sub page offset (Io_page.length fragment));
+    offset + fraglen) 0 bsv in
   let flags = 0 in
   let offset = 0 in
   lwt () = Ring.Front.push_request_async nf.tx_fring
     (TX.write_request ~id ~gref ~offset~flags ~size) 
     (fun () ->
       Gnttab.end_access gnt; 
-      Gnttab.put gnt;
-      Io_page.put page)
+      Gnttab.put gnt)
   in
   if Ring.Front.push_requests_and_check_notify nf.tx_fring then
     Evtchn.notify nf.evtchn;

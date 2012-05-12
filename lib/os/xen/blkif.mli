@@ -30,14 +30,14 @@ module Req : sig
     val op_to_int : op -> int
     val op_of_int : int -> op
     val make_seg : seg -> Bitstring.bitstring
-    val write_request : t -> string * int * 'a -> int64
-    val read_request : string * int * int -> t
+    val write_request : t -> Io_page.t -> int64
+    val read_request : Io_page.t -> t
   end
 
 module Res : sig
     type rsp = OK | Error | Not_supported | Unknown of int
     type t = { op : Req.op; st : rsp; }
-    val read_response : string * int * int -> int64 * t
+    val read_response : Io_page.t -> int64 * t
   end
 
 type features = {
@@ -54,6 +54,6 @@ exception IO_error of string
 val poll : t -> unit Lwt.t
 val create : id:id -> Devices.blkif Lwt.t
 val enumerate : unit -> id list Lwt.t
-val read_page : t -> int64 -> Bitstring.t Lwt.t
-val write_page : t -> int64 -> Bitstring.t -> unit Lwt.t
-val read_512 : t -> int64 -> int64 -> Bitstring.bitstring Lwt_stream.t
+val read_page : t -> int64 -> Io_page.t Lwt.t
+val write_page : t -> int64 -> Io_page.t -> unit Lwt.t
+val read_512 : t -> int64 -> int64 -> Io_page.t Lwt_stream.t

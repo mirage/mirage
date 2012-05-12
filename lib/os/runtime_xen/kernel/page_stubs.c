@@ -21,46 +21,28 @@
 #include <caml/gc.h>
 #include <caml/alloc.h>
 #include <caml/fail.h>
+#include <caml/bigarray.h>
 
-/* Allocate an 'out of heap' string that is not scanned by the GC */
+/* Allocate an array of [n_pages] bigarrays, returned in ascending address
+   order */
 CAMLprim value
-caml_alloc_external_string(value v_len)
+caml_alloc_pages(value n_pages)
 {
-  /* We must follow the string encoding out of alloc.c here, 
-     specifically the padding rules (although we are word-aligned in practise) */
-  size_t len = Int_val(v_len);
-  mlsize_t offset_index;
-  mlsize_t wosize = (len + sizeof (value)) / sizeof (value);
-  size_t bsize = sizeof(value) + (wosize * (sizeof(value)));
-  char *hp = caml_stat_alloc(bsize);
-  memset(hp, 0, bsize);
-  Hd_hp(hp) = Make_header(wosize, String_tag, Caml_white);
-  value v_buf = Val_hp(hp);
-  /* Pad the end of the string */
-  Field(v_buf, wosize-1) = 0;
-  offset_index = Bsize_wsize(wosize)-1;
-  Byte(v_buf, offset_index) = offset_index - len;
-  return v_buf;
+  CAMLparam1(n_pages);
+  CAMLlocal2(page, result);
+  int i;
+  size_t len = Int_val(n_pages);
+  /* XXX: Ideally we would use a lower-level interface to directly allocate pages */
+  unsigned long block = (unsigned long) malloc(PAGE_SIZE * (len + 1));
+  if (!block) caml_failwith("malloc");
+  result = caml_alloc(len, 0);
+  /* Align to a page boundary */
+  block = PAGE_ALIGN(block);
+  while (i < len){
+    page = alloc_bigarray_dims(BIGARRAY_UINT8 | BIGARRAY_C_LAYOUT, 1, block, (long)PAGE_SIZE);
+    Store_field(result, i, page);
+    i++;
+    block += (PAGE_SIZE / sizeof(unsigned long));
+  };
+  CAMLreturn(result);
 }
-
-/* Given a string, determine the offset at which a page begins,
-   how many pages there are. */
-CAMLprim value
-caml_chunk_string_pages(value v_str)
-{
-  CAMLparam1(v_str);
-  CAMLlocal1(v_ret);
-  unsigned long buf, buflen, bufoff;
-  int nr_pages;
-  buf = (unsigned long)(String_val(v_str));
-  buflen = caml_string_length(v_str);
-  if (buflen < PAGE_SIZE)
-    caml_failwith("pages_of_string: len < PAGE_SIZE");
-  bufoff = PAGE_ALIGN(buf) - buf;
-  nr_pages = (buflen-bufoff) / PAGE_SIZE;
-  v_ret = caml_alloc(2, 0);
-  Store_field(v_ret, 0, Val_int(bufoff));
-  Store_field(v_ret, 1, Val_int(nr_pages));
-  CAMLreturn(v_ret);
-}  
-

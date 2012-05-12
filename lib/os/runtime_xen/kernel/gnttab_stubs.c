@@ -22,6 +22,7 @@
 
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
+#include <caml/bigarray.h>
 
 #include <log.h>
 
@@ -53,11 +54,11 @@ gnttab_grant_access(grant_ref_t ref, void *page, int domid, int ro)
 }
 
 CAMLprim value
-caml_gnttab_grant_access(value v_ref, value v_bs, value v_domid, value v_readonly)
+caml_gnttab_grant_access(value v_ref, value v_iopage, value v_domid, value v_readonly)
 {
-    CAMLparam4(v_ref, v_bs, v_domid, v_readonly);
+    CAMLparam4(v_ref, v_iopage, v_domid, v_readonly);
     grant_ref_t ref = Int32_val(v_ref);
-    char *page = String_val(Field(v_bs, 0)) + (Int_val(Field(v_bs,1)) / 8);
+    void *page = Data_bigarray_val(v_iopage);
     ASSERT(((unsigned long)page) % PAGE_SIZE == 0);
     gnttab_grant_access(ref, page, Int_val(v_domid), Bool_val(v_readonly));
     CAMLreturn(Val_unit);

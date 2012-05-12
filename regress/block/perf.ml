@@ -84,7 +84,7 @@ module Test = functor(S: SYSTEM) -> struct
   (* return the total number of [operations] performed on [blocks] per second, averaging over [seconds] s *)
   let time seconds blocks operation =
     let start = S.gettimeofday () in
-    let parallelism = 64 in
+    let parallelism = 1 in
 
     let blocks = ref blocks in
 
@@ -111,6 +111,7 @@ module Test = functor(S: SYSTEM) -> struct
       Lwt_list.map_s (fun block_size ->
 	let stats = Normal_population.make () in
 	for_lwt i = 0 to samples - 1 do
+	  OS.Console.log_s (Printf.sprintf "block_size = %d; sample = %d" block_size i) >>
 	  lwt t = time seconds (sequence block_size disk_size)
 	    (fun s ->
 	      let stream = S.read_sectors s in

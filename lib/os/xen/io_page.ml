@@ -29,6 +29,7 @@ let get_free_list pages_per_block : t Queue.t =
 
 let alloc ~pages_per_block ~n_blocks =
   let q = get_free_list pages_per_block in
+  Printf.printf "alloc pages_per_block=%d n_blocks=%d" pages_per_block n_blocks;
   for i = 0 to n_blocks - 1 do
     Array.iter (fun x -> Queue.add x q) (alloc_pages pages_per_block);
   done
@@ -39,7 +40,7 @@ let get ?(pages_per_block=1) () =
     try
       let block = Queue.pop q in
       let fin p =
-        Printf.printf "block finalise\n%!";
+(*        Printf.printf "block finalise\n%!"; *)
         Queue.add p q
       in 
       Gc.finalise fin block;

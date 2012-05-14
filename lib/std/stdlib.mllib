@@ -54,6 +54,7 @@ bitstring_config
 bitstring_stream
 regexp
 bigarray
+cstruct
 oS
 #net
 #block

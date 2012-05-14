@@ -1,4 +1,4 @@
 <pa_type_conv.*>: for-pack(Pa_mirage), use_camlp4_r
 "pa_cow.ml": for-pack(Pa_mirage), use_camlp4_o
-"pa_js.cmx" or "pa_bitstring.cmx" or "pa_dyntype.cmx" or "pa_json.cmx" or "pa_xml.cmx" or "pa_css.cmx" or "pa_html.cmx" or "pa_lwt.cmx" or "pa_ulex.cmx" or "pa_cow.cmx": for-repack(Pa_mirage)
+"pa_cstruct.cmx" or "pa_js.cmx" or "pa_bitstring.cmx" or "pa_dyntype.cmx" or "pa_json.cmx" or "pa_xml.cmx" or "pa_css.cmx" or "pa_html.cmx" or "pa_lwt.cmx" or "pa_ulex.cmx" or "pa_cow.cmx": for-repack(Pa_mirage)
 true: linkall

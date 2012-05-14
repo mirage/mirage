@@ -1,4 +1,5 @@
 Pa_bitstring
+Pa_cstruct
 Pa_lwt
 Pa_type_conv
 Pa_dyntype

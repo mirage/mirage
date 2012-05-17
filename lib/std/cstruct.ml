@@ -26,10 +26,33 @@ type uint16 = int
 type uint32 = int32
 type uint64 = int64
 
-module BE = struct
+let get_uint8 s off =
+  Char.code (get s off)
 
-  let get_uint8 s off =
-    Char.code (get s off)
+let set_uint8 s off v =
+  set s off (Char.chr v)
+
+let sub_buffer src srcoff len =
+  sub src srcoff len
+
+let copy_buffer src srcoff len =
+  let s = String.create len in
+  for i = 0 to len - 1 do
+    s.[i] <- get src (srcoff+i)
+  done;
+  s
+
+let blit_buffer src srcoff dst dstoff len =
+  let src = sub src srcoff len in
+  let dst = sub dst dstoff len in
+  blit src dst
+
+let set_buffer src srcoff dst dstoff len =
+  for i = srcoff to srcoff + len - 1 do
+    set dst (dstoff+i) src.[i]
+  done
+
+module BE = struct
 
   let get_uint16 s off =
     let hi = get_uint8 s off in
@@ -46,12 +69,6 @@ module BE = struct
     let lo = get_uint32 s (off+4) in 
     Int64.(add (shift_left (of_int32 hi) 32) (of_int32 lo))
 
-  let get_buffer s off len =
-    sub s off len
-
-  let set_uint8 s off v =
-    set s off (Char.chr v)
-
   let set_uint16 s off v =
     set_uint8 s off (v lsr 8);
     set_uint8 s (off+1) (v land 0xff)
@@ -64,16 +81,10 @@ module BE = struct
     set_uint32 s off (Int64.(to_int32 (shift_right_logical v 32)));
     set_uint32 s (off+4) (Int64.(to_int32 (logand v 0xffffffff_L)))
 
-  let set_buffer s off len src =
-    let dst = sub s off len in
-    blit src dst
 end
 
 module LE = struct
   open Bigarray.Array1 
-
-  let get_uint8 s off =
-    Char.code (get s off)
 
   let get_uint16 s off =
     let lo = get_uint8 s off in
@@ -90,12 +101,6 @@ module LE = struct
     let hi = get_uint32 s (off+4) in 
     Int64.(add (shift_left (of_int32 hi) 32) (of_int32 lo))
   
-  let get_buffer s off len =
-    sub s off len
-
-  let set_uint8 s off v =
-    set s off (Char.chr v)
-
   let set_uint16 s off v =
     set_uint8 s off (v land 0xff);
     set_uint8 s (off+1) (v lsr 8)
@@ -107,11 +112,6 @@ module LE = struct
   let set_uint64 s off v =
     set_uint32 s off (Int64.(to_int32 (logand v 0xffffffff_L)));
     set_uint32 s (off+4) (Int64.(to_int32 (shift_right_logical v 32)))
-
-  let set_buffer s off len src =
-    let dst = sub s off len in
-    blit src dst
-
 end
 
 let len buf = dim buf
@@ -144,3 +144,23 @@ let hexdump buf =
     incr c;
   done;
   print_endline ""
+
+(* Generate an iterator over a stream of packets *)
+let iter hlen plenfn buf =
+  let body = ref (Some buf) in
+  fun () ->
+    match !body with
+    |Some buf ->
+      (* Split the header frame *)
+      let hdr, rest = split buf hlen in
+      (* Determine the packet length from the header *)
+      let plen = plenfn hdr in
+      (* Generate the packet buffer *)
+      let pbody = sub rest 0 plen in
+      (* Skip the buffer to the next packet *)
+      if len buf - hlen - plen > 0 then
+        body := Some (shift rest plen)
+      else
+        body := None;
+      Some (hdr, pbody)
+    |None -> None

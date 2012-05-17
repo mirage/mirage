@@ -112,34 +112,48 @@ let mode_mod _loc =
 
 let getter_name s f = sprintf "get_%s_%s" s.name f.field
 let setter_name s f = sprintf "set_%s_%s" s.name f.field
+let op_name op s f = sprintf "%s_%s_%s" op s.name f.field
 
 let output_get _loc s f =
   let m = mode_mod _loc s.endian in
-  let num x = <:expr< $int:string_of_int x$ >> in 
-  <:str_item<
-    let $lid:getter_name s f$ v = 
+  let num x = <:expr< $int:string_of_int x$ >> in
+  match f.ty with
+  |Buffer len ->
+    <:str_item<
+      let $lid:op_name "get" s f$ src = Cstruct.sub_buffer src $num f.off$ $num len$ ;;
+      let $lid:op_name "copy" s f$ src = Cstruct.copy_buffer src $num f.off$ $num len$
+    >>
+  |ty ->
+    <:str_item<
+      let $lid:getter_name s f$ v = 
       $match f.ty with
-       |UInt8 -> <:expr< $m$.get_uint8 v $num f.off$ >>
+       |UInt8 -> <:expr< Cstruct.get_uint8 v $num f.off$ >>
        |UInt16 -> <:expr< $m$.get_uint16 v $num f.off$ >>
        |UInt32 -> <:expr< $m$.get_uint32 v $num f.off$ >>
        |UInt64 -> <:expr< $m$.get_uint64 v $num f.off$ >>
-       |Buffer len -> <:expr< $m$.get_buffer v $num f.off$ $num len$ >>
+       |Buffer len -> assert false
       $
-  >>
+    >>
 
 let output_set _loc s f =
   let m = mode_mod _loc s.endian in
   let num x = <:expr< $int:string_of_int x$ >> in 
-  <:str_item<
-    let $lid:setter_name s f$ v x = 
-      $match f.ty with
-       |UInt8 -> <:expr< $m$.set_uint8 v $num f.off$ x >>
+  match f.ty with
+  |Buffer len ->
+    <:str_item<
+      let $lid:setter_name s f$ src srcoff dst = Cstruct.set_buffer src srcoff dst $num f.off$ $num len$ ;;
+      let $lid:op_name "blit" s f$ src srcoff dst = Cstruct.blit_buffer src srcoff dst $num f.off$ $num len$
+    >>
+  |ty ->
+    <:str_item<
+      let $lid:setter_name s f$ v x = $match f.ty with
+       |UInt8 -> <:expr< Cstruct.set_uint8 v $num f.off$ x >>
        |UInt16 -> <:expr< $m$.set_uint16 v $num f.off$ x >>
        |UInt32 -> <:expr< $m$.set_uint32 v $num f.off$ x >>
        |UInt64 -> <:expr< $m$.set_uint64 v $num f.off$ x >>
-       |Buffer len -> <:expr< $m$.set_buffer v $num f.off$ $num len$ x >>
-      $
-  >>
+       |Buffer len -> assert false 
+      $ 
+    >>
 
 let output_sizeof _loc s =
   <:str_item<
@@ -173,18 +187,15 @@ let output_enum _loc name fields width =
       (fun i -> <:patt< $int64:string_of_int i$ >>)
     |Some (Buffer _) -> loc_err _loc "enum: array types not allowed"
   in
-  let decls = tyOr_of_list (List.map (fun f ->
+  let decls = tyOr_of_list (List.map (fun (f,_) ->
     <:ctyp< $uid:f$ >>) fields) in
-  let mapi fn l =
-    let ctr = ref 0 in
-    List.map (fun x -> let r = fn !ctr x in incr ctr; r) l in
-  let getters = mcOr_of_list ((mapi (fun i f ->
+  let getters = mcOr_of_list ((List.map (fun (f,i) ->
     <:match_case< $pattfn i$ -> Some $uid:f$ >>
   ) fields) @ [ <:match_case< _ -> None >> ]) in
-  let setters = mcOr_of_list (mapi (fun i f ->
+  let setters = mcOr_of_list (List.map (fun (f,i) ->
     <:match_case< $uid:f$ -> $intfn i$ >>
   ) fields) in
-  let printers = mcOr_of_list (mapi (fun i f ->
+  let printers = mcOr_of_list (List.map (fun (f,_) ->
     <:match_case< $uid:f$ -> $str:f$ >>) fields) in
   let getter x = sprintf "%s_of_int" x in
   let setter x = sprintf "%s_to_int" x in
@@ -211,13 +222,24 @@ EXTEND Gram
     ]
   ];
 
+  constr_enum: [
+    [ f = UIDENT -> (f, None)
+    | f = UIDENT; "="; i = INT -> (f, Some (int_of_string i)) ]
+  ];
+
   str_item: [
     [ "cstruct"; name = LIDENT; fields = constr_fields;
       "as"; endian = LIDENT ->
 	output_struct _loc (create_struct _loc endian name fields)
     ] |
-    [ "cenum"; name = LIDENT; "{"; fields = LIST0 [ f = UIDENT -> f ] SEP ";"; "}";
+    [ "cenum"; name = LIDENT; "{"; fields = LIST0 [ constr_enum ] SEP ";"; "}";
       "as"; width = LIDENT ->
+        let n = ref (-1) in
+        let fields =
+          List.map (function
+            | (f, None)   -> incr n; (f, !n)
+            | (f, Some i) -> (f, i)
+          ) fields in
         output_enum _loc name fields width
     ]
   ];

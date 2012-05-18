@@ -87,6 +87,12 @@ let rec input t =
   |n ->
     return page
 
+(* Get write buffer for Netif output *)
+let get_writebuf t =
+  let page = Io_page.get () in
+  (* TODO: record statistics for requesting thread here (in debug mode?) *)
+  return page
+
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
   match t.active with

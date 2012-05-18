@@ -19,111 +19,54 @@ open Lwt
 open Nettypes
 open Printf
 
-type frame = {
-  dmac: ethernet_mac;
-  smac: ethernet_mac;
-}
-
 type t = {
   ethif: OS.Netif.t;
   mac: ethernet_mac;
   arp: Arp.t;
-  mutable ipv4: (Bitstring.t -> unit Lwt.t);
-  mutable raw_eth: (string -> string * int * int -> unit Lwt.t) list;
+  mutable ipv4: (OS.Io_page.t -> unit Lwt.t);
 }
 
-let gen_frame dmac smac =
-  let dmac = ethernet_mac_of_bytes dmac in
-  let smac = ethernet_mac_of_bytes smac in
-  { dmac; smac; }
+cstruct ethernet {
+  uint8_t        dst[6];
+  uint8_t        src[6];
+  uint16_t       ethertype
+} as big_endian
 
 (* Handle a single input frame *)
 let input t frame =
-(*  let _ = (printf "Packet received dev (%s) \n" ( OS.Netif.ethid t.ethif )) in *)
-  bitmatch frame with
-  |{dmac:48:string; smac:48:string;
-    0x0806:16;     (* ethertype *)
-    1:16;          (* htype const 1 *)
-    0x0800:16;     (* ptype const, ND used for IPv6 now *)
-    6:8;           (* hlen const 6 *)
-    4:8;           (* plen const, ND used for IPv6 now *)
-    op:16;
-    sha:48:string; spa:32;
-    tha:48:string; tpa:32 } ->
-      let sha = ethernet_mac_of_bytes sha in
-      let spa = ipv4_addr_of_uint32 spa in
-      let tha = ethernet_mac_of_bytes tha in
-      let tpa = ipv4_addr_of_uint32 tpa in
-      let op = match op with |1->`Request |2 -> `Reply |n -> `Unknown n in
-      let arp = { op; sha; spa; tha; tpa } in
-      Arp.input t.arp arp
-
-  |{dmac:48:string; smac:48:string;
-    etype:16; bits:-1:bitstring } -> 
-      (* let _ = gen_frame dmac smac in *)
-      begin match etype with
-      | 0x0800 (* IPv4 *) -> t.ipv4 bits
-      | 0x86dd (* IPv6 *) -> return (printf "Ethif: discarding ipv6\n%!")
-      | etype -> return (printf "Ethif: unknown frame %x\n%!" etype)
-      end
-  |{_} ->
-      return (printf "Ethif: dropping input\n%!")
+  match get_ethernet_ethertype frame with
+  |0x0806 -> (* ARP *)
+    Arp.input t.arp frame
+  |0x0800 -> (* IPv4 *)
+    let payload = Cstruct.shift frame sizeof_ethernet in 
+    t.ipv4 payload
+  |0x86dd -> (* IPv6 *)
+    return (printf "Ethif: discarding ipv6\n%!")
+  |etype ->
+    return (printf "Ethif: unknown frame %x\n%!" etype)
 
 (* Loop and listen for frames *)
 let rec listen t =
   OS.Netif.listen t.ethif (input t)
 
-let output t frame =
-  OS.Netif.output t.ethif frame
+let get_etherbuf t =
+  lwt buf = OS.Netif.get_writebuf t in
+  return (buf, sizeof_ethernet)
 
-let output_arp ethif arp =
-  let dmac = ethernet_mac_to_bytes arp.tha in
-  let smac = ethernet_mac_to_bytes arp.sha in
-  let spa = ipv4_addr_to_uint32 arp.spa in
-  let tpa = ipv4_addr_to_uint32 arp.tpa in
-  let op = match arp.op with |`Request->1 |`Reply->2 |`Unknown n -> n in
-  let frame = BITSTRING {
-    dmac:48:string; smac:48:string;
-    0x0806:16;  (* ethertype *)
-    1:16;       (* htype *)
-    0x0800:16;  (* ptype *)
-    6:8;        (* hlen *)
-    4:8;        (* plen *)
-    op:16;
-    smac:48:string; spa:32;
-    dmac:48:string; tpa:32
-  } in
-  OS.Netif.output ethif [frame]
+let output t buf =
+  OS.Netif.output t.ethif buf
 
 let create ethif =
   let ipv4 = (fun _ -> return ()) in
   let mac = ethernet_mac_of_bytes (OS.Netif.mac ethif) in
-  let get_mac () = mac in
-  let arp = Arp.create ~output:(output_arp ethif) ~get_mac in
-  let t = { ethif; ipv4; mac; arp; raw_eth=[] } in
+  let arp =
+    let get_mac () = mac in
+    let get_etherbuf () = get_etherbuf ethif in
+    let output buf = OS.Netif.output ethif buf in
+    Arp.create ~output ~get_mac ~get_etherbuf in
+  let t = { ethif; ipv4; mac; arp } in
   let listen = listen t in
   (t, listen)
-
-let input_raw t frame = 
-  List.iter (fun k -> (k (OS.Netif.ethid t.ethif) frame ); () ) t.raw_eth;
-  return ()
-
-(* Loop and listen for frames *)
-let rec raw_listen t =
-  OS.Netif.listen t.ethif (input_raw t)
-
-let create_raw ethif = 
-  printf "creating raw socket for intf %s\n" (OS.Netif.ethid ethif); 
-  let ipv4 = (fun _ -> return ()) in
-  let mac = ethernet_mac_of_bytes (OS.Netif.mac ethif) in
-  let get_mac () = mac in
-  let arp = Arp.create ~output:(output_arp ethif) ~get_mac in
-  let t = { ethif; ipv4; mac; arp; raw_eth=[] } in
-  let raw_listen = raw_listen t in
-  (t, raw_listen)
-
-let intercept t fn = 
-  t.raw_eth <- t.raw_eth @ [fn]
 
 let add_ip t = Arp.add_ip t.arp
 let remove_ip t = Arp.remove_ip t.arp
@@ -138,6 +81,3 @@ let detach t = function
 let mac t = t.mac
 let get_ethif t =
   t.ethif
-
-let send_raw t frame =
-  OS.Netif.output t.ethif frame

@@ -25,7 +25,7 @@ module Req : sig
       segs : seg array;
     }
     val segments_per_request : int
-    val seg_size : int
+
     val idx_size : int
     val op_to_int : op -> int
     val op_of_int : int -> op

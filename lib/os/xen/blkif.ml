@@ -41,16 +41,28 @@ module Req = struct
     segs: seg array;
   }
 
-  let segments_per_request = 11 (* Defined by the protocol *)
-  let seg_size = 8 (* bytes, 6 +2 struct padding *)
-  let idx_size =  (* total size of a request structure, in bytes *)
-    1 + (* operation *)
-    1 + (* nr_segments *)
-    2 + (* handle *)
-    4 + (* struct padding to 64-bit *)
-    8 + (* id *)
-    8 + (* sector number *)
-    (seg_size * segments_per_request) 
+  cstruct request_hdr {
+    uint8_t        op;
+    uint8_t        nr_segs;
+    uint16_t       handle;
+    uint32_t       _padding;
+    uint64_t       id;
+    uint64_t       sector
+  } as little_endian
+
+  cstruct segment {
+    uint32_t       gref;
+    uint8_t        first_sector;
+    uint8_t        last_sector;
+    uint16_t       _padding
+  } as little_endian
+  let _ = assert (sizeof_segment = 8)
+
+  (* Defined in include/xen/io/blkif.h BLKIF_MAX_SEGMENTS_PER_REQUEST *)
+  let segments_per_request = 11
+
+  (* total size of a request structure, in bytes *)
+  let idx_size = sizeof_request_hdr + (sizeof_segment * segments_per_request)
 
   (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
   let op_to_int = function
@@ -80,19 +92,20 @@ module Req = struct
   (* Read a request out of a bitstring; to be used by the Ring.Back for serving
      requests, so this is untested for now *)
   let read_request slot =
-    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
-    bitmatch bs with
-    | { op:8:littleendian; nr_segs:8:littleendian; handle:16:littleendian;
-        id:64:littleendian; sector:64:littleendian; segs:-1:bitstring } ->
-          let seglen = seg_size * 8 in
-          let segs = Array.init nr_segs (fun i ->
-            bitmatch (Bitstring.subbitstring segs (i*seglen) seglen) with
-            | { gref:32:littleendian; first_sector:8:littleendian;
-                last_sector:8:littleendian } ->
-                 {gref; first_sector; last_sector }
-          ) in
-          let op = op_of_int op in
-          { op; handle; id; sector; segs }
+    let payload = Cstruct.shift slot sizeof_request_hdr in
+    let segs = Array.init (get_request_hdr_nr_segs slot) (fun i ->
+        let seg = Cstruct.shift payload (i * sizeof_segment) in {
+            gref = get_segment_gref seg;
+            first_sector = get_segment_first_sector seg;
+            last_sector = get_segment_last_sector seg;
+        }
+    ) in {
+        op = op_of_int (get_request_hdr_op slot);
+        handle = get_request_hdr_handle slot;
+        id = get_request_hdr_id slot;
+        sector = get_request_hdr_sector slot;
+        segs = segs
+    }
 end
 
 module Res = struct

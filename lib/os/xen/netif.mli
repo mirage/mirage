@@ -42,7 +42,7 @@ val output : t -> Io_page.t list -> unit Lwt.t
 
 (** Listen endlesses on a Netfront, and invoke the callback function as frames are
     received. *)
-val listen : t -> (Bitstring.t -> unit Lwt.t) -> unit Lwt.t
+val listen : t -> (Io_page.t -> unit Lwt.t) -> unit Lwt.t
 
 (** Enumerate all the currently available Netfronts (which may or may not be attached) *)
 val enumerate : unit -> id list Lwt.t

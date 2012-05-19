@@ -106,8 +106,8 @@ module LE = struct
     set_uint8 s (off+1) (v lsr 8)
 
   let set_uint32 s off v =
-    set_uint16 s (off+2) (Int32.(to_int (logand v 0xffff_l)));
-    set_uint16 s off (Int32.(to_int (shift_right_logical v 16)))
+    set_uint16 s off (Int32.(to_int (logand v 0xffff_l)));
+    set_uint16 s (off+2) (Int32.(to_int (shift_right_logical v 16)))
 
   let set_uint64 s off v =
     set_uint32 s off (Int64.(to_int32 (logand v 0xffffffff_L)));

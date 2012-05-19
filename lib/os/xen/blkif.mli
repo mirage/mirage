@@ -14,39 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Req : sig
-    type op = 
-      |Read
-      |Write
-      |Write_barrier
-      |Flush
-      |Op_reserved_1
-      |Trim
-      |Unknown of int
-    type seg = { gref : int32; first_sector : int; last_sector : int; }
-    type t = {
-      op : op;
-      handle : int;
-      id : int64;
-      sector : int64;
-      segs : seg array;
-    }
-    val segments_per_request : int
-
-    val idx_size : int
-    val op_to_int : op -> int
-    val op_of_int : int -> op
-
-    val write_request : t -> Io_page.t -> int64
-    val read_request : Io_page.t -> t
-  end
-
-module Res : sig
-    type rsp = OK | Error | Not_supported | Unknown of int
-    type t = { op : Req.op; st : rsp; }
-    val read_response : Io_page.t -> int64 * t
-  end
-
 type features = {
   barrier : bool;
   removable : bool;

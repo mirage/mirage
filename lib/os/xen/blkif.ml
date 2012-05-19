@@ -84,22 +84,20 @@ module Req = struct
     | 5             -> Trim
     | n             -> Unknown n
 
-  (* Marshal an individual segment request *)
-  let make_seg seg =
-    BITSTRING { seg.gref:32:littleendian; seg.first_sector:8:littleendian;
-      seg.last_sector:8:littleendian; 0:16 }
-
-  (* Write a request to a slot in the shared ring. Could be optimised a little
-     more to minimise allocation, if it matters. *)
+  (* Write a request to a slot in the shared ring. *)
   let write_request req slot =
-    let op = op_to_int req.op in
-    let nr_segs = Array.length req.segs in
-    let segs = Bitstring.concat (Array.to_list (Array.map make_seg req.segs)) in
-    let reqbuf,_,_ = BITSTRING {
-      op:8:littleendian; nr_segs:8:littleendian;
-      req.handle:16:littleendian; 0l:32; req.id:64:littleendian;
-      req.sector:64:littleendian; segs:-1:bitstring } in
-    Io_page.string_blit reqbuf slot;
+    set_request_hdr_op slot (op_to_int req.op);
+    set_request_hdr_nr_segs slot (Array.length req.segs);
+    set_request_hdr_handle slot req.handle;
+    set_request_hdr_id slot req.id;
+    set_request_hdr_sector slot req.sector;
+    let payload = Cstruct.shift slot sizeof_request_hdr in
+    Array.iteri (fun i seg ->
+        let buf = Cstruct.shift payload (i * sizeof_segment) in
+        set_segment_gref buf seg.gref;
+        set_segment_first_sector buf seg.first_sector;
+        set_segment_last_sector buf seg.last_sector
+    ) req.segs;
     req.id
 
   (* Read a request out of a bitstring; to be used by the Ring.Back for serving

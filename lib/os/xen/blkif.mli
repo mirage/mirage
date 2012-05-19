@@ -36,7 +36,7 @@ module Req : sig
     val idx_size : int
     val op_to_int : op -> int
     val op_of_int : int -> op
-    val make_seg : seg -> Bitstring.bitstring
+
     val write_request : t -> Io_page.t -> int64
     val read_request : Io_page.t -> t
   end

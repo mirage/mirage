@@ -15,7 +15,14 @@
  *)
 
 module Req : sig
-    type op = Read | Write | Write_barrier | Flush | Unknown of int
+    type op = 
+      |Read
+      |Write
+      |Write_barrier
+      |Flush
+      |Op_reserved_1
+      |Trim
+      |Unknown of int
     type seg = { gref : int32; first_sector : int; last_sector : int; }
     type t = {
       op : op;

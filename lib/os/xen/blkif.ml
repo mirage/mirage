@@ -24,6 +24,8 @@ module Req = struct
     |Write
     |Write_barrier
     |Flush
+    |Op_reserved_1
+    |Trim
     |Unknown of int
 
   type seg = {
@@ -66,10 +68,21 @@ module Req = struct
 
   (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
   let op_to_int = function
-    |Read->0 |Write->1 |Write_barrier->2 |Flush->3 |Unknown n -> n
-
+    | Read          -> 0
+    | Write         -> 1
+    | Write_barrier -> 2
+    | Flush         -> 3
+    | Op_reserved_1 -> 4 (* SLES device-specific packet *)
+    | Trim          -> 5
+    | Unknown n     -> n
   let op_of_int = function
-    |0->Read |1->Write |2->Write_barrier |3->Flush |n->Unknown n
+    | 0             -> Read
+    | 1             -> Write
+    | 2             -> Write_barrier
+    | 3             -> Flush
+    | 4             -> Op_reserved_1 (* SLES device-specific packet *)
+    | 5             -> Trim
+    | n             -> Unknown n
 
   (* Marshal an individual segment request *)
   let make_seg seg =

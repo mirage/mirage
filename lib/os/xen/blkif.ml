@@ -100,7 +100,7 @@ module Req = struct
     ) req.segs;
     req.id
 
-  (* Read a request out of a bitstring; to be used by the Ring.Back for serving
+  (* Read a request out of an Io_page.t; to be used by the Ring.Back for serving
      requests, so this is untested for now *)
   let read_request slot =
     let payload = Cstruct.shift slot sizeof_request_hdr in
@@ -432,7 +432,7 @@ let read_single_request t r =
 	      )
 	  )
 
-(* Reads [num_sectors] starting at [sector], returning a stream of bitstrings *)
+(* Reads [num_sectors] starting at [sector], returning a stream of Io_page.ts *)
 let read_512 t sector num_sectors =
   let requests = stream_of_single_requests t sector num_sectors in
   Lwt_stream.(concat (map_s (read_single_request t) requests))

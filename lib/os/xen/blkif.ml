@@ -133,16 +133,23 @@ module Res = struct
     st: rsp;
   }
 
+  cstruct response_hdr {
+    uint64_t       id;
+    uint8_t        op;
+    uint8_t        _padding;
+    uint16_t       st
+  } as little_endian
+
   (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
   let read_response slot =
-    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
-    (bitmatch bs with
-    | { id:64:littleendian; op:8:littleendian; _:8;
-        st:16:littleendian } ->
-          let op = Req.op_of_int op in
-          let st = match st with 
-            |0 -> OK |0xffff -> Error |0xfffe -> Not_supported |n -> Unknown n in
-          (id, { op; st }))
+    get_response_hdr_id slot, {
+      op = Req.op_of_int (get_response_hdr_op slot);
+      st = match get_response_hdr_st slot with
+            | 0 -> OK
+            | 0xffff -> Error
+            | 0xfffe -> Not_supported
+            | n -> Unknown n
+    }
 end
 
 type features = {

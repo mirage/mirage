@@ -40,3 +40,4 @@ str.nc.o
 sys.nc.o
 weak.nc.o
 bigarray_stubs.nc.o
+cstruct_stubs.nc.o

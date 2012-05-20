@@ -868,8 +868,8 @@ end: sig
 end)
 
 module type BLOCK = sig
-  val read_sector: int -> Bitstring.t Lwt.t
-  val write_sector: int -> Bitstring.t -> unit Lwt.t
+  val read_sector: int -> Io_page.t Lwt.t
+  val write_sector: int -> Io_page.t -> unit Lwt.t
 end
 
 type error =

@@ -17,26 +17,17 @@ let main () =
   printf "Block device ID: %s\n%!" blkif#id;
   printf "Connected block device\n%!";
 
+  exception IO_error of string
   let module M = struct
     let page_size_bytes = 4096
     let sector_size_bytes = 512
     let sectors_per_page = page_size_bytes / sector_size_bytes
     let read_sector x =
-      let page_no = x / sectors_per_page in
-      let sector_no = x mod sectors_per_page in
-      let offset = Int64.(mul (of_int page_size_bytes) (of_int page_no)) in
-      lwt page = blkif#read_page offset in
-      return (Bitstring.bitstring_clip page (sector_no * sector_size_bytes * 8) (sector_size_bytes * 8))
+      match_lwt Lwt_stream.get (blkif#read_512 x 1) with
+      | Some x -> return x
+      | None -> fail (IO_error "read_sector")
     let write_sector x bs =
       failwith "Writing currently unimplemented"
-(*
-      let page_no = x / sectors_per_page in
-	  let sector_no = x mod sectors_per_page in
-	  lwt page = OS.Blkif.read_page blkif (Int64.of_int page_no) in
-      Bitstring.bitstring_write bs (Int64.of_int (sector_no * sector_size_bytes)) existing_page;
-	  lwt () = OS.Blkif.write_page vbd (Int64.of_int page_no) page in
-      ()
-*)
   end in
 
   let open Fs.Fat in

@@ -50,25 +50,33 @@ module Req = struct
     segs: seg array;
   }
 
+  (* The segment looks the same in both 32-bit and 64-bit versions *)
+  cstruct segment {
+    uint32_t       gref;
+    uint8_t        first_sector;
+    uint8_t        last_sector;
+    uint16_t       _padding
+  } as little_endian
+  let _ = assert (sizeof_segment = 8)
 
-  module Proto_64 = struct
-    cstruct hdr {
-      uint8_t        op;
-      uint8_t        nr_segs;
-      uint16_t       handle;
-      uint32_t       _padding; (* emitted by C compiler *)
-      uint64_t       id;
-      uint64_t       sector
-    } as little_endian
-  
-    cstruct segment {
-      uint32_t       gref;
-      uint8_t        first_sector;
-      uint8_t        last_sector;
-      uint16_t       _padding
-    } as little_endian
-    let _ = assert (sizeof_segment = 8)
+  (* The request header has a slightly different format caused by
+     not using __attribute__(packed) and letting the C compiler pad *)
+  module type PROTO = sig
+    val sizeof_hdr: int
+    val get_hdr_op: Io_page.t -> int
+    val set_hdr_op: Io_page.t -> int -> unit
+    val get_hdr_nr_segs: Io_page.t -> int
+    val set_hdr_nr_segs: Io_page.t -> int -> unit
+    val get_hdr_handle: Io_page.t -> int
+    val set_hdr_handle: Io_page.t -> int -> unit
+    val get_hdr_id: Io_page.t -> int64
+    val set_hdr_id: Io_page.t -> int64 -> unit
+    val get_hdr_sector: Io_page.t -> int64
+    val set_hdr_sector: Io_page.t -> int64 -> unit
+  end
 
+  module Marshalling = functor(P: PROTO) -> struct
+    open P
     (* total size of a request structure, in bytes *)
     let total_size = sizeof_hdr + (sizeof_segment * segments_per_request)
 
@@ -105,8 +113,19 @@ module Req = struct
           sector = get_hdr_sector slot;
           segs = segs
       }
+
   end
-  module Proto_32 = struct
+  module Proto_64 = Marshalling(struct
+    cstruct hdr {
+      uint8_t        op;
+      uint8_t        nr_segs;
+      uint16_t       handle;
+      uint32_t       _padding; (* emitted by C compiler *)
+      uint64_t       id;
+      uint64_t       sector
+    } as little_endian
+  end)
+  module Proto_32 = Marshalling(struct
     cstruct hdr {
       uint8_t        op;
       uint8_t        nr_segs;
@@ -115,7 +134,7 @@ module Req = struct
       uint64_t       id;
       uint64_t       sector
     } as little_endian
-  end
+  end)
 end
 
 module Res = struct

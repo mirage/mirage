@@ -84,7 +84,7 @@ module Test = functor(S: SYSTEM) -> struct
   (* return the total number of [operations] performed on [blocks] per second, averaging over [seconds] s *)
   let time seconds blocks operation =
     let start = S.gettimeofday () in
-    let parallelism = 1 in
+    let parallelism = 16 in
 
     let blocks = ref blocks in
 

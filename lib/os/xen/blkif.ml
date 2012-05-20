@@ -139,6 +139,7 @@ end
 
 module Res = struct
 
+  (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
   cenum rsp {
     OK            = 0;
     Error         = 0xffff;
@@ -151,14 +152,22 @@ module Res = struct
     st: rsp option;
   }
 
+  (* The same structure is used in both the 32- and 64-bit protocol versions,
+     modulo the extra padding at the end. *)
   cstruct response_hdr {
     uint64_t       id;
     uint8_t        op;
     uint8_t        _padding;
-    uint16_t       st
+    uint16_t       st;
+    (* 64-bit only but we don't need to care since there aren't any more fields: *)
+    uint32_t       _padding
   } as little_endian
 
-  (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
+  let write_response (id, t) slot =
+    set_response_hdr_id slot id;
+    set_response_hdr_op slot (match t.op with None -> -1 | Some x -> Req.op_to_int x);
+    set_response_hdr_st slot (match t.st with None -> -1 | Some x -> rsp_to_int x)
+
   let read_response slot =
     get_response_hdr_id slot, {
       op = Req.op_of_int (get_response_hdr_op slot);

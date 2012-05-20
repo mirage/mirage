@@ -17,14 +17,40 @@
 open Lwt
 open Printf
 
-(* Request of a page *)
+(* Block requests; see include/xen/io/blkif.h *)
 module Req = struct
-  type op = 
-    |Read
-    |Write
-    |Write_barrier
-    |Flush
-    |Unknown of int
+  module Op = struct
+    (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
+    type t = 
+      | Read
+      | Write
+      | Write_barrier
+      | Flush
+      | Op_reserved_1
+      | Trim
+      | Unknown of int
+
+    let to_int = function
+      | Read          -> 0
+      | Write         -> 1
+      | Write_barrier -> 2
+      | Flush         -> 3
+      | Op_reserved_1 -> 4 (* SLES device-specific packet *)
+      | Trim          -> 5
+      | Unknown n     -> n
+
+    let of_int = function
+      | 0             -> Read
+      | 1             -> Write
+      | 2             -> Write_barrier
+      | 3             -> Flush
+      | 4             -> Op_reserved_1 (* SLES device-specific packet *)
+      | 5             -> Trim
+      | n             -> Unknown n
+  end
+
+  (* Defined in include/xen/io/blkif.h BLKIF_MAX_SEGMENTS_PER_REQUEST *)
+  let segments_per_request = 11
 
   type seg = {
     gref: int32;
@@ -34,65 +60,79 @@ module Req = struct
 
   (* Defined in include/xen/io/blkif.h : blkif_request_t *)
   type t = {
-    op: op;
+    op: Op.t;
     handle: int;
     id: int64;
     sector: int64;
     segs: seg array;
   }
 
-  let segments_per_request = 11 (* Defined by the protocol *)
-  let seg_size = 8 (* bytes, 6 +2 struct padding *)
-  let idx_size =  (* total size of a request structure, in bytes *)
-    1 + (* operation *)
-    1 + (* nr_segments *)
-    2 + (* handle *)
-    4 + (* struct padding to 64-bit *)
-    8 + (* id *)
-    8 + (* sector number *)
-    (seg_size * segments_per_request) 
 
-  (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
-  let op_to_int = function
-    |Read->0 |Write->1 |Write_barrier->2 |Flush->3 |Unknown n -> n
+  module Proto_64 = struct
+    cstruct hdr {
+      uint8_t        op;
+      uint8_t        nr_segs;
+      uint16_t       handle;
+      uint32_t       _padding; (* emitted by C compiler *)
+      uint64_t       id;
+      uint64_t       sector
+    } as little_endian
+  
+    cstruct segment {
+      uint32_t       gref;
+      uint8_t        first_sector;
+      uint8_t        last_sector;
+      uint16_t       _padding
+    } as little_endian
+    let _ = assert (sizeof_segment = 8)
 
-  let op_of_int = function
-    |0->Read |1->Write |2->Write_barrier |3->Flush |n->Unknown n
+    (* total size of a request structure, in bytes *)
+    let total_size = sizeof_hdr + (sizeof_segment * segments_per_request)
 
-  (* Marshal an individual segment request *)
-  let make_seg seg =
-    BITSTRING { seg.gref:32:littleendian; seg.first_sector:8:littleendian;
-      seg.last_sector:8:littleendian; 0:16 }
+    (* Write a request to a slot in the shared ring. *)
+    let write_request req slot =
+      set_hdr_op slot (Op.to_int req.op);
+      set_hdr_nr_segs slot (Array.length req.segs);
+      set_hdr_handle slot req.handle;
+      set_hdr_id slot req.id;
+      set_hdr_sector slot req.sector;
+      let payload = Cstruct.shift slot sizeof_hdr in
+      Array.iteri (fun i seg ->
+          let buf = Cstruct.shift payload (i * sizeof_segment) in
+          set_segment_gref buf seg.gref;
+          set_segment_first_sector buf seg.first_sector;
+          set_segment_last_sector buf seg.last_sector
+      ) req.segs;
+      req.id
 
-  (* Write a request to a slot in the shared ring. Could be optimised a little
-     more to minimise allocation, if it matters. *)
-  let write_request req slot =
-    let op = op_to_int req.op in
-    let nr_segs = Array.length req.segs in
-    let segs = Bitstring.concat (Array.to_list (Array.map make_seg req.segs)) in
-    let reqbuf,_,_ = BITSTRING {
-      op:8:littleendian; nr_segs:8:littleendian;
-      req.handle:16:littleendian; 0l:32; req.id:64:littleendian;
-      req.sector:64:littleendian; segs:-1:bitstring } in
-    Io_page.string_blit reqbuf slot;
-    req.id
-
-  (* Read a request out of a bitstring; to be used by the Ring.Back for serving
-     requests, so this is untested for now *)
-  let read_request slot =
-    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
-    bitmatch bs with
-    | { op:8:littleendian; nr_segs:8:littleendian; handle:16:littleendian;
-        id:64:littleendian; sector:64:littleendian; segs:-1:bitstring } ->
-          let seglen = seg_size * 8 in
-          let segs = Array.init nr_segs (fun i ->
-            bitmatch (Bitstring.subbitstring segs (i*seglen) seglen) with
-            | { gref:32:littleendian; first_sector:8:littleendian;
-                last_sector:8:littleendian } ->
-                 {gref; first_sector; last_sector }
-          ) in
-          let op = op_of_int op in
-          { op; handle; id; sector; segs }
+    (* Read a request out of an Io_page.t; to be used by the Ring.Back for serving
+       requests, so this is untested for now *)
+    let read_request slot =
+      let payload = Cstruct.shift slot sizeof_hdr in
+      let segs = Array.init (get_hdr_nr_segs slot) (fun i ->
+          let seg = Cstruct.shift payload (i * sizeof_segment) in {
+              gref = get_segment_gref seg;
+              first_sector = get_segment_first_sector seg;
+              last_sector = get_segment_last_sector seg;
+          }
+      ) in {
+          op = Op.of_int (get_hdr_op slot);
+          handle = get_hdr_handle slot;
+          id = get_hdr_id slot;
+          sector = get_hdr_sector slot;
+          segs = segs
+      }
+  end
+  module Proto_32 = struct
+    cstruct hdr {
+      uint8_t        op;
+      uint8_t        nr_segs;
+      uint16_t       handle;
+      (* uint32_t       _padding; -- not included *)
+      uint64_t       id;
+      uint64_t       sector
+    } as little_endian
+  end
 end
 
 module Res = struct
@@ -105,20 +145,27 @@ module Res = struct
  
   (* Defined in include/xen/io/blkif.h, blkif_response_t *)
   type t = {
-    op: Req.op;
+    op: Req.Op.t;
     st: rsp;
   }
 
+  cstruct response_hdr {
+    uint64_t       id;
+    uint8_t        op;
+    uint8_t        _padding;
+    uint16_t       st
+  } as little_endian
+
   (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
   let read_response slot =
-    let bs = Bitstring.bitstring_of_string (Io_page.to_string slot) in
-    (bitmatch bs with
-    | { id:64:littleendian; op:8:littleendian; _:8;
-        st:16:littleendian } ->
-          let op = Req.op_of_int op in
-          let st = match st with 
-            |0 -> OK |0xffff -> Error |0xfffe -> Not_supported |n -> Unknown n in
-          (id, { op; st }))
+    get_response_hdr_id slot, {
+      op = Req.Op.of_int (get_response_hdr_op slot);
+      st = match get_response_hdr_st slot with
+            | 0 -> OK
+            | 0xffff -> Error
+            | 0xfffe -> Not_supported
+            | n -> Unknown n
+    }
 end
 
 type features = {
@@ -148,7 +195,7 @@ let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 (* Allocate a ring, given the vdev and backend domid *)
 let alloc ~order (num,domid) =
   let name = sprintf "Blkif.%d" num in
-  let idx_size = Req.idx_size in (* bigger than res *)
+  let idx_size = Req.Proto_64.total_size in (* bigger than res *)
   lwt (rx_gnts, sring) = Ring.init ~domid ~order ~idx_size ~name in
   let fring = Ring.Front.init ~sring in
   return (rx_gnts, fring)
@@ -263,8 +310,8 @@ let read_page t offset =
 	      let gref = Gnttab.to_int32 r in
 	      let id = Int64.of_int32 (Gnttab.to_int32 r) in
               let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-              let req = Req.({op=Req.Read; handle=t.vdev; id; sector; segs}) in
-              let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+              let req = Req.({op=Req.Op.Read; handle=t.vdev; id; sector; segs}) in
+              let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
               if Ring.Front.push_requests_and_check_notify t.ring then
                 Evtchn.notify t.evtchn;
               lwt res = res in
@@ -290,8 +337,8 @@ let write_page t offset page =
           let gref = Gnttab.to_int32 r in
           let id = Int64.of_int32 gref in
           let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-          let req = Req.({op=Req.Write; handle=t.vdev; id; sector; segs}) in
-          let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+          let req = Req.({op=Req.Op.Write; handle=t.vdev; id; sector; segs}) in
+          let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
           if Ring.Front.push_requests_and_check_notify t.ring then
             Evtchn.notify t.evtchn;
           let open Res in
@@ -373,8 +420,8 @@ let read_single_request t r =
 		    { Req.gref; first_sector; last_sector }
 		  ) (Array.of_list rs) in
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
-		let req = Req.({ op=Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
-		let res = Ring.Front.push_request_and_wait t.ring (Req.write_request req) in
+		let req = Req.({ op=Op.Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
+		let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
 		if Ring.Front.push_requests_and_check_notify t.ring then
 		  Evtchn.notify t.evtchn;
 		let open Res in
@@ -401,7 +448,7 @@ let read_single_request t r =
 	      )
 	  )
 
-(* Reads [num_sectors] starting at [sector], returning a stream of bitstrings *)
+(* Reads [num_sectors] starting at [sector], returning a stream of Io_page.ts *)
 let read_512 t sector num_sectors =
   let requests = stream_of_single_requests t sector num_sectors in
   Lwt_stream.(concat (map_s (read_single_request t) requests))

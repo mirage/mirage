@@ -139,16 +139,16 @@ end
 
 module Res = struct
 
-  type rsp = 
-   |OK
-   |Error
-   |Not_supported
-   |Unknown of int
- 
+  cenum rsp {
+    OK            = 0;
+    Error         = 0xffff;
+    Not_supported = 0xfffe
+  } as uint16_t
+
   (* Defined in include/xen/io/blkif.h, blkif_response_t *)
   type t = {
     op: Req.op option;
-    st: rsp;
+    st: rsp option;
   }
 
   cstruct response_hdr {
@@ -162,11 +162,7 @@ module Res = struct
   let read_response slot =
     get_response_hdr_id slot, {
       op = Req.op_of_int (get_response_hdr_op slot);
-      st = match get_response_hdr_st slot with
-            | 0 -> OK
-            | 0xffff -> Error
-            | 0xfffe -> Not_supported
-            | n -> Unknown n
+      st = rsp_of_int (get_response_hdr_st slot)
     }
 end
 
@@ -322,10 +318,10 @@ let write_page t offset page =
           let open Res in
           lwt res = res in
           Res.(match res.st with
-          |Error -> fail (IO_error "write")
-          |Not_supported -> fail (IO_error "unsupported")
-          |Unknown _ -> fail (IO_error "unknown error")
-          |OK -> return ())
+          | Some Error -> fail (IO_error "write")
+          | Some Not_supported -> fail (IO_error "unsupported")
+          | None -> fail (IO_error "unknown error")
+          | Some OK -> return ())
         )
     )
 
@@ -414,10 +410,10 @@ let read_single_request t r =
 		let open Res in
 		    lwt res = res in
 		match res.st with
-		  |Error -> fail (IO_error "read")
-		  |Not_supported -> fail (IO_error "unsupported")
-		  |Unknown x -> fail (IO_error "unknown error")
-		  |OK ->
+		  | Some Error -> fail (IO_error "read")
+		  | Some Not_supported -> fail (IO_error "unsupported")
+		  | None -> fail (IO_error "unknown error")
+		  | Some OK ->
 		    (* Get the pages, and convert them into Istring views *)
 		    return (Lwt_stream.of_list (List.rev (snd (List.fold_left
 		      (fun (i, acc) page ->

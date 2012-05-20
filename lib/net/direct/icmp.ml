@@ -35,8 +35,10 @@ let input t src hdr buf =
   |0 -> (* echo reply *)
     return (printf "ICMP: discarding echo reply\n%!")
   |8 -> (* echo request *)
-    printf "echo request id %x seq %x\n%!" (get_icmpv4_id buf) (get_icmpv4_seq buf);
-    let csum = (get_icmpv4_csum buf + 0x0800) land 0xffff in
+    let csum =
+      let orig_csum = get_icmpv4_csum buf in
+      let shift = if orig_csum > 0xffff -0x0800 then 0x0801 else 0x0800 in
+      (orig_csum + shift) land 0xffff in
     lwt dbuf = Ipv4.get_writebuf ~proto:`ICMP ~dest_ip:src t.ip in
     Cstruct.blit_buffer buf 0 dbuf 0 (Cstruct.len buf);
     set_icmpv4_ty dbuf 0;

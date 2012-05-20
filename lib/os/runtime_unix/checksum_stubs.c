@@ -17,16 +17,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <caml/mlvalues.h>
+#include <caml/memory.h>
 #include <caml/fail.h>
+#include <caml/bigarray.h>
 
 static uint32_t
-checksum_bitstring(value v_bitstr, uint32_t sum)
+checksum_bigarray(unsigned char *addr, size_t count, uint32_t sum)
 {
-  unsigned char *buf = (unsigned char *)String_val(Field(v_bitstr, 0));
-  size_t off = Int_val(Field(v_bitstr,1)) / 8;
-  size_t count = Int_val(Field(v_bitstr,2)) / 8;
-
-  unsigned char *addr = buf + off;
   while (count > 1) {
     uint16_t v = (*addr << 8) + (*(addr+1));
     sum += v;
@@ -41,27 +38,12 @@ checksum_bitstring(value v_bitstr, uint32_t sum)
 }
 
 CAMLprim value
-caml_ones_complement_checksum_list(value v_bitstrs)
+caml_ones_complement_checksum(value v_ba, value v_len)
 {
+  CAMLparam2(v_ba, v_len);
   uint32_t sum = 0;
   uint16_t checksum = 0;
-  value v_head;
-  while (v_bitstrs != Val_emptylist) {
-    v_head = Field(v_bitstrs, 0);
-    v_bitstrs = Field(v_bitstrs, 1);
-    sum = checksum_bitstring(v_head, sum);
-  }
+  sum = checksum_bigarray(Caml_ba_data_val(v_ba), Int_val(v_len), sum);
   checksum = ~sum;
   return Val_int(checksum);
 }
-
-CAMLprim value
-caml_ones_complement_checksum(value v_bitstr)
-{
-  uint32_t sum;
-  uint16_t checksum = 0;
-  sum = checksum_bitstring (v_bitstr, 0);
-  checksum = ~sum;
-  return Val_int(checksum);
-}
-

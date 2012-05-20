@@ -17,8 +17,4 @@
 (** Checksum functions for TCP/IP *)
 
 (** One's complement checksum, RFC1071 *)
-external ones_complement: Bitstring.t -> int = "caml_ones_complement_checksum"
-
-(** One's complement checksum, RFC1071 over a scatter-gather set of bitstrings *)
-external ones_complement_list: Bitstring.t list -> int = "caml_ones_complement_checksum_list"
-
+external ones_complement: OS.Io_page.t -> int -> int = "caml_ones_complement_checksum"

@@ -19,35 +19,18 @@ open Printf
 
 (* Block requests; see include/xen/io/blkif.h *)
 module Req = struct
-  module Op = struct
-    (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
-    type t = 
-      | Read
-      | Write
-      | Write_barrier
-      | Flush
-      | Op_reserved_1
-      | Trim
-      | Unknown of int
 
-    let to_int = function
-      | Read          -> 0
-      | Write         -> 1
-      | Write_barrier -> 2
-      | Flush         -> 3
-      | Op_reserved_1 -> 4 (* SLES device-specific packet *)
-      | Trim          -> 5
-      | Unknown n     -> n
+  (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
+  cenum op {
+    Read          = 0;
+    Write         = 1;
+    Write_barrier = 2;
+    Flush         = 3;
+    Op_reserved_1 = 4; (* SLES device-specific packet *)
+    Trim          = 5
+  } as uint8_t
 
-    let of_int = function
-      | 0             -> Read
-      | 1             -> Write
-      | 2             -> Write_barrier
-      | 3             -> Flush
-      | 4             -> Op_reserved_1 (* SLES device-specific packet *)
-      | 5             -> Trim
-      | n             -> Unknown n
-  end
+  exception Unknown_request_type of int
 
   (* Defined in include/xen/io/blkif.h BLKIF_MAX_SEGMENTS_PER_REQUEST *)
   let segments_per_request = 11
@@ -60,7 +43,7 @@ module Req = struct
 
   (* Defined in include/xen/io/blkif.h : blkif_request_t *)
   type t = {
-    op: Op.t;
+    op: op option;
     handle: int;
     id: int64;
     sector: int64;
@@ -91,7 +74,7 @@ module Req = struct
 
     (* Write a request to a slot in the shared ring. *)
     let write_request req slot =
-      set_hdr_op slot (Op.to_int req.op);
+      set_hdr_op slot (match req.op with None -> -1 | Some x -> op_to_int x);
       set_hdr_nr_segs slot (Array.length req.segs);
       set_hdr_handle slot req.handle;
       set_hdr_id slot req.id;
@@ -116,7 +99,7 @@ module Req = struct
               last_sector = get_segment_last_sector seg;
           }
       ) in {
-          op = Op.of_int (get_hdr_op slot);
+          op = op_of_int (get_hdr_op slot);
           handle = get_hdr_handle slot;
           id = get_hdr_id slot;
           sector = get_hdr_sector slot;
@@ -145,7 +128,7 @@ module Res = struct
  
   (* Defined in include/xen/io/blkif.h, blkif_response_t *)
   type t = {
-    op: Req.Op.t;
+    op: Req.op option;
     st: rsp;
   }
 
@@ -159,7 +142,7 @@ module Res = struct
   (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
   let read_response slot =
     get_response_hdr_id slot, {
-      op = Req.Op.of_int (get_response_hdr_op slot);
+      op = Req.op_of_int (get_response_hdr_op slot);
       st = match get_response_hdr_st slot with
             | 0 -> OK
             | 0xffff -> Error
@@ -310,7 +293,7 @@ let read_page t offset =
 	      let gref = Gnttab.to_int32 r in
 	      let id = Int64.of_int32 (Gnttab.to_int32 r) in
               let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-              let req = Req.({op=Req.Op.Read; handle=t.vdev; id; sector; segs}) in
+              let req = Req.({op=Some Req.Read; handle=t.vdev; id; sector; segs}) in
               let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
               if Ring.Front.push_requests_and_check_notify t.ring then
                 Evtchn.notify t.evtchn;
@@ -337,7 +320,7 @@ let write_page t offset page =
           let gref = Gnttab.to_int32 r in
           let id = Int64.of_int32 gref in
           let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-          let req = Req.({op=Req.Op.Write; handle=t.vdev; id; sector; segs}) in
+          let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
           let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
           if Ring.Front.push_requests_and_check_notify t.ring then
             Evtchn.notify t.evtchn;
@@ -420,7 +403,7 @@ let read_single_request t r =
 		    { Req.gref; first_sector; last_sector }
 		  ) (Array.of_list rs) in
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
-		let req = Req.({ op=Op.Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
+		let req = Req.({ op=Some Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
 		let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
 		if Ring.Front.push_requests_and_check_notify t.ring then
 		  Evtchn.notify t.evtchn;

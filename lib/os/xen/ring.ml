@@ -21,22 +21,6 @@ let rec pow2 = function
   | 0 -> 1
   | n -> 2 * (pow2 (n - 1))
 
-(* Allocate a multi-page ring, returning the grants and pages *)
-let allocate ~domid ~order =
-  lwt gnt = Gnttab.get () in
-  let ring = Io_page.get ~pages_per_block:(pow2 order) () in
-
-  (* initialise the *_event fields to 1, and the rest to 0 *)
-  (* XXX: cstruct? *)
-  let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
-  Io_page.string_blit src ring;
-
-  let pages = Io_page.to_pages ring in
-  lwt gnts = Gnttab.get_n (List.length pages) in
-  let perm = Gnttab.RW in
-  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
-  return (gnts, ring)
-
 (*
   struct sring {
     RING_IDX req_prod, req_event;
@@ -45,6 +29,32 @@ let allocate ~domid ~order =
     uint8_t  pad[47];
   };
 *)
+
+cstruct ring_hdr {
+  uint32_t req_prod;
+  uint32_t req_event;
+  uint32_t rsp_prod;
+  uint32_t rsp_event;
+  uint64_t stuff
+} as little_endian
+
+(* Allocate a multi-page ring, returning the grants and pages *)
+let allocate ~domid ~order =
+  lwt gnt = Gnttab.get () in
+  let ring = Io_page.get ~pages_per_block:(pow2 order) () in
+
+  (* initialise the *_event fields to 1, and the rest to 0 *)
+  set_ring_hdr_req_prod ring 0l;
+  set_ring_hdr_req_event ring 1l;
+  set_ring_hdr_rsp_prod ring 0l;
+  set_ring_hdr_rsp_event ring 1l;
+  set_ring_hdr_stuff ring 0L;
+
+  let pages = Io_page.to_pages ring in
+  lwt gnts = Gnttab.get_n (List.length pages) in
+  let perm = Gnttab.RW in
+  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
+  return (gnts, ring)
 
 type sring = {
   buf: Io_page.t;   (* Overall I/O buffer *)

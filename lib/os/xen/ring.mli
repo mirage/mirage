@@ -14,27 +14,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Allocate contiguous I/O pages initialised to contain an empty ring,
+    that are shared with domain number {[domid]}.
+    @param domid domain id to share the I/O page with
+    @param order request 2 ** order contiguous pages
+    @return Grant table entries and shared pages
+  *)
+val allocate : domid:int -> order:int -> (Gnttab.r list * Io_page.t) Lwt.t
+
 (** Shared ring handling to communicate with other Xen domains *)
 
 (** Abstract type for a shared ring *)
 type sring
 
-(** Allocate contiguous I/O pages that are shared with domain number {[domid]},
-    with the maximum size of each request/response in {[idx_size]}.
-    @param domid domain id to share the I/O page with
-    @param order request 2 ** order contiguous pages
+(** Given a buffer [buf] comprising pre-allocated contiguous
+    I/O pages, return an [sring] where the maximum size of each
+    request/response is {[idx_size]}.
+    @param buf pre-allocated contiguous I/O pages
     @param idx_size maximum size of each slot, in bytes
     @param name Name of the shared ring, for pretty-printing
-    @return Grant table entry and shared ring value
+    @return shared ring value
   *)
-val init : domid:int -> order:int -> idx_size:int -> name:string -> (Gnttab.r list * sring) Lwt.t
-
-val init_back :
-  xg:Gnttab.handle ->
-  domid:int32 -> gref:int32 -> idx_size:int -> name:string -> sring
-val destroy_back :
-        xg:Gnttab.handle -> sring -> unit
-
+val of_buf : buf:Io_page.t -> idx_size:int -> name:string -> sring
 
 (** The front-end of the shared ring, which issues requests and reads
     responses from the remote domain. 
@@ -139,6 +140,10 @@ module Back : sig
       @return true if an event channel notification is required
     *)
   val push_responses_and_check_notify : ('a,'b) t -> bool
+
+  (** Monitor the ring for requests, calling the given handler
+      function for each one. *)
+  val service_thread : ('a,'b) t -> int -> (Io_page.t -> unit) -> unit Lwt.t
 end
 
 module Console : sig

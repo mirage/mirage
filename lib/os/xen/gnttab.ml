@@ -16,6 +16,8 @@
 
 open Lwt
 
+type handle = unit
+
 type r = int32 (* Grant ref number *)
 
 type perm = RO | RW
@@ -116,6 +118,23 @@ let with_grants ~domid ~perm gnts pages fn =
     List.iter end_access gnts;
     fail exn
   end
+
+let map_grant_ref handle domid r perm = failwith "Unimplemented!"
+
+let unmap handle page = () (* XXX: with this work for multiple pages/refs *)
+
+let with_mapping handle domid r perm fn =
+  let page = map_grant_ref handle domid r perm in
+  try_lwt
+    lwt res = fn page in
+    unmap handle page;
+    return res
+  with exn -> begin
+    unmap handle page;
+    fail exn
+  end
+
+let map_contiguous_grant_refs handle domid rs perm = failwith "Unimplemented!"
 
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);

@@ -49,7 +49,8 @@ module RX = struct
 
   let create (id,domid) =
     let name = sprintf "Netif.RX.%s" id in
-    lwt rx_gnts, sring = Ring.init ~domid ~order:0 ~idx_size:Proto_64.total_size ~name in
+    lwt rx_gnts, buf = Ring.allocate ~domid ~order:0 in
+    let sring = Ring.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
     (* XXX: single-page ring for now *)
     let rx_gnt = List.hd rx_gnts in
     let fring = Ring.Front.init ~sring in
@@ -65,7 +66,8 @@ module TX = struct
 
   let create (id,domid) =
     let name = sprintf "Netif.TX.%s" id in
-    lwt tx_gnts, sring = Ring.init ~domid ~order:0 ~idx_size ~name in
+    lwt tx_gnts, buf = Ring.allocate ~domid ~order:0 in
+    let sring = Ring.of_buf ~buf ~idx_size ~name in
     (* XXX: single page ring for now *)
     let tx_gnt = List.hd tx_gnts in
     let fring = Ring.Front.init ~sring in

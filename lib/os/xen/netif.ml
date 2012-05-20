@@ -294,3 +294,9 @@ let mac nf =
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let ethid t = 
   string_of_int t.backend_id
+
+(* Get write buffer for Netif output *)
+let get_writebuf t =
+  let page = Io_page.get () in
+  (* TODO: record statistics for requesting thread here (in debug mode?) *)
+  return page

@@ -50,3 +50,5 @@ val enumerate : unit -> id list Lwt.t
 (** Return the MAC address of the Netfront *)
 val ethid : t -> string
 val mac : t -> string
+
+val get_writebuf : t -> Io_page.t Lwt.t

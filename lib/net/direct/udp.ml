@@ -20,15 +20,22 @@ open Printf
 
 type t = {
   ip : Ipv4.t;
-  listeners: (int, (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> Bitstring.t -> unit Lwt.t)) Hashtbl.t
+  listeners: (int, (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> OS.Io_page.t -> unit Lwt.t)) Hashtbl.t
 }
 
-let input t ~src ~dst pkt =
-  bitmatch pkt with
-  | { source_port:16; dest_port:16; length:16;
-      checksum:16; data:(length-8)*8:bitstring } ->
+cstruct udpv4 {
+  uint16_t source_port;
+  uint16_t dest_port;
+  uint16_t length;
+  uint16_t checksum
+} as big_endian
+
+let input t ~src ~dst buf =
+  let dest_port = get_udpv4_dest_port buf in
+  let data = Cstruct.sub buf sizeof_udpv4 (get_udpv4_length buf) in
   if Hashtbl.mem t.listeners dest_port then begin
     let fn = Hashtbl.find t.listeners dest_port in
+    let source_port = get_udpv4_source_port buf in
     fn ~src ~dst ~source_port data
   end else
     return ()
@@ -36,10 +43,19 @@ let input t ~src ~dst pkt =
 (* UDP output needs the IPv4 header to generate the pseudo
    header for checksum calculation. Although we currently just
    set the checksum to 0 as it is optional *)
-let output t ~dest_ip ~source_port ~dest_port pkt =
-  let length = Bitstring.bitstring_length pkt / 8 + 8 in
-  let header = BITSTRING { source_port:16; dest_port:16; length:16; 0:16 } in
-  Ipv4.output t.ip ~proto:`UDP ~dest_ip [header; pkt]
+let get_writebuf ~dest_ip ~source_port ~dest_port t =
+  lwt buf = Ipv4.get_writebuf ~proto:`UDP ~dest_ip t.ip in
+  set_udpv4_source_port buf source_port;
+  set_udpv4_dest_port buf dest_port;
+  set_udpv4_checksum buf 0;
+  let data = Cstruct.shift buf sizeof_udpv4 in
+  return data
+
+let output t buf =
+  let len = Cstruct.len buf in
+  let _ = Cstruct.shift_left buf sizeof_udpv4 in
+  set_udpv4_length buf len;
+  Ipv4.output t.ip buf
 
 let listen t port fn =
   if Hashtbl.mem t.listeners port then

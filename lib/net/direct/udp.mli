@@ -17,7 +17,8 @@
 open Nettypes
 
 type t
-val input: t -> src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t
-val output: t -> dest_ip:ipv4_addr -> source_port:int -> dest_port:int -> Bitstring.t -> unit Lwt.t
-val listen: t -> int -> (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> Bitstring.t -> unit Lwt.t) -> unit Lwt.t
+val input: t -> src:ipv4_addr -> dst:ipv4_addr -> OS.Io_page.t -> unit Lwt.t
+val get_writebuf: dest_ip:ipv4_addr -> source_port:int -> dest_port:int -> t -> OS.Io_page.t Lwt.t
+val output : t -> OS.Io_page.t -> unit Lwt.t
+val listen: t -> int -> (src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> OS.Io_page.t -> unit Lwt.t) -> unit Lwt.t
 val create : Ipv4.t -> t * unit Lwt.t

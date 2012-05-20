@@ -96,8 +96,8 @@ module Mir = struct
       |false,false -> A"-lasmrun"
     in
     let dl_libs = match host with
-      |Linux -> [A"-lm"; asmlib; A"-lcamlstr"; A"-ldl"; A"-ltermcap"]
-      |Darwin |FreeBSD -> [A"-lm"; asmlib; A"-lcamlstr"] in
+      |Linux -> [A"-lm"; asmlib; A"-lbigarray"; A"-lcamlstr"; A"-ldl"; A"-ltermcap"]
+      |Darwin |FreeBSD -> [A"-lm"; asmlib; A"-lbigarray"; A"-lcamlstr"] in
     let tags = tags++"cc"++"c" in
     let prof = if profiling then [A"-pg"] else [] in
     Cmd (S (A cc :: [ T(tags++"link"); A ocamlc_libdir; A"-o"; Px out; 

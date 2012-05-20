@@ -19,35 +19,18 @@ open Printf
 
 (* Block requests; see include/xen/io/blkif.h *)
 module Req = struct
-  module Op = struct
-    (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
-    type t = 
-      | Read
-      | Write
-      | Write_barrier
-      | Flush
-      | Op_reserved_1
-      | Trim
-      | Unknown of int
 
-    let to_int = function
-      | Read          -> 0
-      | Write         -> 1
-      | Write_barrier -> 2
-      | Flush         -> 3
-      | Op_reserved_1 -> 4 (* SLES device-specific packet *)
-      | Trim          -> 5
-      | Unknown n     -> n
+  (* Defined in include/xen/io/blkif.h, BLKIF_REQ_* *)
+  cenum op {
+    Read          = 0;
+    Write         = 1;
+    Write_barrier = 2;
+    Flush         = 3;
+    Op_reserved_1 = 4; (* SLES device-specific packet *)
+    Trim          = 5
+  } as uint8_t
 
-    let of_int = function
-      | 0             -> Read
-      | 1             -> Write
-      | 2             -> Write_barrier
-      | 3             -> Flush
-      | 4             -> Op_reserved_1 (* SLES device-specific packet *)
-      | 5             -> Trim
-      | n             -> Unknown n
-  end
+  exception Unknown_request_type of int
 
   (* Defined in include/xen/io/blkif.h BLKIF_MAX_SEGMENTS_PER_REQUEST *)
   let segments_per_request = 11
@@ -60,38 +43,46 @@ module Req = struct
 
   (* Defined in include/xen/io/blkif.h : blkif_request_t *)
   type t = {
-    op: Op.t;
+    op: op option;
     handle: int;
     id: int64;
     sector: int64;
     segs: seg array;
   }
 
+  (* The segment looks the same in both 32-bit and 64-bit versions *)
+  cstruct segment {
+    uint32_t       gref;
+    uint8_t        first_sector;
+    uint8_t        last_sector;
+    uint16_t       _padding
+  } as little_endian
+  let _ = assert (sizeof_segment = 8)
 
-  module Proto_64 = struct
-    cstruct hdr {
-      uint8_t        op;
-      uint8_t        nr_segs;
-      uint16_t       handle;
-      uint32_t       _padding; (* emitted by C compiler *)
-      uint64_t       id;
-      uint64_t       sector
-    } as little_endian
-  
-    cstruct segment {
-      uint32_t       gref;
-      uint8_t        first_sector;
-      uint8_t        last_sector;
-      uint16_t       _padding
-    } as little_endian
-    let _ = assert (sizeof_segment = 8)
+  (* The request header has a slightly different format caused by
+     not using __attribute__(packed) and letting the C compiler pad *)
+  module type PROTO = sig
+    val sizeof_hdr: int
+    val get_hdr_op: Io_page.t -> int
+    val set_hdr_op: Io_page.t -> int -> unit
+    val get_hdr_nr_segs: Io_page.t -> int
+    val set_hdr_nr_segs: Io_page.t -> int -> unit
+    val get_hdr_handle: Io_page.t -> int
+    val set_hdr_handle: Io_page.t -> int -> unit
+    val get_hdr_id: Io_page.t -> int64
+    val set_hdr_id: Io_page.t -> int64 -> unit
+    val get_hdr_sector: Io_page.t -> int64
+    val set_hdr_sector: Io_page.t -> int64 -> unit
+  end
 
+  module Marshalling = functor(P: PROTO) -> struct
+    open P
     (* total size of a request structure, in bytes *)
     let total_size = sizeof_hdr + (sizeof_segment * segments_per_request)
 
     (* Write a request to a slot in the shared ring. *)
     let write_request req slot =
-      set_hdr_op slot (Op.to_int req.op);
+      set_hdr_op slot (match req.op with None -> -1 | Some x -> op_to_int x);
       set_hdr_nr_segs slot (Array.length req.segs);
       set_hdr_handle slot req.handle;
       set_hdr_id slot req.id;
@@ -116,14 +107,25 @@ module Req = struct
               last_sector = get_segment_last_sector seg;
           }
       ) in {
-          op = Op.of_int (get_hdr_op slot);
+          op = op_of_int (get_hdr_op slot);
           handle = get_hdr_handle slot;
           id = get_hdr_id slot;
           sector = get_hdr_sector slot;
           segs = segs
       }
+
   end
-  module Proto_32 = struct
+  module Proto_64 = Marshalling(struct
+    cstruct hdr {
+      uint8_t        op;
+      uint8_t        nr_segs;
+      uint16_t       handle;
+      uint32_t       _padding; (* emitted by C compiler *)
+      uint64_t       id;
+      uint64_t       sector
+    } as little_endian
+  end)
+  module Proto_32 = Marshalling(struct
     cstruct hdr {
       uint8_t        op;
       uint8_t        nr_segs;
@@ -132,39 +134,44 @@ module Req = struct
       uint64_t       id;
       uint64_t       sector
     } as little_endian
-  end
+  end)
 end
 
 module Res = struct
 
-  type rsp = 
-   |OK
-   |Error
-   |Not_supported
-   |Unknown of int
- 
+  (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
+  cenum rsp {
+    OK            = 0;
+    Error         = 0xffff;
+    Not_supported = 0xfffe
+  } as uint16_t
+
   (* Defined in include/xen/io/blkif.h, blkif_response_t *)
   type t = {
-    op: Req.Op.t;
-    st: rsp;
+    op: Req.op option;
+    st: rsp option;
   }
 
+  (* The same structure is used in both the 32- and 64-bit protocol versions,
+     modulo the extra padding at the end. *)
   cstruct response_hdr {
     uint64_t       id;
     uint8_t        op;
     uint8_t        _padding;
-    uint16_t       st
+    uint16_t       st;
+    (* 64-bit only but we don't need to care since there aren't any more fields: *)
+    uint32_t       _padding
   } as little_endian
 
-  (* Defined in include/xen/io/blkif.h, BLKIF_RSP_* *)
+  let write_response (id, t) slot =
+    set_response_hdr_id slot id;
+    set_response_hdr_op slot (match t.op with None -> -1 | Some x -> Req.op_to_int x);
+    set_response_hdr_st slot (match t.st with None -> -1 | Some x -> rsp_to_int x)
+
   let read_response slot =
     get_response_hdr_id slot, {
-      op = Req.Op.of_int (get_response_hdr_op slot);
-      st = match get_response_hdr_st slot with
-            | 0 -> OK
-            | 0xffff -> Error
-            | 0xfffe -> Not_supported
-            | n -> Unknown n
+      op = Req.op_of_int (get_response_hdr_op slot);
+      st = rsp_of_int (get_response_hdr_st slot)
     }
 end
 
@@ -299,30 +306,6 @@ let create fn =
     fn id t) ids in
   th <?> pt
 
-(* Read a single page from disk. The offset must be sector-aligned *)
-let read_page t offset =
-  let sector = Int64.div offset t.features.sector_size in
-  let page = Io_page.get () in
-      Gnttab.with_ref
-        (fun r ->
-          Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
-            (fun () ->
-	      let gref = Gnttab.to_int32 r in
-	      let id = Int64.of_int32 (Gnttab.to_int32 r) in
-              let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-              let req = Req.({op=Req.Op.Read; handle=t.vdev; id; sector; segs}) in
-              let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
-              if Ring.Front.push_requests_and_check_notify t.ring then
-                Evtchn.notify t.evtchn;
-              lwt res = res in
-              Res.(match res.st with
-              |Error -> fail (IO_error "read")
-              |Not_supported -> fail (IO_error "unsupported")
-              |Unknown _ -> fail (IO_error "unknown error")
-              |OK -> return page)
-            )
-        )
-
 (* Write a single page to disk.
    Offset is the sector number, which must be sector-aligned
    Page must be an Io_page *)
@@ -337,71 +320,80 @@ let write_page t offset page =
           let gref = Gnttab.to_int32 r in
           let id = Int64.of_int32 gref in
           let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-          let req = Req.({op=Req.Op.Write; handle=t.vdev; id; sector; segs}) in
+          let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
           let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
           if Ring.Front.push_requests_and_check_notify t.ring then
             Evtchn.notify t.evtchn;
           let open Res in
           lwt res = res in
           Res.(match res.st with
-          |Error -> fail (IO_error "write")
-          |Not_supported -> fail (IO_error "unsupported")
-          |Unknown _ -> fail (IO_error "unknown error")
-          |OK -> return ())
+          | Some Error -> fail (IO_error "write")
+          | Some Not_supported -> fail (IO_error "unsupported")
+          | None -> fail (IO_error "unknown error")
+          | Some OK -> return ())
         )
     )
 
-(** A large request must be broken down into a series of smaller page-aligned requests: *)
-type single_request = {
-  start_sector: int64; (* page-aligned sector to start reading from *)
-  start_offset: int;   (* sector offset into the page of our data *)
-  end_sector: int64;   (* last page-aligned sector to read *)
-  end_offset: int;     (* sector offset into the page of our data *)
-}
+module Single_request = struct
+  (** A large request must be broken down into a series of smaller page-aligned requests: *)
+  type t = {
+    start_sector: int64; (* page-aligned sector to start reading from *)
+    start_offset: int;   (* sector offset into the page of our data *)
+    end_sector: int64;   (* last page-aligned sector to read *)
+    end_offset: int;     (* sector offset into the page of our data *)
+  }
 
-(* Transforms a large read of [num_sectors] starting at [sector] into a Lwt_stream
-   of single_requests, where each request will fit on the ring. *)
-let stream_of_single_requests t sector num_sectors =
-  let from (sector, num_sectors) =
-    assert (sector >= 0L);
-    assert (num_sectors > 0L);
-    (* Round down the starting sector in order to get a page aligned sector *)
-    let start_sector = Int64.(mul 8L (div sector 8L)) in
-    let start_offset = Int64.(to_int (sub sector start_sector)) in
-    (* Round up the ending sector to the page boundary *)
-    let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
-    (* Calculate number of sectors needed *)
-    let total_sectors_needed = Int64.(sub end_sector start_sector) in
-    (* Maximum of 11 segments per request; 1 page (8 sectors) per segment so: *)
-    let total_sectors_possible = min 88L total_sectors_needed in
-    let possible_end_sector = Int64.add start_sector total_sectors_possible in
-    let end_offset = min 7 (Int64.(to_int (sub 7L (sub possible_end_sector (add sector num_sectors))))) in
+  (** Number of pages required to issue this request *)
+  let npages_of t = Int64.(to_int (div (sub t.end_sector t.start_sector) 8L))
 
-    let first = { start_sector; start_offset; end_sector = possible_end_sector; end_offset } in
-    if total_sectors_possible < total_sectors_needed
-    then
-      let num_sectors = Int64.(sub num_sectors (sub total_sectors_possible (of_int start_offset))) in
-      first, Some ((Int64.add start_sector total_sectors_possible), num_sectors)
-    else
-      first, None in
-  let state = ref (Some (sector, num_sectors)) in
-  Lwt_stream.from
-    (fun () ->
-      match !state with
-	| None -> return None
-	| Some x ->
-	  let item, state' = from x in
-	  state := state';
-	  return (Some item)
-    )
+  let to_string t =
+    sprintf "(%Lu, %u) -> (%Lu, %u)" t.start_sector t.start_offset t.end_sector t.end_offset
+
+  (* Transforms a large read of [num_sectors] starting at [sector] into a Lwt_stream
+     of single_requests, where each request will fit on the ring. *)
+  let stream_of sector num_sectors =
+    let from (sector, num_sectors) =
+      assert (sector >= 0L);
+      assert (num_sectors > 0L);
+      (* Round down the starting sector in order to get a page aligned sector *)
+      let start_sector = Int64.(mul 8L (div sector 8L)) in
+      let start_offset = Int64.(to_int (sub sector start_sector)) in
+      (* Round up the ending sector to the page boundary *)
+      let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
+      (* Calculate number of sectors needed *)
+      let total_sectors_needed = Int64.(sub end_sector start_sector) in
+      (* Maximum of 11 segments per request; 1 page (8 sectors) per segment so: *)
+      let total_sectors_possible = min 88L total_sectors_needed in
+      let possible_end_sector = Int64.add start_sector total_sectors_possible in
+      let end_offset = min 7 (Int64.(to_int (sub 7L (sub possible_end_sector (add sector num_sectors))))) in
+
+      let first = { start_sector; start_offset; end_sector = possible_end_sector; end_offset } in
+      if total_sectors_possible < total_sectors_needed
+      then
+        let num_sectors = Int64.(sub num_sectors (sub total_sectors_possible (of_int start_offset))) in
+        first, Some ((Int64.add start_sector total_sectors_possible), num_sectors)
+      else
+        first, None in
+    let state = ref (Some (sector, num_sectors)) in
+    Lwt_stream.from
+      (fun () ->
+        match !state with
+        | None -> return None
+        | Some x ->
+          let item, state' = from x in
+          state := state';
+          return (Some item)
+      )
+end
 
 (* Issues a single request to read from [start_sector + start_offset] to [end_sector - end_offset]
    where: [start_sector] and [end_sector] are page-aligned; and the total number of pages will fit
    in a single request. *)
 let read_single_request t r =
-  let len = Int64.(to_int (div (sub r.end_sector r.start_sector) 8L)) in  
+  let open Single_request in
+  let len = npages_of r in
   if len > 11 then
-    fail (Failure (sprintf "len > 11 (%Lu, %u) (%Lu, %u)" r.start_sector r.start_offset r.end_sector r.end_offset))
+    fail (Failure (sprintf "len > 11 %s" (Single_request.to_string r)))
   else 
     let pages = Io_page.get_n len in
 	Gnttab.with_refs len
@@ -420,17 +412,17 @@ let read_single_request t r =
 		    { Req.gref; first_sector; last_sector }
 		  ) (Array.of_list rs) in
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
-		let req = Req.({ op=Op.Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
+		let req = Req.({ op=Some Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
 		let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
 		if Ring.Front.push_requests_and_check_notify t.ring then
 		  Evtchn.notify t.evtchn;
 		let open Res in
 		    lwt res = res in
 		match res.st with
-		  |Error -> fail (IO_error "read")
-		  |Not_supported -> fail (IO_error "unsupported")
-		  |Unknown x -> fail (IO_error "unknown error")
-		  |OK ->
+		  | Some Error -> fail (IO_error "read")
+		  | Some Not_supported -> fail (IO_error "unsupported")
+		  | None -> fail (IO_error "unknown error")
+		  | Some OK ->
 		    (* Get the pages, and convert them into Istring views *)
 		    return (Lwt_stream.of_list (List.rev (snd (List.fold_left
 		      (fun (i, acc) page ->
@@ -450,7 +442,7 @@ let read_single_request t r =
 
 (* Reads [num_sectors] starting at [sector], returning a stream of Io_page.ts *)
 let read_512 t sector num_sectors =
-  let requests = stream_of_single_requests t sector num_sectors in
+  let requests = Single_request.stream_of sector num_sectors in
   Lwt_stream.(concat (map_s (read_single_request t) requests))
 
 let create ~id : Devices.blkif Lwt.t =
@@ -459,7 +451,6 @@ let create ~id : Devices.blkif Lwt.t =
   printf "Xen.Blkif: success\n%!";
   return (object
     method id = id
-    method read_page = read_page dev
     method read_512 = read_512 dev
     method write_page = write_page dev
     method sector_size = 4096

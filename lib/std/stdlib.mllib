@@ -56,7 +56,7 @@ regexp
 bigarray
 cstruct
 oS
-#net
+net
 #block
 #dns
 #http

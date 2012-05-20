@@ -21,7 +21,7 @@ else
 NODE_BUILD=
 endif
 
-UNIX_BUILD= unix-direct unix-socket
+UNIX_BUILD= unix-direct
 
 all: $(XEN_BUILD) $(NODE_BUILD) $(UNIX_BUILD)
 	@ :

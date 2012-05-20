@@ -62,8 +62,10 @@ let init ~domid ~order ~idx_size ~name =
   let t = { name; buf; idx_size; nr_ents; header_size } in
   (* initialise the *_event fields to 1, and the rest to 0 *)
   (* XXX: cstruct? *)
+(*
   let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
   Io_page.string_blit src buf;
+*)
   return (gnts,t)
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"

@@ -30,7 +30,7 @@ let alloc ~nr_pages =
     |0 -> ()
     |n ->
        Queue.add (create page_size) free_list;
-       inner (n-page_size)
+       inner (n-1)
   in
   inner nr_pages
 
@@ -39,11 +39,13 @@ let get () =
     try
       let page = Queue.pop free_list in
       (* Add finaliser to put it back in the pool *)
+(*
       let fin p =
         Printf.printf "page finalise\n%!";
         Queue.add p free_list
       in 
       Gc.finalise fin page;
+*)
       page
     with Queue.Empty -> begin
       alloc ~nr_pages:128;

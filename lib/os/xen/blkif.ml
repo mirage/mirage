@@ -334,57 +334,66 @@ let write_page t offset page =
         )
     )
 
-(** A large request must be broken down into a series of smaller page-aligned requests: *)
-type single_request = {
-  start_sector: int64; (* page-aligned sector to start reading from *)
-  start_offset: int;   (* sector offset into the page of our data *)
-  end_sector: int64;   (* last page-aligned sector to read *)
-  end_offset: int;     (* sector offset into the page of our data *)
-}
+module Single_request = struct
+  (** A large request must be broken down into a series of smaller page-aligned requests: *)
+  type t = {
+    start_sector: int64; (* page-aligned sector to start reading from *)
+    start_offset: int;   (* sector offset into the page of our data *)
+    end_sector: int64;   (* last page-aligned sector to read *)
+    end_offset: int;     (* sector offset into the page of our data *)
+  }
 
-(* Transforms a large read of [num_sectors] starting at [sector] into a Lwt_stream
-   of single_requests, where each request will fit on the ring. *)
-let stream_of_single_requests t sector num_sectors =
-  let from (sector, num_sectors) =
-    assert (sector >= 0L);
-    assert (num_sectors > 0L);
-    (* Round down the starting sector in order to get a page aligned sector *)
-    let start_sector = Int64.(mul 8L (div sector 8L)) in
-    let start_offset = Int64.(to_int (sub sector start_sector)) in
-    (* Round up the ending sector to the page boundary *)
-    let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
-    (* Calculate number of sectors needed *)
-    let total_sectors_needed = Int64.(sub end_sector start_sector) in
-    (* Maximum of 11 segments per request; 1 page (8 sectors) per segment so: *)
-    let total_sectors_possible = min 88L total_sectors_needed in
-    let possible_end_sector = Int64.add start_sector total_sectors_possible in
-    let end_offset = min 7 (Int64.(to_int (sub 7L (sub possible_end_sector (add sector num_sectors))))) in
+  (** Number of pages required to issue this request *)
+  let npages_of t = Int64.(to_int (div (sub t.end_sector t.start_sector) 8L))
 
-    let first = { start_sector; start_offset; end_sector = possible_end_sector; end_offset } in
-    if total_sectors_possible < total_sectors_needed
-    then
-      let num_sectors = Int64.(sub num_sectors (sub total_sectors_possible (of_int start_offset))) in
-      first, Some ((Int64.add start_sector total_sectors_possible), num_sectors)
-    else
-      first, None in
-  let state = ref (Some (sector, num_sectors)) in
-  Lwt_stream.from
-    (fun () ->
-      match !state with
-	| None -> return None
-	| Some x ->
-	  let item, state' = from x in
-	  state := state';
-	  return (Some item)
-    )
+  let to_string t =
+    sprintf "(%Lu, %u) -> (%Lu, %u)" t.start_sector t.start_offset t.end_sector t.end_offset
+
+  (* Transforms a large read of [num_sectors] starting at [sector] into a Lwt_stream
+     of single_requests, where each request will fit on the ring. *)
+  let stream_of sector num_sectors =
+    let from (sector, num_sectors) =
+      assert (sector >= 0L);
+      assert (num_sectors > 0L);
+      (* Round down the starting sector in order to get a page aligned sector *)
+      let start_sector = Int64.(mul 8L (div sector 8L)) in
+      let start_offset = Int64.(to_int (sub sector start_sector)) in
+      (* Round up the ending sector to the page boundary *)
+      let end_sector = Int64.(mul 8L (div (add (add sector num_sectors) 7L) 8L)) in
+      (* Calculate number of sectors needed *)
+      let total_sectors_needed = Int64.(sub end_sector start_sector) in
+      (* Maximum of 11 segments per request; 1 page (8 sectors) per segment so: *)
+      let total_sectors_possible = min 88L total_sectors_needed in
+      let possible_end_sector = Int64.add start_sector total_sectors_possible in
+      let end_offset = min 7 (Int64.(to_int (sub 7L (sub possible_end_sector (add sector num_sectors))))) in
+
+      let first = { start_sector; start_offset; end_sector = possible_end_sector; end_offset } in
+      if total_sectors_possible < total_sectors_needed
+      then
+        let num_sectors = Int64.(sub num_sectors (sub total_sectors_possible (of_int start_offset))) in
+        first, Some ((Int64.add start_sector total_sectors_possible), num_sectors)
+      else
+        first, None in
+    let state = ref (Some (sector, num_sectors)) in
+    Lwt_stream.from
+      (fun () ->
+        match !state with
+        | None -> return None
+        | Some x ->
+          let item, state' = from x in
+          state := state';
+          return (Some item)
+      )
+end
 
 (* Issues a single request to read from [start_sector + start_offset] to [end_sector - end_offset]
    where: [start_sector] and [end_sector] are page-aligned; and the total number of pages will fit
    in a single request. *)
 let read_single_request t r =
-  let len = Int64.(to_int (div (sub r.end_sector r.start_sector) 8L)) in  
+  let open Single_request in
+  let len = npages_of r in
   if len > 11 then
-    fail (Failure (sprintf "len > 11 (%Lu, %u) (%Lu, %u)" r.start_sector r.start_offset r.end_sector r.end_offset))
+    fail (Failure (sprintf "len > 11 %s" (Single_request.to_string r)))
   else 
     let pages = Io_page.get_n len in
 	Gnttab.with_refs len
@@ -433,7 +442,7 @@ let read_single_request t r =
 
 (* Reads [num_sectors] starting at [sector], returning a stream of Io_page.ts *)
 let read_512 t sector num_sectors =
-  let requests = stream_of_single_requests t sector num_sectors in
+  let requests = Single_request.stream_of sector num_sectors in
   Lwt_stream.(concat (map_s (read_single_request t) requests))
 
 let create ~id : Devices.blkif Lwt.t =

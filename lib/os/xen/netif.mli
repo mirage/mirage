@@ -37,8 +37,8 @@ val plug: id -> t Lwt.t
     the unplugging is not guaranteed *)
 val unplug: id -> unit
 
-(** Output a Bitstring vector to an interface *)
-val output : t -> Io_page.t list -> unit Lwt.t
+(** Output an Io_page to an interface *)
+val output : t -> Io_page.t -> unit Lwt.t
 
 (** Listen endlesses on a Netfront, and invoke the callback function as frames are
     received. *)
@@ -50,3 +50,5 @@ val enumerate : unit -> id list Lwt.t
 (** Return the MAC address of the Netfront *)
 val ethid : t -> string
 val mac : t -> string
+
+val get_writebuf : t -> Io_page.t Lwt.t

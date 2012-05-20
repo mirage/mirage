@@ -20,7 +20,6 @@ type blkif = <
   id : string;
   destroy : unit;
   ppname : string;
-  read_page : int64 -> Io_page.t Lwt.t;
   read_512: int64 -> int64 -> Io_page.t Lwt_stream.t;
   write_page: int64 -> Io_page.t -> unit Lwt.t;
   sector_size : int;

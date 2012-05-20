@@ -282,30 +282,6 @@ let create fn =
     fn id t) ids in
   th <?> pt
 
-(* Read a single page from disk. The offset must be sector-aligned *)
-let read_page t offset =
-  let sector = Int64.div offset t.features.sector_size in
-  let page = Io_page.get () in
-      Gnttab.with_ref
-        (fun r ->
-          Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
-            (fun () ->
-	      let gref = Gnttab.to_int32 r in
-	      let id = Int64.of_int32 (Gnttab.to_int32 r) in
-              let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-              let req = Req.({op=Some Req.Read; handle=t.vdev; id; sector; segs}) in
-              let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
-              if Ring.Front.push_requests_and_check_notify t.ring then
-                Evtchn.notify t.evtchn;
-              lwt res = res in
-              Res.(match res.st with
-              |Error -> fail (IO_error "read")
-              |Not_supported -> fail (IO_error "unsupported")
-              |Unknown _ -> fail (IO_error "unknown error")
-              |OK -> return page)
-            )
-        )
-
 (* Write a single page to disk.
    Offset is the sector number, which must be sector-aligned
    Page must be an Io_page *)
@@ -451,7 +427,6 @@ let create ~id : Devices.blkif Lwt.t =
   printf "Xen.Blkif: success\n%!";
   return (object
     method id = id
-    method read_page = read_page dev
     method read_512 = read_512 dev
     method write_page = write_page dev
     method sector_size = 4096

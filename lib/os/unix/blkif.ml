@@ -78,7 +78,6 @@ let create ~id ~filename : Devices.blkif Lwt.t =
   let t = {id; fd} in
   return (object
     method id = id
-    method read_page = read_page t
     method read_512 = read_512 t
     method write_page = write_page t
     method sector_size = 4096

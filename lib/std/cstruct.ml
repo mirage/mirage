@@ -117,6 +117,7 @@ end
 let len buf = dim buf
 
 external base_offset : buf -> int = "caml_bigarray_base_offset"
+external shift_left : buf -> int -> bool = "caml_bigarray_shift_left"
 
 let sub buf off len = sub buf off len
 

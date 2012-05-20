@@ -52,6 +52,7 @@ end
 
 val len : buf -> int
 val base_offset : buf -> int
+val shift_left : buf -> int -> bool
 val sub : buf -> int -> int -> buf
 val shift : buf -> int -> buf
 val split : buf -> int -> buf * buf

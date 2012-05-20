@@ -17,6 +17,8 @@
 open Lwt
 open Printf
 
+type proto = | X86_64 | X86_32 | Native
+
 (* Block requests; see include/xen/io/blkif.h *)
 module Req = struct
 
@@ -30,6 +32,10 @@ module Req = struct
     Trim          = 5
   } as uint8_t
 
+  let string_of_op = function
+  | Read -> "Read" | Write -> "Write" | Write_barrier -> "Write_barrier"
+  | Flush -> "Flush" | Op_reserved_1 -> "Op_reserved_1" | Trim -> "Trim"
+
   exception Unknown_request_type of int
 
   (* Defined in include/xen/io/blkif.h BLKIF_MAX_SEGMENTS_PER_REQUEST *)
@@ -41,6 +47,12 @@ module Req = struct
     last_sector: int;
   }
 
+  let string_of_seg seg =
+    Printf.sprintf "{gref=%ld first=%d last=%d}" seg.gref seg.first_sector seg.last_sector
+
+  let string_of_segs segs = 
+    Printf.sprintf "[%s]" (String.concat "," (List.map string_of_seg (Array.to_list segs)))
+
   (* Defined in include/xen/io/blkif.h : blkif_request_t *)
   type t = {
     op: op option;
@@ -49,6 +61,11 @@ module Req = struct
     sector: int64;
     segs: seg array;
   }
+
+  let string_of t =
+    Printf.sprintf "op=%s\nhandle=%d\nid=%Ld\nsector=%Ld\nsegs=%s\n"
+    (match t.op with Some x -> string_of_op x | None -> "None")
+      t.handle t.id t.sector (string_of_segs t.segs)
 
   (* The segment looks the same in both 32-bit and 64-bit versions *)
   cstruct segment {
@@ -175,6 +192,68 @@ module Res = struct
     }
 end
 
+module Backend = struct
+  type ops = {
+    read : Io_page.t -> int64 -> int -> int -> unit Lwt.t;
+    write : Io_page.t -> int64 -> int -> int -> unit Lwt.t;
+  }
+
+  type t = {
+    domid:  int;
+    xg:     Gnttab.handle;
+    evtchn: int;
+    ops :   ops;
+    parse_req : Io_page.t -> Req.t;
+  }
+
+  let process t ring slot =
+    let open Req in
+    let req = t.parse_req slot in
+    let fn = match req.op with
+      | Some Read -> t.ops.read
+      | Some Write -> t.ops.write
+      | _ -> failwith "Unhandled request type"
+    in
+    let (_,threads) = List.fold_left (fun (off,threads) seg ->
+      let sector = Int64.add req.sector (Int64.of_int off) in
+      let perm = match req.op with
+        | Some Read -> Gnttab.RO 
+        | Some Write -> Gnttab.RW
+        | _ -> failwith "Unhandled request type" in
+      let thread = Gnttab.with_mapping t.xg t.domid seg.gref perm
+        (fun page -> fn page sector seg.first_sector seg.last_sector) in
+      let newoff = off + (seg.last_sector - seg.first_sector + 1) in
+      (newoff,thread::threads)
+    ) (0, []) (Array.to_list req.segs) in
+    let _ = (* handle the work in a background thread *)
+      lwt () = Lwt.join threads in
+      let open Res in 
+      let slot = Ring.Back.(slot ring (next_res_id ring)) in
+      write_response (req.id, {op=req.Req.op; st=Some OK}) slot;
+      let notify = Ring.Back.push_responses_and_check_notify ring in
+      (* XXX: what is this:
+        if more_to_do then Activations.wake t.evtchn; *)
+      if notify then Evtchn.notify t.evtchn;
+      Lwt.return ()
+    in ()
+
+    let init xg domid ring_ref evtchn_ref proto ops =
+      let evtchn = Evtchn.bind_interdomain domid evtchn_ref in
+      let parse_req, idx_size = match proto with
+        | X86_64 -> Req.Proto_64.read_request, Req.Proto_64.total_size
+        | X86_32 -> Req.Proto_32.read_request, Req.Proto_64.total_size
+        | Native -> Req.Proto_64.read_request, Req.Proto_64.total_size
+      in
+      let buf = Gnttab.map_contiguous_grant_refs xg domid [ ring_ref ] Gnttab.RW in
+      let ring = Ring.of_buf ~buf ~idx_size ~name:"blkback" in
+      let r = Ring.Back.init ring in
+      let t = { domid; xg; evtchn; ops; parse_req } in
+      let th = Ring.Back.service_thread r evtchn (process t r) in
+      on_cancel th (fun () -> Gnttab.unmap xg buf);
+      th
+end
+
+
 type features = {
   barrier: bool;
   removable: bool;
@@ -203,7 +282,8 @@ let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 let alloc ~order (num,domid) =
   let name = sprintf "Blkif.%d" num in
   let idx_size = Req.Proto_64.total_size in (* bigger than res *)
-  lwt (rx_gnts, sring) = Ring.init ~domid ~order ~idx_size ~name in
+  lwt (rx_gnts, buf) = Ring.allocate ~domid ~order in
+  let sring = Ring.of_buf ~buf ~idx_size ~name in
   let fring = Ring.Front.init ~sring in
   return (rx_gnts, fring)
 

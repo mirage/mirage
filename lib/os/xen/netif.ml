@@ -216,8 +216,7 @@ let tx_poll nf =
 
 
 (* Transmit a packet from buffer, with offset and length *)  
-let rec output nf bsv =
-  let page = Io_page.get () in
+let rec output nf page =
   (* XXX below for debugging to avoid potential event deadlock. tell avsm if printf shows up *)
   if Gnttab.num_free_grants () < 100 then begin
     Printf.printf "low grants %d\n%!" (Gnttab.num_free_grants ());
@@ -227,10 +226,7 @@ let rec output nf bsv =
   Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page;
   let gref = Gnttab.to_int32 gnt in
   let id = Int32.to_int gref in
-  let size = List.fold_left (fun offset fragment ->
-    let fraglen = Io_page.length fragment in
-    Io_page.blit fragment (Io_page.sub page offset (Io_page.length fragment));
-    offset + fraglen) 0 bsv in
+  let size = Io_page.length page in
   let flags = 0 in
   let offset = 0 in
   lwt () = Ring.Front.push_request_async nf.tx_fring
@@ -294,3 +290,9 @@ let mac nf =
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let ethid t = 
   string_of_int t.backend_id
+
+(* Get write buffer for Netif output *)
+let get_writebuf t =
+  let page = Io_page.get () in
+  (* TODO: record statistics for requesting thread here (in debug mode?) *)
+  return page

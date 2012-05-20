@@ -175,6 +175,85 @@ module Res = struct
     }
 end
 
+module Backend = struct
+	type ops = {
+		read : Gnttab.t -> int64 -> int -> int -> unit Lwt.t;
+		write : Gnttab.t -> int64 -> int -> int -> unit Lwt.t;
+	}
+
+	type t = {
+		domid:  int32;
+		xg:     Gnttab.handle;
+		evtchn: int;
+        r :     Ring.Back.t; 
+	    ops :   ops;
+		parse_req : Bitstring.t -> Req.t;
+		write_res : (int64 * Res.t) -> string;
+	}
+
+	let string_of_segs segs = 
+		Printf.sprintf "[%s]" (
+			String.concat "," (List.map (fun seg ->
+				Printf.sprintf "{gref=%ld first=%d last=%d}" seg.Req.gref seg.Req.first_sector seg.Req.last_sector) (Array.to_list segs)))
+
+	let string_of_req req =
+		Printf.sprintf "op=%s\nhandle=%d\nid=%Ld\nsector=%Ld\nsegs=%s\n" (Req.string_of_op req.Req.op) req.Req.handle
+			req.Req.id req.Req.sector (string_of_segs req.Req.segs)
+
+	let process t (slot, from, len) =
+		let open Req in
+		let req = t.parse_req (Bitstring.bitstring_of_string (Gnttab.read slot from len)) in
+		let fn = match req.op with
+			| Read -> t.ops.read
+			| Write -> t.ops.write
+		in
+		let (_,threads) = List.fold_left (fun (off,threads) seg ->
+			let sector = Int64.add req.sector (Int64.of_int off) in
+			let prot = match req.op with | Read -> 3 | Write -> 1 in
+			let thread = Gnttab.with_ref t.xg t.domid seg.gref prot (fun buf ->
+				fn buf sector seg.first_sector seg.last_sector) in 
+			let newoff = off + (seg.last_sector - seg.first_sector + 1) in
+			(newoff,thread::threads)) (0, []) (Array.to_list req.segs) 
+		in
+		let response_thread = 
+			lwt () = Lwt.join threads in
+		    let open Res in 
+		    let rsp = t.write_res (req.id, {op=req.Req.op; st=OK}) in
+		    let more_to_do, notify = Ring.Back.write_response t.r rsp in
+		    if more_to_do then Activations.wake t.evtchn;
+		    if notify then Xeneventchn.notify Activations.xe t.evtchn;
+		    Lwt.return ()
+        in ()
+
+	let init xg domid ring_ref evtchn_ref proto ops =
+		let xe = Activations.xe in
+		let fd = Xeneventchn.fd xe in
+		let evtchn = Xeneventchn.bind_interdomain xe domid evtchn_ref in
+		let domid = Int32.of_int domid in
+		let parse_req, write_res,idx_size = match proto with
+			| X86_64 -> Req.read_request_64, Res.make_response, Req.idx_size_64
+			| X86_32 -> Req.read_request_32, Res.make_response, Req.idx_size_32
+			| Native -> Req.read_request_64, Res.make_response, Req.idx_size_64
+		in
+		let ring = Ring.init_back ~xg ~domid
+			~gref:ring_ref ~idx_size ~name:"blkback" in
+		let r = Ring.Back.init ring in
+		let t = { domid; xg; evtchn; r; ops; parse_req; write_res } in
+		let ring_thread = Ring.Back.service_thread r evtchn (process t) in
+		let poker = 
+			let rec inner () = 
+				lwt () = Lwt_unix.sleep 5.0 in
+			    Activations.wake evtchn;
+				Xeneventchn.notify Activations.xe evtchn;
+			    inner ()
+		    in inner ()
+	    in 
+		on_cancel ring_thread (fun () -> Ring.destroy_back ~xg ring);
+		ring_thread
+
+end
+
+
 type features = {
   barrier: bool;
   removable: bool;

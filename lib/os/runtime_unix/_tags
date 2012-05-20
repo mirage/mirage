@@ -1,1 +1,1 @@
-<*.c>: include_libev,pic,unix_header,include_system_ocaml
+<*.c>: pic,unix_header,include_system_ocaml

@@ -23,8 +23,6 @@
 
 open Lwt
 
-external block_domain_timeout : float -> unit = "caml_block_domain_with_timeout"
-
 let exit_hooks = Lwt_sequence.create ()
 let enter_hooks = Lwt_sequence.create ()
 
@@ -43,12 +41,15 @@ let rec call_hooks hooks  =
         in
         call_hooks hooks
 
+open Printf
+
 (* Main runloop, which registers a callback so it can be invoked
    when timeouts expire. Thus, the program may only call this function
    once and once only. *)
 let run t =
   let t = call_hooks enter_hooks <&> t in
-  let fn () =
+  let rec fn () =
+    Gc.compact ();
     (* Wake up any paused threads, and restart threads waiting on timeout *)
     Lwt.wakeup_paused ();
     Time.restart_threads Clock.time;
@@ -65,11 +66,9 @@ let run t =
          |None -> 86400.0
          |Some tm -> tm
        in
-       block_domain_timeout timeout
+       Activations.wait timeout;
+       fn ()
   in
-  (* Register a callback for the JS runtime to restart this function *)
-  let _ = Callback.register "Main.run" fn in
-  Printexc.record_backtrace true;
   fn ()
 
 let () = at_exit (fun () -> run (call_hooks exit_hooks))

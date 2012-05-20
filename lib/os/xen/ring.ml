@@ -21,17 +21,6 @@ let rec pow2 = function
   | 0 -> 1
   | n -> 2 * (pow2 (n - 1))
 
-(* Allocate a multi-page ring, returning the grants and pages *)
-let alloc ~domid ~order =
-  lwt gnt = Gnttab.get () in
-  (* XXX: need to allocate (pow2 order) contiguous pages *)
-  let ring = Io_page.get ~pages_per_block:(pow2 order) () in
-  let pages = Io_page.to_pages ring in
-  lwt gnts = Gnttab.get_n (List.length pages) in
-  let perm = Gnttab.RW in
-  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
-  return (gnts, ring)
-
 (*
   struct sring {
     RING_IDX req_prod, req_event;
@@ -41,6 +30,32 @@ let alloc ~domid ~order =
   };
 *)
 
+cstruct ring_hdr {
+  uint32_t req_prod;
+  uint32_t req_event;
+  uint32_t rsp_prod;
+  uint32_t rsp_event;
+  uint64_t stuff
+} as little_endian
+
+(* Allocate a multi-page ring, returning the grants and pages *)
+let allocate ~domid ~order =
+  lwt gnt = Gnttab.get () in
+  let ring = Io_page.get ~pages_per_block:(pow2 order) () in
+
+  (* initialise the *_event fields to 1, and the rest to 0 *)
+  set_ring_hdr_req_prod ring 0l;
+  set_ring_hdr_req_event ring 1l;
+  set_ring_hdr_rsp_prod ring 0l;
+  set_ring_hdr_rsp_event ring 1l;
+  set_ring_hdr_stuff ring 0L;
+
+  let pages = Io_page.to_pages ring in
+  lwt gnts = Gnttab.get_n (List.length pages) in
+  let perm = Gnttab.RW in
+  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm gnt page) (List.combine gnts pages);
+  return (gnts, ring)
+
 type sring = {
   buf: Io_page.t;   (* Overall I/O buffer *)
   header_size: int; (* Header of shared ring variables, in bits *)
@@ -49,24 +64,15 @@ type sring = {
   name: string;     (* For pretty printing only *)
 }
 
-let init ~domid ~order ~idx_size ~name =
-  lwt gnts, buf = alloc ~domid ~order in
-  assert (Io_page.length buf = (4096 * (pow2 order)));
+let of_buf ~buf ~idx_size ~name =
   let header_size = 4+4+4+4+48 in (* header bytes size of struct sring *)
   (* Round down to the nearest power of 2, so we can mask indices easily *)
   let round_down_to_nearest_2 x =
     int_of_float (2. ** (floor ( (log (float x)) /. (log 2.)))) in
   (* Free space in shared ring after header is accounted for *)
-  let free_bytes = 4096 * (pow2 order) - header_size in
+  let free_bytes = Io_page.length buf - header_size in
   let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
-  let t = { name; buf; idx_size; nr_ents; header_size } in
-  (* initialise the *_event fields to 1, and the rest to 0 *)
-  (* XXX: cstruct? *)
-(*
-  let src,_,_ = BITSTRING { 0l:32; 1l:32:littleendian; 0l:32; 1l:32:littleendian; 0L:64 } in
-  Io_page.string_blit src buf;
-*)
-  return (gnts,t)
+  { name; buf; idx_size; nr_ents; header_size }
 
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
 external sring_req_prod: sring -> int = "caml_sring_req_prod" "noalloc"
@@ -218,6 +224,7 @@ module Back = struct
     { rsp_prod_pvt; req_cons; sring; wakers; waiters }
 
   let slot t idx = slot t.sring idx
+
   let nr_ents t = t.sring.nr_ents
  
   let has_unconsumed_requests t =
@@ -247,6 +254,22 @@ module Back = struct
     t.rsp_prod_pvt <- t.rsp_prod_pvt + 1;
     s
 
+  let rec ack_requests t fn =
+    let req_prod = sring_req_prod t.sring in
+    while t.req_cons != req_prod do
+      let slot_id = t.req_cons in
+      let slot = slot t slot_id in
+      t.req_cons <- t.req_cons + 1;
+      fn slot;
+    done;
+    if check_for_requests t then ack_requests t fn
+
+  let service_thread t evtchn fn =
+    let rec inner () =
+      ack_requests t fn;
+      Activations.wait evtchn >>
+      inner ()
+    in inner ()
 end
 
 (* Raw ring handling section *)

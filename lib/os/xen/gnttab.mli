@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+type handle
+
 type r
 type perm = RO | RW
 
@@ -37,3 +39,8 @@ val with_grant : domid:int -> perm:perm -> r -> Io_page.t -> (unit -> 'a Lwt.t) 
 
 val with_grants : domid:int -> perm:perm -> r list -> Io_page.t list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 
+val with_mapping : handle -> int -> int32 -> perm -> (Io_page.t -> 'a Lwt.t) -> 'a Lwt.t
+
+val map_contiguous_grant_refs : handle -> int -> int32 list -> perm -> Io_page.t
+
+val unmap : handle -> Io_page.t -> unit

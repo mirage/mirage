@@ -45,5 +45,5 @@ caml_ones_complement_checksum(value v_ba, value v_len)
   uint16_t checksum = 0;
   sum = checksum_bigarray(Caml_ba_data_val(v_ba), Int_val(v_len), sum);
   checksum = ~sum;
-  return Val_int(checksum);
+  CAMLreturn(Val_int(checksum));
 }

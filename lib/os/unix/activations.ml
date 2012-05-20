@@ -16,39 +16,66 @@
 
 open Lwt
 
+exception Cancelled
+
 module FD = struct
-  (* Low-level libev integration *)
-  type mask = int (* bitmask: x&1 = read, x&2 = write *)
-  type watcher (* abstract type created in bindings *)
-  type fd = int
-  external add : fd -> mask -> watcher = "caml_register_fd"
-  external remove : watcher -> unit = "caml_unregister_fd"
-  external callback : watcher -> (unit -> unit) -> unit = "caml_register_callback"
+  type t = int
 
-  let can_read (mask:mask) = mask land 1
-  let can_write (mask:mask) = mask land 2
+  let read_fds = ref []
+  let write_fds = ref []
+  let exn_fds = ref []
 
-  let read_mask = 1
-  let write_mask = 2
-  
+  let read_u : (int,unit Lwt.u) Hashtbl.t = Hashtbl.create 1
+  let write_u = Hashtbl.create 1
+
+  external select : t list -> t list -> t list -> float -> t list * t list * t list = "unix_select"
+
+  let add_fd l fd =
+    if not (List.mem fd !l) then
+      l := fd :: !l
+
+  let remove_fd l fd =
+    l := List.filter (fun fd' -> fd <> fd') !l
+
+  let wait timeout =
+     (* let fds x = String.concat "," (List.map string_of_int x) in
+     Printf.printf "wait %f [%s] [%s] [%s] = " timeout
+      (fds !read_fds) (fds !write_fds) (fds !exn_fds); *)
+    let rfds,wfds,efds = select !read_fds !write_fds !exn_fds timeout in
+    (* Printf.printf " [%s] [%s] [%s]\n" (fds rfds) (fds wfds) (fds efds); *)
+    let wakeup_fd h l fn fd =
+      try
+        let u = Hashtbl.find h fd in
+        Hashtbl.remove h fd;
+        remove_fd l fd;
+        remove_fd exn_fds fd;
+        fn u
+      with Not_found -> assert false
+    in
+    List.iter (wakeup_fd read_u read_fds (fun u -> Lwt.wakeup_later u ())) rfds;
+    List.iter (wakeup_fd write_u write_fds (fun u -> Lwt.wakeup_later u ())) wfds;
+    List.iter (fun efd ->
+      if Hashtbl.mem read_u efd then
+        wakeup_fd read_u read_fds (fun u -> Lwt.wakeup_later_exn u Cancelled) efd;
+      if Hashtbl.mem write_u efd then
+        wakeup_fd write_u write_fds (fun u -> Lwt.wakeup_later_exn u Cancelled) efd
+    ) efds       
+
+  let read fd = 
+    let th,u = Lwt.task () in
+    Hashtbl.add read_u fd u;
+    add_fd read_fds fd;
+    add_fd exn_fds fd;
+    th
+
+  let write fd =
+    let th,u = Lwt.task () in
+    Hashtbl.add write_u fd u;
+    add_fd write_fds fd;
+    add_fd exn_fds fd;
+    th
 end
 
-(* Register a read file descriptor and a thread that
-   returns when it is ready *)
-let read fd =
-  let fd = Socket.fd_to_int fd in
-  let th, u = Lwt.task () in
-  let watcher = FD.(add fd read_mask) in
-  Lwt.on_cancel th (fun _ -> FD.remove watcher);
-  FD.callback watcher (fun () -> FD.remove watcher; Lwt.wakeup u ());
-  th
-
-(* Register a write file descriptor and a thread that
-   returns when it is ready *)
-let write fd =
-  let fd = Socket.fd_to_int fd in
-  let th, u = Lwt.task () in
-  let watcher = FD.(add fd write_mask) in
-  Lwt.on_cancel th (fun _ -> FD.remove watcher);
-  FD.callback watcher (fun () -> FD.remove watcher; Lwt.wakeup u ());
-  th
+let read fd = FD.read (Socket.fd_to_int fd)
+let write fd = FD.write (Socket.fd_to_int fd)
+let wait timeout = FD.wait timeout

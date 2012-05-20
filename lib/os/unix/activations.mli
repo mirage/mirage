@@ -26,3 +26,5 @@ val read: 'a Socket.fd -> unit Lwt.t
     @param fd file descriptor 
     @return a thread that blocks until the [fd] is ready for writing *)
 val write: 'a Socket.fd -> unit Lwt.t
+
+val wait : float -> unit

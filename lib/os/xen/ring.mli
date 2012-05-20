@@ -29,6 +29,13 @@ type sring
   *)
 val init : domid:int -> order:int -> idx_size:int -> name:string -> (Gnttab.r list * sring) Lwt.t
 
+val init_back :
+  xg:Gnttab.handle ->
+  domid:int32 -> gref:int32 -> idx_size:int -> name:string -> sring
+val destroy_back :
+        xg:Gnttab.handle -> sring -> unit
+
+
 (** The front-end of the shared ring, which issues requests and reads
     responses from the remote domain. 
   *)

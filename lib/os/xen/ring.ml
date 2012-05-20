@@ -66,6 +66,21 @@ let init ~domid ~order ~idx_size ~name =
   Io_page.string_blit src buf;
   return (gnts,t)
 
+let init_back ~xg ~domid ~gref ~idx_size ~name =
+  let buf = Gnttab.map_grant_ref xg domid gref 3 in
+  let header_size = 4+4+4+4+(6*8) in (* header bits size of struct sring *)
+  (* Round down to the nearest power of 2, so we can mask indices easily *)
+  let round_down_to_nearest_2 x =
+    int_of_float (2. ** (floor ( (log (float x)) /. (log 2.)))) in
+  (* Free space in shared ring after header is accounted for *)
+  let free_bytes = 4096 - header_size in
+  let nr_ents = round_down_to_nearest_2 (free_bytes / idx_size) in
+  (* We store idx_size in bits, for easier Bitstring offset calculations *)
+  { name; buf; idx_size; nr_ents; header_size } 
+
+let destroy_back ~xg t =
+        Gnttab.unmap xg t.buf
+
 external sring_rsp_prod: sring -> int = "caml_sring_rsp_prod" "noalloc"
 external sring_req_prod: sring -> int = "caml_sring_req_prod" "noalloc"
 external sring_req_event: sring -> int = "caml_sring_req_event" "noalloc"

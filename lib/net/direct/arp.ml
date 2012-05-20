@@ -25,7 +25,7 @@ type entry =
   | Verified of ethernet_mac
 
 type t = {
-  get_etherbuf: unit -> (OS.Io_page.t * int) Lwt.t;
+  get_etherbuf: unit -> OS.Io_page.t Lwt.t;
   output: OS.Io_page.t -> unit Lwt.t;
   get_mac: unit -> ethernet_mac;
   cache: (ipv4_addr, entry) Hashtbl.t;
@@ -66,8 +66,8 @@ let prettyprint t =
 
 (* Input handler for an ARP packet, registered through attach() *)
 let rec input t frame =
-  match op_of_int (get_arp_op frame) with
-  |Some Op_request ->
+  match get_arp_op frame with
+  |1 -> (* Request *)
     (* Received ARP request, check if we can satisfy it from
        our own IPv4 list *)
     let req_ipv4 = ipv4_addr_of_uint32 (get_arp_tpa frame) in
@@ -80,8 +80,8 @@ let rec input t frame =
       let tpa = ipv4_addr_of_uint32 (get_arp_spa frame) in (* the requesting host IPv4 *)
       output t { op=`Reply; sha; tha; spa; tpa }
     end else return ()
-  |Some Op_reply ->
-    let spa = ipv4_addr_of_uint32 (get_arp_tpa frame) in
+  |2 -> (* Reply *)
+    let spa = ipv4_addr_of_uint32 (get_arp_spa frame) in
     let sha = ethernet_mac_of_bytes (copy_arp_sha frame) in
     printf "ARP: updating %s -> %s\n%!"
       (ipv4_addr_to_string spa) (ethernet_mac_to_string sha);
@@ -93,13 +93,13 @@ let rec input t frame =
     end;
     Hashtbl.replace t.cache spa (Verified sha);
     return ()
-  |None ->
-    printf "ARP: Unknown message ignored\n%!";
+  |n ->
+    printf "ARP: Unknown message %d ignored\n%!" n;
     return ()
 
 and output t arp =
   (* Obtain a buffer to write into *)
-  lwt buf,_ = t.get_etherbuf () in
+  lwt buf = t.get_etherbuf () in
   (* Write the ARP packet *)
   let dmac = ethernet_mac_to_bytes arp.tha in
   let smac = ethernet_mac_to_bytes arp.sha in
@@ -123,6 +123,8 @@ and output t arp =
   set_arp_spa buf spa;
   set_arp_tha dmac 0 buf;
   set_arp_tpa buf tpa;
+  (* Resize buffer to sizeof arp packet *)
+  let buf = Cstruct.sub buf 0 sizeof_arp in
   t.output buf
 
 (* Send a gratuitous ARP for our IP addresses *)

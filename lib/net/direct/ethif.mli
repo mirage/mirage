@@ -28,7 +28,14 @@ val add_ip : t -> Nettypes.ipv4_addr -> unit Lwt.t
 val remove_ip : t -> Nettypes.ipv4_addr -> unit Lwt.t
 val query_arp : t -> Nettypes.ipv4_addr -> Nettypes.ethernet_mac Lwt.t
 
+val get_etherbuf : t -> OS.Io_page.t Lwt.t
+
 val attach : t -> [< `IPv4 of OS.Io_page.t -> unit Lwt.t ] -> unit
 val detach : t -> [< `IPv4 ] -> unit
 val mac : t -> Nettypes.ethernet_mac
 val get_ethif : t -> OS.Netif.t
+
+val sizeof_ethernet : int
+val set_ethernet_dst : string -> int -> OS.Io_page.t -> unit
+val set_ethernet_src : string -> int -> OS.Io_page.t -> unit
+val set_ethernet_ethertype : OS.Io_page.t -> int -> unit

@@ -18,83 +18,120 @@ open Lwt
 open Printf
 open Nettypes
 
-type classify =
-  |Broadcast
-  |Gateway
-  |Local
-
-exception No_route_to_destination_address of ipv4_addr
+cstruct ipv4 {
+  uint8_t        hlen_version;
+  uint8_t        tos;
+  uint16_t       len;
+  uint16_t       id;
+  uint16_t       off;
+  uint8_t        ttl;
+  uint8_t        proto;
+  uint16_t       csum;
+  uint32_t       src; 
+  uint32_t       dst
+} as big_endian
 
 type t = {
   ethif: Ethif.t;
   mutable ip: ipv4_addr;
   mutable netmask: ipv4_addr;
   mutable gateways: ipv4_addr list;
-  mutable icmp: ipv4_addr -> Bitstring.t -> unit Lwt.t;
-  mutable udp: src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t;
-  mutable tcp: src:ipv4_addr -> dst:ipv4_addr -> Bitstring.t -> unit Lwt.t;
+  mutable icmp: ipv4_addr -> OS.Io_page.t -> OS.Io_page.t -> unit Lwt.t;
+  mutable udp: src:ipv4_addr -> dst:ipv4_addr -> OS.Io_page.t -> unit Lwt.t;
+  mutable tcp: src:ipv4_addr -> dst:ipv4_addr -> OS.Io_page.t -> unit Lwt.t;
 }
 
-(* XXX should optimise this! *)
-let is_local t ip =
-  let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
-  (ipand t.ip t.netmask) = (ipand ip t.netmask)
+module Routing = struct
 
-let destination_mac t = function
-  | ip when ip = ipv4_broadcast || ip = ipv4_blank -> (* Broadcast *)
+  type classify =
+    |Broadcast
+    |Gateway
+    |Local
+
+  exception No_route_to_destination_address of ipv4_addr
+
+  let is_local t ip =
+    let ipand a b = Int32.logand (ipv4_addr_to_uint32 a) (ipv4_addr_to_uint32 b) in
+    (ipand t.ip t.netmask) = (ipand ip t.netmask)
+
+  let destination_mac t = 
+    function
+    |ip when ip = ipv4_broadcast || ip = ipv4_blank -> (* Broadcast *)
       return ethernet_mac_broadcast
-  | ip when is_local t ip -> (* Local *)
+    |ip when is_local t ip -> (* Local *)
       Ethif.query_arp t.ethif ip
-  | ip -> begin (* Gateway *)
+    |ip -> begin (* Gateway *)
       match t.gateways with 
-      | hd :: _ -> Ethif.query_arp t.ethif hd
-      | [] -> 
-          printf "IP.output: no route to %s\n%!" (ipv4_addr_to_string ip);
-          fail (No_route_to_destination_address ip)
+      |hd::_ -> Ethif.query_arp t.ethif hd
+      |[] -> 
+        printf "IP.output: no route to %s\n%!" (ipv4_addr_to_string ip);
+        fail (No_route_to_destination_address ip)
     end
+end
 
-let output t ~proto ~dest_ip (pkt:Bitstring.t list) =
-  let ttl = 38 in (* TODO TTL *)
-  lwt dmac = destination_mac t dest_ip >|= ethernet_mac_to_bytes in
+(* Return a buffer, and offset within the buffer that the IPv4
+ * payload begins. The caller is responsible for creating a sub-view
+ * for the IPv4 payload to be filled in *)
+let get_writebuf ~proto ~dest_ip t =
+  lwt buf = Ethif.get_etherbuf t.ethif in
+  (* Something of a layer violation here, but ARP is awkward *)
+  lwt dmac = Routing.destination_mac t dest_ip >|= ethernet_mac_to_bytes in
   let smac = ethernet_mac_to_bytes (Ethif.mac t.ethif) in
-  let ihl = 0 + 5 in (* No IP options support yet *)
-  let tlen = (List.fold_left (fun a b -> 
-    Bitstring.bitstring_length b + a) 0 pkt) / 8 + (ihl * 4) in
-  let tos = 0 in
-  let ipid = Random.int 65535 in (* TODO support ipid *)
-  let flags = 0 in (* TODO expose DF/MF frag flags *)
-  let fragoff = 0 in
+  Ethif.set_ethernet_dst dmac 0 buf; 
+  Ethif.set_ethernet_src smac 0 buf;
+  Ethif.set_ethernet_ethertype buf 0x0800;
+  let ipv4_buf = Cstruct.shift buf Ethif.sizeof_ethernet in
+  (* Write the constant IPv4 header fields *)
+  set_ipv4_hlen_version ipv4_buf ((4 lsl 4) + (5)); (* TODO options *)
+  set_ipv4_tos ipv4_buf 0;
+  set_ipv4_off ipv4_buf 0; (* TODO fragmentation *)
+  set_ipv4_ttl ipv4_buf 38; (* TODO *)
   let proto = match proto with |`ICMP -> 1 |`TCP -> 6 |`UDP -> 17 in
-  let src = ipv4_addr_to_uint32 t.ip in
-  let dst = ipv4_addr_to_uint32 dest_ip in
-  let frame = BITSTRING {
-    dmac:48:string; smac:48:string; 0x0800:16;
-    4:4; 5:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
-    ttl:8; proto:8; 0:16; src:32; dst:32
-  } in
-  let framebuf, frameoff, framelen = frame in
-  let ipv4_header = (framebuf, (frameoff + (48+48+16)), (framelen - (48+48+16))) in
-  let checksum = Checksum.ones_complement ipv4_header in
-  let checksum_bs,_,_ = BITSTRING { checksum:16 } in
-  let checksum_offset = (48+48+16+4+4+8+16+16+3+13+8+8) / 8 in
-  framebuf.[checksum_offset] <- Char.chr (checksum lsr 8);
-  framebuf.[checksum_offset+1] <- Char.chr (checksum land 255);
-  Ethif.output t.ethif (frame :: pkt)
+  set_ipv4_proto ipv4_buf proto;
+  set_ipv4_src ipv4_buf (ipv4_addr_to_uint32 t.ip);
+  set_ipv4_dst ipv4_buf (ipv4_addr_to_uint32 dest_ip);
+  let payload = Cstruct.shift ipv4_buf sizeof_ipv4 in
+  return payload
 
-let input t pkt =
-  bitmatch pkt with
-  |{4:4; ihl:4; tos:8; tlen:16; ipid:16; flags:3; fragoff:13;
-    ttl:8; proto:8; checksum:16; src:32:bind(ipv4_addr_of_uint32 src); dst:32:bind(ipv4_addr_of_uint32 dst);
-    _ (* options *):(ihl-5)*32:bitstring; data:-1:bitstring } ->
-      begin match proto with
-      |1 -> (* ICMP *) t.icmp src data
-      |6 -> (* TCP *) t.tcp ~src ~dst data
-      |17 -> (* UDP *) t.udp ~src ~dst data
-      |_ -> return (printf "IPv4: dropping proto %d\n%!" proto)
-      end
-  |{_} -> return (printf "IPv4: not an IP packet, discarding\n%!")
+(* This buffer will be the full frame of headers, as passed by
+ * get_writebuf, but truncated from the right to indicate the end
+ * of the packet data.
+ *)
+let output t buf =
+  (* At this point, buf points to the ipv4 payload *)
+  let ihl = 5 in (* TODO options *)
+  let tlen = (ihl * 4) + (Cstruct.len buf) in
+  (* Shift the packet to expose the ipv4 header *)
+  let _ = Cstruct.shift_left buf sizeof_ipv4 in
+  (* Set the mutable values in the ipv4 header *)
+  set_ipv4_len buf tlen;
+  set_ipv4_id buf (Random.int 65535); (* TODO *)
+  set_ipv4_csum buf 0;
+  let checksum = Checksum.ones_complement buf sizeof_ipv4 in
+  set_ipv4_csum buf checksum;
+  (* Final shift to expose the Ethernet headers *)
+  let _ = Cstruct.shift_left buf Ethif.sizeof_ethernet in
+  Ethif.output t.ethif buf
 
-let default_icmp = fun _ _ -> return ()
+let input t buf =
+  (* buf pointers to to start of IPv4 header here *)
+  let ihl = (get_ipv4_hlen_version buf land 0xf) * 4 in
+  let src = ipv4_addr_of_uint32 (get_ipv4_src buf) in
+  let dst = ipv4_addr_of_uint32 (get_ipv4_dst buf) in
+  let payload_len = get_ipv4_len buf - ihl in
+  (* XXX this will raise exception for 0-length payload *)
+  let hdr = Cstruct.sub buf 0 ihl in
+  let data = Cstruct.sub buf ihl payload_len in
+  match get_ipv4_proto buf with
+  |1 -> (* ICMP *)
+    t.icmp src hdr data
+  |6 -> (* TCP *)
+    t.tcp ~src ~dst data
+  |17 -> (* UDP *)
+    t.udp ~src ~dst data
+  |proto -> return (printf "IPv4: dropping proto %d\n%!" proto)
+
+let default_icmp = fun _ _ _ -> return ()
 let default_udp = fun ~src ~dst _ -> return ()
 let default_tcp = fun ~src ~dst _ -> return ()
  

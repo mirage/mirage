@@ -49,9 +49,10 @@ let input t frame =
 let rec listen t =
   OS.Netif.listen t.ethif (input t)
 
+(* Return an Ethernet buffer. The caller is responsible for creating a
+ * sub-view of the payload. *)
 let get_etherbuf t =
-  lwt buf = OS.Netif.get_writebuf t in
-  return (buf, sizeof_ethernet)
+  OS.Netif.get_writebuf t.ethif
 
 let output t buf =
   OS.Netif.output t.ethif buf
@@ -61,7 +62,7 @@ let create ethif =
   let mac = ethernet_mac_of_bytes (OS.Netif.mac ethif) in
   let arp =
     let get_mac () = mac in
-    let get_etherbuf () = get_etherbuf ethif in
+    let get_etherbuf () = OS.Netif.get_writebuf ethif in
     let output buf = OS.Netif.output ethif buf in
     Arp.create ~output ~get_mac ~get_etherbuf in
   let t = { ethif; ipv4; mac; arp } in

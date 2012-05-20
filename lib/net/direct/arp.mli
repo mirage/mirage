@@ -28,5 +28,5 @@ val remove_ip: t -> ipv4_addr -> unit Lwt.t
 val input: t -> OS.Io_page.t -> unit Lwt.t
 val query: t -> ipv4_addr -> ethernet_mac Lwt.t
 
-val create: get_etherbuf:(unit -> (OS.Io_page.t * int) Lwt.t) -> 
+val create: get_etherbuf:(unit -> OS.Io_page.t Lwt.t) -> 
   output:(OS.Io_page.t -> unit Lwt.t) -> get_mac:(unit -> ethernet_mac) -> t

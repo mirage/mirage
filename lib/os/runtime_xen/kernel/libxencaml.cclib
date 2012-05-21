@@ -8,3 +8,4 @@ xencons_ring.o
 clock_stubs.o
 gnttab_stubs.o
 checksum_stubs.o
+sched_stubs.o

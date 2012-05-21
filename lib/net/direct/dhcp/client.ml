@@ -42,70 +42,75 @@ type t = {
   new_offer: offer -> unit Lwt.t;
 }
 
-(*  DHCP MPL packet format:
-    op: byte variant { |1 -> BootRequest |2-> BootReply };
-    htype: byte const(1);
-    hlen: byte const(6);
-    hops: byte default(0);
-    xid: uint32;
-    secs: uint16;
-    broadcast: bit[1];
-    reserved: bit[15] const(0);
-    ciaddr: uint32;
-    yiaddr: uint32;
-    siaddr: uint32;
-    giaddr: uint32;
-    chaddr: byte[16];
-    sname: byte[64];
-    file: byte[128];
-    cookie: uint32 const(0x63825363);
-    options: byte[remaining()];
-*)
+cstruct dhcp {
+  uint8_t op;
+  uint8_t htype;
+  uint8_t hlen;
+  uint8_t hops;
+  uint32_t xid;
+  uint16_t secs;
+  uint16_t flags;
+  uint32_t ciaddr;
+  uint32_t yiaddr;
+  uint32_t siaddr;
+  uint32_t giaddr;
+  uint8_t chaddr[16];
+  uint8_t sname[64];
+  uint8_t file[128];
+  uint32_t cookie
+} as big_endian
+
+cenum mode {
+  BootRequest = 1;
+  BootReply
+} as uint8_t
 
 (* Send a client broadcast packet *)
 let output_broadcast t ~xid ~yiaddr ~siaddr ~options =
-  let secs = 10 in
-  (* We pad the MAC address to 16 bytes in the bitstring below *)
-  let chaddr = ethernet_mac_to_bytes (Ipv4.mac t.ip) in
-  let siaddr = ipv4_addr_to_uint32 siaddr in
-  let yiaddr = ipv4_addr_to_uint32 yiaddr in
-  let giaddr = 0l in
-  let ciaddr = 0l in
-  let sname = String.make 64 '\000' in
-  let file = String.make 128 '\000' in
-  let pad = String.make 10 '\000' in
+  lwt buf = Udp.get_writebuf ~dest_ip:ipv4_broadcast ~source_port:68 ~dest_port:67 t.udp in
+  set_dhcp_op buf (mode_to_int BootRequest);
+  set_dhcp_htype buf 1;
+  set_dhcp_hlen buf 6;
+  set_dhcp_hops buf 0;
+  set_dhcp_xid buf xid;
+  set_dhcp_secs buf 10; (* TODO dynamic timer *)
+  set_dhcp_flags buf 0;
+  set_dhcp_ciaddr buf 0l;
+  set_dhcp_yiaddr buf (ipv4_addr_to_uint32 yiaddr); 
+  set_dhcp_siaddr buf (ipv4_addr_to_uint32 siaddr);
+  set_dhcp_giaddr buf 0l;
+  (* TODO add a pad/fill function in cstruct *)
+  set_dhcp_chaddr (ethernet_mac_to_bytes (Ipv4.mac t.ip) ^ (String.make 10 '\000')) 0 buf;
+  set_dhcp_sname (String.make 64 '\000') 0 buf;
+  set_dhcp_file (String.make 128 '\000') 0 buf;
+  set_dhcp_cookie buf 0x63825363l;
   let options = Option.Packet.to_bytes options in
-  let pkt = BITSTRING {
-    1:8; 1:8; 6:8; 0:8; xid:32; secs:16; false:1; 0:15; 
-    ciaddr:32; yiaddr:32; siaddr:32; giaddr:32; chaddr:48:string; pad:80:string;
-    sname:512:string; file:1024:string; 0x63825363l:32; options:-1:string
-  } in
+  let options_len = String.length options in
+  Cstruct.set_buffer options 0 buf sizeof_dhcp options_len;
+  let buf = Cstruct.sub buf 0 (sizeof_dhcp+options_len) in
   Printf.printf "Sending DHCP broadcast\n%!";
-  Udp.output t.udp ~dest_ip:ipv4_broadcast ~source_port:68 ~dest_port:67 pkt
+  Udp.output t.udp buf
 
 (* Receive a DHCP UDP packet *)
-let input t ~src ~dst ~source_port pkt =
-  bitmatch pkt with
-  | { op:8; 1:8; 6:8; 0:8; xid:32; secs:16; broadcast:1; 0:15;
-      ciaddr:32:bind(ipv4_addr_of_uint32 ciaddr);
-      yiaddr:32:bind(ipv4_addr_of_uint32 yiaddr);
-      siaddr:32:bind(ipv4_addr_of_uint32 siaddr);
-      giaddr:32:bind(ipv4_addr_of_uint32 giaddr);
-      chaddr:48:bitstring; _:80:bitstring; (* pad *)
-      sname:512:bitstring; file:1024:bitstring; 0x63825363l:32; options:-1:string } ->
-    let packet = Option.Packet.of_bytes options in
-    (* For debugging, print out the DHCP response *)
-    Printf.printf "DHCP: input ciaddr %s yiaddr %s siaddr %s giaddr %s chaddr %s sname %s file %s\n"
-      (ipv4_addr_to_string ciaddr) (ipv4_addr_to_string yiaddr)
-      (ipv4_addr_to_string siaddr) (ipv4_addr_to_string giaddr)
-      (Bitstring.string_of_bitstring chaddr) (Bitstring.string_of_bitstring sname)
-      (Bitstring.string_of_bitstring file);
-    (* See what state our Netif is in and if this packet is useful *)
-    Option.Packet.(match t.state with
+let input t ~src ~dst ~source_port buf =
+  let ciaddr = ipv4_addr_of_uint32 (get_dhcp_ciaddr buf) in
+  let yiaddr = ipv4_addr_of_uint32 (get_dhcp_yiaddr buf) in
+  let siaddr = ipv4_addr_of_uint32 (get_dhcp_siaddr buf) in
+  let giaddr = ipv4_addr_of_uint32 (get_dhcp_giaddr buf) in
+  let xid = get_dhcp_xid buf in
+  let options = Cstruct.(copy_buffer buf sizeof_dhcp (len buf - sizeof_dhcp)) in
+  let packet = Option.Packet.of_bytes options in
+  (* For debugging, print out the DHCP response *)
+  Printf.printf "DHCP: input ciaddr %s yiaddr %s siaddr %s giaddr %s chaddr %s sname %s file %s\n"
+    (ipv4_addr_to_string ciaddr) (ipv4_addr_to_string yiaddr)
+    (ipv4_addr_to_string siaddr) (ipv4_addr_to_string giaddr)
+    (copy_dhcp_chaddr buf) (copy_dhcp_sname buf) (copy_dhcp_file buf);
+  (* See what state our Netif is in and if this packet is useful *)
+  Option.Packet.(match t.state with
     | Request_sent xid -> begin
-        (* we are expecting an offer *)
-        match packet.op, xid with 
-        |`Offer, offer_xid when offer_xid=xid ->  begin
+      (* we are expecting an offer *)
+      match packet.op, xid with 
+      |`Offer, offer_xid when offer_xid=xid ->  begin
             printf "DHCP: offer received: %s\n%!" (ipv4_addr_to_string yiaddr);
             let netmask = find packet
               (function `Subnet_mask addr -> Some addr |_ -> None) in

@@ -159,11 +159,19 @@ let t_to_string (t:t) =
 
 let ipv4_addr_to_bytes x =
   let x = ipv4_addr_to_uint32 x in
-  Bitstring.string_of_bitstring (BITSTRING { x:32 })
-
+  let open Int32 in
+  let r = String.create 4 in
+  r.[0] <- Char.chr (to_int (logand x 0xf_l));
+  r.[1] <- Char.chr (to_int (logand (shift_right_logical x 8) 0xf_l));
+  r.[2] <- Char.chr (to_int (logand (shift_right_logical x 16) 0xf_l));
+  r.[3] <- Char.chr (to_int (logand (shift_right_logical x 24) 0xf_l));
+  r
+  
 let ipv4_addr_of_bytes x =
-  bitmatch (Bitstring.bitstring_of_string x) with
-  | { v:32 } -> ipv4_addr_of_uint32 v
+  let open Int32 in
+  let b n = of_int (Char.code (x.[n])) in
+  let r = add (add (add (shift_left (b 0) 24) (shift_left (b 1) 16)) (shift_left (b 2) 8)) (b 3) in
+  ipv4_addr_of_uint32 r
 
 module Marshal = struct
   let t_to_code (x:msg) =

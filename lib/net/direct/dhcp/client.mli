@@ -15,11 +15,13 @@
  *
  *)
 
+open Nettypes
+
 type offer = {
-  ip_addr : Nettypes.ipv4_addr;
-  netmask : Nettypes.ipv4_addr option;
-  gateways : Nettypes.ipv4_addr list;
-  dns : Nettypes.ipv4_addr list;
+  ip_addr : ipv4_addr;
+  netmask : ipv4_addr option;
+  gateways : ipv4_addr list;
+  dns : ipv4_addr list;
   lease : int32;
   xid : int32;
 }
@@ -33,5 +35,5 @@ type state =
 
 type t
 
-val input : t -> src:'a -> dst:'b -> source_port:'c -> Bitstring.t -> unit Lwt.t
+val input : t -> src:ipv4_addr -> dst:ipv4_addr -> source_port:int -> OS.Io_page.t -> unit Lwt.t
 val create : Ipv4.t -> Udp.t -> (t * unit Lwt.t) Lwt.t

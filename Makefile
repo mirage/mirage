@@ -1,5 +1,9 @@
 OS ?= unix
 
+ifneq "$(MIRAGE_OS)" ""
+OS := $(MIRAGE_OS)
+endif
+
 .PHONY: all clean install test
 .DEFAULT: all
 

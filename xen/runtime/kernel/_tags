@@ -1,0 +1,2 @@
+true: mirage
+<*.c> or <*.S>: include_xen

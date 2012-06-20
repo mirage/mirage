@@ -1,0 +1,40 @@
+The malloc code was done by Olaf Dreesen, who also helped with the SPARC
+start code and fork().  Olaf also did the printf and scanf routines and
+he implemented pthreads (wow!) and his now writing a dynamic linker, and
+he ported the diet libc to S/390.
+
+Thomas Ogrisegg ported the diet libc to PA-RISC and IA64 and fixed a few things.
+
+I initially took some syscalls from Redhat minilibc, but the code has
+been completely replaced now.
+
+I initially took localtime and the directory reading routines from
+uClibc, but the code has been completely replaced now.
+
+syslog and crypt were contributed by René Müller.
+
+Jeff Garzik contributed {get,set}{pw,gr,sp}ent.
+
+Uwe Ohse went through the code and fixed many bugs.
+
+Frank Klemm contributed the math library and a lot of correctness and
+smallness patches and rewrote many functions in ix86 assembly language.
+
+Erik Troan found several important bugs and sent in patches to fix them.
+
+I also grabbed code from glibc (mostly assembly routines), and looked at
+the OpenBSD libc for inspiration.
+
+Michal Ludvig did the porting to x86_64 and Gwenole Beauchesne helped
+finish the port.  Gwenole also reported many bugs and helped with some
+of the more obscure platforms.
+
+Johannes Stezenbach improved the MIPS port.
+
+Marian Jancar added s390x and ppc64 support.
+
+Gerrit Pape maintains the Debian port and helped immensely by relaying
+bug reports and doing testing on platforms I didn't have access to.
+
+Manuel Novoa III reported many bugs although he really works for the
+competition, uClibc ;-)

@@ -1,0 +1,5 @@
+version = "@VERSION@"
+description = "Mirage Xen platform"
+archive(byte) = "bigarray.cma cstruct.cma oS.cma"
+archive(native) = "bigarray.cmxa cstruct.cmxa oS.cmxa"
+requires = "cstruct.syntax lwt lwt.syntax"

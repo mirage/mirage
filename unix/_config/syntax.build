@@ -1,0 +1,5 @@
+-I /home/avsm/.opam/foo/lib/ocaml/camlp4 
+-I /home/avsm/.opam/foo/lib/ocaml/camlp4 -parser Camlp4QuotationCommon -parser Camlp4OCamlOriginalQuotationExpander
+-I /home/avsm/.opam/foo/lib/ocaml 
+-I /home/avsm/.opam/foo/lib/ocaml/camlp4 
+-I /home/avsm/.opam/foo/lib/ocaml/camlp4 -parser Camlp4GrammarParser

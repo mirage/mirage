@@ -1,0 +1,13 @@
+The diet libc was written with small code and embedded devices in mind,
+not with security for network servers.
+
+Of course we still try to avoid buffer overflows, but there are some
+parts of the code where tradeoffs have been made.  This file is meant to
+document them.
+
+  1. The DNS routines do not check whether the answer came from the IP
+     of the DNS server.  The rationale is that people who can sniff the
+     network to find out the query, source port and DNS sequence number
+     can also spoof DNS packets to appear to come from the server we
+     asked, so it does not actually increase security to have that
+     check.

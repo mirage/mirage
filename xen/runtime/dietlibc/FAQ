@@ -1,0 +1,344 @@
+diet libc FAQ.
+
+
+Q: How do I compile this?  I don't see a configure?
+A: Just type make.
+
+
+Q: How do I install it?  make install?
+A: Yep.  It will then install itself to /opt/diet, with the wrapper in
+   /opt/diet/bin/diet.  Or you don't install it at all.
+   The diet libc comes with a wrapper called "diet", which can be found
+   in bin-$(ARCH)/diet, i.e.  bin-i386/diet for most of us.  Copy this
+   wrapper somewhere in your path (for example ~/bin) and then just
+   compile stuff by prepending diet to the command line, e.g. "diet gcc
+   -pipe -g -o t t.c".
+
+
+Q: How do I compile programs using autoconf with the diet libc?
+A: Set CC in the environment properly.  For Bourne Shells:
+
+     $ CC="diet gcc -nostdinc" ./configure --disable-nls
+
+   That should be enough, but you might also want to set
+   --disable-shared and --enable-static for packages using libtool.
+
+
+Q: My program complains about missing asm/* or linux/* header files!
+A: It is quite linux specific.  You can try omitting the -nostdinc, but
+   except for some cases conflicts are likely.  You should not be using
+   the kernel headers in your software.
+
+
+Q: Do you have cross compiling support?
+A: Yes.  Just type something like "make ARCH=arm CROSS=arm-linux- all".
+   For arm, alpha, mips, ppc, sparc and i386, shortcuts exist.  You can
+   also use "make arm", for example.  You still use the same "diet"
+   program as for normal compilation, but you can then say
+
+     $ diet sparc-linux-gcc -pipe -g -o t t.c
+
+   Programs using autoconf can be configured like this:
+
+     $ CC="diet sparc-linux-gcc" ./configure --disable-nls
+
+
+Q: There are a few warnings about possibly uninitialized variables when
+   compiling the diet libc.  Can't you remove them?
+A: This type of warning can only be removed by a) compiling without
+   warnings or b) initializing the variables in question.  In all cases,
+   the variables won't actually be used uninitialized, but adding an
+   explicit initializer will add a few bytes of code.  As you know, the
+   goal of the diet libc is to not waste a single byte of code, so we
+   don't add initializers ;-)
+
+
+Q: When linking binaries, I get warnings about stdio and printf all the
+   time.  What gives?
+A: Since the diet libc was written to make writing small programs
+   possible, it also tries to assist in the process of seeing causes of
+   bloat.  Premier causes for bloat are stdio and the printf family of
+   functions.  The diet libc will also warn you if you still use
+   assert() (which is normally not enabled in production code) or if you
+   use functions that use static buffers (like gethostbyname and
+   friends).
+
+
+Q: My program stopped parsing command line arguments properly!  Now what?
+A: The getopt in the diet libc adheres to the Single Unix Specification.
+   In particular, it initialized optind to 1 (not 0) and breaks if
+   someone sets optint to 0 (as some misguided legacy programs to).
+   Also, it does not reorder arguments, i.e. something like "rm -f foo -v"
+   will not see -v as option but rather as non-option argument.  If you
+   need GNU getopt behaviour, please use GNU getopt instead of the diet
+   libc code.
+
+
+Q: I get linker errors about missing __ctype_b!
+A: This happens when you link in code that was compiled with the glibc
+   headers.  The most common culprit is a library like -lncurses,
+   -lcrypto or -lresolv.  All external libraries you use have to be
+   compiled with the diet libc headers (CC="diet gcc"), and there is no
+   libresolv with the diet libc, it's in the main libc!
+
+
+Q: My program links, but when I run it, I get no output at all and it
+   appears to terminate immediately.
+A: This normally happens if you link in glibc.  The major reason for
+   this was that shared libraries were linked in.  diet sets -static
+   since version 0.13, so if it still happens to you, you need to strace
+   and debug your software.
+
+
+Q: Why aren't you compatible to glibc?  I thought the interface was a
+   standard?
+A: Yes, the interface is, but a lot of details are missing.  For
+   example, the diet libc uses a different "struct stat" layout than
+   glibc.  We use the one from the kernel, glibc uses an own one and
+   links in translation code.  This is part of the reason why glibc is
+   so big and ugly.  If we support all of this, we end up as bloated as
+   glibc.
+
+
+Q: Where is the test suite?
+A: The humble beginnings are in the "test" directory, but it can't be
+   run automatically yet.
+
+
+Q: GPL sucks!  Now I can't compile my BSD programs with the diet libc!
+A: Wrong.  You can compile them, and you can use them.  You just can't
+   redistribute the binaries.  If you are a distribution vendor and want
+   to use the diet libc to make BSD licensed binaries for the install
+   or rescue floppy which you sell commercially, please talk to me.
+
+
+Q: Where are the shared libaries?  make install didn't install them!
+A: You have to explicitly build them with "make dyn".  Since they are
+   experimental and only supported on a small subset of the platforms,
+   that is not default.  Also, I recommend you only use shared libraries
+   if you really know what you are doing.  For example, you can't just
+   use your system shared libraries, because they have a dependency on
+   glibc in them, so the program will crash.  And you have to explicitly
+   compile the code with -fPIC or -fpic.  You can then use them by
+   substituting "diet-dyn" for "diet" on the command line.
+
+
+Q: My target platform does not have a MMU.  Should I be using uClibc?
+A: I am not aware of any issues with MMU-less systems.  You should be
+   able to use the diet libc just fine.  Having a MMU or not is mostly
+   an issue for the kernel, not libc.
+
+
+Q: How do I make myself a cross compiler?
+A: untar binutils and gcc (I used version 2.11.2 and 3.0.4 respectively)
+   Then use the --target=arm-linux (or whatever platform you want)
+   configure options.  For gcc, add --enable-languages=c (otherwise gcc
+   will try to make C++, Objective C and Java, too, and those
+   compilations will fail because they require installed libc headers
+   which you don't have yet).  I recommend using --enable-static
+   --disable-shared, too, because otherwise the binutils shared
+   libraries will overwrite each other if you install more than one
+   cross binutils for different targets.
+   binutils$ ./configure --enable-static --disable-shared --prefix=/opt/cross --target=arm-linux
+   gcc$ ./configure --enable-static --disable-shared --prefix=/opt/cross --target=arm-linux --enable-languages=c
+   For some platforms, gcc compilation will fail while trying to compile
+   some part of libgcc.a because it depends on some libc header file.
+   This is a gcc bug and you should complain using gccbug, because you
+   can't cross-compile libc unless you successfully installed the cross
+   compiler.
+
+
+Q: Where are the xdr_* symbols?
+Q: Where are the RPC symbols?
+Q: util-linux says that rpcgen output does not work?!
+A: Add -lrpc.  The code is from Sun and frankly it is so ugly and so
+   rarely used that I don't want to include it in libc.
+
+
+Q: I am missing some BSD/GNU extension!
+A: I started adding a few of them to libcompat.  You have to link it in
+   manually, though, as using them is bad for portability and I want
+   people to make a conscious effort to write non-portable applications
+   by not including them in the libc itself.
+
+
+Q: I'm just starting with the diet libc.  Should I use the tarball or
+   the CVS version?
+A: Always use the CVS version.  We generally don't add unstable test
+   stuff on the CVS tree, and our APIs are stable (they are
+   standardized, remember?).  In fact, we don't add much stuff at all.
+   Most changes are bug fixes and optimizations, and in general you'll
+   want those.
+
+
+Q: Does the diet libc support profiling (with gprof)?
+A: There is experimental support for profiling, but so far it only works
+   on x86.  To use it, do "make profiling" before make install.  Then,
+   diet will link in the support code if it finds a -pg on the gcc
+   command line.
+
+
+Q: I get compiler errors in a line with caddr_t, u_long, n_short or
+   nlong or similar.
+A: Add -D_BSD_SOURCE to the compiler command line.  The diet libc tries
+   to encourage portable and standards compliant programming, so it
+   hides these legacy BSD types from the standard name space.  The
+   reason is that the Single Unix Specification contains a specification
+   of the socket API but does not mention those types.
+
+
+Q: I get compiler errors in a line with u_int8_t or similar.
+A: Add -D_GNU_SOURCE to the compiler command line.  See previous
+   question.  This is a very questionable GNU extension.  The C Standard
+   defines uint8_t, uint16_t and uint32_t.  Use those instead.
+
+
+Q: Can I compile or use the diet libc with a compiler that is not gcc?
+A: Compile: no.  Use: yes.
+
+
+Q: Can you please port the diet libc to FreeBSD/Solaris/Windows?
+A: No.
+
+
+Q: Why do you support non-embedded platforms like IA64 and x86_64?
+A: The diet libc is also useful for servers because it can improve
+   performance by an order of magnitude for certain programming models.
+   Please see http://www.fefe.de/fnord/ (in particular .../fnord/SPEED)
+   for an example and/or read http://www.fefe.de/talk.pdf for some
+   benchmarks.
+
+
+Q: I just compiled hello world and the binary is larger than with glibc!
+A: You forgot to add the dynamic glibc to your size comparison.  Please
+   use -static when linking with glibc to see the difference.
+
+
+Q: Should I compile my kernel with the diet libc?
+A: The kernel is not linked against any libc.  In fact, the libc is the
+   user space interface to the kernel.  So unless you are talking about
+   "user mode linux" (which is a special version of the kernel that
+   happens to be a user space program) you cannot link the kernel
+   against the diet libc.  Linking user space Linux with the diet libc
+   should be possible in theory but I don't think anyone has actually
+   tried it.
+
+
+Q: I get errors when cross compiling the diet libc with the Hard Hat
+   compiler chain.
+A: Their compiler and/or binutils is broken.  Compile your own.  At the
+   time of this writing, I am successfully using gcc 3.1.1 and binutils
+   2.12.1 to compile the diet libc 0.22.
+
+
+Q: I can't link this software; it uses functions like ftok and cuserid.
+A: Some obsolete and/or questionable functions have been put into
+   libcompat.a to quarantine them away.  If your software uses these
+   functions, it is broken.  Please go through the code and replace
+   these functions with their POSIX counterparts or get rid of it
+   altogether.
+
+
+Q: Compiling software with "diet -Os gcc..." gives error messages about
+   -malign-loops, -malign-jumps and -malign-functions being obsolete.
+A: UPDATE: the defaults have been changed as of 2005-04-23.
+   diet -Os uses some platform dependant gcc options to create tighter
+   code.  Unfortunately, these options have been renamed on gcc 3.  You
+   can fix this by creating a file ~/.diet/gcc containing this line:
+
+     -Os -fomit-frame-pointer -falign-jumps=1 -falign-loops=1 -mpreferred-stack-boundary=2
+
+   If you get this options not for diet -Os gcc but for diet -Os
+   i386-linux-gcc, put this in ~/.diet/i386-linux-gcc instead.
+
+
+Q: Compiling software with "diet -Os gcc..." gives error messages about
+   -falign-loops, -falign-jumps and -falign-functions.
+A: See previous entry for an explanation.  You are using gcc 2; please
+   upgrade to gcc 3 or 4.  As a workaround, put
+
+     -Os -fomit-frame-pointer -malign-jumps=1 -malign-loops=1 -mpreferred-stack-boundary=2
+
+   into ~/.diet/gcc.
+
+
+Q: I see lots of uninitialized variables, like "static int foo;".  What gives?
+A: "static" global variables are initialized to 0.  ANSI C guarantees that.
+   Technically speaking, static variables go into the .bss ELF segment,
+   while "static int foo=0" goes into .data.  Because .bss is zero
+   filled by the OS, it does not need to be in the actual binary.  So it
+   is in fact better to not initialize static variables if the desired
+   initialization value is 0 anyway.  The same is true for pointers, by
+   the way.  On all platforms supported by the diet libc, numeric zero
+   is also the pointer value for NULL.  So not initializing a static
+   pointer yields NULL.
+
+
+Q: My diet libc programs all segfault in User Mode Linux 2.6!
+A: This is a shortcoming of User Mode Linux.
+   Edit dietfeatures.h, remove the WANT_SYSENTER #define, and then
+   recompile the diet libc and your program.  Oh, and bug the user mode
+   linux people about this, it's their fault! ;)
+
+
+Q: dietlibc.a does not look so small to me!  It's almost 600k!
+A: Use size(1) to find the real size, like this:
+
+   $ ls -l bin-i386/dietlibc.a
+   -rw-r--r--    1 leitner  users      597204 Nov 30 16:36 bin-i386/dietlibc.a
+   $ size --totals bin-i386/dietlibc.a
+      text    data     bss     dec     hex filename
+        62       4       0      66      42 unified.o (ex bin-i386/dietlibc.a)
+   [...]
+       100       0       0     100      64 stackgap.o (ex bin-i386/dietlibc.a)
+     73908    1163    9298   84369   14991 (TOTALS)
+
+   "text" is the code in the library, "data" is the variables, "bss" are
+   the constants (string constants, mostly).  So there are really only
+   70k code in the whole library, and you will probably only use a small
+   part of it in your code.
+
+
+Q: I get an error message at link time, that "main" can not be found.
+A: Disable WANT_STACKGAP in dietfeatures.h or try upgrading your binutils.
+
+
+Q: I want to have a gcc that uses the diet libc by default.
+A: You will have to edit the "specs" file from gcc then.  John K. Hohm
+   sent these lines to use gcc with the dynamic diet libc (make dyn and
+   make sure you have WANT_DYNAMIC in dietfeatures.h):
+
+   *endfile:
+   %{shared:dyn_dstop.o%s}%{!shared:%{static:dyn_stop.o%s}%{!static:dyn_dstop.o%s}}
+
+   *startfile:
+   %{shared:dyn_so_start.o%s}%{!shared:%{static:start.o%s dyn_start.o%s}%{!static:dstart.o%s dyn_dstart.o%s}}
+
+
+Q: Dynamically linked binaries don't work on Fedora 6!
+A: Fedora 6 ships with binutils that can create non-standard ELF
+   binaries, and they hacked their gcc to generate them by default.  You
+   can see whether your gcc also does this with
+
+     gcc -dumpspecs|grep "hash-style=gnu"
+
+   and you can see if a shared library was build with this flag with
+
+     readelf -S libname.so|grep GNU_HASH
+
+   You can override this behavior like this:
+
+     diet-dyn gcc -Wl,--hash-style=sysv -shared -o libx.so x.c
+                  ^^^^^^^^^^^^^^^^^^^^^
+
+
+Q: How do I compile OpenSSL with dietlibc?
+A: Here's how I do it:
+
+  ./config --prefix=/opt/diet no-dso
+  make libssl.pc openssl.pc
+  for i in libssl.pc openssl.pc Makefile; do (echo ",s/ *-ldl//g"; echo w) | ed $i; done
+  make CC="diet -Os gcc -pipe -nostdinc"
+
+Then the libraries go to /opt/diet/lib, so you still need a symlink to
+lib-i386 or whatever your architecture is.

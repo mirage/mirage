@@ -1,0 +1,33 @@
+#ifndef __DIETLIBC_CSTDLIB_INCLUDED
+#define __DIETLIBC_CSTDLIB_INCLUDED
+
+#include <stdlib.h>
+
+namespace std {
+    using ::div_t;
+
+    using ::abort;
+    using ::abs;
+    using ::atexit;
+    using ::atof;
+    using ::atoi;
+    using ::atol;
+    using ::bsearch;
+    using ::calloc;
+    using ::div;
+    using ::exit;
+    using ::free;
+    using ::getenv;
+    using ::labs;
+    using ::malloc;
+    using ::qsort;
+    using ::rand;
+    using ::realloc;
+    using ::srand;
+    using ::strtod;
+    using ::strtol;
+    using ::strtoul;
+    using ::system;
+}
+
+#endif

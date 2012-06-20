@@ -1,0 +1,3 @@
+<**/*.S>: ocaml_asmrun
+<**/*.bc.*>: ocaml_byterun
+<**/*.nc.*>: ocaml_asmrun

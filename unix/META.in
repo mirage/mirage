@@ -1,0 +1,5 @@
+version = "@VERSION@"
+description = "Mirage UNIX platform"
+archive(byte) = "oS.cma"
+archive(native) = "oS.cmxa"
+requires = "cstruct cstruct.syntax lwt lwt.syntax"

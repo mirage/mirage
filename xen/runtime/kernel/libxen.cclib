@@ -1,0 +1,14 @@
+stack_chk_fail.o
+xmalloc.o
+sys.o
+x86_mm.o
+x86_setup.o
+x86_time.o
+x86_traps.o
+console.o
+xencons_ring.o
+events.o
+hypervisor.o
+kernel.o
+main.o
+mm.o

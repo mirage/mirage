@@ -1,0 +1,37 @@
+ - "locale"
+ - real regerror
+ - improve code size and quality with __restrict__.
+ - FPU exception handling (for mawk)
+ - res_mkquery should not assume op is QUERY
+ - syslog
+ - gethost/netent -> parselib?
+ - Look at qsort (the make test suite exhibits the worst case)
+ - Make __dtostr do scientific notation.
+ - fix %g in printf.  They are more or less completely b0rken (in
+   particular rounding the last digit does not work).
+ - qmail-queue dumps core since we added vfork.  Editing fork.h to #define
+   vfork to fork works.  What happens here?
+ - use TCP if buf[2]&2 is non-zero in DNS answers.
+ - look at mktime: "Falls tm_isdst == -1 gesetzt, so sollte mktime
+   versuchen herauszufinden, ob Sommerzeit eingestellt ist (und laut linux
+   manpage auch tzname setzen), ansonsten die angegebene DST
+   berücksichtigen."
+ - better rand()?
+ - try to make zebra compile.
+ - printf %e
+ - move DNS stuff to libresolv.a?
+ - x86_64: readdir fails their test (Gwenole Beauchesne)
+ - regular expressions standards compliance; test suite from AT&T
+ - fgetpwent (needed for cvm)
+ - investigate putting some libgcc symbols in dietlibc.so for gcc<3
+ - wordexp, wordfree (might as well write a /bin/sh then)
+
+implement AI_V4MAPPED in getaddrinfo (not in man page, only susv3)
+
+Also: AF_UNSPEC, AI_ADDRCONFIG
+set_thread_area -> set up TLD, for stack guard
+
+lsearch, lfind, hsearch, tsearch
+
+add option to detect valgrind (strstr for "valgrind" in getenv("LD_PRELOAD")),
+  then set a flag and disable optimizations that trigger warnings

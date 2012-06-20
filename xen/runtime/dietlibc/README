@@ -1,0 +1,46 @@
+  The system library is a challenge to all those using the computer to
+  write their own faster and better routines or to bow to the superior
+  strength and skill of a true master.
+ 	--http://www.inner.net/users/cmetz/program-like-a-klingon
+
+diet libc to statically link programs that don't need all the bloat
+from glibc.
+
+malloc, printf and scanf contributed from Olaf Dreesen.
+
+To compile:
+
+	$ make
+
+make should compile the diet libc itself.
+
+When make is done, it will have created dietlibc.a in bin-i386 (or
+bin-ppc, bin-alpha, bin-sparc, bin-ppc or bin-arm, depending on your
+architecture).  In that directory you will also find a program called
+"diet", which you need to copy in a directory in your $PATH:
+
+	# install bin-i386/diet /usr/local/bin
+
+Then you can compile programs by prepending diet to the command line,
+i.e.
+
+	$ diet gcc -s -Os -pipe -o t t.c
+
+diet is cross-compiler friendly and can also be used like this:
+
+	$ diet sparc-linux-gcc -o t t.c
+
+diet will then link against dietlibc.a from bin-sparc, of course.
+diet comes with a man page (diet.1), which you can copy to an
+appropriate location, too:
+
+	# cp diet.1 /usr/local/man/man1
+
+After you compiled the diet libc successfully, I invite you to check out
+the embedded utils (http://www.fefe.de/embutils/).  The embedded utils
+are small replacements for common utilities like mv, chown, ls, and even
+a small tar that can extract tar files.
+
+
+The license for the diet libc is the GNU General Public License, version
+2 (as included in the file COPYING) or later.

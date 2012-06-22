@@ -147,8 +147,9 @@ module Configure = struct
           let interface = List.map (fun x -> x-.-"cmi") libs in
           let byte = List.map (fun x -> x-.-"cma") libs in
           let native = if_opt (fun x -> x-.-"cmxa") libs in
+          let nativea = if_opt (fun x -> x-.-"a") libs in
           let natdynlink = if_natdynlink (fun x -> x-.-"cmxs") libs in
-          interface @ byte @ native @ natdynlink in
+          interface @ byte @ native @ natdynlink @ nativea in
         (* Build runtime libs *)
         let runtimes = List.map (sprintf "runtime/lib%s.a") (config "clibs") in
         (* Build syntax extensions *)

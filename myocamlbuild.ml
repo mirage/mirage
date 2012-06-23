@@ -107,7 +107,8 @@ module Configure = struct
     flag ["ocaml"; "compile"] & S [config_sh "flags.ocaml"];
     flag ["ocaml"; "link"] & S [config_sh "flags.ocaml"];
     (* Include the -cclib for any C bindings being built *)
-    let ccinc = (A"-ccopt"):: (List.flatten (List.map (fun x -> [A"-cclib"; A("runtime/lib"^x^".a")]) (config "clibs"))) in
+    let ccinc = (A"-ccopt")::(A"-Lruntime"):: 
+      (List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs"))) in
     let clibs_files = List.map (sprintf "runtime/lib%s.a") (config "clibs") in
     dep ["link"; "library"; "ocaml"] clibs_files;
     flag ["link"; "library"; "ocaml"] & S ccinc

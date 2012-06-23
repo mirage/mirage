@@ -109,7 +109,6 @@ module Configure = struct
     (* Include the -cclib for any C bindings being built *)
     let ccinc = (List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs"))) @ 
       [A"-I";A"runtime"] in
-    let clibs_files = List.map (sprintf "runtime/lib%s.a") (config "clibs") in
     flag ["link"; "library"; "ocaml"] & S ccinc
 
   (* Flags for building test binaries, which include just-built extensions and libs *)

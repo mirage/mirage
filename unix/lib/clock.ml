@@ -26,5 +26,10 @@ type tm = {
   tm_isdst : bool;
 }
 
-external time : unit -> float = "unix_gettimeofday"
-external gmtime : float -> tm = "unix_gmtime"
+let time () = Unix.gettimeofday ()
+
+let gmtime x =
+  let t = Unix.gmtime x in
+  { tm_sec=t.Unix.tm_sec; tm_min=t.Unix.tm_min; tm_hour=t.Unix.tm_hour; tm_mday=t.Unix.tm_mday;
+    tm_mon=t.Unix.tm_mon; tm_year=t.Unix.tm_year; tm_wday=t.Unix.tm_wday;
+    tm_yday=t.Unix.tm_yday; tm_isdst=t.Unix.tm_isdst }

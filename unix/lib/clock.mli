@@ -29,9 +29,9 @@ type tm =
     tm_isdst : bool;            (** Daylight time savings in effect *)
   }
 
-external time : unit -> float = "unix_gettimeofday"
+val time : unit -> float
 (** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds. *)
 
-external gmtime : float -> tm = "unix_gmtime"
+val gmtime : float -> tm
 (** Convert a time in seconds, as returned by {!OS.Clock.time}, into a date and
    a time. Assumes UTC (Coordinated Universal Time), also known as GMT. *)

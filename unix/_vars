@@ -1,5 +1,6 @@
 NAME=mirage
 VERSION=0.3dev
-DEPS="cstruct cstruct.syntax lwt lwt.syntax"
+DEPS="cstruct cstruct.syntax lwt lwt.syntax lwt.unix"
 RUNTIME="unixrun"
 LIB="oS"
+TESTS="tap_test"

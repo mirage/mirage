@@ -21,10 +21,12 @@ type id = string
 
 type t = {
   id: id;
-  dev: [`tap] Socket.fd;
+  dev: Lwt_unix.file_descr;
   mutable active: bool;
   mac: string;
 }
+
+external tap_opendev: string -> Unix.file_descr = "tap_opendev"
 
 exception Ethif_closed
 
@@ -46,7 +48,8 @@ let generate_local_mac () =
 let devices = Hashtbl.create 1
 
 let plug id =
-  let dev = Socket.opentap id in
+  let tapfd = tap_opendev id in
+  let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
   let mac = generate_local_mac () in
   let active = true in
   let t = { id; dev; active; mac } in
@@ -77,7 +80,7 @@ let create fn =
 let rec input t =
   let page = Io_page.get () in
   let sz = 4096 in
-  lwt len = Socket.fdbind Activations.read (fun fd -> Socket.read fd page 0 sz) t.dev in
+  lwt len = Lwt_bytes.read t.dev page 0 sz in
   match len with
   |(-1) -> (* EAGAIN or EWOULDBLOCK *)
     input t
@@ -85,7 +88,7 @@ let rec input t =
     t.active <- false;
     input t
   |n ->
-    return page
+    return (Cstruct.sub page 0 len)
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =
@@ -117,7 +120,7 @@ let destroy nf =
 let write t page =
   let off = Cstruct.base_offset page in
   let len = Cstruct.len page in
-  lwt len' = Socket.fdbind Activations.write (fun fd -> Socket.write fd page off len) t.dev in
+  lwt len' = Lwt_bytes.write t.dev page off len in
   if len' <> len then
     raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' len))
   else

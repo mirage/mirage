@@ -1,11 +1,9 @@
 Env
 Io_page
-Socket
-Activations
 Clock
 Time
 Console
 Main
 Devices
 Netif
-Blkif
+#Blkif

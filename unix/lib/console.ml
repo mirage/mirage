@@ -16,10 +16,13 @@
 
 open Lwt
 
-type t
+(* TODO management service for logging *)
+type t = unit
 
-external write: t -> string -> int -> int -> unit = "console_write"
-external create: unit -> t = "console_create"
+let write t buf off len =
+  prerr_endline (String.sub buf off len)
+
+let create () : t = ()
 
 let sync_write t buf off len =
   write t buf off len;

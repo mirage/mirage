@@ -1,4 +1,4 @@
-<lib/*>: for-pack(OS)
+<lib/*>: for-pack(OS), use_syntax
 <lib_test/*>: use_lib, custom
 <syntax/*>: build_syntax
 true: camlp4o

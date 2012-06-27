@@ -89,16 +89,19 @@ module Configure = struct
   (* Flags for building and using syntax extensions *)
   let ppflags () =
     (* Syntax extensions for the libraries being built *)
-    flag ["ocaml"; "pp"] & S [config_sh "syntax.deps"];
+    flag ["ocaml"; "pp"; "use_syntax"] & S [config_sh "syntax.deps"];
     (* Include the camlp4 flags to build an extension *)
     flag ["ocaml"; "pp"; "build_syntax"] & S [config_sh "syntax.build"];
+    flag ["ocaml"; "pp"; "build_syntax_r"] & S [config_sh "syntax.build.r"];
     (* NOTE: we cannot use the built-in use_camlp4, as that forces
      * camlp4lib.cma to be linked with the mllib target, which results
      * in a non-functioning extension as it will be loaded twice.
      * So this simply includes the directory, which leads to a working archive *) 
     let p4incs = [A"-I"; A"+camlp4"] in
     flag ["ocaml"; "ocamldep"; "build_syntax"] & S p4incs;
-    flag ["ocaml"; "compile"; "build_syntax"] & S p4incs
+    flag ["ocaml"; "compile"; "build_syntax"] & S p4incs;
+    flag ["ocaml"; "ocamldep"; "build_syntax_r"] & S p4incs;
+    flag ["ocaml"; "compile"; "build_syntax_r"] & S p4incs
  
   (* General flags for building libraries and binaries *)
   let libflags () =
@@ -107,8 +110,10 @@ module Configure = struct
     flag ["ocaml"; "compile"] & S [config_sh "flags.ocaml"];
     flag ["ocaml"; "link"] & S [config_sh "flags.ocaml"];
     (* Include the -cclib for any C bindings being built *)
-    let ccinc = (List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs"))) @ 
-      [A"-I";A"runtime"] in
+    let ccinc = (A"-ccopt")::(A"-Lruntime"):: 
+      (List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs"))) in
+    let clibs_files = List.map (sprintf "runtime/lib%s.a") (config "clibs") in
+    dep ["link"; "library"; "ocaml"] clibs_files;
     flag ["link"; "library"; "ocaml"] & S ccinc
 
   (* Flags for building test binaries, which include just-built extensions and libs *)
@@ -227,7 +232,7 @@ module Xen = struct
   (** Link to a standalone Xen microkernel *)
   let cc_xen_link bc tags arg out env =
     (* XXX check ocamlfind path here *)
-    let xenlib = (Util.run_and_read "ocamlfind query mirage") ^ "/include/xen" in
+    let xenlib = Util.run_and_read "ocamlfind query mirage" in
     let jmp_obj = Px (xenlib / "longjmp.o") in
     let head_obj = Px (xenlib / "x86_64.o") in
     let ocamllib = match bc with |true -> "ocamlbc" |false -> "ocaml" in
@@ -284,5 +289,6 @@ let _ = dispatch begin function
      Xen.rules ();
      (* Required to repack sub-packs (like Pa_css) into Pa_mirage *)
      pflag ["ocaml"; "pack"] "for-repack" (fun param -> S [A "-for-pack"; A param]);
+     flag ["ocaml"; "pp"; "cow_no_open"] & S [A"-cow-no-open"]
   | _ -> ()
 end

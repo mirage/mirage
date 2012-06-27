@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh -ex
 # Script that invokes ocamlbuild commands for various targets
 
 njobs=8
@@ -32,8 +32,11 @@ configure() {
   ${OCAMLFIND} query -r -a-format -predicates byte ${DEPS} > _config/archives.byte
   # _config/pp has camlp4 flags for the library and binaries
   ${OCAMLFIND} query -r -predicates syntax,preprocessor -format '-I %d %A' ${DEPS} ${SYNTAX_DEPS} > _config/syntax.deps
+  ${OCAMLFIND} query -r -predicates byte -format '-I %d %A' ${SYNTAX_EXTRA_DEPS} >> _config/syntax.deps
   # _config/syntax has flags to build p4 extensions in syntax/
-  ${OCAMLFIND} query -r -predicates syntax,preprocessor -format '-I %d %A' camlp4.quotations.o camlp4.lib camlp4.extend > _config/syntax.build
+  ${OCAMLFIND} query -r -predicates syntax,preprocessor -format '-I %d' camlp4.quotations.o camlp4.lib camlp4.extend > _config/syntax.build
+  ${OCAMLFIND} query -r -predicates syntax,preprocessor -format '-I %d' camlp4.quotations.r camlp4.lib camlp4.extend ${SYNTAX_DEPS} > _config/syntax.build.r
+ 
   echo ${NAME} > _config/name
   echo ${DEPS} > _config/deps
   echo ${SYNTAX} > _config/syntax

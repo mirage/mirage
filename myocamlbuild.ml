@@ -205,6 +205,10 @@ module CC = struct
   let rules () = 
     rule "cc: %.c -> %.o" ~prod:"%.o" ~dep:"%.c" (cc_call "c" "%.c" "%.o");
     rule "cc: %.S -> %.o" ~prod:"%.o" ~dep:"%.S" (cc_call "asm" "%.S" "%.o");
+    rule "archive: cclib .o -> .a archive"
+      ~prod:"%(path:<**/>)lib%(libname:<*>).a"
+      ~dep:"%(path)lib%(libname).cclib"
+      (cc_archive "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)");
     (* Rule to link a module and output a standalone native object file *)
     rule "ocaml: cmx* & o* -> .m.o"
       ~prod:"%.m.o"

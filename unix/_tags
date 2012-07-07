@@ -1,4 +1,5 @@
 <lib/*>: for-pack(OS), use_syntax
 <lib_test/*>: use_lib, custom
+<*.c>: pic,unix_header,include_system_ocaml
 <syntax/*>: build_syntax
 true: camlp4o

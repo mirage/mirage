@@ -1,1 +1,0 @@
-tap_stubs_macosx.c

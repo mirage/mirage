@@ -12,10 +12,10 @@ esac
 
 case "$OS" in
 Darwin)
-  ln -nsf tap_stubs_macosx.c runtime/tap_stubs_os.c
+  ln -nsf tap_stubs_macosx.c lib/tap_stubs_os.c
   ;;
 Linux)
-  ln -nsf tap_stubs_linux.c runtime/tap_stubs_os.c
+  ln -nsf tap_stubs_linux.c lib/tap_stubs_os.c
   ;;
 *)
   echo Unknown arch $OS

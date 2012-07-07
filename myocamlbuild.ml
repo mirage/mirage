@@ -110,11 +110,9 @@ module Configure = struct
     flag ["ocaml"; "compile"] & S [config_sh "flags.ocaml"];
     flag ["ocaml"; "link"] & S [config_sh "flags.ocaml"];
     (* Include the -cclib for any C bindings being built *)
-    let ccinc = (A"-ccopt")::(A"-Lruntime"):: 
-      (List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs"))) in
-    let clibs_files = List.map (sprintf "runtime/lib%s.a") (config "clibs") in
-    dep ["link"; "library"; "ocaml"] clibs_files;
-    flag ["link"; "library"; "ocaml"] & S ccinc
+    let ccinc = List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs")) in
+    let ccinc_shared = List.map (fun x -> A("lib/lib"^x^".a")) (config "clibs") in
+    flag ["link"; "library"; "native"; "ocaml"] & S ccinc
 
   (* Flags for building test binaries, which include just-built extensions and libs *)
   let testflags () =
@@ -154,7 +152,7 @@ module Configure = struct
           let natdynlink = if_natdynlink (fun x -> x-.-"cmxs") libs in
           interface @ byte @ native @ natdynlink @ nativea in
         (* Build runtime libs *)
-        let runtimes = List.map (sprintf "runtime/lib%s.a") (config "clibs") in
+        let runtimes = List.map (sprintf "lib/lib%s.a") (config "clibs") in
         (* Build syntax extensions *)
         let syntaxes =
           let syn = config "syntax" in
@@ -207,10 +205,6 @@ module CC = struct
   let rules () = 
     rule "cc: %.c -> %.o" ~prod:"%.o" ~dep:"%.c" (cc_call "c" "%.c" "%.o");
     rule "cc: %.S -> %.o" ~prod:"%.o" ~dep:"%.S" (cc_call "asm" "%.S" "%.o");
-    rule "archive: cclib .o -> .a archive"
-      ~prod:"%(path:<**/>)lib%(libname:<*>).a"
-      ~dep:"%(path)lib%(libname).cclib"
-      (cc_archive "%(path)lib%(libname).cclib" "%(path)lib%(libname).a" "%(path)");
     (* Rule to link a module and output a standalone native object file *)
     rule "ocaml: cmx* & o* -> .m.o"
       ~prod:"%.m.o"

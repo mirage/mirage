@@ -39,32 +39,6 @@ module Util = struct
     let run_and_read x = List.hd (split_nl (Ocamlbuild_pack.My_unix.run_and_read x))
 end
 
-(** Host OS detection *)
-module OS = struct
-
-  type unix = Linux | Darwin | FreeBSD
-  type arch = X86_32 | X86_64
-
-  let host =
-    match String.lowercase (Util.run_and_read "uname -s") with
-    | "linux"  -> Linux
-    | "darwin" -> Darwin
-    | "freebsd" -> FreeBSD
-    | os -> eprintf "`%s` is not a supported host OS\n" os; exit (-1)
-
-  let arch =
-    match String.lowercase (Util.run_and_read "uname -m") with
-    | "x86_32" | "i686"  -> X86_32
-    | "i386" -> (match host with Linux | FreeBSD -> X86_32 | Darwin -> X86_64)
-    | "x86_64" | "amd64" -> X86_64
-    | arch -> eprintf "`%s` is not a supported arch\n" arch; exit (-1)
-
-  let js_of_ocaml_installed =
-    try
-      Ocamlbuild_pack.My_unix.run_and_read "which js_of_ocaml" <> ""
-    with _ -> false
-end
-
 (* XXX this wont work with a custom ocamlc not on the path *)
 let ocaml_libdir = Util.run_and_read "ocamlc -where"
 

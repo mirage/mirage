@@ -17,6 +17,7 @@
 type handle
 
 type r
+type h
 type perm = RO | RW
 
 val to_int32: r -> int32
@@ -34,6 +35,9 @@ val with_refs: int -> (r list -> 'a Lwt.t) -> 'a Lwt.t
 
 val grant_access : domid:int -> perm:perm -> r -> Io_page.t -> unit
 val end_access : r -> unit
+
+val map_grant : domid:int -> perm:perm -> r -> Io_page.t -> h option
+val unmap_grant : h -> bool
 
 val with_grant : domid:int -> perm:perm -> r -> Io_page.t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 

@@ -20,6 +20,16 @@ type r
 type h
 type perm = RO | RW
 
+val console: r
+(** In xen-4.2 and later, the domain builder will allocate one of the
+	reserved grant table entries and use it to pre-authorise the console
+	backend domain. *)
+
+val xenstore: r
+(** In xen-4.2 and later, the domain builder will allocate one of the
+	reserved grant table entries and use it to pre-authorise the xenstore
+	backend domain. *)
+
 val to_int32: r -> int32
 val of_int32: int32 -> r
 val to_string : r -> string

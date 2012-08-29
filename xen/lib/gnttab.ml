@@ -20,6 +20,9 @@ type handle = unit
 
 type r = int32 (* Grant ref number *)
 
+let console = 0l (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
+let xenstore = 1l (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)
+
 type h (* Handle to a mapped grant *)
 
 type perm = RO | RW

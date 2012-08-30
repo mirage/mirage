@@ -145,3 +145,24 @@ stub_console_evtchn_port(value unit)
 	CAMLparam1(unit);
 	CAMLreturn(Val_int(start_info.console.domU.evtchn));
 }
+
+CAMLprim value
+stub_bind_virq(value virq)
+{
+	CAMLparam1(virq);
+	int rc;
+	evtchn_port_t port;
+	rc = evtchn_bind_virq(Int_val(virq), &port);
+	if (rc)
+		CAMLreturn(Val_int(-1));
+	else
+    	CAMLreturn(Val_int(port)); 
+
+}
+
+CAMLprim value
+stub_virq_dom_exc(value unit)
+{
+	CAMLparam1(unit);
+	CAMLreturn(Val_int(VIRQ_DOM_EXC));
+}

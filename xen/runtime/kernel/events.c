@@ -106,6 +106,21 @@ int evtchn_bind_interdomain(domid_t pal, evtchn_port_t remote_port,
 }
 
 
+int evtchn_bind_virq(uint32_t virq, evtchn_port_t *port)
+{
+    int rc;
+    evtchn_bind_virq_t op;
+    op.virq = virq;
+    op.vcpu = 0;
+    rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_virq, &op);
+    if ( rc ) {
+        printk("ERROR: bind_virq failed with rc=%d", rc);
+        return rc;
+    }
+    *port = op.port;
+    return rc;
+}
+
 /*
  * Local variables:
  * mode: C

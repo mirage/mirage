@@ -22,3 +22,10 @@ external bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
 
 external unmask: int -> unit = "stub_evtchn_unmask"
 external notify: int -> unit = "stub_evtchn_notify" "noalloc"
+
+module Virq : sig
+
+	type t = Dom_exc
+
+	val bind: t -> int
+end

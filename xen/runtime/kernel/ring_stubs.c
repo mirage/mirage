@@ -35,13 +35,13 @@
 CAMLprim value \
 caml_##xname##_ring_init(value v_ptr) \
 { \
-   memset((void *)v_ptr, 0, PAGE_SIZE); \
+   memset((void *)Caml_ba_data_val(v_ptr), 0, PAGE_SIZE);	\
    return Val_unit; \
 } \
 CAMLprim value \
 caml_##xname##_ring_write(value v_ptr, value v_str, value v_len) \
 { \
-   struct xtype *intf = (struct xtype *)v_ptr; \
+   struct xtype *intf = (struct xtype *)Caml_ba_data_val(v_ptr);	\
    int sent = 0, len = Int_val(v_len); \
    char *data = String_val(v_str); \
    XENCONS_RING_IDX cons, prod; \
@@ -58,7 +58,7 @@ caml_##xname##_ring_write(value v_ptr, value v_str, value v_len) \
 CAMLprim value \
 caml_##xname##_ring_read(value v_ptr, value v_str, value v_len) \
 { \
-   struct xtype *intf = (struct xtype *)v_ptr; \
+   struct xtype *intf = (struct xtype *)Caml_ba_data_val(v_ptr);	\
    int pos=0, len = Int_val(v_len); \
    char *data = String_val(v_str); \
    XENCONS_RING_IDX cons, prod; \
@@ -81,8 +81,9 @@ caml_console_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
+  intnat dims[] = { Long_val(PAGE_SIZE) };
   unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
-  v_ret = (value)page;
+  v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
   CAMLreturn(v_ret);
 }
 
@@ -91,8 +92,9 @@ caml_xenstore_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
+  intnat dims[] = { Long_val(PAGE_SIZE) };
   unsigned char *page = mfn_to_virt(start_info.store_mfn);
-  v_ret = (value)page;
+  v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
   CAMLreturn(v_ret);
 }
 

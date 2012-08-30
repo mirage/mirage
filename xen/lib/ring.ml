@@ -287,9 +287,10 @@ module Console = struct
 end
 
 module Xenstore = struct
-    type t
+    type t = Io_page.t
     let initial_grant_num : Gnttab.r = Gnttab.of_int32 1l
     external start_page: unit -> t = "caml_xenstore_start_page"
+    let of_buf t = t
     external zero: t -> unit = "caml_xenstore_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_xenstore_ring_read"

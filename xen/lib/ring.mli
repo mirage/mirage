@@ -158,4 +158,5 @@ module Xenstore : sig
   external unsafe_write : t -> string -> int -> int = "caml_xenstore_ring_write"
   external unsafe_read : t -> string -> int -> int = "caml_xenstore_ring_read"
   val alloc_initial : unit -> Gnttab.r * t
+  val of_buf : Io_page.t -> t
 end

@@ -166,3 +166,11 @@ stub_virq_dom_exc(value unit)
 	CAMLparam1(unit);
 	CAMLreturn(Val_int(VIRQ_DOM_EXC));
 }
+
+CAMLprim value
+stub_evtchn_unbind(value v_port)
+{
+	CAMLparam1(v_port);
+	unbind_evtchn(Int_val(v_port));
+	CAMLreturn(Val_unit);
+}

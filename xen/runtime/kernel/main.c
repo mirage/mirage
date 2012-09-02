@@ -46,14 +46,19 @@ caml_block_domain(value v_timeout)
   CAMLreturn(Val_unit);
 }
 
+#define CAML_ENTRYPOINT "OS.Main.run"
+
 void app_main(start_info_t *si)
 {
   value *v_main;
   int caml_completed = 0;
   local_irq_save(irqflags);
   caml_startup(argv);
-  v_main = caml_named_value("OS.Main.run");
-  ASSERT(v_main != NULL);
+  v_main = caml_named_value(CAML_ENTRYPOINT);
+  if (v_main == NULL){
+	printk("ERROR: CAML_ENTRYPOINT %s is NULL\n", CAML_ENTRYPOINT);
+	_exit(1);
+  }
   while (caml_completed == 0) {
     evtchn_poll();
     caml_completed = Bool_val(caml_callback(*v_main, Val_unit));

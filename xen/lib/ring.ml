@@ -294,6 +294,10 @@ module Xenstore = struct
     external zero: t -> unit = "caml_xenstore_ring_init"
     external unsafe_write: t -> string -> int -> int = "caml_xenstore_ring_write"
     external unsafe_read: t -> string -> int -> int = "caml_xenstore_ring_read"
+	module Back = struct
+		external unsafe_write : t -> string -> int -> int = "caml_xenstore_back_ring_write"
+		external unsafe_read : t -> string -> int -> int = "caml_xenstore_back_ring_read"
+	end
     let alloc_initial () =
       let page = start_page () in
       zero page;

@@ -75,6 +75,7 @@ caml_##xname##_ring_read(value v_ptr, value v_str, value v_len) \
 
 DEFINE_RAW_RING_OPS(console,xencons_interface,in,out);
 DEFINE_RAW_RING_OPS(xenstore,xenstore_domain_interface,rsp,req);
+DEFINE_RAW_RING_OPS(xenstore_back,xenstore_domain_interface,req,rsp);
 
 CAMLprim value
 caml_console_start_page(value v_unit)

@@ -20,6 +20,11 @@ type handle = unit
 
 type r = int32 (* Grant ref number *)
 
+let console = 0l (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
+let xenstore = 1l (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)
+
+type h (* Handle to a mapped grant *)
+
 type perm = RO | RW
 
 module Raw = struct
@@ -29,6 +34,8 @@ module Raw = struct
   external fini : unit -> unit = "caml_gnttab_fini"
   external grant_access : r -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
   external end_access : r -> unit = "caml_gnttab_end_access"
+  external map_grant : r -> Io_page.t -> int -> bool -> h option = "caml_gnttab_map"
+  external unmap_grant : h -> bool = "caml_gnttab_unmap"
 end
 
 let to_int32 x = x
@@ -96,6 +103,12 @@ let grant_access ~domid ~perm r page =
 
 let end_access r =
   Raw.end_access r
+
+let map_grant ~domid ~perm r page =
+  Raw.map_grant r page domid (match perm with RO -> true |RW -> false)
+
+let unmap_grant h =
+  Raw.unmap_grant h
 
 let with_grant ~domid ~perm gnt page fn =
   grant_access ~domid ~perm gnt page;

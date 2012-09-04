@@ -22,3 +22,16 @@ external bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
 
 external unmask: int -> unit = "stub_evtchn_unmask" 
 external notify: int -> unit = "stub_evtchn_notify" "noalloc"
+
+external unbind: int -> unit = "stub_evtchn_unbind"
+
+external virq_dom_exc: unit -> int = "stub_virq_dom_exc"
+
+external bind_virq: int -> int = "stub_bind_virq"
+
+module Virq = struct
+	type t = Dom_exc
+
+	let bind = function
+		| Dom_exc -> bind_virq (virq_dom_exc ())
+end

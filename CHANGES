@@ -1,3 +1,11 @@
+===== 0.4.0 (unreleased) =====
+
+* [xen] Add support for mapping and unmapping grant references
+* [xen] Support Xen 4.2 reserved console and xenstore maps
+* [xen] Switch the Xenstore and console rings over to use cstruct
+* [xen] Add Evtchn virq interface for stub xenstored.
+* [xen] Add Evtchn.unbind
+ 
 ===== 0.3.0 (04-Sep-2012) =====
 
 * Initial public release.

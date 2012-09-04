@@ -98,7 +98,7 @@ int evtchn_bind_interdomain(domid_t pal, evtchn_port_t remote_port,
     rc = HYPERVISOR_event_channel_op(EVTCHNOP_bind_interdomain, &op);
     if ( rc )
     {
-        printk("ERROR: bind_interdomain failed with rc=%d", rc);
+        printk("ERROR: bind_interdomain domid = %d port = %d failed: %d", pal, remote_port, rc);
                 return rc;
     }
     *local_port = op.local_port;

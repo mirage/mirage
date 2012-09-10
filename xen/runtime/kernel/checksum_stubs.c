@@ -48,6 +48,10 @@ caml_ones_complement_checksum(value v_ba, value v_len)
   CAMLreturn(Val_int(checksum));
 }
 
+/* Checksum a list of bigarrays. The complexity of overflow is due to
+ * having potentially odd-sized buffers, and the odd byte must be carried
+ * forward as 16-byte 1s complement addition if there are more buffers in
+ * the chain. */
 CAMLprim value
 caml_ones_complement_checksum_list(value v_bal)
 {
@@ -55,12 +59,40 @@ caml_ones_complement_checksum_list(value v_bal)
   CAMLlocal1(v_hd);
   uint32_t sum = 0;
   uint16_t checksum = 0;
+  uint16_t overflow = 0;
+  size_t count = 0;
+  struct caml_ba_array *a = NULL;
+  unsigned char *addr;
   while (v_bal != Val_emptylist) {
     v_hd = Field(v_bal, 0);
-    struct caml_ba_array *a = Caml_ba_array_val(v_hd);
-    sum = checksum_bigarray(a->data, a->dim[0], sum);
     v_bal = Field(v_bal, 1);
+    a = Caml_ba_array_val(v_hd);
+    addr = a->data;
+    count = a->dim[0];
+    if (count <= 0) continue;
+    if (overflow != 0) {
+      sum += (overflow << 8) + (*addr);
+      overflow = 0;
+      addr++;
+      count--;
+    }
+    while (count > 1) {
+      uint16_t v = (*addr << 8) + (*(addr+1));
+      sum += v;
+      count -= 2;
+      addr += 2;
+    }
+    if (count > 0) {
+      if (v_bal == Val_emptylist)
+        sum += (*(unsigned char *)addr) << 8;
+      else
+        overflow = *addr;
+    }
   }
+  if (overflow != 0)
+    sum += overflow << 8;
+  while (sum >> 16)
+    sum = (sum & 0xffff) + (sum >> 16);
   checksum = ~sum;
   CAMLreturn(Val_int(checksum));
 }

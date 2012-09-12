@@ -56,7 +56,7 @@ void failsafe_callback(void);
 
 #define __pte(x) ((pte_t) { (x) } )
 
-static
+
 shared_info_t *map_shared_info(unsigned long pa)
 {
     int rc;
@@ -69,6 +69,13 @@ shared_info_t *map_shared_info(unsigned long pa)
     }
     return (shared_info_t *)shared_info;
 }
+
+void unmap_shared_info()
+{
+  HYPERVISOR_update_va_mapping((uintptr_t)HYPERVISOR_shared_info,
+			       __pte((virt_to_mfn(shared_info)<<L1_PAGETABLE_SHIFT) | L1_PROT), UVMF_INVLPG);
+}
+
 
 void
 arch_init(start_info_t *si)

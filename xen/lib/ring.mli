@@ -107,6 +107,8 @@ module Front : sig
   
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
   val push_request_async : ('a,'b) t -> (Io_page.t -> 'b) -> (unit -> unit) -> unit Lwt.t 
+
+  val post_suspend : ('a,'b) t -> unit
 end
 
 module Back : sig

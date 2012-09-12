@@ -16,6 +16,8 @@
 
 open Lwt
 
+exception Resumed
+
 type handle = unit
 
 type r = int32 (* Grant ref number *)
@@ -116,9 +118,11 @@ let with_grant ~domid ~perm gnt page fn =
     lwt res = fn () in
     end_access gnt;
     return res
-  with exn -> begin
-    end_access gnt;
-    fail exn
+  with 
+    | Resumed as exn -> fail exn
+    | exn -> begin
+      end_access gnt;
+      fail exn
   end
 
 let with_grants ~domid ~perm gnts pages fn =
@@ -149,9 +153,17 @@ let with_mapping handle domid r perm fn =
 
 let map_contiguous_grant_refs handle domid rs perm = failwith "Unimplemented!"
 
+let pre_suspend () =
+  Raw.fini ()
+
+let post_suspend () =
+  Raw.init ()
+
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);
     for i = Raw.nr_reserved () to Raw.nr_entries () - 1 do
         put (Int32.of_int i);
     done;
     Raw.init ()
+
+

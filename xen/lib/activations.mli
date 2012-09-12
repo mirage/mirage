@@ -22,3 +22,4 @@ val nr_events : int
 
 val wait : int -> unit Lwt.t
 val run : unit -> unit
+val post_suspend : unit -> unit

@@ -1,4 +1,3 @@
-Sched
 Io_page
 Gnttab
 Activations
@@ -15,3 +14,4 @@ Env
 Netif
 Blkif
 Start_info
+Sched

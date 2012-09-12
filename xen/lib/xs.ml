@@ -88,3 +88,11 @@ let transaction f =
 let wait f =
 	lwt client = client in
 	wait client f
+
+let pre_suspend () =
+	suspend ()
+
+let post_suspend () =
+	t := None;
+	create ();
+	resume ()

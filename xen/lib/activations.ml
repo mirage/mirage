@@ -42,3 +42,12 @@ let run () =
       ) event_cb.(port)
     end
   done
+
+let post_suspend () =
+  for port = 0 to nr_events - 1 do
+    Lwt_sequence.iter_node_l (fun node ->
+        let u = Lwt_sequence.get node in
+        Lwt_sequence.remove node;
+        Lwt.wakeup_exn u (Lwt.Canceled)
+      ) event_cb.(port)
+  done

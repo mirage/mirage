@@ -22,3 +22,4 @@ type reason =
 
 val shutdown: reason -> unit
 
+val suspend: unit -> int Lwt.t

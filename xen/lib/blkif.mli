@@ -25,8 +25,8 @@ type features = {
 type t
 type id = string
 exception IO_error of string
-val poll : t -> unit Lwt.t
 val create : id:id -> Devices.blkif Lwt.t
 val enumerate : unit -> id list Lwt.t
 val write_page : t -> int64 -> Io_page.t -> unit Lwt.t
 val read_512 : t -> int64 -> int64 -> Io_page.t Lwt_stream.t
+val post_suspend : unit -> unit Lwt.t

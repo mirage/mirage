@@ -158,7 +158,7 @@ module Front = struct
       try
          let u = Hashtbl.find t.wakers id in
          Hashtbl.remove t.wakers id;
-         Lwt.wakeup u resp
+         Lwt.wakeup_later u resp
        with Not_found ->
          printf "RX: ack id wakener not found\n%!"
     );

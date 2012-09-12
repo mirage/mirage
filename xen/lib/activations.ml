@@ -38,7 +38,7 @@ let run () =
       Lwt_sequence.iter_node_l (fun node ->
         let u = Lwt_sequence.get node in
         Lwt_sequence.remove node;
-        Lwt.wakeup u ()
+        Lwt.wakeup_later u ()
       ) event_cb.(port)
     end
   done

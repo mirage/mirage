@@ -135,7 +135,7 @@ let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let plug id =
-  lwt backend_id = Xs.(t.read (sprintf "device/vif/%s/backend-id" id)) >|= int_of_string in
+  lwt backend_id = Xs.(immediate (fun h -> read h (sprintf "device/vif/%s/backend-id" id))) >|= int_of_string in
   Console.log (sprintf "Netfront.create: id=%s domid=%d\n%!" id backend_id);
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (rx_gnt, rx_fring) = RX.create (id, backend_id) in
@@ -143,24 +143,24 @@ let plug id =
   let evtchn = Evtchn.alloc_unbound_port backend_id in
   (* Read Xenstore info and set state to Connected *)
   let node = sprintf "device/vif/%s/" id in
-  lwt backend = Xs.(t.read (node ^ "backend")) in
-  lwt mac = Xs.(t.read (node ^ "mac")) in
+  lwt backend = Xs.(immediate (fun h -> read h (node ^ "backend"))) in
+  lwt mac = Xs.(immediate (fun h -> read h (node ^ "mac"))) in
   printf "MAC: %s\n%!" mac;
-  Xs.(transaction t (fun xst ->
-    let wrfn k v = xst.Xst.write (node ^ k) v in
+  Xs.(transaction (fun h ->
+    let wrfn k v = write h (node ^ k) v in
     wrfn "tx-ring-ref" (Gnttab.to_string tx_gnt) >>
     wrfn "rx-ring-ref" (Gnttab.to_string rx_gnt) >>
     wrfn "event-channel" (string_of_int evtchn) >>
     wrfn "request-rx-copy" "1" >>
     wrfn "feature-rx-notify" "1" >>
     wrfn "feature-sg" "1" >>
-    wrfn "state" Xb.State.(to_string Connected)
+    wrfn "state" Device_state.(to_string Connected)
   )) >>
   (* Read backend features *)
-  lwt features = Xs.(transaction t (fun xst ->
+  lwt features = Xs.(transaction (fun h ->
     let rdfn k =
       try_lwt
-        xst.Xst.read (sprintf "%s/feature-%s" backend k) >>= 
+        read h (sprintf "%s/feature-%s" backend k) >>= 
         function
         |"1" -> return true
         |_ -> return false
@@ -289,11 +289,11 @@ let enumerate () =
   (* Find out how many VIFs we have *)
   let rec read_vif num acc =
     try_lwt
-      lwt sid = Xs.(t.read (sprintf "device/vif/%d/backend-id" num)) in
+      lwt sid = Xs.(immediate (fun h -> read h (sprintf "device/vif/%d/backend-id" num))) in
       printf "found: num=%d backend-id=%s\n%!" num sid;
       read_vif (succ num) (sid :: acc)
     with
-      Xb.Noent -> return (List.rev acc)
+      _ -> return (List.rev acc)
   in
   read_vif 0 []
 

@@ -1,3 +1,7 @@
+===== 0.4.1 (unreleased) =====
+
+* [unix] ignore SIGPIPE in the OS.Main.run function
+
 ===== 0.4.0 (11-Sep-2012) =====
 
 * [xen] Add support for mapping and unmapping grant references

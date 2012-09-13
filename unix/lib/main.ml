@@ -24,6 +24,7 @@ open Printf
    when timeouts expire. Thus, the program may only call this function
    once and once only. *)
 let run t =
+  Sys.(set_signal sigpipe Signal_ignore);
   let t = call_hooks enter_hooks <&> t in
   Lwt_unix.run t
 

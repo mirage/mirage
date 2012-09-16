@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2012 Citrix Systems Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -299,15 +300,16 @@ let plug (id:id) =
     with _ -> fail (Failure "invalid vdev") in
   printf "Blkfront.create; vdev=%d\n%!" vdev;
   let node = sprintf "device/vbd/%d/%s" vdev in
-  lwt backend_id = Xs.(t.read (node "backend-id")) in
+
+  lwt backend_id = Xs.(immediate (fun h -> read h (node "backend-id"))) in
   lwt backend_id = try_lwt return (int_of_string backend_id)
     with _ -> fail (Failure "invalid backend_id") in
-  lwt backend = Xs.(t.read (node "backend")) in
+  lwt backend = Xs.(immediate (fun h -> read h (node "backend"))) in
 
   let backend_read fn default k =
     let backend = sprintf "%s/%s" backend in
       try_lwt
-        lwt s = Xs.(t.read (backend k)) in
+        lwt s = Xs.(immediate (fun h -> read h (backend k))) in
         return (fn s)
       with exn -> return default in
 
@@ -335,22 +337,19 @@ let plug (id:id) =
   let info = [
     "event-channel", string_of_int evtchn;
     "protocol", "x86_64-abi";
-    "state", Xb.State.(to_string Connected)
+    "state", Device_state.(to_string Connected)
   ] @ ring_info in
-  Xs.(transaction t (fun xst ->
-    let wrfn k v = xst.Xst.write (node k) v in
-    Lwt_list.iter_s (fun (k, v) -> wrfn k v) info
-  )) >>
-  lwt monitor_t = Xs.(monitor_path Xs.t
-    (sprintf "%s/state" backend, "XXX") 20. 
-    (fun (k,_) ->
-        lwt state = try_lwt Xs.t.Xs.read k with _ -> return "" in
-	    return Xb_state.(of_string state = Connected)
-	)) in
+  lwt () = Xs.(transaction (fun h ->
+    Lwt_list.iter_s (fun (k, v) -> write h (node k) v) info
+  )) in
+  lwt (_: bool) = Xs.(wait (fun h ->
+	  lwt state = read h (sprintf "%s/state" backend) in
+	  return Device_state.(of_string state = Connected)
+  )) in
   (* Read backend features *)
   lwt features =
-    lwt state = backend_read (Xb_state.of_string) Xb_state.Unknown "state" in
-    printf "state=%s\n%!" (Xb_state.prettyprint state);
+    lwt state = backend_read (Device_state.of_string) Device_state.Unknown "state" in
+    printf "state=%s\n%!" (Device_state.prettyprint state);
     lwt barrier = backend_read ((=) "1") false "feature-barrier" in
     lwt removable = backend_read ((=) "1") false "removable" in
     lwt sectors = backend_read Int64.of_string (-1L) "sectors" in
@@ -375,7 +374,7 @@ let unplug id =
 
 (** Return a list of valid VBDs *)
 let enumerate () =
-  try_lwt Xs.(t.directory "device/vbd") with Xb.Noent -> return []
+  try_lwt Xs.(immediate (fun h -> directory h "device/vbd")) with _ -> return []
 
 let create fn =
   let th,_ = Lwt.task () in

@@ -19,14 +19,24 @@ open Printf
 
 type id = string
 
+type dev_type =
+| PCAP
+| ETH
+
 type t = {
   id: id;
+  typ: dev_type;
+  buf_sz: int;
+  mutable buf: Cstruct.buf;
   dev: Lwt_unix.file_descr;
   mutable active: bool;
   mac: string;
 }
 
 external tap_opendev: string -> Unix.file_descr = "tap_opendev"
+external eth_opendev: string -> Unix.file_descr = "pcap_opendev"
+external get_mac_addr: string -> string = "get_mac_addr"
+external pcap_get_buf_len: Unix.file_descr -> int = "pcap_get_buf_len"
 
 exception Ethif_closed
 
@@ -52,10 +62,26 @@ let plug id =
   let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
   let mac = generate_local_mac () in
   let active = true in
-  let t = { id; dev; active; mac } in
+  let t = { id; dev; active; mac; typ=ETH;buf_sz=4096; 
+            buf=(Lwt_bytes.create 0);} in
   Hashtbl.add devices id t;
   printf "Netif: plug %s\n%!" id;
   return t
+
+(* like the plug method, but for an existing interface *)    
+let attach id =
+  printf "attaching..\n%!";
+  let tapfd = eth_opendev id in
+  let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
+  let mac = get_mac_addr id in
+  let buf_sz = pcap_get_buf_len tapfd in 
+  let active = true in
+  let t = { id; dev; active; mac; typ=PCAP; buf_sz;
+            buf=(Lwt_bytes.create 0);} in
+  Hashtbl.add devices id t;
+  printf "Netif: plug %s\n%!" id;
+  return t
+
 
 let unplug id =
   try
@@ -64,31 +90,78 @@ let unplug id =
     printf "Netif: unplug %s\n%!" id;
     Hashtbl.remove devices id
   with Not_found -> ()
-
-let tapnum = ref 0 
-   
-let create fn =
-  let name = Printf.sprintf "tap%d" !tapnum in
-  incr tapnum;
-  lwt t = plug name in
+  
+let tapnum = ref (-1)
+let create ?(dev=None) fn =
+  let name = 
+    match dev with
+      | None -> 
+          incr tapnum;
+          Printf.sprintf "tap%d" !tapnum
+      | Some(a) -> a
+  in
+  lwt t = 
+    match dev with
+      | None -> plug name
+      | Some(a) -> attach a
+  in
   let user = fn name t in
   let th,_ = Lwt.task () in
   Lwt.on_cancel th (fun _ -> unplug name);
   th <?> user
 
+cstruct bpf_hdr {
+  uint32 tv_sec;
+  uint32 tv_usec;
+  uint32 caplen;
+  uint32 bh_datapen;
+  uint16 bh_hdrlen
+} as little_endian
+
 (* Input a frame, and block if nothing is available *)
 let rec input t =
-  let page = Io_page.get () in
-  let sz = 4096 in
-  lwt len = Lwt_bytes.read t.dev page 0 sz in
-  match len with
-  |(-1) -> (* EAGAIN or EWOULDBLOCK *)
-    input t
-  |0 -> (* EOF *)
-    t.active <- false;
-    input t
-  |n ->
-    return (Cstruct.sub page 0 len)
+  match t.typ with 
+    | ETH -> begin
+        let page = Io_page.get () in
+        lwt len = Lwt_bytes.read t.dev page 0 t.buf_sz in
+          match len with
+            |(-1) -> (* EAGAIN or EWOULDBLOCK *)
+                input t
+            |0 -> (* EOF *)
+                t.active <- false;
+                input t
+            |n -> return (Cstruct.sub page 0 len)
+      end
+    | PCAP -> begin 
+      (* very ineficient mechanism, but fine for now *)
+        (*reading pcap header first*)
+        lwt _ =
+          if (0 >= (Cstruct.len t.buf)) then (
+            let page = Io_page.get () in
+            lwt len = Lwt_bytes.read t.dev page 0 t.buf_sz in
+            let _ = t.buf <- Cstruct.sub page 0 len in 
+(*             let _ = printf "fetched new data %d\n%!" (len) in *)
+              return ()
+          ) else  return ()
+        in
+        let caplen = Int32.to_int (get_bpf_hdr_caplen t.buf) in
+        let bh_hdrlen = get_bpf_hdr_bh_hdrlen t.buf in
+(*
+        let _ = Cstruct.hexdump t.buf in
+         let _ = printf "caplen:%x, bh_hdrlen: %x, data:%x\n%!" caplen
+         bh_hdrlen (Cstruct.len t.buf) in  
+ *)
+        let _ = t.buf <- Cstruct.shift t.buf bh_hdrlen in
+        let ret = Cstruct.sub t.buf 0 caplen in 
+        let _ = t.buf <- Cstruct.shift t.buf caplen in
+(*
+        let _ = 
+          if ((Cstruct.len t.buf ) > 4) then 
+            t.buf <- Cstruct.shift t.buf 4
+        in
+ *)
+          return ret
+    end
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =

@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (C) 2012 Citrix Systems Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,39 +18,19 @@
 
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-external alloc_pages: int -> t array = "caml_alloc_pages"
-
-(* pages_per_block -> queue of free blocks *)
-let free_lists = Hashtbl.create 10
-
-let get_free_list pages_per_block : t Queue.t =
-  if not(Hashtbl.mem free_lists pages_per_block)
-  then Hashtbl.add free_lists pages_per_block (Queue.create ());
-  Hashtbl.find free_lists pages_per_block
-
-let alloc ~pages_per_block ~n_blocks =
-  let q = get_free_list pages_per_block in
-  Printf.printf "alloc pages_per_block=%d n_blocks=%d" pages_per_block n_blocks;
-  for i = 0 to n_blocks - 1 do
-    Array.iter (fun x -> Queue.add x q) (alloc_pages pages_per_block);
-  done
+external alloc_pages: int -> t option = "caml_alloc_pages"
 
 let get ?(pages_per_block=1) () =
-  let q = get_free_list pages_per_block in
-  let rec inner () =
-    try
-      let block = Queue.pop q in
-      let fin p =
-(*        Printf.printf "block finalise\n%!"; *)
-        Queue.add p q
-      in 
-      Gc.finalise fin block;
-      block
-    with Queue.Empty -> begin
-      alloc ~pages_per_block ~n_blocks:128;
-      inner ()
-    end in
-  inner ()
+	match alloc_pages pages_per_block with
+	| Some block -> block
+	| None ->
+		Gc.compact ();
+		begin match alloc_pages pages_per_block with
+		| Some block -> block
+		| None ->
+			Printf.printf "out of memory\n%!";
+			exit(1)
+		end
 
 let rec get_n ?(pages_per_block=1) n = match n with
   | 0 -> []

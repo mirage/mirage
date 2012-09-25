@@ -2,6 +2,8 @@
 
 * [xen] fix incorrect reference counting in Io_pages that could
   potentially cause pages to be reused too early.
+* [xen] move Xenstore protocol implementation out to a separate
+  library that provides it as a functor.
 * [unix] ignore SIGPIPE in the OS.Main.run function.
 
 ===== 0.4.0 (11-Sep-2012) =====

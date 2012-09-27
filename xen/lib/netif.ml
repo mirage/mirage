@@ -116,10 +116,9 @@ type features = {
   smart_poll: bool;
 }
 
-type t = {
+type transport = {
   backend_id: int;
   backend: string;
-  mac: string;
   tx_fring: (TX.response,int) Ring.Front.t;
   tx_gnt: Gnttab.r;
   rx_fring: (RX.response,int) Ring.Front.t;
@@ -127,6 +126,11 @@ type t = {
   rx_gnt: Gnttab.r;
   evtchn: int;
   features: features;
+}
+
+type t = {
+  mac: string;
+  mutable t: transport;
 }
 
 type id = string
@@ -177,8 +181,9 @@ let plug id =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  let t = { backend_id; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_map;
-    evtchn; mac; backend; features } in
+  let transport = { backend_id; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_map;
+    evtchn; backend; features } in
+  let t = { t=transport; mac } in
   Hashtbl.add devices id t;
   return t
 
@@ -189,28 +194,28 @@ let unplug id =
   ()
 
 let refill_requests nf =
-  let num = Ring.Front.get_free_requests nf.rx_fring in
+  let num = Ring.Front.get_free_requests nf.t.rx_fring in
   lwt gnts = Gnttab.get_n num in
   let pages = Io_page.get_n num in
   List.iter
     (fun (gnt, page) ->
-      Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RW gnt page;
+      Gnttab.grant_access ~domid:nf.t.backend_id ~perm:Gnttab.RW gnt page;
       let gref = Gnttab.to_int32 gnt in
       let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
-      Hashtbl.add nf.rx_map id (gnt, page);
-      let slot_id = Ring.Front.next_req_id nf.rx_fring in
-      let slot = Ring.Front.slot nf.rx_fring slot_id in
+      Hashtbl.add nf.t.rx_map id (gnt, page);
+      let slot_id = Ring.Front.next_req_id nf.t.rx_fring in
+      let slot = Ring.Front.slot nf.t.rx_fring slot_id in
       ignore(RX.Proto_64.write ~id ~gref slot)
     ) (List.combine gnts pages);
-  if Ring.Front.push_requests_and_check_notify nf.rx_fring then
-    Evtchn.notify nf.evtchn;
+  if Ring.Front.push_requests_and_check_notify nf.t.rx_fring then
+    Evtchn.notify nf.t.evtchn;
   return ()
 
 let rx_poll nf fn =
-  Ring.Front.ack_responses nf.rx_fring (fun slot ->
+  Ring.Front.ack_responses nf.t.rx_fring (fun slot ->
     let id,(offset,flags,status) = RX.Proto_64.read slot in
-    let gnt, page = Hashtbl.find nf.rx_map id in
-    Hashtbl.remove nf.rx_map id;
+    let gnt, page = Hashtbl.find nf.t.rx_map id in
+    Hashtbl.remove nf.t.rx_map id;
     Gnttab.end_access gnt;
     Gnttab.put gnt;
     match status with
@@ -222,18 +227,18 @@ let rx_poll nf fn =
   )
 
 let tx_poll nf =
-  Ring.Front.poll nf.tx_fring TX.Proto_64.read
+  Ring.Front.poll nf.t.tx_fring TX.Proto_64.read
 
 (* Push a single page to the ring, but no event notification *)
 let write_request ?size ~flags nf page =
   lwt gnt = Gnttab.get () in
   (* This grants access to the *base* data pointer of the page *)
-  Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page;
+  Gnttab.grant_access ~domid:nf.t.backend_id ~perm:Gnttab.RO gnt page;
   let gref = Gnttab.to_int32 gnt in
   let id = Int32.to_int gref in
   let size = match size with |None -> Io_page.length page |Some s -> s in
   let offset = Cstruct.base_offset page in
-  Ring.Front.push_request_async nf.tx_fring
+  Ring.Front.push_request_async nf.t.tx_fring
     (TX.Proto_64.write ~id ~gref ~offset ~flags ~size) 
     (fun () ->
       Gnttab.end_access gnt; 
@@ -242,8 +247,8 @@ let write_request ?size ~flags nf page =
 (* Transmit a packet from buffer, with offset and length *)  
 let write nf page =
   lwt () = write_request ~flags:0 nf page in
-  if Ring.Front.push_requests_and_check_notify nf.tx_fring then
-    Evtchn.notify nf.evtchn;
+  if Ring.Front.push_requests_and_check_notify nf.t.tx_fring then
+    Evtchn.notify nf.t.evtchn;
   return ()
 
 (* Transmit a packet from a list of pages *)
@@ -268,8 +273,8 @@ let writev nf pages =
           xmit tl
      in
      lwt () = xmit other_pages in
-     if Ring.Front.push_requests_and_check_notify nf.tx_fring then
-       Evtchn.notify nf.evtchn;
+     if Ring.Front.push_requests_and_check_notify nf.t.tx_fring then
+       Evtchn.notify nf.t.evtchn;
      return ()
 
 let listen nf fn =
@@ -278,8 +283,8 @@ let listen nf fn =
     lwt () = refill_requests nf in
     rx_poll nf fn;
     tx_poll nf;
-    (* Evtchn.notify nf.evtchn; *)
-    Activations.wait nf.evtchn >>
+    (* Evtchn.notify nf.t.evtchn; *)
+    Activations.wait nf.t.evtchn >>
     poll_t ()
   in
   poll_t ()
@@ -322,7 +327,7 @@ let mac nf =
 
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let ethid t = 
-  string_of_int t.backend_id
+  string_of_int t.t.backend_id
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =

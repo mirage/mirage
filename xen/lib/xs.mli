@@ -32,5 +32,8 @@ val read : handle -> string -> string Lwt.t
 val write : handle -> string -> string -> unit Lwt.t
 (** [write h k v] writes [v] at [k] *)
 
+val rm : handle -> string -> unit Lwt.t
+(** [rm h k] removes [k] *)
+
 val pre_suspend : unit -> unit Lwt.t
-val post_suspend : unit -> unit
+val post_suspend : unit -> unit Lwt.t

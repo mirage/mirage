@@ -31,10 +31,8 @@ let suspend () =
   Gnttab.post_suspend ();
   Activations.post_suspend ();
   lwt () = Console.log_s "Before Xs.post_suspend" in
-  Xsraw.check Xs.t.Xs.con;
-  Xs.post_suspend ();
+  lwt () = Xs.post_suspend () in
   lwt () = Console.log_s "After Xs.post_suspend" in
-  Xsraw.check Xs.t.Xs.con;
   lwt () = Blkif.post_suspend () in
   Lwt.return result
   

@@ -24,6 +24,10 @@ void arch_rebuild_p2m();
 void setup_xen_features(void);
 void init_events(void);
 
+/* Assembler interface fns in entry.S. */
+void hypervisor_callback(void);
+void failsafe_callback(void);
+
 static unsigned int reasons[] = {
   SHUTDOWN_poweroff,
   SHUTDOWN_reboot,
@@ -67,8 +71,17 @@ stub_hypervisor_suspend(value unit)
   init_events();
   setup_xen_features();
   HYPERVISOR_shared_info = map_shared_info(start_info.shared_info);
+
+  /* Set up event and failsafe callback addresses. */
+  HYPERVISOR_set_callbacks(
+						   (unsigned long)hypervisor_callback,
+						   (unsigned long)failsafe_callback, 0);
+
   init_time();
   arch_rebuild_p2m();
+
+  unmask_evtchn(start_info.console.domU.evtchn);
+  unmask_evtchn(start_info.store_evtchn);
 
   CAMLreturn(Val_int(cancelled));
 }

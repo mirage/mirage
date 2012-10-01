@@ -16,8 +16,6 @@
 
 open Lwt
 
-exception Resumed
-
 type handle = unit
 
 type r = int32 (* Grant ref number *)
@@ -46,10 +44,6 @@ let to_string (r:r) = Int32.to_string (to_int32 r)
 
 let free_list : r Queue.t = Queue.create ()
 let free_list_waiters = Lwt_sequence.create ()
-
-let iter_option f = function
-  | None -> ()
-  | Some x -> f x
 
 let put r =
   Queue.push r free_list;
@@ -118,9 +112,7 @@ let with_grant ~domid ~perm gnt page fn =
     lwt res = fn () in
     end_access gnt;
     return res
-  with 
-    | Resumed as exn -> fail exn
-    | exn -> begin
+  with exn -> begin
       end_access gnt;
       fail exn
   end
@@ -153,10 +145,10 @@ let with_mapping handle domid r perm fn =
 
 let map_contiguous_grant_refs handle domid rs perm = failwith "Unimplemented!"
 
-let pre_suspend () =
+let suspend () =
   Raw.fini ()
 
-let post_suspend () =
+let resume () =
   Raw.init ()
 
 let _ =

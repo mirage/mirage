@@ -38,6 +38,8 @@ cstruct ring_hdr {
   uint64_t stuff
 } as little_endian
 
+exception Shutdown
+
 (* Allocate a multi-page ring, returning the grants and pages *)
 let allocate ~domid ~order =
   lwt gnt = Gnttab.get () in
@@ -202,19 +204,17 @@ module Front = struct
      let id = reqfn slot in
      Lwt.on_cancel th (fun _ -> Hashtbl.remove t.wakers id);
      Hashtbl.add t.wakers id u;
-     let _ = th >> return (freefn ()) in
+     let _ = freefn th in
      return ()
 
-   let pre_suspend t = return ()
-
-   let post_suspend t = 
+   let shutdown t =
      Hashtbl.iter (fun id th -> 
-       Lwt.wakeup_exn th Gnttab.Resumed) t.wakers;
+       Lwt.wakeup_exn th Shutdown) t.wakers;
     (* Check for any sleepers waiting for free space *)
      let rec loop () = 
        match Lwt_sequence.take_opt_l t.waiters with
 	 | None -> ()
-	 | Some u -> Lwt.wakeup_exn u Gnttab.Resumed; loop () 
+	 | Some u -> Lwt.wakeup_exn u Shutdown; loop () 
      in loop ()
        
 end

@@ -25,14 +25,16 @@ external shutdown: reason -> unit = "stub_sched_shutdown"
 external _suspend: unit -> int = "stub_hypervisor_suspend"
 
 let suspend () =
-  lwt () = Xs.pre_suspend () in
-  Gnttab.pre_suspend ();
+  lwt () = Xs.suspend () in
+  Gnttab.suspend ();
+
   let result = _suspend () in
-  Gnttab.post_suspend ();
-  Activations.post_suspend ();
-  lwt () = Console.log_s "Before Xs.post_suspend" in
-  lwt () = Xs.post_suspend () in
-  lwt () = Console.log_s "After Xs.post_suspend" in
-  lwt () = Blkif.post_suspend () in
+
+  Generation.resume ();
+  Gnttab.resume ();
+  Activations.resume ();
+  lwt () = Xs.resume () in
+  lwt () = Blkif.resume () in
+  lwt () = Netif.resume () in
   Lwt.return result
   

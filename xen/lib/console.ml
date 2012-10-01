@@ -21,7 +21,7 @@ type t = {
   backend_id: int;
   gnt: Gnttab.r;
   ring: Ring.Console.t;
-  evtchn: int;
+  evtchn: Evtchn.t;
   waiters: unit Lwt.u Lwt_sequence.t;
 }
 
@@ -37,14 +37,14 @@ let create () =
   let evtchn = Evtchn.console_port () in
   let waiters = Lwt_sequence.create () in
   let con = { backend_id; gnt; ring; evtchn; waiters } in
-  Evtchn.unmask evtchn;
-  Evtchn.notify evtchn;
+  ignore(Evtchn.unmask evtchn);
+  ignore(Evtchn.notify evtchn);
   con
     
 let rec sync_write cons buf off len =
   assert(len <= String.length buf + off);
   let w = Ring.Console.unsafe_write cons.ring buf (String.length buf) in
-  Evtchn.notify cons.evtchn;
+  ignore(Evtchn.notify cons.evtchn);
   let left = len - w in
   if left = 0 then 
     return () 
@@ -56,7 +56,7 @@ let rec sync_write cons buf off len =
 let write cons buf off len =
   assert(len <= String.length buf + off);
   let _ = Ring.Console.unsafe_write cons.ring buf (String.length buf) in
-  Evtchn.notify cons.evtchn
+  ignore(Evtchn.notify cons.evtchn)
 
 let t = create ()
 

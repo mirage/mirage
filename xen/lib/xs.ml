@@ -17,7 +17,7 @@ open Lwt
 
 type channel = {
 	mutable page: Ring.Xenstore.t;
-	mutable evtchn: int;
+	mutable evtchn: Evtchn.t;
 }
 (* An inter-domain client is always via a shared memory page
    and an event channel. *)
@@ -61,8 +61,7 @@ module Client = Xs_client.Client(struct
 			read t buf ofs len
 		end else begin
 			Evtchn.notify t.evtchn;
-			(* XXX: change low-level signature to avoid unnecessary copy *)
-			String.blit tmp 0 buf ofs n;
+		    String.blit tmp 0 buf ofs n;
 			return n
 		end
 
@@ -95,11 +94,11 @@ let wait f =
 	lwt client = client in
 	wait client f
 
-let pre_suspend () =
+let suspend () =
 	lwt client = client in
 	suspend client
 
-let post_suspend () =
+let resume () =
 	lwt ch = open_channel () in
 	begin match !t with 
 		| Some ch' ->

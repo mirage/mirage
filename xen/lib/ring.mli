@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+exception Shutdown
+
 (** Allocate contiguous I/O pages initialised to contain an empty ring,
     that are shared with domain number {[domid]}.
     @param domid domain id to share the I/O page with
@@ -106,9 +108,9 @@ module Front : sig
   val wait_for_free_slot : ('a,'b) t -> unit Lwt.t
   
   (** Push an asynchronous request to the slot and call [freefn] when a response comes in *)
-  val push_request_async : ('a,'b) t -> (Io_page.t -> 'b) -> (unit -> unit) -> unit Lwt.t 
+  val push_request_async : ('a,'b) t -> (Io_page.t -> 'b) -> ('a Lwt.t -> unit Lwt.t) -> unit Lwt.t 
 
-  val post_suspend : ('a,'b) t -> unit
+  val shutdown : ('a,'b) t -> unit
 end
 
 module Back : sig
@@ -145,7 +147,7 @@ module Back : sig
 
   (** Monitor the ring for requests, calling the given handler
       function for each one. *)
-  val service_thread : ('a,'b) t -> int -> (Io_page.t -> unit) -> unit Lwt.t
+  val service_thread : ('a,'b) t -> Evtchn.t -> (Io_page.t -> unit) -> unit Lwt.t
 end
 
 module Console : sig

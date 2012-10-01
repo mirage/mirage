@@ -55,3 +55,10 @@ val ethid : t -> string
 val mac : t -> string
 
 val get_writebuf : t -> Io_page.t Lwt.t
+
+(** Replug all devices *)
+val resume : unit -> unit Lwt.t
+
+(** Add a resume hook - called on resume before the service threads are restarted. Can
+	be used, for example, to send a gratuitous ARP *)
+val add_resume_hook : t -> (t -> unit Lwt.t) -> unit

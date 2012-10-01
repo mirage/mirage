@@ -16,8 +16,6 @@
 
 type handle
 
-exception Resumed
-
 type r
 type h
 type perm = RO | RW
@@ -61,6 +59,6 @@ val map_contiguous_grant_refs : handle -> int -> int32 list -> perm -> Io_page.t
 
 val unmap : handle -> Io_page.t -> unit
 
-val pre_suspend : unit -> unit
-val post_suspend : unit -> unit
+val suspend : unit -> unit
+val resume : unit -> unit
 

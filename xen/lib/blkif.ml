@@ -202,7 +202,7 @@ module Backend = struct
   type t = {
     domid:  int;
     xg:     Gnttab.handle;
-    evtchn: int;
+    evtchn: Evtchn.t;
     ops :   ops;
     parse_req : Io_page.t -> Req.t;
   }
@@ -234,8 +234,9 @@ module Backend = struct
       let notify = Ring.Back.push_responses_and_check_notify ring in
       (* XXX: what is this:
         if more_to_do then Activations.wake t.evtchn; *)
-      if notify then Evtchn.notify t.evtchn;
-      Lwt.return ()
+      if notify 
+	  then Evtchn.notify t.evtchn;
+      return ()
     in ()
 
     let init xg domid ring_ref evtchn_ref proto ops =
@@ -268,7 +269,7 @@ type transport = {
   backend: string;
   ring: (Res.t,int64) Ring.Front.t;
   gnts: Gnttab.r list;
-  evtchn: int;
+  evtchn: Evtchn.t;
   features: features;
 }
 
@@ -329,7 +330,7 @@ let plug (id:id) =
 
   lwt (gnts, ring) = alloc ~order:ring_page_order (vdev,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
-
+  let port = Evtchn.port evtchn in
   let ring_info =
     (* The new protocol writes (ring-refN = G) where N=0,1,2 *)
     let rfs = snd(List.fold_left (fun (i, acc) g ->
@@ -339,7 +340,7 @@ let plug (id:id) =
     then [ "ring-ref", Gnttab.to_string (List.hd gnts) ] (* backwards compat *)
     else [ "ring-page-order", string_of_int ring_page_order ] @ rfs in
   let info = [
-    "event-channel", string_of_int evtchn;
+    "event-channel", string_of_int port;
     "protocol", "x86_64-abi";
     "state", Device_state.(to_string Connected)
   ] @ ring_info in
@@ -397,8 +398,8 @@ let rec write_page t offset page =
             let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
             let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
             let res = Ring.Front.push_request_and_wait t.t.ring (Req.Proto_64.write_request req) in
-            if Ring.Front.push_requests_and_check_notify t.t.ring then
-	      Evtchn.notify t.t.evtchn;
+			if Ring.Front.push_requests_and_check_notify t.t.ring 
+			then Evtchn.notify t.t.evtchn;
             let open Res in
 		lwt res = res in
             Res.(match res.st with
@@ -409,7 +410,7 @@ let rec write_page t offset page =
           )
       )
        with 
-	 | Gnttab.Resumed -> write_page t offset page
+	 | Ring.Shutdown -> write_page t offset page
 	 | exn -> fail exn 
 
 
@@ -495,8 +496,8 @@ let read_single_request t r =
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
 		let req = Req.({ op=Some Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
 		let res = Ring.Front.push_request_and_wait t.t.ring (Req.Proto_64.write_request req) in
-		if Ring.Front.push_requests_and_check_notify t.t.ring then
-		  Evtchn.notify t.t.evtchn;
+		if Ring.Front.push_requests_and_check_notify t.t.ring 
+		then Evtchn.notify t.t.evtchn;
 		let open Res in
 		    lwt res = res in
 		match res.st with
@@ -520,7 +521,7 @@ let read_single_request t r =
 		    ))))
 	      )
 	  )
-      with | Gnttab.Resumed -> single_attempt ()
+      with | Ring.Shutdown -> single_attempt ()
            | exn -> fail exn in
       single_attempt ()
 
@@ -529,17 +530,17 @@ let read_512 t sector num_sectors =
   let requests = Single_request.stream_of sector num_sectors in
   Lwt_stream.(concat (map_s (read_single_request t) requests))
 
-let post_suspend t =
+let resume t =
   let vdev = sprintf "%d" t.vdev in
   lwt transport = plug vdev in
   let old_t = t.t in
   t.t <- transport;
-  Ring.Front.post_suspend old_t.ring;
+  Ring.Front.shutdown old_t.ring;
   return ()
 
-let post_suspend () =
+let resume () =
   let devs = Hashtbl.fold (fun k v acc -> (k,v)::acc) devices [] in
-  Lwt_list.iter_p (fun (k,v) -> post_suspend v) devs
+  Lwt_list.iter_p (fun (k,v) -> resume v) devs
 
 let create ~id : Devices.blkif Lwt.t =
   printf "Xen.Blkif: create %s\n%!" id;

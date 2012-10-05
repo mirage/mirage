@@ -89,3 +89,36 @@ tap_opendev(value v_str)
   fprintf(stderr, "tap_opendev: %s\n", dev);
   return Val_int(fd);
 }
+
+CAMLprim value
+pcap_opendev(value v_name) {
+  CAMLparam1(v_name);
+  
+  err(1, "pcap_opendev unimplemented");
+
+  CAMLreturn(Val_int(-1));
+}
+
+CAMLprim value
+pcap_get_buf_len(value v_fd) {
+  CAMLparam1(v_fd);
+  CAMLreturn(Val_int(4096));
+}
+
+CAMLprim value
+get_mac_addr(value v_str) {
+  CAMLparam1( v_str );
+  CAMLlocal1(v_mac);
+
+  int fd;
+  struct ifreq ifq;
+
+  fd = socket(PF_INET, SOCK_DGRAM, 0);
+  strcpy(ifq.ifr_name, String_val(v_str));
+  if (ioctl(fd, SIOCGIFHWADDR, &ifq) < 0)
+    err(1, "ioctl get_mac_addr");
+
+  v_mac = caml_alloc_string(6);
+  memcpy(String_val(v_mac), ifq.ifr_hwaddr.sa_data, 6);
+  CAMLreturn (v_mac);
+}

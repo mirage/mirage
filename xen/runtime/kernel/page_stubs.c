@@ -23,26 +23,29 @@
 #include <caml/fail.h>
 #include <caml/bigarray.h>
 
-/* Allocate an array of [n_pages] bigarrays, returned in ascending address
-   order */
+/* Allocate a page-aligned bigarray of length [n_pages] pages.
+   Since CAML_BA_MANAGED is set the bigarray C finaliser will
+   call free() whenever all sub-bigarrays are unreachable.
+ */
 CAMLprim value
 caml_alloc_pages(value n_pages)
 {
   CAMLparam1(n_pages);
-  CAMLlocal2(page, result);
+  CAMLlocal2(result, bigarray);
   int i;
-  size_t len = Int_val(n_pages);
-  /* XXX: Ideally we would use a lower-level interface to directly allocate pages */
-  unsigned long block = (unsigned long) malloc(PAGE_SIZE * (len + 1));
-  if (!block) caml_failwith("malloc");
-  result = caml_alloc(len, 0);
-  /* Align to a page boundary */
-  block = PAGE_ALIGN(block);
-  while (i < len){
-    page = caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, (long)PAGE_SIZE);
-    Store_field(result, i, page);
-    i++;
-    block += (PAGE_SIZE / sizeof(unsigned long));
-  };
+  size_t len = Int_val(n_pages) * PAGE_SIZE;
+  /* If the allocation fails, return None. The ocaml layer will
+     be able to trigger a full GC which just might run finalizers
+     of unused bigarrays which will free some memory. */
+  result = Val_int(0); /* None */
+  unsigned long block = (unsigned long) memalign(PAGE_SIZE, len);
+  if (!block) {
+	printk("memalign(%d, %d) failed: returning None\n", PAGE_SIZE, len);
+	goto out;
+  }
+  bigarray = caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, (long)len);
+  result = caml_alloc(1, 0);
+  Store_field(result, 0, bigarray);
+ out:
   CAMLreturn(result);
 }

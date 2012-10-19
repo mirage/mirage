@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+# Wrapper script to execute a Mirage binary across multiple backends
+
+set -e
+
+SUDO=${SUDO:-sudo}
+BACKEND=${MIRAGE_DEFAULT_BACKEND:-unix-socket}
+XEN_BIN=${XEN_BIN:-xm}
+
+usage() {
+  cat << EOF
+Execute Mirage binaries across various backends.
+Usage: $0 [-h] [-o <file>] [-b <backend>] [-m <number>]
+          [-n <name>] [-e <error code>]
+          [-vif <if>] [-vbd <file>]
+          [kv_ro <cfg>]
+BACKENDS:
+  unix-socket (default)
+  unix-direct
+  xen
+  
+OPTIONS:
+   -vif   Virtual network interface, bridged to <if>.
+          Can specify this multiple times.
+   -vbd   Virtual block device, mapped to <file>.
+          Can specify this multiple times.
+   -kv_ro Filesystem mapped in as a read-only k/v store.
+          The <cfg> string is id:root_dir for UNIX, and
+          still unsupported for other backends.
+   -o     Log all output to <file>.
+   -b     Mirage backend to use (see BACKENDS above)
+   -n     Name of service (defaults to binary name)
+   -m     Memory in megabytes assigned to container
+   -h     Show this usage message.
+ADVANCED OPTIONS:
+   -e     Expect a non-zero error code from the binary,
+          to help with unit tests (not for normal use).
+EOF
+  exit 1
+}
+
+OUTPUT=
+BINARY=
+declare -a VIFS
+declare -a VBDS
+declare -a KV_ROS
+NVIFS=0
+NVBDS=0
+MEMORY=128
+NAME=
+EXPECT_ERROR=0
+CREATE_VBDS=
+
+# Test if a backend is supported or not, exit if not
+supported() {
+  be=$1
+  case $1 in
+  xen)
+    if [ ! -e /proc/xen/capabilities ]; then
+      echo "Not running on a Xen host (no /proc/xen/capabilities found)"
+      exit 1
+    fi
+    ;;
+  unix-*)
+   # We assume tap is present for unix-direct and unix-socket to always work
+   ;;
+  *)
+   echo Unknown backend $1
+   exit 1
+   ;;
+  esac
+  echo Backend: $1
+}
+
+# Redirect stdout/stderr if OUTPUT is set to a file 
+redirect_shell_output() {
+  if [ "$OUTPUT" != "" ]; then
+    exec >"$OUTPUT" 2>&1
+  fi
+}
+
+# Construct a xend/xl config file and start the domain
+run_xl_domain() {
+    # cd to the kernel directory
+    # Cant readlink earlier as -f doesnt work on MacOS 
+    BINARY=$(readlink -f "$BINARY")
+    BINARYDIR=$(dirname "$BINARY")
+    if [ -z "$NAME" ]; then
+      NAME=$(basename "$BINARY")
+    fi
+    CONF="$BINARYDIR/mirage-xen-$NAME.conf"
+    rm -f "$CONF"
+    cat > $CONF << EOF
+name="$NAME"
+kernel="$BINARY"
+memory=$MEMORY
+superpages=1
+on_crash="preserve"
+EOF
+    echo -n "disk=[ " >> $CONF
+    for vbd in ${VBDS[@]}; do
+      vbdid=$(echo ${vbd} | cut -d : -f 1)
+      vbdfile=$(readlink -f $(echo ${vbd} |cut -d : -f 2))
+      echo -n "'file://$vbdfile,$vbdid,w', "  >> $CONF
+    done
+    echo " ]" >> $CONF
+    echo -n "vif=[ " >> $CONF
+    for vif in ${VIFS[@]}; do
+      echo -n "'bridge=$vif', " >> $CONF
+    done
+    echo " ]" >> $CONF
+    # XXX how to redirect console output to $OUTPUT? tee?
+    ${SUDO} ${XEN_BIN} create -c $CONF
+}
+
+# Run binary and check the return code is as expected
+exec_and_check_error() {
+  echo expect = $EXPECT_ERROR
+  if [ $EXPECT_ERROR -ne 0 ]; then
+    set +e
+    $*
+    ret=$?
+    if [ $ret -eq 0 ]; then
+      echo Expected non-zero return code, but exited cleanly
+      exit 1
+    elif [ $ret -ne $EXPECT_ERROR ]; then
+      # Some of the backends dont quite match up in the exact error code, so just warn
+      echo Warning: expected non-zero return code $EXPECT_ERROR, got $ret instead
+      exit 0
+    else
+      exit 0
+    fi
+  else
+    exec $*
+  fi
+}
+ 
+# Run binary for a backend $1=backend $2=binary
+run() {
+  be=$1
+  bin=$2
+  case $1 in
+  xen)
+    # XXX just use XL for now, but should have a XAPI option too (see scripts/xcp.sh)
+    run_xl_domain
+    ;;
+  unix-*)
+    CMDFLAGS=""
+    for vbd in ${VBDS[@]}; do
+      CMDFLAGS="$CMDFLAGS -vbd ${vbd}"
+    done
+    for kv_ro in ${KV_ROS[@]}; do
+      CMDFLAGS="$CMDFLAGS -simple_kv_ro ${kv_ro}"
+    done
+    redirect_shell_output;
+    exec_and_check_error $bin $CMDFLAGS
+    ;;
+  *)
+    ;;
+  esac
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  -b)
+    shift
+    BACKEND=$1
+    ;;
+  -o)
+    shift
+    OUTPUT="$1"
+    ;;
+  -n)
+    shift
+    NAME="$1"
+    ;;
+  -m)
+    shift
+    MEMORY="$1"
+    ;;
+  -h)
+    usage
+    ;;
+  -vif)
+    shift
+    let "NVIFS = $NVIFS + 1"
+    VIFS[$NVIFS]=$1
+    ;;
+  -vbd)
+    shift
+    let "NVBDS = $NVBDS + 1"
+    VBDS[$NVBDS]=$1
+    ;;
+  -kv_ro)
+    shift
+    let "NKV_ROS = $NKV_ROS + 1"
+    KV_ROS[$NKV_ROS]=$1
+    ;;
+  -create-vbds)
+    shift
+    CREATE_VBDS="$1"
+    ;;
+  -e)
+    shift
+    EXPECT_ERROR="$1"
+    ;;
+  *)
+    BINARY="$1"
+    ;;
+  esac
+  shift
+done
+
+if [[ -z "$BACKEND" ]] || [[ -z "$BINARY" ]]; then
+  usage
+fi
+
+if [ ! -e "$BINARY" ]; then
+  echo Binary $BINARY not found
+  exit 1
+fi
+
+supported $BACKEND
+run $BACKEND "$BINARY"

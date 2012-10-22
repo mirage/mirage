@@ -1,0 +1,6 @@
+select.o
+socket_stubs.o
+checksum_stubs.o
+cstruct_stubs.o
+console_stubs.o
+tap_stubs_os.o

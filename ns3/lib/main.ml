@@ -70,7 +70,7 @@ let run t =
          |Some tm -> tm
        in
         printf "sleep for %f seconds\n%!" timeout;
-       Activations.wait timeout;
+(*       Activations.wait timeout; *)
        fn ()
   in
   fn ()

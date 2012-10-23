@@ -3,7 +3,7 @@
 
 OS=`uname -s`
 
-CFLAGS=${CFLAGS:--Wall -O3}
+CFLAGS=${CFLAGS:--Wall -O3 -I/usr/local/include/ns3-dev/}
 case `uname -m` in
 x86_64)
   CFLAGS="${CFLAGS} -fPIC"
@@ -12,10 +12,8 @@ esac
 
 case "$OS" in
 Darwin)
-  ln -nsf tap_stubs_macosx.c lib/tap_stubs_os.c
   ;;
 Linux)
-  ln -nsf tap_stubs_linux.c lib/tap_stubs_os.c
   ;;
 *)
   echo Unknown arch $OS

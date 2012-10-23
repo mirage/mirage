@@ -76,12 +76,13 @@ let demux_pkt node_name dev_id frame =
     
     let _ = Lwt_condition.signal dev.fd_read pkt in
     let _ = resolve (Lwt_condition.wait dev.fd_read_ret) in
+(*    let _ = Lwt.wakeup_all () in
     let _ = Lwt.wakeup_all () in
     let _ = Lwt.wakeup_all () in
     let _ = Lwt.wakeup_all () in
     let _ = Lwt.wakeup_all () in
     let _ = Lwt.wakeup_all () in
-    let _ = Lwt.wakeup_all () in
+*)
       ()
   with 
   | Not_found ->
@@ -158,12 +159,13 @@ let unblock_device name ix =
     let dev = List.find 
       (fun dev -> (dev.id = (string_of_int ix))) devs in
     let _ =  Lwt_condition.signal dev.fd_write () in
+(*    let _ = Lwt.wakeup_all () in 
     let _ = Lwt.wakeup_all () in 
     let _ = Lwt.wakeup_all () in 
     let _ = Lwt.wakeup_all () in 
     let _ = Lwt.wakeup_all () in 
     let _ = Lwt.wakeup_all () in 
-    let _ = Lwt.wakeup_all () in 
+  *)
       ()
   with Not_found ->
     Printf.printf "Packet cannot be processed for node %s\n" name

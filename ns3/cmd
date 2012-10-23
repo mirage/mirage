@@ -17,6 +17,7 @@ if [ -x "configure.os" ]; then
   . ./configure.os ${target}
 fi
 
+echo $cmd
 OCAMLBUILD=${OCAMLBUILD:-`which ocamlbuild`}
 OCAMLFIND=${OCAMLFIND:-`which ocamlfind`}
 OCAMLBUILD_FLAGS="-classic-display -j ${njobs}"

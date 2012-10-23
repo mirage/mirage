@@ -80,7 +80,7 @@ let wakeup_thread id =
           Lwt.wakeup thread ();
           Hashtbl.remove sleeping_threads id
   in
-  let _= Lwt.wakeup_all () in
+(*  let _= Lwt.wakeup_all () in *)
     () 
 
 let _ = Callback.register "timer_wakeup" wakeup_thread

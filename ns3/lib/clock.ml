@@ -28,15 +28,3 @@ type tm = {
 
 external time : unit -> float = "ns3_gettimeofday"
 external gmtime : float -> tm = "ns3_gmtime"
-
-let () =
-  Log.set_date (fun () ->
-    let tm = gmtime (time ()) in
-    Printf.sprintf "%.4d/%.2d/%.2dT%.2d:%.2d:%.2dZ"
-      (1900+tm.tm_year)
-      tm.tm_mon
-      tm.tm_mday
-      tm.tm_hour
-      tm.tm_min
-      tm.tm_sec)
-    

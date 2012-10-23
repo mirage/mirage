@@ -1,7 +1,7 @@
 .PHONY: all clean depend install
 
 all:
-	./cmd configure unix
+	./cmd configure ns3
 	./cmd build
 
 install:

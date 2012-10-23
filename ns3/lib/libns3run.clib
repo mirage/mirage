@@ -1,6 +1,4 @@
-select.o
-socket_stubs.o
 checksum_stubs.o
-cstruct_stubs.o
+clock_stubs.o
 console_stubs.o
-tap_stubs_os.o
+ns_stubs.o

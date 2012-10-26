@@ -106,7 +106,7 @@ let unplug node_name id =
 (*     Hashtbl.remove devices id *)
   with Not_found -> ()
 
-let create fn =
+let create ?(dev=None) fn =
   let name = 
     match Lwt.get Topology.node_name with 
       | None -> failwith "thread hasn't got a name"

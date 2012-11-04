@@ -1,4 +1,4 @@
-===== 0.4.1 (unreleased) =====
+===== 0.4.1 (04-Nov-2012) =====
 
 * [xen] fix incorrect reference counting in Io_pages that could
   potentially cause pages to be reused too early.

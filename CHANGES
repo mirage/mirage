@@ -1,3 +1,8 @@
+===== 0.5.0 (unreleased)  =====
+
+* [ns3] Add NS3-based simulator backend.
+* [unix] Add pcap-based Ethernet access in addition to tuntap.
+
 ===== 0.4.1 (04-Nov-2012) =====
 
 * [xen] fix incorrect reference counting in Io_pages that could

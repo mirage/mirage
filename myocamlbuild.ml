@@ -85,7 +85,6 @@ module Configure = struct
     flag ["ocaml"; "link"] & S [config_sh "flags.ocaml"];
     (* Include the -cclib for any C bindings being built *)
     let ccinc = List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs")) in
-    let ccinc_shared = List.map (fun x -> A("lib/lib"^x^".a")) (config "clibs") in
     flag ["link"; "library"; "native"; "ocaml"] & S ccinc
 
   (* Flags for building test binaries, which include just-built extensions and libs *)

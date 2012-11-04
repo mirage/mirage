@@ -1,5 +1,5 @@
-(*
- * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+/*
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,19 +12,30 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-type t
-type id = string
+#include <stdio.h>
+#include <string.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
 
-val listen : t -> (Io_page.t -> unit Lwt.t) -> unit Lwt.t
-val destroy : t -> unit Lwt.t
+/* Dont bother with full console, just direct everything to
+   stderr, so console_create is a noop for now */
 
-val write : t -> Io_page.t -> unit Lwt.t
-val writev : t -> Io_page.t list -> unit Lwt.t
+CAMLprim value
+console_create(value v_unit)
+{
+    return Val_int(0);
+}
 
-val create : ?dev:(string option) -> (id -> t -> unit Lwt.t) -> unit Lwt.t
-val get_writebuf : t -> Io_page.t Lwt.t
-
-val mac : t -> string 
-val ethid : t -> id
+CAMLprim value
+console_write(value v_cons, value v_buf, value v_off, value v_len)
+{
+    int len = Int_val(v_len);
+    char buf[len+1];
+    memcpy(buf, String_val(v_buf)+Int_val(v_off), Int_val(v_len));
+    buf[len] = '\0';
+    fprintf(stderr, "%s", buf);
+    fflush(stderr);
+    return Val_unit;
+}

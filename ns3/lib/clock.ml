@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,17 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t
-type id = string
+type tm = {
+  tm_sec : int;
+  tm_min : int;
+  tm_hour : int;
+  tm_mday : int;
+  tm_mon : int;
+  tm_year : int;
+  tm_wday : int;
+  tm_yday : int;
+  tm_isdst : bool;
+}
 
-val listen : t -> (Io_page.t -> unit Lwt.t) -> unit Lwt.t
-val destroy : t -> unit Lwt.t
-
-val write : t -> Io_page.t -> unit Lwt.t
-val writev : t -> Io_page.t list -> unit Lwt.t
-
-val create : ?dev:(string option) -> (id -> t -> unit Lwt.t) -> unit Lwt.t
-val get_writebuf : t -> Io_page.t Lwt.t
-
-val mac : t -> string 
-val ethid : t -> id
+external time : unit -> float = "ns3_gettimeofday"
+external gmtime : float -> tm = "ns3_gmtime"

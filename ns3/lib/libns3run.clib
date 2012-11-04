@@ -1,0 +1,4 @@
+checksum_stubs.o
+clock_stubs.o
+console_stubs.o
+ns_stubs.o

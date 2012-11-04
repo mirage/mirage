@@ -85,6 +85,7 @@ module Configure = struct
     flag ["ocaml"; "link"] & S [config_sh "flags.ocaml"];
     (* Include the -cclib for any C bindings being built *)
     let ccinc = List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs")) in
+    let ccinc_shared = List.map (fun x -> A("lib/lib"^x^".a")) (config "clibs") in
     flag ["link"; "library"; "native"; "ocaml"] & S ccinc
 
   (* Flags for building test binaries, which include just-built extensions and libs *)
@@ -177,7 +178,8 @@ module CC = struct
 
   let rules () = 
     rule "cc: %.c -> %.o" ~prod:"%.o" ~dep:"%.c" (cc_call "c" "%.c" "%.o");
-    rule "cc: %.S -> %.o" ~prod:"%.o" ~dep:"%.S" (cc_call "asm" "%.S" "%.o");
+    rule "cc: %.cc -> %.o" ~prod:"%.o" ~dep:"%.cc" (cc_call "c" "%.cc" "%.o");
+     rule "cc: %.S -> %.o" ~prod:"%.o" ~dep:"%.S" (cc_call "asm" "%.S" "%.o");
     rule "archive: cclib .o -> .a archive"
       ~prod:"%(path:<**/>)lib%(libname:<*>).a"
       ~dep:"%(path)lib%(libname).cclib"

@@ -30,6 +30,15 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <net/ndrv.h>
+#include <ifaddrs.h>
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <net/bpf.h>
+
+#include <string.h>
 
 static void
 setnonblock(int fd)
@@ -70,3 +79,107 @@ tap_opendev(value v_str)
   return Val_int(fd);
 }
 
+CAMLprim value
+eth_opendev(value v_str)
+{
+  char name[IFNAMSIZ];
+  snprintf(name, sizeof name, "%s", String_val(v_str));
+
+  // opening socket
+  int fd = socket(PF_NDRV, SOCK_RAW, 0);
+ 
+  // bind to interface
+  struct sockaddr_ndrv ndrv;
+  strlcpy((char*)ndrv.snd_name, name, IFNAMSIZ);
+  ndrv.snd_len = sizeof(ndrv);
+  ndrv.snd_family = AF_NDRV;
+  bind(fd, (struct sockaddr*)&ndrv, sizeof(ndrv));
+
+  if (fd < 0)
+    err(1, "eth_opendev");
+  setnonblock(fd);
+  
+  // return the fd
+  return Val_int(fd);
+}
+
+CAMLprim value
+pcap_opendev(value v_name) {
+  CAMLparam1(v_name);
+  
+  // opening socket
+  int fd, i, flag = 1;
+  char buf[ 11 ];
+  struct ifreq bound_if;
+  char name[IFNAMSIZ];
+
+  snprintf(name, sizeof name, "%s", String_val(v_name));
+
+  for( i = 0; i < 99; i++ ) {
+    sprintf( buf, "/dev/bpf%i", i );
+    fd = open( buf, O_RDWR );
+    if( fd != -1 )break;
+  }
+
+  if (fd < 0)
+    err(1, "pcap_opendev");
+  printf ("open dev '%s' with bpf '%s'\n", name, buf) ; 
+
+  // bind to interface
+  strcpy(bound_if.ifr_name, name);
+  if(ioctl( fd, BIOCSETIF, &bound_if ) > 0)
+    err(1, "pcap_opendev");
+
+  // activate immediate mode (therefore, buf_len is initially set to "1")
+  if( ioctl(fd, BIOCIMMEDIATE, &flag) == -1)
+    err(1, "pcap_opendev");
+  setnonblock(fd);
+
+  // return the fd
+  CAMLreturn(Val_int(fd));
+}
+
+CAMLprim value
+pcap_get_buf_len(value v_fd) {
+  CAMLparam1(v_fd);
+  int buf_len;
+    
+  // request buffer length
+  if(ioctl( Int_val(v_fd), BIOCGBLEN, &buf_len ) == -1 )
+    err(1, "pcap_get_buf_len");
+
+  CAMLreturn(Val_int(buf_len));
+}
+
+CAMLprim value
+get_mac_addr(value v_str) {
+  CAMLparam1( v_str );
+  CAMLlocal1(v_mac);
+  
+  struct ifaddrs *ifap, *p;
+  char *mac_addr[6]; 
+  int found = 0;
+  char name[IFNAMSIZ];
+  snprintf(name, sizeof name, "%s", String_val(v_str));
+
+  if (getifaddrs(&ifap) != 0) {
+    err(1, "get_mac_addr");
+  }
+
+  for(p = ifap; p != NULL; p = p->ifa_next) {
+    if((strcmp(p->ifa_name, name) == 0) &&
+      (p->ifa_addr != NULL)){
+      memcpy(mac_addr, p->ifa_addr, 6);
+      found = 1;
+      break;
+    } 
+  }
+
+  freeifaddrs(ifap);
+  if (!found) 
+    err(1, "get_mac_addr");
+
+  v_mac = caml_alloc_string(6);
+  memcpy(String_val(v_mac), mac_addr, 6);
+  CAMLreturn (v_mac);
+} 

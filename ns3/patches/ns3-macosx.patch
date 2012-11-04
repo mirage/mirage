@@ -1,0 +1,630 @@
+diff -r 0d6be2f9c438 src/core/wscript
+--- a/src/core/wscript	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/core/wscript	Sat Sep 08 16:02:19 2012 -0700
+@@ -84,7 +84,7 @@
+ 
+     conf.check_nonfatal(header_name='sys/inttypes.h', define_name='HAVE_SYS_INT_TYPES_H')
+ 
+-    if not conf.check_nonfatal(lib='rt', uselib='RT, PTHREAD', define_name='HAVE_RT'):
++    if not conf.check_nonfatal(lib='System.B', uselib='RT, PTHREAD', define_name='HAVE_RT'):
+         conf.report_optional_feature("RealTime", "Real Time Simulator",
+                                      False, "librt is not available")
+     else:
+diff -r 0d6be2f9c438 src/dsr/model/dsr-routing.cc
+--- a/src/dsr/model/dsr-routing.cc	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/dsr/model/dsr-routing.cc	Sat Sep 08 16:02:19 2012 -0700
+@@ -2613,7 +2613,7 @@
+       if (m_rreqTable->GetRreqCnt (dst))
+         {
+           // When the route request count is larger than 0
+-          rreqDelay = Time (std::pow (m_rreqTable->GetRreqCnt (dst), 2) * m_requestPeriod);
++          rreqDelay = Time (std::pow ((double)m_rreqTable->GetRreqCnt (dst), (double)2) * m_requestPeriod);
+         }
+       else
+         {
+diff -r 0d6be2f9c438 src/mirage/model/mirage_queue.cc
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/src/mirage/model/mirage_queue.cc	Sat Sep 08 16:02:19 2012 -0700
+@@ -0,0 +1,172 @@
++/*
++ * Copyright (c) 2007 University of Washington
++ * Copyright (c) 2012 Charalmpos Rotsos <cr409@cl.cam.ac.uk>
++ *
++ * Permission to use, copy, modify, and distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
++ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
++ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
++ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ */
++
++/* 
++ * An ns3 net device queue to generate queue empty events and propagate them
++ * to applications in order to avoid constant queue poling.
++ * */
++#include <ns3/simulator.h>
++#include <ns3/enum.h>
++#include <ns3/uinteger.h>
++#include <ns3/log.h>
++#include "mirage_queue.h"
++
++// NS_LOG_COMPONENT_DEFINE ("MirageQueue");
++
++namespace ns3 {
++
++NS_LOG_COMPONENT_DEFINE ("MirageQueue");
++NS_OBJECT_ENSURE_REGISTERED (MirageQueue);
++
++TypeId MirageQueue::GetTypeId (void) 
++{
++  static TypeId tid = TypeId ("ns3::MirageQueue")
++    .SetParent<Queue> ()
++    .AddConstructor<MirageQueue> ()
++    .AddAttribute ("Mode", 
++                   "Whether to use bytes (see MaxBytes) or packets (see MaxPackets) as the maximum queue size metric.",
++                   EnumValue (QUEUE_MODE_PACKETS),
++                   MakeEnumAccessor (&MirageQueue::SetMode),
++                   MakeEnumChecker (QUEUE_MODE_BYTES, "QUEUE_MODE_BYTES",
++                                    QUEUE_MODE_PACKETS, "QUEUE_MODE_PACKETS"))
++    .AddAttribute ("MaxPackets", 
++                   "The maximum number of packets accepted by this MirageQueue.",
++                   UintegerValue (100),
++                   MakeUintegerAccessor (&MirageQueue::m_maxPackets),
++                   MakeUintegerChecker<uint32_t> ())
++    .AddAttribute ("MaxBytes", 
++                   "The maximum number of bytes accepted by this MirageQueue.",
++                   UintegerValue (100 * 65535),
++                   MakeUintegerAccessor (&MirageQueue::m_maxBytes),
++                   MakeUintegerChecker<uint32_t> ())
++  ;
++
++  return tid;
++}
++
++MirageQueue::MirageQueue () :
++  Queue (),
++  m_packets (),
++  m_bytesInQueue (0)
++{
++  NS_LOG_FUNCTION_NOARGS ();
++}
++
++MirageQueue::~MirageQueue ()
++{
++  NS_LOG_FUNCTION_NOARGS ();
++}
++
++void
++MirageQueue::SetMode (MirageQueue::QueueMode mode)
++{
++  NS_LOG_FUNCTION (mode);
++  m_mode = mode;
++}
++
++MirageQueue::QueueMode
++MirageQueue::GetMode (void)
++{
++  NS_LOG_FUNCTION_NOARGS ();
++  return m_mode;
++}
++
++bool 
++MirageQueue::DoEnqueue (Ptr<Packet> p)
++{
++  NS_LOG_FUNCTION (this << p);
++
++  if (m_mode == QUEUE_MODE_PACKETS && (m_packets.size () >= m_maxPackets))
++    {
++      NS_LOG_LOGIC ("Queue full (at max packets) -- droppping pkt");
++      Drop (p);
++      return false;
++    }
++
++  if (m_mode == QUEUE_MODE_BYTES && (m_bytesInQueue + p->GetSize () >= m_maxBytes))
++    {
++      NS_LOG_LOGIC ("Queue full (packet would exceed max bytes) -- droppping pkt");
++      Drop (p);
++      return false;
++    }
++
++  m_bytesInQueue += p->GetSize ();
++  m_packets.push (p);
++
++  NS_LOG_LOGIC ("Number packets " << m_packets.size ());
++  NS_LOG_LOGIC ("Number bytes " << m_bytesInQueue);
++
++  return true;
++}
++
++Ptr<Packet>
++MirageQueue::DoDequeue (void)
++{
++  NS_LOG_FUNCTION (this);
++
++  if (m_packets.empty ())
++    {
++      NS_LOG_LOGIC ("Queue empty");
++      return 0;
++    }
++
++  Ptr<Packet> p = m_packets.front ();
++  m_packets.pop ();
++  m_bytesInQueue -= p->GetSize ();
++
++  NS_LOG_LOGIC ("Popped " << p);
++
++  NS_LOG_LOGIC ("Number packets " << m_packets.size ());
++  NS_LOG_LOGIC ("Number bytes " << m_bytesInQueue);
++
++  if (!this->m_unblockCallback.IsNull ()) {
++     Simulator::ScheduleNow(&MirageQueue::NotifyQueueEmpty, this);
++  }
++  return p;
++}
++
++void
++MirageQueue::NotifyQueueEmpty() {
++  this->m_unblockCallback(this->m_device);
++}
++
++Ptr<const Packet>
++MirageQueue::DoPeek (void) const
++{
++  NS_LOG_FUNCTION (this);
++
++  if (m_packets.empty ())
++    {
++      NS_LOG_LOGIC ("Queue empty");
++      return 0;
++    }
++
++  Ptr<Packet> p = m_packets.front ();
++
++  NS_LOG_LOGIC ("Number packets " << m_packets.size ());
++  NS_LOG_LOGIC ("Number bytes " << m_bytesInQueue);
++
++  return p;
++}
++
++void 
++MirageQueue::SetUnblockCallback(QueueUnblockCallback cb, Ptr<NetDevice> dev) {
++  this->m_unblockCallback = cb;
++  this->m_device = dev;
++}
++
++} // namespace ns3
+diff -r 0d6be2f9c438 src/mirage/model/mirage_queue.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/src/mirage/model/mirage_queue.h	Sat Sep 08 16:02:19 2012 -0700
+@@ -0,0 +1,99 @@
++/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
++/*
++ * Copyright (c) 2007 University of Washington
++ * Copyright (c) 2012 Charalmpos Rotsos <cr409@cl.cam.ac.uk>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation;
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ */
++
++// The queue base class does not have any limit based on the number
++// of packets or number of bytes. It is, conceptually, infinite 
++// by default. Only subclasses define limitations.
++// The base class implements tracing and basic statistics calculations.
++
++#ifndef MIRAGE_QUEUE_H
++#define MIRAGE_QUEUE_H
++
++#include <queue>
++#include <ns3/packet.h>
++#include <ns3/queue.h>
++#include <ns3/net-device.h>
++#include <ns3/log.h>
++
++namespace ns3 {
++
++class TraceContainer;
++
++/**
++ * \ingroup queue
++ *
++ * \brief A FIFO packet queue that drops tail-end packets on overflow
++ */
++class MirageQueue : public Queue {
++
++public:
++  enum QueueMode
++  {
++    QUEUE_MODE_PACKETS,     /**< Use number of packets for maximum queue size */
++    QUEUE_MODE_BYTES,       /**< Use number of bytes for maximum queue size */
++  };
++
++
++  typedef Callback< bool, Ptr<NetDevice> > QueueUnblockCallback;
++
++  static TypeId GetTypeId (void);
++  /**
++   * \brief MirageQueue Constructor
++   *
++   * Creates a droptail queue with a maximum size of 100 packets by default
++   */
++  MirageQueue ();
++
++  virtual ~MirageQueue();
++
++  /**
++   * Set the operating mode of this device.
++   *
++   * \param mode The operating mode of this device.
++   *
++   */
++  void SetMode (MirageQueue::QueueMode mode);
++
++  /**
++   * Get the encapsulation mode of this device.
++   *
++   * \returns The encapsulation mode of this device.
++   */
++  MirageQueue::QueueMode GetMode (void);
++
++  void SetUnblockCallback(QueueUnblockCallback cb, Ptr<NetDevice> dev);
++
++private:
++  virtual bool DoEnqueue (Ptr<Packet> p);
++  virtual Ptr<Packet> DoDequeue (void);
++  virtual Ptr<const Packet> DoPeek (void) const;
++  void NotifyQueueEmpty(void);
++
++  std::queue<Ptr<Packet> > m_packets;
++  uint32_t m_maxPackets;
++  uint32_t m_maxBytes;
++  uint32_t m_bytesInQueue;
++  QueueMode m_mode;
++  MirageQueue::QueueUnblockCallback m_unblockCallback;
++  Ptr<NetDevice> m_device;
++};
++
++} // namespace ns3
++
++#endif /* MIRAGE_QUEUE_H */
+diff -r 0d6be2f9c438 src/mirage/wscript
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/src/mirage/wscript	Sat Sep 08 16:02:19 2012 -0700
+@@ -0,0 +1,18 @@
++## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
++
++import os.path
++
++def configure(conf):
++   return
++
++def build(bld):
++
++    module = bld.create_ns3_module('mirage', ['network'])
++    module.source = [
++        'model/mirage_queue.cc',
++        ]
++    headers = bld.new_task_gen(features=['ns3header'])
++    headers.module = 'mirage'
++    headers.source = [
++        'model/mirage_queue.h',
++        ]
+diff -r 0d6be2f9c438 src/mpi/wscript
+--- a/src/mpi/wscript	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/mpi/wscript	Sat Sep 08 16:02:19 2012 -0700
+@@ -20,9 +20,9 @@
+         if mpi:
+             conf.env.append_value('DEFINES_MPI', 'NS3_MPI')
+             conf.env['ENABLE_MPI'] = True
+-            for libpath in conf.env.LIBPATH_MPI:
+-                if 'mpi' in libpath:
+-                    conf.env.append_value('LINKFLAGS_MPI', '-Wl,-rpath='+libpath)
++#            for libpath in conf.env.LIBPATH_MPI:
++#                if 'mpi' in libpath:
++#                    conf.env.append_value('LINKFLAGS_MPI', '-Wl,-rpath='+libpath)
+             conf.report_optional_feature("mpi", "MPI Support", True, '')            
+         else:
+             conf.report_optional_feature("mpi", "MPI Support", False, 'mpic++ not found')
+diff -r 0d6be2f9c438 src/tap-bridge/model/tap-bridge.cc
+--- a/src/tap-bridge/model/tap-bridge.cc	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/tap-bridge/model/tap-bridge.cc	Sat Sep 08 16:02:19 2012 -0700
+@@ -58,7 +58,7 @@
+ #ifdef NO_CREATOR
+ #include <fcntl.h>
+ #include <net/if.h>
+-#include <linux/if_tun.h>
++// #include <linux/if_tun.h>
+ #include <sys/ioctl.h>
+ #endif
+ 
+diff -r 0d6be2f9c438 src/tap-bridge/model/tap-creator.cc
+--- a/src/tap-bridge/model/tap-creator.cc	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/tap-bridge/model/tap-creator.cc	Sat Sep 08 16:02:19 2012 -0700
+@@ -31,7 +31,7 @@
+ #include <sys/socket.h>
+ #include <sys/un.h>
+ #include <net/if.h>
+-#include <linux/if_tun.h>
++// #include <linux/if_tun.h>
+ #include <net/route.h>
+ #include <netinet/in.h>
+ 
+@@ -73,83 +73,83 @@
+ #define ASCII_COLON (0x3a)
+ #define ASCII_ZERO (0x30)
+ 
+-static char
+-AsciiToLowCase (char c)
+-{
+-  if (c >= ASCII_a && c <= ASCII_z) {
+-      return c;
+-    } else if (c >= ASCII_A && c <= ASCII_Z) {
+-      return c + (ASCII_a - ASCII_A);
+-    } else {
+-      return c;
+-    }
+-}
++// static char
++// AsciiToLowCase (char c)
++// {
++//   if (c >= ASCII_a && c <= ASCII_z) {
++//       return c;
++//     } else if (c >= ASCII_A && c <= ASCII_Z) {
++//       return c + (ASCII_a - ASCII_A);
++//     } else {
++//       return c;
++//     }
++// }
+ 
+-static uint32_t 
+-AsciiToIpv4 (const char *address)
+-{
+-  uint32_t host = 0;
+-  while (true) {
+-      uint8_t byte = 0;
+-      while (*address != ASCII_DOT &&
+-             *address != 0) {
+-          byte *= 10;
+-          byte += *address - ASCII_ZERO;
+-          address++;
+-        }
+-      host <<= 8;
+-      host |= byte;
+-      if (*address == 0) {
+-          break;
+-        }
+-      address++;
+-    }
+-  return host;
+-}
++// static uint32_t 
++// AsciiToIpv4 (const char *address)
++// {
++//   uint32_t host = 0;
++//   while (true) {
++//       uint8_t byte = 0;
++//       while (*address != ASCII_DOT &&
++//              *address != 0) {
++//           byte *= 10;
++//           byte += *address - ASCII_ZERO;
++//           address++;
++//         }
++//       host <<= 8;
++//       host |= byte;
++//       if (*address == 0) {
++//           break;
++//         }
++//       address++;
++//     }
++//   return host;
++// }
++// 
++// static void 
++// AsciiToMac48 (const char *str, uint8_t addr[6])
++// {
++//   int i = 0;
++//   while (*str != 0 && i < 6) 
++//     {
++//       uint8_t byte = 0;
++//       while (*str != ASCII_COLON && *str != 0) 
++//         {
++//           byte <<= 4;
++//           char low = AsciiToLowCase (*str);
++//           if (low >= ASCII_a)
++//             {
++//               byte |= low - ASCII_a + 10;
++//             }
++//           else
++//             {
++//               byte |= low - ASCII_ZERO;
++//             }
++//           str++;
++//         }
++//       addr[i] = byte;
++//       i++;
++//       if (*str == 0) 
++//         {
++//           break;
++//         }
++//       str++;
++//     }
++// }
+ 
+-static void 
+-AsciiToMac48 (const char *str, uint8_t addr[6])
+-{
+-  int i = 0;
+-  while (*str != 0 && i < 6) 
+-    {
+-      uint8_t byte = 0;
+-      while (*str != ASCII_COLON && *str != 0) 
+-        {
+-          byte <<= 4;
+-          char low = AsciiToLowCase (*str);
+-          if (low >= ASCII_a)
+-            {
+-              byte |= low - ASCII_a + 10;
+-            }
+-          else
+-            {
+-              byte |= low - ASCII_ZERO;
+-            }
+-          str++;
+-        }
+-      addr[i] = byte;
+-      i++;
+-      if (*str == 0) 
+-        {
+-          break;
+-        }
+-      str++;
+-    }
+-}
+-
+-static sockaddr
+-CreateInetAddress (uint32_t networkOrder)
+-{
+-  union {
+-    struct sockaddr any_socket;
+-    struct sockaddr_in si;
+-  } s;
+-  s.si.sin_family = AF_INET;
+-  s.si.sin_port = 0; // unused
+-  s.si.sin_addr.s_addr = htonl (networkOrder);
+-  return s.any_socket;
+-}
++// static sockaddr
++// CreateInetAddress (uint32_t networkOrder)
++// {
++//   union {
++//     struct sockaddr any_socket;
++//     struct sockaddr_in si;
++//   } s;
++//   s.si.sin_family = AF_INET;
++//   s.si.sin_port = 0; // unused
++//   s.si.sin_addr.s_addr = htonl (networkOrder);
++//   return s.any_socket;
++// }
+ 
+ static void
+ SendSocket (const char *path, int fd)
+@@ -289,14 +289,14 @@
+   //
+   // If the device does not already exist, the system will create one.
+   //
+-  struct ifreq ifr;
+-  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+-  strcpy (ifr.ifr_name, dev);
+-  int status = ioctl (tap, TUNSETIFF, (void *) &ifr);
+-  ABORT_IF (status == -1, "Could not allocate tap device", true);
++  // struct ifreq ifr;
++  // ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
++  // strcpy (ifr.ifr_name, dev);
++  // int status = ioctl (tap, TUNSETIFF, (void *) &ifr);
++  // ABORT_IF (status == -1, "Could not allocate tap device", true);
+ 
+-  std::string tapDeviceName = (char *)ifr.ifr_name;
+-  LOG ("Allocated TAP device " << tapDeviceName);
++  // std::string tapDeviceName = (char *)ifr.ifr_name;
++  // LOG ("Allocated TAP device " << tapDeviceName);
+ 
+   //
+   // Operating mode "2" corresponds to USE_LOCAL and "3" to USE_BRIDGE mode.
+@@ -313,39 +313,39 @@
+   //
+   // Set the hardware (MAC) address of the new device
+   //
+-  ifr.ifr_hwaddr.sa_family = 1; // this is ARPHRD_ETHER from if_arp.h
+-  AsciiToMac48 (mac, (uint8_t*)ifr.ifr_hwaddr.sa_data);
+-  status = ioctl (tap, SIOCSIFHWADDR, &ifr);
+-  ABORT_IF (status == -1, "Could not set MAC address", true);
+-  LOG ("Set device MAC address to " << mac);
++  // ifr.ifr_hwaddr.sa_family = 1; // this is ARPHRD_ETHER from if_arp.h
++  // AsciiToMac48 (mac, (uint8_t*)ifr.ifr_hwaddr.sa_data);
++  // status = ioctl (tap, SIOCSIFHWADDR, &ifr);
++  // ABORT_IF (status == -1, "Could not set MAC address", true);
++  // LOG ("Set device MAC address to " << mac);
+ 
+-  int fd = socket (AF_INET, SOCK_DGRAM, 0);
++  // int fd = socket (AF_INET, SOCK_DGRAM, 0);
+ 
+   //
+   // Bring the interface up.
+   //
+-  status = ioctl (fd, SIOCGIFFLAGS, &ifr);
+-  ABORT_IF (status == -1, "Could not get flags for interface", true);
+-  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+-  status = ioctl (fd, SIOCSIFFLAGS, &ifr);
+-  ABORT_IF (status == -1, "Could not bring interface up", true);
+-  LOG ("Device is up");
++  // status = ioctl (fd, SIOCGIFFLAGS, &ifr);
++  // ABORT_IF (status == -1, "Could not get flags for interface", true);
++  // ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
++  // status = ioctl (fd, SIOCSIFFLAGS, &ifr);
++  // ABORT_IF (status == -1, "Could not bring interface up", true);
++  // LOG ("Device is up");
+ 
+   //
+   // Set the IP address of the new interface/device.
+   //
+-  ifr.ifr_addr = CreateInetAddress (AsciiToIpv4 (ip));
+-  status = ioctl (fd, SIOCSIFADDR, &ifr);
+-  ABORT_IF (status == -1, "Could not set IP address", true);
+-  LOG ("Set device IP address to " << ip);
++  // ifr.ifr_addr = CreateInetAddress (AsciiToIpv4 (ip));
++  // status = ioctl (fd, SIOCSIFADDR, &ifr);
++  // ABORT_IF (status == -1, "Could not set IP address", true);
++  // LOG ("Set device IP address to " << ip);
+ 
+   //
+   // Set the net mask of the new interface/device
+   //
+-  ifr.ifr_netmask = CreateInetAddress (AsciiToIpv4 (netmask));
+-  status = ioctl (fd, SIOCSIFNETMASK, &ifr);
+-  ABORT_IF (status == -1, "Could not set net mask", true);
+-  LOG ("Set device Net Mask to " << netmask);
++  // ifr.ifr_netmask = CreateInetAddress (AsciiToIpv4 (netmask));
++  // status = ioctl (fd, SIOCSIFNETMASK, &ifr);
++  // ABORT_IF (status == -1, "Could not set net mask", true);
++  // LOG ("Set device Net Mask to " << netmask);
+ 
+   return tap;
+ }
+diff -r 0d6be2f9c438 src/tap-bridge/wscript
+--- a/src/tap-bridge/wscript	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/tap-bridge/wscript	Sat Sep 08 16:02:19 2012 -0700
+@@ -4,7 +4,7 @@
+ 
+ def configure(conf):
+     if conf.env['ENABLE_THREADING']:
+-        conf.env['ENABLE_TAP'] = conf.check_nonfatal(header_name='linux/if_tun.h',
++        conf.env['ENABLE_TAP'] = conf.check_nonfatal(header_name='gcrypt.h',
+                                             define_name='HAVE_IF_TUN_H')
+         conf.report_optional_feature("TapBridge", "Tap Bridge",
+                                      conf.env['ENABLE_TAP'],
+diff -r 0d6be2f9c438 src/wimax/model/simple-ofdm-wimax-phy.cc
+--- a/src/wimax/model/simple-ofdm-wimax-phy.cc	Fri Sep 07 12:45:26 2012 -0700
++++ b/src/wimax/model/simple-ofdm-wimax-phy.cc	Sat Sep 08 16:02:19 2012 -0700
+@@ -522,7 +522,7 @@
+       for (int l = 0; l < 8; l++)
+         {
+           bool bin = buffer.at (i + l);
+-          temp += (uint8_t)(bin * std::pow (2, (7 - l)));
++          temp += (uint8_t)(bin * std::pow ((double)2, (double)(7 - l)));
+         }
+ 
+       *(pstart + j) = temp;

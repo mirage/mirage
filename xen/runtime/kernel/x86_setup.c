@@ -84,7 +84,7 @@ arch_init(start_info_t *si)
     /* Grab the shared_info pointer and put it in a safe place. */
     HYPERVISOR_shared_info = map_shared_info(start_info.shared_info);
 
-        /* Set up event and failsafe callback addresses. */
+    /* Set up event and failsafe callback addresses. */
     HYPERVISOR_set_callbacks(
         (unsigned long)hypervisor_callback,
         (unsigned long)failsafe_callback, 0);

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: instrtrace.h 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id$ */
 
 /* Trace the instructions executed */
 

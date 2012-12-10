@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: reverse.h 6021 2003-12-15 18:10:51Z doligez $ */
+/* $Id$ */
 
 /* Swap byte-order in 16, 32, and 64-bit integers or floats */
 

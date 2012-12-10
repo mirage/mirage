@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: backtrace.h 9540 2010-01-20 16:26:46Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_BACKTRACE_H
 #define CAML_BACKTRACE_H

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*           Xavier Leroy, projet Cristal, INRIA Rocquencourt          */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: globroots.h 8828 2008-03-10 19:56:39Z xleroy $ */
+/* $Id$ */
 
 /* Registration of global memory roots */
 

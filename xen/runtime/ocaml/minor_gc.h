@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: minor_gc.h 8211 2007-05-04 14:05:13Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_MINOR_GC_H
 #define CAML_MINOR_GC_H

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: config.h 9153 2008-12-03 18:09:09Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_CONFIG_H
 #define CAML_CONFIG_H
@@ -19,8 +19,8 @@
 /* <include ../config/m.h> */
 /* <include ../config/s.h> */
 /* <private> */
-#include "m.h"
-#include "s.h"
+#include "../config/m.h"
+#include "../config/s.h"
 /* </private> */
 
 #ifndef CAML_NAME_SPACE
@@ -135,12 +135,8 @@ typedef struct { uint32 l, h; } uint64, int64;
 #define Minor_heap_max (1 << 28)
 
 /* Default size of the minor zone. (words)  */
-#ifdef SYS_xen
-/* XXX Temporary fix until the memory allocator is rewritten */
-#define Minor_heap_def (32768 * 4)
-#else
-#define Minor_heap_def 32768
-#endif
+#define Minor_heap_def 262144
+
 
 /* Minimum size increment when growing the heap (words).
    Must be a multiple of [Page_size / sizeof (value)]. */

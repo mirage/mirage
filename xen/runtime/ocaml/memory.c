@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: memory.c 9153 2008-12-03 18:09:09Z doligez $ */
+/* $Id$ */
 
 #include <stdlib.h>
 #include <string.h>
@@ -26,11 +26,6 @@
 #include "misc.h"
 #include "mlvalues.h"
 #include "signals.h"
-#include <stdio.h>
-#ifdef USE_STATIC_VMEM
-#include <stdint.h>
-#include <xen/xen.h>
-#endif
 
 extern uintnat caml_percent_free;                   /* major_gc.c */
 
@@ -72,22 +67,8 @@ static struct page_table caml_page_table;
 #endif
 #define Hash(v) (((v) * HASH_FACTOR) >> caml_page_table.shift)
 
-#ifdef USE_STATIC_VMEM
-extern unsigned long _mlstart, _mlend;
-static unsigned long mlstart = (unsigned long)&_mlstart;
-static unsigned long mlend = (unsigned long)&_mlend;
-#endif
-
 int caml_page_table_lookup(void * addr)
 {
-#ifdef USE_STATIC_VMEM
-  if (addr >= (void *)MAJOR_HEAP_BASE)
-    return In_heap;
-  else if (addr >= (void *)MINOR_HEAP_BASE)
-    return In_young;
-  else if ((unsigned long)addr >= mlstart && (unsigned long)addr < mlend)
-    return In_static_data;
-#endif
   uintnat h, e;
 
   h = Hash(Page(addr));
@@ -249,7 +230,7 @@ char *caml_alloc_for_heap (asize_t request)
   char *mem;
   void *block;
                                               Assert (request % Page_size == 0);
-  mem = caml_aligned_malloc_for_major (request + sizeof(heap_chunk_head),
+  mem = caml_aligned_malloc (request + sizeof (heap_chunk_head),
                              sizeof (heap_chunk_head), &block);
   if (mem == NULL) return NULL;
   mem += sizeof (heap_chunk_head);
@@ -263,12 +244,7 @@ char *caml_alloc_for_heap (asize_t request)
 */
 void caml_free_for_heap (char *mem)
 {
-#ifdef SYS_xen
-//  fprintf(stderr,"free_for_heap\n");
-//  free (Chunk_block (mem));
-#else
   free (Chunk_block (mem));
-#endif
 }
 
 /* Take a chunk of memory as argument, which must be the result of a
@@ -279,6 +255,8 @@ void caml_free_for_heap (char *mem)
    caller.  All other blocks must have the color [caml_allocation_color(m)].
    The caller must update [caml_allocated_words] if applicable.
    Return value: 0 if no error; -1 in case of error.
+
+   See also: caml_compact_heap, which duplicates most of this function.
 */
 int caml_add_to_heap (char *m)
 {
@@ -340,7 +318,7 @@ static char *expand_heap (mlsize_t request)
   }
   remain = malloc_request;
   prev = hp = mem;
-  /* XXX find a way to do this with a call to caml_make_free_blocks */
+  /* FIXME find a way to do this with a call to caml_make_free_blocks */
   while (Wosize_bhsize (remain) > Max_wosize){
     Hd_hp (hp) = Make_header (Max_wosize, 0, Caml_blue);
 #ifdef DEBUG
@@ -375,10 +353,9 @@ static char *expand_heap (mlsize_t request)
 */
 void caml_shrink_heap (char *chunk)
 {
-  return;
   char **cp;
 
-  /* Never deallocate the first block, because caml_heap_start is both the
+  /* Never deallocate the first chunk, because caml_heap_start is both the
      first block and the base address for page numbers, and we don't
      want to shift the page table, it's too messy (see above).
      It will never happen anyway, because of the way compaction works.

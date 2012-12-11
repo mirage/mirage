@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: freelist.c 9153 2008-12-03 18:09:09Z doligez $ */
+/* $Id$ */
 
 #define FREELIST_DEBUG 0
 #if FREELIST_DEBUG
@@ -509,8 +509,11 @@ void caml_fl_add_blocks (char *bp)
    p: pointer to the first word of the block
    size: size of the block (in words)
    do_merge: 1 -> do merge; 0 -> do not merge
+   color: which color to give to the pieces; if [do_merge] is 1, this
+          is overridden by the merge code, but we have historically used
+          [Caml_white].
 */
-void caml_make_free_blocks (value *p, mlsize_t size, int do_merge)
+void caml_make_free_blocks (value *p, mlsize_t size, int do_merge, int color)
 {
   mlsize_t sz;
 
@@ -520,7 +523,7 @@ void caml_make_free_blocks (value *p, mlsize_t size, int do_merge)
     }else{
       sz = size;
     }
-    *(header_t *)p = Make_header (Wosize_whsize (sz), 0, Caml_white);
+    *(header_t *)p = Make_header (Wosize_whsize (sz), 0, color);
     if (do_merge) caml_fl_merge_block (Bp_hp (p));
     size -= sz;
     p += sz;
@@ -532,14 +535,14 @@ void caml_set_allocation_policy (uintnat p)
   switch (p){
   case Policy_next_fit:
     fl_prev = Fl_head;
+    policy = p;
     break;
   case Policy_first_fit:
     flp_size = 0;
     beyond = NULL;
+    policy = p;
     break;
   default:
-    Assert (0);
     break;
   }
-  policy = p;
 }

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: major_gc.c 9410 2009-11-04 12:25:47Z doligez $ */
+/* $Id$ */
 
 #include <limits.h>
 
@@ -28,10 +28,6 @@
 #include "mlvalues.h"
 #include "roots.h"
 #include "weak.h"
-
-#ifdef USE_STATIC_VMEM
-#include <mini-os/lib.h>
-#endif
 
 uintnat caml_percent_free;
 uintnat caml_major_heap_increment;
@@ -237,7 +233,11 @@ static void mark_slice (intnat work)
           weak_prev = &Field (cur, 0);
           work -= Whsize_hd (hd);
         }else{
-          /* Subphase_weak1 is done.  Start removing dead weak arrays. */
+          /* Subphase_weak1 is done.
+             Handle finalised values and start removing dead weak arrays. */
+          gray_vals_cur = gray_vals_ptr;
+          caml_final_update ();
+          gray_vals_ptr = gray_vals_cur;
           caml_gc_subphase = Subphase_weak2;
           weak_prev = &caml_weak_list_head;
         }
@@ -258,10 +258,7 @@ static void mark_slice (intnat work)
           }
           work -= 1;
         }else{
-          /* Subphase_weak2 is done.  Handle finalised values. */
-          gray_vals_cur = gray_vals_ptr;
-          caml_final_update ();
-          gray_vals_ptr = gray_vals_cur;
+          /* Subphase_weak2 is done.  Go to Subphase_final. */
           caml_gc_subphase = Subphase_final;
         }
       }
@@ -459,19 +456,7 @@ static asize_t clip_heap_chunk_size (asize_t request)
   if (request < Bsize_wsize (Heap_chunk_min)){
     request = Bsize_wsize (Heap_chunk_min);
   }
-
-#ifdef USE_STATIC_VMEM
-  /* For superpages, round up to the nearest 2MB chunk. The additional 2
-   * 4KB pages account for the heap chunk (so that the caml_aligned_malloc
-   * receives precisely a 2MB request and not a page more.
-   */
-#define roundup(x,y) ((((x)+((y)-1))/(y))*(y))
-  asize_t result;
-  result = roundup(request + (Page_size*2), PAGE_SIZE << 9) - (Page_size*2);
-  return result;
-#else
   return ((request + Page_size - 1) >> Page_log) << Page_log;
-#endif 
 }
 
 /* Make sure the request is >= caml_major_heap_increment, then call
@@ -511,13 +496,9 @@ void caml_init_major_heap (asize_t heap_size)
 
   caml_fl_init_merge ();
   caml_make_free_blocks ((value *) caml_heap_start,
-                         Wsize_bsize (caml_stat_heap_size), 1);
+                         Wsize_bsize (caml_stat_heap_size), 1, Caml_white);
   caml_gc_phase = Phase_idle;
-#ifdef SYS_xen
-  gray_vals_size = 8192;
-#else
   gray_vals_size = 2048;
-#endif
   gray_vals = (value *) malloc (gray_vals_size * sizeof (value));
   if (gray_vals == NULL)
     caml_fatal_error ("Fatal error: not enough memory for the gray cache.\n");

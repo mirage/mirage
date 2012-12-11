@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Manuel Serrano and Xavier Leroy, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: custom.c 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id$ */
 
 #include <string.h>
 
@@ -83,6 +83,7 @@ struct custom_operations * caml_final_custom_operations(final_fun fn)
   ops->hash = custom_hash_default;
   ops->serialize = custom_serialize_default;
   ops->deserialize = custom_deserialize_default;
+  ops->compare_ext = custom_compare_ext_default;
   l = caml_stat_alloc(sizeof(struct custom_operations_list));
   l->ops = ops;
   l->next = custom_ops_final_table;

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: signals.h 7904 2007-02-23 09:29:45Z xleroy $ */
+/* $Id$ */
 
 #ifndef CAML_SIGNALS_H
 #define CAML_SIGNALS_H
@@ -21,6 +21,10 @@
 #endif
 #include "misc.h"
 #include "mlvalues.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* <private> */
 CAMLextern intnat volatile caml_signals_are_pending;
@@ -47,5 +51,9 @@ CAMLextern void (*caml_leave_blocking_section_hook)(void);
 CAMLextern int (*caml_try_leave_blocking_section_hook)(void);
 CAMLextern void (* volatile caml_async_action_hook)(void);
 /* </private> */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CAML_SIGNALS_H */

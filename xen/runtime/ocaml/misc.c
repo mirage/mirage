@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,23 +11,12 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: misc.c 8822 2008-02-29 12:56:15Z doligez $ */
+/* $Id$ */
 
 #include <stdio.h>
 #include "config.h"
 #include "misc.h"
 #include "memory.h"
-
-#ifdef USE_STATIC_VMEM
-#include <xen/xen.h>
-#include <mini-os/lib.h>
-#include <sys/param.h>
-
-extern int allocate_va_mapping(unsigned long va, unsigned long nr_pages, int superpages);
-static unsigned long ocaml_major_brk = MAJOR_HEAP_BASE;
-static unsigned long ocaml_minor_brk = MINOR_HEAP_BASE;
-
-#endif
 
 #ifdef DEBUG
 
@@ -35,6 +24,7 @@ int caml_failed_assert (char * expr, char * file, int line)
 {
   fprintf (stderr, "file %s; line %d ### Assertion failed: %s\n",
            file, line, expr);
+  fflush (stderr);
   exit (100);
   return 1; /* not reached */
 }
@@ -55,6 +45,7 @@ void caml_gc_message (int level, char *msg, uintnat arg)
 {
   if (level < 0 || (caml_verb_gc & level) != 0){
     fprintf (stderr, msg, arg);
+    fflush (stderr);
   }
 }
 
@@ -78,84 +69,13 @@ CAMLexport void caml_fatal_error_arg2 (char *fmt1, char *arg1,
   exit(2);
 }
 
-char *caml_aligned_malloc_for_minor (asize_t size, int modulo, void **block)
+char *caml_aligned_malloc (asize_t size, int modulo, void **block)
 {
   char *raw_mem;
   uintnat aligned_mem;
                                                   Assert (modulo < Page_size);
-#ifdef USE_STATIC_VMEM
-  unsigned long nr_pages = (size + Page_size) / Page_size;
-  int rc;
-  rc = allocate_va_mapping(ocaml_minor_brk, nr_pages, 0);
-  if (rc != 0) {
-    fprintf(stderr, "allocate_va_mapping: failed %p rc=%d\n", ocaml_major_brk, rc);
-    return NULL; 
-  }
-  raw_mem = (char *)ocaml_minor_brk;
-  ocaml_minor_brk += nr_pages * Page_size;
-  //fprintf(stderr, "alloc_minor: size=%d modulo=%d nr_pages=%d brk=%p brk2=%p\n", size, modulo, nr_pages, raw_mem, ocaml_minor_brk);
-#else  /* !SYS_xen */
   raw_mem = (char *) malloc (size + Page_size);
   if (raw_mem == NULL) return NULL;
-#endif /* SYS_xen */
-  *block = raw_mem;
-  raw_mem += modulo;                /* Address to be aligned */
-  aligned_mem = (((uintnat) raw_mem / Page_size + 1) * Page_size);
-#ifdef DEBUG
-  {
-    uintnat *p;
-    uintnat *p0 = (void *) *block,
-            *p1 = (void *) (aligned_mem - modulo),
-            *p2 = (void *) (aligned_mem - modulo + size),
-            *p3 = (void *) ((char *) *block + size + Page_size);
-
-    for (p = p0; p < p1; p++) *p = Debug_filler_align;
-    for (p = p1; p < p2; p++) *p = Debug_uninit_align;
-    for (p = p2; p < p3; p++) *p = Debug_filler_align;
-  }
-#endif
-  return (char *) (aligned_mem - modulo);
-}
-
-#ifdef USE_STATIC_VMEM
-/* If we ever get a superpage mapping failure, then turn off this flag
- * and fall back to normal 4Kb pages. Note that Xen is required to be booted
- * with the "allowsuperpage" hypervisor option to permit this to work at all,
- * and so most Xen installations will fail on superpage mappings.  It may
- * also affect suspend/resume.
- */
-static int use_superpages = 1;
-#endif
-
-char *caml_aligned_malloc_for_major (asize_t size, int modulo, void **block)
-{
-  char *raw_mem;
-  uintnat aligned_mem;
-                                                  Assert (modulo < Page_size);
-#ifdef USE_STATIC_VMEM
-  unsigned long nr_pages = (size + Page_size + Page_size) / Page_size;
-  int rc;
-  if (use_superpages) {
-    Assert ((nr_pages % (1 << SUPERPAGE_SHIFT)) == 0);
-    rc = allocate_va_mapping(ocaml_major_brk, (nr_pages >> SUPERPAGE_SHIFT), 1);
-    if (rc != 0) {
-      fprintf(stderr, "superpage mapping failed, falling back to normal pages\n");
-      use_superpages = 0;
-      rc = allocate_va_mapping(ocaml_major_brk, nr_pages, 0);
-    }
-  } else  {
-    rc = allocate_va_mapping(ocaml_major_brk, nr_pages, 0);
-  }
-  if (rc != 0) {
-    fprintf(stderr, "allocate_va_mapping: failed %p rc=%d\n", ocaml_major_brk, rc);
-    return NULL; 
-  }
-  raw_mem = (char *)ocaml_major_brk;
-  ocaml_major_brk += nr_pages * Page_size;
-#else  /* !SYS_xen */
-  raw_mem = (char *) malloc (size + Page_size);
-  if (raw_mem == NULL) return NULL;
-#endif /* SYS_xen */
   *block = raw_mem;
   raw_mem += modulo;                /* Address to be aligned */
   aligned_mem = (((uintnat) raw_mem / Page_size + 1) * Page_size);

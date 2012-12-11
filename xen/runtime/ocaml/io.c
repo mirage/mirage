@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,11 +11,10 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: io.c 10300 2010-04-23 07:58:59Z shinwell $ */
+/* $Id$ */
 
 /* Buffered input/output. */
 
-#include <mini-os/x86/os.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -64,7 +63,7 @@ CAMLexport struct channel * caml_open_descriptor_in(int fd)
   channel = (struct channel *) caml_stat_alloc(sizeof(struct channel));
   channel->fd = fd;
   caml_enter_blocking_section();
-  channel->offset = 0;
+  channel->offset = lseek(fd, 0, SEEK_CUR);
   caml_leave_blocking_section();
   channel->curr = channel->max = channel->buff;
   channel->end = channel->buff + IO_BUFFER_SIZE;
@@ -118,13 +117,17 @@ CAMLexport file_offset caml_channel_size(struct channel *channel)
   file_offset end;
   int fd;
 
-  /* We extract data from [channel] before dropping the Caml lock, in case
+  /* We extract data from [channel] before dropping the OCaml lock, in case
      someone else touches the block. */
   fd = channel->fd;
   offset = channel->offset;
   caml_enter_blocking_section();
-  end = 0;
-  caml_sys_error(NO_ARG);
+  end = lseek(fd, 0, SEEK_END);
+  if (end == -1 || lseek(fd, offset, SEEK_SET) != offset) {
+    caml_leave_blocking_section();
+    caml_sys_error(NO_ARG);
+  }
+  caml_leave_blocking_section();
   return end;
 }
 
@@ -153,8 +156,25 @@ CAMLexport int caml_channel_binary_mode(struct channel *channel)
 
 static int do_write(int fd, char *p, int n)
 {
-  console_print(p, n);
-  return n;
+  int retcode;
+
+again:
+  caml_enter_blocking_section();
+  retcode = write(fd, p, n);
+  caml_leave_blocking_section();
+  if (retcode == -1) {
+    if (errno == EINTR) goto again;
+    if ((errno == EAGAIN || errno == EWOULDBLOCK) && n > 1) {
+      /* We couldn't do a partial write here, probably because
+         n <= PIPE_BUF and POSIX says that writes of less than
+         PIPE_BUF characters must be atomic.
+         We first try again with a partial write of 1 character.
+         If that fails too, we'll raise Sys_blocked_io below. */
+      n = 1; goto again;
+    }
+  }
+  if (retcode == -1) caml_sys_io_error(NO_ARG);
+  return retcode;
 }
 
 /* Attempt to flush the buffer. This will make room in the buffer for
@@ -235,7 +255,11 @@ CAMLexport void caml_really_putblock(struct channel *channel,
 CAMLexport void caml_seek_out(struct channel *channel, file_offset dest)
 {
   caml_flush(channel);
-  caml_sys_error(NO_ARG);
+  caml_enter_blocking_section();
+  if (lseek(channel->fd, dest, SEEK_SET) != dest) {
+    caml_leave_blocking_section();
+    caml_sys_error(NO_ARG);
+  }
   caml_leave_blocking_section();
   channel->offset = dest;
 }
@@ -254,8 +278,12 @@ CAMLexport int caml_do_read(int fd, char *p, unsigned int n)
 
   do {
     caml_enter_blocking_section();
-    retcode = -1;
-    errno = EIO;
+    retcode = read(fd, p, n);
+#if defined(_WIN32)
+    if (retcode == -1 && errno == ENOMEM && n > 16384){
+      retcode = read(fd, p, 16384);
+    }
+#endif
     caml_leave_blocking_section();
   } while (retcode == -1 && errno == EINTR);
   if (retcode == -1) caml_sys_io_error(NO_ARG);
@@ -332,7 +360,11 @@ CAMLexport void caml_seek_in(struct channel *channel, file_offset dest)
       dest <= channel->offset) {
     channel->curr = channel->max - (channel->offset - dest);
   } else {
-    caml_sys_error(NO_ARG);
+    caml_enter_blocking_section();
+    if (lseek(channel->fd, dest, SEEK_SET) != dest) {
+      caml_leave_blocking_section();
+      caml_sys_error(NO_ARG);
+    }
     caml_leave_blocking_section();
     channel->offset = dest;
     channel->curr = channel->max = channel->buff;
@@ -384,7 +416,7 @@ CAMLexport intnat caml_input_scan_line(struct channel *channel)
   return (p - channel->curr);
 }
 
-/* Caml entry points for the I/O functions.  Wrap struct channel *
+/* OCaml entry points for the I/O functions.  Wrap struct channel *
    objects into a heap-allocated object.  Perform locking
    and unlocking around the I/O operations. */
 /* FIXME CAMLexport, but not in io.h  exported for Cash ? */
@@ -404,13 +436,19 @@ static int compare_channel(value vchan1, value vchan2)
   return (chan1 == chan2) ? 0 : (chan1 < chan2) ? -1 : 1;
 }
 
+static intnat hash_channel(value vchan)
+{
+  return (intnat) (Channel(vchan));
+}
+
 static struct custom_operations channel_operations = {
   "_chan",
   caml_finalize_channel,
   compare_channel,
-  custom_hash_default,
+  hash_channel,
   custom_serialize_default,
-  custom_deserialize_default
+  custom_deserialize_default,
+  custom_compare_ext_default
 };
 
 CAMLexport value caml_alloc_channel(struct channel *chan)

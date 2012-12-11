@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: printexc.h 6045 2004-01-01 16:42:43Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_PRINTEXC_H
 #define CAML_PRINTEXC_H
@@ -20,8 +20,16 @@
 #include "misc.h"
 #include "mlvalues.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 CAMLextern char * caml_format_exception (value);
 void caml_fatal_uncaught_exception (value) Noreturn;
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CAML_PRINTEXC_H */

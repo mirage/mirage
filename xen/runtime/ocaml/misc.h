@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: misc.h 8822 2008-02-29 12:56:15Z doligez $ */
+/* $Id$ */
 
 /* Miscellaneous macros and variables. */
 
@@ -27,6 +27,10 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+
+#ifdef SYS_xen
+#define fflush(X)
+#endif
 
 /* Basic types and constants */
 
@@ -88,15 +92,7 @@ void caml_gc_message (int, char *, uintnat);
 
 /* Memory routines */
 
-char *caml_aligned_malloc_for_minor (asize_t, int, void **);
-char *caml_aligned_malloc_for_major (asize_t, int, void **);
-
-/* Use Xen static virtual memory layout */
-#ifdef SYS_xen
-#undef USE_STATIC_VMEM
-#define MINOR_HEAP_BASE HYPERVISOR_VIRT_END
-#define MAJOR_HEAP_BASE (HYPERVISOR_VIRT_END + (512 * 4096))
-#endif
+char *caml_aligned_malloc (asize_t, int, void **);
 
 #ifdef DEBUG
 #ifdef ARCH_SIXTYFOUR

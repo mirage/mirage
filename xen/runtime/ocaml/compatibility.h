@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*          Damien Doligez, projet Moscova, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: compatibility.h 8953 2008-07-28 11:59:55Z doligez $ */
+/* $Id$ */
 
 /* definitions for compatibility with old identifiers */
 

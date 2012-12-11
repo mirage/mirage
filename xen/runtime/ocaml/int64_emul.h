@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64_emul.h 10217 2010-03-29 11:29:24Z xleroy $ */
+/* $Id$ */
 
 /* Software emulation of 64-bit integer arithmetic, for C compilers
    that do not support it.  */
@@ -26,6 +26,8 @@
 #else
 #define I64_literal(hi,lo) { lo, hi }
 #endif
+
+#define I64_split(x,hi,lo) (hi = (x).h, lo = (x).l)
 
 /* Unsigned comparison */
 static int I64_ucompare(uint64 x, uint64 y)

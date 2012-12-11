@@ -2,9 +2,9 @@
 /*                                                                     */
 /*                                OCaml                                */
 /*                                                                     */
-/*             Damien Doligez, projet Para, INRIA Rocquencourt         */
+/*            Xavier Leroy, projet Gallium, INRIA Rocquencourt         */
 /*                                                                     */
-/*  Copyright 1996 Institut National de Recherche en Informatique et   */
+/*  Copyright 2011 Institut National de Recherche en Informatique et   */
 /*  en Automatique.  All rights reserved.  This file is distributed    */
 /*  under the terms of the GNU Library General Public License, with    */
 /*  the special exception on linking described in file ../LICENSE.     */
@@ -13,24 +13,19 @@
 
 /* $Id$ */
 
-/* Free lists of heap blocks. */
+/* Auxiliary functions for custom hash functions */
 
-#ifndef CAML_FREELIST_H
-#define CAML_FREELIST_H
+#ifndef CAML_HASH_H
+#define CAML_HASH_H
 
-
-#include "misc.h"
 #include "mlvalues.h"
 
-extern asize_t caml_fl_cur_size;     /* size in words */
-
-char *caml_fl_allocate (mlsize_t);
-void caml_fl_init_merge (void);
-void caml_fl_reset (void);
-char *caml_fl_merge_block (char *);
-void caml_fl_add_blocks (char *);
-void caml_make_free_blocks (value *, mlsize_t, int, int);
-void caml_set_allocation_policy (uintnat);
+CAMLextern uint32 caml_hash_mix_uint32(uint32 h, uint32 d);
+CAMLextern uint32 caml_hash_mix_intnat(uint32 h, intnat d);
+CAMLextern uint32 caml_hash_mix_int64(uint32 h, int64 d);
+CAMLextern uint32 caml_hash_mix_double(uint32 h, double d);
+CAMLextern uint32 caml_hash_mix_float(uint32 h, float d);
+CAMLextern uint32 caml_hash_mix_string(uint32 h, value s);
 
 
-#endif /* CAML_FREELIST_H */
+#endif

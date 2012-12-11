@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: gc_ctrl.h 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id$ */
 
 #ifndef CAML_GC_CTRL_H
 #define CAML_GC_CTRL_H

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: int64_native.h 9270 2009-05-20 11:52:42Z doligez $ */
+/* $Id$ */
 
 /* Wrapper macros around native 64-bit integer arithmetic,
    so that it has the same interface as the software emulation
@@ -21,6 +21,7 @@
 #define CAML_INT64_NATIVE_H
 
 #define I64_literal(hi,lo) ((int64)(hi) << 32 | (lo))
+#define I64_split(x,hi,lo) (hi = (uint32)((x)>>32), lo = (uint32)(x))
 #define I64_compare(x,y) (((x) > (y)) - ((x) < (y)))
 #define I64_ult(x,y) ((uint64)(x) < (uint64)(y))
 #define I64_neg(x) (-(x))

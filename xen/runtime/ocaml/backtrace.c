@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Gallium, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: backtrace.c 9547 2010-01-22 12:48:24Z doligez $ */
+/* $Id$ */
 
 /* Stack backtrace for uncaught exceptions */
 
@@ -193,7 +193,7 @@ void caml_print_exception_backtrace(void)
   }
 }
 
-/* Convert the backtrace to a data structure usable from Caml */
+/* Convert the backtrace to a data structure usable from OCaml */
 
 CAMLprim value caml_get_exception_backtrace(value unit)
 {

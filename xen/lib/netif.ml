@@ -17,6 +17,12 @@
 open Lwt
 open Printf
 
+let allocate_ring ~domid =
+	let page = Io_page.get () in
+	lwt gnt = Gnttab.get () in
+	Gnttab.grant_access ~domid ~perm:Gnttab.RW gnt page;
+	return (gnt, Io_page.to_cstruct page)
+
 module RX = struct
 
   module Proto_64 = struct
@@ -49,29 +55,17 @@ module RX = struct
 
   let create (id,domid) =
     let name = sprintf "Netif.RX.%s" id in
-    lwt rx_gnts, buf = Ring.allocate ~domid ~order:0 in
-    let sring = Ring.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
-    (* XXX: single-page ring for now *)
-    let rx_gnt = List.hd rx_gnts in
-    let fring = Ring.Front.init ~sring in
-    return (rx_gnt, fring)
+	lwt rx_gnt, buf = allocate_ring ~domid in
+    let sring = Ring.Rpc.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
+    let fring = Ring.Rpc.Front.init ~sring in
+    let client = Lwt_ring.Front.init fring in
+    return (rx_gnt, fring, client)
 
 end
 
 module TX = struct
 
-  let idx_size = 12 (* in bytes *)
-
   type response = int
-
-  let create (id,domid) =
-    let name = sprintf "Netif.TX.%s" id in
-    lwt tx_gnts, buf = Ring.allocate ~domid ~order:0 in
-    let sring = Ring.of_buf ~buf ~idx_size ~name in
-    (* XXX: single page ring for now *)
-    let tx_gnt = List.hd tx_gnts in
-    let fring = Ring.Front.init ~sring in
-    return (tx_gnt, fring)
 
   module Proto_64 = struct
     cstruct req {
@@ -105,7 +99,18 @@ module TX = struct
 
     let read slot =
       get_resp_id slot, get_resp_status slot
+
+    let total_size = max sizeof_req sizeof_resp
+    let _ = assert(total_size = 12)
   end
+
+  let create (id,domid) =
+    let name = sprintf "Netif.TX.%s" id in
+	lwt rx_gnt, buf = allocate_ring ~domid in
+    let sring = Ring.Rpc.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
+    let fring = Ring.Rpc.Front.init ~sring in
+	let client = Lwt_ring.Front.init fring in
+    return (rx_gnt, fring, client)
 end
 
 type features = {
@@ -120,9 +125,11 @@ type t = {
   backend_id: int;
   backend: string;
   mac: string;
-  tx_fring: (TX.response,int) Ring.Front.t;
+  tx_fring: (TX.response,int) Ring.Rpc.Front.t;
+  tx_client: (TX.response,int) Lwt_ring.Front.t;
   tx_gnt: Gnttab.r;
-  rx_fring: (RX.response,int) Ring.Front.t;
+  rx_fring: (RX.response,int) Ring.Rpc.Front.t;
+  rx_client: (RX.response,int) Lwt_ring.Front.t;
   rx_map: (int, Gnttab.r * Io_page.t) Hashtbl.t;
   rx_gnt: Gnttab.r;
   evtchn: int;
@@ -138,8 +145,8 @@ let plug id =
   lwt backend_id = Xs.(immediate (fun h -> read h (sprintf "device/vif/%s/backend-id" id))) >|= int_of_string in
   Console.log (sprintf "Netfront.create: id=%s domid=%d\n%!" id backend_id);
   (* Allocate a transmit and receive ring, and event channel for them *)
-  lwt (rx_gnt, rx_fring) = RX.create (id, backend_id) in
-  lwt (tx_gnt, tx_fring) = TX.create (id, backend_id) in
+  lwt (rx_gnt, rx_fring, rx_client) = RX.create (id, backend_id) in
+  lwt (tx_gnt, tx_fring, tx_client) = TX.create (id, backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
   (* Read Xenstore info and set state to Connected *)
   let node = sprintf "device/vif/%s/" id in
@@ -177,7 +184,7 @@ let plug id =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  let t = { backend_id; tx_fring; tx_gnt; rx_gnt; rx_fring; rx_map;
+  let t = { backend_id; tx_fring; tx_client; tx_gnt; rx_gnt; rx_fring; rx_client; rx_map;
     evtchn; mac; backend; features } in
   Hashtbl.add devices id t;
   return t
@@ -189,7 +196,7 @@ let unplug id =
   ()
 
 let refill_requests nf =
-  let num = Ring.Front.get_free_requests nf.rx_fring in
+  let num = Ring.Rpc.Front.get_free_requests nf.rx_fring in
   lwt gnts = Gnttab.get_n num in
   let pages = Io_page.get_n num in
   List.iter
@@ -198,16 +205,16 @@ let refill_requests nf =
       let gref = Gnttab.to_int32 gnt in
       let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
       Hashtbl.add nf.rx_map id (gnt, page);
-      let slot_id = Ring.Front.next_req_id nf.rx_fring in
-      let slot = Ring.Front.slot nf.rx_fring slot_id in
+      let slot_id = Ring.Rpc.Front.next_req_id nf.rx_fring in
+      let slot = Ring.Rpc.Front.slot nf.rx_fring slot_id in
       ignore(RX.Proto_64.write ~id ~gref slot)
     ) (List.combine gnts pages);
-  if Ring.Front.push_requests_and_check_notify nf.rx_fring then
+  if Ring.Rpc.Front.push_requests_and_check_notify nf.rx_fring then
     Evtchn.notify nf.evtchn;
   return ()
 
 let rx_poll nf fn =
-  Ring.Front.ack_responses nf.rx_fring (fun slot ->
+  Ring.Rpc.Front.ack_responses nf.rx_fring (fun slot ->
     let id,(offset,flags,status) = RX.Proto_64.read slot in
     let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
@@ -215,25 +222,27 @@ let rx_poll nf fn =
     Gnttab.put gnt;
     match status with
     |sz when status > 0 ->
-      let packet = Io_page.sub page 0 sz in
+      let packet = Cstruct.sub (Io_page.to_cstruct page) 0 sz in
       ignore_result (try_lwt fn packet
         with exn -> return (printf "RX exn %s\n%!" (Printexc.to_string exn)))
     |err -> printf "RX error %d\n%!" err
   )
 
 let tx_poll nf =
-  Ring.Front.poll nf.tx_fring TX.Proto_64.read
+  Lwt_ring.Front.poll nf.tx_client TX.Proto_64.read
 
 (* Push a single page to the ring, but no event notification *)
 let write_request ?size ~flags nf page =
   lwt gnt = Gnttab.get () in
   (* This grants access to the *base* data pointer of the page *)
-  Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page;
+  (* XXX: another place where we peek inside the cstruct *)
+  Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RO gnt page.Cstruct.buffer;
   let gref = Gnttab.to_int32 gnt in
   let id = Int32.to_int gref in
-  let size = match size with |None -> Io_page.length page |Some s -> s in
-  let offset = Cstruct.base_offset page in
-  Ring.Front.push_request_async nf.tx_fring
+  let size = match size with |None -> Cstruct.len page |Some s -> s in
+  (* XXX: another place where we peek inside the cstruct *)
+  let offset = page.Cstruct.off in
+  Lwt_ring.Front.push_request_async nf.tx_client
     (TX.Proto_64.write ~id ~gref ~offset ~flags ~size) 
     (fun () ->
       Gnttab.end_access gnt; 
@@ -242,7 +251,7 @@ let write_request ?size ~flags nf page =
 (* Transmit a packet from buffer, with offset and length *)  
 let write nf page =
   lwt () = write_request ~flags:0 nf page in
-  if Ring.Front.push_requests_and_check_notify nf.tx_fring then
+  if Ring.Rpc.Front.push_requests_and_check_notify nf.tx_fring then
     Evtchn.notify nf.evtchn;
   return ()
 
@@ -268,7 +277,7 @@ let writev nf pages =
           xmit tl
      in
      lwt () = xmit other_pages in
-     if Ring.Front.push_requests_and_check_notify nf.tx_fring then
+     if Ring.Rpc.Front.push_requests_and_check_notify nf.tx_fring then
        Evtchn.notify nf.evtchn;
      return ()
 
@@ -328,4 +337,4 @@ let ethid t =
 let get_writebuf t =
   let page = Io_page.get () in
   (* TODO: record statistics for requesting thread here (in debug mode?) *)
-  return page
+  return (Cstruct.of_bigarray page)

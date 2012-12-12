@@ -36,7 +36,13 @@ let rec get_n ?(pages_per_block=1) n = match n with
   | 0 -> []
   | n -> get () :: (get_n ~pages_per_block (n - 1))
 
-let sub t off len = Bigarray.Array1.sub t off len
+let rec pow2 = function
+  | 0 -> 1
+  | n -> 2 * (pow2 (n - 1))
+
+let get_order order = get ~pages_per_block:(pow2 order) ()
+
+let to_cstruct t = Cstruct.of_bigarray t
 
 let length t = Bigarray.Array1.dim t
 
@@ -46,7 +52,7 @@ let to_pages t =
   assert(length t mod page_size = 0);
   let rec loop off acc =
     if off < (length t)
-    then loop (off + page_size) (sub t off page_size :: acc)
+    then loop (off + page_size) (Bigarray.Array1.sub t off page_size :: acc)
     else acc in
   List.rev (loop 0 [])
 

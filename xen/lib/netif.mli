@@ -37,15 +37,15 @@ val plug: id -> t Lwt.t
     the unplugging is not guaranteed *)
 val unplug: id -> unit
 
-(** Output an Io_page to an interface *)
-val write : t -> Io_page.t -> unit Lwt.t
+(** Output a buffer to an interface *)
+val write : t -> Cstruct.t -> unit Lwt.t
 
-(** Output a list of Io_pages to an interface as a single packet *)
-val writev : t -> Io_page.t list -> unit Lwt.t
+(** Output a list of buffers to an interface as a single packet *)
+val writev : t -> Cstruct.t list -> unit Lwt.t
 
 (** Listen endlesses on a Netfront, and invoke the callback function as frames are
     received. *)
-val listen : t -> (Io_page.t -> unit Lwt.t) -> unit Lwt.t
+val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 
 (** Enumerate all the currently available Netfronts (which may or may not be attached) *)
 val enumerate : unit -> id list Lwt.t
@@ -54,4 +54,4 @@ val enumerate : unit -> id list Lwt.t
 val ethid : t -> string
 val mac : t -> string
 
-val get_writebuf : t -> Io_page.t Lwt.t
+val get_writebuf : t -> Cstruct.t Lwt.t

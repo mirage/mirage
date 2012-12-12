@@ -57,7 +57,7 @@ let rec get_n = function
   | 0 -> []
   | n -> get () :: (get_n (n - 1))
 
-let sub t off len = Array1.sub t off len
+let to_cstruct t = Cstruct.of_bigarray t
 
 let length t = Array1.dim t
 

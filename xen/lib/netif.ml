@@ -195,6 +195,9 @@ let unplug id =
   Console.log (sprintf "Netif.unplug %s: not implemented yet" id);
   ()
 
+let notify nf () =
+  Evtchn.notify nf.evtchn
+
 let refill_requests nf =
   let num = Ring.Rpc.Front.get_free_requests nf.rx_fring in
   lwt gnts = Gnttab.get_n num in
@@ -209,8 +212,8 @@ let refill_requests nf =
       let slot = Ring.Rpc.Front.slot nf.rx_fring slot_id in
       ignore(RX.Proto_64.write ~id ~gref slot)
     ) (List.combine gnts pages);
-  if Ring.Rpc.Front.push_requests_and_check_notify nf.rx_fring then
-    Evtchn.notify nf.evtchn;
+  if Ring.Rpc.Front.push_requests_and_check_notify nf.rx_fring
+  then notify nf ();
   return ()
 
 let rx_poll nf fn =
@@ -243,6 +246,7 @@ let write_request ?size ~flags nf page =
   (* XXX: another place where we peek inside the cstruct *)
   let offset = page.Cstruct.off in
   Lwt_ring.Front.push_request_async nf.tx_client
+    (notify nf)
     (TX.Proto_64.write ~id ~gref ~offset ~flags ~size) 
     (fun () ->
       Gnttab.end_access gnt; 
@@ -251,8 +255,6 @@ let write_request ?size ~flags nf page =
 (* Transmit a packet from buffer, with offset and length *)  
 let write nf page =
   lwt () = write_request ~flags:0 nf page in
-  if Ring.Rpc.Front.push_requests_and_check_notify nf.tx_fring then
-    Evtchn.notify nf.evtchn;
   return ()
 
 (* Transmit a packet from a list of pages *)
@@ -277,8 +279,6 @@ let writev nf pages =
           xmit tl
      in
      lwt () = xmit other_pages in
-     if Ring.Rpc.Front.push_requests_and_check_notify nf.tx_fring then
-       Evtchn.notify nf.evtchn;
      return ()
 
 let listen nf fn =

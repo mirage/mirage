@@ -416,11 +416,10 @@ let write_page t offset page =
           let id = Int64.of_int32 gref in
           let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
           let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
-          let res = Lwt_ring.Front.push_request_and_wait t.client (Req.Proto_64.write_request req) in
-          if Ring.Rpc.Front.push_requests_and_check_notify t.ring then
-            Evtchn.notify t.evtchn;
+          lwt res = Lwt_ring.Front.push_request_and_wait t.client
+            (fun () -> Evtchn.notify t.evtchn)
+            (Req.Proto_64.write_request req) in
           let open Res in
-          lwt res = res in
           Res.(match res.st with
           | Some Error -> fail (IO_error "write")
           | Some Not_supported -> fail (IO_error "unsupported")
@@ -508,11 +507,10 @@ let read_single_request t r =
 		  ) (Array.of_list rs) in
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
 		let req = Req.({ op=Some Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
-		let res = Lwt_ring.Front.push_request_and_wait t.client (Req.Proto_64.write_request req) in
-		if Ring.Rpc.Front.push_requests_and_check_notify t.ring then
-		  Evtchn.notify t.evtchn;
+		lwt res = Lwt_ring.Front.push_request_and_wait t.client
+		  (fun () -> Evtchn.notify t.evtchn)
+		  (Req.Proto_64.write_request req) in
 		let open Res in
-		    lwt res = res in
 		match res.st with
 		  | Some Error -> fail (IO_error "read")
 		  | Some Not_supported -> fail (IO_error "unsupported")

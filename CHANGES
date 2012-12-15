@@ -1,3 +1,8 @@
+===== 0.6.1 (15-Dec-2012)  =====
+
+* [xen] Add an unused ?dev parameter to Netif.create to match
+  the UNIX version.
+
 ===== 0.6.0 (11-Dec-2012)  =====
 
 * [xen] refresh to ocaml-4.00.1 runtime.  You *must* use the

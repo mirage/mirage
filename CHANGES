@@ -3,6 +3,11 @@
 * [xen] Add an unused ?dev parameter to Netif.create to match
   the UNIX version.
 
+* [script] Add a mir-build script which converts a native output
+  object into a Xen kernel.  It does command-line parsing to be
+  compatible with other Xen outputs in the future (such as the
+  kFreeBSD or Javascript backends, when they are ready).
+
 ===== 0.6.0 (11-Dec-2012)  =====
 
 * [xen] refresh to ocaml-4.00.1 runtime.  You *must* use the

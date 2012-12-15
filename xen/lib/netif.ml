@@ -351,7 +351,7 @@ let resume () =
 let add_resume_hook t fn =
 	t.resume_fns <- fn::t.resume_fns
 
-let create fn =
+let create ?dev fn =
   let th,_ = Lwt.task () in
   Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
   lwt ids = enumerate () in

@@ -27,7 +27,7 @@ type id = string
     @param fn Callback function that is invoked for every new netfront interface.
     @return Blocking thread that will unplug all the attached interfaces if cancelled.
   *)
-val create : (id -> t -> unit Lwt.t) -> unit Lwt.t
+val create : ?dev:string option -> (id -> t -> unit Lwt.t) -> unit Lwt.t
 
 (** Manually plug in a new network interface. Normally automatically invoked via Xenstore
     watches by the create function *)

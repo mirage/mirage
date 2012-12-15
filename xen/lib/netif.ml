@@ -297,7 +297,7 @@ let enumerate () =
   in
   read_vif 0 []
 
-let create fn =
+let create ?dev fn =
   let th,_ = Lwt.task () in
   Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
   lwt ids = enumerate () in

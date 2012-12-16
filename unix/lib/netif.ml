@@ -55,6 +55,7 @@ let generate_local_mac () =
   x.[5] <- i ();
   x
 
+
 let devices = Hashtbl.create 1
 
 let plug id =
@@ -68,12 +69,21 @@ let plug id =
   printf "Netif: plug %s\n%!" id;
   return t
 
+let mac_to_string mac = 
+  let ret = ref "" in 
+  let _ = 
+    String.iter (
+      fun ch -> 
+        ret := sprintf "%s%02X:" !ret (int_of_char ch)
+    ) mac  in 
+    !ret 
+
 (* like the plug method, but for an existing interface *)    
 let attach id =
-  printf "attaching..\n%!";
   let tapfd = eth_opendev id in
   let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
   let mac = get_mac_addr id in
+  printf "attaching %s with mac %s..\n%!" id (mac_to_string mac);
   let buf_sz = pcap_get_buf_len tapfd in 
   let active = true in
   let t = { id; dev; active; mac; typ=PCAP; buf_sz;
@@ -87,6 +97,7 @@ let unplug id =
   try
     let t = Hashtbl.find devices id in
     t.active <- false;
+    let _ = Lwt_unix.close t.dev in 
     printf "Netif: unplug %s\n%!" id;
     Hashtbl.remove devices id
   with Not_found -> ()
@@ -140,27 +151,26 @@ let rec input t =
             let page = Io_page.get () in
             lwt len = Lwt_bytes.read t.dev page 0 t.buf_sz in
             let _ = t.buf <- Cstruct.sub page 0 len in 
-(*             let _ = printf "fetched new data %d\n%!" (len) in *)
+        (*     let _ = printf "fetched new data %d from %s\n%!" (len) t.id in *)
               return ()
           ) else  return ()
         in
         let caplen = Int32.to_int (get_bpf_hdr_caplen t.buf) in
         let bh_hdrlen = get_bpf_hdr_bh_hdrlen t.buf in
-(*
-        let _ = Cstruct.hexdump t.buf in
-         let _ = printf "caplen:%x, bh_hdrlen: %x, data:%x\n%!" caplen
-         bh_hdrlen (Cstruct.len t.buf) in  
- *)
-        let _ = t.buf <- Cstruct.shift t.buf bh_hdrlen in
-        let ret = Cstruct.sub t.buf 0 caplen in 
-        let _ = t.buf <- Cstruct.shift t.buf caplen in
-(*
+        (* Equivalent of the BPFWORDALIGN macro *)
+        let bpf_wordalign = (caplen + bh_hdrlen + 3) land 0x7ffffffc in
+(*        let _ = Cstruct.hexdump (Cstruct.sub t.buf 0 18) in 
+         let _ = printf "caplen:%d, bh_hdrlen: %d, len:%d bpf_wordalig=%d, ndata:%d\n%!" caplen
+         bh_hdrlen (caplen + bh_hdrlen) bpf_wordalign (Cstruct.len t.buf) in  *)
+        let ret = Cstruct.sub t.buf bh_hdrlen caplen in
+        
         let _ = 
-          if ((Cstruct.len t.buf ) > 4) then 
-            t.buf <- Cstruct.shift t.buf 4
+          if (bpf_wordalign < (Cstruct.len t.buf)) then
+            t.buf <- Cstruct.shift t.buf bpf_wordalign 
+          else
+            t.buf <- Lwt_bytes.create 0  
         in
- *)
-          return ret
+         return ret
     end
 
 (* Get write buffer for Netif output *)
@@ -172,28 +182,33 @@ let get_writebuf t =
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
   match t.active with
-  |true ->
-    lwt frame = input t in
-    Lwt.ignore_result (
-      try_lwt 
-        fn frame
-      with exn ->
-        return (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn) (Printexc.get_backtrace()))
-    );
-    listen t fn
-  |false ->
-    return ()
+  |true -> begin
+      try_lwt
+        lwt frame = input t in
+          Lwt.ignore_result (
+            try_lwt 
+              fn frame
+            with exn ->
+            return (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn) (Printexc.get_backtrace()))
+          );
+          listen t fn
+      with exn -> 
+        let _ = eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn ) in
+        let _ = t.buf <- (Lwt_bytes.create 0) in 
+          listen t fn 
+  end
+  |false -> return ()
 
 (* Shutdown a netfront *)
 let destroy nf =
-  printf "tap_destroy\n%!";
-  return ()
+  let _ = unplug nf.id in 
+  printf "tap_destroy\n%!"
 
 (* Transmit a packet from an Io_page *)
 let write t page =
   let off = Cstruct.base_offset page in
   let len = Cstruct.len page in
-  lwt len' = Lwt_bytes.write t.dev page off len in
+  lwt len' = Lwt_bytes.write t.dev page 0 len in
   if len' <> len then
     raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' len))
   else

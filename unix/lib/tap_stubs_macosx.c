@@ -40,6 +40,15 @@
 
 #include <string.h>
 
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/ioctl.h>
+#include <net/if_dl.h>
+
+
 static void
 setnonblock(int fd)
 {
@@ -133,6 +142,15 @@ pcap_opendev(value v_name) {
   // activate immediate mode (therefore, buf_len is initially set to "1")
   if( ioctl(fd, BIOCIMMEDIATE, &flag) == -1)
     err(1, "pcap_opendev");
+  if( ioctl(fd, BIOCPROMISC, &flag) == -1)
+    err(1, "pcap_opendev");
+  if( ioctl(fd, BIOCSHDRCMPLT, &flag) == -1)
+    err(1, "pcap_opendev");
+
+  flag = 0;
+  if( ioctl(fd, BIOCSSEESENT, &flag) == -1)
+    err(1, "pcap_opendev");
+ 
   setnonblock(fd);
 
   // return the fd
@@ -169,7 +187,8 @@ get_mac_addr(value v_str) {
   for(p = ifap; p != NULL; p = p->ifa_next) {
     if((strcmp(p->ifa_name, name) == 0) &&
       (p->ifa_addr != NULL)){
-      memcpy(mac_addr, p->ifa_addr, 6);
+      char *tmp = LLADDR((struct sockaddr_dl *)(p)->ifa_addr);
+      memcpy(mac_addr, tmp, 6);
       found = 1;
       break;
     } 

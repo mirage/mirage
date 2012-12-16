@@ -18,7 +18,7 @@ type t
 type id = string
 
 val listen : t -> (Io_page.t -> unit Lwt.t) -> unit Lwt.t
-val destroy : t -> unit Lwt.t
+val destroy : t -> unit 
 
 val write : t -> Io_page.t -> unit Lwt.t
 val writev : t -> Io_page.t list -> unit Lwt.t

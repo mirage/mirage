@@ -255,7 +255,6 @@ let write_request ?size ~flags nf page =
   let gref = Gnttab.to_int32 gnt in
   let id = Int32.to_int gref in
   let size = match size with |None -> Cstruct.len page |Some s -> s in
-  printf "write flags=%d size=%d this=%d\n" flags size (Cstruct.len page);
   (* XXX: another place where we peek inside the cstruct *)
   let offset = page.Cstruct.off in
   Lwt_ring.Front.push_request_async nf.t.tx_client

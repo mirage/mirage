@@ -81,16 +81,16 @@ module Req = struct
      not using __attribute__(packed) and letting the C compiler pad *)
   module type PROTO = sig
     val sizeof_hdr: int
-    val get_hdr_op: Io_page.t -> int
-    val set_hdr_op: Io_page.t -> int -> unit
-    val get_hdr_nr_segs: Io_page.t -> int
-    val set_hdr_nr_segs: Io_page.t -> int -> unit
-    val get_hdr_handle: Io_page.t -> int
-    val set_hdr_handle: Io_page.t -> int -> unit
-    val get_hdr_id: Io_page.t -> int64
-    val set_hdr_id: Io_page.t -> int64 -> unit
-    val get_hdr_sector: Io_page.t -> int64
-    val set_hdr_sector: Io_page.t -> int64 -> unit
+    val get_hdr_op: Cstruct.t -> int
+    val set_hdr_op: Cstruct.t -> int -> unit
+    val get_hdr_nr_segs: Cstruct.t -> int
+    val set_hdr_nr_segs: Cstruct.t -> int -> unit
+    val get_hdr_handle: Cstruct.t -> int
+    val set_hdr_handle: Cstruct.t -> int -> unit
+    val get_hdr_id: Cstruct.t -> int64
+    val set_hdr_id: Cstruct.t -> int64 -> unit
+    val get_hdr_sector: Cstruct.t -> int64
+    val set_hdr_sector: Cstruct.t -> int64 -> unit
   end
 
   module Marshalling = functor(P: PROTO) -> struct
@@ -99,7 +99,7 @@ module Req = struct
     let total_size = sizeof_hdr + (sizeof_segment * segments_per_request)
 
     (* Write a request to a slot in the shared ring. *)
-    let write_request req slot =
+    let write_request req (slot: Cstruct.t) =
       set_hdr_op slot (match req.op with None -> -1 | Some x -> op_to_int x);
       set_hdr_nr_segs slot (Array.length req.segs);
       set_hdr_handle slot req.handle;
@@ -114,7 +114,7 @@ module Req = struct
       ) req.segs;
       req.id
 
-    (* Read a request out of an Io_page.t; to be used by the Ring.Back for serving
+    (* Read a request out of an Cstruct.t; to be used by the Ring.Back for serving
        requests, so this is untested for now *)
     let read_request slot =
       let payload = Cstruct.shift slot sizeof_hdr in
@@ -204,7 +204,7 @@ module Backend = struct
     xg:     Gnttab.handle;
     evtchn: int;
     ops :   ops;
-    parse_req : Io_page.t -> Req.t;
+    parse_req : Cstruct.t -> Req.t;
   }
 
   let process t ring slot =
@@ -221,6 +221,7 @@ module Backend = struct
         | Some Read -> Gnttab.RO 
         | Some Write -> Gnttab.RW
         | _ -> failwith "Unhandled request type" in
+	  (* XXX: peeking inside the cstruct again *)
       let thread = Gnttab.with_mapping t.xg t.domid seg.gref perm
         (fun page -> fn page sector seg.first_sector seg.last_sector) in
       let newoff = off + (seg.last_sector - seg.first_sector + 1) in
@@ -229,14 +230,22 @@ module Backend = struct
     let _ = (* handle the work in a background thread *)
       lwt () = Lwt.join threads in
       let open Res in 
-      let slot = Ring.Back.(slot ring (next_res_id ring)) in
+      let slot = Ring.Rpc.Back.(slot ring (next_res_id ring)) in
       write_response (req.id, {op=req.Req.op; st=Some OK}) slot;
-      let notify = Ring.Back.push_responses_and_check_notify ring in
+      let notify = Ring.Rpc.Back.push_responses_and_check_notify ring in
       (* XXX: what is this:
         if more_to_do then Activations.wake t.evtchn; *)
       if notify then Evtchn.notify t.evtchn;
       Lwt.return ()
     in ()
+
+    (* Thread to poll for requests and generate responses *)
+    let service_thread t evtchn fn =
+      let rec inner () =
+        Ring.Rpc.Back.ack_requests t fn;
+        lwt () = Activations.wait evtchn in
+        inner () in
+      inner ()
 
     let init xg domid ring_ref evtchn_ref proto ops =
       let evtchn = Evtchn.bind_interdomain domid evtchn_ref in
@@ -246,10 +255,10 @@ module Backend = struct
         | Native -> Req.Proto_64.read_request, Req.Proto_64.total_size
       in
       let buf = Gnttab.map_contiguous_grant_refs xg domid [ ring_ref ] Gnttab.RW in
-      let ring = Ring.of_buf ~buf ~idx_size ~name:"blkback" in
-      let r = Ring.Back.init ring in
+      let ring = Ring.Rpc.of_buf ~buf:(Io_page.to_cstruct buf) ~idx_size ~name:"blkback" in
+      let r = Ring.Rpc.Back.init ring in
       let t = { domid; xg; evtchn; ops; parse_req } in
-      let th = Ring.Back.service_thread r evtchn (process t r) in
+      let th = service_thread r evtchn (process t r) in
       on_cancel th (fun () -> Gnttab.unmap xg buf);
       th
 end
@@ -267,7 +276,8 @@ type t = {
   backend_id: int;
   backend: string;
   vdev: int;
-  ring: (Res.t,int64) Ring.Front.t;
+  ring: (Res.t,int64) Ring.Rpc.Front.t;
+  client: (Res.t,int64) Lwt_ring.Front.t;
   gnts: Gnttab.r list;
   evtchn: int;
   features: features;
@@ -283,15 +293,21 @@ let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 let alloc ~order (num,domid) =
   let name = sprintf "Blkif.%d" num in
   let idx_size = Req.Proto_64.total_size in (* bigger than res *)
-  lwt (rx_gnts, buf) = Ring.allocate ~domid ~order in
-  let sring = Ring.of_buf ~buf ~idx_size ~name in
-  let fring = Ring.Front.init ~sring in
-  return (rx_gnts, fring)
+  let buf = Io_page.get_order order in
+
+  let pages = Io_page.to_pages buf in
+  lwt gnts = Gnttab.get_n (List.length pages) in
+  List.iter (fun (gnt, page) -> Gnttab.grant_access ~domid ~perm:Gnttab.RW gnt page) (List.combine gnts pages);
+
+  let sring = Ring.Rpc.of_buf ~buf:(Io_page.to_cstruct buf) ~idx_size ~name in
+  let fring = Ring.Rpc.Front.init ~sring in
+  let client = Lwt_ring.Front.init fring in
+  return (gnts, fring, client)
 
 (* Thread to poll for responses and activate wakeners *)
 let rec poll t =
   Activations.wait t.evtchn >>
-  let () = Ring.Front.poll t.ring (Res.read_response) in
+  let () = Lwt_ring.Front.poll t.client (Res.read_response) in
   poll t
 
 (* Given a VBD ID and a backend domid, construct a blkfront record *)
@@ -323,7 +339,7 @@ let plug (id:id) =
   let ring_page_order = min our_max_ring_page_order backend_max_ring_page_order in
   printf "Negotiated a %s\n%!" (if ring_page_order = 0 then "singe-page ring" else sprintf "multi-page ring (size 2 ** %d pages)" ring_page_order);
 
-  lwt (gnts, ring) = alloc ~order:ring_page_order (vdev,backend_id) in
+  lwt (gnts, ring, client) = alloc ~order:ring_page_order (vdev,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
 
   let ring_info =
@@ -360,7 +376,7 @@ let plug (id:id) =
   printf "Blkfront features: barrier=%b removable=%b sector_size=%Lu sectors=%Lu\n%!" 
     features.barrier features.removable features.sector_size features.sectors;
   Evtchn.unmask evtchn;
-  let t = { backend_id; backend; vdev; ring; gnts; evtchn; features } in
+  let t = { backend_id; backend; vdev; ring; client; gnts; evtchn; features } in
   Hashtbl.add devices id t;
   (* Start the background poll thread *)
   let _ = poll t in
@@ -400,11 +416,10 @@ let write_page t offset page =
           let id = Int64.of_int32 gref in
           let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
           let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
-          let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
-          if Ring.Front.push_requests_and_check_notify t.ring then
-            Evtchn.notify t.evtchn;
+          lwt res = Lwt_ring.Front.push_request_and_wait t.client
+            (fun () -> Evtchn.notify t.evtchn)
+            (Req.Proto_64.write_request req) in
           let open Res in
-          lwt res = res in
           Res.(match res.st with
           | Some Error -> fail (IO_error "write")
           | Some Not_supported -> fail (IO_error "unsupported")
@@ -492,11 +507,10 @@ let read_single_request t r =
 		  ) (Array.of_list rs) in
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
 		let req = Req.({ op=Some Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
-		let res = Ring.Front.push_request_and_wait t.ring (Req.Proto_64.write_request req) in
-		if Ring.Front.push_requests_and_check_notify t.ring then
-		  Evtchn.notify t.evtchn;
+		lwt res = Lwt_ring.Front.push_request_and_wait t.client
+		  (fun () -> Evtchn.notify t.evtchn)
+		  (Req.Proto_64.write_request req) in
 		let open Res in
-		    lwt res = res in
 		match res.st with
 		  | Some Error -> fail (IO_error "read")
 		  | Some Not_supported -> fail (IO_error "unsupported")
@@ -512,7 +526,7 @@ let read_single_request t r =
 			  |n when n = len-1 -> (r.end_offset + 1) * 512
 			  |_ -> 4096 in
 			let bytes = end_offset - start_offset in
-			let subpage = Io_page.sub page start_offset bytes in
+			let subpage = Cstruct.sub (Io_page.to_cstruct page) start_offset bytes in
 			i + 1, subpage :: acc
 		      ) (0, []) pages
 		    ))))

@@ -1,5 +1,5 @@
-(*
- * Copyright (c) 2011-2012 Anil Madhavapeddy <anil@recoil.org>
+/*
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,23 +12,31 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+#include <stdint.h>
+#include <assert.h>
 
-val get : ?pages_per_block:int -> unit -> t
-val get_n : ?pages_per_block:int -> int -> t list
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/bigarray.h>
 
-val get_order : int -> t
+#include "barrier.h"
 
-val to_cstruct : t -> Cstruct.t
+#define xen_mb() mb()
+#define xen_wmb() wmb()
 
-val length : t -> int
+CAMLprim value
+caml_memory_barrier()
+{
+  xen_mb();
+  return Val_unit;
+}
 
-val to_pages : t -> t list
-
-val string_blit : string -> t -> unit
-
-val to_string : t -> string
-
-val blit : t -> t -> unit
+CAMLprim value
+caml_write_memory_barrier()
+{
+  wmb();
+  return Val_unit;
+}

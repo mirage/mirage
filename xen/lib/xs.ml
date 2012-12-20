@@ -15,10 +15,12 @@
 
 open Lwt
 
+external xenstore_start_page: unit -> Io_page.t = "caml_xenstore_start_page"
+
 module Client = Xs_client.Client(struct
 
 	type t = {
-		page: Ring.Xenstore.t;
+		page: Cstruct.t;
 		evtchn: int;
 	}
 	(* An inter-domain client is always via a shared memory page
@@ -38,7 +40,8 @@ module Client = Xs_client.Client(struct
 			Console.log "ERROR: Already connected to xenstore: cannot reconnect";
 			fail Already_connected
 		| None ->
-			let _, page = Ring.Xenstore.alloc_initial () in
+			let page = Io_page.to_cstruct (xenstore_start_page ()) in
+			Xenstore_ring.Ring.init page;
 			let evtchn = Evtchn.xenstore_port () in
 			return { page; evtchn }
 
@@ -48,24 +51,18 @@ module Client = Xs_client.Client(struct
 
 	(* XXX: unify with ocaml-xenstore-xen/xen/lib/xs_transport_domain *)
 	let rec read t buf ofs len =
-		let tmp = String.create len in
-		let n = Ring.Xenstore.unsafe_read t.page tmp len in
+		let n = Xenstore_ring.Ring.Front.unsafe_read t.page buf ofs len in
 		if n = 0 then begin
 			lwt () = Activations.wait t.evtchn in
 			read t buf ofs len
 		end else begin
 			Evtchn.notify t.evtchn;
-			(* XXX: change low-level signature to avoid unnecessary copy *)
-			String.blit tmp 0 buf ofs n;
 			return n
 		end
 
 	(* XXX: unify with ocaml-xenstore-xen/xen/lib/xs_transport_domain *)
 	let rec write t buf ofs len =
-		let tmp = String.create len in
-		(* XXX: change low-level signature to avoid unnecessary copy *)
-		String.blit buf ofs tmp 0 len;
-		let n = Ring.Xenstore.unsafe_write t.page tmp len in
+		let n = Xenstore_ring.Ring.Front.unsafe_write t.page buf ofs len in
 		if n > 0 then Evtchn.notify t.evtchn;
 		if n < len then begin
 			lwt () = Activations.wait t.evtchn in

@@ -14,12 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t = Cstruct.buf
+type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 val get : unit -> t
 val get_n : int -> t list
 
-val sub : t -> int -> int -> t
+val to_cstruct : t -> Cstruct.t
+
 val length : t -> int
 
 val round_to_page_size : int -> int 

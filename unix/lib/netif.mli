@@ -17,11 +17,11 @@
 type t
 type id = string
 
-val listen : t -> (Io_page.t -> unit Lwt.t) -> unit Lwt.t
+val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 val destroy : t -> unit Lwt.t
 
-val write : t -> Io_page.t -> unit Lwt.t
-val writev : t -> Io_page.t list -> unit Lwt.t
+val write : t -> Cstruct.t -> unit Lwt.t
+val writev : t -> Cstruct.t list -> unit Lwt.t
 
 val create : ?dev:(string option) -> (id -> t -> unit Lwt.t) -> unit Lwt.t
 val get_writebuf : t -> Io_page.t Lwt.t

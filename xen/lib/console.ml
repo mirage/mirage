@@ -20,7 +20,7 @@ open Printf
 type t = {
   backend_id: int;
   gnt: Gnttab.r;
-  ring: Ring.Console.t;
+  ring: Cstruct.t;
   evtchn: int;
   waiters: unit Lwt.u Lwt_sequence.t;
 }
@@ -31,9 +31,14 @@ exception Internal_error of string
 let wait cons =
   Activations.wait cons.evtchn
 
+external console_start_page: unit -> Io_page.t = "caml_console_start_page"
+
 let create () =
-  let backend_id = 0 in 
-  let gnt, ring = Ring.Console.alloc_initial () in
+  let backend_id = 0 in
+  let gnt = Gnttab.of_int32 2l in (* reserved slot set by the domain builder *)
+  let page = console_start_page () in
+  let ring = Io_page.to_cstruct page in
+  Console_ring.Ring.init ring; (* explicitly zero the ring *)
   let evtchn = Evtchn.console_port () in
   let waiters = Lwt_sequence.create () in
   let con = { backend_id; gnt; ring; evtchn; waiters } in
@@ -43,7 +48,7 @@ let create () =
     
 let rec sync_write cons buf off len =
   assert(len <= String.length buf + off);
-  let w = Ring.Console.unsafe_write cons.ring buf (String.length buf) in
+  let w = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
   Evtchn.notify cons.evtchn;
   let left = len - w in
   if left = 0 then 
@@ -55,7 +60,7 @@ let rec sync_write cons buf off len =
 
 let write cons buf off len =
   assert(len <= String.length buf + off);
-  let _ = Ring.Console.unsafe_write cons.ring buf (String.length buf) in
+  let _ = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
   Evtchn.notify cons.evtchn
 
 let t = create ()

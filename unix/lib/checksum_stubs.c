@@ -22,8 +22,9 @@
 #include <caml/bigarray.h>
 
 static uint32_t
-checksum_bigarray(unsigned char *addr, size_t count, uint32_t sum)
+checksum_bigarray(unsigned char *addr, size_t ofs, size_t count, uint32_t sum)
 {
+  addr += ofs;
   while (count > 1) {
     uint16_t v = (*addr << 8) + (*(addr+1));
     sum += v;
@@ -38,37 +39,44 @@ checksum_bigarray(unsigned char *addr, size_t count, uint32_t sum)
 }
 
 CAMLprim value
-caml_ones_complement_checksum(value v_ba, value v_len)
+caml_ones_complement_checksum(value v_cstruct)
 {
-  CAMLparam2(v_ba, v_len);
+  CAMLparam1(v_cstruct);
+  CAMLlocal3(v_ba, v_ofs, v_len);
   uint32_t sum = 0;
   uint16_t checksum = 0;
-  sum = checksum_bigarray(Caml_ba_data_val(v_ba), Int_val(v_len), 0);
+  v_ba = Field(v_cstruct, 0);
+  v_ofs = Field(v_cstruct, 1);
+  v_len = Field(v_cstruct, 2);
+  sum = checksum_bigarray(Caml_ba_data_val(v_ba), Int_val(v_ofs), Int_val(v_len), 0);
   checksum = ~sum;
   CAMLreturn(Val_int(checksum));
 }
 
-/* Checksum a list of bigarrays. The complexity of overflow is due to
+/* Checksum a list of cstruct.ts. The complexity of overflow is due to
  * having potentially odd-sized buffers, and the odd byte must be carried
  * forward as 16-byte 1s complement addition if there are more buffers in
  * the chain. */
 CAMLprim value
-caml_ones_complement_checksum_list(value v_bal)
+caml_ones_complement_checksum_list(value v_cstruct_list)
 {
-  CAMLparam1(v_bal);
-  CAMLlocal1(v_hd);
+  CAMLparam1(v_cstruct_list);
+  CAMLlocal4(v_hd, v_ba, v_ofs, v_len);
   uint32_t sum = 0;
   uint16_t checksum = 0;
   uint16_t overflow = 0;
   size_t count = 0;
   struct caml_ba_array *a = NULL;
   unsigned char *addr;
-  while (v_bal != Val_emptylist) {
-    v_hd = Field(v_bal, 0);
-    v_bal = Field(v_bal, 1);
-    a = Caml_ba_array_val(v_hd);
-    addr = a->data;
-    count = a->dim[0];
+  while (v_cstruct_list != Val_emptylist) {
+    v_hd = Field(v_cstruct_list, 0);
+    v_cstruct_list = Field(v_cstruct_list, 1);
+    v_ba = Field(v_hd, 0);
+    v_ofs = Field(v_hd, 1);
+    v_len = Field(v_hd, 2);
+    a = Caml_ba_array_val(v_ba);
+    addr = a->data + Int_val(v_ofs);
+    count = Int_val(v_len);
     if (count <= 0) continue;
     if (overflow != 0) {
       sum += (overflow << 8) + (*addr);
@@ -83,7 +91,7 @@ caml_ones_complement_checksum_list(value v_bal)
       addr += 2;
     }
     if (count > 0) {
-      if (v_bal == Val_emptylist)
+      if (v_cstruct_list == Val_emptylist)
         sum += (*(unsigned char *)addr) << 8;
       else
         overflow = *addr;

@@ -1,6 +1,6 @@
 NAME=mirage
 VERSION=0.6.0
-DEPS="lwt cstruct xenstore"
+DEPS="lwt cstruct xenstore shared-memory-ring shared-memory-ring.lwt shared-memory-ring.xenstore shared-memory-ring.console"
 SYNTAX_DEPS="lwt.syntax cstruct.syntax"
 EXTRA="runtime/dietlibc/libdiet.a runtime/libm/libm.a runtime/kernel/libxen.a runtime/kernel/libxencaml.a runtime/ocaml/libocaml.a runtime/kernel/x86_64.o runtime/kernel/longjmp.o runtime/kernel/mirage-x86_64.lds"
 LIB="oS"

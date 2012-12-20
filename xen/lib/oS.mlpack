@@ -1,8 +1,6 @@
-Sched
 Io_page
 Gnttab
 Activations
-Ring
 Evtchn
 Console
 Clock
@@ -15,3 +13,4 @@ Env
 Netif
 Blkif
 Start_info
+Sched

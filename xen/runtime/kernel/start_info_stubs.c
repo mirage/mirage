@@ -57,3 +57,25 @@ stub_start_info_get(value unit)
 
   CAMLreturn(result);
 }
+
+CAMLprim value
+caml_console_start_page(value v_unit)
+{
+  CAMLparam1(v_unit);
+  CAMLlocal1(v_ret);
+  intnat dims[] = { Long_val(PAGE_SIZE) };
+  unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
+  v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
+  CAMLreturn(v_ret);
+}
+
+CAMLprim value
+caml_xenstore_start_page(value v_unit)
+{
+  CAMLparam1(v_unit);
+  CAMLlocal1(v_ret);
+  intnat dims[] = { Long_val(PAGE_SIZE) };
+  unsigned char *page = mfn_to_virt(start_info.store_mfn);
+  v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
+  CAMLreturn(v_ret);
+}

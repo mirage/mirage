@@ -221,6 +221,9 @@ caml_gnttab_fini(value unit)
     setup.nr_frames = 0;
 
     HYPERVISOR_grant_table_op(GNTTABOP_setup_table, &setup, 1);
+
+    unmap_frames(gnttab_table, NR_GRANT_FRAMES);
+
     CAMLreturn(Val_unit);
 }
 

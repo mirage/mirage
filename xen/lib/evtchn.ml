@@ -14,24 +14,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-external xenstore_port: unit -> int = "stub_xenstore_evtchn_port"
-external console_port: unit -> int = "stub_console_evtchn_port"
+type t = int Generation.t 
 
-external alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
-external bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
+external stub_xenstore_port: unit -> int = "stub_xenstore_evtchn_port"
+external stub_console_port: unit -> int = "stub_console_evtchn_port"
+external stub_alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
+external stub_bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
+external stub_unmask: int -> unit = "stub_evtchn_unmask" 
+external stub_notify: int -> unit = "stub_evtchn_notify" "noalloc"
+external stub_unbind: int -> unit = "stub_evtchn_unbind"
+external stub_virq_dom_exc: unit -> int = "stub_virq_dom_exc"
+external stub_bind_virq: int -> int = "stub_bind_virq"
 
-external unmask: int -> unit = "stub_evtchn_unmask" 
-external notify: int -> unit = "stub_evtchn_notify" "noalloc"
+let construct f x = Generation.wrap (f x)
+let xenstore_port = construct stub_xenstore_port
+let console_port = construct stub_console_port
+let alloc_unbound_port = construct stub_alloc_unbound_port
+let bind_interdomain remote_domid = construct (stub_bind_interdomain remote_domid)
 
-external unbind: int -> unit = "stub_evtchn_unbind"
+let maybe t f d = Generation.maybe t f d
+let unmask t = maybe t stub_unmask ()
+let notify t = maybe t stub_notify ()
+let unbind t = maybe t stub_unbind ()
+let is_valid t = maybe t (fun _ -> true) false
 
-external virq_dom_exc: unit -> int = "stub_virq_dom_exc"
-
-external bind_virq: int -> int = "stub_bind_virq"
+let port t = Generation.extract t
 
 module Virq = struct
-	type t = Dom_exc
+	type vt = Dom_exc
 
 	let bind = function
-		| Dom_exc -> bind_virq (virq_dom_exc ())
+		| Dom_exc -> 
+			let port = stub_bind_virq (stub_virq_dom_exc ()) in
+			construct (fun () -> port) ()
 end

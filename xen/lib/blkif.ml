@@ -202,7 +202,7 @@ module Backend = struct
   type t = {
     domid:  int;
     xg:     Gnttab.handle;
-    evtchn: int;
+    evtchn: Evtchn.t;
     ops :   ops;
     parse_req : Cstruct.t -> Req.t;
   }
@@ -235,8 +235,9 @@ module Backend = struct
       let notify = Ring.Rpc.Back.push_responses_and_check_notify ring in
       (* XXX: what is this:
         if more_to_do then Activations.wake t.evtchn; *)
-      if notify then Evtchn.notify t.evtchn;
-      Lwt.return ()
+      if notify 
+	  then Evtchn.notify t.evtchn;
+      return ()
     in ()
 
     (* Thread to poll for requests and generate responses *)
@@ -272,15 +273,19 @@ type features = {
   readwrite: bool;
 }
 
-type t = {
+type transport = {
   backend_id: int;
   backend: string;
-  vdev: int;
   ring: (Res.t,int64) Ring.Rpc.Front.t;
   client: (Res.t,int64) Lwt_ring.Front.t;
   gnts: Gnttab.r list;
-  evtchn: int;
+  evtchn: Evtchn.t;
   features: features;
+}
+
+type t = {
+  vdev: int;
+  mutable t: transport
 }
 
 type id = string
@@ -341,7 +346,7 @@ let plug (id:id) =
 
   lwt (gnts, ring, client) = alloc ~order:ring_page_order (vdev,backend_id) in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
-
+  let port = Evtchn.port evtchn in
   let ring_info =
     (* The new protocol writes (ring-refN = G) where N=0,1,2 *)
     let rfs = snd(List.fold_left (fun (i, acc) g ->
@@ -351,7 +356,7 @@ let plug (id:id) =
     then [ "ring-ref", Gnttab.to_string (List.hd gnts) ] (* backwards compat *)
     else [ "ring-page-order", string_of_int ring_page_order ] @ rfs in
   let info = [
-    "event-channel", string_of_int evtchn;
+    "event-channel", string_of_int port;
     "protocol", "x86_64-abi";
     "state", Device_state.(to_string Connected)
   ] @ ring_info in
@@ -376,8 +381,7 @@ let plug (id:id) =
   printf "Blkfront features: barrier=%b removable=%b sector_size=%Lu sectors=%Lu\n%!" 
     features.barrier features.removable features.sector_size features.sectors;
   Evtchn.unmask evtchn;
-  let t = { backend_id; backend; vdev; ring; client; gnts; evtchn; features } in
-  Hashtbl.add devices id t;
+  let t = { backend_id; backend; ring; client; gnts; evtchn; features } in
   (* Start the background poll thread *)
   let _ = poll t in
   return t
@@ -392,41 +396,37 @@ let unplug id =
 let enumerate () =
   try_lwt Xs.(immediate (fun h -> directory h "device/vbd")) with _ -> return []
 
-let create fn =
-  let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
-  lwt ids = enumerate () in
-  let pt = Lwt_list.iter_p (fun id ->
-    lwt t = plug id in
-    fn id t) ids in
-  th <?> pt
-
 (* Write a single page to disk.
    Offset is the sector number, which must be sector-aligned
    Page must be an Io_page *)
-let write_page t offset page =
-  let sector = Int64.div offset t.features.sector_size in
-  if not t.features.readwrite
+let rec write_page t offset page =
+  let sector = Int64.div offset t.t.features.sector_size in
+  if not t.t.features.readwrite
   then fail (IO_error "read-only")
-  else Gnttab.with_ref
-    (fun r ->
-      Gnttab.with_grant ~domid:t.backend_id ~perm:Gnttab.RW r page
-        (fun () ->
-          let gref = Gnttab.to_int32 r in
-          let id = Int64.of_int32 gref in
-          let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
-          let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
-          lwt res = Lwt_ring.Front.push_request_and_wait t.client
-            (fun () -> Evtchn.notify t.evtchn)
-            (Req.Proto_64.write_request req) in
-          let open Res in
-          Res.(match res.st with
-          | Some Error -> fail (IO_error "write")
-          | Some Not_supported -> fail (IO_error "unsupported")
-          | None -> fail (IO_error "unknown error")
-          | Some OK -> return ())
-        )
-    )
+  else 
+    try_lwt
+      Gnttab.with_ref
+      (fun r ->
+        Gnttab.with_grant ~domid:t.t.backend_id ~perm:Gnttab.RW r page
+          (fun () ->
+            let gref = Gnttab.to_int32 r in
+            let id = Int64.of_int32 gref in
+            let segs =[| { Req.gref; first_sector=0; last_sector=7 } |] in
+            let req = Req.({op=Some Req.Write; handle=t.vdev; id; sector; segs}) in
+            lwt res = Lwt_ring.Front.push_request_and_wait t.t.client
+              (fun () -> Evtchn.notify t.t.evtchn)
+              (Req.Proto_64.write_request req) in
+            let open Res in
+            Res.(match res.st with
+            | Some Error -> fail (IO_error "write")
+            | Some Not_supported -> fail (IO_error "unsupported")
+            | None -> fail (IO_error "unknown error")
+            | Some OK -> return ())
+          )
+      )
+       with 
+	 | Lwt_ring.Shutdown -> write_page t offset page
+	 | exn -> fail exn 
 
 module Single_request = struct
   (** A large request must be broken down into a series of smaller page-aligned requests: *)
@@ -490,9 +490,11 @@ let read_single_request t r =
     fail (Failure (sprintf "len > 11 %s" (Single_request.to_string r)))
   else 
     let pages = Io_page.get_n len in
+    let rec single_attempt () =
+      try_lwt
 	Gnttab.with_refs len
           (fun rs ->
-            Gnttab.with_grants ~domid:t.backend_id ~perm:Gnttab.RW rs pages
+            Gnttab.with_grants ~domid:t.t.backend_id ~perm:Gnttab.RW rs pages
 	      (fun () ->
 		let segs = Array.mapi
 		  (fun i rf ->
@@ -507,8 +509,8 @@ let read_single_request t r =
 		  ) (Array.of_list rs) in
 		let id = Int64.of_int32 (Gnttab.to_int32 (List.hd rs)) in
 		let req = Req.({ op=Some Read; handle=t.vdev; id; sector=r.start_sector; segs }) in
-		lwt res = Lwt_ring.Front.push_request_and_wait t.client
-		  (fun () -> Evtchn.notify t.evtchn)
+		lwt res = Lwt_ring.Front.push_request_and_wait t.t.client
+		  (fun () -> Evtchn.notify t.t.evtchn)
 		  (Req.Proto_64.write_request req) in
 		let open Res in
 		match res.st with
@@ -532,23 +534,41 @@ let read_single_request t r =
 		    ))))
 	      )
 	  )
+      with | Lwt_ring.Shutdown -> single_attempt ()
+           | exn -> fail exn in
+      single_attempt ()
 
 (* Reads [num_sectors] starting at [sector], returning a stream of Io_page.ts *)
 let read_512 t sector num_sectors =
   let requests = Single_request.stream_of sector num_sectors in
   Lwt_stream.(concat (map_s (read_single_request t) requests))
 
+let resume t =
+  let vdev = sprintf "%d" t.vdev in
+  lwt transport = plug vdev in
+  let old_t = t.t in
+  t.t <- transport;
+  Lwt_ring.Front.shutdown old_t.client;
+  return ()
+
+let resume () =
+  let devs = Hashtbl.fold (fun k v acc -> (k,v)::acc) devices [] in
+  Lwt_list.iter_p (fun (k,v) -> resume v) devs
+
 let create ~id : Devices.blkif Lwt.t =
   printf "Xen.Blkif: create %s\n%!" id;
-  lwt dev = plug id in
+  lwt trans = plug id in
+  let dev = { vdev = int_of_string id;
+ 	      t = trans } in
+  Hashtbl.add devices id dev;
   printf "Xen.Blkif: success\n%!";
   return (object
     method id = id
     method read_512 = read_512 dev
     method write_page = write_page dev
     method sector_size = 4096
-    method size = Int64.mul dev.features.sectors dev.features.sector_size
-    method readwrite = dev.features.readwrite
+    method size = Int64.mul dev.t.features.sectors dev.t.features.sector_size
+    method readwrite = dev.t.features.readwrite
     method ppname = sprintf "Xen.blkif:%s" id
     method destroy = unplug id
   end)

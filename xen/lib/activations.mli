@@ -20,5 +20,6 @@ external evtchn_test_and_clear : int -> bool = "caml_evtchn_test_and_clear" "noa
 
 val nr_events : int
 
-val wait : int -> unit Lwt.t
+val wait : Evtchn.t -> unit Lwt.t
 val run : unit -> unit
+val resume : unit -> unit

@@ -15,21 +15,28 @@
 
 open Lwt
 
+type channel = {
+	mutable page: Cstruct.t;
+	mutable evtchn: Evtchn.t;
+}
+(* An inter-domain client is always via a shared memory page
+   and an event channel. *)
+
 external xenstore_start_page: unit -> Io_page.t = "caml_xenstore_start_page"
 
+let open_channel () =
+	let page = Io_page.to_cstruct (xenstore_start_page ()) in
+	Xenstore_ring.Ring.init page;
+	let evtchn = Evtchn.xenstore_port () in
+	return { page; evtchn }
+
+let t = ref None
+(* Unfortunately there is only one connection and it cannot
+   be closed or reopened. *)
+
 module Client = Xs_client.Client(struct
-
-	type t = {
-		page: Cstruct.t;
-		evtchn: int;
-	}
-	(* An inter-domain client is always via a shared memory page
-	    and an event channel. *)
-
-	let t = ref None
-	(* Unfortunately there is only one connection and it cannot
-	    be closed or reopened. *)
-
+	type t = channel
+				
 	exception Already_connected
 
 	exception Cannot_destroy
@@ -40,10 +47,9 @@ module Client = Xs_client.Client(struct
 			Console.log "ERROR: Already connected to xenstore: cannot reconnect";
 			fail Already_connected
 		| None ->
-			let page = Io_page.to_cstruct (xenstore_start_page ()) in
-			Xenstore_ring.Ring.init page;
-			let evtchn = Evtchn.xenstore_port () in
-			return { page; evtchn }
+			lwt ch = open_channel () in
+			t := Some ch;
+			return ch
 
 	let destroy t =
 		Console.log "ERROR: It's not possible to destroy the default xenstore connection";
@@ -85,3 +91,19 @@ let transaction f =
 let wait f =
 	lwt client = client in
 	wait client f
+
+let suspend () =
+	lwt client = client in
+	suspend client
+
+let resume () =
+	lwt ch = open_channel () in
+	begin match !t with 
+		| Some ch' ->
+			ch'.page <- ch.page;
+			ch'.evtchn <- ch.evtchn;
+		| None -> 
+			();
+	end;
+	lwt client = client in
+	resume client

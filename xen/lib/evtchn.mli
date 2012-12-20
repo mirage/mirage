@@ -14,19 +14,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-external xenstore_port: unit -> int = "stub_xenstore_evtchn_port"
-external console_port: unit -> int = "stub_console_evtchn_port"
+type t
 
-external alloc_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
-external bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
+val console_port: unit -> t
+val xenstore_port : unit -> t
 
-external unmask: int -> unit = "stub_evtchn_unmask"
-external notify: int -> unit = "stub_evtchn_notify" "noalloc"
-val unbind: int -> unit
+val alloc_unbound_port: int -> t
+val bind_interdomain: int -> int -> t
+
+val unmask: t -> unit
+val notify: t -> unit
+val unbind: t -> unit
+val is_valid : t -> bool
+val port : t -> int
 
 module Virq : sig
 
-	type t = Dom_exc
+	type vt = Dom_exc
 
-	val bind: t -> int
+	val bind: vt -> t
 end

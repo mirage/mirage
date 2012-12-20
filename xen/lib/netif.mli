@@ -27,7 +27,7 @@ type id = string
     @param fn Callback function that is invoked for every new netfront interface.
     @return Blocking thread that will unplug all the attached interfaces if cancelled.
   *)
-val create : ?dev:string option -> (id -> t -> unit Lwt.t) -> unit Lwt.t
+val create : (id -> t -> unit Lwt.t) -> unit Lwt.t
 
 (** Manually plug in a new network interface. Normally automatically invoked via Xenstore
     watches by the create function *)
@@ -55,3 +55,11 @@ val ethid : t -> string
 val mac : t -> string
 
 val get_writebuf : t -> Cstruct.t Lwt.t
+
+(** Replug all devices *)
+val resume : unit -> unit Lwt.t
+
+(** Add a resume hook - called on resume before the service threads are restarted. Can
+	be used, for example, to send a gratuitous ARP *)
+val add_resume_hook : t -> (t -> unit Lwt.t) -> unit
+

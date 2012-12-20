@@ -23,11 +23,14 @@ let nr_events = evtchn_nr_events ()
 let event_cb = Array.init nr_events (fun _ -> Lwt_sequence.create ())
 
 (* Block waiting for an event to occur on a particular port *)
-let wait port =
-  let th, u = Lwt.task () in
-  let node = Lwt_sequence.add_r u event_cb.(port) in
-  Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
-  th
+let wait evtchn =
+  if Evtchn.is_valid evtchn then begin
+	  let port = Evtchn.port evtchn in
+	  let th, u = Lwt.task () in
+	  let node = Lwt_sequence.add_r u event_cb.(port) in
+	  Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
+	  th
+  end else Lwt.fail Generation.Invalid
 
 (* Go through the event mask and activate any events, potentially spawning
    new threads *)
@@ -38,7 +41,17 @@ let run () =
       Lwt_sequence.iter_node_l (fun node ->
         let u = Lwt_sequence.get node in
         Lwt_sequence.remove node;
-        Lwt.wakeup u ()
+        Lwt.wakeup_later u ()
       ) event_cb.(port)
     end
+  done
+
+(* Note, this should be run *after* Evtchn.resume *)
+let resume () =
+  for port = 0 to nr_events - 1 do
+    Lwt_sequence.iter_node_l (fun node ->
+        let u = Lwt_sequence.get node in
+        Lwt_sequence.remove node;
+        Lwt.wakeup_later_exn u Generation.Invalid
+      ) event_cb.(port)
   done

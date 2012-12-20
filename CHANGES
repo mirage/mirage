@@ -1,3 +1,10 @@
+0.7.0 (20-Dec-2012):
+* [xen] Add support for VM suspend/resume/migrate
+* [xen] Support for multiple network interfaces
+* [xen] Use new shared-memory-ring, removing old builtin version.
+  This is all OCaml except for the memory barrier assembly instructions.
+* Update Cstruct to new API in 0.6.0
+
 0.6.1 (15-Dec-2012):
 * [xen] Add an unused ?dev parameter to Netif.create to match
   the UNIX version.

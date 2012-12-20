@@ -330,18 +330,9 @@ let listen nf fn =
   in
   poll_t nf.t
 
-(** Return a list of valid VIF IDs *)
+(** Return a list of valid VIFs *)
 let enumerate () =
-  (* Find out how many VIFs we have *)
-  let rec read_vif num acc =
-    try_lwt
-      lwt sid = Xs.(immediate (fun h -> read h (sprintf "device/vif/%d/backend-id" num))) in
-      printf "found: num=%d backend-id=%s\n%!" num sid;
-      read_vif (succ num) (sid :: acc)
-    with
-      _ -> return (List.rev acc)
-  in
-  read_vif 0 []
+  try_lwt Xs.(immediate (fun h -> directory h "device/vif")) with _ -> return []
 
 let resume (id,t) =
   lwt transport = plug_inner id in

@@ -24,7 +24,7 @@ val write : t -> Cstruct.t -> unit Lwt.t
 val writev : t -> Cstruct.t list -> unit Lwt.t
 
 val create : ?dev:(string option) -> (id -> t -> unit Lwt.t) -> unit Lwt.t
-val get_writebuf : t -> Io_page.t Lwt.t
+val get_writebuf : t -> Cstruct.t Lwt.t
 
 val mac : t -> string 
 val ethid : t -> id

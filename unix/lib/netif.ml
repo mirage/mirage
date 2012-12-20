@@ -165,7 +165,7 @@ let rec input t =
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =
-  let page = Io_page.get () in
+  let page = Io_page.to_cstruct (Io_page.get ()) in
   (* TODO: record statistics for requesting thread here (in debug mode?) *)
   return page
 

@@ -15,7 +15,7 @@
 
 open Lwt
 
-type channel = {
+type chan = {
 	mutable page: Cstruct.t;
 	mutable evtchn: Evtchn.t;
 }
@@ -35,8 +35,10 @@ let t = ref None
    be closed or reopened. *)
 
 module Client = Xs_client.Client(struct
-	type t = channel
-				
+        type 'a t = 'a Lwt.t
+        type channel = chan
+	let return = Lwt.return
+        let (>>=) = (>>=)			
 	exception Already_connected
 
 	exception Cannot_destroy

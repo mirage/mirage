@@ -1,5 +1,5 @@
 0.7.1 (20-Dec-2012):
-* [unix] Update devies API to use Cstruct 0.6.0
+* [unix] Update devices API to use Cstruct 0.6.0
 
 0.7.0 (20-Dec-2012):
 * [xen] Add support for VM suspend/resume/migrate

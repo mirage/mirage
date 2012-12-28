@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: alloc.h 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id$ */
 
 #ifndef CAML_ALLOC_H
 #define CAML_ALLOC_H
@@ -22,6 +22,10 @@
 #endif
 #include "misc.h"
 #include "mlvalues.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 CAMLextern value caml_alloc (mlsize_t, tag_t);
 CAMLextern value caml_alloc_small (mlsize_t, tag_t);
@@ -43,5 +47,9 @@ CAMLextern value caml_alloc_final (mlsize_t, /*size in words*/
                                    mlsize_t  /*max resources*/);
 
 CAMLextern int caml_convert_flag_list (value, int *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CAML_ALLOC_H */

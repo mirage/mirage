@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: mlvalues.h 8970 2008-08-01 14:10:36Z xleroy $ */
+/* $Id$ */
 
 #ifndef CAML_MLVALUES_H
 #define CAML_MLVALUES_H
@@ -21,6 +21,10 @@
 #endif
 #include "config.h"
 #include "misc.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Definitions
 
@@ -245,6 +249,9 @@ CAMLextern void caml_Store_double_val (value,double);
   double caml__temp_d = (d); \
   Store_double_val((value)((double *) (v) + caml__temp_i), caml__temp_d); \
 }while(0)
+CAMLextern mlsize_t caml_array_length (value);   /* size in items */
+CAMLextern int caml_is_double_array (value);   /* 0 is false, 1 is true */
+
 
 /* Custom blocks.  They contain a pointer to a "method suite"
    of functions (for finalization, comparison, hashing, etc)
@@ -290,6 +297,10 @@ CAMLextern header_t caml_atom_table[];
 /* The table of global identifiers */
 
 extern value caml_global_data;
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* CAML_MLVALUES_H */

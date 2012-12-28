@@ -27,7 +27,7 @@ type t = {
   id: id;
   typ: dev_type;
   buf_sz: int;
-  mutable buf: Cstruct.buf;
+  mutable buf: Cstruct.t;
   dev: Lwt_unix.file_descr;
   mutable active: bool;
   mac: string;
@@ -64,7 +64,7 @@ let plug id =
   let mac = generate_local_mac () in
   let active = true in
   let t = { id; dev; active; mac; typ=ETH;buf_sz=4096; 
-            buf=(Lwt_bytes.create 0);} in
+            buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
   Hashtbl.add devices id t;
   printf "Netif: plug %s\n%!" id;
   return t
@@ -87,7 +87,7 @@ let attach id =
   let buf_sz = pcap_get_buf_len tapfd in 
   let active = true in
   let t = { id; dev; active; mac; typ=PCAP; buf_sz;
-            buf=(Lwt_bytes.create 0);} in
+            buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
   Hashtbl.add devices id t;
   printf "Netif: plug %s\n%!" id;
   return t
@@ -141,7 +141,7 @@ let rec input t =
             |0 -> (* EOF *)
                 t.active <- false;
                 input t
-            |n -> return (Cstruct.sub page 0 len)
+            |n -> return (Cstruct.sub (Io_page.to_cstruct page) 0 len)
       end
     | PCAP -> begin 
       (* very ineficient mechanism, but fine for now *)
@@ -150,8 +150,8 @@ let rec input t =
           if (0 >= (Cstruct.len t.buf)) then (
             let page = Io_page.get () in
             lwt len = Lwt_bytes.read t.dev page 0 t.buf_sz in
-            let _ = t.buf <- Cstruct.sub page 0 len in 
-        (*     let _ = printf "fetched new data %d from %s\n%!" (len) t.id in *)
+           let _ = t.buf <- Cstruct.sub (Io_page.to_cstruct page) 0 len in 
+(*             let _ = printf "fetched new data %d\n%!" (len) in *)
               return ()
           ) else  return ()
         in
@@ -175,7 +175,7 @@ let rec input t =
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =
-  let page = Io_page.get () in
+  let page = Io_page.to_cstruct (Io_page.get ()) in
   (* TODO: record statistics for requesting thread here (in debug mode?) *)
   return page
 
@@ -206,11 +206,18 @@ let destroy nf =
 
 (* Transmit a packet from an Io_page *)
 let write t page =
+<<<<<<< HEAD
   let off = Cstruct.base_offset page in
   let len = Cstruct.len page in
   lwt len' = Lwt_bytes.write t.dev page 0 len in
   if len' <> len then
     raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' len))
+=======
+  (* Unfortunately we peek inside the cstruct type here: *)
+  lwt len' = Lwt_bytes.write t.dev page.Cstruct.buffer page.Cstruct.off page.Cstruct.len in
+  if len' <> page.Cstruct.len then
+    raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' page.Cstruct.len))
+>>>>>>> 3983bbff9178b722ee148de67eed4cbd459a3fed
   else
     return ()
 
@@ -221,11 +228,11 @@ let writev t pages =
   |[] -> return ()
   |[page] -> write t page
   |pages ->
-    let page = Io_page.get () in
+    let page = Io_page.(to_cstruct (get ())) in
     let off = ref 0 in
     List.iter (fun p ->
       let len = Cstruct.len p in
-      Cstruct.blit_buffer p 0 page !off len;
+      Cstruct.blit p 0 page !off len;
       off := !off + len;
     ) pages;
     let v = Cstruct.sub page 0 !off in

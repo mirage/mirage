@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Manuel Serrano and Xavier Leroy, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: custom.h 9547 2010-01-22 12:48:24Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_CUSTOM_H
 #define CAML_CUSTOM_H
@@ -31,6 +31,7 @@ struct custom_operations {
                     /*out*/ uintnat * wsize_32 /*size in bytes*/,
                     /*out*/ uintnat * wsize_64 /*size in bytes*/);
   uintnat (*deserialize)(void * dst);
+  int (*compare_ext)(value v1, value v2);
 };
 
 #define custom_finalize_default NULL
@@ -38,8 +39,14 @@ struct custom_operations {
 #define custom_hash_default NULL
 #define custom_serialize_default NULL
 #define custom_deserialize_default NULL
+#define custom_compare_ext_default NULL
 
 #define Custom_ops_val(v) (*((struct custom_operations **) (v)))
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 CAMLextern value caml_alloc_custom(struct custom_operations * ops,
                                    uintnat size, /*size in bytes*/
@@ -58,5 +65,9 @@ extern struct custom_operations *
 
 extern void caml_init_custom_operations(void);
 /* </private> */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CAML_CUSTOM_H */

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: roots.h 7064 2005-09-22 14:21:50Z xleroy $ */
+/* $Id$ */
 
 #ifndef CAML_ROOTS_H
 #define CAML_ROOTS_H

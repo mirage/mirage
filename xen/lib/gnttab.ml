@@ -45,10 +45,6 @@ let to_string (r:r) = Int32.to_string (to_int32 r)
 let free_list : r Queue.t = Queue.create ()
 let free_list_waiters = Lwt_sequence.create ()
 
-let iter_option f = function
-  | None -> ()
-  | Some x -> f x
-
 let put r =
   Queue.push r free_list;
   match Lwt_sequence.take_opt_l free_list_waiters with
@@ -117,8 +113,8 @@ let with_grant ~domid ~perm gnt page fn =
     end_access gnt;
     return res
   with exn -> begin
-    end_access gnt;
-    fail exn
+      end_access gnt;
+      fail exn
   end
 
 let with_grants ~domid ~perm gnts pages fn =
@@ -149,9 +145,17 @@ let with_mapping handle domid r perm fn =
 
 let map_contiguous_grant_refs handle domid rs perm = failwith "Unimplemented!"
 
+let suspend () =
+  Raw.fini ()
+
+let resume () =
+  Raw.init ()
+
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);
     for i = Raw.nr_reserved () to Raw.nr_entries () - 1 do
         put (Int32.of_int i);
     done;
     Raw.init ()
+
+

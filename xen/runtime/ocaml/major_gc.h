@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: major_gc.h 8766 2008-01-11 11:55:36Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_MAJOR_GC_H
 #define CAML_MAJOR_GC_H
@@ -54,7 +54,7 @@ extern char *caml_gc_sweep_hp;
 void caml_init_major_heap (asize_t);           /* size in bytes */
 asize_t caml_round_heap_chunk_size (asize_t);  /* size in bytes */
 void caml_darken (value, value *);
-intnat caml_major_collection_slice (long);
+intnat caml_major_collection_slice (intnat);
 void major_collection (void);
 void caml_finish_major_cycle (void);
 

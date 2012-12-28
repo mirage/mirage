@@ -19,7 +19,10 @@ type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 val get : ?pages_per_block:int -> unit -> t
 val get_n : ?pages_per_block:int -> int -> t list
 
-val sub : t -> int -> int -> t
+val get_order : int -> t
+
+val to_cstruct : t -> Cstruct.t
+
 val length : t -> int
 
 val to_pages : t -> t list

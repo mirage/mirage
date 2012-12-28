@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: compact.h 6044 2003-12-31 14:20:40Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_COMPACT_H
 #define CAML_COMPACT_H

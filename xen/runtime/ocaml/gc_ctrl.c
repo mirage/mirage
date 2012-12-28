@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*             Damien Doligez, projet Para, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: gc_ctrl.c 10315 2010-04-27 07:55:08Z xleroy $ */
+/* $Id$ */
 
 #include "alloc.h"
 #include "compact.h"
@@ -133,7 +133,7 @@ static value heap_stats (int returnstats)
   header_t cur_hd;
 
 #ifdef DEBUG
-  caml_gc_message (-1, "### O'Caml runtime: heap check ###\n", 0);
+  caml_gc_message (-1, "### OCaml runtime: heap check ###\n", 0);
 #endif
 
   while (chunk != NULL){
@@ -356,21 +356,12 @@ static intnat norm_minsize (intnat s)
   return s;
 }
 
-static intnat norm_policy (intnat p)
-{
-  if (p >= 0 && p <= 1){
-    return p;
-  }else{
-    return 1;
-  }
-}
-
 CAMLprim value caml_gc_set(value v)
 {
   uintnat newpf, newpm;
   asize_t newheapincr;
   asize_t newminsize;
-  uintnat newpolicy;
+  uintnat oldpolicy;
 
   caml_verb_gc = Long_val (Field (v, 3));
 
@@ -396,10 +387,11 @@ CAMLprim value caml_gc_set(value v)
     caml_gc_message (0x20, "New heap increment size: %luk bytes\n",
                      caml_major_heap_increment/1024);
   }
-  newpolicy = norm_policy (Long_val (Field (v, 6)));
-  if (newpolicy != caml_allocation_policy){
-    caml_gc_message (0x20, "New allocation policy: %d\n", newpolicy);
-    caml_set_allocation_policy (newpolicy);
+  oldpolicy = caml_allocation_policy;
+  caml_set_allocation_policy (Long_val (Field (v, 6)));
+  if (oldpolicy != caml_allocation_policy){
+    caml_gc_message (0x20, "New allocation policy: %d\n",
+                     caml_allocation_policy);
   }
 
     /* Minor heap size comes last because it will trigger a minor collection
@@ -467,8 +459,11 @@ CAMLprim value caml_gc_major_slice (value v)
 
 CAMLprim value caml_gc_compaction(value v)
 {                                                    Assert (v == Val_unit);
+  caml_gc_message (0x10, "Heap compaction requested\n", 0);
   caml_empty_minor_heap ();
   caml_finish_major_cycle ();
+  caml_final_do_calls ();
+  caml_empty_minor_heap ();
   caml_finish_major_cycle ();
   caml_compact_heap ();
   caml_final_do_calls ();
@@ -481,7 +476,9 @@ void caml_init_gc (uintnat minor_size, uintnat major_size,
 {
   uintnat major_heap_size = Bsize_wsize (norm_heapincr (major_size));
 
-  caml_page_table_initialize(Bsize_wsize(minor_size) + major_heap_size);
+  if (caml_page_table_initialize(Bsize_wsize(minor_size) + major_heap_size)){
+    caml_fatal_error ("OCaml runtime error: cannot initialize page table\n");
+  }
   caml_set_minor_heap_size (Bsize_wsize (norm_minsize (minor_size)));
   caml_major_heap_increment = Bsize_wsize (norm_heapincr (major_incr));
   caml_percent_free = norm_pfree (percent_fr);

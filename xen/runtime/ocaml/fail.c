@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: fail.c 9030 2008-09-18 11:23:28Z xleroy $ */
+/* $Id$ */
 
 /* Raising exceptions from C. */
 
@@ -41,7 +41,9 @@ extern caml_generated_constant
   caml_exn_Not_found,
   caml_exn_Match_failure,
   caml_exn_Sys_blocked_io,
-  caml_exn_Stack_overflow;
+  caml_exn_Stack_overflow,
+  caml_exn_Assert_failure,
+  caml_exn_Undefined_recursive_module;
 extern caml_generated_constant
   caml_bucket_Out_of_memory,
   caml_bucket_Stack_overflow;
@@ -204,4 +206,10 @@ void caml_array_bound_error(void)
     array_bound_error_bucket_inited = 1;
   }
   caml_raise((value) &array_bound_error_bucket.exn);
+}
+
+int caml_is_special_exception(value exn) {
+  return exn == (value) caml_exn_Match_failure
+    || exn == (value) caml_exn_Assert_failure
+    || exn == (value) caml_exn_Undefined_recursive_module;
 }

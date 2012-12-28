@@ -1,4 +1,3 @@
-stack_chk_fail.o
 xmalloc.o
 sys.o
 x86_mm.o

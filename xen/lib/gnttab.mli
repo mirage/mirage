@@ -58,3 +58,7 @@ val with_mapping : handle -> int -> int32 -> perm -> (Io_page.t -> 'a Lwt.t) -> 
 val map_contiguous_grant_refs : handle -> int -> int32 list -> perm -> Io_page.t
 
 val unmap : handle -> Io_page.t -> unit
+
+val suspend : unit -> unit
+val resume : unit -> unit
+

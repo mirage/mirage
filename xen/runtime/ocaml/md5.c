@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: md5.c 9547 2010-01-22 12:48:24Z doligez $ */
+/* $Id$ */
 
 #include <string.h>
 #include "alloc.h"
@@ -66,6 +66,15 @@ CAMLprim value caml_md5_chan(value vchan, value len)
   caml_MD5Final(&Byte_u(res, 0), &ctx);
   Unlock(chan);
   CAMLreturn (res);
+}
+
+CAMLexport void caml_md5_block(unsigned char digest[16],
+                               void * data, uintnat len)
+{
+  struct MD5Context ctx;
+  caml_MD5Init(&ctx);
+  caml_MD5Update(&ctx, data, len);
+  caml_MD5Final(digest, &ctx);
 }
 
 /*

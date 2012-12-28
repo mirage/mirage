@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*         Xavier Leroy and Damien Doligez, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: main.c 8822 2008-02-29 12:56:15Z doligez $ */
+/* $Id$ */
 
 /* Main entry point (can be overridden by a user-provided main()
    function that calls caml_main() later). */

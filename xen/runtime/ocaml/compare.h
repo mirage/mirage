@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*          Damien Doligez, Projet Moscova, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: compare.h 6044 2003-12-31 14:20:40Z doligez $ */
+/* $Id$ */
 
 #ifndef CAML_COMPARE_H
 #define CAML_COMPARE_H

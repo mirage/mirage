@@ -1,5 +1,5 @@
-(*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+/*
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,25 +12,31 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *)
+ */
 
-type t
+#include <stdint.h>
+#include <assert.h>
 
-val console_port: unit -> t
-val xenstore_port : unit -> t
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/bigarray.h>
 
-val alloc_unbound_port: int -> t
-val bind_interdomain: int -> int -> t
+#include "barrier.h"
 
-val unmask: t -> unit
-val notify: t -> unit
-val unbind: t -> unit
-val is_valid : t -> bool
-val port : t -> int
+#define xen_mb() mb()
+#define xen_wmb() wmb()
 
-module Virq : sig
+CAMLprim value
+caml_memory_barrier()
+{
+  xen_mb();
+  return Val_unit;
+}
 
-	type vt = Dom_exc
-
-	val bind: vt -> t
-end
+CAMLprim value
+caml_write_memory_barrier()
+{
+  wmb();
+  return Val_unit;
+}

@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*          Damien Doligez, projet Moscova, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: finalise.c 10393 2010-05-12 14:32:23Z doligez $ */
+/* $Id$ */
 
 /* Handling of finalised values. */
 

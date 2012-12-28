@@ -1,6 +1,6 @@
 /***********************************************************************/
 /*                                                                     */
-/*                           Objective Caml                            */
+/*                                OCaml                                */
 /*                                                                     */
 /*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         */
 /*                                                                     */
@@ -11,7 +11,7 @@
 /*                                                                     */
 /***********************************************************************/
 
-/* $Id: io.h 9041 2008-09-27 21:16:29Z weis $ */
+/* $Id$ */
 
 /* Buffered input/output */
 
@@ -22,7 +22,7 @@
 #include "mlvalues.h"
 
 #ifndef IO_BUFFER_SIZE
-#define IO_BUFFER_SIZE 4096
+#define IO_BUFFER_SIZE 65536
 #endif
 
 #if defined(_WIN32)

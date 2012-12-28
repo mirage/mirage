@@ -277,11 +277,18 @@ static trap_info_t trap_table[] = {
     { 19, 0, __KERNEL_CS, (unsigned long)simd_coprocessor_error      },
     {  0, 0,           0, 0                           }
 };
-    
 
+#define MXCSR_DEFAULT 0x1f80
+    
+void fpu_init(void)
+{
+  unsigned long val = MXCSR_DEFAULT;
+  asm volatile ( "fninit; ldmxcsr %0" : : "m" (val) );
+}
 
 void trap_init(void)
 {
+    fpu_init();
     HYPERVISOR_set_trap_table(trap_table);    
 }
 

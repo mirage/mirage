@@ -168,7 +168,7 @@ let rec input t =
           if (bpf_wordalign < (Cstruct.len t.buf)) then
             t.buf <- Cstruct.shift t.buf bpf_wordalign 
           else
-            t.buf <- Lwt_bytes.create 0  
+            t.buf <- Cstruct.create 0  
         in
          return ret
     end
@@ -194,7 +194,7 @@ let rec listen t fn =
           listen t fn
       with exn -> 
         let _ = eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn ) in
-        let _ = t.buf <- (Lwt_bytes.create 0) in 
+        let _ = t.buf <- (Cstruct.create 0) in 
           listen t fn 
   end
   |false -> return ()
@@ -202,22 +202,14 @@ let rec listen t fn =
 (* Shutdown a netfront *)
 let destroy nf =
   let _ = unplug nf.id in 
-  printf "tap_destroy\n%!"
+  return (printf "tap_destroy\n%!")
 
 (* Transmit a packet from an Io_page *)
 let write t page =
-<<<<<<< HEAD
-  let off = Cstruct.base_offset page in
-  let len = Cstruct.len page in
-  lwt len' = Lwt_bytes.write t.dev page 0 len in
-  if len' <> len then
-    raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' len))
-=======
-  (* Unfortunately we peek inside the cstruct type here: *)
-  lwt len' = Lwt_bytes.write t.dev page.Cstruct.buffer page.Cstruct.off page.Cstruct.len in
+ (* Unfortunately we peek inside the cstruct type here: *)
+  lwt len' = Lwt_bytes.write t.dev page.Cstruct.buffer 0 (*page.Cstruct.off*) page.Cstruct.len in
   if len' <> page.Cstruct.len then
     raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' page.Cstruct.len))
->>>>>>> 3983bbff9178b722ee148de67eed4cbd459a3fed
   else
     return ()
 

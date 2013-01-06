@@ -1,3 +1,9 @@
+0.7.2 (trunk):
+
+* Install the packed `cmx` along with the `cmxa` to ensure that the
+  compiler can do cross-module optimization (this is not a fatal error,
+  but will impact performance if the `cmx` file is not present).
+  
 0.7.1 (20-Dec-2012):
 * [unix] Update devices API to use Cstruct 0.6.0
 

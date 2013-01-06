@@ -120,7 +120,7 @@ module Configure = struct
           let libs = List.map ((^)"lib/") (config "lib") in
           let interface = List.map (fun x -> x-.-"cmi") libs in
           let byte = List.map (fun x -> x-.-"cma") libs in
-          let native = if_opt (fun x -> x-.-"cmxa") libs in
+          let native = if_opt (fun x -> x-.-"cmxa") libs @ (if_opt (fun x -> x-.-"cmx") libs) in 
           let nativea = if_opt (fun x -> x-.-"a") libs in
           let natdynlink = if_natdynlink (fun x -> x-.-"cmxs") libs in
           interface @ byte @ native @ natdynlink @ nativea in

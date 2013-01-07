@@ -16,6 +16,8 @@
 
 type t
 type id = string
+exception Device_down of id
+
 
 val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 val destroy : t -> unit Lwt.t

@@ -19,6 +19,8 @@ open Printf
 
 type id = string
 
+exception Device_down of id
+
 type dev_type =
 | PCAP
 | ETH
@@ -192,7 +194,11 @@ let rec listen t fn =
             return (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn) (Printexc.get_backtrace()))
           );
           listen t fn
-      with exn -> 
+      with 
+      |  Unix.Unix_error(Unix.ENXIO, _, _) -> 
+          let _ = printf "[netif-input] device %s is down\n%!" t.id in 
+            raise (Device_down t.id)
+      | exn -> 
         let _ = eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn ) in
         let _ = t.buf <- (Cstruct.create 0) in 
           listen t fn 
@@ -207,7 +213,7 @@ let destroy nf =
 (* Transmit a packet from an Io_page *)
 let write t page =
  (* Unfortunately we peek inside the cstruct type here: *)
-  lwt len' = Lwt_bytes.write t.dev page.Cstruct.buffer 0 (*page.Cstruct.off*) page.Cstruct.len in
+  lwt len' = Lwt_bytes.write t.dev page.Cstruct.buffer page.Cstruct.off page.Cstruct.len in
   if len' <> page.Cstruct.len then
     raise_lwt (Failure (sprintf "tap: partial write (%d, expected %d)" len' page.Cstruct.len))
   else

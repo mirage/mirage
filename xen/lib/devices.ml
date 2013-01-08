@@ -85,7 +85,6 @@ let rec find id =
     let entry = Hashtbl.find device_tree id in
     return entry
   with Not_found -> begin
-    printf "Devices: [%s] sleeping\n%!" id;
     let seq = 
       try
         Hashtbl.find device_waiters id
@@ -98,7 +97,6 @@ let rec find id =
     let node = Lwt_sequence.add_r u seq in
     Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
     lwt ent = th in
-    printf "Devices: [%s] waking\n%!" id;
     return ent 
   end
 

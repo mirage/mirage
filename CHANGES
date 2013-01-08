@@ -1,8 +1,7 @@
 0.7.2 (trunk):
-
+* [xen] Fix the size of the start-of-day Xenstore and console rings.
 * Quieten the verbosity of devices sleeping in Xen, to avoid console
   overflow situations.
-
 * Install the packed `cmx` along with the `cmxa` to ensure that the
   compiler can do cross-module optimization (this is not a fatal error,
   but will impact performance if the `cmx` file is not present).

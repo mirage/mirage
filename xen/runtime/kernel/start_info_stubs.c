@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
+#include <caml/alloc.h>
 #include <caml/fail.h>
 #include <caml/bigarray.h>
 
@@ -63,7 +64,7 @@ caml_console_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
-  intnat dims[] = { Long_val(PAGE_SIZE) };
+  intnat dims[] = { PAGE_SIZE };
   unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
   v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
   CAMLreturn(v_ret);
@@ -74,7 +75,7 @@ caml_xenstore_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
   CAMLlocal1(v_ret);
-  intnat dims[] = { Long_val(PAGE_SIZE) };
+  intnat dims[] = { PAGE_SIZE };
   unsigned char *page = mfn_to_virt(start_info.store_mfn);
   v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
   CAMLreturn(v_ret);

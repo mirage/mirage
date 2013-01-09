@@ -19,9 +19,13 @@ open Printf
 
 let allocate_ring ~domid =
 	let page = Io_page.get () in
+	let x = Io_page.to_cstruct page in
+	for i = 0 to Cstruct.len x - 1 do
+		Cstruct.set_uint8 x i 0
+	done;
 	lwt gnt = Gnttab.get () in
 	Gnttab.grant_access ~domid ~perm:Gnttab.RW gnt page;
-	return (gnt, Io_page.to_cstruct page)
+	return (gnt, x)
 
 module RX = struct
 

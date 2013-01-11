@@ -132,6 +132,7 @@ type transport = {
   tx_fring: (TX.response,int) Ring.Rpc.Front.t;
   tx_client: (TX.response,int) Lwt_ring.Front.t;
   tx_gnt: Gnttab.r;
+  tx_mutex: Lwt_mutex.t; (* Held to avoid signalling between fragments *)
   rx_fring: (RX.response,int) Ring.Rpc.Front.t;
   rx_client: (RX.response,int) Lwt_ring.Front.t;
   rx_map: (int, Gnttab.r * Io_page.t) Hashtbl.t;
@@ -158,6 +159,7 @@ let plug_inner id =
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (rx_gnt, rx_fring, rx_client) = RX.create (id, backend_id) in
   lwt (tx_gnt, tx_fring, tx_client) = TX.create (id, backend_id) in
+  let tx_mutex = Lwt_mutex.create () in
   let evtchn = Evtchn.alloc_unbound_port backend_id in
   let evtchn_port = Evtchn.port evtchn in
   (* Read Xenstore info and set state to Connected *)
@@ -196,7 +198,7 @@ let plug_inner id =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Evtchn.unmask evtchn;
   (* Register callback activation *)
-  return { backend_id; tx_fring; tx_client; tx_gnt; rx_gnt; rx_fring; rx_client; rx_map;
+  return { backend_id; tx_fring; tx_client; tx_gnt; tx_mutex; rx_gnt; rx_fring; rx_client; rx_map;
     evtchn; mac; backend; features }
 
 let plug id = 
@@ -261,50 +263,71 @@ let write_request ?size ~flags nf page =
   let size = match size with |None -> Cstruct.len page |Some s -> s in
   (* XXX: another place where we peek inside the cstruct *)
   let offset = page.Cstruct.off in
-  Lwt_ring.Front.push_request_async nf.t.tx_client
-    (notify nf.t)
-    (TX.Proto_64.write ~id ~gref ~offset ~flags ~size) 
-    (fun th ->
-		let finalize = function 
-			| Some Lwt_ring.Shutdown ->
-				Gnttab.put gnt
-			| _ -> 
-				Gnttab.end_access gnt;
-				Gnttab.put gnt
-		in
-		lwt e = try_lwt th >> return None with e -> return (Some e) in
-	    return (finalize e))
+  lwt replied = Lwt_ring.Front.write nf.t.tx_client
+    (TX.Proto_64.write ~id ~gref ~offset ~flags ~size) in
+  (* request has been written; when replied returns we have a reply *)
+  let replied =
+    try_lwt
+      lwt _ = replied in
+      Gnttab.end_access gnt;
+      Gnttab.put gnt;
+      return ()
+    with Lwt_ring.Shutdown ->
+      Gnttab.put gnt;
+      fail Lwt_ring.Shutdown
+    | e ->
+      Gnttab.end_access gnt;
+      Gnttab.put gnt;
+      fail e in
+  return replied
  
 (* Transmit a packet from buffer, with offset and length *)  
-let rec write nf page =
+let rec write_already_locked nf page =
   try_lwt
-    lwt () = write_request ~flags:0 nf page in
+    lwt th = write_request ~flags:0 nf page in
+    Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
+    lwt () = th in
+    (* all fragments acknowledged, resources cleaned up *)
     return ()
-  with | Lwt_ring.Shutdown -> write nf page
+  with | Lwt_ring.Shutdown -> write_already_locked nf page
+
+let write nf page =
+  Lwt_mutex.with_lock nf.t.tx_mutex
+  (fun () ->
+    write_already_locked nf page
+  )
 
 (* Transmit a packet from a list of pages *)
 let writev nf pages =
+  Lwt_mutex.with_lock nf.t.tx_mutex
+  (fun () ->
   match pages with
   |[] -> return ()
   |[page] ->
      (* If there is only one page, then just write it normally *)
-     write nf page
+     write_already_locked nf page
   |first_page::other_pages ->
+
      (* For Xen Netfront, the first fragment contains the entire packet
       * length, which is the backend will use to consume the remaining
       * fragments until the full length is satisfied *)
-     lwt () = write_request ~flags:TX.Proto_64.flag_more_data ~size:(Cstruct.lenv pages) nf first_page in
-     let rec xmit = 
-       function
-       |[] -> return ()
-       |[page] -> (* The last fragment has no More_data flag to indicate eof *)
-          write_request ~flags:0 nf page
-       |page::tl -> (* A middle fragment has a More_data flag set *)
-          lwt () = write_request ~flags:TX.Proto_64.flag_more_data nf page in
-          xmit tl
-     in
-     lwt () = xmit other_pages in
-     return ()
+     let size = Cstruct.lenv pages in
+     lwt first_th = write_request ~flags:TX.Proto_64.flag_more_data ~size nf first_page in
+     let rec xmit = function
+       | [] -> return []
+       | hd :: [] ->
+         lwt th = write_request ~flags:0 nf hd in
+         return [ th ]
+       | hd :: tl ->
+         lwt next_th = write_request ~flags:TX.Proto_64.flag_more_data nf hd in
+         lwt rest = xmit tl in
+         return (next_th :: rest) in
+     lwt rest_th = xmit other_pages in
+     (* All fragments are now written, we can now notify the backend *)
+     Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
+     (* Wait for the other end to reply *)
+     Lwt.join (first_th :: rest_th)
+  )
 
 let wait_for_plug nf =
 	Console.log_s "Wait for plug..." >>

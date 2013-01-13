@@ -307,7 +307,6 @@ let writev nf pages =
      (* If there is only one page, then just write it normally *)
      write_already_locked nf page
   |first_page::other_pages ->
-
      (* For Xen Netfront, the first fragment contains the entire packet
       * length, which is the backend will use to consume the remaining
       * fragments until the full length is satisfied *)
@@ -325,8 +324,7 @@ let writev nf pages =
      lwt rest_th = xmit other_pages in
      (* All fragments are now written, we can now notify the backend *)
      Lwt_ring.Front.push nf.t.tx_client (notify nf.t);
-     (* Wait for the other end to reply *)
-     Lwt.join (first_th :: rest_th)
+     return ()
   )
 
 let wait_for_plug nf =

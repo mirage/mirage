@@ -5,7 +5,7 @@ xen)
   CC=${CC:-cc}
   PWD=`pwd`
   GCC_INCLUDE=`env LANG=C ${CC} -print-search-dirs | sed -n -e 's/install: \(.*\)/\1/p'`
-  CFLAGS="-U __linux__ -U __FreeBSD__ -U __sun__ -D__MiniOS__ -D__MiniOS__ -D__x86_64__ \
+  CFLAGS="-O3 -U __linux__ -U __FreeBSD__ -U __sun__ -D__MiniOS__ -D__MiniOS__ -D__x86_64__ \
     -D__XEN_INTERFACE_VERSION__=0x00030205 -D__INSIDE_MINIOS__ -nostdinc -std=gnu99 \
     -fno-stack-protector -m64 -mno-red-zone -fno-reorder-blocks -fstrict-aliasing \
     -momit-leaf-frame-pointer -mfancy-math-387 -I${GCC_INCLUDE}/include \

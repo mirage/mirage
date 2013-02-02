@@ -328,6 +328,8 @@ let create kvs =
   { name; filename; fs; ip; http; main }
 
 let output_main t =
+  if Sys.file_exists t.filename then
+    command "mv %s %s.save" t.filename t.filename;
   let oc = open_out t.filename in
   Headers.output oc;
   FS.output oc t.fs;

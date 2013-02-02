@@ -28,6 +28,9 @@ http-address: *
 # Main function
 main-http: Dispatch.main
 # main-ip: Ping.min
+
+# Dependencies
+depends: mirage-net, cow
 ```
 
 The main function have type TODO.

@@ -354,6 +354,7 @@ module Build = struct
 end
 
 type t = {
+  file   : string;
   xen    : bool;
   name   : string;
   dir    : string;
@@ -365,14 +366,18 @@ type t = {
   build  : Build.t;
 }
 
-let create ~xen ~name ~dir kvs =
+let create ~xen ~file =
+  let dir = Filename.dirname file in
+  let name = Filename.chop_extension (Filename.basename file) in
+  let lines = lines_of_file file in
+  let kvs = filter_map key_value lines in
   let main_ml = Printf.sprintf "%s/main.ml" dir in
   let fs = FS.create ~dir kvs in
   let ip = IP.create kvs in
   let http = HTTP.create kvs in
   let main = Main.create kvs in
   let build = Build.create ~name ~dir kvs in
-  { xen; name; dir; main_ml; fs; ip; http; main; build }
+  { file; xen; name; dir; main_ml; fs; ip; http; main; build }
 
 let output_main t =
   let oc = open_out t.main_ml in
@@ -394,12 +399,16 @@ let call_configure_scripts t =
   )
 
 let call_build_scripts t =
-  in_dir t.dir (fun () ->
-    let exec = Printf.sprintf "mir-%s" t.name in
-    command "rm -f %s" exec;
-    command "obuild build";
-    command "ln -s %s/dist/build/%s/%s %s" t.dir t.name t.name exec
-  )
+  let setup = Printf.sprintf "%s/dist/setup" t.dir in
+  if Sys.file_exists setup then (
+    in_dir t.dir (fun () ->
+      let exec = Printf.sprintf "mir-%s" t.name in
+      command "rm -f %s" exec;
+      command "obuild build";
+      command "ln -s %s/dist/build/%s/%s %s" t.dir t.name t.name exec
+    )
+  ) else
+    error "You should run 'mirari configure %s' first." t.file
 
 let call_xen_scripts t =
   let obj = Printf.sprintf "dist/build/%s/%s.native.obj" t.name t.name in
@@ -407,15 +416,8 @@ let call_xen_scripts t =
   if Sys.file_exists obj then
     command "mir-build -b xen-native -o %s %s" target obj
 
-let conf file =
-  let dir = Filename.dirname file in
-  let name = Filename.chop_extension (Filename.basename file) in
-  let lines = lines_of_file file in
-  let kvs = filter_map key_value lines in
-  create ~name ~dir kvs
-
-let configure ~xen file =
-  let t = conf ~xen file in
+let configure ~xen ~file =
+  let t = create ~xen ~file in
   (* main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
@@ -424,8 +426,8 @@ let configure ~xen file =
   (* obuild configure *)
   call_configure_scripts t
 
-let build ~xen file =
-  let t = conf ~xen file in
+let build ~xen ~file =
+  let t = create ~xen ~file in
   (* build *)
   call_build_scripts t;
   (* gen_xen.sh *)

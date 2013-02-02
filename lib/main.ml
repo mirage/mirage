@@ -52,7 +52,7 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure xen file = Mirari.configure ~xen file in
+  let configure xen file = Mirari.configure ~xen ~file in
   Term.(pure configure $ xen $ file), term_info "configure" ~doc ~man
 
 (* BUILD *)
@@ -63,7 +63,7 @@ let build =
     `S "DESCRIPTION";
     `P "Build an already configured application."
   ] in
-  let build xen file = Mirari.build ~xen file in
+  let build xen file = Mirari.build ~xen ~file in
   Term.(pure build $ xen $ file), term_info "build" ~doc ~man
 
 (* HELP *)

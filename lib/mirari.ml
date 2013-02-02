@@ -157,7 +157,7 @@ module FS = struct
       let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
       if Sys.file_exists path then (
         info "Creating %s." file;
-        command "mir-crunch -name %S %s > %s\n" name path file
+        command "mir-crunch -name %S %s > %s" name path file
       ) else
       error "The directory %s does not exist." path
     ) t.fs
@@ -339,7 +339,7 @@ module Build = struct
     close_out oc
 
   let check t =
-    let exists s = (Sys.command ("which " ^ s) = 0) in
+    let exists s = (Sys.command ("which " ^ s ^ " > /dev/null") = 0) in
     if t.packages <> [] && not (exists "opam") then
       error "OPAM is not installed.";
     if not (exists "obuild") then

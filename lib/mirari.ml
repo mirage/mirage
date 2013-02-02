@@ -301,22 +301,26 @@ module Main = struct
 
 end
 
-(* .obuild file *)
-module OBuild = struct
+(* .obuild & opam file *)
+module Build = struct
 
   type t = {
     name   : string;
     dir    : string;
     depends: string list;
+    packages: string list;
   }
 
-  let create ~name ~dir kvs =
-    let kvs = List.filter (fun (k,_) -> k = "depends") kvs in
-    let depends =
-      List.fold_left (fun accu (_,v) ->
-        split v ',' @ accu
-      ) [] kvs in
-    { name; dir; depends }
+  let get name kvs =
+    let kvs = List.filter (fun (k,_) -> k = name) kvs in
+    List.fold_left (fun accu (_,v) ->
+      split v ',' @ accu
+    ) [] kvs
+
+  let create ~dir ~name kvs =
+    let depends = get "depends" kvs in
+    let packages = get "packages" kvs in
+    { name; dir; depends; packages }
 
   let output oc t =
     let file = Printf.sprintf "%s/main.obuild" t.dir in
@@ -334,6 +338,19 @@ module OBuild = struct
     append oc "  pp: camlp4o";
     close_out oc
 
+  let check t =
+    let exists s = (Sys.command ("which " ^ s) = 0) in
+    if t.packages <> [] && not (exists "opam") then
+      error "OPAM is not installed.";
+    if not (exists "obuild") then
+      error "obuild is not installed."
+
+  let prepare t =
+    check t;
+    match t.packages with
+    | [] -> ()
+    | ps -> command "opam install --yes %s" (String.concat " " ps)
+
 end
 
 type t = {
@@ -345,7 +362,7 @@ type t = {
   ip     : IP.t;
   http   : HTTP.t;
   main   : Main.t;
-  depends: OBuild.t;
+  build  : Build.t;
 }
 
 let create ~xen ~name ~dir kvs =
@@ -354,8 +371,8 @@ let create ~xen ~name ~dir kvs =
   let ip = IP.create kvs in
   let http = HTTP.create kvs in
   let main = Main.create kvs in
-  let depends = OBuild.create ~name ~dir kvs in
-  { xen; name; dir; main_ml; fs; ip; http; main; depends }
+  let build = Build.create ~name ~dir kvs in
+  { xen; name; dir; main_ml; fs; ip; http; main; build }
 
 let output_main t =
   let oc = open_out t.main_ml in
@@ -364,7 +381,7 @@ let output_main t =
   IP.output oc t.ip;
   HTTP.output oc t.http;
   Main.output oc t.main;
-  OBuild.output oc t.depends;
+  Build.output oc t.build;
   close_out oc
 
 let call_crunch_scripts t =
@@ -372,7 +389,8 @@ let call_crunch_scripts t =
 
 let call_configure_scripts t =
   in_dir t.dir (fun () ->
-    command "obuild configure %s" (if t.xen then "--executable-as-obj" else "")
+    Build.prepare t.build;
+    command "obuild configure %s" (if t.xen then "--executable-as-obj" else "");
   )
 
 let call_build_scripts t =

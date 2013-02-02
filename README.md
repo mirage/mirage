@@ -2,11 +2,11 @@
 
 Mirari is a tool to create applications with Mirage.
 
-## Writing configuration files
+## Configuration files
 
 Mirari currently uses configuration files to set-up Mirage
-applications. A support for command line arguments is planned in the
-future.
+applications. A support for command line arguments should be available
+soon.
 
 An example of <app.conf>:
 
@@ -30,25 +30,38 @@ main-http: Dispatch.main
 # main-ip: Ping.min
 
 # Dependencies
-depends: mirage-net, cow
-```
-
-The main function have type TODO.
-
-## Building applications
-
-Then, you need to ask Mirari to generate the boiler-plate code to run your application.
+depends: cohttp.syntax, uri, re, cow.syntax
+packages: mirage-net, cow
 
 ```
-$ mirari /path/to/app.conf
+
+* The main function MUST have type TODO.
+* `depends` is a list of ocamlfind libraries
+* `packages` is a list of OPAM packages (which contains the `depends` libraries)
+
+## Configuring Mirage Applications
+
+The command:
+
+```
+$ mirari configure /path/to/app.conf
 ```
 
-This will:
+will configure your project. More precisely it will:
 * generate `/path/to/main.ml`
-* call `obuild configure` and `obuild build` [currently, this needs
-  `/path/to/app.obuild` to exists, but next step is to generate that
-  build file]
-* create `mir-app`
+* generate `/path/to/main.obuild`
+* call the right OPAM commands
+* call `cd /path/to && obuild configure`
+
+## Building Mirage Applications
+
+The command:
+
+```
+$ mirari build /path/to/app.conf
+```
+
+will build your project. Alternatively you can do: `cd /path/to/ && obuild build`.
 
 ## Compiling to Xen and deploying to the cloud
 

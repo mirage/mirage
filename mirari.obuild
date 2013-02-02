@@ -2,8 +2,10 @@ name: mirari
 version: 0.0.1
 synopsis: Mirage application builder
 obuild-ver: 1
+authors: Thomas Gazagnaire
+license: ISC
 
 executable mirari
-  main: mirari.ml
+  main: main.ml
   src-dir: lib
-  c-dir: ./
+  buildDepends: cmdliner

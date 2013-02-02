@@ -14,33 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let version () =
-  Printf.printf "%s\n%!" Path_generated.project_version;
-  exit 0
-
-let conf_file, xen =
-  let xen = ref false in
-  let usage_msg = "Usage: ocaml mirari.ml <conf-file>" in
-  let file = ref None in
-  let anon_fun f = match !file with
-    | None   -> file := Some f
-    | Some _ ->
-      Printf.eprintf "%s\n" usage_msg;
-      exit 1 in
-  let specs = Arg.align [
-      "--xen"    , Arg.Set xen     , " Generate xen image.";
-      "--version", Arg.Unit version, " Display version information.";
-    ] in
-  Arg.parse specs anon_fun usage_msg;
-  match !file with
-  | None  ->
-    Printf.eprintf "%s\n" usage_msg;
-    exit 1
-  | Some f -> f, !xen
-
-let conf_dir = Filename.dirname conf_file
-let conf_name = Filename.chop_extension (Filename.basename conf_file)
-
 let lines_of_file file =
   let ic = open_in file in
   let lines = ref [] in
@@ -137,10 +110,19 @@ let info fmt =
 
 let command fmt =
   Printf.kprintf (fun str ->
+    info "+ Executing: %s" str;
     match Sys.command str with
     | 0 -> ()
     | i -> error "The command %S exited with code %d." str i
   ) fmt
+
+let in_dir dir f =
+  let pwd = Sys.getcwd () in
+  let reset () =
+    if pwd <> dir then Sys.chdir pwd in
+  if pwd <> dir then Sys.chdir dir;
+  try let r = f () in reset (); r
+  with e -> reset (); raise e
 
 (* Headers *)
 module Headers = struct
@@ -159,28 +141,31 @@ module FS = struct
     path: string;
   }
 
-  type t = fs list
+  type t = {
+    dir: string;
+    fs : fs list;
+  }
 
-  let create kvs =
+  let create ~dir kvs =
     let kvs = filter_map (subcommand ~prefix:"fs") kvs in
     let aux (name, path) = { name; path } in
-    List.map aux kvs
+    { dir; fs = List.map aux kvs }
 
   let call t =
-    List.iter (fun {name; path} ->
-      let path = Printf.sprintf "%s/%s" conf_dir path in
-      let file = Printf.sprintf "%s/filesystem_%s.ml" conf_dir name in
+    List.iter (fun { name; path} ->
+      let path = Printf.sprintf "%s/%s" t.dir path in
+      let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
       if Sys.file_exists path then (
         info "Creating %s." file;
         command "mir-crunch -name %S %s > %s\n" name path file
       ) else
       error "The directory %s does not exist." path
-    ) t
+    ) t.fs
 
   let output oc t =
     List.iter (fun { name; _ } ->
       append oc "open Filesystem_%s" name
-    ) t;
+    ) t.fs;
     newline oc
 
 end
@@ -319,25 +304,31 @@ end
 (* .obuild file *)
 module OBuild = struct
 
-  type t = string list
+  type t = {
+    name   : string;
+    dir    : string;
+    depends: string list;
+  }
 
-  let create kvs =
+  let create ~name ~dir kvs =
     let kvs = List.filter (fun (k,_) -> k = "depends") kvs in
-    List.fold_left (fun accu (_,v) ->
-      split v ',' @ accu
-    ) [] kvs
+    let depends =
+      List.fold_left (fun accu (_,v) ->
+        split v ',' @ accu
+      ) [] kvs in
+    { name; dir; depends }
 
   let output oc t =
-    let file = Printf.sprintf "%s/main.obuild" conf_dir in
-    let deps = match t with
+    let file = Printf.sprintf "%s/main.obuild" t.dir in
+    let deps = match t.depends with
       | [] -> ""
-      | _  -> ", " ^ String.concat ", " t in
+      | ds -> ", " ^ String.concat ", " ds in
     let oc = open_out file in
     append oc "obuild-ver: 1";
-    append oc "name: %s" conf_name;
+    append oc "name: %s" t.name;
     append oc "version: 0.0.0";
     newline oc;
-    append oc "executable %s" conf_name;
+    append oc "executable %s" t.name;
     append oc "  main: main.ml";
     append oc "  buildDepends: mirage%s" deps;
     append oc "  pp: camlp4o";
@@ -346,29 +337,28 @@ module OBuild = struct
 end
 
 type t = {
-  name: string;
-  filename: string;
-  fs: FS.t;
-  ip: IP.t;
-  http: HTTP.t;
-  main: Main.t;
+  xen    : bool;
+  name   : string;
+  dir    : string;
+  main_ml: string;
+  fs     : FS.t;
+  ip     : IP.t;
+  http   : HTTP.t;
+  main   : Main.t;
   depends: OBuild.t;
 }
 
-let create kvs =
-  let name = conf_name in
-  let filename = Printf.sprintf "%s/main.ml" conf_dir in
-  let fs = FS.create kvs in
+let create ~xen ~name ~dir kvs =
+  let main_ml = Printf.sprintf "%s/main.ml" dir in
+  let fs = FS.create ~dir kvs in
   let ip = IP.create kvs in
   let http = HTTP.create kvs in
   let main = Main.create kvs in
-  let depends = OBuild.create kvs in
-  { name; filename; fs; ip; http; main; depends }
+  let depends = OBuild.create ~name ~dir kvs in
+  { xen; name; dir; main_ml; fs; ip; http; main; depends }
 
 let output_main t =
-  if Sys.file_exists t.filename then
-    command "mv %s %s.save" t.filename t.filename;
-  let oc = open_out t.filename in
+  let oc = open_out t.main_ml in
   Headers.output oc;
   FS.output oc t.fs;
   IP.output oc t.ip;
@@ -380,17 +370,18 @@ let output_main t =
 let call_crunch_scripts t =
   FS.call t.fs
 
+let call_configure_scripts t =
+  in_dir t.dir (fun () ->
+    command "obuild configure %s" (if t.xen then "--executable-as-obj" else "")
+  )
+
 let call_build_scripts t =
-  let pwd = Sys.getcwd () in
-  if pwd <> conf_dir then
-    Sys.chdir conf_dir;
-  command "obuild configure %s" (if xen then "--executable-as-obj" else "");
-  command "obuild build";
-  if pwd <> conf_dir then
-    Sys.chdir pwd;
-  let exec = Printf.sprintf "mir-%s" t.name in
-  command "rm -f %s" exec;
-  command "ln -s %s/dist/build/%s/%s %s" conf_dir t.name t.name exec
+  in_dir t.dir (fun () ->
+    let exec = Printf.sprintf "mir-%s" t.name in
+    command "rm -f %s" exec;
+    command "obuild build";
+    command "ln -s %s/dist/build/%s/%s %s" t.dir t.name t.name exec
+  )
 
 let call_xen_scripts t =
   let obj = Printf.sprintf "dist/build/%s/%s.native.obj" t.name t.name in
@@ -398,23 +389,27 @@ let call_xen_scripts t =
   if Sys.file_exists obj then
     command "mir-build -b xen-native -o %s %s" target obj
 
-let () =
-
-  let lines = lines_of_file conf_file in
+let conf file =
+  let dir = Filename.dirname file in
+  let name = Filename.chop_extension (Filename.basename file) in
+  let lines = lines_of_file file in
   let kvs = filter_map key_value lines in
-  let conf = create kvs in
+  create ~name ~dir kvs
 
+let configure ~xen file =
+  let t = conf ~xen file in
   (* main.ml *)
-  info "Generating %s." conf.filename;
-  output_main conf;
-
+  info "Generating %s." t.main_ml;
+  output_main t;
   (* crunch *)
-  call_crunch_scripts conf;
+  call_crunch_scripts t;
+  (* obuild configure *)
+  call_configure_scripts t
 
+let build ~xen file =
+  let t = conf ~xen file in
   (* build *)
-  call_build_scripts conf;
-
+  call_build_scripts t;
   (* gen_xen.sh *)
-  if xen then (
-    call_xen_scripts conf;
-  )
+  if xen then
+    call_xen_scripts t

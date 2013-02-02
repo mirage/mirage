@@ -82,6 +82,13 @@ let cut_at s sep =
   with _ ->
     None
 
+let split s sep =
+  let rec aux acc r =
+    match cut_at r sep with
+    | None       -> List.rev (r :: acc)
+    | Some (h,t) -> aux (strip h :: acc) t in
+  aux [] s
+
 let key_value line =
   match cut_at line ':' with
   | None       -> None
@@ -309,6 +316,35 @@ module Main = struct
 
 end
 
+(* .obuild file *)
+module OBuild = struct
+
+  type t = string list
+
+  let create kvs =
+    let kvs = List.filter (fun (k,_) -> k = "depends") kvs in
+    List.fold_left (fun accu (_,v) ->
+      split v ',' @ accu
+    ) [] kvs
+
+  let output oc t =
+    let file = Printf.sprintf "%s/main.obuild" conf_dir in
+    let deps = match t with
+      | [] -> ""
+      | _  -> ", " ^ String.concat ", " t in
+    let oc = open_out file in
+    append oc "obuild-ver: 1";
+    append oc "name: %s" conf_name;
+    append oc "version: 0.0.0";
+    newline oc;
+    append oc "executable %s" conf_name;
+    append oc "  main: main.ml";
+    append oc "  buildDepends: mirage%s" deps;
+    append oc "  pp: camlp4o";
+    close_out oc
+
+end
+
 type t = {
   name: string;
   filename: string;
@@ -316,6 +352,7 @@ type t = {
   ip: IP.t;
   http: HTTP.t;
   main: Main.t;
+  depends: OBuild.t;
 }
 
 let create kvs =
@@ -325,7 +362,8 @@ let create kvs =
   let ip = IP.create kvs in
   let http = HTTP.create kvs in
   let main = Main.create kvs in
-  { name; filename; fs; ip; http; main }
+  let depends = OBuild.create kvs in
+  { name; filename; fs; ip; http; main; depends }
 
 let output_main t =
   if Sys.file_exists t.filename then
@@ -336,6 +374,7 @@ let output_main t =
   IP.output oc t.ip;
   HTTP.output oc t.http;
   Main.output oc t.main;
+  OBuild.output oc t.depends;
   close_out oc
 
 let call_crunch_scripts t =

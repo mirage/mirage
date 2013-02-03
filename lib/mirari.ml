@@ -87,10 +87,6 @@ let subcommand ~prefix (command, value) =
     else
       None
 
-let remove file =
-  if Sys.file_exists file then
-    Sys.remove file
-
 let append oc fmt =
   Printf.kprintf (fun str ->
     Printf.fprintf oc "%s\n" str
@@ -107,6 +103,12 @@ let error fmt =
 
 let info fmt =
   Printf.kprintf (Printf.printf "%s\n%!") fmt
+
+let remove file =
+  if Sys.file_exists file then (
+    info "+ Removing %s." file;
+    Sys.remove file
+  )
 
 let command fmt =
   Printf.kprintf (fun str ->
@@ -401,12 +403,10 @@ let call_configure_scripts t =
 let call_build_scripts t =
   let setup = Printf.sprintf "%s/dist/setup" t.dir in
   if Sys.file_exists setup then (
-    in_dir t.dir (fun () ->
-      let exec = Printf.sprintf "mir-%s" t.name in
-      command "rm -f %s" exec;
-      command "obuild build";
-      command "ln -s %s/dist/build/%s/%s %s" t.dir t.name t.name exec
-    )
+    in_dir t.dir (fun () -> command "obuild build");
+    let exec = Printf.sprintf "mir-%s" t.name in
+    remove exec;
+    command "ln -s %s/dist/build/%s/%s %s" t.dir t.name t.name exec
   ) else
     error "You should run 'mirari configure %s' first." t.file
 

@@ -1,4 +1,4 @@
-0.7.2 (trunk):
+0.7.2 (08-Feb-2013):
 * [xen] Fix the size of the start-of-day Xenstore and console rings.
 * Quieten the verbosity of devices sleeping in Xen, to avoid console
   overflow situations.

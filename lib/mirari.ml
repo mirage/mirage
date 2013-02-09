@@ -130,6 +130,19 @@ let in_dir dir f =
 let cmd_exists s =
   Sys.command ("which " ^ s ^ " > /dev/null") = 0
 
+let read_command cmd =
+  let open Unix in
+  let ic, oc, ec = open_process_full cmd (environment ()) in
+  let buf1 = Buffer.create 64
+  and buf2 = Buffer.create 64 in
+  (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
+  (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
+  match close_process_full (ic,oc,ec) with
+  | WEXITED 0 -> Buffer.contents buf1
+  | WSIGNALED n -> error "process killed by signal %d" n
+  | WSTOPPED n -> error "process stopped by signal %d" n
+  | WEXITED r ->error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)
+
 (* Headers *)
 module Headers = struct
 
@@ -416,9 +429,10 @@ let call_build_scripts t =
 let call_xen_scripts t =
   let obj = Printf.sprintf "dist/build/mir-%s/mir-%s.o" t.name t.name in
   let target = Printf.sprintf "dist/build/mir-%s/mir-%s.xen" t.name t.name in
-  if Sys.file_exists obj then
-    command "mir-build -b xen-native -o %s %s" target obj
-  else
+  if Sys.file_exists obj then begin
+    let lib = strip (read_command "ocamlfind printconf path") ^ "/mirage-xen" in
+    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target
+  end else
     error "xen object file %s not found, cannot continue" obj
 
 let configure ~xen ~file =

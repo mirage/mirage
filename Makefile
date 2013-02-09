@@ -18,9 +18,7 @@ clean:
 install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	cp scripts/mir-run $(DESTDIR)$(PREFIX)/bin/
-	cp scripts/mir-build $(DESTDIR)$(PREFIX)/bin/
 	chmod a+x $(DESTDIR)$(PREFIX)/bin/mir-run
-	chmod a+x $(DESTDIR)$(PREFIX)/bin/mir-build
 	cd $(OS) && $(MAKE) install
 
 test:

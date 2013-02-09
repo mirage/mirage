@@ -23,7 +23,7 @@ EOF
 link_xen_native() {
   OBJ=$1
   OUTPUT=$2
-  LIB=`ocamlfind query mirage`
+  LIB=`ocamlfind printconf path`/mirage-xen
 
   ld -d -nostdlib -m elf_x86_64 -T ${LIB}/mirage-x86_64.lds \
     ${LIB}/x86_64.o ${OBJ} ${LIB}/libocaml.a ${LIB}/libxen.a \

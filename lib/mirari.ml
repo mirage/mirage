@@ -335,7 +335,7 @@ module Build = struct
     append oc "name: %s" t.name;
     append oc "version: 0.0.0";
     newline oc;
-    append oc "executable %s" t.name;
+    append oc "executable mir-%s" t.name;
     append oc "  main: main.ml";
     append oc "  buildDepends: mirage%s" deps;
     append oc "  pp: camlp4o";
@@ -405,17 +405,17 @@ let call_build_scripts t =
   let setup = Printf.sprintf "%s/dist/setup" t.dir in
   if Sys.file_exists setup then (
     in_dir t.dir (fun () -> command "obuild build");
-    let exec = Printf.sprintf "mir-%s" t.name in
-    remove exec;
-    command "ln -s %s/dist/build/%s/%s %s" t.dir t.name t.name exec
+    command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
   ) else
     error "You should run 'mirari configure %s' first." t.file
 
 let call_xen_scripts t =
-  let obj = Printf.sprintf "dist/build/%s/%s.native.obj" t.name t.name in
-  let target = Printf.sprintf "dist/build/%s/%s.xen" t.name t.name in
+  let obj = Printf.sprintf "dist/build/mir-%s/mir-%s.o" t.name t.name in
+  let target = Printf.sprintf "dist/build/mir-%s/mir-%s.xen" t.name t.name in
   if Sys.file_exists obj then
     command "mir-build -b xen-native -o %s %s" target obj
+  else
+    error "xen object file %s not found, cannot continue" obj
 
 let configure ~xen ~file =
   let t = create ~xen ~file in

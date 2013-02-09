@@ -127,6 +127,9 @@ let in_dir dir f =
   try let r = f () in reset (); r
   with e -> reset (); raise e
 
+let cmd_exists s =
+  Sys.command ("which " ^ s ^ " > /dev/null") = 0
+
 (* Headers *)
 module Headers = struct
 
@@ -155,6 +158,8 @@ module FS = struct
     { dir; fs = List.map aux kvs }
 
   let call t =
+    if not (cmd_exists "mir-crunch") then
+      error "mir-crunch not found. Install the mirage-fs OPAM package";
     List.iter (fun { name; path} ->
       let path = Printf.sprintf "%s/%s" t.dir path in
       let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
@@ -342,10 +347,9 @@ module Build = struct
     close_out oc
 
   let check t =
-    let exists s = (Sys.command ("which " ^ s ^ " > /dev/null") = 0) in
-    if t.packages <> [] && not (exists "opam") then
+    if t.packages <> [] && not (cmd_exists "opam") then
       error "OPAM is not installed.";
-    if not (exists "obuild") then
+    if not (cmd_exists "obuild") then
       error "obuild is not installed."
 
   let prepare t =

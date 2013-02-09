@@ -37,6 +37,7 @@ signals.o
 stacks.o
 startup.o
 str.o
+strstubs.o
 sys.o
 weak.o
 bigarray_stubs.o

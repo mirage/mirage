@@ -35,6 +35,7 @@ signals_byt.bc.o
 signals.bc.o
 stacks.bc.o
 str.bc.o
+strstubs.bc.o
 sys.bc.o
 fix_code.bc.o
 weak.bc.o

@@ -15,7 +15,7 @@ There are three stages to using Mirari:
 Mirari currently uses configuration files to build Mirage applications.
 Support for command line arguments should be available soon.
 
-An example of an <app.conf>:
+An example of an `app.conf`:
 
 ```
 # IP configuration

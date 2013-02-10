@@ -171,8 +171,10 @@ module FS = struct
     { dir; fs = List.map aux kvs }
 
   let call t =
-    if not (cmd_exists "mir-crunch") then
-      error "mir-crunch not found. Install the mirage-fs OPAM package";
+    if not (cmd_exists "mir-crunch") then begin
+      info "mir-crunch not found, so installing the mirage-fs package.";
+      command "opam install --yes mirage-fs";
+    end;
     List.iter (fun { name; path} ->
       let path = Printf.sprintf "%s/%s" t.dir path in
       let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
@@ -414,7 +416,6 @@ let call_crunch_scripts t =
 
 let call_configure_scripts t =
   in_dir t.dir (fun () ->
-    Build.prepare t.build;
     command "obuild configure %s" (if t.xen then "--executable-as-obj" else "");
   )
 
@@ -440,6 +441,7 @@ let configure ~xen ~file =
   (* main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
+  Build.prepare t.build;
   (* crunch *)
   call_crunch_scripts t;
   (* obuild configure *)

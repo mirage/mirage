@@ -41,8 +41,9 @@ let arg_list name doc conv =
 
 let xen = mk_flag ["xen"] "Generate a Xen microkernel"
 let file =
-  let doc = Arg.info ~docv:"FILE" ~doc:"Configuration file" [] in
-  Arg.(required & pos 0 (some string) None & doc)
+  let doc = Arg.info ~docv:"FILE"
+    ~doc:"Configuration file for Mirari.  If not specified, the current directory will be scanned.  If one file ending with the $(i,conf) extension is found, that will be used.  No files, or multiple configuration files, will result in an error unless one is explicitly specified on the command line." [] in
+  Arg.(value & pos 0 (some string) None & doc)
 
 (* CONFIGURE *)
 let configure_doc = "Configure a Mirage application."
@@ -95,7 +96,7 @@ let default =
   let doc = "Mirage application builder" in
   let man = [
     `S "DESCRIPTION";
-    `P "Mirari is a Mirage application builder.";
+    `P "Mirari is a Mirage application builder. It glues together a set of libaries and configuration (e.g. network and storage) into a standalone microkernel or UNIX binary.";
     `P "Use either $(b,mirari <command> --help) or $(b,mirari help <command>) \
         for more information on a specific command.";
   ] @  help_sections

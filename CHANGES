@@ -1,4 +1,5 @@
 0.9.0 (trunk):
+* Automatically install `mirage-fs` package if a filesystem crunch is requested.
 * Remove the need for `mir-run` by including the final Xen link directly in Mirari.
 * Add support for building Xen variants.
 * Initial import of a unix-direct version.

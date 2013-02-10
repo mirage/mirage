@@ -130,6 +130,20 @@ let in_dir dir f =
 let cmd_exists s =
   Sys.command ("which " ^ s ^ " > /dev/null") = 0
 
+(* If a configuration file is specified, then use that.
+ * If not, then scan the curdir for a `.conf` file.
+ * If there is more than one, then error out. *)
+let scan_conf ~file =
+  match file with
+  |Some f ->  info "Using specified config file %s" f; f
+  |None -> begin
+     let files = Array.to_list (Sys.readdir ".") in
+     match List.filter (fun f -> Filename.check_suffix f ".conf") files with
+     |[] -> error "No configuration file ending in .conf found.\nYou'll need to create one to let Mirari know what do do."
+     |[f] -> info "Using scanned config file %s" f; f
+     |_ -> error "There is more than one file ending in .conf in the cwd.\nPlease specify one explicitly on the command-line."
+  end
+     
 let read_command cmd =
   let open Unix in
   let ic, oc, ec = open_process_full cmd (environment ()) in
@@ -437,6 +451,7 @@ let call_xen_scripts t =
     error "xen object file %s not found, cannot continue" obj
 
 let configure ~xen ~file =
+  let file = scan_conf ~file in
   let t = create ~xen ~file in
   (* main.ml *)
   info "Generating %s." t.main_ml;
@@ -448,6 +463,7 @@ let configure ~xen ~file =
   call_configure_scripts t
 
 let build ~xen ~file =
+  let file = scan_conf ~file in
   let t = create ~xen ~file in
   (* build *)
   call_build_scripts t;

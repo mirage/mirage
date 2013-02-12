@@ -1,4 +1,4 @@
-0.8.0 (trunk):
+0.8.0 (12-Feb-2013):
 * Remove `mir-build` script as the Mirari builder does its job now.
 * [xen] add Str module C stubs, adapted to work in the Xen backend.
 

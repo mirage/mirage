@@ -1,8 +1,8 @@
 name: mirari
-version: 0.0.1
+version: 0.9.0
 synopsis: Mirage application builder
 obuild-ver: 1
-authors: Thomas Gazagnaire
+authors: Thomas Gazagnaire, Anil Madhavapeddy
 license: ISC
 
 executable mirari

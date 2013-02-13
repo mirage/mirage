@@ -39,7 +39,9 @@ let arg_list name doc conv =
   let doc = Arg.info ~docv:name ~doc [] in
   Arg.(value & pos_all conv [] & doc)
 
-let xen = mk_flag ["xen"] "Generate a Xen microkernel"
+let xen = mk_flag ["xen"] "Generate a Xen microkernel."
+let no_install = mk_flag ["no-install"] "Do not auto-install OPAM packages."
+
 let file =
   let doc = Arg.info ~docv:"FILE"
     ~doc:"Configuration file for Mirari.  If not specified, the current directory will be scanned.  If one file ending with the $(i,conf) extension is found, that will be used.  No files, or multiple configuration files, will result in an error unless one is explicitly specified on the command line." [] in
@@ -53,8 +55,8 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure xen file = Mirari.configure ~xen ~file in
-  Term.(pure configure $ xen $ file), term_info "configure" ~doc ~man
+  let configure no_install xen file = Mirari.configure ~no_install ~xen ~file in
+  Term.(pure configure $ no_install $ xen $ file), term_info "configure" ~doc ~man
 
 (* BUILD *)
 let build_doc = "Build a Mirage application."

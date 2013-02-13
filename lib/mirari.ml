@@ -450,13 +450,13 @@ let call_xen_scripts t =
   end else
     error "xen object file %s not found, cannot continue" obj
 
-let configure ~xen ~file =
+let configure ~no_install ~xen ~file =
   let file = scan_conf ~file in
   let t = create ~xen ~file in
   (* main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
-  Build.prepare t.build;
+  if not no_install then Build.prepare t.build;
   (* crunch *)
   call_crunch_scripts t;
   (* obuild configure *)

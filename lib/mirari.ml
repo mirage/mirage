@@ -444,10 +444,11 @@ let call_build_scripts t =
 let call_xen_scripts t =
   let obj = Printf.sprintf "dist/build/mir-%s/mir-%s.o" t.name t.name in
   let target = Printf.sprintf "dist/build/mir-%s/mir-%s.xen" t.name t.name in
-  if Sys.file_exists obj then begin
+  if Sys.file_exists obj then (
     let lib = strip (read_command "ocamlfind printconf path") ^ "/mirage-xen" in
-    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target
-  end else
+    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
+    command "ln -nfs %s mir-%s.xen" target t.name
+  ) else
     error "xen object file %s not found, cannot continue" obj
 
 let configure ~no_install ~xen ~file =

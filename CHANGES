@@ -1,4 +1,5 @@
 0.9.1 (2012-02-13):
+* Fix Xen symlink upon build.
 * Add a `--no-install` option to `mirari configure` to prevent invoking OPAM automatically.
 
 0.9.0 (2012-02-12):

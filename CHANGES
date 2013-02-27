@@ -1,3 +1,6 @@
+0.9.2 (trunk):
+* Only create symlinks to `mir-foo` for a non-Xen target.
+
 0.9.1 (2012-02-13):
 * Fix Xen symlink upon build.
 * Add a `--no-install` option to `mirari configure` to prevent invoking OPAM automatically.

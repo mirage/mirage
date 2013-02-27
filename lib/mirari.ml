@@ -143,7 +143,7 @@ let scan_conf ~file =
      |[f] -> info "Using scanned config file %s" f; f
      |_ -> error "There is more than one file ending in .conf in the cwd.\nPlease specify one explicitly on the command-line."
   end
-     
+
 let read_command cmd =
   let open Unix in
   let ic, oc, ec = open_process_full cmd (environment ()) in
@@ -433,22 +433,27 @@ let call_configure_scripts t =
     command "obuild configure %s" (if t.xen then "--executable-as-obj" else "");
   )
 
-let call_build_scripts t =
-  let setup = Printf.sprintf "%s/dist/setup" t.dir in
-  if Sys.file_exists setup then (
-    in_dir t.dir (fun () -> command "obuild build");
-    command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
-  ) else
-    error "You should run 'mirari configure %s' first." t.file
-
 let call_xen_scripts t =
   let obj = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.o" t.dir t.name t.name in
   let target = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.xen" t.dir t.name t.name in
   if Sys.file_exists obj then begin
     let lib = strip (read_command "ocamlfind printconf path") ^ "/mirage-xen" in
-    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target
+    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
+    command "ln -nfs %s/dist/build/mir-%s/mir-%s.xen mir-%s.xen" t.dir t.name t.name t.name
   end else
     error "xen object file %s not found, cannot continue" obj
+
+let call_build_scripts ~xen t =
+  let setup = Printf.sprintf "%s/dist/setup" t.dir in
+  if Sys.file_exists setup then (
+    in_dir t.dir (fun () -> command "obuild build");
+    (* gen_xen.sh *)
+    if xen then
+      call_xen_scripts t
+    else
+      command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
+  ) else
+    error "You should run 'mirari configure %s' first." t.file
 
 let configure ~xen ~file =
   let file = scan_conf ~file in
@@ -466,7 +471,4 @@ let build ~xen ~file =
   let file = scan_conf ~file in
   let t = create ~xen ~file in
   (* build *)
-  call_build_scripts t;
-  (* gen_xen.sh *)
-  if xen then
-    call_xen_scripts t
+  call_build_scripts ~xen t

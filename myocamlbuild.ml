@@ -87,7 +87,7 @@ module Configure = struct
     let ccinc = List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "runtime")) in
     let dllinc = List.flatten (List.map (fun x -> [A"-dllib"; A("-l"^x)]) (config "runtime")) in
     flag ["link"; "library"; "native"; "ocaml"] & S ccinc;
-    flag ["link"; "library"; "byte"; "ocaml"] & S (ccinc @ dllinc)
+    flag ["link"; "library"; "byte"; "ocaml"] & S dllinc
 
   (* Flags for building test binaries, which include just-built extensions and libs *)
   let testflags () =
@@ -127,7 +127,9 @@ module Configure = struct
           let natdynlink = if_natdynlink (fun x -> x-.-"cmxs") libs in
           interface @ byte @ native @ natdynlink @ nativea in
         (* Build runtime libs *)
-        let runtimes = List.map (sprintf "lib/lib%s.a") (config "runtime") in
+        let runtimes = List.map (sprintf "lib/lib%s.a") (config "runtime") @
+            (List.map (sprintf "lib/dll%s.so") (config "runtime"))
+        in
         (* Build syntax extensions *)
         let syntaxes =
           let syn = config "syntax" in

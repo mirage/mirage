@@ -45,7 +45,7 @@ let ocaml_libdir = Util.run_and_read "ocamlc -where"
 (* Configuration rules for packages *)
 module Configure = struct
   (* Read a list of lines from files in _config/<arg> *)
-  let config x = 
+  let config x =
     try string_list_of_file (Pathname.pwd ^ "/_config/" ^ x)
     with Sys_error _ ->
       eprintf "_config/%s not found: run ./configure first\n%!" x;
@@ -70,13 +70,13 @@ module Configure = struct
     (* NOTE: we cannot use the built-in use_camlp4, as that forces
      * camlp4lib.cma to be linked with the mllib target, which results
      * in a non-functioning extension as it will be loaded twice.
-     * So this simply includes the directory, which leads to a working archive *) 
+     * So this simply includes the directory, which leads to a working archive *)
     let p4incs = [A"-I"; A"+camlp4"] in
     flag ["ocaml"; "ocamldep"; "build_syntax"] & S p4incs;
     flag ["ocaml"; "compile"; "build_syntax"] & S p4incs;
     flag ["ocaml"; "ocamldep"; "build_syntax_r"] & S p4incs;
     flag ["ocaml"; "compile"; "build_syntax_r"] & S p4incs
- 
+
   (* General flags for building libraries and binaries *)
   let libflags () =
     (* Include path for dependencies *)
@@ -84,8 +84,10 @@ module Configure = struct
     flag ["ocaml"; "compile"] & S [config_sh "flags.ocaml"];
     flag ["ocaml"; "link"] & S [config_sh "flags.ocaml"];
     (* Include the -cclib for any C bindings being built *)
-    let ccinc = List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "clibs")) in
-    flag ["link"; "library"; "native"; "ocaml"] & S ccinc
+    let ccinc = List.flatten (List.map (fun x -> [A"-cclib"; A("-l"^x)]) (config "runtime")) in
+    let dllinc = List.flatten (List.map (fun x -> [A"-dllib"; A("-l"^x)]) (config "runtime")) in
+    flag ["link"; "library"; "native"; "ocaml"] & S ccinc;
+    flag ["link"; "library"; "byte"; "ocaml"] & S (ccinc @ dllinc)
 
   (* Flags for building test binaries, which include just-built extensions and libs *)
   let testflags () =
@@ -120,12 +122,12 @@ module Configure = struct
           let libs = List.map ((^)"lib/") (config "lib") in
           let interface = List.map (fun x -> x-.-"cmi") libs in
           let byte = List.map (fun x -> x-.-"cma") libs in
-          let native = if_opt (fun x -> x-.-"cmxa") libs @ (if_opt (fun x -> x-.-"cmx") libs) in 
+          let native = if_opt (fun x -> x-.-"cmxa") libs @ (if_opt (fun x -> x-.-"cmx") libs) in
           let nativea = if_opt (fun x -> x-.-"a") libs in
           let natdynlink = if_natdynlink (fun x -> x-.-"cmxs") libs in
           interface @ byte @ native @ natdynlink @ nativea in
         (* Build runtime libs *)
-        let runtimes = List.map (sprintf "lib/lib%s.a") (config "clibs") in
+        let runtimes = List.map (sprintf "lib/lib%s.a") (config "runtime") in
         (* Build syntax extensions *)
         let syntaxes =
           let syn = config "syntax" in
@@ -135,10 +137,10 @@ module Configure = struct
           bc @ nc @ ncs in
         (* Any extra targets *)
         let extra = config "extra" in
-        (* Execute the rules and echo everything built into the %.all file *) 
+        (* Execute the rules and echo everything built into the %.all file *)
         let targs = libs @ runtimes @ syntaxes @ extra in
         let out = List.map Outcome.good (builder (List.map (fun x -> [x]) targs)) in
-        Echo ((List.map (fun x -> x^"\n") out), (env "%.all")) 
+        Echo ((List.map (fun x -> x^"\n") out), (env "%.all"))
       )
 end
 
@@ -151,7 +153,7 @@ module CC = struct
 
   let cc_call tags dep prod env builder =
     let dep = env dep and prod = env prod in
-    let tags = tags_of_pathname dep++"cc"++"compile"++tags in 
+    let tags = tags_of_pathname dep++"cc"++"compile"++tags in
     let flags = [A"-c"; cflags] in
     let inc = A (sprintf "-I%s/%s" Pathname.pwd (Filename.dirname dep)) in
     Cmd (S (A cc :: inc :: flags @ [T tags; A"-o"; Px prod; P dep]))
@@ -175,7 +177,7 @@ module CC = struct
        ocamlc_link_prog
       (fun tags -> tags++"ocaml"++"link"++"byte"++"output_obj") x
 
-  let rules () = 
+  let rules () =
     rule "cc: %.c -> %.o" ~prod:"%.o" ~dep:"%.c" (cc_call "c" "%.c" "%.o");
     rule "cc: %.cc -> %.o" ~prod:"%.o" ~dep:"%.cc" (cc_call "c" "%.cc" "%.o");
     rule "cc: %.S -> %.o" ~prod:"%.o" ~dep:"%.S" (cc_call "asm" "%.S" "%.o");
@@ -229,7 +231,7 @@ module Xen = struct
     let cmds = List.map (fun x -> A x) cmd in
     Cmd (S (cmds @ [Px src; Px dst]))
 
-  (** Generic CC linking rule that wraps both Xen and C *) 
+  (** Generic CC linking rule that wraps both Xen and C *)
   let cc_link_c_implem ?tag fn c o env build =
     let c = env c and o = env o in
     fn (tags_of_pathname c++"implem"+++tag) c o env

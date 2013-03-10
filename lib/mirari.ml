@@ -15,6 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+let (|>) a f = f a
+
+let unopt v = function
+  | None -> raise Not_found
+  | Some v -> v
+
 let lines_of_file file =
   let ic = open_in file in
   let lines = ref [] in
@@ -111,13 +117,22 @@ let remove file =
     Sys.remove file
   )
 
-let command fmt =
+let command ?switch fmt =
   Printf.kprintf (fun str ->
-    info "+ Executing: %s" str;
-    match Sys.command str with
+    let cmd = match switch with
+      | None -> str
+      | Some cmp -> Printf.sprintf "opam config exec \"%s\" --switch=%s" str cmp in
+    info "+ Executing: %s" cmd;
+    match Sys.command cmd with
     | 0 -> ()
-    | i -> error "The command %S exited with code %d." str i
+    | i -> error "The command %S exited with code %d." cmd i
   ) fmt
+
+let opam_install ?switch deps =
+  let deps_str = String.concat " " deps in
+  match switch with
+  | None -> command "opam install --yes %s" deps_str
+  | Some cmp -> command "opam install --yes %s --switch=%s" deps_str cmp
 
 let in_dir dir f =
   let pwd = Sys.getcwd () in
@@ -144,18 +159,20 @@ let scan_conf ~file =
      |_ -> error "There is more than one file ending in .conf in the cwd.\nPlease specify one explicitly on the command-line."
   end
 
-let read_command cmd =
+let read_command fmt =
   let open Unix in
-  let ic, oc, ec = open_process_full cmd (environment ()) in
-  let buf1 = Buffer.create 64
-  and buf2 = Buffer.create 64 in
-  (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
-  (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
-  match close_process_full (ic,oc,ec) with
-  | WEXITED 0 -> Buffer.contents buf1
-  | WSIGNALED n -> error "process killed by signal %d" n
-  | WSTOPPED n -> error "process stopped by signal %d" n
-  | WEXITED r ->error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)
+  Printf.ksprintf (fun cmd ->
+    let () = info "+ Executing: %s" cmd in
+    let ic, oc, ec = open_process_full cmd (environment ()) in
+    let buf1 = Buffer.create 64
+    and buf2 = Buffer.create 64 in
+    (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
+    (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
+    match close_process_full (ic,oc,ec) with
+    | WEXITED 0   -> Buffer.contents buf1
+    | WSIGNALED n -> error "process killed by signal %d" n
+    | WSTOPPED n  -> error "process stopped by signal %d" n
+    | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
 
 (* Headers *)
 module Headers = struct
@@ -184,17 +201,17 @@ module FS = struct
     let aux (name, path) = { name; path } in
     { dir; fs = List.map aux kvs }
 
-  let call t =
+  let call ?switch t =
     if not (cmd_exists "mir-crunch") then begin
       info "mir-crunch not found, so installing the mirage-fs package.";
-      command "opam install --yes mirage-fs";
+      opam_install ?switch ["mirage-fs"];
     end;
     List.iter (fun { name; path} ->
       let path = Printf.sprintf "%s/%s" t.dir path in
       let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
       if Sys.file_exists path then (
         info "Creating %s." file;
-        command "mir-crunch -name %S %s > %s" name path file
+        command ?switch "mir-crunch -name %S %s > %s" name path file
       ) else
       error "The directory %s does not exist." path
     ) t.fs
@@ -381,39 +398,47 @@ module Build = struct
     if not (cmd_exists "obuild") then
       error "obuild is not installed."
 
-  let prepare t =
+  let prepare ?switch t =
     check t;
     match t.packages with
     | [] -> ()
-    | ps -> command "opam install --yes %s" (String.concat " " ps)
+    | ps -> opam_install ?switch ps
 
 end
 
+(* A type describing all the configuration of a mirage unikernel *)
 type t = {
-  file   : string;
-  xen    : bool;
-  name   : string;
-  dir    : string;
-  main_ml: string;
-  fs     : FS.t;
-  ip     : IP.t;
-  http   : HTTP.t;
-  main   : Main.t;
-  build  : Build.t;
+  file     : string; (* Path of the mirari config file *)
+  compiler : string option; (* Compiler version *)
+  name     : string; (* Filename of the mirari config file*)
+  dir      : string; (* Dirname of the mirari config file *)
+  main_ml  : string; (* Name of the entry point function *)
+  fs       : FS.t; (* A value describing FS configuration *)
+  ip       : IP.t;
+  http     : HTTP.t;
+  main     : Main.t;
+  build    : Build.t;
 }
 
-let create ~xen ~file =
-  let dir = Filename.dirname file in
-  let name = Filename.chop_extension (Filename.basename file) in
-  let lines = lines_of_file file in
-  let kvs = filter_map key_value lines in
+let create ?compiler ~file =
+  let dir     = Filename.dirname file in
+  let name    = Filename.chop_extension (Filename.basename file) in
+  let lines   = lines_of_file file in
+  let kvs     = filter_map key_value lines in
+  let compiler = match compiler with
+    | Some cmp -> Some cmp
+    | None -> try Some (List.assoc "compiler" kvs) with Not_found -> None in
   let main_ml = Printf.sprintf "%s/main.ml" dir in
-  let fs = FS.create ~dir kvs in
-  let ip = IP.create kvs in
-  let http = HTTP.create kvs in
-  let main = Main.create kvs in
-  let build = Build.create ~name ~dir kvs in
-  { file; xen; name; dir; main_ml; fs; ip; http; main; build }
+  let fs      = FS.create ~dir kvs in
+  let ip      = IP.create kvs in
+  let http    = HTTP.create kvs in
+  let main    = Main.create kvs in
+  let build   = Build.create ~name ~dir kvs in
+  { file; compiler; name; dir; main_ml; fs; ip; http; main; build }
+
+let is_target_xen compiler = match compiler with
+  | None -> false
+  | Some str -> (String.sub str ((String.length str) - 3) 3) = "xen"
 
 let output_main t =
   let oc = open_out t.main_ml in
@@ -426,57 +451,62 @@ let output_main t =
   close_out oc
 
 let call_crunch_scripts t =
-  FS.call t.fs
+  FS.call ?switch:t.compiler t.fs
 
 let call_configure_scripts t =
   in_dir t.dir (fun () ->
-    command "obuild configure %s" (if t.xen then "--executable-as-obj" else "");
+    command ?switch:t.compiler
+      "obuild configure %s" (if is_target_xen t.compiler then "--executable-as-obj" else "");
   )
 
 let call_xen_scripts t =
   let obj = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.o" t.dir t.name t.name in
   let target = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.xen" t.dir t.name t.name in
   if Sys.file_exists obj then begin
-    let lib = strip (read_command "ocamlfind printconf path") ^ "/mirage-xen" in
-    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
+    let path = match t.compiler with
+      | None -> read_command "ocamlfind printconf path"
+      | Some cmp -> read_command "opam config exec \"ocamlfind printconf path\" --switch=%s" cmp in
+    let lib = strip path ^ "/mirage-xen" in
+    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a \
+ %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
     command "ln -nfs %s/dist/build/mir-%s/mir-%s.xen mir-%s.xen" t.dir t.name t.name t.name
   end else
     error "xen object file %s not found, cannot continue" obj
 
-let call_build_scripts ~xen t =
+let call_build_scripts t =
   let setup = Printf.sprintf "%s/dist/setup" t.dir in
   if Sys.file_exists setup then (
-    in_dir t.dir (fun () -> command "obuild build");
+    in_dir t.dir (fun () -> command ?switch:t.compiler "obuild build");
     (* gen_xen.sh *)
-    if xen then
+    if is_target_xen t.compiler then
       call_xen_scripts t
     else
       command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
   ) else
     error "You should run 'mirari configure %s' first." t.file
 
-let configure ~no_install ~xen ~file =
+let configure ?compiler ~no_install ~file =
   let file = scan_conf ~file in
-  let t = create ~xen ~file in
+  let t = create ?compiler ~file in
   (* main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
-  if not no_install then Build.prepare t.build;
+  if not no_install then Build.prepare ?switch:t.compiler t.build;
   (* crunch *)
   call_crunch_scripts t;
   (* obuild configure *)
   call_configure_scripts t
 
-let build ~xen ~file =
+let build ?compiler ~file =
   let file = scan_conf ~file in
-  let t = create ~xen ~file in
+  let t = create ?compiler ~file in
   (* build *)
-  call_build_scripts ~xen t
+  call_build_scripts t
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)
-let clean ~xen ~file =
+let clean ?compiler ~file =
   let file = scan_conf ~file in
-  let t = create ~xen ~file in
-  command "obuild clean";
+  let t = create ?compiler ~file in
+  command ?switch:t.compiler "obuild clean";
   command "rm -f main.ml main.obuild mir-%s" t.name

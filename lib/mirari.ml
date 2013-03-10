@@ -359,7 +359,7 @@ module Build = struct
     let packages = get "packages" kvs in
     { name; dir; depends; packages }
 
-  let output oc t =
+  let output t =
     let file = Printf.sprintf "%s/main.obuild" t.dir in
     let deps = match t.depends with
       | [] -> ""
@@ -422,7 +422,7 @@ let output_main t =
   IP.output oc t.ip;
   HTTP.output oc t.http;
   Main.output oc t.main;
-  Build.output oc t.build;
+  Build.output t.build;
   close_out oc
 
 let call_crunch_scripts t =
@@ -472,3 +472,11 @@ let build ~xen ~file =
   let t = create ~xen ~file in
   (* build *)
   call_build_scripts ~xen t
+
+(* For now, only delete main.{ml,obuild}, the generated symlink and do
+   an obuild clean *)
+let clean ~xen ~file =
+  let file = scan_conf ~file in
+  let t = create ~xen ~file in
+  command "obuild clean";
+  command "rm -f main.ml main.obuild mir-%s" t.name

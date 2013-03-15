@@ -14,4 +14,4 @@ clean:
 	obuild clean
 
 install:
-	cp dist/build/mirari/mirari $(shell dirname $(shell which ocamlc))
+	cp dist/build/mirari/mirari $(DESTDIR)/bin

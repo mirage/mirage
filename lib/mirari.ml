@@ -148,7 +148,7 @@ let cmd_exists s =
 (* If a configuration file is specified, then use that.
  * If not, then scan the curdir for a `.conf` file.
  * If there is more than one, then error out. *)
-let scan_conf ~file =
+let scan_conf file =
   match file with
   |Some f ->  info "Using specified config file %s" f; f
   |None -> begin
@@ -420,7 +420,7 @@ type t = {
   build    : Build.t;
 }
 
-let create ?compiler ~file =
+let create ?compiler file =
   let dir     = Filename.dirname file in
   let name    = Filename.chop_extension (Filename.basename file) in
   let lines   = lines_of_file file in
@@ -485,28 +485,27 @@ let call_build_scripts t =
   ) else
     error "You should run 'mirari configure %s' first." t.file
 
-let configure ?compiler ~no_install ~file =
-  let file = scan_conf ~file in
-  let t = create ?compiler ~file in
+let configure ?compiler ~no_install file =
+  let file = scan_conf file in
+  let t = create ?compiler file in
   (* main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
+  (* install OPAM dependencies *)
   if not no_install then Build.prepare ?switch:t.compiler t.build;
   (* crunch *)
   call_crunch_scripts t;
   (* obuild configure *)
   call_configure_scripts t
 
-let build ?compiler ~file =
-  let file = scan_conf ~file in
-  let t = create ?compiler ~file in
+let build ?compiler file =
+  let file = scan_conf file in
+  let t = create ?compiler file in
   (* build *)
   call_build_scripts t
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)
-let clean ?compiler ~file =
-  let file = scan_conf ~file in
-  let t = create ?compiler ~file in
-  command ?switch:t.compiler "obuild clean";
-  command "rm -f main.ml main.obuild mir-%s" t.name
+let clean () =
+  command "obuild clean";
+  command "rm -f main.ml main.obuild mir-*"

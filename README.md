@@ -40,7 +40,7 @@ main-http: Dispatch.main
 depends: cohttp.syntax, uri, re, cow.syntax
 packages: mirage-net, cow
 
-# Target
+# Target (Select a target compiler: takes precedence over --xen or --unix switch on the command line)
 compiler: 4.01.0dev+mirage-xen
 ```
 
@@ -69,9 +69,16 @@ will configure your project. More precisely it will:
 * call the right OPAM commands to satisfy dependencies.
 * call `cd /path/to && obuild configure`
 
-To configure the Xen variant, do:
+To build for the unix-direct target (using tap interfaces), do:
+
 ```
-$ mirari configure /path/to/app.conf --switch=4.01.0dev+mirage-xen
+$ mirari configure /path/to/app.conf --unix
+```
+
+To build for the xen target, do:
+
+```
+$ mirari configure /path/to/app.conf --xen
 ```
 
 ## Building Mirage Applications
@@ -82,14 +89,7 @@ The command:
 $ mirari build /path/to/app.conf
 ```
 
-will build your project.  To build a version under a particular
-compiler, just add `--switch=<compiler>` as with the configuration
-step (you need to keep `--switch=<compiler>` on the command line for
-all stages at the moment).
-
-```
-$ mirari build /path/to/app.conf --switch=4.01.0dev+mirage-xen
-```
+will build your project. Likewise, you can use the --unix or --xen switches to build for a particular target.
 
 ## Running Mirage Applications
 

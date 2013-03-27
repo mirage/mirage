@@ -365,7 +365,7 @@ let plug (id:id) =
   )) in
   lwt (_: bool) = Xs.(wait (fun h ->
 	  lwt state = read h (sprintf "%s/state" backend) in
-	  return Device_state.(of_string state = Connected)
+	  if Device_state.(of_string state = Connected) then Lwt.return true else fail Xs_protocol.Eagain
   )) in
   (* Read backend features *)
   lwt features =

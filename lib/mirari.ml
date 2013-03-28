@@ -400,10 +400,8 @@ module Build = struct
 
   let prepare ?switch t =
     check t;
-    match t.packages with
-    | [] -> ()
-    | ps -> opam_install ?switch ps
-
+    let ps = "obuild" :: t.packages in
+    opam_install ?switch ps
 end
 
 (* A type describing all the configuration of a mirage unikernel *)

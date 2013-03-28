@@ -211,7 +211,7 @@ module FS = struct
       let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
       if Sys.file_exists path then (
         info "Creating %s." file;
-        command ?switch "mir-crunch -name %S %s > %s" name path file
+        command ?switch "mir-crunch -o %s -name %S %s" file name path
       ) else
       error "The directory %s does not exist." path
     ) t.fs

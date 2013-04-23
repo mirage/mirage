@@ -1,18 +1,19 @@
-.PHONY: all configure build clean
+PREFIX=/usr/local
+BINDIR=$(PREFIX)/bin
 
-BINDIR=/usr/local/bin
-all:
-	$(MAKE) configure
-	$(MAKE) build
+all: build
 
 configure:
 	obuild configure
 
-build:
+dist/setup: configure
+
+build: dist/setup
 	obuild build
 
+install: build
+	cp dist/build/mirari/mirari $(BINDIR)
+
+.PHONY: clean
 clean:
 	obuild clean
-
-install:
-	cp dist/build/mirari/mirari $(DESTDIR)$(BINDIR)/mirari

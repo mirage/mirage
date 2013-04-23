@@ -43,6 +43,13 @@ let arg_list name doc conv =
   let doc = Arg.info ~docv:name ~doc [] in
   Arg.(value & pos_all conv [] & doc)
 
+let pick_compiler compiler unix xen =
+  match compiler, unix, xen with
+  | Some c, _, _   -> Some c
+  | _, true, false -> Some unix_switch
+  | _, false, true -> Some xen_switch
+  | _              -> None
+
 let no_install = mk_flag ["no-install"] "Do not auto-install OPAM packages."
 let xen = mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix."
 let unix = mk_flag ["unix"] "Use unix-direct backend. Do not use in conjunction with --xen."
@@ -67,11 +74,7 @@ let configure =
   let configure unix xen compiler no_install file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
-      let compiler = match compiler, unix, xen with
-        | Some c, _, _   -> Some c
-        | _, true, false -> Some unix_switch
-        | _, false, true -> Some xen_switch
-        | _              -> None in
+      let compiler =  pick_compiler compiler unix xen in
       `Ok (Mirari.configure ?compiler ~no_install file) in
   Term.(ret (pure configure $ unix $ xen $ switch $ no_install $ file)), term_info "configure" ~doc ~man
 
@@ -86,13 +89,23 @@ let build =
   let build unix xen compiler file =
     if unix && xen then `Help (`Pager, Some "build")
     else
-      let compiler = match compiler, unix, xen with
-        | Some c, _, _   -> Some c
-        | _, true, false -> Some unix_switch
-        | _, false, true -> Some xen_switch
-        | _              -> None in
+      let compiler = pick_compiler compiler unix xen in
       `Ok (Mirari.build ?compiler file) in
   Term.(ret (pure build $ unix $ xen $ switch $ file)), term_info "build" ~doc ~man
+
+(* RUN *)
+let run_doc = "Run a Mirage application."
+let run =
+  let doc = run_doc in
+  let man = [
+    `S "DESCRIPTION";
+    `P "Run a Mirage application on the selected backend."] in
+  let run unix xen compiler file =
+    if unix && xen then `Help (`Pager, Some "run")
+    else
+      let compiler = pick_compiler compiler unix xen in
+      `Ok (Mirari.run ?compiler file) in
+  Term.(ret (pure run $ unix $ xen $ switch $ file)), term_info "run" ~doc ~man
 
 (* CLEAN *)
 let clean_doc = "Clean auto-generated files."
@@ -160,6 +173,7 @@ let default =
 let commands = [
   configure;
   build;
+  run;
   clean;
 ]
 

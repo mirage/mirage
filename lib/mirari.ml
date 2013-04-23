@@ -438,6 +438,10 @@ let is_target_xen compiler = match compiler with
   | None -> false
   | Some str -> (String.sub str ((String.length str) - 3) 3) = "xen"
 
+let is_target_unix compiler = match compiler with
+  | None -> false
+  | Some str -> (String.sub str ((String.length str) - 4) 4) = "unix"
+
 let output_main t =
   let oc = open_out t.main_ml in
   Headers.output oc;
@@ -501,6 +505,15 @@ let build ?compiler file =
   let t = create ?compiler file in
   (* build *)
   call_build_scripts t
+
+let run ?compiler file =
+  let file = scan_conf file in
+  let t = create ?compiler file in
+  match compiler with
+  | None -> Unix.execv ("mir-" ^ t.name) [||] (* unix-socket backend *)
+  | Some c when is_target_unix (Some c) -> () (* unix-direct backend *)
+  | Some c when is_target_xen (Some c)  -> () (* xen backend *)
+  | Some c -> failwith "Unsupported compiler"
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)

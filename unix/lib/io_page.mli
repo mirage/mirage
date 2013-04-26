@@ -14,13 +14,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Module implementing a memory pool (fixed 4096 bytes block
+    allocation) *)
+
+(** Type of a memory page. *)
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
+(** Get a page from the memory pool, allocating memory if needed. *)
 val get : unit -> t
+
+(** [gen_n n] gets [n] pages from the memory pool, allocating memory
+    if needed. *)
 val get_n : int -> t list
 
+(** Create a Cstruct.t value out of a memory page. *)
 val to_cstruct : t -> Cstruct.t
 
+(** [length p] gives the length of page [p], in bytes.*)
 val length : t -> int
 
-val round_to_page_size : int -> int 
+(** [round_to_page_size n] returns the number of bytes that will be
+    allocated for storing [n] bytes in memory *)
+val round_to_page_size : int -> int

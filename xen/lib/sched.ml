@@ -34,7 +34,7 @@ let suspend () =
   Gnttab.resume ();
   Activations.resume ();
   lwt () = Xs.resume () in
-  lwt () = Blkif.resume () in
+  (* lwt () = Blkif.resume () in *) (* XXX need a hook *)
   lwt () = Netif.resume () in
   Lwt.return result
   

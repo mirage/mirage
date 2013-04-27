@@ -24,8 +24,8 @@ let event_cb = Array.init nr_events (fun _ -> Lwt_sequence.create ())
 
 (* Block waiting for an event to occur on a particular port *)
 let wait evtchn =
-  if Evtchn.is_valid evtchn then begin
-	  let port = Evtchn.port evtchn in
+  if Eventchn.is_valid evtchn then begin
+	  let port = Eventchn.to_int evtchn in
 	  let th, u = Lwt.task () in
 	  let node = Lwt_sequence.add_r u event_cb.(port) in
 	  Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);

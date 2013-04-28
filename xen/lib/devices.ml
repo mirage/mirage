@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2011 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) Citrix Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -75,10 +76,6 @@ let wildcard_waiters: id Lwt_mvar.t Lwt_sequence.t = Lwt_sequence.create ()
 (** Track all registered providers in the system *)
 let providers : provider list ref = ref []
 
-(** Register a new KV_RO provider *)
-let new_provider p =
-  providers := p :: !providers
-
 (** Find a device node for id and return the entry *)
 let rec find id =
   try
@@ -100,47 +97,48 @@ let rec find id =
     return ent 
   end
 
-(** Main device manager thread *)
-let device_t () =
-  let th,u = Lwt.task () in
-  Lwt.on_cancel th (fun () -> () (* TODO *));
+(* For each provider, set up a thread that listens for incoming plug events *)
+let provider_t provider =
+  printf "Devices: [%s] provider start\n%!" provider#id;
+
   (** Loop to read a value from an mvar and apply function to it in parallel *)
   let rec mvar_loop mvar fn =
     lwt x = Lwt_mvar.take mvar in
     fn x <&> (mvar_loop mvar fn)
   in
-  (* For each provider, set up a thread that listens for incoming plug events *)
-  let provider_t provider =
-    printf "Devices: [%s] provider start\n%!" provider#id;
-    mvar_loop provider#plug (fun {p_id; p_dep_ids; p_cfg } ->
-      printf "Devices: [%s:%s] provider plug\n%!" provider#id p_id;
-      (* Satisfy all the dependencies *)
-      lwt deps = Lwt_list.map_p find p_dep_ids in
-      lwt entry = provider#create ~deps ~cfg:p_cfg p_id in
-      (* Check if the device already exists (or any waiters are present *)
-      if Hashtbl.mem device_tree p_id then begin
-        printf "Devices: [%s:%s] ignoring repeat device plug\n%!" provider#id p_id;
+
+  mvar_loop provider#plug (fun {p_id; p_dep_ids; p_cfg } ->
+    printf "Devices: [%s:%s] provider plug\n%!" provider#id p_id;
+    (* Satisfy all the dependencies *)
+    lwt deps = Lwt_list.map_p find p_dep_ids in
+    lwt entry = provider#create ~deps ~cfg:p_cfg p_id in
+    (* Check if the device already exists (or any waiters are present *)
+    if Hashtbl.mem device_tree p_id then begin
+      printf "Devices: [%s:%s] ignoring repeat device plug\n%!" provider#id p_id;
+      return ()
+    end else begin
+      Hashtbl.add device_tree p_id entry;
+      (* Inform any wildcard listeners of the new device *)
+      Lwt_sequence.iter_l (fun mvar -> ignore(Lwt_mvar.put mvar p_id)) wildcard_waiters;
+      (* Check for any waiting threads *)
+      match Hashtbl.find_all device_waiters p_id with
+      |[] ->
+        printf "Devices: [%s:%s] no waiters\n%!" provider#id p_id;
         return ()
-      end else begin
-        Hashtbl.add device_tree p_id entry;
-        (* Inform any wildcard listeners of the new device *)
-        Lwt_sequence.iter_l (fun mvar -> ignore(Lwt_mvar.put mvar p_id)) wildcard_waiters;
-        (* Check for any waiting threads *)
-        match Hashtbl.find_all device_waiters p_id with
-        |[] ->
-          printf "Devices: [%s:%s] no waiters\n%!" provider#id p_id;
-          return ()
-        |[waiters] ->
-          printf "Devices: [%s:%s] waking waiters\n%!" provider#id p_id;
-           Hashtbl.remove device_waiters p_id;
-           Lwt_sequence.iter_l (fun w -> Lwt.wakeup w entry) waiters;
-           return ()
-        |_ -> assert false
-      end
-    )
-  in
-  let p_t = Lwt_list.iter_p provider_t !providers in
-  p_t <&> th
+      |[waiters] ->
+        printf "Devices: [%s:%s] waking waiters\n%!" provider#id p_id;
+         Hashtbl.remove device_waiters p_id;
+         Lwt_sequence.iter_l (fun w -> Lwt.wakeup w entry) waiters;
+         return ()
+      |_ -> assert false
+    end
+  )
+
+(** Register a new provider *)
+let new_provider p =
+  providers := p :: !providers;
+  let (_: 'a Lwt.t) = provider_t p in (* TODO: cancellation *)
+  ()
 
 let iter_s fn =
   let ids = Hashtbl.fold (fun k v a -> k :: a) device_tree [] in
@@ -179,5 +177,3 @@ let with_kv_ro id fn =
   |None -> raise_lwt (Failure "with_kv_ro")
   |Some b -> fn b
 
-(* Start the device manager thread when the system "boots" *) 
-let _ = Main.at_enter device_t

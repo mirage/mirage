@@ -62,7 +62,7 @@ module RX = struct
 	lwt rx_gnt, buf = allocate_ring ~domid in
     let sring = Ring.Rpc.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
     let fring = Ring.Rpc.Front.init ~sring in
-    let client = Lwt_ring.Front.init fring in
+    let client = Lwt_ring.Front.init string_of_int fring in
     return (rx_gnt, fring, client)
 
 end
@@ -113,7 +113,7 @@ module TX = struct
 	lwt rx_gnt, buf = allocate_ring ~domid in
     let sring = Ring.Rpc.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
     let fring = Ring.Rpc.Front.init ~sring in
-	let client = Lwt_ring.Front.init fring in
+	let client = Lwt_ring.Front.init string_of_int fring in
     return (rx_gnt, fring, client)
 end
 

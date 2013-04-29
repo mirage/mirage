@@ -409,3 +409,7 @@ let get_writebuf t =
   let page = Io_page.get () in
   (* TODO: record statistics for requesting thread here (in debug mode?) *)
   return (Cstruct.of_bigarray page)
+
+let _ =
+  printf "Netif: add resume hook\n%!";
+  Sched.add_resume_hook resume

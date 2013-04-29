@@ -20,6 +20,8 @@ type reason =
   | Suspend
   | Crash
 
+val add_resume_hook : (unit -> unit Lwt.t) -> unit
+
 val shutdown: reason -> unit
 
 val suspend: unit -> int Lwt.t

@@ -24,6 +24,11 @@ external shutdown: reason -> unit = "stub_sched_shutdown"
 
 external _suspend: unit -> int = "stub_hypervisor_suspend"
 
+let resume_hooks : (unit -> unit Lwt.t) list ref = ref []
+
+let add_resume_hook hook =
+  resume_hooks := hook :: !resume_hooks
+
 let suspend () =
   lwt () = Xs.suspend () in
   Gnttab.suspend ();
@@ -34,7 +39,6 @@ let suspend () =
   Gnttab.resume ();
   Activations.resume ();
   lwt () = Xs.resume () in
-  (* lwt () = Blkif.resume () in *) (* XXX need a hook *)
-  lwt () = Netif.resume () in
+  lwt () = Lwt_list.iter_p (fun f -> f ()) !resume_hooks in
   Lwt.return result
   

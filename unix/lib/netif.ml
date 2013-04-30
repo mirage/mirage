@@ -35,40 +35,24 @@ type t = {
   mac: string;
 }
 
-external tap_opendev: string -> Unix.file_descr = "tap_opendev"
 external eth_opendev: string -> Unix.file_descr = "pcap_opendev"
-external get_mac_addr: string -> string = "get_mac_addr"
 external pcap_get_buf_len: Unix.file_descr -> int = "pcap_get_buf_len"
 
 exception Ethif_closed
 
-(* We must generate a fake MAC for the Unix "VM", as using the
-   tuntap one will cause all sorts of unfortunate MAC routing 
-   loops in some stacks (notably Darwin tuntap). *)
-let generate_local_mac () =
-  let x = String.create 6 in
-  let i () = Char.chr (Random.int 256) in
-  (* set locally administered and unicast bits *)
-  x.[0] <- Char.chr ((((Random.int 256) lor 2) lsr 1) lsl 1);
-  x.[1] <- i ();
-  x.[2] <- i ();
-  x.[3] <- i ();
-  x.[4] <- i ();
-  x.[5] <- i ();
-  x
-
-
 let devices = Hashtbl.create 1
 
 let plug id =
-  let tapfd = tap_opendev id in
+  let tapfd, tapid = Tuntap.opentap ~devname:id () in
+  let () = if tapid <> id then
+    printf "Asked to plug interface %s, but %s will be used instead\n%!" id tapid in
   let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
-  let mac = generate_local_mac () in
+  let mac = Tuntap.make_local_hwaddr () in
   let active = true in
-  let t = { id; dev; active; mac; typ=ETH;buf_sz=4096; 
+  let t = { id=tapid; dev; active; mac; typ=ETH;buf_sz=4096; 
             buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
   Hashtbl.add devices id t;
-  printf "Netif: plug %s\n%!" id;
+  printf "Netif: plug %s\n%!" tapid;
   return t
 
 let mac_to_string mac = 
@@ -84,7 +68,7 @@ let mac_to_string mac =
 let attach id =
   let tapfd = eth_opendev id in
   let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
-  let mac = get_mac_addr id in
+  let mac = Tuntap.get_hwaddr id in
   printf "attaching %s with mac %s..\n%!" id (mac_to_string mac);
   let buf_sz = pcap_get_buf_len tapfd in 
   let active = true in

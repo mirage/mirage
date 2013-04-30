@@ -61,4 +61,4 @@ let to_cstruct t = Cstruct.of_bigarray t
 
 let length t = Array1.dim t
 
-let round_to_page_size n = ((n+4095) lsr 12) lsl 12
+let round_to_page_size n = ((n + page_size - 1) lsr 12) lsl 12

@@ -378,13 +378,10 @@ let add_resume_hook t fn =
 	t.resume_fns <- fn::t.resume_fns
 
 let create ?dev fn =
-  let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
   lwt ids = enumerate () in
-  let pt = Lwt_list.iter_p (fun id ->
-    lwt t = plug id in
-    fn id t) ids in
-  th <?> pt
+  let th = Lwt_list.iter_p (fun id -> plug id >>= fun t -> fn id t) ids in
+  Lwt.on_failure th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
+  th
 
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let mac nf = 

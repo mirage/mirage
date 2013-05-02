@@ -60,15 +60,18 @@ compile() {
 # generate META file and invoke ${OCAMLFIND} installation
 install()  {
   sed -e "s/@VERSION@/${VERSION}/g" < META.in > _config/META
-  sed -e "s/@VERSION@/${VERSION}/g" < META.xenctrl.in > _config/META.xenctrl
-
+  if [ -e META.xenctrl.in ]; then
+    sed -e "s/@VERSION@/${VERSION}/g" < META.xenctrl.in > _config/META.xenctrl
+  fi
   ${OCAMLFIND} remove ${NAME} || true
   t=`sed -e 's,^,_build/,g' < _build/${NAME}.all`
   if [ ! -z "${DESTDIR}" ]; then
     OCAMLFIND_FLAGS="${OCAMLFIND_FLAGS} -destdir ${DESTDIR}"
   fi
   ${OCAMLFIND} install ${OCAMLFIND_FLAGS} ${NAME} _config/META ${t}
-  ${OCAMLFIND} install ${OCAMLFIND_FLAGS} xenctrl _config/META.xenctrl
+  if [ -e _config/META.xenctrl ]; then
+    ${OCAMLFIND} install ${OCAMLFIND_FLAGS} xenctrl _config/META.xenctrl
+  fi
 }
 
 # tests also include the built syntax extensions (if any)

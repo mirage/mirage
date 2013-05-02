@@ -1,7 +1,7 @@
 Io_page
 Gnttab
 Activations
-Evtchn
+Eventchn
 Console
 Clock
 Time
@@ -11,6 +11,5 @@ Device_state
 Xs
 Env
 Netif
-Blkif
 Start_info
 Sched

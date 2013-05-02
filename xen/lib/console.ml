@@ -19,9 +19,9 @@ open Printf
 
 type t = {
   backend_id: int;
-  gnt: Gnttab.r;
+  gnt: Gnttab.grant_table_index;
   ring: Cstruct.t;
-  evtchn: Evtchn.t;
+  evtchn: Eventchn.t;
   waiters: unit Lwt.u Lwt_sequence.t;
 }
 
@@ -33,23 +33,25 @@ let wait cons =
 
 external console_start_page: unit -> Io_page.t = "caml_console_start_page"
 
+let h = Eventchn.init ()
+
 let create () =
   let backend_id = 0 in
-  let gnt = Gnttab.of_int32 2l in (* reserved slot set by the domain builder *)
+  let gnt = Gnttab.console in
   let page = console_start_page () in
   let ring = Io_page.to_cstruct page in
   Console_ring.Ring.init ring; (* explicitly zero the ring *)
-  let evtchn = Evtchn.console_port () in
+  let evtchn = Eventchn.console_port () in
   let waiters = Lwt_sequence.create () in
   let con = { backend_id; gnt; ring; evtchn; waiters } in
-  ignore(Evtchn.unmask evtchn);
-  ignore(Evtchn.notify evtchn);
+  ignore(Eventchn.unmask h evtchn);
+  ignore(Eventchn.notify h evtchn);
   con
     
 let rec sync_write cons buf off len =
   assert(len <= String.length buf + off);
   let w = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
-  ignore(Evtchn.notify cons.evtchn);
+  ignore(Eventchn.notify h cons.evtchn);
   let left = len - w in
   if left = 0 then 
     return () 
@@ -61,7 +63,7 @@ let rec sync_write cons buf off len =
 let write cons buf off len =
   assert(len <= String.length buf + off);
   let _ = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
-  ignore(Evtchn.notify cons.evtchn)
+  ignore(Eventchn.notify h cons.evtchn)
 
 let t = create ()
 

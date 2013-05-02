@@ -16,33 +16,61 @@
 
 open Lwt
 
-type handle = unit
+type interface = unit
 
-type r = int32 (* Grant ref number *)
+let interface_open () = ()
+let interface_close () = ()
+
+type grant_table_index = int32
+let grant_table_index_of_int32 x = x
+let int32_of_grant_table_index x = x
+let string_of_grant_table_index = Int32.to_string
 
 let console = 0l (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
 let xenstore = 1l (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)
 
-type h (* Handle to a mapped grant *)
-
-type perm = RO | RW
+type h (* mapped grant *)
 
 module Raw = struct
   external nr_entries : unit -> int = "caml_gnttab_nr_entries"
   external nr_reserved : unit -> int = "caml_gnttab_reserved"
   external init : unit -> unit = "caml_gnttab_init"
   external fini : unit -> unit = "caml_gnttab_fini"
-  external grant_access : r -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
-  external end_access : r -> unit = "caml_gnttab_end_access"
-  external map_grant : r -> Io_page.t -> int -> bool -> h option = "caml_gnttab_map"
+  external grant_access : grant_table_index -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
+  external end_access : grant_table_index -> unit = "caml_gnttab_end_access"
+  external map_grant : grant_table_index -> Io_page.t -> int -> bool -> h option = "caml_gnttab_map"
   external unmap_grant : h -> bool = "caml_gnttab_unmap"
 end
 
-let to_int32 x = x
-let of_int32 x = x
-let to_string (r:r) = Int32.to_string (to_int32 r)
+type grant = {
+  domid: int;
+  ref: grant_table_index;
+}
 
-let free_list : r Queue.t = Queue.create ()
+type permission = RO | RW
+
+module Local_mapping = struct
+  type t = {
+    h : h;
+    buf: Io_page.t;
+  }
+
+  let to_buf t = t.buf
+end
+
+
+let map () grant permission =
+  let buf = Io_page.get () in
+  match Raw.map_grant grant.ref buf grant.domid (match permission with RO -> true | RW -> false) with
+  | None -> None
+  | Some h ->
+    Some (Local_mapping.({h; buf}))
+
+let mapv () grants permission = failwith "mapv unimplemented"
+
+let unmap_exn () t = Raw.unmap_grant t.Local_mapping.h
+
+let free_list : grant_table_index Queue.t = Queue.create ()
 let free_list_waiters = Lwt_sequence.create ()
 
 let put r =
@@ -100,12 +128,6 @@ let grant_access ~domid ~perm r page =
 let end_access r =
   Raw.end_access r
 
-let map_grant ~domid ~perm r page =
-  Raw.map_grant r page domid (match perm with RO -> true |RW -> false)
-
-let unmap_grant h =
-  Raw.unmap_grant h
-
 let with_grant ~domid ~perm gnt page fn =
   grant_access ~domid ~perm gnt page;
   try_lwt
@@ -128,22 +150,16 @@ let with_grants ~domid ~perm gnts pages fn =
     fail exn
   end
 
-let map_grant_ref handle domid r perm = failwith "Unimplemented!"
-
-let unmap handle page = () (* XXX: with this work for multiple pages/refs *)
-
-let with_mapping handle domid r perm fn =
-  let page = map_grant_ref handle domid r perm in
+let with_mapping interface domid ref perm fn =
+  let mapping = map interface {domid; ref} perm in
   try_lwt
-    lwt res = fn page in
-    unmap handle page;
+    lwt res = fn mapping in
+    let (_: bool) = match mapping with None -> true | Some mapping -> unmap_exn interface mapping in
     return res
   with exn -> begin
-    unmap handle page;
+    let (_: bool) = match mapping with None -> true | Some mapping -> unmap_exn interface mapping in
     fail exn
   end
-
-let map_contiguous_grant_refs handle domid rs perm = failwith "Unimplemented!"
 
 let suspend () =
   Raw.fini ()

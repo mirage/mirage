@@ -1,6 +1,6 @@
 exit_stubs.o
 page_stubs.o
-evtchn_stubs.o
+eventchn_stubs.o
 xb_stubs.o
 xencons_ring.o
 clock_stubs.o

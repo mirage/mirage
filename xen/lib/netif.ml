@@ -377,7 +377,10 @@ let resume () =
 let add_resume_hook t fn =
 	t.resume_fns <- fn::t.resume_fns
 
-let create ?dev fn =
+(* Type of callback functions for [create]. *)
+type callback = id -> t -> unit Lwt.t
+
+let create fn =
   lwt ids = enumerate () in
   let th = Lwt_list.iter_p (fun id -> plug id >>= fun t -> fn id t) ids in
   Lwt.on_failure th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);

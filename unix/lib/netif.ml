@@ -26,14 +26,22 @@ type dev_type =
 | ETH
 
 type t = {
-  id: id;
-  typ: dev_type;
-  buf_sz: int;
-  mutable buf: Cstruct.t;
-  dev: Lwt_unix.file_descr;
-  mutable active: bool;
-  mac: string;
+          id     : id;
+          typ    : dev_type;
+          buf_sz : int;
+  mutable buf    : Cstruct.t;
+          dev    : Lwt_unix.file_descr;
+  mutable active : bool;
+          mac    : string;
 }
+
+type vif_info = {
+  vif_id       : id;
+  vif_dev_type : dev_type;
+  vif_fd       : Unix.file_descr;
+}
+
+type callback = id -> t -> unit Lwt.t
 
 external eth_opendev: string -> Unix.file_descr = "pcap_opendev"
 external pcap_get_buf_len: Unix.file_descr -> int = "pcap_get_buf_len"
@@ -42,70 +50,50 @@ exception Ethif_closed
 
 let devices = Hashtbl.create 1
 
-let plug id =
-  let tapfd, tapid = Tuntap.opentap ~devname:id () in
-  let () = if tapid <> id then
-    printf "Asked to plug interface %s, but %s will be used instead\n%!" id tapid in
-  let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
-  let mac = Tuntap.make_local_hwaddr () in
-  let active = true in
-  let t = { id=tapid; dev; active; mac; typ=ETH;buf_sz=4096; 
-            buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
-  Hashtbl.add devices id t;
-  printf "Netif: plug %s\n%!" tapid;
-  return t
+(* Stream of network interface records *)
+let vifs, push_vif = Lwt_stream.create ()
 
-let mac_to_string mac = 
-  let ret = ref "" in 
-  let _ = 
-    String.iter (
-      fun ch -> 
-        ret := sprintf "%s%02X:" !ret (int_of_char ch)
-    ) mac  in 
-    !ret 
+let add_vif vif_id vif_dev_type vif_fd = push_vif (Some {vif_id; vif_dev_type; vif_fd})
 
-(* like the plug method, but for an existing interface *)    
-let attach id =
-  let tapfd = eth_opendev id in
-  let dev = Lwt_unix.of_unix_file_descr ~blocking:false tapfd in
-  let mac = Tuntap.get_hwaddr id in
-  printf "attaching %s with mac %s..\n%!" id (mac_to_string mac);
-  let buf_sz = pcap_get_buf_len tapfd in 
-  let active = true in
-  let t = { id; dev; active; mac; typ=PCAP; buf_sz;
-            buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
-  Hashtbl.add devices id t;
-  printf "Netif: plug %s\n%!" id;
-  return t
+let plug dev_type id fd =
+  match dev_type with
+    | ETH ->
+      let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
+      let mac = Tuntap.make_local_hwaddr () in
+      printf "plugging into %s with mac %s..\n%!" id (Tuntap.string_of_hwaddr mac);
+      let active = true in
+      let t = { id; dev; active; mac; typ=ETH;buf_sz=4096;
+                buf=Io_page.to_cstruct (Lwt_bytes.create 0) } in
+      Hashtbl.add devices id t;
+      printf "Netif: plug %s\n%!" id;
+      return t
 
+    | PCAP ->
+      let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
+      let mac = Tuntap.get_hwaddr id in
+      printf "attaching %s with mac %s..\n%!" id (Tuntap.string_of_hwaddr mac);
+      let buf_sz = pcap_get_buf_len fd in
+      let active = true in
+      let t = { id; dev; active; mac; typ=PCAP; buf_sz;
+                buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
+      Hashtbl.add devices id t;
+      printf "Netif: plug %s\n%!" id;
+      return t
 
 let unplug id =
   try
     let t = Hashtbl.find devices id in
     t.active <- false;
-    let _ = Lwt_unix.close t.dev in 
+    let _ = Lwt_unix.close t.dev in
     printf "Netif: unplug %s\n%!" id;
     Hashtbl.remove devices id
   with Not_found -> ()
-  
-let tapnum = ref (-1)
-let create ?(dev=None) fn =
-  let name = 
-    match dev with
-      | None -> 
-          incr tapnum;
-          Printf.sprintf "tap%d" !tapnum
-      | Some(a) -> a
-  in
-  lwt t = 
-    match dev with
-      | None -> plug name
-      | Some(a) -> attach a
-  in
-  let user = fn name t in
-  let th,_ = Lwt.task () in
-  Lwt.on_cancel th (fun _ -> unplug name);
-  th <?> user
+
+let rec create fn =
+  lwt vif = Lwt_stream.next vifs in
+  let th = plug vif.vif_dev_type vif.vif_id vif.vif_fd >>= fun t -> fn vif.vif_id t in
+  Lwt.on_failure th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
+  create fn
 
 cstruct bpf_hdr {
   uint32 tv_sec;

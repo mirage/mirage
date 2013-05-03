@@ -22,19 +22,25 @@ type t
 (** Textual id which is unique per netfront interface *)
 type id = string
 
-(** Create a hotplug interface that will spawn a new thread
-    per network interface.
-    @param fn Callback function that is invoked for every new netfront interface.
-    @return Blocking thread that will unplug all the attached interfaces if cancelled.
-  *)
-val create : ?dev:string option -> (id -> t -> unit Lwt.t) -> unit Lwt.t
+(** Type of the callback function used by [create]. *)
+type callback = id -> t -> unit Lwt.t
 
-(** Manually plug in a new network interface. Normally automatically invoked via Xenstore
-    watches by the create function *)
+(** [create fn] is a thread that will spawn a new thread
+    per network interface.
+
+    @param fn Callback function that is invoked for every new netfront
+    interface.
+
+    @return Blocking thread that will unplug all the attached
+    interfaces in case of failure of any of them. *)
+val create : callback -> unit Lwt.t
+
+(** Manually plug in a new network interface. Normally automatically
+    invoked via Xenstore watches by the create function *)
 val plug: id -> t Lwt.t
 
-(** Manually unplug a network interface. This makes an effort not to block, so
-    the unplugging is not guaranteed *)
+(** Manually unplug a network interface. This makes an effort not to
+    block, so the unplugging is not guaranteed *)
 val unplug: id -> unit
 
 (** Output a buffer to an interface *)
@@ -43,11 +49,12 @@ val write : t -> Cstruct.t -> unit Lwt.t
 (** Output a list of buffers to an interface as a single packet *)
 val writev : t -> Cstruct.t list -> unit Lwt.t
 
-(** Listen endlesses on a Netfront, and invoke the callback function as frames are
-    received. *)
+(** Listen endlesses on a Netfront, and invoke the callback function
+    as frames are received. *)
 val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 
-(** Enumerate all the currently available Netfronts (which may or may not be attached) *)
+(** Enumerate all the currently available Netfronts (which may or may
+    not be attached) *)
 val enumerate : unit -> id list Lwt.t
 
 (** Return the MAC address of the Netfront *)
@@ -59,7 +66,7 @@ val get_writebuf : t -> Cstruct.t Lwt.t
 (** Replug all devices *)
 val resume : unit -> unit Lwt.t
 
-(** Add a resume hook - called on resume before the service threads are restarted. Can
-	be used, for example, to send a gratuitous ARP *)
+(** Add a resume hook - called on resume before the service threads
+	  are restarted. Can be used, for example, to send a gratuitous ARP *)
 val add_resume_hook : t -> (t -> unit Lwt.t) -> unit
 

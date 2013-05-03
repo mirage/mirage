@@ -21,5 +21,8 @@ install:
 	chmod a+x $(DESTDIR)$(PREFIX)/bin/mir-run
 	cd $(OS) && $(MAKE) install
 
+uninstall:
+	cd $(OS) && $(MAKE) uninstall
+
 test:
 	cd $(OS) && $(MAKE) test

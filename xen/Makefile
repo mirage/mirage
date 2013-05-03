@@ -16,5 +16,8 @@ install:
 	mkdir -p $(XEN_LIB)
 	for l in $(EXTRA); do cp _build/$$l $(XEN_LIB); done
 
+uninstall:
+	./cmd uninstall
+
 clean:
 	./cmd clean

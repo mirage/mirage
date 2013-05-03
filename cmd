@@ -74,6 +74,15 @@ install()  {
   fi
 }
 
+uninstall() {
+  if [ -e META.xenctrl.in ]; then
+    ${OCAMLFIND} remove xenctrl
+  fi
+  if [ -e META.in ]; then
+    ${OCAMLFIND} remove mirage
+  fi
+}
+
 # tests also include the built syntax extensions (if any)
 run_tests() {
   for test in ${TESTS}; do
@@ -92,6 +101,7 @@ case "$cmd" in
 conf*) configure ;;
 compile|build) compile ;;
 install) install ;;
+uninstall) uninstall ;;
 clean) clean ;;
 doc) doc ;;
 test) run_tests ;;

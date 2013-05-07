@@ -14,10 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-external evtchn_init : unit -> unit = "caml_evtchn_init"
-external evtchn_nr_events : unit -> int = "caml_nr_events"
-external evtchn_test_and_clear : int -> bool = "caml_evtchn_test_and_clear" "noalloc"
-
 val nr_events : int
 
 val wait : Eventchn.t -> unit Lwt.t

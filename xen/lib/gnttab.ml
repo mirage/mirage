@@ -68,7 +68,9 @@ let map () grant permission =
 
 let mapv () grants permission = failwith "mapv unimplemented"
 
-let unmap_exn () t = Raw.unmap_grant t.Local_mapping.h
+let unmap_exn () t =
+  if not (Raw.unmap_grant t.Local_mapping.h)
+  then failwith "failed to unmap grant: still in use?"
 
 let free_list : grant_table_index Queue.t = Queue.create ()
 let free_list_waiters = Lwt_sequence.create ()
@@ -154,10 +156,10 @@ let with_mapping interface domid ref perm fn =
   let mapping = map interface {domid; ref} perm in
   try_lwt
     lwt res = fn mapping in
-    let (_: bool) = match mapping with None -> true | Some mapping -> unmap_exn interface mapping in
+    let () = match mapping with None -> () | Some mapping -> unmap_exn interface mapping in
     return res
   with exn -> begin
-    let (_: bool) = match mapping with None -> true | Some mapping -> unmap_exn interface mapping in
+    let () = match mapping with None -> () | Some mapping -> unmap_exn interface mapping in
     fail exn
   end
 

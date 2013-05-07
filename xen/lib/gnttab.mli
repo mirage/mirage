@@ -90,8 +90,9 @@ val mapv: interface -> grant list -> permission -> Local_mapping.t option
     list of permissions. Note the grant list can involve grants from multiple
     domains. On error this function returns None. *)
 
-val unmap_exn: interface -> Local_mapping.t -> bool
-(** Attempt to unmap a local mapping. *)
+val unmap_exn: interface -> Local_mapping.t -> unit 
+(** Attempt to unmap a local mapping. Throws a Failure exception if
+    unsuccessful. *)
 
 
 (** {0 This is the API for offering pages to foreign domains}

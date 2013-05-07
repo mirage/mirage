@@ -26,3 +26,6 @@ uninstall:
 
 test:
 	cd $(OS) && $(MAKE) test
+
+doc:
+	cd $(OS) && $(MAKE) doc

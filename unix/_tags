@@ -3,3 +3,5 @@
 <*.c>: pic,unix_header,include_system_ocaml
 <syntax/*>: build_syntax
 true: camlp4o
+<lib>: include
+<**/*.{mli,ml}>: package(lwt), package(cstruct)

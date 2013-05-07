@@ -3,3 +3,5 @@
 <syntax/*>: build_syntax
 true: camlp4o
 <*/*>: annot
+<lib>: include
+<**/*.{mli,ml}>: package(lwt), package(cstruct)

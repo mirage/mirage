@@ -23,8 +23,6 @@
     module using the [add_vif] function. This is analogous to the
     XenStore mechanism for the Xen backend. *)
 
-(** {1 Types} *)
-
 (** Type representing a network interface, containing low level data
     structures to read and write from it. *)
 type t
@@ -43,12 +41,8 @@ type dev_type =
     interface. *)
 type callback = id -> t -> unit Lwt.t
 
-(** {2 Exceptions} *)
-
 (** Exception raised when trying to read from a DOWN interface *)
 exception Device_down of id
-
-(** {3 Values} *)
 
 (** Accessors for the t type *)
 

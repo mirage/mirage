@@ -314,16 +314,19 @@ module Main = struct
   type t =
     | IP of string
     | HTTP of string
+    | NOIP of string
 
   let create kvs =
     let kvs = filter_map (subcommand ~prefix:"main") kvs in
     let is_http = List.mem_assoc "http" kvs in
     let is_ip = List.mem_assoc "ip" kvs in
-    match is_http, is_ip with
-    | false, false -> error "No main function is specified. You need to add 'main-ip: <NAME>' or 'main-http: <NAME>'."
-    | true , false -> HTTP (List.assoc "http" kvs)
-    | false, true  -> IP (List.assoc "ip" kvs)
-    | true , true  -> error "Too many main functions."
+    let is_noip = List.mem_assoc "noip" kvs in
+    match is_http, is_ip, is_noip with
+    | false, false, false -> error "No main function is specified. You need to add 'main-{ip,http,noip}: <NAME>'."
+    | true , false, false -> HTTP (List.assoc "http" kvs)
+    | false, true, false  -> IP (List.assoc "ip" kvs)
+    | false, false, true -> NOIP (List.assoc "noip" kvs)
+    | _  -> error "Too many main functions."
 
   let output_http oc main =
     append oc "let main () =";
@@ -344,11 +347,14 @@ module Main = struct
     append oc "    %s mgr interface id" main;
     append oc "  )"
 
+  let output_noip oc main = append oc "let main () = %s ()" main
+
   let output oc t =
     begin
       match t with
       | IP main   -> output_ip oc main
       | HTTP main -> output_http oc main
+      | NOIP main -> output_noip oc main
     end;
     newline oc;
     append oc "let () = OS.Main.run (main ())";

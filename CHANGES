@@ -1,3 +1,7 @@
+* [xen] Gnttab.unmap_exn now throws an exception on failure, like the
+  xenctrl version. This makes it possible to run the same blkback code
+  in kernelspace and userspace.
+
 0.8.1 (27-Mar-2013):
 * [xen] Fix the Xen block interface to wait for init correctly.
 

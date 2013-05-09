@@ -33,8 +33,15 @@ http-port: 80
 http-address: *
 
 # Main function
+
+# If your main is a Dispatch function for cohttp
 main-http: Dispatch.main
+
+# If Ping.min has signature Net.Manager.t -> Net.Manager.interface -> Net.Manager.id -> 'a Lwt.t
 # main-ip: Ping.min
+
+# Noip.main must have signature unit -> 'a Lwt.t (do not use networking)
+# main-noip: Noip.main
 
 # Dependencies
 depends: cohttp.syntax, uri, re, cow.syntax

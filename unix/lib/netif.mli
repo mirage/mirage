@@ -28,7 +28,7 @@
 type t
 
 (** Textual id identifying a network interface, e.g. "tap0". *)
-type id
+type id = string
 
 (** Type of network interfaces. Currently, [ETH] designate a TUN/TAP
     interface, while [PCAP] designate a normal ethernet interface to

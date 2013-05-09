@@ -28,8 +28,7 @@ type t = {
 exception Internal_error of string
 
 (** Called by a console thread that wishes to sleep (or be cancelled) *)
-let wait cons =
-  Activations.wait cons.evtchn
+let wait cons = Activations.wait cons.evtchn
 
 external console_start_page: unit -> Io_page.t = "caml_console_start_page"
 
@@ -43,34 +42,33 @@ let create () =
   Console_ring.Ring.init ring; (* explicitly zero the ring *)
   let evtchn = Eventchn.console_port () in
   let waiters = Lwt_sequence.create () in
-  let con = { backend_id; gnt; ring; evtchn; waiters } in
-  ignore(Eventchn.unmask h evtchn);
-  ignore(Eventchn.notify h evtchn);
-  con
-    
-let rec sync_write cons buf off len =
-  assert(len <= String.length buf + off);
-  let w = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
-  ignore(Eventchn.notify h cons.evtchn);
-  let left = len - w in
-  if left = 0 then 
-    return () 
-  else (
-    wait cons >>
-    sync_write cons buf (off+w) left
-  )
+  let cons = { backend_id; gnt; ring; evtchn; waiters } in
+  Eventchn.unmask h evtchn;
+  Eventchn.notify h evtchn;
+  cons
+
+let rec write_all cons buf off len =
+  if len > String.length buf - off
+  then Lwt.fail (Invalid_argument "len")
+  else
+    let w = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
+    Eventchn.notify h cons.evtchn;
+    let left = len - w in
+    if left = 0 then return len
+    else wait cons >> write_all cons buf (off+w) left
+
 
 let write cons buf off len =
-  assert(len <= String.length buf + off);
-  let _ = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
-  ignore(Eventchn.notify h cons.evtchn)
+  if len > String.length buf - off then raise (Invalid_argument "len");
+  let nb_written = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
+  Eventchn.notify h cons.evtchn; nb_written
 
 let t = create ()
 
-let log s = 
+let log s =
   let s = s ^ "\r\n" in
-  write t s 0 (String.length s)
+  let (_:int) = write t s 0 (String.length s) in ()
 
 let log_s s =
   let s = s ^ "\r\n" in
-  sync_write t s 0 (String.length s)
+  write_all t s 0 (String.length s) >>= fun (_:int) -> Lwt.return ()

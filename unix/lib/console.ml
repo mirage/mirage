@@ -19,25 +19,20 @@ open Lwt
 (* TODO management service for logging *)
 type t = unit
 
-let write t buf off len =
-  prerr_endline (String.sub buf off len)
+let write t buf off len = prerr_string (String.sub buf off len); len
 
 let create () : t = ()
 
-let sync_write t buf off len =
-  write t buf off len;
-  return ()
+let write_all t buf off len = Lwt.return (write t buf off len)
 
-let create_additional_console () =
-  return (create ())
+let create_additional_console () = return (create ())
 
-let t =
-  create ()
+let t =  create ()
 
 let log s =
-  write t s 0 (String.length s);
-  write t "\n" 0 1
+  let (_:int) = write t s 0 (String.length s) in
+  let (_:int) = write t "\n" 0 1 in ()
 
 let log_s s =
   let s = s ^ "\n" in
-  sync_write t s 0 (String.length s)
+  write_all t s 0 (String.length s) >>= fun (_:int) -> Lwt.return ()

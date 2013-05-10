@@ -56,9 +56,9 @@ let to_pages t =
     else acc in
   List.rev (loop 0 [])
 
-let string_blit src t =
-  for i = 0 to String.length src - 1 do
-    t.{i} <- src.[i]
+let string_blit src srcoff dst dstoff len =
+  for i = srcoff to srcoff + len - 1 do
+    dst.{i+dstoff} <- src.[i]
   done
 
 let to_string t =

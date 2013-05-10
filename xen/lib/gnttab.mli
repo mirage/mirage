@@ -26,11 +26,11 @@
     or via structures in previously-shared memory region).
 *) 
 
-(** {0 This is the API for receiving foreign pages}
+(** {2 Receiving foreign pages}
     This API should be in sync with the xenctrl 'gntdev' one. *)
 
 type interface
-(** A connection to the grant device, needed for mapping/unmapping *)
+(** A connection to the grant device, needed for mapping/unmapping. *)
 
 val interface_open: unit -> interface
 (** Open a connection to the grant device. This must be done before any
@@ -95,7 +95,7 @@ val unmap_exn: interface -> Local_mapping.t -> unit
     unsuccessful. *)
 
 
-(** {0 This is the API for offering pages to foreign domains}
+(** {2 Offering pages to foreign domains}
     This API *should* be in sync with the xenctrl 'gntshr' one but
     it currently isn't because 'gntshr' doesn't seem to offer the
     ability to export already allocated memory. *)

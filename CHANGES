@@ -1,3 +1,5 @@
+* [xen] Io_page.string_blit has now an interface similar to String.blit
+* [xen] Console.write_s has been renamed Console.write_all
 * [xen] Gnttab.unmap_exn now throws an exception on failure, like the
   xenctrl version. This makes it possible to run the same blkback code
   in kernelspace and userspace.

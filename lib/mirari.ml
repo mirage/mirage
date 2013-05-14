@@ -525,4 +525,4 @@ let run ?compiler file =
    an obuild clean *)
 let clean () =
   command "obuild clean";
-  command "rm -f main.ml main.obuild mir-*"
+  command "rm -f main.ml main.obuild mir-* filesystem_*.ml"

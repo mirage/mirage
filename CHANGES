@@ -1,3 +1,8 @@
+0.9.0 (22-May-2013):
+* [xen] Add a simple 'resume hook' mechanism for xen devices
+* [xen] Update to new shared ring signature in 0.4.0
+* [xen] Allow device providers to be added later
+* [xen] Move the blkif implementation to ocaml-xen-block-driver
 * [xen] Io_page.string_blit has now an interface similar to String.blit
 * [xen] Console.write_s has been renamed Console.write_all
 * [xen] Gnttab.unmap_exn now throws an exception on failure, like the

@@ -178,6 +178,9 @@ let commands = [
 ]
 
 let () =
+  (* Do not die on Ctrl+C: necessary when mirari has to cleanup things
+     (like killing running kernels) before terminating. *)
+  Sys.catch_break true;
   match Term.eval_choice default commands with
   | `Error _ -> exit 1
   | _ -> ()

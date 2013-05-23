@@ -8,4 +8,4 @@ license: ISC
 executable mirari
   main: main.ml
   src-dir: lib
-  buildDepends: cmdliner, unix
+  build-deps: cmdliner, unix, tuntap, fd-send-recv

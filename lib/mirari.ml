@@ -21,6 +21,11 @@ let unopt v = function
   | None -> raise Not_found
   | Some v -> v
 
+let finally f cleanup =
+  try
+    let res = f () in cleanup (); res
+  with exn -> cleanup (); raise exn
+
 let lines_of_file file =
   let ic = open_in file in
   let lines = ref [] in
@@ -104,12 +109,12 @@ let newline oc =
 
 let error fmt =
   Printf.kprintf (fun str ->
-    Printf.eprintf "ERROR: %s\n%!" str;
+    Printf.eprintf "[mirari] ERROR: %s\n%!" str;
     exit 1;
   ) fmt
 
 let info fmt =
-  Printf.kprintf (Printf.printf "%s\n%!") fmt
+  Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
 
 let remove file =
   if Sys.file_exists file then (
@@ -173,6 +178,14 @@ let read_command fmt =
     | WSIGNALED n -> error "process killed by signal %d" n
     | WSTOPPED n  -> error "process stopped by signal %d" n
     | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
+
+let is_target_xen compiler = match compiler with
+  | None -> false
+  | Some str -> (String.sub str ((String.length str) - 3) 3) = "xen"
+
+let is_target_unix compiler = match compiler with
+  | None -> false
+  | Some str -> (String.sub str ((String.length str) - 4) 4) = "unix"
 
 (* Headers *)
 module Headers = struct
@@ -349,7 +362,7 @@ module Main = struct
 
   let output_noip oc main = append oc "let main () = %s ()" main
 
-  let output oc t =
+  let output ?compiler oc t =
     begin
       match t with
       | IP main   -> output_ip oc main
@@ -357,7 +370,7 @@ module Main = struct
       | NOIP main -> output_noip oc main
     end;
     newline oc;
-    append oc "let () = OS.Main.run (main ())";
+    append oc "let () = OS.Main.run (Lwt.join [main (); Backend.run ()])"
 
 end
 
@@ -410,6 +423,40 @@ module Build = struct
     opam_install ?switch ps
 end
 
+module Backend = struct
+
+  let output ?compiler dir =
+    let file = Printf.sprintf "%s/backend.ml" dir in
+    let oc = open_out file in
+    if is_target_unix compiler then
+        append oc "let (>>=) = Lwt.bind
+
+let run () =
+  let backlog = 5 in
+  let sockaddr = Unix.ADDR_UNIX (Printf.sprintf \"/tmp/mir-%%d.sock\" (Unix.getpid ())) in
+  let sock = Lwt_unix.(socket PF_UNIX SOCK_STREAM 0) in
+  let () = Lwt_unix.bind sock sockaddr in
+  let () = Lwt_unix.listen sock backlog in
+
+  let rec accept_loop () =
+    Lwt_unix.accept sock
+    >>= fun (fd, saddr) ->
+    Printf.printf \"[backend]: Receiving connection from mirari.\\n%%!\";
+    let unix_fd = Lwt_unix.unix_file_descr fd in
+    let msgbuf = String.create 11 in
+    let nbread, sockaddr, recvfd = Fd_send_recv.recv_fd unix_fd msgbuf 0 11 [] in
+    let () = Printf.printf \"[backend]: %%d bytes read, received fd %%d\\n%%!\" nbread (Fd_send_recv.int_of_fd recvfd) in
+    let id = (String.trim (String.sub msgbuf 0 10)) in
+    let devtype = (if msgbuf.[10] = 'p' then OS.Netif.PCAP else OS.Netif.ETH) in
+    OS.Netif.add_vif id devtype recvfd;
+    Lwt_unix.(shutdown fd SHUTDOWN_ALL); (* Done, we can shutdown the connection now *)
+    accept_loop ()
+  in accept_loop ()"
+    else
+      append oc "let run () = Lwt.return ()"
+
+end
+
 (* A type describing all the configuration of a mirage unikernel *)
 type t = {
   file     : string; (* Path of the mirari config file *)
@@ -440,13 +487,6 @@ let create ?compiler file =
   let build   = Build.create ~name ~dir kvs in
   { file; compiler; name; dir; main_ml; fs; ip; http; main; build }
 
-let is_target_xen compiler = match compiler with
-  | None -> false
-  | Some str -> (String.sub str ((String.length str) - 3) 3) = "xen"
-
-let is_target_unix compiler = match compiler with
-  | None -> false
-  | Some str -> (String.sub str ((String.length str) - 4) 4) = "unix"
 
 let output_main t =
   let oc = open_out t.main_ml in
@@ -455,7 +495,6 @@ let output_main t =
   IP.output oc t.ip;
   HTTP.output oc t.http;
   Main.output oc t.main;
-  Build.output t.build;
   close_out oc
 
 let call_crunch_scripts t =
@@ -496,9 +535,13 @@ let call_build_scripts t =
 let configure ?compiler ~no_install file =
   let file = scan_conf file in
   let t = create ?compiler file in
-  (* main.ml *)
+  (* Generate main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
+  (* Generate the .obuild file *)
+  Build.output t.build;
+  (* Generate the Backend module *)
+  Backend.output ?compiler t.dir;
   (* install OPAM dependencies *)
   if not no_install then Build.prepare ?switch:t.compiler t.build;
   (* crunch *)
@@ -507,8 +550,8 @@ let configure ?compiler ~no_install file =
   call_configure_scripts t
 
 let build ?compiler file =
-  let file = scan_conf file in
-  let t = create ?compiler file in
+    let file = scan_conf file in
+    let t = create ?compiler file in
   (* build *)
   call_build_scripts t
 
@@ -516,13 +559,51 @@ let run ?compiler file =
   let file = scan_conf file in
   let t = create ?compiler file in
   match compiler with
-  | None -> Unix.execv ("mir-" ^ t.name) [||] (* unix-socket backend *)
-  | Some c when is_target_unix (Some c) -> () (* unix-direct backend *)
+    | None -> Unix.execv ("mir-" ^ t.name) [||] (* unix-socket backend *)
+    | Some c when is_target_unix (Some c) ->
+    (* unix-direct backend: launch the unikernel, then create a TAP
+       interface and pass the fd to the unikernel *)
+
+      let cpid = Unix.fork () in
+      if cpid = 0 then (* child code *)
+        Unix.execv ("mir-" ^ t.name) [||] (* Launch the unikernel *)
+      else
+        begin
+          try
+            info "Creating tap0 interface.";
+            (* Force the name to be "tap0" because of MacOSX *)
+            let fd, id =
+              (try Tuntap.opentap ~devname:"tap0" ()
+               with Failure m ->
+                 Printf.eprintf "[mirari] Tuntap failed with error %s. Remember that %s has to be run as root have the CAP_NET_ADMIN \
+ capability in order to be able to run unikernels for the UNIX backend" m Sys.argv.(0);
+                 raise (Failure m)) (* Go to cleanup section *)
+            in
+           let sock = Unix.(socket PF_UNIX SOCK_STREAM 0) in
+
+           let send_fd () =
+             let open Unix in
+                 sleep 1;
+                 info "Connecting to /tmp/mir-%d.sock..." cpid;
+                 connect sock (ADDR_UNIX (Printf.sprintf "/tmp/mir-%d.sock" cpid));
+                 let nb_sent = Fd_send_recv.send_fd sock "tap0      e" 0 11 [] fd in
+                 if nb_sent <> 11 then
+                   (error "Sending fd to unikernel failed.")
+                 else info "Transmitted fd ok."
+             in
+             send_fd ();
+             let _,_ = Unix.waitpid [] cpid in ()
+          with exn ->
+          info "Parent dies, killing child.\n%!";
+          Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
+          raise exn
+
+      end
   | Some c when is_target_xen (Some c)  -> () (* xen backend *)
-  | Some c -> failwith "Unsupported compiler"
+  | Some c -> raise (Failure "Unsupported compiler")
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)
 let clean () =
   command "obuild clean";
-  command "rm -f main.ml main.obuild mir-* filesystem_*.ml"
+  command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml"

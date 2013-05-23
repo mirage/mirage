@@ -395,7 +395,7 @@ module Build = struct
     let packages = get "packages" kvs in
     { name; dir; depends; packages }
 
-  let output t =
+  let output ?compiler t =
     let file = Printf.sprintf "%s/main.obuild" t.dir in
     let deps = match t.depends with
       | [] -> ""
@@ -407,7 +407,7 @@ module Build = struct
     newline oc;
     append oc "executable mir-%s" t.name;
     append oc "  main: main.ml";
-    append oc "  buildDepends: mirage%s" deps;
+    append oc "  buildDepends: mirage%s%s" (if is_target_unix compiler then ", fd-send-recv" else "") deps;
     append oc "  pp: camlp4o";
     close_out oc
 
@@ -539,7 +539,7 @@ let configure ?compiler ~no_install file =
   info "Generating %s." t.main_ml;
   output_main t;
   (* Generate the .obuild file *)
-  Build.output t.build;
+  Build.output ?compiler t.build;
   (* Generate the Backend module *)
   Backend.output ?compiler t.dir;
   (* install OPAM dependencies *)

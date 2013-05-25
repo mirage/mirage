@@ -14,9 +14,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Timeout operations. *)
+
 val restart_threads: (unit -> float) -> unit
+(** [restart_threads time_fun] restarts threads that are sleeping and
+    whose wakeup time is before [time_fun ()]. *)
+
 val select_next : (unit -> float) -> float option
+(** [select_next time_fun] is [Some t] where [t] is the earliest time
+    when one sleeping thread will wake up, or [None] if there is no
+    sleeping threads. *)
+
 val sleep : float -> unit Lwt.t
+(** [sleep d] is a threads which remain suspended for [d] seconds and
+    then terminates. *)
 
 exception Timeout
+(** Exception raised by timeout operations *)
+
 val with_timeout : float -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+(** [with_timeout d f] is a short-hand for:
+
+    {[
+    Lwt.pick [Lwt_unix.timeout d; f ()]
+    ]}
+*)
+

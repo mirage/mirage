@@ -14,4 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Unikernel environment interface. *)
+
 val argv: unit -> (string array) Lwt.t
+(** The command line arguments given to the unikernel. The first
+    element is the name of the unikernel binary. The following
+    elements are the arguments passed to the unikernel via the
+    XenStore. *)

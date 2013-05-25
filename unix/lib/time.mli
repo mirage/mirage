@@ -14,4 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Timeout operations. *)
+
 val sleep : float -> unit Lwt.t
+(** [sleep d] is a threads which remain suspended for [d] seconds and
+    then terminates. *)

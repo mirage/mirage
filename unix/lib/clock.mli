@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2010 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2010-2011 Anil Madhavapeddy <anil@recoil.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,10 +28,13 @@ type tm =
     tm_yday : int;              (** Day of year 0..365 *)
     tm_isdst : bool;            (** Daylight time savings in effect *)
   }
+(** The type representing wallclock time and calendar date. *)
 
 val time : unit -> float
-(** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in seconds. *)
+(** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in
+    seconds. *)
 
 val gmtime : float -> tm
-(** Convert a time in seconds, as returned by {!OS.Clock.time}, into a date and
-   a time. Assumes UTC (Coordinated Universal Time), also known as GMT. *)
+(** Convert a time in seconds, as returned by {!Unix.time}, into a
+    date and a time. Assumes UTC (Coordinated Universal Time), also
+    known as GMT. *)

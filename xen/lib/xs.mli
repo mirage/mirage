@@ -13,6 +13,8 @@
  * GNU Lesser General Public License for more details.
  *)
 
+(** Interface to the XenStore. *)
+
 type handle
 (** Represents a kind of connection; may be "immediate", "transaction"
     or "wait" *)

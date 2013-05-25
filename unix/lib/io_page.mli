@@ -15,7 +15,7 @@
  *)
 
 (** Module implementing a memory pool (fixed 4096 bytes block
-    allocation) *)
+    allocation). *)
 
 (** Type of a memory page. *)
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t

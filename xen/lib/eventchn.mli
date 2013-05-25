@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Event channel interface. *)
+
 type handle
 (** An initialised event channel interface. *)
 

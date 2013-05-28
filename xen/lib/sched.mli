@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Xen scheduler operations. *)
+
+(** Type of the argument of function [shutdown]. *)
 type reason =
   | Poweroff
   | Reboot
@@ -21,7 +24,17 @@ type reason =
   | Crash
 
 val add_resume_hook : (unit -> unit Lwt.t) -> unit
+(** [add_resume_hook f] adds [f] in the list of functions to be called
+    on resume. *)
 
 val shutdown: reason -> unit
+(** [shutdown reason] informs Xen that the unikernel has shutdown. The
+    [reason] argument indicates the type of shutdown (according to
+    this type and the configuration of the unikernel, Xen might
+    restart the unikernel or not). To suspend, do a [shutdown Suspend]
+    is not enough, use the function below instead. *)
 
 val suspend: unit -> int Lwt.t
+(** [suspend ()] suspends the unikernel and returns [0] after
+    the kernel has been resumed, in case of success, or
+    immediately returns a non-zero value in case of error. *)

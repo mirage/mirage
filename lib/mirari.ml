@@ -573,7 +573,11 @@ let run ?compiler file =
             info "Creating tap0 interface.";
             (* Force the name to be "tap0" because of MacOSX *)
             let fd, id =
-              (try Tuntap.opentap ~devname:"tap0" ()
+              (try
+                 let fd, id = Tuntap.opentap ~devname:"tap0" () in
+                 (* TODO: Do not hardcode 10.0.0.1, put it in mirari config file *)
+                 let () = Tuntap.set_ipv4 ~devname:"tap0" ~ipv4:"10.0.0.1" () in
+                 fd, id
                with Failure m ->
                  Printf.eprintf "[mirari] Tuntap failed with error %s. Remember that %s has to be run as root have the CAP_NET_ADMIN \
  capability in order to be able to run unikernels for the UNIX backend" m Sys.argv.(0);

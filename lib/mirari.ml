@@ -594,9 +594,9 @@ let run ?compiler file =
              send_fd ();
              let _,_ = Unix.waitpid [] cpid in ()
           with exn ->
-          info "Parent dies, killing child.\n%!";
-          Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
-          raise exn
+            info "Ctrl-C received, killing child and exiting.\n%!";
+            Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
+            raise exn
 
       end
   | Some c when is_target_xen (Some c)  -> () (* xen backend *)

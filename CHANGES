@@ -1,3 +1,9 @@
+0.9.1 (trunk):
+
+* OS.Netif.create no longer creates the tuntap interface.  Hotplug events
+  are generated from the mirari calling functions instead, removing the
+  policy from this library.
+
 0.9.0 (22-May-2013):
 * [xen] Add a simple 'resume hook' mechanism for xen devices
 * [xen] Update to new shared ring signature in 0.4.0

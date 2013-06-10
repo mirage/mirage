@@ -46,6 +46,7 @@ type grant_table_index
 val grant_table_index_of_int32: int32 -> grant_table_index
 val int32_of_grant_table_index: grant_table_index -> int32
 val string_of_grant_table_index: grant_table_index -> string
+val grant_table_index_of_string: string -> grant_table_index
 
 val console: grant_table_index
 (** In xen-4.2 and later, the domain builder will allocate one of the

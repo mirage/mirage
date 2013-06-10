@@ -24,41 +24,42 @@ type t
 (** A local event channel. *)
 
 val to_int: t -> int
+(** [to_int evtchn] is the port number of [evtchn]. *)
 
 val console_port: unit -> t
-(** Return the pre-allocated console event channel *)
+(** [console_port ()] is the pre-allocated console event channel *)
 
 val xenstore_port : unit -> t
-(** Return the pre-allocated xenstore event channel *)
+(** [xenstore_port ()] is the pre-allocated xenstore event channel *)
 
 val init: unit -> handle
-(** Return an initialised event channel interface. Will never throw
-    an exception. *)
+(** [init ()] is an initialised event channel interface. Will never
+    throw an exception. *)
 
 val notify : handle -> t -> unit
-(** Notify the given event channel. *)
+(** [notify h c] notifies the [t]. *)
 
 val bind_interdomain : handle -> int -> int -> t
-(** [bind_interdomain h domid remote_port] returns a local event
-    channel connected to domid:remote_port. On error it will
-    return -1 *)
+(** [bind_interdomain h domid remote_port] is a local event channel
+    connected to domid:remote_port. On error it will return -1. *)
 
 val bind_unbound_port : handle -> int -> t
-(** [bind_unbound_port h remote_domid] returns a new event channel
-    awaiting an interdomain connection from [remote_domid]. On error
-    it will return -1 *)
+(** [bind_unbound_port h remote_domid] is a new event channel awaiting
+    an interdomain connection from [remote_domid]. On error it will
+    return -1. *)
 
 val bind_dom_exc_virq : handle -> t
-(** Binds a local event channel to the VIRQ_DOM_EXC
-    (domain exception VIRQ). On error it will return -1. *)
+(** [bind_dom_exc_virq h] binds a local event channel to the
+    VIRQ_DOM_EXC (domain exception VIRQ). On error it will return
+    -1. *)
 
 val unbind : handle -> t -> unit
-(** Unbinds the given event channel. *)
+(** [unbind h c] unbinds [c]. *)
 
 val unmask : handle -> t -> unit
-(** Unmasks the given event channel. *)
+(** [unmask h c] unmasks [c]. *)
 
 val is_valid : t -> bool
-(** Return true if a binding is still 'valid'. Bindings are invalidated
+(** [is_valid c] is true if [t] is bound. Bindings are invalidated
     after a domain resume. *)
 

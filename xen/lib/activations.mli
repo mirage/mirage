@@ -14,8 +14,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Event channels handlers. *)
+
 val nr_events : int
+(** [nr_events] is the number of event channels available. *)
 
 val wait : Eventchn.t -> unit Lwt.t
+(** [wait evtchn] is a cancellable thread that will wake up when
+    [evtchn] will be notified. Cancel it if you are no longer
+    interested in waiting on [evtchn]. *)
+
 val run : unit -> unit
+(** [run ()] goes through the event mask and activate any events,
+    potentially spawning new threads. This function is called by
+    [Main.run]. Do not call it unless you know what you are doing. *)
+
 val resume : unit -> unit
+(** [resume] needs to be called after the unikernel is
+    resumed. However, this function is automatically called by
+    {!Sched.suspend}. Do NOT use it unless you know what you are
+    doing. *)

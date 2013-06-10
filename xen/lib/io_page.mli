@@ -16,34 +16,35 @@
 
 (** Memory allocation. *)
 
-(** Type of memory blocks. *)
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+(** Type of memory blocks. *)
 
-(** [get ~ppb ()] allocates a memory block of size [ppb] pages. If
-    there is not enough memory, the unikernel will terminate. *)
 val get : ?pages_per_block:int -> unit -> t
+(** [get ~ppb ()] allocates a memory block of size [~ppb] pages
+    (default 1 page). If there is not enough memory, the unikernel
+    will terminate. *)
 
+val get_n : ?pages_per_block:int -> int -> t list
 (** [get_n ~ppb nb_blocks] allocates a list of [nb_blocks], each block
     being of size [ppb] pages. *)
-val get_n : ?pages_per_block:int -> int -> t list
 
-(** [get_order i] allocates a memory block of size [2**i] pages. *)
 val get_order : int -> t
+(** [get_order i] allocates a memory block of size [2**i] pages. *)
 
-(** [length t] is the size of [t], in bytes. *)
 val length : t -> int
+(** [length t] is the size of [t], in bytes. *)
 
 val to_cstruct : t -> Cstruct.t
 val to_string : t -> string
 
+val to_pages : t -> t list
 (** [to_pages t] is a list of [size] memory blocks of one page each,
     where [size] is the size of [t] in pages. *)
-val to_pages : t -> t list
 
+val string_blit : string -> int -> t -> int -> int -> unit
 (** [string_blit src srcoff dst dstoff len] copies [len] bytes from
     string [src], starting at byte number [srcoff], to memory block
     [dst], starting at byte number dstoff. *)
-val string_blit : string -> int -> t -> int -> int -> unit
 
-(** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)
 val blit : t -> t -> unit
+(** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)

@@ -25,6 +25,7 @@ type grant_table_index = int32
 let grant_table_index_of_int32 x = x
 let int32_of_grant_table_index x = x
 let string_of_grant_table_index = Int32.to_string
+let grant_table_index_of_string = Int32.of_string
 
 let console = 0l (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
 let xenstore = 1l (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)

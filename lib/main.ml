@@ -22,10 +22,6 @@ let help_sections = [
   `P "These options are common to all commands.";
 ]
 
-(* Config *)
-let unix_switch = "4.01.0dev+mirage-unix"
-let xen_switch = "4.01.0dev+mirage-xen"
-
 (* Helpers *)
 let mk_flag ?section flags doc =
   let doc = Arg.info ?docs:section ~doc flags in
@@ -42,13 +38,6 @@ let term_info title ~doc ~man =
 let arg_list name doc conv =
   let doc = Arg.info ~docv:name ~doc [] in
   Arg.(value & pos_all conv [] & doc)
-
-let pick_compiler compiler unix xen =
-  match compiler, unix, xen with
-  | Some c, _, _   -> Some c
-  | _, true, false -> Some unix_switch
-  | _, false, true -> Some xen_switch
-  | _              -> None
 
 let no_install = mk_flag ["no-install"] "Do not auto-install OPAM packages."
 let xen = mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix."
@@ -74,8 +63,7 @@ let configure =
   let configure unix xen compiler no_install file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
-      let compiler =  pick_compiler compiler unix xen in
-      `Ok (Mirari.configure ?compiler ~no_install file) in
+      `Ok (Mirari.configure ~no_install file) in
   Term.(ret (pure configure $ unix $ xen $ switch $ no_install $ file)), term_info "configure" ~doc ~man
 
 (* BUILD *)
@@ -89,8 +77,7 @@ let build =
   let build unix xen compiler file =
     if unix && xen then `Help (`Pager, Some "build")
     else
-      let compiler = pick_compiler compiler unix xen in
-      `Ok (Mirari.build ?compiler file) in
+      `Ok (Mirari.build file) in
   Term.(ret (pure build $ unix $ xen $ switch $ file)), term_info "build" ~doc ~man
 
 (* RUN *)
@@ -103,8 +90,7 @@ let run =
   let run unix xen compiler file =
     if unix && xen then `Help (`Pager, Some "run")
     else
-      let compiler = pick_compiler compiler unix xen in
-      `Ok (Mirari.run ?compiler file) in
+      `Ok (Mirari.run file) in
   Term.(ret (pure run $ unix $ xen $ switch $ file)), term_info "run" ~doc ~man
 
 (* CLEAN *)

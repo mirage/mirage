@@ -6,10 +6,13 @@ ifneq "$(MIRAGE_OS)" ""
 OS := $(MIRAGE_OS)
 endif
 
-.PHONY: all clean install test
+.PHONY: all build clean install test
 .DEFAULT: all
 
-all:
+all:	build
+	@ :
+
+build:
 	cd $(OS) && $(MAKE) all
 
 clean:
@@ -29,3 +32,6 @@ test:
 
 doc:
 	cd $(OS) && $(MAKE) doc
+
+unix-%:
+	$(MAKE) OS=unix PREFIX=$(PREFIX) $*

@@ -35,3 +35,6 @@ doc:
 
 unix-%:
 	$(MAKE) OS=unix PREFIX=$(PREFIX) $*
+
+xen-%:
+	$(MAKE) OS=xen PREFIX=$(PREFIX) $*

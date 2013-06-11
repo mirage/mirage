@@ -11,7 +11,7 @@ dist/setup: configure
 build: dist/setup
 	obuild build
 
-install: build
+install:
 	cp dist/build/mirari/mirari $(BINDIR)
 
 .PHONY: clean

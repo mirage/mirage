@@ -412,9 +412,14 @@ module Build = struct
     if not (cmd_exists "obuild") then
       error "obuild is not installed."
 
-  let prepare ?switch t =
+  let prepare ?switch ~mode t =
     check t;
-    let ps = "obuild" :: t.packages in
+    let mode =
+      match mode with 
+      | `unix -> "mirage-unix"
+      | `xen -> "mirage-xen" 
+    in
+    let ps = "obuild" :: mode :: t.packages in
     opam_install ?switch ps
 end
 
@@ -533,7 +538,7 @@ let configure ~mode ~no_install file =
   (* Generate the Backend module *)
   Backend.output ~mode t.dir;
   (* install OPAM dependencies *)
-  if not no_install then Build.prepare t.build;
+  if not no_install then Build.prepare ~mode t.build;
   (* crunch *)
   call_crunch_scripts t;
   (* obuild configure *)

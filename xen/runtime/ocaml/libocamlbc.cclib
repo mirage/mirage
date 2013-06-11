@@ -40,6 +40,7 @@ sys.bc.o
 fix_code.bc.o
 weak.bc.o
 bigarray_stubs.bc.o
+mmap_unix.bc.o
 startup_bc.bc.o
 backtrace_bc.bc.o
 cstruct_stubs.bc.o

@@ -1,5 +1,6 @@
 0.9.1 (trunk):
 
+* [xen] add mmap stubs to make the default Bigarray module happy.
 * OS.Netif.create no longer creates the tuntap interface.  Hotplug events
   are generated from the mirari calling functions instead, removing the
   policy from this library.

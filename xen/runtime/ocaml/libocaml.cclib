@@ -41,5 +41,6 @@ strstubs.o
 sys.o
 weak.o
 bigarray_stubs.o
+mmap_unix.o
 cstruct_stubs.o
 barrier_stubs.o

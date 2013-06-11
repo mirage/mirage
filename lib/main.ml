@@ -42,6 +42,13 @@ let arg_list name doc conv =
 let no_install = mk_flag ["no-install"] "Do not auto-install OPAM packages."
 let xen = mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix."
 let unix = mk_flag ["unix"] "Use unix-direct backend. Do not use in conjunction with --xen."
+(* Select the operating mode from command line flags *)
+let mode unix xen =
+  match xen,unix with
+  |true,true -> failwith "Cannot specify --unix and --xen on the same command line"
+  |true,false -> `xen
+  |false,true -> `unix
+  |false,false -> `unix
 
 let switch = mk_opt ["switch"]
     "SWITCH" "Use $(docv) as the current compiler switch."
@@ -63,7 +70,7 @@ let configure =
   let configure unix xen compiler no_install file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
-      `Ok (Mirari.configure ~no_install file) in
+      `Ok (Mirari.configure ~mode:(mode unix xen) ~no_install file) in
   Term.(ret (pure configure $ unix $ xen $ switch $ no_install $ file)), term_info "configure" ~doc ~man
 
 (* BUILD *)
@@ -77,7 +84,7 @@ let build =
   let build unix xen compiler file =
     if unix && xen then `Help (`Pager, Some "build")
     else
-      `Ok (Mirari.build file) in
+      `Ok (Mirari.build ~mode:(mode unix xen) file) in
   Term.(ret (pure build $ unix $ xen $ switch $ file)), term_info "build" ~doc ~man
 
 (* RUN *)
@@ -90,7 +97,7 @@ let run =
   let run unix xen compiler file =
     if unix && xen then `Help (`Pager, Some "run")
     else
-      `Ok (Mirari.run file) in
+      `Ok (Mirari.run ~mode:(mode unix xen) file) in
   Term.(ret (pure run $ unix $ xen $ switch $ file)), term_info "run" ~doc ~man
 
 (* CLEAN *)

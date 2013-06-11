@@ -116,6 +116,9 @@ let error fmt =
 let info fmt =
   Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
 
+let debug fmt =
+  Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
+
 let remove file =
   if Sys.file_exists file then (
     info "+ Removing %s." file;
@@ -178,14 +181,6 @@ let read_command fmt =
     | WSIGNALED n -> error "process killed by signal %d" n
     | WSTOPPED n  -> error "process stopped by signal %d" n
     | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
-
-let is_target_xen compiler = match compiler with
-  | None -> false
-  | Some str -> (String.sub str ((String.length str) - 3) 3) = "xen"
-
-let is_target_unix compiler = match compiler with
-  | None -> false
-  | Some str -> (String.sub str ((String.length str) - 4) 4) = "unix"
 
 (* Headers *)
 module Headers = struct
@@ -362,7 +357,7 @@ module Main = struct
 
   let output_noip oc main = append oc "let main () = %s ()" main
 
-  let output ?compiler oc t =
+  let output oc t =
     begin
       match t with
       | IP main   -> output_ip oc main
@@ -395,7 +390,7 @@ module Build = struct
     let packages = get "packages" kvs in
     { name; dir; depends; packages }
 
-  let output ?compiler t =
+  let output ~mode t =
     let file = Printf.sprintf "%s/main.obuild" t.dir in
     let deps = match t.depends with
       | [] -> ""
@@ -407,7 +402,7 @@ module Build = struct
     newline oc;
     append oc "executable mir-%s" t.name;
     append oc "  main: main.ml";
-    append oc "  buildDepends: mirage%s%s" (if is_target_unix compiler then ", fd-send-recv" else "") deps;
+    append oc "  buildDepends: mirage%s%s" (if mode = `unix then ", fd-send-recv" else "") deps;
     append oc "  pp: camlp4o";
     close_out oc
 
@@ -425,10 +420,10 @@ end
 
 module Backend = struct
 
-  let output ?compiler dir =
+  let output ~mode dir =
     let file = Printf.sprintf "%s/backend.ml" dir in
     let oc = open_out file in
-    if is_target_unix compiler then
+    if mode = `unix then
         append oc "let (>>=) = Lwt.bind
 
 let run () =
@@ -459,33 +454,30 @@ end
 
 (* A type describing all the configuration of a mirage unikernel *)
 type t = {
-  file     : string; (* Path of the mirari config file *)
-  compiler : string option; (* Compiler version *)
-  name     : string; (* Filename of the mirari config file*)
-  dir      : string; (* Dirname of the mirari config file *)
-  main_ml  : string; (* Name of the entry point function *)
-  fs       : FS.t; (* A value describing FS configuration *)
+  file     : string;           (* Path of the mirari config file *)
+  mode     : [ `unix | `xen ]; (* backend target *)
+  name     : string;           (* Filename of the mirari config file*)
+  dir      : string;           (* Dirname of the mirari config file *)
+  main_ml  : string;           (* Name of the entry point function *)
+  fs       : FS.t;             (* A value describing FS configuration *)
   ip       : IP.t;
   http     : HTTP.t;
   main     : Main.t;
   build    : Build.t;
 }
 
-let create ?compiler file =
+let create mode file =
   let dir     = Filename.dirname file in
   let name    = Filename.chop_extension (Filename.basename file) in
   let lines   = lines_of_file file in
   let kvs     = filter_map key_value lines in
-  let compiler = match compiler with
-    | Some cmp -> Some cmp
-    | None -> try Some (List.assoc "compiler" kvs) with Not_found -> None in
   let main_ml = Printf.sprintf "%s/main.ml" dir in
   let fs      = FS.create ~dir kvs in
   let ip      = IP.create kvs in
   let http    = HTTP.create kvs in
   let main    = Main.create kvs in
   let build   = Build.create ~name ~dir kvs in
-  { file; compiler; name; dir; main_ml; fs; ip; http; main; build }
+  { file; mode; name; dir; main_ml; fs; ip; http; main; build }
 
 
 let output_main t =
@@ -498,21 +490,19 @@ let output_main t =
   close_out oc
 
 let call_crunch_scripts t =
-  FS.call ?switch:t.compiler t.fs
+  FS.call t.fs
 
-let call_configure_scripts t =
+let call_configure_scripts ~mode t =
   in_dir t.dir (fun () ->
-    command ?switch:t.compiler
-      "obuild configure %s" (if is_target_xen t.compiler then "--executable-as-obj" else "");
+    command 
+      "obuild configure %s" (if mode = `xen then "--executable-as-obj" else "");
   )
 
 let call_xen_scripts t =
   let obj = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.o" t.dir t.name t.name in
   let target = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.xen" t.dir t.name t.name in
   if Sys.file_exists obj then begin
-    let path = match t.compiler with
-      | None -> read_command "ocamlfind printconf path"
-      | Some cmp -> read_command "opam config exec \"ocamlfind printconf path\" --switch=%s" cmp in
+    let path = read_command "ocamlfind printconf path" in
     let lib = strip path ^ "/mirage-xen" in
     command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a \
  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
@@ -520,50 +510,52 @@ let call_xen_scripts t =
   end else
     error "xen object file %s not found, cannot continue" obj
 
-let call_build_scripts t =
+let call_build_scripts ~mode t =
   let setup = Printf.sprintf "%s/dist/setup" t.dir in
   if Sys.file_exists setup then (
-    in_dir t.dir (fun () -> command ?switch:t.compiler "obuild build");
+    in_dir t.dir (fun () -> command "obuild build");
     (* gen_xen.sh *)
-    if is_target_xen t.compiler then
+    if mode = `xen then
       call_xen_scripts t
     else
       command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
   ) else
     error "You should run 'mirari configure %s' first." t.file
 
-let configure ?compiler ~no_install file =
+let configure ~mode ~no_install file =
   let file = scan_conf file in
-  let t = create ?compiler file in
+  let t = create mode file in
   (* Generate main.ml *)
   info "Generating %s." t.main_ml;
   output_main t;
   (* Generate the .obuild file *)
-  Build.output ?compiler t.build;
+  Build.output ~mode t.build;
   (* Generate the Backend module *)
-  Backend.output ?compiler t.dir;
+  Backend.output ~mode t.dir;
   (* install OPAM dependencies *)
-  if not no_install then Build.prepare ?switch:t.compiler t.build;
+  if not no_install then Build.prepare t.build;
   (* crunch *)
   call_crunch_scripts t;
   (* obuild configure *)
-  call_configure_scripts t
+  call_configure_scripts ~mode t
 
-let build ?compiler file =
+let build ~mode file =
     let file = scan_conf file in
-    let t = create ?compiler file in
+    let t = create mode file in
   (* build *)
-  call_build_scripts t
+  call_build_scripts ~mode t
 
-let run ?compiler file =
+let run ~mode file =
   let file = scan_conf file in
-  let t = create ?compiler file in
-  match compiler with
-    | None -> Unix.execv ("mir-" ^ t.name) [||] (* unix-socket backend *)
-    | Some c when is_target_unix (Some c) ->
+  let t = create mode file in
+  match mode with
+  (* | None -> Unix.execv ("mir-" ^ t.name) [||] (* TODO  unix-socket backend *)  *)
+  |`unix ->
+    info "+ unix mode";
     (* unix-direct backend: launch the unikernel, then create a TAP
        interface and pass the fd to the unikernel *)
 
+      print_endline "unix run";
       let cpid = Unix.fork () in
       if cpid = 0 then (* child code *)
         Unix.execv ("mir-" ^ t.name) [||] (* Launch the unikernel *)
@@ -603,8 +595,8 @@ let run ?compiler file =
             raise exn
 
       end
-  | Some c when is_target_xen (Some c)  -> () (* xen backend *)
-  | Some c -> raise (Failure "Unsupported compiler")
+  |`xen -> (* xen backend *)
+      info "+ xen mode"
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)

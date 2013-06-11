@@ -21,7 +21,7 @@ An example of an `app.conf`:
 # IP configuration
 ip-use-dhcp: true
 # ip-address: 10.0.0.2
-# ip-netmask: 255.255.0
+# ip-netmask: 255.255.255.0
 # ip-gateway: 10.0.0.1
 
 # Filesystem configuration

@@ -40,15 +40,17 @@ let arg_list name doc conv =
   Arg.(value & pos_all conv [] & doc)
 
 let no_install = mk_flag ["no-install"] "Do not auto-install OPAM packages."
-let xen = mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix."
+let xen = mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix-*."
 let unix = mk_flag ["unix"] "Use unix-direct backend. Do not use in conjunction with --xen."
+let socket = mk_flag ["socket"] "Use networking socket backend. Do not use in conjunction with --xen."
 (* Select the operating mode from command line flags *)
-let mode unix xen =
-  match xen,unix with
-  |true,true -> failwith "Cannot specify --unix and --xen on the same command line"
-  |true,false -> `xen
-  |false,true -> `unix
-  |false,false -> `unix
+let mode unix xen socket =
+  match xen,unix,socket with
+  |true,true,_ -> failwith "Cannot specify --unix and --xen together."
+  |true,_,true -> failwith "Cannot specify --xen and --socket together."
+  |true,false,false -> `xen
+  |false,_,true -> `unix `socket
+  |false,_,false -> `unix `direct
 
 let switch = mk_opt ["switch"]
     "SWITCH" "Use $(docv) as the current compiler switch."
@@ -67,11 +69,11 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen compiler no_install file =
+  let configure unix xen socket compiler no_install file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
-      `Ok (Mirari.configure ~mode:(mode unix xen) ~no_install file) in
-  Term.(ret (pure configure $ unix $ xen $ switch $ no_install $ file)), term_info "configure" ~doc ~man
+      `Ok (Mirari.configure ~mode:(mode unix xen socket) ~no_install file) in
+  Term.(ret (pure configure $ unix $ xen $ socket $ switch $ no_install $ file)), term_info "configure" ~doc ~man
 
 (* BUILD *)
 let build_doc = "Build a Mirage application."
@@ -81,11 +83,11 @@ let build =
     `S "DESCRIPTION";
     `P "Build an already configured application."
   ] in
-  let build unix xen compiler file =
+  let build unix xen socket compiler file =
     if unix && xen then `Help (`Pager, Some "build")
     else
-      `Ok (Mirari.build ~mode:(mode unix xen) file) in
-  Term.(ret (pure build $ unix $ xen $ switch $ file)), term_info "build" ~doc ~man
+      `Ok (Mirari.build ~mode:(mode unix xen socket) file) in
+  Term.(ret (pure build $ unix $ xen $ socket $ switch $ file)), term_info "build" ~doc ~man
 
 (* RUN *)
 let run_doc = "Run a Mirage application."
@@ -94,11 +96,11 @@ let run =
   let man = [
     `S "DESCRIPTION";
     `P "Run a Mirage application on the selected backend."] in
-  let run unix xen compiler file =
+  let run unix xen socket compiler file =
     if unix && xen then `Help (`Pager, Some "run")
     else
-      `Ok (Mirari.run ~mode:(mode unix xen) file) in
-  Term.(ret (pure run $ unix $ xen $ switch $ file)), term_info "run" ~doc ~man
+      `Ok (Mirari.run ~mode:(mode unix xen socket) file) in
+  Term.(ret (pure run $ unix $ xen $ socket $ switch $ file)), term_info "run" ~doc ~man
 
 (* CLEAN *)
 let clean_doc = "Clean auto-generated files."

@@ -17,6 +17,11 @@
 
 open Util
 
+type mode = [
+  |`unix of [`direct | `socket ]
+  |`xen
+]
+
 (* Headers *)
 module Headers = struct
 
@@ -237,7 +242,8 @@ module Build = struct
     newline oc;
     append oc "executable mir-%s" t.name;
     append oc "  main: main.ml";
-    append oc "  buildDepends: mirage%s%s" (if mode = `unix then ", fd-send-recv" else "") deps;
+    append oc "  buildDepends: mirage%s%s" 
+     (match mode with `unix _ -> ", fd-send-recv" |_ -> "") deps;
     append oc "  pp: camlp4o";
     close_out oc
 
@@ -249,12 +255,17 @@ module Build = struct
 
   let prepare ?switch ~mode t =
     check t;
-    let mode =
+    let os =
       match mode with 
-      | `unix -> "mirage-unix"
+      | `unix _ -> "mirage-unix"
       | `xen -> "mirage-xen" 
     in
-    let ps = "obuild" :: mode :: t.packages in
+    let net = 
+      match mode with
+      | `xen | `unix `direct -> "mirage-net-direct"
+      | `unix `socket -> "mirage-net-socket"
+    in
+    let ps = "obuild" :: os :: net :: t.packages in
     opam_install ?switch ps
 end
 
@@ -263,7 +274,8 @@ module Backend = struct
   let output ~mode dir =
     let file = Printf.sprintf "%s/backend.ml" dir in
     let oc = open_out file in
-    if mode = `unix then
+    match mode with
+    |`unix _ ->
         append oc "let (>>=) = Lwt.bind
 
 let run () =
@@ -287,7 +299,7 @@ let run () =
     Lwt_unix.(shutdown fd SHUTDOWN_ALL); (* Done, we can shutdown the connection now *)
     accept_loop ()
   in accept_loop ()"
-    else
+    |`xen ->
       append oc "let run () = Lwt.return ()"
 
 end
@@ -295,7 +307,7 @@ end
 (* A type describing all the configuration of a mirage unikernel *)
 type t = {
   file     : string;           (* Path of the mirari config file *)
-  mode     : [ `unix | `xen ]; (* backend target *)
+  mode     : mode;             (* backend target *)
   name     : string;           (* Filename of the mirari config file*)
   dir      : string;           (* Dirname of the mirari config file *)
   main_ml  : string;           (* Name of the entry point function *)
@@ -355,9 +367,9 @@ let call_build_scripts ~mode t =
   if Sys.file_exists setup then (
     in_dir t.dir (fun () -> command "obuild build");
     (* gen_xen.sh *)
-    if mode = `xen then
-      call_xen_scripts t
-    else
+    match mode with
+    |`xen -> call_xen_scripts t
+    |`unix _ ->
       command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
   ) else
     error "You should run 'mirari configure %s' first." t.file
@@ -390,17 +402,17 @@ let run ~mode file =
   let t = create mode file in
   match mode with
   (* | None -> Unix.execv ("mir-" ^ t.name) [||] (* TODO  unix-socket backend *)  *)
-  |`unix ->
+  |`unix network ->
     info "+ unix mode";
     (* unix-direct backend: launch the unikernel, then create a TAP
        interface and pass the fd to the unikernel *)
-
-      print_endline "unix run";
       let cpid = Unix.fork () in
       if cpid = 0 then (* child code *)
         Unix.execv ("mir-" ^ t.name) [||] (* Launch the unikernel *)
       else
         begin
+          match network with
+          |`direct -> begin
           try
             info "Creating tap0 interface.";
             (* Force the name to be "tap0" because of MacOSX *)
@@ -433,6 +445,8 @@ let run ~mode file =
             info "Ctrl-C received, killing child and exiting.\n%!";
             Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
             raise exn
+          end
+          |`socket -> info "Using socket networking"
 
       end
   |`xen -> (* xen backend *)

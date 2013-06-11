@@ -17,12 +17,17 @@
 
 type t
 
-val create : [ `unix | `xen ] -> string -> t
+type mode = [
+  |`unix of [`direct | `socket ]
+  |`xen
+]
 
-val configure : mode:[ `unix | `xen ] -> no_install:bool -> string option -> unit
+val create : mode -> string -> t
 
-val build : mode:[ `unix | `xen ] -> string option -> unit
+val configure : mode:mode -> no_install:bool -> string option -> unit
 
-val run : mode:[ `unix | `xen ] -> string option -> unit
+val build : mode:mode -> string option -> unit
+
+val run : mode:mode -> string option -> unit
 
 val clean : unit -> unit

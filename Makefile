@@ -4,7 +4,7 @@ BINDIR=$(PREFIX)/bin
 all: build
 
 configure:
-	obuild configure
+	obuild configure --annot
 
 dist/setup: configure
 

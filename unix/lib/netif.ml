@@ -26,19 +26,19 @@ type dev_type =
 | ETH
 
 type t = {
-          id     : id;
-          typ    : dev_type;
-          buf_sz : int;
-  mutable buf    : Cstruct.t;
-          dev    : Lwt_unix.file_descr;
-  mutable active : bool;
-          mac    : string;
+          id: id;
+          typ: dev_type;
+          buf_sz: int;
+  mutable buf: Cstruct.t;
+          dev: Lwt_unix.file_descr;
+  mutable active: bool;
+          mac: string;
 }
 
 type vif_info = {
-  vif_id       : id;
-  vif_dev_type : dev_type;
-  vif_fd       : Unix.file_descr;
+  vif_id: id;
+  vif_dev_type: dev_type;
+  vif_fd: Unix.file_descr;
 }
 
 type callback = id -> t -> unit Lwt.t

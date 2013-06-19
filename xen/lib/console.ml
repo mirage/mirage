@@ -40,7 +40,7 @@ let create () =
   let page = console_start_page () in
   let ring = Io_page.to_cstruct page in
   Console_ring.Ring.init ring; (* explicitly zero the ring *)
-  let evtchn = Eventchn.console_port () in
+  let evtchn = Eventchn.of_int Start_info.((get ()).console_evtchn) in
   let waiters = Lwt_sequence.create () in
   let cons = { backend_id; gnt; ring; evtchn; waiters } in
   Eventchn.unmask h evtchn;

@@ -133,20 +133,6 @@ stub_evtchn_notify(value v_port)
 }
 
 CAMLprim value
-stub_xenstore_evtchn_port(value unit)
-{
-        CAMLparam1(unit);
-        CAMLreturn(Val_int(start_info.store_evtchn));
-}
-
-CAMLprim value
-stub_console_evtchn_port(value unit)
-{
-	CAMLparam1(unit);
-	CAMLreturn(Val_int(start_info.console.domU.evtchn));
-}
-
-CAMLprim value
 stub_bind_virq(value virq)
 {
 	CAMLparam1(virq);

@@ -19,21 +19,17 @@ type handle = unit
 
 let init () = ()
 
-type t = int Generation.t 
+type t = int Generation.t
 
-external stub_xenstore_port: unit -> int = "stub_xenstore_evtchn_port"
-external stub_console_port: unit -> int = "stub_console_evtchn_port"
 external stub_bind_unbound_port: int -> int = "stub_evtchn_alloc_unbound"
 external stub_bind_interdomain: int -> int -> int = "stub_evtchn_bind_interdomain"
-external stub_unmask: int -> unit = "stub_evtchn_unmask" 
+external stub_unmask: int -> unit = "stub_evtchn_unmask"
 external stub_notify: int -> unit = "stub_evtchn_notify" "noalloc"
 external stub_unbind: int -> unit = "stub_evtchn_unbind"
 external stub_virq_dom_exc: unit -> int = "stub_virq_dom_exc"
 external stub_bind_virq: int -> int = "stub_bind_virq"
 
 let construct f x = Generation.wrap (f x)
-let xenstore_port = construct stub_xenstore_port
-let console_port = construct stub_console_port
 let bind_unbound_port () = construct stub_bind_unbound_port
 let bind_interdomain () remote_domid = construct (stub_bind_interdomain remote_domid)
 
@@ -43,6 +39,7 @@ let notify () t = maybe t stub_notify ()
 let unbind () t = maybe t stub_unbind ()
 let is_valid t = maybe t (fun _ -> true) false
 
+let of_int n = Generation.wrap n
 let to_int t = Generation.extract t
 
 let bind_dom_exc_virq () =

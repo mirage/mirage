@@ -27,7 +27,7 @@ external xenstore_start_page: unit -> Io_page.t = "caml_xenstore_start_page"
 let open_channel () =
 	let page = Io_page.to_cstruct (xenstore_start_page ()) in
 	Xenstore_ring.Ring.init page;
-	let evtchn = Eventchn.xenstore_port () in
+	let evtchn = Eventchn.of_int Start_info.((get ()).store_evtchn) in
 	return { page; evtchn }
 
 let t = ref None

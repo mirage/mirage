@@ -23,14 +23,11 @@ type handle
 type t
 (** A local event channel. *)
 
-val to_int: t -> int
+val to_int : t -> int
 (** [to_int evtchn] is the port number of [evtchn]. *)
 
-val console_port: unit -> t
-(** [console_port ()] is the pre-allocated console event channel *)
-
-val xenstore_port : unit -> t
-(** [xenstore_port ()] is the pre-allocated xenstore event channel *)
+val of_int : int -> t
+(** [of_int n] is the [n]th event channel. *)
 
 val init: unit -> handle
 (** [init ()] is an initialised event channel interface. Will never
@@ -58,6 +55,8 @@ val unbind : handle -> t -> unit
 
 val unmask : handle -> t -> unit
 (** [unmask h c] unmasks [c]. *)
+
+(** {2 Xen specific functions} *)
 
 val is_valid : t -> bool
 (** [is_valid c] is true if [t] is bound. Bindings are invalidated

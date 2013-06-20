@@ -31,12 +31,12 @@ let add_resume_hook hook =
 
 let suspend () =
   lwt () = Xs.suspend () in
-  Gnttab.suspend ();
+  Gnt.suspend ();
 
   let result = _suspend () in
 
   Generation.resume ();
-  Gnttab.resume ();
+  Gnt.resume ();
   Activations.resume ();
   lwt () = Xs.resume () in
   lwt () = Lwt_list.iter_p (fun f -> f ()) !resume_hooks in

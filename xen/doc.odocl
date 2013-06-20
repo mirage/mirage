@@ -5,7 +5,7 @@ Devices
 Device_state
 Env
 Eventchn
-Gnttab
+Gnt
 Io_page
 Main
 Netif

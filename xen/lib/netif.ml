@@ -23,8 +23,8 @@ let allocate_ring ~domid =
 	for i = 0 to Cstruct.len x - 1 do
 		Cstruct.set_uint8 x i 0
 	done;
-	lwt gnt = Gnttab.get () in
-	Gnttab.grant_access ~domid ~perm:Gnttab.RW gnt page;
+	lwt gnt = Gnt.Gntshr.get () in
+	Gnt.Gntshr.grant_access ~domid ~writeable:true gnt page;
 	return (gnt, x)
 
 module RX = struct
@@ -131,12 +131,12 @@ type transport = {
   mac: string;
   tx_fring: (TX.response,int) Ring.Rpc.Front.t;
   tx_client: (TX.response,int) Lwt_ring.Front.t;
-  tx_gnt: Gnttab.grant_table_index;
+  tx_gnt: Gnt.grant_table_index;
   tx_mutex: Lwt_mutex.t; (* Held to avoid signalling between fragments *)
   rx_fring: (RX.response,int) Ring.Rpc.Front.t;
   rx_client: (RX.response,int) Lwt_ring.Front.t;
-  rx_map: (int, Gnttab.grant_table_index * Io_page.t) Hashtbl.t;
-  rx_gnt: Gnttab.grant_table_index;
+  rx_map: (int, Gnt.grant_table_index * Io_page.t) Hashtbl.t;
+  rx_gnt: Gnt.grant_table_index;
   evtchn: Eventchn.t;
   features: features;
 }
@@ -171,8 +171,8 @@ let plug_inner id =
   printf "MAC: %s\n%!" mac;
   Xs.(transaction (fun h ->
     let wrfn k v = write h (node ^ k) v in
-    wrfn "tx-ring-ref" (Gnttab.string_of_grant_table_index tx_gnt) >>
-    wrfn "rx-ring-ref" (Gnttab.string_of_grant_table_index rx_gnt) >>
+    wrfn "tx-ring-ref" (Gnt.string_of_grant_table_index tx_gnt) >>
+    wrfn "rx-ring-ref" (Gnt.string_of_grant_table_index rx_gnt) >>
     wrfn "event-channel" (string_of_int (evtchn_port)) >>
     wrfn "request-rx-copy" "1" >>
     wrfn "feature-rx-notify" "1" >>
@@ -220,12 +220,12 @@ let notify nf () =
 
 let refill_requests nf =
   let num = Ring.Rpc.Front.get_free_requests nf.rx_fring in
-  lwt gnts = Gnttab.get_n num in
+  lwt gnts = Gnt.Gntshr.get_n num in
   let pages = Io_page.get_n num in
   List.iter
     (fun (gnt, page) ->
-      Gnttab.grant_access ~domid:nf.backend_id ~perm:Gnttab.RW gnt page;
-      let gref = Gnttab.int32_of_grant_table_index gnt in
+      Gnt.Gntshr.grant_access ~domid:nf.backend_id ~writeable:true gnt page;
+      let gref = Gnt.int32_of_grant_table_index gnt in
       let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
       Hashtbl.add nf.rx_map id (gnt, page);
       let slot_id = Ring.Rpc.Front.next_req_id nf.rx_fring in
@@ -241,8 +241,8 @@ let rx_poll nf fn =
     let id,(offset,flags,status) = RX.Proto_64.read slot in
     let gnt, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    Gnttab.end_access gnt;
-    Gnttab.put gnt;
+    Gnt.Gntshr.end_access gnt;
+    Gnt.Gntshr.put gnt;
     match status with
     |sz when status > 0 ->
       let packet = Cstruct.sub (Io_page.to_cstruct page) 0 sz in
@@ -256,11 +256,11 @@ let tx_poll nf =
 
 (* Push a single page to the ring, but no event notification *)
 let write_request ?size ~flags nf page =
-  lwt gnt = Gnttab.get () in
+  lwt gnt = Gnt.Gntshr.get () in
   (* This grants access to the *base* data pointer of the page *)
   (* XXX: another place where we peek inside the cstruct *)
-  Gnttab.grant_access ~domid:nf.t.backend_id ~perm:Gnttab.RO gnt page.Cstruct.buffer;
-  let gref = Gnttab.int32_of_grant_table_index gnt in
+  Gnt.Gntshr.grant_access ~domid:nf.t.backend_id ~writeable:false gnt page.Cstruct.buffer;
+  let gref = Gnt.int32_of_grant_table_index gnt in
   let id = Int32.to_int gref in
   let size = match size with |None -> Cstruct.len page |Some s -> s in
   (* XXX: another place where we peek inside the cstruct *)
@@ -271,15 +271,15 @@ let write_request ?size ~flags nf page =
   let replied =
     try_lwt
       lwt _ = replied in
-      Gnttab.end_access gnt;
-      Gnttab.put gnt;
+      Gnt.Gntshr.end_access gnt;
+      Gnt.Gntshr.put gnt;
       return ()
     with Lwt_ring.Shutdown ->
-      Gnttab.put gnt;
+      Gnt.Gntshr.put gnt;
       fail Lwt_ring.Shutdown
     | e ->
-      Gnttab.end_access gnt;
-      Gnttab.put gnt;
+      Gnt.Gntshr.end_access gnt;
+      Gnt.Gntshr.put gnt;
       fail e in
   return replied
  

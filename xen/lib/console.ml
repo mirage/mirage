@@ -17,9 +17,11 @@
 open Lwt
 open Printf
 
+module Gnttab = Gnt.Gnttab
+
 type t = {
   backend_id: int;
-  gnt: Gnttab.grant_table_index;
+  gnt: Gnt.grant_table_index;
   ring: Cstruct.t;
   evtchn: Eventchn.t;
   waiters: unit Lwt.u Lwt_sequence.t;
@@ -36,7 +38,7 @@ let h = Eventchn.init ()
 
 let create () =
   let backend_id = 0 in
-  let gnt = Gnttab.console in
+  let gnt = Gnt.console in
   let page = console_start_page () in
   let ring = Io_page.to_cstruct page in
   Console_ring.Ring.init ring; (* explicitly zero the ring *)

@@ -34,7 +34,7 @@ let wait evtchn =
 
 (* Go through the event mask and activate any events, potentially spawning
    new threads *)
-let run () =
+let run hdl =
   for port = 0 to nr_events - 1 do
     (* XXX workaround rare event wedge bug XXX *)
     if true || evtchn_test_and_clear port then begin

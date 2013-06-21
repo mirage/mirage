@@ -56,7 +56,7 @@ let run t =
       | None ->
           (* If we have nothing to do, check for next timeout and
            * and block the domain *)
-          Activations.run ();
+          Activations.run (Eventchn.init ());
           let timeout =
             match Time.select_next Clock.time with
             |None -> 86400000.0

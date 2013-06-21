@@ -16,15 +16,14 @@
 
 (** Event channels handlers. *)
 
-val nr_events : int
-(** [nr_events] is the number of event channels available. *)
-
 val wait : Eventchn.t -> unit Lwt.t
 (** [wait evtchn] is a cancellable thread that will wake up when
-    [evtchn] will be notified. Cancel it if you are no longer
-    interested in waiting on [evtchn]. *)
+    [evtchn] is notified. Cancel it if you are no longer interested in
+    waiting on [evtchn]. *)
 
-val run : unit -> unit
+(** {2 Low level interface} *)
+
+val run : Eventchn.handle -> unit
 (** [run ()] goes through the event mask and activate any events,
     potentially spawning new threads. This function is called by
     [Main.run]. Do not call it unless you know what you are doing. *)

@@ -1,5 +1,9 @@
-0.9.1 (trunk):
+0.9.2 (trunk):
+* [xen] Several modules now have an interface similar to the one in
+  the libxc bindings for OCaml. This makes it possible to write one
+  application that can be compiled for the UNIX or the Xen backend.
 
+0.9.1 (11-Jun-2013):
 * [xen] add mmap stubs to make the default Bigarray module happy.
 * OS.Netif.create no longer creates the tuntap interface.  Hotplug events
   are generated from the mirari calling functions instead, removing the

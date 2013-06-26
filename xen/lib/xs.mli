@@ -15,18 +15,23 @@
 
 (** Client interface to the XenStore. *)
 
+type client
+(** Handle to the XenStore. *)
+
 type handle
-(** Represents a kind of connection; may be "immediate", "transaction"
+(** Handle to a XenStore connection; may be "immediate", "transaction"
     or "wait". *)
 
-val immediate: (handle -> 'a Lwt.t) -> 'a Lwt.t
+val make : unit -> client Lwt.t
+
+val immediate: client -> (handle -> 'a Lwt.t) -> 'a Lwt.t
 (** Access xenstore with individual operations. *)
 
-val transaction: (handle -> 'a Lwt.t) -> 'a Lwt.t
+val transaction: client -> (handle -> 'a Lwt.t) -> 'a Lwt.t
 (** Access xenstore with a single transaction.  On conflict the
     operation will be repeated. *)
 
-val wait: (handle -> 'a Lwt.t) -> 'a Lwt.t
+val wait: client -> (handle -> 'a Lwt.t) -> 'a Lwt.t
 (** Wait for some condition to become true and return a value.  The
     function argument should throw Eagain if the condition is not
     met, and the condition will be re-evaluated when paths
@@ -44,14 +49,16 @@ val write : handle -> string -> string -> unit Lwt.t
 val rm : handle -> string -> unit Lwt.t
 (** [rm h k] removes [k]. *)
 
-val suspend : unit -> unit Lwt.t
+val mkdir: handle -> string -> unit Lwt.t
+
+val suspend : client -> unit Lwt.t
 (** [suspend ()] suspends the xenstore client, waiting for outstanding
     RPCs to be completed, cancelling all watches and causing new
     requests to be queued. This function is called by {!Sched.suspend}
     in order to suspend an unikernel. Do not use it unless you know
     what you are doing. *)
 
-val resume : unit -> unit Lwt.t
+val resume : client -> unit Lwt.t
 (** [resume ()] resumes the xenstore client. This function is called
     by {!Sched.resume} in order to resume an unikernel. Do not use it
     unless you know what you are doing. *)

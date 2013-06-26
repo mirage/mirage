@@ -24,7 +24,9 @@
 #include <caml/memory.h>
 #include <caml/bigarray.h>
 #include <caml/alloc.h>
+#include <caml/fail.h>
 
+/* For printk() */
 #include <log.h>
 
 static grant_entry_t *gnttab_table;
@@ -112,9 +114,6 @@ CAMLprim value
 caml_gnttab_map(value v_ref, value v_iopage, value v_domid, value v_readonly)
 {
     CAMLparam4(v_ref, v_iopage, v_domid, v_readonly);
-    CAMLlocal1(ret);
-
-	ret = Val_int(0); /* None */
 
     void *page = base_page_of(v_iopage);
 
@@ -128,35 +127,32 @@ caml_gnttab_map(value v_ref, value v_iopage, value v_domid, value v_readonly)
     HYPERVISOR_grant_table_op(GNTTABOP_map_grant_ref, &op, 1);
     if (op.status != GNTST_okay) {
       printk("GNTTABOP_map_grant_ref ref = %d domid = %d failed with status = %d\n", op.ref, op.dom, op.status);
-	  goto out;
+      caml_failwith("caml_gnttab_map");
     }
-	printk("GNTTABOP_map_grant_ref mapped to %x\n", op.host_addr);
-    ret = caml_alloc_tuple(1);
-	Store_field(ret, 0, Val_int(op.handle));
- out:
-    CAMLreturn(ret);
+
+    printk("GNTTABOP_map_grant_ref mapped to %x\n", op.host_addr);
+    CAMLreturn(Val_int(op.handle));
 }
 
 CAMLprim value
 caml_gnttab_unmap(value v_handle)
 {
   CAMLparam1(v_handle);
-  CAMLlocal1(ret);
 
   struct gnttab_unmap_grant_ref op;
   /* There's no need to resupply these values. 0 means "ignore" */
   op.host_addr = 0;
   op.dev_bus_addr = 0;
   op.handle = Int_val(v_handle);
-  HYPERVISOR_grant_table_op(GNTTABOP_unmap_grant_ref, &op, 1);
-  
-  if (op.status != GNTST_okay) {
-	printk("GNTTABOP_unmap_grant_ref handle = %x failed", op.handle);
-	ret = Val_false;
-  }
-  ret = Val_true;
 
-  CAMLreturn(ret);
+  HYPERVISOR_grant_table_op(GNTTABOP_unmap_grant_ref, &op, 1);
+
+  if (op.status != GNTST_okay) {
+    printk("GNTTABOP_unmap_grant_ref handle = %x failed", op.handle);
+    caml_failwith("Failed to unmap grant.");
+  }
+
+  CAMLreturn(Val_unit);
 }
 
 CAMLprim value

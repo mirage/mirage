@@ -32,7 +32,7 @@ let grant_table_index_of_string = Int32.of_string
 let console = 0l (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
 let xenstore = 1l (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)
 
-type h (* mapped grant *)
+type grant_handle (* handle to a mapped grant *)
 
 module Raw = struct
   external nr_entries : unit -> int = "caml_gnttab_nr_entries"
@@ -41,8 +41,8 @@ module Raw = struct
   external fini : unit -> unit = "caml_gnttab_fini"
   external grant_access : grant_table_index -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
   external end_access : grant_table_index -> unit = "caml_gnttab_end_access"
-  external map_grant : grant_table_index -> Io_page.t -> int -> bool -> h option = "caml_gnttab_map"
-  external unmap_grant : h -> bool = "caml_gnttab_unmap"
+  external map_grant : grant_table_index -> Io_page.t -> int -> bool -> grant_handle = "caml_gnttab_map"
+  external unmap_grant : grant_handle -> unit = "caml_gnttab_unmap"
 end
 
 module Gnttab = struct
@@ -58,25 +58,38 @@ module Gnttab = struct
 
   module Local_mapping = struct
     type t = {
-      h : h;
-      buf: Io_page.t;
+      hs : grant_handle list;
+      pages: Io_page.t;
     }
 
-    let to_buf t = t.buf
+    let make hs pages = { hs; pages }
+
+    let to_buf t = t.pages
   end
 
-  let map () grant writeable =
-    let buf = Io_page.get () in
-    match Raw.map_grant grant.ref buf grant.domid (not writeable) with
-    | None -> None
-    | Some h ->
-      Some (Local_mapping.({h; buf}))
+  let map_exn () grant writeable =
+    let page = Io_page.get 1 in
+    let h = Raw.map_grant grant.ref page grant.domid (not writeable) in
+    Local_mapping.make [h] page
 
-  let mapv () grants writeable = failwith "mapv unimplemented"
+  let map () grant writable = try Some (map_exn () grant writable) with _ -> None
 
-  let unmap_exn () t =
-    if not (Raw.unmap_grant t.Local_mapping.h)
-    then failwith "failed to unmap grant: still in use?"
+  let mapv_exn () grants writeable =
+    let nb_grants = List.length grants in
+    let block = Io_page.get nb_grants in
+    let pages = Io_page.to_pages block in
+    let hs =
+      List.fold_left2 (fun acc g p ->
+          try (Raw.map_grant g.ref p g.domid (not writeable))::acc with exn ->
+            List.iter Raw.unmap_grant acc;
+            raise exn
+        )
+        [] grants pages
+    in Local_mapping.make hs block
+
+  let mapv () grants writeable = try Some (mapv_exn () grants writeable) with _ -> None
+
+  let unmap_exn () t = List.iter Raw.unmap_grant t.Local_mapping.hs
 
   let with_mapping interface grant writeable fn =
     let mapping = map interface grant writeable in
@@ -175,14 +188,14 @@ module Gntshr = struct
 
   let share_pages_exn interface domid count writeable =
     (* First allocate a list of n pages. *)
-    let page = Io_page.get ~pages_per_block:count () in
-    let pages = Io_page.to_pages page in
+    let block = Io_page.get count in
+    let pages = Io_page.to_pages block in
     let gntrefs = get_n_nonblock count in
     if gntrefs = [] then raise Grant_table_full
     else
       begin
         List.iter2 (fun g p -> grant_access ~domid ~writeable g p) gntrefs pages;
-        { refs = gntrefs; mapping = page }
+        { refs = gntrefs; mapping = block }
       end
 
   let share_pages interface domid count writeable =

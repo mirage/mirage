@@ -19,17 +19,19 @@
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 (** Type of memory blocks. *)
 
-val get : ?pages_per_block:int -> unit -> t
-(** [get ~ppb ()] allocates a memory block of size [~ppb] pages
-    (default 1 page). If there is not enough memory, the unikernel
-    will terminate. *)
-
-val get_n : ?pages_per_block:int -> int -> t list
-(** [get_n ~ppb nb_blocks] allocates a list of [nb_blocks], each block
-    being of size [ppb] pages. *)
+val get : int -> t
+(** [get n] allocates and returns a memory block of [n] pages. If
+    there is not enough memory, the unikernel will terminate. *)
 
 val get_order : int -> t
-(** [get_order i] allocates a memory block of size [2**i] pages. *)
+(** [get_order i] is [get (1 lsl i)]. *)
+
+val pages : int -> t list
+(** [pages n] allocates a memory block of [n] pages and return the the
+    list of pages allocated. *)
+
+val pages_order : int -> t list
+(** [pages_order i] is [pages (1 lsl i)]. *)
 
 val length : t -> int
 (** [length t] is the size of [t], in bytes. *)

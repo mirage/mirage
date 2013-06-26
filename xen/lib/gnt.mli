@@ -64,21 +64,30 @@ module Gnttab : sig
 
   module Local_mapping : sig
     type t
-    (** Abstract type representing a locally-mapped shared memory page *)
+    (** Abstract type representing locally-mapped shared memory
+        pages. *)
 
-    val to_buf: t -> Io_page.t
+    val to_buf : t -> Io_page.t
   end
 
-  val map: interface -> grant -> bool -> Local_mapping.t option
-  (** [map if grant writeable] creates a single mapping from a grant
-      using that will be writeable if [writeable] is [true].  On error
-      this function returns None. *)
+  val map_exn : interface -> grant -> bool -> Local_mapping.t
+  (** [map_exn if grant writeable] creates a single mapping from a grant
+      using that will be writeable if [writeable] is [true]. *)
+
+  val map : interface -> grant -> bool -> Local_mapping.t option
+  (** Like the above but return an option instead of raising an
+      exception. *)
+
+  val mapv_exn : interface -> grant list -> bool -> Local_mapping.t
+  (** [mapv_exn if grants writeable] creates a single contiguous
+      mapping from a list of grants that will be writeable if
+      [writeable] is [true]. Note the grant list can involve grants
+      from multiple domains. If the mapping fails (because at least
+      one grant fails to be mapped), then all grants are unmapped. *)
 
   val mapv: interface -> grant list -> bool -> Local_mapping.t option
-  (** [mapv if grants writeable] creates a single contiguous mapping
-      from a list of grants that will be writeable if [writeable] is
-      [true]. Note the grant list can involve grants from multiple
-      domains. On error this function returns None. *)
+  (** Like the above but return an option instead of raising an
+      exception. *)
 
   val unmap_exn: interface -> Local_mapping.t -> unit
   (** Attempt to unmap a local mapping. Throws a Failure exception if

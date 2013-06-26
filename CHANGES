@@ -1,4 +1,7 @@
 0.9.2 (trunk):
+
+* [xen] Improved the interface of Io_page, implement some missing bits
+  in Gnt.
 * [xen] Several modules now have an interface similar to the one in
   the libxc bindings for OCaml. This makes it possible to write one
   application that can be compiled for the UNIX or the Xen backend.
@@ -34,7 +37,7 @@
 * Install the packed `cmx` along with the `cmxa` to ensure that the
   compiler can do cross-module optimization (this is not a fatal error,
   but will impact performance if the `cmx` file is not present).
-  
+
 0.7.1 (20-Dec-2012):
 * [unix] Update devices API to use Cstruct 0.6.0
 
@@ -77,6 +80,6 @@
 * [xen] Add Evtchn virq interface for stub xenstored.
 * [xen] Add Evtchn.unbind.
 * [netif] fix checksum calculation code for odd-sized packets.
- 
+
 0.3.0 (04-Sep-2012):
 * Initial public release.

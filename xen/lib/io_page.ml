@@ -20,33 +20,21 @@ type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 external alloc_pages: int -> t option = "caml_alloc_pages"
 
-let get ?(pages_per_block=1) () =
-	match alloc_pages pages_per_block with
+let page_size = 4096
+
+let get n =
+	match alloc_pages n with
 	| Some block -> block
 	| None ->
 		Gc.compact ();
-		begin match alloc_pages pages_per_block with
+		begin match alloc_pages n with
 		| Some block -> block
-		| None ->
-			Printf.printf "out of memory\n%!";
-			exit(1)
+		| None -> raise Out_of_memory
 		end
 
-let rec get_n ?(pages_per_block=1) n = match n with
-  | 0 -> []
-  | n -> get () :: (get_n ~pages_per_block (n - 1))
-
-let rec pow2 = function
-  | 0 -> 1
-  | n -> 2 * (pow2 (n - 1))
-
-let get_order order = get ~pages_per_block:(pow2 order) ()
-
-let to_cstruct t = Cstruct.of_bigarray t
+let get_order order = get (1 lsl order)
 
 let length t = Bigarray.Array1.dim t
-
-let page_size = 4096
 
 let to_pages t =
   assert(length t mod page_size = 0);
@@ -55,6 +43,15 @@ let to_pages t =
     then loop (off + page_size) (Bigarray.Array1.sub t off page_size :: acc)
     else acc in
   List.rev (loop 0 [])
+
+let pages n = to_pages (get n)
+
+let pages_order order = to_pages (get_order order)
+
+let to_cstruct t = Cstruct.of_bigarray t
+
+
+
 
 let string_blit src srcoff dst dstoff len =
   for i = srcoff to srcoff + len - 1 do

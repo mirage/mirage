@@ -18,7 +18,7 @@ open Lwt
 open Printf
 
 let allocate_ring ~domid =
-	let page = Io_page.get () in
+	let page = Io_page.get 1 in
 	let x = Io_page.to_cstruct page in
 	for i = 0 to Cstruct.len x - 1 do
 		Cstruct.set_uint8 x i 0
@@ -221,7 +221,7 @@ let notify nf () =
 let refill_requests nf =
   let num = Ring.Rpc.Front.get_free_requests nf.rx_fring in
   lwt gnts = Gnt.Gntshr.get_n num in
-  let pages = Io_page.get_n num in
+  let pages = Io_page.pages num in
   List.iter
     (fun (gnt, page) ->
       Gnt.Gntshr.grant_access ~domid:nf.backend_id ~writeable:true gnt page;
@@ -406,7 +406,7 @@ let ethid t =
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =
-  let page = Io_page.get () in
+  let page = Io_page.get 1 in
   (* TODO: record statistics for requesting thread here (in debug mode?) *)
   return (Cstruct.of_bigarray page)
 

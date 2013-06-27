@@ -33,6 +33,9 @@ val init: unit -> handle
 (** [init ()] is an initialised event channel interface. Will never
     throw an exception. *)
 
+val close: handle -> int
+(** [close h] closes [h] and returns 0. *)
+
 val notify : handle -> t -> unit
 (** [notify h c] notifies the [t]. *)
 

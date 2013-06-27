@@ -18,6 +18,7 @@
 type handle = unit
 
 let init () = ()
+let close () = 0
 
 type t = int Generation.t
 

@@ -26,6 +26,9 @@ let finally f cleanup =
     let res = f () in cleanup (); res
   with exn -> cleanup (); raise exn
 
+let output_kv oc kvs sep =
+  List.iter (fun (k,v) -> Printf.fprintf oc "%s %s %s\n" k sep v) kvs
+
 let lines_of_file file =
   let ic = open_in file in
   let lines = ref [] in

@@ -311,6 +311,7 @@ type t = {
   name     : string;           (* Filename of the mirari config file*)
   dir      : string;           (* Dirname of the mirari config file *)
   main_ml  : string;           (* Name of the entry point function *)
+  kvs      : (string * string) list;
   fs       : FS.t;             (* A value describing FS configuration *)
   ip       : IP.t;
   http     : HTTP.t;
@@ -329,7 +330,7 @@ let create mode file =
   let http    = HTTP.create kvs in
   let main    = Main.create kvs in
   let build   = Build.create ~name ~dir kvs in
-  { file; mode; name; dir; main_ml; fs; ip; http; main; build }
+  { file; mode; name; dir; main_ml; kvs; fs; ip; http; main; build }
 
 
 let output_main t =
@@ -401,59 +402,64 @@ let run ~mode file =
   let file = scan_conf file in
   let t = create mode file in
   match mode with
-  (* | None -> Unix.execv ("mir-" ^ t.name) [||] (* TODO  unix-socket backend *)  *)
-  |`unix network ->
-    info "+ unix mode";
+  |`unix `socket ->
+    info "+ unix socket mode";
+    Unix.execv ("mir-" ^ t.name) [||] (* Just run it! *)
+  |`unix `direct ->
+    info "+ unix direct mode";
     (* unix-direct backend: launch the unikernel, then create a TAP
        interface and pass the fd to the unikernel *)
-      let cpid = Unix.fork () in
-      if cpid = 0 then (* child code *)
-        Unix.execv ("mir-" ^ t.name) [||] (* Launch the unikernel *)
-      else
-        begin
-          match network with
-          |`direct -> begin
-          try
-            info "Creating tap0 interface.";
-            (* Force the name to be "tap0" because of MacOSX *)
-            let fd, id =
-              (try
-                 let fd, id = Tuntap.opentap ~devname:"tap0" () in
-                 (* TODO: Do not hardcode 10.0.0.1, put it in mirari config file *)
-                 let () = Tuntap.set_ipv4 ~devname:"tap0" ~ipv4:"10.0.0.1" () in
-                 fd, id
-               with Failure m ->
-                 Printf.eprintf "[mirari] Tuntap failed with error %s. Remember that %s has to be run as root have the CAP_NET_ADMIN \
- capability in order to be able to run unikernels for the UNIX backend" m Sys.argv.(0);
-                 raise (Failure m)) (* Go to cleanup section *)
-            in
-           let sock = Unix.(socket PF_UNIX SOCK_STREAM 0) in
+    let cpid = Unix.fork () in
+    if cpid = 0 then (* child code *)
+      Unix.execv ("mir-" ^ t.name) [||] (* Launch the unikernel *)
+    else
+      begin
+        try
+          info "Creating tap0 interface.";
+          (* Force the name to be "tap0" because of MacOSX *)
+          let fd, id =
+            (try
+               let fd, id = Tuntap.opentap ~devname:"tap0" () in
+               (* TODO: Do not hardcode 10.0.0.1, put it in mirari config file *)
+               let () = Tuntap.set_ipv4 ~devname:"tap0" ~ipv4:"10.0.0.1" () in
+               fd, id
+             with Failure m ->
+               Printf.eprintf "[mirari] Tuntap failed with error %s. Remember that %s has to be run as root have the CAP_NET_ADMIN \
+                               capability in order to be able to run unikernels for the UNIX backend" m Sys.argv.(0);
+               raise (Failure m)) (* Go to cleanup section *)
+          in
+          let sock = Unix.(socket PF_UNIX SOCK_STREAM 0) in
 
-           let send_fd () =
-             let open Unix in
-                 sleep 1;
-                 info "Connecting to /tmp/mir-%d.sock..." cpid;
-                 connect sock (ADDR_UNIX (Printf.sprintf "/tmp/mir-%d.sock" cpid));
-                 let nb_sent = Fd_send_recv.send_fd sock "tap0      e" 0 11 [] fd in
-                 if nb_sent <> 11 then
-                   (error "Sending fd to unikernel failed.")
-                 else info "Transmitted fd ok."
-             in
-             send_fd ();
-             let _,_ = Unix.waitpid [] cpid in ()
-          with exn ->
-            info "Ctrl-C received, killing child and exiting.\n%!";
-            Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
-            raise exn
-          end
-          |`socket -> info "Using socket networking"
-
+          let send_fd () =
+            let open Unix in
+            sleep 1;
+            info "Connecting to /tmp/mir-%d.sock..." cpid;
+            connect sock (ADDR_UNIX (Printf.sprintf "/tmp/mir-%d.sock" cpid));
+            let nb_sent = Fd_send_recv.send_fd sock "tap0      e" 0 11 [] fd in
+            if nb_sent <> 11 then
+              (error "Sending fd to unikernel failed.")
+            else info "Transmitted fd ok."
+          in
+          send_fd ();
+          let _,_ = Unix.waitpid [] cpid in ()
+        with exn ->
+          info "Ctrl-C received, killing child and exiting.\n%!";
+          Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
+          raise exn
       end
   |`xen -> (* xen backend *)
-      info "+ xen mode"
+    info "+ xen mode";
+    let oc = open_out (t.name ^ ".xl") in
+    finally
+      (fun () ->
+        output_kv oc (["name", "\"" ^ t.name ^ "\"";
+                       "kernel", "\"mir-" ^ t.name ^ ".xen\""] @
+                        filter_map (subcommand ~prefix:"xl") t.kvs) "=")
+      (fun () -> close_out oc);
+    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)
 let clean () =
   command "obuild clean";
-  command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml"
+  command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml *.xl"

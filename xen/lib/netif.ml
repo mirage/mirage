@@ -303,6 +303,16 @@ let write nf page =
 let writev nf pages =
   Lwt_mutex.with_lock nf.t.tx_mutex
   (fun () ->
+  let rec wait_for_free_tx n =
+    let numfree = Ring.Rpc.Front.get_free_requests nf.t.tx_fring in 
+    if n >= numfree then 
+      Activations.wait nf.t.evtchn >> 
+      wait_for_free_tx n
+    else
+      return ()
+  in
+  let numneeded = List.length pages in
+  wait_for_free_tx numneeded >>
   match pages with
   |[] -> return ()
   |[page] ->

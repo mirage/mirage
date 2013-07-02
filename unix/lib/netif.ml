@@ -107,7 +107,7 @@ cstruct bpf_hdr {
 let rec input t =
   match t.typ with 
     | ETH -> begin
-        let page = Io_page.get () in
+        let page = Io_page.get 1 in
         lwt len = Lwt_bytes.read t.dev page 0 t.buf_sz in
           match len with
             |(-1) -> (* EAGAIN or EWOULDBLOCK *)
@@ -122,7 +122,7 @@ let rec input t =
         (*reading pcap header first*)
         lwt _ =
           if (0 >= (Cstruct.len t.buf)) then (
-            let page = Io_page.get () in
+            let page = Io_page.get 1 in
             lwt len = Lwt_bytes.read t.dev page 0 t.buf_sz in
            let _ = t.buf <- Cstruct.sub (Io_page.to_cstruct page) 0 len in 
 (*             let _ = printf "fetched new data %d\n%!" (len) in *)
@@ -149,7 +149,7 @@ let rec input t =
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =
-  let page = Io_page.to_cstruct (Io_page.get ()) in
+  let page = Io_page.to_cstruct (Io_page.get 1) in
   (* TODO: record statistics for requesting thread here (in debug mode?) *)
   return page
 
@@ -198,7 +198,7 @@ let writev t pages =
   |[] -> return ()
   |[page] -> write t page
   |pages ->
-    let page = Io_page.(to_cstruct (get ())) in
+    let page = Io_page.(to_cstruct (get 1)) in
     let off = ref 0 in
     List.iter (fun p ->
       let len = Cstruct.len p in

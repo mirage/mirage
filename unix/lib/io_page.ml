@@ -18,47 +18,44 @@ open Bigarray
 
 type t = (char, int8_unsigned_elt, c_layout) Array1.t
 
-let free_list = Queue.create ()
-
-let page_size = 4096
-
-let create sz = Array1.create char c_layout sz 
-
-let alloc ~nr_pages =
-  let rec inner =
-    function
-    |0 -> ()
-    |n ->
-       Queue.add (create page_size) free_list;
-       inner (n-1)
-  in
-  inner nr_pages
-
-let get () =
-  let rec inner () =
-    try
-      let page = Queue.pop free_list in
-      (* Add finaliser to put it back in the pool *)
-(*
-      let fin p =
-        Printf.printf "page finalise\n%!";
-        Queue.add p free_list
-      in 
-      Gc.finalise fin page;
-*)
-      page
-    with Queue.Empty -> begin
-      alloc ~nr_pages:128;
-      inner ()
-    end in
-  inner ()
-
-let rec get_n = function
-  | 0 -> []
-  | n -> get () :: (get_n (n - 1))
-
-let to_cstruct t = Cstruct.of_bigarray t
+let page_size = 1 lsl 12
 
 let length t = Array1.dim t
 
+let get n = Array1.create char c_layout (n * page_size)
+
+let get_order order = get (1 lsl order)
+
+let to_pages t =
+  assert(length t mod page_size = 0);
+  let rec loop off acc =
+    if off < (length t)
+    then loop (off + page_size) (Bigarray.Array1.sub t off page_size :: acc)
+    else acc in
+  List.rev (loop 0 [])
+
+let pages n = to_pages (get n)
+
+let pages_order order = to_pages (get_order order)
+
+
 let round_to_page_size n = ((n + page_size - 1) lsr 12) lsl 12
+
+let to_cstruct t = Cstruct.of_bigarray t
+
+let to_string t =
+  let result = String.create (length t) in
+  for i = 0 to length t - 1 do
+    result.[i] <- t.{i}
+  done;
+  result
+
+let blit src dest = Bigarray.Array1.blit src dest
+
+let string_blit src srcoff dst dstoff len =
+  for i = srcoff to srcoff + len - 1 do
+    dst.{i+dstoff} <- src.[i]
+  done
+
+
+

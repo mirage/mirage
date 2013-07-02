@@ -49,17 +49,17 @@ module FS = struct
     let aux (name, path) = { name; path } in
     { dir; fs = List.map aux kvs }
 
-  let call ?switch t =
+  let call t =
     if not (cmd_exists "mir-crunch") then begin
       info "mir-crunch not found, so installing the mirage-fs package.";
-      opam_install ?switch ["mirage-fs"];
+      opam_install ["mirage-fs"];
     end;
     List.iter (fun { name; path} ->
       let path = Printf.sprintf "%s/%s" t.dir path in
       let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
       if Sys.file_exists path then (
         info "Creating %s." file;
-        command ?switch "mir-crunch -o %s -name %S %s" file name path
+        command "mir-crunch -o %s -name %S %s" file name path
       ) else
       error "The directory %s does not exist." path
     ) t.fs
@@ -253,7 +253,7 @@ module Build = struct
     if not (cmd_exists "obuild") then
       error "obuild is not installed."
 
-  let prepare ?switch ~mode t =
+  let prepare ~mode t =
     check t;
     let os =
       match mode with 
@@ -266,7 +266,7 @@ module Build = struct
       | `unix `socket -> "mirage-net-socket"
     in
     let ps = "obuild" :: os :: net :: t.packages in
-    opam_install ?switch ps
+    opam_install ps
 end
 
 module Backend = struct

@@ -359,7 +359,8 @@ let call_xen_scripts t =
     let lib = strip path ^ "/mirage-xen" in
     command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a \
  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
-    command "ln -nfs %s/dist/build/mir-%s/mir-%s.xen mir-%s.xen" t.dir t.name t.name t.name
+    command "ln -nfs %s/dist/build/mir-%s/mir-%s.xen mir-%s.xen" t.dir t.name t.name t.name;
+    command "nm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
   end else
     error "xen object file %s not found, cannot continue" obj
 
@@ -462,4 +463,4 @@ let run ~mode file =
    an obuild clean *)
 let clean () =
   command "obuild clean";
-  command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml *.xl"
+  command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml *.xl *.map"

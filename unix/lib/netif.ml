@@ -19,6 +19,9 @@ open Printf
 
 type id = string
 
+let id_of_string s = s
+let string_of_id i = i
+
 exception Device_down of id
 
 type dev_type =
@@ -40,8 +43,6 @@ type vif_info = {
   vif_dev_type: dev_type;
   vif_fd: Unix.file_descr;
 }
-
-type callback = id -> t -> unit Lwt.t
 
 external eth_opendev: string -> Unix.file_descr = "pcap_opendev"
 external pcap_get_buf_len: Unix.file_descr -> int = "pcap_get_buf_len"
@@ -66,7 +67,7 @@ let plug dev_type id fd =
                 buf=Io_page.to_cstruct (Lwt_bytes.create 0) } in
       Hashtbl.add devices id t;
       printf "Netif: plug %s\n%!" id;
-      return t
+      t
 
     | PCAP ->
       let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
@@ -78,7 +79,7 @@ let plug dev_type id fd =
                 buf=Io_page.to_cstruct (Lwt_bytes.create 0);} in
       Hashtbl.add devices id t;
       printf "Netif: plug %s\n%!" id;
-      return t
+      t
 
 let unplug id =
   try
@@ -89,11 +90,12 @@ let unplug id =
     Hashtbl.remove devices id
   with Not_found -> ()
 
+
+(* TODO: Properly unplug the created devices *)
 let rec create fn =
-  lwt vif = Lwt_stream.next vifs in
-  let th = plug vif.vif_dev_type vif.vif_id vif.vif_fd >>= fun t -> fn vif.vif_id t in
-  Lwt.on_failure th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
-  create fn
+  lwt vifs = Lwt_stream.get_while (fun _ -> true) vifs in
+  Lwt.return (List.map (fun vif ->
+      plug vif.vif_dev_type vif.vif_id vif.vif_fd) vifs)
 
 cstruct bpf_hdr {
   uint32 tv_sec;
@@ -207,10 +209,8 @@ let writev t pages =
     ) pages;
     let v = Cstruct.sub page 0 !off in
     write t v
-  
-let ethid t = 
-  t.id
 
-let mac t =
-  t.mac 
+let id t = t.id
+
+let mac t = t.mac
 

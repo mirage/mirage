@@ -57,9 +57,9 @@ module RX = struct
 
   type response = int * int * int
 
-  let create (id,domid) =
-    let name = sprintf "Netif.RX.%s" id in
-	lwt rx_gnt, buf = allocate_ring ~domid in
+  let create (id, domid) =
+    let name = sprintf "Netif.RX.%d" id in
+    lwt rx_gnt, buf = allocate_ring ~domid in
     let sring = Ring.Rpc.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
     let fring = Ring.Rpc.Front.init ~sring in
     let client = Lwt_ring.Front.init string_of_int fring in
@@ -108,12 +108,12 @@ module TX = struct
     let _ = assert(total_size = 12)
   end
 
-  let create (id,domid) =
-    let name = sprintf "Netif.TX.%s" id in
-	lwt rx_gnt, buf = allocate_ring ~domid in
+  let create (id, domid) =
+    let name = sprintf "Netif.TX.%d" id in
+    lwt rx_gnt, buf = allocate_ring ~domid in
     let sring = Ring.Rpc.of_buf ~buf ~idx_size:Proto_64.total_size ~name in
     let fring = Ring.Rpc.Front.init ~sring in
-	let client = Lwt_ring.Front.init string_of_int fring in
+    let client = Lwt_ring.Front.init string_of_int fring in
     return (rx_gnt, fring, client)
 end
 
@@ -126,6 +126,7 @@ type features = {
 }
 
 type transport = {
+  id: int;
   backend_id: int;
   backend: string;
   mac: string;
@@ -148,7 +149,13 @@ type t = {
   c : unit Lwt_condition.t;
 }
 
-type id = string
+type id = int
+
+let id_of_string = int_of_string
+let string_of_id = string_of_int
+
+let id t = t.t.id
+let backend_id t = t.t.backend_id
 
 let devices : (id, t) Hashtbl.t = Hashtbl.create 1
 
@@ -156,8 +163,8 @@ let h = Eventchn.init ()
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let plug_inner id =
-  lwt backend_id = Xs.(immediate (fun h -> read h (sprintf "device/vif/%s/backend-id" id))) >|= int_of_string in
-  Console.log (sprintf "Netfront.create: id=%s domid=%d\n%!" id backend_id);
+  lwt backend_id = Xs.(immediate (fun h -> read h (sprintf "device/vif/%d/backend-id" id))) >|= int_of_string in
+  Console.log (sprintf "Netfront.create: id=%d domid=%d\n%!" id backend_id);
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (rx_gnt, rx_fring, rx_client) = RX.create (id, backend_id) in
   lwt (tx_gnt, tx_fring, tx_client) = TX.create (id, backend_id) in
@@ -165,7 +172,7 @@ let plug_inner id =
   let evtchn = Eventchn.bind_unbound_port h backend_id in
   let evtchn_port = Eventchn.to_int evtchn in
   (* Read Xenstore info and set state to Connected *)
-  let node = sprintf "device/vif/%s/" id in
+  let node = sprintf "device/vif/%d/" id in
   lwt backend = Xs.(immediate (fun h -> read h (node ^ "backend"))) in
   lwt mac = Xs.(immediate (fun h -> read h (node ^ "mac"))) in
   printf "MAC: %s\n%!" mac;
@@ -200,10 +207,10 @@ let plug_inner id =
     features.sg features.gso_tcpv4 features.rx_copy features.rx_flip features.smart_poll);
   Eventchn.unmask h evtchn;
   (* Register callback activation *)
-  return { backend_id; tx_fring; tx_client; tx_gnt; tx_mutex; rx_gnt; rx_fring; rx_client; rx_map;
+  return { id; backend_id; tx_fring; tx_client; tx_gnt; tx_mutex; rx_gnt; rx_fring; rx_client; rx_map;
     evtchn; mac; backend; features }
 
-let plug id = 
+let plug id =
   lwt transport = plug_inner id in
   let t = { t=transport; resume_fns=[]; l=Lwt_mutex.create (); c=Lwt_condition.create () } in
   Hashtbl.add devices id t;
@@ -212,8 +219,7 @@ let plug id =
 (* Unplug shouldn't block, although the Xen one might need to due
    to Xenstore? XXX *)
 let unplug id =
-  Console.log (sprintf "Netif.unplug %s: not implemented yet" id);
-  ()
+  Hashtbl.remove devices id
 
 let notify nf () =
   Eventchn.notify h nf.evtchn
@@ -364,7 +370,9 @@ let listen nf fn =
 
 (** Return a list of valid VIFs *)
 let enumerate () =
-  try_lwt Xs.(immediate (fun h -> directory h "device/vif")) with _ -> return []
+  Lwt.catch
+    (fun () -> Xs.(immediate (fun h -> directory h "device/vif")) >|= (List.map int_of_string) )
+    (fun _ -> Lwt.return [])
 
 let resume (id,t) =
   lwt transport = plug_inner id in
@@ -386,11 +394,11 @@ let add_resume_hook t fn =
 (* Type of callback functions for [create]. *)
 type callback = id -> t -> unit Lwt.t
 
-let create fn =
+let create () =
   lwt ids = enumerate () in
-  let th = Lwt_list.iter_p (fun id -> plug id >>= fun t -> fn id t) ids in
-  Lwt.on_failure th (fun _ -> Hashtbl.iter (fun id _ -> unplug id) devices);
-  th
+  Lwt.catch
+    (fun () -> Lwt_list.map_p plug ids)
+    (fun exn  -> Hashtbl.iter (fun id _ -> unplug id) devices; Lwt.fail exn)
 
 (* The Xenstore MAC address is colon separated, very helpfully *)
 let mac nf = 
@@ -406,9 +414,6 @@ let mac nf =
     );
   s
 
-(* The Xenstore MAC address is colon separated, very helpfully *)
-let ethid t = 
-  string_of_int t.t.backend_id
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =

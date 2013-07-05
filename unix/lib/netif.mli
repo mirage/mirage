@@ -28,7 +28,10 @@
 type t
 
 (** Textual id identifying a network interface, e.g. "tap0". *)
-type id = string
+type id
+
+val string_of_id : id -> string
+val id_of_string : string -> id
 
 (** Type of network interfaces. Currently, [ETH] designate a TUN/TAP
     interface, while [PCAP] designate a normal ethernet interface to
@@ -37,18 +40,14 @@ type dev_type =
 | PCAP
 | ETH
 
-(** Type of callbacks that will be called on each created
-    interface. *)
-type callback = id -> t -> unit Lwt.t
-
 (** Exception raised when trying to read from a DOWN interface *)
 exception Device_down of id
 
 (** Accessors for the t type *)
 
 val get_writebuf : t -> Cstruct.t Lwt.t
+val id           : t -> id
 val mac          : t -> string
-val ethid        : t -> id
 
 (** [add_vif id kind fd] adds a network interface to the XenStore
     analog of the UNIX backend. All interfaces that the unikernel
@@ -56,10 +55,9 @@ val ethid        : t -> id
     [create]. *)
 val add_vif : id ->  dev_type -> Unix.file_descr -> unit
 
-(** [create callback] is a thread that listens to the XenStore analog
-    and creates a value of type t for each interface added with
-    [add_vif], then call [callback] on it. *)
-val create : callback -> unit Lwt.t
+(** [create ()] is a thread that creates a value of type t for each
+    interface added with [add_vif]. *)
+val create : unit -> (t list) Lwt.t
 
 (** [listen netif cb] listens on [netif] for incoming frames, and call
     [cb] on them. *)

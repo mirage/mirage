@@ -19,32 +19,23 @@
 type t
 (** Type of a single netfront interface. *)
 
-type id = string
+type id
 (** Textual id which is unique per netfront interface. Typically "0",
     "1", ... *)
 
-type callback = id -> t -> unit Lwt.t
-(** Type of the callback function used by [create]. *)
+val id_of_string : string -> id
+val string_of_id : id -> string
 
-val create : callback -> unit Lwt.t
-(** [create fn] is a thread that will spawn a new thread
-    per netfront.
+val create : unit -> (t list) Lwt.t
+(** [create ()] is a thread that returns a list of initialized
+    netfront interfaces, one per detected netfront. *)
 
-    @param fn Callback function that is invoked for every new netfront
-    interface.
+val id : t -> id
+(** [id nf] is the id of the netfront [nf]. *)
 
-    @return Blocking thread that will unplug all the attached
-    interfaces in case of failure of any of them. *)
-
-val plug: id -> t Lwt.t
-(** [plug id] is a thread that will plug in netfront [id]. As it is
-    normally invoked via xenstore watches by the [create] function,
-    you should not call it yourself unless you know what you are
-    doing. *)
-
-val unplug: id -> unit
-(** [unplug id] unplugs netfront [id]. This makes an effort not to
-    block, so the unplugging is not guaranteed. *)
+val backend_id : t -> id
+(** [backend_id nf] is the domid of the netback connected to the
+    netfront [nf]. *)
 
 val write : t -> Cstruct.t -> unit Lwt.t
 (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -56,13 +47,6 @@ val writev : t -> Cstruct.t list -> unit Lwt.t
 val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 (** [listen nf cb] is a thread that listens endlesses on [nf], and
     invoke the callback function as frames are received. *)
-
-val enumerate : unit -> id list Lwt.t
-(** [enumerate ()] is a thread that returns the a list of currently
-    available netfronts ids (which may or may not be attached). *)
-
-val ethid : t -> string
-(** [ethid nf] is the backend domain id for netfront [nf]. *)
 
 val mac : t -> string
 (** [mac nf] is the MAC address of [nf]. *)

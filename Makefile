@@ -1,19 +1,16 @@
 PREFIX=/usr/local
 BINDIR=$(PREFIX)/bin
 
-all: build
+all: _build/lib/mirari.native
 
-configure:
-	obuild configure --annot
-
-dist/setup: configure
-
-build: dist/setup
-	obuild build
-
-install:
-	cp dist/build/mirari/mirari $(BINDIR)
+_build/.stamp:
+	rm -rf _build
+	mkdir -p _build/lib
+	@touch $@
+	
+_build/lib/mirari.native: _build/.stamp
+	ocamlbuild -use-ocamlfind -pkg cmdliner -pkg unix -pkg tuntap -pkg fd-send-recv lib/mirari.native
 
 .PHONY: clean
 clean:
-	obuild clean
+	rm -rf _build

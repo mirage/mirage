@@ -1,0 +1,3 @@
+bin: [
+  "_build/lib/mirari.native" {"mirari"}
+]

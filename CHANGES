@@ -1,8 +1,8 @@
 0.9.4 (2013-07-09):
 * build using ocamlbuild rather than depending on obuild.
 * [xen] generate a symbol that can be used to produce stack traces with xenctx.
-* mirari run --socket just runs the unikernel.
-* mirari run --xen creates a xl config file and do a xl create -c unikernel.xl.
+* mirari run --socket just runs the unikernel without any tuntap work.
+* mirari run --xen creates a xl config file and runs `xl create -c unikernel.xl`.
 
 0.9.3 (2013-06-12):
 * Add a `--socket` flag to activate socket-based networking (UNIX only).

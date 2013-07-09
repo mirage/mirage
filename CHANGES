@@ -1,5 +1,4 @@
 0.9.2 (09-July-2013):
-
 * [xen] Add Netif test to wait for a fixed number of ring slots > 0
 * [xen] Add Evtchn.close to Xen backend.
 * [xen] Disable tree-loop-distribute-patterns to workaround crash with

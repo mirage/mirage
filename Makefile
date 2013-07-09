@@ -1,6 +1,3 @@
-PREFIX=/usr/local
-BINDIR=$(PREFIX)/bin
-
 all: _build/lib/mirari.native
 
 _build/.stamp:

@@ -1,5 +1,5 @@
 name: mirari
-version: 0.9.3
+version: 0.9.4
 synopsis: Mirage application builder
 obuild-ver: 1
 authors: Thomas Gazagnaire, Anil Madhavapeddy, Vincent Bernardoff

@@ -1,25 +1,25 @@
-0.9.4 (trunk):
+0.9.4 (2013-07-09):
 * build using ocamlbuild rather than depending on obuild.
 * [xen] generate a symbol that can be used to produce stack traces with xenctx.
 * mirari run --socket just runs the unikernel.
 * mirari run --xen creates a xl config file and do a xl create -c unikernel.xl.
 
-0.9.3 (2012-06-12):
+0.9.3 (2013-06-12):
 * Add a `--socket` flag to activate socket-based networking (UNIX only).
 * Do not use OPAM compiler switches any more, as that's done in the packaging now.
 * Use fd-passing in the UNIX backend to spawn a process.
 
-0.9.2 (2012-03-28):
+0.9.2 (2013-03-28):
 * Install `obuild` automatically in all compiler switches (such as Xen).
 * Only create symlinks to `mir-foo` for a non-Xen target.
 * Add a `mirari clean` command.
 * Add the autoswitch feature via `mirari --switch=<compiler>` or the config file.
 
-0.9.1 (2012-02-13):
+0.9.1 (2013-02-13):
 * Fix Xen symlink upon build.
 * Add a `--no-install` option to `mirari configure` to prevent invoking OPAM automatically.
 
-0.9.0 (2012-02-12):
+0.9.0 (2013-02-12):
 * Automatically install `mirage-fs` package if a filesystem crunch is requested.
 * Remove the need for `mir-run` by including the final Xen link directly in Mirari.
 * Add support for building Xen variants.

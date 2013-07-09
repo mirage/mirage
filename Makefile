@@ -1,13 +1,18 @@
+VERSION=0.9.4
+
 all: _build/lib/mirari.native
+
+lib/path_generated.ml:
+	echo let project_version=\"$(VERSION)\" > $@
 
 _build/.stamp:
 	rm -rf _build
 	mkdir -p _build/lib
 	@touch $@
 	
-_build/lib/mirari.native: _build/.stamp
-	ocamlbuild -use-ocamlfind -pkg cmdliner -pkg unix -pkg tuntap -pkg fd-send-recv lib/mirari.native
+_build/lib/mirari.native: _build/.stamp lib/path_generated.ml
+	ocamlbuild -use-ocamlfind -pkg cmdliner -pkg unix -pkg tuntap -pkg fd-send-recv lib/main.native
 
 .PHONY: clean
 clean:
-	rm -rf _build
+	rm -rf _build lib/path_generated.ml

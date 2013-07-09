@@ -1,3 +1,5 @@
 *~
 _build/
 *.native
+lib/path_generated.ml
+

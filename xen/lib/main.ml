@@ -25,6 +25,8 @@ open Lwt
 
 external block_domain : float -> unit = "caml_block_domain"
 
+let evtchn = Eventchn.init ()
+
 let exit_hooks = Lwt_sequence.create ()
 let enter_hooks = Lwt_sequence.create ()
 
@@ -56,7 +58,7 @@ let run t =
       | None ->
           (* If we have nothing to do, check for next timeout and
            * and block the domain *)
-          Activations.run (Eventchn.init ());
+          Activations.run evtchn;
           let timeout =
             match Time.select_next Clock.time with
             |None -> 86400000.0

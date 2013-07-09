@@ -1,4 +1,5 @@
-trunk (2013-07-01):
+0.9.4 (trunk):
+* [xen] generate a symbol that can be used to produce stack traces with xenctx.
 * mirari run --socket just runs the unikernel.
 * mirari run --xen creates a xl config file and do a xl create -c unikernel.xl.
 

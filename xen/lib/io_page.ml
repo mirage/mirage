@@ -18,21 +18,21 @@
 
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-external alloc_pages: int -> t option = "caml_alloc_pages"
+external alloc_pages: int -> bool -> t option = "caml_alloc_pages"
 
 let page_size = 4096
 
-let get n =
-	match alloc_pages n with
+let get ?(blank=false) n =
+	match alloc_pages n blank with
 	| Some block -> block
 	| None ->
 		Gc.compact ();
-		begin match alloc_pages n with
+		begin match alloc_pages n blank with
 		| Some block -> block
 		| None -> raise Out_of_memory
 		end
 
-let get_order order = get (1 lsl order)
+let get_order ?(blank=false) order = get ~blank (1 lsl order)
 
 let length t = Bigarray.Array1.dim t
 
@@ -44,9 +44,9 @@ let to_pages t =
     else acc in
   List.rev (loop 0 [])
 
-let pages n = to_pages (get n)
+let pages ?(blank=false) n = to_pages (get ~blank n)
 
-let pages_order order = to_pages (get_order order)
+let pages_order ?(blank=false) order = to_pages (get_order ~blank order)
 
 let to_cstruct t = Cstruct.of_bigarray t
 

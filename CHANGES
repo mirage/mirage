@@ -1,3 +1,7 @@
+trunk (unreleased):
+* [xen] Optionally allow to memset the pages to zero in the C bindings
+  (Io_page).
+
 0.9.2 (09-July-2013):
 * [xen] Add Netif test to wait for a fixed number of ring slots > 0
 * [xen] Add Evtchn.close to Xen backend.

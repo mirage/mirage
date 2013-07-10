@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <string.h>
 #include <mini-os/x86/os.h>
 
 #include <caml/mlvalues.h>
@@ -28,9 +29,9 @@
    call free() whenever all sub-bigarrays are unreachable.
  */
 CAMLprim value
-caml_alloc_pages(value n_pages)
+caml_alloc_pages(value n_pages, value blank)
 {
-  CAMLparam1(n_pages);
+  CAMLparam2(n_pages, blank);
   CAMLlocal2(result, bigarray);
   int i;
   size_t len = Int_val(n_pages) * PAGE_SIZE;
@@ -43,6 +44,7 @@ caml_alloc_pages(value n_pages)
 	printk("memalign(%d, %d) failed: returning None\n", PAGE_SIZE, len);
 	goto out;
   }
+  if (Bool_val(blank)) memset(block, 0, len);
   bigarray = caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, (long)len);
   result = caml_alloc(1, 0);
   Store_field(result, 0, bigarray);

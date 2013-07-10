@@ -18,11 +18,8 @@ open Lwt
 open Printf
 
 let allocate_ring ~domid =
-	let page = Io_page.get 1 in
+	let page = Io_page.get ~blank:true 1 in
 	let x = Io_page.to_cstruct page in
-	for i = 0 to Cstruct.len x - 1 do
-		Cstruct.set_uint8 x i 0
-	done;
 	lwt gnt = Gnt.Gntshr.get () in
 	Gnt.Gntshr.grant_access ~domid ~writeable:true gnt page;
 	return (gnt, x)
@@ -355,15 +352,15 @@ let listen nf fn =
     rx_poll t fn;
     tx_poll t;
     (* Evtchn.notify nf.t.evtchn; *)
-    lwt new_t = 
+    lwt new_t =
       try_lwt
-		Activations.wait t.evtchn >> return t
+        Activations.wait t.evtchn >> return t
       with
-        | Generation.Invalid ->
-			Console.log_s "Waiting for plug in listen" >> 
-			lwt () = wait_for_plug nf in
-            Console.log_s "Done..." >> 
-            return nf.t
+      | Generation.Invalid ->
+        Console.log_s "Waiting for plug in listen"
+        >> wait_for_plug nf
+        >> Console.log_s "Done..."
+        >> return nf.t
     in poll_t new_t
   in
   poll_t nf.t

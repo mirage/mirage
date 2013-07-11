@@ -18,7 +18,7 @@ open Lwt
 open Printf
 
 let allocate_ring ~domid =
-	let page = Io_page.get ~blank:true 1 in
+	let page = Io_page.get 1 in
 	let x = Io_page.to_cstruct page in
 	lwt gnt = Gnt.Gntshr.get () in
 	Gnt.Gntshr.grant_access ~domid ~writeable:true gnt page;
@@ -340,7 +340,7 @@ let writev nf pages =
 
 let wait_for_plug nf =
 	Console.log_s "Wait for plug..." >>
-	Lwt_mutex.with_lock nf.l (fun () -> 
+	Lwt_mutex.with_lock nf.l (fun () ->
 		while_lwt not (Eventchn.is_valid nf.t.evtchn) do
 			Lwt_condition.wait ~mutex:nf.l nf.c
 		done)
@@ -348,9 +348,11 @@ let wait_for_plug nf =
 let listen nf fn =
   (* Listen for the activation to poll the interface *)
   let rec poll_t t =
+    Console.log_s "Netif.listen called" >>
     lwt () = refill_requests t in
     rx_poll t fn;
     tx_poll t;
+    (* poll_t t *)
     (* Evtchn.notify nf.t.evtchn; *)
     lwt new_t =
       try_lwt

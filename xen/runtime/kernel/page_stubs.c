@@ -29,25 +29,17 @@
    call free() whenever all sub-bigarrays are unreachable.
  */
 CAMLprim value
-caml_alloc_pages(value n_pages, value blank)
+caml_alloc_pages(value n_pages)
 {
-  CAMLparam2(n_pages, blank);
-  CAMLlocal2(result, bigarray);
-  int i;
   size_t len = Int_val(n_pages) * PAGE_SIZE;
   /* If the allocation fails, return None. The ocaml layer will
      be able to trigger a full GC which just might run finalizers
      of unused bigarrays which will free some memory. */
-  result = Val_int(0); /* None */
-  unsigned long block = (unsigned long) memalign(PAGE_SIZE, len);
-  if (!block) {
-	printk("memalign(%d, %d) failed: returning None\n", PAGE_SIZE, len);
-	goto out;
+  void* block = memalign(PAGE_SIZE, len);
+
+  if (block == NULL) {
+    printk("memalign(%d, %d) failed.\n", PAGE_SIZE, len);
+    caml_failwith("memalign");
   }
-  if (Bool_val(blank)) memset(block, 0, len);
-  bigarray = caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, (long)len);
-  result = caml_alloc(1, 0);
-  Store_field(result, 0, bigarray);
- out:
-  CAMLreturn(result);
+  return caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, len);
 }

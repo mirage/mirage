@@ -26,7 +26,7 @@ type id
 val id_of_string : string -> id
 val string_of_id : id -> string
 
-val create : unit -> (t list) Lwt.t
+val create : unit -> t list Lwt.t
 (** [create ()] is a thread that returns a list of initialized
     netfront interfaces, one per detected netfront. *)
 

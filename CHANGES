@@ -1,7 +1,9 @@
 0.9.3 (unreleased):
-* [xen] Optionally allow to memset the pages to zero in the C bindings
-  (Io_page).
 * [xen] Gnt.grant_table_index is now an int, was an int32.
+* [xen] Console.log_s/Console.write_all now return unit.
+* [xen] Cleaned some C stubs files, mainly page_stubs.c
+* [xen] Improved module Netif: The function create do not take a
+  callback anymore, hidden some private function from the .mli.
 
 0.9.2 (09-July-2013):
 * [xen] Add Netif test to wait for a fixed number of ring slots > 0

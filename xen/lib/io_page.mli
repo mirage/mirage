@@ -28,8 +28,7 @@ val get_order : int -> t
 (** [get_order i] is [get (1 lsl i)]. *)
 
 val pages : int -> t list
-(** [pages n] allocates a zeroed memory block of [n] pages and return
-    the the list of pages allocated. *)
+(** [pages n] allocates n zeroed memory pages and return them. *)
 
 val pages_order : int -> t list
 (** [pages_order i] is [pages (1 lsl i)]. *)

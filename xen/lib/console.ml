@@ -21,7 +21,7 @@ module Gnttab = Gnt.Gnttab
 
 type t = {
   backend_id: int;
-  gnt: Gnt.grant_table_index;
+  gnt: Gnt.gntref;
   ring: Cstruct.t;
   evtchn: Eventchn.t;
   waiters: unit Lwt.u Lwt_sequence.t;

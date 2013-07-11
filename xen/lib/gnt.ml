@@ -23,14 +23,10 @@ let interface_close () = ()
 
 let finally_ f g = try let res = f () in g (); res with exn -> g (); raise exn
 
-type grant_table_index = int32
-let grant_table_index_of_int32 x = x
-let int32_of_grant_table_index x = x
-let string_of_grant_table_index = Int32.to_string
-let grant_table_index_of_string = Int32.of_string
+type gntref = int
 
-let console = 0l (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
-let xenstore = 1l (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)
+let console = 0 (* public/grant_table.h:GNTTAB_RESERVED_CONSOLE *)
+let xenstore = 1 (* public/grant_table.h:GNTTAB_RESERVED_XENSTORE *)
 
 type grant_handle (* handle to a mapped grant *)
 
@@ -39,9 +35,9 @@ module Raw = struct
   external nr_reserved : unit -> int = "caml_gnttab_reserved"
   external init : unit -> unit = "caml_gnttab_init"
   external fini : unit -> unit = "caml_gnttab_fini"
-  external grant_access : grant_table_index -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
-  external end_access : grant_table_index -> unit = "caml_gnttab_end_access"
-  external map_grant : grant_table_index -> Io_page.t -> int -> bool -> grant_handle = "caml_gnttab_map"
+  external grant_access : gntref -> Io_page.t -> int -> bool -> unit = "caml_gnttab_grant_access"
+  external end_access : gntref -> unit = "caml_gnttab_end_access"
+  external map_grant : gntref -> Io_page.t -> int -> bool -> grant_handle = "caml_gnttab_map"
   external unmap_grant : grant_handle -> unit = "caml_gnttab_unmap"
 end
 
@@ -53,7 +49,7 @@ module Gnttab = struct
 
   type grant = {
     domid: int;
-    ref: grant_table_index;
+    ref: gntref;
   }
 
   module Local_mapping = struct
@@ -108,13 +104,13 @@ module Gntshr = struct
   let interface_close () = ()
 
   type share = {
-		refs: grant_table_index list;
+		refs: gntref list;
 		(** List of grant references which have been shared with a foreign domain. *)
 		mapping: Io_page.t
 		(** Mapping of the shared memory. *)
 	}
 
-  let free_list : grant_table_index Queue.t = Queue.create ()
+  let free_list : gntref Queue.t = Queue.create ()
   let free_list_waiters = Lwt_sequence.create ()
 
   let put r =
@@ -214,7 +210,7 @@ let resume () =
 let _ =
     Printf.printf "gnttab_init: %d\n%!" (Raw.nr_entries () - 1);
     for i = Raw.nr_reserved () to Raw.nr_entries () - 1 do
-        Gntshr.put (Int32.of_int i);
+        Gntshr.put i;
     done;
     Raw.init ()
 

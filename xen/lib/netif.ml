@@ -131,12 +131,12 @@ type transport = {
   mac: string;
   tx_fring: (TX.response,int) Ring.Rpc.Front.t;
   tx_client: (TX.response,int) Lwt_ring.Front.t;
-  tx_gnt: Gnt.grant_table_index;
+  tx_gnt: Gnt.gntref;
   tx_mutex: Lwt_mutex.t; (* Held to avoid signalling between fragments *)
   rx_fring: (RX.response,int) Ring.Rpc.Front.t;
   rx_client: (RX.response,int) Lwt_ring.Front.t;
-  rx_map: (int, Gnt.grant_table_index * Io_page.t) Hashtbl.t;
-  rx_gnt: Gnt.grant_table_index;
+  rx_map: (int, Gnt.gntref * Io_page.t) Hashtbl.t;
+  rx_gnt: Gnt.gntref;
   evtchn: Eventchn.t;
   features: features;
 }
@@ -171,8 +171,8 @@ let plug_inner id =
   printf "MAC: %s\n%!" mac;
   Xs.(transaction (fun h ->
     let wrfn k v = write h (node ^ k) v in
-    wrfn "tx-ring-ref" (Gnt.string_of_grant_table_index tx_gnt) >>
-    wrfn "rx-ring-ref" (Gnt.string_of_grant_table_index rx_gnt) >>
+    wrfn "tx-ring-ref" (string_of_int tx_gnt) >>
+    wrfn "rx-ring-ref" (string_of_int rx_gnt) >>
     wrfn "event-channel" (string_of_int (evtchn_port)) >>
     wrfn "request-rx-copy" "1" >>
     wrfn "feature-rx-notify" "1" >>
@@ -220,18 +220,16 @@ let notify nf () =
 
 let refill_requests nf =
   let num = Ring.Rpc.Front.get_free_requests nf.rx_fring in
-  lwt gnts = Gnt.Gntshr.get_n num in
+  lwt grefs = Gnt.Gntshr.get_n num in
   let pages = Io_page.pages num in
   List.iter
-    (fun (gnt, page) ->
-      Gnt.Gntshr.grant_access ~domid:nf.backend_id ~writeable:true gnt page;
-      let gref = Gnt.int32_of_grant_table_index gnt in
-      let id = Int32.to_int gref in (* XXX TODO make gref an int not int32 *)
-      Hashtbl.add nf.rx_map id (gnt, page);
+    (fun (gref, page) ->
+      Gnt.Gntshr.grant_access ~domid:nf.backend_id ~writeable:true gref page;
+      Hashtbl.add nf.rx_map gref (gref, page);
       let slot_id = Ring.Rpc.Front.next_req_id nf.rx_fring in
       let slot = Ring.Rpc.Front.slot nf.rx_fring slot_id in
-      ignore(RX.Proto_64.write ~id ~gref slot)
-    ) (List.combine gnts pages);
+      ignore(RX.Proto_64.write ~id:gref ~gref:(Int32.of_int gref) slot)
+    ) (List.combine grefs pages);
   if Ring.Rpc.Front.push_requests_and_check_notify nf.rx_fring
   then notify nf ();
   return ()
@@ -256,30 +254,28 @@ let tx_poll nf =
 
 (* Push a single page to the ring, but no event notification *)
 let write_request ?size ~flags nf page =
-  lwt gnt = Gnt.Gntshr.get () in
+  lwt gref = Gnt.Gntshr.get () in
   (* This grants access to the *base* data pointer of the page *)
   (* XXX: another place where we peek inside the cstruct *)
-  Gnt.Gntshr.grant_access ~domid:nf.t.backend_id ~writeable:false gnt page.Cstruct.buffer;
-  let gref = Gnt.int32_of_grant_table_index gnt in
-  let id = Int32.to_int gref in
+  Gnt.Gntshr.grant_access ~domid:nf.t.backend_id ~writeable:false gref page.Cstruct.buffer;
   let size = match size with |None -> Cstruct.len page |Some s -> s in
   (* XXX: another place where we peek inside the cstruct *)
   let offset = page.Cstruct.off in
   lwt replied = Lwt_ring.Front.write nf.t.tx_client
-    (TX.Proto_64.write ~id ~gref ~offset ~flags ~size) in
+    (TX.Proto_64.write ~id:gref ~gref:(Int32.of_int gref) ~offset ~flags ~size) in
   (* request has been written; when replied returns we have a reply *)
   let replied =
     try_lwt
       lwt _ = replied in
-      Gnt.Gntshr.end_access gnt;
-      Gnt.Gntshr.put gnt;
+      Gnt.Gntshr.end_access gref;
+      Gnt.Gntshr.put gref;
       return ()
     with Lwt_ring.Shutdown ->
-      Gnt.Gntshr.put gnt;
+      Gnt.Gntshr.put gref;
       fail Lwt_ring.Shutdown
     | e ->
-      Gnt.Gntshr.end_access gnt;
-      Gnt.Gntshr.put gnt;
+      Gnt.Gntshr.end_access gref;
+      Gnt.Gntshr.put gref;
       fail e in
   return replied
  

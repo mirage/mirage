@@ -28,13 +28,9 @@
 
 (** {2 Common interface} *)
 
-type grant_table_index
-(** Abstract type of grant table index. *)
-
-val grant_table_index_of_int32: int32 -> grant_table_index
-val int32_of_grant_table_index: grant_table_index -> int32
-val string_of_grant_table_index: grant_table_index -> string
-val grant_table_index_of_string: string -> grant_table_index
+type gntref = int
+(** Type of a grant table index, called a grant reference in
+    Xen's terminology. *)
 
 (** {2 Receiving foreign pages} *)
 
@@ -53,7 +49,7 @@ module Gnttab : sig
   type grant = {
     domid: int;
     (** foreign domain who is exporting memory *)
-    ref: grant_table_index;
+    ref: gntref;
     (** id which identifies the specific export in the foreign domain *)
   }
   (** A foreign domain must explicitly "grant" us memory and send us the
@@ -116,7 +112,7 @@ module Gntshr : sig
       unmap will fail. *)
 
   type share = {
-    refs: grant_table_index list;
+    refs: gntref list;
     (** List of grant references which have been shared with a foreign
         domain. *)
     mapping: Io_page.t;
@@ -145,51 +141,51 @@ module Gntshr : sig
 
   (** {2 Xen specific functions} *)
 
-  val put : grant_table_index -> unit
+  val put : gntref -> unit
 
-  val get : unit -> grant_table_index Lwt.t
-  val get_n : int -> grant_table_index list Lwt.t
+  val get : unit -> gntref Lwt.t
+  val get_n : int -> gntref list Lwt.t
 
-  val get_nonblock : unit -> grant_table_index option
+  val get_nonblock : unit -> gntref option
   (** [get_nonblock ()] is [Some idx] is the grant table is not full,
       or [None] otherwise. *)
 
-  val get_n_nonblock : int -> grant_table_index list
+  val get_n_nonblock : int -> gntref list
   (** [get_n_nonblock count] is a list of grant table indices of
       length [count], or [[]] if there if the table is too full to
       accomodate [count] new grant references. *)
 
   val num_free_grants : unit -> int
 
-  val with_ref: (grant_table_index -> 'a Lwt.t) -> 'a Lwt.t
-  val with_refs: int -> (grant_table_index list -> 'a Lwt.t) -> 'a Lwt.t
+  val with_ref: (gntref -> 'a Lwt.t) -> 'a Lwt.t
+  val with_refs: int -> (gntref list -> 'a Lwt.t) -> 'a Lwt.t
 
-  val grant_access : domid:int -> writeable:bool -> grant_table_index -> Io_page.t -> unit
+  val grant_access : domid:int -> writeable:bool -> gntref -> Io_page.t -> unit
   (** [grant_access ~domid ~writeable gntref page] adds a grant table
       entry at index [gntref] to the grant table, granting access to
       [domid] to read [page], and write to is as well if [writeable] is
       [true]. *)
 
-  val end_access : grant_table_index -> unit
+  val end_access : gntref -> unit
   (** [end_access gntref] removes entry index [gntref] from the grant
       table. *)
 
-  val with_grant : domid:int -> writeable:bool -> grant_table_index ->
+  val with_grant : domid:int -> writeable:bool -> gntref ->
     Io_page.t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 
-  val with_grants : domid:int -> writeable:bool -> grant_table_index list ->
+  val with_grants : domid:int -> writeable:bool -> gntref list ->
     Io_page.t list -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 
 end
 
 (** {2 Xen specific functions} *)
 
-val console: grant_table_index
+val console: gntref
 (** In xen-4.2 and later, the domain builder will allocate one of the
 	  reserved grant table entries and use it to pre-authorise the console
 	  backend domain. *)
 
-val xenstore: grant_table_index
+val xenstore: gntref
 (** In xen-4.2 and later, the domain builder will allocate one of the
 	  reserved grant table entries and use it to pre-authorise the xenstore
 	  backend domain. *)

@@ -69,7 +69,7 @@ static unsigned long
 gnttab_end_transfer(grant_ref_t ref)
 {
     unsigned long frame;
-	uint16_t flags;
+    uint16_t flags;
     uint16_t *pflags = &gnttab_table[ref].flags;
 
     /*
@@ -85,11 +85,11 @@ gnttab_end_transfer(grant_ref_t ref)
     while (!(flags & GTF_transfer_completed)) {
       flags = *pflags;
     }
- 
+
     rmb();  /* Read the frame number /after/ reading completion status. */
     frame = gnttab_table[ref].frame;
     BUG_ON(frame == 0);
-	
+
     return frame;
 }
 

@@ -33,7 +33,7 @@ val write : t -> string -> int -> int -> int
 (** [write_all t buf off len] is a thread that writes [String.sub buf
     off len] to the console [t] and returns [len] when done. Raises
     {!Invalid_argument} if [len > buf - off]. *)
-val write_all : t -> string -> int -> int -> int Lwt.t
+val write_all : t -> string -> int -> int -> unit
 
 (** [log str] writes as much characters of [str] that can be written
     in one write operation to the default console [t], then writes
@@ -42,4 +42,4 @@ val log : string -> unit
 
 (** [log_s str] is a thread that writes [str ^ "\r\n"] in the default
     console [t]. *)
-val log_s : string -> unit Lwt.t
+val log_s : string -> unit

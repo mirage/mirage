@@ -223,27 +223,30 @@ let notify nf () =
 
 let refill_requests nf =
   let num = Ring.Rpc.Front.get_free_requests nf.rx_fring in
-  lwt grefs = Gnt.Gntshr.get_n num in
-  let pages = Io_page.pages num in
-  List.iter
-    (fun (gref, page) ->
-      Gnt.Gntshr.grant_access ~domid:nf.backend_id ~writeable:true gref page;
-      Hashtbl.add nf.rx_map gref (gref, page);
-      let slot_id = Ring.Rpc.Front.next_req_id nf.rx_fring in
-      let slot = Ring.Rpc.Front.slot nf.rx_fring slot_id in
-      ignore(RX.Proto_64.write ~id:gref ~gref:(Int32.of_int gref) slot)
-    ) (List.combine grefs pages);
-  if Ring.Rpc.Front.push_requests_and_check_notify nf.rx_fring
-  then notify nf ();
-  return ()
+  if num > 0 then
+    lwt grefs = Gnt.Gntshr.get_n num in
+    let pages = Io_page.pages num in
+    List.iter
+      (fun (gref, page) ->
+         let id = gref mod (1 lsl 16) in
+         Gnt.Gntshr.grant_access ~domid:nf.backend_id ~writeable:true gref page;
+         Hashtbl.add nf.rx_map id (gref, page);
+         let slot_id = Ring.Rpc.Front.next_req_id nf.rx_fring in
+         let slot = Ring.Rpc.Front.slot nf.rx_fring slot_id in
+         ignore(RX.Proto_64.write ~id ~gref:(Int32.of_int gref) slot)
+      ) (List.combine grefs pages);
+    if Ring.Rpc.Front.push_requests_and_check_notify nf.rx_fring
+    then notify nf ();
+    return ()
+  else return ()
 
 let rx_poll nf fn =
   Ring.Rpc.Front.ack_responses nf.rx_fring (fun slot ->
     let id,(offset,flags,status) = RX.Proto_64.read slot in
-    let gnt, page = Hashtbl.find nf.rx_map id in
+    let gref, page = Hashtbl.find nf.rx_map id in
     Hashtbl.remove nf.rx_map id;
-    Gnt.Gntshr.end_access gnt;
-    Gnt.Gntshr.put gnt;
+    Gnt.Gntshr.end_access gref;
+    Gnt.Gntshr.put gref;
     match status with
     |sz when status > 0 ->
       let packet = Cstruct.sub (Io_page.to_cstruct page) 0 sz in
@@ -339,7 +342,7 @@ let writev nf pages =
   )
 
 let wait_for_plug nf =
-	Console.log_s "Wait for plug..." >>
+	Console.log_s "Wait for plug...";
 	Lwt_mutex.with_lock nf.l (fun () ->
 		while_lwt not (Eventchn.is_valid nf.t.evtchn) do
 			Lwt_condition.wait ~mutex:nf.l nf.c
@@ -348,21 +351,19 @@ let wait_for_plug nf =
 let listen nf fn =
   (* Listen for the activation to poll the interface *)
   let rec poll_t t =
-    Console.log_s "Netif.listen called" >>
     lwt () = refill_requests t in
     rx_poll t fn;
     tx_poll t;
-    (* poll_t t *)
     (* Evtchn.notify nf.t.evtchn; *)
     lwt new_t =
       try_lwt
         Activations.wait t.evtchn >> return t
       with
       | Generation.Invalid ->
-        Console.log_s "Waiting for plug in listen"
-        >> wait_for_plug nf
-        >> Console.log_s "Done..."
-        >> return nf.t
+        Console.log_s "Waiting for plug in listen";
+        lwt () = wait_for_plug nf in
+        Console.log_s "Done...";
+        return nf.t
     in poll_t new_t
   in
   poll_t nf.t

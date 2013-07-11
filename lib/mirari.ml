@@ -84,27 +84,31 @@ module IP = struct
   type t =
     | DHCP
     | IPv4 of ipv4
+    | NOIP
 
   let create kvs =
     let kvs = filter_map (subcommand ~prefix:"ip") kvs in
-    let use_dhcp =
-      try List.assoc "use-dhcp" kvs = "true"
-      with _ -> false in
-    if use_dhcp then
-      DHCP
+    if kvs = [] then NOIP
     else
-      let address =
-        try List.assoc "address" kvs
-        with _ -> "10.0.0.2" in
-      let netmask =
-        try List.assoc "netmask" kvs
-        with _ -> "255.255.255.0" in
-      let gateway =
-        try List.assoc "gateway" kvs
-        with _ -> "10.0.0.1" in
-      IPv4 { address; netmask; gateway }
+      let use_dhcp =
+        try List.assoc "use-dhcp" kvs = "true"
+        with _ -> false in
+      if use_dhcp then
+        DHCP
+      else
+        let address =
+          try List.assoc "address" kvs
+          with _ -> "10.0.0.2" in
+        let netmask =
+          try List.assoc "netmask" kvs
+          with _ -> "255.255.255.0" in
+        let gateway =
+          try List.assoc "gateway" kvs
+          with _ -> "10.0.0.1" in
+        IPv4 { address; netmask; gateway }
 
     let output oc = function
+      | NOIP   -> ()
       | DHCP   -> append oc "let ip = `DHCP"
       | IPv4 i ->
         append oc "let get = function Some x -> x | None -> failwith \"Bad IP!\"";

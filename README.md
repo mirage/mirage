@@ -6,25 +6,44 @@ build steps (from Javascript to Xen microkernels), and this compexity
 is wrapped up in Mirari.
 
 There are three stages to using Mirari:
-* a *configuration* phase where OPAM package dependencies are satisfied.
+
+* a *configuration* phase where OPAM package dependencies are
+  satisfied.
+
 * a *build* phase where the compiler and any support scripts are run.
-* a *run* phase where Mirari spawns and tracks the progress of the deployment (e.g. as a UNIX process or a Xen kernel).
+
+* a *run* phase where Mirari spawns and tracks the progress of the
+  deployment (e.g. as a UNIX process or a Xen kernel).
 
 ## Configuration files
 
-Mirari currently uses configuration files to build Mirage applications.
+Mirari currently uses a configuration file to build a Mirage unikernel.
 Support for command line arguments should be available soon.
 
 An example of an `app.conf`:
 
 ```
 # IP configuration
+
+# This will use DHCP for configuring the unikernel's network interfaces
+
 ip-use-dhcp: true
+
+# This will manually set an IPv4 to the unikernel's network
+# interfaces. For now, this technique only works when a unikernel has
+# only one network interface.
+
 # ip-address: 10.0.0.2
 # ip-netmask: 255.255.255.0
 # ip-gateway: 10.0.0.1
 
-# Filesystem configuration
+# Filesystem configuration. Directories can be specified here, and
+# they will be compiled into a "filesystem" where each file will be
+# presented to the unikernel via a key value interface. For example
+# here, there will be two databases, named respectively "static" and
+# "template", presenting the content of dir "../files" and "../templ"
+# respectively.
+
 fs-static: ../files
 fs-template: ../tmpl
 
@@ -44,14 +63,24 @@ main-http: Dispatch.main
 # main-noip: Noip.main
 
 # Dependencies
+
 depends: cohttp.syntax, uri, re, cow.syntax
 packages: mirage-net, cow
 
-# Target (Select a target compiler: takes precedence over --xen or --unix switch on the command line)
+# Target (Select a target compiler: takes precedence over --xen or
+# --unix switch on the command line)
+
 compiler: 4.01.0dev+mirage-xen
+
+# XL parameters. They will be used for creating the xl config file
+# when doing a `mirari run --xen`.
+
+xl-memory: 32
+xl-on_crash: preserve
+xl-vif: [ 'mac=00:16:3E:74:34:32' ]
+
 ```
 
-* The main function MUST have type TODO.
 * `depends` is a list of ocamlfind libraries
 * `packages` is a list of OPAM packages (which contains the `depends` libraries)
 * `compiler` is a OPAM compiler selector (see `opam switch`)
@@ -59,33 +88,33 @@ compiler: 4.01.0dev+mirage-xen
 We do understand there is replication between `depends` and `packages` at the
 moment, but this will eventually converge as OPAM understands ocamlfind better.
 
-In all cases, you can omit the configuration file if there is a *single* file
-ending with `.conf` in your current directory, and Mirari will pick that up.
-
 ## Configuring Mirage Applications
 
-The command:
+Provided that one and only one file of name `<foo>.conf` (where
+`<foo>` can be any string) is present in the current working
+directory, the command:
 
 ```
-$ mirari configure /path/to/app.conf
+$ mirari configure
 ```
 
-will configure your project. More precisely it will:
-* generate `/path/to/main.ml`
-* generate `/path/to/main.obuild`
+will configure your project. It will:
+
+* generate `main.ml`
+* generate `main.obuild`
 * call the right OPAM commands to satisfy dependencies.
-* call `cd /path/to && obuild configure`
+* call `obuild configure`
 
 To build for the unix-direct target (using tap interfaces), do:
 
 ```
-$ mirari configure /path/to/app.conf --unix
+$ mirari configure --unix
 ```
 
 To build for the xen target, do:
 
 ```
-$ mirari configure /path/to/app.conf --xen
+$ mirari configure --xen
 ```
 
 ## Building Mirage Applications
@@ -93,15 +122,37 @@ $ mirari configure /path/to/app.conf --xen
 The command:
 
 ```
-$ mirari build /path/to/app.conf
+$ mirari build
 ```
 
-will build your project. Likewise, you can use the --unix or --xen switches to build for a particular target.
+will build your project. Likewise, you can use the `--unix` or `--xen`
+switches to build for a particular target.
 
 ## Running Mirage Applications
 
-TODO.
+The command:
+
+```
+$ mirari run (--unix or --xen)
+```
+
+will run the unikernel on the selected backend.
+
+* Under the unix-socket backend, it just executes the unikernel.
+
+* Under the unix-direct backend (`--unix`), mirari sets up a virtual
+  interface (tap) is passes its fd to the unikernel that will use it to
+  perform networking operations.
+
+* Under the xen backend (`--xen`), mirari creates a xl configuration
+  file and uses `xl` to run the unikernel locally. Xen has to be
+  installed and running on the machine.
 
 ### Compiling to Xen and deploying to the cloud
 
-TODO
+In order to deploy a Mirage unikernel to Amazon EC2, you need to
+install the AWS tools on your machine, build a unikernel with the
+`--xen` option and then use the `ec2.sh` script (in directory
+`script`) in order to register you kernel with AWS. Then you can start
+your kernel with the web interface to AWS or any other mean AWS
+provides to start EC2 instances.

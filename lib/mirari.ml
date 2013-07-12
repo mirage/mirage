@@ -50,7 +50,7 @@ module FS = struct
     { dir; fs = List.map aux kvs }
 
   let call t =
-    if not (cmd_exists "mir-crunch") then begin
+    if not (cmd_exists "mir-crunch") && t.fs <> [] then begin
       info "mir-crunch not found, so installing the mirage-fs package.";
       opam_install ["mirage-fs"];
     end;

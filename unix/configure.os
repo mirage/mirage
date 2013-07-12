@@ -14,7 +14,7 @@ x86_64)
 esac
 
 case "$OS" in
-Darwin)
+FreeBSD|Darwin)
   ln -nsf tap_stubs_macosx.c lib/tap_stubs_os.c
   ;;
 Linux)

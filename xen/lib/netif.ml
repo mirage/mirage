@@ -21,6 +21,9 @@ let allocate_ring ~domid =
 	let page = Io_page.get 1 in
 	let x = Io_page.to_cstruct page in
 	lwt gnt = Gnt.Gntshr.get () in
+	for i = 0 to Cstruct.len x - 1 do
+	  Cstruct.set_uint8 x i 0
+	done;
 	Gnt.Gntshr.grant_access ~domid ~writeable:true gnt page;
 	return (gnt, x)
 

@@ -111,6 +111,7 @@ base_page_of(value v_iopage)
 CAMLprim value
 caml_gnttab_map(value v_ref, value v_iopage, value v_domid, value v_readonly)
 {
+    CAMLparam4(v_ref, v_iopage, v_domid, v_readonly);
     void *page = base_page_of(v_iopage);
 
     struct gnttab_map_grant_ref op;
@@ -127,12 +128,13 @@ caml_gnttab_map(value v_ref, value v_iopage, value v_domid, value v_readonly)
     }
 
     printk("GNTTABOP_map_grant_ref mapped to %x\n", op.host_addr);
-    return Val_int(op.handle);
+    CAMLreturn(Val_int(op.handle));
 }
 
 CAMLprim value
 caml_gnttab_unmap(value v_handle)
 {
+  CAMLparam1(v_handle);
   struct gnttab_unmap_grant_ref op;
   /* There's no need to resupply these values. 0 means "ignore" */
   op.host_addr = 0;
@@ -146,7 +148,7 @@ caml_gnttab_unmap(value v_handle)
     caml_failwith("Failed to unmap grant.");
   }
 
-  return Val_unit;
+  CAMLreturn(Val_unit);
 }
 
 CAMLprim value

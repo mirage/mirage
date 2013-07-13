@@ -297,7 +297,7 @@ let run () =
     let msgbuf = String.create 11 in
     let nbread, sockaddr, recvfd = Fd_send_recv.recv_fd unix_fd msgbuf 0 11 [] in
     let () = Printf.printf \"[backend]: %%d bytes read, received fd %%d\\n%%!\" nbread (Fd_send_recv.int_of_fd recvfd) in
-    let id = (String.trim (String.sub msgbuf 0 10)) in
+    let id = (OS.Netif.id_of_string (String.trim (String.sub msgbuf 0 10))) in
     let devtype = (if msgbuf.[10] = 'p' then OS.Netif.PCAP else OS.Netif.ETH) in
     OS.Netif.add_vif id devtype recvfd;
     Lwt_unix.(shutdown fd SHUTDOWN_ALL); (* Done, we can shutdown the connection now *)

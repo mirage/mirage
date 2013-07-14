@@ -34,10 +34,12 @@ let to_pages t =
     else acc in
   List.rev (loop 0 [])
 
-let pages n = to_pages (get n)
+let pages n =
+  let rec inner acc n =
+    if n > 0 then inner ((get 1)::acc) (n-1) else acc
+  in inner [] n
 
-let pages_order order = to_pages (get_order order)
-
+let pages_order order = pages (1 lsl order)
 
 let round_to_page_size n = ((n + page_size - 1) lsr 12) lsl 12
 

@@ -1,6 +1,5 @@
 0.9.3 (unreleased):
 * [xen] Gnt.grant_table_index is now an int, was an int32.
-* [xen] Console.log_s/Console.write_all now return unit.
 * [xen] Cleaned some C stubs files, mainly page_stubs.c
 * [xen] Improved module Netif: The function create do not take a
   callback anymore, hidden some private function from the .mli.

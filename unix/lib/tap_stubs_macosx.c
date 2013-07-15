@@ -30,7 +30,9 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#if !defined(__FreeBSD__)
 #include <net/ndrv.h>
+#endif
 #include <ifaddrs.h>
 
 #include <sys/types.h>
@@ -61,6 +63,7 @@ setnonblock(int fd)
     err(1, "setnonblock, F_SETFL");
 }
 
+#if !defined(__FreeBSD__)
 CAMLprim value
 eth_opendev(value v_str)
 {
@@ -84,6 +87,7 @@ eth_opendev(value v_str)
   // return the fd
   return Val_int(fd);
 }
+#endif
 
 CAMLprim value
 pcap_opendev(value v_name) {

@@ -55,19 +55,19 @@ module FS = struct
       opam_install ["mirage-fs"];
     end;
     List.iter (fun { name; path} ->
-      let path = Printf.sprintf "%s/%s" t.dir path in
-      let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
-      if Sys.file_exists path then (
-        info "Creating %s." file;
-        command "mir-crunch -o %s -name %S %s" file name path
-      ) else
-      error "The directory %s does not exist." path
-    ) t.fs
+        let path = Printf.sprintf "%s/%s" t.dir path in
+        let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
+        if Sys.file_exists path then (
+          info "Creating %s." file;
+          command "mir-crunch -o %s -name %S %s" file name path
+        ) else
+          error "The directory %s does not exist." path
+      ) t.fs
 
   let output oc t =
     List.iter (fun { name; _ } ->
-      append oc "open Filesystem_%s" name
-    ) t.fs;
+        append oc "open Filesystem_%s" name
+      ) t.fs;
     newline oc
 
 end
@@ -107,17 +107,17 @@ module IP = struct
           with _ -> "10.0.0.1" in
         IPv4 { address; netmask; gateway }
 
-    let output oc = function
-      | NOIP   -> ()
-      | DHCP   -> append oc "let ip = `DHCP"
-      | IPv4 i ->
-        append oc "let get = function Some x -> x | None -> failwith \"Bad IP!\"";
-        append oc "let ip = `IPv4 (";
-        append oc "  get (Net.Nettypes.ipv4_addr_of_string %S)," i.address;
-        append oc "  get (Net.Nettypes.ipv4_addr_of_string %S)," i.netmask;
-        append oc "  [get (Net.Nettypes.ipv4_addr_of_string %S)]" i.gateway;
-        append oc ")";
-        newline oc
+  let output oc = function
+    | NOIP   -> ()
+    | DHCP   -> append oc "let ip = `DHCP"
+    | IPv4 i ->
+      append oc "let get = function Some x -> x | None -> failwith \"Bad IP!\"";
+      append oc "let ip = `IPv4 (";
+      append oc "  get (Net.Nettypes.ipv4_addr_of_string %S)," i.address;
+      append oc "  get (Net.Nettypes.ipv4_addr_of_string %S)," i.netmask;
+      append oc "  [get (Net.Nettypes.ipv4_addr_of_string %S)]" i.gateway;
+      append oc ")";
+      newline oc
 
 end
 
@@ -226,8 +226,8 @@ module Build = struct
   let get name kvs =
     let kvs = List.filter (fun (k,_) -> k = name) kvs in
     List.fold_left (fun accu (_,v) ->
-      split v ',' @ accu
-    ) [] kvs
+        split v ',' @ accu
+      ) [] kvs
 
   let create ~dir ~name kvs =
     let depends = get "depends" kvs in
@@ -246,8 +246,8 @@ module Build = struct
     newline oc;
     append oc "executable mir-%s" t.name;
     append oc "  main: main.ml";
-    append oc "  buildDepends: mirage%s%s" 
-     (match mode with `unix _ -> ", fd-send-recv" |_ -> "") deps;
+    append oc "  buildDepends: mirage%s%s"
+      (match mode with `unix _ -> ", fd-send-recv" |_ -> "") deps;
     append oc "  pp: camlp4o";
     close_out oc
 
@@ -260,11 +260,11 @@ module Build = struct
   let prepare ~mode t =
     check t;
     let os =
-      match mode with 
+      match mode with
       | `unix _ -> "mirage-unix"
-      | `xen -> "mirage-xen" 
+      | `xen -> "mirage-xen"
     in
-    let net = 
+    let net =
       match mode with
       | `xen | `unix `direct -> "mirage-net-direct"
       | `unix `socket -> "mirage-net-socket"
@@ -280,7 +280,7 @@ module Backend = struct
     let oc = open_out file in
     match mode with
     |`unix _ ->
-        append oc "let (>>=) = Lwt.bind
+      append oc "let (>>=) = Lwt.bind
 
 let run () =
   let backlog = 5 in
@@ -351,9 +351,9 @@ let call_crunch_scripts t =
 
 let call_configure_scripts ~mode t =
   in_dir t.dir (fun () ->
-    command 
-      "obuild configure %s" (if mode = `xen then "--executable-as-obj" else "");
-  )
+      command
+        "obuild configure %s" (if mode = `xen then "--executable-as-obj" else "");
+    )
 
 let call_xen_scripts t =
   let obj = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.o" t.dir t.name t.name in
@@ -362,7 +362,7 @@ let call_xen_scripts t =
     let path = read_command "ocamlfind printconf path" in
     let lib = strip path ^ "/mirage-xen" in
     command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a \
- %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
+             %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
     command "ln -nfs %s/dist/build/mir-%s/mir-%s.xen mir-%s.xen" t.dir t.name t.name t.name;
     command "nm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
   end else
@@ -398,8 +398,8 @@ let configure ~mode ~no_install file =
   call_configure_scripts ~mode t
 
 let build ~mode file =
-    let file = scan_conf file in
-    let t = create mode file in
+  let file = scan_conf file in
+  let t = create mode file in
   (* build *)
   call_build_scripts ~mode t
 
@@ -457,9 +457,9 @@ let run ~mode file =
     let oc = open_out (t.name ^ ".xl") in
     finally
       (fun () ->
-        output_kv oc (["name", "\"" ^ t.name ^ "\"";
-                       "kernel", "\"mir-" ^ t.name ^ ".xen\""] @
-                        filter_map (subcommand ~prefix:"xl") t.kvs) "=")
+         output_kv oc (["name", "\"" ^ t.name ^ "\"";
+                        "kernel", "\"mir-" ^ t.name ^ ".xen\""] @
+                         filter_map (subcommand ~prefix:"xl") t.kvs) "=")
       (fun () -> close_out oc);
     Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
 

@@ -15,19 +15,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t
+(** Configuration library *)
 
+(** Usage modes *)
 type mode = [
   |`unix of [`direct | `socket ]
   |`xen
 ]
 
-val create : mode -> string -> t
+(** [configure ~mode ~no_install conf_file] configure a project. If
+    [conf_file] is [None], then look for a `.conf` file in the current
+    directory. *)
+val configure: mode:mode -> no_install:bool -> string option -> unit
 
-val configure : mode:mode -> no_install:bool -> string option -> unit
+(** [build ~mode ~no_install conf_file] builds a project. If
+    [conf_file] is [None], then look for a `.conf` file in the current
+    directory. *)
+val build: mode:mode -> string option -> unit
 
-val build : mode:mode -> string option -> unit
+(** [run ~mode conf_file] runs a project. If [conf_file] is [None],
+    then look for a `.conf` file in the current directory. *)
+val run: mode:mode -> string option -> unit
 
-val run : mode:mode -> string option -> unit
-
-val clean : unit -> unit
+(** [clean file] clean a project. If [confi_file] is [None], then look
+    for a `.conf` file in the current directory. *)
+val clean: string option -> unit

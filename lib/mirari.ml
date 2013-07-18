@@ -309,23 +309,21 @@ module Build = struct
     let ext = match mode with
       | `unix _ -> "native"
       | `xen    -> "native.o" in
-    let target = Printf.sprintf "%s.%s" t.name ext in
     let oc = open_out file in
     append oc "# %s" generated_by_mirari;
     newline oc;
-    append oc "PHONY: clean %s" target;
+    append oc "PHONY: clean main.native";
     newline oc;
     append oc "_build/.stamp:";
     append oc "\trm -rf _build";
     append oc "\tmkdir -p _build/lib";
     append oc "\t@touch $@";
     newline oc;
-    append oc "%%s: _build/.stamp";
+    append oc "main.native: _build/.stamp";
     append oc "\tocamlbuild -use-ocamlfind %s -tags \"syntax(camlp4o)\" main.%s"
       depends ext;
-    append oc "\tln -f mir-%s _build/main.%s" target ext;
     newline oc;
-    append oc "build: %s" target;
+    append oc "build: main.native";
     append oc "\t@ :";
     newline oc;
     append oc "clean:";
@@ -357,6 +355,7 @@ module Backend = struct
 
   let output ~mode dir =
     let file = Printf.sprintf "%s/backend.ml" dir in
+    info "+ creating %s" file;
     let oc = open_out file in
     match mode with
     |`unix _ ->

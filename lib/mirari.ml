@@ -429,14 +429,14 @@ let call_crunch_scripts t =
   FS.call t.fs
 
 let call_xen_scripts t =
-  let obj = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.native.o" t.dir t.name t.name in
-  let target = Printf.sprintf "%s/dist/build/mir-%s/mir-%s.xen" t.dir t.name t.name in
+  let obj = "_build/main.native.o" in
+  let target = "_build/main.xen" in
   if Sys.file_exists obj then begin
     let path = read_command "ocamlfind printconf path" in
     let lib = strip path ^ "/mirage-xen" in
     command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a \
              %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
-    command "ln -nfs %s/dist/build/mir-%s/mir-%s.xen mir-%s.xen" t.dir t.name t.name t.name;
+    command "ln -nfs _build/main.xen mir-%s.xen" t.name;
     command "nm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
   end else
     error "xen object file %s not found, cannot continue" obj

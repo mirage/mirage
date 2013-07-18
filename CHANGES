@@ -1,3 +1,6 @@
+(trunk)
+* completely remove the dependency towards obuild: use ocamlbuild everywhere now
+
 0.9.4 (2013-07-09):
 * build using ocamlbuild rather than depending on obuild.
 * [xen] generate a symbol that can be used to produce stack traces with xenctx.

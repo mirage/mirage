@@ -27,7 +27,7 @@ let wait evtchn =
   if Eventchn.is_valid evtchn then begin
 	  let port = Eventchn.to_int evtchn in
 	  let th, u = Lwt.task () in
-	  let node = Lwt_sequence.add_r u event_cb.(port) in
+	  let node = Lwt_sequence.add_l u event_cb.(port) in
 	  Lwt.on_cancel th (fun _ -> Lwt_sequence.remove node);
 	  th
   end else Lwt.fail Generation.Invalid

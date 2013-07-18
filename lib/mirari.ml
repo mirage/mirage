@@ -277,20 +277,20 @@ module Build = struct
       append oc "  link_gen \"cmx\" \"cmxa\" !Options.ext_lib [!Options.ext_obj; \"cmi\"] linker;;";
       newline oc;
       append oc "let native_output_obj x = native_link_gen ocamlopt_link_prog";
-      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"output_obj\") x;;";
+      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"program\"++\"output_obj\") x;;";
       newline oc;
       append oc "rule \"ocaml: cmx* & o* -> native.o\"";
-      append oc "  ~tags:[\"ocaml\"; \"native\"; \"output_obj\" ]";
+      append oc "  ~tags:[\"unused\" ]";
       append oc "  ~prod:\"%%.native.o\" ~deps:[\"%%.cmx\"; \"%%.o\"]";
       append oc "  (native_output_obj \"%%.cmx\" \"%%.native.o\");;";
       newline oc;
       newline oc;
       append oc "let byte_link_gen = link_gen \"cmo\" \"cma\" \"cma\" [\"cmo\"; \"cmi\"];;";
       append oc "let byte_output_obj = byte_link_gen ocamlc_link_prog";
-      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"output_obj\");;";
+      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"program\"++\"output_obj\");;";
       newline oc;
       append oc "rule \"ocaml: cmo* -> byte.o\"";
-      append oc "  ~tags:[\"ocaml\"; \"byte\"; \"link\"; \"output_obj\" ]";
+      append oc "  ~tags:[\"unused\" ]";
       append oc "  ~prod:\"%%.byte.o\" ~dep:\"%%.cmo\"";
       append oc "  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
       close_out oc

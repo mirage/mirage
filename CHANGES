@@ -1,5 +1,9 @@
-(trunk)
-* completely remove the dependency towards obuild: use ocamlbuild everywhere now
+0.9.5 (2013-07-18):
+* completely remove the dependency on obuild: use ocamlbuild everywhere now.
+* adapt for mirage-0.9.3 OS.Netif interfaces (abstract type `id`).
+* do not output network config when there are no `ip-*` lines in the `.conf` file.
+* do not try to install `mirage-fs` if there is no filesystem to create.
+* added `nat-script.sh` to setup xenbr0 with DNS, DHCP and masqerading under Linux.
 
 0.9.4 (2013-07-09):
 * build using ocamlbuild rather than depending on obuild.

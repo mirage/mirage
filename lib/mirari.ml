@@ -25,7 +25,7 @@ type mode = [
 let generated_by_mirari =
   let t = Unix.gettimeofday () in
   let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
-		  "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |] in
+                  "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |] in
   let days = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |] in
   let time = Unix.gmtime t in
   let date =

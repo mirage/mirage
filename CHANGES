@@ -1,4 +1,4 @@
-0.9.3 (unreleased):
+0.9.3 (18-July-2013):
 * [xen] Prevent spinning in `Activations.run` when a thread is blocked
   and then awakened.
 * [xen] Gnt.grant_table_index is now an int, was an int32.

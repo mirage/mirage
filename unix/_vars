@@ -1,5 +1,5 @@
 NAME=mirage
-VERSION=0.9.2
+VERSION=0.9.3
 DEPS="cstruct lwt lwt.unix tuntap"
 SYNTAX_DEPS="cstruct.syntax lwt.syntax"
 RUNTIME="unixrun"

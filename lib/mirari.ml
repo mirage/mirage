@@ -465,6 +465,10 @@ let run ~mode file =
 
 (* For now, only delete main.{ml,obuild}, the generated symlink and do
    an obuild clean *)
-let clean () =
-  command "obuild clean";
-  command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml *.xl *.map"
+let clean file =
+  let file = scan_conf file in
+  let t = create `xen file in
+  in_dir t.dir (fun () ->
+      command "obuild clean";
+      command "rm -f main.ml main.obuild mir-* backend.ml filesystem_*.ml *.xl *.map"
+    )

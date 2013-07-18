@@ -450,7 +450,7 @@ let call_build_scripts ~mode t =
     match mode with
     |`xen -> call_xen_scripts t
     |`unix _ ->
-      command "ln -nfs %s/dist/build/mir-%s/mir-%s mir-%s" t.dir t.name t.name t.name
+      command "ln -nfs _build/main.native mir-%s" t.name
   ) else
     error "You should run 'mirari configure %s' first." t.file
 

@@ -16,17 +16,20 @@
 
 #include <time.h>
 #include <sys/time.h>
+
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
+#include <caml/memory.h>
 #include <caml/fail.h>
 
-CAMLprim value 
+CAMLprim value
 unix_gettimeofday(value v_unit)
 {
+  CAMLparam1(v_unit);
   struct timeval tp;
   if (gettimeofday(&tp, NULL) == -1)
     caml_failwith("gettimeofday");
-  return caml_copy_double((double) tp.tv_sec + (double) tp.tv_usec / 1e6);
+  CAMLreturn(caml_copy_double((double) tp.tv_sec + (double) tp.tv_usec / 1e6));
 }
 
 static value alloc_tm(struct tm *tm)
@@ -45,12 +48,14 @@ static value alloc_tm(struct tm *tm)
   return res;
 }
 
-CAMLprim value unix_gmtime(value t)
+CAMLprim value
+unix_gmtime(value t)
 {
+  CAMLparam1(t);
   time_t clock;
   struct tm * tm;
   clock = (time_t) Double_val(t);
   tm = gmtime(&clock);
   if (tm == NULL) caml_failwith("gmtime");
-  return alloc_tm(tm);
+  CAMLreturn(alloc_tm(tm));
 }

@@ -21,6 +21,9 @@ let allocate_ring ~domid =
 	let page = Io_page.get 1 in
 	let x = Io_page.to_cstruct page in
 	lwt gnt = Gnt.Gntshr.get () in
+	for i = 0 to Cstruct.len x - 1 do
+	  Cstruct.set_uint8 x i 0
+	done;
 	Gnt.Gntshr.grant_access ~domid ~writeable:true gnt page;
 	return (gnt, x)
 
@@ -342,7 +345,7 @@ let writev nf pages =
   )
 
 let wait_for_plug nf =
-	Console.log_s "Wait for plug...";
+	Console.log_s "Wait for plug..." >>
 	Lwt_mutex.with_lock nf.l (fun () ->
 		while_lwt not (Eventchn.is_valid nf.t.evtchn) do
 			Lwt_condition.wait ~mutex:nf.l nf.c
@@ -360,9 +363,9 @@ let listen nf fn =
         Activations.wait t.evtchn >> return t
       with
       | Generation.Invalid ->
-        Console.log_s "Waiting for plug in listen";
-        lwt () = wait_for_plug nf in
-        Console.log_s "Done...";
+        Console.log_s "Waiting for plug in listen" >>
+        wait_for_plug nf >>
+        Console.log_s "Done..." >>
         return nf.t
     in poll_t new_t
   in

@@ -31,6 +31,7 @@
 CAMLprim value
 caml_alloc_pages(value n_pages)
 {
+  CAMLparam1(n_pages);
   size_t len = Int_val(n_pages) * PAGE_SIZE;
   /* If the allocation fails, return None. The ocaml layer will
      be able to trigger a full GC which just might run finalizers
@@ -41,5 +42,5 @@ caml_alloc_pages(value n_pages)
     printk("memalign(%d, %d) failed.\n", PAGE_SIZE, len);
     caml_failwith("memalign");
   }
-  return caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, len);
+  CAMLreturn(caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT | CAML_BA_MANAGED, 1, block, len));
 }

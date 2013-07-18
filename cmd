@@ -64,13 +64,13 @@ install()  {
     sed -e "s/@VERSION@/${VERSION}/g" < META.xenctrl.in > _config/META.xenctrl
   fi
   ${OCAMLFIND} remove ${NAME} || true
-  ${OCAMLFIND} remove xenctrl || true
   t=`sed -e 's,^,_build/,g' < _build/${NAME}.all`
   if [ ! -z "${DESTDIR}" ]; then
     OCAMLFIND_FLAGS="${OCAMLFIND_FLAGS} -destdir ${DESTDIR}"
   fi
   ${OCAMLFIND} install ${OCAMLFIND_FLAGS} ${NAME} _config/META ${t}
   if [ -e _config/META.xenctrl ]; then
+    ${OCAMLFIND} remove xenctrl || true
     ${OCAMLFIND} install ${OCAMLFIND_FLAGS} xenctrl _config/META.xenctrl
   fi
 }

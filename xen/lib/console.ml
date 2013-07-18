@@ -49,22 +49,22 @@ let create () =
   Eventchn.notify h evtchn;
   cons
 
-let rec _write_all cons buf off len =
+let rec write_all cons buf off len =
   if len > String.length buf - off
   then Lwt.fail (Invalid_argument "len")
   else
     let w = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
     Eventchn.notify h cons.evtchn;
     let left = len - w in
-    if left = 0 then return len
-    else wait cons >> _write_all cons buf (off+w) left
-
-let write_all cons buf off len = Lwt.async (fun () -> _write_all cons buf off len)
+    assert (left >= 0);
+    if left = 0 then return ()
+    else wait cons >> write_all cons buf (off+w) left
 
 let write cons buf off len =
   if len > String.length buf - off then raise (Invalid_argument "len");
   let nb_written = Console_ring.Ring.Front.unsafe_write cons.ring buf off len in
-  Eventchn.notify h cons.evtchn; nb_written
+  Eventchn.notify h cons.evtchn;
+  nb_written
 
 let t = create ()
 
@@ -72,8 +72,6 @@ let log s =
   let s = s ^ "\r\n" in
   let (_:int) = write t s 0 (String.length s) in ()
 
-let _log_s s =
+let log_s s =
   let s = s ^ "\r\n" in
-  _write_all t s 0 (String.length s) >>= fun (_:int) -> Lwt.return ()
-
-let log_s s = Lwt.async (fun () -> _log_s s)
+  write_all t s 0 (String.length s)

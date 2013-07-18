@@ -273,6 +273,7 @@ module Build = struct
       append oc "open Ocamlbuild_plugin;;";
       append oc "open Ocaml_compiler;;";
       newline oc;
+      append oc "let () = flag [\"ocaml\";\"link\";\"native\";\"program\"] (S[A\"-dontlink\";A\"unix\"])";
       append oc "let native_link_gen linker =";
       append oc "  link_gen \"cmx\" \"cmxa\" !Options.ext_lib [!Options.ext_obj; \"cmi\"] linker;;";
       newline oc;

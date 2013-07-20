@@ -273,25 +273,24 @@ module Build = struct
       append oc "open Ocamlbuild_plugin;;";
       append oc "open Ocaml_compiler;;";
       newline oc;
-      append oc "let () = flag [\"ocaml\";\"link\";\"native\";\"program\"] (S[A\"-dontlink\";A\"unix\"])";
       append oc "let native_link_gen linker =";
       append oc "  link_gen \"cmx\" \"cmxa\" !Options.ext_lib [!Options.ext_obj; \"cmi\"] linker;;";
       newline oc;
       append oc "let native_output_obj x = native_link_gen ocamlopt_link_prog";
-      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"program\"++\"output_obj\") x;;";
+      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"output_obj\") x;;";
       newline oc;
       append oc "rule \"ocaml: cmx* & o* -> native.o\"";
-      append oc "  ~tags:[\"unused\" ]";
+      append oc "  ~tags:[\"ocaml\"; \"native\"; \"output_obj\" ]";
       append oc "  ~prod:\"%%.native.o\" ~deps:[\"%%.cmx\"; \"%%.o\"]";
       append oc "  (native_output_obj \"%%.cmx\" \"%%.native.o\");;";
       newline oc;
       newline oc;
       append oc "let byte_link_gen = link_gen \"cmo\" \"cma\" \"cma\" [\"cmo\"; \"cmi\"];;";
       append oc "let byte_output_obj = byte_link_gen ocamlc_link_prog";
-      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"program\"++\"output_obj\");;";
+      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"output_obj\");;";
       newline oc;
       append oc "rule \"ocaml: cmo* -> byte.o\"";
-      append oc "  ~tags:[\"unused\" ]";
+      append oc "  ~tags:[\"ocaml\"; \"byte\"; \"link\"; \"output_obj\" ]";
       append oc "  ~prod:\"%%.byte.o\" ~dep:\"%%.cmo\"";
       append oc "  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
       close_out oc
@@ -321,7 +320,7 @@ module Build = struct
     append oc "\t@touch $@";
     newline oc;
     append oc "main.native: _build/.stamp";
-    append oc "\tocamlbuild -classic-display -use-ocamlfind %s -tags \"syntax(camlp4o)\" main.%s"
+    append oc "\tocamlbuild -classic-display -use-ocamlfind -lflag -linkpkg -lflag -dontlink -lflag unix %s -tags \"syntax(camlp4o)\" main.%s"
       depends ext;
     newline oc;
     append oc "build: main.native";

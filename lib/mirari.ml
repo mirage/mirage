@@ -321,7 +321,7 @@ module Build = struct
     append oc "\t@touch $@";
     newline oc;
     append oc "main.native: _build/.stamp";
-    append oc "\tocamlbuild -classic-display -use-ocamlfind %s -tags \"syntax(camlp4o)\" main.%s"
+    append oc "\tocamlbuild -classic-display -use-ocamlfind -lflag -linkpkg -lflag -dontlink -lflag unix %s -tags \"syntax(camlp4o)\" main.%s"
       depends ext;
     newline oc;
     append oc "build: main.native";

@@ -1,4 +1,4 @@
-0.9.6 (trunk):
+0.9.6 (2013-07-26):
 * fix unix-direct by linking the unix package correctly (previously it was always dropped).
  
 0.9.5 (2013-07-18):

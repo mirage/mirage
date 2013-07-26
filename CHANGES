@@ -1,3 +1,6 @@
+0.9.6 (trunk):
+* fix unix-direct by linking the unix package correctly (previously it was always dropped).
+ 
 0.9.5 (2013-07-18):
 * completely remove the dependency on obuild: use ocamlbuild everywhere now.
 * adapt for mirage-0.9.3 OS.Netif interfaces (abstract type `id`).

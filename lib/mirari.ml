@@ -320,7 +320,10 @@ module Build = struct
     append oc "\t@touch $@";
     newline oc;
     append oc "main.native: _build/.stamp";
-    append oc "\tocamlbuild -classic-display -use-ocamlfind -lflag -linkpkg -lflag -dontlink -lflag unix %s -tags \"syntax(camlp4o)\" main.%s"
+    append oc "\tocamlbuild -classic-display -use-ocamlfind -lflag -linkpkg %s %s -tags \"syntax(camlp4o)\" main.%s"
+      (match mode with
+       |`unix _ -> ""
+       |`xen -> "-lflag -dontlink -lflag unix")
       depends ext;
     newline oc;
     append oc "build: main.native";

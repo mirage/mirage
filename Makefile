@@ -1,5 +1,5 @@
 PREFIX ?= /usr/local
-VERSION=0.9.5
+VERSION=0.9.6
 
 all: _build/lib/mirari.native
 

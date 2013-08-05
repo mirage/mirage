@@ -542,5 +542,5 @@ let clean file =
   let t = create `xen file in
   in_dir t.dir (fun () ->
       command "make clean";
-      command "rm -f main.ml Makefile mir-* backend.ml filesystem_*.ml *.xl *.map"
+      command "rm -f main.ml myocamlbuild.ml Makefile mir-* backend.ml filesystem_*.ml *.xl *.map"
     )

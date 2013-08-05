@@ -164,8 +164,8 @@ let h = Eventchn.init ()
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let plug_inner id =
   lwt xsc = Xs.make () in
-  lwt backend_id = Xs.(immediate xsc (fun h -> read h (sprintf "device/vif/%s/backend-id" id))) >|= int_of_string in
-  Console.log (sprintf "Netfront.create: id=%s domid=%d\n%!" id backend_id);
+  lwt backend_id = Xs.(immediate xsc (fun h -> read h (sprintf "device/vif/%d/backend-id" id))) >|= int_of_string in
+  Console.log (sprintf "Netfront.create: id=%d domid=%d\n%!" id backend_id);
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (rx_gnt, rx_fring, rx_client) = RX.create (id, backend_id) in
   lwt (tx_gnt, tx_fring, tx_client) = TX.create (id, backend_id) in
@@ -173,7 +173,7 @@ let plug_inner id =
   let evtchn = Eventchn.bind_unbound_port h backend_id in
   let evtchn_port = Eventchn.to_int evtchn in
   (* Read Xenstore info and set state to Connected *)
-  let node = sprintf "device/vif/%s/" id in
+  let node = sprintf "device/vif/%d/" id in
   lwt backend = Xs.(immediate xsc (fun h -> read h (node ^ "backend"))) in
   lwt mac = Xs.(immediate xsc (fun h -> read h (node ^ "mac"))) in
   printf "MAC: %s\n%!" mac;
@@ -374,7 +374,7 @@ let listen nf fn =
 
 (** Return a list of valid VIFs *)
 let enumerate () =
-  let xsc = Xs.make () in
+  Xs.make () >>= fun xsc ->
   Lwt.catch
     (fun () -> Xs.(immediate xsc (fun h -> directory h "device/vif")) >|= (List.map int_of_string) )
     (fun _ -> Lwt.return [])

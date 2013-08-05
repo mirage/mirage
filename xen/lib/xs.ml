@@ -36,7 +36,7 @@ let t = ref None
 
 let h = Eventchn.init ()
 
-module Client = Xs_client_lwt.Client(struct
+module IO = struct
     type 'a t = 'a Lwt.t
     type channel = chan
     let return = Lwt.return
@@ -77,7 +77,9 @@ module Client = Xs_client_lwt.Client(struct
         lwt () = Activations.wait t.evtchn in
         write t buf (ofs + n) (len - n)
       end else return ()
-end)
+end
+
+module Client = Xs_client_lwt.Client(IO)
 
 include Client
 

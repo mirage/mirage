@@ -62,3 +62,17 @@ val resume : client -> unit Lwt.t
 (** [resume ()] resumes the xenstore client. This function is called
     by {!Sched.resume} in order to resume an unikernel. Do not use it
     unless you know what you are doing. *)
+
+(** XenStore transport over Mirage that can be used to instanciate a
+    Xs_client_lwt functor. *)
+module IO : sig
+  type 'a t = 'a Lwt.t
+  val return: 'a -> 'a t
+  val ( >>= ): 'a t -> ('a -> 'b t) -> 'b t
+
+  type channel
+  val create: unit -> channel t
+  val destroy: channel -> unit t
+  val read: channel -> string -> int -> int -> int t
+  val write: channel -> string -> int -> int -> unit t
+end

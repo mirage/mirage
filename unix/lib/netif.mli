@@ -47,7 +47,7 @@ exception Device_down of id
 
 val get_writebuf : t -> Cstruct.t Lwt.t
 val id           : t -> id
-val mac          : t -> string
+val mac          : t -> Macaddr.t
 
 (** [add_vif id kind fd] adds a network interface to the XenStore
     analog of the UNIX backend. All interfaces that the unikernel

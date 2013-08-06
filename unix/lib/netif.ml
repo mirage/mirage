@@ -35,7 +35,7 @@ type t = {
   mutable buf: Cstruct.t;
           dev: Lwt_unix.file_descr;
   mutable active: bool;
-          mac: string;
+          mac: Macaddr.t;
 }
 
 type vif_info = {
@@ -60,8 +60,8 @@ let plug dev_type id fd =
   match dev_type with
     | ETH ->
       let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
-      let mac = Tuntap.make_local_hwaddr () in
-      printf "plugging into %s with mac %s..\n%!" id (Tuntap.string_of_hwaddr mac);
+      let mac = Macaddr.make_local () in
+      printf "plugging into %s with mac %s..\n%!" id (Macaddr.to_string mac);
       let active = true in
       let t = { id; dev; active; mac; typ=ETH;buf_sz=4096;
                 buf=Io_page.to_cstruct (Lwt_bytes.create 0) } in
@@ -72,7 +72,7 @@ let plug dev_type id fd =
     | PCAP ->
       let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
       let mac = Tuntap.get_hwaddr id in
-      printf "attaching %s with mac %s..\n%!" id (Tuntap.string_of_hwaddr mac);
+      printf "attaching %s with mac %s..\n%!" id (Macaddr.to_string mac);
       let buf_sz = pcap_get_buf_len fd in
       let active = true in
       let t = { id; dev; active; mac; typ=PCAP; buf_sz;

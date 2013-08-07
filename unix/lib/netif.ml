@@ -60,7 +60,7 @@ let plug dev_type id fd =
   match dev_type with
     | ETH ->
       let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
-      let mac = Macaddr.make_local () in
+      let mac = Macaddr.make_local (fun _ -> Random.int 256) in
       printf "plugging into %s with mac %s..\n%!" id (Macaddr.to_string mac);
       let active = true in
       let t = { id; dev; active; mac; typ=ETH;buf_sz=4096;
@@ -71,7 +71,7 @@ let plug dev_type id fd =
 
     | PCAP ->
       let dev = Lwt_unix.of_unix_file_descr ~blocking:false fd in
-      let mac = Tuntap.get_hwaddr id in
+      let mac = Tuntap.get_macaddr id in
       printf "attaching %s with mac %s..\n%!" id (Macaddr.to_string mac);
       let buf_sz = pcap_get_buf_len fd in
       let active = true in

@@ -30,7 +30,8 @@ let add_resume_hook hook =
   resume_hooks := hook :: !resume_hooks
 
 let suspend () =
-  lwt () = Xs.suspend () in
+  lwt xs_client = Xs.make () in
+  lwt () = Xs.suspend xs_client in
   Gnt.suspend ();
 
   let result = _suspend () in
@@ -38,7 +39,7 @@ let suspend () =
   Generation.resume ();
   Gnt.resume ();
   Activations.resume ();
-  lwt () = Xs.resume () in
+  lwt () = Xs.resume xs_client in
   lwt () = Lwt_list.iter_p (fun f -> f ()) !resume_hooks in
   Lwt.return result
   

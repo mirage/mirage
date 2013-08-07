@@ -163,7 +163,8 @@ let h = Eventchn.init ()
 
 (* Given a VIF ID and backend domid, construct a netfront record for it *)
 let plug_inner id =
-  lwt backend_id = Xs.(immediate (fun h -> read h (sprintf "device/vif/%d/backend-id" id))) >|= int_of_string in
+  lwt xsc = Xs.make () in
+  lwt backend_id = Xs.(immediate xsc (fun h -> read h (sprintf "device/vif/%d/backend-id" id))) >|= int_of_string in
   Console.log (sprintf "Netfront.create: id=%d domid=%d\n%!" id backend_id);
   (* Allocate a transmit and receive ring, and event channel for them *)
   lwt (rx_gnt, rx_fring, rx_client) = RX.create (id, backend_id) in
@@ -173,10 +174,10 @@ let plug_inner id =
   let evtchn_port = Eventchn.to_int evtchn in
   (* Read Xenstore info and set state to Connected *)
   let node = sprintf "device/vif/%d/" id in
-  lwt backend = Xs.(immediate (fun h -> read h (node ^ "backend"))) in
-  lwt mac = Xs.(immediate (fun h -> read h (node ^ "mac"))) in
+  lwt backend = Xs.(immediate xsc (fun h -> read h (node ^ "backend"))) in
+  lwt mac = Xs.(immediate xsc (fun h -> read h (node ^ "mac"))) in
   printf "MAC: %s\n%!" mac;
-  Xs.(transaction (fun h ->
+  Xs.(transaction xsc (fun h ->
     let wrfn k v = write h (node ^ k) v in
     wrfn "tx-ring-ref" (string_of_int tx_gnt) >>
     wrfn "rx-ring-ref" (string_of_int rx_gnt) >>
@@ -187,7 +188,7 @@ let plug_inner id =
     wrfn "state" Device_state.(to_string Connected)
   )) >>
   (* Read backend features *)
-  lwt features = Xs.(transaction (fun h ->
+  lwt features = Xs.(transaction xsc (fun h ->
     let rdfn k =
       try_lwt
         read h (sprintf "%s/feature-%s" backend k) >>= 
@@ -373,8 +374,9 @@ let listen nf fn =
 
 (** Return a list of valid VIFs *)
 let enumerate () =
+  Xs.make () >>= fun xsc ->
   Lwt.catch
-    (fun () -> Xs.(immediate (fun h -> directory h "device/vif")) >|= (List.map int_of_string) )
+    (fun () -> Xs.(immediate xsc (fun h -> directory h "device/vif")) >|= (List.map int_of_string) )
     (fun _ -> Lwt.return [])
 
 let resume (id,t) =

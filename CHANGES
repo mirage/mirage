@@ -1,3 +1,8 @@
+0.9.4 (7-Aug-2013):
+* [xen] add atomic load/store bindings for shared memory rings
+* [xen] add atomic operations necessary for vchan
+* [xen] expose memory barriers via Xenctrl ocamlfind package
+
 0.9.3 (18-July-2013):
 * [xen] Prevent spinning in `Activations.run` when a thread is blocked
   and then awakened.

@@ -1,5 +1,5 @@
 NAME=mirage
-VERSION=0.9.3
+VERSION=0.9.4
 DEPS="lwt cstruct xenstore shared-memory-ring shared-memory-ring.lwt shared-memory-ring.xenstore shared-memory-ring.console"
 SYNTAX_DEPS="lwt.syntax cstruct.syntax"
 LIB="oS"

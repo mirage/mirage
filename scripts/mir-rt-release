@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+#
+# Build and install all the supported variants of Mirage in fresh
+# OPAM switches.  This assumes you have a 4.00.1 system compiler
+# (so that fast switching works) and a functional OPAM.
+#
+
+# Set your desired pinning here for the core repos
+
+OPAM_REPO=~/src/git/mirage/opam-repository
+PIN_MIRAGE_PLATFORM=
+PIN_MIRAGE_NET=
+PIN_MIRARI=
+TARGET_PACKAGE="mirage-www"
+OPAM=opam
+DRY=
+#uncomment this if you want a dry run
+#DRY=echo
+
+set -e
+BASESWITCH=`pwd`
+export OPAMROOT="$BASESWITCH/opamroot"
+export OPAMYES="doitjustdooooitdooooitnowwww"
+
+$DRY $OPAM init $OPAM_REPO
+
+function pin_if_needed {
+  if [ "$2" != "" ]; then
+    $DRY $OPAM pin $1 $2
+  fi
+}
+  
+function do_build {
+  name=$1
+  switch="$2 $3"
+  echo Building: $switch
+  $DRY $OPAM switch $name -a system
+  pin_if_needed mirari "$PIN_MIRARI"
+  pin_if_needed mirage-unix "$PIN_MIRAGE_PLATFORM"
+  pin_if_needed mirage-xen "$PIN_MIRAGE_PLATFORM"
+  pin_if_needed mirage-net-direct "$PIN_MIRAGE_NET"
+  pin_if_needed mirage-net-socket "$PIN_MIRAGE_NET"
+  $DRY $OPAM install $2 $3 $TARGET_PACKAGE
+}
+
+OS=`uname -s`
+
+if [ "$OS" = "Linux" ]; then
+  do_build "xen" mirage-xen
+fi
+
+do_build "unix-direct" mirage-unix mirage-net-direct
+do_build "unix-socket" mirage-unix mirage-net-socket

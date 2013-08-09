@@ -33,7 +33,7 @@ function pin_if_needed {
 function do_build {
   name=$1
   switch="$2 $3"
-  echo $switch : in $OPAMSWITCH
+  echo Building: $switch
   $DRY $OPAM switch $name -a system
   pin_if_needed mirari "$PIN_MIRARI"
   pin_if_needed mirage-unix "$PIN_MIRAGE_PLATFORM"

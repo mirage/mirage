@@ -139,9 +139,9 @@ module IP = struct
     | IPv4 i ->
       append oc "let get = function Some x -> x | None -> failwith \"Bad IP!\"";
       append oc "let ip = `IPv4 (";
-      append oc "  get (Net.Nettypes.ipv4_addr_of_string %S)," i.address;
-      append oc "  get (Net.Nettypes.ipv4_addr_of_string %S)," i.netmask;
-      append oc "  [get (Net.Nettypes.ipv4_addr_of_string %S)]" i.gateway;
+      append oc "  get (Ipaddr.V4.of_string %S)," i.address;
+      append oc "  get (Ipaddr.V4.of_string %S)," i.netmask;
+      append oc "  [get (Ipaddr.V4.of_string %S)]" i.gateway;
       append oc ")";
       newline oc
 
@@ -180,7 +180,7 @@ module HTTP = struct
       begin
         match t.address with
         | None   -> append oc "let listen_address = None"
-        | Some a -> append oc "let listen_address = Net.Nettypes.ipv4_addr_of_string %S" a;
+        | Some a -> append oc "let listen_address = Ipaddr.V4.of_string %S" a;
       end;
       newline oc
 

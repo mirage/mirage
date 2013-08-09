@@ -1,3 +1,6 @@
+0.9.7 (2013-08-09):
+* Generate code that uses the `Ipaddr.V4` interface instead of `Nettypes`.
+ 
 0.9.6 (2013-07-26):
 * fix unix-direct by linking the unix package correctly (previously it was always dropped).
  

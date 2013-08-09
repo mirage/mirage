@@ -129,7 +129,7 @@ type transport = {
   id: int;
   backend_id: int;
   backend: string;
-  mac: string;
+  mac: Macaddr.t;
   tx_fring: (TX.response,int) Ring.Rpc.Front.t;
   tx_client: (TX.response,int) Lwt_ring.Front.t;
   tx_gnt: Gnt.gntref;
@@ -175,8 +175,14 @@ let plug_inner id =
   (* Read Xenstore info and set state to Connected *)
   let node = sprintf "device/vif/%d/" id in
   lwt backend = Xs.(immediate xsc (fun h -> read h (node ^ "backend"))) in
-  lwt mac = Xs.(immediate xsc (fun h -> read h (node ^ "mac"))) in
-  printf "MAC: %s\n%!" mac;
+  lwt mac =
+    Xs.(immediate xsc (fun h -> read h (node ^ "mac"))) 
+    >|= Macaddr.of_string
+    >>= function
+    | None -> Lwt.fail (Failure "invalid mac")
+    | Some m -> return m 
+  in
+  printf "MAC: %s\n%!" (Macaddr.to_string mac);
   Xs.(transaction xsc (fun h ->
     let wrfn k v = write h (node ^ k) v in
     wrfn "tx-ring-ref" (string_of_int tx_gnt) >>
@@ -406,19 +412,7 @@ let create () =
     (fun exn  -> Hashtbl.iter (fun id _ -> unplug id) devices; Lwt.fail exn)
 
 (* The Xenstore MAC address is colon separated, very helpfully *)
-let mac nf = 
-  let s = String.create 6 in
-  Scanf.sscanf nf.t.mac "%02x:%02x:%02x:%02x:%02x:%02x"
-    (fun a b c d e f ->
-      s.[0] <- Char.chr a;
-      s.[1] <- Char.chr b;
-      s.[2] <- Char.chr c;
-      s.[3] <- Char.chr d;
-      s.[4] <- Char.chr e;
-      s.[5] <- Char.chr f;
-    );
-  s
-
+let mac nf = nf.t.mac
 
 (* Get write buffer for Netif output *)
 let get_writebuf t =

@@ -1,4 +1,7 @@
-0.9.4 (7-Aug-2013):
+0.9.5 (09-Aug-2013):
+* [xen] Port Netif to use the `Macaddr` module from `ocaml-ipaddr`.
+
+0.9.4 (07-Aug-2013):
 * [xen] add atomic load/store bindings for shared memory rings
 * [xen] add atomic operations necessary for vchan
 * [xen] expose memory barriers via Xenctrl ocamlfind package

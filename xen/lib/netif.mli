@@ -48,7 +48,7 @@ val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 (** [listen nf cb] is a thread that listens endlesses on [nf], and
     invoke the callback function as frames are received. *)
 
-val mac : t -> string
+val mac : t -> Macaddr.t
 (** [mac nf] is the MAC address of [nf]. *)
 
 val get_writebuf : t -> Cstruct.t Lwt.t

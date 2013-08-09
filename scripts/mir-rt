@@ -7,13 +7,15 @@
 
 # Set your desired pinning here for the core repos
 
-OPAM_REPO=~/src/git/mirage/opam-repository
-PIN_MIRAGE_PLATFORM=~/src/git/mirage/mirage-platform
-PIN_MIRAGE_NET=~/src/git/mirage/mirage-net
-PIN_MIRARI=~/src/git/mirage/mirari
+OPAM_REPO=git://github.com/mirage/opam-repository
+PIN_MIRAGE_PLATFORM=git://github.com/mirage/mirage-platform
+PIN_MIRAGE_NET=git://github.com/mirage/mirage-net
+PIN_MIRARI=git://github.com/mirage/mirari
 TARGET_PACKAGE="mirage-www"
 OPAM=opam
 DRY=
+#uncomment this if you want a dry run
+#DRY=echo
 
 set -e
 BASESWITCH=`pwd`
@@ -41,6 +43,11 @@ function do_build {
   $DRY $OPAM install $2 $3 $TARGET_PACKAGE
 }
 
-do_build "xen" mirage-xen
+OS=`uname -s`
+
+if [ "$OS" = "Linux" ]; then
+  do_build "xen" mirage-xen
+fi
+
 do_build "unix-direct" mirage-unix mirage-net-direct
 do_build "unix-socket" mirage-unix mirage-net-socket

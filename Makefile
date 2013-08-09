@@ -19,9 +19,6 @@ clean:
 	cd $(OS) && $(MAKE) clean
 
 install:
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp scripts/mir-run $(DESTDIR)$(PREFIX)/bin/
-	chmod a+x $(DESTDIR)$(PREFIX)/bin/mir-run
 	cd $(OS) && $(MAKE) install
 
 uninstall:

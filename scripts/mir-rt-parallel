@@ -44,7 +44,7 @@ function prep_build {
 function run_build {
   log="$1.log"
   switch="$2 $3"
-  $DRY $OPAM install $2 $3 $TARGET_PACKAGE > $log 2>&1
+  $DRY $OPAM install --switch $1 $2 $3 $TARGET_PACKAGE > $log 2>&1
 }
 
 OS=`uname -s`

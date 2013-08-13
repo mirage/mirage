@@ -148,11 +148,11 @@ let default =
       \              [--help]\n\
       \              <command> [<args>]\n\
       \n\
-      The most commonly used opam commands are:\n\
+      The most commonly used mirari commands are:\n\
       \    configure   %s\n\
       \    build       %s\n\
       \n\
-      See 'opam help <command>' for more information on a specific command.\n%!"
+      See 'mirari help <command>' for more information on a specific command.\n%!"
       configure_doc build_doc in
   Term.(pure usage $ pure ()),
   Term.info "mirari"

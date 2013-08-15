@@ -22,10 +22,8 @@ type chan = {
 (* An inter-domain client is always via a shared memory page
    and an event channel. *)
 
-external xenstore_start_page: unit -> Io_page.t = "caml_xenstore_start_page"
-
 let open_channel () =
-  let page = Io_page.to_cstruct (xenstore_start_page ()) in
+  let page = Io_page.to_cstruct Start_info.(xenstore_start_page ()) in
   Xenstore_ring.Ring.init page;
   let evtchn = Eventchn.of_int Start_info.((get ()).store_evtchn) in
   return { page; evtchn }

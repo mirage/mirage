@@ -63,20 +63,18 @@ CAMLprim value
 caml_console_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
-  CAMLlocal1(v_ret);
-  intnat dims[] = { PAGE_SIZE };
-  unsigned char *page = mfn_to_virt(start_info.console.domU.mfn);
-  v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
-  CAMLreturn(v_ret);
+  CAMLreturn(caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT,
+                                1,
+                                mfn_to_virt(start_info.console.domU.mfn),
+                                (long)PAGE_SIZE));
 }
 
 CAMLprim value
 caml_xenstore_start_page(value v_unit)
 {
   CAMLparam1(v_unit);
-  CAMLlocal1(v_ret);
-  intnat dims[] = { PAGE_SIZE };
-  unsigned char *page = mfn_to_virt(start_info.store_mfn);
-  v_ret = caml_ba_alloc(CAML_BA_UINT8 | CAML_BA_C_LAYOUT, 1, page, dims);
-  CAMLreturn(v_ret);
+  CAMLreturn(caml_ba_alloc_dims(CAML_BA_UINT8 | CAML_BA_C_LAYOUT,
+                                1,
+                                mfn_to_virt(start_info.store_mfn),
+                                (long)PAGE_SIZE));
 }

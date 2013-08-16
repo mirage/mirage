@@ -390,6 +390,18 @@ let run () =
 
 end
 
+module XL = struct
+  let output name kvs =
+    info "+ creating %s" (name ^ ".xl");
+    let oc = open_out (name ^ ".xl") in
+    finally
+      (fun () ->
+         output_kv oc (["name", "\"" ^ name ^ "\"";
+                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
+                         filter_map (subcommand ~prefix:"xl") kvs) "=")
+      (fun () -> close_out oc);
+end
+
 (* A type describing all the configuration of a mirage unikernel *)
 type t = {
   file     : string;           (* Path of the mirari config file *)
@@ -466,6 +478,8 @@ let configure ~mode ~no_install file =
   Build.output ~mode t.build;
   (* Generate the Backend module *)
   Backend.output ~mode t.dir;
+  (* Generate the XL config file if backend = Xen *)
+  if mode = `xen then XL.output t.name t.kvs;
   (* install OPAM dependencies *)
   if not no_install then Build.prepare ~mode t.build;
   (* crunch *)
@@ -528,13 +542,6 @@ let run ~mode file =
       end
   |`xen -> (* xen backend *)
     info "+ xen mode";
-    let oc = open_out (t.name ^ ".xl") in
-    finally
-      (fun () ->
-         output_kv oc (["name", "\"" ^ t.name ^ "\"";
-                        "kernel", "\"mir-" ^ t.name ^ ".xen\""] @
-                         filter_map (subcommand ~prefix:"xl") t.kvs) "=")
-      (fun () -> close_out oc);
     Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
 
 let clean file =

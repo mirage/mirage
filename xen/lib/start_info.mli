@@ -23,3 +23,11 @@ type t = {
 
 val get: unit -> t
 (** [get ()] is the record containing the start info page. *)
+
+val console_start_page: unit -> Io_page.t
+(** [console_start_page ()] is the console page automatically
+    allocated by Xen. *)
+
+val xenstore_start_page: unit -> Io_page.t
+(** [xenstore_start_page ()] is the xenstore page automatically
+    allocated by Xen. *)

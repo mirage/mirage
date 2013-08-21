@@ -15,46 +15,28 @@
 
 open Lwt
 
-type chan = {
-  mutable page: Cstruct.t;
-  mutable evtchn: Eventchn.t;
-}
-(* An inter-domain client is always via a shared memory page
-   and an event channel. *)
-
-external xenstore_start_page: unit -> Io_page.t = "caml_xenstore_start_page"
-
-let open_channel () =
-  let page = Io_page.to_cstruct (xenstore_start_page ()) in
-  Xenstore_ring.Ring.init page;
-  let evtchn = Eventchn.of_int Start_info.((get ()).store_evtchn) in
-  return { page; evtchn }
-
-let t = ref None
-(* We keep a reference to any currently open xenstore connection
-   for use in the suspend code. *)
-
-let h = Eventchn.init ()
-
+(* Mirage transport for XenStore. *)
 module IO = struct
     type 'a t = 'a Lwt.t
-    type channel = chan
+    type channel = {
+      mutable page: Cstruct.t;
+      mutable evtchn: Eventchn.t;
+    }
     let return = Lwt.return
     let (>>=) = Lwt.bind
     exception Already_connected
     exception Cannot_destroy
 
+    let h = Eventchn.init ()
+
+    type backend = [ `unix | `xen ]
+    let backend = `xen
+
     let create () =
-       match !t with
-       | Some ch ->
-         (* This can never happen provided only one xenstore client is
-            ever created, see the function 'make' below. *)
-         Console.log "ERROR: Already connected to xenstore: cannot reconnect";
-         fail Already_connected
-       | None ->
-         lwt ch = open_channel () in
-         t := Some ch;
-         return ch
+      let page = Io_page.to_cstruct Start_info.(xenstore_start_page ()) in
+      Xenstore_ring.Ring.init page;
+      let evtchn = Eventchn.of_int Start_info.((get ()).store_evtchn) in
+      return { page; evtchn }
 
     let destroy t =
       Console.log "ERROR: It's not possible to destroy the default xenstore connection";
@@ -81,35 +63,5 @@ module IO = struct
       end else return ()
 end
 
-module Client = Xs_client_lwt.Client(IO)
+include Xs_client_lwt.Client(IO)
 
-include Client
-
-let client_cache = ref None
-(* The whole application must only use one xenstore client, which will
-   multiplex all requests onto the same ring. *)
-
-let client_cache_m = Lwt_mutex.create ()
-(* Multiple threads will call 'make' in parallel. We must ensure only
-   one client is created. *)
-
-let make () =
-  Lwt_mutex.with_lock client_cache_m
-    (fun () -> match !client_cache with
-      | Some c -> return c
-      | None ->
-        lwt c = make () in
-        client_cache := Some c;
-        return c
-    )
-
-let resume client =
-	lwt ch = open_channel () in
-	begin match !t with
-		| Some ch' ->
-			ch'.page <- ch.page;
-			ch'.evtchn <- ch.evtchn;
-		| None ->
-			();
-	end;
-	resume client

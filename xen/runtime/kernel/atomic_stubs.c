@@ -20,26 +20,27 @@
 #include <caml/fail.h>
 #include <caml/bigarray.h>
 
-CAMLprim value stub_atomic_or_fetch(value buf, value idx, value val)
+CAMLprim value stub_atomic_or_fetch_uint8(value buf, value idx, value val)
 {
   CAMLparam3(buf, idx, val);
   // Finding the address of buf+idx
-  char *ptr = Caml_ba_data_val(buf) + idx;
+  uint8_t c_val = (uint8_t)Int_val(val);
+  uint8_t *ptr = Caml_ba_data_val(buf) + Int_val(idx);
 
   if (Int_val(idx) >= Caml_ba_array_val(buf)->dim[0])
     caml_invalid_argument("idx");
 
-  CAMLreturn(Val_int(__sync_or_and_fetch(ptr, Int_val(val))));
+  CAMLreturn(Val_int((uint8_t)__sync_or_and_fetch(ptr, c_val)));
 }
 
-CAMLprim value stub_atomic_fetch_and(value buf, value idx, value val)
+CAMLprim value stub_atomic_fetch_and_uint8(value buf, value idx, value val)
 {
   CAMLparam3(buf, idx, val);
-
-  char *ptr = Caml_ba_data_val(buf) + idx;
+  uint8_t c_val = (uint8_t)Int_val(val);
+  uint8_t *ptr = Caml_ba_data_val(buf) + Int_val(idx);
 
   if (Int_val(idx) >= Caml_ba_array_val(buf)->dim[0])
     caml_invalid_argument("idx");
 
-  CAMLreturn(Val_int(__sync_fetch_and_and(ptr, Int_val(val))));
+  CAMLreturn(Val_int((uint8_t)__sync_fetch_and_and(ptr, c_val)));
 }

@@ -32,14 +32,12 @@ exception Internal_error of string
 (** Called by a console thread that wishes to sleep (or be cancelled) *)
 let wait cons = Activations.wait cons.evtchn
 
-external console_start_page: unit -> Io_page.t = "caml_console_start_page"
-
 let h = Eventchn.init ()
 
 let create () =
   let backend_id = 0 in
   let gnt = Gnt.console in
-  let page = console_start_page () in
+  let page = Start_info.console_start_page () in
   let ring = Io_page.to_cstruct page in
   Console_ring.Ring.init ring; (* explicitly zero the ring *)
   let evtchn = Eventchn.of_int Start_info.((get ()).console_evtchn) in

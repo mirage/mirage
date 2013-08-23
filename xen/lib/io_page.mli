@@ -14,7 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Memory allocation. *)
+(** Memory allocation.
+
+    Memory deallocation is normally automatic and handled by the
+    GC. In specific cases where you can ensure that a block can be
+    safely deallocated, you can call [recycle] on it instead of
+    leaving it to the GC. This will enable a much faster reallocation,
+    and can be very useful to handle ICMP/ARP floods that would
+    otherwise put the GC into pressure.
+
+*)
 
 type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 (** Type of memory blocks. *)
@@ -50,3 +59,8 @@ val string_blit : string -> int -> t -> int -> int -> unit
 
 val blit : t -> t -> unit
 (** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)
+
+val recycle : t -> unit
+(** [recycle block] puts [block] into the stack of reusable pages if
+    the size of [block] is exactly one page, or raise
+    [Invalid_argument] otherwise. *)

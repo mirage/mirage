@@ -28,7 +28,7 @@ let get_unsafe n = Array1.create char c_layout (n * page_size)
 let get = function
   | n when n < 1 ->
     raise (Invalid_argument "The number of page should be greater or equal to 1")
-  | 1 -> if Stack.is_empty cache then get_unsafe 1 else Stack.pop cache
+  | 1 -> (try Stack.pop cache with Stack.Empty -> get_unsafe 1)
   | n -> get_unsafe n
 
 let recycle frame =

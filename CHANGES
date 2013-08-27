@@ -1,3 +1,7 @@
+0.9.6 (27-Aug-2013):
+* [xen] adapt to new xenstore interface which allows the same code
+  to be compiled under Unix userspace and xen kernelspace
+
 0.9.5 (09-Aug-2013):
 * Add the `mir-rt` regression runner to `scripts/` (not installed).
 * Unhook `mir-run` from the build, as Mirari replaces it.

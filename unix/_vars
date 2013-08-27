@@ -1,5 +1,5 @@
 NAME=mirage
-VERSION=0.9.5
+VERSION=0.9.6
 DEPS="cstruct lwt lwt.unix tuntap ipaddr"
 SYNTAX_DEPS="cstruct.syntax lwt.syntax"
 RUNTIME="unixrun"

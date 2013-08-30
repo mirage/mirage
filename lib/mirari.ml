@@ -360,8 +360,10 @@ module Backend = struct
     let file = Printf.sprintf "%s/backend.ml" dir in
     info "+ creating %s" file;
     let oc = open_out file in
+    append oc "(* %s *)" generated_by_mirari;
+    newline oc;
     match mode with
-    |`unix _ ->
+    |`unix `direct ->
       append oc "let (>>=) = Lwt.bind
 
 let run () =
@@ -385,7 +387,7 @@ let run () =
     Lwt_unix.(shutdown fd SHUTDOWN_ALL); (* Done, we can shutdown the connection now *)
     accept_loop ()
   in accept_loop ()"
-    |`xen ->
+    | _ ->
       append oc "let run () = Lwt.return ()"
 
 end

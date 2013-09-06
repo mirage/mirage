@@ -19,7 +19,13 @@ open Lwt
 (* TODO management service for logging *)
 type t = unit
 
-let write t buf off len = prerr_string (String.sub buf off len); len
+let write t buf off len = 
+  Printf.printf "%s" (String.sub buf off len); 
+  len
+
+let write_s t buf off len = 
+  Printf.printf "%s%!" (String.sub buf off len); 
+  len
 
 let create () : t = ()
 
@@ -31,8 +37,10 @@ let t =  create ()
 
 let log s =
   let (_:int) = write t s 0 (String.length s) in
-  let (_:int) = write t "\n" 0 1 in ()
+  let (_:int) = write_s t "\n" 0 1 in
+  ()
 
 let log_s s =
   let s = s ^ "\n" in
-  write_all t s 0 (String.length s) >>= fun (_:int) -> Lwt.return ()
+  write_all t s 0 (String.length s) >>= fun (_:int) ->
+  Lwt.return ()

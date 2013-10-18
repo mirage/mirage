@@ -19,10 +19,22 @@ open Bigarray
 type t = (char, int8_unsigned_elt, c_layout) Array1.t
 
 let page_size = 1 lsl 12
+let cache = Stack.create ()
 
 let length t = Array1.dim t
 
-let get n = Array1.create char c_layout (n * page_size)
+let get_unsafe n = Array1.create char c_layout (n * page_size)
+
+let get = function
+  | n when n < 1 ->
+    raise (Invalid_argument "The number of page should be greater or equal to 1")
+  | 1 -> (try Stack.pop cache with Stack.Empty -> get_unsafe 1)
+  | n -> get_unsafe n
+
+let recycle frame =
+  if Bigarray.Array1.dim frame <> page_size
+  then raise (Invalid_argument "block size is not 4096 and therefore cannot be recycled")
+  else Stack.push frame cache
 
 let get_order order = get (1 lsl order)
 

@@ -22,13 +22,23 @@ external alloc_pages: int -> t = "caml_alloc_pages"
 
 let page_size = 4096
 
-let get n =
-  if n < 1
-  then raise (Invalid_argument "The number of page should be greater or equal to 1")
-  else
-    try alloc_pages n with _ ->
-      Gc.compact ();
-      try alloc_pages n with _ -> raise Out_of_memory
+let cache = Stack.create ()
+
+let get_unsafe n =
+  try alloc_pages n with _ ->
+    Gc.compact ();
+    try alloc_pages n with _ -> raise Out_of_memory
+
+let get = function
+  | n when n < 1 ->
+    raise (Invalid_argument "The number of page should be greater or equal to 1")
+  | 1 -> (try Stack.pop cache with Stack.Empty -> get_unsafe 1)
+  | n -> get_unsafe n
+
+let recycle frame =
+  if Bigarray.Array1.dim frame <> page_size
+  then raise (Invalid_argument "block size is not 4096 and therefore cannot be recycled")
+  else Stack.push frame cache
 
 let get_order order = get (1 lsl order)
 

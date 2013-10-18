@@ -51,8 +51,6 @@ val listen : t -> (Cstruct.t -> unit Lwt.t) -> unit Lwt.t
 val mac : t -> Macaddr.t
 (** [mac nf] is the MAC address of [nf]. *)
 
-val get_writebuf : t -> Cstruct.t Lwt.t
-
 val resume : unit -> unit Lwt.t
 (** [resume ()] is a thread that resumes all devices when a unikernel
     is resumed. You do not have to call this function manually as it

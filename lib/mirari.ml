@@ -15,12 +15,160 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Util
 
-type mode = [
-  |`unix of [`direct | `socket ]
-  |`xen
-]
+let (|>) a f = f a
+
+let (/) = Filename.concat
+
+let finally f cleanup =
+  try
+    let res = f () in cleanup (); res
+  with exn -> cleanup (); raise exn
+
+let output_kv oc kvs sep =
+  List.iter (fun (k,v) -> Printf.fprintf oc "%s %s %s\n" k sep v) kvs
+
+let lines_of_file file =
+  let ic = open_in file in
+  let lines = ref [] in
+  let rec aux () =
+    let line =
+      try Some (input_line ic)
+      with _ -> None in
+    match line with
+    | None   -> ()
+    | Some l ->
+      lines := l :: !lines;
+      aux () in
+  aux ();
+  close_in ic;
+  List.rev !lines
+
+let strip str =
+  let p = ref 0 in
+  let l = String.length str in
+  let fn = function
+    | ' ' | '\t' | '\r' | '\n' -> true
+    | _ -> false in
+  while !p < l && fn (String.unsafe_get str !p) do
+    incr p;
+  done;
+  let p = !p in
+  let l = ref (l - 1) in
+  while !l >= p && fn (String.unsafe_get str !l) do
+    decr l;
+  done;
+  String.sub str p (!l - p + 1)
+
+let cut_at s sep =
+  try
+    let i = String.index s sep in
+    let name = String.sub s 0 i in
+    let version = String.sub s (i+1) (String.length s - i - 1) in
+    Some (name, version)
+  with _ ->
+    None
+
+let split s sep =
+  let rec aux acc r =
+    match cut_at r sep with
+    | None       -> List.rev (r :: acc)
+    | Some (h,t) -> aux (strip h :: acc) t in
+  aux [] s
+
+let key_value line =
+  match cut_at line ':' with
+  | None       -> None
+  | Some (k,v) -> Some (k, strip v)
+
+let filter_map f l =
+  let rec loop accu = function
+    | []     -> List.rev accu
+    | h :: t ->
+        match f h with
+        | None   -> loop accu t
+        | Some x -> loop (x::accu) t in
+  loop [] l
+
+let subcommand ~prefix (command, value) =
+  let p1 = String.uncapitalize prefix in
+  match cut_at command '-' with
+  | None      -> None
+  | Some(p,n) ->
+    let p2 = String.uncapitalize p in
+    if p1 = p2 then
+      Some (n, value)
+    else
+      None
+
+let append oc fmt =
+  Printf.kprintf (fun str ->
+    Printf.fprintf oc "%s\n" str
+  ) fmt
+
+let newline oc =
+  append oc ""
+
+let error fmt =
+  Printf.kprintf (fun str ->
+    Printf.eprintf "[mirari] ERROR: %s\n%!" str;
+    exit 1;
+  ) fmt
+
+let info fmt =
+  Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
+
+let debug fmt =
+  Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
+
+let remove file =
+  if Sys.file_exists file then (
+    info "+ Removing %s." file;
+    Sys.remove file
+  )
+
+let command ?switch fmt =
+  Printf.kprintf (fun str ->
+    let cmd = match switch with
+      | None -> str
+      | Some cmp -> Printf.sprintf "opam config exec \"%s\" --switch=%s" str cmp in
+    info "+ Executing: %s" cmd;
+    match Sys.command cmd with
+    | 0 -> ()
+    | i -> error "The command %S exited with code %d." cmd i
+  ) fmt
+
+let opam_install ?switch deps =
+  let deps_str = String.concat " " deps in
+  match switch with
+  | None -> command "opam install --yes %s" deps_str
+  | Some cmp -> command "opam install --yes %s --switch=%s" deps_str cmp
+
+let in_dir dir f =
+  let pwd = Sys.getcwd () in
+  let reset () =
+    if pwd <> dir then Sys.chdir pwd in
+  if pwd <> dir then Sys.chdir dir;
+  try let r = f () in reset (); r
+  with e -> reset (); raise e
+
+let cmd_exists s =
+  Sys.command ("which " ^ s ^ " > /dev/null") = 0
+
+let read_command fmt =
+  let open Unix in
+  Printf.ksprintf (fun cmd ->
+    let () = info "+ Executing: %s" cmd in
+    let ic, oc, ec = open_process_full cmd (environment ()) in
+    let buf1 = Buffer.create 64
+    and buf2 = Buffer.create 64 in
+    (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
+    (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
+    match close_process_full (ic,oc,ec) with
+    | WEXITED 0   -> Buffer.contents buf1
+    | WSIGNALED n -> error "process killed by signal %d" n
+    | WSTOPPED n  -> error "process stopped by signal %d" n
+    | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
 
 let generated_by_mirari =
   let t = Unix.gettimeofday () in
@@ -48,7 +196,44 @@ let ocaml_version () =
     end
   | _ -> 0, 0
 
-(* Headers *)
+module StringSet = struct
+
+  include Set.Make(String)
+
+  let of_list l =
+    let s = ref empty in
+    List.iter (fun e -> s := add e !s) l;
+    !s
+
+end
+
+module StringMap = Map.Make(String)
+
+type mode = [
+  | `Unix of [ `Direct | `Socket ]
+  | `Xen
+]
+
+type document = {
+  oc: out_channel;
+  mutable modules: string StringMap.t;
+}
+
+let empty filename =
+  let oc = open_out filename in
+  append oc "(* %s *)" generated_by_mirari;
+  newline oc;
+  { oc; modules = StringMap.empty; }
+
+module type CONFIGURABLE = sig
+  type t
+  val name: t -> string
+  val packages: t -> mode -> string list
+  val libraries: t -> mode -> string list
+  val prepare: t -> mode -> unit
+  val output: t -> mode -> document -> unit
+end
+
 module Headers = struct
 
   let output oc =
@@ -57,340 +242,553 @@ module Headers = struct
 
 end
 
-(* Filesystem *)
-module FS = struct
+module IO_page = struct
 
-  type fs = {
-    name: string;
-    path: string;
-  }
+  (** Memory allocation interface. *)
 
-  type t = {
-    dir: string;
-    fs : fs list;
-  }
+  type t = unit
 
-  let create ~dir kvs =
-    let kvs = filter_map (subcommand ~prefix:"fs") kvs in
-    let aux (name, path) = { name; path } in
-    { dir; fs = List.map aux kvs }
+  let name _ = "io_page"
 
-  let call t =
-    if not (cmd_exists "mir-crunch") && t.fs <> [] then begin
-      info "mir-crunch not found, so installing the mirage-fs package.";
-      opam_install ["mirage-fs"];
-    end;
-    List.iter (fun { name; path} ->
-        let path = Printf.sprintf "%s/%s" t.dir path in
-        let file = Printf.sprintf "%s/filesystem_%s.ml" t.dir name in
-        if Sys.file_exists path then (
-          info "Creating %s." file;
-          command "mir-crunch -o %s -name %S %s" file name path
-        ) else
-          error "The directory %s does not exist." path
-      ) t.fs
+  let packages _ = function
+    | `Unix _ -> ["io-page-unix"]
+    | `Xen    -> ["io-page-xen"]
 
-  let output oc t =
-    List.iter (fun { name; _ } ->
-        append oc "open Filesystem_%s" name
-      ) t.fs;
-    newline oc
+  let libraries t mode =
+    packages t mode
+
+  let prepare _ _ = ()
+
+  let output t mode d =
+    let name = name t in
+    if not (StringMap.mem name d.modules) then
+      d.modules <- StringMap.add name "Io_page" d.modules
 
 end
 
-(* IP *)
-module IP = struct
+module Clock = struct
 
-  type ipv4 = {
-    address: string;
-    netmask: string;
-    gateway: string;
-  }
+  (** Clock operations. *)
 
-  type t =
-    | DHCP
-    | IPv4 of ipv4
-    | NOIP
+  type t = unit
 
-  let create kvs =
-    let kvs = filter_map (subcommand ~prefix:"ip") kvs in
-    if kvs = [] then NOIP
-    else
-      let use_dhcp =
-        try List.assoc "use-dhcp" kvs = "true"
-        with _ -> false in
-      if use_dhcp then
-        DHCP
-      else
-        let address =
-          try List.assoc "address" kvs
-          with _ -> "10.0.0.2" in
-        let netmask =
-          try List.assoc "netmask" kvs
-          with _ -> "255.255.255.0" in
-        let gateway =
-          try List.assoc "gateway" kvs
-          with _ -> "10.0.0.1" in
-        IPv4 { address; netmask; gateway }
+  let name _ = "console"
 
-  let output oc = function
-    | NOIP   -> ()
-    | DHCP   -> append oc "let ip = `DHCP"
-    | IPv4 i ->
-      append oc "let get = function Some x -> x | None -> failwith \"Bad IP!\"";
-      append oc "let ip = `IPv4 (";
-      append oc "  get (Ipaddr.V4.of_string %S)," i.address;
-      append oc "  get (Ipaddr.V4.of_string %S)," i.netmask;
-      append oc "  [get (Ipaddr.V4.of_string %S)]" i.gateway;
-      append oc ")";
-      newline oc
+  let packages _ _ =
+    ["mirage-console"]
+
+  let libraries _ _ =
+    ["mirage-console"]
+
+  let prepare _ _ = ()
+
+  let output t mode d =
+    let name = name t in
+    if not (StringMap.mem name d.modules) then
+      d.modules <- StringMap.add name "Clock" d.modules
 
 end
 
-(* HTTP listening parameters *)
-module HTTP = struct
-
-  type http = {
-    port   : int;
-    address: string option;
-  }
-
-  type t = http option
-
-  let create kvs =
-    let kvs = filter_map (subcommand ~prefix:"http") kvs in
-    if List.mem_assoc "port" kvs &&
-       List.mem_assoc "address" kvs then
-      let port = List.assoc "port" kvs in
-      let address = List.assoc "address" kvs in
-      let port =
-        try int_of_string port
-        with _ -> error "%S s not a valid port number." port in
-      let address = match address with
-        | "*" -> None
-        | a   -> Some a in
-      Some { port; address }
-    else
-      None
-
-  let output oc = function
-    | None   -> ()
-    | Some t ->
-      append oc "let listen_port = %d" t.port;
-      begin
-        match t.address with
-        | None   -> append oc "let listen_address = None"
-        | Some a -> append oc "let listen_address = Ipaddr.V4.of_string %S" a;
-      end;
-      newline oc
-
-end
-
-(* Main function *)
-module Main = struct
-
-  type t =
-    | IP of string
-    | HTTP of string
-    | NOIP of string
-
-  let create kvs =
-    let kvs = filter_map (subcommand ~prefix:"main") kvs in
-    let is_http = List.mem_assoc "http" kvs in
-    let is_ip = List.mem_assoc "ip" kvs in
-    let is_noip = List.mem_assoc "noip" kvs in
-    match is_http, is_ip, is_noip with
-    | false, false, false -> error "No main function is specified. You need to add 'main-{ip,http,noip}: <NAME>'."
-    | true , false, false -> HTTP (List.assoc "http" kvs)
-    | false, true, false  -> IP (List.assoc "ip" kvs)
-    | false, false, true -> NOIP (List.assoc "noip" kvs)
-    | _  -> error "Too many main functions."
-
-  let output_http oc main =
-    append oc "let main () =";
-    append oc "  let spec = Cohttp_lwt_mirage.Server.({";
-    append oc "    callback    = %s;" main;
-    append oc "    conn_closed = (fun _ () -> ());";
-    append oc "  }) in";
-    append oc "  Net.Manager.create (fun mgr interface id ->";
-    append oc "    Printf.eprintf \"listening to HTTP on port %%d\\\\n\" listen_port;";
-    append oc "    Net.Manager.configure interface ip >>";
-    append oc "    Cohttp_lwt_mirage.listen mgr (listen_address, listen_port) spec";
-    append oc "  )"
-
-  let output_ip oc main =
-    append oc "let main () =";
-    append oc "  Net.Manager.create (fun mgr interface id ->";
-    append oc "    Net.Manager.configure interface ip >>";
-    append oc "    %s mgr interface id" main;
-    append oc "  )"
-
-  let output_noip oc main = append oc "let main () = %s ()" main
-
-  let output oc t =
-    begin
-      match t with
-      | IP main   -> output_ip oc main
-      | HTTP main -> output_http oc main
-      | NOIP main -> output_noip oc main
-    end;
-    newline oc;
-    append oc "let () = OS.Main.run (Lwt.join [main (); Backend.run ()])"
-
-end
-
-(* Makefile & opam file *)
-module Build = struct
+module KV_RO = struct
 
   type t = {
     name   : string;
-    dir    : string;
-    depends: string list;
-    packages: string list;
+    dirname: string;
   }
 
-  let get name kvs =
-    let kvs = List.filter (fun (k,_) -> k = name) kvs in
-    List.fold_left (fun accu (_,v) ->
-        List.map strip (split v ',') @ accu
-      ) [] kvs
+  let name t = t.name
 
-  let create ~dir ~name kvs =
-    let depends = get "depends" kvs in
-    let packages = get "packages" kvs in
-    { name; dir; depends; packages }
+  let packages _ _ = [
+    "mirage-types";
+    "lwt";
+    "io-page";
+    "cstruct";
+    "ocaml-crunch";
+  ]
 
-  let output_myocamlbuild_ml t =
-    let minor, major = ocaml_version () in
-    if minor < 4 || major < 1 then (
-      (* Previous ocamlbuild versions weren't able to understand the
-         --output-obj rules *)
-      let file = Printf.sprintf "%s/myocamlbuild.ml" t.dir in
-      let oc = open_out file in
-      append oc "(* %s *)" generated_by_mirari;
-      newline oc;
-      append oc "open Ocamlbuild_pack;;";
-      append oc "open Ocamlbuild_plugin;;";
-      append oc "open Ocaml_compiler;;";
-      newline oc;
-      append oc "let native_link_gen linker =";
-      append oc "  link_gen \"cmx\" \"cmxa\" !Options.ext_lib [!Options.ext_obj; \"cmi\"] linker;;";
-      newline oc;
-      append oc "let native_output_obj x = native_link_gen ocamlopt_link_prog";
-      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"output_obj\") x;;";
-      newline oc;
-      append oc "rule \"ocaml: cmx* & o* -> native.o\"";
-      append oc "  ~tags:[\"ocaml\"; \"native\"; \"output_obj\" ]";
-      append oc "  ~prod:\"%%.native.o\" ~deps:[\"%%.cmx\"; \"%%.o\"]";
-      append oc "  (native_output_obj \"%%.cmx\" \"%%.native.o\");;";
-      newline oc;
-      newline oc;
-      append oc "let byte_link_gen = link_gen \"cmo\" \"cma\" \"cma\" [\"cmo\"; \"cmi\"];;";
-      append oc "let byte_output_obj = byte_link_gen ocamlc_link_prog";
-      append oc "  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"output_obj\");;";
-      newline oc;
-      append oc "rule \"ocaml: cmo* -> byte.o\"";
-      append oc "  ~tags:[\"ocaml\"; \"byte\"; \"link\"; \"output_obj\" ]";
-      append oc "  ~prod:\"%%.byte.o\" ~dep:\"%%.cmo\"";
-      append oc "  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
-      close_out oc
+  let libraries _ mode = [
+    "mirage-types";
+    "lwt";
+    "cstruct";
+    match mode with
+    | `Unix _ -> "io-page-unix"
+    | `Xen    -> "io-page-xen"
+  ]
+
+  let prepare t _ =
+    if not (cmd_exists "ocaml-crunch") then
+      error "ocaml-crunch not found, stopping.";
+    let file = Printf.sprintf "static_%s.ml" t.name in
+    if Sys.file_exists t.dirname then (
+      info "Creating %s." file;
+      command "ocaml-crunch -o %s %s" file t.dirname
+    ) else
+      error "The directory %s does not exist." t.dirname
+
+  let output t mode d =
+    if not (StringMap.mem t.name d.modules) then (
+      let m = "Static_" ^ t.name in
+      d.modules <- StringMap.add t.name m d.modules;
+      append d.oc "let %s =" t.name;
+      append d.oc "  Static_%s.connect ()" t.name;
     )
 
-  let output ~mode t =
-    let file = Printf.sprintf "%s/Makefile" t.dir in
-    let depends = match mode with
-      | `unix _ -> "fd-send-recv" :: t.depends
-      | _       -> t.depends in
-    (* XXX: weird dependency error on OCaml < 4.01 *)
-    let depends = "lwt.syntax" :: depends in
-    let depends = match depends with
-      | [] -> ""
-      | ds -> "-pkgs " ^ String.concat "," ds in
-    let ext = match mode with
-      | `unix _ -> "native"
-      | `xen    -> "native.o" in
-    let oc = open_out file in
-    append oc "# %s" generated_by_mirari;
-    newline oc;
-    append oc "PHONY: clean main.native";
-    newline oc;
-    append oc "_build/.stamp:";
-    append oc "\trm -rf _build";
-    append oc "\tmkdir -p _build/lib";
-    append oc "\t@touch $@";
-    newline oc;
-    append oc "main.native: _build/.stamp";
-    append oc "\tocamlbuild -classic-display -use-ocamlfind -lflag -linkpkg %s %s -tags \"syntax(camlp4o)\" main.%s"
-      (match mode with
-       |`unix _ -> ""
-       |`xen -> "-lflag -dontlink -lflag unix")
-      depends ext;
-    newline oc;
-    append oc "build: main.native";
-    append oc "\t@ :";
-    newline oc;
-    append oc "clean:";
-    append oc "\tocamlbuild -clean";
-    close_out oc;
-    output_myocamlbuild_ml t
-
-  let check t =
-    if t.packages <> [] && not (cmd_exists "opam") then
-      error "OPAM is not installed."
-
-  let prepare ~mode t =
-    check t;
-    let os =
-      match mode with
-      | `unix _ -> "mirage-unix"
-      | `xen -> "mirage-xen"
-    in
-    let net =
-      match mode with
-      | `xen | `unix `direct -> "mirage-net-direct"
-      | `unix `socket -> "mirage-net-socket"
-    in
-    let ps = os :: net :: t.packages in
-    opam_install ps
 end
 
-module Backend = struct
+module Console = struct
 
-  let output ~mode dir =
-    let file = Printf.sprintf "%s/backend.ml" dir in
-    info "+ creating %s" file;
+  type t = unit
+
+  let name _ = "console"
+
+  let packages _ _ =
+    ["mirage-console"]
+
+  let libraries _ _ =
+    ["mirage-console"]
+
+  let prepare _ _ = ()
+
+  let output t mode d =
+    let name = name t in
+    if not (StringMap.mem name d.modules) then
+      d.modules <- StringMap.add name "Console" d.modules
+
+end
+
+module Block = struct
+
+  type t = {
+    name     : string;
+    filename : string;
+    read_only: bool;
+  }
+
+  let name t = t.name
+
+  let packages _ mode = [
+    "mirage-block";
+    match mode with
+    | `Unix _ -> "mirage-block-unix"
+    | `Xen    -> "mirage-block-xen"
+  ]
+
+  let libraries _ = function
+    | `Unix _ -> ["mirage-block-unix"]
+    | `Xen    -> ["mirage-block-xen"]
+
+  let prepare t _ = ()
+
+  let output t mode d =
+    if not (StringMap.mem t.name d.modules) then (
+      let m = "Mirage_block.Block" in
+      d.modules <- StringMap.add t.name m d.modules;
+      append d.oc "let %s =" t.name;
+      append d.oc "  %s.connect %S" m t.filename;
+    )
+
+end
+
+module FAT = struct
+
+  type t = {
+    name : string;
+    block: Block.t;
+  }
+
+  let name t = t.name
+
+  let packages t mode = [
+    "ocaml-fat";
+  ] @
+    Block.packages t.block mode
+
+  let libraries t mode = [
+    "ocaml-fat";
+  ] @
+    Block.libraries t.block mode
+
+  let prepare _ _ = ()
+
+  let output t mode d =
+    if not (StringMap.mem t.name d.modules) then (
+      Block.output t.block mode d;
+      let m = "Fat_" ^ t.name in
+      d.modules <- StringMap.add t.name m d.modules;
+      append d.oc "module %s = Fat.Fs.Make(%s)(Io_page)"
+        m (StringMap.find t.block.Block.name d.modules);
+      append d.oc "let %s =" t.name;
+      append d.oc " %s >>= function" (Block.name t.block);
+      append d.oc " | `Error e -> fail (%s.Block_error e)" m;
+      append d.oc " | `Ok dev  -> %s.openfile dev" m
+    )
+
+end
+
+(** {2 Network configuration} *)
+
+module IP = struct
+
+  (** IP settings. *)
+
+  type ipv4 = {
+    address: Ipaddr.V4.t;
+    netmask: Ipaddr.V4.t;
+    gateway: Ipaddr.V4.t list;
+  }
+
+  type conf =
+    | DHCP
+    | IPv4 of ipv4
+
+  type t = {
+    name: string;
+    conf: conf;
+  }
+
+  let packages _ mode = [
+    "mirage-net";
+    match mode with
+    | `Unix `Direct -> "mirage-net-unix-direct"
+    | `Unix `Socket -> "mirage-net-unix-socket"
+    | `Xen          -> "mirage-net-xen"
+  ]
+
+  let libraries _ mode = [
+    "mirage-net";
+  ]
+
+  let name t = t.name
+
+  let prepare _ _ = ()
+
+  let output _ _ _ =
+    ()
+
+end
+
+module HTTP = struct
+
+  type t = {
+    port   : int;
+    address: Ipaddr.V4.t option;
+    static : KV_RO.t option;
+  }
+
+  let name t = "http_" ^ string_of_int t.port
+
+  let packages t mode = [
+    "cohttp"
+  ] @
+    match t.static with
+    | None   -> []
+    | Some s -> KV_RO.packages s mode
+
+  let libraries t mode = [
+    "cohttp.mirage";
+  ] @
+    match t.static with
+    | None   -> []
+    | Some s -> KV_RO.libraries s mode
+
+  let prepare _ _ = ()
+
+  let output _ _ _ = ()
+
+end
+
+module Driver = struct
+
+  type t =
+    | IO_page of IO_page.t
+    | Console of Console.t
+    | Clock of Clock.t
+    | KV_RO of KV_RO.t
+    | Block of Block.t
+    | FAT of FAT.t
+    | IP of IP.t
+    | HTTP of HTTP.t
+
+  let name = function
+    | IO_page x -> IO_page.name x
+    | Console x -> Console.name x
+    | Clock x   -> Clock.name x
+    | KV_RO x   -> KV_RO.name x
+    | Block x   -> Block.name x
+    | FAT x     -> FAT.name x
+    | IP x      -> IP.name x
+    | HTTP x    ->  HTTP.name x
+
+  let packages = function
+    | IO_page x -> IO_page.packages x
+    | Console x -> Console.packages x
+    | Clock x   -> Clock.packages x
+    | KV_RO x   -> KV_RO.packages x
+    | Block x   -> Block.packages x
+    | FAT x     -> FAT.packages x
+    | IP x      -> IP.packages x
+    | HTTP x    -> HTTP.packages x
+
+  let libraries = function
+    | IO_page x -> IO_page.libraries x
+    | Console x -> Console.libraries x
+    | Clock x   -> Clock.libraries x
+    | KV_RO x   -> KV_RO.libraries x
+    | Block x   -> Block.libraries x
+    | FAT x     -> FAT.libraries x
+    | IP x      -> IP.libraries x
+    | HTTP x    -> HTTP.libraries x
+
+  let prepare = function
+    | IO_page x -> IO_page.prepare x
+    | Console x -> Console.prepare x
+    | Clock x   -> Clock.prepare x
+    | KV_RO x   -> KV_RO.prepare x
+    | Block x   -> Block.prepare x
+    | FAT x     -> FAT.prepare x
+    | IP x      -> IP.prepare x
+    | HTTP x    -> HTTP.prepare x
+
+  let output = function
+    | IO_page x -> IO_page.output x
+    | Console x -> Console.output x
+    | Clock x   -> Clock.output x
+    | KV_RO x   -> KV_RO.output x
+    | Block x   -> Block.output x
+    | FAT x     -> FAT.output x
+    | IP x      -> IP.output x
+    | HTTP x    -> HTTP.output x
+
+end
+
+module Job = struct
+
+  type t = {
+    name   : string;
+    handler: string;
+    params : Driver.t list;
+  }
+
+  let count = ref 0
+
+  let create handler params =
+    incr count;
+    let name = "job" ^ string_of_int !count in
+    { name; handler; params }
+
+  let name t =
+    t.name
+
+  let fold fn { params } =
+    let s = List.fold_left (fun set param ->
+        let s = fn param in
+        StringSet.union set (StringSet.of_list s)
+      ) StringSet.empty params in
+    StringSet.elements s
+
+  let iter fn { params } =
+    List.iter fn params
+
+  let packages t mode =
+    fold (fun d -> Driver.packages d mode) t
+
+  let libraries t mode =
+    fold (fun d -> Driver.libraries d mode) t
+
+  let prepare t mode =
+    iter (fun d -> Driver.prepare d mode) t
+
+  let output t mode doc =
+    iter (fun p -> Driver.output p mode doc) t;
+    newline doc.oc;
+    let modules = List.map (fun p ->
+        let m = StringMap.find (Driver.name p) doc.modules in
+        Printf.sprintf "(%s)" m
+      ) t.params in
+    let names = List.map Driver.name t.params in
+    let m = String.capitalize t.name in
+    append doc.oc "module %s = %s%s" m t.handler (String.concat "" modules);
+    append doc.oc "let %s = %s.start %s" t.name m (String.concat " " names);
+    newline doc.oc
+
+  let all : t list ref =
+    ref []
+
+  let reset () =
+    all := []
+
+  let register j =
+    all := List.map (fun (n,p) -> create n p) j @ !all
+
+  let registered () =
+    !all
+
+end
+
+type t = {
+  name: string;
+  root: string;
+  jobs: Job.t list;
+}
+
+let name t = t.name
+
+let fold fn { jobs } =
+  let s = List.fold_left (fun set job ->
+      let s = fn job in
+      StringSet.union set (StringSet.of_list s)
+    ) StringSet.empty jobs in
+  StringSet.elements s
+
+let iter fn { jobs } =
+  List.iter fn jobs
+
+let packages t mode =
+  fold (fun j -> Job.packages j mode) t
+
+let libraries t mode =
+  fold (fun j -> Job.libraries j mode) t
+
+let prepare_main t mode =
+  iter (fun j -> Job.prepare j mode) t
+
+let prepare_myocamlbuild_ml t mode =
+  let minor, major = ocaml_version () in
+  if minor < 4 || major < 1 then (
+    (* Previous ocamlbuild versions weren't able to understand the
+       --output-obj rules *)
+    let file = Printf.sprintf "%s/myocamlbuild.ml" t.root in
     let oc = open_out file in
     append oc "(* %s *)" generated_by_mirari;
     newline oc;
-    match mode with
-    |`unix `direct ->
-      append oc "let (>>=) = Lwt.bind
+    append oc
+      "open Ocamlbuild_pack;;\n\
+       open Ocamlbuild_plugin;;\n\
+       open Ocaml_compiler;;\n\
+       \n\
+       let native_link_gen linker =\n\
+      \  link_gen \"cmx\" \"cmxa\" !Options.ext_lib [!Options.ext_obj; \"cmi\"] linker;;\n\
+       \n\
+       let native_output_obj x = native_link_gen ocamlopt_link_prog\n\
+      \  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"output_obj\") x;;\n\
+       \n\
+       rule \"ocaml: cmx* & o* -> native.o\"\n\
+      \  ~tags:[\"ocaml\"; \"native\"; \"output_obj\" ]\n\
+      \  ~prod:\"%%.native.o\" ~deps:[\"%%.cmx\"; \"%%.o\"]\n\
+      \  (native_output_obj \"%%.cmx\" \"%%.native.o\");;\n\
+       \n\
+       \n\
+       let byte_link_gen = link_gen \"cmo\" \"cma\" \"cma\" [\"cmo\"; \"cmi\"];;\n\
+       let byte_output_obj = byte_link_gen ocamlc_link_prog\n\
+      \  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"output_obj\");;\n\
+       \n\
+       rule \"ocaml: cmo* -> byte.o\"\n\
+      \  ~tags:[\"ocaml\"; \"byte\"; \"link\"; \"output_obj\" ]\n\
+       ~prod:\"%%.byte.o\" ~dep:\"%%.cmo\"\n\
+      \  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
+    close_out oc
+  )
 
-let run () =
-  let backlog = 5 in
-  let sockaddr = Unix.ADDR_UNIX (Printf.sprintf \"/tmp/mir-%%d.sock\" (Unix.getpid ())) in
-  let sock = Lwt_unix.(socket PF_UNIX SOCK_STREAM 0) in
-  let () = Lwt_unix.bind sock sockaddr in
-  let () = Lwt_unix.listen sock backlog in
+let prepare_makefile t mode =
+  let file = Printf.sprintf "%s/Makefile" t.root in
+  let libraries =
+    let l = libraries t mode in
+    (* XXX: weird dependency error on OCaml < 4.01 *)
+    let minor, major = ocaml_version () in
+    let l =
+      if minor < 4 || major < 1 then "lwt.syntax" :: l
+      else l in
+    match l with
+    | [] -> ""
+    | ls -> "-pkgs " ^ String.concat "," ls in
+  let packages = String.concat " " (packages t mode) in
+  let oc = open_out file in
+  append oc "# %s" generated_by_mirari;
+  newline oc;
+  append oc "LIBS   = %s" libraries;
+  append oc "PKGS   = %s" packages;
+  append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n\
+             FLAGS  = -g -lflag -linkpkg\n\
+             BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
+             OPAM   = opam";
+  newline oc;
+  append oc "PHONY: all depends clean\n\
+             all: build\n\
+             \n\
+             depends:\n\
+            \    $(OPAM) install $(PKGS)\n\
+             \n\
+             _build/.stamp:\n\
+            \    rm -rf _build\n\
+            \    mkdir -p _build/lib\n\
+            \    @touch $@\n\
+             \n\
+             main.native: _build/.stamp\n\
+            \    $(BUILD) main.native\n\
+             \n\
+             main.native.o: _build/.stamp\n\
+            \    $(BUILD) main.native.o";
+  newline oc;
+  begin match mode with
+    | `Xen ->
+      append oc "all: main.native.o";
+      let path = read_command "ocamlfind printconf path" in
+      let lib = strip path ^ "/mirage-xen" in
+      append oc "    ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
+                \      main.native.o %s/libocaml.a %s/libxen.a \\\n\
+                \      %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o main.xen"
+        lib lib lib lib lib lib lib lib;
+      append oc "    ln -nfs _build/main.xen mir-%s.xen" t.name;
+      append oc "    nm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
+                \      \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
+    | `Unix _ ->
+      append oc "all: main.native";
+      append oc "    ln -nfs _build/main.native mir-%s" t.name;
+  end;
+  newline oc;
+  append oc "clean:\n\
+            \    ocamlbuild -clean";
+  close_out oc
 
-  let rec accept_loop () =
-    Lwt_unix.accept sock
-    >>= fun (fd, saddr) ->
-    Printf.printf \"[backend]: Receiving connection from mirari.\\n%%!\";
-    let unix_fd = Lwt_unix.unix_file_descr fd in
-    let msgbuf = String.create 11 in
-    let nbread, sockaddr, recvfd = Fd_send_recv.recv_fd unix_fd msgbuf 0 11 [] in
-    let () = Printf.printf \"[backend]: %%d bytes read, received fd %%d\\n%%!\" nbread (Fd_send_recv.int_of_fd recvfd) in
-    let id = (OS.Netif.id_of_string (String.trim (String.sub msgbuf 0 10))) in
-    let devtype = (if msgbuf.[10] = 'p' then OS.Netif.PCAP else OS.Netif.ETH) in
-    OS.Netif.add_vif id devtype recvfd;
-    Lwt_unix.(shutdown fd SHUTDOWN_ALL); (* Done, we can shutdown the connection now *)
-    accept_loop ()
-  in accept_loop ()"
-    | _ ->
-      append oc "let run () = Lwt.return ()"
+let prepare_opam t mode =
+  info "Installing OPAM packages.";
+  match packages t mode with
+  | [] -> if not (cmd_exists "opam") then error "OPAM is not installed."
+  | ps -> opam_install ps
 
-end
+let prepare t mode =
+  prepare_main t mode;
+  prepare_myocamlbuild_ml t mode;
+  prepare_makefile t mode
+
+let output t mode doc =
+  iter (fun j -> Job.output j mode doc) t;
+  newline doc.oc;
+  let jobs = List.map Job.name t.jobs in
+  append doc.oc "let () =";
+  append doc.oc "  OS.Main.run (Lwt.join [%s])" (String.concat "; " jobs)
+
+let configure t ~mode ~install =
+  if install then prepare_opam t mode;
+  prepare t mode;
+  let main_ml = Filename.concat t.root "main.ml" in
+  info "Generating %s" main_ml;
+  let doc = empty main_ml in
+  output t mode doc
+
+(*
+  (* Generate the Makefile *)
+  Build.output ~mode t.build;
+  (* Generate the XL config file if backend = Xen *)
+  if mode = `xen then XL.output t.name t.config;
+  (* install OPAM dependencies *)
+  if not no_install then Build.prepare ~mode t.build;
+  (* crunch *)
+  call_crunch_scripts t
+
+*)
+
+(*
 
 module XL = struct
   let output name kvs =
@@ -404,152 +802,52 @@ module XL = struct
       (fun () -> close_out oc);
 end
 
-(* A type describing all the configuration of a mirage unikernel *)
-type t = {
-  file     : string;           (* Path of the mirari config file *)
-  mode     : mode;             (* backend target *)
-  name     : string;           (* Filename of the mirari config file*)
-  dir      : string;           (* Dirname of the mirari config file *)
-  main_ml  : string;           (* Name of the entry point function *)
-  kvs      : (string * string) list;
-  fs       : FS.t;             (* A value describing FS configuration *)
-  ip       : IP.t;
-  http     : HTTP.t;
-  main     : Main.t;
-  build    : Build.t;
-}
-
-let create mode file =
-  let dir     = Filename.dirname file in
-  let name    = Filename.chop_extension (Filename.basename file) in
-  let lines   = lines_of_file file in
-  let kvs     = filter_map key_value lines in
-  let main_ml = Printf.sprintf "%s/main.ml" dir in
-  let fs      = FS.create ~dir kvs in
-  let ip      = IP.create kvs in
-  let http    = HTTP.create kvs in
-  let main    = Main.create kvs in
-  let build   = Build.create ~name ~dir kvs in
-  { file; mode; name; dir; main_ml; kvs; fs; ip; http; main; build }
-
-
-let output_main t =
-  let oc = open_out t.main_ml in
-  Headers.output oc;
-  FS.output oc t.fs;
-  IP.output oc t.ip;
-  HTTP.output oc t.http;
-  Main.output oc t.main;
-  close_out oc
-
 let call_crunch_scripts t =
-  FS.call t.fs
-
-let call_xen_scripts t =
-  let obj = "_build/main.native.o" in
-  let target = "_build/main.xen" in
-  if Sys.file_exists obj then begin
-    let path = read_command "ocamlfind printconf path" in
-    let lib = strip path ^ "/mirage-xen" in
-    command "ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o %s %s/libocaml.a %s/libxen.a \
-             %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o %s"  lib lib obj lib lib lib lib lib lib target;
-    command "ln -nfs _build/main.xen mir-%s.xen" t.name;
-    command "nm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
-  end else
-    error "xen object file %s not found, cannot continue" obj
-
-let call_build_scripts ~mode t =
-  let makefile = Printf.sprintf "%s/Makefile" t.dir in
-  if Sys.file_exists makefile then (
-    in_dir t.dir (fun () -> command "make build");
-    (* gen_xen.sh *)
-    match mode with
-    |`xen -> call_xen_scripts t
-    |`unix _ ->
-      command "ln -nfs _build/main.native mir-%s" t.name
-  ) else
-    error "You should run 'mirari configure %s' first." t.file
-
-let configure ~mode ~no_install file =
-  let file = scan_conf file in
-  let t = create mode file in
-  (* Generate main.ml *)
-  info "Generating %s." t.main_ml;
-  output_main t;
-  (* Generate the Makefile *)
-  Build.output ~mode t.build;
-  (* Generate the Backend module *)
-  Backend.output ~mode t.dir;
-  (* Generate the XL config file if backend = Xen *)
-  if mode = `xen then XL.output t.name t.kvs;
-  (* install OPAM dependencies *)
-  if not no_install then Build.prepare ~mode t.build;
-  (* crunch *)
-  call_crunch_scripts t
-
-let build ~mode file =
-  let file = scan_conf file in
-  let t = create mode file in
-  (* build *)
-  call_build_scripts ~mode t
+  List.iter FS.process t.fs
 
 let run ~mode file =
   let file = scan_conf file in
   let t = create mode file in
   match mode with
-  |`unix `socket ->
+  |`unix _ ->
     info "+ unix socket mode";
     Unix.execv ("mir-" ^ t.name) [||] (* Just run it! *)
-  |`unix `direct ->
-    info "+ unix direct mode";
-    (* unix-direct backend: launch the unikernel, then create a TAP
-       interface and pass the fd to the unikernel *)
-    let cpid = Unix.fork () in
-    if cpid = 0 then (* child code *)
-      Unix.execv ("mir-" ^ t.name) [||] (* Launch the unikernel *)
-    else
-      begin
-        try
-          info "Creating tap0 interface.";
-          (* Force the name to be "tap0" because of MacOSX *)
-          let fd, id =
-            (try
-               let fd, id = Tuntap.opentap ~devname:"tap0" () in
-               (* TODO: Do not hardcode 10.0.0.1, put it in mirari config file *)
-               let () = Tuntap.set_ipv4 ~devname:"tap0" ~ipv4:"10.0.0.1" () in
-               fd, id
-             with Failure m ->
-               Printf.eprintf "[mirari] Tuntap failed with error %s. Remember that %s has to be run as root have the CAP_NET_ADMIN \
-                               capability in order to be able to run unikernels for the UNIX backend" m Sys.argv.(0);
-               raise (Failure m)) (* Go to cleanup section *)
-          in
-          let sock = Unix.(socket PF_UNIX SOCK_STREAM 0) in
-
-          let send_fd () =
-            let open Unix in
-            sleep 1;
-            info "Connecting to /tmp/mir-%d.sock..." cpid;
-            connect sock (ADDR_UNIX (Printf.sprintf "/tmp/mir-%d.sock" cpid));
-            let nb_sent = Fd_send_recv.send_fd sock "tap0      e" 0 11 [] fd in
-            if nb_sent <> 11 then
-              (error "Sending fd to unikernel failed.")
-            else info "Transmitted fd ok."
-          in
-          send_fd ();
-          let _,_ = Unix.waitpid [] cpid in ()
-        with exn ->
-          info "Ctrl-C received, killing child and exiting.\n%!";
-          Unix.kill cpid 15; (* Send SIGTERM to the unikernel, and then exit ourselves. *)
-          raise exn
-      end
   |`xen -> (* xen backend *)
     info "+ xen mode";
     Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
+*)
 
-let clean file =
+(* Compile the configuration file and attempt to dynlink it.
+ * It is responsible for registering an application via
+ * [Mirari_config.register] in order to have an observable
+ * side effect to this command. *)
+let compile_and_dynlink file =
+  let file = Dynlink.adapt_filename file in
+  command "rm -f _build/%s.*" (Filename.chop_extension file);
+  command "ocamlbuild -use-ocamlfind -pkg mirari %s" file;
+  try Dynlink.loadfile ("_build/"^file)
+  with Dynlink.Error err -> error "Error loading config: %s" (Dynlink.error_message err)
+
+(* If a configuration file is specified, then use that.
+ * If not, then scan the curdir for a `config.ml` file.
+ * If there is more than one, then error out. *)
+let scan_conf = function
+  | Some f ->  info "Using specified config file %s" f; f
+  | None   ->
+    let files = Array.to_list (Sys.readdir ".") in
+    match List.filter ((=) "config.ml") files with
+    | [] -> error "No configuration file ending in .conf found.\n\
+                   You'll need to create one to let Mirari know what do do."
+    | [f] -> info "Using scanned config file %s" f; f
+    | _   -> error "There is more than one config.ml in the current working directory.\n\
+                    Please specify one explicitly on the command-line."
+
+let load file =
   let file = scan_conf file in
-  let t = create `xen file in
-  in_dir t.dir (fun () ->
-      command "make clean";
-      command "rm -f main.ml myocamlbuild.ml Makefile mir-* backend.ml filesystem_*.ml *.xl *.map"
-    )
+  Job.reset ();
+  compile_and_dynlink file;
+  { name ="main";
+    root = Filename.dirname file;
+    jobs = Job.registered () }
+
+let run _ = failwith "TODO"

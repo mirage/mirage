@@ -1,5 +1,8 @@
 PREFIX ?= /usr/local
-VERSION=0.9.6
+VERSION = 0.9.6
+PKGS    = cmdliner,unix,tuntap,fd-send-recv,cohttp.mirage,mirage-types
+
+BUILD   = ocamlbuild -use-ocamlfind -pkgs $(PKGS)
 
 all: _build/lib/mirari.native
 
@@ -12,7 +15,7 @@ _build/.stamp:
 	@touch $@
 
 _build/lib/mirari.native: _build/.stamp lib/path_generated.ml
-	ocamlbuild -use-ocamlfind -pkg cmdliner -pkg unix -pkg tuntap -pkg fd-send-recv lib/main.native
+	$(BUILD) lib/main.native
 
 install:
 	cp _build/lib/main.native $(PREFIX)/bin/mirari

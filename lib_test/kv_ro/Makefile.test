@@ -1,0 +1,7 @@
+MIRARI = ../../main.native
+
+configure:
+	$(MIRARI) configure config.ml --no-install
+
+run:
+	./main.native

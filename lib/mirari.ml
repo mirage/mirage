@@ -639,10 +639,10 @@ module Job = struct
     List.iter fn params
 
   let packages t mode =
-    "mirari" :: fold (fun d -> Driver.packages d mode) t
+    "mirage" :: "mirari" :: fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    "mirari" :: fold (fun d -> Driver.libraries d mode) t
+    "mirage" :: "mirari" :: fold (fun d -> Driver.libraries d mode) t
 
   let configure t mode d =
     iter (fun p -> Driver.configure p mode d) t;
@@ -788,7 +788,7 @@ let configure_makefile t mode d =
              BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
-  append oc "PHONY: all depends clean\n\
+  append oc ".PHONY: all prepare clean\n\
              all: build\n\
              \n\
              prepare:\n\
@@ -813,7 +813,7 @@ let configure_makefile t mode d =
       append oc "\tnm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
                  \t  \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
     | `Unix _ ->
-      append oc "all: main.native";
+      append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;

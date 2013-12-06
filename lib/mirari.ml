@@ -337,7 +337,7 @@ end
 let driver_initialisation_error name =
   Printf.sprintf "fail (Mirari.V1.Driver_initialisation_error %S)" name
 
-module IO_page = struct
+module Io_page = struct
 
   (** Memory allocation interface. *)
 
@@ -491,10 +491,11 @@ module Block = struct
 
   let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
-      let m = "Mirage_block.Block" in
+      let m = "Block" in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "let %s =" t.name;
       append d.oc "  %s.connect %S" m t.filename;
+      newline d.oc
     )
 
   let clean t =
@@ -502,7 +503,7 @@ module Block = struct
 
 end
 
-module FAT = struct
+module Fat = struct
 
   type t = {
     name : string;
@@ -512,14 +513,16 @@ module FAT = struct
   let name t = t.name
 
   let packages t mode = [
-    "ocaml-fat";
-  ] @
-    Block.packages t.block mode
+    "fat";
+  ]
+    @ Io_page.packages () mode
+    @ Block.packages t.block mode
 
   let libraries t mode = [
-    "ocaml-fat";
-  ] @
-    Block.libraries t.block mode
+    "fat-filesystem";
+  ]
+    @ Io_page.libraries () mode
+    @ Block.libraries t.block mode
 
   let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
@@ -528,10 +531,11 @@ module FAT = struct
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "module %s = Fat.Fs.Make(%s)(Io_page)"
         m (StringMap.find t.block.Block.name d.modules);
+      newline d.oc;
       append d.oc "let %s =" t.name;
       append d.oc " %s >>= function" (Block.name t.block);
       append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
-      append d.oc " | `Ok dev  -> %s.openfile dev" m
+      append d.oc " | `Ok dev  -> %s.connect dev" m
     )
 
   let clean t =
@@ -617,68 +621,73 @@ end
 module Driver = struct
 
   type t =
-    | IO_page of IO_page.t
+    | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
     | KV_RO of KV_RO.t
     | Block of Block.t
-    | FAT of FAT.t
+    | Fat of Fat.t
     | IP of IP.t
     | HTTP of HTTP.t
 
   let name = function
-    | IO_page x -> IO_page.name x
+    | Io_page x -> Io_page.name x
     | Console x -> Console.name x
     | Clock x   -> Clock.name x
     | KV_RO x   -> KV_RO.name x
     | Block x   -> Block.name x
-    | FAT x     -> FAT.name x
+    | Fat x     -> Fat.name x
     | IP x      -> IP.name x
     | HTTP x    ->  HTTP.name x
 
   let packages = function
-    | IO_page x -> IO_page.packages x
+    | Io_page x -> Io_page.packages x
     | Console x -> Console.packages x
     | Clock x   -> Clock.packages x
     | KV_RO x   -> KV_RO.packages x
     | Block x   -> Block.packages x
-    | FAT x     -> FAT.packages x
+    | Fat x     -> Fat.packages x
     | IP x      -> IP.packages x
     | HTTP x    -> HTTP.packages x
 
   let libraries = function
-    | IO_page x -> IO_page.libraries x
+    | Io_page x -> Io_page.libraries x
     | Console x -> Console.libraries x
     | Clock x   -> Clock.libraries x
     | KV_RO x   -> KV_RO.libraries x
     | Block x   -> Block.libraries x
-    | FAT x     -> FAT.libraries x
+    | Fat x     -> Fat.libraries x
     | IP x      -> IP.libraries x
     | HTTP x    -> HTTP.libraries x
 
   let configure = function
-    | IO_page x -> IO_page.configure x
+    | Io_page x -> Io_page.configure x
     | Console x -> Console.configure x
     | Clock x   -> Clock.configure x
     | KV_RO x   -> KV_RO.configure x
     | Block x   -> Block.configure x
-    | FAT x     -> FAT.configure x
+    | Fat x     -> Fat.configure x
     | IP x      -> IP.configure x
     | HTTP x    -> HTTP.configure x
 
   let clean = function
-    | IO_page x -> IO_page.clean x
+    | Io_page x -> Io_page.clean x
     | Console x -> Console.clean x
     | Clock x   -> Clock.clean x
     | KV_RO x   -> KV_RO.clean x
     | Block x   -> Block.clean x
-    | FAT x     -> FAT.clean x
+    | Fat x     -> Fat.clean x
     | IP x      -> IP.clean x
     | HTTP x    -> HTTP.clean x
 
-  let map_path fn = function
+  let rec map_path fn = function
     | KV_RO x -> KV_RO { x with KV_RO.dirname = fn x.KV_RO.dirname }
     | Block x -> Block { x with Block.filename = fn x.Block.filename }
+    | Fat x   ->
+      begin match map_path fn (Block x.Fat.block) with
+        | Block block -> Fat { x with Fat.block }
+        | _ -> assert false
+      end
     | x       -> x
 
   let path = function
@@ -766,7 +775,9 @@ module Job = struct
       ) [] drivers
 
   let update_path t root =
-    let params = List.map (Driver.map_path (Filename.concat root)) t.params in
+    let fn path =
+      realpath (Filename.concat root path) in
+    let params = List.map (Driver.map_path fn) t.params in
     { t with params }
 
 end
@@ -1005,7 +1016,8 @@ let compile_and_dynlink file =
  * If there is more than one, then error out. *)
 let scan_conf = function
   | Some f ->
-    info "Using specified config file %s" f;
+    info "Using the specified config file: %s" (yellow_s f);
+    if not (Sys.file_exists f) then error "%s does not exist, stopping." f;
     realpath f
   | None   ->
     let files = Array.to_list (Sys.readdir ".") in
@@ -1013,7 +1025,7 @@ let scan_conf = function
     | [] -> error "No configuration file ending in .conf found.\n\
                    You'll need to create one to let Mirari know what do do."
     | [f] ->
-      info "Using scanned config file %s" f;
+      info "Using the scanned config file: %s" (yellow_s f);
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."
@@ -1044,5 +1056,9 @@ module V1 = struct
   module type CONSOLE = CONSOLE
     with type 'a io = 'a Lwt.t
     (** Consoles *)
+
+  module type FS = FS
+    with type 'a io = 'a Lwt.t
+    (** FS *)
 
 end

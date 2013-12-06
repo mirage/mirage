@@ -121,9 +121,27 @@ let info fmt =
 let debug fmt =
   Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
 
+let realdir dir =
+  if Sys.file_exists dir && Sys.is_directory dir then (
+    let cwd = Sys.getcwd () in
+    Sys.chdir dir;
+    let d = Sys.getcwd () in
+    Sys.chdir cwd;
+    d
+  ) else
+    failwith "realdir"
+
+let realpath file =
+  if Sys.file_exists file && Sys.is_directory file then realdir file
+  else if Sys.file_exists file
+       || Sys.file_exists (Filename.dirname file) then
+    realdir (Filename.dirname file) / (Filename.basename file)
+  else
+    failwith "realpath"
+
 let remove file =
   if Sys.file_exists file then (
-    info "+ Removing %s." file;
+    info "+ Removing %s." (realpath file);
     Sys.remove file
   )
 
@@ -138,11 +156,11 @@ let command ?switch fmt =
     | i -> error "The command %S exited with code %d." cmd i
   ) fmt
 
-let opam_install ?switch deps =
+let opam cmd ?switch deps =
   let deps_str = String.concat " " deps in
   match switch with
-  | None -> command "opam install --yes %s" deps_str
-  | Some cmp -> command "opam install --yes %s --switch=%s" deps_str cmp
+  | None     -> command "opam %s --yes %s" cmd deps_str
+  | Some cmp -> command "opam %s --yes %s --switch=%s" cmd deps_str cmp
 
 let in_dir dir f =
   let pwd = Sys.getcwd () in
@@ -214,24 +232,19 @@ type mode = [
   | `Xen
 ]
 
-type document = {
+type main_ml = {
+  filename: string;
   oc: out_channel;
   mutable modules: string StringMap.t;
 }
-
-let empty filename =
-  let oc = open_out filename in
-  append oc "(* %s *)" generated_by_mirari;
-  newline oc;
-  { oc; modules = StringMap.empty; }
 
 module type CONFIGURABLE = sig
   type t
   val name: t -> string
   val packages: t -> mode -> string list
   val libraries: t -> mode -> string list
-  val prepare: t -> mode -> unit
-  val output: t -> mode -> document -> unit
+  val configure: t -> mode -> main_ml -> unit
+  val clean: t -> unit
 end
 
 module Headers = struct
@@ -257,12 +270,13 @@ module IO_page = struct
   let libraries t mode =
     packages t mode
 
-  let prepare _ _ = ()
-
-  let output t mode d =
+  let configure t mode d =
     let name = name t in
     if not (StringMap.mem name d.modules) then
       d.modules <- StringMap.add name "Io_page" d.modules
+
+  let clean t =
+    ()
 
 end
 
@@ -275,17 +289,18 @@ module Clock = struct
   let name _ = "console"
 
   let packages _ _ =
-    ["mirage-console"]
+    ["mirage-clock"]
 
   let libraries _ _ =
-    ["mirage-console"]
+    ["mirage-clock"]
 
-  let prepare _ _ = ()
-
-  let output t mode d =
+  let configure t mode d =
     let name = name t in
     if not (StringMap.mem name d.modules) then
       d.modules <- StringMap.add name "Clock" d.modules
+
+  let clean t =
+    ()
 
 end
 
@@ -315,23 +330,34 @@ module KV_RO = struct
     | `Xen    -> "io-page-xen"
   ]
 
-  let prepare t _ =
-    if not (cmd_exists "ocaml-crunch") then
-      error "ocaml-crunch not found, stopping.";
-    let file = Printf.sprintf "static_%s.ml" t.name in
-    if Sys.file_exists t.dirname then (
-      info "Creating %s." file;
-      command "ocaml-crunch -o %s %s" file t.dirname
-    ) else
-      error "The directory %s does not exist." t.dirname
+  let ml t =
+    Printf.sprintf "static_%s.ml" t.name
 
-  let output t mode d =
+  let mli t =
+    Printf.sprintf "static_%s.mli" t.name
+
+  let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
+
+      if not (cmd_exists "ocaml-crunch") then
+        error "ocaml-crunch not found, stopping.";
+      let file = ml t in
+      if Sys.file_exists t.dirname then (
+        info "Generating %s/%s." (Sys.getcwd ()) file;
+        command "ocaml-crunch -o %s %s" file t.dirname
+      ) else
+        error "The directory %s does not exist." t.dirname;
+
       let m = "Static_" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "let %s =" t.name;
       append d.oc "  Static_%s.connect ()" t.name;
+      newline d.oc;
     )
+
+  let clean t =
+    remove (ml t);
+    remove (mli t)
 
 end
 
@@ -347,12 +373,13 @@ module Console = struct
   let libraries _ _ =
     ["mirage-console"]
 
-  let prepare _ _ = ()
-
-  let output t mode d =
+  let configure t mode d =
     let name = name t in
     if not (StringMap.mem name d.modules) then
       d.modules <- StringMap.add name "Console" d.modules
+
+  let clean t =
+    ()
 
 end
 
@@ -377,15 +404,16 @@ module Block = struct
     | `Unix _ -> ["mirage-block-unix"]
     | `Xen    -> ["mirage-block-xen"]
 
-  let prepare t _ = ()
-
-  let output t mode d =
+  let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
       let m = "Mirage_block.Block" in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "let %s =" t.name;
       append d.oc "  %s.connect %S" m t.filename;
     )
+
+  let clean t =
+    ()
 
 end
 
@@ -408,11 +436,9 @@ module FAT = struct
   ] @
     Block.libraries t.block mode
 
-  let prepare _ _ = ()
-
-  let output t mode d =
+  let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
-      Block.output t.block mode d;
+      Block.configure t.block mode d;
       let m = "Fat_" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "module %s = Fat.Fs.Make(%s)(Io_page)"
@@ -422,6 +448,9 @@ module FAT = struct
       append d.oc " | `Error e -> fail (%s.Block_error e)" m;
       append d.oc " | `Ok dev  -> %s.openfile dev" m
     )
+
+  let clean t =
+    Block.clean t.block
 
 end
 
@@ -460,9 +489,10 @@ module IP = struct
 
   let name t = t.name
 
-  let prepare _ _ = ()
+  let configure _ =
+    failwith "TODO"
 
-  let output _ _ _ =
+  let clean t =
     ()
 
 end
@@ -491,9 +521,11 @@ module HTTP = struct
     | None   -> []
     | Some s -> KV_RO.libraries s mode
 
-  let prepare _ _ = ()
+  let configure _ =
+    failwith "TODO"
 
-  let output _ _ _ = ()
+  let clean t =
+    ()
 
 end
 
@@ -539,25 +571,36 @@ module Driver = struct
     | IP x      -> IP.libraries x
     | HTTP x    -> HTTP.libraries x
 
-  let prepare = function
-    | IO_page x -> IO_page.prepare x
-    | Console x -> Console.prepare x
-    | Clock x   -> Clock.prepare x
-    | KV_RO x   -> KV_RO.prepare x
-    | Block x   -> Block.prepare x
-    | FAT x     -> FAT.prepare x
-    | IP x      -> IP.prepare x
-    | HTTP x    -> HTTP.prepare x
+  let configure = function
+    | IO_page x -> IO_page.configure x
+    | Console x -> Console.configure x
+    | Clock x   -> Clock.configure x
+    | KV_RO x   -> KV_RO.configure x
+    | Block x   -> Block.configure x
+    | FAT x     -> FAT.configure x
+    | IP x      -> IP.configure x
+    | HTTP x    -> HTTP.configure x
 
-  let output = function
-    | IO_page x -> IO_page.output x
-    | Console x -> Console.output x
-    | Clock x   -> Clock.output x
-    | KV_RO x   -> KV_RO.output x
-    | Block x   -> Block.output x
-    | FAT x     -> FAT.output x
-    | IP x      -> IP.output x
-    | HTTP x    -> HTTP.output x
+  let clean = function
+    | IO_page x -> IO_page.clean x
+    | Console x -> Console.clean x
+    | Clock x   -> Clock.clean x
+    | KV_RO x   -> KV_RO.clean x
+    | Block x   -> Block.clean x
+    | FAT x     -> FAT.clean x
+    | IP x      -> IP.clean x
+    | HTTP x    -> HTTP.clean x
+
+  let map_path fn = function
+    | KV_RO x -> KV_RO { x with KV_RO.dirname = fn x.KV_RO.dirname }
+    | Block x -> Block { x with Block.filename = fn x.Block.filename }
+    | x       -> x
+
+  let path = function
+    | KV_RO x -> Some x.KV_RO.dirname
+    | Block x -> Some x.Block.filename
+    | _       -> None
+
 
 end
 
@@ -590,26 +633,33 @@ module Job = struct
     List.iter fn params
 
   let packages t mode =
-    fold (fun d -> Driver.packages d mode) t
+    "mirari" :: fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    fold (fun d -> Driver.libraries d mode) t
+    "mirari" :: fold (fun d -> Driver.libraries d mode) t
 
-  let prepare t mode =
-    iter (fun d -> Driver.prepare d mode) t
-
-  let output t mode doc =
-    iter (fun p -> Driver.output p mode doc) t;
-    newline doc.oc;
+  let configure t mode d =
+    iter (fun p -> Driver.configure p mode d) t;
+    newline d.oc;
     let modules = List.map (fun p ->
-        let m = StringMap.find (Driver.name p) doc.modules in
+        let m = StringMap.find (Driver.name p) d.modules in
         Printf.sprintf "(%s)" m
       ) t.params in
     let names = List.map Driver.name t.params in
     let m = String.capitalize t.name in
-    append doc.oc "module %s = %s%s" m t.handler (String.concat "" modules);
-    append doc.oc "let %s = %s.start %s" t.name m (String.concat " " names);
-    newline doc.oc
+    append d.oc "module %s = %s%s" m t.handler (String.concat "" modules);
+    newline d.oc;
+    append d.oc "let %s =" t.name;
+    List.iter (fun name ->
+        append d.oc "  %s >>= function" name;
+        append d.oc "  | `Error _ as e -> fail e";
+        append d.oc "  | `Ok %s ->" name;
+      ) names;
+    append d.oc "  %s.start %s" m (String.concat " " names);
+    newline d.oc
+
+  let clean t =
+    iter Driver.clean t
 
   let all : t list ref =
     ref []
@@ -623,6 +673,17 @@ module Job = struct
   let registered () =
     !all
 
+  let paths drivers =
+    List.fold_left (fun l d ->
+        match Driver.path d with
+        | None   -> l
+        | Some p -> p :: l
+      ) [] drivers
+
+  let update_path t root =
+    let params = List.map (Driver.map_path (Filename.concat root)) t.params in
+    { t with params }
+
 end
 
 type t = {
@@ -632,6 +693,15 @@ type t = {
 }
 
 let name t = t.name
+
+let main_ml t =
+  let filename = t.root / "main.ml" in
+  let oc = open_out filename in
+  append oc "(* %s *)" generated_by_mirari;
+  newline oc;
+  append oc "open Lwt";
+  newline oc;
+  { filename; oc; modules = StringMap.empty; }
 
 let fold fn { jobs } =
   let s = List.fold_left (fun set job ->
@@ -649,15 +719,18 @@ let packages t mode =
 let libraries t mode =
   fold (fun j -> Job.libraries j mode) t
 
-let prepare_main t mode =
-  iter (fun j -> Job.prepare j mode) t
+let configure_jobs t mode d =
+  iter (fun j -> Job.configure j mode d) t
 
-let prepare_myocamlbuild_ml t mode =
+let clean_jobs t =
+  iter Job.clean t
+
+let configure_myocamlbuild_ml t mode d =
   let minor, major = ocaml_version () in
   if minor < 4 || major < 1 then (
     (* Previous ocamlbuild versions weren't able to understand the
        --output-obj rules *)
-    let file = Printf.sprintf "%s/myocamlbuild.ml" t.root in
+    let file = t.root / "myocamlbuild.ml" in
     let oc = open_out file in
     append oc "(* %s *)" generated_by_mirari;
     newline oc;
@@ -689,16 +762,13 @@ let prepare_myocamlbuild_ml t mode =
     close_out oc
   )
 
-let prepare_makefile t mode =
-  let file = Printf.sprintf "%s/Makefile" t.root in
+let clean_myocamlbuild_ml t =
+  remove (t.root / "myocamlbuild.ml")
+
+let configure_makefile t mode d =
+  let file = t.root / "Makefile" in
   let libraries =
-    let l = libraries t mode in
-    (* XXX: weird dependency error on OCaml < 4.01 *)
-    let minor, major = ocaml_version () in
-    let l =
-      if minor < 4 || major < 1 then "lwt.syntax" :: l
-      else l in
-    match l with
+    match "lwt.syntax" :: libraries t mode with
     | [] -> ""
     | ls -> "-pkgs " ^ String.concat "," ls in
   let packages = String.concat " " (packages t mode) in
@@ -708,73 +778,101 @@ let prepare_makefile t mode =
   append oc "LIBS   = %s" libraries;
   append oc "PKGS   = %s" packages;
   append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n\
-             FLAGS  = -g -lflag -linkpkg\n\
+             FLAGS  = -cflag -g -lflags -g,-linkpkg\n\
              BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
   append oc "PHONY: all depends clean\n\
              all: build\n\
              \n\
-             depends:\n\
-            \    $(OPAM) install $(PKGS)\n\
+             prepare:\n\
+             \t$(OPAM) install $(PKGS)\n\
              \n\
-             _build/.stamp:\n\
-            \    rm -rf _build\n\
-            \    mkdir -p _build/lib\n\
-            \    @touch $@\n\
+             main.native:\n\
+             \t$(BUILD) main.native\n\
              \n\
-             main.native: _build/.stamp\n\
-            \    $(BUILD) main.native\n\
-             \n\
-             main.native.o: _build/.stamp\n\
-            \    $(BUILD) main.native.o";
+             main.native.o:\n\
+             \t$(BUILD) main.native.o";
   newline oc;
   begin match mode with
     | `Xen ->
       append oc "all: main.native.o";
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
-      append oc "    ld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
-                \      main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                \      %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o main.xen"
+      append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
+                 \t  main.native.o %s/libocaml.a %s/libxen.a \\\n\
+                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o main.xen"
         lib lib lib lib lib lib lib lib;
-      append oc "    ln -nfs _build/main.xen mir-%s.xen" t.name;
-      append oc "    nm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
-                \      \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
+      append oc "\tln -nfs _build/main.xen mir-%s.xen" t.name;
+      append oc "\tnm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
+                 \t  \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
     | `Unix _ ->
       append oc "all: main.native";
-      append oc "    ln -nfs _build/main.native mir-%s" t.name;
+      append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;
   append oc "clean:\n\
-            \    ocamlbuild -clean";
+             \tocamlbuild -clean";
   close_out oc
 
-let prepare_opam t mode =
+let clean_makefile t =
+  remove (t.root / "Makefile")
+
+let configure_opam t mode d =
   info "Installing OPAM packages.";
   match packages t mode with
-  | [] -> if not (cmd_exists "opam") then error "OPAM is not installed."
-  | ps -> opam_install ps
+  | [] -> ()
+  | ps ->
+    if cmd_exists "opam" then opam "install" ps
+    else error "OPAM is not installed."
 
-let prepare t mode =
-  prepare_main t mode;
-  prepare_myocamlbuild_ml t mode;
-  prepare_makefile t mode
+let clean_opam t =
+  let (++) = StringSet.union in
+  let set mode = StringSet.of_list (packages t mode) in
+  let packages =
+    set (`Unix `Socket) ++ set (`Unix `Direct) ++ set `Xen in
+  match StringSet.elements packages with
+  | [] -> ()
+  | ps ->
+    if cmd_exists "opam" then opam "remove" ps
+    else error "OPAM is not installed."
 
-let output t mode doc =
-  iter (fun j -> Job.output j mode doc) t;
-  newline doc.oc;
+let manage_opam = ref true
+
+let manage_opam_packages b =
+  manage_opam := b
+
+let configure_main t mode d =
+  info "Generating %s" d.filename;
+  iter (fun j -> Job.configure j mode d) t;
+  newline d.oc;
   let jobs = List.map Job.name t.jobs in
-  append doc.oc "let () =";
-  append doc.oc "  OS.Main.run (Lwt.join [%s])" (String.concat "; " jobs)
+  append d.oc "let () =";
+  append d.oc "  OS.Main.run (join [%s])" (String.concat "; " jobs)
 
-let configure t ~mode ~install =
-  if install then prepare_opam t mode;
-  prepare t mode;
-  let main_ml = Filename.concat t.root "main.ml" in
-  info "Generating %s" main_ml;
-  let doc = empty main_ml in
-  output t mode doc
+let clean_main t =
+  clean_jobs t;
+  remove (t.root / "main.ml")
+
+let configure t mode d =
+  info "%d JOBS (%s)"
+    (List.length t.jobs)
+    (String.concat ", " (List.map Job.name t.jobs));
+  in_dir t.root (fun () ->
+      if !manage_opam then configure_opam t mode d;
+      configure_myocamlbuild_ml t mode d;
+      configure_makefile t mode d;
+      configure_main t mode d
+    )
+
+let clean t =
+  in_dir t.root (fun () ->
+      if !manage_opam then clean_opam t;
+      clean_myocamlbuild_ml t;
+      clean_makefile t;
+      clean_main t;
+      command "rm -rf %s/_build" t.root
+    )
 
 (*
   (* Generate the Makefile *)
@@ -822,32 +920,58 @@ let run ~mode file =
  * [Mirari_config.register] in order to have an observable
  * side effect to this command. *)
 let compile_and_dynlink file =
+  info "Compiling and dynlinkg %s" file;
+  let root = Filename.dirname file in
+  let file = Filename.basename file in
   let file = Dynlink.adapt_filename file in
-  command "rm -f _build/%s.*" (Filename.chop_extension file);
-  command "ocamlbuild -use-ocamlfind -pkg mirari %s" file;
-  try Dynlink.loadfile ("_build/"^file)
+  command "rm -rf %s/_build/%s.*" root (Filename.chop_extension file);
+  command "cd %s && ocamlbuild -use-ocamlfind -pkg mirari %s" root file;
+  try Dynlink.loadfile (String.concat "/" [root; "_build"; file])
   with Dynlink.Error err -> error "Error loading config: %s" (Dynlink.error_message err)
 
 (* If a configuration file is specified, then use that.
  * If not, then scan the curdir for a `config.ml` file.
  * If there is more than one, then error out. *)
 let scan_conf = function
-  | Some f ->  info "Using specified config file %s" f; f
+  | Some f ->
+    info "Using specified config file %s" f;
+    realpath f
   | None   ->
     let files = Array.to_list (Sys.readdir ".") in
     match List.filter ((=) "config.ml") files with
     | [] -> error "No configuration file ending in .conf found.\n\
                    You'll need to create one to let Mirari know what do do."
-    | [f] -> info "Using scanned config file %s" f; f
+    | [f] ->
+      info "Using scanned config file %s" f;
+      realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."
 
 let load file =
   let file = scan_conf file in
+  let root = realdir (Filename.dirname file) in
   Job.reset ();
-  compile_and_dynlink file;
-  { name ="main";
-    root = Filename.dirname file;
-    jobs = Job.registered () }
+  compile_and_dynlink (root / Filename.basename file);
+  let jobs = Job.registered () in
+  let jobs = List.map (fun j -> Job.update_path j root) jobs in
+  { name ="main"; root; jobs }
 
 let run _ = failwith "TODO"
+
+module V1 = struct
+
+  (** Useful specialisation for some Mirage types. *)
+
+  open V1
+
+  module type KV_RO = KV_RO
+    with type id = unit
+     and type 'a io = 'a Lwt.t
+     and type page_aligned_stream = Cstruct.t Lwt_stream.t
+    (** KV RO *)
+
+  module type CONSOLE = CONSOLE
+    with type 'a io = 'a Lwt.t
+    (** Consoles *)
+
+end

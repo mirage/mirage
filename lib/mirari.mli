@@ -27,11 +27,8 @@ type mode = [
 ]
 (** Usage modes. *)
 
-type document
-(** Type of documents. *)
-
-val empty: string -> document
-(** Empty document. *)
+type main_ml
+(** Type of the [main.ml] file. *)
 
 module type CONFIGURABLE = sig
 
@@ -49,16 +46,14 @@ module type CONFIGURABLE = sig
   val libraries: t -> mode -> string list
   (** List of ocamlfind libraries. *)
 
-  val prepare: t -> mode -> unit
-  (** Prepare the device configuration by calling some external
-      command (as mi-crunch). The package containing these external
-      tools should appear in the [packages] list above. *)
-
-  val output: t -> mode -> document -> unit
+  val configure: t -> mode -> main_ml -> unit
   (** Generate some code to create a value with the right
       configuration settings. This function appends some code in the
       provided out channel but it can also do stuff in the background
       (like calling 'mir-crunch' to generate static filesystems. *)
+
+  val clean: t -> unit
+  (** Remove all the autogen files. *)
 
 end
 
@@ -222,16 +217,35 @@ type t = {
 }
 (** The collection of single jobs forms the main function. *)
 
-include CONFIGURABLE with type t := t
+val main_ml: t -> main_ml
+(** Create an empty main_ml. *)
 
-val configure: t -> mode:mode -> install:bool -> unit
-(** [configure ~mode ~install conf_file] configure a project. If
-    [conf_file] is [None], then look for a `.conf` file in the current
-    directory. *)
+val load: string option -> t
+(** Read a config file. If no name is given, use [config.ml]. *)
+
+val manage_opam_packages: bool -> unit
+(** Tell Irminsule to manage the OPAM configuration. *)
+
+include CONFIGURABLE with type t := t
 
 val run: t -> mode:mode -> unit
 (** [run ~mode conf_file] runs a project. If [conf_file] is [None],
     then look for a `.conf` file in the current directory. *)
 
-val load: string option -> t
-(** Read a config file. If no name is given, use [config.ml]. *)
+module V1: sig
+
+  (** Useful specialisation for some Mirage types. *)
+
+  open V1
+
+  module type KV_RO = KV_RO
+    with type id = unit
+     and type 'a io = 'a Lwt.t
+     and type page_aligned_stream = Cstruct.t Lwt_stream.t
+    (** KV RO *)
+
+  module type CONSOLE = CONSOLE
+    with type 'a io = 'a Lwt.t
+    (** Consoles *)
+
+end

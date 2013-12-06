@@ -35,8 +35,8 @@ let arg_list name doc conv =
   let doc = Arg.info ~docv:name ~doc [] in
   Arg.(value & pos_all conv [] & doc)
 
-let no_install =
-  mk_flag ["no-install"] "Do not auto-install OPAM packages."
+let no_opam =
+  mk_flag ["no-opam"] "Do not manage the OPAM configuration."
 let xen =
   mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix-*."
 let unix =
@@ -68,12 +68,14 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen socket no_install file =
+  let configure unix xen socket no_opam file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
       let t = Mirari.load file in
-      `Ok (Mirari.configure t ~mode:(mode unix xen socket) ~install:(not no_install)) in
-  Term.(ret (pure configure $ unix $ xen $ socket $ no_install $ file)),
+      let main_ml = Mirari.main_ml t in
+      Mirari.manage_opam_packages (not no_opam);
+      `Ok (Mirari.configure t (mode unix xen socket) main_ml) in
+  Term.(ret (pure configure $ unix $ xen $ socket $ no_opam $ file)),
   term_info "configure" ~doc ~man
 
 (* RUN *)
@@ -90,8 +92,19 @@ let run =
       `Ok (Mirari.run t ~mode:(mode unix xen socket)) in
   Term.(ret (pure run $ unix $ xen $ socket $ file)), term_info "run" ~doc ~man
 
-(* LIST *)
-let list_doc = "List the running Mirage instance on the current host."
+(* RUN *)
+let clean_doc = "Clean the files produced by Mirage for a given application."
+let clean =
+  let doc = run_doc in
+  let man = [
+    `S "DESCRIPTION";
+    `P clean_doc;
+  ] in
+  let clean file no_opam =
+    let t = Mirari.load file in
+    Mirari.manage_opam_packages (not no_opam);
+    `Ok (Mirari.clean t) in
+  Term.(ret (pure clean $ file $ no_opam)), term_info "clean" ~doc ~man
 
 (* HELP *)
 let help =
@@ -136,10 +149,10 @@ let default =
       The most commonly used mirari commands are:\n\
       \    configure   %s\n\
       \    run         %s\n\
-      \    list        %s\n\
+      \    clean       %s\n\
       \n\
       See 'mirari help <command>' for more information on a specific command.\n%!"
-      configure_doc run_doc list_doc in
+      configure_doc run_doc clean_doc in
   Term.(pure usage $ pure ()),
   Term.info "mirari"
     ~version:"1.0.0"
@@ -150,6 +163,7 @@ let default =
 let commands = [
   configure;
   run;
+  clean;
 ]
 
 let () =

@@ -1,0 +1,29 @@
+# OASIS_START
+# DO NOT EDIT (digest: d4989970f0ca22392e16b270d78827cd)
+# Ignore VCS directories, you can use the same kind of rule outside 
+# OASIS_START/STOP if you want to exclude directories that contains 
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library mirari
+"lib/mirari.cmxs": use_mirari
+# Executable mirari
+<lib/main.{native,byte}>: use_mirari
+<lib/main.{native,byte}>: pkg_cmdliner
+<lib/main.{native,byte}>: pkg_ipaddr
+<lib/main.{native,byte}>: pkg_unix
+<lib/main.{native,byte}>: pkg_dynlink
+<lib/*.ml{,i}>: use_mirari
+<lib/*.ml{,i}>: pkg_cmdliner
+<lib/*.ml{,i}>: pkg_ipaddr
+<lib/*.ml{,i}>: pkg_unix
+<lib/*.ml{,i}>: pkg_dynlink
+# OASIS_STOP

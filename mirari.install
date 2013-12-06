@@ -1,3 +1,0 @@
-bin: [
-  "_build/lib/main.native" {"mirari"}
-]

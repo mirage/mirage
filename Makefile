@@ -1,28 +1,38 @@
-PREFIX ?= /usr/local
-VERSION = 0.9.6
-PKGS    = cmdliner,unix,tuntap,fd-send-recv,cohttp.mirage,mirage-types
+# OASIS_START
+# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
 
-BUILD   = ocamlbuild -use-ocamlfind -pkgs $(PKGS)
+SETUP = ocaml setup.ml
 
-all: _build/lib/mirari.native
+build: setup.data
+	$(SETUP) -build $(BUILDFLAGS)
 
-lib/path_generated.ml:
-	echo let project_version=\"$(VERSION)\" > $@
+doc: setup.data build
+	$(SETUP) -doc $(DOCFLAGS)
 
-_build/.stamp:
-	rm -rf _build
-	mkdir -p _build/lib
-	@touch $@
+test: setup.data build
+	$(SETUP) -test $(TESTFLAGS)
 
-_build/lib/mirari.native: _build/.stamp lib/path_generated.ml
-	$(BUILD) lib/main.native
+all: 
+	$(SETUP) -all $(ALLFLAGS)
 
-install:
-	cp _build/lib/main.native $(PREFIX)/bin/mirari
+install: setup.data
+	$(SETUP) -install $(INSTALLFLAGS)
 
-uninstall:
-	rm $(PREFIX)/bin/mirari
+uninstall: setup.data
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
 
-.PHONY: clean
-clean:
-	rm -rf _build lib/path_generated.ml
+reinstall: setup.data
+	$(SETUP) -reinstall $(REINSTALLFLAGS)
+
+clean: 
+	$(SETUP) -clean $(CLEANFLAGS)
+
+distclean: 
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
+
+setup.data:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+.PHONY: build doc test all install uninstall reinstall clean distclean configure
+
+# OASIS_STOP

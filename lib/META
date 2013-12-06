@@ -1,0 +1,12 @@
+# OASIS_START
+# DO NOT EDIT (digest: 336625ec587a75c0cb63ce77724fb650)
+version = "1.0.0"
+description = "Mirage configuration helper"
+requires = "ipaddr unix dynlink"
+archive(byte) = "mirari.cma"
+archive(byte, plugin) = "mirari.cma"
+archive(native) = "mirari.cmxa"
+archive(native, plugin) = "mirari.cmxs"
+exists_if = "mirari.cma"
+# OASIS_STOP
+

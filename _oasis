@@ -1,0 +1,22 @@
+OASISFormat: 0.3
+Name:        fat-filesystem
+Version:     1.0.0
+Synopsis:    Mirage configuration helper
+Authors:     Thomas Gazagnaire, Anil Madhavapeddy
+License:     ISC
+Plugins:     META (0.3), DevFiles (0.3)
+BuildTools:  ocamlbuild
+
+Library mirari
+  CompiledObject:     best
+  Path:               lib
+  Findlibname:        mirari
+  Modules:            Mirari
+  BuildDepends:       ipaddr,unix,dynlink
+
+Executable mirari
+  CompiledObject:     best
+  Path:               lib
+  MainIs:             main.ml
+  Install:            true
+  BuildDepends:       mirari,cmdliner

@@ -150,7 +150,7 @@ module IP: sig
 
   type t = {
     name: string;
-    conf: conf;
+    conf: conf option;
   }
   (** Main IP configuration. *)
 

@@ -561,7 +561,7 @@ module IP = struct
 
   type t = {
     name: string;
-    conf: conf;
+    conf: conf option;
   }
 
   let packages _ mode = [
@@ -578,8 +578,24 @@ module IP = struct
 
   let name t = t.name
 
-  let configure _ =
-    failwith "TODO"
+  let configure t mode d =
+    if not (StringMap.mem t.name d.modules) then (
+      let m = "IP_%s" ^ t.name in
+      d.modules <- StringMap.add t.name m d.modules;
+      append d.oc "let %s =" t.name;
+      begin match t.conf with
+        | None          -> append d.oc "None"
+        | Some DHCP     -> append d.oc "Some `DHCP"
+        | Some (IPv4 i) ->
+          append d.oc "Some (`IPv4 (%S, %S, [%s]))"
+            (Ipaddr.V4.to_string i.address)
+            (Ipaddr.V4.to_string i.netmask)
+            (String.concat "; "
+               (List.map (Printf.sprintf "%S")
+                  (List.map Ipaddr.V4.to_string i.gateway)))
+      end;
+      newline d.oc;
+    )
 
   let clean t =
     ()

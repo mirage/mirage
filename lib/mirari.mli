@@ -236,6 +236,9 @@ module V1: sig
 
   (** Useful specialisation for some Mirage types. *)
 
+  exception Driver_initialisation_error of string
+  (** Driver initialisation error *)
+
   open V1
 
   module type KV_RO = KV_RO

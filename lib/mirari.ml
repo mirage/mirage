@@ -255,6 +255,9 @@ module Headers = struct
 
 end
 
+let driver_initialisation_error name =
+  Printf.sprintf "fail (Mirari.V1.Driver_initialisation_error %S)" name
+
 module IO_page = struct
 
   (** Memory allocation interface. *)
@@ -445,7 +448,7 @@ module FAT = struct
         m (StringMap.find t.block.Block.name d.modules);
       append d.oc "let %s =" t.name;
       append d.oc " %s >>= function" (Block.name t.block);
-      append d.oc " | `Error e -> fail (%s.Block_error e)" m;
+      append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
       append d.oc " | `Ok dev  -> %s.openfile dev" m
     )
 
@@ -652,8 +655,8 @@ module Job = struct
     append d.oc "let %s =" t.name;
     List.iter (fun name ->
         append d.oc "  %s >>= function" name;
-        append d.oc "  | `Error _ as e -> fail e";
-        append d.oc "  | `Ok %s ->" name;
+        append d.oc "  | `Error _ -> %s" (driver_initialisation_error name);
+        append d.oc "  | `Ok %s   ->" name;
       ) names;
     append d.oc "  %s.start %s" m (String.concat " " names);
     newline d.oc
@@ -959,6 +962,8 @@ let load file =
 let run _ = failwith "TODO"
 
 module V1 = struct
+
+  exception Driver_initialisation_error of string
 
   (** Useful specialisation for some Mirage types. *)
 

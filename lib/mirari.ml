@@ -966,7 +966,8 @@ let clean t =
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main t;
-      command "rm -rf %s/_build" t.root
+      command "rm -rf %s/_build" t.root;
+      command "rm -rf %s/mir-main %s/*~" t.root t.root;
     )
 
 (*

@@ -378,8 +378,11 @@ module Console = struct
 
   let configure t mode d =
     let name = name t in
-    if not (StringMap.mem name d.modules) then
-      d.modules <- StringMap.add name "Console" d.modules
+    if not (StringMap.mem name d.modules) then (
+      d.modules <- StringMap.add name "Console" d.modules;
+      append d.oc "let %s = Console.connect \"\"" name;
+      newline d.oc
+    )
 
   let clean t =
     ()

@@ -57,7 +57,7 @@ module type CONFIGURABLE = sig
 
 end
 
-module IO_page: sig
+module Io_page: sig
 
   (** Memory allocation interface. *)
 
@@ -116,15 +116,15 @@ module Block: sig
 
 end
 
-module FAT: sig
+module Fat: sig
 
-  (** FAT *)
+  (** FAT filesystem *)
 
   type t = {
     name : string;
     block: Block.t;
   }
-  (** Type for FAT configuration. *)
+  (** Type for a FAT filesystem configuration. *)
 
   include CONFIGURABLE with type t := t
 
@@ -178,12 +178,12 @@ module Driver: sig
   (** All possible device configuration. *)
 
   type t =
-    | IO_page of IO_page.t
+    | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
     | KV_RO of KV_RO.t
     | Block of Block.t
-    | FAT of FAT.t
+    | Fat of Fat.t
     | IP of IP.t
     | HTTP of HTTP.t
 
@@ -228,7 +228,7 @@ val manage_opam_packages: bool -> unit
 
 include CONFIGURABLE with type t := t
 
-val run: t -> mode:mode -> unit
+val run: t -> mode -> unit
 (** [run ~mode conf_file] runs a project. If [conf_file] is [None],
     then look for a `.conf` file in the current directory. *)
 
@@ -250,5 +250,9 @@ module V1: sig
   module type CONSOLE = CONSOLE
     with type 'a io = 'a Lwt.t
     (** Consoles *)
+
+  module type FS = FS
+    with type 'a io = 'a Lwt.t
+    (** FS *)
 
 end

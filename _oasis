@@ -12,7 +12,7 @@ Library mirari
   Path:               lib
   Findlibname:        mirari
   Modules:            Mirari
-  BuildDepends:       ipaddr,unix,dynlink,mirage-types,lwt,cstruct
+  BuildDepends:       ipaddr,unix,dynlink,mirage-types,lwt,cstruct,re.str
 
 Executable mirari
   CompiledObject:     best

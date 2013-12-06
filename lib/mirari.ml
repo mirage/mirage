@@ -109,17 +109,96 @@ let append oc fmt =
 let newline oc =
   append oc ""
 
+(* Code duplication with irminsule/alcotest *)
+let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
+let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
+let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
+let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
+
+let red_s = red "%s"
+let green_s = green "%s"
+let yellow_s = yellow "%s"
+let blue_s = blue "%s"
+
+let with_process_in cmd f =
+  let ic = Unix.open_process_in cmd in
+  try
+    let r = f ic in
+    ignore (Unix.close_process_in ic) ; r
+  with exn ->
+    ignore (Unix.close_process_in ic) ; raise exn
+
+let terminal_columns =
+  let split s c =
+    Re_str.split (Re_str.regexp (Printf.sprintf "[%c]" c)) s in
+  try           (* terminfo *)
+    with_process_in "tput cols"
+      (fun ic -> int_of_string (input_line ic))
+  with _ -> try (* GNU stty *)
+      with_process_in "stty size"
+        (fun ic ->
+           match split (input_line ic) ' ' with
+           | [_ ; v] -> int_of_string v
+           | _ -> failwith "stty")
+    with _ -> try (* shell envvar *)
+        int_of_string (Sys.getenv "COLUMNS")
+      with _ ->
+        80
+
+let line oc ?color c =
+  let line = match color with
+    | Some `Blue   -> blue_s (String.make terminal_columns c)
+    | Some `Yellow -> yellow_s (String.make terminal_columns c)
+    | None         -> String.make terminal_columns c in
+  Printf.fprintf oc "%s\n%!" line
+
+let indent_left s nb =
+  let nb = nb - String.length s in
+  if nb <= 0 then
+    s
+  else
+    s ^ String.make nb ' '
+
+let indent_right s nb =
+  let nb = nb - String.length s in
+  if nb <= 0 then
+    s
+  else
+    String.make nb ' ' ^ s
+
+let left_column () =
+  20
+
+let right_column () =
+  terminal_columns
+  - left_column ()
+  + 19
+
+let right s =
+  Printf.printf "%s\n%!" (indent_right s (right_column ()))
+
+let left s =
+  Printf.printf "%s%!" (indent_left s (left_column ()))
+
 let error fmt =
   Printf.kprintf (fun str ->
-    Printf.eprintf "[mirari] ERROR: %s\n%!" str;
-    exit 1;
+      Printf.eprintf "%s %s\n%!"
+        (indent_left (red_s "[ERROR]") (left_column ()))
+        str;
+      exit 1;
   ) fmt
 
 let info fmt =
-  Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
+  Printf.kprintf (fun str ->
+      left (green_s "MIRARI");
+      Printf.printf "%s%!\n" str
+    ) fmt
 
 let debug fmt =
-  Printf.kprintf (Printf.printf "[mirari] %s\n%!") fmt
+  Printf.kprintf (fun str ->
+      left (yellow_s "DEBUG");
+      Printf.printf "%s%!\n" str
+    ) fmt
 
 let realdir dir =
   if Sys.file_exists dir && Sys.is_directory dir then (
@@ -258,7 +337,7 @@ end
 let driver_initialisation_error name =
   Printf.sprintf "fail (Mirari.V1.Driver_initialisation_error %S)" name
 
-module IO_page = struct
+module Io_page = struct
 
   (** Memory allocation interface. *)
 
@@ -412,10 +491,11 @@ module Block = struct
 
   let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
-      let m = "Mirage_block.Block" in
+      let m = "Block" in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "let %s =" t.name;
       append d.oc "  %s.connect %S" m t.filename;
+      newline d.oc
     )
 
   let clean t =
@@ -423,7 +503,7 @@ module Block = struct
 
 end
 
-module FAT = struct
+module Fat = struct
 
   type t = {
     name : string;
@@ -433,14 +513,16 @@ module FAT = struct
   let name t = t.name
 
   let packages t mode = [
-    "ocaml-fat";
-  ] @
-    Block.packages t.block mode
+    "fat";
+  ]
+    @ Io_page.packages () mode
+    @ Block.packages t.block mode
 
   let libraries t mode = [
-    "ocaml-fat";
-  ] @
-    Block.libraries t.block mode
+    "fat-filesystem";
+  ]
+    @ Io_page.libraries () mode
+    @ Block.libraries t.block mode
 
   let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (
@@ -449,10 +531,11 @@ module FAT = struct
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "module %s = Fat.Fs.Make(%s)(Io_page)"
         m (StringMap.find t.block.Block.name d.modules);
+      newline d.oc;
       append d.oc "let %s =" t.name;
       append d.oc " %s >>= function" (Block.name t.block);
       append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
-      append d.oc " | `Ok dev  -> %s.openfile dev" m
+      append d.oc " | `Ok dev  -> %s.connect dev" m
     )
 
   let clean t =
@@ -538,68 +621,73 @@ end
 module Driver = struct
 
   type t =
-    | IO_page of IO_page.t
+    | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
     | KV_RO of KV_RO.t
     | Block of Block.t
-    | FAT of FAT.t
+    | Fat of Fat.t
     | IP of IP.t
     | HTTP of HTTP.t
 
   let name = function
-    | IO_page x -> IO_page.name x
+    | Io_page x -> Io_page.name x
     | Console x -> Console.name x
     | Clock x   -> Clock.name x
     | KV_RO x   -> KV_RO.name x
     | Block x   -> Block.name x
-    | FAT x     -> FAT.name x
+    | Fat x     -> Fat.name x
     | IP x      -> IP.name x
     | HTTP x    ->  HTTP.name x
 
   let packages = function
-    | IO_page x -> IO_page.packages x
+    | Io_page x -> Io_page.packages x
     | Console x -> Console.packages x
     | Clock x   -> Clock.packages x
     | KV_RO x   -> KV_RO.packages x
     | Block x   -> Block.packages x
-    | FAT x     -> FAT.packages x
+    | Fat x     -> Fat.packages x
     | IP x      -> IP.packages x
     | HTTP x    -> HTTP.packages x
 
   let libraries = function
-    | IO_page x -> IO_page.libraries x
+    | Io_page x -> Io_page.libraries x
     | Console x -> Console.libraries x
     | Clock x   -> Clock.libraries x
     | KV_RO x   -> KV_RO.libraries x
     | Block x   -> Block.libraries x
-    | FAT x     -> FAT.libraries x
+    | Fat x     -> Fat.libraries x
     | IP x      -> IP.libraries x
     | HTTP x    -> HTTP.libraries x
 
   let configure = function
-    | IO_page x -> IO_page.configure x
+    | Io_page x -> Io_page.configure x
     | Console x -> Console.configure x
     | Clock x   -> Clock.configure x
     | KV_RO x   -> KV_RO.configure x
     | Block x   -> Block.configure x
-    | FAT x     -> FAT.configure x
+    | Fat x     -> Fat.configure x
     | IP x      -> IP.configure x
     | HTTP x    -> HTTP.configure x
 
   let clean = function
-    | IO_page x -> IO_page.clean x
+    | Io_page x -> Io_page.clean x
     | Console x -> Console.clean x
     | Clock x   -> Clock.clean x
     | KV_RO x   -> KV_RO.clean x
     | Block x   -> Block.clean x
-    | FAT x     -> FAT.clean x
+    | Fat x     -> Fat.clean x
     | IP x      -> IP.clean x
     | HTTP x    -> HTTP.clean x
 
-  let map_path fn = function
+  let rec map_path fn = function
     | KV_RO x -> KV_RO { x with KV_RO.dirname = fn x.KV_RO.dirname }
     | Block x -> Block { x with Block.filename = fn x.Block.filename }
+    | Fat x   ->
+      begin match map_path fn (Block x.Fat.block) with
+        | Block block -> Fat { x with Fat.block }
+        | _ -> assert false
+      end
     | x       -> x
 
   let path = function
@@ -639,10 +727,10 @@ module Job = struct
     List.iter fn params
 
   let packages t mode =
-    "mirari" :: fold (fun d -> Driver.packages d mode) t
+    "mirage" :: "mirari" :: fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    "mirari" :: fold (fun d -> Driver.libraries d mode) t
+    "mirage" :: "mirari" :: fold (fun d -> Driver.libraries d mode) t
 
   let configure t mode d =
     iter (fun p -> Driver.configure p mode d) t;
@@ -687,7 +775,9 @@ module Job = struct
       ) [] drivers
 
   let update_path t root =
-    let params = List.map (Driver.map_path (Filename.concat root)) t.params in
+    let fn path =
+      realpath (Filename.concat root path) in
+    let params = List.map (Driver.map_path fn) t.params in
     { t with params }
 
 end
@@ -788,7 +878,7 @@ let configure_makefile t mode d =
              BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
-  append oc "PHONY: all depends clean\n\
+  append oc ".PHONY: all prepare clean\n\
              all: build\n\
              \n\
              prepare:\n\
@@ -813,7 +903,7 @@ let configure_makefile t mode d =
       append oc "\tnm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
                  \t  \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
     | `Unix _ ->
-      append oc "all: main.native";
+      append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;
@@ -871,26 +961,25 @@ let configure t mode d =
       configure_main t mode d
     )
 
+let run t = function
+  | `Unix _ ->  info "+ unix mode";
+    Unix.execv (t.root / "mir-" ^ t.name) [||]
+  | `Xen    ->
+    info "+ xen mode";
+    failwith "TODO"
+(*
+    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
+*)
+
 let clean t =
   in_dir t.root (fun () ->
       if !manage_opam then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main t;
-      command "rm -rf %s/_build" t.root
+      command "rm -rf %s/_build" t.root;
+      command "rm -rf %s/mir-main %s/*~" t.root t.root;
     )
-
-(*
-  (* Generate the Makefile *)
-  Build.output ~mode t.build;
-  (* Generate the XL config file if backend = Xen *)
-  if mode = `xen then XL.output t.name t.config;
-  (* install OPAM dependencies *)
-  if not no_install then Build.prepare ~mode t.build;
-  (* crunch *)
-  call_crunch_scripts t
-
-*)
 
 (*
 
@@ -906,19 +995,6 @@ module XL = struct
       (fun () -> close_out oc);
 end
 
-let call_crunch_scripts t =
-  List.iter FS.process t.fs
-
-let run ~mode file =
-  let file = scan_conf file in
-  let t = create mode file in
-  match mode with
-  |`unix _ ->
-    info "+ unix socket mode";
-    Unix.execv ("mir-" ^ t.name) [||] (* Just run it! *)
-  |`xen -> (* xen backend *)
-    info "+ xen mode";
-    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
 *)
 
 (* Compile the configuration file and attempt to dynlink it.
@@ -940,7 +1016,8 @@ let compile_and_dynlink file =
  * If there is more than one, then error out. *)
 let scan_conf = function
   | Some f ->
-    info "Using specified config file %s" f;
+    info "Using the specified config file: %s" (yellow_s f);
+    if not (Sys.file_exists f) then error "%s does not exist, stopping." f;
     realpath f
   | None   ->
     let files = Array.to_list (Sys.readdir ".") in
@@ -948,7 +1025,7 @@ let scan_conf = function
     | [] -> error "No configuration file ending in .conf found.\n\
                    You'll need to create one to let Mirari know what do do."
     | [f] ->
-      info "Using scanned config file %s" f;
+      info "Using the scanned config file: %s" (yellow_s f);
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."
@@ -961,8 +1038,6 @@ let load file =
   let jobs = Job.registered () in
   let jobs = List.map (fun j -> Job.update_path j root) jobs in
   { name ="main"; root; jobs }
-
-let run _ = failwith "TODO"
 
 module V1 = struct
 
@@ -981,5 +1056,9 @@ module V1 = struct
   module type CONSOLE = CONSOLE
     with type 'a io = 'a Lwt.t
     (** Consoles *)
+
+  module type FS = FS
+    with type 'a io = 'a Lwt.t
+    (** FS *)
 
 end

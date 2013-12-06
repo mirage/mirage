@@ -1,18 +1,25 @@
 MIRARI = ../main.native
-TESTS  = kv_ro
+TESTS  = kv_ro fat
 
-MAINS  = $(patsubst %, %-main, $(TESTS))
-CLEANS = $(patsubst %, %-clean, $(TESTS))
+CONFIGS = $(patsubst %, %-configure, $(TESTS))
+RUNS    = $(patsubst %, %-run, $(TESTS))
+CLEANS  = $(patsubst %, %-clean, $(TESTS))
 
-all: $(MAINS)
+all: $(CONFIGS)
+	@
+
+run: $(RUNS)
 	@
 
 clean: $(CLEANS)
 	@
 
-%-main:
+%-configure:
 	$(MIRARI) configure $*/config.ml --no-opam
 	$(MAKE) -C $*
+
+%-run:
+	$(MIRARI) run $*/config.ml
 
 %-clean:
 	$(MIRARI) clean $*/config.ml --no-opam

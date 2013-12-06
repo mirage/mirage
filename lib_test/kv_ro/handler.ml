@@ -1,6 +1,11 @@
 open Mirari.V1
 open Lwt
 
+let string_of_stream s =
+  Lwt_stream.to_list s >>= fun s ->
+  let s = List.map Cstruct.to_string s in
+  return (String.concat "" s)
+
 module Main (C: CONSOLE) (X: KV_RO) (Y: KV_RO) = struct
 
   let start c x y =
@@ -8,9 +13,14 @@ module Main (C: CONSOLE) (X: KV_RO) (Y: KV_RO) = struct
       X.read x "a" >>= fun vx ->
       Y.read y "a" >>= fun vy ->
       begin match vx, vy with
-      | `Ok sx, `Ok sy -> if sx = sy then C.log_s "YES!" else C.log_s "NO!"
+      | `Ok sx, `Ok sy ->
+        string_of_stream sx >>= fun sx ->
+        string_of_stream sy >>= fun sy ->
+        if sx = sy then C.log_s "YES!"
+        else C.log_s "NO!"
       | _              -> C.log_s "NO! NO!"
       end >>= fun () ->
+      OS.Time.sleep 1. >>= fun () ->
       aux () in
     aux ()
 

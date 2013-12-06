@@ -950,6 +950,16 @@ let configure t mode d =
       configure_main t mode d
     )
 
+let run t = function
+  | `Unix _ ->  info "+ unix mode";
+    Unix.execv (t.root / "mir-" ^ t.name) [||]
+  | `Xen    ->
+    info "+ xen mode";
+    failwith "TODO"
+(*
+    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
+*)
+
 let clean t =
   in_dir t.root (fun () ->
       if !manage_opam then clean_opam t;
@@ -958,18 +968,6 @@ let clean t =
       clean_main t;
       command "rm -rf %s/_build" t.root
     )
-
-(*
-  (* Generate the Makefile *)
-  Build.output ~mode t.build;
-  (* Generate the XL config file if backend = Xen *)
-  if mode = `xen then XL.output t.name t.config;
-  (* install OPAM dependencies *)
-  if not no_install then Build.prepare ~mode t.build;
-  (* crunch *)
-  call_crunch_scripts t
-
-*)
 
 (*
 
@@ -985,19 +983,6 @@ module XL = struct
       (fun () -> close_out oc);
 end
 
-let call_crunch_scripts t =
-  List.iter FS.process t.fs
-
-let run ~mode file =
-  let file = scan_conf file in
-  let t = create mode file in
-  match mode with
-  |`unix _ ->
-    info "+ unix socket mode";
-    Unix.execv ("mir-" ^ t.name) [||] (* Just run it! *)
-  |`xen -> (* xen backend *)
-    info "+ xen mode";
-    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
 *)
 
 (* Compile the configuration file and attempt to dynlink it.
@@ -1040,8 +1025,6 @@ let load file =
   let jobs = Job.registered () in
   let jobs = List.map (fun j -> Job.update_path j root) jobs in
   { name ="main"; root; jobs }
-
-let run _ = failwith "TODO"
 
 module V1 = struct
 

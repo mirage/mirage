@@ -89,7 +89,7 @@ let run =
     if unix && xen then `Help (`Pager, Some "run")
     else
       let t = Mirari.load file in
-      `Ok (Mirari.run t ~mode:(mode unix xen socket)) in
+      `Ok (Mirari.run t (mode unix xen socket)) in
   Term.(ret (pure run $ unix $ xen $ socket $ file)), term_info "run" ~doc ~man
 
 (* RUN *)

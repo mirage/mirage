@@ -228,7 +228,7 @@ val manage_opam_packages: bool -> unit
 
 include CONFIGURABLE with type t := t
 
-val run: t -> mode:mode -> unit
+val run: t -> mode -> unit
 (** [run ~mode conf_file] runs a project. If [conf_file] is [None],
     then look for a `.conf` file in the current directory. *)
 

@@ -370,11 +370,15 @@ module Clock = struct
 
   let name _ = "console"
 
-  let packages _ _ =
-    ["mirage-clock"]
+  let packages _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-clock-unix"]
+    | `Xen -> ["mirage-clock-xen"]
 
-  let libraries _ _ =
-    ["mirage-clock"]
+  let libraries _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-clock-unix"]
+    | `Xen -> ["mirage-clock-xen"]
 
   let configure t mode d =
     let name = name t in

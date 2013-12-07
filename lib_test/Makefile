@@ -1,5 +1,5 @@
 MIRARI = ../main.native
-TESTS  = kv_ro fat
+TESTS  = console kv_ro fat
 
 CONFIGS = $(patsubst %, %-configure, $(TESTS))
 RUNS    = $(patsubst %, %-run, $(TESTS))

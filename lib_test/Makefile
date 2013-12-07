@@ -1,5 +1,6 @@
 MIRARI = ../main.native
 TESTS  = console kv_ro fat
+# MODE ?= xen
 MODE ?= unix
 BFLAGS ?= --no-opam
 

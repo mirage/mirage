@@ -881,9 +881,14 @@ let configure_makefile t mode d =
   newline oc;
   append oc "LIBS   = %s" libraries;
   append oc "PKGS   = %s" packages;
-  append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n\
-             FLAGS  = -cflag -g -lflags -g,-linkpkg\n\
-             BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n";
+  begin match mode with
+    | `Xen ->
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"
+    | `Unix _ ->
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+  end;
+  append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
   append oc ".PHONY: all prepare clean\n\
@@ -905,11 +910,8 @@ let configure_makefile t mode d =
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
                  \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o main.xen"
+                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-main.xen"
         lib lib lib lib lib lib lib lib;
-      append oc "\tln -nfs _build/main.xen mir-%s.xen" t.name;
-      append oc "\tnm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
-                 \t  \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
     | `Unix _ ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

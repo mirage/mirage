@@ -1,4 +1,4 @@
-open Mirari.V1
+open Mirari_types.V1
 open Lwt
 
 module Main (C: CONSOLE) = struct

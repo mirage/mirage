@@ -904,7 +904,7 @@ let configure_makefile t mode d =
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
-                 \t  main.native.o %s/libocaml.a %s/libxen.a \\\n\
+                 \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
                  \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o main.xen"
         lib lib lib lib lib lib lib lib;
       append oc "\tln -nfs _build/main.xen mir-%s.xen" t.name;

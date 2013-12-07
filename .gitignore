@@ -2,4 +2,11 @@
 _build/
 *.native
 lib/path_generated.ml
-
+.*.swp
+*.xen
+setup.data
+setup.log
+lib_test/**/Makefile
+lib_test/**/main.ml
+lib_test/**/mir-*
+lib_test/**/static_*

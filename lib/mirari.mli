@@ -231,28 +231,3 @@ include CONFIGURABLE with type t := t
 val run: t -> mode -> unit
 (** [run ~mode conf_file] runs a project. If [conf_file] is [None],
     then look for a `.conf` file in the current directory. *)
-
-module V1: sig
-
-  (** Useful specialisation for some Mirage types. *)
-
-  exception Driver_initialisation_error of string
-  (** Driver initialisation error *)
-
-  open V1
-
-  module type KV_RO = KV_RO
-    with type id = unit
-     and type 'a io = 'a Lwt.t
-     and type page_aligned_stream = Cstruct.t Lwt_stream.t
-    (** KV RO *)
-
-  module type CONSOLE = CONSOLE
-    with type 'a io = 'a Lwt.t
-    (** Consoles *)
-
-  module type FS = FS
-    with type 'a io = 'a Lwt.t
-    (** FS *)
-
-end

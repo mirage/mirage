@@ -1,5 +1,7 @@
 MIRARI = ../main.native
 TESTS  = console kv_ro fat
+MODE ?= unix
+BFLAGS ?= --no-opam
 
 CONFIGS = $(patsubst %, %-configure, $(TESTS))
 RUNS    = $(patsubst %, %-run, $(TESTS))
@@ -15,11 +17,11 @@ clean: $(CLEANS)
 	@
 
 %-configure:
-	$(MIRARI) configure $*/config.ml --no-opam
+	$(MIRARI) configure $*/config.ml $(BFLAGS) --$(MODE)
 	$(MAKE) -C $*
 
 %-run:
 	$(MIRARI) run $*/config.ml
 
 %-clean:
-	$(MIRARI) clean $*/config.ml --no-opam
+	$(MIRARI) clean $*/config.ml $(BFLAGS) --$(MODE)

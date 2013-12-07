@@ -453,11 +453,15 @@ module Console = struct
 
   let name _ = "console"
 
-  let packages _ _ =
-    ["mirage-console"]
+  let packages _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-console-unix"; "mirage-unix" ]
+    | `Xen -> ["mirage-console-xen"; "mirage-xen" ]
 
-  let libraries _ _ =
-    ["mirage-console"]
+  let libraries _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-console-unix"]
+    | `Xen -> ["mirage-console-xen"]
 
   let configure t mode d =
     let name = name t in
@@ -731,10 +735,10 @@ module Job = struct
     List.iter fn params
 
   let packages t mode =
-    "mirage" :: "mirari" :: fold (fun d -> Driver.packages d mode) t
+    "mirari" :: fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    "mirage" :: "mirari" :: fold (fun d -> Driver.libraries d mode) t
+    "mirari" :: fold (fun d -> Driver.libraries d mode) t
 
   let configure t mode d =
     iter (fun p -> Driver.configure p mode d) t;

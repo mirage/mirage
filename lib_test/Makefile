@@ -25,4 +25,4 @@ clean: $(CLEANS)
 	$(MIRARI) run $*/config.ml
 
 %-clean:
-	$(MIRARI) clean $*/config.ml $(BFLAGS) --$(MODE)
+	$(MIRARI) clean $*/config.ml $(BFLAGS)

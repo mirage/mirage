@@ -15,6 +15,4 @@ opam init
 opam install ocamlfind cstruct ounit mirage-types cmdliner ipaddr re lwt
 eval `opam config env`
 make
-make unix-install
-make xen-install
-make test
+cd lib_test && make

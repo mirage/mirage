@@ -2,4 +2,7 @@
 _build/
 *.native
 lib/path_generated.ml
-
+.*.swp
+*.xen
+setup.data
+setup.log

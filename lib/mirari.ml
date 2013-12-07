@@ -1050,7 +1050,7 @@ module V1 = struct
   module type KV_RO = KV_RO
     with type id = unit
      and type 'a io = 'a Lwt.t
-     and type page_aligned_stream = Cstruct.t Lwt_stream.t
+     and type page_aligned_buffer = Cstruct.t
     (** KV RO *)
 
   module type CONSOLE = CONSOLE

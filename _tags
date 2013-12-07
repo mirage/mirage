@@ -37,3 +37,4 @@
 <lib/*.ml{,i}>: pkg_cstruct
 <lib/*.ml{,i}>: pkg_re.str
 # OASIS_STOP
+true: debug, bin_annot, annot

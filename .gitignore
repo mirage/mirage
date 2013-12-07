@@ -6,3 +6,7 @@ lib/path_generated.ml
 *.xen
 setup.data
 setup.log
+lib_test/**/Makefile
+lib_test/**/main.ml
+lib_test/**/mir-*
+lib_test/**/static_*

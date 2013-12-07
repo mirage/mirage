@@ -12,8 +12,9 @@ export OPAMYES=1
 export OPAMVERBOSE=1
 
 opam init
-opam install ipaddr mirage-types lwt cstruct re
+opam install ocamlfind cstruct ounit mirage-types cmdliner
 eval `opam config env`
 make
-make install
-cd lib_test && make
+make unix-install
+make xen-install
+make test

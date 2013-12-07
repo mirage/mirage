@@ -12,7 +12,7 @@ export OPAMYES=1
 export OPAMVERBOSE=1
 
 opam init
-opam install ocamlfind cstruct ounit mirage-types cmdliner
+opam install ocamlfind cstruct ounit mirage-types cmdliner ipaddr re lwt
 eval `opam config env`
 make
 make unix-install

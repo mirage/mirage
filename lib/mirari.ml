@@ -335,7 +335,7 @@ module Headers = struct
 end
 
 let driver_initialisation_error name =
-  Printf.sprintf "fail (Mirari.V1.Driver_initialisation_error %S)" name
+  Printf.sprintf "fail (Mirari_types.V1.Driver_initialisation_error %S)" name
 
 module Io_page = struct
 
@@ -738,7 +738,7 @@ module Job = struct
     "mirari" :: fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    "mirari" :: fold (fun d -> Driver.libraries d mode) t
+    "mirari.types" :: fold (fun d -> Driver.libraries d mode) t
 
   let configure t mode d =
     iter (fun p -> Driver.configure p mode d) t;
@@ -900,7 +900,7 @@ let configure_makefile t mode d =
   newline oc;
   begin match mode with
     | `Xen ->
-      append oc "all: main.native.o";
+      append oc "build: main.native.o";
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\

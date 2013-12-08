@@ -1125,7 +1125,7 @@ let clean t =
       clean_makefile t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
-      command "rm -rf %s/mir-main %s/*~" t.root t.root;
+      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~" t.root t.root;
     )
 
 (*

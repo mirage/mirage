@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2765e647632502120697643e8c7ec68d)
+# DO NOT EDIT (digest: 9f0b32affaecd400f875739e58d9411d)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -13,12 +13,12 @@
 ".git": not_hygienic
 "_darcs": -traverse
 "_darcs": not_hygienic
-# Library mirari
-"lib/mirari.cmxs": use_mirari
-# Library mirari-types
-"lib/mirari-types.cmxs": use_mirari-types
-# Executable mirari
-<lib/main.{native,byte}>: use_mirari
+# Library mirage
+"lib/mirage.cmxs": use_mirage
+# Library mirage-types
+"lib/mirage-types.cmxs": use_mirage-types
+# Executable mirage
+<lib/main.{native,byte}>: use_mirage
 <lib/main.{native,byte}>: pkg_cmdliner
 <lib/main.{native,byte}>: pkg_mirage-types
 <lib/main.{native,byte}>: pkg_ipaddr
@@ -27,7 +27,7 @@
 <lib/main.{native,byte}>: pkg_lwt
 <lib/main.{native,byte}>: pkg_cstruct
 <lib/main.{native,byte}>: pkg_re.str
-<lib/*.ml{,i}>: use_mirari
+<lib/*.ml{,i}>: use_mirage
 <lib/*.ml{,i}>: pkg_cmdliner
 <lib/*.ml{,i}>: pkg_mirage-types
 <lib/*.ml{,i}>: pkg_ipaddr

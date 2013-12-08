@@ -1,4 +1,4 @@
-open Mirari
+open Mirage
 
 let kv_ro name dirname =
   Driver.KV_RO { KV_RO.name; dirname }

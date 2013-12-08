@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 40c8acffb6d65928fa0041475caac810) *)
+(* DO NOT EDIT (digest: 31e2cd13109761ae8e8f81f61812a600) *)
 module OASISGettext = struct
 (* # 21 "src/oasis/OASISGettext.ml" *)
 
@@ -478,7 +478,7 @@ open Ocamlbuild_plugin;;
 let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
-       [("mirari", ["lib"]); ("mirari-types", ["lib"])];
+       [("mirage", ["lib"]); ("mirage-types", ["lib"])];
      lib_c = [];
      flags = [];
      includes = [];

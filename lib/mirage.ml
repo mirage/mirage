@@ -796,7 +796,7 @@ module Job = struct
     List.iter fn params
 
   let packages t mode =
-    "mirage" :: fold (fun d -> Driver.packages d mode) t
+    fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
     "mirage.types" :: fold (fun d -> Driver.libraries d mode) t

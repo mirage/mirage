@@ -1,22 +1,22 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9cb7cffbdb28eee825da3e2ca385de4e)
+# DO NOT EDIT (digest: 21054be45efcb1c1efc6bc092c081f77)
 version = "1.0.0"
 description = "Mirage configuration helper"
 requires = "ipaddr unix dynlink mirage-types lwt cstruct re.str"
-archive(byte) = "mirari.cma"
-archive(byte, plugin) = "mirari.cma"
-archive(native) = "mirari.cmxa"
-archive(native, plugin) = "mirari.cmxs"
-exists_if = "mirari.cma"
+archive(byte) = "mirage.cma"
+archive(byte, plugin) = "mirage.cma"
+archive(native) = "mirage.cmxa"
+archive(native, plugin) = "mirage.cmxs"
+exists_if = "mirage.cma"
 package "types" (
  version = "1.0.0"
  description = "Mirage configuration helper"
  requires = "mirage-types"
- archive(byte) = "mirari-types.cma"
- archive(byte, plugin) = "mirari-types.cma"
- archive(native) = "mirari-types.cmxa"
- archive(native, plugin) = "mirari-types.cmxs"
- exists_if = "mirari-types.cma"
+ archive(byte) = "mirage-types.cma"
+ archive(byte, plugin) = "mirage-types.cma"
+ archive(native) = "mirage-types.cmxa"
+ archive(native, plugin) = "mirage-types.cmxs"
+ exists_if = "mirage-types.cma"
 )
 # OASIS_STOP
 

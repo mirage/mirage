@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 21054be45efcb1c1efc6bc092c081f77)
-version = "1.0.0"
+# DO NOT EDIT (digest: 945d9f800a6e38689485013f016cce63)
+version = "0.10.0"
 description = "Mirage configuration helper"
 requires = "ipaddr unix dynlink mirage-types lwt cstruct re.str"
 archive(byte) = "mirage.cma"
@@ -9,7 +9,7 @@ archive(native) = "mirage.cmxa"
 archive(native, plugin) = "mirage.cmxs"
 exists_if = "mirage.cma"
 package "types" (
- version = "1.0.0"
+ version = "0.10.0"
  description = "Mirage configuration helper"
  requires = "mirage-types"
  archive(byte) = "mirage-types.cma"

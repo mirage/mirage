@@ -487,7 +487,6 @@ module Block = struct
   let name t = t.name
 
   let packages _ mode = [
-    "mirage-block";
     match mode with
     | `Unix _ -> "mirage-block-unix"
     | `Xen    -> "mirage-block-xen"

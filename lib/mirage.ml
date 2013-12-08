@@ -553,7 +553,7 @@ end
 
 (** {2 Network configuration} *)
 
-module Netif = struct
+module Network = struct
 
   type t = Tap0 | Custom of string
 
@@ -572,11 +572,11 @@ module Netif = struct
   let configure t mode d =
     let n = name t in
     if not (StringMap.mem n d.modules) then (
-      let m = "Netif" in
+      let m = "Network" in
       d.modules <- StringMap.add n m d.modules;
       newline d.oc;
       append d.oc "let %s =" n;
-      append d.oc "  Netif.connect %S" (match t with Tap0 -> "tap0" | Custom s -> s);
+      append d.oc "  Network.connect %S" (match t with Tap0 -> "tap0" | Custom s -> s);
       newline d.oc;
     )
 
@@ -680,7 +680,7 @@ module Driver = struct
     | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
-    | Netif of Netif.t
+    | Network of Network.t
     | KV_RO of KV_RO.t
     | Block of Block.t
     | Fat of Fat.t
@@ -691,7 +691,7 @@ module Driver = struct
     | Io_page x -> Io_page.name x
     | Console x -> Console.name x
     | Clock x   -> Clock.name x
-    | Netif x   -> Netif.name x
+    | Network x -> Network.name x
     | KV_RO x   -> KV_RO.name x
     | Block x   -> Block.name x
     | Fat x     -> Fat.name x
@@ -702,7 +702,7 @@ module Driver = struct
     | Io_page x -> Io_page.packages x
     | Console x -> Console.packages x
     | Clock x   -> Clock.packages x
-    | Netif x   -> Netif.packages x
+    | Network x -> Network.packages x
     | KV_RO x   -> KV_RO.packages x
     | Block x   -> Block.packages x
     | Fat x     -> Fat.packages x
@@ -713,7 +713,7 @@ module Driver = struct
     | Io_page x -> Io_page.libraries x
     | Console x -> Console.libraries x
     | Clock x   -> Clock.libraries x
-    | Netif x   -> Netif.libraries x
+    | Network x -> Network.libraries x
     | KV_RO x   -> KV_RO.libraries x
     | Block x   -> Block.libraries x
     | Fat x     -> Fat.libraries x
@@ -724,7 +724,7 @@ module Driver = struct
     | Io_page x -> Io_page.configure x
     | Console x -> Console.configure x
     | Clock x   -> Clock.configure x
-    | Netif x   -> Netif.configure x
+    | Network x -> Network.configure x
     | KV_RO x   -> KV_RO.configure x
     | Block x   -> Block.configure x
     | Fat x     -> Fat.configure x
@@ -735,7 +735,7 @@ module Driver = struct
     | Io_page x -> Io_page.clean x
     | Console x -> Console.clean x
     | Clock x   -> Clock.clean x
-    | Netif x   -> Netif.clean x
+    | Network x -> Network.clean x
     | KV_RO x   -> KV_RO.clean x
     | Block x   -> Block.clean x
     | Fat x     -> Fat.clean x

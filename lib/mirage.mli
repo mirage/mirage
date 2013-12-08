@@ -132,7 +132,7 @@ end
 
 (** {2 Network configuration} *)
 
-module Netif: sig
+module Network: sig
 
   (** Network interface. *)
 
@@ -194,7 +194,7 @@ module Driver: sig
     | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
-    | Netif of Netif.t
+    | Network of Network.t
     | KV_RO of KV_RO.t
     | Block of Block.t
     | Fat of Fat.t

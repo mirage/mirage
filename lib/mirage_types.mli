@@ -24,7 +24,7 @@ module V1: sig
 
   open V1
 
-  module type NETIF = NET.IF
+  module type NETWORK = NETWORK
     with type 'a io = 'a Lwt.t
      and type page_aligned_buffer = Cstruct.t
 

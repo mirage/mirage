@@ -368,7 +368,7 @@ module Clock = struct
 
   type t = unit
 
-  let name _ = "console"
+  let name _ = "clock"
 
   let packages _ mode =
     match mode with
@@ -382,8 +382,10 @@ module Clock = struct
 
   let configure t mode d =
     let name = name t in
-    if not (StringMap.mem name d.modules) then
-      d.modules <- StringMap.add name "Clock" d.modules
+    if not (StringMap.mem name d.modules) then (
+      d.modules <- StringMap.add name "Clock" d.modules;
+      append d.oc "let %s = return_unit" name;
+    )
 
   let clean t =
     ()
@@ -455,8 +457,8 @@ module Console = struct
 
   let packages _ mode =
     match mode with
-    | `Unix _ -> ["mirage-console-unix"; "mirage-unix" ]
-    | `Xen -> ["mirage-console-xen"; "mirage-xen" ]
+    | `Unix _ -> ["mirage-console-unix"]
+    | `Xen -> ["mirage-console-xen"]
 
   let libraries _ mode =
     match mode with
@@ -576,7 +578,7 @@ module Network = struct
       d.modules <- StringMap.add n m d.modules;
       newline d.oc;
       append d.oc "let %s =" n;
-      append d.oc "  Network.connect %S" (match t with Tap0 -> "tap0" | Custom s -> s);
+      append d.oc "  Netif.connect %S" (match t with Tap0 -> "tap0" | Custom s -> s);
       newline d.oc;
     )
 
@@ -590,51 +592,66 @@ module IP = struct
   (** IP settings. *)
 
   type ipv4 = {
-    address: Ipaddr.V4.t;
-    netmask: Ipaddr.V4.t;
-    gateway: Ipaddr.V4.t list;
+    address : Ipaddr.V4.t;
+    netmask : Ipaddr.V4.t;
+    gateway : Ipaddr.V4.t list;
   }
 
-  type conf =
+  type config =
     | DHCP
     | IPv4 of ipv4
 
   type t = {
-    name: string;
-    conf: conf option;
+    name    : string;
+    config  : config;
+    networks: Network.t list;
+    callback: string option;
   }
 
-  let packages _ mode = [
-    "mirage-net";
-    match mode with
-    | `Unix `Direct -> "mirage-net-unix-direct"
-    | `Unix `Socket -> "mirage-net-unix-socket"
-    | `Xen          -> "mirage-net-xen"
-  ]
+  let packages _ = function
+    | `Unix `Direct -> ["mirage-net-direct-unix"]
+    | `Unix `Socket -> ["mirage-net-socket-unix"]
+    | `Xen          -> []
 
-  let libraries _ mode = [
-    "mirage-net";
-  ]
+  let libraries t mode =
+    packages t mode
 
   let name t = t.name
 
   let configure t mode d =
+    List.iter (fun n -> Network.configure n mode d) t.networks;
     if not (StringMap.mem t.name d.modules) then (
       let m = "IP_%s" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "let %s =" t.name;
-      begin match t.conf with
-        | None          -> append d.oc "None"
-        | Some DHCP     -> append d.oc "Some `DHCP"
-        | Some (IPv4 i) ->
-          append d.oc "Some (`IPv4 (%S, %S, [%s]))"
-            (Ipaddr.V4.to_string i.address)
-            (Ipaddr.V4.to_string i.netmask)
-            (String.concat "; "
-               (List.map (Printf.sprintf "%S")
-                  (List.map Ipaddr.V4.to_string i.gateway)))
+      append d.oc "  let conf = %s in"
+        (match t.config with
+         | DHCP   -> "`DHCP"
+         | IPv4 i ->
+           append d.oc "  let i = Ipaddr.V4.of_string_exn in";
+           Printf.sprintf "`IPv4 (i %S, i %S, [%s])"
+             (Ipaddr.V4.to_string i.address)
+             (Ipaddr.V4.to_string i.netmask)
+             (String.concat "; "
+                (List.map (Printf.sprintf "i %S")
+                   (List.map Ipaddr.V4.to_string i.gateway))));
+      List.iter (fun n ->
+          let name = Network.name n in
+          append d.oc "  %s >>= function" name;
+          append d.oc "  | `Error _ -> %s" (driver_initialisation_error name);
+          append d.oc "  | `Ok %s ->" name;
+        ) t.networks;
+      append d.oc"  Net.Manager.create [%s] (fun t interface id ->"
+        (String.concat "; " (List.map Network.name t.networks));
+      append d.oc "    Net.Manager.configure interface conf";
+      begin match t.callback with
+        | None   -> ()
+        | Some c ->
+          append d.oc "    >>= fun () ->";
+          append d.oc "    %s t interface id" c;
       end;
-      newline d.oc;
+      append d.oc "  )";
+      newline d.oc
     )
 
   let clean t =
@@ -752,10 +769,11 @@ module Driver = struct
       end
     | x       -> x
 
-  let path = function
-    | KV_RO x -> Some x.KV_RO.dirname
-    | Block x -> Some x.Block.filename
-    | _       -> None
+
+  let update_path t root =
+    let fn path =
+      realpath (Filename.concat root path) in
+    map_path fn t
 
   let io_page = Io_page ()
 
@@ -764,6 +782,34 @@ module Driver = struct
   let clock = Clock ()
 
   let tap0 = Network Network.Tap0
+
+  let local_ip network =
+    let i s = Ipaddr.V4.of_string_exn s in
+    let config = IP.IPv4 {
+        IP.address = i "10.0.0.2";
+        netmask    = i "255.255.255.0";
+        gateway    = [i "10.0.0.1"];
+      } in
+    IP {
+      IP.name  = "ip";
+      config;
+      callback = None;
+      networks = [network]
+    }
+
+  let all = ref []
+
+  let all : t list ref =
+    ref []
+
+  let reset () =
+    all := []
+
+  let register j =
+    all := j @ !all
+
+  let registered () =
+    !all
 
 end
 
@@ -828,6 +874,7 @@ module Job = struct
     ref []
 
   let reset () =
+    Driver.reset ();
     all := []
 
   let register j =
@@ -836,17 +883,8 @@ module Job = struct
   let registered () =
     !all
 
-  let paths drivers =
-    List.fold_left (fun l d ->
-        match Driver.path d with
-        | None   -> l
-        | Some p -> p :: l
-      ) [] drivers
-
   let update_path t root =
-    let fn path =
-      realpath (Filename.concat root path) in
-    let params = List.map (Driver.map_path fn) t.params in
+    let params = List.map (fun t -> Driver.update_path t root) t.params in
     { t with params }
 
 end
@@ -855,6 +893,7 @@ type t = {
   name: string;
   root: string;
   jobs: Job.t list;
+  drivers: Driver.t list;
 }
 
 let name t = t.name
@@ -868,23 +907,32 @@ let main_ml t =
   newline oc;
   { filename; oc; modules = StringMap.empty; }
 
-let fold fn { jobs } init =
+let fold extract fn t init =
   let s = List.fold_left (fun set job ->
       let s = fn job in
       StringSet.union set (StringSet.of_list s)
-    ) init jobs in
+    ) init (extract t) in
   StringSet.elements s
 
-let iter fn { jobs } =
-  List.iter fn jobs
+let fold_jobs = fold (fun t -> t.jobs)
+
+let fold_drivers = fold (fun t -> t.drivers)
 
 let ps = ref StringSet.empty
 
 let add_to_opam_packages p =
   ps := StringSet.union (StringSet.of_list p) !ps
 
-let packages t mode =
-  fold (fun j -> Job.packages j mode) t !ps
+let fold_x job_x driver_x t mode =
+  let m = match mode with
+    | `Unix _ -> "mirage-unix"
+    | `Xen    -> "mirage-xen" in
+  let jobs = fold_jobs (fun j -> job_x j mode) t !ps in
+  let drivers = fold_drivers (fun d -> driver_x d mode) t StringSet.empty in
+  let s = StringSet.(add  m (union (of_list jobs) (of_list drivers))) in
+  StringSet.elements s
+
+let packages = fold_x Job.packages Driver.packages
 
 let ls = ref StringSet.empty
 
@@ -892,13 +940,11 @@ let add_to_ocamlfind_libraries l =
   ls := StringSet.union !ls (StringSet.of_list l)
 
 let libraries t mode =
-  fold (fun j -> Job.libraries j mode) t !ls
-
-let configure_jobs t mode d =
-  iter (fun j -> Job.configure j mode d) t
+  "mirage.types" :: fold_x Job.libraries Driver.libraries t mode
 
 let clean_jobs t =
-  iter Job.clean t
+  List.iter Job.clean t.jobs;
+  List.iter Driver.clean t.drivers
 
 let configure_myocamlbuild_ml t mode d =
   let minor, major = ocaml_version () in
@@ -1021,20 +1067,24 @@ let manage_opam_packages b =
 
 let configure_main t mode d =
   info "Generating %s" d.filename;
-  iter (fun j -> Job.configure j mode d) t;
+  List.iter (fun j -> Job.configure j mode d) t.jobs;
+  List.iter (fun r -> Driver.configure r mode d) t.drivers;
   newline d.oc;
   let jobs = List.map Job.name t.jobs in
+  let drivers = List.map Driver.name t.drivers in
   append d.oc "let () =";
-  append d.oc "  OS.Main.run (join [%s])" (String.concat "; " jobs)
+  append d.oc "  OS.Main.run (join [%s])" (String.concat "; " (jobs @ drivers))
 
 let clean_main t =
   clean_jobs t;
   remove (t.root / "main.ml")
 
 let configure t mode d =
-  info "%d JOBS (%s)"
+  info "%d JOBS: %s | %d DRIVERS: %s"
     (List.length t.jobs)
-    (String.concat ", " (List.map Job.name t.jobs));
+    (String.concat ", " (List.map Job.name t.jobs))
+    (List.length t.drivers)
+    (String.concat ", " (List.map Driver.name t.drivers));
   in_dir t.root (fun () ->
       if !manage_opam then configure_opam t mode d;
       configure_myocamlbuild_ml t mode d;
@@ -1075,7 +1125,7 @@ let clean t =
       clean_makefile t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
-      command "rm -rf %s/mir-main %s/*~" t.root t.root;
+      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~" t.root t.root;
     )
 
 (*
@@ -1131,7 +1181,12 @@ let load file =
   let file = scan_conf file in
   let root = realdir (Filename.dirname file) in
   Job.reset ();
+  Driver.reset ();
   compile_and_dynlink (root / Filename.basename file);
-  let jobs = Job.registered () in
-  let jobs = List.map (fun j -> Job.update_path j root) jobs in
-  { name ="main"; root; jobs }
+  let jobs =
+    let jobs = Job.registered () in
+    List.map (fun j -> Job.update_path j root) jobs in
+  let drivers =
+    let drivers = Driver.registered () in
+    List.map (fun j -> Driver.update_path j root) drivers in
+  { name ="main"; root; jobs; drivers }

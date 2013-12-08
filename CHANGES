@@ -1,12 +1,13 @@
-trunk (unreleased):
+0.10.0 (unreleased):
+* Complete API rewrite
 * [xen] XL configuration phase is now created during configure phase, was during run phase.
 
 0.9.7 (2013-08-09):
 * Generate code that uses the `Ipaddr.V4` interface instead of `Nettypes`.
- 
+
 0.9.6 (2013-07-26):
 * fix unix-direct by linking the unix package correctly (previously it was always dropped).
- 
+
 0.9.5 (2013-07-18):
 * completely remove the dependency on obuild: use ocamlbuild everywhere now.
 * adapt for mirage-0.9.3 OS.Netif interfaces (abstract type `id`).

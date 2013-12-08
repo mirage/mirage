@@ -7,9 +7,7 @@ let x = kv_ro "x" "t"
 
 let y = kv_ro "y" "t"
 
-let c = Driver.Console ()
-
 let () =
   Job.register [
-    "Handler.Main",  [c; x; y]
+    "Handler.Main",  [Driver.console; x; y]
   ]

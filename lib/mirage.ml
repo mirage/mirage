@@ -494,7 +494,7 @@ module Block = struct
 
   let libraries _ = function
     | `Unix _ -> ["mirage-block-unix"]
-    | `Xen    -> ["mirage-block-xen"]
+    | `Xen    -> ["mirage-block-xen.front"]
 
   let configure t mode d =
     if not (StringMap.mem t.name d.modules) then (

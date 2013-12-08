@@ -335,7 +335,7 @@ module Headers = struct
 end
 
 let driver_initialisation_error name =
-  Printf.sprintf "fail (Mirari.V1.Driver_initialisation_error %S)" name
+  Printf.sprintf "fail (Mirari_types.V1.Driver_initialisation_error %S)" name
 
 module Io_page = struct
 
@@ -370,11 +370,15 @@ module Clock = struct
 
   let name _ = "console"
 
-  let packages _ _ =
-    ["mirage-clock"]
+  let packages _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-clock-unix"]
+    | `Xen -> ["mirage-clock-xen"]
 
-  let libraries _ _ =
-    ["mirage-clock"]
+  let libraries _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-clock-unix"]
+    | `Xen -> ["mirage-clock-xen"]
 
   let configure t mode d =
     let name = name t in
@@ -449,11 +453,15 @@ module Console = struct
 
   let name _ = "console"
 
-  let packages _ _ =
-    ["mirage-console"]
+  let packages _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-console-unix"; "mirage-unix" ]
+    | `Xen -> ["mirage-console-xen"; "mirage-xen" ]
 
-  let libraries _ _ =
-    ["mirage-console"]
+  let libraries _ mode =
+    match mode with
+    | `Unix _ -> ["mirage-console-unix"]
+    | `Xen -> ["mirage-console-xen"]
 
   let configure t mode d =
     let name = name t in
@@ -743,10 +751,10 @@ module Job = struct
     List.iter fn params
 
   let packages t mode =
-    "mirage" :: "mirari" :: fold (fun d -> Driver.packages d mode) t
+    "mirari" :: fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    "mirage" :: "mirari" :: fold (fun d -> Driver.libraries d mode) t
+    "mirari.types" :: fold (fun d -> Driver.libraries d mode) t
 
   let configure t mode d =
     iter (fun p -> Driver.configure p mode d) t;
@@ -889,9 +897,14 @@ let configure_makefile t mode d =
   newline oc;
   append oc "LIBS   = %s" libraries;
   append oc "PKGS   = %s" packages;
-  append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n\
-             FLAGS  = -cflag -g -lflags -g,-linkpkg\n\
-             BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n";
+  begin match mode with
+    | `Xen ->
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"
+    | `Unix _ ->
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+  end;
+  append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
   append oc ".PHONY: all prepare clean\n\
@@ -908,16 +921,13 @@ let configure_makefile t mode d =
   newline oc;
   begin match mode with
     | `Xen ->
-      append oc "all: main.native.o";
+      append oc "build: main.native.o";
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
-                 \t  main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o main.xen"
+                 \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
+                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-main.xen"
         lib lib lib lib lib lib lib lib;
-      append oc "\tln -nfs _build/main.xen mir-%s.xen" t.name;
-      append oc "\tnm -n mir-%s.xen | grep -v '\\(compiled\\)\\|\\(\\.o$$\\)\\|\\( [aUw] \\\n\
-                 \t  \\)\\|\\(\\.\\.ng$$\\)\\|\\(LASH[RL]DI\\)' > mir-%s.map" t.name t.name
     | `Unix _ ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
@@ -1054,27 +1064,3 @@ let load file =
   let jobs = Job.registered () in
   let jobs = List.map (fun j -> Job.update_path j root) jobs in
   { name ="main"; root; jobs }
-
-module V1 = struct
-
-  exception Driver_initialisation_error of string
-
-  (** Useful specialisation for some Mirage types. *)
-
-  open V1
-
-  module type KV_RO = KV_RO
-    with type id = unit
-     and type 'a io = 'a Lwt.t
-     and type page_aligned_stream = Cstruct.t Lwt_stream.t
-    (** KV RO *)
-
-  module type CONSOLE = CONSOLE
-    with type 'a io = 'a Lwt.t
-    (** Consoles *)
-
-  module type FS = FS
-    with type 'a io = 'a Lwt.t
-    (** FS *)
-
-end

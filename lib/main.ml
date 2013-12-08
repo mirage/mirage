@@ -38,7 +38,7 @@ let arg_list name doc conv =
 let no_opam =
   mk_flag ["no-opam"] "Do not manage the OPAM configuration."
 let xen =
-  mk_flag ["xen"] "Generate a Xen microkernel. Do not use in conjunction with --unix-*."
+  mk_flag ["xen"] "Generate a Xen unikernel. Do not use in conjunction with --unix-*."
 let unix =
   mk_flag ["unix"] "Use unix-direct backend. Do not use in conjunction with --xen."
 let socket =

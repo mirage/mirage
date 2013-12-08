@@ -14,6 +14,14 @@ Library mirari
   Modules:            Mirari
   BuildDepends:       ipaddr,unix,dynlink,mirage-types,lwt,cstruct,re.str
 
+Library "mirari-types"
+  CompiledObject:     best
+  Path:               lib
+  Findlibparent:      mirari
+  Findlibname:        types
+  Modules:            Mirari_types
+  BuildDepends:       mirage-types
+
 Executable mirari
   CompiledObject:     best
   Path:               lib

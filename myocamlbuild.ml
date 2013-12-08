@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 48b7914c9f45d886965c2115112dff5d) *)
+(* DO NOT EDIT (digest: 40c8acffb6d65928fa0041475caac810) *)
 module OASISGettext = struct
 (* # 21 "src/oasis/OASISGettext.ml" *)
 
@@ -477,7 +477,8 @@ end
 open Ocamlbuild_plugin;;
 let package_default =
   {
-     MyOCamlbuildBase.lib_ocaml = [("mirari", ["lib"])];
+     MyOCamlbuildBase.lib_ocaml =
+       [("mirari", ["lib"]); ("mirari-types", ["lib"])];
      lib_c = [];
      flags = [];
      includes = [];
@@ -486,6 +487,6 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 490 "myocamlbuild.ml"
+# 491 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;

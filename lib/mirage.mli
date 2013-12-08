@@ -132,7 +132,7 @@ end
 
 (** {2 Network configuration} *)
 
-module Netif: sig
+module Network: sig
 
   (** Network interface. *)
 
@@ -194,7 +194,7 @@ module Driver: sig
     | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
-    | Netif of Netif.t
+    | Network of Network.t
     | KV_RO of KV_RO.t
     | Block of Block.t
     | Fat of Fat.t
@@ -202,6 +202,18 @@ module Driver: sig
     | HTTP of HTTP.t
 
   include CONFIGURABLE with type t := t
+
+  val io_page: t
+  (** Default io_page driver. *)
+
+  val console: t
+  (** Default console driver. *)
+
+  val clock: t
+  (** Default clock driver. *)
+
+  val tap0: t
+  (** Default network driver. *)
 
 end
 
@@ -247,6 +259,9 @@ val add_to_ocamlfind_libraries: string list -> unit
 (** Link with the provided additional libraries. *)
 
 include CONFIGURABLE with type t := t
+
+val build: t -> unit
+(** Call [make] in the right directory. *)
 
 val run: t -> mode -> unit
 (** [run ~mode conf_file] runs a project. If [conf_file] is [None],

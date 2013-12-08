@@ -5,6 +5,7 @@ MODE ?= unix
 BFLAGS ?= --no-opam
 
 CONFIGS = $(patsubst %, %-configure, $(TESTS))
+BUILD   = $(patsubst %, %-build, $(TESTS))
 RUNS    = $(patsubst %, %-run, $(TESTS))
 CLEANS  = $(patsubst %, %-clean, $(TESTS))
 
@@ -19,9 +20,11 @@ clean: $(CLEANS)
 
 %-configure:
 	$(MIRARI) configure $*/config.ml $(BFLAGS) --$(MODE)
-	$(MAKE) -C $*
 
-%-run:
+%-build: %-configure
+	$(MIRARI) build $*/config.ml
+
+%-run: %-build
 	$(MIRARI) run $*/config.ml
 
 %-clean:

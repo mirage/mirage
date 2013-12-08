@@ -11,9 +11,6 @@ let fat = Driver.Fat {
     block;
   }
 
-let console =
-  Driver.Console ()
-
 let () = Job.register [
-    "Handler.Main", [console; fat]
+    "Handler.Main", [Driver.console; fat]
   ]

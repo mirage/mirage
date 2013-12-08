@@ -203,6 +203,18 @@ module Driver: sig
 
   include CONFIGURABLE with type t := t
 
+  val io_page: t
+  (** Default io_page driver. *)
+
+  val console: t
+  (** Default console driver. *)
+
+  val clock: t
+  (** Default clock driver. *)
+
+  val tap0: t
+  (** Default network driver. *)
+
 end
 
 module Job: sig

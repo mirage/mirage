@@ -757,6 +757,13 @@ module Driver = struct
     | Block x -> Some x.Block.filename
     | _       -> None
 
+  let io_page = Io_page ()
+
+  let console = Console ()
+
+  let clock = Clock ()
+
+  let tap0 = Network Network.Tap0
 
 end
 

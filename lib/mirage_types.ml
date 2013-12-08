@@ -20,6 +20,11 @@ module V1 = struct
     with type 'a io = 'a Lwt.t
     (** Consoles *)
 
+  module type BLOCK = BLOCK
+    with type 'a io = 'a Lwt.t
+     and type page_aligned_buffer = Cstruct.t
+    (** Block devices *)
+
   module type FS = FS
     with type 'a io = 'a Lwt.t
     (** FS *)

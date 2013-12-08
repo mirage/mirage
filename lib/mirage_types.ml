@@ -6,6 +6,10 @@ module V1 = struct
 
   open V1
 
+  module type NETIF = NET.IF
+    with type 'a io = 'a Lwt.t
+     and type page_aligned_buffer = Cstruct.t
+
   module type KV_RO = KV_RO
     with type id = unit
      and type 'a io = 'a Lwt.t

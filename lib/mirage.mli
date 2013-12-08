@@ -132,6 +132,19 @@ end
 
 (** {2 Network configuration} *)
 
+module Netif: sig
+
+  (** Network interface. *)
+
+  type t = Tap0 | Custom of string
+  (** On OSX, it's either tap0 (default) or tap1, or linux it's the
+      either tap0 or first available if nothing is specified with the
+      custom variant. *)
+
+  include CONFIGURABLE with type t := t
+
+end
+
 module IP: sig
 
   (** IP settings. *)
@@ -181,6 +194,7 @@ module Driver: sig
     | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
+    | Netif of Netif.t
     | KV_RO of KV_RO.t
     | Block of Block.t
     | Fat of Fat.t

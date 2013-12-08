@@ -1,4 +1,4 @@
-open Mirari
+open Mirage
 
 let block = {
   Block.name = "myfile";

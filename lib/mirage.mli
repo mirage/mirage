@@ -132,6 +132,19 @@ end
 
 (** {2 Network configuration} *)
 
+module Netif: sig
+
+  (** Network interface. *)
+
+  type t = Tap0 | Custom of string
+  (** On OSX, it's either tap0 (default) or tap1, or linux it's the
+      either tap0 or first available if nothing is specified with the
+      custom variant. *)
+
+  include CONFIGURABLE with type t := t
+
+end
+
 module IP: sig
 
   (** IP settings. *)
@@ -150,7 +163,7 @@ module IP: sig
 
   type t = {
     name: string;
-    conf: conf;
+    conf: conf option;
   }
   (** Main IP configuration. *)
 
@@ -181,6 +194,7 @@ module Driver: sig
     | Io_page of Io_page.t
     | Console of Console.t
     | Clock of Clock.t
+    | Netif of Netif.t
     | KV_RO of KV_RO.t
     | Block of Block.t
     | Fat of Fat.t
@@ -196,9 +210,9 @@ module Job: sig
 (** Single jobs. *)
 
   type t = {
-    name   : string;
-    handler: string;
-    params : Driver.t list;
+    name     : string;
+    handler  : string;
+    params   : Driver.t list;
   }
   (** Type for single job: the name of the main function and the list
       of devices it needs. *)
@@ -225,6 +239,12 @@ val load: string option -> t
 
 val manage_opam_packages: bool -> unit
 (** Tell Irminsule to manage the OPAM configuration. *)
+
+val add_to_opam_packages: string list -> unit
+(** Add some base OPAM package to install *)
+
+val add_to_ocamlfind_libraries: string list -> unit
+(** Link with the provided additional libraries. *)
 
 include CONFIGURABLE with type t := t
 

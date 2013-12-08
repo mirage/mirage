@@ -1,4 +1,4 @@
-open Mirari_types.V1
+open Mirage_types.V1
 open Lwt
 
 let string_of_stream s =

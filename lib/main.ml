@@ -54,7 +54,7 @@ let mode unix xen socket =
 
 let file =
   let doc = Arg.info ~docv:"FILE"
-    ~doc:"Configuration file for Mirari. If not specified, the current directory will be scanned.\
+    ~doc:"Configuration file for Mirage. If not specified, the current directory will be scanned.\
           If one file named $(b,config.ml) is found, that file will be used. If no files \
           or multiple configuration files are found, this will result in an error unless one \
           is explicitly specified on the command line." [] in
@@ -71,10 +71,10 @@ let configure =
   let configure unix xen socket no_opam file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
-      let t = Mirari.load file in
-      let main_ml = Mirari.main_ml t in
-      Mirari.manage_opam_packages (not no_opam);
-      `Ok (Mirari.configure t (mode unix xen socket) main_ml) in
+      let t = Mirage.load file in
+      let main_ml = Mirage.main_ml t in
+      Mirage.manage_opam_packages (not no_opam);
+      `Ok (Mirage.configure t (mode unix xen socket) main_ml) in
   Term.(ret (pure configure $ unix $ xen $ socket $ no_opam $ file)),
   term_info "configure" ~doc ~man
 
@@ -88,8 +88,8 @@ let run =
   let run unix xen socket file =
     if unix && xen then `Help (`Pager, Some "run")
     else
-      let t = Mirari.load file in
-      `Ok (Mirari.run t (mode unix xen socket)) in
+      let t = Mirage.load file in
+      `Ok (Mirage.run t (mode unix xen socket)) in
   Term.(ret (pure run $ unix $ xen $ socket $ file)), term_info "run" ~doc ~man
 
 (* RUN *)
@@ -101,17 +101,17 @@ let clean =
     `P clean_doc;
   ] in
   let clean file no_opam =
-    let t = Mirari.load file in
-    Mirari.manage_opam_packages (not no_opam);
-    `Ok (Mirari.clean t) in
+    let t = Mirage.load file in
+    Mirage.manage_opam_packages (not no_opam);
+    `Ok (Mirage.clean t) in
   Term.(ret (pure clean $ file $ no_opam)), term_info "clean" ~doc ~man
 
 (* HELP *)
 let help =
-  let doc = "Display help about Mirari and Mirari commands." in
+  let doc = "Display help about Mirage and Mirage commands." in
   let man = [
     `S "DESCRIPTION";
-    `P "Prints help about Mirari commands.";
+    `P "Prints help about Mirage commands.";
     `P "Use `$(mname) help topics' to get the full list of help topics.";
   ] in
   let topic =
@@ -135,26 +135,26 @@ let default =
   let doc = "Mirage application builder" in
   let man = [
     `S "DESCRIPTION";
-    `P "Mirari is a Mirage application builder. It glues together a set of libaries and configuration (e.g. network and storage) into a standalone microkernel or UNIX binary.";
-    `P "Use either $(b,mirari <command> --help) or $(b,mirari help <command>) \
+    `P "Mirage is a Mirage application builder. It glues together a set of libaries and configuration (e.g. network and storage) into a standalone microkernel or UNIX binary.";
+    `P "Use either $(b,mirage <command> --help) or $(b,mirage help <command>) \
         for more information on a specific command.";
   ] @  help_sections
   in
   let usage () =
     Printf.printf
-      "usage: mirari [--version]\n\
+      "usage: mirage [--version]\n\
       \              [--help]\n\
       \              <command> [<args>]\n\
       \n\
-      The most commonly used mirari commands are:\n\
+      The most commonly used mirage commands are:\n\
       \    configure   %s\n\
       \    run         %s\n\
       \    clean       %s\n\
       \n\
-      See 'mirari help <command>' for more information on a specific command.\n%!"
+      See 'mirage help <command>' for more information on a specific command.\n%!"
       configure_doc run_doc clean_doc in
   Term.(pure usage $ pure ()),
-  Term.info "mirari"
+  Term.info "mirage"
     ~version:"1.0.0"
     ~sdocs:global_option_section
     ~doc
@@ -167,7 +167,7 @@ let commands = [
 ]
 
 let () =
-  (* Do not die on Ctrl+C: necessary when mirari has to cleanup things
+  (* Do not die on Ctrl+C: necessary when mirage has to cleanup things
      (like killing running kernels) before terminating. *)
   Sys.catch_break true;
   match Term.eval_choice default commands with

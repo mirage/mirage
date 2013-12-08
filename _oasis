@@ -7,24 +7,24 @@ License:     ISC
 Plugins:     META (0.3), DevFiles (0.3)
 BuildTools:  ocamlbuild
 
-Library mirari
+Library mirage
   CompiledObject:     best
   Path:               lib
-  Findlibname:        mirari
-  Modules:            Mirari
+  Findlibname:        mirage
+  Modules:            Mirage
   BuildDepends:       ipaddr,unix,dynlink,mirage-types,lwt,cstruct,re.str
 
-Library "mirari-types"
+Library "mirage-types"
   CompiledObject:     best
   Path:               lib
-  Findlibparent:      mirari
+  Findlibparent:      mirage
   Findlibname:        types
-  Modules:            Mirari_types
+  Modules:            Mirage_types
   BuildDepends:       mirage-types
 
-Executable mirari
+Executable mirage
   CompiledObject:     best
   Path:               lib
   MainIs:             main.ml
   Install:            true
-  BuildDepends:       mirari,cmdliner
+  BuildDepends:       mirage,cmdliner

@@ -21,6 +21,6 @@ opam install mirage-block-unix
 opam install mirage-console-unix mirage-console-xen \
     mirage-clock-unix mirage-clock-xen \
     mirage-block-unix mirage-block-xen \
-    ocaml-fat
+    fat-filesystem
 cd lib_test && make MODE=unix
 cd lib_test && make MODE=xen

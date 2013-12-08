@@ -1042,6 +1042,22 @@ let configure t mode d =
       configure_main t mode d
     )
 
+let uname_s () =
+  try
+    with_process_in "uname -s"
+      (fun ic -> Some (strip (input_line ic)))
+  with _ ->
+    None
+
+let build t =
+  let make =
+    match uname_s () with
+    | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
+    | _ -> "make" in
+  in_dir t.root (fun () ->
+      command "%s build" make
+    )
+
 let run t = function
   | `Unix _ ->  info "+ unix mode";
     Unix.execv (t.root / "mir-" ^ t.name) [||]

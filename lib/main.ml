@@ -78,6 +78,19 @@ let configure =
   Term.(ret (pure configure $ unix $ xen $ socket $ no_opam $ file)),
   term_info "configure" ~doc ~man
 
+(* BUILD *)
+let build_doc = "Build a Mirage application."
+let build =
+  let doc = build_doc in
+  let man = [
+    `S "DESCRIPTION";
+    `P build_doc
+  ] in
+  let build file =
+    let t = Mirage.load file in
+    `Ok (Mirage.build t) in
+  Term.(ret (pure build $ file)), term_info "build" ~doc ~man
+
 (* RUN *)
 let run_doc = "Run a Mirage application."
 let run =
@@ -148,11 +161,12 @@ let default =
       \n\
       The most commonly used mirage commands are:\n\
       \    configure   %s\n\
+      \    build       %s\n\
       \    run         %s\n\
       \    clean       %s\n\
       \n\
       See 'mirage help <command>' for more information on a specific command.\n%!"
-      configure_doc run_doc clean_doc in
+      configure_doc build_doc run_doc clean_doc in
   Term.(pure usage $ pure ()),
   Term.info "mirage"
     ~version:"1.0.0"
@@ -162,6 +176,7 @@ let default =
 
 let commands = [
   configure;
+  build;
   run;
   clean;
 ]

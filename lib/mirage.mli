@@ -260,6 +260,9 @@ val add_to_ocamlfind_libraries: string list -> unit
 
 include CONFIGURABLE with type t := t
 
+val build: t -> unit
+(** Call [make] in the right directory. *)
+
 val run: t -> mode -> unit
 (** [run ~mode conf_file] runs a project. If [conf_file] is [None],
     then look for a `.conf` file in the current directory. *)

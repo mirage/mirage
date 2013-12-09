@@ -573,7 +573,7 @@ module Network = struct
   let configure t mode d =
     let n = name t in
     if not (StringMap.mem n d.modules) then (
-      let m = "Network" in
+      let m = "Netif" in
       d.modules <- StringMap.add n m d.modules;
       newline d.oc;
       append d.oc "let %s =" n;
@@ -860,7 +860,7 @@ module Job = struct
     fold (fun d -> Driver.packages d mode) t
 
   let libraries t mode =
-    "mirage.types" :: fold (fun d -> Driver.libraries d mode) t
+    fold (fun d -> Driver.libraries d mode) t
 
   let configure t mode d =
     iter (fun p -> Driver.configure p mode d) t;
@@ -955,7 +955,10 @@ let add_to_ocamlfind_libraries l =
   ls := StringSet.union !ls (StringSet.of_list l)
 
 let libraries t mode =
-  "mirage.types" :: fold_x Job.libraries Driver.libraries t mode
+  let m = match mode with
+    | `Unix _ -> "mirage.types-unix"
+    | `Xen    -> "mirage.types-xen" in
+  m :: fold_x Job.libraries Driver.libraries t mode
 
 let clean_jobs t =
   List.iter Job.clean t.jobs;

@@ -26,7 +26,7 @@ module V1: sig
 
   module type NETWORK = NETWORK
     with type 'a io = 'a Lwt.t
-     and type page_aligned_buffer = Cstruct.t
+     and type page_aligned_buffer = Io_page.t
      and type buffer = Cstruct.t
 
   module type KV_RO = KV_RO

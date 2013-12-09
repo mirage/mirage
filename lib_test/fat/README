@@ -1,0 +1,13 @@
+First, create an example FAT filesystem:
+
+./make-example-image.sh
+
+This will use the 'fat' command-line tool to build an example
+image 'fat.img' containing *.ml from this directory.
+
+Second, build the mirage app for unix:
+
+mirage configure
+mirage build
+mirage run
+

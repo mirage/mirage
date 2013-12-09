@@ -1,23 +1,31 @@
-# Mirari
+# Mirage
 
-Mirari is a tool to create and deploy applications with Mirage.  There
-are several diverse backends in Mirage that require rather specialised
-build steps (from Javascript to Xen microkernels), and this compexity
-is wrapped up in Mirari.
+Mirage is a unikernel for constructing secure, high-performance network
+applications across a variety of cloud computing and mobile platforms. Code can
+be developed on a normal OS such as Linux or MacOS X, and then compiled into a
+fully-standalone, specialised microkernel that runs under the Xen hypervisor.
+Since Xen powers most public cloud computing infrastructure such as Amazon EC2,
+this lets your servers run more cheaply, securely and finer control than with a
+full software stack.
 
-There are three stages to using Mirari:
+This repository includes a commmand-line tool to create and deploy applications
+with Mirage.  There are several diverse backends in Mirage that require rather
+specialised build steps (from Javascript to Xen microkernels), and this
+compexity is wrapped up in the tool.
+
+There are three stages to using `mirage`:
 
 * a *configuration* phase where OPAM package dependencies are
   satisfied.
 
 * a *build* phase where the compiler and any support scripts are run.
 
-* a *run* phase where Mirari spawns and tracks the progress of the
+* a *run* phase where `mirage` spawns and tracks the progress of the
   deployment (e.g. as a UNIX process or a Xen kernel).
 
 ## Configuration files
 
-Mirari currently uses a configuration file to build a Mirage unikernel.
+`mirage` currently uses a configuration file to build a Mirage unikernel.
 Support for command line arguments should be available soon.
 
 An example of an `app.conf`:
@@ -73,7 +81,7 @@ packages: mirage-net, cow
 compiler: 4.01.0dev+mirage-xen
 
 # XL parameters. They will be used for creating the xl config file
-# when doing a `mirari run --xen`.
+# when doing a ``mirage` run --xen`.
 
 xl-memory: 32
 xl-on_crash: preserve
@@ -95,7 +103,7 @@ Provided that one and only one file of name `<foo>.conf` (where
 directory, the command:
 
 ```
-$ mirari configure
+$ `mirage` configure
 ```
 
 will configure your project. It will:
@@ -108,13 +116,13 @@ will configure your project. It will:
 To build for the unix-direct target (using tap interfaces), do:
 
 ```
-$ mirari configure --unix
+$ `mirage` configure --unix
 ```
 
 To build for the xen target, do:
 
 ```
-$ mirari configure --xen
+$ `mirage` configure --xen
 ```
 
 ## Building Mirage Applications
@@ -122,7 +130,7 @@ $ mirari configure --xen
 The command:
 
 ```
-$ mirari build
+$ `mirage` build
 ```
 
 will build your project. Likewise, you can use the `--unix` or `--xen`
@@ -133,18 +141,18 @@ switches to build for a particular target.
 The command:
 
 ```
-$ mirari run (--unix or --xen)
+$ `mirage` run (--unix or --xen)
 ```
 
 will run the unikernel on the selected backend.
 
 * Under the unix-socket backend, it just executes the unikernel.
 
-* Under the unix-direct backend (`--unix`), mirari sets up a virtual
+* Under the unix-direct backend (`--unix`), `mirage` sets up a virtual
   interface (tap) is passes its fd to the unikernel that will use it to
   perform networking operations.
 
-* Under the xen backend (`--xen`), mirari creates a xl configuration
+* Under the xen backend (`--xen`), `mirage` creates a xl configuration
   file and uses `xl` to run the unikernel locally. Xen has to be
   installed and running on the machine.
 

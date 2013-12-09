@@ -13,6 +13,12 @@ with Mirage.  There are several diverse backends in Mirage that require rather
 specialised build steps (from Javascript to Xen microkernels), and this
 compexity is wrapped up in the tool.
 
+To work with Mirage, you'll need the following prerequisites installed:
+
+* a working [OCaml](http://ocaml.org) compiler.
+* the [OPAM](https://opam.ocaml.org) source package manager.
+* a 64-bit Linux host to compile Xen kernels, or MacOS X for the userlevel version.
+
 There are three stages to using `mirage`:
 
 * a *configuration* phase where OPAM package dependencies are
@@ -26,75 +32,8 @@ There are three stages to using `mirage`:
 ## Configuration files
 
 `mirage` currently uses a configuration file to build a Mirage unikernel.
-Support for command line arguments should be available soon.
-
-An example of an `app.conf`:
-
-```
-# IP configuration
-
-# This will use DHCP for configuring the unikernel's network interfaces
-
-ip-use-dhcp: true
-
-# This will manually set an IPv4 to the unikernel's network
-# interfaces. For now, this technique only works when a unikernel has
-# only one network interface.
-
-# ip-address: 10.0.0.2
-# ip-netmask: 255.255.255.0
-# ip-gateway: 10.0.0.1
-
-# Filesystem configuration. Directories can be specified here, and
-# they will be compiled into a "filesystem" where each file will be
-# presented to the unikernel via a key value interface. For example
-# here, there will be two databases, named respectively "static" and
-# "template", presenting the content of dir "../files" and "../templ"
-# respectively.
-
-fs-static: ../files
-fs-template: ../tmpl
-
-# HTTP configuration
-http-port: 80
-http-address: *
-
-# Main function
-
-# If your main is a Dispatch function for cohttp
-main-http: Dispatch.main
-
-# If Ping.min has signature Net.Manager.t -> Net.Manager.interface -> Net.Manager.id -> 'a Lwt.t
-# main-ip: Ping.min
-
-# Noip.main must have signature unit -> 'a Lwt.t (do not use networking)
-# main-noip: Noip.main
-
-# Dependencies
-
-depends: cohttp.syntax, uri, re, cow.syntax
-packages: mirage-net, cow
-
-# Target (Select a target compiler: takes precedence over --xen or
-# --unix switch on the command line)
-
-compiler: 4.01.0dev+mirage-xen
-
-# XL parameters. They will be used for creating the xl config file
-# when doing a ``mirage` run --xen`.
-
-xl-memory: 32
-xl-on_crash: preserve
-xl-vif: [ 'mac=00:16:3E:74:34:32' ]
-
-```
-
-* `depends` is a list of ocamlfind libraries
-* `packages` is a list of OPAM packages (which contains the `depends` libraries)
-* `compiler` is a OPAM compiler selector (see `opam switch`)
-
-We do understand there is replication between `depends` and `packages` at the
-moment, but this will eventually converge as OPAM understands ocamlfind better.
+While we're documenting it all, please see the `lib_test` directory in
+this repository for the regression examples.
 
 ## Configuring Mirage Applications
 
@@ -108,10 +47,9 @@ $ `mirage` configure
 
 will configure your project. It will:
 
+* call the right OPAM commands to satisfy package dependencies.
 * generate `main.ml`
-* generate `main.obuild`
-* call the right OPAM commands to satisfy dependencies.
-* call `obuild configure`
+* generate `Makefile`
 
 To build for the unix-direct target (using tap interfaces), do:
 
@@ -145,8 +83,6 @@ $ `mirage` run (--unix or --xen)
 ```
 
 will run the unikernel on the selected backend.
-
-* Under the unix-socket backend, it just executes the unikernel.
 
 * Under the unix-direct backend (`--unix`), `mirage` sets up a virtual
   interface (tap) is passes its fd to the unikernel that will use it to

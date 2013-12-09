@@ -1,4 +1,7 @@
-0.10.0 (unreleased):
+1.0.0 (2013-12-09)
+* Adapt the latest labrary releases
+
+0.10.0 (2013-12.08):
 * Complete API rewrite
 * [xen] XL configuration phase is now created during configure phase, was during run phase.
 

@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        fat-filesystem
-Version:     0.10.0
+Version:     1.0.0
 Synopsis:    Mirage configuration helper
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC

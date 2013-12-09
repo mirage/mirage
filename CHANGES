@@ -1,4 +1,5 @@
 1.0.1 (2013-12-09)
+* Add more examples to the FAT filesystem test case.
 * Fix `mirage-tcpip-*` support
 * Fix `mirage-net-*` support
 

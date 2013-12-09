@@ -1,6 +1,8 @@
-1.0.0 (2013-12-09)
-* Fix Net support
-* Adapt the latest labrary releases
+1.0.1 (2013-12-09):
+* Fix Net support for TCP/IP
+
+1.0.0 (2013-12-09):
+* Adapt the latest library releases for Mirage 1.0 interfaces.
 
 0.10.0 (2013-12.08):
 * Complete API rewrite

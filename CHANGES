@@ -2,8 +2,8 @@
 * Fix `mirage-tcpip-*` support
 * Fix `mirage-net-*` support
 
-1.0.0 (2013-12-09)
-* Adapt the latest labrary releases
+1.0.0 (2013-12-09):
+* Adapt the latest library releases for Mirage 1.0 interfaces.
 
 0.10.0 (2013-12.08):
 * Complete API rewrite

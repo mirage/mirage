@@ -42,7 +42,7 @@ Provided that one and only one file of name `<foo>.conf` (where
 directory, the command:
 
 ```
-$ `mirage` configure
+mirage configure
 ```
 
 will configure your project. It will:
@@ -54,13 +54,13 @@ will configure your project. It will:
 To build for the unix-direct target (using tap interfaces), do:
 
 ```
-$ `mirage` configure --unix
+mirage configure --unix
 ```
 
 To build for the xen target, do:
 
 ```
-$ `mirage` configure --xen
+mirage configure --xen
 ```
 
 ## Building Mirage Applications
@@ -68,7 +68,7 @@ $ `mirage` configure --xen
 The command:
 
 ```
-$ `mirage` build
+mirage build
 ```
 
 will build your project. Likewise, you can use the `--unix` or `--xen`
@@ -79,7 +79,7 @@ switches to build for a particular target.
 The command:
 
 ```
-$ `mirage` run (--unix or --xen)
+mirage run # [--unix or --xen]
 ```
 
 will run the unikernel on the selected backend.

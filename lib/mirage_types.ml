@@ -8,7 +8,7 @@ module V1 = struct
 
   module type NETWORK= NETWORK
     with type 'a io = 'a Lwt.t
-     and type page_aligned_buffer = Cstruct.t
+     and type page_aligned_buffer = Io_page.t
      and type buffer = Cstruct.t
   (** Network *)
 

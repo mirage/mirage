@@ -12,15 +12,23 @@ Library mirage
   Path:               lib
   Findlibname:        mirage
   Modules:            Mirage
-  BuildDepends:       ipaddr,unix,dynlink,mirage-types,lwt,cstruct,re.str
+  BuildDepends:       ipaddr,unix,dynlink,lwt,re.str
 
-Library "mirage-types"
+Library "mirage-types-unix"
   CompiledObject:     best
   Path:               lib
   Findlibparent:      mirage
-  Findlibname:        types
+  Findlibname:        types-unix
   Modules:            Mirage_types
-  BuildDepends:       mirage-types
+  BuildDepends:       mirage-types,lwt,cstruct,io-page-unix
+
+Library "mirage-types-xen"
+  CompiledObject:     best
+  Path:               lib
+  Findlibparent:      mirage
+  Findlibname:        types-xen
+  Modules:            Mirage_types
+  BuildDepends:       mirage-types,lwt,cstruct,io-page-xen
 
 Executable mirage
   CompiledObject:     best

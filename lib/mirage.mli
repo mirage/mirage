@@ -165,7 +165,7 @@ module IP: sig
     name    : string;
     config  : config;
     networks: Network.t list;
-    callback: string option;
+    callback: bool;
   }
   (** Main IP configuration. *)
 
@@ -204,11 +204,15 @@ module Driver: sig
   val tap0: t
   (** Default network driver. *)
 
-  val local_ip: Network.t -> t
+  val local_ip: Network.t -> bool -> t
   (** Default local IP listening on the given network interface:
+
         - address: 10.0.0.2
         - netmask: 255.255.255.0
-        - gateway: 10.0.0.1 *)
+        - gateway: 10.0.0.1
+
+      The boolean tells whether the constructor needs a callback
+      (otherwise it just loop for ever doing nothing). *)
 
   val register: t list -> unit
   (** Register an autonomous driver (ie. who don't need/have a

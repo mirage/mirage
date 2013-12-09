@@ -604,7 +604,7 @@ module IP = struct
     name    : string;
     config  : config;
     networks: Network.t list;
-    callback: string option;
+    callback: bool;
   }
 
   let packages _ = function
@@ -622,7 +622,7 @@ module IP = struct
     if not (StringMap.mem t.name d.modules) then (
       let m = "IP_%s" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "let %s =" t.name;
+      append d.oc "let %s%s =" t.name (if t.callback then " callback" else "");
       append d.oc "  let conf = %s in"
         (match t.config with
          | DHCP   -> "`DHCP"
@@ -642,12 +642,10 @@ module IP = struct
         ) t.networks;
       append d.oc"  Net.Manager.create [%s] (fun t interface id ->"
         (String.concat "; " (List.map Network.name t.networks));
-      append d.oc "    Net.Manager.configure interface conf";
+      append d.oc "    Net.Manager.configure interface conf >>= fun () ->";
       begin match t.callback with
-        | None   -> ()
-        | Some c ->
-          append d.oc "    >>= fun () ->";
-          append d.oc "    %s t interface id" c;
+        | false -> append d.oc "    while_lwt true do OS.Time.sleep 1. done"
+        | true  -> append d.oc "    callback t interface id";
       end;
       append d.oc "  )";
       newline d.oc
@@ -782,7 +780,7 @@ module Driver = struct
 
   let tap0 = Network Network.Tap0
 
-  let local_ip network =
+  let local_ip network callback =
     let i s = Ipaddr.V4.of_string_exn s in
     let config = IP.IPv4 {
         IP.address = i "10.0.0.2";
@@ -792,7 +790,7 @@ module Driver = struct
     IP {
       IP.name  = "ip";
       config;
-      callback = None;
+      callback;
       networks = [network]
     }
 

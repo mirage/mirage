@@ -608,8 +608,8 @@ module IP = struct
   }
 
   let packages _ = function
-    | `Unix `Direct -> ["mirage-net-direct-unix"]
-    | `Unix `Socket -> ["mirage-net-socket-unix"]
+    | `Unix `Direct -> ["mirage-tcpip-unix"]
+    | `Unix `Socket -> ["mirage-tcpip-unix"]
     | `Xen          -> []
 
   let libraries t mode =

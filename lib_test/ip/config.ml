@@ -3,5 +3,5 @@ open Mirage
 let () =
   Driver.register [
     Driver.clock;
-    Driver.local_ip Network.Tap0;
+    Driver.local_ip Network.Tap0 false;
   ]

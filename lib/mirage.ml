@@ -604,7 +604,7 @@ module IP = struct
     name    : string;
     config  : config;
     networks: Network.t list;
-    callback: string option;
+    callback: bool;
   }
 
   let packages _ = function
@@ -622,7 +622,7 @@ module IP = struct
     if not (StringMap.mem t.name d.modules) then (
       let m = "IP_%s" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "let %s =" t.name;
+      append d.oc "let %s%s =" t.name (if t.callback then " callback" else "");
       append d.oc "  let conf = %s in"
         (match t.config with
          | DHCP   -> "`DHCP"
@@ -642,12 +642,10 @@ module IP = struct
         ) t.networks;
       append d.oc"  Net.Manager.create [%s] (fun t interface id ->"
         (String.concat "; " (List.map Network.name t.networks));
-      append d.oc "    Net.Manager.configure interface conf";
+      append d.oc "    Net.Manager.configure interface conf >>= fun () ->";
       begin match t.callback with
-        | None   -> ()
-        | Some c ->
-          append d.oc "    >>= fun () ->";
-          append d.oc "    %s t interface id" c;
+        | false -> append d.oc "    while_lwt true do OS.Time.sleep 1. done"
+        | true  -> append d.oc "    callback t interface id";
       end;
       append d.oc "  )";
       newline d.oc
@@ -782,7 +780,7 @@ module Driver = struct
 
   let tap0 = Network Network.Tap0
 
-  let local_ip network =
+  let local_ip network callback =
     let i s = Ipaddr.V4.of_string_exn s in
     let config = IP.IPv4 {
         IP.address = i "10.0.0.2";
@@ -792,7 +790,7 @@ module Driver = struct
     IP {
       IP.name  = "ip";
       config;
-      callback = None;
+      callback;
       networks = [network]
     }
 
@@ -1033,6 +1031,13 @@ let configure_makefile t mode d =
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;
+  append oc "run: build";
+  begin match mode with
+    | `Xen ->
+      append oc "\txl create %s.xl" t.name
+    | `Unix _ ->
+      append oc "\t$(SUDO) ./mir-%s" t.name
+  end;
   append oc "clean:\n\
              \tocamlbuild -clean";
   close_out oc
@@ -1078,6 +1083,22 @@ let clean_main t =
   clean_jobs t;
   remove (t.root / "main.ml")
 
+
+(* XXX
+module XL = struct
+  let output name kvs =
+    info "+ creating %s" (name ^ ".xl");
+    let oc = open_out (name ^ ".xl") in
+    finally
+      (fun () ->
+         output_kv oc (["name", "\"" ^ name ^ "\"";
+                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
+                         filter_map (subcommand ~prefix:"xl") kvs) "=")
+      (fun () -> close_out oc);
+end
+
+*)
+
 let configure t mode d =
   info "%d JOBS: %s | %d DRIVERS: %s"
     (List.length t.jobs)
@@ -1098,24 +1119,20 @@ let uname_s () =
   with _ ->
     None
 
+let make () =
+  match uname_s () with
+  | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
+  | _ -> "make"
+
 let build t =
-  let make =
-    match uname_s () with
-    | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
-    | _ -> "make" in
   in_dir t.root (fun () ->
-      command "%s build" make
+      command "%s build" (make ())
     )
 
-let run t = function
-  | `Unix _ ->  info "+ unix mode";
-    Unix.execv (t.root / "mir-" ^ t.name) [||]
-  | `Xen    ->
-    info "+ xen mode";
-    failwith "TODO"
-(*
-    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
-*)
+let run t =
+  in_dir t.root (fun () ->
+      command "%s run" (make ())
+    )
 
 let clean t =
   in_dir t.root (fun () ->
@@ -1124,24 +1141,9 @@ let clean t =
       clean_makefile t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
-      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~" t.root t.root;
+      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~"
+        t.root t.root t.root t.root;
     )
-
-(*
-
-module XL = struct
-  let output name kvs =
-    info "+ creating %s" (name ^ ".xl");
-    let oc = open_out (name ^ ".xl") in
-    finally
-      (fun () ->
-         output_kv oc (["name", "\"" ^ name ^ "\"";
-                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
-                         filter_map (subcommand ~prefix:"xl") kvs) "=")
-      (fun () -> close_out oc);
-end
-
-*)
 
 (* Compile the configuration file and attempt to dynlink it.
  * It is responsible for registering an application via

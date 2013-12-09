@@ -37,8 +37,6 @@ module Receiver (C: CONSOLE) (N: NETWORK) = struct
     N.listen net (fun page ->
         let s = Cstruct.to_string page in
         debug c "Got '%s'" s
-      ) >>= function
-    | `Error _ -> debug c "Netif.error!"
-    | `Ok ()   -> return_unit
+      )
 
 end

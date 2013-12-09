@@ -11,3 +11,22 @@ mirage configure
 mirage build
 mirage run
 
+Third, build the mirage app for xen:
+
+mirage configure --xen
+mirage build
+
+Fourth, use the loopback driver to expose 'fat.img' as a block
+device which Linux 'blkback' can read:
+
+sudo losetup /dev/loop0 fat.img
+
+Fifth, start the xen domain paused (it exits fairly quickly,
+sometimes xl won't display the full console)
+
+sudo xl create -c -p simple-xen.cfg
+
+Finally, from another terminal unpause the VM
+
+sudo xl unpause simple-xen
+

@@ -522,7 +522,7 @@ module Fat = struct
   let name t = t.name
 
   let packages t mode = [
-    "fat";
+    "fat-filesystem";
   ]
     @ Io_page.packages () mode
     @ Block.packages t.block mode

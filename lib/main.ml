@@ -98,12 +98,10 @@ let run =
   let man = [
     `S "DESCRIPTION";
     `P "Run a Mirage application on the selected backend."] in
-  let run unix xen socket file =
-    if unix && xen then `Help (`Pager, Some "run")
-    else
-      let t = Mirage.load file in
-      `Ok (Mirage.run t (mode unix xen socket)) in
-  Term.(ret (pure run $ unix $ xen $ socket $ file)), term_info "run" ~doc ~man
+  let run file =
+    let t = Mirage.load file in
+    `Ok (Mirage.run t) in
+  Term.(ret (pure run $ file)), term_info "run" ~doc ~man
 
 (* RUN *)
 let clean_doc = "Clean the files produced by Mirage for a given application."

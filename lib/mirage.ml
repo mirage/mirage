@@ -1034,6 +1034,13 @@ let configure_makefile t mode d =
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;
+  append oc "run: build";
+  begin match mode with
+    | `Xen ->
+      append oc "\txl create %s.xl" t.name
+    | `Unix _ ->
+      append oc "\t$(SUDO) ./mir-%s" t.name
+  end;
   append oc "clean:\n\
              \tocamlbuild -clean";
   close_out oc
@@ -1079,6 +1086,22 @@ let clean_main t =
   clean_jobs t;
   remove (t.root / "main.ml")
 
+
+(* XXX
+module XL = struct
+  let output name kvs =
+    info "+ creating %s" (name ^ ".xl");
+    let oc = open_out (name ^ ".xl") in
+    finally
+      (fun () ->
+         output_kv oc (["name", "\"" ^ name ^ "\"";
+                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
+                         filter_map (subcommand ~prefix:"xl") kvs) "=")
+      (fun () -> close_out oc);
+end
+
+*)
+
 let configure t mode d =
   info "%d JOBS: %s | %d DRIVERS: %s"
     (List.length t.jobs)
@@ -1099,24 +1122,20 @@ let uname_s () =
   with _ ->
     None
 
+let make () =
+  match uname_s () with
+  | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
+  | _ -> "make"
+
 let build t =
-  let make =
-    match uname_s () with
-    | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
-    | _ -> "make" in
   in_dir t.root (fun () ->
-      command "%s build" make
+      command "%s build" (make ())
     )
 
-let run t = function
-  | `Unix _ ->  info "+ unix mode";
-    Unix.execv (t.root / "mir-" ^ t.name) [||]
-  | `Xen    ->
-    info "+ xen mode";
-    failwith "TODO"
-(*
-    Unix.execvp "xl" [|"xl"; "create"; "-c"; t.name ^ ".xl"|]
-*)
+let run t =
+  in_dir t.root (fun () ->
+      command "%s run" (make ())
+    )
 
 let clean t =
   in_dir t.root (fun () ->
@@ -1125,24 +1144,9 @@ let clean t =
       clean_makefile t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
-      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~" t.root t.root;
+      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~"
+        t.root t.root t.root t.root;
     )
-
-(*
-
-module XL = struct
-  let output name kvs =
-    info "+ creating %s" (name ^ ".xl");
-    let oc = open_out (name ^ ".xl") in
-    finally
-      (fun () ->
-         output_kv oc (["name", "\"" ^ name ^ "\"";
-                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
-                         filter_map (subcommand ~prefix:"xl") kvs) "=")
-      (fun () -> close_out oc);
-end
-
-*)
 
 (* Compile the configuration file and attempt to dynlink it.
  * It is responsible for registering an application via

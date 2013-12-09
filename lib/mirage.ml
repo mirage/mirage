@@ -620,7 +620,7 @@ module IP = struct
   let configure t mode d =
     List.iter (fun n -> Network.configure n mode d) t.networks;
     if not (StringMap.mem t.name d.modules) then (
-      let m = "IP_%s" ^ t.name in
+      let m = "Net.Manager" in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "let %s%s =" t.name (if t.callback then " callback" else "");
       append d.oc "  let conf = %s in"
@@ -661,27 +661,45 @@ module HTTP = struct
   type t = {
     port   : int;
     address: Ipaddr.V4.t option;
-    static : KV_RO.t option;
+    fs: KV_RO.t option;
   }
 
-  let name t = "http_" ^ string_of_int t.port
+  let name t =
+    "http_" ^ string_of_int t.port
 
   let packages t mode = [
     "cohttp"
-  ] @
-    match t.static with
-    | None   -> []
-    | Some s -> KV_RO.packages s mode
+  ] @ (
+      match t.fs with
+      | None   -> []
+      | Some s -> KV_RO.packages s mode
+    )
 
   let libraries t mode = [
     "cohttp.mirage";
-  ] @
-    match t.static with
-    | None   -> []
-    | Some s -> KV_RO.libraries s mode
+  ] @ (
+      match t.fs with
+      | None   -> []
+      | Some s -> KV_RO.libraries s mode
+    )
 
-  let configure _ =
-    failwith "TODO"
+  let configure t mode d =
+    let name = name t in
+    if not (StringMap.mem name d.modules) then (
+      let m = match mode with
+        | `Unix `Socket -> "Cohttp_lwt_unix"
+        | _             -> "Cohttp_lwt_xen" in
+      d.modules <- StringMap.add name m d.modules;
+      append d.oc "let %s callback =" name;
+      begin match t.fs with
+        | None    -> append d.oc "  callback"
+        | Some fs ->
+          let fs = KV_RO.name fs in
+          append d.oc "  %s >>= function" fs;
+          append d.oc "  | `Error _ -> %s" (driver_initialisation_error fs);
+          append d.oc "  | `Ok %s -> callback %s" fs fs;
+      end
+    )
 
   let clean t =
     ()
@@ -784,8 +802,8 @@ module Driver = struct
     let i s = Ipaddr.V4.of_string_exn s in
     let config = IP.IPv4 {
         IP.address = i "10.0.0.2";
-        netmask    = i "255.255.255.0";
-        gateway    = [i "10.0.0.1"];
+        netmask = i "255.255.255.0";
+        gateway = [i "10.0.0.1"];
       } in
     IP {
       IP.name  = "ip";

@@ -173,7 +173,19 @@ module IP: sig
 
 end
 
-module HTTP: CONFIGURABLE
+module HTTP: sig
+
+  (** HTTP callbacks *)
+
+  type t = {
+    port   : int;
+    address: Ipaddr.V4.t option;
+    fs     : KV_RO.t option;
+  }
+
+  include CONFIGURABLE with type t := t
+
+end
 
 module Driver: sig
 

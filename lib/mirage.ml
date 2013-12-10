@@ -404,9 +404,8 @@ module KV_RO = struct
   let packages _ _ = [
     "mirage-types";
     "lwt";
-    "io-page";
     "cstruct";
-    "ocaml-crunch";
+    "crunch";
   ]
 
   let libraries _ mode = [

@@ -165,11 +165,16 @@ module IP: sig
     name    : string;
     config  : config;
     networks: Network.t list;
-    callback: bool;
   }
   (** Main IP configuration. *)
 
   include CONFIGURABLE with type t := t
+
+  val local: Network.t -> t
+  (** Default local IP listening on the given network interface:
+        - address: 10.0.0.2
+        - netmask: 255.255.255.0
+        - gateway: 10.0.0.1 *)
 
 end
 
@@ -180,7 +185,7 @@ module HTTP: sig
   type t = {
     port   : int;
     address: Ipaddr.V4.t option;
-    fs     : KV_RO.t option;
+    ip     : IP.t;
   }
 
   include CONFIGURABLE with type t := t
@@ -216,19 +221,8 @@ module Driver: sig
   val tap0: t
   (** Default network driver. *)
 
-  val local_ip: Network.t -> bool -> t
-  (** Default local IP listening on the given network interface:
-
-        - address: 10.0.0.2
-        - netmask: 255.255.255.0
-        - gateway: 10.0.0.1
-
-      The boolean tells whether the constructor needs a callback
-      (otherwise it just loop for ever doing nothing). *)
-
-  val register: t list -> unit
-  (** Register an autonomous driver (ie. who don't need/have a
-      callback function defined by the user. *)
+ val local_ip: Network.t -> t
+  (** See [IP.local] *)
 
 end
 
@@ -255,7 +249,6 @@ type t = {
   name: string;
   root: string;
   jobs: Job.t list;
-  drivers: Driver.t list; (** self-registered drivers only *)
 }
 (** The collection of single jobs forms the main function. *)
 

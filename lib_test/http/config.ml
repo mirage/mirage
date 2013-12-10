@@ -1,20 +1,19 @@
 open Mirage
 
-let fs = {
-  KV_RO.name = "static";
-  dirname    = "../kv_ro/t";
-}
+let fs =
+  Driver.KV_RO {
+    KV_RO.name = "static";
+    dirname    = "../kv_ro/t";
+  }
 
-let ip =
-  Driver.local_ip Network.Tap0 true
-
-let http = Driver.HTTP {
-  HTTP.port  = 8080;
-  address    = None;
-  fs         = Some fs;
-}
+let http =
+  Driver.HTTP {
+    HTTP.port  = 8080;
+    address    = None;
+    ip         = IP.local Network.Tap0;
+  }
 
 let () =
   Job.register [
-    "Callback.Main", [Driver.console; ip; http]
+    "Handler.Main", [Driver.console; fs; http]
   ]

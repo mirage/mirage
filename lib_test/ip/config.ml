@@ -1,7 +1,8 @@
 open Mirage
 
+let ip = Driver.local_ip Network.Tap0
+
 let () =
-  Driver.register [
-    Driver.clock;
-    Driver.local_ip Network.Tap0 false;
+  Job.register [
+    "Ping.Main", [Driver.console; ip]
   ]

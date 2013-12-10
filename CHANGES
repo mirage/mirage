@@ -1,3 +1,7 @@
+1.0.2 (2013-12-10):
+* Add `HTTP` support.
+* Fix `KV_RO` configuration for OPAM autoinstall.
+
 1.0.1 (2013-12-09)
 * Add more examples to the FAT filesystem test case.
 * Fix `mirage-tcpip-*` support

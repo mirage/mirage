@@ -11,7 +11,7 @@ sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
 export OPAMYES=1
 export OPAMVERBOSE=1
 
-opam init git://github.com/ocaml/opam-repository
+opam init git://github.com/ocaml/opam-repository >/dev/null 2>&1
 opam install ocamlfind cstruct ounit mirage-types cmdliner ipaddr re lwt io-page-xen io-page-unix
 eval `opam config env`
 make

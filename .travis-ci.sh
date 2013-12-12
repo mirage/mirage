@@ -16,11 +16,10 @@ opam install ocamlfind cstruct ounit mirage-types cmdliner ipaddr re lwt io-page
 eval `opam config env`
 make
 sudo make install
-opam install mirage-block-unix
 
 opam install mirage-console-unix mirage-console-xen \
     mirage-clock-unix mirage-clock-xen \
     mirage-block-unix mirage-block-xen \
-    fat-filesystem
+    fat-filesystem crunch
 cd lib_test && make MODE=unix
 cd lib_test && make MODE=xen

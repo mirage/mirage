@@ -1,3 +1,6 @@
+trunk:
+* Do not remove OPAM packages when doing `mirage clean` (#143)
+
 1.0.2 (2013-12-10):
 * Add `HTTP` support.
 * Fix `KV_RO` configuration for OPAM autoinstall.

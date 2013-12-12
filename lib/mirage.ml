@@ -1043,6 +1043,8 @@ let configure_opam t mode d =
     else error "OPAM is not installed."
 
 let clean_opam t =
+  ()
+(* This is a bit too agressive, disabling for now on.
   let (++) = StringSet.union in
   let set mode = StringSet.of_list (packages t mode) in
   let packages =
@@ -1052,6 +1054,7 @@ let clean_opam t =
   | ps ->
     if cmd_exists "opam" then opam "remove" ps
     else error "OPAM is not installed."
+*)
 
 let manage_opam = ref true
 

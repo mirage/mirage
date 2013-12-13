@@ -19,7 +19,7 @@ module Main (C: CONSOLE) (FS: KV_RO) (Server: Cohttp_lwt.Server) = struct
       C.log_s c (Printf.sprintf "Got a request for %s\n" path) >>= fun () ->
       FS.size fs path                    >>> fun s ->
       FS.read fs path 0 (Int64.to_int s) >>> fun v ->
-      let r = String.concat "" (List.map Cstruct.to_string v) in
+      let r = Cstruct.copyv v in
       respond_string r
     in
 

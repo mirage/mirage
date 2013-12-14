@@ -972,6 +972,32 @@ let configure_myocamlbuild_ml t mode d =
 let clean_myocamlbuild_ml t =
   remove (t.root / "myocamlbuild.ml")
 
+let configure_main_xl t mode d =
+  let file = t.root / t.name ^ ".xl" in
+  let oc = open_out file in
+  append oc "# %s" generated_by_mirage;
+  newline oc;
+  append oc "name = '%s'" t.name;
+  append oc "kernel = '%s'" (t.root / "mir-main.xen");
+  append oc "builder = 'linux'";
+  append oc "memory = 256";
+  newline oc;
+  append oc "# You must define the network and block interfaces manually.";
+  newline oc;
+  append oc "# The disk configuration is defined here:";
+  append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-disk-configuration.txt";
+  append oc "# An example would look like:";
+  append oc "# disk = [ '/dev/loop0,,xvda' ]";
+  newline oc;
+  append oc "# The network configuration is defined here:";
+  append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
+  append oc "# An example would look like:";
+  append oc "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
+  close_out oc
+
+let clean_main_xl t =
+  remove (t.root / t.name ^ ".xl")
+
 let configure_makefile t mode d =
   let file = t.root / "Makefile" in
   let libraries =
@@ -1099,6 +1125,7 @@ let configure t mode d =
       if !manage_opam then configure_opam t mode d;
       configure_myocamlbuild_ml t mode d;
       configure_makefile t mode d;
+      configure_main_xl t mode d;
       configure_main t mode d
     )
 
@@ -1132,6 +1159,7 @@ let clean t =
       if !manage_opam then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
+      clean_main_xl t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
       command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~"

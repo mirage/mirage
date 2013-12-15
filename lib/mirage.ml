@@ -676,8 +676,9 @@ module HTTP = struct
   let name t =
     "http_" ^ string_of_int t.port
 
-  let packages t mode =
-    ["cohttp"]
+  let packages t = function
+    | `Unix _ -> ["cohttp"; "mirage-tcpip-unix"]
+    | `Xen    -> ["cohttp"; "mirage-tcpip-xen"]
 
   let libraries t = function
     | `Unix _ -> ["cohttp.mirage-unix"]

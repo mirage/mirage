@@ -1,7 +1,8 @@
 1.0.3 (trunk):
 * Do not remove OPAM packages when doing `mirage clean` (#143)
-* [xen] generate a simple main.xl, without block devices or network interfaces
+* [xen] generate a simple main.xl, without block devices or network interfaces/
 * The HTTP dependency now also installs `mirage-tcp-*`.
+* Fix generated Makefile dependency on source OCaml files to rebuild reliably.
 
 1.0.2 (2013-12-10):
 * Add `HTTP` support.

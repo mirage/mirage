@@ -1021,7 +1021,7 @@ let configure_makefile t mode d =
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
-  append oc ".PHONY: all prepare clean\n\
+  append oc ".PHONY: all prepare clean build main.native\n\
              all: build\n\
              \n\
              prepare:\n\

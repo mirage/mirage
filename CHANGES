@@ -3,6 +3,7 @@
 * [xen] generate a simple main.xl, without block devices or network interfaces/
 * The HTTP dependency now also installs `mirage-tcp-*`.
 * Fix generated Makefile dependency on source OCaml files to rebuild reliably.
+* Support `Fat_KV_RO` (a read-only k/v version of the FAT filesystem).
 
 1.0.2 (2013-12-10):
 * Add `HTTP` support.

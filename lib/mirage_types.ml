@@ -6,15 +6,14 @@ module V1 = struct
 
   open V1
 
-  module type NETWORK= NETWORK
+  module type NETWORK = NETWORK
     with type 'a io = 'a Lwt.t
      and type page_aligned_buffer = Io_page.t
      and type buffer = Cstruct.t
   (** Network *)
 
   module type KV_RO = KV_RO
-    with type id = unit
-     and type 'a io = 'a Lwt.t
+    with type 'a io = 'a Lwt.t
      and type page_aligned_buffer = Cstruct.t
     (** KV RO *)
 

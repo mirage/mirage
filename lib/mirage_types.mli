@@ -30,8 +30,7 @@ module V1: sig
      and type buffer = Cstruct.t
 
   module type KV_RO = KV_RO
-    with type id = unit
-     and type 'a io = 'a Lwt.t
+    with type 'a io = 'a Lwt.t
      and type page_aligned_buffer = Cstruct.t
     (** KV RO *)
 

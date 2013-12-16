@@ -411,11 +411,10 @@ module KV_RO = struct
   let libraries _ mode = [
     "mirage-types";
     "lwt";
-    "cstruct";
+    "cstruct" ] @
     match mode with
-    | `Unix _ -> "io-page-unix"
-    | `Xen    -> "io-page-xen"
-  ]
+    | `Unix _ -> ["io-page-unix"; "mirage-fs-unix"]
+    | `Xen    -> ["io-page-xen" ]
 
   let ml t =
     Printf.sprintf "static_%s.ml" t.name
@@ -424,23 +423,29 @@ module KV_RO = struct
     Printf.sprintf "static_%s.mli" t.name
 
   let configure t mode d =
-    if not (StringMap.mem t.name d.modules) then (
+    match mode with
+    | `Xen -> (* Build a crunch filesystem *)
+      if not (StringMap.mem t.name d.modules) then (
 
-      if not (cmd_exists "ocaml-crunch") then
-        error "ocaml-crunch not found, stopping.";
-      let file = ml t in
-      if Sys.file_exists t.dirname then (
-        info "Generating %s/%s." (Sys.getcwd ()) file;
-        command "ocaml-crunch -o %s %s" file t.dirname
-      ) else
-        error "The directory %s does not exist." t.dirname;
+        if not (cmd_exists "ocaml-crunch") then
+          error "ocaml-crunch not found, stopping.";
+        let file = ml t in
+        if Sys.file_exists t.dirname then (
+          info "Generating %s/%s." (Sys.getcwd ()) file;
+          command "ocaml-crunch -o %s %s" file t.dirname
+        ) else
+          error "The directory %s does not exist." t.dirname;
 
-      let m = "Static_" ^ t.name in
-      d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "let %s =" t.name;
-      append d.oc "  Static_%s.connect ()" t.name;
-      newline d.oc;
-    )
+        let m = "Static_" ^ t.name in
+        d.modules <- StringMap.add t.name m d.modules;
+        append d.oc "let %s =" t.name;
+        append d.oc "  Static_%s.connect ()" t.name;
+        newline d.oc;
+      )
+    | `Unix _ ->
+        d.modules <- StringMap.add t.name "Kvro_fs_unix" d.modules;
+        append d.oc "let %s = " t.name;
+        append d.oc "  Kvro_fs_unix.connect \"%s\"" t.dirname
 
   let clean t =
     remove (ml t);
@@ -550,6 +555,28 @@ module Fat = struct
     Block.clean t.block
 
 end
+
+module Fat_KV_RO = struct
+
+  include Fat
+
+  let configure t mode d =
+    if not (StringMap.mem t.name d.modules) then (
+      Block.configure t.block mode d;
+      let m = "Fat_" ^ t.name in
+      d.modules <- StringMap.add t.name m d.modules;
+      append d.oc "module %s__FS = Fat.Fs.Make(%s)(Io_page)"
+        m (StringMap.find t.block.Block.name d.modules);
+      append d.oc "module %s = Fat.KV_RO.Make(%s__FS)"
+        m m;
+      newline d.oc;
+      append d.oc "let %s =" t.name;
+      append d.oc " %s >>= function" (Block.name t.block);
+      append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
+      append d.oc " | `Ok dev  -> %s.connect dev" m
+    )
+end
+
 
 (** {2 Network configuration} *)
 
@@ -721,6 +748,7 @@ module Driver = struct
     | Fat of Fat.t
     | IP of IP.t
     | HTTP of HTTP.t
+    | Fat_KV_RO of Fat.t
 
   let name = function
     | Io_page x -> Io_page.name x
@@ -732,6 +760,7 @@ module Driver = struct
     | Fat x     -> Fat.name x
     | IP x      -> IP.name x
     | HTTP x    ->  HTTP.name x
+    | Fat_KV_RO x -> Fat_KV_RO.name x
 
   let packages = function
     | Io_page x -> Io_page.packages x
@@ -743,6 +772,7 @@ module Driver = struct
     | Fat x     -> Fat.packages x
     | IP x      -> IP.packages x
     | HTTP x    -> HTTP.packages x
+    | Fat_KV_RO x -> Fat_KV_RO.packages x
 
   let libraries = function
     | Io_page x -> Io_page.libraries x
@@ -754,6 +784,7 @@ module Driver = struct
     | Fat x     -> Fat.libraries x
     | IP x      -> IP.libraries x
     | HTTP x    -> HTTP.libraries x
+    | Fat_KV_RO x -> Fat_KV_RO.libraries x
 
   let configure = function
     | Io_page x -> Io_page.configure x
@@ -765,6 +796,7 @@ module Driver = struct
     | Fat x     -> Fat.configure x
     | IP x      -> IP.configure x
     | HTTP x    -> HTTP.configure x
+    | Fat_KV_RO x -> Fat_KV_RO.configure x
 
   let clean = function
     | Io_page x -> Io_page.clean x
@@ -776,6 +808,7 @@ module Driver = struct
     | Fat x     -> Fat.clean x
     | IP x      -> IP.clean x
     | HTTP x    -> HTTP.clean x
+    | Fat_KV_RO x -> Fat_KV_RO.clean x
 
   let rec map_path fn = function
     | KV_RO x -> KV_RO { x with KV_RO.dirname = fn x.KV_RO.dirname }

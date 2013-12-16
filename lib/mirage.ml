@@ -411,11 +411,10 @@ module KV_RO = struct
   let libraries _ mode = [
     "mirage-types";
     "lwt";
-    "cstruct";
+    "cstruct" ] @
     match mode with
-    | `Unix _ -> "io-page-unix"
-    | `Xen    -> "io-page-xen"
-  ]
+    | `Unix _ -> ["io-page-unix"; "mirage-fs-unix"]
+    | `Xen    -> ["io-page-xen" ]
 
   let ml t =
     Printf.sprintf "static_%s.ml" t.name
@@ -424,23 +423,29 @@ module KV_RO = struct
     Printf.sprintf "static_%s.mli" t.name
 
   let configure t mode d =
-    if not (StringMap.mem t.name d.modules) then (
+    match mode with
+    | `Xen -> (* Build a crunch filesystem *)
+      if not (StringMap.mem t.name d.modules) then (
 
-      if not (cmd_exists "ocaml-crunch") then
-        error "ocaml-crunch not found, stopping.";
-      let file = ml t in
-      if Sys.file_exists t.dirname then (
-        info "Generating %s/%s." (Sys.getcwd ()) file;
-        command "ocaml-crunch -o %s %s" file t.dirname
-      ) else
-        error "The directory %s does not exist." t.dirname;
+        if not (cmd_exists "ocaml-crunch") then
+          error "ocaml-crunch not found, stopping.";
+        let file = ml t in
+        if Sys.file_exists t.dirname then (
+          info "Generating %s/%s." (Sys.getcwd ()) file;
+          command "ocaml-crunch -o %s %s" file t.dirname
+        ) else
+          error "The directory %s does not exist." t.dirname;
 
-      let m = "Static_" ^ t.name in
-      d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "let %s =" t.name;
-      append d.oc "  Static_%s.connect ()" t.name;
-      newline d.oc;
-    )
+        let m = "Static_" ^ t.name in
+        d.modules <- StringMap.add t.name m d.modules;
+        append d.oc "let %s =" t.name;
+        append d.oc "  Static_%s.connect ()" t.name;
+        newline d.oc;
+      )
+    | `Unix _ ->
+        d.modules <- StringMap.add t.name "Kvro_fs_unix" d.modules;
+        append d.oc "let %s = " t.name;
+        append d.oc "  Kvro_fs_unix.connect \"%s\"" t.dirname
 
   let clean t =
     remove (ml t);

@@ -392,7 +392,7 @@ module Clock = struct
 
 end
 
-module KV_RO = struct
+module Crunch = struct
 
   type t = {
     name   : string;
@@ -401,7 +401,13 @@ module KV_RO = struct
 
   let name t = t.name
 
-  let packages _ mode = [
+  let path ?name dirname =
+    let name = match name with
+      | None   -> Filename.basename dirname
+      | Some n -> n in
+    { name; dirname }
+
+  let packages _ _ = [
     "mirage-types";
     "lwt";
     "cstruct";
@@ -745,7 +751,7 @@ module Driver = struct
     | Console of Console.t
     | Clock of Clock.t
     | Network of Network.t
-    | KV_RO of KV_RO.t
+    | Crunch of Crunch.t
     | Block of Block.t
     | Fat of Fat.t
     | IP of IP.t
@@ -757,7 +763,7 @@ module Driver = struct
     | Console x -> Console.name x
     | Clock x   -> Clock.name x
     | Network x -> Network.name x
-    | KV_RO x   -> KV_RO.name x
+    | Crunch x   -> Crunch.name x
     | Block x   -> Block.name x
     | Fat x     -> Fat.name x
     | IP x      -> IP.name x
@@ -769,7 +775,7 @@ module Driver = struct
     | Console x -> Console.packages x
     | Clock x   -> Clock.packages x
     | Network x -> Network.packages x
-    | KV_RO x   -> KV_RO.packages x
+    | Crunch x   -> Crunch.packages x
     | Block x   -> Block.packages x
     | Fat x     -> Fat.packages x
     | IP x      -> IP.packages x
@@ -781,7 +787,7 @@ module Driver = struct
     | Console x -> Console.libraries x
     | Clock x   -> Clock.libraries x
     | Network x -> Network.libraries x
-    | KV_RO x   -> KV_RO.libraries x
+    | Crunch x   -> Crunch.libraries x
     | Block x   -> Block.libraries x
     | Fat x     -> Fat.libraries x
     | IP x      -> IP.libraries x
@@ -793,7 +799,7 @@ module Driver = struct
     | Console x -> Console.configure x
     | Clock x   -> Clock.configure x
     | Network x -> Network.configure x
-    | KV_RO x   -> KV_RO.configure x
+    | Crunch x   -> Crunch.configure x
     | Block x   -> Block.configure x
     | Fat x     -> Fat.configure x
     | IP x      -> IP.configure x
@@ -805,7 +811,7 @@ module Driver = struct
     | Console x -> Console.clean x
     | Clock x   -> Clock.clean x
     | Network x -> Network.clean x
-    | KV_RO x   -> KV_RO.clean x
+    | Crunch x   -> Crunch.clean x
     | Block x   -> Block.clean x
     | Fat x     -> Fat.clean x
     | IP x      -> IP.clean x
@@ -813,7 +819,7 @@ module Driver = struct
     | Fat_KV_RO x -> Fat_KV_RO.clean x
 
   let rec map_path fn = function
-    | KV_RO x -> KV_RO { x with KV_RO.dirname = fn x.KV_RO.dirname }
+    | Crunch x -> Crunch { x with Crunch.dirname = fn x.Crunch.dirname }
     | Block x -> Block { x with Block.filename = fn x.Block.filename }
     | Fat x   ->
       begin match map_path fn (Block x.Fat.block) with
@@ -838,6 +844,9 @@ module Driver = struct
 
   let local_ip network =
     IP (IP.local network)
+
+  let crunch ?name path =
+    Crunch (Crunch.path ?name path)
 
 end
 

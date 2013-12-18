@@ -135,6 +135,21 @@ module Fat: sig
 
 end
 
+module Fat_KV_RO: sig
+
+  (** FAT-backed read-only key/value store *)
+
+  type t = {
+    name : string;
+    block: Block.t;
+  }
+  (** Type for a FAT KV_RO configuration. *)
+
+  include CONFIGURABLE with type t := t
+
+end
+
+
 (** {2 Network configuration} *)
 
 module Network: sig
@@ -211,6 +226,7 @@ module Driver: sig
     | Fat of Fat.t
     | IP of IP.t
     | HTTP of HTTP.t
+    | Fat_KV_RO of Fat_KV_RO.t
 
   include CONFIGURABLE with type t := t
 

@@ -1,11 +1,11 @@
 #!/bin/sh
 
 # OASIS_START
-# DO NOT EDIT (digest: 425187ed8bfdbdd207fd76392dd243a7)
+# DO NOT EDIT (digest: dc86c2ad450f91ca10c931b6045d0499)
 set -e
 
 FST=true
-for i in "$@"; do 
+for i in "$@"; do
   if $FST; then
     set --
     FST=false

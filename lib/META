@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 970c1f324a97b1cf00d2dc4f7ebc41c4)
-version = "1.0.2"
+# DO NOT EDIT (digest: 7dfc46b159c3601a63696afc131411fe)
+version = "1.0.4"
 description = "Mirage configuration helper"
 requires = "ipaddr unix dynlink lwt re.str"
 archive(byte) = "mirage.cma"
@@ -9,7 +9,7 @@ archive(native) = "mirage.cmxa"
 archive(native, plugin) = "mirage.cmxs"
 exists_if = "mirage.cma"
 package "types-xen" (
- version = "1.0.2"
+ version = "1.0.4"
  description = "Mirage configuration helper"
  requires = "mirage-types lwt cstruct io-page-xen"
  archive(byte) = "mirage-types-xen.cma"
@@ -20,7 +20,7 @@ package "types-xen" (
 )
 
 package "types-unix" (
- version = "1.0.2"
+ version = "1.0.4"
  description = "Mirage configuration helper"
  requires = "mirage-types lwt cstruct io-page-unix"
  archive(byte) = "mirage-types-unix.cma"

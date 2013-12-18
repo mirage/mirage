@@ -1,10 +1,6 @@
 open Mirage
 
-let fs =
-  Driver.KV_RO {
-    KV_RO.name = "static";
-    dirname    = "../kv_ro/t";
-  }
+let fs = Driver.crunch ~name:"static" "../kv_ro/t"
 
 let http =
   Driver.HTTP {

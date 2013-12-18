@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
+# DO NOT EDIT (digest: 7b2408909643717852b95f994b273fee)
 
 SETUP = ocaml setup.ml
 
@@ -12,7 +12,7 @@ doc: setup.data build
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
 
-all: 
+all:
 	$(SETUP) -all $(ALLFLAGS)
 
 install: setup.data
@@ -24,10 +24,10 @@ uninstall: setup.data
 reinstall: setup.data
 	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
-clean: 
+clean:
 	$(SETUP) -clean $(CLEANFLAGS)
 
-distclean: 
+distclean:
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
 
 setup.data:

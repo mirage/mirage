@@ -4,7 +4,7 @@
 * The HTTP dependency now also installs `mirage-tcp-*` and `mirage-http-*`.
 * Fix generated Makefile dependency on source OCaml files to rebuild reliably.
 * Support `Fat_KV_RO` (a read-only k/v version of the FAT filesystem).
-* The `KV_RO` filesystem in Unix now passes through to the underlying filesystem instead of calling `crunch`.
+* The Unix `KV_RO` now passes through to the underlying filesystem instead of calling `crunch`, via `mirage-fs-unix`.
 
 1.0.2 (2013-12-10):
 * Add `HTTP` support.

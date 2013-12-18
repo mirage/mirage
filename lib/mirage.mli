@@ -77,7 +77,7 @@ module Clock: sig
 
 end
 
-module KV_RO: sig
+module Crunch: sig
 
   (** Static key/value pairs. *)
 
@@ -86,6 +86,11 @@ module KV_RO: sig
     dirname: string;
   }
   (** Type for static key/value pairs configurations. *)
+
+
+  val path: ?name:string -> string -> t
+  (** [path dirname] create a static kv/ro stores using the given
+      [path]. *)
 
   include CONFIGURABLE with type t := t
 
@@ -201,7 +206,7 @@ module Driver: sig
     | Console of Console.t
     | Clock of Clock.t
     | Network of Network.t
-    | KV_RO of KV_RO.t
+    | Crunch of Crunch.t
     | Block of Block.t
     | Fat of Fat.t
     | IP of IP.t
@@ -223,6 +228,9 @@ module Driver: sig
 
  val local_ip: Network.t -> t
   (** See [IP.local] *)
+
+ val crunch: ?name:string -> string -> t
+ (** See [Crunch.path]. *)
 
 end
 

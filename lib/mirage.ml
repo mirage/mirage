@@ -704,17 +704,17 @@ module HTTP = struct
     "http_" ^ string_of_int t.port
 
   let packages t = function
-    | `Unix _ -> ["cohttp"; "mirage-tcpip-unix"]
-    | `Xen    -> ["cohttp"; "mirage-tcpip-xen"]
+    | `Unix _ -> ["mirage-http-unix"]
+    | `Xen    -> ["mirage-http-xen"]
 
   let libraries t = function
-    | `Unix _ -> ["cohttp.mirage-unix"]
-    | `Xen    -> ["cohttp.mirage-xen"]
+    | `Unix _ -> ["mirage-http-unix"]
+    | `Xen    -> ["mirage-http-xen"]
 
   let configure t mode d =
     let name = name t in
     if not (StringMap.mem name d.modules) then (
-      let m = "Cohttp_mirage.Server" in
+      let m = "HTTP.Server" in
       d.modules <- StringMap.add name m d.modules;
       IP.configure t.ip mode d;
       append d.oc "let %s =" name;

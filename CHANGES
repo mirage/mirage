@@ -1,6 +1,6 @@
-1.0.3 (trunk):
+1.0.3 (2013-12-18):
 * Do not remove OPAM packages when doing `mirage clean` (#143)
-* [xen] generate a simple main.xl, without block devices or network interfaces/
+* [xen] generate a simple main.xl, without block devices or network interfaces.
 * The HTTP dependency now also installs `mirage-tcp-*` and `mirage-http-*`.
 * Fix generated Makefile dependency on source OCaml files to rebuild reliably.
 * Support `Fat_KV_RO` (a read-only k/v version of the FAT filesystem).

@@ -85,9 +85,9 @@ let filter_map f l =
   let rec loop accu = function
     | []     -> List.rev accu
     | h :: t ->
-        match f h with
-        | None   -> loop accu t
-        | Some x -> loop (x::accu) t in
+      match f h with
+      | None   -> loop accu t
+      | Some x -> loop (x::accu) t in
   loop [] l
 
 let subcommand ~prefix (command, value) =
@@ -103,8 +103,8 @@ let subcommand ~prefix (command, value) =
 
 let append oc fmt =
   Printf.kprintf (fun str ->
-    Printf.fprintf oc "%s\n" str
-  ) fmt
+      Printf.fprintf oc "%s\n" str
+    ) fmt
 
 let newline oc =
   append oc ""
@@ -186,7 +186,7 @@ let error fmt =
         (indent_left (red_s "[ERROR]") (left_column ()))
         str;
       exit 1;
-  ) fmt
+    ) fmt
 
 let info fmt =
   Printf.kprintf (fun str ->
@@ -226,14 +226,14 @@ let remove file =
 
 let command ?switch fmt =
   Printf.kprintf (fun str ->
-    let cmd = match switch with
-      | None -> str
-      | Some cmp -> Printf.sprintf "opam config exec \"%s\" --switch=%s" str cmp in
-    info "+ Executing: %s" cmd;
-    match Sys.command cmd with
-    | 0 -> ()
-    | i -> error "The command %S exited with code %d." cmd i
-  ) fmt
+      let cmd = match switch with
+        | None -> str
+        | Some cmp -> Printf.sprintf "opam config exec \"%s\" --switch=%s" str cmp in
+      info "+ Executing: %s" cmd;
+      match Sys.command cmd with
+      | 0 -> ()
+      | i -> error "The command %S exited with code %d." cmd i
+    ) fmt
 
 let opam cmd ?switch deps =
   let deps_str = String.concat " " deps in
@@ -255,17 +255,17 @@ let cmd_exists s =
 let read_command fmt =
   let open Unix in
   Printf.ksprintf (fun cmd ->
-    let () = info "+ Executing: %s" cmd in
-    let ic, oc, ec = open_process_full cmd (environment ()) in
-    let buf1 = Buffer.create 64
-    and buf2 = Buffer.create 64 in
-    (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
-    (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
-    match close_process_full (ic,oc,ec) with
-    | WEXITED 0   -> Buffer.contents buf1
-    | WSIGNALED n -> error "process killed by signal %d" n
-    | WSTOPPED n  -> error "process stopped by signal %d" n
-    | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
+      let () = info "+ Executing: %s" cmd in
+      let ic, oc, ec = open_process_full cmd (environment ()) in
+      let buf1 = Buffer.create 64
+      and buf2 = Buffer.create 64 in
+      (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
+      (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
+      match close_process_full (ic,oc,ec) with
+      | WEXITED 0   -> Buffer.contents buf1
+      | WSIGNALED n -> error "process killed by signal %d" n
+      | WSTOPPED n  -> error "process stopped by signal %d" n
+      | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
 
 let generated_by_mirage =
   let t = Unix.gettimeofday () in
@@ -401,11 +401,13 @@ module KV_RO = struct
 
   let name t = t.name
 
-  let packages _ _ = [
+  let packages _ mode = [
     "mirage-types";
     "lwt";
     "cstruct";
-    "crunch";
+    match mode with
+    | `Unix _ -> "mirage-fs-unix"
+    | `Xen    -> "crunch";
   ]
 
   let libraries _ mode = [
@@ -586,8 +588,8 @@ module Network = struct
 
   let name t =
     "net_" ^ match t with
-      | Tap0     -> "tap0"
-      | Custom s -> s
+    | Tap0     -> "tap0"
+    | Custom s -> s
 
   let packages t = function
     | `Unix _ -> [ "mirage-net-unix" ]
@@ -729,7 +731,7 @@ module HTTP = struct
          | Some ip -> Printf.sprintf "Some %S" (Ipaddr.V4.to_string ip))
         t.port;
       append d.oc "   )"
-)
+    )
 
   let clean t =
     ()
@@ -1105,13 +1107,13 @@ let configure_opam t mode d =
 let clean_opam t =
   ()
 (* This is a bit too agressive, disabling for now on.
-  let (++) = StringSet.union in
-  let set mode = StringSet.of_list (packages t mode) in
-  let packages =
+   let (++) = StringSet.union in
+   let set mode = StringSet.of_list (packages t mode) in
+   let packages =
     set (`Unix `Socket) ++ set (`Unix `Direct) ++ set `Xen in
-  match StringSet.elements packages with
-  | [] -> ()
-  | ps ->
+   match StringSet.elements packages with
+   | [] -> ()
+   | ps ->
     if cmd_exists "opam" then opam "remove" ps
     else error "OPAM is not installed."
 *)
@@ -1135,8 +1137,8 @@ let clean_main t =
 
 
 (* XXX
-module XL = struct
-  let output name kvs =
+   module XL = struct
+   let output name kvs =
     info "+ creating %s" (name ^ ".xl");
     let oc = open_out (name ^ ".xl") in
     finally
@@ -1145,7 +1147,7 @@ module XL = struct
                         "kernel", "\"mir-" ^ name ^ ".xen\""] @
                          filter_map (subcommand ~prefix:"xl") kvs) "=")
       (fun () -> close_out oc);
-end
+   end
 
 *)
 

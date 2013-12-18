@@ -1085,7 +1085,8 @@ let configure_makefile t mode d =
   append oc "run: build";
   begin match mode with
     | `Xen ->
-      append oc "\txl create %s.xl" t.name
+      append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
+      append oc "\t@echo Then do something similar to: xl create -c %s.xl" t.name
     | `Unix _ ->
       append oc "\t$(SUDO) ./mir-%s" t.name
   end;

@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 7dfc46b159c3601a63696afc131411fe)
+# DO NOT EDIT (digest: ee6115fdf5cca21f4cf33845ac438a6e)
 version = "1.0.4"
 description = "Mirage configuration helper"
-requires = "ipaddr unix dynlink lwt re.str"
+requires = "ipaddr unix dynlink lwt"
 archive(byte) = "mirage.cma"
 archive(byte, plugin) = "mirage.cma"
 archive(native) = "mirage.cmxa"

@@ -11,8 +11,8 @@ Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
-  Modules:            Mirage
-  BuildDepends:       ipaddr,unix,dynlink,lwt,re.str
+  Modules:            Mirage, MirageMisc
+  BuildDepends:       ipaddr,unix,dynlink,lwt
 
 Library "mirage-types-unix"
   CompiledObject:     best

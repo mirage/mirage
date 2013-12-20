@@ -70,6 +70,43 @@ module type CONFIGURABLE = sig
   val clean: t -> unit
 end
 
+type 'a typ =
+  | Type of 'a
+
+type _ fn =
+  | Returns: 'a -> 'a fn
+  | Function: 'a typ * 'b fn -> ('a -> 'b) fn
+
+let (@->) f t =
+  Function (f, t)
+
+let returning t =
+  Returns t
+
+type _ config =
+  | D: 'a * (module CONFIGURABLE with type t = 'a) -> 'b config
+
+module Config = struct
+
+  let name (D (t, (module M))) =
+    M.name t
+
+  let configure (D (t, (module M))) mode =
+    M.configure t mode
+
+  let packages (D (t, (module M))) mode =
+    M.packages t mode
+
+  let libraries (D (t, (module M))) mode =
+    M.libraries t mode
+
+  let clean (D (t, (module M))) =
+    M.clean t
+
+end
+
+type job = JOB
+
 module Headers = struct
 
   let output oc =
@@ -81,17 +118,6 @@ end
 let driver_initialisation_error name =
   Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
 
-type _ device = D: 'a * (module CONFIGURABLE with type t = 'a) -> 'b device
-
-module Device = struct
-
-  let configure (D (t, (module M))) mode =
-    M.configure t mode
-
-  let name (D (t, (module M))) =
-    M.name t
-
-end
 
 module Io_page = struct
 
@@ -121,7 +147,10 @@ end
 
 type io_page = IO_PAGE
 
-let io_page: io_page device = D ((), (module Io_page))
+let io_page = Type IO_PAGE
+
+let defaut_io_page: io_page config
+  = D ((), (module Io_page))
 
 module Clock = struct
 
@@ -156,7 +185,10 @@ end
 
 type clock = CLOCK
 
-let clock: clock device = D ((), (module Clock))
+let clock = Type CLOCK
+
+let default_clock: clock config =
+  D ((), (module Clock))
 
 module Console = struct
 
@@ -190,7 +222,10 @@ end
 
 type console = CONSOLE
 
-let console: console device = D((), (module Console))
+let console = Type CONSOLE
+
+let console: console config =
+  D((), (module Console))
 
 module Crunch = struct
 
@@ -264,10 +299,13 @@ end
 
 type kv_ro = KV_RO
 
-let crunch: string -> kv_ro device = function dirname ->
-  let name = Name.create "crunch" in
-  let t = Crunch.path ~name dirname in
-  D(t, (module Crunch))
+let kv_ro = Type KV_RO
+
+let crunch: string -> kv_ro config =
+  function dirname ->
+    let name = Name.create "crunch" in
+    let t = Crunch.path ~name dirname in
+    D (t, (module Crunch))
 
 module Block = struct
 
@@ -305,7 +343,9 @@ end
 
 type block = BLOCK
 
-let block: string -> block device =
+let block = Type BLOCK
+
+let block: string -> block config =
   function filename ->
     let name = Name.create "block" in
     let t = { Block.name; filename } in
@@ -315,7 +355,7 @@ module Fat = struct
 
   type t = {
     name : string;
-    block: block device;
+    block: block config;
   }
 
   let name t = t.name
@@ -335,14 +375,14 @@ module Fat = struct
   let configure t mode =
     let d = main_ml () in
     if not (StringMap.mem t.name d.modules) then (
-      Device.configure t.block mode;
+      Config.configure t.block mode;
       let m = "Fat_" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "module %s = Fat.Fs.Make(%s)(Io_page)"
-        m (StringMap.find (Device.name t.block) d.modules);
+        m (StringMap.find (Config.name t.block) d.modules);
       newline d.oc;
       append d.oc "let %s =" t.name;
-      append d.oc " %s >>= function" (Device.name t.block);
+      append d.oc " %s >>= function" (Config.name t.block);
       append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
       append d.oc " | `Ok dev  -> %s.connect dev" m
     )
@@ -354,7 +394,7 @@ end
 
 type fs = FS
 
-let fat: block device -> fs device =
+let fat: block config -> fs config =
   function block ->
     let name = Name.create "fat" in
     let t = { Fat.name; block } in
@@ -367,22 +407,22 @@ module Fat_KV_RO = struct
   let configure t mode =
     let d = main_ml () in
     if not (StringMap.mem t.name d.modules) then (
-      Device.configure t.block mode;
+      Config.configure t.block mode;
       let m = "Fat_" ^ t.name in
       d.modules <- StringMap.add t.name m d.modules;
       append d.oc "module %s__FS = Fat.Fs.Make(%s)(Io_page)"
-        m (StringMap.find (Device.name t.block) d.modules);
+        m (StringMap.find (Config.name t.block) d.modules);
       append d.oc "module %s = Fat.KV_RO.Make(%s__FS)"
         m m;
       newline d.oc;
       append d.oc "let %s =" t.name;
-      append d.oc " %s >>= function" (Device.name t.block);
+      append d.oc " %s >>= function" (Config.name t.block);
       append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
       append d.oc " | `Ok dev  -> %s.connect dev" m
     )
 end
 
-let fat_kv_ro: block device -> kv_ro device =
+let fat_kv_ro: block config -> kv_ro config =
   function block ->
     let name = Name.create "fat" in
     let t = { Fat_KV_RO.name; block } in
@@ -423,10 +463,12 @@ end
 
 type network = NETWORK
 
-let tap0: network device =
+let network = Type NETWORK
+
+let tap0: network config =
   D (Network.Tap0, (module Network))
 
-let network: string -> network device =
+let custom_network: string -> network config =
   function dev ->
     D (Network.Custom dev, (module Network))
 
@@ -440,14 +482,14 @@ module IP = struct
     gateway : Ipaddr.V4.t list;
   }
 
-  type config =
+  type ip_config =
     | DHCP
     | IPv4 of ipv4
 
   type t = {
     name    : string;
-    config  : config;
-    networks: network device list;
+    config  : ip_config;
+    networks: network config list;
   }
 
   let packages _ = function
@@ -462,7 +504,7 @@ module IP = struct
 
   let configure t mode =
     let d = main_ml () in
-    List.iter (fun n -> Device.configure n mode) t.networks;
+    List.iter (fun n -> Config.configure n mode) t.networks;
     if not (StringMap.mem t.name d.modules) then (
       let m = "Net.Manager" in
       d.modules <- StringMap.add t.name m d.modules;
@@ -479,14 +521,14 @@ module IP = struct
                 (List.map (Printf.sprintf "i %S")
                    (List.map Ipaddr.V4.to_string i.gateway))));
       List.iter (fun n ->
-          let name = Device.name n in
+          let name = Config.name n in
           append d.oc "  %s >>= function" name;
           append d.oc "  | `Error _ -> %s" (driver_initialisation_error name);
           append d.oc "  | `Ok %s ->" name;
         ) t.networks;
       append d.oc "  return (`Ok (fun callback ->";
       append d.oc "        Net.Manager.create [%s] (fun t interface id ->"
-        (String.concat "; " (List.map Device.name t.networks));
+        (String.concat "; " (List.map Config.name t.networks));
       append d.oc "          Net.Manager.configure interface conf >>= fun () ->";
       append d.oc "          callback t)";
       append d.oc "    ))";
@@ -496,27 +538,51 @@ module IP = struct
   let clean t =
     ()
 
-  let local network =
+  let default_ip networks =
+    let name = Name.create "default_ip" in
     let i s = Ipaddr.V4.of_string_exn s in
     let config = IPv4 {
         address = i "10.0.0.2";
         netmask = i "255.255.255.0";
         gateway = [i "10.0.0.1"];
       } in
-    {
-      name = "local_ip";
-      config;
-      networks = [network]
-    }
+    { name; config; networks }
+
+  let dhcp networks =
+    let name = Name.create "dhcp" in
+    { name; config = DHCP; networks }
 
 end
+
+type ip = IP
+
+let ip = Type IP
+
+type ipv4 = IP.ipv4
+
+let ipv4: ipv4 -> network config list -> ip config =
+  fun ipv4 networks ->
+    let name = Name.create "ipv4" in
+    let t = {
+      IP.name; networks;
+      config  = IP.IPv4 ipv4;
+    } in
+    D (t, (module IP))
+
+let default_ip: network config list -> ip config =
+  fun networks ->
+    D (IP.default_ip networks, (module IP))
+
+let dhcp: network config list -> ip config =
+  fun networks ->
+    D (IP.dhcp networks, (module IP))
 
 module HTTP = struct
 
   type t = {
     port   : int;
     address: Ipaddr.V4.t option;
-    ip: ip device;
+    ip     : ip config;
   }
 
   let name t =
@@ -536,10 +602,10 @@ module HTTP = struct
     if not (StringMap.mem name d.modules) then (
       let m = "HTTP.Server" in
       d.modules <- StringMap.add name m d.modules;
-      Device.configure t.ip mode;
+      Config.configure t.ip mode;
       append d.oc "let %s =" name;
-      append d.oc "   %s >>= function" (IP.name t.ip);
-      append d.oc "   | `Error _ -> %s" (driver_initialisation_error (IP.name t.ip));
+      append d.oc "   %s >>= function" (Config.name t.ip);
+      append d.oc "   | `Error _ -> %s" (driver_initialisation_error (Config.name t.ip));
       append d.oc "   | `Ok ip   ->";
       append d.oc "   return (`Ok (fun server ->";
       append d.oc "     ip (fun t -> %s.listen t (%s, %d) server))"
@@ -556,118 +622,16 @@ module HTTP = struct
 
 end
 
-module Driver = struct
+let job: job fn = Returns JOB
 
-  type t =
-    | Io_page of Io_page.t
-    | Console of Console.t
-    | Clock of Clock.t
-    | Network of Network.t
-    | Crunch of Crunch.t
-    | Block of Block.t
-    | Fat of Fat.t
-    | IP of IP.t
-    | HTTP of HTTP.t
-    | Fat_KV_RO of Fat.t
-
-  let name = function
-    | Io_page x -> Io_page.name x
-    | Console x -> Console.name x
-    | Clock x   -> Clock.name x
-    | Network x -> Network.name x
-    | Crunch x   -> Crunch.name x
-    | Block x   -> Block.name x
-    | Fat x     -> Fat.name x
-    | IP x      -> IP.name x
-    | HTTP x    ->  HTTP.name x
-    | Fat_KV_RO x -> Fat_KV_RO.name x
-
-  let packages = function
-    | Io_page x -> Io_page.packages x
-    | Console x -> Console.packages x
-    | Clock x   -> Clock.packages x
-    | Network x -> Network.packages x
-    | Crunch x   -> Crunch.packages x
-    | Block x   -> Block.packages x
-    | Fat x     -> Fat.packages x
-    | IP x      -> IP.packages x
-    | HTTP x    -> HTTP.packages x
-    | Fat_KV_RO x -> Fat_KV_RO.packages x
-
-  let libraries = function
-    | Io_page x -> Io_page.libraries x
-    | Console x -> Console.libraries x
-    | Clock x   -> Clock.libraries x
-    | Network x -> Network.libraries x
-    | Crunch x   -> Crunch.libraries x
-    | Block x   -> Block.libraries x
-    | Fat x     -> Fat.libraries x
-    | IP x      -> IP.libraries x
-    | HTTP x    -> HTTP.libraries x
-    | Fat_KV_RO x -> Fat_KV_RO.libraries x
-
-  let configure = function
-    | Io_page x -> Io_page.configure x
-    | Console x -> Console.configure x
-    | Clock x   -> Clock.configure x
-    | Network x -> Network.configure x
-    | Crunch x   -> Crunch.configure x
-    | Block x   -> Block.configure x
-    | Fat x     -> Fat.configure x
-    | IP x      -> IP.configure x
-    | HTTP x    -> HTTP.configure x
-    | Fat_KV_RO x -> Fat_KV_RO.configure x
-
-  let clean = function
-    | Io_page x -> Io_page.clean x
-    | Console x -> Console.clean x
-    | Clock x   -> Clock.clean x
-    | Network x -> Network.clean x
-    | Crunch x   -> Crunch.clean x
-    | Block x   -> Block.clean x
-    | Fat x     -> Fat.clean x
-    | IP x      -> IP.clean x
-    | HTTP x    -> HTTP.clean x
-    | Fat_KV_RO x -> Fat_KV_RO.clean x
-
-  let rec map_path fn = function
-    | Crunch x -> Crunch { x with Crunch.dirname = fn x.Crunch.dirname }
-    | Block x -> Block { x with Block.filename = fn x.Block.filename }
-    | Fat x   ->
-      begin match map_path fn (Block x.Fat.block) with
-        | Block block -> Fat { x with Fat.block }
-        | _ -> assert false
-      end
-    | x       -> x
-
-
-  let update_path t root =
-    let fn path =
-      realpath (Filename.concat root path) in
-    map_path fn t
-
-  let io_page = Io_page ()
-
-  let console = Console ()
-
-  let clock = Clock ()
-
-  let tap0 = Network Network.Tap0
-
-  let local_ip network =
-    IP (IP.local network)
-
-  let crunch ?name path =
-    Crunch (Crunch.path ?name path)
-
-end
+XXX
 
 module Job = struct
 
-  type t = {
+  type 'a t = {
     name   : string;
     handler: string;
-    params : Driver.t list;
+    params : 'a fn;
   }
 
   let count = ref 0

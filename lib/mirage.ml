@@ -710,8 +710,8 @@ module HTTP = struct
     | `Xen    -> ["mirage-http-xen"]
 
   let libraries t = function
-    | `Unix _ -> ["mirage-http-unix"; "cow.syntax"; "cowabloga"]
-    | `Xen    -> ["mirage-http-xen"; "cow.syntax"; "cowabloga"]
+    | `Unix _ -> ["mirage-http-unix"]
+    | `Xen    -> ["mirage-http-xen"]
 
   let configure t mode d =
     let name = name t in

@@ -1046,7 +1046,7 @@ let configure_makefile t mode d =
   newline oc;
   append oc "LIBS   = %s" libraries;
   append oc "PKGS   = %s" packages;
-  append oc "SYNTAX = -tags \"syntax(camlp4o)\"\n";
+  append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
   begin match mode with
     | `Xen ->
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"

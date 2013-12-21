@@ -1,3 +1,6 @@
+1.0.4 (trunk):
+* Add default build tags for annot, bin_annot, principal and strict_sequence.
+
 1.0.3 (2013-12-18):
 * Do not remove OPAM packages when doing `mirage clean` (#143)
 * [xen] generate a simple main.xl, without block devices or network interfaces.

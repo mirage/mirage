@@ -186,11 +186,9 @@ let with_redirect oc file fn =
   | `Ok x -> x
   | `Error e -> raise e
 
-let command ?(redirect=true) ?switch fmt =
+let command ?(redirect=true) fmt =
   Printf.kprintf (fun str ->
-      let cmd = match switch with
-        | None -> str
-        | Some cmp -> Printf.sprintf "opam config exec \"%s\" --switch=%s" str cmp in
+      let cmd = Printf.sprintf "opam config exec \"%s\"" str in
       info "+ Executing: %s" cmd;
       let redirect fn =
         if redirect then
@@ -198,7 +196,7 @@ let command ?(redirect=true) ?switch fmt =
               with_redirect stderr "log" fn
             )
         else
-          fn in
+          fn () in
       match redirect (fun () -> Sys.command cmd) with
       | 0 -> ()
       | i -> error "The command %S exited with code %d." cmd i

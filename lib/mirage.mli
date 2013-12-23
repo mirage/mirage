@@ -168,8 +168,8 @@ val register: string -> job impl list -> unit
     which will executes the given [jobs]. *)
 
 type t = {
-  dirnamae: string;
-  basename: string;
+  name: string;
+  root: string;
   jobs: job impl list;
 }
 (** Type for values representing a project description. *)
@@ -195,10 +195,10 @@ module Impl: sig
 
   (** Configurable device. *)
 
-  val t: 'a impl -> string
+  val name: 'a impl -> string
   (** The unique variable name of the value of type [t]. *)
 
-  val m: 'a impl -> string
+  val module_name: 'a impl -> string
   (** The unique module name for the given implementation. *)
 
   val packages: 'a impl -> string list

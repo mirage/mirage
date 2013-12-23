@@ -757,11 +757,10 @@ end
 
 let job: job typ = Type JOB
 
-
 type t = {
   name: string;
   root: string;
-  jobs: Job.t list;
+  jobs: job impl list;
 }
 
 let t = ref None
@@ -782,12 +781,15 @@ let pre_configure root =
   append_main "open Lwt";
   newline_main ()
 
+let update_path t root =
+  { t with jobs = List.map (fun j -> Impl.update_path j root) t.jobs }
+
 let register name jobs =
   let root = match !config_file with
     | None   -> failwith "no config file"
     | Some f -> Filename.dirname f in
   pre_configure root;
-  { name; jobs; root }
+  t := Some { name; jobs; root }
 
 let registered () =
   match !t with
@@ -804,7 +806,7 @@ let packages t =
     | `Unix _ -> "mirage-unix"
     | `Xen    -> "mirage-xen" in
   let ps = List.fold_left (fun set j ->
-      let ps = StringSet.of_list (Job.packages j) in
+      let ps = StringSet.of_list (Impl.packages j) in
       StringSet.union ps set
     ) (StringSet.add m !ps) t.jobs in
   StringSet.elements ps
@@ -819,12 +821,12 @@ let libraries t =
     | `Unix _ -> "mirage.types-unix"
     | `Xen    -> "mirage.types-xen" in
   let ls = List.fold_left (fun set j ->
-      let ls = StringSet.of_list (Job.libraries j) in
+      let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set
     ) (StringSet.add m !ls) t.jobs in
   StringSet.elements ls
 
-let configure_myocamlbuild_ml t mode d =
+let configure_myocamlbuild_ml t =
   let minor, major = ocaml_version () in
   if minor < 4 || major < 1 then (
     (* Previous ocamlbuild versions weren't able to understand the
@@ -864,7 +866,7 @@ let configure_myocamlbuild_ml t mode d =
 let clean_myocamlbuild_ml t =
   remove (t.root / "myocamlbuild.ml")
 
-let configure_main_xl t mode d =
+let configure_main_xl t =
   let file = t.root / t.name ^ ".xl" in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
@@ -890,7 +892,7 @@ let configure_main_xl t mode d =
 let clean_main_xl t =
   remove (t.root / t.name ^ ".xl")
 
-let configure_makefile t mode d =
+let configure_makefile t =
   let file = t.root / "Makefile" in
   let libraries =
     match "lwt.syntax" :: libraries t with
@@ -903,7 +905,7 @@ let configure_makefile t mode d =
   append oc "LIBS   = %s" libraries;
   append oc "PKGS   = %s" packages;
   append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
-  begin match mode with
+  begin match !mode with
     | `Xen ->
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"
     | `Unix _ ->
@@ -924,7 +926,7 @@ let configure_makefile t mode d =
              main.native.o:\n\
              \t$(BUILD) main.native.o";
   newline oc;
-  begin match mode with
+  begin match !mode with
     | `Xen ->
       append oc "build: main.native.o";
       let path = read_command "ocamlfind printconf path" in
@@ -939,7 +941,7 @@ let configure_makefile t mode d =
   end;
   newline oc;
   append oc "run: build";
-  begin match mode with
+  begin match !mode with
     | `Xen ->
       append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
       append oc "\t@echo Then do something similar to: xl create -c %s.xl" t.name
@@ -953,7 +955,7 @@ let configure_makefile t mode d =
 let clean_makefile t =
   remove (t.root / "Makefile")
 
-let configure_opam t mode d =
+let configure_opam t =
   info "Installing OPAM packages.";
   match packages t with
   | [] -> ()
@@ -980,46 +982,30 @@ let manage_opam = ref true
 let manage_opam_packages b =
   manage_opam := b
 
-let configure_main t mode d =
+let configure_main t =
   info "Generating main.ml";
-  List.iter (fun j -> Job.configure j) t.jobs;
+  List.iter (fun j -> Impl.configure j) t.jobs;
   newline_main ();
-  let jobs = List.map Job.name t.jobs in
+  let jobs = List.map Impl.name t.jobs in
   append_main "let () =";
   append_main "  OS.Main.run (join [%s])" (String.concat "; " jobs)
 
 let clean_main t =
-  List.iter Job.clean t.jobs;
+  List.iter Impl.clean t.jobs;
   remove (t.root / "main.ml")
 
-
-(* XXX
-   module XL = struct
-   let output name kvs =
-    info "+ creating %s" (name ^ ".xl");
-    let oc = open_out (name ^ ".xl") in
-    finally
-      (fun () ->
-         output_kv oc (["name", "\"" ^ name ^ "\"";
-                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
-                         filter_map (subcommand ~prefix:"xl") kvs) "=")
-      (fun () -> close_out oc);
-   end
-
-*)
-
-let configure t mode d =
+let configure t =
   info "CONFIGURE: %s" (blue_s (t.root / "config.ml"));
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
-    (String.concat ", " (List.map Job.name t.jobs));
+    (String.concat ", " (List.map Impl.name t.jobs));
   in_dir t.root (fun () ->
-      if !manage_opam then configure_opam t mode d;
-      configure_myocamlbuild_ml t mode d;
-      configure_makefile t mode d;
-      configure_main_xl t mode d;
-      configure_main t mode d
+      if !manage_opam then configure_opam t;
+      configure_myocamlbuild_ml t;
+      configure_makefile t;
+      configure_main_xl t;
+      configure_main t
     )
 
 let make () =

@@ -89,7 +89,7 @@ type _ typ =
 let (@->) f t =
   Function (f, t)
 
-type ('a, 'b) base_impl = {
+type ('a, 'b) base = {
   typ: 'a typ;
   t: 'b;
   m: (module CONFIGURABLE with type t = 'b);
@@ -103,15 +103,27 @@ type 'a foreign = {
 }
 
 type _ impl =
-  | Impl: ('a, 'b) base_impl -> 'a impl
-  | App: ('a -> 'b) impl * 'a impl -> 'b impl
+  | Impl: ('a, 'b) base -> 'a impl
+  | App: ('a, 'b) app -> 'b impl
   | Foreign: 'a foreign -> 'a impl
+
+and ('a, 'b) app = {
+  name: string;
+  f: ('a -> 'b) impl;
+  x: 'a impl;
+}
+
+let rec string_of_impl: type a. a impl -> string = function
+  | Impl { t; m = (module M) } -> M.module_name t
+  | Foreign { name } -> Printf.sprintf "F(%s)" name
+  | App { f; x } -> Printf.sprintf "(%s %s)" (string_of_impl f) (string_of_impl x)
 
 let impl typ t m =
   Impl { typ; t; m }
 
-let ($) f m =
-  App (f, m)
+let ($) f x =
+  let name = Name.create "a" in
+  App { name; f; x }
 
 let foreign name ?(libraries=[]) ?(packages=[]) typ =
   Foreign { name; typ; libraries; packages }
@@ -119,45 +131,95 @@ let foreign name ?(libraries=[]) ?(packages=[]) typ =
 let rec typ: type a. a impl -> a typ = function
   | Impl { typ }
   | Foreign { typ } -> typ
-  | App (f, _)      -> match typ f with Function (_, b) -> b | _ -> assert false
+  | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
 module Impl = struct
 
   exception Partially_evaluated
 
-  let name = function
-    | Impl { t; m = (module M) } -> M.name t
-    | _ -> raise Partially_evaluated
+  let names = Hashtbl.create 31
 
-  let module_name = function
+  let modules = Hashtbl.create 31
+
+  let rec pretty_name: type a. a impl -> string = function
     | Impl { t; m = (module M) } -> M.module_name t
-    | _ -> raise Partially_evaluated
+    | Foreign { name }           -> name
+    | App { f }                  -> pretty_name f
+
+  let rec name: type a. a impl -> string = function
+    | Impl { t; m = (module M) } -> M.name t
+    | Foreign { name }           -> find_or_create names name (fun () -> Name.create "foreign")
+    | App { name }               -> name
+
+  let rec fold: type a. <f: 'b. 'c -> 'b -> 'c> -> a impl -> 'c -> 'c =
+    fun fn t acc ->
+      match t with
+      | Impl _
+      | Foreign _   -> fn#f acc t
+      | App { f; x} -> fold fn x (fn#f acc f)
+
+  let rec module_name: type a. a impl -> string = function
+    | Impl { t; m = (module M) } -> M.module_name t
+    | Foreign { name }           -> name
+    | App { f = Foreign f; x }   ->
+      let params = module_names x in
+      append_main "XXX %s" (string_of_impl x);
+      let params = List.map (fun p -> Printf.sprintf "(%s)" p) params in
+      let name = Printf.sprintf "%s%s" f.name (String.concat "" params) in
+      find_or_create modules name (fun () -> Name.create "M")
+    | App { f; x} ->
+      let _ = module_name f in
+      let _ = module_name x in
+      let m = pretty_name f in
+      find_or_create modules m (fun () -> Name.create "M")
+
+  (* XXX: what's the signature for fold ? *)
+  and module_names: type a. a impl -> string list =
+    function t ->
+      let o =
+        object
+          method f: 'a. 'b -> 'a -> 'b = fun acc f ->
+            module_name t :: acc
+        end in
+      fold o t []
+
+  let rec names: type a. a impl -> string list = function
+    | Foreign _
+    | Impl _ as t          -> [name t]
+    | App {f=Foreign f; x} -> names x
+    | App {f; x}           -> (name f) :: names x
 
   let rec configure: type a. a impl -> unit = function
     | Impl { t; m = (module M) } -> M.configure t
     | Foreign _                  -> ()
-    | App (f, t)                 -> configure f; configure t
+    | App {f; x} as  app         ->
+      configure f;
+      configure x;
+      let name = module_name app in
+      let body = cofind modules name in
+      append_main "module %s = %s" name body;
+      newline_main ()
 
   let rec packages: type a. a impl -> string list = function
     | Impl { t; m = (module M) } -> M.packages t
     | Foreign { packages }       -> packages
-    | App (f,t)                  -> packages f @ packages t
+    | App {f; x}                 -> packages f @ packages x
 
   let rec libraries: type a. a impl -> string list = function
     | Impl { t; m = (module M) } -> M.libraries t
     | Foreign { libraries }      -> libraries
-    | App (f, t)                 -> libraries f @ libraries t
+    | App {f; x}                 -> libraries f @ libraries x
 
   let rec clean: type a. a impl -> unit = function
     | Impl { t; m = (module M) } -> M.clean t
     | Foreign _                  -> ()
-    | App (f, t)                 -> clean f; clean t
+    | App {f; x}                 -> clean f; clean x
 
   let rec update_path: type a. a impl -> string -> a impl =
     fun t root -> match t with
-      | Impl b     -> let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
-      | Foreign _  -> t
-      | App (f, t) -> App (update_path f root, update_path t root)
+      | Impl b            -> let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
+      | Foreign _         -> t
+      | App ({f; x} as a) -> App { a with f = update_path f root; x = update_path x root }
 
 end
 
@@ -263,7 +325,7 @@ module Console = struct
 
   let configure t =
     let name = name t in
-    append_main "let %s =" name;
+    append_main "let %s () =" name;
     append_main "  %s.connect %S" (module_name t) t;
     newline_main ()
 
@@ -353,7 +415,7 @@ module Direct_kv_ro = struct
 
   include Crunch
 
-  let module_name t =
+let module_name t =
     match !mode with
     | `Xen    -> Crunch.module_name t
     | `Unix _ -> "Kvro_fs_unix"
@@ -383,7 +445,7 @@ module Direct_kv_ro = struct
     match !mode with
     | `Xen    -> Crunch.configure t
     | `Unix _ ->
-      append_main "let %s = " t.name;
+      append_main "let %s () =" t.name;
       append_main "  Kvro_fs_unix.connect %S" t.dirname
 
 end
@@ -430,7 +492,7 @@ module Block = struct
   ]
 
   let configure t =
-    append_main "let %s =" t.name;
+    append_main "let %s () =" t.name;
     append_main "  %s.connect %S" (module_name t) t.filename;
     newline_main ()
 
@@ -534,7 +596,7 @@ module Network = struct
     packages t
 
   let configure t =
-    append_main "let %s =" (name t);
+    append_main "let %s () =" (name t);
     append_main "  %s.connect %S"
       (module_name t)
       (match t with Tap0 -> "tap0" | Custom s -> s);
@@ -596,7 +658,7 @@ module IP = struct
 
   let configure t =
     List.iter Impl.configure t.networks;
-    append_main "let %s =" t.name;
+    append_main "let %s () =" t.name;
     append_main "  let conf = %s in"
       (match t.config with
        | DHCP   -> "`DHCP"
@@ -774,7 +836,8 @@ let reset () =
 let set_config_file f =
   config_file := Some f
 
-let pre_configure root =
+let pre_configure name root =
+  set_section name;
   set_main_ml (root / "main.ml");
   append_main "(* %s *)" generated_by_mirage;
   newline_main ();
@@ -788,7 +851,7 @@ let register name jobs =
   let root = match !config_file with
     | None   -> failwith "no config file"
     | Some f -> Filename.dirname f in
-  pre_configure root;
+  pre_configure name root;
   t := Some { name; jobs; root }
 
 let registered () =
@@ -982,13 +1045,26 @@ let manage_opam = ref true
 let manage_opam_packages b =
   manage_opam := b
 
+let configure_job j =
+  let name = Impl.name j in
+  let module_name = Impl.module_name j in
+  let param_names = Impl.names j in
+  append_main "let %s () =" name;
+  List.iter (fun p ->
+      append_main "  %s () >>= function" p;
+      append_main "  | `Error e -> %s" (driver_initialisation_error p);
+      append_main "  | `Ok %s ->" p;
+    ) param_names;
+  append_main "  %s.start %s" module_name (String.concat " " param_names);
+  newline_main ()
+
 let configure_main t =
   info "Generating main.ml";
   List.iter (fun j -> Impl.configure j) t.jobs;
-  newline_main ();
-  let jobs = List.map Impl.name t.jobs in
+  List.iter configure_job t.jobs;
+  let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in
   append_main "let () =";
-  append_main "  OS.Main.run (join [%s])" (String.concat "; " jobs)
+  append_main "  OS.Main.run (join [%s])" (String.concat "; " names)
 
 let clean_main t =
   List.iter Impl.clean t.jobs;
@@ -999,7 +1075,7 @@ let configure t =
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
-    (String.concat ", " (List.map Impl.name t.jobs));
+    (String.concat ", " (List.map Impl.pretty_name t.jobs));
   in_dir t.root (fun () ->
       if !manage_opam then configure_opam t;
       configure_myocamlbuild_ml t;

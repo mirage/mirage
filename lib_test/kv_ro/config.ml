@@ -1,9 +1,8 @@
 open Mirage
 
-let x = Driver.crunch ~name:"x" "t"
-let y = Driver.crunch ~name:"y" "t"
+let main = foreign "Handler.Main" (console @-> kv_ro @-> kv_ro @-> job)
 
 let () =
-  Job.register [
-    "Handler.Main",  [Driver.console; x; y]
+  register "kv_ro" [
+    main $ default_console $ crunch "t" $ crunch "t"
   ]

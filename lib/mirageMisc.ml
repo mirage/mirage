@@ -125,17 +125,28 @@ let right s =
 let left s =
   Printf.printf "%s%!" (indent_left s (left_column ()))
 
-let error fmt =
+let error_msg section fmt =
   Printf.kprintf (fun str ->
       Printf.eprintf "%s %s\n%!"
-        (indent_left (red_s "[ERROR]") (left_column ()))
+        (indent_left (red_s section) (left_column ()))
         str;
+    ) fmt
+
+let error fmt =
+  Printf.ksprintf (fun str ->
+      error_msg "[ERROR]" "%s" str;
       exit 1;
     ) fmt
 
+let section = ref "MIRAGE"
+
+let set_section s = section := s
+
+let get_section () = !section
+
 let info fmt =
   Printf.kprintf (fun str ->
-      left (green_s "MIRAGE");
+      left (green_s !section);
       Printf.printf "%s%!\n" str
     ) fmt
 
@@ -187,8 +198,7 @@ let with_redirect oc file fn =
   | `Error e -> raise e
 
 let command ?(redirect=true) fmt =
-  Printf.kprintf (fun str ->
-      let cmd = Printf.sprintf "opam config exec \"%s\"" str in
+  Printf.kprintf (fun cmd ->
       info "+ Executing: %s" cmd;
       let redirect fn =
         if redirect then
@@ -199,7 +209,13 @@ let command ?(redirect=true) fmt =
           fn () in
       match redirect (fun () -> Sys.command cmd) with
       | 0 -> ()
-      | i -> error "The command %S exited with code %d." cmd i
+      | i ->
+        let ic = open_in "log" in
+        begin
+          try while true do error_msg !section "%s" (input_line ic) done
+          with End_of_file -> ()
+        end;
+        error "The command %S exited with code %d." cmd i;
     ) fmt
 
 let opam cmd ?switch deps =
@@ -267,3 +283,22 @@ let ocaml_version () =
       with _ -> 0, 0
     end
   | _ -> 0, 0
+
+let cofind (type t) h value =
+  let module M = struct
+    exception Found of t
+  end in
+  try
+    Hashtbl.iter (fun k v ->
+        if v = value then raise (M.Found k)
+      ) h;
+    raise Not_found
+  with
+  | M.Found k -> k
+
+let find_or_create tbl key create_value =
+  try Hashtbl.find tbl key
+  with Not_found ->
+    let value = create_value () in
+    Hashtbl.add tbl key value;
+    value

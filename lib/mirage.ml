@@ -859,14 +859,6 @@ let reset () =
 let set_config_file f =
   config_file := Some f
 
-let pre_configure name root =
-  set_section name;
-  set_main_ml (root / "main.ml");
-  append_main "(* %s *)" generated_by_mirage;
-  newline_main ();
-  append_main "open Lwt";
-  newline_main ()
-
 let update_path t root =
   { t with jobs = List.map (fun j -> Impl.update_path j root) t.jobs }
 
@@ -874,7 +866,6 @@ let register name jobs =
   let root = match !config_file with
     | None   -> failwith "no config file"
     | Some f -> Filename.dirname f in
-  pre_configure name root;
   t := Some { name; jobs; root }
 
 let registered () =
@@ -1083,6 +1074,11 @@ let configure_job j =
 
 let configure_main t =
   info "Generating main.ml";
+  set_main_ml (t.root / "main.ml");
+  append_main "(* %s *)" generated_by_mirage;
+  newline_main ();
+  append_main "open Lwt";
+  newline_main ();
   List.iter (fun j -> Impl.configure j) t.jobs;
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in

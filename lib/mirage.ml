@@ -568,9 +568,10 @@ module Fat = struct
       (Impl.module_name t.block);
     newline_main ();
     append_main "let %s () =" (name t);
-    append_main " %s () >>= function" (Impl.name t.block);
-    append_main " | `Error _ -> %s" (driver_initialisation_error t.name);
-    append_main " | `Ok dev  -> %s.connect dev" (module_name t)
+    append_main "  %s () >>= function" (Impl.name t.block);
+    append_main "  | `Error _ -> %s" (driver_initialisation_error t.name);
+    append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
+    newline_main ()
 
   let clean t =
     Impl.clean t.block

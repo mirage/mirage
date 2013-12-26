@@ -139,6 +139,9 @@ let rec iter: type a. iterator -> a impl -> unit =
     | Foreign _  -> fn.i t
     | App {f; x} -> iter fn f; iter fn x
 
+let driver_initialisation_error name =
+  Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
+
 module Impl = struct
 
   exception Partially_evaluated
@@ -189,21 +192,42 @@ module Impl = struct
 
   let configured = Hashtbl.create 31
 
-  let rec configure: type a. a impl -> unit = function
-    | Impl { t; m = (module M) } -> M.configure t
-    | Foreign _                  -> ()
-    | App {f; x} as  app         ->
-      let name = module_name app in
+  let rec configure: type a. a impl -> unit =
+    fun t ->
+      let name = name t in
       if not (Hashtbl.mem configured name) then (
         Hashtbl.add configured name true;
-        let body = cofind modules name in
-        let fn = {
-          i = configure;
-        } in
-        iter fn app;
-        append_main "module %s = %s" name body;
-        newline_main ();
+        match t with
+        | Impl { t; m = (module M) } -> M.configure t
+        | Foreign _                  -> ()
+        | App {f; x} as  app         ->
+          let name = module_name app in
+          let body = cofind modules name in
+          let fn = {
+            i = configure;
+          } in
+          configure_app x;
+          iter fn app;
+          append_main "module %s = %s" name body;
+          newline_main ();
       )
+
+  and configure_app: type a. a impl -> unit = function
+    | Impl _
+    | Foreign _  -> ()
+    | App _ as t ->
+      let name = name t in
+      let names = names t in
+      let module_name = module_name t in
+      configure t;
+      append_main "let %s () =" name;
+      List.iter (fun n ->
+          append_main "  %s () >>= function" n;
+          append_main "  | `Error e -> %s" (driver_initialisation_error n);
+          append_main "  | `Ok %s ->" n;
+        ) names;
+      append_main "  %s.connect %s" module_name (String.concat " " names);
+      newline_main ()
 
   let rec packages: type a. a impl -> string list = function
     | Impl { t; m = (module M) } -> M.packages t
@@ -253,9 +277,6 @@ module Headers = struct
     newline_main ()
 
 end
-
-let driver_initialisation_error name =
-  Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
 
 module Io_page = struct
 

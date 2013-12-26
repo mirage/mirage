@@ -1174,4 +1174,5 @@ let load file =
   set_config_file file;
   compile_and_dynlink file;
   let t = registered () in
+  set_section t.name;
   update_path t root

@@ -203,11 +203,8 @@ module Impl = struct
         | App {f; x} as  app         ->
           let name = module_name app in
           let body = cofind modules name in
-          let fn = {
-            i = configure;
-          } in
           configure_app x;
-          iter fn app;
+          iter { i=configure } app;
           append_main "module %s = %s" name body;
           newline_main ();
       )

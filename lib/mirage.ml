@@ -103,35 +103,41 @@ type 'a foreign = {
 }
 
 type _ impl =
-  | Impl: ('a, 'b) base -> 'a impl
-  | App: ('a, 'b) app -> 'b impl
-  | Foreign: 'a foreign -> 'a impl
+  | Impl: ('a, 'b) base -> 'a impl (* base implementation *)
+  | App: ('a, 'b) app -> 'b impl   (* functor application *)
+  | Foreign: 'a foreign -> 'a impl (* foreign functor implementation *)
 
 and ('a, 'b) app = {
-  name: string;
-  f: ('a -> 'b) impl;
-  x: 'a impl;
+  f: ('a -> 'b) impl;  (* functor *)
+  x: 'a impl;          (* parameter *)
 }
 
 let rec string_of_impl: type a. a impl -> string = function
-  | Impl { t; m = (module M) } -> M.module_name t
-  | Foreign { name } -> Printf.sprintf "F(%s)" name
-  | App { f; x } -> Printf.sprintf "(%s %s)" (string_of_impl f) (string_of_impl x)
+  | Impl { t; m = (module M) } -> Printf.sprintf "Impl (%s)" (M.module_name t)
+  | Foreign { name } -> Printf.sprintf "Foreign (%s)" name
+  | App { f; x } -> Printf.sprintf "App (%s, %s)" (string_of_impl f) (string_of_impl x)
 
-let impl typ t m =
-  Impl { typ; t; m }
+type 'a folder = {
+  f: 'b. 'a -> 'b impl -> 'a
+}
 
-let ($) f x =
-  let name = Name.create "a" in
-  App { name; f; x }
+let rec fold: type a. 'b folder -> a impl -> 'b -> 'b =
+  fun fn t acc ->
+    match t with
+    | Impl _
+    | Foreign _  -> fn.f acc t
+    | App {f; x} -> fold fn f (fn.f acc x)
 
-let foreign name ?(libraries=[]) ?(packages=[]) typ =
-  Foreign { name; typ; libraries; packages }
+type iterator = {
+  i: 'b. 'b impl -> unit
+}
 
-let rec typ: type a. a impl -> a typ = function
-  | Impl { typ }
-  | Foreign { typ } -> typ
-  | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
+let rec iter: type a. iterator -> a impl -> unit =
+  fun fn t ->
+    match t with
+    | Impl _
+    | Foreign _  -> fn.i t
+    | App {f; x} -> iter fn f; iter fn x
 
 module Impl = struct
 
@@ -141,64 +147,63 @@ module Impl = struct
 
   let modules = Hashtbl.create 31
 
-  let rec pretty_name: type a. a impl -> string = function
+  (* get the left-most module name (ie. the name of the functor). *)
+  let rec functor_name: type a. a impl -> string = function
     | Impl { t; m = (module M) } -> M.module_name t
     | Foreign { name }           -> name
-    | App { f }                  -> pretty_name f
+    | App { f }                  -> functor_name f
 
+  (* return a unique variable name holding the state of the given
+     module construction. *)
   let rec name: type a. a impl -> string = function
     | Impl { t; m = (module M) } -> M.name t
-    | Foreign { name }           -> find_or_create names name (fun () -> Name.create "foreign")
-    | App { name }               -> name
+    | Foreign { name }           -> find_or_create names name (fun () -> Name.create "f")
+    | App _ as t                 ->
+      let name = module_name t in
+      find_or_create names name (fun () -> Name.create "t")
 
-  let rec fold: type a. <f: 'b. 'c -> 'b -> 'c> -> a impl -> 'c -> 'c =
-    fun fn t acc ->
-      match t with
-      | Impl _
-      | Foreign _   -> fn#f acc t
-      | App { f; x} -> fold fn x (fn#f acc f)
-
-  let rec module_name: type a. a impl -> string = function
+  (* return a unique module name holding the implementation of the
+     given module construction. *)
+  and module_name: type a. a impl -> string = function
     | Impl { t; m = (module M) } -> M.module_name t
     | Foreign { name }           -> name
-    | App { f = Foreign f; x }   ->
-      let params = module_names x in
-      append_main "XXX %s" (string_of_impl x);
-      let params = List.map (fun p -> Printf.sprintf "(%s)" p) params in
-      let name = Printf.sprintf "%s%s" f.name (String.concat "" params) in
+    | App { f; x }   ->
+      let name = match module_names f @ [module_name x] with
+        | []   -> assert false
+        | [m]  -> m
+        | h::t -> h ^ String.concat "" (List.map (Printf.sprintf "(%s)") t) in
       find_or_create modules name (fun () -> Name.create "M")
-    | App { f; x} ->
-      let _ = module_name f in
-      let _ = module_name x in
-      let m = pretty_name f in
-      find_or_create modules m (fun () -> Name.create "M")
 
-  (* XXX: what's the signature for fold ? *)
   and module_names: type a. a impl -> string list =
     function t ->
-      let o =
-        object
-          method f: 'a. 'b -> 'a -> 'b = fun acc f ->
-            module_name t :: acc
-        end in
-      fold o t []
+      let fn = {
+        f = fun acc t -> module_name t :: acc
+      } in
+      fold fn t []
 
   let rec names: type a. a impl -> string list = function
     | Foreign _
     | Impl _ as t          -> [name t]
     | App {f=Foreign f; x} -> names x
-    | App {f; x}           -> (name f) :: names x
+    | App {f; x}           -> (names f) @ [name x]
+
+  let configured = Hashtbl.create 31
 
   let rec configure: type a. a impl -> unit = function
     | Impl { t; m = (module M) } -> M.configure t
     | Foreign _                  -> ()
     | App {f; x} as  app         ->
-      configure f;
-      configure x;
       let name = module_name app in
-      let body = cofind modules name in
-      append_main "module %s = %s" name body;
-      newline_main ()
+      if not (Hashtbl.mem configured name) then (
+        Hashtbl.add configured name true;
+        let body = cofind modules name in
+        let fn = {
+          i = configure;
+        } in
+        iter fn app;
+        append_main "module %s = %s" name body;
+        newline_main ();
+      )
 
   let rec packages: type a. a impl -> string list = function
     | Impl { t; m = (module M) } -> M.packages t
@@ -217,11 +222,25 @@ module Impl = struct
 
   let rec update_path: type a. a impl -> string -> a impl =
     fun t root -> match t with
-      | Impl b            -> let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
-      | Foreign _         -> t
-      | App ({f; x} as a) -> App { a with f = update_path f root; x = update_path x root }
+      | Impl b     -> let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
+      | Foreign _  -> t
+      | App {f; x} -> App { f = update_path f root; x = update_path x root }
 
 end
+
+let impl typ t m =
+  Impl { typ; t; m }
+
+let ($) f x =
+  App { f; x }
+
+let foreign name ?(libraries=[]) ?(packages=[]) typ =
+  Foreign { name; typ; libraries; packages }
+
+let rec typ: type a. a impl -> a typ = function
+  | Impl { typ }
+  | Foreign { typ } -> typ
+  | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
 module Headers = struct
 
@@ -310,7 +329,7 @@ module Console = struct
   type t = string
 
   let name t =
-    "console_" ^ t
+    "console" ^ t
 
   let module_name _ =
     "Console"
@@ -1075,7 +1094,7 @@ let configure t =
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
-    (String.concat ", " (List.map Impl.pretty_name t.jobs));
+    (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
       if !manage_opam then configure_opam t;
       configure_myocamlbuild_ml t;

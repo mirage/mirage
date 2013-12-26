@@ -1,16 +1,10 @@
 open Mirage
 
-let block = {
-  Block.name = "myfile";
-  filename   = "fat.img";
-  read_only  = true;
-}
+let main = foreign "Handler.Main" (console @-> fs @-> job)
 
-let fat = Driver.Fat {
-    Fat.name = "fat";
-    block;
-  }
+let fat = fat (block_of_file "fat.img")
 
-let () = Job.register [
-    "Handler.Main", [Driver.console; fat]
+let () =
+  register "fat" [
+    main $ default_console $ fat
   ]

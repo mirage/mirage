@@ -1,7 +1,10 @@
 open Mirage
 
+let sender   = foreign "Test.Sender"   (console @-> network @-> job)
+let receiver = foreign "Test.Receiver" (console @-> network @-> job)
+
 let () =
-  Job.register [
-    "Test.Sender",   [Driver.console; Driver.tap0];
-    "Test.Receiver", [Driver.console; Driver.tap0];
+  register "net" [
+    sender   $ default_console $ tap0;
+    receiver $ default_console $ tap0;
   ]

@@ -949,7 +949,7 @@ let configure_main_xl t =
   append oc "# %s" generated_by_mirage;
   newline oc;
   append oc "name = '%s'" t.name;
-  append oc "kernel = '%s'" (t.root / "mir-main.xen");
+  append oc "kernel = '%s/mir-%s.xen'" t.root t.name;
   append oc "builder = 'linux'";
   append oc "memory = 256";
   newline oc;
@@ -1010,8 +1010,8 @@ let configure_makefile t =
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
                  \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-main.xen"
-        lib lib lib lib lib lib lib lib;
+                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-%s.xen"
+        lib lib lib lib lib lib lib lib t.name;
     | `Unix _ ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
@@ -1129,8 +1129,8 @@ let clean t =
       clean_main_xl t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
-      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~"
-        t.root t.root t.root t.root;
+      command "rm -rf log %s/main.native.o %s/main.native %s/mir-%s %s/*~"
+        t.root t.root t.root t.name t.root;
     )
 
 (* Compile the configuration file and attempt to dynlink it.

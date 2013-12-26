@@ -231,6 +231,10 @@ end
 let impl typ t m =
   Impl { typ; t; m }
 
+let implementation typ t m =
+  let typ = Type typ in
+  Impl { typ; t; m }
+
 let ($) f x =
   App { f; x }
 

@@ -246,3 +246,48 @@ val build: t -> unit
 
 val run: t -> unit
 (** call [make run] in the right directory. *)
+
+(** {2 Extensions} *)
+
+module type CONFIGURABLE = sig
+
+  (** Signature for configurable devices. *)
+
+  type t
+  (** Abstract type for configurable devices. *)
+
+  val name: t -> string
+  (** Return the unique variable name holding the state of the given
+      device. *)
+
+  val module_name: t -> string
+  (** Return the name of the module implementing the given device. *)
+
+  val packages: t -> string list
+  (** Return the list of OPAM packages which needs to be installed to
+      use the given device. *)
+
+  val libraries: t -> string list
+  (** Return the list of ocamlfind libraries to link with the
+      application to use the given device. *)
+
+  val configure: t -> unit
+  (** Configure the given device. *)
+
+  val clean: t -> unit
+  (** Clean all the files generated to use the given device. *)
+
+  val update_path: t -> string -> t
+  (** [update_path t root] prefixes all the path appearing in [t] with
+      the the prefix [root]. *)
+
+end
+
+val implementation: 'a -> 'b -> (module CONFIGURABLE with type t = 'b) -> 'a impl
+(** Extend the library with an external configuration. *)
+
+val append_main: ('a, unit, string, unit) format4 -> 'a
+(** Add some string to [main.ml]. *)
+
+val newline_main: unit -> unit
+(** Add a newline to [main.ml]. *)

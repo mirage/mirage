@@ -1,7 +1,7 @@
 open Mirage_types.V1
 open Lwt
 
-module Make (X: KV_RO) (Y: KV_RO): KV_RO = struct
+module Make (X: KV_RO) (Y: KV_RO) = struct
 
   type 'a io = 'a Lwt.t
 

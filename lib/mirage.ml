@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open MirageMisc
+open Mirage_misc
 
 module StringSet = struct
 

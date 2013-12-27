@@ -214,16 +214,18 @@ module Impl = struct
     | Foreign _  -> ()
     | App _ as t ->
       let name = name t in
-      let names = names t in
-      let module_name = module_name t in
       configure t;
-      append_main "let %s () =" name;
-      List.iter (fun n ->
-          append_main "  %s () >>= function" n;
-          append_main "  | `Error e -> %s" (driver_initialisation_error n);
-          append_main "  | `Ok %s ->" n;
-        ) names;
-      append_main "  %s.connect %s" module_name (String.concat " " names);
+      begin match names t with
+        | [n]   -> append_main "let %s = %s" name n
+        | names ->
+          append_main "let %s () =" name;
+          List.iter (fun n ->
+              append_main "  %s () >>= function" n;
+              append_main "  | `Error e -> %s" (driver_initialisation_error n);
+              append_main "  | `Ok %s ->" n;
+            ) names;
+          append_main "  return (`Ok (%s))" (String.concat ", " names)
+      end;
       newline_main ()
 
   let rec packages: type a. a impl -> string list = function

@@ -45,9 +45,11 @@ val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
     [m]. *)
 
 val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ -> 'a impl
-(** [foreign name typ] states that the module named by [name] has the
-    module type [typ]. Return an implementation satisfying the
-    signature. *)
+(** [foreign name libs packs constr typ] states that the module named
+    by [name] has the module type [typ]. If [libs] is set, add the
+    given set of ocamlfind libraries to the ones loaded by default. If
+    [packages] is set, add the given set of OPAM packages to the ones
+    loaded by default. *)
 
 val typ: 'a impl -> 'a typ
 (** Return the module signature of a given implementation. *)

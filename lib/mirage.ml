@@ -723,7 +723,8 @@ module HTTP = struct
        | None    -> "None"
        | Some ip -> Printf.sprintf "Some %S" (Ipaddr.V4.to_string ip))
       t.port;
-    append_main "   )"
+    append_main "   )";
+    newline_main ()
 
   let clean t =
     ()

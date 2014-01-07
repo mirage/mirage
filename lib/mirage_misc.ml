@@ -302,3 +302,18 @@ let find_or_create tbl key create_value =
     let value = create_value () in
     Hashtbl.add tbl key value;
     value
+
+let dump h =
+  Printf.eprintf "{ ";
+  Hashtbl.iter (fun k v ->
+      Printf.eprintf "%s:%s " k v
+    ) h;
+  Printf.eprintf "}\n%!"
+
+module StringSet = Set.Make(struct
+    type t = string
+    let compare = String.compare
+  end)
+
+let dedup l =
+  StringSet.(elements (List.fold_left (fun s e -> add e s) empty l))

@@ -80,3 +80,11 @@ val cofind: ('a, 'b) Hashtbl.t -> 'b -> 'a
 (** Can raise [Not_found]. *)
 
 val find_or_create: ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
+(** Find the value associated with a key in an hash-table or create a
+    new value if it the key is not already in there. *)
+
+val dump: (string, string) Hashtbl.t -> unit
+(** Dump the contents of a hash table to stderr. *)
+
+val dedup: string list -> string list
+(** Deduplicate the list elements. Return an ordered list. *)

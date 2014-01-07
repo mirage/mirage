@@ -28,19 +28,6 @@ module StringSet = struct
 
 end
 
-module Name = struct
-
-  let names = Hashtbl.create 1024
-
-  let create name =
-    let n =
-      try 1 + Hashtbl.find names name
-      with Not_found -> 1 in
-    Hashtbl.replace names name n;
-    Printf.sprintf "%s%d" name n
-
-end
-
 let main_ml = ref None
 
 let append_main fmt =
@@ -71,6 +58,13 @@ let set_mode m =
 let get_mode () =
   !mode
 
+type _ typ =
+  | Type: 'a -> 'a typ
+  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+
+let (@->) f t =
+  Function (f, t)
+
 module type CONFIGURABLE = sig
   type t
   val name: t -> string
@@ -81,13 +75,6 @@ module type CONFIGURABLE = sig
   val clean: t -> unit
   val update_path: t -> string -> t
 end
-
-type _ typ =
-  | Type: 'a -> 'a typ
-  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
-
-let (@->) f t =
-  Function (f, t)
 
 type ('a, 'b) base = {
   typ: 'a typ;
@@ -142,13 +129,25 @@ let rec iter: type a. iterator -> a impl -> unit =
 let driver_initialisation_error name =
   Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
 
+module Name = struct
+
+  let ids = Hashtbl.create 1024
+
+  let names = Hashtbl.create 1024
+
+  let create name =
+    let n =
+      try 1 + Hashtbl.find ids name
+      with Not_found -> 1 in
+    Hashtbl.replace ids name n;
+    Printf.sprintf "%s%d" name n
+
+  let of_key key ~base =
+    find_or_create names key (fun () -> create base)
+
+end
+
 module Impl = struct
-
-  exception Partially_evaluated
-
-  let names = Hashtbl.create 31
-
-  let modules = Hashtbl.create 31
 
   (* get the left-most module name (ie. the name of the functor). *)
   let rec functor_name: type a. a impl -> string = function
@@ -160,10 +159,8 @@ module Impl = struct
      module construction. *)
   let rec name: type a. a impl -> string = function
     | Impl { t; m = (module M) } -> M.name t
-    | Foreign { name }           -> find_or_create names name (fun () -> Name.create "f")
-    | App _ as t                 ->
-      let name = module_name t in
-      find_or_create names name (fun () -> Name.create "t")
+    | Foreign { name }           -> Name.of_key ("f" ^ name) ~base:"f"
+    | App _ as t                 -> Name.of_key (module_name t) ~base:"t"
 
   (* return a unique module name holding the implementation of the
      given module construction. *)
@@ -174,8 +171,9 @@ module Impl = struct
       let name = match module_names f @ [module_name x] with
         | []   -> assert false
         | [m]  -> m
-        | h::t -> h ^ String.concat "" (List.map (Printf.sprintf "(%s)") t) in
-      find_or_create modules name (fun () -> Name.create "M")
+        | h::t -> h ^ String.concat "" (List.map (Printf.sprintf "(%s)") t)
+      in
+      Name.of_key name ~base:"M"
 
   and module_names: type a. a impl -> string list =
     function t ->
@@ -202,9 +200,9 @@ module Impl = struct
         | Foreign _                  -> ()
         | App {f; x} as  app         ->
           let name = module_name app in
-          let body = cofind modules name in
           configure_app x;
           iter { i=configure } app;
+          let body = cofind Name.names name in
           append_main "module %s = %s" name body;
           newline_main ();
       )
@@ -269,14 +267,6 @@ let rec typ: type a. a impl -> a typ = function
   | Foreign { typ } -> typ
   | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
-module Headers = struct
-
-  let output () =
-    append_main "(* %s *)" generated_by_mirage;
-    newline_main ()
-
-end
-
 module Io_page = struct
 
   (** Memory allocation interface. *)
@@ -310,9 +300,6 @@ type io_page = IO_PAGE
 
 let io_page = Type IO_PAGE
 
-let defaut_io_page: io_page impl =
-  impl io_page () (module Io_page)
-
 module Clock = struct
 
   (** Clock operations. *)
@@ -345,17 +332,14 @@ type clock = CLOCK
 
 let clock = Type CLOCK
 
-let default_clock: clock impl =
-  impl clock () (module Clock)
-
 module Console = struct
 
   type t = string
 
   let name t =
-    "console" ^ t
+    Name.of_key ("console" ^ t) ~base:"console"
 
-  let module_name _ =
+  let module_name t =
     "Console"
 
   let packages _ = [
@@ -367,8 +351,7 @@ module Console = struct
   let libraries t = packages t
 
   let configure t =
-    let name = name t in
-    append_main "let %s () =" name;
+    append_main "let %s () =" (name t);
     append_main "  %s.connect %S" (module_name t) t;
     newline_main ()
 
@@ -384,31 +367,15 @@ type console = CONSOLE
 
 let console = Type CONSOLE
 
-let default_console: console impl =
-  impl console "0" (module Console)
-
-let custom_console: string -> console impl =
-  fun str ->
-    impl console str (module Console)
-
 module Crunch = struct
 
-  type t = {
-    name   : string;
-    dirname: string;
-  }
+  type t = string
 
   let name t =
-    t.name
+    Name.of_key ("static" ^ t) ~base:"static"
 
   let module_name t =
-    "Static_" ^ t.name
-
-  let path ?name dirname =
-    let name = match name with
-      | None   -> Filename.basename dirname
-      | Some n -> n in
-    { name; dirname }
+    String.capitalize (name t)
 
   let packages _ = [
     "mirage-types";
@@ -427,22 +394,22 @@ module Crunch = struct
     ]
 
   let ml t =
-    Printf.sprintf "static_%s.ml" t.name
+    Printf.sprintf "%s.ml" (name t)
 
   let mli t =
-    Printf.sprintf "static_%s.mli" t.name
+    Printf.sprintf "%s.mli" (name t)
 
   let configure t =
     if not (command_exists "ocaml-crunch") then
       error "ocaml-crunch not found, stopping.";
     let file = ml t in
-    if Sys.file_exists t.dirname then (
+    if Sys.file_exists t then (
       info "Generating %s/%s." (Sys.getcwd ()) file;
-      command "ocaml-crunch -o %s %s" file t.dirname
+      command "ocaml-crunch -o %s %s" file t
     ) else
-      error "The directory %s does not exist." t.dirname;
-    append_main "let %s () =" t.name;
-    append_main "  Static_%s.connect ()" t.name;
+      error "The directory %s does not exist." t;
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect ()" (module_name t);
     newline_main ()
 
   let clean t =
@@ -450,7 +417,10 @@ module Crunch = struct
     remove (mli t)
 
   let update_path t root =
-    { t with dirname = root / t.dirname }
+    if Sys.file_exists (root / t) then
+      root / t
+    else
+      t
 
 end
 
@@ -458,7 +428,7 @@ module Direct_kv_ro = struct
 
   include Crunch
 
-let module_name t =
+  let module_name t =
     match !mode with
     | `Xen    -> Crunch.module_name t
     | `Unix _ -> "Kvro_fs_unix"
@@ -488,8 +458,8 @@ let module_name t =
     match !mode with
     | `Xen    -> Crunch.configure t
     | `Unix _ ->
-      append_main "let %s () =" t.name;
-      append_main "  Kvro_fs_unix.connect %S" t.dirname
+      append_main "let %s () =" (name t);
+      append_main "  Kvro_fs_unix.connect %S" t
 
 end
 
@@ -497,27 +467,12 @@ type kv_ro = KV_RO
 
 let kv_ro = Type KV_RO
 
-let crunch: string -> kv_ro impl =
-  function dirname ->
-    let name = Name.create "crunch" in
-    let t = Crunch.path ~name dirname in
-    impl kv_ro t (module Crunch)
-
-let direct_kv_ro: string -> kv_ro impl =
-  function dirname ->
-    let name = Name.create "direct_kv_ro" in
-    let t = Direct_kv_ro.path ~name dirname in
-    impl kv_ro t (module Direct_kv_ro)
-
 module Block = struct
 
-  type t = {
-    name     : string;
-    filename : string;
-  }
+  type t = string
 
   let name t =
-    t.name
+    Name.of_key ("block" ^ t) ~base:"block"
 
   let module_name _ =
     "Block"
@@ -535,15 +490,18 @@ module Block = struct
   ]
 
   let configure t =
-    append_main "let %s () =" t.name;
-    append_main "  %s.connect %S" (module_name t) t.filename;
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect %S" (module_name t) t;
     newline_main ()
 
   let clean t =
     ()
 
   let update_path t root =
-    { t with filename = root / t.filename }
+    if Sys.file_exists (root / t) then
+      root / t
+    else
+      t
 
 end
 
@@ -551,53 +509,46 @@ type block = BLOCK
 
 let block = Type BLOCK
 
-let block_of_file: string -> block impl =
-  function filename ->
-    let name = Name.create "block" in
-    let t = { Block.name; filename } in
-    impl block t (module Block)
-
 module Fat = struct
 
-  type t = {
-    name : string;
-    block: block impl;
-  }
+  type t = block impl
 
-  let name t = t.name
+  let name t =
+    Name.of_key ("fat" ^ (Impl.name t)) ~base:"fat"
 
   let module_name t =
-    "Fat_" ^ t.name
+    String.capitalize (name t)
 
   let packages t = [
     "fat-filesystem";
   ]
     @ Io_page.packages ()
-    @ Block.packages t.block
+    @ Block.packages t
 
   let libraries t = [
     "fat-filesystem";
   ]
     @ Io_page.libraries ()
-    @ Block.libraries t.block
+    @ Block.libraries t
 
   let configure t =
-    Impl.configure t.block;
+    Impl.configure t;
     append_main "module %s = Fat.Fs.Make(%s)(Io_page)"
       (module_name t)
-      (Impl.module_name t.block);
+      (Impl.module_name t);
     newline_main ();
-    append_main "let %s () =" (name t);
-    append_main "  %s () >>= function" (Impl.name t.block);
-    append_main "  | `Error _ -> %s" (driver_initialisation_error t.name);
+    let name = name t in
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name t);
+    append_main "  | `Error _ -> %s" (driver_initialisation_error name);
     append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
     newline_main ()
 
   let clean t =
-    Impl.clean t.block
+    Impl.clean t
 
   let update_path t root =
-     { t with block = Impl.update_path t.block root }
+    Impl.update_path t root
 
 end
 
@@ -605,22 +556,11 @@ type fs = FS
 
 let fs = Type FS
 
-let fat: block impl -> fs impl =
-  function block ->
-    let name = Name.create "fat" in
-    let t = { Fat.name; block } in
-    impl fs t (module Fat)
-
-let kv_ro_of_fs =
-  let dummy_fat = fat (block_of_file "xx") in
-  let libraries = Impl.libraries dummy_fat in
-  let packages = Impl.packages dummy_fat in
-  let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
-  function fs -> fn $ fs
+type network_config = Tap0 | Custom of string
 
 module Network = struct
 
-  type t = Tap0 | Custom of string
+  type t = network_config
 
   let name t =
     "net_" ^ match t with
@@ -658,13 +598,6 @@ type network = NETWORK
 
 let network = Type NETWORK
 
-let tap0: network impl =
-  impl network Network.Tap0 (module Network)
-
-let custom_network: string -> network impl =
-  function dev ->
-    impl network (Network.Custom dev) (module Network)
-
 type ipv4 = {
   address : Ipaddr.V4.t;
   netmask : Ipaddr.V4.t;
@@ -680,13 +613,13 @@ module IP = struct
     | IPv4 of ipv4
 
   type t = {
-    name    : string;
     config  : ip_config;
     networks: network impl list;
   }
 
+  (* XXX: need to distinguish IP devices. *)
   let name t =
-    t.name
+    Name.of_key "ip" ~base:"ip"
 
   let module_name _ =
     "Net.Manager"
@@ -701,8 +634,9 @@ module IP = struct
     packages t
 
   let configure t =
+    let name = name t in
     List.iter Impl.configure t.networks;
-    append_main "let %s () =" t.name;
+    append_main "let %s () =" name;
     append_main "  let conf = %s in"
       (match t.config with
        | DHCP   -> "`DHCP"
@@ -736,41 +670,22 @@ module IP = struct
     { t with networks = List.map (fun n -> Impl.update_path n root) t.networks }
 
   let default_ip networks =
-    let name = Name.create "default_ip" in
     let i s = Ipaddr.V4.of_string_exn s in
     let config = IPv4 {
         address = i "10.0.0.2";
         netmask = i "255.255.255.0";
         gateway = [i "10.0.0.1"];
       } in
-    { name; config; networks }
+    { config; networks }
 
   let dhcp networks =
-    let name = Name.create "dhcp" in
-    { name; config = DHCP; networks }
+    { config = DHCP; networks }
 
 end
 
 type ip = IP
 
 let ip = Type IP
-
-let ipv4: ipv4 -> network impl list -> ip impl =
-  fun ipv4 networks ->
-    let name = Name.create "ipv4" in
-    let t = {
-      IP.name; networks;
-      config  = IP.IPv4 ipv4;
-    } in
-    impl ip t (module IP)
-
-let default_ip: network impl list -> ip impl =
-  fun networks ->
-    impl ip (IP.default_ip networks) (module IP)
-
-let dhcp: network impl list -> ip impl =
-  fun networks ->
-    impl ip (IP.dhcp networks) (module IP)
 
 module HTTP = struct
 
@@ -822,12 +737,9 @@ type http = HTTP
 
 let http = Type HTTP
 
-let http_server: int -> ip impl -> http impl =
-  fun port ip ->
-    let t = { HTTP.port; ip; address = None } in
-    impl http t (module HTTP)
-
 type job = JOB
+
+let job = Type JOB
 
 module Job = struct
 
@@ -842,6 +754,9 @@ module Job = struct
 
   let name t =
     t.name
+
+  let module_name t =
+    "Job_" ^ t.name
 
   let packages t =
     Impl.packages t.impl
@@ -861,7 +776,69 @@ module Job = struct
 
 end
 
-let job: job typ = Type JOB
+let defaut_io_page: io_page impl =
+  impl io_page () (module Io_page)
+
+let default_clock: clock impl =
+  impl clock () (module Clock)
+
+let default_console: console impl =
+  impl console "0" (module Console)
+
+let custom_console: string -> console impl =
+  fun str ->
+    impl console str (module Console)
+
+let crunch: string -> kv_ro impl =
+  function dirname ->
+    impl kv_ro dirname (module Crunch)
+
+let direct_kv_ro: string -> kv_ro impl =
+  function dirname ->
+    impl kv_ro dirname (module Direct_kv_ro)
+
+let block_of_file: string -> block impl =
+  function filename ->
+    impl block filename (module Block)
+
+let fat: block impl -> fs impl =
+  function block ->
+    impl fs block (module Fat)
+
+let kv_ro_of_fs =
+  let dummy_fat = fat (block_of_file "xx") in
+  let libraries = Impl.libraries dummy_fat in
+  let packages = Impl.packages dummy_fat in
+  let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
+  function fs -> fn $ fs
+
+let tap0: network impl =
+  impl network Tap0 (module Network)
+
+let custom_network: string -> network impl =
+  function dev ->
+    impl network (Custom dev) (module Network)
+
+let ipv4: ipv4 -> network impl list -> ip impl =
+  fun ipv4 networks ->
+    let t = {
+      IP.networks;
+      config  = IP.IPv4 ipv4;
+    } in
+    impl ip t (module IP)
+
+let default_ip: network impl list -> ip impl =
+  fun networks ->
+    impl ip (IP.default_ip networks) (module IP)
+
+let dhcp: network impl list -> ip impl =
+  fun networks ->
+    impl ip (IP.dhcp networks) (module IP)
+
+let http_server: int -> ip impl -> http impl =
+  fun port ip ->
+    let t = { HTTP.port; ip; address = None } in
+    impl http t (module HTTP)
 
 type t = {
   name: string;
@@ -1089,7 +1066,7 @@ let configure_job j =
       append_main "  %s () >>= function" p;
       append_main "  | `Error e -> %s" (driver_initialisation_error p);
       append_main "  | `Ok %s ->" p;
-    ) param_names;
+    ) (dedup param_names);
   append_main "  %s.start %s" module_name (String.concat " " param_names);
   newline_main ()
 

@@ -293,3 +293,50 @@ val append_main: ('a, unit, string, unit) format4 -> 'a
 
 val newline_main: unit -> unit
 (** Add a newline to [main.ml]. *)
+
+module Io_page: CONFIGURABLE with type t = unit
+(** Implementation of IO page allocators. *)
+
+module Clock: CONFIGURABLE with type t = unit
+(** Implementation of clocks. *)
+
+module Console: CONFIGURABLE with type t = string
+(** Implementation of consoles. *)
+
+module Crunch: CONFIGURABLE with type t = string
+(** Implementation of crunch a local filesystem. *)
+
+module Direct_kv_ro: CONFIGURABLE with type t = string
+(** Implementation of direct access to the filesystem as a key/value
+    read-only store. *)
+
+module Block: CONFIGURABLE with type t = string
+(** Implementation of raw block device. *)
+
+module Fat: CONFIGURABLE with type t = block impl
+(** Implementatin of the Fat filesystem. *)
+
+type network_config = Tap0 | Custom of string
+(** Network configuration. *)
+
+module Network: CONFIGURABLE with type t = network_config
+(** Implementation of network configuration. *)
+
+module IP: CONFIGURABLE
+
+module HTTP: CONFIGURABLE
+
+module Job: CONFIGURABLE
+
+(** {2 Generation of fresh names} *)
+
+module Name: sig
+
+  val create: string -> string
+  (** [create base] creates a fresh name using the given [base]. *)
+
+  val of_key: string -> base:string -> string
+  (** [find_or_create key base] returns a unique name corresponding to
+      the key. *)
+
+end

@@ -124,7 +124,7 @@ let rec iter: type a. iterator -> a impl -> unit =
     match t with
     | Impl _
     | Foreign _  -> fn.i t
-    | App {f; x} -> iter fn f; iter fn x
+    | App {f; x} -> iter fn f; iter fn x; fn.i x
 
 let driver_initialisation_error name =
   Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
@@ -199,9 +199,10 @@ module Impl = struct
         | Impl { t; m = (module M) } -> M.configure t
         | Foreign _                  -> ()
         | App {f; x} as  app         ->
-          let name = module_name app in
+          configure_app f;
           configure_app x;
           iter { i=configure } app;
+          let name = module_name app in
           let body = cofind Name.names name in
           append_main "module %s = %s" name body;
           newline_main ();

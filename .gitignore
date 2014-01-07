@@ -13,3 +13,4 @@ lib_test/**/mir-*
 lib_test/**/static_*
 lib_test/**/*.xl
 lib_test/**/log
+lib_test/**/**/static*

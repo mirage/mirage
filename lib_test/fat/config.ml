@@ -2,7 +2,7 @@ open Mirage
 
 let main = foreign "Handler.Main" (console @-> fs @-> job)
 
-let fat = fat (block_of_file "fat.img")
+let fat = fat_of_files ~regexp:"*.ml" ()
 
 let () =
   register "fat" [

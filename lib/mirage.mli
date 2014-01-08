@@ -101,6 +101,12 @@ val fs: fs typ
 val fat: block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
 
+val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
+(** [fat_files dir ?dir ?regexp ()] collects all the files matching
+    the shell pattern [regexp] in the directory [dir] into a fat
+    image. By default, [dir] is the current working directory and
+    [regexp] is {i *} *)
+
 val kv_ro_of_fs: fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value
     store. *)

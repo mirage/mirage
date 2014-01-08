@@ -594,6 +594,82 @@ let kv_ro_of_fs =
   let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
   function fs -> fn $ fs
 
+module Fat_of_files = struct
+
+  type t = {
+    dir   : string option;
+    regexp: string;
+  }
+
+  let name t =
+    Name.of_key
+      ("fat" ^ (match t.dir with None -> "." | Some d -> d) ^ ":" ^ t.regexp)
+      ~base:"fat"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let block_file t =
+    name t ^ ".img"
+
+  let block t =
+    block_of_file (block_file t)
+
+  let packages t =
+    Fat.packages (block t)
+
+  let libraries t =
+    Fat.libraries (block t)
+
+  let configure t =
+    let fat = fat (block t) in
+    Impl.configure fat;
+    append_main "module %s = %s" (module_name t) (Impl.module_name fat);
+    append_main "let %s = %s" (name t) (Impl.name fat);
+    newline_main ();
+    let file = Printf.sprintf "make-%s-image.sh" (name t) in
+    let oc = open_out file in
+    append oc "#!/bin/sh";
+    append oc "";
+    append oc "echo This uses the 'fat' command-line tool to build a simple FAT";
+    append oc "echo filesystem image.";
+    append oc "";
+    append oc "FAT=$(which fat)";
+    append oc "IMG=$(pwd)/%s" (block_file t);
+    append oc "if [ ! -x \"${FAT}\" ]; then";
+    append oc "  echo I couldn\\'t find the 'fat' command-line tool.";
+    append oc "  echo Try running 'opam install fat-filesystem'";
+    append oc "  exit 1";
+    append oc "fi";
+    append oc "";
+    append oc "rm -f ${IMG}";
+    (match t.dir with None -> () | Some d -> append oc "cd %s/" d);
+    append oc "${FAT} create ${IMG}";
+    append oc "${FAT} add ${IMG} %s" t.regexp;
+    append oc "echo Created '%s'" (block_file t);
+    append oc "";
+    close_out oc;
+    Unix.chmod file 0o755;
+    command "./make-%s-image.sh" (name t)
+
+  let clean t =
+    command "rm -f make-%s-image.sh %s" (name t) (block_file t);
+    Impl.clean (block t)
+
+  let update_path t root =
+    match t.dir with
+    | None   -> t
+    | Some d -> { t with dir = Some (root / d) }
+
+end
+
+let fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl =
+  fun ?dir ?regexp () ->
+    let regexp = match regexp with
+      | None   -> "*"
+      | Some r -> r in
+    impl fs { Fat_of_files.dir; regexp } (module Fat_of_files)
+
 type network_config = Tap0 | Custom of string
 
 module Network = struct

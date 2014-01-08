@@ -301,6 +301,9 @@ type io_page = IO_PAGE
 
 let io_page = Type IO_PAGE
 
+let defaut_io_page: io_page impl =
+  impl io_page () (module Io_page)
+
 module Clock = struct
 
   (** Clock operations. *)
@@ -332,6 +335,9 @@ end
 type clock = CLOCK
 
 let clock = Type CLOCK
+
+let default_clock: clock impl =
+  impl clock () (module Clock)
 
 module Console = struct
 
@@ -367,6 +373,13 @@ end
 type console = CONSOLE
 
 let console = Type CONSOLE
+
+let default_console: console impl =
+  impl console "0" (module Console)
+
+let custom_console: string -> console impl =
+  fun str ->
+    impl console str (module Console)
 
 module Crunch = struct
 
@@ -425,6 +438,14 @@ module Crunch = struct
 
 end
 
+type kv_ro = KV_RO
+
+let kv_ro = Type KV_RO
+
+let crunch: string -> kv_ro impl =
+  function dirname ->
+    impl kv_ro dirname (module Crunch)
+
 module Direct_kv_ro = struct
 
   include Crunch
@@ -464,9 +485,9 @@ module Direct_kv_ro = struct
 
 end
 
-type kv_ro = KV_RO
-
-let kv_ro = Type KV_RO
+let direct_kv_ro: string -> kv_ro impl =
+  function dirname ->
+    impl kv_ro dirname (module Direct_kv_ro)
 
 module Block = struct
 
@@ -509,6 +530,10 @@ end
 type block = BLOCK
 
 let block = Type BLOCK
+
+let block_of_file: string -> block impl =
+  function filename ->
+    impl block filename (module Block)
 
 module Fat = struct
 
@@ -557,6 +582,18 @@ type fs = FS
 
 let fs = Type FS
 
+let fat: block impl -> fs impl =
+  function block ->
+    impl fs block (module Fat)
+
+(* This would deserve to be in its own lib. *)
+let kv_ro_of_fs =
+  let dummy_fat = fat (block_of_file "xx") in
+  let libraries = Impl.libraries dummy_fat in
+  let packages = Impl.packages dummy_fat in
+  let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
+  function fs -> fn $ fs
+
 type network_config = Tap0 | Custom of string
 
 module Network = struct
@@ -598,6 +635,13 @@ end
 type network = NETWORK
 
 let network = Type NETWORK
+
+let tap0: network impl =
+  impl network Tap0 (module Network)
+
+let custom_network: string -> network impl =
+  function dev ->
+    impl network (Custom dev) (module Network)
 
 type ipv4 = {
   address : Ipaddr.V4.t;
@@ -688,6 +732,22 @@ type ip = IP
 
 let ip = Type IP
 
+let ipv4: ipv4 -> network impl list -> ip impl =
+  fun ipv4 networks ->
+    let t = {
+      IP.networks;
+      config  = IP.IPv4 ipv4;
+    } in
+    impl ip t (module IP)
+
+let default_ip: network impl list -> ip impl =
+  fun networks ->
+    impl ip (IP.default_ip networks) (module IP)
+
+let dhcp: network impl list -> ip impl =
+  fun networks ->
+    impl ip (IP.dhcp networks) (module IP)
+
 module HTTP = struct
 
   type t = {
@@ -739,6 +799,11 @@ type http = HTTP
 
 let http = Type HTTP
 
+let http_server: int -> ip impl -> http impl =
+  fun port ip ->
+    let t = { HTTP.port; ip; address = None } in
+    impl http t (module HTTP)
+
 type job = JOB
 
 let job = Type JOB
@@ -777,70 +842,6 @@ module Job = struct
     { t with impl = Impl.update_path t.impl root }
 
 end
-
-let defaut_io_page: io_page impl =
-  impl io_page () (module Io_page)
-
-let default_clock: clock impl =
-  impl clock () (module Clock)
-
-let default_console: console impl =
-  impl console "0" (module Console)
-
-let custom_console: string -> console impl =
-  fun str ->
-    impl console str (module Console)
-
-let crunch: string -> kv_ro impl =
-  function dirname ->
-    impl kv_ro dirname (module Crunch)
-
-let direct_kv_ro: string -> kv_ro impl =
-  function dirname ->
-    impl kv_ro dirname (module Direct_kv_ro)
-
-let block_of_file: string -> block impl =
-  function filename ->
-    impl block filename (module Block)
-
-let fat: block impl -> fs impl =
-  function block ->
-    impl fs block (module Fat)
-
-let kv_ro_of_fs =
-  let dummy_fat = fat (block_of_file "xx") in
-  let libraries = Impl.libraries dummy_fat in
-  let packages = Impl.packages dummy_fat in
-  let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
-  function fs -> fn $ fs
-
-let tap0: network impl =
-  impl network Tap0 (module Network)
-
-let custom_network: string -> network impl =
-  function dev ->
-    impl network (Custom dev) (module Network)
-
-let ipv4: ipv4 -> network impl list -> ip impl =
-  fun ipv4 networks ->
-    let t = {
-      IP.networks;
-      config  = IP.IPv4 ipv4;
-    } in
-    impl ip t (module IP)
-
-let default_ip: network impl list -> ip impl =
-  fun networks ->
-    impl ip (IP.default_ip networks) (module IP)
-
-let dhcp: network impl list -> ip impl =
-  fun networks ->
-    impl ip (IP.dhcp networks) (module IP)
-
-let http_server: int -> ip impl -> http impl =
-  fun port ip ->
-    let t = { HTTP.port; ip; address = None } in
-    impl http t (module HTTP)
 
 type t = {
   name: string;

@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        fat-filesystem
-Version:     1.0.2
+Version:     1.0.4
 Synopsis:    Mirage configuration helper
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC
@@ -11,8 +11,8 @@ Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
-  Modules:            Mirage
-  BuildDepends:       ipaddr,unix,dynlink,lwt,re.str
+  Modules:            Mirage, Mirage_misc
+  BuildDepends:       ipaddr,unix,dynlink,lwt
 
 Library "mirage-types-unix"
   CompiledObject:     best

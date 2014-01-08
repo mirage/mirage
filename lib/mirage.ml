@@ -15,283 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-
-let (|>) a f = f a
-
-let (/) = Filename.concat
-
-let finally f cleanup =
-  try
-    let res = f () in cleanup (); res
-  with exn -> cleanup (); raise exn
-
-let output_kv oc kvs sep =
-  List.iter (fun (k,v) -> Printf.fprintf oc "%s %s %s\n" k sep v) kvs
-
-let lines_of_file file =
-  let ic = open_in file in
-  let lines = ref [] in
-  let rec aux () =
-    let line =
-      try Some (input_line ic)
-      with _ -> None in
-    match line with
-    | None   -> ()
-    | Some l ->
-      lines := l :: !lines;
-      aux () in
-  aux ();
-  close_in ic;
-  List.rev !lines
-
-let strip str =
-  let p = ref 0 in
-  let l = String.length str in
-  let fn = function
-    | ' ' | '\t' | '\r' | '\n' -> true
-    | _ -> false in
-  while !p < l && fn (String.unsafe_get str !p) do
-    incr p;
-  done;
-  let p = !p in
-  let l = ref (l - 1) in
-  while !l >= p && fn (String.unsafe_get str !l) do
-    decr l;
-  done;
-  String.sub str p (!l - p + 1)
-
-let cut_at s sep =
-  try
-    let i = String.index s sep in
-    let name = String.sub s 0 i in
-    let version = String.sub s (i+1) (String.length s - i - 1) in
-    Some (name, version)
-  with _ ->
-    None
-
-let split s sep =
-  let rec aux acc r =
-    match cut_at r sep with
-    | None       -> List.rev (r :: acc)
-    | Some (h,t) -> aux (strip h :: acc) t in
-  aux [] s
-
-let key_value line =
-  match cut_at line ':' with
-  | None       -> None
-  | Some (k,v) -> Some (k, strip v)
-
-let filter_map f l =
-  let rec loop accu = function
-    | []     -> List.rev accu
-    | h :: t ->
-      match f h with
-      | None   -> loop accu t
-      | Some x -> loop (x::accu) t in
-  loop [] l
-
-let subcommand ~prefix (command, value) =
-  let p1 = String.uncapitalize prefix in
-  match cut_at command '-' with
-  | None      -> None
-  | Some(p,n) ->
-    let p2 = String.uncapitalize p in
-    if p1 = p2 then
-      Some (n, value)
-    else
-      None
-
-let append oc fmt =
-  Printf.kprintf (fun str ->
-      Printf.fprintf oc "%s\n" str
-    ) fmt
-
-let newline oc =
-  append oc ""
-
-(* Code duplication with irminsule/alcotest *)
-let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
-let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
-let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
-let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
-
-let red_s = red "%s"
-let green_s = green "%s"
-let yellow_s = yellow "%s"
-let blue_s = blue "%s"
-
-let with_process_in cmd f =
-  let ic = Unix.open_process_in cmd in
-  try
-    let r = f ic in
-    ignore (Unix.close_process_in ic) ; r
-  with exn ->
-    ignore (Unix.close_process_in ic) ; raise exn
-
-let terminal_columns =
-  let split s c =
-    Re_str.split (Re_str.regexp (Printf.sprintf "[%c]" c)) s in
-  try           (* terminfo *)
-    with_process_in "tput cols"
-      (fun ic -> int_of_string (input_line ic))
-  with _ -> try (* GNU stty *)
-      with_process_in "stty size"
-        (fun ic ->
-           match split (input_line ic) ' ' with
-           | [_ ; v] -> int_of_string v
-           | _ -> failwith "stty")
-    with _ -> try (* shell envvar *)
-        int_of_string (Sys.getenv "COLUMNS")
-      with _ ->
-        80
-
-let line oc ?color c =
-  let line = match color with
-    | Some `Blue   -> blue_s (String.make terminal_columns c)
-    | Some `Yellow -> yellow_s (String.make terminal_columns c)
-    | None         -> String.make terminal_columns c in
-  Printf.fprintf oc "%s\n%!" line
-
-let indent_left s nb =
-  let nb = nb - String.length s in
-  if nb <= 0 then
-    s
-  else
-    s ^ String.make nb ' '
-
-let indent_right s nb =
-  let nb = nb - String.length s in
-  if nb <= 0 then
-    s
-  else
-    String.make nb ' ' ^ s
-
-let left_column () =
-  20
-
-let right_column () =
-  terminal_columns
-  - left_column ()
-  + 19
-
-let right s =
-  Printf.printf "%s\n%!" (indent_right s (right_column ()))
-
-let left s =
-  Printf.printf "%s%!" (indent_left s (left_column ()))
-
-let error fmt =
-  Printf.kprintf (fun str ->
-      Printf.eprintf "%s %s\n%!"
-        (indent_left (red_s "[ERROR]") (left_column ()))
-        str;
-      exit 1;
-    ) fmt
-
-let info fmt =
-  Printf.kprintf (fun str ->
-      left (green_s "MIRAGE");
-      Printf.printf "%s%!\n" str
-    ) fmt
-
-let debug fmt =
-  Printf.kprintf (fun str ->
-      left (yellow_s "DEBUG");
-      Printf.printf "%s%!\n" str
-    ) fmt
-
-let realdir dir =
-  if Sys.file_exists dir && Sys.is_directory dir then (
-    let cwd = Sys.getcwd () in
-    Sys.chdir dir;
-    let d = Sys.getcwd () in
-    Sys.chdir cwd;
-    d
-  ) else
-    failwith "realdir"
-
-let realpath file =
-  if Sys.file_exists file && Sys.is_directory file then realdir file
-  else if Sys.file_exists file
-       || Sys.file_exists (Filename.dirname file) then
-    realdir (Filename.dirname file) / (Filename.basename file)
-  else
-    failwith "realpath"
-
-let remove file =
-  if Sys.file_exists file then (
-    info "+ Removing %s." (realpath file);
-    Sys.remove file
-  )
-
-let command ?switch fmt =
-  Printf.kprintf (fun str ->
-      let cmd = match switch with
-        | None -> str
-        | Some cmp -> Printf.sprintf "opam config exec \"%s\" --switch=%s" str cmp in
-      info "+ Executing: %s" cmd;
-      match Sys.command cmd with
-      | 0 -> ()
-      | i -> error "The command %S exited with code %d." cmd i
-    ) fmt
-
-let opam cmd ?switch deps =
-  let deps_str = String.concat " " deps in
-  match switch with
-  | None     -> command "opam %s --yes %s" cmd deps_str
-  | Some cmp -> command "opam %s --yes %s --switch=%s" cmd deps_str cmp
-
-let in_dir dir f =
-  let pwd = Sys.getcwd () in
-  let reset () =
-    if pwd <> dir then Sys.chdir pwd in
-  if pwd <> dir then Sys.chdir dir;
-  try let r = f () in reset (); r
-  with e -> reset (); raise e
-
-let cmd_exists s =
-  Sys.command ("which " ^ s ^ " > /dev/null") = 0
-
-let read_command fmt =
-  let open Unix in
-  Printf.ksprintf (fun cmd ->
-      let () = info "+ Executing: %s" cmd in
-      let ic, oc, ec = open_process_full cmd (environment ()) in
-      let buf1 = Buffer.create 64
-      and buf2 = Buffer.create 64 in
-      (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
-      (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
-      match close_process_full (ic,oc,ec) with
-      | WEXITED 0   -> Buffer.contents buf1
-      | WSIGNALED n -> error "process killed by signal %d" n
-      | WSTOPPED n  -> error "process stopped by signal %d" n
-      | WEXITED r   -> error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
-
-let generated_by_mirage =
-  let t = Unix.gettimeofday () in
-  let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
-                  "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |] in
-  let days = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |] in
-  let time = Unix.gmtime t in
-  let date =
-    Printf.sprintf "%s, %d %s %d %02d:%02d:%02d GMT"
-      days.(time.Unix.tm_wday) time.Unix.tm_mday
-      months.(time.Unix.tm_mon) (time.Unix.tm_year+1900)
-      time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec in
-  Printf.sprintf "Generated by Mirage (%s)." date
-
-let ocaml_version () =
-  let version =
-    match cut_at Sys.ocaml_version '+' with
-    | Some (version, _) -> version
-    | None              -> Sys.ocaml_version in
-  match split version '.' with
-  | major :: minor :: _ ->
-    begin
-      try int_of_string major, int_of_string minor
-      with _ -> 0, 0
-    end
-  | _ -> 0, 0
+open Mirage_misc
 
 module StringSet = struct
 
@@ -304,38 +28,245 @@ module StringSet = struct
 
 end
 
-module StringMap = Map.Make(String)
+let main_ml = ref None
+
+let append_main fmt =
+  match !main_ml with
+  | None    -> failwith "main_ml"
+  | Some oc -> append oc fmt
+
+let newline_main () =
+  match !main_ml with
+  | None    -> failwith "main_ml"
+  | Some oc -> newline oc
+
+let set_main_ml file =
+  let oc = open_out file in
+  main_ml := Some oc
 
 type mode = [
   | `Unix of [ `Direct | `Socket ]
   | `Xen
 ]
 
-type main_ml = {
-  filename: string;
-  oc: out_channel;
-  mutable modules: string StringMap.t;
-}
+let mode =
+  ref (`Unix `Direct)
+
+let set_mode m =
+  mode := m
+
+let get_mode () =
+  !mode
+
+type _ typ =
+  | Type: 'a -> 'a typ
+  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+
+let (@->) f t =
+  Function (f, t)
 
 module type CONFIGURABLE = sig
   type t
   val name: t -> string
-  val packages: t -> mode -> string list
-  val libraries: t -> mode -> string list
-  val configure: t -> mode -> main_ml -> unit
+  val module_name: t -> string
+  val packages: t -> string list
+  val libraries: t -> string list
+  val configure: t -> unit
   val clean: t -> unit
+  val update_path: t -> string -> t
 end
 
-module Headers = struct
+type ('a, 'b) base = {
+  typ: 'a typ;
+  t: 'b;
+  m: (module CONFIGURABLE with type t = 'b);
+}
 
-  let output oc =
-    append oc "(* %s *)" generated_by_mirage;
-    newline oc
+type 'a foreign = {
+  name: string;
+  typ: 'a typ;
+  libraries: string list;
+  packages: string list;
+}
 
-end
+type _ impl =
+  | Impl: ('a, 'b) base -> 'a impl (* base implementation *)
+  | App: ('a, 'b) app -> 'b impl   (* functor application *)
+  | Foreign: 'a foreign -> 'a impl (* foreign functor implementation *)
+
+and ('a, 'b) app = {
+  f: ('a -> 'b) impl;  (* functor *)
+  x: 'a impl;          (* parameter *)
+}
+
+let rec string_of_impl: type a. a impl -> string = function
+  | Impl { t; m = (module M) } -> Printf.sprintf "Impl (%s)" (M.module_name t)
+  | Foreign { name } -> Printf.sprintf "Foreign (%s)" name
+  | App { f; x } -> Printf.sprintf "App (%s, %s)" (string_of_impl f) (string_of_impl x)
+
+type 'a folder = {
+  f: 'b. 'a -> 'b impl -> 'a
+}
+
+let rec fold: type a. 'b folder -> a impl -> 'b -> 'b =
+  fun fn t acc ->
+    match t with
+    | Impl _
+    | Foreign _  -> fn.f acc t
+    | App {f; x} -> fold fn f (fn.f acc x)
+
+type iterator = {
+  i: 'b. 'b impl -> unit
+}
+
+let rec iter: type a. iterator -> a impl -> unit =
+  fun fn t ->
+    match t with
+    | Impl _
+    | Foreign _  -> fn.i t
+    | App {f; x} -> iter fn f; iter fn x; fn.i x
 
 let driver_initialisation_error name =
   Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
+
+module Name = struct
+
+  let ids = Hashtbl.create 1024
+
+  let names = Hashtbl.create 1024
+
+  let create name =
+    let n =
+      try 1 + Hashtbl.find ids name
+      with Not_found -> 1 in
+    Hashtbl.replace ids name n;
+    Printf.sprintf "%s%d" name n
+
+  let of_key key ~base =
+    find_or_create names key (fun () -> create base)
+
+end
+
+module Impl = struct
+
+  (* get the left-most module name (ie. the name of the functor). *)
+  let rec functor_name: type a. a impl -> string = function
+    | Impl { t; m = (module M) } -> M.module_name t
+    | Foreign { name }           -> name
+    | App { f }                  -> functor_name f
+
+  (* return a unique variable name holding the state of the given
+     module construction. *)
+  let rec name: type a. a impl -> string = function
+    | Impl { t; m = (module M) } -> M.name t
+    | Foreign { name }           -> Name.of_key ("f" ^ name) ~base:"f"
+    | App _ as t                 -> Name.of_key (module_name t) ~base:"t"
+
+  (* return a unique module name holding the implementation of the
+     given module construction. *)
+  and module_name: type a. a impl -> string = function
+    | Impl { t; m = (module M) } -> M.module_name t
+    | Foreign { name }           -> name
+    | App { f; x }   ->
+      let name = match module_names f @ [module_name x] with
+        | []   -> assert false
+        | [m]  -> m
+        | h::t -> h ^ String.concat "" (List.map (Printf.sprintf "(%s)") t)
+      in
+      Name.of_key name ~base:"M"
+
+  and module_names: type a. a impl -> string list =
+    function t ->
+      let fn = {
+        f = fun acc t -> module_name t :: acc
+      } in
+      fold fn t []
+
+  let rec names: type a. a impl -> string list = function
+    | Foreign _
+    | Impl _ as t          -> [name t]
+    | App {f=Foreign f; x} -> names x
+    | App {f; x}           -> (names f) @ [name x]
+
+  let configured = Hashtbl.create 31
+
+  let rec configure: type a. a impl -> unit =
+    fun t ->
+      let name = name t in
+      if not (Hashtbl.mem configured name) then (
+        Hashtbl.add configured name true;
+        match t with
+        | Impl { t; m = (module M) } -> M.configure t
+        | Foreign _                  -> ()
+        | App {f; x} as  app         ->
+          configure_app f;
+          configure_app x;
+          iter { i=configure } app;
+          let name = module_name app in
+          let body = cofind Name.names name in
+          append_main "module %s = %s" name body;
+          newline_main ();
+      )
+
+  and configure_app: type a. a impl -> unit = function
+    | Impl _
+    | Foreign _  -> ()
+    | App _ as t ->
+      let name = name t in
+      configure t;
+      begin match names t with
+        | [n]   -> append_main "let %s = %s" name n
+        | names ->
+          append_main "let %s () =" name;
+          List.iter (fun n ->
+              append_main "  %s () >>= function" n;
+              append_main "  | `Error e -> %s" (driver_initialisation_error n);
+              append_main "  | `Ok %s ->" n;
+            ) names;
+          append_main "  return (`Ok (%s))" (String.concat ", " names)
+      end;
+      newline_main ()
+
+  let rec packages: type a. a impl -> string list = function
+    | Impl { t; m = (module M) } -> M.packages t
+    | Foreign { packages }       -> packages
+    | App {f; x}                 -> packages f @ packages x
+
+  let rec libraries: type a. a impl -> string list = function
+    | Impl { t; m = (module M) } -> M.libraries t
+    | Foreign { libraries }      -> libraries
+    | App {f; x}                 -> libraries f @ libraries x
+
+  let rec clean: type a. a impl -> unit = function
+    | Impl { t; m = (module M) } -> M.clean t
+    | Foreign _                  -> ()
+    | App {f; x}                 -> clean f; clean x
+
+  let rec update_path: type a. a impl -> string -> a impl =
+    fun t root -> match t with
+      | Impl b     -> let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
+      | Foreign _  -> t
+      | App {f; x} -> App { f = update_path f root; x = update_path x root }
+
+end
+
+let impl typ t m =
+  Impl { typ; t; m }
+
+let implementation typ t m =
+  let typ = Type typ in
+  Impl { typ; t; m }
+
+let ($) f x =
+  App { f; x }
+
+let foreign name ?(libraries=[]) ?(packages=[]) typ =
+  Foreign { name; typ; libraries; packages }
+
+let rec typ: type a. a impl -> a typ = function
+  | Impl { typ }
+  | Foreign { typ } -> typ
+  | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
 module Io_page = struct
 
@@ -343,24 +274,35 @@ module Io_page = struct
 
   type t = unit
 
-  let name _ = "io_page"
+  let name () =
+    "io_page"
 
-  let packages _ = function
-    | `Unix _ -> ["io-page-unix"]
-    | `Xen    -> ["io-page-xen"]
+  let module_name () =
+    "Io_page"
 
-  let libraries t mode =
-    packages t mode
+  let packages () = [
+    match !mode with
+    | `Unix _ -> "io-page-unix"
+    | `Xen    -> "io-page-xen"
+  ]
 
-  let configure t mode d =
-    let name = name t in
-    if not (StringMap.mem name d.modules) then
-      d.modules <- StringMap.add name "Io_page" d.modules
+  let libraries () =
+    packages ()
 
-  let clean t =
-    ()
+  let configure () = ()
+
+  let clean () = ()
+
+  let update_path () _ = ()
 
 end
+
+type io_page = IO_PAGE
+
+let io_page = Type IO_PAGE
+
+let defaut_io_page: io_page impl =
+  impl io_page () (module Io_page)
 
 module Clock = struct
 
@@ -368,607 +310,677 @@ module Clock = struct
 
   type t = unit
 
-  let name _ = "clock"
+  let name () =
+    "clock"
 
-  let packages _ mode =
-    match mode with
-    | `Unix _ -> ["mirage-clock-unix"]
-    | `Xen -> ["mirage-clock-xen"]
+  let module_name () =
+    "Clock"
 
-  let libraries _ mode =
-    match mode with
-    | `Unix _ -> ["mirage-clock-unix"]
-    | `Xen -> ["mirage-clock-xen"]
+  let packages () = [
+    match !mode with
+    | `Unix _ -> "mirage-clock-unix"
+    | `Xen    -> "mirage-clock-xen"
+  ]
 
-  let configure t mode d =
-    let name = name t in
-    if not (StringMap.mem name d.modules) then (
-      d.modules <- StringMap.add name "Clock" d.modules;
-      append d.oc "let %s = return_unit" name;
-    )
+  let libraries () = packages ()
 
-  let clean t =
-    ()
+  let configure () = ()
+
+  let clean () = ()
+
+  let update_path () _ = ()
 
 end
 
-module KV_RO = struct
+type clock = CLOCK
 
-  type t = {
-    name   : string;
-    dirname: string;
-  }
+let clock = Type CLOCK
 
-  let name t = t.name
+let default_clock: clock impl =
+  impl clock () (module Clock)
 
-  let packages _ mode = [
+module Console = struct
+
+  type t = string
+
+  let name t =
+    Name.of_key ("console" ^ t) ~base:"console"
+
+  let module_name t =
+    "Console"
+
+  let packages _ = [
+    match !mode with
+    | `Unix _ -> "mirage-console-unix"
+    | `Xen    -> "mirage-console-xen"
+  ]
+
+  let libraries t = packages t
+
+  let configure t =
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect %S" (module_name t) t;
+    newline_main ()
+
+  let clean _ =
+    ()
+
+  let update_path t _ =
+    t
+
+end
+
+type console = CONSOLE
+
+let console = Type CONSOLE
+
+let default_console: console impl =
+  impl console "0" (module Console)
+
+let custom_console: string -> console impl =
+  fun str ->
+    impl console str (module Console)
+
+module Crunch = struct
+
+  type t = string
+
+  let name t =
+    Name.of_key ("static" ^ t) ~base:"static"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages _ = [
     "mirage-types";
     "lwt";
     "cstruct";
-    match mode with
-    | `Unix _ -> "mirage-fs-unix"
-    | `Xen    -> "crunch";
+    "crunch";
   ]
 
-  let libraries _ mode = [
+  let libraries _ = [
     "mirage-types";
     "lwt";
-    "cstruct" ] @
-    match mode with
-    | `Unix _ -> ["io-page-unix"; "mirage-fs-unix"]
-    | `Xen    -> ["io-page-xen" ]
+    "cstruct" ] @ [
+      match !mode with
+      | `Unix _ -> "io-page-unix"
+      | `Xen    -> "io-page-xen"
+    ]
 
   let ml t =
-    Printf.sprintf "static_%s.ml" t.name
+    Printf.sprintf "%s.ml" (name t)
 
   let mli t =
-    Printf.sprintf "static_%s.mli" t.name
+    Printf.sprintf "%s.mli" (name t)
 
-  let configure t mode d =
-    match mode with
-    | `Xen -> (* Build a crunch filesystem *)
-      if not (StringMap.mem t.name d.modules) then (
-
-        if not (cmd_exists "ocaml-crunch") then
-          error "ocaml-crunch not found, stopping.";
-        let file = ml t in
-        if Sys.file_exists t.dirname then (
-          info "Generating %s/%s." (Sys.getcwd ()) file;
-          command "ocaml-crunch -o %s %s" file t.dirname
-        ) else
-          error "The directory %s does not exist." t.dirname;
-
-        let m = "Static_" ^ t.name in
-        d.modules <- StringMap.add t.name m d.modules;
-        append d.oc "let %s =" t.name;
-        append d.oc "  Static_%s.connect ()" t.name;
-        newline d.oc;
-      )
-    | `Unix _ ->
-        d.modules <- StringMap.add t.name "Kvro_fs_unix" d.modules;
-        append d.oc "let %s = " t.name;
-        append d.oc "  Kvro_fs_unix.connect \"%s\"" t.dirname
+  let configure t =
+    if not (command_exists "ocaml-crunch") then
+      error "ocaml-crunch not found, stopping.";
+    let file = ml t in
+    if Sys.file_exists t then (
+      info "Generating %s/%s." (Sys.getcwd ()) file;
+      command "ocaml-crunch -o %s %s" file t
+    ) else
+      error "The directory %s does not exist." t;
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect ()" (module_name t);
+    newline_main ()
 
   let clean t =
     remove (ml t);
     remove (mli t)
 
-end
-
-module Console = struct
-
-  type t = unit
-
-  let name _ = "console"
-
-  let packages _ mode =
-    match mode with
-    | `Unix _ -> ["mirage-console-unix"]
-    | `Xen -> ["mirage-console-xen"]
-
-  let libraries _ mode =
-    match mode with
-    | `Unix _ -> ["mirage-console-unix"]
-    | `Xen -> ["mirage-console-xen"]
-
-  let configure t mode d =
-    let name = name t in
-    if not (StringMap.mem name d.modules) then (
-      d.modules <- StringMap.add name "Console" d.modules;
-      append d.oc "let %s = Console.connect \"\"" name;
-      newline d.oc
-    )
-
-  let clean t =
-    ()
+  let update_path t root =
+    if Sys.file_exists (root / t) then
+      root / t
+    else
+      t
 
 end
+
+type kv_ro = KV_RO
+
+let kv_ro = Type KV_RO
+
+let crunch: string -> kv_ro impl =
+  function dirname ->
+    impl kv_ro dirname (module Crunch)
+
+module Direct_kv_ro = struct
+
+  include Crunch
+
+  let module_name t =
+    match !mode with
+    | `Xen    -> Crunch.module_name t
+    | `Unix _ -> "Kvro_fs_unix"
+
+  let packages t =
+    match !mode with
+    | `Xen    -> Crunch.packages t
+    | `Unix _ -> [
+        "mirage-types";
+        "lwt";
+        "cstruct";
+        "mirage-fs-unix";
+      ]
+
+  let libraries t =
+    match !mode with
+    | `Xen    -> Crunch.libraries t
+    | `Unix _ -> [
+        "mirage-types";
+        "lwt";
+        "cstruct";
+        "io-page-unix";
+        "mirage-fs-unix";
+      ]
+
+  let configure t =
+    match !mode with
+    | `Xen    -> Crunch.configure t
+    | `Unix _ ->
+      append_main "let %s () =" (name t);
+      append_main "  Kvro_fs_unix.connect %S" t
+
+end
+
+let direct_kv_ro: string -> kv_ro impl =
+  function dirname ->
+    impl kv_ro dirname (module Direct_kv_ro)
 
 module Block = struct
 
-  type t = {
-    name     : string;
-    filename : string;
-    read_only: bool;
-  }
+  type t = string
 
-  let name t = t.name
+  let name t =
+    Name.of_key ("block" ^ t) ~base:"block"
 
-  let packages _ mode = [
-    match mode with
+  let module_name _ =
+    "Block"
+
+  let packages _ = [
+    match !mode with
     | `Unix _ -> "mirage-block-unix"
     | `Xen    -> "mirage-block-xen"
   ]
 
-  let libraries _ = function
-    | `Unix _ -> ["mirage-block-unix"]
-    | `Xen    -> ["mirage-block-xen.front"]
+  let libraries _ = [
+    match !mode with
+    | `Unix _ -> "mirage-block-unix"
+    | `Xen    -> "mirage-block-xen.front"
+  ]
 
-  let configure t mode d =
-    if not (StringMap.mem t.name d.modules) then (
-      let m = "Block" in
-      d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "let %s =" t.name;
-      append d.oc "  %s.connect %S" m t.filename;
-      newline d.oc
-    )
+  let configure t =
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect %S" (module_name t) t;
+    newline_main ()
 
   let clean t =
     ()
 
+  let update_path t root =
+    if Sys.file_exists (root / t) then
+      root / t
+    else
+      t
+
 end
+
+type block = BLOCK
+
+let block = Type BLOCK
+
+let block_of_file: string -> block impl =
+  function filename ->
+    impl block filename (module Block)
 
 module Fat = struct
 
-  type t = {
-    name : string;
-    block: Block.t;
-  }
+  type t = block impl
 
-  let name t = t.name
+  let name t =
+    Name.of_key ("fat" ^ (Impl.name t)) ~base:"fat"
 
-  let packages t mode = [
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t = [
     "fat-filesystem";
   ]
-    @ Io_page.packages () mode
-    @ Block.packages t.block mode
+    @ Io_page.packages ()
+    @ Block.packages t
 
-  let libraries t mode = [
+  let libraries t = [
     "fat-filesystem";
   ]
-    @ Io_page.libraries () mode
-    @ Block.libraries t.block mode
+    @ Io_page.libraries ()
+    @ Block.libraries t
 
-  let configure t mode d =
-    if not (StringMap.mem t.name d.modules) then (
-      Block.configure t.block mode d;
-      let m = "Fat_" ^ t.name in
-      d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "module %s = Fat.Fs.Make(%s)(Io_page)"
-        m (StringMap.find t.block.Block.name d.modules);
-      newline d.oc;
-      append d.oc "let %s =" t.name;
-      append d.oc " %s >>= function" (Block.name t.block);
-      append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
-      append d.oc " | `Ok dev  -> %s.connect dev" m
-    )
+  let configure t =
+    Impl.configure t;
+    append_main "module %s = Fat.Fs.Make(%s)(Io_page)"
+      (module_name t)
+      (Impl.module_name t);
+    newline_main ();
+    let name = name t in
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name t);
+    append_main "  | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
+    newline_main ()
 
   let clean t =
-    Block.clean t.block
+    Impl.clean t
+
+  let update_path t root =
+    Impl.update_path t root
 
 end
 
-module Fat_KV_RO = struct
+type fs = FS
 
-  include Fat
+let fs = Type FS
 
-  let configure t mode d =
-    if not (StringMap.mem t.name d.modules) then (
-      Block.configure t.block mode d;
-      let m = "Fat_" ^ t.name in
-      d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "module %s__FS = Fat.Fs.Make(%s)(Io_page)"
-        m (StringMap.find t.block.Block.name d.modules);
-      append d.oc "module %s = Fat.KV_RO.Make(%s__FS)"
-        m m;
-      newline d.oc;
-      append d.oc "let %s =" t.name;
-      append d.oc " %s >>= function" (Block.name t.block);
-      append d.oc " | `Error _ -> %s" (driver_initialisation_error t.name);
-      append d.oc " | `Ok dev  -> %s.connect dev" m
-    )
+let fat: block impl -> fs impl =
+  function block ->
+    impl fs block (module Fat)
+
+(* This would deserve to be in its own lib. *)
+let kv_ro_of_fs =
+  let dummy_fat = fat (block_of_file "xx") in
+  let libraries = Impl.libraries dummy_fat in
+  let packages = Impl.packages dummy_fat in
+  let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
+  function fs -> fn $ fs
+
+module Fat_of_files = struct
+
+  type t = {
+    dir   : string option;
+    regexp: string;
+  }
+
+  let name t =
+    Name.of_key
+      ("fat" ^ (match t.dir with None -> "." | Some d -> d) ^ ":" ^ t.regexp)
+      ~base:"fat"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let block_file t =
+    name t ^ ".img"
+
+  let block t =
+    block_of_file (block_file t)
+
+  let packages t =
+    Fat.packages (block t)
+
+  let libraries t =
+    Fat.libraries (block t)
+
+  let configure t =
+    let fat = fat (block t) in
+    Impl.configure fat;
+    append_main "module %s = %s" (module_name t) (Impl.module_name fat);
+    append_main "let %s = %s" (name t) (Impl.name fat);
+    newline_main ();
+    let file = Printf.sprintf "make-%s-image.sh" (name t) in
+    let oc = open_out file in
+    append oc "#!/bin/sh";
+    append oc "";
+    append oc "echo This uses the 'fat' command-line tool to build a simple FAT";
+    append oc "echo filesystem image.";
+    append oc "";
+    append oc "FAT=$(which fat)";
+    append oc "IMG=$(pwd)/%s" (block_file t);
+    append oc "if [ ! -x \"${FAT}\" ]; then";
+    append oc "  echo I couldn\\'t find the 'fat' command-line tool.";
+    append oc "  echo Try running 'opam install fat-filesystem'";
+    append oc "  exit 1";
+    append oc "fi";
+    append oc "";
+    append oc "rm -f ${IMG}";
+    (match t.dir with None -> () | Some d -> append oc "cd %s/" d);
+    append oc "${FAT} create ${IMG}";
+    append oc "${FAT} add ${IMG} %s" t.regexp;
+    append oc "echo Created '%s'" (block_file t);
+    append oc "";
+    close_out oc;
+    Unix.chmod file 0o755;
+    command "./make-%s-image.sh" (name t)
+
+  let clean t =
+    command "rm -f make-%s-image.sh %s" (name t) (block_file t);
+    Impl.clean (block t)
+
+  let update_path t root =
+    match t.dir with
+    | None   -> t
+    | Some d -> { t with dir = Some (root / d) }
+
 end
 
+let fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl =
+  fun ?dir ?regexp () ->
+    let regexp = match regexp with
+      | None   -> "*"
+      | Some r -> r in
+    impl fs { Fat_of_files.dir; regexp } (module Fat_of_files)
 
-(** {2 Network configuration} *)
+type network_config = Tap0 | Custom of string
 
 module Network = struct
 
-  type t = Tap0 | Custom of string
+  type t = network_config
 
   let name t =
     "net_" ^ match t with
     | Tap0     -> "tap0"
     | Custom s -> s
 
-  let packages t = function
-    | `Unix _ -> [ "mirage-net-unix" ]
-    | `Xen    -> [ "mirage-net-xen" ]
+  let module_name _ =
+    "Netif"
 
-  let libraries t mode =
-    packages t mode
+  let packages t = [
+    match !mode with
+    | `Unix _ -> "mirage-net-unix"
+    | `Xen    -> "mirage-net-xen"
+  ]
 
-  let configure t mode d =
-    let n = name t in
-    if not (StringMap.mem n d.modules) then (
-      let m = "Netif" in
-      d.modules <- StringMap.add n m d.modules;
-      newline d.oc;
-      append d.oc "let %s =" n;
-      append d.oc "  Netif.connect %S" (match t with Tap0 -> "tap0" | Custom s -> s);
-      newline d.oc;
-    )
+  let libraries t =
+    packages t
+
+  let configure t =
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect %S"
+      (module_name t)
+      (match t with Tap0 -> "tap0" | Custom s -> s);
+    newline_main ()
 
   let clean _ =
     ()
 
+  let update_path t _ =
+    t
+
 end
+
+type network = NETWORK
+
+let network = Type NETWORK
+
+let tap0: network impl =
+  impl network Tap0 (module Network)
+
+let custom_network: string -> network impl =
+  function dev ->
+    impl network (Custom dev) (module Network)
+
+type ipv4 = {
+  address : Ipaddr.V4.t;
+  netmask : Ipaddr.V4.t;
+  gateway : Ipaddr.V4.t list;
+}
 
 module IP = struct
 
   (** IP settings. *)
 
-  type ipv4 = {
-    address : Ipaddr.V4.t;
-    netmask : Ipaddr.V4.t;
-    gateway : Ipaddr.V4.t list;
-  }
-
-  type config =
+  type ip_config =
     | DHCP
     | IPv4 of ipv4
 
   type t = {
-    name    : string;
-    config  : config;
-    networks: Network.t list;
+    config  : ip_config;
+    networks: network impl list;
   }
 
-  let packages _ = function
-    | `Unix `Direct -> ["mirage-tcpip-unix"]
-    | `Unix `Socket -> ["mirage-tcpip-unix"]
-    | `Xen          -> []
+  (* XXX: need to distinguish IP devices. *)
+  let name t =
+    Name.of_key "ip" ~base:"ip"
 
-  let libraries t mode =
-    packages t mode
+  let module_name _ =
+    "Net.Manager"
 
-  let name t = t.name
+  let packages _ = [
+    match !mode with
+    | `Unix _ -> "mirage-tcpip-unix"
+    | `Xen    -> "mirage-tcpip-xen"
+  ]
 
-  let configure t mode d =
-    List.iter (fun n -> Network.configure n mode d) t.networks;
-    if not (StringMap.mem t.name d.modules) then (
-      let m = "Net.Manager" in
-      d.modules <- StringMap.add t.name m d.modules;
-      append d.oc "let %s =" t.name;
-      append d.oc "  let conf = %s in"
-        (match t.config with
-         | DHCP   -> "`DHCP"
-         | IPv4 i ->
-           append d.oc "  let i = Ipaddr.V4.of_string_exn in";
-           Printf.sprintf "`IPv4 (i %S, i %S, [%s])"
-             (Ipaddr.V4.to_string i.address)
-             (Ipaddr.V4.to_string i.netmask)
-             (String.concat "; "
-                (List.map (Printf.sprintf "i %S")
-                   (List.map Ipaddr.V4.to_string i.gateway))));
-      List.iter (fun n ->
-          let name = Network.name n in
-          append d.oc "  %s >>= function" name;
-          append d.oc "  | `Error _ -> %s" (driver_initialisation_error name);
-          append d.oc "  | `Ok %s ->" name;
-        ) t.networks;
-      append d.oc "  return (`Ok (fun callback ->";
-      append d.oc "        Net.Manager.create [%s] (fun t interface id ->"
-        (String.concat "; " (List.map Network.name t.networks));
-      append d.oc "          Net.Manager.configure interface conf >>= fun () ->";
-      append d.oc "          callback t)";
-      append d.oc "    ))";
-      newline d.oc
-    )
+  let libraries t =
+    packages t
+
+  let configure t =
+    let name = name t in
+    List.iter Impl.configure t.networks;
+    append_main "let %s () =" name;
+    append_main "  let conf = %s in"
+      (match t.config with
+       | DHCP   -> "`DHCP"
+       | IPv4 i ->
+         append_main "  let i = Ipaddr.V4.of_string_exn in";
+         Printf.sprintf "`IPv4 (i %S, i %S, [%s])"
+           (Ipaddr.V4.to_string i.address)
+           (Ipaddr.V4.to_string i.netmask)
+           (String.concat "; "
+              (List.map (Printf.sprintf "i %S")
+                 (List.map Ipaddr.V4.to_string i.gateway))));
+    List.iter (fun n ->
+        let name = Impl.name n in
+        append_main "  %s () >>= function" name;
+        append_main "  | `Error _ -> %s" (driver_initialisation_error name);
+        append_main "  | `Ok %s ->" name;
+      ) t.networks;
+    append_main "  return (`Ok (fun callback ->";
+    append_main "        %s.create [%s] (fun t interface id ->"
+      (module_name t)
+      (String.concat "; " (List.map Impl.name t.networks));
+    append_main "          %s.configure interface conf >>= fun () ->" (module_name t);
+    append_main "          callback t)";
+    append_main "    ))";
+    newline_main ()
 
   let clean t =
     ()
 
-  let local network =
+  let update_path t root =
+    { t with networks = List.map (fun n -> Impl.update_path n root) t.networks }
+
+  let default_ip networks =
     let i s = Ipaddr.V4.of_string_exn s in
     let config = IPv4 {
         address = i "10.0.0.2";
         netmask = i "255.255.255.0";
         gateway = [i "10.0.0.1"];
       } in
-    {
-      name = "local_ip";
-      config;
-      networks = [network]
-    }
+    { config; networks }
+
+  let dhcp networks =
+    { config = DHCP; networks }
 
 end
+
+type ip = IP
+
+let ip = Type IP
+
+let ipv4: ipv4 -> network impl list -> ip impl =
+  fun ipv4 networks ->
+    let t = {
+      IP.networks;
+      config  = IP.IPv4 ipv4;
+    } in
+    impl ip t (module IP)
+
+let default_ip: network impl list -> ip impl =
+  fun networks ->
+    impl ip (IP.default_ip networks) (module IP)
+
+let dhcp: network impl list -> ip impl =
+  fun networks ->
+    impl ip (IP.dhcp networks) (module IP)
 
 module HTTP = struct
 
   type t = {
     port   : int;
     address: Ipaddr.V4.t option;
-    ip: IP.t;
+    ip     : ip impl;
   }
 
   let name t =
     "http_" ^ string_of_int t.port
 
-  let packages t = function
-    | `Unix _ -> ["mirage-http-unix"]
-    | `Xen    -> ["mirage-http-xen"]
+  let module_name _ =
+    "HTTP.Server"
 
-  let libraries t = function
-    | `Unix _ -> ["mirage-http-unix"]
-    | `Xen    -> ["mirage-http-xen"]
+  let packages t = [
+    match !mode with
+    | `Unix _ -> "mirage-http-unix"
+    | `Xen    -> "mirage-http-xen"
+  ]
 
-  let configure t mode d =
-    let name = name t in
-    if not (StringMap.mem name d.modules) then (
-      let m = "HTTP.Server" in
-      d.modules <- StringMap.add name m d.modules;
-      IP.configure t.ip mode d;
-      append d.oc "let %s =" name;
-      append d.oc "   %s >>= function" (IP.name t.ip);
-      append d.oc "   | `Error _ -> %s" (driver_initialisation_error (IP.name t.ip));
-      append d.oc "   | `Ok ip   ->";
-      append d.oc "   return (`Ok (fun server ->";
-      append d.oc "     ip (fun t -> %s.listen t (%s, %d) server))"
-        m
-        (match t.address with
-         | None    -> "None"
-         | Some ip -> Printf.sprintf "Some %S" (Ipaddr.V4.to_string ip))
-        t.port;
-      append d.oc "   )"
-    )
+  let libraries t =
+    packages t
+
+  let configure t =
+    Impl.configure t.ip;
+    append_main "let %s () =" (name t);
+    append_main "   %s () >>= function" (Impl.name t.ip);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error (Impl.name t.ip));
+    append_main "   | `Ok ip   ->";
+    append_main "   return (`Ok (fun server ->";
+    append_main "     ip (fun t -> %s.listen t (%s, %d) server))"
+      (module_name t)
+      (match t.address with
+       | None    -> "None"
+       | Some ip -> Printf.sprintf "Some %S" (Ipaddr.V4.to_string ip))
+      t.port;
+    append_main "   )";
+    newline_main ()
 
   let clean t =
     ()
 
-end
-
-module Driver = struct
-
-  type t =
-    | Io_page of Io_page.t
-    | Console of Console.t
-    | Clock of Clock.t
-    | Network of Network.t
-    | KV_RO of KV_RO.t
-    | Block of Block.t
-    | Fat of Fat.t
-    | IP of IP.t
-    | HTTP of HTTP.t
-    | Fat_KV_RO of Fat.t
-
-  let name = function
-    | Io_page x -> Io_page.name x
-    | Console x -> Console.name x
-    | Clock x   -> Clock.name x
-    | Network x -> Network.name x
-    | KV_RO x   -> KV_RO.name x
-    | Block x   -> Block.name x
-    | Fat x     -> Fat.name x
-    | IP x      -> IP.name x
-    | HTTP x    ->  HTTP.name x
-    | Fat_KV_RO x -> Fat_KV_RO.name x
-
-  let packages = function
-    | Io_page x -> Io_page.packages x
-    | Console x -> Console.packages x
-    | Clock x   -> Clock.packages x
-    | Network x -> Network.packages x
-    | KV_RO x   -> KV_RO.packages x
-    | Block x   -> Block.packages x
-    | Fat x     -> Fat.packages x
-    | IP x      -> IP.packages x
-    | HTTP x    -> HTTP.packages x
-    | Fat_KV_RO x -> Fat_KV_RO.packages x
-
-  let libraries = function
-    | Io_page x -> Io_page.libraries x
-    | Console x -> Console.libraries x
-    | Clock x   -> Clock.libraries x
-    | Network x -> Network.libraries x
-    | KV_RO x   -> KV_RO.libraries x
-    | Block x   -> Block.libraries x
-    | Fat x     -> Fat.libraries x
-    | IP x      -> IP.libraries x
-    | HTTP x    -> HTTP.libraries x
-    | Fat_KV_RO x -> Fat_KV_RO.libraries x
-
-  let configure = function
-    | Io_page x -> Io_page.configure x
-    | Console x -> Console.configure x
-    | Clock x   -> Clock.configure x
-    | Network x -> Network.configure x
-    | KV_RO x   -> KV_RO.configure x
-    | Block x   -> Block.configure x
-    | Fat x     -> Fat.configure x
-    | IP x      -> IP.configure x
-    | HTTP x    -> HTTP.configure x
-    | Fat_KV_RO x -> Fat_KV_RO.configure x
-
-  let clean = function
-    | Io_page x -> Io_page.clean x
-    | Console x -> Console.clean x
-    | Clock x   -> Clock.clean x
-    | Network x -> Network.clean x
-    | KV_RO x   -> KV_RO.clean x
-    | Block x   -> Block.clean x
-    | Fat x     -> Fat.clean x
-    | IP x      -> IP.clean x
-    | HTTP x    -> HTTP.clean x
-    | Fat_KV_RO x -> Fat_KV_RO.clean x
-
-  let rec map_path fn = function
-    | KV_RO x -> KV_RO { x with KV_RO.dirname = fn x.KV_RO.dirname }
-    | Block x -> Block { x with Block.filename = fn x.Block.filename }
-    | Fat x   ->
-      begin match map_path fn (Block x.Fat.block) with
-        | Block block -> Fat { x with Fat.block }
-        | _ -> assert false
-      end
-    | x       -> x
-
-
   let update_path t root =
-    let fn path =
-      realpath (Filename.concat root path) in
-    map_path fn t
-
-  let io_page = Io_page ()
-
-  let console = Console ()
-
-  let clock = Clock ()
-
-  let tap0 = Network Network.Tap0
-
-  let local_ip network =
-    IP (IP.local network)
+    { t with ip = Impl.update_path t.ip root }
 
 end
+
+type http = HTTP
+
+let http = Type HTTP
+
+let http_server: int -> ip impl -> http impl =
+  fun port ip ->
+    let t = { HTTP.port; ip; address = None } in
+    impl http t (module HTTP)
+
+type job = JOB
+
+let job = Type JOB
 
 module Job = struct
 
   type t = {
-    name   : string;
-    handler: string;
-    params : Driver.t list;
+    name: string;
+    impl: job impl;
   }
 
-  let count = ref 0
-
-  let create handler params =
-    incr count;
-    let name = "job" ^ string_of_int !count in
-    { name; handler; params }
+  let create impl =
+    let name = Name.create "job" in
+    { name; impl }
 
   let name t =
     t.name
 
-  let fold fn { params } =
-    let s = List.fold_left (fun set param ->
-        let s = fn param in
-        StringSet.union set (StringSet.of_list s)
-      ) StringSet.empty params in
-    StringSet.elements s
+  let module_name t =
+    "Job_" ^ t.name
 
-  let iter fn { params } =
-    List.iter fn params
+  let packages t =
+    Impl.packages t.impl
 
-  let packages t mode =
-    fold (fun d -> Driver.packages d mode) t
+  let libraries t =
+    Impl.libraries t.impl
 
-  let libraries t mode =
-    fold (fun d -> Driver.libraries d mode) t
-
-  let configure t mode d =
-    iter (fun p -> Driver.configure p mode d) t;
-    newline d.oc;
-    let modules = List.map (fun p ->
-        let m = StringMap.find (Driver.name p) d.modules in
-        Printf.sprintf "(%s)" m
-      ) t.params in
-    let names = List.map Driver.name t.params in
-    let m = String.capitalize t.name in
-    append d.oc "module %s = %s%s" m t.handler (String.concat "" modules);
-    newline d.oc;
-    append d.oc "let %s =" t.name;
-    List.iter (fun name ->
-        append d.oc "  %s >>= function" name;
-        append d.oc "  | `Error _ -> %s" (driver_initialisation_error name);
-        append d.oc "  | `Ok %s   ->" name;
-      ) names;
-    append d.oc "  %s.start %s" m (String.concat " " names);
-    newline d.oc
+  let configure t =
+    Impl.configure t.impl;
+    newline_main ()
 
   let clean t =
-    iter Driver.clean t
-
-  let all : t list ref =
-    ref []
-
-  let reset () =
-    all := []
-
-  let register j =
-    all := List.map (fun (n,p) -> create n p) j @ !all
-
-  let registered () =
-    !all
+    Impl.clean t.impl
 
   let update_path t root =
-    let params = List.map (fun t -> Driver.update_path t root) t.params in
-    { t with params }
+    { t with impl = Impl.update_path t.impl root }
 
 end
 
 type t = {
   name: string;
   root: string;
-  jobs: Job.t list;
+  jobs: job impl list;
 }
 
-let name t = t.name
+let t = ref None
 
-let main_ml t =
-  let filename = t.root / "main.ml" in
-  let oc = open_out filename in
-  append oc "(* %s *)" generated_by_mirage;
-  newline oc;
-  append oc "open Lwt";
-  newline oc;
-  { filename; oc; modules = StringMap.empty; }
+let config_file = ref None
 
-let fold fn { jobs } init =
-  let s = List.fold_left (fun set job ->
-      let s = fn job in
-      StringSet.union set (StringSet.of_list s)
-    ) init jobs in
-  StringSet.elements s
+let reset () =
+  config_file := None;
+  t := None
+
+let set_config_file f =
+  config_file := Some f
+
+let update_path t root =
+  { t with jobs = List.map (fun j -> Impl.update_path j root) t.jobs }
+
+let register name jobs =
+  let root = match !config_file with
+    | None   -> failwith "no config file"
+    | Some f -> Filename.dirname f in
+  t := Some { name; jobs; root }
+
+let registered () =
+  match !t with
+  | None   -> { name = "empty"; jobs = []; root = Sys.getcwd () }
+  | Some t -> t
 
 let ps = ref StringSet.empty
 
 let add_to_opam_packages p =
   ps := StringSet.union (StringSet.of_list p) !ps
 
-let packages t mode =
-  let m = match mode with
+let packages t =
+  let m = match !mode with
     | `Unix _ -> "mirage-unix"
     | `Xen    -> "mirage-xen" in
-  fold
-    (fun j -> Job.packages j mode)
-    t
-    (StringSet.add m !ps)
+  let ps = List.fold_left (fun set j ->
+      let ps = StringSet.of_list (Impl.packages j) in
+      StringSet.union ps set
+    ) (StringSet.add m !ps) t.jobs in
+  StringSet.elements ps
 
 let ls = ref StringSet.empty
 
 let add_to_ocamlfind_libraries l =
   ls := StringSet.union !ls (StringSet.of_list l)
 
-let libraries t mode =
-  let m = match mode with
+let libraries t =
+  let m = match !mode with
     | `Unix _ -> "mirage.types-unix"
     | `Xen    -> "mirage.types-xen" in
-  fold
-    (fun j -> Job.libraries j mode)
-    t
-    (StringSet.add m !ls)
+  let ls = List.fold_left (fun set j ->
+      let ls = StringSet.of_list (Impl.libraries j) in
+      StringSet.union ls set
+    ) (StringSet.add m !ls) t.jobs in
+  StringSet.elements ls
 
-let configure_myocamlbuild_ml t mode d =
+let configure_myocamlbuild_ml t =
   let minor, major = ocaml_version () in
   if minor < 4 || major < 1 then (
     (* Previous ocamlbuild versions weren't able to understand the
@@ -1008,13 +1020,13 @@ let configure_myocamlbuild_ml t mode d =
 let clean_myocamlbuild_ml t =
   remove (t.root / "myocamlbuild.ml")
 
-let configure_main_xl t mode d =
+let configure_main_xl t =
   let file = t.root / t.name ^ ".xl" in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
   newline oc;
   append oc "name = '%s'" t.name;
-  append oc "kernel = '%s'" (t.root / "mir-main.xen");
+  append oc "kernel = '%s/mir-%s.xen'" t.root t.name;
   append oc "builder = 'linux'";
   append oc "memory = 256";
   newline oc;
@@ -1034,20 +1046,20 @@ let configure_main_xl t mode d =
 let clean_main_xl t =
   remove (t.root / t.name ^ ".xl")
 
-let configure_makefile t mode d =
+let configure_makefile t =
   let file = t.root / "Makefile" in
   let libraries =
-    match "lwt.syntax" :: libraries t mode with
+    match "lwt.syntax" :: libraries t with
     | [] -> ""
     | ls -> "-pkgs " ^ String.concat "," ls in
-  let packages = String.concat " " (packages t mode) in
+  let packages = String.concat " " (packages t) in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
   newline oc;
   append oc "LIBS   = %s" libraries;
   append oc "PKGS   = %s" packages;
   append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
-  begin match mode with
+  begin match !mode with
     | `Xen ->
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"
     | `Unix _ ->
@@ -1068,22 +1080,22 @@ let configure_makefile t mode d =
              main.native.o:\n\
              \t$(BUILD) main.native.o";
   newline oc;
-  begin match mode with
+  begin match !mode with
     | `Xen ->
       append oc "build: main.native.o";
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
                  \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-main.xen"
-        lib lib lib lib lib lib lib lib;
+                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-%s.xen"
+        lib lib lib lib lib lib lib lib t.name;
     | `Unix _ ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;
   append oc "run: build";
-  begin match mode with
+  begin match !mode with
     | `Xen ->
       append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
       append oc "\t@echo Then do something similar to: xl create -c %s.xl" t.name
@@ -1097,12 +1109,12 @@ let configure_makefile t mode d =
 let clean_makefile t =
   remove (t.root / "Makefile")
 
-let configure_opam t mode d =
+let configure_opam t =
   info "Installing OPAM packages.";
-  match packages t mode with
+  match packages t with
   | [] -> ()
   | ps ->
-    if cmd_exists "opam" then opam "install" ps
+    if command_exists "opam" then opam "install" ps
     else error "OPAM is not installed."
 
 let clean_opam t =
@@ -1124,54 +1136,49 @@ let manage_opam = ref true
 let manage_opam_packages b =
   manage_opam := b
 
-let configure_main t mode d =
-  info "Generating %s" d.filename;
-  List.iter (fun j -> Job.configure j mode d) t.jobs;
-  newline d.oc;
-  let jobs = List.map Job.name t.jobs in
-  append d.oc "let () =";
-  append d.oc "  OS.Main.run (join [%s])" (String.concat "; " jobs)
+let configure_job j =
+  let name = Impl.name j in
+  let module_name = Impl.module_name j in
+  let param_names = Impl.names j in
+  append_main "let %s () =" name;
+  List.iter (fun p ->
+      append_main "  %s () >>= function" p;
+      append_main "  | `Error e -> %s" (driver_initialisation_error p);
+      append_main "  | `Ok %s ->" p;
+    ) (dedup param_names);
+  append_main "  %s.start %s" module_name (String.concat " " param_names);
+  newline_main ()
+
+let configure_main t =
+  info "Generating main.ml";
+  set_main_ml (t.root / "main.ml");
+  append_main "(* %s *)" generated_by_mirage;
+  newline_main ();
+  append_main "open Lwt";
+  newline_main ();
+  List.iter (fun j -> Impl.configure j) t.jobs;
+  List.iter configure_job t.jobs;
+  let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in
+  append_main "let () =";
+  append_main "  OS.Main.run (join [%s])" (String.concat "; " names)
 
 let clean_main t =
-  List.iter Job.clean t.jobs;
+  List.iter Impl.clean t.jobs;
   remove (t.root / "main.ml")
 
-
-(* XXX
-   module XL = struct
-   let output name kvs =
-    info "+ creating %s" (name ^ ".xl");
-    let oc = open_out (name ^ ".xl") in
-    finally
-      (fun () ->
-         output_kv oc (["name", "\"" ^ name ^ "\"";
-                        "kernel", "\"mir-" ^ name ^ ".xen\""] @
-                         filter_map (subcommand ~prefix:"xl") kvs) "=")
-      (fun () -> close_out oc);
-   end
-
-*)
-
-let configure t mode d =
+let configure t =
   info "CONFIGURE: %s" (blue_s (t.root / "config.ml"));
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
-    (String.concat ", " (List.map Job.name t.jobs));
+    (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
-      if !manage_opam then configure_opam t mode d;
-      configure_myocamlbuild_ml t mode d;
-      configure_makefile t mode d;
-      configure_main_xl t mode d;
-      configure_main t mode d
+      if !manage_opam then configure_opam t;
+      configure_myocamlbuild_ml t;
+      configure_makefile t;
+      configure_main_xl t;
+      configure_main t
     )
-
-let uname_s () =
-  try
-    with_process_in "uname -s"
-      (fun ic -> Some (strip (input_line ic)))
-  with _ ->
-    None
 
 let make () =
   match uname_s () with
@@ -1199,8 +1206,8 @@ let clean t =
       clean_main_xl t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
-      command "rm -rf %s/main.native.o %s/main.native %s/mir-main %s/*~"
-        t.root t.root t.root t.root;
+      command "rm -rf log %s/main.native.o %s/main.native %s/mir-%s %s/*~"
+        t.root t.root t.root t.name t.root;
     )
 
 (* Compile the configuration file and attempt to dynlink it.
@@ -1237,11 +1244,12 @@ let scan_conf = function
                     Please specify one explicitly on the command-line."
 
 let load file =
+  reset ();
   let file = scan_conf file in
-  let root = realdir (Filename.dirname file) in
-  Job.reset ();
-  compile_and_dynlink (root / Filename.basename file);
-  let jobs =
-    let jobs = Job.registered () in
-    List.map (fun j -> Job.update_path j root) jobs in
-  { name ="main"; root; jobs }
+  let root = realpath (Filename.dirname file) in
+  let file = root / Filename.basename file in
+  set_config_file file;
+  compile_and_dynlink file;
+  let t = registered () in
+  set_section t.name;
+  update_path t root

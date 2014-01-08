@@ -1,7 +1,7 @@
 # OASIS_START
-# DO NOT EDIT (digest: faeb1d6b4164976571a552da7017e466)
-# Ignore VCS directories, you can use the same kind of rule outside 
-# OASIS_START/STOP if you want to exclude directories that contains 
+# DO NOT EDIT (digest: ed3ab981beaef76ca68ec577608699dc)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
@@ -30,13 +30,11 @@
 <lib/main.{native,byte}>: pkg_ipaddr
 <lib/main.{native,byte}>: pkg_unix
 <lib/main.{native,byte}>: pkg_dynlink
-<lib/main.{native,byte}>: pkg_re.str
 <lib/*.ml{,i}>: use_mirage
 <lib/*.ml{,i}>: pkg_cmdliner
 <lib/*.ml{,i}>: pkg_lwt
 <lib/*.ml{,i}>: pkg_ipaddr
 <lib/*.ml{,i}>: pkg_unix
 <lib/*.ml{,i}>: pkg_dynlink
-<lib/*.ml{,i}>: pkg_re.str
 # OASIS_STOP
 true: debug, bin_annot, annot

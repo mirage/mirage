@@ -72,9 +72,9 @@ let configure =
     if unix && xen then `Help (`Pager, Some "configure")
     else
       let t = Mirage.load file in
-      let main_ml = Mirage.main_ml t in
       Mirage.manage_opam_packages (not no_opam);
-      `Ok (Mirage.configure t (mode unix xen socket) main_ml) in
+      Mirage.set_mode (mode unix xen socket);
+      `Ok (Mirage.configure t) in
   Term.(ret (pure configure $ unix $ xen $ socket $ no_opam $ file)),
   term_info "configure" ~doc ~man
 

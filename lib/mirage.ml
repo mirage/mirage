@@ -1215,7 +1215,7 @@ let clean t =
  * [Mirage_config.register] in order to have an observable
  * side effect to this command. *)
 let compile_and_dynlink file =
-  info "%s" (blue_s (Printf.sprintf "Compiling and dynlinkg %s" file));
+  info "%s" (blue_s (Printf.sprintf "Compiling and dynlinking %s" file));
   let root = Filename.dirname file in
   let file = Filename.basename file in
   let file = Dynlink.adapt_filename file in

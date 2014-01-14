@@ -1,3 +1,8 @@
+1.1.0 (trunk):
+* Add a combinator interface to device binding that makes the functor generation
+  significantly more succinct and expressive.  This breaks backwards compatibility
+  with `config.ml` files from the 1.0.x branches.
+
 1.0.4 (2014-01-14):
 * Add default build tags for annot, bin_annot, principal and strict_sequence.
 * Renane `KV_RO` to `Crunch`

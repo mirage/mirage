@@ -1,8 +1,8 @@
 open Mirage
 
-let ip = Driver.local_ip Network.Tap0
+let main = foreign "Ping.Main" (console @-> ip @-> job)
 
 let () =
-  Job.register [
-    "Ping.Main", [Driver.console; ip]
+  register "ip" [
+    main $ default_console $ default_ip [tap0]
   ]

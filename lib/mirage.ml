@@ -301,7 +301,7 @@ type io_page = IO_PAGE
 
 let io_page = Type IO_PAGE
 
-let defaut_io_page: io_page impl =
+let default_io_page: io_page impl =
   impl io_page () (module Io_page)
 
 module Clock = struct

@@ -38,11 +38,10 @@ val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
 *)
 
 type 'a impl
-(** The type of values reprensenting module implementations. *)
+(** The type of values representing module implementations. *)
 
 val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
-(** [m $ a] applies the functor [a] to the functor
-    [m]. *)
+(** [m $ a] applies the functor [a] to the functor [m]. *)
 
 val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ -> 'a impl
 (** [foreign name libs packs constr typ] states that the module named
@@ -66,7 +65,7 @@ val default_console: console impl
 (** Default console implementation. *)
 
 val custom_console: string -> console impl
-(** Custome console implementation. *)
+(** Custom console implementation. *)
 
 (** {2 Filesystem configurations} *)
 
@@ -81,7 +80,7 @@ val crunch: string -> kv_ro impl
 
 val direct_kv_ro: string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value
-    store. For xen backends, this is equivalent to [crunch]. *)
+    store. For Xen backends, this is equivalent to [crunch]. *)
 
 type block
 (** Abstract type for raw block device configurations. *)
@@ -103,7 +102,7 @@ val fat: block impl -> fs impl
 
 val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
 (** [fat_files dir ?dir ?regexp ()] collects all the files matching
-    the shell pattern [regexp] in the directory [dir] into a fat
+    the shell pattern [regexp] in the directory [dir] into a FAT
     image. By default, [dir] is the current working directory and
     [regexp] is {i *} *)
 

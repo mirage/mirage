@@ -37,4 +37,4 @@
 <lib/*.ml{,i}>: pkg_unix
 <lib/*.ml{,i}>: pkg_dynlink
 # OASIS_STOP
-true: debug, bin_annot, annot
+true: debug, bin_annot, annot, principal

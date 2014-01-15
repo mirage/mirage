@@ -84,7 +84,7 @@ type ('a, 'b) base = {
 
 type 'a foreign = {
   name: string;
-  typ: 'a typ;
+  ty: 'a typ;
   libraries: string list;
   packages: string list;
 }
@@ -105,15 +105,15 @@ let rec string_of_impl: type a. a impl -> string = function
   | App { f; x } -> Printf.sprintf "App (%s, %s)" (string_of_impl f) (string_of_impl x)
 
 type 'a folder = {
-  f: 'b. 'a -> 'b impl -> 'a
+  fn: 'b. 'a -> 'b impl -> 'a
 }
 
 let rec fold: type a. 'b folder -> a impl -> 'b -> 'b =
   fun fn t acc ->
     match t with
     | Impl _
-    | Foreign _  -> fn.f acc t
-    | App {f; x} -> fold fn f (fn.f acc x)
+    | Foreign _  -> fn.fn acc t
+    | App {f; x} -> fold fn f (fn.fn acc x)
 
 type iterator = {
   i: 'b. 'b impl -> unit
@@ -178,7 +178,7 @@ module Impl = struct
   and module_names: type a. a impl -> string list =
     function t ->
       let fn = {
-        f = fun acc t -> module_name t :: acc
+        fn = fun acc t -> module_name t :: acc
       } in
       fold fn t []
 
@@ -260,12 +260,12 @@ let implementation typ t m =
 let ($) f x =
   App { f; x }
 
-let foreign name ?(libraries=[]) ?(packages=[]) typ =
-  Foreign { name; typ; libraries; packages }
+let foreign name ?(libraries=[]) ?(packages=[]) ty =
+  Foreign { name; ty; libraries; packages }
 
 let rec typ: type a. a impl -> a typ = function
-  | Impl { typ }
-  | Foreign { typ } -> typ
+  | Impl { typ } -> typ
+  | Foreign { ty } -> ty
   | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
 module Io_page = struct

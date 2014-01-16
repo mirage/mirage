@@ -280,11 +280,8 @@ module Io_page = struct
   let module_name () =
     "Io_page"
 
-  let packages () = [
-    match !mode with
-    | `Unix _ -> "io-page-unix"
-    | `Xen    -> "io-page-xen"
-  ]
+  let packages () =
+    [ "io-page" ]
 
   let libraries () =
     packages ()
@@ -401,11 +398,11 @@ module Crunch = struct
   let libraries _ = [
     "mirage-types";
     "lwt";
-    "cstruct" ] @ [
+    "cstruct" ] @ (
       match !mode with
-      | `Unix _ -> "io-page-unix"
-      | `Xen    -> "io-page-xen"
-    ]
+      | `Unix _ -> [ "io-page.unix" ]
+      | `Xen    -> []
+    ) @ [ "io-page" ]
 
   let ml t =
     Printf.sprintf "%s.ml" (name t)
@@ -472,7 +469,7 @@ module Direct_kv_ro = struct
         "mirage-types";
         "lwt";
         "cstruct";
-        "io-page-unix";
+        "io-page.unix"; "io-page";
         "mirage-fs-unix";
       ]
 

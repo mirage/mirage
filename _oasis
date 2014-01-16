@@ -20,7 +20,7 @@ Library "mirage-types-unix"
   Findlibparent:      mirage
   Findlibname:        types-unix
   Modules:            Mirage_types
-  BuildDepends:       mirage-types,lwt,cstruct,io-page-unix
+  BuildDepends:       mirage-types,lwt,cstruct,io-page.unix,io-page
 
 Library "mirage-types-xen"
   CompiledObject:     best
@@ -28,7 +28,7 @@ Library "mirage-types-xen"
   Findlibparent:      mirage
   Findlibname:        types-xen
   Modules:            Mirage_types
-  BuildDepends:       mirage-types,lwt,cstruct,io-page-xen
+  BuildDepends:       mirage-types,lwt,cstruct,io-page
 
 Executable mirage
   CompiledObject:     best

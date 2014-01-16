@@ -11,7 +11,7 @@ exists_if = "mirage.cma"
 package "types-xen" (
  version = "1.0.4"
  description = "Mirage configuration helper"
- requires = "mirage-types lwt cstruct io-page-xen"
+ requires = "mirage-types lwt cstruct io-page"
  archive(byte) = "mirage-types-xen.cma"
  archive(byte, plugin) = "mirage-types-xen.cma"
  archive(native) = "mirage-types-xen.cmxa"
@@ -22,7 +22,7 @@ package "types-xen" (
 package "types-unix" (
  version = "1.0.4"
  description = "Mirage configuration helper"
- requires = "mirage-types lwt cstruct io-page-unix"
+ requires = "mirage-types lwt cstruct io-page.unix io-page"
  archive(byte) = "mirage-types-unix.cma"
  archive(byte, plugin) = "mirage-types-unix.cma"
  archive(native) = "mirage-types-unix.cmxa"

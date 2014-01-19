@@ -1232,7 +1232,7 @@ let scan_conf = function
   | None   ->
     let files = Array.to_list (Sys.readdir ".") in
     match List.filter ((=) "config.ml") files with
-    | [] -> error "No configuration file ending in .conf found.\n\
+    | [] -> error "No configuration file config.ml found.\n\
                    You'll need to create one to let Mirage know what do do."
     | [f] ->
       info "Using the scanned config file: %s" (yellow_s f);

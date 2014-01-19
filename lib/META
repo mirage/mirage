@@ -1,33 +1,12 @@
 # OASIS_START
-# DO NOT EDIT (digest: ee6115fdf5cca21f4cf33845ac438a6e)
-version = "1.0.4"
-description = "Mirage configuration helper"
-requires = "ipaddr unix dynlink lwt"
+# DO NOT EDIT (digest: 4c8f530957fe4575a9f231291c514984)
+version = "1.1.0"
+description = "Mirage configuration tool"
+requires = "ipaddr unix dynlink lwt mirage-types mirage-types.lwt"
 archive(byte) = "mirage.cma"
 archive(byte, plugin) = "mirage.cma"
 archive(native) = "mirage.cmxa"
 archive(native, plugin) = "mirage.cmxs"
 exists_if = "mirage.cma"
-package "types-xen" (
- version = "1.0.4"
- description = "Mirage configuration helper"
- requires = "mirage-types lwt cstruct io-page"
- archive(byte) = "mirage-types-xen.cma"
- archive(byte, plugin) = "mirage-types-xen.cma"
- archive(native) = "mirage-types-xen.cmxa"
- archive(native, plugin) = "mirage-types-xen.cmxs"
- exists_if = "mirage-types-xen.cma"
-)
-
-package "types-unix" (
- version = "1.0.4"
- description = "Mirage configuration helper"
- requires = "mirage-types lwt cstruct io-page.unix io-page"
- archive(byte) = "mirage-types-unix.cma"
- archive(byte, plugin) = "mirage-types-unix.cma"
- archive(native) = "mirage-types-unix.cmxa"
- archive(native, plugin) = "mirage-types-unix.cmxs"
- exists_if = "mirage-types-unix.cma"
-)
 # OASIS_STOP
 

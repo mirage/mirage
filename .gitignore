@@ -4,6 +4,7 @@ _build/
 lib/path_generated.ml
 .*.swp
 *.xen
+setup.bin
 setup.data
 setup.log
 lib_test/**/*.img
@@ -14,3 +15,4 @@ lib_test/**/static_*
 lib_test/**/*.xl
 lib_test/**/log
 lib_test/**/**/static*
+lib_test/**/make-fat1-image.sh

@@ -969,8 +969,8 @@ let add_to_ocamlfind_libraries l =
 
 let libraries t =
   let m = match !mode with
-    | `Unix _ -> "mirage.types-unix"
-    | `Xen    -> "mirage.types-xen" in
+    | `Unix _ -> "mirage-types.lwt"
+    | `Xen    -> "mirage-types.lwt" in
   let ls = List.fold_left (fun set j ->
       let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set

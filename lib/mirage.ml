@@ -127,7 +127,7 @@ let rec iter: type a. iterator -> a impl -> unit =
     | App {f; x} -> iter fn f; iter fn x; fn.i x
 
 let driver_initialisation_error name =
-  Printf.sprintf "fail (Mirage_types.V1.Driver_initialisation_error %S)" name
+  Printf.sprintf "fail (Failure %S)" name
 
 module Name = struct
 

@@ -381,6 +381,37 @@ module type UDPV4 = sig
   val writev: source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer list -> unit io
 end
 
+module type TCPV4 = sig
+  type buffer
+  type ipv4
+  type ipv4addr
+  type flow
+
+  (** IO operation errors *)
+  type error = [
+    | `Unknown of string (** an undiagnosed error *)
+  ]
+
+  include DEVICE with
+      type error := error
+  and type id := ipv4
+
+  val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
+  val write : flow -> buffer -> unit io
+  val writev : flow -> buffer list -> unit io
+  val write_nodelay : flow -> buffer -> unit io
+  val writev_nodelay : flow -> buffer list -> unit io
+  val close : flow -> unit io
+
+  val listen : t -> int ->
+    (ipv4addr * int -> flow -> unit io) -> unit io
+
+  val create_connection : t ->
+    ipv4addr * int -> (flow -> unit io) -> unit io
+
+  val input: t -> src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+end
+
 module type FS = sig
 
   (** Abstract type representing an error from the block layer *)

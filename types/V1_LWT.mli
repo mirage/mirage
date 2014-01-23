@@ -44,6 +44,12 @@ module type UDPV4 = UDPV4
    and type buffer = Cstruct.t
    and type ipv4addr = Ipaddr.V4.t
 
+(** TCPv4 stack *)
+module type TCPV4 = TCPV4
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+   and type ipv4addr = Ipaddr.V4.t
+
 (** KV RO *)
 module type KV_RO = KV_RO
   with type 'a io = 'a Lwt.t

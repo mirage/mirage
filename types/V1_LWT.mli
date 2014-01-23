@@ -50,6 +50,12 @@ module type TCPV4 = TCPV4
    and type buffer = Cstruct.t
    and type ipv4addr = Ipaddr.V4.t
 
+(** Buffered TCPv4 channel *)
+module type CHANNEL = CHANNEL
+  with type 'a io = 'a Lwt.t
+   and type 'a io_stream = 'a Lwt_stream.t
+   and type buffer = Cstruct.t
+
 (** KV RO *)
 module type KV_RO = KV_RO
   with type 'a io = 'a Lwt.t

@@ -412,6 +412,35 @@ module type TCPV4 = sig
     src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
 end
 
+(** Type of a buffered byte-stream network protocol *)
+module type CHANNEL = sig
+  type buffer
+  type flow
+  type t
+
+  type +'a io
+  type 'a io_stream
+
+  exception Closed
+
+  val create       : flow -> t
+
+  val read_char    : t -> char io
+  val read_until   : t -> char -> (bool * buffer) io
+  val read_some    : ?len:int -> t -> buffer io
+  val read_stream  : ?len: int -> t -> buffer io_stream
+  val read_line    : t -> buffer list io
+
+  val write_char   : t -> char -> unit
+  val write_string : t -> string -> int -> int -> unit
+  val write_buffer : t -> buffer -> unit
+  val write_line   : t -> string -> unit
+
+  val flush        : t -> unit io
+  val close        : t -> unit io
+
+end
+
 module type FS = sig
 
   (** Abstract type representing an error from the block layer *)

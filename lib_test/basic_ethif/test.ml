@@ -34,31 +34,28 @@ module Basic (C: CONSOLE) (N: NETWORK) = struct
             >>= function
             |`Error _ -> C.log_s c (red "TCPv4 err")
             |`Ok tcp ->
-              (* Listen on TCP port 80 *)
-              let _ = 
-                T.listen tcp 80
-                  (fun (dst,dst_port) flow ->
-                     C.log_s c (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
-                     >>= fun () ->
-                     T.read flow
-                     >>= function
-                     | `Ok b ->
-                          C.log_s c (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
-                          >>= fun () ->
-                          T.close flow
-                     | `Eof -> C.log_s c (red "read: eof")
-                     | `Error e -> C.log_s c (red "read: error")
-                  )
-              in
               N.listen net (
                 E.input 
                   ~ipv4:(
                     I.input
-                      ~tcp:(fun ~src ~dst b ->
-                          C.log_s c (green "tcp packet")
-                          >>= fun () ->
-                          T.input tcp ~src ~dst b 
-                        )
+                      ~tcp:(
+                        T.input tcp ~listeners:
+                          (function
+                            | 80 ->
+                              Some (fun flow ->
+                                  let dst, dst_port = T.get_dest flow in
+                                  C.log_s c (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
+                                  >>= fun () ->
+                                  T.read flow
+                                  >>= function
+                                  | `Ok b ->
+                                    C.log_s c (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
+                                    >>= fun () ->
+                                    T.close flow
+                                  | `Eof -> C.log_s c (red "read: eof")
+                                  | `Error e -> C.log_s c (red "read: error"))
+                            | _ -> None
+                          ))
                       ~udp:(
                         U.input ~listeners:
                           (fun ~dst_port ->

@@ -396,6 +396,7 @@ module type TCPV4 = sig
       type error := error
   and type id := ipv4
 
+  val get_dest : flow -> ipv4addr * int
   val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
   val write : flow -> buffer -> unit io
   val writev : flow -> buffer list -> unit io
@@ -403,13 +404,12 @@ module type TCPV4 = sig
   val writev_nodelay : flow -> buffer list -> unit io
   val close : flow -> unit io
 
-  val listen : t -> int ->
-    (ipv4addr * int -> flow -> unit io) -> unit io
-
   val create_connection : t ->
     ipv4addr * int -> (flow -> unit io) -> unit io
 
-  val input: t -> src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+  val input: t -> 
+    listeners:(int -> (flow -> unit io) option) ->
+    src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
 end
 
 module type FS = sig

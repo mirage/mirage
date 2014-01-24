@@ -404,6 +404,7 @@ module type TCPV4 = sig
   val writev_nodelay : flow -> buffer list -> unit io
   val close : flow -> unit io
 
+  (* TODO the return here should indicate failure *)
   val create_connection : t ->
     ipv4addr * int -> (flow -> unit io) -> unit io
 

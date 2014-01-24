@@ -12,6 +12,7 @@ module Basic (C: CONSOLE) (N: NETWORK) = struct
   module I = Ipv4.Make(E)
   module U = Udpv4.Make(I)
   module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random)
+  module D = Dhcp_clientv4.Make(C)(OS.Time)(Random)(E)(I)(U)
 
   let start c net =
     E.connect net
@@ -30,6 +31,7 @@ module Basic (C: CONSOLE) (N: NETWORK) = struct
           >>= function
           |`Error _ -> C.log_s c (red "UDPv4 err")
           |`Ok udp ->
+            let dhcp, offers = D.create c i udp in
             T.connect i
             >>= function
             |`Error _ -> C.log_s c (red "TCPv4 err")
@@ -60,7 +62,7 @@ module Basic (C: CONSOLE) (N: NETWORK) = struct
                         U.input ~listeners:
                           (fun ~dst_port ->
                              C.log c (blue "udp packet on port %d" dst_port);
-                             None)
+                             D.listen dhcp ~dst_port)
                           udp
                       ) i)
                   ~ipv6:(fun b -> C.log_s c (yellow "ipv6")) e)

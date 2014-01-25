@@ -390,6 +390,8 @@ module type TCPV4 = sig
   (** IO operation errors *)
   type error = [
     | `Unknown of string (** an undiagnosed error *)
+    | `Timeout
+    | `Refused
   ]
 
   include DEVICE with
@@ -404,9 +406,8 @@ module type TCPV4 = sig
   val writev_nodelay : flow -> buffer list -> unit io
   val close : flow -> unit io
 
-  (* TODO the return here should indicate failure *)
-  val create_connection : t ->
-    ipv4addr * int -> (flow -> unit io) -> unit io
+  val create_connection : t -> ipv4addr * int ->
+    [ `Ok of flow | `Error of error ] io
 
   val input: t -> 
     listeners:(int -> (flow -> unit io) option) ->

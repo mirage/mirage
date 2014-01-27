@@ -89,6 +89,18 @@ module type CLOCK = sig
       known as GMT. *)
 end
 
+module type TIME = sig
+  type +'a io
+  val sleep: float -> unit io
+end
+
+module type RANDOM = sig
+  val self_init : unit -> unit
+  val int : int -> int
+  val int32 : int32 -> int32
+end
+
+
 module type DEVICE = sig
   (** Device operations.
       Defines the functions to connect and disconnect any device *)

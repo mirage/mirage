@@ -420,11 +420,13 @@ module type TCPV4 = sig
 
   val input: t -> listeners:(int -> (flow -> unit io) option) -> ipv4input
 end
-
+ 
 module type STACKV4 = sig
   type console
   type netif
   type mode
+  type udpv4_callback
+  type tcpv4_callback
   type ('console,'netif,'mode) config
 
   type error = [
@@ -434,6 +436,10 @@ module type STACKV4 = sig
   include DEVICE with
     type error := error
     and type id = (console,netif,mode) config
+
+  val listen_udpv4 : t -> port:int -> udpv4_callback -> unit
+  val listen_tcpv4 : t -> port:int -> tcpv4_callback -> unit
+  val listen : t -> unit io
 end
 
 (** Type of a buffered byte-stream network protocol *)

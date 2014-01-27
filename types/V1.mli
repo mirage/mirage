@@ -357,6 +357,7 @@ module type UDPV4 = sig
   type buffer
   type ipv4
   type ipv4addr
+  type ipv4input
 
   (** IO operation errors *)
   type error = [
@@ -370,7 +371,7 @@ module type UDPV4 = sig
 
   type callback = src:ipv4addr -> dst:ipv4addr -> src_port:int -> buffer -> unit io
 
-  val input: listeners:(dst_port:int -> callback option) -> t -> src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+  val input: listeners:(dst_port:int -> callback option) -> t -> ipv4input
 
   (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
       sends [data] from [~source_port] at [~dest_ip], [~dest_port]. *)

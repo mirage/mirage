@@ -362,7 +362,6 @@ module type UDPV4 = sig
   (** IO operation errors *)
   type error = [
     | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
   ]
 
   include DEVICE with
@@ -375,11 +374,7 @@ module type UDPV4 = sig
 
   (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
       sends [data] from [~source_port] at [~dest_ip], [~dest_port]. *)
-  val write: source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer -> unit io
-
-  (** Same as above but sends a vector of messages instead of just
-      one. *)
-  val writev: source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer list -> unit io
+  val write: ?source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer -> unit io
 end
 
 module type TCPV4 = sig

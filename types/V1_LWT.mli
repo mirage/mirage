@@ -18,6 +18,9 @@
 
 open V1
 
+module type TIME = TIME
+  with type 'a io = 'a Lwt.t
+
 (** Network *)
 module type NETWORK = NETWORK
   with type 'a io = 'a Lwt.t
@@ -73,3 +76,16 @@ module type BLOCK = BLOCK
 (** FS *)
 module type FS = FS
   with type 'a io = 'a Lwt.t
+
+type ('console, 'netif) stackv4_config = {
+  console: 'console;
+  name: string;
+  interface: 'netif;
+  config: [ `DHCP | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list ];
+}
+
+(** Single network stack *)
+module type STACKV4 = STACKV4
+  with type 'a io = 'a Lwt.t
+  and  type ('a,'b) config = ('a,'b) stackv4_config
+

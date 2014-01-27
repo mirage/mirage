@@ -421,6 +421,20 @@ module type TCPV4 = sig
   val input: t -> listeners:(int -> (flow -> unit io) option) -> ipv4input
 end
 
+module type STACKV4 = sig
+  type console
+  type netif
+  type ('console,'netif) config
+
+  type error = [
+    | `Unknown of string
+  ]
+
+  include DEVICE with
+    type error := error
+    and type id = (console,netif) config
+end
+
 (** Type of a buffered byte-stream network protocol *)
 module type CHANNEL = sig
   type buffer

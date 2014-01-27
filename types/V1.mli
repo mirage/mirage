@@ -424,7 +424,8 @@ end
 module type STACKV4 = sig
   type console
   type netif
-  type ('console,'netif) config
+  type mode
+  type ('console,'netif,'mode) config
 
   type error = [
     | `Unknown of string
@@ -432,7 +433,7 @@ module type STACKV4 = sig
 
   include DEVICE with
     type error := error
-    and type id = (console,netif) config
+    and type id = (console,netif,mode) config
 end
 
 (** Type of a buffered byte-stream network protocol *)

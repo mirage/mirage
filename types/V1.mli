@@ -385,6 +385,7 @@ module type TCPV4 = sig
   type buffer
   type ipv4
   type ipv4addr
+  type ipv4input
   type flow
 
   (** IO operation errors *)
@@ -409,9 +410,7 @@ module type TCPV4 = sig
   val create_connection : t -> ipv4addr * int ->
     [ `Ok of flow | `Error of error ] io
 
-  val input: t -> 
-    listeners:(int -> (flow -> unit io) option) ->
-    src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+  val input: t -> listeners:(int -> (flow -> unit io) option) -> ipv4input
 end
 
 (** Type of a buffered byte-stream network protocol *)

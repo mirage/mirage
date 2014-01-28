@@ -6,6 +6,73 @@ let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
 let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
 let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
 
+let handler : 
+  type c s .
+  (module V1_LWT.CONSOLE with type t=c) -> 
+  (module V1_LWT.STACKV4 with type t=s) -> 
+  c -> s -> unit Lwt.t =
+
+  fun (module C) (module S) console s ->
+
+    let module T = S.TCPV4 in
+    S.listen_udpv4 s 53 (
+      fun ~src ~dst ~src_port buf ->
+        C.log_s console "got udp on 53"
+    );
+    S.listen_tcpv4 s 80 (
+      fun flow ->
+        let dst, dst_port = T.get_dest flow in
+        C.log_s console (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
+        >>= fun () ->
+        T.read flow
+        >>= function
+        | `Ok b ->
+          C.log_s console (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
+          >>= fun () ->
+          T.close flow
+        | `Eof -> C.log_s console (red "read: eof")
+        | `Error e -> C.log_s console (red "read: error")
+    );
+    S.listen s
+
+(* 
+type 'a c = {
+  mc: (module V1_LWT.CONSOLE with type t = 'a);
+  vc: 'a
+}
+type 'a s = {
+  ms: (module V1_LWT.STACKV4 with type t = 'a);
+  vs: 'a
+}
+
+let handlerx c s =
+   let module S = (val s.ms) in
+   let module C = (val c.mc) in
+   let s = s.vc in
+   let console = c.vs in
+
+    let module T = S.TCPV4 in
+    S.listen_udpv4 s 53 (
+      fun ~src ~dst ~src_port buf ->
+        C.log_s console "got udp on 53"
+    );
+    S.listen_tcpv4 s 80 (
+      fun flow ->
+        let dst, dst_port = T.get_dest flow in
+        C.log_s console (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
+        >>= fun () ->
+        T.read flow
+        >>= function
+        | `Ok b ->
+          C.log_s console (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
+          >>= fun () ->
+          T.close flow
+        | `Eof -> C.log_s console (red "read: eof")
+        | `Error e -> C.log_s console (red "read: error")
+    );
+    S.listen s
+*)
+
 module Direct (C: CONSOLE) (N: NETWORK) = struct
 
   module E = Ethif.Make(N)
@@ -20,33 +87,14 @@ module Direct (C: CONSOLE) (N: NETWORK) = struct
       console;
       interface;
       mode=`IPv4 (
-        Ipaddr.V4.of_string_exn "10.0.0.2",
-        Ipaddr.V4.of_string_exn "255.255.255.0",
-        [Ipaddr.V4.of_string_exn "10.0.0.1"]) 
+          Ipaddr.V4.of_string_exn "10.0.0.2",
+          Ipaddr.V4.of_string_exn "255.255.255.0",
+          [Ipaddr.V4.of_string_exn "10.0.0.1"]) 
     } in
     S.connect config 
     >>= function
     | `Error err -> fail (Failure "Error")
-    | `Ok s ->
-       S.listen_udpv4 s 53 (
-         fun ~src ~dst ~src_port buf ->
-           C.log_s console "got udp on 53"
-       );
-       S.listen_tcpv4 s 80 (
-         fun flow ->
-           let dst, dst_port = T.get_dest flow in
-           C.log_s console (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
-           >>= fun () ->
-           T.read flow
-           >>= function
-           | `Ok b ->
-             C.log_s console (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
-             >>= fun () ->
-             T.close flow
-           | `Eof -> C.log_s console (red "read: eof")
-           | `Error e -> C.log_s console (red "read: error")
-       );
-       S.listen s
+    | `Ok s -> handler (module C) (module S) console s
 end
 
 module Socket (C: CONSOLE) = struct
@@ -64,24 +112,5 @@ module Socket (C: CONSOLE) = struct
     S.connect config
     >>= function
     | `Error err -> fail (Failure "Error")
-    | `Ok s ->
-       S.listen_udpv4 s 53 (
-         fun ~src ~dst ~src_port buf ->
-           C.log_s console "got udp on 53"
-       );
-       S.listen_tcpv4 s 80 (
-         fun flow ->
-           let dst, dst_port = T.get_dest flow in
-           C.log_s console (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
-           >>= fun () ->
-           T.read flow
-           >>= function
-           | `Ok b ->
-             C.log_s console (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
-             >>= fun () ->
-             T.close flow
-           | `Eof -> C.log_s console (red "read: eof")
-           | `Error e -> C.log_s console (red "read: error")
-       );
-       S.listen s
+    | `Ok s -> handler (module C) (module S) console s
 end

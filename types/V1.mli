@@ -16,53 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module type TIME = sig
-  (** Time operations for cooperative threads. *)
-
-  type +'a io
-  (** A potentially blocking I/O operation *)
-
-  val sleep: float -> unit io
-  (** [sleep nsec] Block the current thread for [TODO remove float] *)
-end
-
-module type RANDOM = sig
-  (** Operations to generate entropy *)
-
-  (* TODO state handle, and blocking. Use Cryptokit? *)
-  val self_init : unit -> unit
-  val int : int -> int
-  val int32 : int32 -> int32
-
-end
-
-module type CLOCK = sig
-  (** Clock operations.
-      Currently read-only to retrieve the time in various formats. *)
-
-  type tm =
-    { tm_sec : int;               (** Seconds 0..60 *)
-      tm_min : int;               (** Minutes 0..59 *)
-      tm_hour : int;              (** Hours 0..23 *)
-      tm_mday : int;              (** Day of month 1..31 *)
-      tm_mon : int;               (** Month of year 0..11 *)
-      tm_year : int;              (** Year - 1900 *)
-      tm_wday : int;              (** Day of week (Sunday is 0) *)
-      tm_yday : int;              (** Day of year 0..365 *)
-      tm_isdst : bool;            (** Daylight time savings in effect *)
-    }
-  (** The type representing wallclock time and calendar date. *)
-
-  val time : unit -> float
-  (** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in
-      seconds. *)
-
-  val gmtime : float -> tm
-  (** Convert a time in seconds, as returned by {!time}, into a
-      date and a time. Assumes UTC (Coordinated Universal Time), also
-      known as GMT. *)
-end
-
 module type DEVICE = sig
   (** Device operations.
       Defines the functions to connect and disconnect any device *)
@@ -92,91 +45,129 @@ module type DEVICE = sig
       time to complete, it can never result in an error. *)
 end
 
-module type KV_RO = sig
-  (** Static Key/value store. *)
+module type TIME = sig
+  (** Time operations for cooperative threads. *)
 
-  type error =
-    | Unknown_key of string
+  type +'a io
+  (** A potentially blocking I/O operation *)
 
-  include DEVICE
-    with type error := error
-
-  (** Abstract type for a page-aligned memory buffer *)
-  type page_aligned_buffer
-
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
-  (** [read t key offset length] reads up to [length] bytes from the value
-      associated with [key]. If less data is returned than requested, this
-      indicates the end of the value. *)
-
-  val size: t -> string -> [`Error of error | `Ok of int64] io
-  (** Get the value size. *)
-
+  val sleep: float -> unit io
+  (** [sleep nsec] Block the current thread for [TODO remove float] *)
 end
 
-(** Text console input/output operations. *)
+module type RANDOM = sig
+  (** Operations to generate entropy.  This is currently a passthrough to
+      the OCaml Random generator, and will be deprecated in V2 and turned
+      into a proper DEVICE with blocking modes. *)
+
+  val self_init : unit -> unit
+  (** Initialize the generator with a random seed chosen in a system-dependent way. *)
+
+  val int : int -> int
+  (** [int bound] returns a random integer between 0 (inclusive) and [bound] (exclusive).
+     [bound] must be greater than 0 and less than 2{^30}. *)
+
+  val int32 : int32 -> int32
+  (** [int32 bound] returns a random integer between 0 (inclusive) and [bound] (exclusive).
+      [bound] must be greater than 0. *)
+end
+
+module type CLOCK = sig
+  (** Clock operations.
+      Currently read-only to retrieve the time in various formats. *)
+
+  type tm =
+    { tm_sec : int;               (** Seconds 0..60 *)
+      tm_min : int;               (** Minutes 0..59 *)
+      tm_hour : int;              (** Hours 0..23 *)
+      tm_mday : int;              (** Day of month 1..31 *)
+      tm_mon : int;               (** Month of year 0..11 *)
+      tm_year : int;              (** Year - 1900 *)
+      tm_wday : int;              (** Day of week (Sunday is 0) *)
+      tm_yday : int;              (** Day of year 0..365 *)
+      tm_isdst : bool;            (** Daylight time savings in effect *)
+    }
+  (** The type representing wallclock time and calendar date. *)
+
+  val time : unit -> float
+  (** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in
+      seconds. *)
+
+  val gmtime : float -> tm
+  (** Convert a time in seconds, as returned by {!time}, into a
+      date and a time. Assumes UTC (Coordinated Universal Time), also
+      known as GMT. *)
+end
+
 module type CONSOLE = sig
+  (** Text console input/output operations. *)
+
   type error = [
     | `Invalid_console of string
   ]
+  (** The type representing possible errors when attaching a console. *)
 
   include DEVICE with
     type error := error
 
+  val write : t -> string -> int -> int -> int
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
       written. Raises {!Invalid_argument} if [len > buf - off]. *)
-  val write : t -> string -> int -> int -> int
 
+  val write_all : t -> string -> int -> int -> unit io
   (** [write_all t buf off len] is a thread that writes [String.sub buf
       off len] to the console [t] and returns when done. Raises
       {!Invalid_argument} if [len > buf - off]. *)
-  val write_all : t -> string -> int -> int -> unit io
 
+  val log : t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written
       in one write operation to the console [t], then writes
       "\r\n" to it. *)
-  val log : t -> string -> unit
 
+  val log_s : t -> string -> unit io
   (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
-  val log_s : t -> string -> unit io
 
 end
 
 module type BLOCK = sig
+  (** Operations on sector-addressible block devices, usually used
+      for persistent storage *)
 
-  (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
-  (** IO operation errors *)
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Is_read_only      (** you cannot write to a read/only instance *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
+  (** IO operation errors *)
+
 
   include DEVICE with
     type error := error
 
-  (** Characteristics of the block device. Note some devices may be able
-      to make themselves bigger over time. *)
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
     sector_size: int;    (** Octets per sector *)
     size_sectors: int64; (** Total sectors per device *)
   }
+  (** Characteristics of the block device. Note some devices may be able
+      to make themselves bigger over time. *)
 
-  (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
+  (** Query the characteristics of a specific block device *)
 
+  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
   (** [read device sector_start buffers] returns a blocking IO operation which
       attempts to fill [buffers] with data starting at [sector_start].
       Each of [buffers] must be a whole number of sectors in length. The list
       of buffers can be of any length. *)
-  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
+  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
   (** [write device sector_start buffers] returns a blocking IO operation which
       attempts to write the data contained within [buffers] to [t] starting
       at [sector_start]. When the IO operation completes then all writes have been
@@ -197,27 +188,27 @@ module type BLOCK = sig
 
       The data will not be copied, so the supplied buffers must not be re-used
       until the IO operation completes. *)
-  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
 
 module type NETWORK = sig
+  (** A network interface that serves Ethernet frames. *)
 
-  (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
-  (** Abstract type for a memory buffer that may not be page aligned *)
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned *)
 
-  (** IO operation errors *)
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
+  (** IO operation errors *)
 
-  (** Unique MAC identifier for the device *)
   type macaddr
+  (** Unique MAC identifier for the device *)
 
   include DEVICE with
     type error := error
@@ -244,29 +235,37 @@ module type NETWORK = sig
     mutable tx_bytes : int64;
     mutable tx_pkts : int32;
   }
+  (** Frame statistics to track the usage of the device. *)
 
   val get_stats_counters : t -> stats
+  (** Obtain the most recent snapshot of the device statistics. *)
+
   val reset_stats_counters : t -> unit
+  (** Reset the statistics associated with this device to their defaults. *)
 end
 
 module type ETHIF = sig
+  (** An Ethernet stack that parses frames from a network device and
+      can associate them with IP address via ARP. *)
 
-  (** Abstract type for a memory buffer that may not be page aligned *)
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned *)
 
   type netif
+  (** Abstract type for an Ethernet network interface. *)
 
   type ipv4addr
+  (** Abstract type for an IPv4 address representation. *)
 
-  (** IO operation errors *)
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
+  (** IO operation errors *)
 
-  (** Unique MAC identifier for the device *)
   type macaddr
+  (** Unique MAC identifier for the device *)
 
   include DEVICE with
         type error := error
@@ -289,7 +288,12 @@ module type ETHIF = sig
       [disconnect] in the device layer. *)
 
   val query_arpv4 : t -> ipv4addr -> macaddr io
+  (** Query the association from an IPV4 address to a MAC address.
+      TODO: clarify if this task is guaranteed to be cancelable or not. *)
+
   val add_ipv4 : t -> ipv4addr -> unit io
+  (** Bind an IPv4 address to this interface, to be used when replying
+      to ARPv4 requests. *)
 end
 
 module type IPV4 = sig
@@ -544,6 +548,28 @@ module type IO_PAGE = sig
   val round_to_page_size : int -> int
   (** [round_to_page_size n] returns the number of bytes that will be
       allocated for storing [n] bytes in memory *)
+end
+
+module type KV_RO = sig
+  (** Static Key/value store. *)
+
+  type error =
+    | Unknown_key of string
+
+  include DEVICE
+    with type error := error
+
+  (** Abstract type for a page-aligned memory buffer *)
+  type page_aligned_buffer
+
+  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  (** [read t key offset length] reads up to [length] bytes from the value
+      associated with [key]. If less data is returned than requested, this
+      indicates the end of the value. *)
+
+  val size: t -> string -> [`Error of error | `Ok of int64] io
+  (** Get the value size. *)
+
 end
 
 

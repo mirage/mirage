@@ -92,12 +92,9 @@ type ('console, 'netif, 'mode) stackv4_config = {
   mode: 'mode;
 }
 
-type udpv4_callback = 
-  src:Ipaddr.V4.t -> dst:Ipaddr.V4.t -> src_port:int ->
-  Cstruct.t -> unit Lwt.t
-
 (** Single network stack *)
 module type STACKV4 = STACKV4
   with type 'a io = 'a Lwt.t
    and type ('a,'b,'c) config = ('a,'b,'c) stackv4_config
-   and type udpv4_callback = udpv4_callback
+   and type ipv4addr = Ipaddr.V4.t
+   and type buffer = Cstruct.t

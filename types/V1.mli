@@ -297,15 +297,23 @@ module type ETHIF = sig
 end
 
 module type IPV4 = sig
-  type buffer
-  type ethif
-  type ipaddr
+  (** An IPv4 stack that parses Ethernet frames into IPv4 packets *)
 
-  (** IO operation errors *)
+  type buffer
+  (** Abstract type for a memory buffer that may not be page aligned *)
+
+  type ethif
+  (** Abstract type for an Ethernet device. *)
+
+  type ipaddr
+  (** Abstract type for an IPv4 address.
+      TODO: should be ipv4addr for consistency with rest. *)
+
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
   ]
+  (** IO operation errors *)
 
   include DEVICE with
         type error := error
@@ -315,6 +323,10 @@ module type IPV4 = sig
     tcp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
     udp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) -> 
     t -> buffer -> unit io
+  (** [input ~tcp ~udp ip buf] demultiplexes an incoming [buffer]
+    that contains an IPv4 frame.  It examines the protocol header
+    and passes the result onto either the [tcp] or [udp] function.
+    TODO: add a [default] case also. *)
 
   val get_header:
     proto:[< `ICMP | `TCP | `UDP ] -> 
@@ -373,6 +385,8 @@ module type TCPV4 = sig
       type error := error
   and type id := ipv4
 
+  type callback = flow -> unit io
+
   val get_dest : flow -> ipv4addr * int
   val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
   val write : flow -> buffer -> unit io
@@ -384,16 +398,16 @@ module type TCPV4 = sig
   val create_connection : t -> ipv4addr * int ->
     [ `Ok of flow | `Error of error ] io
 
-  val input: t -> listeners:(int -> (flow -> unit io) option) -> ipv4input
+  val input: t -> listeners:(int -> callback option) -> ipv4input
 end
  
 module type STACKV4 = sig
   type console
   type netif
   type mode
-  type udpv4_callback
-  type tcpv4_callback
   type ('console,'netif,'mode) config
+  type ipv4addr
+  type buffer
 
   type error = [
     | `Unknown of string
@@ -403,8 +417,11 @@ module type STACKV4 = sig
     type error := error
     and type id = (console,netif,mode) config
 
-  val listen_udpv4 : t -> port:int -> udpv4_callback -> unit
-  val listen_tcpv4 : t -> port:int -> tcpv4_callback -> unit
+  module UDPV4 : UDPV4 with type +'a io = 'a io and type ipv4addr = ipv4addr and type buffer = buffer
+  module TCPV4 : TCPV4 with type +'a io = 'a io and type ipv4addr = ipv4addr and type buffer = buffer
+
+  val listen_udpv4 : t -> port:int -> UDPV4.callback -> unit
+  val listen_tcpv4 : t -> port:int -> TCPV4.callback -> unit
   val listen : t -> unit io
 end
 

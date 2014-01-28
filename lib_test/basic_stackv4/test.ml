@@ -47,5 +47,41 @@ module Direct (C: CONSOLE) (N: NETWORK) = struct
            | `Error e -> C.log_s console (red "read: error")
        );
        S.listen s
+end
 
+module Socket (C: CONSOLE) = struct
+
+  module S = Tcpip_stack_socket.Make(C)
+  module T = Tcpv4_socket
+
+  let start console =
+    let config = {
+      V1_LWT.name="teststack";
+      console;
+      interface=[Ipaddr.V4.any];
+      mode=()
+    } in
+    S.connect config
+    >>= function
+    | `Error err -> fail (Failure "Error")
+    | `Ok s ->
+       S.listen_udpv4 s 53 (
+         fun ~src ~dst ~src_port buf ->
+           C.log_s console "got udp on 53"
+       );
+       S.listen_tcpv4 s 80 (
+         fun flow ->
+           let dst, dst_port = T.get_dest flow in
+           C.log_s console (green "new tcp connection from %s %d" (Ipaddr.V4.to_string dst) dst_port)
+           >>= fun () ->
+           T.read flow
+           >>= function
+           | `Ok b ->
+             C.log_s console (yellow "read: %d\n%s" (Cstruct.len b) (Cstruct.to_string b))
+             >>= fun () ->
+             T.close flow
+           | `Eof -> C.log_s console (red "read: eof")
+           | `Error e -> C.log_s console (red "read: error")
+       );
+       S.listen s
 end

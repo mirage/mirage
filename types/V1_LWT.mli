@@ -81,7 +81,7 @@ type socket_stack_config =
   Ipaddr.V4.t list
 
 type direct_stack_config = [
-    `DHCP 
+    `DHCP
   | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
 ]
 

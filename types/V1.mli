@@ -16,50 +16,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module type IO_PAGE = sig
-  (** Memory allocation interface. *)
+module type TIME = sig
+  (** Time operations for cooperative threads. *)
 
-  type buf
-  (** Type of a C buffer (usually Cstruct) *)
+  type +'a io
+  (** A potentially blocking I/O operation *)
 
-  type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-  (** Type of memory blocks. *)
+  val sleep: float -> unit io
+  (** [sleep nsec] Block the current thread for [TODO remove float] *)
+end
 
-  val get : int -> t
-  (** [get n] allocates and returns a memory block of [n] pages. If
-      there is not enough memory, the unikernel will terminate. *)
+module type RANDOM = sig
+  (** Operations to generate entropy *)
 
-  val get_order : int -> t
-  (** [get_order i] is [get (1 lsl i)]. *)
+  (* TODO state handle, and blocking. Use Cryptokit? *)
+  val self_init : unit -> unit
+  val int : int -> int
+  val int32 : int32 -> int32
 
-  val pages : int -> t list
-  (** [pages n] allocates a memory block of [n] pages and return the the
-      list of pages allocated. *)
-
-  val pages_order : int -> t list
-  (** [pages_order i] is [pages (1 lsl i)]. *)
-
-  val length : t -> int
-  (** [length t] is the size of [t], in bytes. *)
-
-  val to_cstruct : t -> buf
-  val to_string : t -> string
-
-  val to_pages : t -> t list
-  (** [to_pages t] is a list of [size] memory blocks of one page each,
-      where [size] is the size of [t] in pages. *)
-
-  val string_blit : string -> int -> t -> int -> int -> unit
-  (** [string_blit src srcoff dst dstoff len] copies [len] bytes from
-      string [src], starting at byte number [srcoff], to memory block
-      [dst], starting at byte number dstoff. *)
-
-  val blit : t -> t -> unit
-  (** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)
-
-  val round_to_page_size : int -> int
-  (** [round_to_page_size n] returns the number of bytes that will be
-      allocated for storing [n] bytes in memory *)
 end
 
 module type CLOCK = sig
@@ -88,18 +62,6 @@ module type CLOCK = sig
       date and a time. Assumes UTC (Coordinated Universal Time), also
       known as GMT. *)
 end
-
-module type TIME = sig
-  type +'a io
-  val sleep: float -> unit io
-end
-
-module type RANDOM = sig
-  val self_init : unit -> unit
-  val int : int -> int
-  val int32 : int32 -> int32
-end
-
 
 module type DEVICE = sig
   (** Device operations.
@@ -537,3 +499,51 @@ module type FS = sig
   val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
 
 end
+
+module type IO_PAGE = sig
+  (** Memory allocation interface. *)
+
+  type buf
+  (** Type of a C buffer (usually Cstruct) *)
+
+  type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  (** Type of memory blocks. *)
+
+  val get : int -> t
+  (** [get n] allocates and returns a memory block of [n] pages. If
+      there is not enough memory, the unikernel will terminate. *)
+
+  val get_order : int -> t
+  (** [get_order i] is [get (1 lsl i)]. *)
+
+  val pages : int -> t list
+  (** [pages n] allocates a memory block of [n] pages and return the the
+      list of pages allocated. *)
+
+  val pages_order : int -> t list
+  (** [pages_order i] is [pages (1 lsl i)]. *)
+
+  val length : t -> int
+  (** [length t] is the size of [t], in bytes. *)
+
+  val to_cstruct : t -> buf
+  val to_string : t -> string
+
+  val to_pages : t -> t list
+  (** [to_pages t] is a list of [size] memory blocks of one page each,
+      where [size] is the size of [t] in pages. *)
+
+  val string_blit : string -> int -> t -> int -> int -> unit
+  (** [string_blit src srcoff dst dstoff len] copies [len] bytes from
+      string [src], starting at byte number [srcoff], to memory block
+      [dst], starting at byte number dstoff. *)
+
+  val blit : t -> t -> unit
+  (** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)
+
+  val round_to_page_size : int -> int
+  (** [round_to_page_size n] returns the number of bytes that will be
+      allocated for storing [n] bytes in memory *)
+end
+
+

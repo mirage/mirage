@@ -1,7 +1,6 @@
-open Mirage_types.V1
 open Lwt
 
-module Main (C: CONSOLE) (F: FS) = struct
+module Main (C: V1_LWT.CONSOLE) (F: V1_LWT.FS) = struct
 
   let start c fs =
     F.listdir fs "/" >>= function

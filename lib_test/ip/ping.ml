@@ -1,15 +1,23 @@
-open Mirage_types.V1
+open Lwt
 
-(* XXX: we don't have yet NET types in mirage-types *)
-module type MANAGER = module type of Net.Manager
+let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
+let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
+let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
+let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
 
-module Main (C: CONSOLE) (M: MANAGER) = struct
+module Main (C: V1_LWT.CONSOLE) (N: V1_LWT.NETWORK) = struct
 
-  let start c ip =
-    ip (fun ip ->
-        while_lwt true do
-          C.log c "Still alive!";
-          OS.Time.sleep 1.
-        done)
+  module E = Ethif.Make(N)
+
+  let start c net =
+    E.connect net >>= function
+    |`Error _ -> C.log_s c (red "Ethif error")
+    |`Ok eth  ->
+      N.listen net (
+        E.input
+          ~ipv4:(fun _ -> C.log_s c (blue "ipv4"))
+          ~ipv6:(fun b -> C.log_s c (yellow "ipv6"))
+          eth
+      )
 
 end

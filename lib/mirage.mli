@@ -147,7 +147,7 @@ val network: network typ
 val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
-val custom_network: string -> network impl
+val netif: string -> network impl
 (** A custom network interface. *)
 
 
@@ -155,10 +155,10 @@ val custom_network: string -> network impl
 (** {2 Ethernet configuration} *)
 
 (** Implementations of the [V1.ETHIF] signature. *)
-
+(* XXX: is that meaningful to expose this level ? *)
 type ethernet
 val ethernet : ethernet typ
-val create_ethernet: network impl -> ethernet impl
+val etif: network impl -> ethernet impl
 
 
 
@@ -179,10 +179,10 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
-val create_ipv4: ethernet impl -> ipv4_config -> ipv4 impl
+val create_ipv4: network impl -> ipv4_config -> ipv4 impl
 (** Use an IPv4 address. *)
 
-val default_ipv4: ethernet impl -> ipv4 impl
+val default_ipv4: network impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
     - address: 10.0.0.2
     - netmask: 255.255.255.0
@@ -218,8 +218,8 @@ val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 type stackv4
 val stackv4: stackv4 typ
-val direct_stackv4: console impl -> ethernet impl -> ipv4_config -> stackv4 impl
-val direct_stackv4_with_dhcp: console impl -> ethernet impl -> stackv4 impl
+val direct_stackv4_with_default_ipv4: console impl -> network impl -> stackv4 impl
+val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
 val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
 
@@ -390,6 +390,7 @@ module Network: CONFIGURABLE with type t = network_config
 (** Implementation of network configuration. *)
 
 module Ethif: CONFIGURABLE with type t = network impl
+
 module IPV4: CONFIGURABLE with type t = ethernet impl * ipv4_config
 
 module UDPV4_direct: CONFIGURABLE with type t = ipv4 impl
@@ -398,9 +399,14 @@ module UDPV4_socket: CONFIGURABLE with type t = Ipaddr.V4.t option
 module TCPV4_direct: CONFIGURABLE with type t = ipv4 impl
 module TCPV4_socket: CONFIGURABLE with type t =Ipaddr.V4.t option
 
-module STACKV4_direct_with_DHCP: CONFIGURABLE with type t = console impl * ethernet impl
-module STACKV4_direct: CONFIGURABLE with type t = console impl * ethernet impl * ipv4_config
-module STACKV4_socket: CONFIGURABLE with type t = console impl * Ipaddr.V4.t list
+module STACKV4_direct_with_DHCP: CONFIGURABLE with
+  type t = console impl * network impl
+
+module STACKV4_direct: CONFIGURABLE with
+  type t = console impl * network impl * ipv4_config
+
+module STACKV4_socket: CONFIGURABLE with
+  type t = console impl * Ipaddr.V4.t list
 
 module Job: CONFIGURABLE
 

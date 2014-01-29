@@ -272,7 +272,8 @@ module Impl = struct
 
   let rec update_path: type a. a impl -> string -> a impl =
     fun t root -> match t with
-      | Impl b     -> let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
+      | Impl b     ->
+        let module M = (val b.m) in Impl { b with t = M.update_path b.t root }
       | Foreign _  -> t
       | App {f; x} -> App { f = update_path f root; x = update_path x root }
 
@@ -754,21 +755,18 @@ module Ethif = struct
     String.capitalize (name t)
 
   let packages t =
-    Impl.packages t @
-    match !mode with
-    | `Unix -> [ "mirage-tcpip-unix" ]
-    | `Xen  -> [ "mirage-tcpip-xen" ]
+    Impl.packages t @ [ "mirage-tcpip" ]
 
   let libraries t =
     Impl.libraries t @
     match !mode with
-    | `Unix -> [ "mirage-tcpip.ethif-unix" ]
-    | `Xen  -> [ "mirage-tcpip.ethif-xen" ]
+    | `Unix -> [ "tcpip.ethif-unix" ]
+    | `Xen  -> [ "tcpip.ethif" ]
 
   let configure t =
     let name = name t in
     Impl.configure t;
-    append_main "module %s = Ethif(%s)" (module_name t) (Impl.module_name t);
+    append_main "module %s = Ethif.Make(%s)" (module_name t) (Impl.module_name t);
     newline_main ();
     append_main "let %s () =" name;
     append_main "   %s () >>= function" (Impl.name t);
@@ -794,7 +792,7 @@ let create_ethernet network =
 type ipv4_config = {
   address: Ipaddr.V4.t;
   netmask: Ipaddr.V4.t;
-  gateway: Ipaddr.V4.t list;
+  gateways: Ipaddr.V4.t list;
 }
 
 let meta_ipv4_config t =
@@ -803,15 +801,61 @@ let meta_ipv4_config t =
     (Ipaddr.V4.to_string t.netmask)
     (String.concat "; "
        (List.map (Printf.sprintf "Ipaddr.V4.of_string_exn %S")
-          (List.map Ipaddr.V4.to_string t.gateway)))
+          (List.map Ipaddr.V4.to_string t.gateways)))
 
 module IPV4 = struct
-
-  include TODO(struct let name = "IPV4" end)
 
   type t = ethernet impl * ipv4_config
   (* XXX: should the type if ipv4.id be ipv4.t ?
      N.connect ethif |> N.set_ip up *)
+
+
+  let name (e, i) =
+    let key = "ipv4" ^ Impl.name e ^ meta_ipv4_config i in
+    Name.of_key key ~base:"ipv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages (t, _) =
+    Impl.packages t @ [ "mirage-tcpip" ]
+
+  let libraries (t, _) =
+    Impl.libraries t @
+    match !mode with
+    | `Unix -> [ "tcpip.ipv4-unix" ]
+    | `Xen  -> [ "tcpip.ipv4" ]
+
+  let configure (eth, ip as t) =
+    let name = name t in
+    let mname = module_name t in
+    Impl.configure eth;
+    append_main "module %s = Ipv4.Make(%s)" (module_name t) (Impl.module_name eth);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "   %s () >>= function" (Impl.name eth);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   | `Ok eth  ->";
+    append_main "   %s.connect eth >>= fun ip ->" mname;
+    append_main "   let i = Ipaddr.V4.of_string_exn in";
+    append_main "   %.set_ip ip (i %S) >>= fun () ->"
+      mname (Ipaddr.V4.to_string ip.address);
+    append_main "   %.set_netmask ip (i %S) >>= fun () ->"
+      mname (Ipaddr.V4.to_string ip.netmask);
+    append_main "   %s.set_gateways ip [%s] >>= fun () ->"
+      mname
+      (String.concat "; "
+         (List.map
+            (fun n -> Printf.sprintf "(i %S)" (Ipaddr.V4.to_string n))
+            ip.gateways));
+    append_main "    %s.connect ip" mname;
+    newline_main ()
+
+  let clean (eth, _) =
+    Impl.clean eth
+
+  let update_path (eth, ip) root =
+    (Impl.update_path eth root, ip)
 
 end
 
@@ -825,25 +869,78 @@ let create_ipv4 ethif ip =
 let default_ipv4 ethif =
   let i = Ipaddr.V4.of_string_exn in
   let ip = {
-    address = i "10.0.0.2";
-    netmask = i "255.255.255.0";
-    gateway = [i "10.0.0.1"];
+    address  = i "10.0.0.2";
+    netmask  = i "255.255.255.0";
+    gateways = [i "10.0.0.1"];
   } in
   create_ipv4 ethif ip
 
 module UDPV4_direct = struct
 
-  include TODO(struct let name = "UDPV4_direct" end)
-
   type t = ipv4 impl
+
+  let name t =
+    Name.of_key ("udpv4" ^ Impl.name t) ~base:"udpv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    Impl.packages t @ [ "mirage-tcpip" ]
+
+  let libraries t =
+    Impl.libraries t @ [ "tcpip.udpv4" ]
+
+  let configure t =
+    let name = name t in
+    Impl.configure t;
+    append_main "module %s = Udpv4.Make(%s)" (module_name t) (Impl.module_name t);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "   %s () >>= function" (Impl.name t);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   | `Ok ip   -> %s.connect ip" (module_name t);
+    newline_main ()
+
+  let clean t =
+    Impl.clean t
+
+  let update_path t root =
+    Impl.update_path t root
 
 end
 
 module UDPV4_socket = struct
 
-  include TODO(struct let name = "UDPV4_socket" end)
-
   type t = Ipaddr.V4.t option
+
+  let name _ = "udpv4_socket"
+
+  let module_name _ = "Udpv4_socket"
+
+  let packages t =
+    [ "mirage-tcpip" ]
+
+  let libraries t =
+    match !mode with
+    | `Unix -> [ "tcpip.udpv4-socket" ]
+    | `Xen  -> failwith "No socket implementation available for Xen"
+
+  let configure t =
+    append_main "let %s () =" (name t);
+    let ip = match t with
+      | None    -> "None"
+      | Some ip ->
+        Printf.sprintf "Some (Ipaddr.V4.of_string_exn %s)" (Ipaddr.V4.to_string ip)
+    in
+    append_main " %s.connect %S" (module_name t) ip;
+    newline_main ()
+
+  let clean t =
+    ()
+
+  let update_path t root =
+    t
 
 end
 
@@ -859,17 +956,71 @@ let socket_udpv4 ip =
 
 module TCPV4_direct = struct
 
-  include TODO(struct let name = "TCPV4_direct" end)
-
   type t = ipv4 impl
+
+  let name t =
+    Name.of_key ("tcpv4" ^ Impl.name t) ~base:"tcpv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    Impl.packages t @ [ "mirage-tcpip" ]
+
+  let libraries t =
+    Impl.libraries t @ [ "tcpip.tcpv4" ]
+
+  let configure t =
+    let name = name t in
+    Impl.configure t;
+    append_main "module %s = Tcpv4.Flow.Make(%s)(OS.Time)(Clock)(Random)"
+      (module_name t) (Impl.module_name t);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "   %s () >>= function" (Impl.name t);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   | `Ok ip   -> %s.connect ip" (module_name t);
+    newline_main ()
+
+  let clean t =
+    Impl.clean t
+
+  let update_path t root =
+    Impl.update_path t root
 
 end
 
 module TCPV4_socket = struct
 
-  include TODO(struct let name = "TCPV4_socket" end)
-
   type t = Ipaddr.V4.t option
+
+  let name _ = "tcpv4_socket"
+
+  let module_name _ = "Tcpv4_socket"
+
+  let packages t =
+    [ "mirage-tcpip" ]
+
+  let libraries t =
+    match !mode with
+    | `Unix -> [ "tcpip.tcpv4-socket" ]
+    | `Xen  -> failwith "No socket implementation available for Xen"
+
+  let configure t =
+    append_main "let %s () =" (name t);
+    let ip = match t with
+      | None    -> "None"
+      | Some ip ->
+        Printf.sprintf "Some (Ipaddr.V4.of_string_exn %s)" (Ipaddr.V4.to_string ip)
+    in
+    append_main "  %s.connect %S" (module_name t) ip;
+    newline_main ()
+
+  let clean t =
+    ()
+
+  let update_path t root =
+    t
 
 end
 
@@ -885,25 +1036,154 @@ let socket_tcpv4 ip =
 
 module STACKV4_direct_with_DHCP = struct
 
-  include TODO(struct let name = "TCPV4_direct_with_DHCP" end)
-
   type t = console impl * ethernet impl
+
+  let name (c, e) =
+    let key = "stackv4" ^ Impl.name c ^ Impl.name e in
+    Name.of_key key ~base:"stackv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages (c, e) =
+    Impl.packages c @ Impl.packages e @ [ "mirage-tcpip" ]
+
+  let libraries (c, e) =
+    Impl.libraries c @ Impl.libraries e @ [ "tcpip.stack-direct" ]
+
+  let configure (c, e as t) =
+    let name = name t in
+    Impl.configure c;
+    Impl.configure e;
+    append_main "module %s =" (module_name t);
+    append_main "  let module E = Ethif.Make(%s) in" (Impl.module_name e);
+    append_main "  let module I = Ipv4.Make(E) in";
+    append_main "  let module U = Udpv4.Make(I) in";
+    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random) in";
+    append_main "  Stack_direct.Make(%s)(OS.Time)(Random)(N)(E)(I)(U)(T)"
+      (Impl.module_name c);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name c);
+    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  | `Ok console ->";
+    append_main "  %s () >>= function" (Impl.name e);
+    append_main "  | `Error _      -> %s" (driver_initialisation_error (Impl.name e));
+    append_main "  | `Ok interface ->";
+    append_main "  let config = {";
+    append_main "    V1_LWT.name = %S;" name;
+    append_main "    console; interface; mode = `DHCP";
+    append_main "  } in";
+    append_main "  %s.connect config" (module_name t);
+    newline_main ()
+
+  let clean (c, e) =
+    Impl.clean c;
+    Impl.clean e
+
+  let update_path (c, e) root =
+    (Impl.update_path c root,
+     Impl.update_path e root)
 
 end
 
 module STACKV4_direct = struct
 
-  include TODO(struct let name = "TCPV4_direct" end)
-
   type t = console impl * ethernet impl * ipv4_config
+
+  let name (c, e, ip) =
+    let key = "stackv4" ^ Impl.name c ^ Impl.name e ^ meta_ipv4_config ip in
+    Name.of_key key ~base:"stackv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages (c, e, _) =
+    Impl.packages c @ Impl.packages e @ [ "mirage-tcpip" ]
+
+  let libraries (c, e, _) =
+    Impl.libraries c @ Impl.libraries e @ [ "tcpip.stack-direct" ]
+
+  let configure (c, e, ip as t) =
+    let name = name t in
+    Impl.configure c;
+    Impl.configure e;
+    append_main "module %s =" (module_name t);
+    append_main "  let module E = Ethif.Make(%s) in" (Impl.module_name e);
+    append_main "  let module I = Ipv4.Make(E) in";
+    append_main "  let module U = Udpv4.Make(I) in";
+    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random) in";
+    append_main "  Stack_direct.Make(%s)(OS.Time)(Random)(N)(E)(I)(U)(T)"
+      (Impl.module_name c);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name c);
+    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  | `Ok console ->";
+    append_main "  %s () >>= function" (Impl.name e);
+    append_main "  | `Error _      -> %s" (driver_initialisation_error (Impl.name e));
+    append_main "  | `Ok interface ->";
+    append_main "  let config = {";
+    append_main "    V1_LWT.name = %S;" name;
+    append_main "    console; interface;";
+    append_main "    mode = `IPv4 %s" (meta_ipv4_config ip);
+    append_main "  } in";
+    append_main "  %s.connect config" (module_name t);
+    newline_main ()
+
+  let clean (c, e, _) =
+    Impl.clean c;
+    Impl.clean e
+
+  let update_path (c, e, ip) root =
+    (Impl.update_path c root,
+     Impl.update_path e root,
+     ip)
 
 end
 
 module STACKV4_socket = struct
 
-  include TODO(struct let name = "TCPV4_socket" end)
-
   type t = console impl * Ipaddr.V4.t list
+
+  let meta_ips ips =
+    String.concat "; " (List.map Ipaddr.V4.to_string ips)
+
+  let name (c, ips) = let key = "stackv4" ^ Impl.name c ^ meta_ips ips in
+    Name.of_key key ~base:"stackv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages (c, _) =
+    Impl.packages c @ [ "mirage-tcpip" ]
+
+  let libraries (c, _) =
+    Impl.libraries c @ [ "tcpip.stack-direct" ]
+
+  let configure (c, ips as t) =
+    let name = name t in
+    Impl.configure c;
+    append_main "module %s = Tcpip_stack_socket.Make(%s)"
+      (module_name t) (Impl.module_name c);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name c);
+    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  | `Ok console ->";
+    append_main "  let config = {";
+    append_main "    V1_LWT.name = %S;" name;
+    append_main "    console; interface = [%s];" (meta_ips ips);
+    append_main "    mode = ();";
+    append_main "  } in";
+    append_main "  %s.connect config" (module_name t);
+    newline_main ()
+
+  let clean (c, _) =
+    Impl.clean c
+
+  let update_path (c, ips) root =
+    (Impl.update_path c root, ips)
 
 end
 

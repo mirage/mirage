@@ -175,7 +175,7 @@ val ipv4: ipv4 typ
 type ipv4_config = {
   address: Ipaddr.V4.t;
   netmask: Ipaddr.V4.t;
-  gateway: Ipaddr.V4.t list;
+  gateways: Ipaddr.V4.t list;
 }
 (** Types for IPv4 manual configuration. *)
 
@@ -186,7 +186,7 @@ val default_ipv4: ethernet impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
     - address: 10.0.0.2
     - netmask: 255.255.255.0
-    - gateway: 10.0.0.1 *)
+    - gateways: [10.0.0.1] *)
 
 
 

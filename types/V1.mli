@@ -321,7 +321,7 @@ module type IPV4 = sig
 
   val input:
     tcp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
-    udp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) -> 
+    udp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
     t -> buffer -> unit io
   (** [input ~tcp ~udp ip buf] demultiplexes an incoming [buffer]
     that contains an IPv4 frame.  It examines the protocol header
@@ -329,7 +329,7 @@ module type IPV4 = sig
     TODO: add a [default] case also. *)
 
   val get_header:
-    proto:[< `ICMP | `TCP | `UDP ] -> 
+    proto:[< `ICMP | `TCP | `UDP ] ->
     dest_ip:ipaddr -> t -> (buffer * int) io
 
   val write: t -> buffer -> buffer -> unit io
@@ -400,7 +400,7 @@ module type TCPV4 = sig
 
   val input: t -> listeners:(int -> callback option) -> ipv4input
 end
- 
+
 module type STACKV4 = sig
   type console
   type netif
@@ -589,5 +589,3 @@ module type KV_RO = sig
   (** Get the value size. *)
 
 end
-
-

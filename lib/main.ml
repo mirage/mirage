@@ -41,16 +41,12 @@ let xen =
   mk_flag ["xen"] "Generate a Xen unikernel. Do not use in conjunction with --unix-*."
 let unix =
   mk_flag ["unix"] "Use unix-direct backend. Do not use in conjunction with --xen."
-let socket =
-  mk_flag ["socket"] "Use networking socket backend. Do not use in conjunction with --xen."
 (* Select the operating mode from command line flags *)
-let mode unix xen socket =
-  match xen,unix,socket with
-  | true , true , _     -> failwith "Cannot specify --unix and --xen together."
-  | true , _    , true  -> failwith "Cannot specify --xen and --socket together."
-  | true , false, false -> `Xen
-  | false, _    , true  -> `Unix `Socket
-  | false, _    , false -> `Unix `Direct
+let mode unix xen =
+  match xen,unix with
+  | true , true  -> failwith "Cannot specify --unix and --xen together."
+  | true , false -> `Xen
+  | false, _     -> `Unix
 
 let file =
   let doc = Arg.info ~docv:"FILE"
@@ -68,14 +64,14 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen socket no_opam file =
+  let configure unix xen no_opam file =
     if unix && xen then `Help (`Pager, Some "configure")
     else
       let t = Mirage.load file in
       Mirage.manage_opam_packages (not no_opam);
-      Mirage.set_mode (mode unix xen socket);
+      Mirage.set_mode (mode unix xen);
       `Ok (Mirage.configure t) in
-  Term.(ret (pure configure $ unix $ xen $ socket $ no_opam $ file)),
+  Term.(ret (pure configure $ unix $ xen $ no_opam $ file)),
   term_info "configure" ~doc ~man
 
 (* BUILD *)

@@ -21,7 +21,9 @@
     which are used by the various mirage libraries to implement a
     large collection of devices. *)
 
-(** {1 Module combinators} *)
+
+
+(** {2 Module combinators} *)
 
 type 'a typ
 (** The type of values representing module types. *)
@@ -53,13 +55,17 @@ val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ
 val typ: 'a impl -> 'a typ
 (** Return the module signature of a given implementation. *)
 
+
+
 (** {2 Consoles} *)
+
+(** Implementations of the [V1.CONSOLE] signature. *)
 
 type console
 (** Abstract type for consoles. *)
 
 val console: console typ
-(** Representation of [Mirage_types.CONSOLE]. *)
+(** The [V1.CONSOLE] module signature. *)
 
 val default_console: console impl
 (** Default console implementation. *)
@@ -67,13 +73,32 @@ val default_console: console impl
 val custom_console: string -> console impl
 (** Custom console implementation. *)
 
-(** {2 Filesystem configurations} *)
+
+
+(** {2 Block devices} *)
+
+(** Implementations of the [V1.BLOCK] signature. *)
+
+type block
+(** Abstract type for raw block device configurations. *)
+
+val block: block typ
+(** The [V1.BLOCK] module signature. *)
+
+val block_of_file: string -> block impl
+(** Use the given filen as a raw block device. *)
+
+
+
+(** {2 Static key/value stores} *)
+
+(** Implementations of the [V1.KV_RO] signature. *)
 
 type kv_ro
 (** Abstract type for read-only key/value store. *)
 
 val kv_ro: kv_ro typ
-(** Representation of [Mirage_types.KV_RO]. *)
+(** The [V1.KV_RO] module signature. *)
 
 val crunch: string -> kv_ro impl
 (** Crunch a directory. *)
@@ -82,20 +107,17 @@ val direct_kv_ro: string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value
     store. For Xen backends, this is equivalent to [crunch]. *)
 
-type block
-(** Abstract type for raw block device configurations. *)
 
-val block: block typ
-(** Representation of [Mirage_types.BLOCK]. *)
 
-val block_of_file: string -> block impl
-(** Use the given filen as a raw block device. *)
+(** {2 Filesystem} *)
+
+(** Implementations of the [V1.FS] signature. *)
 
 type fs
 (** Abstract type for filesystems. *)
 
 val fs: fs typ
-(** Representation of [Mirage_types.FS]. *)
+(** The [V1.FS] module signature. *)
 
 val fat: block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
@@ -110,7 +132,11 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value
     store. *)
 
+
+
 (** {2 Network interfaces} *)
+
+(** Implementations of the [V1.NETWORK] signature. *)
 
 type network
 (** Abstract type for network configurations. *)
@@ -121,46 +147,82 @@ val network: network typ
 val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
-val custom_network: string -> network impl
+val netif: string -> network impl
 (** A custom network interface. *)
 
-(** {2 IP configuration} *)
 
-type ip
+
+(** {2 Ethernet configuration} *)
+
+(** Implementations of the [V1.ETHIF] signature. *)
+(* XXX: is that meaningful to expose this level ? *)
+type ethernet
+val ethernet : ethernet typ
+val etif: network impl -> ethernet impl
+
+
+
+(** {2 IPV4 configuration. *)
+
+(** Implementations of the [V1.IPV4] signature. *)
+
+type ipv4
 (** Abstract type for IP configurations. *)
 
-val ip: ip typ
-(** Representation of [Mirage_net.IP] *)
+val ipv4: ipv4 typ
+(** The [V1.IPV4] module signature. *)
 
-type ipv4 = {
+type ipv4_config = {
   address: Ipaddr.V4.t;
   netmask: Ipaddr.V4.t;
-  gateway: Ipaddr.V4.t list;
+  gateways: Ipaddr.V4.t list;
 }
 (** Types for IPv4 manual configuration. *)
 
-val ipv4: ipv4 -> network impl list -> ip impl
+val create_ipv4: network impl -> ipv4_config -> ipv4 impl
 (** Use an IPv4 address. *)
 
-val default_ip: network impl list -> ip impl
+val default_ipv4: network impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
     - address: 10.0.0.2
     - netmask: 255.255.255.0
-    - gateway: 10.0.0.1 *)
+    - gateways: [10.0.0.1] *)
 
-val dhcp: network impl list -> ip impl
-(** Use DHCP. *)
 
-(** {2 HTTP configuration} *)
 
-type http
-(** Abstract type for http configurations. *)
+(** {UDPV4 configuration} *)
 
-val http: http typ
-(** Representation of [Cohttp.S]. *)
+(** Implementation of the [V1.UDPV4] signature. *)
 
-val http_server: int -> ip impl -> http impl
-(** Serve on the given port, with the given IP configuration. *)
+type udpv4
+val udpv4: udpv4 typ
+val direct_udpv4: ipv4 impl -> udpv4 impl
+val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
+
+
+
+(** {TCPV4 configuration} *)
+
+(** Implementation of the [V1.TCPV4] signature. *)
+
+type tcpv4
+val tcpv4: tcpv4 typ
+val direct_tcpv4: ipv4 impl -> tcpv4 impl
+val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
+
+
+
+(** {Network stack configuration} *)
+
+(** Implementation of the [V1.STACKV4] signature. *)
+
+type stackv4
+val stackv4: stackv4 typ
+val direct_stackv4_with_default_ipv4: console impl -> network impl -> stackv4 impl
+val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
+val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
+
+
 
 (** {2 Jobs} *)
 
@@ -188,7 +250,7 @@ val load: string option -> t
 (** {2 Device configuration} *)
 
 type mode = [
-  | `Unix of [ `Direct | `Socket ]
+  | `Unix
   | `Xen
 ]
 (** Configuration mode. *)
@@ -327,9 +389,24 @@ type network_config = Tap0 | Custom of string
 module Network: CONFIGURABLE with type t = network_config
 (** Implementation of network configuration. *)
 
-module IP: CONFIGURABLE
+module Ethif: CONFIGURABLE with type t = network impl
 
-module HTTP: CONFIGURABLE
+module IPV4: CONFIGURABLE with type t = ethernet impl * ipv4_config
+
+module UDPV4_direct: CONFIGURABLE with type t = ipv4 impl
+module UDPV4_socket: CONFIGURABLE with type t = Ipaddr.V4.t option
+
+module TCPV4_direct: CONFIGURABLE with type t = ipv4 impl
+module TCPV4_socket: CONFIGURABLE with type t =Ipaddr.V4.t option
+
+module STACKV4_direct_with_DHCP: CONFIGURABLE with
+  type t = console impl * network impl
+
+module STACKV4_direct: CONFIGURABLE with
+  type t = console impl * network impl * ipv4_config
+
+module STACKV4_socket: CONFIGURABLE with
+  type t = console impl * Ipaddr.V4.t list
 
 module Job: CONFIGURABLE
 

@@ -437,6 +437,7 @@ module type CHANNEL = sig
   exception Closed
 
   val create       : flow -> t
+  val to_flow      : t -> flow
 
   val read_char    : t -> char io
   val read_until   : t -> char -> (bool * buffer) io

@@ -15,6 +15,20 @@ let handler :
   fun (module C) (module S) console s ->
 
     let module T = S.TCPV4 in
+    let module CH = Channel.Make(T) in
+    let module H = HTTP.Make(CH) in
+
+    let http_callback conn_id ?body req =
+      let path = Uri.path (H.Server.Request.uri req) in
+      C.log_s console (Printf.sprintf "Got a request for %s\n" path) >>= fun () ->
+      H.Server.respond_string ~status:`OK ~body:"helllp" ()
+    in
+
+    let spec = {
+      H.Server.callback = http_callback;
+      conn_closed = fun _ () -> ();
+    } in
+
     S.listen_udpv4 s 53 (
       fun ~src ~dst ~src_port buf ->
         C.log_s console "got udp on 53"
@@ -33,6 +47,7 @@ let handler :
         | `Eof -> C.log_s console (red "read: eof")
         | `Error e -> C.log_s console (red "read: error")
     );
+    S.listen_tcpv4 s 8080 (H.Server.listen spec); 
     S.listen s
 
 (* 
@@ -79,7 +94,7 @@ module Direct (C: CONSOLE) (N: NETWORK) = struct
   module I = Ipv4.Make(E)
   module U = Udpv4.Make(I)
   module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random)
-  module S = Manager.Make(C)(OS.Time)(Random)(N)(E)(I)(U)(T)
+  module S = Tcpip_stack_direct.Make(C)(OS.Time)(Random)(N)(E)(I)(U)(T)
 
   let start console interface =
     let config = {

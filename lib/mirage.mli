@@ -223,6 +223,22 @@ val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
 val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
 
+(** {Channel configuration} *)
+
+(** Implementation of the [V1.CHANNEL] signature. *)
+
+type channel
+val channel: channel typ
+val channel_over_tcpv4: tcpv4 impl -> channel impl
+
+
+(** {HTTP configuration} *)
+
+type http
+val http: http typ
+val http_server_of_channel: channel impl -> http impl
+val http_server: int -> stackv4 impl -> http impl
+
 
 (** {2 Jobs} *)
 
@@ -404,6 +420,10 @@ module STACKV4_direct: CONFIGURABLE with
 
 module STACKV4_socket: CONFIGURABLE with
   type t = console impl * Ipaddr.V4.t list
+
+module Channel_over_TCPV4: CONFIGURABLE with type t = tcpv4 impl
+
+module HTTP: CONFIGURABLE with type t = [`Channel of channel impl | `Stack of int * stackv4 impl]
 
 module Job: CONFIGURABLE
 

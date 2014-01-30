@@ -21,10 +21,6 @@ let stack =
   | `Direct, false -> direct_stackv4_with_default_ipv4 default_console tap0
   | `Socket, _     -> socket_stackv4 default_console [Ipaddr.V4.any]
 
-let () = match net with
-  | `Direct -> add_to_ocamlfind_libraries ["tcpip.stack-direct"]
-  | `Socket -> add_to_ocamlfind_libraries ["tcpip.stack-socket"]
-
 let () =
   add_to_opam_packages ["mirage-http"];
   add_to_ocamlfind_libraries ["mirage-http"];

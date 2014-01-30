@@ -399,11 +399,8 @@ module UDPV4_socket: CONFIGURABLE with type t = Ipaddr.V4.t option
 module TCPV4_direct: CONFIGURABLE with type t = ipv4 impl
 module TCPV4_socket: CONFIGURABLE with type t =Ipaddr.V4.t option
 
-module STACKV4_direct_with_DHCP: CONFIGURABLE with
-  type t = console impl * network impl
-
 module STACKV4_direct: CONFIGURABLE with
-  type t = console impl * network impl * ipv4_config
+  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
 
 module STACKV4_socket: CONFIGURABLE with
   type t = console impl * Ipaddr.V4.t list

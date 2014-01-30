@@ -1055,73 +1055,15 @@ let direct_tcpv4 ip =
 let socket_tcpv4 ip =
   impl tcpv4 ip (module TCPV4_socket)
 
-module STACKV4_direct_with_DHCP = struct
-
-  type t = console impl * network impl
-
-  let name (c, n) =
-    let key = "stackv4" ^ Impl.name c ^ Impl.name n in
-    Name.of_key key ~base:"stackv4"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages (c, n) =
-    Impl.packages c @ Impl.packages n @ Clock.packages () @ [
-      match !mode with
-      | `Unix -> "mirage-tcpip-unix"
-      | `Xen  -> "mirage-tcpip-xen"
-    ]
-
-  let libraries (c, n) =
-    Impl.libraries c @ Impl.libraries n @ Clock.libraries () @
-    [ "tcpip.stack-direct" ]
-
-  let configure (c, n as t) =
-    let name = name t in
-    Impl.configure c;
-    Impl.configure n;
-    append_main "module %s = struct" (module_name t);
-    append_main "  module E = Ethif.Make(%s)" (Impl.module_name n);
-    append_main "  module I = Ipv4.Make(E)";
-    append_main "  module U = Udpv4.Make(I)";
-    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random)";
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(OS.Time)(Random)(%s)(E)(I)(U)(T)"
-      (Impl.module_name c) (Impl.module_name n);
-
-    append_main "  include S";
-    append_main "end";
-    newline_main ();
-    append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name c);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
-    append_main "  | `Ok console ->";
-    append_main "  %s () >>= function" (Impl.name n);
-    append_main "  | `Error _      -> %s" (driver_initialisation_error (Impl.name n));
-    append_main "  | `Ok interface ->";
-    append_main "  let config = {";
-    append_main "    V1_LWT.name = %S;" name;
-    append_main "    console; interface; mode = `DHCP";
-    append_main "  } in";
-    append_main "  %s.connect config" (module_name t);
-    newline_main ()
-
-  let clean (c, e) =
-    Impl.clean c;
-    Impl.clean e
-
-  let update_path (c, e) root =
-    (Impl.update_path c root,
-     Impl.update_path e root)
-
-end
-
 module STACKV4_direct = struct
 
-  type t = console impl * network impl * ipv4_config
+  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
 
-  let name (c, n, ip) =
-    let key = "stackv4" ^ Impl.name c ^ Impl.name n ^ meta_ipv4_config ip in
+  let name (c, n, m) =
+    let key = "stackv4" ^ Impl.name c ^ Impl.name n ^
+              match m with
+              | `DHCP   -> "dhcp"
+              | `IPV4 i -> meta_ipv4_config i in
     Name.of_key key ~base:"stackv4"
 
   let module_name t =
@@ -1138,7 +1080,7 @@ module STACKV4_direct = struct
     Impl.libraries c @ Impl.libraries n @ Clock.libraries () @
     [ "tcpip.stack-direct" ]
 
-  let configure (c, n, ip as t) =
+  let configure (c, n, m as t) =
     let name = name t in
     Impl.configure c;
     Impl.configure n;
@@ -1149,6 +1091,7 @@ module STACKV4_direct = struct
     append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random)";
     append_main "  module S = Tcpip_stack_direct.Make(%s)(OS.Time)(Random)(%s)(E)(I)(U)(T)"
       (Impl.module_name c) (Impl.module_name n);
+
     append_main "  include S";
     append_main "end";
     newline_main ();
@@ -1162,7 +1105,10 @@ module STACKV4_direct = struct
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;
     append_main "    console; interface;";
-    append_main "    mode = `IPv4 %s" (meta_ipv4_config ip);
+    begin match m with
+      | `DHCP   -> append_main "    mode = `DHCP;"
+      | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i);
+    end;
     append_main "  } in";
     append_main "  %s.connect config" (module_name t);
     newline_main ()
@@ -1171,10 +1117,10 @@ module STACKV4_direct = struct
     Impl.clean c;
     Impl.clean e
 
-  let update_path (c, e, ip) root =
-    (Impl.update_path c root,
-     Impl.update_path e root,
-     ip)
+  let update_path (c, e, m) root =
+    Impl.update_path c root,
+    Impl.update_path e root,
+    m
 
 end
 

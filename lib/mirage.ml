@@ -750,11 +750,7 @@ module Ethif = struct
     String.capitalize (name t)
 
   let packages t =
-    Impl.packages t @ [
-      match !mode with
-      | `Unix -> "mirage-tcpip-unix"
-      | `Xen  -> "mirage-tcpip-xen"
-    ]
+    Impl.packages t @ ["tcpip"]
 
   let libraries t =
     Impl.libraries t @
@@ -816,11 +812,7 @@ module IPV4 = struct
     String.capitalize (name t)
 
   let packages (t, _) =
-    Impl.packages t @ [
-      match !mode with
-      | `Unix -> "mirage-tcpip-unix"
-      | `Xen  -> "mirage-tcpip-xen"
-    ]
+    Impl.packages t @ ["tcpip"]
 
   let libraries (t, _) =
     Impl.libraries t @
@@ -893,11 +885,7 @@ module UDPV4_direct = struct
     String.capitalize (name t)
 
   let packages t =
-    Impl.packages t @ [
-      match !mode with
-      | `Unix ->"mirage-tcpip-unix"
-      | `Xen -> "mirage-tcpip-xen"
-    ]
+    Impl.packages t @ [ "tcpip" ]
 
   let libraries t =
     Impl.libraries t @ [ "tcpip.udpv4" ]
@@ -929,11 +917,7 @@ module UDPV4_socket = struct
 
   let module_name _ = "Udpv4_socket"
 
-  let packages t = [
-    match !mode with
-    | `Unix -> "mirage-tcpip-unix"
-    | `Xen  -> "mirage-tcpip-xen"
- ]
+  let packages t = [ "tcpip" ]
 
   let libraries t =
     match !mode with
@@ -979,11 +963,7 @@ module TCPV4_direct = struct
     String.capitalize (name t)
 
   let packages t =
-    Impl.packages t @ [
-      match !mode with
-      | `Unix -> "mirage-tcpip-unix"
-      | `Xen  -> "mirage-tcpip-xen"
-    ]
+    Impl.packages t @ [ "tcpip" ]
 
   let libraries t =
     Impl.libraries t @ [ "tcpip.tcpv4" ]
@@ -1016,11 +996,7 @@ module TCPV4_socket = struct
 
   let module_name _ = "Tcpv4_socket"
 
-  let packages t = [
-    match !mode with
-    | `Unix -> "mirage-tcpip-unix"
-    | `Xen  -> "mirage-tcpip-xen"
-  ]
+  let packages t = [ "tcpip" ]
 
   let libraries t =
     match !mode with
@@ -1070,11 +1046,7 @@ module STACKV4_direct = struct
     String.capitalize (name t)
 
   let packages (c, n, _) =
-    Impl.packages c @ Impl.packages n @ Clock.packages () @ [
-      match !mode with
-      | `Unix -> "mirage-tcpip-unix"
-      | `Xen  -> "mirage-tcpip-xen"
-    ]
+    Impl.packages c @ Impl.packages n @ Clock.packages () @ [ "tcpip" ]
 
   let libraries (c, n, _) =
     Impl.libraries c @ Impl.libraries n @ Clock.libraries () @
@@ -1141,11 +1113,7 @@ module STACKV4_socket = struct
     String.capitalize (name t)
 
   let packages (c, _) =
-    Impl.packages c @ [
-      match !mode with
-      | `Unix -> "mirage-tcpip-unix"
-      | `Xen  -> "mirage-tcpip-xen"
-    ]
+    Impl.packages c @ [ "tcpip" ]
 
   let libraries (c, _) =
     Impl.libraries c @ [ "tcpip.stack-socket" ]

@@ -1,11 +1,10 @@
-open Mirage_types.V1
 open Lwt
 
 let string_of_stream s =
   let s = List.map Cstruct.to_string s in
   return (String.concat "" s)
 
-module Main (C: CONSOLE) (X: KV_RO) (Y: KV_RO) = struct
+module Main (C: V1_LWT.CONSOLE) (X: V1_LWT.KV_RO) (Y: V1_LWT.KV_RO) = struct
 
   let start c x y =
     let rec aux () =

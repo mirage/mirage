@@ -510,60 +510,147 @@ module type TCPV4 = sig
 end
 
 module type STACKV4 = sig
+  (** A complete TCP/IPv4 stack that can be used by applications to receive
+      and transmit network traffic. *)
+
   type console
+  (** Abstract type of a console logger. *)
+
   type netif
+  (** Abstract type of a network interface that is used to transmit and receive
+      traffic associated with this stack. *)
+
   type mode
+  (** Abstract type of the configuration modes associated with this interface.
+      These can consist of the IPv4 address binding, or a DHCP interface. *)
+
   type ('console,'netif,'mode) config
+  (** Abstract type for the collection of user configuration specified to
+      construct a stack. *)
+
   type ipv4addr
+  (** Abstract type of an IPv4 address *)
+
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
 
   type error = [
     | `Unknown of string
   ]
+  (** I/O operation errors *)
 
   include DEVICE with
     type error := error
     and type id = (console,netif,mode) config
 
-  module UDPV4 : UDPV4 with type +'a io = 'a io and type ipv4addr = ipv4addr and type buffer = buffer
-  module TCPV4 : TCPV4 with type +'a io = 'a io and type ipv4addr = ipv4addr and type buffer = buffer
+  module UDPV4 : UDPV4
+    with type +'a io = 'a io 
+     and type ipv4addr = ipv4addr 
+     and type buffer = buffer
+
+  module TCPV4 : TCPV4 
+    with type +'a io = 'a io 
+     and type ipv4addr = ipv4addr
+     and type buffer = buffer
 
   val listen_udpv4 : t -> port:int -> UDPV4.callback -> unit
+  (** [listen_udpv4 t ~port cb] will register the [cb] callback on
+      the UDPv4 [port] and immediately return.  Multiple bindings
+      to the same port will overwrite previous bindings, so callbacks
+      will not chain if ports clash. *)
+
   val listen_tcpv4 : t -> port:int -> TCPV4.callback -> unit
+  (** [listen_tcpv4 t ~port cb] will register the [cb] callback on
+      the TCPv4 [port] and immediately return.  Multiple bindings
+      to the same port will overwrite previous bindings, so callbacks
+      will not chain if ports clash. *)
+
   val listen : t -> unit io
+  (** [listen t] will cause the stack to listen for traffic on the
+      network interface associated with the stack, and demultiplex
+      traffic to the appropriate callbacks. *)
 end
 
-(** Type of a buffered byte-stream network protocol *)
 module type CHANNEL = sig
+  (** Type of a buffered byte-stream that is attached to an unbuffered
+      flow (e.g. a TCPv4 connection). *)
+
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
+
   type flow
+  (** Abstract type for an unbuffered network flow. *)
+
   type t
+  (** State associated with this channel, such as the inflight buffers. *)
 
   type +'a io
-  type 'a io_stream
+  (** Abstract type of a blocking IO monad. *)
 
-  exception Closed
+  type 'a io_stream
+  (** Abstract type of a blocking stream of IO requests. *)
 
   val create       : flow -> t
+  (** [create flow] will allocate send and receive buffers and associated them
+      with the given unbuffered [flow]. *)
+
   val to_flow      : t -> flow
+  (** [to_flow t] will return the flow that backs this channel. *)
 
   val read_char    : t -> char io
+  (** Read a single character from the channel, blocking if there is no immediately
+      available input data. *)
+
   val read_until   : t -> char -> (bool * buffer) io
+  (** [read_until t ch] will read from the channel until the given [ch] character
+      is found.  It returns a tuple indicating whether the character was found at 
+      all ([false] indicates that an EOF condition occurred before the character
+      was encountered), and the [buffer] pointing to the position immediately
+      after the character (or the complete scanned buffer if the character was
+      never encountered). *)
+
   val read_some    : ?len:int -> t -> buffer io
-  val read_stream  : ?len: int -> t -> buffer io_stream
+  (* [read_some ?len t] will read up to [len] characters from the input channel
+     and at most a full [buffer]. If [len] is not specified, it will read all
+     available data and return that buffer. *)
+
+  val read_stream  : ?len:int -> t -> buffer io_stream
+  (** [read_stream ?len t] will return up to [len] characters as a stream of
+     buffers. This call will probably be removed in a future revision of the API
+     in favour of {!read_some}. *)
+
   val read_line    : t -> buffer list io
+  (** [read_line t] will read a line of input, which is terminated either by
+     a CRLF sequence, or the end of the channel (which counts as a line).
+     @return Returns a list of views that terminates at EOF. *)
 
   val write_char   : t -> char -> unit
+  (** [write_char t ch] writes a single character to the output channel. *)
+
   val write_string : t -> string -> int -> int -> unit
+  (** [write_string t buf off len] writes [len] bytes from a string [buf],
+     starting from from offset [off]. *)
+     
   val write_buffer : t -> buffer -> unit
+  (** [write_buffer t buf] will copy the buffer to the channel's output buffer.
+     The buffer should not be modified after being written, and it will be
+     recycled into the buffer allocation pool at some future point. *)
+
   val write_line   : t -> string -> unit
+  (** [write_line t buf] will write the string [buf] to the output channel
+     and append a newline character afterwards. *)
 
   val flush        : t -> unit io
+  (** [flush t] will flush the output buffer and block if necessary until it
+     is all written out to the flow. *)
+
   val close        : t -> unit io
+  (** [close t] will call {!flush} and then close the underlying flow. *)
 
 end
 
 module type FS = sig
+  (** A filesystem module. *)
 
   (** Abstract type representing an error from the block layer *)
   type block_device_error

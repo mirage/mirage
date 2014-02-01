@@ -386,27 +386,45 @@ module type IPV4 = sig
 end
 
 module type UDPV4 = sig
-  type buffer
-  type ipv4
-  type ipv4addr
-  type ipv4input
+  (** A UDPv4 stack that can send and receive datagrams. *)
 
-  (** IO operation errors *)
+  type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
+
+  type ipv4
+  (** Abstract type for an IPv4 stack for this stack to connect to. *)
+
+  type ipv4addr
+  (** Abstract type for an IPv4 address representation. *)
+
+  type ipv4input
+  (** An input function continuation to pass onto the underlying {!ipv4}
+      stack.  This will normally be a NOOP for a conventional kernel, but
+      a direct implementation will parse the buffer. *)
+
   type error = [
     | `Unknown of string (** an undiagnosed error *)
   ]
+  (** IO operation errors *)
 
   include DEVICE with
       type error := error
   and type id := ipv4
 
   type callback = src:ipv4addr -> dst:ipv4addr -> src_port:int -> buffer -> unit io
+  (** Callback function that adds the UDPv4 metadata for [src] and [dst] IPv4
+      addresses, the [src_port] of the connection and the [buffer] payload 
+      of the datagram. *)
 
   val input: listeners:(dst_port:int -> callback option) -> t -> ipv4input
+  (** [input listeners t] demultiplexes incoming datagrams based on their destination
+      port.  The [listeners] callback is will either return a concrete handler or
+      a [None], which results in the datagram being dropped. *)
 
-  (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
-      sends [data] from [~source_port] at [~dest_ip], [~dest_port]. *)
   val write: ?source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer -> unit io
+  (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
+      writes [data] from an optional [source_port] to a [dest_ip] and [dest_port]
+      IPv4 address pair. *)
 end
 
 module type TCPV4 = sig

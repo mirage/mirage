@@ -305,9 +305,8 @@ module type IPV4 = sig
   type ethif
   (** Abstract type for an Ethernet device. *)
 
-  type ipaddr
-  (** Abstract type for an IPv4 address.
-      TODO: should be ipv4addr for consistency with rest. *)
+  type ipv4addr
+  (** Abstract type for an IPv4 address. *)
 
   type error = [
     | `Unknown of string (** an undiagnosed error *)
@@ -319,28 +318,71 @@ module type IPV4 = sig
         type error := error
     and type id    := ethif
 
-  val input:
-    tcp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
-    udp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
-    t -> buffer -> unit io
-  (** [input ~tcp ~udp ip buf] demultiplexes an incoming [buffer]
-    that contains an IPv4 frame.  It examines the protocol header
-    and passes the result onto either the [tcp] or [udp] function.
-    TODO: add a [default] case also. *)
+  type callback = src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+  (** An input continuation used by the parsing functions to pass on
+      an input packet down the stack.
+      [callback ~src ~dst buf] will be called with [src] and [dst]
+      containing the source and destination IPv4 address respectively,
+      and [buf] will be a buffer pointing at the start of the IPv4
+      payload. *)
 
-  val get_header:
+  val input:
+    tcp:callback -> udp:callback -> default:(proto:int -> callback) ->
+    t -> buffer -> unit io
+  (** [input ~tcp ~udp ~default ip buf] demultiplexes an incoming [buffer]
+    that contains an IPv4 frame.  It examines the protocol header
+    and passes the result onto either the [tcp] or [udp] function, or
+    the [default] function for unknown IP protocols. *)
+
+  val allocate_frame:
     proto:[< `ICMP | `TCP | `UDP ] ->
-    dest_ip:ipaddr -> t -> (buffer * int) io
+    dest_ip:ipv4addr -> t -> (buffer * int) io
+  (** [allocate_frame ~proto ~dest_ip] will an output buffer for the
+    [proto] IP protocol for the [dest_ip] IPv4 destination.  It returns
+    a tuple of the buffer of the full Ethernet frame (pointing at the
+    start of the frame) and the total length of the Ethernet and IPv4
+    header that was written.  The caller can create a sub-view
+    into the payload using this information if it needs to, or combine
+    it with [write] to do a scatter-gather output with an existing
+    payload. *)
 
   val write: t -> buffer -> buffer -> unit io
-  val writev: t -> buffer -> buffer list -> unit io
+  (** [write t frame buffer] concatenates a header [frame] (possibly
+    allocated with {!allocate_frame} with the [buffer] and outputs it
+    as a single frame. *)
+ 
+  val writev: t -> buffer -> buffer list -> unit io 
+  (** [writev t frame buffers] concatenates a header [frame] (possibly
+    allocated with {!allocate_frame} with the [buffer] list and outputs
+    it all as a single frame. Uses the underlying scatter-gather interface
+    if available for efficiency. *)
 
-  val set_ip: t -> ipaddr -> unit io
-  val get_ip: t -> ipaddr
+  val set_ipv4: t -> ipv4addr -> unit io
+  (** Set the IPv4 address associated with this interface.  Currently
+      only supports a single IPv4 address, and aliases will be added in
+      a future revision. *)
 
-  val set_netmask: t -> ipaddr -> unit io
-  val get_netmask: t -> ipaddr
-  val set_gateways: t -> ipaddr list -> unit io
+  val get_ipv4: t -> ipv4addr
+  (** Get the IPv4 address associated with this interface.  If none has
+      been previously bound via {!set_ipv4}, it defaults to {!Ipaddr.V4.any}. *)
+
+  val set_ipv4_netmask: t -> ipv4addr -> unit io
+  (** Set the IPv4 netmask associated with this interface.  Currently
+      only supports a single IPv4 netmask, and aliases will be added in
+      a future revision. *)
+
+  val get_ipv4_netmask: t -> ipv4addr
+  (** Get the IPv4 netmask associated with this interface.  If none has
+      been previously bound via {!set_ipv4_netmask}, it defaults to
+      {!Ipaddr.V4.any}. *)
+
+  val set_ipv4_gateways: t -> ipv4addr list -> unit io
+  (** Set the IPv4 gateways associated with this interface. *)
+ 
+  val get_ipv4_gateways: t -> ipv4addr list
+  (** Get the IPv4 gateways associated with this interface.  If none has
+      been previously bound via {!set_ipv4_netmask}, it defaults to
+      an empty list. *)
 end
 
 module type UDPV4 = sig

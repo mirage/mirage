@@ -1,5 +1,5 @@
 MIRARI = ../main.native
-TESTS  = console kv_ro fat net ip combinator basic_ethif basic_stackv4 http
+TESTS  = console kv_ro fat net ip http combinator basic_ethif basic_stackv4 basic_http
 # MODE ?= xen
 MODE ?= unix
 BFLAGS ?= --no-opam

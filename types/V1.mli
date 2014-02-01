@@ -305,9 +305,8 @@ module type IPV4 = sig
   type ethif
   (** Abstract type for an Ethernet device. *)
 
-  type ipaddr
-  (** Abstract type for an IPv4 address.
-      TODO: should be ipv4addr for consistency with rest. *)
+  type ipv4addr
+  (** Abstract type for an IPv4 address. *)
 
   type error = [
     | `Unknown of string (** an undiagnosed error *)
@@ -319,143 +318,339 @@ module type IPV4 = sig
         type error := error
     and type id    := ethif
 
-  val input:
-    tcp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
-    udp:(src:ipaddr -> dst:ipaddr -> buffer -> unit io) ->
-    t -> buffer -> unit io
-  (** [input ~tcp ~udp ip buf] demultiplexes an incoming [buffer]
-    that contains an IPv4 frame.  It examines the protocol header
-    and passes the result onto either the [tcp] or [udp] function.
-    TODO: add a [default] case also. *)
+  type callback = src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+  (** An input continuation used by the parsing functions to pass on
+      an input packet down the stack.
+      [callback ~src ~dst buf] will be called with [src] and [dst]
+      containing the source and destination IPv4 address respectively,
+      and [buf] will be a buffer pointing at the start of the IPv4
+      payload. *)
 
-  val get_header:
+  val input:
+    tcp:callback -> udp:callback -> default:(proto:int -> callback) ->
+    t -> buffer -> unit io
+  (** [input ~tcp ~udp ~default ip buf] demultiplexes an incoming [buffer]
+    that contains an IPv4 frame.  It examines the protocol header
+    and passes the result onto either the [tcp] or [udp] function, or
+    the [default] function for unknown IP protocols. *)
+
+  val allocate_frame:
     proto:[< `ICMP | `TCP | `UDP ] ->
-    dest_ip:ipaddr -> t -> (buffer * int) io
+    dest_ip:ipv4addr -> t -> (buffer * int) io
+  (** [allocate_frame ~proto ~dest_ip] will an output buffer for the
+    [proto] IP protocol for the [dest_ip] IPv4 destination.  It returns
+    a tuple of the buffer of the full Ethernet frame (pointing at the
+    start of the frame) and the total length of the Ethernet and IPv4
+    header that was written.  The caller can create a sub-view
+    into the payload using this information if it needs to, or combine
+    it with [write] to do a scatter-gather output with an existing
+    payload. *)
 
   val write: t -> buffer -> buffer -> unit io
-  val writev: t -> buffer -> buffer list -> unit io
+  (** [write t frame buffer] concatenates a header [frame] (possibly
+    allocated with {!allocate_frame} with the [buffer] and outputs it
+    as a single frame. *)
+ 
+  val writev: t -> buffer -> buffer list -> unit io 
+  (** [writev t frame buffers] concatenates a header [frame] (possibly
+    allocated with {!allocate_frame} with the [buffer] list and outputs
+    it all as a single frame. Uses the underlying scatter-gather interface
+    if available for efficiency. *)
 
-  val set_ip: t -> ipaddr -> unit io
-  val get_ip: t -> ipaddr
+  val set_ipv4: t -> ipv4addr -> unit io
+  (** Set the IPv4 address associated with this interface.  Currently
+      only supports a single IPv4 address, and aliases will be added in
+      a future revision. *)
 
-  val set_netmask: t -> ipaddr -> unit io
-  val get_netmask: t -> ipaddr
-  val set_gateways: t -> ipaddr list -> unit io
+  val get_ipv4: t -> ipv4addr
+  (** Get the IPv4 address associated with this interface.  If none has
+      been previously bound via {!set_ipv4}, it defaults to {!Ipaddr.V4.any}. *)
+
+  val set_ipv4_netmask: t -> ipv4addr -> unit io
+  (** Set the IPv4 netmask associated with this interface.  Currently
+      only supports a single IPv4 netmask, and aliases will be added in
+      a future revision. *)
+
+  val get_ipv4_netmask: t -> ipv4addr
+  (** Get the IPv4 netmask associated with this interface.  If none has
+      been previously bound via {!set_ipv4_netmask}, it defaults to
+      {!Ipaddr.V4.any}. *)
+
+  val set_ipv4_gateways: t -> ipv4addr list -> unit io
+  (** Set the IPv4 gateways associated with this interface. *)
+ 
+  val get_ipv4_gateways: t -> ipv4addr list
+  (** Get the IPv4 gateways associated with this interface.  If none has
+      been previously bound via {!set_ipv4_netmask}, it defaults to
+      an empty list. *)
 end
 
 module type UDPV4 = sig
-  type buffer
-  type ipv4
-  type ipv4addr
-  type ipv4input
+  (** A UDPv4 stack that can send and receive datagrams. *)
 
-  (** IO operation errors *)
+  type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
+
+  type ipv4
+  (** Abstract type for an IPv4 stack for this stack to connect to. *)
+
+  type ipv4addr
+  (** Abstract type for an IPv4 address representation. *)
+
+  type ipv4input
+  (** An input function continuation to pass onto the underlying {!ipv4}
+      stack.  This will normally be a NOOP for a conventional kernel, but
+      a direct implementation will parse the buffer. *)
+
   type error = [
     | `Unknown of string (** an undiagnosed error *)
   ]
+  (** IO operation errors *)
 
   include DEVICE with
       type error := error
   and type id := ipv4
 
   type callback = src:ipv4addr -> dst:ipv4addr -> src_port:int -> buffer -> unit io
+  (** Callback function that adds the UDPv4 metadata for [src] and [dst] IPv4
+      addresses, the [src_port] of the connection and the [buffer] payload 
+      of the datagram. *)
 
   val input: listeners:(dst_port:int -> callback option) -> t -> ipv4input
+  (** [input listeners t] demultiplexes incoming datagrams based on their destination
+      port.  The [listeners] callback is will either return a concrete handler or
+      a [None], which results in the datagram being dropped. *)
 
-  (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
-      sends [data] from [~source_port] at [~dest_ip], [~dest_port]. *)
   val write: ?source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer -> unit io
+  (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
+      writes [data] from an optional [source_port] to a [dest_ip] and [dest_port]
+      IPv4 address pair. *)
 end
 
 module type TCPV4 = sig
-  type buffer
-  type ipv4
-  type ipv4addr
-  type ipv4input
-  type flow
+  (** A TCPv4 stack that can send and receive reliable streams using the TCP protocol. *)
 
-  (** IO operation errors *)
+  type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
+
+  type ipv4
+  (** Abstract type for an IPv4 stack for this stack to connect to. *)
+
+  type ipv4addr
+  (** Abstract type for an IPv4 address representation. *)
+
+  type ipv4input
+  (** An input function continuation to pass onto the underlying {!ipv4}
+      stack.  This will normally be a NOOP for a conventional kernel, but
+      a direct implementation will parse the buffer. *)
+
+  type flow
+  (** A flow represents the state of a single TCPv4 stream that is connected
+      to an endpoint. *)
+
   type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Timeout
-    | `Refused
+    | `Unknown of string (** an undiagnosed error. *)
+    | `Timeout  (** connection attempt did not get a valid response. *)
+    | `Refused  (** connection attempt was actively refused via an RST. *)
   ]
+  (** IO operation errors *)
 
   include DEVICE with
       type error := error
   and type id := ipv4
 
   type callback = flow -> unit io
+  (** Application callback that receives a [flow] that it can read/write to. *)
 
   val get_dest : flow -> ipv4addr * int
+  (** Get the destination IPv4 address and destination port that a flow is
+      currently connected to. *)
+
   val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
+  (** [read flow] will block until it either successfully reads a segment
+      of data from the current flow, receives an [Eof] signifying that
+      the connection is now closed, or an [Error]. *)
+
   val write : flow -> buffer -> unit io
+  (** [write flow buffer] will block until the contents of [buffer] are
+      transmitted to the remote endpoint.  The contents may be transmitted
+      in separate packets, depending on the underlying transport. *)
+
   val writev : flow -> buffer list -> unit io
+  (** [writev flow buffers] will block until the contents of [buffer list]
+      are all successfully transmitted to the remote endpoint. *)
+
   val write_nodelay : flow -> buffer -> unit io
+  (** [write_nodelay flow] will block until the contents of [buffer list]
+      are all successfully transmitted to the remote endpoint. Buffering
+      within the stack is minimized in this mode.  Note that this API will
+      change in a future revision to be a per-flow attribute instead of a
+      separately exposed function. *)
+
   val writev_nodelay : flow -> buffer list -> unit io
+  (** [writev_nodelay flow] will block until the contents of [buffer list]
+      are all successfully transmitted to the remote endpoint. Buffering
+      within the stack is minimized in this mode.  Note that this API will
+      change in a future revision to be a per-flow attribute instead of a
+      separately exposed function. *)
+
   val close : flow -> unit io
+  (** [close flow] will signal to the remote endpoint that the flow is now
+      shutdown.  The caller should not perform any writes after this call. *)
 
   val create_connection : t -> ipv4addr * int ->
     [ `Ok of flow | `Error of error ] io
+  (** [create_connection t (addr,port)] will open a TCPv4 connection to the
+      specified endpoint. *)
 
   val input: t -> listeners:(int -> callback option) -> ipv4input
+  (** [input t listeners] defines a mapping of threads that are willing to
+      accept new flows on a given port.  If the [callback] returns [None],
+      the input function will return an RST to refuse connections on a port. *)
 end
 
 module type STACKV4 = sig
+  (** A complete TCP/IPv4 stack that can be used by applications to receive
+      and transmit network traffic. *)
+
   type console
+  (** Abstract type of a console logger. *)
+
   type netif
+  (** Abstract type of a network interface that is used to transmit and receive
+      traffic associated with this stack. *)
+
   type mode
+  (** Abstract type of the configuration modes associated with this interface.
+      These can consist of the IPv4 address binding, or a DHCP interface. *)
+
   type ('console,'netif,'mode) config
+  (** Abstract type for the collection of user configuration specified to
+      construct a stack. *)
+
   type ipv4addr
+  (** Abstract type of an IPv4 address *)
+
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
 
   type error = [
     | `Unknown of string
   ]
+  (** I/O operation errors *)
 
   include DEVICE with
     type error := error
     and type id = (console,netif,mode) config
 
-  module UDPV4 : UDPV4 with type +'a io = 'a io and type ipv4addr = ipv4addr and type buffer = buffer
-  module TCPV4 : TCPV4 with type +'a io = 'a io and type ipv4addr = ipv4addr and type buffer = buffer
+  module UDPV4 : UDPV4
+    with type +'a io = 'a io 
+     and type ipv4addr = ipv4addr 
+     and type buffer = buffer
+
+  module TCPV4 : TCPV4 
+    with type +'a io = 'a io 
+     and type ipv4addr = ipv4addr
+     and type buffer = buffer
 
   val listen_udpv4 : t -> port:int -> UDPV4.callback -> unit
+  (** [listen_udpv4 t ~port cb] will register the [cb] callback on
+      the UDPv4 [port] and immediately return.  Multiple bindings
+      to the same port will overwrite previous bindings, so callbacks
+      will not chain if ports clash. *)
+
   val listen_tcpv4 : t -> port:int -> TCPV4.callback -> unit
+  (** [listen_tcpv4 t ~port cb] will register the [cb] callback on
+      the TCPv4 [port] and immediately return.  Multiple bindings
+      to the same port will overwrite previous bindings, so callbacks
+      will not chain if ports clash. *)
+
   val listen : t -> unit io
+  (** [listen t] will cause the stack to listen for traffic on the
+      network interface associated with the stack, and demultiplex
+      traffic to the appropriate callbacks. *)
 end
 
-(** Type of a buffered byte-stream network protocol *)
 module type CHANNEL = sig
+  (** Type of a buffered byte-stream that is attached to an unbuffered
+      flow (e.g. a TCPv4 connection). *)
+
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
+
   type flow
+  (** Abstract type for an unbuffered network flow. *)
+
   type t
+  (** State associated with this channel, such as the inflight buffers. *)
 
   type +'a io
-  type 'a io_stream
+  (** Abstract type of a blocking IO monad. *)
 
-  exception Closed
+  type 'a io_stream
+  (** Abstract type of a blocking stream of IO requests. *)
 
   val create       : flow -> t
+  (** [create flow] will allocate send and receive buffers and associated them
+      with the given unbuffered [flow]. *)
+
   val to_flow      : t -> flow
+  (** [to_flow t] will return the flow that backs this channel. *)
 
   val read_char    : t -> char io
+  (** Read a single character from the channel, blocking if there is no immediately
+      available input data. *)
+
   val read_until   : t -> char -> (bool * buffer) io
+  (** [read_until t ch] will read from the channel until the given [ch] character
+      is found.  It returns a tuple indicating whether the character was found at 
+      all ([false] indicates that an EOF condition occurred before the character
+      was encountered), and the [buffer] pointing to the position immediately
+      after the character (or the complete scanned buffer if the character was
+      never encountered). *)
+
   val read_some    : ?len:int -> t -> buffer io
-  val read_stream  : ?len: int -> t -> buffer io_stream
+  (* [read_some ?len t] will read up to [len] characters from the input channel
+     and at most a full [buffer]. If [len] is not specified, it will read all
+     available data and return that buffer. *)
+
+  val read_stream  : ?len:int -> t -> buffer io_stream
+  (** [read_stream ?len t] will return up to [len] characters as a stream of
+     buffers. This call will probably be removed in a future revision of the API
+     in favour of {!read_some}. *)
+
   val read_line    : t -> buffer list io
+  (** [read_line t] will read a line of input, which is terminated either by
+     a CRLF sequence, or the end of the channel (which counts as a line).
+     @return Returns a list of views that terminates at EOF. *)
 
   val write_char   : t -> char -> unit
+  (** [write_char t ch] writes a single character to the output channel. *)
+
   val write_string : t -> string -> int -> int -> unit
+  (** [write_string t buf off len] writes [len] bytes from a string [buf],
+     starting from from offset [off]. *)
+     
   val write_buffer : t -> buffer -> unit
+  (** [write_buffer t buf] will copy the buffer to the channel's output buffer.
+     The buffer should not be modified after being written, and it will be
+     recycled into the buffer allocation pool at some future point. *)
+
   val write_line   : t -> string -> unit
+  (** [write_line t buf] will write the string [buf] to the output channel
+     and append a newline character afterwards. *)
 
   val flush        : t -> unit io
+  (** [flush t] will flush the output buffer and block if necessary until it
+     is all written out to the flow. *)
+
   val close        : t -> unit io
+  (** [close t] will call {!flush} and then close the underlying flow. *)
 
 end
 
 module type FS = sig
+  (** A filesystem module. *)
 
   (** Abstract type representing an error from the block layer *)
   type block_device_error

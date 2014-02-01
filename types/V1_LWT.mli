@@ -39,7 +39,7 @@ module type ETHIF = ETHIF
 module type IPV4 = IPV4
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
-   and type ipaddr = Ipaddr.V4.t
+   and type ipv4addr = Ipaddr.V4.t
 
 (** UDPv4 stack *)
 module type UDPV4 = UDPV4

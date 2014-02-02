@@ -219,6 +219,7 @@ val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 type stackv4
 val stackv4: stackv4 typ
 val direct_stackv4_with_default_ipv4: console impl -> network impl -> stackv4 impl
+val direct_stackv4_with_static_ipv4: console impl -> network impl -> ipv4_config -> stackv4 impl
 val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
 val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 

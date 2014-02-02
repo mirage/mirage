@@ -1155,6 +1155,9 @@ let direct_stackv4_with_dhcp console network =
 let direct_stackv4_with_default_ipv4 console network =
   impl stackv4 (console, network, `IPV4 default_ipv4_conf) (module STACKV4_direct)
 
+let direct_stackv4_with_static_ipv4 console network ipv4 =
+  impl stackv4 (console, network, `IPV4 ipv4) (module STACKV4_direct)
+
 let socket_stackv4 console ips =
   impl stackv4 (console, ips) (module STACKV4_socket)
 

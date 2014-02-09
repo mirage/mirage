@@ -1,8 +1,6 @@
 open Mirage
 
-let main = foreign "Handler.Main" (console @-> kv_ro @-> http @-> job)
-
-let fs = kv_ro_of_fs (fat_of_files ~dir:"../kv_ro/t" ())
+let basic = foreign "Test.Basic" (console @-> stackv4 @-> job)
 
 let net =
   try match Sys.getenv "NET" with
@@ -24,6 +22,6 @@ let stack console =
   | `Socket, _     -> socket_stackv4 console [Ipaddr.V4.any]
 
 let () =
-  register "http" [
-    main $ default_console $ fs $ http_server 8080 (stack default_console)
+  register "basic_ethif" [
+    basic $ default_console $ stack default_console
   ]

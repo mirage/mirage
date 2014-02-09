@@ -1,38 +1,45 @@
-# OASIS_START
-# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
+.PHONY: all clean install build
+all: build test doc
 
-SETUP = ocaml setup.ml
+PREFIX ?= /usr/local
+NAME=mirage
+CONF_FLAGS ?=
 
-build: setup.data
-	$(SETUP) -build $(BUILDFLAGS)
+setup.bin: setup.ml
+	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
+	rm -f setup.cmx setup.cmi setup.o setup.cmo
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
+setup.data: setup.bin
+	./setup.bin -configure $(CONF_FLAGS) --prefix $(PREFIX)
 
-test: setup.data build
-	$(SETUP) -test $(TESTFLAGS)
+build-types:
+	./build
 
-all: 
-	$(SETUP) -all $(ALLFLAGS)
+install-types:
+	./build true
 
-install: setup.data
-	$(SETUP) -install $(INSTALLFLAGS)
+build: setup.data setup.bin
+	./setup.bin -build -classic-display
 
-uninstall: setup.data
-	$(SETUP) -uninstall $(UNINSTALLFLAGS)
+doc: setup.data setup.bin
+	./setup.bin -doc
 
-reinstall: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
+install: setup.bin
+	./setup.bin -install
 
-clean: 
-	$(SETUP) -clean $(CLEANFLAGS)
+uninstall: setup.bin
+	./setup.bin -uninstall
 
-distclean: 
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
+test: setup.bin build
+	./setup.bin -test
 
-setup.data:
-	$(SETUP) -configure $(CONFIGUREFLAGS)
+fulltest: setup.bin build
+	./setup.bin -test
 
-.PHONY: build doc test all install uninstall reinstall clean distclean configure
+reinstall: setup.bin
+	ocamlfind remove $(NAME) || true
+	./setup.bin -reinstall
 
-# OASIS_STOP
+clean:
+	ocamlbuild -clean
+	rm -f setup.data setup.log setup.bin

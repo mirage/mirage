@@ -1,34 +1,18 @@
 OASISFormat: 0.3
-Name:        fat-filesystem
-Version:     1.0.2
-Synopsis:    Mirage configuration helper
+Name:        mirage
+Version:     1.1.0
+Synopsis:    Mirage configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC
-Plugins:     META (0.3), DevFiles (0.3)
+Plugins:     META (0.3)
 BuildTools:  ocamlbuild
 
 Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
-  Modules:            Mirage
-  BuildDepends:       ipaddr,unix,dynlink,lwt,re.str
-
-Library "mirage-types-unix"
-  CompiledObject:     best
-  Path:               lib
-  Findlibparent:      mirage
-  Findlibname:        types-unix
-  Modules:            Mirage_types
-  BuildDepends:       mirage-types,lwt,cstruct,io-page-unix
-
-Library "mirage-types-xen"
-  CompiledObject:     best
-  Path:               lib
-  Findlibparent:      mirage
-  Findlibname:        types-xen
-  Modules:            Mirage_types
-  BuildDepends:       mirage-types,lwt,cstruct,io-page-xen
+  Modules:            Mirage, Mirage_misc
+  BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt
 
 Executable mirage
   CompiledObject:     best

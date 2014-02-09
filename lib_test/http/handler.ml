@@ -1,5 +1,3 @@
-open Mirage_types.V1
-
 open Lwt
 
 let (>>>) x f =
@@ -7,7 +5,7 @@ let (>>>) x f =
   | `Error _ -> failwith "error"
   | `Ok x    -> f x
 
-module Main (C: CONSOLE) (FS: KV_RO) (Server: Cohttp_lwt.Server) = struct
+module Main (C: V1_LWT.CONSOLE) (FS: V1_LWT.KV_RO) (Server: Cohttp_lwt.Server) = struct
 
   let respond_string body =
     Server.respond_string ~status:`OK ~body ()

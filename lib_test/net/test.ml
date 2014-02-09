@@ -1,4 +1,3 @@
-open Mirage_types.V1
 open Lwt
 
 let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
@@ -6,7 +5,7 @@ let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
 let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
 let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
 
-module Sender (C: CONSOLE) (N: NETWORK) = struct
+module Sender (C: V1_LWT.CONSOLE) (N: V1_LWT.NETWORK) = struct
 
   let debug c fmt =
     Printf.kprintf (fun str ->
@@ -25,7 +24,7 @@ module Sender (C: CONSOLE) (N: NETWORK) = struct
 
 end
 
-module Receiver (C: CONSOLE) (N: NETWORK) = struct
+module Receiver (C: V1_LWT.CONSOLE) (N: V1_LWT.NETWORK) = struct
 
   let debug c fmt =
     Printf.kprintf (fun str ->

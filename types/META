@@ -1,0 +1,14 @@
+version = "1.1.0"
+description = "Collection of module signatures for Mirage"
+archive(byte) = ""
+archive(byte, plugin) = ""
+archive(native) = ""
+exists_if = "V1.cmi"
+package "lwt" (
+  version = "1.1.0"
+  description = "Lwt module signatures for Mirage"
+  archive(byte) = ""
+  archive(byte, plugin) = ""
+  archive(native) = ""
+  exists_if = "V1_LWT.cmi"
+)

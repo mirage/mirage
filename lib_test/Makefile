@@ -1,5 +1,5 @@
 MIRARI = ../main.native
-TESTS  = console kv_ro fat net ip http
+TESTS  = console kv_ro fat net ip http combinator basic_ethif basic_stackv4 basic_http
 # MODE ?= xen
 MODE ?= unix
 BFLAGS ?= --no-opam
@@ -24,4 +24,5 @@ clean: $(CLEANS)
 	$(MIRARI) run $*/config.ml
 
 %-clean:
-	$(MIRARI) clean $*/config.ml $(BFLAGS)
+	rm -f $*/mir-main
+	$(MIRARI) clean $*/config.ml $(BFLAGS) || true

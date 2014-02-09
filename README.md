@@ -8,16 +8,21 @@ Since Xen powers most public cloud computing infrastructure such as Amazon EC2,
 this lets your servers run more cheaply, securely and finer control than with a
 full software stack.
 
-This repository includes a commmand-line tool to create and deploy applications
-with Mirage.  There are several diverse backends in Mirage that require rather
-specialised build steps (from Javascript to Xen microkernels), and this
-compexity is wrapped up in the tool.
+This repository includes:
+
+* a commmand-line tool to create and deploy applications with Mirage.
+* in `types/`, a library of type signatures that compliant applications use.
+
+There are several diverse backends in Mirage that require rather specialised
+build steps (from Javascript to Xen microkernels), and this compexity is
+wrapped up in the tool.
 
 To work with Mirage, you'll need the following prerequisites installed:
 
 * a working [OCaml](http://ocaml.org) compiler.
 * the [OPAM](https://opam.ocaml.org) source package manager.
-* a 64-bit Linux host to compile Xen kernels, or MacOS X for the userlevel version.
+* a 64-bit Linux host to compile Xen kernels, or FreeBSD, OpenBSD or MacOS X
+  for the userlevel version.
 
 There are three stages to using `mirage`:
 
@@ -33,7 +38,8 @@ There are three stages to using `mirage`:
 
 `mirage` currently uses a configuration file to build a Mirage unikernel.
 While we're documenting it all, please see the `lib_test` directory in
-this repository for the regression examples.
+this repository for the regression examples.  The latest instructions are
+also to be found at <http://openmirage.org/docs>
 
 ## Configuring Mirage Applications
 

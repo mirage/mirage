@@ -19,263 +19,294 @@
 
     [Mirage_types] defines a set of well-defined module signatures
     which are used by the various mirage libraries to implement a
-    large collection of devicces. *)
+    large collection of devices. *)
 
-type mode = [
-  | `Unix of [ `Direct | `Socket ]
-  | `Xen
-]
-(** Usage modes. *)
 
-type main_ml
-(** Type of the [main.ml] file. *)
 
-module type CONFIGURABLE = sig
+(** {2 Module combinators} *)
 
-  (** Configuration values. *)
+type 'a typ
+(** The type of values representing module types. *)
 
-  type t
-  (** Type of configuration values to init that device. *)
+val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
+(** Construct a functor type from a type and an existing functor
+    type. This corresponds to prepending a parameter to the list of
+    functor parameters. For example,
 
-  val name: t -> string
-  (** Unique device name. *)
+    {| kv_ro @-> ip @-> kv_ro |}
 
-  val packages: t -> mode -> string list
-  (** List of OPAM packages to install for this device. *)
+    describes a functor type that accepts two arguments -- a kv_ro and
+    an ip device -- and returns a kv_ro.
+*)
 
-  val libraries: t -> mode -> string list
-  (** List of ocamlfind libraries. *)
+type 'a impl
+(** The type of values representing module implementations. *)
 
-  val configure: t -> mode -> main_ml -> unit
-  (** Generate some code to create a value with the right
-      configuration settings. This function appends some code in the
-      provided out channel but it can also do stuff in the background
-      (like calling 'mir-crunch' to generate static filesystems. *)
+val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
+(** [m $ a] applies the functor [a] to the functor [m]. *)
 
-  val clean: t -> unit
-  (** Remove all the autogen files. *)
+val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ -> 'a impl
+(** [foreign name libs packs constr typ] states that the module named
+    by [name] has the module type [typ]. If [libs] is set, add the
+    given set of ocamlfind libraries to the ones loaded by default. If
+    [packages] is set, add the given set of OPAM packages to the ones
+    loaded by default. *)
 
-end
+val typ: 'a impl -> 'a typ
+(** Return the module signature of a given implementation. *)
 
-module Io_page: sig
 
-  (** Memory allocation interface. *)
 
-  type t = unit
+(** {2 Consoles} *)
 
-  include CONFIGURABLE with type t := t
+(** Implementations of the [V1.CONSOLE] signature. *)
 
-end
+type console
+(** Abstract type for consoles. *)
 
-module Clock: sig
+val console: console typ
+(** The [V1.CONSOLE] module signature. *)
 
-  (** Clock operations. *)
+val default_console: console impl
+(** Default console implementation. *)
 
-  type t = unit
+val custom_console: string -> console impl
+(** Custom console implementation. *)
 
-  include CONFIGURABLE with type t := t
 
-end
 
-module KV_RO: sig
+(** {2 Block devices} *)
 
-  (** Static key/value pairs. *)
+(** Implementations of the [V1.BLOCK] signature. *)
 
-  type t = {
-    name   : string;
-    dirname: string;
-  }
-  (** Type for static key/value pairs configurations. *)
+type block
+(** Abstract type for raw block device configurations. *)
 
-  include CONFIGURABLE with type t := t
+val block: block typ
+(** The [V1.BLOCK] module signature. *)
 
-end
+val block_of_file: string -> block impl
+(** Use the given filen as a raw block device. *)
 
-module Console: sig
 
-  (** Text console for input/ouput operations. *)
 
-  type t = unit
+(** {2 Static key/value stores} *)
 
-  include CONFIGURABLE with type t := t
+(** Implementations of the [V1.KV_RO] signature. *)
 
-end
+type kv_ro
+(** Abstract type for read-only key/value store. *)
 
-module Block: sig
+val kv_ro: kv_ro typ
+(** The [V1.KV_RO] module signature. *)
 
-  (** Block devices for filenames. *)
+val crunch: string -> kv_ro impl
+(** Crunch a directory. *)
 
-  type t = {
-    name     : string;
-    filename : string;
-    read_only: bool; (** XXX: unused *)
-  }
-  (** Type for block device configuration. *)
+val direct_kv_ro: string -> kv_ro impl
+(** Direct access to the underlying filesystem as a key/value
+    store. For Xen backends, this is equivalent to [crunch]. *)
 
-  include CONFIGURABLE with type t := t
 
-end
 
-module Fat: sig
+(** {2 Filesystem} *)
 
-  (** FAT filesystem *)
+(** Implementations of the [V1.FS] signature. *)
 
-  type t = {
-    name : string;
-    block: Block.t;
-  }
-  (** Type for a FAT filesystem configuration. *)
+type fs
+(** Abstract type for filesystems. *)
 
-  include CONFIGURABLE with type t := t
+val fs: fs typ
+(** The [V1.FS] module signature. *)
 
-end
+val fat: block impl -> fs impl
+(** Consider a raw block device as a FAT filesystem. *)
 
-module Fat_KV_RO: sig
+val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
+(** [fat_files dir ?dir ?regexp ()] collects all the files matching
+    the shell pattern [regexp] in the directory [dir] into a FAT
+    image. By default, [dir] is the current working directory and
+    [regexp] is {i *} *)
 
-  (** FAT-backed read-only key/value store *)
+val kv_ro_of_fs: fs impl -> kv_ro impl
+(** Consider a filesystem implementation as a read-only key/value
+    store. *)
 
-  type t = {
-    name : string;
-    block: Block.t;
-  }
-  (** Type for a FAT KV_RO configuration. *)
 
-  include CONFIGURABLE with type t := t
 
-end
+(** {2 Network interfaces} *)
 
+(** Implementations of the [V1.NETWORK] signature. *)
 
-(** {2 Network configuration} *)
+type network
+(** Abstract type for network configurations. *)
 
-module Network: sig
+val network: network typ
+(** Representation of [Mirage_types.NETWORK]. *)
 
-  (** Network interface. *)
+val tap0: network impl
+(** The '/dev/tap0' interface. *)
 
-  type t = Tap0 | Custom of string
-  (** On OSX, it's either tap0 (default) or tap1, or linux it's the
-      either tap0 or first available if nothing is specified with the
-      custom variant. *)
+val netif: string -> network impl
+(** A custom network interface. *)
 
-  include CONFIGURABLE with type t := t
 
-end
 
-module IP: sig
+(** {2 Ethernet configuration} *)
 
-  (** IP settings. *)
+(** Implementations of the [V1.ETHIF] signature. *)
+(* XXX: is that meaningful to expose this level ? *)
+type ethernet
+val ethernet : ethernet typ
+val etif: network impl -> ethernet impl
 
-  type ipv4 = {
-    address: Ipaddr.V4.t;
-    netmask: Ipaddr.V4.t;
-    gateway: Ipaddr.V4.t list;
-  }
-  (** Types for IPv4 manual configuration. *)
 
-  type config =
-    | DHCP
-    | IPv4 of ipv4
-  (** Type for configuring the IP adress. *)
 
-  type t = {
-    name    : string;
-    config  : config;
-    networks: Network.t list;
-  }
-  (** Main IP configuration. *)
+(** {2 IPV4 configuration. *)
 
-  include CONFIGURABLE with type t := t
+(** Implementations of the [V1.IPV4] signature. *)
 
-  val local: Network.t -> t
-  (** Default local IP listening on the given network interface:
-        - address: 10.0.0.2
-        - netmask: 255.255.255.0
-        - gateway: 10.0.0.1 *)
+type ipv4
+(** Abstract type for IP configurations. *)
 
-end
+val ipv4: ipv4 typ
+(** The [V1.IPV4] module signature. *)
 
-module HTTP: sig
+type ipv4_config = {
+  address: Ipaddr.V4.t;
+  netmask: Ipaddr.V4.t;
+  gateways: Ipaddr.V4.t list;
+}
+(** Types for IPv4 manual configuration. *)
 
-  (** HTTP callbacks *)
+val create_ipv4: network impl -> ipv4_config -> ipv4 impl
+(** Use an IPv4 address. *)
 
-  type t = {
-    port   : int;
-    address: Ipaddr.V4.t option;
-    ip     : IP.t;
-  }
+val default_ipv4: network impl -> ipv4 impl
+(** Default local IP listening on the given network interfaces:
+    - address: 10.0.0.2
+    - netmask: 255.255.255.0
+    - gateways: [10.0.0.1] *)
 
-  include CONFIGURABLE with type t := t
 
-end
 
-module Driver: sig
+(** {UDPV4 configuration} *)
 
-  (** All possible device configuration. *)
+(** Implementation of the [V1.UDPV4] signature. *)
 
-  type t =
-    | Io_page of Io_page.t
-    | Console of Console.t
-    | Clock of Clock.t
-    | Network of Network.t
-    | KV_RO of KV_RO.t
-    | Block of Block.t
-    | Fat of Fat.t
-    | IP of IP.t
-    | HTTP of HTTP.t
-    | Fat_KV_RO of Fat_KV_RO.t
+type udpv4
+val udpv4: udpv4 typ
+val direct_udpv4: ipv4 impl -> udpv4 impl
+val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
 
-  include CONFIGURABLE with type t := t
 
-  val io_page: t
-  (** Default io_page driver. *)
 
-  val console: t
-  (** Default console driver. *)
+(** {TCPV4 configuration} *)
 
-  val clock: t
-  (** Default clock driver. *)
+(** Implementation of the [V1.TCPV4] signature. *)
 
-  val tap0: t
-  (** Default network driver. *)
+type tcpv4
+val tcpv4: tcpv4 typ
+val direct_tcpv4: ipv4 impl -> tcpv4 impl
+val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
- val local_ip: Network.t -> t
-  (** See [IP.local] *)
 
-end
 
-module Job: sig
+(** {Network stack configuration} *)
 
-(** Single jobs. *)
+(** Implementation of the [V1.STACKV4] signature. *)
 
-  type t = {
-    name     : string;
-    handler  : string;
-    params   : Driver.t list;
-  }
-  (** Type for single job: the name of the main function and the list
-      of devices it needs. *)
+type stackv4
+val stackv4: stackv4 typ
+val direct_stackv4_with_default_ipv4: console impl -> network impl -> stackv4 impl
+val direct_stackv4_with_static_ipv4: console impl -> network impl -> ipv4_config -> stackv4 impl
+val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
+val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
-  val register: (string * Driver.t list) list -> unit
-  (** Register a job list. *)
 
-  include CONFIGURABLE with type t := t
+(** {Channel configuration} *)
 
-end
+(** Implementation of the [V1.CHANNEL] signature. *)
+
+type channel
+val channel: channel typ
+val channel_over_tcpv4: tcpv4 impl -> channel impl
+
+
+(** {HTTP configuration} *)
+
+type http
+val http: http typ
+val http_server_of_channel: channel impl -> http impl
+val http_server: int -> stackv4 impl -> http impl
+
+
+(** {2 Jobs} *)
+
+type job
+(** Type for job values. *)
+
+val job: job typ
+(** Reprensention of [JOB]. *)
+
+val register: string -> job impl list -> unit
+(** [register name jobs] registers the application named by [name]
+    which will executes the given [jobs]. *)
 
 type t = {
   name: string;
   root: string;
-  jobs: Job.t list;
+  jobs: job impl list;
 }
-(** The collection of single jobs forms the main function. *)
-
-val main_ml: t -> main_ml
-(** Create an empty main_ml. *)
+(** Type for values representing a project description. *)
 
 val load: string option -> t
-(** Read a config file. If no name is given, use [config.ml]. *)
+(** Read a config file. If no name is given, search for use
+    [config.ml]. *)
+
+(** {2 Device configuration} *)
+
+type mode = [
+  | `Unix
+  | `Xen
+]
+(** Configuration mode. *)
+
+val set_mode: mode -> unit
+(** Set the configuration mode for the current project. *)
+
+val get_mode: unit -> mode
+
+module Impl: sig
+
+  (** Configurable device. *)
+
+  val name: 'a impl -> string
+  (** The unique variable name of the value of type [t]. *)
+
+  val module_name: 'a impl -> string
+  (** The unique module name for the given implementation. *)
+
+  val packages: 'a impl -> string list
+  (** List of OPAM packages to install for this device. *)
+
+  val libraries: 'a impl -> string list
+  (** List of ocamlfind libraries. *)
+
+  val configure: 'a impl -> unit
+  (** Generate some code to create a value with the right
+      configuration settings. *)
+
+  val clean: 'a impl -> unit
+  (** Remove all the autogen files. *)
+
+end
+
+(** {2 Project configuration} *)
 
 val manage_opam_packages: bool -> unit
-(** Tell Irminsule to manage the OPAM configuration. *)
+(** Tell Irminsule to manage the OPAM configuration
+    (ie. install/remove missing packages). *)
 
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)
@@ -283,10 +314,129 @@ val add_to_opam_packages: string list -> unit
 val add_to_ocamlfind_libraries: string list -> unit
 (** Link with the provided additional libraries. *)
 
-include CONFIGURABLE with type t := t
+val packages: t -> string list
+(** List of OPAM packages to install for this project. *)
+
+val libraries: t -> string list
+(** List of ocamlfind libraries. *)
+
+val configure: t -> unit
+(** Generate some code to create a value with the right
+    configuration settings. *)
+
+val clean: t -> unit
+(** Remove all the autogen files. *)
 
 val build: t -> unit
 (** Call [make build] in the right directory. *)
 
 val run: t -> unit
 (** call [make run] in the right directory. *)
+
+(** {2 Extensions} *)
+
+module type CONFIGURABLE = sig
+
+  (** Signature for configurable devices. *)
+
+  type t
+  (** Abstract type for configurable devices. *)
+
+  val name: t -> string
+  (** Return the unique variable name holding the state of the given
+      device. *)
+
+  val module_name: t -> string
+  (** Return the name of the module implementing the given device. *)
+
+  val packages: t -> string list
+  (** Return the list of OPAM packages which needs to be installed to
+      use the given device. *)
+
+  val libraries: t -> string list
+  (** Return the list of ocamlfind libraries to link with the
+      application to use the given device. *)
+
+  val configure: t -> unit
+  (** Configure the given device. *)
+
+  val clean: t -> unit
+  (** Clean all the files generated to use the given device. *)
+
+  val update_path: t -> string -> t
+  (** [update_path t root] prefixes all the path appearing in [t] with
+      the the prefix [root]. *)
+
+end
+
+val implementation: 'a -> 'b -> (module CONFIGURABLE with type t = 'b) -> 'a impl
+(** Extend the library with an external configuration. *)
+
+val append_main: ('a, unit, string, unit) format4 -> 'a
+(** Add some string to [main.ml]. *)
+
+val newline_main: unit -> unit
+(** Add a newline to [main.ml]. *)
+
+module Io_page: CONFIGURABLE with type t = unit
+(** Implementation of IO page allocators. *)
+
+module Clock: CONFIGURABLE with type t = unit
+(** Implementation of clocks. *)
+
+module Console: CONFIGURABLE with type t = string
+(** Implementation of consoles. *)
+
+module Crunch: CONFIGURABLE with type t = string
+(** Implementation of crunch a local filesystem. *)
+
+module Direct_kv_ro: CONFIGURABLE with type t = string
+(** Implementation of direct access to the filesystem as a key/value
+    read-only store. *)
+
+module Block: CONFIGURABLE with type t = string
+(** Implementation of raw block device. *)
+
+module Fat: CONFIGURABLE with type t = block impl
+(** Implementatin of the Fat filesystem. *)
+
+type network_config = Tap0 | Custom of string
+(** Network configuration. *)
+
+module Network: CONFIGURABLE with type t = network_config
+(** Implementation of network configuration. *)
+
+module Ethif: CONFIGURABLE with type t = network impl
+
+module IPV4: CONFIGURABLE with type t = ethernet impl * ipv4_config
+
+module UDPV4_direct: CONFIGURABLE with type t = ipv4 impl
+module UDPV4_socket: CONFIGURABLE with type t = Ipaddr.V4.t option
+
+module TCPV4_direct: CONFIGURABLE with type t = ipv4 impl
+module TCPV4_socket: CONFIGURABLE with type t =Ipaddr.V4.t option
+
+module STACKV4_direct: CONFIGURABLE with
+  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
+
+module STACKV4_socket: CONFIGURABLE with
+  type t = console impl * Ipaddr.V4.t list
+
+module Channel_over_TCPV4: CONFIGURABLE with type t = tcpv4 impl
+
+module HTTP: CONFIGURABLE with type t = [`Channel of channel impl | `Stack of int * stackv4 impl]
+
+module Job: CONFIGURABLE
+
+(** {2 Generation of fresh names} *)
+
+module Name: sig
+
+  val create: string -> string
+  (** [create base] creates a fresh name using the given [base]. *)
+
+  val of_key: string -> base:string -> string
+  (** [find_or_create key base] returns a unique name corresponding to
+      the key. *)
+
+end

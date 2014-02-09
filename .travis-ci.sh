@@ -11,8 +11,8 @@ sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
 export OPAMYES=1
 export OPAMVERBOSE=1
 
-opam init git://github.com/ocaml/opam-repository >/dev/null 2>&1
-opam install ocamlfind cstruct ounit mirage-types cmdliner ipaddr re lwt io-page-xen io-page-unix
+opam init git://github.com/mirage/opam-repository#mirage-1.1.0 >/dev/null 2>&1
+opam install cstruct ounit mirage-types cmdliner ipaddr re lwt io-page
 eval `opam config env`
 make
 sudo make install
@@ -20,7 +20,7 @@ sudo make install
 opam install mirage-console-unix mirage-console-xen \
     mirage-clock-unix mirage-clock-xen \
     mirage-block-unix mirage-block-xen \
-    fat-filesystem crunch
+    fat-filesystem crunch mirage-http
 
 cd lib_test
 make MODE=unix

@@ -609,7 +609,7 @@ let fat block =
     impl fs block (module Fat)
 
 (* This would deserve to be in its own lib. *)
-let kv_ro_of_fs =
+let kv_ro_of_fs () =
   let dummy_fat = fat (block_of_file "xx") in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in

@@ -128,7 +128,7 @@ val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
     image. By default, [dir] is the current working directory and
     [regexp] is {i *} *)
 
-val kv_ro_of_fs: fs impl -> kv_ro impl
+val kv_ro_of_fs: unit -> fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value
     store. *)
 

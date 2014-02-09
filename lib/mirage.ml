@@ -609,7 +609,7 @@ let fat block =
     impl fs block (module Fat)
 
 (* This would deserve to be in its own lib. *)
-let kv_ro_of_fs =
+let kv_ro_of_fs () =
   let dummy_fat = fat (block_of_file "xx") in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in
@@ -666,7 +666,8 @@ module Fat_of_files = struct
     append oc "";
     append oc "rm -f ${IMG}";
     (match t.dir with None -> () | Some d -> append oc "cd %s/" d);
-    append oc "${FAT} create ${IMG}";
+    append oc "SIZE=$(du -s . | cut -f 1)";
+    append oc "${FAT} create ${IMG} ${SIZE}KiB";
     append oc "${FAT} add ${IMG} %s" t.regexp;
     append oc "echo Created '%s'" (block_file t);
     append oc "";

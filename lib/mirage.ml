@@ -609,12 +609,12 @@ let fat block =
     impl fs block (module Fat)
 
 (* This would deserve to be in its own lib. *)
-let kv_ro_of_fs =
+let kv_ro_of_fs x =
   let dummy_fat = fat (block_of_file "xx") in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in
   let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
-  function fs -> fn $ fs
+  fn $ x
 
 module Fat_of_files = struct
 

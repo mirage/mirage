@@ -1631,7 +1631,7 @@ let compile_and_dynlink file =
   let file = Filename.basename file in
   let file = Dynlink.adapt_filename file in
   command "rm -rf %s/_build/%s.*" root (Filename.chop_extension file);
-  command "cd %s && ocamlbuild -use-ocamlfind -pkg mirage %s" root file;
+  command "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg mirage %s" root file;
   try Dynlink.loadfile (String.concat "/" [root; "_build"; file])
   with Dynlink.Error err -> error "Error loading config: %s" (Dynlink.error_message err)
 

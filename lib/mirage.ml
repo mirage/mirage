@@ -657,19 +657,20 @@ module Fat_of_files = struct
     append oc "echo filesystem image.";
     append oc "";
     append oc "FAT=$(which fat)";
-    append oc "IMG=$(pwd)/%s" (block_file t);
     append oc "if [ ! -x \"${FAT}\" ]; then";
     append oc "  echo I couldn\\'t find the 'fat' command-line tool.";
     append oc "  echo Try running 'opam install fat-filesystem'";
     append oc "  exit 1";
     append oc "fi";
     append oc "";
+    append oc "IMG=$(pwd)/%s" (block_file t);
     append oc "rm -f ${IMG}";
     (match t.dir with None -> () | Some d -> append oc "cd %s/" d);
-    append oc "${FAT} create ${IMG}";
+    append oc "SIZE=$(du -s . | cut -f 1)";
+    append oc "${FAT} create ${IMG} ${SIZE}KiB";
     append oc "${FAT} add ${IMG} %s" t.regexp;
     append oc "echo Created '%s'" (block_file t);
-    append oc "";
+
     close_out oc;
     Unix.chmod file 0o755;
     command "./make-%s-image.sh" (name t)

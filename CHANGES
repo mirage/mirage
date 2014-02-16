@@ -1,3 +1,6 @@
+1.1.1 (trunk):
+* Man page fixes for typos and terminology (#220).
+
 1.1.0 (2014-02-05):
 * Add a combinator interface to device binding that makes the functor generation
   significantly more succinct and expressive.  This breaks backwards compatibility

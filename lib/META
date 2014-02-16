@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4c8f530957fe4575a9f231291c514984)
-version = "1.1.0"
+# DO NOT EDIT (digest: 007387b8593a99cdfb19e64b960a967c)
+version = "1.1.1"
 description = "Mirage configuration tool"
 requires = "ipaddr unix dynlink lwt mirage-types mirage-types.lwt"
 archive(byte) = "mirage.cma"

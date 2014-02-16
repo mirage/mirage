@@ -1,12 +1,12 @@
 # Mirage
 
-Mirage is a unikernel for constructing secure, high-performance network
-applications across a variety of cloud computing and mobile platforms. Code can
-be developed on a normal OS such as Linux or MacOS X, and then compiled into a
-fully-standalone, specialised microkernel that runs under the Xen hypervisor.
-Since Xen powers most public cloud computing infrastructure such as Amazon EC2,
-this lets your servers run more cheaply, securely and finer control than with a
-full software stack.
+Mirage is a programming framework for constructing secure, high-performance
+network applications across a variety of cloud computing and mobile platforms.
+Code can be developed on a normal OS such as Linux or MacOS X, and then
+compiled into a fully-standalone, specialised unikernel that runs under the Xen
+hypervisor.  Since Xen powers most public cloud computing infrastructure such
+as Amazon EC2, this lets your servers run more cheaply, securely and finer
+control than with a full software stack.
 
 This repository includes:
 
@@ -14,7 +14,7 @@ This repository includes:
 * in `types/`, a library of type signatures that compliant applications use.
 
 There are several diverse backends in Mirage that require rather specialised
-build steps (from Javascript to Xen microkernels), and this compexity is
+build steps (from Javascript to Xen unikernels), and this complexity is
 wrapped up in the tool.
 
 To work with Mirage, you'll need the following prerequisites installed:

@@ -1,5 +1,7 @@
 1.1.1 (trunk):
 * Man page fixes for typos and terminology (#220).
+* Activate backtrace recording by default (#225).
+* Fixes in the `V1.STACKV4` to expose UDPv4/TCPv4 types properly (#226).
 
 1.1.0 (2014-02-05):
 * Add a combinator interface to device binding that makes the functor generation

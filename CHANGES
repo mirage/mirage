@@ -1,4 +1,4 @@
-1.1.1 (trunk):
+1.1.1 (2014-02-21):
 * Man page fixes for typos and terminology (#220).
 * Activate backtrace recording by default (#225).
 * Fixes in the `V1.STACKV4` to expose UDPv4/TCPv4 types properly (#226).

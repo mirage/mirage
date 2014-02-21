@@ -1567,6 +1567,8 @@ let configure_main t =
   newline_main ();
   append_main "open Lwt";
   newline_main ();
+  append_main "let _ = Printexc.record_backtrace true";
+  newline_main ();
   List.iter (fun j -> Impl.configure j) t.jobs;
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in

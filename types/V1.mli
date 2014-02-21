@@ -534,6 +534,12 @@ module type STACKV4 = sig
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned. *)
 
+  type udpv4
+  (** Abstract type for a UDPv4 stack. *)
+
+  type tcpv4
+  (** Abstract type for a TCPv4 stack. *)
+
   type error = [
     | `Unknown of string
   ]
@@ -547,11 +553,21 @@ module type STACKV4 = sig
     with type +'a io = 'a io 
      and type ipv4addr = ipv4addr 
      and type buffer = buffer
+     and type t = udpv4
 
   module TCPV4 : TCPV4 
     with type +'a io = 'a io 
      and type ipv4addr = ipv4addr
      and type buffer = buffer
+     and type t = tcpv4
+
+  val udpv4 : t -> udpv4
+  (** [udpv4 t] obtains a descriptor for use with the [UDPV4] module,
+      usually to transmit traffic. *)
+
+  val tcpv4 : t -> tcpv4
+  (** [tcpv4 t] obtains a descriptor for use with the [TCPV4] module,
+      usually to initiate outgoing connections. *)
 
   val listen_udpv4 : t -> port:int -> UDPV4.callback -> unit
   (** [listen_udpv4 t ~port cb] will register the [cb] callback on

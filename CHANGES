@@ -1,3 +1,6 @@
+1.1.2 (trunk):
+* Improvement to the Amazon EC2 deployment script.
+
 1.1.1 (2014-02-21):
 * Man page fixes for typos and terminology (#220).
 * Activate backtrace recording by default (#225).

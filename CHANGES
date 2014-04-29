@@ -1,5 +1,7 @@
-1.1.2 (trunk):
+1.1.2 (2014-04-01):
 * Improvement to the Amazon EC2 deployment script.
+* [types] Augment STACKV4 with an IPV4 module in addition to TCPV4 and UDPV4.
+* Regenerate with OASIS 0.4.4 (which adds natdynlink support)
 
 1.1.1 (2014-02-21):
 * Man page fixes for typos and terminology (#220).

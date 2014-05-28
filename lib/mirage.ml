@@ -1498,10 +1498,11 @@ let configure_makefile t =
       append oc "build: main.native.o";
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
-      append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
-                 \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-%s.xen"
-        lib lib lib lib lib lib lib lib t.name;
+      append oc "\tld -d -static -nostdlib --start-group \\\n\
+                 \t  $(shell pkg-config --static --libs openlibm libminios) \\\n\
+                 \t  _build/main.native.o %s/libocaml.a \\\n\
+                 \t  %s/libxencaml.a --end-group -o mir-%s.xen"
+        lib lib t.name;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

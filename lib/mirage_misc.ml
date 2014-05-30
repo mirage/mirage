@@ -221,8 +221,8 @@ let command ?(redirect=true) fmt =
 let opam cmd ?switch deps =
   let deps_str = String.concat " " deps in
   match switch with
-  | None     -> command "opam %s --yes %s" cmd deps_str
-  | Some cmp -> command "opam %s --yes %s --switch=%s" cmd deps_str cmp
+  | None     -> command "opam %s --verbose --yes %s" cmd deps_str
+  | Some cmp -> command "opam %s --verbose --yes %s --switch=%s" cmd deps_str cmp
 
 let in_dir dir f =
   let pwd = Sys.getcwd () in

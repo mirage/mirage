@@ -1,3 +1,6 @@
+1.1.3 (trunk):
+* Build OPAM packages in verbose mode by default.
+
 1.1.2 (2014-04-01):
 * Improvement to the Amazon EC2 deployment script.
 * [types] Augment STACKV4 with an IPV4 module in addition to TCPV4 and UDPV4.

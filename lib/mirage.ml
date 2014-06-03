@@ -1501,7 +1501,8 @@ let configure_makefile t =
       append oc "\tld -d -static -nostdlib --start-group \\\n\
                  \t  $(shell pkg-config --static --libs openlibm libminios) \\\n\
                  \t  _build/main.native.o %s/libocaml.a \\\n\
-                 \t  %s/libxencaml.a --end-group -o mir-%s.xen"
+                 \t  %s/libxencaml.a --end-group \\\n\
+                 \t  $(shell gcc -print-libgcc-file-name) -o mir-%s.xen"
         lib lib t.name;
     | `Unix ->
       append oc "build: main.native";

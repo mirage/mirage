@@ -1493,6 +1493,22 @@ let configure_makefile t =
              main.native.o:\n\
              \t$(BUILD) main.native.o";
   newline oc;
+
+  (* On ARM, we must convert the ELF image to an ARM boot executable zImage,
+   * while on x86 we leave it as it is. *)
+  let generate_image =
+    let need_zImage =
+      match uname_m () with
+      | Some machine -> String.length machine > 2 && String.sub machine 0 3 = "arm"
+      | None -> failwith "uname -m failed; can't determine target machine type!" in
+    if need_zImage then (
+      Printf.sprintf "\t  -o mir-%s.elf\n\
+                      \tobjcopy -O binary mir-%s.elf mir-%s.xen"
+                      t.name t.name t.name
+    ) else (
+      Printf.sprintf "\t  -o mir-%s.xen" t.name
+    ) in
+
   begin match !mode with
     | `Xen ->
       append oc "build: main.native.o";
@@ -1502,8 +1518,9 @@ let configure_makefile t =
                  \t  $(shell pkg-config --static --libs openlibm libminios) \\\n\
                  \t  _build/main.native.o %s/libocaml.a \\\n\
                  \t  %s/libxencaml.a --end-group \\\n\
-                 \t  $(shell gcc -print-libgcc-file-name) -o mir-%s.xen"
-        lib lib t.name;
+                 \t  $(shell gcc -print-libgcc-file-name) \\\n\
+                 %s"
+        lib lib generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

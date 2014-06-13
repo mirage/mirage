@@ -21,6 +21,10 @@ open V1
 module type TIME = TIME
   with type 'a io = 'a Lwt.t
 
+module type FLOW = FLOW
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+
 (** Network *)
 module type NETWORK = NETWORK
   with type 'a io = 'a Lwt.t

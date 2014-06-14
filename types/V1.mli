@@ -99,6 +99,41 @@ module type CLOCK = sig
       known as GMT. *)
 end
 
+module type FLOW = sig
+  (** A connection between endpoints. *)
+
+  type +'a io
+  (** A potentially blocking I/O operation *)
+
+  type buffer
+  (** Abstract type for a memory buffer that may not be page aligned. *)
+
+  type flow
+  (** A flow represents the state of a single stream that is connected
+      to an endpoint. *)
+
+  type error
+
+  val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
+  (** [read flow] will block until it either successfully reads a segment
+      of data from the current flow, receives an [Eof] signifying that
+      the connection is now closed, or an [Error]. *)
+
+  val write : flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
+  (** [write flow buffer] will block until the contents of [buffer] are
+      transmitted to the remote endpoint.  The contents may be transmitted
+      in separate packets, depending on the underlying transport. The result
+      [`Ok ()] indicates success, [`Eof] indicates that the connection is now
+      closed and [`Error] indicates some other error. *)
+
+  val writev : flow -> buffer list -> [`Ok of unit | `Eof | `Error of error ] io
+  (** [writev flow buffers] will block until the contents of [buffer list]
+      are all successfully transmitted to the remote endpoint. The result
+      [`Ok ()] indicates success, [`Eof] indicates that the connection is now
+      closed and [`Error] indicates some other error. *)
+
+end
+
 module type CONSOLE = sig
   (** Text console input/output operations. *)
 

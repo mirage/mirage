@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        mirage
-Version:     1.1.2
+Version:     1.1.3
 Synopsis:    Mirage configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC

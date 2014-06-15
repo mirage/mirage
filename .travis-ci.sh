@@ -28,6 +28,7 @@ opam install mirage-console-unix mirage-console-xen \
     mirage-block-unix mirage-block-xen \
     fat-filesystem crunch mirage-http
 
+make # build ./main.native
 cd lib_test
 make MODE=unix
 make clean

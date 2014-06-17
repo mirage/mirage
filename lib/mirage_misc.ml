@@ -138,7 +138,7 @@ let error fmt =
       exit 1;
     ) fmt
 
-let section = ref "MIRAGE"
+let section = ref "Mirage"
 
 let set_section s = section := s
 
@@ -152,7 +152,7 @@ let info fmt =
 
 let debug fmt =
   Printf.kprintf (fun str ->
-      left (yellow_s "DEBUG");
+      left (yellow_s "Debug");
       Printf.printf "%s%!\n" str
     ) fmt
 
@@ -199,7 +199,7 @@ let with_redirect oc file fn =
 
 let command ?(redirect=true) fmt =
   Printf.kprintf (fun cmd ->
-      info "+ Executing: %s" cmd;
+      info "=> %s" (yellow_s cmd);
       let redirect fn =
         if redirect then
           with_redirect stdout "log" (fun () ->

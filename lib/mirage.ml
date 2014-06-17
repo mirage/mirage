@@ -444,7 +444,7 @@ module Crunch = struct
       error "ocaml-crunch not found, stopping.";
     let file = ml t in
     if Sys.file_exists t then (
-      info "Generating %s/%s." (Sys.getcwd ()) file;
+      info "Generating: %s" (blue_s (Sys.getcwd () / file));
       command "ocaml-crunch -o %s %s" file t
     ) else
       error "The directory %s does not exist." t;
@@ -1534,7 +1534,7 @@ let configure_job j =
   newline_main ()
 
 let configure_main t =
-  info "Generating main.ml";
+  info "Generating: %s" (blue_s "main.ml");
   set_main_ml (t.root / "main.ml");
   append_main "(* %s *)" generated_by_mirage;
   newline_main ();
@@ -1553,7 +1553,7 @@ let clean_main t =
   remove (t.root / "main.ml")
 
 let configure t =
-  info "CONFIGURE: %s" (blue_s (t.root / "config.ml"));
+  info "Using configuration: %s" (blue_s (t.root / "config.ml"));
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
@@ -1571,19 +1571,19 @@ let make () =
   | _ -> "make"
 
 let build t =
-  info "BUILD: %s" (blue_s (t.root / "config.ml"));
+  info "Build: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
       command "%s build" (make ())
     )
 
 let run t =
-  info "RUN: %s" (blue_s (t.root / "config.ml"));
+  info "Run: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
       command "%s run" (make ())
     )
 
 let clean t =
-  info "CLEAN: %s" (blue_s (t.root / "config.ml"));
+  info "Clean: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
       clean_myocamlbuild_ml t;
       clean_makefile t;
@@ -1599,7 +1599,7 @@ let clean t =
  * [Mirage_config.register] in order to have an observable
  * side effect to this command. *)
 let compile_and_dynlink file =
-  info "%s" (blue_s (Printf.sprintf "Compiling and dynlinking %s" file));
+  info "Dynamically linking: %s" (blue_s file);
   let root = Filename.dirname file in
   let file = Filename.basename file in
   let file = Dynlink.adapt_filename file in
@@ -1613,16 +1613,16 @@ let compile_and_dynlink file =
  * If there is more than one, then error out. *)
 let scan_conf = function
   | Some f ->
-    info "Using the specified config file: %s" (yellow_s f);
+    info "Using specified config file: %s" (blue_s f);
     if not (Sys.file_exists f) then error "%s does not exist, stopping." f;
     realpath f
   | None   ->
     let files = Array.to_list (Sys.readdir ".") in
     match List.filter ((=) "config.ml") files with
     | [] -> error "No configuration file config.ml found.\n\
-                   You'll need to create one to let Mirage know what do do."
+                   You'll need to create one to let Mirage know what to do."
     | [f] ->
-      info "Using the scanned config file: %s" (yellow_s f);
+      info "Using scanned config file: %s" (blue_s f);
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."

@@ -1477,7 +1477,9 @@ let configure_makefile t =
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
-             OPAM   = opam";
+             OPAM   = opam\n\n\
+             export OPAMVERBOSE=1\n\
+             export OPAMYES=1";
   newline oc;
   append oc ".PHONY: all depend clean build main.native\n\
              all: build\n\
@@ -1509,9 +1511,9 @@ let configure_makefile t =
   begin match !mode with
     | `Xen ->
       append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
-      append oc "\t@echo Then do something similar to: xl create -c %s.xl" t.name
+      append oc "\t@echo Then do something similar to: xl create -c %s.xl\n" t.name
     | `Unix ->
-      append oc "\t$(SUDO) ./mir-%s" t.name
+      append oc "\t$(SUDO) ./mir-%s\n" t.name
   end;
   append oc "clean:\n\
              \tocamlbuild -clean";
@@ -1534,7 +1536,7 @@ let configure_job j =
   newline_main ()
 
 let configure_main t =
-  info "%s main.ml" (blue_s "Generating: ");
+  info "%s main.ml" (blue_s "Generating:");
   set_main_ml (t.root / "main.ml");
   append_main "(* %s *)" generated_by_mirage;
   newline_main ();
@@ -1563,7 +1565,8 @@ let configure t =
       configure_makefile t;
       configure_main_xl t;
       configure_main t
-    )
+    );
+  info "%s" (blue_s "Now run 'make depend' to install the package dependencies for this unikernel.")
 
 let make () =
   match uname_s () with
@@ -1613,7 +1616,7 @@ let compile_and_dynlink file =
  * If there is more than one, then error out. *)
 let scan_conf = function
   | Some f ->
-    info "%s %S" (blue_s "Using specified config file:") f;
+    info "%s %s" (blue_s "Using specified config file:") f;
     if not (Sys.file_exists f) then error "%s does not exist, stopping." f;
     realpath f
   | None   ->
@@ -1622,7 +1625,7 @@ let scan_conf = function
     | [] -> error "No configuration file config.ml found.\n\
                    You'll need to create one to let Mirage know what to do."
     | [f] ->
-      info "%s %S" (blue_s "Using scanned config file:") f;
+      info "%s %s" (blue_s "Using scanned config file:") f;
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."

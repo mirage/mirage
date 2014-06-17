@@ -8,6 +8,11 @@ hypervisor.  Since Xen powers most public cloud computing infrastructure such
 as Amazon EC2, this lets your servers run more cheaply, securely and finer
 control than with a full software stack.
 
+The most up-to-date documentation can be found at the homepage, at
+<http://www.openmirage.org>.  The site is self-hosted and a useful example,
+available at <https://github.com/mirage/mirage-www>. Simpler skeleton
+applications are found at <https://github.com/mirage/mirage-skeleton>.
+
 This repository includes:
 
 * a commmand-line tool to create and deploy applications with Mirage.
@@ -19,8 +24,8 @@ wrapped up in the tool.
 
 To work with Mirage, you'll need the following prerequisites installed:
 
-* a working [OCaml](http://ocaml.org) compiler.
-* the [OPAM](https://opam.ocaml.org) source package manager.
+* a working [OCaml](http://ocaml.org) compiler (4.00.1 or higher).
+* the [OPAM](https://opam.ocaml.org) source package manager (1.1.1 or higher).
 * a 64-bit Linux host to compile Xen kernels, or FreeBSD, OpenBSD or MacOS X
   for the userlevel version.
 
@@ -51,13 +56,11 @@ directory, the command:
 mirage configure
 ```
 
-will configure your project. It will:
+will configure your project. It will generate a `Makefile` and
+`main.ml` with the appropriate boilerplate for your chosen
+platform.
 
-* call the right OPAM commands to satisfy package dependencies.
-* generate `main.ml`
-* generate `Makefile`
-
-To build for the unix-direct target (using tap interfaces), do:
+To configure for the unix-direct target (using tap interfaces), do:
 
 ```
 mirage configure --unix
@@ -67,6 +70,13 @@ To build for the xen target, do:
 
 ```
 mirage configure --xen
+```
+
+Once configuration is complete, you can install the OPAM packages required by
+this unikernel by:
+
+```
+make depend
 ```
 
 ## Building Mirage Applications

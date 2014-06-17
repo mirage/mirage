@@ -163,7 +163,7 @@ let default =
       configure_doc build_doc run_doc clean_doc in
   Term.(pure usage $ pure ()),
   Term.info "mirage"
-    ~version:"1.1.3"
+    ~version:"1.1.4"
     ~sdocs:global_option_section
     ~doc
     ~man

@@ -2,11 +2,14 @@
 
 The Mirage frontend tool now generates a Makefile with a `make depend`
 target, instead of directly invoking OPAM as part of `mirage configure`.
-
 This greatly improves usability on slow platforms such as ARM, since the
 output of OPAM as it builds can be inspected more easily.  Users will now
 need to run `make depend` to ensure they have the latest package set,
 before building their unikernel with `make` as normal.
+
+* Improve format of generated Makefile, and also colours in terminal output.
+* Add `make depend` target to generated Makefile.
+* Set `OPAMVERBOSE` and `OPAMYES` in the Makefile, which can be overridden.
 
 1.1.3 (2014-06-15):
 * Build OPAM packages in verbose mode by default.

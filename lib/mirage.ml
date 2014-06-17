@@ -444,7 +444,7 @@ module Crunch = struct
       error "ocaml-crunch not found, stopping.";
     let file = ml t in
     if Sys.file_exists t then (
-      info "Generating %s/%s." (Sys.getcwd ()) file;
+      info "%s %s" (blue_s "Generating:") (Sys.getcwd () / file);
       command "ocaml-crunch -o %s %s" file t
     ) else
       error "The directory %s does not exist." t;
@@ -1477,13 +1477,15 @@ let configure_makefile t =
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
-             OPAM   = opam";
+             OPAM   = opam\n\n\
+             export OPAMVERBOSE=1\n\
+             export OPAMYES=1";
   newline oc;
-  append oc ".PHONY: all prepare clean build main.native\n\
+  append oc ".PHONY: all depend clean build main.native\n\
              all: build\n\
              \n\
-             prepare:\n\
-             \t$(OPAM) install $(PKGS)\n\
+             depend:\n\
+             \t$(OPAM) install $(PKGS) --verbose\n\
              \n\
              main.native:\n\
              \t$(BUILD) main.native\n\
@@ -1509,9 +1511,9 @@ let configure_makefile t =
   begin match !mode with
     | `Xen ->
       append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
-      append oc "\t@echo Then do something similar to: xl create -c %s.xl" t.name
+      append oc "\t@echo Then do something similar to: xl create -c %s.xl\n" t.name
     | `Unix ->
-      append oc "\t$(SUDO) ./mir-%s" t.name
+      append oc "\t$(SUDO) ./mir-%s\n" t.name
   end;
   append oc "clean:\n\
              \tocamlbuild -clean";
@@ -1519,33 +1521,6 @@ let configure_makefile t =
 
 let clean_makefile t =
   remove (t.root / "Makefile")
-
-let configure_opam t =
-  info "Installing OPAM packages.";
-  match packages t with
-  | [] -> ()
-  | ps ->
-    if command_exists "opam" then opam "install" ps
-    else error "OPAM is not installed."
-
-let clean_opam t =
-  ()
-(* This is a bit too agressive, disabling for now on.
-   let (++) = StringSet.union in
-   let set mode = StringSet.of_list (packages t mode) in
-   let packages =
-    set (`Unix `Socket) ++ set (`Unix `Direct) ++ set `Xen in
-   match StringSet.elements packages with
-   | [] -> ()
-   | ps ->
-    if cmd_exists "opam" then opam "remove" ps
-    else error "OPAM is not installed."
-*)
-
-let manage_opam = ref true
-
-let manage_opam_packages b =
-  manage_opam := b
 
 let configure_job j =
   let name = Impl.name j in
@@ -1561,7 +1536,7 @@ let configure_job j =
   newline_main ()
 
 let configure_main t =
-  info "Generating main.ml";
+  info "%s main.ml" (blue_s "Generating:");
   set_main_ml (t.root / "main.ml");
   append_main "(* %s *)" generated_by_mirage;
   newline_main ();
@@ -1580,18 +1555,18 @@ let clean_main t =
   remove (t.root / "main.ml")
 
 let configure t =
-  info "CONFIGURE: %s" (blue_s (t.root / "config.ml"));
+  info "%s %s" (blue_s "Using configuration:") (t.root / "config.ml");
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
     (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
-      if !manage_opam then configure_opam t;
       configure_myocamlbuild_ml t;
       configure_makefile t;
       configure_main_xl t;
       configure_main t
-    )
+    );
+  info "%s" (blue_s "Now run 'make depend' to install the package dependencies for this unikernel.")
 
 let make () =
   match uname_s () with
@@ -1599,21 +1574,20 @@ let make () =
   | _ -> "make"
 
 let build t =
-  info "BUILD: %s" (blue_s (t.root / "config.ml"));
+  info "Build: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
       command "%s build" (make ())
     )
 
 let run t =
-  info "RUN: %s" (blue_s (t.root / "config.ml"));
+  info "Run: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
       command "%s run" (make ())
     )
 
 let clean t =
-  info "CLEAN: %s" (blue_s (t.root / "config.ml"));
+  info "Clean: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
-      if !manage_opam then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main_xl t;
@@ -1628,7 +1602,7 @@ let clean t =
  * [Mirage_config.register] in order to have an observable
  * side effect to this command. *)
 let compile_and_dynlink file =
-  info "%s" (blue_s (Printf.sprintf "Compiling and dynlinking %s" file));
+  info "%s %s" (blue_s "Processing:") file;
   let root = Filename.dirname file in
   let file = Filename.basename file in
   let file = Dynlink.adapt_filename file in
@@ -1642,16 +1616,16 @@ let compile_and_dynlink file =
  * If there is more than one, then error out. *)
 let scan_conf = function
   | Some f ->
-    info "Using the specified config file: %s" (yellow_s f);
+    info "%s %s" (blue_s "Using specified config file:") f;
     if not (Sys.file_exists f) then error "%s does not exist, stopping." f;
     realpath f
   | None   ->
     let files = Array.to_list (Sys.readdir ".") in
     match List.filter ((=) "config.ml") files with
     | [] -> error "No configuration file config.ml found.\n\
-                   You'll need to create one to let Mirage know what do do."
+                   You'll need to create one to let Mirage know what to do."
     | [f] ->
-      info "Using the scanned config file: %s" (yellow_s f);
+      info "%s %s" (blue_s "Using scanned config file:") f;
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."

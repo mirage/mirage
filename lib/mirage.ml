@@ -444,7 +444,7 @@ module Crunch = struct
       error "ocaml-crunch not found, stopping.";
     let file = ml t in
     if Sys.file_exists t then (
-      info "Generating: %s" (blue_s (Sys.getcwd () / file));
+      info "%s %s" (blue_s "Generating:") (Sys.getcwd () / file);
       command "ocaml-crunch -o %s %s" file t
     ) else
       error "The directory %s does not exist." t;
@@ -1534,7 +1534,7 @@ let configure_job j =
   newline_main ()
 
 let configure_main t =
-  info "Generating: %s" (blue_s "main.ml");
+  info "%s main.ml" (blue_s "Generating: ");
   set_main_ml (t.root / "main.ml");
   append_main "(* %s *)" generated_by_mirage;
   newline_main ();
@@ -1553,7 +1553,7 @@ let clean_main t =
   remove (t.root / "main.ml")
 
 let configure t =
-  info "Using configuration: %s" (blue_s (t.root / "config.ml"));
+  info "%s %s" (blue_s "Using configuration:") (t.root / "config.ml");
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
@@ -1599,7 +1599,7 @@ let clean t =
  * [Mirage_config.register] in order to have an observable
  * side effect to this command. *)
 let compile_and_dynlink file =
-  info "Dynamically linking: %s" (blue_s file);
+  info "%s %s" (blue_s "Processing:") file;
   let root = Filename.dirname file in
   let file = Filename.basename file in
   let file = Dynlink.adapt_filename file in
@@ -1613,7 +1613,7 @@ let compile_and_dynlink file =
  * If there is more than one, then error out. *)
 let scan_conf = function
   | Some f ->
-    info "Using specified config file: %s" (blue_s f);
+    info "%s %S" (blue_s "Using specified config file:") f;
     if not (Sys.file_exists f) then error "%s does not exist, stopping." f;
     realpath f
   | None   ->
@@ -1622,7 +1622,7 @@ let scan_conf = function
     | [] -> error "No configuration file config.ml found.\n\
                    You'll need to create one to let Mirage know what to do."
     | [f] ->
-      info "Using scanned config file: %s" (blue_s f);
+      info "%s %S" (blue_s "Using scanned config file:") f;
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
                     Please specify one explicitly on the command-line."

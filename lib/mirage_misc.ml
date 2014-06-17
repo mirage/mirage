@@ -176,7 +176,7 @@ let realpath file =
 
 let remove file =
   if Sys.file_exists file then (
-    info "+ Removing %s." (realpath file);
+    info "%s %s" (red_s "Removing:") (realpath file);
     Sys.remove file
   )
 
@@ -199,7 +199,7 @@ let with_redirect oc file fn =
 
 let command ?(redirect=true) fmt =
   Printf.kprintf (fun cmd ->
-      info "=> %s" (yellow_s cmd);
+      info "%s %s" (yellow_s "=>") cmd;
       let redirect fn =
         if redirect then
           with_redirect stdout "log" (fun () ->
@@ -245,7 +245,7 @@ let command_exists s =
 let read_command fmt =
   let open Unix in
   Printf.ksprintf (fun cmd ->
-      let () = info "+ Executing: %s" cmd in
+      let () = info "%s %s" (yellow_s "=>") cmd in
       let ic, oc, ec = open_process_full cmd (environment ()) in
       let buf1 = Buffer.create 64
       and buf2 = Buffer.create 64 in

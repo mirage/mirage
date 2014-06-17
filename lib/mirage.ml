@@ -1479,10 +1479,10 @@ let configure_makefile t =
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam";
   newline oc;
-  append oc ".PHONY: all prepare clean build main.native\n\
+  append oc ".PHONY: all depend clean build main.native\n\
              all: build\n\
              \n\
-             prepare:\n\
+             depend:\n\
              \t$(OPAM) install $(PKGS) --verbose\n\
              \n\
              main.native:\n\

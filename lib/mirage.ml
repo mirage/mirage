@@ -801,34 +801,38 @@ let meta_ipv4_config t =
 
 module IPV4 = struct
 
-  type t = ethernet impl * ipv4_config
+  type t = {
+    ethernet: ethernet impl;
+    config  : ipv4_config;
+  }
   (* XXX: should the type if ipv4.id be ipv4.t ?
      N.connect ethif |> N.set_ip up *)
 
-  let name (e, i) =
-    let key = "ipv4" ^ Impl.name e ^ meta_ipv4_config i in
+  let name t =
+    let key = "ipv4" ^ Impl.name t.ethernet ^ meta_ipv4_config t.config in
     Name.of_key key ~base:"ipv4"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages (t, _) =
-    Impl.packages t @ ["tcpip"]
+  let packages t =
+    "tcpip" :: Impl.packages t.ethernet
 
-  let libraries (t, _) =
-    Impl.libraries t @
-    match !mode with
-    | `Unix -> [ "tcpip.ipv4-unix" ]
-    | `Xen  -> [ "tcpip.ipv4" ]
+  let libraries t  =
+    (match !mode with
+     | `Unix -> [ "tcpip.ipv4-unix" ]
+     | `Xen  -> [ "tcpip.ipv4" ])
+    @ Impl.libraries t.ethernet
 
-  let configure (eth, ip as t) =
+  let configure t =
     let name = name t in
     let mname = module_name t in
-    Impl.configure eth;
-    append_main "module %s = Ipv4.Make(%s)" (module_name t) (Impl.module_name eth);
+    Impl.configure t.ethernet;
+    append_main "module %s = Ipv4.Make(%s)"
+      (module_name t) (Impl.module_name t.ethernet);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "   %s () >>= function" (Impl.name eth);
+    append_main "   %s () >>= function" (Impl.name t.ethernet);
     append_main "   | `Error _ -> %s" (driver_initialisation_error name);
     append_main "   | `Ok eth  ->";
     append_main "   %s.connect eth >>= function" mname;
@@ -836,23 +840,23 @@ module IPV4 = struct
     append_main "   | `Ok ip   ->";
     append_main "   let i = Ipaddr.V4.of_string_exn in";
     append_main "   %s.set_ip ip (i %S) >>= fun () ->"
-      mname (Ipaddr.V4.to_string ip.address);
+      mname (Ipaddr.V4.to_string t.config.address);
     append_main "   %s.set_netmask ip (i %S) >>= fun () ->"
-      mname (Ipaddr.V4.to_string ip.netmask);
+      mname (Ipaddr.V4.to_string t.config.netmask);
     append_main "   %s.set_gateways ip [%s] >>= fun () ->"
       mname
       (String.concat "; "
          (List.map
             (fun n -> Printf.sprintf "(i %S)" (Ipaddr.V4.to_string n))
-            ip.gateways));
+            t.config.gateways));
     append_main "   return (`Ok ip)";
     newline_main ()
 
-  let clean (eth, _) =
-    Impl.clean eth
+  let clean t =
+    Impl.clean t.ethernet
 
-  let update_path (eth, ip) root =
-    (Impl.update_path eth root, ip)
+  let update_path t root =
+    { t with ethernet = Impl.update_path t.ethernet root }
 
 end
 
@@ -861,8 +865,10 @@ type ipv4 = IPV4
 let ipv4 = Type IPV4
 
 let create_ipv4 net ip =
-  let eth = etif net in
-  impl ipv4 (eth, ip) (module IPV4)
+  let t = {
+    IPV4.ethernet = etif net;
+    config = ip } in
+  impl ipv4 t (module IPV4)
 
 let default_ipv4_conf =
   let i = Ipaddr.V4.of_string_exn in
@@ -955,37 +961,50 @@ let socket_udpv4 ip =
 
 module TCPV4_direct = struct
 
-  type t = ipv4 impl
+  type t = {
+    clock: clock impl;
+    ipv4 : ipv4 impl;
+  }
 
   let name t =
-    Name.of_key ("tcpv4" ^ Impl.name t) ~base:"tcpv4"
+    let key = "tcpv4" ^ Impl.name t.clock ^ Impl.name t.ipv4 in
+    Name.of_key key ~base:"tcpv4"
 
   let module_name t =
     String.capitalize (name t)
 
   let packages t =
-    Impl.packages t @ [ "tcpip" ]
+    "tcpip"
+    :: Impl.packages t.clock
+    @  Impl.packages t.ipv4
 
   let libraries t =
-    Impl.libraries t @ [ "tcpip.tcpv4" ]
+    "tcpip.tcpv4"
+    :: Impl.libraries t.clock
+    @  Impl.libraries t.ipv4
 
   let configure t =
     let name = name t in
-    Impl.configure t;
-    append_main "module %s = Tcpv4.Flow.Make(%s)(OS.Time)(Clock)(Random)"
-      (module_name t) (Impl.module_name t);
+    Impl.configure t.clock;
+    Impl.configure t.ipv4;
+    append_main "module %s = Tcpv4.Flow.Make(%s)(OS.Time)(%s)(Random)"
+      (module_name t)
+      (Impl.module_name t.ipv4)
+      (Impl.module_name t.clock);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "   %s () >>= function" (Impl.name t);
-    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   %s () >>= function" (Impl.name t.ipv4);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error (Impl.name t.ipv4));
     append_main "   | `Ok ip   -> %s.connect ip" (module_name t);
     newline_main ()
 
   let clean t =
-    Impl.clean t
+    Impl.clean t.clock;
+    Impl.clean t.ipv4
 
   let update_path t root =
-    Impl.update_path t root
+    { clock = Impl.update_path t.clock root;
+      ipv4  = Impl.update_path t.ipv4 root; }
 
 end
 
@@ -1027,18 +1046,27 @@ type tcpv4 = TCPV4
 let tcpv4 = Type TCPV4
 
 let direct_tcpv4 ip =
-  impl tcpv4 ip (module TCPV4_direct)
+  let t = { TCPV4_direct.clock = default_clock; ipv4 = ip } in
+  impl tcpv4 t (module TCPV4_direct)
 
 let socket_tcpv4 ip =
   impl tcpv4 ip (module TCPV4_socket)
 
 module STACKV4_direct = struct
 
-  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
+  type t = {
+    clock  : clock impl;
+    console: console impl;
+    network: network impl;
+    config : [`DHCP | `IPV4 of ipv4_config];
+  }
 
-  let name (c, n, m) =
-    let key = "stackv4" ^ Impl.name c ^ Impl.name n ^
-              match m with
+  let name t =
+    let key = "stackv4"
+              ^ Impl.name t.clock
+              ^ Impl.name t.console
+              ^ Impl.name t.network
+              ^ match t.config with
               | `DHCP   -> "dhcp"
               | `IPV4 i -> meta_ipv4_config i in
     Name.of_key key ~base:"stackv4"
@@ -1046,39 +1074,49 @@ module STACKV4_direct = struct
   let module_name t =
     String.capitalize (name t)
 
-  let packages (c, n, _) =
-    Impl.packages c @ Impl.packages n @ Clock.packages () @ [ "tcpip" ]
+  let packages t =
+    "tcpip"
+    :: Impl.packages t.clock
+    @  Impl.packages t.console
+    @  Impl.packages t.network
 
-  let libraries (c, n, _) =
-    Impl.libraries c @ Impl.libraries n @ Clock.libraries () @
-    [ "tcpip.stack-direct" ]
+  let libraries t =
+    "tcpip.stack-direct"
+    :: Impl.libraries t.clock
+    @  Impl.libraries t.console
+    @  Impl.libraries t.network
 
-  let configure (c, n, m as t) =
+  let configure t =
     let name = name t in
-    Impl.configure c;
-    Impl.configure n;
+    Impl.configure t.clock;
+    Impl.configure t.console;
+    Impl.configure t.network;
     append_main "module %s = struct" (module_name t);
-    append_main "  module E = Ethif.Make(%s)" (Impl.module_name n);
+    append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
     append_main "  module I = Ipv4.Make(E)";
     append_main "  module U = Udpv4.Make(I)";
-    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random)";
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(OS.Time)(Random)(%s)(E)(I)(U)(T)"
-      (Impl.module_name c) (Impl.module_name n);
-
+    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(%s)(Random)"
+      (Impl.module_name t.clock);
+    append_main "  module S = Tcpip_stack_direct.Make(%s)(OS.Time)\
+                \               (Random)(%s)(E)(I)(U)(T)"
+      (Impl.module_name t.console)
+      (Impl.module_name t.clock);
     append_main "  include S";
     append_main "end";
     newline_main ();
     append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name c);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  %s () >>= function" (Impl.name t.console);
+    append_main "  | `Error _    -> %s"
+      (driver_initialisation_error (Impl.name t.console));
     append_main "  | `Ok console ->";
-    append_main "  %s () >>= function" (Impl.name n);
-    append_main "  | `Error _      -> %s" (driver_initialisation_error (Impl.name n));
+    append_main "  %s () >>= function" (Impl.name t.network);
+    append_main "  | `Error _      -> %s"
+      (driver_initialisation_error (Impl.name t.network));
     append_main "  | `Ok interface ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;
-    append_main "    console; interface;";
-    begin match m with
+    append_main "    clock; console; interface;";
+    begin match t.config with
       | `DHCP   -> append_main "    mode = `DHCP;"
       | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i);
     end;
@@ -1086,20 +1124,26 @@ module STACKV4_direct = struct
     append_main "  %s.connect config" (module_name t);
     newline_main ()
 
-  let clean (c, e, _) =
-    Impl.clean c;
-    Impl.clean e
+  let clean t =
+    Impl.clean t.clock;
+    Impl.clean t.console;
+    Impl.clean t.network
 
-  let update_path (c, e, m) root =
-    Impl.update_path c root,
-    Impl.update_path e root,
-    m
+  let update_path t root =
+    { t with
+      clock   = Impl.update_path t.clock root;
+      console = Impl.update_path t.console root;
+      network = Impl.update_path t.network root;
+    }
 
 end
 
 module STACKV4_socket = struct
 
-  type t = console impl * Ipaddr.V4.t list
+  type t = {
+    console: console impl;
+    ipv4s  : Ipaddr.V4.t list;
+  }
 
   let meta_ips ips =
     String.concat "; "
@@ -1107,61 +1151,75 @@ module STACKV4_socket = struct
            Printf.sprintf "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x)
          ) ips)
 
-  let name (c, ips) = let key = "stackv4" ^ Impl.name c ^ meta_ips ips in
+  let name t =
+    let key = "stackv4" ^ Impl.name t.console ^ meta_ips t.ipv4s in
     Name.of_key key ~base:"stackv4"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages (c, _) =
-    Impl.packages c @ [ "tcpip" ]
+  let packages t =
+    "tcpip" :: Impl.packages t.console
 
-  let libraries (c, _) =
-    Impl.libraries c @ [ "tcpip.stack-socket" ]
+  let libraries t =
+    "tcpip.stack-socket" :: Impl.libraries t.console
 
-  let configure (c, ips as t) =
+  let configure t =
     let name = name t in
-    Impl.configure c;
+    Impl.configure t.console;
     append_main "module %s = Tcpip_stack_socket.Make(%s)"
-      (module_name t) (Impl.module_name c);
+      (module_name t) (Impl.module_name t.console);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name c);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  %s () >>= function" (Impl.name t.console);
+    append_main "  | `Error _    -> %s"
+      (driver_initialisation_error (Impl.name t.console));
     append_main "  | `Ok console ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;
-    append_main "    console; interface = [%s];" (meta_ips ips);
+    append_main "    console; interface = [%s];" (meta_ips t.ipv4s);
     append_main "    mode = ();";
     append_main "  } in";
     append_main "  %s.connect config" (module_name t);
     newline_main ()
 
-  let clean (c, _) =
-    Impl.clean c
+  let clean t =
+    Impl.clean t.console
 
-  let update_path (c, ips) root =
-    (Impl.update_path c root, ips)
+  let update_path t root =
+    { t with console = Impl.update_path t.console root }
 
 end
-
 
 type stackv4 = STACK4
 
 let stackv4 = Type STACK4
 
 let direct_stackv4_with_dhcp console network =
-  impl stackv4 (console, network, `DHCP) (module STACKV4_direct)
+  let t = {
+    STACKV4_direct.console; network;
+    clock  = default_clock;
+    config = `DHCP } in
+  impl stackv4 t (module STACKV4_direct)
 
 let direct_stackv4_with_default_ipv4 console network =
-  impl stackv4 (console, network, `IPV4 default_ipv4_conf) (module STACKV4_direct)
+  let t = {
+    STACKV4_direct.console; network;
+    clock  = default_clock;
+    config = `IPV4 default_ipv4_conf;
+  } in
+  impl stackv4 t (module STACKV4_direct)
 
 let direct_stackv4_with_static_ipv4 console network ipv4 =
-  impl stackv4 (console, network, `IPV4 ipv4) (module STACKV4_direct)
+  let t = {
+    STACKV4_direct.console; network;
+    clock  = default_clock;
+    config = `IPV4 ipv4;
+  } in
+  impl stackv4 t (module STACKV4_direct)
 
-let socket_stackv4 console ips =
-  impl stackv4 (console, ips) (module STACKV4_socket)
-
+let socket_stackv4 console ipv4s =
+  impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
 module Channel_over_TCPV4 = struct
 

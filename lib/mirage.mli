@@ -374,53 +374,47 @@ val append_main: ('a, unit, string, unit) format4 -> 'a
 val newline_main: unit -> unit
 (** Add a newline to [main.ml]. *)
 
-module Io_page: CONFIGURABLE with type t = unit
+module Io_page: CONFIGURABLE
 (** Implementation of IO page allocators. *)
 
-module Clock: CONFIGURABLE with type t = unit
+module Clock: CONFIGURABLE
 (** Implementation of clocks. *)
 
-module Console: CONFIGURABLE with type t = string
+module Console: CONFIGURABLE
 (** Implementation of consoles. *)
 
-module Crunch: CONFIGURABLE with type t = string
+module Crunch: CONFIGURABLE
 (** Implementation of crunch a local filesystem. *)
 
-module Direct_kv_ro: CONFIGURABLE with type t = string
+module Direct_kv_ro: CONFIGURABLE
 (** Implementation of direct access to the filesystem as a key/value
     read-only store. *)
 
-module Block: CONFIGURABLE with type t = string
+module Block: CONFIGURABLE
 (** Implementation of raw block device. *)
 
-module Fat: CONFIGURABLE with type t = block impl
+module Fat: CONFIGURABLE
 (** Implementatin of the Fat filesystem. *)
 
-type network_config = Tap0 | Custom of string
-(** Network configuration. *)
-
-module Network: CONFIGURABLE with type t = network_config
+module Network: CONFIGURABLE
 (** Implementation of network configuration. *)
 
-module Ethif: CONFIGURABLE with type t = network impl
+module Ethif: CONFIGURABLE
 
-module IPV4: CONFIGURABLE with type t = ethernet impl * ipv4_config
+module IPV4: CONFIGURABLE
 
-module UDPV4_direct: CONFIGURABLE with type t = ipv4 impl
-module UDPV4_socket: CONFIGURABLE with type t = Ipaddr.V4.t option
+module UDPV4_direct: CONFIGURABLE
+module UDPV4_socket: CONFIGURABLE
 
-module TCPV4_direct: CONFIGURABLE with type t = ipv4 impl
-module TCPV4_socket: CONFIGURABLE with type t =Ipaddr.V4.t option
+module TCPV4_direct: CONFIGURABLE
+module TCPV4_socket: CONFIGURABLE
 
-module STACKV4_direct: CONFIGURABLE with
-  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
+module STACKV4_direct: CONFIGURABLE
+module STACKV4_socket: CONFIGURABLE
 
-module STACKV4_socket: CONFIGURABLE with
-  type t = console impl * Ipaddr.V4.t list
+module Channel_over_TCPV4: CONFIGURABLE
 
-module Channel_over_TCPV4: CONFIGURABLE with type t = tcpv4 impl
-
-module HTTP: CONFIGURABLE with type t = [`Channel of channel impl | `Stack of int * stackv4 impl]
+module HTTP: CONFIGURABLE
 
 module Job: CONFIGURABLE
 

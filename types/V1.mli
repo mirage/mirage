@@ -385,8 +385,8 @@ module type IPV4 = sig
   (** [write t frame buffer] concatenates a header [frame] (possibly
     allocated with {!allocate_frame} with the [buffer] and outputs it
     as a single frame. *)
- 
-  val writev: t -> buffer -> buffer list -> unit io 
+
+  val writev: t -> buffer -> buffer list -> unit io
   (** [writev t frame buffers] concatenates a header [frame] (possibly
     allocated with {!allocate_frame} with the [buffer] list and outputs
     it all as a single frame. Uses the underlying scatter-gather interface
@@ -413,7 +413,7 @@ module type IPV4 = sig
 
   val set_ipv4_gateways: t -> ipv4addr list -> unit io
   (** Set the IPv4 gateways associated with this interface. *)
- 
+
   val get_ipv4_gateways: t -> ipv4addr list
   (** Get the IPv4 gateways associated with this interface.  If none has
       been previously bound via {!set_ipv4_netmask}, it defaults to
@@ -448,7 +448,7 @@ module type UDPV4 = sig
 
   type callback = src:ipv4addr -> dst:ipv4addr -> src_port:int -> buffer -> unit io
   (** Callback function that adds the UDPv4 metadata for [src] and [dst] IPv4
-      addresses, the [src_port] of the connection and the [buffer] payload 
+      addresses, the [src_port] of the connection and the [buffer] payload
       of the datagram. *)
 
   val input: listeners:(dst_port:int -> callback option) -> t -> ipv4input
@@ -559,7 +559,7 @@ module type STACKV4 = sig
   (** Abstract type of the configuration modes associated with this interface.
       These can consist of the IPv4 address binding, or a DHCP interface. *)
 
-  type ('console,'netif,'mode) config
+  type ('console, 'netif, 'mode) config
   (** Abstract type for the collection of user configuration specified to
       construct a stack. *)
 
@@ -585,16 +585,16 @@ module type STACKV4 = sig
 
   include DEVICE with
     type error := error
-    and type id = (console,netif,mode) config
+    and type id = (console, netif, mode) config
 
   module UDPV4 : UDPV4
-    with type +'a io = 'a io 
-     and type ipv4addr = ipv4addr 
+    with type +'a io = 'a io
+     and type ipv4addr = ipv4addr
      and type buffer = buffer
      and type t = udpv4
 
-  module TCPV4 : TCPV4 
-    with type +'a io = 'a io 
+  module TCPV4 : TCPV4
+    with type +'a io = 'a io
      and type ipv4addr = ipv4addr
      and type buffer = buffer
      and type t = tcpv4
@@ -668,7 +668,7 @@ module type CHANNEL = sig
 
   val read_until   : t -> char -> (bool * buffer) io
   (** [read_until t ch] will read from the channel until the given [ch] character
-      is found.  It returns a tuple indicating whether the character was found at 
+      is found.  It returns a tuple indicating whether the character was found at
       all ([false] indicates that an EOF condition occurred before the character
       was encountered), and the [buffer] pointing to the position immediately
       after the character (or the complete scanned buffer if the character was
@@ -695,7 +695,7 @@ module type CHANNEL = sig
   val write_string : t -> string -> int -> int -> unit
   (** [write_string t buf off len] writes [len] bytes from a string [buf],
      starting from from offset [off]. *)
-     
+
   val write_buffer : t -> buffer -> unit
   (** [write_buffer t buf] will copy the buffer to the channel's output buffer.
      The buffer should not be modified after being written, and it will be

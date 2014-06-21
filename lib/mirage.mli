@@ -55,7 +55,16 @@ val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ
 val typ: 'a impl -> 'a typ
 (** Return the module signature of a given implementation. *)
 
+(** {2 Clocks} *)
 
+type clock
+(** Abstract type for clocks. *)
+
+val clock: clock typ
+(** The [V1.CLOCK] module signature. *)
+
+val default_clock: clock impl
+(** The default mirage-clock implementation. *)
 
 (** {2 Consoles} *)
 

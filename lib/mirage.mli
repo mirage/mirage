@@ -55,6 +55,21 @@ val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ
 val typ: 'a impl -> 'a typ
 (** Return the module signature of a given implementation. *)
 
+
+
+(** {2 Time} *)
+
+type time
+(** Abstract type for timers. *)
+
+val time: time typ
+(** The [V1.TIME] module signature. *)
+
+val default_time: time impl
+(** The default timer implementation. *)
+
+
+
 (** {2 Clocks} *)
 
 type clock
@@ -65,6 +80,8 @@ val clock: clock typ
 
 val default_clock: clock impl
 (** The default mirage-clock implementation. *)
+
+
 
 (** {2 Consoles} *)
 
@@ -388,6 +405,9 @@ module Io_page: CONFIGURABLE
 
 module Clock: CONFIGURABLE
 (** Implementation of clocks. *)
+
+module Time: CONFIGURABLE
+(** Implementation of timers. *)
 
 module Console: CONFIGURABLE
 (** Implementation of consoles. *)

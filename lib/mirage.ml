@@ -330,6 +330,37 @@ let io_page = Type IO_PAGE
 let default_io_page: io_page impl =
   impl io_page () (module Io_page)
 
+module Time = struct
+
+  (** OS Timer. *)
+
+  type t = unit
+
+  let name () =
+    "time"
+
+  let module_name () =
+    "OS.Time"
+
+  let packages () = []
+
+  let libraries () = []
+
+  let configure () = ()
+
+  let clean () = ()
+
+  let update_path () _ = ()
+
+end
+
+type time = TIME
+
+let time = Type TIME
+
+let default_time: time impl =
+  impl time () (module Time)
+
 module Clock = struct
 
   (** Clock operations. *)
@@ -963,11 +994,15 @@ module TCPV4_direct = struct
 
   type t = {
     clock: clock impl;
+    time : time impl;
     ipv4 : ipv4 impl;
   }
 
   let name t =
-    let key = "tcpv4" ^ Impl.name t.clock ^ Impl.name t.ipv4 in
+    let key = "tcpv4"
+              ^ Impl.name t.clock
+              ^ Impl.name t.time
+              ^ Impl.name t.ipv4 in
     Name.of_key key ~base:"tcpv4"
 
   let module_name t =
@@ -976,20 +1011,24 @@ module TCPV4_direct = struct
   let packages t =
     "tcpip"
     :: Impl.packages t.clock
+    @  Impl.packages t.time
     @  Impl.packages t.ipv4
 
   let libraries t =
     "tcpip.tcpv4"
     :: Impl.libraries t.clock
+    @  Impl.libraries t.time
     @  Impl.libraries t.ipv4
 
   let configure t =
     let name = name t in
     Impl.configure t.clock;
+    Impl.configure t.time;
     Impl.configure t.ipv4;
-    append_main "module %s = Tcpv4.Flow.Make(%s)(OS.Time)(%s)(Random)"
+    append_main "module %s = Tcpv4.Flow.Make(%s)(%s)(%s)(Random)"
       (module_name t)
       (Impl.module_name t.ipv4)
+      (Impl.module_name t.time)
       (Impl.module_name t.clock);
     newline_main ();
     append_main "let %s () =" name;
@@ -1000,11 +1039,14 @@ module TCPV4_direct = struct
 
   let clean t =
     Impl.clean t.clock;
+    Impl.clean t.time;
     Impl.clean t.ipv4
 
   let update_path t root =
     { clock = Impl.update_path t.clock root;
-      ipv4  = Impl.update_path t.ipv4 root; }
+      ipv4  = Impl.update_path t.ipv4 root;
+      time  = Impl.update_path t.time root;
+    }
 
 end
 
@@ -1046,7 +1088,7 @@ type tcpv4 = TCPV4
 let tcpv4 = Type TCPV4
 
 let direct_tcpv4 ip =
-  let t = { TCPV4_direct.clock = default_clock; ipv4 = ip } in
+  let t = { TCPV4_direct.clock = default_clock; time = default_time; ipv4 = ip } in
   impl tcpv4 t (module TCPV4_direct)
 
 let socket_tcpv4 ip =
@@ -1056,6 +1098,7 @@ module STACKV4_direct = struct
 
   type t = {
     clock  : clock impl;
+    time   : time impl;
     console: console impl;
     network: network impl;
     config : [`DHCP | `IPV4 of ipv4_config];
@@ -1064,6 +1107,7 @@ module STACKV4_direct = struct
   let name t =
     let key = "stackv4"
               ^ Impl.name t.clock
+              ^ Impl.name t.time
               ^ Impl.name t.console
               ^ Impl.name t.network
               ^ match t.config with
@@ -1077,29 +1121,34 @@ module STACKV4_direct = struct
   let packages t =
     "tcpip"
     :: Impl.packages t.clock
+    @  Impl.packages t.time
     @  Impl.packages t.console
     @  Impl.packages t.network
 
   let libraries t =
     "tcpip.stack-direct"
     :: Impl.libraries t.clock
+    @  Impl.libraries t.time
     @  Impl.libraries t.console
     @  Impl.libraries t.network
 
   let configure t =
     let name = name t in
     Impl.configure t.clock;
+    Impl.configure t.time;
     Impl.configure t.console;
     Impl.configure t.network;
     append_main "module %s = struct" (module_name t);
     append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
     append_main "  module I = Ipv4.Make(E)";
     append_main "  module U = Udpv4.Make(I)";
-    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(%s)(Random)"
+    append_main "  module T = Tcpv4.Flow.Make(I)(%s)(%s)(Random)"
+      (Impl.module_name t.time)
       (Impl.module_name t.clock);
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(OS.Time)\
+    append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)\
                 \               (Random)(%s)(E)(I)(U)(T)"
       (Impl.module_name t.console)
+      (Impl.module_name t.time)
       (Impl.module_name t.clock);
     append_main "  include S";
     append_main "end";
@@ -1126,12 +1175,14 @@ module STACKV4_direct = struct
 
   let clean t =
     Impl.clean t.clock;
+    Impl.clean t.time;
     Impl.clean t.console;
     Impl.clean t.network
 
   let update_path t root =
     { t with
       clock   = Impl.update_path t.clock root;
+      time    = Impl.update_path t.time root;
       console = Impl.update_path t.console root;
       network = Impl.update_path t.network root;
     }
@@ -1198,6 +1249,7 @@ let stackv4 = Type STACK4
 let direct_stackv4_with_dhcp console network =
   let t = {
     STACKV4_direct.console; network;
+    time   = default_time;
     clock  = default_clock;
     config = `DHCP } in
   impl stackv4 t (module STACKV4_direct)
@@ -1206,6 +1258,7 @@ let direct_stackv4_with_default_ipv4 console network =
   let t = {
     STACKV4_direct.console; network;
     clock  = default_clock;
+    time   = default_time;
     config = `IPV4 default_ipv4_conf;
   } in
   impl stackv4 t (module STACKV4_direct)
@@ -1214,6 +1267,7 @@ let direct_stackv4_with_static_ipv4 console network ipv4 =
   let t = {
     STACKV4_direct.console; network;
     clock  = default_clock;
+    time   = default_time;
     config = `IPV4 ipv4;
   } in
   impl stackv4 t (module STACKV4_direct)

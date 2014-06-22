@@ -12,7 +12,7 @@ module Main (C: V1_LWT.CONSOLE) (FS: V1_LWT.KV_RO) (Server: Cohttp_lwt.Server) =
 
   let start c fs http =
 
-    let callback conn_id ?body req =
+    let callback conn_id req body =
       let path = Uri.path (Server.Request.uri req) in
       C.log_s c (Printf.sprintf "Got a request for %s\n" path) >>= fun () ->
       FS.size fs path                    >>> fun s ->

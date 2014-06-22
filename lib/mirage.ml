@@ -297,6 +297,7 @@ let rec typ: type a. a impl -> a typ = function
   | Foreign { ty } -> ty
   | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
+
 module Io_page = struct
 
   (** Memory allocation interface. *)
@@ -309,11 +310,14 @@ module Io_page = struct
   let module_name () =
     "Io_page"
 
-  let packages () =
-    [ "io-page" ]
+  let packages () = [
+    "io-page"
+  ]
 
   let libraries () =
-    packages ()
+    match !mode with
+    | `Xen  -> ["io-page"]
+    | `Unix -> ["io-page"; "io-page.unix"]
 
   let configure () = ()
 
@@ -329,6 +333,37 @@ let io_page = Type IO_PAGE
 
 let default_io_page: io_page impl =
   impl io_page () (module Io_page)
+
+module Time = struct
+
+  (** OS Timer. *)
+
+  type t = unit
+
+  let name () =
+    "time"
+
+  let module_name () =
+    "OS.Time"
+
+  let packages () = []
+
+  let libraries () = []
+
+  let configure () = ()
+
+  let clean () = ()
+
+  let update_path () _ = ()
+
+end
+
+type time = TIME
+
+let time = Type TIME
+
+let default_time: time impl =
+  impl time () (module Time)
 
 module Clock = struct
 
@@ -364,6 +399,35 @@ let clock = Type CLOCK
 
 let default_clock: clock impl =
   impl clock () (module Clock)
+
+module Random = struct
+
+  type t = unit
+
+  let name () =
+    "random"
+
+  let module_name () =
+    "Random"
+
+  let packages () = []
+
+  let libraries () = []
+
+  let configure () = ()
+
+  let clean () = ()
+
+  let update_path () _ = ()
+
+end
+
+type random = RANDOM
+
+let random = Type RANDOM
+
+let default_random: random impl =
+  impl random () (module Random)
 
 module Console = struct
 
@@ -422,16 +486,13 @@ module Crunch = struct
     "lwt";
     "cstruct";
     "crunch";
-  ]
+  ] @ Io_page.packages ()
 
   let libraries _ = [
     "mirage-types";
     "lwt";
-    "cstruct" ] @ (
-      match !mode with
-      | `Unix -> [ "io-page.unix" ]
-      | `Xen  -> []
-    ) @ [ "io-page" ]
+    "cstruct";
+  ] @ Io_page.libraries ()
 
   let ml t =
     Printf.sprintf "%s.ml" (name t)
@@ -483,23 +544,12 @@ module Direct_kv_ro = struct
   let packages t =
     match !mode with
     | `Xen  -> Crunch.packages t
-    | `Unix -> [
-        "mirage-types";
-        "lwt";
-        "cstruct";
-        "mirage-fs-unix";
-      ]
+    | `Unix -> "mirage-fs-unix" :: Crunch.packages t
 
   let libraries t =
     match !mode with
     | `Xen  -> Crunch.libraries t
-    | `Unix -> [
-        "mirage-types";
-        "lwt";
-        "cstruct";
-        "io-page.unix"; "io-page";
-        "mirage-fs-unix";
-      ]
+    | `Unix -> "mirage-fs-unix" :: Crunch.libraries t
 
   let configure t =
     match !mode with
@@ -560,44 +610,51 @@ let block_of_file filename =
 
 module Fat = struct
 
-  type t = block impl
+  type t = {
+    io_page: io_page impl;
+    block  : block impl;
+  }
 
   let name t =
-    Name.of_key ("fat" ^ (Impl.name t)) ~base:"fat"
+    let key = "fat" ^ Impl.name t.io_page ^ Impl.name t.block in
+    Name.of_key key ~base:"fat"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages t = [
-    "fat-filesystem";
-  ]
-    @ Io_page.packages ()
-    @ Block.packages t
+  let packages t =
+    "fat-filesystem"
+    :: Impl.packages t.io_page
+    @  Impl.packages t.block
 
-  let libraries t = [
-    "fat-filesystem";
-  ]
-    @ Io_page.libraries ()
-    @ Block.libraries t
+  let libraries t =
+    "fat-filesystem"
+    :: Impl.libraries t.io_page
+    @  Impl.libraries t.block
 
   let configure t =
-    Impl.configure t;
-    append_main "module %s = Fat.Fs.Make(%s)(Io_page)"
+    Impl.configure t.io_page;
+    Impl.configure t.block;
+    append_main "module %s = Fat.Fs.Make(%s)(%s)"
       (module_name t)
-      (Impl.module_name t);
+      (Impl.module_name t.block)
+      (Impl.module_name t.io_page);
     newline_main ();
     let name = name t in
     append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name t);
+    append_main "  %s () >>= function" (Impl.name t.block);
     append_main "  | `Error _ -> %s" (driver_initialisation_error name);
     append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
     newline_main ()
 
   let clean t =
-    Impl.clean t
+    Impl.clean t.block;
+    Impl.clean t.io_page
 
   let update_path t root =
-    Impl.update_path t root
+    { io_page = Impl.update_path t.io_page root;
+      block  = Impl.update_path t.block root;
+    }
 
 end
 
@@ -605,11 +662,12 @@ type fs = FS
 
 let fs = Type FS
 
-let fat block =
-    impl fs block (module Fat)
+let fat ?(io_page=default_io_page) block: fs impl =
+  let t = { Fat.block; io_page } in
+  impl fs t (module Fat)
 
 (* This would deserve to be in its own lib. *)
-let kv_ro_of_fs x =
+let kv_ro_of_fs x: kv_ro impl =
   let dummy_fat = fat (block_of_file "xx") in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in
@@ -638,10 +696,10 @@ module Fat_of_files = struct
     block_of_file (block_file t)
 
   let packages t =
-    Fat.packages (block t)
+    Impl.packages (fat (block t))
 
   let libraries t =
-    Fat.libraries (block t)
+    Impl.libraries (fat (block t))
 
   let configure t =
     let fat = fat (block t) in
@@ -801,34 +859,38 @@ let meta_ipv4_config t =
 
 module IPV4 = struct
 
-  type t = ethernet impl * ipv4_config
+  type t = {
+    ethernet: ethernet impl;
+    config  : ipv4_config;
+  }
   (* XXX: should the type if ipv4.id be ipv4.t ?
      N.connect ethif |> N.set_ip up *)
 
-  let name (e, i) =
-    let key = "ipv4" ^ Impl.name e ^ meta_ipv4_config i in
+  let name t =
+    let key = "ipv4" ^ Impl.name t.ethernet ^ meta_ipv4_config t.config in
     Name.of_key key ~base:"ipv4"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages (t, _) =
-    Impl.packages t @ ["tcpip"]
+  let packages t =
+    "tcpip" :: Impl.packages t.ethernet
 
-  let libraries (t, _) =
-    Impl.libraries t @
-    match !mode with
-    | `Unix -> [ "tcpip.ipv4-unix" ]
-    | `Xen  -> [ "tcpip.ipv4" ]
+  let libraries t  =
+    (match !mode with
+     | `Unix -> [ "tcpip.ipv4-unix" ]
+     | `Xen  -> [ "tcpip.ipv4" ])
+    @ Impl.libraries t.ethernet
 
-  let configure (eth, ip as t) =
+  let configure t =
     let name = name t in
     let mname = module_name t in
-    Impl.configure eth;
-    append_main "module %s = Ipv4.Make(%s)" (module_name t) (Impl.module_name eth);
+    Impl.configure t.ethernet;
+    append_main "module %s = Ipv4.Make(%s)"
+      (module_name t) (Impl.module_name t.ethernet);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "   %s () >>= function" (Impl.name eth);
+    append_main "   %s () >>= function" (Impl.name t.ethernet);
     append_main "   | `Error _ -> %s" (driver_initialisation_error name);
     append_main "   | `Ok eth  ->";
     append_main "   %s.connect eth >>= function" mname;
@@ -836,23 +898,23 @@ module IPV4 = struct
     append_main "   | `Ok ip   ->";
     append_main "   let i = Ipaddr.V4.of_string_exn in";
     append_main "   %s.set_ip ip (i %S) >>= fun () ->"
-      mname (Ipaddr.V4.to_string ip.address);
+      mname (Ipaddr.V4.to_string t.config.address);
     append_main "   %s.set_netmask ip (i %S) >>= fun () ->"
-      mname (Ipaddr.V4.to_string ip.netmask);
+      mname (Ipaddr.V4.to_string t.config.netmask);
     append_main "   %s.set_gateways ip [%s] >>= fun () ->"
       mname
       (String.concat "; "
          (List.map
             (fun n -> Printf.sprintf "(i %S)" (Ipaddr.V4.to_string n))
-            ip.gateways));
+            t.config.gateways));
     append_main "   return (`Ok ip)";
     newline_main ()
 
-  let clean (eth, _) =
-    Impl.clean eth
+  let clean t =
+    Impl.clean t.ethernet
 
-  let update_path (eth, ip) root =
-    (Impl.update_path eth root, ip)
+  let update_path t root =
+    { t with ethernet = Impl.update_path t.ethernet root }
 
 end
 
@@ -861,8 +923,10 @@ type ipv4 = IPV4
 let ipv4 = Type IPV4
 
 let create_ipv4 net ip =
-  let eth = etif net in
-  impl ipv4 (eth, ip) (module IPV4)
+  let t = {
+    IPV4.ethernet = etif net;
+    config = ip } in
+  impl ipv4 t (module IPV4)
 
 let default_ipv4_conf =
   let i = Ipaddr.V4.of_string_exn in
@@ -955,37 +1019,68 @@ let socket_udpv4 ip =
 
 module TCPV4_direct = struct
 
-  type t = ipv4 impl
+  type t = {
+    clock : clock impl;
+    time  : time impl;
+    ipv4  : ipv4 impl;
+    random: random impl;
+  }
 
   let name t =
-    Name.of_key ("tcpv4" ^ Impl.name t) ~base:"tcpv4"
+    let key = "tcpv4"
+              ^ Impl.name t.clock
+              ^ Impl.name t.time
+              ^ Impl.name t.ipv4 in
+    Name.of_key key ~base:"tcpv4"
 
   let module_name t =
     String.capitalize (name t)
 
   let packages t =
-    Impl.packages t @ [ "tcpip" ]
+    "tcpip"
+    :: Impl.packages t.clock
+    @  Impl.packages t.time
+    @  Impl.packages t.ipv4
+    @  Impl.packages t.random
 
   let libraries t =
-    Impl.libraries t @ [ "tcpip.tcpv4" ]
+    "tcpip.tcpv4"
+    :: Impl.libraries t.clock
+    @  Impl.libraries t.time
+    @  Impl.libraries t.ipv4
+    @  Impl.libraries t.random
 
   let configure t =
     let name = name t in
-    Impl.configure t;
-    append_main "module %s = Tcpv4.Flow.Make(%s)(OS.Time)(Clock)(Random)"
-      (module_name t) (Impl.module_name t);
+    Impl.configure t.clock;
+    Impl.configure t.time;
+    Impl.configure t.ipv4;
+    Impl.configure t.random;
+    append_main "module %s = Tcpv4.Flow.Make(%s)(%s)(%s)(%s)"
+      (module_name t)
+      (Impl.module_name t.ipv4)
+      (Impl.module_name t.time)
+      (Impl.module_name t.clock)
+      (Impl.module_name t.random);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "   %s () >>= function" (Impl.name t);
-    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   %s () >>= function" (Impl.name t.ipv4);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error (Impl.name t.ipv4));
     append_main "   | `Ok ip   -> %s.connect ip" (module_name t);
     newline_main ()
 
   let clean t =
-    Impl.clean t
+    Impl.clean t.clock;
+    Impl.clean t.time;
+    Impl.clean t.ipv4;
+    Impl.clean t.random
 
   let update_path t root =
-    Impl.update_path t root
+    { clock  = Impl.update_path t.clock root;
+      ipv4   = Impl.update_path t.ipv4 root;
+      time   = Impl.update_path t.time root;
+      random = Impl.update_path t.random root;
+    }
 
 end
 
@@ -1026,19 +1121,33 @@ type tcpv4 = TCPV4
 
 let tcpv4 = Type TCPV4
 
-let direct_tcpv4 ip =
-  impl tcpv4 ip (module TCPV4_direct)
+let direct_tcpv4
+    ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ipv4 =
+  let t = { TCPV4_direct.clock; random; time; ipv4 } in
+  impl tcpv4 t (module TCPV4_direct)
 
 let socket_tcpv4 ip =
   impl tcpv4 ip (module TCPV4_socket)
 
 module STACKV4_direct = struct
 
-  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
+  type t = {
+    clock  : clock impl;
+    time   : time impl;
+    console: console impl;
+    network: network impl;
+    random : random impl;
+    config : [`DHCP | `IPV4 of ipv4_config];
+  }
 
-  let name (c, n, m) =
-    let key = "stackv4" ^ Impl.name c ^ Impl.name n ^
-              match m with
+  let name t =
+    let key = "stackv4"
+              ^ Impl.name t.clock
+              ^ Impl.name t.time
+              ^ Impl.name t.console
+              ^ Impl.name t.network
+              ^ Impl.name t.random
+              ^ match t.config with
               | `DHCP   -> "dhcp"
               | `IPV4 i -> meta_ipv4_config i in
     Name.of_key key ~base:"stackv4"
@@ -1046,39 +1155,58 @@ module STACKV4_direct = struct
   let module_name t =
     String.capitalize (name t)
 
-  let packages (c, n, _) =
-    Impl.packages c @ Impl.packages n @ Clock.packages () @ [ "tcpip" ]
+  let packages t =
+    "tcpip"
+    :: Impl.packages t.clock
+    @  Impl.packages t.time
+    @  Impl.packages t.console
+    @  Impl.packages t.network
+    @  Impl.packages t.random
 
-  let libraries (c, n, _) =
-    Impl.libraries c @ Impl.libraries n @ Clock.libraries () @
-    [ "tcpip.stack-direct" ]
+  let libraries t =
+    "tcpip.stack-direct"
+    :: Impl.libraries t.clock
+    @  Impl.libraries t.time
+    @  Impl.libraries t.console
+    @  Impl.libraries t.network
+    @  Impl.libraries t.random
 
-  let configure (c, n, m as t) =
+  let configure t =
     let name = name t in
-    Impl.configure c;
-    Impl.configure n;
+    Impl.configure t.clock;
+    Impl.configure t.time;
+    Impl.configure t.console;
+    Impl.configure t.network;
+    Impl.configure t.random;
     append_main "module %s = struct" (module_name t);
-    append_main "  module E = Ethif.Make(%s)" (Impl.module_name n);
+    append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
     append_main "  module I = Ipv4.Make(E)";
     append_main "  module U = Udpv4.Make(I)";
-    append_main "  module T = Tcpv4.Flow.Make(I)(OS.Time)(Clock)(Random)";
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(OS.Time)(Random)(%s)(E)(I)(U)(T)"
-      (Impl.module_name c) (Impl.module_name n);
-
+    append_main "  module T = Tcpv4.Flow.Make(I)(%s)(%s)(%s)"
+      (Impl.module_name t.time)
+      (Impl.module_name t.clock)
+      (Impl.module_name t.random);
+    append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(E)(I)(U)(T)"
+      (Impl.module_name t.console)
+      (Impl.module_name t.time)
+      (Impl.module_name t.random)
+      (Impl.module_name t.network);
     append_main "  include S";
     append_main "end";
     newline_main ();
     append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name c);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  %s () >>= function" (Impl.name t.console);
+    append_main "  | `Error _    -> %s"
+      (driver_initialisation_error (Impl.name t.console));
     append_main "  | `Ok console ->";
-    append_main "  %s () >>= function" (Impl.name n);
-    append_main "  | `Error _      -> %s" (driver_initialisation_error (Impl.name n));
+    append_main "  %s () >>= function" (Impl.name t.network);
+    append_main "  | `Error _      -> %s"
+      (driver_initialisation_error (Impl.name t.network));
     append_main "  | `Ok interface ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;
     append_main "    console; interface;";
-    begin match m with
+    begin match t.config with
       | `DHCP   -> append_main "    mode = `DHCP;"
       | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i);
     end;
@@ -1086,20 +1214,30 @@ module STACKV4_direct = struct
     append_main "  %s.connect config" (module_name t);
     newline_main ()
 
-  let clean (c, e, _) =
-    Impl.clean c;
-    Impl.clean e
+  let clean t =
+    Impl.clean t.clock;
+    Impl.clean t.time;
+    Impl.clean t.console;
+    Impl.clean t.network;
+    Impl.clean t.random
 
-  let update_path (c, e, m) root =
-    Impl.update_path c root,
-    Impl.update_path e root,
-    m
+  let update_path t root =
+    { t with
+      clock   = Impl.update_path t.clock root;
+      time    = Impl.update_path t.time root;
+      console = Impl.update_path t.console root;
+      network = Impl.update_path t.network root;
+      random  = Impl.update_path t.random root;
+    }
 
 end
 
 module STACKV4_socket = struct
 
-  type t = console impl * Ipaddr.V4.t list
+  type t = {
+    console: console impl;
+    ipv4s  : Ipaddr.V4.t list;
+  }
 
   let meta_ips ips =
     String.concat "; "
@@ -1107,61 +1245,84 @@ module STACKV4_socket = struct
            Printf.sprintf "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x)
          ) ips)
 
-  let name (c, ips) = let key = "stackv4" ^ Impl.name c ^ meta_ips ips in
+  let name t =
+    let key = "stackv4" ^ Impl.name t.console ^ meta_ips t.ipv4s in
     Name.of_key key ~base:"stackv4"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages (c, _) =
-    Impl.packages c @ [ "tcpip" ]
+  let packages t =
+    "tcpip" :: Impl.packages t.console
 
-  let libraries (c, _) =
-    Impl.libraries c @ [ "tcpip.stack-socket" ]
+  let libraries t =
+    "tcpip.stack-socket" :: Impl.libraries t.console
 
-  let configure (c, ips as t) =
+  let configure t =
     let name = name t in
-    Impl.configure c;
+    Impl.configure t.console;
     append_main "module %s = Tcpip_stack_socket.Make(%s)"
-      (module_name t) (Impl.module_name c);
+      (module_name t) (Impl.module_name t.console);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name c);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name c));
+    append_main "  %s () >>= function" (Impl.name t.console);
+    append_main "  | `Error _    -> %s"
+      (driver_initialisation_error (Impl.name t.console));
     append_main "  | `Ok console ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;
-    append_main "    console; interface = [%s];" (meta_ips ips);
+    append_main "    console; interface = [%s];" (meta_ips t.ipv4s);
     append_main "    mode = ();";
     append_main "  } in";
     append_main "  %s.connect config" (module_name t);
     newline_main ()
 
-  let clean (c, _) =
-    Impl.clean c
+  let clean t =
+    Impl.clean t.console
 
-  let update_path (c, ips) root =
-    (Impl.update_path c root, ips)
+  let update_path t root =
+    { t with console = Impl.update_path t.console root }
 
 end
-
 
 type stackv4 = STACK4
 
 let stackv4 = Type STACK4
 
-let direct_stackv4_with_dhcp console network =
-  impl stackv4 (console, network, `DHCP) (module STACKV4_direct)
+let direct_stackv4_with_dhcp
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network =
+  let t = {
+    STACKV4_direct.console; network; time; clock; random;
+    config = `DHCP } in
+  impl stackv4 t (module STACKV4_direct)
 
-let direct_stackv4_with_default_ipv4 console network =
-  impl stackv4 (console, network, `IPV4 default_ipv4_conf) (module STACKV4_direct)
+let direct_stackv4_with_default_ipv4
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network =
+  let t = {
+    STACKV4_direct.console; network; clock; time; random;
+    config = `IPV4 default_ipv4_conf;
+  } in
+  impl stackv4 t (module STACKV4_direct)
 
-let direct_stackv4_with_static_ipv4 console network ipv4 =
-  impl stackv4 (console, network, `IPV4 ipv4) (module STACKV4_direct)
+let direct_stackv4_with_static_ipv4
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network ipv4 =
+  let t = {
+    STACKV4_direct.console; network; clock; time; random;
+    config = `IPV4 ipv4;
+  } in
+  impl stackv4 t (module STACKV4_direct)
 
-let socket_stackv4 console ips =
-  impl stackv4 (console, ips) (module STACKV4_socket)
-
+let socket_stackv4 console ipv4s =
+  impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
 module Channel_over_TCPV4 = struct
 

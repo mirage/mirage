@@ -57,6 +57,45 @@ val typ: 'a impl -> 'a typ
 
 
 
+(** {2 Time} *)
+
+type time
+(** Abstract type for timers. *)
+
+val time: time typ
+(** The [V1.TIME] module signature. *)
+
+val default_time: time impl
+(** The default timer implementation. *)
+
+
+
+(** {2 Clocks} *)
+
+type clock
+(** Abstract type for clocks. *)
+
+val clock: clock typ
+(** The [V1.CLOCK] module signature. *)
+
+val default_clock: clock impl
+(** The default mirage-clock implementation. *)
+
+
+
+(** {2 Random} *)
+
+type random
+(** Abstract type for random sources. *)
+
+val random: random typ
+(** The [V1.RANDOM] module signature. *)
+
+val default_random: random impl
+(** Passthrough to the OCaml Random generator. *)
+
+
+
 (** {2 Consoles} *)
 
 (** Implementations of the [V1.CONSOLE] signature. *)
@@ -72,6 +111,19 @@ val default_console: console impl
 
 val custom_console: string -> console impl
 (** Custom console implementation. *)
+
+
+
+(** {2 Memory allocation interface} *)
+
+type io_page
+(** Abstract type for page-aligned buffers. *)
+
+val io_page: io_page typ
+(** The [V1.IO_PAGE] module signature. *)
+
+val default_io_page: io_page impl
+(** The default [Io_page] implementation. *)
 
 
 
@@ -119,7 +171,7 @@ type fs
 val fs: fs typ
 (** The [V1.FS] module signature. *)
 
-val fat: block impl -> fs impl
+val fat: ?io_page:io_page impl -> block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
 
 val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
@@ -207,7 +259,11 @@ val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
 
 type tcpv4
 val tcpv4: tcpv4 typ
-val direct_tcpv4: ipv4 impl -> tcpv4 impl
+val direct_tcpv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  ipv4 impl -> tcpv4 impl
 val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 
@@ -217,10 +273,27 @@ val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 (** Implementation of the [V1.STACKV4] signature. *)
 
 type stackv4
+
 val stackv4: stackv4 typ
-val direct_stackv4_with_default_ipv4: console impl -> network impl -> stackv4 impl
-val direct_stackv4_with_static_ipv4: console impl -> network impl -> ipv4_config -> stackv4 impl
-val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
+
+val direct_stackv4_with_default_ipv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> stackv4 impl
+
+val direct_stackv4_with_static_ipv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> ipv4_config -> stackv4 impl
+
+val direct_stackv4_with_dhcp:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> stackv4 impl
+
 val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
 
@@ -374,53 +447,53 @@ val append_main: ('a, unit, string, unit) format4 -> 'a
 val newline_main: unit -> unit
 (** Add a newline to [main.ml]. *)
 
-module Io_page: CONFIGURABLE with type t = unit
+module Io_page: CONFIGURABLE
 (** Implementation of IO page allocators. *)
 
-module Clock: CONFIGURABLE with type t = unit
+module Clock: CONFIGURABLE
 (** Implementation of clocks. *)
 
-module Console: CONFIGURABLE with type t = string
+module Time: CONFIGURABLE
+(** Implementation of timers. *)
+
+module Random: CONFIGURABLE
+(** Implementation of timers. *)
+
+module Console: CONFIGURABLE
 (** Implementation of consoles. *)
 
-module Crunch: CONFIGURABLE with type t = string
+module Crunch: CONFIGURABLE
 (** Implementation of crunch a local filesystem. *)
 
-module Direct_kv_ro: CONFIGURABLE with type t = string
+module Direct_kv_ro: CONFIGURABLE
 (** Implementation of direct access to the filesystem as a key/value
     read-only store. *)
 
-module Block: CONFIGURABLE with type t = string
+module Block: CONFIGURABLE
 (** Implementation of raw block device. *)
 
-module Fat: CONFIGURABLE with type t = block impl
+module Fat: CONFIGURABLE
 (** Implementatin of the Fat filesystem. *)
 
-type network_config = Tap0 | Custom of string
-(** Network configuration. *)
-
-module Network: CONFIGURABLE with type t = network_config
+module Network: CONFIGURABLE
 (** Implementation of network configuration. *)
 
-module Ethif: CONFIGURABLE with type t = network impl
+module Ethif: CONFIGURABLE
 
-module IPV4: CONFIGURABLE with type t = ethernet impl * ipv4_config
+module IPV4: CONFIGURABLE
 
-module UDPV4_direct: CONFIGURABLE with type t = ipv4 impl
-module UDPV4_socket: CONFIGURABLE with type t = Ipaddr.V4.t option
+module UDPV4_direct: CONFIGURABLE
+module UDPV4_socket: CONFIGURABLE
 
-module TCPV4_direct: CONFIGURABLE with type t = ipv4 impl
-module TCPV4_socket: CONFIGURABLE with type t =Ipaddr.V4.t option
+module TCPV4_direct: CONFIGURABLE
+module TCPV4_socket: CONFIGURABLE
 
-module STACKV4_direct: CONFIGURABLE with
-  type t = console impl * network impl * [`DHCP | `IPV4 of ipv4_config]
+module STACKV4_direct: CONFIGURABLE
+module STACKV4_socket: CONFIGURABLE
 
-module STACKV4_socket: CONFIGURABLE with
-  type t = console impl * Ipaddr.V4.t list
+module Channel_over_TCPV4: CONFIGURABLE
 
-module Channel_over_TCPV4: CONFIGURABLE with type t = tcpv4 impl
-
-module HTTP: CONFIGURABLE with type t = [`Channel of channel impl | `Stack of int * stackv4 impl]
+module HTTP: CONFIGURABLE
 
 module Job: CONFIGURABLE
 

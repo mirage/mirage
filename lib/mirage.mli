@@ -83,6 +83,19 @@ val default_clock: clock impl
 
 
 
+(** {2 Random} *)
+
+type random
+(** Abstract type for random sources. *)
+
+val random: random typ
+(** The [V1.RANDOM] module signature. *)
+
+val default_random: random impl
+(** Passthrough to the OCaml Random generator. *)
+
+
+
 (** {2 Consoles} *)
 
 (** Implementations of the [V1.CONSOLE] signature. *)
@@ -407,6 +420,9 @@ module Clock: CONFIGURABLE
 (** Implementation of clocks. *)
 
 module Time: CONFIGURABLE
+(** Implementation of timers. *)
+
+module Random: CONFIGURABLE
 (** Implementation of timers. *)
 
 module Console: CONFIGURABLE

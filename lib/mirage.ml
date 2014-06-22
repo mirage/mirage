@@ -662,8 +662,8 @@ type fs = FS
 
 let fs = Type FS
 
-let fat block: fs impl =
-  let t = { Fat.block; io_page = default_io_page } in
+let fat ?(io_page=default_io_page) block: fs impl =
+  let t = { Fat.block; io_page } in
   impl fs t (module Fat)
 
 (* This would deserve to be in its own lib. *)
@@ -1121,11 +1121,9 @@ type tcpv4 = TCPV4
 
 let tcpv4 = Type TCPV4
 
-let direct_tcpv4 ip =
-  let t = { TCPV4_direct.clock = default_clock;
-            random = default_random;
-            time   = default_time;
-            ipv4   = ip } in
+let direct_tcpv4
+    ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ipv4 =
+  let t = { TCPV4_direct.clock; random; time; ipv4 } in
   impl tcpv4 t (module TCPV4_direct)
 
 let socket_tcpv4 ip =
@@ -1291,31 +1289,34 @@ type stackv4 = STACK4
 
 let stackv4 = Type STACK4
 
-let direct_stackv4_with_dhcp console network =
+let direct_stackv4_with_dhcp
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network =
   let t = {
-    STACKV4_direct.console; network;
-    time   = default_time;
-    clock  = default_clock;
-    random = default_random;
+    STACKV4_direct.console; network; time; clock; random;
     config = `DHCP } in
   impl stackv4 t (module STACKV4_direct)
 
-let direct_stackv4_with_default_ipv4 console network =
+let direct_stackv4_with_default_ipv4
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network =
   let t = {
-    STACKV4_direct.console; network;
-    clock  = default_clock;
-    time   = default_time;
-    random = default_random;
+    STACKV4_direct.console; network; clock; time; random;
     config = `IPV4 default_ipv4_conf;
   } in
   impl stackv4 t (module STACKV4_direct)
 
-let direct_stackv4_with_static_ipv4 console network ipv4 =
+let direct_stackv4_with_static_ipv4
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network ipv4 =
   let t = {
-    STACKV4_direct.console; network;
-    clock  = default_clock;
-    time   = default_time;
-    random = default_random;
+    STACKV4_direct.console; network; clock; time; random;
     config = `IPV4 ipv4;
   } in
   impl stackv4 t (module STACKV4_direct)

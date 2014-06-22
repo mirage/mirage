@@ -171,7 +171,7 @@ type fs
 val fs: fs typ
 (** The [V1.FS] module signature. *)
 
-val fat: block impl -> fs impl
+val fat: ?io_page:io_page impl -> block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
 
 val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
@@ -259,7 +259,11 @@ val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
 
 type tcpv4
 val tcpv4: tcpv4 typ
-val direct_tcpv4: ipv4 impl -> tcpv4 impl
+val direct_tcpv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  ipv4 impl -> tcpv4 impl
 val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 
@@ -269,10 +273,27 @@ val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 (** Implementation of the [V1.STACKV4] signature. *)
 
 type stackv4
+
 val stackv4: stackv4 typ
-val direct_stackv4_with_default_ipv4: console impl -> network impl -> stackv4 impl
-val direct_stackv4_with_static_ipv4: console impl -> network impl -> ipv4_config -> stackv4 impl
-val direct_stackv4_with_dhcp: console impl -> network impl -> stackv4 impl
+
+val direct_stackv4_with_default_ipv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> stackv4 impl
+
+val direct_stackv4_with_static_ipv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> ipv4_config -> stackv4 impl
+
+val direct_stackv4_with_dhcp:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> stackv4 impl
+
 val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
 

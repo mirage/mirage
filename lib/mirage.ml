@@ -297,6 +297,7 @@ let rec typ: type a. a impl -> a typ = function
   | Foreign { ty } -> ty
   | App { f }       -> match typ f with Function (_, b) -> b | _ -> assert false
 
+
 module Io_page = struct
 
   (** Memory allocation interface. *)
@@ -309,11 +310,14 @@ module Io_page = struct
   let module_name () =
     "Io_page"
 
-  let packages () =
-    [ "io-page" ]
+  let packages () = [
+    "io-page"
+  ]
 
   let libraries () =
-    packages ()
+    match !mode with
+    | `Xen  -> ["io-page"]
+    | `Unix -> ["io-page"; "io-page.unix"]
 
   let configure () = ()
 
@@ -482,16 +486,13 @@ module Crunch = struct
     "lwt";
     "cstruct";
     "crunch";
-  ]
+  ] @ Io_page.packages ()
 
   let libraries _ = [
     "mirage-types";
     "lwt";
-    "cstruct" ] @ (
-      match !mode with
-      | `Unix -> [ "io-page.unix" ]
-      | `Xen  -> []
-    ) @ [ "io-page" ]
+    "cstruct";
+  ] @ Io_page.libraries ()
 
   let ml t =
     Printf.sprintf "%s.ml" (name t)
@@ -543,23 +544,12 @@ module Direct_kv_ro = struct
   let packages t =
     match !mode with
     | `Xen  -> Crunch.packages t
-    | `Unix -> [
-        "mirage-types";
-        "lwt";
-        "cstruct";
-        "mirage-fs-unix";
-      ]
+    | `Unix -> "mirage-fs-unix" :: Crunch.packages t
 
   let libraries t =
     match !mode with
     | `Xen  -> Crunch.libraries t
-    | `Unix -> [
-        "mirage-types";
-        "lwt";
-        "cstruct";
-        "io-page.unix"; "io-page";
-        "mirage-fs-unix";
-      ]
+    | `Unix -> "mirage-fs-unix" :: Crunch.libraries t
 
   let configure t =
     match !mode with
@@ -620,44 +610,51 @@ let block_of_file filename =
 
 module Fat = struct
 
-  type t = block impl
+  type t = {
+    io_page: io_page impl;
+    block  : block impl;
+  }
 
   let name t =
-    Name.of_key ("fat" ^ (Impl.name t)) ~base:"fat"
+    let key = "fat" ^ Impl.name t.io_page ^ Impl.name t.block in
+    Name.of_key key ~base:"fat"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages t = [
-    "fat-filesystem";
-  ]
-    @ Io_page.packages ()
-    @ Block.packages t
+  let packages t =
+    "fat-filesystem"
+    :: Impl.packages t.io_page
+    @  Impl.packages t.block
 
-  let libraries t = [
-    "fat-filesystem";
-  ]
-    @ Io_page.libraries ()
-    @ Block.libraries t
+  let libraries t =
+    "fat-filesystem"
+    :: Impl.libraries t.io_page
+    @  Impl.libraries t.block
 
   let configure t =
-    Impl.configure t;
-    append_main "module %s = Fat.Fs.Make(%s)(Io_page)"
+    Impl.configure t.io_page;
+    Impl.configure t.block;
+    append_main "module %s = Fat.Fs.Make(%s)(%s)"
       (module_name t)
-      (Impl.module_name t);
+      (Impl.module_name t.block)
+      (Impl.module_name t.io_page);
     newline_main ();
     let name = name t in
     append_main "let %s () =" name;
-    append_main "  %s () >>= function" (Impl.name t);
+    append_main "  %s () >>= function" (Impl.name t.block);
     append_main "  | `Error _ -> %s" (driver_initialisation_error name);
     append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
     newline_main ()
 
   let clean t =
-    Impl.clean t
+    Impl.clean t.block;
+    Impl.clean t.io_page
 
   let update_path t root =
-    Impl.update_path t root
+    { io_page = Impl.update_path t.io_page root;
+      block  = Impl.update_path t.block root;
+    }
 
 end
 
@@ -665,11 +662,12 @@ type fs = FS
 
 let fs = Type FS
 
-let fat block =
-    impl fs block (module Fat)
+let fat block: fs impl =
+  let t = { Fat.block; io_page = default_io_page } in
+  impl fs t (module Fat)
 
 (* This would deserve to be in its own lib. *)
-let kv_ro_of_fs x =
+let kv_ro_of_fs x: kv_ro impl =
   let dummy_fat = fat (block_of_file "xx") in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in
@@ -698,10 +696,10 @@ module Fat_of_files = struct
     block_of_file (block_file t)
 
   let packages t =
-    Fat.packages (block t)
+    Impl.packages (fat (block t))
 
   let libraries t =
-    Fat.libraries (block t)
+    Impl.libraries (fat (block t))
 
   let configure t =
     let fat = fat (block t) in

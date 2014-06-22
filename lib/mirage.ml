@@ -1191,8 +1191,8 @@ module STACKV4_direct = struct
     append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(E)(I)(U)(T)"
       (Impl.module_name t.console)
       (Impl.module_name t.time)
-      (Impl.module_name t.clock)
-      (Impl.module_name t.random);
+      (Impl.module_name t.random)
+      (Impl.module_name t.network);
     append_main "  include S";
     append_main "end";
     newline_main ();
@@ -1207,7 +1207,7 @@ module STACKV4_direct = struct
     append_main "  | `Ok interface ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;
-    append_main "    clock; console; interface;";
+    append_main "    console; interface;";
     begin match t.config with
       | `DHCP   -> append_main "    mode = `DHCP;"
       | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i);

@@ -429,6 +429,42 @@ let random = Type RANDOM
 let default_random: random impl =
   impl random () (module Random)
 
+module Entropy = struct
+
+  type t = string
+
+  let name _ =
+    "entropy"
+
+  let module_name _ =
+    "Entropy"
+
+  let packages _ = [
+    match !mode with
+    | `Unix -> "mirage-entropy-unix"
+    | `Xen  -> "mirage-entropy-xen"
+  ]
+
+  let libraries = packages
+
+  let configure t =
+    append_main "let %s () =" (name t);
+    append_main "  %s.connect %S" (module_name t) t;
+    newline_main ()
+
+  let clean _ = ()
+
+  let update_path t _ = t
+
+end
+
+type entropy = ENTROPY
+
+let entropy = Type ENTROPY
+
+let default_entropy: entropy impl =
+  impl entropy () (module Random)
+
 module Console = struct
 
   type t = string

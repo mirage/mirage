@@ -463,7 +463,7 @@ type entropy = ENTROPY
 let entropy = Type ENTROPY
 
 let default_entropy: entropy impl =
-  impl entropy () (module Random)
+  impl entropy "x" (module Entropy)
 
 module Console = struct
 

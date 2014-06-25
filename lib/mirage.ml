@@ -431,7 +431,7 @@ let default_random: random impl =
 
 module Entropy = struct
 
-  type t = string
+  type t = unit
 
   let name _ =
     "entropy"
@@ -449,7 +449,7 @@ module Entropy = struct
 
   let configure t =
     append_main "let %s () =" (name t);
-    append_main "  %s.connect %S" (module_name t) t;
+    append_main "  %s.connect ()" (module_name t);
     newline_main ()
 
   let clean _ = ()
@@ -463,7 +463,7 @@ type entropy = ENTROPY
 let entropy = Type ENTROPY
 
 let default_entropy: entropy impl =
-  impl entropy "x" (module Entropy)
+  impl entropy () (module Entropy)
 
 module Console = struct
 

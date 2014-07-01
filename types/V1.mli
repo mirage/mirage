@@ -76,7 +76,7 @@ module type ENTROPY = sig
   (** Operations to fetch entropy. *)
 
   type error = [
-    | `Invalid_entropy of string
+    | `No_entropy_device of string
   ]
   (** The type representing possible errors when attaching an entropy pool. *)
 

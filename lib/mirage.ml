@@ -437,13 +437,14 @@ module Entropy = struct
     "entropy"
 
   let module_name _ =
-    "Entropy"
-
-  let packages _ = [
     match !mode with
-    | `Unix -> "mirage-entropy-unix"
-    | `Xen  -> "mirage-entropy-xen"
-  ]
+    | `Unix -> "Entropy_unix"
+    | `Xen  -> "Entropy_xen"
+
+  let packages _ =
+    match !mode with
+    | `Unix -> [ "mirage-entropy-unix" ]
+    | `Xen  -> [ "mirage-entropy-xen" ]
 
   let libraries = packages
 

@@ -431,15 +431,17 @@ let default_random: random impl =
 
 module Entropy = struct
 
-  type t = unit
+  type t = [ `Strongest | `Strong | `Weak ]
 
   let name _ =
     "entropy"
 
-  let module_name _ =
-    match !mode with
-    | `Unix -> "Entropy_unix"
-    | `Xen  -> "Entropy_xen"
+  let module_name t =
+    match !mode, t with
+    | `Unix, (`Strongest | `Strong) -> "Entropy_unix"
+    | `Unix, `Weak -> "Entropy_unix_weak"
+    | `Xen, (`Strongest | `Weak) -> "Entropy_xen_weak"
+    | `Xen, `Strong -> "Entropy_xen"
 
   let packages _ =
     match !mode with
@@ -464,7 +466,16 @@ type entropy = ENTROPY
 let entropy = Type ENTROPY
 
 let default_entropy: entropy impl =
-  impl entropy () (module Entropy)
+  impl entropy `Strongest (module Entropy)
+
+let strongest_entropy: entropy impl =
+  impl entropy `Strongest (module Entropy)
+
+let strong_entropy: entropy impl =
+  impl entropy `Strong (module Entropy)
+
+let weak_entropy: entropy impl =
+  impl entropy `Weak (module Entropy)
 
 module Console = struct
 

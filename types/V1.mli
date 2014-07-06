@@ -73,12 +73,12 @@ module type RANDOM = sig
 end
 
 module type ENTROPY = sig
-  (** Operations to fetch entropy. *)
+  (** A native entropy provider. **)
 
   type error = [
     | `No_entropy_device of string
   ]
-  (** The type representing possible errors when attaching an entropy pool. *)
+  (** Represents errors when attaching the entropy provider. *)
 
   include DEVICE with
     type error := error
@@ -86,8 +86,24 @@ module type ENTROPY = sig
   type buffer
   (** usually a cstruct *)
 
-  val entropy : t -> int -> [ `Ok of buffer | `Error of error ] io
-  (** [entropy t count] returns a [buffer] of [count] bytes from the entropy pool [t]. *)
+  type handler = source:int -> buffer -> unit
+  (**
+   * A [handler] is called whenever the system has extra entropy to announce.
+   * No guarantees are made about the entropy itself, other than it being
+   * environmentally derived. In particular, the amount of entropy in the buffer
+   * can be far lower than the size of the [buffer].
+   *
+   * [source] is a small integer, describing the provider but with no other
+   * meaning.
+   *
+   * [handler] is expected to return quickly.
+   * *)
+
+  val handler : t -> handler -> unit io
+  (** [handler h] registers the single global [handler] that will receive
+   * entropy. There might be additional, provider-specific blocking semantics.
+   * *)
+
 end
 
 module type CLOCK = sig

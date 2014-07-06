@@ -10,6 +10,7 @@ before building their unikernel with `make` as normal.
 * Improve format of generated Makefile, and also colours in terminal output.
 * Add `make depend` target to generated Makefile.
 * Set `OPAMVERBOSE` and `OPAMYES` in the Makefile, which can be overridden.
+* Add an `ENTROPY` device type for strong random sources (#256).
 
 1.1.3 (2014-06-15):
 * Build OPAM packages in verbose mode by default.

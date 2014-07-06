@@ -72,6 +72,24 @@ module type RANDOM = sig
       [bound] must be greater than 0. *)
 end
 
+module type ENTROPY = sig
+  (** Operations to fetch entropy. *)
+
+  type error = [
+    | `No_entropy_device of string
+  ]
+  (** The type representing possible errors when attaching an entropy pool. *)
+
+  include DEVICE with
+    type error := error
+
+  type buffer
+  (** usually a cstruct *)
+
+  val entropy : t -> int -> [ `Ok of buffer | `Error of error ] io
+  (** [entropy t count] returns a [buffer] of [count] bytes from the entropy pool [t]. *)
+end
+
 module type CLOCK = sig
   (** Clock operations.
       Currently read-only to retrieve the time in various formats. *)

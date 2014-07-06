@@ -436,11 +436,7 @@ module Entropy = struct
   let name _ =
     "entropy"
 
-  let module_name () =
-    match !mode with
-    | `Unix -> "Entropy_unix_instance"
-    | `Xen  -> "Entropy_xen_instance"
-
+  let module_name () = "Entropy"
 
   let construction () =
     match !mode with

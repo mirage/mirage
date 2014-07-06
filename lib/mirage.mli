@@ -106,18 +106,6 @@ val entropy: entropy typ
 val default_entropy: entropy impl
 (** Pick the strongest entropy source available. *)
 
-val strongest_entropy: entropy impl
-(** Pick the strongest entropy source available. *)
-
-val external_entropy: entropy impl
-(** An external entropy source that is presumed to be a strong source
-    of random numbers (e.g. `/dev/random` on Unix, or a hardware source,
-    or a `rndfront` on Xen). *)
-
-val self_seeded_entropy: entropy impl
-(** A self-seeded entropy source that does its best to gather entropy,
-    but may not be particularly random (e.g. time of day, interrupts). *)
-
 (** {2 Consoles} *)
 
 (** Implementations of the [V1.CONSOLE] signature. *)

@@ -431,17 +431,17 @@ let default_random: random impl =
 
 module Entropy = struct
 
-  type t = [ `Strongest | `Strong | `Weak ]
+  type t = [ `Strongest | `External | `Self_seeded ]
 
   let name _ =
     "entropy"
 
-  let module_name t =
+  let module_name (t:t) =
     match !mode, t with
-    | `Unix, (`Strongest | `Strong) -> "Entropy_unix"
-    | `Unix, `Weak -> "Entropy_unix_weak"
-    | `Xen, (`Strongest | `Weak) -> "Entropy_xen_weak"
-    | `Xen, `Strong -> "Entropy_xen"
+    | `Unix, (`Strongest | `External) -> "Entropy_unix"
+    | `Unix, `Self_seeded -> "Entropy_unix_weak"
+    | `Xen, (`Strongest | `Self_seeded) -> "Entropy_xen_weak"
+    | `Xen, `External -> "Entropy_xen"
 
   let packages _ =
     match !mode with
@@ -471,11 +471,11 @@ let default_entropy: entropy impl =
 let strongest_entropy: entropy impl =
   impl entropy `Strongest (module Entropy)
 
-let strong_entropy: entropy impl =
-  impl entropy `Strong (module Entropy)
+let external_entropy: entropy impl =
+  impl entropy `External (module Entropy)
 
-let weak_entropy: entropy impl =
-  impl entropy `Weak (module Entropy)
+let self_seeded_entropy: entropy impl =
+  impl entropy `Self_seeded (module Entropy)
 
 module Console = struct
 

@@ -106,15 +106,6 @@ val entropy: entropy typ
 val default_entropy: entropy impl
 (** Pick the strongest entropy source available. *)
 
-val strongest_entropy: entropy impl
-(** Pick the strongest entropy source available. *)
-
-val strong_entropy: entropy impl
-(** Pick only a strong entropy source, and fail if one is not available. *)
-
-val weak_entropy: entropy impl
-(** Pick only a weak entropy source (most likely only for testing). *)
-
 (** {2 Consoles} *)
 
 (** Implementations of the [V1.CONSOLE] signature. *)

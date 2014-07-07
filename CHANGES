@@ -1,4 +1,4 @@
-1.2.0 (trunk):
+1.2.0 (2014-07-05):
 
 The Mirage frontend tool now generates a Makefile with a `make depend`
 target, instead of directly invoking OPAM as part of `mirage configure`.

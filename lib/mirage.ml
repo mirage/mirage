@@ -436,10 +436,12 @@ module Entropy = struct
   let name _ =
     "entropy"
 
-  let module_name () =
+  let module_name () = "Entropy"
+
+  let construction () =
     match !mode with
-    | `Unix -> "Entropy_unix"
-    | `Xen -> "Entropy_xen"
+    | `Unix -> "Entropy_unix.Make (OS.Time)"
+    | `Xen  -> "Entropy_xen"
 
   let packages () =
     match !mode with
@@ -449,6 +451,8 @@ module Entropy = struct
   let libraries = packages
 
   let configure t =
+    append_main "module %s = %s" (module_name t) (construction t) ;
+    newline_main () ;
     append_main "let %s () =" (name t);
     append_main "  %s.connect ()" (module_name t);
     newline_main ()

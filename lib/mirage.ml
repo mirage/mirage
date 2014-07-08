@@ -1680,6 +1680,7 @@ let configure_makefile t =
   end;
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam\n\n\
+             export PKG_CONFIG_PATH=$(shell opam config var prefix)/lib/pkgconfig\n\n\
              export OPAMVERBOSE=1\n\
              export OPAMYES=1";
   newline oc;
@@ -1695,15 +1696,36 @@ let configure_makefile t =
              main.native.o:\n\
              \t$(BUILD) main.native.o";
   newline oc;
+
+  (* On ARM, we must convert the ELF image to an ARM boot executable zImage,
+   * while on x86 we leave it as it is. *)
+  let generate_image =
+    let need_zImage =
+      match uname_m () with
+      | Some machine -> String.length machine > 2 && String.sub machine 0 3 = "arm"
+      | None -> failwith "uname -m failed; can't determine target machine type!" in
+    if need_zImage then (
+      Printf.sprintf "\t  -o mir-%s.elf\n\
+                      \tobjcopy -O binary mir-%s.elf mir-%s.xen"
+                      t.name t.name t.name
+    ) else (
+      Printf.sprintf "\t  -o mir-%s.xen" t.name
+    ) in
+
   begin match !mode with
     | `Xen ->
       append oc "build: main.native.o";
+      let pkg_config_deps = "openlibm libminios" in
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
-      append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
-                 \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-%s.xen"
-        lib lib lib lib lib lib lib lib t.name;
+      append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
+      append oc "\tld -d -static -nostdlib --start-group \\\n\
+                 \t  $$(pkg-config --static --libs %s) \\\n\
+                 \t  _build/main.native.o %s/libocaml.a \\\n\
+                 \t  %s/libxencaml.a --end-group \\\n\
+                 \t  $(shell gcc -print-libgcc-file-name) \\\n\
+                 %s"
+        pkg_config_deps lib lib generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

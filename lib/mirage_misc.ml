@@ -232,12 +232,15 @@ let in_dir dir f =
   try let r = f () in reset (); r
   with e -> reset (); raise e
 
-let uname_s () =
+let collect_output cmd =
   try
-    with_process_in "uname -s"
+    with_process_in cmd
       (fun ic -> Some (strip (input_line ic)))
   with _ ->
     None
+
+let uname_s () = collect_output "uname -s"
+let uname_m () = collect_output "uname -m"
 
 let command_exists s =
   Sys.command ("which " ^ s ^ " > /dev/null") = 0

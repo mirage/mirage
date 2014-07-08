@@ -2,6 +2,7 @@ Trunk:
 * Set on_crash = 'preserve' in default Xen config.
 * Automatically install dependencies again, but display the live output to the
   user.
+* Include C stub libraries in linker command when generating Makefiles for Xen.
 
 1.2.0 (2014-07-05):
 

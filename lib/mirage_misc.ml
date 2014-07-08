@@ -50,6 +50,14 @@ let split s sep =
     | Some (h,t) -> aux (strip h :: acc) t in
   aux [] s
 
+let after prefix s =
+  let lp = String.length prefix in
+  let ls = String.length s in
+  if ls >= lp && String.sub s 0 lp = prefix then
+    Some (String.sub s lp (ls - lp))
+  else
+    None
+
 let finally f cleanup =
   try
     let res = f () in cleanup (); res

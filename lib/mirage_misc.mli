@@ -36,6 +36,13 @@ val strip: string -> string
 val cut_at: string -> char -> (string * string) option
 (** Cut at the first occurence of a given character. *)
 
+val split : string -> char -> string list
+(** Split at each occurence of the given character. *)
+
+val after : string -> string -> string option
+(** [after prefix s] returns the part of [s] after [prefix],
+ * if [s] starts with [prefix]. *)
+
 (** {2 Channels} *)
 
 val append: out_channel -> ('a, unit, string, unit) format4 -> 'a

@@ -1660,17 +1660,58 @@ let configure_main_xl t =
 let clean_main_xl t =
   remove (t.root / t.name ^ ".xl")
 
+(* Get the linker flags for any extra C objects we depend on.
+ * This is needed when building a Xen image as we do the link manually. *)
+let get_extra_ld_flags ~filter pkgs =
+  (* Query ocamlfind to get all the cmxa archives we're using. *)
+  let ocaml_archives = read_command
+    "ocamlfind query -r -separator ' ' -format %%d/%%a -predicates native %s"
+    (String.concat " " pkgs) in
+
+  let current_dir = ref None in
+  let ld_flags = ref [] in
+
+  let add_archives c_objects =
+    match !current_dir with
+    | None -> failwith "Missing File line in ocamlobjinfo output!"
+    | Some dir ->
+    let add_dir = lazy (ld_flags := ("-L" ^ dir) :: !ld_flags) in
+    split c_objects ' ' |> List.iter (fun arg ->
+      match after "-l" arg with
+      | None -> ()
+      | Some lib ->
+        if filter lib then (
+          Lazy.force add_dir;
+          ld_flags := arg :: !ld_flags
+        )
+    ) in
+
+  (* Use ocamlobjinfo to get the extra C objects needed by each cmxa.
+   * Note: we can't use compiler-libs here because it defines its own Config
+   * module, which conflicts with Mirage's use of config.ml *)
+  let output = read_command "ocamlobjinfo %s" ocaml_archives in
+  split output '\n' |> List.iter (fun line ->
+    match after "File " line with
+    | Some path -> current_dir := Some (Filename.dirname path)
+    | None ->
+    match after "Extra C object files: " line with
+    | Some args -> add_archives args
+    | None -> ()
+  );
+  List.rev !ld_flags
+
 let configure_makefile t =
   let file = t.root / "Makefile" in
-  let libraries =
-    match "lwt.syntax" :: libraries t with
+  let pkgs = "lwt.syntax" :: libraries t in
+  let libraries_str =
+    match pkgs with
     | [] -> ""
     | ls -> "-pkgs " ^ String.concat "," ls in
   let packages = String.concat " " (packages t) in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
   newline oc;
-  append oc "LIBS   = %s" libraries;
+  append oc "LIBS   = %s" libraries_str;
   append oc "PKGS   = %s" packages;
   append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
   begin match !mode with
@@ -1715,6 +1756,10 @@ let configure_makefile t =
 
   begin match !mode with
     | `Xen ->
+      let extra_c_archives =
+        get_extra_ld_flags ~filter:((<>) "unix") pkgs
+        |> String.concat " \\\n\t  " in
+
       append oc "build: main.native.o";
       let pkg_config_deps = "openlibm 'libminios-xen >= 0.2'" in
       let path = read_command "ocamlfind printconf path" in
@@ -1724,9 +1769,10 @@ let configure_makefile t =
                  \t  $$(pkg-config --static --libs %s) \\\n\
                  \t  _build/main.native.o %s/libocaml.a \\\n\
                  \t  %s/libxencaml.a --end-group \\\n\
+                 \t  %s \\\n\
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"
-        pkg_config_deps lib lib generate_image;
+        pkg_config_deps lib lib extra_c_archives generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

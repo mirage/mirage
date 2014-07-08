@@ -1512,15 +1512,17 @@ let configure_makefile t =
   begin match !mode with
     | `Xen ->
       append oc "build: main.native.o";
+      let pkg_config_deps = "openlibm libminios" in
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
+      append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append oc "\tld -d -static -nostdlib --start-group \\\n\
-                 \t  $(shell pkg-config --static --libs openlibm libminios) \\\n\
+                 \t  $(shell pkg-config --static --libs %s) \\\n\
                  \t  _build/main.native.o %s/libocaml.a \\\n\
                  \t  %s/libxencaml.a --end-group \\\n\
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"
-        lib lib generate_image;
+        pkg_config_deps lib lib generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

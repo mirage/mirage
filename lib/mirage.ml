@@ -1715,7 +1715,7 @@ let configure_makefile t =
   begin match !mode with
     | `Xen ->
       append oc "build: main.native.o";
-      let pkg_config_deps = "openlibm libminios" in
+      let pkg_config_deps = "openlibm 'libminios-xen >= 0.2'" in
       let path = read_command "ocamlfind printconf path" in
       let lib = strip path ^ "/mirage-xen" in
       append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;

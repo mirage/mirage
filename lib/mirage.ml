@@ -1747,6 +1747,33 @@ let configure_makefile t =
 let clean_makefile t =
   remove (t.root / "Makefile")
 
+let configure_opam t =
+  info "Installing OPAM packages.";
+  match packages t with
+  | [] -> ()
+  | ps ->
+    if command_exists "opam" then opam "install" ps
+    else error "OPAM is not installed."
+
+let clean_opam t =
+  ()
+(* This is a bit too agressive, disabling for now on.
+   let (++) = StringSet.union in
+   let set mode = StringSet.of_list (packages t mode) in
+   let packages =
+    set (`Unix `Socket) ++ set (`Unix `Direct) ++ set `Xen in
+   match StringSet.elements packages with
+   | [] -> ()
+   | ps ->
+    if cmd_exists "opam" then opam "remove" ps
+    else error "OPAM is not installed."
+*)
+
+let manage_opam = ref true
+
+let manage_opam_packages b =
+  manage_opam := b
+
 let configure_job j =
   let name = Impl.name j in
   let module_name = Impl.module_name j in
@@ -1786,6 +1813,7 @@ let configure t =
     (if List.length t.jobs = 1 then "" else "s")
     (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
+      if !manage_opam then configure_opam t;
       configure_myocamlbuild_ml t;
       configure_makefile t;
       configure_main_xl t;
@@ -1813,6 +1841,7 @@ let run t =
 let clean t =
   info "Clean: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
+      if !manage_opam then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main_xl t;

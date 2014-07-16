@@ -1,5 +1,7 @@
 Trunk:
 * Set on_crash = 'preserve' in default Xen config.
+* Automatically install dependencies again, but display the live output to the
+  user.
 
 1.2.0 (2014-07-05):
 

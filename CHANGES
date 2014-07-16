@@ -1,3 +1,6 @@
+Trunk:
+* Set on_crash = 'preserve' in default Xen config.
+
 1.2.0 (2014-07-05):
 
 The Mirage frontend tool now generates a Makefile with a `make depend`

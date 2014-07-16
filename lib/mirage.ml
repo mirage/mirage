@@ -1642,6 +1642,7 @@ let configure_main_xl t =
   append oc "kernel = '%s/mir-%s.xen'" t.root t.name;
   append oc "builder = 'linux'";
   append oc "memory = 256";
+  append oc "on_crash = 'preserve'";
   newline oc;
   append oc "# You must define the network and block interfaces manually.";
   newline oc;

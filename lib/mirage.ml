@@ -1818,8 +1818,7 @@ let configure t =
       configure_makefile t;
       configure_main_xl t;
       configure_main t
-    );
-  info "%s" (blue_s "Now run 'make depend' to install the package dependencies for this unikernel.")
+    )
 
 let make () =
   match uname_s () with

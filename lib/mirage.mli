@@ -387,6 +387,10 @@ end
 
 (** {2 Project configuration} *)
 
+val manage_opam_packages: bool -> unit
+(** Tell Irminsule to manage the OPAM configuration
+    (ie. install/remove missing packages). *)
+
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)
 

@@ -35,6 +35,8 @@ let arg_list name doc conv =
   let doc = Arg.info ~docv:name ~doc [] in
   Arg.(value & pos_all conv [] & doc)
 
+let no_opam =
+  mk_flag ["no-opam"] "Do not manage the OPAM configuration."
 let xen =
   mk_flag ["xen"] "Generate a Xen unikernel. Do not use in conjunction with --unix-*."
 let unix =
@@ -62,13 +64,14 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen file =
+  let configure unix xen no_opam file =
     if unix && xen then `Help (`Pager, Some "configure")
     else (
+      Mirage.manage_opam_packages (not no_opam);
       Mirage.set_mode (mode unix xen);
       let t = Mirage.load file in
       `Ok (Mirage.configure t)) in
-  Term.(ret (pure configure $ unix $ xen $ file)),
+  Term.(ret (pure configure $ unix $ xen $ no_opam $ file)),
   term_info "configure" ~doc ~man
 
 (* BUILD *)
@@ -104,10 +107,11 @@ let clean =
     `S "DESCRIPTION";
     `P clean_doc;
   ] in
-  let clean file =
+  let clean file no_opam =
     let t = Mirage.load file in
+    Mirage.manage_opam_packages (not no_opam);
     `Ok (Mirage.clean t) in
-  Term.(ret (pure clean $ file)), term_info "clean" ~doc ~man
+  Term.(ret (pure clean $ file $ no_opam)), term_info "clean" ~doc ~man
 
 (* HELP *)
 let help =

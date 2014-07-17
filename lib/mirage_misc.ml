@@ -50,6 +50,14 @@ let split s sep =
     | Some (h,t) -> aux (strip h :: acc) t in
   aux [] s
 
+let after prefix s =
+  let lp = String.length prefix in
+  let ls = String.length s in
+  if ls >= lp && String.sub s 0 lp = prefix then
+    Some (String.sub s lp (ls - lp))
+  else
+    None
+
 let finally f cleanup =
   try
     let res = f () in cleanup (); res
@@ -205,8 +213,11 @@ let command ?(redirect=true) fmt =
           with_redirect stdout "log" (fun () ->
               with_redirect stderr "log" fn
             )
-        else
-          fn () in
+        else (
+          flush stdout;
+          flush stderr;
+          fn ()
+        ) in
       match redirect (fun () -> Sys.command cmd) with
       | 0 -> ()
       | i ->
@@ -220,9 +231,11 @@ let command ?(redirect=true) fmt =
 
 let opam cmd ?switch deps =
   let deps_str = String.concat " " deps in
+  (* Note: we don't redirect output to the log as installation can take a long time
+   * and the user will want to see what is happening. *)
   match switch with
-  | None     -> command "opam %s --verbose --yes %s" cmd deps_str
-  | Some cmp -> command "opam %s --verbose --yes %s --switch=%s" cmd deps_str cmp
+  | None     -> command ~redirect:false "opam %s --yes %s" cmd deps_str
+  | Some cmp -> command ~redirect:false "opam %s --yes %s --switch=%s" cmd deps_str cmp
 
 let in_dir dir f =
   let pwd = Sys.getcwd () in

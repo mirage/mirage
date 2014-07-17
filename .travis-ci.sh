@@ -26,7 +26,8 @@ opam install mirage mirage-types
 opam install mirage-console-unix mirage-console-xen \
     mirage-clock-unix mirage-clock-xen \
     mirage-block-unix mirage-block-xen \
-    fat-filesystem crunch mirage-http
+    fat-filesystem crunch mirage-http \
+    mirage-net-xen
 
 make # build ./main.native
 cd lib_test

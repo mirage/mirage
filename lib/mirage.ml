@@ -1716,7 +1716,8 @@ let configure_makefile t =
   append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
   begin match !mode with
     | `Xen  ->
-      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
+      append oc "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
@@ -1762,17 +1763,15 @@ let configure_makefile t =
 
       append oc "build: main.native.o";
       let pkg_config_deps = "openlibm 'libminios-xen >= 0.2'" in
-      let path = read_command "ocamlfind printconf path" in
-      let lib = strip path ^ "/mirage-xen" in
       append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append oc "\tld -d -static -nostdlib --start-group \\\n\
                  \t  $$(pkg-config --static --libs %s) \\\n\
-                 \t  _build/main.native.o %s/libocaml.a \\\n\
-                 \t  %s/libxencaml.a --end-group \\\n\
+                 \t  _build/main.native.o $(XENLIB)/libocaml.a \\\n\
+                 \t  $(XENLIB)/libxencaml.a --end-group \\\n\
                  \t  %s \\\n\
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"
-        pkg_config_deps lib lib extra_c_archives generate_image;
+        pkg_config_deps extra_c_archives generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

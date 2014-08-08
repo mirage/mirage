@@ -154,17 +154,20 @@ module type FLOW = sig
       the connection is now closed, or an [Error]. *)
 
   val write : flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
-  (** [write flow buffer] will block until the contents of [buffer] are
-      transmitted to the remote endpoint.  The contents may be transmitted
-      in separate packets, depending on the underlying transport. The result
-      [`Ok ()] indicates success, [`Eof] indicates that the connection is now
-      closed and [`Error] indicates some other error. *)
+  (** [write flow buffer] will block until [buffer] has been added to the
+      send queue. There is no indication when the buffer has actually been
+      read and, therefore, it must not be reused.
+      The contents may be transmitted in separate packets, depending on the
+      underlying transport. The result [`Ok ()] indicates success, [`Eof]
+      indicates that the connection is now closed and [`Error] indicates some
+      other error. *)
 
   val writev : flow -> buffer list -> [`Ok of unit | `Eof | `Error of error ] io
-  (** [writev flow buffers] will block until the contents of [buffer list]
-      are all successfully transmitted to the remote endpoint. The result
-      [`Ok ()] indicates success, [`Eof] indicates that the connection is now
-      closed and [`Error] indicates some other error. *)
+  (** [writev flow buffers] will block until the buffers have all been added
+      to the send queue. There is no indication when the buffers have actually
+      been read and, therefore, they must not be reused.
+      The result [`Ok ()] indicates success, [`Eof] indicates that the
+      connection is now closed and [`Error] indicates some other error. *)
 
 end
 

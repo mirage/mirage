@@ -1660,6 +1660,39 @@ let configure_main_xl t =
 let clean_main_xl t =
   remove (t.root / t.name ^ ".xl")
 
+let configure_main_xe t =
+  let file = t.root / t.name ^ ".xe" in
+  let oc = open_out file in
+  append oc "#!/bin/sh";
+  append oc "# %s" generated_by_mirage;
+  newline oc;
+  append oc "# Dependency: xe";
+  append oc "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's not installed.  Aborting.\"; exit 1; }";
+  append oc "# Dependency: xe-unikernel-upload";
+  append oc "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I require xe-unikernel-upload but it's not installed.  Aborting.\"; exit 1; }";
+  append oc "# Dependency: a $HOME/.xe";
+  append oc "if [ ! -e $HOME/.xe ]; then";
+  append oc "  echo Please create a config file for xe in $HOME/.xe which contains:";
+  append oc "  echo server=<IP or DNS name of the host running xapi>";
+  append oc "  echo username=root";
+  append oc "  echo password=password";
+  append oc "  exit 1";
+  append oc "fi";
+  newline oc;
+  append oc "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
+  append oc "VM=$(xe vm-create name-label=%s)" t.name;
+  append oc "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
+  append oc "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
+  append oc "xe vif-create vm-uuid=$VM network-uuid=$NET device=0";
+  append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
+  append oc "xe vbd-param-set uuid=$VBD bootable=true";
+  append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  append oc "xe vm-start vm=mirage";
+  close_out oc
+
+let clean_main_xe t =
+  remove (t.root / t.name ^ ".xe")
+
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
 let get_extra_ld_flags ~filter pkgs =
@@ -1863,6 +1896,7 @@ let configure t =
       configure_myocamlbuild_ml t;
       configure_makefile t;
       configure_main_xl t;
+      configure_main_xe t;
       configure_main t
     )
 
@@ -1890,6 +1924,7 @@ let clean t =
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main_xl t;
+      clean_main_xe t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
       command "rm -rf log %s/main.native.o %s/main.native %s/mir-%s %s/*~"

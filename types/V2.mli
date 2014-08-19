@@ -292,6 +292,9 @@ module type NETWORK = sig
   (** [writev nf bufs] output a list of buffers to netfront [nf] as a
       single packet. *)
 
+  val writev2 : needs_checksum:bool -> t -> buffer list -> unit io
+  (** Extends [writev] with the ability to request TCP checksum offload. *)
+
   val listen : t -> (buffer -> unit io) -> unit io
   (** [listen nf fn] is a blocking operation that calls [fn buf] with
       every packet that is read from the interface.  It returns as soon
@@ -349,6 +352,9 @@ module type ETHIF = sig
   val writev : t -> buffer list -> unit io
   (** [writev nf bufs] output a list of buffers to netfront [nf] as a
       single packet. *)
+
+  val writev2 : ?needs_checksum:bool -> t -> buffer list -> unit io
+  (** Extends [writev] with the ability to request TCP checksum offload. *)
 
   val mac : t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)

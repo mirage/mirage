@@ -1666,6 +1666,8 @@ let configure_main_xe t =
   append oc "#!/bin/sh";
   append oc "# %s" generated_by_mirage;
   newline oc;
+  append oc "set -e";
+  newline oc;
   append oc "# Dependency: xe";
   append oc "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's not installed.  Aborting.\"; exit 1; }";
   append oc "# Dependency: xe-unikernel-upload";
@@ -1681,8 +1683,10 @@ let configure_main_xe t =
   newline oc;
   append oc "echo Uploading VDI containing unikernel";
   append oc "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
+  append oc "echo VDI=$VDI";
   append oc "echo Creating VM metadata";
   append oc "VM=$(xe vm-create name-label=%s)" t.name;
+  append oc "echo VM=$VM";
   append oc "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
   append oc "echo Adding network interface connected to xenbr0";
   append oc "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";

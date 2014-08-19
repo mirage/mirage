@@ -1688,7 +1688,8 @@ let configure_main_xe t =
   append oc "xe vbd-param-set uuid=$VBD bootable=true";
   append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
   append oc "xe vm-start vm=mirage";
-  close_out oc
+  close_out oc;
+  Unix.chmod file 0o755
 
 let clean_main_xe t =
   remove (t.root / t.name ^ ".xe")

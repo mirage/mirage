@@ -1690,7 +1690,7 @@ let configure_main_xe t =
   append oc "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
   append oc "echo Adding network interface connected to xenbr0";
   append oc "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
-  append oc "xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0";
+  append oc "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
   append oc "echo Atting block device and making it bootable";
   append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
   append oc "xe vbd-param-set uuid=$VBD bootable=true";

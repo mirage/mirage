@@ -1673,21 +1673,26 @@ let configure_main_xe t =
   append oc "# Dependency: a $HOME/.xe";
   append oc "if [ ! -e $HOME/.xe ]; then";
   append oc "  echo Please create a config file for xe in $HOME/.xe which contains:";
-  append oc "  echo server=<IP or DNS name of the host running xapi>";
+  append oc "  echo server='<IP or DNS name of the host running xapi>'";
   append oc "  echo username=root";
   append oc "  echo password=password";
   append oc "  exit 1";
   append oc "fi";
   newline oc;
+  append oc "echo Uploading VDI containing unikernel";
   append oc "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
+  append oc "echo Creating VM metadata";
   append oc "VM=$(xe vm-create name-label=%s)" t.name;
   append oc "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
+  append oc "echo Adding network interface connected to xenbr0";
   append oc "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
-  append oc "xe vif-create vm-uuid=$VM network-uuid=$NET device=0";
+  append oc "xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0";
+  append oc "echo Atting block device and making it bootable";
   append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
   append oc "xe vbd-param-set uuid=$VBD bootable=true";
   append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
-  append oc "xe vm-start vm=mirage";
+  append oc "echo Starting VM";
+  append oc "xe vm-start vm=%s" t.name;
   close_out oc;
   Unix.chmod file 0o755
 

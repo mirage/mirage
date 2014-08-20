@@ -78,5 +78,5 @@ rm -f ${IMG}
 echo You can now start this instance via:
 echo ec2-run-instances --region ${REGION} $id
 echo ""
-echo Dont forget to customise this with a security group, as the
-echo default one won't let any inbound traffic in.
+echo Don\'t forget to customise this with a security group, as the
+echo default one won\'t let any inbound traffic in.

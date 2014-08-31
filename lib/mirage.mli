@@ -315,10 +315,18 @@ type channel
 val channel: channel typ
 val channel_over_tcpv4: tcpv4 impl -> channel impl
 
+(** {Resolver configuration} *)
+
+type resolver
+val resolver: resolver typ
+val resolver_dns : stackv4 impl -> resolver impl
+
 (** {Conduit configuration} *)
+
 type conduit
 val conduit: conduit typ
 val conduit_direct : stackv4 impl -> conduit impl
+
 
 (** {HTTP configuration} *)
 

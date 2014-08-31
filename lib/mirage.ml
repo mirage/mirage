@@ -1469,6 +1469,68 @@ let conduit = Type Conduit
 let conduit_direct stack =
   impl conduit (`Stack stack) (module Conduit)
 
+module Resolver = struct
+  type t =
+    [ `DNS of stackv4 impl ]
+
+  let name t =
+    let key = "resolver" ^ match t with
+     | `DNS s -> Impl.name s in
+    Name.of_key key ~base:"resolver"
+
+  let module_name_core t =
+    String.capitalize (name t)
+
+  let module_name t =
+    module_name_core t
+
+  let packages t =
+    [ "dns"; "tcpip" ] @
+    match t with
+    | `DNS s -> Impl.packages s
+
+  let libraries t =
+    [ "dns.mirage" ] @
+    match t with
+    | `DNS s -> Impl.libraries s
+
+  let configure t =
+    begin match t with
+      | `DNS s ->
+        Impl.configure s;
+        append_main "module %s_dns = Dns_resolver_mirage.Make(OS.Time)(%s)"
+          (module_name_core t) (Impl.module_name s);
+        append_main "module %s_res = Conduit_resolver_mirage.Make(%s_dns)"
+          (module_name_core t) (module_name_core t);
+        append_main "module %s = Conduit_resolver_lwt" (module_name_core t);
+    end;
+    newline_main ();
+    append_main "let %s () =" (name t);
+    let subname = match t with
+      | `DNS s -> Impl.name s in
+    append_main "  %s () >>= function" subname;
+    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
+    append_main "  | `Ok %s ->" subname;
+    append_main "  let res = %s_res.system %s in" (module_name t) subname;
+    append_main "  return (`Ok res)";
+    newline_main ()
+
+  let clean = function
+    | `DNS s -> Impl.clean s
+
+  let update_path t root =
+    match t with
+    | `DNS s -> `DNS (Impl.update_path s root)
+
+end
+
+type resolver = Resolver
+
+let resolver = Type Resolver
+
+let resolver_dns stack =
+  impl resolver (`DNS stack) (module Resolver)
+
 
 module HTTP = struct
 

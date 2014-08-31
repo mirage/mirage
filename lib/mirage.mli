@@ -318,14 +318,13 @@ val channel_over_tcpv4: tcpv4 impl -> channel impl
 (** {Conduit configuration} *)
 type conduit
 val conduit: conduit typ
-val conduit_server: int -> stackv4 impl -> conduit impl
+val conduit_direct : stackv4 impl -> conduit impl
 
 (** {HTTP configuration} *)
 
 type http
 val http: http typ
-val http_server_of_channel: channel impl -> http impl
-val http_server: int -> stackv4 impl -> http impl
+val http_server: Conduit_mirage.server -> conduit impl -> http impl
 
 
 (** {2 Jobs} *)

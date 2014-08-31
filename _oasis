@@ -12,7 +12,7 @@ Library mirage
   Path:               lib
   Findlibname:        mirage
   Modules:            Mirage, Mirage_misc
-  BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt, conduit.mirage
+  BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt
 
 Executable mirage
   CompiledObject:     best

@@ -1469,6 +1469,16 @@ let conduit = Type Conduit
 let conduit_direct stack =
   impl conduit (`Stack stack) (module Conduit)
 
+type conduit_client = [
+  | `TCP of Ipaddr.t * int
+  | `Vchan of string list
+] 
+
+type conduit_server = [
+  | `TCP of [ `Port of int ]
+  | `Vchan of string list
+] 
+
 module Resolver = struct
   type t =
     [ `DNS of stackv4 impl ]
@@ -1536,7 +1546,7 @@ module HTTP = struct
 
   type t =
     [ `Channel of channel impl
-    | `Stack of Conduit_mirage.server * conduit impl ]
+    | `Stack of conduit_server * conduit impl ]
 
   let name t =
     let key = "http" ^ match t with

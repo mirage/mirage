@@ -327,12 +327,21 @@ type conduit
 val conduit: conduit typ
 val conduit_direct : stackv4 impl -> conduit impl
 
+type conduit_client = [
+  | `TCP of Ipaddr.t * int
+  | `Vchan of string list
+]
+
+type conduit_server = [
+  | `TCP of [ `Port of int ]
+  | `Vchan of string list
+]
 
 (** {HTTP configuration} *)
 
 type http
 val http: http typ
-val http_server: Conduit_mirage.server -> conduit impl -> http impl
+val http_server: conduit_server -> conduit impl -> http impl
 
 
 (** {2 Jobs} *)

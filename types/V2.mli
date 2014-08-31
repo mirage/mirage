@@ -169,6 +169,10 @@ module type FLOW = sig
       The result [`Ok ()] indicates success, [`Eof] indicates that the
       connection is now closed and [`Error] indicates some other error. *)
 
+  val close : flow -> unit io
+  (** [close flow] will flush all pending writes and signal the end of the
+      flow to the remote endpoint.  When the result [unit io] becomes
+      determined, all further calls to [read flow] will result in a [`Eof]. *)
 end
 
 module type CONSOLE = sig

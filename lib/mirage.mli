@@ -315,6 +315,10 @@ type channel
 val channel: channel typ
 val channel_over_tcpv4: tcpv4 impl -> channel impl
 
+(** {Conduit configuration} *)
+type conduit
+val conduit: conduit typ
+val conduit_server: int -> stackv4 impl -> conduit impl
 
 (** {HTTP configuration} *)
 

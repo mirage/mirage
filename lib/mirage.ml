@@ -1409,6 +1409,64 @@ let channel = Type CHANNEL
 let channel_over_tcpv4 flow =
   impl channel flow (module Channel_over_TCPV4)
 
+module Conduit = struct
+  type t =
+    [ `Stack of int * stackv4 impl ]
+
+  let name t =
+    let key = "conduit" ^ match t with
+     | `Stack (_, s) -> Impl.name s in
+    Name.of_key key ~base:"conduit"
+
+  let module_name_core t =
+    String.capitalize (name t)
+
+  let module_name t =
+    module_name_core t ^ ".Server"
+
+  let packages t =
+    [ "conduit"; "mirage-types" ] @
+    match t with
+    | `Stack (_, s) -> Impl.packages s
+
+  let libraries t =
+    [ "conduit.mirage" ] @
+    match t with
+    | `Stack (_, s) -> Impl.libraries s
+
+  let configure t =
+    begin match t with
+      | `Stack (_, s) ->
+        Impl.configure s;
+        append_main "module %s_conduit = Conduit_mirage.Make(%s)"
+          (module_name_core t) (Impl.module_name s);
+    end;
+    newline_main ();
+    let subname = match t with
+      | `Stack (_,s) -> Impl.name s in
+    append_main "let %s () =" (name t);
+    append_main "  %s_conduit.init %s >>= fun %s ->"
+      (module_name_core t) subname (name t);
+    append_main "  return (`Ok %s)" (name t);
+    newline_main ()
+
+
+  let clean = function
+    | `Stack (_, s) -> Impl.clean s
+
+  let update_path t root =
+    match t with
+    | `Stack (p, s) -> `Stack (p, Impl.update_path s root)
+
+end
+
+type conduit = Conduit
+
+let conduit = Type Conduit
+
+let conduit_server port stack =
+  impl conduit (`Stack (port, stack)) (module Conduit)
+
 
 module HTTP = struct
 

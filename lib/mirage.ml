@@ -385,7 +385,9 @@ module Clock = struct
 
   let libraries () = packages ()
 
-  let configure () = ()
+  let configure () =
+    append_main "let clock () = return (`Ok ())";
+    newline_main ()
 
   let clean () = ()
 
@@ -414,7 +416,9 @@ module Random = struct
 
   let libraries () = []
 
-  let configure () = ()
+  let configure () =
+    append_main "let random () = return (`Ok ())";
+    newline_main ()
 
   let clean () = ()
 

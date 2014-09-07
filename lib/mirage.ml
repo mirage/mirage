@@ -1645,7 +1645,7 @@ let configure_main_libvirt_xml t =
   append oc "    <os>";
   append oc "        <type arch='armv7l' machine='xenpv'>linux</type>";
   append oc "        <kernel>%s/mir-%s.xen</kernel>" t.root t.name;
-  append oc "        <cmdline></cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
+  append oc "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
   append oc "    </os>";
   append oc "    <clock offset='utc' adjustment='reset'/>";
   append oc "    <on_crash>preserve</on_crash>";

@@ -1,8 +1,8 @@
-MIRAGE = ../main.native
+MIRARI = ../main.native
 TESTS  = console kv_ro fat net ip http combinator basic_ethif basic_stackv4 basic_http
 # MODE ?= xen
-MODE   ?= unix
-MFLAGS ?=
+MODE ?= unix
+BFLAGS ?= --no-opam
 
 CONFIGS = $(patsubst %, %-configure, $(TESTS))
 BUILDS  = $(patsubst %, %-build, $(TESTS))
@@ -15,14 +15,14 @@ build: $(BUILDS)
 clean: $(CLEANS)
 
 %-configure:
-	$(MIRAGE) configure $*/config.ml $(MFLAGS) --$(MODE)
+	$(MIRARI) configure $*/config.ml $(BFLAGS) --$(MODE)
 
 %-build: %-configure
-	$(MIRAGE) build $*/config.ml
+	$(MIRARI) build $*/config.ml
 
 %-run: %-build
-	$(MIRAGE) run $*/config.ml
+	$(MIRARI) run $*/config.ml
 
 %-clean:
 	rm -f $*/mir-main
-	$(MIRAGE) clean $*/config.ml $(MFLAGS) || true
+	$(MIRARI) clean $*/config.ml $(BFLAGS) || true

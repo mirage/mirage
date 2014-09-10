@@ -26,7 +26,7 @@ To work with Mirage, you'll need the following prerequisites installed:
 
 * a working [OCaml](http://ocaml.org) compiler (4.00.1 or higher).
 * the [OPAM](https://opam.ocaml.org) source package manager (1.1.1 or higher).
-* a 64-bit Linux host to compile Xen kernels, or FreeBSD, OpenBSD or MacOS X
+* an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or MacOS X
   for the userlevel version.
 
 There are three stages to using `mirage`:

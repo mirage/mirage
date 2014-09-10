@@ -315,13 +315,33 @@ type channel
 val channel: channel typ
 val channel_over_tcpv4: tcpv4 impl -> channel impl
 
+(** {Resolver configuration} *)
+
+type resolver
+val resolver: resolver typ
+val resolver_dns : stackv4 impl -> resolver impl
+
+(** {Conduit configuration} *)
+
+type conduit
+val conduit: conduit typ
+val conduit_direct : stackv4 impl -> conduit impl
+
+type conduit_client = [
+  | `TCP of Ipaddr.t * int
+  | `Vchan of string list
+]
+
+type conduit_server = [
+  | `TCP of [ `Port of int ]
+  | `Vchan of string list
+]
 
 (** {HTTP configuration} *)
 
 type http
 val http: http typ
-val http_server_of_channel: channel impl -> http impl
-val http_server: int -> stackv4 impl -> http impl
+val http_server: conduit_server -> conduit impl -> http impl
 
 
 (** {2 Jobs} *)
@@ -386,6 +406,10 @@ module Impl: sig
 end
 
 (** {2 Project configuration} *)
+
+val manage_opam_packages: bool -> unit
+(** Tell Irminsule to manage the OPAM configuration
+    (ie. install/remove missing packages). *)
 
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)

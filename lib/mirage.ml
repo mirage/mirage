@@ -385,7 +385,9 @@ module Clock = struct
 
   let libraries () = packages ()
 
-  let configure () = ()
+  let configure () =
+    append_main "let clock () = return (`Ok ())";
+    newline_main ()
 
   let clean () = ()
 
@@ -414,7 +416,9 @@ module Random = struct
 
   let libraries () = []
 
-  let configure () = ()
+  let configure () =
+    append_main "let random () = return (`Ok ())";
+    newline_main ()
 
   let clean () = ()
 
@@ -1409,17 +1413,149 @@ let channel = Type CHANNEL
 let channel_over_tcpv4 flow =
   impl channel flow (module Channel_over_TCPV4)
 
+module Conduit = struct
+  type t =
+    [ `Stack of stackv4 impl ]
+
+  let name t =
+    let key = "conduit" ^ match t with
+     | `Stack s -> Impl.name s in
+    Name.of_key key ~base:"conduit"
+
+  let module_name_core t =
+    String.capitalize (name t)
+
+  let module_name t =
+    module_name_core t 
+
+  let packages t =
+    [ "conduit"; "mirage-types" ] @
+    match t with
+    | `Stack s -> Impl.packages s
+
+  let libraries t =
+    [ "conduit.mirage" ] @
+    match t with
+    | `Stack s -> Impl.libraries s
+
+  let configure t =
+    begin match t with
+      | `Stack s ->
+        Impl.configure s;
+        append_main "module %s = Conduit_mirage.Make(%s)"
+          (module_name_core t) (Impl.module_name s);
+    end;
+    newline_main ();
+    append_main "let %s () =" (name t);
+    let subname = match t with
+      | `Stack s -> Impl.name s in
+    append_main "  %s () >>= function" subname;
+    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
+    append_main "  | `Ok %s ->" subname;
+    append_main "  %s.init %s >>= fun %s ->"
+      (module_name_core t) subname (name t);
+    append_main "  return (`Ok %s)" (name t);
+    newline_main ()
+
+  let clean = function
+    | `Stack s -> Impl.clean s
+
+  let update_path t root =
+    match t with
+    | `Stack s -> `Stack (Impl.update_path s root)
+
+end
+
+type conduit = Conduit
+
+let conduit = Type Conduit
+
+let conduit_direct stack =
+  impl conduit (`Stack stack) (module Conduit)
+
+type conduit_client = [
+  | `TCP of Ipaddr.t * int
+  | `Vchan of string list
+] 
+
+type conduit_server = [
+  | `TCP of [ `Port of int ]
+  | `Vchan of string list
+] 
+
+module Resolver = struct
+  type t =
+    [ `DNS of stackv4 impl ]
+
+  let name t =
+    let key = "resolver" ^ match t with
+     | `DNS s -> Impl.name s in
+    Name.of_key key ~base:"resolver"
+
+  let module_name_core t =
+    String.capitalize (name t)
+
+  let module_name t =
+    module_name_core t
+
+  let packages t =
+    [ "dns"; "tcpip" ] @
+    match t with
+    | `DNS s -> Impl.packages s
+
+  let libraries t =
+    [ "dns.mirage" ] @
+    match t with
+    | `DNS s -> Impl.libraries s
+
+  let configure t =
+    begin match t with
+      | `DNS s ->
+        Impl.configure s;
+        append_main "module %s_dns = Dns_resolver_mirage.Make(OS.Time)(%s)"
+          (module_name_core t) (Impl.module_name s);
+        append_main "module %s_res = Conduit_resolver_mirage.Make(%s_dns)"
+          (module_name_core t) (module_name_core t);
+        append_main "module %s = Conduit_resolver_lwt" (module_name_core t);
+    end;
+    newline_main ();
+    append_main "let %s () =" (name t);
+    let subname = match t with
+      | `DNS s -> Impl.name s in
+    append_main "  %s () >>= function" subname;
+    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
+    append_main "  | `Ok %s ->" subname;
+    append_main "  let res = %s_res.system %s in" (module_name t) subname;
+    append_main "  return (`Ok res)";
+    newline_main ()
+
+  let clean = function
+    | `DNS s -> Impl.clean s
+
+  let update_path t root =
+    match t with
+    | `DNS s -> `DNS (Impl.update_path s root)
+
+end
+
+type resolver = Resolver
+
+let resolver = Type Resolver
+
+let resolver_dns stack =
+  impl resolver (`DNS stack) (module Resolver)
+
 
 module HTTP = struct
 
   type t =
     [ `Channel of channel impl
-    | `Stack of int * stackv4 impl ]
+    | `Stack of conduit_server * conduit impl ]
 
   let name t =
     let key = "http" ^ match t with
       | `Channel c    -> Impl.name c
-      | `Stack (_, s) -> Impl.name s in
+      | `Stack (_, c) -> Impl.name c in
     Name.of_key key ~base:"http"
 
   let module_name_core t =
@@ -1432,54 +1568,55 @@ module HTTP = struct
     [ "mirage-http" ] @
     match t with
     | `Channel c    -> Impl.packages c
-    | `Stack (_, s) -> Impl.packages s
+    | `Stack (_, c) -> Impl.packages c
 
   let libraries t =
     [ "mirage-http" ] @
     match t with
     | `Channel c    -> Impl.libraries c
-    | `Stack (_, s) -> Impl.libraries s
+    | `Stack (_, c) -> Impl.libraries c
 
   let configure t =
     begin match t with
       | `Channel c ->
         Impl.configure c;
         append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
-      | `Stack (_, s) ->
-        Impl.configure s;
-        append_main "module %s_channel = Channel.Make(%s.TCPV4)"
-          (module_name_core t) (Impl.module_name s);
-        append_main "module %s = HTTP.Make(%s_channel)" (module_name_core t) (module_name_core t)
+      | `Stack (_, c) ->
+        Impl.configure c;
+        append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
     end;
     newline_main ();
     let subname = match t with
       | `Channel c   -> Impl.name c
-      | `Stack (_,s) -> Impl.name s in
+      | `Stack (_,c) -> Impl.name c in
     append_main "let %s () =" (name t);
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
-    append_main "  | `Ok stack ->";
+    append_main "  | `Ok %s ->" subname;
     begin match t with
       | `Channel c   -> failwith "TODO"
-      | `Stack (p,s) ->
+      | `Stack (m,c) ->
         append_main "  let listen spec =";
-        append_main "    %s.listen_tcpv4 ~port:%d stack (fun flow ->" (Impl.module_name s) p;
-        append_main "      let chan = %s_channel.create flow in" (module_name_core t);
-        append_main "      %s.Server_core.callback spec chan chan" (module_name_core t);
-        append_main "    );";
-        append_main "    %s.listen stack in" (Impl.module_name s);
+        append_main "    let ctx = %s in" (Impl.name c);
+        append_main "    let mode = %s in"
+          (match m with
+           |`TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
+           |`Vchan l -> failwith "Vchan not supported yet in server"
+          );
+        append_main "    %s.serve ~ctx ~mode (%s.Server.listen spec)" (Impl.module_name c) (module_name_core t);
+        append_main "  in";
         append_main "  return (`Ok listen)";
     end;
     newline_main ()
 
   let clean = function
     | `Channel c    -> Impl.clean c
-    | `Stack (_, s) -> Impl.clean s
+    | `Stack (_,c) -> Impl.clean c
 
   let update_path t root =
     match t with
     | `Channel c    -> `Channel (Impl.update_path c root)
-    | `Stack (p, s) -> `Stack (p, Impl.update_path s root)
+    | `Stack (m, c) -> `Stack (m, Impl.update_path c root)
 
 end
 
@@ -1490,8 +1627,8 @@ let http = Type HTTP
 let http_server_of_channel chan =
   impl http (`Channel chan) (module HTTP)
 
-let http_server port stack =
-  impl http (`Stack (port, stack)) (module HTTP)
+let http_server mode conduit =
+  impl http (`Stack (mode, conduit)) (module HTTP)
 
 type job = JOB
 
@@ -1633,6 +1770,56 @@ let configure_myocamlbuild_ml t =
 let clean_myocamlbuild_ml t =
   remove (t.root / "myocamlbuild.ml")
 
+let configure_main_libvirt_xml t =
+  let file = t.root / t.name ^ "_libvirt.xml" in
+  let oc = open_out file in
+  append oc "<!-- %s -->" generated_by_mirage;
+  append oc "<domain type='xen'>";
+  append oc "    <name>%s</name>" t.name;
+  append oc "    <memory unit='KiB'>262144</memory>";
+  append oc "    <currentMemory unit='KiB'>262144</currentMemory>";
+  append oc "    <vcpu placement='static'>1</vcpu>";
+  append oc "    <os>";
+  append oc "        <type arch='armv7l' machine='xenpv'>linux</type>";
+  append oc "        <kernel>%s/mir-%s.xen</kernel>" t.root t.name;
+  append oc "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
+  append oc "    </os>";
+  append oc "    <clock offset='utc' adjustment='reset'/>";
+  append oc "    <on_crash>preserve</on_crash>";
+  append oc "    <!-- ";
+  append oc "    You must define network and block interfaces manually.";
+  append oc "    See http://libvirt.org/drvxen.html for information about converting .xl-files to libvirt xml automatically.";
+  append oc "    -->";
+  append oc "    <devices>";
+  append oc "        <!--";
+  append oc "        The disk configuration is defined here:";
+  append oc "        http://libvirt.org/formatstorage.html.";
+  append oc "        An example would look like:";
+  append oc"         <disk type='block' device='disk'>";
+  append oc "            <driver name='phy'/>";
+  append oc "            <source dev='/dev/loop0'/>";
+  append oc "            <target dev='' bus='xen'/>";
+  append oc "        </disk>";
+  append oc "        -->";
+  append oc "        <!-- ";
+  append oc "        The network configuration is defined here:";
+  append oc "        http://libvirt.org/formatnetwork.html";
+  append oc "        An example would look like:";
+  append oc "        <interface type='bridge'>";
+  append oc "            <mac address='c0:ff:ee:c0:ff:ee'/>";
+  append oc "            <source bridge='br0'/>";
+  append oc "        </interface>";
+  append oc "        -->";
+  append oc "        <console type='pty'>";
+  append oc "            <target type='xen' port='0'/>";
+  append oc "        </console>";
+  append oc "    </devices>";
+  append oc "</domain>";
+  close_out oc
+
+let clean_main_libvirt_xml t =
+  remove (t.root / t.name ^ "_libvirt.xml")
+
 let configure_main_xl t =
   let file = t.root / t.name ^ ".xl" in
   let oc = open_out file in
@@ -1642,6 +1829,7 @@ let configure_main_xl t =
   append oc "kernel = '%s/mir-%s.xen'" t.root t.name;
   append oc "builder = 'linux'";
   append oc "memory = 256";
+  append oc "on_crash = 'preserve'";
   newline oc;
   append oc "# You must define the network and block interfaces manually.";
   newline oc;
@@ -1659,27 +1847,113 @@ let configure_main_xl t =
 let clean_main_xl t =
   remove (t.root / t.name ^ ".xl")
 
+let configure_main_xe t =
+  let file = t.root / t.name ^ ".xe" in
+  let oc = open_out file in
+  append oc "#!/bin/sh";
+  append oc "# %s" generated_by_mirage;
+  newline oc;
+  append oc "set -e";
+  newline oc;
+  append oc "# Dependency: xe";
+  append oc "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's not installed.  Aborting.\"; exit 1; }";
+  append oc "# Dependency: xe-unikernel-upload";
+  append oc "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I require xe-unikernel-upload but it's not installed.  Aborting.\"; exit 1; }";
+  append oc "# Dependency: a $HOME/.xe";
+  append oc "if [ ! -e $HOME/.xe ]; then";
+  append oc "  echo Please create a config file for xe in $HOME/.xe which contains:";
+  append oc "  echo server='<IP or DNS name of the host running xapi>'";
+  append oc "  echo username=root";
+  append oc "  echo password=password";
+  append oc "  exit 1";
+  append oc "fi";
+  newline oc;
+  append oc "echo Uploading VDI containing unikernel";
+  append oc "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
+  append oc "echo VDI=$VDI";
+  append oc "echo Creating VM metadata";
+  append oc "VM=$(xe vm-create name-label=%s)" t.name;
+  append oc "echo VM=$VM";
+  append oc "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
+  append oc "echo Adding network interface connected to xenbr0";
+  append oc "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
+  append oc "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
+  append oc "echo Atting block device and making it bootable";
+  append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
+  append oc "xe vbd-param-set uuid=$VBD bootable=true";
+  append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  append oc "echo Starting VM";
+  append oc "xe vm-start vm=%s" t.name;
+  close_out oc;
+  Unix.chmod file 0o755
+
+let clean_main_xe t =
+  remove (t.root / t.name ^ ".xe")
+
+(* Get the linker flags for any extra C objects we depend on.
+ * This is needed when building a Xen image as we do the link manually. *)
+let get_extra_ld_flags ~filter pkgs =
+  (* Query ocamlfind to get all the cmxa archives we're using. *)
+  let ocaml_archives = read_command
+    "ocamlfind query -r -separator ' ' -format %%d/%%a -predicates native %s"
+    (String.concat " " pkgs) in
+
+  let current_dir = ref None in
+  let ld_flags = ref [] in
+
+  let add_archives c_objects =
+    match !current_dir with
+    | None -> failwith "Missing File line in ocamlobjinfo output!"
+    | Some dir ->
+    let add_dir = lazy (ld_flags := ("-L" ^ dir) :: !ld_flags) in
+    split c_objects ' ' |> List.iter (fun arg ->
+      match after "-l" arg with
+      | None -> ()
+      | Some lib ->
+        if filter lib then (
+          Lazy.force add_dir;
+          ld_flags := arg :: !ld_flags
+        )
+    ) in
+
+  (* Use ocamlobjinfo to get the extra C objects needed by each cmxa.
+   * Note: we can't use compiler-libs here because it defines its own Config
+   * module, which conflicts with Mirage's use of config.ml *)
+  let output = read_command "ocamlobjinfo %s" ocaml_archives in
+  split output '\n' |> List.iter (fun line ->
+    match after "File " line with
+    | Some path -> current_dir := Some (Filename.dirname path)
+    | None ->
+    match after "Extra C object files: " line with
+    | Some args -> add_archives args
+    | None -> ()
+  );
+  List.rev !ld_flags
+
 let configure_makefile t =
   let file = t.root / "Makefile" in
-  let libraries =
-    match "lwt.syntax" :: libraries t with
+  let pkgs = "lwt.syntax" :: libraries t in
+  let libraries_str =
+    match pkgs with
     | [] -> ""
     | ls -> "-pkgs " ^ String.concat "," ls in
   let packages = String.concat " " (packages t) in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
   newline oc;
-  append oc "LIBS   = %s" libraries;
+  append oc "LIBS   = %s" libraries_str;
   append oc "PKGS   = %s" packages;
   append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
   begin match !mode with
     | `Xen  ->
-      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n"
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
+      append oc "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam\n\n\
+             export PKG_CONFIG_PATH=$(shell opam config var prefix)/lib/pkgconfig\n\n\
              export OPAMVERBOSE=1\n\
              export OPAMYES=1";
   newline oc;
@@ -1695,15 +1969,39 @@ let configure_makefile t =
              main.native.o:\n\
              \t$(BUILD) main.native.o";
   newline oc;
+
+  (* On ARM, we must convert the ELF image to an ARM boot executable zImage,
+   * while on x86 we leave it as it is. *)
+  let generate_image =
+    let need_zImage =
+      match uname_m () with
+      | Some machine -> String.length machine > 2 && String.sub machine 0 3 = "arm"
+      | None -> failwith "uname -m failed; can't determine target machine type!" in
+    if need_zImage then (
+      Printf.sprintf "\t  -o mir-%s.elf\n\
+                      \tobjcopy -O binary mir-%s.elf mir-%s.xen"
+                      t.name t.name t.name
+    ) else (
+      Printf.sprintf "\t  -o mir-%s.xen" t.name
+    ) in
+
   begin match !mode with
     | `Xen ->
+      let extra_c_archives =
+        get_extra_ld_flags ~filter:((<>) "unix") pkgs
+        |> String.concat " \\\n\t  " in
+
       append oc "build: main.native.o";
-      let path = read_command "ocamlfind printconf path" in
-      let lib = strip path ^ "/mirage-xen" in
-      append oc "\tld -d -nostdlib -m elf_x86_64 -T %s/mirage-x86_64.lds %s/x86_64.o \\\n\
-                 \t  _build/main.native.o %s/libocaml.a %s/libxen.a \\\n\
-                 \t  %s/libxencaml.a %s/libdiet.a %s/libm.a %s/longjmp.o -o mir-%s.xen"
-        lib lib lib lib lib lib lib lib t.name;
+      let pkg_config_deps = "openlibm 'libminios-xen >= 0.2'" in
+      append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
+      append oc "\tld -d -static -nostdlib --start-group \\\n\
+                 \t  $$(pkg-config --static --libs %s) \\\n\
+                 \t  _build/main.native.o $(XENLIB)/libocaml.a \\\n\
+                 \t  $(XENLIB)/libxencaml.a --end-group \\\n\
+                 \t  %s \\\n\
+                 \t  $(shell gcc -print-libgcc-file-name) \\\n\
+                 %s"
+        pkg_config_deps extra_c_archives generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
@@ -1723,6 +2021,33 @@ let configure_makefile t =
 
 let clean_makefile t =
   remove (t.root / "Makefile")
+
+let configure_opam t =
+  info "Installing OPAM packages.";
+  match packages t with
+  | [] -> ()
+  | ps ->
+    if command_exists "opam" then opam "install" ps
+    else error "OPAM is not installed."
+
+let clean_opam t =
+  ()
+(* This is a bit too agressive, disabling for now on.
+   let (++) = StringSet.union in
+   let set mode = StringSet.of_list (packages t mode) in
+   let packages =
+    set (`Unix `Socket) ++ set (`Unix `Direct) ++ set `Xen in
+   match StringSet.elements packages with
+   | [] -> ()
+   | ps ->
+    if cmd_exists "opam" then opam "remove" ps
+    else error "OPAM is not installed."
+*)
+
+let manage_opam = ref true
+
+let manage_opam_packages b =
+  manage_opam := b
 
 let configure_job j =
   let name = Impl.name j in
@@ -1763,12 +2088,14 @@ let configure t =
     (if List.length t.jobs = 1 then "" else "s")
     (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
+      if !manage_opam then configure_opam t;
       configure_myocamlbuild_ml t;
       configure_makefile t;
       configure_main_xl t;
+      configure_main_xe t;
+      configure_main_libvirt_xml t;
       configure_main t
-    );
-  info "%s" (blue_s "Now run 'make depend' to install the package dependencies for this unikernel.")
+    )
 
 let make () =
   match uname_s () with
@@ -1790,9 +2117,12 @@ let run t =
 let clean t =
   info "Clean: %s" (blue_s (t.root / "config.ml"));
   in_dir t.root (fun () ->
+      if !manage_opam then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main_xl t;
+      clean_main_xe t;
+      clean_main_libvirt_xml t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
       command "rm -rf log %s/main.native.o %s/main.native %s/mir-%s %s/*~"

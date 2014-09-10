@@ -1770,6 +1770,56 @@ let configure_myocamlbuild_ml t =
 let clean_myocamlbuild_ml t =
   remove (t.root / "myocamlbuild.ml")
 
+let configure_main_libvirt_xml t =
+  let file = t.root / t.name ^ "_libvirt.xml" in
+  let oc = open_out file in
+  append oc "<!-- %s -->" generated_by_mirage;
+  append oc "<domain type='xen'>";
+  append oc "    <name>%s</name>" t.name;
+  append oc "    <memory unit='KiB'>262144</memory>";
+  append oc "    <currentMemory unit='KiB'>262144</currentMemory>";
+  append oc "    <vcpu placement='static'>1</vcpu>";
+  append oc "    <os>";
+  append oc "        <type arch='armv7l' machine='xenpv'>linux</type>";
+  append oc "        <kernel>%s/mir-%s.xen</kernel>" t.root t.name;
+  append oc "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
+  append oc "    </os>";
+  append oc "    <clock offset='utc' adjustment='reset'/>";
+  append oc "    <on_crash>preserve</on_crash>";
+  append oc "    <!-- ";
+  append oc "    You must define network and block interfaces manually.";
+  append oc "    See http://libvirt.org/drvxen.html for information about converting .xl-files to libvirt xml automatically.";
+  append oc "    -->";
+  append oc "    <devices>";
+  append oc "        <!--";
+  append oc "        The disk configuration is defined here:";
+  append oc "        http://libvirt.org/formatstorage.html.";
+  append oc "        An example would look like:";
+  append oc"         <disk type='block' device='disk'>";
+  append oc "            <driver name='phy'/>";
+  append oc "            <source dev='/dev/loop0'/>";
+  append oc "            <target dev='' bus='xen'/>";
+  append oc "        </disk>";
+  append oc "        -->";
+  append oc "        <!-- ";
+  append oc "        The network configuration is defined here:";
+  append oc "        http://libvirt.org/formatnetwork.html";
+  append oc "        An example would look like:";
+  append oc "        <interface type='bridge'>";
+  append oc "            <mac address='c0:ff:ee:c0:ff:ee'/>";
+  append oc "            <source bridge='br0'/>";
+  append oc "        </interface>";
+  append oc "        -->";
+  append oc "        <console type='pty'>";
+  append oc "            <target type='xen' port='0'/>";
+  append oc "        </console>";
+  append oc "    </devices>";
+  append oc "</domain>";
+  close_out oc
+
+let clean_main_libvirt_xml t =
+  remove (t.root / t.name ^ "_libvirt.xml")
+
 let configure_main_xl t =
   let file = t.root / t.name ^ ".xl" in
   let oc = open_out file in
@@ -2044,6 +2094,7 @@ let configure t =
       configure_makefile t;
       configure_main_xl t;
       configure_main_xe t;
+      configure_main_libvirt_xml t;
       configure_main t
     )
 
@@ -2072,6 +2123,7 @@ let clean t =
       clean_makefile t;
       clean_main_xl t;
       clean_main_xe t;
+      clean_main_libvirt_xml t;
       clean_main t;
       command "rm -rf %s/_build" t.root;
       command "rm -rf log %s/main.native.o %s/main.native %s/mir-%s %s/*~"

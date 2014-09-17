@@ -1347,7 +1347,10 @@ let direct_stackv4_with_dhcp
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
-    console network =
+    ?(console=default_console)
+    ?(network=tap0)
+    ()
+  =
   let t = {
     STACKV4_direct.console; network; time; clock; random;
     config = `DHCP } in
@@ -1357,7 +1360,10 @@ let direct_stackv4_with_default_ipv4
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
-    console network =
+    ?(console=default_console)
+    ?(network=tap0)
+    ()
+  =
   let t = {
     STACKV4_direct.console; network; clock; time; random;
     config = `IPV4 default_ipv4_conf;
@@ -1368,14 +1374,17 @@ let direct_stackv4_with_static_ipv4
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
-    console network ipv4 =
+    ?(console=default_console)
+    ?(network=tap0)
+    ipv4
+  =
   let t = {
     STACKV4_direct.console; network; clock; time; random;
     config = `IPV4 ipv4;
   } in
   impl stackv4 t (module STACKV4_direct)
 
-let socket_stackv4 console ipv4s =
+let socket_stackv4 ?(console=default_console) ipv4s =
   impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
 module Channel_over_TCPV4 = struct

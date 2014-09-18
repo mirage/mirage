@@ -63,6 +63,11 @@ module type CHANNEL = CHANNEL
    and type 'a io_stream = 'a Lwt_stream.t
    and type buffer = Cstruct.t
 
+(** Virtual channels *)
+module type VCHAN = VCHAN
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+
 (** KV RO *)
 module type KV_RO = KV_RO
   with type 'a io = 'a Lwt.t

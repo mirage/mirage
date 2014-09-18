@@ -173,6 +173,7 @@ module type FLOW = sig
   (** [close flow] will flush all pending writes and signal the end of the
       flow to the remote endpoint.  When the result [unit io] becomes
       determined, all further calls to [read flow] will result in a [`Eof]. *)
+
 end
 
 module type CONSOLE = sig
@@ -740,6 +741,21 @@ module type CHANNEL = sig
 
   val close        : t -> unit io
   (** [close t] will call {!flush} and then close the underlying flow. *)
+
+end
+
+module type VCHAN = sig
+
+  (** Point-to-point shared memory flows. *)
+
+  type error = [ `Unknown of string]
+
+  include FLOW with type error := error
+
+  val server: domid:int -> port:string -> ?read_size:int -> ?write_size:int ->
+    unit -> flow io
+
+  val client: domid:int -> port:string -> unit -> flow io
 
 end
 

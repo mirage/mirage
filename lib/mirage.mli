@@ -321,28 +321,25 @@ type resolver
 val resolver: resolver typ
 val resolver_dns : stackv4 impl -> resolver impl
 
+(** {Vchan integration} *)
+type vchan
+val vchan: vchan typ
+val vchan_client: domid:int -> port:string -> vchan impl
+val vchan_server: ?read_size:int -> ?write_size:int -> domid:int -> port:string -> vchan impl
+val no_vchan: vchan impl
+
 (** {Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : stackv4 impl -> conduit impl
-
-type conduit_client = [
-  | `TCP of Ipaddr.t * int
-  | `Vchan of string list
-]
-
-type conduit_server = [
-  | `TCP of [ `Port of int ]
-  | `Vchan of string list
-]
+val conduit_of_stackv4: stackv4 impl -> int -> conduit impl
+val conduit_of_vchan: vchan impl -> conduit impl
 
 (** {HTTP configuration} *)
 
 type http
 val http: http typ
-val http_server: conduit_server -> conduit impl -> http impl
-
+val http_server: conduit impl -> http impl
 
 (** {2 Jobs} *)
 

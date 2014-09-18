@@ -1413,56 +1413,137 @@ let channel = Type CHANNEL
 let channel_over_tcpv4 flow =
   impl channel flow (module Channel_over_TCPV4)
 
-module Conduit = struct
+module Vchan = struct
+
+  type server_option = {
+    read_size: int option;
+    write_size: int option;
+  }
+
   type t =
-    [ `Stack of stackv4 impl ]
+    [ `None
+    | `Client of int * string
+    | `Server of int * string * server_option ]
 
-  let name t =
-    let key = "conduit" ^ match t with
-     | `Stack s -> Impl.name s in
-    Name.of_key key ~base:"conduit"
-
-  let module_name_core t =
-    String.capitalize (name t)
+  let name = function
+    | `None  -> Name.of_key "novchan" ~base:"vchan"
+    | `Client (d, p) | `Server (d, p, _) ->
+      let key = Printf.sprintf "vchan_%d_%s" d p in
+      Name.of_key key ~base:"vchan"
 
   let module_name t =
-    module_name_core t 
+    String.capitalize (name t)
+
+  let packages = function
+    | `None -> []
+    | _     -> [ "vchan"; "mirage-xen"; "xen-gnt"; "xen-evtchn" ]
+
+  let libraries = function
+    | `None -> [ "cstruct" ]
+    |  _    -> [ "vchan.xen" ]
+
+  let configure t = match t with
+    | `None ->
+      append_main "let %s = struct" (module_name t);
+      append_main "  type 'a io = 'a Lwt.t";
+      append_main "  type buffer = Cstruct.";
+      append_main "  type flow = ()";
+      append_main "  type error = [`Unknown of string]";
+      append_main "  let not_implemented () = failwith \"Vchan is not vailable\"";
+      append_main "  let read _ = not_implemented ()";
+      append_main "  let write _ _ = not_implemented ()";
+      append_main "  let writev _ _ = not_implemented ()";
+      append_main "  let close _ = not_implemented ()";
+      append_main "  let server ~domid:_ ~port:_ ?read_size:_ ?write_size_ () = \
+                   not_implemented ()";
+      append_main "  let client ~domid:_ ~port:_ () = not_implemented ()";
+      append_main "end";
+      append_main "let %s () = return_unit" (name t);
+      newline_main ()
+    | `Client (d, p) ->
+      append_main "let %s = Vchan_xen" (module_name t);
+      append_main "let %s () = %s.client ~domid:%d ~port:%s () >>= fun t -> return (`Ok t)"
+        (name t) (module_name t) d p;
+      newline_main ()
+    | `Server (d, p, { read_size; write_size }) ->
+      append_main "let %s = Vchan_xen" (module_name t);
+      append_main "let %s () = %s.server ~domid:%d ~port:%s %s%s() >>= fun t -> return (`Ok t)"
+        (name t) (module_name t) d p
+        (match read_size with
+         | None -> ""
+         | Some r -> Printf.sprintf "~read_size:%d " r)
+        (match write_size with
+         | None   -> ""
+         | Some w -> Printf.sprintf "~write_size:%d " w);
+      newline_main ()
+
+  let clean _ = ()
+  let update_path t _ = t
+
+end
+
+type vchan = Vchan
+
+let vchan = Type Vchan
+
+let vchan_client ~domid ~port =
+  impl vchan (`Client (domid, port)) (module Vchan)
+
+let vchan_server ?read_size ?write_size ~domid ~port =
+  let server = `Server (domid, port, { Vchan.read_size; write_size }) in
+  impl vchan server (module Vchan)
+
+let no_vchan = impl vchan `None (module Vchan)
+
+module Conduit = struct
+
+  (* pair betwen (module Conduit) and Conduit.ctx *)
+
+  type t = {
+    stackv4: stackv4 impl;
+    vchan: vchan impl;
+    mode: [`Tcp of [`Port of int] | `Vchan];
+  }
+
+  let name t =
+    let key = "conduit" ^ Impl.name t.stackv4 ^ Impl.name t.vchan in
+    Name.of_key key ~base:"conduit"
+
+  let module_name t =
+    String.capitalize (name t)
 
   let packages t =
     [ "conduit"; "mirage-types" ] @
-    match t with
-    | `Stack s -> Impl.packages s
+    Impl.packages t.stackv4 @
+    Impl.packages t.vchan
 
   let libraries t =
     [ "conduit.mirage" ] @
-    match t with
-    | `Stack s -> Impl.libraries s
+    Impl.libraries t.stackv4 @
+    Impl.libraries t.vchan
 
   let configure t =
-    begin match t with
-      | `Stack s ->
-        Impl.configure s;
-        append_main "module %s = Conduit_mirage.Make(%s)"
-          (module_name_core t) (Impl.module_name s);
-    end;
+    Impl.configure t.stackv4;
+    Impl.configure t.vchan;
+    append_main "module %s = Conduit_mirage.Make(%s)(%s)"
+          (module_name t) (Impl.module_name t.stackv4) (Impl.module_name t.vchan);
     newline_main ();
     append_main "let %s () =" (name t);
-    let subname = match t with
-      | `Stack s -> Impl.name s in
+    let subname = Impl.name t.stackv4 in
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
-    append_main "  %s.init %s >>= fun %s ->"
-      (module_name_core t) subname (name t);
+    append_main "  %s.init %s >>= fun %s ->" (module_name t) subname (name t);
     append_main "  return (`Ok %s)" (name t);
     newline_main ()
 
-  let clean = function
-    | `Stack s -> Impl.clean s
+  let clean t =
+    Impl.clean t.stackv4;
+    Impl.clean t.vchan
 
   let update_path t root =
-    match t with
-    | `Stack s -> `Stack (Impl.update_path s root)
+    { t with stackv4 = Impl.update_path t.stackv4 root;
+             vchan = Impl.update_path t.vchan root; }
 
 end
 
@@ -1470,18 +1551,15 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct stack =
-  impl conduit (`Stack stack) (module Conduit)
+let conduit_of_stackv4 stackv4 port =
+  let vchan = no_vchan in
+  let stack = { Conduit.mode = `Tcp (`Port port); stackv4; vchan } in
+  impl conduit stack (module Conduit)
 
-type conduit_client = [
-  | `TCP of Ipaddr.t * int
-  | `Vchan of string list
-] 
-
-type conduit_server = [
-  | `TCP of [ `Port of int ]
-  | `Vchan of string list
-] 
+let conduit_of_vchan vchan =
+  let stackv4 = direct_stackv4_with_dhcp default_console tap0 in
+  let vchan = { Conduit.mode = `Vchan; stackv4; vchan } in
+  impl conduit vchan (module Conduit)
 
 module Resolver = struct
   type t =
@@ -1492,11 +1570,8 @@ module Resolver = struct
      | `DNS s -> Impl.name s in
     Name.of_key key ~base:"resolver"
 
-  let module_name_core t =
-    String.capitalize (name t)
-
   let module_name t =
-    module_name_core t
+    String.capitalize (name t)
 
   let packages t =
     [ "dns"; "tcpip" ] @
@@ -1513,10 +1588,10 @@ module Resolver = struct
       | `DNS s ->
         Impl.configure s;
         append_main "module %s_dns = Dns_resolver_mirage.Make(OS.Time)(%s)"
-          (module_name_core t) (Impl.module_name s);
+          (module_name t) (Impl.module_name s);
         append_main "module %s_res = Conduit_resolver_mirage.Make(%s_dns)"
-          (module_name_core t) (module_name_core t);
-        append_main "module %s = Conduit_resolver_lwt" (module_name_core t);
+          (module_name t) (module_name t);
+        append_main "module %s = Conduit_resolver_lwt" (module_name t);
     end;
     newline_main ();
     append_main "let %s () =" (name t);
@@ -1545,17 +1620,12 @@ let resolver = Type Resolver
 let resolver_dns stack =
   impl resolver (`DNS stack) (module Resolver)
 
-
 module HTTP = struct
 
-  type t =
-    [ `Channel of channel impl
-    | `Stack of conduit_server * conduit impl ]
+  type t = { conduit: conduit impl }
 
   let name t =
-    let key = "http" ^ match t with
-      | `Channel c    -> Impl.name c
-      | `Stack (_, c) -> Impl.name c in
+    let key = "http" ^ Impl.name t.conduit in
     Name.of_key key ~base:"http"
 
   let module_name_core t =
@@ -1565,48 +1635,33 @@ module HTTP = struct
     module_name_core t ^ ".Server"
 
   let packages t =
-    [ "mirage-http" ] @
-    match t with
-    | `Channel c    -> Impl.packages c
-    | `Stack (_, c) -> Impl.packages c
+    [ "mirage-http" ] @ Impl.packages t.conduit
 
   let libraries t =
-    [ "mirage-http" ] @
-    match t with
-    | `Channel c    -> Impl.libraries c
-    | `Stack (_, c) -> Impl.libraries c
+    [ "mirage-http" ] @ Impl.libraries t.conduit
 
   let configure t =
-    begin match t with
-      | `Channel c ->
-        Impl.configure c;
-        append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
-      | `Stack (_, c) ->
-        Impl.configure c;
-        append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
-    end;
+    Impl.configure t.conduit;
+    append_main "module %s = HTTP.Make(%s)"
+      (module_name_core t) (Impl.module_name t.conduit);
     newline_main ();
-    let subname = match t with
-      | `Channel c   -> Impl.name c
-      | `Stack (_,c) -> Impl.name c in
+    let subname = Impl.name t.conduit in
     append_main "let %s () =" (name t);
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
-    begin match t with
-      | `Channel c   -> failwith "TODO"
-      | `Stack (m,c) ->
-        append_main "  let listen spec =";
-        append_main "    let ctx = %s in" (Impl.name c);
-        append_main "    let mode = %s in"
-          (match m with
-           |`TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
-           |`Vchan l -> failwith "Vchan not supported yet in server"
-          );
-        append_main "    %s.serve ~ctx ~mode (%s.Server.listen spec)" (Impl.module_name c) (module_name_core t);
-        append_main "  in";
-        append_main "  return (`Ok listen)";
-    end;
+    append_main "  let listen spec =";
+    append_main "    let ctx = %s in" (Impl.name t.conduit);
+    append_main "    let mode = %s in"
+      (match t.conduit.Conduit.mode with
+       | `TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
+       | `Vchan l -> Printf.sprintf "`Vchan (%d, %s)"
+                       t.Conduit.vchan.Vchan.domid
+                       t.Conduit.vchan.Vchan.port);
+    append_main "    %s.serve ~ctx ~mode (%s.Server.listen spec)"
+      (Impl.module_name c) (module_name_core t);
+    append_main "  in";
+    append_main "  return (`Ok listen)";
     newline_main ()
 
   let clean = function

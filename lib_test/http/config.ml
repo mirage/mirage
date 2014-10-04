@@ -23,7 +23,14 @@ let stack console =
   | `Direct, false -> direct_stackv4_with_default_ipv4 console tap0
   | `Socket, _     -> socket_stackv4 console [Ipaddr.V4.any]
 
+let server =
+  conduit_direct (stack default_console)
+
+let http_srv =
+  let mode = `TCP (`Port 80) in
+  http_server mode server
+
 let () =
   register "http" [
-    main $ default_console $ fs $ http_server 8080 (stack default_console)
+    main $ default_console $ fs $ http_srv
   ]

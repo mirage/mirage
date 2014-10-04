@@ -12,7 +12,6 @@ echo "yes" | sudo add-apt-repository ppa:$ppa
 sudo apt-get update -qq
 sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
 export OPAMYES=1
-export OPAMVERBOSE=1
 
 # when preparing a set of synchronised updates for a Mirage release:
 # for regular minor updates:
@@ -24,6 +23,7 @@ opam pin mirage .
 opam pin mirage-types .
 opam install mirage mirage-types
 
+export OPAMVERBOSE=1
 # install users of the signatures, to make sure we haven't broken something obvious
 opam install mirage-console-unix mirage-console-xen \
     mirage-clock-unix mirage-clock-xen \

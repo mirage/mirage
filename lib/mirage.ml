@@ -1429,7 +1429,7 @@ module Conduit = struct
     module_name_core t 
 
   let packages t =
-    [ "conduit"; "mirage-types" ] @
+    [ "conduit"; "mirage-types"; "vchan" ] @
     match t with
     | `Stack s -> Impl.packages s
 
@@ -1442,7 +1442,7 @@ module Conduit = struct
     begin match t with
       | `Stack s ->
         Impl.configure s;
-        append_main "module %s = Conduit_mirage.Make(%s)"
+        append_main "module %s = Conduit_mirage.Make(%s)(Vchan.In_memory)"
           (module_name_core t) (Impl.module_name s);
     end;
     newline_main ();

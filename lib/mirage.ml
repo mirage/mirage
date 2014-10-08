@@ -1413,13 +1413,49 @@ let channel = Type CHANNEL
 let channel_over_tcpv4 flow =
   impl channel flow (module Channel_over_TCPV4)
 
+module VCHAN_in_memory = struct
+
+  type t = unit
+
+  let name t =
+    let key = "in_memory" in
+    Name.of_key key ~base:"vchan"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    [ "vchan" ]
+
+  let libraries t =
+    [ "vchan" ]
+
+  let configure t =
+    append_main "module %s = Vchan.In_memory" (module_name t);
+    newline_main ()
+
+  let clean t = ()
+
+  let update_path t root = ()
+
+end
+
+type vchan = STACK4
+
+let vchan = Type STACK4
+
+let vchan_loopback =
+  impl vchan () (module VCHAN_in_memory)
+
+
 module Conduit = struct
   type t =
-    [ `Stack of stackv4 impl ]
+    [ `Stack of stackv4 impl * vchan impl ]
 
   let name t =
     let key = "conduit" ^ match t with
-     | `Stack s -> Impl.name s in
+     | `Stack (s,v) -> 
+          Printf.sprintf "%s_%s" (Impl.name s) (Impl.name v) in
     Name.of_key key ~base:"conduit"
 
   let module_name_core t =
@@ -1431,24 +1467,25 @@ module Conduit = struct
   let packages t =
     [ "conduit"; "mirage-types"; "vchan" ] @
     match t with
-    | `Stack s -> Impl.packages s
+    | `Stack (s,v) -> Impl.packages s @ (Impl.packages v)
 
   let libraries t =
     [ "conduit.mirage" ] @
     match t with
-    | `Stack s -> Impl.libraries s
+    | `Stack (s,v) -> Impl.libraries s @ (Impl.libraries v)
 
   let configure t =
     begin match t with
-      | `Stack s ->
+      | `Stack (s,v) ->
         Impl.configure s;
-        append_main "module %s = Conduit_mirage.Make(%s)(Vchan.In_memory)"
-          (module_name_core t) (Impl.module_name s);
+        Impl.configure v;
+        append_main "module %s = Conduit_mirage.Make(%s)(%s)"
+          (module_name_core t) (Impl.module_name s) (Impl.module_name v);
     end;
     newline_main ();
     append_main "let %s () =" (name t);
     let subname = match t with
-      | `Stack s -> Impl.name s in
+      | `Stack (s,_) -> Impl.name s in
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
@@ -1458,11 +1495,12 @@ module Conduit = struct
     newline_main ()
 
   let clean = function
-    | `Stack s -> Impl.clean s
+    | `Stack (s,v) -> Impl.clean s; Impl.clean v
 
   let update_path t root =
     match t with
-    | `Stack s -> `Stack (Impl.update_path s root)
+    | `Stack (s,v) -> 
+        `Stack ((Impl.update_path s root), (Impl.update_path v root))
 
 end
 
@@ -1470,8 +1508,8 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct stack =
-  impl conduit (`Stack stack) (module Conduit)
+let conduit_direct ?(vchan=vchan_loopback) stack =
+  impl conduit (`Stack (stack,vchan)) (module Conduit)
 
 type conduit_client = [
   | `TCP of Ipaddr.t * int

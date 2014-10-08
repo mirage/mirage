@@ -3,7 +3,7 @@
 * Automatically install dependencies again, but display the live output to the
   user.
 * Include C stub libraries in linker command when generating Makefiles for Xen.
-* Add `Conduit` and `Resolver` code generators.
+* Add `Vchan`, `Conduit` and `Resolver` code generators.
 * Generate a `*.xe` script which can upload a kernel to a XenServer.
 * Generate a libvirt `*.xml` configuration file (#292).
 * Fix determination of `mirage-xen` location for paths with spaces (#279).

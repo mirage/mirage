@@ -321,11 +321,16 @@ type resolver
 val resolver: resolver typ
 val resolver_dns : stackv4 impl -> resolver impl
 
+(** {Vchan configuration} *)
+type vchan
+val vchan: vchan typ
+val vchan_loopback : vchan impl
+
 (** {Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : stackv4 impl -> conduit impl
+val conduit_direct : ?vchan:vchan impl -> stackv4 impl -> conduit impl
 
 type conduit_client = [
   | `TCP of Ipaddr.t * int

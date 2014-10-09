@@ -325,6 +325,7 @@ val resolver_dns : stackv4 impl -> resolver impl
 type vchan
 val vchan: vchan typ
 val vchan_loopback : vchan impl
+val vchan_xen : vchan impl
 
 (** {Conduit configuration} *)
 

@@ -1440,6 +1440,42 @@ module VCHAN_in_memory = struct
 
 end
 
+module VCHAN_xen = struct
+
+  type t = unit
+
+  let name t =
+    let key = "xen" in
+    Name.of_key key ~base:"vchan"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    match !mode with
+    |`Xen -> [ "vchan"; "mirage-xen"; "xen-evtchn"; "xen-gnt" ]
+    |`Unix -> [ "vchan"; "xen-evtchn"; "xen-gnt"]
+
+  let libraries t =
+    match !mode with
+    |`Xen -> [ "vchan.xen" ]
+    |`Unix -> [ "vchan" ]
+
+  let configure t =
+    let m =
+      match !mode with
+      |`Xen -> "Vchan_xen"
+      |`Unix -> "Vchan_lwt_unix.M"
+    in
+    append_main "module %s = %s" (module_name t) m;
+    newline_main ()
+
+  let clean t = ()
+
+  let update_path t root = ()
+
+end
+
 type vchan = STACK4
 
 let vchan = Type STACK4
@@ -1447,6 +1483,8 @@ let vchan = Type STACK4
 let vchan_loopback =
   impl vchan () (module VCHAN_in_memory)
 
+let vchan_xen =
+  impl vchan () (module VCHAN_xen)
 
 module Conduit = struct
   type t =

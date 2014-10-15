@@ -71,6 +71,7 @@ module type KV_RO = KV_RO
 (** Consoles *)
 module type CONSOLE = CONSOLE
   with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
 
 (** Entropy *)
 module type ENTROPY = ENTROPY

@@ -186,15 +186,10 @@ module type CONSOLE = sig
   include DEVICE with
     type error := error
 
-  val write : t -> string -> int -> int -> int
-  (** [write t buf off len] writes up to [len] chars of [String.sub buf
-      off len] to the console [t] and returns the number of bytes
-      written. Raises {!Invalid_argument} if [len > buf - off]. *)
-
-  val write_all : t -> string -> int -> int -> unit io
-  (** [write_all t buf off len] is a thread that writes [String.sub buf
-      off len] to the console [t] and returns when done. Raises
-      {!Invalid_argument} if [len > buf - off]. *)
+  include FLOW with
+      type error  := error
+  and type 'a io  := 'a io
+  and type flow   := t
 
   val log : t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written

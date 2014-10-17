@@ -484,13 +484,15 @@ module Console = struct
   let module_name t =
     "Console"
 
-  let packages _ = [
+  let packages _ =
     match !mode with
-    | `Unix -> "mirage-console-unix"
-    | `Xen  -> "mirage-console-xen"
-  ]
+    | `Unix -> ["mirage-console"]
+    | `Xen  -> ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
 
-  let libraries t = packages t
+  let libraries _ =
+    match !mode with
+    | `Unix -> ["mirage-console.unix"]
+    | `Xen -> ["mirage-console.xen"]
 
   let configure t =
     append_main "let %s () =" (name t);

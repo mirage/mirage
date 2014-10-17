@@ -484,9 +484,14 @@ module Console = struct
   let module_name t =
     "Console"
 
+  let construction () =
+    match !mode with
+    | `Unix -> "Console_unix"
+    | `Xen  -> "Console_xen"
+ 
   let packages _ =
     match !mode with
-    | `Unix -> ["mirage-console"]
+    | `Unix -> ["mirage-console"; "mirage-unix"]
     | `Xen  -> ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
 
   let libraries _ =
@@ -495,6 +500,8 @@ module Console = struct
     | `Xen -> ["mirage-console.xen"]
 
   let configure t =
+    append_main "module %s = %s" (module_name t) (construction ());
+    newline_main ();
     append_main "let %s () =" (name t);
     append_main "  %s.connect %S" (module_name t) t;
     newline_main ()

@@ -1771,6 +1771,11 @@ let reset () =
 let set_config_file f =
   config_file := Some f
 
+let get_config_file () =
+  match !config_file with
+  | None -> Sys.getcwd () / "config.ml"
+  | Some f -> f
+
 let update_path t root =
   { t with jobs = List.map (fun j -> Impl.update_path j root) t.jobs }
 
@@ -2167,7 +2172,7 @@ let clean_main t =
   remove (t.root / "main.ml")
 
 let configure t =
-  info "%s %s" (blue_s "Using configuration:") (t.root / "config.ml");
+  info "%s %s" (blue_s "Using configuration:") (get_config_file ());
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
@@ -2188,19 +2193,19 @@ let make () =
   | _ -> "make"
 
 let build t =
-  info "Build: %s" (blue_s (t.root / "config.ml"));
+  info "Build: %s" (blue_s (get_config_file ()));
   in_dir t.root (fun () ->
       command "%s build" (make ())
     )
 
 let run t =
-  info "Run: %s" (blue_s (t.root / "config.ml"));
+  info "Run: %s" (blue_s (get_config_file ()));
   in_dir t.root (fun () ->
       command "%s run" (make ())
     )
 
 let clean t =
-  info "Clean: %s" (blue_s (t.root / "config.ml"));
+  info "Clean: %s" (blue_s (get_config_file ()));
   in_dir t.root (fun () ->
       if !manage_opam then clean_opam t;
       clean_myocamlbuild_ml t;
@@ -2245,7 +2250,7 @@ let scan_conf = function
       info "%s %s" (blue_s "Using scanned config file:") f;
       realpath f
     | _   -> error "There is more than one config.ml in the current working directory.\n\
-                    Please specify one explicitly on the command-line."
+                    Please specify one explictly on the command-line."
 
 let load file =
   reset ();

@@ -9,6 +9,7 @@
 * Generate a `*.xe` script which can upload a kernel to a XenServer.
 * Generate a libvirt `*.xml` configuration file (#292).
 * Fix determination of `mirage-xen` location for paths with spaces (#279).
+* Fix generation of foreign (non-functor) modules (#293)
 
 1.2.0 (2014-07-05):
 

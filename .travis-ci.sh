@@ -10,7 +10,7 @@ esac
 
 echo "yes" | sudo add-apt-repository ppa:$ppa
 sudo apt-get update -qq
-sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
+sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam libxen-dev
 export OPAMYES=1
 
 # when preparing a set of synchronised updates for a Mirage release:

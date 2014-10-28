@@ -211,7 +211,7 @@ module Impl = struct
       fold fn t []
 
   let rec names: type a. a impl -> string list = function
-    | Foreign _
+    | Foreign _            -> []
     | Impl _ as t          -> [name t]
     | App {f=Foreign f; x} -> names x
     | App {f; x}           -> (names f) @ [name x]

@@ -1422,9 +1422,10 @@ let channel = Type CHANNEL
 let channel_over_tcpv4 flow =
   impl channel flow (module Channel_over_TCPV4)
 
-module VCHAN_in_memory = struct
+module VCHAN_localhost = struct
 
-  type t = unit
+  type uuid = string
+  type t = uuid
 
   let name t =
     let key = "in_memory" in
@@ -1434,24 +1435,27 @@ module VCHAN_in_memory = struct
     String.capitalize (name t)
 
   let packages t =
-    [ "vchan" ]
+    [ "conduit-mirage" ]
 
   let libraries t =
-    [ "vchan" ]
+    [ "conduit.mirage" ]
 
   let configure t =
-    append_main "module %s = Vchan.In_memory" (module_name t);
+    append_main "module %s = Conduit_localhost" (module_name t);
+    newline_main ();
+    append_main "let %s = %s.register %S" (name t) (module_name t) t;
     newline_main ()
 
   let clean t = ()
 
-  let update_path t root = ()
+  let update_path t root = t
 
 end
 
-module VCHAN_xen = struct
+module VCHAN_xenstore = struct
 
-  type t = unit
+  type uuid = string
+  type t = string
 
   let name t =
     let key = "xen" in
@@ -1467,21 +1471,23 @@ module VCHAN_xen = struct
 
   let libraries t =
     match !mode with
-    |`Xen -> [ "vchan.xen" ]
+    |`Xen -> [ "conduit.mirage-xen" ]
     |`Unix -> [ "vchan" ]
 
   let configure t =
     let m =
       match !mode with
-      |`Xen -> "Vchan_xen"
+      |`Xen -> "Conduit_xenstore"
       |`Unix -> "Vchan_lwt_unix.M"
     in
     append_main "module %s = %s" (module_name t) m;
+    newline_main ();
+    append_main "let %s = %s.register %S" (name t) (module_name t) t;
     newline_main ()
 
   let clean t = ()
 
-  let update_path t root = ()
+  let update_path t root = t
 
 end
 
@@ -1489,11 +1495,11 @@ type vchan = STACK4
 
 let vchan = Type STACK4
 
-let vchan_loopback =
-  impl vchan () (module VCHAN_in_memory)
+let vchan_localhost ?(uuid="localhost") () =
+  impl vchan uuid (module VCHAN_localhost)
 
-let vchan_xen =
-  impl vchan () (module VCHAN_xen)
+let vchan_xen ?(uuid="localhost") () =
+  impl vchan uuid (module VCHAN_xenstore)
 
 module Conduit = struct
   type t =
@@ -1531,13 +1537,15 @@ module Conduit = struct
     end;
     newline_main ();
     append_main "let %s () =" (name t);
-    let subname = match t with
-      | `Stack (s,_) -> Impl.name s in
-    append_main "  %s () >>= function" subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
-    append_main "  | `Ok %s ->" subname;
-    append_main "  %s.init %s >>= fun %s ->"
-      (module_name_core t) subname (name t);
+    let (stack_subname, vchan_subname) = match t with
+      | `Stack (s,v) -> Impl.name s, Impl.name v in
+
+    append_main "  %s () >>= function" stack_subname;
+    append_main "  | `Error _  -> %s" (driver_initialisation_error stack_subname);
+    append_main "  | `Ok %s ->" stack_subname;
+    append_main "  %s >>= fun %s ->" vchan_subname vchan_subname;
+    append_main "  %s.init ~peer:%s ~stack:%s () >>= fun %s ->"
+      (module_name_core t) vchan_subname stack_subname (name t);
     append_main "  return (`Ok %s)" (name t);
     newline_main ()
 
@@ -1555,7 +1563,7 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct ?(vchan=vchan_loopback) stack =
+let conduit_direct ?(vchan=vchan_localhost ()) stack =
   impl conduit (`Stack (stack,vchan)) (module Conduit)
 
 type conduit_client = [

@@ -320,6 +320,7 @@ val channel_over_tcpv4: tcpv4 impl -> channel impl
 type resolver
 val resolver: resolver typ
 val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl
+val resolver_unix_system : resolver impl
 
 (** {Vchan configuration} *)
 type vchan

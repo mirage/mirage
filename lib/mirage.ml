@@ -1581,6 +1581,39 @@ type conduit_server = [
   | `Vchan of string list
 ] 
 
+module Resolver_unix = struct
+  type t = unit
+
+  let name t =
+    let key = "resolver_unix" in
+    Name.of_key key ~base:"resolver"
+
+  let module_name_core t =
+    String.capitalize (name t)
+
+  let module_name t =
+      module_name_core t
+
+  let packages t =
+    match !mode with
+    |`Unix -> [ "conduit-mirage" ]
+    |`Xen -> failwith "Resolver_unix not supported on Xen"
+
+  let libraries t =
+    [ "conduit.mirage"; "conduit.lwt-unix" ]
+
+  let configure t =
+    append_main "module %s = Resolver_lwt" (module_name t);
+    append_main "let %s () =" (name t);
+    append_main "  return (`Ok Resolver_lwt_unix.system)";
+    newline_main ()
+
+  let clean t = ()
+
+  let update_path t root = t
+
+end
+
 module Resolver_direct = struct
   type t =
     [ `DNS of stackv4 impl * Ipaddr.V4.t option * int option ]
@@ -1623,7 +1656,6 @@ module Resolver_direct = struct
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
-    append_main "  let res = Resolver_lwt.init () in";
     let res_ns = match t with
      | `DNS (_,None,_) -> "None"
      | `DNS (_,Some ns,_) ->
@@ -1633,7 +1665,7 @@ module Resolver_direct = struct
      | `DNS (_,_,None) -> "None"
      | `DNS (_,_,Some ns_port) -> Printf.sprintf "Some %d" ns_port in
     append_main "  let ns_port = %s in" res_ns_port;
-    append_main "  %s.register ?ns ?ns_port ~stack:%s res;" (module_name_core t) subname;
+    append_main "  let res = %s.init ?ns ?ns_port ~stack:%s () in" (module_name_core t) subname;
     append_main "  return (`Ok res)";
     newline_main ()
 
@@ -1652,6 +1684,9 @@ let resolver = Type Resolver
 
 let resolver_dns ?ns ?ns_port stack =
   impl resolver (`DNS (stack, ns, ns_port)) (module Resolver_direct)
+
+let resolver_unix_system =
+  impl resolver () (module Resolver_unix)
 
 module HTTP = struct
 

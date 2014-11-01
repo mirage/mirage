@@ -17,6 +17,7 @@ export OPAMYES=1
 # for regular minor updates:
 opam init >/dev/null 2>&1
 opam remote add mirage-dev git://github.com/mirage/mirage-dev
+opam pin add conduit git://github.com/avsm/ocaml-conduit
 opam install cstruct ounit cmdliner ipaddr re lwt io-page xenstore xenstore_transport
 eval `opam config env`
 opam pin mirage .

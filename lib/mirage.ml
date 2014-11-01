@@ -1581,58 +1581,68 @@ type conduit_server = [
   | `Vchan of string list
 ] 
 
-module Resolver = struct
+module Resolver_direct = struct
   type t =
-    [ `DNS of stackv4 impl ]
+    [ `DNS of stackv4 impl * Ipaddr.V4.t option * int option ]
 
   let name t =
     let key = "resolver" ^ match t with
-     | `DNS s -> Impl.name s in
+     | `DNS (s,_,_) -> Impl.name s in
     Name.of_key key ~base:"resolver"
 
   let module_name_core t =
     String.capitalize (name t)
 
   let module_name t =
-    module_name_core t
+    (module_name_core t) ^ "_res"
 
   let packages t =
     [ "dns"; "tcpip" ] @
     match t with
-    | `DNS s -> Impl.packages s
+    | `DNS (s,_,_) -> Impl.packages s
 
   let libraries t =
     [ "dns.mirage" ] @
     match t with
-    | `DNS s -> Impl.libraries s
+    | `DNS (s,_,_) -> Impl.libraries s
 
   let configure t =
     begin match t with
-      | `DNS s ->
+      | `DNS (s,_,_) ->
         Impl.configure s;
+        append_main "module %s = Resolver_lwt" (module_name t);
         append_main "module %s_dns = Dns_resolver_mirage.Make(OS.Time)(%s)"
           (module_name_core t) (Impl.module_name s);
-        append_main "module %s_res = Conduit_resolver_mirage.Make(%s_dns)"
+        append_main "module %s = Resolver_mirage.Make(%s_dns)"
           (module_name_core t) (module_name_core t);
-        append_main "module %s = Conduit_resolver_lwt" (module_name_core t);
     end;
     newline_main ();
     append_main "let %s () =" (name t);
     let subname = match t with
-      | `DNS s -> Impl.name s in
+      | `DNS (s,_,_) -> Impl.name s in
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
-    append_main "  let res = %s_res.system %s in" (module_name t) subname;
+    append_main "  let res = Resolver_lwt.init () in";
+    let res_ns = match t with
+     | `DNS (_,None,_) -> "None"
+     | `DNS (_,Some ns,_) ->
+         Printf.sprintf "Ipaddr.V4.of_string %S" (Ipaddr.V4.to_string ns) in
+    append_main "  let ns = %s in" res_ns;
+    let res_ns_port = match t with
+     | `DNS (_,_,None) -> "None"
+     | `DNS (_,_,Some ns_port) -> Printf.sprintf "Some %d" ns_port in
+    append_main "  let ns_port = %s in" res_ns_port;
+    append_main "  %s.register ?ns ?ns_port ~stack:%s res;" (module_name_core t) subname;
     append_main "  return (`Ok res)";
     newline_main ()
 
   let clean = function
-    | `DNS s -> Impl.clean s
+    | `DNS (s,_,_) -> Impl.clean s
 
   let update_path t root =
     match t with
-    | `DNS s -> `DNS (Impl.update_path s root)
+    | `DNS (s,a,b) -> `DNS (Impl.update_path s root, a, b)
 
 end
 
@@ -1640,9 +1650,8 @@ type resolver = Resolver
 
 let resolver = Type Resolver
 
-let resolver_dns stack =
-  impl resolver (`DNS stack) (module Resolver)
-
+let resolver_dns ?ns ?ns_port stack =
+  impl resolver (`DNS (stack, ns, ns_port)) (module Resolver_direct)
 
 module HTTP = struct
 

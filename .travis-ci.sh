@@ -20,8 +20,8 @@ opam remote add mirage-dev git://github.com/mirage/mirage-dev
 opam pin add conduit git://github.com/avsm/ocaml-conduit
 opam install cstruct ounit cmdliner ipaddr re lwt io-page xenstore xenstore_transport
 eval `opam config env`
-opam pin mirage .
-opam pin mirage-types .
+opam pin add mirage .
+opam pin add mirage-types .
 opam install mirage mirage-types
 
 export OPAMVERBOSE=1

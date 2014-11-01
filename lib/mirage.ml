@@ -1501,6 +1501,11 @@ let vchan_localhost ?(uuid="localhost") () =
 let vchan_xen ?(uuid="localhost") () =
   impl vchan uuid (module VCHAN_xenstore)
 
+let vchan_default ?uuid () =
+  match !mode with
+  | `Xen -> vchan_xen ?uuid ()
+  | `Unix -> vchan_localhost ?uuid ()
+
 module Conduit = struct
   type t =
     [ `Stack of stackv4 impl * vchan impl ]

@@ -326,6 +326,7 @@ type vchan
 val vchan: vchan typ
 val vchan_localhost : ?uuid:string -> unit -> vchan impl
 val vchan_xen : ?uuid:string -> unit -> vchan impl
+val vchan_default : ?uuid:string -> unit -> vchan impl
 
 (** {Conduit configuration} *)
 

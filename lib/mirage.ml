@@ -1422,9 +1422,10 @@ let channel = Type CHANNEL
 let channel_over_tcpv4 flow =
   impl channel flow (module Channel_over_TCPV4)
 
-module VCHAN_in_memory = struct
+module VCHAN_localhost = struct
 
-  type t = unit
+  type uuid = string
+  type t = uuid
 
   let name t =
     let key = "in_memory" in
@@ -1434,24 +1435,27 @@ module VCHAN_in_memory = struct
     String.capitalize (name t)
 
   let packages t =
-    [ "vchan" ]
+    [ "conduit-mirage" ]
 
   let libraries t =
-    [ "vchan" ]
+    [ "conduit.mirage" ]
 
   let configure t =
-    append_main "module %s = Vchan.In_memory" (module_name t);
+    append_main "module %s = Conduit_localhost" (module_name t);
+    newline_main ();
+    append_main "let %s = %s.register %S" (name t) (module_name t) t;
     newline_main ()
 
   let clean t = ()
 
-  let update_path t root = ()
+  let update_path t root = t
 
 end
 
-module VCHAN_xen = struct
+module VCHAN_xenstore = struct
 
-  type t = unit
+  type uuid = string
+  type t = string
 
   let name t =
     let key = "xen" in
@@ -1467,21 +1471,23 @@ module VCHAN_xen = struct
 
   let libraries t =
     match !mode with
-    |`Xen -> [ "vchan.xen" ]
+    |`Xen -> [ "conduit.mirage-xen" ]
     |`Unix -> [ "vchan" ]
 
   let configure t =
     let m =
       match !mode with
-      |`Xen -> "Vchan_xen"
+      |`Xen -> "Conduit_xenstore"
       |`Unix -> "Vchan_lwt_unix.M"
     in
     append_main "module %s = %s" (module_name t) m;
+    newline_main ();
+    append_main "let %s = %s.register %S" (name t) (module_name t) t;
     newline_main ()
 
   let clean t = ()
 
-  let update_path t root = ()
+  let update_path t root = t
 
 end
 
@@ -1489,11 +1495,16 @@ type vchan = STACK4
 
 let vchan = Type STACK4
 
-let vchan_loopback =
-  impl vchan () (module VCHAN_in_memory)
+let vchan_localhost ?(uuid="localhost") () =
+  impl vchan uuid (module VCHAN_localhost)
 
-let vchan_xen =
-  impl vchan () (module VCHAN_xen)
+let vchan_xen ?(uuid="localhost") () =
+  impl vchan uuid (module VCHAN_xenstore)
+
+let vchan_default ?uuid () =
+  match !mode with
+  | `Xen -> vchan_xen ?uuid ()
+  | `Unix -> vchan_localhost ?uuid ()
 
 module Conduit = struct
   type t =
@@ -1531,13 +1542,15 @@ module Conduit = struct
     end;
     newline_main ();
     append_main "let %s () =" (name t);
-    let subname = match t with
-      | `Stack (s,_) -> Impl.name s in
-    append_main "  %s () >>= function" subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
-    append_main "  | `Ok %s ->" subname;
-    append_main "  %s.init %s >>= fun %s ->"
-      (module_name_core t) subname (name t);
+    let (stack_subname, vchan_subname) = match t with
+      | `Stack (s,v) -> Impl.name s, Impl.name v in
+
+    append_main "  %s () >>= function" stack_subname;
+    append_main "  | `Error _  -> %s" (driver_initialisation_error stack_subname);
+    append_main "  | `Ok %s ->" stack_subname;
+    append_main "  %s >>= fun %s ->" vchan_subname vchan_subname;
+    append_main "  %s.init ~peer:%s ~stack:%s () >>= fun %s ->"
+      (module_name_core t) vchan_subname stack_subname (name t);
     append_main "  return (`Ok %s)" (name t);
     newline_main ()
 
@@ -1555,7 +1568,7 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct ?(vchan=vchan_loopback) stack =
+let conduit_direct ?(vchan=vchan_localhost ()) stack =
   impl conduit (`Stack (stack,vchan)) (module Conduit)
 
 type conduit_client = [
@@ -1568,58 +1581,100 @@ type conduit_server = [
   | `Vchan of string list
 ] 
 
-module Resolver = struct
-  type t =
-    [ `DNS of stackv4 impl ]
+module Resolver_unix = struct
+  type t = unit
 
   let name t =
-    let key = "resolver" ^ match t with
-     | `DNS s -> Impl.name s in
+    let key = "resolver_unix" in
     Name.of_key key ~base:"resolver"
 
   let module_name_core t =
     String.capitalize (name t)
 
   let module_name t =
-    module_name_core t
+      module_name_core t
+
+  let packages t =
+    match !mode with
+    |`Unix -> [ "conduit-mirage" ]
+    |`Xen -> failwith "Resolver_unix not supported on Xen"
+
+  let libraries t =
+    [ "conduit.mirage"; "conduit.lwt-unix" ]
+
+  let configure t =
+    append_main "module %s = Resolver_lwt" (module_name t);
+    append_main "let %s () =" (name t);
+    append_main "  return (`Ok Resolver_lwt_unix.system)";
+    newline_main ()
+
+  let clean t = ()
+
+  let update_path t root = t
+
+end
+
+module Resolver_direct = struct
+  type t =
+    [ `DNS of stackv4 impl * Ipaddr.V4.t option * int option ]
+
+  let name t =
+    let key = "resolver" ^ match t with
+     | `DNS (s,_,_) -> Impl.name s in
+    Name.of_key key ~base:"resolver"
+
+  let module_name_core t =
+    String.capitalize (name t)
+
+  let module_name t =
+    (module_name_core t) ^ "_res"
 
   let packages t =
     [ "dns"; "tcpip" ] @
     match t with
-    | `DNS s -> Impl.packages s
+    | `DNS (s,_,_) -> Impl.packages s
 
   let libraries t =
     [ "dns.mirage" ] @
     match t with
-    | `DNS s -> Impl.libraries s
+    | `DNS (s,_,_) -> Impl.libraries s
 
   let configure t =
     begin match t with
-      | `DNS s ->
+      | `DNS (s,_,_) ->
         Impl.configure s;
+        append_main "module %s = Resolver_lwt" (module_name t);
         append_main "module %s_dns = Dns_resolver_mirage.Make(OS.Time)(%s)"
           (module_name_core t) (Impl.module_name s);
-        append_main "module %s_res = Conduit_resolver_mirage.Make(%s_dns)"
+        append_main "module %s = Resolver_mirage.Make(%s_dns)"
           (module_name_core t) (module_name_core t);
-        append_main "module %s = Conduit_resolver_lwt" (module_name_core t);
     end;
     newline_main ();
     append_main "let %s () =" (name t);
     let subname = match t with
-      | `DNS s -> Impl.name s in
+      | `DNS (s,_,_) -> Impl.name s in
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
-    append_main "  let res = %s_res.system %s in" (module_name t) subname;
+    let res_ns = match t with
+     | `DNS (_,None,_) -> "None"
+     | `DNS (_,Some ns,_) ->
+         Printf.sprintf "Ipaddr.V4.of_string %S" (Ipaddr.V4.to_string ns) in
+    append_main "  let ns = %s in" res_ns;
+    let res_ns_port = match t with
+     | `DNS (_,_,None) -> "None"
+     | `DNS (_,_,Some ns_port) -> Printf.sprintf "Some %d" ns_port in
+    append_main "  let ns_port = %s in" res_ns_port;
+    append_main "  let res = %s.init ?ns ?ns_port ~stack:%s () in" (module_name_core t) subname;
     append_main "  return (`Ok res)";
     newline_main ()
 
   let clean = function
-    | `DNS s -> Impl.clean s
+    | `DNS (s,_,_) -> Impl.clean s
 
   let update_path t root =
     match t with
-    | `DNS s -> `DNS (Impl.update_path s root)
+    | `DNS (s,a,b) -> `DNS (Impl.update_path s root, a, b)
 
 end
 
@@ -1627,9 +1682,11 @@ type resolver = Resolver
 
 let resolver = Type Resolver
 
-let resolver_dns stack =
-  impl resolver (`DNS stack) (module Resolver)
+let resolver_dns ?ns ?ns_port stack =
+  impl resolver (`DNS (stack, ns, ns_port)) (module Resolver_direct)
 
+let resolver_unix_system =
+  impl resolver () (module Resolver_unix)
 
 module HTTP = struct
 

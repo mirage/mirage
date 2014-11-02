@@ -319,13 +319,15 @@ val channel_over_tcpv4: tcpv4 impl -> channel impl
 
 type resolver
 val resolver: resolver typ
-val resolver_dns : stackv4 impl -> resolver impl
+val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl
+val resolver_unix_system : resolver impl
 
 (** {Vchan configuration} *)
 type vchan
 val vchan: vchan typ
-val vchan_loopback : vchan impl
-val vchan_xen : vchan impl
+val vchan_localhost : ?uuid:string -> unit -> vchan impl
+val vchan_xen : ?uuid:string -> unit -> vchan impl
+val vchan_default : ?uuid:string -> unit -> vchan impl
 
 (** {Conduit configuration} *)
 

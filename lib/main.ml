@@ -99,10 +99,10 @@ let run =
     `Ok (Mirage.run t) in
   Term.(ret (pure run $ file)), term_info "run" ~doc ~man
 
-(* RUN *)
+(* CLEAN *)
 let clean_doc = "Clean the files produced by Mirage for a given application."
 let clean =
-  let doc = run_doc in
+  let doc = clean_doc in
   let man = [
     `S "DESCRIPTION";
     `P clean_doc;

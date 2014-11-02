@@ -1435,7 +1435,7 @@ module VCHAN_localhost = struct
     String.capitalize (name t)
 
   let packages t =
-    [ "conduit-mirage" ]
+    [ "mirage-conduit" ]
 
   let libraries t =
     [ "conduit.mirage" ]
@@ -1596,7 +1596,7 @@ module Resolver_unix = struct
 
   let packages t =
     match !mode with
-    |`Unix -> [ "conduit-mirage" ]
+    |`Unix -> [ "mirage-conduit" ]
     |`Xen -> failwith "Resolver_unix not supported on Xen"
 
   let libraries t =

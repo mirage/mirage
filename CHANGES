@@ -1,4 +1,4 @@
-2.0.0 (trunk):
+2.0.0 (2014-11-05):
 * [types]: backwards incompatible change: CONSOLE is now a FLOW;
   'write' has a different signature and 'write_all' has been removed.
 * Set on_crash = 'preserve' in default Xen config.

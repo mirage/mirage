@@ -37,25 +37,31 @@ module type ETHIF = ETHIF
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
    and type macaddr = Macaddr.t
-   and type ipv4addr = Ipaddr.V4.t
 
 (** IPv4 stack *)
 module type IPV4 = IPV4
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
-   and type ipv4addr = Ipaddr.V4.t
+   and type macaddr = Macaddr.t
+   and type ipaddr = Ipaddr.V4.t
+
+(** IPv6 stack *)
+module type IPV6 = IPV6
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+   and type ipaddr = Ipaddr.V6.t
 
 (** UDPv4 stack *)
-module type UDPV4 = UDPV4
+module type UDP = UDP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
-   and type ipv4addr = Ipaddr.V4.t
+   and type ipaddr = Ipaddr.V4.t
 
 (** TCPv4 stack *)
-module type TCPV4 = TCPV4
+module type TCP = TCP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
-   and type ipv4addr = Ipaddr.V4.t
+   and type ipaddr = Ipaddr.V4.t
 
 (** Buffered TCPv4 channel *)
 module type CHANNEL = CHANNEL
@@ -87,14 +93,14 @@ module type FS = FS
   with type 'a io = 'a Lwt.t
 
 type socket_stack_config =
-  Ipaddr.V4.t list
+  Ipaddr.V4.t list * Ipaddr.V6.t list
 
 type direct_stack_config = [
     `DHCP
-  | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
+  | `IP of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
 ]
 
-type ('console, 'netif, 'mode) stackv4_config = {
+type ('console, 'netif, 'mode) stack_config = {
   name: string;
   console: 'console;
   interface: 'netif;
@@ -102,8 +108,9 @@ type ('console, 'netif, 'mode) stackv4_config = {
 }
 
 (** Single network stack *)
-module type STACKV4 = STACKV4
+module type STACK = STACK
   with type 'a io = 'a Lwt.t
-   and type ('a,'b,'c) config = ('a,'b,'c) stackv4_config
+   and type ('a,'b,'c) config = ('a,'b,'c) stack_config
    and type ipv4addr = Ipaddr.V4.t
+   and type ipv6addr = Ipaddr.V6.t
    and type buffer = Cstruct.t

@@ -1,2 +1,5 @@
-#!/bin/sh
-opam config exec $*
+#!/bin/bash
+set -e
+
+opam config exec -- "$@"
+

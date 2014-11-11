@@ -38,6 +38,11 @@ module type ETHIF = ETHIF
    and type buffer = Cstruct.t
    and type macaddr = Macaddr.t
 
+(** IP stack *)
+module type IP = IP
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+
 (** IPv4 stack *)
 module type IPV4 = IPV4
   with type 'a io = 'a Lwt.t

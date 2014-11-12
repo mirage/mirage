@@ -354,8 +354,9 @@ module type ETHIF = sig
   val mac : t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
 
-  val input : ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
-  (** [listen nf fn] is a blocking operation that calls [fn buf] with
+  val input :
+    arpv4:(buffer -> unit io) -> ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
+  (** FIXME [listen nf fn] is a blocking operation that calls [fn buf] with
       every packet that is read from the interface.  It returns as soon
       as it has initialised, and the function can be stopped by calling
       [disconnect] in the device layer. *)
@@ -420,10 +421,6 @@ module type IPV4 = sig
 
   type macaddr
   (** Unique MAC identifier for the device *)
-
-  val query_arpv4 : t -> ipaddr -> macaddr io
-  (** Query the association from an IPV4 address to a MAC address.
-      TODO: clarify if this task is guaranteed to be cancelable or not. *)
 
   val set_ipv4: t -> ipaddr -> unit io
   (** Set the IPv4 address associated with this interface.  Currently

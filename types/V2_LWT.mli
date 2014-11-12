@@ -47,7 +47,6 @@ module type IP = IP
 module type IPV4 = IPV4
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
-   and type macaddr = Macaddr.t
    and type ipaddr = Ipaddr.V4.t
 
 (** IPv6 stack *)
@@ -56,13 +55,13 @@ module type IPV6 = IPV6
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V6.t
 
-(** UDPv4 stack *)
+(** UDP stack *)
 module type UDP = UDP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V4.t
 
-(** TCPv4 stack *)
+(** TCP stack *)
 module type TCP = TCP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t

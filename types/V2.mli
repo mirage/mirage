@@ -425,7 +425,7 @@ module type IPV4 = sig
   (** Query the association from an IPV4 address to a MAC address.
       TODO: clarify if this task is guaranteed to be cancelable or not. *)
 
-  val add_ip: t -> ipaddr -> unit io
+  val set_ipv4: t -> ipaddr -> unit io
   (** Set the IPv4 address associated with this interface.  Currently
       only supports a single IPv4 address, and aliases will be added in
       a future revision. *)

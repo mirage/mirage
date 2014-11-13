@@ -395,19 +395,18 @@ module type IP = sig
       onto either the [tcp] or [udp] function, or the [default] function for
       unknown IP protocols. *)
 
-  val write: t -> dst:ipaddr -> (buffer -> buffer) -> unit io
-  (** [writev t data] performs address resolution and outputs the packet
-      [data].  Here [data] is a function that will receive the header of the
-      outgoing packet as argument and should return the complete packet. *)
-
-  val writev: t -> dst:ipaddr -> (buffer -> buffer list) -> unit io
+  val writev: t -> dst:ipaddr -> proto:[< `ICMP | `TCP | `UDP] -> (buffer -> int -> buffer list) -> unit io
   (** [writev t datav] performs address resolution and outputs the packet
       [datav].  Here [datav] is a function that will receive the header of the
       outgoing packet as argument and should return an ethernet frame consisting
       of a list of buffers (containing the header as its first element). *)
 
-  val checksum : src:buffer -> dst:buffer -> proto:int -> buffer list -> int
+  val checksum : proto:[< `ICMP | `TCP | `UDP ] -> buffer -> buffer list -> int
   (** Computes IP checksum *)
+
+  val get_source : t -> dst:ipaddr -> ipaddr
+  (** [get_source ip ~dst] is the source address to be used to send a packet to
+      [dst]. *)
 end
 
 module type IPV4 = sig
@@ -416,6 +415,8 @@ module type IPV4 = sig
 
   type macaddr
   (** Unique MAC identifier for the device *)
+
+  val input_arpv4 : t -> buffer -> unit io
 
   val set_ipv4: t -> ipaddr -> unit io
   (** Set the IPv4 address associated with this interface.  Currently
@@ -565,7 +566,7 @@ module type TCP = sig
 end
 
 module type STACK = sig
-  (** A complete TCP/IPv4 stack that can be used by applications to receive
+  (** A complete TCP/IP stack that can be used by applications to receive
       and transmit network traffic. *)
 
   type console

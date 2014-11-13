@@ -450,6 +450,8 @@ module type IPV6 = sig
   (** An IPv6 stack that parses Ethernet frames into IPv6 packets *)
   include IP
 
+  val add_ipv6 : t -> ipaddr -> unit io
+
   val get_ipv6 : t -> ipaddr list
 end
 

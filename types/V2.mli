@@ -186,15 +186,10 @@ module type CONSOLE = sig
   include DEVICE with
     type error := error
 
-  val write : t -> string -> int -> int -> int
-  (** [write t buf off len] writes up to [len] chars of [String.sub buf
-      off len] to the console [t] and returns the number of bytes
-      written. Raises {!Invalid_argument} if [len > buf - off]. *)
-
-  val write_all : t -> string -> int -> int -> unit io
-  (** [write_all t buf off len] is a thread that writes [String.sub buf
-      off len] to the console [t] and returns when done. Raises
-      {!Invalid_argument} if [len > buf - off]. *)
+  include FLOW with
+      type error  := error
+  and type 'a io  := 'a io
+  and type flow   := t
 
   val log : t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written
@@ -531,26 +526,18 @@ module type TCP = sig
       type error := error
   and type id := ip
 
+  include FLOW with
+      type error  := error
+  and type 'a io  := 'a io
+  and type buffer := buffer
+  and type flow   := flow
+
   type callback = flow -> unit io
   (** Application callback that receives a [flow] that it can read/write to. *)
 
   val get_dest : flow -> ipaddr * int
   (** Get the destination IPv4 address and destination port that a flow is
       currently connected to. *)
-
-  val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
-  (** [read flow] will block until it either successfully reads a segment
-      of data from the current flow, receives an [Eof] signifying that
-      the connection is now closed, or an [Error]. *)
-
-  val write : flow -> buffer -> unit io
-  (** [write flow buffer] will block until the contents of [buffer] are
-      transmitted to the remote endpoint.  The contents may be transmitted
-      in separate packets, depending on the underlying transport. *)
-
-  val writev : flow -> buffer list -> unit io
-  (** [writev flow buffers] will block until the contents of [buffer list]
-      are all successfully transmitted to the remote endpoint. *)
 
   val write_nodelay : flow -> buffer -> unit io
   (** [write_nodelay flow] will block until the contents of [buffer list]
@@ -565,10 +552,6 @@ module type TCP = sig
       within the stack is minimized in this mode.  Note that this API will
       change in a future revision to be a per-flow attribute instead of a
       separately exposed function. *)
-
-  val close : flow -> unit io
-  (** [close flow] will signal to the remote endpoint that the flow is now
-      shutdown.  The caller should not perform any writes after this call. *)
 
   val create_connection : t -> ipaddr * int ->
     [ `Ok of flow | `Error of error ] io

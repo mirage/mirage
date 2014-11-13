@@ -1811,10 +1811,54 @@ module Job = struct
 
 end
 
+module Tracing = struct
+  type t = {
+    size : int;
+  }
+
+  let unix_trace_file = "trace.ctf"
+
+  let packages _ = StringSet.singleton "mirage-profile"
+
+  let libraries _ =
+    match !mode with
+    | `Unix -> StringSet.singleton "mirage-profile.unix"
+    | `Xen  -> StringSet.singleton "mirage-profile.xen"
+
+  let configure t =
+    if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" <> 0 then (
+      flush stdout;
+      error "lwt.tracing module not found. Hint:\n\
+             opam pin add lwt https://github.com/mirage/lwt.git#tracing"
+    );
+
+    append_main "let () = ";
+    begin match !mode with
+    | `Unix ->
+        append_main "  let buffer = MProf_unix.mmap_buffer ~size:%d %S in" t.size unix_trace_file;
+        append_main "  let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in";
+        append_main "  MProf.Trace.Control.start trace_config";
+    | `Xen  ->
+        append_main "  let trace_pages = MProf_xen.make_shared_buffer ~size:%d in" t.size;
+        append_main "  let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in";
+        append_main "  let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in";
+        append_main "  MProf.Trace.Control.start trace_config;";
+        append_main "  MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages";
+        append_main "  |> OS.Main.run";
+    end;
+    newline_main ()
+end
+
+type tracing = Tracing.t
+
+let mprof_trace ~size () =
+  { Tracing.size }
+
 type t = {
   name: string;
   root: string;
   jobs: job impl list;
+  tracing: tracing option;
 }
 
 let t = ref None
@@ -1836,15 +1880,15 @@ let get_config_file () =
 let update_path t root =
   { t with jobs = List.map (fun j -> Impl.update_path j root) t.jobs }
 
-let register name jobs =
+let register ?tracing name jobs =
   let root = match !config_file with
     | None   -> failwith "no config file"
     | Some f -> Filename.dirname f in
-  t := Some { name; jobs; root }
+  t := Some { name; jobs; root; tracing }
 
 let registered () =
   match !t with
-  | None   -> { name = "empty"; jobs = []; root = Sys.getcwd () }
+  | None   -> { name = "empty"; jobs = []; root = Sys.getcwd (); tracing = None }
   | Some t -> t
 
 let ps = ref StringSet.empty
@@ -1856,10 +1900,14 @@ let packages t =
   let m = match !mode with
     | `Unix -> "mirage-unix"
     | `Xen  -> "mirage-xen" in
+  let ps = StringSet.add m !ps in
+  let ps = match t.tracing with
+    | None -> ps
+    | Some tracing -> StringSet.union (Tracing.packages tracing) ps in
   let ps = List.fold_left (fun set j ->
       let ps = StringSet.of_list (Impl.packages j) in
       StringSet.union ps set
-    ) (StringSet.add m !ps) t.jobs in
+    ) ps t.jobs in
   StringSet.elements ps
 
 let ls = ref StringSet.empty
@@ -1871,10 +1919,14 @@ let libraries t =
   let m = match !mode with
     | `Unix -> "mirage-types.lwt"
     | `Xen  -> "mirage-types.lwt" in
+  let ls = StringSet.add m !ls in
+  let ls = match t.tracing with
+    | None -> ls
+    | Some tracing -> StringSet.union (Tracing.libraries tracing) ls in
   let ls = List.fold_left (fun set j ->
       let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set
-    ) (StringSet.add m !ls) t.jobs in
+    ) ls t.jobs in
   StringSet.elements ls
 
 let configure_myocamlbuild_ml t =
@@ -2218,6 +2270,9 @@ let configure_main t =
   newline_main ();
   append_main "let _ = Printexc.record_backtrace true";
   newline_main ();
+  begin match t.tracing with
+  | None -> ()
+  | Some tracing -> Tracing.configure tracing end;
   List.iter (fun j -> Impl.configure j) t.jobs;
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in

@@ -388,21 +388,32 @@ module type IP = sig
       payload. *)
 
   val input:
+    t ->
     tcp:callback -> udp:callback -> default:(proto:int -> callback) ->
-    t -> buffer -> unit io
+    buffer -> unit io
   (** [input ~tcp ~udp ~default ip buf] demultiplexes an incoming [buffer] that
       contains an IP frame.  It examines the protocol header and passes the result
       onto either the [tcp] or [udp] function, or the [default] function for
       unknown IP protocols. *)
 
-  val writev: t -> dst:ipaddr -> proto:[< `ICMP | `TCP | `UDP] -> (buffer -> int -> buffer list) -> unit io
-  (** [writev t datav] performs address resolution and outputs the packet
-      [datav].  Here [datav] is a function that will receive the header of the
-      outgoing packet as argument and should return an ethernet frame consisting
-      of a list of buffers (containing the header as its first element). *)
+  val allocate_frame: t -> dst:ipaddr -> proto:[`ICMP | `TCP | `UDP] -> buffer * int
+  (** [allocate_frame t ~dst ~proto] retrurns a pair [(pkt, len)] such that
+      [Cstruct.sub pkt 0 len] is the IP header (including the link layer part) of a
+      packet going to [dst] for protocol [proto].  The space in [pkt] after the
+      first [len] bytes can be used by the client. *)
 
-  val checksum : proto:[< `ICMP | `TCP | `UDP ] -> buffer -> buffer list -> int
-  (** Computes IP checksum *)
+  val write: t -> buffer -> buffer -> unit io
+  (** [write t frame buf] writes the packet [frame :: buf :: []] to the
+      address [dst]. *)
+
+  val writev: t -> buffer -> buffer list -> unit io
+  (** [writev t frame bufs] writes the packet [frame :: bufs]. *)
+
+  val checksum : buffer -> buffer list -> int
+  (** [checksum frame bufs] computes the IP checksum of [bufs] computing the
+      pseudo-header from the actual header [frame].  It assumes that frame is of
+      the form returned by [allocate_frame], i.e., that it contains the link-layer
+      part. *)
 
   val get_source : t -> dst:ipaddr -> ipaddr
   (** [get_source ip ~dst] is the source address to be used to send a packet to

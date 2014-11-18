@@ -352,6 +352,16 @@ val http: http typ
 val http_server: conduit_server -> conduit impl -> http impl
 
 
+(** {2 Tracing} *)
+
+type tracing
+
+val mprof_trace : size:int -> unit -> tracing
+(** Use mirage-profile to trace the unikernel.
+   On Unix, this creates and mmaps a file called "trace.ctf".
+   On Xen, it shares the trace buffer with dom0. *)
+
+
 (** {2 Jobs} *)
 
 type job
@@ -360,14 +370,16 @@ type job
 val job: job typ
 (** Reprensention of [JOB]. *)
 
-val register: string -> job impl list -> unit
+val register: ?tracing:tracing -> string -> job impl list -> unit
 (** [register name jobs] registers the application named by [name]
-    which will executes the given [jobs]. *)
+    which will executes the given [jobs].
+    @param tracing enables tracing if present (see {!mprof_trace}). *)
 
 type t = {
   name: string;
   root: string;
   jobs: job impl list;
+  tracing: tracing option;
 }
 (** Type for values representing a project description. *)
 

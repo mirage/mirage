@@ -418,6 +418,14 @@ module type IP = sig
   val get_source : t -> dst:ipaddr -> ipaddr
   (** [get_source ip ~dst] is the source address to be used to send a packet to
       [dst]. *)
+
+  val set_ip_gateways: t -> ipaddr list -> unit io
+  (** Set the IP gateways associated with this interface. *)
+
+  val get_ip_gateways: t -> ipaddr list
+  (** Get the IP gateways associated with this interface.  If none has
+      been previously bound via {!set_ip_gateways}, it defaults to
+      an empty list. *)
 end
 
 module type IPV4 = sig
@@ -447,14 +455,6 @@ module type IPV4 = sig
   (** Get the IPv4 netmask associated with this interface.  If none has
       been previously bound via {!set_ipv4_netmask}, it defaults to
       {!Ipaddr.V4.any}. *)
-
-  val set_ipv4_gateways: t -> ipaddr list -> unit io
-  (** Set the IPv4 gateways associated with this interface. *)
-
-  val get_ipv4_gateways: t -> ipaddr list
-  (** Get the IPv4 gateways associated with this interface.  If none has
-      been previously bound via {!set_ipv4_netmask}, it defaults to
-      an empty list. *)
 end
 
 module type IPV6 = sig

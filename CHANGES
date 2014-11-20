@@ -1,5 +1,6 @@
 trunk (unreleased):
 * Add `register ~tracing` to enable tracing with mirage-profile at start-up.
+* [xen]: fixed link order in generated Makefile.
 
 2.0.0 (2014-11-05):
 * [types]: backwards incompatible change: CONSOLE is now a FLOW;

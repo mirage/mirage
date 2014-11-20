@@ -2186,21 +2186,25 @@ let configure_makefile t =
 
   begin match !mode with
     | `Xen ->
+      let filter = function
+        | "unix" | "bigarray" |"shared_memory_ring_stubs" -> false    (* Provided by mirage-xen instead. *)
+        | _ -> true in
       let extra_c_archives =
-        get_extra_ld_flags ~filter:((<>) "unix") pkgs
+        get_extra_ld_flags ~filter pkgs
         |> String.concat " \\\n\t  " in
 
       append oc "build: main.native.o";
-      let pkg_config_deps = "openlibm 'libminios-xen >= 0.2'" in
+      let pkg_config_deps = "openlibm 'libminios-xen >= 0.4.2'" in
       append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
-      append oc "\tld -d -static -nostdlib --start-group \\\n\
-                 \t  $$(pkg-config --static --libs %s) \\\n\
-                 \t  _build/main.native.o $(XENLIB)/libocaml.a \\\n\
-                 \t  $(XENLIB)/libxencaml.a --end-group \\\n\
+      append oc "\tld -d -static -nostdlib \\\n\
+                 \t  _build/main.native.o \\\n\
                  \t  %s \\\n\
+                 \t  $(XENLIB)/libocaml.a \\\n\
+                 \t  $(XENLIB)/libxencaml.a \\\n\
+                 \t  $$(pkg-config --static --libs %s) \\\n\
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"
-        pkg_config_deps extra_c_archives generate_image;
+        extra_c_archives pkg_config_deps generate_image;
     | `Unix ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;

@@ -1,3 +1,7 @@
+2.1.0dev (trunk):
+* Refactor V1 interfaces to add IPv6 support (#325).
+* Remove V2 interfaces, since they will be unused.
+
 2.0.1 (2014-11-21):
 * Add `register ~tracing` to enable tracing with mirage-profile at start-up (#321).
 * Update Dockerfile for latest libraries (#320).

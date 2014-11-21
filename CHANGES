@@ -1,7 +1,7 @@
-trunk (unreleased):
+2.0.1 (2014-11-21):
 * Add `register ~tracing` to enable tracing with mirage-profile at start-up (#321).
 * Update Dockerfile for latest libraries (#320).
-* Only build mirage-types if Io_page is also installed.
+* Only build mirage-types if Io_page is also installed (#324).
 
 2.0.0 (2014-11-05):
 * [types]: backwards incompatible change: CONSOLE is now a FLOW;

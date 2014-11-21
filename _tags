@@ -1,8 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: faddbf53eff71e4790cbe626b35876bb)
+# DO NOT EDIT (digest: ecc4e98cbd79286e16bc704f8d3eddd7)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
+true: annot, bin_annot
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
 ".bzr": -traverse
@@ -24,13 +25,13 @@
 <lib/main.{native,byte}>: pkg_mirage-types.lwt
 <lib/main.{native,byte}>: pkg_unix
 <lib/main.{native,byte}>: use_mirage
-<lib/*.ml{,i}>: pkg_cmdliner
-<lib/*.ml{,i}>: pkg_dynlink
-<lib/*.ml{,i}>: pkg_ipaddr
-<lib/*.ml{,i}>: pkg_lwt
-<lib/*.ml{,i}>: pkg_mirage-types
-<lib/*.ml{,i}>: pkg_mirage-types.lwt
-<lib/*.ml{,i}>: pkg_unix
-<lib/*.ml{,i}>: use_mirage
+<lib/*.ml{,i,y}>: pkg_cmdliner
+<lib/*.ml{,i,y}>: pkg_dynlink
+<lib/*.ml{,i,y}>: pkg_ipaddr
+<lib/*.ml{,i,y}>: pkg_lwt
+<lib/*.ml{,i,y}>: pkg_mirage-types
+<lib/*.ml{,i,y}>: pkg_mirage-types.lwt
+<lib/*.ml{,i,y}>: pkg_unix
+<lib/*.ml{,i,y}>: use_mirage
 # OASIS_STOP
 true: debug, bin_annot, annot, principal

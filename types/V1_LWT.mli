@@ -96,21 +96,12 @@ module type FS = FS
   with type 'a io = 'a Lwt.t
 
 type socket_stack_config =
-  Ipaddr.V4.t list * Ipaddr.V6.t list
+  Ipaddr.V4.t list
 
-type ipv4_config = [
+type direct_stack_config = [
     `DHCP
   | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
 ]
-
-type ipv6_config = [
-    `DHCP
-  | `SLAAC
-  | `IPv6 of Ipaddr.V6.t * Ipaddr.V6.Prefix.t list * Ipaddr.V6.t list
-]
-
-type direct_stack_config =
-  ipv4_config * ipv6_config
 
 type ('console, 'netif, 'mode) stack_config = {
   name: string;

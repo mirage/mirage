@@ -589,7 +589,7 @@ module type TCP = sig
       the input function will return an RST to refuse connections on a port. *)
 end
 
-module type STACK = sig
+module type NETSTACK = sig
   (** A complete TCP/IP stack that can be used by applications to receive
       and transmit network traffic. *)
 

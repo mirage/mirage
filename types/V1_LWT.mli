@@ -95,15 +95,15 @@ module type BLOCK = BLOCK
 module type FS = FS
   with type 'a io = 'a Lwt.t
 
-type socket_stack_config =
+type socket_netstack_config =
   Ipaddr.V4.t list
 
-type direct_stack_config = [
+type direct_netstack_config = [
     `DHCP
   | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
 ]
 
-type ('console, 'netif, 'mode) stack_config = {
+type ('console, 'netif, 'mode) netstack_config = {
   name: string;
   console: 'console;
   interface: 'netif;
@@ -111,9 +111,9 @@ type ('console, 'netif, 'mode) stack_config = {
 }
 
 (** Single network stack *)
-module type STACK = STACK
+module type NETSTACK = NETSTACK
   with type 'a io = 'a Lwt.t
-   and type ('a,'b,'c) config = ('a,'b,'c) stack_config
+   and type ('a,'b,'c) config = ('a,'b,'c) netstack_config
    and type ipv4addr = Ipaddr.V4.t
    and type ipv6addr = Ipaddr.V6.t
    and type buffer = Cstruct.t

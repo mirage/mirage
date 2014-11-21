@@ -1,6 +1,6 @@
 #!/bin/sh -ex
 
-WITH_LWT=`ocamlfind query lwt cstruct ipaddr 2>/dev/null || echo ""`
+WITH_LWT=`ocamlfind query lwt cstruct ipaddr io-page 2>/dev/null || echo ""`
 
 ocamlbuild -tag bin_annot types/V1.cmi
 ocamlbuild -tag bin_annot types/V2.cmi

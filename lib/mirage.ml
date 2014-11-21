@@ -1225,6 +1225,8 @@ module STACKV4_direct = struct
     @  Impl.libraries t.network
     @  Impl.libraries t.random
 
+  let tuntap_help = "Is tun/tap enabled and have you permissions?\\n\\n"
+
   let configure t =
     let name = name t in
     Impl.configure t.clock;
@@ -1254,8 +1256,17 @@ module STACKV4_direct = struct
       (driver_initialisation_error (Impl.name t.console));
     append_main "  | `Ok console ->";
     append_main "  %s () >>= function" (Impl.name t.network);
-    append_main "  | `Error _      -> %s"
-      (driver_initialisation_error (Impl.name t.network));
+    append_main "  | `Error e      ->";
+    let name = Impl.name t.network in begin
+      append_main "    fail (Failure begin match e with";
+      append_main "      %s -> \"\\n\\n\"^%S^\": \"^msg^\"\\n%s\""
+        "| `Unknown msg" name tuntap_help;
+      append_main "      %s -> \"\\n\\n\"^%S^\": operation unimplemented\\n\\n\""
+        "| `Unimplemented" name;
+      append_main "      %s -> \"\\n\\n\"^%S^\": disconnected\\n\\n\""
+        "| `Disconnected" name;
+      append_main "    end)";
+    end;
     append_main "  | `Ok interface ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;

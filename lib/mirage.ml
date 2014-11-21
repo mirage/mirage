@@ -402,6 +402,8 @@ let clock = Type CLOCK
 let default_clock: clock impl =
   impl clock () (module Clock)
 
+module StdRandom = Random
+
 module Random = struct
 
   type t = unit
@@ -442,10 +444,35 @@ module Entropy = struct
 
   let module_name () = "Entropy"
 
+  let xen_seed_size = 4096
+
+  let xen_seed_name =
+    "xen_seed__"
+
+  let ml s = s ^ ".ml"
+
+  let make_xen_seed () =
+    StdRandom.self_init ();
+    let xen_seed_size = xen_seed_size + StdRandom.int (xen_seed_size lsr 1) in
+    try
+      let ic = open_in_bin "/dev/urandom" in
+      let seed = String.create xen_seed_size in
+      really_input ic seed 0 xen_seed_size;
+      close_in ic;
+      let oc = open_out (ml xen_seed_name) in
+      Printf.fprintf oc "let seed = %S\n" seed;
+      close_out oc
+    with
+    | e ->
+      error "error while generating Xen entropy seed, stopping"
+
   let construction () =
     match !mode with
-    | `Unix -> "Entropy_unix.Make (OS.Time)"
-    | `Xen  -> "Entropy_xen"
+    | `Unix ->
+      "Entropy_unix.Make (OS.Time)"
+    | `Xen  ->
+      make_xen_seed ();
+      Printf.sprintf "Entropy_xen.Make(%s)" (String.capitalize xen_seed_name)
 
   let packages () =
     match !mode with
@@ -461,7 +488,8 @@ module Entropy = struct
     append_main "  %s.connect ()" (module_name t);
     newline_main ()
 
-  let clean () = ()
+  let clean () =
+    remove (ml xen_seed_name)
 
   let update_path t _ = t
 
@@ -488,7 +516,7 @@ module Console = struct
     match !mode with
     | `Unix -> "Console_unix"
     | `Xen  -> "Console_xen"
- 
+
   let packages _ =
     match !mode with
     | `Unix -> ["mirage-console"; "mirage-unix"]
@@ -1512,7 +1540,7 @@ module Conduit = struct
 
   let name t =
     let key = "conduit" ^ match t with
-     | `Stack (s,v) -> 
+     | `Stack (s,v) ->
           Printf.sprintf "%s_%s" (Impl.name s) (Impl.name v) in
     Name.of_key key ~base:"conduit"
 
@@ -1520,7 +1548,7 @@ module Conduit = struct
     String.capitalize (name t)
 
   let module_name t =
-    module_name_core t 
+    module_name_core t
 
   let packages t =
     [ "conduit"; "mirage-types"; "vchan" ] @
@@ -1559,7 +1587,7 @@ module Conduit = struct
 
   let update_path t root =
     match t with
-    | `Stack (s,v) -> 
+    | `Stack (s,v) ->
         `Stack ((Impl.update_path s root), (Impl.update_path v root))
 
 end
@@ -1574,12 +1602,12 @@ let conduit_direct ?(vchan=vchan_localhost ()) stack =
 type conduit_client = [
   | `TCP of Ipaddr.t * int
   | `Vchan of string list
-] 
+]
 
 type conduit_server = [
   | `TCP of [ `Port of int ]
   | `Vchan of string list
-] 
+]
 
 module Resolver_unix = struct
   type t = unit

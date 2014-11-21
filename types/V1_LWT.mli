@@ -16,7 +16,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open V2
+open V1
 
 module type TIME = TIME
   with type 'a io = 'a Lwt.t

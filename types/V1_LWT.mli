@@ -54,6 +54,7 @@ module type IPV6 = IPV6
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V6.t
+   and type prefix = Ipaddr.V6.Prefix.t
 
 (** UDP stack *)
 module type UDP = UDP
@@ -97,10 +98,19 @@ module type FS = FS
 type socket_stack_config =
   Ipaddr.V4.t list * Ipaddr.V6.t list
 
-type direct_stack_config = [
+type ipv4_config = [
     `DHCP
-  | `IP of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
+  | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
 ]
+
+type ipv6_config = [
+    `DHCP
+  | `SLAAC
+  | `IPv6 of Ipaddr.V6.t * Ipaddr.V6.Prefix.t list * Ipaddr.V6.t list
+]
+
+type direct_stack_config =
+  ipv4_config * ipv6_config
 
 type ('console, 'netif, 'mode) stack_config = {
   name: string;

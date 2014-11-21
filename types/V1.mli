@@ -350,9 +350,7 @@ module type ETHIF = sig
   (** [mac nf] is the MAC address of [nf]. *)
 
   val input :
-    arpv4:(buffer -> unit io) ->
-    ipv4:(buffer -> unit io) ->
-    ipv6:(buffer -> unit io) -> t -> buffer -> unit io
+    arpv4:(buffer -> unit io) -> ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
   (** FIXME [listen nf fn] is a blocking operation that calls [fn buf] with
       every packet that is read from the interface.  It returns as soon
       as it has initialised, and the function can be stopped by calling
@@ -463,9 +461,20 @@ module type IPV6 = sig
   (** An IPv6 stack that parses Ethernet frames into IPv6 packets *)
   include IP
 
-  val add_ipv6 : t -> ipaddr -> unit io
+  type prefix
+  (** The type of IP address prefixes (= netmasks). *)
+
+  val set_ipv6 : t -> ipaddr -> unit io
+  (** Set an IPv6 address associated with this interface. *)
 
   val get_ipv6 : t -> ipaddr list
+  (** Get the IPv6 addresses associated with this interface. *)
+
+  val set_prefix : t -> prefix -> unit io
+  (** Set a local prefix associated with this interface. *)
+
+  val get_prefixes : t -> prefix list
+  (** Get the local prefixes associated with this interface. *)
 end
 
 module type UDP = sig

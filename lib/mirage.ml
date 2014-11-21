@@ -1219,6 +1219,7 @@ module STACKV4_direct = struct
 
   let libraries t =
     "tcpip.stack-direct"
+    :: "mirage.runtime"
     :: Impl.libraries t.clock
     @  Impl.libraries t.time
     @  Impl.libraries t.console
@@ -1254,8 +1255,10 @@ module STACKV4_direct = struct
       (driver_initialisation_error (Impl.name t.console));
     append_main "  | `Ok console ->";
     append_main "  %s () >>= function" (Impl.name t.network);
-    append_main "  | `Error _      -> %s"
-      (driver_initialisation_error (Impl.name t.network));
+    append_main "  | `Error e      ->";
+    let net_init_error_msg_fn = "Mirage_runtime.string_of_network_init_error" in
+    append_main "    fail (Failure (%s %S e))"
+      net_init_error_msg_fn (Impl.name t.network);
     append_main "  | `Ok interface ->";
     append_main "  let config = {";
     append_main "    V1_LWT.name = %S;" name;

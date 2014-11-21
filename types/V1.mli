@@ -325,9 +325,6 @@ module type ETHIF = sig
   type netif
   (** Abstract type for an Ethernet network interface. *)
 
-  type ipv4addr
-  (** Abstract type for an IPv4 address representation. *)
-
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
@@ -352,23 +349,16 @@ module type ETHIF = sig
   val mac : t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
 
-  val input : ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
-  (** [listen nf fn] is a blocking operation that calls [fn buf] with
+  val input :
+    arpv4:(buffer -> unit io) -> ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
+  (** FIXME [listen nf fn] is a blocking operation that calls [fn buf] with
       every packet that is read from the interface.  It returns as soon
       as it has initialised, and the function can be stopped by calling
       [disconnect] in the device layer. *)
-
-  val query_arpv4 : t -> ipv4addr -> macaddr io
-  (** Query the association from an IPV4 address to a MAC address.
-      TODO: clarify if this task is guaranteed to be cancelable or not. *)
-
-  val add_ipv4 : t -> ipv4addr -> unit io
-  (** Bind an IPv4 address to this interface, to be used when replying
-      to ARPv4 requests. *)
 end
 
-module type IPV4 = sig
-  (** An IPv4 stack that parses Ethernet frames into IPv4 packets *)
+module type IP = sig
+  (** An IP stack that parses Ethernet frames into IP packets *)
 
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned *)
@@ -376,8 +366,8 @@ module type IPV4 = sig
   type ethif
   (** Abstract type for an Ethernet device. *)
 
-  type ipv4addr
-  (** Abstract type for an IPv4 address. *)
+  type ipaddr
+  (** Abstract type for an IP address. *)
 
   type error = [
     | `Unknown of string (** an undiagnosed error *)
@@ -389,86 +379,117 @@ module type IPV4 = sig
         type error := error
     and type id    := ethif
 
-  type callback = src:ipv4addr -> dst:ipv4addr -> buffer -> unit io
+  type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
   (** An input continuation used by the parsing functions to pass on
       an input packet down the stack.
       [callback ~src ~dst buf] will be called with [src] and [dst]
-      containing the source and destination IPv4 address respectively,
-      and [buf] will be a buffer pointing at the start of the IPv4
+      containing the source and destination IP address respectively,
+      and [buf] will be a buffer pointing at the start of the IP
       payload. *)
 
   val input:
+    t ->
     tcp:callback -> udp:callback -> default:(proto:int -> callback) ->
-    t -> buffer -> unit io
-  (** [input ~tcp ~udp ~default ip buf] demultiplexes an incoming [buffer]
-    that contains an IPv4 frame.  It examines the protocol header
-    and passes the result onto either the [tcp] or [udp] function, or
-    the [default] function for unknown IP protocols. *)
+    buffer -> unit io
+  (** [input ~tcp ~udp ~default ip buf] demultiplexes an incoming [buffer] that
+      contains an IP frame.  It examines the protocol header and passes the result
+      onto either the [tcp] or [udp] function, or the [default] function for
+      unknown IP protocols. *)
 
-  val allocate_frame:
-    proto:[< `ICMP | `TCP | `UDP ] ->
-    dest_ip:ipv4addr -> t -> (buffer * int) io
-  (** [allocate_frame ~proto ~dest_ip] will an output buffer for the
-    [proto] IP protocol for the [dest_ip] IPv4 destination.  It returns
-    a tuple of the buffer of the full Ethernet frame (pointing at the
-    start of the frame) and the total length of the Ethernet and IPv4
-    header that was written.  The caller can create a sub-view
-    into the payload using this information if it needs to, or combine
-    it with [write] to do a scatter-gather output with an existing
-    payload. *)
+  val allocate_frame: t -> dst:ipaddr -> proto:[`ICMP | `TCP | `UDP] -> buffer * int
+  (** [allocate_frame t ~dst ~proto] retrurns a pair [(pkt, len)] such that
+      [Cstruct.sub pkt 0 len] is the IP header (including the link layer part) of a
+      packet going to [dst] for protocol [proto].  The space in [pkt] after the
+      first [len] bytes can be used by the client. *)
 
   val write: t -> buffer -> buffer -> unit io
-  (** [write t frame buffer] concatenates a header [frame] (possibly
-    allocated with {!allocate_frame} with the [buffer] and outputs it
-    as a single frame. *)
+  (** [write t frame buf] writes the packet [frame :: buf :: []] to the
+      address [dst]. *)
 
   val writev: t -> buffer -> buffer list -> unit io
-  (** [writev t frame buffers] concatenates a header [frame] (possibly
-    allocated with {!allocate_frame} with the [buffer] list and outputs
-    it all as a single frame. Uses the underlying scatter-gather interface
-    if available for efficiency. *)
+  (** [writev t frame bufs] writes the packet [frame :: bufs]. *)
 
-  val set_ipv4: t -> ipv4addr -> unit io
+  val checksum : buffer -> buffer list -> int
+  (** [checksum frame bufs] computes the IP checksum of [bufs] computing the
+      pseudo-header from the actual header [frame].  It assumes that frame is of
+      the form returned by [allocate_frame], i.e., that it contains the link-layer
+      part. *)
+
+  val get_source : t -> dst:ipaddr -> ipaddr
+  (** [get_source ip ~dst] is the source address to be used to send a packet to
+      [dst]. *)
+
+  val set_ip_gateways: t -> ipaddr list -> unit io
+  (** Set the IP gateways associated with this interface. *)
+
+  val get_ip_gateways: t -> ipaddr list
+  (** Get the IP gateways associated with this interface.  If none has
+      been previously bound via {!set_ip_gateways}, it defaults to
+      an empty list. *)
+end
+
+module type IPV4 = sig
+  (** An IPv4 stack that parses Ethernet frames into IPv4 packets *)
+  include IP
+
+  type macaddr
+  (** Unique MAC identifier for the device *)
+
+  val input_arpv4 : t -> buffer -> unit io
+
+  val set_ipv4: t -> ipaddr -> unit io
   (** Set the IPv4 address associated with this interface.  Currently
       only supports a single IPv4 address, and aliases will be added in
       a future revision. *)
 
-  val get_ipv4: t -> ipv4addr
+  val get_ipv4: t -> ipaddr
   (** Get the IPv4 address associated with this interface.  If none has
       been previously bound via {!set_ipv4}, it defaults to {!Ipaddr.V4.any}. *)
 
-  val set_ipv4_netmask: t -> ipv4addr -> unit io
+  val set_ipv4_netmask: t -> ipaddr -> unit io
   (** Set the IPv4 netmask associated with this interface.  Currently
       only supports a single IPv4 netmask, and aliases will be added in
       a future revision. *)
 
-  val get_ipv4_netmask: t -> ipv4addr
+  val get_ipv4_netmask: t -> ipaddr
   (** Get the IPv4 netmask associated with this interface.  If none has
       been previously bound via {!set_ipv4_netmask}, it defaults to
       {!Ipaddr.V4.any}. *)
-
-  val set_ipv4_gateways: t -> ipv4addr list -> unit io
-  (** Set the IPv4 gateways associated with this interface. *)
-
-  val get_ipv4_gateways: t -> ipv4addr list
-  (** Get the IPv4 gateways associated with this interface.  If none has
-      been previously bound via {!set_ipv4_netmask}, it defaults to
-      an empty list. *)
 end
 
-module type UDPV4 = sig
-  (** A UDPv4 stack that can send and receive datagrams. *)
+module type IPV6 = sig
+  (** An IPv6 stack that parses Ethernet frames into IPv6 packets *)
+  include IP
+
+  type prefix
+  (** The type of IP address prefixes (= netmasks). *)
+
+  val set_ipv6 : t -> ipaddr -> unit io
+  (** Set an IPv6 address associated with this interface. *)
+
+  val get_ipv6 : t -> ipaddr list
+  (** Get the IPv6 addresses associated with this interface. *)
+
+  val set_prefix : t -> prefix -> unit io
+  (** Set a local prefix associated with this interface. *)
+
+  val get_prefixes : t -> prefix list
+  (** Get the local prefixes associated with this interface. *)
+end
+
+module type UDP = sig
+  (** A UDP stack that can send and receive datagrams. *)
 
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned. *)
 
-  type ipv4
-  (** Abstract type for an IPv4 stack for this stack to connect to. *)
+  type ip
+  (** Abstract type for an IPv4/6 stack for this stack to connect to. *)
 
-  type ipv4addr
-  (** Abstract type for an IPv4 address representation. *)
+  type ipaddr
+  (** Abstract type for an IP address representation. *)
 
-  type ipv4input
+  type ipinput
   (** An input function continuation to pass onto the underlying {!ipv4}
       stack.  This will normally be a NOOP for a conventional kernel, but
       a direct implementation will parse the buffer. *)
@@ -480,37 +501,37 @@ module type UDPV4 = sig
 
   include DEVICE with
       type error := error
-  and type id := ipv4
+  and type id := ip
 
-  type callback = src:ipv4addr -> dst:ipv4addr -> src_port:int -> buffer -> unit io
-  (** Callback function that adds the UDPv4 metadata for [src] and [dst] IPv4
+  type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
+  (** Callback function that adds the UDP metadata for [src] and [dst] IP
       addresses, the [src_port] of the connection and the [buffer] payload
       of the datagram. *)
 
-  val input: listeners:(dst_port:int -> callback option) -> t -> ipv4input
+  val input: listeners:(dst_port:int -> callback option) -> t -> ipinput
   (** [input listeners t] demultiplexes incoming datagrams based on their destination
       port.  The [listeners] callback is will either return a concrete handler or
       a [None], which results in the datagram being dropped. *)
 
-  val write: ?source_port:int -> dest_ip:ipv4addr -> dest_port:int -> t -> buffer -> unit io
+  val write: ?source_port:int -> dest_ip:ipaddr -> dest_port:int -> t -> buffer -> unit io
   (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread that
       writes [data] from an optional [source_port] to a [dest_ip] and [dest_port]
       IPv4 address pair. *)
 end
 
-module type TCPV4 = sig
-  (** A TCPv4 stack that can send and receive reliable streams using the TCP protocol. *)
+module type TCP = sig
+  (** A TCP stack that can send and receive reliable streams using the TCP protocol. *)
 
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned. *)
 
-  type ipv4
+  type ip
   (** Abstract type for an IPv4 stack for this stack to connect to. *)
 
-  type ipv4addr
+  type ipaddr
   (** Abstract type for an IPv4 address representation. *)
 
-  type ipv4input
+  type ipinput
   (** An input function continuation to pass onto the underlying {!ipv4}
       stack.  This will normally be a NOOP for a conventional kernel, but
       a direct implementation will parse the buffer. *)
@@ -528,7 +549,7 @@ module type TCPV4 = sig
 
   include DEVICE with
       type error := error
-  and type id := ipv4
+  and type id := ip
 
   include FLOW with
       type error  := error
@@ -539,7 +560,7 @@ module type TCPV4 = sig
   type callback = flow -> unit io
   (** Application callback that receives a [flow] that it can read/write to. *)
 
-  val get_dest : flow -> ipv4addr * int
+  val get_dest : flow -> ipaddr * int
   (** Get the destination IPv4 address and destination port that a flow is
       currently connected to. *)
 
@@ -557,19 +578,19 @@ module type TCPV4 = sig
       change in a future revision to be a per-flow attribute instead of a
       separately exposed function. *)
 
-  val create_connection : t -> ipv4addr * int ->
+  val create_connection : t -> ipaddr * int ->
     [ `Ok of flow | `Error of error ] io
   (** [create_connection t (addr,port)] will open a TCPv4 connection to the
       specified endpoint. *)
 
-  val input: t -> listeners:(int -> callback option) -> ipv4input
+  val input: t -> listeners:(int -> callback option) -> ipinput
   (** [input t listeners] defines a mapping of threads that are willing to
       accept new flows on a given port.  If the [callback] returns [None],
       the input function will return an RST to refuse connections on a port. *)
 end
 
-module type STACKV4 = sig
-  (** A complete TCP/IPv4 stack that can be used by applications to receive
+module type STACK = sig
+  (** A complete TCP/IP stack that can be used by applications to receive
       and transmit network traffic. *)
 
   type console
@@ -590,6 +611,9 @@ module type STACKV4 = sig
   type ipv4addr
   (** Abstract type of an IPv4 address *)
 
+  type ipv6addr
+  (** Abstract type of an IPv6 address *)
+
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned. *)
 
@@ -602,6 +626,15 @@ module type STACKV4 = sig
   type ipv4
   (** Abstract type for a IPv4 stack *)
 
+  type udpv6
+  (** Abstract type for a UDPv6 stack. *)
+
+  type tcpv6
+  (** Abstract type for a TCPv6 stack. *)
+
+  type ipv6
+  (** Abstract type for a IPv6 stack *)
+
   type error = [
     | `Unknown of string
   ]
@@ -611,21 +644,21 @@ module type STACKV4 = sig
     type error := error
     and type id = (console, netif, mode) config
 
-  module UDPV4 : UDPV4
+  module UDPV4 : UDP
     with type +'a io = 'a io
-     and type ipv4addr = ipv4addr
+     and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = udpv4
 
-  module TCPV4 : TCPV4
+  module TCPV4 : TCP
     with type +'a io = 'a io
-     and type ipv4addr = ipv4addr
+     and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = tcpv4
 
   module IPV4 : IPV4
     with type +'a io = 'a io
-     and type ipv4addr = ipv4addr
+     and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = ipv4
 
@@ -649,6 +682,49 @@ module type STACKV4 = sig
       will not chain if ports clash. *)
 
   val listen_tcpv4 : t -> port:int -> TCPV4.callback -> unit
+  (** [listen_tcpv4 t ~port cb] will register the [cb] callback on
+      the TCPv4 [port] and immediately return.  Multiple bindings
+      to the same port will overwrite previous bindings, so callbacks
+      will not chain if ports clash. *)
+
+  module UDPV6 : UDP
+    with type +'a io = 'a io
+     and type ipaddr = ipv6addr
+     and type buffer = buffer
+     and type t = udpv6
+
+  module TCPV6 : TCP
+    with type +'a io = 'a io
+     and type ipaddr = ipv6addr
+     and type buffer = buffer
+     and type t = tcpv6
+
+  module IPV6 : IP
+    with type +'a io = 'a io
+     and type ipaddr = ipv6addr
+     and type buffer = buffer
+     and type t = ipv6
+
+  val udpv6 : t -> udpv6
+  (** [udpv4 t] obtains a descriptor for use with the [UDPV4] module,
+      usually to transmit traffic. *)
+
+  val tcpv6 : t -> tcpv6
+  (** [tcpv4 t] obtains a descriptor for use with the [TCPV4] module,
+      usually to initiate outgoing connections. *)
+
+  val ipv6 : t -> ipv6
+  (** [ipv4 t] obtains a descriptor for use with the [IPV4] module,
+      which can handle raw IPv4 frames, or manipulate IP address
+      configuration on the stack interface. *)
+
+  val listen_udpv6 : t -> port:int -> UDPV6.callback -> unit
+  (** [listen_udpv4 t ~port cb] will register the [cb] callback on
+      the UDPv4 [port] and immediately return.  Multiple bindings
+      to the same port will overwrite previous bindings, so callbacks
+      will not chain if ports clash. *)
+
+  val listen_tcpv6 : t -> port:int -> TCPV6.callback -> unit
   (** [listen_tcpv4 t ~port cb] will register the [cb] callback on
       the TCPv4 [port] and immediately return.  Multiple bindings
       to the same port will overwrite previous bindings, so callbacks

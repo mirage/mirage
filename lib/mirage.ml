@@ -1012,7 +1012,7 @@ module UDPV4_direct = struct
   let configure t =
     let name = name t in
     Impl.configure t;
-    append_main "module %s = Udpv4.Make(%s)" (module_name t) (Impl.module_name t);
+    append_main "module %s = Udp.Make(%s)" (module_name t) (Impl.module_name t);
     newline_main ();
     append_main "let %s () =" name;
     append_main "   %s () >>= function" (Impl.name t);
@@ -1110,7 +1110,7 @@ module TCPV4_direct = struct
     Impl.configure t.time;
     Impl.configure t.ipv4;
     Impl.configure t.random;
-    append_main "module %s = Tcpv4.Flow.Make(%s)(%s)(%s)(%s)"
+    append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
       (module_name t)
       (Impl.module_name t.ipv4)
       (Impl.module_name t.time)

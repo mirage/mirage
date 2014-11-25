@@ -369,6 +369,9 @@ module type IP = sig
   type ipaddr
   (** Abstract type for an IP address. *)
 
+  type prefix
+  (** Abstract type for an IP prefix. *)
+
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
@@ -419,62 +422,27 @@ module type IP = sig
   (** [get_source ip ~dst] is the source address to be used to send a packet to
       [dst]. *)
 
+  val set_ip: t -> ipaddr -> unit io
+  (** Set the IP address associated with this interface.  For IPv4, currently
+      only supports a single IPv4 address, and aliases will be added in a future
+      revision. *)
+
+  val get_ip: t -> ipaddr list
+  (** Get the IP addresses associated with this interface. *)
+
+  val set_ip_netmask: t -> prefix -> unit io
+  (** Set an IP netmask associated with this interface.  For IPv4, currently
+      only supports a single IPv4 netmask, and aliases will be added in a future
+      revision. *)
+
+  val get_ip_netmasks: t -> prefix list
+  (** Get the IP netmasks associated with this interface. *)
+
   val set_ip_gateways: t -> ipaddr list -> unit io
-  (** Set the IP gateways associated with this interface. *)
+  (** Set an IP gateways associated with this interface. *)
 
   val get_ip_gateways: t -> ipaddr list
-  (** Get the IP gateways associated with this interface.  If none has
-      been previously bound via {!set_ip_gateways}, it defaults to
-      an empty list. *)
-end
-
-module type IPV4 = sig
-  (** An IPv4 stack that parses Ethernet frames into IPv4 packets *)
-  include IP
-
-  type macaddr
-  (** Unique MAC identifier for the device *)
-
-  val input_arpv4 : t -> buffer -> unit io
-
-  val set_ipv4: t -> ipaddr -> unit io
-  (** Set the IPv4 address associated with this interface.  Currently
-      only supports a single IPv4 address, and aliases will be added in
-      a future revision. *)
-
-  val get_ipv4: t -> ipaddr
-  (** Get the IPv4 address associated with this interface.  If none has
-      been previously bound via {!set_ipv4}, it defaults to {!Ipaddr.V4.any}. *)
-
-  val set_ipv4_netmask: t -> ipaddr -> unit io
-  (** Set the IPv4 netmask associated with this interface.  Currently
-      only supports a single IPv4 netmask, and aliases will be added in
-      a future revision. *)
-
-  val get_ipv4_netmask: t -> ipaddr
-  (** Get the IPv4 netmask associated with this interface.  If none has
-      been previously bound via {!set_ipv4_netmask}, it defaults to
-      {!Ipaddr.V4.any}. *)
-end
-
-module type IPV6 = sig
-  (** An IPv6 stack that parses Ethernet frames into IPv6 packets *)
-  include IP
-
-  type prefix
-  (** The type of IP address prefixes (= netmasks). *)
-
-  val set_ipv6 : t -> ipaddr -> unit io
-  (** Set an IPv6 address associated with this interface. *)
-
-  val get_ipv6 : t -> ipaddr list
-  (** Get the IPv6 addresses associated with this interface. *)
-
-  val set_prefix : t -> prefix -> unit io
-  (** Set a local prefix associated with this interface. *)
-
-  val get_prefixes : t -> prefix list
-  (** Get the local prefixes associated with this interface. *)
+  (** Get the IP gateways associated with this interface. *)
 end
 
 module type UDP = sig
@@ -656,7 +624,7 @@ module type NETSTACK = sig
      and type buffer = buffer
      and type t = tcpv4
 
-  module IPV4 : IPV4
+  module IPV4 : IP
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer

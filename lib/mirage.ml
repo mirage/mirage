@@ -1829,7 +1829,7 @@ module Tracing = struct
     if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" <> 0 then (
       flush stdout;
       error "lwt.tracing module not found. Hint:\n\
-             opam pin add lwt https://github.com/mirage/lwt.git#tracing"
+             opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
     );
 
     append_main "let () = ";

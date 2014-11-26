@@ -1,3 +1,6 @@
+trunk (unreleased):
+* [xen]: fixed link order in generated Makefile.
+
 2.0.1 (2014-11-21):
 * Add `register ~tracing` to enable tracing with mirage-profile at start-up (#321).
 * Update Dockerfile for latest libraries (#320).

@@ -58,10 +58,26 @@ module type UDP = UDP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
 
+(** UDP stack over IPv4 *)
+module type UDPV4 = UDP
+  with type ipaddr = Ipaddr.V4.t
+
+(** UDP stack over IPv6 *)
+module type UDPV6 = UDP
+  with type ipaddr = Ipaddr.V6.t
+
 (** TCP stack *)
 module type TCP = TCP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
+
+(** TCP stack over IPv4 *)
+module type TCPV4 = TCP
+  with type ipaddr = Ipaddr.V4.t
+
+(** TCP stack over IPv6 *)
+module type TCPV6 = TCP
+  with type ipaddr = Ipaddr.V6.t
 
 (** Buffered TCP channel *)
 module type CHANNEL = CHANNEL

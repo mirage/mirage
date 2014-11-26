@@ -1,4 +1,4 @@
-trunk (unreleased):
+2.0.2 (unreleased):
 * [xen]: fixed link order in generated Makefile.
 
 2.0.1 (2014-11-21):

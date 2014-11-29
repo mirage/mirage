@@ -338,7 +338,7 @@ val socket_netstack: console impl ->  Ipaddr.V4.t list -> netstack impl
 
 type channel
 val channel: channel typ
-val channel_over_tcpv4: tcpv4 impl -> channel impl
+val channel_over_tcp: 'a tcp impl -> channel impl
 
 (** {Resolver configuration} *)
 
@@ -571,7 +571,7 @@ module TCPV4_socket: CONFIGURABLE
 module NETSTACK_direct: CONFIGURABLE
 module NETSTACK_socket: CONFIGURABLE
 
-module Channel_over_TCPV4: CONFIGURABLE
+module Channel_over_TCP: functor (V : sig type t end) -> CONFIGURABLE
 
 module HTTP: CONFIGURABLE
 

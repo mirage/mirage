@@ -1498,9 +1498,9 @@ let direct_netstack_with_static_ipv4
 let socket_netstack console ipv4s =
   impl netstack { NETSTACK_socket.console; ipv4s } (module NETSTACK_socket)
 
-module Channel_over_TCPV4 = struct
+module Channel_over_TCP (V : sig type t end) = struct
 
-  type t = tcpv4 impl
+  type t = V.t tcp impl
 
   let name t =
     let key = "channel" ^ Impl.name t in
@@ -1539,8 +1539,8 @@ type channel = CHANNEL
 
 let channel = Type CHANNEL
 
-let channel_over_tcpv4 flow =
-  impl channel flow (module Channel_over_TCPV4)
+let channel_over_tcp (type v) (flow : v tcp impl) =
+  impl channel flow (module Channel_over_TCP (struct type t = v end))
 
 module VCHAN_localhost = struct
 

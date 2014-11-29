@@ -265,29 +265,40 @@ type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 (** Types for IPv6 manual configuration. *)
 
 val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl
+(** Use an IPv6 address. *)
 
-(** {UDPV4 configuration} *)
 
-(** Implementation of the [V1.UDPV4] signature. *)
 
-type udpv4
+(** {UDP configuration} *)
+
+(** Implementation of the [V1.UDP] signature. *)
+
+type 'a udp
+type udpv4 = v4 udp
+type udpv6 = v6 udp
+val udp: 'a udp typ
 val udpv4: udpv4 typ
-val direct_udpv4: ipv4 impl -> udpv4 impl
+val udpv6: udpv6 typ
+val direct_udp: 'a ip impl -> 'a udp impl
 val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
 
 
 
-(** {TCPV4 configuration} *)
+(** {TCP configuration} *)
 
-(** Implementation of the [V1.TCPV4] signature. *)
+(** Implementation of the [V1.TCP] signature. *)
 
-type tcpv4
+type 'a tcp
+type tcpv4 = v4 tcp
+type tcpv6 = v6 tcp
+val tcp: 'a tcp typ
 val tcpv4: tcpv4 typ
-val direct_tcpv4:
+val tcpv6: tcpv6 typ
+val direct_tcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  ipv4 impl -> tcpv4 impl
+  'a ip impl -> 'a tcp impl
 val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 
@@ -551,10 +562,10 @@ module Ethif: CONFIGURABLE
 module IPV4: CONFIGURABLE
 module IPV6: CONFIGURABLE
 
-module UDPV4_direct: CONFIGURABLE
+module UDP_direct: functor (V : sig type t end) -> CONFIGURABLE
 module UDPV4_socket: CONFIGURABLE
 
-module TCPV4_direct: CONFIGURABLE
+module TCP_direct: functor (V : sig type t end) -> CONFIGURABLE
 module TCPV4_socket: CONFIGURABLE
 
 module NETSTACK_direct: CONFIGURABLE

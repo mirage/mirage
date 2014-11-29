@@ -1094,12 +1094,12 @@ let create_ipv6
   } in
   impl ipv6 t (module IPV6)
 
-module UDPV4_direct = struct
+module UDP_direct (V : sig type t end) = struct
 
-  type t = ipv4 impl
+  type t = V.t ip impl
 
   let name t =
-    Name.of_key ("udpv4" ^ Impl.name t) ~base:"udpv4"
+    Name.of_key ("udp" ^ Impl.name t) ~base:"udp"
 
   let module_name t =
     String.capitalize (name t)
@@ -1162,31 +1162,36 @@ module UDPV4_socket = struct
 
 end
 
-type udpv4 = UDPV4
+type 'a udp = UDP
 
-let udpv4 = Type UDPV4
+type udpv4 = v4 udp
+type udpv6 = v6 udp
 
-let direct_udpv4 ip =
-  impl udpv4 ip (module UDPV4_direct)
+let udp = Type UDP
+let udpv4 : udpv4 typ = udp
+let udpv6 : udpv6 typ = udp
+
+let direct_udp (type v) (ip : v ip impl) =
+  impl udp ip (module UDP_direct (struct type t = v end))
 
 let socket_udpv4 ip =
   impl udpv4 ip (module UDPV4_socket)
 
-module TCPV4_direct = struct
+module TCP_direct (V : sig type t end) = struct
 
   type t = {
     clock : clock impl;
     time  : time impl;
-    ipv4  : ipv4 impl;
+    ip    : V.t ip impl;
     random: random impl;
   }
 
   let name t =
-    let key = "tcpv4"
+    let key = "tcp"
               ^ Impl.name t.clock
               ^ Impl.name t.time
-              ^ Impl.name t.ipv4 in
-    Name.of_key key ~base:"tcpv4"
+              ^ Impl.name t.ip in
+    Name.of_key key ~base:"tcp"
 
   let module_name t =
     String.capitalize (name t)
@@ -1195,44 +1200,44 @@ module TCPV4_direct = struct
     "tcpip"
     :: Impl.packages t.clock
     @  Impl.packages t.time
-    @  Impl.packages t.ipv4
+    @  Impl.packages t.ip
     @  Impl.packages t.random
 
   let libraries t =
     "tcpip.tcp"
     :: Impl.libraries t.clock
     @  Impl.libraries t.time
-    @  Impl.libraries t.ipv4
+    @  Impl.libraries t.ip
     @  Impl.libraries t.random
 
   let configure t =
     let name = name t in
     Impl.configure t.clock;
     Impl.configure t.time;
-    Impl.configure t.ipv4;
+    Impl.configure t.ip;
     Impl.configure t.random;
     append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
       (module_name t)
-      (Impl.module_name t.ipv4)
+      (Impl.module_name t.ip)
       (Impl.module_name t.time)
       (Impl.module_name t.clock)
       (Impl.module_name t.random);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "   %s () >>= function" (Impl.name t.ipv4);
-    append_main "   | `Error _ -> %s" (driver_initialisation_error (Impl.name t.ipv4));
+    append_main "   %s () >>= function" (Impl.name t.ip);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error (Impl.name t.ip));
     append_main "   | `Ok ip   -> %s.connect ip" (module_name t);
     newline_main ()
 
   let clean t =
     Impl.clean t.clock;
     Impl.clean t.time;
-    Impl.clean t.ipv4;
+    Impl.clean t.ip;
     Impl.clean t.random
 
   let update_path t root =
     { clock  = Impl.update_path t.clock root;
-      ipv4   = Impl.update_path t.ipv4 root;
+      ip     = Impl.update_path t.ip root;
       time   = Impl.update_path t.time root;
       random = Impl.update_path t.random root;
     }
@@ -1272,14 +1277,20 @@ module TCPV4_socket = struct
 
 end
 
-type tcpv4 = TCPV4
+type 'a tcp = TCP
 
-let tcpv4 = Type TCPV4
+type tcpv4 = v4 tcp
+type tcpv6 = v6 tcp
 
-let direct_tcpv4
-    ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ipv4 =
-  let t = { TCPV4_direct.clock; random; time; ipv4 } in
-  impl tcpv4 t (module TCPV4_direct)
+let tcp = Type TCP
+let tcpv4 : tcpv4 typ = tcp
+let tcpv6 : tcpv6 typ = tcp
+
+let direct_tcp (type v)
+    ?(clock=default_clock) ?(random=default_random) ?(time=default_time) (ip : v ip impl) =
+  let module TCP_direct = TCP_direct (struct type t = v end) in
+  let t = { TCP_direct.clock; random; time; ip } in
+  impl tcp t (module TCP_direct)
 
 let socket_tcpv4 ip =
   impl tcpv4 ip (module TCPV4_socket)

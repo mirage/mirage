@@ -44,13 +44,17 @@ module type IP = IP
    and type buffer = Cstruct.t
 
 (** IPv4 stack *)
-module type IPV4 = IP
-  with type ipaddr = Ipaddr.V4.t
-   and type prefix = Ipaddr.V4.t (* FIXME *)
+module type IPV4 = IPV4
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+   and type ipaddr = Ipaddr.V4.t
+   and type prefix = Ipaddr.V4.t (* FIXME: Use Ipaddr.V4.Prefix.t *)
 
 (** IPv6 stack *)
-module type IPV6 = IP
-  with  type ipaddr = Ipaddr.V6.t
+module type IPV6 = IPV6
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+   and type ipaddr = Ipaddr.V6.t
    and type prefix = Ipaddr.V6.Prefix.t
 
 (** UDP stack *)

@@ -445,6 +445,15 @@ module type IP = sig
   (** Get the IP gateways associated with this interface. *)
 end
 
+module type IPV4 = sig
+  include IP
+  val input_arpv4: t -> buffer -> unit io
+end
+
+module type IPV6 = sig
+  include IP
+end
+
 module type UDP = sig
   (** A UDP stack that can send and receive datagrams. *)
 
@@ -612,7 +621,7 @@ module type STACKV4 = sig
      and type buffer = buffer
      and type t = tcpv4
 
-  module IPV4 : IP
+  module IPV4 : IPV4
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer

@@ -557,8 +557,8 @@ module type TCP = sig
       the input function will return an RST to refuse connections on a port. *)
 end
 
-module type NETSTACK = sig
-  (** A complete TCP/IP stack that can be used by applications to receive
+module type STACKV4 = sig
+  (** A complete TCP/IPv4 stack that can be used by applications to receive
       and transmit network traffic. *)
 
   type console
@@ -579,9 +579,6 @@ module type NETSTACK = sig
   type ipv4addr
   (** Abstract type of an IPv4 address *)
 
-  type ipv6addr
-  (** Abstract type of an IPv6 address *)
-
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned. *)
 
@@ -593,15 +590,6 @@ module type NETSTACK = sig
 
   type ipv4
   (** Abstract type for a IPv4 stack *)
-
-  type udpv6
-  (** Abstract type for a UDPv6 stack. *)
-
-  type tcpv6
-  (** Abstract type for a TCPv6 stack. *)
-
-  type ipv6
-  (** Abstract type for a IPv6 stack *)
 
   type error = [
     | `Unknown of string
@@ -650,49 +638,6 @@ module type NETSTACK = sig
       will not chain if ports clash. *)
 
   val listen_tcpv4 : t -> port:int -> TCPV4.callback -> unit
-  (** [listen_tcpv4 t ~port cb] will register the [cb] callback on
-      the TCPv4 [port] and immediately return.  Multiple bindings
-      to the same port will overwrite previous bindings, so callbacks
-      will not chain if ports clash. *)
-
-  module UDPV6 : UDP
-    with type +'a io = 'a io
-     and type ipaddr = ipv6addr
-     and type buffer = buffer
-     and type t = udpv6
-
-  module TCPV6 : TCP
-    with type +'a io = 'a io
-     and type ipaddr = ipv6addr
-     and type buffer = buffer
-     and type t = tcpv6
-
-  module IPV6 : IP
-    with type +'a io = 'a io
-     and type ipaddr = ipv6addr
-     and type buffer = buffer
-     and type t = ipv6
-
-  val udpv6 : t -> udpv6
-  (** [udpv4 t] obtains a descriptor for use with the [UDPV4] module,
-      usually to transmit traffic. *)
-
-  val tcpv6 : t -> tcpv6
-  (** [tcpv4 t] obtains a descriptor for use with the [TCPV4] module,
-      usually to initiate outgoing connections. *)
-
-  val ipv6 : t -> ipv6
-  (** [ipv4 t] obtains a descriptor for use with the [IPV4] module,
-      which can handle raw IPv4 frames, or manipulate IP address
-      configuration on the stack interface. *)
-
-  val listen_udpv6 : t -> port:int -> UDPV6.callback -> unit
-  (** [listen_udpv4 t ~port cb] will register the [cb] callback on
-      the UDPv4 [port] and immediately return.  Multiple bindings
-      to the same port will overwrite previous bindings, so callbacks
-      will not chain if ports clash. *)
-
-  val listen_tcpv6 : t -> port:int -> TCPV6.callback -> unit
   (** [listen_tcpv4 t ~port cb] will register the [cb] callback on
       the TCPv4 [port] and immediately return.  Multiple bindings
       to the same port will overwrite previous bindings, so callbacks

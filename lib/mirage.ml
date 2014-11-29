@@ -1295,7 +1295,7 @@ let direct_tcp (type v)
 let socket_tcpv4 ip =
   impl tcpv4 ip (module TCPV4_socket)
 
-module NETSTACK_direct = struct
+module STACKV4_direct = struct
 
   type t = {
     clock  : clock impl;
@@ -1307,7 +1307,7 @@ module NETSTACK_direct = struct
   }
 
   let name t =
-    let key = "netstack"
+    let key = "stackv4"
               ^ Impl.name t.clock
               ^ Impl.name t.time
               ^ Impl.name t.console
@@ -1316,7 +1316,7 @@ module NETSTACK_direct = struct
               ^ match t.config with
               | `DHCP   -> "dhcp"
               | `IPV4 i -> meta_ipv4_config i in
-    Name.of_key key ~base:"netstack"
+    Name.of_key key ~base:"stackv4"
 
   let module_name t =
     String.capitalize (name t)
@@ -1346,21 +1346,13 @@ module NETSTACK_direct = struct
     Impl.configure t.random;
     append_main "module %s = struct" (module_name t);
     append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
-    append_main "  module I4 = Ipv4.Make(E)";
-    append_main "  module I6 = Ipv6.Make(E)(%s)(%s)"
-      (Impl.module_name t.time)
-      (Impl.module_name t.clock);
-    append_main "  module U4 = Udp.Make(I4)";
-    append_main "  module T4 = Tcp.Flow.Make(I4)(%s)(%s)(%s)"
+    append_main "  module I = Ipv4.Make(E)";
+    append_main "  module U = Udp.Make(I)";
+    append_main "  module T = Tcp.Flow.Make(I)(%s)(%s)(%s)"
       (Impl.module_name t.time)
       (Impl.module_name t.clock)
       (Impl.module_name t.random);
-    append_main "  module U6 = Udp.Make(I6)";
-    append_main "  module T6 = Tcp.Flow.Make(I6)(%s)(%s)(%s)"
-      (Impl.module_name t.time)
-      (Impl.module_name t.clock)
-      (Impl.module_name t.random);
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(E)(I4)(I6)(U4)(T4)(U6)(T6)"
+    append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(E)(I)(U)(T)"
       (Impl.module_name t.console)
       (Impl.module_name t.time)
       (Impl.module_name t.random)
@@ -1406,7 +1398,7 @@ module NETSTACK_direct = struct
 
 end
 
-module NETSTACK_socket = struct
+module STACKV4_socket = struct
 
   type t = {
     console: console impl;
@@ -1420,8 +1412,8 @@ module NETSTACK_socket = struct
          ) ips)
 
   let name t =
-    let key = "netstack" ^ Impl.name t.console ^ meta_ips t.ipv4s in
-    Name.of_key key ~base:"netstack"
+    let key = "stackv4" ^ Impl.name t.console ^ meta_ips t.ipv4s in
+    Name.of_key key ~base:"stackv4"
 
   let module_name t =
     String.capitalize (name t)
@@ -1459,44 +1451,44 @@ module NETSTACK_socket = struct
 
 end
 
-type netstack = NETSTACK
+type stackv4 = STACKV4
 
-let netstack = Type NETSTACK
+let stackv4 = Type STACKV4
 
-let direct_netstack_with_dhcp
+let direct_stackv4_with_dhcp
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
     console network =
   let t = {
-    NETSTACK_direct.console; network; time; clock; random;
+    STACKV4_direct.console; network; time; clock; random;
     config = `DHCP } in
-  impl netstack t (module NETSTACK_direct)
+  impl stackv4 t (module STACKV4_direct)
 
-let direct_netstack_with_default_ipv4
+let direct_stackv4_with_default_ipv4
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
     console network =
   let t = {
-    NETSTACK_direct.console; network; clock; time; random;
+    STACKV4_direct.console; network; clock; time; random;
     config = `IPV4 default_ipv4_conf;
   } in
-  impl netstack t (module NETSTACK_direct)
+  impl stackv4 t (module STACKV4_direct)
 
-let direct_netstack_with_static_ipv4
+let direct_stackv4_with_static_ipv4
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
     console network ipv4 =
   let t = {
-    NETSTACK_direct.console; network; clock; time; random;
+    STACKV4_direct.console; network; clock; time; random;
     config = `IPV4 ipv4;
   } in
-  impl netstack t (module NETSTACK_direct)
+  impl stackv4 t (module STACKV4_direct)
 
-let socket_netstack console ipv4s =
-  impl netstack { NETSTACK_socket.console; ipv4s } (module NETSTACK_socket)
+let socket_stackv4 console ipv4s =
+  impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
 module Channel_over_TCP (V : sig type t end) = struct
 
@@ -1628,7 +1620,7 @@ let vchan_default ?uuid () =
 
 module Conduit = struct
   type t =
-    [ `Stack of netstack impl * vchan impl ]
+    [ `Stack of stackv4 impl * vchan impl ]
 
   let name t =
     let key = "conduit" ^ match t with
@@ -1736,7 +1728,7 @@ end
 
 module Resolver_direct = struct
   type t =
-    [ `DNS of netstack impl * Ipaddr.V4.t option * int option ]
+    [ `DNS of stackv4 impl * Ipaddr.V4.t option * int option ]
 
   let name t =
     let key = "resolver" ^ match t with

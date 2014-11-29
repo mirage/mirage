@@ -305,31 +305,31 @@ val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 (** {Network stack configuration} *)
 
-(** Implementation of the [V1.NETSTACK] signature. *)
+(** Implementation of the [V1.STACKV4] signature. *)
 
-type netstack
+type stackv4
 
-val netstack: netstack typ
+val stackv4: stackv4 typ
 
-val direct_netstack_with_default_ipv4:
+val direct_stackv4_with_default_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  console impl -> network impl -> netstack impl
+  console impl -> network impl -> stackv4 impl
 
-val direct_netstack_with_static_ipv4:
+val direct_stackv4_with_static_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  console impl -> network impl -> ipv4_config -> netstack impl
+  console impl -> network impl -> ipv4_config -> stackv4 impl
 
-val direct_netstack_with_dhcp:
+val direct_stackv4_with_dhcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  console impl -> network impl -> netstack impl
+  console impl -> network impl -> stackv4 impl
 
-val socket_netstack: console impl ->  Ipaddr.V4.t list -> netstack impl
+val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
 
 (** {Channel configuration} *)
@@ -344,7 +344,7 @@ val channel_over_tcp: 'a tcp impl -> channel impl
 
 type resolver
 val resolver: resolver typ
-val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> netstack impl -> resolver impl
+val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
 (** {Vchan configuration} *)
@@ -358,7 +358,7 @@ val vchan_default : ?uuid:string -> unit -> vchan impl
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : ?vchan:vchan impl -> netstack impl -> conduit impl
+val conduit_direct : ?vchan:vchan impl -> stackv4 impl -> conduit impl
 
 type conduit_client = [
   | `TCP of Ipaddr.t * int
@@ -568,8 +568,8 @@ module UDPV4_socket: CONFIGURABLE
 module TCP_direct: functor (V : sig type t end) -> CONFIGURABLE
 module TCPV4_socket: CONFIGURABLE
 
-module NETSTACK_direct: CONFIGURABLE
-module NETSTACK_socket: CONFIGURABLE
+module STACKV4_direct: CONFIGURABLE
+module STACKV4_socket: CONFIGURABLE
 
 module Channel_over_TCP: functor (V : sig type t end) -> CONFIGURABLE
 

@@ -226,19 +226,30 @@ val etif: network impl -> ethernet impl
 
 (** {2 IPV4 configuration. *)
 
-(** Implementations of the [V1.IPV4] signature. *)
+(** Implementations of the [V1.IP] signature. *)
 
-type ipv4
+type v4
+type v6
+
+type 'a ip
+type ipv4 = v4 ip
+type ipv6 = v6 ip
 (** Abstract type for IP configurations. *)
 
 val ipv4: ipv4 typ
 (** The [V1.IPV4] module signature. *)
 
-type ipv4_config = {
-  address: Ipaddr.V4.t;
-  netmask: Ipaddr.V4.t;
-  gateways: Ipaddr.V4.t list;
+val ipv6: ipv6 typ
+(** The [V1.IPV6] module signature. *)
+
+type ('ipaddr, 'prefix) ip_config = {
+  address: 'ipaddr;
+  netmask: 'prefix;
+  gateways: 'ipaddr list;
 }
+(** Types for IP manual configuration. *)
+
+type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 (** Types for IPv4 manual configuration. *)
 
 val create_ipv4: network impl -> ipv4_config -> ipv4 impl
@@ -250,7 +261,10 @@ val default_ipv4: network impl -> ipv4 impl
     - netmask: 255.255.255.0
     - gateways: [10.0.0.1] *)
 
+type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
+(** Types for IPv6 manual configuration. *)
 
+val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl
 
 (** {UDPV4 configuration} *)
 
@@ -535,6 +549,7 @@ module Network: CONFIGURABLE
 module Ethif: CONFIGURABLE
 
 module IPV4: CONFIGURABLE
+module IPV6: CONFIGURABLE
 
 module UDPV4_direct: CONFIGURABLE
 module UDPV4_socket: CONFIGURABLE

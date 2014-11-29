@@ -897,11 +897,13 @@ let ethernet = Type ETHERNET
 let etif network =
   impl ethernet network (module Ethif)
 
-type ipv4_config = {
-  address: Ipaddr.V4.t;
-  netmask: Ipaddr.V4.t;
-  gateways: Ipaddr.V4.t list;
+type ('ipaddr, 'prefix) ip_config = {
+  address: 'ipaddr;
+  netmask: 'prefix;
+  gateways: 'ipaddr list;
 }
+
+type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
 let meta_ipv4_config t =
   Printf.sprintf "(Ipaddr.V4.of_string_exn %S, Ipaddr.V4.of_string_exn %S, [%s])"
@@ -951,9 +953,9 @@ module IPV4 = struct
     append_main "   | `Error _ -> %s" (driver_initialisation_error "IPV4");
     append_main "   | `Ok ip   ->";
     append_main "   let i = Ipaddr.V4.of_string_exn in";
-    append_main "   %s.set_ipv4 ip (i %S) >>= fun () ->"
+    append_main "   %s.set_ip ip (i %S) >>= fun () ->"
       mname (Ipaddr.V4.to_string t.config.address);
-    append_main "   %s.set_ipv4_netmask ip (i %S) >>= fun () ->"
+    append_main "   %s.set_ip_netmask ip (i %S) >>= fun () ->"
       mname (Ipaddr.V4.to_string t.config.netmask);
     append_main "   %s.set_ip_gateways ip [%s] >>= fun () ->"
       mname
@@ -972,14 +974,101 @@ module IPV4 = struct
 
 end
 
-type ipv4 = IPV4
+type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 
-let ipv4 = Type IPV4
+let meta_ipv6_config t =
+  Printf.sprintf "(Ipaddr.V6.of_string_exn %S, [%s], [%s])"
+    (Ipaddr.V6.to_string t.address)
+    (String.concat "; "
+       (List.map (Printf.sprintf "Ipaddr.V6.Prefix.of_string_exn %S")
+          (List.map Ipaddr.V6.Prefix.to_string t.netmask)))
+    (String.concat "; "
+       (List.map (Printf.sprintf "Ipaddr.V6.of_string_exn %S")
+          (List.map Ipaddr.V6.to_string t.gateways)))
 
-let create_ipv4 net ip =
+module IPV6 = struct
+
+  type t = {
+    time    : time impl;
+    clock   : clock impl;
+    ethernet: ethernet impl;
+    config  : ipv6_config;
+  }
+  (* XXX: should the type if ipv4.id be ipv4.t ?
+     N.connect ethif |> N.set_ip up *)
+
+  let name t =
+    let key = "ipv6" ^ Impl.name t.time ^ Impl.name t.clock ^ Impl.name t.ethernet ^ meta_ipv6_config t.config in
+    Name.of_key key ~base:"ipv6"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet
+
+  let libraries t  =
+    (match !mode with
+     | `Unix -> [ "tcpip.ipv6-unix" ]
+     | `Xen  -> [ "tcpip.ipv6" ])
+    @ Impl.libraries t.time @ Impl.libraries t.clock @ Impl.libraries t.ethernet
+
+  let configure t =
+    let name = name t in
+    let mname = module_name t in
+    Impl.configure t.ethernet;
+    append_main "module %s = Ipv6.Make(%s)(%s)(%s)"
+      (module_name t) (Impl.module_name t.ethernet) (Impl.module_name t.time) (Impl.module_name t.clock);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "   %s () >>= function" (Impl.name t.ethernet);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   | `Ok eth  ->";
+    append_main "   %s.connect eth >>= function" mname;
+    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   | `Ok ip   ->";
+    append_main "   let i = Ipaddr.V6.of_string_exn in";
+    append_main "   %s.set_ip ip (i %S) >>= fun () ->"
+      mname (Ipaddr.V6.to_string t.config.address);
+    List.iter begin fun netmask ->
+      append_main "   %s.set_ip_netmask ip (i %S) >>= fun () ->"
+        mname (Ipaddr.V6.Prefix.to_string netmask)
+    end t.config.netmask;
+    append_main "   %s.set_ip_gateways ip [%s] >>= fun () ->"
+      mname
+      (String.concat "; "
+         (List.map
+            (fun n -> Printf.sprintf "(i %S)" (Ipaddr.V6.to_string n))
+            t.config.gateways));
+    append_main "   return (`Ok ip)";
+    newline_main ()
+
+  let clean t =
+    Impl.clean t.ethernet
+
+  let update_path t root =
+    { t with ethernet = Impl.update_path t.ethernet root }
+
+end
+
+type v4
+type v6
+
+type 'a ip = IP
+
+let ip = Type IP
+
+type ipv4 = v4 ip
+type ipv6 = v6 ip
+
+let ipv4 : ipv4 typ = ip
+let ipv6 : ipv6 typ = ip
+
+let create_ipv4 net config =
+  let etif = etif net in
   let t = {
-    IPV4.ethernet = etif net;
-    config = ip } in
+    IPV4.ethernet = etif;
+    config } in
   impl ipv4 t (module IPV4)
 
 let default_ipv4_conf =
@@ -992,6 +1081,18 @@ let default_ipv4_conf =
 
 let default_ipv4 net =
   create_ipv4 net default_ipv4_conf
+
+let create_ipv6
+    ?(time = default_time)
+    ?(clock = default_clock)
+    net config =
+  let etif = etif net in
+  let t = {
+    IPV6.ethernet = etif;
+    time; clock;
+    config
+  } in
+  impl ipv6 t (module IPV6)
 
 module UDPV4_direct = struct
 

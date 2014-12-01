@@ -50,10 +50,7 @@ type mode = [
   | `MacOSX
 ]
 
-let mode =
-  match uname_s () with
-  |Some "Darwin" -> prerr_endline "macosx"; ref `MacOSX
-  |_ -> prerr_endline "unix"; ref `Unix
+let mode = ref `Unix
 
 let set_mode m =
   mode := m

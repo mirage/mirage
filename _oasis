@@ -14,6 +14,12 @@ Library mirage
   Modules:            Mirage, Mirage_misc
   BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt
 
+Library "mirage-runtime"
+  Path:               lib
+  Findlibname:        runtime
+  Modules:            Mirage_runtime
+  Findlibparent:      mirage
+
 Executable mirage
   CompiledObject:     best
   Path:               lib

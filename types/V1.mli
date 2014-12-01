@@ -562,7 +562,7 @@ module type TCPV4 = sig
   (** [create_connection t (addr,port)] will open a TCPv4 connection to the
       specified endpoint. *)
 
-  val input: t -> listeners:(int -> callback option) -> ipv4input
+  val input: t -> listeners:(syn:buffer -> dst_port:int -> callback option) -> ipv4input
   (** [input t listeners] defines a mapping of threads that are willing to
       accept new flows on a given port.  If the [callback] returns [None],
       the input function will return an RST to refuse connections on a port. *)
@@ -654,7 +654,10 @@ module type STACKV4 = sig
       to the same port will overwrite previous bindings, so callbacks
       will not chain if ports clash. *)
 
-  val listen : t -> unit io
+  val listen :
+        ?tcpv4_listen:(syn:buffer -> dst_port:int -> TCPV4.callback option) ->
+        ?udpv4_listen:(dst_port:int -> UDPV4.callback option) ->
+        t -> unit io
   (** [listen t] will cause the stack to listen for traffic on the
       network interface associated with the stack, and demultiplex
       traffic to the appropriate callbacks. *)

@@ -20,5 +20,6 @@
 
 val string_of_network_init_error:
   string -> [> `Unknown of string | `Unimplemented | `Disconnected ] -> string
-(** Generate a helpful string for network interface errors from the
-    interface name and the error constructor. *)
+(** [string_of_network_init_error ifname] will generate a helpful string for
+    network interface errors from the [ifname] interface name and the error
+    constructor. *)

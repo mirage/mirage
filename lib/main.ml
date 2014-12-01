@@ -38,15 +38,22 @@ let arg_list name doc conv =
 let no_opam =
   mk_flag ["no-opam"] "Do not manage the OPAM configuration."
 let xen =
-  mk_flag ["xen"] "Generate a Xen unikernel. Do not use in conjunction with --unix-*."
+  mk_flag ["xen"] "Generate a Xen unikernel. Do not use in conjunction with --unix."
 let unix =
-  mk_flag ["unix"] "Use unix-direct backend. Do not use in conjunction with --xen."
+  mk_flag ["unix"] "Use Unix backend. Do not use in conjunction with --xen."
+let no_macosx = 
+  mk_flag ["no-macosx"] "On MacOSX, force use of the Unix backend instead of OSX-specific libraries (advanced use only)."
+
 (* Select the operating mode from command line flags *)
-let mode unix xen =
+let mode unix xen no_macosx =
   match xen,unix with
   | true , true  -> failwith "Cannot specify --unix and --xen together."
   | true , false -> `Xen
-  | false, _     -> `Unix
+  | false, _     -> begin
+     match Mirage_misc.uname_s (), no_macosx with
+     | Some "Darwin", false -> `MacOSX
+     | _ -> `Unix
+  end
 
 let file =
   let doc = Arg.info ~docv:"FILE"
@@ -64,14 +71,14 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen no_opam file =
+  let configure unix xen no_macosx no_opam file =
     if unix && xen then `Help (`Pager, Some "configure")
     else (
       Mirage.manage_opam_packages (not no_opam);
-      Mirage.set_mode (mode unix xen);
+      Mirage.set_mode (mode unix xen no_macosx);
       let t = Mirage.load file in
       `Ok (Mirage.configure t)) in
-  Term.(ret (pure configure $ unix $ xen $ no_opam $ file)),
+  Term.(ret (pure configure $ unix $ xen $ no_macosx $ no_opam $ file)),
   term_info "configure" ~doc ~man
 
 (* BUILD *)

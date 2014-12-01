@@ -392,6 +392,7 @@ val load: string option -> t
 type mode = [
   | `Unix
   | `Xen
+  | `MacOSX
 ]
 (** Configuration mode. *)
 

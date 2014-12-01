@@ -47,9 +47,13 @@ let set_main_ml file =
 type mode = [
   | `Unix
   | `Xen
+  | `MacOSX
 ]
 
-let mode = ref `Unix
+let mode =
+  match uname_s () with
+  |Some "Darwin" -> prerr_endline "macosx"; ref `MacOSX
+  |_ -> prerr_endline "unix"; ref `Unix
 
 let set_mode m =
   mode := m
@@ -317,7 +321,7 @@ module Io_page = struct
   let libraries () =
     match !mode with
     | `Xen  -> ["io-page"]
-    | `Unix -> ["io-page"; "io-page.unix"]
+    | `Unix | `MacOSX -> ["io-page"; "io-page.unix"]
 
   let configure () = ()
 
@@ -379,7 +383,7 @@ module Clock = struct
 
   let packages () = [
     match !mode with
-    | `Unix -> "mirage-clock-unix"
+    | `Unix | `MacOSX -> "mirage-clock-unix"
     | `Xen  -> "mirage-clock-xen"
   ]
 
@@ -444,12 +448,12 @@ module Entropy = struct
 
   let construction () =
     match !mode with
-    | `Unix -> "Entropy_unix.Make (OS.Time)"
+    | `Unix | `MacOSX -> "Entropy_unix.Make (OS.Time)"
     | `Xen  -> "Entropy_xen"
 
   let packages () =
     match !mode with
-    | `Unix -> [ "mirage-entropy-unix" ]
+    | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
     | `Xen  -> [ "mirage-entropy-xen" ]
 
   let libraries = packages
@@ -486,17 +490,17 @@ module Console = struct
 
   let construction () =
     match !mode with
-    | `Unix -> "Console_unix"
+    | `Unix | `MacOSX -> "Console_unix"
     | `Xen  -> "Console_xen"
  
   let packages _ =
     match !mode with
-    | `Unix -> ["mirage-console"; "mirage-unix"]
+    | `Unix | `MacOSX -> ["mirage-console"; "mirage-unix"]
     | `Xen  -> ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
 
   let libraries _ =
     match !mode with
-    | `Unix -> ["mirage-console.unix"]
+    | `Unix | `MacOSX -> ["mirage-console.unix"]
     | `Xen -> ["mirage-console.xen"]
 
   let configure t =
@@ -593,22 +597,22 @@ module Direct_kv_ro = struct
   let module_name t =
     match !mode with
     | `Xen  -> Crunch.module_name t
-    | `Unix -> "Kvro_fs_unix"
+    | `Unix | `MacOSX -> "Kvro_fs_unix"
 
   let packages t =
     match !mode with
     | `Xen  -> Crunch.packages t
-    | `Unix -> "mirage-fs-unix" :: Crunch.packages t
+    | `Unix | `MacOSX -> "mirage-fs-unix" :: Crunch.packages t
 
   let libraries t =
     match !mode with
     | `Xen  -> Crunch.libraries t
-    | `Unix -> "mirage-fs-unix" :: Crunch.libraries t
+    | `Unix | `MacOSX -> "mirage-fs-unix" :: Crunch.libraries t
 
   let configure t =
     match !mode with
     | `Xen  -> Crunch.configure t
-    | `Unix ->
+    | `Unix | `MacOSX ->
       append_main "let %s () =" (name t);
       append_main "  Kvro_fs_unix.connect %S" t
 
@@ -629,13 +633,13 @@ module Block = struct
 
   let packages _ = [
     match !mode with
-    | `Unix -> "mirage-block-unix"
+    | `Unix | `MacOSX -> "mirage-block-unix"
     | `Xen  -> "mirage-block-xen"
   ]
 
   let libraries _ = [
     match !mode with
-    | `Unix -> "mirage-block-unix"
+    | `Unix | `MacOSX -> "mirage-block-unix"
     | `Xen  -> "mirage-block-xen.front"
   ]
 
@@ -822,6 +826,7 @@ module Network = struct
   let packages t =
     match !mode with
     | `Unix -> ["mirage-net-unix"]
+    | `MacOSX -> ["mirage-net-macosx"]
     | `Xen  -> ["mirage-net-xen"]
 
   let libraries t =
@@ -868,7 +873,7 @@ module Ethif = struct
   let libraries t =
     Impl.libraries t @
     match !mode with
-    | `Unix -> [ "tcpip.ethif-unix" ]
+    | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ]
     | `Xen  -> [ "tcpip.ethif" ]
 
   let configure t =
@@ -932,7 +937,7 @@ module IPV4 = struct
 
   let libraries t  =
     (match !mode with
-     | `Unix -> [ "tcpip.ipv4-unix" ]
+     | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
      | `Xen  -> [ "tcpip.ipv4" ])
     @ Impl.libraries t.ethernet
 
@@ -1040,7 +1045,7 @@ module UDPV4_socket = struct
 
   let libraries t =
     match !mode with
-    | `Unix -> [ "tcpip.udpv4-socket" ]
+    | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
   let configure t =
@@ -1150,7 +1155,7 @@ module TCPV4_socket = struct
 
   let libraries t =
     match !mode with
-    | `Unix -> [ "tcpip.tcpv4-socket" ]
+    | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
   let configure t =
@@ -1467,18 +1472,19 @@ module VCHAN_xenstore = struct
   let packages t =
     match !mode with
     |`Xen -> [ "vchan"; "mirage-xen"; "xen-evtchn"; "xen-gnt" ]
-    |`Unix -> [ "vchan"; "xen-evtchn"; "xen-gnt"]
+    |`Unix | `MacOSX -> [ "vchan"; "xen-evtchn"; "xen-gnt"]
+    (* TODO: emit a failure on MacOSX? *)
 
   let libraries t =
     match !mode with
     |`Xen -> [ "conduit.mirage-xen" ]
-    |`Unix -> [ "vchan" ]
+    |`Unix | `MacOSX-> [ "vchan" ]
 
   let configure t =
     let m =
       match !mode with
       |`Xen -> "Conduit_xenstore"
-      |`Unix -> "Vchan_lwt_unix.M"
+      |`Unix | `MacOSX -> "Vchan_lwt_unix.M"
     in
     append_main "module %s = %s" (module_name t) m;
     newline_main ();
@@ -1504,7 +1510,7 @@ let vchan_xen ?(uuid="localhost") () =
 let vchan_default ?uuid () =
   match !mode with
   | `Xen -> vchan_xen ?uuid ()
-  | `Unix -> vchan_localhost ?uuid ()
+  | `Unix | `MacOSX -> vchan_localhost ?uuid ()
 
 module Conduit = struct
   type t =
@@ -1596,7 +1602,7 @@ module Resolver_unix = struct
 
   let packages t =
     match !mode with
-    |`Unix -> [ "mirage-conduit" ]
+    |`Unix | `MacOSX -> [ "mirage-conduit" ]
     |`Xen -> failwith "Resolver_unix not supported on Xen"
 
   let libraries t =
@@ -1822,7 +1828,7 @@ module Tracing = struct
 
   let libraries _ =
     match !mode with
-    | `Unix -> StringSet.singleton "mirage-profile.unix"
+    | `Unix | `MacOSX -> StringSet.singleton "mirage-profile.unix"
     | `Xen  -> StringSet.singleton "mirage-profile.xen"
 
   let configure t =
@@ -1834,7 +1840,7 @@ module Tracing = struct
 
     append_main "let () = ";
     begin match !mode with
-    | `Unix ->
+    | `Unix | `MacOSX ->
         append_main "  let buffer = MProf_unix.mmap_buffer ~size:%d %S in" t.size unix_trace_file;
         append_main "  let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in";
         append_main "  MProf.Trace.Control.start trace_config";
@@ -1898,7 +1904,7 @@ let add_to_opam_packages p =
 
 let packages t =
   let m = match !mode with
-    | `Unix -> "mirage-unix"
+    | `Unix | `MacOSX -> "mirage-unix"
     | `Xen  -> "mirage-xen" in
   let ps = StringSet.add m !ps in
   let ps = match t.tracing with
@@ -1917,7 +1923,7 @@ let add_to_ocamlfind_libraries l =
 
 let libraries t =
   let m = match !mode with
-    | `Unix -> "mirage-types.lwt"
+    | `Unix | `MacOSX -> "mirage-types.lwt"
     | `Xen  -> "mirage-types.lwt" in
   let ls = StringSet.add m !ls in
   let ls = match t.tracing with
@@ -2142,12 +2148,16 @@ let configure_makefile t =
   newline oc;
   append oc "LIBS   = %s" libraries_str;
   append oc "PKGS   = %s" packages;
-  append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
   begin match !mode with
     | `Xen  ->
+      append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
       append oc "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
+      append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
+      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+    | `MacOSX ->
+      append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal,thread\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
@@ -2205,7 +2215,7 @@ let configure_makefile t =
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"
         extra_c_archives pkg_config_deps generate_image;
-    | `Unix ->
+    | `Unix | `MacOSX ->
       append oc "build: main.native";
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
@@ -2215,7 +2225,7 @@ let configure_makefile t =
     | `Xen ->
       append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
       append oc "\t@echo Then do something similar to: xl create -c %s.xl\n" t.name
-    | `Unix ->
+    | `Unix | `MacOSX ->
       append oc "\t$(SUDO) ./mir-%s\n" t.name
   end;
   append oc "clean:\n\

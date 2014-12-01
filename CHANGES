@@ -1,7 +1,11 @@
-2.0.2 (trunk):
+2.0.2 (2014-12-01):
+* Add specific support for `MacOSX` as a platform, which enables network bridging
+  on Yosemite (#329).  If this breaks for you due to being on an older version of
+  MacOS X, then pass the new `--no-macosx` flag to the `mirage configure` command.
 * Add `mirage.runtime` findlib library and corresponding Mirage_runtime module (#327).
 * If net driver in STACKV4_direct can't initialize, print a helpful error (#164).
 * [xen]: fixed link order in generated Makefile (#322).
+* Make `Lwt.tracing` instructions work for Fish shell too by improving quoting (#328).
 
 2.0.1 (2014-11-21):
 * Add `register ~tracing` to enable tracing with mirage-profile at start-up (#321).

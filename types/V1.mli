@@ -614,12 +614,14 @@ module type STACKV4 = sig
      and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = udpv4
+     and type ip = ipv4
 
   module TCPV4 : TCP
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = tcpv4
+     and type ip = ipv4
 
   module IPV4 : IPV4
     with type +'a io = 'a io

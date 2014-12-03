@@ -50,7 +50,7 @@ type mode = [
   | `MacOSX
 ]
 
-let mode = ref `Unix
+let mode : mode ref = ref `Unix
 
 let set_mode m =
   mode := m

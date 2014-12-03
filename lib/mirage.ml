@@ -50,7 +50,7 @@ type mode = [
   | `MacOSX
 ]
 
-let mode = ref `Unix
+let mode : mode ref = ref `Unix
 
 let set_mode m =
   mode := m
@@ -1011,7 +1011,7 @@ module IPV6 = struct
 
   let libraries t  =
     (match !mode with
-     | `Unix -> [ "tcpip.ipv6-unix" ]
+     | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
      | `Xen  -> [ "tcpip.ipv6" ])
     @ Impl.libraries t.time @ Impl.libraries t.clock @ Impl.libraries t.ethernet
 

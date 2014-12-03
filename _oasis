@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        mirage
-Version:     2.1.0
+Version:     2.0.2
 Synopsis:    Mirage configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC
@@ -13,6 +13,12 @@ Library mirage
   Findlibname:        mirage
   Modules:            Mirage, Mirage_misc
   BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt
+
+Library "mirage-runtime"
+  Path:               lib
+  Findlibname:        runtime
+  Modules:            Mirage_runtime
+  Findlibparent:      mirage
 
 Executable mirage
   CompiledObject:     best

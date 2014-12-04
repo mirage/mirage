@@ -290,22 +290,27 @@ val direct_stackv4_with_default_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  console impl -> network impl -> stackv4 impl
+  ?console:console impl ->
+  ?network:network impl ->
+  unit -> stackv4 impl
 
 val direct_stackv4_with_static_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  console impl -> network impl -> ipv4_config -> stackv4 impl
+  ?console:console impl ->
+  ?network:network impl ->
+  ipv4_config -> stackv4 impl
 
 val direct_stackv4_with_dhcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  console impl -> network impl -> stackv4 impl
+  ?console:console impl ->
+  ?network:network impl ->
+  unit -> stackv4 impl
 
-val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
-
+val socket_stackv4: ?console:console impl -> Ipaddr.V4.t list -> stackv4 impl
 
 (** {Channel configuration} *)
 

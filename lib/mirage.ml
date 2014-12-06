@@ -2178,13 +2178,11 @@ let configure_makefile t =
         |> String.concat " \\\n\t  " in
 
       append oc "build: main.native.o";
-      let pkg_config_deps = "openlibm 'libminios-xen >= 0.4.2'" in
+      let pkg_config_deps = "mirage-xen" in
       append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append oc "\tld -d -static -nostdlib \\\n\
                  \t  _build/main.native.o \\\n\
                  \t  %s \\\n\
-                 \t  $(XENLIB)/libocaml.a \\\n\
-                 \t  $(XENLIB)/libxencaml.a \\\n\
                  \t  $$(pkg-config --static --libs %s) \\\n\
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"

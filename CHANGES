@@ -1,7 +1,9 @@
-2.0.2 (2014-12-01):
+2.1.0 (2014-12-07):
 * Add specific support for `MacOSX` as a platform, which enables network bridging
-  on Yosemite (#329).  If this breaks for you due to being on an older version of
-  MacOS X, then pass the new `--no-macosx` flag to the `mirage configure` command.
+  on Yosemite (#329).  The `--unix` flag will automatically activate the new target
+  if run on a MacOS X host.  If this breaks for you due to being on an older version of
+  MacOS X, then use the new `--target` flag to set either Unix, MacOSX or Xen to the
+  `mirage configure` command.
 * Add `mirage.runtime` findlib library and corresponding Mirage_runtime module (#327).
 * If net driver in STACKV4_direct can't initialize, print a helpful error (#164).
 * [xen]: fixed link order in generated Makefile (#322).

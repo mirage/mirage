@@ -2098,42 +2098,16 @@ let clean_main_xe t =
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
 let get_extra_ld_flags ~filter pkgs =
-  (* Query ocamlfind to get all the cmxa archives we're using. *)
-  let ocaml_archives = read_command
-    "ocamlfind query -r -separator ' ' -format %%d/%%a -predicates native %s"
+  let output = read_command
+    "ocamlfind query -r -format '%%d\t%%(xen_linkopts)' -predicates native %s"
     (String.concat " " pkgs) in
-
-  let current_dir = ref None in
-  let ld_flags = ref [] in
-
-  let add_archives c_objects =
-    match !current_dir with
-    | None -> failwith "Missing File line in ocamlobjinfo output!"
-    | Some dir ->
-    let add_dir = lazy (ld_flags := ("-L" ^ dir) :: !ld_flags) in
-    split c_objects ' ' |> List.iter (fun arg ->
-      match after "-l" arg with
-      | None -> ()
-      | Some lib ->
-        if filter lib then (
-          Lazy.force add_dir;
-          ld_flags := arg :: !ld_flags
-        )
-    ) in
-
-  (* Use ocamlobjinfo to get the extra C objects needed by each cmxa.
-   * Note: we can't use compiler-libs here because it defines its own Config
-   * module, which conflicts with Mirage's use of config.ml *)
-  let output = read_command "ocamlobjinfo %s" ocaml_archives in
-  split output '\n' |> List.iter (fun line ->
-    match after "File " line with
-    | Some path -> current_dir := Some (Filename.dirname path)
-    | None ->
-    match after "Extra C object files: " line with
-    | Some args -> add_archives args
-    | None -> ()
-  );
-  List.rev !ld_flags
+  split output '\n'
+  |> List.fold_left (fun acc line ->
+    match cut_at line '\t' with
+    | None -> acc
+    | Some (dir, ldflags) -> Printf.sprintf "-L%s %s" dir ldflags :: acc
+  ) []
+  |> List.rev
 
 let configure_makefile t =
   let file = t.root / "Makefile" in
@@ -2204,13 +2178,11 @@ let configure_makefile t =
         |> String.concat " \\\n\t  " in
 
       append oc "build: main.native.o";
-      let pkg_config_deps = "openlibm 'libminios-xen >= 0.4.2'" in
+      let pkg_config_deps = "mirage-xen" in
       append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append oc "\tld -d -static -nostdlib \\\n\
                  \t  _build/main.native.o \\\n\
                  \t  %s \\\n\
-                 \t  $(XENLIB)/libocaml.a \\\n\
-                 \t  $(XENLIB)/libxencaml.a \\\n\
                  \t  $$(pkg-config --static --libs %s) \\\n\
                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                  %s"

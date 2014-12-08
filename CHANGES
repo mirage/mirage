@@ -1,3 +1,8 @@
+2.1.1 (2014-12-09):
+* Do not reuse the linker options when building Xen unikernels.  Instead, get
+  the linker options from the ocamlfind `xen_linkopts` variables (#332).
+  See tcpip.2.1.0 for a library that does this for a C binding.
+
 2.1.0 (2014-12-07):
 * Add specific support for `MacOSX` as a platform, which enables network bridging
   on Yosemite (#329).  The `--unix` flag will automatically activate the new target

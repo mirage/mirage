@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 8afb77d9899adc7dc5d5c7c4e9ed93ff)
-version = "2.1.0"
+# DO NOT EDIT (digest: d1eced3bc19e7c2ea24400662667c6de)
+version = "2.1.1"
 description = "Mirage configuration tool"
 requires = "ipaddr unix dynlink lwt mirage-types mirage-types.lwt"
 archive(byte) = "mirage.cma"
@@ -9,7 +9,7 @@ archive(native) = "mirage.cmxa"
 archive(native, plugin) = "mirage.cmxs"
 exists_if = "mirage.cma"
 package "runtime" (
- version = "2.1.0"
+ version = "2.1.1"
  description = "Mirage configuration tool"
  archive(byte) = "mirage-runtime.cma"
  archive(byte, plugin) = "mirage-runtime.cma"

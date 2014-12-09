@@ -1046,10 +1046,15 @@ module IPV6 = struct
     newline_main ()
 
   let clean t =
+    Impl.clean t.time;
+    Impl.clean t.clock;
     Impl.clean t.ethernet
 
   let update_path t root =
-    { t with ethernet = Impl.update_path t.ethernet root }
+    { t with
+      time = Impl.update_path t.time root;
+      clock = Impl.update_path t.clock root;
+      ethernet = Impl.update_path t.ethernet root }
 
 end
 

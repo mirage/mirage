@@ -224,7 +224,7 @@ val etif: network impl -> ethernet impl
 
 
 
-(** {2 IPV4 configuration. *)
+(** {2 IP configuration. *)
 
 (** Implementations of the [V1.IP] signature. *)
 

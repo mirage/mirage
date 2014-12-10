@@ -67,6 +67,7 @@ val in_dir: string -> (unit -> 'a) -> 'a
 
 val uname_s: unit -> string option
 val uname_m: unit -> string option
+val uname_r: unit -> string option
 
 (** {2 Display} *)
 

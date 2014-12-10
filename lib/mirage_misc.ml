@@ -254,6 +254,7 @@ let collect_output cmd =
 
 let uname_s () = collect_output "uname -s"
 let uname_m () = collect_output "uname -m"
+let uname_r () = collect_output "uname -r"
 
 let command_exists s =
   Sys.command ("which " ^ s ^ " > /dev/null") = 0

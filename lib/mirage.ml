@@ -50,6 +50,12 @@ type mode = [
   | `MacOSX
 ]
 
+let string_of_mode =
+  function
+  | `Unix -> "Unix"
+  | `Xen -> "Xen"
+  | `MacOSX -> "MacOS X"
+ 
 let mode : mode ref = ref `Unix
 
 let set_mode m =
@@ -2355,6 +2361,7 @@ let load file =
   let file = scan_conf file in
   let root = realpath (Filename.dirname file) in
   let file = root / Filename.basename file in
+  info "%s %s" (blue_s "Compiling for target:") (string_of_mode !mode);
   set_config_file file;
   compile_and_dynlink file;
   let t = registered () in

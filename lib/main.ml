@@ -51,7 +51,21 @@ let target =
 let mode unix xen target =
   let default_unix = 
     match Mirage_misc.uname_s () with
-    | Some "Darwin" -> `MacOSX
+    | Some "Darwin" -> begin
+      (* Only use MacOS-specific functionality from Yosemite upwards *)
+      let is_yosemite_or_higher = 
+        match Mirage_misc.uname_r () with
+        | None -> false
+        | Some vs ->
+           match Mirage_misc.split vs '.' with
+           | [] -> false
+           | hd::_ -> begin
+              let v = try int_of_string hd with _ -> 0 in
+              v >= 14
+           end
+      in
+      if is_yosemite_or_higher then `MacOSX else `Unix
+    end
     | _ -> `Unix
   in
   (** Specifying --target takes priority over other flags *)

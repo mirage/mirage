@@ -1,7 +1,7 @@
-2.1.1 (2014-12-09):
+2.1.1 (2014-12-10):
 * Do not reuse the Unix linker options when building Xen unikernels.  Instead,
   get the linker options from the ocamlfind `xen_linkopts` variables (#332).
-  See tcpip.2.1.0 for a library that does this for a C binding.
+  See `tcpip.2.1.0` for a library that does this for a C binding.
 * Only activate MacOS X compilation by default on 10.10 (Yosemite) or higher.
   Older revisions of MacOS X will use the generic Unix mode by default, since
   the `vmnet` framework requires Yosemite or higher.

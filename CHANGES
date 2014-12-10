@@ -5,6 +5,8 @@
 * Only activate MacOS X compilation by default on 10.10 (Yosemite) or higher.
   Older revisions of MacOS X will use the generic Unix mode by default, since
   the `vmnet` framework requires Yosemite or higher.
+* Do not run crunched filesystem modules through `camlp4`, which significantly
+  speeds up compilation on ARM platforms (from minutes to seconds!) (#299).
 
 2.1.0 (2014-12-07):
 * Add specific support for `MacOSX` as a platform, which enables network bridging

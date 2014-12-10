@@ -2131,13 +2131,16 @@ let configure_makefile t =
   begin match !mode with
     | `Xen  ->
       append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
+      append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
       append oc "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
       append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
+      append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
     | `MacOSX ->
       append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal,thread\"\n";
+      append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
   append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\

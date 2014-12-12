@@ -21,6 +21,8 @@ opam install cstruct ounit cmdliner ipaddr re lwt io-page xenstore xenstore_tran
 eval `opam config env`
 opam pin add mirage .
 opam pin add mirage-types .
+# temporary pin for ipv6
+opam pin add tcpip git://github.com/mirage/mirage-tcpip -n
 opam install mirage mirage-types
 
 export OPAMVERBOSE=1

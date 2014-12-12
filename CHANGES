@@ -1,3 +1,16 @@
+2.2.0 (trunk):
+* Add IPv6 support. This alters some of the interfaces that were previously
+  hardcoded to IPv4 by generalising them.  For example:
+
+```
+type v4
+type v6
+
+type 'a ip
+type ipv4 = v4 ip
+type ipv6 = v6 ip
+```
+
 2.1.1 (2014-12-10):
 * Do not reuse the Unix linker options when building Xen unikernels.  Instead,
   get the linker options from the ocamlfind `xen_linkopts` variables (#332).

@@ -1,4 +1,4 @@
-2.2.0 (trunk):
+2.2.0 (2014-12-18):
 * Add IPv6 support. This alters some of the interfaces that were previously
   hardcoded to IPv4 by generalising them.  For example:
 
@@ -10,6 +10,10 @@ type 'a ip
 type ipv4 = v4 ip
 type ipv6 = v6 ip
 ```
+
+Full support for configuring IPv6 does not exist yet, as this release is
+intended for getting the type definitions in place before adding configuration
+support.
 
 2.1.1 (2014-12-10):
 * Do not reuse the Unix linker options when building Xen unikernels.  Instead,

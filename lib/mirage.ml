@@ -2230,7 +2230,6 @@ let get_extra_ld_flags ~filter pkgs =
     | None -> acc
     | Some (dir, ldflags) -> Printf.sprintf "-L%s %s" dir ldflags :: acc
   ) []
-  |> List.rev
 
 let configure_makefile t =
   let file = t.root / "Makefile" in

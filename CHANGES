@@ -1,3 +1,7 @@
+2.2.1 (trunk):
+* Do not reverse the order of C libraries when linking.  This fixes Zarith
+  linking in Xen mode. (#341).
+
 2.2.0 (2014-12-18):
 * Add IPv6 support. This alters some of the interfaces that were previously
   hardcoded to IPv4 by generalising them.  For example:

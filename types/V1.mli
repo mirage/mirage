@@ -148,6 +148,9 @@ module type FLOW = sig
 
   type error
 
+  val error_message : error -> string
+  (** Convert an error to a human-readable message, suitable for logging. *)
+
   val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
   (** [read flow] will block until it either successfully reads a segment
       of data from the current flow, receives an [Eof] signifying that

@@ -354,11 +354,15 @@ val vchan_localhost : ?uuid:string -> unit -> vchan impl
 val vchan_xen : ?uuid:string -> unit -> vchan impl
 val vchan_default : ?uuid:string -> unit -> vchan impl
 
+(** {TLS configuration} *)
+type conduit_tls
+val tls_over_conduit : entropy impl -> conduit_tls impl
+
 (** {Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : ?vchan:vchan impl -> stackv4 impl -> conduit impl
+val conduit_direct : ?vchan:vchan impl -> ?tls:conduit_tls impl -> stackv4 impl -> conduit impl
 
 type conduit_client = [
   | `TCP of Ipaddr.t * int

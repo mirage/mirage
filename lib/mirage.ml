@@ -447,9 +447,9 @@ module Entropy = struct
   let name _ =
     "entropy"
 
-  let module_name _ = "Entropy"
+  let module_name () = "Entropy"
 
-  let construction _ =
+  let construction () =
     match !mode with
     | `Unix | `MacOSX -> "Entropy_unix"
     | `Xen  -> "Entropy_xen.Make(OS.Time)"
@@ -460,7 +460,8 @@ module Entropy = struct
     | (`Unix | `MacOSX) -> "()"
     | `Xen -> "`From_host"
 
-  let packages _ =
+  let packages () =
+    [ "nocrypto" ] @
     match !mode with
     | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
     | `Xen  -> [ "mirage-entropy-xen" ]
@@ -471,10 +472,14 @@ module Entropy = struct
     append_main "module %s = %s" (module_name t) (construction t) ;
     newline_main () ;
     append_main "let %s () =" (name t);
-    append_main "  %s.connect %s" (module_name t) (id t);
+    append_main "  %s.connect %s >>= function" (module_name t) (id t);
+    append_main "  | `Error e -> %s" (driver_initialisation_error "entropy");
+    append_main "  | `Ok entropy ->";
+    append_main "  %s.handler entropy Nocrypto.Rng.Accumulator.add_rr >>= fun () ->" (module_name t);
+    append_main "  return (`Ok entropy)";
     newline_main ()
 
-  let clean _ = ()
+  let clean () = ()
 
   let update_path t _ = t
 
@@ -1662,14 +1667,74 @@ let vchan_default ?uuid () =
   | `Xen -> vchan_xen ?uuid ()
   | `Unix | `MacOSX -> vchan_localhost ?uuid ()
 
+module TLS_over_conduit = struct
+  type t = entropy impl
+
+  let name t =
+    let key = "tls_with_" ^ Impl.name t in
+    Name.of_key key ~base:"tls"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    [ "tls" ] @ Impl.packages t
+
+  let libraries t =
+    [ "tls.mirage" ] @ Impl.libraries t
+
+  let configure t =
+    Impl.configure t;
+    append_main "module %s = Tls_mirage.Make(Conduit_mirage.Dynamic_flow)(%s)" (module_name t) (Impl.module_name t);
+    newline_main ();
+    append_main "let %s =" (name t);
+    append_main "  %s () >>= function" (Impl.name t);
+    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name t));
+    append_main "  | `Ok _entropy ->";
+    append_main "  return (`Ok ())";
+    newline_main ()
+
+  let clean t =
+    Impl.clean t
+
+  let update_path t root =
+    Impl.update_path t root
+end
+
+module TLS_none = struct
+  type t = unit
+
+  let name () = "tls_none"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages () = []
+  let libraries () = []
+
+  let configure t =
+    append_main "module %s = Conduit_mirage.No_TLS" (module_name t);
+    append_main "let %s = return (`Ok ())" (name t);
+    newline_main ()
+
+  let clean () = ()
+  let update_path () root = ()
+end
+
+type conduit_tls = Conduit_TLS
+let conduit_tls = Type Conduit_TLS
+
+let tls_over_conduit entropy = impl conduit_tls entropy (module TLS_over_conduit)
+let tls_none = impl conduit_tls () (module TLS_none)
+
 module Conduit = struct
   type t =
-    [ `Stack of stackv4 impl * vchan impl ]
+    [ `Stack of stackv4 impl * vchan impl * conduit_tls impl ]
 
   let name t =
     let key = "conduit" ^ match t with
-     | `Stack (s,v) ->
-          Printf.sprintf "%s_%s" (Impl.name s) (Impl.name v) in
+     | `Stack (s,v,tls) ->
+          Printf.sprintf "%s_%s_%s" (Impl.name s) (Impl.name v) (Impl.name tls) in
     Name.of_key key ~base:"conduit"
 
   let module_name_core t =
@@ -1681,42 +1746,46 @@ module Conduit = struct
   let packages t =
     [ "conduit"; "mirage-types"; "vchan" ] @
     match t with
-    | `Stack (s,v) -> Impl.packages s @ (Impl.packages v)
+    | `Stack (s,v,tls) -> Impl.packages s @ Impl.packages v @ Impl.packages tls
 
   let libraries t =
     [ "conduit.mirage" ] @
     match t with
-    | `Stack (s,v) -> Impl.libraries s @ (Impl.libraries v)
+    | `Stack (s,v,tls) -> Impl.libraries s @ Impl.libraries v @ Impl.libraries tls
 
   let configure t =
     begin match t with
-      | `Stack (s,v) ->
+      | `Stack (s,v,tls) ->
         Impl.configure s;
         Impl.configure v;
-        append_main "module %s = Conduit_mirage.Make(%s)(%s)"
-          (module_name_core t) (Impl.module_name s) (Impl.module_name v);
+        Impl.configure tls;
+        append_main "module %s = Conduit_mirage.Make(%s)(%s)(%s)"
+          (module_name_core t) (Impl.module_name s) (Impl.module_name v) (Impl.module_name tls);
     end;
     newline_main ();
     append_main "let %s () =" (name t);
-    let (stack_subname, vchan_subname) = match t with
-      | `Stack (s,v) -> Impl.name s, Impl.name v in
+    let (stack_subname, vchan_subname, tls_subname) = match t with
+      | `Stack (s,v,tls) -> Impl.name s, Impl.name v, Impl.name tls in
 
     append_main "  %s () >>= function" stack_subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error stack_subname);
     append_main "  | `Ok %s ->" stack_subname;
     append_main "  %s >>= fun %s ->" vchan_subname vchan_subname;
+    append_main "  %s >>= function" tls_subname;
+    append_main "  | `Error _  -> %s" (driver_initialisation_error tls_subname);
+    append_main "  | `Ok () ->";
     append_main "  %s.init ~peer:%s ~stack:%s () >>= fun %s ->"
       (module_name_core t) vchan_subname stack_subname (name t);
     append_main "  return (`Ok %s)" (name t);
     newline_main ()
 
   let clean = function
-    | `Stack (s,v) -> Impl.clean s; Impl.clean v
+    | `Stack (s,v,tls) -> Impl.clean s; Impl.clean v; Impl.clean tls
 
   let update_path t root =
     match t with
-    | `Stack (s,v) ->
-        `Stack ((Impl.update_path s root), (Impl.update_path v root))
+    | `Stack (s,v,tls) ->
+        `Stack ((Impl.update_path s root), (Impl.update_path v root), (Impl.update_path tls root))
 
 end
 
@@ -1724,8 +1793,8 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct ?(vchan=vchan_localhost ()) stack =
-  impl conduit (`Stack (stack,vchan)) (module Conduit)
+let conduit_direct ?(vchan=vchan_localhost ()) ?(tls=tls_none) stack =
+  impl conduit (`Stack (stack,vchan,tls)) (module Conduit)
 
 type conduit_client = [
   | `TCP of Ipaddr.t * int

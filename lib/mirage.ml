@@ -1358,21 +1358,23 @@ module STACKV4_direct = struct
     Impl.configure t.console;
     Impl.configure t.network;
     Impl.configure t.random;
-    append_main "module %s = struct" (module_name t);
-    append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
-    append_main "  module I = Ipv4.Make(E)";
-    append_main "  module U = Udp.Make(I)";
-    append_main "  module T = Tcp.Flow.Make(I)(%s)(%s)(%s)"
-      (Impl.module_name t.time)
-      (Impl.module_name t.clock)
-      (Impl.module_name t.random);
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(E)(I)(U)(T)"
+    let ethif_name = module_name t ^ "_E" in
+    let ipv4_name = module_name t ^ "_I" in
+    let udpv4_name = module_name t ^ "_U" in
+    let tcpv4_name = module_name t ^ "_T" in
+    append_main "module %s = Ethif.Make(%s)" ethif_name (Impl.module_name t.network);
+    append_main "module %s = Ipv4.Make(%s)" ipv4_name ethif_name;
+    append_main "module %s = Udp.Make (%s)" udpv4_name ipv4_name;
+    append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
+      tcpv4_name ipv4_name (Impl.module_name t.time)
+      (Impl.module_name t.clock) (Impl.module_name t.random);
+    append_main "module %s = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(%s)(%s)(%s)(%s)"
+      (module_name t)
       (Impl.module_name t.console)
       (Impl.module_name t.time)
       (Impl.module_name t.random)
-      (Impl.module_name t.network);
-    append_main "  include S";
-    append_main "end";
+      (Impl.module_name t.network)
+      ethif_name ipv4_name udpv4_name tcpv4_name;
     newline_main ();
     append_main "let %s () =" name;
     append_main "  %s () >>= function" (Impl.name t.console);
@@ -1393,7 +1395,19 @@ module STACKV4_direct = struct
       | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i);
     end;
     append_main "  } in";
-    append_main "  %s.connect config" (module_name t);
+    append_main "  %s.connect interface >>= function" ethif_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error ethif_name);
+    append_main "  | `Ok ethif ->";
+    append_main "  %s.connect ethif >>= function" ipv4_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error ipv4_name);
+    append_main "  | `Ok ipv4 ->";
+    append_main "  %s.connect ipv4 >>= function" udpv4_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error udpv4_name);
+    append_main "  | `Ok udpv4 ->";
+    append_main "  %s.connect ipv4 >>= function" tcpv4_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error tcpv4_name);
+    append_main "  | `Ok tcpv4 ->";
+    append_main "  %s.connect config ethif ipv4 udpv4 tcpv4" (module_name t);
     newline_main ()
 
   let clean t =

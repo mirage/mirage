@@ -40,7 +40,7 @@ let no_opam =
 let xen =
   mk_flag ["xen"] "Generate a Xen unikernel. Do not use in conjunction with --unix."
 let unix =
-  mk_flag ["unix"] "Use Unix backend. Do not use in conjunction with --xen.  On MacOS X, this will use platform-specific code to be generated.  To force pure Unix mode on MacOS X, set the $(b,-t) flag to $(i,macosx) instead."
+  mk_flag ["unix"] "Use Unix backend. Do not use in conjunction with --xen.  On MacOS X, this will use platform-specific code to be generated.  To force pure Unix mode on MacOS X, set the $(b,-t) flag to $(i,unix) instead."
 
 let target =
   let doc = "Target platform to compile the unikernel for.  Valid values are: $(i,xen), $(i,unix), $(i,macosx).  There are short forms available via $(b,--xen) and $(b,--unix) as well." in

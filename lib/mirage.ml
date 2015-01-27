@@ -2332,12 +2332,23 @@ let configure_makefile t =
 let clean_makefile t =
   remove (t.root / "Makefile")
 
+let no_opam_version_check_ = ref false
+let no_opam_version_check b = no_opam_version_check_ := b
+
 let configure_opam t =
   info "Installing OPAM packages.";
   match packages t with
   | [] -> ()
   | ps ->
-    if command_exists "opam" then opam "install" ps
+    if command_exists "opam" then
+      if !no_opam_version_check_ then ()
+      else (
+        let opam_version = read_command "opam --version" in
+        match split opam_version '.' with
+        | "1"::"2"::_ -> opam "install" ps
+        | _ -> error "Your version of opam: %s is not up-to-date. \
+                      Please update to 1.2." opam_version
+      )
     else error "OPAM is not installed."
 
 let clean_opam t =
@@ -2354,10 +2365,8 @@ let clean_opam t =
     else error "OPAM is not installed."
 *)
 
-let manage_opam = ref true
-
-let manage_opam_packages b =
-  manage_opam := b
+let manage_opam_packages_ = ref true
+let manage_opam_packages b = manage_opam_packages_ := b
 
 let configure_job j =
   let name = Impl.name j in
@@ -2401,7 +2410,7 @@ let configure t =
     (if List.length t.jobs = 1 then "" else "s")
     (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
-      if !manage_opam then configure_opam t;
+      if !manage_opam_packages_ then configure_opam t;
       configure_myocamlbuild_ml t;
       configure_makefile t;
       configure_main_xl t;
@@ -2430,7 +2439,7 @@ let run t =
 let clean t =
   info "Clean: %s" (blue_s (get_config_file ()));
   in_dir t.root (fun () ->
-      if !manage_opam then clean_opam t;
+      if !manage_opam_packages_ then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main_xl t;

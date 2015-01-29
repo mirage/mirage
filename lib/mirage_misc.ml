@@ -209,11 +209,18 @@ let command ?(redirect=true) fmt =
   Printf.kprintf (fun cmd ->
       info "%s %s" (yellow_s "=>") cmd;
       let redirect fn =
-        if redirect then
-          with_redirect stdout "log" (fun () ->
+        if redirect then (
+          let status =
+            with_redirect stdout "log" (fun () ->
               with_redirect stderr "log" fn
-            )
-        else (
+            ) in
+          if status <> 0 then (
+            let ic = open_in "log" in
+            try while true do error_msg !section "%s" (input_line ic) done;
+            with End_of_file -> ()
+          );
+          status
+        ) else (
           flush stdout;
           flush stderr;
           fn ()
@@ -221,11 +228,6 @@ let command ?(redirect=true) fmt =
       match redirect (fun () -> Sys.command cmd) with
       | 0 -> ()
       | i ->
-        let ic = open_in "log" in
-        begin
-          try while true do error_msg !section "%s" (input_line ic) done
-          with End_of_file -> ()
-        end;
         error "The command %S exited with code %d." cmd i;
     ) fmt
 

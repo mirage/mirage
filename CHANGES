@@ -1,6 +1,8 @@
-2.2.1 (trunk):
+2.2.1 (2015-01-29):
+* Fix logging errors when `mirage` output is not redirected. (#355)
 * Do not reverse the order of C libraries when linking.  This fixes Zarith
   linking in Xen mode. (#341).
+* Fix typos in command line help. (#352).
 
 2.2.0 (2014-12-18):
 * Add IPv6 support. This alters some of the interfaces that were previously

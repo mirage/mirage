@@ -1,10 +1,10 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name:        mirage
 Version:     2.2.1
 Synopsis:    Mirage configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC
-Plugins:     META (0.3)
+Plugins:     META (0.4)
 BuildTools:  ocamlbuild
 
 Library mirage

@@ -812,7 +812,7 @@ module type IO_PAGE = sig
   type buf
   (** Type of a C buffer (usually Cstruct) *)
 
-  type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  type t = private (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
   (** Type of memory blocks. *)
 
   val get : int -> t

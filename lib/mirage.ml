@@ -451,7 +451,7 @@ module Entropy = struct
 
   let construction _ =
     match !mode with
-    | `Unix | `MacOSX -> "Entropy_unix.Make (OS.Time)"
+    | `Unix | `MacOSX -> "Entropy_unix"
     | `Xen  -> "Entropy_xen.Make(OS.Time)"
 
   let id t =

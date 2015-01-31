@@ -442,19 +442,27 @@ let default_random: random impl =
 
 module Entropy = struct
 
-  type t = unit
+  type t = [ `Weak | `FromHost ]
 
   let name _ =
     "entropy"
 
-  let module_name () = "Entropy"
+  let module_name _ = "Entropy"
 
-  let construction () =
+  let construction _ =
     match !mode with
     | `Unix | `MacOSX -> "Entropy_unix.Make (OS.Time)"
-    | `Xen  -> "Entropy_xen"
+    | `Xen  -> "Entropy_xen.Make(OS.Time)"
 
-  let packages () =
+  let id t =
+    match !mode, t with
+    (* default on Unix is the system entropy source *)
+    | (`Unix | `MacOSX), _ -> "()"
+    (* Xen has multiple methods, with different system requirements *)
+    | `Xen, `Weak -> "`Weak"
+    | `Xen, `FromHost -> "`FromHost"
+
+  let packages _ =
     match !mode with
     | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
     | `Xen  -> [ "mirage-entropy-xen" ]
@@ -465,10 +473,10 @@ module Entropy = struct
     append_main "module %s = %s" (module_name t) (construction t) ;
     newline_main () ;
     append_main "let %s () =" (name t);
-    append_main "  %s.connect ()" (module_name t);
+    append_main "  %s.connect %s" (module_name t) (id t);
     newline_main ()
 
-  let clean () = ()
+  let clean _ = ()
 
   let update_path t _ = t
 
@@ -478,8 +486,13 @@ type entropy = ENTROPY
 
 let entropy = Type ENTROPY
 
+(* The default is to get real entropy from the host *)
 let default_entropy: entropy impl =
-  impl entropy () (module Entropy)
+  impl entropy `FromHost (module Entropy)
+
+(* If the app can tolerate weak entropy then use this *)
+let weak_entropy: entropy impl =
+  impl entropy `Weak (module Entropy)
 
 module Console = struct
 

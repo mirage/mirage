@@ -1470,7 +1470,13 @@ module STACKV4_socket = struct
     append_main "    console; interface = [%s];" (meta_ips t.ipv4s);
     append_main "    mode = ();";
     append_main "  } in";
-    append_main "  %s.connect config" (module_name t);
+    append_main "  Udpv4_socket.connect None >>= function";
+    append_main "  | `Error _ -> %s" (driver_initialisation_error "Udpv4_socket");
+    append_main "  | `Ok udpv4 ->";
+    append_main "  Tcpv4_socket.connect None >>= function";
+    append_main "  | `Error _ -> %s" (driver_initialisation_error "Tcpv4_socket");
+    append_main "  | `Ok tcpv4 ->";
+    append_main "  %s.connect config udpv4 tcpv4" (module_name t);
     newline_main ()
 
   let clean t =

@@ -42,6 +42,7 @@ module type ETHIF = ETHIF
 module type IP = IP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
+   and type uipaddr = Ipaddr.t
 
 (** IPv4 stack *)
 module type IPV4 = IPV4
@@ -49,6 +50,7 @@ module type IPV4 = IPV4
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V4.t
    and type prefix = Ipaddr.V4.t (* FIXME: Use Ipaddr.V4.Prefix.t *)
+   and type uipaddr = Ipaddr.t
 
 (** IPv6 stack *)
 module type IPV6 = IPV6
@@ -56,6 +58,7 @@ module type IPV6 = IPV6
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V6.t
    and type prefix = Ipaddr.V6.Prefix.t
+   and type uipaddr = Ipaddr.t
 
 (** UDP stack *)
 module type UDP = UDP

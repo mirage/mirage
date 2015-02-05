@@ -925,6 +925,7 @@ module IPV4 = struct
 
   type t = {
     ethernet: ethernet impl;
+    time: time impl;
     config  : ipv4_config;
   }
   (* XXX: should the type if ipv4.id be ipv4.t ?
@@ -950,8 +951,9 @@ module IPV4 = struct
     let name = name t in
     let mname = module_name t in
     Impl.configure t.ethernet;
-    append_main "module %s = Ipv4.Make(%s)"
-      (module_name t) (Impl.module_name t.ethernet);
+    Impl.configure t.time;
+    append_main "module %s = Ipv4.Make(%s)(%s)"
+      (module_name t) (Impl.module_name t.ethernet) (Impl.module_name t.time);
     newline_main ();
     append_main "let %s () =" name;
     append_main "   %s () >>= function" (Impl.name t.ethernet);
@@ -1077,10 +1079,11 @@ type ipv6 = v6 ip
 let ipv4 : ipv4 typ = ip
 let ipv6 : ipv6 typ = ip
 
-let create_ipv4 net config =
+let create_ipv4 ?(time = default_time) net config =
   let etif = etif net in
   let t = {
     IPV4.ethernet = etif;
+    time;
     config } in
   impl ipv4 t (module IPV4)
 
@@ -1360,7 +1363,7 @@ module STACKV4_direct = struct
     Impl.configure t.random;
     append_main "module %s = struct" (module_name t);
     append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
-    append_main "  module I = Ipv4.Make(E)";
+    append_main "  module I = Ipv4.Make(E)(%s)" (Impl.module_name t.time);
     append_main "  module U = Udp.Make(I)";
     append_main "  module T = Tcp.Flow.Make(I)(%s)(%s)(%s)"
       (Impl.module_name t.time)

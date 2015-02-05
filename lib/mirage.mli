@@ -252,7 +252,7 @@ type ('ipaddr, 'prefix) ip_config = {
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 (** Types for IPv4 manual configuration. *)
 
-val create_ipv4: network impl -> ipv4_config -> ipv4 impl
+val create_ipv4: ?time:time impl -> network impl -> ipv4_config -> ipv4 impl
 (** Use an IPv4 address. *)
 
 val default_ipv4: network impl -> ipv4 impl

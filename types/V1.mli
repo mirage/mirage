@@ -806,52 +806,6 @@ module type FS = sig
 
 end
 
-module type IO_PAGE = sig
-  (** Memory allocation interface. *)
-
-  type buf
-  (** Type of a C buffer (usually Cstruct) *)
-
-  type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-  (** Type of memory blocks. *)
-
-  val get : int -> t
-  (** [get n] allocates and returns a memory block of [n] pages. If
-      there is not enough memory, the unikernel will terminate. *)
-
-  val get_order : int -> t
-  (** [get_order i] is [get (1 lsl i)]. *)
-
-  val pages : int -> t list
-  (** [pages n] allocates a memory block of [n] pages and return the the
-      list of pages allocated. *)
-
-  val pages_order : int -> t list
-  (** [pages_order i] is [pages (1 lsl i)]. *)
-
-  val length : t -> int
-  (** [length t] is the size of [t], in bytes. *)
-
-  val to_cstruct : t -> buf
-  val to_string : t -> string
-
-  val to_pages : t -> t list
-  (** [to_pages t] is a list of [size] memory blocks of one page each,
-      where [size] is the size of [t] in pages. *)
-
-  val string_blit : string -> int -> t -> int -> int -> unit
-  (** [string_blit src srcoff dst dstoff len] copies [len] bytes from
-      string [src], starting at byte number [srcoff], to memory block
-      [dst], starting at byte number dstoff. *)
-
-  val blit : t -> t -> unit
-  (** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)
-
-  val round_to_page_size : int -> int
-  (** [round_to_page_size n] returns the number of bytes that will be
-      allocated for storing [n] bytes in memory *)
-end
-
 module type KV_RO = sig
   (** Static Key/value store. *)
 

@@ -42,6 +42,9 @@ let xen =
 let unix =
   mk_flag ["unix"] "Use Unix backend. Do not use in conjunction with --xen.  On MacOS X, this will use platform-specific code to be generated.  To force pure Unix mode on MacOS X, set the $(b,-t) flag to $(i,unix) instead."
 
+let no_opam_version_check =
+  mk_flag ["no-opam-version-check"] "Bypass the check of opam's version."
+
 let target =
   let doc = "Target platform to compile the unikernel for.  Valid values are: $(i,xen), $(i,unix), $(i,macosx).  There are short forms available via $(b,--xen) and $(b,--unix) as well." in
   let e = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ] in
@@ -49,11 +52,11 @@ let target =
 
 (* Select the operating mode from command line flags *)
 let mode unix xen target =
-  let default_unix = 
+  let default_unix =
     match Mirage_misc.uname_s () with
     | Some "Darwin" -> begin
       (* Only use MacOS-specific functionality from Yosemite upwards *)
-      let is_yosemite_or_higher = 
+      let is_yosemite_or_higher =
         match Mirage_misc.uname_r () with
         | None -> false
         | Some vs ->
@@ -95,14 +98,16 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen no_macosx no_opam file =
+  let configure unix xen no_macosx no_opam no_opam_version_check file =
     if unix && xen then `Help (`Pager, Some "configure")
     else (
       Mirage.manage_opam_packages (not no_opam);
+      Mirage.no_opam_version_check no_opam_version_check;
       Mirage.set_mode (mode unix xen no_macosx);
       let t = Mirage.load file in
       `Ok (Mirage.configure t)) in
-  Term.(ret (pure configure $ unix $ xen $ target $ no_opam $ file)),
+  Term.(ret (pure configure $ unix $ xen $ target $ no_opam $
+             no_opam_version_check $ file)),
   term_info "configure" ~doc ~man
 
 (* BUILD *)

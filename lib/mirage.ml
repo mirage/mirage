@@ -2259,7 +2259,7 @@ let configure_makefile t =
       append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
-  append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append oc "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam\n\n\
              export PKG_CONFIG_PATH=$(shell opam config var prefix)/lib/pkgconfig\n\n\
              export OPAMVERBOSE=1\n\

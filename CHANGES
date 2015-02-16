@@ -1,3 +1,5 @@
+* Don't put '-classic-display' in the generated Makefiles.
+
 2.2.1 (2015-01-29):
 * Fix logging errors when `mirage` output is not redirected. (#355)
 * Do not reverse the order of C libraries when linking.  This fixes Zarith

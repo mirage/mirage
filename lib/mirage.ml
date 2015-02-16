@@ -2344,10 +2344,16 @@ let configure_opam t =
       if !no_opam_version_check_ then ()
       else (
         let opam_version = read_command "opam --version" in
+        let version_error () =
+          error "Your version of opam: %s is not up-to-date. \
+                 Please update to (at least) 1.2." opam_version
+        in
         match split opam_version '.' with
-        | "1"::"2"::_ -> opam "install" ps
-        | _ -> error "Your version of opam: %s is not up-to-date. \
-                      Please update to 1.2." opam_version
+        | major::minor::_ ->
+          let major = try int_of_string major with Failure _ -> 0 in
+          let minor = try int_of_string minor with Failure _ -> 0 in
+          if (major, minor) >= (1, 2) then opam "install" ps else version_error ()
+        | _ -> version_error ()
       )
     else error "OPAM is not installed."
 

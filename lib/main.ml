@@ -178,7 +178,7 @@ let default =
   let doc = "Mirage application builder" in
   let man = [
     `S "DESCRIPTION";
-    `P "Mirage is a Mirage application builder. It glues together a set of libaries and configuration (e.g. network and storage) into a standalone unikernel or UNIX binary.";
+    `P "Mirage is a Mirage application builder. It glues together a set of libraries and configuration (e.g. network and storage) into a standalone unikernel or UNIX binary.";
     `P "Use either $(b,mirage <command> --help) or $(b,mirage help <command>) \
         for more information on a specific command.";
   ] @  help_sections

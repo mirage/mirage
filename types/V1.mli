@@ -412,11 +412,10 @@ module type IP = sig
   val writev: t -> buffer -> buffer list -> unit io
   (** [writev t frame bufs] writes the packet [frame :: bufs]. *)
 
-  val checksum : buffer -> buffer list -> int
-  (** [checksum frame bufs] computes the IP checksum of [bufs] computing the
-      pseudo-header from the actual header [frame].  It assumes that frame is of
-      the form returned by [allocate_frame], i.e., that it contains the link-layer
-      part. *)
+  val checksum : src:ipaddr -> dst:ipaddr -> proto:[`ICMP | `TCP | `UDP] -> buffer list -> int
+  (** [checksum ~src ~dst ~proto data] computes the IP checksum of
+      [data] computing the pseudo-header from the passed data [src],
+      [dst] and [proto]. *)
 
   val get_source : t -> dst:ipaddr -> ipaddr
   (** [get_source ip ~dst] is the source address to be used to send a packet to

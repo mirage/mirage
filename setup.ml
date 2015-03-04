@@ -4631,7 +4631,7 @@ module BaseDynVar = struct
 
   let init pkg =
     (* TODO: disambiguate exec vs other variable by adding exec_VARNAME. *)
-    (* TODO: provide compile option for library libary_byte_args_VARNAME... *)
+    (* TODO: provide compile option for library library_byte_args_VARNAME... *)
     List.iter
       (function
          | Executable (cs, bs, exec) ->

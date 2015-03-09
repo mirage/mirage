@@ -1,9 +1,12 @@
-2.3.0
-* Check that opam is at least version 1.2.0 (#355)
-* Don't put '-classic-display' in the generated Makefiles. (#364)
+2.3.0 (2015-03-10):
 * Remove the `IO_PAGE` module type from `V1`. This has now moved into the
   `io-page` pacakge (#356)
+* Remove `DEVICE.connect` from the `V1` module types.  When a module is
+  functorised over a `DEVICE` it should only have the ability to
+  *use* devices it is given, not to connect to new ones. (#150)
 * Support the `entropy` version 0.2+ interfaces. (#359)
+* Check that the `opam` command is at least version 1.2.0 (#355)
+* Don't put '-classic-display' in the generated Makefiles. (#364)
 
 2.2.1 (2015-01-29):
 * Fix logging errors when `mirage` output is not redirected. (#355)

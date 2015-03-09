@@ -439,6 +439,20 @@ module type IP = sig
 
   val get_ip_gateways: t -> ipaddr list
   (** Get the IP gateways associated with this interface. *)
+
+  type uipaddr
+  (** The type for universal IP addresses. It supports all the
+      possible versions. *)
+
+  val to_uipaddr: ipaddr -> uipaddr
+  (** Convert an IP address with a specific version (eg. V4) into a
+      universal IP address. *)
+
+  val of_uipaddr: uipaddr -> ipaddr option
+  (** Project a universal IP address into the version supported by the
+      current implementation. Return [None] if there is a version
+      mismatch. *)
+
 end
 
 module type IPV4 = sig

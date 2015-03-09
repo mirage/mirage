@@ -6,7 +6,7 @@ case "$OCAML_VERSION,$OPAM_VERSION" in
 4.00.1,1.2.0) ppa=avsm/ocaml40+opam12 ;;
 4.01.0,1.2.0) ppa=avsm/ocaml41+opam12 ;;
 4.02.1,1.2.0) ppa=avsm/ocaml42+opam12 ;;
-4.02.1,1.2.1) ppa=avsm/opam-ppa-experimental ;;
+4.02.1,1.2.1) ppa=avsm/ppa-opam-experimental ;;
 *) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
 esac
 

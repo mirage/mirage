@@ -3,6 +3,7 @@
 * Don't put '-classic-display' in the generated Makefiles. (#364)
 * Remove the `IO_PAGE` module type from `V1`. This has now moved into the
   `io-page` pacakge (#356)
+* Support the `entropy` version 0.2+ interfaces. (#359)
 
 2.2.1 (2015-01-29):
 * Fix logging errors when `mirage` output is not redirected. (#355)

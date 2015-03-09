@@ -442,7 +442,7 @@ let default_random: random impl =
 
 module Entropy = struct
 
-  type t = [ `Weak | `FromHost ]
+  type t = unit
 
   let name _ =
     "entropy"
@@ -455,12 +455,10 @@ module Entropy = struct
     | `Xen  -> "Entropy_xen.Make(OS.Time)"
 
   let id t =
-    match !mode, t with
+    match !mode with
     (* default on Unix is the system entropy source *)
-    | (`Unix | `MacOSX), _ -> "()"
-    (* Xen has multiple methods, with different system requirements *)
-    | `Xen, `Weak -> "`Weak"
-    | `Xen, `FromHost -> "`FromHost"
+    | (`Unix | `MacOSX) -> "()"
+    | `Xen -> "`FromHost"
 
   let packages _ =
     match !mode with
@@ -488,11 +486,7 @@ let entropy = Type ENTROPY
 
 (* The default is to get real entropy from the host *)
 let default_entropy: entropy impl =
-  impl entropy `FromHost (module Entropy)
-
-(* If the app can tolerate weak entropy then use this *)
-let weak_entropy: entropy impl =
-  impl entropy `Weak (module Entropy)
+  impl entropy () (module Entropy)
 
 module Console = struct
 

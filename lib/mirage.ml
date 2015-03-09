@@ -2372,8 +2372,9 @@ let configure_opam t =
       else (
         let opam_version = read_command "opam --version" in
         let version_error () =
-          error "Your version of opam: %s is not up-to-date. \
-                 Please update to (at least) 1.2." opam_version
+          error "Your version of OPAM (%s) is not recent enough. \
+                 Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
+                 You can pass the `--no-opam-version-check` flag to force its use." opam_version
         in
         match split opam_version '.' with
         | major::minor::_ ->

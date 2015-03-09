@@ -458,7 +458,7 @@ module Entropy = struct
     match !mode with
     (* default on Unix is the system entropy source *)
     | (`Unix | `MacOSX) -> "()"
-    | `Xen -> "`FromHost"
+    | `Xen -> "`From_host"
 
   let packages _ =
     match !mode with

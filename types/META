@@ -1,11 +1,11 @@
-version = "2.2.1"
+version = "2.3.0"
 description = "Collection of module signatures for Mirage"
 archive(byte) = ""
 archive(byte, plugin) = ""
 archive(native) = ""
 exists_if = "V1.cmi"
 package "lwt" (
-  version = "2.2.0"
+  version = "2.3.0"
   description = "Lwt module signatures for Mirage"
   archive(byte) = ""
   archive(byte, plugin) = ""

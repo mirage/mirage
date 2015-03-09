@@ -27,18 +27,11 @@ module type DEVICE = sig
   (** The type representing the internal state of the device *)
 
   type error
-  (** An error signalled by the device, normally returned after a
-      connection attempt *)
+  (** An error signalled by the device *)
 
   type id
-  (** Type defining an identifier for this device that uniquely
-      identifies it among a device tree. *)
-
-  val id : t -> id
-  (** Return the identifier that was used to construct this device *)
-
-  val connect: id -> [ `Error of error | `Ok of t ] io
-  (** Connect to the device identified by [id] *)
+  (** This type is no longer used and will be removed once other
+   * modules stop using it in their type signatures. *)
 
   val disconnect : t -> unit io
   (** Disconnect from the device.  While this might take some

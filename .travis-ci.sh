@@ -17,14 +17,12 @@ export OPAMYES=1
 
 # when preparing a set of synchronised updates for a Mirage release:
 # for regular minor updates:
-opam init >/dev/null 2>&1
-opam remote add mirage-dev git://github.com/mirage/mirage-dev
+opam init git://github.com/ocaml/opam-repository >/dev/null 2>&1
+#opam remote add mirage-dev git://github.com/mirage/mirage-dev
 opam install cstruct ounit cmdliner ipaddr re lwt io-page xenstore xenstore_transport
 eval `opam config env`
 opam pin add mirage .
 opam pin add mirage-types .
-# temporary pin for ipv6
-opam pin add tcpip git://github.com/mirage/mirage-tcpip -n
 opam install mirage mirage-types
 
 export OPAMVERBOSE=1

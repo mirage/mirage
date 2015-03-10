@@ -5,7 +5,8 @@ case "$OCAML_VERSION,$OPAM_VERSION" in
 3.12.1,1.2.0) ppa=avsm/ocaml312+opam12 ;;
 4.00.1,1.2.0) ppa=avsm/ocaml40+opam12 ;;
 4.01.0,1.2.0) ppa=avsm/ocaml41+opam12 ;;
-4.02.0,1.2.0) ppa=avsm/ocaml42+opam12 ;;
+4.02.1,1.2.0) ppa=avsm/ocaml42+opam12 ;;
+4.02.1,1.2.1) ppa=avsm/ppa-opam-experimental ;;
 *) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
 esac
 
@@ -16,14 +17,12 @@ export OPAMYES=1
 
 # when preparing a set of synchronised updates for a Mirage release:
 # for regular minor updates:
-opam init >/dev/null 2>&1
-opam remote add mirage-dev git://github.com/mirage/mirage-dev
+opam init git://github.com/mirage/opam-repository#mirage-connect >/dev/null 2>&1
+#opam remote add mirage-dev git://github.com/mirage/mirage-dev
 opam install cstruct ounit cmdliner ipaddr re lwt io-page xenstore xenstore_transport
 eval `opam config env`
 opam pin add mirage .
 opam pin add mirage-types .
-# temporary pin for ipv6
-opam pin add tcpip git://github.com/mirage/mirage-tcpip -n
 opam install mirage mirage-types
 
 export OPAMVERBOSE=1

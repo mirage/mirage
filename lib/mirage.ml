@@ -447,14 +447,20 @@ module Entropy = struct
   let name _ =
     "entropy"
 
-  let module_name () = "Entropy"
+  let module_name _ = "Entropy"
 
-  let construction () =
+  let construction _ =
     match !mode with
-    | `Unix | `MacOSX -> "Entropy_unix.Make (OS.Time)"
-    | `Xen  -> "Entropy_xen"
+    | `Unix | `MacOSX -> "Entropy_unix"
+    | `Xen  -> "Entropy_xen.Make(OS.Time)"
 
-  let packages () =
+  let id t =
+    match !mode with
+    (* default on Unix is the system entropy source *)
+    | (`Unix | `MacOSX) -> "()"
+    | `Xen -> "`From_host"
+
+  let packages _ =
     match !mode with
     | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
     | `Xen  -> [ "mirage-entropy-xen" ]
@@ -465,10 +471,10 @@ module Entropy = struct
     append_main "module %s = %s" (module_name t) (construction t) ;
     newline_main () ;
     append_main "let %s () =" (name t);
-    append_main "  %s.connect ()" (module_name t);
+    append_main "  %s.connect %s" (module_name t) (id t);
     newline_main ()
 
-  let clean () = ()
+  let clean _ = ()
 
   let update_path t _ = t
 
@@ -478,6 +484,7 @@ type entropy = ENTROPY
 
 let entropy = Type ENTROPY
 
+(* The default is to get real entropy from the host *)
 let default_entropy: entropy impl =
   impl entropy () (module Entropy)
 
@@ -1361,21 +1368,24 @@ module STACKV4_direct = struct
     Impl.configure t.console;
     Impl.configure t.network;
     Impl.configure t.random;
-    append_main "module %s = struct" (module_name t);
-    append_main "  module E = Ethif.Make(%s)" (Impl.module_name t.network);
-    append_main "  module I = Ipv4.Make(E)(%s)" (Impl.module_name t.time);
-    append_main "  module U = Udp.Make(I)";
-    append_main "  module T = Tcp.Flow.Make(I)(%s)(%s)(%s)"
-      (Impl.module_name t.time)
-      (Impl.module_name t.clock)
-      (Impl.module_name t.random);
-    append_main "  module S = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(E)(I)(U)(T)"
+    let ethif_name = module_name t ^ "_E" in
+    let ipv4_name = module_name t ^ "_I" in
+    let udpv4_name = module_name t ^ "_U" in
+    let tcpv4_name = module_name t ^ "_T" in
+    append_main "module %s = Ethif.Make(%s)" ethif_name (Impl.module_name t.network);
+    append_main "module %s = Ipv4.Make(%s)(%s)" ipv4_name ethif_name
+      (Impl.module_name t.time);
+    append_main "module %s = Udp.Make (%s)" udpv4_name ipv4_name;
+    append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
+      tcpv4_name ipv4_name (Impl.module_name t.time)
+      (Impl.module_name t.clock) (Impl.module_name t.random);
+    append_main "module %s = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(%s)(%s)(%s)(%s)"
+      (module_name t)
       (Impl.module_name t.console)
       (Impl.module_name t.time)
       (Impl.module_name t.random)
-      (Impl.module_name t.network);
-    append_main "  include S";
-    append_main "end";
+      (Impl.module_name t.network)
+      ethif_name ipv4_name udpv4_name tcpv4_name;
     newline_main ();
     append_main "let %s () =" name;
     append_main "  %s () >>= function" (Impl.name t.console);
@@ -1396,7 +1406,19 @@ module STACKV4_direct = struct
       | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i);
     end;
     append_main "  } in";
-    append_main "  %s.connect config" (module_name t);
+    append_main "  %s.connect interface >>= function" ethif_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error ethif_name);
+    append_main "  | `Ok ethif ->";
+    append_main "  %s.connect ethif >>= function" ipv4_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error ipv4_name);
+    append_main "  | `Ok ipv4 ->";
+    append_main "  %s.connect ipv4 >>= function" udpv4_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error udpv4_name);
+    append_main "  | `Ok udpv4 ->";
+    append_main "  %s.connect ipv4 >>= function" tcpv4_name;
+    append_main "  | `Error _ -> %s" (driver_initialisation_error tcpv4_name);
+    append_main "  | `Ok tcpv4 ->";
+    append_main "  %s.connect config ethif ipv4 udpv4 tcpv4" (module_name t);
     newline_main ()
 
   let clean t =
@@ -1459,7 +1481,13 @@ module STACKV4_socket = struct
     append_main "    console; interface = [%s];" (meta_ips t.ipv4s);
     append_main "    mode = ();";
     append_main "  } in";
-    append_main "  %s.connect config" (module_name t);
+    append_main "  Udpv4_socket.connect None >>= function";
+    append_main "  | `Error _ -> %s" (driver_initialisation_error "Udpv4_socket");
+    append_main "  | `Ok udpv4 ->";
+    append_main "  Tcpv4_socket.connect None >>= function";
+    append_main "  | `Error _ -> %s" (driver_initialisation_error "Tcpv4_socket");
+    append_main "  | `Ok tcpv4 ->";
+    append_main "  %s.connect config udpv4 tcpv4" (module_name t);
     newline_main ()
 
   let clean t =
@@ -2262,7 +2290,7 @@ let configure_makefile t =
       append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
-  append oc "BUILD  = ocamlbuild -classic-display -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append oc "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam\n\n\
              export PKG_CONFIG_PATH=$(shell opam config var prefix)/lib/pkgconfig\n\n\
              export OPAMVERBOSE=1\n\
@@ -2335,12 +2363,30 @@ let configure_makefile t =
 let clean_makefile t =
   remove (t.root / "Makefile")
 
+let no_opam_version_check_ = ref false
+let no_opam_version_check b = no_opam_version_check_ := b
+
 let configure_opam t =
   info "Installing OPAM packages.";
   match packages t with
   | [] -> ()
   | ps ->
-    if command_exists "opam" then opam "install" ps
+    if command_exists "opam" then
+      if !no_opam_version_check_ then ()
+      else (
+        let opam_version = read_command "opam --version" in
+        let version_error () =
+          error "Your version of OPAM (%s) is not recent enough. \
+                 Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
+                 You can pass the `--no-opam-version-check` flag to force its use." opam_version
+        in
+        match split opam_version '.' with
+        | major::minor::_ ->
+          let major = try int_of_string major with Failure _ -> 0 in
+          let minor = try int_of_string minor with Failure _ -> 0 in
+          if (major, minor) >= (1, 2) then opam "install" ps else version_error ()
+        | _ -> version_error ()
+      )
     else error "OPAM is not installed."
 
 let clean_opam t =
@@ -2357,10 +2403,8 @@ let clean_opam t =
     else error "OPAM is not installed."
 *)
 
-let manage_opam = ref true
-
-let manage_opam_packages b =
-  manage_opam := b
+let manage_opam_packages_ = ref true
+let manage_opam_packages b = manage_opam_packages_ := b
 
 let configure_job j =
   let name = Impl.name j in
@@ -2404,7 +2448,7 @@ let configure t =
     (if List.length t.jobs = 1 then "" else "s")
     (String.concat ", " (List.map Impl.functor_name t.jobs));
   in_dir t.root (fun () ->
-      if !manage_opam then configure_opam t;
+      if !manage_opam_packages_ then configure_opam t;
       configure_myocamlbuild_ml t;
       configure_makefile t;
       configure_main_xl t;
@@ -2433,7 +2477,7 @@ let run t =
 let clean t =
   info "Clean: %s" (blue_s (get_config_file ()));
   in_dir t.root (fun () ->
-      if !manage_opam then clean_opam t;
+      if !manage_opam_packages_ then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
       clean_main_xl t;

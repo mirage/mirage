@@ -27,18 +27,11 @@ module type DEVICE = sig
   (** The type representing the internal state of the device *)
 
   type error
-  (** An error signalled by the device, normally returned after a
-      connection attempt *)
+  (** An error signalled by the device *)
 
   type id
-  (** Type defining an identifier for this device that uniquely
-      identifies it among a device tree. *)
-
-  val id : t -> id
-  (** Return the identifier that was used to construct this device *)
-
-  val connect: id -> [ `Error of error | `Ok of t ] io
-  (** Connect to the device identified by [id] *)
+  (** This type is no longer used and will be removed once other
+   * modules stop using it in their type signatures. *)
 
   val disconnect : t -> unit io
   (** Disconnect from the device.  While this might take some
@@ -147,6 +140,9 @@ module type FLOW = sig
       to an endpoint. *)
 
   type error
+
+  val error_message : error -> string
+  (** Convert an error to a human-readable message, suitable for logging. *)
 
   val read : flow -> [`Ok of buffer | `Eof | `Error of error ] io
   (** [read flow] will block until it either successfully reads a segment
@@ -443,6 +439,20 @@ module type IP = sig
 
   val get_ip_gateways: t -> ipaddr list
   (** Get the IP gateways associated with this interface. *)
+
+  type uipaddr
+  (** The type for universal IP addresses. It supports all the
+      possible versions. *)
+
+  val to_uipaddr: ipaddr -> uipaddr
+  (** Convert an IP address with a specific version (eg. V4) into a
+      universal IP address. *)
+
+  val of_uipaddr: uipaddr -> ipaddr option
+  (** Project a universal IP address into the version supported by the
+      current implementation. Return [None] if there is a version
+      mismatch. *)
+
 end
 
 module type IPV4 = sig
@@ -804,52 +814,6 @@ module type FS = sig
       filesystem [t] *)
   val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
 
-end
-
-module type IO_PAGE = sig
-  (** Memory allocation interface. *)
-
-  type buf
-  (** Type of a C buffer (usually Cstruct) *)
-
-  type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-  (** Type of memory blocks. *)
-
-  val get : int -> t
-  (** [get n] allocates and returns a memory block of [n] pages. If
-      there is not enough memory, the unikernel will terminate. *)
-
-  val get_order : int -> t
-  (** [get_order i] is [get (1 lsl i)]. *)
-
-  val pages : int -> t list
-  (** [pages n] allocates a memory block of [n] pages and return the the
-      list of pages allocated. *)
-
-  val pages_order : int -> t list
-  (** [pages_order i] is [pages (1 lsl i)]. *)
-
-  val length : t -> int
-  (** [length t] is the size of [t], in bytes. *)
-
-  val to_cstruct : t -> buf
-  val to_string : t -> string
-
-  val to_pages : t -> t list
-  (** [to_pages t] is a list of [size] memory blocks of one page each,
-      where [size] is the size of [t] in pages. *)
-
-  val string_blit : string -> int -> t -> int -> int -> unit
-  (** [string_blit src srcoff dst dstoff len] copies [len] bytes from
-      string [src], starting at byte number [srcoff], to memory block
-      [dst], starting at byte number dstoff. *)
-
-  val blit : t -> t -> unit
-  (** [blit t1 t2] is the same as {!Bigarray.Array1.blit}. *)
-
-  val round_to_page_size : int -> int
-  (** [round_to_page_size n] returns the number of bytes that will be
-      allocated for storing [n] bytes in memory *)
 end
 
 module type KV_RO = sig

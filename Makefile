@@ -1,9 +1,13 @@
+PREFIX ?= /usr/local
+NAME    = mirage
+VERSION = $(shell grep 'Version:' _oasis | sed 's/Version: *//')
+VFILE   = lib/mirage_version.ml
+
+CONF_FLAGS ?=
+
+
 .PHONY: all clean install build
 all: build test doc
-
-PREFIX ?= /usr/local
-NAME=mirage
-CONF_FLAGS ?=
 
 setup.bin: setup.ml
 	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
@@ -18,7 +22,7 @@ build-types:
 install-types:
 	./build true
 
-build: setup.data setup.bin
+build: setup.data setup.bin $(VFILE)
 	./setup.bin -build -classic-display
 
 doc: setup.data setup.bin
@@ -42,4 +46,7 @@ reinstall: setup.bin
 
 clean:
 	ocamlbuild -clean
-	rm -f setup.data setup.log setup.bin
+	rm -f setup.data setup.log setup.bin $(VFILE)
+
+$(VFILE): _oasis
+	echo "let current = \"$(VERSION)\"" > $@

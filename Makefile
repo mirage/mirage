@@ -7,7 +7,7 @@ CONF_FLAGS ?=
 
 
 .PHONY: all clean install build
-all: build test doc
+all: build
 
 setup.bin: setup.ml
 	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<

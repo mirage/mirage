@@ -25,7 +25,7 @@ install-types:
 build: setup.data setup.bin $(VFILE)
 	./setup.bin -build -classic-display
 
-doc: setup.data setup.bin
+doc: setup.data setup.bin build-types
 	./setup.bin -doc
 
 install: setup.bin

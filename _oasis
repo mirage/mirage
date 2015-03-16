@@ -26,3 +26,10 @@ Executable mirage
   MainIs:             main.ml
   Install:            true
   BuildDepends:       mirage,cmdliner
+
+Document "mirage"
+  Title:                Mirage docs
+  Type:                 OCamlbuild (0.4)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      lib
+  XOCamlbuildLibraries: mirage

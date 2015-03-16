@@ -2293,9 +2293,9 @@ let configure_makefile t =
              export OPAMYES=1";
   newline oc;
   append oc ".PHONY: all depend clean build main.native\n\
-             all: build\n\
+             all:: build\n\
              \n\
-             depend:\n\
+             depend::\n\
              \t$(OPAM) install $(PKGS) --verbose\n\
              \n\
              main.native:\n\
@@ -2329,7 +2329,7 @@ let configure_makefile t =
         get_extra_ld_flags ~filter pkgs
         |> String.concat " \\\n\t  " in
 
-      append oc "build: main.native.o";
+      append oc "build:: main.native.o";
       let pkg_config_deps = "mirage-xen" in
       append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append oc "\tld -d -static -nostdlib \\\n\
@@ -2352,7 +2352,7 @@ let configure_makefile t =
     | `Unix | `MacOSX ->
       append oc "\t$(SUDO) ./mir-%s\n" t.name
   end;
-  append oc "clean:\n\
+  append oc "clean::\n\
              \tocamlbuild -clean";
   close_out oc
 

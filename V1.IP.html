@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="V1.ETHIF.html">
+<link rel="next" href="V1.IPV4.html">
+<link rel="Up" href="V1.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Mirage" rel="Chapter" href="Mirage.html">
+<link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.IP</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="V1.ETHIF.html" title="V1.ETHIF">Previous</a>
+&nbsp;<a class="up" href="V1.html" title="V1">Up</a>
+&nbsp;<a class="post" href="V1.IPV4.html" title="V1.IPV4">Next</a>
+</div>
+<h1>Module type <a href="type_V1.IP.html">V1.IP</a></h1>
+
+<pre><span class="keyword">module type</span> IP = <code class="code">sig</code> <a href="V1.IP.html">..</a> <code class="code">end</code></pre><hr width="100%">
+<br>
+An IP stack that parses Ethernet frames into IP packets<br>
+
+<pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
+<div class="info ">
+Abstract type for a memory buffer that may not be page aligned<br>
+</div>
+
+
+<pre><span id="TYPEethif"><span class="keyword">type</span> <code class="type"></code>ethif</span> </pre>
+<div class="info ">
+Abstract type for an Ethernet device.<br>
+</div>
+
+
+<pre><span id="TYPEipaddr"><span class="keyword">type</span> <code class="type"></code>ipaddr</span> </pre>
+<div class="info ">
+Abstract type for an IP address.<br>
+</div>
+
+
+<pre><span id="TYPEprefix"><span class="keyword">type</span> <code class="type"></code>prefix</span> </pre>
+<div class="info ">
+Abstract type for an IP prefix.<br>
+</div>
+
+
+<pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Unimplemented | `Unknown of string ]</code> </pre>
+<div class="info ">
+IO operation errors<br>
+</div>
+
+
+<pre><span class="keyword">include</span> <a href="V1.DEVICE.html">V1.DEVICE</a></pre>
+
+<pre><span id="TYPEcallback"><span class="keyword">type</span> <code class="type"></code>callback</span> = <code class="type">src:<a href="V1.IP.html#TYPEipaddr">ipaddr</a> -> dst:<a href="V1.IP.html#TYPEipaddr">ipaddr</a> -> <a href="V1.IP.html#TYPEbuffer">buffer</a> -> unit io</code> </pre>
+<div class="info ">
+An input continuation used by the parsing functions to pass on
+      an input packet down the stack.
+      <code class="code">callback ~src ~dst buf</code> will be called with <code class="code">src</code> and <code class="code">dst</code>
+      containing the source and destination IP address respectively,
+      and <code class="code">buf</code> will be a buffer pointing at the start of the IP
+      payload.<br>
+</div>
+
+
+<pre><span id="VALinput"><span class="keyword">val</span> input</span> : <code class="type">t -><br>       tcp:<a href="V1.IP.html#TYPEcallback">callback</a> -><br>       udp:<a href="V1.IP.html#TYPEcallback">callback</a> -><br>       default:(proto:int -> <a href="V1.IP.html#TYPEcallback">callback</a>) -> <a href="V1.IP.html#TYPEbuffer">buffer</a> -> unit io</code></pre><div class="info ">
+<code class="code">input ~tcp ~udp ~default ip buf</code> demultiplexes an incoming <code class="code">buffer</code> that
+      contains an IP frame.  It examines the protocol header and passes the result
+      onto either the <code class="code">tcp</code> or <code class="code">udp</code> function, or the <code class="code">default</code> function for
+      unknown IP protocols.<br>
+</div>
+
+<pre><span id="VALallocate_frame"><span class="keyword">val</span> allocate_frame</span> : <code class="type">t -> dst:<a href="V1.IP.html#TYPEipaddr">ipaddr</a> -> proto:[ `ICMP | `TCP | `UDP ] -> <a href="V1.IP.html#TYPEbuffer">buffer</a> * int</code></pre><div class="info ">
+<code class="code">allocate_frame t ~dst ~proto</code> retrurns a pair <code class="code">(pkt, len)</code> such that
+      <code class="code">Cstruct.sub pkt 0 len</code> is the IP header (including the link layer part) of a
+      packet going to <code class="code">dst</code> for protocol <code class="code">proto</code>.  The space in <code class="code">pkt</code> after the
+      first <code class="code">len</code> bytes can be used by the client.<br>
+</div>
+
+<pre><span id="VALwrite"><span class="keyword">val</span> write</span> : <code class="type">t -> <a href="V1.IP.html#TYPEbuffer">buffer</a> -> <a href="V1.IP.html#TYPEbuffer">buffer</a> -> unit io</code></pre><div class="info ">
+<code class="code">write t frame buf</code> writes the packet <code class="code">frame :: buf :: []</code> to the
+      address <code class="code">dst</code>.<br>
+</div>
+
+<pre><span id="VALwritev"><span class="keyword">val</span> writev</span> : <code class="type">t -> <a href="V1.IP.html#TYPEbuffer">buffer</a> -> <a href="V1.IP.html#TYPEbuffer">buffer</a> list -> unit io</code></pre><div class="info ">
+<code class="code">writev t frame bufs</code> writes the packet <code class="code">frame :: bufs</code>.<br>
+</div>
+
+<pre><span id="VALchecksum"><span class="keyword">val</span> checksum</span> : <code class="type"><a href="V1.IP.html#TYPEbuffer">buffer</a> -> <a href="V1.IP.html#TYPEbuffer">buffer</a> list -> int</code></pre><div class="info ">
+<code class="code">checksum frame bufs</code> computes the IP checksum of <code class="code">bufs</code> computing the
+      pseudo-header from the actual header <code class="code">frame</code>.  It assumes that frame is of
+      the form returned by <code class="code">allocate_frame</code>, i.e., that it contains the link-layer
+      part.<br>
+</div>
+
+<pre><span id="VALget_source"><span class="keyword">val</span> get_source</span> : <code class="type">t -> dst:<a href="V1.IP.html#TYPEipaddr">ipaddr</a> -> <a href="V1.IP.html#TYPEipaddr">ipaddr</a></code></pre><div class="info ">
+<code class="code">get_source ip ~dst</code> is the source address to be used to send a packet to
+      <code class="code">dst</code>.<br>
+</div>
+
+<pre><span id="VALset_ip"><span class="keyword">val</span> set_ip</span> : <code class="type">t -> <a href="V1.IP.html#TYPEipaddr">ipaddr</a> -> unit io</code></pre><div class="info ">
+Set the IP address associated with this interface.  For IPv4, currently
+      only supports a single IPv4 address, and aliases will be added in a future
+      revision.<br>
+</div>
+
+<pre><span id="VALget_ip"><span class="keyword">val</span> get_ip</span> : <code class="type">t -> <a href="V1.IP.html#TYPEipaddr">ipaddr</a> list</code></pre><div class="info ">
+Get the IP addresses associated with this interface.<br>
+</div>
+
+<pre><span id="VALset_ip_netmask"><span class="keyword">val</span> set_ip_netmask</span> : <code class="type">t -> <a href="V1.IP.html#TYPEprefix">prefix</a> -> unit io</code></pre><div class="info ">
+Set an IP netmask associated with this interface.  For IPv4, currently
+      only supports a single IPv4 netmask, and aliases will be added in a future
+      revision.<br>
+</div>
+
+<pre><span id="VALget_ip_netmasks"><span class="keyword">val</span> get_ip_netmasks</span> : <code class="type">t -> <a href="V1.IP.html#TYPEprefix">prefix</a> list</code></pre><div class="info ">
+Get the IP netmasks associated with this interface.<br>
+</div>
+
+<pre><span id="VALset_ip_gateways"><span class="keyword">val</span> set_ip_gateways</span> : <code class="type">t -> <a href="V1.IP.html#TYPEipaddr">ipaddr</a> list -> unit io</code></pre><div class="info ">
+Set an IP gateways associated with this interface.<br>
+</div>
+
+<pre><span id="VALget_ip_gateways"><span class="keyword">val</span> get_ip_gateways</span> : <code class="type">t -> <a href="V1.IP.html#TYPEipaddr">ipaddr</a> list</code></pre><div class="info ">
+Get the IP gateways associated with this interface.<br>
+</div>
+
+<pre><span id="TYPEuipaddr"><span class="keyword">type</span> <code class="type"></code>uipaddr</span> </pre>
+<div class="info ">
+The type for universal IP addresses. It supports all the
+      possible versions.<br>
+</div>
+
+
+<pre><span id="VALto_uipaddr"><span class="keyword">val</span> to_uipaddr</span> : <code class="type"><a href="V1.IP.html#TYPEipaddr">ipaddr</a> -> <a href="V1.IP.html#TYPEuipaddr">uipaddr</a></code></pre><div class="info ">
+Convert an IP address with a specific version (eg. V4) into a
+      universal IP address.<br>
+</div>
+
+<pre><span id="VALof_uipaddr"><span class="keyword">val</span> of_uipaddr</span> : <code class="type"><a href="V1.IP.html#TYPEuipaddr">uipaddr</a> -> <a href="V1.IP.html#TYPEipaddr">ipaddr</a> option</code></pre><div class="info ">
+Project a universal IP address into the version supported by the
+      current implementation. Return <code class="code">None</code> if there is a version
+      mismatch.<br>
+</div>
+</body></html>

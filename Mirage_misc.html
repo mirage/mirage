@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Mirage.html">
+<link rel="next" href="V1.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Mirage" rel="Chapter" href="Mirage.html">
+<link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Misc" rel="Section" href="#2_Misc">
+<link title="String utilities" rel="Section" href="#2_Stringutilities">
+<link title="Channels" rel="Section" href="#2_Channels">
+<link title="Command-line utilities" rel="Section" href="#2_Commandlineutilities">
+<link title="Display" rel="Section" href="#2_Display">
+<link title="Hash tables" rel="Section" href="#2_Hashtables">
+<title>Mirage_misc</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Mirage.html" title="Mirage">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="V1.html" title="V1">Next</a>
+</div>
+<h1>Module <a href="type_Mirage_misc.html">Mirage_misc</a></h1>
+
+<pre><span class="keyword">module</span> Mirage_misc: <code class="code">sig</code> <a href="Mirage_misc.html">..</a> <code class="code">end</code></pre><div class="info module top">
+Utility module.<br>
+</div>
+<hr width="100%">
+<br>
+<h2 id="2_Misc">Misc</h2><br>
+
+<pre><span id="VALgenerated_by_mirage"><span class="keyword">val</span> generated_by_mirage</span> : <code class="type">string</code></pre><div class="info ">
+The header string for every generated file.<br>
+</div>
+
+<pre><span id="VALocaml_version"><span class="keyword">val</span> ocaml_version</span> : <code class="type">unit -> int * int</code></pre><div class="info ">
+The version of the current OCaml compiler.<br>
+</div>
+
+<pre><span id="VAL(/)"><span class="keyword">val</span> (/)</span> : <code class="type">string -> string -> string</code></pre><div class="info ">
+Same as <code class="code">Filename.concat</code>.<br>
+</div>
+<br>
+<h2 id="2_Stringutilities">String utilities</h2><br>
+
+<pre><span id="VALstrip"><span class="keyword">val</span> strip</span> : <code class="type">string -> string</code></pre><div class="info ">
+Remove heading and trailing spaces.<br>
+</div>
+
+<pre><span id="VALcut_at"><span class="keyword">val</span> cut_at</span> : <code class="type">string -> char -> (string * string) option</code></pre><div class="info ">
+Cut at the first occurence of a given character.<br>
+</div>
+
+<pre><span id="VALsplit"><span class="keyword">val</span> split</span> : <code class="type">string -> char -> string list</code></pre><div class="info ">
+Split at each occurence of the given character.<br>
+</div>
+
+<pre><span id="VALafter"><span class="keyword">val</span> after</span> : <code class="type">string -> string -> string option</code></pre><div class="info ">
+<code class="code">after prefix s</code> returns the part of <code class="code">s</code> after <code class="code">prefix</code>,
+ * if <code class="code">s</code> starts with <code class="code">prefix</code>.<br>
+</div>
+<br>
+<h2 id="2_Channels">Channels</h2><br>
+
+<pre><span id="VALappend"><span class="keyword">val</span> append</span> : <code class="type">Pervasives.out_channel -> ('a, unit, string, unit) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALnewline"><span class="keyword">val</span> newline</span> : <code class="type">Pervasives.out_channel -> unit</code></pre><br>
+<h2 id="2_Commandlineutilities">Command-line utilities</h2><br>
+
+<pre><span id="VALcommand_exists"><span class="keyword">val</span> command_exists</span> : <code class="type">string -> bool</code></pre>
+<pre><span id="VALcommand"><span class="keyword">val</span> command</span> : <code class="type">?redirect:bool -> ('a, unit, string, unit) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALread_command"><span class="keyword">val</span> read_command</span> : <code class="type">('a, unit, string, string) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALremove"><span class="keyword">val</span> remove</span> : <code class="type">string -> unit</code></pre>
+<pre><span id="VALrealpath"><span class="keyword">val</span> realpath</span> : <code class="type">string -> string</code></pre>
+<pre><span id="VALopam"><span class="keyword">val</span> opam</span> : <code class="type">string -> ?switch:string -> string list -> unit</code></pre>
+<pre><span id="VALin_dir"><span class="keyword">val</span> in_dir</span> : <code class="type">string -> (unit -> 'a) -> 'a</code></pre>
+<pre><span id="VALuname_s"><span class="keyword">val</span> uname_s</span> : <code class="type">unit -> string option</code></pre>
+<pre><span id="VALuname_m"><span class="keyword">val</span> uname_m</span> : <code class="type">unit -> string option</code></pre>
+<pre><span id="VALuname_r"><span class="keyword">val</span> uname_r</span> : <code class="type">unit -> string option</code></pre><br>
+<h2 id="2_Display">Display</h2><br>
+
+<pre><span id="VALset_section"><span class="keyword">val</span> set_section</span> : <code class="type">string -> unit</code></pre>
+<pre><span id="VALget_section"><span class="keyword">val</span> get_section</span> : <code class="type">unit -> string</code></pre>
+<pre><span id="VALerror"><span class="keyword">val</span> error</span> : <code class="type">('a, unit, string, 'b) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALinfo"><span class="keyword">val</span> info</span> : <code class="type">('a, unit, string, unit) Pervasives.format4 -> 'a</code></pre>
+<pre><span id="VALblue_s"><span class="keyword">val</span> blue_s</span> : <code class="type">string -> string</code></pre>
+<pre><span id="VALyellow_s"><span class="keyword">val</span> yellow_s</span> : <code class="type">string -> string</code></pre><br>
+<h2 id="2_Hashtables">Hash tables</h2><br>
+
+<pre><span id="VALcofind"><span class="keyword">val</span> cofind</span> : <code class="type">('a, 'b) Hashtbl.t -> 'b -> 'a</code></pre><div class="info ">
+Can raise <code class="code">Not_found</code>.<br>
+</div>
+
+<pre><span id="VALfind_or_create"><span class="keyword">val</span> find_or_create</span> : <code class="type">('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b</code></pre><div class="info ">
+Find the value associated with a key in an hash-table or create a
+    new value if it the key is not already in there.<br>
+</div>
+
+<pre><span id="VALdump"><span class="keyword">val</span> dump</span> : <code class="type">(string, string) Hashtbl.t -> unit</code></pre><div class="info ">
+Dump the contents of a hash table to stderr.<br>
+</div>
+
+<pre><span id="VALdedup"><span class="keyword">val</span> dedup</span> : <code class="type">string list -> string list</code></pre><div class="info ">
+Deduplicate the list elements. Return an ordered list.<br>
+</div>
+</body></html>

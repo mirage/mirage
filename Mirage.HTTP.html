@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Mirage.Channel_over_TCP.html">
+<link rel="next" href="Mirage.Job.html">
+<link rel="Up" href="Mirage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Mirage" rel="Chapter" href="Mirage.html">
+<link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>Mirage.HTTP</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Mirage.Channel_over_TCP.html" title="Mirage.Channel_over_TCP">Previous</a>
+&nbsp;<a class="up" href="Mirage.html" title="Mirage">Up</a>
+&nbsp;<a class="post" href="Mirage.Job.html" title="Mirage.Job">Next</a>
+</div>
+<h1>Module <a href="type_Mirage.HTTP.html">Mirage.HTTP</a></h1>
+
+<pre><span class="keyword">module</span> HTTP: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><hr width="100%">
+<br>
+Signature for configurable devices.<br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+Abstract type for configurable devices.<br>
+</div>
+
+
+<pre><span id="VALname"><span class="keyword">val</span> name</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+Return the unique variable name holding the state of the given
+      device.<br>
+</div>
+
+<pre><span id="VALmodule_name"><span class="keyword">val</span> module_name</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+Return the name of the module implementing the given device.<br>
+</div>
+
+<pre><span id="VALpackages"><span class="keyword">val</span> packages</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> string list</code></pre><div class="info ">
+Return the list of OPAM packages which needs to be installed to
+      use the given device.<br>
+</div>
+
+<pre><span id="VALlibraries"><span class="keyword">val</span> libraries</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> string list</code></pre><div class="info ">
+Return the list of ocamlfind libraries to link with the
+      application to use the given device.<br>
+</div>
+
+<pre><span id="VALconfigure"><span class="keyword">val</span> configure</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
+Configure the given device.<br>
+</div>
+
+<pre><span id="VALclean"><span class="keyword">val</span> clean</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
+Clean all the files generated to use the given device.<br>
+</div>
+
+<pre><span id="VALupdate_path"><span class="keyword">val</span> update_path</span> : <code class="type"><a href="Mirage.CONFIGURABLE.html#TYPEt">t</a> -> string -> <a href="Mirage.CONFIGURABLE.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">update_path t root</code> prefixes all the path appearing in <code class="code">t</code> with
+      the the prefix <code class="code">root</code>.<br>
+</div>
+</body></html>

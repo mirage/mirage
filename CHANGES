@@ -1,4 +1,6 @@
-master:
+2.4.0:
+* Call `opam depext` when configuring (#373)
+* Add opam files for `mirage` and `mirage-types` packages
 * Fix `mirage --version` (#374)
 * Add a `update-doc` target to the Makefile to easily update the online
   documentation at http://mirage.github.io/mirage/

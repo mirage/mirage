@@ -50,3 +50,9 @@ clean:
 
 $(VFILE): _oasis
 	echo "let current = \"$(VERSION)\"" > $@
+
+update-doc: doc
+	rm -f gh-pages/*.html
+	cd gh-pages && cp ../mirage.docdir/*.html .
+	cd gh-pages && git add * && git commit -a -m "Update docs"
+	cd gh-pages && git push

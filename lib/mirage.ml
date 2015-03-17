@@ -957,7 +957,7 @@ module IPV4 = struct
     let name = name t in
     let mname = module_name t in
     Impl.configure t.ethernet;
-    append_main "module %s = Ipv4.Make(%s)"
+    append_main "module %s = Ipv4.Make(%s)(Clock)(OS.Time)"
       (module_name t) (Impl.module_name t.ethernet);
     newline_main ();
     append_main "let %s () =" name;
@@ -1370,7 +1370,7 @@ module STACKV4_direct = struct
     let udpv4_name = module_name t ^ "_U" in
     let tcpv4_name = module_name t ^ "_T" in
     append_main "module %s = Ethif.Make(%s)" ethif_name (Impl.module_name t.network);
-    append_main "module %s = Ipv4.Make(%s)" ipv4_name ethif_name;
+    append_main "module %s = Ipv4.Make(%s)(Clock)(OS.Time)" ipv4_name ethif_name;
     append_main "module %s = Udp.Make (%s)" udpv4_name ipv4_name;
     append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
       tcpv4_name ipv4_name (Impl.module_name t.time)

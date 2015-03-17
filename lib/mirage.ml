@@ -2344,14 +2344,6 @@ let configure_makefile t =
       append oc "\tln -nfs _build/main.native mir-%s" t.name;
   end;
   newline oc;
-  append oc "run: build";
-  begin match !mode with
-    | `Xen ->
-      append oc "\t@echo %s.xl has been created. Edit it to add VIFs or VBDs" t.name;
-      append oc "\t@echo Then do something similar to: xl create -c %s.xl\n" t.name
-    | `Unix | `MacOSX ->
-      append oc "\t$(SUDO) ./mir-%s\n" t.name
-  end;
   append oc "clean::\n\
              \tocamlbuild -clean";
   close_out oc
@@ -2466,12 +2458,6 @@ let build t =
   info "Build: %s" (blue_s (get_config_file ()));
   in_dir t.root (fun () ->
       command "%s build" (make ())
-    )
-
-let run t =
-  info "Run: %s" (blue_s (get_config_file ()));
-  in_dir t.root (fun () ->
-      command "%s run" (make ())
     )
 
 let clean t =

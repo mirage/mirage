@@ -2387,7 +2387,11 @@ let configure_opam t =
         | major::minor::_ ->
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
-          if (major, minor) >= (1, 2) then opam "install" ps else version_error ()
+          if (major, minor) >= (1, 2) then (
+            opam "install" ["depext"];
+            opam ~yes:false "depext" ps;
+            opam "install" ps
+          ) else version_error ()
         | _ -> version_error ()
       )
     else error "OPAM is not installed."

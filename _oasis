@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name:        mirage
-Version:     2.3.0
+Version:     2.4.0
 Synopsis:    Mirage configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy, Dave Scott, Thomas Leonard
 License:     ISC
@@ -26,3 +26,10 @@ Executable mirage
   MainIs:             main.ml
   Install:            true
   BuildDepends:       mirage,cmdliner
+
+Document "mirage"
+  Title:                Mirage docs
+  Type:                 OCamlbuild (0.4)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      lib
+  XOCamlbuildLibraries: mirage

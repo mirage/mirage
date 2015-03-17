@@ -1,3 +1,10 @@
+2.4.0:
+* Call `opam depext` when configuring (#373)
+* Add opam files for `mirage` and `mirage-types` packages
+* Fix `mirage --version` (#374)
+* Add a `update-doc` target to the Makefile to easily update the online
+  documentation at http://mirage.github.io/mirage/
+
 2.3.0 (2015-03-10):
 * Remove the `IO_PAGE` module type from `V1`. This has now moved into the
   `io-page` pacakge (#356)

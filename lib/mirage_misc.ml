@@ -231,13 +231,14 @@ let command ?(redirect=true) fmt =
         error "The command %S exited with code %d." cmd i;
     ) fmt
 
-let opam cmd ?switch deps =
+let opam cmd ?(yes=true) ?switch deps =
   let deps_str = String.concat " " deps in
   (* Note: we don't redirect output to the log as installation can take a long time
    * and the user will want to see what is happening. *)
+  let yes = if yes then "--yes " else "" in
   match switch with
-  | None     -> command ~redirect:false "opam %s --yes %s" cmd deps_str
-  | Some cmp -> command ~redirect:false "opam %s --yes %s --switch=%s" cmd deps_str cmp
+  | None     -> command ~redirect:false "opam %s %s%s" cmd yes deps_str
+  | Some cmp -> command ~redirect:false "opam %s %s%s --switch=%s" cmd yes deps_str cmp
 
 let in_dir dir f =
   let pwd = Sys.getcwd () in

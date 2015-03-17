@@ -1,9 +1,13 @@
-.PHONY: all clean install build
-all: build test doc
-
 PREFIX ?= /usr/local
-NAME=mirage
+NAME    = mirage
+VERSION = $(shell grep 'Version:' _oasis | sed 's/Version: *//')
+VFILE   = lib/mirage_version.ml
+
 CONF_FLAGS ?=
+
+
+.PHONY: all clean install build
+all: build
 
 setup.bin: setup.ml
 	ocamlopt.opt -o $@ $< || ocamlopt -o $@ $< || ocamlc -o $@ $<
@@ -18,10 +22,10 @@ build-types:
 install-types:
 	./build true
 
-build: setup.data setup.bin
+build: setup.data setup.bin $(VFILE)
 	./setup.bin -build -classic-display
 
-doc: setup.data setup.bin
+doc: setup.data setup.bin build-types
 	./setup.bin -doc
 
 install: setup.bin
@@ -42,4 +46,13 @@ reinstall: setup.bin
 
 clean:
 	ocamlbuild -clean
-	rm -f setup.data setup.log setup.bin
+	rm -f setup.data setup.log setup.bin $(VFILE)
+
+$(VFILE): _oasis
+	echo "let current = \"$(VERSION)\"" > $@
+
+update-doc: doc
+	rm -f gh-pages/*.html
+	cd gh-pages && cp ../mirage.docdir/*.html .
+	cd gh-pages && git add * && git commit -a -m "Update docs"
+	cd gh-pages && git push

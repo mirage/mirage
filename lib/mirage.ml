@@ -2346,6 +2346,8 @@ let configure_makefile t =
   newline oc;
   append oc "clean::\n\
              \tocamlbuild -clean";
+  newline oc;
+  append oc "-include Makefile.user";
   close_out oc
 
 let clean_makefile t =

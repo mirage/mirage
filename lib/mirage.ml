@@ -1377,7 +1377,7 @@ module STACKV4_direct = struct
     let tcpv4_name = module_name t ^ "_T" in
     append_main "module %s = Ethif.Make(%s)" ethif_name (Impl.module_name t.network);
     append_main "module %s = Ipv4.Make(%s)(%s)(%s)" ipv4_name ethif_name
-      (Impl.module_name t.clock); (Impl.module_name t.time);
+      (Impl.module_name t.clock) (Impl.module_name t.time);
     append_main "module %s = Udp.Make (%s)" udpv4_name ipv4_name;
     append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
       tcpv4_name ipv4_name (Impl.module_name t.time)

@@ -947,7 +947,7 @@ module IPV4 = struct
     String.capitalize (name t)
 
   let packages t =
-    "tcpip" :: Impl.packages t.ethernet
+    "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet
 
   let libraries t  =
     (match !mode with

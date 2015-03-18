@@ -391,16 +391,18 @@ type job
 val job: job typ
 (** Reprensention of [JOB]. *)
 
-val register: ?tracing:tracing -> string -> job impl list -> unit
+val register: ?tracing:tracing -> ?bootvars:key list -> string -> job impl list -> unit
 (** [register name jobs] registers the application named by [name]
     which will executes the given [jobs].
-    @param tracing enables tracing if present (see {!mprof_trace}). *)
+    @param tracing enables tracing if present (see {!mprof_trace}).
+    @param bootvars passes user-defined config keys (which can be set on the command-line) *)
 
 type t = {
   name: string;
   root: string;
   jobs: job impl list;
   tracing: tracing option;
+  bootvars: key list
 }
 (** Type for values representing a project description. *)
 
@@ -468,7 +470,7 @@ val packages: t -> string list
 val libraries: t -> string list
 (** List of ocamlfind libraries. *)
 
-val add_to_bootvars: ?doc:string -> ?default:string -> string -> unit
+val bootvar: ?doc:string -> ?default:string -> string -> key
 
 val bootvars: t -> key list
 (** List of boot vars. *)

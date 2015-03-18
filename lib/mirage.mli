@@ -482,9 +482,6 @@ val clean: t -> unit
 val build: t -> unit
 (** Call [make build] in the right directory. *)
 
-val run: t -> unit
-(** call [make run] in the right directory. *)
-
 (** {2 Extensions} *)
 
 module type CONFIGURABLE = sig

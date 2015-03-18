@@ -1,4 +1,8 @@
 2.4.0:
+* Add the ability to specify `Makefile.user` to extend the generated
+  `Makefile`. Also `all`, `build` and `clean` are now extensible make
+  targets.
+* Remove the `mirage run` command (#379)
 * Call `opam depext` when configuring (#373)
 * Add opam files for `mirage` and `mirage-types` packages
 * Fix `mirage --version` (#374)

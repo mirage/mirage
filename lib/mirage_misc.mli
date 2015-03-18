@@ -17,6 +17,8 @@
 
 (** Utility module. *)
 
+exception Fatal
+
 (** {2 Misc} *)
 
 val generated_by_mirage: string

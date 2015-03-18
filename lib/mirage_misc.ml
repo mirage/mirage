@@ -15,6 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+exception Fatal
 
 let (/) = Filename.concat
 
@@ -143,7 +144,7 @@ let error_msg section fmt =
 let error fmt =
   Printf.ksprintf (fun str ->
       error_msg "[ERROR]" "%s" str;
-      exit 1;
+      raise Fatal
     ) fmt
 
 let section = ref "Mirage"
@@ -330,7 +331,7 @@ let dump h =
     ) h;
   Printf.eprintf "}\n%!"
 
-module StringSet = Set.Make(struct
+module StringSet = Set.Make (struct
     type t = string
     let compare = String.compare
   end)

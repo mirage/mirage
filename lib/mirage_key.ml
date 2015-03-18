@@ -35,7 +35,7 @@ type kval = V : 'a desc * 'a option ref -> kval
 type key =
   { doc : string;
     v : kval;
-    mutable name : string }
+    name : string }
 
 type t = key
 

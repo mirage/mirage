@@ -14,21 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-include Mirage_runtime.Configvar
+include module type of Mirage_runtime.Configvar
 
 exception Illegal of string
 
-let ocamlify s =
-  let b = Buffer.create (String.length s) in
-  String.iter begin function
-    | 'a'..'z' | 'A'..'Z'
-    | '0'..'9' | '_' as c -> Buffer.add_char b c
-    | '-' -> Buffer.add_char b '_'
-    | _ -> ()
-  end s;
-  let s' = Buffer.contents b in
-  if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then raise (Illegal s);
-  s'
+val ocamlify : string -> string
 
 type kval = V : 'a desc * 'a option ref -> kval
 
@@ -39,20 +29,14 @@ type key =
 
 type t = key
 
-let name k = ocamlify k.name
+val name : key -> string
 
-let term { doc; v = V (desc, value); name } =
-  Cmdliner_aux.term desc value ~doc ~name ~runtime:false
+val term : key -> unit Cmdliner.Term.t
 
-let create ?(doc = "(undocumented)") ?default name desc =
-  { doc; name; v = V (desc, ref default) }
+val create : ?doc:string -> ?default:'a -> string -> 'a desc -> key
 
-let compare k1 k2 = compare k1.name k2.name
+val compare : key -> key -> int
 
-let print_ocaml () { v = V (desc, value) } =
-  match !value with
-  | None -> "None"
-  | Some x -> Printf.sprintf "(Some %a)" (print_ocaml desc) x
+val print_ocaml : unit -> key -> string
 
-let print_meta () { v = V (desc, _) } =
-  print_meta () desc
+val print_meta : unit -> key -> string

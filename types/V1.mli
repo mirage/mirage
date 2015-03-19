@@ -21,10 +21,13 @@
     This module defines the basic signatures that functor parameters
     should implement in MirageOS to be portable. *)
 
+type ('a, 'b) result = Ok of 'a | Error of 'b
+(** {b FIXME} Use {!Rresult} *)
+
 (** {1 Abtract devices}
 
-    Defines the functions to define what is a device state and
-    how to disconnect such a device. *)
+    Defines the functions to define what is a device state and how to
+    disconnect such a device. *)
 module type DEVICE = sig
 
   type +'a io
@@ -144,27 +147,23 @@ module type FLOW = sig
   (** Convert an error to a human-readable message, suitable for
       logging. *)
 
-  val read: flow -> [`Ok of buffer | `Error of error ] io
+  val read: flow -> (buffer, error) result  io
   (** [read flow] will block until it either successfully reads a
-      segment of data from the current flow, receives an [Eof]
-      signifying that the connection is now closed, or an [Error]. *)
+      segment of data from the current flow, receives an [`Eof]
+      signifying that the connection is now closed. *)
 
-  val write: flow -> buffer -> [`Ok of unit | `Error of error ] io
+  val write: flow -> buffer -> (unit, error) result io
   (** [write flow buffer] will block until [buffer] has been added to
       the send queue. There is no indication when the buffer has
       actually been read and, therefore, it must not be reused.  The
       contents may be transmitted in separate packets, depending on
-      the underlying transport. The result [`Ok ()] indicates success,
-      [`Eof] indicates that the connection is now closed and [`Error]
-      indicates some other error. *)
+      the underlying transport. *)
 
-  val writev: flow -> buffer list -> [`Ok of unit | `Error of error ] io
+  val writev: flow -> buffer list -> (unit, error) result io
   (** [writev flow buffers] will block until the buffers have all been
       added to the send queue. There is no indication when the buffers
-      have actually been read and, therefore, they must not be reused.
-      The result [`Ok ()] indicates success, [`Eof] indicates that the
-      connection is now closed and [`Error] indicates some other
-      error. *)
+      have actually been read and, therefore, they must not be
+      reused. *)
 
   val close: flow -> unit io
   (** [close flow] will flush all pending writes and signal the end of
@@ -205,7 +204,7 @@ end
     for persistent storage *)
 module type BLOCK = sig
 
-  type page_aligned_buffer
+  type buffer
   (** The type for page-aligned memory buffers. *)
 
   type error = private [>
@@ -230,13 +229,13 @@ module type BLOCK = sig
   val get_info: t -> info io
   (** Query the characteristics of a specific block device *)
 
-  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  val read: t -> int64 -> buffer list -> (unit, error) result io
   (** [read device sector_start buffers] returns a blocking IO
       operation which attempts to fill [buffers] with data starting at
       [sector_start].  Each of [buffers] must be a whole number of
       sectors in length. The list of buffers can be of any length. *)
 
-  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  val write: t -> int64 -> buffer list -> (unit, error) result io
   (** [write device sector_start buffers] returns a blocking IO
       operation which attempts to write the data contained within
       [buffers] to [t] starting at [sector_start]. When the IO
@@ -548,8 +547,7 @@ module type TCP = sig
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
-  val create_connection: t -> ipaddr * int ->
-    [ `Ok of flow | `Error of error ] io
+  val create_connection: t -> ipaddr * int -> (flow, error) result io
   (** [create_connection t (addr,port)] will open a TCPv4 connection
       to the specified endpoint. *)
 
@@ -740,15 +738,15 @@ module type FS = sig
 
   include DEVICE
 
-  type page_aligned_buffer
+  type buffer
   (** The type for memory buffers. *)
 
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  val read: t -> string -> int -> int -> (buffer, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val size: t -> string -> [`Error of error | `Ok of int64] io
+  val size: t -> string -> (int64, error) result io
   (** Get the value size. *)
 
   type stat = {
@@ -759,29 +757,29 @@ module type FS = sig
   }
   (** The type for Per-file/directory statistics. *)
 
-  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
+  val format: t -> int64 -> (unit, error) result io
   (** [format t size] erases the contents of [t] and creates an empty
       filesystem of size [size] bytes. *)
 
-  val create: t -> string -> [ `Ok of unit | `Error of error ] io
+  val create: t -> string -> (unit, error) result io
   (** [create t path] creates an empty file at [path]. *)
 
-  val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+  val mkdir: t -> string -> (unit, error) result io
   (** [mkdir t path] creates an empty directory at [path]. *)
 
-  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
+  val destroy: t -> string -> (unit, error) result io
   (** [destroy t path] removes a [path] (which may be a file or an
       empty directory) on filesystem [t]. *)
 
-  val stat: t -> string -> [ `Ok of stat | `Error of error ] io
+  val stat: t -> string -> (stat, error) result io
   (** [stat t path] returns information about file or directory at
       [path]. *)
 
-  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
+  val listdir: t -> string -> (string list, error) result io
   (** [listdir t path] returns the names of files and subdirectories
       within the directory [path]. *)
 
-  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
+  val write: t -> string -> int -> buffer -> (unit, error) result io
   (** [write t path offset data] writes [data] at [offset] in file
       [path] on filesystem [t]. *)
 
@@ -794,15 +792,15 @@ module type KV_RO = sig
 
   include DEVICE
 
-  type page_aligned_buffer
+  type buffer
   (** The type for memory buffers.*)
 
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  val read: t -> string -> int -> int -> (buffer, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val size: t -> string -> [`Error of error | `Ok of int64] io
+  val size: t -> string -> (int64, error) result io
   (** Get the value size. *)
 
 end

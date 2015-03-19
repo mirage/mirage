@@ -94,7 +94,7 @@ module type CHANNEL = CHANNEL
 (** KV RO *)
 module type KV_RO = KV_RO
   with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
+   and type buffer = Cstruct.t
 
 (** Consoles *)
 module type CONSOLE = CONSOLE
@@ -109,7 +109,7 @@ module type ENTROPY = ENTROPY
 (** Block devices *)
 module type BLOCK = BLOCK
   with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
+   and type buffer = Cstruct.t
 
 (** FS *)
 module type FS = FS

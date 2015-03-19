@@ -24,11 +24,18 @@
 <h1>Module <a href="type_V1.html">V1</a></h1>
 
 <pre><span class="keyword">module</span> V1: <code class="code">sig</code> <a href="V1.html">..</a> <code class="code">end</code></pre><div class="info module top">
-Mirage Signatures<br>
+MirageOS Signatures.
+<p>
+
+    This module defines the basic signatures for functor parameters
+    that a fully MirageOS library should implement to be portable.<br>
 </div>
 <hr width="100%">
 
-<pre><span class="keyword">module type</span> <a href="V1.DEVICE.html">DEVICE</a> = <code class="code">sig</code> <a href="V1.DEVICE.html">..</a> <code class="code">end</code></pre>
+<pre><span class="keyword">module type</span> <a href="V1.DEVICE.html">DEVICE</a> = <code class="code">sig</code> <a href="V1.DEVICE.html">..</a> <code class="code">end</code></pre><div class="info">
+Abtract devices
+</div>
+
 <pre><span class="keyword">module type</span> <a href="V1.TIME.html">TIME</a> = <code class="code">sig</code> <a href="V1.TIME.html">..</a> <code class="code">end</code></pre>
 <pre><span class="keyword">module type</span> <a href="V1.RANDOM.html">RANDOM</a> = <code class="code">sig</code> <a href="V1.RANDOM.html">..</a> <code class="code">end</code></pre>
 <pre><span class="keyword">module type</span> <a href="V1.ENTROPY.html">ENTROPY</a> = <code class="code">sig</code> <a href="V1.ENTROPY.html">..</a> <code class="code">end</code></pre>

@@ -14,8 +14,7 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Random" rel="Section" href="#1_Random">
-<title>V1.RANDOM</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.RANDOM</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.TIME.html" title="V1.TIME">Previous</a>
@@ -24,14 +23,15 @@
 </div>
 <h1>Module type <a href="type_V1.RANDOM.html">V1.RANDOM</a></h1>
 
-<pre><span class="keyword">module type</span> RANDOM = <code class="code">sig</code> <a href="V1.RANDOM.html">..</a> <code class="code">end</code></pre><hr width="100%">
-<br>
+<pre><span class="keyword">module type</span> RANDOM = <code class="code">sig</code> <a href="V1.RANDOM.html">..</a> <code class="code">end</code></pre><div class="info modtype top">
 <h1 id="1_Random">Random</h1>
 <p>
 
-      Operations to generate entropy. This is currently a passthrough
-      to the OCaml Random generator, and will be deprecated in V2 and
-      turned into a proper DEVICE with blocking modes.<br>
+    Operations to generate entropy. This is currently a passthrough
+    to the OCaml Random generator, and will be deprecated in V2 and
+    turned into a proper DEVICE with blocking modes.<br>
+</div>
+<hr width="100%">
 
 <pre><span id="VALself_init"><span class="keyword">val</span> self_init</span> : <code class="type">unit -> unit</code></pre><div class="info ">
 Initialize the generator with a random seed chosen in a

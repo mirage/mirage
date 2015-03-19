@@ -16,12 +16,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Mirage Signatures *)
+(** MirageOS Signatures.
 
+    This module defines the basic signatures that functor parameters
+    should implement in MirageOS to be portable. *)
+
+(** {1 Abtract devices}
+
+    Defines the functions to define what is a device state and
+    how to disconnect such a device. *)
 module type DEVICE = sig
-  (** {1 Abtract devices}
-
-      Defines the functions to connect and disconnect any device *)
 
   type +'a io
   (** The type for potentially blocking I/O operation *)
@@ -41,8 +45,8 @@ module type DEVICE = sig
       complete, it can never result in an error. *)
 end
 
+(** {1 Time operations for cooperative threads} *)
 module type TIME = sig
-  (** {1 Time operations for cooperative threads} *)
 
   type +'a io
   (** The type for potentially blocking I/O operation *)
@@ -51,12 +55,12 @@ module type TIME = sig
   (** [sleep nsec] Block the current thread for. {b FIXME:} remove float. *)
 end
 
-module type RANDOM = sig
-  (** {1 Random}
+(** {1 Random}
 
-      Operations to generate entropy. This is currently a passthrough
-      to the OCaml Random generator, and will be deprecated in V2 and
-      turned into a proper DEVICE with blocking modes. *)
+    Operations to generate entropy. This is currently a passthrough
+    to the OCaml Random generator, and will be deprecated in V2 and
+    turned into a proper DEVICE with blocking modes. *)
+module type RANDOM = sig
 
   val self_init: unit -> unit
   (** Initialize the generator with a random seed chosen in a
@@ -72,8 +76,8 @@ module type RANDOM = sig
       [bound] (exclusive). [bound] must be greater than 0. *)
 end
 
+(** {1 Native entropy provider} **)
 module type ENTROPY = sig
-  (** {1 Native entropy provider} **)
 
   type error = [
     | `No_entropy_device of string
@@ -105,10 +109,10 @@ module type ENTROPY = sig
 
 end
 
-module type CLOCK = sig
-  (** {1 Clock operations}
+(** {1 Clock operations}
 
-      Currently read-only to retrieve the time in various formats. *)
+    Currently read-only to retrieve the time in various formats. *)
+module type CLOCK = sig
 
   type tm =
     { tm_sec: int;               (** Seconds 0..60 *)
@@ -133,8 +137,8 @@ module type CLOCK = sig
       as GMT. *)
 end
 
+(** {1 Connection between endpoints} *)
 module type FLOW = sig
-  (** {1 Connection between endpoints} *)
 
   type +'a io
   (** The type for potentially blocking I/O operation *)
@@ -183,8 +187,8 @@ module type FLOW = sig
 
 end
 
+(** {1 Console input/output} *)
 module type CONSOLE = sig
-  (** {1 Console input/output} *)
 
   type error = [
     | `Invalid_console of string
@@ -211,11 +215,11 @@ module type CONSOLE = sig
 
 end
 
-module type BLOCK = sig
-  (** {1 Sector-addressible block devices}
+(** {1 Sector-addressible block devices}
 
-      Operations on sector-addressible block devices, usually used
-      for persistent storage *)
+    Operations on sector-addressible block devices, usually used
+    for persistent storage *)
+module type BLOCK = sig
 
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
@@ -281,10 +285,10 @@ module type BLOCK = sig
 
 end
 
-module type NETWORK = sig
-  (** {1 Network stack}
+(** {1 Network stack}
 
-      A network interface that serves Ethernet frames. *)
+    A network interface that serves Ethernet frames. *)
+module type NETWORK = sig
 
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
@@ -338,11 +342,11 @@ module type NETWORK = sig
       defaults. *)
 end
 
-module type ETHIF = sig
-  (** {1 Ethernet stack}
+(** {1 Ethernet stack}
 
-      An Ethernet stack that parses frames from a network device and
-      can associate them with IP address via ARP. *)
+    An Ethernet stack that parses frames from a network device and
+    can associate them with IP address via ARP. *)
+module type ETHIF = sig
 
   type buffer
   (** The type for memory buffers. *)
@@ -381,10 +385,10 @@ module type ETHIF = sig
       stopped by calling [disconnect] in the device layer. *)
 end
 
-module type IP = sig
-  (** {1 IP stack}
+(** {1 IP stack}
 
-      An IP stack that parses Ethernet frames into IP packets *)
+    An IP stack that parses Ethernet frames into IP packets *)
+module type IP = sig
 
   type buffer
     (** The type for memory buffers. *)
@@ -486,8 +490,8 @@ module type IP = sig
 
 end
 
+(** {1 IPv4 stack} *)
 module type IPV4 = sig
-  (** {1 IPv4 stack} *)
   include IP
 
   val input_arpv4: t -> buffer -> unit io
@@ -495,15 +499,15 @@ module type IPV4 = sig
 
 end
 
+(** {1 IPv6 stack} *)
 module type IPV6 = sig
-  (** {1 IPv6 stack} *)
   include IP
 end
 
-module type UDP = sig
-  (** {1 UDP stack}
+(** {1 UDP stack}
 
-      A UDP stack that can send and receive datagrams. *)
+    A UDP stack that can send and receive datagrams. *)
+module type UDP = sig
 
   type buffer
   (** The type for memory buffers. *)
@@ -546,11 +550,11 @@ module type UDP = sig
       and [dest_port] IPv4 address pair. *)
 end
 
-module type TCP = sig
-  (** {1 TCP stack}
+(** {1 TCP stack}
 
-      A TCP stack that can send and receive reliable streams using the
-      TCP protocol. *)
+    A TCP stack that can send and receive reliable streams using the
+    TCP protocol. *)
+module type TCP = sig
 
   type buffer
   (** The type for memory buffers. *)
@@ -622,11 +626,11 @@ module type TCP = sig
       connections on a port. *)
 end
 
-module type STACKV4 = sig
-  (** {1 TCP/IPv4 stack}
+(** {1 TCP/IPv4 stack}
 
-      A complete TCP/IPv4 stack that can be used by applications to
-      receive and transmit network traffic. *)
+    A complete TCP/IPv4 stack that can be used by applications to
+    receive and transmit network traffic. *)
+module type STACKV4 = sig
 
   type console
   (** The type for console logger. *)
@@ -719,11 +723,11 @@ module type STACKV4 = sig
       traffic to the appropriate callbacks. *)
 end
 
-module type CHANNEL = sig
-  (** {1 Buffered byte-stream}
+(** {1 Buffered byte-stream}
 
-      Type of a buffered byte-stream that is attached to an unbuffered
-      flow (e.g. a TCPv4 connection). *)
+    Type of a buffered byte-stream that is attached to an unbuffered
+    flow (e.g. a TCPv4 connection). *)
+module type CHANNEL = sig
 
   type buffer
     (** The type for memory buffers. *)
@@ -806,8 +810,8 @@ module type CHANNEL = sig
 
 end
 
+(** {1 Filesystem} *)
 module type FS = sig
-  (** {1 Filesystem} *)
 
   type block_device_error
   (** The type for errors from the block layer *)
@@ -875,8 +879,8 @@ module type FS = sig
 
 end
 
+(** {1 Static Key/value store} *)
 module type KV_RO = sig
-  (** {1 Static Key/value store} *)
 
   type error =
     | Unknown_key of string

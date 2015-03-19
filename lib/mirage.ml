@@ -2375,7 +2375,10 @@ let configure_opam t =
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
-            opam "install" ["depext"];
+            if command_exists "opam-depext" then
+              info "opam depext is installed."
+            else
+              opam "install" ["depext"];
             opam ~yes:false "depext" ps;
             opam "install" ps
           ) else version_error ()

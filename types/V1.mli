@@ -33,13 +33,6 @@ module type DEVICE = sig
   type t
   (** The type representing the internal state of the device *)
 
-  type error
-  (** The type for errors signalled by the device *)
-
-  type id
-  (** This type is no longer used and will be removed once other
-   * modules stop using it in their type signatures. *)
-
   val disconnect: t -> unit io
   (** Disconnect from the device.  While this might take some time to
       complete, it can never result in an error. *)
@@ -79,13 +72,7 @@ end
 (** {1 Native entropy provider} **)
 module type ENTROPY = sig
 
-  type error = [
-    | `No_entropy_device of string
-  ]
-  (** The type for errors when attaching the entropy provider. *)
-
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   type buffer
   (** The type for memory buffers. *)
@@ -196,8 +183,7 @@ module type CONSOLE = sig
   (** The type for representing possible errors when attaching a
       console. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   include FLOW with
       type error  := error
@@ -233,8 +219,7 @@ module type BLOCK = sig
   (** The type for IO operation errors. *)
 
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
@@ -290,24 +275,13 @@ end
     A network interface that serves Ethernet frames. *)
 module type NETWORK = sig
 
-  type page_aligned_buffer
-  (** The type for page-aligned memory buffers. *)
-
   type buffer
   (** The type for memory buffers. *)
-
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors *)
 
   type macaddr
   (** The type for unique MAC identifiers for the device. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   val write: t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -351,22 +325,10 @@ module type ETHIF = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type netif
-  (** The type for ethernet network interfaces. *)
-
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors. *)
-
   type macaddr
   (** The type for unique MAC identifiers. *)
 
-  include DEVICE with
-        type error := error
-    and type id    := netif
+  include DEVICE
 
   val write: t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -393,24 +355,13 @@ module type IP = sig
   type buffer
     (** The type for memory buffers. *)
 
-  type ethif
-  (** The type for ethernet devices. *)
-
   type ipaddr
   (** The type for IP addresses. *)
 
   type prefix
   (** The type for IP prefixes. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-  ]
-  (** The typr ofr IO operation errors. *)
-
-  include DEVICE with
-        type error := error
-    and type id    := ethif
+  include DEVICE
 
   type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
   (** An input continuation used by the parsing functions to pass on
@@ -512,9 +463,6 @@ module type UDP = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type ip
-  (** The type for IPv4/6 stacks for this stack to connect to. *)
-
   type ipaddr
   (** The type for an IP address representations. *)
 
@@ -524,14 +472,7 @@ module type UDP = sig
       conventional kernel, but a direct implementation will parse the
       buffer. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-  ]
-  (** The type for IO operation errors. *)
-
-  include DEVICE with
-      type error := error
-  and type id := ip
+  include DEVICE
 
   type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
   (** The type for callback functions that adds the UDP metadata for
@@ -559,9 +500,6 @@ module type TCP = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type ip
-  (** The type for IPv4 stacks for this stack to connect to. *)
-
   type ipaddr
   (** The type for IP address representations. *)
 
@@ -582,9 +520,7 @@ module type TCP = sig
   ]
   (** The type for IO operation errors. *)
 
-  include DEVICE with
-      type error := error
-  and type id := ip
+  include DEVICE
 
   include FLOW with
       type error  := error
@@ -632,22 +568,6 @@ end
     receive and transmit network traffic. *)
 module type STACKV4 = sig
 
-  type console
-  (** The type for console logger. *)
-
-  type netif
-  (** The type for network interface that is used to transmit and
-      receive traffic associated with this stack. *)
-
-  type mode
-  (** The type for configuration modes associated with this interface.
-      These can consist of the IPv4 address binding, or a DHCP
-      interface. *)
-
-  type ('console, 'netif, 'mode) config
-  (** The type for the collection of user configuration specified to
-      construct a stack. *)
-
   type ipv4addr
   (** The type for IPv4 addresses. *)
 
@@ -663,28 +583,19 @@ module type STACKV4 = sig
   type ipv4
   (** The type for IPv4 stacks. *)
 
-  type error = [
-    | `Unknown of string
-  ]
-  (** The type for I/O operation errors. *)
-
-  include DEVICE with
-    type error := error
-    and type id = (console, netif, mode) config
+  include DEVICE
 
   module UDPV4: UDP
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = udpv4
-     and type ip = ipv4
 
   module TCPV4: TCP
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = tcpv4
-     and type ip = ipv4
 
   module IPV4: IPV4
     with type +'a io = 'a io
@@ -830,7 +741,6 @@ module type FS = sig
   (** The type for filesystem errors. *)
 
   include DEVICE
-    with type error := error
 
   type page_aligned_buffer
   (** The type for memory buffers. *)
@@ -886,7 +796,6 @@ module type KV_RO = sig
     | Unknown_key of string
 
   include DEVICE
-    with type error := error
 
   type page_aligned_buffer
   (** The type for memory buffers.*)

@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.RANDOM</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Random" rel="Section" href="#1_Random">
+<title>V1.RANDOM</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.TIME.html" title="V1.TIME">Previous</a>
@@ -25,21 +26,26 @@
 
 <pre><span class="keyword">module type</span> RANDOM = <code class="code">sig</code> <a href="V1.RANDOM.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Operations to generate entropy.  This is currently a passthrough to
-      the OCaml Random generator, and will be deprecated in V2 and turned
-      into a proper DEVICE with blocking modes.<br>
+<h1 id="1_Random">Random</h1>
+<p>
+
+      Operations to generate entropy. This is currently a passthrough
+      to the OCaml Random generator, and will be deprecated in V2 and
+      turned into a proper DEVICE with blocking modes.<br>
 
 <pre><span id="VALself_init"><span class="keyword">val</span> self_init</span> : <code class="type">unit -> unit</code></pre><div class="info ">
-Initialize the generator with a random seed chosen in a system-dependent way.<br>
+Initialize the generator with a random seed chosen in a
+      system-dependent way.<br>
 </div>
 
 <pre><span id="VALint"><span class="keyword">val</span> int</span> : <code class="type">int -> int</code></pre><div class="info ">
-<code class="code">int bound</code> returns a random integer between 0 (inclusive) and <code class="code">bound</code> (exclusive).
-     <code class="code">bound</code> must be greater than 0 and less than 2<sup class="superscript">30</sup>.<br>
+<code class="code">int bound</code> returns a random integer between 0 (inclusive) and
+      <code class="code">bound</code> (exclusive). <code class="code">bound</code> must be greater than 0 and less
+      than 2<sup class="superscript">30</sup>.<br>
 </div>
 
 <pre><span id="VALint32"><span class="keyword">val</span> int32</span> : <code class="type">int32 -> int32</code></pre><div class="info ">
-<code class="code">int32 bound</code> returns a random integer between 0 (inclusive) and <code class="code">bound</code> (exclusive).
-      <code class="code">bound</code> must be greater than 0.<br>
+<code class="code">int32 bound</code> returns a random integer between 0 (inclusive) and
+      <code class="code">bound</code> (exclusive). <code class="code">bound</code> must be greater than 0.<br>
 </div>
 </body></html>

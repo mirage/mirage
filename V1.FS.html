@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.FS</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Filesystem" rel="Section" href="#1_Filesystem">
+<title>V1.FS</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.CHANNEL.html" title="V1.CHANNEL">Previous</a>
@@ -25,29 +26,32 @@
 
 <pre><span class="keyword">module type</span> FS = <code class="code">sig</code> <a href="V1.FS.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-A filesystem module.<br>
+<h1 id="1_Filesystem">Filesystem</h1><br>
 
 <pre><span id="TYPEblock_device_error"><span class="keyword">type</span> <code class="type"></code>block_device_error</span> </pre>
 <div class="info ">
-Abstract type representing an error from the block layer<br>
+The type for errors from the block layer<br>
 </div>
 
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Block_device of <a href="V1.FS.html#TYPEblock_device_error">block_device_error</a><br>       | `Directory_not_empty of string<br>       | `File_already_exists of string<br>       | `Format_not_recognised of string<br>       | `Is_a_directory of string<br>       | `No_directory_entry of string * string<br>       | `No_space<br>       | `Not_a_directory of string<br>       | `Unknown_error of string ]</code> </pre>
+<div class="info ">
+The type for filesystem errors.<br>
+</div>
 
 
 <pre><span class="keyword">include</span> <a href="V1.DEVICE.html">V1.DEVICE</a></pre>
 
 <pre><span id="TYPEpage_aligned_buffer"><span class="keyword">type</span> <code class="type"></code>page_aligned_buffer</span> </pre>
 <div class="info ">
-Abstract type for a page-aligned memory buffer<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="VALread"><span class="keyword">val</span> read</span> : <code class="type">t -><br>       string -><br>       int -><br>       int -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of <a href="V1.FS.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> list ] io</code></pre><div class="info ">
-<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the value
-      associated with <code class="code">key</code>. If less data is returned than requested, this
-      indicates the end of the value.<br>
+<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the
+      value associated with <code class="code">key</code>. If less data is returned than
+      requested, this indicates the end of the value.<br>
 </div>
 
 <pre><span id="VALsize"><span class="keyword">val</span> size</span> : <code class="type">t -> string -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of int64 ] io</code></pre><div class="info ">
@@ -98,39 +102,40 @@ Size of the entity in bytes<br>
 }
 
 <div class="info ">
-Per-file/directory statistics<br>
+The type for Per-file/directory statistics.<br>
 </div>
 
 
 <pre><span id="VALformat"><span class="keyword">val</span> format</span> : <code class="type">t -> int64 -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">format t size</code> erases the contents of <code class="code">t</code> and creates an empty filesystem
-      of size <code class="code">size</code> bytes<br>
+<code class="code">format t size</code> erases the contents of <code class="code">t</code> and creates an empty
+      filesystem of size <code class="code">size</code> bytes.<br>
 </div>
 
 <pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">t -> string -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">create t path</code> creates an empty file at <code class="code">path</code><br>
+<code class="code">create t path</code> creates an empty file at <code class="code">path</code>.<br>
 </div>
 
 <pre><span id="VALmkdir"><span class="keyword">val</span> mkdir</span> : <code class="type">t -> string -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">mkdir t path</code> creates an empty directory at <code class="code">path</code><br>
+<code class="code">mkdir t path</code> creates an empty directory at <code class="code">path</code>.<br>
 </div>
 
 <pre><span id="VALdestroy"><span class="keyword">val</span> destroy</span> : <code class="type">t -> string -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">destroy t path</code> removes a <code class="code">path</code> (which may be a file or an empty
-      directory) on filesystem <code class="code">t</code><br>
+<code class="code">destroy t path</code> removes a <code class="code">path</code> (which may be a file or an
+      empty directory) on filesystem <code class="code">t</code>.<br>
 </div>
 
 <pre><span id="VALstat"><span class="keyword">val</span> stat</span> : <code class="type">t -> string -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of <a href="V1.FS.html#TYPEstat">stat</a> ] io</code></pre><div class="info ">
-<code class="code">stat t path</code> returns information about file or directory at <code class="code">path</code><br>
+<code class="code">stat t path</code> returns information about file or directory at
+      <code class="code">path</code>.<br>
 </div>
 
 <pre><span id="VALlistdir"><span class="keyword">val</span> listdir</span> : <code class="type">t -> string -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of string list ] io</code></pre><div class="info ">
 <code class="code">listdir t path</code> returns the names of files and subdirectories
-      within the directory <code class="code">path</code><br>
+      within the directory <code class="code">path</code>.<br>
 </div>
 
 <pre><span id="VALwrite"><span class="keyword">val</span> write</span> : <code class="type">t -><br>       string -><br>       int -><br>       <a href="V1.FS.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> -> [ `Error of <a href="V1.FS.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">write t path offset data</code> writes <code class="code">data</code> at <code class="code">offset</code> in file <code class="code">path</code> on
-      filesystem <code class="code">t</code><br>
+<code class="code">write t path offset data</code> writes <code class="code">data</code> at <code class="code">offset</code> in file
+      <code class="code">path</code> on filesystem <code class="code">t</code>.<br>
 </div>
 </body></html>

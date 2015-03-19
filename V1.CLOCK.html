@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.CLOCK</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Clock operations" rel="Section" href="#1_Clockoperations">
+<title>V1.CLOCK</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.ENTROPY.html" title="V1.ENTROPY">Previous</a>
@@ -25,7 +26,9 @@
 
 <pre><span class="keyword">module type</span> CLOCK = <code class="code">sig</code> <a href="V1.CLOCK.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Clock operations.
+<h1 id="1_Clockoperations">Clock operations</h1>
+<p>
+
       Currently read-only to retrieve the time in various formats.<br>
 
 <pre><code><span id="TYPEtm"><span class="keyword">type</span> <code class="type"></code>tm</span> = {</code></pre><table class="typetable">
@@ -122,7 +125,7 @@ Daylight time savings in effect<br>
 }
 
 <div class="info ">
-The type representing wallclock time and calendar date.<br>
+The type for representing wallclock time and calendar date.<br>
 </div>
 
 
@@ -132,8 +135,8 @@ Return the current time since 00:00:00 GMT, Jan. 1, 1970, in
 </div>
 
 <pre><span id="VALgmtime"><span class="keyword">val</span> gmtime</span> : <code class="type">float -> <a href="V1.CLOCK.html#TYPEtm">tm</a></code></pre><div class="info ">
-Convert a time in seconds, as returned by <a href="V1.CLOCK.html#VALtime"><code class="code">V1.CLOCK.time</code></a>, into a
-      date and a time. Assumes UTC (Coordinated Universal Time), also
-      known as GMT.<br>
+Convert a time in seconds, as returned by <a href="V1.CLOCK.html#VALtime"><code class="code">V1.CLOCK.time</code></a>, into a date
+      and a time. Assumes UTC (Coordinated Universal Time), also known
+      as GMT.<br>
 </div>
 </body></html>

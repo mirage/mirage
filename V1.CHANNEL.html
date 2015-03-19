@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.CHANNEL</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Buffered byte-stream" rel="Section" href="#1_Bufferedbytestream">
+<title>V1.CHANNEL</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.STACKV4.html" title="V1.STACKV4">Previous</a>
@@ -25,42 +26,46 @@
 
 <pre><span class="keyword">module type</span> CHANNEL = <code class="code">sig</code> <a href="V1.CHANNEL.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Type of a buffered byte-stream that is attached to an unbuffered
+<h1 id="1_Bufferedbytestream">Buffered byte-stream</h1>
+<p>
+
+      Type of a buffered byte-stream that is attached to an unbuffered
       flow (e.g. a TCPv4 connection).<br>
 
 <pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
 <div class="info ">
-Abstract type for a memory buffer that may not be page aligned.<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEflow"><span class="keyword">type</span> <code class="type"></code>flow</span> </pre>
 <div class="info ">
-Abstract type for an unbuffered network flow.<br>
+The type for unbuffered network flow.<br>
 </div>
 
 
 <pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
 <div class="info ">
-State associated with this channel, such as the inflight buffers.<br>
+The type for the state associated with channels, such as the
+      inflight buffers.<br>
 </div>
 
 
 <pre><span id="TYPEio"><span class="keyword">type</span> <code class="type">+'a</code> io</span> </pre>
 <div class="info ">
-Abstract type of a blocking IO monad.<br>
+The type for potentially blocking I/O operation<br>
 </div>
 
 
 <pre><span id="TYPEio_stream"><span class="keyword">type</span> <code class="type">'a</code> io_stream</span> </pre>
 <div class="info ">
-Abstract type of a blocking stream of IO requests.<br>
+The type for potentially blocking stream of IO requests.<br>
 </div>
 
 
 <pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEflow">flow</a> -> <a href="V1.CHANNEL.html#TYPEt">t</a></code></pre><div class="info ">
-<code class="code">create flow</code> will allocate send and receive buffers and associated them
-      with the given unbuffered <code class="code">flow</code>.<br>
+<code class="code">create flow</code> will allocate send and receive buffers and
+      associated them with the given unbuffered <code class="code">flow</code>.<br>
 </div>
 
 <pre><span id="VALto_flow"><span class="keyword">val</span> to_flow</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> <a href="V1.CHANNEL.html#TYPEflow">flow</a></code></pre><div class="info ">
@@ -68,58 +73,70 @@ Abstract type of a blocking stream of IO requests.<br>
 </div>
 
 <pre><span id="VALread_char"><span class="keyword">val</span> read_char</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> char <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre><div class="info ">
-Read a single character from the channel, blocking if there is no immediately
-      available input data.<br>
+Read a single character from the channel, blocking if there is
+      no immediately available input data.<br>
 </div>
 
 <pre><span id="VALread_until"><span class="keyword">val</span> read_until</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> char -> (bool * <a href="V1.CHANNEL.html#TYPEbuffer">buffer</a>) <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre><div class="info ">
-<code class="code">read_until t ch</code> will read from the channel until the given <code class="code">ch</code> character
-      is found.  It returns a tuple indicating whether the character was found at
-      all (<code class="code">false</code> indicates that an EOF condition occurred before the character
-      was encountered), and the <code class="code">buffer</code> pointing to the position immediately
-      after the character (or the complete scanned buffer if the character was
+<code class="code">read_until t ch</code> will read from the channel until the given
+      <code class="code">ch</code> character is found.  It returns a tuple indicating whether
+      the character was found at all (<code class="code">false</code> indicates that an EOF
+      condition occurred before the character was encountered), and
+      the <code class="code">buffer</code> pointing to the position immediately after the
+      character (or the complete scanned buffer if the character was
       never encountered).<br>
 </div>
 
-<pre><span id="VALread_some"><span class="keyword">val</span> read_some</span> : <code class="type">?len:int -> <a href="V1.CHANNEL.html#TYPEt">t</a> -> <a href="V1.CHANNEL.html#TYPEbuffer">buffer</a> <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre>
+<pre><span id="VALread_some"><span class="keyword">val</span> read_some</span> : <code class="type">?len:int -> <a href="V1.CHANNEL.html#TYPEt">t</a> -> <a href="V1.CHANNEL.html#TYPEbuffer">buffer</a> <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre><div class="info ">
+<code class="code">read_some ?len t</code> will read up to <code class="code">len</code> characters from the
+      input channel and at most a full <code class="code">buffer</code>. If <code class="code">len</code> is not
+      specified, it will read all available data and return that
+      buffer.<br>
+</div>
+
 <pre><span id="VALread_stream"><span class="keyword">val</span> read_stream</span> : <code class="type">?len:int -> <a href="V1.CHANNEL.html#TYPEt">t</a> -> <a href="V1.CHANNEL.html#TYPEbuffer">buffer</a> <a href="V1.CHANNEL.html#TYPEio_stream">io_stream</a></code></pre><div class="info ">
-<code class="code">read_stream ?len t</code> will return up to <code class="code">len</code> characters as a stream of
-     buffers. This call will probably be removed in a future revision of the API
-     in favour of <a href="V1.CHANNEL.html#VALread_some"><code class="code">V1.CHANNEL.read_some</code></a>.<br>
+<code class="code">read_stream ?len t</code> will return up to <code class="code">len</code> characters as a
+      stream of buffers. This call will probably be removed in a
+      future revision of the API in favour of <a href="V1.CHANNEL.html#VALread_some"><code class="code">V1.CHANNEL.read_some</code></a>.<br>
 </div>
 
 <pre><span id="VALread_line"><span class="keyword">val</span> read_line</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> <a href="V1.CHANNEL.html#TYPEbuffer">buffer</a> list <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre><div class="info ">
-<code class="code">read_line t</code> will read a line of input, which is terminated either by
-     a CRLF sequence, or the end of the channel (which counts as a line).<br>
-<b>Returns</b> Returns a list of views that terminates at EOF.<br>
+<code class="code">read_line t</code> will read a line of input, which is terminated
+      either by a CRLF sequence, or the end of the channel (which
+      counts as a line).<br>
+<b>Returns</b> Returns a list of views that
+      terminates at EOF.<br>
 </div>
 
 <pre><span id="VALwrite_char"><span class="keyword">val</span> write_char</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> char -> unit</code></pre><div class="info ">
-<code class="code">write_char t ch</code> writes a single character to the output channel.<br>
+<code class="code">write_char t ch</code> writes a single character to the output
+      channel.<br>
 </div>
 
 <pre><span id="VALwrite_string"><span class="keyword">val</span> write_string</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> string -> int -> int -> unit</code></pre><div class="info ">
-<code class="code">write_string t buf off len</code> writes <code class="code">len</code> bytes from a string <code class="code">buf</code>,
-     starting from from offset <code class="code">off</code>.<br>
+<code class="code">write_string t buf off len</code> writes <code class="code">len</code> bytes from a string
+      <code class="code">buf</code>, starting from from offset <code class="code">off</code>.<br>
 </div>
 
 <pre><span id="VALwrite_buffer"><span class="keyword">val</span> write_buffer</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> <a href="V1.CHANNEL.html#TYPEbuffer">buffer</a> -> unit</code></pre><div class="info ">
-<code class="code">write_buffer t buf</code> will copy the buffer to the channel's output buffer.
-     The buffer should not be modified after being written, and it will be
-     recycled into the buffer allocation pool at some future point.<br>
+<code class="code">write_buffer t buf</code> will copy the buffer to the channel's
+      output buffer.  The buffer should not be modified after being
+      written, and it will be recycled into the buffer allocation pool
+      at some future point.<br>
 </div>
 
 <pre><span id="VALwrite_line"><span class="keyword">val</span> write_line</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> string -> unit</code></pre><div class="info ">
-<code class="code">write_line t buf</code> will write the string <code class="code">buf</code> to the output channel
-     and append a newline character afterwards.<br>
+<code class="code">write_line t buf</code> will write the string <code class="code">buf</code> to the output
+      channel and append a newline character afterwards.<br>
 </div>
 
 <pre><span id="VALflush"><span class="keyword">val</span> flush</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> unit <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre><div class="info ">
-<code class="code">flush t</code> will flush the output buffer and block if necessary until it
-     is all written out to the flow.<br>
+<code class="code">flush t</code> will flush the output buffer and block if necessary
+      until it is all written out to the flow.<br>
 </div>
 
 <pre><span id="VALclose"><span class="keyword">val</span> close</span> : <code class="type"><a href="V1.CHANNEL.html#TYPEt">t</a> -> unit <a href="V1.CHANNEL.html#TYPEio">io</a></code></pre><div class="info ">
-<code class="code">close t</code> will call <a href="V1.CHANNEL.html#VALflush"><code class="code">V1.CHANNEL.flush</code></a> and then close the underlying flow.<br>
+<code class="code">close t</code> will call <a href="V1.CHANNEL.html#VALflush"><code class="code">V1.CHANNEL.flush</code></a> and then close the underlying
+      flow.<br>
 </div>
 </body></html>

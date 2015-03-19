@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.NETWORK</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Network stack" rel="Section" href="#1_Networkstack">
+<title>V1.NETWORK</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.BLOCK.html" title="V1.BLOCK">Previous</a>
@@ -25,29 +26,32 @@
 
 <pre><span class="keyword">module type</span> NETWORK = <code class="code">sig</code> <a href="V1.NETWORK.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-A network interface that serves Ethernet frames.<br>
+<h1 id="1_Networkstack">Network stack</h1>
+<p>
+
+      A network interface that serves Ethernet frames.<br>
 
 <pre><span id="TYPEpage_aligned_buffer"><span class="keyword">type</span> <code class="type"></code>page_aligned_buffer</span> </pre>
 <div class="info ">
-Abstract type for a page-aligned memory buffer<br>
+The type for page-aligned memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
 <div class="info ">
-Abstract type for a memory buffer that may not be page aligned<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Disconnected | `Unimplemented | `Unknown of string ]</code> </pre>
 <div class="info ">
-IO operation errors<br>
+The type for IO operation errors<br>
 </div>
 
 
 <pre><span id="TYPEmacaddr"><span class="keyword">type</span> <code class="type"></code>macaddr</span> </pre>
 <div class="info ">
-Unique MAC identifier for the device<br>
+The type for unique MAC identifiers for the device.<br>
 </div>
 
 
@@ -64,9 +68,9 @@ Unique MAC identifier for the device<br>
 
 <pre><span id="VALlisten"><span class="keyword">val</span> listen</span> : <code class="type">t -> (<a href="V1.NETWORK.html#TYPEbuffer">buffer</a> -> unit io) -> unit io</code></pre><div class="info ">
 <code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn buf</code> with
-      every packet that is read from the interface.  It returns as soon
-      as it has initialised, and the function can be stopped by calling
-      <code class="code">disconnect</code> in the device layer.<br>
+      every packet that is read from the interface.  It returns as
+      soon as it has initialised, and the function can be stopped by
+      calling <code class="code">disconnect</code> in the device layer.<br>
 </div>
 
 <pre><span id="VALmac"><span class="keyword">val</span> mac</span> : <code class="type">t -> <a href="V1.NETWORK.html#TYPEmacaddr">macaddr</a></code></pre><div class="info ">
@@ -105,7 +109,8 @@ Unique MAC identifier for the device<br>
 }
 
 <div class="info ">
-Frame statistics to track the usage of the device.<br>
+The type for frame statistics to track the usage of the
+      device.<br>
 </div>
 
 
@@ -114,6 +119,7 @@ Obtain the most recent snapshot of the device statistics.<br>
 </div>
 
 <pre><span id="VALreset_stats_counters"><span class="keyword">val</span> reset_stats_counters</span> : <code class="type">t -> unit</code></pre><div class="info ">
-Reset the statistics associated with this device to their defaults.<br>
+Reset the statistics associated with this device to their
+      defaults.<br>
 </div>
 </body></html>

@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.BLOCK</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Sector-addressible block devices" rel="Section" href="#1_Sectoraddressibleblockdevices">
+<title>V1.BLOCK</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.CONSOLE.html" title="V1.CONSOLE">Previous</a>
@@ -25,18 +26,21 @@
 
 <pre><span class="keyword">module type</span> BLOCK = <code class="code">sig</code> <a href="V1.BLOCK.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Operations on sector-addressible block devices, usually used
+<h1 id="1_Sectoraddressibleblockdevices">Sector-addressible block devices</h1>
+<p>
+
+      Operations on sector-addressible block devices, usually used
       for persistent storage<br>
 
 <pre><span id="TYPEpage_aligned_buffer"><span class="keyword">type</span> <code class="type"></code>page_aligned_buffer</span> </pre>
 <div class="info ">
-Abstract type for a page-aligned memory buffer<br>
+The type for page-aligned memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Disconnected | `Is_read_only | `Unimplemented | `Unknown of string ]</code> </pre>
 <div class="info ">
-IO operation errors<br>
+The type for IO operation errors.<br>
 </div>
 
 
@@ -76,8 +80,8 @@ Total sectors per device<br>
 }
 
 <div class="info ">
-Characteristics of the block device. Note some devices may be able
-      to make themselves bigger over time.<br>
+Characteristics of the block device. Note some devices may be
+      able to make themselves bigger over time.<br>
 </div>
 
 
@@ -86,36 +90,45 @@ Query the characteristics of a specific block device<br>
 </div>
 
 <pre><span id="VALread"><span class="keyword">val</span> read</span> : <code class="type">t -><br>       int64 -><br>       <a href="V1.BLOCK.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> list -><br>       [ `Error of <a href="V1.BLOCK.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">read device sector_start buffers</code> returns a blocking IO operation which
-      attempts to fill <code class="code">buffers</code> with data starting at <code class="code">sector_start</code>.
-      Each of <code class="code">buffers</code> must be a whole number of sectors in length. The list
-      of buffers can be of any length.<br>
+<code class="code">read device sector_start buffers</code> returns a blocking IO
+      operation which attempts to fill <code class="code">buffers</code> with data starting at
+      <code class="code">sector_start</code>.  Each of <code class="code">buffers</code> must be a whole number of
+      sectors in length. The list of buffers can be of any length.<br>
 </div>
 
 <pre><span id="VALwrite"><span class="keyword">val</span> write</span> : <code class="type">t -><br>       int64 -><br>       <a href="V1.BLOCK.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> list -><br>       [ `Error of <a href="V1.BLOCK.html#TYPEerror">error</a> | `Ok of unit ] io</code></pre><div class="info ">
-<code class="code">write device sector_start buffers</code> returns a blocking IO operation which
-      attempts to write the data contained within <code class="code">buffers</code> to <code class="code">t</code> starting
-      at <code class="code">sector_start</code>. When the IO operation completes then all writes have been
-      persisted.
+<code class="code">write device sector_start buffers</code> returns a blocking IO
+      operation which attempts to write the data contained within
+      <code class="code">buffers</code> to <code class="code">t</code> starting at <code class="code">sector_start</code>. When the IO
+      operation completes then all writes have been persisted.
 <p>
 
-      Once submitted, it is not possible to cancel a request and there is no timeout.
+      Once submitted, it is not possible to cancel a request and there
+      is no timeout.
 <p>
 
-      The operation may fail with
-      * <code class="code">`Unimplemented</code>: the operation has not been implemented, no data has been written
-      * <code class="code">`Is_read_only</code>: the device is read-only, no data has been written
-      * <code class="code">`Disconnected</code>: the device has been disconnected at application request,
-        an unknown amount of data has been written
-      * <code class="code">`Unknown</code>: some other permanent, fatal error (e.g. disk is on fire), where
-        an unknown amount of data has been written
+      The operation may fail with:
 <p>
 
-      Each of <code class="code">buffers</code> must be a whole number of sectors in length. The list
-      of buffers can be of any length.
+      <ul>
+<li><code class="code">`Unimplemented</code>: the operation has not been implemented, no
+      data has been written.</li>
+<li><code class="code">`Is_read_only</code>: the device is read-only, no data has been
+      written.</li>
+<li><code class="code">`Disconnected</code>: the device has been disconnected at
+        application request, an unknown amount of data has been
+        written.</li>
+<li><code class="code">`Unknown</code>: some other permanent, fatal error (e.g. disk is
+        on fire), where an unknown amount of data has been written.</li>
+</ul>
+
 <p>
 
-      The data will not be copied, so the supplied buffers must not be re-used
-      until the IO operation completes.<br>
+      Each of <code class="code">buffers</code> must be a whole number of sectors in
+      length. The list of buffers can be of any length.
+<p>
+
+      The data will not be copied, so the supplied buffers must not be
+      re-used until the IO operation completes.<br>
 </div>
 </body></html>

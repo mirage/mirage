@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.ENTROPY</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Native entropy provider" rel="Section" href="#1_Nativeentropyprovider">
+<title>V1.ENTROPY</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.RANDOM.html" title="V1.RANDOM">Previous</a>
@@ -25,11 +26,11 @@
 
 <pre><span class="keyword">module type</span> ENTROPY = <code class="code">sig</code> <a href="V1.ENTROPY.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-A native entropy provider. *<br>
+<h1 id="1_Nativeentropyprovider">Native entropy provider</h1> *<br>
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `No_entropy_device of string ]</code> </pre>
 <div class="info ">
-Represents errors when attaching the entropy provider.<br>
+The type for errors when attaching the entropy provider.<br>
 </div>
 
 
@@ -37,28 +38,30 @@ Represents errors when attaching the entropy provider.<br>
 
 <pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
 <div class="info ">
-usually a cstruct<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEhandler"><span class="keyword">type</span> <code class="type"></code>handler</span> = <code class="type">source:int -> <a href="V1.ENTROPY.html#TYPEbuffer">buffer</a> -> unit</code> </pre>
 <div class="info ">
-* A <code class="code">handler</code> is called whenever the system has extra entropy to announce.
-   * No guarantees are made about the entropy itself, other than it being
-   * environmentally derived. In particular, the amount of entropy in the buffer
-   * can be far lower than the size of the <code class="code">buffer</code>.
-   *
-   * <code class="code">source</code> is a small integer, describing the provider but with no other
-   * meaning.
-   *
-   * <code class="code">handler</code> is expected to return quickly.
-   *<br>
+A <code class="code">handler</code> is called whenever the system has extra entropy to
+      announce.  No guarantees are made about the entropy itself,
+      other than it being environmentally derived. In particular, the
+      amount of entropy in the buffer can be far lower than the size
+      of the <code class="code">buffer</code>.
+<p>
+
+      <code class="code">source</code> is a small integer, describing the provider but with no
+      other meaning.
+<p>
+
+      <code class="code">handler</code> is expected to return quickly.<br>
 </div>
 
 
 <pre><span id="VALhandler"><span class="keyword">val</span> handler</span> : <code class="type">t -> <a href="V1.ENTROPY.html#TYPEhandler">handler</a> -> unit io</code></pre><div class="info ">
-<code class="code">handler h</code> registers the single global <code class="code">handler</code> that will receive
-   * entropy. There might be additional, provider-specific blocking semantics.
-   *<br>
+<code class="code">handler h</code> registers the single global <code class="code">handler</code> that will
+      receive entropy. There might be additional, provider-specific
+      blocking semantics.<br>
 </div>
 </body></html>

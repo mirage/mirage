@@ -13,7 +13,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.DEVICE</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Abtract devices" rel="Section" href="#1_Abtractdevices">
+<title>V1.DEVICE</title>
 </head>
 <body>
 <div class="navbar">&nbsp;<a class="up" href="V1.html" title="V1">Up</a>
@@ -23,12 +24,14 @@
 
 <pre><span class="keyword">module type</span> DEVICE = <code class="code">sig</code> <a href="V1.DEVICE.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Device operations.
+<h1 id="1_Abtractdevices">Abtract devices</h1>
+<p>
+
       Defines the functions to connect and disconnect any device<br>
 
 <pre><span id="TYPEio"><span class="keyword">type</span> <code class="type">+'a</code> io</span> </pre>
 <div class="info ">
-A potentially blocking I/O operation<br>
+The type for potentially blocking I/O operation<br>
 </div>
 
 
@@ -40,7 +43,7 @@ The type representing the internal state of the device<br>
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> </pre>
 <div class="info ">
-An error signalled by the device<br>
+The type for errors signalled by the device<br>
 </div>
 
 
@@ -52,7 +55,7 @@ This type is no longer used and will be removed once other
 
 
 <pre><span id="VALdisconnect"><span class="keyword">val</span> disconnect</span> : <code class="type"><a href="V1.DEVICE.html#TYPEt">t</a> -> unit <a href="V1.DEVICE.html#TYPEio">io</a></code></pre><div class="info ">
-Disconnect from the device.  While this might take some
-      time to complete, it can never result in an error.<br>
+Disconnect from the device.  While this might take some time to
+      complete, it can never result in an error.<br>
 </div>
 </body></html>

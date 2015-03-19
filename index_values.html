@@ -90,8 +90,8 @@ Call <code class="code">make build</code> in the right directory.
 <td></td></tr>
 <tr><td><a href="V1.IP.html#VALchecksum">checksum</a> [<a href="V1.IP.html">V1.IP</a>]</td>
 <td><div class="info">
-<code class="code">checksum frame bufs</code> computes the IP checksum of <code class="code">bufs</code> computing the
-      pseudo-header from the actual header <code class="code">frame</code>.
+<code class="code">checksum frame bufs</code> computes the IP checksum of <code class="code">bufs</code>
+      computing the pseudo-header from the actual header <code class="code">frame</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.CONFIGURABLE.html#VALclean">clean</a> [<a href="Mirage.CONFIGURABLE.html">Mirage.CONFIGURABLE</a>]</td>
@@ -116,13 +116,14 @@ The <code class="code">V1.CLOCK</code> module signature.
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALclose">close</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">close t</code> will call <a href="V1.CHANNEL.html#VALflush"><code class="code">V1.CHANNEL.flush</code></a> and then close the underlying flow.
+<code class="code">close t</code> will call <a href="V1.CHANNEL.html#VALflush"><code class="code">V1.CHANNEL.flush</code></a> and then close the underlying
+      flow.
 </div>
 </td></tr>
 <tr><td><a href="V1.FLOW.html#VALclose">close</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
 <td><div class="info">
-<code class="code">close flow</code> will flush all pending writes and signal the end of the
-      flow to the remote endpoint.
+<code class="code">close flow</code> will flush all pending writes and signal the end of
+      the flow to the remote endpoint.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_misc.html#VALcofind">cofind</a> [<a href="Mirage_misc.html">Mirage_misc</a>]</td>
@@ -162,13 +163,13 @@ The <code class="code">V1.CONSOLE</code> module signature.
 </td></tr>
 <tr><td><a href="V1.FS.html#VALcreate">create</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">create t path</code> creates an empty file at <code class="code">path</code>
+<code class="code">create t path</code> creates an empty file at <code class="code">path</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALcreate">create</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">create flow</code> will allocate send and receive buffers and associated them
-      with the given unbuffered <code class="code">flow</code>.
+<code class="code">create flow</code> will allocate send and receive buffers and
+      associated them with the given unbuffered <code class="code">flow</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.Name.html#VALcreate">create</a> [<a href="Mirage.Name.html">Mirage.Name</a>]</td>
@@ -178,8 +179,8 @@ The <code class="code">V1.CONSOLE</code> module signature.
 </td></tr>
 <tr><td><a href="V1.TCP.html#VALcreate_connection">create_connection</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
 <td><div class="info">
-<code class="code">create_connection t (addr,port)</code> will open a TCPv4 connection to the
-      specified endpoint.
+<code class="code">create_connection t (addr,port)</code> will open a TCPv4 connection
+      to the specified endpoint.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALcreate_ipv4">create_ipv4</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -250,8 +251,8 @@ The default timer implementation.
 </td></tr>
 <tr><td><a href="V1.FS.html#VALdestroy">destroy</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">destroy t path</code> removes a <code class="code">path</code> (which may be a file or an empty
-      directory) on filesystem <code class="code">t</code>
+<code class="code">destroy t path</code> removes a <code class="code">path</code> (which may be a file or an
+      empty directory) on filesystem <code class="code">t</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALdirect_kv_ro">direct_kv_ro</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -290,7 +291,8 @@ The <code class="code">V1.ENTROPY</code> module signature.
 <td></td></tr>
 <tr><td><a href="V1.FLOW.html#VALerror_message">error_message</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
 <td><div class="info">
-Convert an error to a human-readable message, suitable for logging.
+Convert an error to a human-readable message, suitable for
+      logging.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALethernet">ethernet</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -318,8 +320,8 @@ Find the value associated with a key in an hash-table or create a
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALflush">flush</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">flush t</code> will flush the output buffer and block if necessary until it
-     is all written out to the flow.
+<code class="code">flush t</code> will flush the output buffer and block if necessary
+      until it is all written out to the flow.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALforeign">foreign</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -330,8 +332,8 @@ Find the value associated with a key in an hash-table or create a
 </td></tr>
 <tr><td><a href="V1.FS.html#VALformat">format</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">format t size</code> erases the contents of <code class="code">t</code> and creates an empty filesystem
-      of size <code class="code">size</code> bytes
+<code class="code">format t size</code> erases the contents of <code class="code">t</code> and creates an empty
+      filesystem of size <code class="code">size</code> bytes.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALfs">fs</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -347,8 +349,8 @@ The header string for every generated file.
 </td></tr>
 <tr><td><a href="V1.TCP.html#VALget_dest">get_dest</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
 <td><div class="info">
-Get the destination IPv4 address and destination port that a flow is
-      currently connected to.
+Get the destination IPv4 address and destination port that a
+      flow is currently connected to.
 </div>
 </td></tr>
 <tr><td><a href="V1.BLOCK.html#VALget_info">get_info</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
@@ -377,8 +379,8 @@ Get the IP netmasks associated with this interface.
 <td></td></tr>
 <tr><td><a href="V1.IP.html#VALget_source">get_source</a> [<a href="V1.IP.html">V1.IP</a>]</td>
 <td><div class="info">
-<code class="code">get_source ip ~dst</code> is the source address to be used to send a packet to
-      <code class="code">dst</code>.
+<code class="code">get_source ip ~dst</code> is the source address to be used to send a
+      packet to <code class="code">dst</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.NETWORK.html#VALget_stats_counters">get_stats_counters</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
@@ -388,15 +390,15 @@ Obtain the most recent snapshot of the device statistics.
 </td></tr>
 <tr><td><a href="V1.CLOCK.html#VALgmtime">gmtime</a> [<a href="V1.CLOCK.html">V1.CLOCK</a>]</td>
 <td><div class="info">
-Convert a time in seconds, as returned by <a href="V1.CLOCK.html#VALtime"><code class="code">V1.CLOCK.time</code></a>, into a
-      date and a time.
+Convert a time in seconds, as returned by <a href="V1.CLOCK.html#VALtime"><code class="code">V1.CLOCK.time</code></a>, into a date
+      and a time.
 </div>
 </td></tr>
 <tr><td align="left"><br>H</td></tr>
 <tr><td><a href="V1.ENTROPY.html#VALhandler">handler</a> [<a href="V1.ENTROPY.html">V1.ENTROPY</a>]</td>
 <td><div class="info">
-<code class="code">handler h</code> registers the single global <code class="code">handler</code> that will receive
-   * entropy.
+<code class="code">handler h</code> registers the single global <code class="code">handler</code> that will
+      receive entropy.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALhttp">http</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -415,38 +417,43 @@ Extend the library with an external configuration.
 <td></td></tr>
 <tr><td><a href="V1.TCP.html#VALinput">input</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
 <td><div class="info">
-<code class="code">input t listeners</code> defines a mapping of threads that are willing to
-      accept new flows on a given port.
+<code class="code">input t listeners</code> defines a mapping of threads that are
+      willing to accept new flows on a given port.
 </div>
 </td></tr>
 <tr><td><a href="V1.UDP.html#VALinput">input</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
 <td><div class="info">
-<code class="code">input listeners t</code> demultiplexes incoming datagrams based on their destination
-      port.
+<code class="code">input listeners t</code> demultiplexes incoming datagrams based on
+      their destination port.
 </div>
 </td></tr>
 <tr><td><a href="V1.IP.html#VALinput">input</a> [<a href="V1.IP.html">V1.IP</a>]</td>
 <td><div class="info">
-<code class="code">input ~tcp ~udp ~default ip buf</code> demultiplexes an incoming <code class="code">buffer</code> that
-      contains an IP frame.
+<code class="code">input ~tcp ~udp ~default ip buf</code> demultiplexes an incoming
+      <code class="code">buffer</code> that contains an IP frame.
 </div>
 </td></tr>
 <tr><td><a href="V1.ETHIF.html#VALinput">input</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
 <td><div class="info">
-FIXME <code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn buf</code> with
-      every packet that is read from the interface.
+<b>FIXME</b> <code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn
+      buf</code> with every packet that is read from the interface.
 </div>
 </td></tr>
 <tr><td><a href="V1.IPV4.html#VALinput_arpv4">input_arpv4</a> [<a href="V1.IPV4.html">V1.IPV4</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<b>FIXME</b>
+</div>
+</td></tr>
 <tr><td><a href="V1.RANDOM.html#VALint">int</a> [<a href="V1.RANDOM.html">V1.RANDOM</a>]</td>
 <td><div class="info">
-<code class="code">int bound</code> returns a random integer between 0 (inclusive) and <code class="code">bound</code> (exclusive).
+<code class="code">int bound</code> returns a random integer between 0 (inclusive) and
+      <code class="code">bound</code> (exclusive).
 </div>
 </td></tr>
 <tr><td><a href="V1.RANDOM.html#VALint32">int32</a> [<a href="V1.RANDOM.html">V1.RANDOM</a>]</td>
 <td><div class="info">
-<code class="code">int32 bound</code> returns a random integer between 0 (inclusive) and <code class="code">bound</code> (exclusive).
+<code class="code">int32 bound</code> returns a random integer between 0 (inclusive) and
+      <code class="code">bound</code> (exclusive).
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALio_page">io_page</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -509,7 +516,7 @@ List of ocamlfind libraries.
 <tr><td><a href="V1.FS.html#VALlistdir">listdir</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
 <code class="code">listdir t path</code> returns the names of files and subdirectories
-      within the directory <code class="code">path</code>
+      within the directory <code class="code">path</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.STACKV4.html#VALlisten">listen</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
@@ -527,14 +534,14 @@ List of ocamlfind libraries.
 </td></tr>
 <tr><td><a href="V1.STACKV4.html#VALlisten_tcpv4">listen_tcpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
 <td><div class="info">
-<code class="code">listen_tcpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on
-      the TCPv4 <code class="code">port</code> and immediately return.
+<code class="code">listen_tcpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on the
+      TCPv4 <code class="code">port</code> and immediately return.
 </div>
 </td></tr>
 <tr><td><a href="V1.STACKV4.html#VALlisten_udpv4">listen_udpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
 <td><div class="info">
-<code class="code">listen_udpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on
-      the UDPv4 <code class="code">port</code> and immediately return.
+<code class="code">listen_udpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on the
+      UDPv4 <code class="code">port</code> and immediately return.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALload">load</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -545,8 +552,8 @@ Read a config file.
 <tr><td><a href="V1.CONSOLE.html#VALlog">log</a> [<a href="V1.CONSOLE.html">V1.CONSOLE</a>]</td>
 <td><div class="info">
 <code class="code">log str</code> writes as much characters of <code class="code">str</code> that can be written
-      in one write operation to the console <code class="code">t</code>, then writes
-      "\r\n" to it.
+      in one write operation to the console <code class="code">t</code>, then writes "\r\n" to
+      it.
 </div>
 </td></tr>
 <tr><td><a href="V1.CONSOLE.html#VALlog_s">log_s</a> [<a href="V1.CONSOLE.html">V1.CONSOLE</a>]</td>
@@ -574,7 +581,7 @@ Tell Irminsule to manage the OPAM configuration
 </td></tr>
 <tr><td><a href="V1.FS.html#VALmkdir">mkdir</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">mkdir t path</code> creates an empty directory at <code class="code">path</code>
+<code class="code">mkdir t path</code> creates an empty directory at <code class="code">path</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.CONFIGURABLE.html#VALmodule_name">module_name</a> [<a href="Mirage.CONFIGURABLE.html">Mirage.CONFIGURABLE</a>]</td>
@@ -671,55 +678,61 @@ The <code class="code">V1.RANDOM</code> module signature.
 </td></tr>
 <tr><td><a href="V1.KV_RO.html#VALread">read</a> [<a href="V1.KV_RO.html">V1.KV_RO</a>]</td>
 <td><div class="info">
-<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the value
-      associated with <code class="code">key</code>.
+<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the
+      value associated with <code class="code">key</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.FS.html#VALread">read</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the value
-      associated with <code class="code">key</code>.
+<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the
+      value associated with <code class="code">key</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.BLOCK.html#VALread">read</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
 <td><div class="info">
-<code class="code">read device sector_start buffers</code> returns a blocking IO operation which
-      attempts to fill <code class="code">buffers</code> with data starting at <code class="code">sector_start</code>.
+<code class="code">read device sector_start buffers</code> returns a blocking IO
+      operation which attempts to fill <code class="code">buffers</code> with data starting at
+      <code class="code">sector_start</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.FLOW.html#VALread">read</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
 <td><div class="info">
-<code class="code">read flow</code> will block until it either successfully reads a segment
-      of data from the current flow, receives an <code class="code">Eof</code> signifying that
-      the connection is now closed, or an <code class="code">Error</code>.
+<code class="code">read flow</code> will block until it either successfully reads a
+      segment of data from the current flow, receives an <code class="code">Eof</code>
+      signifying that the connection is now closed, or an <code class="code">Error</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALread_char">read_char</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-Read a single character from the channel, blocking if there is no immediately
-      available input data.
+Read a single character from the channel, blocking if there is
+      no immediately available input data.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_misc.html#VALread_command">read_command</a> [<a href="Mirage_misc.html">Mirage_misc</a>]</td>
 <td></td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALread_line">read_line</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">read_line t</code> will read a line of input, which is terminated either by
-     a CRLF sequence, or the end of the channel (which counts as a line).
+<code class="code">read_line t</code> will read a line of input, which is terminated
+      either by a CRLF sequence, or the end of the channel (which
+      counts as a line).
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALread_some">read_some</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
-<td></td></tr>
+<td><div class="info">
+<code class="code">read_some ?len t</code> will read up to <code class="code">len</code> characters from the
+      input channel and at most a full <code class="code">buffer</code>.
+</div>
+</td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALread_stream">read_stream</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">read_stream ?len t</code> will return up to <code class="code">len</code> characters as a stream of
-     buffers.
+<code class="code">read_stream ?len t</code> will return up to <code class="code">len</code> characters as a
+      stream of buffers.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALread_until">read_until</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">read_until t ch</code> will read from the channel until the given <code class="code">ch</code> character
-      is found.
+<code class="code">read_until t ch</code> will read from the channel until the given
+      <code class="code">ch</code> character is found.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_misc.html#VALrealpath">realpath</a> [<a href="Mirage_misc.html">Mirage_misc</a>]</td>
@@ -734,7 +747,8 @@ Read a single character from the channel, blocking if there is no immediately
 <td></td></tr>
 <tr><td><a href="V1.NETWORK.html#VALreset_stats_counters">reset_stats_counters</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
 <td><div class="info">
-Reset the statistics associated with this device to their defaults.
+Reset the statistics associated with this device to their
+      defaults.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALresolver">resolver</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -743,15 +757,11 @@ Reset the statistics associated with this device to their defaults.
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALresolver_unix_system">resolver_unix_system</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
-<tr><td><a href="Mirage.html#VALrun">run</a> [<a href="Mirage.html">Mirage</a>]</td>
-<td><div class="info">
-call <code class="code">make run</code> in the right directory.
-</div>
-</td></tr>
 <tr><td align="left"><br>S</td></tr>
 <tr><td><a href="V1.RANDOM.html#VALself_init">self_init</a> [<a href="V1.RANDOM.html">V1.RANDOM</a>]</td>
 <td><div class="info">
-Initialize the generator with a random seed chosen in a system-dependent way.
+Initialize the generator with a random seed chosen in a
+      system-dependent way.
 </div>
 </td></tr>
 <tr><td><a href="V1.IP.html#VALset_ip">set_ip</a> [<a href="V1.IP.html">V1.IP</a>]</td>
@@ -788,7 +798,7 @@ Get the value size.
 </td></tr>
 <tr><td><a href="V1.TIME.html#VALsleep">sleep</a> [<a href="V1.TIME.html">V1.TIME</a>]</td>
 <td><div class="info">
-<code class="code">sleep nsec</code> Block the current thread for <code class="code">TODO remove float</code>
+<code class="code">sleep nsec</code> Block the current thread for.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALsocket_stackv4">socket_stackv4</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -806,7 +816,8 @@ Split at each occurence of the given character.
 <td></td></tr>
 <tr><td><a href="V1.FS.html#VALstat">stat</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">stat t path</code> returns information about file or directory at <code class="code">path</code>
+<code class="code">stat t path</code> returns information about file or directory at
+      <code class="code">path</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_misc.html#VALstrip">strip</a> [<a href="Mirage_misc.html">Mirage_misc</a>]</td>
@@ -894,21 +905,21 @@ Return the module signature of a given implementation.
 <tr><td align="left"><br>W</td></tr>
 <tr><td><a href="V1.FS.html#VALwrite">write</a> [<a href="V1.FS.html">V1.FS</a>]</td>
 <td><div class="info">
-<code class="code">write t path offset data</code> writes <code class="code">data</code> at <code class="code">offset</code> in file <code class="code">path</code> on
-      filesystem <code class="code">t</code>
+<code class="code">write t path offset data</code> writes <code class="code">data</code> at <code class="code">offset</code> in file
+      <code class="code">path</code> on filesystem <code class="code">t</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.UDP.html#VALwrite">write</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
 <td><div class="info">
-<code class="code">write ~source_port ~dest_ip ~dest_port udp data</code> is a thread that
-      writes <code class="code">data</code> from an optional <code class="code">source_port</code> to a <code class="code">dest_ip</code> and <code class="code">dest_port</code>
-      IPv4 address pair.
+<code class="code">write ~source_port ~dest_ip ~dest_port udp data</code> is a thread
+      that writes <code class="code">data</code> from an optional <code class="code">source_port</code> to a <code class="code">dest_ip</code>
+      and <code class="code">dest_port</code> IPv4 address pair.
 </div>
 </td></tr>
 <tr><td><a href="V1.IP.html#VALwrite">write</a> [<a href="V1.IP.html">V1.IP</a>]</td>
 <td><div class="info">
-<code class="code">write t frame buf</code> writes the packet <code class="code">frame :: buf :: []</code> to the
-      address <code class="code">dst</code>.
+<code class="code">write t frame buf</code> writes the packet <code class="code">frame :: buf :: []</code> to
+      the address <code class="code">dst</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.ETHIF.html#VALwrite">write</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
@@ -923,43 +934,46 @@ Return the module signature of a given implementation.
 </td></tr>
 <tr><td><a href="V1.BLOCK.html#VALwrite">write</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
 <td><div class="info">
-<code class="code">write device sector_start buffers</code> returns a blocking IO operation which
-      attempts to write the data contained within <code class="code">buffers</code> to <code class="code">t</code> starting
-      at <code class="code">sector_start</code>.
+<code class="code">write device sector_start buffers</code> returns a blocking IO
+      operation which attempts to write the data contained within
+      <code class="code">buffers</code> to <code class="code">t</code> starting at <code class="code">sector_start</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.FLOW.html#VALwrite">write</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
 <td><div class="info">
-<code class="code">write flow buffer</code> will block until <code class="code">buffer</code> has been added to the
-      send queue.
+<code class="code">write flow buffer</code> will block until <code class="code">buffer</code> has been added to
+      the send queue.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALwrite_buffer">write_buffer</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">write_buffer t buf</code> will copy the buffer to the channel's output buffer.
+<code class="code">write_buffer t buf</code> will copy the buffer to the channel's
+      output buffer.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALwrite_char">write_char</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">write_char t ch</code> writes a single character to the output channel.
+<code class="code">write_char t ch</code> writes a single character to the output
+      channel.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALwrite_line">write_line</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">write_line t buf</code> will write the string <code class="code">buf</code> to the output channel
-     and append a newline character afterwards.
+<code class="code">write_line t buf</code> will write the string <code class="code">buf</code> to the output
+      channel and append a newline character afterwards.
 </div>
 </td></tr>
 <tr><td><a href="V1.TCP.html#VALwrite_nodelay">write_nodelay</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
 <td><div class="info">
-<code class="code">write_nodelay flow</code> will block until the contents of <code class="code">buffer list</code>
-      are all successfully transmitted to the remote endpoint.
+<code class="code">write_nodelay flow</code> will block until the contents of <code class="code">buffer
+      list</code> are all successfully transmitted to the remote
+      endpoint.
 </div>
 </td></tr>
 <tr><td><a href="V1.CHANNEL.html#VALwrite_string">write_string</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
 <td><div class="info">
-<code class="code">write_string t buf off len</code> writes <code class="code">len</code> bytes from a string <code class="code">buf</code>,
-     starting from from offset <code class="code">off</code>.
+<code class="code">write_string t buf off len</code> writes <code class="code">len</code> bytes from a string
+      <code class="code">buf</code>, starting from from offset <code class="code">off</code>.
 </div>
 </td></tr>
 <tr><td><a href="V1.IP.html#VALwritev">writev</a> [<a href="V1.IP.html">V1.IP</a>]</td>
@@ -981,14 +995,15 @@ Return the module signature of a given implementation.
 </td></tr>
 <tr><td><a href="V1.FLOW.html#VALwritev">writev</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
 <td><div class="info">
-<code class="code">writev flow buffers</code> will block until the buffers have all been added
-      to the send queue.
+<code class="code">writev flow buffers</code> will block until the buffers have all been
+      added to the send queue.
 </div>
 </td></tr>
 <tr><td><a href="V1.TCP.html#VALwritev_nodelay">writev_nodelay</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
 <td><div class="info">
-<code class="code">writev_nodelay flow</code> will block until the contents of <code class="code">buffer list</code>
-      are all successfully transmitted to the remote endpoint.
+<code class="code">writev_nodelay flow</code> will block until the contents of <code class="code">buffer
+      list</code> are all successfully transmitted to the remote
+      endpoint.
 </div>
 </td></tr>
 <tr><td align="left"><br>Y</td></tr>

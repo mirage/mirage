@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.TIME</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Time operations for cooperative threads" rel="Section" href="#1_Timeoperationsforcooperativethreads">
+<title>V1.TIME</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.DEVICE.html" title="V1.DEVICE">Previous</a>
@@ -25,15 +26,15 @@
 
 <pre><span class="keyword">module type</span> TIME = <code class="code">sig</code> <a href="V1.TIME.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Time operations for cooperative threads.<br>
+<h1 id="1_Timeoperationsforcooperativethreads">Time operations for cooperative threads</h1><br>
 
 <pre><span id="TYPEio"><span class="keyword">type</span> <code class="type">+'a</code> io</span> </pre>
 <div class="info ">
-A potentially blocking I/O operation<br>
+The type for potentially blocking I/O operation<br>
 </div>
 
 
 <pre><span id="VALsleep"><span class="keyword">val</span> sleep</span> : <code class="type">float -> unit <a href="V1.TIME.html#TYPEio">io</a></code></pre><div class="info ">
-<code class="code">sleep nsec</code> Block the current thread for <code class="code">TODO remove float</code><br>
+<code class="code">sleep nsec</code> Block the current thread for. <b>FIXME:</b> remove float.<br>
 </div>
 </body></html>

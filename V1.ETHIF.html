@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.ETHIF</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Ethernet stack" rel="Section" href="#1_Ethernetstack">
+<title>V1.ETHIF</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.NETWORK.html" title="V1.NETWORK">Previous</a>
@@ -25,30 +26,33 @@
 
 <pre><span class="keyword">module type</span> ETHIF = <code class="code">sig</code> <a href="V1.ETHIF.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-An Ethernet stack that parses frames from a network device and
+<h1 id="1_Ethernetstack">Ethernet stack</h1>
+<p>
+
+      An Ethernet stack that parses frames from a network device and
       can associate them with IP address via ARP.<br>
 
 <pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
 <div class="info ">
-Abstract type for a memory buffer that may not be page aligned<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEnetif"><span class="keyword">type</span> <code class="type"></code>netif</span> </pre>
 <div class="info ">
-Abstract type for an Ethernet network interface.<br>
+The type for ethernet network interfaces.<br>
 </div>
 
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Disconnected | `Unimplemented | `Unknown of string ]</code> </pre>
 <div class="info ">
-IO operation errors<br>
+The type for IO operation errors.<br>
 </div>
 
 
 <pre><span id="TYPEmacaddr"><span class="keyword">type</span> <code class="type"></code>macaddr</span> </pre>
 <div class="info ">
-Unique MAC identifier for the device<br>
+The type for unique MAC identifiers.<br>
 </div>
 
 
@@ -68,9 +72,9 @@ Unique MAC identifier for the device<br>
 </div>
 
 <pre><span id="VALinput"><span class="keyword">val</span> input</span> : <code class="type">arpv4:(<a href="V1.ETHIF.html#TYPEbuffer">buffer</a> -> unit io) -><br>       ipv4:(<a href="V1.ETHIF.html#TYPEbuffer">buffer</a> -> unit io) -><br>       ipv6:(<a href="V1.ETHIF.html#TYPEbuffer">buffer</a> -> unit io) -> t -> <a href="V1.ETHIF.html#TYPEbuffer">buffer</a> -> unit io</code></pre><div class="info ">
-FIXME <code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn buf</code> with
-      every packet that is read from the interface.  It returns as soon
-      as it has initialised, and the function can be stopped by calling
-      <code class="code">disconnect</code> in the device layer.<br>
+<b>FIXME</b> <code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn
+      buf</code> with every packet that is read from the interface.  It
+      returns as soon as it has initialised, and the function can be
+      stopped by calling <code class="code">disconnect</code> in the device layer.<br>
 </div>
 </body></html>

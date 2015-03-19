@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.CONSOLE</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Console input/output" rel="Section" href="#1_Consoleinputoutput">
+<title>V1.CONSOLE</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.FLOW.html" title="V1.FLOW">Previous</a>
@@ -25,11 +26,12 @@
 
 <pre><span class="keyword">module type</span> CONSOLE = <code class="code">sig</code> <a href="V1.CONSOLE.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-Text console input/output operations.<br>
+<h1 id="1_Consoleinputoutput">Console input/output</h1><br>
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Invalid_console of string ]</code> </pre>
 <div class="info ">
-The type representing possible errors when attaching a console.<br>
+The type for representing possible errors when attaching a
+      console.<br>
 </div>
 
 
@@ -39,8 +41,8 @@ The type representing possible errors when attaching a console.<br>
 
 <pre><span id="VALlog"><span class="keyword">val</span> log</span> : <code class="type">t -> string -> unit</code></pre><div class="info ">
 <code class="code">log str</code> writes as much characters of <code class="code">str</code> that can be written
-      in one write operation to the console <code class="code">t</code>, then writes
-      "\r\n" to it.<br>
+      in one write operation to the console <code class="code">t</code>, then writes "\r\n" to
+      it.<br>
 </div>
 
 <pre><span id="VALlog_s"><span class="keyword">val</span> log_s</span> : <code class="type">t -> string -> unit io</code></pre><div class="info ">

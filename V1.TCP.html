@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.TCP</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="TCP stack" rel="Section" href="#1_TCPstack">
+<title>V1.TCP</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.UDP.html" title="V1.UDP">Previous</a>
@@ -25,31 +26,36 @@
 
 <pre><span class="keyword">module type</span> TCP = <code class="code">sig</code> <a href="V1.TCP.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-A TCP stack that can send and receive reliable streams using the TCP protocol.<br>
+<h1 id="1_TCPstack">TCP stack</h1>
+<p>
+
+      A TCP stack that can send and receive reliable streams using the
+      TCP protocol.<br>
 
 <pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
 <div class="info ">
-Abstract type for a memory buffer that may not be page aligned.<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEip"><span class="keyword">type</span> <code class="type"></code>ip</span> </pre>
 <div class="info ">
-Abstract type for an IPv4 stack for this stack to connect to.<br>
+The type for IPv4 stacks for this stack to connect to.<br>
 </div>
 
 
 <pre><span id="TYPEipaddr"><span class="keyword">type</span> <code class="type"></code>ipaddr</span> </pre>
 <div class="info ">
-Abstract type for an IPv4 address representation.<br>
+The type for IP address representations.<br>
 </div>
 
 
 <pre><span id="TYPEipinput"><span class="keyword">type</span> <code class="type"></code>ipinput</span> </pre>
 <div class="info ">
-An input function continuation to pass onto the underlying <code class="code">ipv4</code>
-      stack.  This will normally be a NOOP for a conventional kernel, but
-      a direct implementation will parse the buffer.<br>
+The type for input function continuation to pass onto the
+      underlying <a href="V1.IP.html"><code class="code">V1.IP</code></a> stack. This will normally be a NOOP for a
+      conventional kernel, but a direct implementation will parse the
+      buffer.<br>
 </div>
 
 
@@ -62,7 +68,7 @@ A flow represents the state of a single TCPv4 stream that is connected
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Refused | `Timeout | `Unknown of string ]</code> </pre>
 <div class="info ">
-IO operation errors<br>
+The type for IO operation errors.<br>
 </div>
 
 
@@ -72,39 +78,41 @@ IO operation errors<br>
 
 <pre><span id="TYPEcallback"><span class="keyword">type</span> <code class="type"></code>callback</span> = <code class="type"><a href="V1.TCP.html#TYPEflow">flow</a> -> unit io</code> </pre>
 <div class="info ">
-Application callback that receives a <code class="code">flow</code> that it can read/write to.<br>
+The type for application callback that receives a <code class="code">flow</code> that it
+      can read/write to.<br>
 </div>
 
 
 <pre><span id="VALget_dest"><span class="keyword">val</span> get_dest</span> : <code class="type"><a href="V1.TCP.html#TYPEflow">flow</a> -> <a href="V1.TCP.html#TYPEipaddr">ipaddr</a> * int</code></pre><div class="info ">
-Get the destination IPv4 address and destination port that a flow is
-      currently connected to.<br>
+Get the destination IPv4 address and destination port that a
+      flow is currently connected to.<br>
 </div>
 
 <pre><span id="VALwrite_nodelay"><span class="keyword">val</span> write_nodelay</span> : <code class="type"><a href="V1.TCP.html#TYPEflow">flow</a> -> <a href="V1.TCP.html#TYPEbuffer">buffer</a> -> unit io</code></pre><div class="info ">
-<code class="code">write_nodelay flow</code> will block until the contents of <code class="code">buffer list</code>
-      are all successfully transmitted to the remote endpoint. Buffering
-      within the stack is minimized in this mode.  Note that this API will
-      change in a future revision to be a per-flow attribute instead of a
-      separately exposed function.<br>
+<code class="code">write_nodelay flow</code> will block until the contents of <code class="code">buffer
+      list</code> are all successfully transmitted to the remote
+      endpoint. Buffering within the stack is minimized in this mode.
+      Note that this API will change in a future revision to be a
+      per-flow attribute instead of a separately exposed function.<br>
 </div>
 
 <pre><span id="VALwritev_nodelay"><span class="keyword">val</span> writev_nodelay</span> : <code class="type"><a href="V1.TCP.html#TYPEflow">flow</a> -> <a href="V1.TCP.html#TYPEbuffer">buffer</a> list -> unit io</code></pre><div class="info ">
-<code class="code">writev_nodelay flow</code> will block until the contents of <code class="code">buffer list</code>
-      are all successfully transmitted to the remote endpoint. Buffering
-      within the stack is minimized in this mode.  Note that this API will
-      change in a future revision to be a per-flow attribute instead of a
-      separately exposed function.<br>
+<code class="code">writev_nodelay flow</code> will block until the contents of <code class="code">buffer
+      list</code> are all successfully transmitted to the remote
+      endpoint. Buffering within the stack is minimized in this mode.
+      Note that this API will change in a future revision to be a
+      per-flow attribute instead of a separately exposed function.<br>
 </div>
 
 <pre><span id="VALcreate_connection"><span class="keyword">val</span> create_connection</span> : <code class="type">t -><br>       <a href="V1.TCP.html#TYPEipaddr">ipaddr</a> * int -> [ `Error of <a href="V1.TCP.html#TYPEerror">error</a> | `Ok of <a href="V1.TCP.html#TYPEflow">flow</a> ] io</code></pre><div class="info ">
-<code class="code">create_connection t (addr,port)</code> will open a TCPv4 connection to the
-      specified endpoint.<br>
+<code class="code">create_connection t (addr,port)</code> will open a TCPv4 connection
+      to the specified endpoint.<br>
 </div>
 
 <pre><span id="VALinput"><span class="keyword">val</span> input</span> : <code class="type">t -> listeners:(int -> <a href="V1.TCP.html#TYPEcallback">callback</a> option) -> <a href="V1.TCP.html#TYPEipinput">ipinput</a></code></pre><div class="info ">
-<code class="code">input t listeners</code> defines a mapping of threads that are willing to
-      accept new flows on a given port.  If the <code class="code">callback</code> returns <code class="code">None</code>,
-      the input function will return an RST to refuse connections on a port.<br>
+<code class="code">input t listeners</code> defines a mapping of threads that are
+      willing to accept new flows on a given port.  If the <code class="code">callback</code>
+      returns <code class="code">None</code>, the input function will return an RST to refuse
+      connections on a port.<br>
 </div>
 </body></html>

@@ -14,7 +14,8 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
 <link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.STACKV4</title>
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="TCP/IPv4 stack" rel="Section" href="#1_TCPIPv4stack">
+<title>V1.STACKV4</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="V1.TCP.html" title="V1.TCP">Previous</a>
@@ -25,69 +26,73 @@
 
 <pre><span class="keyword">module type</span> STACKV4 = <code class="code">sig</code> <a href="V1.STACKV4.html">..</a> <code class="code">end</code></pre><hr width="100%">
 <br>
-A complete TCP/IPv4 stack that can be used by applications to receive
-      and transmit network traffic.<br>
+<h1 id="1_TCPIPv4stack">TCP/IPv4 stack</h1>
+<p>
+
+      A complete TCP/IPv4 stack that can be used by applications to
+      receive and transmit network traffic.<br>
 
 <pre><span id="TYPEconsole"><span class="keyword">type</span> <code class="type"></code>console</span> </pre>
 <div class="info ">
-Abstract type of a console logger.<br>
+The type for console logger.<br>
 </div>
 
 
 <pre><span id="TYPEnetif"><span class="keyword">type</span> <code class="type"></code>netif</span> </pre>
 <div class="info ">
-Abstract type of a network interface that is used to transmit and receive
-      traffic associated with this stack.<br>
+The type for network interface that is used to transmit and
+      receive traffic associated with this stack.<br>
 </div>
 
 
 <pre><span id="TYPEmode"><span class="keyword">type</span> <code class="type"></code>mode</span> </pre>
 <div class="info ">
-Abstract type of the configuration modes associated with this interface.
-      These can consist of the IPv4 address binding, or a DHCP interface.<br>
+The type for configuration modes associated with this interface.
+      These can consist of the IPv4 address binding, or a DHCP
+      interface.<br>
 </div>
 
 
 <pre><span id="TYPEconfig"><span class="keyword">type</span> <code class="type">('console, 'netif, 'mode)</code> config</span> </pre>
 <div class="info ">
-Abstract type for the collection of user configuration specified to
+The type for the collection of user configuration specified to
       construct a stack.<br>
 </div>
 
 
 <pre><span id="TYPEipv4addr"><span class="keyword">type</span> <code class="type"></code>ipv4addr</span> </pre>
 <div class="info ">
-Abstract type of an IPv4 address<br>
+The type for IPv4 addresses.<br>
 </div>
 
 
 <pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
 <div class="info ">
-Abstract type for a memory buffer that may not be page aligned.<br>
+The type for memory buffers.<br>
 </div>
 
 
 <pre><span id="TYPEudpv4"><span class="keyword">type</span> <code class="type"></code>udpv4</span> </pre>
 <div class="info ">
-Abstract type for a UDPv4 stack.<br>
+The type for UDPv4 stacks.<br>
 </div>
 
 
 <pre><span id="TYPEtcpv4"><span class="keyword">type</span> <code class="type"></code>tcpv4</span> </pre>
 <div class="info ">
-Abstract type for a TCPv4 stack.<br>
+The type for TCPv4 stacks.<br>
 </div>
 
 
 <pre><span id="TYPEipv4"><span class="keyword">type</span> <code class="type"></code>ipv4</span> </pre>
 <div class="info ">
-Abstract type for a IPv4 stack<br>
+The type for IPv4 stacks.<br>
 </div>
 
 
 <pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Unknown of string ]</code> </pre>
 <div class="info ">
-I/O operation errors<br>
+The type for I/O operation errors.<br>
 </div>
 
 
@@ -127,17 +132,17 @@ I/O operation errors<br>
 </div>
 
 <pre><span id="VALlisten_udpv4"><span class="keyword">val</span> listen_udpv4</span> : <code class="type">t -> port:int -> UDPV4.callback -> unit</code></pre><div class="info ">
-<code class="code">listen_udpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on
-      the UDPv4 <code class="code">port</code> and immediately return.  Multiple bindings
-      to the same port will overwrite previous bindings, so callbacks
-      will not chain if ports clash.<br>
+<code class="code">listen_udpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on the
+      UDPv4 <code class="code">port</code> and immediately return.  Multiple bindings to the
+      same port will overwrite previous bindings, so callbacks will
+      not chain if ports clash.<br>
 </div>
 
 <pre><span id="VALlisten_tcpv4"><span class="keyword">val</span> listen_tcpv4</span> : <code class="type">t -> port:int -> TCPV4.callback -> unit</code></pre><div class="info ">
-<code class="code">listen_tcpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on
-      the TCPv4 <code class="code">port</code> and immediately return.  Multiple bindings
-      to the same port will overwrite previous bindings, so callbacks
-      will not chain if ports clash.<br>
+<code class="code">listen_tcpv4 t ~port cb</code> will register the <code class="code">cb</code> callback on the
+      TCPv4 <code class="code">port</code> and immediately return.  Multiple bindings to the
+      same port will overwrite previous bindings, so callbacks will
+      not chain if ports clash.<br>
 </div>
 
 <pre><span id="VALlisten"><span class="keyword">val</span> listen</span> : <code class="type">t -> unit io</code></pre><div class="info ">

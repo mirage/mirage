@@ -140,7 +140,7 @@ module type FLOW = sig
   type error = private [> `Eof]
   (** The type for flow errors. *)
 
-  val error_message: error -> string
+  val pp_error: Format.formatter -> error -> unit
   (** Convert an error to a human-readable message, suitable for
       logging. *)
 

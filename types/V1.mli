@@ -48,7 +48,7 @@ module type TIME = sig
   (** The type for potentially blocking I/O operation *)
 
   val sleep: float -> unit io
-  (** [sleep nsec] Block the current thread for. {b FIMXE:} remove float. *)
+  (** [sleep nsec] Block the current thread for. {b FIXME:} remove float. *)
 end
 
 module type RANDOM = sig

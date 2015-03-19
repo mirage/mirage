@@ -208,7 +208,6 @@ module type BLOCK = sig
   (** The type for page-aligned memory buffers. *)
 
   type error = private [>
-    | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Is_read_only      (** you cannot write to a read/only instance *)
     | `Disconnected      (** the device has been previously disconnected *)
@@ -255,8 +254,6 @@ module type BLOCK = sig
       {- [`Disconnected]: the device has been disconnected at
         application request, an unknown amount of data has been
         written.}
-      {- [`Unknown]: some other permanent, fatal error (e.g. disk is
-        on fire), where an unknown amount of data has been written.}
       }
 
       Each of [buffers] must be a whole number of sectors in
@@ -731,7 +728,6 @@ module type FS = sig
     | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
     | `No_space                              (** No space left on the block device *)
     | `Format_not_recognised of string       (** The block device appears to not be formatted *)
-    | `Unknown_error of string
     | `Block_device of block_device_error
   ]
   (** The type for filesystem errors. *)

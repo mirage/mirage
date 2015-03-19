@@ -536,7 +536,7 @@ module type UDP = sig
 
   val input: listeners:(dst_port:int -> callback option) -> t -> ipinput
   (** [input listeners t] demultiplexes incoming datagrams based on
-      their destination port.  The [listeners] callback is will either
+      their destination port.  The [listeners] callback will either
       return a concrete handler or a [None], which results in the
       datagram being dropped. *)
 

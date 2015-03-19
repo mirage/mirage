@@ -137,19 +137,19 @@ module type FLOW = sig
   (** The type for flows. A flow represents the state of a single
       stream that is connected to an endpoint. *)
 
-  type error
-  (** The type for errors. *)
+  type error = private [> `Eof]
+  (** The type for flow errors. *)
 
   val error_message: error -> string
   (** Convert an error to a human-readable message, suitable for
       logging. *)
 
-  val read: flow -> [`Ok of buffer | `Eof | `Error of error ] io
+  val read: flow -> [`Ok of buffer | `Error of error ] io
   (** [read flow] will block until it either successfully reads a
       segment of data from the current flow, receives an [Eof]
       signifying that the connection is now closed, or an [Error]. *)
 
-  val write: flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
+  val write: flow -> buffer -> [`Ok of unit | `Error of error ] io
   (** [write flow buffer] will block until [buffer] has been added to
       the send queue. There is no indication when the buffer has
       actually been read and, therefore, it must not be reused.  The
@@ -158,7 +158,7 @@ module type FLOW = sig
       [`Eof] indicates that the connection is now closed and [`Error]
       indicates some other error. *)
 
-  val writev: flow -> buffer list -> [`Ok of unit | `Eof | `Error of error ] io
+  val writev: flow -> buffer list -> [`Ok of unit | `Error of error ] io
   (** [writev flow buffers] will block until the buffers have all been
       added to the send queue. There is no indication when the buffers
       have actually been read and, therefore, they must not be reused.
@@ -177,9 +177,7 @@ end
 (** {1 Console input/output} *)
 module type CONSOLE = sig
 
-  type error = [
-    | `Invalid_console of string
-  ]
+  type error = private [> `Eof | `Invalid_console of string ]
   (** The type for representing possible errors when attaching a
       console. *)
 
@@ -210,7 +208,7 @@ module type BLOCK = sig
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
 
-  type error = [
+  type error = private [>
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Is_read_only      (** you cannot write to a read/only instance *)
@@ -513,8 +511,8 @@ module type TCP = sig
   (** A flow represents the state of a single TCPv4 stream that is connected
       to an endpoint. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error. *)
+  type error = private [>
+    | `Eof
     | `Timeout  (** connection attempt did not get a valid response. *)
     | `Refused  (** connection attempt was actively refused via an RST. *)
   ]
@@ -727,7 +725,7 @@ module type FS = sig
   type block_device_error
   (** The type for errors from the block layer *)
 
-  type error = [
+  type error = private [>
     | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
     | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
     | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
@@ -792,8 +790,7 @@ end
 (** {1 Static Key/value store} *)
 module type KV_RO = sig
 
-  type error =
-    | Unknown_key of string
+  type error = private [> `Unknown_key of string]
 
   include DEVICE
 

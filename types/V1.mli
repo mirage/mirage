@@ -36,6 +36,9 @@ module type DEVICE = sig
   type t
   (** The type representing the internal state of the device *)
 
+  val pp: Format.formatter -> t -> unit
+  (** Pretty-print device states. *)
+
   val disconnect: t -> unit io
   (** Disconnect from the device.  While this might take some time to
       complete, it can never result in an error. *)

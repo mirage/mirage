@@ -11,7 +11,7 @@ install: [make "install-types"]
 remove:  ["ocamlfind" "remove" "mirage-types"]
 
 depends:   ["ocamlfind"]
-depopts:   ["lwt" "cstruct" "ipaddr"]
+depopts:   ["lwt" "cstruct" "ipaddr" "rresult"]
 conflicts: ["ipaddr" {< "2.0.0"}]
 
 available: [ocaml-version >= "4.01.0"]

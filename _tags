@@ -37,4 +37,4 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: use_mirage
 # OASIS_STOP
 true: debug, bin_annot, annot, principal
-<types/*.mli>: pkg_cstruct, pkg_io-page, pkg_ipaddr, pkg_lwt
+<types/*.mli>: pkg_cstruct, pkg_io-page, pkg_ipaddr, pkg_lwt, pkg_rresult

@@ -21,7 +21,7 @@
     This module defines the basic signatures that functor parameters
     should implement in MirageOS to be portable. *)
 
-type ('a, 'b) result = Ok of 'a | Error of 'b
+type ('a, 'b) result = ('a, 'b) Rresult.result = Ok of 'a | Error of 'b
 (** {b FIXME} Use {!Rresult} *)
 
 (** {1 Abtract devices}

@@ -42,6 +42,13 @@ module type DEVICE = sig
   val disconnect: t -> unit io
   (** Disconnect from the device.  While this might take some time to
       complete, it can never result in an error. *)
+
+  type error
+  (** The type for connection error. *)
+
+  val pp_error: Format.formatter -> error -> unit
+  (** Pretty-print connection errors. *)
+
 end
 
 (** {1 Time operations for cooperative threads} *)
@@ -183,7 +190,7 @@ module type CONSOLE = sig
   (** The type for representing possible errors when attaching a
       console. *)
 
-  include DEVICE
+  include DEVICE with type error := error
 
   include FLOW with
       type error  := error
@@ -217,8 +224,7 @@ module type BLOCK = sig
   ]
   (** The type for IO operation errors. *)
 
-
-  include DEVICE
+  include DEVICE with type error := error
 
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
@@ -735,7 +741,7 @@ module type FS = sig
   ]
   (** The type for filesystem errors. *)
 
-  include DEVICE
+  include DEVICE with type error := error
 
   type buffer
   (** The type for memory buffers. *)
@@ -789,7 +795,7 @@ module type KV_RO = sig
 
   type error = private [> `Unknown_key of string]
 
-  include DEVICE
+  include DEVICE with type error := error
 
   type buffer
   (** The type for memory buffers.*)

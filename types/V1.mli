@@ -139,7 +139,7 @@ module type FLOW = sig
   type buffer
   (** The type for memory buffer. *)
 
-  type flow
+  type t
   (** The type for flows. A flow represents the state of a single
       stream that is connected to an endpoint. *)
 
@@ -150,25 +150,25 @@ module type FLOW = sig
   (** Convert an error to a human-readable message, suitable for
       logging. *)
 
-  val read: flow -> (buffer, error) result  io
+  val read: t -> (buffer, error) result  io
   (** [read flow] will block until it either successfully reads a
       segment of data from the current flow, receives an [`Eof]
       signifying that the connection is now closed. *)
 
-  val write: flow -> buffer -> (unit, error) result io
+  val write: t -> buffer -> (unit, error) result io
   (** [write flow buffer] will block until [buffer] has been added to
       the send queue. There is no indication when the buffer has
       actually been read and, therefore, it must not be reused.  The
       contents may be transmitted in separate packets, depending on
       the underlying transport. *)
 
-  val writev: flow -> buffer list -> (unit, error) result io
+  val writev: t -> buffer list -> (unit, error) result io
   (** [writev flow buffers] will block until the buffers have all been
       added to the send queue. There is no indication when the buffers
       have actually been read and, therefore, they must not be
       reused. *)
 
-  val close: flow -> unit io
+  val close: t -> unit io
   (** [close flow] will flush all pending writes and signal the end of
       the flow to the remote endpoint.  When the result [unit io]
       becomes determined, all further calls to [read flow] will result
@@ -188,7 +188,7 @@ module type CONSOLE = sig
   include FLOW with
       type error  := error
   and type 'a io  := 'a io
-  and type flow   := t
+  and type t      := t
 
   val log: t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written
@@ -517,13 +517,13 @@ module type TCP = sig
   ]
   (** The type for IO operation errors. *)
 
-  include DEVICE
+  include DEVICE with type error := error
 
   include FLOW with
       type error  := error
   and type 'a io  := 'a io
   and type buffer := buffer
-  and type flow   := flow
+  and type t      := flow
 
   type callback = flow -> unit io
   (** The type for application callback that receives a [flow] that it

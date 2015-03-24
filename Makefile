@@ -5,7 +5,6 @@ VFILE   = lib/mirage_version.ml
 
 CONF_FLAGS ?=
 
-
 .PHONY: all clean install build
 all: build
 
@@ -56,3 +55,14 @@ update-doc: doc
 	cd gh-pages && cp ../mirage.docdir/*.html .
 	cd gh-pages && git add * && git commit -a -m "Update docs"
 	cd gh-pages && git push
+
+ARCHIVE = https://github.com/mirage/mirage/archive/v$(VERSION).tar.gz
+
+release:
+	git tag -a v$(VERSION) -m "Version $(VERSION)."
+	git push upstream v$(VERSION)
+	$(MAKE) pr
+
+pr:
+	opam publish prepare $(NAME).$(VERSION) $(ARCHIVE)
+	OPAMYES=1 opam publish submit $(NAME).$(VERSION) && rm -rf $(NAME).$(VERSION)

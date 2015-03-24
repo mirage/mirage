@@ -937,6 +937,8 @@ module IPV4 = struct
 
   type t = {
     ethernet: ethernet impl;
+    clock: clock impl;
+    time: time impl;
     config  : ipv4_config;
   }
   (* XXX: should the type if ipv4.id be ipv4.t ?
@@ -950,7 +952,7 @@ module IPV4 = struct
     String.capitalize (name t)
 
   let packages t =
-    "tcpip" :: Impl.packages t.ethernet
+    "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet
 
   let libraries t  =
     (match !mode with
@@ -962,8 +964,10 @@ module IPV4 = struct
     let name = name t in
     let mname = module_name t in
     Impl.configure t.ethernet;
-    append_main "module %s = Ipv4.Make(%s)"
-      (module_name t) (Impl.module_name t.ethernet);
+    Impl.configure t.clock;
+    Impl.configure t.time;
+    append_main "module %s = Ipv4.Make(%s)(%s)(%s)"
+      (module_name t) (Impl.module_name t.ethernet) (Impl.module_name t.clock)  (Impl.module_name t.time);
     newline_main ();
     append_main "let %s () =" name;
     append_main "   %s () >>= function" (Impl.name t.ethernet);
@@ -1089,10 +1093,12 @@ type ipv6 = v6 ip
 let ipv4 : ipv4 typ = ip
 let ipv6 : ipv6 typ = ip
 
-let create_ipv4 net config =
+let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config =
   let etif = etif net in
   let t = {
     IPV4.ethernet = etif;
+    clock;
+    time;
     config } in
   impl ipv4 t (module IPV4)
 
@@ -1375,7 +1381,8 @@ module STACKV4_direct = struct
     let udpv4_name = module_name t ^ "_U" in
     let tcpv4_name = module_name t ^ "_T" in
     append_main "module %s = Ethif.Make(%s)" ethif_name (Impl.module_name t.network);
-    append_main "module %s = Ipv4.Make(%s)" ipv4_name ethif_name;
+    append_main "module %s = Ipv4.Make(%s)(%s)(%s)" ipv4_name ethif_name
+      (Impl.module_name t.clock) (Impl.module_name t.time);
     append_main "module %s = Udp.Make (%s)" udpv4_name ipv4_name;
     append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)"
       tcpv4_name ipv4_name (Impl.module_name t.time)

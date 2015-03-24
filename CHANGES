@@ -1,4 +1,7 @@
 2.4.0:
+* Support for `ocaml-tls` 0.4.0.
+* Conduit now takes an optional TLS argument, allowing servers to support
+  encryption. (#347)
 * Add the ability to specify `Makefile.user` to extend the generated
   `Makefile`. Also `all`, `build` and `clean` are now extensible make
   targets.

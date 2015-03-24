@@ -1,4 +1,5 @@
 2.4.0:
+* Add time and clock parameters to IPv4 (#362, patch from @yomimono)
 * Support for `ocaml-tls` 0.4.0.
 * Conduit now takes an optional TLS argument, allowing servers to support
   encryption. (#347)

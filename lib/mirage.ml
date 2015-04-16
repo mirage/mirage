@@ -1545,50 +1545,6 @@ let direct_stackv4_with_static_ipv4
 let socket_stackv4 console ipv4s =
   impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
-module Channel_over_TCP (V : sig type t end) = struct
-
-  type t = V.t tcp impl
-
-  let name t =
-    let key = "channel" ^ Impl.name t in
-    Name.of_key key ~base:"channel"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages _ =
-    [ "mirage-tcpip" ]
-
-  let libraries _ =
-    [ "tcpip.channel" ]
-
-  let configure t =
-    Impl.configure t;
-    append_main "module %s = Channel.Make(%s)" (module_name t) (Impl.module_name t);
-    newline_main ();
-    append_main "let %s () =" (name t);
-    append_main "  %s () >>= function" (Impl.name t);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name t));
-    append_main "  | `Ok console ->";
-    append_main "  let flow = %s.create config in" (module_name t);
-    append_main "  return (`Ok flow)";
-    newline_main ()
-
-  let clean t =
-    Impl.clean t
-
-  let update_path t root =
-    Impl.update_path t root
-
-end
-
-type channel = CHANNEL
-
-let channel = Type CHANNEL
-
-let channel_over_tcp (type v) (flow : v tcp impl) =
-  impl channel flow (module Channel_over_TCP (struct type t = v end))
-
 module VCHAN_localhost = struct
 
   type uuid = string
@@ -1923,53 +1879,42 @@ let resolver_unix_system =
 module HTTP = struct
 
   type t =
-    [ `Channel of channel impl
-    | `Stack of conduit_server * conduit impl ]
+    | Conduit of conduit_server * conduit impl
 
   let name t =
     let key = "http" ^ match t with
-      | `Channel c    -> Impl.name c
-      | `Stack (_, c) -> Impl.name c in
+      | Conduit (_, c) -> Impl.name c in
     Name.of_key key ~base:"http"
 
-  let module_name_core t =
-    String.capitalize (name t)
-
   let module_name t =
-    module_name_core t ^ ".Server"
+    String.capitalize (name t)
 
   let packages t =
     [ "mirage-http" ] @
     match t with
-    | `Channel c    -> Impl.packages c
-    | `Stack (_, c) -> Impl.packages c
+    | Conduit (_, c) -> Impl.packages c
 
   let libraries t =
     [ "mirage-http" ] @
     match t with
-    | `Channel c    -> Impl.libraries c
-    | `Stack (_, c) -> Impl.libraries c
+    | Conduit (_, c) -> Impl.libraries c
 
   let configure t =
     begin match t with
-      | `Channel c ->
+      | Conduit (_, c) ->
         Impl.configure c;
-        append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
-      | `Stack (_, c) ->
-        Impl.configure c;
-        append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
+        append_main "module %s = Cohttp_mirage.Server(%s.Flow)"
+          (module_name t) (Impl.module_name c)
     end;
     newline_main ();
     let subname = match t with
-      | `Channel c   -> Impl.name c
-      | `Stack (_,c) -> Impl.name c in
+      | Conduit (_,c) -> Impl.name c in
     append_main "let %s () =" (name t);
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
     begin match t with
-      | `Channel c   -> failwith "TODO"
-      | `Stack (m,c) ->
+      | Conduit (m,c) ->
         append_main "  let listen spec =";
         append_main "    let ctx = %s in" (Impl.name c);
         append_main "    let mode = %s in"
@@ -1977,20 +1922,19 @@ module HTTP = struct
            |`TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
            |`Vchan l -> failwith "Vchan not supported yet in server"
           );
-        append_main "    %s.serve ~ctx ~mode (%s.Server.listen spec)" (Impl.module_name c) (module_name_core t);
+        append_main "    %s.serve ~ctx ~mode (%s.listen spec)"
+          (Impl.module_name c) (module_name t);
         append_main "  in";
         append_main "  return (`Ok listen)";
     end;
     newline_main ()
 
   let clean = function
-    | `Channel c    -> Impl.clean c
-    | `Stack (_,c) -> Impl.clean c
+    | Conduit (_,c) -> Impl.clean c
 
   let update_path t root =
     match t with
-    | `Channel c    -> `Channel (Impl.update_path c root)
-    | `Stack (m, c) -> `Stack (m, Impl.update_path c root)
+    | Conduit (m, c) -> Conduit (m, Impl.update_path c root)
 
 end
 
@@ -1998,11 +1942,8 @@ type http = HTTP
 
 let http = Type HTTP
 
-let http_server_of_channel chan =
-  impl http (`Channel chan) (module HTTP)
-
 let http_server mode conduit =
-  impl http (`Stack (mode, conduit)) (module HTTP)
+  impl http (HTTP.Conduit (mode, conduit)) (module HTTP)
 
 type job = JOB
 

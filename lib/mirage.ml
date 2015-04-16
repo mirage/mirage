@@ -1886,11 +1886,8 @@ module HTTP = struct
       | Conduit (_, c) -> Impl.name c in
     Name.of_key key ~base:"http"
 
-  let module_name_core t =
-    String.capitalize (name t)
-
   let module_name t =
-    module_name_core t ^ ".Server"
+    String.capitalize (name t)
 
   let packages t =
     [ "mirage-http" ] @
@@ -1906,7 +1903,8 @@ module HTTP = struct
     begin match t with
       | Conduit (_, c) ->
         Impl.configure c;
-        append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
+        append_main "module %s = Cohttp_mirage.Server(%s.Flow)"
+          (module_name t) (Impl.module_name c)
     end;
     newline_main ();
     let subname = match t with
@@ -1924,7 +1922,8 @@ module HTTP = struct
            |`TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
            |`Vchan l -> failwith "Vchan not supported yet in server"
           );
-        append_main "    %s.serve ~ctx ~mode (%s.Server.listen spec)" (Impl.module_name c) (module_name_core t);
+        append_main "    %s.serve ~ctx ~mode (%s.listen spec)"
+          (Impl.module_name c) (module_name t);
         append_main "  in";
         append_main "  return (`Ok listen)";
     end;

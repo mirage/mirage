@@ -1,4 +1,7 @@
 2.4.0:
+* Support `mirage-http.2.2.0`
+* Support `conduit.0.8.0`
+* Support `tcpip.2.4.0`
 * Add time and clock parameters to IPv4 (#362, patch from @yomimono)
 * Support for `ocaml-tls` 0.4.0.
 * Conduit now takes an optional TLS argument, allowing servers to support

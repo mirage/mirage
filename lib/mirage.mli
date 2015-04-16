@@ -331,15 +331,6 @@ val direct_stackv4_with_dhcp:
 
 val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
-
-(** {Channel configuration} *)
-
-(** Implementation of the [V1.CHANNEL] signature. *)
-
-type channel
-val channel: channel typ
-val channel_over_tcp: 'a tcp impl -> channel impl
-
 (** {Resolver configuration} *)
 
 type resolver
@@ -575,8 +566,6 @@ module TCPV4_socket: CONFIGURABLE
 
 module STACKV4_direct: CONFIGURABLE
 module STACKV4_socket: CONFIGURABLE
-
-module Channel_over_TCP: functor (V : sig type t end) -> CONFIGURABLE
 
 module HTTP: CONFIGURABLE
 

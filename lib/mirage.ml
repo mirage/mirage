@@ -1878,11 +1878,12 @@ let resolver_unix_system =
 
 module HTTP = struct
 
-  type t = [ `Stack of conduit_server * conduit impl ]
+  type t =
+    | Conduit of conduit_server * conduit impl
 
   let name t =
     let key = "http" ^ match t with
-      | `Stack (_, c) -> Impl.name c in
+      | Conduit (_, c) -> Impl.name c in
     Name.of_key key ~base:"http"
 
   let module_name_core t =
@@ -1894,28 +1895,28 @@ module HTTP = struct
   let packages t =
     [ "mirage-http" ] @
     match t with
-    | `Stack (_, c) -> Impl.packages c
+    | Conduit (_, c) -> Impl.packages c
 
   let libraries t =
     [ "mirage-http" ] @
     match t with
-    | `Stack (_, c) -> Impl.libraries c
+    | Conduit (_, c) -> Impl.libraries c
 
   let configure t =
     begin match t with
-      | `Stack (_, c) ->
+      | Conduit (_, c) ->
         Impl.configure c;
         append_main "module %s = HTTP.Make(%s)" (module_name_core t) (Impl.module_name c)
     end;
     newline_main ();
     let subname = match t with
-      | `Stack (_,c) -> Impl.name c in
+      | Conduit (_,c) -> Impl.name c in
     append_main "let %s () =" (name t);
     append_main "  %s () >>= function" subname;
     append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
     append_main "  | `Ok %s ->" subname;
     begin match t with
-      | `Stack (m,c) ->
+      | Conduit (m,c) ->
         append_main "  let listen spec =";
         append_main "    let ctx = %s in" (Impl.name c);
         append_main "    let mode = %s in"
@@ -1930,11 +1931,11 @@ module HTTP = struct
     newline_main ()
 
   let clean = function
-    | `Stack (_,c) -> Impl.clean c
+    | Conduit (_,c) -> Impl.clean c
 
   let update_path t root =
     match t with
-    | `Stack (m, c) -> `Stack (m, Impl.update_path c root)
+    | Conduit (m, c) -> Conduit (m, Impl.update_path c root)
 
 end
 
@@ -1943,7 +1944,7 @@ type http = HTTP
 let http = Type HTTP
 
 let http_server mode conduit =
-  impl http (`Stack (mode, conduit)) (module HTTP)
+  impl http (HTTP.Conduit (mode, conduit)) (module HTTP)
 
 type job = JOB
 

@@ -22,6 +22,7 @@
     large collection of devices. *)
 
 
+type key = Mirage_key.key
 
 (** {2 Module combinators} *)
 
@@ -262,7 +263,7 @@ val default_ipv4: network impl -> ipv4 impl
     - gateways: [10.0.0.1] *)
 
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
-(** Types for IPv6 manual configuration. *)
+(** Types for manual IPv6 manual configuration. *)
 
 val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address. *)
@@ -329,7 +330,7 @@ val direct_stackv4_with_dhcp:
   ?time:time impl ->
   console impl -> network impl -> stackv4 impl
 
-val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
+val socket_stackv4: console impl -> Ipaddr.V4.t list -> stackv4 impl
 
 (** {Resolver configuration} *)
 
@@ -390,16 +391,18 @@ type job
 val job: job typ
 (** Reprensention of [JOB]. *)
 
-val register: ?tracing:tracing -> string -> job impl list -> unit
+val register: ?tracing:tracing -> ?bootvars:key list -> string -> job impl list -> unit
 (** [register name jobs] registers the application named by [name]
     which will executes the given [jobs].
-    @param tracing enables tracing if present (see {!mprof_trace}). *)
+    @param tracing enables tracing if present (see {!mprof_trace}).
+    @param bootvars passes user-defined config keys (which can be set on the command-line) *)
 
 type t = {
   name: string;
   root: string;
   jobs: job impl list;
   tracing: tracing option;
+  bootvars: key list
 }
 (** Type for values representing a project description. *)
 
@@ -467,6 +470,11 @@ val packages: t -> string list
 val libraries: t -> string list
 (** List of ocamlfind libraries. *)
 
+val bootvar: ?doc:string -> ?default:string -> string -> key
+
+val bootvars: t -> key list
+(** List of boot vars. *)
+
 val configure: t -> unit
 (** Generate some code to create a value with the right
     configuration settings. *)
@@ -500,6 +508,8 @@ module type CONFIGURABLE = sig
   val libraries: t -> string list
   (** Return the list of ocamlfind libraries to link with the
       application to use the given device. *)
+
+  val keys: t -> key list
 
   val configure: t -> unit
   (** Configure the given device. *)

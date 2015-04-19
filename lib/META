@@ -2,7 +2,7 @@
 # DO NOT EDIT (digest: 456f68ba9d54846443fd54d03301ae49)
 version = "2.4.0"
 description = "Mirage configuration tool"
-requires = "ipaddr unix dynlink lwt mirage-types mirage-types.lwt"
+requires = "ipaddr unix dynlink lwt mirage-types mirage-types.lwt cmdliner"
 archive(byte) = "mirage.cma"
 archive(byte, plugin) = "mirage.cma"
 archive(native) = "mirage.cmxa"
@@ -11,6 +11,7 @@ exists_if = "mirage.cma"
 package "runtime" (
  version = "2.4.0"
  description = "Mirage configuration tool"
+ requires = "cmdliner"
  archive(byte) = "mirage-runtime.cma"
  archive(byte, plugin) = "mirage-runtime.cma"
  archive(native) = "mirage-runtime.cmxa"

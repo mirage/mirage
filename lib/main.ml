@@ -87,8 +87,8 @@ let file =
     ~doc:"Configuration file for Mirage. If not specified, the current directory will be scanned. \
           If one file named $(b,config.ml) is found, that file will be used. If no files \
           or multiple configuration files are found, this will result in an error unless one \
-          is explicitly specified on the command line." [] in
-  Arg.(value & pos 0 (some string) None & doc)
+          is explicitly specified on the command line." ["f"; "file"] in
+  Arg.(value & opt (some file) None & doc)
 
 (* CONFIGURE *)
 let configure_doc = "Configure a Mirage application."
@@ -98,17 +98,36 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen no_macosx no_opam no_opam_version_check file =
-    if unix && xen then `Help (`Pager, Some "configure")
-    else (
-      Mirage.manage_opam_packages (not no_opam);
-      Mirage.no_opam_version_check no_opam_version_check;
-      Mirage.set_mode (mode unix xen no_macosx);
-      let t = Mirage.load file in
-      `Ok (Mirage.configure t)) in
-  Term.(ret (pure configure $ unix $ xen $ target $ no_opam $
-             no_opam_version_check $ file)),
-  term_info "configure" ~doc ~man
+  let is_configure = function
+    (* "c" is also a prefix for "clean" *)
+    | "co" | "con" | "conf" | "confi" | "config"
+    | "configu" | "configur" | "configure" -> true
+    | _ -> false
+  in
+  if Array.length Sys.argv > 1 && is_configure Sys.argv.(1) then
+    let config =
+      match Term.eval_peek_opts file with
+      | _, `Ok config -> config
+      | _ -> None
+    in
+    match try `Ok (Mirage.load config) with Mirage_misc.Fatal -> `Fatal with
+      | `Ok t ->
+        let configure unix xen no_macosx no_opam no_opam_version_check _ _ =
+          if unix && xen then `Help (`Pager, Some "configure")
+          else (
+            Mirage.manage_opam_packages (not no_opam);
+            Mirage.no_opam_version_check no_opam_version_check;
+            Mirage.set_mode (mode unix xen no_macosx);
+            `Ok (Mirage.configure t)) in
+        let gather k rest = Cmdliner.Term.(pure (fun () () -> ()) $ Mirage_key.term k $ rest) in
+        let keys = List.fold_right gather (Mirage.bootvars t) (Cmdliner.Term.pure ()) in
+        Term.(ret (pure configure $ unix $ xen $ target $ no_opam $ no_opam_version_check $ file $ keys)),
+        term_info "configure" ~doc ~man
+      | `Fatal ->
+        Term.(ret (pure (`Ok ()))), term_info "configure" ~doc ~man
+  else
+    (* This term should never be evaluated. *)
+    Term.(pure (fun () -> assert false) $ pure ()), Term.info ""
 
 (* BUILD *)
 let build_doc = "Build a Mirage application."

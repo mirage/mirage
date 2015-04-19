@@ -11,14 +11,16 @@ Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
+  InternalModules:    Mirage_key
   Modules:            Mirage, Mirage_misc
-  BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt
+  BuildDepends:       ipaddr,unix,dynlink,lwt,mirage-types,mirage-types.lwt,cmdliner
 
 Library "mirage-runtime"
   Path:               lib
   Findlibname:        runtime
   Modules:            Mirage_runtime
   Findlibparent:      mirage
+  BuildDepends:       cmdliner
 
 Executable mirage
   CompiledObject:     best

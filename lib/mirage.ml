@@ -30,7 +30,7 @@ module StringSet = struct
 
 end
 
-let configure_key () k = Printf.sprintf "(Bootvar.%s ())" (Mirage_key.name k)
+let configure_key () k = Printf.sprintf "(Bootvar_gen.%s ())" (Mirage_key.name k)
 
 let main_ml = ref None
 
@@ -2556,8 +2556,8 @@ let configure_job j =
   newline_main ()
 
 let configure_bootvar t =
-  info "%s bootvar.ml" (blue_s "Generating:");
-  set_main_ml (t.root / "bootvar.ml");
+  info "%s bootvar_gen.ml" (blue_s "Generating:");
+  set_main_ml (t.root / "bootvar_gen.ml");
   append_main "(* %s *)" generated_by_mirage;
   newline_main ();
   append_main "open Mirage_runtime.Configvar";
@@ -2572,7 +2572,6 @@ let configure_bootvar t =
       (Mirage_key.name bv) (Mirage_key.name bv)
   end bootvars;
   newline_main ();
-  append_main "open Lwt";
   append_main "open Cmdliner";
   newline_main ();
   append_main "let parse_argv argv =";
@@ -2581,12 +2580,12 @@ let configure_bootvar t =
   append_main "    | k :: ks -> Term.(pure (fun () () -> ()) $ k $ loop ks) in";
   append_main "  match Term.(eval ~argv (loop [%s], info %S)) with"
     (String.concat "; " (List.map (fun k -> Mirage_key.name k ^ "_t") bootvars)) t.name;
-  append_main "  | `Ok _ -> Lwt.return_unit";
+  append_main "  | `Ok _ -> ()";
   append_main "  | _ -> exit 1";
   newline_main ()
 
 let clean_bootvar t =
-  remove (t.root / "bootvar.ml")
+  remove (t.root / "bootvar_gen.ml")
 
 let configure_main t =
   info "%s main.ml" (blue_s "Generating:");
@@ -2610,7 +2609,12 @@ let configure_main t =
   | _ :: _ ->
   append_main "let () =";
   append_main "  let t =";
-  append_main "    OS.Env.argv () >>= Bootvar.parse_argv >>= fun () ->";
+  begin match !mode with
+    | `Xen ->
+  append_main "    Bootvar.create () >>= Lwt.wrap1 Bootvar.argv >>= Lwt.wrap1 Bootvar_gen.parse_argv >>= fun () ->";
+    | `Unix | `MacOSX ->
+  append_main "    OS.Env.argv () >>= Lwt.wrap1 Bootvar_gen.parse_argv >>= fun () ->";
+  end;
   append_main "    join [%s] in" (String.concat "; " names);
   append_main "  OS.Main.run t"
 

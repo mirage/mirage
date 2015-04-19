@@ -21,10 +21,13 @@
     This module defines the basic signatures that functor parameters
     should implement in MirageOS to be portable. *)
 
+type ('a, 'b) result = ('a, 'b) Rresult.result = Ok of 'a | Error of 'b
+(** {b FIXME} Use {!Rresult} *)
+
 (** {1 Abtract devices}
 
-    Defines the functions to define what is a device state and
-    how to disconnect such a device. *)
+    Defines the functions to define what is a device state and how to
+    disconnect such a device. *)
 module type DEVICE = sig
 
   type +'a io
@@ -33,16 +36,19 @@ module type DEVICE = sig
   type t
   (** The type representing the internal state of the device *)
 
-  type error
-  (** The type for errors signalled by the device *)
-
-  type id
-  (** This type is no longer used and will be removed once other
-   * modules stop using it in their type signatures. *)
+  val pp: Format.formatter -> t -> unit
+  (** Pretty-print device states. *)
 
   val disconnect: t -> unit io
   (** Disconnect from the device.  While this might take some time to
       complete, it can never result in an error. *)
+
+  type error
+  (** The type for connection error. *)
+
+  val pp_error: Format.formatter -> error -> unit
+  (** Pretty-print connection errors. *)
+
 end
 
 (** {1 Time operations for cooperative threads} *)
@@ -79,13 +85,7 @@ end
 (** {1 Native entropy provider} **)
 module type ENTROPY = sig
 
-  type error = [
-    | `No_entropy_device of string
-  ]
-  (** The type for errors when attaching the entropy provider. *)
-
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   type buffer
   (** The type for memory buffers. *)
@@ -146,40 +146,36 @@ module type FLOW = sig
   type buffer
   (** The type for memory buffer. *)
 
-  type flow
+  type t
   (** The type for flows. A flow represents the state of a single
       stream that is connected to an endpoint. *)
 
-  type error
-  (** The type for errors. *)
+  type error = private [> `Eof]
+  (** The type for flow errors. *)
 
-  val error_message: error -> string
+  val pp_error: Format.formatter -> error -> unit
   (** Convert an error to a human-readable message, suitable for
       logging. *)
 
-  val read: flow -> [`Ok of buffer | `Eof | `Error of error ] io
+  val read: t -> (buffer, error) result  io
   (** [read flow] will block until it either successfully reads a
-      segment of data from the current flow, receives an [Eof]
-      signifying that the connection is now closed, or an [Error]. *)
+      segment of data from the current flow, receives an [`Eof]
+      signifying that the connection is now closed. *)
 
-  val write: flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
+  val write: t -> buffer -> (unit, error) result io
   (** [write flow buffer] will block until [buffer] has been added to
       the send queue. There is no indication when the buffer has
       actually been read and, therefore, it must not be reused.  The
       contents may be transmitted in separate packets, depending on
-      the underlying transport. The result [`Ok ()] indicates success,
-      [`Eof] indicates that the connection is now closed and [`Error]
-      indicates some other error. *)
+      the underlying transport. *)
 
-  val writev: flow -> buffer list -> [`Ok of unit | `Eof | `Error of error ] io
+  val writev: t -> buffer list -> (unit, error) result io
   (** [writev flow buffers] will block until the buffers have all been
       added to the send queue. There is no indication when the buffers
-      have actually been read and, therefore, they must not be reused.
-      The result [`Ok ()] indicates success, [`Eof] indicates that the
-      connection is now closed and [`Error] indicates some other
-      error. *)
+      have actually been read and, therefore, they must not be
+      reused. *)
 
-  val close: flow -> unit io
+  val close: t -> unit io
   (** [close flow] will flush all pending writes and signal the end of
       the flow to the remote endpoint.  When the result [unit io]
       becomes determined, all further calls to [read flow] will result
@@ -190,19 +186,16 @@ end
 (** {1 Console input/output} *)
 module type CONSOLE = sig
 
-  type error = [
-    | `Invalid_console of string
-  ]
+  type error = private [> `Eof | `Invalid_console of string ]
   (** The type for representing possible errors when attaching a
       console. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE with type error := error
 
   include FLOW with
       type error  := error
   and type 'a io  := 'a io
-  and type flow   := t
+  and type t      := t
 
   val log: t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written
@@ -221,20 +214,17 @@ end
     for persistent storage *)
 module type BLOCK = sig
 
-  type page_aligned_buffer
+  type buffer
   (** The type for page-aligned memory buffers. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
+  type error = private [>
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Is_read_only      (** you cannot write to a read/only instance *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
   (** The type for IO operation errors. *)
 
-
-  include DEVICE with
-    type error := error
+  include DEVICE with type error := error
 
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
@@ -247,13 +237,13 @@ module type BLOCK = sig
   val get_info: t -> info io
   (** Query the characteristics of a specific block device *)
 
-  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  val read: t -> int64 -> buffer list -> (unit, error) result io
   (** [read device sector_start buffers] returns a blocking IO
       operation which attempts to fill [buffers] with data starting at
       [sector_start].  Each of [buffers] must be a whole number of
       sectors in length. The list of buffers can be of any length. *)
 
-  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  val write: t -> int64 -> buffer list -> (unit, error) result io
   (** [write device sector_start buffers] returns a blocking IO
       operation which attempts to write the data contained within
       [buffers] to [t] starting at [sector_start]. When the IO
@@ -273,8 +263,6 @@ module type BLOCK = sig
       {- [`Disconnected]: the device has been disconnected at
         application request, an unknown amount of data has been
         written.}
-      {- [`Unknown]: some other permanent, fatal error (e.g. disk is
-        on fire), where an unknown amount of data has been written.}
       }
 
       Each of [buffers] must be a whole number of sectors in
@@ -290,24 +278,13 @@ end
     A network interface that serves Ethernet frames. *)
 module type NETWORK = sig
 
-  type page_aligned_buffer
-  (** The type for page-aligned memory buffers. *)
-
   type buffer
   (** The type for memory buffers. *)
-
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors *)
 
   type macaddr
   (** The type for unique MAC identifiers for the device. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   val write: t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -351,22 +328,10 @@ module type ETHIF = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type netif
-  (** The type for ethernet network interfaces. *)
-
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors. *)
-
   type macaddr
   (** The type for unique MAC identifiers. *)
 
-  include DEVICE with
-        type error := error
-    and type id    := netif
+  include DEVICE
 
   val write: t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -393,24 +358,13 @@ module type IP = sig
   type buffer
     (** The type for memory buffers. *)
 
-  type ethif
-  (** The type for ethernet devices. *)
-
   type ipaddr
   (** The type for IP addresses. *)
 
   type prefix
   (** The type for IP prefixes. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-  ]
-  (** The typr ofr IO operation errors. *)
-
-  include DEVICE with
-        type error := error
-    and type id    := ethif
+  include DEVICE
 
   type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
   (** An input continuation used by the parsing functions to pass on
@@ -512,9 +466,6 @@ module type UDP = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type ip
-  (** The type for IPv4/6 stacks for this stack to connect to. *)
-
   type ipaddr
   (** The type for an IP address representations. *)
 
@@ -524,14 +475,7 @@ module type UDP = sig
       conventional kernel, but a direct implementation will parse the
       buffer. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-  ]
-  (** The type for IO operation errors. *)
-
-  include DEVICE with
-      type error := error
-  and type id := ip
+  include DEVICE
 
   type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
   (** The type for callback functions that adds the UDP metadata for
@@ -559,9 +503,6 @@ module type TCP = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type ip
-  (** The type for IPv4 stacks for this stack to connect to. *)
-
   type ipaddr
   (** The type for IP address representations. *)
 
@@ -575,22 +516,20 @@ module type TCP = sig
   (** A flow represents the state of a single TCPv4 stream that is connected
       to an endpoint. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error. *)
+  type error = private [>
+    | `Eof
     | `Timeout  (** connection attempt did not get a valid response. *)
     | `Refused  (** connection attempt was actively refused via an RST. *)
   ]
   (** The type for IO operation errors. *)
 
-  include DEVICE with
-      type error := error
-  and type id := ip
+  include DEVICE with type error := error
 
   include FLOW with
       type error  := error
   and type 'a io  := 'a io
   and type buffer := buffer
-  and type flow   := flow
+  and type t      := flow
 
   type callback = flow -> unit io
   (** The type for application callback that receives a [flow] that it
@@ -614,8 +553,7 @@ module type TCP = sig
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
-  val create_connection: t -> ipaddr * int ->
-    [ `Ok of flow | `Error of error ] io
+  val create_connection: t -> ipaddr * int -> (flow, error) result io
   (** [create_connection t (addr,port)] will open a TCPv4 connection
       to the specified endpoint. *)
 
@@ -632,22 +570,6 @@ end
     receive and transmit network traffic. *)
 module type STACKV4 = sig
 
-  type console
-  (** The type for console logger. *)
-
-  type netif
-  (** The type for network interface that is used to transmit and
-      receive traffic associated with this stack. *)
-
-  type mode
-  (** The type for configuration modes associated with this interface.
-      These can consist of the IPv4 address binding, or a DHCP
-      interface. *)
-
-  type ('console, 'netif, 'mode) config
-  (** The type for the collection of user configuration specified to
-      construct a stack. *)
-
   type ipv4addr
   (** The type for IPv4 addresses. *)
 
@@ -663,28 +585,19 @@ module type STACKV4 = sig
   type ipv4
   (** The type for IPv4 stacks. *)
 
-  type error = [
-    | `Unknown of string
-  ]
-  (** The type for I/O operation errors. *)
-
-  include DEVICE with
-    type error := error
-    and type id = (console, netif, mode) config
+  include DEVICE
 
   module UDPV4: UDP
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = udpv4
-     and type ip = ipv4
 
   module TCPV4: TCP
     with type +'a io = 'a io
      and type ipaddr = ipv4addr
      and type buffer = buffer
      and type t = tcpv4
-     and type ip = ipv4
 
   module IPV4: IPV4
     with type +'a io = 'a io
@@ -816,7 +729,7 @@ module type FS = sig
   type block_device_error
   (** The type for errors from the block layer *)
 
-  type error = [
+  type error = private [>
     | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
     | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
     | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
@@ -824,23 +737,21 @@ module type FS = sig
     | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
     | `No_space                              (** No space left on the block device *)
     | `Format_not_recognised of string       (** The block device appears to not be formatted *)
-    | `Unknown_error of string
     | `Block_device of block_device_error
   ]
   (** The type for filesystem errors. *)
 
-  include DEVICE
-    with type error := error
+  include DEVICE with type error := error
 
-  type page_aligned_buffer
+  type buffer
   (** The type for memory buffers. *)
 
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  val read: t -> string -> int -> int -> (buffer, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val size: t -> string -> [`Error of error | `Ok of int64] io
+  val size: t -> string -> (int64, error) result io
   (** Get the value size. *)
 
   type stat = {
@@ -851,29 +762,29 @@ module type FS = sig
   }
   (** The type for Per-file/directory statistics. *)
 
-  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
+  val format: t -> int64 -> (unit, error) result io
   (** [format t size] erases the contents of [t] and creates an empty
       filesystem of size [size] bytes. *)
 
-  val create: t -> string -> [ `Ok of unit | `Error of error ] io
+  val create: t -> string -> (unit, error) result io
   (** [create t path] creates an empty file at [path]. *)
 
-  val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+  val mkdir: t -> string -> (unit, error) result io
   (** [mkdir t path] creates an empty directory at [path]. *)
 
-  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
+  val destroy: t -> string -> (unit, error) result io
   (** [destroy t path] removes a [path] (which may be a file or an
       empty directory) on filesystem [t]. *)
 
-  val stat: t -> string -> [ `Ok of stat | `Error of error ] io
+  val stat: t -> string -> (stat, error) result io
   (** [stat t path] returns information about file or directory at
       [path]. *)
 
-  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
+  val listdir: t -> string -> (string list, error) result io
   (** [listdir t path] returns the names of files and subdirectories
       within the directory [path]. *)
 
-  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
+  val write: t -> string -> int -> buffer -> (unit, error) result io
   (** [write t path offset data] writes [data] at [offset] in file
       [path] on filesystem [t]. *)
 
@@ -882,21 +793,19 @@ end
 (** {1 Static Key/value store} *)
 module type KV_RO = sig
 
-  type error =
-    | Unknown_key of string
+  type error = private [> `Unknown_key of string]
 
-  include DEVICE
-    with type error := error
+  include DEVICE with type error := error
 
-  type page_aligned_buffer
+  type buffer
   (** The type for memory buffers.*)
 
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  val read: t -> string -> int -> int -> (buffer, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val size: t -> string -> [`Error of error | `Ok of int64] io
+  val size: t -> string -> (int64, error) result io
   (** Get the value size. *)
 
 end

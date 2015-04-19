@@ -28,7 +28,6 @@ module type FLOW = FLOW
 (** Network *)
 module type NETWORK = NETWORK
   with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Io_page.t
    and type buffer = Cstruct.t
    and type macaddr = Macaddr.t
 
@@ -95,7 +94,7 @@ module type CHANNEL = CHANNEL
 (** KV RO *)
 module type KV_RO = KV_RO
   with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
+   and type buffer = Cstruct.t
 
 (** Consoles *)
 module type CONSOLE = CONSOLE
@@ -110,30 +109,14 @@ module type ENTROPY = ENTROPY
 (** Block devices *)
 module type BLOCK = BLOCK
   with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
+   and type buffer = Cstruct.t
 
 (** FS *)
 module type FS = FS
   with type 'a io = 'a Lwt.t
 
-type socket_stack_config =
-  Ipaddr.V4.t list
-
-type direct_stack_config = [
-    `DHCP
-  | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
-]
-
-type ('console, 'netif, 'mode) stackv4_config = {
-  name: string;
-  console: 'console;
-  interface: 'netif;
-  mode: 'mode;
-}
-
 (** Single network stack *)
 module type STACKV4 = STACKV4
   with type 'a io = 'a Lwt.t
-   and type ('a,'b,'c) config = ('a,'b,'c) stackv4_config
    and type ipv4addr = Ipaddr.V4.t
    and type buffer = Cstruct.t

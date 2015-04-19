@@ -1729,6 +1729,8 @@ module TLS_over_conduit = struct
   let libraries t =
     [ "tls.mirage" ] @ Impl.libraries t
 
+  let keys t = Impl.keys t
+
   let configure t =
     Impl.configure t;
     append_main "module %s = Tls_mirage.Make(Conduit_mirage.Dynamic_flow)(%s)" (module_name t) (Impl.module_name t);
@@ -1757,6 +1759,7 @@ module TLS_none = struct
 
   let packages () = []
   let libraries () = []
+  let keys () = []
 
   let configure t =
     append_main "module %s = Conduit_mirage.No_TLS" (module_name t);
@@ -1800,7 +1803,7 @@ module Conduit = struct
     | `Stack (s,v,tls) -> Impl.libraries s @ Impl.libraries v @ Impl.libraries tls
 
   let keys = function
-    | `Stack (s, v) -> Impl.keys s @ Impl.keys v
+    | `Stack (s, v, tls) -> Impl.keys s @ Impl.keys v @ Impl.keys tls
 
   let configure t =
     begin match t with
@@ -1991,8 +1994,7 @@ module HTTP = struct
     | Conduit (_, c) -> Impl.libraries c
 
   let keys = function
-    | `Channel ch -> Impl.keys ch
-    | `Stack (_, c) -> Impl.keys c
+    | Conduit (_, c) -> Impl.keys c
 
   let configure t =
     begin match t with

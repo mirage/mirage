@@ -69,6 +69,10 @@ val uname_s: unit -> string option
 val uname_m: unit -> string option
 val uname_r: unit -> string option
 
+module OCamlfind : sig
+  val query : ?predicates:string list -> ?format:string -> ?recursive:bool -> string list -> string list
+end
+
 (** {2 Display} *)
 
 val set_section: string -> unit

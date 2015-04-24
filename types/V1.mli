@@ -57,7 +57,7 @@ end
 
 (** {1 Random}
 
-    Operations to generate entropy. This is currently a passthrough
+    Operations to generate randomness. This is currently a passthrough
     to the OCaml Random generator, and will be deprecated in V2 and
     turned into a proper DEVICE with blocking modes. *)
 module type RANDOM = sig

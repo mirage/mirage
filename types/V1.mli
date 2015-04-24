@@ -76,39 +76,6 @@ module type RANDOM = sig
       [bound] (exclusive). [bound] must be greater than 0. *)
 end
 
-(** {1 Native entropy provider} **)
-module type ENTROPY = sig
-
-  type error = [
-    | `No_entropy_device of string
-  ]
-  (** The type for errors when attaching the entropy provider. *)
-
-  include DEVICE with
-    type error := error
-
-  type buffer
-  (** The type for memory buffers. *)
-
-  type handler = source:int -> buffer -> unit
-  (** A [handler] is called whenever the system has extra entropy to
-      announce.  No guarantees are made about the entropy itself,
-      other than it being environmentally derived. In particular, the
-      amount of entropy in the buffer can be far lower than the size
-      of the [buffer].
-
-      [source] is a small integer, describing the provider but with no
-      other meaning.
-
-      [handler] is expected to return quickly.  *)
-
-  val handler: t -> handler -> unit io
-  (** [handler h] registers the single global [handler] that will
-      receive entropy. There might be additional, provider-specific
-      blocking semantics.  *)
-
-end
-
 (** {1 Clock operations}
 
     Currently read-only to retrieve the time in various formats. *)

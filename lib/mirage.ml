@@ -26,6 +26,8 @@ module StringSet = struct
     List.iter (fun e -> s := add e !s) l;
     !s
 
+  let to_list s = fold (fun x xs -> x :: xs) s []
+
 end
 
 let main_ml = ref None
@@ -1939,6 +1941,43 @@ type tracing = Tracing.t
 let mprof_trace ~size () =
   { Tracing.size }
 
+module Nocrypto_entropy = struct
+
+  module SS = StringSet
+
+  let needed = ref None
+
+  let rec detect_if_needed packages =
+    let scan () =
+      let trans = OCamlfind.query ~recursive:true (SS.to_list packages) in
+      List.exists ((=) "nocrypto") trans in
+    if !needed = None then needed := Some (scan ())
+
+  let is_needed () =
+    match !needed with
+    | None   -> failwith "Nocrypto_entropy: query before detection"
+    | Some n -> n
+
+  let packages packages =
+    detect_if_needed packages ;
+    match (!mode, is_needed ()) with
+    | (`Xen, true) -> SS.singleton "mirage-entropy-xen"
+    | _            -> SS.empty
+
+  let libraries () =
+    match (!mode, is_needed ()) with
+    | (`Xen             , true) -> SS.singleton "nocrypto.xen"
+    | ((`Unix | `MacOSX), true) -> SS.singleton "nocrypto.lwt"
+    | _                         -> SS.empty
+
+  let preamble () =
+    match (!mode, is_needed ()) with
+    | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
+    | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
+    | _                         -> "return_unit"
+
+end
+
 type t = {
   name: string;
   root: string;
@@ -1993,6 +2032,7 @@ let packages t =
       let ps = StringSet.of_list (Impl.packages j) in
       StringSet.union ps set
     ) ps t.jobs in
+  let ps = StringSet.union ps (Nocrypto_entropy.packages ps) in
   StringSet.elements ps
 
 let ls = ref StringSet.empty
@@ -2012,6 +2052,7 @@ let libraries t =
       let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set
     ) ls t.jobs in
+  let ls = StringSet.union ls (Nocrypto_entropy.libraries ()) in
   StringSet.elements ls
 
 let configure_myocamlbuild_ml t =
@@ -2361,7 +2402,9 @@ let configure_main t =
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in
   append_main "let () =";
-  append_main "  OS.Main.run (join [%s])" (String.concat "; " names)
+  append_main "  OS.Main.run (%s >>= fun () -> join [%s])"
+              (Nocrypto_entropy.preamble ())
+              (String.concat "; " names)
 
 let clean_main t =
   List.iter Impl.clean t.jobs;

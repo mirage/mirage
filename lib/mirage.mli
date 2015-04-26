@@ -95,17 +95,6 @@ val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
 
 
-(** {2 Entropy} *)
-
-type entropy
-(** Abstract type for entropy sources. *)
-
-val entropy: entropy typ
-(** The [V1.ENTROPY] module signature. *)
-
-val default_entropy: entropy impl
-(** Pick the strongest entropy source available. *)
-
 (** {2 Consoles} *)
 
 (** Implementations of the [V1.CONSOLE] signature. *)

@@ -440,59 +440,6 @@ let random = Type RANDOM
 let default_random: random impl =
   impl random () (module Random)
 
-module Entropy = struct
-
-  type t = unit
-
-  let name _ =
-    "entropy"
-
-  let module_name () = "Entropy"
-
-  let construction () =
-    match !mode with
-    | `Unix | `MacOSX -> "Entropy_unix"
-    | `Xen  -> "Entropy_xen.Make(OS.Time)"
-
-  let id t =
-    match !mode with
-    (* default on Unix is the system entropy source *)
-    | (`Unix | `MacOSX) -> "()"
-    | `Xen -> "`From_host"
-
-  let packages () =
-    [ "nocrypto" ] @
-    match !mode with
-    | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
-    | `Xen  -> [ "mirage-entropy-xen" ]
-
-  let libraries = packages
-
-  let configure t =
-    append_main "module %s = %s" (module_name t) (construction t) ;
-    newline_main () ;
-    append_main "let %s () =" (name t);
-    append_main "  %s.connect %s >>= function" (module_name t) (id t);
-    append_main "  | `Error e -> %s" (driver_initialisation_error "entropy");
-    append_main "  | `Ok entropy ->";
-    append_main "  %s.handler entropy Nocrypto.Rng.Accumulator.add_rr >>= fun () ->" (module_name t);
-    append_main "  return (`Ok entropy)";
-    newline_main ()
-
-  let clean () = ()
-
-  let update_path t _ = t
-
-end
-
-type entropy = ENTROPY
-
-let entropy = Type ENTROPY
-
-(* The default is to get real entropy from the host *)
-let default_entropy: entropy impl =
-  impl entropy () (module Entropy)
-
 module Console = struct
 
   type t = string

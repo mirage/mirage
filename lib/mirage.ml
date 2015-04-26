@@ -1945,33 +1945,29 @@ module Nocrypto_entropy = struct
 
   module SS = StringSet
 
-  let needed = ref None
+  let (pkg, lib) = (ref None, ref None)
 
-  let rec detect_if_needed packages =
-    let scan () =
-      let trans = OCamlfind.query ~recursive:true (SS.to_list packages) in
-      List.exists ((=) "nocrypto") trans in
-    if !needed = None then needed := Some (scan ())
-
-  let is_needed () =
-    match !needed with
-    | None   -> failwith "Nocrypto_entropy: query before detection"
+  let needed r xs =
+    let detect () =
+      OCamlfind.query ~recursive:true (SS.to_list xs)
+        |> List.exists ((=) "nocrypto") in
+    match !r with
     | Some n -> n
+    | None   -> let n = detect () in r := Some n ; n
 
   let packages packages =
-    detect_if_needed packages ;
-    match (!mode, is_needed ()) with
+    match (!mode, needed pkg packages) with
     | (`Xen, true) -> SS.singleton "mirage-entropy-xen"
     | _            -> SS.empty
 
-  let libraries () =
-    match (!mode, is_needed ()) with
+  let libraries libraries =
+    match (!mode, needed lib libraries) with
     | (`Xen             , true) -> SS.singleton "nocrypto.xen"
     | ((`Unix | `MacOSX), true) -> SS.singleton "nocrypto.lwt"
     | _                         -> SS.empty
 
   let preamble () =
-    match (!mode, is_needed ()) with
+    match (!mode, needed lib SS.empty) with
     | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
     | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
     | _                         -> "return_unit"
@@ -2052,7 +2048,7 @@ let libraries t =
       let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set
     ) ls t.jobs in
-  let ls = StringSet.union ls (Nocrypto_entropy.libraries ()) in
+  let ls = StringSet.union ls (Nocrypto_entropy.libraries ls) in
   StringSet.elements ls
 
 let configure_myocamlbuild_ml t =

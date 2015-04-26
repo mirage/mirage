@@ -347,7 +347,6 @@ val vchan_default : ?uuid:string -> unit -> vchan impl
 
 (** {TLS configuration} *)
 type conduit_tls
-val tls_over_conduit : entropy impl -> conduit_tls impl
 
 (** {Conduit configuration} *)
 

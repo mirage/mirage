@@ -1630,40 +1630,6 @@ let vchan_default ?uuid () =
   | `Xen -> vchan_xen ?uuid ()
   | `Unix | `MacOSX -> vchan_localhost ?uuid ()
 
-module TLS_over_conduit = struct
-  type t = entropy impl
-
-  let name t =
-    let key = "tls_with_" ^ Impl.name t in
-    Name.of_key key ~base:"tls"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages t =
-    [ "tls" ] @ Impl.packages t
-
-  let libraries t =
-    [ "tls.mirage" ] @ Impl.libraries t
-
-  let configure t =
-    Impl.configure t;
-    append_main "module %s = Tls_mirage.Make(Conduit_mirage.Dynamic_flow)(%s)" (module_name t) (Impl.module_name t);
-    newline_main ();
-    append_main "let %s =" (name t);
-    append_main "  %s () >>= function" (Impl.name t);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name t));
-    append_main "  | `Ok _entropy ->";
-    append_main "  return (`Ok ())";
-    newline_main ()
-
-  let clean t =
-    Impl.clean t
-
-  let update_path t root =
-    Impl.update_path t root
-end
-
 module TLS_none = struct
   type t = unit
 
@@ -1687,7 +1653,6 @@ end
 type conduit_tls = Conduit_TLS
 let conduit_tls = Type Conduit_TLS
 
-let tls_over_conduit entropy = impl conduit_tls entropy (module TLS_over_conduit)
 let tls_none = impl conduit_tls () (module TLS_none)
 
 module Conduit = struct

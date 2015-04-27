@@ -71,6 +71,7 @@ val uname_r: unit -> string option
 
 module OCamlfind : sig
   val query : ?predicates:string list -> ?format:string -> ?recursive:bool -> string list -> string list
+  val installed : string -> bool
 end
 
 (** {2 Display} *)

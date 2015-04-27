@@ -26,8 +26,6 @@ module StringSet = struct
     List.iter (fun e -> s := add e !s) l;
     !s
 
-  let to_list s = fold (fun x xs -> x :: xs) s []
-
 end
 
 let main_ml = ref None
@@ -1962,7 +1960,12 @@ module Nocrypto_entropy = struct
     | Some x -> x
     | None   -> let x = f () in r := Some x ; x
 
-  let linkage = ref None
+  let linkage_ = ref None
+
+  let linkage () =
+    match !linkage_ with
+    | None   -> failwith "Nocrypto_entropy: `linkage` queried before `libraries`"
+    | Some x -> x
 
   let packages () =
     match !mode with
@@ -1970,23 +1973,26 @@ module Nocrypto_entropy = struct
     | _    -> SS.empty
 
   let libraries libs =
-    remembering linkage @@ fun () ->
+    remembering linkage_ @@ fun () ->
       let needed =
-        OCamlfind.query ~recursive:true (SS.to_list libs)
+        OCamlfind.query ~recursive:true (SS.elements libs)
           |> List.exists ((=) "nocrypto") in
       match !mode with
       | `Xen              when needed -> SS.singleton "nocrypto.xen"
       | (`Unix | `MacOSX) when needed -> SS.singleton "nocrypto.lwt"
       | _                             -> SS.empty
 
+  let configure () =
+    SS.elements (linkage ()) |> List.iter (fun lib ->
+      if not (OCamlfind.installed lib) then
+        error "%s module not found. Hint: reinstall nocrypto." lib
+      )
+
   let preamble () =
-    match !linkage with
-    | None   -> failwith "Nocrypto_entropy: `preamble` called before `libraries`"
-    | Some s ->
-        match (!mode, not (SS.is_empty s)) with
-        | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
-        | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
-        | _                         -> "return_unit"
+    match (!mode, not (SS.is_empty @@ linkage ())) with
+    | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
+    | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
+    | _                         -> "return_unit"
 end
 
 type t = {
@@ -2409,6 +2415,7 @@ let configure_main t =
   begin match t.tracing with
   | None -> ()
   | Some tracing -> Tracing.configure tracing end;
+  Nocrypto_entropy.configure ();
   List.iter (fun j -> Impl.configure j) t.jobs;
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in

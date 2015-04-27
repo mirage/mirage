@@ -351,4 +351,7 @@ module OCamlfind = struct
     let out = read_command "ocamlfind query %s %s %s %s" fmt pred r pkgs in
     split out '\n'
 
+  let installed lib =
+    Sys.command ("ocamlfind query " ^ lib ^ " 2>&1 1>/dev/null") = 0
+
 end

@@ -1943,35 +1943,50 @@ let mprof_trace ~size () =
 
 module Nocrypto_entropy = struct
 
+  (* XXX
+   * Nocrypto needs `mirage-entropy-xen` if compiled for xen.
+   * This is currently handled by always installing this library, regardless of
+   * usage of Nocrypto.
+   * As `libraries` is run after opam setup, it will correctly detect Nocrypto
+   * usage and inject appropriate deps for linkage, if needed.
+   * The `packages` function, unconditional installation of
+   * `mirage-entropy-xen`, and this comment, should be cleared once we have
+   * conditional dependencies support in opam.
+   * See https://github.com/mirage/mirage/pull/394 for discussion.
+   *)
+
   module SS = StringSet
 
-  let (pkg, lib) = (ref None, ref None)
-
-  let needed r xs =
-    let detect () =
-      OCamlfind.query ~recursive:true (SS.to_list xs)
-        |> List.exists ((=) "nocrypto") in
+  let remembering r f =
     match !r with
-    | Some n -> n
-    | None   -> let n = detect () in r := Some n ; n
+    | Some x -> x
+    | None   -> let x = f () in r := Some x ; x
 
-  let packages packages =
-    match (!mode, needed pkg packages) with
-    | (`Xen, true) -> SS.singleton "mirage-entropy-xen"
-    | _            -> SS.empty
+  let linkage = ref None
 
-  let libraries libraries =
-    match (!mode, needed lib libraries) with
-    | (`Xen             , true) -> SS.singleton "nocrypto.xen"
-    | ((`Unix | `MacOSX), true) -> SS.singleton "nocrypto.lwt"
-    | _                         -> SS.empty
+  let packages () =
+    match !mode with
+    | `Xen -> SS.singleton "mirage-entropy-xen"
+    | _    -> SS.empty
+
+  let libraries libs =
+    remembering linkage @@ fun () ->
+      let needed =
+        OCamlfind.query ~recursive:true (SS.to_list libs)
+          |> List.exists ((=) "nocrypto") in
+      match !mode with
+      | `Xen              when needed -> SS.singleton "nocrypto.xen"
+      | (`Unix | `MacOSX) when needed -> SS.singleton "nocrypto.lwt"
+      | _                             -> SS.empty
 
   let preamble () =
-    match (!mode, needed lib SS.empty) with
-    | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
-    | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
-    | _                         -> "return_unit"
-
+    match !linkage with
+    | None   -> failwith "Nocrypto_entropy: `preamble` called before `libraries`"
+    | Some s ->
+        match (!mode, not (SS.is_empty s)) with
+        | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
+        | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
+        | _                         -> "return_unit"
 end
 
 type t = {
@@ -2028,7 +2043,7 @@ let packages t =
       let ps = StringSet.of_list (Impl.packages j) in
       StringSet.union ps set
     ) ps t.jobs in
-  let ps = StringSet.union ps (Nocrypto_entropy.packages ps) in
+  let ps = StringSet.union ps (Nocrypto_entropy.packages ()) in
   StringSet.elements ps
 
 let ls = ref StringSet.empty

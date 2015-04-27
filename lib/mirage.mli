@@ -548,12 +548,14 @@ module Block: CONFIGURABLE
 (** Implementation of raw block device. *)
 
 module Fat: CONFIGURABLE
-(** Implementatin of the Fat filesystem. *)
+(** Implementation of the Fat filesystem. *)
 
 module Network: CONFIGURABLE
 (** Implementation of network configuration. *)
 
 module Ethif: CONFIGURABLE
+
+module ARP: CONFIGURABLE
 
 module IPV4: CONFIGURABLE
 module IPV6: CONFIGURABLE

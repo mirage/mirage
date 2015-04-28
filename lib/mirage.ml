@@ -917,6 +917,69 @@ let ethernet = Type ETHERNET
 let etif network =
   impl ethernet network (module Ethif)
 
+module Arpv4 = struct
+  type t = {
+    ethernet: ethernet impl;
+    clock: clock impl;
+    time: time impl;
+  } (* is the type checker not inferring that this is an arp impl? I think this
+    is the root problem.  not sure how to tell it that?  how does it work for
+       other modules? *)
+
+  let name t = 
+    Name.of_key ("arpv4" ^ Impl.name t.ethernet) ~base:"arpv4"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet
+
+  let libraries t =
+    let arp_library = 
+      match !mode with
+      | `Unix | `MacOSX -> "tcpip.arpv4-unix"
+      | `Xen  -> "tcpip.arpv4"
+    in
+    arp_library :: 
+    Impl.libraries t.ethernet @ 
+    Impl.libraries t.clock @
+    Impl.libraries t.ethernet
+
+  let configure t =
+    let name = name t in
+    let mname = module_name t in
+    append_main "module %s = Arpv4.Make(%s)(%s)(%s)" mname
+      (Impl.module_name t.ethernet) 
+      (Impl.module_name t.clock)  
+      (Impl.module_name t.time);
+    newline_main ();
+    append_main "let %s () =" name;
+    append_main "   %s () >>= function" (Impl.name t.ethernet);
+    append_main "   | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "   | `Ok eth  ->";
+    append_main "   %s.connect eth >>= function" mname;
+    append_main "   | `Error _ -> %s" (driver_initialisation_error "ARP");
+    append_main "   | `Ok arp   -> arp"
+
+  let clean t =
+    Impl.clean t.ethernet
+
+  let update_path t root =
+    { t with ethernet = Impl.update_path t.ethernet root }
+
+end
+
+type arpv4 = Arpv4
+let arpv4 = Type Arpv4
+
+let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) = impl arpv4 
+    { Arpv4.ethernet = eth; 
+      clock;
+      time
+    } (module Arpv4)
+
+
 type ('ipaddr, 'prefix) ip_config = {
   address: 'ipaddr;
   netmask: 'prefix;
@@ -936,44 +999,40 @@ let meta_ipv4_config t =
 module IPV4 = struct
 
   type t = {
-    ethernet: ethernet impl;
-    clock: clock impl;
-    time: time impl;
+    arpv4 : arpv4 impl;
     config  : ipv4_config;
   }
   (* XXX: should the type if ipv4.id be ipv4.t ?
      N.connect ethif |> N.set_ip up *)
 
   let name t =
-    let key = "ipv4" ^ Impl.name t.ethernet ^ meta_ipv4_config t.config in
+    let key = "ipv4" ^ Impl.name t.arpv4 ^ meta_ipv4_config t.config in
     Name.of_key key ~base:"ipv4"
 
   let module_name t =
     String.capitalize (name t)
 
   let packages t =
-    "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet
+    "tcpip" :: Impl.packages t.arpv4 
 
   let libraries t  =
     (match !mode with
      | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
      | `Xen  -> [ "tcpip.ipv4" ])
-    @ Impl.libraries t.ethernet
+    @ Impl.libraries t.arpv4
 
   let configure t =
     let name = name t in
     let mname = module_name t in
-    Impl.configure t.ethernet;
-    Impl.configure t.clock;
-    Impl.configure t.time;
-    append_main "module %s = Ipv4.Make(%s)(%s)(%s)"
-      (module_name t) (Impl.module_name t.ethernet) (Impl.module_name t.clock)  (Impl.module_name t.time);
+    Impl.configure t.arpv4;
+    append_main "module %s = Ipv4.Make(%s)"
+      (module_name t) (Impl.module_name t.arpv4);
     newline_main ();
     append_main "let %s () =" name;
-    append_main "   %s () >>= function" (Impl.name t.ethernet);
+    append_main "   %s () >>= function" (Impl.name t.arpv4);
     append_main "   | `Error _ -> %s" (driver_initialisation_error name);
-    append_main "   | `Ok eth  ->";
-    append_main "   %s.connect eth >>= function" mname;
+    append_main "   | `Ok arp ->";
+    append_main "   %s.connect arp >>= function" mname;
     append_main "   | `Error _ -> %s" (driver_initialisation_error "IPV4");
     append_main "   | `Ok ip   ->";
     append_main "   let i = Ipaddr.V4.of_string_exn in";
@@ -991,10 +1050,10 @@ module IPV4 = struct
     newline_main ()
 
   let clean t =
-    Impl.clean t.ethernet
+    Impl.clean t.arpv4
 
   let update_path t root =
-    { t with ethernet = Impl.update_path t.ethernet root }
+    { t with arpv4 = Impl.update_path t.arpv4 root }
 
 end
 
@@ -1095,10 +1154,9 @@ let ipv6 : ipv6 typ = ip
 
 let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config =
   let etif = etif net in
+  let arp = arp ~clock ~time etif in
   let t = {
-    IPV4.ethernet = etif;
-    clock;
-    time;
+    IPV4.arpv4 = arp;
     config } in
   impl ipv4 t (module IPV4)
 

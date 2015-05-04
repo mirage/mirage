@@ -57,7 +57,7 @@ end
 
 (** {1 Random}
 
-    Operations to generate entropy. This is currently a passthrough
+    Operations to generate randomness. This is currently a passthrough
     to the OCaml Random generator, and will be deprecated in V2 and
     turned into a proper DEVICE with blocking modes. *)
 module type RANDOM = sig
@@ -74,39 +74,6 @@ module type RANDOM = sig
   val int32: int32 -> int32
   (** [int32 bound] returns a random integer between 0 (inclusive) and
       [bound] (exclusive). [bound] must be greater than 0. *)
-end
-
-(** {1 Native entropy provider} **)
-module type ENTROPY = sig
-
-  type error = [
-    | `No_entropy_device of string
-  ]
-  (** The type for errors when attaching the entropy provider. *)
-
-  include DEVICE with
-    type error := error
-
-  type buffer
-  (** The type for memory buffers. *)
-
-  type handler = source:int -> buffer -> unit
-  (** A [handler] is called whenever the system has extra entropy to
-      announce.  No guarantees are made about the entropy itself,
-      other than it being environmentally derived. In particular, the
-      amount of entropy in the buffer can be far lower than the size
-      of the [buffer].
-
-      [source] is a small integer, describing the provider but with no
-      other meaning.
-
-      [handler] is expected to return quickly.  *)
-
-  val handler: t -> handler -> unit io
-  (** [handler h] registers the single global [handler] that will
-      receive entropy. There might be additional, provider-specific
-      blocking semantics.  *)
-
 end
 
 (** {1 Clock operations}

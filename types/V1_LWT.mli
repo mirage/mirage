@@ -102,11 +102,6 @@ module type CONSOLE = CONSOLE
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
 
-(** Entropy *)
-module type ENTROPY = ENTROPY
-  with type 'a io = 'a Lwt.t
-   and type buffer = Cstruct.t
-
 (** Block devices *)
 module type BLOCK = BLOCK
   with type 'a io = 'a Lwt.t

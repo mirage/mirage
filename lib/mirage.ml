@@ -440,59 +440,6 @@ let random = Type RANDOM
 let default_random: random impl =
   impl random () (module Random)
 
-module Entropy = struct
-
-  type t = unit
-
-  let name _ =
-    "entropy"
-
-  let module_name () = "Entropy"
-
-  let construction () =
-    match !mode with
-    | `Unix | `MacOSX -> "Entropy_unix"
-    | `Xen  -> "Entropy_xen.Make(OS.Time)"
-
-  let id t =
-    match !mode with
-    (* default on Unix is the system entropy source *)
-    | (`Unix | `MacOSX) -> "()"
-    | `Xen -> "`From_host"
-
-  let packages () =
-    [ "nocrypto" ] @
-    match !mode with
-    | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
-    | `Xen  -> [ "mirage-entropy-xen" ]
-
-  let libraries = packages
-
-  let configure t =
-    append_main "module %s = %s" (module_name t) (construction t) ;
-    newline_main () ;
-    append_main "let %s () =" (name t);
-    append_main "  %s.connect %s >>= function" (module_name t) (id t);
-    append_main "  | `Error e -> %s" (driver_initialisation_error "entropy");
-    append_main "  | `Ok entropy ->";
-    append_main "  %s.handler entropy Nocrypto.Rng.Accumulator.add_rr >>= fun () ->" (module_name t);
-    append_main "  return (`Ok entropy)";
-    newline_main ()
-
-  let clean () = ()
-
-  let update_path t _ = t
-
-end
-
-type entropy = ENTROPY
-
-let entropy = Type ENTROPY
-
-(* The default is to get real entropy from the host *)
-let default_entropy: entropy impl =
-  impl entropy () (module Entropy)
-
 module Console = struct
 
   type t = string
@@ -1630,40 +1577,6 @@ let vchan_default ?uuid () =
   | `Xen -> vchan_xen ?uuid ()
   | `Unix | `MacOSX -> vchan_localhost ?uuid ()
 
-module TLS_over_conduit = struct
-  type t = entropy impl
-
-  let name t =
-    let key = "tls_with_" ^ Impl.name t in
-    Name.of_key key ~base:"tls"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages t =
-    [ "tls" ] @ Impl.packages t
-
-  let libraries t =
-    [ "tls.mirage" ] @ Impl.libraries t
-
-  let configure t =
-    Impl.configure t;
-    append_main "module %s = Tls_mirage.Make(Conduit_mirage.Dynamic_flow)(%s)" (module_name t) (Impl.module_name t);
-    newline_main ();
-    append_main "let %s =" (name t);
-    append_main "  %s () >>= function" (Impl.name t);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name t));
-    append_main "  | `Ok _entropy ->";
-    append_main "  return (`Ok ())";
-    newline_main ()
-
-  let clean t =
-    Impl.clean t
-
-  let update_path t root =
-    Impl.update_path t root
-end
-
 module TLS_none = struct
   type t = unit
 
@@ -1687,7 +1600,6 @@ end
 type conduit_tls = Conduit_TLS
 let conduit_tls = Type Conduit_TLS
 
-let tls_over_conduit entropy = impl conduit_tls entropy (module TLS_over_conduit)
 let tls_none = impl conduit_tls () (module TLS_none)
 
 module Conduit = struct
@@ -2027,6 +1939,62 @@ type tracing = Tracing.t
 let mprof_trace ~size () =
   { Tracing.size }
 
+module Nocrypto_entropy = struct
+
+  (* XXX
+   * Nocrypto needs `mirage-entropy-xen` if compiled for xen.
+   * This is currently handled by always installing this library, regardless of
+   * usage of Nocrypto.
+   * As `libraries` is run after opam setup, it will correctly detect Nocrypto
+   * usage and inject appropriate deps for linkage, if needed.
+   * The `packages` function, unconditional installation of
+   * `mirage-entropy-xen`, and this comment, should be cleared once we have
+   * conditional dependencies support in opam.
+   * See https://github.com/mirage/mirage/pull/394 for discussion.
+   *)
+
+  module SS = StringSet
+
+  let remembering r f =
+    match !r with
+    | Some x -> x
+    | None   -> let x = f () in r := Some x ; x
+
+  let linkage_ = ref None
+
+  let linkage () =
+    match !linkage_ with
+    | None   -> failwith "Nocrypto_entropy: `linkage` queried before `libraries`"
+    | Some x -> x
+
+  let packages () =
+    match !mode with
+    | `Xen -> SS.singleton "mirage-entropy-xen"
+    | _    -> SS.empty
+
+  let libraries libs =
+    remembering linkage_ @@ fun () ->
+      let needed =
+        OCamlfind.query ~recursive:true (SS.elements libs)
+          |> List.exists ((=) "nocrypto") in
+      match !mode with
+      | `Xen              when needed -> SS.singleton "nocrypto.xen"
+      | (`Unix | `MacOSX) when needed -> SS.singleton "nocrypto.lwt"
+      | _                             -> SS.empty
+
+  let configure () =
+    SS.elements (linkage ()) |> List.iter (fun lib ->
+      if not (OCamlfind.installed lib) then
+        error "%s module not found. Hint: reinstall nocrypto." lib
+      )
+
+  let preamble () =
+    match (!mode, not (SS.is_empty @@ linkage ())) with
+    | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
+    | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
+    | _                         -> "return_unit"
+end
+
 type t = {
   name: string;
   root: string;
@@ -2081,6 +2049,7 @@ let packages t =
       let ps = StringSet.of_list (Impl.packages j) in
       StringSet.union ps set
     ) ps t.jobs in
+  let ps = StringSet.union ps (Nocrypto_entropy.packages ()) in
   StringSet.elements ps
 
 let ls = ref StringSet.empty
@@ -2100,6 +2069,7 @@ let libraries t =
       let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set
     ) ls t.jobs in
+  let ls = StringSet.union ls (Nocrypto_entropy.libraries ls) in
   StringSet.elements ls
 
 let configure_myocamlbuild_ml t =
@@ -2445,11 +2415,14 @@ let configure_main t =
   begin match t.tracing with
   | None -> ()
   | Some tracing -> Tracing.configure tracing end;
+  Nocrypto_entropy.configure ();
   List.iter (fun j -> Impl.configure j) t.jobs;
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in
   append_main "let () =";
-  append_main "  OS.Main.run (join [%s])" (String.concat "; " names)
+  append_main "  OS.Main.run (%s >>= fun () -> join [%s])"
+              (Nocrypto_entropy.preamble ())
+              (String.concat "; " names)
 
 let clean_main t =
   List.iter Impl.clean t.jobs;

@@ -2232,9 +2232,18 @@ let configure_main_xe t =
 let clean_main_xe t =
   remove (t.root / t.name ^ ".xe")
 
+(* Implement something similar to the @name/file extended names of findlib. *)
+let rec expand_name ~lib param =
+  match cut_at param '@' with
+  | None -> param
+  | Some (prefix, name) -> match cut_at name '/' with
+    | None              -> prefix ^ lib / name
+    | Some (name, rest) -> prefix ^ lib / name / expand_name ~lib rest
+
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
 let get_extra_ld_flags ~filter pkgs =
+  let lib = strip (read_command "opam config var lib") in
   let output = read_command
     "ocamlfind query -r -format '%%d\t%%(xen_linkopts)' -predicates native %s"
     (String.concat " " pkgs) in
@@ -2242,7 +2251,11 @@ let get_extra_ld_flags ~filter pkgs =
   |> List.fold_left (fun acc line ->
     match cut_at line '\t' with
     | None -> acc
-    | Some (dir, ldflags) -> Printf.sprintf "-L%s %s" dir ldflags :: acc
+    | Some (dir, ldflags) ->
+      let ldflags = split ldflags ' ' in
+      let ldflags = List.map (expand_name ~lib) ldflags in
+      let ldflags = String.concat " " ldflags in
+      Printf.sprintf "-L%s %s" dir ldflags :: acc
   ) []
 
 let configure_makefile t =

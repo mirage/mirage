@@ -17,7 +17,6 @@ remove: [
   ["rm" "-f" "%{bin}%/mirage"]
   ["ocamlfind" "remove" "mirage"]
 ]
-
 depends: [
   "ipaddr" {>= "1.0.0"}
   "mirage-types" {>= "2.3.0"}

@@ -1,7 +1,7 @@
 export FORK_USER=dsheets
 export FORK_BRANCH=yorick
 export EXTRA_REMOTE=https://github.com/mirage/mirage-dev.git
-export PINS="mirage:. mirage-types:."
+export PINS="mirage:. mirage-types:. conduit mirage-conduit"
 
 bash -ex .travis-opam.sh
 

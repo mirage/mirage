@@ -922,9 +922,7 @@ module Arpv4 = struct
     ethernet: ethernet impl;
     clock: clock impl;
     time: time impl;
-  } (* is the type checker not inferring that this is an arp impl? I think this
-    is the root problem.  not sure how to tell it that?  how does it work for
-       other modules? *)
+  }
 
   let name t = 
     Name.of_key ("arpv4" ^ Impl.name t.ethernet) ~base:"arpv4"

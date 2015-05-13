@@ -1,8 +1,8 @@
 language: c
 sudo: required
-install: wget https://raw.githubusercontent.com/dsheets/ocaml-travisci-skeleton/yorick/.travis-opam.sh
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
 script: bash -ex .travis-ci.sh
 env:
-  - OCAML_VERSION=4.02 PACKAGE=mirage
-  - OCAML_VERSION=4.01 PACKAGE=mirage
-  - OCAML_VERSION=4.01 PACKAGE=mirage-types REV_DEPS=*
+  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage
+  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01 PACKAGE=mirage
+  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01 PACKAGE=mirage-types REV_DEPS=*

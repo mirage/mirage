@@ -2356,6 +2356,9 @@ let clean_makefile t =
 let no_opam_version_check_ = ref false
 let no_opam_version_check b = no_opam_version_check_ := b
 
+let no_depext_ = ref false
+let no_depext b = no_depext_ := b
+
 let configure_opam t =
   info "Installing OPAM packages.";
   match packages t with
@@ -2375,11 +2378,14 @@ let configure_opam t =
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
-            if command_exists "opam-depext" then
-              info "opam depext is installed."
-            else
-              opam "install" ["depext"];
-            opam ~yes:false "depext" ps;
+            if !no_depext_ then ()
+            else (
+              if command_exists "opam-depext" then
+                info "opam depext is installed."
+              else
+                opam "install" ["depext"];
+              opam ~yes:false "depext" ps;
+            );
             opam "install" ps
           ) else version_error ()
         | _ -> version_error ()

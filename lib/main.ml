@@ -45,6 +45,9 @@ let unix =
 let no_opam_version_check =
   mk_flag ["no-opam-version-check"] "Bypass the check of opam's version."
 
+let no_depext =
+  mk_flag ["no-depext"] "Skip installation of external dependencies."
+
 let target =
   let doc = "Target platform to compile the unikernel for.  Valid values are: $(i,xen), $(i,unix), $(i,macosx).  There are short forms available via $(b,--xen) and $(b,--unix) as well." in
   let e = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ] in
@@ -98,16 +101,17 @@ let configure =
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh Mirage application."
   ] in
-  let configure unix xen no_macosx no_opam no_opam_version_check file =
+  let configure unix xen no_macosx no_opam no_opam_version_check no_depext file =
     if unix && xen then `Help (`Pager, Some "configure")
     else (
       Mirage.manage_opam_packages (not no_opam);
       Mirage.no_opam_version_check no_opam_version_check;
+      Mirage.no_depext no_depext;
       Mirage.set_mode (mode unix xen no_macosx);
       let t = Mirage.load file in
       `Ok (Mirage.configure t)) in
   Term.(ret (pure configure $ unix $ xen $ target $ no_opam $
-             no_opam_version_check $ file)),
+             no_opam_version_check $ no_depext $ file)),
   term_info "configure" ~doc ~man
 
 (* BUILD *)

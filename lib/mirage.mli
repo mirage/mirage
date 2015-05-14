@@ -443,6 +443,9 @@ val manage_opam_packages: bool -> unit
 val no_opam_version_check: bool -> unit
 (** Bypass the check of opam's version. *)
 
+val no_depext: bool -> unit
+(** Skip installation of external dependencies. *)
+
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)
 

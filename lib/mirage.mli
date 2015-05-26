@@ -327,37 +327,17 @@ val resolver: resolver typ
 val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
-(** {Vchan configuration} *)
-type vchan
-val vchan: vchan typ
-val vchan_localhost : ?uuid:string -> unit -> vchan impl
-val vchan_xen : ?uuid:string -> unit -> vchan impl
-val vchan_default : ?uuid:string -> unit -> vchan impl
-
-(** {TLS configuration} *)
-type conduit_tls
-
 (** {Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : ?vchan:vchan impl -> ?tls:conduit_tls impl -> stackv4 impl -> conduit impl
-
-type conduit_client = [
-  | `TCP of Ipaddr.t * int
-  | `Vchan of string list
-]
-
-type conduit_server = [
-  | `TCP of [ `Port of int ]
-  | `Vchan of string list
-]
+val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
 
 (** {HTTP configuration} *)
 
 type http
 val http: http typ
-val http_server: conduit_server -> conduit impl -> http impl
+val http_server: conduit impl -> http impl
 
 
 (** {2 Tracing} *)

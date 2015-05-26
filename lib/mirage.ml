@@ -1507,7 +1507,7 @@ module Conduit = struct
     in
     Name.of_key key ~base:"conduit"
 
-  let module_name t = "Conduit_mirage"
+  let module_name t = String.capitalize (name t)
 
   let packages t =
     "mirage-conduit" :: (
@@ -1536,6 +1536,8 @@ module Conduit = struct
       | None   -> ()
       | Some s -> Impl.configure s
     end;
+    append_main "module %s = Conduit_mirage" (module_name t);
+    newline_main ();
     append_main "let %s () = Lwt.return Conduit_mirage.empty" (name t);
     begin match t.stackv4 with
       | None   -> ()

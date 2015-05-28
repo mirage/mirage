@@ -1546,8 +1546,10 @@ module Conduit = struct
         append_main "  %s () >>= fun t ->" (name t);
         append_main "  %s () >>= function" (Impl.name s);
         append_main "  | `Error e -> %s" (driver_initialisation_error "stack");
-        append_main "  | `Ok s    -> Conduit_mirage.with_tcp t (module %s) s"
-          (Impl.module_name s) ;
+        append_main "  | `Ok s    ->";
+        append_main "    let tcp = Conduit_mirage.stackv4 (module %s) in"
+          (Impl.module_name s);
+        append_main "    Conduit_mirage.with_tcp t tcp s"
     end;
     begin match t.tls with
       | false -> ()

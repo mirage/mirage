@@ -1711,9 +1711,9 @@ module HTTP = struct
     append_main "  %s () >>= function" (Impl.name t.conduit);
     append_main "  | `Error _ -> assert false";
     append_main "  | `Ok t ->";
-    append_main "    let http t x = %s.listen t x () () in" (module_name t);
     append_main "    let listen s f =";
-    append_main "      %s.listen t s (http f)" (Impl.module_name t.conduit);
+    append_main "      %s.listen t s (%s.listen f)"
+      (Impl.module_name t.conduit) (module_name t);
     append_main "    in";
     append_main "    return (`Ok listen)";
     newline_main ()

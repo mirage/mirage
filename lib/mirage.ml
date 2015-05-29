@@ -2325,6 +2325,7 @@ let clean_main t =
 
 let configure t =
   info "%s %s" (blue_s "Using configuration:") (get_config_file ());
+  info "%s %s" (blue_s "Configuring for target:") (string_of_mode !mode);
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
@@ -2403,7 +2404,6 @@ let load file =
   let file = scan_conf file in
   let root = realpath (Filename.dirname file) in
   let file = root / Filename.basename file in
-  info "%s %s" (blue_s "Compiling for target:") (string_of_mode !mode);
   set_config_file file;
   compile_and_dynlink file;
   let t = registered () in

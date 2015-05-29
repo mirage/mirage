@@ -1492,175 +1492,83 @@ let direct_stackv4_with_static_ipv4
 let socket_stackv4 console ipv4s =
   impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
-module VCHAN_localhost = struct
-
-  type uuid = string
-  type t = uuid
-
-  let name t =
-    let key = "in_memory" in
-    Name.of_key key ~base:"vchan"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages t =
-    [ "mirage-conduit" ]
-
-  let libraries t =
-    [ "conduit.mirage" ]
-
-  let configure t =
-    append_main "module %s = Conduit_localhost" (module_name t);
-    newline_main ();
-    append_main "let %s = %s.register %S" (name t) (module_name t) t;
-    newline_main ()
-
-  let clean t = ()
-
-  let update_path t root = t
-
-end
-
-module VCHAN_xenstore = struct
-
-  type uuid = string
-  type t = string
-
-  let name t =
-    let key = "xen" in
-    Name.of_key key ~base:"vchan"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages t =
-    match !mode with
-    |`Xen -> [ "vchan"; "mirage-xen"; "xen-evtchn"; "xen-gnt" ]
-    |`Unix | `MacOSX -> [ "vchan"; "xen-evtchn"; "xen-gnt"]
-    (* TODO: emit a failure on MacOSX? *)
-
-  let libraries t =
-    match !mode with
-    |`Xen -> [ "conduit.mirage-xen" ]
-    |`Unix | `MacOSX-> [ "vchan" ]
-
-  let configure t =
-    let m =
-      match !mode with
-      |`Xen -> "Conduit_xenstore"
-      |`Unix | `MacOSX -> "Vchan_lwt_unix.M"
-    in
-    append_main "module %s = %s" (module_name t) m;
-    newline_main ();
-    append_main "let %s = %s.register %S" (name t) (module_name t) t;
-    newline_main ()
-
-  let clean t = ()
-
-  let update_path t root = t
-
-end
-
-type vchan = STACK4
-
-let vchan = Type STACK4
-
-let vchan_localhost ?(uuid="localhost") () =
-  impl vchan uuid (module VCHAN_localhost)
-
-let vchan_xen ?(uuid="localhost") () =
-  impl vchan uuid (module VCHAN_xenstore)
-
-let vchan_default ?uuid () =
-  match !mode with
-  | `Xen -> vchan_xen ?uuid ()
-  | `Unix | `MacOSX -> vchan_localhost ?uuid ()
-
-module TLS_none = struct
-  type t = unit
-
-  let name () = "tls_none"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages () = []
-  let libraries () = []
-
-  let configure t =
-    append_main "module %s = Conduit_mirage.No_TLS" (module_name t);
-    append_main "let %s = return (`Ok ())" (name t);
-    newline_main ()
-
-  let clean () = ()
-  let update_path () root = ()
-end
-
-type conduit_tls = Conduit_TLS
-let conduit_tls = Type Conduit_TLS
-
-let tls_none = impl conduit_tls () (module TLS_none)
-
 module Conduit = struct
-  type t =
-    [ `Stack of stackv4 impl * vchan impl * conduit_tls impl ]
+
+  type t = {
+    stackv4: stackv4 impl option;
+    tls    : bool;
+  }
 
   let name t =
-    let key = "conduit" ^ match t with
-     | `Stack (s,v,tls) ->
-          Printf.sprintf "%s_%s_%s" (Impl.name s) (Impl.name v) (Impl.name tls) in
+    let key =
+      "conduit" ^
+      (match t.stackv4 with None -> "" | Some t -> Impl.name t) ^
+      (match t.tls with false -> "" | true -> "tls")
+    in
     Name.of_key key ~base:"conduit"
 
-  let module_name_core t =
-    String.capitalize (name t)
-
-  let module_name t =
-    module_name_core t
+  let module_name t = String.capitalize (name t)
 
   let packages t =
-    [ "conduit"; "mirage-types"; "vchan" ] @
-    match t with
-    | `Stack (s,v,tls) -> Impl.packages s @ Impl.packages v @ Impl.packages tls
+    "mirage-conduit" :: (
+      match t.stackv4 with
+      | None   -> []
+      | Some s -> Impl.packages s
+    ) @ (
+      match t.tls with
+      | false -> []
+      | true  -> ["tls"]
+    )
 
   let libraries t =
-    [ "conduit.mirage" ] @
-    match t with
-    | `Stack (s,v,tls) -> Impl.libraries s @ Impl.libraries v @ Impl.libraries tls
+    "conduit.mirage" :: (
+      match t.stackv4 with
+      | None   -> []
+      | Some s -> Impl.libraries s
+    ) @ (
+      match t.tls with
+      | false -> []
+      | true  -> ["tls"]
+    )
 
   let configure t =
-    begin match t with
-      | `Stack (s,v,tls) ->
-        Impl.configure s;
-        Impl.configure v;
-        Impl.configure tls;
-        append_main "module %s = Conduit_mirage.Make(%s)(%s)(%s)"
-          (module_name_core t) (Impl.module_name s) (Impl.module_name v) (Impl.module_name tls);
+    begin match t.stackv4 with
+      | None   -> ()
+      | Some s -> Impl.configure s
     end;
+    append_main "module %s = Conduit_mirage" (module_name t);
     newline_main ();
-    append_main "let %s () =" (name t);
-    let (stack_subname, vchan_subname, tls_subname) = match t with
-      | `Stack (s,v,tls) -> Impl.name s, Impl.name v, Impl.name tls in
-
-    append_main "  %s () >>= function" stack_subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error stack_subname);
-    append_main "  | `Ok %s ->" stack_subname;
-    append_main "  %s >>= fun %s ->" vchan_subname vchan_subname;
-    append_main "  %s >>= function" tls_subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error tls_subname);
-    append_main "  | `Ok () ->";
-    append_main "  %s.init ~peer:%s ~stack:%s () >>= fun %s ->"
-      (module_name_core t) vchan_subname stack_subname (name t);
-    append_main "  return (`Ok %s)" (name t);
+    append_main "let %s () = Lwt.return Conduit_mirage.empty" (name t);
+    begin match t.stackv4 with
+      | None   -> ()
+      | Some s ->
+        append_main "let %s () =" (name t);
+        append_main "  %s () >>= fun t ->" (name t);
+        append_main "  %s () >>= function" (Impl.name s);
+        append_main "  | `Error e -> %s" (driver_initialisation_error "stack");
+        append_main "  | `Ok s    -> Conduit_mirage.with_tcp t (module %s) s"
+          (Impl.module_name s) ;
+    end;
+    begin match t.tls with
+      | false -> ()
+      | true  ->
+        append_main "let %s () =" (name t);
+        append_main "  %s () >>= fun t ->" (name t);
+        append_main "  Conduit_mirage.with_tls t"
+    end;
+    append_main "let %s () = %s () >>= fun t -> Lwt.return (`Ok t)"
+      (name t) (name t);
     newline_main ()
 
-  let clean = function
-    | `Stack (s,v,tls) -> Impl.clean s; Impl.clean v; Impl.clean tls
+  let clean t =
+    match t.stackv4 with
+    | None   -> ()
+    | Some s -> Impl.clean s
 
   let update_path t root =
-    match t with
-    | `Stack (s,v,tls) ->
-        `Stack ((Impl.update_path s root), (Impl.update_path v root), (Impl.update_path tls root))
+    match t.stackv4 with
+    | None   -> t
+    | Some s -> { t with stackv4 = Some (Impl.update_path s root) }
 
 end
 
@@ -1668,18 +1576,8 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct ?(vchan=vchan_localhost ()) ?(tls=tls_none) stack =
-  impl conduit (`Stack (stack,vchan,tls)) (module Conduit)
-
-type conduit_client = [
-  | `TCP of Ipaddr.t * int
-  | `Vchan of string list
-]
-
-type conduit_server = [
-  | `TCP of [ `Port of int ]
-  | `Vchan of string list
-]
+let conduit_direct ?(tls=false) s =
+  impl conduit { Conduit.stackv4 = Some s; tls } (module Conduit)
 
 module Resolver_unix = struct
   type t = unit
@@ -1688,11 +1586,8 @@ module Resolver_unix = struct
     let key = "resolver_unix" in
     Name.of_key key ~base:"resolver"
 
-  let module_name_core t =
-    String.capitalize (name t)
-
   let module_name t =
-      module_name_core t
+    String.capitalize (name t)
 
   let packages t =
     match !mode with
@@ -1790,63 +1685,43 @@ let resolver_unix_system =
 
 module HTTP = struct
 
-  type t =
-    | Conduit of conduit_server * conduit impl
+  type t = { conduit: conduit impl }
 
-  let name t =
-    let key = "http" ^ match t with
-      | Conduit (_, c) -> Impl.name c in
+  let name { conduit } =
+    let key = "http" ^ Impl.name conduit in
     Name.of_key key ~base:"http"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages t =
+  let packages { conduit }=
     [ "mirage-http" ] @
-    match t with
-    | Conduit (_, c) -> Impl.packages c
+    Impl.packages conduit
 
-  let libraries t =
+  let libraries { conduit } =
     [ "mirage-http" ] @
-    match t with
-    | Conduit (_, c) -> Impl.libraries c
+    Impl.libraries conduit
 
   let configure t =
-    begin match t with
-      | Conduit (_, c) ->
-        Impl.configure c;
-        append_main "module %s = Cohttp_mirage.Server(%s.Flow)"
-          (module_name t) (Impl.module_name c)
-    end;
+    Impl.configure t.conduit;
+    append_main "module %s = Cohttp_mirage.Server(%s.Flow)"
+      (module_name t) (Impl.module_name t.conduit);
     newline_main ();
-    let subname = match t with
-      | Conduit (_,c) -> Impl.name c in
     append_main "let %s () =" (name t);
-    append_main "  %s () >>= function" subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
-    append_main "  | `Ok %s ->" subname;
-    begin match t with
-      | Conduit (m,c) ->
-        append_main "  let listen spec =";
-        append_main "    let ctx = %s in" (Impl.name c);
-        append_main "    let mode = %s in"
-          (match m with
-           |`TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
-           |`Vchan l -> failwith "Vchan not supported yet in server"
-          );
-        append_main "    %s.serve ~ctx ~mode (%s.listen spec)"
-          (Impl.module_name c) (module_name t);
-        append_main "  in";
-        append_main "  return (`Ok listen)";
-    end;
+    append_main "  %s () >>= function" (Impl.name t.conduit);
+    append_main "  | `Error _ -> assert false";
+    append_main "  | `Ok t ->";
+    append_main "    let listen s f =";
+    append_main "      %s.listen t s (%s.listen f)"
+      (Impl.module_name t.conduit) (module_name t);
+    append_main "    in";
+    append_main "    return (`Ok listen)";
     newline_main ()
 
-  let clean = function
-    | Conduit (_,c) -> Impl.clean c
+  let clean { conduit } = Impl.clean conduit
 
-  let update_path t root =
-    match t with
-    | Conduit (m, c) -> Conduit (m, Impl.update_path c root)
+  let update_path { conduit } root =
+    { conduit =  Impl.update_path conduit root }
 
 end
 
@@ -1854,8 +1729,7 @@ type http = HTTP
 
 let http = Type HTTP
 
-let http_server mode conduit =
-  impl http (HTTP.Conduit (mode, conduit)) (module HTTP)
+let http_server conduit = impl http { HTTP.conduit } (module HTTP)
 
 type job = JOB
 

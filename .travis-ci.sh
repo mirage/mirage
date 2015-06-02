@@ -1,5 +1,4 @@
 export EXTRA_REMOTES=https://github.com/mirage/mirage-dev.git
-export PINS="mirage:. mirage-types:. conduit mirage-conduit"
 
 bash -ex .travis-opam.sh
 

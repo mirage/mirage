@@ -21,10 +21,8 @@ module Main (C: V1_LWT.CONSOLE) (FS: V1_LWT.KV_RO) (Server: Cohttp_lwt.Server) =
       respond_string r
     in
 
-    let spec = {
-      Server.callback;
-      conn_closed = fun _ () -> ();
-    } in
-    http spec
+    let spec = Server.make ~callback () in
+    let mode = `TCP 80 in
+    http mode spec
 
 end

@@ -1,3 +1,7 @@
+2.5.1: (trunk)
+* Fix misleading "Compiling for target" messages in `mirage build`
+  (#408 by @lnmx)
+
 2.5.0:
 * Add `--no-depext` to disable the automatic installation of opam depexts (#402)
 * Support `ocaml-tls.0.5.0`: the entropy is now handled directly by

@@ -440,59 +440,6 @@ let random = Type RANDOM
 let default_random: random impl =
   impl random () (module Random)
 
-module Entropy = struct
-
-  type t = unit
-
-  let name _ =
-    "entropy"
-
-  let module_name () = "Entropy"
-
-  let construction () =
-    match !mode with
-    | `Unix | `MacOSX -> "Entropy_unix"
-    | `Xen  -> "Entropy_xen.Make(OS.Time)"
-
-  let id t =
-    match !mode with
-    (* default on Unix is the system entropy source *)
-    | (`Unix | `MacOSX) -> "()"
-    | `Xen -> "`From_host"
-
-  let packages () =
-    [ "nocrypto" ] @
-    match !mode with
-    | `Unix | `MacOSX -> [ "mirage-entropy-unix" ]
-    | `Xen  -> [ "mirage-entropy-xen" ]
-
-  let libraries = packages
-
-  let configure t =
-    append_main "module %s = %s" (module_name t) (construction t) ;
-    newline_main () ;
-    append_main "let %s () =" (name t);
-    append_main "  %s.connect %s >>= function" (module_name t) (id t);
-    append_main "  | `Error e -> %s" (driver_initialisation_error "entropy");
-    append_main "  | `Ok entropy ->";
-    append_main "  %s.handler entropy Nocrypto.Rng.Accumulator.add_rr >>= fun () ->" (module_name t);
-    append_main "  return (`Ok entropy)";
-    newline_main ()
-
-  let clean () = ()
-
-  let update_path t _ = t
-
-end
-
-type entropy = ENTROPY
-
-let entropy = Type ENTROPY
-
-(* The default is to get real entropy from the host *)
-let default_entropy: entropy impl =
-  impl entropy () (module Entropy)
-
 module Console = struct
 
   type t = string
@@ -1606,210 +1553,85 @@ let direct_stackv4_with_static_ipv4
 let socket_stackv4 console ipv4s =
   impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket)
 
-module VCHAN_localhost = struct
+module Conduit = struct
 
-  type uuid = string
-  type t = uuid
-
-  let name t =
-    let key = "in_memory" in
-    Name.of_key key ~base:"vchan"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages t =
-    [ "mirage-conduit" ]
-
-  let libraries t =
-    [ "conduit.mirage" ]
-
-  let configure t =
-    append_main "module %s = Conduit_localhost" (module_name t);
-    newline_main ();
-    append_main "let %s = %s.register %S" (name t) (module_name t) t;
-    newline_main ()
-
-  let clean t = ()
-
-  let update_path t root = t
-
-end
-
-module VCHAN_xenstore = struct
-
-  type uuid = string
-  type t = string
+  type t = {
+    stackv4: stackv4 impl option;
+    tls    : bool;
+  }
 
   let name t =
-    let key = "xen" in
-    Name.of_key key ~base:"vchan"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages t =
-    match !mode with
-    |`Xen -> [ "vchan"; "mirage-xen"; "xen-evtchn"; "xen-gnt" ]
-    |`Unix | `MacOSX -> [ "vchan"; "xen-evtchn"; "xen-gnt"]
-    (* TODO: emit a failure on MacOSX? *)
-
-  let libraries t =
-    match !mode with
-    |`Xen -> [ "conduit.mirage-xen" ]
-    |`Unix | `MacOSX-> [ "vchan" ]
-
-  let configure t =
-    let m =
-      match !mode with
-      |`Xen -> "Conduit_xenstore"
-      |`Unix | `MacOSX -> "Vchan_lwt_unix.M"
+    let key =
+      "conduit" ^
+      (match t.stackv4 with None -> "" | Some t -> Impl.name t) ^
+      (match t.tls with false -> "" | true -> "tls")
     in
-    append_main "module %s = %s" (module_name t) m;
-    newline_main ();
-    append_main "let %s = %s.register %S" (name t) (module_name t) t;
-    newline_main ()
+    Name.of_key key ~base:"conduit"
 
-  let clean t = ()
-
-  let update_path t root = t
-
-end
-
-type vchan = STACK4
-
-let vchan = Type STACK4
-
-let vchan_localhost ?(uuid="localhost") () =
-  impl vchan uuid (module VCHAN_localhost)
-
-let vchan_xen ?(uuid="localhost") () =
-  impl vchan uuid (module VCHAN_xenstore)
-
-let vchan_default ?uuid () =
-  match !mode with
-  | `Xen -> vchan_xen ?uuid ()
-  | `Unix | `MacOSX -> vchan_localhost ?uuid ()
-
-module TLS_over_conduit = struct
-  type t = entropy impl
-
-  let name t =
-    let key = "tls_with_" ^ Impl.name t in
-    Name.of_key key ~base:"tls"
-
-  let module_name t =
-    String.capitalize (name t)
+  let module_name t = String.capitalize (name t)
 
   let packages t =
-    [ "tls" ] @ Impl.packages t
+    "mirage-conduit" :: (
+      match t.stackv4 with
+      | None   -> []
+      | Some s -> Impl.packages s
+    ) @ (
+      match t.tls with
+      | false -> []
+      | true  -> ["tls"]
+    )
 
   let libraries t =
-    [ "tls.mirage" ] @ Impl.libraries t
+    "conduit.mirage" :: (
+      match t.stackv4 with
+      | None   -> []
+      | Some s -> Impl.libraries s
+    ) @ (
+      match t.tls with
+      | false -> []
+      | true  -> ["tls"]
+    )
 
   let configure t =
-    Impl.configure t;
-    append_main "module %s = Tls_mirage.Make(Conduit_mirage.Dynamic_flow)(%s)" (module_name t) (Impl.module_name t);
+    begin match t.stackv4 with
+      | None   -> ()
+      | Some s -> Impl.configure s
+    end;
+    append_main "module %s = Conduit_mirage" (module_name t);
     newline_main ();
-    append_main "let %s =" (name t);
-    append_main "  %s () >>= function" (Impl.name t);
-    append_main "  | `Error _    -> %s" (driver_initialisation_error (Impl.name t));
-    append_main "  | `Ok _entropy ->";
-    append_main "  return (`Ok ())";
+    append_main "let %s () = Lwt.return Conduit_mirage.empty" (name t);
+    begin match t.stackv4 with
+      | None   -> ()
+      | Some s ->
+        append_main "let %s () =" (name t);
+        append_main "  %s () >>= fun t ->" (name t);
+        append_main "  %s () >>= function" (Impl.name s);
+        append_main "  | `Error e -> %s" (driver_initialisation_error "stack");
+        append_main "  | `Ok s    ->";
+        append_main "    let tcp = Conduit_mirage.stackv4 (module %s) in"
+          (Impl.module_name s);
+        append_main "    Conduit_mirage.with_tcp t tcp s"
+    end;
+    begin match t.tls with
+      | false -> ()
+      | true  ->
+        append_main "let %s () =" (name t);
+        append_main "  %s () >>= fun t ->" (name t);
+        append_main "  Conduit_mirage.with_tls t"
+    end;
+    append_main "let %s () = %s () >>= fun t -> Lwt.return (`Ok t)"
+      (name t) (name t);
     newline_main ()
 
   let clean t =
-    Impl.clean t
+    match t.stackv4 with
+    | None   -> ()
+    | Some s -> Impl.clean s
 
   let update_path t root =
-    Impl.update_path t root
-end
-
-module TLS_none = struct
-  type t = unit
-
-  let name () = "tls_none"
-
-  let module_name t =
-    String.capitalize (name t)
-
-  let packages () = []
-  let libraries () = []
-
-  let configure t =
-    append_main "module %s = Conduit_mirage.No_TLS" (module_name t);
-    append_main "let %s = return (`Ok ())" (name t);
-    newline_main ()
-
-  let clean () = ()
-  let update_path () root = ()
-end
-
-type conduit_tls = Conduit_TLS
-let conduit_tls = Type Conduit_TLS
-
-let tls_over_conduit entropy = impl conduit_tls entropy (module TLS_over_conduit)
-let tls_none = impl conduit_tls () (module TLS_none)
-
-module Conduit = struct
-  type t =
-    [ `Stack of stackv4 impl * vchan impl * conduit_tls impl ]
-
-  let name t =
-    let key = "conduit" ^ match t with
-     | `Stack (s,v,tls) ->
-          Printf.sprintf "%s_%s_%s" (Impl.name s) (Impl.name v) (Impl.name tls) in
-    Name.of_key key ~base:"conduit"
-
-  let module_name_core t =
-    String.capitalize (name t)
-
-  let module_name t =
-    module_name_core t
-
-  let packages t =
-    [ "conduit"; "mirage-types"; "vchan" ] @
-    match t with
-    | `Stack (s,v,tls) -> Impl.packages s @ Impl.packages v @ Impl.packages tls
-
-  let libraries t =
-    [ "conduit.mirage" ] @
-    match t with
-    | `Stack (s,v,tls) -> Impl.libraries s @ Impl.libraries v @ Impl.libraries tls
-
-  let configure t =
-    begin match t with
-      | `Stack (s,v,tls) ->
-        Impl.configure s;
-        Impl.configure v;
-        Impl.configure tls;
-        append_main "module %s = Conduit_mirage.Make(%s)(%s)(%s)"
-          (module_name_core t) (Impl.module_name s) (Impl.module_name v) (Impl.module_name tls);
-    end;
-    newline_main ();
-    append_main "let %s () =" (name t);
-    let (stack_subname, vchan_subname, tls_subname) = match t with
-      | `Stack (s,v,tls) -> Impl.name s, Impl.name v, Impl.name tls in
-
-    append_main "  %s () >>= function" stack_subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error stack_subname);
-    append_main "  | `Ok %s ->" stack_subname;
-    append_main "  %s >>= fun %s ->" vchan_subname vchan_subname;
-    append_main "  %s >>= function" tls_subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error tls_subname);
-    append_main "  | `Ok () ->";
-    append_main "  %s.init ~peer:%s ~stack:%s () >>= fun %s ->"
-      (module_name_core t) vchan_subname stack_subname (name t);
-    append_main "  return (`Ok %s)" (name t);
-    newline_main ()
-
-  let clean = function
-    | `Stack (s,v,tls) -> Impl.clean s; Impl.clean v; Impl.clean tls
-
-  let update_path t root =
-    match t with
-    | `Stack (s,v,tls) ->
-        `Stack ((Impl.update_path s root), (Impl.update_path v root), (Impl.update_path tls root))
+    match t.stackv4 with
+    | None   -> t
+    | Some s -> { t with stackv4 = Some (Impl.update_path s root) }
 
 end
 
@@ -1817,18 +1639,8 @@ type conduit = Conduit
 
 let conduit = Type Conduit
 
-let conduit_direct ?(vchan=vchan_localhost ()) ?(tls=tls_none) stack =
-  impl conduit (`Stack (stack,vchan,tls)) (module Conduit)
-
-type conduit_client = [
-  | `TCP of Ipaddr.t * int
-  | `Vchan of string list
-]
-
-type conduit_server = [
-  | `TCP of [ `Port of int ]
-  | `Vchan of string list
-]
+let conduit_direct ?(tls=false) s =
+  impl conduit { Conduit.stackv4 = Some s; tls } (module Conduit)
 
 module Resolver_unix = struct
   type t = unit
@@ -1837,11 +1649,8 @@ module Resolver_unix = struct
     let key = "resolver_unix" in
     Name.of_key key ~base:"resolver"
 
-  let module_name_core t =
-    String.capitalize (name t)
-
   let module_name t =
-      module_name_core t
+    String.capitalize (name t)
 
   let packages t =
     match !mode with
@@ -1939,63 +1748,43 @@ let resolver_unix_system =
 
 module HTTP = struct
 
-  type t =
-    | Conduit of conduit_server * conduit impl
+  type t = { conduit: conduit impl }
 
-  let name t =
-    let key = "http" ^ match t with
-      | Conduit (_, c) -> Impl.name c in
+  let name { conduit } =
+    let key = "http" ^ Impl.name conduit in
     Name.of_key key ~base:"http"
 
   let module_name t =
     String.capitalize (name t)
 
-  let packages t =
+  let packages { conduit }=
     [ "mirage-http" ] @
-    match t with
-    | Conduit (_, c) -> Impl.packages c
+    Impl.packages conduit
 
-  let libraries t =
+  let libraries { conduit } =
     [ "mirage-http" ] @
-    match t with
-    | Conduit (_, c) -> Impl.libraries c
+    Impl.libraries conduit
 
   let configure t =
-    begin match t with
-      | Conduit (_, c) ->
-        Impl.configure c;
-        append_main "module %s = Cohttp_mirage.Server(%s.Flow)"
-          (module_name t) (Impl.module_name c)
-    end;
+    Impl.configure t.conduit;
+    append_main "module %s = Cohttp_mirage.Server(%s.Flow)"
+      (module_name t) (Impl.module_name t.conduit);
     newline_main ();
-    let subname = match t with
-      | Conduit (_,c) -> Impl.name c in
     append_main "let %s () =" (name t);
-    append_main "  %s () >>= function" subname;
-    append_main "  | `Error _  -> %s" (driver_initialisation_error subname);
-    append_main "  | `Ok %s ->" subname;
-    begin match t with
-      | Conduit (m,c) ->
-        append_main "  let listen spec =";
-        append_main "    let ctx = %s in" (Impl.name c);
-        append_main "    let mode = %s in"
-          (match m with
-           |`TCP (`Port port) -> Printf.sprintf "`TCP (`Port %d)" port
-           |`Vchan l -> failwith "Vchan not supported yet in server"
-          );
-        append_main "    %s.serve ~ctx ~mode (%s.listen spec)"
-          (Impl.module_name c) (module_name t);
-        append_main "  in";
-        append_main "  return (`Ok listen)";
-    end;
+    append_main "  %s () >>= function" (Impl.name t.conduit);
+    append_main "  | `Error _ -> assert false";
+    append_main "  | `Ok t ->";
+    append_main "    let listen s f =";
+    append_main "      %s.listen t s (%s.listen f)"
+      (Impl.module_name t.conduit) (module_name t);
+    append_main "    in";
+    append_main "    return (`Ok listen)";
     newline_main ()
 
-  let clean = function
-    | Conduit (_,c) -> Impl.clean c
+  let clean { conduit } = Impl.clean conduit
 
-  let update_path t root =
-    match t with
-    | Conduit (m, c) -> Conduit (m, Impl.update_path c root)
+  let update_path { conduit } root =
+    { conduit =  Impl.update_path conduit root }
 
 end
 
@@ -2003,8 +1792,7 @@ type http = HTTP
 
 let http = Type HTTP
 
-let http_server mode conduit =
-  impl http (HTTP.Conduit (mode, conduit)) (module HTTP)
+let http_server conduit = impl http { HTTP.conduit } (module HTTP)
 
 type job = JOB
 
@@ -2088,6 +1876,62 @@ type tracing = Tracing.t
 let mprof_trace ~size () =
   { Tracing.size }
 
+module Nocrypto_entropy = struct
+
+  (* XXX
+   * Nocrypto needs `mirage-entropy-xen` if compiled for xen.
+   * This is currently handled by always installing this library, regardless of
+   * usage of Nocrypto.
+   * As `libraries` is run after opam setup, it will correctly detect Nocrypto
+   * usage and inject appropriate deps for linkage, if needed.
+   * The `packages` function, unconditional installation of
+   * `mirage-entropy-xen`, and this comment, should be cleared once we have
+   * conditional dependencies support in opam.
+   * See https://github.com/mirage/mirage/pull/394 for discussion.
+   *)
+
+  module SS = StringSet
+
+  let remembering r f =
+    match !r with
+    | Some x -> x
+    | None   -> let x = f () in r := Some x ; x
+
+  let linkage_ = ref None
+
+  let linkage () =
+    match !linkage_ with
+    | None   -> failwith "Nocrypto_entropy: `linkage` queried before `libraries`"
+    | Some x -> x
+
+  let packages () =
+    match !mode with
+    | `Xen -> SS.singleton "mirage-entropy-xen"
+    | _    -> SS.empty
+
+  let libraries libs =
+    remembering linkage_ @@ fun () ->
+      let needed =
+        OCamlfind.query ~recursive:true (SS.elements libs)
+          |> List.exists ((=) "nocrypto") in
+      match !mode with
+      | `Xen              when needed -> SS.singleton "nocrypto.xen"
+      | (`Unix | `MacOSX) when needed -> SS.singleton "nocrypto.lwt"
+      | _                             -> SS.empty
+
+  let configure () =
+    SS.elements (linkage ()) |> List.iter (fun lib ->
+      if not (OCamlfind.installed lib) then
+        error "%s module not found. Hint: reinstall nocrypto." lib
+      )
+
+  let preamble () =
+    match (!mode, not (SS.is_empty @@ linkage ())) with
+    | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()"
+    | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()"
+    | _                         -> "return_unit"
+end
+
 type t = {
   name: string;
   root: string;
@@ -2142,6 +1986,7 @@ let packages t =
       let ps = StringSet.of_list (Impl.packages j) in
       StringSet.union ps set
     ) ps t.jobs in
+  let ps = StringSet.union ps (Nocrypto_entropy.packages ()) in
   StringSet.elements ps
 
 let ls = ref StringSet.empty
@@ -2161,6 +2006,7 @@ let libraries t =
       let ls = StringSet.of_list (Impl.libraries j) in
       StringSet.union ls set
     ) ls t.jobs in
+  let ls = StringSet.union ls (Nocrypto_entropy.libraries ls) in
   StringSet.elements ls
 
 let configure_myocamlbuild_ml t =
@@ -2323,9 +2169,18 @@ let configure_main_xe t =
 let clean_main_xe t =
   remove (t.root / t.name ^ ".xe")
 
+(* Implement something similar to the @name/file extended names of findlib. *)
+let rec expand_name ~lib param =
+  match cut_at param '@' with
+  | None -> param
+  | Some (prefix, name) -> match cut_at name '/' with
+    | None              -> prefix ^ lib / name
+    | Some (name, rest) -> prefix ^ lib / name / expand_name ~lib rest
+
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
 let get_extra_ld_flags ~filter pkgs =
+  let lib = strip (read_command "opam config var lib") in
   let output = read_command
     "ocamlfind query -r -format '%%d\t%%(xen_linkopts)' -predicates native %s"
     (String.concat " " pkgs) in
@@ -2333,7 +2188,11 @@ let get_extra_ld_flags ~filter pkgs =
   |> List.fold_left (fun acc line ->
     match cut_at line '\t' with
     | None -> acc
-    | Some (dir, ldflags) -> Printf.sprintf "-L%s %s" dir ldflags :: acc
+    | Some (dir, ldflags) ->
+      let ldflags = split ldflags ' ' in
+      let ldflags = List.map (expand_name ~lib) ldflags in
+      let ldflags = String.concat " " ldflags in
+      Printf.sprintf "-L%s %s" dir ldflags :: acc
   ) []
 
 let configure_makefile t =
@@ -2434,6 +2293,9 @@ let clean_makefile t =
 let no_opam_version_check_ = ref false
 let no_opam_version_check b = no_opam_version_check_ := b
 
+let no_depext_ = ref false
+let no_depext b = no_depext_ := b
+
 let configure_opam t =
   info "Installing OPAM packages.";
   match packages t with
@@ -2453,11 +2315,14 @@ let configure_opam t =
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
-            if command_exists "opam-depext" then
-              info "opam depext is installed."
-            else
-              opam "install" ["depext"];
-            opam ~yes:false "depext" ps;
+            if !no_depext_ then ()
+            else (
+              if command_exists "opam-depext" then
+                info "opam depext is installed."
+              else
+                opam "install" ["depext"];
+              opam ~yes:false "depext" ps;
+            );
             opam "install" ps
           ) else version_error ()
         | _ -> version_error ()
@@ -2506,11 +2371,14 @@ let configure_main t =
   begin match t.tracing with
   | None -> ()
   | Some tracing -> Tracing.configure tracing end;
+  Nocrypto_entropy.configure ();
   List.iter (fun j -> Impl.configure j) t.jobs;
   List.iter configure_job t.jobs;
   let names = List.map (fun j -> Printf.sprintf "%s ()" (Impl.name j)) t.jobs in
   append_main "let () =";
-  append_main "  OS.Main.run (join [%s])" (String.concat "; " names)
+  append_main "  OS.Main.run (%s >>= fun () -> join [%s])"
+              (Nocrypto_entropy.preamble ())
+              (String.concat "; " names)
 
 let clean_main t =
   List.iter Impl.clean t.jobs;
@@ -2518,6 +2386,7 @@ let clean_main t =
 
 let configure t =
   info "%s %s" (blue_s "Using configuration:") (get_config_file ());
+  info "%s %s" (blue_s "Configuring for target:") (string_of_mode !mode);
   info "%d job%s [%s]"
     (List.length t.jobs)
     (if List.length t.jobs = 1 then "" else "s")
@@ -2596,7 +2465,6 @@ let load file =
   let file = scan_conf file in
   let root = realpath (Filename.dirname file) in
   let file = root / Filename.basename file in
-  info "%s %s" (blue_s "Compiling for target:") (string_of_mode !mode);
   set_config_file file;
   compile_and_dynlink file;
   let t = registered () in

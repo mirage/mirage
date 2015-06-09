@@ -1,3 +1,17 @@
+2.5.1: (trunk)
+* Fix misleading "Compiling for target" messages in `mirage build`
+  (#408 by @lnmx)
+
+2.5.0:
+* Add `--no-depext` to disable the automatic installation of opam depexts (#402)
+* Support `ocaml-tls.0.5.0`: the entropy is now handled directly by
+  `nocrypto.0.4.0` and the mirage-tool is only responsible to call
+  the `Nocrypto_entropy_{mode}.initialize` function.
+* Support `@name/file` findlib's extended name syntax in `xen_linkopts` fields.
+  `@name` is expanded to `%{lib}%/name`
+* Remove `V1.ENTROPY` and `V1_LWT.ENTROPY`
+* Modernize the Travis CI scripts
+
 2.4.0:
 * Support `mirage-http.2.2.0`
 * Support `conduit.0.8.0`

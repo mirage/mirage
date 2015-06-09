@@ -95,17 +95,6 @@ val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
 
 
-(** {2 Entropy} *)
-
-type entropy
-(** Abstract type for entropy sources. *)
-
-val entropy: entropy typ
-(** The [V1.ENTROPY] module signature. *)
-
-val default_entropy: entropy impl
-(** Pick the strongest entropy source available. *)
-
 (** {2 Consoles} *)
 
 (** Implementations of the [V1.CONSOLE] signature. *)
@@ -343,38 +332,17 @@ val resolver: resolver typ
 val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
-(** {Vchan configuration} *)
-type vchan
-val vchan: vchan typ
-val vchan_localhost : ?uuid:string -> unit -> vchan impl
-val vchan_xen : ?uuid:string -> unit -> vchan impl
-val vchan_default : ?uuid:string -> unit -> vchan impl
-
-(** {TLS configuration} *)
-type conduit_tls
-val tls_over_conduit : entropy impl -> conduit_tls impl
-
 (** {Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : ?vchan:vchan impl -> ?tls:conduit_tls impl -> stackv4 impl -> conduit impl
-
-type conduit_client = [
-  | `TCP of Ipaddr.t * int
-  | `Vchan of string list
-]
-
-type conduit_server = [
-  | `TCP of [ `Port of int ]
-  | `Vchan of string list
-]
+val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
 
 (** {HTTP configuration} *)
 
 type http
 val http: http typ
-val http_server: conduit_server -> conduit impl -> http impl
+val http_server: conduit impl -> http impl
 
 
 (** {2 Tracing} *)
@@ -459,6 +427,9 @@ val manage_opam_packages: bool -> unit
 
 val no_opam_version_check: bool -> unit
 (** Bypass the check of opam's version. *)
+
+val no_depext: bool -> unit
+(** Skip installation of external dependencies. *)
 
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)

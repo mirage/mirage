@@ -337,3 +337,21 @@ module StringSet = Set.Make(struct
 
 let dedup l =
   StringSet.(elements (List.fold_left (fun s e -> add e s) empty l))
+
+module OCamlfind = struct
+
+  let query ?predicates ?(format="%p") ?(recursive=false) xs =
+    let pred = match predicates with
+      | None    -> ""
+      | Some ps -> "-predicates '" ^ String.concat "," ps ^ "'"
+    and fmt  = "-format '" ^ format ^ "'"
+    and r    = if recursive then "-recursive" else ""
+    and pkgs = String.concat " " xs
+    in
+    let out = read_command "ocamlfind query %s %s %s %s" fmt pred r pkgs in
+    split out '\n'
+
+  let installed lib =
+    Sys.command ("ocamlfind query " ^ lib ^ " 2>&1 1>/dev/null") = 0
+
+end

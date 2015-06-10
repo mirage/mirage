@@ -1,4 +1,4 @@
-2.5.0:
+2.5.0 (2015-06-10)
 * Change the type of the `Mirage.http_server` combinator. The first argument
   (the conduit server configuration) is removed and should now be provided
   at compile-time in unikernel.ml` instead of configuration-time in `config.ml`:
@@ -49,7 +49,7 @@
   `@name` is expanded to `%{lib}%/name`
 * Modernize the Travis CI scripts
 
-2.4.0:
+2.4.0 (2015-05-05)
 * Support `mirage-http.2.2.0`
 * Support `conduit.0.8.0`
 * Support `tcpip.2.4.0`

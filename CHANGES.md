@@ -2,7 +2,8 @@
 
 * Change the type of the `Mirage.http_server` combinator. The first argument
   (the conduit server configuration) is removed and should now be provided
-  at compile-time in unikernel.ml` instead of configuration-time in `config.ml`:
+  at compile-time in `unikernel.ml` instead of configuration-time in
+  `config.ml`:
 
     ```ocaml
 (* [config.ml] *)
@@ -12,7 +13,7 @@
 (* [unikernel.ml] *)
 let start http =
 (* in 2.4 *) http (S.make ~conn_closed ~callback ())
-(* in 2.4 *) http (`TCP 80) (S.make ~conn_closed ~callback ())
+(* in 2.5 *) http (`TCP 80) (S.make ~conn_closed ~callback ())
     ```
 
 * Change the type of the `Mirage.conduit_direct` combinator.

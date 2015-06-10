@@ -1,8 +1,20 @@
-2.5.1: (trunk)
+2.5.0:
+* Remove `Mirage.vchan`, `Mirage.vchan_localhost`, `Mirage.vchan_xen` and
+  `Mirage.vchan_default`. Vchan users need to adapt their code to directly
+  use the `Vchan` functors instead of relying on the combinators.
+* Remove `Mirage.conduit_client` and `Mirage.conduit_server` types.
+* Change the type of the `Mirage.conduit_direct` combinator.
+  Previously, it took an optional `vchan` implementation, an optional
+  `tls` immplementation and an optional `stackv4` implemenation. Now,
+  it simply takes a `stackv4` implementation and a boolean to enable
+  or disable the `tls` stack. Users who want to continue to use
+  `vchan` with `conduit` should now use the `Vchan` functors inside
+  `unikernel.ml` instead of the combinators in `config.ml`.
+* Change the type of the `Mirage.http_server` combinator. The first argument
+  (the conduit server configuration) is removed and should now be provided
+  at compile-time in unikernel.ml` instead of configuration-time in `config.ml`.
 * Fix misleading "Compiling for target" messages in `mirage build`
   (#408 by @lnmx)
-
-2.5.0:
 * Add `--no-depext` to disable the automatic installation of opam depexts (#402)
 * Support `ocaml-tls.0.5.0`: the entropy is now handled directly by
   `nocrypto.0.4.0` and the mirage-tool is only responsible to call

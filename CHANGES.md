@@ -5,14 +5,14 @@
   at compile-time in unikernel.ml` instead of configuration-time in `config.ml`:
 
     ```ocaml
-    (* [config.ml] *)
-    (* in 2.4 *) let http = http_server (`TCP (`Port 80)) conduit
-    (* in 2.5 *) let http = http_server conduit
+(* [config.ml] *)
+(* in 2.4 *) let http = http_server (`TCP (`Port 80)) conduit
+(* in 2.5 *) let http = http_server conduit
 
-    (* [unikernel.ml] *)
-    let start http =
-    (* in 2.4 *) http (S.make ~conn_closed ~callback ())
-    (* in 2.4 *) http (`TCP 80) (S.make ~conn_closed ~callback ())
+(* [unikernel.ml] *)
+let start http =
+(* in 2.4 *) http (S.make ~conn_closed ~callback ())
+(* in 2.4 *) http (`TCP 80) (S.make ~conn_closed ~callback ())
     ```
 
 * Change the type of the `Mirage.conduit_direct` combinator.
@@ -25,14 +25,14 @@
   enable the TLS stack:
 
     ```ocaml
-    (* [config.ml] *)
-    let conduit = conduit_direct ~tls:true (stack default_console)
+(* [config.ml] *)
+let conduit = conduit_direct ~tls:true (stack default_console)
 
-    (* [unikernel.ml] *)
-    module Main (C: Conduit_mirage.S): struct
-      let start conduit =
-        C.listen conduit (`TLS (tls_config, `TCP 443)) callback
-    end
+(* [unikernel.ml] *)
+module Main (C: Conduit_mirage.S): struct
+  let start conduit =
+    C.listen conduit (`TLS (tls_config, `TCP 443)) callback
+end
     ```
 
 * [types] Remove `V1.ENTROPY` and `V1_LWT.ENTROPY`. The entropy is now
@@ -95,13 +95,13 @@
 * Add IPv6 support. This alters some of the interfaces that were previously
   hardcoded to IPv4 by generalising them.  For example:
 
-    ```
-    type v4
-    type v6
+    ```ocaml
+type v4
+type v6
 
-    type 'a ip
-    type ipv4 = v4 ip
-    type ipv6 = v6 ip
+type 'a ip
+type ipv4 = v4 ip
+type ipv6 = v6 ip
     ```
 
 Full support for configuring IPv6 does not exist yet, as this release is

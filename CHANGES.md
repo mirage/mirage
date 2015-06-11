@@ -1,18 +1,58 @@
-2.5.1: (trunk)
+### 2.5.0 (2015-06-10)
+
+* Change the type of the `Mirage.http_server` combinator. The first argument
+  (the conduit server configuration) is removed and should now be provided
+  at compile-time in `unikernel.ml` instead of configuration-time in
+  `config.ml`:
+
+    ```ocaml
+(* [config.ml] *)
+(* in 2.4 *) let http = http_server (`TCP (`Port 80)) conduit
+(* in 2.5 *) let http = http_server conduit
+
+(* [unikernel.ml] *)
+let start http =
+(* in 2.4 *) http (S.make ~conn_closed ~callback ())
+(* in 2.5 *) http (`TCP 80) (S.make ~conn_closed ~callback ())
+    ```
+
+* Change the type of the `Mirage.conduit_direct` combinator.
+  Previously, it took an optional `vchan` implementation, an optional
+  `tls` immplementation and an optional `stackv4` implemenation. Now,
+  it simply takes a `stackv4` implementation and a boolean to enable
+  or disable the `tls` stack. Users who want to continue to use
+  `vchan` with `conduit` should now use the `Vchan` functors inside
+  `unikernel.ml` instead of the combinators in `config.ml`. To
+  enable the TLS stack:
+
+    ```ocaml
+(* [config.ml] *)
+let conduit = conduit_direct ~tls:true (stack default_console)
+
+(* [unikernel.ml] *)
+module Main (C: Conduit_mirage.S): struct
+  let start conduit =
+    C.listen conduit (`TLS (tls_config, `TCP 443)) callback
+end
+    ```
+
+* [types] Remove `V1.ENTROPY` and `V1_LWT.ENTROPY`. The entropy is now
+  handled directly by `nocrypto.0.4.0` and the mirage-tool is only responsible to
+  call the `Nocrypto_entropy_{mode}.initialize` function.
+
+* Remove `Mirage.vchan`, `Mirage.vchan_localhost`, `Mirage.vchan_xen` and
+  `Mirage.vchan_default`. Vchan users need to adapt their code to directly
+  use the `Vchan` functors instead of relying on the combinators.
+* Remove `Mirage.conduit_client` and `Mirage.conduit_server` types.
 * Fix misleading "Compiling for target" messages in `mirage build`
   (#408 by @lnmx)
-
-2.5.0:
 * Add `--no-depext` to disable the automatic installation of opam depexts (#402)
-* Support `ocaml-tls.0.5.0`: the entropy is now handled directly by
-  `nocrypto.0.4.0` and the mirage-tool is only responsible to call
-  the `Nocrypto_entropy_{mode}.initialize` function.
 * Support `@name/file` findlib's extended name syntax in `xen_linkopts` fields.
   `@name` is expanded to `%{lib}%/name`
-* Remove `V1.ENTROPY` and `V1_LWT.ENTROPY`
 * Modernize the Travis CI scripts
 
-2.4.0:
+### 2.4.0 (2015-05-05)
+
 * Support `mirage-http.2.2.0`
 * Support `conduit.0.8.0`
 * Support `tcpip.2.4.0`
@@ -30,7 +70,8 @@
 * Add a `update-doc` target to the Makefile to easily update the online
   documentation at http://mirage.github.io/mirage/
 
-2.3.0 (2015-03-10):
+### 2.3.0 (2015-03-10)
+
 * Remove the `IO_PAGE` module type from `V1`. This has now moved into the
   `io-page` pacakge (#356)
 * Remove `DEVICE.connect` from the `V1` module types.  When a module is
@@ -43,30 +84,33 @@
 * Check that the `opam` command is at least version 1.2.0 (#355)
 * Don't put '-classic-display' in the generated Makefiles. (#364)
 
-2.2.1 (2015-01-29):
+### 2.2.1 (2015-01-29)
+
 * Fix logging errors when `mirage` output is not redirected. (#355)
 * Do not reverse the order of C libraries when linking.  This fixes Zarith
   linking in Xen mode. (#341).
 * Fix typos in command line help. (#352).
 
-2.2.0 (2014-12-18):
+### 2.2.0 (2014-12-18)
+
 * Add IPv6 support. This alters some of the interfaces that were previously
   hardcoded to IPv4 by generalising them.  For example:
 
-```
+    ```ocaml
 type v4
 type v6
 
 type 'a ip
 type ipv4 = v4 ip
 type ipv6 = v6 ip
-```
+    ```
 
 Full support for configuring IPv6 does not exist yet, as this release is
 intended for getting the type definitions in place before adding configuration
 support.
 
-2.1.1 (2014-12-10):
+### 2.1.1 (2014-12-10)
+
 * Do not reuse the Unix linker options when building Xen unikernels.  Instead,
   get the linker options from the ocamlfind `xen_linkopts` variables (#332).
   See `tcpip.2.1.0` for a library that does this for a C binding.
@@ -76,7 +120,8 @@ support.
 * Do not run crunched filesystem modules through `camlp4`, which significantly
   speeds up compilation on ARM platforms (from minutes to seconds!) (#299).
 
-2.1.0 (2014-12-07):
+### 2.1.0 (2014-12-07)
+
 * Add specific support for `MacOSX` as a platform, which enables network bridging
   on Yosemite (#329).  The `--unix` flag will automatically activate the new target
   if run on a MacOS X host.  If this breaks for you due to being on an older version of
@@ -87,12 +132,14 @@ support.
 * [xen]: fixed link order in generated Makefile (#322).
 * Make `Lwt.tracing` instructions work for Fish shell too by improving quoting (#328).
 
-2.0.1 (2014-11-21):
+### 2.0.1 (2014-11-21)
+
 * Add `register ~tracing` to enable tracing with mirage-profile at start-up (#321).
 * Update Dockerfile for latest libraries (#320).
 * Only build mirage-types if Io_page is also installed (#324).
 
-2.0.0 (2014-11-05):
+### 2.0.0 (2014-11-05)
+
 * [types]: backwards incompatible change: CONSOLE is now a FLOW;
   'write' has a different signature and 'write_all' has been removed.
 * Set on_crash = 'preserve' in default Xen config.
@@ -106,7 +153,7 @@ support.
 * Correctly show config file locations when using a custom one.
 * Fix generation of foreign (non-functor) modules (#293)
 
-1.2.0 (2014-07-05):
+### 1.2.0 (2014-07-05)
 
 The Mirage frontend tool now generates a Makefile with a `make depend`
 target, instead of directly invoking OPAM as part of `mirage configure`.
@@ -120,33 +167,39 @@ before building their unikernel with `make` as normal.
 * Set `OPAMVERBOSE` and `OPAMYES` in the Makefile, which can be overridden.
 * Add an `ENTROPY` device type for strong random sources (#256).
 
-1.1.3 (2014-06-15):
+### 1.1.3 (2014-06-15)
+
 * Build OPAM packages in verbose mode by default.
 * [types] Add `FLOW` based on `TCPV4`.
 * travis: build mirage-types from here, rather than 1.1.0.
 
-1.1.2 (2014-04-01):
+### 1.1.2 (2014-04-01)
+
 * Improvement to the Amazon EC2 deployment script.
 * [types] Augment STACKV4 with an IPV4 module in addition to TCPV4 and UDPV4.
 * Regenerate with OASIS 0.4.4 (which adds natdynlink support)
 
-1.1.1 (2014-02-21):
+### 1.1.1 (2014-02-21)
+
 * Man page fixes for typos and terminology (#220).
 * Activate backtrace recording by default (#225).
 * Fixes in the `V1.STACKV4` to expose UDPv4/TCPv4 types properly (#226).
 
-1.1.0 (2014-02-05):
+### 1.1.0 (2014-02-05)
+
 * Add a combinator interface to device binding that makes the functor generation
   significantly more succinct and expressive.  This breaks backwards compatibility
   with `config.ml` files from the 1.0.x branches.
 * Integrate the `mirage-types` code into `types`.  This is built as a separate
   library from the command-line tool, via the `install-types` Makefile target.
 
-1.0.4 (2014-01-14):
+### 1.0.4 (2014-01-14)
+
 * Add default build tags for annot, bin_annot, principal and strict_sequence.
 * Renane `KV_RO` to `Crunch`
 
-1.0.3 (2013-12-18):
+### 1.0.3 (2013-12-18)
+
 * Do not remove OPAM packages when doing `mirage clean` (#143)
 * [xen] generate a simple main.xl, without block devices or network interfaces.
 * The HTTP dependency now also installs `mirage-tcp-*` and `mirage-http-*`.
@@ -154,57 +207,69 @@ before building their unikernel with `make` as normal.
 * Support `Fat_KV_RO` (a read-only k/v version of the FAT filesystem).
 * The Unix `KV_RO` now passes through to the underlying filesystem instead of calling `crunch`, via `mirage-fs-unix`.
 
-1.0.2 (2013-12-10):
+### 1.0.2 (2013-12-10)
+
 * Add `HTTP` support.
 * Fix `KV_RO` configuration for OPAM autoinstall.
 
-1.0.1 (2013-12-09)
+### 1.0.1 (2013-12-09)
+
 * Add more examples to the FAT filesystem test case.
 * Fix `mirage-tcpip-*` support
 * Fix `mirage-net-*` support
 
-1.0.0 (2013-12-09):
+### 1.0.0 (2013-12-09)
+
 * Adapt the latest library releases for Mirage 1.0 interfaces.
 
-0.10.0 (2013-12.08):
+### 0.10.0 (2013-12.08)
+
 * Complete API rewrite
 * [xen] XL configuration phase is now created during configure phase, was during run phase.
 
-0.9.7 (2013-08-09):
+### 0.9.7 (2013-08-09)
+
 * Generate code that uses the `Ipaddr.V4` interface instead of `Nettypes`.
 
-0.9.6 (2013-07-26):
+### 0.9.6 (2013-07-26)
+
 * fix unix-direct by linking the unix package correctly (previously it was always dropped).
 
-0.9.5 (2013-07-18):
+### 0.9.5 (2013-07-18)
+
 * completely remove the dependency on obuild: use ocamlbuild everywhere now.
 * adapt for mirage-0.9.3 OS.Netif interfaces (abstract type `id`).
 * do not output network config when there are no `ip-*` lines in the `.conf` file.
 * do not try to install `mirage-fs` if there is no filesystem to create.
 * added `nat-script.sh` to setup xenbr0 with DNS, DHCP and masqerading under Linux.
 
-0.9.4 (2013-07-09):
+### 0.9.4 (2013-07-09)
+
 * build using ocamlbuild rather than depending on obuild.
 * [xen] generate a symbol that can be used to produce stack traces with xenctx.
 * mirari run --socket just runs the unikernel without any tuntap work.
 * mirari run --xen creates a xl config file and runs `xl create -c unikernel.xl`.
 
-0.9.3 (2013-06-12):
+### 0.9.3 (2013-06-12)
+
 * Add a `--socket` flag to activate socket-based networking (UNIX only).
 * Do not use OPAM compiler switches any more, as that's done in the packaging now.
 * Use fd-passing in the UNIX backend to spawn a process.
 
-0.9.2 (2013-03-28):
+### 0.9.2 (2013-03-28)
+
 * Install `obuild` automatically in all compiler switches (such as Xen).
 * Only create symlinks to `mir-foo` for a non-Xen target.
 * Add a `mirari clean` command.
 * Add the autoswitch feature via `mirari --switch=<compiler>` or the config file.
 
-0.9.1 (2013-02-13):
+### 0.9.1 (2013-02-13)
+
 * Fix Xen symlink upon build.
 * Add a `--no-install` option to `mirari configure` to prevent invoking OPAM automatically.
 
-0.9.0 (2013-02-12):
+### 0.9.0 (2013-02-12)
+
 * Automatically install `mirage-fs` package if a filesystem crunch is requested.
 * Remove the need for `mir-run` by including the final Xen link directly in Mirari.
 * Add support for building Xen variants.

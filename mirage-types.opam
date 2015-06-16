@@ -10,8 +10,8 @@ build:   [make "build-types"]
 install: [make "install-types"]
 remove:  ["ocamlfind" "remove" "mirage-types"]
 
-depends:   ["ocamlfind"]
-depopts:   ["lwt" "cstruct" "io-page" "ipaddr"]
+depends:   ["ocamlfind" "ipaddr"]
+depopts:   ["lwt" "cstruct" "io-page"]
 conflicts: ["ipaddr" {< "2.0.0"}]
 
 available: [ocaml-version >= "4.01.0"]

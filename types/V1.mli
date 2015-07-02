@@ -462,10 +462,11 @@ module type ARP = sig
 
   type ipaddr
   type buffer
+  type macaddr
 
-  (** Type of the result of an ARP query.  One of `Ok Macaddr.t (for successful
+  (** Type of the result of an ARP query.  One of `Ok macaddr (for successful
       queries) or `Timeout (for attempted queries that received no response). *)
-  type result = [ `Ok of Macaddr.t | `Timeout ]
+  type result = [ `Ok of macaddr | `Timeout ]
 
   (** Prettyprint cache contents *)
   val prettyprint : t -> string

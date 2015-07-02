@@ -43,6 +43,7 @@ module type ARP = ARP
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V4.t
+   and type macaddr = Macaddr.t
 
 (** IP stack *)
 module type IP = IP

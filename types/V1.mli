@@ -469,7 +469,7 @@ module type ARP = sig
   type result = [ `Ok of macaddr | `Timeout ]
 
   (** Prettyprint cache contents *)
-  val prettyprint : t -> string
+  val pp : Format.formatter -> t -> unit io
 
   (** [get_ips arp] gets the bound IP address list in the [arp]
       value. *)

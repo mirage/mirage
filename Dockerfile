@@ -14,6 +14,8 @@ ENV OPAMVERBOSE 1
 ENV OPAMYES 1
 ENV OPAMJOBS 2
 
+RUN opam install mirage
+
 # entry
 #
 ENTRYPOINT ["/usr/bin/opam-config-exec"]

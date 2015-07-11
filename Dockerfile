@@ -1,20 +1,5 @@
-
-FROM ubuntu:trusty
+FROM avsm/docker-opam-build:ubuntu-14.04-ocaml-4.02.1
 MAINTAINER Anil Madhavapeddy <anil@recoil.org>
-
-# build and source-control tools
-#
-RUN apt-get update && \
-    apt-get -y install \
-        pkg-config git build-essential m4 software-properties-common libssl-dev
-
-# opam 1.2 and ocaml 4.01
-#
-RUN add-apt-repository ppa:avsm/ocaml41+opam12 && \
-    apt-get update && \
-    apt-get -y install \
-        ocaml camlp4-extra ocaml-native-compilers opam
-
 
 # add entrypoint script
 #
@@ -38,17 +23,13 @@ RUN git config --global user.email "mirage@example.com" && \
     git config --global user.name "Mirage"
 
 
-# setup opam with mirage-dev remote
+# setup opam environment
 #
 ENV OPAMVERBOSE 1
 ENV OPAMYES 1
-
-RUN opam init -a
-RUN opam remote add mirage-dev git://github.com/mirage/mirage-dev
-
+ENV OPAMJOBS 2
 
 # entry
 #
 ENTRYPOINT ["/usr/bin/opam-config-exec"]
 CMD ["bash"]
-

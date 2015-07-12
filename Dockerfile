@@ -18,5 +18,5 @@ RUN opam install mirage
 
 # entry
 #
-ENTRYPOINT ["/usr/bin/opam-config-exec"]
+ENTRYPOINT ["/usr/bin/opam-config-exec", "mirage"]
 CMD ["bash"]

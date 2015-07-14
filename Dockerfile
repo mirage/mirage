@@ -10,13 +10,11 @@ USER opam
 
 # setup opam environment
 #
-ENV OPAMVERBOSE 1
 ENV OPAMYES 1
-ENV OPAMJOBS 2
+ENV OPAMJOBS 4
 
 RUN opam install mirage
 
 # entry
 #
-ENTRYPOINT ["/usr/bin/opam-config-exec", "mirage"]
 CMD ["bash"]

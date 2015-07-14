@@ -860,10 +860,14 @@ module type FS = sig
       filesystem of size [size] bytes. *)
 
   val create: t -> string -> [ `Ok of unit | `Error of error ] io
-  (** [create t path] creates an empty file at [path]. *)
+  (** [create t path] creates an empty file at [path]. If [path] contains
+      directories that do not yet exist, [create] will attempt to create them. *)
 
   val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
-  (** [mkdir t path] creates an empty directory at [path]. *)
+  (** [mkdir t path] creates an empty directory at [path].  If [path] contains
+      intermediate directories that do not yet exist, [mkdir] will create them.
+      If a directory already exists at [path], [mkdir] returns [`Ok ()] and
+      takes no action. *)
 
   val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
   (** [destroy t path] removes a [path] (which may be a file or an
@@ -879,7 +883,11 @@ module type FS = sig
 
   val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
   (** [write t path offset data] writes [data] at [offset] in file
-      [path] on filesystem [t]. *)
+      [path] on filesystem [t]. 
+  
+      If [path] contains directories that do not exist, [write] will attempt to
+      create them.  If [path] already exists, [write] will overwrite existing
+      information starting at [off].*)
 
 end
 

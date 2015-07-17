@@ -463,13 +463,15 @@ module type ARP = sig
   type ipaddr
   type buffer
   type macaddr
+  type repr
 
   (** Type of the result of an ARP query.  One of `Ok macaddr (for successful
       queries) or `Timeout (for attempted queries that received no response). *)
   type result = [ `Ok of macaddr | `Timeout ]
 
   (** Prettyprint cache contents *)
-  val pp : Format.formatter -> t -> unit io
+  val to_repr : t -> repr io
+  val pp : Format.formatter -> repr -> unit
 
   (** [get_ips arp] gets the bound IP address list in the [arp]
       value. *)

@@ -117,6 +117,7 @@ module type BLOCK = BLOCK
 (** FS *)
 module type FS = FS
   with type 'a io = 'a Lwt.t
+   and type page_aligned_buffer = Cstruct.t
 
 type socket_stack_config =
   Ipaddr.V4.t list

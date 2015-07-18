@@ -628,6 +628,104 @@ let block = Type BLOCK
 let block_of_file filename =
   impl block filename (module Block)
 
+module Archive = struct
+
+  type t = {
+    block  : block impl;
+  }
+
+  let name t =
+    let key = "archive" ^ Impl.name t.block in
+    Name.of_key key ~base:"archive"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    "tar-format"
+    :: Impl.packages t.block
+
+  let libraries t =
+    "tar.mirage"
+    :: Impl.libraries t.block
+
+  let configure t =
+    Impl.configure t.block;
+    append_main "module %s = Tar_mirage.Make_KV_RO(%s)"
+      (module_name t)
+      (Impl.module_name t.block);
+    newline_main ();
+    let name = name t in
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name t.block);
+    append_main "  | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
+    newline_main ()
+
+  let clean t =
+    Impl.clean t.block
+
+  let update_path t root =
+    { block  = Impl.update_path t.block root;
+    }
+
+end
+
+let archive block : kv_ro impl =
+  let t = { Archive.block } in
+  impl kv_ro t (module Archive)
+
+module Archive_of_files = struct
+
+  type t = {
+    dir   : string;
+  }
+
+  let name t =
+    Name.of_key
+      ("archive" ^ t.dir)
+      ~base:"archive"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let block_file t =
+    name t ^ ".img"
+
+  let block t =
+    block_of_file (block_file t)
+
+  let packages t =
+    Impl.packages (archive (block t))
+
+  let libraries t =
+    Impl.libraries (archive (block t))
+
+  let configure t =
+    let archive = archive (block t) in
+    Impl.configure archive;
+    if not (command_exists "tar") then
+      error "tar not found, stopping.";
+    let file = block_file t in
+    info "%s %s" (blue_s "Generating:") (Sys.getcwd () / file);
+    command "tar -C %s -cvf %s ." t.dir (block_file t);
+    append_main "module %s = %s" (module_name t) (Impl.module_name archive);
+    append_main "let %s = %s" (name t) (Impl.name archive);
+    newline_main ()
+
+  let clean t =
+    command "rm -f %s" (block_file t);
+    Impl.clean (block t)
+
+  let update_path t root =
+    { dir = root / t.dir }
+
+end
+
+let archive_of_files: ?dir:string -> unit -> kv_ro impl =
+  fun ?(dir=".") () ->
+    impl kv_ro { Archive_of_files.dir } (module Archive_of_files)
+
 module Fat = struct
 
   type t = {

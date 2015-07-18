@@ -154,6 +154,10 @@ val kv_ro: kv_ro typ
 val crunch: string -> kv_ro impl
 (** Crunch a directory. *)
 
+val archive: block impl -> kv_ro impl
+
+val archive_of_files: ?dir:string -> unit -> kv_ro impl
+
 val direct_kv_ro: string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value
     store. For Xen backends, this is equivalent to [crunch]. *)

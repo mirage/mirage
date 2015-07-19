@@ -587,6 +587,7 @@ module Block = struct
 
   type t = {
     filename: string;
+    number: int;
   }
 
   let name t =
@@ -595,7 +596,15 @@ module Block = struct
   let module_name _ =
     "Block"
 
-  let connect_name t = t.filename
+  let connect_name t =
+    match !mode with
+    | `Unix | `MacOSX -> t.filename (* open the file directly *)
+    | `Xen ->
+      (* We need the xenstore id *)
+      (* Taken from https://github.com/mirage/mirage-block-xen/blob/a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 *)
+      (if t.number < 16
+       then (202 lsl 8) lor (t.number lsl 4)
+       else (1 lsl 28)  lor (t.number lsl 8)) |> string_of_int
 
   let packages _ = [
     match !mode with
@@ -619,7 +628,7 @@ module Block = struct
 
   let update_path t root =
     if Sys.file_exists (root / t.filename) then
-      { filename = root / t.filename }
+      { t with filename = root / t.filename }
     else
       t
 
@@ -629,8 +638,13 @@ type block = BLOCK
 
 let block = Type BLOCK
 
-let block_of_file filename =
-  impl block { Block.filename } (module Block)
+let block_of_file =
+  (* NB: reserve number 0 for the boot disk *)
+  let next_number = ref 1 in
+  fun filename ->
+    let number = !next_number in
+    incr next_number;
+    impl block { Block.filename; number } (module Block)
 
 module Archive = struct
 

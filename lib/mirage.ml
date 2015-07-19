@@ -585,13 +585,17 @@ let direct_kv_ro dirname =
 
 module Block = struct
 
-  type t = string
+  type t = {
+    filename: string;
+  }
 
   let name t =
-    Name.of_key ("block" ^ t) ~base:"block"
+    Name.of_key ("block" ^ t.filename) ~base:"block"
 
   let module_name _ =
     "Block"
+
+  let connect_name t = t.filename
 
   let packages _ = [
     match !mode with
@@ -607,15 +611,15 @@ module Block = struct
 
   let configure t =
     append_main "let %s () =" (name t);
-    append_main "  %s.connect %S" (module_name t) t;
+    append_main "  %s.connect %S" (module_name t) (connect_name t);
     newline_main ()
 
   let clean t =
     ()
 
   let update_path t root =
-    if Sys.file_exists (root / t) then
-      root / t
+    if Sys.file_exists (root / t.filename) then
+      { filename = root / t.filename }
     else
       t
 
@@ -626,7 +630,7 @@ type block = BLOCK
 let block = Type BLOCK
 
 let block_of_file filename =
-  impl block filename (module Block)
+  impl block { Block.filename } (module Block)
 
 module Archive = struct
 

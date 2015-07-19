@@ -638,13 +638,23 @@ type block = BLOCK
 
 let block = Type BLOCK
 
+let all_blocks = Hashtbl.create 7
+
 let block_of_file =
   (* NB: reserve number 0 for the boot disk *)
   let next_number = ref 1 in
   fun filename ->
-    let number = !next_number in
-    incr next_number;
-    impl block { Block.filename; number } (module Block)
+    let b =
+      if Hashtbl.mem all_blocks filename
+      then Hashtbl.find all_blocks filename
+      else begin
+        let number = !next_number in
+        incr next_number;
+        let b = { Block.filename; number } in
+        Hashtbl.add all_blocks filename b;
+        b
+      end in
+    impl block b (module Block)
 
 module Archive = struct
 
@@ -2165,12 +2175,20 @@ let configure_main_xl t =
   append oc "memory = 256";
   append oc "on_crash = 'preserve'";
   newline oc;
-  append oc "# You must define the network and block interfaces manually.";
-  newline oc;
-  append oc "# The disk configuration is defined here:";
-  append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-disk-configuration.txt";
-  append oc "# An example would look like:";
-  append oc "# disk = [ '/dev/loop0,,xvda' ]";
+  let blocks = List.map (fun b ->
+    (* We need the Linux version of the block number (this is a strange historical
+       artifact) Taken from https://github.com/mirage/mirage-block-xen/blob/a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
+      let rec string_of_int26 x =
+        let (/) = Pervasives.(/) in
+        let high, low = x / 26 - 1, x mod 26 + 1 in
+        let high' = if high = -1 then "" else string_of_int26 high in
+        let low' = String.make 1 (char_of_int (low + (int_of_char 'a') - 1)) in
+        high' ^ low' in
+    let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.Block.number) in
+    let path = Filename.concat t.root b.Block.filename in
+    Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
+  ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
+  append oc "disk = [ %s ]" (String.concat ", " blocks);
   newline oc;
   append oc "# The network configuration is defined here:";
   append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
@@ -2216,6 +2234,17 @@ let configure_main_xe t =
   append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
   append oc "xe vbd-param-set uuid=$VBD bootable=true";
   append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  List.iter (fun b ->
+    append oc "echo Uploading data VDI %s" b.Block.filename;
+    append oc "echo VDI=$VDI";
+    append oc "SIZE=$(stat --format '%%s' %s/%s)" t.root b.Block.filename;
+    append oc "POOL=$(xe pool-list params=uuid --minimal)";
+    append oc "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
+    append oc "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE sr-uuid=$SR)" b.Block.filename;
+    append oc "xe vdi-import uuid=$VDI filename=%s/%s" t.root b.Block.filename;
+    append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)" b.Block.number;
+    append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
   append oc "echo Starting VM";
   append oc "xe vm-start vm=%s" t.name;
   close_out oc;

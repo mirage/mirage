@@ -885,8 +885,8 @@ module type FS = sig
 
   val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
   (** [write t path offset data] writes [data] at [offset] in file
-      [path] on filesystem [t]. 
-  
+      [path] on filesystem [t].
+
       If [path] contains directories that do not exist, [write] will attempt to
       create them.  If [path] already exists, [write] will overwrite existing
       information starting at [off].*)

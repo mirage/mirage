@@ -1,3 +1,7 @@
+### 2.5.1 (2015-07-17)
+
+* [mirage-types] Expose `V1_LWT.FS.page_aligned_buffer = Cstruct.t`
+
 ### 2.5.0 (2015-06-10)
 
 * Change the type of the `Mirage.http_server` combinator. The first argument

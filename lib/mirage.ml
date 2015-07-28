@@ -357,7 +357,9 @@ module Time = struct
 
   let libraries () = []
 
-  let configure () = ()
+  let configure () =
+    append_main "let time () = return (`Ok ())";
+    newline_main ()
 
   let clean () = ()
 

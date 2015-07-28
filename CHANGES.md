@@ -1,3 +1,14 @@
+### 2.6.0 (2015-07-28)
+
+* Better ARP support. This needs `mirage-tcpip.2.6.0` (#419, by @yomimono)
+  - [mirage-types] Remove `V1.IPV4.input_arp`
+  - [mirage-types] Expose `V1.ARP` and `V1_LWT.ARP`
+  - Expose a `Mirage.arp` combinator
+* Provide noop configuration for default_time (#435, by @yomimono)
+* Add `Mirage.archive` and `Mirage.archive_of_files` to support attaching files
+  via a read-only tar-formatted BLOCK (#432, by @djs55)
+* Add a .merlin file (#428, by @Drup)
+
 ### 2.5.1 (2015-07-17)
 
 * [mirage-types] Expose `V1_LWT.FS.page_aligned_buffer = Cstruct.t`

@@ -585,13 +585,26 @@ let direct_kv_ro dirname =
 
 module Block = struct
 
-  type t = string
+  type t = {
+    filename: string;
+    number: int;
+  }
 
   let name t =
-    Name.of_key ("block" ^ t) ~base:"block"
+    Name.of_key ("block" ^ t.filename) ~base:"block"
 
   let module_name _ =
     "Block"
+
+  let connect_name t =
+    match !mode with
+    | `Unix | `MacOSX -> t.filename (* open the file directly *)
+    | `Xen ->
+      (* We need the xenstore id *)
+      (* Taken from https://github.com/mirage/mirage-block-xen/blob/a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 *)
+      (if t.number < 16
+       then (202 lsl 8) lor (t.number lsl 4)
+       else (1 lsl 28)  lor (t.number lsl 8)) |> string_of_int
 
   let packages _ = [
     match !mode with
@@ -607,15 +620,15 @@ module Block = struct
 
   let configure t =
     append_main "let %s () =" (name t);
-    append_main "  %s.connect %S" (module_name t) t;
+    append_main "  %s.connect %S" (module_name t) (connect_name t);
     newline_main ()
 
   let clean t =
     ()
 
   let update_path t root =
-    if Sys.file_exists (root / t) then
-      root / t
+    if Sys.file_exists (root / t.filename) then
+      { t with filename = root / t.filename }
     else
       t
 
@@ -625,8 +638,121 @@ type block = BLOCK
 
 let block = Type BLOCK
 
-let block_of_file filename =
-  impl block filename (module Block)
+let all_blocks = Hashtbl.create 7
+
+let block_of_file =
+  (* NB: reserve number 0 for the boot disk *)
+  let next_number = ref 1 in
+  fun filename ->
+    let b =
+      if Hashtbl.mem all_blocks filename
+      then Hashtbl.find all_blocks filename
+      else begin
+        let number = !next_number in
+        incr next_number;
+        let b = { Block.filename; number } in
+        Hashtbl.add all_blocks filename b;
+        b
+      end in
+    impl block b (module Block)
+
+module Archive = struct
+
+  type t = {
+    block  : block impl;
+  }
+
+  let name t =
+    let key = "archive" ^ Impl.name t.block in
+    Name.of_key key ~base:"archive"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let packages t =
+    "tar-format"
+    :: Impl.packages t.block
+
+  let libraries t =
+    "tar.mirage"
+    :: Impl.libraries t.block
+
+  let configure t =
+    Impl.configure t.block;
+    append_main "module %s = Tar_mirage.Make_KV_RO(%s)"
+      (module_name t)
+      (Impl.module_name t.block);
+    newline_main ();
+    let name = name t in
+    append_main "let %s () =" name;
+    append_main "  %s () >>= function" (Impl.name t.block);
+    append_main "  | `Error _ -> %s" (driver_initialisation_error name);
+    append_main "  | `Ok dev  -> %s.connect dev" (module_name t);
+    newline_main ()
+
+  let clean t =
+    Impl.clean t.block
+
+  let update_path t root =
+    { block  = Impl.update_path t.block root;
+    }
+
+end
+
+let archive block : kv_ro impl =
+  let t = { Archive.block } in
+  impl kv_ro t (module Archive)
+
+module Archive_of_files = struct
+
+  type t = {
+    dir   : string;
+  }
+
+  let name t =
+    Name.of_key
+      ("archive" ^ t.dir)
+      ~base:"archive"
+
+  let module_name t =
+    String.capitalize (name t)
+
+  let block_file t =
+    name t ^ ".img"
+
+  let block t =
+    block_of_file (block_file t)
+
+  let packages t =
+    Impl.packages (archive (block t))
+
+  let libraries t =
+    Impl.libraries (archive (block t))
+
+  let configure t =
+    let archive = archive (block t) in
+    Impl.configure archive;
+    if not (command_exists "tar") then
+      error "tar not found, stopping.";
+    let file = block_file t in
+    info "%s %s" (blue_s "Generating:") (Sys.getcwd () / file);
+    command "tar -C %s -cvf %s ." t.dir (block_file t);
+    append_main "module %s = %s" (module_name t) (Impl.module_name archive);
+    append_main "let %s = %s" (name t) (Impl.name archive);
+    newline_main ()
+
+  let clean t =
+    command "rm -f %s" (block_file t);
+    Impl.clean (block t)
+
+  let update_path t root =
+    { dir = root / t.dir }
+
+end
+
+let archive_of_files: ?dir:string -> unit -> kv_ro impl =
+  fun ?(dir=".") () ->
+    impl kv_ro { Archive_of_files.dir } (module Archive_of_files)
 
 module Fat = struct
 
@@ -2049,12 +2175,20 @@ let configure_main_xl t =
   append oc "memory = 256";
   append oc "on_crash = 'preserve'";
   newline oc;
-  append oc "# You must define the network and block interfaces manually.";
-  newline oc;
-  append oc "# The disk configuration is defined here:";
-  append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-disk-configuration.txt";
-  append oc "# An example would look like:";
-  append oc "# disk = [ '/dev/loop0,,xvda' ]";
+  let blocks = List.map (fun b ->
+    (* We need the Linux version of the block number (this is a strange historical
+       artifact) Taken from https://github.com/mirage/mirage-block-xen/blob/a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
+      let rec string_of_int26 x =
+        let (/) = Pervasives.(/) in
+        let high, low = x / 26 - 1, x mod 26 + 1 in
+        let high' = if high = -1 then "" else string_of_int26 high in
+        let low' = String.make 1 (char_of_int (low + (int_of_char 'a') - 1)) in
+        high' ^ low' in
+    let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.Block.number) in
+    let path = Filename.concat t.root b.Block.filename in
+    Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
+  ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
+  append oc "disk = [ %s ]" (String.concat ", " blocks);
   newline oc;
   append oc "# The network configuration is defined here:";
   append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
@@ -2100,6 +2234,17 @@ let configure_main_xe t =
   append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
   append oc "xe vbd-param-set uuid=$VBD bootable=true";
   append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  List.iter (fun b ->
+    append oc "echo Uploading data VDI %s" b.Block.filename;
+    append oc "echo VDI=$VDI";
+    append oc "SIZE=$(stat --format '%%s' %s/%s)" t.root b.Block.filename;
+    append oc "POOL=$(xe pool-list params=uuid --minimal)";
+    append oc "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
+    append oc "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE sr-uuid=$SR)" b.Block.filename;
+    append oc "xe vdi-import uuid=$VDI filename=%s/%s" t.root b.Block.filename;
+    append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)" b.Block.number;
+    append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
   append oc "echo Starting VM";
   append oc "xe vm-start vm=%s" t.name;
   close_out oc;

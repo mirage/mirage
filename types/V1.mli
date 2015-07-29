@@ -494,9 +494,9 @@ module type ARP = sig
       waiting for a response. *)
   val query : t -> ipaddr -> result io
 
-  (** [input arp frame] will handle an ethernet frame containing an ARP
-      packet. If it is a response, it will update its cache, otherwise
-      will try to satisfy the request. *)
+  (** [input arp frame] will handle an ARP frame. If it is a response,
+      it will update its cache, otherwise will try to satisfy the
+      request. *)
   val input : t -> buffer -> unit io
 end
 

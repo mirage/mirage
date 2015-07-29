@@ -5,4 +5,4 @@ script: bash -ex .travis-ci.sh
 env:
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01 PACKAGE=mirage
-  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01 PACKAGE=mirage-types PINS="tcpip:https://github.com/yomimono/mirage-tcpip.git#separate_arp mirage:https://github.com/yomimono/mirage.git#separate_arp" REV_DEPS=*
+  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01 PACKAGE=mirage-types

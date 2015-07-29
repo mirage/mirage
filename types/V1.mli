@@ -373,7 +373,7 @@ module type IP = sig
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
   ]
-  (** The typr ofr IO operation errors. *)
+  (** The type for IO operation errors. *)
 
   include DEVICE with
         type error := error
@@ -457,13 +457,52 @@ module type IP = sig
 
 end
 
+module type ARP = sig
+  include DEVICE
+
+  type ipaddr
+  type buffer
+  type macaddr
+  type repr
+
+  (** Type of the result of an ARP query.  One of `Ok macaddr (for successful
+      queries) or `Timeout (for attempted queries that received no response). *)
+  type result = [ `Ok of macaddr | `Timeout ]
+
+  (** Prettyprint cache contents *)
+  val to_repr : t -> repr io
+  val pp : Format.formatter -> repr -> unit
+
+  (** [get_ips arp] gets the bound IP address list in the [arp]
+      value. *)
+  val get_ips : t -> ipaddr list
+
+  (** [set_ips arp] sets the bound IP address list, which will xmit a
+      GARP packet also. *)
+  val set_ips : t -> ipaddr list -> unit io
+
+  (** [remove_ip arp ip] removes [ip] to the bound IP address list in
+      the [arp] value, which will xmit a GARP packet also. *)
+  val remove_ip : t -> ipaddr -> unit io
+
+  (** [add_ip arp ip] adds [ip] to the bound IP address list in the
+      [arp] value, which will xmit a GARP packet also. *)
+  val add_ip : t -> ipaddr -> unit io
+
+  (** [query arp ip] queries the cache in [arp] for an ARP entry
+      corresponding to [ip], which may result in the sender sleeping
+      waiting for a response. *)
+  val query : t -> ipaddr -> result io
+
+  (** [input arp frame] will handle an ethernet frame containing an ARP
+      packet. If it is a response, it will update its cache, otherwise
+      will try to satisfy the request. *)
+  val input : t -> buffer -> unit io
+end
+
 (** {1 IPv4 stack} *)
 module type IPV4 = sig
   include IP
-
-  val input_arpv4: t -> buffer -> unit io
-  (** {b FIXME} *)
-
 end
 
 (** {1 IPv6 stack} *)

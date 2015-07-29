@@ -215,7 +215,12 @@ type ethernet
 val ethernet : ethernet typ
 val etif: network impl -> ethernet impl
 
+(** {2 ARP configuration} *)
 
+(** Implementation of the [V1.ARPV4] signature. *)
+type arpv4
+val arpv4 : arpv4 typ
+val arp: ?clock: clock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
 
 (** {2 IP configuration} *)
 
@@ -523,12 +528,14 @@ module Block: CONFIGURABLE
 (** Implementation of raw block device. *)
 
 module Fat: CONFIGURABLE
-(** Implementatin of the Fat filesystem. *)
+(** Implementation of the Fat filesystem. *)
 
 module Network: CONFIGURABLE
 (** Implementation of network configuration. *)
 
 module Ethif: CONFIGURABLE
+
+module Arpv4: CONFIGURABLE
 
 module IPV4: CONFIGURABLE
 module IPV6: CONFIGURABLE

@@ -642,6 +642,8 @@ let block = Type BLOCK
 
 let all_blocks = Hashtbl.create 7
 
+let dummy_filename = "xx"
+
 let block_of_file =
   (* NB: reserve number 0 for the boot disk *)
   let next_number = ref 1 in
@@ -650,13 +652,21 @@ let block_of_file =
       if Hashtbl.mem all_blocks filename
       then Hashtbl.find all_blocks filename
       else begin
-        let number = !next_number in
-        incr next_number;
+        let number =
+          if filename = dummy_filename then
+            !next_number
+          else
+            let number = !next_number in
+            incr next_number;
+            number
+        in
         let b = { Block.filename; number } in
         Hashtbl.add all_blocks filename b;
         b
       end in
     impl block b (module Block)
+
+let dummy_block = block_of_file dummy_filename
 
 module Archive = struct
 
@@ -816,7 +826,7 @@ let fat ?(io_page=default_io_page) block: fs impl =
 
 (* This would deserve to be in its own lib. *)
 let kv_ro_of_fs x: kv_ro impl =
-  let dummy_fat = fat (block_of_file "xx") in
+  let dummy_fat = fat dummy_block in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in
   let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in

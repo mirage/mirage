@@ -645,8 +645,7 @@ let all_blocks = Hashtbl.create 7
 let dummy_filename = "xx"
 
 let block_of_file =
-  (* NB: reserve number 0 for the boot disk *)
-  let next_number = ref 1 in
+  let next_number = ref 0 in
   fun filename ->
     let b =
       if Hashtbl.mem all_blocks filename

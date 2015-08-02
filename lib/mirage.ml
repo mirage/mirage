@@ -941,10 +941,14 @@ type network = NETWORK
 
 let network = Type NETWORK
 
+let all_networks = ref []
+
 let tap0 =
+  all_networks := Tap0 :: !all_networks;
   impl network Tap0 (module Network)
 
 let netif dev =
+  all_networks := (Custom dev) :: !all_networks;
   impl network (Custom dev) (module Network)
 
 module Ethif = struct
@@ -2237,12 +2241,14 @@ module Substitutions = struct
     | Kernel
     | Memory
     | Block of Block.t
+    | Network of Network.t
 
   let string_of_v = function
     | Name -> "@NAME@"
     | Kernel -> "@KERNEL@"
     | Memory -> "@MEMORY@"
     | Block b -> Printf.sprintf "@BLOCK:%s@" b.Block.filename
+    | Network n -> Printf.sprintf "@NETWORK:%s@" (Network.name n)
 
   type t = (v * string) list
 
@@ -2254,11 +2260,14 @@ module Substitutions = struct
   let defaults t =
     let blocks = List.map (fun b ->
       Block b, Filename.concat t.root b.Block.filename
-    ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in [
+    ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
+    let networks = List.mapi (fun i n ->
+      Network n, Printf.sprintf "br%d" i
+    ) !all_networks in [
       Name, t.name;
       Kernel, Printf.sprintf "%s/mir-%s.xen" t.root t.name;
       Memory, "256";
-    ] @ blocks
+    ] @ blocks @ networks
 end
 
 let configure_main_xl ?substitutions ext t =
@@ -2291,10 +2300,10 @@ let configure_main_xl ?substitutions ext t =
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
   append oc "disk = [ %s ]" (String.concat ", " blocks);
   newline oc;
-  append oc "# The network configuration is defined here:";
-  append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
-  append oc "# An example would look like:";
-  append oc "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
+  let networks = List.map (fun n ->
+    Printf.sprintf "'bridge=%s'" (lookup substitutions (Network n))
+  ) !all_networks in
+  append oc "vif = [ %s ]" (String.concat ", " networks);
   close_out oc
 
 let clean_main_xl ext t =

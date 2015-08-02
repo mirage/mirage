@@ -2261,12 +2261,12 @@ module Substitutions = struct
     ] @ blocks
 end
 
-let configure_main_xl ?substitutions t =
+let configure_main_xl ?substitutions ext t =
   let open Substitutions in
   let substitutions = match substitutions with
     | Some x -> x
     | None -> defaults t in
-  let file = t.root / t.name ^ ".xl" in
+  let file = t.root / t.name ^ ext in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
   newline oc;
@@ -2297,8 +2297,8 @@ let configure_main_xl ?substitutions t =
   append oc "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
   close_out oc
 
-let clean_main_xl t =
-  remove (t.root / t.name ^ ".xl")
+let clean_main_xl ext t =
+  remove (t.root / t.name ^ ext)
 
 let configure_main_xe t =
   let file = t.root / t.name ^ ".xe" in
@@ -2580,7 +2580,8 @@ let configure t =
       if !manage_opam_packages_ then configure_opam t;
       configure_myocamlbuild_ml t;
       configure_makefile t;
-      configure_main_xl t;
+      configure_main_xl ".xl" t;
+      configure_main_xl ~substitutions:[] ".xl.in" t;
       configure_main_xe t;
       configure_main_libvirt_xml t;
       configure_main t
@@ -2603,7 +2604,8 @@ let clean t =
       if !manage_opam_packages_ then clean_opam t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
-      clean_main_xl t;
+      clean_main_xl ".xl" t;
+      clean_main_xl ".xl.in" t;
       clean_main_xe t;
       clean_main_libvirt_xml t;
       clean_main t;

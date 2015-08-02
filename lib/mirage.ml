@@ -2227,15 +2227,53 @@ let configure_main_libvirt_xml t =
 let clean_main_libvirt_xml t =
   remove (t.root / t.name ^ "_libvirt.xml")
 
-let configure_main_xl t =
+(* We generate an example .xl with common defaults, and a generic
+   .xl.in which has @VARIABLES@ which must be substituted by sed according
+   to the preferences of the system administrator. *)
+
+module Substitutions = struct
+  type v =
+    | Name
+    | Kernel
+    | Memory
+    | Block of Block.t
+
+  let string_of_v = function
+    | Name -> "@NAME@"
+    | Kernel -> "@KERNEL@"
+    | Memory -> "@MEMORY@"
+    | Block b -> Printf.sprintf "@BLOCK:%s@" b.Block.filename
+
+  type t = (v * string) list
+
+  let lookup ts v =
+    if List.mem_assoc v ts
+    then List.assoc v ts
+    else string_of_v v
+
+  let defaults t =
+    let blocks = List.map (fun b ->
+      Block b, Filename.concat t.root b.Block.filename
+    ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in [
+      Name, t.name;
+      Kernel, Printf.sprintf "%s/mir-%s.xen" t.root t.name;
+      Memory, "256";
+    ] @ blocks
+end
+
+let configure_main_xl ?substitutions t =
+  let open Substitutions in
+  let substitutions = match substitutions with
+    | Some x -> x
+    | None -> defaults t in
   let file = t.root / t.name ^ ".xl" in
   let oc = open_out file in
   append oc "# %s" generated_by_mirage;
   newline oc;
-  append oc "name = '%s'" t.name;
-  append oc "kernel = '%s/mir-%s.xen'" t.root t.name;
+  append oc "name = '%s'" (lookup substitutions Name);
+  append oc "kernel = '%s'" (lookup substitutions Kernel);
   append oc "builder = 'linux'";
-  append oc "memory = 256";
+  append oc "memory = %s" (lookup substitutions Memory);
   append oc "on_crash = 'preserve'";
   newline oc;
   let blocks = List.map (fun b ->
@@ -2248,7 +2286,7 @@ let configure_main_xl t =
         let low' = String.make 1 (char_of_int (low + (int_of_char 'a') - 1)) in
         high' ^ low' in
     let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.Block.number) in
-    let path = Filename.concat t.root b.Block.filename in
+    let path = lookup substitutions (Block b) in
     Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
   append oc "disk = [ %s ]" (String.concat ", " blocks);

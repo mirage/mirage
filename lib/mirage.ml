@@ -2233,7 +2233,28 @@ let clean_main_libvirt_xml t =
 
 (* We generate an example .xl with common defaults, and a generic
    .xl.in which has @VARIABLES@ which must be substituted by sed according
-   to the preferences of the system administrator. *)
+   to the preferences of the system administrator.
+
+   The common defaults chosen for the .xl file will be based on values
+   detected from the build host. We assume that the .xl file will mainly be
+   used by developers where build and deployment are on the same host. Production
+   users should use the .xl.in and perform the appropriate variable substition.
+*)
+
+let detected_bridge_name =
+  (* Best-effort guess of a bridge name stem to use. Note this inspects the
+     build host and will probably be wrong if the deployment host is different.
+  *)
+  match List.fold_left (fun sofar x -> match sofar with
+    | None ->
+      (* This is Linux-specific *)
+      if Sys.file_exists (Printf.sprintf "/sys/class/net/%s0" x)
+      then Some x
+      else None
+    | Some x -> Some x
+  ) None [ "xenbr"; "br"; "virbr" ] with
+  | Some x -> x
+  | None -> "br"
 
 module Substitutions = struct
   type v =
@@ -2262,7 +2283,7 @@ module Substitutions = struct
       Block b, Filename.concat t.root b.Block.filename
     ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
     let networks = List.mapi (fun i n ->
-      Network n, Printf.sprintf "br%d" i
+      Network n, Printf.sprintf "%s%d" detected_bridge_name i
     ) !all_networks in [
       Name, t.name;
       Kernel, Printf.sprintf "%s/mir-%s.xen" t.root t.name;

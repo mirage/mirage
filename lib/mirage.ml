@@ -2303,6 +2303,9 @@ let configure_main_xl ?substitutions ext t =
   let networks = List.map (fun n ->
     Printf.sprintf "'bridge=%s'" (lookup substitutions (Network n))
   ) !all_networks in
+  append oc "# if your system uses openvswitch then either edit /etc/xen/xl.conf and set";
+  append oc "#     vif.default.script=\"vif-openvswitch\"";
+  append oc "# or add \"script=vif-openvswitch,\" before the \"bridge=\" below:";
   append oc "vif = [ %s ]" (String.concat ", " networks);
   close_out oc
 

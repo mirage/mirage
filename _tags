@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4d21228b26e332ef6566b6f2980444a9)
+# DO NOT EDIT (digest: e61b515dee0229717f455d9d6e50ddde)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -19,21 +19,17 @@ true: annot, bin_annot
 # Library mirage-runtime
 "lib/mirage-runtime.cmxs": use_mirage-runtime
 # Executable mirage
-<lib/main.{native,byte}>: pkg_cmdliner
-<lib/main.{native,byte}>: pkg_dynlink
+<lib/main.{native,byte}>: pkg_functhulhu
 <lib/main.{native,byte}>: pkg_ipaddr
 <lib/main.{native,byte}>: pkg_lwt
 <lib/main.{native,byte}>: pkg_mirage-types
 <lib/main.{native,byte}>: pkg_mirage-types.lwt
-<lib/main.{native,byte}>: pkg_unix
 <lib/main.{native,byte}>: use_mirage
-<lib/*.ml{,i,y}>: pkg_cmdliner
-<lib/*.ml{,i,y}>: pkg_dynlink
+<lib/*.ml{,i,y}>: pkg_functhulhu
 <lib/*.ml{,i,y}>: pkg_ipaddr
 <lib/*.ml{,i,y}>: pkg_lwt
 <lib/*.ml{,i,y}>: pkg_mirage-types
 <lib/*.ml{,i,y}>: pkg_mirage-types.lwt
-<lib/*.ml{,i,y}>: pkg_unix
 <lib/*.ml{,i,y}>: use_mirage
 # OASIS_STOP
 true: debug, bin_annot, annot, principal

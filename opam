@@ -1,0 +1,21 @@
+opam-version: "1.3"
+name: "functhulhu"
+version: "0.1"
+maintainer: "Gabriel Radanne <drupyog@zoho.com>"
+authors: "Thomas Gazagnaire, Anil Madhavapeddy, Dave Scott, Thomas Leonard, Gabriel Radanne"
+homepage: "https://github.com/Drup/Functhulhu"
+bug-reports: "https://github.com/Drup/Functhulhu/issues"
+license: "ICS"
+dev-repo: "https://github.com/Drup/Functhulhu.git"
+build: [
+  ["./configure" "--prefix=%{prefix}%"]
+  [make]
+]
+install: [make "install"]
+remove: ["ocamlfind" "remove" "functhulhu"]
+depends: [
+  "ocamlfind" {build}
+  "oasis" {build}
+  "base-unix"
+  "cmdliner"
+]

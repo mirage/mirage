@@ -82,10 +82,6 @@ class dummy_conf = object
 end
 
 
-
-let module_name2name n =
-  String.lowercase (String.map (function '.' -> '_' | c -> c) n)
-
 let driver_initialisation_error name =
   Printf.sprintf "fail (Failure %S)" name
 

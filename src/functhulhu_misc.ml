@@ -73,11 +73,6 @@ let after prefix s =
   else
     None
 
-let finally f cleanup =
-  try
-    let res = f () in cleanup (); res
-  with exn -> cleanup (); raise exn
-
 (* Code duplication with irminsule/alcotest *)
 let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
 let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
@@ -97,21 +92,6 @@ let with_process_in cmd f =
   with exn ->
     ignore (Unix.close_process_in ic) ; raise exn
 
-let terminal_columns =
-  try           (* terminfo *)
-    with_process_in "tput cols"
-      (fun ic -> int_of_string (input_line ic))
-  with _ -> try (* GNU stty *)
-      with_process_in "stty size"
-        (fun ic ->
-           match split (input_line ic) ' ' with
-           | [_ ; v] -> int_of_string v
-           | _ -> failwith "stty")
-    with _ -> try (* shell envvar *)
-        int_of_string (Sys.getenv "COLUMNS")
-      with _ ->
-        80
-
 let indent_left s nb =
   let nb = nb - String.length s in
   if nb <= 0 then
@@ -119,23 +99,8 @@ let indent_left s nb =
   else
     s ^ String.make nb ' '
 
-let indent_right s nb =
-  let nb = nb - String.length s in
-  if nb <= 0 then
-    s
-  else
-    String.make nb ' ' ^ s
-
 let left_column () =
   20
-
-let right_column () =
-  terminal_columns
-  - left_column ()
-  + 19
-
-let right s =
-  Printf.printf "%s\n%!" (indent_right s (right_column ()))
 
 let left s =
   Printf.printf "%s%!" (indent_left s (left_column ()))

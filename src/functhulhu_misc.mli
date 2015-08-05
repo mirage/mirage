@@ -95,6 +95,8 @@ val fail: ('a, unit, string, 'b) format4 -> 'a
 
 val info: ('a, unit, string, unit) format4 -> 'a
 
+val debug: ('a, unit, string, unit) format4 -> 'a
+
 val blue_s: string -> string
 
 val yellow_s: string -> string

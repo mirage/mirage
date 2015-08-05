@@ -21,3 +21,13 @@ let string_of_network_init_error name = function
   | `Unimplemented -> "\n\n"^name^": operation unimplemented\n\n"
   | `Disconnected -> "\n\n"^name^": disconnected\n\n"
   | _ ->  "\n\n"^name^": unknown error\n\n"
+
+let cmdliner keys s argv =
+  let open Cmdliner in
+  let gather k rest = Term.(pure (fun () () -> ()) $ k $ rest) in
+  let t = List.fold_right gather keys (Term.pure ()) in
+  match Term.(eval ~argv (t, info s)) with
+  | `Ok _ -> Lwt.return_unit
+  | _ -> exit 1
+
+let argv () = Lwt.return Sys.argv

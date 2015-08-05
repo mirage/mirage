@@ -58,8 +58,9 @@ module Make (Config : Functhulhu.CONFIG) = struct
     Arg.(value & opt (some file) None & doc)
 
 
+  let global_keys = key_term @@ Config.(keys dummy_conf)
+
   let with_config =
-    let global_keys = key_term Config.(keys dummy_conf) in
     let config =
       match Term.eval_peek_opts file with
       | _, `Ok config -> config
@@ -75,7 +76,7 @@ module Make (Config : Functhulhu.CONFIG) = struct
           f t
         | `Error err -> f_no err
       in
-      Term.(ret (pure (fun x _ () -> x) $ term $ file $ global_keys))
+      Term.(ret (pure (fun x _ -> x) $ term $ file))
 
 
   (* CONFIGURE *)
@@ -88,17 +89,17 @@ module Make (Config : Functhulhu.CONFIG) = struct
       `P (Printf.sprintf "The $(b,configure) command initializes a fresh %s application." appname)
     ] in
     let f t =
-      let configure no_opam no_opam_version_check no_depext _keys _file =
+      let configure no_opam no_opam_version_check no_depext _keys =
         Config.manage_opam_packages (not no_opam);
         Config.no_opam_version_check no_opam_version_check;
         Config.no_depext no_depext;
         `Ok (Config.configure t) in
       let keys = key_term @@ keys t in
-      Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys $ file)
+      Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys)
     in
     let f_no err =
-      let f _ _ _ = `Error (false, err) in
-      Term.(pure f $ no_opam $ no_opam_version_check $ no_depext)
+      let f _ _ _ () = `Error (false, err) in
+      Term.(pure f $ no_opam $ no_opam_version_check $ no_depext $ global_keys)
     in
     with_config f f_no, term_info "configure" ~doc ~man
 
@@ -169,8 +170,7 @@ module Make (Config : Functhulhu.CONFIG) = struct
       Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ keys)
     in
     let f_no _err =
-      let keys = key_term Config.(keys dummy_conf) in
-      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ keys)
+      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ global_keys)
     in
     with_config f f_no, Term.info "help" ~doc ~man
 
@@ -201,7 +201,7 @@ module Make (Config : Functhulhu.CONFIG) = struct
         cmdname cmdname configure_doc build_doc clean_doc cmdname ;
       `Ok ()
     in
-    let f _ = Term.(pure usage $ pure ()) in
+    let f _ = Term.(pure usage $ global_keys) in
     with_config f f,
     Term.info cmdname
       ~version:Config.Project.version

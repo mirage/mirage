@@ -187,7 +187,7 @@ module type CONFIG = sig
 
   val dummy_conf : t
 
-  val load: string option -> [> `Error of string | `Ok of t ]
+  val load: string option -> (t, string) Rresult.result
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 

@@ -13,7 +13,7 @@ Library functhulhu
   Path:            src
   Findlibname:     functhulhu
   Modules:         Functhulhu, Functhulhu_misc, Functhulhu_key, Functhulhu_tool
-  BuildDepends:    unix,dynlink,cmdliner
+  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt
 
 Document "functhulhu"
   Title:                Functhulhu docs

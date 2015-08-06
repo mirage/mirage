@@ -70,11 +70,11 @@ module Make (Config : Functhulhu.CONFIG) = struct
     let t = Config.load config in
     fun f f_no ->
       let term = match t with
-        | `Ok t ->
+        | Ok t ->
           let pkeys = key_term @@ primary_keys t in
           let _ = Term.eval_peek_opts pkeys in
           f t
-        | `Error err -> f_no err
+        | Error err -> f_no err
       in
       Term.(ret (pure (fun x _ -> x) $ term $ file))
 

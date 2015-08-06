@@ -15,23 +15,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Rresult
+
 exception Fatal of string
 
 let (/) = Filename.concat
 
-let (>>=) x f = match x with
-  | `Ok s -> f s
-  | `Error err -> `Error err
-
-let (>|=) x f = x >>= (fun x -> `Ok (f x))
+let id x = x
 
 let err_cmdliner usage = function
-  | `Ok x -> `Ok x
-  | `Error s -> `Error (usage, s)
+  | Ok x -> `Ok x
+  | Error s -> `Error (usage, s)
 
-let show = function
-  | `Error s -> Printf.eprintf "%s" s
-  | `Ok () -> ()
+let show x =
+  R.pp ~pp_ok:Fmt.nop ~pp_error:Fmt.string Format.err_formatter x
 
 let strip str =
   let p = ref 0 in
@@ -73,24 +70,18 @@ let after prefix s =
   else
     None
 
-(* Code duplication with irminsule/alcotest *)
-let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
-let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
-let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
-let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
 
-let red_s = red "%s"
-let green_s = green "%s"
-let yellow_s = yellow "%s"
-let blue_s = blue "%s"
 
-let with_process_in cmd f =
-  let ic = Unix.open_process_in cmd in
-  try
-    let r = f ic in
-    ignore (Unix.close_process_in ic) ; r
-  with exn ->
-    ignore (Unix.close_process_in ic) ; raise exn
+
+let red     = Fmt.styled_string `Red
+let green   = Fmt.styled_string `Green
+let yellow  = Fmt.styled_string `Yellow
+let blue    = Fmt.styled_string `Blue
+
+let red_s    = Fmt.strfmt red
+let green_s  = Fmt.strfmt green
+let yellow_s = Fmt.strfmt yellow
+
 
 let indent_left s nb =
   let nb = nb - String.length s in
@@ -102,44 +93,24 @@ let indent_left s nb =
 let left_column () =
   20
 
-let left s =
-  Printf.printf "%s%!" (indent_left s (left_column ()))
-
-let error_fmt section fmt =
-  Printf.kprintf (fun str ->
-    Printf.sprintf
-      "%s %s\n%!"
-      (indent_left (red_s section) (left_column ()))
-      str;
-  ) fmt
-
-let error_msg f section fmt =
-  Printf.kprintf (fun str ->
-    f (error_fmt section "%s" str)
-  ) fmt
-
-let error fmt = error_msg (fun x -> `Error x) "[ERROR]" fmt
-
-let fail fmt = error_msg (fun s -> raise (Fatal s)) "[ERROR]" fmt
+let left color ppf s =
+  Fmt.string ppf (indent_left (color s) (left_column ()))
 
 
 let section = ref "Functhulhu"
-
 let set_section s = section := s
-
 let get_section () = !section
 
-let info fmt =
-  Printf.kprintf (fun str ->
-      left (green_s !section);
-      Printf.printf "%s%!\n" str
-    ) fmt
+let in_section ?(color = id) ?(section = get_section ()) f fmt =
+  Fmt.kspp f ("%a@."^^fmt) (left color) section
 
-let debug fmt =
-  Printf.kprintf (fun str ->
-      left (yellow_s "Debug");
-      Printf.printf "%s%!\n" str
-    ) fmt
+let error_msg f section = in_section ~color:red_s ~section f
+
+let error fmt = error_msg (fun x -> Error x) "[ERROR]" fmt
+let fail fmt = error_msg (fun s -> raise (Fatal s)) "[ERROR]" fmt
+let info fmt  = in_section ~color:green_s print_string fmt
+let debug fmt = in_section ~color:green_s print_string fmt
+
 
 let realdir dir =
   if Sys.file_exists dir && Sys.is_directory dir then (
@@ -161,7 +132,7 @@ let realpath file =
 
 let remove file =
   if Sys.file_exists file then (
-    info "%s %s" (red_s "Removing:") (realpath file);
+    info "%a %s" red "Removing:" (realpath file);
     Sys.remove file
   )
 
@@ -173,17 +144,17 @@ let with_redirect oc file fn =
   Unix.dup2 fd_file fd_oc;
   Unix.close fd_file;
   let r =
-    try `Ok (fn ())
-    with e -> `Error e in
+    try Ok (fn ())
+    with e -> Error e in
   flush oc;
   Unix.dup2 fd_old fd_oc;
   Unix.close fd_old;
   match r with
-  | `Ok x -> x
-  | `Error e -> raise e
+  | Ok x -> x
+  | Error e -> raise e
 
 let command ?(redirect=true) fmt =
-  Printf.kprintf (fun cmd ->
+  Format.ksprintf (fun cmd ->
     info "%s %s" (yellow_s "=>") cmd;
     let redirect fn =
       if redirect then (
@@ -195,21 +166,22 @@ let command ?(redirect=true) fmt =
           let ic = open_in "log" in
           let b = Buffer.create 17 in
           try while true do
-              Buffer.add_string b @@ error_fmt !section "%s\n" (input_line ic)
+              Buffer.add_string b @@
+              in_section ~color:red_s id "%s\n" (input_line ic)
             done;
             assert false
-          with End_of_file -> `Error (Buffer.contents b)
+          with End_of_file -> Error (Buffer.contents b)
         else
-          `Ok status
+          Ok status
       ) else (
         flush stdout;
         flush stderr;
-        `Ok (fn ())
+        Ok (fn ())
       ) in
     let res = match redirect (fun () -> Sys.command cmd) with
-      | `Ok 0 -> `Ok ()
-      | `Ok i -> fail "The command %S exited with code %d." cmd i
-      | `Error err -> fail "%s" err
+      | Ok 0 -> Ok ()
+      | Ok i -> fail "The command %S exited with code %d." cmd i
+      | Error err -> fail "%s" err
     in show res
   ) fmt
 
@@ -230,6 +202,14 @@ let in_dir dir f =
   try let r = f () in reset (); r
   with e -> reset (); raise e
 
+let with_process_in cmd f =
+  let ic = Unix.open_process_in cmd in
+  try
+    let r = f ic in
+    ignore (Unix.close_process_in ic) ; r
+  with exn ->
+    ignore (Unix.close_process_in ic) ; raise exn
+
 let collect_output cmd =
   try
     with_process_in cmd
@@ -246,7 +226,7 @@ let command_exists s =
 
 let read_command fmt =
   let open Unix in
-  Printf.ksprintf (fun cmd ->
+  Format.ksprintf (fun cmd ->
       let () = info "%s %s" (yellow_s "=>") cmd in
       let ic, oc, ec = open_process_full cmd (environment ()) in
       let buf1 = Buffer.create 64
@@ -260,18 +240,18 @@ let read_command fmt =
       | WEXITED r   ->
         fail "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
 
-let generated_header =
+let generated_header s =
   let t = Unix.gettimeofday () in
   let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
                   "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |] in
   let days = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |] in
   let time = Unix.gmtime t in
   let date =
-    Printf.sprintf "%s, %d %s %d %02d:%02d:%02d GMT"
+    Format.sprintf "%s, %d %s %d %02d:%02d:%02d GMT"
       days.(time.Unix.tm_wday) time.Unix.tm_mday
       months.(time.Unix.tm_mon) (time.Unix.tm_year+1900)
       time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec in
-  Printf.sprintf "Generated by Functhulhu (%s)." date
+  Format.sprintf "Generated by %s (%s)." s date
 
 let ocaml_version () =
   let version =
@@ -286,18 +266,6 @@ let ocaml_version () =
     end
   | _ -> 0, 0
 
-let cofind (type t) h value =
-  let module M = struct
-    exception Found of t
-  end in
-  try
-    Hashtbl.iter (fun k v ->
-        if v = value then raise (M.Found k)
-      ) h;
-    raise Not_found
-  with
-  | M.Found k -> k
-
 let find_or_create tbl key create_value =
   try Hashtbl.find tbl key
   with Not_found ->
@@ -305,12 +273,8 @@ let find_or_create tbl key create_value =
     Hashtbl.add tbl key value;
     value
 
-let dump h =
-  Printf.eprintf "{ ";
-  Hashtbl.iter (fun k v ->
-      Printf.eprintf "%s:%s " k v
-    ) h;
-  Printf.eprintf "}\n%!"
+let dump =
+  Fmt.(brackets @@ hashtbl ~pp_k:string ~pp_v:string)
 
 module StringSet = Set.Make (struct
     type t = string
@@ -350,12 +314,10 @@ module Name = struct
       try 1 + Hashtbl.find ids name
       with Not_found -> 1 in
     Hashtbl.replace ids name n;
-    Printf.sprintf "%s%d" name n
+    Format.sprintf "%s%d" name n
 
   let of_key key ~base =
     find_or_create names key (fun () -> create base)
-
-  let cofind = cofind names
 
 end
 

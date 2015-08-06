@@ -18,4 +18,6 @@ depends: [
   "oasis" {build}
   "base-unix"
   "cmdliner"
+  "rresult"
+  "fmt"
 ]

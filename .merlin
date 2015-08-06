@@ -1,7 +1,7 @@
 B _build/*
 S lib/
-PKG unix dynlink cmdliner
+PKG unix dynlink cmdliner rresult fmt
 
-FLG -w +A-4-6-9-40-42-44
+FLG -w +A-4-6-9-40-42-44-48
 FLG -w -32-34-37
 FLG -strict_sequence -safe_string

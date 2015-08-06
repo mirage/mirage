@@ -16,6 +16,7 @@
  *)
 
 open Functhulhu_misc
+open Rresult
 module Key = Functhulhu_key
 
 module StringSet = struct
@@ -394,7 +395,7 @@ module type CONFIG = sig
 
   val dummy_conf : t
 
-  val load: string option -> [> `Error of string | `Ok of t ]
+  val load: string option -> (t, string) Rresult.result
 
   val register:
     ?keys:Key.t list -> string -> job impl list -> unit
@@ -517,12 +518,12 @@ module Make (M:PROJECT) = struct
 
 
   let configure_bootvar t =
-    info "%s bootvar_gen.ml" (blue_s "Generating:");
+    info "%a bootvar_gen.ml" blue "Generating:";
     let fmt =
       Format.formatter_of_out_channel @@
       open_out (t.root / "bootvar_gen.ml")
     in
-    Codegen.append fmt "(* %s *)" generated_header;
+    Codegen.append fmt "(* %s *)" (generated_header t.custom#name) ;
     Codegen.newline fmt;
     let bootvars = Key.Set.elements @@ Key.Set.filter Key.is_runtime @@ keys t in
     List.iter (Key.emit fmt) bootvars ;
@@ -536,9 +537,9 @@ module Make (M:PROJECT) = struct
 
 
   let configure_main t =
-    info "%s main.ml" (blue_s "Generating:");
+    info "%a main.ml" blue "Generating:";
     Codegen.set_main_ml (t.root / "main.ml");
-    Codegen.append_main "(* %s *)" generated_header;
+    Codegen.append_main "(* %s *)" (generated_header t.custom#name);
     Codegen.newline_main ();
     Codegen.append_main "open Lwt";
     Codegen.newline_main ();
@@ -569,7 +570,7 @@ module Make (M:PROJECT) = struct
     remove (t.root / "main.ml")
 
   let configure t =
-    info "%s %s" (blue_s "Using configuration:") (get_config_file ());
+    info "%a %s" blue "Using configuration:"  (get_config_file ());
     let jobs = List.map DTree.eval t.jobs in
     info "%d job%s [%s]"
       (List.length t.jobs)
@@ -589,13 +590,13 @@ module Make (M:PROJECT) = struct
     | _ -> "make"
 
   let build t =
-    info "Build: %s" (blue_s (get_config_file ()));
+    info "%a %s" blue "Build:" (get_config_file ());
     in_dir t.root (fun () ->
       command "%s build" (make ())
     )
 
   let clean t =
-    info "Clean: %s" (blue_s (get_config_file ()));
+    info "%a %s" blue "Clean:"  (get_config_file ());
     in_dir t.root (fun () ->
       if !manage_opam_packages_ then clean_opam t;
       clean_bootvar t;
@@ -611,13 +612,13 @@ module Make (M:PROJECT) = struct
    * [register] in order to have an observable
    * side effect to this command. *)
   let compile_and_dynlink file =
-    info "%s %s" (blue_s "Processing:") file;
+    info "%a %s" blue "Processing:" file;
     let root = Filename.dirname file in
     let file = Filename.basename file in
     let file = Dynlink.adapt_filename file in
     command "rm -rf %s/_build/%s.*" root (Filename.chop_extension file);
     command "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg %s %s" root application_name file ;
-    try `Ok (Dynlink.loadfile (String.concat "/" [root; "_build"; file]))
+    try Ok (Dynlink.loadfile (String.concat "/" [root; "_build"; file]))
     with Dynlink.Error err -> error "Error loading config: %s" (Dynlink.error_message err)
 
   (* If a configuration file is specified, then use that.
@@ -625,17 +626,17 @@ module Make (M:PROJECT) = struct
    * If there is more than one, then error out. *)
   let scan_conf = function
     | Some f ->
-      info "%s %s" (blue_s "Using specified config file:") f;
+      info "%a %s" blue "Config file:" f;
       if not (Sys.file_exists f) then error "%s does not exist, stopping." f
-      else `Ok (realpath f)
+      else Ok (realpath f)
     | None   ->
       let files = Array.to_list (Sys.readdir ".") in
       match List.filter ((=) "config.ml") files with
       | [] -> error "No configuration file config.ml found.\n\
                      Please precise the configuration file using -f."
       | [f] ->
-        info "%s %s" (blue_s "Using scanned config file:") f;
-        `Ok (realpath f)
+        info "%a %s" blue "Config file:" f;
+        Ok (realpath f)
       | _   -> error "There is more than one config.ml in the current working directory.\n\
                       Please specify one explictly on the command-line."
 
@@ -648,6 +649,6 @@ module Make (M:PROJECT) = struct
     compile_and_dynlink file >>= fun () ->
     let t = registered () in
     set_section t.name;
-    `Ok (update_path t root)
+    Ok (update_path t root)
 
 end

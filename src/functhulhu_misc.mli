@@ -15,14 +15,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Rresult
+
 (** Utility module. *)
 
 exception Fatal of string
 
 (** {2 Misc} *)
 
-val generated_header: string
-(** The header string for every generated file. *)
+val generated_header: string -> string
+(** [generated_header appname] is the header string for
+    every generated file. [appname] is the name of the final application. *)
 
 val ocaml_version: unit -> int * int
 (** The version of the current OCaml compiler. *)
@@ -30,18 +33,8 @@ val ocaml_version: unit -> int * int
 val (/): string -> string -> string
 (** Same as [Filename.concat]. *)
 
-val (>>=) :
-  [< `Error of 'a | `Ok of 'b ] ->
-  ('b -> ([> `Error of 'a ] as 'c)) -> 'c
-
-val (>|=) :
-  [< `Error of 'a | `Ok of 'b ] ->
-  ('b -> 'c) -> [> `Error of 'a | `Ok of 'c ]
-
 val err_cmdliner :
-  bool ->
-  [< `Error of 'b | `Ok of 'c ] ->
-  [> `Error of bool * 'b | `Ok of 'c ]
+  bool -> ('a, string) result -> 'a Cmdliner.Term.ret
 
 (** {2 String utilities} *)
 
@@ -89,28 +82,27 @@ val set_section: string -> unit
 
 val get_section: unit -> string
 
-val error : ('a, unit, string, [> `Error of string ]) format4 -> 'a
+val error :
+  ('a, Format.formatter, unit, ('b, string) result) format4 -> 'a
 
-val fail: ('a, unit, string, 'b) format4 -> 'a
+val fail: ('a, Format.formatter, unit, 'b) format4 -> 'a
 
-val info: ('a, unit, string, unit) format4 -> 'a
+val info: ('a, Format.formatter, unit, unit) format4 -> 'a
 
-val debug: ('a, unit, string, unit) format4 -> 'a
+val debug: ('a, Format.formatter, unit, unit) format4 -> 'a
 
-val blue_s: string -> string
-
-val yellow_s: string -> string
+val blue  : string Fmt.t
+val yellow: string Fmt.t
+val red   : string Fmt.t
+val green : string Fmt.t
 
 (** {2 Hash tables} *)
-
-val cofind: ('a, 'b) Hashtbl.t -> 'b -> 'a
-(** Can raise [Not_found]. *)
 
 val find_or_create: ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
 (** Find the value associated with a key in an hash-table or create a
     new value if it the key is not already in there. *)
 
-val dump: (string, string) Hashtbl.t -> unit
+val dump: (string, string) Hashtbl.t Fmt.t
 (** Dump the contents of a hash table to stderr. *)
 
 val dedup: string list -> string list
@@ -127,9 +119,6 @@ module Name: sig
   val of_key: string -> base:string -> string
   (** [find_or_create key base] returns a unique name corresponding to
       the key. *)
-
-  val cofind: string -> string
-  (** Find the name of a module based on the key. *)
 
 end
 

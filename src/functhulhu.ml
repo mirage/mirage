@@ -165,15 +165,12 @@ module Modlist = struct
   let of_impl i =
     DTree.map linearize (DTree.to_tree i)
 
-  let rec pp fmt = function
-    | Mod d          -> Format.pp_print_string fmt d#module_name
+  let rec pp : t Fmt.t = fun fmt -> function
+    | Mod d          -> Fmt.string fmt d#module_name
     | List (f, args) ->
-      Format.fprintf fmt "%s%a"
+      Fmt.pf fmt "%s%a"
         f#module_name
-        pp_list args
-
-  and pp_list fmt l =
-    Format.pp_print_list (fun fmt m -> Format.fprintf fmt "(%a)" pp m) fmt l
+        Fmt.(parens @@ list pp) args
 
   let to_string m = Format.asprintf "%a" pp m
 
@@ -519,17 +516,16 @@ module Make (M:PROJECT) = struct
 
   let configure_bootvar t =
     info "%a bootvar_gen.ml" blue "Generating:";
-    let fmt =
-      Format.formatter_of_out_channel @@
-      open_out (t.root / "bootvar_gen.ml")
-    in
+    Fmt.with_file (t.root / "bootvar_gen.ml") @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (generated_header t.custom#name) ;
     Codegen.newline fmt;
     let bootvars = Key.Set.elements @@ Key.Set.filter Key.is_runtime @@ keys t in
     List.iter (Key.emit fmt) bootvars ;
     Codegen.newline fmt;
-    Codegen.append fmt "let keys = [%s]"
-      (String.concat "; " (List.map (fun k -> Key.name k ^ "_t") bootvars));
+    Codegen.append fmt "let keys = %a"
+      Fmt.(brackets @@
+        list ~pp_sep:(const char ';' <@ sp) (string <@ const string "_t"))
+      (List.map Key.name bootvars);
     Codegen.newline fmt
 
   let clean_bootvar t =

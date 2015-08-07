@@ -28,7 +28,7 @@ let err_cmdliner usage = function
   | Error s -> `Error (usage, s)
 
 let show x =
-  R.pp ~pp_ok:Fmt.nop ~pp_error:Fmt.string Format.err_formatter x
+  R.pp ~pp_ok:Fmt.nop ~pp_error:Fmt.string Fmt.stderr x
 
 let strip str =
   let p = ref 0 in
@@ -78,11 +78,6 @@ let green   = Fmt.styled_string `Green
 let yellow  = Fmt.styled_string `Yellow
 let blue    = Fmt.styled_string `Blue
 
-let red_s    = Fmt.strfmt red
-let green_s  = Fmt.strfmt green
-let yellow_s = Fmt.strfmt yellow
-
-
 let indent_left s nb =
   let nb = nb - String.length s in
   if nb <= 0 then
@@ -94,22 +89,22 @@ let left_column () =
   20
 
 let left color ppf s =
-  Fmt.string ppf (indent_left (color s) (left_column ()))
+  Fmt.string ppf (indent_left (Fmt.strfmt color s) (left_column ()))
 
 
 let section = ref "Functhulhu"
 let set_section s = section := s
 let get_section () = !section
 
-let in_section ?(color = id) ?(section = get_section ()) f fmt =
-  Fmt.kspp f ("%a@."^^fmt) (left color) section
+let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
+  Fmt.kstrf f ("%a@."^^fmt) (left color) section
 
-let error_msg f section = in_section ~color:red_s ~section f
+let error_msg f section = in_section ~color:red ~section f
 
 let error fmt = error_msg (fun x -> Error x) "[ERROR]" fmt
 let fail fmt = error_msg (fun s -> raise (Fatal s)) "[ERROR]" fmt
-let info fmt  = in_section ~color:green_s print_string fmt
-let debug fmt = in_section ~color:green_s print_string fmt
+let info fmt  = in_section ~color:green print_string fmt
+let debug fmt = in_section ~color:green print_string fmt
 
 
 let realdir dir =
@@ -155,7 +150,7 @@ let with_redirect oc file fn =
 
 let command ?(redirect=true) fmt =
   Format.ksprintf (fun cmd ->
-    info "%s %s" (yellow_s "=>") cmd;
+    info "%a %s" yellow "=>"  cmd;
     let redirect fn =
       if redirect then (
         let status =
@@ -167,7 +162,7 @@ let command ?(redirect=true) fmt =
           let b = Buffer.create 17 in
           try while true do
               Buffer.add_string b @@
-              in_section ~color:red_s id "%s\n" (input_line ic)
+              in_section ~color:red id "%s\n" (input_line ic)
             done;
             assert false
           with End_of_file -> Error (Buffer.contents b)
@@ -227,7 +222,7 @@ let command_exists s =
 let read_command fmt =
   let open Unix in
   Format.ksprintf (fun cmd ->
-      let () = info "%s %s" (yellow_s "=>") cmd in
+      let () = info "%a %s" yellow "=>" cmd in
       let ic, oc, ec = open_process_full cmd (environment ()) in
       let buf1 = Buffer.create 64
       and buf2 = Buffer.create 64 in
@@ -326,7 +321,7 @@ module Codegen = struct
   let main_ml = ref None
 
   let append oc fmt =
-    Format.fprintf oc (fmt ^^ "\n")
+    Format.fprintf oc (fmt ^^ "@.")
 
   let newline oc =
     append oc ""

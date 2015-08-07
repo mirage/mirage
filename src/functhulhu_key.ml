@@ -17,6 +17,18 @@
 open Functhulhu_misc
 open Cmdliner
 
+module Emit = struct
+
+  let string fmt s = Format.fprintf fmt "%S" s
+
+  let list pp =
+    let pp_sep = Fmt.(const char ';' <@ sp) in
+    Fmt.(brackets @@ list ~pp_sep pp)
+
+  let option f = Fmt.(option ~pp_none:none (parens @@ some f))
+
+end
+
 module Desc = struct
 
   type 'a parser = string -> [ `Ok of 'a | `Error of string ]
@@ -43,15 +55,9 @@ module Desc = struct
     converter = Arg.string ;
   }
 
-
-  let serializer_list d fmt =
-    let pp_sep fmt () = Format.fprintf fmt ", " in
-    Format.fprintf fmt "[%a]"
-      (Format.pp_print_list ~pp_sep d.serializer)
-
   let list d = {
     description = Format.sprintf "(Functhulhu.Key.Desc.list %s)" d.description ;
-    serializer = serializer_list d ;
+    serializer = Emit.list d.serializer ;
     converter = Arg.list d.converter ;
   }
 
@@ -62,22 +68,6 @@ type stage = [
   | `Run
   | `Both
 ]
-
-
-module Emit = struct
-
-  let string fmt s = Format.fprintf fmt "%S" s
-
-  let list f fmt l =
-    let pp_sep fmt () = Format.fprintf fmt "; " in
-    Format.fprintf fmt "[%a]"
-      (Format.pp_print_list ~pp_sep f) l
-
-  let option f fmt = function
-    | None -> Format.fprintf fmt "None"
-    | Some x -> Format.fprintf fmt "(Some %a)" f x
-
-end
 
 module Doc = struct
 

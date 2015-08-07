@@ -19,17 +19,6 @@ open Functhulhu_misc
 open Rresult
 module Key = Functhulhu_key
 
-module StringSet = struct
-
-  include Set.Make(String)
-
-  let add_list l set =
-    List.fold_right add l set
-
-end
-
-
-
 type _ typ =
   | Type: 'a -> 'a typ
   | Function: 'a typ * 'b typ -> ('a -> 'b) typ

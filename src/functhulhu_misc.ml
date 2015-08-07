@@ -271,10 +271,15 @@ let find_or_create tbl key create_value =
 let dump =
   Fmt.(brackets @@ hashtbl ~pp_k:string ~pp_v:string)
 
-module StringSet = Set.Make (struct
-    type t = string
-    let compare = String.compare
-  end)
+module StringSet = struct
+
+  include Set.Make(String)
+
+  let add_list l set =
+    List.fold_right add l set
+
+end
+
 
 let dedup l =
   StringSet.(elements (List.fold_left (fun s e -> add e s) empty l))

@@ -38,6 +38,12 @@ val err_cmdliner :
 
 (** {2 String utilities} *)
 
+module StringSet : sig
+  include Set.S with type elt = string
+  val add_list : string list -> t -> t
+end
+
+
 val strip: string -> string
 (** Remove heading and trailing spaces. *)
 

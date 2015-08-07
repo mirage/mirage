@@ -89,7 +89,7 @@ let left_column () =
   20
 
 let left color ppf s =
-  Fmt.string ppf (indent_left (Fmt.strfmt color s) (left_column ()))
+  Fmt.string ppf (indent_left (Fmt.to_to_string color s) (left_column ()))
 
 
 let section = ref "Functhulhu"

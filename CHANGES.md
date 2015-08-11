@@ -1,3 +1,12 @@
+* Xen: improve the .xl file generation. We now have
+  - `name.xl`: this has sensible defaults for everything including the
+    network bridges and should "just work" if used on the build box
+  - `name.xl.in`: this has all the settings needed to boot (e.g. presence of
+    block and network devices) but all the environmental dependencies are
+    represented by easily-substitutable variables. This file is intended for
+    production use: simply replace the variables for the paths, bridges, memory
+    sizes etc. and run `xl create` as before.
+
 ### 2.6.0 (2015-07-28)
 
 * Better ARP support. This needs `mirage-tcpip.2.6.0` (#419, by @yomimono)

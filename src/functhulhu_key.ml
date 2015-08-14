@@ -226,8 +226,8 @@ let ocaml_name k = ocamlify (name k)
 let emit fmt k =
   Format.fprintf fmt
     "let %s = Functhulhu_runtime.Key.create ~doc:%a ~default:%a %a\n\
-   \ let %s_t = Functhulhu_runtime.Key.term %s\n\
-   \ let %s () = Functhulhu_runtime.Key.get %s@\n"
+     let %s_t = Functhulhu_runtime.Key.term %s\n\
+     let %s () = Functhulhu_runtime.Key.get %s@\n"
     (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)

@@ -2089,5 +2089,7 @@ module Project = struct
 
 end
 
+let () = set_section "Mirage"
+
 module Config = Functhulhu.Make (Project)
 include (Config : CONFIG with module Project := Project)

@@ -11,7 +11,7 @@ Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
-  Modules:            Mirage, Mirage_misc
+  Modules:            Mirage
   BuildDepends:       ipaddr,functhulhu,lwt,mirage-types,mirage-types.lwt
 
 Library "mirage-runtime"

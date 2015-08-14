@@ -15,10 +15,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Mirage_misc
-include Functhulhu
+open Functhulhu_misc
+open Cmdliner
 
-module Name = Functhulhu_misc.Name
+include Functhulhu
+module Name = Name
 
 type mode = [
   | `Unix
@@ -26,7 +27,7 @@ type mode = [
   | `MacOSX
 ]
 
-let mode_conv : mode Cmdliner.Arg.converter = Cmdliner.Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ]
+let mode_conv : mode Arg.converter = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ]
 
 let string_of_mode md = Format.asprintf "%a" (snd mode_conv) md
 
@@ -1722,66 +1723,68 @@ let fat ?(io_page=default_io_page) block =
 (* end *)
 
 let configure_main_libvirt_xml t =
+  let open Codegen in
   let file = t.root / t.name ^ "_libvirt.xml" in
-  let oc = open_out file in
-  append oc "<!-- %s -->" generated_by_mirage;
-  append oc "<domain type='xen'>";
-  append oc "    <name>%s</name>" t.name;
-  append oc "    <memory unit='KiB'>262144</memory>";
-  append oc "    <currentMemory unit='KiB'>262144</currentMemory>";
-  append oc "    <vcpu placement='static'>1</vcpu>";
-  append oc "    <os>";
-  append oc "        <type arch='armv7l' machine='xenpv'>linux</type>";
-  append oc "        <kernel>%s/mir-%s.xen</kernel>" t.root t.name;
-  append oc "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
-  append oc "    </os>";
-  append oc "    <clock offset='utc' adjustment='reset'/>";
-  append oc "    <on_crash>preserve</on_crash>";
-  append oc "    <!-- ";
-  append oc "    You must define network and block interfaces manually.";
-  append oc "    See http://libvirt.org/drvxen.html for information about converting .xl-files to libvirt xml automatically.";
-  append oc "    -->";
-  append oc "    <devices>";
-  append oc "        <!--";
-  append oc "        The disk configuration is defined here:";
-  append oc "        http://libvirt.org/formatstorage.html.";
-  append oc "        An example would look like:";
-  append oc"         <disk type='block' device='disk'>";
-  append oc "            <driver name='phy'/>";
-  append oc "            <source dev='/dev/loop0'/>";
-  append oc "            <target dev='' bus='xen'/>";
-  append oc "        </disk>";
-  append oc "        -->";
-  append oc "        <!-- ";
-  append oc "        The network configuration is defined here:";
-  append oc "        http://libvirt.org/formatnetwork.html";
-  append oc "        An example would look like:";
-  append oc "        <interface type='bridge'>";
-  append oc "            <mac address='c0:ff:ee:c0:ff:ee'/>";
-  append oc "            <source bridge='br0'/>";
-  append oc "        </interface>";
-  append oc "        -->";
-  append oc "        <console type='pty'>";
-  append oc "            <target type='xen' port='0'/>";
-  append oc "        </console>";
-  append oc "    </devices>";
-  append oc "</domain>";
-  close_out oc
+  Fmt.with_file file @@ fun fmt ->
+  append fmt "<!-- %s -->" (generated_header t.name);
+  append fmt "<domain type='xen'>";
+  append fmt "    <name>%s</name>" t.name;
+  append fmt "    <memory unit='KiB'>262144</memory>";
+  append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
+  append fmt "    <vcpu placement='static'>1</vcpu>";
+  append fmt "    <os>";
+  append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
+  append fmt "        <kernel>%s/mir-%s.xen</kernel>" t.root t.name;
+  append fmt "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
+  append fmt "    </os>";
+  append fmt "    <clock offset='utc' adjustment='reset'/>";
+  append fmt "    <on_crash>preserve</on_crash>";
+  append fmt "    <!-- ";
+  append fmt "    You must define network and block interfaces manually.";
+  append fmt "    See http://libvirt.org/drvxen.html for information about converting .xl-files to libvirt xml automatically.";
+  append fmt "    -->";
+  append fmt "    <devices>";
+  append fmt "        <!--";
+  append fmt "        The disk configuration is defined here:";
+  append fmt "        http://libvirt.org/formatstorage.html.";
+  append fmt "        An example would look like:";
+  append fmt"         <disk type='block' device='disk'>";
+  append fmt "            <driver name='phy'/>";
+  append fmt "            <source dev='/dev/loop0'/>";
+  append fmt "            <target dev='' bus='xen'/>";
+  append fmt "        </disk>";
+  append fmt "        -->";
+  append fmt "        <!-- ";
+  append fmt "        The network configuration is defined here:";
+  append fmt "        http://libvirt.org/formatnetwork.html";
+  append fmt "        An example would look like:";
+  append fmt "        <interface type='bridge'>";
+  append fmt "            <mac address='c0:ff:ee:c0:ff:ee'/>";
+  append fmt "            <source bridge='br0'/>";
+  append fmt "        </interface>";
+  append fmt "        -->";
+  append fmt "        <console type='pty'>";
+  append fmt "            <target type='xen' port='0'/>";
+  append fmt "        </console>";
+  append fmt "    </devices>";
+  append fmt "</domain>";
+  ()
 
 let clean_main_libvirt_xml t =
   remove (t.root / t.name ^ "_libvirt.xml")
 
 let configure_main_xl t =
+  let open Codegen in
   let file = t.root / t.name ^ ".xl" in
-  let oc = open_out file in
-  append oc "# %s" generated_by_mirage;
-  newline oc;
-  append oc "name = '%s'" t.name;
-  append oc "kernel = '%s/mir-%s.xen'" t.root t.name;
-  append oc "builder = 'linux'";
-  append oc "memory = 256";
-  append oc "on_crash = 'preserve'";
-  newline oc;
+  Fmt.with_file file @@ fun fmt ->
+  append fmt "# %s" (generated_header t.name);
+  newline fmt;
+  append fmt "name = '%s'" t.name;
+  append fmt "kernel = '%s/mir-%s.xen'" t.root t.name;
+  append fmt "builder = 'linux'";
+  append fmt "memory = 256";
+  append fmt "on_crash = 'preserve'";
+  newline fmt;
   let blocks = List.map (fun b ->
     (* We need the Linux version of the block number (this is a strange historical
        artifact) Taken from https://github.com/mirage/mirage-block-xen/blob/a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
@@ -1795,66 +1798,66 @@ let configure_main_xl t =
     let path = Filename.concat t.root b.filename in
     Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
-  append oc "disk = [ %s ]" (String.concat ", " blocks);
-  newline oc;
-  append oc "# The network configuration is defined here:";
-  append oc "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
-  append oc "# An example would look like:";
-  append oc "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
-  close_out oc
+  append fmt "disk = [ %s ]" (String.concat ", " blocks);
+  newline fmt;
+  append fmt "# The network configuration is defined here:";
+  append fmt "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
+  append fmt "# An example would look like:";
+  append fmt "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
+  ()
 
 let clean_main_xl t =
   remove (t.root / t.name ^ ".xl")
 
 let configure_main_xe t =
+  let open Codegen in
   let file = t.root / t.name ^ ".xe" in
-  let oc = open_out file in
-  append oc "#!/bin/sh";
-  append oc "# %s" generated_by_mirage;
-  newline oc;
-  append oc "set -e";
-  newline oc;
-  append oc "# Dependency: xe";
-  append oc "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's not installed.  Aborting.\"; exit 1; }";
-  append oc "# Dependency: xe-unikernel-upload";
-  append oc "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I require xe-unikernel-upload but it's not installed.  Aborting.\"; exit 1; }";
-  append oc "# Dependency: a $HOME/.xe";
-  append oc "if [ ! -e $HOME/.xe ]; then";
-  append oc "  echo Please create a config file for xe in $HOME/.xe which contains:";
-  append oc "  echo server='<IP or DNS name of the host running xapi>'";
-  append oc "  echo username=root";
-  append oc "  echo password=password";
-  append oc "  exit 1";
-  append oc "fi";
-  newline oc;
-  append oc "echo Uploading VDI containing unikernel";
-  append oc "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
-  append oc "echo VDI=$VDI";
-  append oc "echo Creating VM metadata";
-  append oc "VM=$(xe vm-create name-label=%s)" t.name;
-  append oc "echo VM=$VM";
-  append oc "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
-  append oc "echo Adding network interface connected to xenbr0";
-  append oc "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
-  append oc "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
-  append oc "echo Atting block device and making it bootable";
-  append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
-  append oc "xe vbd-param-set uuid=$VBD bootable=true";
-  append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+  Fmt.with_file file @@ fun fmt ->
+  append fmt "#!/bin/sh";
+  append fmt "# %s" (generated_header t.name);
+  newline fmt;
+  append fmt "set -e";
+  newline fmt;
+  append fmt "# Dependency: xe";
+  append fmt "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but it's not installed.  Aborting.\"; exit 1; }";
+  append fmt "# Dependency: xe-unikernel-upload";
+  append fmt "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I require xe-unikernel-upload but it's not installed.  Aborting.\"; exit 1; }";
+  append fmt "# Dependency: a $HOME/.xe";
+  append fmt "if [ ! -e $HOME/.xe ]; then";
+  append fmt "  echo Please create a config file for xe in $HOME/.xe which contains:";
+  append fmt "  echo server='<IP or DNS name of the host running xapi>'";
+  append fmt "  echo username=root";
+  append fmt "  echo password=password";
+  append fmt "  exit 1";
+  append fmt "fi";
+  newline fmt;
+  append fmt "echo Uploading VDI containing unikernel";
+  append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
+  append fmt "echo VDI=$VDI";
+  append fmt "echo Creating VM metadata";
+  append fmt "VM=$(xe vm-create name-label=%s)" t.name;
+  append fmt "echo VM=$VM";
+  append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
+  append fmt "echo Adding network interface connected to xenbr0";
+  append fmt "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
+  append fmt "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
+  append fmt "echo Atting block device and making it bootable";
+  append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
+  append fmt "xe vbd-param-set uuid=$VBD bootable=true";
+  append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
   List.iter (fun b ->
-    append oc "echo Uploading data VDI %s" b.filename;
-    append oc "echo VDI=$VDI";
-    append oc "SIZE=$(stat --format '%%s' %s/%s)" t.root b.filename;
-    append oc "POOL=$(xe pool-list params=uuid --minimal)";
-    append oc "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
-    append oc "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE sr-uuid=$SR)" b.filename;
-    append oc "xe vdi-import uuid=$VDI filename=%s/%s" t.root b.filename;
-    append oc "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)" b.number;
-    append oc "xe vbd-param-set uuid=$VBD other-config:owner=true";
+    append fmt "echo Uploading data VDI %s" b.filename;
+    append fmt "echo VDI=$VDI";
+    append fmt "SIZE=$(stat --format '%%s' %s/%s)" t.root b.filename;
+    append fmt "POOL=$(xe pool-list params=uuid --minimal)";
+    append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
+    append fmt "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE sr-uuid=$SR)" b.filename;
+    append fmt "xe vdi-import uuid=$VDI filename=%s/%s" t.root b.filename;
+    append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)" b.number;
+    append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
-  append oc "echo Starting VM";
-  append oc "xe vm-start vm=%s" t.name;
-  close_out oc;
+  append fmt "echo Starting VM";
+  append fmt "xe vm-start vm=%s" t.name;
   Unix.chmod file 0o755
 
 let clean_main_xe t =
@@ -1893,10 +1896,10 @@ let configure_myocamlbuild_ml t =
     (* Previous ocamlbuild versions weren't able to understand the
        --output-obj rules *)
     let file = t.root / "myocamlbuild.ml" in
-    let oc = Format.formatter_of_out_channel @@ open_out file in
-    Codegen.append oc "(* %s *)" (generated_header t.name);
-    Codegen.newline oc;
-    Codegen.append oc
+    Fmt.with_file file @@ fun fmt ->
+    Codegen.append fmt "(* %s *)" (generated_header t.name);
+    Codegen.newline fmt;
+    Codegen.append fmt
       "open Ocamlbuild_pack;;\n\
        open Ocamlbuild_plugin;;\n\
        open Ocaml_compiler;;\n\
@@ -1927,6 +1930,7 @@ let clean_myocamlbuild_ml t =
   remove (t.root / "myocamlbuild.ml")
 
 let configure_makefile t =
+  let open Codegen in
   let file = t.root / "Makefile" in
   let pkgs = libraries t in
   let libraries_str =
@@ -1934,33 +1938,33 @@ let configure_makefile t =
     | [] -> ""
     | ls -> "-pkgs " ^ String.concat "," ls in
   let packages = String.concat " " pkgs in
-  let oc = open_out file in
-  append oc "# %s" generated_by_mirage;
-  newline oc;
-  append oc "LIBS   = %s" libraries_str;
-  append oc "PKGS   = %s" packages;
+  Fmt.with_file file @@ fun fmt ->
+  append fmt "# %s" (generated_header t.name);
+  newline fmt;
+  append fmt "LIBS   = %s" libraries_str;
+  append fmt "PKGS   = %s" packages;
   begin match get_mode () with
     | `Xen  ->
-      append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
-      append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
-      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
-      append oc "XENLIB = $(shell ocamlfind query mirage-xen)\n"
+      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
+      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
+      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
+      append fmt "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
-      append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
-      append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
-      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
+      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
+      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
     | `MacOSX ->
-      append oc "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal,thread\"\n";
-      append oc "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
-      append oc "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal,thread\"\n";
+      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
+      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
-  append oc "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append fmt "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
              OPAM   = opam\n\n\
              export PKG_CONFIG_PATH=$(shell opam config var prefix)/lib/pkgconfig\n\n\
              export OPAMVERBOSE=1\n\
              export OPAMYES=1";
-  newline oc;
-  append oc ".PHONY: all depend clean build main.native\n\
+  newline fmt;
+  append fmt ".PHONY: all depend clean build main.native\n\
              all:: build\n\
              \n\
              depend::\n\
@@ -1971,7 +1975,7 @@ let configure_makefile t =
              \n\
              main.native.o:\n\
              \t$(BUILD) main.native.o";
-  newline oc;
+  newline fmt;
 
   (* On ARM, we must convert the ELF image to an ARM boot executable zImage,
    * while on x86 we leave it as it is. *)
@@ -1997,10 +2001,10 @@ let configure_makefile t =
         get_extra_ld_flags ~filter pkgs
         |> String.concat " \\\n\t  " in
 
-      append oc "build:: main.native.o";
+      append fmt "build:: main.native.o";
       let pkg_config_deps = "mirage-xen" in
-      append oc "\tpkg-config --print-errors --exists %s" pkg_config_deps;
-      append oc "\tld -d -static -nostdlib \\\n\
+      append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
+      append fmt "\tld -d -static -nostdlib \\\n\
                  \t  _build/main.native.o \\\n\
                  \t  %s \\\n\
                  \t  $$(pkg-config --static --libs %s) \\\n\
@@ -2008,15 +2012,15 @@ let configure_makefile t =
                  %s"
         extra_c_archives pkg_config_deps generate_image;
     | `Unix | `MacOSX ->
-      append oc "build: main.native";
-      append oc "\tln -nfs _build/main.native mir-%s" t.name;
+      append fmt "build: main.native";
+      append fmt "\tln -nfs _build/main.native mir-%s" t.name;
   end;
-  newline oc;
-  append oc "clean::\n\
+  newline fmt;
+  append fmt "clean::\n\
              \tocamlbuild -clean";
-  newline oc;
-  append oc "-include Makefile.user";
-  close_out oc
+  newline fmt;
+  append fmt "-include Makefile.user";
+  ()
 
 
 let clean_makefile t =
@@ -2024,7 +2028,7 @@ let clean_makefile t =
 
 
 let configure t =
-  info "%s %s" (blue_s "Configuring for target:") (string_of_mode @@ get_mode ());
+  info "%a %s" blue "Configuring for target:" (string_of_mode @@ get_mode ());
   in_dir t.root (fun () ->
       configure_main_xl t;
       configure_main_xe t;

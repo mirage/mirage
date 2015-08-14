@@ -21,8 +21,6 @@ exception Fatal of string
 
 let (/) = Filename.concat
 
-let id x = x
-
 let err_cmdliner usage = function
   | Ok x -> `Ok x
   | Error s -> `Error (usage, s)
@@ -97,14 +95,14 @@ let set_section s = section := s
 let get_section () = !section
 
 let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
-  Fmt.kstrf f ("%a "^^fmt) (left color) section
+  f ("@[<2>%a@ "^^fmt^^"@]@.") (left color) section
 
 let error_msg f section = in_section ~color:red ~section f
 
-let error fmt = error_msg (fun x -> Error x) "[ERROR]" fmt
-let fail fmt = error_msg (fun s -> raise (Fatal s)) "[ERROR]" fmt
-let info fmt  = in_section ~color:green print_endline fmt
-let debug fmt = in_section ~color:green print_endline fmt
+let error fmt = error_msg (Fmt.kstrf @@ fun x -> Error x) "[ERROR]" fmt
+let fail fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) "[ERROR]" fmt
+let info fmt  = in_section ~color:green Fmt.pr fmt
+let debug fmt = in_section ~color:green Fmt.pr fmt
 
 
 let realdir dir =
@@ -150,7 +148,7 @@ let with_redirect oc file fn =
 
 let command ?(redirect=true) fmt =
   Format.ksprintf (fun cmd ->
-    info "%a@;<1 2>%s" yellow "=>"  cmd;
+    info "%a@ %s" yellow "=>"  cmd;
     let redirect fn =
       if redirect then (
         let status =
@@ -159,13 +157,13 @@ let command ?(redirect=true) fmt =
           ) in
         if status <> 0 then
           let ic = open_in "log" in
-          let b = Buffer.create 17 in
-          try while true do
-              Buffer.add_string b @@
-              in_section ~color:red id "%s\n" (input_line ic)
-            done;
-            assert false
-          with End_of_file -> Error (Buffer.contents b)
+          let s = Fmt.with_strf @@ fun fmt ->
+            try while true do
+                in_section ~color:red (Fmt.pf fmt) "%s\n" (input_line ic)
+              done;
+              assert false
+            with End_of_file -> ()
+          in Error s
         else
           Ok status
       ) else (
@@ -222,7 +220,7 @@ let command_exists s =
 let read_command fmt =
   let open Unix in
   Format.ksprintf (fun cmd ->
-      let () = info "%a@;<1 2>%s" yellow "=>" cmd in
+      let () = info "%a@ %s" yellow "=>" cmd in
       let ic, oc, ec = open_process_full cmd (environment ()) in
       let buf1 = Buffer.create 64
       and buf2 = Buffer.create 64 in

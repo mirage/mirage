@@ -150,7 +150,7 @@ let with_redirect oc file fn =
 
 let command ?(redirect=true) fmt =
   Format.ksprintf (fun cmd ->
-    info "%a %s" yellow "=>"  cmd;
+    info "%a@;<1 2>%s" yellow "=>"  cmd;
     let redirect fn =
       if redirect then (
         let status =
@@ -222,7 +222,7 @@ let command_exists s =
 let read_command fmt =
   let open Unix in
   Format.ksprintf (fun cmd ->
-      let () = info "%a %s" yellow "=>" cmd in
+      let () = info "%a@;<1 2>%s" yellow "=>" cmd in
       let ic, oc, ec = open_process_full cmd (environment ()) in
       let buf1 = Buffer.create 64
       and buf2 = Buffer.create 64 in

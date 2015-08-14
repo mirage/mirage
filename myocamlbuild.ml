@@ -621,4 +621,9 @@ let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
 # 623 "myocamlbuild.ml"
 (* OASIS_STOP *)
-Ocamlbuild_plugin.dispatch dispatch_default;;
+
+open Ocamlbuild_plugin
+let () =
+  pflag ["ocaml"; "link"] "dontlink" (fun pkg -> S[A"-dontlink"; A pkg]) ;;
+
+dispatch dispatch_default;;

@@ -17,14 +17,12 @@
 (** Mirage run-time utilities *)
 
 (** {2 Friendly run-time errors} *)
-
 val string_of_network_init_error:
   string -> [> `Unknown of string | `Unimplemented | `Disconnected ] -> string
 (** [string_of_network_init_error ifname] will generate a helpful string for
     network interface errors from the [ifname] interface name and the error
     constructor. *)
 
-val cmdliner :
-  unit Cmdliner.Term.t list -> string -> string array -> unit Lwt.t
-
 val argv : unit -> string array Lwt.t
+
+include module type of Functhulhu_runtime

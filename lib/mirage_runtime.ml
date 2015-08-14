@@ -23,3 +23,5 @@ let string_of_network_init_error name = function
   | _ ->  "\n\n"^name^": unknown error\n\n"
 
 let argv () = Lwt.return Sys.argv
+
+include Functhulhu_runtime

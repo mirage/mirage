@@ -19,7 +19,7 @@ Library "mirage-runtime"
   Findlibname:        runtime
   Modules:            Mirage_runtime
   Findlibparent:      mirage
-  BuildDepends:       lwt,functhulhu
+  BuildDepends:       functhulhu.runtime
 
 Executable mirage
   CompiledObject:     best

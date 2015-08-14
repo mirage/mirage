@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: e61b515dee0229717f455d9d6e50ddde)
+# DO NOT EDIT (digest: 49bdd1fd7a86184faed7ecd410396db0)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -18,6 +18,7 @@ true: annot, bin_annot
 "lib/mirage.cmxs": use_mirage
 # Library mirage-runtime
 "lib/mirage-runtime.cmxs": use_mirage-runtime
+<lib/*.ml{,i,y}>: pkg_functhulhu.runtime
 # Executable mirage
 <lib/main.{native,byte}>: pkg_functhulhu
 <lib/main.{native,byte}>: pkg_ipaddr
@@ -34,3 +35,12 @@ true: annot, bin_annot
 # OASIS_STOP
 true: debug, bin_annot, annot, principal
 <types/*.mli>: pkg_cstruct, pkg_io-page, pkg_ipaddr, pkg_lwt
+
+true: strict_sequence, safe_string, short_paths
+true: bin_annot
+
+# Better locations and loc in .mlis
+true: keep_locs
+
+# Force the runtime to be unix-independent.
+<lib/*runtime*>: dontlink(unix)

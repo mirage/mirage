@@ -344,3 +344,77 @@ module Codegen = struct
     main_ml := Some oc
 
 end
+
+
+(** TTY feature detection *)
+module Terminfo = struct
+
+  (* stolen from opam *)
+
+  let default_columns = 100
+
+  let with_process_in cmd args f =
+    let path = ["/bin";"/usr/bin"] in
+    let cmd =
+      List.find Sys.file_exists (List.map (fun d -> Filename.concat d cmd) path)
+    in
+    let ic = Unix.open_process_in (cmd^" "^args) in
+    try
+      let r = f ic in
+      ignore (Unix.close_process_in ic) ; r
+    with exn ->
+      ignore (Unix.close_process_in ic) ; raise exn
+
+  let get_terminal_columns () =
+    try (* terminfo *)
+      with_process_in "tput" "cols"
+        (fun ic -> int_of_string (input_line ic))
+    with Unix.Unix_error _ | Sys_error _ | Failure _ | End_of_file | Not_found ->
+      try (* GNU stty *)
+        with_process_in "stty" "size"
+          (fun ic ->
+             match split (input_line ic) ' ' with
+             | [_ ; v] -> int_of_string v
+             | _ -> failwith "stty")
+      with
+        Unix.Unix_error _ | Sys_error _ | Failure _  | End_of_file | Not_found ->
+        try (* shell envvar *)
+          int_of_string (Unix.getenv "COLUMNS")
+        with Not_found | Failure _ ->
+          default_columns
+
+  let tty_out = Unix.isatty Unix.stdout
+
+  let columns =
+    let v = ref (lazy (get_terminal_columns ())) in
+    let () =
+      try Sys.set_signal 28 (* SIGWINCH *)
+          (Sys.Signal_handle
+             (fun _ -> v := lazy (get_terminal_columns ())))
+      with Invalid_argument _ -> ()
+    in
+    fun () ->
+      if tty_out
+      then Lazy.force !v
+      else 80
+
+  let ends_with ~suffix s =
+    let x = String.length suffix in
+    let n = String.length s in
+    n >= x
+    && String.sub s (n - x) x = suffix
+
+  let checkenv f k =
+    try f @@ Sys.getenv k with
+    | Not_found -> false
+
+  let with_utf8 () =
+    let f = ends_with ~suffix:"UTF-8" in
+    checkenv f "LC_ALL" || checkenv f "LANG"
+
+  let is_dumb () = checkenv ((=) "dumb") "TERM"
+
+  let with_color () =
+    tty_out && not (is_dumb ())
+
+end

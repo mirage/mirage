@@ -115,8 +115,7 @@ val dedup: string list -> string list
 (** Deduplicate the list elements. Return an ordered list. *)
 
 
-(** {2 Generation of fresh names} *)
-
+(** Generation of fresh names *)
 module Name: sig
 
   val create: string -> string
@@ -144,4 +143,12 @@ module Codegen: sig
   val newline_main: unit -> unit
   (** Add a newline to [main.ml]. *)
 
+end
+
+
+(** TTY feature detection *)
+module Terminfo: sig
+  val with_utf8 : unit -> bool
+  val with_color : unit -> bool
+  val columns : unit -> int
 end

@@ -16,6 +16,7 @@
 
 open Cmdliner
 open Functhulhu
+open Functhulhu_misc
 
 module Make (Config : Functhulhu.CONFIG) = struct
 
@@ -58,11 +59,12 @@ module Make (Config : Functhulhu.CONFIG) = struct
     Arg.(value & opt (some file) None & doc)
 
 
-
-  (* TODO: make that a bit more clever. *)
   let () =
-    Fmt.set_style_tags `Ansi ;
-    Fmt.set_utf_8_enabled true ;
+    let i = Terminfo.columns () in
+    Format.pp_set_margin Format.std_formatter i ;
+    Format.pp_set_margin Format.err_formatter i ;
+    if Terminfo.with_color () then Fmt.set_style_tags `Ansi ;
+    if Terminfo.with_utf8 () then Fmt.set_utf_8_enabled true ;
     ()
 
 

@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2015 Nicolas Ojeda Bar <n.oje.bar@gmail.com>
+ * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -87,7 +87,7 @@ module Doc = struct
   let emit fmt { docs ; docv ; doc ; names } =
     let open Emit in
     Format.fprintf fmt
-      "(Functhulhu_runtime.Doc.create ~docs:%a ?docv:%a ?doc:%a %a)"
+      "(Cmdliner.Arg.info ~docs:%a ?docv:%a ?doc:%a %a)"
       string docs
       (option string) docv
       (option string) doc
@@ -226,7 +226,7 @@ let ocaml_name k = ocamlify (name k)
 let emit fmt k =
   Format.fprintf fmt
     "let %s = Functhulhu_runtime.Key.create ~doc:%a ~default:%a %a\n\
-   \ let %s_t = Functhulhu_runtime.Key.(term (V %s))\n\
+   \ let %s_t = Functhulhu_runtime.Key.term %s\n\
    \ let %s () = Functhulhu_runtime.Key.get %s@\n"
     (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
     (ocaml_name k)  (ocaml_name k)

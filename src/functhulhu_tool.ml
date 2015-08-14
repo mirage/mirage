@@ -58,6 +58,14 @@ module Make (Config : Functhulhu.CONFIG) = struct
     Arg.(value & opt (some file) None & doc)
 
 
+
+  (* TODO: make that a bit more clever. *)
+  let () =
+    Fmt.set_style_tags `Ansi ;
+    Fmt.set_utf_8_enabled true ;
+    ()
+
+
   let global_keys = key_term @@ Config.(keys dummy_conf)
 
   let with_config =

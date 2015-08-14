@@ -76,7 +76,7 @@ let after prefix s =
 let red     = Fmt.styled_string `Red
 let green   = Fmt.styled_string `Green
 let yellow  = Fmt.styled_string `Yellow
-let blue    = Fmt.styled_string `Blue
+let blue    = Fmt.styled_string `Cyan
 
 let indent_left s nb =
   let nb = nb - String.length s in
@@ -97,14 +97,14 @@ let set_section s = section := s
 let get_section () = !section
 
 let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
-  Fmt.kstrf f ("%a@."^^fmt) (left color) section
+  Fmt.kstrf f ("%a "^^fmt) (left color) section
 
 let error_msg f section = in_section ~color:red ~section f
 
 let error fmt = error_msg (fun x -> Error x) "[ERROR]" fmt
 let fail fmt = error_msg (fun s -> raise (Fatal s)) "[ERROR]" fmt
-let info fmt  = in_section ~color:green print_string fmt
-let debug fmt = in_section ~color:green print_string fmt
+let info fmt  = in_section ~color:green print_endline fmt
+let debug fmt = in_section ~color:green print_endline fmt
 
 
 let realdir dir =

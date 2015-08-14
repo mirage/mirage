@@ -179,13 +179,12 @@ module Modlist = struct
       Name.of_key name ~base:"F"
 
   and body f args =
-    let functor_name = module_name f in
-    functor_name ^
+    functor_name f ^
       String.concat "" (List.map (fun m -> Printf.sprintf "(%s)" (module_name m)) args)
 
-  let functor_name = function
-    | Mod _ as t -> name t
-    | List (f,_) -> name (Mod f)
+  and functor_name = function
+    | Mod _ as t -> module_name t
+    | List (f,_) -> module_name (Mod f)
 
 
   type 'a mapper = {
@@ -557,9 +556,10 @@ module Make (M:PROJECT) = struct
   let configure t =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
     let jobs = List.map DTree.eval t.jobs in
-    info "%d job%s [%s]"
-      (List.length t.jobs)
-      (if List.length t.jobs = 1 then "" else "s")
+    info "%a [%s]"
+      blue (Fmt.strf "%d Job%s:"
+        (List.length t.jobs)
+        (if List.length t.jobs = 1 then "" else "s"))
       (String.concat ", " (List.map Modlist.functor_name jobs));
     in_dir t.root (fun () ->
       if !manage_opam_packages_ then configure_opam t;

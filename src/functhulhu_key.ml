@@ -50,13 +50,13 @@ module Desc = struct
 
 
   let string = {
-    description = "Functhulhu.Key.Desc.string" ;
+    description = "Cmdliner.Arg.string" ;
     serializer = (fun fmt -> Format.fprintf fmt "%S") ;
     converter = Arg.string ;
   }
 
   let list d = {
-    description = Format.sprintf "(Functhulhu.Key.Desc.list %s)" d.description ;
+    description = Format.sprintf "(Cmdliner.Arg.list %s)" d.description ;
     serializer = Emit.list d.serializer ;
     converter = Arg.list d.converter ;
   }
@@ -87,7 +87,7 @@ module Doc = struct
   let emit fmt { docs ; docv ; doc ; names } =
     let open Emit in
     Format.fprintf fmt
-      "(Functhulhu.Key.Doc.create ~docs:%a ?docv:%a ?doc:%a %a)"
+      "(Functhulhu_runtime.Doc.create ~docs:%a ?docv:%a ?doc:%a %a)"
       string docs
       (option string) docv
       (option string) doc
@@ -225,9 +225,9 @@ let ocaml_name k = ocamlify (name k)
 
 let emit fmt k =
   Format.fprintf fmt
-    "let %s = Functhulhu.Key.create_raw ~doc:%a ~stage:`Run ~default:%a %S %a\n\
-   \ let %s_t = Functhulhu.Key.(term_key (V %s))\n\
-   \ let %s () = Functhulhu.Key.get %s@\n"
-    (ocaml_name k)   Doc.emit (doc k)  serialize k  (ocaml_name k)  describe k
+    "let %s = Functhulhu_runtime.Key.create ~doc:%a ~default:%a %a\n\
+   \ let %s_t = Functhulhu_runtime.Key.(term (V %s))\n\
+   \ let %s () = Functhulhu_runtime.Key.get %s@\n"
+    (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)

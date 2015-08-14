@@ -7,3 +7,6 @@ true: bin_annot
 
 # Better locations and loc in .mlis
 true: keep_locs
+
+# Force the runtime to be unix-independent.
+<runtime/*>: dontlink(unix)

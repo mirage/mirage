@@ -8,12 +8,21 @@ Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
 
 
+
+Library "functhulhu-runtime"
+  CompiledObject:  best
+  Path:            runtime
+  Findlibname:     runtime
+  Findlibparent:   functhulhu
+  Modules:         Functhulhu_runtime
+  BuildDepends:    cmdliner, fmt, lwt
+
 Library functhulhu
   CompiledObject:  best
   Path:            src
   Findlibname:     functhulhu
   Modules:         Functhulhu, Functhulhu_misc, Functhulhu_key, Functhulhu_tool
-  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt
+  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt,functhulhu.runtime
 
 Document "functhulhu"
   Title:                Functhulhu docs

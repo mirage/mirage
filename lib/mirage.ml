@@ -1894,7 +1894,7 @@ let configure_myocamlbuild_ml t =
        --output-obj rules *)
     let file = t.root / "myocamlbuild.ml" in
     let oc = Format.formatter_of_out_channel @@ open_out file in
-    Codegen.append oc "(* %s *)" generated_header;
+    Codegen.append oc "(* %s *)" (generated_header t.name);
     Codegen.newline oc;
     Codegen.append oc
       "open Ocamlbuild_pack;;\n\

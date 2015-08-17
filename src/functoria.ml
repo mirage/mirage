@@ -161,8 +161,6 @@ module Modlist = struct
         f#module_name
         Fmt.(parens @@ list pp) args
 
-  let to_string m = Format.asprintf "%a" pp m
-
 
   (** Return a unique variable name holding the state of the given
       module construction. *)
@@ -556,11 +554,11 @@ module Make (M:PROJECT) = struct
   let configure t =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
     let jobs = List.map DTree.eval t.jobs in
-    info "%a [%s]"
+    info "%a@ [%a]"
       blue (Fmt.strf "%d Job%s:"
         (List.length t.jobs)
         (if List.length t.jobs = 1 then "" else "s"))
-      (String.concat ", " (List.map Modlist.functor_name jobs));
+      (Fmt.list Modlist.pp) jobs;
     in_dir t.root (fun () ->
       if !manage_opam_packages_ then configure_opam t;
       configure_bootvar t;

@@ -120,36 +120,8 @@ end
 
 (** {2 DSL extensions} *)
 
-module DTree : sig
-
-  type +'a t
-
-  val map : ('a -> 'b) -> 'a t -> 'b t
-
-  val to_list : ('a -> 'b list) -> 'a t -> 'b list
-
-end
-
-module Modlist : sig
-
-  type t
-
-  val of_impl : 'a impl -> t DTree.t
-
-  val pp: Format.formatter -> t -> unit
-
-  val to_string: t -> string
-
-end
-
-type t = {
-  name: string;
-  root: string;
-  jobs: Modlist.t DTree.t list;
-  keys: Key.t list;
-  custom: job configurable ;
-}
-
+type t
+(** A configuration. *)
 
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)

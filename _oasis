@@ -1,7 +1,7 @@
 OASISFormat: 0.4
-Name:        Functhulhu
+Name:        Functoria
 Version:     2.5.1
-Synopsis:    Functhulhu configuration tool
+Synopsis:    Functoria configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy, Dave Scott, Thomas Leonard, Gabriel Radanne
 License:     ISC
 Plugins:     META (0.4), DevFiles (0.4)
@@ -9,22 +9,22 @@ BuildTools:  ocamlbuild
 
 
 
-Library "functhulhu-runtime"
+Library "functoria-runtime"
   Path:            runtime
   Findlibname:     runtime
-  Findlibparent:   functhulhu
-  Modules:         Functhulhu_runtime
+  Findlibparent:   functoria
+  Modules:         Functoria_runtime
   BuildDepends:    cmdliner, lwt
 
-Library functhulhu
+Library functoria
   Path:            src
-  Findlibname:     functhulhu
-  Modules:         Functhulhu, Functhulhu_misc, Functhulhu_key, Functhulhu_tool
+  Findlibname:     functoria
+  Modules:         Functoria, Functoria_misc, Functoria_key, Functoria_tool
   BuildDepends:    unix,dynlink,cmdliner,rresult,fmt
 
-Document "functhulhu"
-  Title:                Functhulhu docs
+Document "functoria"
+  Title:                Functoria docs
   Type:                 OCamlbuild (0.4)
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      src
-  XOCamlbuildLibraries: functhulhu
+  XOCamlbuildLibraries: functoria

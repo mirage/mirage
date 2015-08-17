@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functhulhu_misc
+open Functoria_misc
 open Cmdliner
 
 module Emit = struct
@@ -225,9 +225,9 @@ let ocaml_name k = ocamlify (name k)
 
 let emit fmt k =
   Format.fprintf fmt
-    "let %s = Functhulhu_runtime.Key.create ~doc:%a ~default:%a %a\n\
-     let %s_t = Functhulhu_runtime.Key.term %s\n\
-     let %s () = Functhulhu_runtime.Key.get %s@\n"
+    "let %s = Functoria_runtime.Key.create ~doc:%a ~default:%a %a\n\
+     let %s_t = Functoria_runtime.Key.term %s\n\
+     let %s () = Functoria_runtime.Key.get %s@\n"
     (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)

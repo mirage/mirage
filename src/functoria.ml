@@ -15,9 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functhulhu_misc
+open Functoria_misc
 open Rresult
-module Key = Functhulhu_key
+module Key = Functoria_key
 
 type _ typ =
   | Type: 'a -> 'a typ

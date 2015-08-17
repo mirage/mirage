@@ -90,7 +90,7 @@ let left color ppf s =
   Fmt.string ppf (indent_left (Fmt.to_to_string color s) (left_column ()))
 
 
-let section = ref "Functhulhu"
+let section = ref "Functoria"
 let set_section s = section := s
 let get_section () = !section
 

@@ -17,7 +17,7 @@
 
 (** Configuration library. *)
 
-module Key = Functhulhu_key
+module Key = Functoria_key
 
 (** {2 Module combinators} *)
 

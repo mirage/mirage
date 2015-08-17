@@ -16,7 +16,7 @@
 
 (** Support for setting configuration parameters via the command-line.
 
-    [Functhulhu_key] is used by the [Functhulhu] and [Functhulhu_tool] modules to:
+    [Functoria_key] is used by the [Functoria] and [Functoria_tool] modules to:
 
     - Construct [Cmdliner.Term.t]'s corresponding to used configuration keys in
       order to be able to set them at compile-time (see {!Main.configure}).

@@ -15,10 +15,10 @@
  *)
 
 open Cmdliner
-open Functhulhu
-open Functhulhu_misc
+open Functoria
+open Functoria_misc
 
-module Make (Config : Functhulhu.CONFIG) = struct
+module Make (Config : Functoria.CONFIG) = struct
 
   let cmdname = Config.Project.application_name
   let appname = String.capitalize cmdname
@@ -227,12 +227,12 @@ module Make (Config : Functhulhu.CONFIG) = struct
   ]
 
   let launch () =
-    (* Do not die on Ctrl+C: necessary when functhulhu has to cleanup things
+    (* Do not die on Ctrl+C: necessary when functoria has to cleanup things
        (like killing running kernels) before terminating. *)
     Sys.catch_break true;
     match Term.eval_choice ~catch:false default commands with
     | `Error _ -> exit 1
-    | exception Functhulhu_misc.Fatal s ->
+    | exception Functoria_misc.Fatal s ->
       Printf.eprintf "%s" s ; exit 1
     | _ -> ()
 

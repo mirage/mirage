@@ -26,7 +26,7 @@ class argv t : [job] configurable = object
       | [] -> "Lwt.return_unit"
       | _ ->
         Printf.sprintf
-          "Functoria_runtime.cmdliner Bootvar_gen.keys %S Sys.argv"
+          "Functoria_runtime.with_argv Bootvar_gen.keys %S Sys.argv"
           (name t) ;
     end;
 end

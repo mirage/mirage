@@ -38,6 +38,9 @@ module Key : sig
 
 end
 
-(** [cmdliner keys s argv] use the given key terms to parse the given [argv].
+(** [with_argv keys s argv] uses the given key terms to parse the given [argv].
     [s] is the name of the cmdline executable. *)
-val cmdliner : unit Cmdliner.Term.t list -> string -> string array -> unit Lwt.t
+val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit Lwt.t
+
+val with_kv :  unit Cmdliner.Term.t list -> string -> (string * string) list -> unit Lwt.t
+(** [with_kv keys s kv] is equivalent to {!with_argv} but uses a [(key,value) list] instead of an array as input. *)

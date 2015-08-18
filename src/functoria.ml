@@ -303,6 +303,9 @@ type t = {
   custom: job configurable ;
 }
 
+let name t = t.name
+let root t = t.root
+let custom t = t.custom
 
 (** {2 Packages configuration} *)
 

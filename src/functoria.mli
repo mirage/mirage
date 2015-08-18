@@ -123,6 +123,15 @@ end
 type t
 (** A configuration. *)
 
+val name : t -> string
+(** The name of this configuration. *)
+
+val root : t -> string
+(** Root directory of the configuration. *)
+
+val custom : t -> job configurable
+(** The custom DSL plugin used by this configuration. *)
+
 val add_to_opam_packages: string list -> unit
 (** Add some base OPAM package to install *)
 

@@ -21,8 +21,10 @@ module Key = Functoria_key
 
 (** {2 Module combinators} *)
 
-type 'a typ
-(** The type of values representing module types. *)
+type 'a typ =
+  | Type: 'a -> 'a typ
+  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+  (** The type of values representing module types. *)
 
 val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
 (** Construct a functor type from a type and an existing functor

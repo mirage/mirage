@@ -367,6 +367,8 @@ module type PROJECT = sig
 
   val driver_error : string -> string
 
+  val default_jobs : t -> job impl list
+
   class conf : t Lazy.t -> [job] configurable
 
 end
@@ -421,18 +423,26 @@ module Make (M:PROJECT) = struct
     | Some f -> f
 
   let update_path t root =
-    { t with jobs = List.map (fun j -> DTree.map (Modlist.update_path root) j) t.jobs }
+    { t with
+      jobs = List.map (fun j -> DTree.map (Modlist.update_path root) j) t.jobs ;
+      custom = t.custom#update_path root
+    }
 
   let register ?(keys = []) name jobs =
     let jobs = List.map Modlist.of_impl jobs in
     let root = match !config_file with
       | None   -> failwith "no config file"
       | Some f -> Filename.dirname f in
-    let rec new_t = lazy {
-      name; jobs; root; keys ;
-      custom = new conf new_t
-    } in
-    t := Some (Lazy.force new_t)
+    let rec new_t =
+      lazy { name; jobs; root; keys ; custom = new conf new_t }
+    in
+    (* This is a hack to avoid the lack of real dependency management. *)
+    let jobs = jobs @
+        List.map Modlist.of_impl (default_jobs (Lazy.force new_t)) in
+    let rec new_t' =
+      lazy { name; jobs; root; keys ; custom = new conf new_t' }
+    in
+    t := Some (Lazy.force new_t')
 
 
   let registered () =

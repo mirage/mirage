@@ -163,6 +163,8 @@ module type PROJECT = sig
 
   val driver_error : string -> string
 
+  val default_jobs : t -> job impl list
+
   class conf : t Lazy.t -> [job] configurable
 
 end

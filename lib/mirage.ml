@@ -1422,6 +1422,41 @@ let socket_udpv4 ip = impl (new udpv4_socket_conf ip)
 
 (* end *)
 
+
+(** Special devices *)
+
+
+class bootvar t : [job] configurable = object (self)
+  inherit dummy_conf
+  method ty = job
+  method name = "bootvar"
+  method module_name = (custom t)#module_name
+  method packages = match get_mode () with
+    | `Unix | `MacOSX -> []
+    | `Xen -> [ "mirage-bootvar-xen" ]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> []
+    | `Xen -> [ "mirage-bootvar" ]
+
+  method! connect _modname _args =
+    Some begin match Key.Set.elements @@ keys t, get_mode () with
+      | [], _ -> "Lwt.return_unit"
+      | _ , (`Unix | `MacOSX ) ->
+        Printf.sprintf
+          "OS.Env.argv () >>= Functoria_runtime.with_argv Bootvar_gen.keys %S"
+          (name t) ;
+      | _ , `Xen ->
+        Format.sprintf
+          "Bootvar.create () >>= function@;\
+           | `Ok t -> Functoria_runtime.with_kv Bootvar_gen.keys %S (Bootvar.parameters t)@;\
+           | `Error s -> %s@;"
+          (name t) (driver_error self#name) ;
+
+    end;
+end
+
+let bootvar t = impl (new bootvar t)
+
 (* module Tracing = struct *)
 (*   type t = { *)
 (*     size : int; *)
@@ -1465,75 +1500,50 @@ let socket_udpv4 ip = impl (new udpv4_socket_conf ip)
 (* let mprof_trace ~size () = *)
 (*   { Tracing.size } *)
 
-(* module Nocrypto_entropy = struct *)
 
-(*   (\* XXX *)
-(*    * Nocrypto needs `mirage-entropy-xen` if compiled for xen. *)
-(*    * This is currently handled by always installing this library, regardless of *)
-(*    * usage of Nocrypto. *)
-(*    * As `libraries` is run after opam setup, it will correctly detect Nocrypto *)
-(*    * usage and inject appropriate deps for linkage, if needed. *)
-(*    * The `packages` function, unconditional installation of *)
-(*    * `mirage-entropy-xen`, and this comment, should be cleared once we have *)
-(*    * conditional dependencies support in opam. *)
-(*    * See https://github.com/mirage/mirage/pull/394 for discussion. *)
-(*    *\) *)
+class nocrypto t = object (self)
+  inherit dummy_conf
+  method ty = job
+  method name = "nocrypto"
+  method module_name = "Nocrypto_entropy"
 
-(*   module SS = StringSet *)
+  method needed =
+    OCamlfind.query ~recursive:true @@ libraries t
+    |> List.exists ((=) "nocrypto")
 
-(*   let remembering r f = *)
-(*     match !r with *)
-(*     | Some x -> x *)
-(*     | None   -> let x = f () in r := Some x ; x *)
+  method packages =
+    match get_mode () with
+    | `Xen -> [ "mirage-entropy-xen" ]
+    | _    -> []
 
-(*   let linkage_ = ref None *)
+  method libraries = match get_mode (), self#needed with
+    | `Xen             , true -> ["nocrypto.xen"]
+    | (`Unix | `MacOSX), true -> ["nocrypto.lwt"]
+    | _ -> []
 
-(*   let linkage () = *)
-(*     match !linkage_ with *)
-(*     | None   -> failwith "Nocrypto_entropy: `linkage` queried before `libraries`" *)
-(*     | Some x -> x *)
+  method connect _ _ = Some begin match get_mode (), self#needed with
+      | `Xen             , true -> "Nocrypto_entropy_xen.initialize ()"
+      | (`Unix | `MacOSX), true -> "Nocrypto_entropy_lwt.initialize ()"
+      | _                       -> "Lwt.return_unit"
+    end
 
-(*   let packages () = *)
-(*     match get_mode () with *)
-(*     | `Xen -> SS.singleton "mirage-entropy-xen" *)
-(*     | _    -> SS.empty *)
+end
 
-(*   let libraries libs = *)
-(*     remembering linkage_ @@ fun () -> *)
-(*       let needed = *)
-(*         OCamlfind.query ~recursive:true (SS.elements libs) *)
-(*           |> List.exists ((=) "nocrypto") in *)
-(*       match get_mode () with *)
-(*       | `Xen              when needed -> SS.singleton "nocrypto.xen" *)
-(*       | (`Unix | `MacOSX) when needed -> SS.singleton "nocrypto.lwt" *)
-(*       | _                             -> SS.empty *)
 
-(*   let configure () = *)
-(*     SS.elements (linkage ()) |> List.iter (fun lib -> *)
-(*       if not (OCamlfind.installed lib) then *)
-(*         error "%s module not found. Hint: reinstall nocrypto." lib *)
-(*       ) *)
-
-(*   let preamble () = *)
-(*     match (get_mode (), not (SS.is_empty @@ linkage ())) with *)
-(*     | (`Xen             , true) -> "Nocrypto_entropy_xen.initialize ()" *)
-(*     | ((`Unix | `MacOSX), true) -> "Nocrypto_entropy_lwt.initialize ()" *)
-(*     | _                         -> "return_unit" *)
-(* end *)
 
 let configure_main_libvirt_xml t =
   let open Codegen in
-  let file = t.root / t.name ^ "_libvirt.xml" in
+  let file = (root t) / (name t) ^ "_libvirt.xml" in
   Fmt.with_file file @@ fun fmt ->
-  append fmt "<!-- %s -->" (generated_header t.name);
+  append fmt "<!-- %s -->" (generated_header @@ name t);
   append fmt "<domain type='xen'>";
-  append fmt "    <name>%s</name>" t.name;
+  append fmt "    <name>%s</name>" (name t);
   append fmt "    <memory unit='KiB'>262144</memory>";
   append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
   append fmt "    <vcpu placement='static'>1</vcpu>";
   append fmt "    <os>";
   append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-  append fmt "        <kernel>%s/mir-%s.xen</kernel>" t.root t.name;
+  append fmt "        <kernel>%s/mir-%s.xen</kernel>" (root t) (name t);
   append fmt "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
   append fmt "    </os>";
   append fmt "    <clock offset='utc' adjustment='reset'/>";
@@ -1570,16 +1580,16 @@ let configure_main_libvirt_xml t =
   ()
 
 let clean_main_libvirt_xml t =
-  remove (t.root / t.name ^ "_libvirt.xml")
+  remove ((root t) / (name t) ^ "_libvirt.xml")
 
 let configure_main_xl t =
   let open Codegen in
-  let file = t.root / t.name ^ ".xl" in
+  let file = (root t) / (name t) ^ ".xl" in
   Fmt.with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header t.name);
+  append fmt "# %s" (generated_header (name t));
   newline fmt;
-  append fmt "name = '%s'" t.name;
-  append fmt "kernel = '%s/mir-%s.xen'" t.root t.name;
+  append fmt "name = '%s'" (name t);
+  append fmt "kernel = '%s/mir-%s.xen'" (root t) (name t);
   append fmt "builder = 'linux'";
   append fmt "memory = 256";
   append fmt "on_crash = 'preserve'";
@@ -1594,7 +1604,7 @@ let configure_main_xl t =
         let low' = String.make 1 (char_of_int (low + (int_of_char 'a') - 1)) in
         high' ^ low' in
     let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.number) in
-    let path = Filename.concat t.root b.filename in
+    let path = Filename.concat (root t) b.filename in
     Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
   append fmt "disk = [ %s ]" (String.concat ", " blocks);
@@ -1606,14 +1616,14 @@ let configure_main_xl t =
   ()
 
 let clean_main_xl t =
-  remove (t.root / t.name ^ ".xl")
+  remove ((root t) / (name t) ^ ".xl")
 
 let configure_main_xe t =
   let open Codegen in
-  let file = t.root / t.name ^ ".xe" in
+  let file = (root t) / (name t) ^ ".xe" in
   Fmt.with_file file @@ fun fmt ->
   append fmt "#!/bin/sh";
-  append fmt "# %s" (generated_header t.name);
+  append fmt "# %s" (generated_header (name t));
   newline fmt;
   append fmt "set -e";
   newline fmt;
@@ -1631,10 +1641,10 @@ let configure_main_xe t =
   append fmt "fi";
   newline fmt;
   append fmt "echo Uploading VDI containing unikernel";
-  append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" t.root t.name;
+  append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" (root t) (name t);
   append fmt "echo VDI=$VDI";
   append fmt "echo Creating VM metadata";
-  append fmt "VM=$(xe vm-create name-label=%s)" t.name;
+  append fmt "VM=$(xe vm-create name-label=%s)" (name t);
   append fmt "echo VM=$VM";
   append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
   append fmt "echo Adding network interface connected to xenbr0";
@@ -1647,20 +1657,20 @@ let configure_main_xe t =
   List.iter (fun b ->
     append fmt "echo Uploading data VDI %s" b.filename;
     append fmt "echo VDI=$VDI";
-    append fmt "SIZE=$(stat --format '%%s' %s/%s)" t.root b.filename;
+    append fmt "SIZE=$(stat --format '%%s' %s/%s)" (root t) b.filename;
     append fmt "POOL=$(xe pool-list params=uuid --minimal)";
     append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
     append fmt "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE sr-uuid=$SR)" b.filename;
-    append fmt "xe vdi-import uuid=$VDI filename=%s/%s" t.root b.filename;
+    append fmt "xe vdi-import uuid=$VDI filename=%s/%s" (root t) b.filename;
     append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)" b.number;
     append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
   append fmt "echo Starting VM";
-  append fmt "xe vm-start vm=%s" t.name;
+  append fmt "xe vm-start vm=%s" (name t);
   Unix.chmod file 0o755
 
 let clean_main_xe t =
-  remove (t.root / t.name ^ ".xe")
+  remove ((root t) / (name t) ^ ".xe")
 
 (* Implement something similar to the @name/file extended names of findlib. *)
 let rec expand_name ~lib param =
@@ -1694,9 +1704,9 @@ let configure_myocamlbuild_ml t =
   if minor < 4 || major < 1 then (
     (* Previous ocamlbuild versions weren't able to understand the
        --output-obj rules *)
-    let file = t.root / "myocamlbuild.ml" in
+    let file = (root t) / "myocamlbuild.ml" in
     Fmt.with_file file @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header t.name);
+    Codegen.append fmt "(* %s *)" (generated_header (name t));
     Codegen.newline fmt;
     Codegen.append fmt
       "open Ocamlbuild_pack;;\n\
@@ -1726,11 +1736,11 @@ let configure_myocamlbuild_ml t =
   )
 
 let clean_myocamlbuild_ml t =
-  remove (t.root / "myocamlbuild.ml")
+  remove ((root t) / "myocamlbuild.ml")
 
 let configure_makefile t =
   let open Codegen in
-  let file = t.root / "Makefile" in
+  let file = (root t) / "Makefile" in
   let pkgs = libraries t in
   let libraries_str =
     match pkgs with
@@ -1738,7 +1748,7 @@ let configure_makefile t =
     | ls -> "-pkgs " ^ String.concat "," ls in
   let packages = String.concat " " pkgs in
   Fmt.with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header t.name);
+  append fmt "# %s" (generated_header (name t));
   newline fmt;
   append fmt "LIBS   = %s" libraries_str;
   append fmt "PKGS   = %s" packages;
@@ -1786,9 +1796,9 @@ let configure_makefile t =
     if need_zImage then (
       Printf.sprintf "\t  -o mir-%s.elf\n\
                       \tobjcopy -O binary mir-%s.elf mir-%s.xen"
-                      t.name t.name t.name
+                      (name t) (name t) (name t)
     ) else (
-      Printf.sprintf "\t  -o mir-%s.xen" t.name
+      Printf.sprintf "\t  -o mir-%s.xen" (name t)
     ) in
 
   begin match get_mode () with
@@ -1812,7 +1822,7 @@ let configure_makefile t =
         extra_c_archives pkg_config_deps generate_image;
     | `Unix | `MacOSX ->
       append fmt "build: main.native";
-      append fmt "\tln -nfs _build/main.native mir-%s" t.name;
+      append fmt "\tln -nfs _build/main.native mir-%s" (name t);
   end;
   newline fmt;
   append fmt "clean::\n\
@@ -1823,12 +1833,12 @@ let configure_makefile t =
 
 
 let clean_makefile t =
-  remove (t.root / "Makefile")
+  remove ((root t) / "Makefile")
 
 
 let configure t =
   info "%a %s" blue "Configuring for target:" (string_of_mode @@ get_mode ());
-  in_dir t.root (fun () ->
+  in_dir (root t) (fun () ->
       configure_main_xl t;
       configure_main_xe t;
       configure_main_libvirt_xml t;
@@ -1838,13 +1848,13 @@ let configure t =
 
 
 let clean t =
-  in_dir t.root (fun () ->
+  in_dir (root t) (fun () ->
       clean_main_xl t;
       clean_main_xe t;
       clean_main_libvirt_xml t;
       clean_myocamlbuild_ml t;
       clean_makefile t;
-      command "rm -rf %s/mir-%s" t.root t.name;
+      command "rm -rf %s/mir-%s" (root t) (name t);
     )
 
 module Project = struct
@@ -1855,6 +1865,9 @@ module Project = struct
 
   let driver_error = driver_error
 
+  let default_jobs t = [
+    bootvar t
+  ]
 
   class conf global_conf : [job] configurable = object (self)
     inherit dummy_conf
@@ -1876,7 +1889,7 @@ module Project = struct
 
     method! connect _mod names =
       Some (Printf.sprintf
-        "OS.Main.run (set_bootvar () >>= fun () -> join [%s])"
+        "OS.Main.run (bootvar () >>= fun () -> join [%s])"
         (* (Nocrypto_entropy.preamble ()) *)
         (String.concat "; " names))
 

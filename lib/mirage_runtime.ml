@@ -22,6 +22,4 @@ let string_of_network_init_error name = function
   | `Disconnected -> "\n\n"^name^": disconnected\n\n"
   | _ ->  "\n\n"^name^": unknown error\n\n"
 
-let argv () = Lwt.return Sys.argv
-
 include Functoria_runtime

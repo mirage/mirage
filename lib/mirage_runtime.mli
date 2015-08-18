@@ -23,6 +23,4 @@ val string_of_network_init_error:
     network interface errors from the [ifname] interface name and the error
     constructor. *)
 
-val argv : unit -> string array Lwt.t
-
 include module type of Functoria_runtime

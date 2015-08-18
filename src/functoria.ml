@@ -71,10 +71,6 @@ class dummy_conf = object
   method update_path (_s: string) = {< >}
 end
 
-
-let driver_initialisation_error name =
-  Printf.sprintf "fail (Failure %S)" name
-
 (** Decision trees *)
 module DTree = struct
 
@@ -223,7 +219,7 @@ module Modlist = struct
     | None ->
       Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
 
-  let rec connect t =
+  let rec connect error t =
     let iname = name t in
     let modname = module_name t in
     match t with
@@ -232,21 +228,21 @@ module Modlist = struct
       Codegen.append_main "  %s" (connect_string m modname []);
       Codegen.newline_main ()
     | List (f, args) ->
-      List.iter connect args ;
+      List.iter (connect error) args ;
       let names = List.map name args in
       Codegen.append_main "let %s () =" iname;
       List.iter (fun n ->
         Codegen.append_main "  %s () >>= function" n;
-        Codegen.append_main "  | `Error e -> %s" (driver_initialisation_error n);
+        Codegen.append_main "  | `Error e -> %s" (error n);
         Codegen.append_main "  | `Ok %s ->" n;
       ) names;
       Codegen.append_main "  %s" (connect_string f modname names);
       Codegen.newline_main ()
 
 
-  let configure_and_connect t =
+  let configure_and_connect error t =
     configure t ;
-    connect t
+    connect error t
 
   let rec update_path root = function
     | Mod b          -> Mod (b#update_path root)
@@ -363,13 +359,13 @@ let keys t =
     ) ks t.jobs in
   ks
 
-
-
 module type PROJECT = sig
 
   val application_name : string
 
   val version : string
+
+  val driver_error : string -> string
 
   class conf : t Lazy.t -> [job] configurable
 
@@ -531,7 +527,7 @@ module Make (M:PROJECT) = struct
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
     let jobs = List.map DTree.eval t.jobs in
-    List.iter Modlist.configure_and_connect jobs;
+    List.iter (Modlist.configure_and_connect Project.driver_error) jobs;
     let args = List.map (fun j -> Printf.sprintf "(%s ())" (Modlist.name j)) jobs in
     begin match t.custom#connect "Main" args with
       | None -> ()

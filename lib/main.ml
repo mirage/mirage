@@ -14,5 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module M = Functhulhu_tool.Make(Mirage)
+module M = Functoria_tool.Make(Mirage)
 let () = M.launch ()

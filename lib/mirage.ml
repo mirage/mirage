@@ -15,10 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functhulhu_misc
+open Functoria_misc
 open Cmdliner
 
-include Functhulhu
+include Functoria
 module Name = Name
 
 type mode = [
@@ -1890,7 +1890,7 @@ let get_extra_ld_flags ~filter pkgs =
   ) []
 
 let configure_myocamlbuild_ml t =
-  let open Functhulhu_misc in
+  let open Functoria_misc in
   let minor, major = ocaml_version () in
   if minor < 4 || major < 1 then (
     (* Previous ocamlbuild versions weren't able to understand the
@@ -2091,5 +2091,5 @@ end
 
 let () = set_section "Mirage"
 
-module Config = Functhulhu.Make (Project)
+module Config = Functoria.Make (Project)
 include (Config : CONFIG with module Project := Project)

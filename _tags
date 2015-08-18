@@ -18,15 +18,15 @@ true: annot, bin_annot
 "lib/mirage.cmxs": use_mirage
 # Library mirage-runtime
 "lib/mirage-runtime.cmxs": use_mirage-runtime
-<lib/*.ml{,i,y}>: pkg_functhulhu.runtime
+<lib/*.ml{,i,y}>: pkg_functoria.runtime
 # Executable mirage
-<lib/main.{native,byte}>: pkg_functhulhu
+<lib/main.{native,byte}>: pkg_functoria
 <lib/main.{native,byte}>: pkg_ipaddr
 <lib/main.{native,byte}>: pkg_lwt
 <lib/main.{native,byte}>: pkg_mirage-types
 <lib/main.{native,byte}>: pkg_mirage-types.lwt
 <lib/main.{native,byte}>: use_mirage
-<lib/*.ml{,i,y}>: pkg_functhulhu
+<lib/*.ml{,i,y}>: pkg_functoria
 <lib/*.ml{,i,y}>: pkg_ipaddr
 <lib/*.ml{,i,y}>: pkg_lwt
 <lib/*.ml{,i,y}>: pkg_mirage-types

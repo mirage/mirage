@@ -25,4 +25,4 @@ val string_of_network_init_error:
 
 val argv : unit -> string array Lwt.t
 
-include module type of Functhulhu_runtime
+include module type of Functoria_runtime

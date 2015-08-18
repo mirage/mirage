@@ -12,21 +12,21 @@ Library mirage
   Path:               lib
   Findlibname:        mirage
   Modules:            Mirage
-  BuildDepends:       ipaddr,functhulhu,lwt,mirage-types,mirage-types.lwt
+  BuildDepends:       ipaddr,functoria,lwt,mirage-types,mirage-types.lwt
 
 Library "mirage-runtime"
   Path:               lib
   Findlibname:        runtime
   Modules:            Mirage_runtime
   Findlibparent:      mirage
-  BuildDepends:       functhulhu.runtime
+  BuildDepends:       functoria.runtime
 
 Executable mirage
   CompiledObject:     best
   Path:               lib
   MainIs:             main.ml
   Install:            true
-  BuildDepends:       mirage,functhulhu
+  BuildDepends:       mirage,functoria
 
 Document "mirage"
   Title:                Mirage docs

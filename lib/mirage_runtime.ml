@@ -24,4 +24,4 @@ let string_of_network_init_error name = function
 
 let argv () = Lwt.return Sys.argv
 
-include Functhulhu_runtime
+include Functoria_runtime

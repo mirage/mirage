@@ -21,13 +21,13 @@
     which are used by the various mirage libraries to implement a
     large collection of devices. *)
 
-open Functhulhu
+open Functoria
 
 module Key = Key
 
 (** {2 Module combinators} *)
 
-type 'a typ = 'a Functhulhu.typ
+type 'a typ = 'a Functoria.typ
 (** The type of values representing module types. *)
 
 val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
@@ -44,7 +44,7 @@ val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
 val typ: 'a -> 'a typ
 (** Create a new [typ]. *)
 
-type 'a impl = 'a Functhulhu.impl
+type 'a impl = 'a Functoria.impl
 (** The type of values representing module implementations. *)
 
 val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
@@ -364,7 +364,7 @@ val fat: ?io_page:io_page impl -> block impl -> fs impl
 
 (** {2 Jobs} *)
 
-type job = Functhulhu.job
+type job = Functoria.job
 (** Type for job values. *)
 
 val job: job typ

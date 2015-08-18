@@ -51,7 +51,7 @@ let get_mode =
 (** {2 Devices} *)
 
 type io_page = IO_PAGE
-let io_page = typ IO_PAGE
+let io_page = Type IO_PAGE
 
 class io_page_conf = object
   inherit dummy_conf
@@ -69,7 +69,7 @@ let default_io_page = impl (new io_page_conf)
 
 
 type time = TIME
-let time = typ TIME
+let time = Type TIME
 
 class time_conf = object
   inherit dummy_conf
@@ -82,7 +82,7 @@ let default_time = impl (new time_conf)
 
 
 type clock = CLOCK
-let clock = typ CLOCK
+let clock = Type CLOCK
 
 class clock_conf = object (self)
   inherit dummy_conf
@@ -100,7 +100,7 @@ let default_clock = impl (new clock_conf)
 
 
 type random = RANDOM
-let random = typ RANDOM
+let random = Type RANDOM
 
 class random_conf = object (self)
   inherit dummy_conf
@@ -113,7 +113,7 @@ let default_random = impl (new random_conf)
 
 
 type console = CONSOLE
-let console = typ CONSOLE
+let console = Type CONSOLE
 
 class console_conf name = object (self)
   inherit dummy_conf
@@ -244,7 +244,7 @@ let default_console = custom_console "0"
 
 
 type block = BLOCK
-let block = typ BLOCK
+let block = Type BLOCK
 
 type block_t = {
   filename: string;
@@ -406,7 +406,7 @@ let block_of_file =
 
 
 type fs = FS
-let fs = typ FS
+let fs = Type FS
 
 class virtual fat_common = object
 

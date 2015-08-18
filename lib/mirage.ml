@@ -21,6 +21,12 @@ open Cmdliner
 include Functoria
 module Name = Name
 
+(** {2 Error handling} *)
+let driver_error name =
+  Printf.sprintf "fail (Failure %S)" name
+
+(** {2 Mode configuration} *)
+
 type mode = [
   | `Unix
   | `Xen
@@ -1847,7 +1853,8 @@ module Project = struct
 
   let version = Mirage_version.current
 
-  type state = unit
+  let driver_error = driver_error
+
 
   class conf global_conf : [job] configurable = object (self)
     inherit dummy_conf

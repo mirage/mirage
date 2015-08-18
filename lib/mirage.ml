@@ -503,445 +503,296 @@ let fat ?(io_page=default_io_page) block =
 
 
 
-(* type network_config = Tap0 | Custom of string *)
+type network_config = Tap0 | Custom of string
 
-(* module Network = struct *)
+type network = NETWORK
+let network = Type NETWORK
 
-(*   type t = network_config *)
+class network_conf conf = object (self)
+  inherit dummy_conf
 
-(*   let name t = *)
-(*     "net_" ^ match t with *)
-(*     | Tap0     -> "tap0" *)
-(*     | Custom s -> s *)
+  method ty = network
 
-(*   let module_name _ = *)
-(*     "Netif" *)
+  method name =
+    "net_" ^ match conf with
+      | Tap0     -> "tap0"
+      | Custom s -> s
 
-(*   let packages t = *)
-(*     match get_mode () with *)
-(*     | `Unix -> ["mirage-net-unix"] *)
-(*     | `MacOSX -> ["mirage-net-macosx"] *)
-(*     | `Xen  -> ["mirage-net-xen"] *)
+  method module_name = "Netif"
 
-(*   let libraries t = *)
-(*     packages t *)
+  method packages =
+    match get_mode () with
+    | `Unix -> ["mirage-net-unix"]
+    | `MacOSX -> ["mirage-net-macosx"]
+    | `Xen  -> ["mirage-net-xen"]
 
-(*   let configure t = *)
-(*     append_main "let %s () =" (name t); *)
-(*     append_main "  %s.connect %S" *)
-(*       (module_name t) *)
-(*       (match t with Tap0 -> "tap0" | Custom s -> s); *)
-(*     newline_main () *)
+  method libraries = self#packages
 
-(*   let clean _ = *)
-(*     () *)
+  method connect modname _ = Some begin
+      Printf.sprintf "%s.connect %S"
+        modname
+        (match conf with Tap0 -> "tap0" | Custom s -> s)
+    end
 
-(*   let update_path t _ = *)
-(*     t *)
-
-(* end *)
-
-(* type network = NETWORK *)
+end
 
-(* let network = Type NETWORK *)
-
-(* let tap0 = *)
-(*   impl network Tap0 (module Network) *)
+let tap0 = impl (new network_conf Tap0)
+let netif dev = impl (new network_conf @@ Custom dev)
 
-(* let netif dev = *)
-(*   impl network (Custom dev) (module Network) *)
 
-(* module Ethif = struct *)
+type ethernet = ETHERNET
+let ethernet = Type ETHERNET
 
-(*   type t = network impl *)
+class ethernet_conf = object (self)
+  inherit dummy_conf
 
-(*   let name t = *)
-(*     Name.of_key ("ethif" ^ Impl.name t) ~base:"ethif" *)
+  method ty = network @-> ethernet
+  method name = "ethif"
+  method module_name = "Ethif.Make"
 
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
+  method packages = ["tcpip"]
 
-(*   let packages t = *)
-(*     Impl.packages t @ ["tcpip"] *)
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ]
+    | `Xen  -> [ "tcpip.ethif" ]
 
-(*   let libraries t = *)
-(*     Impl.libraries t @ *)
-(*     match get_mode () with *)
-(*     | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ] *)
-(*     | `Xen  -> [ "tcpip.ethif" ] *)
+  method connect modname args = Some begin match args with
+      | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
+      | _ -> failwith "The ethernet connect should receive exactly one argument."
+    end
 
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     Impl.configure t; *)
-(*     append_main "module %s = Ethif.Make(%s)" (module_name t) (Impl.module_name t); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "   %s () >>= function" (Impl.name t); *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "   | `Ok eth  -> %s.connect eth" (module_name t); *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t *)
+end
 
-(*   let update_path t root = *)
-(*     Impl.update_path t root *)
+let etif_func = impl (new ethernet_conf)
+let etif network = etif_func $ network
 
-(* end *)
-
-(* type ethernet = ETHERNET *)
 
-(* let ethernet = Type ETHERNET *)
+type arpv4 = Arpv4
+let arpv4 = Type Arpv4
 
-(* let etif network = *)
-(*   impl ethernet network (module Ethif) *)
+class arpv4_conf = object
+  inherit dummy_conf
+  method ty = clock @-> time @-> ethernet @-> arpv4
 
-(* module Arpv4 = struct *)
-(*   type t = { *)
-(*     ethernet: ethernet impl; *)
-(*     clock: clock impl; *)
-(*     time: time impl; *)
-(*   } *)
-
-(*   let name t = *)
-(*     Name.of_key ("arpv4" ^ Impl.name t.ethernet) ~base:"arpv4" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet *)
-
-(*   let libraries t = *)
-(*     let arp_library = *)
-(*       match get_mode () with *)
-(*       | `Unix | `MacOSX -> "tcpip.arpv4-unix" *)
-(*       | `Xen  -> "tcpip.arpv4" *)
-(*     in *)
-(*     arp_library :: *)
-(*     Impl.libraries t.ethernet @ *)
-(*     Impl.libraries t.clock @ *)
-(*     Impl.libraries t.ethernet *)
-
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     let mname = module_name t in *)
-(*     append_main "module %s = Arpv4.Make(%s)(%s)(%s)" mname *)
-(*       (Impl.module_name t.ethernet) *)
-(*       (Impl.module_name t.clock) *)
-(*       (Impl.module_name t.time); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "   %s () >>= function" (Impl.name t.ethernet); *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "   | `Ok eth  ->"; *)
-(*     append_main "   %s.connect eth >>= function" mname; *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error "ARP"); *)
-(*     append_main "   | `Ok arp   -> arp" *)
-
-(*   let clean t = *)
-(*     Impl.clean t.ethernet *)
-
-(*   let update_path t root = *)
-(*     { t with ethernet = Impl.update_path t.ethernet root } *)
-
-(* end *)
-
-(* type arpv4 = Arpv4 *)
-(* let arpv4 = Type Arpv4 *)
-
-(* let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) = impl arpv4 *)
-(*     { Arpv4.ethernet = eth; *)
-(*       clock; *)
-(*       time *)
-(*     } (module Arpv4) *)
-
-
-(* type ('ipaddr, 'prefix) ip_config = { *)
-(*   address: 'ipaddr; *)
-(*   netmask: 'prefix; *)
-(*   gateways: 'ipaddr list; *)
-(* } *)
-
-(* type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config *)
-
-(* let meta_ipv4_config t = *)
-(*   Printf.sprintf "(Ipaddr.V4.of_string_exn %S, Ipaddr.V4.of_string_exn %S, [%s])" *)
-(*     (Ipaddr.V4.to_string t.address) *)
-(*     (Ipaddr.V4.to_string t.netmask) *)
-(*     (String.concat "; " *)
-(*        (List.map (Printf.sprintf "Ipaddr.V4.of_string_exn %S") *)
-(*           (List.map Ipaddr.V4.to_string t.gateways))) *)
-
-(* module IPV4 = struct *)
-
-(*   type t = { *)
-(*     arpv4 : arpv4 impl; *)
-(*     config  : ipv4_config; *)
-(*   } *)
-(*   (\* XXX: should the type if ipv4.id be ipv4.t ? *)
-(*      N.connect ethif |> N.set_ip up *\) *)
-
-(*   let name t = *)
-(*     let key = "ipv4" ^ Impl.name t.arpv4 ^ meta_ipv4_config t.config in *)
-(*     Name.of_key key ~base:"ipv4" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     "tcpip" :: Impl.packages t.arpv4 *)
-
-(*   let libraries t  = *)
-(*     (match get_mode () with *)
-(*      | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ] *)
-(*      | `Xen  -> [ "tcpip.ipv4" ]) *)
-(*     @ Impl.libraries t.arpv4 *)
-
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     let mname = module_name t in *)
-(*     Impl.configure t.arpv4; *)
-(*     append_main "module %s = Ipv4.Make(%s)" *)
-(*       (module_name t) (Impl.module_name t.arpv4); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "   %s () >>= function" (Impl.name t.arpv4); *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "   | `Ok arp ->"; *)
-(*     append_main "   %s.connect arp >>= function" mname; *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error "IPV4"); *)
-(*     append_main "   | `Ok ip   ->"; *)
-(*     append_main "   let i = Ipaddr.V4.of_string_exn in"; *)
-(*     append_main "   %s.set_ip ip (i %S) >>= fun () ->" *)
-(*       mname (Ipaddr.V4.to_string t.config.address); *)
-(*     append_main "   %s.set_ip_netmask ip (i %S) >>= fun () ->" *)
-(*       mname (Ipaddr.V4.to_string t.config.netmask); *)
-(*     append_main "   %s.set_ip_gateways ip [%s] >>= fun () ->" *)
-(*       mname *)
-(*       (String.concat "; " *)
-(*          (List.map *)
-(*             (fun n -> Printf.sprintf "(i %S)" (Ipaddr.V4.to_string n)) *)
-(*             t.config.gateways)); *)
-(*     append_main "   return (`Ok ip)"; *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t.arpv4 *)
-
-(*   let update_path t root = *)
-(*     { t with arpv4 = Impl.update_path t.arpv4 root } *)
-
-(* end *)
-
-(* type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config *)
-
-(* let meta_ipv6_config t = *)
-(*   Printf.sprintf "(Ipaddr.V6.of_string_exn %S, [%s], [%s])" *)
-(*     (Ipaddr.V6.to_string t.address) *)
-(*     (String.concat "; " *)
-(*        (List.map (Printf.sprintf "Ipaddr.V6.Prefix.of_string_exn %S") *)
-(*           (List.map Ipaddr.V6.Prefix.to_string t.netmask))) *)
-(*     (String.concat "; " *)
-(*        (List.map (Printf.sprintf "Ipaddr.V6.of_string_exn %S") *)
-(*           (List.map Ipaddr.V6.to_string t.gateways))) *)
-
-(* module IPV6 = struct *)
-
-(*   type t = { *)
-(*     time    : time impl; *)
-(*     clock   : clock impl; *)
-(*     ethernet: ethernet impl; *)
-(*     config  : ipv6_config; *)
-(*   } *)
-(*   (\* XXX: should the type if ipv4.id be ipv4.t ? *)
-(*      N.connect ethif |> N.set_ip up *\) *)
-
-(*   let name t = *)
-(*     let key = "ipv6" ^ Impl.name t.time ^ Impl.name t.clock ^ Impl.name t.ethernet ^ meta_ipv6_config t.config in *)
-(*     Name.of_key key ~base:"ipv6" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet *)
-
-(*   let libraries t  = *)
-(*     (match get_mode () with *)
-(*      | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ] *)
-(*      | `Xen  -> [ "tcpip.ipv6" ]) *)
-(*     @ Impl.libraries t.time @ Impl.libraries t.clock @ Impl.libraries t.ethernet *)
-
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     let mname = module_name t in *)
-(*     Impl.configure t.ethernet; *)
-(*     append_main "module %s = Ipv6.Make(%s)(%s)(%s)" *)
-(*       (module_name t) (Impl.module_name t.ethernet) (Impl.module_name t.time) (Impl.module_name t.clock); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "   %s () >>= function" (Impl.name t.ethernet); *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "   | `Ok eth  ->"; *)
-(*     append_main "   %s.connect eth >>= function" mname; *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "   | `Ok ip   ->"; *)
-(*     append_main "   let i = Ipaddr.V6.of_string_exn in"; *)
-(*     append_main "   %s.set_ip ip (i %S) >>= fun () ->" *)
-(*       mname (Ipaddr.V6.to_string t.config.address); *)
-(*     List.iter begin fun netmask -> *)
-(*       append_main "   %s.set_ip_netmask ip (i %S) >>= fun () ->" *)
-(*         mname (Ipaddr.V6.Prefix.to_string netmask) *)
-(*     end t.config.netmask; *)
-(*     append_main "   %s.set_ip_gateways ip [%s] >>= fun () ->" *)
-(*       mname *)
-(*       (String.concat "; " *)
-(*          (List.map *)
-(*             (fun n -> Printf.sprintf "(i %S)" (Ipaddr.V6.to_string n)) *)
-(*             t.config.gateways)); *)
-(*     append_main "   return (`Ok ip)"; *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t.time; *)
-(*     Impl.clean t.clock; *)
-(*     Impl.clean t.ethernet *)
-
-(*   let update_path t root = *)
-(*     { t with *)
-(*       time = Impl.update_path t.time root; *)
-(*       clock = Impl.update_path t.clock root; *)
-(*       ethernet = Impl.update_path t.ethernet root } *)
-
-(* end *)
-
-(* type v4 *)
-(* type v6 *)
-
-(* type 'a ip = IP *)
-
-(* let ip = Type IP *)
-
-(* type ipv4 = v4 ip *)
-(* type ipv6 = v6 ip *)
-
-(* let ipv4 : ipv4 typ = ip *)
-(* let ipv6 : ipv6 typ = ip *)
-
-(* let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config = *)
-(*   let etif = etif net in *)
-(*   let arp = arp ~clock ~time etif in *)
-(*   let t = { *)
-(*     IPV4.arpv4 = arp; *)
-(*     config } in *)
-(*   impl ipv4 t (module IPV4) *)
-
-(* let default_ipv4_conf = *)
-(*   let i = Ipaddr.V4.of_string_exn in *)
-(*   { *)
-(*     address  = i "10.0.0.2"; *)
-(*     netmask  = i "255.255.255.0"; *)
-(*     gateways = [i "10.0.0.1"]; *)
-(*   } *)
-
-(* let default_ipv4 net = *)
-(*   create_ipv4 net default_ipv4_conf *)
-
-(* let create_ipv6 *)
-(*     ?(time = default_time) *)
-(*     ?(clock = default_clock) *)
-(*     net config = *)
-(*   let etif = etif net in *)
-(*   let t = { *)
-(*     IPV6.ethernet = etif; *)
-(*     time; clock; *)
-(*     config *)
-(*   } in *)
-(*   impl ipv6 t (module IPV6) *)
-
-(* module UDP_direct (V : sig type t end) = struct *)
-
-(*   type t = V.t ip impl *)
-
-(*   let name t = *)
-(*     Name.of_key ("udp" ^ Impl.name t) ~base:"udp" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     Impl.packages t @ [ "tcpip" ] *)
-
-(*   let libraries t = *)
-(*     Impl.libraries t @ [ "tcpip.udp" ] *)
-
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     Impl.configure t; *)
-(*     append_main "module %s = Udp.Make(%s)" (module_name t) (Impl.module_name t); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "   %s () >>= function" (Impl.name t); *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "   | `Ok ip   -> %s.connect ip" (module_name t); *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t *)
-
-(*   let update_path t root = *)
-(*     Impl.update_path t root *)
-
-(* end *)
-
-(* module UDPV4_socket = struct *)
-
-(*   type t = Ipaddr.V4.t option *)
-
-(*   let name _ = "udpv4_socket" *)
-
-(*   let module_name _ = "Udpv4_socket" *)
-
-(*   let packages t = [ "tcpip" ] *)
-
-(*   let libraries t = *)
-(*     match get_mode () with *)
-(*     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ] *)
-(*     | `Xen  -> failwith "No socket implementation available for Xen" *)
-
-(*   let configure t = *)
-(*     append_main "let %s () =" (name t); *)
-(*     let ip = match t with *)
-(*       | None    -> "None" *)
-(*       | Some ip -> *)
-(*         Printf.sprintf "Some (Ipaddr.V4.of_string_exn %s)" (Ipaddr.V4.to_string ip) *)
-(*     in *)
-(*     append_main " %s.connect %S" (module_name t) ip; *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     () *)
-
-(*   let update_path t root = *)
-(*     t *)
-
-(* end *)
-
-(* type 'a udp = UDP *)
-
-(* type udpv4 = v4 udp *)
-(* type udpv6 = v6 udp *)
-
-(* let udp = Type UDP *)
-(* let udpv4 : udpv4 typ = udp *)
-(* let udpv6 : udpv6 typ = udp *)
-
-(* let direct_udp (type v) (ip : v ip impl) = *)
-(*   impl udp ip (module UDP_direct (struct type t = v end)) *)
-
-(* let socket_udpv4 ip = *)
-(*   impl udpv4 ip (module UDPV4_socket) *)
+  method name = "arpv4"
+  method module_name = "Arpv4.Make"
+
+  method packages = ["tcpip"]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> ["tcpip.arpv4-unix"]
+    | `Xen  -> ["tcpip.arpv4"]
+
+  method connect modname args = Some begin match args with
+      | [ _clock ; _time ; eth ] -> Printf.sprintf "%s.connect %s" modname eth
+      | _ -> failwith "The arpv4 connect should receive exactly three arguments."
+    end
+
+end
+
+let arp_func = impl (new arpv4_conf)
+let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) =
+  arp_func $ clock $ time $ eth
+
+type ('ipaddr, 'prefix) ip_config = {
+  address: 'ipaddr;
+  netmask: 'prefix;
+  gateways: 'ipaddr list;
+}
+
+
+type v4
+type v6
+
+type 'a ip = IP
+let ip = Type IP
+
+type ipv4 = v4 ip
+let ipv4 : ipv4 typ = ip
+
+type ipv6 = v6 ip
+let ipv6 : ipv6 typ = ip
+
+
+type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
+
+let meta_ipv4_config t =
+  Printf.sprintf "(Ipaddr.V4.of_string_exn %S, Ipaddr.V4.of_string_exn %S, [%s])"
+    (Ipaddr.V4.to_string t.address)
+    (Ipaddr.V4.to_string t.netmask)
+    (String.concat "; "
+       (List.map (Printf.sprintf "Ipaddr.V4.of_string_exn %S")
+          (List.map Ipaddr.V4.to_string t.gateways)))
+
+class ipv4_conf config = object
+  inherit dummy_conf
+
+  method ty = arpv4 @-> ipv4
+
+  method name = Name.of_key "ipv4" ~base:"ipv4"
+  method module_name = "Ipv4.Make"
+
+  method packages = [ "tcpip" ]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
+    | `Xen  -> [ "tcpip.ipv4" ]
+
+  method connect modname args = Some begin match args with
+      | [ ip ] ->
+        Format.asprintf
+          "let i = Ipaddr.V4.of_string_exn in@;\
+           %s.set_ip ip (i %S) >>= fun () ->@;\
+           %s.set_ip_netmask ip (i %S) >>= fun () ->@;\
+           %s.set_ip_gateways ip [%a] >>= fun () ->@;\
+           return (`Ok %s)@;"
+          modname (Ipaddr.V4.to_string config.address)
+          modname (Ipaddr.V4.to_string config.netmask)
+          modname
+          Fmt.(list ~pp_sep:(const_string "; ")
+              (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
+          config.gateways
+          ip
+      | _ -> failwith "The ipv4 connect should receive exactly one argument."
+    end
+
+
+end
+
+let ipv4_func config = impl (new ipv4_conf config)
+
+let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config =
+  let etif = etif net in
+  let arp = arp ~clock ~time etif in
+  ipv4_func config $ arp
+
+let default_ipv4_conf =
+  let i = Ipaddr.V4.of_string_exn in
+  {
+    address  = i "10.0.0.2";
+    netmask  = i "255.255.255.0";
+    gateways = [i "10.0.0.1"];
+  }
+
+let default_ipv4 net =
+  create_ipv4 net default_ipv4_conf
+
+
+type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
+
+let meta_ipv6_config t =
+  Printf.sprintf "(Ipaddr.V6.of_string_exn %S, [%s], [%s])"
+    (Ipaddr.V6.to_string t.address)
+    (String.concat "; "
+       (List.map (Printf.sprintf "Ipaddr.V6.Prefix.of_string_exn %S")
+          (List.map Ipaddr.V6.Prefix.to_string t.netmask)))
+    (String.concat "; "
+       (List.map (Printf.sprintf "Ipaddr.V6.of_string_exn %S")
+          (List.map Ipaddr.V6.to_string t.gateways)))
+
+class ipv6_conf config = object
+  inherit dummy_conf
+
+  method ty = clock @-> time @-> ethernet @-> ipv6
+
+  method name = Name.of_key "ipv6" ~base:"ipv6"
+  method module_name = "Ipv6.Make"
+
+  method packages = [ "tcpip" ]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
+    | `Xen  -> [ "tcpip.ipv6" ]
+
+  method connect modname args = Some begin match args with
+      | [ _clock ; _time ; ip ] ->
+        Format.asprintf
+          "let i = Ipaddr.V6.of_string_exn in@;\
+           %s.set_ip ip (i %S) >>= fun () ->@;\
+           %a@;\
+           %s.set_ip_gateways ip [%a] >>= fun () ->@;\
+           return (`Ok %s)@;"
+          modname (Ipaddr.V6.to_string config.address)
+          Fmt.(list @@ fun fmt n ->
+            Fmt.pf fmt "%s.set_ip_netmask ip (i %S) >>= fun () ->"
+              modname (Ipaddr.V6.Prefix.to_string n)
+          ) config.netmask
+          modname
+          Fmt.(list ~pp_sep:(const_string "; ")
+              (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V6.to_string n)))
+          config.gateways
+          ip
+      | _ -> failwith "The ipv6 connect should receive exactly three arguments."
+    end
+
+end
+
+let ipv6_func config = impl (new ipv6_conf config)
+
+let create_ipv6
+    ?(time = default_time)
+    ?(clock = default_clock)
+    net config =
+  let etif = etif net in
+  ipv6_func config $ clock $ time $ etif
+
+
+
+type 'a udp = UDP
+let udp = Type UDP
+
+type udpv4 = v4 udp
+let udpv4 : udpv4 typ = udp
+
+type udpv6 = v6 udp
+let udpv6 : udpv6 typ = udp
+
+class ['a]udp_direct_conf = object
+  inherit dummy_conf
+
+  method ty : ('a ip -> 'a udp) typ = ip @-> udp
+
+  method name = "udp"
+  method module_name = "Udp.Make"
+
+  method packages = [ "tcpip" ]
+  method libraries = [ "tcpip.udp" ]
+
+  method connect modname args = Some begin match args with
+      | [ ip ] ->
+        Printf.sprintf "%s.connect %s" modname ip
+      | _ -> failwith "The udpv6 connect should receive exactly one arguments."
+    end
+
+end
+
+(* Value restriction ... *)
+let udp_direct_func () = impl (new udp_direct_conf)
+
+let direct_udp ip = udp_direct_func () $ ip
+
+
+class udpv4_socket_conf ipv4 = object (self)
+  inherit dummy_conf
+  method ty = udpv4
+
+  method name = "udpv4_socket"
+  method module_name = "Udpv4_socket"
+
+  method packages = [ "tcpip" ]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
+    | `Xen  -> failwith "No socket implementation available for Xen"
+
+  method private serialize_ip = match ipv4 with
+    | None    -> "None"
+    | Some ip ->
+      Printf.sprintf "Some (Ipaddr.V4.of_string_exn %s)" (Ipaddr.V4.to_string ip)
+
+  method connect modname _ = Some begin
+      Printf.sprintf "%s.connect %S" modname self#serialize_ip
+    end
+
+end
+
+let socket_udpv4 ip = impl (new udpv4_socket_conf ip)
 
 (* module TCP_direct (V : sig type t end) = struct *)
 

@@ -192,96 +192,96 @@ val fat: ?io_page:io_page impl -> block impl -> fs impl
 
 
 
-(* (\** {2 Network interfaces} *\) *)
+(** {2 Network interfaces} *)
 
-(* (\** Implementations of the [V1.NETWORK] signature. *\) *)
+(** Implementations of the [V1.NETWORK] signature. *)
 
-(* type network *)
-(* (\** Abstract type for network configurations. *\) *)
+type network
+(** Abstract type for network configurations. *)
 
-(* val network: network typ *)
-(* (\** Representation of [Mirage_types.NETWORK]. *\) *)
+val network: network typ
+(** Representation of [Mirage_types.NETWORK]. *)
 
-(* val tap0: network impl *)
-(* (\** The '/dev/tap0' interface. *\) *)
+val tap0: network impl
+(** The '/dev/tap0' interface. *)
 
-(* val netif: string -> network impl *)
-(* (\** A custom network interface. *\) *)
-
-
-
-(* (\** {2 Ethernet configuration} *\) *)
-
-(* (\** Implementations of the [V1.ETHIF] signature. *\) *)
-(* (\* XXX: is that meaningful to expose this level ? *\) *)
-(* type ethernet *)
-(* val ethernet : ethernet typ *)
-(* val etif: network impl -> ethernet impl *)
-
-(* (\** {2 ARP configuration} *\) *)
-
-(* (\** Implementation of the [V1.ARPV4] signature. *\) *)
-(* type arpv4 *)
-(* val arpv4 : arpv4 typ *)
-(* val arp: ?clock: clock impl -> ?time: time impl -> ethernet impl -> arpv4 impl *)
-
-(* (\** {2 IP configuration} *\) *)
-
-(* (\** Implementations of the [V1.IP] signature. *\) *)
-
-(* type v4 *)
-(* type v6 *)
-
-(* type 'a ip *)
-(* type ipv4 = v4 ip *)
-(* type ipv6 = v6 ip *)
-(* (\** Abstract type for IP configurations. *\) *)
-
-(* val ipv4: ipv4 typ *)
-(* (\** The [V1.IPV4] module signature. *\) *)
-
-(* val ipv6: ipv6 typ *)
-(* (\** The [V1.IPV6] module signature. *\) *)
-
-(* type ('ipaddr, 'prefix) ip_config = { *)
-(*   address: 'ipaddr; *)
-(*   netmask: 'prefix; *)
-(*   gateways: 'ipaddr list; *)
-(* } *)
-(* (\** Types for IP manual configuration. *\) *)
-
-(* type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config *)
-(* (\** Types for IPv4 manual configuration. *\) *)
-
-(* val create_ipv4: ?clock:clock impl -> ?time:time impl -> network impl -> ipv4_config -> ipv4 impl *)
-(* (\** Use an IPv4 address. *\) *)
-
-(* val default_ipv4: network impl -> ipv4 impl *)
-(* (\** Default local IP listening on the given network interfaces: *)
-(*     - address: 10.0.0.2 *)
-(*     - netmask: 255.255.255.0 *)
-(*     - gateways: [10.0.0.1] *\) *)
-
-(* type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config *)
-(* (\** Types for IPv6 manual configuration. *\) *)
-
-(* val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl *)
-(* (\** Use an IPv6 address. *\) *)
+val netif: string -> network impl
+(** A custom network interface. *)
 
 
 
-(* (\** {UDP configuration} *\) *)
+(** {2 Ethernet configuration} *)
 
-(* (\** Implementation of the [V1.UDP] signature. *\) *)
+(** Implementations of the [V1.ETHIF] signature. *)
+(* XXX: is that meaningful to expose this level ? *)
+type ethernet
+val ethernet : ethernet typ
+val etif: network impl -> ethernet impl
 
-(* type 'a udp *)
-(* type udpv4 = v4 udp *)
-(* type udpv6 = v6 udp *)
-(* val udp: 'a udp typ *)
-(* val udpv4: udpv4 typ *)
-(* val udpv6: udpv6 typ *)
-(* val direct_udp: 'a ip impl -> 'a udp impl *)
-(* val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl *)
+(** {2 ARP configuration} *)
+
+(** Implementation of the [V1.ARPV4] signature. *)
+type arpv4
+val arpv4 : arpv4 typ
+val arp: ?clock: clock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
+
+(** {2 IP configuration} *)
+
+(** Implementations of the [V1.IP] signature. *)
+
+type v4
+type v6
+
+type 'a ip
+type ipv4 = v4 ip
+type ipv6 = v6 ip
+(** Abstract type for IP configurations. *)
+
+val ipv4: ipv4 typ
+(** The [V1.IPV4] module signature. *)
+
+val ipv6: ipv6 typ
+(** The [V1.IPV6] module signature. *)
+
+type ('ipaddr, 'prefix) ip_config = {
+  address: 'ipaddr;
+  netmask: 'prefix;
+  gateways: 'ipaddr list;
+}
+(** Types for IP manual configuration. *)
+
+type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
+(** Types for IPv4 manual configuration. *)
+
+val create_ipv4: ?clock:clock impl -> ?time:time impl -> network impl -> ipv4_config -> ipv4 impl
+(** Use an IPv4 address. *)
+
+val default_ipv4: network impl -> ipv4 impl
+(** Default local IP listening on the given network interfaces:
+    - address: 10.0.0.2
+    - netmask: 255.255.255.0
+    - gateways: [10.0.0.1] *)
+
+type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
+(** Types for IPv6 manual configuration. *)
+
+val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl
+(** Use an IPv6 address. *)
+
+
+
+(** {UDP configuration} *)
+
+(** Implementation of the [V1.UDP] signature. *)
+
+type 'a udp
+type udpv4 = v4 udp
+type udpv6 = v6 udp
+val udp: 'a udp typ
+val udpv4: udpv4 typ
+val udpv6: udpv6 typ
+val direct_udp: 'a ip impl -> 'a udp impl
+val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
 
 
 

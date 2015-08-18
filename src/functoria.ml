@@ -532,17 +532,8 @@ module Make (M:PROJECT) = struct
     Codegen.newline_main ();
     let jobs = List.map DTree.eval t.jobs in
     List.iter Modlist.configure_and_connect jobs;
-    let names = List.map (fun j -> Printf.sprintf "%s ()" (Modlist.name j)) jobs in
-    Codegen.append_main "let set_bootvar () =";
-    begin match Key.Set.elements @@ keys t with
-      | [] ->
-        Codegen.append_main "  Lwt.return_unit"
-      | _ ->
-        Codegen.append_main
-          "  %s.argv () >>= %s.cmdliner Bootvar_gen.keys %S"
-          t.custom#module_name t.custom#module_name t.name ;
-    end;
-    begin match t.custom#connect "Main" names with
+    let args = List.map (fun j -> Printf.sprintf "(%s ())" (Modlist.name j)) jobs in
+    begin match t.custom#connect "Main" args with
       | None -> ()
       | Some s ->
         Codegen.newline_main ();

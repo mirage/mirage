@@ -60,42 +60,42 @@ val foreign: ?keys:Key.t list -> ?libraries:string list -> ?packages:string list
 
 
 
-(* (\** {2 Time} *\) *)
+(** {2 Time} *)
 
-(* type time *)
-(* (\** Abstract type for timers. *\) *)
+type time
+(** Abstract type for timers. *)
 
-(* val time: time typ *)
-(* (\** The [V1.TIME] module signature. *\) *)
+val time: time typ
+(** The [V1.TIME] module signature. *)
 
-(* val default_time: time impl *)
-(* (\** The default timer implementation. *\) *)
-
-
-
-(* (\** {2 Clocks} *\) *)
-
-(* type clock *)
-(* (\** Abstract type for clocks. *\) *)
-
-(* val clock: clock typ *)
-(* (\** The [V1.CLOCK] module signature. *\) *)
-
-(* val default_clock: clock impl *)
-(* (\** The default mirage-clock implementation. *\) *)
+val default_time: time impl
+(** The default timer implementation. *)
 
 
 
-(* (\** {2 Random} *\) *)
+(** {2 Clocks} *)
 
-(* type random *)
-(* (\** Abstract type for random sources. *\) *)
+type clock
+(** Abstract type for clocks. *)
 
-(* val random: random typ *)
-(* (\** The [V1.RANDOM] module signature. *\) *)
+val clock: clock typ
+(** The [V1.CLOCK] module signature. *)
 
-(* val default_random: random impl *)
-(* (\** Passthrough to the OCaml Random generator. *\) *)
+val default_clock: clock impl
+(** The default mirage-clock implementation. *)
+
+
+
+(** {2 Random} *)
+
+type random
+(** Abstract type for random sources. *)
+
+val random: random typ
+(** The [V1.RANDOM] module signature. *)
+
+val default_random: random impl
+(** Passthrough to the OCaml Random generator. *)
 
 
 (** {2 Consoles} *)

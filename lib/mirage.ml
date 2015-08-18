@@ -44,11 +44,11 @@ let target =
     ) in
   Key.(create_raw ~doc ~stage:`Configure ~default:`Unix "target" desc)
 
-
 let get_mode =
   let x = Key.value target in
   fun () -> Key.eval x
 
+(** {2 Devices} *)
 
 type io_page = IO_PAGE
 let io_page = typ IO_PAGE
@@ -68,106 +68,48 @@ end
 let default_io_page = impl (new io_page_conf)
 
 
-(* module Time = struct *)
+type time = TIME
+let time = typ TIME
 
-(*   (\** OS Timer. *\) *)
+class time_conf = object
+  inherit dummy_conf
+  method ty = time
+  method name = "time"
+  method module_name = "OS.Time"
+end
 
-(*   type t = unit *)
+let default_time = impl (new time_conf)
 
-(*   let name () = *)
-(*     "time" *)
 
-(*   let module_name () = *)
-(*     "OS.Time" *)
+type clock = CLOCK
+let clock = typ CLOCK
 
-(*   let packages () = [] *)
+class clock_conf = object (self)
+  inherit dummy_conf
+  method ty = clock
+  method name = "clock"
+  method module_name = "Clock"
+  method! libraries =
+    match get_mode () with
+    | `Unix | `MacOSX -> [ "mirage-clock-unix" ]
+    | `Xen  -> [ "mirage-clock-xen" ]
+  method! packages = self#libraries
+end
 
-(*   let libraries () = [] *)
+let default_clock = impl (new clock_conf)
 
-(*   let configure () = *)
-(*     append_main "let time () = return (`Ok ())"; *)
-(*     newline_main () *)
 
-(*   let clean () = () *)
+type random = RANDOM
+let random = typ RANDOM
 
-(*   let update_path () _ = () *)
+class random_conf = object (self)
+  inherit dummy_conf
+  method ty = random
+  method name = "random"
+  method module_name = "Random"
+end
 
-(* end *)
-
-(* type time = TIME *)
-
-(* let time = Type TIME *)
-
-(* let default_time: time impl = *)
-(*   impl time () (module Time) *)
-
-(* module Clock = struct *)
-
-(*   (\** Clock operations. *\) *)
-
-(*   type t = unit *)
-
-(*   let name () = *)
-(*     "clock" *)
-
-(*   let module_name () = *)
-(*     "Clock" *)
-
-(*   let packages () = [ *)
-(*     match get_mode () with *)
-(*     | `Unix | `MacOSX -> "mirage-clock-unix" *)
-(*     | `Xen  -> "mirage-clock-xen" *)
-(*   ] *)
-
-(*   let libraries () = packages () *)
-
-(*   let configure () = *)
-(*     append_main "let clock () = return (`Ok ())"; *)
-(*     newline_main () *)
-
-(*   let clean () = () *)
-
-(*   let update_path () _ = () *)
-
-(* end *)
-
-(* type clock = CLOCK *)
-
-(* let clock = Type CLOCK *)
-
-(* let default_clock: clock impl = *)
-(*   impl clock () (module Clock) *)
-
-(* module Random = struct *)
-
-(*   type t = unit *)
-
-(*   let name () = *)
-(*     "random" *)
-
-(*   let module_name () = *)
-(*     "Random" *)
-
-(*   let packages () = [] *)
-
-(*   let libraries () = [] *)
-
-(*   let configure () = *)
-(*     append_main "let random () = return (`Ok ())"; *)
-(*     newline_main () *)
-
-(*   let clean () = () *)
-
-(*   let update_path () _ = () *)
-
-(* end *)
-
-(* type random = RANDOM *)
-
-(* let random = Type RANDOM *)
-
-(* let default_random: random impl = *)
-(*   impl random () (module Random) *)
+let default_random = impl (new random_conf)
 
 
 type console = CONSOLE

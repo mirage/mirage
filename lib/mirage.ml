@@ -764,7 +764,7 @@ class ['a]udp_direct_conf = object
   method connect modname args = Some begin match args with
       | [ ip ] ->
         Printf.sprintf "%s.connect %s" modname ip
-      | _ -> failwith "The udpv6 connect should receive exactly one arguments."
+      | _ -> failwith "The udpv6 connect should receive exactly one argument."
     end
 
 end
@@ -774,6 +774,9 @@ let udp_direct_func () = impl (new udp_direct_conf)
 
 let direct_udp ip = udp_direct_func () $ ip
 
+let pp_ipv4_opt =
+  Fmt.(some @@ option ~pp_none:none @@
+    fun fmt ip -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string ip))
 
 class udpv4_socket_conf ipv4 = object (self)
   inherit dummy_conf
@@ -787,136 +790,71 @@ class udpv4_socket_conf ipv4 = object (self)
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
-  method private serialize_ip = match ipv4 with
-    | None    -> "None"
-    | Some ip ->
-      Printf.sprintf "Some (Ipaddr.V4.of_string_exn %s)" (Ipaddr.V4.to_string ip)
-
   method connect modname _ = Some begin
-      Printf.sprintf "%s.connect %S" modname self#serialize_ip
+      Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
     end
 
 end
 
 let socket_udpv4 ip = impl (new udpv4_socket_conf ip)
 
-(* module TCP_direct (V : sig type t end) = struct *)
 
-(*   type t = { *)
-(*     clock : clock impl; *)
-(*     time  : time impl; *)
-(*     ip    : V.t ip impl; *)
-(*     random: random impl; *)
-(*   } *)
+type 'a tcp = TCP
 
-(*   let name t = *)
-(*     let key = "tcp" *)
-(*               ^ Impl.name t.clock *)
-(*               ^ Impl.name t.time *)
-(*               ^ Impl.name t.ip in *)
-(*     Name.of_key key ~base:"tcp" *)
+type tcpv4 = v4 tcp
+type tcpv6 = v6 tcp
 
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
+let tcp = Type TCP
+let tcpv4 : tcpv4 typ = tcp
+let tcpv6 : tcpv6 typ = tcp
 
-(*   let packages t = *)
-(*     "tcpip" *)
-(*     :: Impl.packages t.clock *)
-(*     @  Impl.packages t.time *)
-(*     @  Impl.packages t.ip *)
-(*     @  Impl.packages t.random *)
+class ['a]tcp_direct_conf = object
+  inherit dummy_conf
 
-(*   let libraries t = *)
-(*     "tcpip.tcp" *)
-(*     :: Impl.libraries t.clock *)
-(*     @  Impl.libraries t.time *)
-(*     @  Impl.libraries t.ip *)
-(*     @  Impl.libraries t.random *)
+  method ty =
+    clock @-> time @-> random @-> (ip : 'a ip typ) @-> (tcp : 'a tcp typ)
 
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     Impl.configure t.clock; *)
-(*     Impl.configure t.time; *)
-(*     Impl.configure t.ip; *)
-(*     Impl.configure t.random; *)
-(*     append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)" *)
-(*       (module_name t) *)
-(*       (Impl.module_name t.ip) *)
-(*       (Impl.module_name t.time) *)
-(*       (Impl.module_name t.clock) *)
-(*       (Impl.module_name t.random); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "   %s () >>= function" (Impl.name t.ip); *)
-(*     append_main "   | `Error _ -> %s" (driver_initialisation_error (Impl.name t.ip)); *)
-(*     append_main "   | `Ok ip   -> %s.connect ip" (module_name t); *)
-(*     newline_main () *)
+  method name = "tcp"
+  method module_name = "Tcp.Flow.Make"
 
-(*   let clean t = *)
-(*     Impl.clean t.clock; *)
-(*     Impl.clean t.time; *)
-(*     Impl.clean t.ip; *)
-(*     Impl.clean t.random *)
+  method packages = [ "tcpip" ]
+  method libraries = [ "tcpip.tcp" ]
 
-(*   let update_path t root = *)
-(*     { clock  = Impl.update_path t.clock root; *)
-(*       ip     = Impl.update_path t.ip root; *)
-(*       time   = Impl.update_path t.time root; *)
-(*       random = Impl.update_path t.random root; *)
-(*     } *)
+  method connect modname args = Some begin match args with
+      | [ _clock ; _time ; _random ; ip ] ->
+        Printf.sprintf "%s.connect %s" modname ip
+      | _ -> failwith "The tcp connect should receive exactly four arguments."
+    end
+end
 
-(* end *)
+(* Value restriction ... *)
+let tcp_direct_func () = impl (new tcp_direct_conf)
 
-(* module TCPV4_socket = struct *)
+let direct_tcp
+    ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ip =
+  tcp_direct_func () $ clock $ time $ random $ ip
 
-(*   type t = Ipaddr.V4.t option *)
 
-(*   let name _ = "tcpv4_socket" *)
+class tcpv4_socket_conf ipv4 = object (self)
+  inherit dummy_conf
+  method ty = tcpv4
 
-(*   let module_name _ = "Tcpv4_socket" *)
+  method name = "tcpv4_socket"
+  method module_name = "Tcpv4_socket"
 
-(*   let packages t = [ "tcpip" ] *)
+  method packages = [ "tcpip" ]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
+    | `Xen  -> failwith "No socket implementation available for Xen"
 
-(*   let libraries t = *)
-(*     match get_mode () with *)
-(*     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ] *)
-(*     | `Xen  -> failwith "No socket implementation available for Xen" *)
+  method connect modname _ = Some begin
+      Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
+    end
+end
 
-(*   let configure t = *)
-(*     append_main "let %s () =" (name t); *)
-(*     let ip = match t with *)
-(*       | None    -> "None" *)
-(*       | Some ip -> *)
-(*         Printf.sprintf "Some (Ipaddr.V4.of_string_exn %s)" (Ipaddr.V4.to_string ip) *)
-(*     in *)
-(*     append_main "  %s.connect %S" (module_name t) ip; *)
-(*     newline_main () *)
+let socket_tcpv4 ip = impl (new tcpv4_socket_conf ip)
 
-(*   let clean t = *)
-(*     () *)
 
-(*   let update_path t root = *)
-(*     t *)
-
-(* end *)
-
-(* type 'a tcp = TCP *)
-
-(* type tcpv4 = v4 tcp *)
-(* type tcpv6 = v6 tcp *)
-
-(* let tcp = Type TCP *)
-(* let tcpv4 : tcpv4 typ = tcp *)
-(* let tcpv6 : tcpv6 typ = tcp *)
-
-(* let direct_tcp (type v) *)
-(*     ?(clock=default_clock) ?(random=default_random) ?(time=default_time) (ip : v ip impl) = *)
-(*   let module TCP_direct = TCP_direct (struct type t = v end) in *)
-(*   let t = { TCP_direct.clock; random; time; ip } in *)
-(*   impl tcp t (module TCP_direct) *)
-
-(* let socket_tcpv4 ip = *)
-(*   impl tcpv4 ip (module TCPV4_socket) *)
 
 (* module STACKV4_direct = struct *)
 

@@ -285,22 +285,22 @@ val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
 
 
 
-(* (\** {TCP configuration} *\) *)
+(** {TCP configuration} *)
 
-(* (\** Implementation of the [V1.TCP] signature. *\) *)
+(** Implementation of the [V1.TCP] signature. *)
 
-(* type 'a tcp *)
-(* type tcpv4 = v4 tcp *)
-(* type tcpv6 = v6 tcp *)
-(* val tcp: 'a tcp typ *)
-(* val tcpv4: tcpv4 typ *)
-(* val tcpv6: tcpv6 typ *)
-(* val direct_tcp: *)
-(*   ?clock:clock impl -> *)
-(*   ?random:random impl -> *)
-(*   ?time:time impl -> *)
-(*   'a ip impl -> 'a tcp impl *)
-(* val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl *)
+type 'a tcp
+type tcpv4 = v4 tcp
+type tcpv6 = v6 tcp
+val tcp: 'a tcp typ
+val tcpv4: tcpv4 typ
+val tcpv6: tcpv6 typ
+val direct_tcp:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  'a ip impl -> 'a tcp impl
+val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 
 

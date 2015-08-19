@@ -16,19 +16,16 @@
 
 open Functoria
 
-class argv t : [job] configurable = object
+class argv : [job] configurable = object
   inherit dummy_conf
   method ty = job
   method name = "bootvar"
-  method module_name = (custom t)#module_name
-  method! connect _modname _args =
-    Some begin match Key.Set.elements @@ keys t with
-      | [] -> "Lwt.return_unit"
-      | _ ->
-        Printf.sprintf
-          "Functoria_runtime.with_argv Bootvar_gen.keys %S Sys.argv"
-          (name t) ;
+  method module_name = "Bootvar_gen"
+  method! connect config _modname _args = Some begin
+      Printf.sprintf
+        "Functoria_runtime.with_argv Bootvar_gen.keys %S Sys.argv"
+        (Info.name config)
     end;
 end
 
-let argv t = impl (new argv t)
+let argv = impl (new argv)

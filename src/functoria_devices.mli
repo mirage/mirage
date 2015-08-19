@@ -19,7 +19,7 @@
 
 open Functoria
 
-val argv : t -> job impl
+val argv : job impl
 (** The simplest argv device. Call {!Sys.argv} and give the results
     to Cmdliner.
 *)

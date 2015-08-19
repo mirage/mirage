@@ -19,6 +19,13 @@
 
 module Key = Functoria_key
 
+module Info : sig
+  type t
+
+  val name : t -> string
+  val root : t -> string
+end
+
 (** {2 Module combinators} *)
 
 type 'a typ =
@@ -91,10 +98,10 @@ class type ['ty] configurable = object ('self)
   method keys: Key.t list
   (** Return the list of keys to configure the device. *)
 
-  method connect : string -> string list -> string option
+  method connect : Info.t -> string -> string list -> string option
   (** Return the function call to connect at runtime with the device. *)
 
-  method configure: unit
+  method configure: Info.t -> unit
   (** Configure the device. *)
 
   method clean: unit
@@ -103,6 +110,9 @@ class type ['ty] configurable = object ('self)
   method update_path: string -> 'self
   (** [t#update_path root] prefixes all the path appearing in [t] with
       the the prefix [root]. *)
+
+  method dependencies : job impl list
+  (** The list of dependencies that must be initalized before this module. *)
 
 end
 
@@ -114,74 +124,41 @@ class dummy_conf : object ('self)
   method libraries : string list
   method packages : string list
   method keys : Key.t list
-  method connect : string -> string list -> string option
-  method configure : unit
+  method connect : Info.t -> string -> string list -> string option
+  method configure : Info.t -> unit
   method clean : unit
   method update_path : string -> 'self
+  method dependencies : job impl list
 end
 
 (** {2 DSL extensions} *)
 
-type t
+type config
 (** A configuration. *)
-
-val name : t -> string
-(** The name of this configuration. *)
-
-val root : t -> string
-(** Root directory of the configuration. *)
-
-val custom : t -> job configurable
-(** The custom DSL plugin used by this configuration. *)
-
-val add_to_opam_packages: string list -> unit
-(** Add some base OPAM package to install *)
-
-val packages: t -> string list
-(** List of OPAM packages to install for this project. *)
-
-val add_to_ocamlfind_libraries: string list -> unit
-(** Link with the provided additional libraries. *)
-
-val libraries: t -> string list
-(** List of ocamlfind libraries. *)
-
-val add_to_keys: Key.t list -> unit
-(** Add new keys. *)
-
-val keys: t -> Key.Set.t
-(** Set of keys. *)
-
-val primary_keys: t -> Key.Set.t
-(** List of keys that are used for implementation selection. *)
 
 module type PROJECT = sig
 
-  val application_name : string
+  val name : string
 
   val version : string
 
   val driver_error : string -> string
 
-  val default_jobs : t -> job impl list
-
-  class conf : t Lazy.t -> [job] configurable
+  class conf :
+    name:string -> root:string -> job impl list ->
+    [job] configurable
 
 end
 
 module type CONFIG = sig
   module Project : PROJECT
 
-  val dummy_conf : t
-
-  val load: string option -> (t, string) Rresult.result
-  (** Read a config file. If no name is given, search for use
-      [config.ml]. *)
 
   (** {2 Jobs} *)
 
   val register:
-    ?keys:Key.t list -> string -> job impl list -> unit
+    ?keys:Key.t list -> ?libraries:string list -> ?packages:string list ->
+    string -> job impl list -> unit
   (** [register name jobs] registers the application named by [name]
       which will executes the given [jobs].
       @param keys passes user-defined config keys (which can be set on the command-line) *)
@@ -199,15 +176,26 @@ module type CONFIG = sig
   val no_depext: bool -> unit
   (** Skip installation of external dependencies. *)
 
-  val configure: t -> unit
+
+  (** {2 Config manipulation} *)
+  val dummy_conf : config
+
+  val load: string option -> (config, string) Rresult.result
+  (** Read a config file. If no name is given, search for use
+      [config.ml]. *)
+
+
+  val configure: config -> unit
   (** Generate some code to create a value with the right
       configuration settings. *)
 
-  val clean: t -> unit
+  val clean: config -> unit
   (** Remove all the autogen files. *)
 
-  val build: t -> unit
+  val build: config -> unit
   (** Call [make build] in the right directory. *)
+
+  val cmdliner : config -> unit Cmdliner.Term.t
 
 end
 

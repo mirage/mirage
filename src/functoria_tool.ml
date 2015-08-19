@@ -15,16 +15,12 @@
  *)
 
 open Cmdliner
-open Functoria
 open Functoria_misc
 
 module Make (Config : Functoria.CONFIG) = struct
 
-  let cmdname = Config.Project.application_name
+  let cmdname = Config.Project.name
   let appname = String.capitalize cmdname
-
-  let key_term keys =
-    Key.(term (Set.filter is_configure keys))
 
   let global_option_section = "COMMON OPTIONS"
   let help_sections = [
@@ -68,7 +64,7 @@ module Make (Config : Functoria.CONFIG) = struct
     ()
 
 
-  let global_keys = key_term @@ Config.(keys dummy_conf)
+  let global_keys = Config.(cmdliner dummy_conf)
 
   let with_config =
     let config =
@@ -81,7 +77,7 @@ module Make (Config : Functoria.CONFIG) = struct
     fun f f_no ->
       let term = match t with
         | Ok t ->
-          let pkeys = key_term @@ primary_keys t in
+          let pkeys = Config.cmdliner t in
           let _ = Term.eval_peek_opts pkeys in
           f t
         | Error err -> f_no err
@@ -104,7 +100,7 @@ module Make (Config : Functoria.CONFIG) = struct
         Config.no_opam_version_check no_opam_version_check;
         Config.no_depext no_depext;
         `Ok (Config.configure t) in
-      let keys = key_term @@ keys t in
+      let keys = Config.cmdliner t in
       Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys)
     in
     let f_no err =
@@ -176,7 +172,7 @@ module Make (Config : Functoria.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let f t =
-      let keys = key_term @@ keys t in
+      let keys = Config.cmdliner t in
       Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ keys)
     in
     let f_no _err =

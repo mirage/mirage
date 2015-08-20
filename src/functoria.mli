@@ -24,6 +24,9 @@ module Info : sig
 
   val name : t -> string
   val root : t -> string
+  val libraries : t -> string list
+  val packages : t -> string list
+  val keys : t -> Key.Set.t
 end
 
 (** {2 Module combinators} *)

@@ -33,6 +33,9 @@ module Info = struct
 
   let name t = t.name
   let root t = t.root
+  let libraries t = t.libraries
+  let packages t = t.packages
+  let keys t = t.keys
 
 end
 

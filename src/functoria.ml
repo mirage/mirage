@@ -558,14 +558,9 @@ module Make (P:PROJECT) = struct
     Codegen.newline_main ();
     let jobs = List.map DTree.eval @@ Config.jobs t in
     List.iter (Modlist.configure_and_connect t.info Project.driver_error) jobs;
-    let args = List.map (fun j -> Printf.sprintf "(%s ())" (Modlist.name j)) jobs in
-    begin match t.custom#connect t.info "Main" args with
-      | None -> ()
-      | Some s ->
-        Codegen.newline_main ();
-        Codegen.append_main "let () =";
-        Codegen.append_main "  %s" s;
-    end
+    Codegen.newline_main ();
+    Codegen.append_main "let () = %s ()" t.custom#name;
+    ()
 
   let clean_main t =
     List.iter (DTree.iter Modlist.clean) @@ Config.jobs t;
@@ -583,7 +578,6 @@ module Make (P:PROJECT) = struct
       if !manage_opam_packages_ then configure_opam t.info;
       configure_bootvar t;
       configure_main t ;
-      t.custom#configure t.info ;
       ()
     )
 
@@ -608,7 +602,6 @@ module Make (P:PROJECT) = struct
       command "rm -rf %s/_build" root ;
       command "rm -rf log %s/main.native.o %s/main.native %s/*~"
         root root root ;
-      t.custom#clean
     )
 
   (* Compile the configuration file and attempt to dynlink it.

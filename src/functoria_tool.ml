@@ -64,7 +64,7 @@ module Make (Config : Functoria.CONFIG) = struct
     ()
 
 
-  let global_keys = Config.(cmdliner dummy_conf)
+  let global_keys = Config.(primary_keys dummy_conf)
 
   let with_config =
     let config =
@@ -77,9 +77,9 @@ module Make (Config : Functoria.CONFIG) = struct
     fun f f_no ->
       let term = match t with
         | Ok t ->
-          let pkeys = Config.cmdliner t in
+          let pkeys = Config.primary_keys t in
           let _ = Term.eval_peek_opts pkeys in
-          f t
+          f @@ Config.eval t
         | Error err -> f_no err
       in
       Term.(ret (pure (fun x _ -> x) $ term $ file))
@@ -99,8 +99,8 @@ module Make (Config : Functoria.CONFIG) = struct
         Config.manage_opam_packages (not no_opam);
         Config.no_opam_version_check no_opam_version_check;
         Config.no_depext no_depext;
-        `Ok (Config.configure t) in
-      let keys = Config.cmdliner t in
+        `Ok t#configure in
+      let keys = t#keys in
       Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys)
     in
     let f_no err =
@@ -119,7 +119,7 @@ module Make (Config : Functoria.CONFIG) = struct
       `P build_doc
     ] in
     let f t =
-      let build () = `Ok (Config.build t) in
+      let build () = `Ok t#build in
       Term.(pure build $ pure ())
     in
     let f_no err =
@@ -140,7 +140,7 @@ module Make (Config : Functoria.CONFIG) = struct
     let f t =
       let clean no_opam =
         Config.manage_opam_packages (not no_opam);
-        `Ok (Config.clean t) in
+        `Ok t#clean in
       Term.(pure clean $ no_opam)
     in
     let f_no err =
@@ -172,7 +172,7 @@ module Make (Config : Functoria.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let f t =
-      let keys = Config.cmdliner t in
+      let keys = t#keys in
       Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ keys)
     in
     let f_no _err =

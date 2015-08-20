@@ -26,7 +26,7 @@ module Info : sig
   val root : t -> string
   val libraries : t -> string list
   val packages : t -> string list
-  val keys : t -> Key.Set.t
+  val keys : t -> Key.t list
 end
 
 (** {2 Module combinators} *)
@@ -187,19 +187,14 @@ module type CONFIG = sig
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 
+  val primary_keys : config -> unit Cmdliner.Term.t
 
-  val configure: config -> unit
-  (** Generate some code to create a value with the right
-      configuration settings. *)
-
-  val clean: config -> unit
-  (** Remove all the autogen files. *)
-
-  val build: config -> unit
-  (** Call [make build] in the right directory. *)
-
-  val cmdliner : config -> unit Cmdliner.Term.t
-
+  val eval : config -> <
+      build : unit;
+      clean : unit;
+      configure : unit;
+      keys : unit Cmdliner.Term.t
+    >
 end
 
 

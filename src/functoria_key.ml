@@ -121,24 +121,9 @@ let get k = match k.value with
 
 module M = struct
   type t = V : 'a key -> t
-
   let compare (V k1) (V k2) = compare k1.name k2.name
 end
 include M
-
-module Set = struct
-  include Set.Make (M)
-
-  let add k set =
-    if mem k set then
-      if k != find k set then
-        let V k' = k in
-        fail "Duplicate key name: %S" k'.name
-      else
-        set
-    else
-      add k set
-end
 
 let name (V k) = k.name
 let stage (V k) = k.stage
@@ -154,6 +139,26 @@ let is_configure k = match stage k with
 
 let resolved { value } = value <> None
 
+module Set = struct
+  include Set.Make (M)
+
+  let add k set =
+    if mem k set then
+      if k != find k set then
+        let V k' = k in
+        fail "Duplicate key name: %S" k'.name
+      else
+        set
+    else
+      add k set
+
+  let filter_stage ~stage set =
+    match stage with
+    | `Run -> filter is_runtime set
+    | `Configure -> filter is_configure set
+    | `Both -> set
+end
+
 
 
 let term_key (V ({ doc; desc; default } as t)) =
@@ -162,9 +167,9 @@ let term_key (V ({ doc; desc; default } as t)) =
   let set w = t.value <- Some w in
   Term.(pure set $ Arg.(value & opt c default i))
 
-let term l =
+let term ?(stage=`Both) l =
   let gather k rest = Term.(pure (fun () () -> ()) $ term_key k $ rest) in
-  Set.fold gather l (Term.pure ())
+  Set.fold gather (Set.filter_stage ~stage l) (Term.pure ())
 
 
 

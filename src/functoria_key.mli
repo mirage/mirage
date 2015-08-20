@@ -100,7 +100,7 @@ val term_key : t -> unit Cmdliner.Term.t
 (** [term_key k] is a [Cmdliner.Term.t] that, when evaluated, sets the value
     of the the key [k]. *)
 
-val term : Set.t -> unit Cmdliner.Term.t
+val term : ?stage:stage -> Set.t -> unit Cmdliner.Term.t
 (** [term l] is a [Cmdliner.Term.t] that, when evaluated, sets the value of the
     the keys in [l]. *)
 

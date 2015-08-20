@@ -145,7 +145,7 @@ class console_conf name = object (self)
     | `Unix | `MacOSX -> ["mirage-console.unix"]
     | `Xen -> ["mirage-console.xen"]
 
-  method connect modname args =
+  method connect _ modname args =
     Some (Printf.sprintf "%s.connect %S" modname console_name)
 
 end
@@ -283,7 +283,7 @@ class block_conf b_ = object (self)
        then (202 lsl 8) lor (b.number lsl 4)
        else (1 lsl 28)  lor (b.number lsl 8)) |> string_of_int
 
-  method! connect s _ =
+  method! connect _ s _ =
     Some (Printf.sprintf "%s.connect %S" s self#connect_name)
 
   method! update_path root =
@@ -423,7 +423,7 @@ class virtual fat_common = object
 
   method module_name = "Fat.Fs.Make"
 
-  method! connect modname l = match l with
+  method! connect _ modname l = match l with
     | [ block_name ; _io_page_name ] ->
       Some (Printf.sprintf "%s.connect %S" modname block_name)
     | _ -> assert false
@@ -534,7 +534,7 @@ class network_conf conf = object (self)
 
   method libraries = self#packages
 
-  method connect modname _ = Some begin
+  method connect _ modname _ = Some begin
       Printf.sprintf "%s.connect %S"
         modname
         (match conf with Tap0 -> "tap0" | Custom s -> s)
@@ -562,7 +562,7 @@ class ethernet_conf = object (self)
     | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ]
     | `Xen  -> [ "tcpip.ethif" ]
 
-  method connect modname args = Some begin match args with
+  method connect _ modname args = Some begin match args with
       | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
       | _ -> failwith "The ethernet connect should receive exactly one argument."
     end
@@ -588,7 +588,7 @@ class arpv4_conf = object
     | `Unix | `MacOSX -> ["tcpip.arpv4-unix"]
     | `Xen  -> ["tcpip.arpv4"]
 
-  method connect modname args = Some begin match args with
+  method connect _ modname args = Some begin match args with
       | [ _clock ; _time ; eth ] -> Printf.sprintf "%s.connect %s" modname eth
       | _ -> failwith "The arpv4 connect should receive exactly three arguments."
     end
@@ -642,7 +642,7 @@ class ipv4_conf config = object
     | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
     | `Xen  -> [ "tcpip.ipv4" ]
 
-  method connect modname args = Some begin match args with
+  method connect _ modname args = Some begin match args with
       | [ ip ] ->
         Format.asprintf
           "let i = Ipaddr.V4.of_string_exn in@;\
@@ -707,7 +707,7 @@ class ipv6_conf config = object
     | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
     | `Xen  -> [ "tcpip.ipv6" ]
 
-  method connect modname args = Some begin match args with
+  method connect _ modname args = Some begin match args with
       | [ _clock ; _time ; ip ] ->
         Format.asprintf
           "let i = Ipaddr.V6.of_string_exn in@;\
@@ -761,7 +761,7 @@ class ['a]udp_direct_conf = object
   method packages = [ "tcpip" ]
   method libraries = [ "tcpip.udp" ]
 
-  method connect modname args = Some begin match args with
+  method connect _ modname args = Some begin match args with
       | [ ip ] ->
         Printf.sprintf "%s.connect %s" modname ip
       | _ -> failwith "The udpv6 connect should receive exactly one argument."
@@ -790,7 +790,7 @@ class udpv4_socket_conf ipv4 = object (self)
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
-  method connect modname _ = Some begin
+  method connect _ modname _ = Some begin
       Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
     end
 
@@ -820,7 +820,7 @@ class ['a]tcp_direct_conf = object
   method packages = [ "tcpip" ]
   method libraries = [ "tcpip.tcp" ]
 
-  method connect modname args = Some begin match args with
+  method connect _ modname args = Some begin match args with
       | [ _clock ; _time ; _random ; ip ] ->
         Printf.sprintf "%s.connect %s" modname ip
       | _ -> failwith "The tcp connect should receive exactly four arguments."
@@ -847,7 +847,7 @@ class tcpv4_socket_conf ipv4 = object (self)
     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
-  method connect modname _ = Some begin
+  method connect _ modname _ = Some begin
       Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
     end
 end
@@ -1364,11 +1364,11 @@ let socket_tcpv4 ip = impl (new tcpv4_socket_conf ip)
 (** Special devices *)
 
 
-class bootvar t : [job] configurable = object (self)
+class bootvar : [job] configurable = object (self)
   inherit dummy_conf
   method ty = job
   method name = "bootvar"
-  method module_name = (custom t)#module_name
+  method module_name = "Bootvar_gen"
   method packages = match get_mode () with
     | `Unix | `MacOSX -> []
     | `Xen -> [ "mirage-bootvar-xen" ]
@@ -1376,24 +1376,22 @@ class bootvar t : [job] configurable = object (self)
     | `Unix | `MacOSX -> []
     | `Xen -> [ "mirage-bootvar" ]
 
-  method! connect _modname _args =
-    Some begin match Key.Set.elements @@ keys t, get_mode () with
-      | [], _ -> "Lwt.return_unit"
-      | _ , (`Unix | `MacOSX ) ->
+  method! connect t _modname _args =
+    Some begin match get_mode () with
+      | `Unix | `MacOSX  ->
         Printf.sprintf
-          "OS.Env.argv () >>= Functoria_runtime.with_argv Bootvar_gen.keys %S"
-          (name t) ;
-      | _ , `Xen ->
+          "OS.Env.argv () >>= Functoria_runtime.with_argv Bootvar_gen.keys %S" (Info.name t) ;
+      | `Xen ->
         Format.sprintf
           "Bootvar.create () >>= function@;\
            | `Ok t -> Functoria_runtime.with_kv Bootvar_gen.keys %S (Bootvar.parameters t)@;\
            | `Error s -> %s@;"
-          (name t) (driver_error self#name) ;
+          (Info.name t) (driver_error self#name) ;
 
     end;
 end
 
-let bootvar t = impl (new bootvar t)
+let bootvar = impl (new bootvar)
 
 (* module Tracing = struct *)
 (*   type t = { *)
@@ -1439,49 +1437,43 @@ let bootvar t = impl (new bootvar t)
 (*   { Tracing.size } *)
 
 
-class nocrypto t = object (self)
+class nocrypto = object (self)
   inherit dummy_conf
   method ty = job
   method name = "nocrypto"
   method module_name = "Nocrypto_entropy"
-
-  method needed =
-    OCamlfind.query ~recursive:true @@ libraries t
-    |> List.exists ((=) "nocrypto")
 
   method packages =
     match get_mode () with
     | `Xen -> [ "mirage-entropy-xen" ]
     | _    -> []
 
-  method libraries = match get_mode (), self#needed with
-    | `Xen             , true -> ["nocrypto.xen"]
-    | (`Unix | `MacOSX), true -> ["nocrypto.lwt"]
-    | _ -> []
+  method libraries = match get_mode () with
+    | `Xen            -> ["nocrypto.xen"]
+    | `Unix | `MacOSX -> ["nocrypto.lwt"]
 
-  method connect _ _ = Some begin match get_mode (), self#needed with
-      | `Xen             , true -> "Nocrypto_entropy_xen.initialize ()"
-      | (`Unix | `MacOSX), true -> "Nocrypto_entropy_lwt.initialize ()"
-      | _                       -> "Lwt.return_unit"
+  method connect _ _ _ = Some begin match get_mode () with
+      | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
+      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
     end
 
 end
 
 
 
-let configure_main_libvirt_xml t =
+let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
-  let file = (root t) / (name t) ^ "_libvirt.xml" in
+  let file = root / name ^ "_libvirt.xml" in
   Fmt.with_file file @@ fun fmt ->
-  append fmt "<!-- %s -->" (generated_header @@ name t);
+  append fmt "<!-- %s -->" (generated_header @@ name);
   append fmt "<domain type='xen'>";
-  append fmt "    <name>%s</name>" (name t);
+  append fmt "    <name>%s</name>" name;
   append fmt "    <memory unit='KiB'>262144</memory>";
   append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
   append fmt "    <vcpu placement='static'>1</vcpu>";
   append fmt "    <os>";
   append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-  append fmt "        <kernel>%s/mir-%s.xen</kernel>" (root t) (name t);
+  append fmt "        <kernel>%s/mir-%s.xen</kernel>" root name;
   append fmt "        <cmdline> </cmdline>"; (* the libxl driver currently needs an empty cmdline to be able to start the domain on arm - due to this? http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
   append fmt "    </os>";
   append fmt "    <clock offset='utc' adjustment='reset'/>";
@@ -1517,17 +1509,17 @@ let configure_main_libvirt_xml t =
   append fmt "</domain>";
   ()
 
-let clean_main_libvirt_xml t =
-  remove ((root t) / (name t) ^ "_libvirt.xml")
+let clean_main_libvirt_xml ~root ~name =
+  remove (root / name ^ "_libvirt.xml")
 
-let configure_main_xl t =
+let configure_main_xl ~root ~name =
   let open Codegen in
-  let file = (root t) / (name t) ^ ".xl" in
+  let file = root / name ^ ".xl" in
   Fmt.with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header (name t));
+  append fmt "# %s" (generated_header name);
   newline fmt;
-  append fmt "name = '%s'" (name t);
-  append fmt "kernel = '%s/mir-%s.xen'" (root t) (name t);
+  append fmt "name = '%s'" name;
+  append fmt "kernel = '%s/mir-%s.xen'" root name;
   append fmt "builder = 'linux'";
   append fmt "memory = 256";
   append fmt "on_crash = 'preserve'";
@@ -1542,7 +1534,7 @@ let configure_main_xl t =
         let low' = String.make 1 (char_of_int (low + (int_of_char 'a') - 1)) in
         high' ^ low' in
     let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.number) in
-    let path = Filename.concat (root t) b.filename in
+    let path = Filename.concat root b.filename in
     Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
   append fmt "disk = [ %s ]" (String.concat ", " blocks);
@@ -1553,15 +1545,15 @@ let configure_main_xl t =
   append fmt "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
   ()
 
-let clean_main_xl t =
-  remove ((root t) / (name t) ^ ".xl")
+let clean_main_xl ~root ~name =
+  remove (root / name ^ ".xl")
 
-let configure_main_xe t =
+let configure_main_xe ~root ~name =
   let open Codegen in
-  let file = (root t) / (name t) ^ ".xe" in
+  let file = root / name ^ ".xe" in
   Fmt.with_file file @@ fun fmt ->
   append fmt "#!/bin/sh";
-  append fmt "# %s" (generated_header (name t));
+  append fmt "# %s" (generated_header name);
   newline fmt;
   append fmt "set -e";
   newline fmt;
@@ -1579,10 +1571,10 @@ let configure_main_xe t =
   append fmt "fi";
   newline fmt;
   append fmt "echo Uploading VDI containing unikernel";
-  append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" (root t) (name t);
+  append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" root name;
   append fmt "echo VDI=$VDI";
   append fmt "echo Creating VM metadata";
-  append fmt "VM=$(xe vm-create name-label=%s)" (name t);
+  append fmt "VM=$(xe vm-create name-label=%s)" name;
   append fmt "echo VM=$VM";
   append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
   append fmt "echo Adding network interface connected to xenbr0";
@@ -1595,20 +1587,20 @@ let configure_main_xe t =
   List.iter (fun b ->
     append fmt "echo Uploading data VDI %s" b.filename;
     append fmt "echo VDI=$VDI";
-    append fmt "SIZE=$(stat --format '%%s' %s/%s)" (root t) b.filename;
+    append fmt "SIZE=$(stat --format '%%s' %s/%s)" root b.filename;
     append fmt "POOL=$(xe pool-list params=uuid --minimal)";
     append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
     append fmt "VDI=$(xe vdi-create type=user name-label='%s' virtual-size=$SIZE sr-uuid=$SR)" b.filename;
-    append fmt "xe vdi-import uuid=$VDI filename=%s/%s" (root t) b.filename;
+    append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
     append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)" b.number;
     append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
   append fmt "echo Starting VM";
-  append fmt "xe vm-start vm=%s" (name t);
+  append fmt "xe vm-start vm=%s" name;
   Unix.chmod file 0o755
 
-let clean_main_xe t =
-  remove ((root t) / (name t) ^ ".xe")
+let clean_main_xe ~root ~name =
+  remove (root / name ^ ".xe")
 
 (* Implement something similar to the @name/file extended names of findlib. *)
 let rec expand_name ~lib param =
@@ -1636,15 +1628,15 @@ let get_extra_ld_flags ~filter pkgs =
       Printf.sprintf "-L%s %s" dir ldflags :: acc
   ) []
 
-let configure_myocamlbuild_ml t =
+let configure_myocamlbuild_ml ~root ~name =
   let open Functoria_misc in
   let minor, major = ocaml_version () in
   if minor < 4 || major < 1 then (
     (* Previous ocamlbuild versions weren't able to understand the
        --output-obj rules *)
-    let file = (root t) / "myocamlbuild.ml" in
+    let file = root / "myocamlbuild.ml" in
     Fmt.with_file file @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header (name t));
+    Codegen.append fmt "(* %s *)" (generated_header name);
     Codegen.newline fmt;
     Codegen.append fmt
       "open Ocamlbuild_pack;;\n\
@@ -1673,20 +1665,20 @@ let configure_myocamlbuild_ml t =
       \  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
   )
 
-let clean_myocamlbuild_ml t =
-  remove ((root t) / "myocamlbuild.ml")
+let clean_myocamlbuild_ml ~root ~name =
+  remove (root / "myocamlbuild.ml")
 
-let configure_makefile t =
+let configure_makefile ~root ~name info =
   let open Codegen in
-  let file = (root t) / "Makefile" in
-  let pkgs = libraries t in
+  let file = root / "Makefile" in
+  let pkgs = Info.libraries info in
   let libraries_str =
     match pkgs with
     | [] -> ""
     | ls -> "-pkgs " ^ String.concat "," ls in
   let packages = String.concat " " pkgs in
   Fmt.with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header (name t));
+  append fmt "# %s" (generated_header name);
   newline fmt;
   append fmt "LIBS   = %s" libraries_str;
   append fmt "PKGS   = %s" packages;
@@ -1734,9 +1726,9 @@ let configure_makefile t =
     if need_zImage then (
       Printf.sprintf "\t  -o mir-%s.elf\n\
                       \tobjcopy -O binary mir-%s.elf mir-%s.xen"
-                      (name t) (name t) (name t)
+                      name name name
     ) else (
-      Printf.sprintf "\t  -o mir-%s.xen" (name t)
+      Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
 
   begin match get_mode () with
@@ -1760,7 +1752,7 @@ let configure_makefile t =
         extra_c_archives pkg_config_deps generate_image;
     | `Unix | `MacOSX ->
       append fmt "build: main.native";
-      append fmt "\tln -nfs _build/main.native mir-%s" (name t);
+      append fmt "\tln -nfs _build/main.native mir-%s" name;
   end;
   newline fmt;
   append fmt "clean::\n\
@@ -1770,46 +1762,47 @@ let configure_makefile t =
   ()
 
 
-let clean_makefile t =
-  remove ((root t) / "Makefile")
+let clean_makefile ~root =
+  remove (root / "Makefile")
 
 
-let configure t =
+let configure i =
+  let name = Info.name i in
+  let root = Info.root i in
   info "%a %s" blue "Configuring for target:" (string_of_mode @@ get_mode ());
-  in_dir (root t) (fun () ->
-      configure_main_xl t;
-      configure_main_xe t;
-      configure_main_libvirt_xml t;
-      configure_myocamlbuild_ml t;
-      configure_makefile t;
-    )
+  in_dir root (fun () ->
+    configure_main_xl ~root ~name;
+    configure_main_xe ~root ~name;
+    configure_main_libvirt_xml ~root ~name;
+    configure_myocamlbuild_ml ~root ~name;
+    configure_makefile ~root ~name i;
+  )
 
 
-let clean t =
-  in_dir (root t) (fun () ->
-      clean_main_xl t;
-      clean_main_xe t;
-      clean_main_libvirt_xml t;
-      clean_myocamlbuild_ml t;
-      clean_makefile t;
-      command "rm -rf %s/mir-%s" (root t) (name t);
+let clean ~root ~name =
+  in_dir root (fun () ->
+      clean_main_xl ~root ~name;
+      clean_main_xe ~root ~name;
+      clean_main_libvirt_xml ~root ~name;
+      clean_myocamlbuild_ml ~root ~name;
+      clean_makefile ~root;
+      command "rm -rf %s/mir-%s" root name;
     )
 
 module Project = struct
 
-  let application_name = "mirage"
+  let name = "mirage"
 
   let version = Mirage_version.current
 
   let driver_error = driver_error
 
-  let default_jobs t = [
-    bootvar t
+  let default_jobs = [
+    bootvar
   ]
 
-  class conf global_conf : [job] configurable = object (self)
+  class conf ~name ~root jobs : [job] configurable = object (self)
     inherit dummy_conf
-    method private conf = Lazy.force global_conf
     method ty = job
     method name = "mirage"
     method module_name = "Mirage_runtime"
@@ -1825,15 +1818,15 @@ module Project = struct
       "mirage-types.lwt"
     ]
 
-    method! connect _mod names =
+    method! connect _ _mod names =
       Some (Printf.sprintf
         "OS.Main.run (bootvar () >>= fun () -> join [%s])"
         (* (Nocrypto_entropy.preamble ()) *)
         (String.concat "; " names))
 
-    method configure = configure self#conf
+    method configure info = configure info
 
-    method clean = clean self#conf
+    method clean = clean ~name ~root
 
   end
 

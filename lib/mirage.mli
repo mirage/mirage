@@ -402,12 +402,6 @@ val no_opam_version_check: bool -> unit
 val no_depext: bool -> unit
 (** Skip installation of external dependencies. *)
 
-val add_to_opam_packages: string list -> unit
-(** Add some base OPAM package to install *)
-
-val add_to_ocamlfind_libraries: string list -> unit
-(** Link with the provided additional libraries. *)
-
 
 (** {2 Extension} *)
 
@@ -415,26 +409,6 @@ module Project : PROJECT
 
 module Config : CONFIG with module Project = Project
 include CONFIG with module Project := Project
-
-val load: string option -> (t, string) Rresult.result
-(** Read a config file. If no name is given, search for use
-    [config.ml]. *)
-
-val packages: t -> string list
-(** List of OPAM packages to install for this project. *)
-
-val libraries: t -> string list
-(** List of ocamlfind libraries. *)
-
-val configure: t -> unit
-(** Generate some code to create a value with the right
-    configuration settings. *)
-
-val clean: t -> unit
-(** Remove all the autogen files. *)
-
-val build: t -> unit
-(** Call [make build] in the right directory. *)
 
 val impl: 'a configurable -> 'a impl
 (** Extend the library with an external configuration. *)

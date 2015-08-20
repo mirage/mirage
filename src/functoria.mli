@@ -137,9 +137,6 @@ end
 
 (** {2 DSL extensions} *)
 
-type config
-(** A configuration. *)
-
 module type PROJECT = sig
 
   val name : string
@@ -157,6 +154,8 @@ end
 module type CONFIG = sig
   module Project : PROJECT
 
+  type t
+  (** A configuration. *)
 
   (** {2 Jobs} *)
 
@@ -182,15 +181,15 @@ module type CONFIG = sig
 
 
   (** {2 Config manipulation} *)
-  val dummy_conf : config
+  val dummy_conf : t
 
-  val load: string option -> (config, string) Rresult.result
+  val load: string option -> (t, string) Rresult.result
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 
-  val primary_keys : config -> unit Cmdliner.Term.t
+  val primary_keys : t -> unit Cmdliner.Term.t
 
-  val eval : config -> <
+  val eval : t -> <
       build : unit;
       clean : unit;
       configure : unit;

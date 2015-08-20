@@ -422,8 +422,6 @@ module Config = struct
 
 end
 
-type config = Config.t
-
 
 module type PROJECT = sig
 
@@ -443,6 +441,8 @@ end
 module type CONFIG = sig
   module Project : PROJECT
 
+  type t
+
   val register:
     ?keys:Key.t list -> ?libraries:string list -> ?packages:string list ->
     string -> job impl list -> unit
@@ -451,11 +451,11 @@ module type CONFIG = sig
   val no_opam_version_check: bool -> unit
   val no_depext: bool -> unit
 
-  val dummy_conf : Config.t
-  val load: string option -> (Config.t, string) Rresult.result
+  val dummy_conf : t
+  val load: string option -> (t, string) Rresult.result
 
-  val primary_keys : config -> unit Cmdliner.Term.t
-  val eval : config -> <
+  val primary_keys : t -> unit Cmdliner.Term.t
+  val eval : t -> <
       build : unit;
       clean : unit;
       configure : unit;
@@ -465,6 +465,8 @@ end
 
 module Make (P:PROJECT) = struct
   module Project = P
+
+  type t = Config.t
 
   let configuration = ref None
   let config_file = ref None

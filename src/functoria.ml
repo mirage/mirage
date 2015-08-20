@@ -26,9 +26,9 @@ module Info = struct
   type t = {
     name: string;
     root: string;
-    keys: Key.t list;
-    libraries : string list;
-    packages : string list;
+    keys: Key.Set.t;
+    libraries : StringSet.t;
+    packages : StringSet.t;
   }
 
   let name t = t.name
@@ -167,9 +167,9 @@ module Modlist : sig
 
   val primary_keys : t list -> Key.Set.t
 
-  val keys : evaluated list -> Key.t list
-  val packages : evaluated list -> string list
-  val libraries : evaluated list -> string list
+  val keys : evaluated list -> Key.Set.t
+  val packages : evaluated list -> StringSet.t
+  val libraries : evaluated list -> StringSet.t
 
   val configure_and_connect :
     Info.t -> (string -> string) -> evaluated list -> unit
@@ -254,9 +254,15 @@ end = struct
     map: 'ty. 'ty configurable -> 'a ;
   }
 
-  let flatmap f l = List.concat @@ List.map f l
+  let concatmap (type t) (module M: Set.S with type t = t) f l =
+    List.fold_left M.union M.empty @@ List.map f l
 
-  let collect map fm m =
+  let append (type t) (module M:Set.S with type t = t) a b =
+    M.union a b
+
+  let collect monoid map fm m =
+    let flatmap f l = concatmap monoid f l in
+    let (@) = append monoid in
     let rec collect = function
       | Mod (d, deps) -> fm.map d @ flatmap collect_dep deps
       | List (f, deps, args) ->
@@ -270,10 +276,16 @@ end = struct
       Key.Set.empty
       m
 
-  let collect_E fm m = collect map_E fm m
-  let packages  = collect_E { map = fun x -> x#packages  }
-  let libraries = collect_E { map = fun x -> x#libraries }
-  let keys      = collect_E { map = fun x -> x#keys      }
+  let collect_E monoid fm m = collect monoid map_E fm m
+  let packages  =
+    collect_E (module StringSet)
+      { map = fun x -> StringSet.of_list x#packages }
+  let libraries =
+    collect_E (module StringSet)
+      { map = fun x -> StringSet.of_list x#libraries }
+  let keys      =
+    collect_E (module Key.Set)
+      { map = fun x -> Key.Set.of_list x#keys }
 
 
 
@@ -389,23 +401,24 @@ module Config = struct
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root jobs init_dsl =
     let custom = init_dsl ~name ~root jobs in
+    let keys = Key.Set.of_list keys in
+    let libraries = StringSet.of_list libraries in
+    let packages = StringSet.of_list packages in
     let jobs = List.map Modlist.of_impl @@ impl custom :: jobs in
     let default_info = {Info. keys ; libraries ; packages ; root ; name } in
     { default_info ; jobs ; custom }
 
   let eval { default_info = di ; jobs } =
     let e = Modlist.eval jobs in
-    let libraries = di.libraries @ Modlist.libraries e in
-    let packages = di.packages @ Modlist.packages e in
-    let keys = di.keys @ Modlist.keys e in
+    let libraries = StringSet.union di.libraries @@ Modlist.libraries e in
+    let packages = StringSet.union di.packages @@ Modlist.packages e in
+    let keys = Key.Set.union di.keys @@ Modlist.keys e in
     e, {di with keys ; libraries ; packages }
 
   let name t = t.default_info.name
   let root t = t.default_info.root
   let primary_keys t =
-    Key.Set.(union
-        (of_list t.default_info.keys)
-        (Modlist.primary_keys t.jobs))
+    Key.Set.union t.default_info.keys @@ Modlist.primary_keys t.jobs
 
 end
 
@@ -495,36 +508,37 @@ module Make (P:PROJECT) = struct
 
   let configure_opam t =
     info "Installing OPAM packages.";
-    match t.Info.packages with
-    | [] -> ()
-    | ps ->
-      if command_exists "opam" then
-        if !no_opam_version_check_ then ()
-        else (
-          let opam_version = read_command "opam --version" in
-          let version_error () =
-            fail "Your version of OPAM (%s) is not recent enough. \
-                   Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
-                   You can pass the `--no-opam-version-check` flag to force its use." opam_version
-          in
-          match split opam_version '.' with
-          | major::minor::_ ->
-            let major = try int_of_string major with Failure _ -> 0 in
-            let minor = try int_of_string minor with Failure _ -> 0 in
-            if (major, minor) >= (1, 2) then (
-              if !no_depext_ then ()
-              else (
-                if command_exists "opam-depext" then
-                  info "opam depext is installed."
-                else
-                  opam "install" ["depext"];
-                opam ~yes:false "depext" ps;
-              );
-              opam "install" ps
-            ) else version_error ()
-          | _ -> version_error ()
-        )
-      else fail "OPAM is not installed."
+    let ps = Info.packages t in
+    if StringSet.is_empty ps then ()
+    else
+    if command_exists "opam" then
+      if !no_opam_version_check_ then ()
+      else (
+        let opam_version = read_command "opam --version" in
+        let version_error () =
+          fail "Your version of OPAM (%s) is not recent enough. \
+                Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
+                You can pass the `--no-opam-version-check` flag to force its use." opam_version
+        in
+        match split opam_version '.' with
+        | major::minor::_ ->
+          let major = try int_of_string major with Failure _ -> 0 in
+          let minor = try int_of_string minor with Failure _ -> 0 in
+          if (major, minor) >= (1, 2) then (
+            let ps = StringSet.elements ps in
+            if !no_depext_ then ()
+            else (
+              if command_exists "opam-depext" then
+                info "opam depext is installed."
+              else
+                opam "install" ["depext"];
+              opam ~yes:false "depext" ps;
+            );
+            opam "install" ps
+          ) else version_error ()
+        | _ -> version_error ()
+      )
+    else fail "OPAM is not installed."
 
   let clean_opam _t =
     ()
@@ -549,14 +563,14 @@ module Make (P:PROJECT) = struct
     Fmt.with_file (Info.root i / "bootvar_gen.ml") @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (generated_header P.name) ;
     Codegen.newline fmt;
-    let bootvars = List.filter Key.is_runtime @@ Info.keys i
+    let bootvars = Key.Set.filter Key.is_runtime @@ Info.keys i
     in
-    List.iter (Key.emit fmt) bootvars ;
+    Key.Set.iter (Key.emit fmt) bootvars ;
     Codegen.newline fmt;
     Codegen.append fmt "let keys = %a"
       Fmt.(brackets @@
         list ~pp_sep:(const char ';' <@ sp) (string <@ const string "_t"))
-      (List.map Key.name bootvars);
+      (List.map Key.name @@ Key.Set.elements bootvars);
     Codegen.newline fmt
 
   let clean_bootvar i =
@@ -672,7 +686,7 @@ module Make (P:PROJECT) = struct
       method clean = clean info evaluated
       method build = build info
       method keys =
-        Key.term ~stage:`Configure @@ Key.Set.of_list @@ Info.keys info
+        Key.term ~stage:`Configure @@ Info.keys info
     end
 
 end

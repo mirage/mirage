@@ -16,6 +16,7 @@
  *)
 
 (** Configuration library. *)
+open Functoria_misc
 
 module Key = Functoria_key
 
@@ -24,9 +25,9 @@ module Info : sig
 
   val name : t -> string
   val root : t -> string
-  val libraries : t -> string list
-  val packages : t -> string list
-  val keys : t -> Key.t list
+  val libraries : t -> StringSet.t
+  val packages : t -> StringSet.t
+  val keys : t -> Key.Set.t
 end
 
 (** {2 Module combinators} *)

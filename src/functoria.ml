@@ -220,7 +220,9 @@ end = struct
         List (m, eval_list deps, List.map add_deps args)
     and eval (T m) =
       if Hashtbl.mem tbl m then Hashtbl.find tbl m
-      else E (add_deps @@ DTree.eval m)
+      else
+        let m' = E (add_deps @@ DTree.eval m) in
+        Hashtbl.add tbl m m' ; m'
     and eval_list l = List.map eval l
     in
     eval_list l
@@ -322,12 +324,13 @@ end = struct
       match m with
       | Mod (m, deps) ->
         List.iter (connect tbl info error) deps ;
+        let names = List.map (map_E name) deps in
         Codegen.append_main "let %s () =" iname;
-        Codegen.append_main "  %s" (connect_string info m modname []);
+        Codegen.append_main "  %s" (connect_string info m modname names);
         Codegen.newline_main ()
       | List (f, deps, args) ->
-        List.iter (connect tbl info error) deps ;
         List.iter (connect' tbl info error) args ;
+        List.iter (connect tbl info error) deps ;
         let names =
           List.map name args @ List.map (map_E name) deps
         in

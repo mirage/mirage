@@ -1801,14 +1801,10 @@ module Project = struct
 
   let driver_error = driver_error
 
-  let default_jobs = [
-    bootvar
-  ]
-
   class conf ~name ~root jobs : [job] configurable = object (self)
     inherit dummy_conf
     method ty = job
-    method name = "mirage"
+    method name = "main"
     method module_name = "Mirage_runtime"
     method! keys = [ Key.V target ]
 
@@ -1823,14 +1819,15 @@ module Project = struct
     ]
 
     method! connect _ _mod names =
-      Some (Printf.sprintf
-        "OS.Main.run (bootvar () >>= fun () -> join [%s])"
-        (* (Nocrypto_entropy.preamble ()) *)
-        (String.concat "; " names))
+      Some (Fmt.strf
+        "OS.Main.run (bootvar () >>= fun () -> join %a)"
+        Fmt.(Dump.list @@ fmt "%s ()") names)
 
     method configure info = configure info
 
     method clean = clean ~name ~root
+
+    method! dependencies = bootvar :: jobs
 
   end
 

@@ -21,11 +21,9 @@ module Emit = struct
 
   let string fmt s = Format.fprintf fmt "%S" s
 
-  let list pp =
-    let pp_sep = Fmt.(const char ';' <@ sp) in
-    Fmt.(brackets @@ list ~pp_sep pp)
+  let option x = Fmt.(parens @@ Dump.option x)
 
-  let option f = Fmt.(option ~pp_none:none (parens @@ some f))
+  let list x = Fmt.Dump.list x
 
 end
 
@@ -57,7 +55,7 @@ module Desc = struct
 
   let list d = {
     description = Format.sprintf "(Cmdliner.Arg.list %s)" d.description ;
-    serializer = Emit.list d.serializer ;
+    serializer = Fmt.Dump.list d.serializer ;
     converter = Arg.list d.converter ;
   }
 
@@ -85,13 +83,12 @@ module Doc = struct
     Arg.info ~docs ?docv ?doc names
 
   let emit fmt { docs ; docv ; doc ; names } =
-    let open Emit in
     Format.fprintf fmt
-      "(Cmdliner.Arg.info ~docs:%a ?docv:%a ?doc:%a %a)"
-      string docs
-      (option string) docv
-      (option string) doc
-      (list string) names
+      "(Cmdliner.Arg.info@ ~docs:%a@ ?docv:%a@ ?doc:%a@ %a)"
+      Emit.string docs
+      Emit.(option string) docv
+      Emit.(option string) doc
+      Emit.(list string) names
 
 end
 

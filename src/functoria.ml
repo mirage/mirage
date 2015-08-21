@@ -241,7 +241,7 @@ end = struct
 
   and body f args =
     functor_name f ^
-      Fmt.(strf "%a" (list ~pp_sep:nop @@ parens string)
+      Fmt.(strf "%a" (list ~sep:nop @@ parens string)
         (List.map module_name args))
 
   and functor_name = function
@@ -562,7 +562,7 @@ module Make (P:PROJECT) = struct
 
   let configure_bootvar i =
     info "%a bootvar_gen.ml" blue "Generating:";
-    Fmt.with_file (Info.root i / "bootvar_gen.ml") @@ fun fmt ->
+    with_file (Info.root i / "bootvar_gen.ml") @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (generated_header P.name) ;
     Codegen.newline fmt;
     let bootvars = Key.Set.filter Key.is_runtime @@ Info.keys i
@@ -570,8 +570,7 @@ module Make (P:PROJECT) = struct
     Key.Set.iter (Key.emit fmt) bootvars ;
     Codegen.newline fmt;
     Codegen.append fmt "let keys = %a"
-      Fmt.(brackets @@
-        list ~pp_sep:(const char ';' <@ sp) (string <@ const string "_t"))
+      Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.name @@ Key.Set.elements bootvars);
     Codegen.newline fmt
 

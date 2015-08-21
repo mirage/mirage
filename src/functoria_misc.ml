@@ -71,10 +71,10 @@ let after prefix s =
 
 
 
-let red     = Fmt.styled_string `Red
-let green   = Fmt.styled_string `Green
-let yellow  = Fmt.styled_string `Yellow
-let blue    = Fmt.styled_string `Cyan
+let red     = Fmt.(styled `Red string)
+let green   = Fmt.(styled `Green string)
+let yellow  = Fmt.(styled `Yellow string)
+let blue    = Fmt.(styled `Cyan string)
 
 let indent_left s nb =
   let nb = nb - String.length s in
@@ -157,13 +157,13 @@ let command ?(redirect=true) fmt =
           ) in
         if status <> 0 then
           let ic = open_in "log" in
-          let s = Fmt.with_strf @@ fun fmt ->
+          let f fmt () =
             try while true do
                 in_section ~color:red (Fmt.pf fmt) "%s\n" (input_line ic)
               done;
               assert false
             with End_of_file -> ()
-          in Error s
+          in Error (Fmt.strf "%a" f ())
         else
           Ok status
       ) else (
@@ -202,6 +202,13 @@ let with_process_in cmd f =
     ignore (Unix.close_process_in ic) ; r
   with exn ->
     ignore (Unix.close_process_in ic) ; raise exn
+
+let with_file filename f =
+  let oc = open_out filename in
+  let ppf = Format.formatter_of_out_channel oc in
+  f ppf ;
+  Format.pp_print_flush ppf () ;
+  close_out oc
 
 let collect_output cmd =
   try
@@ -266,8 +273,7 @@ let find_or_create tbl key create_value =
     Hashtbl.add tbl key value;
     value
 
-let dump =
-  Fmt.(brackets @@ hashtbl ~pp_k:string ~pp_v:string)
+let dump = Fmt.(Dump.hashtbl string string)
 
 module StringSet = struct
 

@@ -648,12 +648,12 @@ class ipv4_conf config = object
           "let i = Ipaddr.V4.of_string_exn in@;\
            %s.set_ip ip (i %S) >>= fun () ->@;\
            %s.set_ip_netmask ip (i %S) >>= fun () ->@;\
-           %s.set_ip_gateways ip [%a] >>= fun () ->@;\
+           %s.set_ip_gateways ip %a >>= fun () ->@;\
            return (`Ok %s)@;"
           modname (Ipaddr.V4.to_string config.address)
           modname (Ipaddr.V4.to_string config.netmask)
           modname
-          Fmt.(list ~pp_sep:(const_string "; ")
+          Fmt.(Dump.list
               (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
           config.gateways
           ip
@@ -721,7 +721,7 @@ class ipv6_conf config = object
               modname (Ipaddr.V6.Prefix.to_string n)
           ) config.netmask
           modname
-          Fmt.(list ~pp_sep:(const_string "; ")
+          Fmt.(Dump.list
               (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V6.to_string n)))
           config.gateways
           ip
@@ -775,7 +775,7 @@ let udp_direct_func () = impl (new udp_direct_conf)
 let direct_udp ip = udp_direct_func () $ ip
 
 let pp_ipv4_opt =
-  Fmt.(some @@ option ~pp_none:none @@
+  Fmt.(Dump.option @@
     fun fmt ip -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string ip))
 
 class udpv4_socket_conf ipv4 = object (self)
@@ -1464,7 +1464,7 @@ end
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
   let file = root / name ^ "_libvirt.xml" in
-  Fmt.with_file file @@ fun fmt ->
+  with_file file @@ fun fmt ->
   append fmt "<!-- %s -->" (generated_header @@ name);
   append fmt "<domain type='xen'>";
   append fmt "    <name>%s</name>" name;
@@ -1515,7 +1515,7 @@ let clean_main_libvirt_xml ~root ~name =
 let configure_main_xl ~root ~name =
   let open Codegen in
   let file = root / name ^ ".xl" in
-  Fmt.with_file file @@ fun fmt ->
+  with_file file @@ fun fmt ->
   append fmt "# %s" (generated_header name);
   newline fmt;
   append fmt "name = '%s'" name;
@@ -1551,7 +1551,7 @@ let clean_main_xl ~root ~name =
 let configure_main_xe ~root ~name =
   let open Codegen in
   let file = root / name ^ ".xe" in
-  Fmt.with_file file @@ fun fmt ->
+  with_file file @@ fun fmt ->
   append fmt "#!/bin/sh";
   append fmt "# %s" (generated_header name);
   newline fmt;
@@ -1635,7 +1635,7 @@ let configure_myocamlbuild_ml ~root ~name =
     (* Previous ocamlbuild versions weren't able to understand the
        --output-obj rules *)
     let file = root / "myocamlbuild.ml" in
-    Fmt.with_file file @@ fun fmt ->
+    with_file file @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (generated_header name);
     Codegen.newline fmt;
     Codegen.append fmt
@@ -1671,16 +1671,20 @@ let clean_myocamlbuild_ml ~root ~name =
 let configure_makefile ~root ~name info =
   let open Codegen in
   let file = root / "Makefile" in
-  let pkgs = Info.libraries info in
-  let libraries_str =
-    match pkgs with
+  let libs = StringSet.elements @@ Info.libraries info in
+  let libraries =
+    match libs with
     | [] -> ""
-    | ls -> "-pkgs " ^ String.concat "," ls in
-  let packages = String.concat " " pkgs in
-  Fmt.with_file file @@ fun fmt ->
+    | l -> Fmt.(strf "-pkgs %a" (list ~sep:(unit ",") string)) l
+  in
+  let packages =
+    Fmt.(strf "%a" (list ~sep:(unit " ") string)) @@
+    StringSet.elements @@ Info.packages info
+  in
+  with_file file @@ fun fmt ->
   append fmt "# %s" (generated_header name);
   newline fmt;
-  append fmt "LIBS   = %s" libraries_str;
+  append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
   begin match get_mode () with
     | `Xen  ->
@@ -1737,7 +1741,7 @@ let configure_makefile ~root ~name info =
         | "unix" | "bigarray" |"shared_memory_ring_stubs" -> false    (* Provided by mirage-xen instead. *)
         | _ -> true in
       let extra_c_archives =
-        get_extra_ld_flags ~filter pkgs
+        get_extra_ld_flags ~filter libs
         |> String.concat " \\\n\t  " in
 
       append fmt "build:: main.native.o";

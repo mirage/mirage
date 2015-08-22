@@ -120,7 +120,7 @@ val impl: 'a configurable -> 'a impl
 (** Extend the library with an external configuration. *)
 
 
-class dummy_conf : object ('self)
+class base_configurable : object
   method libraries : string list
   method packages : string list
   method keys : Key.t list
@@ -140,9 +140,9 @@ module type PROJECT = sig
 
   val driver_error : string -> string
 
-  class conf :
+  val configurable :
     name:string -> root:string -> job impl list ->
-    [job] configurable
+    job configurable
 
 end
 

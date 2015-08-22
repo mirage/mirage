@@ -87,7 +87,7 @@ let impl x = Impl x
 
 let switch b x y = If(b,x,y)
 
-class dummy_conf = object
+class base_configurable = object
   method libraries : string list = []
   method packages : string list = []
   method keys : Key.t list = []
@@ -431,9 +431,9 @@ module type PROJECT = sig
 
   val driver_error : string -> string
 
-  class conf :
+  val configurable :
     name:string -> root:string -> job impl list ->
-    [job] configurable
+    job configurable
 
 end
 
@@ -483,14 +483,12 @@ module Make (P:PROJECT) = struct
 
   let dummy_conf =
     let name = P.name and root = get_root () in
-    let init_dsl = new P.conf in
-    Config.make name root [] init_dsl
+    Config.make name root [] P.configurable
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
     let root = get_root () in
-    let init_dsl = new P.conf in
     let c =
-      Config.make ~keys ~libraries ~packages name root jobs init_dsl
+      Config.make ~keys ~libraries ~packages name root jobs P.configurable
     in
     configuration := Some c
 

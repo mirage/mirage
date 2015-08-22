@@ -16,8 +16,8 @@
 
 open Functoria
 
-class argv : [job] configurable = object
-  inherit dummy_conf
+let argv = impl @@ object
+  inherit base_configurable
   method ty = job
   method name = "bootvar"
   method module_name = "Bootvar_gen"
@@ -27,5 +27,3 @@ class argv : [job] configurable = object
         (Info.name config)
     end;
 end
-
-let argv = impl (new argv)

@@ -73,8 +73,13 @@ type job
 (** Type for job values. *)
 
 val job: job typ
-(** Reprensention of a job. *)
+(** Representation of a job. *)
 
+type any_impl = Any : _ impl -> any_impl
+(** Type of an implementation, with it's type variable hidden. *)
+
+val hide : _ impl -> any_impl
+(** Hide the type variable of an implementation. Useful for dependencies. *)
 
 
 (** {2 Implementation of new devices} *)
@@ -111,7 +116,7 @@ class type ['ty] configurable = object
   method clean: unit
   (** Clean all the files generated to use the device. *)
 
-  method dependencies : job impl list
+  method dependencies : any_impl list
   (** The list of dependencies that must be initalized before this module. *)
 
 end
@@ -127,7 +132,7 @@ class base_configurable : object
   method connect : Info.t -> string -> string list -> string
   method configure : Info.t -> unit
   method clean : unit
-  method dependencies : job impl list
+  method dependencies : any_impl list
 end
 
 (** {2 DSL extensions} *)

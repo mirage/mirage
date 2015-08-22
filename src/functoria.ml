@@ -63,7 +63,7 @@ module rec Typ : sig
     method connect : Info.t -> string -> string list -> string
     method configure: Info.t -> unit
     method clean: unit
-    method dependencies: job Typ.impl list
+    method dependencies: Typ.any_impl list
   end
 
   type _ impl =
@@ -76,6 +76,8 @@ module rec Typ : sig
     x: 'a impl;          (* parameter *)
   }
 
+  and any_impl = Any : _ impl -> any_impl
+
 end = Typ
 include Typ
 
@@ -84,6 +86,7 @@ let ($) f x =
   App { f; x }
 
 let impl x = Impl x
+let hide x = Any x
 
 let switch b x y = If(b,x,y)
 
@@ -95,7 +98,7 @@ class base_configurable = object
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
   method configure (_ : Info.t) = ()
   method clean = ()
-  method dependencies : job impl list = []
+  method dependencies : any_impl list = []
 end
 
 (** Decision trees *)
@@ -190,7 +193,8 @@ end = struct
   let rec linearize
     : type ty . ty impl -> _ modlist
     = function
-      | Impl m -> Mod (m,List.map of_impl m#dependencies)
+      | Impl m ->
+        Mod (m,List.map (fun (Any i) -> of_impl i) m#dependencies)
       | If _ -> assert false
       | App { f ; x } ->
         let fuse = function
@@ -198,8 +202,9 @@ end = struct
           | List (m, deps, args) -> List (m, deps , args @ [linearize x])
         in fuse @@ linearize f
 
-  and of_impl i =
-    T (DTree.map linearize (DTree.to_tree i))
+  and of_impl
+    : type ty . ty impl -> t
+    = fun i -> T (DTree.map linearize (DTree.to_tree i))
 
   let rec pp_modlist : 'a modlist Fmt.t = fun fmt -> function
     | Mod (d, _)        -> Fmt.string fmt d#module_name

@@ -59,70 +59,70 @@ let get_mode =
 type io_page = IO_PAGE
 let io_page = Type IO_PAGE
 
-class io_page_conf = object
-  inherit dummy_conf
+let io_page_conf = object
+  inherit base_configurable
   method ty = io_page
   method name = "io_page"
   method module_name = "Io_page"
-  method! libraries =
+  method libraries =
     match get_mode () with
     | `Xen  -> ["io-page"]
     | `Unix | `MacOSX -> ["io-page"; "io-page.unix"]
-  method! packages = [ "io-page" ]
+  method packages = [ "io-page" ]
 end
 
-let default_io_page = impl (new io_page_conf)
+let default_io_page = impl io_page_conf
 
 
 type time = TIME
 let time = Type TIME
 
-class time_conf = object
-  inherit dummy_conf
+let time_conf = object
+  inherit base_configurable
   method ty = time
   method name = "time"
   method module_name = "OS.Time"
 end
 
-let default_time = impl (new time_conf)
+let default_time = impl time_conf
 
 
 type clock = CLOCK
 let clock = Type CLOCK
 
-class clock_conf = object (self)
-  inherit dummy_conf
+let clock_conf = object (self)
+  inherit base_configurable
   method ty = clock
   method name = "clock"
   method module_name = "Clock"
-  method! libraries =
+  method libraries =
     match get_mode () with
     | `Unix | `MacOSX -> [ "mirage-clock-unix" ]
     | `Xen  -> [ "mirage-clock-xen" ]
-  method! packages = self#libraries
+  method packages = self#libraries
 end
 
-let default_clock = impl (new clock_conf)
+let default_clock = impl clock_conf
 
 
 type random = RANDOM
 let random = Type RANDOM
 
-class random_conf = object (self)
-  inherit dummy_conf
+let random_conf = object (self)
+  inherit base_configurable
   method ty = random
   method name = "random"
   method module_name = "Random"
 end
 
-let default_random = impl (new random_conf)
+let default_random = impl random_conf
 
 
 type console = CONSOLE
 let console = Type CONSOLE
 
-class console_conf name = object (self)
-  inherit dummy_conf
+let console_conf name = object (self)
+  inherit base_configurable
 
   val console_name = name
   method ty = console
@@ -146,12 +146,12 @@ class console_conf name = object (self)
     | `Xen -> ["mirage-console.xen"]
 
   method connect _ modname args =
-    Some (Printf.sprintf "%s.connect %S" modname console_name)
+    Printf.sprintf "%s.connect %S" modname console_name
 
 end
 
 let custom_console str : console impl =
-  impl (new console_conf str)
+  impl (console_conf str)
 
 let default_console = custom_console "0"
 
@@ -257,25 +257,25 @@ type block_t = {
   number: int;
 }
 
-class block_conf b_ = object (self)
-  inherit dummy_conf
+let block_conf b_ = object (self)
+  inherit base_configurable
   val b = b_
   method ty = block
   method name = "block" ^ b.filename
   method module_name = "Block"
-  method! packages =
+  method packages =
     match get_mode () with
     | `Unix | `MacOSX -> ["mirage-block-unix"]
     | `Xen  -> ["mirage-block-xen"]
-  method! libraries =
+  method libraries =
     match get_mode () with
     | `Unix | `MacOSX -> ["mirage-block-unix"]
     | `Xen  -> ["mirage-block-xen.front"]
 
 
-  method private connect_name =
+  method private connect_name root =
     match get_mode () with
-    | `Unix | `MacOSX -> b.filename (* open the file directly *)
+    | `Unix | `MacOSX -> root / b.filename (* open the file directly *)
     | `Xen ->
       (* We need the xenstore id *)
       (* Taken from https://github.com/mirage/mirage-block-xen/blob/a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 *)
@@ -283,14 +283,9 @@ class block_conf b_ = object (self)
        then (202 lsl 8) lor (b.number lsl 4)
        else (1 lsl 28)  lor (b.number lsl 8)) |> string_of_int
 
-  method! connect _ s _ =
-    Some (Printf.sprintf "%s.connect %S" s self#connect_name)
+  method connect i s _ =
+    Printf.sprintf "%s.connect %S" s (self#connect_name @@ Info.root i)
 
-  method! update_path root =
-    if Sys.file_exists (root / b.filename) then
-      {< b = { b with filename = root / b.filename } >}
-    else
-      {< >}
 end
 
 let all_blocks = Hashtbl.create 7
@@ -309,7 +304,7 @@ let block_of_file =
         Hashtbl.add all_blocks filename b;
         b
       end in
-    impl (new block_conf b)
+    impl (block_conf b)
 
 
 (* module Archive = struct *)
@@ -416,26 +411,26 @@ let fs = Type FS
 
 class virtual fat_common = object
 
-  inherit dummy_conf
+  inherit base_configurable
   method ty = (io_page @-> block @-> fs)
-  method! packages = [ "fat-filesystem" ]
-  method! libraries = [ "fat-filesystem" ]
+  method packages = [ "fat-filesystem" ]
+  method libraries = [ "fat-filesystem" ]
 
   method module_name = "Fat.Fs.Make"
 
-  method! connect _ modname l = match l with
+  method connect _ modname l = match l with
     | [ block_name ; _io_page_name ] ->
-      Some (Printf.sprintf "%s.connect %S" modname block_name)
+      Printf.sprintf "%s.connect %S" modname block_name
     | _ -> assert false
 end
 
-class fat_conf = object
+let fat_conf = object
   inherit fat_common
 
   method name = "fat"
 
 end
-let fat_impl = impl (new fat_conf)
+let fat_impl = impl fat_conf
 
 let fat ?(io_page=default_io_page) block =
   fat_impl $ io_page $ block
@@ -465,7 +460,7 @@ let fat ?(io_page=default_io_page) block =
 
 (*     method private block_file = self#name ^ ".img" *)
 
-(*     method! configure = *)
+(*     method configure = *)
 (*       let file = Printf.sprintf "make-%s-image.sh" self#name in *)
 (*       let oc = open_out file in *)
 (*       let fmt = Format.formatter_of_out_channel oc in *)
@@ -493,10 +488,10 @@ let fat ?(io_page=default_io_page) block =
 (*       Unix.chmod file 0o755; *)
 (*       command "./make-%s-image.sh" self#name *)
 
-(*     method! clean = *)
+(*     method clean = *)
 (*       command "rm -f make-%s-image.sh %s" self#name self#block_file *)
 
-(*     method! update_path root = *)
+(*     method update_path root = *)
 (*       let t = match t.dir with *)
 (*         | None   -> t *)
 (*         | Some d -> { t with dir = Some (root / d) } *)
@@ -514,15 +509,17 @@ type network_config = Tap0 | Custom of string
 type network = NETWORK
 let network = Type NETWORK
 
-class network_conf conf = object (self)
-  inherit dummy_conf
+let network_conf conf = object (self)
+  inherit base_configurable
 
   method ty = network
 
-  method name =
+  val name =
     "net_" ^ match conf with
       | Tap0     -> "tap0"
       | Custom s -> s
+
+  method name = name
 
   method module_name = "Netif"
 
@@ -534,23 +531,22 @@ class network_conf conf = object (self)
 
   method libraries = self#packages
 
-  method connect _ modname _ = Some begin
-      Printf.sprintf "%s.connect %S"
-        modname
-        (match conf with Tap0 -> "tap0" | Custom s -> s)
-    end
+  method connect _ modname _ =
+    Printf.sprintf "%s.connect %S"
+      modname
+      (match conf with Tap0 -> "tap0" | Custom s -> s)
 
 end
 
-let tap0 = impl (new network_conf Tap0)
-let netif dev = impl (new network_conf @@ Custom dev)
+let tap0 = impl (network_conf Tap0)
+let netif dev = impl (network_conf @@ Custom dev)
 
 
 type ethernet = ETHERNET
 let ethernet = Type ETHERNET
 
-class ethernet_conf = object (self)
-  inherit dummy_conf
+let ethernet_conf = object (self)
+  inherit base_configurable
 
   method ty = network @-> ethernet
   method name = "ethif"
@@ -562,22 +558,21 @@ class ethernet_conf = object (self)
     | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ]
     | `Xen  -> [ "tcpip.ethif" ]
 
-  method connect _ modname args = Some begin match args with
-      | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
-      | _ -> failwith "The ethernet connect should receive exactly one argument."
-    end
+  method connect _ modname = function
+    | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
+    | _ -> failwith "The ethernet connect should receive exactly one argument."
 
 end
 
-let etif_func = impl (new ethernet_conf)
+let etif_func = impl ethernet_conf
 let etif network = etif_func $ network
 
 
 type arpv4 = Arpv4
 let arpv4 = Type Arpv4
 
-class arpv4_conf = object
-  inherit dummy_conf
+let arpv4_conf = object
+  inherit base_configurable
   method ty = clock @-> time @-> ethernet @-> arpv4
 
   method name = "arpv4"
@@ -588,14 +583,13 @@ class arpv4_conf = object
     | `Unix | `MacOSX -> ["tcpip.arpv4-unix"]
     | `Xen  -> ["tcpip.arpv4"]
 
-  method connect _ modname args = Some begin match args with
-      | [ _clock ; _time ; eth ] -> Printf.sprintf "%s.connect %s" modname eth
-      | _ -> failwith "The arpv4 connect should receive exactly three arguments."
-    end
+  method connect _ modname = function
+    | [ _clock ; _time ; eth ] -> Printf.sprintf "%s.connect %s" modname eth
+    | _ -> failwith "The arpv4 connect should receive exactly three arguments."
 
 end
 
-let arp_func = impl (new arpv4_conf)
+let arp_func = impl arpv4_conf
 let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) =
   arp_func $ clock $ time $ eth
 
@@ -629,8 +623,8 @@ let meta_ipv4_config t =
        (List.map (Printf.sprintf "Ipaddr.V4.of_string_exn %S")
           (List.map Ipaddr.V4.to_string t.gateways)))
 
-class ipv4_conf config = object
-  inherit dummy_conf
+let ipv4_conf config = object
+  inherit base_configurable
 
   method ty = arpv4 @-> ipv4
 
@@ -642,28 +636,26 @@ class ipv4_conf config = object
     | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
     | `Xen  -> [ "tcpip.ipv4" ]
 
-  method connect _ modname args = Some begin match args with
-      | [ ip ] ->
-        Format.asprintf
-          "let i = Ipaddr.V4.of_string_exn in@;\
-           %s.set_ip ip (i %S) >>= fun () ->@;\
-           %s.set_ip_netmask ip (i %S) >>= fun () ->@;\
-           %s.set_ip_gateways ip %a >>= fun () ->@;\
-           return (`Ok %s)@;"
-          modname (Ipaddr.V4.to_string config.address)
-          modname (Ipaddr.V4.to_string config.netmask)
-          modname
-          Fmt.(Dump.list
-              (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
-          config.gateways
-          ip
-      | _ -> failwith "The ipv4 connect should receive exactly one argument."
-    end
-
+  method connect _ modname = function
+    | [ ip ] ->
+      Format.asprintf
+        "let i = Ipaddr.V4.of_string_exn in@;\
+         %s.set_ip ip (i %S) >>= fun () ->@;\
+         %s.set_ip_netmask ip (i %S) >>= fun () ->@;\
+         %s.set_ip_gateways ip %a >>= fun () ->@;\
+         return (`Ok %s)@;"
+        modname (Ipaddr.V4.to_string config.address)
+        modname (Ipaddr.V4.to_string config.netmask)
+        modname
+        Fmt.(Dump.list
+            (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
+        config.gateways
+        ip
+    | _ -> failwith "The ipv4 connect should receive exactly one argument."
 
 end
 
-let ipv4_func config = impl (new ipv4_conf config)
+let ipv4_func config = impl (ipv4_conf config)
 
 let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config =
   let etif = etif net in
@@ -694,8 +686,8 @@ let meta_ipv6_config t =
        (List.map (Printf.sprintf "Ipaddr.V6.of_string_exn %S")
           (List.map Ipaddr.V6.to_string t.gateways)))
 
-class ipv6_conf config = object
-  inherit dummy_conf
+let ipv6_conf config = object
+  inherit base_configurable
 
   method ty = clock @-> time @-> ethernet @-> ipv6
 
@@ -707,30 +699,29 @@ class ipv6_conf config = object
     | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
     | `Xen  -> [ "tcpip.ipv6" ]
 
-  method connect _ modname args = Some begin match args with
-      | [ _clock ; _time ; ip ] ->
-        Format.asprintf
-          "let i = Ipaddr.V6.of_string_exn in@;\
-           %s.set_ip ip (i %S) >>= fun () ->@;\
-           %a@;\
-           %s.set_ip_gateways ip [%a] >>= fun () ->@;\
-           return (`Ok %s)@;"
-          modname (Ipaddr.V6.to_string config.address)
-          Fmt.(list @@ fun fmt n ->
-            Fmt.pf fmt "%s.set_ip_netmask ip (i %S) >>= fun () ->"
-              modname (Ipaddr.V6.Prefix.to_string n)
-          ) config.netmask
-          modname
-          Fmt.(Dump.list
-              (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V6.to_string n)))
-          config.gateways
-          ip
-      | _ -> failwith "The ipv6 connect should receive exactly three arguments."
-    end
+  method connect _ modname = function
+    | [ _clock ; _time ; ip ] ->
+      Format.asprintf
+        "let i = Ipaddr.V6.of_string_exn in@;\
+         %s.set_ip ip (i %S) >>= fun () ->@;\
+         %a@;\
+         %s.set_ip_gateways ip [%a] >>= fun () ->@;\
+         return (`Ok %s)@;"
+        modname (Ipaddr.V6.to_string config.address)
+        Fmt.(list @@ fun fmt n ->
+          Fmt.pf fmt "%s.set_ip_netmask ip (i %S) >>= fun () ->"
+            modname (Ipaddr.V6.Prefix.to_string n)
+        ) config.netmask
+        modname
+        Fmt.(Dump.list
+            (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V6.to_string n)))
+        config.gateways
+        ip
+    | _ -> failwith "The ipv6 connect should receive exactly three arguments."
 
 end
 
-let ipv6_func config = impl (new ipv6_conf config)
+let ipv6_func config = impl (ipv6_conf config)
 
 let create_ipv6
     ?(time = default_time)
@@ -750,8 +741,9 @@ let udpv4 : udpv4 typ = udp
 type udpv6 = v6 udp
 let udpv6 : udpv6 typ = udp
 
-class ['a]udp_direct_conf = object
-  inherit dummy_conf
+(* Value restriction ... *)
+let udp_direct_conf () = object
+  inherit base_configurable
 
   method ty : ('a ip -> 'a udp) typ = ip @-> udp
 
@@ -761,16 +753,15 @@ class ['a]udp_direct_conf = object
   method packages = [ "tcpip" ]
   method libraries = [ "tcpip.udp" ]
 
-  method connect _ modname args = Some begin match args with
-      | [ ip ] ->
-        Printf.sprintf "%s.connect %s" modname ip
-      | _ -> failwith "The udpv6 connect should receive exactly one argument."
-    end
+  method connect _ modname = function
+    | [ ip ] ->
+      Printf.sprintf "%s.connect %s" modname ip
+    | _ -> failwith "The udpv6 connect should receive exactly one argument."
 
 end
 
 (* Value restriction ... *)
-let udp_direct_func () = impl (new udp_direct_conf)
+let udp_direct_func () = impl (udp_direct_conf ())
 
 let direct_udp ip = udp_direct_func () $ ip
 
@@ -778,11 +769,12 @@ let pp_ipv4_opt =
   Fmt.(Dump.option @@
     fun fmt ip -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string ip))
 
-class udpv4_socket_conf ipv4 = object (self)
-  inherit dummy_conf
+let udpv4_socket_conf ipv4 = object (self)
+  inherit base_configurable
   method ty = udpv4
 
-  method name = "udpv4_socket"
+  val name = Name.of_key "udpv4_socket" ~base:"udpv4_socket"
+  method name = name
   method module_name = "Udpv4_socket"
 
   method packages = [ "tcpip" ]
@@ -790,13 +782,13 @@ class udpv4_socket_conf ipv4 = object (self)
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
-  method connect _ modname _ = Some begin
-      Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
-    end
+  method connect _ modname _ =
+    Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
+
 
 end
 
-let socket_udpv4 ip = impl (new udpv4_socket_conf ip)
+let socket_udpv4 ip = impl (udpv4_socket_conf ip)
 
 
 type 'a tcp = TCP
@@ -808,8 +800,9 @@ let tcp = Type TCP
 let tcpv4 : tcpv4 typ = tcp
 let tcpv6 : tcpv6 typ = tcp
 
-class ['a]tcp_direct_conf = object
-  inherit dummy_conf
+(* Value restriction ... *)
+let tcp_direct_conf () = object
+  inherit base_configurable
 
   method ty =
     clock @-> time @-> random @-> (ip : 'a ip typ) @-> (tcp : 'a tcp typ)
@@ -820,26 +813,26 @@ class ['a]tcp_direct_conf = object
   method packages = [ "tcpip" ]
   method libraries = [ "tcpip.tcp" ]
 
-  method connect _ modname args = Some begin match args with
-      | [ _clock ; _time ; _random ; ip ] ->
-        Printf.sprintf "%s.connect %s" modname ip
-      | _ -> failwith "The tcp connect should receive exactly four arguments."
-    end
+  method connect _ modname = function
+    | [ _clock ; _time ; _random ; ip ] ->
+      Printf.sprintf "%s.connect %s" modname ip
+    | _ -> failwith "The tcp connect should receive exactly four arguments."
 end
 
 (* Value restriction ... *)
-let tcp_direct_func () = impl (new tcp_direct_conf)
+let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
     ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ip =
   tcp_direct_func () $ clock $ time $ random $ ip
 
 
-class tcpv4_socket_conf ipv4 = object (self)
-  inherit dummy_conf
+let tcpv4_socket_conf ipv4 = object (self)
+  inherit base_configurable
   method ty = tcpv4
 
-  method name = "tcpv4_socket"
+  val name = Name.of_key "tcpv4_socket" ~base:"tcpv4_socket"
+  method name = name
   method module_name = "Tcpv4_socket"
 
   method packages = [ "tcpip" ]
@@ -847,12 +840,12 @@ class tcpv4_socket_conf ipv4 = object (self)
     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
-  method connect _ modname _ = Some begin
-      Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
-    end
+  method connect _ modname _ =
+    Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
+
 end
 
-let socket_tcpv4 ip = impl (new tcpv4_socket_conf ip)
+let socket_tcpv4 ip = impl (tcpv4_socket_conf ip)
 
 
 
@@ -1364,8 +1357,8 @@ let socket_tcpv4 ip = impl (new tcpv4_socket_conf ip)
 (** Special devices *)
 
 
-class bootvar : [job] configurable = object (self)
-  inherit dummy_conf
+let bootvar = impl @@ object
+  inherit base_configurable
   method ty = job
   method name = "bootvar"
   method module_name = "Bootvar_gen"
@@ -1376,22 +1369,19 @@ class bootvar : [job] configurable = object (self)
     | `Unix | `MacOSX -> []
     | `Xen -> [ "mirage-bootvar" ]
 
-  method! connect t _modname _args =
-    Some begin match get_mode () with
-      | `Unix | `MacOSX  ->
-        Printf.sprintf
-          "OS.Env.argv () >>= Functoria_runtime.with_argv Bootvar_gen.keys %S" (Info.name t) ;
-      | `Xen ->
-        Format.sprintf
-          "Bootvar.create () >>= function@;\
-           | `Ok t -> Functoria_runtime.with_kv Bootvar_gen.keys %S (Bootvar.parameters t)@;\
-           | `Error s -> %s@;"
-          (Info.name t) (driver_error self#name) ;
+  method connect t _modname _args = match get_mode () with
+    | `Unix | `MacOSX  ->
+      Printf.sprintf
+        "OS.Env.argv () >>= Functoria_runtime.with_argv Bootvar_gen.keys %S"
+        (Info.name t) ;
+    | `Xen ->
+      Format.sprintf
+        "Bootvar.create () >>= function@;\
+         | `Ok t -> Functoria_runtime.with_kv Bootvar_gen.keys %S (Bootvar.parameters t)@;\
+         | `Error s -> %s@;"
+        (Info.name t) (driver_error "bootvar") ;
 
-    end;
 end
-
-let bootvar = impl (new bootvar)
 
 (* module Tracing = struct *)
 (*   type t = { *)
@@ -1437,8 +1427,8 @@ let bootvar = impl (new bootvar)
 (*   { Tracing.size } *)
 
 
-class nocrypto = object (self)
-  inherit dummy_conf
+let nocrypto = impl @@ object
+  inherit base_configurable
   method ty = job
   method name = "nocrypto"
   method module_name = "Nocrypto_entropy"
@@ -1452,10 +1442,12 @@ class nocrypto = object (self)
     | `Xen            -> ["nocrypto.xen"]
     | `Unix | `MacOSX -> ["nocrypto.lwt"]
 
-  method connect _ _ _ = Some begin match get_mode () with
+  method connect _ _ _ =
+    let s = match get_mode () with
       | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
-    end
+    in
+    Fmt.strf "%s >|= fun x -> `Ok x" s
 
 end
 
@@ -1801,33 +1793,33 @@ module Project = struct
 
   let driver_error = driver_error
 
-  class conf ~name ~root jobs : [job] configurable = object (self)
-    inherit dummy_conf
+  let configurable ~name ~root jobs = object
+    inherit base_configurable
     method ty = job
     method name = "main"
     method module_name = "Mirage_runtime"
-    method! keys = [ Key.V target ]
+    method keys = [ Key.V target ]
 
-    method! packages =
+    method packages =
       match get_mode () with
       | `Unix | `MacOSX -> ["mirage-unix"]
       | `Xen  -> ["mirage-xen"]
 
-    method! libraries = [
+    method libraries = [
       "lwt.syntax" ; "mirage.runtime" ;
       "mirage-types.lwt"
     ]
 
-    method! connect _ _mod names =
-      Some (Fmt.strf
+    method connect _ _mod names =
+      Fmt.strf
         "OS.Main.run (bootvar () >>= fun () -> join %a)"
-        Fmt.(Dump.list @@ fmt "%s ()") names)
+        Fmt.(Dump.list @@ fmt "%s ()") names
 
     method configure info = configure info
 
     method clean = clean ~name ~root
 
-    method! dependencies = bootvar :: jobs
+    method dependencies = bootvar :: jobs
 
   end
 

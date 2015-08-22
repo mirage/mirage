@@ -53,7 +53,7 @@ type job = JOB
 let job = Type JOB
 
 module rec Typ : sig
-  class type ['ty] configurable = object ('self)
+  class type ['ty] configurable = object
     method ty : 'ty typ
     method name: string
     method module_name: string
@@ -63,7 +63,6 @@ module rec Typ : sig
     method connect : Info.t -> string -> string list -> string option
     method configure: Info.t -> unit
     method clean: unit
-    method update_path: string -> 'self
     method dependencies: job Typ.impl list
   end
 
@@ -95,7 +94,6 @@ class dummy_conf = object
   method connect (_:Info.t) (_:string) (_ : string list) : string option = None
   method configure (_ : Info.t) = ()
   method clean = ()
-  method update_path (_s: string) = {< >}
   method dependencies : job impl list = []
 end
 
@@ -385,7 +383,6 @@ class ['ty] foreign
       Some (Printf.sprintf "%s.start %s" m (String.concat " " args))
     method clean = ()
     method configure _ = ()
-    method update_path _ = {<>}
     method dependencies = []
   end
 

@@ -80,7 +80,7 @@ val job: job typ
 (** {2 Implementation of new devices} *)
 
 (** Signature for configurable devices. *)
-class type ['ty] configurable = object ('self)
+class type ['ty] configurable = object
 
   method ty : 'ty typ
   (** Type of the device. *)
@@ -111,10 +111,6 @@ class type ['ty] configurable = object ('self)
   method clean: unit
   (** Clean all the files generated to use the device. *)
 
-  method update_path: string -> 'self
-  (** [t#update_path root] prefixes all the path appearing in [t] with
-      the the prefix [root]. *)
-
   method dependencies : job impl list
   (** The list of dependencies that must be initalized before this module. *)
 
@@ -131,7 +127,6 @@ class dummy_conf : object ('self)
   method connect : Info.t -> string -> string list -> string option
   method configure : Info.t -> unit
   method clean : unit
-  method update_path : string -> 'self
   method dependencies : job impl list
 end
 

@@ -60,7 +60,7 @@ module rec Typ : sig
     method packages: string list
     method libraries: string list
     method keys: Key.t list
-    method connect : Info.t -> string -> string list -> string option
+    method connect : Info.t -> string -> string list -> string
     method configure: Info.t -> unit
     method clean: unit
     method dependencies: job Typ.impl list
@@ -91,7 +91,8 @@ class base_configurable = object
   method libraries : string list = []
   method packages : string list = []
   method keys : Key.t list = []
-  method connect (_:Info.t) (_:string) (_ : string list) : string option = None
+  method connect (_:Info.t) (_:string) l =
+    Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
   method configure (_ : Info.t) = ()
   method clean = ()
   method dependencies : job impl list = []
@@ -308,12 +309,6 @@ end = struct
     end
   and configure configured info (E m) = configure' configured info m
 
-  let connect_string info m modname l =
-    match m#connect info modname l with
-    | Some s -> s
-    | None ->
-      Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
-
   let rec connect' tbl info error m =
     let iname = name m in
     if not (Hashtbl.mem tbl iname) then begin
@@ -324,7 +319,7 @@ end = struct
         List.iter (connect tbl info error) deps ;
         let names = List.map (map_E name) deps in
         Codegen.append_main "let %s () =" iname;
-        Codegen.append_main "  %s" (connect_string info m modname names);
+        Codegen.append_main "  %s" (m#connect info modname names);
         Codegen.newline_main ()
       | List (f, deps, args) ->
         List.iter (connect' tbl info error) args ;
@@ -338,7 +333,7 @@ end = struct
           Codegen.append_main "  | `Error e -> %s" (error n);
           Codegen.append_main "  | `Ok %s ->" n;
         ) names;
-        Codegen.append_main "  %s" (connect_string info f modname names);
+        Codegen.append_main "  %s" (f#connect info modname names);
         Codegen.newline_main ()
     end
   and connect tbl info error (E m) = connect' tbl info error m
@@ -380,7 +375,7 @@ class ['ty] foreign
     method libraries = libraries
     method packages = packages
     method connect _ m args =
-      Some (Printf.sprintf "%s.start %s" m (String.concat " " args))
+      Printf.sprintf "%s.start %s" m (String.concat " " args)
     method clean = ()
     method configure _ = ()
     method dependencies = []

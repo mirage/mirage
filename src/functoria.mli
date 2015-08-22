@@ -102,7 +102,7 @@ class type ['ty] configurable = object
   method keys: Key.t list
   (** Return the list of keys to configure the device. *)
 
-  method connect : Info.t -> string -> string list -> string option
+  method connect : Info.t -> string -> string list -> string
   (** Return the function call to connect at runtime with the device. *)
 
   method configure: Info.t -> unit
@@ -124,7 +124,7 @@ class base_configurable : object
   method libraries : string list
   method packages : string list
   method keys : Key.t list
-  method connect : Info.t -> string -> string list -> string option
+  method connect : Info.t -> string -> string list -> string
   method configure : Info.t -> unit
   method clean : unit
   method dependencies : job impl list

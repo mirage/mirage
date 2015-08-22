@@ -17,13 +17,12 @@
 open Functoria
 
 let argv = impl @@ object
-  inherit base_configurable
-  method ty = job
-  method name = "bootvar"
-  method module_name = "Bootvar_gen"
-  method! connect config _modname _args = Some begin
+    inherit base_configurable
+    method ty = job
+    method name = "bootvar"
+    method module_name = "Bootvar_gen"
+    method! connect config _modname _args =
       Printf.sprintf
         "Functoria_runtime.with_argv Bootvar_gen.keys %S Sys.argv"
         (Info.name config)
-    end;
 end

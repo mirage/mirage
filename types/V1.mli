@@ -125,6 +125,12 @@ module type CLOCK = sig
   (** Convert a time in seconds, as returned by {!time}, into a date
       and a time. Assumes UTC (Coordinated Universal Time), also known
       as GMT. *)
+
+  val now_d_ps : unit -> int * int64
+  (** [now_d_ps ()] is [(d, ps)] representing the POSIX time occuring
+      at [d] * 86'400e12 + [ps] POSIX picoseconds from the epoch
+      1970-01-01 00:00:00 UTC. [ps] is in the range
+      \[[0];[86_399_999_999_999_999L]\]. *)
 end
 
 (** {1 Connection between endpoints} *)

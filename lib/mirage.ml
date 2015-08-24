@@ -977,46 +977,55 @@ let tcp_conduit_connector = impl @@ object
 
 end
 
+let tls_conduit_connector = impl @@ object
+  inherit base_configurable
+  method ty = conduit_connector
+
+  method name = "tls_conduit_connector"
+  method module_name = "Conduit_mirage"
+
+  method packages = [ "mirage-conduit" ; "tls" ]
+  method libraries = [ "conduit.mirage" ; "tls.mirage" ]
+
+  method connect _ _ _ =
+    "return (`Ok Conduit_mirage.with_tls)"
+
+end
+
+
 type conduit = Conduit
 let conduit = Type Conduit
 
-let conduit_conf stackv4 tls = impl @@ object
+let conduit_with_connectors connectors = impl @@ object
   inherit base_configurable
   method ty = conduit
 
   method name = Name.of_key "conduit" ~base:"conduit"
   method module_name = "Conduit_mirage"
 
-  val tls_dep = if tls then [] else ["tls"]
-  method packages = "mirage-conduit" :: tls_dep
-  method libraries = "conduit.mirage" :: tls_dep
+  method packages = [ "mirage-conduit" ]
+  method libraries = [ "conduit.mirage" ]
 
-  method dependencies = match stackv4 with
-    | Some m -> [ hide ( tcp_conduit_connector $ m) ]
-    | None   -> []
+  method dependencies = List.map hide connectors
 
-  method connect _i _ names =
-    let if_tls fmt b =
-      if not b then Fmt.nop fmt ()
-      else Fmt.pf fmt "Conduit_mirage.with_tls t >>= fun t ->@;"
-    in
-    let if_stack fmt = function
-      | [ ] -> Fmt.nop fmt ()
-      | [ stack ] ->
-        Fmt.pf fmt
-          "%s t >>= fun t ->@;" stack
-    | _ -> failwith "The http connect should receive exactly one argument."
-    in
+  method connect _i _ connectors =
+    let pp_connector = Fmt.fmt "%s >>=" in
+    let pp_connectors = Fmt.list ~sep:Fmt.sp pp_connector in
     Fmt.strf
-      "Lwt.return Conduit_mirage.empty >>= fun t ->@;\
-      %a\
+      "Lwt.return Conduit_mirage.empty >>=@ \
       %a\
       Lwt.return (`Ok t)"
-      if_stack names
-      if_tls tls
+      pp_connectors connectors
 end
 
-let conduit_direct ?(tls=false) s = conduit_conf (Some s) tls
+let conduit_direct ?(tls=false) s =
+  let connectors = [tcp_conduit_connector $ s] in
+  let connectors =
+    if tls
+    then tls_conduit_connector :: connectors
+    else connectors
+  in
+  conduit_with_connectors connectors
 
 
 type resolver = Resolver

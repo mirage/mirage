@@ -304,52 +304,53 @@ val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
 
 
 
-(* (\** {Network stack configuration} *\) *)
+(** {Network stack configuration} *)
 
-(* (\** Implementation of the [V1.STACKV4] signature. *\) *)
+(** Implementation of the [V1.STACKV4] signature. *)
 
-(* type stackv4 *)
+type stackv4
 
-(* val stackv4: stackv4 typ *)
+val stackv4: stackv4 typ
 
-(* val direct_stackv4_with_default_ipv4: *)
-(*   ?clock:clock impl -> *)
-(*   ?random:random impl -> *)
-(*   ?time:time impl -> *)
-(*   console impl -> network impl -> stackv4 impl *)
+val direct_stackv4_with_default_ipv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> stackv4 impl
 
-(* val direct_stackv4_with_static_ipv4: *)
-(*   ?clock:clock impl -> *)
-(*   ?random:random impl -> *)
-(*   ?time:time impl -> *)
-(*   console impl -> network impl -> ipv4_config -> stackv4 impl *)
+val direct_stackv4_with_static_ipv4:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> ipv4_config -> stackv4 impl
 
-(* val direct_stackv4_with_dhcp: *)
-(*   ?clock:clock impl -> *)
-(*   ?random:random impl -> *)
-(*   ?time:time impl -> *)
-(*   console impl -> network impl -> stackv4 impl *)
+val direct_stackv4_with_dhcp:
+  ?clock:clock impl ->
+  ?random:random impl ->
+  ?time:time impl ->
+  console impl -> network impl -> stackv4 impl
 
-(* val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl *)
+val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
 
-(* (\** {Resolver configuration} *\) *)
+(** {Resolver configuration} *)
 
-(* type resolver *)
-(* val resolver: resolver typ *)
-(* val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl *)
-(* val resolver_unix_system : resolver impl *)
+type resolver
+val resolver: resolver typ
+val resolver_dns :
+  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?time:time impl -> stackv4 impl -> resolver impl
+val resolver_unix_system : resolver impl
 
-(* (\** {Conduit configuration} *\) *)
+(** {Conduit configuration} *)
 
-(* type conduit *)
-(* val conduit: conduit typ *)
-(* val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl *)
+type conduit
+val conduit: conduit typ
+val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
 
-(* (\** {HTTP configuration} *\) *)
+(** {HTTP configuration} *)
 
-(* type http *)
-(* val http: http typ *)
-(* val http_server: conduit impl -> http impl *)
+type http
+val http: http typ
+val http_server: conduit impl -> http impl
 
 
 (* (\** {2 Tracing} *\) *)

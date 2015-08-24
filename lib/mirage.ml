@@ -640,13 +640,13 @@ let ipv4_conf config = object
     | [ ip ] ->
       Format.asprintf
         "let i = Ipaddr.V4.of_string_exn in@;\
-         %s.set_ip ip (i %S) >>= fun () ->@;\
-         %s.set_ip_netmask ip (i %S) >>= fun () ->@;\
-         %s.set_ip_gateways ip %a >>= fun () ->@;\
+         %s.set_ip %s (i %S) >>= fun () ->@;\
+         %s.set_ip_netmask %s (i %S) >>= fun () ->@;\
+         %s.set_ip_gateways %s %a >>= fun () ->@;\
          return (`Ok %s)@;"
-        modname (Ipaddr.V4.to_string config.address)
-        modname (Ipaddr.V4.to_string config.netmask)
-        modname
+        ip modname (Ipaddr.V4.to_string config.address)
+        ip modname (Ipaddr.V4.to_string config.netmask)
+        ip modname
         Fmt.(Dump.list
             (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
         config.gateways
@@ -849,513 +849,259 @@ let socket_tcpv4 ip = impl (tcpv4_socket_conf ip)
 
 
 
-(* module STACKV4_direct = struct *)
-
-(*   type t = { *)
-(*     clock  : clock impl; *)
-(*     time   : time impl; *)
-(*     console: console impl; *)
-(*     network: network impl; *)
-(*     random : random impl; *)
-(*     config : [`DHCP | `IPV4 of ipv4_config]; *)
-(*   } *)
-
-(*   let name t = *)
-(*     let key = "stackv4" *)
-(*               ^ Impl.name t.clock *)
-(*               ^ Impl.name t.time *)
-(*               ^ Impl.name t.console *)
-(*               ^ Impl.name t.network *)
-(*               ^ Impl.name t.random *)
-(*               ^ match t.config with *)
-(*               | `DHCP   -> "dhcp" *)
-(*               | `IPV4 i -> meta_ipv4_config i in *)
-(*     Name.of_key key ~base:"stackv4" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     "tcpip" *)
-(*     :: Impl.packages t.clock *)
-(*     @  Impl.packages t.time *)
-(*     @  Impl.packages t.console *)
-(*     @  Impl.packages t.network *)
-(*     @  Impl.packages t.random *)
-
-(*   let libraries t = *)
-(*     "tcpip.stack-direct" *)
-(*     :: "mirage.runtime" *)
-(*     :: Impl.libraries t.clock *)
-(*     @  Impl.libraries t.time *)
-(*     @  Impl.libraries t.console *)
-(*     @  Impl.libraries t.network *)
-(*     @  Impl.libraries t.random *)
-
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     Impl.configure t.clock; *)
-(*     Impl.configure t.time; *)
-(*     Impl.configure t.console; *)
-(*     Impl.configure t.network; *)
-(*     Impl.configure t.random; *)
-(*     let ethif_name = module_name t ^ "_E" in *)
-(*     let arpv4_name = module_name t ^ "_A" in *)
-(*     let ipv4_name = module_name t ^ "_I" in *)
-(*     let udpv4_name = module_name t ^ "_U" in *)
-(*     let tcpv4_name = module_name t ^ "_T" in *)
-(*     append_main "module %s = Ethif.Make(%s)" ethif_name (Impl.module_name t.network); *)
-(*     append_main "module %s = Arpv4.Make(%s)(%s)(%s)" arpv4_name ethif_name *)
-(*       (Impl.module_name t.clock) (Impl.module_name t.time); *)
-(*     append_main "module %s = Ipv4.Make(%s)(%s)" ipv4_name ethif_name arpv4_name; *)
-(*     append_main "module %s = Udp.Make (%s)" udpv4_name ipv4_name; *)
-(*     append_main "module %s = Tcp.Flow.Make(%s)(%s)(%s)(%s)" *)
-(*       tcpv4_name ipv4_name (Impl.module_name t.time) *)
-(*       (Impl.module_name t.clock) (Impl.module_name t.random); *)
-(*     append_main "module %s = Tcpip_stack_direct.Make(%s)(%s)(%s)(%s)(%s)(%s)(%s)(%s)(%s)" *)
-(*       (module_name t) *)
-(*       (Impl.module_name t.console) *)
-(*       (Impl.module_name t.time) *)
-(*       (Impl.module_name t.random) *)
-(*       (Impl.module_name t.network) *)
-(*       ethif_name arpv4_name ipv4_name udpv4_name tcpv4_name; *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "  %s () >>= function" (Impl.name t.console); *)
-(*     append_main "  | `Error _    -> %s" *)
-(*       (driver_initialisation_error (Impl.name t.console)); *)
-(*     append_main "  | `Ok console ->"; *)
-(*     append_main "  %s () >>= function" (Impl.name t.network); *)
-(*     append_main "  | `Error e      ->"; *)
-(*     let net_init_error_msg_fn = "Mirage_runtime.string_of_network_init_error" in *)
-(*     append_main "    fail (Failure (%s %S e))" *)
-(*       net_init_error_msg_fn (Impl.name t.network); *)
-(*     append_main "  | `Ok interface ->"; *)
-(*     append_main "  let config = {"; *)
-(*     append_main "    V1_LWT.name = %S;" name; *)
-(*     append_main "    console; interface;"; *)
-(*     begin match t.config with *)
-(*       | `DHCP   -> append_main "    mode = `DHCP;" *)
-(*       | `IPV4 i -> append_main "    mode = `IPv4 %s;" (meta_ipv4_config i); *)
-(*     end; *)
-(*     append_main "  } in"; *)
-(*     append_main "  %s.connect interface >>= function" ethif_name; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error ethif_name); *)
-(*     append_main "  | `Ok ethif ->"; *)
-(*     append_main "  %s.connect ethif >>= function" arpv4_name; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error arpv4_name); *)
-(*     append_main "  | `Ok arpv4 ->"; *)
-(*     append_main "  %s.connect ethif arpv4 >>= function" ipv4_name; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error ipv4_name); *)
-(*     append_main "  | `Ok ipv4 ->"; *)
-(*     append_main "  %s.connect ipv4 >>= function" udpv4_name; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error udpv4_name); *)
-(*     append_main "  | `Ok udpv4 ->"; *)
-(*     append_main "  %s.connect ipv4 >>= function" tcpv4_name; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error tcpv4_name); *)
-(*     append_main "  | `Ok tcpv4 ->"; *)
-(*     append_main "  %s.connect config ethif arpv4 ipv4 udpv4 tcpv4" (module_name t); *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t.clock; *)
-(*     Impl.clean t.time; *)
-(*     Impl.clean t.console; *)
-(*     Impl.clean t.network; *)
-(*     Impl.clean t.random *)
-
-(*   let update_path t root = *)
-(*     { t with *)
-(*       clock   = Impl.update_path t.clock root; *)
-(*       time    = Impl.update_path t.time root; *)
-(*       console = Impl.update_path t.console root; *)
-(*       network = Impl.update_path t.network root; *)
-(*       random  = Impl.update_path t.random root; *)
-(*     } *)
-
-(* end *)
-
-(* module STACKV4_socket = struct *)
-
-(*   type t = { *)
-(*     console: console impl; *)
-(*     ipv4s  : Ipaddr.V4.t list; *)
-(*   } *)
-
-(*   let meta_ips ips = *)
-(*     String.concat "; " *)
-(*       (List.map (fun x -> *)
-(*            Printf.sprintf "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x) *)
-(*          ) ips) *)
-
-(*   let name t = *)
-(*     let key = "stackv4" ^ Impl.name t.console ^ meta_ips t.ipv4s in *)
-(*     Name.of_key key ~base:"stackv4" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     "tcpip" :: Impl.packages t.console *)
-
-(*   let libraries t = *)
-(*     "tcpip.stack-socket" :: Impl.libraries t.console *)
-
-(*   let configure t = *)
-(*     let name = name t in *)
-(*     Impl.configure t.console; *)
-(*     append_main "module %s = Tcpip_stack_socket.Make(%s)" *)
-(*       (module_name t) (Impl.module_name t.console); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "  %s () >>= function" (Impl.name t.console); *)
-(*     append_main "  | `Error _    -> %s" *)
-(*       (driver_initialisation_error (Impl.name t.console)); *)
-(*     append_main "  | `Ok console ->"; *)
-(*     append_main "  let config = {"; *)
-(*     append_main "    V1_LWT.name = %S;" name; *)
-(*     append_main "    console; interface = [%s];" (meta_ips t.ipv4s); *)
-(*     append_main "    mode = ();"; *)
-(*     append_main "  } in"; *)
-(*     append_main "  Udpv4_socket.connect None >>= function"; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error "Udpv4_socket"); *)
-(*     append_main "  | `Ok udpv4 ->"; *)
-(*     append_main "  Tcpv4_socket.connect None >>= function"; *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error "Tcpv4_socket"); *)
-(*     append_main "  | `Ok tcpv4 ->"; *)
-(*     append_main "  %s.connect config udpv4 tcpv4" (module_name t); *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t.console *)
-
-(*   let update_path t root = *)
-(*     { t with console = Impl.update_path t.console root } *)
-
-(* end *)
-
-(* type stackv4 = STACKV4 *)
-
-(* let stackv4 = Type STACKV4 *)
-
-(* let direct_stackv4_with_dhcp *)
-(*     ?(clock=default_clock) *)
-(*     ?(random=default_random) *)
-(*     ?(time=default_time) *)
-(*     console network = *)
-(*   let t = { *)
-(*     STACKV4_direct.console; network; time; clock; random; *)
-(*     config = `DHCP } in *)
-(*   impl stackv4 t (module STACKV4_direct) *)
-
-(* let direct_stackv4_with_default_ipv4 *)
-(*     ?(clock=default_clock) *)
-(*     ?(random=default_random) *)
-(*     ?(time=default_time) *)
-(*     console network = *)
-(*   let t = { *)
-(*     STACKV4_direct.console; network; clock; time; random; *)
-(*     config = `IPV4 default_ipv4_conf; *)
-(*   } in *)
-(*   impl stackv4 t (module STACKV4_direct) *)
-
-(* let direct_stackv4_with_static_ipv4 *)
-(*     ?(clock=default_clock) *)
-(*     ?(random=default_random) *)
-(*     ?(time=default_time) *)
-(*     console network ipv4 = *)
-(*   let t = { *)
-(*     STACKV4_direct.console; network; clock; time; random; *)
-(*     config = `IPV4 ipv4; *)
-(*   } in *)
-(*   impl stackv4 t (module STACKV4_direct) *)
-
-(* let socket_stackv4 console ipv4s = *)
-(*   impl stackv4 { STACKV4_socket.console; ipv4s } (module STACKV4_socket) *)
-
-(* module Conduit = struct *)
-
-(*   type t = { *)
-(*     stackv4: stackv4 impl option; *)
-(*     tls    : bool; *)
-(*   } *)
-
-(*   let name t = *)
-(*     let key = *)
-(*       "conduit" ^ *)
-(*       (match t.stackv4 with None -> "" | Some t -> Impl.name t) ^ *)
-(*       (match t.tls with false -> "" | true -> "tls") *)
-(*     in *)
-(*     Name.of_key key ~base:"conduit" *)
-
-(*   let module_name t = String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     "mirage-conduit" :: ( *)
-(*       match t.stackv4 with *)
-(*       | None   -> [] *)
-(*       | Some s -> Impl.packages s *)
-(*     ) @ ( *)
-(*       match t.tls with *)
-(*       | false -> [] *)
-(*       | true  -> ["tls"] *)
-(*     ) *)
-
-(*   let libraries t = *)
-(*     "conduit.mirage" :: ( *)
-(*       match t.stackv4 with *)
-(*       | None   -> [] *)
-(*       | Some s -> Impl.libraries s *)
-(*     ) @ ( *)
-(*       match t.tls with *)
-(*       | false -> [] *)
-(*       | true  -> ["tls"] *)
-(*     ) *)
-
-(*   let configure t = *)
-(*     begin match t.stackv4 with *)
-(*       | None   -> () *)
-(*       | Some s -> Impl.configure s *)
-(*     end; *)
-(*     append_main "module %s = Conduit_mirage" (module_name t); *)
-(*     newline_main (); *)
-(*     append_main "let %s () = Lwt.return Conduit_mirage.empty" (name t); *)
-(*     begin match t.stackv4 with *)
-(*       | None   -> () *)
-(*       | Some s -> *)
-(*         append_main "let %s () =" (name t); *)
-(*         append_main "  %s () >>= fun t ->" (name t); *)
-(*         append_main "  %s () >>= function" (Impl.name s); *)
-(*         append_main "  | `Error e -> %s" (driver_initialisation_error "stack"); *)
-(*         append_main "  | `Ok s    ->"; *)
-(*         append_main "    let tcp = Conduit_mirage.stackv4 (module %s) in" *)
-(*           (Impl.module_name s); *)
-(*         append_main "    Conduit_mirage.with_tcp t tcp s" *)
-(*     end; *)
-(*     begin match t.tls with *)
-(*       | false -> () *)
-(*       | true  -> *)
-(*         append_main "let %s () =" (name t); *)
-(*         append_main "  %s () >>= fun t ->" (name t); *)
-(*         append_main "  Conduit_mirage.with_tls t" *)
-(*     end; *)
-(*     append_main "let %s () = %s () >>= fun t -> Lwt.return (`Ok t)" *)
-(*       (name t) (name t); *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     match t.stackv4 with *)
-(*     | None   -> () *)
-(*     | Some s -> Impl.clean s *)
-
-(*   let update_path t root = *)
-(*     match t.stackv4 with *)
-(*     | None   -> t *)
-(*     | Some s -> { t with stackv4 = Some (Impl.update_path s root) } *)
-
-(* end *)
-
-(* type conduit = Conduit *)
-
-(* let conduit = Type Conduit *)
-
-(* let conduit_direct ?(tls=false) s = *)
-(*   impl conduit { Conduit.stackv4 = Some s; tls } (module Conduit) *)
-
-(* module Resolver_unix = struct *)
-(*   type t = unit *)
-
-(*   let name t = *)
-(*     let key = "resolver_unix" in *)
-(*     Name.of_key key ~base:"resolver" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages t = *)
-(*     match get_mode () with *)
-(*     |`Unix | `MacOSX -> [ "mirage-conduit" ] *)
-(*     |`Xen -> failwith "Resolver_unix not supported on Xen" *)
-
-(*   let libraries t = *)
-(*     [ "conduit.mirage"; "conduit.lwt-unix" ] *)
-
-(*   let configure t = *)
-(*     append_main "module %s = Resolver_lwt" (module_name t); *)
-(*     append_main "let %s () =" (name t); *)
-(*     append_main "  return (`Ok Resolver_lwt_unix.system)"; *)
-(*     newline_main () *)
-
-(*   let clean t = () *)
-
-(*   let update_path t root = t *)
-
-(* end *)
-
-(* module Resolver_direct = struct *)
-(*   type t = *)
-(*     [ `DNS of stackv4 impl * Ipaddr.V4.t option * int option ] *)
-
-(*   let name t = *)
-(*     let key = "resolver" ^ match t with *)
-(*      | `DNS (s,_,_) -> Impl.name s in *)
-(*     Name.of_key key ~base:"resolver" *)
-
-(*   let module_name_core t = *)
-(*     String.capitalize (name t) *)
-
-(*   let module_name t = *)
-(*     (module_name_core t) ^ "_res" *)
-
-(*   let packages t = *)
-(*     [ "dns"; "tcpip" ] @ *)
-(*     match t with *)
-(*     | `DNS (s,_,_) -> Impl.packages s *)
-
-(*   let libraries t = *)
-(*     [ "dns.mirage" ] @ *)
-(*     match t with *)
-(*     | `DNS (s,_,_) -> Impl.libraries s *)
-
-(*   let configure t = *)
-(*     begin match t with *)
-(*       | `DNS (s,_,_) -> *)
-(*         Impl.configure s; *)
-(*         append_main "module %s = Resolver_lwt" (module_name t); *)
-(*         append_main "module %s_dns = Dns_resolver_mirage.Make(OS.Time)(%s)" *)
-(*           (module_name_core t) (Impl.module_name s); *)
-(*         append_main "module %s = Resolver_mirage.Make(%s_dns)" *)
-(*           (module_name_core t) (module_name_core t); *)
-(*     end; *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" (name t); *)
-(*     let subname = match t with *)
-(*       | `DNS (s,_,_) -> Impl.name s in *)
-(*     append_main "  %s () >>= function" subname; *)
-(*     append_main "  | `Error _  -> %s" (driver_initialisation_error subname); *)
-(*     append_main "  | `Ok %s ->" subname; *)
-(*     let res_ns = match t with *)
-(*      | `DNS (_,None,_) -> "None" *)
-(*      | `DNS (_,Some ns,_) -> *)
-(*          Printf.sprintf "Ipaddr.V4.of_string %S" (Ipaddr.V4.to_string ns) in *)
-(*     append_main "  let ns = %s in" res_ns; *)
-(*     let res_ns_port = match t with *)
-(*      | `DNS (_,_,None) -> "None" *)
-(*      | `DNS (_,_,Some ns_port) -> Printf.sprintf "Some %d" ns_port in *)
-(*     append_main "  let ns_port = %s in" res_ns_port; *)
-(*     append_main "  let res = %s.init ?ns ?ns_port ~stack:%s () in" (module_name_core t) subname; *)
-(*     append_main "  return (`Ok res)"; *)
-(*     newline_main () *)
-
-(*   let clean = function *)
-(*     | `DNS (s,_,_) -> Impl.clean s *)
-
-(*   let update_path t root = *)
-(*     match t with *)
-(*     | `DNS (s,a,b) -> `DNS (Impl.update_path s root, a, b) *)
-
-(* end *)
-
-(* type resolver = Resolver *)
-
-(* let resolver = Type Resolver *)
-
-(* let resolver_dns ?ns ?ns_port stack = *)
-(*   impl resolver (`DNS (stack, ns, ns_port)) (module Resolver_direct) *)
-
-(* let resolver_unix_system = *)
-(*   impl resolver () (module Resolver_unix) *)
-
-(* module HTTP = struct *)
-
-(*   type t = { conduit: conduit impl } *)
-
-(*   let name { conduit } = *)
-(*     let key = "http" ^ Impl.name conduit in *)
-(*     Name.of_key key ~base:"http" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let packages { conduit }= *)
-(*     [ "mirage-http" ] @ *)
-(*     Impl.packages conduit *)
-
-(*   let libraries { conduit } = *)
-(*     [ "mirage-http" ] @ *)
-(*     Impl.libraries conduit *)
-
-(*   let configure t = *)
-(*     Impl.configure t.conduit; *)
-(*     append_main "module %s = Cohttp_mirage.Server(%s.Flow)" *)
-(*       (module_name t) (Impl.module_name t.conduit); *)
-(*     newline_main (); *)
-(*     append_main "let %s () =" (name t); *)
-(*     append_main "  %s () >>= function" (Impl.name t.conduit); *)
-(*     append_main "  | `Error _ -> assert false"; *)
-(*     append_main "  | `Ok t ->"; *)
-(*     append_main "    let listen s f ="; *)
-(*     append_main "      %s.listen t s (%s.listen f)" *)
-(*       (Impl.module_name t.conduit) (module_name t); *)
-(*     append_main "    in"; *)
-(*     append_main "    return (`Ok listen)"; *)
-(*     newline_main () *)
-
-(*   let clean { conduit } = Impl.clean conduit *)
-
-(*   let update_path { conduit } root = *)
-(*     { conduit =  Impl.update_path conduit root } *)
-
-(* end *)
-
-(* type http = HTTP *)
-
-(* let http = Type HTTP *)
-
-(* let http_server conduit = impl http { HTTP.conduit } (module HTTP) *)
-
-(* type job = JOB *)
-
-(* let job = Type JOB *)
-
-(* module Job = struct *)
-
-(*   type t = { *)
-(*     name: string; *)
-(*     impl: job impl; *)
-(*   } *)
-
-(*   let create impl = *)
-(*     let name = Name.create "job" in *)
-(*     { name; impl } *)
-
-(*   let name t = *)
-(*     t.name *)
-
-(*   let module_name t = *)
-(*     "Job_" ^ t.name *)
-
-(*   let packages t = *)
-(*     Impl.packages t.impl *)
-
-(*   let libraries t = *)
-(*     Impl.libraries t.impl *)
-
-(*   let configure t = *)
-(*     Impl.configure t.impl; *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     Impl.clean t.impl *)
-
-(*   let update_path t root = *)
-(*     { t with impl = Impl.update_path t.impl root } *)
-
-(* end *)
+type stackv4 = STACKV4
+let stackv4 = Type STACKV4
+
+type stackv4_config = [`DHCP | `IPV4 of ipv4_config]
+let pp_stackv4_config fmt = function
+  | `DHCP   -> Fmt.pf fmt "`DHCP"
+  | `IPV4 i -> Fmt.pf fmt "`IPv4 %s" (meta_ipv4_config i)
+
+let stackv4_direct_conf (config : stackv4_config) = impl @@ object
+  inherit base_configurable
+
+  method ty =
+    console @-> time @-> random @-> network @->
+      ethernet @-> arpv4 @-> ipv4 @-> udpv4 @-> tcpv4 @->
+      stackv4
+
+  val name = Name.of_key "stackv4" ~base:"stackv4"
+  method name = name
+  method module_name = "Tcpip_stack_direct.Make"
+
+  method packages = [ "tcpip" ]
+  method libraries = [ "tcpip.stack-direct" ; "mirage.runtime" ]
+
+  method connect _i modname = function
+    | [ console; _t; _r; interface; ethif; arp; ip; udp; tcp ] ->
+      Fmt.strf
+        "let config =@ \
+         @[{ V1_LWT.name = %S;@ console = %s ;\
+         @interface = %s ;@ mode = %a }@] in@;\
+         %s.connect config %s %s %s %s %s"
+        name console
+        interface  pp_stackv4_config config
+        modname ethif arp ip udp tcp
+    | _ -> failwith "Wrong arguments to connect to tcpip direct stack."
+
+end
+
+
+let direct_stackv4_with_config
+    ?(clock=default_clock)
+    ?(random=default_random)
+    ?(time=default_time)
+    console network config =
+  let eth = etif_func $ network in
+  let ip = default_ipv4 network in (* it will set ip things, FIXME *)
+  stackv4_direct_conf config
+  $ console $ time $ random $ network
+  $ eth $ arp ~clock ~time eth $ ip
+  $ direct_udp ip
+  $ direct_tcp ~clock ~random ~time ip
+
+let direct_stackv4_with_dhcp
+    ?clock ?random ?time console network =
+  direct_stackv4_with_config
+    ?clock ?random ?time console network `DHCP
+
+let direct_stackv4_with_default_ipv4
+    ?clock ?random ?time console network =
+  direct_stackv4_with_config
+    ?clock ?random ?time console network (`IPV4 default_ipv4_conf)
+
+let direct_stackv4_with_static_ipv4
+    ?clock ?random ?time console network ipv4 =
+  direct_stackv4_with_config
+    ?clock ?random ?time console network (`IPV4 ipv4)
+
+
+let pp_interface =
+  Fmt.(Dump.list @@
+    fun fmt x -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x)
+  )
+
+let stackv4_socket_conf ipv4s = impl @@ object
+  inherit base_configurable
+
+  method ty = console @-> stackv4
+
+  val name = Name.of_key "stackv4" ~base:"stackv4"
+  method name = name
+  method module_name = "Tcpip_stack_socket.Make"
+
+  method packages = [ "tcpip" ]
+  method libraries = [ "tcpip.stack-socket" ]
+
+  method dependencies =
+    [ hide @@ socket_udpv4 None ; hide @@ socket_tcpv4 None ]
+
+  method connect _i modname = function
+    | [ console ; udpv4 ; tcpv4 ] ->
+      Fmt.strf
+        "let config =@;\
+         @[{ V1_LWT.name = %S;@ console = %s ;\
+         @interface = %a ;@ mode = () }@] in@;\
+         %s.connect config %s %s"
+        name
+        console  pp_interface ipv4s
+        modname udpv4 tcpv4
+    | _ -> failwith "Wrong arguments to connect to tcpip socket stack."
+
+end
+
+let socket_stackv4 console ipv4s =
+  stackv4_socket_conf ipv4s $ console
+
+
+type conduit_connector = Conduit_connector
+let conduit_connector = Type Conduit_connector
+
+let tcp_conduit_connector = impl @@ object
+  inherit base_configurable
+  method ty = stackv4 @-> conduit_connector
+
+  method name = "tcp_conduit_connector"
+  method module_name = "Conduit_mirage.With_tcp"
+
+  method packages = [ "mirage-conduit" ]
+  method libraries = [ "conduit.mirage" ]
+
+  method connect _ modname = function
+    | [ stack ] ->
+      Fmt.strf
+        "let f = %s.connect %s in@ \
+         return (`Ok f)@;"
+        modname stack
+    | _ -> failwith "Wrong arguments to connect to tcp conduit connector."
+
+end
+
+type conduit = Conduit
+let conduit = Type Conduit
+
+let conduit_conf stackv4 tls = impl @@ object
+  inherit base_configurable
+  method ty = conduit
+
+  method name = Name.of_key "conduit" ~base:"conduit"
+  method module_name = "Conduit_mirage"
+
+  val tls_dep = if tls then [] else ["tls"]
+  method packages = "mirage-conduit" :: tls_dep
+  method libraries = "conduit.mirage" :: tls_dep
+
+  method dependencies = match stackv4 with
+    | Some m -> [ hide ( tcp_conduit_connector $ m) ]
+    | None   -> []
+
+  method connect _i _ names =
+    let if_tls fmt b =
+      if not b then Fmt.nop fmt ()
+      else Fmt.pf fmt "Conduit_mirage.with_tls t >>= fun t ->@;"
+    in
+    let if_stack fmt = function
+      | [ ] -> Fmt.nop fmt ()
+      | [ stack ] ->
+        Fmt.pf fmt
+          "%s t >>= fun t ->@;" stack
+    | _ -> failwith "The http connect should receive exactly one argument."
+    in
+    Fmt.strf
+      "Lwt.return Conduit_mirage.empty >>= fun t ->@;\
+      %a\
+      %a\
+      Lwt.return (`Ok t)"
+      if_stack names
+      if_tls tls
+end
+
+let conduit_direct ?(tls=false) s = conduit_conf (Some s) tls
+
+
+type resolver = Resolver
+let resolver = Type Resolver
+
+let resolver_unix_system = impl @@ object
+  inherit base_configurable
+  method ty = resolver
+
+  method name = "resolver_unix"
+  method module_name = "Resolver_lwt"
+
+  method packages = match get_mode () with
+    | `Unix | `MacOSX -> [ "mirage-conduit" ]
+    | `Xen -> failwith "Resolver_unix not supported on Xen"
+  method libraries =
+    [ "conduit.mirage"; "conduit.lwt-unix" ]
+
+  method connect _ _modname _ =
+    "return (`Ok Resolver_lwt_unix.system)"
+
+end
+
+
+
+
+let resolver_dns_conf ~ns ~ns_port = impl @@ object
+  inherit base_configurable
+
+  method ty = time @-> stackv4 @-> resolver
+
+  method name = "resolver"
+  method module_name = "Resolver_mirage.Make_with_stack"
+
+  method packages = [ "dns"; "tcpip" ]
+  method libraries = [ "dns.mirage" ]
+
+  method connect _ modname = function
+    | [ _t ; stack ] ->
+      let meta_ipv4 ppf s =
+        Fmt.pf ppf "Ipaddr.V4.of_string %S" (Ipaddr.V4.to_string s) in
+      let meta_ns = Fmt.Dump.option meta_ipv4 in
+      let meta_port = Fmt.(Dump.option int) in
+      Fmt.strf
+        "let ns = %a in@;\
+         let ns_port = %a in@;\
+         let res = %s.init ?ns ?ns_port ~stack:%s () in@;\
+         return (`Ok res)@;"
+        meta_ns ns
+        meta_port ns_port
+        modname stack
+    | _ -> failwith "The resolver connect should receive exactly two arguments."
+
+
+end
+
+let resolver_dns ?ns ?ns_port ?(time = default_time) stack =
+  resolver_dns_conf ~ns ~ns_port $ default_time $ stack
+
+
+
+type http = HTTP
+let http = Type HTTP
+
+let http_server conduit = impl @@ object
+  inherit base_configurable
+  method ty = http
+
+  method name = "http"
+  method module_name = "Cohttp_mirage.Server_with_conduit"
+
+  method packages = [ "mirage-http" ]
+  method libraries = [ "mirage-http" ]
+
+  method dependencies = [ hide conduit ]
+
+  method connect _i modname = function
+    | [ conduit ] ->
+      Fmt.strf "%s.connect %s" modname conduit
+    | _ -> failwith "The http connect should receive exactly one argument."
+
+end
 
 
 (** Special devices *)
-
 
 let bootvar = impl @@ object
   inherit base_configurable
@@ -1819,7 +1565,8 @@ module Project = struct
 
     method clean = clean ~name ~root
 
-    method dependencies = bootvar :: jobs
+    method dependencies =
+      List.map hide (bootvar :: jobs)
 
   end
 

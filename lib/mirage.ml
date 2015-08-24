@@ -156,97 +156,76 @@ let custom_console str : console impl =
 let default_console = custom_console "0"
 
 
-(* module Crunch = struct *)
+type kv_ro = KV_RO
+let kv_ro = Type KV_RO
 
-(*   type t = string *)
+class crunch_conf dirname =
+  let name =
+    Name.of_key ("static" ^ dirname) ~base:"static"
+  in object
+    inherit base_configurable
+    method ty = kv_ro
 
-(*   let name t = *)
-(*     Name.of_key ("static" ^ t) ~base:"static" *)
+    method name = name
+    method module_name = String.capitalize name
 
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
+    method packages = [ "mirage-types"; "lwt"; "cstruct"; "crunch" ]
+    method libraries = [ "mirage-types"; "lwt"; "cstruct" ]
 
-(*   let packages _ = [ *)
-(*     "mirage-types"; *)
-(*     "lwt"; *)
-(*     "cstruct"; *)
-(*     "crunch"; *)
-(*   ] @ Io_page.packages () *)
+    method dependencies = [ hide default_io_page ]
 
-(*   let libraries _ = [ *)
-(*     "mirage-types"; *)
-(*     "lwt"; *)
-(*     "cstruct"; *)
-(*   ] @ Io_page.libraries () *)
+    val ml = Printf.sprintf "%s.ml" name
+    val mli = Printf.sprintf "%s.mli" name
 
-(*   let ml t = *)
-(*     Printf.sprintf "%s.ml" (name t) *)
+    method connect _ modname _ =
+      Fmt.strf "%s.connect ()" modname
 
-(*   let mli t = *)
-(*     Printf.sprintf "%s.mli" (name t) *)
+    method configure i =
+      if not (command_exists "ocaml-crunch") then
+        fail "ocaml-crunch not found, stopping.";
+      let dir = Info.root i / dirname in
+      let file = Info.root i / ml in
+      if Sys.file_exists dir then (
+        info "%a %s" Functoria_misc.blue "Generating:" file;
+        command "ocaml-crunch -o %s %s" file dir
+      ) else (
+        fail "The directory %s does not exist." dir
+      )
 
-(*   let configure t = *)
-(*     if not (command_exists "ocaml-crunch") then *)
-(*       error "ocaml-crunch not found, stopping."; *)
-(*     let file = ml t in *)
-(*     if Sys.file_exists t then ( *)
-(*       info "%s %s" (blue_s "Generating:") (Sys.getcwd () / file); *)
-(*       command "ocaml-crunch -o %s %s" file t *)
-(*     ) else *)
-(*       error "The directory %s does not exist." t; *)
-(*     append_main "let %s () =" (name t); *)
-(*     append_main "  %s.connect ()" (module_name t); *)
-(*     newline_main () *)
+    method clean i =
+      remove (Info.root i/ml);
+      remove (Info.root i/mli)
 
-(*   let clean t = *)
-(*     remove (ml t); *)
-(*     remove (mli t) *)
+  end
 
-(*   let update_path t root = *)
-(*     if Sys.file_exists (root / t) then *)
-(*       root / t *)
-(*     else *)
-(*       t *)
+let crunch dirname = impl (new crunch_conf dirname)
 
-(* end *)
 
-(* type kv_ro = KV_RO *)
+let direct_kv_ro dirname = impl @@ object
+  inherit crunch_conf dirname as super
 
-(* let kv_ro = Type KV_RO *)
+  method module_name =
+    match get_mode () with
+    | `Xen  -> super#module_name
+    | `Unix | `MacOSX -> "Kvro_fs_unix"
 
-(* let crunch dirname = *)
-(*   impl kv_ro dirname (module Crunch) *)
+  method packages =
+    match get_mode () with
+    | `Xen  -> super#packages
+    | `Unix | `MacOSX -> "mirage-fs-unix" :: super#packages
 
-(* module Direct_kv_ro = struct *)
+  method libraries =
+    match get_mode () with
+    | `Xen  -> super#libraries
+    | `Unix | `MacOSX -> "mirage-fs-unix" :: super#libraries
 
-(*   include Crunch *)
+  method connect i modname names =
+    match get_mode () with
+    | `Xen  -> super#connect i modname names
+    | `Unix | `MacOSX ->
+      Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i/dirname)
 
-(*   let module_name t = *)
-(*     match get_mode () with *)
-(*     | `Xen  -> Crunch.module_name t *)
-(*     | `Unix | `MacOSX -> "Kvro_fs_unix" *)
-
-(*   let packages t = *)
-(*     match get_mode () with *)
-(*     | `Xen  -> Crunch.packages t *)
-(*     | `Unix | `MacOSX -> "mirage-fs-unix" :: Crunch.packages t *)
-
-(*   let libraries t = *)
-(*     match get_mode () with *)
-(*     | `Xen  -> Crunch.libraries t *)
-(*     | `Unix | `MacOSX -> "mirage-fs-unix" :: Crunch.libraries t *)
-
-(*   let configure t = *)
-(*     match get_mode () with *)
-(*     | `Xen  -> Crunch.configure t *)
-(*     | `Unix | `MacOSX -> *)
-(*       append_main "let %s () =" (name t); *)
-(*       append_main "  Kvro_fs_unix.connect %S" t *)
-
-(* end *)
-
-(* let direct_kv_ro dirname = *)
-(*   impl kv_ro dirname (module Direct_kv_ro) *)
+end
 
 
 type block = BLOCK
@@ -257,11 +236,32 @@ type block_t = {
   number: int;
 }
 
-let block_conf b_ = object (self)
+let all_blocks = Hashtbl.create 7
+
+let make_block_t =
+  (* NB: reserve number 0 for the boot disk *)
+  let next_number = ref 1 in
+  fun filename ->
+    let b =
+      if Hashtbl.mem all_blocks filename
+      then Hashtbl.find all_blocks filename
+      else begin
+        let number = !next_number in
+        incr next_number;
+        let b = { filename; number } in
+        Hashtbl.add all_blocks filename b;
+        b
+      end in
+    b
+
+
+class block_conf file =
+  let b = make_block_t file in
+  let name = Name.of_key file ~base:"block" in
+  object (self)
   inherit base_configurable
-  val b = b_
   method ty = block
-  method name = "block" ^ b.filename
+  method name = name
   method module_name = "Block"
   method packages =
     match get_mode () with
@@ -288,219 +288,124 @@ let block_conf b_ = object (self)
 
 end
 
-let all_blocks = Hashtbl.create 7
+let block_of_file file =
+  impl (new block_conf file)
 
-let block_of_file =
-  (* NB: reserve number 0 for the boot disk *)
-  let next_number = ref 1 in
-  fun filename ->
-    let b =
-      if Hashtbl.mem all_blocks filename
-      then Hashtbl.find all_blocks filename
-      else begin
-        let number = !next_number in
-        incr next_number;
-        let b = { filename; number } in
-        Hashtbl.add all_blocks filename b;
-        b
-      end in
-    impl (block_conf b)
+let tar_block dir =
+  let name = Name.of_key ("tar_block" ^ dir) ~base:"tar_block" in
+  let block_file = name ^ ".img" in
+  impl @@ object
+    inherit block_conf block_file as super
+
+    method configure i =
+      command "tar -C %s -cvf %s ." dir block_file;
+      super#configure i
+
+  end
 
 
-(* module Archive = struct *)
 
-(*   type t = { *)
-(*     block  : block impl; *)
-(*   } *)
+let archive_conf = impl @@ object
+  inherit base_configurable
 
-(*   let name t = *)
-(*     let key = "archive" ^ Impl.name t.block in *)
-(*     Name.of_key key ~base:"archive" *)
+  method ty = block @-> kv_ro
 
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
+  method name = "archive"
+  method module_name = "Tar_mirage.Make_KV_RO"
 
-(*   let packages t = *)
-(*     "tar-format" *)
-(*     :: Impl.packages t.block *)
+  method packages = [ "tar-format" ]
+  method libraries = [ "tar.mirage" ]
 
-(*   let libraries t = *)
-(*     "tar.mirage" *)
-(*     :: Impl.libraries t.block *)
+  method connect _ modname = function
+    | [ block ] ->
+      Fmt.strf "%s.connect %s" modname block
+    | _ -> failwith "The archive connect should receive exactly one argument."
 
-(*   let configure t = *)
-(*     Impl.configure t.block; *)
-(*     append_main "module %s = Tar_mirage.Make_KV_RO(%s)" *)
-(*       (module_name t) *)
-(*       (Impl.module_name t.block); *)
-(*     newline_main (); *)
-(*     let name = name t in *)
-(*     append_main "let %s () =" name; *)
-(*     append_main "  %s () >>= function" (Impl.name t.block); *)
-(*     append_main "  | `Error _ -> %s" (driver_initialisation_error name); *)
-(*     append_main "  | `Ok dev  -> %s.connect dev" (module_name t); *)
-(*     newline_main () *)
+  end
 
-(*   let clean t = *)
-(*     Impl.clean t.block *)
+let archive block = archive_conf $ block
 
-(*   let update_path t root = *)
-(*     { block  = Impl.update_path t.block root; *)
-(*     } *)
+let archive_of_files ?(dir=".") () =
+  archive @@ tar_block dir
 
-(* end *)
-
-(* let archive block : kv_ro impl = *)
-(*   let t = { Archive.block } in *)
-(*   impl kv_ro t (module Archive) *)
-
-(* module Archive_of_files = struct *)
-
-(*   type t = { *)
-(*     dir   : string; *)
-(*   } *)
-
-(*   let name t = *)
-(*     Name.of_key *)
-(*       ("archive" ^ t.dir) *)
-(*       ~base:"archive" *)
-
-(*   let module_name t = *)
-(*     String.capitalize (name t) *)
-
-(*   let block_file t = *)
-(*     name t ^ ".img" *)
-
-(*   let block t = *)
-(*     block_of_file (block_file t) *)
-
-(*   let packages t = *)
-(*     Impl.packages (archive (block t)) *)
-
-(*   let libraries t = *)
-(*     Impl.libraries (archive (block t)) *)
-
-(*   let configure t = *)
-(*     let archive = archive (block t) in *)
-(*     Impl.configure archive; *)
-(*     if not (command_exists "tar") then *)
-(*       error "tar not found, stopping."; *)
-(*     let file = block_file t in *)
-(*     info "%s %s" (blue_s "Generating:") (Sys.getcwd () / file); *)
-(*     command "tar -C %s -cvf %s ." t.dir (block_file t); *)
-(*     append_main "module %s = %s" (module_name t) (Impl.module_name archive); *)
-(*     append_main "let %s = %s" (name t) (Impl.name archive); *)
-(*     newline_main () *)
-
-(*   let clean t = *)
-(*     command "rm -f %s" (block_file t); *)
-(*     Impl.clean (block t) *)
-
-(*   let update_path t root = *)
-(*     { dir = root / t.dir } *)
-
-(* end *)
-
-(* let archive_of_files: ?dir:string -> unit -> kv_ro impl = *)
-(*   fun ?(dir=".") () -> *)
-(*     impl kv_ro { Archive_of_files.dir } (module Archive_of_files) *)
 
 
 type fs = FS
 let fs = Type FS
 
-class virtual fat_common = object
-
+let fat_conf = impl @@ object
   inherit base_configurable
-  method ty = (io_page @-> block @-> fs)
+  method ty = (block @-> io_page @-> fs)
+
   method packages = [ "fat-filesystem" ]
   method libraries = [ "fat-filesystem" ]
 
+  method name = "fat"
   method module_name = "Fat.Fs.Make"
 
   method connect _ modname l = match l with
     | [ block_name ; _io_page_name ] ->
-      Printf.sprintf "%s.connect %S" modname block_name
+      Printf.sprintf "%s.connect %s" modname block_name
     | _ -> assert false
 end
 
-let fat_conf = object
-  inherit fat_common
-
-  method name = "fat"
-
-end
-let fat_impl = impl fat_conf
-
 let fat ?(io_page=default_io_page) block =
-  fat_impl $ io_page $ block
+  fat_conf $ block $ io_page
 
 
-(* (\* This would deserve to be in its own lib. *\) *)
-(* let kv_ro_of_fs x: kv_ro impl = *)
-(*   let dummy_fat = fat (block_of_file "xx") in *)
-(*   let libraries = Impl.libraries dummy_fat in *)
-(*   let packages = Impl.packages dummy_fat in *)
-(*   let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in *)
-(*   fn $ x *)
+let fat_block ?(dir=".") ?(regexp="*") () =
+  let name = Name.of_key (Fmt.strf "fat%s:%s" dir regexp) ~base:"fat_block" in
+  let block_file = name ^ ".img" in
+  impl @@ object
+    inherit block_conf block_file as super
 
-(* class fat_of_files_conf ?dir ?regexp () = *)
-(*   let regexp = match regexp with *)
-(*     | None   -> "*" *)
-(*     | Some r -> r *)
-(*   in object (self) *)
+    method configure i =
+      let root = Info.root i in
+      let file = Printf.sprintf "make-%s-image.sh" name in
+      with_file file begin fun fmt ->
+        Codegen.append fmt "#!/bin/sh";
+        Codegen.append fmt "";
+        Codegen.append fmt "echo This uses the 'fat' command-line tool to build a simple FAT";
+        Codegen.append fmt "echo filesystem image.";
+        Codegen.append fmt "";
+        Codegen.append fmt "FAT=$(which fat)";
+        Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then";
+        Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line tool.";
+        Codegen.append fmt "  echo Try running 'opam install fat-filesystem'";
+        Codegen.append fmt "  exit 1";
+        Codegen.append fmt "fi";
+        Codegen.append fmt "";
+        Codegen.append fmt "IMG=$(pwd)/%s" block_file;
+        Codegen.append fmt "rm -f ${IMG}";
+        Codegen.append fmt "cd %s/" (root/dir);
+        Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
+        Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
+        Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
+        Codegen.append fmt "echo Created '%s'" block_file;
+      end ;
+      Unix.chmod file 0o755;
+      command "./make-%s-image.sh" name ;
+      super#configure i
 
-(*     inherit fat_common *)
+    method clean i =
+      command "rm -f make-%s-image.sh %s" name block_file ;
+      super#clean i
+  end
 
-(*     val t = { dir ; regexp } *)
-(*     method t = t *)
+let fat_of_files ?dir ?regexp () =
+  fat @@ fat_block ?dir ?regexp ()
 
-(*     method name = *)
-(*       "fat" ^ (match t.dir with None -> "." | Some d -> d) ^ ":" ^ t.regexp *)
 
-(*     method private block_file = self#name ^ ".img" *)
+let kv_ro_of_fs_conf = impl @@ object
+  inherit base_configurable
+  method ty = fs @-> kv_ro
+  method name = "kv_ro_of_fs"
+  method module_name = "Fat.KV_RO.Make"
+  method packages = [ "fat-filesystem" ]
+  method libraries = [ "fat-filesystem" ]
+end
 
-(*     method configure = *)
-(*       let file = Printf.sprintf "make-%s-image.sh" self#name in *)
-(*       let oc = open_out file in *)
-(*       let fmt = Format.formatter_of_out_channel oc in *)
-(*       Codegen.append fmt "#!/bin/sh"; *)
-(*       Codegen.append fmt ""; *)
-(*       Codegen.append fmt "echo This uses the 'fat' command-line tool to build a simple FAT"; *)
-(*       Codegen.append fmt "echo filesystem image."; *)
-(*       Codegen.append fmt ""; *)
-(*       Codegen.append fmt "FAT=$(which fat)"; *)
-(*       Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then"; *)
-(*       Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line tool."; *)
-(*       Codegen.append fmt "  echo Try running 'opam install fat-filesystem'"; *)
-(*       Codegen.append fmt "  exit 1"; *)
-(*       Codegen.append fmt "fi"; *)
-(*       Codegen.append fmt ""; *)
-(*       Codegen.append fmt "IMG=$(pwd)/%s" self#block_file; *)
-(*       Codegen.append fmt "rm -f ${IMG}"; *)
-(*       (match t.dir with None -> () | Some d -> Codegen.append fmt "cd %s/" d); *)
-(*       Codegen.append fmt "SIZE=$(du -s . | cut -f 1)"; *)
-(*       Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB"; *)
-(*       Codegen.append fmt "${FAT} add ${IMG} %s" t.regexp; *)
-(*       Codegen.append fmt "echo Created '%s'" self#block_file; *)
-
-(*       close_out oc; *)
-(*       Unix.chmod file 0o755; *)
-(*       command "./make-%s-image.sh" self#name *)
-
-(*     method clean = *)
-(*       command "rm -f make-%s-image.sh %s" self#name self#block_file *)
-
-(*     method update_path root = *)
-(*       let t = match t.dir with *)
-(*         | None   -> t *)
-(*         | Some d -> { t with dir = Some (root / d) } *)
-(*       in {< t = t >} *)
-(*   end *)
-
-(* let fat_of_files ?dir ?regexp () = *)
-(*   impl (new fat_of_files_conf ?dir ?regexp ()) *)
-
+let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 
 
 
@@ -1572,7 +1477,7 @@ module Project = struct
 
     method configure info = configure info
 
-    method clean = clean ~name ~root
+    method clean i = clean ~name:(Info.name i) ~root:(Info.root i)
 
     method dependencies =
       List.map hide (bootvar :: jobs)

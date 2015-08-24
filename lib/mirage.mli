@@ -144,26 +144,26 @@ val block_of_file: string -> block impl
 
 
 
-(* (\** {2 Static key/value stores} *\) *)
+(** {2 Static key/value stores} *)
 
-(* (\** Implementations of the [V1.KV_RO] signature. *\) *)
+(** Implementations of the [V1.KV_RO] signature. *)
 
-(* type kv_ro *)
-(* (\** Abstract type for read-only key/value store. *\) *)
+type kv_ro
+(** Abstract type for read-only key/value store. *)
 
-(* val kv_ro: kv_ro typ *)
-(* (\** The [V1.KV_RO] module signature. *\) *)
+val kv_ro: kv_ro typ
+(** The [V1.KV_RO] module signature. *)
 
-(* val crunch: string -> kv_ro impl *)
-(* (\** Crunch a directory. *\) *)
+val crunch: string -> kv_ro impl
+(** Crunch a directory. *)
 
-(* val archive: block impl -> kv_ro impl *)
+val archive: block impl -> kv_ro impl
 
-(* val archive_of_files: ?dir:string -> unit -> kv_ro impl *)
+val archive_of_files: ?dir:string -> unit -> kv_ro impl
 
-(* val direct_kv_ro: string -> kv_ro impl *)
-(* (\** Direct access to the underlying filesystem as a key/value *)
-(*     store. For Xen backends, this is equivalent to [crunch]. *\) *)
+val direct_kv_ro: string -> kv_ro impl
+(** Direct access to the underlying filesystem as a key/value
+    store. For Xen backends, this is equivalent to [crunch]. *)
 
 
 
@@ -180,15 +180,15 @@ val fs: fs typ
 val fat: ?io_page:io_page impl -> block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
 
-(* val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl *)
-(* (\** [fat_files dir ?dir ?regexp ()] collects all the files matching *)
-(*     the shell pattern [regexp] in the directory [dir] into a FAT *)
-(*     image. By default, [dir] is the current working directory and *)
-(*     [regexp] is {i *} *\) *)
+val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
+(** [fat_files dir ?dir ?regexp ()] collects all the files matching
+    the shell pattern [regexp] in the directory [dir] into a FAT
+    image. By default, [dir] is the current working directory and
+    [regexp] is {i *} *)
 
-(* val kv_ro_of_fs: fs impl -> kv_ro impl *)
-(* (\** Consider a filesystem implementation as a read-only key/value *)
-(*     store. *\) *)
+val kv_ro_of_fs: fs impl -> kv_ro impl
+(** Consider a filesystem implementation as a read-only key/value
+    store. *)
 
 
 

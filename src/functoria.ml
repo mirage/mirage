@@ -332,13 +332,16 @@ end = struct
         let names =
           List.map name args @ List.map (map_E name) deps
         in
+        (* We avoid potential collision between double application
+           by prefixing with "_". This also avoid warnings. *)
+        let res_names = List.map (fun x -> "_"^x) names in
         Codegen.append_main "let %s () =" iname;
-        List.iter (fun n ->
-          Codegen.append_main "  %s () >>= function" n;
-          Codegen.append_main "  | `Error e -> %s" (error n);
-          Codegen.append_main "  | `Ok %s ->" n;
-        ) names;
-        Codegen.append_main "  %s" (f#connect info modname names);
+        List.iter2 (fun connect res ->
+          Codegen.append_main "  %s () >>= function" connect;
+          Codegen.append_main "  | `Error e -> %s" (error connect);
+          Codegen.append_main "  | `Ok %s ->" res;
+        ) names res_names ;
+        Codegen.append_main "  %s" (f#connect info modname res_names);
         Codegen.newline_main ()
     end
   and connect tbl info error (E m) = connect' tbl info error m

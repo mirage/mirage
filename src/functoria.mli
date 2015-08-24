@@ -113,7 +113,7 @@ class type ['ty] configurable = object
   method configure: Info.t -> unit
   (** Configure the device. *)
 
-  method clean: unit
+  method clean: Info.t -> unit
   (** Clean all the files generated to use the device. *)
 
   method dependencies : any_impl list
@@ -131,7 +131,7 @@ class base_configurable : object
   method keys : Key.t list
   method connect : Info.t -> string -> string list -> string
   method configure : Info.t -> unit
-  method clean : unit
+  method clean : Info.t -> unit
   method dependencies : any_impl list
 end
 

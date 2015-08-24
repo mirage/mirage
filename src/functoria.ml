@@ -62,7 +62,7 @@ module rec Typ : sig
     method keys: Key.t list
     method connect : Info.t -> string -> string list -> string
     method configure: Info.t -> unit
-    method clean: unit
+    method clean: Info.t -> unit
     method dependencies: Typ.any_impl list
   end
 
@@ -97,7 +97,7 @@ class base_configurable = object
   method connect (_:Info.t) (_:string) l =
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
   method configure (_ : Info.t) = ()
-  method clean = ()
+  method clean (_ : Info.t)= ()
   method dependencies : any_impl list = []
 end
 
@@ -176,7 +176,7 @@ module Modlist : sig
   val configure_and_connect :
     Info.t -> (string -> string) -> evaluated list -> unit
 
-  val clean : evaluated -> unit
+  val clean : Info.t -> evaluated -> unit
 
   val pp : evaluated Fmt.t
 
@@ -362,7 +362,7 @@ end = struct
       List.iter (iter fi) deps ; List.iter (iter' fi) args ; fi.i f
   and iter fi (E m) = iter' fi m
 
-  let clean t = iter { i = fun t -> t#clean } t
+  let clean i t = iter { i = fun t -> t#clean i} t
 
 end
 
@@ -381,7 +381,7 @@ class ['ty] foreign
     method packages = packages
     method connect _ m args =
       Printf.sprintf "%s.start %s" m (String.concat " " args)
-    method clean = ()
+    method clean _ = ()
     method configure _ = ()
     method dependencies = []
   end
@@ -591,7 +591,7 @@ module Make (P:PROJECT) = struct
     ()
 
   let clean_main i jobs =
-    List.iter Modlist.clean jobs ;
+    List.iter (Modlist.clean i) jobs ;
     remove (Info.root i / "main.ml")
 
   let configure i jobs =

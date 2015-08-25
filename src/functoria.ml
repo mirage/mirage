@@ -469,6 +469,8 @@ end
 module Make (P:PROJECT) = struct
   module Project = P
 
+  let () = set_section P.name
+
   type t = Config.t
 
   let configuration = ref None

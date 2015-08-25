@@ -518,16 +518,24 @@ let ipv4 : ipv4 typ = ip
 type ipv6 = v6 ip
 let ipv6 : ipv6 typ = ip
 
+let pp_triple ?(sep=Fmt.cut) ppx ppy ppz fmt (x,y,z) =
+  ppx fmt x ; sep fmt () ; ppy fmt y ; sep fmt () ; ppz fmt z
+
+let meta_triple ppx ppy ppz =
+  Fmt.parens @@ pp_triple ~sep:(Fmt.unit ",@ ") ppx ppy ppz
+
+let meta_ipv4 ppf s =
+  Fmt.pf ppf "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string s)
 
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
-let meta_ipv4_config t =
-  Printf.sprintf "(Ipaddr.V4.of_string_exn %S, Ipaddr.V4.of_string_exn %S, [%s])"
-    (Ipaddr.V4.to_string t.address)
-    (Ipaddr.V4.to_string t.netmask)
-    (String.concat "; "
-       (List.map (Printf.sprintf "Ipaddr.V4.of_string_exn %S")
-          (List.map Ipaddr.V4.to_string t.gateways)))
+let meta_ipv4_config fmt { address ; netmask ; gateways } =
+  meta_triple
+    meta_ipv4
+    meta_ipv4
+    (Fmt.Dump.list meta_ipv4)
+    fmt
+    (address, netmask, gateways)
 
 let ipv4_conf config = object
   inherit base_configurable
@@ -582,15 +590,18 @@ let default_ipv4 net =
 
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 
-let meta_ipv6_config t =
-  Printf.sprintf "(Ipaddr.V6.of_string_exn %S, [%s], [%s])"
-    (Ipaddr.V6.to_string t.address)
-    (String.concat "; "
-       (List.map (Printf.sprintf "Ipaddr.V6.Prefix.of_string_exn %S")
-          (List.map Ipaddr.V6.Prefix.to_string t.netmask)))
-    (String.concat "; "
-       (List.map (Printf.sprintf "Ipaddr.V6.of_string_exn %S")
-          (List.map Ipaddr.V6.to_string t.gateways)))
+let meta_ipv6 ppf s =
+  Fmt.pf ppf "Ipaddr.V6.of_string_exn %S" (Ipaddr.V4.to_string s)
+let meta_prefix_ipv6 ppf s =
+  Fmt.pf ppf "Ipaddr.V6.Prefix.of_string_exn %S" (Ipaddr.V4.to_string s)
+
+let meta_ipv6_config fmt { address ; netmask ; gateways } =
+  meta_triple
+    meta_ipv6
+    (Fmt.Dump.list meta_prefix_ipv6)
+    (Fmt.Dump.list meta_ipv6)
+    fmt
+    (address, netmask, gateways)
 
 let ipv6_conf config = object
   inherit base_configurable
@@ -761,7 +772,7 @@ let stackv4 = Type STACKV4
 type stackv4_config = [`DHCP | `IPV4 of ipv4_config]
 let pp_stackv4_config fmt = function
   | `DHCP   -> Fmt.pf fmt "`DHCP"
-  | `IPV4 i -> Fmt.pf fmt "`IPv4 %s" (meta_ipv4_config i)
+  | `IPV4 i -> Fmt.pf fmt "`IPv4 %a" meta_ipv4_config i
 
 let stackv4_direct_conf (config : stackv4_config) = impl @@ object
   inherit base_configurable
@@ -781,9 +792,9 @@ let stackv4_direct_conf (config : stackv4_config) = impl @@ object
   method connect _i modname = function
     | [ console; _t; _r; interface; ethif; arp; ip; udp; tcp ] ->
       Fmt.strf
-        "let config =@ \
-         @[{ V1_LWT.name = %S;@ console = %s ;\
-         @interface = %s ;@ mode = %a }@] in@;\
+        "let config =@[@ \
+         { V1_LWT.name = %S;@ console = %s ;\
+         interface = %s ;@ mode = %a }@] in@;\
          %s.connect config %s %s %s %s %s"
         name console
         interface  pp_stackv4_config config
@@ -845,9 +856,9 @@ let stackv4_socket_conf ipv4s = impl @@ object
   method connect _i modname = function
     | [ console ; udpv4 ; tcpv4 ] ->
       Fmt.strf
-        "let config =@;\
-         @[{ V1_LWT.name = %S;@ console = %s ;\
-         @interface = %a ;@ mode = () }@] in@;\
+        "let config =@[@ \
+         { V1_LWT.name = %S;@ console = %s ;@ \
+         interface = %a ;@ mode = () }@] in@ \
          %s.connect config %s %s"
         name
         console  pp_interface ipv4s
@@ -971,8 +982,6 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
 
   method connect _ modname = function
     | [ _t ; stack ] ->
-      let meta_ipv4 ppf s =
-        Fmt.pf ppf "Ipaddr.V4.of_string %S" (Ipaddr.V4.to_string s) in
       let meta_ns = Fmt.Dump.option meta_ipv4 in
       let meta_port = Fmt.(Dump.option int) in
       Fmt.strf

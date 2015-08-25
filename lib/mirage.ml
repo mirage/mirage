@@ -933,12 +933,12 @@ let conduit_with_connectors connectors = impl @@ object
   method dependencies = List.map hide connectors
 
   method connect _i _ connectors =
-    let pp_connector = Fmt.fmt "%s >>=" in
-    let pp_connectors = Fmt.list ~sep:Fmt.sp pp_connector in
+    let pp_connector = Fmt.fmt "%s >>=@ " in
+    let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
     Fmt.strf
       "Lwt.return Conduit_mirage.empty >>=@ \
       %a\
-      Lwt.return (`Ok t)"
+      fun t -> Lwt.return (`Ok t)"
       pp_connectors connectors
 end
 
@@ -1468,6 +1468,10 @@ module Project = struct
 
   let version = Mirage_version.current
 
+  let prelude =
+    "open Lwt\n\
+     let run = OS.Main.run"
+
   let driver_error = driver_error
 
   let configurable ~name ~root jobs = object
@@ -1487,17 +1491,15 @@ module Project = struct
       "mirage-types.lwt"
     ]
 
-    method connect _ _mod names =
-      Fmt.strf
-        "OS.Main.run (bootvar () >>= fun () -> join %a)"
-        Fmt.(Dump.list @@ fmt "%s ()") names
+    method connect _ _mod _names =
+      "Lwt.return_unit"
 
     method configure info = configure info
 
     method clean i = clean ~name:(Info.name i) ~root:(Info.root i)
 
     method dependencies =
-      List.map hide (bootvar :: jobs)
+      List.map hide jobs
 
   end
 

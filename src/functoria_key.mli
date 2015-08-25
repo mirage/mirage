@@ -43,7 +43,10 @@ module Desc : sig
     'a t
 
   val string : string t
+  val bool : bool t
+  val int : int t
   val list : 'a t -> 'a list t
+  val option : 'a t -> 'a option t
 
 
 end

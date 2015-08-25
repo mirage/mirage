@@ -14,14 +14,14 @@ Library "functoria-runtime"
   Findlibname:     runtime
   Findlibparent:   functoria
   Modules:         Functoria_runtime
-  BuildDepends:    cmdliner, lwt
+  BuildDepends:    cmdliner, lwt, fmt
 
 Library functoria
   Path:            src
   Findlibname:     functoria
   Modules:         Functoria, Functoria_misc, Functoria_key, Functoria_tool,
                    Functoria_devices
-  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt
+  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt,functoria.runtime
 
 Document "functoria"
   Title:                Functoria docs

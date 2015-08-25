@@ -36,6 +36,25 @@ module Key = struct
     let set w = t.value <- Some w in
     Term.(pure set $ Arg.(value & opt converter default doc))
 
+  module Desc = struct
+
+    type 'a t = 'a Arg.converter
+
+    let int = Arg.int
+    let string = Arg.string
+    let bool = Arg.bool
+    let list d = Arg.list d
+
+
+    let option_parser conv x =
+      match conv x with
+      | `Ok x -> `Ok (Some x)
+      | `Error s -> `Error s
+
+    let option d =
+      option_parser @@ fst d, Fmt.Dump.option @@ snd d
+
+  end
 end
 
 let with_argv keys s argv =

@@ -16,6 +16,7 @@
 
 open Functoria_misc
 open Cmdliner
+module Run = Functoria_runtime
 
 module Emit = struct
 
@@ -47,16 +48,36 @@ module Desc = struct
     { description ; serializer ; converter }
 
 
+  let from_run s = "Functoria_runtime.Key.Desc." ^ s
+
   let string = {
-    description = "Cmdliner.Arg.string" ;
+    description = from_run "string" ;
     serializer = (fun fmt -> Format.fprintf fmt "%S") ;
-    converter = Arg.string ;
+    converter = Run.Key.Desc.string ;
+  }
+
+  let bool = {
+    description = from_run "bool" ;
+    serializer = (fun fmt -> Format.fprintf fmt "%b") ;
+    converter = Run.Key.Desc.bool ;
+  }
+
+  let int = {
+    description = from_run "int" ;
+    serializer = (fun fmt -> Format.fprintf fmt "%i") ;
+    converter = Run.Key.Desc.int ;
   }
 
   let list d = {
-    description = Format.sprintf "(Cmdliner.Arg.list %s)" d.description ;
-    serializer = Fmt.Dump.list d.serializer ;
-    converter = Arg.list d.converter ;
+    description = Fmt.strf "(%s %s)" (from_run "list") d.description ;
+    serializer = Emit.list d.serializer ;
+    converter = Run.Key.Desc.list d.converter ;
+  }
+
+  let option d = {
+    description = Fmt.strf "(%s %s)" (from_run "option") d.description ;
+    serializer = Emit.option d.serializer ;
+    converter = Run.Key.Desc.option d.converter
   }
 
 end

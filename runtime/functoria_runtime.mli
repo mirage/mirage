@@ -36,6 +36,16 @@ module Key : sig
   (** Derive a cmdliner term from a key. *)
   val term : 'a t -> unit Cmdliner.Term.t
 
+  (** Key descriptions. *)
+  module Desc : sig
+    type 'a t = 'a Cmdliner.Arg.converter
+    val int : int t
+    val bool : bool t
+    val string : string t
+    val list : 'a t -> 'a list t
+    val option : 'a t -> 'a option t
+  end
+
 end
 
 (** [with_argv keys s argv] uses the given key terms to parse the given [argv].

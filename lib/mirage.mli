@@ -22,6 +22,7 @@
     large collection of devices. *)
 
 open Functoria
+include CONFIG
 
 module Key = Key
 
@@ -353,14 +354,16 @@ val http: http typ
 val http_server: conduit impl -> http impl
 
 
-(* (\** {2 Tracing} *\) *)
+(** {2 Tracing} *)
 
-(* type tracing *)
+val tracing : int -> job impl
 
-(* val mprof_trace : size:int -> unit -> tracing *)
-(* (\** Use mirage-profile to trace the unikernel. *)
-(*    On Unix, this creates and mmaps a file called "trace.ctf". *)
-(*    On Xen, it shares the trace buffer with dom0. *\) *)
+type tracing
+
+val mprof_trace : size:int -> unit -> tracing
+(** Use mirage-profile to trace the unikernel.
+   On Unix, this creates and mmaps a file called "trace.ctf".
+   On Xen, it shares the trace buffer with dom0. *)
 
 
 (** {2 Jobs} *)
@@ -371,10 +374,16 @@ type job = Functoria.job
 val job: job typ
 (** Reprensention of [JOB]. *)
 
-val register: (* ?tracing:tracing -> *) ?keys:Key.t list -> string -> job impl list -> unit
+val register:
+  ?tracing:tracing ->
+  ?keys:Key.t list ->
+  ?libraries:string list ->
+  ?packages:string list -> string -> job impl list -> unit
 (** [register name jobs] registers the application named by [name]
     which will executes the given [jobs].
-    @param tracing enables tracing if present (see {!mprof_trace}). *)
+    @param tracing enables tracing if present (see {!mprof_trace}).
+    @param keys, libraries, packages allows to register additional keys, libraries, packages.
+*)
 
 (** {2 Device configuration} *)
 
@@ -406,10 +415,7 @@ val no_depext: bool -> unit
 
 (** {2 Extension} *)
 
-module Project : PROJECT
-
 module Config : CONFIG with module Project = Project
-include CONFIG with module Project := Project
 
 val impl: 'a configurable -> 'a impl
 (** Extend the library with an external configuration. *)

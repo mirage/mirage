@@ -1115,6 +1115,9 @@ let tracing size =
 
 end
 
+type tracing = int
+let mprof_trace ~size () = size
+
 
 let nocrypto = impl @@ object
   inherit base_configurable
@@ -1523,3 +1526,8 @@ end
 
 module Config = Functoria.Make (Project)
 include (Config : CONFIG with module Project := Project)
+
+
+let register ?tracing ?keys ?libraries ?packages name jobs =
+  Key.set tracing_key tracing ;
+  register ?keys ?libraries ?packages name jobs

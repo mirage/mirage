@@ -1514,7 +1514,7 @@ module Project = struct
     method clean i = clean ~name:(Info.name i) ~root:(Info.root i)
 
     method dependencies =
-      let l = List.map hide jobs in
+      let l = List.map hide (bootvar :: jobs) in
       match Key.get tracing_key with
       | None -> l
       | Some i -> hide (tracing i) :: l

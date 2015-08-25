@@ -188,7 +188,7 @@ class crunch_conf dirname =
       let file = Info.root i / ml in
       if Sys.file_exists dir then (
         info "%a %s" Functoria_misc.blue "Generating:" file;
-        command "ocaml-crunch -o %s %s" file dir
+        R.get_ok @@ command "ocaml-crunch -o %s %s" file dir
       ) else (
         fail "The directory %s does not exist." dir
       )
@@ -299,7 +299,7 @@ let tar_block dir =
     inherit block_conf block_file as super
 
     method configure i =
-      command "tar -C %s -cvf %s ." dir block_file;
+      R.get_ok @@ command "tar -C %s -cvf %s ." dir block_file;
       super#configure i
 
   end
@@ -385,11 +385,11 @@ let fat_block ?(dir=".") ?(regexp="*") () =
         Codegen.append fmt "echo Created '%s'" block_file;
       end ;
       Unix.chmod file 0o755;
-      command "./make-%s-image.sh" name ;
+      R.get_ok @@ command "./make-%s-image.sh" name ;
       super#configure i
 
     method clean i =
-      command "rm -f make-%s-image.sh %s" name block_file ;
+      R.get_ok @@ command "rm -f make-%s-image.sh %s" name block_file ;
       super#clean i
   end
 
@@ -1452,7 +1452,7 @@ let clean ~root ~name =
       clean_main_libvirt_xml ~root ~name;
       clean_myocamlbuild_ml ~root ~name;
       clean_makefile ~root;
-      command "rm -rf %s/mir-%s" root name;
+      R.get_ok @@ command "rm -rf %s/mir-%s" root name;
     )
 
 module Project = struct

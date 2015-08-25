@@ -26,7 +26,9 @@ module Name = Name
 let driver_error name =
   Printf.sprintf "fail (Failure %S)" name
 
-(** {2 Mode configuration} *)
+(** {2 Keys} *)
+
+(** {3 Mode configuration} *)
 
 type mode = [
   | `Unix
@@ -45,15 +47,26 @@ let target =
       ~description:"target"
       ~converter:mode_conv
   in
-  let doc = Key.Doc.(create
-        ~docs:"MIRAGE PARAMETERS"
-        ~docv:"TARGET" ~doc ["t";"target"]
-    ) in
+  let doc = Key.Doc.create
+      ~docs:"MIRAGE PARAMETERS"
+      ~docv:"TARGET" ~doc ["t";"target"]
+  in
   Key.(create_raw ~doc ~stage:`Configure ~default:`Unix "target" desc)
 
 let get_mode =
   let x = Key.value target in
   fun () -> Key.eval x
+
+(** {3 Tracing} *)
+let tracing_key =
+  let doc = "The tracing level. Tracing is disabled if none is given." in
+  let desc = Key.Desc.(option int) in
+  let doc = Key.Doc.create
+      ~docs:"MIRAGE PARAMETERS"
+      ~docv:"TRACING" ~doc ["tracing"]
+  in
+  Key.(create_raw ~doc ~stage:`Configure ~default:None "tracing" desc)
+
 
 (** {2 Devices} *)
 
@@ -1060,48 +1073,47 @@ let bootvar = impl @@ object
 
 end
 
-(* module Tracing = struct *)
-(*   type t = { *)
-(*     size : int; *)
-(*   } *)
 
-(*   let unix_trace_file = "trace.ctf" *)
 
-(*   let packages _ = StringSet.singleton "mirage-profile" *)
+let tracing size =
+  let unix_trace_file = "trace.ctf" in
+  impl @@ object
+  inherit base_configurable
 
-(*   let libraries _ = *)
-(*     match get_mode () with *)
-(*     | `Unix | `MacOSX -> StringSet.singleton "mirage-profile.unix" *)
-(*     | `Xen  -> StringSet.singleton "mirage-profile.xen" *)
+  method ty = job
+  method name = Fmt.strf "tracing_%i" size
+  method module_name = "MProf"
 
-(*   let configure t = *)
-(*     if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" <> 0 then ( *)
-(*       flush stdout; *)
-(*       error "lwt.tracing module not found. Hint:\n\ *)
-(*              opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'" *)
-(*     ); *)
+  method packages = ["mirage-profile"]
+  method libraries = match get_mode () with
+    | `Unix | `MacOSX -> ["mirage-profile.unix"]
+    | `Xen  -> ["mirage-profile.xen"]
 
-(*     append_main "let () = "; *)
-(*     begin match get_mode () with *)
-(*     | `Unix | `MacOSX -> *)
-(*         append_main "  let buffer = MProf_unix.mmap_buffer ~size:%d %S in" t.size unix_trace_file; *)
-(*         append_main "  let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in"; *)
-(*         append_main "  MProf.Trace.Control.start trace_config"; *)
-(*     | `Xen  -> *)
-(*         append_main "  let trace_pages = MProf_xen.make_shared_buffer ~size:%d in" t.size; *)
-(*         append_main "  let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in"; *)
-(*         append_main "  let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in"; *)
-(*         append_main "  MProf.Trace.Control.start trace_config;"; *)
-(*         append_main "  MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages"; *)
-(*         append_main "  |> OS.Main.run"; *)
-(*     end; *)
-(*     newline_main () *)
-(* end *)
+  method configure _ =
+    if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" <> 0 then (
+      flush stdout;
+      fail "lwt.tracing module not found. Hint:\n\
+            opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
+    )
 
-(* type tracing = Tracing.t *)
+  method connect _ _ _ = match get_mode () with
+    | `Unix | `MacOSX ->
+      Fmt.strf
+        "let buffer = MProf_unix.mmap_buffer ~size:%d %S in@ \
+         let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
+         MProf.Trace.Control.start trace_config"
+        size unix_trace_file;
+    | `Xen  ->
+      Fmt.strf
+        "let trace_pages = MProf_xen.make_shared_buffer ~size:%d in@ \
+         let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
+         let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
+         MProf.Trace.Control.start trace_config;@ \
+         MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
+         |> OS.Main.run"
+        size
 
-(* let mprof_trace ~size () = *)
-(*   { Tracing.size } *)
+end
 
 
 let nocrypto = impl @@ object
@@ -1479,7 +1491,7 @@ module Project = struct
     method ty = job
     method name = "main"
     method module_name = "Mirage_runtime"
-    method keys = [ Key.V target ]
+    method keys = [ Key.V target ; Key.V tracing_key ]
 
     method packages =
       match get_mode () with
@@ -1499,7 +1511,10 @@ module Project = struct
     method clean i = clean ~name:(Info.name i) ~root:(Info.root i)
 
     method dependencies =
-      List.map hide jobs
+      let l = List.map hide jobs in
+      match Key.get tracing_key with
+      | None -> l
+      | Some i -> hide (tracing i) :: l
 
   end
 

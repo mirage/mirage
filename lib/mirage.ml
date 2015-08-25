@@ -479,7 +479,7 @@ let arpv4 = Type Arpv4
 
 let arpv4_conf = object
   inherit base_configurable
-  method ty = clock @-> time @-> ethernet @-> arpv4
+  method ty = ethernet @-> clock @-> time @-> arpv4
 
   method name = "arpv4"
   method module_name = "Arpv4.Make"
@@ -490,14 +490,14 @@ let arpv4_conf = object
     | `Xen  -> ["tcpip.arpv4"]
 
   method connect _ modname = function
-    | [ _clock ; _time ; eth ] -> Printf.sprintf "%s.connect %s" modname eth
+    | [ eth ; _clock ; _time ] -> Printf.sprintf "%s.connect %s" modname eth
     | _ -> failwith "The arpv4 connect should receive exactly three arguments."
 
 end
 
 let arp_func = impl arpv4_conf
 let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) =
-  arp_func $ clock $ time $ eth
+  arp_func $ eth $ clock $ time
 
 type ('ipaddr, 'prefix) ip_config = {
   address: 'ipaddr;
@@ -540,7 +540,7 @@ let meta_ipv4_config fmt { address ; netmask ; gateways } =
 let ipv4_conf config = object
   inherit base_configurable
 
-  method ty = arpv4 @-> ipv4
+  method ty = ethernet @-> arpv4 @-> ipv4
 
   method name = Name.of_key "ipv4" ~base:"ipv4"
   method module_name = "Ipv4.Make"
@@ -551,21 +551,28 @@ let ipv4_conf config = object
     | `Xen  -> [ "tcpip.ipv4" ]
 
   method connect _ modname = function
-    | [ ip ] ->
+    | [ etif ; arp ] ->
+      (* TEMPORARY HACK *)
+      let ip = "_ip" in
       Format.asprintf
-        "let i = Ipaddr.V4.of_string_exn in@;\
+        "%s.connect %s %s >>= function@[<2>@ \
+         | `Error _ -> failwith \"IPV4\"@ \
+         | `Ok %s ->@ \
+         let i = Ipaddr.V4.of_string_exn in@;\
          %s.set_ip %s (i %S) >>= fun () ->@;\
          %s.set_ip_netmask %s (i %S) >>= fun () ->@;\
          %s.set_ip_gateways %s %a >>= fun () ->@;\
          return (`Ok %s)@;"
-        ip modname (Ipaddr.V4.to_string config.address)
-        ip modname (Ipaddr.V4.to_string config.netmask)
-        ip modname
+        modname etif arp
+        ip
+        modname ip (Ipaddr.V4.to_string config.address)
+        modname ip (Ipaddr.V4.to_string config.netmask)
+        modname ip
         Fmt.(Dump.list
             (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
         config.gateways
         ip
-    | _ -> failwith "The ipv4 connect should receive exactly one argument."
+    | _ -> failwith "The ipv4 connect should receive exactly two arguments."
 
 end
 
@@ -574,7 +581,7 @@ let ipv4_func config = impl (ipv4_conf config)
 let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config =
   let etif = etif net in
   let arp = arp ~clock ~time etif in
-  ipv4_func config $ arp
+  ipv4_func config $ etif $ arp
 
 let default_ipv4_conf =
   let i = Ipaddr.V4.of_string_exn in
@@ -606,7 +613,7 @@ let meta_ipv6_config fmt { address ; netmask ; gateways } =
 let ipv6_conf config = object
   inherit base_configurable
 
-  method ty = clock @-> time @-> ethernet @-> ipv6
+  method ty = ethernet @-> time @-> clock @-> ipv6
 
   method name = Name.of_key "ipv6" ~base:"ipv6"
   method module_name = "Ipv6.Make"
@@ -617,7 +624,7 @@ let ipv6_conf config = object
     | `Xen  -> [ "tcpip.ipv6" ]
 
   method connect _ modname = function
-    | [ _clock ; _time ; ip ] ->
+    | [ etif ; _time ; _clock ] ->
       Format.asprintf
         "let i = Ipaddr.V6.of_string_exn in@;\
          %s.set_ip ip (i %S) >>= fun () ->@;\
@@ -633,7 +640,7 @@ let ipv6_conf config = object
         Fmt.(Dump.list
             (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V6.to_string n)))
         config.gateways
-        ip
+        etif
     | _ -> failwith "The ipv6 connect should receive exactly three arguments."
 
 end
@@ -645,7 +652,7 @@ let create_ipv6
     ?(clock = default_clock)
     net config =
   let etif = etif net in
-  ipv6_func config $ clock $ time $ etif
+  ipv6_func config $ etif $ time $ clock
 
 
 
@@ -722,7 +729,7 @@ let tcp_direct_conf () = object
   inherit base_configurable
 
   method ty =
-    clock @-> time @-> random @-> (ip : 'a ip typ) @-> (tcp : 'a tcp typ)
+    (ip : 'a ip typ) @-> time @-> clock @-> random @-> (tcp : 'a tcp typ)
 
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
@@ -731,7 +738,7 @@ let tcp_direct_conf () = object
   method libraries = [ "tcpip.tcp" ]
 
   method connect _ modname = function
-    | [ _clock ; _time ; _random ; ip ] ->
+    | [ ip ; _time ; _clock ; _random ] ->
       Printf.sprintf "%s.connect %s" modname ip
     | _ -> failwith "The tcp connect should receive exactly four arguments."
 end
@@ -741,7 +748,7 @@ let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
     ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ip =
-  tcp_direct_func () $ clock $ time $ random $ ip
+  tcp_direct_func () $ ip $ time $ clock $ random
 
 
 let tcpv4_socket_conf ipv4 = object (self)

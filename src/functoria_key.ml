@@ -136,6 +136,9 @@ let get k = match k.value with
   | None -> k.default
   | Some v -> v
 
+let set k x =
+  k.value <- Some x
+
 
 module M = struct
   type t = V : 'a key -> t

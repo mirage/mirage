@@ -79,6 +79,9 @@ val create : ?doc:string -> ?stage:stage -> default:'a -> string -> 'a Desc.t ->
 
 val create_raw : doc:Doc.t -> stage:stage -> default:'a -> string -> 'a Desc.t -> 'a key
 
+val set : 'a key -> 'a -> unit
+(** Allow to set the value of a key. *)
+
 type t = V : 'a key -> t
 
 val compare : t -> t -> int

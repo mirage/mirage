@@ -407,7 +407,7 @@ module Config = struct
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root jobs init_dsl =
     let custom = init_dsl ~name ~root jobs in
-    let keys = Key.Set.of_list keys in
+    let keys = Key.Set.of_list (keys @ custom#keys) in
     let libraries = StringSet.of_list libraries in
     let packages = StringSet.of_list packages in
     let jobs = List.map Modlist.of_impl @@ impl custom :: jobs in

@@ -15,6 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Rresult
 open Functoria_misc
 open Cmdliner
 
@@ -1265,8 +1266,8 @@ let rec expand_name ~lib param =
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
 let get_extra_ld_flags ~filter pkgs =
-  let lib = strip (read_command "opam config var lib") in
-  let output = read_command
+  let lib = strip (R.get_ok @@ read_command "opam config var lib") in
+  let output = R.get_ok @@ read_command
     "ocamlfind query -r -format '%%d\t%%(xen_linkopts)' -predicates native %s"
     (String.concat " " pkgs) in
   split output '\n'

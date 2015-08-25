@@ -43,8 +43,8 @@ let with_argv keys s argv =
   let gather k rest = Term.(pure (fun () () -> ()) $ k $ rest) in
   let t = List.fold_right gather keys (Term.pure ()) in
   match Term.(eval ~argv (t, info s)) with
-  | `Ok _ -> Lwt.return_unit
-  | _ -> exit 1
+  | `Ok _ -> Lwt.return (`Ok ())
+  | _ -> Lwt.return (`Error "cmdliner")
 
 (* Put back the dashes. Slightly hacky. *)
 let with_kv keys s kv =

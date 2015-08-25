@@ -314,6 +314,19 @@ end = struct
     end
   and configure configured info (E m) = configure' configured info m
 
+  let emit_connect error iname names connect_string =
+    (* We avoid potential collision between double application
+       by prefixing with "_". This also avoid warnings. *)
+    let res_names = List.map (fun x -> "_"^x) names in
+    Codegen.append_main "let %s () =" iname;
+    List.iter2 (fun connect_name res ->
+      Codegen.append_main "  %s () >>= function" connect_name;
+      Codegen.append_main "  | `Error _e -> %s" (error connect_name);
+      Codegen.append_main "  | `Ok %s ->" res;
+    ) names res_names ;
+    Codegen.append_main "  @[<2>%s@]" (connect_string res_names) ;
+    Codegen.newline_main ()
+
   let rec connect' tbl info error m =
     let iname = name m in
     if not (Hashtbl.mem tbl iname) then begin
@@ -323,26 +336,12 @@ end = struct
       | Mod (m, deps) ->
         List.iter (connect tbl info error) deps ;
         let names = List.map (map_E name) deps in
-        Codegen.append_main "let %s () =" iname;
-        Codegen.append_main "  %s" (m#connect info modname names);
-        Codegen.newline_main ()
+        emit_connect error iname names (m#connect info modname)
       | List (f, deps, args) ->
         List.iter (connect' tbl info error) args ;
         List.iter (connect tbl info error) deps ;
-        let names =
-          List.map name args @ List.map (map_E name) deps
-        in
-        (* We avoid potential collision between double application
-           by prefixing with "_". This also avoid warnings. *)
-        let res_names = List.map (fun x -> "_"^x) names in
-        Codegen.append_main "let %s () =" iname;
-        List.iter2 (fun connect res ->
-          Codegen.append_main "  %s () >>= function" connect;
-          Codegen.append_main "  | `Error e -> %s" (error connect);
-          Codegen.append_main "  | `Ok %s ->" res;
-        ) names res_names ;
-        Codegen.append_main "  %s" (f#connect info modname res_names);
-        Codegen.newline_main ()
+        let names = List.map name args @ List.map (map_E name) deps in
+        emit_connect error iname names (f#connect info modname)
     end
   and connect tbl info error (E m) = connect' tbl info error m
 
@@ -382,8 +381,12 @@ class ['ty] foreign
     method keys = keys
     method libraries = libraries
     method packages = packages
-    method connect _ m args =
-      Printf.sprintf "%s.start %s" m (String.concat " " args)
+    method connect _ modname args =
+      Fmt.strf
+        "%s.start@ %a@ \
+        >>= fun t -> Lwt.return (`Ok t)"
+        modname
+        Fmt.(list ~sep:sp string)  args
     method clean _ = ()
     method configure _ = ()
     method dependencies = []
@@ -420,6 +423,7 @@ module Config = struct
 
   let name t = t.default_info.name
   let root t = t.default_info.root
+  let custom t = t.custom
   let primary_keys t =
     Key.Set.union t.default_info.keys @@ Modlist.primary_keys t.jobs
 
@@ -427,6 +431,8 @@ end
 
 
 module type PROJECT = sig
+
+  val prelude : string
 
   val name : string
 
@@ -581,25 +587,26 @@ module Make (P:PROJECT) = struct
     remove (Info.root i / "bootvar_gen.ml")
 
 
-  let configure_main i jobs =
+  let configure_main i jobs custom =
     info "%a main.ml" blue "Generating:";
     Codegen.set_main_ml (Info.root i / "main.ml");
     Codegen.append_main "(* %s *)" (generated_header P.name);
     Codegen.newline_main ();
-    Codegen.append_main "open Lwt";
+    Codegen.append_main "%a" Fmt.text  Project.prelude;
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
     Modlist.configure_and_connect i Project.driver_error jobs;
     Codegen.newline_main ();
-    Codegen.append_main "let () = main ()";
+    Codegen.append_main
+      "let () = run (bootvar () >>= fun _ -> %s ())" custom#name ;
     ()
 
   let clean_main i jobs =
     List.iter (Modlist.clean i) jobs ;
     remove (Info.root i / "main.ml")
 
-  let configure i jobs =
+  let configure i jobs custom =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
     info "%a@ [%a]"
       blue (Fmt.strf "%d Job%s:"
@@ -612,7 +619,7 @@ module Make (P:PROJECT) = struct
         else Ok ()
       end >>= fun () ->
       configure_bootvar i;
-      configure_main i jobs ;
+      configure_main i jobs custom;
       Ok ()
     )
 
@@ -695,7 +702,7 @@ module Make (P:PROJECT) = struct
   let eval t =
     let evaluated, info = Config.eval t in
     object
-      method configure = configure info evaluated
+      method configure = configure info evaluated (Config.custom t)
       method clean = clean info evaluated
       method build = build info
       method keys =

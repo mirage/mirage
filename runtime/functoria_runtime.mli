@@ -40,7 +40,11 @@ end
 
 (** [with_argv keys s argv] uses the given key terms to parse the given [argv].
     [s] is the name of the cmdline executable. *)
-val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit Lwt.t
+val with_argv :
+  unit Cmdliner.Term.t list -> string -> string array ->
+  [> `Error of string | `Ok of unit ] Lwt.t
 
-val with_kv :  unit Cmdliner.Term.t list -> string -> (string * string) list -> unit Lwt.t
+val with_kv :
+  unit Cmdliner.Term.t list -> string -> (string * string) list ->
+  [> `Error of string | `Ok of unit ] Lwt.t
 (** [with_kv keys s kv] is equivalent to {!with_argv} but uses a [(key,value) list] instead of an array as input. *)

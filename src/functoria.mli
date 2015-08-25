@@ -140,6 +140,8 @@ end
 
 module type PROJECT = sig
 
+  val prelude : string
+
   val name : string
 
   val version : string

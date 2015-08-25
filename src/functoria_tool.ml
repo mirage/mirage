@@ -105,7 +105,7 @@ module Make (Config : Functoria.CONFIG) = struct
         Config.manage_opam_packages (not no_opam);
         Config.no_opam_version_check no_opam_version_check;
         Config.no_depext no_depext;
-        `Ok t#configure in
+        err_cmdliner t#configure in
       let keys = t#keys in
       Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys)
     in
@@ -125,7 +125,7 @@ module Make (Config : Functoria.CONFIG) = struct
       `P build_doc
     ] in
     let f t =
-      let build () = `Ok t#build in
+      let build () = err_cmdliner t#build in
       Term.(pure build $ pure ())
     in
     let f_no err =
@@ -146,7 +146,7 @@ module Make (Config : Functoria.CONFIG) = struct
     let f t =
       let clean no_opam =
         Config.manage_opam_packages (not no_opam);
-        `Ok t#clean in
+        err_cmdliner t#clean in
       Term.(pure clean $ no_opam)
     in
     let f_no err =
@@ -232,10 +232,8 @@ module Make (Config : Functoria.CONFIG) = struct
     (* Do not die on Ctrl+C: necessary when functoria has to cleanup things
        (like killing running kernels) before terminating. *)
     Sys.catch_break true;
-    match Term.eval_choice ~catch:false default commands with
+    match Term.eval_choice default commands with
     | `Error _ -> exit 1
-    | exception Functoria_misc.Fatal s ->
-      Printf.eprintf "%s" s ; exit 1
     | _ -> ()
 
 end

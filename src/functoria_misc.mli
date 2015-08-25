@@ -34,7 +34,7 @@ val (/): string -> string -> string
 (** Same as [Filename.concat]. *)
 
 val err_cmdliner :
-  bool -> ('a, string) result -> 'a Cmdliner.Term.ret
+  ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
 
 (** {2 String utilities} *)
 
@@ -61,9 +61,10 @@ val after : string -> string -> string option
 
 val command_exists: string -> bool
 
-val command: ?redirect:bool -> ('a, unit, string, unit) format4 -> 'a
+val command:
+  ?redirect:bool -> ('a, unit, string, (unit, string) result) format4 -> 'a
 
-val read_command: ('a, unit, string, string) format4 -> 'a
+val read_command: ('a, unit, string,  (string, string) result) format4 -> 'a
 
 val remove: string -> unit
 
@@ -80,7 +81,7 @@ val uname_m: unit -> string option
 val uname_r: unit -> string option
 
 module OCamlfind : sig
-  val query : ?predicates:string list -> ?format:string -> ?recursive:bool -> string list -> string list
+  val query : ?predicates:string list -> ?format:string -> ?recursive:bool -> string list -> (string list, string) result
   val installed : string -> bool
 end
 

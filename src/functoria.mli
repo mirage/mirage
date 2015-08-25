@@ -16,6 +16,7 @@
  *)
 
 (** Configuration library. *)
+open Rresult
 open Functoria_misc
 
 module Key = Functoria_key
@@ -190,9 +191,9 @@ module type CONFIG = sig
   val primary_keys : t -> unit Cmdliner.Term.t
 
   val eval : t -> <
-      build : unit;
-      clean : unit;
-      configure : unit;
+      build : (unit, string) result;
+      clean : (unit, string) result;
+      configure : (unit, string) result;
       keys : unit Cmdliner.Term.t
     >
 end

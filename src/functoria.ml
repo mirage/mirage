@@ -459,9 +459,9 @@ module type CONFIG = sig
 
   val primary_keys : t -> unit Cmdliner.Term.t
   val eval : t -> <
-      build : unit;
-      clean : unit;
-      configure : unit;
+      build : (unit, string) result;
+      clean : (unit, string) result;
+      configure : (unit, string) result;
       keys : unit Cmdliner.Term.t
     >
 end
@@ -512,14 +512,14 @@ module Make (P:PROJECT) = struct
   let configure_opam t =
     info "Installing OPAM packages.";
     let ps = Info.packages t in
-    if StringSet.is_empty ps then ()
+    if StringSet.is_empty ps then Ok ()
     else
     if command_exists "opam" then
-      if !no_opam_version_check_ then ()
+      if !no_opam_version_check_ then Ok ()
       else (
-        let opam_version = read_command "opam --version" in
+        read_command "opam --version" >>= fun opam_version ->
         let version_error () =
-          fail "Your version of OPAM (%s) is not recent enough. \
+          error "Your version of OPAM (%s) is not recent enough. \
                 Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
                 You can pass the `--no-opam-version-check` flag to force its use." opam_version
         in
@@ -537,11 +537,11 @@ module Make (P:PROJECT) = struct
                 opam "install" ["depext"];
               opam ~yes:false "depext" ps;
             );
-            opam "install" ps
+            Ok (opam "install" ps)
           ) else version_error ()
         | _ -> version_error ()
       )
-    else fail "OPAM is not installed."
+    else error "OPAM is not installed."
 
   let clean_opam _t =
     ()
@@ -605,10 +605,13 @@ module Make (P:PROJECT) = struct
         (if List.length jobs = 1 then "" else "s"))
       (Fmt.list Modlist.pp) jobs;
     in_dir (Info.root i) (fun () ->
-      if !manage_opam_packages_ then configure_opam i;
+      begin if !manage_opam_packages_
+        then configure_opam i
+        else Ok ()
+      end >>= fun () ->
       configure_bootvar i;
       configure_main i jobs ;
-      ()
+      Ok ()
     )
 
   let make () =
@@ -629,7 +632,7 @@ module Make (P:PROJECT) = struct
       if !manage_opam_packages_ then clean_opam ();
       clean_bootvar i;
       clean_main i jobs;
-      command "rm -rf %s/_build" root ;
+      command "rm -rf %s/_build" root >>= fun () ->
       command "rm -rf log %s/main.native.o %s/main.native %s/*~"
         root root root ;
     )
@@ -643,8 +646,14 @@ module Make (P:PROJECT) = struct
     let root = Filename.dirname file in
     let file = Filename.basename file in
     let file = Dynlink.adapt_filename file in
-    command "rm -rf %s/_build/%s.*" root (Filename.chop_extension file);
-    command "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg %s %s" root P.name file ;
+    command
+      "rm -rf %s/_build/%s.*"
+      root (Filename.chop_extension file)
+    >>= fun () ->
+    command
+      "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg %s %s"
+      root P.name file
+    >>= fun () ->
     try Ok (Dynlink.loadfile (String.concat "/" [root; "_build"; file]))
     with Dynlink.Error err -> error "Error loading config: %s" (Dynlink.error_message err)
 

@@ -21,7 +21,7 @@ exception Fatal of string
 
 let (/) = Filename.concat
 
-let err_cmdliner usage = function
+let err_cmdliner ?(usage=false) = function
   | Ok x -> `Ok x
   | Error s -> `Error (usage, s)
 
@@ -76,30 +76,16 @@ let green   = Fmt.(styled `Green string)
 let yellow  = Fmt.(styled `Yellow string)
 let blue    = Fmt.(styled `Cyan string)
 
-let indent_left s nb =
-  let nb = nb - String.length s in
-  if nb <= 0 then
-    s
-  else
-    s ^ String.make nb ' '
-
-let left_column () =
-  20
-
-let left color ppf s =
-  Fmt.string ppf (indent_left (Fmt.to_to_string color s) (left_column ()))
-
-
 let section = ref "Functoria"
 let set_section s = section := s
 let get_section () = !section
 
 let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
-  f ("@[<2>%a@ "^^fmt^^"@]@.") (left color) section
+  f ("@[<2>%a@ "^^fmt^^"@]@.") color section
 
 let error_msg f section = in_section ~color:red ~section f
 
-let error fmt = error_msg (Fmt.kstrf @@ fun x -> Error x) "[ERROR]" fmt
+let error fmt = Fmt.kstrf (fun x -> Error x) fmt
 let fail fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) "[ERROR]" fmt
 let info fmt  = in_section ~color:green Fmt.pr fmt
 let debug fmt = in_section ~color:green Fmt.pr fmt
@@ -146,6 +132,7 @@ let with_redirect oc file fn =
   | Ok x -> x
   | Error e -> raise e
 
+
 let command ?(redirect=true) fmt =
   Format.ksprintf (fun cmd ->
     info "%a@ %s" yellow "=>"  cmd;
@@ -157,13 +144,12 @@ let command ?(redirect=true) fmt =
           ) in
         if status <> 0 then
           let ic = open_in "log" in
-          let f fmt () =
-            try while true do
-                in_section ~color:red (Fmt.pf fmt) "%s\n" (input_line ic)
-              done;
-              assert false
+          let buf = Buffer.create 17 in
+          begin
+            try while true do Buffer.add_channel buf ic 1 done
             with End_of_file -> ()
-          in Error (Fmt.strf "%a" f ())
+          end ;
+          error "@;%a" Fmt.buffer buf
         else
           Ok status
       ) else (
@@ -171,11 +157,10 @@ let command ?(redirect=true) fmt =
         flush stderr;
         Ok (fn ())
       ) in
-    let res = match redirect (fun () -> Sys.command cmd) with
-      | Ok 0 -> Ok ()
-      | Ok i -> fail "The command %S exited with code %d." cmd i
-      | Error err -> fail "%s" err
-    in show res
+    match redirect (fun () -> Sys.command cmd) with
+    | Ok 0 -> Ok ()
+    | Ok i -> error "The command %S exited with code %d." cmd i
+    | Error err -> error "%s" err
   ) fmt
 
 let opam cmd ?(yes=true) ?switch deps =
@@ -183,7 +168,7 @@ let opam cmd ?(yes=true) ?switch deps =
   (* Note: we don't redirect output to the log as installation can take a long time
    * and the user will want to see what is happening. *)
   let yes = if yes then "--yes " else "" in
-  match switch with
+  ignore @@ match switch with
   | None     -> command ~redirect:false "opam %s %s%s" cmd yes deps_str
   | Some cmp -> command ~redirect:false "opam %s %s%s --switch=%s" cmd yes deps_str cmp
 
@@ -234,11 +219,11 @@ let read_command fmt =
       (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
       (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
       match close_process_full (ic,oc,ec) with
-      | WEXITED 0   -> Buffer.contents buf1
-      | WSIGNALED n -> fail "process killed by signal %d" n
-      | WSTOPPED n  -> fail "process stopped by signal %d" n
+      | WEXITED 0   -> Ok (Buffer.contents buf1)
+      | WSIGNALED n -> error "process killed by signal %d" n
+      | WSTOPPED n  -> error "process stopped by signal %d" n
       | WEXITED r   ->
-        fail "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
+        error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
 
 let generated_header s =
   let t = Unix.gettimeofday () in
@@ -298,8 +283,8 @@ module OCamlfind = struct
     and r    = if recursive then "-recursive" else ""
     and pkgs = String.concat " " xs
     in
-    let out = read_command "ocamlfind query %s %s %s %s" fmt pred r pkgs in
-    split out '\n'
+    read_command "ocamlfind query %s %s %s %s" fmt pred r pkgs
+    >>| fun out -> split out '\n'
 
   let installed lib =
     Sys.command ("ocamlfind query " ^ lib ^ " 2>&1 1>/dev/null") = 0

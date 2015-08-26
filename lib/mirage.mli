@@ -214,7 +214,6 @@ val netif: string -> network impl
 (** {2 Ethernet configuration} *)
 
 (** Implementations of the [V1.ETHIF] signature. *)
-(* XXX: is that meaningful to expose this level ? *)
 type ethernet
 val ethernet : ethernet typ
 val etif: network impl -> ethernet impl
@@ -419,63 +418,6 @@ module Config : CONFIG with module Project = Project
 
 val impl: 'a configurable -> 'a impl
 (** Extend the library with an external configuration. *)
-
-(* val append_main: ('a, unit, string, unit) format4 -> 'a *)
-(* (\** Add some string to [main.ml]. *\) *)
-
-(* val newline_main: unit -> unit *)
-(* (\** Add a newline to [main.ml]. *\) *)
-
-(* module Io_page: CONFIGURABLE *)
-(* (\** Implementation of IO page allocators. *\) *)
-
-(* module Clock: CONFIGURABLE *)
-(* (\** Implementation of clocks. *\) *)
-
-(* module Time: CONFIGURABLE *)
-(* (\** Implementation of timers. *\) *)
-
-(* module Random: CONFIGURABLE *)
-(* (\** Implementation of timers. *\) *)
-
-(* module Console: CONFIGURABLE *)
-(* (\** Implementation of consoles. *\) *)
-
-(* module Crunch: CONFIGURABLE *)
-(* (\** Implementation of crunch a local filesystem. *\) *)
-
-(* module Direct_kv_ro: CONFIGURABLE *)
-(* (\** Implementation of direct access to the filesystem as a key/value *)
-(*     read-only store. *\) *)
-
-(* module Block: CONFIGURABLE *)
-(* (\** Implementation of raw block device. *\) *)
-
-(* module Fat: CONFIGURABLE *)
-(* (\** Implementation of the Fat filesystem. *\) *)
-
-(* module Network: CONFIGURABLE *)
-(* (\** Implementation of network configuration. *\) *)
-
-(* module Ethif: CONFIGURABLE *)
-
-(* module Arpv4: CONFIGURABLE *)
-
-(* module IPV4: CONFIGURABLE *)
-(* module IPV6: CONFIGURABLE *)
-
-(* module UDP_direct: functor (V : sig type t end) -> CONFIGURABLE *)
-(* module UDPV4_socket: CONFIGURABLE *)
-
-(* module TCP_direct: functor (V : sig type t end) -> CONFIGURABLE *)
-(* module TCPV4_socket: CONFIGURABLE *)
-
-(* module STACKV4_direct: CONFIGURABLE *)
-(* module STACKV4_socket: CONFIGURABLE *)
-
-(* module HTTP: CONFIGURABLE *)
-
-(* module Job: CONFIGURABLE *)
 
 (** {2 Generation of fresh names} *)
 

@@ -868,6 +868,33 @@ let socket_stackv4 console ipv4s =
   stackv4_socket_conf ipv4s $ console
 
 
+let nocrypto = impl @@ object
+  inherit base_configurable
+  method ty = job
+  method name = "nocrypto"
+  method module_name = "Nocrypto_entropy"
+
+  method packages =
+    match get_mode () with
+    | `Xen -> [ "mirage-entropy-xen" ]
+    | _    -> []
+
+  method libraries = match get_mode () with
+    | `Xen            -> ["nocrypto.xen"]
+    | `Unix | `MacOSX -> ["nocrypto.lwt"]
+
+  method connect _ _ _ =
+    let s = match get_mode () with
+      | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
+      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+    in
+    Fmt.strf "%s >|= fun x -> `Ok x" s
+
+end
+
+
+
+
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector
 
@@ -901,6 +928,8 @@ let tls_conduit_connector = impl @@ object
   method packages = [ "mirage-conduit" ; "tls" ]
   method libraries = [ "conduit.mirage" ; "tls.mirage" ]
 
+  method dependencies = [ hide nocrypto ]
+
   method connect _ _ _ =
     "return (`Ok Conduit_mirage.with_tls)"
 
@@ -933,10 +962,11 @@ let conduit_with_connectors connectors = impl @@ object
 end
 
 let conduit_direct ?(tls=false) s =
+  (* TCP must be before tls in the list. *)
   let connectors = [tcp_conduit_connector $ s] in
   let connectors =
     if tls
-    then tls_conduit_connector :: connectors
+    then connectors @ [tls_conduit_connector]
     else connectors
   in
   conduit_with_connectors connectors
@@ -1094,33 +1124,6 @@ end
 
 type tracing = int
 let mprof_trace ~size () = size
-
-
-let nocrypto = impl @@ object
-  inherit base_configurable
-  method ty = job
-  method name = "nocrypto"
-  method module_name = "Nocrypto_entropy"
-
-  method packages =
-    match get_mode () with
-    | `Xen -> [ "mirage-entropy-xen" ]
-    | _    -> []
-
-  method libraries = match get_mode () with
-    | `Xen            -> ["nocrypto.xen"]
-    | `Unix | `MacOSX -> ["nocrypto.lwt"]
-
-  method connect _ _ _ =
-    let s = match get_mode () with
-      | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
-      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
-    in
-    Fmt.strf "%s >|= fun x -> `Ok x" s
-
-end
-
-
 
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in

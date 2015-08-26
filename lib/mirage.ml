@@ -550,7 +550,7 @@ let meta_ipv4_config fmt { address ; netmask ; gateways } =
     fmt
     (address, netmask, gateways)
 
-let ipv4_conf config = object
+let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
   inherit base_configurable
 
   method ty = ethernet @-> arpv4 @-> ipv4
@@ -565,36 +565,23 @@ let ipv4_conf config = object
 
   method connect _ modname = function
     | [ etif ; arp ] ->
-      (* TEMPORARY HACK *)
-      let ip = "_ip" in
-      Format.asprintf
-        "%s.connect %s %s >>= function@[<2>@ \
-         | `Error _ -> failwith \"IPV4\"@ \
-         | `Ok %s ->@ \
-         let i = Ipaddr.V4.of_string_exn in@;\
-         %s.set_ip %s (i %S) >>= fun () ->@;\
-         %s.set_ip_netmask %s (i %S) >>= fun () ->@;\
-         %s.set_ip_gateways %s %a >>= fun () ->@;\
-         return (`Ok %s)@;"
-        modname etif arp
-        ip
-        modname ip (Ipaddr.V4.to_string config.address)
-        modname ip (Ipaddr.V4.to_string config.netmask)
-        modname ip
-        Fmt.(Dump.list
-            (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V4.to_string n)))
-        config.gateways
-        ip
+      Fmt.strf
+        "%s.connect@[@ ?ip:%a@ ?netmask:%a@ ?gateways:%a@ %s@ %s@]"
+        modname
+        Fmt.(Dump.option meta_ipv4) address
+        Fmt.(Dump.option meta_ipv4) netmask
+        Fmt.(Dump.option @@ list meta_ipv4) gateways
+        etif arp
     | _ -> failwith "The ipv4 connect should receive exactly two arguments."
 
 end
 
-let ipv4_func config = impl (ipv4_conf config)
-
-let create_ipv4 ?(clock = default_clock) ?(time = default_time) net config =
+let create_ipv4
+    ?(clock = default_clock) ?(time = default_time)
+    net { address ; netmask ; gateways } =
   let etif = etif net in
   let arp = arp ~clock ~time etif in
-  ipv4_func config $ etif $ arp
+  ipv4_conf ~address ~netmask ~gateways () $ etif $ arp
 
 let default_ipv4_conf =
   let i = Ipaddr.V4.of_string_exn in
@@ -611,9 +598,9 @@ let default_ipv4 net =
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 
 let meta_ipv6 ppf s =
-  Fmt.pf ppf "Ipaddr.V6.of_string_exn %S" (Ipaddr.V4.to_string s)
+  Fmt.pf ppf "Ipaddr.V6.of_string_exn %S" (Ipaddr.V6.to_string s)
 let meta_prefix_ipv6 ppf s =
-  Fmt.pf ppf "Ipaddr.V6.Prefix.of_string_exn %S" (Ipaddr.V4.to_string s)
+  Fmt.pf ppf "Ipaddr.V6.Prefix.of_string_exn %S" (Ipaddr.V6.Prefix.to_string s)
 
 let meta_ipv6_config fmt { address ; netmask ; gateways } =
   meta_triple
@@ -623,7 +610,7 @@ let meta_ipv6_config fmt { address ; netmask ; gateways } =
     fmt
     (address, netmask, gateways)
 
-let ipv6_conf config = object
+let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
   inherit base_configurable
 
   method ty = ethernet @-> time @-> clock @-> ipv6
@@ -638,34 +625,23 @@ let ipv6_conf config = object
 
   method connect _ modname = function
     | [ etif ; _time ; _clock ] ->
-      Format.asprintf
-        "let i = Ipaddr.V6.of_string_exn in@;\
-         %s.set_ip ip (i %S) >>= fun () ->@;\
-         %a@;\
-         %s.set_ip_gateways ip [%a] >>= fun () ->@;\
-         return (`Ok %s)@;"
-        modname (Ipaddr.V6.to_string config.address)
-        Fmt.(list @@ fun fmt n ->
-          Fmt.pf fmt "%s.set_ip_netmask ip (i %S) >>= fun () ->"
-            modname (Ipaddr.V6.Prefix.to_string n)
-        ) config.netmask
+      Fmt.strf
+        "%s.connect@[@ ?ip:%a@ ?netmask:%a@ ?gateways:%a@ %s@@]"
         modname
-        Fmt.(Dump.list
-            (fun fmt n -> Fmt.pf fmt "(i %S)" (Ipaddr.V6.to_string n)))
-        config.gateways
+        Fmt.(Dump.option meta_ipv6) address
+        Fmt.(Dump.option @@ list meta_prefix_ipv6) netmask
+        Fmt.(Dump.option @@ list meta_ipv6) gateways
         etif
     | _ -> failwith "The ipv6 connect should receive exactly three arguments."
 
 end
 
-let ipv6_func config = impl (ipv6_conf config)
-
 let create_ipv6
     ?(time = default_time)
     ?(clock = default_clock)
-    net config =
+    net { address ; netmask ; gateways } =
   let etif = etif net in
-  ipv6_func config $ etif $ time $ clock
+  ipv6_conf ~address ~netmask ~gateways () $ etif $ time $ clock
 
 
 
@@ -830,10 +806,11 @@ let direct_stackv4_with_config
     ?(time=default_time)
     console network config =
   let eth = etif_func $ network in
-  let ip = default_ipv4 network in (* it will set ip things, FIXME *)
+  let arp = arp ~clock ~time eth in
+  let ip = ipv4_conf () $ eth $ arp in
   stackv4_direct_conf config
   $ console $ time $ random $ network
-  $ eth $ arp ~clock ~time eth $ ip
+  $ eth $ arp $ ip
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 

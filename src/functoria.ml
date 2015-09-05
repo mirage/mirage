@@ -88,7 +88,13 @@ let ($) f x =
 let impl x = Impl x
 let hide x = Any x
 
-let switch b x y = If(b,x,y)
+let if_impl b x y = If(b,x,y)
+let rec switch ~default kv = function
+  | [] -> default
+  | (v, i) :: t ->
+    If (Key.(pure ((=) v) $ kv), i, switch ~default kv t)
+
+
 
 class base_configurable = object
   method libraries : string list = []
@@ -109,15 +115,15 @@ module DTree = struct
     | If : bool Key.value * 'a t * 'a t -> 'a t
 
   let rec push_app' : type a. a impl -> a impl * bool  = function
-    | App {f = If (b, f1, f2) ;x} -> switch b (f1$x) (f2$x), true
-    | App {f ; x = If(b, x1, x2)} -> switch b (f$x1) (f$x2), true
+    | App {f = If (b, f1, f2) ;x} -> if_impl b (f1$x) (f2$x), true
+    | App {f ; x = If(b, x1, x2)} -> if_impl b (f$x1) (f$x2), true
     | App {f ; x } ->
       let f, bf = push_app' f and x, bx = push_app' x in
       let b = bf || bx in
       if b then fst @@ push_app' (f $ x), true else f $ x, false
     | If (b, x, y) ->
       let x, bx = push_app' x and y, by = push_app' y in
-      switch b x y, bx || by
+      if_impl b x y, bx || by
     | Impl _ as f -> f, false
 
   let push_app i = fst @@ push_app' i

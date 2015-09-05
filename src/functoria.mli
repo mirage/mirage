@@ -59,6 +59,17 @@ type 'a impl
 val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
+val if_impl : bool Key.value -> 'a impl -> 'a impl -> 'a impl
+(** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2] otherwise. *)
+
+val switch :
+  default:'a impl ->
+  'b Key.value ->
+  ('b * 'a impl) list -> 'a impl
+(** [switch ~default v l] choose the implementation in [l] corresponding to the value [v].
+    The [default] implementation is chosen if no value match.
+*)
+
 val foreign:
   ?keys:Key.t list ->
   ?libraries:string list ->

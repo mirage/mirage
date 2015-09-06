@@ -23,4 +23,32 @@ val string_of_network_init_error:
     network interface errors from the [ifname] interface name and the error
     constructor. *)
 
+module Converter : sig
+  include module type of Functoria_runtime.Converter
+
+  val make : (string -> 'a option) -> 'a Fmt.t -> 'a t
+  (** [make of_string pp] creates a converter based on [of_string] and [pp]. *)
+
+  module type S = sig
+    type t
+    val of_string : string -> t option
+    val pp_hum : Format.formatter -> t -> unit
+  end
+  (** The signature used by {!of_module} to create a converter. *)
+
+  val of_module : (module S with type t = 'a) -> 'a t
+  (** [of module (module M)] creates a converter out of
+      a module answering the signature {!S}. *)
+
+  (** {2 Usual mirage converters} *)
+
+  val ip : Ipaddr.t t
+  val ipv4 : Ipaddr.V4.t t
+  val ipv6 : Ipaddr.V6.t t
+  val ipv6_prefix : Ipaddr.V6.Prefix.t t
+
+end
+
+
 include module type of Functoria_runtime
+  with module Converter := Converter

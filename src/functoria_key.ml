@@ -141,14 +141,15 @@ let set k x =
 
 
 module M = struct
-  type t = V : 'a key -> t
-  let compare (V k1) (V k2) = compare k1.name k2.name
+  type t = Any : 'a key -> t
+  let compare (Any k1) (Any k2) = compare k1.name k2.name
 end
 include M
 
-let name (V k) = k.name
-let stage (V k) = k.stage
-let doc (V k) = k.doc
+let hide x = Any x
+let name (Any k) = k.name
+let stage (Any k) = k.stage
+let doc (Any k) = k.doc
 
 let is_runtime k = match stage k with
   | `Run | `Both -> true
@@ -166,7 +167,7 @@ module Set = struct
   let add k set =
     if mem k set then
       if k != find k set then
-        let V k' = k in
+        let Any k' = k in
         fail "Duplicate key name: %S" k'.name
       else
         set
@@ -182,7 +183,7 @@ end
 
 
 
-let term_key (V ({ doc; desc; default } as t)) =
+let term_key (Any ({ doc; desc; default } as t)) =
   let i = Doc.to_cmdliner doc in
   let c = desc.converter in
   let set w = t.value <- Some w in
@@ -194,11 +195,11 @@ let term ?(stage=`Both) l =
 
 
 
-let serialize fmt (V k) =
+let serialize fmt (Any k) =
   let v = get k in
   Format.fprintf fmt "%a" (Desc.serializer @@ desc k) v
 
-let describe fmt (V { desc ; _ }) =
+let describe fmt (Any { desc ; _ }) =
   Format.fprintf fmt "%s" desc.description
 
 
@@ -224,12 +225,12 @@ let value k =
     | None -> k.default
     | Some s -> s
   in
-  { deps = Set.singleton (V k) ; v }
+  { deps = Set.singleton (Any k) ; v }
 
 let deps k = k.deps
 
 let peek { deps ; v } =
-  if Set.for_all (fun (V x) -> resolved x) deps then Some (v ()) else None
+  if Set.for_all (fun (Any x) -> resolved x) deps then Some (v ()) else None
 
 
 

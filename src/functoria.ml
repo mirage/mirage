@@ -89,10 +89,10 @@ let impl x = Impl x
 let hide x = Any x
 
 let if_impl b x y = If(b,x,y)
-let rec switch ~default kv = function
+let rec switch ~default l kv = match l with
   | [] -> default
   | (v, i) :: t ->
-    If (Key.(pure ((=) v) $ kv), i, switch ~default kv t)
+    If (Key.(pure ((=) v) $ kv), i, switch ~default t kv)
 
 
 

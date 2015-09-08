@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 49bdd1fd7a86184faed7ecd410396db0)
+# DO NOT EDIT (digest: 0b9815131bf53d4130ae776902c721a1)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -14,24 +14,29 @@ true: annot, bin_annot
 ".git": not_hygienic
 "_darcs": -traverse
 "_darcs": not_hygienic
+# Library mirage-runtime
+"lib_runtime/mirage-runtime.cmxs": use_mirage-runtime
+<lib_runtime/*.ml{,i,y}>: pkg_functoria.runtime
+<lib_runtime/*.ml{,i,y}>: pkg_ipaddr
 # Library mirage
 "lib/mirage.cmxs": use_mirage
-# Library mirage-runtime
-"lib/mirage-runtime.cmxs": use_mirage-runtime
-<lib/*.ml{,i,y}>: pkg_functoria.runtime
 # Executable mirage
 <lib/main.{native,byte}>: pkg_functoria
+<lib/main.{native,byte}>: pkg_functoria.runtime
 <lib/main.{native,byte}>: pkg_ipaddr
 <lib/main.{native,byte}>: pkg_lwt
 <lib/main.{native,byte}>: pkg_mirage-types
 <lib/main.{native,byte}>: pkg_mirage-types.lwt
 <lib/main.{native,byte}>: use_mirage
+<lib/main.{native,byte}>: use_mirage-runtime
 <lib/*.ml{,i,y}>: pkg_functoria
+<lib/*.ml{,i,y}>: pkg_functoria.runtime
 <lib/*.ml{,i,y}>: pkg_ipaddr
 <lib/*.ml{,i,y}>: pkg_lwt
 <lib/*.ml{,i,y}>: pkg_mirage-types
 <lib/*.ml{,i,y}>: pkg_mirage-types.lwt
 <lib/*.ml{,i,y}>: use_mirage
+<lib/*.ml{,i,y}>: use_mirage-runtime
 # OASIS_STOP
 true: debug, bin_annot, annot, principal
 <types/*.mli>: pkg_cstruct, pkg_io-page, pkg_ipaddr, pkg_lwt
@@ -43,4 +48,4 @@ true: bin_annot
 true: keep_locs
 
 # Force the runtime to be unix-independent.
-<lib/*runtime*>: dontlink(unix)
+<lib_runtime/*>: dontlink(unix)

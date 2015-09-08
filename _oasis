@@ -7,20 +7,21 @@ License:     ISC
 Plugins:     META (0.4)
 BuildTools:  ocamlbuild
 
+Library "mirage-runtime"
+  Path:               lib_runtime
+  Findlibparent:      mirage
+  Findlibname:        runtime
+  Modules:            Mirage_runtime
+  BuildDepends:       functoria.runtime, ipaddr
+
 Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
   Modules:            Mirage
-  InternalModules:    Mirage_key
-  BuildDepends:       ipaddr,functoria,lwt,mirage-types,mirage-types.lwt
-
-Library "mirage-runtime"
-  Path:               lib
-  Findlibname:        runtime
-  Modules:            Mirage_runtime
-  Findlibparent:      mirage
-  BuildDepends:       functoria.runtime
+  InternalModules:    Mirage_key, Mirage_version
+  BuildDepends:
+    ipaddr,functoria,lwt,mirage-types,mirage-types.lwt,mirage.runtime
 
 Executable mirage
   CompiledObject:     best

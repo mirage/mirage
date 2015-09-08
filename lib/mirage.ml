@@ -16,11 +16,13 @@
  *)
 
 open Rresult
-open Functoria_misc
 open Cmdliner
+open Functoria
+open Functoria_misc
 
-include Functoria
-module Name = Name
+module Key = Mirage_key
+
+
 
 (** {2 Error handling} *)
 let driver_error name =
@@ -1504,9 +1506,7 @@ module Project = struct
 
 end
 
-module Config = Functoria.Make (Project)
-include (Config : CONFIG with module Project := Project)
-
+include Functoria.Make (Project)
 
 let register ?tracing ?keys ?libraries ?packages name jobs =
   Key.set tracing_key tracing ;

@@ -14,5 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module M = Functoria_tool.Make(Mirage.Config)
-let () = M.launch ()
+let () = Mirage.launch ()

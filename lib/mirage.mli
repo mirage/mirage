@@ -21,44 +21,39 @@
     which are used by the various mirage libraries to implement a
     large collection of devices. *)
 
-open Functoria
-include CONFIG
+include Functoria.S
+module Key : sig
+  include Functoria.KEY
 
-module Key = Key
+  val target: [ `Unix | `Xen | `MacOSX ] key
+  (** Set the configuration mode for the current project. *)
 
-(** {2 Module combinators} *)
+end
 
-type 'a typ = 'a Functoria.typ
-(** The type of values representing module types. *)
-
-val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
-(** Construct a functor type from a type and an existing functor
-    type. This corresponds to prepending a parameter to the list of
-    functor parameters. For example,
-
-    {[ kv_ro @-> ip @-> kv_ro ]}
-
-    describes a functor type that accepts two arguments -- a kv_ro and
-    an ip device -- and returns a kv_ro.
-*)
-
-val typ: 'a -> 'a typ
-(** Create a new [typ]. *)
-
-type 'a impl = 'a Functoria.impl
-(** The type of values representing module implementations. *)
-
-val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
-(** [m $ a] applies the functor [a] to the functor [m]. *)
-
-val foreign: ?keys:Key.t list -> ?libraries:string list -> ?packages:string list -> string -> 'a typ -> 'a impl
-(** [foreign name libs packs constr typ] states that the module named
-    by [name] has the module type [typ]. If [libs] is set, add the
-    given set of ocamlfind libraries to the ones loaded by default. If
-    [packages] is set, add the given set of OPAM packages to the ones
-    loaded by default. *)
+(** {2 General mirage devices} *)
 
 
+(** Configuration mode. *)
+val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
+
+(** {3 Tracing} *)
+
+val tracing : int -> job impl
+
+type tracing
+
+val mprof_trace : size:int -> unit -> tracing
+(** Use mirage-profile to trace the unikernel.
+   On Unix, this creates and mmaps a file called "trace.ctf".
+   On Xen, it shares the trace buffer with dom0. *)
+
+(** {3 Application registering} *)
+
+val register :
+  ?tracing:tracing ->
+  ?keys:Functoria_key.t list ->
+  ?libraries:string list ->
+  ?packages:string list -> string -> job impl list -> unit
 
 
 (** {2 Time} *)
@@ -353,81 +348,6 @@ val http: http typ
 val http_server: conduit impl -> http impl
 
 
-(** {2 Tracing} *)
+(**/*)
 
-val tracing : int -> job impl
-
-type tracing
-
-val mprof_trace : size:int -> unit -> tracing
-(** Use mirage-profile to trace the unikernel.
-   On Unix, this creates and mmaps a file called "trace.ctf".
-   On Xen, it shares the trace buffer with dom0. *)
-
-
-(** {2 Jobs} *)
-
-type job = Functoria.job
-(** Type for job values. *)
-
-val job: job typ
-(** Reprensention of [JOB]. *)
-
-val register:
-  ?tracing:tracing ->
-  ?keys:Key.t list ->
-  ?libraries:string list ->
-  ?packages:string list -> string -> job impl list -> unit
-(** [register name jobs] registers the application named by [name]
-    which will executes the given [jobs].
-    @param tracing enables tracing if present (see {!mprof_trace}).
-    @param keys, libraries, packages allows to register additional keys, libraries, packages.
-*)
-
-(** {2 Device configuration} *)
-
-type mode = [
-  | `Unix
-  | `Xen
-  | `MacOSX
-]
-(** Configuration mode. *)
-
-val target: mode Key.key
-(** Set the configuration mode for the current project. *)
-
-val get_mode: unit -> mode
-
-
-(** {2 Project configuration} *)
-
-val manage_opam_packages: bool -> unit
-(** Tell Irminsule to manage the OPAM configuration
-    (ie. install/remove missing packages). *)
-
-val no_opam_version_check: bool -> unit
-(** Bypass the check of opam's version. *)
-
-val no_depext: bool -> unit
-(** Skip installation of external dependencies. *)
-
-
-(** {2 Extension} *)
-
-module Config : CONFIG with module Project = Project
-
-val impl: 'a configurable -> 'a impl
-(** Extend the library with an external configuration. *)
-
-(** {2 Generation of fresh names} *)
-
-module Name: sig
-
-  val create: string -> string
-  (** [create base] creates a fresh name using the given [base]. *)
-
-  val of_key: string -> base:string -> string
-  (** [find_or_create key base] returns a unique name corresponding to
-      the key. *)
-
-end
+val launch : unit -> unit

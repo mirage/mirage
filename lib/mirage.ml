@@ -870,20 +870,14 @@ let socket_stackv4 ?stack console ipv4s =
 
 (** Generic stack *)
 
-let dhcp_key =
-  Key.create ~stage:`Configure ~default:false "dhcp" Key.Desc.bool
-
-let net_key : [`Socket | `Direct] Key.key =
-  let conv = Arg.enum ["socket", `Socket ; "direct", `Direct] in
-  let desc = Key.Desc.from_converter "net" conv in
-  Key.create ~stage:`Configure ~default:`Socket "net" desc
-
 let generic_stackv4 ?stack console tap =
   let f net dhcp = match net, dhcp with
     | `Direct, false -> `Default
     | `Direct, true  -> `DHCP
     | `Socket, _     -> `Socket
   in
+  let dhcp_key = Key.dhcp stack in
+  let net_key = Key.net stack in
   let v = Key.(pure f $ value net_key $ value dhcp_key) in
   switch
     ~default:(direct_stackv4_with_default_ipv4 console tap)

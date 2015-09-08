@@ -62,7 +62,7 @@ let serialize_mode fmt = function
   | `MacOSX -> Fmt.pf fmt "`MacOSX"
 
 let target =
-  let doc = "Target platform to compile the unikernel for.  Valid values are: $(i,xen), $(i,unix), $(i,macosx)." in
+  let doc = "Target platform to compile the unikernel for. Valid values are: $(i,xen), $(i,unix), $(i,macosx)." in
   let desc = Key.Desc.create
       ~serializer:serialize_mode
       ~description:"target"
@@ -145,6 +145,21 @@ module V6 = struct
     create_simple ~doc ~default ?stack Desc.(list ipv6) "ip"
 
 end
+
+let dhcp stack =
+  let doc = Fmt.strf "Enable dhcp for %a." pp_stack stack in
+  create_simple
+    ~doc ?stack ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
+
+
+let net stack : [`Socket | `Direct] Key.key =
+  let conv = Arg.enum ["socket", `Socket ; "direct", `Direct] in
+  let desc = Key.Desc.from_converter "net" conv in
+  let doc =
+    Fmt.strf "Use $(i,socket) or $(i,direct) stack for %a." pp_stack stack
+  in
+  create_simple
+    ~doc ?stack ~stage:`Configure ~default:`Direct desc "net"
 
 include
   (Key :

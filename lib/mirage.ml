@@ -1502,13 +1502,14 @@ module Project = struct
     method keys = [ Key.hide Key.target ; Key.hide Key.tracing ]
 
     method packages =
-      match get_mode () with
-      | `Unix | `MacOSX -> ["mirage-unix"]
-      | `Xen  -> ["mirage-xen"]
+      begin match get_mode () with
+        | `Unix | `MacOSX -> ["mirage-unix"]
+        | `Xen  -> ["mirage-xen"]
+      end @ [ "sexplib" ]
 
     method libraries = [
       "lwt.syntax" ; "mirage.runtime" ;
-      "mirage-types.lwt"
+      "mirage-types.lwt" ; "sexplib"
     ]
 
     method connect _ _mod _names =

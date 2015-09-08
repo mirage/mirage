@@ -20,7 +20,7 @@ module Desc = struct
       (type t) description m (module M:S with type t=t) =
     let converter = C.of_module (module M) in
     let serializer fmt x =
-      Fmt.pf fmt "(%s.t_of_sexp (Sexp.of_string %S))"
+      Fmt.pf fmt "(%s.t_of_sexp (Sexplib.Sexp.of_string %S))"
       m (Sexplib.Sexp.to_string @@ M.sexp_of_t x)
     in
     create ~converter ~serializer ~description

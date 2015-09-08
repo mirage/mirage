@@ -146,8 +146,10 @@ module DTree = struct
     | If : bool Key.value * 'a t * 'a t -> 'a t
 
   let rec push_app' : type a. a impl -> a impl * bool  = function
-    | App {f = If (b, f1, f2) ;x} -> if_impl b (f1$x) (f2$x), true
-    | App {f ; x = If(b, x1, x2)} -> if_impl b (f$x1) (f$x2), true
+    | App {f = If (b, f1, f2) ;x} ->
+      push_app' @@ if_impl b (f1$x) (f2$x)
+    | App {f ; x = If(b, x1, x2)} ->
+      push_app' @@ if_impl b (f$x1) (f$x2)
     | App {f ; x } ->
       let f, bf = push_app' f and x, bx = push_app' x in
       let b = bf || bx in

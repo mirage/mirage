@@ -23,6 +23,11 @@ exception Fatal of string
 
 (** {2 Misc} *)
 
+val (@?) : 'a option -> 'a list -> 'a list
+(** [x @? l] cons the content of [x] to [l] is it exists. *)
+
+val opt_map : ('a -> 'b) -> 'a option -> 'b option
+
 val generated_header: string -> string
 (** [generated_header appname] is the header string for
     every generated file. [appname] is the name of the final application. *)

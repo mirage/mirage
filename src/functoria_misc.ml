@@ -19,6 +19,14 @@ open Rresult
 
 exception Fatal of string
 
+let (@?) x l = match x with
+  | Some s -> s :: l
+  | None -> l
+
+let opt_map f = function
+  | Some x -> Some (f x)
+  | None -> None
+
 let (/) = Filename.concat
 
 let err_cmdliner ?(usage=false) = function

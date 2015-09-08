@@ -22,36 +22,40 @@
     large collection of devices. *)
 
 include Functoria.S
+
+(** Configuration keys. *)
 module Key : sig
   include Functoria.KEY
 
   val target: [ `Unix | `Xen | `MacOSX ] key
-  (** Set the configuration mode for the current project. *)
+  (** Key setting the configuration mode for the current project. *)
+
+  val tracing: int option key
+  (** Key setting the tracing level. *)
 
 end
 
 (** {2 General mirage devices} *)
 
-
-(** Configuration mode. *)
 val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
-
-(** {3 Tracing} *)
+(** Current configuration mode. *)
 
 val tracing : int -> job impl
+(** Tracking implementation. *)
 
-type tracing
-
-val mprof_trace : size:int -> unit -> tracing
+val mprof_trace : size:int -> unit -> int
 (** Use mirage-profile to trace the unikernel.
-   On Unix, this creates and mmaps a file called "trace.ctf".
-   On Xen, it shares the trace buffer with dom0. *)
+    On Unix, this creates and mmaps a file called "trace.ctf".
+    On Xen, it shares the trace buffer with dom0.
+
+    Deprecated. Is the identity over size.
+*)
 
 (** {3 Application registering} *)
 
 val register :
-  ?tracing:tracing ->
-  ?keys:Functoria_key.t list ->
+  ?tracing:int ->
+  ?keys:Key.t list ->
   ?libraries:string list ->
   ?packages:string list -> string -> job impl list -> unit
 
@@ -201,7 +205,7 @@ val network: network typ
 val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
-val netif: string -> network impl
+val netif: ?stack:string -> string -> network impl
 (** A custom network interface. *)
 
 
@@ -248,10 +252,12 @@ type ('ipaddr, 'prefix) ip_config = {
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 (** Types for IPv4 manual configuration. *)
 
-val create_ipv4: ?clock:clock impl -> ?time:time impl -> network impl -> ipv4_config -> ipv4 impl
+val create_ipv4:
+  ?clock:clock impl -> ?time:time impl ->
+  ?stack:string -> network impl -> ipv4_config -> ipv4 impl
 (** Use an IPv4 address. *)
 
-val default_ipv4: network impl -> ipv4 impl
+val default_ipv4: ?stack:string -> network impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
     - address: 10.0.0.2
     - netmask: 255.255.255.0
@@ -260,7 +266,9 @@ val default_ipv4: network impl -> ipv4 impl
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 (** Types for IPv6 manual configuration. *)
 
-val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl
+val create_ipv6:
+  ?time:time impl -> ?clock:clock impl ->
+  ?stack:string -> network impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address. *)
 
 
@@ -276,7 +284,7 @@ val udp: 'a udp typ
 val udpv4: udpv4 typ
 val udpv6: udpv6 typ
 val direct_udp: 'a ip impl -> 'a udp impl
-val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
+val socket_udpv4: ?stack:string -> Ipaddr.V4.t option -> udpv4 impl
 
 
 
@@ -295,7 +303,7 @@ val direct_tcp:
   ?random:random impl ->
   ?time:time impl ->
   'a ip impl -> 'a tcp impl
-val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
+val socket_tcpv4: ?stack:string -> Ipaddr.V4.t option -> tcpv4 impl
 
 
 
@@ -311,21 +319,28 @@ val direct_stackv4_with_default_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?stack:string ->
   console impl -> network impl -> stackv4 impl
 
 val direct_stackv4_with_static_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?stack:string ->
   console impl -> network impl -> ipv4_config -> stackv4 impl
 
 val direct_stackv4_with_dhcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?stack:string ->
   console impl -> network impl -> stackv4 impl
 
-val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
+val socket_stackv4:
+  ?stack:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
+
+val generic_stackv4 :
+  ?stack:string -> console impl -> network impl -> stackv4 impl
 
 (** {Resolver configuration} *)
 

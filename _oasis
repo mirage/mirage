@@ -12,6 +12,7 @@ Library mirage
   Path:               lib
   Findlibname:        mirage
   Modules:            Mirage
+  InternalModules:    Mirage_key
   BuildDepends:       ipaddr,functoria,lwt,mirage-types,mirage-types.lwt
 
 Library "mirage-runtime"

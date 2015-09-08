@@ -28,47 +28,13 @@ module Key = Mirage_key
 let driver_error name =
   Printf.sprintf "fail (Failure %S)" name
 
-(** {2 Keys} *)
-
-(** {3 Mode configuration} *)
-
-type mode = [
-  | `Unix
-  | `Xen
-  | `MacOSX
-]
-
-let mode_conv : mode Arg.converter = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ]
-
-let string_of_mode md = Format.asprintf "%a" (snd mode_conv) md
-
-let target =
-  let doc = "Target platform to compile the unikernel for.  Valid values are: $(i,xen), $(i,unix), $(i,macosx)." in
-  let desc = Key.Desc.create
-      ~serializer:(snd mode_conv)
-      ~description:"target"
-      ~converter:mode_conv
-  in
-  let doc = Key.Doc.create
-      ~docs:"MIRAGE PARAMETERS"
-      ~docv:"TARGET" ~doc ["t";"target"]
-  in
-  Key.(create_raw ~doc ~stage:`Configure ~default:`Unix "target" desc)
+(** {2 Mode} *)
 
 let get_mode =
-  let x = Key.value target in
+  let x = Key.value Key.target in
   fun () -> Key.eval x
 
-(** {3 Tracing} *)
-let tracing_key =
-  let doc = "The tracing level. Tracing is disabled if none is given." in
-  let desc = Key.Desc.(option int) in
-  let doc = Key.Doc.create
-      ~docs:"MIRAGE PARAMETERS"
-      ~docv:"TRACING" ~doc ["tracing"]
-  in
-  Key.(create_raw ~doc ~stage:`Configure ~default:None "tracing" desc)
-
+let pp_mode fmt () = snd Key.mode_conv fmt @@ get_mode ()
 
 (** {2 Devices} *)
 
@@ -423,26 +389,21 @@ end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 
-
-
-type network_config = Tap0 | Custom of string
-
 type network = NETWORK
 let network = Type NETWORK
 
-let network_conf conf = object (self)
+let network_conf (intf : string Key.key) =
+  let key = Key.hide intf in
+  object (self)
   inherit base_configurable
 
   method ty = network
 
-  val name =
-    "net_" ^ match conf with
-      | Tap0     -> "tap0"
-      | Custom s -> s
-
+  val name = Name.of_key "net" ~base:"net"
   method name = name
-
   method module_name = "Netif"
+
+  method keys = [ key ]
 
   method packages =
     match get_mode () with
@@ -453,14 +414,14 @@ let network_conf conf = object (self)
   method libraries = self#packages
 
   method connect _ modname _ =
-    Printf.sprintf "%s.connect %S"
+    Fmt.strf "%s.connect %a"
       modname
-      (match conf with Tap0 -> "tap0" | Custom s -> s)
+      Key.pp_meta key
 
 end
 
-let tap0 = impl (network_conf Tap0)
-let netif dev = impl (network_conf @@ Custom dev)
+let netif ?stack dev = impl (network_conf @@ Key.network ?stack dev)
+let tap0 = netif "tap0"
 
 
 type ethernet = ETHERNET
@@ -552,6 +513,13 @@ let meta_ipv4_config fmt { address ; netmask ; gateways } =
     fmt
     (address, netmask, gateways)
 
+let pp_key fmt k = Key.pp_meta fmt (Key.hide k)
+
+let opt_key s =
+  Fmt.(option @@ prefix (unit ("~"^^s)) pp_key)
+
+let (@??) x y = opt_map Key.hide x @? y
+
 let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
   inherit base_configurable
 
@@ -565,14 +533,16 @@ let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
     | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
     | `Xen  -> [ "tcpip.ipv4" ]
 
+  method keys = address @?? netmask @?? gateways @?? []
+
   method connect _ modname = function
     | [ etif ; arp ] ->
       Fmt.strf
-        "%s.connect@[@ ?ip:%a@ ?netmask:%a@ ?gateways:%a@ %s@ %s@]"
+        "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
         modname
-        Fmt.(Dump.option meta_ipv4) address
-        Fmt.(Dump.option meta_ipv4) netmask
-        Fmt.(Dump.option @@ list meta_ipv4) gateways
+        (opt_key "ip") address
+        (opt_key "netmask") netmask
+        (opt_key "gateways") gateways
         etif arp
     | _ -> failwith "The ipv4 connect should receive exactly two arguments."
 
@@ -580,9 +550,12 @@ end
 
 let create_ipv4
     ?(clock = default_clock) ?(time = default_time)
-    net { address ; netmask ; gateways } =
+    ?stack net { address ; netmask ; gateways } =
   let etif = etif net in
   let arp = arp ~clock ~time etif in
+  let address = Key.V4.address ?stack address in
+  let netmask = Key.V4.netmask ?stack netmask in
+  let gateways = Key.V4.gateways ?stack gateways in
   ipv4_conf ~address ~netmask ~gateways () $ etif $ arp
 
 let default_ipv4_conf =
@@ -593,8 +566,8 @@ let default_ipv4_conf =
     gateways = [i "10.0.0.1"];
   }
 
-let default_ipv4 net =
-  create_ipv4 net default_ipv4_conf
+let default_ipv4 ?stack net =
+  create_ipv4 ?stack net default_ipv4_conf
 
 
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
@@ -625,14 +598,16 @@ let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
     | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
     | `Xen  -> [ "tcpip.ipv6" ]
 
+  method keys = address @?? netmask @?? gateways @?? []
+
   method connect _ modname = function
     | [ etif ; _time ; _clock ] ->
       Fmt.strf
-        "%s.connect@[@ ?ip:%a@ ?netmask:%a@ ?gateways:%a@ %s@@]"
+        "%s.connect@[@ %a@ %a@ %a@ %s@@]"
         modname
-        Fmt.(Dump.option meta_ipv6) address
-        Fmt.(Dump.option @@ list meta_prefix_ipv6) netmask
-        Fmt.(Dump.option @@ list meta_ipv6) gateways
+        (opt_key "ip") address
+        (opt_key "netmask") netmask
+        (opt_key "gateways") gateways
         etif
     | _ -> failwith "The ipv6 connect should receive exactly three arguments."
 
@@ -641,10 +616,12 @@ end
 let create_ipv6
     ?(time = default_time)
     ?(clock = default_clock)
-    net { address ; netmask ; gateways } =
+    ?stack net { address ; netmask ; gateways } =
   let etif = etif net in
+  let address = Key.V6.address ?stack address in
+  let netmask = Key.V6.netmask ?stack netmask in
+  let gateways = Key.V6.gateways ?stack gateways in
   ipv6_conf ~address ~netmask ~gateways () $ etif $ time $ clock
-
 
 
 type 'a udp = UDP
@@ -684,7 +661,7 @@ let pp_ipv4_opt =
   Fmt.(Dump.option @@
     fun fmt ip -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string ip))
 
-let udpv4_socket_conf ipv4 = object (self)
+let udpv4_socket_conf ipv4_key = object (self)
   inherit base_configurable
   method ty = udpv4
 
@@ -692,18 +669,20 @@ let udpv4_socket_conf ipv4 = object (self)
   method name = name
   method module_name = "Udpv4_socket"
 
+  method keys = [ Key.hide ipv4_key ]
+
   method packages = [ "tcpip" ]
   method libraries = match get_mode () with
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
   method connect _ modname _ =
-    Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
-
+    Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 
 end
 
-let socket_udpv4 ip = impl (udpv4_socket_conf ip)
+let socket_udpv4 ?stack ip =
+  impl (udpv4_socket_conf @@ Key.V4.socket ?stack ip)
 
 
 type 'a tcp = TCP
@@ -742,7 +721,7 @@ let direct_tcp
   tcp_direct_func () $ ip $ time $ clock $ random
 
 
-let tcpv4_socket_conf ipv4 = object (self)
+let tcpv4_socket_conf ipv4_key = object (self)
   inherit base_configurable
   method ty = tcpv4
 
@@ -750,17 +729,20 @@ let tcpv4_socket_conf ipv4 = object (self)
   method name = name
   method module_name = "Tcpv4_socket"
 
+  method keys = [ Key.hide ipv4_key ]
+
   method packages = [ "tcpip" ]
   method libraries = match get_mode () with
     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
   method connect _ modname _ =
-    Format.asprintf "%s.connect %a" modname  pp_ipv4_opt ipv4
+    Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 
 end
 
-let socket_tcpv4 ip = impl (tcpv4_socket_conf ip)
+let socket_tcpv4 ?stack ip =
+  impl (tcpv4_socket_conf @@ Key.V4.socket ?stack ip)
 
 
 
@@ -770,9 +752,11 @@ let stackv4 = Type STACKV4
 type stackv4_config = [`DHCP | `IPV4 of ipv4_config]
 let pp_stackv4_config fmt = function
   | `DHCP   -> Fmt.pf fmt "`DHCP"
-  | `IPV4 i -> Fmt.pf fmt "`IPv4 %a" meta_ipv4_config i
+  | `IPV4 i ->
+    Fmt.pf fmt "`IPv4 %a"
+      (meta_triple pp_key pp_key pp_key) i
 
-let stackv4_direct_conf (config : stackv4_config) = impl @@ object
+let stackv4_direct_conf config = impl @@ object
   inherit base_configurable
 
   method ty =
@@ -783,6 +767,11 @@ let stackv4_direct_conf (config : stackv4_config) = impl @@ object
   val name = Name.of_key "stackv4" ~base:"stackv4"
   method name = name
   method module_name = "Tcpip_stack_direct.Make"
+
+  method keys = match config with
+    | `DHCP -> []
+    | `IPV4 (addr,netm,gate) ->
+      [ Key.hide addr; Key.hide netm; Key.hide gate]
 
   method packages = [ "tcpip" ]
   method libraries = [ "tcpip.stack-direct" ; "mirage.runtime" ]
@@ -806,6 +795,7 @@ let direct_stackv4_with_config
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
+    ?stack
     console network config =
   let eth = etif_func $ network in
   let arp = arp ~clock ~time eth in
@@ -817,19 +807,25 @@ let direct_stackv4_with_config
   $ direct_tcp ~clock ~random ~time ip
 
 let direct_stackv4_with_dhcp
-    ?clock ?random ?time console network =
+    ?clock ?random ?time ?stack console network =
   direct_stackv4_with_config
     ?clock ?random ?time console network `DHCP
 
-let direct_stackv4_with_default_ipv4
-    ?clock ?random ?time console network =
-  direct_stackv4_with_config
-    ?clock ?random ?time console network (`IPV4 default_ipv4_conf)
-
 let direct_stackv4_with_static_ipv4
-    ?clock ?random ?time console network ipv4 =
+    ?clock ?random ?time ?stack console network
+    {address; netmask; gateways} =
+  let address = Key.V4.address ?stack address in
+  let netmask = Key.V4.netmask ?stack netmask in
+  let gateways = Key.V4.gateways ?stack gateways in
   direct_stackv4_with_config
-    ?clock ?random ?time console network (`IPV4 ipv4)
+    ?clock ?random ?time ?stack console network
+    (`IPV4 (address, netmask, gateways))
+
+let direct_stackv4_with_default_ipv4
+    ?clock ?random ?time ?stack console network =
+  direct_stackv4_with_static_ipv4
+    ?clock ?random ?time ?stack console network
+    default_ipv4_conf
 
 
 let pp_interface =
@@ -837,7 +833,7 @@ let pp_interface =
     fun fmt x -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x)
   )
 
-let stackv4_socket_conf ipv4s = impl @@ object
+let stackv4_socket_conf interfaces = impl @@ object
   inherit base_configurable
 
   method ty = console @-> stackv4
@@ -845,6 +841,8 @@ let stackv4_socket_conf ipv4s = impl @@ object
   val name = Name.of_key "stackv4" ~base:"stackv4"
   method name = name
   method module_name = "Tcpip_stack_socket.Make"
+
+  method keys = [ Key.hide interfaces ]
 
   method packages = [ "tcpip" ]
   method libraries = [ "tcpip.stack-socket" ]
@@ -860,14 +858,41 @@ let stackv4_socket_conf ipv4s = impl @@ object
          interface = %a ;@ mode = () }@] in@ \
          %s.connect config %s %s"
         name
-        console  pp_interface ipv4s
+        console  pp_key interfaces
         modname udpv4 tcpv4
     | _ -> failwith "Wrong arguments to connect to tcpip socket stack."
 
 end
 
-let socket_stackv4 console ipv4s =
-  stackv4_socket_conf ipv4s $ console
+let socket_stackv4 ?stack console ipv4s =
+  stackv4_socket_conf (Key.V4.interfaces ?stack ipv4s) $ console
+
+
+(** Generic stack *)
+
+let dhcp_key =
+  Key.create ~stage:`Configure ~default:false "dhcp" Key.Desc.bool
+
+let net_key : [`Socket | `Direct] Key.key =
+  let conv = Arg.enum ["socket", `Socket ; "direct", `Direct] in
+  let desc = Key.Desc.from_converter "net" conv in
+  Key.create ~stage:`Configure ~default:`Socket "net" desc
+
+let generic_stackv4 ?stack console tap =
+  let f net dhcp = match net, dhcp with
+    | `Direct, false -> `Default
+    | `Direct, true  -> `DHCP
+    | `Socket, _     -> `Socket
+  in
+  let v = Key.(pure f $ value net_key $ value dhcp_key) in
+  switch
+    ~default:(direct_stackv4_with_default_ipv4 console tap)
+    [ `Socket , socket_stackv4 console ?stack [Ipaddr.V4.any] ;
+      `DHCP   , direct_stackv4_with_dhcp ?stack console tap ;
+      `Default, direct_stackv4_with_default_ipv4 ?stack console tap
+    ]
+    v
+
 
 
 let nocrypto = impl @@ object
@@ -893,9 +918,6 @@ let nocrypto = impl @@ object
     Fmt.strf "%s >|= fun x -> `Ok x" s
 
 end
-
-
-
 
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector
@@ -1439,7 +1461,8 @@ let clean_makefile ~root =
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
-  info "%a %s" blue "Configuring for target:" (string_of_mode @@ get_mode ());
+  info "%a %a" blue "Configuring for target:"
+    pp_mode ();
   in_dir root (fun () ->
     configure_main_xl ~root ~name;
     configure_main_xe ~root ~name;
@@ -1476,7 +1499,7 @@ module Project = struct
     method ty = job
     method name = "main"
     method module_name = "Mirage_runtime"
-    method keys = [ Key.V target ; Key.V tracing_key ]
+    method keys = [ Key.hide Key.target ; Key.hide Key.tracing ]
 
     method packages =
       match get_mode () with
@@ -1497,7 +1520,7 @@ module Project = struct
 
     method dependencies =
       let l = List.map hide (bootvar :: jobs) in
-      match Key.get tracing_key with
+      match Key.get Key.tracing with
       | None -> l
       | Some i -> hide (tracing i) :: l
 
@@ -1509,5 +1532,5 @@ end
 include Functoria.Make (Project)
 
 let register ?tracing ?keys ?libraries ?packages name jobs =
-  Key.set tracing_key tracing ;
+  Key.set Key.tracing tracing ;
   register ?keys ?libraries ?packages name jobs

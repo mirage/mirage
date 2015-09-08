@@ -112,6 +112,26 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     in
     with_config f f_no, term_info "configure" ~doc ~man
 
+  (* DESCRIBE *)
+  let describe_doc =  "Describe a $(mname) application."
+  let describe =
+    let doc = describe_doc in
+    let man = [
+      `S "DESCRIPTION";
+      `P "The $(b,describe) command describes the configuration of a \
+          $(mname) application."
+    ] in
+    let f t =
+      let describe _keys = `Ok (t#describe) in
+      let keys = t#keys in
+      Term.(pure describe $ keys)
+    in
+    let f_no err =
+      let f () = `Error (false, err) in
+      Term.(pure f $ global_keys)
+    in
+    with_config f f_no, term_info "describe" ~doc ~man
+
   (* BUILD *)
   let build_doc =
     Printf.sprintf "Build a %s application." appname
@@ -219,6 +239,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
 
   let commands = [
     configure;
+    describe;
     build;
     clean;
     help;

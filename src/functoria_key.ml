@@ -187,9 +187,12 @@ end
 
 let term_key (Any ({ doc; desc; default } as t)) =
   let i = Doc.to_cmdliner doc in
-  let c = desc.converter in
-  let set w = t.value <- Some w in
-  Term.(pure set $ Arg.(value & opt c default i))
+  (* We don't want to set the value if the option is not given.
+     We still want to show the default value in the help. *)
+  let default = Fmt.strf "%a" (snd @@ Desc.converter desc) default in
+  let c = Arg.some ~none:default desc.converter in
+  let set w = t.value <- w in
+  Term.(pure set $ Arg.(value & opt c None i))
 
 let term ?(stage=`Both) l =
   let gather k rest = Term.(pure (fun () () -> ()) $ term_key k $ rest) in
@@ -262,3 +265,8 @@ let emit fmt k =
     (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)
+
+let pp fmt k = Fmt.string fmt (name k)
+
+let pp_deps fmt v =
+  Fmt.(iter Set.iter ~sep:(unit ", ") pp) fmt v.deps

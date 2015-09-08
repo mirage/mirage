@@ -188,7 +188,7 @@ module DTree = struct
   let rec partial_eval = function
     | Leaf _ as t -> t
     | If (b, x, y) as t -> match Key.peek b with
-      | None -> t
+      | None -> If (b, partial_eval x, partial_eval y)
       | Some true -> partial_eval x
       | Some false -> partial_eval y
 
@@ -196,6 +196,14 @@ module DTree = struct
     | Leaf c -> c
     | If (b, x, y) ->
       if Key.eval b then eval x else eval y
+
+  let rec pp ppf fmt = function
+    | Leaf x -> ppf fmt x
+    | If (b, x, y) ->
+      Fmt.pf fmt "@[<v 2>Depending on the key %a:@,%a@,%a@]"
+        (Fmt.styled `Bold @@ Key.pp_deps) b
+        (pp ppf) x
+        (pp ppf) y
 
 end
 
@@ -217,7 +225,10 @@ module Modlist : sig
 
   val clean : Info.t -> evaluated -> unit
 
+  val partial_eval : t -> t
+
   val pp : evaluated Fmt.t
+  val describe : t list Fmt.t
 
 end = struct
 
@@ -248,9 +259,9 @@ end = struct
   let rec pp_modlist : 'a modlist Fmt.t = fun fmt -> function
     | Mod (d, _)        -> Fmt.string fmt d#module_name
     | List (f, _, args) ->
-      Fmt.pf fmt "%s%a"
+      Fmt.pf fmt "@[<2>%s@ %a@]"
         f#module_name
-        Fmt.(parens @@ list pp_modlist) args
+        Fmt.(list ~sep:sp @@ parens @@ box pp_modlist) args
 
   let pp fmt (E x) = pp_modlist fmt x
 
@@ -407,7 +418,7 @@ end = struct
       connect connected info error m)
       l
 
-
+  let partial_eval (T t) = T (DTree.partial_eval t)
 
   type iter = { i : 'ty. 'ty configurable -> unit }
 
@@ -419,6 +430,11 @@ end = struct
   and iter fi (E m) = iter' fi m
 
   let clean i t = iter { i = fun t -> t#clean i} t
+
+  let describe_one fmt (T t) =
+    Fmt.pf fmt "%a %a" yellow "-" (DTree.pp pp_modlist) t
+  let describe =
+    Fmt.(vbox @@ list describe_one)
 
 end
 
@@ -434,10 +450,12 @@ module Config = struct
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root jobs init_dsl =
     let custom = init_dsl ~name ~root jobs in
-    let keys = Key.Set.of_list (keys @ custom#keys) in
     let libraries = StringSet.of_list libraries in
     let packages = StringSet.of_list packages in
     let jobs = List.map Modlist.of_impl @@ impl custom :: jobs in
+    let keys =
+      Key.Set.(union (of_list (keys @ custom#keys)) (Modlist.primary_keys jobs))
+    in
     let default_info = {Info. keys ; libraries ; packages ; root ; name } in
     { default_info ; jobs ; custom }
 
@@ -451,8 +469,10 @@ module Config = struct
   let name t = t.default_info.name
   let root t = t.default_info.root
   let custom t = t.custom
-  let primary_keys t =
-    Key.Set.union t.default_info.keys @@ Modlist.primary_keys t.jobs
+  let primary_keys t = t.default_info.keys
+
+  let pp fmt t =
+    Modlist.describe fmt @@ List.map Modlist.partial_eval t.jobs
 
 end
 
@@ -592,7 +612,7 @@ module Make (P:PROJECT) = struct
 
   let configure ~no_opam ~no_depext ~no_opam_version i jobs custom =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
-    info "%a@ [%a]"
+    info "@[<v 2>%a@ %a@]@."
       blue (Fmt.strf "%d Job%s:"
         (List.length jobs)
         (if List.length jobs = 1 then "" else "s"))
@@ -699,6 +719,10 @@ module Make (P:PROJECT) = struct
         method build = build info
         method keys =
           Key.term ~stage:`Configure @@ Info.keys info
+        method describe =
+          Fmt.pr "@.%a@.%a@.%!"
+            green "Your current jobs are:"
+            Config.pp t
       end
   end
 

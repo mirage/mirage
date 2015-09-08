@@ -210,7 +210,8 @@ module type CONFIG = sig
         no_depext:bool ->
         no_opam_version:bool ->
         (unit, string) Rresult.result;
-      keys : unit Cmdliner.Term.t
+      keys : unit Cmdliner.Term.t;
+      describe : unit;
     >
 
 end

@@ -140,6 +140,7 @@ val describe : Format.formatter -> t -> unit
 
 val emit : Format.formatter -> t -> unit
 
+val pp_deps : 'a value Fmt.t
 
 
 exception Illegal of string

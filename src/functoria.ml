@@ -17,9 +17,8 @@
 
 open Functoria_misc
 open Rresult
+
 module Key = Functoria_key
-
-
 
 module Info = struct
 
@@ -39,73 +38,105 @@ module Info = struct
 
 end
 
-type _ typ =
-  | Type: 'a -> 'a typ
-  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+(** The core Dsl *)
+module Dsl = struct
 
-let (@->) f t =
-  Function (f, t)
+  type _ typ =
+    | Type: 'a -> 'a typ
+    | Function: 'a typ * 'b typ -> ('a -> 'b) typ
 
-let typ ty = Type ty
+  let (@->) f t =
+    Function (f, t)
+
+  let typ ty = Type ty
+
+  module rec Typ : sig
+
+    type _ impl =
+      | Impl: 'ty Typ.configurable -> 'ty impl (* base implementation *)
+      | App: ('a, 'b) app -> 'b impl   (* functor application *)
+      | If : bool Key.value * 'a impl * 'a impl -> 'a impl
+
+    and ('a, 'b) app = {
+      f: ('a -> 'b) impl;  (* functor *)
+      x: 'a impl;          (* parameter *)
+    }
+
+    and any_impl = Any : _ impl -> any_impl
+
+    class type ['ty] configurable = object
+      method ty : 'ty typ
+      method name: string
+      method module_name: string
+      method packages: string list
+      method libraries: string list
+      method keys: Key.t list
+      method connect : Info.t -> string -> string list -> string
+      method configure: Info.t -> unit
+      method clean: Info.t -> unit
+      method dependencies : any_impl list
+    end
+  end = Typ
+  include Typ
 
 
-type job = JOB
-let job = Type JOB
+  let ($) f x =
+    App { f; x }
 
-module rec Typ : sig
-  class type ['ty] configurable = object
-    method ty : 'ty typ
-    method name: string
-    method module_name: string
-    method packages: string list
-    method libraries: string list
-    method keys: Key.t list
-    method connect : Info.t -> string -> string list -> string
-    method configure: Info.t -> unit
-    method clean: Info.t -> unit
-    method dependencies: Typ.any_impl list
+  let impl x = Impl x
+  let hide x = Any x
+
+  let if_impl b x y = If(b,x,y)
+  let rec switch ~default l kv = match l with
+    | [] -> default
+    | (v, i) :: t ->
+      If (Key.(pure ((=) v) $ kv), i, switch ~default t kv)
+
+
+
+  class base_configurable = object
+    method libraries : string list = []
+    method packages : string list = []
+    method keys : Key.t list = []
+    method connect (_:Info.t) (_:string) l =
+      Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
+    method configure (_ : Info.t) = ()
+    method clean (_ : Info.t)= ()
+    method dependencies : any_impl list = []
   end
 
-  type _ impl =
-    | Impl: 'ty configurable -> 'ty impl (* base implementation *)
-    | App: ('a, 'b) app -> 'b impl   (* functor application *)
-    | If : bool Key.value * 'a impl * 'a impl -> 'a impl
 
-  and ('a, 'b) app = {
-    f: ('a -> 'b) impl;  (* functor *)
-    x: 'a impl;          (* parameter *)
-  }
+  type job = JOB
+  let job = Type JOB
 
-  and any_impl = Any : _ impl -> any_impl
+  class ['ty] foreign
+      ?(keys=[]) ?(libraries=[]) ?(packages=[])
+      module_name ty
+    : ['ty] configurable
+    =
+    let name = Name.of_key module_name ~base:"f" in
+    object
+      method ty = ty
+      method name = name
+      method module_name = module_name
+      method keys = keys
+      method libraries = libraries
+      method packages = packages
+      method connect _ modname args =
+        Fmt.strf
+          "@[%s.start@ %a@ >>= fun t -> Lwt.return (`Ok t)@]"
+          modname
+          Fmt.(list ~sep:sp string)  args
+      method clean _ = ()
+      method configure _ = ()
+      method dependencies = []
+    end
 
-end = Typ
-include Typ
+  let foreign ?keys ?libraries ?packages module_name ty =
+    Impl (new foreign ?keys ?libraries ?packages module_name ty)
 
-
-let ($) f x =
-  App { f; x }
-
-let impl x = Impl x
-let hide x = Any x
-
-let if_impl b x y = If(b,x,y)
-let rec switch ~default l kv = match l with
-  | [] -> default
-  | (v, i) :: t ->
-    If (Key.(pure ((=) v) $ kv), i, switch ~default t kv)
-
-
-
-class base_configurable = object
-  method libraries : string list = []
-  method packages : string list = []
-  method keys : Key.t list = []
-  method connect (_:Info.t) (_:string) l =
-    Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
-  method configure (_ : Info.t) = ()
-  method clean (_ : Info.t)= ()
-  method dependencies : any_impl list = []
 end
+include Dsl
 
 (** Decision trees *)
 module DTree = struct
@@ -374,33 +405,6 @@ end = struct
 
 end
 
-class ['ty] foreign
-    ?(keys=[]) ?(libraries=[]) ?(packages=[])
-    module_name ty
-  : ['ty] configurable
-  =
-  let name = Name.of_key module_name ~base:"f" in
-  object
-    method ty = ty
-    method name = name
-    method module_name = module_name
-    method keys = keys
-    method libraries = libraries
-    method packages = packages
-    method connect _ modname args =
-      Fmt.strf
-        "%s.start@ %a@ \
-        >>= fun t -> Lwt.return (`Ok t)"
-        modname
-        Fmt.(list ~sep:sp string)  args
-    method clean _ = ()
-    method configure _ = ()
-    method dependencies = []
-  end
-
-let foreign ?keys ?libraries ?packages module_name ty =
-  Impl (new foreign ?keys ?libraries ?packages module_name ty)
-
 module Config = struct
 
   type t = {
@@ -435,7 +439,6 @@ module Config = struct
 
 end
 
-
 module type PROJECT = sig
 
   val prelude : string
@@ -452,38 +455,10 @@ module type PROJECT = sig
 
 end
 
-
-module type CONFIG = sig
-  module Project : PROJECT
-
-  type t
-
-  val register:
-    ?keys:Key.t list -> ?libraries:string list -> ?packages:string list ->
-    string -> job impl list -> unit
-
-  val manage_opam_packages: bool -> unit
-  val no_opam_version_check: bool -> unit
-  val no_depext: bool -> unit
-
-  val dummy_conf : t
-  val load: string option -> (t, string) Rresult.result
-
-  val primary_keys : t -> unit Cmdliner.Term.t
-  val eval : t -> <
-      build : (unit, string) result;
-      clean : (unit, string) result;
-      configure : (unit, string) result;
-      keys : unit Cmdliner.Term.t
-    >
-end
-
 module Make (P:PROJECT) = struct
   module Project = P
 
   let () = set_section P.name
-
-  type t = Config.t
 
   let configuration = ref None
   let config_file = ref None
@@ -496,11 +471,6 @@ module Make (P:PROJECT) = struct
     | None -> Sys.getcwd () / "config.ml"
     | Some f -> f
   let get_root () = Filename.dirname @@ get_config_file ()
-
-
-  let dummy_conf =
-    let name = P.name and root = get_root () in
-    Config.make name root [] P.configurable
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
     let root = get_root () in
@@ -517,19 +487,13 @@ module Make (P:PROJECT) = struct
 
   (** {2 Opam Management} *)
 
-  let no_opam_version_check_ = ref false
-  let no_opam_version_check b = no_opam_version_check_ := b
-
-  let no_depext_ = ref false
-  let no_depext b = no_depext_ := b
-
-  let configure_opam t =
+  let configure_opam ~no_opam_version ~no_depext t =
     info "Installing OPAM packages.";
     let ps = Info.packages t in
     if StringSet.is_empty ps then Ok ()
     else
     if command_exists "opam" then
-      if !no_opam_version_check_ then Ok ()
+      if no_opam_version then Ok ()
       else (
         read_command "opam --version" >>= fun opam_version ->
         let version_error () =
@@ -543,7 +507,7 @@ module Make (P:PROJECT) = struct
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
             let ps = StringSet.elements ps in
-            if !no_depext_ then ()
+            if no_depext then ()
             else (
               if command_exists "opam-depext" then
                 info "opam depext is installed."
@@ -570,9 +534,6 @@ module Make (P:PROJECT) = struct
       if cmd_exists "opam" then opam "remove" ps
       else error "OPAM is not installed."
   *)
-
-  let manage_opam_packages_ = ref true
-  let manage_opam_packages b = manage_opam_packages_ := b
 
 
   let configure_bootvar i =
@@ -612,7 +573,7 @@ module Make (P:PROJECT) = struct
     List.iter (Modlist.clean i) jobs ;
     remove (Info.root i / "main.ml")
 
-  let configure i jobs custom =
+  let configure ~no_opam ~no_depext ~no_opam_version i jobs custom =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
     info "%a@ [%a]"
       blue (Fmt.strf "%d Job%s:"
@@ -620,9 +581,9 @@ module Make (P:PROJECT) = struct
         (if List.length jobs = 1 then "" else "s"))
       (Fmt.list Modlist.pp) jobs;
     in_dir (Info.root i) (fun () ->
-      begin if !manage_opam_packages_
-        then configure_opam i
-        else Ok ()
+      begin if no_opam
+        then Ok ()
+        else configure_opam ~no_depext ~no_opam_version i
       end >>= fun () ->
       configure_bootvar i;
       configure_main i jobs custom;
@@ -640,11 +601,11 @@ module Make (P:PROJECT) = struct
       command "%s build" (make ())
     )
 
-  let clean i jobs =
+  let clean ~no_opam i jobs =
     info "%a %s" blue "Clean:"  (get_config_file ());
     let root = Info.root i in
     in_dir root (fun () ->
-      if !manage_opam_packages_ then clean_opam ();
+      if not no_opam then clean_opam ();
       clean_bootvar i;
       clean_main i jobs;
       command "rm -rf %s/_build" root >>= fun () ->
@@ -691,28 +652,57 @@ module Make (P:PROJECT) = struct
       | _   -> error "There is more than one config.ml in the current working directory.\n\
                       Please specify one explictly on the command-line."
 
-  let load file =
-    scan_conf file >>= fun file ->
-    let root = realpath (Filename.dirname file) in
-    let file = root / Filename.basename file in
-    set_config_file file;
-    compile_and_dynlink file >>= fun () ->
-    registered () >>= fun t ->
-    set_section (Config.name t);
-    Ok t
+  module C = struct
+    include Project
 
+    let dummy_conf =
+      let name = P.name and root = get_root () in
+      Config.make name root [] P.configurable
 
-  let primary_keys t =
-    Key.term ~stage:`Configure @@ Config.primary_keys t
+    type t = Config.t
 
-  let eval t =
-    let evaluated, info = Config.eval t in
-    object
-      method configure = configure info evaluated (Config.custom t)
-      method clean = clean info evaluated
-      method build = build info
-      method keys =
-        Key.term ~stage:`Configure @@ Info.keys info
-    end
+    let load file =
+      scan_conf file >>= fun file ->
+      let root = realpath (Filename.dirname file) in
+      let file = root / Filename.basename file in
+      set_config_file file;
+      compile_and_dynlink file >>= fun () ->
+      registered () >>= fun t ->
+      set_section (Config.name t);
+      Ok t
+
+    let primary_keys t =
+      Key.term ~stage:`Configure @@ Config.primary_keys t
+
+    let eval t =
+      let evaluated, info = Config.eval t in
+      object
+        method configure = configure info evaluated (Config.custom t)
+        method clean = clean info evaluated
+        method build = build info
+        method keys =
+          Key.term ~stage:`Configure @@ Info.keys info
+      end
+  end
+
+  module M = Functoria_tool.Make(C)
+  let launch = M.launch
+
+  include Dsl
 
 end
+
+module type S = Functoria_sigs.S
+  with module Key := Functoria_key
+   and module Info := Info
+   and type 'a impl = 'a impl
+   and type 'a typ = 'a typ
+   and type any_impl = any_impl
+   and type job = job
+   and type 'a configurable = 'a configurable
+
+module type KEY = Functoria_sigs.KEY
+  with type 'a key = 'a Key.key
+   and type 'a value = 'a Key.value
+   and type t = Key.t
+   and type Set.t = Key.Set.t

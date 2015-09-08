@@ -17,9 +17,9 @@
 open Cmdliner
 open Functoria_misc
 
-module Make (Config : Functoria.CONFIG) = struct
+module Make (Config : Functoria_sigs.CONFIG) = struct
 
-  let cmdname = Config.Project.name
+  let cmdname = Config.name
   let appname = String.capitalize cmdname
 
   let global_option_section = "COMMON OPTIONS"
@@ -101,11 +101,8 @@ module Make (Config : Functoria.CONFIG) = struct
       `P (Printf.sprintf "The $(b,configure) command initializes a fresh %s application." appname)
     ] in
     let f t =
-      let configure no_opam no_opam_version_check no_depext _keys =
-        Config.manage_opam_packages (not no_opam);
-        Config.no_opam_version_check no_opam_version_check;
-        Config.no_depext no_depext;
-        err_cmdliner t#configure in
+      let configure no_opam no_opam_version no_depext _keys =
+        err_cmdliner @@ t#configure ~no_opam ~no_depext ~no_opam_version in
       let keys = t#keys in
       Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys)
     in
@@ -145,8 +142,7 @@ module Make (Config : Functoria.CONFIG) = struct
     ] in
     let f t =
       let clean no_opam =
-        Config.manage_opam_packages (not no_opam);
-        err_cmdliner t#clean in
+        err_cmdliner @@ t#clean ~no_opam in
       Term.(pure clean $ no_opam)
     in
     let f_no err =
@@ -216,7 +212,7 @@ module Make (Config : Functoria.CONFIG) = struct
     let f _ = Term.(pure usage $ global_keys) in
     with_config f f,
     Term.info cmdname
-      ~version:Config.Project.version
+      ~version:Config.version
       ~sdocs:global_option_section
       ~doc
       ~man

@@ -16,26 +16,13 @@
  *)
 
 (** Configuration library. *)
-open Rresult
-open Functoria_misc
+open Functoria_sigs
 
-module Key = Functoria_key
+include CORE
+  with module Key = Functoria_key
 
-include Functoria_sigs.DSL
-  with module Key := Key
-
-class base_configurable : object
-  method libraries : string list
-  method packages : string list
-  method keys : Key.t list
-  method connect : Info.t -> string -> string list -> string
-  method configure : Info.t -> unit
-  method clean : Info.t -> unit
-  method dependencies : any_impl list
-end
-
-(** {2 DSL extensions} *)
-
+(** A project is a specialized DSL build for specific purposes,
+    like the mirage DSL. *)
 module type PROJECT = sig
 
   val prelude : string
@@ -52,51 +39,29 @@ module type PROJECT = sig
 
 end
 
-module type CONFIG = sig
-  module Project : PROJECT
+module type S = Functoria_sigs.S
+  with module Key := Functoria_key
+   and module Info := Info
+   and type 'a impl = 'a impl
+   and type 'a typ = 'a typ
+   and type any_impl = any_impl
+   and type job = job
+   and type 'a configurable = 'a configurable
 
-  type t
-  (** A configuration. *)
+module type KEY = Functoria_sigs.KEY
+  with type 'a key = 'a Key.key
+   and type 'a value = 'a Key.value
+   and type t = Key.t
+   and type Set.t = Key.Set.t
 
-  (** {2 Jobs} *)
+(** Create a specialized configuration engine for a project. *)
+module Make (Project : PROJECT) : sig
 
-  val register:
-    ?keys:Key.t list -> ?libraries:string list -> ?packages:string list ->
-    string -> job impl list -> unit
-  (** [register name jobs] registers the application named by [name]
-      which will executes the given [jobs].
-      @param keys passes user-defined config keys (which can be set on the command-line) *)
+  include S
 
+  val launch : unit -> unit
+  (** Launch the cmdliner application.
+      Should only be used by the host specialized DSL.
+  *)
 
-  (** {2 Project configuration} *)
-
-  val manage_opam_packages: bool -> unit
-  (** Tell Irminsule to manage the OPAM configuration
-      (ie. install/remove missing packages). *)
-
-  val no_opam_version_check: bool -> unit
-  (** Bypass the check of opam's version. *)
-
-  val no_depext: bool -> unit
-  (** Skip installation of external dependencies. *)
-
-
-  (** {2 Config manipulation} *)
-  val dummy_conf : t
-
-  val load: string option -> (t, string) Rresult.result
-  (** Read a config file. If no name is given, search for use
-      [config.ml]. *)
-
-  val primary_keys : t -> unit Cmdliner.Term.t
-
-  val eval : t -> <
-      build : (unit, string) result;
-      clean : (unit, string) result;
-      configure : (unit, string) result;
-      keys : unit Cmdliner.Term.t
-    >
 end
-
-
-module Make (Project:PROJECT) : CONFIG with module Project = Project

@@ -1,3 +1,22 @@
+(*
+ * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
+(** All the functoria signatures you would ever want. *)
+
+(** Configuration keys. *)
 module type KEY = sig
 
   type 'a key
@@ -9,13 +28,18 @@ module type KEY = sig
 
 end
 
-
-module type DSL = sig
+(** The core DSL. *)
+module type CORE = sig
 
   (** {2 Module combinators} *)
 
-  type 'a typ
+  type _ typ =
+    | Type: 'a -> 'a typ
+    | Function: 'a typ * 'b typ -> ('a -> 'b) typ
   (** The type of values representing module types. *)
+
+  val typ: 'a -> 'a typ
+  (** Create a new type. *)
 
   val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
   (** Construct a functor type from a type and an existing functor
@@ -28,9 +52,6 @@ module type DSL = sig
       an ip device -- and returns a kv_ro.
   *)
 
-  val typ: 'a -> 'a typ
-  (** Return the module signature of a given implementation. *)
-
   type 'a impl
   (** The type of values representing module implementations. *)
 
@@ -39,6 +60,7 @@ module type DSL = sig
 
   (** {2 Key usage} *)
 
+  (** Key creation and manipulation. *)
   module Key : KEY
 
   val if_impl : bool Key.value -> 'a impl -> 'a impl -> 'a impl
@@ -59,7 +81,7 @@ module type DSL = sig
     ?keys:Key.t list ->
     ?libraries:string list ->
     ?packages:string list -> string -> 'a typ -> 'a impl
-    (** [foreign name libs packs constr typ] states that the module named
+  (** [foreign name libs packs constr typ] states that the module named
         by [name] has the module type [typ]. If [libs] is set, add the
         given set of ocamlfind libraries to the ones loaded by default. If
         [packages] is set, add the given set of OPAM packages to the ones
@@ -71,7 +93,7 @@ module type DSL = sig
   val job: job typ
   (** Representation of a job. *)
 
-  (** {2 Configurable} *)
+  (** {2 DSL extension} *)
 
   (** Information available during configuration. *)
   module Info : sig
@@ -85,7 +107,7 @@ module type DSL = sig
   end
 
   type any_impl = Any : _ impl -> any_impl
-  (** Type of an implementation, with it's type variable hidden. *)
+  (** Type of an implementation, with its type variable hidden. *)
 
   val hide : _ impl -> any_impl
   (** Hide the type variable of an implementation. Useful for dependencies. *)
@@ -130,5 +152,65 @@ module type DSL = sig
   val impl: 'a configurable -> 'a impl
   (** Extend the library with an external configuration. *)
 
+  (** The base configurable pre-defining many methods. *)
+  class base_configurable : object
+    method libraries : string list
+    method packages : string list
+    method keys : Key.t list
+    method connect : Info.t -> string -> string list -> string
+    method configure : Info.t -> unit
+    method clean : Info.t -> unit
+    method dependencies : any_impl list
+  end
+
+end
+
+(** A complete DSL, with configuration functions. *)
+module type S = sig
+
+  include CORE
+
+  val register:
+    ?keys:Key.t list -> ?libraries:string list -> ?packages:string list ->
+    string -> job impl list -> unit
+  (** [register name jobs] registers the application named by [name]
+      which will executes the given [jobs].
+      @param keys passes user-defined config keys (which can be set on the command-line) *)
+
+end
+
+(** A configuration engine. For internal use. *)
+module type CONFIG = sig
+
+  val name : string
+  (** Name of the project. *)
+
+  val version : string
+  (** Version of the project. *)
+
+  (** {2 Configuration} *)
+
+  type t
+  (** A configuration. *)
+
+  val dummy_conf : t
+  (** The empty configuration, without jobs. *)
+
+  val load: string option -> (t, string) Rresult.result
+  (** Read a config file. If no name is given, search for use
+      [config.ml]. *)
+
+  val primary_keys : t -> unit Cmdliner.Term.t
+
+  val eval : t -> <
+      build : (unit, string) Rresult.result;
+      clean : no_opam:bool -> (unit, string) Rresult.result;
+      configure :
+        no_opam:bool ->
+        no_depext:bool ->
+        no_opam_version:bool ->
+        (unit, string) Rresult.result;
+      keys : unit Cmdliner.Term.t
+    >
 
 end

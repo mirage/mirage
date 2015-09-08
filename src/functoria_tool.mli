@@ -1,5 +1,7 @@
 
-module Make (Config: Functoria.CONFIG) : sig
+open Functoria_sigs
+
+module Make (M:CONFIG) : sig
 
   val launch : unit -> unit
 

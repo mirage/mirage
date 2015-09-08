@@ -353,18 +353,31 @@ end = struct
     end
   and configure configured info (E m) = configure' configured info m
 
-  let emit_connect error iname names connect_string =
+  let meta_init fmt (connect_name, result_name) =
+    Fmt.pf fmt "let _%s =@[@ %s () @]in@ " result_name connect_name
+
+  let meta_connect error fmt (connect_name, result_name) =
+    Fmt.pf fmt
+      "_%s >>= function@ \
+       | `Error _e -> %s@ \
+       | `Ok %s ->@ "
+      result_name
+      (error connect_name)
+      result_name
+
+  let emit_connect fmt (error, iname, names, connect_string) =
     (* We avoid potential collision between double application
        by prefixing with "_". This also avoid warnings. *)
-    let res_names = List.map (fun x -> "_"^x) names in
-    Codegen.append_main "let %s () =" iname;
-    List.iter2 (fun connect_name res ->
-      Codegen.append_main "  %s () >>= function" connect_name;
-      Codegen.append_main "  | `Error _e -> %s" (error connect_name);
-      Codegen.append_main "  | `Ok %s ->" res;
-    ) names res_names ;
-    Codegen.append_main "  @[<2>%s@]" (connect_string res_names) ;
-    Codegen.newline_main ()
+    let names = List.map (fun x -> (x, "_"^x)) names in
+    Fmt.pf fmt
+      "@[<v 2>let %s () =@ \
+       %a\
+       %a\
+       %s@]@."
+      iname
+      Fmt.(list ~sep:nop meta_init) names
+      Fmt.(list ~sep:nop @@ meta_connect error) names
+      (connect_string @@ List.map snd names)
 
   let rec connect' tbl info error m =
     let iname = name m in
@@ -375,12 +388,14 @@ end = struct
       | Mod (m, deps) ->
         List.iter (connect tbl info error) deps ;
         let names = List.map (map_E name) deps in
-        emit_connect error iname names (m#connect info modname)
+        Codegen.append_main "%a"
+          emit_connect (error, iname, names, m#connect info modname)
       | List (f, deps, args) ->
         List.iter (connect' tbl info error) args ;
         List.iter (connect tbl info error) deps ;
         let names = List.map name args @ List.map (map_E name) deps in
-        emit_connect error iname names (f#connect info modname)
+        Codegen.append_main "%a"
+          emit_connect (error, iname, names, f#connect info modname)
     end
   and connect tbl info error (E m) = connect' tbl info error m
 
@@ -549,7 +564,7 @@ module Make (P:PROJECT) = struct
     Codegen.newline fmt;
     Codegen.append fmt "let keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
-      (List.map Key.name @@ Key.Set.elements bootvars);
+      (List.map Key.ocaml_name @@ Key.Set.elements bootvars);
     Codegen.newline fmt
 
   let clean_bootvar i =

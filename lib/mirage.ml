@@ -871,21 +871,16 @@ let socket_stackv4 ?stack console ipv4s =
 (** Generic stack *)
 
 let generic_stackv4 ?stack console tap =
-  let f net dhcp = match net, dhcp with
-    | `Direct, false -> `Default
-    | `Direct, true  -> `DHCP
-    | `Socket, _     -> `Socket
-  in
   let dhcp_key = Key.dhcp stack in
   let net_key = Key.net stack in
-  let v = Key.(pure f $ value net_key $ value dhcp_key) in
-  switch
-    ~default:(direct_stackv4_with_default_ipv4 console tap)
-    [ `Socket , socket_stackv4 console ?stack [Ipaddr.V4.any] ;
-      `DHCP   , direct_stackv4_with_dhcp ?stack console tap ;
-      `Default, direct_stackv4_with_default_ipv4 ?stack console tap
-    ]
-    v
+  if_impl
+    Key.(pure ((=) `Socket) $ value net_key)
+    (socket_stackv4 console ?stack [Ipaddr.V4.any])
+    (if_impl
+       (Key.value dhcp_key)
+       (direct_stackv4_with_dhcp ?stack console tap)
+       (direct_stackv4_with_default_ipv4 ?stack console tap)
+    )
 
 
 

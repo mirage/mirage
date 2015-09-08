@@ -48,6 +48,7 @@ module Desc : sig
   val list : 'a t -> 'a list t
   val option : 'a t -> 'a option t
 
+  val from_converter : string -> 'a converter -> 'a t
 
 end
 
@@ -97,6 +98,9 @@ val name : t -> string
 val ocaml_name : t -> string
 (** [name k] is just [ocamlify k.name].  Two keys [k1] and [k2] are considered
     equal if [name k1 = name k2]. *)
+
+val pp_meta : t Fmt.t
+(** [pp_meta fmt key] prints the code needed to get the value of a key. *)
 
 val stage : t -> stage
 

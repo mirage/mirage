@@ -16,7 +16,6 @@
 
 open Functoria_misc
 open Cmdliner
-module Run = Functoria_runtime
 
 module Emit = struct
 
@@ -47,38 +46,41 @@ module Desc = struct
   let create ~serializer ~converter ~description =
     { description ; serializer ; converter }
 
-
-  let from_run s = "Functoria_runtime.Key.Desc." ^ s
+  module C = Functoria_runtime.Converter
+  let from_run s = "Functoria_runtime.Converter." ^ s
 
   let string = {
     description = from_run "string" ;
     serializer = (fun fmt -> Format.fprintf fmt "%S") ;
-    converter = Run.Key.Desc.string ;
+    converter = C.string ;
   }
 
   let bool = {
     description = from_run "bool" ;
     serializer = (fun fmt -> Format.fprintf fmt "%b") ;
-    converter = Run.Key.Desc.bool ;
+    converter = C.bool ;
   }
 
   let int = {
     description = from_run "int" ;
     serializer = (fun fmt -> Format.fprintf fmt "%i") ;
-    converter = Run.Key.Desc.int ;
+    converter = C.int ;
   }
 
   let list d = {
     description = Fmt.strf "(%s %s)" (from_run "list") d.description ;
     serializer = Emit.list d.serializer ;
-    converter = Run.Key.Desc.list d.converter ;
+    converter = C.list d.converter ;
   }
 
   let option d = {
     description = Fmt.strf "(%s %s)" (from_run "option") d.description ;
     serializer = Emit.option d.serializer ;
-    converter = Run.Key.Desc.option d.converter
+    converter = C.option d.converter
   }
+
+  let from_converter description converter =
+    { description ; converter ; serializer = snd converter }
 
 end
 
@@ -249,6 +251,8 @@ let ocamlify s =
   s'
 
 let ocaml_name k = ocamlify (name k)
+let pp_meta fmt k =
+  Fmt.pf fmt "(%s ())" (ocaml_name k)
 
 let emit fmt k =
   Format.fprintf fmt

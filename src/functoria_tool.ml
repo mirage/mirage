@@ -224,7 +224,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     help;
   ]
 
-  let launch () =
+  let () =
     (* Do not die on Ctrl+C: necessary when functoria has to cleanup things
        (like killing running kernels) before terminating. *)
     Sys.catch_break true;

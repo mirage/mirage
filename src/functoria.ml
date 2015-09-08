@@ -687,10 +687,11 @@ module Make (P:PROJECT) = struct
       end
   end
 
-  module M = Functoria_tool.Make(C)
-  let launch = M.launch
-
   include Dsl
+
+  let launch () =
+    let module M = Functoria_tool.Make(C) in
+    ()
 
 end
 

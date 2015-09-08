@@ -7,8 +7,6 @@ License:     ISC
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
 
-AlphaFeatures: pure_interface
-
 Library "functoria-runtime"
   Path:            runtime
   Findlibname:     runtime

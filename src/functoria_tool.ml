@@ -20,7 +20,6 @@ open Functoria_misc
 module Make (Config : Functoria_sigs.CONFIG) = struct
 
   let cmdname = Config.name
-  let appname = String.capitalize cmdname
 
   let global_option_section = "COMMON OPTIONS"
   let help_sections = [
@@ -28,9 +27,11 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     `P "These options are common to all commands.";
   ]
 
+  let configure_option_section = "CONFIGURE OPTIONS"
+
   (* Helpers *)
-  let mk_flag ?section flags doc =
-    let doc = Arg.info ?docs:section ~doc flags in
+  let mk_flag ?(section=configure_option_section) flags doc =
+    let doc = Arg.info ~docs:section ~doc flags in
     Arg.(value & flag & doc)
 
   let term_info title ~doc ~man =
@@ -47,7 +48,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     mk_flag ["no-depext"] "Skip installation of external dependencies."
 
   let file =
-    let doc = Arg.info ~docv:"FILE"
+    let doc = Arg.info ~docs:global_option_section ~docv:"FILE"
         ~doc:"Configuration file. If not specified, the current directory will be scanned. \
               If one file named $(b,config.ml) is found, that file will be used. If no files \
               or multiple configuration files are found, this will result in an error unless one \
@@ -79,26 +80,25 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       | _ -> None
     in
     let _  = Term.eval_peek_opts global_keys in
-    let t = Config.load config in
+    let t = lazy (Config.load config) in
     fun f f_no ->
-      let term = match t with
+      let term = match Lazy.force t with
         | Ok t ->
           let pkeys = Config.primary_keys t in
           let _ = Term.eval_peek_opts pkeys in
           f @@ Config.eval t
         | Error err -> f_no err
       in
-      Term.(ret (pure (fun x _ -> x) $ term $ file))
+      Term.(ret (pure (fun f _ -> f) $ term $ file))
 
 
   (* CONFIGURE *)
-  let configure_doc =
-    Printf.sprintf "Configure a %s application." appname
+  let configure_doc =  "Configure a $(mname) application."
   let configure =
     let doc = configure_doc in
     let man = [
       `S "DESCRIPTION";
-      `P (Printf.sprintf "The $(b,configure) command initializes a fresh %s application." appname)
+      `P "The $(b,configure) command initializes a fresh $(mname) application."
     ] in
     let f t =
       let configure no_opam no_opam_version no_depext _keys =
@@ -133,8 +133,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     with_config f f_no, term_info "describe" ~doc ~man
 
   (* BUILD *)
-  let build_doc =
-    Printf.sprintf "Build a %s application." appname
+  let build_doc = "Build a $(mname) application."
   let build =
     let doc = build_doc in
     let man = [
@@ -153,7 +152,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
 
   (* CLEAN *)
   let clean_doc =
-    Printf.sprintf "Clean the files produced by %s for a given application." appname
+    "Clean the files produced by $(mname) for a given application."
   let clean =
     let doc = clean_doc in
     let man = [
@@ -173,8 +172,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
 
   (* HELP *)
   let help =
-    let doc =
-      Printf.sprintf "Display help about %s and %s commands." appname appname in
+    let doc = "Display help about $(mname) commands." in
     let man = [
       `S "DESCRIPTION";
       `P "Prints help.";
@@ -193,44 +191,24 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         | `Error e -> `Error (false, e)
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
-    let f t =
-      let keys = t#keys in
-      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ keys)
-    in
-    let f_no _err =
+    let term =
       Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ global_keys)
     in
-    with_config f f_no, Term.info "help" ~doc ~man
+    Term.ret term, Term.info "help" ~doc ~man
 
   let default =
-    let doc = Printf.sprintf "%s application builder" appname in
+    let doc = "The $(mname) application builder" in
     let man = [
       `S "DESCRIPTION";
-      `P (Printf.sprintf
-          "%s is a %s application builder. It glues together a set of libraries and configuration (e.g. network and storage) into a standalone unikernel or UNIX binary."
-          cmdname appname
-      );
-      `P (Printf.sprintf "Use either $(b,%s <command> --help) or $(b,%s help <command>) \
-                          for more information on a specific command."
-          cmdname cmdname
-      ) ;
+      `P "The $(mname) application builder. It glues together a set of libraries and configuration (e.g. network and storage) into a standalone unikernel or UNIX binary." ;
+      `P "Use either $(b,$(mname) <command> --help) or \
+          $(b,($mname) help <command>) for more information on a specific command."
+      ;
     ] @  help_sections
     in
-    let usage () =
-      Printf.printf
-        "usage: %s [--version] [--help] <command> [<args>]\n\
-         \n\
-         The most commonly used %s commands are:\n\
-        \    configure   %s\n\
-        \    build       %s\n\
-        \    clean       %s\n\
-         \n\
-         See '%s help <command>' for more information on a specific command.\n%!"
-        cmdname cmdname configure_doc build_doc clean_doc cmdname ;
-      `Ok ()
-    in
-    let f _ = Term.(pure usage $ global_keys) in
-    with_config f f,
+    let usage = `Help (`Plain, None) in
+    let term = Term.(ret @@ pure usage) in
+    term,
     Term.info cmdname
       ~version:Config.version
       ~sdocs:global_option_section
@@ -246,9 +224,6 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
   ]
 
   let () =
-    (* Do not die on Ctrl+C: necessary when functoria has to cleanup things
-       (like killing running kernels) before terminating. *)
-    Sys.catch_break true;
     match Term.eval_choice default commands with
     | `Error _ -> exit 1
     | _ -> ()

@@ -1,3 +1,5 @@
+### 2.6.1 (2015-09-08)
+
 * Xen: improve the .xl file generation. We now have
   - `name.xl`: this has sensible defaults for everything including the
     network bridges and should "just work" if used on the build box

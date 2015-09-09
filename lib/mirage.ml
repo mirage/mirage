@@ -47,10 +47,10 @@ let io_page_conf = object
   method name = "io_page"
   method module_name = "Io_page"
   method libraries =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Xen  -> ["io-page"]
     | `Unix | `MacOSX -> ["io-page"; "io-page.unix"]
-  method packages = [ "io-page" ]
+  method packages = Key.pure [ "io-page" ]
 end
 
 let default_io_page = impl io_page_conf
@@ -78,7 +78,7 @@ let clock_conf = object (self)
   method name = "clock"
   method module_name = "Clock"
   method libraries =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "mirage-clock-unix" ]
     | `Xen  -> [ "mirage-clock-xen" ]
   method packages = self#libraries
@@ -118,12 +118,12 @@ let console_conf name = object (self)
     | `Xen  -> "Console_xen"
 
   method packages =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> ["mirage-console"; "mirage-unix"]
     | `Xen  -> ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
 
   method libraries =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> ["mirage-console.unix"]
     | `Xen -> ["mirage-console.xen"]
 
@@ -151,8 +151,8 @@ class crunch_conf dirname =
     method name = name
     method module_name = String.capitalize name
 
-    method packages = [ "mirage-types"; "lwt"; "cstruct"; "crunch" ]
-    method libraries = [ "mirage-types"; "lwt"; "cstruct" ]
+    method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch" ]
+    method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct" ]
 
     method dependencies = [ hide default_io_page ]
 
@@ -192,14 +192,16 @@ let direct_kv_ro dirname = impl @@ object
     | `Unix | `MacOSX -> "Kvro_fs_unix"
 
   method packages =
-    match get_mode () with
-    | `Xen  -> super#packages
-    | `Unix | `MacOSX -> "mirage-fs-unix" :: super#packages
+    let f p = function
+      | `Xen  -> p
+      | `Unix | `MacOSX -> "mirage-fs-unix" :: p
+    in Key.(pure f $ super#packages $ value target)
 
   method libraries =
-    match get_mode () with
-    | `Xen  -> super#libraries
-    | `Unix | `MacOSX -> "mirage-fs-unix" :: super#libraries
+    let f l = function
+    | `Xen  -> l
+    | `Unix | `MacOSX -> "mirage-fs-unix" :: l
+    in Key.(pure f $ super#libraries $ value target)
 
   method connect i modname names =
     match get_mode () with
@@ -246,11 +248,11 @@ class block_conf file =
   method name = name
   method module_name = "Block"
   method packages =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> ["mirage-block-unix"]
     | `Xen  -> ["mirage-block-xen"]
   method libraries =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> ["mirage-block-unix"]
     | `Xen  -> ["mirage-block-xen.front"]
 
@@ -295,8 +297,8 @@ let archive_conf = impl @@ object
   method name = "archive"
   method module_name = "Tar_mirage.Make_KV_RO"
 
-  method packages = [ "tar-format" ]
-  method libraries = [ "tar.mirage" ]
+  method packages = Key.pure [ "tar-format" ]
+  method libraries = Key.pure [ "tar.mirage" ]
 
   method connect _ modname = function
     | [ block ] ->
@@ -319,8 +321,8 @@ let fat_conf = impl @@ object
   inherit base_configurable
   method ty = (block @-> io_page @-> fs)
 
-  method packages = [ "fat-filesystem" ]
-  method libraries = [ "fat-filesystem" ]
+  method packages = Key.pure [ "fat-filesystem" ]
+  method libraries = Key.pure [ "fat-filesystem" ]
 
   method name = "fat"
   method module_name = "Fat.Fs.Make"
@@ -383,8 +385,8 @@ let kv_ro_of_fs_conf = impl @@ object
   method ty = fs @-> kv_ro
   method name = "kv_ro_of_fs"
   method module_name = "Fat.KV_RO.Make"
-  method packages = [ "fat-filesystem" ]
-  method libraries = [ "fat-filesystem" ]
+  method packages = Key.pure [ "fat-filesystem" ]
+  method libraries = Key.pure [ "fat-filesystem" ]
 end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
@@ -406,7 +408,7 @@ let network_conf (intf : string Key.key) =
   method keys = [ key ]
 
   method packages =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Unix -> ["mirage-net-unix"]
     | `MacOSX -> ["mirage-net-macosx"]
     | `Xen  -> ["mirage-net-xen"]
@@ -434,9 +436,10 @@ let ethernet_conf = object (self)
   method name = "ethif"
   method module_name = "Ethif.Make"
 
-  method packages = ["tcpip"]
+  method packages = Key.pure ["tcpip"]
 
-  method libraries = match get_mode () with
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ]
     | `Xen  -> [ "tcpip.ethif" ]
 
@@ -460,8 +463,9 @@ let arpv4_conf = object
   method name = "arpv4"
   method module_name = "Arpv4.Make"
 
-  method packages = ["tcpip"]
-  method libraries = match get_mode () with
+  method packages = Key.pure ["tcpip"]
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> ["tcpip.arpv4-unix"]
     | `Xen  -> ["tcpip.arpv4"]
 
@@ -528,8 +532,9 @@ let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
   method name = Name.of_key "ipv4" ~base:"ipv4"
   method module_name = "Ipv4.Make"
 
-  method packages = [ "tcpip" ]
-  method libraries = match get_mode () with
+  method packages = Key.pure [ "tcpip" ]
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
     | `Xen  -> [ "tcpip.ipv4" ]
 
@@ -593,8 +598,9 @@ let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
   method name = Name.of_key "ipv6" ~base:"ipv6"
   method module_name = "Ipv6.Make"
 
-  method packages = [ "tcpip" ]
-  method libraries = match get_mode () with
+  method packages = Key.pure [ "tcpip" ]
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
     | `Xen  -> [ "tcpip.ipv6" ]
 
@@ -642,8 +648,8 @@ let udp_direct_conf () = object
   method name = "udp"
   method module_name = "Udp.Make"
 
-  method packages = [ "tcpip" ]
-  method libraries = [ "tcpip.udp" ]
+  method packages = Key.pure [ "tcpip" ]
+  method libraries = Key.pure [ "tcpip.udp" ]
 
   method connect _ modname = function
     | [ ip ] ->
@@ -671,8 +677,9 @@ let udpv4_socket_conf ipv4_key = object (self)
 
   method keys = [ Key.hide ipv4_key ]
 
-  method packages = [ "tcpip" ]
-  method libraries = match get_mode () with
+  method packages = Key.pure [ "tcpip" ]
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
@@ -704,8 +711,8 @@ let tcp_direct_conf () = object
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
 
-  method packages = [ "tcpip" ]
-  method libraries = [ "tcpip.tcp" ]
+  method packages = Key.pure [ "tcpip" ]
+  method libraries = Key.pure [ "tcpip.tcp" ]
 
   method connect _ modname = function
     | [ ip ; _time ; _clock ; _random ] ->
@@ -731,8 +738,9 @@ let tcpv4_socket_conf ipv4_key = object (self)
 
   method keys = [ Key.hide ipv4_key ]
 
-  method packages = [ "tcpip" ]
-  method libraries = match get_mode () with
+  method packages = Key.pure [ "tcpip" ]
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
     | `Xen  -> failwith "No socket implementation available for Xen"
 
@@ -773,8 +781,8 @@ let stackv4_direct_conf config = impl @@ object
     | `IPV4 (addr,netm,gate) ->
       [ Key.hide addr; Key.hide netm; Key.hide gate]
 
-  method packages = [ "tcpip" ]
-  method libraries = [ "tcpip.stack-direct" ; "mirage.runtime" ]
+  method packages = Key.pure [ "tcpip" ]
+  method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
 
   method connect _i modname = function
     | [ console; _t; _r; interface; ethif; arp; ip; udp; tcp ] ->
@@ -844,8 +852,8 @@ let stackv4_socket_conf interfaces = impl @@ object
 
   method keys = [ Key.hide interfaces ]
 
-  method packages = [ "tcpip" ]
-  method libraries = [ "tcpip.stack-socket" ]
+  method packages = Key.pure [ "tcpip" ]
+  method libraries = Key.pure [ "tcpip.stack-socket" ]
 
   method dependencies =
     [ hide @@ socket_udpv4 None ; hide @@ socket_tcpv4 None ]
@@ -891,11 +899,12 @@ let nocrypto = impl @@ object
   method module_name = "Nocrypto_entropy"
 
   method packages =
-    match get_mode () with
+    Key.pipe Key.(value target) @@ function
     | `Xen -> [ "mirage-entropy-xen" ]
     | _    -> []
 
-  method libraries = match get_mode () with
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Xen            -> ["nocrypto.xen"]
     | `Unix | `MacOSX -> ["nocrypto.lwt"]
 
@@ -918,8 +927,8 @@ let tcp_conduit_connector = impl @@ object
   method name = "tcp_conduit_connector"
   method module_name = "Conduit_mirage.With_tcp"
 
-  method packages = [ "mirage-conduit" ]
-  method libraries = [ "conduit.mirage" ]
+  method packages = Key.pure [ "mirage-conduit" ]
+  method libraries = Key.pure [ "conduit.mirage" ]
 
   method connect _ modname = function
     | [ stack ] ->
@@ -938,8 +947,8 @@ let tls_conduit_connector = impl @@ object
   method name = "tls_conduit_connector"
   method module_name = "Conduit_mirage"
 
-  method packages = [ "mirage-conduit" ; "tls" ]
-  method libraries = [ "conduit.mirage" ; "tls.mirage" ]
+  method packages = Key.pure [ "mirage-conduit" ; "tls" ]
+  method libraries = Key.pure [ "conduit.mirage" ; "tls.mirage" ]
 
   method dependencies = [ hide nocrypto ]
 
@@ -959,8 +968,8 @@ let conduit_with_connectors connectors = impl @@ object
   method name = Name.of_key "conduit" ~base:"conduit"
   method module_name = "Conduit_mirage"
 
-  method packages = [ "mirage-conduit" ]
-  method libraries = [ "conduit.mirage" ]
+  method packages = Key.pure [ "mirage-conduit" ]
+  method libraries = Key.pure [ "conduit.mirage" ]
 
   method dependencies = List.map hide connectors
 
@@ -995,11 +1004,12 @@ let resolver_unix_system = impl @@ object
   method name = "resolver_unix"
   method module_name = "Resolver_lwt"
 
-  method packages = match get_mode () with
+  method packages =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "mirage-conduit" ]
     | `Xen -> failwith "Resolver_unix not supported on Xen"
   method libraries =
-    [ "conduit.mirage"; "conduit.lwt-unix" ]
+    Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
 
   method connect _ _modname _ =
     "return (`Ok Resolver_lwt_unix.system)"
@@ -1017,8 +1027,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
   method name = "resolver"
   method module_name = "Resolver_mirage.Make_with_stack"
 
-  method packages = [ "dns"; "tcpip" ]
-  method libraries = [ "dns.mirage" ]
+  method packages = Key.pure [ "dns"; "tcpip" ]
+  method libraries = Key.pure [ "dns.mirage" ]
 
   method connect _ modname = function
     | [ _t ; stack ] ->
@@ -1052,8 +1062,8 @@ let http_server conduit = impl @@ object
   method name = "http"
   method module_name = "Cohttp_mirage.Server_with_conduit"
 
-  method packages = [ "mirage-http" ]
-  method libraries = [ "mirage-http" ]
+  method packages = Key.pure [ "mirage-http" ]
+  method libraries = Key.pure [ "mirage-http" ]
 
   method dependencies = [ hide conduit ]
 
@@ -1072,10 +1082,12 @@ let bootvar = impl @@ object
   method ty = job
   method name = "bootvar"
   method module_name = "Bootvar_gen"
-  method packages = match get_mode () with
+  method packages =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> []
     | `Xen -> [ "mirage-bootvar-xen" ]
-  method libraries = match get_mode () with
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> []
     | `Xen -> [ "mirage-bootvar" ]
 
@@ -1104,8 +1116,9 @@ let tracing size =
   method name = Fmt.strf "tracing_%i" size
   method module_name = "MProf"
 
-  method packages = ["mirage-profile"]
-  method libraries = match get_mode () with
+  method packages = Key.pure ["mirage-profile"]
+  method libraries =
+    Key.pipe Key.(value target) @@ function
     | `Unix | `MacOSX -> ["mirage-profile.unix"]
     | `Xen  -> ["mirage-profile.xen"]
 
@@ -1491,12 +1504,11 @@ module Project = struct
     method keys = [ Key.hide Key.target ; Key.hide Key.tracing ]
 
     method packages =
-      begin match get_mode () with
-        | `Unix | `MacOSX -> ["mirage-unix"]
-        | `Xen  -> ["mirage-xen"]
-      end @ [ "sexplib" ]
+      Key.pipe Key.(value target) @@ function
+      | `Unix | `MacOSX -> ["mirage-unix" ; "sexplib" ]
+      | `Xen  -> ["mirage-xen" ; "sexplib" ]
 
-    method libraries = [
+    method libraries = Key.pure [
       "lwt.syntax" ; "mirage.runtime" ;
       "mirage-types.lwt" ; "sexplib"
     ]

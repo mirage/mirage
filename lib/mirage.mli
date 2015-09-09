@@ -38,7 +38,10 @@ end
 (** {2 General mirage devices} *)
 
 val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
-(** Current configuration mode. *)
+(** Current configuration mode.
+
+    Deprecated, use {!Key.target} instead.
+ *)
 
 val tracing : int -> job impl
 (** Tracking implementation. *)

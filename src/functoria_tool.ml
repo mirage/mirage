@@ -60,15 +60,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     let i = Terminfo.columns () in
     Format.pp_set_margin Format.std_formatter i ;
     Format.pp_set_margin Format.err_formatter i ;
-    if Terminfo.with_color () then begin
-      Fmt.set_style_renderer Fmt.stdout `Ansi_tty ;
-      Fmt.set_style_renderer Fmt.stderr `Ansi_tty ;
-    end ;
-    if Terminfo.with_utf8 () then begin
-      Fmt.set_utf_8 Fmt.stdout true ;
-      Fmt.set_utf_8 Fmt.stderr true ;
-    end ;
-    ()
+    Fmt_tty.setup_std_outputs ()
 
 
   let global_keys = Config.(primary_keys dummy_conf)

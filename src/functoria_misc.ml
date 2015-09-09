@@ -33,9 +33,6 @@ let err_cmdliner ?(usage=false) = function
   | Ok x -> `Ok x
   | Error s -> `Error (usage, s)
 
-let show x =
-  R.pp ~pp_ok:Fmt.nop ~pp_error:Fmt.string Fmt.stderr x
-
 let strip str =
   let p = ref 0 in
   let l = String.length str in
@@ -396,24 +393,5 @@ module Terminfo = struct
       if tty_out
       then Lazy.force !v
       else 80
-
-  let ends_with ~suffix s =
-    let x = String.length suffix in
-    let n = String.length s in
-    n >= x
-    && String.sub s (n - x) x = suffix
-
-  let checkenv f k =
-    try f @@ Sys.getenv k with
-    | Not_found -> false
-
-  let with_utf8 () =
-    let f = ends_with ~suffix:"UTF-8" in
-    checkenv f "LC_ALL" || checkenv f "LANG"
-
-  let is_dumb () = checkenv ((=) "dumb") "TERM"
-
-  let with_color () =
-    tty_out && not (is_dumb ())
 
 end

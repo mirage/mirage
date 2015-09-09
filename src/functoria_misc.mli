@@ -156,7 +156,5 @@ end
 
 (** TTY feature detection *)
 module Terminfo: sig
-  val with_utf8 : unit -> bool
-  val with_color : unit -> bool
   val columns : unit -> int
 end

@@ -171,23 +171,15 @@ module DTree = struct
     | Leaf x -> Leaf (f x)
     | If (b, x, y) -> If (b, map f x, map f y)
 
-  let rec to_list f = function
-    | Leaf x -> f x
-    | If (_, x, y) -> to_list f x @ to_list f y
-
   let rec keys = function
     | Leaf _ -> Key.Set.empty
     | If (b,x,y) ->
       Key.Set.union (Key.deps b) @@
       Key.Set.union (keys x) (keys y)
 
-  let rec iter f = function
-    | Leaf x -> f x
-    | If (_,x,y) -> iter f x ; iter f y
-
   let rec partial_eval = function
     | Leaf _ as t -> t
-    | If (b, x, y) as t -> match Key.peek b with
+    | If (b, x, y) -> match Key.peek b with
       | None -> If (b, partial_eval x, partial_eval y)
       | Some true -> partial_eval x
       | Some false -> partial_eval y
@@ -467,7 +459,6 @@ module Config = struct
     e, {di with keys ; libraries ; packages }
 
   let name t = t.default_info.name
-  let root t = t.default_info.root
   let custom t = t.custom
   let primary_keys t = t.default_info.keys
 

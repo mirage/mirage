@@ -68,9 +68,9 @@ module Dsl = struct
       method ty : 'ty typ
       method name: string
       method module_name: string
-      method packages: string list
-      method libraries: string list
       method keys: Key.t list
+      method packages: string list Key.value
+      method libraries: string list Key.value
       method connect : Info.t -> string -> string list -> string
       method configure: Info.t -> unit
       method clean: Info.t -> unit
@@ -95,8 +95,8 @@ module Dsl = struct
 
 
   class base_configurable = object
-    method libraries : string list = []
-    method packages : string list = []
+    method libraries : string list Key.value = Key.pure []
+    method packages : string list Key.value = Key.pure []
     method keys : Key.t list = []
     method connect (_:Info.t) (_:string) l =
       Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
@@ -120,8 +120,8 @@ module Dsl = struct
       method name = name
       method module_name = module_name
       method keys = keys
-      method libraries = libraries
-      method packages = packages
+      method libraries = Key.pure libraries
+      method packages = Key.pure packages
       method connect _ modname args =
         Fmt.strf
           "@[%s.start@ %a@ >>= fun t -> Lwt.return (`Ok t)@]"
@@ -209,8 +209,8 @@ module Modlist : sig
   val primary_keys : t list -> Key.Set.t
 
   val keys : evaluated list -> Key.Set.t
-  val packages : evaluated list -> StringSet.t
-  val libraries : evaluated list -> StringSet.t
+  val packages : evaluated list -> StringSet.t Key.value
+  val libraries : evaluated list -> StringSet.t Key.value
 
   val configure_and_connect :
     Info.t -> (string -> string) -> evaluated list -> unit
@@ -302,15 +302,14 @@ end = struct
     map: 'ty. 'ty configurable -> 'a ;
   }
 
-  let concatmap (type t) (module M: Set.S with type t = t) f l =
-    List.fold_left M.union M.empty @@ List.map f l
+  module type S = sig
+    type t
+    val flatmap : ('a -> t) -> 'a list -> t
+    val (@) : t -> t -> t
+  end
 
-  let append (type t) (module M:Set.S with type t = t) a b =
-    M.union a b
-
-  let collect monoid map fm m =
-    let flatmap f l = concatmap monoid f l in
-    let (@) = append monoid in
+  let collect (type t) (module M:S with type t=t) map fm m =
+    let open M in
     let rec collect = function
       | Mod (d, deps) -> fm.map d @ flatmap collect_dep deps
       | List (f, deps, args) ->
@@ -324,17 +323,29 @@ end = struct
       Key.Set.empty
       m
 
-  let collect_E monoid fm m = collect monoid map_E fm m
-  let packages  =
-    collect_E (module StringSet)
-      { map = fun x -> StringSet.of_list x#packages }
-  let libraries =
-    collect_E (module StringSet)
-      { map = fun x -> StringSet.of_list x#libraries }
-  let keys      =
-    collect_E (module Key.Set)
-      { map = fun x -> Key.Set.of_list x#keys }
+  module M = struct
+    type t = StringSet.t Key.value
+    let (@) x y = Key.(pure StringSet.union $ x $ y)
+    let flatmap f l =
+      List.fold_left
+        (fun set x -> f x @ set)
+        (Key.pure StringSet.empty)
+        l
+  end
 
+  let collect_E modu fm m = collect modu map_E fm m
+  let packages  =
+    collect_E (module M) { map = fun x -> Key.map StringSet.of_list x#packages }
+  let libraries =
+    collect_E (module M) { map = fun x -> Key.map StringSet.of_list x#libraries }
+
+  let keys =
+    let module M = struct
+      include Key.Set
+      let (@) = union
+      let flatmap f = List.fold_left (fun set x -> f x @ set)  empty
+    end
+    in collect_E (module M) {map = fun x -> Key.Set.of_list x#keys}
 
 
   let rec configure' tbl info m =
@@ -433,7 +444,11 @@ end
 module Config = struct
 
   type t = {
-    default_info : Info.t ;
+    name : string ;
+    root : string ;
+    libraries : StringSet.t Key.value ;
+    packages : StringSet.t Key.value ;
+    keys : Key.Set.t ;
     jobs : Modlist.t list ;
     custom : job configurable ;
   }
@@ -442,25 +457,32 @@ module Config = struct
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root jobs init_dsl =
     let custom = init_dsl ~name ~root jobs in
-    let libraries = StringSet.of_list libraries in
-    let packages = StringSet.of_list packages in
     let jobs = List.map Modlist.of_impl @@ impl custom :: jobs in
+
+    let libraries = Key.pure @@ StringSet.of_list libraries in
+    let packages = Key.pure @@ StringSet.of_list packages in
     let keys =
       Key.Set.(union (of_list (keys @ custom#keys)) (Modlist.primary_keys jobs))
     in
-    let default_info = {Info. keys ; libraries ; packages ; root ; name } in
-    { default_info ; jobs ; custom }
+    { libraries ; packages ; keys ; name ; root ; jobs ; custom }
 
-  let eval { default_info = di ; jobs } =
+  let eval { name = n ; root ; packages ; libraries ; keys ; jobs } =
     let e = Modlist.eval jobs in
-    let libraries = StringSet.union di.libraries @@ Modlist.libraries e in
-    let packages = StringSet.union di.packages @@ Modlist.packages e in
-    let keys = Key.Set.union di.keys @@ Modlist.keys e in
-    e, {di with keys ; libraries ; packages }
+    let open Key in
+    let packages = pure StringSet.union $ packages $ Modlist.packages e in
+    let libraries = pure StringSet.union $ libraries $ Modlist.libraries e in
+    let keys = Key.Set.union keys @@ Modlist.keys e in
+    let di =
+      pure (fun libraries packages ->
+        {Info. libraries ; packages ; keys ; name = n ; root})
+      $ libraries
+      $ packages
+    in
+    e, with_deps ~keys di
 
-  let name t = t.default_info.name
+  let name t = t.name
   let custom t = t.custom
-  let primary_keys t = t.default_info.keys
+  let primary_keys t = t.keys
 
   let pp fmt t =
     Modlist.describe fmt @@ List.map Modlist.partial_eval t.jobs
@@ -688,6 +710,7 @@ module Make (P:PROJECT) = struct
       Config.make name root [] P.configurable
 
     type t = Config.t
+    type info = Info.t
 
     let load file =
       scan_conf file >>= fun file ->
@@ -705,11 +728,10 @@ module Make (P:PROJECT) = struct
     let eval t =
       let evaluated, info = Config.eval t in
       object
-        method configure = configure info evaluated (Config.custom t)
-        method clean = clean info evaluated
-        method build = build info
-        method keys =
-          Key.term ~stage:`Configure @@ Info.keys info
+        method configure info = configure info evaluated (Config.custom t)
+        method clean info = clean info evaluated
+        method build info = build info
+        method info = Key.term_value ~stage:`Configure info
         method describe =
           Fmt.pr "@.%a@.%a@.%!"
             green "Your current jobs are:"

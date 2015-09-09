@@ -124,11 +124,11 @@ module type CORE = sig
     method module_name: string
     (** Return the name of the module implementing the device. *)
 
-    method packages: string list
+    method packages: string list Key.value
     (** Return the list of OPAM packages which needs to be installed to
         use the device. *)
 
-    method libraries: string list
+    method libraries: string list Key.value
     (** Return the list of ocamlfind libraries to link with the
         application to use the device. *)
 
@@ -154,8 +154,8 @@ module type CORE = sig
 
   (** The base configurable pre-defining many methods. *)
   class base_configurable : object
-    method libraries : string list
-    method packages : string list
+    method libraries : string list Key.value
+    method packages : string list Key.value
     method keys : Key.t list
     method connect : Info.t -> string -> string list -> string
     method configure : Info.t -> unit
@@ -181,6 +181,7 @@ end
 
 (** A configuration engine. For internal use. *)
 module type CONFIG = sig
+  type info
 
   val name : string
   (** Name of the project. *)
@@ -203,14 +204,15 @@ module type CONFIG = sig
   val primary_keys : t -> unit Cmdliner.Term.t
 
   val eval : t -> <
-      build : (unit, string) Rresult.result;
-      clean : no_opam:bool -> (unit, string) Rresult.result;
+      build : info -> (unit, string) Rresult.result;
+      clean : info -> no_opam:bool -> (unit, string) Rresult.result;
       configure :
+        info ->
         no_opam:bool ->
         no_depext:bool ->
         no_opam_version:bool ->
         (unit, string) Rresult.result;
-      keys : unit Cmdliner.Term.t;
+      info : info Cmdliner.Term.t;
       describe : unit;
     >
 

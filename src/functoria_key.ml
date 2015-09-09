@@ -221,7 +221,12 @@ let app f x = {
   v = fun () -> (eval f) (eval x) ;
 }
 
+let map f x = app (pure f) x
+let pipe x f = map f x
+
 let ($) = app
+let with_deps ~keys { deps ; v } =
+  { deps = Set.(union deps keys) ; v }
 
 
 let value k =
@@ -237,6 +242,9 @@ let deps k = k.deps
 let peek { deps ; v } =
   if Set.for_all (fun (Any x) -> resolved x) deps then Some (v ()) else None
 
+
+let term_value ?stage { deps ; v } =
+  Term.(pure v $ term ?stage deps)
 
 
 exception Illegal of string

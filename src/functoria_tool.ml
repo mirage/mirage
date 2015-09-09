@@ -93,10 +93,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P "The $(b,configure) command initializes a fresh $(mname) application."
     ] in
     let f t =
-      let configure no_opam no_opam_version no_depext _keys =
-        err_cmdliner @@ t#configure ~no_opam ~no_depext ~no_opam_version in
-      let keys = t#keys in
-      Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ keys)
+      let configure no_opam no_opam_version no_depext info =
+        err_cmdliner @@ t#configure info ~no_opam ~no_depext ~no_opam_version in
+      Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ t#info)
     in
     let f_no err =
       let f _ _ _ () = `Error (false, err) in
@@ -114,9 +113,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
           $(mname) application."
     ] in
     let f t =
-      let describe _keys = `Ok (t#describe) in
-      let keys = t#keys in
-      Term.(pure describe $ keys)
+      let describe _ = `Ok (t#describe) in
+      Term.(pure describe $ t#info)
     in
     let f_no err =
       let f () = `Error (false, err) in
@@ -133,8 +131,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P build_doc
     ] in
     let f t =
-      let build () = err_cmdliner t#build in
-      Term.(pure build $ pure ())
+      let build info = err_cmdliner (t#build info) in
+      Term.(pure build $ t#info)
     in
     let f_no err =
       let f = `Error (false, err) in
@@ -152,9 +150,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P clean_doc;
     ] in
     let f t =
-      let clean no_opam =
-        err_cmdliner @@ t#clean ~no_opam in
-      Term.(pure clean $ no_opam)
+      let clean info no_opam =
+        err_cmdliner @@ t#clean info ~no_opam in
+      Term.(pure clean $ t#info $ no_opam)
     in
     let f_no err =
       let f _ = `Error (false, err) in

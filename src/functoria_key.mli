@@ -118,10 +118,13 @@ val term : ?stage:stage -> Set.t -> unit Cmdliner.Term.t
 
 type 'a value
 
+val with_deps : keys:Set.t -> 'a value -> 'a value
 val pure : 'a -> 'a value
 val value : 'a key -> 'a value
 val app : ('a -> 'b) value -> 'a value -> 'b value
 val ($) : ('a -> 'b) value -> 'a value -> 'b value
+val map : ('a -> 'b) -> 'a value -> 'b value
+val pipe : 'a value -> ('a -> 'b) -> 'b value
 
 val deps : 'a value -> Set.t
 
@@ -129,6 +132,7 @@ val peek : 'a value -> 'a option
 
 val eval : 'a value -> 'a
 
+val term_value : ?stage:stage -> 'a value -> 'a Cmdliner.Term.t
 
 val serialize : Format.formatter -> t -> unit
 (** [serialize () k] returns a string [s] such that if [k.v] is [V (_, r)],

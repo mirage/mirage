@@ -13,13 +13,11 @@ build: [
   [make]
 ]
 install: [make "install"]
-remove: [
-  ["rm" "-f" "%{bin}%/mirage"]
-  ["ocamlfind" "remove" "mirage"]
-]
+remove: ["ocamlfind" "remove" "mirage"]
+
 depends: [
   "ipaddr"       {>= "1.0.0"}
-  "mirage-types" {>= "2.5.1"}
+  "mirage-types" {>= "2.6.0"}
   "cmdliner"     {>= "0.9.2"}
   "lwt"          {>= "2.4.3"}
   "mirage-types-lwt"

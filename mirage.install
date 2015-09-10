@@ -1,0 +1,4 @@
+bin: [
+  "?_build/lib/main.byte"   {"mirage"}
+  "?_build/lib/main.native" {"mirage"}
+]

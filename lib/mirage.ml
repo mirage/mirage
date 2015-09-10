@@ -642,21 +642,30 @@ let block = Type BLOCK
 
 let all_blocks = Hashtbl.create 7
 
+let dummy_filename = "xx"
+
 let block_of_file =
-  (* NB: reserve number 0 for the boot disk *)
-  let next_number = ref 1 in
+  let next_number = ref 0 in
   fun filename ->
     let b =
       if Hashtbl.mem all_blocks filename
       then Hashtbl.find all_blocks filename
       else begin
-        let number = !next_number in
-        incr next_number;
+        let number =
+          if filename = dummy_filename then
+            !next_number
+          else
+            let number = !next_number in
+            incr next_number;
+            number
+        in
         let b = { Block.filename; number } in
         Hashtbl.add all_blocks filename b;
         b
       end in
     impl block b (module Block)
+
+let dummy_block = block_of_file dummy_filename
 
 module Archive = struct
 
@@ -816,7 +825,7 @@ let fat ?(io_page=default_io_page) block: fs impl =
 
 (* This would deserve to be in its own lib. *)
 let kv_ro_of_fs x: kv_ro impl =
-  let dummy_fat = fat (block_of_file "xx") in
+  let dummy_fat = fat dummy_block in
   let libraries = Impl.libraries dummy_fat in
   let packages = Impl.packages dummy_fat in
   let fn = foreign "Fat.KV_RO.Make" ~libraries ~packages (fs @-> kv_ro) in
@@ -1003,7 +1012,7 @@ module Arpv4 = struct
     time: time impl;
   }
 
-  let name t = 
+  let name t =
     Name.of_key ("arpv4" ^ Impl.name t.ethernet) ~base:"arpv4"
 
   let module_name t =
@@ -1013,13 +1022,13 @@ module Arpv4 = struct
     "tcpip" :: Impl.packages t.time @ Impl.packages t.clock @ Impl.packages t.ethernet
 
   let libraries t =
-    let arp_library = 
+    let arp_library =
       match !mode with
       | `Unix | `MacOSX -> "tcpip.arpv4-unix"
       | `Xen  -> "tcpip.arpv4"
     in
-    arp_library :: 
-    Impl.libraries t.ethernet @ 
+    arp_library ::
+    Impl.libraries t.ethernet @
     Impl.libraries t.clock @
     Impl.libraries t.ethernet
 
@@ -1027,8 +1036,8 @@ module Arpv4 = struct
     let name = name t in
     let mname = module_name t in
     append_main "module %s = Arpv4.Make(%s)(%s)(%s)" mname
-      (Impl.module_name t.ethernet) 
-      (Impl.module_name t.clock)  
+      (Impl.module_name t.ethernet)
+      (Impl.module_name t.clock)
       (Impl.module_name t.time);
     newline_main ();
     append_main "let %s () =" name;
@@ -1050,8 +1059,8 @@ end
 type arpv4 = Arpv4
 let arpv4 = Type Arpv4
 
-let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) = impl arpv4 
-    { Arpv4.ethernet = eth; 
+let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) = impl arpv4
+    { Arpv4.ethernet = eth;
       clock;
       time
     } (module Arpv4)
@@ -1090,7 +1099,7 @@ module IPV4 = struct
     String.capitalize (name t)
 
   let packages t =
-    "tcpip" :: Impl.packages t.arpv4 
+    "tcpip" :: Impl.packages t.arpv4
 
   let libraries t  =
     (match !mode with

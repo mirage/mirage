@@ -201,7 +201,7 @@ module type CONFIG = sig
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 
-  val primary_keys : t -> unit Cmdliner.Term.t
+  val switching_keys : t -> unit Cmdliner.Term.t
 
   val eval : t -> <
       build : info -> (unit, string) Rresult.result;

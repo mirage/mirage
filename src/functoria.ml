@@ -206,7 +206,7 @@ module Modlist : sig
   val of_impl : job impl -> t
   val eval : t list -> evaluated list
 
-  val primary_keys : t list -> Key.Set.t
+  val switching_keys : t list -> Key.Set.t
 
   val keys : evaluated list -> Key.Set.t
   val packages : evaluated list -> StringSet.t Key.value
@@ -317,7 +317,7 @@ end = struct
     and collect_dep m = map collect m
     in flatmap (map collect) m
 
-  let primary_keys m =
+  let switching_keys m =
     List.fold_left
       (fun set (T x) -> Key.Set.union (DTree.keys x) set )
       Key.Set.empty
@@ -462,7 +462,7 @@ module Config = struct
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
     let keys =
-      Key.Set.(union (of_list (keys @ custom#keys)) (Modlist.primary_keys jobs))
+      Key.Set.(union (of_list (keys @ custom#keys)) (Modlist.switching_keys jobs))
     in
     { libraries ; packages ; keys ; name ; root ; jobs ; custom }
 
@@ -482,7 +482,7 @@ module Config = struct
 
   let name t = t.name
   let custom t = t.custom
-  let primary_keys t = t.keys
+  let switching_keys t = t.keys
 
   let pp fmt t =
     Modlist.describe fmt @@ List.map Modlist.partial_eval t.jobs
@@ -722,8 +722,8 @@ module Make (P:PROJECT) = struct
       set_section (Config.name t);
       Ok t
 
-    let primary_keys t =
-      Key.term ~stage:`Configure @@ Config.primary_keys t
+    let switching_keys t =
+      Key.term ~stage:`Configure @@ Config.switching_keys t
 
     let eval t =
       let evaluated, info = Config.eval t in

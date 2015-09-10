@@ -24,8 +24,8 @@ Configuration is separated into phases:
    When the `register` function is called, the list of job is recorded and
    immediately normalized into a decision tree with functor DAGs as leafs.
    The decision tree contains a `bool Key.value` at each node.
-4. Primary keys and tree evaluation.
-   The primary keys are the keys inside the nodes of the tree (not the leafs).
+4. Switching keys and tree evaluation.
+   The switching keys are the keys inside the nodes of the tree (not the leafs).
    Those keys are resolved and the decision tree is then evaluated, returning
    a simple functor DAG. At this point, the actual modules used are fully known.
    Note: for the `describe` command, Only _partial_ evaluation is done, which

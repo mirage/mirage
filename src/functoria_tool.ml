@@ -63,7 +63,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     Fmt_tty.setup_std_outputs ()
 
 
-  let global_keys = Config.(primary_keys dummy_conf)
+  let global_keys = Config.(switching_keys dummy_conf)
 
   let with_config =
     let config =
@@ -76,7 +76,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     fun f f_no ->
       let term = match Lazy.force t with
         | Ok t ->
-          let pkeys = Config.primary_keys t in
+          let pkeys = Config.switching_keys t in
           let _ = Term.eval_peek_opts pkeys in
           f @@ Config.eval t
         | Error err -> f_no err

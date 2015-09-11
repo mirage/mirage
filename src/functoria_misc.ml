@@ -265,15 +265,19 @@ let find_or_create tbl key create_value =
 
 let dump = Fmt.(Dump.hashtbl string string)
 
-module StringSet = struct
-
-  include Set.Make(String)
-
-  let add_list l set =
-    List.fold_right add l set
-
+module type Monoid = sig
+  type t
+  val empty : t
+  val (++) : t -> t -> t
 end
 
+module Set_Make (M:Set.OrderedType) = struct
+  include Set.Make (M)
+  let (++) = union
+  let flatmap f l = List.fold_right (fun x set -> f x ++ set) l empty
+end
+
+module StringSet = Set_Make(String)
 
 let dedup l =
   StringSet.(elements (List.fold_left (fun s e -> add e s) empty l))

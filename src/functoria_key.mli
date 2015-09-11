@@ -90,8 +90,10 @@ val hide : 'a key -> t
 val compare : t -> t -> int
 (** [compare k1 k2] is [compare (name k1) (name k2)]. *)
 
-module Set : Set.S with type elt = t
-
+module Set : sig
+  include Set.S with type elt = t
+  include Functoria_misc.Monoid with type t := t
+end
 
 val name : t -> string
 

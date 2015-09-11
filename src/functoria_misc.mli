@@ -41,11 +41,23 @@ val (/): string -> string -> string
 val err_cmdliner :
   ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
 
+
+module type Monoid = sig
+  type t
+  val empty : t
+  val (++) : t -> t -> t
+end
+
+module Set_Make (M:Set.OrderedType) : sig
+  include Set.S with type elt = M.t
+  include Monoid with type t := t
+end
+
 (** {2 String utilities} *)
 
 module StringSet : sig
   include Set.S with type elt = string
-  val add_list : string list -> t -> t
+  include Monoid with type t := t
 end
 
 

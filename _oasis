@@ -17,10 +17,13 @@ Library "functoria-runtime"
 Library functoria
   Path:            src
   Findlibname:     functoria
-  Modules:         Functoria, Functoria_misc, Functoria_key,
-                   Functoria_devices, Functoria_sigs
-  InternalModules: Functoria_tool
-  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime
+  Modules:
+    Functoria,
+    Functoria_misc, Functoria_key,
+    Functoria_devices, Functoria_sigs
+  InternalModules: Functoria_tool, Functoria_dsl, Functoria_graph
+  BuildDepends:
+    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,ocamlgraph
 
 Document "functoria"
   Title:                Functoria docs

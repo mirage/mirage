@@ -1152,7 +1152,7 @@ let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
   let file = root / name ^ "_libvirt.xml" in
   with_file file @@ fun fmt ->
-  append fmt "<!-- %s -->" (generated_header @@ name);
+  append fmt "<!-- %s -->" (generated_header ());
   append fmt "<domain type='xen'>";
   append fmt "    <name>%s</name>" name;
   append fmt "    <memory unit='KiB'>262144</memory>";
@@ -1203,7 +1203,7 @@ let configure_main_xl ~root ~name =
   let open Codegen in
   let file = root / name ^ ".xl" in
   with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header name);
+  append fmt "# %s" (generated_header ());
   newline fmt;
   append fmt "name = '%s'" name;
   append fmt "kernel = '%s/mir-%s.xen'" root name;
@@ -1240,7 +1240,7 @@ let configure_main_xe ~root ~name =
   let file = root / name ^ ".xe" in
   with_file file @@ fun fmt ->
   append fmt "#!/bin/sh";
-  append fmt "# %s" (generated_header name);
+  append fmt "# %s" (generated_header ());
   newline fmt;
   append fmt "set -e";
   newline fmt;
@@ -1323,7 +1323,7 @@ let configure_myocamlbuild_ml ~root ~name =
        --output-obj rules *)
     let file = root / "myocamlbuild.ml" in
     with_file file @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header name);
+    Codegen.append fmt "(* %s *)" (generated_header ());
     Codegen.newline fmt;
     Codegen.append fmt
       "open Ocamlbuild_pack;;\n\
@@ -1369,7 +1369,7 @@ let configure_makefile ~root ~name info =
     StringSet.elements @@ Info.packages info
   in
   with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header name);
+  append fmt "# %s" (generated_header ());
   newline fmt;
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;

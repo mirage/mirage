@@ -30,6 +30,9 @@ module Key : sig
   val target: [ `Unix | `Xen | `MacOSX ] key
   (** Key setting the configuration mode for the current project. *)
 
+  val is_xen: bool value
+  (** Is true iff the {!target} keys takes the value [`Xen]. *)
+
   val tracing: int option key
   (** Key setting the tracing level. *)
 
@@ -364,6 +367,12 @@ val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
 type http
 val http: http typ
 val http_server: conduit impl -> http impl
+
+(** {Argv configuration} *)
+
+val argv: Functoria.Devices.argv impl
+(** Dynamic argv implementation that resolves either to
+    the xen or the unix implementation. *)
 
 
 (**/*)

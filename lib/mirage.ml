@@ -16,10 +16,10 @@
  *)
 
 open Rresult
-open Cmdliner
 open Functoria
 open Functoria_misc
 
+open Dsl
 module Key = Mirage_key
 
 
@@ -1081,33 +1081,27 @@ end
 
 (** Special devices *)
 
-let bootvar = impl @@ object
+let argv_unix = impl @@ object
   inherit base_configurable
-  method ty = job
-  method name = "bootvar"
-  method module_name = "Bootvar_gen"
-  method packages =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> []
-    | `Xen -> [ "mirage-bootvar-xen" ]
-  method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> []
-    | `Xen -> [ "mirage-bootvar" ]
+  method ty = Devices.argv
+  method name = "argv_unix"
+  method module_name = "OS.Env"
+  method connect t _ _ =
+    "OS.Env.argv () >>= (fun x -> `Ok x)"
+  end
 
-  method connect t _modname _args = match get_mode () with
-    | `Unix | `MacOSX  ->
-      Printf.sprintf
-        "OS.Env.argv () >>= Functoria_runtime.with_argv Bootvar_gen.keys %S"
-        (Info.name t) ;
-    | `Xen ->
-      Format.sprintf
-        "Bootvar.create () >>= function@;\
-         | `Ok t -> Functoria_runtime.with_kv Bootvar_gen.keys %S (Bootvar.parameters t)@;\
-         | `Error s -> %s@;"
-        (Info.name t) (driver_error "bootvar") ;
+let argv_xen = impl @@ object
+  inherit base_configurable
+  method ty = Devices.argv
+  method name = "argv_xen"
+  method module_name = "Bootvar"
+  method packages = Key.pure [ "mirage-bootvar-xen" ]
+  method libraries = Key.pure [ "mirage-bootvar" ]
+  method connect t _ _ =
+    "Bootvar.argv ()"
+  end
 
-end
+let argv = if_impl Key.is_xen argv_xen argv_unix
 
 
 
@@ -1499,6 +1493,8 @@ module Project = struct
      let run = OS.Main.run"
 
   let driver_error = driver_error
+
+  let argv = argv
 
   let configurable ~name ~root jobs = object
     inherit base_configurable

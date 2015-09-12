@@ -74,6 +74,10 @@ let target =
   in
   Key.create_raw ~doc ~stage:`Configure ~default:`Unix "target" desc
 
+let is_xen =
+  Key.pipe Key.(value target) @@ function
+  | `Xen -> true
+  | `Unix | `MacOSX -> false
 
 (** {3 Tracing} *)
 

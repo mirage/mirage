@@ -127,3 +127,32 @@ class ['ty] foreign
 
 let foreign ?keys ?libraries ?packages module_name ty =
   Impl (new foreign ?keys ?libraries ?packages module_name ty)
+
+
+module ImplTbl = struct
+  module M = struct
+    type t = any_impl
+    let rec hash_all : type t . t impl -> int = function
+      | Impl c ->
+        Hashtbl.hash
+          (c#name, Hashtbl.hash c#keys, List.map hash c#dependencies)
+      | App { f ; x } -> Hashtbl.hash (`Bla (hash_all f, hash_all x))
+      | If (cond, t, e) ->
+        Hashtbl.hash (`If (cond, hash_all t, hash_all e))
+    and hash (Any x) = hash_all x
+
+    let rec equal_all
+      : type t1 t2. t1 impl -> t2 impl -> bool
+      = fun x y -> match x, y with
+        | Impl c, Impl c' ->
+          c#name = c'#name
+          (* && List.for_all2 (=) c#keys c'#keys *)
+          && List.for_all2 equal c#dependencies c'#dependencies
+        | App a, App b -> equal_all a.f b.f && equal_all a.x b.x
+        | If (cond1, t1, e1), If (cond2, t2, e2) ->
+          cond1 = cond2 && equal_all t1 t2 && equal_all e1 e2
+        | _ -> false
+    and equal (Any x) (Any y) = equal_all x y
+  end
+  include Hashtbl.Make (M)
+end

@@ -258,8 +258,8 @@ module Config = struct
   let name t = t.name
   let switching_keys t = t.keys
 
-  let gen_pp pp fmt t =
-    pp fmt @@ G.eval ~partial:true t.jobs
+  let gen_pp pp ~partial fmt t =
+    pp fmt @@ G.eval ~partial t.jobs
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot
@@ -417,8 +417,11 @@ module Make (P:PROJECT) = struct
         root root root ;
     )
 
-  let describe g ~dotcmd ~dot file =
-    let f fmt = Config.(if dot then pp_dot else pp) fmt g in
+  let describe g ~dotcmd ~dot ~eval file =
+    let f fmt =
+      Config.(if dot then pp_dot else pp)
+        ~partial:(not eval) fmt g
+    in
     let with_fmt f = match file with
       | None when dot ->
         let f oc = with_channel oc f in

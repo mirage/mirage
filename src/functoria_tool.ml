@@ -45,10 +45,15 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
   let no_depext =
     mk_flag ["no-depext"] "Skip installation of external dependencies."
 
+  let full_eval =
+    mk_flag ["eval"]
+      "Fully evaluate the graph before showing it. By default, only the key \
+       that are given on the command line are evaluated."
+
   let dot =
     mk_flag ["dot"]
-      "Output a dot description. If no output file is given,\
-       It will show the dot file using command given to $(b,--dot-command)."
+      "Output a dot description. If no output file is given, \
+       it will show the dot file using command given to $(b,--dot-command)."
 
   let dotcmd =
     let doc = Arg.info ~docs:global_option_section ~docv:"COMMAND"
@@ -126,13 +131,28 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     let man = [
       `S "DESCRIPTION";
       `P "The $(b,describe) command describes the configuration of a \
-          $(mname) application."
+          $(mname) application.";
+      `P "The dot output contains the following elements:";
+      `Noblank ;
+      `I ("If vertices",
+        "Represented as circles. Green/red arrows are the then/else branches. \
+         Bold is the default branch.");
+      `Noblank ;
+      `I ("Configurables",
+        "Represented as rectangles. The order of the output arrows is \
+         the order of the functor arguments.");
+      `Noblank ;
+      `I ("Data dependencies",
+        "Represented as dashed arrows");
+      `Noblank ;
+      `I ("App vertices",
+        "Represented as diamonds. The bold arrow is the functor part.");
     ] in
     let f t =
-      let describe _ filename dotcmd dot =
-        `Ok (t#describe ~dotcmd ~dot filename)
+      let describe _ filename dotcmd dot eval =
+        `Ok (t#describe ~dotcmd ~dot ~eval filename)
       in
-      Term.(pure describe $ t#info $ output $ dotcmd $ dot)
+      Term.(pure describe $ t#info $ output $ dotcmd $ dot $ full_eval)
     in
     let f_no err =
       let f () = `Error (false, err) in

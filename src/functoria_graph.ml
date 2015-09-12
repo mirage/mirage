@@ -330,6 +330,10 @@ let is_fully_reduced g =
 
 module Dot = Graphviz.Dot(struct
     include G
+
+    (* If you change the styling, please update the documentation of the
+       describe command in {!Functorial_tool}. *)
+
     let graph_attributes _g = [ `OrderingOut ]
     let default_vertex_attributes _g = []
 
@@ -353,6 +357,9 @@ module Dot = Graphviz.Dot(struct
 
     let default_edge_attributes _g = []
     let edge_attributes e = match E.label e with
+      (* The functor part of an App is in bold. *)
+      | Parameter 0 when V.label @@ E.src e = App ->
+        [ `Style `Bold ]
       | Parameter _ -> [ ]
       | Dependency _ -> [ `Style `Dashed ]
 

@@ -19,9 +19,65 @@ open Functoria_misc
 open Rresult
 
 module Dsl = Functoria_dsl
+module G = Functoria_graph
+
 open Dsl
 
-module G = Functoria_graph
+module Devices = struct
+
+  (** Default argv *)
+
+  type argv = ARGV
+  let argv = Type ARGV
+
+  let sys_argv = impl @@ object
+      inherit base_configurable
+      method ty = argv
+      method name = "argv"
+      method module_name = "Sys"
+      method! connect _info _m _ =
+        "Lwt.return (`Ok Sys.argv)"
+    end
+
+  (** Keys *)
+
+  let configure_keys i =
+    let file = String.lowercase Key.module_name ^ ".ml" in
+    info "%a %s" blue "Generating:"  file;
+    with_file (Info.root i / file) @@ fun fmt ->
+    Codegen.append fmt "(* %s *)" (generated_header "Functoria") ;
+    Codegen.newline fmt;
+    let bootvars = Info.keys i in
+    Fmt.pf fmt "@[<v>%a@]@."
+      (Fmt.iter Key.Set.iter @@ Key.emit) bootvars ;
+    Codegen.append fmt "let runtime_keys = %a"
+      Fmt.(Dump.list (fmt "%s_t"))
+      (List.map Key.ocaml_name @@
+       Key.Set.elements @@ Key.Set.filter_stage ~stage:`Run bootvars);
+    Codegen.newline fmt
+
+  let clean_keys i =
+    let file = String.lowercase Key.module_name ^ ".ml" in
+    remove (Info.root i / file)
+
+  let keys (argv : argv impl) = impl @@ object
+      inherit base_configurable
+      method ty = job
+      method name = "bootvar"
+      method module_name = Key.module_name
+      method! configure = configure_keys
+      method! clean = clean_keys
+      method! dependencies = [ hide argv ]
+      method! connect info modname = function
+        | [ argv ] ->
+          Fmt.strf
+            "Functoria_runtime.with_argv %s.keys %S %s"
+            modname (Info.name info) argv
+        | _ -> failwith "The keys connect should receive exactly one argument."
+    end
+end
+
+
 
 module Engine = struct
 
@@ -220,6 +276,8 @@ module type PROJECT = sig
 
   val driver_error : string -> string
 
+  val argv : Devices.argv impl
+
   val configurable :
     name:string -> root:string -> job impl list ->
     job configurable
@@ -228,6 +286,8 @@ end
 
 module Make (P:PROJECT) = struct
   module Project = P
+
+  let key_device = Devices.keys P.argv
 
   let () = set_section P.name
 
@@ -245,6 +305,7 @@ module Make (P:PROJECT) = struct
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
     let root = get_root () in
+    let jobs = key_device :: jobs in
     let c =
       Config.make ~keys ~libraries ~packages name root jobs P.configurable
     in
@@ -307,26 +368,6 @@ module Make (P:PROJECT) = struct
   *)
 
 
-  let configure_bootvar i =
-    let file = String.lowercase Key.module_name ^ ".ml" in
-    info "%a %s" blue "Generating:"  file;
-    with_file (Info.root i / file) @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header P.name) ;
-    Codegen.newline fmt;
-    let bootvars = Info.keys i in
-    Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter Key.Set.iter @@ Key.emit) bootvars ;
-    Codegen.append fmt "let runtime_keys = %a"
-      Fmt.(Dump.list (fmt "%s_t"))
-      (List.map Key.ocaml_name @@
-       Key.Set.elements @@ Key.Set.filter_stage ~stage:`Run bootvars);
-    Codegen.newline fmt
-
-  let clean_bootvar i =
-    let file = String.lowercase Key.module_name ^ ".ml" in
-    remove (Info.root i / file)
-
-
   let configure_main i jobs =
     info "%a main.ml" blue "Generating:";
     Codegen.set_main_ml (Info.root i / "main.ml");
@@ -351,7 +392,6 @@ module Make (P:PROJECT) = struct
         then Ok ()
         else configure_opam ~no_depext ~no_opam_version i
       end >>= fun () ->
-      configure_bootvar i;
       configure_main i jobs;
       Ok ()
     )
@@ -372,7 +412,6 @@ module Make (P:PROJECT) = struct
     let root = Info.root i in
     in_dir root (fun () ->
       if not no_opam then clean_opam ();
-      clean_bootvar i;
       clean_main i jobs;
       command "rm -rf %s/_build" root >>= fun () ->
       command "rm -rf log %s/main.native.o %s/main.native %s/*~"

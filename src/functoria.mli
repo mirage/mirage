@@ -21,6 +21,25 @@ open Functoria_sigs
 module Dsl :
   CORE with module Key = Functoria_key
 
+(** Various generic devices. *)
+module Devices : sig
+  open Dsl
+
+  (** {2 Argv device} *)
+
+  type argv
+  val argv : argv typ
+
+  val sys_argv : argv impl
+  (** The simplest argv device. Returns {!Sys.argv}. *)
+
+  (** {2 Key device} *)
+
+  val keys : argv impl -> job impl
+  (** This device takes an [argv] device, calls cmdliner and sets up keys. *)
+
+end
+
 (** A project is a specialized DSL build for specific purposes,
     like the mirage DSL. *)
 module type PROJECT = sig
@@ -32,6 +51,8 @@ module type PROJECT = sig
   val version : string
 
   val driver_error : string -> string
+
+  val argv : Devices.argv Dsl.impl
 
   val configurable :
     name:string -> root:string -> Dsl.job Dsl.impl list ->

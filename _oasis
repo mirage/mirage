@@ -20,7 +20,7 @@ Library functoria
   Modules:
     Functoria,
     Functoria_misc, Functoria_key,
-    Functoria_devices, Functoria_sigs
+    Functoria_sigs
   InternalModules: Functoria_tool, Functoria_dsl, Functoria_graph
   BuildDepends:
     unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,ocamlgraph

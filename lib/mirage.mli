@@ -33,7 +33,7 @@ module Key : sig
   val is_xen: bool value
   (** Is true iff the {!target} keys takes the value [`Xen]. *)
 
-  val tracing: int option key
+  val tracing: int key
   (** Key setting the tracing level. *)
 
 end
@@ -46,7 +46,7 @@ val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
     Deprecated, use {!Key.target} instead.
  *)
 
-val tracing : int -> job impl
+val tracing : job impl
 (** Tracking implementation. *)
 
 val mprof_trace : size:int -> unit -> int

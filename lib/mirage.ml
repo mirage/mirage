@@ -1101,14 +1101,16 @@ let argv = if_impl Key.is_xen argv_xen argv_unix
 
 
 
-let tracing size =
+let tracing =
   let unix_trace_file = "trace.ctf" in
   impl @@ object
   inherit base_configurable
 
   method ty = job
-  method name = Fmt.strf "tracing_%i" size
+  method name = "tracing"
   method module_name = "MProf"
+
+  method keys = [ Key.hide Key.tracing ]
 
   method packages = Key.pure ["mirage-profile"]
   method libraries =
@@ -1126,19 +1128,20 @@ let tracing size =
   method connect _ _ _ = match get_mode () with
     | `Unix | `MacOSX ->
       Fmt.strf
-        "let buffer = MProf_unix.mmap_buffer ~size:%d %S in@ \
+        "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
          let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
          MProf.Trace.Control.start trace_config"
-        size unix_trace_file;
+        Key.pp_meta Key.(hide tracing)
+        unix_trace_file;
     | `Xen  ->
       Fmt.strf
-        "let trace_pages = MProf_xen.make_shared_buffer ~size:%d in@ \
+        "let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
          let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
          let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
          MProf.Trace.Control.start trace_config;@ \
          MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
          |> OS.Main.run"
-        size
+        Key.pp_meta Key.(hide tracing)
 
 end
 
@@ -1497,7 +1500,7 @@ module Project = struct
     method ty = job
     method name = "main"
     method module_name = "Mirage_runtime"
-    method keys = [ Key.hide Key.target ; Key.hide Key.tracing ]
+    method keys = [ Key.hide Key.target ]
 
     method packages =
       Key.pipe Key.(value target) @@ function
@@ -1528,6 +1531,8 @@ include Functoria.Make (Project)
 let register ?tracing:t ?keys ?libraries ?packages name jobs =
   let jobs = match t with
     | None -> jobs
-    | Some i -> tracing i :: jobs
+    | Some i ->
+      Key.set Key.tracing i ;
+      tracing :: jobs
   in
   register ?keys ?libraries ?packages name jobs

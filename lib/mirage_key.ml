@@ -82,13 +82,13 @@ let is_xen =
 (** {3 Tracing} *)
 
 let tracing =
-  let doc = "The tracing level. Tracing is disabled if none is given." in
-  let desc = Key.Desc.(option int) in
+  let doc = "The tracing level. Accepts an integer" in
+  let desc = Key.Desc.int in
   let doc = Key.Doc.create
       ~docs:mirage_section
       ~docv:"TRACING" ~doc ["tracing"]
   in
-  Key.create_raw ~doc ~stage:`Configure ~default:None "tracing" desc
+  Key.create_raw ~doc ~stage:`Configure ~default:1 "tracing" desc
 
 (** {2 General mirage keys} *)
 

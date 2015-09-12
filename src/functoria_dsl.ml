@@ -146,11 +146,11 @@ module ImplTbl = struct
       = fun x y -> match x, y with
         | Impl c, Impl c' ->
           c#name = c'#name
-          (* && List.for_all2 (=) c#keys c'#keys *)
           && List.for_all2 equal c#dependencies c'#dependencies
         | App a, App b -> equal_all a.f b.f && equal_all a.x b.x
         | If (cond1, t1, e1), If (cond2, t2, e2) ->
-          cond1 = cond2 && equal_all t1 t2 && equal_all e1 e2
+          (* Key.value is a functional value, We use the physical equality. *)
+          cond1 == cond2 && equal_all t1 t2 && equal_all e1 e2
         | _ -> false
     and equal (Any x) (Any y) = equal_all x y
   end

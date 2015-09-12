@@ -18,8 +18,8 @@
 (** Configuration library. *)
 open Functoria_sigs
 
-include CORE
-  with module Key = Functoria_key
+module Dsl :
+  CORE with module Key = Functoria_key
 
 (** A project is a specialized DSL build for specific purposes,
     like the mirage DSL. *)
@@ -34,25 +34,25 @@ module type PROJECT = sig
   val driver_error : string -> string
 
   val configurable :
-    name:string -> root:string -> job impl list ->
-    job configurable
+    name:string -> root:string -> Dsl.job Dsl.impl list ->
+    Dsl.job Dsl.configurable
 
 end
 
 module type S = Functoria_sigs.S
-  with module Key := Functoria_key
-   and module Info := Info
-   and type 'a impl = 'a impl
-   and type 'a typ = 'a typ
-   and type any_impl = any_impl
-   and type job = job
-   and type 'a configurable = 'a configurable
+  with module Key := Dsl.Key
+   and module Info := Dsl.Info
+   and type 'a impl = 'a Dsl.impl
+   and type 'a typ = 'a Dsl.typ
+   and type any_impl = Dsl.any_impl
+   and type job = Dsl.job
+   and type 'a configurable = 'a Dsl.configurable
 
 module type KEY = Functoria_sigs.KEY
-  with type 'a key = 'a Key.key
-   and type 'a value = 'a Key.value
-   and type t = Key.t
-   and type Set.t = Key.Set.t
+  with type 'a key = 'a Dsl.Key.key
+   and type 'a value = 'a Dsl.Key.value
+   and type t = Dsl.Key.t
+   and type Set.t = Dsl.Key.Set.t
 
 (** Create a specialized configuration engine for a project. *)
 module Make (Project : PROJECT) : sig

@@ -17,7 +17,7 @@
 
 (** Various generic devices. *)
 
-open Functoria
+open Functoria.Dsl
 
 val argv : job impl
 (** The simplest argv device. Call {!Sys.argv} and give the results

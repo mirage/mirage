@@ -17,236 +17,93 @@
 
 open Functoria_misc
 open Rresult
-open Functoria_dsl
 
-(** Decision trees *)
-module DTree = struct
+module Dsl = Functoria_dsl
+open Dsl
 
-  type +'a t =
-    | Leaf : 'a -> 'a t
-    | If : bool Key.value * 'a t * 'a t -> 'a t
+module G = Functoria_graph
 
-  let rec push_app' : type a. a impl -> a impl * bool  = function
-    | App {f = If (b, f1, f2) ;x} ->
-      push_app' @@ if_impl b (f1$x) (f2$x)
-    | App {f ; x = If(b, x1, x2)} ->
-      push_app' @@ if_impl b (f$x1) (f$x2)
-    | App {f ; x } ->
-      let f, bf = push_app' f and x, bx = push_app' x in
-      let b = bf || bx in
-      if b then fst @@ push_app' (f $ x), true else f $ x, false
-    | If (b, x, y) ->
-      let x, bx = push_app' x and y, by = push_app' y in
-      if_impl b x y, bx || by
-    | Impl _ as f -> f, false
+module Engine = struct
 
-  let push_app i = fst @@ push_app' i
+  let switching_keys =
+    G.collect (module Key.Set) @@ function
+    | G.If cond -> Key.deps cond
+    | _ -> Key.Set.empty
 
-  let rec to_tree_internal : type a. a impl -> a impl t = function
-    | If (b, x, y) -> If (b, to_tree_internal x, to_tree_internal y)
-    | t -> Leaf t
+  let keys =
+    G.collect (module Key.Set) @@ function
+    | G.Impl c -> Key.Set.of_list c#keys
+    | _ -> Key.Set.empty
 
-  let to_tree x = to_tree_internal (push_app x)
-
-  let rec map f = function
-    | Leaf x -> Leaf (f x)
-    | If (b, x, y) -> If (b, map f x, map f y)
-
-  let rec keys = function
-    | Leaf _ -> Key.Set.empty
-    | If (b,x,y) ->
-      Key.Set.union (Key.deps b) @@
-      Key.Set.union (keys x) (keys y)
-
-  let rec partial_eval = function
-    | Leaf _ as t -> t
-    | If (b, x, y) -> match Key.peek b with
-      | None -> If (b, partial_eval x, partial_eval y)
-      | Some true -> partial_eval x
-      | Some false -> partial_eval y
-
-  let rec eval = function
-    | Leaf c -> c
-    | If (b, x, y) ->
-      if Key.eval b then eval x else eval y
-
-  let rec pp ppf fmt = function
-    | Leaf x -> ppf fmt x
-    | If (b, x, y) ->
-      Fmt.pf fmt "@[<v 2>Depending on the key %a:@,%a@,%a@]"
-        (Fmt.styled `Bold @@ Key.pp_deps) b
-        (pp ppf) x
-        (pp ppf) y
-
-end
-
-module Modlist : sig
-  type t
-  type evaluated
-
-  val of_impl : job impl -> t
-  val eval : t list -> evaluated list
-
-  val switching_keys : t list -> Key.Set.t
-
-  val keys : evaluated list -> Key.Set.t
-  val packages : evaluated list -> StringSet.t Key.value
-  val libraries : evaluated list -> StringSet.t Key.value
-
-  val configure_and_connect :
-    Info.t -> (string -> string) -> evaluated list -> unit
-
-  val clean : Info.t -> evaluated -> unit
-
-  val partial_eval : t -> t
-
-  val pp : evaluated Fmt.t
-  val describe : t list Fmt.t
-
-end = struct
-
-  type 'a modlist =
-    | Mod  : _ configurable * 'a -> 'a modlist
-    | List : _ configurable * 'a * 'a modlist list -> 'a modlist
-
-  type t = T of t list modlist DTree.t
-  type evaluated = E of evaluated list modlist
-  let map_E f (E x) = f x
-
-  let rec linearize
-    : type ty . ty impl -> _ modlist
-    = function
-      | Impl m ->
-        Mod (m,List.map (fun (Any i) -> of_impl i) m#dependencies)
-      | If _ -> assert false
-      | App { f ; x } ->
-        let fuse = function
-          | Mod (m, deps) -> List (m, deps, [linearize x])
-          | List (m, deps, args) -> List (m, deps , args @ [linearize x])
-        in fuse @@ linearize f
-
-  and of_impl
-    : type ty . ty impl -> t
-    = fun i -> T (DTree.map linearize (DTree.to_tree i))
-
-  let rec pp_modlist : 'a modlist Fmt.t = fun fmt -> function
-    | Mod (d, _)        -> Fmt.string fmt d#module_name
-    | List (f, _, args) ->
-      Fmt.pf fmt "@[<2>%s@ %a@]"
-        f#module_name
-        Fmt.(list ~sep:sp @@ parens @@ box pp_modlist) args
-
-  let pp fmt (E x) = pp_modlist fmt x
-
-  let eval l =
-    let tbl = Hashtbl.create 17 in
-    let rec add_deps = function
-      | Mod (m, deps) ->
-        Mod (m, eval_list deps)
-      | List (m, deps ,args) ->
-        List (m, eval_list deps, List.map add_deps args)
-    and eval (T m) =
-      if Hashtbl.mem tbl m then Hashtbl.find tbl m
-      else
-        let m' = E (add_deps @@ DTree.eval m) in
-        Hashtbl.add tbl m m' ; m'
-    and eval_list l = List.map eval l
-    in
-    eval_list l
-
-  (** Return a unique variable name holding the state of the given
-      module construction. *)
-  let rec name = function
-    | Mod (d,_)           -> d#name
-    | List (f,_,_) as t -> Name.of_key (module_name t) ~base:f#name
-
-  (** Return a unique module name holding the implementation of the
-      given module construction. *)
-  and module_name = function
-    | Mod (d,_)          -> d#module_name
-    | List (f, x, args) ->
-      let name = body (Mod (f,x) ) args in
-      Name.of_key name ~base:"F"
-
-  and body f args =
-    functor_name f ^
-      Fmt.(strf "%a" (list ~sep:nop @@ parens string)
-        (List.map module_name args))
-
-  and functor_name = function
-    | Mod (d,_)      -> d#module_name
-    | List (f,_,_) -> f#module_name
-
-
-
-  type 'a mapper = {
-    map: 'ty. 'ty configurable -> 'a ;
-  }
-
-  module type S = sig
-    type t
-    val flatmap : ('a -> t) -> 'a list -> t
-    val (@) : t -> t -> t
-  end
-
-  let collect (type t) (module M:S with type t=t) map fm m =
-    let open M in
-    let rec collect = function
-      | Mod (d, deps) -> fm.map d @ flatmap collect_dep deps
-      | List (f, deps, args) ->
-        fm.map f @ flatmap collect_dep deps @ flatmap collect args
-    and collect_dep m = map collect m
-    in flatmap (map collect) m
-
-  let switching_keys m =
-    List.fold_left
-      (fun set (T x) -> Key.Set.union (DTree.keys x) set )
-      Key.Set.empty
-      m
 
   module M = struct
     type t = StringSet.t Key.value
-    let (@) x y = Key.(pure StringSet.union $ x $ y)
-    let flatmap f l =
-      List.fold_left
-        (fun set x -> f x @ set)
-        (Key.pure StringSet.empty)
-        l
+    let (++) x y = Key.(pure StringSet.union $ x $ y)
+    let empty = Key.pure StringSet.empty
   end
 
-  let collect_E modu fm m = collect modu map_E fm m
-  let packages  =
-    collect_E (module M) { map = fun x -> Key.map StringSet.of_list x#packages }
+  let packages =
+    G.collect (module M) @@ function
+    | G.Impl c -> Key.map StringSet.of_list c#packages
+    | _ -> M.empty
+
   let libraries =
-    collect_E (module M) { map = fun x -> Key.map StringSet.of_list x#libraries }
-
-  let keys =
-    let module M = struct
-      include Key.Set
-      let (@) = union
-      let flatmap f = List.fold_left (fun set x -> f x @ set)  empty
-    end
-    in collect_E (module M) {map = fun x -> Key.Set.of_list x#keys}
+    G.collect (module M) @@ function
+    | G.Impl c -> Key.map StringSet.of_list c#libraries
+    | _ -> M.empty
 
 
-  let rec configure' tbl info m =
-    let iname = name m in
-    if not (Hashtbl.mem tbl iname) then begin
-      Hashtbl.add tbl iname true;
-      match m with
-      | Mod (t, deps) ->
-        t#configure info ;
-        List.iter (configure tbl info) deps ;
-      | List (f, deps, args) ->
-        List.iter (configure tbl info) deps ;
-        List.iter (configure' tbl info) args ;
-        f#configure info ;
-        let modname = module_name m in
-        let body = body (Mod (f,deps)) args in
-        Codegen.append_main "module %s = %s" modname body;
-        Codegen.newline_main ();
-    end
-  and configure configured info (E m) = configure' configured info m
+  (** Return a unique variable name holding the state of the given
+      module construction. *)
+  let name tbl c args deps =
+    let base = Key.ocamlify c#name in
+    if args = [] && deps = [] then base
+    else
+      let s =
+        Fmt.strf "%s%a"
+          base   Fmt.(list ~sep:nop @@ of_to_string @@ G.Tbl.find tbl) args
+      in Name.of_key s ~base
+
+  (** [module_expresion tbl c args] returns the module expression of the
+      functor [c] applies to [args]. *)
+  let module_expression tbl fmt (c, args) =
+    Fmt.pf fmt "%s%a"
+      c#module_name
+      Fmt.(list @@ parens @@ of_to_string @@ G.Tbl.find tbl)
+      args
+
+  (** [module_name tbl c args] return the module name of the result of the
+      functor application.
+      If [args = []], it returns [c#module_name]. *)
+  let module_name tbl c args =
+    let base = c#module_name in
+    if args = [] then base
+    else
+      let n = Fmt.strf "%a" (module_expression tbl) (c, args) in
+      let base = Key.ocamlify String.(sub base 0 (index base '.')) in
+      Name.of_key n ~base
+
+
+  let configure info g =
+    let tbl = G.Tbl.create 17 in
+    let f v = match G.explode g v with
+      | `App _ | `If _ -> assert false
+      | `Impl (c, `Args args, `Deps _) ->
+        let modname = module_name tbl c args in
+        G.Tbl.add tbl v modname ;
+        c#configure info ;
+        if args = [] then ()
+        else begin
+          Codegen.append_main
+            "@[<2>module %s =@ %a@]"
+            modname
+            (module_expression tbl) (c,args);
+          Codegen.newline_main ();
+        end
+    in
+    G.iter g f ;
+    tbl
+
 
   let meta_init fmt (connect_name, result_name) =
     Fmt.pf fmt "let _%s =@[@ %s () @]in@ " result_name connect_name
@@ -274,51 +131,33 @@ end = struct
       Fmt.(list ~sep:nop @@ meta_connect error) names
       (connect_string @@ List.map snd names)
 
-  let rec connect' tbl info error m =
-    let iname = name m in
-    if not (Hashtbl.mem tbl iname) then begin
-      Hashtbl.add tbl iname true;
-      let modname = module_name m in
-      match m with
-      | Mod (m, deps) ->
-        List.iter (connect tbl info error) deps ;
-        let names = List.map (map_E name) deps in
+  let connect modtbl info error g =
+    let tbl = G.Tbl.create 17 in
+    let f v =
+      match G.explode g v with
+      | `App _ | `If _ -> assert false
+      | `Impl (c, `Args args, `Deps deps) ->
+        let ident = name tbl c args deps in
+        let modname = G.Tbl.find modtbl v in
+        G.Tbl.add tbl v ident ;
+        let names = List.map (G.Tbl.find tbl) (args @ deps) in
         Codegen.append_main "%a"
-          emit_connect (error, iname, names, m#connect info modname)
-      | List (f, deps, args) ->
-        List.iter (connect' tbl info error) args ;
-        List.iter (connect tbl info error) deps ;
-        let names = List.map name args @ List.map (map_E name) deps in
-        Codegen.append_main "%a"
-          emit_connect (error, iname, names, f#connect info modname)
-    end
-  and connect tbl info error (E m) = connect' tbl info error m
+          emit_connect (error, ident, names, c#connect info modname)
+    in
+    G.iter g f ;
+    let main = G.Tbl.find tbl @@ G.find_root g in
+    Codegen.append_main
+      "let () = run (bootvar () >>= fun _ -> %s ())" main ;
+    ()
 
-  let configure_and_connect info error l =
-    let configured = Hashtbl.create 31 in
-    let connected = Hashtbl.create 31 in
-    List.iter (fun m ->
-      configure configured info m ;
-      connect connected info error m)
-      l
+  let configure_and_connect info error g =
+    let modtbl = configure info g in
+    connect modtbl info error g
 
-  let partial_eval (T t) = T (DTree.partial_eval t)
-
-  type iter = { i : 'ty. 'ty configurable -> unit }
-
-  let rec iter' fi m =
-    match m with
-    | Mod (b, deps) -> List.iter (iter fi) deps ; fi.i b
-    | List (f, deps, args) ->
-      List.iter (iter fi) deps ; List.iter (iter' fi) args ; fi.i f
-  and iter fi (E m) = iter' fi m
-
-  let clean i t = iter { i = fun t -> t#clean i} t
-
-  let describe_one fmt (T t) =
-    Fmt.pf fmt "%a %a" yellow "-" (DTree.pp pp_modlist) t
-  let describe =
-    Fmt.(vbox @@ list describe_one)
+  let clean i g =
+    G.iter g @@ fun v -> match G.explode g v with
+    | `Impl (c,_,_) -> c#clean i
+    | _ -> ()
 
 end
 
@@ -330,29 +169,28 @@ module Config = struct
     libraries : StringSet.t Key.value ;
     packages : StringSet.t Key.value ;
     keys : Key.Set.t ;
-    jobs : Modlist.t list ;
-    custom : job configurable ;
+    jobs : G.t ;
   }
 
   let make
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root jobs init_dsl =
     let custom = init_dsl ~name ~root jobs in
-    let jobs = List.map Modlist.of_impl @@ impl custom :: jobs in
+    let jobs = G.create @@ impl custom in
 
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
     let keys =
-      Key.Set.(union (of_list (keys @ custom#keys)) (Modlist.switching_keys jobs))
+      Key.Set.(union (of_list (keys @ custom#keys)) (Engine.switching_keys jobs))
     in
-    { libraries ; packages ; keys ; name ; root ; jobs ; custom }
+    { libraries ; packages ; keys ; name ; root ; jobs }
 
   let eval { name = n ; root ; packages ; libraries ; keys ; jobs } =
-    let e = Modlist.eval jobs in
+    let e = G.eval @@ G.normalize jobs in
     let open Key in
-    let packages = pure StringSet.union $ packages $ Modlist.packages e in
-    let libraries = pure StringSet.union $ libraries $ Modlist.libraries e in
-    let keys = Key.Set.union keys @@ Modlist.keys e in
+    let packages = pure StringSet.union $ packages $ Engine.packages e in
+    let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
+    let keys = Key.Set.union keys @@ Engine.keys e in
     let di =
       pure (fun libraries packages ->
         {Info. libraries ; packages ; keys ; name = n ; root})
@@ -362,12 +200,14 @@ module Config = struct
     e, with_deps ~keys di
 
   let name t = t.name
-  let custom t = t.custom
   let switching_keys t = t.keys
 
-  let pp fmt t =
-    Modlist.describe fmt @@ List.map Modlist.partial_eval t.jobs
+  let gen_pp pp normalize fmt t =
+    let f = if normalize then G.normalize else G.remove_partial_app in
+    pp fmt @@ f @@ G.eval ~partial:true t.jobs
 
+  let pp = gen_pp G.pp
+  let pp_dot = gen_pp G.pp_dot
 end
 
 module type PROJECT = sig
@@ -485,7 +325,7 @@ module Make (P:PROJECT) = struct
     remove (Info.root i / "bootvar_gen.ml")
 
 
-  let configure_main i jobs custom =
+  let configure_main i jobs =
     info "%a main.ml" blue "Generating:";
     Codegen.set_main_ml (Info.root i / "main.ml");
     Codegen.append_main "(* %s *)" (generated_header P.name);
@@ -494,30 +334,23 @@ module Make (P:PROJECT) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Modlist.configure_and_connect i Project.driver_error jobs;
+    Engine.configure_and_connect i Project.driver_error jobs;
     Codegen.newline_main ();
-    Codegen.append_main
-      "let () = run (bootvar () >>= fun _ -> %s ())" custom#name ;
     ()
 
   let clean_main i jobs =
-    List.iter (Modlist.clean i) jobs ;
+    Engine.clean i jobs ;
     remove (Info.root i / "main.ml")
 
-  let configure ~no_opam ~no_depext ~no_opam_version i jobs custom =
+  let configure ~no_opam ~no_depext ~no_opam_version i jobs =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
-    info "@[<v 2>%a@ %a@]@."
-      blue (Fmt.strf "%d Job%s:"
-        (List.length jobs)
-        (if List.length jobs = 1 then "" else "s"))
-      (Fmt.list Modlist.pp) jobs;
     in_dir (Info.root i) (fun () ->
       begin if no_opam
         then Ok ()
         else configure_opam ~no_depext ~no_opam_version i
       end >>= fun () ->
       configure_bootvar i;
-      configure_main i jobs custom;
+      configure_main i jobs;
       Ok ()
     )
 
@@ -609,7 +442,7 @@ module Make (P:PROJECT) = struct
     let eval t =
       let evaluated, info = Config.eval t in
       object
-        method configure info = configure info evaluated (Config.custom t)
+        method configure info = configure info evaluated
         method clean info = clean info evaluated
         method build info = build info
         method info = Key.term_value ~stage:`Configure info

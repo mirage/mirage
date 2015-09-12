@@ -89,7 +89,8 @@ val realpath: string -> string
 
 val with_file : string -> (Format.formatter -> unit) -> unit
 
-val opam: string -> ?yes:bool -> ?switch:string -> string list -> unit
+val opam:
+  string -> ?yes:bool -> ?switch:string -> string list -> (unit, string) result
 
 val in_dir: string -> (unit -> 'a) -> 'a
 

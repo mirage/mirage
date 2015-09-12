@@ -330,8 +330,8 @@ module Make (P:PROJECT) = struct
         read_command "opam --version" >>= fun opam_version ->
         let version_error () =
           error "Your version of OPAM (%s) is not recent enough. \
-                Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
-                You can pass the `--no-opam-version-check` flag to force its use." opam_version
+                 Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
+                 You can pass the `--no-opam-version-check` flag to force its use." opam_version
         in
         match split opam_version '.' with
         | major::minor::_ ->
@@ -339,15 +339,15 @@ module Make (P:PROJECT) = struct
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
             let ps = StringSet.elements ps in
-            if no_depext then ()
+            if no_depext then Ok ()
             else (
-              if command_exists "opam-depext" then
-                info "opam depext is installed."
-              else
-                opam "install" ["depext"];
-              opam ~yes:false "depext" ps;
-            );
-            Ok (opam "install" ps)
+              begin
+                if command_exists "opam-depext"
+                then Ok (info "opam depext is installed.")
+                else opam "install" ["depext"]
+              end >>= fun () -> opam ~yes:false "depext" ps
+            ) >>= fun () ->
+              opam "install" ps
           ) else version_error ()
         | _ -> version_error ()
       )

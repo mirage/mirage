@@ -173,7 +173,7 @@ let opam cmd ?(yes=true) ?switch deps =
   (* Note: we don't redirect output to the log as installation can take a long time
    * and the user will want to see what is happening. *)
   let yes = if yes then "--yes " else "" in
-  ignore @@ match switch with
+  match switch with
   | None     -> command ~redirect:false "opam %s %s%s" cmd yes deps_str
   | Some cmp -> command ~redirect:false "opam %s %s%s --switch=%s" cmd yes deps_str cmp
 

@@ -46,6 +46,7 @@ module Misc = Functoria_misc
 (** A project is a specialized DSL build for specific purposes,
     like the mirage DSL. *)
 module type PROJECT = sig
+  open Dsl
 
   val prelude : string
 
@@ -55,11 +56,9 @@ module type PROJECT = sig
 
   val driver_error : string -> string
 
-  val argv : Devices.argv Dsl.impl
+  val argv : Devices.argv impl
 
-  val configurable :
-    name:string -> root:string -> Dsl.job Dsl.impl list ->
-    Dsl.job Dsl.configurable
+  val configurable : job impl list -> job configurable
 
 end
 

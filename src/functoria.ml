@@ -232,7 +232,7 @@ module Config = struct
   let make
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root jobs init_dsl =
-    let custom = init_dsl ~name ~root jobs in
+    let custom = init_dsl jobs in
     let jobs = G.create @@ impl custom in
 
     let libraries = Key.pure @@ StringSet.of_list libraries in
@@ -278,9 +278,7 @@ module type PROJECT = sig
 
   val argv : Devices.argv impl
 
-  val configurable :
-    name:string -> root:string -> job impl list ->
-    job configurable
+  val configurable : job impl list -> job configurable
 
 end
 

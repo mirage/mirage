@@ -211,7 +211,7 @@ val network: network typ
 val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
-val netif: ?stack:string -> string -> network impl
+val netif: ?group:string -> string -> network impl
 (** A custom network interface. *)
 
 
@@ -260,10 +260,10 @@ type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
 val create_ipv4:
   ?clock:clock impl -> ?time:time impl ->
-  ?stack:string -> network impl -> ipv4_config -> ipv4 impl
+  ?group:string -> network impl -> ipv4_config -> ipv4 impl
 (** Use an IPv4 address. *)
 
-val default_ipv4: ?stack:string -> network impl -> ipv4 impl
+val default_ipv4: ?group:string -> network impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
     - address: 10.0.0.2
     - netmask: 255.255.255.0
@@ -274,7 +274,7 @@ type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 
 val create_ipv6:
   ?time:time impl -> ?clock:clock impl ->
-  ?stack:string -> network impl -> ipv6_config -> ipv6 impl
+  ?group:string -> network impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address. *)
 
 
@@ -290,7 +290,7 @@ val udp: 'a udp typ
 val udpv4: udpv4 typ
 val udpv6: udpv6 typ
 val direct_udp: 'a ip impl -> 'a udp impl
-val socket_udpv4: ?stack:string -> Ipaddr.V4.t option -> udpv4 impl
+val socket_udpv4: ?group:string -> Ipaddr.V4.t option -> udpv4 impl
 
 
 
@@ -309,7 +309,7 @@ val direct_tcp:
   ?random:random impl ->
   ?time:time impl ->
   'a ip impl -> 'a tcp impl
-val socket_tcpv4: ?stack:string -> Ipaddr.V4.t option -> tcpv4 impl
+val socket_tcpv4: ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
 
 
 
@@ -325,28 +325,28 @@ val direct_stackv4_with_default_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  ?stack:string ->
+  ?group:string ->
   console impl -> network impl -> stackv4 impl
 
 val direct_stackv4_with_static_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  ?stack:string ->
+  ?group:string ->
   console impl -> network impl -> ipv4_config -> stackv4 impl
 
 val direct_stackv4_with_dhcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
-  ?stack:string ->
+  ?group:string ->
   console impl -> network impl -> stackv4 impl
 
 val socket_stackv4:
-  ?stack:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
+  ?group:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
 
 val generic_stackv4 :
-  ?stack:string -> console impl -> network impl -> stackv4 impl
+  ?group:string -> console impl -> network impl -> stackv4 impl
 
 (** {Resolver configuration} *)
 

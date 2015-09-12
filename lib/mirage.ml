@@ -418,7 +418,7 @@ let network_conf (intf : string Key.key) =
 
 end
 
-let netif ?stack dev = impl (network_conf @@ Key.network ?stack dev)
+let netif ?group dev = impl (network_conf @@ Key.network ?group dev)
 let tap0 = netif "tap0"
 
 
@@ -551,12 +551,12 @@ end
 
 let create_ipv4
     ?(clock = default_clock) ?(time = default_time)
-    ?stack net { address ; netmask ; gateways } =
+    ?group net { address ; netmask ; gateways } =
   let etif = etif net in
   let arp = arp ~clock ~time etif in
-  let address = Key.V4.address ?stack address in
-  let netmask = Key.V4.netmask ?stack netmask in
-  let gateways = Key.V4.gateways ?stack gateways in
+  let address = Key.V4.address ?group address in
+  let netmask = Key.V4.netmask ?group netmask in
+  let gateways = Key.V4.gateways ?group gateways in
   ipv4_conf ~address ~netmask ~gateways () $ etif $ arp
 
 let default_ipv4_conf =
@@ -567,8 +567,8 @@ let default_ipv4_conf =
     gateways = [i "10.0.0.1"];
   }
 
-let default_ipv4 ?stack net =
-  create_ipv4 ?stack net default_ipv4_conf
+let default_ipv4 ?group net =
+  create_ipv4 ?group net default_ipv4_conf
 
 
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
@@ -618,11 +618,11 @@ end
 let create_ipv6
     ?(time = default_time)
     ?(clock = default_clock)
-    ?stack net { address ; netmask ; gateways } =
+    ?group net { address ; netmask ; gateways } =
   let etif = etif net in
-  let address = Key.V6.address ?stack address in
-  let netmask = Key.V6.netmask ?stack netmask in
-  let gateways = Key.V6.gateways ?stack gateways in
+  let address = Key.V6.address ?group address in
+  let netmask = Key.V6.netmask ?group netmask in
+  let gateways = Key.V6.gateways ?group gateways in
   ipv6_conf ~address ~netmask ~gateways () $ etif $ time $ clock
 
 
@@ -684,8 +684,8 @@ let udpv4_socket_conf ipv4_key = object (self)
 
 end
 
-let socket_udpv4 ?stack ip =
-  impl (udpv4_socket_conf @@ Key.V4.socket ?stack ip)
+let socket_udpv4 ?group ip =
+  impl (udpv4_socket_conf @@ Key.V4.socket ?group ip)
 
 
 type 'a tcp = TCP
@@ -745,8 +745,8 @@ let tcpv4_socket_conf ipv4_key = object (self)
 
 end
 
-let socket_tcpv4 ?stack ip =
-  impl (tcpv4_socket_conf @@ Key.V4.socket ?stack ip)
+let socket_tcpv4 ?group ip =
+  impl (tcpv4_socket_conf @@ Key.V4.socket ?group ip)
 
 
 
@@ -760,7 +760,7 @@ let pp_stackv4_config fmt = function
     Fmt.pf fmt "`IPv4 %a"
       (meta_triple pp_key pp_key pp_key) i
 
-let stackv4_direct_conf ?(stack="") config = impl @@ object
+let stackv4_direct_conf ?(group="") config = impl @@ object
   inherit base_configurable
 
   method ty =
@@ -772,7 +772,7 @@ let stackv4_direct_conf ?(stack="") config = impl @@ object
     let base = match config with
       | `DHCP -> "dhcp"
       | `IPV4 i -> "ip"
-    in Fmt.strf "stackv4_%s%s" base (if stack = "" then "" else "_"^stack)
+    in suffix ("stackv4_" ^ base) ~by:group
   method name = name
   method module_name = "Tcpip_stack_direct.Make"
 
@@ -803,36 +803,36 @@ let direct_stackv4_with_config
     ?(clock=default_clock)
     ?(random=default_random)
     ?(time=default_time)
-    ?stack
+    ?group
     console network config =
   let eth = etif_func $ network in
   let arp = arp ~clock ~time eth in
   let ip = ipv4_conf () $ eth $ arp in
-  stackv4_direct_conf ?stack config
+  stackv4_direct_conf ?group config
   $ console $ time $ random $ network
   $ eth $ arp $ ip
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 
 let direct_stackv4_with_dhcp
-    ?clock ?random ?time ?stack console network =
+    ?clock ?random ?time ?group console network =
   direct_stackv4_with_config
-    ?clock ?random ?time ?stack console network `DHCP
+    ?clock ?random ?time ?group console network `DHCP
 
 let direct_stackv4_with_static_ipv4
-    ?clock ?random ?time ?stack console network
+    ?clock ?random ?time ?group console network
     {address; netmask; gateways} =
-  let address = Key.V4.address ?stack address in
-  let netmask = Key.V4.netmask ?stack netmask in
-  let gateways = Key.V4.gateways ?stack gateways in
+  let address = Key.V4.address ?group address in
+  let netmask = Key.V4.netmask ?group netmask in
+  let gateways = Key.V4.gateways ?group gateways in
   direct_stackv4_with_config
-    ?clock ?random ?time ?stack console network
+    ?clock ?random ?time ?group console network
     (`IPV4 (address, netmask, gateways))
 
 let direct_stackv4_with_default_ipv4
-    ?clock ?random ?time ?stack console network =
+    ?clock ?random ?time ?group console network =
   direct_stackv4_with_static_ipv4
-    ?clock ?random ?time ?stack console network
+    ?clock ?random ?time ?group console network
     default_ipv4_conf
 
 
@@ -841,12 +841,12 @@ let pp_interface =
     fun fmt x -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x)
   )
 
-let stackv4_socket_conf interfaces = impl @@ object
+let stackv4_socket_conf ?(group="") interfaces = impl @@ object
   inherit base_configurable
 
   method ty = console @-> stackv4
 
-  val name = "stackv4_socket"
+  val name = suffix "stackv4_socket" ~by:group
   method name = name
   method module_name = "Tcpip_stack_socket.Make"
 
@@ -872,22 +872,22 @@ let stackv4_socket_conf interfaces = impl @@ object
 
 end
 
-let socket_stackv4 ?stack console ipv4s =
-  stackv4_socket_conf (Key.V4.interfaces ?stack ipv4s) $ console
+let socket_stackv4 ?group console ipv4s =
+  stackv4_socket_conf ?group (Key.V4.interfaces ?group ipv4s) $ console
 
 
 (** Generic stack *)
 
-let generic_stackv4 ?stack console tap =
-  let dhcp_key = Key.dhcp stack in
-  let net_key = Key.net stack in
+let generic_stackv4 ?group console tap =
+  let dhcp_key = Key.dhcp group in
+  let net_key = Key.net group in
   if_impl
     Key.(pure ((=) `Socket) $ value net_key)
-    (socket_stackv4 console ?stack [Ipaddr.V4.any])
+    (socket_stackv4 console ?group [Ipaddr.V4.any])
     (if_impl
        (Key.value dhcp_key)
-       (direct_stackv4_with_dhcp ?stack console tap)
-       (direct_stackv4_with_default_ipv4 ?stack console tap)
+       (direct_stackv4_with_dhcp ?group console tap)
+       (direct_stackv4_with_default_ipv4 ?group console tap)
     )
 
 

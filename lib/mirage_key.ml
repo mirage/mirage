@@ -41,8 +41,8 @@ end
 let mirage_section = "MIRAGE PARAMETERS"
 let unikernel_section = "UNIKERNEL PARAMETERS"
 
-let pp_stack =
-  Fmt.(option ~none:(unit "the unikernel") @@ fmt "the %s stack")
+let pp_group =
+  Fmt.(option ~none:(unit "the unikernel") @@ fmt "the %s group")
 
 (** {2 Special keys} *)
 
@@ -92,78 +92,78 @@ let tracing =
 
 (** {2 General mirage keys} *)
 
-let create_simple ?(stack="") ?(stage=`Both) ~doc ~default desc name =
-  let prefix = if stack = "" then stack else stack^"-" in
+let create_simple ?(group="") ?(stage=`Both) ~doc ~default desc name =
+  let prefix = if group = "" then group else group^"-" in
   let doc = Key.Doc.create
       ~docs:unikernel_section
       ~docv:(String.uppercase name) ~doc [prefix^name]
   in
   Key.create_raw ~doc ~stage ~default (prefix^name) desc
 
-let network ?stack default =
+let network ?group default =
   let doc =
     Fmt.strf "The network interface listened by %a."
-      pp_stack stack
+      pp_group group
   in
   create_simple
-    ~doc ~default ?stack Desc.string "network"
+    ~doc ~default ?group Desc.string "network"
 
 module V4 = struct
 
-  let address ?stack default =
-    let doc = Fmt.strf "The ip address of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.ipv4 "ip"
+  let address ?group default =
+    let doc = Fmt.strf "The ip address of %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.ipv4 "ip"
 
-  let netmask ?stack default =
-    let doc = Fmt.strf "The netmask of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.ipv4 "netmask"
+  let netmask ?group default =
+    let doc = Fmt.strf "The netmask of %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.ipv4 "netmask"
 
-  let gateways ?stack default =
-    let doc = Fmt.strf "The gateways of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv4) "gateways"
+  let gateways ?group default =
+    let doc = Fmt.strf "The gateways of %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.(list ipv4) "gateways"
 
-  let socket ?stack default =
+  let socket ?group default =
     let doc =
-      Fmt.strf "The address bounds by the socket in %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(option ipv4) "socket"
+      Fmt.strf "The address bounds by the socket in %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.(option ipv4) "socket"
 
-  let interfaces ?stack default =
+  let interfaces ?group default =
     let doc =
-      Fmt.strf "The interfaces bound by the socket in %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv4) "interfaces"
+      Fmt.strf "The interfaces bound by the socket in %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.(list ipv4) "interfaces"
 
 end
 
 module V6 = struct
 
-  let address ?stack default =
-    let doc = Fmt.strf "The ip address of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.ipv6 "ip"
+  let address ?group default =
+    let doc = Fmt.strf "The ip address of %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.ipv6 "ip"
 
-  let netmask ?stack default =
-    let doc = Fmt.strf "The netmasks of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv6_prefix) "netmask"
+  let netmask ?group default =
+    let doc = Fmt.strf "The netmasks of %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.(list ipv6_prefix) "netmask"
 
-  let gateways ?stack default =
-    let doc = Fmt.strf "The gateways of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv6) "gateways"
+  let gateways ?group default =
+    let doc = Fmt.strf "The gateways of %a." pp_group group in
+    create_simple ~doc ~default ?group Desc.(list ipv6) "gateways"
 
 end
 
-let dhcp stack =
-  let doc = Fmt.strf "Enable dhcp for %a." pp_stack stack in
+let dhcp group =
+  let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
   create_simple
-    ~doc ?stack ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
+    ~doc ?group ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
 
 
-let net stack : [`Socket | `Direct] Key.key =
+let net group : [`Socket | `Direct] Key.key =
   let conv = Arg.enum ["socket", `Socket ; "direct", `Direct] in
   let desc = Key.Desc.from_converter "net" conv in
   let doc =
-    Fmt.strf "Use $(i,socket) or $(i,direct) stack for %a." pp_stack stack
+    Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
   create_simple
-    ~doc ?stack ~stage:`Configure ~default:`Direct desc "net"
+    ~doc ?group ~stage:`Configure ~default:`Direct desc "net"
 
 include
   (Key :

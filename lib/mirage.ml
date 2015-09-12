@@ -764,7 +764,7 @@ let pp_stackv4_config fmt = function
     Fmt.pf fmt "`IPv4 %a"
       (meta_triple pp_key pp_key pp_key) i
 
-let stackv4_direct_conf config = impl @@ object
+let stackv4_direct_conf ?(stack="") config = impl @@ object
   inherit base_configurable
 
   method ty =
@@ -772,7 +772,11 @@ let stackv4_direct_conf config = impl @@ object
       ethernet @-> arpv4 @-> ipv4 @-> udpv4 @-> tcpv4 @->
       stackv4
 
-  val name = Name.of_key "stackv4" ~base:"stackv4"
+  val name =
+    let base = match config with
+      | `DHCP -> "dhcp"
+      | `IPV4 i -> "ip"
+    in Fmt.strf "stackv4_%s%s" base (if stack = "" then "" else "_"^stack)
   method name = name
   method module_name = "Tcpip_stack_direct.Make"
 
@@ -808,7 +812,7 @@ let direct_stackv4_with_config
   let eth = etif_func $ network in
   let arp = arp ~clock ~time eth in
   let ip = ipv4_conf () $ eth $ arp in
-  stackv4_direct_conf config
+  stackv4_direct_conf ?stack config
   $ console $ time $ random $ network
   $ eth $ arp $ ip
   $ direct_udp ip
@@ -817,7 +821,7 @@ let direct_stackv4_with_config
 let direct_stackv4_with_dhcp
     ?clock ?random ?time ?stack console network =
   direct_stackv4_with_config
-    ?clock ?random ?time console network `DHCP
+    ?clock ?random ?time ?stack console network `DHCP
 
 let direct_stackv4_with_static_ipv4
     ?clock ?random ?time ?stack console network
@@ -846,7 +850,7 @@ let stackv4_socket_conf interfaces = impl @@ object
 
   method ty = console @-> stackv4
 
-  val name = Name.of_key "stackv4" ~base:"stackv4"
+  val name = "stackv4_socket"
   method name = name
   method module_name = "Tcpip_stack_socket.Make"
 

@@ -308,21 +308,23 @@ module Make (P:PROJECT) = struct
 
 
   let configure_bootvar i =
-    info "%a bootvar_gen.ml" blue "Generating:";
-    with_file (Info.root i / "bootvar_gen.ml") @@ fun fmt ->
+    let file = String.lowercase Key.module_name ^ ".ml" in
+    info "%a %s" blue "Generating:"  file;
+    with_file (Info.root i / file) @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (generated_header P.name) ;
     Codegen.newline fmt;
-    let bootvars = Key.Set.filter Key.is_runtime @@ Info.keys i
-    in
-    Key.Set.iter (Key.emit fmt) bootvars ;
-    Codegen.newline fmt;
-    Codegen.append fmt "let keys = %a"
+    let bootvars = Info.keys i in
+    Fmt.pf fmt "@[<v>%a@]@."
+      (Fmt.iter Key.Set.iter @@ Key.emit) bootvars ;
+    Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
-      (List.map Key.ocaml_name @@ Key.Set.elements bootvars);
+      (List.map Key.ocaml_name @@
+       Key.Set.elements @@ Key.Set.filter_stage ~stage:`Run bootvars);
     Codegen.newline fmt
 
   let clean_bootvar i =
-    remove (Info.root i / "bootvar_gen.ml")
+    let file = String.lowercase Key.module_name ^ ".ml" in
+    remove (Info.root i / file)
 
 
   let configure_main i jobs =

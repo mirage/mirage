@@ -93,6 +93,7 @@ val compare : t -> t -> int
 module Set : sig
   include Set.S with type elt = t
   include Functoria_misc.Monoid with type t := t
+  val filter_stage : stage:[< `Both | `Configure | `Run ] -> t -> t
 end
 
 val name : t -> string
@@ -161,3 +162,5 @@ val ocamlify : string -> string
 (**/*)
 
 val get : 'a key -> 'a
+
+val module_name : string

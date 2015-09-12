@@ -17,6 +17,8 @@
 open Functoria_misc
 open Cmdliner
 
+let module_name = "Bootvar_gen"
+
 module Emit = struct
 
   let string fmt s = Format.fprintf fmt "%S" s
@@ -263,16 +265,26 @@ let ocamlify s =
 
 let ocaml_name k = ocamlify (name k)
 let pp_meta fmt k =
-  Fmt.pf fmt "(%s ())" (ocaml_name k)
+  Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 
-let emit fmt k =
+let emit_rw fmt k =
   Format.fprintf fmt
-    "let %s = Functoria_runtime.Key.create ~doc:%a ~default:%a %a\n\
-     let %s_t = Functoria_runtime.Key.term %s\n\
-     let %s () = Functoria_runtime.Key.get %s@\n"
+    "@[<2>let %s =@ Functoria_runtime.Key.create@ ~doc:%a@ ~default:%a %a@]@,\
+     @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
+     @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
     (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)
+
+let emit_ro fmt k =
+  Format.fprintf fmt
+    "@[<2>let %s () =@ %a@]@,"
+    (ocaml_name k)  serialize k
+
+let emit fmt k =
+  if is_runtime k
+  then emit_rw fmt k
+  else emit_ro fmt k
 
 let pp fmt k = Fmt.string fmt (name k)
 

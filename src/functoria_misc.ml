@@ -33,6 +33,8 @@ let err_cmdliner ?(usage=false) = function
   | Ok x -> `Ok x
   | Error s -> `Error (usage, s)
 
+(** {String manipulation} *)
+
 let strip str =
   let p = ref 0 in
   let l = String.length str in
@@ -72,6 +74,14 @@ let after prefix s =
     Some (String.sub s lp (ls - lp))
   else
     None
+
+let suffix s ~by =
+  if by = "" then "" else s^"_"^by
+let prefix s ~by =
+  if by = "" then "" else by^"_"^s
+
+module StringSet = Set.Make(String)
+
 
 module type Monoid = sig
   type t
@@ -277,8 +287,6 @@ let find_or_create tbl key create_value =
     value
 
 let dump = Fmt.(Dump.hashtbl string string)
-
-module StringSet = Set.Make(String)
 
 let dedup l =
   StringSet.(elements (List.fold_left (fun s e -> add e s) empty l))

@@ -65,6 +65,12 @@ val after : string -> string -> string option
 (** [after prefix s] returns the part of [s] after [prefix],
  * if [s] starts with [prefix]. *)
 
+val prefix : string -> by:string -> string
+(** [prefix x ~by:s] will prefix [x] by [s] if [s] is not the empty string. *)
+
+val suffix : string -> by:string -> string
+(** Similar to {!prefix} but suffix. *)
+
 (** {2 Command-line utilities} *)
 
 val command_exists: string -> bool

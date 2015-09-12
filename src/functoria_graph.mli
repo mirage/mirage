@@ -62,6 +62,9 @@ val is_fully_reduced : t -> bool
 val iter : t -> (vertex -> unit) -> unit
 (** [iter g f] applies [f] on each vertex of [g] in topological order. *)
 
+val find_all : t -> (label -> bool) -> vertex list
+(** [find_all g p] returns all the vertices in [g] such as [p v] is true. *)
+
 val find_root : t -> vertex
 (** [find_root g] returns the only vertex of [g] that has no predecessors. *)
 

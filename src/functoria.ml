@@ -61,10 +61,12 @@ module Devices = struct
     let file = String.lowercase Key.module_name ^ ".ml" in
     remove (Info.root i / file)
 
+  let key_name = "bootvar"
+
   let keys (argv : argv impl) = impl @@ object
       inherit base_configurable
       method ty = job
-      method name = "bootvar"
+      method name = key_name
       method module_name = Key.module_name
       method configure = configure_keys
       method clean = clean_keys
@@ -72,7 +74,7 @@ module Devices = struct
       method connect info modname = function
         | [ argv ] ->
           Fmt.strf
-            "Functoria_runtime.with_argv %s.keys %S %s"
+            "Functoria_runtime.with_argv %s.runtime_keys %S %s"
             modname (Info.name info) argv
         | _ -> failwith "The keys connect should receive exactly one argument."
     end
@@ -140,6 +142,14 @@ module Engine = struct
       let base = Key.ocamlify String.(sub base 0 (index base '.')) in
       Name.of_key n ~base
 
+  let find_bootvar g =
+    let p = function
+      | G.Impl c -> c#name = Devices.key_name
+      | _ -> false
+    in match G.find_all g p with
+    | [ x ] -> x
+    | _ -> invalid_arg
+        "Functoria.find_bootvar: There should be only one bootvar device."
 
   let configure info g =
     let tbl = G.Tbl.create 17 in
@@ -202,9 +212,11 @@ module Engine = struct
           emit_connect (error, ident, names, c#connect info modname)
     in
     G.iter g f ;
-    let main = G.Tbl.find tbl @@ G.find_root g in
+    let main_name = G.Tbl.find tbl @@ G.find_root g in
+    let bootvar_name = G.Tbl.find tbl @@ find_bootvar g in
     Codegen.append_main
-      "let () = run (bootvar () >>= fun _ -> %s ())" main ;
+      "let () = run (%s () >>= fun _ -> %s ())"
+      bootvar_name main_name ;
     ()
 
   let configure_and_connect info error g =

@@ -231,12 +231,16 @@ let iter g f =
   let l = Topo.fold (fun x l -> x :: l) g [] in
   List.iter f l
 
+let find_all_v g p =
+  G.fold_vertex
+    (fun v l -> if p v then v :: l else l)
+    g []
+
+let find_all g p = find_all_v g (fun x -> p @@ G.V.label x)
+
 let find_root g =
-  let l =
-    G.fold_vertex
-      (fun v l -> if G.in_degree g v = 0 then v :: l else l)
-      g []
-  in match l with
+  let l = find_all_v g (fun v -> G.in_degree g v = 0) in
+  match l with
   | [ x ] -> x
   | _ -> invalid_arg
       "Functoria_graph.find_root: A graph should have only one root."

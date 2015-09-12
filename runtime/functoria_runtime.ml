@@ -66,12 +66,3 @@ let with_argv keys s argv =
   match Term.(eval ~argv (t, info s)) with
   | `Ok _ -> Lwt.return (`Ok ())
   | _ -> Lwt.return (`Error "cmdliner")
-
-(* Put back the dashes. Slightly hacky. *)
-let with_kv keys s kv =
-  let argv = Array.make (1 + List.length kv) "" in
-  let f i (k,v) =
-    let dash = if String.length k = 1 then "-" else "--" in
-    argv.(i + 1) <- Printf.sprintf "%s%s=%s" dash k v
-  in List.iteri f kv;
-  with_argv keys s argv

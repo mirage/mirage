@@ -53,8 +53,3 @@ end
 val with_argv :
   unit Cmdliner.Term.t list -> string -> string array ->
   [> `Error of string | `Ok of unit ] Lwt.t
-
-val with_kv :
-  unit Cmdliner.Term.t list -> string -> (string * string) list ->
-  [> `Error of string | `Ok of unit ] Lwt.t
-(** [with_kv keys s kv] is equivalent to {!with_argv} but uses a [(key,value) list] instead of an array as input. *)

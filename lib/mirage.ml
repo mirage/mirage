@@ -103,37 +103,33 @@ let default_random = impl random_conf
 type console = CONSOLE
 let console = Type CONSOLE
 
-let console_conf name = object (self)
-  inherit base_configurable
+let console_unix str = impl @@ object
+    inherit base_configurable
+    method ty = console
+    val name = Key.ocamlify @@ "console_unix_" ^ str
+    method name = name
+    method module_name = "Console_unix"
+    method packages = Key.pure ["mirage-console"; "mirage-unix"]
+    method libraries = Key.pure ["mirage-console.unix"]
+    method connect _ modname args =
+      Printf.sprintf "%s.connect %S" modname name
+  end
 
-  val console_name = name
-  method ty = console
+let console_xen str = impl @@ object
+    inherit base_configurable
+    method ty = console
+    val name = Key.ocamlify @@ "console_xen_" ^ str
+    method name = name
+    method module_name = "Console_xen"
+    method packages = Key.pure
+        ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
+    method libraries = Key.pure ["mirage-console.xen"]
+    method connect _ modname args =
+      Printf.sprintf "%s.connect %S" modname name
+  end
 
-  method name =
-    Name.of_key ("console" ^ name) ~base:"console"
-
-  method module_name =
-    match get_mode () with
-    | `Unix | `MacOSX -> "Console_unix"
-    | `Xen  -> "Console_xen"
-
-  method packages =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> ["mirage-console"; "mirage-unix"]
-    | `Xen  -> ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
-
-  method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> ["mirage-console.unix"]
-    | `Xen -> ["mirage-console.xen"]
-
-  method connect _ modname args =
-    Printf.sprintf "%s.connect %S" modname console_name
-
-end
-
-let custom_console str : console impl =
-  impl (console_conf str)
+let custom_console str =
+  if_impl Key.is_xen (console_xen str) (console_unix str)
 
 let default_console = custom_console "0"
 

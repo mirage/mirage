@@ -47,6 +47,15 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
   let no_depext =
     mk_flag ["no-depext"] "Skip installation of external dependencies."
 
+  let dot =
+    mk_flag ["dot"] "Output a dot description."
+
+  let normalize =
+    mk_flag ["normalize"]
+      "Normalize the graph before showing it.\
+       The normalized version is the one actually used to generate the code\
+       but it is less easy to understand."
+
   let file =
     let doc = Arg.info ~docs:global_option_section ~docv:"FILE"
         ~doc:"Configuration file. If not specified, the current directory will be scanned. \
@@ -55,6 +64,12 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
               is explicitly specified on the command line." ["f"; "file"] in
     Arg.(value & opt (some file) None & doc)
 
+  let output =
+    let doc = Arg.info ~docs:global_option_section ~docv:"FILE"
+        ~doc:"File where to output description or dot representation."
+        ["o"; "output"]
+    in
+    Arg.(value & opt (some file) None & doc)
 
   let () =
     let i = Terminfo.columns () in
@@ -113,8 +128,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
           $(mname) application."
     ] in
     let f t =
-      let describe _ = `Ok (t#describe) in
-      Term.(pure describe $ t#info)
+      let describe _ filename dot normalize =
+        `Ok (t#describe ~dot ~normalize filename)
+      in
+      Term.(pure describe $ t#info $ output $ dot $ normalize)
     in
     let f_no err =
       let f () = `Error (false, err) in

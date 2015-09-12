@@ -446,10 +446,14 @@ module Make (P:PROJECT) = struct
         method clean info = clean info evaluated
         method build info = build info
         method info = Key.term_value ~stage:`Configure info
-        method describe =
-          Fmt.pr "@.%a@.%a@.%!"
-            green "Your current jobs are:"
-            Config.pp t
+        method describe ~dot ~normalize file =
+          let f fmt = Config.(if dot then pp_dot else pp) normalize fmt t in
+          match file with
+          | None -> f Fmt.stdout
+          | Some s ->
+            let oc = open_out s in
+            f @@ Format.formatter_of_out_channel oc ;
+            close_out oc
       end
   end
 

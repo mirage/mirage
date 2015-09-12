@@ -68,6 +68,7 @@ module E_ = struct
 end
 
 module G = Persistent.Digraph.AbstractLabeled (V_) (E_)
+module Tbl = Hashtbl.Make(G.V)
 
 type t = G.t
 type vertex = G.V.t
@@ -84,16 +85,18 @@ let for_all_vertex f g =
   G.fold_vertex (fun v b -> b && f v) g true
 
 (** Remove a vertex and all its orphan successors, recursively. *)
-let rec remove_recursively g v =
+let rec remove_rec g v =
   let children = G.succ g v in
   let g = G.remove_vertex g v in
   List.fold_right
-    (fun c g ->
-       if G.in_degree g c = 0
-       then remove_recursively g c
-       else g)
+    (fun c g -> remove_rec_if_orphan g c)
     children
     g
+
+and remove_rec_if_orphan g c =
+  if G.in_degree g c = 0
+  then remove_rec g c
+  else g
 
 (** [add_pred_with_subst g preds v] add the edges [pred] to [g]
     with the destination replaced by [v]. *)
@@ -140,24 +143,33 @@ let add_app graph ~f ~x =
   |> add_edge v (Parameter 1) x
 
 let create impl =
+  let module H = Dsl.ImplTbl in
+  let tbl = H.create 50 in
   let rec aux
     : type t . G.t -> t Dsl.impl -> G.vertex * G.t
-    = fun g -> function
-    | Dsl.Impl c ->
-      let deps, g =
-        List.fold_right
-          (fun (Dsl.Any x) (l,g) -> let v, g = aux g x in v::l, g)
-          c#dependencies ([], g)
-      in
-      add_impl g ~impl:(c :> subconf) ~args:[] ~deps
-    | Dsl.If (cond, then_, else_) ->
-      let then_, g = aux g then_ in
-      let else_, g = aux g else_ in
-      add_if g ~cond ~then_ ~else_
-    | Dsl.App {f; x} ->
-      let f, g = aux g f in
-      let x, g = aux g x in
-      add_app g ~f ~x
+    = fun g impl ->
+      if H.mem tbl @@ Dsl.hide impl
+      then H.find tbl (Dsl.hide impl), g
+      else
+        let v, g = match impl with
+          | Dsl.Impl c ->
+            let deps, g =
+              List.fold_right
+                (fun (Dsl.Any x) (l,g) -> let v, g = aux g x in v::l, g)
+                c#dependencies ([], g)
+            in
+            add_impl g ~impl:(c :> subconf) ~args:[] ~deps
+          | Dsl.If (cond, then_, else_) ->
+            let then_, g = aux g then_ in
+            let else_, g = aux g else_ in
+            add_if g ~cond ~then_ ~else_
+          | Dsl.App {f; x} ->
+            let f, g = aux g f in
+            let x, g = aux g x in
+            add_app g ~f ~x
+        in
+        H.add tbl (Dsl.hide impl) v ;
+        v, g
   in
   snd @@ aux G.empty impl
 
@@ -217,7 +229,19 @@ let explode g v = match G.V.label v, get_children g v with
 let iter g f =
   if Dfs.has_cycle g then
     invalid_arg "Functoria_graph.iter: A graph should not have cycles." ;
-  Topo.iter f g
+  (* We iter in *reversed* topological order. *)
+  let l = Topo.fold (fun x l -> x :: l) g [] in
+  List.iter f l
+
+let find_root g =
+  let l =
+    G.fold_vertex
+      (fun v l -> if G.in_degree g v = 0 then v :: l else l)
+      g []
+  in match l with
+  | [ x ] -> x
+  | _ -> invalid_arg
+      "Functoria_graph.find_root: A graph should have only one root."
 
 (** {2 Graph destruction} *)
 
@@ -266,8 +290,8 @@ module PushIf = struct
     | If _ -> None
     | Impl _ | App ->
       try
-        let e = List.find (fun e -> is_if @@ G.E.dst e) @@ G.succ_e g v in
-        Some (v, G.E.dst e)
+        let v_if = List.find is_if @@ G.succ g v in
+        Some (v, v_if)
       with _ -> None
 
   let apply g (v_impl, v_if) =
@@ -284,7 +308,8 @@ module PushIf = struct
     let g = add_succ_with_subst g succs v_impl_else ~sub:v_if ~by:else_ in
     let g = add_succ_with_subst g succs v_impl_then ~sub:v_if ~by:then_ in
     let v_if', g = add_if g ~cond ~else_:v_impl_else ~then_:v_impl_then in
-    add_pred_with_subst g preds v_if'
+    let g = add_pred_with_subst g preds v_if' in
+    remove_rec_if_orphan g v_if
 
 end
 
@@ -299,16 +324,17 @@ module RemovePartialApp = struct
   let predicate g v = match explode g v with
     | `App (f,args) -> begin match explode g f with
         | `Impl (impl, `Args args', `Deps deps) ->
-          Some (v, impl, args' @ args, deps)
+          Some (v, f, impl, args' @ args, deps)
         | _ -> None
       end
     | _ -> None
 
-  let apply g (v_app, impl, args, deps) =
+  let apply g (v_app, v_f, impl, args, deps) =
     let preds = G.pred_e g v_app in
     let g = G.remove_vertex g v_app in
     let v_impl', g = add_impl g ~impl ~args ~deps in
-    add_pred_with_subst g preds v_impl'
+    let g = add_pred_with_subst g preds v_impl' in
+    remove_rec_if_orphan g v_f
 
 end
 
@@ -332,15 +358,17 @@ module EvalIf = struct
         if Key.eval cond then then_, else_ else else_,then_
       in
       let g = G.remove_vertex g v_if in
-      let g = remove_recursively g v_rem in
+      let g = remove_rec g v_rem in
       add_pred_with_subst g preds v_new
 
 end
 
+let push_if = PushIf.(transform ~predicate ~apply)
+
+let remove_partial_app = RemovePartialApp.(transform ~predicate ~apply)
+
 let normalize g =
-  g
-  |> PushIf.(transform ~predicate ~apply)
-  |> RemovePartialApp.(transform ~predicate ~apply)
+  remove_partial_app @@ push_if g
 
 let eval ?(partial=false) g =
   EvalIf.(transform
@@ -358,19 +386,23 @@ module Dot = Graphviz.Dot(struct
     include G
     let graph_attributes _g = []
     let default_vertex_attributes _g = []
-    let vertex_name v = match V.label v with
-      | App -> "$"
-      | If _ -> "If"
-      | Impl f -> f#module_name
 
-    let vertex_attributes _v = []
+    let vertex_name v = string_of_int @@ V.hash v
+
+    let vertex_attributes v = match V.label v with
+      | App -> [ `Label "$" ]
+      | If cond ->
+        [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
+      | Impl f ->
+        [ `Label (Fmt.strf "id:%s\nmodule:%s" f#name f#module_name) ]
+
 
     let get_subgraph _g = None
 
     let default_edge_attributes _g = []
     let edge_attributes e = match E.label e with
-      | Parameter i -> [ `Label (string_of_int i) ]
-      | Dependency i -> [ `Label (string_of_int i) ; `Style `Dashed ]
+      | Parameter _ -> [ ]
+      | Dependency _ -> [ `Style `Dashed ]
       | Condition _ -> [ `Style `Dotted ]
 
   end )

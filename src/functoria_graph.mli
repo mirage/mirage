@@ -40,8 +40,14 @@ type label =
 type t
 type vertex
 
+module Tbl : Hashtbl.S with type key = vertex
+
 val create : _ impl -> t
 (** [create impl] creates a graph based [impl]. *)
+
+val push_if : t -> t
+
+val remove_partial_app : t -> t
 
 val normalize : t -> t
 (** [normalize g] normalize the graph [g] by
@@ -63,6 +69,9 @@ val is_fully_reduced : t -> bool
 
 val iter : t -> (vertex -> unit) -> unit
 (** [iter g f] applies [f] on each vertex of [g] in topological order. *)
+
+val find_root : t -> vertex
+(** [find_root g] returns the only vertex of [g] that has no predecessors. *)
 
 val explode :
   t -> vertex ->

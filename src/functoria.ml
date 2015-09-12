@@ -36,7 +36,7 @@ module Devices = struct
       method ty = argv
       method name = "argv"
       method module_name = "Sys"
-      method! connect _info _m _ =
+      method connect _info _m _ =
         "Lwt.return (`Ok Sys.argv)"
     end
 
@@ -66,10 +66,10 @@ module Devices = struct
       method ty = job
       method name = "bootvar"
       method module_name = Key.module_name
-      method! configure = configure_keys
-      method! clean = clean_keys
-      method! dependencies = [ hide argv ]
-      method! connect info modname = function
+      method configure = configure_keys
+      method clean = clean_keys
+      method dependencies = [ hide argv ]
+      method connect info modname = function
         | [ argv ] ->
           Fmt.strf
             "Functoria_runtime.with_argv %s.keys %S %s"

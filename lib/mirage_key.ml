@@ -94,7 +94,7 @@ let create_simple ?(stack="") ?(stage=`Both) ~doc ~default desc name =
       ~docs:unikernel_section
       ~docv:(String.uppercase name) ~doc [prefix^name]
   in
-  Key.create_raw ~doc ~stage:`Both ~default (prefix^name) desc
+  Key.create_raw ~doc ~stage ~default (prefix^name) desc
 
 let network ?stack default =
   let doc =
@@ -112,11 +112,11 @@ module V4 = struct
 
   let netmask ?stack default =
     let doc = Fmt.strf "The netmask of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.ipv4 "ip"
+    create_simple ~doc ~default ?stack Desc.ipv4 "netmask"
 
   let gateways ?stack default =
     let doc = Fmt.strf "The gateways of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv4) "ip"
+    create_simple ~doc ~default ?stack Desc.(list ipv4) "gateways"
 
   let socket ?stack default =
     let doc =
@@ -138,11 +138,11 @@ module V6 = struct
 
   let netmask ?stack default =
     let doc = Fmt.strf "The netmasks of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv6_prefix) "ip"
+    create_simple ~doc ~default ?stack Desc.(list ipv6_prefix) "netmask"
 
   let gateways ?stack default =
     let doc = Fmt.strf "The gateways of %a." pp_stack stack in
-    create_simple ~doc ~default ?stack Desc.(list ipv6) "ip"
+    create_simple ~doc ~default ?stack Desc.(list ipv6) "gateways"
 
 end
 

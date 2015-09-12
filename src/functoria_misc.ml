@@ -73,7 +73,11 @@ let after prefix s =
   else
     None
 
-
+module type Monoid = sig
+  type t
+  val empty : t
+  val union : t -> t -> t
+end
 
 
 let red     = Fmt.(styled `Red string)
@@ -265,19 +269,7 @@ let find_or_create tbl key create_value =
 
 let dump = Fmt.(Dump.hashtbl string string)
 
-module type Monoid = sig
-  type t
-  val empty : t
-  val (++) : t -> t -> t
-end
-
-module Set_Make (M:Set.OrderedType) = struct
-  include Set.Make (M)
-  let (++) = union
-  let flatmap f l = List.fold_right (fun x set -> f x ++ set) l empty
-end
-
-module StringSet = Set_Make(String)
+module StringSet = Set.Make(String)
 
 let dedup l =
   StringSet.(elements (List.fold_left (fun s e -> add e s) empty l))

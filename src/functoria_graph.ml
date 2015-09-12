@@ -249,8 +249,7 @@ let collect
   : type ty. (module Monoid with type t = ty) ->
     (description -> ty) -> G.t -> ty
   = fun (module M) f g ->
-    let open M in
-    G.fold_vertex (fun v s -> f (G.V.label v) ++ s) g empty
+    G.fold_vertex (fun v s -> M.union s @@ f (G.V.label v)) g M.empty
 
 (** {2 Graph manipulation} *)
 

@@ -166,7 +166,7 @@ let is_configure k = match stage k with
 let resolved { value } = value <> None
 
 module Set = struct
-  include Set_Make (M)
+  include Set.Make (M)
 
   let add k set =
     if mem k set then

@@ -94,7 +94,7 @@ module Engine = struct
 
   module M = struct
     type t = StringSet.t Key.value
-    let (++) x y = Key.(pure StringSet.union $ x $ y)
+    let union x y = Key.(pure StringSet.union $ x $ y)
     let empty = Key.pure StringSet.empty
   end
 

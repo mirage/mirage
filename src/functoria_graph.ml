@@ -384,17 +384,24 @@ let is_fully_reduced g =
 
 module Dot = Graphviz.Dot(struct
     include G
-    let graph_attributes _g = []
+    let graph_attributes _g = [ `OrderingOut ]
     let default_vertex_attributes _g = []
 
     let vertex_name v = string_of_int @@ V.hash v
 
     let vertex_attributes v = match V.label v with
-      | App -> [ `Label "$" ]
+      | App -> [ `Label "$" ; `Shape `Diamond ]
       | If cond ->
         [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
       | Impl f ->
-        [ `Label (Fmt.strf "id:%s\nmodule:%s" f#name f#module_name) ]
+        let label =
+          Fmt.strf
+            "%s<br />%s"
+            f#name f#module_name
+        in
+        [ `HtmlLabel label ;
+          `Shape `Box ;
+        ]
 
 
     let get_subgraph _g = None
@@ -403,7 +410,16 @@ module Dot = Graphviz.Dot(struct
     let edge_attributes e = match E.label e with
       | Parameter _ -> [ ]
       | Dependency _ -> [ `Style `Dashed ]
-      | Condition _ -> [ `Style `Dotted ]
+
+      | Condition side ->
+        let side = (side = `Then) in
+        let color = if side then 0x008325 else 0xB31E18 in
+        let cond = match V.label @@ E.src e with
+          | If cond -> cond | _ -> assert false
+        in
+        let tailport = if side then `SW else `SE in
+        let l = [ `Color color ; `Tailport tailport ; `Headport `N ] in
+        if Key.eval cond = side then `Style `Bold :: l else l
 
   end )
 

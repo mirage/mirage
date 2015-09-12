@@ -33,6 +33,12 @@ type subconf = <
 type t
 type vertex
 
+(** The description of a vertex *)
+type label =
+  | If of bool Key.value
+  | Impl of subconf
+  | App
+
 module Tbl : Hashtbl.S with type key = vertex
 
 val create : _ impl -> t
@@ -70,15 +76,9 @@ val explode :
     into it's possible components.
     It also checks that the local invariants are respected. *)
 
-(** The description of a vertex *)
-type description =
-  | If of bool Key.value
-  | Impl of subconf
-  | App
-
 val collect :
   (module Functoria_misc.Monoid with type t = 'ty) ->
-  (description -> 'ty) -> t -> 'ty
+  (label -> 'ty) -> t -> 'ty
 (** [collect (module M) f g] collects the content of [f v] for
     each vertex [v] in [g]. *)
 

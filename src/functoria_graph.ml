@@ -53,12 +53,12 @@ type subconf = <
   clean: Dsl.Info.t -> unit ;
 >
 
-type description =
+type label =
   | If of bool Key.value
   | Impl of subconf
   | App
 
-type label =
+type edge_label =
   | Parameter of int
   | Dependency of int
   | Condition of [`Else | `Then]
@@ -66,11 +66,11 @@ type label =
 
 
 module V_ = struct
-  type t = description
+  type t = label
 end
 
 module E_ = struct
-  type t = label
+  type t = edge_label
   let default = Parameter 0
   let compare = compare
 end
@@ -190,7 +190,7 @@ let is_impl v = match G.V.label v with
 
 let collect
   : type ty. (module Monoid with type t = ty) ->
-    (description -> ty) -> G.t -> ty
+    (label -> ty) -> G.t -> ty
   = fun (module M) f g ->
     G.fold_vertex (fun v s -> M.union s @@ f (G.V.label v)) g M.empty
 

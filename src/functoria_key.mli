@@ -128,6 +128,7 @@ val app : ('a -> 'b) value -> 'a value -> 'b value
 val ($) : ('a -> 'b) value -> 'a value -> 'b value
 val map : ('a -> 'b) -> 'a value -> 'b value
 val pipe : 'a value -> ('a -> 'b) -> 'b value
+val if_ : bool value -> 'a -> 'a -> 'a value
 
 val deps : 'a value -> Set.t
 

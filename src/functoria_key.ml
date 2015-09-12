@@ -225,6 +225,8 @@ let app f x = {
 
 let map f x = app (pure f) x
 let pipe x f = map f x
+let if_ c t e =
+  map (fun b -> if b then t else e) c
 
 let ($) = app
 let with_deps ~keys { deps ; v } =

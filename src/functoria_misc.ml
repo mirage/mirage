@@ -189,19 +189,28 @@ let in_dir dir f =
   try let r = f () in reset (); r
   with e -> reset (); raise e
 
-let with_process_in cmd f =
-  let ic = Unix.open_process_in cmd in
+let with_process open_p close_p cmd f =
+  let ic = open_p cmd in
   try
     let r = f ic in
-    ignore (Unix.close_process_in ic) ; r
+    ignore (close_p ic) ; r
   with exn ->
-    ignore (Unix.close_process_in ic) ; raise exn
+    ignore (close_p ic) ; raise exn
+
+let with_process_in s f =
+  with_process Unix.open_process_in Unix.close_process_in s f
+
+let with_process_out s f =
+  with_process Unix.open_process_out Unix.close_process_out s f
+
+let with_channel oc f =
+  let ppf = Format.formatter_of_out_channel oc in
+  f ppf ;
+  Format.pp_print_flush ppf ()
 
 let with_file filename f =
   let oc = open_out filename in
-  let ppf = Format.formatter_of_out_channel oc in
-  f ppf ;
-  Format.pp_print_flush ppf () ;
+  with_channel oc f ;
   close_out oc
 
 let collect_output cmd =
@@ -350,12 +359,7 @@ module Terminfo = struct
     let cmd =
       List.find Sys.file_exists (List.map (fun d -> Filename.concat d cmd) path)
     in
-    let ic = Unix.open_process_in (cmd^" "^args) in
-    try
-      let r = f ic in
-      ignore (Unix.close_process_in ic) ; r
-    with exn ->
-      ignore (Unix.close_process_in ic) ; raise exn
+    with_process_in (cmd^" "^args) f
 
   let get_terminal_columns () =
     try (* terminfo *)

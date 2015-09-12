@@ -78,7 +78,11 @@ val remove: string -> unit
 
 val realpath: string -> string
 
+val with_channel : out_channel -> (Format.formatter -> unit) -> unit
 val with_file : string -> (Format.formatter -> unit) -> unit
+
+val with_process_in : string -> (in_channel -> 'a) -> 'a
+val with_process_out : string -> (out_channel -> 'a) -> 'a
 
 val opam:
   string -> ?yes:bool -> ?switch:string -> string list -> (unit, string) result

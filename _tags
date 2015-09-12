@@ -38,11 +38,11 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: use_mirage
 <lib/*.ml{,i,y}>: use_mirage-runtime
 # OASIS_STOP
-true: debug, bin_annot, annot, principal
 <types/*.mli>: pkg_cstruct, pkg_io-page, pkg_ipaddr, pkg_lwt
 
-true: strict_sequence, safe_string, short_paths
-true: bin_annot
+true: warn(+A-4-6-7-9-40-42-44-48)
+true: strict_sequence, safe_string, short_paths, principal
+true: debug, annot, bin_annot
 
 # Better locations and loc in .mlis
 true: keep_locs

@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Graph engine *)
+
 open Functoria_dsl
 
 type subconf = <
@@ -26,16 +28,7 @@ type subconf = <
   configure: Info.t -> unit ;
   clean: Info.t -> unit ;
 >
-
-type description =
-  | If of bool Key.value
-  | Impl of subconf
-  | App
-
-type label =
-  | Parameter of int
-  | Dependency of int
-  | Condition of [`Else | `Then]
+(** A subset of {!configurable} with neither polymorphism nor recursion. *)
 
 type t
 type vertex
@@ -46,7 +39,7 @@ val create : _ impl -> t
 (** [create impl] creates a graph based [impl]. *)
 
 val normalize : t -> t
-(** [normalize g] normalize the graph [g] by removing the [App] nodes. *)
+(** [normalize g] normalize the graph [g] by removing the [App] vertices. *)
 
 val eval : ?partial:bool -> t -> t
 (** [eval g] will removes all the [If] vertices by
@@ -58,7 +51,7 @@ val eval : ?partial:bool -> t -> t
 
 val is_fully_reduced : t -> bool
 (** [is_fully_reduced g] is true if [g] contains only
-    [Impl] nodes. *)
+    [Impl] vertices. *)
 
 val iter : t -> (vertex -> unit) -> unit
 (** [iter g f] applies [f] on each vertex of [g] in topological order. *)
@@ -77,11 +70,17 @@ val explode :
     into it's possible components.
     It also checks that the local invariants are respected. *)
 
+(** The description of a vertex *)
+type description =
+  | If of bool Key.value
+  | Impl of subconf
+  | App
+
 val collect :
   (module Functoria_misc.Monoid with type t = 'ty) ->
   (description -> 'ty) -> t -> 'ty
 (** [collect (module M) f g] collects the content of [f v] for
-    each node [v] in [g]. *)
+    each vertex [v] in [g]. *)
 
 val pp : t Fmt.t
 (** Textual representation of the graph. *)

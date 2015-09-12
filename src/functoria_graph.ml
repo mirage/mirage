@@ -14,6 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** {1 Graph engine} *)
+
+(** This module is not optimized for speed, it's optimized for correctness
+    and readability. If you need to make it faster
+    - Good luck.
+    - Please update the invariant section.
+*)
+
 open Graph
 open Functoria_misc
 module Dsl = Functoria_dsl
@@ -76,7 +84,21 @@ type vertex = G.V.t
 module Dfs = Traverse.Dfs(G)
 module Topo = Topological.Make(G)
 
-(** Graph utilities *)
+(** The invariants of graphs manipulated here are:
+    - [If] vertices have exactly 2 children,
+      one [Condition `Else] and one [Condition `Then]
+    - [Impl] vertices have [n] [Parameter] children and [m] [Dependency] children.
+      [Parameter] (resp. [Dependency]) children are labeled
+      from [0] to [n-1] (resp. [m-1]).
+      They do not have [Condition] children.
+    - [App] vertices have [n] [Parameter] children, with [n >= 2].
+      They are labeled similarly to [Impl] vertex's children.
+      They have neither [Condition] nor [dependency] children.
+    - There are no cycles.
+    - There is only one root (vertex with a degree 1). There are no orphans.
+*)
+
+(** {3 Graph utilities} *)
 
 let add_edge e1 label e2 graph =
   G.add_edge_e graph @@ G.E.create e1 label e2
@@ -164,20 +186,13 @@ let is_impl v = match G.V.label v with
   | Impl _ -> true
   | _ -> false
 
-(** {2 Invariant checking} *)
-(** The invariants are the following:
-    - [If] nodes have exactly 2 children,
-      one [Condition `Else] and one [Condition `Then]
-    - [Impl] nodes have [n] [Parameter] children and [m] [Dependency] children.
-      [Parameter] (resp. [Dependency]) children are labeled
-      from [0] to [n-1] (resp. [m-1]).
-      They do not have [Condition] children.
-    - [App] nodes have [n] [Parameter] children, with [n >= 2].
-      They are labeled similarly to [Impl] node's children.
-      They have neither [Condition] nor [dependency] children.
-    - There are no cycles.
-    - There is only one root (node with a degree 1). There are no orphans.
-*)
+(** {2 Graph destruction/extraction} *)
+
+let collect
+  : type ty. (module Monoid with type t = ty) ->
+    (description -> ty) -> G.t -> ty
+  = fun (module M) f g ->
+    G.fold_vertex (fun v s -> M.union s @@ f (G.V.label v)) g M.empty
 
 let get_children g v =
   let split l =
@@ -226,14 +241,6 @@ let find_root g =
   | _ -> invalid_arg
       "Functoria_graph.find_root: A graph should have only one root."
 
-(** {2 Graph destruction} *)
-
-let collect
-  : type ty. (module Monoid with type t = ty) ->
-    (description -> ty) -> G.t -> ty
-  = fun (module M) f g ->
-    G.fold_vertex (fun v s -> M.union s @@ f (G.V.label v)) g M.empty
-
 (** {2 Graph manipulation} *)
 
 (** Find a pattern in a graph. *)
@@ -257,11 +264,11 @@ let rec transform ~predicate ~apply g =
   | None -> g
 
 module RemovePartialApp = struct
-  (** Remove [App] nodes.
+  (** Remove [App] vertices.
 
       The goal here is to remove partial application of functor.
-      If we find an [App] node with an implementation as first children,
-      We fuse them and create one [Impl] node.
+      If we find an [App] vertex with an implementation as first children,
+      We fuse them and create one [Impl] vertex.
   *)
 
   let predicate g v = match explode g v with
@@ -282,7 +289,7 @@ module RemovePartialApp = struct
 end
 
 module EvalIf = struct
-  (** Evaluate the [If] nodes and remove them. *)
+  (** Evaluate the [If] vertices and remove them. *)
 
   let predicate ~partial _ v = match G.V.label v with
     | If cond when not partial || Key.peek cond <> None -> Some v
@@ -319,7 +326,7 @@ let is_fully_reduced g =
   for_all_vertex (fun v -> is_impl v) g
 
 
-(** {2 dot output} *)
+(** {2 Dot output} *)
 
 module Dot = Graphviz.Dot(struct
     include G
@@ -341,7 +348,6 @@ module Dot = Graphviz.Dot(struct
         [ `HtmlLabel label ;
           `Shape `Box ;
         ]
-
 
     let get_subgraph _g = None
 

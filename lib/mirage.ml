@@ -90,7 +90,7 @@ let default_clock = impl clock_conf
 type random = RANDOM
 let random = Type RANDOM
 
-let random_conf = object (self)
+let random_conf = object
   inherit base_configurable
   method ty = random
   method name = "random"
@@ -111,7 +111,7 @@ let console_unix str = impl @@ object
     method module_name = "Console_unix"
     method packages = Key.pure ["mirage-console"; "mirage-unix"]
     method libraries = Key.pure ["mirage-console.unix"]
-    method connect _ modname args =
+    method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname name
   end
 
@@ -124,7 +124,7 @@ let console_xen str = impl @@ object
     method packages = Key.pure
         ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
     method libraries = Key.pure ["mirage-console.xen"]
-    method connect _ modname args =
+    method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname name
   end
 
@@ -425,7 +425,7 @@ let tap0 = netif "tap0"
 type ethernet = ETHERNET
 let ethernet = Type ETHERNET
 
-let ethernet_conf = object (self)
+let ethernet_conf = object
   inherit base_configurable
 
   method ty = network @-> ethernet
@@ -505,14 +505,6 @@ let meta_ipv4 ppf s =
 
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
-let meta_ipv4_config fmt { address ; netmask ; gateways } =
-  meta_triple
-    meta_ipv4
-    meta_ipv4
-    (Fmt.Dump.list meta_ipv4)
-    fmt
-    (address, netmask, gateways)
-
 let pp_key fmt k = Key.pp_meta fmt (Key.hide k)
 
 let opt_key s =
@@ -572,19 +564,6 @@ let default_ipv4 ?group net =
 
 
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
-
-let meta_ipv6 ppf s =
-  Fmt.pf ppf "Ipaddr.V6.of_string_exn %S" (Ipaddr.V6.to_string s)
-let meta_prefix_ipv6 ppf s =
-  Fmt.pf ppf "Ipaddr.V6.Prefix.of_string_exn %S" (Ipaddr.V6.Prefix.to_string s)
-
-let meta_ipv6_config fmt { address ; netmask ; gateways } =
-  meta_triple
-    meta_ipv6
-    (Fmt.Dump.list meta_prefix_ipv6)
-    (Fmt.Dump.list meta_ipv6)
-    fmt
-    (address, netmask, gateways)
 
 let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
   inherit base_configurable
@@ -659,11 +638,7 @@ let udp_direct_func () = impl (udp_direct_conf ())
 
 let direct_udp ip = udp_direct_func () $ ip
 
-let pp_ipv4_opt =
-  Fmt.(Dump.option @@
-    fun fmt ip -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string ip))
-
-let udpv4_socket_conf ipv4_key = object (self)
+let udpv4_socket_conf ipv4_key = object
   inherit base_configurable
   method ty = udpv4
 
@@ -724,7 +699,7 @@ let direct_tcp
   tcp_direct_func () $ ip $ time $ clock $ random
 
 
-let tcpv4_socket_conf ipv4_key = object (self)
+let tcpv4_socket_conf ipv4_key = object
   inherit base_configurable
   method ty = tcpv4
 
@@ -753,7 +728,6 @@ let socket_tcpv4 ?group ip =
 type stackv4 = STACKV4
 let stackv4 = Type STACKV4
 
-type stackv4_config = [`DHCP | `IPV4 of ipv4_config]
 let pp_stackv4_config fmt = function
   | `DHCP   -> Fmt.pf fmt "`DHCP"
   | `IPV4 i ->
@@ -771,7 +745,7 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
   val name =
     let base = match config with
       | `DHCP -> "dhcp"
-      | `IPV4 i -> "ip"
+      | `IPV4 _ -> "ip"
     in suffix ("stackv4_" ^ base) ~by:group
   method name = name
   method module_name = "Tcpip_stack_direct.Make"
@@ -835,11 +809,6 @@ let direct_stackv4_with_default_ipv4
     ?clock ?random ?time ?group console network
     default_ipv4_conf
 
-
-let pp_interface =
-  Fmt.(Dump.list @@
-    fun fmt x -> pf fmt "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string x)
-  )
 
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object
   inherit base_configurable
@@ -1048,7 +1017,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
 end
 
 let resolver_dns ?ns ?ns_port ?(time = default_time) stack =
-  resolver_dns_conf ~ns ~ns_port $ default_time $ stack
+  resolver_dns_conf ~ns ~ns_port $ time $ stack
 
 
 
@@ -1082,7 +1051,7 @@ let argv_unix = impl @@ object
   method ty = Devices.argv
   method name = "argv_unix"
   method module_name = "OS.Env"
-  method connect t _ _ =
+  method connect _ _ _ =
     "OS.Env.argv () >>= (fun x -> `Ok x)"
   end
 
@@ -1093,7 +1062,7 @@ let argv_xen = impl @@ object
   method module_name = "Bootvar"
   method packages = Key.pure [ "mirage-bootvar-xen" ]
   method libraries = Key.pure [ "mirage-bootvar" ]
-  method connect t _ _ =
+  method connect _ _ _ =
     "Bootvar.argv ()"
   end
 
@@ -1145,7 +1114,6 @@ let tracing =
 
 end
 
-type tracing = int
 let mprof_trace ~size () = size
 
 let configure_main_libvirt_xml ~root ~name =
@@ -1315,7 +1283,7 @@ let get_extra_ld_flags ~filter pkgs =
       Printf.sprintf "-L%s %s" dir ldflags :: acc
   ) []
 
-let configure_myocamlbuild_ml ~root ~name =
+let configure_myocamlbuild_ml ~root =
   let open Functoria_misc in
   let minor, major = ocaml_version () in
   if minor < 4 || major < 1 then (
@@ -1352,7 +1320,7 @@ let configure_myocamlbuild_ml ~root ~name =
       \  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
   )
 
-let clean_myocamlbuild_ml ~root ~name =
+let clean_myocamlbuild_ml ~root =
   remove (root / "myocamlbuild.ml")
 
 let configure_makefile ~root ~name info =
@@ -1466,7 +1434,7 @@ let configure i =
     configure_main_xl ~root ~name;
     configure_main_xe ~root ~name;
     configure_main_libvirt_xml ~root ~name;
-    configure_myocamlbuild_ml ~root ~name;
+    configure_myocamlbuild_ml ~root;
     configure_makefile ~root ~name i;
   )
 
@@ -1476,7 +1444,7 @@ let clean ~root ~name =
       clean_main_xl ~root ~name;
       clean_main_xe ~root ~name;
       clean_main_libvirt_xml ~root ~name;
-      clean_myocamlbuild_ml ~root ~name;
+      clean_myocamlbuild_ml ~root;
       clean_makefile ~root;
       R.get_ok @@ command "rm -rf %s/mir-%s" root name;
     )
@@ -1495,7 +1463,7 @@ module Project = struct
 
   let argv = argv
 
-  let configurable ~name ~root jobs = object
+  let configurable jobs = object
     inherit base_configurable
     method ty = job
     method name = "main"

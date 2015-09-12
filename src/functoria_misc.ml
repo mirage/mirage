@@ -74,9 +74,9 @@ let split s sep =
   aux [] s
 
 let suffix s ~by =
-  if by = "" then "" else s^"_"^by
+  if by = "" then s else s^"_"^by
 let prefix s ~by =
-  if by = "" then "" else by^"_"^s
+  if by = "" then s else by^"_"^s
 
 module StringSet = Set.Make(String)
 

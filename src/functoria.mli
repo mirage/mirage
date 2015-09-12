@@ -40,6 +40,9 @@ module Devices : sig
 
 end
 
+(** Various helpful functions. *)
+module Misc = Functoria_misc
+
 (** A project is a specialized DSL build for specific purposes,
     like the mirage DSL. *)
 module type PROJECT = sig

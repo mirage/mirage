@@ -15,13 +15,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria_misc
 open Rresult
 
 module Dsl = Functoria_dsl
 module G = Functoria_graph
+module Misc = Functoria_misc
 
 open Dsl
+open Misc
 
 module Devices = struct
 
@@ -45,7 +46,7 @@ module Devices = struct
     let file = String.lowercase Key.module_name ^ ".ml" in
     info "%a %s" blue "Generating:"  file;
     with_file (Info.root i / file) @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header "Functoria") ;
+    Codegen.append fmt "(* %s *)" (generated_header ()) ;
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
@@ -352,25 +353,10 @@ module Make (P:PROJECT) = struct
       )
     else error "OPAM is not installed."
 
-  let clean_opam _t =
-    ()
-  (* This is a bit too agressive, disabling for now on.
-     let (++) = StringSet.union in
-     let set mode = StringSet.of_list (packages t mode) in
-     let packages =
-      set (`Unix `Socket) ++ set (`Unix `Direct) ++ set `Xen in
-     match StringSet.elements packages with
-     | [] -> ()
-     | ps ->
-      if cmd_exists "opam" then opam "remove" ps
-      else error "OPAM is not installed."
-  *)
-
-
   let configure_main i jobs =
     info "%a main.ml" blue "Generating:";
     Codegen.set_main_ml (Info.root i / "main.ml");
-    Codegen.append_main "(* %s *)" (generated_header P.name);
+    Codegen.append_main "(* %s *)" (generated_header ());
     Codegen.newline_main ();
     Codegen.append_main "%a" Fmt.text  Project.prelude;
     Codegen.newline_main ();
@@ -406,11 +392,10 @@ module Make (P:PROJECT) = struct
       command "%s build" (make ())
     )
 
-  let clean ~no_opam i jobs =
+  let clean i jobs =
     info "%a %s" blue "Clean:"  (get_config_file ());
     let root = Info.root i in
     in_dir root (fun () ->
-      if not no_opam then clean_opam ();
       clean_main i jobs;
       command "rm -rf %s/_build" root >>= fun () ->
       command "rm -rf log %s/main.native.o %s/main.native %s/*~"

@@ -28,9 +28,9 @@ val (@?) : 'a option -> 'a list -> 'a list
 
 val opt_map : ('a -> 'b) -> 'a option -> 'b option
 
-val generated_header: string -> string
-(** [generated_header appname] is the header string for
-    every generated file. [appname] is the name of the final application. *)
+val generated_header: unit -> string
+(** [generated_header ()] is the header string for
+    every generated file. [appname] is the name given by {!get_section}. *)
 
 val ocaml_version: unit -> int * int
 (** The version of the current OCaml compiler. *)
@@ -40,7 +40,6 @@ val (/): string -> string -> string
 
 val err_cmdliner :
   ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
-
 
 module type Monoid = sig
   type t
@@ -60,10 +59,6 @@ val cut_at: string -> char -> (string * string) option
 
 val split : string -> char -> string list
 (** Split at each occurence of the given character. *)
-
-val after : string -> string -> string option
-(** [after prefix s] returns the part of [s] after [prefix],
- * if [s] starts with [prefix]. *)
 
 val prefix : string -> by:string -> string
 (** [prefix x ~by:s] will prefix [x] by [s] if [s] is not the empty string. *)
@@ -123,19 +118,6 @@ val blue  : string Fmt.t
 val yellow: string Fmt.t
 val red   : string Fmt.t
 val green : string Fmt.t
-
-(** {2 Hash tables} *)
-
-val find_or_create: ('a, 'b) Hashtbl.t -> 'a -> (unit -> 'b) -> 'b
-(** Find the value associated with a key in an hash-table or create a
-    new value if it the key is not already in there. *)
-
-val dump: (string, string) Hashtbl.t Fmt.t
-(** Dump the contents of a hash table to stderr. *)
-
-val dedup: string list -> string list
-(** Deduplicate the list elements. Return an ordered list. *)
-
 
 (** Generation of fresh names *)
 module Name: sig

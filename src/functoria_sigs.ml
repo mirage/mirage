@@ -205,7 +205,7 @@ module type CONFIG = sig
 
   val eval : t -> <
       build : info -> (unit, string) Rresult.result;
-      clean : info -> no_opam:bool -> (unit, string) Rresult.result;
+      clean : info -> (unit, string) Rresult.result;
       configure :
         info ->
         no_opam:bool ->

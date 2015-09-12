@@ -188,9 +188,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P clean_doc;
     ] in
     let f t =
-      let clean info no_opam =
-        err_cmdliner @@ t#clean info ~no_opam in
-      Term.(pure clean $ t#info $ no_opam)
+      let clean info =
+        err_cmdliner @@ t#clean info in
+      Term.(pure clean $ t#info)
     in
     let f_no err =
       let f _ = `Error (false, err) in

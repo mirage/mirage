@@ -1520,11 +1520,7 @@ module Project = struct
 
     method clean i = clean ~name:(Info.name i) ~root:(Info.root i)
 
-    method dependencies =
-      let l = List.map hide (bootvar :: jobs) in
-      match Key.get Key.tracing with
-      | None -> l
-      | Some i -> hide (tracing i) :: l
+    method dependencies = List.map hide jobs
 
   end
 
@@ -1533,6 +1529,9 @@ end
 
 include Functoria.Make (Project)
 
-let register ?tracing ?keys ?libraries ?packages name jobs =
-  Key.set Key.tracing tracing ;
+let register ?tracing:t ?keys ?libraries ?packages name jobs =
+  let jobs = match t with
+    | None -> jobs
+    | Some i -> tracing i :: jobs
+  in
   register ?keys ?libraries ?packages name jobs

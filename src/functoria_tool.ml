@@ -27,10 +27,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     `P "These options are common to all commands.";
   ]
 
-  let configure_option_section = "CONFIGURE OPTIONS"
-
   (* Helpers *)
-  let mk_flag ?(section=configure_option_section) flags doc =
+  let mk_flag ?(section=global_option_section) flags doc =
     let doc = Arg.info ~docs:section ~doc flags in
     Arg.(value & flag & doc)
 
@@ -48,16 +46,25 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     mk_flag ["no-depext"] "Skip installation of external dependencies."
 
   let dot =
-    mk_flag ["dot"] "Output a dot description."
+    mk_flag ["dot"]
+      "Output a dot description. If no output file is given,\
+       It will show the dot file using command given to $(b,--dot-command)."
 
   let normalize =
     mk_flag ["normalize"]
-      "Normalize the graph before showing it.\
+      "Normalize the graph before showing it. \
        The normalized version is the one actually used to generate the code\
        but it is less easy to understand."
 
+  let dotcmd =
+    let doc = Arg.info ~docs:global_option_section ~docv:"COMMAND"
+        ~doc:"Command used to show a dot file. \
+              This command should accept a dot file on its standard input."
+        [ "dot-command" ] in
+    Arg.(value & opt string "xdot" & doc)
+
   let file =
-    let doc = Arg.info ~docs:global_option_section ~docv:"FILE"
+    let doc = Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE"
         ~doc:"Configuration file. If not specified, the current directory will be scanned. \
               If one file named $(b,config.ml) is found, that file will be used. If no files \
               or multiple configuration files are found, this will result in an error unless one \
@@ -128,10 +135,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
           $(mname) application."
     ] in
     let f t =
-      let describe _ filename dot normalize =
-        `Ok (t#describe ~dot ~normalize filename)
+      let describe _ filename dotcmd dot normalize =
+        `Ok (t#describe ~dotcmd ~dot ~normalize filename)
       in
-      Term.(pure describe $ t#info $ output $ dot $ normalize)
+      Term.(pure describe $ t#info $ output $ dotcmd $ dot $ normalize)
     in
     let f_no err =
       let f () = `Error (false, err) in

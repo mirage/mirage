@@ -213,7 +213,7 @@ module type CONFIG = sig
         no_opam_version:bool ->
         (unit, string) Rresult.result;
       info : info Cmdliner.Term.t;
-      describe : dot:bool -> normalize:bool -> string option -> unit;
+      describe : dotcmd:string -> dot:bool -> normalize:bool -> string option -> unit;
     >
 
 end

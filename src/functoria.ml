@@ -418,6 +418,16 @@ module Make (P:PROJECT) = struct
         root root root ;
     )
 
+  let describe g ~dotcmd ~dot ~normalize file =
+    let f fmt = Config.(if dot then pp_dot else pp) normalize fmt g in
+    let with_fmt f = match file with
+      | None when dot ->
+        let f oc = with_channel oc f in
+        with_process_out dotcmd f
+      | None -> f Fmt.stdout
+      | Some s -> with_file s f
+    in with_fmt f
+
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
    * [register] in order to have an observable
@@ -487,14 +497,7 @@ module Make (P:PROJECT) = struct
         method clean info = clean info evaluated
         method build info = build info
         method info = Key.term_value ~stage:`Configure info
-        method describe ~dot ~normalize file =
-          let f fmt = Config.(if dot then pp_dot else pp) normalize fmt t in
-          match file with
-          | None -> f Fmt.stdout
-          | Some s ->
-            let oc = open_out s in
-            f @@ Format.formatter_of_out_channel oc ;
-            close_out oc
+        method describe = describe t
       end
   end
 

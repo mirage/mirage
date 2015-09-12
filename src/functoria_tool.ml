@@ -84,7 +84,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     Fmt_tty.setup_std_outputs ()
 
 
-  let global_keys = Config.(switching_keys dummy_conf)
+  let base_keys = Config.base_keys
 
   let with_config =
     let config =
@@ -92,7 +92,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       | _, `Ok config -> config
       | _ -> None
     in
-    let _  = Term.eval_peek_opts global_keys in
+    let _  = Term.eval_peek_opts base_keys in
     let t = lazy (Config.load config) in
     fun f f_no ->
       let term = match Lazy.force t with
@@ -120,7 +120,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     in
     let f_no err =
       let f _ _ _ () = `Error (false, err) in
-      Term.(pure f $ no_opam $ no_opam_version_check $ no_depext $ global_keys)
+      Term.(pure f $ no_opam $ no_opam_version_check $ no_depext $ base_keys)
     in
     with_config f f_no, term_info "configure" ~doc ~man
 
@@ -156,7 +156,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     in
     let f_no err =
       let f () = `Error (false, err) in
-      Term.(pure f $ global_keys)
+      Term.(pure f $ base_keys)
     in
     with_config f f_no, term_info "describe" ~doc ~man
 
@@ -220,7 +220,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ global_keys)
+      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ base_keys)
     in
     Term.ret term, Term.info "help" ~doc ~man
 

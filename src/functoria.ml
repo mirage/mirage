@@ -78,6 +78,26 @@ module Devices = struct
             modname (Info.name info) argv
         | _ -> failwith "The keys connect should receive exactly one argument."
     end
+
+  type main = Main
+
+  (** The main dsl. It's only job is to depends on all the others. *)
+  let main jobs = impl @@ object
+      inherit base_configurable
+      method ty = Type Main
+      method name = "main"
+      method module_name = "Functoria_runtime"
+
+      method packages = Key.pure [ "functoria" ]
+      method libraries = Key.pure [ "functoria.runtime" ]
+
+      method connect _ _mod _names =
+        "Lwt.return_unit"
+
+      method dependencies = List.map hide jobs
+    end
+
+
 end
 
 
@@ -92,6 +112,7 @@ module Engine = struct
   let keys =
     G.collect (module Key.Set) @@ function
     | G.Impl c -> Key.Set.of_list c#keys
+    | G.If cond -> Key.deps cond
     | _ -> Key.Set.empty
 
 
@@ -243,14 +264,11 @@ module Config = struct
 
   let make
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
-      name root jobs init_dsl =
-    let custom = init_dsl jobs in
-    let jobs = G.create @@ impl custom in
-
+      name root jobs =
+    let jobs = G.create @@ Devices.main jobs in
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
-    let keys =
-      Key.Set.(union (of_list (keys @ custom#keys)) (Engine.switching_keys jobs))
+    let keys = Key.Set.(union (of_list keys) (Engine.switching_keys jobs))
     in
     { libraries ; packages ; keys ; name ; root ; jobs }
 
@@ -268,8 +286,13 @@ module Config = struct
     in
     e, with_deps ~keys di
 
+  (** Extract all the keys directly.
+      Useful to pre-resolve the keys provided by the specialized DSL. *)
+  let extract_keys impl =
+    Engine.keys @@ G.create @@ Devices.main [impl]
+
   let name t = t.name
-  let switching_keys t = t.keys
+  let keys t = t.keys
 
   let gen_pp pp ~partial fmt t =
     pp fmt @@ G.eval ~partial t.jobs
@@ -278,7 +301,7 @@ module Config = struct
   let pp_dot = gen_pp G.pp_dot
 end
 
-module type PROJECT = sig
+module type SPECIALIZED = sig
 
   val prelude : string
 
@@ -290,14 +313,11 @@ module type PROJECT = sig
 
   val argv : Devices.argv impl
 
-  val configurable : job impl list -> job configurable
+  val config : job impl
 
 end
 
-module Make (P:PROJECT) = struct
-  module Project = P
-
-  let key_device = Devices.keys P.argv
+module Make (P:SPECIALIZED) = struct
 
   let () = set_section P.name
 
@@ -315,9 +335,9 @@ module Make (P:PROJECT) = struct
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
     let root = get_root () in
-    let jobs = key_device :: jobs in
+    let jobs = Devices.keys P.argv :: P.config :: jobs in
     let c =
-      Config.make ~keys ~libraries ~packages name root jobs P.configurable
+      Config.make ~keys ~libraries ~packages name root jobs
     in
     configuration := Some c
 
@@ -368,11 +388,11 @@ module Make (P:PROJECT) = struct
     Codegen.set_main_ml (Info.root i / "main.ml");
     Codegen.append_main "(* %s *)" (generated_header ());
     Codegen.newline_main ();
-    Codegen.append_main "%a" Fmt.text  Project.prelude;
+    Codegen.append_main "%a" Fmt.text  P.prelude;
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Engine.configure_and_connect i Project.driver_error jobs;
+    Engine.configure_and_connect i P.driver_error jobs;
     Codegen.newline_main ();
     ()
 
@@ -465,11 +485,10 @@ module Make (P:PROJECT) = struct
                       Please specify one explictly on the command-line."
 
   module C = struct
-    include Project
+    include P
 
-    let dummy_conf =
-      let name = P.name and root = get_root () in
-      Config.make name root [] P.configurable
+    let base_keys =
+      Key.term ~stage:`Configure @@ Config.extract_keys P.config
 
     type t = Config.t
     type info = Info.t
@@ -485,7 +504,7 @@ module Make (P:PROJECT) = struct
       Ok t
 
     let switching_keys t =
-      Key.term ~stage:`Configure @@ Config.switching_keys t
+      Key.term ~stage:`Configure @@ Config.keys t
 
     let eval t =
       let evaluated, info = Config.eval t in

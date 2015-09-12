@@ -194,8 +194,8 @@ module type CONFIG = sig
   type t
   (** A configuration. *)
 
-  val dummy_conf : t
-  (** The empty configuration, without jobs. *)
+  val base_keys : unit Cmdliner.Term.t
+  (** Base keys provided by the specialized DSL. *)
 
   val load: string option -> (t, string) Rresult.result
   (** Read a config file. If no name is given, search for use

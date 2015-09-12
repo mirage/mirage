@@ -43,22 +43,36 @@ end
 (** Various helpful functions. *)
 module Misc = Functoria_misc
 
-(** A project is a specialized DSL build for specific purposes,
-    like the mirage DSL. *)
-module type PROJECT = sig
+(** A specialized DSL build for specific purposes. *)
+module type SPECIALIZED = sig
   open Dsl
 
   val prelude : string
+  (** Prelude printed at the beginning of [main.ml].
+      It should put in scope:
+      - a [run] function of type ['a t -> 'a]
+      - a [return] function of type ['a -> 'a t]
+      - a [>>=] operator of type ['a t -> ('a -> 'b t) -> 'b t]
+
+      for [type 'a t = [ `Ok of | `Error of string ] Lwt.t]
+  *)
 
   val name : string
+  (** Name of the specialized dsl. *)
 
   val version : string
+  (** Version of the specialized dsl. *)
 
   val driver_error : string -> string
+  (** [driver_error s] is the message given to the user when the
+      the configurable [s] doesn't initialize correctly. *)
 
   val argv : Devices.argv impl
+  (** The device used to access [argv]. *)
 
-  val configurable : job impl list -> job configurable
+  val config : job impl
+  (** The device implementing specific configuration for this
+      specialized dsl. *)
 
 end
 
@@ -77,8 +91,8 @@ module type KEY = Functoria_sigs.KEY
    and type t = Dsl.Key.t
    and type Set.t = Dsl.Key.Set.t
 
-(** Create a specialized configuration engine for a project. *)
-module Make (Project : PROJECT) : sig
+(** Create a configuration engine for a specialized dsl. *)
+module Make (P : SPECIALIZED) : sig
 
   include S
 

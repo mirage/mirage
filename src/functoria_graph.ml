@@ -106,19 +106,6 @@ let add_pred_with_subst g preds v =
     g
     preds
 
-(** [add_succs_with_subst g succs v ~sub ~by] add the edges [succs] to [g]
-    with the source replaced by [v].
-    If a destination is [sub] it is replaced by [by]. *)
-let add_succ_with_subst g succs v ~sub ~by =
-  List.fold_left
-    (fun g e ->
-       let dest = G.E.dst e in
-       let dest = if G.V.equal dest sub then by else dest in
-       G.add_edge_e g @@ G.E.(create v (label e) dest))
-    g
-    succs
-
-
 (** {2 Graph construction} *)
 
 let add_impl graph ~impl ~args ~deps =
@@ -175,10 +162,6 @@ let create impl =
 
 let is_impl v = match G.V.label v with
   | Impl _ -> true
-  | _ -> false
-
-let is_if v = match G.V.label v with
-  | If _ -> true
   | _ -> false
 
 (** {2 Invariant checking} *)
@@ -273,45 +256,6 @@ let rec transform ~predicate ~apply g =
     transform ~predicate ~apply @@ apply g v_if
   | None -> g
 
-
-module PushIf = struct
-  (** Push [If] nodes the further "up" possible.
-
-      If [n] is [Impl] or [App], [m = If cond] and [m ∈ succ n] then
-      we replace the couple (n,m) by the triple (m', n₀, n₁) where
-      - [m' = If cond] with children [n₀] and [n₁]
-      - [n₀] is [n] with child [m] replaced by [child_then(m)]
-      - [n₁] is [n] with child [m] replaced by [child_else(m)]
-  *)
-
-  let predicate g v =
-    match G.V.label v with
-    | If _ -> None
-    | Impl _ | App ->
-      try
-        let v_if = List.find is_if @@ G.succ g v in
-        Some (v, v_if)
-      with _ -> None
-
-  let apply g (v_impl, v_if) =
-    let preds = G.pred_e g v_impl in
-    let cond, else_, then_ =
-      match explode g v_if with
-      | `If x -> x | _ -> assert false
-    in
-    let succs = G.succ_e g v_impl in
-    let v_impl_else = G.V.create (G.V.label v_impl) in
-    let v_impl_then = G.V.create (G.V.label v_impl) in
-
-    let g = G.remove_vertex g v_impl in
-    let g = add_succ_with_subst g succs v_impl_else ~sub:v_if ~by:else_ in
-    let g = add_succ_with_subst g succs v_impl_then ~sub:v_if ~by:then_ in
-    let v_if', g = add_if g ~cond ~else_:v_impl_else ~then_:v_impl_then in
-    let g = add_pred_with_subst g preds v_if' in
-    remove_rec_if_orphan g v_if
-
-end
-
 module RemovePartialApp = struct
   (** Remove [App] nodes.
 
@@ -362,14 +306,10 @@ module EvalIf = struct
 
 end
 
-let push_if = PushIf.(transform ~predicate ~apply)
-
-let remove_partial_app = RemovePartialApp.(transform ~predicate ~apply)
-
-let normalize g =
-  remove_partial_app @@ push_if g
+let normalize = RemovePartialApp.(transform ~predicate ~apply)
 
 let eval ?(partial=false) g =
+  normalize @@
   EvalIf.(transform
       ~predicate:(predicate ~partial)
       ~apply:(apply ~partial)

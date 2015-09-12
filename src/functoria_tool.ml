@@ -50,12 +50,6 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       "Output a dot description. If no output file is given,\
        It will show the dot file using command given to $(b,--dot-command)."
 
-  let normalize =
-    mk_flag ["normalize"]
-      "Normalize the graph before showing it. \
-       The normalized version is the one actually used to generate the code\
-       but it is less easy to understand."
-
   let dotcmd =
     let doc = Arg.info ~docs:global_option_section ~docv:"COMMAND"
         ~doc:"Command used to show a dot file. \
@@ -135,10 +129,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
           $(mname) application."
     ] in
     let f t =
-      let describe _ filename dotcmd dot normalize =
-        `Ok (t#describe ~dotcmd ~dot ~normalize filename)
+      let describe _ filename dotcmd dot =
+        `Ok (t#describe ~dotcmd ~dot filename)
       in
-      Term.(pure describe $ t#info $ output $ dotcmd $ dot $ normalize)
+      Term.(pure describe $ t#info $ output $ dotcmd $ dot)
     in
     let f_no err =
       let f () = `Error (false, err) in

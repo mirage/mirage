@@ -45,19 +45,12 @@ module Tbl : Hashtbl.S with type key = vertex
 val create : _ impl -> t
 (** [create impl] creates a graph based [impl]. *)
 
-val push_if : t -> t
-
-val remove_partial_app : t -> t
-
 val normalize : t -> t
-(** [normalize g] normalize the graph [g] by
-    - Pushing the [If] vertices up.
-    - Removing the [App] nodes.
-*)
+(** [normalize g] normalize the graph [g] by removing the [App] nodes. *)
 
 val eval : ?partial:bool -> t -> t
 (** [eval g] will removes all the [If] vertices by
-    trying to resolve the keys.
+    trying to resolve the keys. It will then call {!normalize}
 
     If [partial] is [true], then it will only evaluate
     [If] vertices which condition is resolved.

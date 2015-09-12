@@ -242,7 +242,7 @@ module Config = struct
     { libraries ; packages ; keys ; name ; root ; jobs }
 
   let eval { name = n ; root ; packages ; libraries ; keys ; jobs } =
-    let e = G.eval @@ G.normalize jobs in
+    let e = G.eval jobs in
     let open Key in
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
@@ -258,9 +258,8 @@ module Config = struct
   let name t = t.name
   let switching_keys t = t.keys
 
-  let gen_pp pp normalize fmt t =
-    let f = if normalize then G.normalize else G.remove_partial_app in
-    pp fmt @@ f @@ G.eval ~partial:true t.jobs
+  let gen_pp pp fmt t =
+    pp fmt @@ G.eval ~partial:true t.jobs
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot
@@ -418,8 +417,8 @@ module Make (P:PROJECT) = struct
         root root root ;
     )
 
-  let describe g ~dotcmd ~dot ~normalize file =
-    let f fmt = Config.(if dot then pp_dot else pp) normalize fmt g in
+  let describe g ~dotcmd ~dot file =
+    let f fmt = Config.(if dot then pp_dot else pp) fmt g in
     let with_fmt f = match file with
       | None when dot ->
         let f oc = with_channel oc f in

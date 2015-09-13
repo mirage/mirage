@@ -1439,7 +1439,9 @@ let configure i =
   )
 
 
-let clean ~root ~name =
+let clean i =
+  let name = Info.name i in
+  let root = Info.root i in
   in_dir root (fun () ->
       clean_main_xl ~root ~name;
       clean_main_xe ~root ~name;
@@ -1463,10 +1465,10 @@ module Project = struct
 
   let argv = argv
 
-  let configurable jobs = object
+  let config = impl @@ object
     inherit base_configurable
     method ty = job
-    method name = "main"
+    method name = "mirage"
     method module_name = "Mirage_runtime"
     method keys = [ Key.hide Key.target ]
 
@@ -1480,14 +1482,8 @@ module Project = struct
       "mirage-types.lwt" ; "sexplib"
     ]
 
-    method connect _ _mod _names =
-      "Lwt.return_unit"
-
-    method configure info = configure info
-
-    method clean i = clean ~name:(Info.name i) ~root:(Info.root i)
-
-    method dependencies = List.map hide jobs
+    method configure = configure
+    method clean = clean
 
   end
 

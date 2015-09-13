@@ -1,9 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: c5dbf7bf603d6fdfed59e0357639c310)
+# DO NOT EDIT (digest: 25536d7b54cff479acbe347f86f3489a)
 version = "2.6.0"
 description = "Mirage configuration tool"
-requires =
-"ipaddr functoria lwt mirage-types mirage-types.lwt mirage.runtime"
+requires = "ipaddr functoria mirage.runtime"
 archive(byte) = "mirage.cma"
 archive(byte, plugin) = "mirage.cma"
 archive(native) = "mirage.cmxa"

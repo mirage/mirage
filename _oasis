@@ -21,7 +21,7 @@ Library mirage
   Modules:            Mirage
   InternalModules:    Mirage_key, Mirage_version
   BuildDepends:
-    ipaddr,functoria,lwt,mirage-types,mirage-types.lwt,mirage.runtime
+    ipaddr,functoria,mirage.runtime
 
 Executable mirage
   CompiledObject:     best

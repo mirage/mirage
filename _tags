@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 0b9815131bf53d4130ae776902c721a1)
+# DO NOT EDIT (digest: b73eb4b157eac313e836b569ef5d6830)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -24,17 +24,11 @@ true: annot, bin_annot
 <lib/main.{native,byte}>: pkg_functoria
 <lib/main.{native,byte}>: pkg_functoria.runtime
 <lib/main.{native,byte}>: pkg_ipaddr
-<lib/main.{native,byte}>: pkg_lwt
-<lib/main.{native,byte}>: pkg_mirage-types
-<lib/main.{native,byte}>: pkg_mirage-types.lwt
 <lib/main.{native,byte}>: use_mirage
 <lib/main.{native,byte}>: use_mirage-runtime
 <lib/*.ml{,i,y}>: pkg_functoria
 <lib/*.ml{,i,y}>: pkg_functoria.runtime
 <lib/*.ml{,i,y}>: pkg_ipaddr
-<lib/*.ml{,i,y}>: pkg_lwt
-<lib/*.ml{,i,y}>: pkg_mirage-types
-<lib/*.ml{,i,y}>: pkg_mirage-types.lwt
 <lib/*.ml{,i,y}>: use_mirage
 <lib/*.ml{,i,y}>: use_mirage-runtime
 # OASIS_STOP

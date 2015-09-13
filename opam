@@ -20,4 +20,5 @@ depends: [
   "cmdliner"
   "rresult"
   "fmt"
+  "ocamlgraph"
 ]

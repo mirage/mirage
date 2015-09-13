@@ -28,7 +28,7 @@ include Functoria.S with module Key := Key
 
 (** {2 General mirage devices} *)
 
-val get_target: unit -> [ `Unix | `Xen | `MacOSX ]
+val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
 (** Current configuration mode.
 
     Deprecated, use {!Key.target} instead.

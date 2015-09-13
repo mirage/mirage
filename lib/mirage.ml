@@ -29,7 +29,7 @@ let driver_error name =
 
 (** {2 Mode} *)
 
-let get_target =
+let get_mode =
   let x = Key.value Key.target in
   fun () -> Key.eval x
 
@@ -183,7 +183,7 @@ let direct_kv_ro dirname = impl @@ object
   inherit crunch_conf dirname as super
 
   method module_name =
-    match get_target () with
+    match get_mode () with
     | `Xen  -> super#module_name
     | `Unix | `MacOSX -> "Kvro_fs_unix"
 
@@ -200,7 +200,7 @@ let direct_kv_ro dirname = impl @@ object
     in Key.(pure f $ super#libraries $ value target)
 
   method connect i modname names =
-    match get_target () with
+    match get_mode () with
     | `Xen  -> super#connect i modname names
     | `Unix | `MacOSX ->
       Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i/dirname)
@@ -254,7 +254,7 @@ class block_conf file =
 
 
   method private connect_name root =
-    match get_target () with
+    match get_mode () with
     | `Unix | `MacOSX -> root / b.filename (* open the file directly *)
     | `Xen ->
       (* We need the xenstore id *)
@@ -897,7 +897,7 @@ let nocrypto = impl @@ object
 
   method configure _ = R.ok (enable_entropy ())
   method connect _ _ _ =
-    let s = match get_target () with
+    let s = match get_mode () with
       | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
     in
@@ -1116,7 +1116,7 @@ let tracing =
             opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
     end
 
-  method connect _ _ _ = match get_target () with
+  method connect _ _ _ = match get_mode () with
     | `Unix | `MacOSX ->
       Fmt.strf
         "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
@@ -1364,7 +1364,7 @@ let configure_makefile ~root ~name info =
   newline fmt;
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
-  begin match get_target () with
+  begin match get_mode () with
     | `Xen  ->
       append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
       append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
@@ -1413,7 +1413,7 @@ let configure_makefile ~root ~name info =
       Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
 
-  begin match get_target () with
+  begin match get_mode () with
     | `Xen ->
       let filter = function
         | "unix" | "bigarray" |"shared_memory_ring_stubs" -> false    (* Provided by mirage-xen instead. *)
@@ -1454,7 +1454,7 @@ let configure i =
   let root = Info.root i in
   check_entropy @@ Info.libraries i >>= fun () ->
   info "%a %a" blue "Configuring for target:"
-    Key.pp_target (get_target ()) ;
+    Key.pp_target (get_mode ()) ;
   in_dir root (fun () ->
     configure_main_xl ~root ~name;
     configure_main_xe ~root ~name;

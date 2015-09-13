@@ -33,10 +33,10 @@ module type CORE = sig
 
   (** {2 Module combinators} *)
 
+  (** The type of values representing module types. *)
   type _ typ =
     | Type: 'a -> 'a typ
     | Function: 'a typ * 'b typ -> ('a -> 'b) typ
-  (** The type of values representing module types. *)
 
   val typ: 'a -> 'a typ
   (** Create a new type. *)
@@ -44,12 +44,12 @@ module type CORE = sig
   val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
   (** Construct a functor type from a type and an existing functor
       type. This corresponds to prepending a parameter to the list of
-      functor parameters. For example,
+      functor parameters. For example:
 
       {[ kv_ro @-> ip @-> kv_ro ]}
 
-      describes a functor type that accepts two arguments -- a kv_ro and
-      an ip device -- and returns a kv_ro.
+      This describes a functor type that accepts two arguments - a [kv_ro] and
+      an [ip] device - and returns a [kv_ro].
   *)
 
   type 'a impl
@@ -58,8 +58,8 @@ module type CORE = sig
   val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
   (** [m $ a] applies the functor [m] to the module [a]. *)
 
-  type any_impl = Any : _ impl -> any_impl
   (** Type of an implementation, with its type variable hidden. *)
+  type any_impl = Any : _ impl -> any_impl
 
   val hide : _ impl -> any_impl
   (** Hide the type variable of an implementation. Useful for dependencies. *)
@@ -89,11 +89,13 @@ module type CORE = sig
     ?packages:string list ->
     ?dependencies:any_impl list ->
     string -> 'a typ -> 'a impl
-  (** [foreign name libs packs constr typ] states that the module named
-        by [name] has the module type [typ]. If [libs] is set, add the
-        given set of ocamlfind libraries to the ones loaded by default. If
-        [packages] is set, add the given set of OPAM packages to the ones
-        loaded by default. *)
+  (** [foreign name typ] states that the module named by [name] has the
+      module type [typ].
+      @param libraries The ocamlfind libraries needed by this module.
+      @param packages The opam packages needed by this module.
+      @param keys The keys related to this module.
+      @param dependencies The data-dependencies needed by this module. You must use {!hide} to pass an arbitrary implementation.
+  *)
 
   type job
   (** Type for job values. *)
@@ -147,12 +149,14 @@ module type CORE = sig
     (** Clean all the files generated to use the device. *)
 
     method dependencies : any_impl list
-    (** The list of dependencies that must be initalized before this module. *)
+    (** The list of dependencies that must be initalized before this device.
+        You must use {!hide} to pass an arbitrary implementation.
+    *)
 
   end
 
   val impl: 'a configurable -> 'a impl
-  (** Extend the library with an external configuration. *)
+  (** Create an implementation based on a specified device. *)
 
   (** The base configurable pre-defining many methods. *)
   class base_configurable : object
@@ -173,11 +177,16 @@ module type S = sig
   include CORE
 
   val register:
-    ?keys:Key.t list -> ?libraries:string list -> ?packages:string list ->
+    ?keys:Key.t list ->
+    ?libraries:string list ->
+    ?packages:string list ->
     string -> job impl list -> unit
-  (** [register name jobs] registers the application named by [name]
-      which will executes the given [jobs].
-      @param keys passes user-defined config keys (which can be set on the command-line) *)
+    (** [register name jobs] registers the application named by [name]
+        which will executes the given [jobs].
+        @param libraries The ocamlfind libraries needed by this module.
+        @param packages The opam packages needed by this module.
+        @param keys The keys related to this module.
+    *)
 
 end
 

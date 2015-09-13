@@ -862,7 +862,25 @@ let generic_stackv4 ?group console tap =
        (direct_stackv4_with_default_ipv4 ?group console tap)
     )
 
+(* This is to check that entropy is a dependency if "tls" is in
+   the package array. *)
+let enable_entropy, is_entropy_enabled =
+  let r = ref false in
+  let f () = r := true in
+  let g () = !r in
+  (f, g)
 
+let check_entropy libs =
+  OCamlfind.query ~recursive:true (StringSet.elements libs)
+  >>| List.exists ((=) "nocrypto")
+  >>= fun is_needed ->
+  if is_needed && not (is_entropy_enabled ()) then
+    error
+      "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
+       Please enable the entropy by adding a dependency \
+       to the nocrypto device. You can do so with the ~dependency \
+       argument of Mirage.foreign."
+  else R.ok ()
 
 let nocrypto = impl @@ object
   inherit base_configurable
@@ -880,6 +898,7 @@ let nocrypto = impl @@ object
     | `Xen            -> ["nocrypto.xen"]
     | `Unix | `MacOSX -> ["nocrypto.lwt"]
 
+  method configure _ = R.ok (enable_entropy ())
   method connect _ _ _ =
     let s = match get_mode () with
       | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
@@ -1436,6 +1455,7 @@ let clean_makefile ~root =
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
+  check_entropy @@ Info.libraries i >>= fun () ->
   info "%a %a" blue "Configuring for target:"
     pp_mode ();
   in_dir root (fun () ->

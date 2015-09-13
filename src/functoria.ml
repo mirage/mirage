@@ -127,8 +127,8 @@ module Devices = struct
       method ty = info
       method name = "info"
 
-      val modname = "Functoria_info"
-      method module_name = modname
+      val gen_file_name = "Config_info_gen"
+      method module_name = "Functoria_info"
 
       method libraries = Key.pure ["functoria.runtime"]
       method packages = Key.pure ["functoria"]
@@ -137,12 +137,12 @@ module Devices = struct
         Fmt.strf "Lwt.return (`Ok %s.info)" modname
 
       method clean i =
-        let file = Info.root i / (String.lowercase modname ^ ".ml") in
+        let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in
         remove file ;
         remove (file ^".in") ;
 
       method configure i =
-        let filename = String.lowercase modname ^ ".ml" in
+        let filename = String.lowercase gen_file_name ^ ".ml" in
         let file = Info.root i / filename in
         Misc.info "%a %s" blue "Generating: " filename ;
         let f fmt =

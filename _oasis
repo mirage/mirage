@@ -27,9 +27,12 @@ Library functoria
   BuildDepends:
     unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,ocamlgraph
 
+AlphaFeatures: ocamlbuild_more_args
 Document "functoria"
-  Title:                Functoria docs
-  Type:                 OCamlbuild (0.4)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      src
-  XOCamlbuildLibraries: functoria
+  Type: ocamlbuild (0.3)
+  BuildTools: ocamldoc
+  Title: API reference for Functoria
+  XOCamlbuildPath: .
+  XOCamlbuildExtraArgs:
+    "-docflags '-colorize-code -short-functors -charset utf-8'"
+  XOCamlbuildLibraries: functoria, functoria.runtime

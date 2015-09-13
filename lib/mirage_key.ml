@@ -157,8 +157,14 @@ let dhcp group =
 
 
 let net group : [`Socket | `Direct] Key.key =
-  let conv = Arg.enum ["socket", `Socket ; "direct", `Direct] in
-  let desc = Key.Desc.from_converter "net" conv in
+  let converter = Arg.enum ["socket", `Socket ; "direct", `Direct] in
+  let serializer fmt = function
+    | `Socket -> Fmt.pf fmt "`Socket"
+    | `Direct -> Fmt.pf fmt "`Direct"
+  in
+  let desc = Key.Desc.create
+      ~converter ~serializer ~description:"net"
+  in
   let doc =
     Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in

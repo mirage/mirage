@@ -1052,7 +1052,7 @@ let argv_unix = impl @@ object
   method name = "argv_unix"
   method module_name = "OS.Env"
   method connect _ _ _ =
-    "OS.Env.argv () >>= (fun x -> `Ok x)"
+    "OS.Env.argv () >>= (fun x -> Lwt.return (`Ok x))"
   end
 
 let argv_xen = impl @@ object

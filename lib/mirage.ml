@@ -160,19 +160,22 @@ class crunch_conf dirname =
 
     method configure i =
       if not (command_exists "ocaml-crunch") then
-        fail "ocaml-crunch not found, stopping.";
-      let dir = Info.root i / dirname in
-      let file = Info.root i / ml in
-      if Sys.file_exists dir then (
-        info "%a %s" Functoria_misc.blue "Generating:" file;
-        R.get_ok @@ command "ocaml-crunch -o %s %s" file dir
-      ) else (
-        fail "The directory %s does not exist." dir
-      )
+        error "ocaml-crunch not found, stopping."
+      else begin
+        let dir = Info.root i / dirname in
+        let file = Info.root i / ml in
+        if Sys.file_exists dir then (
+          info "%a %s" Functoria_misc.blue "Generating:" file;
+          command "ocaml-crunch -o %s %s" file dir
+        ) else (
+          error "The directory %s does not exist." dir
+        )
+      end
 
     method clean i =
       remove (Info.root i/ml);
-      remove (Info.root i/mli)
+      remove (Info.root i/mli);
+      R.ok ()
 
   end
 
@@ -278,7 +281,7 @@ let tar_block dir =
     inherit block_conf block_file as super
 
     method configure i =
-      R.get_ok @@ command "tar -C %s -cvf %s ." dir block_file;
+      command "tar -C %s -cvf %s ." dir block_file >>= fun () ->
       super#configure i
 
   end
@@ -364,7 +367,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
         Codegen.append fmt "echo Created '%s'" block_file;
       end ;
       Unix.chmod file 0o755;
-      R.get_ok @@ command "./make-%s-image.sh" name ;
+      command "./make-%s-image.sh" name >>= fun () ->
       super#configure i
 
     method clean i =
@@ -1089,11 +1092,13 @@ let tracing =
     | `Xen  -> ["mirage-profile.xen"]
 
   method configure _ =
-    if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" <> 0 then (
+    if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" = 0
+    then R.ok ()
+    else begin
       flush stdout;
-      fail "lwt.tracing module not found. Hint:\n\
+      error "lwt.tracing module not found. Hint:\n\
             opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
-    )
+    end
 
   method connect _ _ _ = match get_mode () with
     | `Unix | `MacOSX ->
@@ -1269,10 +1274,11 @@ let rec expand_name ~lib param =
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
 let get_extra_ld_flags ~filter pkgs =
-  let lib = strip (R.get_ok @@ read_command "opam config var lib") in
-  let output = R.get_ok @@ read_command
+  read_command "opam config var lib" >>= fun s ->
+  let lib = strip s in
+  read_command
     "ocamlfind query -r -format '%%d\t%%(xen_linkopts)' -predicates native %s"
-    (String.concat " " pkgs) in
+    (String.concat " " pkgs) >>| fun output ->
   split output '\n'
   |> List.fold_left (fun acc line ->
     match cut_at line '\t' with
@@ -1396,30 +1402,31 @@ let configure_makefile ~root ~name info =
       let filter = function
         | "unix" | "bigarray" |"shared_memory_ring_stubs" -> false    (* Provided by mirage-xen instead. *)
         | _ -> true in
-      let extra_c_archives =
-        get_extra_ld_flags ~filter libs
-        |> String.concat " \\\n\t  " in
-
+      get_extra_ld_flags ~filter libs
+      >>| String.concat " \\\n\t  "
+      >>= fun extra_c_archives ->
       append fmt "build:: main.native.o";
       let pkg_config_deps = "mirage-xen" in
       append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append fmt "\tld -d -static -nostdlib \\\n\
-                 \t  _build/main.native.o \\\n\
-                 \t  %s \\\n\
-                 \t  $$(pkg-config --static --libs %s) \\\n\
-                 \t  $(shell gcc -print-libgcc-file-name) \\\n\
-                 %s"
-        extra_c_archives pkg_config_deps generate_image;
+                  \t  _build/main.native.o \\\n\
+                  \t  %s \\\n\
+                  \t  $$(pkg-config --static --libs %s) \\\n\
+                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
+                  %s"
+        extra_c_archives pkg_config_deps generate_image ;
+      R.ok ()
     | `Unix | `MacOSX ->
       append fmt "build: main.native";
       append fmt "\tln -nfs _build/main.native mir-%s" name;
-  end;
+      R.ok ()
+  end >>= fun () ->
   newline fmt;
   append fmt "clean::\n\
-             \tocamlbuild -clean";
+              \tocamlbuild -clean";
   newline fmt;
   append fmt "-include Makefile.user";
-  ()
+  R.ok ()
 
 
 let clean_makefile ~root =
@@ -1449,7 +1456,7 @@ let clean i =
       clean_main_libvirt_xml ~root ~name;
       clean_myocamlbuild_ml ~root;
       clean_makefile ~root;
-      R.get_ok @@ command "rm -rf %s/mir-%s" root name;
+      command "rm -rf %s/mir-%s" root name;
     )
 
 module Project = struct

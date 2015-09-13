@@ -1289,7 +1289,7 @@ let rec expand_name ~lib param =
 
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen image as we do the link manually. *)
-let get_extra_ld_flags ~filter pkgs =
+let get_extra_ld_flags pkgs =
   read_command "opam config var lib" >>= fun s ->
   let lib = strip s in
   read_command
@@ -1415,10 +1415,7 @@ let configure_makefile ~root ~name info =
 
   begin match get_mode () with
     | `Xen ->
-      let filter = function
-        | "unix" | "bigarray" |"shared_memory_ring_stubs" -> false    (* Provided by mirage-xen instead. *)
-        | _ -> true in
-      get_extra_ld_flags ~filter libs
+      get_extra_ld_flags libs
       >>| String.concat " \\\n\t  "
       >>= fun extra_c_archives ->
       append fmt "build:: main.native.o";

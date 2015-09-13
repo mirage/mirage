@@ -761,10 +761,10 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
   method connect _i modname = function
     | [ console; _t; _r; interface; ethif; arp; ip; udp; tcp ] ->
       Fmt.strf
-        "let config =@[@ \
-         { V1_LWT.name = %S;@ console = %s ;\
-         interface = %s ;@ mode = %a }@] in@;\
-         %s.connect config %s %s %s %s %s"
+        "@[<2>let config = {V1_LWT.@ \
+         name = %S;@ console = %s;@ \
+         interface = %s;@ mode = %a }@]@ in@ \
+         %s.connect config@ %s %s %s %s %s"
         name console
         interface  pp_stackv4_config config
         modname ethif arp ip udp tcp

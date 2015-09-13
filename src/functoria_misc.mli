@@ -122,6 +122,15 @@ val green : string Fmt.t
 (** Generation of fresh names *)
 module Name: sig
 
+  exception Illegal of string
+
+  val ocamlify : string -> string
+  (** [ocamlify s] returns a valid OCaml identifier from similar to [s].
+      Concretely, [ocamlify s] is the string that results from removing all
+      characters outside of ['a'-'z''A'-'Z''0''9''_''-'], and replacing '-' with
+      '_'.  If the resulting string starts with a digit or is empty then it raises
+      [Illegal s]. *)
+
   val create: string -> string
   (** [create base] creates a fresh name using the given [base]. *)
 

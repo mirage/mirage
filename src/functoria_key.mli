@@ -150,16 +150,6 @@ val emit : Format.formatter -> t -> unit
 
 val pp_deps : 'a value Fmt.t
 
-
-exception Illegal of string
-
-val ocamlify : string -> string
-(** [ocamlify s] returns a valid OCaml identifier from similar to [s].
-    Concretely, [ocamlify s] is the string that results from removing all
-    characters outside of ['a'-'z''A'-'Z''0''9''_''-'], and replacing '-' with
-    '_'.  If the resulting string starts with a digit or is empty then it raises
-    [Illegal s]. *)
-
 (**/*)
 
 val get : 'a key -> 'a

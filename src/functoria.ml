@@ -174,7 +174,7 @@ module Engine = struct
   (** Return a unique variable name holding the state of the given
       module construction. *)
   let name tbl c args deps =
-    let base = Key.ocamlify c#name in
+    let base = Name.ocamlify c#name in
     if args = [] && deps = [] then base
     else
       let s =
@@ -198,7 +198,7 @@ module Engine = struct
     if args = [] then base
     else
       let n = Fmt.strf "%a" (module_expression tbl) (c, args) in
-      let base = Key.ocamlify String.(sub base 0 (index base '.')) in
+      let base = Name.ocamlify String.(sub base 0 (index base '.')) in
       Name.of_key n ~base
 
   let find_bootvar g =

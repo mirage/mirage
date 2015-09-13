@@ -250,22 +250,7 @@ let peek { deps ; v } =
 let term_value ?stage { deps ; v } =
   Term.(pure v $ term ?stage deps)
 
-
-exception Illegal of string
-
-let ocamlify s =
-  let b = Buffer.create (String.length s) in
-  String.iter begin function
-    | 'a'..'z' | 'A'..'Z'
-    | '0'..'9' | '_' as c -> Buffer.add_char b c
-    | '-' -> Buffer.add_char b '_'
-    | _ -> ()
-  end s;
-  let s' = Buffer.contents b in
-  if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then raise (Illegal s);
-  s'
-
-let ocaml_name k = ocamlify (name k)
+let ocaml_name k = Name.ocamlify (name k)
 let pp_meta fmt k =
   Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 

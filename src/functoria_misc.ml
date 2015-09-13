@@ -300,6 +300,20 @@ end
 
 module Name = struct
 
+  exception Illegal of string
+
+  let ocamlify s =
+    let b = Buffer.create (String.length s) in
+    String.iter begin function
+      | 'a'..'z' | 'A'..'Z'
+      | '0'..'9' | '_' as c -> Buffer.add_char b c
+      | '-' -> Buffer.add_char b '_'
+      | _ -> ()
+    end s;
+    let s' = Buffer.contents b in
+    if String.length s' = 0 || ('0' <= s'.[0] && s'.[0] <= '9') then raise (Illegal s);
+    s'
+
   let ids = Hashtbl.create 1024
 
   let names = Hashtbl.create 1024

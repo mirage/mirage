@@ -78,7 +78,7 @@ module type SPECIALIZED = sig
   val argv : Devices.argv impl
   (** The device used to access [argv]. *)
 
-  val config : job impl
+  val config : job impl list -> job impl
   (** The device implementing specific configuration for this
       specialized dsl. *)
 

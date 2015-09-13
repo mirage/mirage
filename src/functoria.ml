@@ -79,24 +79,6 @@ module Devices = struct
         | _ -> failwith "The keys connect should receive exactly one argument."
     end
 
-  type main = Main
-
-  (** The main dsl. It's only job is to depends on all the others. *)
-  let main jobs = impl @@ object
-      inherit base_configurable
-      method ty = Type Main
-      method name = "main"
-      method module_name = "Functoria_runtime"
-
-      method packages = Key.pure [ "functoria" ]
-      method libraries = Key.pure [ "functoria.runtime" ]
-
-      method connect _ _mod _names =
-        "Lwt.return_unit"
-
-      method dependencies = List.map hide jobs
-    end
-
   (** Module emiting a file containing all the build information. *)
 
   type info = Info
@@ -318,8 +300,8 @@ module Config = struct
 
   let make
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
-      name root jobs =
-    let jobs = G.create @@ Devices.main jobs in
+      name root main_dev =
+    let jobs = G.create main_dev in
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
     let keys = Key.Set.(union (of_list keys) (Engine.switching_keys jobs))
@@ -343,7 +325,7 @@ module Config = struct
   (** Extract all the keys directly.
       Useful to pre-resolve the keys provided by the specialized DSL. *)
   let extract_keys impl =
-    Engine.keys @@ G.create @@ Devices.main [impl]
+    Engine.keys @@ G.create impl
 
   let name t = t.name
   let keys t = t.keys
@@ -367,7 +349,7 @@ module type SPECIALIZED = sig
 
   val argv : Devices.argv impl
 
-  val config : job impl
+  val config : job impl list -> job impl
 
 end
 
@@ -389,9 +371,9 @@ module Make (P:SPECIALIZED) = struct
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
     let root = get_root () in
-    let jobs = Devices.keys P.argv :: P.config :: jobs in
+    let main_dev = P.config (Devices.keys P.argv :: jobs) in
     let c =
-      Config.make ~keys ~libraries ~packages name root jobs
+      Config.make ~keys ~libraries ~packages name root main_dev
     in
     configuration := Some c
 
@@ -542,7 +524,7 @@ module Make (P:SPECIALIZED) = struct
     include P
 
     let base_keys =
-      Key.term ~stage:`Configure @@ Config.extract_keys P.config
+      Key.term ~stage:`Configure @@ Config.extract_keys (P.config [])
 
     type t = Config.t
     type info = Info.t

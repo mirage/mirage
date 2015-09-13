@@ -200,7 +200,7 @@ val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
 val netif: ?group:string -> string -> network impl
-(** A custom network interface. *)
+(** A custom network interface. Exposes a {!Key.network} key. *)
 
 
 

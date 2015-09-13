@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** {Configuration info} *)
+(** Configuration info *)
 
 module StringSet : Set.S with type elt = string
 module StringMap : Map.S with type key = string

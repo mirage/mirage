@@ -1044,7 +1044,7 @@ let http_server conduit = impl @@ object
 end
 
 
-(** Special devices *)
+(** Argv *)
 
 let argv_unix = impl @@ object
   inherit base_configurable
@@ -1069,6 +1069,7 @@ let argv_xen = impl @@ object
 let argv = if_impl Key.is_xen argv_xen argv_unix
 
 
+(** Tracing *)
 
 let tracing =
   let unix_trace_file = "trace.ctf" in

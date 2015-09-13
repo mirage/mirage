@@ -1466,7 +1466,7 @@ module Project = struct
 
   let argv = argv
 
-  let config = impl @@ object
+  let config jobs = impl @@ object
     inherit base_configurable
     method ty = job
     method name = "mirage"
@@ -1486,6 +1486,10 @@ module Project = struct
     method configure = configure
     method clean = clean
 
+    method connect _ _mod _names =
+      "Lwt.return_unit"
+
+    method dependencies = List.map hide jobs
   end
 
 

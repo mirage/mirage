@@ -138,10 +138,10 @@ module type CORE = sig
     method connect : Info.t -> string -> string list -> string
     (** Return the function call to connect at runtime with the device. *)
 
-    method configure: Info.t -> unit
+    method configure: Info.t -> (unit, string) Rresult.result
     (** Configure the device. *)
 
-    method clean: Info.t -> unit
+    method clean: Info.t -> (unit, string) Rresult.result
     (** Clean all the files generated to use the device. *)
 
     method dependencies : any_impl list
@@ -158,8 +158,8 @@ module type CORE = sig
     method packages : string list Key.value
     method keys : Key.t list
     method connect : Info.t -> string -> string list -> string
-    method configure : Info.t -> unit
-    method clean : Info.t -> unit
+    method configure : Info.t -> (unit, string) Rresult.result
+    method clean : Info.t -> (unit, string) Rresult.result
     method dependencies : any_impl list
   end
 

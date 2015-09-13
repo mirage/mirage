@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 open Functoria_misc
+open Rresult
 module Key = Functoria_key
 
 module Info = struct
@@ -65,8 +66,8 @@ module rec Typ : sig
     method packages: string list Key.value
     method libraries: string list Key.value
     method connect : Info.t -> string -> string list -> string
-    method configure: Info.t -> unit
-    method clean: Info.t -> unit
+    method configure: Info.t -> (unit, string) R.t
+    method clean: Info.t -> (unit, string) R.t
     method dependencies : any_impl list
   end
 end = Typ
@@ -93,8 +94,8 @@ class base_configurable = object
   method keys : Key.t list = []
   method connect (_:Info.t) (_:string) l =
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
-  method configure (_ : Info.t) = ()
-  method clean (_ : Info.t)= ()
+  method configure (_ : Info.t) : (unit,string) R.t = R.ok ()
+  method clean (_ : Info.t) : (unit,string) R.t = R.ok ()
   method dependencies : any_impl list = []
 end
 
@@ -120,8 +121,8 @@ class ['ty] foreign
         "@[%s.start@ %a@ >>= fun t -> Lwt.return (`Ok t)@]"
         modname
         Fmt.(list ~sep:sp string)  args
-    method clean _ = ()
-    method configure _ = ()
+    method clean _ = R.ok ()
+    method configure _ = R.ok ()
     method dependencies = []
   end
 

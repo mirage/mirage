@@ -15,6 +15,7 @@
  *)
 
 open Cmdliner
+open Rresult
 open Functoria_misc
 
 module Make (Config : Functoria_sigs.CONFIG) = struct
@@ -83,7 +84,6 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     Format.pp_set_margin Format.err_formatter i ;
     Fmt_tty.setup_std_outputs ()
 
-
   let base_keys = Config.base_keys
 
   let with_config =
@@ -91,6 +91,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       match Term.eval_peek_opts file with
       | _, `Ok config -> config
       | _ -> None
+    in
+    let show_error t _ = match t with
+      | Ok r -> r
+      | Error s -> show_error "%s" s
     in
     let _  = Term.eval_peek_opts base_keys in
     let t = lazy (Config.load config) in
@@ -102,7 +106,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
           f @@ Config.eval t
         | Error err -> f_no err
       in
-      Term.(ret (pure (fun f _ -> f) $ term $ file))
+      Term.(pure show_error $ term $ file)
 
 
   (* CONFIGURE *)
@@ -115,11 +119,11 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     ] in
     let f t =
       let configure no_opam no_opam_version no_depext info =
-        err_cmdliner @@ t#configure info ~no_opam ~no_depext ~no_opam_version in
+        t#configure info ~no_opam ~no_depext ~no_opam_version in
       Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ t#info)
     in
     let f_no err =
-      let f _ _ _ () = `Error (false, err) in
+      let f _ _ _ () = Error err in
       Term.(pure f $ no_opam $ no_opam_version_check $ no_depext $ base_keys)
     in
     with_config f f_no, term_info "configure" ~doc ~man
@@ -150,12 +154,12 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     ] in
     let f t =
       let describe _ filename dotcmd dot eval =
-        `Ok (t#describe ~dotcmd ~dot ~eval filename)
+        R.ok @@ t#describe ~dotcmd ~dot ~eval filename
       in
       Term.(pure describe $ t#info $ output $ dotcmd $ dot $ full_eval)
     in
     let f_no err =
-      let f () = `Error (false, err) in
+      let f () = Error err in
       Term.(pure f $ base_keys)
     in
     with_config f f_no, term_info "describe" ~doc ~man
@@ -169,11 +173,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P build_doc
     ] in
     let f t =
-      let build info = err_cmdliner (t#build info) in
-      Term.(pure build $ t#info)
+      Term.(pure t#build $ t#info)
     in
     let f_no err =
-      let f = `Error (false, err) in
+      let f = Error err in
       Term.(pure f)
     in
     with_config f f_no, term_info "build" ~doc ~man
@@ -188,12 +191,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P clean_doc;
     ] in
     let f t =
-      let clean info =
-        err_cmdliner @@ t#clean info in
-      Term.(pure clean $ t#info)
+      Term.(pure t#clean $ t#info)
     in
     let f_no err =
-      let f _ = `Error (false, err) in
+      let f _ = Error err in
       Term.(pure f $ no_opam)
     in
     with_config f f_no, term_info "clean" ~doc ~man

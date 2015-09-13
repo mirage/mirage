@@ -79,8 +79,8 @@ val remove: string -> unit
 
 val realpath: string -> string
 
-val with_channel : out_channel -> (Format.formatter -> unit) -> unit
-val with_file : string -> (Format.formatter -> unit) -> unit
+val with_channel : out_channel -> (Format.formatter -> 'a) -> 'a
+val with_file : string -> (Format.formatter -> 'a) -> 'a
 
 val with_process_in : string -> (in_channel -> 'a) -> 'a
 val with_process_out : string -> (out_channel -> 'a) -> 'a
@@ -111,8 +111,8 @@ val error :
 val fail: ('a, Format.formatter, unit, 'b) format4 -> 'a
 
 val info: ('a, Format.formatter, unit, unit) format4 -> 'a
-
 val debug: ('a, Format.formatter, unit, unit) format4 -> 'a
+val show_error: ('a, Format.formatter, unit, unit) format4 -> 'a
 
 val blue  : string Fmt.t
 val yellow: string Fmt.t

@@ -94,12 +94,13 @@ let get_section () = !section
 let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
   f ("@[<2>%a@ "^^fmt^^"@]@.") color section
 
-let error_msg f section = in_section ~color:red ~section f
+let error_msg f = in_section ~color:red ~section:"[ERROR]" f
 
 let error fmt = Fmt.kstrf (fun x -> Error x) fmt
-let fail fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) "[ERROR]" fmt
+let fail fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) fmt
 let info fmt  = in_section ~color:green Fmt.pr fmt
 let debug fmt = in_section ~color:green Fmt.pr fmt
+let show_error fmt = error_msg Fmt.pr fmt
 
 
 (** {Process and output} *)
@@ -209,13 +210,15 @@ let with_process_out s f =
 
 let with_channel oc f =
   let ppf = Format.formatter_of_out_channel oc in
-  f ppf ;
-  Format.pp_print_flush ppf ()
+  let x = f ppf in
+  Format.pp_print_flush ppf () ;
+  x
 
 let with_file filename f =
   let oc = open_out filename in
-  with_channel oc f ;
-  close_out oc
+  let x = with_channel oc f in
+  close_out oc ;
+  x
 
 let collect_output cmd =
   try

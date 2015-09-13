@@ -49,8 +49,8 @@ type subconf = <
   packages: string list Key.value ;
   libraries: string list Key.value ;
   connect : Dsl.Info.t -> string -> string list -> string ;
-  configure: Dsl.Info.t -> unit ;
-  clean: Dsl.Info.t -> unit ;
+  configure: Dsl.Info.t -> (unit, string) Rresult.result ;
+  clean: Dsl.Info.t -> (unit, string) Rresult.result ;
 >
 
 type label =
@@ -224,12 +224,12 @@ let explode g v = match G.V.label v, get_children g v with
   | App, (`Args (f::args), `Deps [], None) -> `App (f, args)
   | _ -> assert false
 
-let iter g f =
+let fold f g z =
   if Dfs.has_cycle g then
     invalid_arg "Functoria_graph.iter: A graph should not have cycles." ;
   (* We iter in *reversed* topological order. *)
   let l = Topo.fold (fun x l -> x :: l) g [] in
-  List.iter f l
+  List.fold_left (fun z l -> f l z) z l
 
 let find_all_v g p =
   G.fold_vertex

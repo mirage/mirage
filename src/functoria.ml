@@ -55,11 +55,12 @@ module Devices = struct
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@
        Key.Set.elements @@ Key.Set.filter_stage ~stage:`Run bootvars);
-    Codegen.newline fmt
+    Codegen.newline fmt ;
+    R.ok ()
 
   let clean_keys i =
     let file = String.lowercase Key.module_name ^ ".ml" in
-    remove (Info.root i / file)
+    R.ok @@ remove (Info.root i / file)
 
   let key_name = "bootvar"
 
@@ -122,6 +123,7 @@ module Devices = struct
         let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in
         remove file ;
         remove (file ^".in") ;
+        R.ok ()
 
       method configure i =
         let filename = String.lowercase gen_file_name ^ ".ml" in
@@ -131,7 +133,7 @@ module Devices = struct
           Fmt.pf fmt "@[<v 2>let info = %a@]" pp_dump_info i
         in
         with_file (file^".in") f ;
-        R.get_ok @@ command ~redirect:false "opam config subst %s" filename
+        command ~redirect:false "opam config subst %s" filename
     end
 
 end
@@ -215,7 +217,7 @@ module Engine = struct
       | `Impl (c, `Args args, `Deps _) ->
         let modname = module_name tbl c args in
         G.Tbl.add tbl v modname ;
-        c#configure info ;
+        c#configure info >>| fun () ->
         if args = [] then ()
         else begin
           Codegen.append_main
@@ -225,7 +227,8 @@ module Engine = struct
           Codegen.newline_main ();
         end
     in
-    G.iter g f ;
+    let f v res = res >>= fun () -> f v in
+    G.fold f g @@ R.ok () >>| fun () ->
     tbl
 
 
@@ -268,7 +271,7 @@ module Engine = struct
         Codegen.append_main "%a"
           emit_connect (error, ident, names, c#connect info modname)
     in
-    G.iter g f ;
+    G.fold (fun v () -> f v) g () ;
     let main_name = G.Tbl.find tbl @@ G.find_root g in
     let bootvar_name = G.Tbl.find tbl @@ find_bootvar g in
     Codegen.append_main
@@ -277,13 +280,16 @@ module Engine = struct
     ()
 
   let configure_and_connect info error g =
-    let modtbl = configure info g in
+    configure info g >>| fun modtbl ->
     connect modtbl info error g
 
   let clean i g =
-    G.iter g @@ fun v -> match G.explode g v with
-    | `Impl (c,_,_) -> c#clean i
-    | _ -> ()
+    let f v = match G.explode g v with
+      | `Impl (c,_,_) -> c#clean i
+      | _ -> R.ok ()
+    in
+    let f v res = res >>= fun () -> f v in
+    G.fold f g @@ R.ok ()
 
 end
 
@@ -428,12 +434,12 @@ module Make (P:SPECIALIZED) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Engine.configure_and_connect i P.driver_error jobs;
+    Engine.configure_and_connect i P.driver_error jobs >>| fun () ->
     Codegen.newline_main ();
     ()
 
   let clean_main i jobs =
-    Engine.clean i jobs ;
+    Engine.clean i jobs >>| fun () ->
     remove (Info.root i / "main.ml")
 
   let configure ~no_opam ~no_depext ~no_opam_version i jobs =
@@ -443,8 +449,7 @@ module Make (P:SPECIALIZED) = struct
         then Ok ()
         else configure_opam ~no_depext ~no_opam_version i
       end >>= fun () ->
-      configure_main i jobs;
-      Ok ()
+      configure_main i jobs
     )
 
   let make () =
@@ -462,7 +467,7 @@ module Make (P:SPECIALIZED) = struct
     info "%a %s" blue "Clean:"  (get_config_file ());
     let root = Info.root i in
     in_dir root (fun () ->
-      clean_main i jobs;
+      clean_main i jobs >>= fun () ->
       command "rm -rf %s/_build" root >>= fun () ->
       command "rm -rf log %s/main.native.o %s/main.native %s/*~"
         root root root ;

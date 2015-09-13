@@ -25,8 +25,8 @@ type subconf = <
   packages: string list Key.value ;
   libraries: string list Key.value ;
   connect : Info.t -> string -> string list -> string ;
-  configure: Info.t -> unit ;
-  clean: Info.t -> unit ;
+  configure: Info.t -> (unit, string) Rresult.result ;
+  clean: Info.t -> (unit, string) Rresult.result ;
 >
 (** A subset of {!configurable} with neither polymorphism nor recursion. *)
 
@@ -59,8 +59,8 @@ val is_fully_reduced : t -> bool
 (** [is_fully_reduced g] is true if [g] contains only
     [Impl] vertices. *)
 
-val iter : t -> (vertex -> unit) -> unit
-(** [iter g f] applies [f] on each vertex of [g] in topological order. *)
+val fold : (vertex -> 'a -> 'a) -> t -> 'a -> 'a
+(** [fold f g z] applies [f] on each vertex of [g] in topological order. *)
 
 val find_all : t -> (label -> bool) -> vertex list
 (** [find_all g p] returns all the vertices in [g] such as [p v] is true. *)

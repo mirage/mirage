@@ -17,8 +17,6 @@
 open Functoria_misc
 open Cmdliner
 
-let module_name = "Bootvar_gen"
-
 module Emit = struct
 
   let string fmt s = Format.fprintf fmt "%S" s
@@ -31,14 +29,10 @@ end
 
 module Desc = struct
 
-  type 'a parser = string -> [ `Ok of 'a | `Error of string ]
-  type 'a printer = Format.formatter -> 'a -> unit
-  type 'a converter = 'a parser * 'a printer
-
   type 'a t = {
     description : string ;
     serializer : Format.formatter -> 'a -> unit ;
-    converter : 'a converter ;
+    converter : 'a Cmdliner.Arg.converter ;
   }
 
   let serializer d = d.serializer
@@ -81,16 +75,7 @@ module Desc = struct
     converter = C.option d.converter
   }
 
-  let from_converter description converter =
-    { description ; converter ; serializer = snd converter }
-
 end
-
-type stage = [
-  | `Configure
-  | `Run
-  | `Both
-]
 
 module Doc = struct
 
@@ -117,6 +102,14 @@ module Doc = struct
 
 end
 
+(** {2 Keys} *)
+
+type stage = [
+  | `Configure
+  | `Run
+  | `Both
+]
+
 type 'a key = {
   name : string ;
   stage : stage ;
@@ -126,12 +119,7 @@ type 'a key = {
   mutable value : 'a option ;
 }
 
-let create ?doc ?(stage=`Both) ~default name desc =
-  let docv = String.uppercase name in
-  let doc = Doc.create ~docv ?doc [name] in
-  { doc; name; value = None ; default ; desc ; stage }
-
-let create_raw ~doc ~stage ~default name desc =
+let create ?(stage=`Both) ~doc ~default name desc =
   { doc ; stage ; default ; desc ; value = None ; name }
 
 let desc k = k.desc
@@ -144,11 +132,26 @@ let set k x =
   k.value <- Some x
 
 
-module M = struct
-  type t = Any : 'a key -> t
-  let compare (Any k1) (Any k2) = compare k1.name k2.name
+module Set = struct
+  type elt = Any : 'a key -> elt
+  module M = struct
+    type t = elt
+    let compare (Any k1) (Any k2) = compare k1.name k2.name
+  end
+  include (Set.Make (M) : Set.S with type elt := elt)
+
+  let add k set =
+    if mem k set then
+      if k != find k set then
+        let Any k' = k in
+        fail "Duplicate key name: %S" k'.name
+      else
+        set
+    else
+      add k set
+
 end
-include M
+type t = Set.elt = Any : 'a key -> t
 
 let hide x = Any x
 let name (Any k) = k.name
@@ -163,52 +166,15 @@ let is_configure k = match stage k with
   | `Configure | `Both -> true
   | `Run -> false
 
-let resolved { value } = value <> None
+let filter_stage ~stage set =
+  match stage with
+  | `Run -> Set.filter is_runtime set
+  | `Configure -> Set.filter is_configure set
+  | `Both -> set
 
-module Set = struct
-  include Set.Make (M)
+let is_resolved { value } = value <> None
 
-  let add k set =
-    if mem k set then
-      if k != find k set then
-        let Any k' = k in
-        fail "Duplicate key name: %S" k'.name
-      else
-        set
-    else
-      add k set
-
-  let filter_stage ~stage set =
-    match stage with
-    | `Run -> filter is_runtime set
-    | `Configure -> filter is_configure set
-    | `Both -> set
-end
-
-
-
-let term_key (Any ({ doc; desc; default } as t)) =
-  let i = Doc.to_cmdliner doc in
-  (* We don't want to set the value if the option is not given.
-     We still want to show the default value in the help. *)
-  let default = Fmt.strf "%a" (snd @@ Desc.converter desc) default in
-  let c = Arg.some ~none:default desc.converter in
-  let set w = t.value <- w in
-  Term.(pure set $ Arg.(value & opt c None i))
-
-let term ?(stage=`Both) l =
-  let gather k rest = Term.(pure (fun () () -> ()) $ term_key k $ rest) in
-  Set.fold gather (Set.filter_stage ~stage l) (Term.pure ())
-
-
-
-let serialize fmt (Any k) =
-  let v = get k in
-  Format.fprintf fmt "%a" (Desc.serializer @@ desc k) v
-
-let describe fmt (Any { desc ; _ }) =
-  Format.fprintf fmt "%s" desc.description
-
+(** {2 Values} *)
 
 type +'a value = {
   deps : Set.t ;
@@ -226,32 +192,61 @@ let app f x = {
 let map f x = app (pure f) x
 let pipe x f = map f x
 let if_ c t e =
-  map (fun b -> if b then t else e) c
+  pipe c @@ fun b -> if b then t else e
 
 let ($) = app
 let with_deps ~keys { deps ; v } =
   { deps = Set.(union deps keys) ; v }
 
-
 let value k =
-  let v () =
-    match k.value with
-    | None -> k.default
-    | Some s -> s
-  in
+  let v () = get k in
   { deps = Set.singleton (Any k) ; v }
 
 let deps k = k.deps
 
 let peek { deps ; v } =
-  if Set.for_all (fun (Any x) -> resolved x) deps then Some (v ()) else None
+  if Set.for_all (fun (Any x) -> is_resolved x) deps then Some (v ()) else None
 
+(** {2 Pretty printing} *)
+
+let pp fmt k = Fmt.string fmt (name k)
+
+let pp_deps fmt v =
+  Fmt.(iter Set.iter ~sep:(unit ", ") pp) fmt v.deps
+
+
+(** {2 Cmdliner interface} *)
+
+let term_key (Any ({ doc; desc; default } as t)) =
+  let i = Doc.to_cmdliner doc in
+  (* We don't want to set the value if the option is not given.
+     We still want to show the default value in the help. *)
+  let default = Fmt.strf "%a" (snd @@ Desc.converter desc) default in
+  let c = Arg.some ~none:default desc.converter in
+  let set w = t.value <- w in
+  Term.(pure set $ Arg.(value & opt c None i))
+
+let term ?(stage=`Both) l =
+  let gather k rest = Term.(pure (fun () () -> ()) $ term_key k $ rest) in
+  Set.fold gather (filter_stage ~stage l) (Term.pure ())
 
 let term_value ?stage { deps ; v } =
   Term.(pure v $ term ?stage deps)
 
+
+(** {2 Code emission} *)
+
+let module_name = "Bootvar_gen"
+
+let serialize fmt (Any k) =
+  Format.fprintf fmt "%a" (Desc.serializer @@ desc k) @@ get k
+
+let describe fmt (Any { desc ; _ }) =
+  Format.fprintf fmt "%s" desc.description
+
 let ocaml_name k = Name.ocamlify (name k)
-let pp_meta fmt k =
+
+let emit_call fmt k =
   Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 
 let emit_rw fmt k =
@@ -272,8 +267,3 @@ let emit fmt k =
   if is_runtime k
   then emit_rw fmt k
   else emit_ro fmt k
-
-let pp fmt k = Fmt.string fmt (name k)
-
-let pp_deps fmt v =
-  Fmt.(iter Set.iter ~sep:(unit ", ") pp) fmt v.deps

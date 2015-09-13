@@ -14,33 +14,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Support for setting configuration parameters via the command-line.
+(** Command line parameters. *)
 
-    [Functoria_key] is used by the [Functoria] and [Functoria_tool] modules to:
-
-    - Construct [Cmdliner.Term.t]'s corresponding to used configuration keys in
-      order to be able to set them at compile-time (see {!Main.configure}).
-
-    - Generate a [bootvar.ml] file during configuration containing necessary
-      code to do the same at run-time. *)
-
+(** Description of keys. *)
 module Desc : sig
 
-  type 'a parser = string -> [ `Ok of 'a | `Error of string ]
-  type 'a printer = Format.formatter -> 'a -> unit
-  type 'a converter = 'a parser * 'a printer
-
   type 'a t
+  (** A complete description *)
 
-  val serializer : 'a t -> Format.formatter -> 'a -> unit
-  val description :  'a t -> string
-  val converter : 'a t -> 'a converter
-
+  (** To create a description we need:
+      @param converter A cmdliner converter.
+      @param description The identifier of the runtime description of the key. See {!Functoria_runtime.Desc.t}.
+      @param serializer A serialization function output the value as OCaml code.
+  *)
   val create :
     serializer:(Format.formatter -> 'a -> unit) ->
-    converter:'a converter ->
+    converter:'a Cmdliner.Arg.converter ->
     description:string ->
     'a t
+
+  (** {2 Predefined descriptions} *)
 
   val string : string t
   val bool : bool t
@@ -48,68 +41,140 @@ module Desc : sig
   val list : 'a t -> 'a list t
   val option : 'a t -> 'a option t
 
-  val from_converter : string -> 'a converter -> 'a t
+  (** {2 Accessors} *)
+
+  val serializer : 'a t -> Format.formatter -> 'a -> unit
+  val description :  'a t -> string
+  val converter : 'a t -> 'a Cmdliner.Arg.converter
+
 
 end
 
+(** Documentation of keys. *)
 module Doc : sig
 
   type t
 
+  (** Create a documentation. See {!Cmdliner.Arg.info} for details. *)
   val create : ?docs:string -> ?docv:string -> ?doc:string -> string list -> t
+
   val to_cmdliner : t -> Cmdliner.Arg.info
+
+  (** Emit the documentation as OCaml code. *)
   val emit : Format.formatter -> t -> unit
 
 end
 
+module Set : Set.S
+(** A Set of keys. *)
 
+
+type +'a value
+(** Value available at configure time.
+    Values have dependencies, which are a set of keys.
+
+    Values are resolved to their content when all
+    their dependencies are resolved.
+*)
+
+val pure : 'a -> 'a value
+(** [pure x] is a value without any dependency. *)
+
+val app : ('a -> 'b) value -> 'a value -> 'b value
+(** [app f x] is the value resulting from the application of [f] to [v].
+    Its dependencies are the union of the dependencies. *)
+
+val ($) : ('a -> 'b) value -> 'a value -> 'b value
+(** [f $ v] is [app f v]. *)
+
+val map : ('a -> 'b) -> 'a value -> 'b value
+(** [map f v] is [pure f $ v]. *)
+
+val pipe : 'a value -> ('a -> 'b) -> 'b value
+(** [pipe v f] is [map f v]. *)
+
+val if_ : bool value -> 'a -> 'a -> 'a value
+(** [if_ v x y] is [pipe v @@ fun b -> if b then x else y]. *)
+
+val with_deps : keys:Set.t -> 'a value -> 'a value
+(** [with_deps deps v] is the value [v] with added dependencies. *)
+
+type 'a key
+(** Keys are dynamic values that can be used to
+    - Set options at configure and runtime on the command line.
+    - Switch implementation dynamically, using {!Functoria_dsl.if_impl}.
+
+    Their content is then made available at runtime in the [Bootvar_gen] module.
+
+    Keys are resolved to their content during command line parsing.
+*)
+
+val value : 'a key -> 'a value
+(** [value k] is the value which depends on [k] and will take its content. *)
 
 type stage = [
   | `Configure
   | `Run
   | `Both
 ]
+(** The stage at which a key is available. This will influence when a key will
+    be available on the command line. *)
 
-type 'a key
-(** The type of configuration keys that can be set on the command-line. *)
-
-val create : ?doc:string -> ?stage:stage -> default:'a -> string -> 'a Desc.t -> 'a key
+val create : ?stage:stage -> doc:Doc.t -> default:'a -> string -> 'a Desc.t -> 'a key
 (** [create ~doc ~stage ~default name desc] creates a new configuration key with
     docstring [doc], default value [default], name [name] and type descriptor
-    [desc].  It is an error to use more than one key with the same [name]. *)
-
-val create_raw : doc:Doc.t -> stage:stage -> default:'a -> string -> 'a Desc.t -> 'a key
+    [desc]. Default [stage] is [`Both].
+    It is an error to use more than one key with the same [name]. *)
 
 val set : 'a key -> 'a -> unit
-(** Allow to set the value of a key. *)
+(** [set key v] sets the value of [key] to [v]. *)
 
-type t = Any : 'a key -> t
+(** {2 Oblivious keys} *)
+
+type t = Set.elt
+(** Keys which types has been forgotten. *)
 
 val hide : 'a key -> t
+(** Hide the type of keys. Allows to put them in a set/list. *)
 
-val compare : t -> t -> int
-(** [compare k1 k2] is [compare (name k1) (name k2)]. *)
+(** {2 Advanced functions} *)
 
-module Set : sig
-  include Set.S with type elt = t
-  include Functoria_misc.Monoid with type t := t
-  val filter_stage : stage:[< `Both | `Configure | `Run ] -> t -> t
-end
+val pp : t Fmt.t
+(** [pp fmt k] prints the name of [k]. *)
 
-val name : t -> string
+val pp_deps : 'a value Fmt.t
+(** [pp_deps fmt v] prints the name of the dependencies of [v]. *)
 
-val ocaml_name : t -> string
-(** [name k] is just [ocamlify k.name].  Two keys [k1] and [k2] are considered
-    equal if [name k1 = name k2]. *)
+val deps : 'a value -> Set.t
+(** [deps v] is the dependencies of [v]. *)
 
-val pp_meta : t Fmt.t
-(** [pp_meta fmt key] prints the code needed to get the value of a key. *)
+val peek : 'a value -> 'a option
+(** [peek v] returns [Some x] if [v] has been resolved to [x]
+    and [None] otherwise. *)
 
-val stage : t -> stage
+(** {3 Accessors} *)
 
 val is_runtime : t -> bool
-val is_configure : t -> bool
+(** [is_runtime k] is true if [k]'s stage is [`Run] or [`Both]. *)
 
+val is_configure : t -> bool
+(** [is_configure k] is true if [k]'s stage is [`Configure] or [`Both]. *)
+
+val filter_stage : stage:[< `Both | `Configure | `Run ] -> Set.t -> Set.t
+(** [filter_stage ~stage set] filters [set] with the appropriate keys. *)
+
+(** {3 Code emission} *)
+
+val ocaml_name : t -> string
+(** [ocaml_name k] is the ocaml name of [k]. *)
+
+val emit_call : t Fmt.t
+(** [emit_call fmt k] prints the OCaml code needed to get the value of [k]. *)
+
+val emit : t Fmt.t
+(** [emit fmt k] prints the OCaml code needed to define [k]. *)
+
+(** {3 Cmdliner} *)
 
 val term_key : t -> unit Cmdliner.Term.t
 (** [term_key k] is a [Cmdliner.Term.t] that, when evaluated, sets the value
@@ -119,39 +184,13 @@ val term : ?stage:stage -> Set.t -> unit Cmdliner.Term.t
 (** [term l] is a [Cmdliner.Term.t] that, when evaluated, sets the value of the
     the keys in [l]. *)
 
-type 'a value
-
-val with_deps : keys:Set.t -> 'a value -> 'a value
-val pure : 'a -> 'a value
-val value : 'a key -> 'a value
-val app : ('a -> 'b) value -> 'a value -> 'b value
-val ($) : ('a -> 'b) value -> 'a value -> 'b value
-val map : ('a -> 'b) -> 'a value -> 'b value
-val pipe : 'a value -> ('a -> 'b) -> 'b value
-val if_ : bool value -> 'a -> 'a -> 'a value
-
-val deps : 'a value -> Set.t
-
-val peek : 'a value -> 'a option
-
-val eval : 'a value -> 'a
-
 val term_value : ?stage:stage -> 'a value -> 'a Cmdliner.Term.t
+(** [term_value v] is [term @@ deps v] and returns the content of [v]. *)
 
-val serialize : Format.formatter -> t -> unit
-(** [serialize () k] returns a string [s] such that if [k.v] is [V (_, r)],
-    then evaluating the contents of [s] will produce the value [!r]. *)
-
-val describe : Format.formatter -> t -> unit
-(** [describe () k] returns a string [s] such that if [k.v] is [V (d, _)],
-    then evaluating the contents of [s] will produce the value [d]. *)
-
-val emit : Format.formatter -> t -> unit
-
-val pp_deps : 'a value Fmt.t
-
-(**/*)
+(**/**)
 
 val get : 'a key -> 'a
+val eval : 'a value -> 'a
 
 val module_name : string
+(** Name of the generated module containing the keys. *)

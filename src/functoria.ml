@@ -37,7 +37,7 @@ module Devices = struct
       method name = "argv"
       method module_name = "Sys"
       method connect _info _m _ =
-        "Lwt.return (`Ok Sys.argv)"
+        "return (`Ok Sys.argv)"
     end
 
   (** Keys *)
@@ -71,11 +71,13 @@ module Devices = struct
       method module_name = Key.module_name
       method configure = configure_keys
       method clean = clean_keys
+      method libraries = Key.pure [ "functoria.runtime" ]
+      method packages = Key.pure [ "functoria" ]
       method dependencies = [ hide argv ]
       method connect info modname = function
         | [ argv ] ->
           Fmt.strf
-            "Functoria_runtime.with_argv %s.runtime_keys %S %s"
+            "return (Functoria_runtime.with_argv %s.runtime_keys %S %s)"
             modname (Info.name info) argv
         | _ -> failwith "The keys connect should receive exactly one argument."
     end
@@ -117,7 +119,7 @@ module Devices = struct
       method packages = Key.pure ["functoria"]
 
       method connect _ modname _ =
-        Fmt.strf "Lwt.return (`Ok %s.info)" modname
+        Fmt.strf "return (`Ok %s.info)" modname
 
       method clean i =
         let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in

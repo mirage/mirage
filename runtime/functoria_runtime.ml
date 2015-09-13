@@ -64,5 +64,5 @@ let with_argv keys s argv =
   let gather k rest = Term.(pure (fun () () -> ()) $ k $ rest) in
   let t = List.fold_right gather keys (Term.pure ()) in
   match Term.(eval ~argv (t, info s)) with
-  | `Ok _ -> Lwt.return (`Ok ())
-  | _ -> Lwt.return (`Error "cmdliner")
+  | `Ok _ -> `Ok ()
+  | _ -> `Error "cmdliner"

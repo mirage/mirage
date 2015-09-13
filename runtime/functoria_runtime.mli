@@ -52,4 +52,4 @@ end
     [s] is the name of the cmdline executable. *)
 val with_argv :
   unit Cmdliner.Term.t list -> string -> string array ->
-  [> `Error of string | `Ok of unit ] Lwt.t
+  [> `Error of string | `Ok of unit ]

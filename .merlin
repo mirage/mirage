@@ -1,7 +1,7 @@
 B _build/*
 S src/*
 S runtime/*
-PKG unix dynlink cmdliner rresult fmt lwt ocamlgraph
+PKG unix dynlink cmdliner rresult fmt ocamlgraph
 
 FLG -w +A-4-6-7-9-40-42-44-48
 FLG -w -32-34-37

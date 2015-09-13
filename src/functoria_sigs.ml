@@ -58,6 +58,12 @@ module type CORE = sig
   val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
   (** [m $ a] applies the functor [m] to the module [a]. *)
 
+  type any_impl = Any : _ impl -> any_impl
+  (** Type of an implementation, with its type variable hidden. *)
+
+  val hide : _ impl -> any_impl
+  (** Hide the type variable of an implementation. Useful for dependencies. *)
+
   (** {2 Key usage} *)
 
   (** Key creation and manipulation. *)
@@ -80,7 +86,9 @@ module type CORE = sig
   val foreign:
     ?keys:Key.t list ->
     ?libraries:string list ->
-    ?packages:string list -> string -> 'a typ -> 'a impl
+    ?packages:string list ->
+    ?dependencies:any_impl list ->
+    string -> 'a typ -> 'a impl
   (** [foreign name libs packs constr typ] states that the module named
         by [name] has the module type [typ]. If [libs] is set, add the
         given set of ocamlfind libraries to the ones loaded by default. If
@@ -105,12 +113,6 @@ module type CORE = sig
     val packages : t -> Functoria_misc.StringSet.t
     val keys : t -> Key.Set.t
   end
-
-  type any_impl = Any : _ impl -> any_impl
-  (** Type of an implementation, with its type variable hidden. *)
-
-  val hide : _ impl -> any_impl
-  (** Hide the type variable of an implementation. Useful for dependencies. *)
 
   (** Signature for configurable devices. *)
   class type ['ty] configurable = object

@@ -104,7 +104,7 @@ type job = JOB
 let job = Type JOB
 
 class ['ty] foreign
-    ?(keys=[]) ?(libraries=[]) ?(packages=[])
+    ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(dependencies=[])
     module_name ty
   : ['ty] configurable
   =
@@ -123,11 +123,11 @@ class ['ty] foreign
         Fmt.(list ~sep:sp string)  args
     method clean _ = R.ok ()
     method configure _ = R.ok ()
-    method dependencies = []
+    method dependencies = dependencies
   end
 
-let foreign ?keys ?libraries ?packages module_name ty =
-  Impl (new foreign ?keys ?libraries ?packages module_name ty)
+let foreign ?keys ?libraries ?packages ?dependencies module_name ty =
+  Impl (new foreign ?keys ?libraries ?packages ?dependencies module_name ty)
 
 
 module ImplTbl = struct

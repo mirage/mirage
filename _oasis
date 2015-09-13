@@ -18,8 +18,8 @@ Library mirage
   CompiledObject:     best
   Path:               lib
   Findlibname:        mirage
-  Modules:            Mirage
-  InternalModules:    Mirage_key, Mirage_version
+  Modules:            Mirage, Mirage_key
+  InternalModules:    Mirage_version
   BuildDepends:
     ipaddr,functoria,mirage.runtime
 
@@ -30,9 +30,12 @@ Executable mirage
   Install:            true
   BuildDepends:       mirage,functoria
 
+AlphaFeatures: ocamlbuild_more_args
 Document "mirage"
   Title:                Mirage docs
   Type:                 OCamlbuild (0.4)
   BuildTools+:          ocamldoc
-  XOCamlbuildPath:      lib
-  XOCamlbuildLibraries: mirage
+  XOCamlbuildPath:      .
+  XOCamlbuildLibraries: mirage, mirage.runtime
+  XOCamlbuildExtraArgs:
+    "-docflags '-colorize-code -short-functors -charset utf-8'"

@@ -52,6 +52,14 @@ val register :
   ?keys:Key.t list ->
   ?libraries:string list ->
   ?packages:string list -> string -> job impl list -> unit
+    (** [register name jobs] registers the application named by [name]
+        which will executes the given [jobs].
+        @param libraries The ocamlfind libraries needed by this module.
+        @param packages The opam packages needed by this module.
+        @param keys The keys related to this module.
+
+        @param tracing Enable tracing and give a default depth.
+    *)
 
 
 (** {2 Time} *)
@@ -60,7 +68,7 @@ type time
 (** Abstract type for timers. *)
 
 val time: time typ
-(** The [V1.TIME] module signature. *)
+(** Implementations of the [V1.TIME] signature. *)
 
 val default_time: time impl
 (** The default timer implementation. *)
@@ -73,7 +81,7 @@ type clock
 (** Abstract type for clocks. *)
 
 val clock: clock typ
-(** The [V1.CLOCK] module signature. *)
+(** Implementations of the [V1.CLOCK] signature. *)
 
 val default_clock: clock impl
 (** The default mirage-clock implementation. *)
@@ -86,7 +94,7 @@ type random
 (** Abstract type for random sources. *)
 
 val random: random typ
-(** The [V1.RANDOM] module signature. *)
+(** Implementations of the [V1.RANDOM] signature. *)
 
 val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
@@ -94,13 +102,11 @@ val default_random: random impl
 
 (** {2 Consoles} *)
 
-(** Implementations of the [V1.CONSOLE] signature. *)
-
 type console
 (** Abstract type for consoles. *)
 
 val console: console typ
-(** The [V1.CONSOLE] module signature. *)
+(** Implementations of the [V1.CONSOLE] signature. *)
 
 val default_console: console impl
 (** Default console implementation. *)
@@ -116,7 +122,7 @@ type io_page
 (** Abstract type for page-aligned buffers. *)
 
 val io_page: io_page typ
-(** The [V1.IO_PAGE] module signature. *)
+(** Implementations of the [V1.IO_PAGE] signature. *)
 
 val default_io_page: io_page impl
 (** The default [Io_page] implementation. *)
@@ -125,13 +131,12 @@ val default_io_page: io_page impl
 
 (** {2 Block devices} *)
 
-(** Implementations of the [V1.BLOCK] signature. *)
 
 type block
 (** Abstract type for raw block device configurations. *)
 
 val block: block typ
-(** The [V1.BLOCK] module signature. *)
+(** Implementations of the [V1.BLOCK] signature. *)
 
 val block_of_file: string -> block impl
 (** Use the given filen as a raw block device. *)
@@ -140,13 +145,11 @@ val block_of_file: string -> block impl
 
 (** {2 Static key/value stores} *)
 
-(** Implementations of the [V1.KV_RO] signature. *)
-
 type kv_ro
 (** Abstract type for read-only key/value store. *)
 
 val kv_ro: kv_ro typ
-(** The [V1.KV_RO] module signature. *)
+(** Implementations of the [V1.KV_RO] signature. *)
 
 val crunch: string -> kv_ro impl
 (** Crunch a directory. *)
@@ -163,13 +166,12 @@ val direct_kv_ro: string -> kv_ro impl
 
 (** {2 Filesystem} *)
 
-(** Implementations of the [V1.FS] signature. *)
 
 type fs
 (** Abstract type for filesystems. *)
 
 val fs: fs typ
-(** The [V1.FS] module signature. *)
+(** Implementations of the [V1.FS] signature. *)
 
 val fat: ?io_page:io_page impl -> block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
@@ -188,13 +190,12 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 
 (** {2 Network interfaces} *)
 
-(** Implementations of the [V1.NETWORK] signature. *)
 
 type network
 (** Abstract type for network configurations. *)
 
 val network: network typ
-(** Representation of [Mirage_types.NETWORK]. *)
+(** Implementations of the [V1.NETWORK] signature. *)
 
 val tap0: network impl
 (** The '/dev/tap0' interface. *)
@@ -206,29 +207,33 @@ val netif: ?group:string -> string -> network impl
 
 (** {2 Ethernet configuration} *)
 
-(** Implementations of the [V1.ETHIF] signature. *)
 type ethernet
+
 val ethernet : ethernet typ
+(** Implementations of the [V1.ETHIF] signature. *)
+
 val etif: network impl -> ethernet impl
 
 (** {2 ARP configuration} *)
 
-(** Implementation of the [V1.ARPV4] signature. *)
 type arpv4
+
 val arpv4 : arpv4 typ
+(** Implementation of the [V1.ARPV4] signature. *)
+
 val arp: ?clock: clock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
 
-(** {2 IP configuration} *)
+(** {2 IP configuration}
 
-(** Implementations of the [V1.IP] signature. *)
+    Implementations of the [V1.IP] signature. *)
 
 type v4
 type v6
 
+(** Abstract type for IP configurations. *)
 type 'a ip
 type ipv4 = v4 ip
 type ipv6 = v6 ip
-(** Abstract type for IP configurations. *)
 
 val ipv4: ipv4 typ
 (** The [V1.IPV4] module signature. *)
@@ -271,47 +276,50 @@ val create_ipv6:
 
 
 
-(** {UDP configuration} *)
-
-(** Implementation of the [V1.UDP] signature. *)
+(** {2 UDP configuration} *)
 
 type 'a udp
 type udpv4 = v4 udp
 type udpv6 = v6 udp
+
+(** Implementation of the [V1.UDP] signature. *)
 val udp: 'a udp typ
 val udpv4: udpv4 typ
 val udpv6: udpv6 typ
+
 val direct_udp: 'a ip impl -> 'a udp impl
+
 val socket_udpv4: ?group:string -> Ipaddr.V4.t option -> udpv4 impl
 
 
 
-(** {TCP configuration} *)
-
-(** Implementation of the [V1.TCP] signature. *)
+(** {2 TCP configuration} *)
 
 type 'a tcp
 type tcpv4 = v4 tcp
 type tcpv6 = v6 tcp
+
+(** Implementation of the [V1.TCP] signature. *)
 val tcp: 'a tcp typ
 val tcpv4: tcpv4 typ
 val tcpv6: tcpv6 typ
+
 val direct_tcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
   'a ip impl -> 'a tcp impl
+
 val socket_tcpv4: ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
 
 
 
-(** {Network stack configuration} *)
-
-(** Implementation of the [V1.STACKV4] signature. *)
+(** {2 Network stack configuration} *)
 
 type stackv4
 
 val stackv4: stackv4 typ
+(** Implementation of the [V1.STACKV4] signature. *)
 
 (** Same as {!direct_stackv4_with_static_ipv4} with the default given by
     {!default_ipv4}. *)
@@ -351,7 +359,7 @@ val socket_stackv4:
 val generic_stackv4 :
   ?group:string -> console impl -> network impl -> stackv4 impl
 
-(** {Resolver configuration} *)
+(** {2 Resolver configuration} *)
 
 type resolver
 val resolver: resolver typ
@@ -359,19 +367,19 @@ val resolver_dns :
   ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?time:time impl -> stackv4 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
-(** {Conduit configuration} *)
+(** {2 Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
 val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
 
-(** {HTTP configuration} *)
+(** {2 HTTP configuration} *)
 
 type http
 val http: http typ
 val http_server: conduit impl -> http impl
 
-(** {Argv configuration} *)
+(** {2 Argv configuration} *)
 
 val argv: Functoria.Devices.argv impl
 (** Dynamic argv implementation that resolves either to

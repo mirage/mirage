@@ -33,9 +33,9 @@ val is_xen: bool value
 val tracing: int key
 (** [--tracing LEVEL]: Key setting the tracing level. Is an integer *)
 
-(** {2 Generic keys} *)
+(** {2 Generic keys}
 
-(** Some keys have a [group] optional argument. This group argument allows to
+    Some keys have a [group] optional argument. This group argument allows to
     give several keys a prefix.
 
     For example, if we have two [ip] stacks, one external and one internal,
@@ -45,9 +45,8 @@ val tracing: int key
     If a key has another, non-optional argument. It is the default value.
 
     Keys are always named the same as their command line option.
-*)
 
-(** {3 Stack keys} *)
+    {3 Stack keys} *)
 
 val dhcp : ?group:string -> unit -> bool key
 (** Enable dhcp. Is either [true] or [false]. *)

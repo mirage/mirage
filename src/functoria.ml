@@ -54,7 +54,7 @@ module Devices = struct
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@
-       Key.Set.elements @@ Key.Set.filter_stage ~stage:`Run bootvars);
+       Key.Set.elements @@ Key.filter_stage ~stage:`Run bootvars);
     Codegen.newline fmt ;
     R.ok ()
 
@@ -324,7 +324,7 @@ module Config = struct
     let keys = Key.Set.union keys @@ Engine.keys e in
     let di =
       pure (fun libraries packages ->
-        {Info. libraries ; packages ; keys ; name = n ; root})
+        Info.create ~libraries ~packages ~keys ~name:n ~root)
       $ libraries
       $ packages
     in
@@ -560,25 +560,12 @@ module Make (P:SPECIALIZED) = struct
       end
   end
 
-  include Dsl
-
   let launch () =
     let module M = Functoria_tool.Make(C) in
     ()
 
 end
 
-module type S = Functoria_sigs.S
-  with module Key := Functoria_key
-   and module Info := Info
-   and type 'a impl = 'a impl
-   and type 'a typ = 'a typ
-   and type any_impl = any_impl
-   and type job = job
-   and type 'a configurable = 'a configurable
 
-module type KEY = Functoria_sigs.KEY
-  with type 'a key = 'a Key.key
-   and type 'a value = 'a Key.value
-   and type t = Key.t
-   and type Set.t = Key.Set.t
+module type S = module type of Dsl
+module type KEY = module type of Dsl.Key

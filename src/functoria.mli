@@ -16,10 +16,9 @@
  *)
 
 (** Configuration library. *)
-open Functoria_sigs
 
-module Dsl :
-  CORE with module Key = Functoria_key
+(** Core functoria DSL *)
+module Dsl = Functoria_dsl
 
 (** Various generic devices. *)
 module Devices : sig
@@ -44,7 +43,9 @@ module Devices : sig
   val info : info typ
 
   val export_info : info impl
-  (** Export all the information available at configure time to runtime. *)
+  (** Export all the information available at configure time to runtime.
+      It produces, at runtime, a {!Functoria_info.info}.
+  *)
 
 end
 
@@ -61,8 +62,6 @@ module type SPECIALIZED = sig
       - a [run] function of type ['a t -> 'a]
       - a [return] function of type ['a -> 'a t]
       - a [>>=] operator of type ['a t -> ('a -> 'b t) -> 'b t]
-
-      for [type 'a t = [ `Ok of | `Error of string ] Lwt.t]
   *)
 
   val name : string
@@ -84,25 +83,21 @@ module type SPECIALIZED = sig
 
 end
 
-module type S = Functoria_sigs.S
-  with module Key := Dsl.Key
-   and module Info := Dsl.Info
-   and type 'a impl = 'a Dsl.impl
-   and type 'a typ = 'a Dsl.typ
-   and type any_impl = Dsl.any_impl
-   and type job = Dsl.job
-   and type 'a configurable = 'a Dsl.configurable
-
-module type KEY = Functoria_sigs.KEY
-  with type 'a key = 'a Dsl.Key.key
-   and type 'a value = 'a Dsl.Key.value
-   and type t = Dsl.Key.t
-   and type Set.t = Dsl.Key.Set.t
-
 (** Create a configuration engine for a specialized dsl. *)
 module Make (P : SPECIALIZED) : sig
+  open Dsl
 
-  include S
+  val register:
+    ?keys:Key.t list ->
+    ?libraries:string list ->
+    ?packages:string list ->
+    string -> job impl list -> unit
+    (** [register name jobs] registers the application named by [name]
+        which will executes the given [jobs].
+        @param libraries The ocamlfind libraries needed by this module.
+        @param packages The opam packages needed by this module.
+        @param keys The keys related to this module.
+    *)
 
   val launch : unit -> unit
   (** Launch the cmdliner application.
@@ -110,3 +105,6 @@ module Make (P : SPECIALIZED) : sig
   *)
 
 end
+
+module type S = module type of Dsl
+module type KEY = module type of Dsl.Key

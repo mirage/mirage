@@ -21,9 +21,9 @@ Library functoria
   Findlibname:     functoria
   Modules:
     Functoria,
-    Functoria_misc, Functoria_key,
-    Functoria_sigs
-  InternalModules: Functoria_tool, Functoria_dsl, Functoria_graph
+    Functoria_misc, Functoria_key, Functoria_dsl
+  InternalModules:
+    Functoria_tool, Functoria_sigs, Functoria_graph
   BuildDepends:
     unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,ocamlgraph
 

@@ -160,19 +160,19 @@ let create impl =
       if H.mem tbl @@ Dsl.hide impl
       then H.find tbl (Dsl.hide impl), g
       else
-        let v, g = match impl with
-          | Dsl.Impl c ->
+        let v, g = match Dsl.explode impl with
+          | `Impl c ->
             let deps, g =
               List.fold_right
                 (fun (Dsl.Any x) (l,g) -> let v, g = aux g x in v::l, g)
                 c#dependencies ([], g)
             in
             add_impl g ~impl:(c :> subconf) ~args:[] ~deps
-          | Dsl.If (cond, then_, else_) ->
+          | `If (cond, then_, else_) ->
             let then_, g = aux g then_ in
             let else_, g = aux g else_ in
             add_if g ~cond ~then_ ~else_
-          | Dsl.App {f; x} ->
+          | `App (Dsl.Any f , Dsl.Any x) ->
             let f, g = aux g f in
             let x, g = aux g x in
             add_app g ~f ~x
@@ -350,10 +350,12 @@ module Dot = Graphviz.Dot(struct
       | Impl f ->
         let label =
           Fmt.strf
-            "%s<br />%s"
+            "%s\n%s\n%a"
             f#name f#module_name
+            Fmt.(list ~sep:(unit ", ") Key.pp)
+            f#keys
         in
-        [ `HtmlLabel label ;
+        [ `Label label ;
           `Shape `Box ;
         ]
 

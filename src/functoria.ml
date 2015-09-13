@@ -97,6 +97,60 @@ module Devices = struct
       method dependencies = List.map hide jobs
     end
 
+  (** Module emiting a file containing all the build information. *)
+
+  type info = Info
+  let info = Type Info
+
+  let pp_libraries fmt l =
+    Fmt.pf fmt "StringSet.of_list [@ %a]"
+      Fmt.(iter ~sep:(unit ";@ ") StringSet.iter @@ fmt "%S") l
+
+  let pp_packages fmt l =
+    Fmt.pf fmt
+      "@ List.fold_left (fun set (k,v) -> StringMap.add k v set) StringMap.empty \
+       [@ %a]"
+      Fmt.(iter ~sep:(unit ";@ ") StringSet.iter @@
+        (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x))
+      l
+
+  let pp_dump_info fmt i =
+    Fmt.pf fmt
+      "Functoria_info.{@ name = %S;@ \
+       @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
+      (Info.name i)
+      pp_packages (Info.packages i)
+      pp_libraries (Info.libraries i)
+
+  let export_info = impl @@ object
+      inherit base_configurable
+      method ty = info
+      method name = "info"
+
+      val modname = "Functoria_info"
+      method module_name = modname
+
+      method libraries = Key.pure ["functoria.runtime"]
+      method packages = Key.pure ["functoria"]
+
+      method connect _ modname _ =
+        Fmt.strf "Lwt.return (`Ok %s.info)" modname
+
+      method clean i =
+        let file = Info.root i / (String.lowercase modname ^ ".ml") in
+        remove file ;
+        remove (file ^".in") ;
+
+      method configure i =
+        let filename = String.lowercase modname ^ ".ml" in
+        let file = Info.root i / filename in
+        Misc.info "%a %s" blue "Generating: " filename ;
+        let f fmt =
+          Fmt.pf fmt "@[<v 2>let info = %a@]" pp_dump_info i
+        in
+        with_file (file^".in") f ;
+        R.get_ok @@ command ~redirect:false "opam config subst %s" filename
+    end
 
 end
 

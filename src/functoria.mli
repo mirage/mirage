@@ -38,6 +38,14 @@ module Devices : sig
   val keys : argv impl -> job impl
   (** This device takes an [argv] device, calls cmdliner and sets up keys. *)
 
+  (** {2 Information device} *)
+
+  type info
+  val info : info typ
+
+  val export_info : info impl
+  (** Export all the information available at configure time to runtime. *)
+
 end
 
 (** Various helpful functions. *)

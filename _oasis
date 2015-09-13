@@ -11,7 +11,7 @@ Library "functoria-runtime"
   Path:            runtime
   Findlibname:     runtime
   Findlibparent:   functoria
-  Modules:         Functoria_runtime
+  Modules:         Functoria_runtime, Functoria_info
   BuildDepends:    cmdliner, lwt, fmt
 
 Library functoria

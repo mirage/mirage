@@ -1,3 +1,18 @@
+(*
+ * Copyright (c) 2015 Gabriel Radanne <drupyog@zoho.com>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
 
 open Cmdliner
 module Key = Functoria_key
@@ -28,7 +43,6 @@ module Desc = struct
   let from_run s = "Mirage_runtime.Converter." ^ s
   let builtin d mn m = of_module (from_run d) mn m
 
-  let ip = builtin "ip" "Ipaddr" (module Ipaddr)
   let ipv4 = builtin "ipv4" "Ipaddr.V4" (module Ipaddr.V4)
   let ipv6 = builtin "ipv6" "Ipaddr.V6" (module Ipaddr.V6)
   let ipv6_prefix =
@@ -54,7 +68,9 @@ type mode = [
   | `MacOSX
 ]
 
-let mode_conv : mode Arg.converter = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ]
+let target_conv : mode Arg.converter = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ]
+
+let pp_target fmt m = snd target_conv fmt m
 
 let serialize_mode fmt = function
   | `Unix -> Fmt.pf fmt "`Unix"
@@ -66,13 +82,13 @@ let target =
   let desc = Key.Desc.create
       ~serializer:serialize_mode
       ~description:"target"
-      ~converter:mode_conv
+      ~converter:target_conv
   in
   let doc = Key.Doc.create
       ~docs:mirage_section
       ~docv:"TARGET" ~doc ["t";"target"]
   in
-  Key.create_raw ~doc ~stage:`Configure ~default:`Unix "target" desc
+  Key.create ~doc ~stage:`Configure ~default:`Unix "target" desc
 
 let is_xen =
   Key.pipe Key.(value target) @@ function
@@ -88,7 +104,7 @@ let tracing =
       ~docs:mirage_section
       ~docv:"TRACING" ~doc ["tracing"]
   in
-  Key.create_raw ~doc ~stage:`Configure ~default:1 "tracing" desc
+  Key.create ~doc ~stage:`Configure ~default:1 "tracing" desc
 
 (** {2 General mirage keys} *)
 
@@ -98,7 +114,7 @@ let create_simple ?(group="") ?(stage=`Both) ~doc ~default desc name =
       ~docs:unikernel_section
       ~docv:(String.uppercase name) ~doc [prefix^name]
   in
-  Key.create_raw ~doc ~stage ~default (prefix^name) desc
+  Key.create ~doc ~stage ~default (prefix^name) desc
 
 let network ?group default =
   let doc =
@@ -110,7 +126,7 @@ let network ?group default =
 
 module V4 = struct
 
-  let address ?group default =
+  let ip ?group default =
     let doc = Fmt.strf "The ip address of %a." pp_group group in
     create_simple ~doc ~default ?group Desc.ipv4 "ip"
 
@@ -136,7 +152,7 @@ end
 
 module V6 = struct
 
-  let address ?group default =
+  let ip ?group default =
     let doc = Fmt.strf "The ip address of %a." pp_group group in
     create_simple ~doc ~default ?group Desc.ipv6 "ip"
 
@@ -150,13 +166,13 @@ module V6 = struct
 
 end
 
-let dhcp group =
+let dhcp ?group () =
   let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
   create_simple
     ~doc ?group ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
 
 
-let net group : [`Socket | `Direct] Key.key =
+let net ?group () : [`Socket | `Direct] Key.key =
   let converter = Arg.enum ["socket", `Socket ; "direct", `Direct] in
   let serializer fmt = function
     | `Socket -> Fmt.pf fmt "`Socket"
@@ -171,8 +187,4 @@ let net group : [`Socket | `Direct] Key.key =
   create_simple
     ~doc ?group ~stage:`Configure ~default:`Direct desc "net"
 
-include
-  (Key :
-   (* This preserves type equalities with {!Functoria_key}. *)
-   sig include module type of Key end
-   with module Desc := Desc)
+include (Key : Functoria.KEY with module Desc := Desc)

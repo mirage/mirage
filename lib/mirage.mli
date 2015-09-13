@@ -21,26 +21,14 @@
     which are used by the various mirage libraries to implement a
     large collection of devices. *)
 
-include Functoria.S
 
 (** Configuration keys. *)
-module Key : sig
-  include Functoria.KEY
-
-  val target: [ `Unix | `Xen | `MacOSX ] key
-  (** Key setting the configuration mode for the current project. *)
-
-  val is_xen: bool value
-  (** Is true iff the {!target} keys takes the value [`Xen]. *)
-
-  val tracing: int key
-  (** Key setting the tracing level. *)
-
-end
+module Key = Mirage_key
+include Functoria.S with module Key := Key
 
 (** {2 General mirage devices} *)
 
-val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
+val get_target: unit -> [ `Unix | `Xen | `MacOSX ]
 (** Current configuration mode.
 
     Deprecated, use {!Key.target} instead.
@@ -261,7 +249,9 @@ type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 val create_ipv4:
   ?clock:clock impl -> ?time:time impl ->
   ?group:string -> network impl -> ipv4_config -> ipv4 impl
-(** Use an IPv4 address. *)
+(** Use an IPv4 address.
+    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}.
+*)
 
 val default_ipv4: ?group:string -> network impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
@@ -275,7 +265,9 @@ type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 val create_ipv6:
   ?time:time impl -> ?clock:clock impl ->
   ?group:string -> network impl -> ipv6_config -> ipv6 impl
-(** Use an IPv6 address. *)
+(** Use an IPv6 address.
+    Exposes the keys {!Key.V6.ip}, {!Key.V6.netmask} and {!Key.V6.gateways}.
+*)
 
 
 
@@ -321,6 +313,8 @@ type stackv4
 
 val stackv4: stackv4 typ
 
+(** Same as {!direct_stackv4_with_static_ipv4} with the default given by
+    {!default_ipv4}. *)
 val direct_stackv4_with_default_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
@@ -328,6 +322,8 @@ val direct_stackv4_with_default_ipv4:
   ?group:string ->
   console impl -> network impl -> stackv4 impl
 
+(** Direct network stack with ip.
+    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}. *)
 val direct_stackv4_with_static_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
@@ -335,6 +331,7 @@ val direct_stackv4_with_static_ipv4:
   ?group:string ->
   console impl -> network impl -> ipv4_config -> stackv4 impl
 
+(** Direct network stack using dhcp. *)
 val direct_stackv4_with_dhcp:
   ?clock:clock impl ->
   ?random:random impl ->
@@ -342,9 +339,15 @@ val direct_stackv4_with_dhcp:
   ?group:string ->
   console impl -> network impl -> stackv4 impl
 
+(** Network stack with sockets. Exposes the key {Key.interfaces}. *)
 val socket_stackv4:
   ?group:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
 
+(** Generic stack exposing two keys: {!Key.net} and {!Key.dhcp}.
+    - If [net] = [socket] then {!socket_stackv4} is used.
+    - Else, if [dhcp] then {!direct_stackv4_with_dhcp} is used
+    - Else, {!direct_stackv4_with_default_ipv4} is used.
+*)
 val generic_stackv4 :
   ?group:string -> console impl -> network impl -> stackv4 impl
 
@@ -375,6 +378,6 @@ val argv: Functoria.Devices.argv impl
     the xen or the unix implementation. *)
 
 
-(**/*)
+(**/**)
 
 val launch : unit -> unit

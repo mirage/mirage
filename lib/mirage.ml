@@ -19,9 +19,8 @@ open Rresult
 open Functoria
 open Functoria_misc
 
-open Dsl
 module Key = Mirage_key
-
+include (Dsl : Functoria.S with module Key := Key)
 
 
 (** {2 Error handling} *)
@@ -30,11 +29,9 @@ let driver_error name =
 
 (** {2 Mode} *)
 
-let get_mode =
+let get_target =
   let x = Key.value Key.target in
   fun () -> Key.eval x
-
-let pp_mode fmt () = snd Key.mode_conv fmt @@ get_mode ()
 
 (** {2 Devices} *)
 
@@ -106,7 +103,7 @@ let console = Type CONSOLE
 let console_unix str = impl @@ object
     inherit base_configurable
     method ty = console
-    val name = Key.ocamlify @@ "console_unix_" ^ str
+    val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
     method module_name = "Console_unix"
     method packages = Key.pure ["mirage-console"; "mirage-unix"]
@@ -118,7 +115,7 @@ let console_unix str = impl @@ object
 let console_xen str = impl @@ object
     inherit base_configurable
     method ty = console
-    val name = Key.ocamlify @@ "console_xen_" ^ str
+    val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
     method module_name = "Console_xen"
     method packages = Key.pure
@@ -186,7 +183,7 @@ let direct_kv_ro dirname = impl @@ object
   inherit crunch_conf dirname as super
 
   method module_name =
-    match get_mode () with
+    match get_target () with
     | `Xen  -> super#module_name
     | `Unix | `MacOSX -> "Kvro_fs_unix"
 
@@ -203,7 +200,7 @@ let direct_kv_ro dirname = impl @@ object
     in Key.(pure f $ super#libraries $ value target)
 
   method connect i modname names =
-    match get_mode () with
+    match get_target () with
     | `Xen  -> super#connect i modname names
     | `Unix | `MacOSX ->
       Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i/dirname)
@@ -257,7 +254,7 @@ class block_conf file =
 
 
   method private connect_name root =
-    match get_mode () with
+    match get_target () with
     | `Unix | `MacOSX -> root / b.filename (* open the file directly *)
     | `Xen ->
       (* We need the xenstore id *)
@@ -417,7 +414,7 @@ let network_conf (intf : string Key.key) =
   method connect _ modname _ =
     Fmt.strf "%s.connect %a"
       modname
-      Key.pp_meta key
+      Key.emit_call key
 
 end
 
@@ -508,7 +505,7 @@ let meta_ipv4 ppf s =
 
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
-let pp_key fmt k = Key.pp_meta fmt (Key.hide k)
+let pp_key fmt k = Key.emit_call fmt (Key.hide k)
 
 let opt_key s =
   Fmt.(option @@ prefix (unit ("~"^^s)) pp_key)
@@ -549,7 +546,7 @@ let create_ipv4
     ?group net { address ; netmask ; gateways } =
   let etif = etif net in
   let arp = arp ~clock ~time etif in
-  let address = Key.V4.address ?group address in
+  let address = Key.V4.ip ?group address in
   let netmask = Key.V4.netmask ?group netmask in
   let gateways = Key.V4.gateways ?group gateways in
   ipv4_conf ~address ~netmask ~gateways () $ etif $ arp
@@ -602,7 +599,7 @@ let create_ipv6
     ?(clock = default_clock)
     ?group net { address ; netmask ; gateways } =
   let etif = etif net in
-  let address = Key.V6.address ?group address in
+  let address = Key.V6.ip ?group address in
   let netmask = Key.V6.netmask ?group netmask in
   let gateways = Key.V6.gateways ?group gateways in
   ipv6_conf ~address ~netmask ~gateways () $ etif $ time $ clock
@@ -799,7 +796,7 @@ let direct_stackv4_with_dhcp
 let direct_stackv4_with_static_ipv4
     ?clock ?random ?time ?group console network
     {address; netmask; gateways} =
-  let address = Key.V4.address ?group address in
+  let address = Key.V4.ip ?group address in
   let netmask = Key.V4.netmask ?group netmask in
   let gateways = Key.V4.gateways ?group gateways in
   direct_stackv4_with_config
@@ -851,8 +848,8 @@ let socket_stackv4 ?group console ipv4s =
 (** Generic stack *)
 
 let generic_stackv4 ?group console tap =
-  let dhcp_key = Key.dhcp group in
-  let net_key = Key.net group in
+  let dhcp_key = Key.dhcp ?group () in
+  let net_key = Key.net ?group () in
   if_impl
     Key.(pure ((=) `Socket) $ value net_key)
     (socket_stackv4 console ?group [Ipaddr.V4.any])
@@ -900,7 +897,7 @@ let nocrypto = impl @@ object
 
   method configure _ = R.ok (enable_entropy ())
   method connect _ _ _ =
-    let s = match get_mode () with
+    let s = match get_target () with
       | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
     in
@@ -1119,13 +1116,13 @@ let tracing =
             opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
     end
 
-  method connect _ _ _ = match get_mode () with
+  method connect _ _ _ = match get_target () with
     | `Unix | `MacOSX ->
       Fmt.strf
         "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
          let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
          MProf.Trace.Control.start trace_config"
-        Key.pp_meta Key.(hide tracing)
+        Key.emit_call Key.(hide tracing)
         unix_trace_file;
     | `Xen  ->
       Fmt.strf
@@ -1135,7 +1132,7 @@ let tracing =
          MProf.Trace.Control.start trace_config;@ \
          MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
          |> OS.Main.run"
-        Key.pp_meta Key.(hide tracing)
+        Key.emit_call Key.(hide tracing)
 
 end
 
@@ -1367,7 +1364,7 @@ let configure_makefile ~root ~name info =
   newline fmt;
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
-  begin match get_mode () with
+  begin match get_target () with
     | `Xen  ->
       append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
       append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
@@ -1416,7 +1413,7 @@ let configure_makefile ~root ~name info =
       Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
 
-  begin match get_mode () with
+  begin match get_target () with
     | `Xen ->
       let filter = function
         | "unix" | "bigarray" |"shared_memory_ring_stubs" -> false    (* Provided by mirage-xen instead. *)
@@ -1457,7 +1454,7 @@ let configure i =
   let root = Info.root i in
   check_entropy @@ Info.libraries i >>= fun () ->
   info "%a %a" blue "Configuring for target:"
-    pp_mode ();
+    Key.pp_target (get_target ()) ;
   in_dir root (fun () ->
     configure_main_xl ~root ~name;
     configure_main_xe ~root ~name;
@@ -1501,9 +1498,10 @@ module Project = struct
     method keys = [ Key.hide Key.target ]
 
     method packages =
+      let l = [ "lwt" ; "sexplib" ] in
       Key.pipe Key.(value target) @@ function
-      | `Unix | `MacOSX -> ["mirage-unix" ; "sexplib" ]
-      | `Xen  -> ["mirage-xen" ; "sexplib" ]
+      | `Unix | `MacOSX -> "mirage-unix" :: l
+      | `Xen  -> "mirage-xen" :: l
 
     method libraries = Key.pure [
       "lwt.syntax" ; "mirage.runtime" ;

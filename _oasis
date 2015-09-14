@@ -34,5 +34,5 @@ Document "functoria"
   Title: API reference for Functoria
   XOCamlbuildPath: .
   XOCamlbuildExtraArgs:
-    "-docflags '-colorize-code -short-functors -charset utf-8'"
+    "-docflags '-t Functoria -colorize-code -short-functors -charset utf-8'"
   XOCamlbuildLibraries: functoria, functoria.runtime

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command line parameters. *)
+(** Command line parameters *)
 
 (** Description of keys. *)
 module Desc : sig

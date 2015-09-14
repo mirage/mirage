@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Configuration library. *)
+(** Configuration library *)
 
 (** Core functoria DSL *)
 module Dsl = Functoria_dsl

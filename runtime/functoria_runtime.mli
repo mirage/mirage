@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Runtime module for functoria-generated DSLs. *)
+(** Runtime *)
 
 (** Runtime Key module.
 

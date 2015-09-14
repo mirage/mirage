@@ -367,6 +367,11 @@ val resolver_dns :
   ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?time:time impl -> stackv4 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
+(** {2 Entropy} *)
+
+val nocrypto : job impl
+(** Device that initializes the entropy. *)
+
 (** {2 Conduit configuration} *)
 
 type conduit

@@ -959,17 +959,20 @@ let conduit_with_connectors connectors = impl @@ object
   method packages = Key.pure [ "mirage-conduit" ]
   method libraries = Key.pure [ "conduit.mirage" ]
 
-  method dependencies = List.map hide connectors
+  method dependencies = hide nocrypto :: List.map hide connectors
 
-  method connect _i _ connectors =
-    let pp_connector = Fmt.fmt "%s >>=@ " in
-    let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
-    Fmt.strf
-      "Lwt.return Conduit_mirage.empty >>=@ \
-      %a\
-      fun t -> Lwt.return (`Ok t)"
-      pp_connectors connectors
-end
+  method connect _i _ = function
+    (* There is always at least the nocrypto device *)
+    | [] -> invalid_arg "Mirage.conduit_with_connector"
+    | _nocrypto :: connectors ->
+      let pp_connector = Fmt.fmt "%s >>=@ " in
+      let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
+      Fmt.strf
+        "Lwt.return Conduit_mirage.empty >>=@ \
+         %a\
+         fun t -> Lwt.return (`Ok t)"
+        pp_connectors connectors
+  end
 
 let conduit_direct ?(tls=false) s =
   (* TCP must be before tls in the list. *)

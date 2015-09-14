@@ -172,17 +172,11 @@ module Engine = struct
     | G.Impl c -> Key.map StringSet.of_list c#libraries
     | _ -> M.empty
 
-
   (** Return a unique variable name holding the state of the given
       module construction. *)
-  let name tbl c args deps =
+  let name c id =
     let base = Name.ocamlify c#name in
-    if args = [] && deps = [] then base
-    else
-      let s =
-        Fmt.strf "%s%a"
-          base   Fmt.(list ~sep:nop @@ of_to_string @@ G.Tbl.find tbl) args
-      in Name.of_key s ~base
+    Name.of_key (Fmt.strf "%s%i" base id) ~base
 
   (** [module_expresion tbl c args] returns the module expression of the
       functor [c] applies to [args]. *)
@@ -195,13 +189,13 @@ module Engine = struct
   (** [module_name tbl c args] return the module name of the result of the
       functor application.
       If [args = []], it returns [c#module_name]. *)
-  let module_name tbl c args =
+  let module_name c id args =
     let base = c#module_name in
     if args = [] then base
     else
-      let n = Fmt.strf "%a" (module_expression tbl) (c, args) in
-      let base = Name.ocamlify String.(sub base 0 (index base '.')) in
-      Name.of_key n ~base
+      let base = try String.(sub base 0 @@ index base '.') with _ -> base in
+      let base = Name.ocamlify base in
+      Name.of_key (Fmt.strf "%s%i" base id) ~base
 
   let find_bootvar g =
     let p = function
@@ -217,7 +211,7 @@ module Engine = struct
     let f v = match G.explode g v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps _) ->
-        let modname = module_name tbl c args in
+        let modname = module_name c (G.hash v) args in
         G.Tbl.add tbl v modname ;
         c#configure info >>| fun () ->
         if args = [] then ()
@@ -266,7 +260,7 @@ module Engine = struct
       match G.explode g v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps deps) ->
-        let ident = name tbl c args deps in
+        let ident = name c (G.hash v) in
         let modname = G.Tbl.find modtbl v in
         G.Tbl.add tbl v ident ;
         let names = List.map (G.Tbl.find tbl) (args @ deps) in

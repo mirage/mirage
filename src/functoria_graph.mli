@@ -85,6 +85,8 @@ val collect :
 (** [collect (module M) f g] collects the content of [f v] for
     each vertex [v] in [g]. *)
 
+val hash : vertex -> int
+
 val pp : t Fmt.t
 (** Textual representation of the graph. *)
 

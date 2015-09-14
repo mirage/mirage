@@ -100,6 +100,8 @@ module Topo = Topological.Make(G)
 
 (** {3 Graph utilities} *)
 
+let hash = G.V.hash
+
 let add_edge e1 label e2 graph =
   G.add_edge_e graph @@ G.E.create e1 label e2
 

@@ -24,6 +24,11 @@ module Dsl = Functoria_dsl
 module Devices : sig
   open Dsl
 
+  (** {2 Noop} *)
+
+  val noop : job impl
+  (** [noop] is a job that does nothing, has no dependency and returns [()] *)
+
   (** {2 Argv device} *)
 
   type argv

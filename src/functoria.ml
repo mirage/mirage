@@ -26,6 +26,15 @@ open Misc
 
 module Devices = struct
 
+  (** Noop, the job that does nothing. *)
+
+  let noop = impl @@ object
+      inherit base_configurable
+      method ty = job
+      method name = "noop"
+      method module_name = "Pervasives"
+    end
+
   (** Default argv *)
 
   type argv = ARGV

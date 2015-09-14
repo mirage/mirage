@@ -53,15 +53,32 @@ type subconf = <
   clean: Dsl.Info.t -> (unit, string) Rresult.result ;
 >
 
+(** Helpers for If nodes. *)
+module If = struct
+
+  type dir = Else | Then
+  type path = dir list * dir
+
+  let append (l,z) (l',z') = (l@z::l', z')
+  let singleton z = ([],z)
+
+  let dir b = if b then singleton Then else singleton Else
+  let fuse path v l = if v = path then append path l else path
+
+  let reduce v ~path ~add:v' : path Key.value =
+    Key.(pure (fuse path) $ v $ v')
+
+end
+
 type label =
-  | If of bool Key.value
+  | If of If.path Key.value
   | Impl of subconf
   | App
 
 type edge_label =
   | Parameter of int
   | Dependency of int
-  | Condition of [`Else | `Then]
+  | Condition of If.path
   | Functor
 
 
@@ -86,8 +103,7 @@ module Dfs = Traverse.Dfs(G)
 module Topo = Topological.Make(G)
 
 (** The invariants of graphs manipulated here are:
-    - [If] vertices have exactly 2 children,
-      one [Condition `Else] and one [Condition `Then]
+    - [If] vertices have exactly [n] [Condition] children.
     - [Impl] vertices have [n] [Parameter] children and [m] [Dependency] children.
       [Parameter] (resp. [Dependency]) children are labeled
       from [0] to [n-1] (resp. [m-1]).
@@ -140,12 +156,14 @@ let add_impl graph ~impl ~args ~deps =
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
   |> fold_lefti (fun i -> add_edge v (Dependency i)) deps
 
-let add_if graph ~cond ~else_ ~then_ =
+let add_switch graph ~cond l =
   let v = G.V.create (If cond) in
   v,
-  graph
-  |> add_edge v (Condition `Else) else_
-  |> add_edge v (Condition `Then) then_
+  List.fold_right (fun (p,v') -> add_edge v (Condition p) v') l graph
+
+let add_if graph ~cond ~else_ ~then_ =
+  add_switch graph ~cond:(Key.map If.dir cond)
+    [ If.(singleton Else), else_ ; If.(singleton Then), then_ ]
 
 let add_app graph ~f ~args =
   let v = G.V.create App in
@@ -204,7 +222,7 @@ let get_children g v =
          let v = G.E.dst e in match G.E.label e with
          | Parameter i -> (i, v)::args, deps, conds, funct
          | Dependency i -> args, (i, v)::deps, conds, funct
-         | Condition side -> args, deps, (side, v)::conds, funct
+         | Condition path -> args, deps, (path, v)::conds, funct
          | Functor -> args, deps, conds, v :: funct
       )
       l
@@ -213,12 +231,6 @@ let get_children g v =
   let args, deps, cond, funct = split @@ G.succ_e g v in
   let args = List.sort (fun (i,_) (j,_) -> compare i j) args in
   let deps = List.sort (fun (i,_) (j,_) -> compare i j) deps in
-  let cond = match cond with
-    | [`Else, else_ ; `Then, then_]
-    | [`Then, then_; `Else, else_] -> Some (then_, else_)
-    | [] -> None
-    | _ -> assert false
-  in
   let funct = match funct with
     | [] -> None | [ x ] -> Some x
     | _ -> assert false
@@ -228,10 +240,9 @@ let get_children g v =
   `Args (List.map snd args), `Deps (List.map snd deps), cond, funct
 
 let explode g v = match G.V.label v, get_children g v with
-  | Impl i, (args, deps, None, None) -> `Impl (i, args, deps)
-  | If cond, (`Args [], `Deps [], Some (then_, else_), None) ->
-    `If (cond, then_, else_)
-  | App, (`Args args, `Deps [], None, Some f) -> `App (f, args)
+  | Impl i, (args, deps, [], None) -> `Impl (i, args, deps)
+  | If cond, (`Args [], `Deps [], l, None) -> `If (cond, l)
+  | App, (`Args args, `Deps [], [], Some f) -> `App (f, args)
   | _ -> assert false
 
 let fold f g z =
@@ -325,23 +336,28 @@ module EvalIf = struct
   (** Evaluate the [If] vertices and remove them. *)
 
   let predicate ~partial _ v = match G.V.label v with
-    | If cond when not partial || Key.peek cond <> None -> Some v
+    | If cond when not partial || Key.is_resolved cond -> Some v
     | _ -> None
 
+  let extract path l =
+    let rec aux = function
+      | [] -> invalid_arg "Path is not present."
+      | (path',v) :: t when path = path' -> v, List.map snd t
+      | (_    ,v) :: t -> let v_found, l = aux t in v_found, v::l
+    in
+    aux l
+
   let apply ~partial g v_if =
-    let cond, then_, else_ =
+    let path, l =
       match explode g v_if with
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    match Key.peek cond with
-    | None when partial -> g
-    | _ ->
-      let v_new, v_rem =
-        if Key.eval cond then then_, else_ else else_,then_
-      in
+    if partial && not @@ Key.is_resolved path then g
+    else
+      let v_new, v_others = extract (Key.eval path) l in
       let g = G.remove_vertex g v_if in
-      let g = remove_rec g v_rem in
+      let g = List.fold_left remove_rec_if_orphan g v_others in
       add_pred_with_subst g preds v_new
 
 end
@@ -398,15 +414,13 @@ module Dot = Graphviz.Dot(struct
       | Parameter _ -> [ ]
       | Dependency _ -> [ `Style `Dashed ]
 
-      | Condition side ->
-        let side = (side = `Then) in
-        let color = if side then 0x008325 else 0xB31E18 in
-        let cond = match V.label @@ E.src e with
+      | Condition path ->
+        let cond =
+          match V.label @@ E.src e with
           | If cond -> cond | _ -> assert false
         in
-        let tailport = if side then `SW else `SE in
-        let l = [ `Color color ; `Tailport tailport ; `Headport `N ] in
-        if Key.eval cond = side then `Style `Bold :: l else l
+        let l = [ `Style `Dotted ; `Headport `N ] in
+        if Key.eval cond = path then `Style `Bold :: l else l
 
   end )
 

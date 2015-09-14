@@ -139,8 +139,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P "The dot output contains the following elements:";
       `Noblank ;
       `I ("If vertices",
-        "Represented as circles. Green/red arrows are the then/else branches. \
-         Bold is the default branch.");
+        "Represented as circles. Branches are doted, the default branch \
+         is in bold.");
       `Noblank ;
       `I ("Configurables",
         "Represented as rectangles. The order of the output arrows is \

@@ -33,9 +33,13 @@ type subconf = <
 type t
 type vertex
 
+module If : sig
+  type path
+end
+
 (** The description of a vertex *)
 type label =
-  | If of bool Key.value
+  | If of If.path Key.value
   | Impl of subconf
   | App
 
@@ -74,7 +78,7 @@ val find_root : t -> vertex
 val explode :
   t -> vertex ->
   [ `App of vertex * vertex list
-  | `If of bool Key.value * vertex * vertex
+  | `If of If.path Key.value * (If.path * vertex) list
   | `Impl of subconf
        * [> `Args of vertex list ]
        * [> `Deps of vertex list ] ]

@@ -342,7 +342,7 @@ module Config = struct
   let keys t = t.keys
 
   let gen_pp pp ~partial fmt t =
-    pp fmt @@ G.eval ~partial t.jobs
+    pp fmt @@ G.simplify @@ G.eval ~partial t.jobs
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot

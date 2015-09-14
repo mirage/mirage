@@ -47,6 +47,9 @@ val create : _ impl -> t
 val normalize : t -> t
 (** [normalize g] normalize the graph [g] by removing the [App] vertices. *)
 
+val simplify : t -> t
+(** [simplify g] simplifies the graph so that it's easier to read for humans. *)
+
 val eval : ?partial:bool -> t -> t
 (** [eval g] will removes all the [If] vertices by
     trying to resolve the keys. It will then call {!normalize}

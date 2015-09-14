@@ -302,6 +302,25 @@ module RemovePartialApp = struct
 
 end
 
+module MergeNode = struct
+  (** Merge successives App nodes. *)
+
+  let predicate g v = match explode g v with
+    | `App (v', args) -> begin match explode g v' with
+        | `App (f, args') -> Some (v, v', f, args' @ args)
+        | _ -> None
+      end
+    | _ -> None
+
+  let apply g (v1, v2, f, args) =
+    let preds = G.pred_e g v1 in
+    let g = G.remove_vertex g v1 in
+    let v_app, g = add_app g ~f ~args in
+    let g = add_pred_with_subst g preds v_app in
+    remove_rec_if_orphan g v2
+
+end
+
 module EvalIf = struct
   (** Evaluate the [If] vertices and remove them. *)
 
@@ -326,6 +345,8 @@ module EvalIf = struct
       add_pred_with_subst g preds v_new
 
 end
+
+let simplify = MergeNode.(transform ~predicate ~apply)
 
 let normalize = RemovePartialApp.(transform ~predicate ~apply)
 

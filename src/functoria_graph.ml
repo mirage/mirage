@@ -62,6 +62,7 @@ type edge_label =
   | Parameter of int
   | Dependency of int
   | Condition of [`Else | `Then]
+  | Functor
 
 
 
@@ -90,10 +91,10 @@ module Topo = Topological.Make(G)
     - [Impl] vertices have [n] [Parameter] children and [m] [Dependency] children.
       [Parameter] (resp. [Dependency]) children are labeled
       from [0] to [n-1] (resp. [m-1]).
-      They do not have [Condition] children.
-    - [App] vertices have [n] [Parameter] children, with [n >= 2].
-      They are labeled similarly to [Impl] vertex's children.
-      They have neither [Condition] nor [dependency] children.
+      They do not have [Condition] nor [Functor] children.
+    - [App] vertices have one [Functor] child and [n] [Parameter] children
+      (with [n >= 1]) following the [Impl] convention.
+      They have neither [Condition] nor [Dependency] children.
     - There are no cycles.
     - There is only one root (vertex with a degree 1). There are no orphans.
 *)
@@ -146,12 +147,12 @@ let add_if graph ~cond ~else_ ~then_ =
   |> add_edge v (Condition `Else) else_
   |> add_edge v (Condition `Then) then_
 
-let add_app graph ~f ~x =
+let add_app graph ~f ~args =
   let v = G.V.create App in
   v,
   graph
-  |> add_edge v (Parameter 0) f
-  |> add_edge v (Parameter 1) x
+  |> add_edge v Functor f
+  |> fold_lefti (fun i -> add_edge v (Parameter i)) args
 
 let create impl =
   let module H = Dsl.ImplTbl in
@@ -177,7 +178,7 @@ let create impl =
           | `App (Dsl.Any f , Dsl.Any x) ->
             let f, g = aux g f in
             let x, g = aux g x in
-            add_app g ~f ~x
+            add_app g ~f ~args:[x]
         in
         H.add tbl (Dsl.hide impl) v ;
         v, g
@@ -199,14 +200,17 @@ let collect
 let get_children g v =
   let split l =
     List.fold_right
-      (fun e (args, deps, conds) -> match G.E.label e with
-         | Parameter i -> (i, G.E.dst e)::args, deps, conds
-         | Dependency i -> args, (i, G.E.dst e)::deps, conds
-         | Condition side -> args, deps, (side, G.E.dst e)::conds)
+      (fun e (args, deps, conds, funct) ->
+         let v = G.E.dst e in match G.E.label e with
+         | Parameter i -> (i, v)::args, deps, conds, funct
+         | Dependency i -> args, (i, v)::deps, conds, funct
+         | Condition side -> args, deps, (side, v)::conds, funct
+         | Functor -> args, deps, conds, v :: funct
+      )
       l
-      ([],[],[])
+      ([],[],[],[])
   in
-  let args, deps, cond = split @@ G.succ_e g v in
+  let args, deps, cond, funct = split @@ G.succ_e g v in
   let args = List.sort (fun (i,_) (j,_) -> compare i j) args in
   let deps = List.sort (fun (i,_) (j,_) -> compare i j) deps in
   let cond = match cond with
@@ -215,15 +219,19 @@ let get_children g v =
     | [] -> None
     | _ -> assert false
   in
+  let funct = match funct with
+    | [] -> None | [ x ] -> Some x
+    | _ -> assert false
+  in
   assert (is_sequence args) ;
   assert (is_sequence deps) ;
-  `Args (List.map snd args), `Deps (List.map snd deps), cond
+  `Args (List.map snd args), `Deps (List.map snd deps), cond, funct
 
 let explode g v = match G.V.label v, get_children g v with
-  | Impl i, (args, deps, None) -> `Impl (i, args, deps)
-  | If cond, (`Args [], `Deps [], Some (then_, else_)) ->
+  | Impl i, (args, deps, None, None) -> `Impl (i, args, deps)
+  | If cond, (`Args [], `Deps [], Some (then_, else_), None) ->
     `If (cond, then_, else_)
-  | App, (`Args (f::args), `Deps [], None) -> `App (f, args)
+  | App, (`Args args, `Deps [], None, Some f) -> `App (f, args)
   | _ -> assert false
 
 let fold f g z =
@@ -365,9 +373,7 @@ module Dot = Graphviz.Dot(struct
 
     let default_edge_attributes _g = []
     let edge_attributes e = match E.label e with
-      (* The functor part of an App is in bold. *)
-      | Parameter 0 when V.label @@ E.src e = App ->
-        [ `Style `Bold ]
+      | Functor -> [ `Style `Bold ; `Tailport `SW]
       | Parameter _ -> [ ]
       | Dependency _ -> [ `Style `Dashed ]
 

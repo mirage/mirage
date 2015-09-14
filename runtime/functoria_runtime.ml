@@ -58,11 +58,14 @@ module Converter = struct
 
 end
 
-
+let initialized = ref false
 let with_argv keys s argv =
   let open Cmdliner in
-  let gather k rest = Term.(pure (fun () () -> ()) $ k $ rest) in
-  let t = List.fold_right gather keys (Term.pure ()) in
-  match Term.(eval ~argv (t, info s)) with
-  | `Ok _ -> `Ok ()
-  | _ -> `Error "cmdliner"
+  if !initialized then `Ok ()
+  else
+    let gather k rest = Term.(pure (fun () () -> ()) $ k $ rest) in
+    let t = List.fold_right gather keys (Term.pure ()) in
+    match Term.(eval ~argv (t, info s)) with
+    | `Ok _ -> initialized := true ; `Ok ()
+    | `Error _ -> `Error "Key initialization failed"
+    | `Help | `Version -> exit 0

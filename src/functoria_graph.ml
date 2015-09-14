@@ -294,41 +294,63 @@ module RemovePartialApp = struct
       The goal here is to remove partial application of functor.
       If we find an [App] vertex with an implementation as first children,
       We fuse them and create one [Impl] vertex.
+
+      If we find successive [App] vertices, we merge them.
   *)
 
   let predicate g v = match explode g v with
-    | `App (f,args) -> begin match explode g f with
+    | `App (v',args) -> begin match explode g v' with
         | `Impl (impl, `Args args', `Deps deps) ->
-          Some (v, f, impl, args' @ args, deps)
+          let add g = add_impl g ~impl ~args:(args'@args) ~deps in
+          Some (v, v', add)
+        | `App (f, args') ->
+          let add g = add_app g ~f ~args:(args' @ args) in
+          Some (v, v', add)
         | _ -> None
       end
     | _ -> None
 
-  let apply g (v_app, v_f, impl, args, deps) =
+  let apply g (v_app, v_f, add) =
     let preds = G.pred_e g v_app in
     let g = G.remove_vertex g v_app in
-    let v_impl', g = add_impl g ~impl ~args ~deps in
+    let v_impl', g = add g in
     let g = add_pred_with_subst g preds v_impl' in
     remove_rec_if_orphan g v_f
 
 end
 
 module MergeNode = struct
-  (** Merge successives App nodes. *)
+  (** Merge successive If nodes with the same set of dependencies.
+
+      This is completely useless for evaluation but very helpful for graph
+      visualization by humans.
+  *)
 
   let predicate g v = match explode g v with
-    | `App (v', args) -> begin match explode g v' with
-        | `App (f, args') -> Some (v, v', f, args' @ args)
-        | _ -> None
-      end
+    | `If (cond, l) ->
+      if List.exists (fun (_,v) -> match G.V.label v with
+        | If cond' -> Key.(Set.equal (deps cond) (deps cond'))
+        | _ -> false
+        ) l
+      then Some (v, cond, l)
+      else None
     | _ -> None
 
-  let apply g (v1, v2, f, args) =
-    let preds = G.pred_e g v1 in
-    let g = G.remove_vertex g v1 in
-    let v_app, g = add_app g ~f ~args in
-    let g = add_pred_with_subst g preds v_app in
-    remove_rec_if_orphan g v2
+
+  let apply g (v_if, cond, l) =
+    let f (new_cond, new_l) (path, v) = match explode g v with
+      | `If (cond', l') when Key.(Set.equal (deps cond) (deps cond')) ->
+        If.reduce cond ~path ~add:cond',
+        List.map (fun (p,v) -> If.append path p, v) l' @ new_l
+      | _ ->
+        new_cond, (path,v) :: new_l
+    in
+    let new_cond, new_l = List.fold_left f (cond,[]) l in
+    let preds = G.pred_e g v_if in
+    let g = G.remove_vertex g v_if in
+    let v_new, g = add_switch g ~cond:new_cond new_l in
+    let g = add_pred_with_subst g preds v_new in
+    List.fold_left remove_rec_if_orphan g @@ List.map snd l
 
 end
 

@@ -116,6 +116,30 @@ let create_simple ?(group="") ?(stage=`Both) ~doc ~default desc name =
   in
   Key.create ~doc ~stage ~default (prefix^name) desc
 
+(** {3 Stack keys} *)
+
+let dhcp ?group () =
+  let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
+  create_simple
+    ~doc ?group ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
+
+let net ?group () : [`Socket | `Direct] Key.key =
+  let converter = Arg.enum ["socket", `Socket ; "direct", `Direct] in
+  let serializer fmt = function
+    | `Socket -> Fmt.pf fmt "`Socket"
+    | `Direct -> Fmt.pf fmt "`Direct"
+  in
+  let desc = Key.Desc.create
+      ~converter ~serializer ~description:"net"
+  in
+  let doc =
+    Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
+  in
+  create_simple
+    ~doc ?group ~stage:`Configure ~default:`Direct desc "net"
+
+(** {3 Network keys} *)
+
 let network ?group default =
   let doc =
     Fmt.strf "The network interface listened by %a."
@@ -165,26 +189,5 @@ module V6 = struct
     create_simple ~doc ~default ?group Desc.(list ipv6) "gateways"
 
 end
-
-let dhcp ?group () =
-  let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
-  create_simple
-    ~doc ?group ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
-
-
-let net ?group () : [`Socket | `Direct] Key.key =
-  let converter = Arg.enum ["socket", `Socket ; "direct", `Direct] in
-  let serializer fmt = function
-    | `Socket -> Fmt.pf fmt "`Socket"
-    | `Direct -> Fmt.pf fmt "`Direct"
-  in
-  let desc = Key.Desc.create
-      ~converter ~serializer ~description:"net"
-  in
-  let doc =
-    Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
-  in
-  create_simple
-    ~doc ?group ~stage:`Configure ~default:`Direct desc "net"
 
 include (Key : Functoria.KEY with module Desc := Desc)

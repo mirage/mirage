@@ -1088,7 +1088,7 @@ let argv_xen = impl @@ object
     "Bootvar.argv ()"
   end
 
-let argv = if_impl Key.is_xen argv_xen argv_unix
+let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
 
 
 (** Tracing *)
@@ -1140,6 +1140,11 @@ let tracing =
 end
 
 let mprof_trace ~size () = size
+
+(** Functoria devices *)
+
+let noop = Devices.noop
+let export_info = Devices.export_info
 
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
@@ -1488,7 +1493,7 @@ module Project = struct
 
   let driver_error = driver_error
 
-  let argv = argv
+  let argv = argv_dynamic
 
   let config jobs = impl @@ object
     inherit base_configurable

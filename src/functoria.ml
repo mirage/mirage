@@ -416,15 +416,15 @@ module Make (P:SPECIALIZED) = struct
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
             let ps = StringSet.elements ps in
-            if no_depext then Ok ()
-            else (
-              begin
+            begin
+              if no_depext then Ok ()
+              else begin
                 if command_exists "opam-depext"
                 then Ok (info "opam depext is installed.")
                 else opam "install" ["depext"]
               end >>= fun () -> opam ~yes:false "depext" ps
-            ) >>= fun () ->
-              opam "install" ps
+            end >>= fun () ->
+            opam "install" ps
           ) else version_error ()
         | _ -> version_error ()
       )

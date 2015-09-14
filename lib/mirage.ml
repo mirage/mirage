@@ -1025,7 +1025,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
       Fmt.strf
         "let ns = %a in@;\
          let ns_port = %a in@;\
-         let res = %s.init ?ns ?ns_port ~stack:%s () in@;\
+         let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
          return (`Ok res)@;"
         meta_ns ns
         meta_port ns_port

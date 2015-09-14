@@ -148,6 +148,10 @@ val pp_deps : 'a value Fmt.t
 val deps : 'a value -> Set.t
 (** [deps v] is the dependencies of [v]. *)
 
+val is_resolved : 'a value -> bool
+(** [is_reduced v] returns [true] iff all the dependencies of [v] have
+    been resolved. *)
+
 val peek : 'a value -> 'a option
 (** [peek v] returns [Some x] if [v] has been resolved to [x]
     and [None] otherwise. *)

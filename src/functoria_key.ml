@@ -172,7 +172,7 @@ let filter_stage ~stage set =
   | `Configure -> Set.filter is_configure set
   | `Both -> set
 
-let is_resolved { value } = value <> None
+let is_key_resolved { value } = value <> None
 
 (** {2 Values} *)
 
@@ -204,8 +204,11 @@ let value k =
 
 let deps k = k.deps
 
-let peek { deps ; v } =
-  if Set.for_all (fun (Any x) -> is_resolved x) deps then Some (v ()) else None
+let is_resolved { deps } =
+  Set.for_all (fun (Any x) -> is_key_resolved x) deps
+
+let peek v =
+  if is_resolved v then Some (v.v ()) else None
 
 (** {2 Pretty printing} *)
 

@@ -147,7 +147,7 @@ class crunch_conf dirname =
     method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch" ]
     method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct" ]
 
-    method dependencies = [ hide default_io_page ]
+    method dependencies = [ hidden default_io_page ]
 
     val ml = Printf.sprintf "%s.ml" name
     val mli = Printf.sprintf "%s.mli" name
@@ -391,7 +391,7 @@ type network = NETWORK
 let network = Type NETWORK
 
 let network_conf (intf : string Key.key) =
-  let key = Key.hide intf in
+  let key = Key.hidden intf in
   object (self)
   inherit base_configurable
 
@@ -505,12 +505,12 @@ let meta_ipv4 ppf s =
 
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
-let pp_key fmt k = Key.emit_call fmt (Key.hide k)
+let pp_key fmt k = Key.emit_call fmt (Key.hidden k)
 
 let opt_key s =
   Fmt.(option @@ prefix (unit ("~"^^s)) pp_key)
 
-let (@??) x y = opt_map Key.hide x @? y
+let (@??) x y = opt_map Key.hidden x @? y
 
 let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
   inherit base_configurable
@@ -646,7 +646,7 @@ let udpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Udpv4_socket"
 
-  method keys = [ Key.hide ipv4_key ]
+  method keys = [ Key.hidden ipv4_key ]
 
   method packages = Key.pure [ "tcpip" ]
   method libraries =
@@ -707,7 +707,7 @@ let tcpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Tcpv4_socket"
 
-  method keys = [ Key.hide ipv4_key ]
+  method keys = [ Key.hidden ipv4_key ]
 
   method packages = Key.pure [ "tcpip" ]
   method libraries =
@@ -753,7 +753,7 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
   method keys = match config with
     | `DHCP -> []
     | `IPV4 (addr,netm,gate) ->
-      [ Key.hide addr; Key.hide netm; Key.hide gate]
+      [ Key.hidden addr; Key.hidden netm; Key.hidden gate]
 
   method packages = Key.pure [ "tcpip" ]
   method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
@@ -819,13 +819,13 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
   method name = name
   method module_name = "Tcpip_stack_socket.Make"
 
-  method keys = [ Key.hide interfaces ]
+  method keys = [ Key.hidden interfaces ]
 
   method packages = Key.pure [ "tcpip" ]
   method libraries = Key.pure [ "tcpip.stack-socket" ]
 
   method dependencies =
-    [ hide @@ socket_udpv4 None ; hide @@ socket_tcpv4 None ]
+    [ hidden @@ socket_udpv4 None ; hidden @@ socket_tcpv4 None ]
 
   method connect _i modname = function
     | [ console ; udpv4 ; tcpv4 ] ->
@@ -938,7 +938,7 @@ let tls_conduit_connector = impl @@ object
   method packages = Key.pure [ "mirage-conduit" ; "tls" ]
   method libraries = Key.pure [ "conduit.mirage" ; "tls.mirage" ]
 
-  method dependencies = [ hide nocrypto ]
+  method dependencies = [ hidden nocrypto ]
 
   method connect _ _ _ =
     "return (`Ok Conduit_mirage.with_tls)"
@@ -959,7 +959,7 @@ let conduit_with_connectors connectors = impl @@ object
   method packages = Key.pure [ "mirage-conduit" ]
   method libraries = Key.pure [ "conduit.mirage" ]
 
-  method dependencies = hide nocrypto :: List.map hide connectors
+  method dependencies = hidden nocrypto :: List.map hidden connectors
 
   method connect _i _ = function
     (* There is always at least the nocrypto device *)
@@ -1056,7 +1056,7 @@ let http_server conduit = impl @@ object
   method packages = Key.pure [ "mirage-http" ]
   method libraries = Key.pure [ "mirage-http" ]
 
-  method dependencies = [ hide conduit ]
+  method dependencies = [ hidden conduit ]
 
   method connect _i modname = function
     | [ conduit ] ->
@@ -1102,7 +1102,7 @@ let tracing =
   method name = "tracing"
   method module_name = "MProf"
 
-  method keys = [ Key.hide Key.tracing ]
+  method keys = [ Key.hidden Key.tracing ]
 
   method packages = Key.pure ["mirage-profile"]
   method libraries =
@@ -1125,7 +1125,7 @@ let tracing =
         "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
          let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
          MProf.Trace.Control.start trace_config"
-        Key.emit_call Key.(hide tracing)
+        Key.emit_call Key.(hidden tracing)
         unix_trace_file;
     | `Xen  ->
       Fmt.strf
@@ -1135,7 +1135,7 @@ let tracing =
          MProf.Trace.Control.start trace_config;@ \
          MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
          |> OS.Main.run"
-        Key.emit_call Key.(hide tracing)
+        Key.emit_call Key.(hidden tracing)
 
 end
 
@@ -1500,7 +1500,7 @@ module Project = struct
     method ty = job
     method name = "mirage"
     method module_name = "Mirage_runtime"
-    method keys = [ Key.hide Key.target ]
+    method keys = [ Key.hidden Key.target ]
 
     method packages =
       let l = [ "lwt" ; "sexplib" ] in
@@ -1519,7 +1519,7 @@ module Project = struct
     method connect _ _mod _names =
       "Lwt.return_unit"
 
-    method dependencies = List.map hide jobs
+    method dependencies = List.map hidden jobs
   end
 
 

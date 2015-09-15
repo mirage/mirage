@@ -387,6 +387,18 @@ end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 
+(** generic kv_ro. *)
+
+let generic_kv_ro ?group dir =
+  switch
+    ~default:(direct_kv_ro dir)
+    [ `Fat, kv_ro_of_fs @@ fat_of_files ~dir () ;
+      `Archive, archive_of_files ~dir () ;
+    ]
+    Key.(value @@ kv_ro ?group ())
+
+(** network devices *)
+
 type network = NETWORK
 let network = Type NETWORK
 

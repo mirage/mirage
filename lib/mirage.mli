@@ -187,6 +187,12 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value
     store. *)
 
+(** {2 Generic key/value stores} *)
+
+val generic_kv_ro : ?group:string -> string -> kv_ro impl
+(** Generic key/value store exposing a key {!Key.kv_ro}. It will
+    choose dynamically between {!fat}, {!archive} and {!crunch}.
+*)
 
 
 (** {2 Network interfaces} *)

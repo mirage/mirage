@@ -116,6 +116,23 @@ let create_simple ?(group="") ?(stage=`Both) ~doc ~default desc name =
   in
   Key.create ~doc ~stage ~default (prefix^name) desc
 
+(** {3 File system keys} *)
+
+let kv_ro ?group () =
+  let converter =
+    Arg.enum [ "fat", `Fat ; "archive", `Archive ; "crunch", `Crunch ]
+  in
+  let serializer = Fmt.of_to_string @@ function
+    | `Fat -> "`Fat" | `Archive -> "`Archive" | `Crunch -> "`Crunch"
+  in
+  let desc = Key.Desc.create ~converter ~serializer ~description:"kv_ro" in
+  let doc =
+    Fmt.strf
+      "Use a $(i,fat), $(i,archive) or $(i,crunch) implementation for %a."
+      pp_group group
+  in
+  create_simple ~doc ?group ~stage:`Configure ~default:`Crunch desc "kv_ro"
+
 (** {3 Stack keys} *)
 
 let dhcp ?group () =

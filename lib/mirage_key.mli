@@ -46,7 +46,13 @@ val tracing: int key
 
     Keys are always named the same as their command line option.
 
-    {3 Stack keys} *)
+    {3 File system keys} *)
+
+val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Fat ] key
+(** The type of key value store.
+    Is either ["fat"], ["archive"] or ["crunch"]. *)
+
+(** {3 Stack keys} *)
 
 val dhcp : ?group:string -> unit -> bool key
 (** Enable dhcp. Is either [true] or [false]. *)

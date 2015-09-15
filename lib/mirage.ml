@@ -875,7 +875,7 @@ let check_entropy libs =
     error
       "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
        Please enable the entropy by adding a dependency \
-       to the nocrypto device. You can do so with the ~dependency \
+       to the nocrypto device. You can do so with the ~dependencies \
        argument of Mirage.foreign."
   else R.ok ()
 

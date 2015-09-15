@@ -27,12 +27,6 @@ include (Dsl : Functoria.S with module Key := Key)
 let driver_error name =
   Printf.sprintf "fail (Failure %S)" name
 
-(** {2 Mode} *)
-
-let get_mode =
-  let x = Key.value Key.target in
-  fun () -> Key.eval x
-
 (** {2 Devices} *)
 
 type io_page = IO_PAGE
@@ -1539,11 +1533,27 @@ end
 
 include Functoria.Make (Project)
 
-let register ?tracing:t ?keys ?libraries ?packages name jobs =
+(** {Deprecated functions} *)
+
+let get_mode () = Key.(get target)
+
+let libraries_ref = ref []
+let add_to_ocamlfind_libraries l =
+  libraries_ref := !libraries_ref @ l
+
+let packages_ref = ref []
+let add_to_opam_packages l =
+  packages_ref := !packages_ref @ l
+
+(** {Custom registration} *)
+
+let register ?tracing:t ?keys ?(libraries=[]) ?(packages=[]) name jobs =
+  let libraries = !libraries_ref @ libraries in
+  let packages = !packages_ref @ packages in
   let jobs = match t with
     | None -> jobs
     | Some i ->
       Key.set Key.tracing i ;
       tracing :: jobs
   in
-  register ?keys ?libraries ?packages name jobs
+  register ?keys ~libraries ~packages name jobs

@@ -29,12 +29,6 @@ include Functoria.S with module Key := Key
 
 (** {2 General mirage devices} *)
 
-val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
-(** Current configuration mode.
-
-    Deprecated, use {!Key.target} instead.
- *)
-
 val tracing : job impl
 (** Tracking implementation. *)
 
@@ -406,6 +400,25 @@ val export_info : Functoria.Devices.info impl
 (** Export all the information available at configure time to runtime.
     It produces, at runtime, a {!Functoria_info.info}.
 *)
+
+(** {2 Deprecated functions} *)
+
+val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
+(** Current configuration mode.
+    @deprecated Use {!Key.target} and {!Key.is_xen}.
+*)
+
+val add_to_opam_packages : string list -> unit
+(** Register opam packages.
+    @deprecated Use the [~package] argument from {!register}.
+*)
+
+val add_to_ocamlfind_libraries : string list -> unit
+(** Register ocamlfind libraries.
+    @deprecated Use the [~libraries] argument from {!register}.
+*)
+
+
 
 (**/**)
 

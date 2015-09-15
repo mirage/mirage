@@ -48,7 +48,7 @@ val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
 (** Type of an implementation, with its type variable hidden. *)
 type any_impl = Any : _ impl -> any_impl
 
-val hide : _ impl -> any_impl
+val hidden : _ impl -> any_impl
 (** Hide the type variable of an implementation. Useful for dependencies. *)
 
 (** {2 Keys} *)

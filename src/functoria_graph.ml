@@ -178,8 +178,8 @@ let create impl =
   let rec aux
     : type t . G.t -> t Dsl.impl -> G.vertex * G.t
     = fun g impl ->
-      if H.mem tbl @@ Dsl.hide impl
-      then H.find tbl (Dsl.hide impl), g
+      if H.mem tbl @@ Dsl.hidden impl
+      then H.find tbl (Dsl.hidden impl), g
       else
         let v, g = match Dsl.explode impl with
           | `Impl c ->
@@ -198,7 +198,7 @@ let create impl =
             let x, g = aux g x in
             add_app g ~f ~args:[x]
         in
-        H.add tbl (Dsl.hide impl) v ;
+        H.add tbl (Dsl.hidden impl) v ;
         v, g
   in
   snd @@ aux G.empty impl

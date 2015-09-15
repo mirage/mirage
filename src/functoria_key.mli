@@ -134,7 +134,7 @@ val set : 'a key -> 'a -> unit
 type t = Set.elt
 (** Keys which types has been forgotten. *)
 
-val hide : 'a key -> t
+val hidden : 'a key -> t
 (** Hide the type of keys. Allows to put them in a set/list. *)
 
 (** {2 Advanced functions} *)

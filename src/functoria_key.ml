@@ -153,7 +153,7 @@ module Set = struct
 end
 type t = Set.elt = Any : 'a key -> t
 
-let hide x = Any x
+let hidden x = Any x
 let name (Any k) = k.name
 let stage (Any k) = k.stage
 let doc (Any k) = k.doc

@@ -82,7 +82,7 @@ module Devices = struct
       method clean = clean_keys
       method libraries = Key.pure [ "functoria.runtime" ]
       method packages = Key.pure [ "functoria" ]
-      method dependencies = [ hide argv ]
+      method dependencies = [ hidden argv ]
       method connect info modname = function
         | [ argv ] ->
           Fmt.strf

@@ -84,7 +84,7 @@ let ($) f x =
   App { f; x }
 
 let impl x = Impl x
-let hide x = Any x
+let hidden x = Any x
 
 let if_impl b x y = If(b,x,y)
 let rec switch ~default l kv = match l with

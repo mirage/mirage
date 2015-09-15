@@ -38,9 +38,9 @@ let io_page_conf = object
   method name = "io_page"
   method module_name = "Io_page"
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Xen  -> ["io-page"]
-    | `Unix | `MacOSX -> ["io-page"; "io-page.unix"]
+    Key.(if_ is_xen)
+      ["io-page"; "io-page.unix"]
+      ["io-page"]
   method packages = Key.pure [ "io-page" ]
 end
 
@@ -69,9 +69,9 @@ let clock_conf = object (self)
   method name = "clock"
   method module_name = "Clock"
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "mirage-clock-unix" ]
-    | `Xen  -> [ "mirage-clock-xen" ]
+    Key.(if_ is_xen)
+      [ "mirage-clock-xen" ]
+      [ "mirage-clock-unix" ]
   method packages = self#libraries
 end
 
@@ -177,7 +177,7 @@ let direct_kv_ro dirname = impl @@ object
   inherit crunch_conf dirname as super
 
   method module_name =
-    match get_mode () with
+    match Key.get Key.target with
     | `Xen  -> super#module_name
     | `Unix | `MacOSX -> "Kvro_fs_unix"
 
@@ -194,7 +194,7 @@ let direct_kv_ro dirname = impl @@ object
     in Key.(pure f $ super#libraries $ value target)
 
   method connect i modname names =
-    match get_mode () with
+    match Key.(get target) with
     | `Xen  -> super#connect i modname names
     | `Unix | `MacOSX ->
       Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i/dirname)
@@ -238,17 +238,15 @@ class block_conf file =
   method name = name
   method module_name = "Block"
   method packages =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> ["mirage-block-unix"]
-    | `Xen  -> ["mirage-block-xen"]
+    Key.(if_ is_xen)
+      ["mirage-block-xen"]
+      ["mirage-block-unix"]
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> ["mirage-block-unix"]
-    | `Xen  -> ["mirage-block-xen.front"]
-
-
+    Key.(if_ is_xen)
+      ["mirage-block-xen.front"]
+      ["mirage-block-unix"]
   method private connect_name root =
-    match get_mode () with
+    match Key.(get target) with
     | `Unix | `MacOSX -> root / b.filename (* open the file directly *)
     | `Xen ->
       (* We need the xenstore id *)
@@ -441,9 +439,9 @@ let ethernet_conf = object
   method packages = Key.pure ["tcpip"]
 
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.ethif-unix" ]
-    | `Xen  -> [ "tcpip.ethif" ]
+    Key.(if_ is_xen)
+      [ "tcpip.ethif" ]
+      [ "tcpip.ethif-unix" ]
 
   method connect _ modname = function
     | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
@@ -467,9 +465,9 @@ let arpv4_conf = object
 
   method packages = Key.pure ["tcpip"]
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> ["tcpip.arpv4-unix"]
-    | `Xen  -> ["tcpip.arpv4"]
+    Key.(if_ is_xen)
+      ["tcpip.arpv4"]
+      ["tcpip.arpv4-unix"]
 
   method connect _ modname = function
     | [ eth ; _clock ; _time ] -> Printf.sprintf "%s.connect %s" modname eth
@@ -528,9 +526,9 @@ let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
 
   method packages = Key.pure [ "tcpip" ]
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.ipv4-unix" ]
-    | `Xen  -> [ "tcpip.ipv4" ]
+    Key.(if_ is_xen)
+      [ "tcpip.ipv4" ]
+      [ "tcpip.ipv4-unix" ]
 
   method keys = address @?? netmask @?? gateways @?? []
 
@@ -581,9 +579,9 @@ let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
 
   method packages = Key.pure [ "tcpip" ]
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.ipv6-unix" ]
-    | `Xen  -> [ "tcpip.ipv6" ]
+    Key.(if_ is_xen)
+      [ "tcpip.ipv6" ]
+      [ "tcpip.ipv6-unix" ]
 
   method keys = address @?? netmask @?? gateways @?? []
 
@@ -892,18 +890,18 @@ let nocrypto = impl @@ object
   method module_name = "Nocrypto_entropy"
 
   method packages =
-    Key.pipe Key.(value target) @@ function
-    | `Xen -> [ "mirage-entropy-xen" ]
-    | _    -> []
+    Key.(if_ is_xen)
+      [ "mirage-entropy-xen" ]
+      []
 
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Xen            -> ["nocrypto.xen"]
-    | `Unix | `MacOSX -> ["nocrypto.lwt"]
+    Key.(if_ is_xen)
+      ["nocrypto.xen"]
+      ["nocrypto.lwt"]
 
   method configure _ = R.ok (enable_entropy ())
   method connect _ _ _ =
-    let s = match get_mode () with
+    let s = match Key.(get target) with
       | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
     in
@@ -1112,9 +1110,9 @@ let tracing =
 
   method packages = Key.pure ["mirage-profile"]
   method libraries =
-    Key.pipe Key.(value target) @@ function
-    | `Unix | `MacOSX -> ["mirage-profile.unix"]
-    | `Xen  -> ["mirage-profile.xen"]
+    Key.(if_ is_xen)
+      ["mirage-profile.xen"]
+      ["mirage-profile.unix"]
 
   method configure _ =
     if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" = 0
@@ -1125,7 +1123,7 @@ let tracing =
             opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
     end
 
-  method connect _ _ _ = match get_mode () with
+  method connect _ _ _ = match Key.(get target) with
     | `Unix | `MacOSX ->
       Fmt.strf
         "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
@@ -1378,7 +1376,7 @@ let configure_makefile ~root ~name info =
   newline fmt;
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
-  begin match get_mode () with
+  begin match Key.(get target) with
     | `Xen  ->
       append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
       append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
@@ -1427,7 +1425,7 @@ let configure_makefile ~root ~name info =
       Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
 
-  begin match get_mode () with
+  begin match Key.(get target) with
     | `Xen ->
       get_extra_ld_flags libs
       >>| String.concat " \\\n\t  "
@@ -1465,7 +1463,7 @@ let configure i =
   let root = Info.root i in
   check_entropy @@ Info.libraries i >>= fun () ->
   info "%a %a" blue "Configuring for target:"
-    Key.pp_target (get_mode ()) ;
+    Key.pp_target Key.(get target) ;
   in_dir root (fun () ->
     configure_main_xl ~root ~name;
     configure_main_xe ~root ~name;
@@ -1510,9 +1508,9 @@ module Project = struct
 
     method packages =
       let l = [ "lwt" ; "sexplib" ] in
-      Key.pipe Key.(value target) @@ function
-      | `Unix | `MacOSX -> "mirage-unix" :: l
-      | `Xen  -> "mirage-xen" :: l
+      Key.(if_ is_xen)
+        ("mirage-xen" :: l)
+        ("mirage-unix" :: l)
 
     method libraries = Key.pure [
       "lwt.syntax" ; "mirage.runtime" ;

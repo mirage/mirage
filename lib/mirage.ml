@@ -394,6 +394,8 @@ let generic_kv_ro ?group dir =
 type network = NETWORK
 let network = Type NETWORK
 
+let all_networks = ref []
+
 let network_conf (intf : string Key.key) =
   let key = Key.hidden intf in
   object (self)
@@ -419,6 +421,11 @@ let network_conf (intf : string Key.key) =
     Fmt.strf "%s.connect %a"
       modname
       Key.emit_call key
+
+  method configure _ =
+    all_networks := Key.get intf :: !all_networks;
+    R.ok ()
+
 
 end
 
@@ -1201,16 +1208,80 @@ let configure_main_libvirt_xml ~root ~name =
 let clean_main_libvirt_xml ~root ~name =
   remove (root / name ^ "_libvirt.xml")
 
-let configure_main_xl ~root ~name =
+(* We generate an example .xl with common defaults, and a generic
+   .xl.in which has @VARIABLES@ which must be substituted by sed according
+   to the preferences of the system administrator.
+
+   The common defaults chosen for the .xl file will be based on values
+   detected from the build host. We assume that the .xl file will mainly be
+   used by developers where build and deployment are on the same host. Production
+   users should use the .xl.in and perform the appropriate variable substition.
+*)
+
+let detected_bridge_name =
+  (* Best-effort guess of a bridge name stem to use. Note this inspects the
+     build host and will probably be wrong if the deployment host is different.
+  *)
+  match List.fold_left (fun sofar x -> match sofar with
+    | None ->
+      (* This is Linux-specific *)
+      if Sys.file_exists (Printf.sprintf "/sys/class/net/%s0" x)
+      then Some x
+      else None
+    | Some x -> Some x
+  ) None [ "xenbr"; "br"; "virbr" ] with
+  | Some x -> x
+  | None -> "br"
+
+module Substitutions = struct
+  type v =
+    | Name
+    | Kernel
+    | Memory
+    | Block of block_t
+    | Network of string
+
+  let string_of_v = function
+    | Name -> "@NAME@"
+    | Kernel -> "@KERNEL@"
+    | Memory -> "@MEMORY@"
+    | Block b -> Printf.sprintf "@BLOCK:%s@" b.filename
+    | Network n -> Printf.sprintf "@NETWORK:%s@" n
+
+  type t = (v * string) list
+
+  let lookup ts v =
+    if List.mem_assoc v ts
+    then List.assoc v ts
+    else string_of_v v
+
+  let defaults i =
+    let blocks = List.map (fun b ->
+      Block b, Filename.concat (Info.root i) b.filename
+    ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
+    let networks = List.mapi (fun i n ->
+      Network n, Printf.sprintf "%s%d" detected_bridge_name i
+    ) !all_networks in [
+      Name, (Info.name i);
+      Kernel, Printf.sprintf "%s/mir-%s.xen" (Info.root i) (Info.name i);
+      Memory, "256";
+    ] @ blocks @ networks
+end
+
+let configure_main_xl ?substitutions ext i =
+  let open Substitutions in
+  let substitutions = match substitutions with
+    | Some x -> x
+    | None -> defaults i in
+  let file = Info.root i / Info.name i ^ ext in
   let open Codegen in
-  let file = root / name ^ ".xl" in
   with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header ());
+  append fmt "# %s" (generated_header ()) ;
   newline fmt;
-  append fmt "name = '%s'" name;
-  append fmt "kernel = '%s/mir-%s.xen'" root name;
+  append fmt "name = '%s'" (lookup substitutions Name);
+  append fmt "kernel = '%s'" (lookup substitutions Kernel);
   append fmt "builder = 'linux'";
-  append fmt "memory = 256";
+  append fmt "memory = %s" (lookup substitutions Memory);
   append fmt "on_crash = 'preserve'";
   newline fmt;
   let blocks = List.map (fun b ->
@@ -1223,19 +1294,22 @@ let configure_main_xl ~root ~name =
         let low' = String.make 1 (char_of_int (low + (int_of_char 'a') - 1)) in
         high' ^ low' in
     let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.number) in
-    let path = Filename.concat root b.filename in
+    let path = lookup substitutions (Block b) in
     Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
   ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
   append fmt "disk = [ %s ]" (String.concat ", " blocks);
   newline fmt;
-  append fmt "# The network configuration is defined here:";
-  append fmt "# http://xenbits.xen.org/docs/4.3-testing/misc/xl-network-configuration.html";
-  append fmt "# An example would look like:";
-  append fmt "# vif = [ 'mac=c0:ff:ee:c0:ff:ee,bridge=br0' ]";
+  let networks = List.map (fun n ->
+    Printf.sprintf "'bridge=%s'" (lookup substitutions (Network n))
+  ) !all_networks in
+  append fmt "# if your system uses openvswitch then either edit /etc/xen/xl.conf and set";
+  append fmt "#     vif.default.script=\"vif-openvswitch\"";
+  append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" below:";
+  append fmt "vif = [ %s ]" (String.concat ", " networks);
   ()
 
-let clean_main_xl ~root ~name =
-  remove (root / name ^ ".xl")
+let clean_main_xl ~root ~name ext =
+  remove (root / name ^ ext)
 
 let configure_main_xe ~root ~name =
   let open Codegen in
@@ -1465,7 +1539,8 @@ let configure i =
   info "%a %a" blue "Configuring for target:"
     Key.pp_target Key.(get target) ;
   in_dir root (fun () ->
-    configure_main_xl ~root ~name;
+    configure_main_xl ".xl" i;
+    configure_main_xl ~substitutions:[] ".xl.in" i;
     configure_main_xe ~root ~name;
     configure_main_libvirt_xml ~root ~name;
     configure_myocamlbuild_ml ~root;
@@ -1477,7 +1552,8 @@ let clean i =
   let name = Info.name i in
   let root = Info.root i in
   in_dir root (fun () ->
-      clean_main_xl ~root ~name;
+      clean_main_xl ~root ~name ".xl";
+      clean_main_xl ~root ~name ".xl.in";
       clean_main_xe ~root ~name;
       clean_main_libvirt_xml ~root ~name;
       clean_myocamlbuild_ml ~root;

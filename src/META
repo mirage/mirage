@@ -1,0 +1,23 @@
+# OASIS_START
+# DO NOT EDIT (digest: d144029f9be485e2fcea09e6ada743ea)
+version = "1.0.0"
+description = "Functoria configuration tool"
+requires =
+"unix dynlink cmdliner rresult fmt.tty functoria.runtime ocamlgraph"
+archive(byte) = "functoria.cma"
+archive(byte, plugin) = "functoria.cma"
+archive(native) = "functoria.cmxa"
+archive(native, plugin) = "functoria.cmxs"
+exists_if = "functoria.cma"
+package "runtime" (
+ version = "1.0.0"
+ description = "Functoria configuration tool"
+ requires = "cmdliner fmt"
+ archive(byte) = "functoria-runtime.cma"
+ archive(byte, plugin) = "functoria-runtime.cma"
+ archive(native) = "functoria-runtime.cmxa"
+ archive(native, plugin) = "functoria-runtime.cmxs"
+ exists_if = "functoria-runtime.cma"
+)
+# OASIS_STOP
+

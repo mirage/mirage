@@ -19,7 +19,6 @@ install: [make "install"]
 remove: ["ocamlfind" "remove" "functoria"]
 depends: [
   "ocamlfind" {build}
-  "oasis" {build}
   "base-unix"
   "cmdliner"
   "rresult"

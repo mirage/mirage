@@ -54,7 +54,7 @@ val hidden : _ impl -> any_impl
 (** {2 Keys} *)
 
 (** Key creation and manipulation. *)
-module Key = Functoria_key
+module Key : module type of struct include Functoria_key end
 
 val if_impl : bool Key.value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2] otherwise. *)

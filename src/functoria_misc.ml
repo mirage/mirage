@@ -78,7 +78,20 @@ let suffix s ~by =
 let prefix s ~by =
   if by = "" then s else by^"_"^s
 
-module StringSet = Set.Make(String)
+module type SET = sig
+  include Set.S
+  val of_list : elt list -> t
+end
+
+(** Compat with OCaml < 4.02 *)
+module Set_Make (M: Set.OrderedType) = struct
+  module M = Set.Make(M)
+  let of_list l = List.fold_left (fun s x -> M.add x s) M.empty l
+  (* trick to use the new of_list in recent OCaml versions *)
+  include M
+end
+
+module StringSet = Set_Make (String)
 
 (** {Logging} *)
 

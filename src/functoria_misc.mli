@@ -47,9 +47,17 @@ module type Monoid = sig
   val union : t -> t -> t
 end
 
+(** Compat with OCaml < 4.02 *)
+module type SET = sig
+  include Set.S
+  val of_list : elt list -> t
+end
+
+module Set_Make (M:Set.OrderedType) : SET with type elt = M.t
+
 (** {2 String utilities} *)
 
-module StringSet : Set.S with type elt = string
+module StringSet : SET with type elt = string
 
 val strip: string -> string
 (** Remove heading and trailing spaces. *)

@@ -18,7 +18,7 @@
 (** Configuration library *)
 
 (** Core functoria DSL *)
-module Dsl = Functoria_dsl
+module Dsl : module type of struct include Functoria_dsl end
 
 (** Various generic devices. *)
 module Devices : sig
@@ -55,7 +55,7 @@ module Devices : sig
 end
 
 (** Various helpful functions. *)
-module Misc = Functoria_misc
+module Misc : module type of struct include Functoria_misc end
 
 (** A specialized DSL build for specific purposes. *)
 module type SPECIALIZED = sig

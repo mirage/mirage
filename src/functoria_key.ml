@@ -138,7 +138,7 @@ module Set = struct
     type t = elt
     let compare (Any k1) (Any k2) = compare k1.name k2.name
   end
-  include (Set.Make (M) : Set.S with type elt := elt)
+  include (Set_Make (M) : SET with type elt := elt)
 
   let add k set =
     if mem k set then

@@ -65,7 +65,7 @@ module Doc : sig
 
 end
 
-module Set : Set.S
+module Set : Functoria_misc.SET
 (** A Set of keys. *)
 
 

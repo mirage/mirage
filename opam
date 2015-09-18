@@ -25,3 +25,4 @@ depends: [
   "fmt"
   "ocamlgraph"
 ]
+available: [ocaml-version >= "4.01"]

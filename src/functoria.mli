@@ -111,5 +111,5 @@ module Make (P : SPECIALIZED) : sig
 
 end
 
-module type S = module type of Dsl
-module type KEY = module type of Dsl.Key
+module type S = module type of struct include Dsl end
+module type KEY = module type of struct include Dsl.Key end

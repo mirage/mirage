@@ -23,7 +23,7 @@
 
 
 (** Configuration keys. *)
-module Key = Mirage_key
+module Key : module type of struct include Mirage_key end
 
 include Functoria.S with module Key := Key
 

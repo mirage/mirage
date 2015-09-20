@@ -1,0 +1,9 @@
+# OASIS_START
+# DO NOT EDIT (digest: 98ae0d7d0541adb642ea5918c8910aa2)
+src/Functoria
+src/Functoria_misc
+src/Functoria_key
+src/Functoria_dsl
+runtime/Functoria_runtime
+runtime/Functoria_info
+# OASIS_STOP

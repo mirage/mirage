@@ -1,0 +1,11 @@
+language: c
+sudo: required
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
+script: bash -ex .travis-ci.sh
+env:
+  global:
+  - PACKAGE=functoria
+  - PINS="mirage:https://github.com/Drup/mirage.git#functhulhu mirage-skeleton.dev:https://github.com/Drup/mirage-skeleton.git#functoria"
+  matrix:
+  - OCAML_VERSION=4.01
+  - OCAML_VERSION=4.02

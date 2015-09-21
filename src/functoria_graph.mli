@@ -54,9 +54,9 @@ val normalize : t -> t
 val simplify : t -> t
 (** [simplify g] simplifies the graph so that it's easier to read for humans. *)
 
-val eval : ?partial:bool -> t -> t
-(** [eval g] will removes all the [If] vertices by
-    trying to resolve the keys. It will then call {!normalize}
+val eval : ?partial:bool -> map:Key.map -> t -> t
+(** [eval ~map g] will removes all the [If] vertices by
+    resolving the keys using [map]. It will then call {!normalize}
 
     If [partial] is [true], then it will only evaluate
     [If] vertices which condition is resolved.

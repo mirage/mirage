@@ -23,6 +23,7 @@ module Info = struct
     name: string;
     root: string;
     keys: Key.Set.t;
+    keymap: Functoria_key.map;
     libraries : StringSet.t;
     packages : StringSet.t;
   }
@@ -32,12 +33,14 @@ module Info = struct
   let libraries t = t.libraries
   let packages t = t.packages
   let keys t = t.keys
+  let keymap t = t.keymap
 
   let create
       ?(keys=Key.Set.empty)
       ?(libraries=StringSet.empty) ?(packages=StringSet.empty)
+      ~keymap
       ~name ~root =
-    { name ; root ; keys ; libraries ; packages }
+    { name ; root ; keys ; libraries ; packages ; keymap}
 
 end
 

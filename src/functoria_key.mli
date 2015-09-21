@@ -99,6 +99,9 @@ val if_ : bool value -> 'a -> 'a -> 'a value
 val with_deps : keys:Set.t -> 'a value -> 'a value
 (** [with_deps deps v] is the value [v] with added dependencies. *)
 
+val default : 'a value -> 'a
+(** [default v] returns the default value for [v]. *)
+
 type 'a key
 (** Keys are dynamic values that can be used to
     - Set options at configure and runtime on the command line.
@@ -126,9 +129,6 @@ val create : ?stage:stage -> doc:Doc.t -> default:'a -> string -> 'a Desc.t -> '
     [desc]. Default [stage] is [`Both].
     It is an error to use more than one key with the same [name]. *)
 
-val set : 'a key -> 'a -> unit
-(** [set key v] sets the value of [key] to [v]. *)
-
 (** {2 Oblivious keys} *)
 
 type t = Set.elt
@@ -148,14 +148,6 @@ val pp_deps : 'a value Fmt.t
 val deps : 'a value -> Set.t
 (** [deps v] is the dependencies of [v]. *)
 
-val is_resolved : 'a value -> bool
-(** [is_reduced v] returns [true] iff all the dependencies of [v] have
-    been resolved. *)
-
-val peek : 'a value -> 'a option
-(** [peek v] returns [Some x] if [v] has been resolved to [x]
-    and [None] otherwise. *)
-
 (** {3 Accessors} *)
 
 val is_runtime : t -> bool
@@ -167,6 +159,24 @@ val is_configure : t -> bool
 val filter_stage : stage:[< `Both | `Configure | `Run ] -> Set.t -> Set.t
 (** [filter_stage ~stage set] filters [set] with the appropriate keys. *)
 
+(** {3 Key resolution} *)
+
+type map
+
+val is_resolved : map -> 'a value -> bool
+(** [is_reduced map v] returns [true] iff all the dependencies of [v] have
+    been resolved. *)
+
+val peek : map -> 'a value -> 'a option
+(** [peek map v] returns [Some x] if [v] has been resolved to [x]
+    and [None] otherwise. *)
+
+val eval : map -> 'a value -> 'a
+(** [eval map v] resolves [v], using default values if necessary. *)
+
+val get : map -> 'a key -> 'a
+(** [get map k] resolves [k], using default values if necessary. *)
+
 (** {3 Code emission} *)
 
 val ocaml_name : t -> string
@@ -175,16 +185,17 @@ val ocaml_name : t -> string
 val emit_call : t Fmt.t
 (** [emit_call fmt k] prints the OCaml code needed to get the value of [k]. *)
 
-val emit : t Fmt.t
+val emit : map -> t Fmt.t
 (** [emit fmt k] prints the OCaml code needed to define [k]. *)
+
 
 (** {3 Cmdliner} *)
 
-val term_key : t -> unit Cmdliner.Term.t
+val term_key : 'a key -> 'a option Cmdliner.Term.t
 (** [term_key k] is a [Cmdliner.Term.t] that, when evaluated, sets the value
     of the the key [k]. *)
 
-val term : ?stage:stage -> Set.t -> unit Cmdliner.Term.t
+val term : ?stage:stage -> Set.t -> map Cmdliner.Term.t
 (** [term l] is a [Cmdliner.Term.t] that, when evaluated, sets the value of the
     the keys in [l]. *)
 
@@ -192,9 +203,6 @@ val term_value : ?stage:stage -> 'a value -> 'a Cmdliner.Term.t
 (** [term_value v] is [term @@ deps v] and returns the content of [v]. *)
 
 (**/**)
-
-val get : 'a key -> 'a
-val eval : 'a value -> 'a
 
 val module_name : string
 (** Name of the generated module containing the keys. *)

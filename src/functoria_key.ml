@@ -116,27 +116,21 @@ type 'a key = {
   doc : Doc.t ;
   desc : 'a Desc.t ;
   default : 'a ;
-  mutable value : 'a option ;
+  key : 'a Univ.key
 }
 
 let create ?(stage=`Both) ~doc ~default name desc =
-  { doc ; stage ; default ; desc ; value = None ; name }
+  let key = Univ.new_key name in
+  { doc ; stage ; default ; desc ; name ; key }
 
 let desc k = k.desc
-
-let get k = match k.value with
-  | None -> k.default
-  | Some v -> v
-
-let set k x =
-  k.value <- Some x
 
 
 module Set = struct
   type elt = Any : 'a key -> elt
   module M = struct
     type t = elt
-    let compare (Any k1) (Any k2) = compare k1.name k2.name
+    let compare (Any k1) (Any k2) = String.compare k1.name k2.name
   end
   include (Set_Make (M) : SET with type elt := elt)
 
@@ -172,21 +166,31 @@ let filter_stage ~stage set =
   | `Configure -> Set.filter is_configure set
   | `Both -> set
 
-let is_key_resolved { value } = value <> None
+
+(** Key Map *)
+
+type map = Univ.t
+
+let get map { key ; default } =
+  match Univ.find key map with
+  | Some x -> x
+  | None -> default
+
+let mem map t = Univ.mem t.key map
 
 (** {2 Values} *)
 
 type +'a value = {
   deps : Set.t ;
-  v : unit -> 'a ;
+  v : map -> 'a ;
 }
 
-let eval { v } = v ()
+let eval map { v } = v map
 
-let pure x = { deps = Set.empty ; v = fun () -> x }
+let pure x = { deps = Set.empty ; v = fun _ -> x }
 let app f x = {
   deps = Set.union f.deps x.deps ;
-  v = fun () -> (eval f) (eval x) ;
+  v = fun map -> (eval map f) (eval map x) ;
 }
 
 let map f x = app (pure f) x
@@ -199,16 +203,19 @@ let with_deps ~keys { deps ; v } =
   { deps = Set.(union deps keys) ; v }
 
 let value k =
-  let v () = get k in
+  let v map = get map k in
   { deps = Set.singleton (Any k) ; v }
 
 let deps k = k.deps
 
-let is_resolved { deps } =
-  Set.for_all (fun (Any x) -> is_key_resolved x) deps
+let is_resolved map { deps } =
+  Set.for_all (fun (Any x) -> mem map x) deps
 
-let peek v =
-  if is_resolved v then Some (v.v ()) else None
+let peek map v =
+  if is_resolved map v then Some (eval map v) else None
+
+let default v =
+  eval Univ.empty v
 
 (** {2 Pretty printing} *)
 
@@ -220,18 +227,25 @@ let pp_deps fmt v =
 
 (** {2 Cmdliner interface} *)
 
-let term_key (Any ({ doc; desc; default } as t)) =
+let term_key
+  : type a. a key -> a option Term.t
+  = fun { doc; desc; default } ->
   let i = Doc.to_cmdliner doc in
   (* We don't want to set the value if the option is not given.
      We still want to show the default value in the help. *)
   let default = Fmt.strf "%a" (snd @@ Desc.converter desc) default in
   let c = Arg.some ~none:default desc.converter in
-  let set w = t.value <- w in
-  Term.(pure set $ Arg.(value & opt c None i))
+  Arg.(value & opt c None i)
 
 let term ?(stage=`Both) l =
-  let gather k rest = Term.(pure (fun () () -> ()) $ term_key k $ rest) in
-  Set.fold gather (filter_stage ~stage l) (Term.pure ())
+  let gather (Any k) rest =
+    let f v map = match v with
+      | Some v -> Univ.add k.key v map
+      | None -> map
+    in
+    Term.(pure f $ term_key k $ rest)
+  in
+  Set.fold gather (filter_stage ~stage l) (Term.pure Univ.empty)
 
 let term_value ?stage { deps ; v } =
   Term.(pure v $ term ?stage deps)
@@ -241,8 +255,8 @@ let term_value ?stage { deps ; v } =
 
 let module_name = "Bootvar_gen"
 
-let serialize fmt (Any k) =
-  Format.fprintf fmt "%a" (Desc.serializer @@ desc k) @@ get k
+let serialize map fmt (Any k) =
+  Format.fprintf fmt "%a" (Desc.serializer @@ desc k) @@ get map k
 
 let describe fmt (Any { desc ; _ }) =
   Format.fprintf fmt "%s" desc.description
@@ -252,21 +266,21 @@ let ocaml_name k = Name.ocamlify (name k)
 let emit_call fmt k =
   Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 
-let emit_rw fmt k =
+let emit_rw map fmt k =
   Format.fprintf fmt
     "@[<2>let %s =@ Functoria_runtime.Key.create@ ~doc:%a@ ~default:%a %a@]@,\
      @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
      @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
-    (ocaml_name k)   Doc.emit (doc k)  serialize k  describe k
+    (ocaml_name k)   Doc.emit (doc k)  (serialize map) k  describe k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)
 
-let emit_ro fmt k =
+let emit_ro map fmt k =
   Format.fprintf fmt
     "@[<2>let %s () =@ %a@]@,"
-    (ocaml_name k)  serialize k
+    (ocaml_name k)  (serialize map) k
 
-let emit fmt k =
+let emit map fmt k =
   if is_runtime k
-  then emit_rw fmt k
-  else emit_ro fmt k
+  then emit_rw map fmt k
+  else emit_ro map fmt k

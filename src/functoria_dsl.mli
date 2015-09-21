@@ -113,10 +113,14 @@ module Info : sig
   val keys : t -> Key.Set.t
   (** Keys declared by the project. *)
 
+  val keymap : t -> Key.map
+  (** Map from key entered in the command line to values. *)
+
   val create :
     ?keys:Key.Set.t ->
     ?libraries:StringSet.t ->
     ?packages:StringSet.t ->
+    keymap:Key.map ->
     name:string ->
     root:string -> t
 

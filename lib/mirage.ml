@@ -128,13 +128,11 @@ let default_console = custom_console "0"
 type kv_ro = KV_RO
 let kv_ro = Type KV_RO
 
-class crunch_conf dirname =
-  let name =
-    Name.of_key ("static" ^ dirname) ~base:"static"
-  in object
+let crunch dirname = impl @@ object
     inherit base_configurable
     method ty = kv_ro
 
+    val name = Name.of_key ("static" ^ dirname) ~base:"static"
     method name = name
     method module_name = String.capitalize name
 
@@ -142,9 +140,6 @@ class crunch_conf dirname =
     method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct" ]
 
     method dependencies = [ hidden default_io_page ]
-
-    val ml = Printf.sprintf "%s.ml" name
-    val mli = Printf.sprintf "%s.mli" name
 
     method connect _ modname _ =
       Fmt.strf "%s.connect ()" modname
@@ -154,7 +149,7 @@ class crunch_conf dirname =
         error "ocaml-crunch not found, stopping."
       else begin
         let dir = Info.root i / dirname in
-        let file = Info.root i / ml in
+        let file = Info.root i / (name ^ ".ml") in
         if Sys.file_exists dir then (
           info "%a %s" Functoria_misc.blue "Generating:" file;
           command "ocaml-crunch -o %s %s" file dir
@@ -164,42 +159,31 @@ class crunch_conf dirname =
       end
 
     method clean i =
-      remove (Info.root i/ml);
-      remove (Info.root i/mli);
+      remove (Info.root i / name ^ ".ml");
       R.ok ()
 
   end
 
-let crunch dirname = impl (new crunch_conf dirname)
+let direct_kv_ro_conf dirname = impl @@ object
+    inherit base_configurable
+    method ty = kv_ro
 
+    val name = Name.of_key ("direct" ^ dirname) ~base:"direct"
+    method name = name
+    method module_name = "Kvro_fs_unix"
 
-let direct_kv_ro dirname = impl @@ object
-  inherit crunch_conf dirname as super
+    method packages = Key.pure ["mirage-fs-unix"]
+    method libraries = Key.pure ["mirage-fs-unix"]
 
-  method module_name =
-    match Key.get Key.target with
-    | `Xen  -> super#module_name
-    | `Unix | `MacOSX -> "Kvro_fs_unix"
-
-  method packages =
-    let f p = function
-      | `Xen  -> p
-      | `Unix | `MacOSX -> "mirage-fs-unix" :: p
-    in Key.(pure f $ super#packages $ value target)
-
-  method libraries =
-    let f l = function
-    | `Xen  -> l
-    | `Unix | `MacOSX -> "mirage-fs-unix" :: l
-    in Key.(pure f $ super#libraries $ value target)
-
-  method connect i modname names =
-    match Key.(get target) with
-    | `Xen  -> super#connect i modname names
-    | `Unix | `MacOSX ->
+    method connect i _modname _names =
       Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i/dirname)
 
-end
+  end
+
+let direct_kv_ro dirname =
+  if_impl Key.is_xen
+    (crunch dirname)
+    (direct_kv_ro_conf dirname)
 
 
 type block = BLOCK

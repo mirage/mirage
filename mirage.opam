@@ -24,4 +24,10 @@ depends: [
   "ipaddr"       {>= "2.6.0"}
   "functoria"
 ]
+conflicts: [
+  "nocrypto" {< "0.4.0"}
+  "cstruct"  {< "1.0.1"}
+  "io-page"  {< "1.4.0"}
+  "crunch"   {< "1.2.2"}
+]
 available: [ocaml-version >= "4.01.0"]

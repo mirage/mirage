@@ -76,7 +76,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         ~doc:"File where to output description or dot representation."
         ["o"; "output"]
     in
-    Arg.(value & opt (some file) None & doc)
+    Arg.(value & opt (some string) None & doc)
 
   let () =
     let i = Terminfo.columns () in

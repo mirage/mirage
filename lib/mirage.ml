@@ -22,6 +22,8 @@ open Functoria_misc
 module Key = Mirage_key
 include (Dsl : Functoria.S with module Key := Key)
 
+let get_target i =
+  Key.(get (Info.keymap i) target)
 
 (** {2 Error handling} *)
 let driver_error name =
@@ -229,8 +231,8 @@ class block_conf file =
     Key.(if_ is_xen)
       ["mirage-block-xen.front"]
       ["mirage-block-unix"]
-  method private connect_name root =
-    match Key.(get target) with
+  method private connect_name target root =
+    match target with
     | `Unix | `MacOSX -> root / b.filename (* open the file directly *)
     | `Xen ->
       (* We need the xenstore id *)
@@ -240,7 +242,7 @@ class block_conf file =
        else (1 lsl 28)  lor (b.number lsl 8)) |> string_of_int
 
   method connect i s _ =
-    Printf.sprintf "%s.connect %S" s (self#connect_name @@ Info.root i)
+    Printf.sprintf "%s.connect %S" s (self#connect_name (get_target i) @@ Info.root i)
 
 end
 
@@ -406,8 +408,8 @@ let network_conf (intf : string Key.key) =
       modname
       Key.emit_call key
 
-  method configure _ =
-    all_networks := Key.get intf :: !all_networks;
+  method configure i =
+    all_networks := Key.get (Info.keymap i) intf :: !all_networks;
     R.ok ()
 
 
@@ -891,10 +893,10 @@ let nocrypto = impl @@ object
       ["nocrypto.lwt"]
 
   method configure _ = R.ok (enable_entropy ())
-  method connect _ _ _ =
-    let s = match Key.(get target) with
-      | `Xen            -> "Nocrypto_entropy_xen.initialize ()"
-      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+  method connect i _ _ =
+    let s = if Key.(eval (Info.keymap i) is_xen)
+      then "Nocrypto_entropy_xen.initialize ()"
+      else "Nocrypto_entropy_lwt.initialize ()"
     in
     Fmt.strf "%s >|= fun x -> `Ok x" s
 
@@ -1115,7 +1117,7 @@ let tracing i =
             opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
     end
 
-  method connect _ _ _ = match Key.(get target) with
+  method connect i _ _ = match Key.(get (Info.keymap i) target) with
     | `Unix | `MacOSX ->
       Fmt.strf
         "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
@@ -1417,7 +1419,7 @@ let configure_myocamlbuild_ml ~root =
 let clean_myocamlbuild_ml ~root =
   remove (root / "myocamlbuild.ml")
 
-let configure_makefile ~root ~name info =
+let configure_makefile ~target ~root ~name info =
   let open Codegen in
   let file = root / "Makefile" in
   let libs = StringSet.elements @@ Info.libraries info in
@@ -1435,7 +1437,7 @@ let configure_makefile ~root ~name info =
   newline fmt;
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
-  begin match Key.(get target) with
+  begin match target with
     | `Xen  ->
       append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,strict_sequence,principal\"\n";
       append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
@@ -1484,7 +1486,7 @@ let configure_makefile ~root ~name info =
       Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
 
-  begin match Key.(get target) with
+  begin match target with
     | `Xen ->
       get_extra_ld_flags libs
       >>| String.concat " \\\n\t  "
@@ -1520,16 +1522,16 @@ let clean_makefile ~root =
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
+  let target = Key.(get (Info.keymap i) target) in
   check_entropy @@ Info.libraries i >>= fun () ->
-  info "%a %a" blue "Configuring for target:"
-    Key.pp_target Key.(get target) ;
+  info "%a %a" blue "Configuring for target:" Key.pp_target target ;
   in_dir root (fun () ->
     configure_main_xl ".xl" i;
     configure_main_xl ~substitutions:[] ".xl.in" i;
     configure_main_xe ~root ~name;
     configure_main_libvirt_xml ~root ~name;
     configure_myocamlbuild_ml ~root;
-    configure_makefile ~root ~name i;
+    configure_makefile ~target ~root ~name i;
   )
 
 

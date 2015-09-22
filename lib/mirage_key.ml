@@ -97,14 +97,14 @@ let is_xen =
 
 (** {3 Tracing} *)
 
-let tracing =
+let tracing default =
   let doc = "The tracing level. Accepts an integer" in
   let desc = Key.Desc.int in
   let doc = Key.Doc.create
       ~docs:mirage_section
       ~docv:"TRACING" ~doc ["tracing"]
   in
-  Key.create ~doc ~stage:`Configure ~default:1 "tracing" desc
+  Key.create ~doc ~stage:`Configure ~default "tracing" desc
 
 (** {2 General mirage keys} *)
 

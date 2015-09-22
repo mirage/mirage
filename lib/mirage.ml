@@ -1088,8 +1088,9 @@ let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
 
 (** Tracing *)
 
-let tracing =
+let tracing i =
   let unix_trace_file = "trace.ctf" in
+  let key = Key.tracing i in
   impl @@ object
   inherit base_configurable
 
@@ -1097,7 +1098,7 @@ let tracing =
   method name = "tracing"
   method module_name = "MProf"
 
-  method keys = [ Key.hidden Key.tracing ]
+  method keys = [ Key.hidden key ]
 
   method packages = Key.pure ["mirage-profile"]
   method libraries =
@@ -1120,7 +1121,7 @@ let tracing =
         "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
          let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
          MProf.Trace.Control.start trace_config"
-        Key.emit_call Key.(hidden tracing)
+        Key.emit_call (Key.hidden key)
         unix_trace_file;
     | `Xen  ->
       Fmt.strf
@@ -1130,7 +1131,7 @@ let tracing =
          MProf.Trace.Control.start trace_config;@ \
          MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
          |> OS.Main.run"
-        Key.emit_call Key.(hidden tracing)
+        Key.emit_call (Key.hidden key)
 
 end
 
@@ -1611,7 +1612,6 @@ let register ?tracing:t ?keys ?(libraries=[]) ?(packages=[]) name jobs =
   let jobs = match t with
     | None -> jobs
     | Some i ->
-      Key.set Key.tracing i ;
-      tracing :: jobs
+      tracing i :: jobs
   in
   register ?keys ~libraries ~packages name jobs

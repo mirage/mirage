@@ -29,7 +29,7 @@ include Functoria.S with module Key := Key
 
 (** {2 General mirage devices} *)
 
-val tracing : job impl
+val tracing : int -> job impl
 (** Tracking implementation. *)
 
 val mprof_trace : size:int -> unit -> int

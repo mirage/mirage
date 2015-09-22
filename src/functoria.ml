@@ -532,8 +532,17 @@ module Make (P:SPECIALIZED) = struct
   module C = struct
     include P
 
+    (* This is a hack to allow the implementation of [Mirage.get_mode]. Once
+       it is removed, the notion of base keys should be removed as well. *)
+    let base_keymap = ref None
+    let get_base_keymap () = match !base_keymap with
+      | None -> invalid_arg "Base key map is not available at this point. Please stop messing with functoria's invariants."
+      | Some x -> x
+
     let base_keys =
-      Key.term ~stage:`Configure @@ Config.extract_keys (P.config [])
+      let t = Key.term ~stage:`Configure @@ Config.extract_keys (P.config []) in
+      let f x = base_keymap := Some x ; x in
+      Cmdliner.Term.(pure f $ t)
 
     type t = Config.t
     type evaluated = G.t * Info.t
@@ -565,6 +574,8 @@ module Make (P:SPECIALIZED) = struct
       let f map = Key.eval map info @@ map in
       Cmdliner.Term.(pure f $ keys)
   end
+
+  let get_base_keymap = C.get_base_keymap
 
   let launch () =
     let module M = Functoria_tool.Make(C) in

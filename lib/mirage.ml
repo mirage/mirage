@@ -1596,7 +1596,7 @@ include Functoria.Make (Project)
 
 (** {Deprecated functions} *)
 
-let get_mode () = Key.(get target)
+let get_mode () = Key.(get (get_base_keymap ()) target)
 
 let libraries_ref = ref []
 let add_to_ocamlfind_libraries l =

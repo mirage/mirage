@@ -104,6 +104,13 @@ module Make (P : SPECIALIZED) : sig
         @param keys The keys related to this module.
     *)
 
+  val get_base_keymap: unit -> Key.map
+  (** [get_base_keymap ()] returns the keymap containing the keys of the specialized DSL.
+      This functions should be avoided.
+
+      @deprecated Use the regular key mechanism.
+  *)
+
   val launch : unit -> unit
   (** Launch the cmdliner application.
       Should only be used by the host specialized DSL.

@@ -76,7 +76,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         ~doc:"File where to output description or dot representation."
         ["o"; "output"]
     in
-    Arg.(value & opt (some file) None & doc)
+    Arg.(value & opt (some string) None & doc)
 
   let () =
     let i = Terminfo.columns () in
@@ -84,29 +84,31 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     Format.pp_set_margin Format.err_formatter i ;
     Fmt_tty.setup_std_outputs ()
 
-  let base_keys = Config.base_keys
-
-  let with_config =
-    let config =
-      match Term.eval_peek_opts file with
+  let load_config () =
+    let c = match Term.eval_peek_opts file with
       | _, `Ok config -> config
       | _ -> None
     in
-    let show_error t _ = match t with
+    let _ = Term.eval_peek_opts Config.base_keys in
+    Config.load c
+
+  let config = Lazy.from_fun load_config
+
+  let with_config f options =
+    let show_error t = match t with
       | Ok r -> r
       | Error s -> show_error "%s" s
     in
-    let _  = Term.eval_peek_opts base_keys in
-    let t = lazy (Config.load config) in
-    fun f f_no ->
-      let term = match Lazy.force t with
-        | Ok t ->
-          let pkeys = Config.switching_keys t in
-          let _ = Term.eval_peek_opts pkeys in
-          f @@ Config.eval t
-        | Error err -> f_no err
-      in
-      Term.(pure show_error $ term $ file)
+    let term = match Lazy.force config with
+      | Ok t ->
+        let pkeys = Config.switching_keys t in
+        let term = match Term.eval_peek_opts pkeys with
+          | Some map_switch, _ -> f map_switch t
+          | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
+        in term
+      | Error err -> Term.pure (fun _ -> Error err)
+    in
+    Term.(pure (fun _ -> show_error) $ file $ (term $ options))
 
 
   (* CONFIGURE *)
@@ -117,16 +119,14 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `S "DESCRIPTION";
       `P "The $(b,configure) command initializes a fresh $(mname) application."
     ] in
-    let f t =
-      let configure no_opam no_opam_version no_depext info =
-        t#configure info ~no_opam ~no_depext ~no_opam_version in
-      Term.(pure configure $ no_opam $ no_opam_version_check $ no_depext $ t#info)
+    let options =
+      Term.(pure (fun a b c -> a, b, c) $ no_opam $ no_opam_version_check $ no_depext)
     in
-    let f_no err =
-      let f _ _ _ () = Error err in
-      Term.(pure f $ no_opam $ no_opam_version_check $ no_depext $ base_keys)
+    let configure info (no_opam, no_opam_version, no_depext) =
+      Config.configure info ~no_opam ~no_depext ~no_opam_version
     in
-    with_config f f_no, term_info "configure" ~doc ~man
+    let f map conf = Term.(pure configure $ Config.eval map conf) in
+    with_config f options, term_info "configure" ~doc ~man
 
   (* DESCRIBE *)
   let describe_doc =  "Describe a $(mname) application."
@@ -152,17 +152,14 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `I ("App vertices",
         "Represented as diamonds. The bold arrow is the functor part.");
     ] in
-    let f t =
-      let describe _ filename dotcmd dot eval =
-        R.ok @@ t#describe ~dotcmd ~dot ~eval filename
-      in
-      Term.(pure describe $ t#info $ output $ dotcmd $ dot $ full_eval)
+    let options =
+      Term.(pure (fun a b c d -> a, b, c, d)
+        $ output $ dotcmd $ dot $ full_eval)
     in
-    let f_no err =
-      let f () = Error err in
-      Term.(pure f $ base_keys)
+    let f map t = Term.pure @@ fun (output, dotcmd, dot, eval) ->
+      Config.describe ~dotcmd ~dot ~eval ~output map t
     in
-    with_config f f_no, term_info "describe" ~doc ~man
+    with_config f options, term_info "describe" ~doc ~man
 
   (* BUILD *)
   let build_doc = "Build a $(mname) application."
@@ -172,14 +169,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `S "DESCRIPTION";
       `P build_doc
     ] in
-    let f t =
-      Term.(pure t#build $ t#info)
-    in
-    let f_no err =
-      let f = Error err in
-      Term.(pure f)
-    in
-    with_config f f_no, term_info "build" ~doc ~man
+    let options = Term.pure () in
+    let build info () = Config.build info in
+    let f map conf = Term.(pure build $ Config.eval map conf) in
+    with_config f options, term_info "build" ~doc ~man
 
   (* CLEAN *)
   let clean_doc =
@@ -190,14 +183,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `S "DESCRIPTION";
       `P clean_doc;
     ] in
-    let f t =
-      Term.(pure t#clean $ t#info)
-    in
-    let f_no err =
-      let f _ = Error err in
-      Term.(pure f $ no_opam)
-    in
-    with_config f f_no, term_info "clean" ~doc ~man
+    let options = Term.pure () in
+    let clean info () = Config.clean info in
+    let f map conf = Term.(pure clean $ Config.eval map conf) in
+    with_config f options, term_info "clean" ~doc ~man
 
   (* HELP *)
   let help =
@@ -221,7 +210,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ base_keys)
+      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ Config.base_keys)
     in
     Term.ret term, Term.info "help" ~doc ~man
 

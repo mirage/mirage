@@ -425,3 +425,35 @@ module Terminfo = struct
       else 80
 
 end
+
+module Univ = struct
+
+  type 'a key = string * ('a -> exn) * (exn -> 'a)
+
+  let new_key : string -> 'a key =
+    fun s (type a) ->
+      let module M = struct
+        exception E of a
+      end
+      in
+      ( s
+      , (fun a -> M.E a)
+      , (function M.E a -> a | _ -> assert false)
+      )
+
+  module Map = Map.Make(String)
+
+  type t = exn Map.t
+
+  let empty = Map.empty
+
+  let add (kn, kput, _kget) v t =
+    Map.add kn (kput v) t
+
+  let mem (kn, _, _) t =
+    Map.mem kn t
+
+  let find (kn, _kput, kget) t =
+    if Map.mem kn t then Some (kget @@ Map.find kn t)
+    else None
+end

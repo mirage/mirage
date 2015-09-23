@@ -357,8 +357,8 @@ end
 module EvalIf = struct
   (** Evaluate the [If] vertices and remove them. *)
 
-  let predicate ~partial _ v = match G.V.label v with
-    | If cond when not partial || Key.is_resolved cond -> Some v
+  let predicate ~partial ~map _ v = match G.V.label v with
+    | If cond when not partial || Key.is_resolved map cond -> Some v
     | _ -> None
 
   let extract path l =
@@ -369,15 +369,15 @@ module EvalIf = struct
     in
     aux l
 
-  let apply ~partial g v_if =
+  let apply ~partial ~map g v_if =
     let path, l =
       match explode g v_if with
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.is_resolved path then g
+    if partial && not @@ Key.is_resolved map path then g
     else
-      let v_new, v_others = extract (Key.eval path) l in
+      let v_new, v_others = extract (Key.eval map path) l in
       let g = G.remove_vertex g v_if in
       let g = List.fold_left remove_rec_if_orphan g v_others in
       add_pred_with_subst g preds v_new
@@ -388,11 +388,11 @@ let simplify = MergeNode.(transform ~predicate ~apply)
 
 let normalize = RemovePartialApp.(transform ~predicate ~apply)
 
-let eval ?(partial=false) g =
+let eval ?(partial=false) ~map g =
   normalize @@
   EvalIf.(transform
-      ~predicate:(predicate ~partial)
-      ~apply:(apply ~partial)
+      ~predicate:(predicate ~partial ~map)
+      ~apply:(apply ~partial ~map)
       g)
 
 let is_fully_reduced g =
@@ -442,7 +442,7 @@ module Dot = Graphviz.Dot(struct
           | If cond -> cond | _ -> assert false
         in
         let l = [ `Style `Dotted ; `Headport `N ] in
-        if Key.eval cond = path then `Style `Bold :: l else l
+        if Key.default cond = path then `Style `Bold :: l else l
 
   end )
 

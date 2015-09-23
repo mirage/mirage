@@ -59,7 +59,7 @@ module Devices = struct
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter Key.Set.iter @@ Key.emit) bootvars ;
+      (Fmt.iter Key.Set.iter @@ Key.emit @@ Info.keymap i) bootvars ;
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@
@@ -319,19 +319,18 @@ module Config = struct
     in
     { libraries ; packages ; keys ; name ; root ; jobs }
 
-  let eval { name = n ; root ; packages ; libraries ; keys ; jobs } =
-    let e = G.eval jobs in
+  let eval map_switching { name = n ; root ; packages ; libraries ; keys ; jobs } =
+    let e = G.eval ~map:map_switching jobs in
     let open Key in
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
     let keys = Key.Set.union keys @@ Engine.keys e in
-    let di =
-      pure (fun libraries packages ->
-        Info.create ~libraries ~packages ~keys ~name:n ~root)
+    let di = pure (fun libraries packages keymap ->
+        e, Info.create ~libraries ~packages ~keys ~keymap ~name:n ~root)
       $ libraries
       $ packages
     in
-    e, with_deps ~keys di
+    with_deps ~keys di
 
   (** Extract all the keys directly.
       Useful to pre-resolve the keys provided by the specialized DSL. *)
@@ -341,8 +340,8 @@ module Config = struct
   let name t = t.name
   let keys t = t.keys
 
-  let gen_pp pp ~partial fmt t =
-    pp fmt @@ G.simplify @@ G.eval ~partial t.jobs
+  let gen_pp pp ~partial ~map fmt jobs =
+    pp fmt @@ G.simplify @@ G.eval ~partial ~map jobs
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot
@@ -478,18 +477,21 @@ module Make (P:SPECIALIZED) = struct
         root root root ;
     )
 
-  let describe g ~dotcmd ~dot ~eval file =
+  let describe ~dotcmd ~dot ~eval ~output ~map {Config. jobs } =
     let f fmt =
       Config.(if dot then pp_dot else pp)
-        ~partial:(not eval) fmt g
+        ~partial:(not eval) ~map fmt jobs
     in
-    let with_fmt f = match file with
+    let with_fmt f = match output with
       | None when dot ->
         let f oc = with_channel oc f in
         with_process_out dotcmd f
       | None -> f Fmt.stdout
       | Some s -> with_file s f
-    in with_fmt f
+    in R.ok @@ with_fmt f
+
+  let show_keys keymap keyset =
+    info "%a %a" blue "Keys:" (Key.pp_map keymap) keyset
 
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
@@ -533,11 +535,20 @@ module Make (P:SPECIALIZED) = struct
   module C = struct
     include P
 
+    (* This is a hack to allow the implementation of [Mirage.get_mode]. Once
+       it is removed, the notion of base keys should be removed as well. *)
+    let base_keymap = ref None
+    let get_base_keymap () = match !base_keymap with
+      | None -> invalid_arg "Base key map is not available at this point. Please stop messing with functoria's invariants."
+      | Some x -> x
+
     let base_keys =
-      Key.term ~stage:`Configure @@ Config.extract_keys (P.config [])
+      let t = Key.term ~stage:`Configure @@ Config.extract_keys (P.config []) in
+      let f x = base_keymap := Some x ; x in
+      Cmdliner.Term.(pure f $ t)
 
     type t = Config.t
-    type info = Info.t
+    type evaluated = G.t * Info.t
 
     let load file =
       scan_conf file >>= fun file ->
@@ -552,16 +563,25 @@ module Make (P:SPECIALIZED) = struct
     let switching_keys t =
       Key.term ~stage:`Configure @@ Config.keys t
 
-    let eval t =
-      let evaluated, info = Config.eval t in
-      object
-        method configure info = configure info evaluated
-        method clean info = clean info evaluated
-        method build info = build info
-        method info = Key.term_value ~stage:`Configure info
-        method describe = describe t
-      end
+    let configure (jobs, info) = configure info jobs
+
+    let clean (jobs, info) = clean info jobs
+    let build (_jobs, info) = build info
+
+    let describe map t =
+      describe ~map t
+
+    let eval switch_map t =
+      let info = Config.eval switch_map t in
+      let keys = Key.term ~stage:`Configure (Key.deps info) in
+      let f map =
+        show_keys map @@ Key.deps info ;
+        Key.eval map info @@ map
+      in
+      Cmdliner.Term.(pure f $ keys)
   end
+
+  let get_base_keymap = C.get_base_keymap
 
   let launch () =
     let module M = Functoria_tool.Make(C) in

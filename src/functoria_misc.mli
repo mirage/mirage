@@ -171,3 +171,16 @@ end
 module Terminfo: sig
   val columns : unit -> int
 end
+
+(** Universal map *)
+module Univ : sig
+
+  type 'a key
+  val new_key : string -> 'a key
+  type t
+  val empty : t
+  val add : 'a key -> 'a -> t -> t
+  val mem : 'a key -> t -> bool
+  val find : 'a key -> t -> 'a option
+
+end

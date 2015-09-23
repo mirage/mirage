@@ -177,6 +177,9 @@ val eval : map -> 'a value -> 'a
 val get : map -> 'a key -> 'a
 (** [get map k] resolves [k], using default values if necessary. *)
 
+val pp_map : map -> Set.t Fmt.t
+(** [pp_map map fmt set] prints the keys in [set] with the values in [map]. *)
+
 (** {3 Code emission} *)
 
 val ocaml_name : t -> string

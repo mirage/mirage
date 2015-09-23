@@ -490,6 +490,9 @@ module Make (P:SPECIALIZED) = struct
       | Some s -> with_file s f
     in R.ok @@ with_fmt f
 
+  let show_keys keymap keyset =
+    info "%a %a" blue "Keys:" (Key.pp_map keymap) keyset
+
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
    * [register] in order to have an observable
@@ -568,10 +571,13 @@ module Make (P:SPECIALIZED) = struct
     let describe map t =
       describe ~map t
 
-    let eval map t =
-      let info = Config.eval map t in
+    let eval switch_map t =
+      let info = Config.eval switch_map t in
       let keys = Key.term ~stage:`Configure (Key.deps info) in
-      let f map = Key.eval map info @@ map in
+      let f map =
+        show_keys map @@ Key.deps info ;
+        Key.eval map info @@ map
+      in
       Cmdliner.Term.(pure f $ keys)
   end
 

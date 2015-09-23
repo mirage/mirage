@@ -224,6 +224,15 @@ let pp fmt k = Fmt.string fmt (name k)
 let pp_deps fmt v =
   Fmt.(iter Set.iter ~sep:(unit ", ") pp) fmt v.deps
 
+let pp_map map =
+  let f fmt (Any k) =
+    let default = if mem map k then Fmt.nop else Fmt.unit " (default)" in
+    Fmt.pf fmt "%a=%a%a"
+      Fmt.(styled `Bold string) k.name
+      (snd k.desc.converter) (get map k)
+      default ()
+  in
+  Fmt.(iter ~sep:(unit ",@ ") Set.iter f)
 
 (** {2 Cmdliner interface} *)
 

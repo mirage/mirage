@@ -6,8 +6,84 @@ A DSL to organize functor applications.
 
 Functoria is a DSL to describe a set of modules and functors, their types and how to apply them in order to produce a complete application.
 
-The main use case is mirage. See the `mirage` repository for details.
+The main use case is mirage. See the [mirage][] repository for details.
 
+## How to write a configuration file ?
+
+There are numerous example of configuration files in [mirage-skeleton][]. Most of them should be fairly general and understandable, even outside the context of mirage. We can distinguish two part in a `config.ml`: Defining new modules and using them.
+
+In order to do define a new module, we use the `foreign` function. Among various arguments, it takes a module name and a type. The type is assembled with the DSL's combinators and the `@->` operator, which symbols a functor arrow.
+
+```ocaml
+let main = foreign "Unikernel.Main" (console @-> job)
+```
+
+Here, we declare the functor `Unikernel.Main` that takes a module that should be a `console` and returns a module that is a `job`. It is up to the user to ensure that the declaration matches the implementation (or be punished by a compiler error later on). If the declaration is correct, everything that follows will be.
+
+We can now use this declaration:
+
+```ocaml
+let () = register "console" [main $ default_console]
+```
+
+Here, we register a new application with the `register` function. This function should only be called once and takes as argument the name of the application and a list of jobs. We use the `$` operator to apply the functor `main` (aka `Unikernel.Main`) to the default console.
+
+Now that everything is ready, you can use the `configure` subcommand!
+
+### What is a job ?
+
+A job is a module containing a function `start`. This function will receive one argument per functor argument and one per dependency, in this order. `foreign` assumes the function `start` returns `unit`.
+
+### Defining new keys.
+
+A key is composed of :
+- _name_ : The name of the value in the program.
+- _description_ : How it should be displayed/serialized.
+- _stage_ : Is the key available only at runtime, at configure time or both ?
+- _documentation_ : It is not optional so you should really write it.
+
+Consider a multilingual application: we want to pass the default language as a parameter. We will use a simple string, so we can use the predefined description `Key.Desc.string`. We want to be able to define it both at configure and run time, so we use the stage `` `Both``. This gives us the following code:
+
+```ocaml
+let lang_key =
+  let doc = Key.Doc.create
+      ~doc:"The default language for the application." [ "l" ; "lang" ]
+  in
+  Key.create ~doc ~stage:`Both ~default:"en" "language" Key.Desc.string
+```
+
+Here, We defined both a long option `--lang` and a short one `-l` (the format is similar to the one used by [Cmdliner][cmdliner]).
+In the application code, the value is retrieved with `Bootvar_gen.language ()`.
+
+The option is also documented in the `--help` option for both the `configure` subcommand (at configure time) and `./my_application` (at startup time).
+
+```
+       -l VAL, --lang=VAL (absent=en)
+           The default language for the application.
+```
+
+[cmdliner]: http://erratique.ch/software/cmdliner
+
+### Using switching keys
+
+We can do much more with keys: we can use them to switch implementation at configure time. Imagine we want to completely change some implementation based on the language. Finns are special snowflakes, they deserve their special application!
+
+First, we have to compute a boolean value from lang:
+
+```ocaml
+let is_fi = Key.(pure ((=) "fi") $ value lang_key)
+```
+
+We can use the `if_impl` combinator to choose between two implementation depending on the value of the key:
+
+```ocaml
+let dynamic_storage =
+  if_impl is_fi
+    finnish_implementation
+    not_finnish_implementation
+```
+
+This distinction will be visible using the `describe` subcommand and a dot diagram is available with the `--dot` option!
 
 ## Internals
 
@@ -16,7 +92,7 @@ The main use case is mirage. See the `mirage` repository for details.
 Configuration is separated into phases:
 
 1. Specialized DSL keys
-   The specialized DSL's keys (along with the functoria's keys) are resolved.
+   The specialized DSL's keys (along with functoria's keys) are resolved.
 2. Compilation and dynlink of the config file.
 3. Registering.
    When the `register` function is called, the list of job is recorded and
@@ -34,3 +110,8 @@ Configuration is separated into phases:
 6. Dependency handling, configuration and code emission.
 
 Phases 1. to 4. are also applied for the `clean` command.
+
+
+
+[mirage]: https://github.com/mirage/mirage
+[mirage-skeleton]: https://github.com/mirage/mirage-skeleton

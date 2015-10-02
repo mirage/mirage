@@ -122,8 +122,11 @@ type stage = [
   | `Run
   | `Both
 ]
-(** The stage at which a key is available. This will influence when a key will
-    be available on the command line. *)
+(** The stage at which a key is available.
+    - [`Configure] means writable at configure time and readable at runtime.
+    - [`Run] means writable and readable only at runtime
+    - [`Both] means writable and readable at configure and run time.
+*)
 
 val create : ?stage:stage -> doc:Doc.t -> default:'a -> string -> 'a Desc.t -> 'a key
 (** [create ~doc ~stage ~default name desc] creates a new configuration key with
@@ -192,7 +195,7 @@ val is_runtime : t -> bool
 val is_configure : t -> bool
 (** [is_configure k] is true if [k]'s stage is [`Configure] or [`Both]. *)
 
-val filter_stage : stage:[< `Both | `Configure | `Run ] -> Set.t -> Set.t
+val filter_stage : stage:stage -> Set.t -> Set.t
 (** [filter_stage ~stage set] filters [set] with the appropriate keys. *)
 
 (** {3 Key resolution} *)

@@ -101,9 +101,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     in
     let term = match Lazy.force config with
       | Ok t ->
-        let pkeys = Config.switching_keys t in
-        let term = match Term.eval_peek_opts pkeys with
-          | Some map_switch, _ -> f map_switch t
+        let switch_keys = Config.switching_keys t in
+        let term = match Term.eval_peek_opts switch_keys with
+          | Some map_switch, _ -> f switch_keys map_switch t
           | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
         in term
       | Error err -> Term.pure (fun _ -> Error err)
@@ -125,7 +125,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version
     in
-    let f map conf = Term.(pure configure $ Config.eval map conf) in
+    let f _ map conf = Term.(pure configure $ Config.eval map conf) in
     with_config f options, term_info "configure" ~doc ~man
 
   (* DESCRIBE *)
@@ -156,8 +156,11 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       Term.(pure (fun a b c d -> a, b, c, d)
         $ output $ dotcmd $ dot $ full_eval)
     in
-    let f map t = Term.pure @@ fun (output, dotcmd, dot, eval) ->
-      Config.describe ~dotcmd ~dot ~eval ~output map t
+    let f switch_keys map t =
+      let describe _ (output, dotcmd, dot, eval) =
+        Config.describe ~dotcmd ~dot ~eval ~output map t
+      in
+      Term.(pure describe $ switch_keys)
     in
     with_config f options, term_info "describe" ~doc ~man
 
@@ -171,7 +174,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     ] in
     let options = Term.pure () in
     let build info () = Config.build info in
-    let f map conf = Term.(pure build $ Config.eval map conf) in
+    let f _ map conf = Term.(pure build $ Config.eval map conf) in
     with_config f options, term_info "build" ~doc ~man
 
   (* CLEAN *)
@@ -185,7 +188,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     ] in
     let options = Term.pure () in
     let clean info () = Config.clean info in
-    let f map conf = Term.(pure clean $ Config.eval map conf) in
+    let f _ map conf = Term.(pure clean $ Config.eval map conf) in
     with_config f options, term_info "clean" ~doc ~man
 
   (* HELP *)

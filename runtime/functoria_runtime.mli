@@ -16,6 +16,19 @@
 
 (** Runtime *)
 
+(** Cmdliner converter. *)
+module Converter : sig
+  type 'a t
+  val flag : bool t
+  type 'a desc = 'a Cmdliner.Arg.converter
+  val desc : 'a desc -> 'a t
+  val int : int desc
+  val bool : bool desc
+  val string : string desc
+  val list : 'a desc -> 'a list desc
+  val option : 'a desc -> 'a option desc
+end
+
 (** Runtime Key module.
 
     Contains the bare minimum to define keys and plug them in cmdliner. *)
@@ -27,7 +40,7 @@ module Key : sig
   (** Create a new key. *)
   val create :
     doc:Cmdliner.Arg.info ->
-    default:'a -> 'a Cmdliner.Arg.converter -> 'a t
+    default:'a -> 'a Converter.t -> 'a t
 
   (** Get the value of a key. Will use the default value if no
       command line argument was provided. *)
@@ -38,15 +51,6 @@ module Key : sig
 
 end
 
-(** Cmdliner converter. *)
-module Converter : sig
-  type 'a t = 'a Cmdliner.Arg.converter
-  val int : int t
-  val bool : bool t
-  val string : string t
-  val list : 'a t -> 'a list t
-  val option : 'a t -> 'a option t
-end
 
 (** [with_argv keys s argv] uses the given key terms to parse the given [argv].
     [s] is the name of the cmdline executable. *)

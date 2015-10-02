@@ -39,11 +39,39 @@ module Desc = struct
   let description d = d.description
   let converter d = d.converter
 
+  type 'a t_or_flag =
+    | Desc : 'a t -> 'a t_or_flag
+    | Flag : bool t_or_flag
+
+  let pp : type a . a t_or_flag -> a Fmt.t = function
+    | Desc c -> snd c.converter
+    | Flag -> Fmt.bool
+
+  let cmdliner (type a) ~default ~info:i (t: a t_or_flag) (f :a -> _) =
+    let f_desc v z = match v with
+      | Some v -> f v z
+      | None -> z
+    in
+    match t with
+    | Flag -> Term.(app @@ pure f) Arg.(value @@ flag i)
+    | Desc desc ->
+      let none = Fmt.strf "%a" (snd desc.converter) default in
+      Term.(app @@ pure f_desc)
+        Arg.(value @@ opt (some ~none desc.converter) None i)
+
   let create ~serializer ~converter ~description =
     { description ; serializer ; converter }
 
   module C = Functoria_runtime.Converter
   let from_run s = "Functoria_runtime.Converter." ^ s
+
+  let describe : type a . a t_or_flag -> _ = function
+    | Flag -> from_run "flag"
+    | Desc c -> Fmt.strf "(%s %s)" (from_run "desc") c.description
+
+  let serialize : type a . a t_or_flag -> a Fmt.t = function
+    | Flag -> Fmt.fmt "%b"
+    | Desc c -> c.serializer
 
   let string = {
     description = from_run "string" ;
@@ -122,17 +150,13 @@ type 'a key = {
   name : string ;
   stage : stage ;
   doc : Doc.t ;
-  desc : 'a Desc.t ;
+  desc : 'a Desc.t_or_flag ;
   default : 'a ;
-  key : 'a Univ.key
+  key : 'a Univ.key ;
+  setters : 'a setter list
 }
 
-let create ?(stage=`Both) ~doc ~default name desc =
-  let key = Univ.new_key name in
-  { doc ; stage ; default ; desc ; name ; key }
-
-let desc k = k.desc
-
+and -'a setter = Setter : 'b key * ('a -> 'b option) -> 'a setter
 
 module Set = struct
   type elt = Any : 'a key -> elt
@@ -152,10 +176,34 @@ module Set = struct
     else
       add k set
 
+  let pp = Fmt.iter ~sep:(Fmt.unit ",@ ") iter
+
 end
 type t = Set.elt = Any : 'a key -> t
 
+module Setters = struct
+  type 'a t = 'a setter list
+
+  let empty = []
+
+  let add k f setters = Setter (k, f) :: setters
+
+  let apply_one v map (Setter (k,f)) =
+    match f v with
+    | Some v ->
+      if Univ.mem k.key map then map
+      else Univ.add k.key v map
+    | None -> map
+
+  let apply v l map = List.fold_left (apply_one v) map l
+
+  let keys l = Set.of_list @@ List.map (fun (Setter (k,_)) -> Any k) l
+
+end
+
 let hidden x = Any x
+let desc k = k.desc
+let setters (Any k) = Setters.keys k.setters
 let name (Any k) = k.name
 let stage (Any k) = k.stage
 let doc (Any k) = k.doc
@@ -171,7 +219,7 @@ let is_configure k = match stage k with
 let filter_stage ~stage set =
   match stage with
   | `Run -> Set.filter is_runtime set
-  | `Configure -> Set.filter is_configure set
+  | `Configure | `NoEmit -> Set.filter is_configure set
   | `Both -> set
 
 
@@ -230,37 +278,70 @@ let default v =
 let pp fmt k = Fmt.string fmt (name k)
 
 let pp_deps fmt v =
-  Fmt.(iter Set.iter ~sep:(unit ", ") pp) fmt v.deps
+  Set.pp pp fmt v.deps
 
 let pp_map map =
   let f fmt (Any k) =
     let default = if mem map k then Fmt.nop else Fmt.unit " (default)" in
     Fmt.pf fmt "%a=%a%a"
       Fmt.(styled `Bold string) k.name
-      (snd k.desc.converter) (get map k)
+      (Desc.pp k.desc) (get map k)
       default ()
   in
-  Fmt.(iter ~sep:(unit ",@ ") Set.iter f)
+  Set.pp f
+
+(** {2 Automatic documentation} *)
+
+let doc_setters setters (docu:Doc.t) =
+  let f fmt k = Fmt.pf fmt "$(b,%s)" (name k) in
+  let doc_s = if setters = [] then "" else
+      Fmt.strf "\nWill automatically set the following keys: %a."
+        (Set.pp f) (Setters.keys setters)
+  in
+  let doc = match docu.doc with
+    | None -> doc_s
+    | Some s -> s ^ doc_s
+  in
+  {docu with doc = Some doc}
+
+(** {2 Key creation} *)
+
+(* Use internally only *)
+let create_raw ~stage ~setters ~doc ~default ~name ~desc =
+  let key = Univ.new_key name in
+  let doc = doc_setters setters doc in
+  { doc ; stage ; default ; setters ; desc ; name ; key }
+
+(* Use internally only *)
+let flag_raw ~stage ~setters ~doc ~name =
+  create_raw ~stage ~setters ~doc ~default:false ~name ~desc:Flag
+
+
+let create ?(stage=`Both) ~doc ~default name desc =
+  let setters = Setters.empty in
+  let desc = Desc.Desc desc in
+  create_raw ~stage ~setters ~doc ~default ~name ~desc
+
+let flag ?(stage=`Both) ~doc name =
+  let setters = Setters.empty in
+  flag_raw ~stage ~setters ~doc ~name
+
+let proxy ~doc ~setters name =
+  flag_raw ~setters ~doc ~stage:`Configure ~name
 
 (** {2 Cmdliner interface} *)
 
-let term_key
-  : type a. a key -> a option Term.t
-  = fun { doc; desc; default } ->
-  let i = Doc.to_cmdliner doc in
-  (* We don't want to set the value if the option is not given.
-     We still want to show the default value in the help. *)
-  let default = Fmt.strf "%a" (snd @@ Desc.converter desc) default in
-  let c = Arg.some ~none:default desc.converter in
-  Arg.(value & opt c None i)
+let term_key { doc; desc; default } =
+  let info = Doc.to_cmdliner doc in
+  Desc.cmdliner ~default ~info desc
 
 let term ?(stage=`Both) l =
   let gather (Any k) rest =
-    let f v map = match v with
-      | Some v -> Univ.add k.key v map
-      | None -> map
+    let f v map =
+      Univ.add k.key v map
+      |> Setters.apply v k.setters
     in
-    Term.(pure f $ term_key k $ rest)
+    Term.(term_key k f $ rest)
   in
   Set.fold gather (filter_stage ~stage l) (Term.pure Univ.empty)
 
@@ -273,10 +354,10 @@ let term_value ?stage { deps ; v } =
 let module_name = "Bootvar_gen"
 
 let serialize map fmt (Any k) =
-  Format.fprintf fmt "%a" (Desc.serializer @@ desc k) @@ get map k
+  Format.fprintf fmt "%a" (Desc.serialize @@ desc k) @@ get map k
 
 let describe fmt (Any { desc ; _ }) =
-  Format.fprintf fmt "%s" desc.description
+  Format.fprintf fmt "%s" (Desc.describe desc)
 
 let ocaml_name k = Name.ocamlify (name k)
 

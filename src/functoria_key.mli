@@ -56,7 +56,9 @@ module Doc : sig
   type t
 
   (** Create a documentation. See {!Cmdliner.Arg.info} for details. *)
-  val create : ?docs:string -> ?docv:string -> ?doc:string -> string list -> t
+  val create :
+    ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
+    string list -> t
 
   val to_cmdliner : t -> Cmdliner.Arg.info
 

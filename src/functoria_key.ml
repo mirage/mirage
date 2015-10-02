@@ -84,20 +84,28 @@ module Doc = struct
     docs : string ;
     docv : string option ;
     names : string list ;
+    env : string option ;
   }
 
-  let create ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc names =
-    { doc ; docs ; docv ; names }
+  let create ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc ?env names =
+    { doc ; docs ; docv ; names ; env }
 
-  let to_cmdliner { docs ; docv ; doc ; names } =
-    Arg.info ~docs ?docv ?doc names
+  let to_cmdliner { docs ; docv ; doc ; env ; names } =
+    let env = match env with
+      | Some s -> Some (Arg.env_var s)
+      | None -> None
+    in
+    Arg.info ~docs ?docv ?doc ?env names
 
-  let emit fmt { docs ; docv ; doc ; names } =
+  let emit_env fmt = Fmt.pf fmt "(Cmdliner.Arg.env_var %a)" Emit.string
+
+  let emit fmt { docs ; docv ; doc ; env ; names } =
     Format.fprintf fmt
-      "(Cmdliner.Arg.info@ ~docs:%a@ ?docv:%a@ ?doc:%a@ %a)"
+      "(Cmdliner.Arg.info@ ~docs:%a@ ?docv:%a@ ?doc:%a@ ?env:%a@ %a)"
       Emit.string docs
       Emit.(option string) docv
       Emit.(option string) doc
+      Emit.(option emit_env) env
       Emit.(list string) names
 
 end

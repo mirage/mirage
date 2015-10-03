@@ -16,31 +16,16 @@
 
 open Cmdliner
 
-module Key = struct
-
-  type 'a t = {
-    doc : Arg.info ;
-    converter : 'a Arg.converter ;
-    default : 'a ;
-    mutable value : 'a option ;
-  }
-
-  let create ~doc ~default converter =
-    { doc ; default ; converter ; value = None }
-
-  let get k = match k.value with
-    | None -> k.default
-    | Some v -> v
-
-  let term ({ doc; converter; default } as t) =
-    let set w = t.value <- Some w in
-    Term.(pure set $ Arg.(value & opt converter default doc))
-end
-
-
 module Converter = struct
 
-  type 'a t = 'a Arg.converter
+  type 'a desc = 'a Arg.converter
+
+  type 'a t =
+    | Flag : bool t
+    | Desc : 'a desc -> 'a t
+
+  let flag = Flag
+  let desc x = Desc x
 
   let int = Arg.int
   let string = Arg.string
@@ -56,6 +41,31 @@ module Converter = struct
   let option d =
     option_parser @@ fst d, Fmt.Dump.option @@ snd d
 
+end
+
+module Key = struct
+
+  type 'a t = {
+    doc : Arg.info ;
+    desc : 'a Converter.t ;
+    default : 'a ;
+    mutable value : 'a option ;
+  }
+
+  let create ~doc ~default desc =
+    { doc ; default ; desc ; value = None }
+
+  let get k = match k.value with
+    | None -> k.default
+    | Some v -> v
+
+  let term (type a) ({ doc; desc; default } as t : a t) =
+    let set w = t.value <- Some w in
+    match desc with
+    | Converter.Flag ->
+      Term.(pure set $ Arg.(value & flag doc))
+    | Converter.Desc desc ->
+      Term.(pure set $ Arg.(value & opt desc default doc))
 end
 
 let initialized = ref false

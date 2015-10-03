@@ -309,13 +309,25 @@ module Config = struct
     jobs : G.t ;
   }
 
+  (* In practice, we get all the switching keys and all the keys that
+     have a setter to them. *)
+  let get_switching_keys jobs =
+    let all_keys = Engine.keys jobs in
+    let skeys = Engine.switching_keys jobs in
+    let f k s =
+      if Key.(Set.is_empty @@ Set.inter (setters k) skeys)
+      then s
+      else Key.Set.add k s
+    in
+    Key.Set.fold f all_keys skeys
+
   let make
       ?(keys=[]) ?(libraries=[]) ?(packages=[])
       name root main_dev =
     let jobs = G.create main_dev in
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
-    let keys = Key.Set.(union (of_list keys) (Engine.switching_keys jobs))
+    let keys = Key.Set.(union (of_list keys) (get_switching_keys jobs))
     in
     { libraries ; packages ; keys ; name ; root ; jobs }
 

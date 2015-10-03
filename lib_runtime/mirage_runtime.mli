@@ -26,7 +26,7 @@ val string_of_network_init_error:
 module Converter : sig
   include module type of Functoria_runtime.Converter
 
-  val make : (string -> 'a option) -> 'a Fmt.t -> 'a t
+  val make : (string -> 'a option) -> 'a Fmt.t -> 'a desc
   (** [make of_string pp] creates a converter based on [of_string] and [pp]. *)
 
   module type S = sig
@@ -36,16 +36,16 @@ module Converter : sig
   end
   (** The signature used by {!of_module} to create a converter. *)
 
-  val of_module : (module S with type t = 'a) -> 'a t
+  val of_module : (module S with type t = 'a) -> 'a desc
   (** [of module (module M)] creates a converter out of
       a module answering the signature {!S}. *)
 
   (** {2 Usual mirage converters} *)
 
-  val ip : Ipaddr.t t
-  val ipv4 : Ipaddr.V4.t t
-  val ipv6 : Ipaddr.V6.t t
-  val ipv6_prefix : Ipaddr.V6.Prefix.t t
+  val ip : Ipaddr.t desc
+  val ipv4 : Ipaddr.V4.t desc
+  val ipv6 : Ipaddr.V6.t desc
+  val ipv6_prefix : Ipaddr.V6.Prefix.t desc
 
 end
 

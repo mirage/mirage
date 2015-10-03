@@ -1567,7 +1567,8 @@ module Project = struct
     method ty = job
     method name = "mirage"
     method module_name = "Mirage_runtime"
-    method keys = [ Key.hidden Key.target ]
+    method keys =
+      Key.([ hidden target ; hidden unix ; hidden xen ])
 
     method packages =
       let l = [ "lwt" ; "sexplib" ] in

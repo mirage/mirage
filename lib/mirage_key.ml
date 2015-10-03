@@ -87,6 +87,7 @@ let target =
   let doc = Key.Doc.create
       ~docs:mirage_section
       ~docv:"TARGET" ~doc ["t";"target"]
+      ~env:"MODE"
   in
   Key.create ~doc ~stage:`Configure ~default:`Unix "target" desc
 
@@ -94,6 +95,18 @@ let is_xen =
   Key.pipe Key.(value target) @@ function
   | `Xen -> true
   | `Unix | `MacOSX -> false
+
+let unix =
+  let doc = "Set $(b,target) to $(i,unix)." in
+  let doc = Key.Doc.create ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
+  let setter b = if b then Some `Unix else None in
+  Key.proxy ~doc ~setters:Key.Setters.(add target setter empty) "unix"
+
+let xen =
+  let doc = "Set $(b,target) to $(i,xen)." in
+  let doc = Key.Doc.create ~docs:mirage_section ~docv:"BOOL" ~doc ["xen"] in
+  let setter b = if b then Some `Xen else None in
+  Key.proxy ~doc ~setters:Key.Setters.(add target setter empty) "xen"
 
 (** {3 Tracing} *)
 

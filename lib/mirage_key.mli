@@ -30,6 +30,12 @@ val pp_target: [ `Unix | `Xen | `MacOSX ] Fmt.t
 val is_xen: bool value
 (** Is true iff the {!target} keys takes the value [`Xen]. *)
 
+val unix: bool key
+(** [--unix]. Set {!target} to [`Unix]. *)
+
+val xen: bool key
+(** [--xen]. Set {!target} to [`Xen]. *)
+
 val tracing: int -> int key
 (** [--tracing LEVEL]: Key setting the tracing level. Is an integer *)
 

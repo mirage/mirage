@@ -78,11 +78,20 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     in
     Arg.(value & opt (some string) None & doc)
 
-  let () =
+  let color =
+    let enum = ["auto", None; "always", Some `Ansi_tty; "never", Some `None] in
+    let color = Arg.enum enum in
+    let alts = Arg.doc_alts_enum enum in
+    let doc = Arg.info ["color"] ~docs:global_option_section ~docv:"WHEN"
+        ~doc:(Fmt.strf "Colorize the output. $(docv) must be %s." alts)
+    in
+    Arg.(value & opt color None & doc)
+
+  let init_format color =
     let i = Terminfo.columns () in
     Format.pp_set_margin Format.std_formatter i ;
     Format.pp_set_margin Format.err_formatter i ;
-    Fmt_tty.setup_std_outputs ()
+    Fmt_tty.setup_std_outputs ?style_renderer:color ()
 
   let load_config () =
     let c = match Term.eval_peek_opts file with
@@ -95,7 +104,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
   let config = Lazy.from_fun load_config
 
   let with_config f options =
-    let show_error t = match t with
+    let apply color _file t =
+      init_format color;
+      match t with
       | Ok r -> r
       | Error s -> show_error "%s" s
     in
@@ -108,8 +119,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         in term
       | Error err -> Term.pure (fun _ -> Error err)
     in
-    Term.(pure (fun _ -> show_error) $ file $ (term $ options))
-
+    Term.(pure apply $ color $ file $ (term $ options))
 
   (* CONFIGURE *)
   let configure_doc =  "Configure a $(mname) application."

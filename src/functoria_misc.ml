@@ -87,6 +87,7 @@ end
 module Set_Make (M: Set.OrderedType) = struct
   module M = Set.Make(M)
   let of_list l = List.fold_left (fun s x -> M.add x s) M.empty l
+  let _ = of_list (* quiet warning 32 on 4.02 *)
   (* trick to use the new of_list in recent OCaml versions *)
   include M
 end

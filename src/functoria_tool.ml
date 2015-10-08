@@ -213,7 +213,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc )
     in
-    let help man_format cmds topic _keys = match topic with
+    let help color man_format cmds topic _keys =
+      init_format color;
+      match topic with
       | None       -> `Help (`Pager, None)
       | Some topic ->
         let topics = "topics" :: cmds in
@@ -223,7 +225,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ Config.base_keys)
+      Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic $ Config.base_keys)
     in
     Term.ret term, Term.info "help" ~doc ~man
 

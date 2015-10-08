@@ -239,8 +239,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       ;
     ] @  help_sections
     in
-    let usage = `Help (`Plain, None) in
-    let term = Term.(ret @@ pure usage) in
+    let usage color = init_format color; `Help (`Plain, None) in
+    let term = Term.(ret (pure usage $ color)) in
     term,
     Term.info cmdname
       ~version:Config.version

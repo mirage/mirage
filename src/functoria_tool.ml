@@ -38,7 +38,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     Term.info ~sdocs:global_option_section ~doc ~man title
 
   let no_opam =
-    mk_flag ["no-opam"] "Do not manage the OPAM configuration.  This will result in dependent libraries not being automatically installed during the configuration phase."
+    mk_flag ["no-opam"]
+      "Do not manage the OPAM configuration. \
+       This will result in dependent libraries not being automatically \
+       installed during the configuration phase."
 
   let no_opam_version_check =
     mk_flag ["no-opam-version-check"] "Bypass the check of opam's version."
@@ -48,33 +51,39 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
 
   let full_eval =
     mk_flag ["eval"]
-      "Fully evaluate the graph before showing it. By default, only the key \
-       that are given on the command line are evaluated."
+      "Fully evaluate the graph before showing it. \
+       By default, only the key that are given on the command line are \
+       evaluated."
 
   let dot =
     mk_flag ["dot"]
-      "Output a dot description. If no output file is given, \
-       it will show the dot file using command given to $(b,--dot-command)."
+      "Output a dot description. \
+       If no output file is given,  it will show the dot file using command \
+       given to $(b,--dot-command)."
 
   let dotcmd =
-    let doc = Arg.info ~docs:global_option_section ~docv:"COMMAND"
-        ~doc:"Command used to show a dot file. \
-              This command should accept a dot file on its standard input."
-        [ "dot-command" ] in
+    let doc =
+      Arg.info ~docs:global_option_section ~docv:"COMMAND" [ "dot-command" ]
+        ~doc:"Command used to show a dot file. This command should accept a \
+              dot file on its standard input."
+    in
     Arg.(value & opt string "xdot" & doc)
 
   let file =
-    let doc = Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE"
-        ~doc:"Configuration file. If not specified, the current directory will be scanned. \
-              If one file named $(b,config.ml) is found, that file will be used. If no files \
-              or multiple configuration files are found, this will result in an error unless one \
-              is explicitly specified on the command line." ["f"; "file"] in
+    let doc =
+      Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE" ["f"; "file"]
+        ~doc:"Configuration file. If not specified, the current directory will \
+              be scanned. If one file named $(b,config.ml) is found, that file \
+              will be used. If no files or multiple configuration files are \
+              found, this will result in an error unless one is explicitly \
+              specified on the command line."
+    in
     Arg.(value & opt (some file) None & doc)
 
   let output =
-    let doc = Arg.info ~docs:global_option_section ~docv:"FILE"
+    let doc =
+      Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
         ~doc:"File where to output description or dot representation."
-        ["o"; "output"]
     in
     Arg.(value & opt (some string) None & doc)
 
@@ -89,8 +98,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
 
   let init_format color =
     let i = Terminfo.columns () in
-    Format.pp_set_margin Format.std_formatter i ;
-    Format.pp_set_margin Format.err_formatter i ;
+    Format.pp_set_margin Format.std_formatter i;
+    Format.pp_set_margin Format.err_formatter i;
     Fmt_tty.setup_std_outputs ?style_renderer:color ()
 
   let load_config () =
@@ -147,18 +156,18 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P "The $(b,describe) command describes the configuration of a \
           $(mname) application.";
       `P "The dot output contains the following elements:";
-      `Noblank ;
+      `Noblank;
       `I ("If vertices",
         "Represented as circles. Branches are doted, the default branch \
          is in bold.");
-      `Noblank ;
+      `Noblank;
       `I ("Configurables",
         "Represented as rectangles. The order of the output arrows is \
          the order of the functor arguments.");
-      `Noblank ;
+      `Noblank;
       `I ("Data dependencies",
         "Represented as dashed arrows");
-      `Noblank ;
+      `Noblank;
       `I ("App vertices",
         "Represented as diamonds. The bold arrow is the functor part.");
     ] in
@@ -225,7 +234,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic $ Config.base_keys)
+      Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic
+            $ Config.base_keys)
     in
     Term.ret term, Term.info "help" ~doc ~man
 
@@ -233,10 +243,12 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     let doc = "The $(mname) application builder" in
     let man = [
       `S "DESCRIPTION";
-      `P "The $(mname) application builder. It glues together a set of libraries and configuration (e.g. network and storage) into a standalone unikernel or UNIX binary." ;
+      `P "The $(mname) application builder. It glues together a set of \
+          libraries and configuration (e.g. network and storage) into a \
+          standalone unikernel or UNIX binary.";
       `P "Use either $(b,$(mname) <command> --help) or \
-          $(b,($mname) help <command>) for more information on a specific command."
-      ;
+          $(b,($mname) help <command>) for more information on a specific \
+          command.";
     ] @  help_sections
     in
     let usage color = init_format color; `Help (`Plain, None) in

@@ -35,8 +35,8 @@ val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
 
     {[ kv_ro @-> ip @-> kv_ro ]}
 
-    This describes a functor type that accepts two arguments - a [kv_ro] and
-    an [ip] device - and returns a [kv_ro].
+    This describes a functor type that accepts two arguments -- a
+    [kv_ro] and an [ip] device -- and returns a [kv_ro].
 *)
 
 type 'a impl
@@ -49,7 +49,8 @@ val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
 type any_impl = Any: _ impl -> any_impl
 
 val hidden: _ impl -> any_impl
-(** Hide the type variable of an implementation. Useful for dependencies. *)
+(** [hiddent t] is [t] but with a hidden type variable. Useful for
+    dependencies. *)
 
 (** {2 Keys} *)
 
@@ -57,15 +58,17 @@ val hidden: _ impl -> any_impl
 module Key: module type of struct include Functoria_key end
 
 val if_impl: bool Key.value -> 'a impl -> 'a impl -> 'a impl
-(** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2] otherwise. *)
+(** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and
+    [impl2] otherwise. *)
 
 val switch:
   default:'a impl ->
   ('b * 'a impl) list ->
   'b Key.value ->
   'a impl
-(** [switch ~default l v] choose the implementation in [l] corresponding to the value [v].
-    The [default] implementation is chosen if no value match.
+(** [switch ~default l v] choose the implementation in [l]
+    corresponding to the value [v].  The [default] implementation is
+    chosen if no value match.
 *)
 
 (** {2 Declaring new modules} *)
@@ -81,7 +84,8 @@ val foreign:
     @param libraries The ocamlfind libraries needed by this module.
     @param packages The opam packages needed by this module.
     @param keys The keys related to this module.
-    @param dependencies The data-dependencies needed by this module. You must use {!hide} to pass an arbitrary implementation.
+    @param dependencies The data-dependencies needed by this module.
+           You must use {!hidden} to pass an arbitrary implementation.
 *)
 
 type job
@@ -159,9 +163,9 @@ class type ['ty] configurable = object
   (** Clean all the files generated to use the device. *)
 
   method dependencies: any_impl list
-  (** The list of dependencies that must be initalized before this device.
-      You must use {!hide} to pass an arbitrary implementation.
-  *)
+  (** The list of dependencies that must be initalized before this
+      device. You must use {!hidden} to pass an arbitrary
+      implementation. *)
 
 end
 

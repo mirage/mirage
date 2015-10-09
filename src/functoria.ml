@@ -362,7 +362,7 @@ module type CUSTOM = sig
   val version: string
   val driver_error: string -> string
   val argv: Devices.argv impl
-  val config: job impl list -> job impl
+  val create: job impl list -> job impl
 end
 
 module Make (P: CUSTOM) = struct
@@ -384,10 +384,8 @@ module Make (P: CUSTOM) = struct
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
     let root = get_root () in
-    let main_dev = P.config (Devices.keys P.argv :: jobs) in
-    let c =
-      Config.make ~keys ~libraries ~packages name root main_dev
-    in
+    let main_dev = P.create (Devices.keys P.argv :: jobs) in
+    let c = Config.make ~keys ~libraries ~packages name root main_dev in
     configuration := Some c
 
   let registered () =
@@ -549,7 +547,7 @@ module Make (P: CUSTOM) = struct
                      messing with functoria's invariants."
 
     let base_keys =
-      let t = Key.term ~stage:`Configure @@ Config.extract_keys (P.config []) in
+      let t = Key.term ~stage:`Configure @@ Config.extract_keys (P.create []) in
       let f x = base_keymap := Some x; x in
       Cmdliner.Term.(pure f $ t)
 

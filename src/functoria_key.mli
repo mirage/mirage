@@ -14,51 +14,72 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command line parameters *)
+(** Configuration and runtime command-line arguments. *)
 
-(** Description of keys. *)
-module Desc: sig
+(** Cross-stage argument converters. *)
+module Conv: sig
 
   type 'a t
-  (** A complete description *)
+  (** The type for argument converters. *)
 
-  (** To create a description we need:
-      @param converter A cmdliner converter.
-      @param description The identifier of the runtime description of the key.
-             See {!Functoria_runtime.Desc.t}.
-      @param serializer A serialization function output the value as OCaml code.
-  *)
   val create:
-    serializer:(Format.formatter -> 'a -> unit) ->
-    converter:'a Cmdliner.Arg.converter ->
-    description:string ->
+    'a Cmdliner.Arg.converter -> (Format.formatter -> 'a -> unit) -> string ->
     'a t
+  (** [create conf emit run] is the argument converter using [conf] to
+      convert argument into OCaml value, [emit] to convert OCaml
+      values into interpretable strings, and the function named [run]
+      to transform these strings into OCaml values again. See
+      {!configure}, {!emit} and {!runtime} for details.*)
 
   (** {2 Predefined descriptions} *)
 
   val string: string t
+  (** [string] converts strings. *)
+
   val bool: bool t
+  (** [bool] converts booleans. *)
+
   val int: int t
+  (** [int] converts integers. *)
+
   val list: 'a t -> 'a list t
-  val option: 'a t -> 'a option t
+  (** [list t] converts lists of [t]s. *)
+
+  val some: 'a t -> 'a option t
+  (** [some t] converts [t] options. *)
 
   (** {2 Accessors} *)
 
-  val serializer: 'a t -> Format.formatter -> 'a -> unit
-  val description: 'a t -> string
-  val converter: 'a t -> 'a Cmdliner.Arg.converter
+  val configure: 'a t -> 'a Cmdliner.Arg.converter
+  (** [configure t] converts the command-line arguments passed during
+      the configuration step into OCaml values. *)
+
+  val emit: 'a t -> Format.formatter -> 'a -> unit
+  (** [emit] allows to persist OCaml values across stages, ie. it
+      takes values (which might be parsed with {!configure} at
+      configuration time) and produce a valid string representation
+      which can be used at runtime, once the generated code is
+      compiled. *)
+
+  val runtime: 'a t -> string
+  (** [runtime] is the name of the function called at runtime to parse
+      the command-line arguments. Usually, it is a [Cmdliner]'s
+      combinator such as {i Cmdliner.Arg.string}. *)
 
 end
 
-(** Documentation of keys. *)
-module Doc: sig
+(** Cross-stage argument information. See
+    {{!http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}Cmdliner.Arg}
+    for the context. *)
+module Info: sig
 
   type t
+  (** The type for information about command-line arguments. *)
 
-  (** Create a documentation. See {!Cmdliner.Arg.info} for details. *)
   val create:
     ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
     string list -> t
+  (** Define cross-stage information for an argument. See {!Cmdliner.Arg.info} for details. *)
 
   val to_cmdliner: t -> Cmdliner.Arg.info
 
@@ -128,11 +149,12 @@ type stage = [
 *)
 
 val create:
-  ?stage:stage -> doc:Doc.t -> default:'a -> string -> 'a Desc.t -> 'a key
-(** [create ~doc ~stage ~default name desc] creates a new configuration key with
-    docstring [doc], default value [default], name [name] and type descriptor
-    [desc]. Default [stage] is [`Both].
-    It is an error to use more than one key with the same [name]. *)
+  ?stage:stage -> doc:Doc.t -> default:'a -> string -> 'a Conv.t -> 'a key
+(** [create ~doc ~stage ~default name conv] creates a new
+    configuration key with docstring [doc], default value [default],
+    name [name] and type descriptor [desc]. Default [stage] is
+    [`Both].  It is an error to use more than one key with the same
+    [name]. *)
 
 val flag: ?stage:stage -> doc:Doc.t -> string -> bool key
 (** [flag ~stage ~doc name] creates a new flag. A flag is a key that doesn't

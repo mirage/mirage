@@ -85,16 +85,13 @@ module type CUSTOM = sig
   (** [driver_error s] is the message given to the user when the
       the configurable [s] doesn't initialize correctly. *)
 
-  val argv: Devices.argv Functoria_dsl.impl
+  val argv: Devices.argv impl
   (** [argv] is the device used to read the full list of command-line
       arguments. *)
 
-  val config: job impl list -> job impl
-  (** [config jobs] is the device configuration the custom DSL, given
-      a list of configuration [jobs].
-
-      FIXME(thomas): I am not sure to understand that signature.
-*)
+  val create: job impl list -> job impl
+  (** [create jobs] is the top-level job in the custom DSL which will
+      execute the given list of [job]. *)
 
 end
 

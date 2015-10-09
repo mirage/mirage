@@ -26,8 +26,7 @@ open Misc
 
 module Devices = struct
 
-  (** Noop, the job that does nothing. *)
-
+  (* Noop, the job that does nothing. *)
   let noop = impl @@ object
       inherit base_configurable
       method ty = job
@@ -35,8 +34,7 @@ module Devices = struct
       method module_name = "Pervasives"
     end
 
-  (** Default argv *)
-
+  (* Default argv *)
   type argv = ARGV
   let argv = Type ARGV
 
@@ -49,22 +47,22 @@ module Devices = struct
         "return (`Ok Sys.argv)"
     end
 
-  (** Keys *)
+  (* Keys *)
 
   let configure_keys i =
     let file = String.lowercase Key.module_name ^ ".ml" in
     info "%a %s" blue "Generating:"  file;
     with_file (Info.root i / file) @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header ()) ;
+    Codegen.append fmt "(* %s *)" (generated_header ());
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter Key.Set.iter @@ Key.emit @@ Info.keymap i) bootvars ;
+      (Fmt.iter Key.Set.iter @@ Key.emit @@ Info.keymap i) bootvars;
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@
        Key.Set.elements @@ Key.filter_stage ~stage:`Run bootvars);
-    Codegen.newline fmt ;
+    Codegen.newline fmt;
     R.ok ()
 
   let clean_keys i =
@@ -73,7 +71,7 @@ module Devices = struct
 
   let key_name = "bootvar"
 
-  let keys (argv : argv impl) = impl @@ object
+  let keys (argv: argv impl) = impl @@ object
       inherit base_configurable
       method ty = job
       method name = key_name
@@ -91,7 +89,7 @@ module Devices = struct
         | _ -> failwith "The keys connect should receive exactly one argument."
     end
 
-  (** Module emiting a file containing all the build information. *)
+  (* Module emiting a file containing all the build information. *)
 
   type info = Info
   let info = Type Info
@@ -105,7 +103,7 @@ module Devices = struct
       "@ List.fold_left (fun set (k,v) -> StringMap.add k v set) StringMap.empty \
        [@ %a]"
       Fmt.(iter ~sep:(unit ";@ ") StringSet.iter @@
-        (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x))
+           (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x))
       l
 
   let pp_dump_info fmt i =
@@ -132,24 +130,22 @@ module Devices = struct
 
       method clean i =
         let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in
-        remove file ;
-        remove (file ^".in") ;
+        remove file;
+        remove (file ^".in");
         R.ok ()
 
       method configure i =
         let filename = String.lowercase gen_file_name ^ ".ml" in
         let file = Info.root i / filename in
-        Misc.info "%a %s" blue "Generating: " filename ;
+        Misc.info "%a %s" blue "Generating: " filename;
         let f fmt =
           Fmt.pf fmt "@[<v 2>let info = %a@]" pp_dump_info i
         in
-        with_file (file^".in") f ;
+        with_file (file^".in") f;
         command ~redirect:false "opam config subst %s" filename
     end
 
 end
-
-
 
 module Engine = struct
 
@@ -163,7 +159,6 @@ module Engine = struct
     | G.Impl c -> Key.Set.of_list c#keys
     | G.If cond -> Key.deps cond
     | _ -> Key.Set.empty
-
 
   module M = struct
     type t = StringSet.t Key.value
@@ -181,23 +176,23 @@ module Engine = struct
     | G.Impl c -> Key.map StringSet.of_list c#libraries
     | _ -> M.empty
 
-  (** Return a unique variable name holding the state of the given
-      module construction. *)
+  (* Return a unique variable name holding the state of the given
+     module construction. *)
   let name c id =
     let base = Name.ocamlify c#name in
     Name.of_key (Fmt.strf "%s%i" base id) ~base
 
-  (** [module_expresion tbl c args] returns the module expression of the
-      functor [c] applies to [args]. *)
+  (* [module_expresion tbl c args] returns the module expression of
+     the functor [c] applies to [args]. *)
   let module_expression tbl fmt (c, args) =
     Fmt.pf fmt "%s%a"
       c#module_name
       Fmt.(list @@ parens @@ of_to_string @@ G.Tbl.find tbl)
       args
 
-  (** [module_name tbl c args] return the module name of the result of the
-      functor application.
-      If [args = []], it returns [c#module_name]. *)
+  (* [module_name tbl c args] return the module name of the result of
+     the functor application. If [args = []], it returns
+     [c#module_name]. *)
   let module_name c id args =
     let base = c#module_name in
     if args = [] then base
@@ -210,10 +205,11 @@ module Engine = struct
     let p = function
       | G.Impl c -> c#name = Devices.key_name
       | _ -> false
-    in match G.find_all g p with
+    in
+    match G.find_all g p with
     | [ x ] -> x
     | _ -> invalid_arg
-        "Functoria.find_bootvar: There should be only one bootvar device."
+             "Functoria.find_bootvar: There should be only one bootvar device."
 
   let configure info g =
     let tbl = G.Tbl.create 17 in
@@ -221,7 +217,7 @@ module Engine = struct
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps _) ->
         let modname = module_name c (G.hash v) args in
-        G.Tbl.add tbl v modname ;
+        G.Tbl.add tbl v modname;
         c#configure info >>| fun () ->
         if args = [] then ()
         else begin
@@ -235,7 +231,6 @@ module Engine = struct
     let f v res = res >>= fun () -> f v in
     G.fold f g @@ R.ok () >>| fun () ->
     tbl
-
 
   let meta_init fmt (connect_name, result_name) =
     Fmt.pf fmt "let _%s =@[@ %s () @]in@ " result_name connect_name
@@ -271,17 +266,17 @@ module Engine = struct
       | `Impl (c, `Args args, `Deps deps) ->
         let ident = name c (G.hash v) in
         let modname = G.Tbl.find modtbl v in
-        G.Tbl.add tbl v ident ;
+        G.Tbl.add tbl v ident;
         let names = List.map (G.Tbl.find tbl) (args @ deps) in
         Codegen.append_main "%a"
           emit_connect (error, ident, names, c#connect info modname)
     in
-    G.fold (fun v () -> f v) g () ;
+    G.fold (fun v () -> f v) g ();
     let main_name = G.Tbl.find tbl @@ G.find_root g in
     let bootvar_name = G.Tbl.find tbl @@ find_bootvar g in
     Codegen.append_main
       "let () = run (%s () >>= fun _ -> %s ())"
-      bootvar_name main_name ;
+      bootvar_name main_name;
     ()
 
   let configure_and_connect info error g =
@@ -301,12 +296,12 @@ end
 module Config = struct
 
   type t = {
-    name : string ;
-    root : string ;
-    libraries : StringSet.t Key.value ;
-    packages : StringSet.t Key.value ;
-    keys : Key.Set.t ;
-    jobs : G.t ;
+    name: string;
+    root: string;
+    libraries: StringSet.t Key.value;
+    packages: StringSet.t Key.value;
+    keys: Key.Set.t;
+    jobs: G.t;
   }
 
   (* In practice, we get all the switching keys and all the keys that
@@ -321,31 +316,29 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let make
-      ?(keys=[]) ?(libraries=[]) ?(packages=[])
-      name root main_dev =
+  let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) name root main_dev =
     let jobs = G.create main_dev in
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
-    let keys = Key.Set.(union (of_list keys) (get_switching_keys jobs))
-    in
-    { libraries ; packages ; keys ; name ; root ; jobs }
+    let keys = Key.Set.(union (of_list keys) (get_switching_keys jobs)) in
+    { libraries; packages; keys; name; root; jobs }
 
-  let eval map_switching { name = n ; root ; packages ; libraries ; keys ; jobs } =
+  let eval map_switching { name = n; root; packages; libraries; keys; jobs } =
     let e = G.eval ~map:map_switching jobs in
     let open Key in
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
     let keys = Key.Set.union keys @@ Engine.keys e in
-    let di = pure (fun libraries packages keymap ->
-        e, Info.create ~libraries ~packages ~keys ~keymap ~name:n ~root)
+    let di =
+      pure (fun libraries packages keymap ->
+          e, Info.create ~libraries ~packages ~keys ~keymap ~name:n ~root)
       $ libraries
       $ packages
     in
     with_deps ~keys di
 
-  (** Extract all the keys directly.
-      Useful to pre-resolve the keys provided by the specialized DSL. *)
+  (* Extract all the keys directly. Useful to pre-resolve the keys
+     provided by the specialized DSL. *)
   let extract_keys impl =
     Engine.keys @@ G.create impl
 
@@ -357,22 +350,16 @@ module Config = struct
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot
+
 end
 
 module type SPECIALIZED = sig
-
-  val prelude : string
-
-  val name : string
-
-  val version : string
-
-  val driver_error : string -> string
-
-  val argv : Devices.argv impl
-
-  val config : job impl list -> job impl
-
+  val prelude: string
+  val name: string
+  val version: string
+  val driver_error: string -> string
+  val argv: Devices.argv impl
+  val config: job impl list -> job impl
 end
 
 module Make (P:SPECIALIZED) = struct
@@ -389,6 +376,7 @@ module Make (P:SPECIALIZED) = struct
     match !config_file with
     | None -> Sys.getcwd () / "config.ml"
     | Some f -> f
+
   let get_root () = Filename.dirname @@ get_config_file ()
 
   let register ?(keys=[]) ?(libraries=[]) ?(packages=[]) name jobs =
@@ -399,13 +387,12 @@ module Make (P:SPECIALIZED) = struct
     in
     configuration := Some c
 
-
   let registered () =
     match !configuration with
     | None   -> error "No configuration was registered."
     | Some t -> Ok t
 
-  (** {2 Opam Management} *)
+  (* {2 Opam Management} *)
 
   let configure_opam ~no_opam_version ~no_depext t =
     info "Installing OPAM packages.";
@@ -418,8 +405,10 @@ module Make (P:SPECIALIZED) = struct
         read_command "opam --version" >>= fun opam_version ->
         let version_error () =
           error "Your version of OPAM (%s) is not recent enough. \
-                 Please update to (at least) 1.2: https://opam.ocaml.org/doc/Install.html \
-                 You can pass the `--no-opam-version-check` flag to force its use." opam_version
+                 Please update to (at least) 1.2: \
+                 https://opam.ocaml.org/doc/Install.html \
+                 You can pass the `--no-opam-version-check` flag to force its \
+                 use." opam_version
         in
         match split opam_version '.' with
         | major::minor::_ ->
@@ -461,12 +450,12 @@ module Make (P:SPECIALIZED) = struct
   let configure ~no_opam ~no_depext ~no_opam_version i jobs =
     info "%a %s" blue "Using configuration:"  (get_config_file ());
     in_dir (Info.root i) (fun () ->
-      begin if no_opam
-        then Ok ()
-        else configure_opam ~no_depext ~no_opam_version i
-      end >>= fun () ->
-      configure_main i jobs
-    )
+        begin if no_opam
+          then Ok ()
+          else configure_opam ~no_depext ~no_opam_version i
+        end >>= fun () ->
+        configure_main i jobs
+      )
 
   let make () =
     match uname_s () with
@@ -476,18 +465,17 @@ module Make (P:SPECIALIZED) = struct
   let build i =
     info "%a %s" blue "Build:" (get_config_file ());
     in_dir (Info.root i) (fun () ->
-      command "%s build" (make ())
-    )
+        command "%s build" (make ())
+      )
 
   let clean i jobs =
     info "%a %s" blue "Clean:"  (get_config_file ());
     let root = Info.root i in
     in_dir root (fun () ->
-      clean_main i jobs >>= fun () ->
-      command "rm -rf %s/_build" root >>= fun () ->
-      command "rm -rf log %s/main.native.o %s/main.native %s/*~"
-        root root root ;
-    )
+        clean_main i jobs >>= fun () ->
+        command "rm -rf %s/_build" root >>= fun () ->
+        command "rm -rf log %s/main.native.o %s/main.native %s/*~" root root root
+      )
 
   let describe ~dotcmd ~dot ~eval ~output ~map {Config. jobs } =
     let f fmt =
@@ -523,7 +511,8 @@ module Make (P:SPECIALIZED) = struct
       root P.name file
     >>= fun () ->
     try Ok (Dynlink.loadfile (String.concat "/" [root; "_build"; file]))
-    with Dynlink.Error err -> error "Error loading config: %s" (Dynlink.error_message err)
+    with Dynlink.Error err ->
+      error "Error loading config: %s" (Dynlink.error_message err)
 
   (* If a configuration file is specified, then use that.
    * If not, then scan the curdir for a `config.ml` file.
@@ -541,8 +530,10 @@ module Make (P:SPECIALIZED) = struct
       | [f] ->
         info "%a %s" blue "Config file:" f;
         Ok (realpath f)
-      | _   -> error "There is more than one config.ml in the current working directory.\n\
-                      Please specify one explictly on the command-line."
+      | _   ->
+        error "There is more than one config.ml in the current working \
+               directory.\n\
+               Please specify one explictly on the command-line."
 
   module C = struct
     include P
@@ -551,12 +542,14 @@ module Make (P:SPECIALIZED) = struct
        it is removed, the notion of base keys should be removed as well. *)
     let base_keymap = ref None
     let get_base_keymap () = match !base_keymap with
-      | None -> invalid_arg "Base key map is not available at this point. Please stop messing with functoria's invariants."
       | Some x -> x
+      | None ->
+        invalid_arg "Base key map is not available at this point. Please stop \
+                     messing with functoria's invariants."
 
     let base_keys =
       let t = Key.term ~stage:`Configure @@ Config.extract_keys (P.config []) in
-      let f x = base_keymap := Some x ; x in
+      let f x = base_keymap := Some x; x in
       Cmdliner.Term.(pure f $ t)
 
     type t = Config.t
@@ -572,32 +565,24 @@ module Make (P:SPECIALIZED) = struct
       set_section (Config.name t);
       Ok t
 
-    let switching_keys t =
-      Key.term ~stage:`Configure @@ Config.keys t
-
+    let switching_keys t = Key.term ~stage:`Configure @@ Config.keys t
     let configure (jobs, info) = configure info jobs
-
     let clean (jobs, info) = clean info jobs
     let build (_jobs, info) = build info
-
-    let describe map t =
-      describe ~map t
+    let describe map t = describe ~map t
 
     let eval switch_map t =
       let info = Config.eval switch_map t in
       let keys = Key.term ~stage:`Configure (Key.deps info) in
       let f map =
-        show_keys map @@ Key.deps info ;
+        show_keys map @@ Key.deps info;
         Key.eval map info @@ map
       in
       Cmdliner.Term.(pure f $ keys)
   end
 
   let get_base_keymap = C.get_base_keymap
-
-  let launch () =
-    let module M = Functoria_tool.Make(C) in
-    ()
+  let launch () = let module M = Functoria_tool.Make(C) in ()
 
 end
 

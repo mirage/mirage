@@ -18,21 +18,17 @@ open Functoria_misc
 open Cmdliner
 
 module Emit = struct
-
   let string fmt s = Format.fprintf fmt "%S" s
-
   let option x = Fmt.(parens @@ Dump.option x)
-
   let list x = Fmt.Dump.list x
-
 end
 
 module Desc = struct
 
   type 'a t = {
-    description : string ;
-    serializer : Format.formatter -> 'a -> unit ;
-    converter : 'a Cmdliner.Arg.converter ;
+    description: string;
+    serializer : Format.formatter -> 'a -> unit;
+    converter  : 'a Cmdliner.Arg.converter;
   }
 
   let serializer d = d.serializer
@@ -40,8 +36,8 @@ module Desc = struct
   let converter d = d.converter
 
   type 'a t_or_flag =
-    | Desc : 'a t -> 'a t_or_flag
-    | Flag : bool t_or_flag
+    | Desc: 'a t -> 'a t_or_flag
+    | Flag: bool t_or_flag
 
   let pp : type a . a t_or_flag -> a Fmt.t = function
     | Desc c -> snd c.converter
@@ -60,47 +56,47 @@ module Desc = struct
         Arg.(value @@ opt (some ~none desc.converter) None i)
 
   let create ~serializer ~converter ~description =
-    { description ; serializer ; converter }
+    { description; serializer; converter }
 
   module C = Functoria_runtime.Converter
   let from_run s = "Functoria_runtime.Converter." ^ s
 
-  let describe : type a . a t_or_flag -> _ = function
+  let describe: type a . a t_or_flag -> _ = function
     | Flag -> from_run "flag"
     | Desc c -> Fmt.strf "(%s %s)" (from_run "desc") c.description
 
-  let serialize : type a . a t_or_flag -> a Fmt.t = function
+  let serialize: type a . a t_or_flag -> a Fmt.t = function
     | Flag -> Fmt.fmt "%b"
     | Desc c -> c.serializer
 
   let string = {
-    description = from_run "string" ;
-    serializer = (fun fmt -> Format.fprintf fmt "%S") ;
-    converter = C.string ;
+    description = from_run "string";
+    serializer = (fun fmt -> Format.fprintf fmt "%S");
+    converter = C.string;
   }
 
   let bool = {
-    description = from_run "bool" ;
-    serializer = (fun fmt -> Format.fprintf fmt "%b") ;
-    converter = C.bool ;
+    description = from_run "bool";
+    serializer = (fun fmt -> Format.fprintf fmt "%b");
+    converter = C.bool;
   }
 
   let int = {
-    description = from_run "int" ;
-    serializer = (fun fmt -> Format.fprintf fmt "%i") ;
-    converter = C.int ;
+    description = from_run "int";
+    serializer = (fun fmt -> Format.fprintf fmt "%i");
+    converter = C.int;
   }
 
   let list d = {
-    description = Fmt.strf "(%s %s)" (from_run "list") d.description ;
-    serializer = Emit.list d.serializer ;
-    converter = C.list d.converter ;
+    description = Fmt.strf "(%s %s)" (from_run "list") d.description;
+    serializer = Emit.list d.serializer;
+    converter = C.list d.converter;
   }
 
   let option d = {
-    description = Fmt.strf "(%s %s)" (from_run "option") d.description ;
-    serializer = Emit.option d.serializer ;
-    converter = C.option d.converter
+    description = Fmt.strf "(%s %s)" (from_run "option") d.description;
+    serializer = Emit.option d.serializer;
+    converter = C.option d.converter;
   }
 
 end
@@ -108,17 +104,17 @@ end
 module Doc = struct
 
   type t = {
-    doc : string option ;
-    docs : string ;
-    docv : string option ;
-    names : string list ;
-    env : string option ;
+    doc  : string option;
+    docs : string;
+    docv : string option;
+    names: string list;
+    env  : string option;
   }
 
   let create ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc ?env names =
-    { doc ; docs ; docv ; names ; env }
+    { doc; docs; docv; names; env }
 
-  let to_cmdliner { docs ; docv ; doc ; env ; names } =
+  let to_cmdliner { docs; docv; doc; env; names } =
     let env = match env with
       | Some s -> Some (Arg.env_var s)
       | None -> None
@@ -127,7 +123,7 @@ module Doc = struct
 
   let emit_env fmt = Fmt.pf fmt "(Cmdliner.Arg.env_var %a)" Emit.string
 
-  let emit fmt { docs ; docv ; doc ; env ; names } =
+  let emit fmt { docs; docv; doc; env; names } =
     Format.fprintf fmt
       "(Cmdliner.Arg.info@ ~docs:%a@ ?docv:%a@ ?doc:%a@ ?env:%a@ %a)"
       Emit.string docs
@@ -138,7 +134,7 @@ module Doc = struct
 
 end
 
-(** {2 Keys} *)
+(* {2 Keys} *)
 
 type stage = [
   | `Configure
@@ -147,24 +143,24 @@ type stage = [
 ]
 
 type 'a key = {
-  name : string ;
-  stage : stage ;
-  doc : Doc.t ;
-  desc : 'a Desc.t_or_flag ;
-  default : 'a ;
-  key : 'a Univ.key ;
-  setters : 'a setter list
+  name   : string;
+  stage  : stage;
+  doc    : Doc.t;
+  desc   : 'a Desc.t_or_flag;
+  default: 'a;
+  key    : 'a Univ.key;
+  setters: 'a setter list;
 }
 
-and -'a setter = Setter : 'b key * ('a -> 'b option) -> 'a setter
+and -'a setter = Setter: 'b key * ('a -> 'b option) -> 'a setter
 
 module Set = struct
-  type elt = Any : 'a key -> elt
+  type elt = Any: 'a key -> elt
   module M = struct
     type t = elt
     let compare (Any k1) (Any k2) = String.compare k1.name k2.name
   end
-  include (Set_Make (M) : SET with type elt := elt)
+  include (Set_Make (M): SET with type elt := elt)
 
   let add k set =
     if mem k set then
@@ -179,7 +175,7 @@ module Set = struct
   let pp = Fmt.iter ~sep:(Fmt.unit ",@ ") iter
 
 end
-type t = Set.elt = Any : 'a key -> t
+type t = Set.elt = Any: 'a key -> t
 
 module Setters = struct
   type 'a t = 'a setter list
@@ -223,30 +219,30 @@ let filter_stage ~stage set =
   | `Both -> set
 
 
-(** Key Map *)
+(* Key Map *)
 
 type map = Univ.t
 
-let get map { key ; default } =
+let get map { key; default } =
   match Univ.find key map with
   | Some x -> x
   | None -> default
 
 let mem map t = Univ.mem t.key map
 
-(** {2 Values} *)
+(* {2 Values} *)
 
 type +'a value = {
-  deps : Set.t ;
-  v : map -> 'a ;
+  deps: Set.t;
+  v   : map -> 'a;
 }
 
 let eval map { v } = v map
 
-let pure x = { deps = Set.empty ; v = fun _ -> x }
+let pure x = { deps = Set.empty; v = fun _ -> x }
 let app f x = {
-  deps = Set.union f.deps x.deps ;
-  v = fun map -> (eval map f) (eval map x) ;
+  deps = Set.union f.deps x.deps;
+  v = fun map -> (eval map f) (eval map x);
 }
 
 let map f x = app (pure f) x
@@ -255,12 +251,12 @@ let if_ c t e =
   pipe c @@ fun b -> if b then t else e
 
 let ($) = app
-let with_deps ~keys { deps ; v } =
-  { deps = Set.(union deps keys) ; v }
+let with_deps ~keys { deps; v } =
+  { deps = Set.(union deps keys); v }
 
 let value k =
   let v map = get map k in
-  { deps = Set.singleton (Any k) ; v }
+  { deps = Set.singleton (Any k); v }
 
 let deps k = k.deps
 
@@ -273,7 +269,7 @@ let peek map v =
 let default v =
   eval Univ.empty v
 
-(** {2 Pretty printing} *)
+(* {2 Pretty printing} *)
 
 let pp fmt k = Fmt.string fmt (name k)
 
@@ -290,7 +286,7 @@ let pp_map map =
   in
   Set.pp f
 
-(** {2 Automatic documentation} *)
+(* {2 Automatic documentation} *)
 
 let doc_setters setters (docu:Doc.t) =
   let f fmt k = Fmt.pf fmt "$(b,%s)" (name k) in
@@ -304,13 +300,13 @@ let doc_setters setters (docu:Doc.t) =
   in
   {docu with doc = Some doc}
 
-(** {2 Key creation} *)
+(* {2 Key creation} *)
 
 (* Use internally only *)
 let create_raw ~stage ~setters ~doc ~default ~name ~desc =
   let key = Univ.new_key name in
   let doc = doc_setters setters doc in
-  { doc ; stage ; default ; setters ; desc ; name ; key }
+  { doc; stage; default; setters; desc; name; key }
 
 (* Use internally only *)
 let flag_raw ~stage ~setters ~doc ~name =
@@ -329,7 +325,7 @@ let flag ?(stage=`Both) ~doc name =
 let proxy ~doc ~setters name =
   flag_raw ~setters ~doc ~stage:`Configure ~name
 
-(** {2 Cmdliner interface} *)
+(* {2 Cmdliner interface} *)
 
 let term_key { doc; desc; default } =
   let info = Doc.to_cmdliner doc in
@@ -345,18 +341,17 @@ let term ?(stage=`Both) l =
   in
   Set.fold gather (filter_stage ~stage l) (Term.pure Univ.empty)
 
-let term_value ?stage { deps ; v } =
+let term_value ?stage { deps; v } =
   Term.(pure v $ term ?stage deps)
 
-
-(** {2 Code emission} *)
+(* {2 Code emission} *)
 
 let module_name = "Bootvar_gen"
 
 let serialize map fmt (Any k) =
   Format.fprintf fmt "%a" (Desc.serialize @@ desc k) @@ get map k
 
-let describe fmt (Any { desc ; _ }) =
+let describe fmt (Any { desc; _ }) =
   Format.fprintf fmt "%s" (Desc.describe desc)
 
 let ocaml_name k = Name.ocamlify (name k)

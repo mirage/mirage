@@ -46,20 +46,20 @@ val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
 (** Type of an implementation, with its type variable hidden. *)
-type any_impl = Any : _ impl -> any_impl
+type any_impl = Any: _ impl -> any_impl
 
-val hidden : _ impl -> any_impl
+val hidden: _ impl -> any_impl
 (** Hide the type variable of an implementation. Useful for dependencies. *)
 
 (** {2 Keys} *)
 
 (** Key creation and manipulation. *)
-module Key : module type of struct include Functoria_key end
+module Key: module type of struct include Functoria_key end
 
-val if_impl : bool Key.value -> 'a impl -> 'a impl -> 'a impl
+val if_impl: bool Key.value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and [impl2] otherwise. *)
 
-val switch :
+val switch:
   default:'a impl ->
   ('b * 'a impl) list ->
   'b Key.value ->
@@ -93,30 +93,30 @@ val job: job typ
 (** {2 DSL extension} *)
 
 (** Information available during configuration. *)
-module Info : sig
+module Info: sig
 
   type t
   (** Configuration information for the whole project. *)
 
-  val name : t -> string
+  val name: t -> string
   (** Name of the project *)
 
-  val root : t -> string
+  val root: t -> string
   (** Directory in which the configuration is done. *)
 
-  val libraries : t -> StringSet.t
+  val libraries: t -> StringSet.t
   (** Ocamlfind libraries needed by the project. *)
 
-  val packages : t -> StringSet.t
+  val packages: t -> StringSet.t
   (** OPAM packages needed by the project. *)
 
-  val keys : t -> Key.Set.t
+  val keys: t -> Key.Set.t
   (** Keys declared by the project. *)
 
-  val keymap : t -> Key.map
+  val keymap: t -> Key.map
   (** Map from key entered in the command line to values. *)
 
-  val create :
+  val create:
     ?keys:Key.Set.t ->
     ?libraries:StringSet.t ->
     ?packages:StringSet.t ->
@@ -129,7 +129,7 @@ end
 (** Signature for configurable devices. *)
 class type ['ty] configurable = object
 
-  method ty : 'ty typ
+  method ty: 'ty typ
   (** Type of the device. *)
 
   method name: string
@@ -149,7 +149,7 @@ class type ['ty] configurable = object
   method keys: Key.t list
   (** Return the list of keys to configure the device. *)
 
-  method connect : Info.t -> string -> string list -> string
+  method connect: Info.t -> string -> string list -> string
   (** Return the function call to connect at runtime with the device. *)
 
   method configure: Info.t -> (unit, string) Rresult.result
@@ -158,7 +158,7 @@ class type ['ty] configurable = object
   method clean: Info.t -> (unit, string) Rresult.result
   (** Clean all the files generated to use the device. *)
 
-  method dependencies : any_impl list
+  method dependencies: any_impl list
   (** The list of dependencies that must be initalized before this device.
       You must use {!hide} to pass an arbitrary implementation.
   *)
@@ -169,29 +169,29 @@ val impl: 'a configurable -> 'a impl
 (** Create an implementation based on a specified device. *)
 
 (** The base configurable pre-defining many methods. *)
-class base_configurable : object
-  method libraries : string list Key.value
-  method packages : string list Key.value
-  method keys : Key.t list
-  method connect : Info.t -> string -> string list -> string
-  method configure : Info.t -> (unit, string) Rresult.result
-  method clean : Info.t -> (unit, string) Rresult.result
-  method dependencies : any_impl list
+class base_configurable: object
+  method libraries: string list Key.value
+  method packages: string list Key.value
+  method keys: Key.t list
+  method connect: Info.t -> string -> string list -> string
+  method configure: Info.t -> (unit, string) Rresult.result
+  method clean: Info.t -> (unit, string) Rresult.result
+  method dependencies: any_impl list
 end
 
 (** {3 Sharing} *)
 
-val hash : 'a impl -> int
+val hash: 'a impl -> int
 (** Hash an implementation. *)
 
-val equal : 'a impl -> 'a impl -> bool
+val equal: 'a impl -> 'a impl -> bool
 
-module ImplTbl : Hashtbl.S with type key = any_impl
+module ImplTbl: Hashtbl.S with type key = any_impl
 (** Hashtbl of implementations. *)
 
 (** {3 Misc} *)
 
-val explode : 'a impl ->
+val explode: 'a impl ->
   [ `App of any_impl * any_impl
   | `If of bool Key.value * 'a impl * 'a impl
   | `Impl of 'a configurable ]

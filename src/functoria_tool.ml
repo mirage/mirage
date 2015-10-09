@@ -18,7 +18,7 @@ open Cmdliner
 open Rresult
 open Functoria_misc
 
-module Make (Config : Functoria_sigs.CONFIG) = struct
+module Make (Config: Functoria_sigs.CONFIG) = struct
 
   let cmdname = Config.name
 
@@ -158,22 +158,22 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P "The dot output contains the following elements:";
       `Noblank;
       `I ("If vertices",
-        "Represented as circles. Branches are doted, the default branch \
-         is in bold.");
+          "Represented as circles. Branches are doted, the default branch \
+           is in bold.");
       `Noblank;
       `I ("Configurables",
-        "Represented as rectangles. The order of the output arrows is \
-         the order of the functor arguments.");
+          "Represented as rectangles. The order of the output arrows is \
+           the order of the functor arguments.");
       `Noblank;
       `I ("Data dependencies",
-        "Represented as dashed arrows");
+          "Represented as dashed arrows");
       `Noblank;
       `I ("App vertices",
-        "Represented as diamonds. The bold arrow is the functor part.");
+          "Represented as diamonds. The bold arrow is the functor part.");
     ] in
     let options =
       Term.(pure (fun a b c d -> a, b, c, d)
-        $ output $ dotcmd $ dot $ full_eval)
+            $ output $ dotcmd $ dot $ full_eval)
     in
     let f switch_keys map t =
       let describe _ (output, dotcmd, dot, eval) =

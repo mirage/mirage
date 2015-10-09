@@ -35,11 +35,11 @@ let err_cmdliner ?(usage=false) = function
 
 module type Monoid = sig
   type t
-  val empty : t
-  val union : t -> t -> t
+  val empty: t
+  val union: t -> t -> t
 end
 
-(** {String manipulation} *)
+(* {String manipulation} *)
 
 let strip str =
   let p = ref 0 in
@@ -80,10 +80,10 @@ let prefix s ~by =
 
 module type SET = sig
   include Set.S
-  val of_list : elt list -> t
+  val of_list: elt list -> t
 end
 
-(** Compat with OCaml < 4.02 *)
+(* Compat with OCaml < 4.02 *)
 module Set_Make (M: Set.OrderedType) = struct
   module M = Set.Make(M)
   let of_list l = List.fold_left (fun s x -> M.add x s) M.empty l
@@ -94,7 +94,7 @@ end
 
 module StringSet = Set_Make (String)
 
-(** {Logging} *)
+(* {Logging} *)
 
 let red     = Fmt.(styled `Red string)
 let green   = Fmt.(styled `Green string)
@@ -117,7 +117,7 @@ let debug fmt = in_section ~color:green Fmt.pr fmt
 let show_error fmt = error_msg Fmt.pr fmt
 
 
-(** {Process and output} *)
+(* {Process and output} *)
 
 let realdir dir =
   if Sys.file_exists dir && Sys.is_directory dir then (
@@ -132,7 +132,7 @@ let realdir dir =
 let realpath file =
   if Sys.file_exists file && Sys.is_directory file then realdir file
   else if Sys.file_exists file
-       || Sys.file_exists (Filename.dirname file) then
+          || Sys.file_exists (Filename.dirname file) then
     realdir (Filename.dirname file) / (Filename.basename file)
   else
     failwith "realpath"
@@ -163,33 +163,33 @@ let with_redirect oc file fn =
 
 let command ?(redirect=true) fmt =
   Format.ksprintf (fun cmd ->
-    info "%a@ %s" yellow "=>"  cmd;
-    let redirect fn =
-      if redirect then (
-        let status =
-          with_redirect stdout "log" (fun () ->
-            with_redirect stderr "log" fn
-          ) in
-        if status <> 0 then
-          let ic = open_in "log" in
-          let buf = Buffer.create 17 in
-          begin
-            try while true do Buffer.add_channel buf ic 1 done
-            with End_of_file -> ()
-          end ;
-          error "@;%a" Fmt.buffer buf
-        else
-          Ok status
-      ) else (
-        flush stdout;
-        flush stderr;
-        Ok (fn ())
-      ) in
-    match redirect (fun () -> Sys.command cmd) with
-    | Ok 0 -> Ok ()
-    | Ok i -> error "The command %S exited with code %d." cmd i
-    | Error err -> error "%s" err
-  ) fmt
+      info "%a@ %s" yellow "=>"  cmd;
+      let redirect fn =
+        if redirect then (
+          let status =
+            with_redirect stdout "log" (fun () ->
+                with_redirect stderr "log" fn
+              ) in
+          if status <> 0 then
+            let ic = open_in "log" in
+            let buf = Buffer.create 17 in
+            begin
+              try while true do Buffer.add_channel buf ic 1 done
+              with End_of_file -> ()
+            end;
+            error "@;%a" Fmt.buffer buf
+          else
+            Ok status
+        ) else (
+          flush stdout;
+          flush stderr;
+          Ok (fn ())
+        ) in
+      match redirect (fun () -> Sys.command cmd) with
+      | Ok 0 -> Ok ()
+      | Ok i -> error "The command %S exited with code %d." cmd i
+      | Error err -> error "%s" err
+    ) fmt
 
 let opam cmd ?(yes=true) ?switch deps =
   let deps_str = String.concat " " deps in
@@ -212,9 +212,9 @@ let with_process open_p close_p cmd f =
   let ic = open_p cmd in
   try
     let r = f ic in
-    ignore (close_p ic) ; r
+    ignore (close_p ic); r
   with exn ->
-    ignore (close_p ic) ; raise exn
+    ignore (close_p ic); raise exn
 
 let with_process_in s f =
   with_process Unix.open_process_in Unix.close_process_in s f
@@ -225,13 +225,13 @@ let with_process_out s f =
 let with_channel oc f =
   let ppf = Format.formatter_of_out_channel oc in
   let x = f ppf in
-  Format.pp_print_flush ppf () ;
+  Format.pp_print_flush ppf ();
   x
 
 let with_file filename f =
   let oc = open_out filename in
   let x = with_channel oc f in
-  close_out oc ;
+  close_out oc;
   x
 
 let collect_output cmd =
@@ -264,7 +264,7 @@ let read_command fmt =
       | WEXITED r   ->
         error "command terminated with exit code %d\nstderr: %s" r (Buffer.contents buf2)) fmt
 
-(** {Misc informations} *)
+(* {Misc informations} *)
 
 let generated_header () =
   let name = get_section () in
@@ -377,8 +377,7 @@ module Codegen = struct
 
 end
 
-
-(** TTY feature detection *)
+(* TTY feature detection *)
 module Terminfo = struct
 
   (* stolen from opam *)
@@ -401,7 +400,7 @@ module Terminfo = struct
         with_process_in "stty" "size"
           (fun ic ->
              match split (input_line ic) ' ' with
-             | [_ ; v] -> int_of_string v
+             | [_; v] -> int_of_string v
              | _ -> failwith "stty")
       with
         Unix.Unix_error _ | Sys_error _ | Failure _  | End_of_file | Not_found ->
@@ -416,8 +415,8 @@ module Terminfo = struct
     let v = ref (lazy (get_terminal_columns ())) in
     let () =
       try Sys.set_signal 28 (* SIGWINCH *)
-          (Sys.Signal_handle
-             (fun _ -> v := lazy (get_terminal_columns ())))
+            (Sys.Signal_handle
+               (fun _ -> v := lazy (get_terminal_columns ())))
       with Invalid_argument _ -> ()
     in
     fun () ->
@@ -431,7 +430,7 @@ module Univ = struct
 
   type 'a key = string * ('a -> exn) * (exn -> 'a)
 
-  let new_key : string -> 'a key =
+  let new_key: string -> 'a key =
     fun s (type a) ->
       let module M = struct
         exception E of a

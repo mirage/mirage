@@ -24,8 +24,8 @@ module Info = struct
     root: string;
     keys: Key.Set.t;
     keymap: Functoria_key.map;
-    libraries : StringSet.t;
-    packages : StringSet.t;
+    libraries: StringSet.t;
+    packages: StringSet.t;
   }
 
   let name t = t.name
@@ -38,9 +38,8 @@ module Info = struct
   let create
       ?(keys=Key.Set.empty)
       ?(libraries=StringSet.empty) ?(packages=StringSet.empty)
-      ~keymap
-      ~name ~root =
-    { name ; root ; keys ; libraries ; packages ; keymap}
+      ~keymap ~name ~root =
+    { name; root; keys; libraries; packages; keymap}
 
 end
 
@@ -53,31 +52,31 @@ let (@->) f t =
 
 let typ ty = Type ty
 
-module rec Typ : sig
+module rec Typ: sig
 
   type _ impl =
     | Impl: 'ty Typ.configurable -> 'ty impl (* base implementation *)
     | App: ('a, 'b) app -> 'b impl   (* functor application *)
-    | If : bool Key.value * 'a impl * 'a impl -> 'a impl
+    | If: bool Key.value * 'a impl * 'a impl -> 'a impl
 
   and ('a, 'b) app = {
     f: ('a -> 'b) impl;  (* functor *)
     x: 'a impl;          (* parameter *)
   }
 
-  and any_impl = Any : _ impl -> any_impl
+  and any_impl = Any: _ impl -> any_impl
 
   class type ['ty] configurable = object
-    method ty : 'ty typ
+    method ty: 'ty typ
     method name: string
     method module_name: string
     method keys: Key.t list
     method packages: string list Key.value
     method libraries: string list Key.value
-    method connect : Info.t -> string -> string list -> string
+    method connect: Info.t -> string -> string list -> string
     method configure: Info.t -> (unit, string) R.t
     method clean: Info.t -> (unit, string) R.t
-    method dependencies : any_impl list
+    method dependencies: any_impl list
   end
 end = Typ
 include Typ
@@ -98,14 +97,14 @@ let rec switch ~default l kv = match l with
 
 
 class base_configurable = object
-  method libraries : string list Key.value = Key.pure []
-  method packages : string list Key.value = Key.pure []
-  method keys : Key.t list = []
+  method libraries: string list Key.value = Key.pure []
+  method packages: string list Key.value = Key.pure []
+  method keys: Key.t list = []
   method connect (_:Info.t) (_:string) l =
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
-  method configure (_ : Info.t) : (unit,string) R.t = R.ok ()
-  method clean (_ : Info.t) : (unit,string) R.t = R.ok ()
-  method dependencies : any_impl list = []
+  method configure (_: Info.t): (unit,string) R.t = R.ok ()
+  method clean (_: Info.t): (unit,string) R.t = R.ok ()
+  method dependencies: any_impl list = []
 end
 
 
@@ -138,7 +137,7 @@ class ['ty] foreign
 let foreign ?keys ?libraries ?packages ?dependencies module_name ty =
   Impl (new foreign ?keys ?libraries ?packages ?dependencies module_name ty)
 
-(** {Misc} *)
+(* {Misc} *)
 
 let rec equal
   : type t1 t2. t1 impl -> t2 impl -> bool
@@ -156,11 +155,11 @@ let rec equal
 and equal_any (Any x) (Any y) = equal x y
 
 
-let rec hash : type t . t impl -> int = function
+let rec hash: type t . t impl -> int = function
   | Impl c ->
     Hashtbl.hash
       (c#name, Hashtbl.hash c#keys, List.map hash_any c#dependencies)
-  | App { f ; x } -> Hashtbl.hash (`Bla (hash f, hash x))
+  | App { f; x } -> Hashtbl.hash (`Bla (hash f, hash x))
   | If (cond, t, e) ->
     Hashtbl.hash (`If (cond, hash t, hash e))
 
@@ -174,5 +173,5 @@ module ImplTbl = Hashtbl.Make (struct
 
 let explode x = match x with
   | Impl c -> `Impl c
-  | App { f ; x } -> `App (Any f, Any x)
+  | App { f; x } -> `App (Any f, Any x)
   | If (cond, x, y) -> `If (cond, x, y)

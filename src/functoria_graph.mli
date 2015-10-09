@@ -19,21 +19,21 @@
 open Functoria_dsl
 
 type subconf = <
-  name: string ;
-  module_name: string ;
-  keys: Key.t list ;
-  packages: string list Key.value ;
-  libraries: string list Key.value ;
-  connect : Info.t -> string -> string list -> string ;
-  configure: Info.t -> (unit, string) Rresult.result ;
-  clean: Info.t -> (unit, string) Rresult.result ;
+  name       : string;
+  module_name: string;
+  keys       : Key.t list;
+  packages   : string list Key.value;
+  libraries  : string list Key.value;
+  connect    : Info.t -> string -> string list -> string;
+  configure  : Info.t -> (unit, string) Rresult.result;
+  clean      : Info.t -> (unit, string) Rresult.result;
 >
 (** A subset of {!configurable} with neither polymorphism nor recursion. *)
 
 type t
 type vertex
 
-module If : sig
+module If: sig
   type path
 end
 
@@ -43,18 +43,18 @@ type label =
   | Impl of subconf
   | App
 
-module Tbl : Hashtbl.S with type key = vertex
+module Tbl: Hashtbl.S with type key = vertex
 
-val create : _ impl -> t
+val create: _ impl -> t
 (** [create impl] creates a graph based [impl]. *)
 
-val normalize : t -> t
+val normalize: t -> t
 (** [normalize g] normalize the graph [g] by removing the [App] vertices. *)
 
-val simplify : t -> t
+val simplify: t -> t
 (** [simplify g] simplifies the graph so that it's easier to read for humans. *)
 
-val eval : ?partial:bool -> map:Key.map -> t -> t
+val eval: ?partial:bool -> map:Key.map -> t -> t
 (** [eval ~map g] will removes all the [If] vertices by
     resolving the keys using [map]. It will then call {!normalize}
 
@@ -62,40 +62,40 @@ val eval : ?partial:bool -> map:Key.map -> t -> t
     [If] vertices which condition is resolved.
 *)
 
-val is_fully_reduced : t -> bool
+val is_fully_reduced: t -> bool
 (** [is_fully_reduced g] is true if [g] contains only
     [Impl] vertices. *)
 
-val fold : (vertex -> 'a -> 'a) -> t -> 'a -> 'a
+val fold: (vertex -> 'a -> 'a) -> t -> 'a -> 'a
 (** [fold f g z] applies [f] on each vertex of [g] in topological order. *)
 
-val find_all : t -> (label -> bool) -> vertex list
+val find_all: t -> (label -> bool) -> vertex list
 (** [find_all g p] returns all the vertices in [g] such as [p v] is true. *)
 
-val find_root : t -> vertex
+val find_root: t -> vertex
 (** [find_root g] returns the only vertex of [g] that has no predecessors. *)
 
-val explode :
+val explode:
   t -> vertex ->
   [ `App of vertex * vertex list
   | `If of If.path Key.value * (If.path * vertex) list
   | `Impl of subconf
-       * [> `Args of vertex list ]
-       * [> `Deps of vertex list ] ]
+             * [> `Args of vertex list ]
+             * [> `Deps of vertex list ] ]
 (** [explode g v] deconstructs the vertex [v] in the graph [g]
     into it's possible components.
     It also checks that the local invariants are respected. *)
 
-val collect :
+val collect:
   (module Functoria_misc.Monoid with type t = 'ty) ->
   (label -> 'ty) -> t -> 'ty
 (** [collect (module M) f g] collects the content of [f v] for
     each vertex [v] in [g]. *)
 
-val hash : vertex -> int
+val hash: vertex -> int
 
-val pp : t Fmt.t
+val pp: t Fmt.t
 (** Textual representation of the graph. *)
 
-val pp_dot : t Fmt.t
+val pp_dot: t Fmt.t
 (** Dot representation of the graph. *)

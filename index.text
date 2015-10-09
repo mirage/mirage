@@ -1,10 +1,6 @@
-
 Functoria is a staged DSL to organize functor applications.
 
 {!modules: Functoria}
 {!modules: Functoria_runtime Functoria_info}
-
-
-
 
 {!indexlist}

@@ -107,12 +107,13 @@ module Devices = struct
       l
 
   let pp_dump_info fmt i =
+    let set = StringSet.of_list in
     Fmt.pf fmt
       "Functoria_info.{@ name = %S;@ \
        @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
       (Info.name i)
-      pp_packages (Info.packages i)
-      pp_libraries (Info.libraries i)
+      pp_packages (set @@ Info.packages i)
+      pp_libraries (set @@ Info.libraries i)
 
   let export_info = impl @@ object
       inherit base_configurable
@@ -329,9 +330,11 @@ module Config = struct
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
     let keys = Key.Set.union keys @@ Engine.keys e in
+    let list = StringSet.elements in
     let di =
       pure (fun libraries packages keymap ->
-          e, Info.create ~libraries ~packages ~keys ~keymap ~name:n ~root)
+          e, Info.create ~libraries:(list libraries) ~packages:(list packages)
+            ~keys ~keymap ~name:n ~root)
       $ libraries
       $ packages
     in
@@ -353,7 +356,7 @@ module Config = struct
 
 end
 
-module type SPECIALIZED = sig
+module type CUSTOM = sig
   val prelude: string
   val name: string
   val version: string
@@ -362,7 +365,7 @@ module type SPECIALIZED = sig
   val config: job impl list -> job impl
 end
 
-module Make (P:SPECIALIZED) = struct
+module Make (P: CUSTOM) = struct
 
   let () = set_section P.name
 
@@ -397,9 +400,8 @@ module Make (P:SPECIALIZED) = struct
   let configure_opam ~no_opam_version ~no_depext t =
     info "Installing OPAM packages.";
     let ps = Info.packages t in
-    if StringSet.is_empty ps then Ok ()
-    else
-    if command_exists "opam" then
+    if ps = [] then Ok ()
+    else if command_exists "opam" then
       if no_opam_version then Ok ()
       else (
         read_command "opam --version" >>= fun opam_version ->
@@ -415,7 +417,6 @@ module Make (P:SPECIALIZED) = struct
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
           if (major, minor) >= (1, 2) then (
-            let ps = StringSet.elements ps in
             begin
               if no_depext then Ok ()
               else begin

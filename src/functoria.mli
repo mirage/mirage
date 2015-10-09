@@ -28,20 +28,25 @@ module Devices: sig
   (** {2 Noop} *)
 
   val noop: job impl
-  (** [noop] is a job that does nothing, has no dependency and returns [()] *)
+  (** [noop] is a job that does nothing, has no dependency and returns
+      [()] *)
 
   (** {2 Argv device} *)
 
   type argv
+  (** The type for command-line arguments, similar to the usual [argv]. *)
+
   val argv: argv typ
+  (** The type for {!argv} implementations. *)
 
   val sys_argv: argv impl
-  (** The simplest argv device. Returns {!Sys.argv}. *)
+  (** [sys_argv] is a device providing command-line arguments by using
+      {!Sys.argv}. *)
 
   (** {2 Key device} *)
 
   val keys: argv impl -> job impl
-  (** This device takes an [argv] device, calls cmdliner and sets up keys. *)
+  (** [keys a] is job with keys set taking an [argv] device, calls cmdliner and sets up keys. *)
 
   (** {2 Information device} *)
 
@@ -55,11 +60,8 @@ module Devices: sig
 
 end
 
-(** Various helpful functions. *)
-module Misc: module type of struct include Functoria_misc end
-
-(** A specialized DSL build for specific purposes. *)
-module type SPECIALIZED = sig
+(** [CUSTOM] is the signature for custom DSL. *)
+module type CUSTOM = sig
 
   open Dsl
 
@@ -74,26 +76,30 @@ module type SPECIALIZED = sig
   *)
 
   val name: string
-  (** Name of the specialized dsl. *)
+  (** Name of the custom DSL. *)
 
   val version: string
-  (** Version of the specialized dsl. *)
+  (** Version of the custom DSL. *)
 
   val driver_error: string -> string
   (** [driver_error s] is the message given to the user when the
       the configurable [s] doesn't initialize correctly. *)
 
-  val argv: Devices.argv impl
-  (** The device used to access [argv]. *)
+  val argv: Devices.argv Functoria_dsl.impl
+  (** [argv] is the device used to read the full list of command-line
+      arguments. *)
 
   val config: job impl list -> job impl
-  (** The device implementing specific configuration for this
-      specialized DSL. *)
+  (** [config jobs] is the device configuration the custom DSL, given
+      a list of configuration [jobs].
+
+      FIXME(thomas): I am not sure to understand that signature.
+*)
 
 end
 
-(** Create a configuration engine for a specialized dsl. *)
-module Make (P: SPECIALIZED): sig
+(** Create a configuration engine for a custom DSL. *)
+module Make (P: CUSTOM): sig
 
   open Dsl
 
@@ -118,9 +124,8 @@ module Make (P: SPECIALIZED): sig
   *)
 
   val launch: unit -> unit
-  (** Launch the cmdliner application.
-      Should only be used by the host specialized DSL.
-  *)
+  (** Launch the cmdliner application. Should only be used by the host
+      specialized DSL.  *)
 
 end
 

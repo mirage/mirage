@@ -16,8 +16,6 @@
 
 (** Core functoria DSL *)
 
-open Functoria_misc
-
 (** {2 Module combinators} *)
 
 (** The type of values representing module types. *)
@@ -108,10 +106,10 @@ module Info: sig
   val root: t -> string
   (** Directory in which the configuration is done. *)
 
-  val libraries: t -> StringSet.t
+  val libraries: t -> string list
   (** Ocamlfind libraries needed by the project. *)
 
-  val packages: t -> StringSet.t
+  val packages: t -> string list
   (** OPAM packages needed by the project. *)
 
   val keys: t -> Key.Set.t
@@ -122,8 +120,8 @@ module Info: sig
 
   val create:
     ?keys:Key.Set.t ->
-    ?libraries:StringSet.t ->
-    ?packages:StringSet.t ->
+    ?libraries:string list ->
+    ?packages:string list ->
     keymap:Key.map ->
     name:string ->
     root:string -> t

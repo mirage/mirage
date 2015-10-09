@@ -30,15 +30,15 @@ module Info = struct
 
   let name t = t.name
   let root t = t.root
-  let libraries t = t.libraries
-  let packages t = t.packages
+  let libraries t = StringSet.elements t.libraries
+  let packages t = StringSet.elements t.packages
   let keys t = t.keys
   let keymap t = t.keymap
 
-  let create
-      ?(keys=Key.Set.empty)
-      ?(libraries=StringSet.empty) ?(packages=StringSet.empty)
+  let create ?(keys=Key.Set.empty) ?(libraries=[]) ?(packages=[])
       ~keymap ~name ~root =
+    let libraries = StringSet.of_list libraries in
+    let packages = StringSet.of_list packages in
     { name; root; keys; libraries; packages; keymap}
 
 end

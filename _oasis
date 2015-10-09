@@ -1,5 +1,5 @@
 OASISFormat: 0.4
-Name:        Functoria
+Name:        functoria
 Version:     1.0.0
 Synopsis:    Functoria configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy, Dave Scott,

@@ -22,6 +22,7 @@ module Dsl: module type of struct include Functoria_dsl end
 
 (** Various generic devices. *)
 module Devices: sig
+
   open Dsl
 
   (** {2 Noop} *)
@@ -59,11 +60,14 @@ module Misc: module type of struct include Functoria_misc end
 
 (** A specialized DSL build for specific purposes. *)
 module type SPECIALIZED = sig
+
   open Dsl
 
   val prelude: string
   (** Prelude printed at the beginning of [main.ml].
+
       It should put in scope:
+
       - a [run] function of type ['a t -> 'a]
       - a [return] function of type ['a -> 'a t]
       - a [>>=] operator of type ['a t -> ('a -> 'b t) -> 'b t]
@@ -84,12 +88,13 @@ module type SPECIALIZED = sig
 
   val config: job impl list -> job impl
   (** The device implementing specific configuration for this
-      specialized dsl. *)
+      specialized DSL. *)
 
 end
 
 (** Create a configuration engine for a specialized dsl. *)
 module Make (P: SPECIALIZED): sig
+
   open Dsl
 
   val register:
@@ -99,14 +104,15 @@ module Make (P: SPECIALIZED): sig
     string -> job impl list -> unit
   (** [register name jobs] registers the application named by [name]
       which will executes the given [jobs].
+
       @param libraries The ocamlfind libraries needed by this module.
       @param packages The opam packages needed by this module.
       @param keys The keys related to this module.
   *)
 
   val get_base_keymap: unit -> Key.map
-  (** [get_base_keymap ()] returns the keymap containing the keys of the specialized DSL.
-      This functions should be avoided.
+  (** [get_base_keymap ()] returns the keymap containing the keys of
+      the specialized DSL. This functions should be avoided.
 
       @deprecated Use the regular key mechanism.
   *)

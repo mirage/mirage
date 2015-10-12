@@ -106,9 +106,9 @@ val foreign:
        installed before compiling the current application.}
     {- If [libraries] is set, the given OCamlfind libraries are
        included and linked with the module [name].}
-    {- If [keys] is set, use the given {{!Key.t}keys} to parse at
-       configure and runtime the command-line arguments before calling
-       [name.connect].}
+    {- If [keys] is set, use the given {{!Functoria_key.key}keys} to
+       parse at configure and runtime the command-line arguments
+       before calling [name.connect].}
     {- If [dependencies] is set, the given list of
        {{!abstract_impl}abstract} implementations is added as
        data-dependencies: they will be initialized before calling
@@ -213,7 +213,7 @@ val explode: 'a impl ->
   | `Impl of 'a configurable ]
 (** [explode i] inspects the contents of [i]. *)
 
-(** [base_configurable} pre-defining many methods from the
+(** [base_configurable] pre-defining many methods from the
     {!configurable} class. To be used as follow:
 
     {[

@@ -47,8 +47,7 @@ type _ typ =
   | Type: 'a -> 'a typ
   | Function: 'a typ * 'b typ -> ('a -> 'b) typ
 
-let (@->) f t =
-  Function (f, t)
+let (@->) f t = Function (f, t)
 
 let typ ty = Type ty
 
@@ -78,23 +77,19 @@ module rec Typ: sig
     method clean: Info.t -> (unit, string) R.t
     method dependencies: any_impl list
   end
+
 end = Typ
+
 include Typ
 
-
-let ($) f x =
-  App { f; x }
-
+let ($) f x = App { f; x }
 let impl x = Impl x
 let hidden x = Any x
-
 let if_impl b x y = If(b,x,y)
+
 let rec switch ~default l kv = match l with
   | [] -> default
-  | (v, i) :: t ->
-    If (Key.(pure ((=) v) $ kv), i, switch ~default t kv)
-
-
+  | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, switch ~default t kv)
 
 class base_configurable = object
   method libraries: string list Key.value = Key.pure []
@@ -106,7 +101,6 @@ class base_configurable = object
   method clean (_: Info.t): (unit,string) R.t = R.ok ()
   method dependencies: any_impl list = []
 end
-
 
 type job = JOB
 let job = Type JOB
@@ -150,10 +144,11 @@ let rec equal
       (* Key.value is a functional value (it contains a closure for eval).
          There is no prettier way than physical equality. *)
       cond1 == cond2 && equal t1 t2 && equal e1 e2
-    | _ -> false
+    | Impl _, (If _ | App _)
+    | App _ , (If _ | Impl _)
+    | If _  , (App _ | Impl _) -> false
 
 and equal_any (Any x) (Any y) = equal x y
-
 
 let rec hash: type t . t impl -> int = function
   | Impl c ->

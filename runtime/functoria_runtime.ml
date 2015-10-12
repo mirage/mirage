@@ -40,7 +40,7 @@ module Key = struct
     | None -> k.default
     | Some v -> v
 
-  let term (type a) ({ doc; conv; default } as t: a t) =
+  let term (type a) ({ doc; conv; default; _ } as t: a t) =
     let set w = t.value <- Some w in
     match conv with
     | Conv.Flag     -> Term.(pure set $ Arg.(value & flag doc))

@@ -43,7 +43,7 @@ module Devices = struct
       method ty = argv
       method name = "argv"
       method module_name = "Sys"
-      method connect _info _m _ =
+      method !connect _info _m _ =
         "return (`Ok Sys.argv)"
     end
 
@@ -76,12 +76,12 @@ module Devices = struct
       method ty = job
       method name = key_name
       method module_name = Key.module_name
-      method configure = configure_keys
-      method clean = clean_keys
-      method libraries = Key.pure [ "functoria.runtime" ]
-      method packages = Key.pure [ "functoria" ]
-      method dependencies = [ hidden argv ]
-      method connect info modname = function
+      method !configure = configure_keys
+      method !clean = clean_keys
+      method !libraries = Key.pure [ "functoria.runtime" ]
+      method !packages = Key.pure [ "functoria" ]
+      method !dependencies = [ hidden argv ]
+      method !connect info modname = function
         | [ argv ] ->
           Fmt.strf
             "return (Functoria_runtime.with_argv %s.runtime_keys %S %s)"
@@ -122,20 +122,17 @@ module Devices = struct
 
       val gen_file_name = "Config_info_gen"
       method module_name = "Functoria_info"
+      method !libraries = Key.pure ["functoria.runtime"]
+      method !packages = Key.pure ["functoria"]
+      method !connect _ modname _ = Fmt.strf "return (`Ok %s.info)" modname
 
-      method libraries = Key.pure ["functoria.runtime"]
-      method packages = Key.pure ["functoria"]
-
-      method connect _ modname _ =
-        Fmt.strf "return (`Ok %s.info)" modname
-
-      method clean i =
+      method !clean i =
         let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in
         remove file;
         remove (file ^".in");
         R.ok ()
 
-      method configure i =
+      method !configure i =
         let filename = String.lowercase gen_file_name ^ ".ml" in
         let file = Info.root i / filename in
         Misc.info "%a %s" blue "Generating: " filename;
@@ -153,13 +150,13 @@ module Engine = struct
   let switching_keys =
     G.collect (module Key.Set) @@ function
     | G.If cond -> Key.deps cond
-    | _ -> Key.Set.empty
+    | G.App | G.Impl _ -> Key.Set.empty
 
   let keys =
     G.collect (module Key.Set) @@ function
     | G.Impl c -> Key.Set.of_list c#keys
     | G.If cond -> Key.deps cond
-    | _ -> Key.Set.empty
+    | G.App -> Key.Set.empty
 
   module M = struct
     type t = StringSet.t Key.value
@@ -170,12 +167,12 @@ module Engine = struct
   let packages =
     G.collect (module M) @@ function
     | G.Impl c -> Key.map StringSet.of_list c#packages
-    | _ -> M.empty
+    | G.If _ | G.App -> M.empty
 
   let libraries =
     G.collect (module M) @@ function
     | G.Impl c -> Key.map StringSet.of_list c#libraries
-    | _ -> M.empty
+    | G.If _ | G.App  -> M.empty
 
   (* Return a unique variable name holding the state of the given
      module construction. *)
@@ -188,7 +185,7 @@ module Engine = struct
   let module_expression tbl fmt (c, args) =
     Fmt.pf fmt "%s%a"
       c#module_name
-      Fmt.(list @@ parens @@ of_to_string @@ G.Tbl.find tbl)
+      Fmt.(list (parens @@ of_to_string @@ G.Tbl.find tbl))
       args
 
   (* [module_name tbl c args] return the module name of the result of
@@ -205,7 +202,7 @@ module Engine = struct
   let find_bootvar g =
     let p = function
       | G.Impl c -> c#name = Devices.key_name
-      | _ -> false
+      | G.App | G.If _ -> false
     in
     match G.find_all g p with
     | [ x ] -> x
@@ -476,7 +473,7 @@ module Make (P: CUSTOM) = struct
         command "rm -rf log %s/main.native.o %s/main.native %s/*~" root root root
       )
 
-  let describe ~dotcmd ~dot ~eval ~output ~map {Config. jobs } =
+  let describe ~dotcmd ~dot ~eval ~output ~map { Config.jobs; _ } =
     let f fmt =
       Config.(if dot then pp_dot else pp)
         ~partial:(not eval) ~map fmt jobs

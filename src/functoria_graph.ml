@@ -61,7 +61,7 @@ module If = struct
   let singleton z = ([],z)
   let dir b = if b then singleton Then else singleton Else
   let fuse path v l = if v = path then append path l else path
-  let reduce v ~path ~add:v': path Key.value = Key.(pure (fuse path) $ v $ v')
+  let reduce f ~path ~add : path Key.value = Key.(pure (fuse path) $ f $ add)
 end
 
 type label =
@@ -205,7 +205,7 @@ let create impl =
 
 let is_impl v = match G.V.label v with
   | Impl _ -> true
-  | _ -> false
+  | App | If _ -> false
 
 (* {2 Graph destruction/extraction} *)
 
@@ -239,11 +239,12 @@ let get_children g v =
   assert (is_sequence deps);
   `Args (List.map snd args), `Deps (List.map snd deps), cond, funct
 
-let explode g v = match G.V.label v, get_children g v with
-  | Impl i, (args, deps, [], None) -> `Impl (i, args, deps)
-  | If cond, (`Args [], `Deps [], l, None) -> `If (cond, l)
-  | App, (`Args args, `Deps [], [], Some f) -> `App (f, args)
-  | _ -> assert false
+let explode g v =
+  match G.V.label v, get_children g v with
+  | Impl i , (args      , deps    , [], None  ) -> `Impl (i, args, deps)
+  | If cond, (`Args []  , `Deps [], l , None  ) -> `If (cond, l)
+  | App    , (`Args args, `Deps [], [], Some f) -> `App (f, args)
+  | (Impl _ | If _ | App), _ -> assert false
 
 let fold f g z =
   if Dfs.has_cycle g then
@@ -330,7 +331,7 @@ module MergeNode = struct
     | `If (cond, l) ->
       if List.exists (fun (_,v) -> match G.V.label v with
           | If cond' -> Key.(Set.equal (deps cond) (deps cond'))
-          | _ -> false
+          | App | Impl _ -> false
         ) l
       then Some (v, cond, l)
       else None
@@ -359,7 +360,7 @@ module EvalIf = struct
 
   let predicate ~partial ~map _ v = match G.V.label v with
     | If cond when not partial || Key.is_resolved map cond -> Some v
-    | _ -> None
+    | If _ | App | Impl _ -> None
 
   let extract path l =
     let rec aux = function
@@ -437,7 +438,7 @@ module Dot = Graphviz.Dot(struct
       | Condition path ->
         let cond =
           match V.label @@ E.src e with
-          | If cond -> cond | _ -> assert false
+          | If cond -> cond | App | Impl _ -> assert false
         in
         let l = [ `Style `Dotted; `Headport `N ] in
         if Key.default cond = path then `Style `Bold :: l else l

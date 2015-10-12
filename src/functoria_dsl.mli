@@ -36,10 +36,10 @@
 
 (** {1:combinators Combinators} *)
 
+(** The type for values representing module types. *)
 type _ typ =
   | Type    : 'a -> 'a typ
-  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
-(** The type for values representing module types. *)
+  | Function: 'b typ * 'c typ -> ('b -> 'c) typ
 
 val typ: 'a -> 'a typ
 (** [type t] is a value representing the module type [t]. *)
@@ -67,8 +67,8 @@ type 'a impl
 val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
-type abstract_impl = Abstract: _ impl -> abstract_impl
 (** The type for abstract implementations. *)
+type abstract_impl = Abstract: _ impl -> abstract_impl
 
 val abstract: _ impl -> abstract_impl
 (** [abstract t] is [t] but with its type variable abstracted. Useful

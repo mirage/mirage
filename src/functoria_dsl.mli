@@ -14,17 +14,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Core functoria DSL *)
+(** The Functoria DSL.
 
-(** {2 Module combinators} *)
+    The Functoria DSL allows users to describe how to create portable
+    and flexible applications. It allows to pass application
+    parameters easily using command-line arguments either at
+    configure-time or at runtime.
 
-(** The type of values representing module types. *)
+    Users of the Functoria DSL composes their application by defining
+    a list of {{!foreign}module} implementations, specify the
+    command-line {!keys} that are required and {{!combinators}combine}
+    all of them together using
+    {{:http://dx.doi.org/10.1017/S0956796807006326}applicative}
+    operators.
+
+    The DSL expression is then compiled into an {{!app}application
+    builder}, which will, once evaluated, produced the final portable
+    and flexible application.
+
+*)
+
+(** {1:combinators Combinators} *)
+
 type _ typ =
-  | Type: 'a -> 'a typ
+  | Type    : 'a -> 'a typ
   | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+(** The type for values representing module types. *)
 
 val typ: 'a -> 'a typ
-(** Create a new type. *)
+(** [type t] is a value representing the module type [t]. *)
 
 val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
 (** Construct a functor type from a type and an existing functor
@@ -37,71 +55,76 @@ val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
     [kv_ro] and an [ip] device -- and returns a [kv_ro].
 *)
 
+type job
+(** Type for job values. *)
+
+val job: job typ
+(** [jpb] is the signature for user's application main module. *)
+
 type 'a impl
-(** The type of values representing module implementations. *)
+(** The type for values representing module implementations. *)
 
 val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
 (** [m $ a] applies the functor [m] to the module [a]. *)
 
-(** Type of an implementation, with its type variable hidden. *)
-type any_impl = Any: _ impl -> any_impl
+type abstract_impl = Abstract: _ impl -> abstract_impl
+(** The type for abstract implementations. *)
 
-val hidden: _ impl -> any_impl
-(** [hiddent t] is [t] but with a hidden type variable. Useful for
-    dependencies. *)
+val abstract: _ impl -> abstract_impl
+(** [abstract t] is [t] but with its type variable abstracted. Useful
+    for dependencies. *)
 
-(** {2 Keys} *)
+(** {1:keys Keys} *)
 
-(** Key creation and manipulation. *)
 module Key: module type of struct include Functoria_key end
+(** Key creation and manipulation.
+
+    FIXME(samoht): do we need all of the [Functoria_key] interface. *)
 
 val if_impl: bool Key.value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and
     [impl2] otherwise. *)
 
-val switch:
-  default:'a impl ->
-  ('b * 'a impl) list ->
-  'b Key.value ->
-  'a impl
+val switch: default:'a impl -> ('b * 'a impl) list -> 'b Key.value -> 'a impl
 (** [switch ~default l v] choose the implementation in [l]
-    corresponding to the value [v].  The [default] implementation is
-    chosen if no value match.
-*)
+    corresponding to the value [v]. The [default] implementation is
+    chosen if no value match. *)
 
-(** {2 Declaring new modules} *)
+(** {1:app Application Builder} *)
 
 val foreign:
-  ?keys:Key.t list ->
-  ?libraries:string list ->
   ?packages:string list ->
-  ?dependencies:any_impl list ->
+  ?libraries:string list ->
+  ?keys:Key.t list ->
+  ?dependencies:abstract_impl list ->
   string -> 'a typ -> 'a impl
-(** [foreign name typ] states that the module named by [name] has the
-    module type [typ].
-    @param libraries The ocamlfind libraries needed by this module.
-    @param packages The opam packages needed by this module.
-    @param keys The keys related to this module.
-    @param dependencies The data-dependencies needed by this module.
-           You must use {!hidden} to pass an arbitrary implementation.
+(** [foreign name typ] is the module [name], having with the
+    odule type [typ].
+
+    {ul
+    {- If [packages] is set, then the given OPAM packages are
+       installed before compiling the current application.}
+    {- If [libraries] is set, the given OCamlfind libraries are
+       included and linked with the module [name].}
+    {- If [keys] is set, use the given {{!Key.t}keys} to parse at
+       configure and runtime the command-line arguments before calling
+       [name.connect].}
+    {- If [dependencies] is set, the given list of
+       {{!abstract_impl}abstract} implementations is added as
+       data-dependencies: they will be initialized before calling
+       [name.connect]. }
+    }
+
 *)
 
-type job
-(** Type for job values. *)
-
-val job: job typ
-(** Representation of a job. *)
-
-(** {2 DSL extension} *)
-
-(** Information available during configuration. *)
+(** Information about the final application. *)
 module Info: sig
 
   type t
-  (** Configuration information for the whole project. *)
+  (** The type for information about the final application. *)
 
   val name: t -> string
-  (** Name of the project *)
+  (** [name t] is the name of the application. *)
 
   val root: t -> string
   (** Directory in which the configuration is done. *)
@@ -115,62 +138,93 @@ module Info: sig
   val keys: t -> Key.Set.t
   (** Keys declared by the project. *)
 
-  val keymap: t -> Key.map
-  (** Map from key entered in the command line to values. *)
+  val parsed: t -> Key.parsed
+  (** [parsed t] is a value representing the command-line argument
+      being parsed. *)
 
   val create:
     ?keys:Key.Set.t ->
     ?libraries:string list ->
     ?packages:string list ->
-    keymap:Key.map ->
+    parsed:Key.parsed ->
     name:string ->
     root:string -> t
 
 end
 
-(** Signature for configurable devices. *)
+(** Signature for configurable module implementations. A
+    [configurable] is a module implementation which contains a runtime
+    state which can be set either at configuration time (by the
+    application builder) or at runtime, using command-line
+    arguments. *)
 class type ['ty] configurable = object
 
   method ty: 'ty typ
-  (** Type of the device. *)
+  (** [ty] is the module type of the configurable. *)
 
   method name: string
-  (** Return the unique variable name holding the state of the device. *)
+  (** [name] is the unique variable name holding the runtime state of
+      the configurable. *)
 
   method module_name: string
-  (** Return the name of the module implementing the device. *)
+  (** [module_name] is the name of the module implementing the
+      configurable. *)
 
   method packages: string list Key.value
-  (** Return the list of OPAM packages which needs to be installed to
-      use the device. *)
+  (** [packages] is the list of OPAM packages which needs to be
+      installed before compiling the configurable. *)
 
   method libraries: string list Key.value
-  (** Return the list of ocamlfind libraries to link with the
-      application to use the device. *)
-
-  method keys: Key.t list
-  (** Return the list of keys to configure the device. *)
+  (** [libaries] is the list of OCamlfind libraries to include and
+      link with the configurable. *)
 
   method connect: Info.t -> string -> string list -> string
-  (** Return the function call to connect at runtime with the device. *)
+  (** [connect info mod args] is the code to execute in order to
+      initialize the state associated with the module [mod] (usually
+      calling [mod.connect]) with the arguments [args], in the context
+      of the project information [info]. *)
 
   method configure: Info.t -> (unit, string) Rresult.result
-  (** Configure the device. *)
+  (** [configure info] is the code to execute in order to configure
+      the device. This might involve generating more OCaml code,
+      running bash scripts, etc. *)
 
   method clean: Info.t -> (unit, string) Rresult.result
-  (** Clean all the files generated to use the device. *)
+  (** [clean info] is the code to clean-up what have beend generated
+      by {!configure}. *)
 
-  method dependencies: any_impl list
-  (** The list of dependencies that must be initalized before this
-      device. You must use {!hidden} to pass an arbitrary
-      implementation. *)
+  method keys: Key.t list
+  (** [keys] is the list of command-line keys to set-up the
+      configurable. *)
+
+  method dependencies: abstract_impl list
+  (** [dependencies] is the list of {{!abstract_impl} abstract
+      implementations} that must be initalized before calling
+      {!connect}. *)
 
 end
 
 val impl: 'a configurable -> 'a impl
-(** Create an implementation based on a specified device. *)
+(** [impl c] is the implementation of the configurable [c]. *)
 
-(** The base configurable pre-defining many methods. *)
+val explode: 'a impl ->
+  [ `App of abstract_impl * abstract_impl
+  | `If of bool Key.value * 'a impl * 'a impl
+  | `Impl of 'a configurable ]
+(** [explode i] inspects the contents of [i]. *)
+
+(** [base_configurable} pre-defining many methods from the
+    {!configurable} class. To be used as follow:
+
+    {[
+      let time_conf = object
+        inherit base_configurable
+        method ty = time
+        method name = "time"
+        method module_name = "OS.Time"
+      end
+    ]}
+*)
 class base_configurable: object
   method libraries: string list Key.value
   method packages: string list Key.value
@@ -178,22 +232,17 @@ class base_configurable: object
   method connect: Info.t -> string -> string list -> string
   method configure: Info.t -> (unit, string) Rresult.result
   method clean: Info.t -> (unit, string) Rresult.result
-  method dependencies: any_impl list
+  method dependencies: abstract_impl list
 end
 
-(** {3 Sharing} *)
+(** {1 Sharing} *)
 
 val hash: 'a impl -> int
-(** Hash an implementation. *)
+(** [hash] is the hash function on implementations. FIXME(samoht)
+    expand on how it works. *)
 
 val equal: 'a impl -> 'a impl -> bool
+(** [equal] is the equality over implementations. *)
 
-module ImplTbl: Hashtbl.S with type key = any_impl
+module ImplTbl: Hashtbl.S with type key = abstract_impl
 (** Hashtbl of implementations. *)
-
-(** {3 Misc} *)
-
-val explode: 'a impl ->
-  [ `App of any_impl * any_impl
-  | `If of bool Key.value * 'a impl * 'a impl
-  | `Impl of 'a configurable ]

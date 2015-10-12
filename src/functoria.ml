@@ -57,7 +57,7 @@ module Devices = struct
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter Key.Set.iter @@ Key.emit @@ Info.keymap i) bootvars;
+      (Fmt.iter Key.Set.iter @@ Key.emit @@ Info.parsed i) bootvars;
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@
@@ -80,7 +80,7 @@ module Devices = struct
       method !clean = clean_keys
       method !libraries = Key.pure [ "functoria.runtime" ]
       method !packages = Key.pure [ "functoria" ]
-      method !dependencies = [ hidden argv ]
+      method !dependencies = [ abstract argv ]
       method !connect info modname = function
         | [ argv ] ->
           Fmt.strf
@@ -322,16 +322,16 @@ module Config = struct
     { libraries; packages; keys; name; root; jobs }
 
   let eval map_switching { name = n; root; packages; libraries; keys; jobs } =
-    let e = G.eval ~map:map_switching jobs in
+    let e = G.eval ~keys:map_switching jobs in
     let open Key in
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
     let keys = Key.Set.union keys @@ Engine.keys e in
     let list = StringSet.elements in
     let di =
-      pure (fun libraries packages keymap ->
+      pure (fun libraries packages parsed ->
           e, Info.create ~libraries:(list libraries) ~packages:(list packages)
-            ~keys ~keymap ~name:n ~root)
+            ~keys ~parsed ~name:n ~root)
       $ libraries
       $ packages
     in
@@ -345,8 +345,8 @@ module Config = struct
   let name t = t.name
   let keys t = t.keys
 
-  let gen_pp pp ~partial ~map fmt jobs =
-    pp fmt @@ G.simplify @@ G.eval ~partial ~map jobs
+  let gen_pp pp ~partial ~keys fmt jobs =
+    pp fmt @@ G.simplify @@ G.eval ~partial ~keys jobs
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot
@@ -473,10 +473,9 @@ module Make (P: CUSTOM) = struct
         command "rm -rf log %s/main.native.o %s/main.native %s/*~" root root root
       )
 
-  let describe ~dotcmd ~dot ~eval ~output ~map { Config.jobs; _ } =
+  let describe ~dotcmd ~dot ~eval ~output ~keys { Config.jobs; _ } =
     let f fmt =
-      Config.(if dot then pp_dot else pp)
-        ~partial:(not eval) ~map fmt jobs
+      Config.(if dot then pp_dot else pp) ~partial:(not eval) ~keys fmt jobs
     in
     let with_fmt f = match output with
       | None when dot ->
@@ -487,7 +486,7 @@ module Make (P: CUSTOM) = struct
     in R.ok @@ with_fmt f
 
   let show_keys keymap keyset =
-    info "%a %a" blue "Keys:" (Key.pp_map keymap) keyset
+    info "%a %a" blue "Keys:" (Key.pp_parsed keymap) keyset
 
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
@@ -565,7 +564,7 @@ module Make (P: CUSTOM) = struct
     let configure (jobs, info) = configure info jobs
     let clean (jobs, info) = clean info jobs
     let build (_jobs, info) = build info
-    let describe map t = describe ~map t
+    let describe keys t = describe ~keys t
 
     let eval switch_map t =
       let info = Config.eval switch_map t in

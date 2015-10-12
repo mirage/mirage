@@ -15,7 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Configuration library *)
+(** Configuration library
+
+    FIXME(samoht): review API and doc
+*)
 
 (** Core functoria DSL *)
 module Dsl: module type of struct include Functoria_dsl end
@@ -113,7 +116,7 @@ module Make (P: CUSTOM): sig
       @param keys The keys related to this module.
   *)
 
-  val get_base_keymap: unit -> Key.map
+  val get_base_keymap: unit -> Key.parsed
   (** [get_base_keymap ()] returns the keymap containing the keys of
       the specialized DSL. This functions should be avoided.
 

@@ -23,7 +23,7 @@ module Info = struct
     name: string;
     root: string;
     keys: Key.Set.t;
-    keymap: Functoria_key.map;
+    parsed: Functoria_key.parsed;
     libraries: StringSet.t;
     packages: StringSet.t;
   }
@@ -33,13 +33,13 @@ module Info = struct
   let libraries t = StringSet.elements t.libraries
   let packages t = StringSet.elements t.packages
   let keys t = t.keys
-  let keymap t = t.keymap
+  let parsed t = t.parsed
 
   let create ?(keys=Key.Set.empty) ?(libraries=[]) ?(packages=[])
-      ~keymap ~name ~root =
+      ~parsed ~name ~root =
     let libraries = StringSet.of_list libraries in
     let packages = StringSet.of_list packages in
-    { name; root; keys; libraries; packages; keymap}
+    { name; root; keys; libraries; packages; parsed }
 
 end
 
@@ -63,7 +63,7 @@ module rec Typ: sig
     x: 'a impl;          (* parameter *)
   }
 
-  and any_impl = Any: _ impl -> any_impl
+  and abstract_impl = Abstract: _ impl -> abstract_impl
 
   class type ['ty] configurable = object
     method ty: 'ty typ
@@ -75,7 +75,7 @@ module rec Typ: sig
     method connect: Info.t -> string -> string list -> string
     method configure: Info.t -> (unit, string) R.t
     method clean: Info.t -> (unit, string) R.t
-    method dependencies: any_impl list
+    method dependencies: abstract_impl list
   end
 
 end = Typ
@@ -84,7 +84,7 @@ include Typ
 
 let ($) f x = App { f; x }
 let impl x = Impl x
-let hidden x = Any x
+let abstract x = Abstract x
 let if_impl b x y = If(b,x,y)
 
 let rec switch ~default l kv = match l with
@@ -99,7 +99,7 @@ class base_configurable = object
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
   method configure (_: Info.t): (unit,string) R.t = R.ok ()
   method clean (_: Info.t): (unit,string) R.t = R.ok ()
-  method dependencies: any_impl list = []
+  method dependencies: abstract_impl list = []
 end
 
 type job = JOB
@@ -128,7 +128,7 @@ class ['ty] foreign
     method dependencies = dependencies
   end
 
-let foreign ?keys ?libraries ?packages ?dependencies module_name ty =
+let foreign ?packages ?libraries ?keys ?dependencies module_name ty =
   Impl (new foreign ?keys ?libraries ?packages ?dependencies module_name ty)
 
 (* {Misc} *)
@@ -148,7 +148,7 @@ let rec equal
     | App _ , (If _ | Impl _)
     | If _  , (App _ | Impl _) -> false
 
-and equal_any (Any x) (Any y) = equal x y
+and equal_any (Abstract x) (Abstract y) = equal x y
 
 let rec hash: type t . t impl -> int = function
   | Impl c ->
@@ -158,15 +158,15 @@ let rec hash: type t . t impl -> int = function
   | If (cond, t, e) ->
     Hashtbl.hash (`If (cond, hash t, hash e))
 
-and hash_any (Any x) = hash x
+and hash_any (Abstract x) = hash x
 
 module ImplTbl = Hashtbl.Make (struct
-    type t = any_impl
+    type t = abstract_impl
     let hash = hash_any
     let equal = equal_any
   end)
 
 let explode x = match x with
   | Impl c -> `Impl c
-  | App { f; x } -> `App (Any f, Any x)
+  | App { f; x } -> `App (Abstract f, Abstract x)
   | If (cond, x, y) -> `If (cond, x, y)

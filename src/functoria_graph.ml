@@ -178,14 +178,14 @@ let create impl =
   let rec aux
     : type t . G.t -> t Dsl.impl -> G.vertex * G.t
     = fun g impl ->
-      if H.mem tbl @@ Dsl.hidden impl
-      then H.find tbl (Dsl.hidden impl), g
+      if H.mem tbl @@ Dsl.abstract impl
+      then H.find tbl (Dsl.abstract impl), g
       else
         let v, g = match Dsl.explode impl with
           | `Impl c ->
             let deps, g =
               List.fold_right
-                (fun (Dsl.Any x) (l,g) -> let v, g = aux g x in v::l, g)
+                (fun (Dsl.Abstract x) (l,g) -> let v, g = aux g x in v::l, g)
                 c#dependencies ([], g)
             in
             add_impl g ~impl:(c :> subconf) ~args:[] ~deps
@@ -193,12 +193,12 @@ let create impl =
             let then_, g = aux g then_ in
             let else_, g = aux g else_ in
             add_if g ~cond ~then_ ~else_
-          | `App (Dsl.Any f , Dsl.Any x) ->
+          | `App (Dsl.Abstract f , Dsl.Abstract x) ->
             let f, g = aux g f in
             let x, g = aux g x in
             add_app g ~f ~args:[x]
         in
-        H.add tbl (Dsl.hidden impl) v;
+        H.add tbl (Dsl.abstract impl) v;
         v, g
   in
   snd @@ aux G.empty impl
@@ -358,8 +358,8 @@ end
 module EvalIf = struct
   (* Evaluate the [If] vertices and remove them. *)
 
-  let predicate ~partial ~map _ v = match G.V.label v with
-    | If cond when not partial || Key.is_resolved map cond -> Some v
+  let predicate ~partial ~keys _ v = match G.V.label v with
+    | If cond when not partial || Key.is_resolved keys cond -> Some v
     | If _ | App | Impl _ -> None
 
   let extract path l =
@@ -370,15 +370,15 @@ module EvalIf = struct
     in
     aux l
 
-  let apply ~partial ~map g v_if =
+  let apply ~partial ~keys g v_if =
     let path, l =
       match explode g v_if with
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.is_resolved map path then g
+    if partial && not @@ Key.is_resolved keys path then g
     else
-      let v_new, v_others = extract (Key.eval map path) l in
+      let v_new, v_others = extract (Key.eval keys path) l in
       let g = G.remove_vertex g v_if in
       let g = List.fold_left remove_rec_if_orphan g v_others in
       add_pred_with_subst g preds v_new
@@ -389,11 +389,11 @@ let simplify = MergeNode.(transform ~predicate ~apply)
 
 let normalize = RemovePartialApp.(transform ~predicate ~apply)
 
-let eval ?(partial=false) ~map g =
+let eval ?(partial=false) ~keys g =
   normalize @@
   EvalIf.(transform
-            ~predicate:(predicate ~partial ~map)
-            ~apply:(apply ~partial ~map)
+            ~predicate:(predicate ~partial ~keys)
+            ~apply:(apply ~partial ~keys)
             g)
 
 let is_fully_reduced g =

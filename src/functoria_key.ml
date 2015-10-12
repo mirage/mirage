@@ -204,7 +204,7 @@ let filter_stage ~stage set =
 
 (* Key Map *)
 
-type map = Univ.t
+type parsed = Univ.t
 
 let get map { key; default; _ } = match Univ.find key map with
   | Some x -> x
@@ -214,14 +214,14 @@ let mem map t = Univ.mem t.key map
 
 (* {2 Values} *)
 
-type +'a value = { deps: Set.t; v: map -> 'a }
+type +'a value = { deps: Set.t; v: parsed -> 'a }
 
-let eval map v = v.v map
+let eval p v = v.v p
 let pure x = { deps = Set.empty; v = fun _ -> x }
 
 let app f x = {
   deps = Set.union f.deps x.deps;
-  v = fun map -> (eval map f) (eval map x);
+  v = fun p -> (eval p f) (eval p x);
 }
 
 let map f x = app (pure f) x
@@ -229,10 +229,10 @@ let pipe x f = map f x
 let if_ c t e = pipe c @@ fun b -> if b then t else e
 let ($) = app
 let with_deps ~keys { deps; v } = { deps = Set.(union deps keys); v }
-let value k = let v map = get map k in { deps = Set.singleton (Any k); v }
+let value k = let v p = get p k in { deps = Set.singleton (Any k); v }
 let deps k = k.deps
-let is_resolved map v = Set.for_all (fun (Any x) -> mem map x) v.deps
-let peek map v = if is_resolved map v then Some (eval map v) else None
+let is_resolved p v = Set.for_all (fun (Any x) -> mem p x) v.deps
+let peek p v = if is_resolved p v then Some (eval p v) else None
 let default v = eval Univ.empty v
 
 (* {2 Pretty printing} *)
@@ -240,13 +240,11 @@ let default v = eval Univ.empty v
 let pp fmt k = Fmt.string fmt (name k)
 let pp_deps fmt v = Set.pp pp fmt v.deps
 
-let pp_map map =
+let pp_parsed p =
   let f fmt (Any k) =
-    let default = if mem map k then Fmt.nop else Fmt.unit " (default)" in
+    let default = if mem p k then Fmt.nop else Fmt.unit " (default)" in
     Fmt.pf fmt "%a=%a%a"
-      Fmt.(styled `Bold string) k.name
-      (Arg.pp k.arg) (get map k)
-      default ()
+      Fmt.(styled `Bold string) k.name (Arg.pp k.arg) (get p k) default ()
   in
   Set.pp f
 
@@ -296,10 +294,7 @@ let term_key { info; arg; default; _ } =
 
 let term ?(stage=`Both) l =
   let gather (Any k) rest =
-    let f v map =
-      Univ.add k.key v map
-      |> Setters.apply v k.setters
-    in
+    let f v p = Setters.apply v k.setters (Univ.add k.key v p) in
     Cmdliner.Term.(term_key k f $ rest)
   in
   Set.fold gather (filter_stage ~stage l) (Cmdliner.Term.pure Univ.empty)
@@ -310,8 +305,8 @@ let term_value ?stage { deps; v } = Cmdliner.Term.(pure v $ term ?stage deps)
 
 let module_name = "Bootvar_gen"
 
-let emit map fmt (Any k) =
-  Format.fprintf fmt "%a" (Arg.emit @@ arg k) @@ get map k
+let emit p fmt (Any k) =
+  Format.fprintf fmt "%a" (Arg.emit @@ arg k) @@ get p k
 
 let at_runtime fmt (Any { arg; _ }) =
   Format.fprintf fmt "%s" (Arg.at_runtime arg)
@@ -321,12 +316,12 @@ let ocaml_name k = Name.ocamlify (name k)
 let emit_call fmt k =
   Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 
-let emit_rw map fmt k =
+let emit_rw p fmt k =
   Format.fprintf fmt
     "@[<2>let %s =@ Functoria_runtime.Key.create@ ~doc:%a@ ~default:%a %a@]@,\
      @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
      @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
-    (ocaml_name k)  Arg.info_emit (info k) (emit map) k at_runtime k
+    (ocaml_name k)  Arg.info_emit (info k) (emit p) k at_runtime k
     (ocaml_name k)  (ocaml_name k)
     (ocaml_name k)  (ocaml_name k)
 

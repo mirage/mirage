@@ -135,17 +135,18 @@ val default: 'a value -> 'a
 
 type 'a key
 (** The type for configuration keys. Keys are dynamic values that can
-    be used to
+    be used to:
 
     {ul
     {- Set {{!value}values} at configure and runtime by parsing
        arguments on the command line.}
-    {- Switch implementation dynamically, using {!Functoria_dsl.if_impl}.
-       FIXME(samoht): not sure what this mean (yet)}
+    {- Select, at configuration time, between
+    {{!Functoria_dsl.if_impl}implementations} of the same module
+    type. FIXME(samoht): only at configuration time?}
     }
 
-    Keys' content is made persistent by emitting code in module called
-    [Bootvar_gen]. FIXME(implementation details?)
+    Keys' contents are made persistent by emitting code in module
+    called [Bootvar_gen]. FIXME(samoht): implementation details?
 *)
 
 val value: 'a key -> 'a value
@@ -248,34 +249,34 @@ val proxy: doc:Arg.info -> setters:bool Setters.t -> string -> bool key
 val setters: t -> Set.t
 (** [setters k] returns the set of keys for which [k] has a setter. *)
 
-(** {1 Key resolution} *)
+(** {1 Parsed Keys} *)
 
-type map
+type parsed
 (** The type for parsed command-line arguments. *)
 
-val term: ?stage:stage -> Set.t -> map Cmdliner.Term.t
+val term: ?stage:stage -> Set.t -> parsed Cmdliner.Term.t
 (** [term l] is a [Cmdliner.Term.t] that, when evaluated, sets the value of the
     the keys in [l]. *)
 
 val term_value: ?stage:stage -> 'a value -> 'a Cmdliner.Term.t
 (** [term_value v] is [term @@ deps v] and returns the content of [v]. *)
 
-val is_resolved: map -> 'a value -> bool
-(** [is_reduced map v] returns [true] iff all the dependencies of [v] have
-    been resolved. *)
+val is_resolved: parsed -> 'a value -> bool
+(** [is_resolved p v] returns [true] iff all the dependencies of [v]
+    have been resolved. *)
 
-val peek: map -> 'a value -> 'a option
-(** [peek map v] returns [Some x] if [v] has been resolved to [x]
-    and [None] otherwise. *)
+val peek: parsed -> 'a value -> 'a option
+(** [peek p v] returns [Some x] if [v] has been resolved to [x] and
+    [None] otherwise. *)
 
-val eval: map -> 'a value -> 'a
-(** [eval map v] resolves [v], using default values if necessary. *)
+val eval: parsed -> 'a value -> 'a
+(** [eval p v] resolves [v], using default values if necessary. *)
 
-val get: map -> 'a key -> 'a
-(** [get map k] resolves [k], using default values if necessary. *)
+val get: parsed -> 'a key -> 'a
+(** [get p k] resolves [k], using default values if necessary. *)
 
-val pp_map: map -> Set.t Fmt.t
-(** [pp_map map fmt set] prints the keys in [set] with the values in [map]. *)
+val pp_parsed: parsed -> Set.t Fmt.t
+(** [pp_parsed map fmt set] prints the keys in [set] with the values in [map]. *)
 
 (** {1 Code emission} *)
 
@@ -285,8 +286,8 @@ val ocaml_name: t -> string
 val emit_call: t Fmt.t
 (** [emit_call fmt k] prints the OCaml code needed to get the value of [k]. *)
 
-val emit: map -> t Fmt.t
-(** [emit fmt k] prints the OCaml code needed to define [k]. *)
+val emit: parsed -> t Fmt.t
+(** [emit p fmt k] prints the OCaml code needed to define [k]. *)
 
 (**/**)
 

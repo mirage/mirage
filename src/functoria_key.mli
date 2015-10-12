@@ -21,7 +21,7 @@ module Arg: sig
   (** {1 Cross-stage argument converters}
 
       This module extends
-      {{!http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
       Cmdliner.Arg} to allow MetaOCaml-style typed cross-stage
       persistency of command-line arguments. *)
 
@@ -35,7 +35,8 @@ module Arg: sig
       convert argument into OCaml value, [emit] to convert OCaml
       values into interpretable strings, and the function named [run]
       to transform these strings into OCaml values again. See
-      {!configure}, {!emit} and {!runtime} for details.*)
+      {!conv_at_configure}, {!conv_emit} and {!conv_at_runtime} for
+      details.*)
 
   (** {2 Predefined Converters} *)
 
@@ -62,7 +63,7 @@ module Arg: sig
 
   val conv_emit: 'a converter -> Format.formatter -> 'a -> unit
   (** [conv_emit] allows to persist OCaml values across stages, ie. it
-      takes values (which might be parsed with {!configure} at
+      takes values (which might be parsed with {!conv_at_configure} at
       configuration time) and produce a valid string representation
       which can be used at runtime, once the generated code is
       compiled. *)
@@ -77,19 +78,20 @@ module Arg: sig
   type info
   (** The type for information about cross-stage command-line
       arguments. See
-      {{!http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}
       Cmdliner.Arg}.*)
 
   val info:
     ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
     string list -> info
   (** Define cross-stage information for an argument. See
-      {!Cmdliner.Arg.info} for details. *)
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
+      Cmdliner.Arg.info}.*)
 
   val info_at_configure: info -> Cmdliner.Arg.info
   (** [cmdliner_info i] is the projection of [i] to
-      {{!http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
-      Cmdliner.Arg.info} *)
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
+      Cmdliner.Arg.info}. *)
 
   val info_emit: Format.formatter -> info -> unit
   (** [info_emit] allows to persist information about command-line

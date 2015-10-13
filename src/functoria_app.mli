@@ -19,11 +19,11 @@
 
 open Functoria
 
-val noop: job impl
-(** [noop] is a job that does nothing, has no dependency and returns
-      [()] *)
+(** {1 Usefull module implementations} *)
 
-(** {1 Argv device} *)
+val noop: job impl
+(** [noop] is an implementation of {!Functioria.job} that hold no
+    state, does nothing and has no dependency. *)
 
 type argv
 (** The type for command-line arguments, similar to the usual
@@ -36,13 +36,9 @@ val sys_argv: argv impl
 (** [sys_argv] is a device providing command-line arguments by using
     {!Sys.argv}. *)
 
-(** {1 Configuration Key} *)
-
 val keys: argv impl -> job impl
-(** [keys a] is job with keys set taking an [argv] device, calls
-    cmdliner and sets up keys. *)
-
-(** {1 Information about the Application} *)
+(** [keys a] is an implementation of {!Functoria.job} that holds the
+    parsed command-line arguments. *)
 
 type info
 (** The type for application about the application being built. *)
@@ -54,8 +50,9 @@ val export_info: info impl
 (** [export_info] is the module implementation whose state contins all
     the information available at configure-time and run-time.  *)
 
-(** [S] is the signature that custom application builders have to
-    provide. *)
+(** {1 Builders} *)
+
+(** [S] is the signature that application builders have to provide. *)
 module type S = sig
 
   open Functoria
@@ -90,8 +87,8 @@ module type S = sig
 
 end
 
-(** [Make] is an helper to generate new application builders with
-    custom constructs, defined by {!S}. *)
+(** [Make] is an helper to generate new a application builder with the
+    custom constructs defined by {!S}. *)
 module Make (P: S): sig
 
   open Functoria
@@ -114,7 +111,8 @@ module Make (P: S): sig
   *)
 
   val run: unit -> unit
-  (** Run the application builder. Should only be used by the host
-      specialized DSL.  *)
+  (** Run the application builder. This should be called exactly once
+      to run the application builder: command-line argument will be
+      parsed, and some code will be generated and compiled. *)
 
 end

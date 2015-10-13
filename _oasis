@@ -9,6 +9,7 @@ Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
 
 AlphaFeatures: pure_interface
+AlphaFeatures: ocamlbuild_more_args
 
 Library "functoria-runtime"
   Path:            runtime
@@ -20,15 +21,12 @@ Library "functoria-runtime"
 Library functoria
   Path:            src
   Findlibname:     functoria
-  Modules:
-    Functoria,
-    Functoria_misc, Functoria_key, Functoria_dsl
-  InternalModules:
-    Functoria_tool, Functoria_sigs, Functoria_graph
-  BuildDepends:
-    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,ocamlgraph
+  Modules:         Functoria, Functoria_key, Functoria_app
+  InternalModules: Functoria_misc, Functoria_tool, Functoria_sigs,
+                   Functoria_graph
+  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,
+                   ocamlgraph
 
-AlphaFeatures: ocamlbuild_more_args
 Document "functoria"
   Type: ocamlbuild (0.3)
   BuildTools: ocamldoc

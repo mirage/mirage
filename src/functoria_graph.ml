@@ -24,7 +24,7 @@
 
 open Graph
 open Functoria_misc
-module Dsl = Functoria_dsl
+open Functoria
 module Key = Functoria_key
 module KeySet = Set_Make(Key)
 
@@ -49,9 +49,9 @@ type subconf = <
   keys: Key.t list;
   packages: string list Key.value;
   libraries: string list Key.value;
-  connect: Dsl.Info.t -> string -> string list -> string;
-  configure: Dsl.Info.t -> (unit, string) Rresult.result;
-  clean: Dsl.Info.t -> (unit, string) Rresult.result;
+  connect: Info.t -> string -> string list -> string;
+  configure: Info.t -> (unit, string) Rresult.result;
+  clean: Info.t -> (unit, string) Rresult.result;
 >
 
 (* Helpers for If nodes. *)
@@ -174,19 +174,19 @@ let add_app graph ~f ~args =
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
 
 let create impl =
-  let module H = Dsl.ImplTbl in
+  let module H = ImplTbl in
   let tbl = H.create 50 in
   let rec aux
-    : type t . G.t -> t Dsl.impl -> G.vertex * G.t
+    : type t . G.t -> t impl -> G.vertex * G.t
     = fun g impl ->
-      if H.mem tbl @@ Dsl.abstract impl
-      then H.find tbl (Dsl.abstract impl), g
+      if H.mem tbl @@ abstract impl
+      then H.find tbl (abstract impl), g
       else
-        let v, g = match Dsl.explode impl with
+        let v, g = match explode impl with
           | `Impl c ->
             let deps, g =
               List.fold_right
-                (fun (Dsl.Abstract x) (l,g) -> let v, g = aux g x in v::l, g)
+                (fun (Abstract x) (l,g) -> let v, g = aux g x in v::l, g)
                 c#dependencies ([], g)
             in
             add_impl g ~impl:(c :> subconf) ~args:[] ~deps
@@ -194,12 +194,12 @@ let create impl =
             let then_, g = aux g then_ in
             let else_, g = aux g else_ in
             add_if g ~cond ~then_ ~else_
-          | `App (Dsl.Abstract f , Dsl.Abstract x) ->
+          | `App (Abstract f , Abstract x) ->
             let f, g = aux g f in
             let x, g = aux g x in
             add_app g ~f ~args:[x]
         in
-        H.add tbl (Dsl.abstract impl) v;
+        H.add tbl (abstract impl) v;
         v, g
   in
   snd @@ aux G.empty impl

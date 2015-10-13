@@ -16,7 +16,7 @@
 
 (** Graph engine *)
 
-open Functoria_dsl
+open Functoria
 
 type subconf = <
   name       : string;

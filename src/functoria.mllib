@@ -1,9 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: b1d454e53c1bc14456976c79b899bc70)
+# DO NOT EDIT (digest: 323f51486d6c67d237e86e2ad55b7fdb)
 Functoria
-Functoria_misc
 Functoria_key
-Functoria_dsl
+Functoria_app
+Functoria_misc
 Functoria_tool
 Functoria_sigs
 Functoria_graph

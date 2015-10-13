@@ -16,14 +16,15 @@
 open Functoria_misc
 open Rresult
 module Key = Functoria_key
+module KeySet = Functoria_misc.Set_Make(Key)
 
 module Info = struct
 
   type t = {
     name: string;
     root: string;
-    keys: Key.Set.t;
-    parsed: Functoria_key.parsed;
+    keys: KeySet.t;
+    parsed: Key.parsed;
     libraries: StringSet.t;
     packages: StringSet.t;
   }
@@ -32,13 +33,13 @@ module Info = struct
   let root t = t.root
   let libraries t = StringSet.elements t.libraries
   let packages t = StringSet.elements t.packages
-  let keys t = t.keys
+  let keys t = KeySet.elements t.keys
   let parsed t = t.parsed
 
-  let create ?(keys=Key.Set.empty) ?(libraries=[]) ?(packages=[])
-      ~parsed ~name ~root =
+  let create ?(packages=[]) ?(libraries=[]) ?(keys=[]) ~parsed ~name ~root =
     let libraries = StringSet.of_list libraries in
     let packages = StringSet.of_list packages in
+    let keys = KeySet.of_list keys in
     { name; root; keys; libraries; packages; parsed }
 
 end

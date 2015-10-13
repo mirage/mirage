@@ -24,43 +24,38 @@ end
 
 module Arg = struct
 
-  type 'a converter = {
-    configure: 'a Cmdliner.Arg.converter;
-    emit     : Format.formatter -> 'a -> unit;
-    runtime  : string;
-  }
+  type 'a emitter = Format.formatter -> 'a -> unit
+  type 'a code = string
+  type 'a converter = 'a Cmdliner.Arg.converter * 'a emitter * 'a code
 
-  let conv configure emit runtime = { configure; emit; runtime }
+  let conf (x, _, _) = x
+  let emit (_, x, _) = x
+  let run (_, _, x) = x
 
-  let string = {
-    configure = Cmdliner.Arg.string;
-    emit      = (fun fmt -> Format.fprintf fmt "%S");
-    runtime   = "Cmdliner.Arg.string";
-  }
+  let string =
+    Cmdliner.Arg.string,
+    (fun fmt -> Format.fprintf fmt "%S"),
+    "Cmdliner.Arg.string"
 
-  let bool = {
-    configure  = Cmdliner.Arg.bool;
-    emit       = (fun fmt -> Format.fprintf fmt "%b");
-    runtime    ="Cmdliner.Arg.bool";
-  }
+  let bool =
+    Cmdliner.Arg.bool,
+    (fun fmt -> Format.fprintf fmt "%b"),
+    "Cmdliner.Arg.bool"
 
-  let int = {
-    configure = Cmdliner.Arg.int;
-    emit      = (fun fmt -> Format.fprintf fmt "%i");
-    runtime   = "Cmdliner.Arg.int";
-  }
+  let int =
+    Cmdliner.Arg.int,
+    (fun fmt -> Format.fprintf fmt "%i"),
+    "Cmdliner.Arg.int"
 
-  let list d = {
-    configure = Cmdliner.Arg.list d.configure;
-    emit      = Emit.list d.emit;
-    runtime   = Fmt.strf "(Cmdliner.Arg.list %s)" d.runtime;
-  }
+  let list d =
+    Cmdliner.Arg.list (conf d),
+    Emit.list (emit d),
+    Fmt.strf "(Cmdliner.Arg.list %s)" (run d)
 
-  let some d = {
-    configure = Cmdliner.Arg.some d.configure;
-    emit      = Emit.option d.emit;
-    runtime   = Fmt.strf "(Cmdliner.Arg.some %s)" d.runtime;
-  }
+  let some d =
+    Cmdliner.Arg.some (conf d),
+    Emit.option (emit d),
+    Fmt.strf "(Cmdliner.Arg.some %s)" (run d)
 
   type info = {
     doc  : string option;
@@ -91,15 +86,15 @@ module Arg = struct
       Emit.(option emit_env) env
       Emit.(list string) names
 
-  type 'a t =
-    | Opt : 'a converter -> 'a t
-    | Flag: bool t
+  type 'a kind =
+    | Opt : 'a converter -> 'a kind
+    | Flag: bool kind
 
-  let pp: type a . a t -> a Fmt.t = function
-    | Opt c -> snd c.configure
+  let pp_kind: type a . a kind -> a Fmt.t = function
+    | Opt c -> snd (conf c)
     | Flag  -> Fmt.bool
 
-  let at_configure (type a) ~default ~info:i (t: a t) (f :a -> _) =
+  let kind_at_configure (type a) ~default ~info:i (t: a kind) (f :a -> _) =
     let f_desc v z = match v with
       | Some v -> f v z
       | None -> z
@@ -107,32 +102,49 @@ module Arg = struct
     match t with
     | Flag     -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
     | Opt desc ->
-      let none = Fmt.strf "%a" (snd desc.configure) default in
+      let none = Fmt.strf "%a" (snd (conf desc)) default in
       Cmdliner.Term.(app @@ pure f_desc)
-        Cmdliner.Arg.(value @@ opt (some ~none desc.configure) None i)
+        Cmdliner.Arg.(value @@ opt (some ~none (conf desc)) None i)
 
-  let at_runtime: type a . a t -> _ = function
+  let kind_at_runtime: type a . a kind -> _ = function
     | Flag  -> "Functoria_runtime.Conv.flag"
-    | Opt c -> Fmt.strf "(Functoria_runtime.Conv.opt %s)" c.runtime
+    | Opt c -> Fmt.strf "(Functoria_runtime.Conv.opt %s)" (run c)
 
-  let emit: type a . a t -> a Fmt.t = function
+  let kind_emit: type a . a kind -> a Fmt.t = function
     | Flag  -> Fmt.fmt "%b"
-    | Opt c -> c.emit
+    | Opt c -> (emit c)
+
+  type stage = [
+    | `Configure
+    | `Run
+    | `Both
+  ]
+
+  type 'a t = {
+    stage  : stage;
+    default: 'a;
+    info   : info;
+    kind   : 'a kind;
+  }
+
+  let pp t = pp_kind t.kind
+
+  let stage t = t.stage
+  let get_info t = t.info
+  let kind t = t.kind
+  let default t = t.default
+
+  let opt ?(stage=`Both) conv default info =
+    { stage; info; default; kind = Opt conv }
+
+  let flag ?(stage=`Both) info =
+    { stage; info; default = false; kind = Flag }
 
 end
 
-type stage = [
-  | `Configure
-  | `Run
-  | `Both
-]
-
 type 'a key = {
   name   : string;
-  stage  : stage;
-  info   : Arg.info;
   arg    : 'a Arg.t;
-  default: 'a;
   key    : 'a Univ.key;
   setters: 'a setter list;
 }
@@ -147,7 +159,8 @@ module Set = struct
   end
   include (Set_Make (M): SET with type elt := elt)
 
-  let add k set =
+  (* FIXME(samoht): do we need this? *)
+  let _add k set =
     if mem k set then
       if k != find k set then
         let Any k' = k in
@@ -162,11 +175,21 @@ module Set = struct
 end
 
 type t = Set.elt = Any: 'a key -> t
+let compare = Set.M.compare
 
-module Setters = struct
-  type 'a t = 'a setter list
-  let empty = []
-  let add k f setters = Setter (k, f) :: setters
+module Alias = struct
+
+  type 'a t = {
+    a_setters: 'a setter list;
+    a_arg    : 'a Arg.t;
+  }
+
+  let setters t = t.a_setters
+  let arg t = t.a_arg
+  let create a_arg = { a_setters = []; a_arg }
+  let flag doc = create (Arg.flag ~stage:`Configure doc)
+  let opt conv d i = create (Arg.opt ~stage:`Configure conv d i)
+  let add k f t = { t with a_setters = Setter (k, f) :: t.a_setters }
 
   let apply_one v map (Setter (k,f)) = match f v with
     | None   -> map
@@ -181,10 +204,10 @@ end
 
 let v x = Any x
 let arg k = k.arg
-let setters (Any k) = Setters.keys k.setters
+let aliases (Any k) = Set.elements @@ Alias.keys k.setters
 let name (Any k) = k.name
-let stage (Any k) = k.stage
-let info (Any k) = k.info
+let stage (Any k) = Arg.stage k.arg
+let info (Any k) = Arg.get_info k.arg
 
 let is_runtime k = match stage k with
   | `Run | `Both -> true
@@ -194,19 +217,19 @@ let is_configure k = match stage k with
   | `Configure | `Both -> true
   | `Run -> false
 
-let filter_stage ~stage set =
-  match stage with
-  | `Run -> Set.filter is_runtime set
-  | `Configure | `NoEmit -> Set.filter is_configure set
-  | `Both -> set
+let filter_stage stage l = match stage with
+  | `Run    -> List.filter is_runtime l
+  | `Configure
+  | `NoEmit -> List.filter is_configure l
+  | `Both   -> l
 
 (* Key Map *)
 
 type parsed = Univ.t
 
-let get map { key; default; _ } = match Univ.find key map with
+let get map { key; arg; _ } = match Univ.find key map with
   | Some x -> x
-  | None   -> default
+  | None   -> Arg.default arg
 
 let mem map t = Univ.mem t.key map
 
@@ -226,11 +249,11 @@ let map f x = app (pure f) x
 let pipe x f = map f x
 let if_ c t e = pipe c @@ fun b -> if b then t else e
 let ($) = app
-let with_deps ~keys { deps; v } = { deps = Set.(union deps keys); v }
 let value k = let v p = get p k in { deps = Set.singleton (Any k); v }
-let deps k = k.deps
-let is_resolved p v = Set.for_all (fun (Any x) -> mem p x) v.deps
-let peek p v = if is_resolved p v then Some (eval p v) else None
+let with_deps ~keys v = { v with deps = Set.(union v.deps @@ Set.of_list keys) }
+let deps k = Set.elements k.deps
+let is_parsed p v = Set.for_all (fun (Any x) -> mem p x) v.deps
+let peek p v = if is_parsed p v then Some (eval p v) else None
 let default v = eval Univ.empty v
 
 (* {2 Pretty printing} *)
@@ -244,7 +267,7 @@ let pp_parsed p =
     Fmt.pf fmt "%a=%a%a"
       Fmt.(styled `Bold string) k.name (Arg.pp k.arg) (get p k) default ()
   in
-  Set.pp f
+  fun ppf l -> Set.(pp f ppf @@ of_list l)
 
 (* {2 Automatic documentation} *)
 
@@ -252,7 +275,7 @@ let info_setters setters (info: Arg.info) =
   let f fmt k = Fmt.pf fmt "$(b,%s)" (name k) in
   let doc_s = if setters = [] then "" else
       Fmt.strf "\nWill automatically set the following keys: %a."
-        (Set.pp f) (Setters.keys setters)
+        (Set.pp f) (Alias.keys setters)
   in
   let doc = match info.Arg.doc with
     | None -> doc_s
@@ -262,52 +285,45 @@ let info_setters setters (info: Arg.info) =
 
 (* {2 Key creation} *)
 
-(* Use internally only *)
-let create_raw ~stage ~setters ~doc ~default ~name ~arg =
+let alias name a =
+  let setters = Alias.setters a in
+  let arg = Alias.arg a in
+  let arg = { arg with Arg.info = info_setters setters arg.Arg.info } in
   let key = Univ.new_key name in
-  let info = info_setters setters doc in
-  { info; stage; default; setters; arg; name; key }
+  { setters; arg; name; key }
 
-(* Use internally only *)
-let flag_raw ~stage ~setters ~doc ~name =
-  create_raw ~stage ~setters ~doc ~default:false ~name ~arg:Arg.Flag
-
-let opt ?(stage=`Both) ~doc ~default name arg =
-  let setters = Setters.empty in
-  let arg = Arg.Opt arg in
-  create_raw ~stage ~setters ~doc ~default ~name ~arg
-
-let flag ?(stage=`Both) ~doc name =
-  let setters = Setters.empty in
-  flag_raw ~stage ~setters ~doc ~name
-
-let proxy ~doc ~setters name =
-  flag_raw ~setters ~doc ~stage:`Configure ~name
+let create name arg =
+  let key = Univ.new_key name in
+  let setters = [] in
+  { setters; arg; name; key }
 
 (* {2 Cmdliner interface} *)
 
-let term_key { info; arg; default; _ } =
-  let info = Arg.info_at_configure info in
-  Arg.at_configure ~default ~info arg
+let parse_key { arg; _ } =
+  let default = Arg.default arg in
+  let info = Arg.info_at_configure @@ Arg.get_info arg in
+  Arg.kind_at_configure ~default ~info arg.Arg.kind
 
-let term ?(stage=`Both) l =
+let parse ?(stage=`Both) l =
   let gather (Any k) rest =
-    let f v p = Setters.apply v k.setters (Univ.add k.key v p) in
-    Cmdliner.Term.(term_key k f $ rest)
+    let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
+    Cmdliner.Term.(parse_key k f $ rest)
   in
-  Set.fold gather (filter_stage ~stage l) (Cmdliner.Term.pure Univ.empty)
+  List.fold_right gather (filter_stage stage l) (Cmdliner.Term.pure Univ.empty)
 
-let term_value ?stage { deps; v } = Cmdliner.Term.(pure v $ term ?stage deps)
+let parse_value ?stage { deps; v } =
+  let deps = Set.elements deps in
+  Cmdliner.Term.(pure v $ parse ?stage deps)
 
 (* {2 Code emission} *)
 
 let module_name = "Bootvar_gen"
 
 let emit p fmt (Any k) =
-  Format.fprintf fmt "%a" (Arg.emit @@ arg k) @@ get p k
+  Format.fprintf fmt "%a" (Arg.kind_emit @@ Arg.kind @@ arg k) @@ get p k
 
 let at_runtime fmt (Any { arg; _ }) =
-  Format.fprintf fmt "%s" (Arg.at_runtime arg)
+  Format.fprintf fmt "%s" @@ Arg.kind_at_runtime @@ Arg.kind arg
 
 let ocaml_name k = Name.ocamlify (name k)
 

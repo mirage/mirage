@@ -135,17 +135,18 @@ module Info: sig
   val packages: t -> string list
   (** OPAM packages needed by the project. *)
 
-  val keys: t -> Key.Set.t
+  val keys: t -> Key.t list
   (** Keys declared by the project. *)
 
   val parsed: t -> Key.parsed
   (** [parsed t] is a value representing the command-line argument
       being parsed. *)
 
+  (** FIXME(samoht): not sure why we have both [keys] and [parsed]. *)
   val create:
-    ?keys:Key.Set.t ->
-    ?libraries:string list ->
     ?packages:string list ->
+    ?libraries:string list ->
+    ?keys:Key.t list ->
     parsed:Key.parsed ->
     name:string ->
     root:string -> t

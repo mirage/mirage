@@ -26,6 +26,7 @@ open Graph
 open Functoria_misc
 module Dsl = Functoria_dsl
 module Key = Functoria_key
+module KeySet = Set_Make(Key)
 
 (* {2 Utility} *)
 
@@ -327,11 +328,17 @@ module MergeNode = struct
      graph visualization by humans.
   *)
 
+  let set_equal l1 l2 =
+    let deps l = KeySet.of_list (Key.deps l) in
+    KeySet.equal (deps l1) (deps l2)
+
   let predicate g v = match explode g v with
     | `If (cond, l) ->
-      if List.exists (fun (_,v) -> match G.V.label v with
-          | If cond' -> Key.(Set.equal (deps cond) (deps cond'))
-          | App | Impl _ -> false
+      if List.exists (fun (_,v) ->
+          match G.V.label v with
+          | If cond' -> set_equal cond cond'
+          | App
+          | Impl _   -> false
         ) l
       then Some (v, cond, l)
       else None
@@ -340,7 +347,7 @@ module MergeNode = struct
 
   let apply g (v_if, cond, l) =
     let f (new_cond, new_l) (path, v) = match explode g v with
-      | `If (cond', l') when Key.(Set.equal (deps cond) (deps cond')) ->
+      | `If (cond', l') when set_equal cond cond' ->
         If.reduce cond ~path ~add:cond',
         List.map (fun (p,v) -> If.append path p, v) l' @ new_l
       | _ ->
@@ -359,7 +366,7 @@ module EvalIf = struct
   (* Evaluate the [If] vertices and remove them. *)
 
   let predicate ~partial ~keys _ v = match G.V.label v with
-    | If cond when not partial || Key.is_resolved keys cond -> Some v
+    | If cond when not partial || Key.is_parsed keys cond -> Some v
     | If _ | App | Impl _ -> None
 
   let extract path l =
@@ -376,7 +383,7 @@ module EvalIf = struct
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.is_resolved keys path then g
+    if partial && not @@ Key.is_parsed keys path then g
     else
       let v_new, v_others = extract (Key.eval keys path) l in
       let g = G.remove_vertex g v_if in

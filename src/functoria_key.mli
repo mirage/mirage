@@ -18,23 +18,29 @@
 
 (** Cross-stage command-line arguments. *)
 module Arg: sig
-  (** {1 Cross-stage argument converters}
+  (** Terms for cross-stage arguments.
 
       This module extends
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
       Cmdliner.Arg} to allow MetaOCaml-style typed cross-stage
       persistency of command-line arguments. *)
 
-  type 'a converter
-  (** The type for argument converters. *)
+  (** {1 Argument converters} *)
 
-  val conv:
-    'a Cmdliner.Arg.converter -> (Format.formatter -> 'a -> unit) -> string ->
-    'a converter
-  (** [conv conf emit run] is the argument converter using [conf] to
-      convert argument into OCaml value, [emit] to convert OCaml
-      values into interpretable strings, and the function named [run]
-      to transform these strings into OCaml values again.
+  type 'a emitter = Format.formatter -> 'a -> unit
+  (** The type for OCaml code emmiter. A value of type ['a emitter]
+      generates valid OCaml code with type ['a]. *)
+
+  type 'a code = string
+  (** The type for {i raw} OCaml code. A value of type ['a code] can
+      be interpreted as an OCaml value with type ['a]. *)
+
+  type 'a converter = 'a Cmdliner.Arg.converter * 'a emitter * 'a code
+  (** The type for argument converters. A value of [(conv, emit,
+      code)] of type ['a converter] is the argument converter using
+      [conf] to convert argument into OCaml value, [emit] to convert
+      OCaml values into interpretable strings, and the function named
+      [run] to transform these strings into OCaml values again.
 
       {ul
 
@@ -52,8 +58,6 @@ module Arg: sig
 
   *)
 
-  (** {2 Predefined Converters} *)
-
   val string: string converter
   (** [string] converts strings. *)
 
@@ -69,13 +73,16 @@ module Arg: sig
   val some: 'a converter -> 'a option converter
   (** [some t] converts [t] options. *)
 
-  (** {1 Information} *)
+  (** {1 Arguments and their information} *)
+
+  type 'a t
+  (** The type for arguments holding data of type ['a]. *)
 
   type info
   (** The type for information about cross-stage command-line
       arguments. See
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}
-      Cmdliner.Arg}.*)
+      Cmdliner.Arg#TYPEinfo}. *)
 
   val info:
     ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
@@ -83,6 +90,37 @@ module Arg: sig
   (** Define cross-stage information for an argument. See
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
       Cmdliner.Arg.info}.*)
+
+
+  (** {1 Optional Arguments} *)
+
+  (** The type for specifying at which stage an argument is available.
+
+      {ul
+      {- [`Configure] means that the argument is read on the
+         command-line at configuration-time.}
+      {- [`Run] means that the argument is read on the command-line at
+         runtime.}
+      {- [`Both] means that the argument is read on the command-line
+         both at configuration-time and runt-ime.}
+      } *)
+  type stage = [
+    | `Configure
+    | `Run
+    | `Both
+  ]
+
+  val opt: ?stage:stage -> 'a converter -> 'a -> info -> 'a t
+  (** [opt conv v i] is similar to
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALopt}
+      Cmdliner.Arg.opt} but for cross-stage optional command-line
+      arguments. If not set, [stage] is [`Both]. *)
+
+  val flag: ?stage:stage -> info -> bool t
+  (** [flag i] is similar to
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}
+      Cmdliner.Arg.opt} but for cross-stage command-line flags. If not
+      set, [stage] is [`Both]. *)
 
 end
 
@@ -110,7 +148,7 @@ val if_: bool value -> 'a -> 'a -> 'a value
 val default: 'a value -> 'a
 (** [default v] returns the default value for [v]. *)
 
-(** {1 Keys} *)
+(** {1 Configuration Keys} *)
 
 type 'a key
 (** The type for configuration keys. Keys form a directed and acyclic
@@ -124,46 +162,19 @@ type 'a key
     but also to parametrize the choice of
     {{!Functoria_dsl.if_impl}module implementation}. *)
 
+
+val create: string -> 'a Arg.t -> 'a key
+(** [create n a] is the key named [n] whose contents is determined by
+    parsing the command-line argument [a]. *)
+
 val value: 'a key -> 'a value
 (** [value k] is the value parsed by [k]. *)
 
-type stage = [
-  | `Configure
-  | `Run
-  | `Both
-]
-(** The type for specifying at which stage a key is available.
-
-    {ul
-
-    {- [`Configure] means that the key's value is read on the
-       command-line at configuration-time and is available in the
-       [Bootvar_gen] module at runtime.}
-    {- [`Run] means that the key's value is read on the command-line
-       at runtime.}
-    {- [`Both] means that the key's value is read on the command-line
-       both at configuration-time and runtime. If the keys is present
-       on the command-line at configuration-time it is available in
-       the [Bootvar_gen] module at runtime.}
-    }
-*)
-
-val opt:
-  ?stage:stage -> doc:Arg.info -> default:'a -> string -> 'a Arg.converter ->
-  'a key
-(** [opt ~doc ~stage ~default name conv] creates a new configuration
-    key with docstring [doc], default value [default], name [name] and
-    type descriptor [desc]. Default [stage] is [`Both]. It is an error
-    to use more than one key with the same [name]. *)
-
-val flag: ?stage:stage -> doc:Arg.info -> string -> bool key
-(** [flag ~stage ~doc name] creates a new flag. A flag is a key that doesn't
-    take argument. The boolean value represents if the flag was passed
-    on the command line.
-*)
-
 type t
 (** The type for untyped keys. *)
+
+val compare: t -> t -> int
+(** [compare] compares untyped keys. *)
 
 val v: 'a key -> t
 (** [v key] is [key] by with all type information erased. This allows
@@ -172,13 +183,10 @@ val v: 'a key -> t
 val pp: t Fmt.t
 (** [pp fmt k] prints the name of [k]. *)
 
-module Set: Set.S with type elt = t
-(** Sets of keys. *)
-
-val with_deps: keys:Set.t -> 'a value -> 'a value
+val with_deps: keys:t list -> 'a value -> 'a value
 (** [with_deps deps v] is the value [v] with added dependencies. *)
 
-val deps: 'a value -> Set.t
+val deps: 'a value -> t list
 (** [deps v] is the dependencies of [v]. *)
 
 val pp_deps: 'a value Fmt.t
@@ -192,52 +200,56 @@ val is_runtime: t -> bool
 val is_configure: t -> bool
 (** [is_configure k] is true if [k]'s stage is [`Configure] or [`Both]. *)
 
-val filter_stage: stage:stage -> Set.t -> Set.t
-(** [filter_stage ~stage set] filters [set] with the appropriate keys. *)
+val filter_stage: Arg.stage -> t list -> t list
+(** [filter_stage s ks] is [ks] but with only keys available at stage
+    [s]. *)
 
-(** {1 Proxy} *)
+(** {1 Alias}
 
-(** Setters allow to set other keys. *)
-module Setters: sig
+    Alias allows to define virtual keys in terms of other keys at
+    configuration time only. *)
+module Alias: sig
 
   type 'a t
-  (** The type for key setters. *)
-
-  val empty: 'a t
-  (** [empty] is the empty setter. *)
+  (** The type for key alias. *)
 
   val add: 'b key -> ('a -> 'b option) -> 'a t -> 'a t
-  (** [add k f setters] Add a new setter to [setters]. It will set [k]
-      to the value generated by [f]. If [f] returns [None], no value
-      is set. *)
+  (** [add k f a] set [a] as an alias for the key [k]: setting [a] on
+      the command-line will set [k] to [f] applied to [a]'s value. If
+      [f] returns [None], no value is set. *)
+
+  val flag: Arg.info -> bool t
+  (** [flag] is similar to {!Arg.flag} but defines configure-only
+      command-line flag alias. Set [stage] to [`Configure]. *)
+
+  val opt: 'a Arg.converter -> 'a -> Arg.info -> 'a t
+  (** [opt] is similar to {!Arg.opt} but defines configure-only
+      optional command-line arguments. Set [stage] to [`Configure]. *)
 
 end
 
-val proxy: doc:Arg.info -> setters:bool Setters.t -> string -> bool key
-(** [proxy ~doc ~setters name] creates a new flag that will call [setters]
-    when enabled.
+val alias: string -> 'a Alias.t -> 'a key
+(** Similar to {!create} but for command-line alias. *)
 
-    Proxies are only available during configuration.
-*)
+val aliases: t -> t list
+(** [aliases t] is the list of [t]'s aliases. *)
 
-val setters: t -> Set.t
-(** [setters k] returns the set of keys for which [k] has a setter. *)
-
-(** {1 Parsed Keys} *)
+(** {1 Key Parsing} *)
 
 type parsed
-(** The type for parsed command-line arguments. *)
+(** The type for parsed key graphs. *)
 
-val term: ?stage:stage -> Set.t -> parsed Cmdliner.Term.t
-(** [term l] is a [Cmdliner.Term.t] that, when evaluated, sets the value of the
-    the keys in [l]. *)
+val parse: ?stage:Arg.stage -> t list -> parsed Cmdliner.Term.t
+(** [parse l] is a [Cmdliner.Term.t] that, when evaluated, sets the
+    value of the the keys in [l]. *)
 
-val term_value: ?stage:stage -> 'a value -> 'a Cmdliner.Term.t
-(** [term_value v] is [term @@ deps v] and returns the content of [v]. *)
+val parse_value: ?stage:Arg.stage -> 'a value -> 'a Cmdliner.Term.t
+(** [parse_value v] is [parse @@ deps v] and returns the content of
+    [v]. *)
 
-val is_resolved: parsed -> 'a value -> bool
-(** [is_resolved p v] returns [true] iff all the dependencies of [v]
-    have been resolved. *)
+val is_parsed: parsed -> 'a value -> bool
+(** [is_parsed p v] returns [true] iff all the dependencies of [v]
+    have been parsed. *)
 
 val peek: parsed -> 'a value -> 'a option
 (** [peek p v] returns [Some x] if [v] has been resolved to [x] and
@@ -249,8 +261,9 @@ val eval: parsed -> 'a value -> 'a
 val get: parsed -> 'a key -> 'a
 (** [get p k] resolves [k], using default values if necessary. *)
 
-val pp_parsed: parsed -> Set.t Fmt.t
-(** [pp_parsed map fmt set] prints the keys in [set] with the values in [map]. *)
+val pp_parsed: parsed -> t list Fmt.t
+(** [pp_parsed p fmt set] prints the keys in [set] using the parsed
+    values [p]. *)
 
 (** {1 Code emission} *)
 

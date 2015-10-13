@@ -23,6 +23,7 @@ module Misc = Functoria_misc
 
 open Dsl
 open Misc
+module KeySet = Set_Make(Key)
 
 module Devices = struct
 
@@ -57,11 +58,10 @@ module Devices = struct
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter Key.Set.iter @@ Key.emit @@ Info.parsed i) bootvars;
+      (Fmt.iter List.iter @@ Key.emit @@ Info.parsed i) bootvars;
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
-      (List.map Key.ocaml_name @@
-       Key.Set.elements @@ Key.filter_stage ~stage:`Run bootvars);
+      (List.map Key.ocaml_name @@ Key.filter_stage `Run bootvars);
     Codegen.newline fmt;
     R.ok ()
 
@@ -148,15 +148,16 @@ end
 module Engine = struct
 
   let switching_keys =
-    G.collect (module Key.Set) @@ function
-    | G.If cond -> Key.deps cond
-    | G.App | G.Impl _ -> Key.Set.empty
+    G.collect (module KeySet) @@ function
+    | G.If cond -> KeySet.of_list (Key.deps cond)
+    | G.App
+    | G.Impl _  -> KeySet.empty
 
   let keys =
-    G.collect (module Key.Set) @@ function
-    | G.Impl c -> Key.Set.of_list c#keys
-    | G.If cond -> Key.deps cond
-    | G.App -> Key.Set.empty
+    G.collect (module KeySet) @@ function
+    | G.Impl c  -> KeySet.of_list c#keys
+    | G.If cond -> KeySet.of_list (Key.deps cond)
+    | G.App     -> KeySet.empty
 
   module M = struct
     type t = StringSet.t Key.value
@@ -294,12 +295,12 @@ end
 module Config = struct
 
   type t = {
-    name: string;
-    root: string;
+    name     : string;
+    root     : string;
     libraries: StringSet.t Key.value;
     packages: StringSet.t Key.value;
-    keys: Key.Set.t;
-    jobs: G.t;
+    keys    : KeySet.t;
+    jobs    : G.t;
   }
 
   (* In practice, we get all the switching keys and all the keys that
@@ -308,17 +309,17 @@ module Config = struct
     let all_keys = Engine.keys jobs in
     let skeys = Engine.switching_keys jobs in
     let f k s =
-      if Key.(Set.is_empty @@ Set.inter (setters k) skeys)
+      if KeySet.is_empty @@ KeySet.inter (KeySet.of_list @@ Key.aliases k) skeys
       then s
-      else Key.Set.add k s
+      else KeySet.add k s
     in
-    Key.Set.fold f all_keys skeys
+    KeySet.fold f all_keys skeys
 
   let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) name root main_dev =
     let jobs = G.create main_dev in
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
-    let keys = Key.Set.(union (of_list keys) (get_switching_keys jobs)) in
+    let keys = KeySet.union (KeySet.of_list keys) (get_switching_keys jobs) in
     { libraries; packages; keys; name; root; jobs }
 
   let eval map_switching { name = n; root; packages; libraries; keys; jobs } =
@@ -326,7 +327,7 @@ module Config = struct
     let open Key in
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
-    let keys = Key.Set.union keys @@ Engine.keys e in
+    let keys = KeySet.elements (KeySet.union keys @@ Engine.keys e) in
     let list = StringSet.elements in
     let di =
       pure (fun libraries packages parsed ->
@@ -543,9 +544,10 @@ module Make (P: CUSTOM) = struct
                      messing with functoria's invariants."
 
     let base_keys =
-      let t = Key.term ~stage:`Configure @@ Config.extract_keys (P.create []) in
+      let keys = KeySet.elements @@ Config.extract_keys (P.create []) in
+      let keys = Key.parse ~stage:`Configure keys in
       let f x = base_keymap := Some x; x in
-      Cmdliner.Term.(pure f $ t)
+      Cmdliner.Term.(pure f $ keys)
 
     type t = Config.t
     type evaluated = G.t * Info.t
@@ -560,15 +562,18 @@ module Make (P: CUSTOM) = struct
       set_section (Config.name t);
       Ok t
 
-    let switching_keys t = Key.term ~stage:`Configure @@ Config.keys t
+    let switching_keys t =
+      Key.parse ~stage:`Configure @@ KeySet.elements @@ Config.keys t
+
     let configure (jobs, info) = configure info jobs
     let clean (jobs, info) = clean info jobs
     let build (_jobs, info) = build info
     let describe keys t = describe ~keys t
 
+    (* FIXME: switch_map? *)
     let eval switch_map t =
       let info = Config.eval switch_map t in
-      let keys = Key.term ~stage:`Configure (Key.deps info) in
+      let keys = Key.parse ~stage:`Configure (Key.deps info) in
       let f map =
         show_keys map @@ Key.deps info;
         Key.eval map info @@ map

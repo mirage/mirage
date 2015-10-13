@@ -365,8 +365,8 @@ end
 module EvalIf = struct
   (* Evaluate the [If] vertices and remove them. *)
 
-  let predicate ~partial ~keys _ v = match G.V.label v with
-    | If cond when not partial || Key.is_parsed keys cond -> Some v
+  let predicate ~partial ~context _ v = match G.V.label v with
+    | If cond when not partial || Key.is_parsed context cond -> Some v
     | If _ | App | Impl _ -> None
 
   let extract path l =
@@ -377,15 +377,15 @@ module EvalIf = struct
     in
     aux l
 
-  let apply ~partial ~keys g v_if =
+  let apply ~partial ~context g v_if =
     let path, l =
       match explode g v_if with
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.is_parsed keys path then g
+    if partial && not @@ Key.is_parsed context path then g
     else
-      let v_new, v_others = extract (Key.eval keys path) l in
+      let v_new, v_others = extract (Key.eval context path) l in
       let g = G.remove_vertex g v_if in
       let g = List.fold_left remove_rec_if_orphan g v_others in
       add_pred_with_subst g preds v_new
@@ -396,11 +396,11 @@ let simplify = MergeNode.(transform ~predicate ~apply)
 
 let normalize = RemovePartialApp.(transform ~predicate ~apply)
 
-let eval ?(partial=false) ~keys g =
+let eval ?(partial=false) ~context g =
   normalize @@
   EvalIf.(transform
-            ~predicate:(predicate ~partial ~keys)
-            ~apply:(apply ~partial ~keys)
+            ~predicate:(predicate ~partial ~context)
+            ~apply:(apply ~partial ~context)
             g)
 
 let is_fully_reduced g =

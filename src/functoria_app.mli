@@ -99,16 +99,16 @@ module Make (P: S): sig
   val register:
     ?packages:string list ->
     ?libraries:string list ->
-    ?keys:Key.t list ->
+    ?keys:key list ->
     string -> job impl list -> unit
   (** [register name jobs] registers the application named by [name]
       which will executes the given [jobs]. Same optinal arguments as
       {!Functoria.foreign}.  *)
 
-  val get_base_keys: unit -> Key.parsed
-  (** [get_base_keys ()] returns a subset of the parsed keys which are
-      part of the base configuration of the DSL. This functions should
-      be avoided as it exposes some library internals.
+  val get_base_context: unit -> context
+  (** [get_base_context ()] returns a subset of the parsed keys which
+      are part of the base configuration of the DSL. This functions
+      should be avoided as it exposes the internal parsing context.
 
       @deprecated Use the regular key mechanism.
   *)

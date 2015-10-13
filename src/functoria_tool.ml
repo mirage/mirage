@@ -107,7 +107,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       | _, `Ok config -> config
       | _ -> None
     in
-    let _ = Term.eval_peek_opts Config.base_keys in
+    let _ = Term.eval_peek_opts Config.base_context in
     Config.load c
 
   let config = Lazy.from_fun load_config
@@ -121,9 +121,9 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     let term = match Lazy.force config with
       | Ok t ->
-        let switch_keys = Config.switching_keys t in
-        let term = match Term.eval_peek_opts switch_keys with
-          | Some map_switch, _ -> f switch_keys map_switch t
+        let switch_context = Config.switching_context t in
+        let term = match Term.eval_peek_opts switch_context with
+          | Some context, _ -> f switch_context context t
           | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
         in term
       | Error err -> Term.pure (fun _ -> Error err)
@@ -235,7 +235,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         | `Ok t -> `Help (man_format, Some t) in
     let term =
       Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic
-            $ Config.base_keys)
+            $ Config.base_context)
     in
     Term.ret term, Term.info "help" ~doc ~man
 

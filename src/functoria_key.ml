@@ -225,7 +225,7 @@ let filter_stage stage l = match stage with
 
 (* Key Map *)
 
-type parsed = Univ.t
+type context = Univ.t
 
 let get map { key; arg; _ } = match Univ.find key map with
   | Some x -> x
@@ -235,7 +235,7 @@ let mem map t = Univ.mem t.key map
 
 (* {2 Values} *)
 
-type +'a value = { deps: Set.t; v: parsed -> 'a }
+type +'a value = { deps: Set.t; v: context -> 'a }
 
 let eval p v = v.v p
 let pure x = { deps = Set.empty; v = fun _ -> x }

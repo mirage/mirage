@@ -21,9 +21,9 @@ open Functoria
 type subconf = <
   name       : string;
   module_name: string;
-  keys       : Key.t list;
-  packages   : string list Key.value;
-  libraries  : string list Key.value;
+  keys       : key list;
+  packages   : string list value;
+  libraries  : string list value;
   connect    : Info.t -> string -> string list -> string;
   configure  : Info.t -> (unit, string) Rresult.result;
   clean      : Info.t -> (unit, string) Rresult.result;
@@ -39,7 +39,7 @@ end
 
 (** The description of a vertex *)
 type label =
-  | If of If.path Key.value
+  | If of If.path value
   | Impl of subconf
   | App
 
@@ -54,7 +54,7 @@ val normalize: t -> t
 val simplify: t -> t
 (** [simplify g] simplifies the graph so that it's easier to read for humans. *)
 
-val eval: ?partial:bool -> keys:Key.parsed -> t -> t
+val eval: ?partial:bool -> context:context -> t -> t
 (** [eval ~keys g] will removes all the [If] vertices by resolving the
     keys using [keys]. It will then call {!normalize}
 
@@ -78,7 +78,7 @@ val find_root: t -> vertex
 val explode:
   t -> vertex ->
   [ `App of vertex * vertex list
-  | `If of If.path Key.value * (If.path * vertex) list
+  | `If of If.path value * (If.path * vertex) list
   | `Impl of subconf
              * [> `Args of vertex list ]
              * [> `Deps of vertex list ] ]

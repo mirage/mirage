@@ -18,10 +18,11 @@
 open Rresult
 
 module G = Functoria_graph
-module Misc = Functoria_misc
 
 open Functoria
-open Misc
+open Functoria_misc
+
+module Key = Functoria_key
 module KeySet = Set_Make(Key)
 
 (* Noop, the job that does nothing. *)
@@ -136,7 +137,7 @@ let export_info = impl @@ object
     method !configure i =
       let filename = String.lowercase gen_file_name ^ ".ml" in
       let file = Info.root i / filename in
-      Misc.info "%a %s" blue "Generating: " filename;
+      Functoria_misc.info "%a %s" blue "Generating: " filename;
       let f fmt =
         Fmt.pf fmt "@[<v 2>let info = %a@]" pp_dump_info i
       in
@@ -146,7 +147,7 @@ let export_info = impl @@ object
 
 module Engine = struct
 
-  let switching_keys =
+  let switching_context =
     G.collect (module KeySet) @@ function
     | G.If cond -> KeySet.of_list (Key.deps cond)
     | G.App
@@ -304,9 +305,9 @@ module Config = struct
 
   (* In practice, we get all the switching keys and all the keys that
      have a setter to them. *)
-  let get_switching_keys jobs =
+  let get_switching_context jobs =
     let all_keys = Engine.keys jobs in
-    let skeys = Engine.switching_keys jobs in
+    let skeys = Engine.switching_context jobs in
     let f k s =
       if KeySet.is_empty @@ KeySet.inter (KeySet.of_list @@ Key.aliases k) skeys
       then s
@@ -318,20 +319,23 @@ module Config = struct
     let jobs = G.create main_dev in
     let libraries = Key.pure @@ StringSet.of_list libraries in
     let packages = Key.pure @@ StringSet.of_list packages in
-    let keys = KeySet.union (KeySet.of_list keys) (get_switching_keys jobs) in
+    let keys = KeySet.(union (of_list keys) (get_switching_context jobs)) in
     { libraries; packages; keys; name; root; jobs }
 
-  let eval map_switching { name = n; root; packages; libraries; keys; jobs } =
-    let e = G.eval ~keys:map_switching jobs in
+  (* FIXME(samoht): I don't understand why eval return a function
+     which take a context. Is this supposed to be different from the
+     one passed as argument? *)
+let eval context { name = n; root; packages; libraries; keys; jobs } =
+    let e = G.eval ~context:context jobs in
     let open Key in
     let packages = pure StringSet.union $ packages $ Engine.packages e in
     let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
     let keys = KeySet.elements (KeySet.union keys @@ Engine.keys e) in
     let list = StringSet.elements in
     let di =
-      pure (fun libraries packages parsed ->
+      pure (fun libraries packages context ->
           e, Info.create ~libraries:(list libraries) ~packages:(list packages)
-            ~keys ~parsed ~name:n ~root)
+            ~keys ~context ~name:n ~root)
       $ libraries
       $ packages
     in
@@ -345,8 +349,8 @@ module Config = struct
   let name t = t.name
   let keys t = t.keys
 
-  let gen_pp pp ~partial ~keys fmt jobs =
-    pp fmt @@ G.simplify @@ G.eval ~partial ~keys jobs
+  let gen_pp pp ~partial ~context fmt jobs =
+    pp fmt @@ G.simplify @@ G.eval ~partial ~context jobs
 
   let pp = gen_pp G.pp
   let pp_dot = gen_pp G.pp_dot
@@ -476,9 +480,9 @@ module Make (P: S) = struct
         command "rm -rf log %s/main.native.o %s/main.native %s/*~" root root root
       )
 
-  let describe ~dotcmd ~dot ~eval ~output ~keys { Config.jobs; _ } =
+  let describe ~dotcmd ~dot ~eval ~output ~context { Config.jobs; _ } =
     let f fmt =
-      Config.(if dot then pp_dot else pp) ~partial:(not eval) ~keys fmt jobs
+      Config.(if dot then pp_dot else pp) ~partial:(not eval) ~context fmt jobs
     in
     let with_fmt f = match output with
       | None when dot ->
@@ -536,19 +540,20 @@ module Make (P: S) = struct
   module C = struct
     include P
 
-    (* This is a hack to allow the implementation of [Mirage.get_mode]. Once
-       it is removed, the notion of base keys should be removed as well. *)
-    let base_keymap = ref None
-    let get_base_keys () = match !base_keymap with
+    (* This is a hack to allow the implementation of
+       [Mirage.get_mode]. Once it is removed, the notion of base context
+       should be removed as well. *)
+    let base_context = ref None
+    let get_base_context () = match !base_context with
       | Some x -> x
       | None ->
         invalid_arg "Base key map is not available at this point. Please stop \
                      messing with functoria's invariants."
 
-    let base_keys =
+    let base_context =
       let keys = KeySet.elements @@ Config.extract_keys (P.create []) in
       let keys = Key.parse ~stage:`Configure keys in
-      let f x = base_keymap := Some x; x in
+      let f x = base_context := Some x; x in
       Cmdliner.Term.(pure f $ keys)
 
     type t = Config.t
@@ -564,13 +569,13 @@ module Make (P: S) = struct
       set_section (Config.name t);
       Ok t
 
-    let switching_keys t =
+    let switching_context t =
       Key.parse ~stage:`Configure @@ KeySet.elements @@ Config.keys t
 
     let configure (jobs, info) = configure info jobs
     let clean (jobs, info) = clean info jobs
     let build (_jobs, info) = build info
-    let describe keys t = describe ~keys t
+    let describe context t = describe ~context t
 
     (* FIXME: switch_map? *)
     let eval switch_map t =
@@ -583,7 +588,7 @@ module Make (P: S) = struct
       Cmdliner.Term.(pure f $ keys)
   end
 
-  let get_base_keys = C.get_base_keys
+  let get_base_context = C.get_base_context
   let run () = let module M = Functoria_tool.Make(C) in ()
 
 end

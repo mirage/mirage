@@ -234,47 +234,50 @@ val alias: string -> 'a Alias.t -> 'a key
 val aliases: t -> t list
 (** [aliases t] is the list of [t]'s aliases. *)
 
-(** {1 Key Parsing} *)
+(** {1 Parsing context} *)
 
-type parsed
-(** The type for parsed key graphs. *)
+type context
+(** The type for values holding parsing context. *)
 
-val parse: ?stage:Arg.stage -> t list -> parsed Cmdliner.Term.t
-(** [parse l] is a [Cmdliner.Term.t] that, when evaluated, sets the
-    value of the the keys in [l]. *)
+val parse: ?stage:Arg.stage -> t list -> context Cmdliner.Term.t
+(** [parse ks] is a [Cmdliner]
+    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Term.html#TYPt}
+    term} that evaluates into a parsing context for the keys [ks]. *)
 
 val parse_value: ?stage:Arg.stage -> 'a value -> 'a Cmdliner.Term.t
 (** [parse_value v] is [parse @@ deps v] and returns the content of
     [v]. *)
 
-val is_parsed: parsed -> 'a value -> bool
+val is_parsed: context -> 'a value -> bool
 (** [is_parsed p v] returns [true] iff all the dependencies of [v]
     have been parsed. *)
 
-val peek: parsed -> 'a value -> 'a option
+val peek: context -> 'a value -> 'a option
 (** [peek p v] returns [Some x] if [v] has been resolved to [x] and
     [None] otherwise. *)
 
-val eval: parsed -> 'a value -> 'a
+val eval: context -> 'a value -> 'a
 (** [eval p v] resolves [v], using default values if necessary. *)
 
-val get: parsed -> 'a key -> 'a
+val get: context -> 'a key -> 'a
 (** [get p k] resolves [k], using default values if necessary. *)
 
-val pp_parsed: parsed -> t list Fmt.t
-(** [pp_parsed p fmt set] prints the keys in [set] using the parsed
-    values [p]. *)
+val pp_parsed: context -> t list Fmt.t
+(** [pp_parsed p fmt set] prints the keys in [set] using the context
+    [c]. *)
 
-(** {1 Code emission} *)
+(** {1 Code emitting} *)
 
 val ocaml_name: t -> string
 (** [ocaml_name k] is the ocaml name of [k]. *)
 
 val emit_call: t Fmt.t
-(** [emit_call fmt k] prints the OCaml code needed to get the value of [k]. *)
+(** [emit_call fmt k] prints the OCaml code needed to persist [k]s'
+    value. FIXME(samoht): doc unclear *)
 
-val emit: parsed -> t Fmt.t
-(** [emit p fmt k] prints the OCaml code needed to define [k]. *)
+val emit: context -> t Fmt.t
+(** [emit c fmt k] prints the OCaml code needed to persist
+    [k]. FIXME(samoht): doc unclear *)
 
 (**/**)
 

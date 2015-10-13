@@ -24,7 +24,7 @@ module Info = struct
     name: string;
     root: string;
     keys: KeySet.t;
-    parsed: Key.parsed;
+    context: Key.context;
     libraries: StringSet.t;
     packages: StringSet.t;
   }
@@ -34,13 +34,13 @@ module Info = struct
   let libraries t = StringSet.elements t.libraries
   let packages t = StringSet.elements t.packages
   let keys t = KeySet.elements t.keys
-  let parsed t = t.parsed
+  let parsed t = t.context
 
-  let create ?(packages=[]) ?(libraries=[]) ?(keys=[]) ~parsed ~name ~root =
+  let create ?(packages=[]) ?(libraries=[]) ?(keys=[]) ~context ~name ~root =
     let libraries = StringSet.of_list libraries in
     let packages = StringSet.of_list packages in
     let keys = KeySet.of_list keys in
-    { name; root; keys; libraries; packages; parsed }
+    { name; root; keys; libraries; packages; context }
 
 end
 
@@ -171,3 +171,7 @@ let explode x = match x with
   | Impl c -> `Impl c
   | App { f; x } -> `App (Abstract f, Abstract x)
   | If (cond, x, y) -> `If (cond, x, y)
+
+type key = Functoria_key.t
+type context = Functoria_key.context
+type 'a value = 'a Functoria_key.value

@@ -76,16 +76,21 @@ val abstract: _ impl -> abstract_impl
 
 (** {1:keys Keys} *)
 
-module Key: module type of struct include Functoria_key end
-(** Key creation and manipulation.
+type key = Functoria_key.t
+(** The type for command-line keys. See {!Functoria_key.t}. *)
 
-    FIXME(samoht): do we need all of the [Functoria_key] interface. *)
+type context = Functoria_key.context
+(** The type for keys' parsing context. See {!Functoria_key.context}. *)
 
-val if_impl: bool Key.value -> 'a impl -> 'a impl -> 'a impl
+type 'a value = 'a Functoria_key.value
+(** The type for values parsed from the command-line. See
+    {!Functoria_key.value}. *)
+
+val if_impl: bool value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and
     [impl2] otherwise. *)
 
-val switch: default:'a impl -> ('b * 'a impl) list -> 'b Key.value -> 'a impl
+val switch: default:'a impl -> ('b * 'a impl) list -> 'b value -> 'a impl
 (** [switch ~default cases v] choose the implementation amongst
     [cases] by matching the [v]'s value. [default] is chosen if no
     value match. *)
@@ -95,7 +100,7 @@ val switch: default:'a impl -> ('b * 'a impl) list -> 'b Key.value -> 'a impl
 val foreign:
   ?packages:string list ->
   ?libraries:string list ->
-  ?keys:Key.t list ->
+  ?keys:key list ->
   ?dependencies:abstract_impl list ->
   string -> 'a typ -> 'a impl
 (** [foreign name typ] is the module [name], having with the
@@ -135,10 +140,10 @@ module Info: sig
   val packages: t -> string list
   (** OPAM packages needed by the project. *)
 
-  val keys: t -> Key.t list
+  val keys: t -> key list
   (** Keys declared by the project. *)
 
-  val parsed: t -> Key.parsed
+  val parsed: t -> context
   (** [parsed t] is a value representing the command-line argument
       being parsed. *)
 
@@ -146,8 +151,8 @@ module Info: sig
   val create:
     ?packages:string list ->
     ?libraries:string list ->
-    ?keys:Key.t list ->
-    parsed:Key.parsed ->
+    ?keys:key list ->
+    context:context ->
     name:string ->
     root:string -> t
 
@@ -171,11 +176,11 @@ class type ['ty] configurable = object
   (** [module_name] is the name of the module implementing the
       configurable. *)
 
-  method packages: string list Key.value
+  method packages: string list value
   (** [packages] is the list of OPAM packages which needs to be
       installed before compiling the configurable. *)
 
-  method libraries: string list Key.value
+  method libraries: string list value
   (** [libaries] is the list of OCamlfind libraries to include and
       link with the configurable. *)
 
@@ -194,7 +199,7 @@ class type ['ty] configurable = object
   (** [clean info] is the code to clean-up what have beend generated
       by {!configure}. *)
 
-  method keys: Key.t list
+  method keys: key list
   (** [keys] is the list of command-line keys to set-up the
       configurable. *)
 
@@ -210,7 +215,7 @@ val impl: 'a configurable -> 'a impl
 
 val explode: 'a impl ->
   [ `App of abstract_impl * abstract_impl
-  | `If of bool Key.value * 'a impl * 'a impl
+  | `If of bool value * 'a impl * 'a impl
   | `Impl of 'a configurable ]
 (** [explode i] inspects the contents of [i]. *)
 
@@ -227,9 +232,9 @@ val explode: 'a impl ->
     ]}
 *)
 class base_configurable: object
-  method libraries: string list Key.value
-  method packages: string list Key.value
-  method keys: Key.t list
+  method libraries: string list value
+  method packages: string list value
+  method keys: key list
   method connect: Info.t -> string -> string list -> string
   method configure: Info.t -> (unit, string) Rresult.result
   method clean: Info.t -> (unit, string) Rresult.result

@@ -14,37 +14,66 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Cmdliner
+module Arg = struct
 
-module Conv = struct
-  type 'a t =  Flag: bool t | Opt: 'a Arg.converter -> 'a t
-  let flag = Flag
-  let opt x = Opt x
-  let int = opt Arg.int
-  let string = opt Arg.string
-  let bool = opt Arg.bool
+  type info = {
+    doc  : string option;
+    docs : string;
+    docv : string option;
+    names: string list;
+    env  : string option;
+  }
+
+  let info ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc ?env names =
+    { doc; docs; docv; names; env }
+
+  let cmdliner_of_info { docs; docv; doc; env; names } =
+    let env = match env with
+      | Some s -> Some (Cmdliner.Arg.env_var s)
+      | None   -> None
+    in
+    Cmdliner.Arg.info ~docs ?docv ?doc ?env names
+
+  type 'a kind =
+    | Opt : 'a Cmdliner.Arg.converter -> 'a kind
+    | Flag: bool kind
+
+  type 'a t = {
+    default: 'a;
+    info   : info;
+    kind   : 'a kind;
+  }
+
+  let flag info = { default = false; info; kind = Flag }
+  let opt conv default info = { default; info; kind = Opt conv }
+  let default t = t.default
+  let kind t = t.kind
+  let cmdliner_info t = cmdliner_of_info t.info
+
 end
 
 module Key = struct
 
   type 'a t = {
-    doc: Arg.info;
-    conv: 'a Conv.t;
-    default: 'a;
+    name: string;
+    arg : 'a Arg.t;
     mutable value: 'a option;
   }
 
-  let create ~doc ~default conv = { doc; default; conv; value = None }
+  let create name arg = { name; arg; value = None }
 
-  let get k = match k.value with
-    | None -> k.default
+  let get t = match t.value with
+    | None   -> Arg.default t.arg
     | Some v -> v
 
-  let term (type a) ({ doc; conv; default; _ } as t: a t) =
+  let term (type a) (t: a t) =
     let set w = t.value <- Some w in
-    match conv with
-    | Conv.Flag     -> Term.(pure set $ Arg.(value & flag doc))
-    | Conv.Opt desc -> Term.(pure set $ Arg.(value & opt desc default doc))
+    let default = Arg.default t.arg in
+    let doc = Arg.cmdliner_info t.arg in
+    let term arg = Cmdliner.Term.(pure set $ arg) in
+    match Arg.kind t.arg with
+    | Arg.Flag     -> term @@ Cmdliner.Arg.(value & flag doc)
+    | Arg.Opt desc -> term @@ Cmdliner.Arg.(value & opt desc default doc)
 
 end
 

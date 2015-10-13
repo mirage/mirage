@@ -24,13 +24,13 @@ end
 
 module Arg = struct
 
-  type 'a emitter = Format.formatter -> 'a -> unit
-  type 'a code = string
-  type 'a converter = 'a Cmdliner.Arg.converter * 'a emitter * 'a code
+  type 'a emit = Format.formatter -> 'a -> unit
+  type 'a runtime = string
+  type 'a converter = 'a Cmdliner.Arg.converter * 'a emit * 'a runtime
 
-  let conf (x, _, _) = x
+  let converter (x, _, _) = x
   let emit (_, x, _) = x
-  let run (_, _, x) = x
+  let runtime_converter (_, _, x) = x
 
   let string =
     Cmdliner.Arg.string,
@@ -48,14 +48,14 @@ module Arg = struct
     "Cmdliner.Arg.int"
 
   let list d =
-    Cmdliner.Arg.list (conf d),
+    Cmdliner.Arg.list (converter d),
     Emit.list (emit d),
-    Fmt.strf "(Cmdliner.Arg.list %s)" (run d)
+    Fmt.strf "(Cmdliner.Arg.list %s)" (runtime_converter d)
 
   let some d =
-    Cmdliner.Arg.some (conf d),
+    Cmdliner.Arg.some (converter d),
     Emit.option (emit d),
-    Fmt.strf "(Cmdliner.Arg.some %s)" (run d)
+    Fmt.strf "(Cmdliner.Arg.some %s)" (runtime_converter d)
 
   type info = {
     doc  : string option;
@@ -68,7 +68,7 @@ module Arg = struct
   let info ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc ?env names =
     { doc; docs; docv; names; env }
 
-  let info_at_configure { docs; docv; doc; env; names } =
+  let cmdliner_of_info { docs; docv; doc; env; names } =
     let env = match env with
       | Some s -> Some (Cmdliner.Arg.env_var s)
       | None   -> None
@@ -90,35 +90,17 @@ module Arg = struct
     | Opt : 'a converter -> 'a kind
     | Flag: bool kind
 
-  let pp_kind: type a . a kind -> a Fmt.t = function
-    | Opt c -> snd (conf c)
-    | Flag  -> Fmt.bool
-
-  let kind_at_configure (type a) ~default ~info:i (t: a kind) (f :a -> _) =
-    let f_desc v z = match v with
-      | Some v -> f v z
-      | None -> z
-    in
-    match t with
-    | Flag     -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
-    | Opt desc ->
-      let none = Fmt.strf "%a" (snd (conf desc)) default in
-      Cmdliner.Term.(app @@ pure f_desc)
-        Cmdliner.Arg.(value @@ opt (some ~none (conf desc)) None i)
-
-  let kind_at_runtime: type a . a kind -> _ = function
-    | Flag  -> "Functoria_runtime.Conv.flag"
-    | Opt c -> Fmt.strf "(Functoria_runtime.Conv.opt %s)" (run c)
-
-  let kind_emit: type a . a kind -> a Fmt.t = function
-    | Flag  -> Fmt.fmt "%b"
-    | Opt c -> (emit c)
-
   type stage = [
     | `Configure
     | `Run
     | `Both
   ]
+
+  let pp_conv c = snd (converter c)
+
+  let pp_kind: type a . a kind -> a Fmt.t = function
+    | Opt c -> pp_conv c
+    | Flag  -> Fmt.bool
 
   type 'a t = {
     stage  : stage;
@@ -139,6 +121,29 @@ module Arg = struct
 
   let flag ?(stage=`Both) info =
     { stage; info; default = false; kind = Flag }
+
+  let to_cmdliner (type a) (t: a t) (f: a -> _) =
+    let i = cmdliner_of_info t.info in
+    match t.kind with
+    | Flag     -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
+    | Opt desc ->
+      let f_desc v z = match v with
+        | Some v -> f v z
+        | None -> z
+      in
+      let none = Fmt.strf "%a" (pp_conv desc) t.default in
+      Cmdliner.Term.(app @@ pure f_desc)
+        Cmdliner.Arg.(value @@ opt (some ~none @@ converter desc) None i)
+
+  let runtime_value t = match t.kind with
+    | Flag  -> "Cmdliner.Arg.flag %s"
+    | Opt c ->
+      Fmt.strf "Cmdliner.Arg.opt %s %a %a"
+        (runtime_converter c) (emit c) t.default info_emit t.info
+
+  let emit: type a. a t -> a emit = fun t -> match t.kind with
+    | Flag  -> Fmt.fmt "%b"
+    | Opt c -> emit c
 
 end
 
@@ -299,10 +304,7 @@ let create name arg =
 
 (* {2 Cmdliner interface} *)
 
-let parse_key { arg; _ } =
-  let default = Arg.default arg in
-  let info = Arg.info_at_configure @@ Arg.get_info arg in
-  Arg.kind_at_configure ~default ~info arg.Arg.kind
+let parse_key t = Arg.to_cmdliner t.arg
 
 let parse ?(stage=`Both) l =
   let gather (Any k) rest =
@@ -320,24 +322,25 @@ let parse_value ?stage { deps; v } =
 let module_name = "Bootvar_gen"
 
 let emit p fmt (Any k) =
-  Format.fprintf fmt "%a" (Arg.kind_emit @@ Arg.kind @@ arg k) @@ get p k
+  Format.fprintf fmt "%a" (Arg.emit @@ arg k) @@ get p k
 
-let at_runtime fmt (Any { arg; _ }) =
-  Format.fprintf fmt "%s" @@ Arg.kind_at_runtime @@ Arg.kind arg
+let runtime_converter fmt (Any k) =
+  Format.fprintf fmt "%s" @@ Arg.runtime_converter k.arg
 
 let ocaml_name k = Name.ocamlify (name k)
 
 let emit_call fmt k =
   Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 
+(* FIXME(samoht) *)
 let emit_rw p fmt k =
   Format.fprintf fmt
     "@[<2>let %s =@ Functoria_runtime.Key.create@ ~doc:%a@ ~default:%a %a@]@,\
      @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
      @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
-    (ocaml_name k)  Arg.info_emit (info k) (emit p) k at_runtime k
-    (ocaml_name k)  (ocaml_name k)
-    (ocaml_name k)  (ocaml_name k)
+    (ocaml_name k) Arg.info_emit (info k) (emit p) k at_runtime k
+    (ocaml_name k) (ocaml_name k)
+    (ocaml_name k) (ocaml_name k)
 
 let emit_ro map fmt k =
   Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name k) (emit map) k

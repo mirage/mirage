@@ -27,15 +27,15 @@ module Arg: sig
 
   (** {1 Argument converters} *)
 
-  type 'a emitter = Format.formatter -> 'a -> unit
+  type 'a emit = Format.formatter -> 'a -> unit
   (** The type for OCaml code emmiter. A value of type ['a emitter]
       generates valid OCaml code with type ['a]. *)
 
-  type 'a code = string
+  type 'a runtime = string
   (** The type for {i raw} OCaml code. A value of type ['a code] can
       be interpreted as an OCaml value with type ['a]. *)
 
-  type 'a converter = 'a Cmdliner.Arg.converter * 'a emitter * 'a code
+  type 'a converter = 'a Cmdliner.Arg.converter * 'a emit * 'a runtime
   (** The type for argument converters. A value of [(conv, emit,
       code)] of type ['a converter] is the argument converter using
       [conf] to convert argument into OCaml value, [emit] to convert

@@ -16,44 +16,48 @@
 
 (** Functoria runtime. *)
 
-(** [Converter] defines [Cmdliner]-compatible argument converters. This is the runtime companion of {!Functoria.Dsl.Key.t}*)
-module Conv : sig
+(** [Arg] defines command-line arguments which can be set at runtime.
+    This module is the runtime companion of {!Functoria_key}. It
+    exposes a subset of
+    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
+    Cmdliner.Arg}. *)
+module Arg: sig
 
-  (** {1 Argument Converters} *)
+  (** {1 Runtime command-line arguments} *)
 
   type 'a t
-  (** The type for argument converters. It is a wrapper around
-      {!Cmdliner.Arg.converter}. *)
+  (** The type for runtime command-line arguments. Similar to
+      {!Functoria_key.Arg.t} but only available at runtime. *)
 
-  val flag: bool t
-  (** [flag] is a converter for an optional flag. The argument holds
-      true if the flag is present on the command line and false
-      otherwise. *)
+  type info
+  (** The type for information about runtme command-line
+      arguments. Similar to {!Functoria_key.Arg.info} buf only
+      available at runtime. *)
 
-  val opt: 'a Cmdliner.Arg.converter -> 'a t
-  (** [opt a] wrap a {!Cmdliner.Arg.converter} into a converter for
-      optional arguments. *)
+  (** [info] is the runtime companion of {!Functoria_key.Arg.info}. *)
+  val info:
+    ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
+    string list -> info
 
-  val int: int t
-  (** [int] is an integer converter for optional arguments. *)
+  val opt: 'a Cmdliner.Arg.converter -> 'a -> info -> 'a t
+  (** [opt] is the runtime companion of {!Functoria_key.Arg.opt}. *)
 
-  val bool: bool t
-  (** [bool] is a boolean converter for optional arguments. *)
-
-  val string: string t
-  (** [string] is a string converter for an optional argument. *)
+  val flag: info -> bool t
+  (** [flag] is the runtime companion of {!Functoria_key.Arg.flag}. *)
 
 end
 
-(** [Key] allows keys to be set at runtime. *)
-module Key : sig
+(** [Key] defines values that can be set by runtime command-line
+    arguments. This module is the runtime companion of
+    {!Functoria_key}. *)
+module Key: sig
 
   (** {1 Runtime keys} *)
 
   type 'a t
   (** The type for runtime keys containing a value of type ['a]. *)
 
-  val create: doc:Cmdliner.Arg.info -> default:'a -> 'a Conv.t -> 'a t
+  val create: string -> 'a Arg.t -> 'a t
   (** [create ~doc ~default conv] create a new key. *)
 
   val get: 'a t -> 'a
@@ -61,8 +65,8 @@ module Key : sig
       command-line argument is provided. *)
 
   val term: 'a t -> unit Cmdliner.Term.t
-  (** [term k] is the [Cmdliner] term which, once evaluated, set the
-      value of the runtime key. *)
+  (** [term k] is the [Cmdliner] term whose evaluation sets [k]s'
+      value to the parsed command-line argument. *)
 
 end
 

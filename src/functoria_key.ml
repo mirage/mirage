@@ -272,7 +272,7 @@ let create_raw ~stage ~setters ~doc ~default ~name ~arg =
 let flag_raw ~stage ~setters ~doc ~name =
   create_raw ~stage ~setters ~doc ~default:false ~name ~arg:Arg.Flag
 
-let create ?(stage=`Both) ~doc ~default name arg =
+let opt ?(stage=`Both) ~doc ~default name arg =
   let setters = Setters.empty in
   let arg = Arg.Opt arg in
   create_raw ~stage ~setters ~doc ~default ~name ~arg

@@ -156,14 +156,13 @@ type stage = [
     }
 *)
 
-val create:
+val opt:
   ?stage:stage -> doc:Arg.info -> default:'a -> string -> 'a Arg.converter ->
   'a key
-(** [create ~doc ~stage ~default name conv] creates a new
-    configuration key with docstring [doc], default value [default],
-    name [name] and type descriptor [desc]. Default [stage] is
-    [`Both].  It is an error to use more than one key with the same
-    [name]. *)
+(** [opt ~doc ~stage ~default name conv] creates a new configuration
+    key with docstring [doc], default value [default], name [name] and
+    type descriptor [desc]. Default [stage] is [`Both]. It is an error
+    to use more than one key with the same [name]. *)
 
 val flag: ?stage:stage -> doc:Arg.info -> string -> bool key
 (** [flag ~stage ~doc name] creates a new flag. A flag is a key that doesn't

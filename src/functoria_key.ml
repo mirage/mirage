@@ -29,10 +29,8 @@ module Arg = struct
     emit     : Format.formatter -> 'a -> unit;
     runtime  : string;
   }
+
   let conv configure emit runtime = { configure; emit; runtime }
-  let conv_at_configure t = t.configure
-  let conv_at_runtime t = t.runtime
-  let conv_emit t = t.emit
 
   let string = {
     configure = Cmdliner.Arg.string;

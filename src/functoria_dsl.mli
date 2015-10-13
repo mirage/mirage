@@ -86,9 +86,9 @@ val if_impl: bool Key.value -> 'a impl -> 'a impl -> 'a impl
     [impl2] otherwise. *)
 
 val switch: default:'a impl -> ('b * 'a impl) list -> 'b Key.value -> 'a impl
-(** [switch ~default l v] choose the implementation in [l]
-    corresponding to the value [v]. The [default] implementation is
-    chosen if no value match. *)
+(** [switch ~default cases v] choose the implementation amongst
+    [cases] by matching the [v]'s value. [default] is chosen if no
+    value match. *)
 
 (** {1:app Application Builder} *)
 

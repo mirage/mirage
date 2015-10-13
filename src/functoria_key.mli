@@ -34,9 +34,23 @@ module Arg: sig
   (** [conv conf emit run] is the argument converter using [conf] to
       convert argument into OCaml value, [emit] to convert OCaml
       values into interpretable strings, and the function named [run]
-      to transform these strings into OCaml values again. See
-      {!conv_at_configure}, {!conv_emit} and {!conv_at_runtime} for
-      details.*)
+      to transform these strings into OCaml values again.
+
+      {ul
+
+      {- [conv] is the converter of configuration time's command-line
+         arguments into OCaml values.}
+      {- [emit] allows to persist OCaml values across stages, ie. it
+         takes values (which might be parsed with [conv] at
+         configuration time) and produce a valid string representation
+         which can be used at runtime, once the generated code is
+         compiled.}
+      {- [run] is the name of the function called at runtime to parse
+         the command-line arguments. Usually, it is a [Cmdliner]'s
+         combinator such as {i Cmdliner.Arg.string}.}
+      }
+
+  *)
 
   (** {2 Predefined Converters} *)
 
@@ -55,24 +69,6 @@ module Arg: sig
   val some: 'a converter -> 'a option converter
   (** [some t] converts [t] options. *)
 
-  (** {2 Accessors} *)
-
-  val conv_at_configure: 'a converter -> 'a Cmdliner.Arg.converter
-  (** [conv_at_configure t] is the converter of configuration time's
-      command-line arguments into OCaml values. *)
-
-  val conv_emit: 'a converter -> Format.formatter -> 'a -> unit
-  (** [conv_emit] allows to persist OCaml values across stages, ie. it
-      takes values (which might be parsed with {!conv_at_configure} at
-      configuration time) and produce a valid string representation
-      which can be used at runtime, once the generated code is
-      compiled. *)
-
-  val conv_at_runtime: 'a converter -> string
-  (** [conv_at_runtime] is the name of the function called at runtime
-      to parse the command-line arguments. Usually, it is a
-      [Cmdliner]'s combinator such as {i Cmdliner.Arg.string}. *)
-
   (** {1 Information} *)
 
   type info
@@ -87,15 +83,6 @@ module Arg: sig
   (** Define cross-stage information for an argument. See
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
       Cmdliner.Arg.info}.*)
-
-  val info_at_configure: info -> Cmdliner.Arg.info
-  (** [cmdliner_info i] is the projection of [i] to
-      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
-      Cmdliner.Arg.info}. *)
-
-  val info_emit: Format.formatter -> info -> unit
-  (** [info_emit] allows to persist information about command-line
-      arguments across stages. *)
 
 end
 
@@ -112,21 +99,17 @@ type +'a value
 val pure: 'a -> 'a value
 (** [pure x] is a value without any dependency. *)
 
-val app: ('a -> 'b) value -> 'a value -> 'b value
-(** [app f x] is the value resulting from the application of [f] to [v].
-    Its dependencies are the union of the dependencies. *)
-
 val ($): ('a -> 'b) value -> 'a value -> 'b value
-(** [f $ v] is [app f v]. *)
+(** [f $ v] is is the value resulting from the application of
+    [f]'value to [v]'s value. [$] is the usual {i app} operator for
+    {{:http://dx.doi.org/10.1017/S0956796807006326}applicative
+    functor}. *)
 
 val map: ('a -> 'b) -> 'a value -> 'b value
 (** [map f v] is [pure f $ v]. *)
 
-val pipe: 'a value -> ('a -> 'b) -> 'b value
-(** [pipe v f] is [map f v]. *)
-
 val if_: bool value -> 'a -> 'a -> 'a value
-(** [if_ v x y] is [pipe v @@ fun b -> if b then x else y]. *)
+(** [if_ v x y] is [map (fun b -> if b then x else y) v]. *)
 
 val default: 'a value -> 'a
 (** [default v] returns the default value for [v]. *)

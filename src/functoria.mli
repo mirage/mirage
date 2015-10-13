@@ -95,7 +95,14 @@ val switch: default:'a impl -> ('b * 'a impl) list -> 'b value -> 'a impl
     [cases] by matching the [v]'s value. [default] is chosen if no
     value match. *)
 
-(** {1:app Application Builder} *)
+(** {1:app Application Builder}
+
+    Values of type {!impl} are tied to concrete module imlementation
+    with the {!foreign} construct. Module implementations of type
+    {!job} can then be {{!Functoria_app.Make.register}registered} into
+    an application builder. The builder is in charge if parsing the
+    command-line arguments and of generating code for the final
+    application. See {!Functoria_app} for details. *)
 
 val foreign:
   ?packages:string list ->
@@ -147,7 +154,8 @@ module Info: sig
   (** [parsed t] is a value representing the command-line argument
       being parsed. *)
 
-  (** FIXME(samoht): not sure why we have both [keys] and [parsed]. *)
+  (** [create context n r] contains information about the application
+      being built. *)
   val create:
     ?packages:string list ->
     ?libraries:string list ->

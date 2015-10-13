@@ -14,12 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** {1 Graph engine} *)
+(* {1 Graph engine} *)
 
-(** This module is not optimized for speed, it's optimized for correctness
-    and readability. If you need to make it faster
-    - Good luck.
-    - Please update the invariant section.
+(* This module is not optimized for speed, it's optimized for correctness
+   and readability. If you need to make it faster:
+     - Good luck.
+     - Please update the invariant section.
 *)
 
 open Graph
@@ -27,12 +27,12 @@ open Functoria_misc
 module Dsl = Functoria_dsl
 module Key = Functoria_key
 
-(** {2 Utility} *)
+(* {2 Utility} *)
 
 let fold_lefti f l z =
   fst @@ List.fold_left (fun (s,i) x -> f i x s, i+1) (z,0) l
 
-(** Check if [l] is an increasing sequence from [O] to [len-1]. *)
+(* Check if [l] is an increasing sequence from [O] to [len-1]. *)
 let is_sequence l =
   snd @@
   List.fold_left
@@ -40,34 +40,28 @@ let is_sequence l =
     (0,true)
     l
 
-(** {2 Graph} *)
+(* {2 Graph} *)
 
 type subconf = <
-  name: string ;
-  module_name: string ;
-  keys: Key.t list ;
-  packages: string list Key.value ;
-  libraries: string list Key.value ;
-  connect : Dsl.Info.t -> string -> string list -> string ;
-  configure: Dsl.Info.t -> (unit, string) Rresult.result ;
-  clean: Dsl.Info.t -> (unit, string) Rresult.result ;
+  name: string;
+  module_name: string;
+  keys: Key.t list;
+  packages: string list Key.value;
+  libraries: string list Key.value;
+  connect: Dsl.Info.t -> string -> string list -> string;
+  configure: Dsl.Info.t -> (unit, string) Rresult.result;
+  clean: Dsl.Info.t -> (unit, string) Rresult.result;
 >
 
-(** Helpers for If nodes. *)
+(* Helpers for If nodes. *)
 module If = struct
-
   type dir = Else | Then
   type path = dir list * dir
-
   let append (l,z) (l',z') = (l@z::l', z')
   let singleton z = ([],z)
-
   let dir b = if b then singleton Then else singleton Else
   let fuse path v l = if v = path then append path l else path
-
-  let reduce v ~path ~add:v' : path Key.value =
-    Key.(pure (fuse path) $ v $ v')
-
+  let reduce v ~path ~add:v': path Key.value = Key.(pure (fuse path) $ v $ v')
 end
 
 type label =
@@ -102,20 +96,26 @@ type vertex = G.V.t
 module Dfs = Traverse.Dfs(G)
 module Topo = Topological.Make(G)
 
-(** The invariants of graphs manipulated here are:
+(* The invariants of graphs manipulated here are:
+
     - [If] vertices have exactly [n] [Condition] children.
-    - [Impl] vertices have [n] [Parameter] children and [m] [Dependency] children.
-      [Parameter] (resp. [Dependency]) children are labeled
-      from [0] to [n-1] (resp. [m-1]).
-      They do not have [Condition] nor [Functor] children.
-    - [App] vertices have one [Functor] child and [n] [Parameter] children
-      (with [n >= 1]) following the [Impl] convention.
-      They have neither [Condition] nor [Dependency] children.
+
+    - [Impl] vertices have [n] [Parameter] children and [m]
+      [Dependency] children. [Parameter] (resp. [Dependency]) children
+      are labeled from [0] to [n-1] (resp. [m-1]).  They do not have
+      [Condition] nor [Functor] children.
+
+    - [App] vertices have one [Functor] child and [n] [Parameter]
+      children (with [n >= 1]) following the [Impl] convention. They
+      have neither [Condition] nor [Dependency] children.
+
     - There are no cycles.
+
     - There is only one root (vertex with a degree 1). There are no orphans.
+
 *)
 
-(** {3 Graph utilities} *)
+(* {3 Graph utilities} *)
 
 let hash = G.V.hash
 
@@ -125,7 +125,7 @@ let add_edge e1 label e2 graph =
 let for_all_vertex f g =
   G.fold_vertex (fun v b -> b && f v) g true
 
-(** Remove a vertex and all its orphan successors, recursively. *)
+(* Remove a vertex and all its orphan successors, recursively. *)
 let rec remove_rec g v =
   let children = G.succ g v in
   let g = G.remove_vertex g v in
@@ -139,15 +139,15 @@ and remove_rec_if_orphan g c =
   then remove_rec g c
   else g
 
-(** [add_pred_with_subst g preds v] add the edges [pred] to [g]
-    with the destination replaced by [v]. *)
+(* [add_pred_with_subst g preds v] add the edges [pred] to [g]
+   with the destination replaced by [v]. *)
 let add_pred_with_subst g preds v =
   List.fold_left
     (fun g e -> G.add_edge_e g @@ G.E.(create (src e) (label e) v))
     g
     preds
 
-(** {2 Graph construction} *)
+(* {2 Graph construction} *)
 
 let add_impl graph ~impl ~args ~deps =
   let v = G.V.create (Impl impl) in
@@ -163,7 +163,7 @@ let add_switch graph ~cond l =
 
 let add_if graph ~cond ~else_ ~then_ =
   add_switch graph ~cond:(Key.map If.dir cond)
-    [ If.(singleton Else), else_ ; If.(singleton Then), then_ ]
+    [ If.(singleton Else), else_; If.(singleton Then), then_ ]
 
 let add_app graph ~f ~args =
   let v = G.V.create App in
@@ -198,7 +198,7 @@ let create impl =
             let x, g = aux g x in
             add_app g ~f ~args:[x]
         in
-        H.add tbl (Dsl.hidden impl) v ;
+        H.add tbl (Dsl.hidden impl) v;
         v, g
   in
   snd @@ aux G.empty impl
@@ -207,7 +207,7 @@ let is_impl v = match G.V.label v with
   | Impl _ -> true
   | _ -> false
 
-(** {2 Graph destruction/extraction} *)
+(* {2 Graph destruction/extraction} *)
 
 let collect
   : type ty. (module Monoid with type t = ty) ->
@@ -235,8 +235,8 @@ let get_children g v =
     | [] -> None | [ x ] -> Some x
     | _ -> assert false
   in
-  assert (is_sequence args) ;
-  assert (is_sequence deps) ;
+  assert (is_sequence args);
+  assert (is_sequence deps);
   `Args (List.map snd args), `Deps (List.map snd deps), cond, funct
 
 let explode g v = match G.V.label v, get_children g v with
@@ -247,7 +247,7 @@ let explode g v = match G.V.label v, get_children g v with
 
 let fold f g z =
   if Dfs.has_cycle g then
-    invalid_arg "Functoria_graph.iter: A graph should not have cycles." ;
+    invalid_arg "Functoria_graph.iter: A graph should not have cycles.";
   (* We iter in *reversed* topological order. *)
   let l = Topo.fold (fun x l -> x :: l) g [] in
   List.fold_left (fun z l -> f l z) z l
@@ -264,24 +264,24 @@ let find_root g =
   match l with
   | [ x ] -> x
   | _ -> invalid_arg
-      "Functoria_graph.find_root: A graph should have only one root."
+           "Functoria_graph.find_root: A graph should have only one root."
 
-(** {2 Graph manipulation} *)
+(* {2 Graph manipulation} *)
 
-(** Find a pattern in a graph. *)
+(* Find a pattern in a graph. *)
 exception Found
 let find g predicate =
   let r = ref None in
   try
     G.iter_vertex
       (fun v -> match predicate g v with
-         | Some _ as x -> r := x ; raise Found
+         | Some _ as x -> r := x; raise Found
          | None -> ())
-      g ; None
+      g; None
   with Found -> !r
 
-(** Find a pattern and apply the transformation, repeatedly. *)
-(* This could probably be made more efficient, but it would be complicated. *)
+(* Find a pattern and apply the transformation, repeatedly. This could
+   probably be made more efficient, but it would be complicated. *)
 let rec transform ~predicate ~apply g =
   match find g predicate with
   | Some v_if ->
@@ -289,13 +289,13 @@ let rec transform ~predicate ~apply g =
   | None -> g
 
 module RemovePartialApp = struct
-  (** Remove [App] vertices.
+  (* Remove [App] vertices.
 
-      The goal here is to remove partial application of functor.
-      If we find an [App] vertex with an implementation as first children,
-      We fuse them and create one [Impl] vertex.
+     The goal here is to remove partial application of functor.  If we
+     find an [App] vertex with an implementation as first children, We
+     fuse them and create one [Impl] vertex.
 
-      If we find successive [App] vertices, we merge them.
+     If we find successive [App] vertices, we merge them.
   *)
 
   let predicate g v = match explode g v with
@@ -320,17 +320,17 @@ module RemovePartialApp = struct
 end
 
 module MergeNode = struct
-  (** Merge successive If nodes with the same set of dependencies.
+  (* Merge successive If nodes with the same set of dependencies.
 
-      This is completely useless for evaluation but very helpful for graph
-      visualization by humans.
+     This is completely useless for evaluation but very helpful for
+     graph visualization by humans.
   *)
 
   let predicate g v = match explode g v with
     | `If (cond, l) ->
       if List.exists (fun (_,v) -> match G.V.label v with
-        | If cond' -> Key.(Set.equal (deps cond) (deps cond'))
-        | _ -> false
+          | If cond' -> Key.(Set.equal (deps cond) (deps cond'))
+          | _ -> false
         ) l
       then Some (v, cond, l)
       else None
@@ -355,7 +355,7 @@ module MergeNode = struct
 end
 
 module EvalIf = struct
-  (** Evaluate the [If] vertices and remove them. *)
+  (* Evaluate the [If] vertices and remove them. *)
 
   let predicate ~partial ~map _ v = match G.V.label v with
     | If cond when not partial || Key.is_resolved map cond -> Some v
@@ -391,15 +391,15 @@ let normalize = RemovePartialApp.(transform ~predicate ~apply)
 let eval ?(partial=false) ~map g =
   normalize @@
   EvalIf.(transform
-      ~predicate:(predicate ~partial ~map)
-      ~apply:(apply ~partial ~map)
-      g)
+            ~predicate:(predicate ~partial ~map)
+            ~apply:(apply ~partial ~map)
+            g)
 
 let is_fully_reduced g =
   for_all_vertex (fun v -> is_impl v) g
 
 
-(** {2 Dot output} *)
+(* {2 Dot output} *)
 
 module Dot = Graphviz.Dot(struct
     include G
@@ -413,7 +413,7 @@ module Dot = Graphviz.Dot(struct
     let vertex_name v = string_of_int @@ V.hash v
 
     let vertex_attributes v = match V.label v with
-      | App -> [ `Label "$" ; `Shape `Diamond ]
+      | App -> [ `Label "$"; `Shape `Diamond ]
       | If cond ->
         [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
       | Impl f ->
@@ -424,15 +424,13 @@ module Dot = Graphviz.Dot(struct
             Fmt.(list ~sep:(unit ", ") Key.pp)
             f#keys
         in
-        [ `Label label ;
-          `Shape `Box ;
-        ]
+        [ `Label label; `Shape `Box; ]
 
     let get_subgraph _g = None
 
     let default_edge_attributes _g = []
     let edge_attributes e = match E.label e with
-      | Functor -> [ `Style `Bold ; `Tailport `SW]
+      | Functor -> [ `Style `Bold; `Tailport `SW]
       | Parameter _ -> [ ]
       | Dependency _ -> [ `Style `Dashed ]
 
@@ -441,7 +439,7 @@ module Dot = Graphviz.Dot(struct
           match V.label @@ E.src e with
           | If cond -> cond | _ -> assert false
         in
-        let l = [ `Style `Dotted ; `Headport `N ] in
+        let l = [ `Style `Dotted; `Headport `N ] in
         if Key.default cond = path then `Style `Bold :: l else l
 
   end )

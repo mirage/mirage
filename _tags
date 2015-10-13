@@ -31,6 +31,7 @@ true: annot, bin_annot
 # OASIS_STOP
 
 true: warn(+A-4-6-7-9-40-42-44-48)
+true: warn_error(+1..49)
 true: strict_sequence, safe_string, short_paths
 true: bin_annot
 

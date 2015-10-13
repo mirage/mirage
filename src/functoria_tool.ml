@@ -18,7 +18,7 @@ open Cmdliner
 open Rresult
 open Functoria_misc
 
-module Make (Config : Functoria_sigs.CONFIG) = struct
+module Make (Config: Functoria_sigs.CONFIG) = struct
 
   let cmdname = Config.name
 
@@ -38,7 +38,10 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     Term.info ~sdocs:global_option_section ~doc ~man title
 
   let no_opam =
-    mk_flag ["no-opam"] "Do not manage the OPAM configuration.  This will result in dependent libraries not being automatically installed during the configuration phase."
+    mk_flag ["no-opam"]
+      "Do not manage the OPAM configuration. \
+       This will result in dependent libraries not being automatically \
+       installed during the configuration phase."
 
   let no_opam_version_check =
     mk_flag ["no-opam-version-check"] "Bypass the check of opam's version."
@@ -48,41 +51,56 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
 
   let full_eval =
     mk_flag ["eval"]
-      "Fully evaluate the graph before showing it. By default, only the key \
-       that are given on the command line are evaluated."
+      "Fully evaluate the graph before showing it. \
+       By default, only the key that are given on the command line are \
+       evaluated."
 
   let dot =
     mk_flag ["dot"]
-      "Output a dot description. If no output file is given, \
-       it will show the dot file using command given to $(b,--dot-command)."
+      "Output a dot description. \
+       If no output file is given,  it will show the dot file using command \
+       given to $(b,--dot-command)."
 
   let dotcmd =
-    let doc = Arg.info ~docs:global_option_section ~docv:"COMMAND"
-        ~doc:"Command used to show a dot file. \
-              This command should accept a dot file on its standard input."
-        [ "dot-command" ] in
+    let doc =
+      Arg.info ~docs:global_option_section ~docv:"COMMAND" [ "dot-command" ]
+        ~doc:"Command used to show a dot file. This command should accept a \
+              dot file on its standard input."
+    in
     Arg.(value & opt string "xdot" & doc)
 
   let file =
-    let doc = Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE"
-        ~doc:"Configuration file. If not specified, the current directory will be scanned. \
-              If one file named $(b,config.ml) is found, that file will be used. If no files \
-              or multiple configuration files are found, this will result in an error unless one \
-              is explicitly specified on the command line." ["f"; "file"] in
+    let doc =
+      Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE" ["f"; "file"]
+        ~doc:"Configuration file. If not specified, the current directory will \
+              be scanned. If one file named $(b,config.ml) is found, that file \
+              will be used. If no files or multiple configuration files are \
+              found, this will result in an error unless one is explicitly \
+              specified on the command line."
+    in
     Arg.(value & opt (some file) None & doc)
 
   let output =
-    let doc = Arg.info ~docs:global_option_section ~docv:"FILE"
+    let doc =
+      Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
         ~doc:"File where to output description or dot representation."
-        ["o"; "output"]
     in
     Arg.(value & opt (some string) None & doc)
 
-  let () =
+  let color =
+    let enum = ["auto", None; "always", Some `Ansi_tty; "never", Some `None] in
+    let color = Arg.enum enum in
+    let alts = Arg.doc_alts_enum enum in
+    let doc = Arg.info ["color"] ~docs:global_option_section ~docv:"WHEN"
+        ~doc:(Fmt.strf "Colorize the output. $(docv) must be %s." alts)
+    in
+    Arg.(value & opt color None & doc)
+
+  let init_format color =
     let i = Terminfo.columns () in
-    Format.pp_set_margin Format.std_formatter i ;
-    Format.pp_set_margin Format.err_formatter i ;
-    Fmt_tty.setup_std_outputs ()
+    Format.pp_set_margin Format.std_formatter i;
+    Format.pp_set_margin Format.err_formatter i;
+    Fmt_tty.setup_std_outputs ?style_renderer:color ()
 
   let load_config () =
     let c = match Term.eval_peek_opts file with
@@ -95,7 +113,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
   let config = Lazy.from_fun load_config
 
   let with_config f options =
-    let show_error t = match t with
+    let apply color _file t =
+      init_format color;
+      match t with
       | Ok r -> r
       | Error s -> show_error "%s" s
     in
@@ -108,8 +128,7 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         in term
       | Error err -> Term.pure (fun _ -> Error err)
     in
-    Term.(pure (fun _ -> show_error) $ file $ (term $ options))
-
+    Term.(pure apply $ color $ file $ (term $ options))
 
   (* CONFIGURE *)
   let configure_doc =  "Configure a $(mname) application."
@@ -137,24 +156,24 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       `P "The $(b,describe) command describes the configuration of a \
           $(mname) application.";
       `P "The dot output contains the following elements:";
-      `Noblank ;
+      `Noblank;
       `I ("If vertices",
-        "Represented as circles. Branches are doted, the default branch \
-         is in bold.");
-      `Noblank ;
+          "Represented as circles. Branches are doted, the default branch \
+           is in bold.");
+      `Noblank;
       `I ("Configurables",
-        "Represented as rectangles. The order of the output arrows is \
-         the order of the functor arguments.");
-      `Noblank ;
+          "Represented as rectangles. The order of the output arrows is \
+           the order of the functor arguments.");
+      `Noblank;
       `I ("Data dependencies",
-        "Represented as dashed arrows");
-      `Noblank ;
+          "Represented as dashed arrows");
+      `Noblank;
       `I ("App vertices",
-        "Represented as diamonds. The bold arrow is the functor part.");
+          "Represented as diamonds. The bold arrow is the functor part.");
     ] in
     let options =
       Term.(pure (fun a b c d -> a, b, c, d)
-        $ output $ dotcmd $ dot $ full_eval)
+            $ output $ dotcmd $ dot $ full_eval)
     in
     let f switch_keys map t =
       let describe _ (output, dotcmd, dot, eval) =
@@ -203,7 +222,9 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc )
     in
-    let help man_format cmds topic _keys = match topic with
+    let help color man_format cmds topic _keys =
+      init_format color;
+      match topic with
       | None       -> `Help (`Pager, None)
       | Some topic ->
         let topics = "topics" :: cmds in
@@ -213,7 +234,8 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ Term.man_format $ Term.choice_names $ topic $ Config.base_keys)
+      Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic
+            $ Config.base_keys)
     in
     Term.ret term, Term.info "help" ~doc ~man
 
@@ -221,14 +243,16 @@ module Make (Config : Functoria_sigs.CONFIG) = struct
     let doc = "The $(mname) application builder" in
     let man = [
       `S "DESCRIPTION";
-      `P "The $(mname) application builder. It glues together a set of libraries and configuration (e.g. network and storage) into a standalone unikernel or UNIX binary." ;
+      `P "The $(mname) application builder. It glues together a set of \
+          libraries and configuration (e.g. network and storage) into a \
+          standalone unikernel or UNIX binary.";
       `P "Use either $(b,$(mname) <command> --help) or \
-          $(b,($mname) help <command>) for more information on a specific command."
-      ;
+          $(b,($mname) help <command>) for more information on a specific \
+          command.";
     ] @  help_sections
     in
-    let usage = `Help (`Plain, None) in
-    let term = Term.(ret @@ pure usage) in
+    let usage color = init_format color; `Help (`Plain, None) in
+    let term = Term.(ret (pure usage $ color)) in
     term,
     Term.info cmdname
       ~version:Config.version

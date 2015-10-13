@@ -16,13 +16,13 @@
 
 (** Configuration info *)
 
-module StringSet : Set.S with type elt = string
-module StringMap : Map.S with type key = string
+module StringSet: Set.S with type elt = string
+module StringMap: Map.S with type key = string
 
 type info = {
-  name : string ;
-  libraries : StringSet.t ;
-  packages : string StringMap.t ;
+  name: string;
+  libraries: StringSet.t;
+  packages: string StringMap.t;
 }
 (** Configuration information.
     - [name] is the name of the unikernel.

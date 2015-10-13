@@ -23,10 +23,10 @@ exception Fatal of string
 
 (** {2 Misc} *)
 
-val (@?) : 'a option -> 'a list -> 'a list
+val (@?): 'a option -> 'a list -> 'a list
 (** [x @? l] cons the content of [x] to [l] is it exists. *)
 
-val opt_map : ('a -> 'b) -> 'a option -> 'b option
+val opt_map: ('a -> 'b) -> 'a option -> 'b option
 
 val generated_header: unit -> string
 (** [generated_header ()] is the header string for
@@ -38,26 +38,25 @@ val ocaml_version: unit -> int * int
 val (/): string -> string -> string
 (** Same as [Filename.concat]. *)
 
-val err_cmdliner :
-  ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
+val err_cmdliner: ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
 
 module type Monoid = sig
   type t
-  val empty : t
-  val union : t -> t -> t
+  val empty: t
+  val union: t -> t -> t
 end
 
 (** Compat with OCaml < 4.02 *)
 module type SET = sig
   include Set.S
-  val of_list : elt list -> t
+  val of_list: elt list -> t
 end
 
-module Set_Make (M:Set.OrderedType) : SET with type elt = M.t
+module Set_Make (M:Set.OrderedType): SET with type elt = M.t
 
 (** {2 String utilities} *)
 
-module StringSet : SET with type elt = string
+module StringSet: SET with type elt = string
 
 val strip: string -> string
 (** Remove heading and trailing spaces. *)
@@ -65,13 +64,13 @@ val strip: string -> string
 val cut_at: string -> char -> (string * string) option
 (** Cut at the first occurence of a given character. *)
 
-val split : string -> char -> string list
+val split: string -> char -> string list
 (** Split at each occurence of the given character. *)
 
-val prefix : string -> by:string -> string
+val prefix: string -> by:string -> string
 (** [prefix x ~by:s] will prefix [x] by [s] if [s] is not the empty string. *)
 
-val suffix : string -> by:string -> string
+val suffix: string -> by:string -> string
 (** Similar to {!prefix} but suffix. *)
 
 (** {2 Command-line utilities} *)
@@ -87,11 +86,11 @@ val remove: string -> unit
 
 val realpath: string -> string
 
-val with_channel : out_channel -> (Format.formatter -> 'a) -> 'a
-val with_file : string -> (Format.formatter -> 'a) -> 'a
+val with_channel: out_channel -> (Format.formatter -> 'a) -> 'a
+val with_file: string -> (Format.formatter -> 'a) -> 'a
 
-val with_process_in : string -> (in_channel -> 'a) -> 'a
-val with_process_out : string -> (out_channel -> 'a) -> 'a
+val with_process_in: string -> (in_channel -> 'a) -> 'a
+val with_process_out: string -> (out_channel -> 'a) -> 'a
 
 val opam:
   string -> ?yes:bool -> ?switch:string -> string list -> (unit, string) result
@@ -102,9 +101,11 @@ val uname_s: unit -> string option
 val uname_m: unit -> string option
 val uname_r: unit -> string option
 
-module OCamlfind : sig
-  val query : ?predicates:string list -> ?format:string -> ?recursive:bool -> string list -> (string list, string) result
-  val installed : string -> bool
+module OCamlfind: sig
+  val query:
+    ?predicates:string list -> ?format:string -> ?recursive:bool ->
+    string list -> (string list, string) result
+  val installed: string -> bool
 end
 
 (** {2 Display} *)
@@ -113,7 +114,7 @@ val set_section: string -> unit
 
 val get_section: unit -> string
 
-val error :
+val error:
   ('a, Format.formatter, unit, ('b, string) result) format4 -> 'a
 
 val fail: ('a, Format.formatter, unit, 'b) format4 -> 'a
@@ -122,17 +123,17 @@ val info: ('a, Format.formatter, unit, unit) format4 -> 'a
 val debug: ('a, Format.formatter, unit, unit) format4 -> 'a
 val show_error: ('a, Format.formatter, unit, unit) format4 -> 'a
 
-val blue  : string Fmt.t
+val blue: string Fmt.t
 val yellow: string Fmt.t
-val red   : string Fmt.t
-val green : string Fmt.t
+val red: string Fmt.t
+val green: string Fmt.t
 
 (** Generation of fresh names *)
 module Name: sig
 
   exception Illegal of string
 
-  val ocamlify : string -> string
+  val ocamlify: string -> string
   (** [ocamlify s] returns a valid OCaml identifier from similar to [s].
       Concretely, [ocamlify s] is the string that results from removing all
       characters outside of ['a'-'z''A'-'Z''0''9''_''-'], and replacing '-' with
@@ -147,7 +148,6 @@ module Name: sig
       the key. *)
 
 end
-
 
 module Codegen: sig
 
@@ -166,21 +166,18 @@ module Codegen: sig
 
 end
 
-
 (** TTY feature detection *)
 module Terminfo: sig
-  val columns : unit -> int
+  val columns: unit -> int
 end
 
 (** Universal map *)
-module Univ : sig
-
+module Univ: sig
   type 'a key
-  val new_key : string -> 'a key
+  val new_key: string -> 'a key
   type t
-  val empty : t
-  val add : 'a key -> 'a -> t -> t
-  val mem : 'a key -> t -> bool
-  val find : 'a key -> t -> 'a option
-
+  val empty: t
+  val add: 'a key -> 'a -> t -> t
+  val mem: 'a key -> t -> bool
+  val find: 'a key -> t -> 'a option
 end

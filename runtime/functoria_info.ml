@@ -18,7 +18,7 @@ module StringSet = Set.Make(String)
 module StringMap = Map.Make(String)
 
 type info = {
-  name : string ;
-  libraries : StringSet.t ;
-  packages : string StringMap.t ;
+  name: string;
+  libraries: StringSet.t;
+  packages: string StringMap.t;
 }

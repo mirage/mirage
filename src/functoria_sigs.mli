@@ -17,10 +17,10 @@
 (** A configuration engine. For internal use. *)
 module type CONFIG = sig
 
-  val name : string
+  val name: string
   (** Name of the project. *)
 
-  val version : string
+  val version: string
   (** Version of the project. *)
 
   (** {2 Configuration} *)
@@ -31,30 +31,30 @@ module type CONFIG = sig
   type evaluated
   (** A configuration resolved against the command line. *)
 
-  val base_keys : Functoria_key.map Cmdliner.Term.t
+  val base_keys: Functoria_key.map Cmdliner.Term.t
   (** Base keys provided by the specialized DSL. *)
 
   val load: string option -> (t, string) Rresult.result
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 
-  val switching_keys : t -> Functoria_key.map Cmdliner.Term.t
+  val switching_keys: t -> Functoria_key.map Cmdliner.Term.t
 
-  val configure :
+  val configure:
     evaluated ->
     no_opam:bool ->
     no_depext:bool ->
     no_opam_version:bool ->
     (unit, string) Rresult.result
 
-  val build : evaluated -> (unit, string) Rresult.result
-  val clean : evaluated -> (unit, string) Rresult.result
+  val build: evaluated -> (unit, string) Rresult.result
+  val clean: evaluated -> (unit, string) Rresult.result
 
-  val describe :
+  val describe:
     Functoria_key.map -> t ->
     dotcmd:string -> dot:bool -> eval:bool -> output:string option ->
     (unit, string) Rresult.result
 
-  val eval : Functoria_key.map -> t -> evaluated Cmdliner.Term.t
+  val eval: Functoria_key.map -> t -> evaluated Cmdliner.Term.t
 
 end

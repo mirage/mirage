@@ -713,15 +713,17 @@ module type STACKV4 = sig
 
   val listen_udpv4: t -> port:int -> UDPV4.callback -> unit
   (** [listen_udpv4 t ~port cb] will register the [cb] callback on the
-      UDPv4 [port] and immediately return.  Multiple bindings to the
-      same port will overwrite previous bindings, so callbacks will
-      not chain if ports clash. *)
+      UDPv4 [port] and immediately return.  If [port] is invalid (not
+      between 0 and 65535 inclusive), it raises [Invalid_argument].
+      Multiple bindings to the same port will overwrite previous
+      bindings, so callbacks will not chain if ports clash. *)
 
   val listen_tcpv4: t -> port:int -> TCPV4.callback -> unit
   (** [listen_tcpv4 t ~port cb] will register the [cb] callback on the
-      TCPv4 [port] and immediately return.  Multiple bindings to the
-      same port will overwrite previous bindings, so callbacks will
-      not chain if ports clash. *)
+      TCPv4 [port] and immediatey return.  If [port] is invalid (not
+      between 0 and 65535 inclusive), it raises [Invalid_argument].
+      Multiple bindings to the same port will overwrite previous
+      bindings, so callbacks will not chain if ports clash. *)
 
   val listen: t -> unit io
   (** [listen t] will cause the stack to listen for traffic on the

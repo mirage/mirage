@@ -27,36 +27,25 @@ module Arg: sig
 
   (** {1 Argument converters} *)
 
-  type 'a emit = Format.formatter -> 'a -> unit
-  (** The type for OCaml code emmiter. A value of type ['a emitter]
-      generates valid OCaml code with type ['a]. *)
+  type 'a serialize = Format.formatter -> 'a -> unit
+  (** The type for command-line argument serializers. A value of type
+      ['a serialize] generates a syntactically valid OCaml
+      representation which evaluates to a value of type ['a]. *)
 
-  type 'a runtime = string
-  (** The type for {i raw} OCaml code. A value of type ['a code] can
-      be interpreted as an OCaml value with type ['a]. *)
+  type 'a runtime_conv = string
+  (** The type for commmand-line argument converters used at
+      runtime. A value of type ['a runtime_conv] is a symbol name of
+      type
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEconverter}
+      Cmdliner.Arg.converter}. *)
 
-  type 'a converter = 'a Cmdliner.Arg.converter * 'a emit * 'a runtime
-  (** The type for argument converters. A value of [(conv, emit,
-      code)] of type ['a converter] is the argument converter using
-      [conf] to convert argument into OCaml value, [emit] to convert
-      OCaml values into interpretable strings, and the function named
-      [run] to transform these strings into OCaml values again.
-
-      {ul
-
-      {- [conv] is the converter of configuration time's command-line
-         arguments into OCaml values.}
-      {- [emit] allows to persist OCaml values across stages, ie. it
-         takes values (which might be parsed with [conv] at
-         configuration time) and produce a valid string representation
-         which can be used at runtime, once the generated code is
-         compiled.}
-      {- [run] is the name of the function called at runtime to parse
-         the command-line arguments. Usually, it is a [Cmdliner]'s
-         combinator such as {i Cmdliner.Arg.string}.}
-      }
-
-  *)
+  type 'a converter = 'a Cmdliner.Arg.converter * 'a serialize * 'a runtime_conv
+  (** The type for argument converters. A value of [(c, s, r)] of type
+      ['a converter] is the argument converter using [c] to convert
+      user strings into OCaml value, [s] to convert OCaml values into
+      strings interpretable as OCaml expressions, and the function
+      named [r] to convert user strings into OCaml values at
+      runtime. *)
 
   val string: string converter
   (** [string] converts strings. *)
@@ -266,18 +255,18 @@ val pp_parsed: context -> t list Fmt.t
 (** [pp_parsed p fmt set] prints the keys in [set] using the context
     [c]. *)
 
-(** {1 Code emitting} *)
+(** {1 Code Serialization} *)
 
 val ocaml_name: t -> string
 (** [ocaml_name k] is the ocaml name of [k]. *)
 
-val emit_call: t Fmt.t
-(** [emit_call fmt k] prints the OCaml code needed to persist [k]s'
-    value. FIXME(samoht): doc unclear *)
+val serialize_call: t Fmt.t
+(** [serialize_call fmt k] outputs [Bootvar_gen.n ()] to [fmt], where
+    [n] is [k]'s {{!ocaml_name}OCaml name}. *)
 
-val emit: context -> t Fmt.t
-(** [emit c fmt k] prints the OCaml code needed to persist
-    [k]. FIXME(samoht): doc unclear *)
+val serialize: context -> t Fmt.t
+(** [serialize ctx ppf k] outputs the [Cmdliner] runes to parse
+    command-line arguments represented by [k] at runtime. *)
 
 (**/**)
 

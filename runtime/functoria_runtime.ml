@@ -16,31 +16,13 @@
 
 module Arg = struct
 
-  type info = {
-    doc  : string option;
-    docs : string;
-    docv : string option;
-    names: string list;
-    env  : string option;
-  }
-
-  let info ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc ?env names =
-    { doc; docs; docv; names; env }
-
-  let cmdliner_of_info { docs; docv; doc; env; names } =
-    let env = match env with
-      | Some s -> Some (Cmdliner.Arg.env_var s)
-      | None   -> None
-    in
-    Cmdliner.Arg.info ~docs ?docv ?doc ?env names
-
   type 'a kind =
     | Opt : 'a Cmdliner.Arg.converter -> 'a kind
     | Flag: bool kind
 
   type 'a t = {
     default: 'a;
-    info   : info;
+    info   : Cmdliner.Arg.info;
     kind   : 'a kind;
   }
 
@@ -48,7 +30,7 @@ module Arg = struct
   let opt conv default info = { default; info; kind = Opt conv }
   let default t = t.default
   let kind t = t.kind
-  let cmdliner_info t = cmdliner_of_info t.info
+  let info t = t.info
 
 end
 
@@ -69,7 +51,7 @@ module Key = struct
   let term (type a) (t: a t) =
     let set w = t.value <- Some w in
     let default = Arg.default t.arg in
-    let doc = Arg.cmdliner_info t.arg in
+    let doc = Arg.info t.arg in
     let term arg = Cmdliner.Term.(pure set $ arg) in
     match Arg.kind t.arg with
     | Arg.Flag     -> term @@ Cmdliner.Arg.(value & flag doc)

@@ -29,20 +29,10 @@ module Arg: sig
   (** The type for runtime command-line arguments. Similar to
       {!Functoria_key.Arg.t} but only available at runtime. *)
 
-  type info
-  (** The type for information about runtme command-line
-      arguments. Similar to {!Functoria_key.Arg.info} buf only
-      available at runtime. *)
-
-  (** [info] is the runtime companion of {!Functoria_key.Arg.info}. *)
-  val info:
-    ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
-    string list -> info
-
-  val opt: 'a Cmdliner.Arg.converter -> 'a -> info -> 'a t
+  val opt: 'a Cmdliner.Arg.converter -> 'a -> Cmdliner.Arg.info -> 'a t
   (** [opt] is the runtime companion of {!Functoria_key.Arg.opt}. *)
 
-  val flag: info -> bool t
+  val flag: Cmdliner.Arg.info -> bool t
   (** [flag] is the runtime companion of {!Functoria_key.Arg.flag}. *)
 
 end

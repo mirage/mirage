@@ -16,7 +16,7 @@
 
 open Functoria_misc
 
-module Emit = struct
+module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s
   let option x = Fmt.(parens @@ Dump.option x)
   let list x = Fmt.Dump.list x
@@ -24,13 +24,13 @@ end
 
 module Arg = struct
 
-  type 'a emit = Format.formatter -> 'a -> unit
-  type 'a runtime = string
-  type 'a converter = 'a Cmdliner.Arg.converter * 'a emit * 'a runtime
+  type 'a serialize = Format.formatter -> 'a -> unit
+  type 'a runtime_conv = string
+  type 'a converter = 'a Cmdliner.Arg.converter * 'a serialize * 'a runtime_conv
 
   let converter (x, _, _) = x
-  let emit (_, x, _) = x
-  let runtime_converter (_, _, x) = x
+  let serialize (_, x, _) = x
+  let runtime_conv (_, _, x) = x
 
   let string =
     Cmdliner.Arg.string,
@@ -49,13 +49,13 @@ module Arg = struct
 
   let list d =
     Cmdliner.Arg.list (converter d),
-    Emit.list (emit d),
-    Fmt.strf "(Cmdliner.Arg.list %s)" (runtime_converter d)
+    Serialize.list (serialize d),
+    Fmt.strf "(Cmdliner.Arg.list %s)" (runtime_conv d)
 
   let some d =
     Cmdliner.Arg.some (converter d),
-    Emit.option (emit d),
-    Fmt.strf "(Cmdliner.Arg.some %s)" (runtime_converter d)
+    Serialize.option (serialize d),
+    Fmt.strf "(Cmdliner.Arg.some %s)" (runtime_conv d)
 
   type info = {
     doc  : string option;
@@ -75,16 +75,17 @@ module Arg = struct
     in
     Cmdliner.Arg.info ~docs ?docv ?doc ?env names
 
-  let emit_env fmt = Fmt.pf fmt "(Cmdliner.Arg.env_var %a)" Emit.string
+  let serialize_env fmt =
+    Fmt.pf fmt "(Cmdliner.Arg.env_var %a)" Serialize.string
 
-  let info_emit fmt { docs; docv; doc; env; names } =
+  let serialize_info fmt { docs; docv; doc; env; names } =
     Format.fprintf fmt
       "(Cmdliner.Arg.info@ ~docs:%a@ ?docv:%a@ ?doc:%a@ ?env:%a@ %a)"
-      Emit.string docs
-      Emit.(option string) docv
-      Emit.(option string) doc
-      Emit.(option emit_env) env
-      Emit.(list string) names
+      Serialize.string docs
+      Serialize.(option string) docv
+      Serialize.(option string) doc
+      Serialize.(option serialize_env) env
+      Serialize.(list string) names
 
   type 'a kind =
     | Opt : 'a converter -> 'a kind
@@ -110,10 +111,7 @@ module Arg = struct
   }
 
   let pp t = pp_kind t.kind
-
   let stage t = t.stage
-  let get_info t = t.info
-  let kind t = t.kind
   let default t = t.default
 
   let opt ?(stage=`Both) conv default info =
@@ -135,15 +133,24 @@ module Arg = struct
       Cmdliner.Term.(app @@ pure f_desc)
         Cmdliner.Arg.(value @@ opt (some ~none @@ converter desc) None i)
 
-  let runtime_value t = match t.kind with
-    | Flag  -> "Cmdliner.Arg.flag %s"
-    | Opt c ->
-      Fmt.strf "Cmdliner.Arg.opt %s %a %a"
-        (runtime_converter c) (emit c) t.default info_emit t.info
+  let serialize_default (type a) ?default ppf (t: a t) =
+    let default = match default with
+      | None   -> t.default
+      | Some d -> d
+    in
+    match t.kind with
+    | Flag  -> (serialize bool) ppf default
+    | Opt c -> (serialize c) ppf default
 
-  let emit: type a. a t -> a emit = fun t -> match t.kind with
-    | Flag  -> Fmt.fmt "%b"
-    | Opt c -> emit c
+  let serialize (type a): ?default:a -> a t serialize = fun ?default ppf t ->
+    let default = match default with
+      | None   -> t.default
+      | Some d -> d
+    in
+    match t.kind with (* FIXME: passing a default to flag does not make sense *)
+    | Flag  -> Fmt.pf ppf "Functoria_runtime.Arg.flag %a" serialize_info t.info
+    | Opt c -> Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a"
+                 (runtime_conv c) (serialize c) default serialize_info t.info
 
 end
 
@@ -212,7 +219,6 @@ let arg k = k.arg
 let aliases (Any k) = Set.elements @@ Alias.keys k.setters
 let name (Any k) = k.name
 let stage (Any k) = Arg.stage k.arg
-let info (Any k) = Arg.get_info k.arg
 
 let is_runtime k = match stage k with
   | `Run | `Both -> true
@@ -232,11 +238,11 @@ let filter_stage stage l = match stage with
 
 type context = Univ.t
 
-let get map { key; arg; _ } = match Univ.find key map with
+let get ctx t = match Univ.find t.key ctx with
   | Some x -> x
-  | None   -> Arg.default arg
+  | None   -> Arg.default t.arg
 
-let mem map t = Univ.mem t.key map
+let mem ctx t = Univ.mem t.key ctx
 
 (* {2 Values} *)
 
@@ -320,32 +326,26 @@ let parse_value ?stage { deps; v } =
 (* {2 Code emission} *)
 
 let module_name = "Bootvar_gen"
-
-let emit p fmt (Any k) =
-  Format.fprintf fmt "%a" (Arg.emit @@ arg k) @@ get p k
-
-let runtime_converter fmt (Any k) =
-  Format.fprintf fmt "%s" @@ Arg.runtime_converter k.arg
-
 let ocaml_name k = Name.ocamlify (name k)
+let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
+let serialize ctx ppf (Any k) = Arg.serialize ppf ~default:(get ctx k) (arg k)
+let name (Any k) = k.name
 
-let emit_call fmt k =
-  Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
-
-(* FIXME(samoht) *)
-let emit_rw p fmt k =
+let serialize_rw ctx fmt t =
   Format.fprintf fmt
-    "@[<2>let %s =@ Functoria_runtime.Key.create@ ~doc:%a@ ~default:%a %a@]@,\
+    "@[<2>let %s =@ Functoria_runtime.Key.create@ %a %s@]@,\
      @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
      @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
-    (ocaml_name k) Arg.info_emit (info k) (emit p) k at_runtime k
-    (ocaml_name k) (ocaml_name k)
-    (ocaml_name k) (ocaml_name k)
+    (ocaml_name t) (serialize ctx) t (name t)
+    (ocaml_name t) (ocaml_name t)
+    (ocaml_name t) (ocaml_name t)
 
-let emit_ro map fmt k =
-  Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name k) (emit map) k
+let serialize_ro ctx fmt t =
+  let Any k = t in
+  Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name t)
+    (Arg.serialize_default ~default:(get ctx k)) (arg k)
 
-let emit map fmt k =
+let serialize ctx fmt k =
   if is_runtime k
-  then emit_rw map fmt k
-  else emit_ro map fmt k
+  then serialize_rw ctx fmt k
+  else serialize_ro ctx fmt k

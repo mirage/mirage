@@ -58,7 +58,7 @@ module Keys = struct
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter List.iter @@ Key.emit @@ Info.parsed i) bootvars;
+      (Fmt.iter List.iter @@ Key.serialize @@ Info.parsed i) bootvars;
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@ Key.filter_stage `Run bootvars);

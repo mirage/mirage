@@ -17,13 +17,14 @@
 
 open Rresult
 
-module G = Functoria_graph
-
 open Functoria
-open Functoria_misc
+include Functoria_misc
 
+module Graph = Functoria_graph
 module Key = Functoria_key
-module KeySet = Set_Make(Key)
+module KeySet = Set.Make(Key)
+
+let (/) = Filename.concat
 
 (* Noop, the job that does nothing. *)
 let noop = impl @@ object
@@ -52,13 +53,13 @@ module Keys = struct
 
   let configure i =
     let file = String.lowercase Key.module_name ^ ".ml" in
-    info "%a %s" blue "Generating:"  file;
-    with_file (Info.root i / file) @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (generated_header ());
+    Log.info "%a %s" Log.blue "Generating:"  file;
+    Cmd.with_file (Info.root i / file) @@ fun fmt ->
+    Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
     Codegen.newline fmt;
     let bootvars = Info.keys i in
     Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter List.iter @@ Key.serialize @@ Info.parsed i) bootvars;
+      (Fmt.iter List.iter @@ Key.serialize @@ Info.context i) bootvars;
     Codegen.append fmt "let runtime_keys = %a"
       Fmt.(Dump.list (fmt "%s_t"))
       (List.map Key.ocaml_name @@ Key.filter_stage `Run bootvars);
@@ -67,7 +68,7 @@ module Keys = struct
 
   let clean i =
     let file = String.lowercase Key.module_name ^ ".ml" in
-    R.ok @@ remove (Info.root i / file)
+    R.ok @@ Cmd.remove (Info.root i / file)
 
   let name = "bootvar"
 
@@ -98,18 +99,18 @@ let info = Type Info
 
 let pp_libraries fmt l =
   Fmt.pf fmt "StringSet.of_list [@ %a]"
-    Fmt.(iter ~sep:(unit ";@ ") StringSet.iter @@ fmt "%S") l
+    Fmt.(iter ~sep:(unit ";@ ") String.Set.iter @@ fmt "%S") l
 
 let pp_packages fmt l =
   Fmt.pf fmt
     "@ List.fold_left (fun set (k,v) -> StringMap.add k v set) StringMap.empty \
      [@ %a]"
-    Fmt.(iter ~sep:(unit ";@ ") StringSet.iter @@
+    Fmt.(iter ~sep:(unit ";@ ") String.Set.iter @@
          (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x))
     l
 
 let pp_dump_info fmt i =
-  let set = StringSet.of_list in
+  let set = String.Set.of_list in
   Fmt.pf fmt
     "Functoria_info.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
@@ -130,63 +131,66 @@ let export_info = impl @@ object
 
     method !clean i =
       let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in
-      remove file;
-      remove (file ^".in");
+      Cmd.remove file;
+      Cmd.remove (file ^".in");
       R.ok ()
 
     method !configure i =
       let filename = String.lowercase gen_file_name ^ ".ml" in
       let file = Info.root i / filename in
-      Functoria_misc.info "%a %s" blue "Generating: " filename;
+      Log.info "%a %s" Log.blue "Generating: " filename;
       let f fmt =
         Fmt.pf fmt "@[<v 2>let info = %a@]" pp_dump_info i
       in
-      with_file (file^".in") f;
-      command ~redirect:false "opam config subst %s" filename
+      Cmd.with_file (file^".in") f;
+      Cmd.run ~redirect:false "opam config subst %s" filename
   end
 
 module Engine = struct
 
   let switching_context =
-    G.collect (module KeySet) @@ function
-    | G.If cond -> KeySet.of_list (Key.deps cond)
-    | G.App
-    | G.Impl _  -> KeySet.empty
+    let open Graph in
+    Graph.collect (module KeySet) @@ function
+    | If cond      -> KeySet.of_list (Key.deps cond)
+    | App | Impl _ -> KeySet.empty
 
   let keys =
-    G.collect (module KeySet) @@ function
-    | G.Impl c  -> KeySet.of_list c#keys
-    | G.If cond -> KeySet.of_list (Key.deps cond)
-    | G.App     -> KeySet.empty
+    let open Graph in
+    Graph.collect (module KeySet) @@ function
+    | Impl c  -> KeySet.of_list c#keys
+    | If cond -> KeySet.of_list (Key.deps cond)
+    | App     -> KeySet.empty
 
   module M = struct
-    type t = StringSet.t Key.value
-    let union x y = Key.(pure StringSet.union $ x $ y)
-    let empty = Key.pure StringSet.empty
+    type t = String.Set.t Key.value
+    let union x y = Key.(pure String.Set.union $ x $ y)
+    let empty = Key.pure String.Set.empty
   end
 
   let packages =
-    G.collect (module M) @@ function
-    | G.Impl c -> Key.map StringSet.of_list c#packages
-    | G.If _ | G.App -> M.empty
+    let open Graph in
+    Graph.collect (module M) @@ function
+    | Impl c     -> Key.map String.Set.of_list c#packages
+    | If _ | App -> M.empty
 
   let libraries =
-    G.collect (module M) @@ function
-    | G.Impl c -> Key.map StringSet.of_list c#libraries
-    | G.If _ | G.App  -> M.empty
+    let open Graph in
+    Graph.collect (module M) @@ function
+    | Impl c     -> Key.map String.Set.of_list c#libraries
+    | If _ | App -> M.empty
 
   (* Return a unique variable name holding the state of the given
      module construction. *)
   let name c id =
-    let base = Name.ocamlify c#name in
-    Name.of_key (Fmt.strf "%s%i" base id) ~base
+    let prefix = Name.ocamlify c#name in
+    Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
   (* [module_expresion tbl c args] returns the module expression of
      the functor [c] applies to [args]. *)
   let module_expression tbl fmt (c, args) =
     Fmt.pf fmt "%s%a"
       c#module_name
-      Fmt.(list (parens @@ of_to_string @@ G.Tbl.find tbl))
+      Fmt.(list (parens @@ of_to_string @@ Graph.Tbl.find tbl))
       args
 
   (* [module_name tbl c args] return the module name of the result of
@@ -196,27 +200,28 @@ module Engine = struct
     let base = c#module_name in
     if args = [] then base
     else
-      let base = try String.(sub base 0 @@ index base '.') with _ -> base in
-      let base = Name.ocamlify base in
-      Name.of_key (Fmt.strf "%s%i" base id) ~base
+      let prefix = try String.(sub base 0 @@ index base '.') with _ -> base in
+      let prefix = Name.ocamlify prefix in
+      Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
   let find_bootvar g =
+    let open Graph in
     let p = function
-      | G.Impl c -> c#name = Keys.name
-      | G.App | G.If _ -> false
+      | Impl c     -> c#name = Keys.name
+      | App | If _ -> false
     in
-    match G.find_all g p with
+    match Graph.find_all g p with
     | [ x ] -> x
     | _ -> invalid_arg
              "Functoria.find_bootvar: There should be only one bootvar device."
 
   let configure info g =
-    let tbl = G.Tbl.create 17 in
-    let f v = match G.explode g v with
+    let tbl = Graph.Tbl.create 17 in
+    let f v = match Graph.explode g v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps _) ->
-        let modname = module_name c (G.hash v) args in
-        G.Tbl.add tbl v modname;
+        let modname = module_name c (Graph.hash v) args in
+        Graph.Tbl.add tbl v modname;
         c#configure info >>| fun () ->
         if args = [] then ()
         else begin
@@ -228,7 +233,7 @@ module Engine = struct
         end
     in
     let f v res = res >>= fun () -> f v in
-    G.fold f g @@ R.ok () >>| fun () ->
+    Graph.fold f g @@ R.ok () >>| fun () ->
     tbl
 
   let meta_init fmt (connect_name, result_name) =
@@ -258,21 +263,21 @@ module Engine = struct
       (connect_string @@ List.map snd names)
 
   let connect modtbl info error g =
-    let tbl = G.Tbl.create 17 in
+    let tbl = Graph.Tbl.create 17 in
     let f v =
-      match G.explode g v with
+      match Graph.explode g v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps deps) ->
-        let ident = name c (G.hash v) in
-        let modname = G.Tbl.find modtbl v in
-        G.Tbl.add tbl v ident;
-        let names = List.map (G.Tbl.find tbl) (args @ deps) in
+        let ident = name c (Graph.hash v) in
+        let modname = Graph.Tbl.find modtbl v in
+        Graph.Tbl.add tbl v ident;
+        let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
         Codegen.append_main "%a"
           emit_connect (error, ident, names, c#connect info modname)
     in
-    G.fold (fun v () -> f v) g ();
-    let main_name = G.Tbl.find tbl @@ G.find_root g in
-    let bootvar_name = G.Tbl.find tbl @@ find_bootvar g in
+    Graph.fold (fun v () -> f v) g ();
+    let main_name = Graph.Tbl.find tbl @@ Graph.find_root g in
+    let bootvar_name = Graph.Tbl.find tbl @@ find_bootvar g in
     Codegen.append_main
       "let () = run (%s () >>= fun _ -> %s ())"
       bootvar_name main_name;
@@ -283,12 +288,12 @@ module Engine = struct
     connect modtbl info error g
 
   let clean i g =
-    let f v = match G.explode g v with
+    let f v = match Graph.explode g v with
       | `Impl (c,_,_) -> c#clean i
       | _ -> R.ok ()
     in
     let f v res = res >>= fun () -> f v in
-    G.fold f g @@ R.ok ()
+    Graph.fold f g @@ R.ok ()
 
 end
 
@@ -297,10 +302,10 @@ module Config = struct
   type t = {
     name     : string;
     root     : string;
-    libraries: StringSet.t Key.value;
-    packages: StringSet.t Key.value;
+    libraries: String.Set.t Key.value;
+    packages: String.Set.t Key.value;
     keys    : KeySet.t;
-    jobs    : G.t;
+    jobs    : Graph.t;
   }
 
   (* In practice, we get all the switching keys and all the keys that
@@ -316,22 +321,22 @@ module Config = struct
     KeySet.fold f all_keys skeys
 
   let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) name root main_dev =
-    let jobs = G.create main_dev in
-    let libraries = Key.pure @@ StringSet.of_list libraries in
-    let packages = Key.pure @@ StringSet.of_list packages in
+    let jobs = Graph.create main_dev in
+    let libraries = Key.pure @@ String.Set.of_list libraries in
+    let packages = Key.pure @@ String.Set.of_list packages in
     let keys = KeySet.(union (of_list keys) (get_switching_context jobs)) in
     { libraries; packages; keys; name; root; jobs }
 
   (* FIXME(samoht): I don't understand why eval return a function
      which take a context. Is this supposed to be different from the
      one passed as argument? *)
-let eval context { name = n; root; packages; libraries; keys; jobs } =
-    let e = G.eval ~context:context jobs in
+  let eval context { name = n; root; packages; libraries; keys; jobs } =
+    let e = Graph.eval ~context:context jobs in
     let open Key in
-    let packages = pure StringSet.union $ packages $ Engine.packages e in
-    let libraries = pure StringSet.union $ libraries $ Engine.libraries e in
+    let packages = pure String.Set.union $ packages $ Engine.packages e in
+    let libraries = pure String.Set.union $ libraries $ Engine.libraries e in
     let keys = KeySet.elements (KeySet.union keys @@ Engine.keys e) in
-    let list = StringSet.elements in
+    let list = String.Set.elements in
     let di =
       pure (fun libraries packages context ->
           e, Info.create ~libraries:(list libraries) ~packages:(list packages)
@@ -344,16 +349,16 @@ let eval context { name = n; root; packages; libraries; keys; jobs } =
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)
   let extract_keys impl =
-    Engine.keys @@ G.create impl
+    Engine.keys @@ Graph.create impl
 
   let name t = t.name
   let keys t = t.keys
 
   let gen_pp pp ~partial ~context fmt jobs =
-    pp fmt @@ G.simplify @@ G.eval ~partial ~context jobs
+    pp fmt @@ Graph.simplify @@ Graph.eval ~partial ~context jobs
 
-  let pp = gen_pp G.pp
-  let pp_dot = gen_pp G.pp_dot
+  let pp = gen_pp Graph.pp
+  let pp_dot = gen_pp Graph.pp_dot
 
 end
 
@@ -368,7 +373,7 @@ end
 
 module Make (P: S) = struct
 
-  let () = set_section P.name
+  let () = Log.set_section P.name
 
   let configuration = ref None
   let config_file = ref None
@@ -392,29 +397,28 @@ module Make (P: S) = struct
 
   let registered () =
     match !configuration with
-    | None   -> error "No configuration was registered."
+    | None   -> Log.error "No configuration was registered."
     | Some t -> Ok t
 
   (* {2 Opam Management} *)
 
-  let info = Functoria_misc.info
-
   let configure_opam ~no_opam_version ~no_depext t =
-    info "Installing OPAM packages.";
+    Log.info "Installing OPAM packages.";
     let ps = Info.packages t in
     if ps = [] then Ok ()
-    else if command_exists "opam" then
+    else if Cmd.exists "opam" then
       if no_opam_version then Ok ()
       else (
-        read_command "opam --version" >>= fun opam_version ->
+        Cmd.read "opam --version" >>= fun opam_version ->
         let version_error () =
-          error "Your version of OPAM (%s) is not recent enough. \
-                 Please update to (at least) 1.2: \
-                 https://opam.ocaml.org/doc/Install.html \
-                 You can pass the `--no-opam-version-check` flag to force its \
-                 use." opam_version
+          Log.error
+            "Your version of OPAM (%s) is not recent enough. \
+             Please update to (at least) 1.2: \
+             https://opam.ocaml.org/doc/Install.html \
+             You can pass the `--no-opam-version-check` flag to force its \
+             use." opam_version
         in
-        match split opam_version '.' with
+        match String.split opam_version '.' with
         | major::minor::_ ->
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
@@ -422,21 +426,21 @@ module Make (P: S) = struct
             begin
               if no_depext then Ok ()
               else begin
-                if command_exists "opam-depext"
-                then Ok (info "opam depext is installed.")
-                else opam "install" ["depext"]
-              end >>= fun () -> opam ~yes:false "depext" ps
+                if Cmd.exists "opam-depext"
+                then Ok (Log.info "opam depext is installed.")
+                else Cmd.opam "install" ["depext"]
+              end >>= fun () -> Cmd.opam ~yes:false "depext" ps
             end >>= fun () ->
-            opam "install" ps
+            Cmd.opam "install" ps
           ) else version_error ()
         | _ -> version_error ()
       )
-    else error "OPAM is not installed."
+    else Log.error "OPAM is not installed."
 
   let configure_main i jobs =
-    info "%a main.ml" blue "Generating:";
+    Log.info "%a main.ml" Log.blue "Generating:";
     Codegen.set_main_ml (Info.root i / "main.ml");
-    Codegen.append_main "(* %s *)" (generated_header ());
+    Codegen.append_main "(* %s *)" (Codegen.generated_header ());
     Codegen.newline_main ();
     Codegen.append_main "%a" Fmt.text  P.prelude;
     Codegen.newline_main ();
@@ -448,11 +452,11 @@ module Make (P: S) = struct
 
   let clean_main i jobs =
     Engine.clean i jobs >>| fun () ->
-    remove (Info.root i / "main.ml")
+    Cmd.remove (Info.root i / "main.ml")
 
   let configure ~no_opam ~no_depext ~no_opam_version i jobs =
-    info "%a %s" blue "Using configuration:"  (get_config_file ());
-    in_dir (Info.root i) (fun () ->
+    Log.info "%a %s" Log.blue "Using configuration:"  (get_config_file ());
+    Cmd.in_dir (Info.root i) (fun () ->
         begin if no_opam
           then Ok ()
           else configure_opam ~no_depext ~no_opam_version i
@@ -461,23 +465,24 @@ module Make (P: S) = struct
       )
 
   let make () =
-    match uname_s () with
+    match Cmd.uname_s () with
     | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
     | _ -> "make"
 
   let build i =
-    info "%a %s" blue "Build:" (get_config_file ());
-    in_dir (Info.root i) (fun () ->
-        command "%s build" (make ())
+    Log.info "%a %s" Log.blue "Build:" (get_config_file ());
+    Cmd.in_dir (Info.root i) (fun () ->
+        Cmd.run "%s build" (make ())
       )
 
   let clean i jobs =
-    info "%a %s" blue "Clean:"  (get_config_file ());
+    Log.info "%a %s" Log.blue "Clean:"  (get_config_file ());
     let root = Info.root i in
-    in_dir root (fun () ->
+    Cmd.in_dir root (fun () ->
         clean_main i jobs >>= fun () ->
-        command "rm -rf %s/_build" root >>= fun () ->
-        command "rm -rf log %s/main.native.o %s/main.native %s/*~" root root root
+        Cmd.run "rm -rf %s/_build" root >>= fun () ->
+        Cmd.run "rm -rf log %s/main.native.o %s/main.native %s/*~" root
+          root root
       )
 
   let describe ~dotcmd ~dot ~eval ~output ~context { Config.jobs; _ } =
@@ -486,56 +491,57 @@ module Make (P: S) = struct
     in
     let with_fmt f = match output with
       | None when dot ->
-        let f oc = with_channel oc f in
-        with_process_out dotcmd f
+        let f oc = Cmd.with_channel oc f in
+        Cmd.with_process_out dotcmd f
       | None -> f Fmt.stdout
-      | Some s -> with_file s f
+      | Some s -> Cmd.with_file s f
     in R.ok @@ with_fmt f
 
   let show_keys keymap keyset =
-    info "%a %a" blue "Keys:" (Key.pp_parsed keymap) keyset
+    Log.info "%a %a" Log.blue "Keys:" (Key.pps keymap) keyset
 
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
    * [register] in order to have an observable
    * side effect to this command. *)
   let compile_and_dynlink file =
-    info "%a %s" blue "Processing:" file;
+    Log.info "%a %s" Log.blue "Processing:" file;
     let root = Filename.dirname file in
     let file = Filename.basename file in
     let file = Dynlink.adapt_filename file in
-    command
-      "rm -rf %s/_build/%s.*"
-      root (Filename.chop_extension file)
+    Cmd.run "rm -rf %s/_build/%s.*" root (Filename.chop_extension file)
     >>= fun () ->
-    command
+    Cmd.run
       "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg %s %s"
       root P.name file
     >>= fun () ->
     try Ok (Dynlink.loadfile (String.concat "/" [root; "_build"; file]))
     with Dynlink.Error err ->
-      error "Error loading config: %s" (Dynlink.error_message err)
+      Log.error "Error loading config: %s" (Dynlink.error_message err)
 
   (* If a configuration file is specified, then use that.
    * If not, then scan the curdir for a `config.ml` file.
    * If there is more than one, then error out. *)
   let scan_conf = function
     | Some f ->
-      info "%a %s" blue "Config file:" f;
-      if not (Sys.file_exists f) then error "%s does not exist, stopping." f
-      else Ok (realpath f)
+      Log.info "%a %s" Log.blue "Config file:" f;
+      if not (Sys.file_exists f) then
+        Log.error "%s does not exist, stopping." f
+      else Ok (Cmd.realpath f)
     | None   ->
       let files = Array.to_list (Sys.readdir ".") in
       match List.filter ((=) "config.ml") files with
-      | [] -> error "No configuration file config.ml found.\n\
-                     Please precise the configuration file using -f."
+      | [] -> Log.error
+                "No configuration file config.ml found.\n\
+                 Please precise the configuration file using -f."
       | [f] ->
-        info "%a %s" blue "Config file:" f;
-        Ok (realpath f)
+        Log.info "%a %s" Log.blue "Config file:" f;
+        Ok (Cmd.realpath f)
       | _   ->
-        error "There is more than one config.ml in the current working \
-               directory.\n\
-               Please specify one explictly on the command-line."
+        Log.error
+          "There is more than one config.ml in the current working \
+           directory.\n\
+           Please specify one explictly on the command-line."
 
   module C = struct
     include P
@@ -552,25 +558,25 @@ module Make (P: S) = struct
 
     let base_context =
       let keys = KeySet.elements @@ Config.extract_keys (P.create []) in
-      let keys = Key.parse ~stage:`Configure keys in
+      let context = Key.context ~stage:`Configure keys in
       let f x = base_context := Some x; x in
-      Cmdliner.Term.(pure f $ keys)
+      Cmdliner.Term.(pure f $ context)
 
     type t = Config.t
-    type evaluated = G.t * Info.t
+    type evaluated = Graph.t * Info.t
 
     let load file =
       scan_conf file >>= fun file ->
-      let root = realpath (Filename.dirname file) in
+      let root = Cmd.realpath (Filename.dirname file) in
       let file = root / Filename.basename file in
       set_config_file file;
       compile_and_dynlink file >>= fun () ->
       registered () >>= fun t ->
-      set_section (Config.name t);
+      Log.set_section (Config.name t);
       Ok t
 
     let switching_context t =
-      Key.parse ~stage:`Configure @@ KeySet.elements @@ Config.keys t
+      Key.context ~stage:`Configure @@ KeySet.elements @@ Config.keys t
 
     let configure (jobs, info) = configure info jobs
     let clean (jobs, info) = clean info jobs
@@ -580,12 +586,12 @@ module Make (P: S) = struct
     (* FIXME: switch_map? *)
     let eval switch_map t =
       let info = Config.eval switch_map t in
-      let keys = Key.parse ~stage:`Configure (Key.deps info) in
+      let context = Key.context ~stage:`Configure (Key.deps info) in
       let f map =
         show_keys map @@ Key.deps info;
         Key.eval map info @@ map
       in
-      Cmdliner.Term.(pure f $ keys)
+      Cmdliner.Term.(pure f $ context)
   end
 
   let get_base_context = C.get_base_context

@@ -117,7 +117,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       init_format color;
       match t with
       | Ok r -> r
-      | Error s -> show_error "%s" s
+      | Error s -> Log.show_error "%s" s
     in
     let term = match Lazy.force config with
       | Ok t ->

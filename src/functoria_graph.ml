@@ -25,8 +25,9 @@
 open Graph
 open Functoria_misc
 open Functoria
+
 module Key = Functoria_key
-module KeySet = Set_Make(Key)
+module KeySet = Set.Make(Key)
 
 (* {2 Utility} *)
 
@@ -366,7 +367,7 @@ module EvalIf = struct
   (* Evaluate the [If] vertices and remove them. *)
 
   let predicate ~partial ~context _ v = match G.V.label v with
-    | If cond when not partial || Key.is_parsed context cond -> Some v
+    | If cond when not partial || Key.mem context cond -> Some v
     | If _ | App | Impl _ -> None
 
   let extract path l =
@@ -383,7 +384,7 @@ module EvalIf = struct
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.is_parsed context path then g
+    if partial && not @@ Key.mem context path then g
     else
       let v_new, v_others = extract (Key.eval context path) l in
       let g = G.remove_vertex g v_if in

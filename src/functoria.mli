@@ -90,10 +90,10 @@ val if_impl: bool value -> 'a impl -> 'a impl -> 'a impl
 (** [if_impl v impl1 impl2] is [impl1] if [v] is resolved to true and
     [impl2] otherwise. *)
 
-val switch: default:'a impl -> ('b * 'a impl) list -> 'b value -> 'a impl
-(** [switch ~default cases v] choose the implementation amongst
+val match_impl: 'b value -> default:'a impl -> ('b * 'a impl) list ->  'a impl
+(** [match_impl v cases ~default] chooses the implementation amongst
     [cases] by matching the [v]'s value. [default] is chosen if no
-    value match. *)
+    value matches. *)
 
 (** {1:app Application Builder}
 
@@ -150,7 +150,7 @@ module Info: sig
   val keys: t -> key list
   (** Keys declared by the project. *)
 
-  val parsed: t -> context
+  val context: t -> context
   (** [parsed t] is a value representing the command-line argument
       being parsed. *)
 

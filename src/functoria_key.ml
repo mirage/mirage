@@ -14,7 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria_misc
+module String = Functoria_misc.String
+module Log = Functoria_misc.Log
+module Univ = Functoria_misc.Univ
+module Name = Functoria_misc.Name
 
 module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s
@@ -169,14 +172,14 @@ module Set = struct
     type t = elt
     let compare (Any k1) (Any k2) = String.compare k1.name k2.name
   end
-  include (Set_Make (M): SET with type elt := elt)
+  include (Set.Make(M): Set.S with type elt := elt)
 
   (* FIXME(samoht): do we need this? *)
   let _add k set =
     if mem k set then
       if k != find k set then
         let Any k' = k in
-        fail "Duplicate key name: %S" k'.name
+        Log.fail "Duplicate key name: %S" k'.name
       else
         set
     else
@@ -242,7 +245,7 @@ let get ctx t = match Univ.find t.key ctx with
   | Some x -> x
   | None   -> Arg.default t.arg
 
-let mem ctx t = Univ.mem t.key ctx
+let mem_u ctx t = Univ.mem t.key ctx
 
 (* {2 Values} *)
 
@@ -259,12 +262,13 @@ let app f x = {
 let map f x = app (pure f) x
 let pipe x f = map f x
 let if_ c t e = pipe c @@ fun b -> if b then t else e
+let match_ v f = map f v
 let ($) = app
 let value k = let v p = get p k in { deps = Set.singleton (Any k); v }
 let with_deps ~keys v = { v with deps = Set.(union v.deps @@ Set.of_list keys) }
 let deps k = Set.elements k.deps
-let is_parsed p v = Set.for_all (fun (Any x) -> mem p x) v.deps
-let peek p v = if is_parsed p v then Some (eval p v) else None
+let mem p v = Set.for_all (fun (Any x) -> mem_u p x) v.deps
+let peek p v = if mem p v then Some (eval p v) else None
 let default v = eval Univ.empty v
 
 (* {2 Pretty printing} *)
@@ -272,9 +276,9 @@ let default v = eval Univ.empty v
 let pp fmt k = Fmt.string fmt (name k)
 let pp_deps fmt v = Set.pp pp fmt v.deps
 
-let pp_parsed p =
+let pps p =
   let f fmt (Any k) =
-    let default = if mem p k then Fmt.nop else Fmt.unit " (default)" in
+    let default = if mem_u p k then Fmt.nop else Fmt.unit " (default)" in
     Fmt.pf fmt "%a=%a%a"
       Fmt.(styled `Bold string) k.name (Arg.pp k.arg) (get p k) default ()
   in
@@ -312,16 +316,18 @@ let create name arg =
 
 let parse_key t = Arg.to_cmdliner t.arg
 
-let parse ?(stage=`Both) l =
+let context ?(stage=`Both) l =
   let gather (Any k) rest =
     let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
     Cmdliner.Term.(parse_key k f $ rest)
   in
   List.fold_right gather (filter_stage stage l) (Cmdliner.Term.pure Univ.empty)
 
-let parse_value ?stage { deps; v } =
-  let deps = Set.elements deps in
-  Cmdliner.Term.(pure v $ parse ?stage deps)
+(*
+let parse_value ?stage t =
+  let deps = Set.elements t.deps in
+  Cmdliner.Term.(pure t.v $ context ?stage deps)
+*)
 
 (* {2 Code emission} *)
 

@@ -13,10 +13,12 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
-open Functoria_misc
+
 open Rresult
+open Functoria_misc
+
 module Key = Functoria_key
-module KeySet = Functoria_misc.Set_Make(Key)
+module KeySet = Set.Make(Key)
 
 module Info = struct
 
@@ -25,20 +27,20 @@ module Info = struct
     root: string;
     keys: KeySet.t;
     context: Key.context;
-    libraries: StringSet.t;
-    packages: StringSet.t;
+    libraries: String.Set.t;
+    packages: String.Set.t;
   }
 
   let name t = t.name
   let root t = t.root
-  let libraries t = StringSet.elements t.libraries
-  let packages t = StringSet.elements t.packages
+  let libraries t = String.Set.elements t.libraries
+  let packages t = String.Set.elements t.packages
   let keys t = KeySet.elements t.keys
-  let parsed t = t.context
+  let context t = t.context
 
   let create ?(packages=[]) ?(libraries=[]) ?(keys=[]) ~context ~name ~root =
-    let libraries = StringSet.of_list libraries in
-    let packages = StringSet.of_list packages in
+    let libraries = String.Set.of_list libraries in
+    let packages = String.Set.of_list packages in
     let keys = KeySet.of_list keys in
     { name; root; keys; libraries; packages; context }
 
@@ -88,9 +90,9 @@ let impl x = Impl x
 let abstract x = Abstract x
 let if_impl b x y = If(b,x,y)
 
-let rec switch ~default l kv = match l with
+let rec match_impl kv ~default = function
   | [] -> default
-  | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, switch ~default t kv)
+  | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
 
 class base_configurable = object
   method libraries: string list Key.value = Key.pure []
@@ -111,7 +113,7 @@ class ['ty] foreign
     module_name ty
   : ['ty] configurable
   =
-  let name = Name.of_key module_name ~base:"f" in
+  let name = Name.create module_name ~prefix:"f" in
   object
     method ty = ty
     method name = name

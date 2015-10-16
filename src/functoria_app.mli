@@ -116,3 +116,73 @@ module Make (P: S): sig
       parsed, and some code will be generated and compiled. *)
 
 end
+
+module Name: sig
+  (** {1 Name helpers} *)
+
+  val ocamlify: string -> string
+  (** [ocamlify n] is an OCaml identifier looking very much like [n],
+      but where invalid characters have been removed or replaced: all
+      characters outside of ['a'-'z''A'-'Z''0''9''_''-'], and
+      replacing '-' with '_'.  If the resulting string starts with a
+      digit or is empty then it raises [Invalid_argument]. *)
+
+  val create: string -> prefix:string -> string
+  (** [name key ~prefix] is an deterministic name starting by
+      [prefix]. The name is derived from [key].  *)
+
+end
+
+module Cmd: sig
+  (** {1 Shell command helpers.
+
+      FIXME: replace by [Bos]. *)
+
+  val exists: string -> bool
+  (** [exists cmd] is [true] if the command [cmd] is available in {i
+      $PATH}. *)
+
+  val run: ?redirect:bool ->
+    ('a, unit, string, (unit, string) Rresult.result) format4 -> 'a
+
+  val remove: string -> unit
+
+  val with_file: string -> (Format.formatter -> 'a) -> 'a
+
+end
+
+module Log: sig
+  (** {1 Console logging helpers}
+
+      FIXME: replace by [Bos]. *)
+
+  val blue: string Fmt.t
+  val yellow: string Fmt.t
+  val red: string Fmt.t
+  val green: string Fmt.t
+
+  val error:
+    ('a, Format.formatter, unit, ('b, string) Rresult.result) format4 -> 'a
+    (** [error] display an error on the console. *)
+
+  val info: ('a, Format.formatter, unit, unit) format4 -> 'a
+
+end
+
+module Codegen: sig
+
+  val append:
+    Format.formatter -> ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a
+
+  val newline: Format.formatter -> unit
+
+  val set_main_ml: string -> unit
+  (** Define the current main file. *)
+
+  val append_main: ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a
+  (** Add some string to [main.ml]. *)
+
+  val newline_main: unit -> unit
+  (** Add a newline to [main.ml]. *)
+
+end

@@ -221,12 +221,6 @@ end
 val impl: 'a configurable -> 'a impl
 (** [impl c] is the implementation of the configurable [c]. *)
 
-val explode: 'a impl ->
-  [ `App of abstract_impl * abstract_impl
-  | `If of bool value * 'a impl * 'a impl
-  | `Impl of 'a configurable ]
-(** [explode i] inspects the contents of [i]. *)
-
 (** [base_configurable] pre-defining many methods from the
     {!configurable} class. To be used as follow:
 
@@ -260,3 +254,10 @@ val equal: 'a impl -> 'a impl -> bool
 
 module ImplTbl: Hashtbl.S with type key = abstract_impl
 (** Hashtbl of implementations. *)
+
+(**/**)
+
+val explode: 'a impl ->
+  [ `App of abstract_impl * abstract_impl
+  | `If of bool value * 'a impl * 'a impl
+  | `Impl of 'a configurable ]

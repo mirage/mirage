@@ -117,8 +117,10 @@ module Make (P: S): sig
 
 end
 
+(** {1 Misc} *)
+
+(** Name helpers. *)
 module Name: sig
-  (** {1 Name helpers} *)
 
   val ocamlify: string -> string
   (** [ocamlify n] is an OCaml identifier looking very much like [n],
@@ -133,10 +135,8 @@ module Name: sig
 
 end
 
+(** Shell command helpers. FIXME: replace by [Bos]. *)
 module Cmd: sig
-  (** {1 Shell command helpers}.
-
-      FIXME: replace by [Bos]. *)
 
   val exists: string -> bool
   (** [exists cmd] is [true] if the command [cmd] is available in {i
@@ -167,10 +167,8 @@ module Cmd: sig
 
 end
 
+(** Console logging. FIXME: replace by [Bos.Log]. *)
 module Log: sig
-  (** {1 Console logging helpers}
-
-      FIXME: replace by [Bos]. *)
 
   val blue: string Fmt.t
   val yellow: string Fmt.t
@@ -179,12 +177,13 @@ module Log: sig
 
   val error:
     ('a, Format.formatter, unit, ('b, string) Rresult.result) format4 -> 'a
-    (** [error] display an error on the console. *)
+  (** [error] display an error on the console. *)
 
   val info: ('a, Format.formatter, unit, unit) format4 -> 'a
 
 end
 
+(** Code generation helpers. *)
 module Codegen: sig
 
   val generated_header: unit -> string

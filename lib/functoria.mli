@@ -59,7 +59,7 @@ type job
 (** Type for job values. *)
 
 val job: job typ
-(** [jpb] is the signature for user's application main module. *)
+(** [job] is the signature for user's application main module. *)
 
 type 'a impl
 (** The type for values representing module implementations. *)
@@ -97,7 +97,7 @@ val match_impl: 'b value -> default:'a impl -> ('b * 'a impl) list ->  'a impl
 
 (** {1:app Application Builder}
 
-    Values of type {!impl} are tied to concrete module imlementation
+    Values of type {!impl} are tied to concrete module implementation
     with the {!foreign} construct. Module implementations of type
     {!job} can then be {{!Functoria_app.Make.register}registered} into
     an application builder. The builder is in charge if parsing the
@@ -110,8 +110,8 @@ val foreign:
   ?keys:key list ->
   ?dependencies:abstract_impl list ->
   string -> 'a typ -> 'a impl
-(** [foreign name typ] is the module [name], having with the
-    odule type [typ].
+(** [foreign name typ] is the module [name], having the module type
+    [typ].
 
     {ul
     {- If [packages] is set, then the given OPAM packages are
@@ -142,7 +142,7 @@ module Info: sig
   (** Directory in which the configuration is done. *)
 
   val libraries: t -> string list
-  (** Ocamlfind libraries needed by the project. *)
+  (** OCamlfind libraries needed by the project. *)
 
   val packages: t -> string list
   (** OPAM packages needed by the project. *)
@@ -189,7 +189,7 @@ class type ['ty] configurable = object
       installed before compiling the configurable. *)
 
   method libraries: string list value
-  (** [libaries] is the list of OCamlfind libraries to include and
+  (** [libraries] is the list of OCamlfind libraries to include and
       link with the configurable. *)
 
   method connect: Info.t -> string -> string list -> string
@@ -204,7 +204,7 @@ class type ['ty] configurable = object
       running bash scripts, etc. *)
 
   method clean: Info.t -> (unit, string) Rresult.result
-  (** [clean info] is the code to clean-up what have beend generated
+  (** [clean info] is the code to clean-up what has been generated
       by {!configure}. *)
 
   method keys: key list
@@ -213,7 +213,7 @@ class type ['ty] configurable = object
 
   method dependencies: abstract_impl list
   (** [dependencies] is the list of {{!abstract_impl} abstract
-      implementations} that must be initalized before calling
+      implementations} that must be initialized before calling
       {!connect}. *)
 
 end

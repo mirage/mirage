@@ -156,9 +156,9 @@ val value: 'a key -> 'a value
 (** [value k] is the value parsed by [k]. *)
 
 type t
-(** The type for data dependencies, which are simply {!key} with their
-    type hidden. Data dependencies form a directed and acyclic graph
-    that need to be evaluated in order to obtain
+(** The type for data dependencies, which are simply {{!key}keys} with
+    their type hidden. Data dependencies form a directed and acyclic
+    graph that need to be evaluated in order to obtain
     {{!value}values}. Vertices of the graph hold
     {{!value}values}. Edges represent evaluation-order (e.g. data)
     dependencies between values. *)

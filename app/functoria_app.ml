@@ -368,6 +368,8 @@ module type S = sig
   val create: job impl list -> job impl
 end
 
+module type DSL = module type of struct include Functoria end
+
 module Make (P: S) = struct
 
   let () = Log.set_section P.name

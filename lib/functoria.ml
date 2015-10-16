@@ -177,3 +177,5 @@ let explode x = match x with
 type key = Functoria_key.t
 type context = Functoria_key.context
 type 'a value = 'a Functoria_key.value
+
+module type KEY = module type of struct include Functoria_key end

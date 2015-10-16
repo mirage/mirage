@@ -95,6 +95,10 @@ val match_impl: 'b value -> default:'a impl -> ('b * 'a impl) list ->  'a impl
     [cases] by matching the [v]'s value. [default] is chosen if no
     value matches. *)
 
+module type KEY = module type of struct include Functoria_key end
+(** The signature for run-time and configure-time command-line
+    keys. *)
+
 (** {1:app Application Builder}
 
     Values of type {!impl} are tied to concrete module implementation

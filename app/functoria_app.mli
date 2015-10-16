@@ -117,6 +117,9 @@ module Make (P: S): sig
 
 end
 
+module type DSL = module type of struct include Functoria end
+(** The signature of Functoria-like DSLs. *)
+
 (** {1 Misc} *)
 
 (** Name helpers. *)

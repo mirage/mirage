@@ -52,7 +52,7 @@ module String: sig
   (** Remove heading and trailing spaces. *)
 
   val cut_at: string -> char -> (string * string) option
-  (** Cut at the first occurence of a given character. *)
+  (** Cut at the first occurrence of a given character. *)
 
   val split: string -> char -> string list
   (** Split at each occurence of the given character. *)

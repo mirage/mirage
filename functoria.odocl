@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 6a9bf935e936886cfbfc675d592da559)
-src/Functoria
-src/Functoria_key
-src/Functoria_app
+# DO NOT EDIT (digest: 8aa8cad8861b3862a74e10d5cf32b688)
+lib/Functoria
+lib/Functoria_key
 runtime/Functoria_runtime
 runtime/Functoria_info
+app/Functoria_app
 # OASIS_STOP

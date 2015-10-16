@@ -13,12 +13,8 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
-
-module StringSet = Set.Make(String)
-module StringMap = Map.Make(String)
-
 type info = {
   name: string;
-  libraries: StringSet.t;
-  packages: string StringMap.t;
+  libraries: string list;
+  packages: (string * string) list;
 }

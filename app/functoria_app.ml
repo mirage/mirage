@@ -98,25 +98,22 @@ type info = Info
 let info = Type Info
 
 let pp_libraries fmt l =
-  Fmt.pf fmt "StringSet.of_list [@ %a]"
-    Fmt.(iter ~sep:(unit ";@ ") String.Set.iter @@ fmt "%S") l
+  Fmt.pf fmt "[@ %a]"
+    Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
 
 let pp_packages fmt l =
-  Fmt.pf fmt
-    "@ List.fold_left (fun set (k,v) -> StringMap.add k v set) StringMap.empty \
-     [@ %a]"
-    Fmt.(iter ~sep:(unit ";@ ") String.Set.iter @@
-         (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x))
-    l
+  Fmt.pf fmt "[@ %a]"
+    Fmt.(iter ~sep:(unit ";@ ") List.iter @@
+         (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x)
+        ) l
 
 let pp_dump_info fmt i =
-  let set = String.Set.of_list in
   Fmt.pf fmt
     "Functoria_info.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
     (Info.name i)
-    pp_packages (set @@ Info.packages i)
-    pp_libraries (set @@ Info.libraries i)
+    pp_packages (Info.packages i)
+    pp_libraries (Info.libraries i)
 
 let export_info = impl @@ object
     inherit base_configurable

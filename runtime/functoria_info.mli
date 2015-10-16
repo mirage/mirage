@@ -14,18 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Configuration info *)
-
-module StringSet: Set.S with type elt = string
-module StringMap: Map.S with type key = string
+(** Information about Functoria applications. *)
 
 type info = {
   name: string;
-  libraries: StringSet.t;
-  packages: string StringMap.t;
+  libraries: string list;
+  packages: (string * string) list;
 }
-(** Configuration information.
-    - [name] is the name of the unikernel.
-    - [libraries] is the set of ocamlfind libraries.
-    - [packages] is the map of opam packages to version.
+(** The type for information about applications.
+
+    {ul
+    {- [name] is the name of the application.}
+    {- [libraries] is the list of OCamlfind libraries linked to form the
+       application.}
+    {- [packages] is the list of package name and version used to create
+       the application.}
+    }
 *)

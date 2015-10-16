@@ -340,7 +340,7 @@ let network = Type NETWORK
 let all_networks = ref []
 
 let network_conf (intf : string Key.key) =
-  let key = Key.v intf in
+  let key = Key.hide_type intf in
   object (self)
     inherit base_configurable
     method ty = network
@@ -435,11 +435,11 @@ let meta_ipv4 ppf s =
 
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 
-let pp_key fmt k = Key.serialize_call fmt (Key.v k)
+let pp_key fmt k = Key.serialize_call fmt (Key.hide_type k)
 let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s)) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
-let (@??) x y = opt_map Key.v x @? y
+let (@??) x y = opt_map Key.hide_type x @? y
 
 let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
     inherit base_configurable
@@ -544,7 +544,7 @@ let udpv4_socket_conf ipv4_key = object
   val name = Name.create "udpv4_socket" ~prefix:"udpv4_socket"
   method name = name
   method module_name = "Udpv4_socket"
-  method keys = [ Key.v ipv4_key ]
+  method keys = [ Key.hide_type ipv4_key ]
   method packages = Key.pure [ "tcpip" ]
   method libraries =
     Key.match_ Key.(value target) @@ function
@@ -591,7 +591,7 @@ let tcpv4_socket_conf ipv4_key = object
   val name = Name.create "tcpv4_socket" ~prefix:"tcpv4_socket"
   method name = name
   method module_name = "Tcpv4_socket"
-  method keys = [ Key.v ipv4_key ]
+  method keys = [ Key.hide_type ipv4_key ]
   method packages = Key.pure [ "tcpip" ]
   method libraries =
     Key.match_ Key.(value target) @@ function
@@ -631,7 +631,11 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
 
     method keys = match config with
       | `DHCP -> []
-      | `IPV4 (addr,netm,gate) -> [ Key.v addr; Key.v netm; Key.v gate]
+      | `IPV4 (addr,netm,gate) -> [
+          Key.hide_type addr;
+          Key.hide_type netm;
+          Key.hide_type gate
+        ]
 
     method packages = Key.pure [ "tcpip" ]
     method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
@@ -693,7 +697,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     val name = add_suffix "stackv4_socket" ~suffix:group
     method name = name
     method module_name = "Tcpip_stack_socket.Make"
-    method keys = [ Key.v interfaces ]
+    method keys = [ Key.hide_type interfaces ]
     method packages = Key.pure [ "tcpip" ]
     method libraries = Key.pure [ "tcpip.stack-socket" ]
     method dependencies = [
@@ -931,7 +935,7 @@ let tracing i =
     method ty = job
     method name = "tracing"
     method module_name = "MProf"
-    method keys = [ Key.v key ]
+    method keys = [ Key.hide_type key ]
     method packages = Key.pure ["mirage-profile"]
     method libraries =
       Key.(if_ is_xen) ["mirage-profile.xen"] ["mirage-profile.unix"]
@@ -952,7 +956,7 @@ let tracing i =
           "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
            let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
            MProf.Trace.Control.start trace_config"
-          Key.serialize_call (Key.v key)
+          Key.serialize_call (Key.hide_type key)
           unix_trace_file;
       | `Xen  ->
         Fmt.strf
@@ -962,7 +966,7 @@ let tracing i =
            MProf.Trace.Control.start trace_config;@ \
            MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
            |> OS.Main.run"
-          Key.serialize_call (Key.v key)
+          Key.serialize_call (Key.hide_type key)
 
   end
 
@@ -1442,7 +1446,11 @@ module Project = struct
       method ty = job
       method name = "mirage"
       method module_name = "Mirage_runtime"
-      method keys = [ Key.(v target); Key.(v unix); Key.(v xen) ]
+      method keys = [
+        Key.(hide_type target);
+        Key.(hide_type unix);
+        Key.(hide_type xen)
+      ]
 
       method packages =
         let l = [ "lwt"; "sexplib" ] in

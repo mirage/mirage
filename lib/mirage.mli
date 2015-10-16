@@ -24,7 +24,8 @@
 
 (** Configuration keys. *)
 module Key : module type of struct include Mirage_key end
-include (module type of Functoria)
+
+include Functoria_app.DSL
 
 (** {2 General mirage devices} *)
 

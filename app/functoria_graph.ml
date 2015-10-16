@@ -177,8 +177,7 @@ let add_app graph ~f ~args =
 let create impl =
   let module H = ImplTbl in
   let tbl = H.create 50 in
-  let rec aux
-    : type t . G.t -> t impl -> G.vertex * G.t
+  let rec aux: type t . G.t -> t impl -> G.vertex * G.t
     = fun g impl ->
       if H.mem tbl @@ abstract impl
       then H.find tbl (abstract impl), g

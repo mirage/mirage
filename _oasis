@@ -13,7 +13,7 @@ AlphaFeatures: ocamlbuild_more_args
 
 Library functoria
   Path:            lib
-  FindlibName:     functoria
+  Findlibname:     functoria
   Modules:         Functoria, Functoria_key
   InternalModules: Functoria_misc, Functoria_sigs
   BuildDepends:    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,
@@ -21,7 +21,7 @@ Library functoria
 
 Library "functoria-app"
   Path:            app
-  FindlibName:     app
+  Findlibname:     app
   FindlibParent:   functoria
   InternalModules: Functoria_tool, Functoria_graph
   Modules:         Functoria_app
@@ -29,7 +29,7 @@ Library "functoria-app"
 
 Library "functoria-runtime"
   Path:            runtime
-  FindlibName:     runtime
+  Findlibname:     runtime
   FindlibParent:   functoria
   Modules:         Functoria_runtime, Functoria_info
   BuildDepends:    cmdliner, fmt

@@ -14,10 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module String = Functoria_misc.String
-module Log = Functoria_misc.Log
-module Univ = Functoria_misc.Univ
-module Name = Functoria_misc.Name
+open Functoria_misc
 
 module Serialize = struct
   let string fmt s = Format.fprintf fmt "%S" s

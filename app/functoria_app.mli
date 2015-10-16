@@ -22,7 +22,7 @@ open Functoria
 (** {1 Usefull module implementations} *)
 
 val noop: job impl
-(** [noop] is an implementation of {!Functioria.job} that hold no
+(** [noop] is an implementation of {!Functoria.job} that hold no
     state, does nothing and has no dependency. *)
 
 type argv
@@ -134,7 +134,7 @@ module Name: sig
 end
 
 module Cmd: sig
-  (** {1 Shell command helpers.
+  (** {1 Shell command helpers}.
 
       FIXME: replace by [Bos]. *)
 

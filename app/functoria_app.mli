@@ -145,9 +145,25 @@ module Cmd: sig
   val run: ?redirect:bool ->
     ('a, unit, string, (unit, string) Rresult.result) format4 -> 'a
 
+  val read: ('a, unit, string,  (string, string) Rresult.result) format4 -> 'a
+
   val remove: string -> unit
 
   val with_file: string -> (Format.formatter -> 'a) -> 'a
+  val in_dir: string -> (unit -> 'a) -> 'a
+
+  val uname_s: unit -> string option
+  val uname_m: unit -> string option
+  val uname_r: unit -> string option
+
+  val ocaml_version: unit -> int * int
+  (** [ocaml_version] is [ocaml -version]'s output. *)
+
+  module OCamlfind: sig
+    val query:
+      ?predicates:string list -> ?format:string -> ?recursive:bool ->
+      string list -> (string list, string) Rresult.result
+  end
 
 end
 
@@ -170,6 +186,8 @@ module Log: sig
 end
 
 module Codegen: sig
+
+  val generated_header: unit -> string
 
   val append:
     Format.formatter -> ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a

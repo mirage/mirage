@@ -77,9 +77,7 @@ module Cmd: sig
   val uname_s: unit -> string option
   val uname_m: unit -> string option
   val uname_r: unit -> string option
-
   val ocaml_version: unit -> int * int
-  (** The version of the current OCaml compiler. *)
 
   module OCamlfind: sig
     val query:

@@ -11,21 +11,28 @@ BuildTools:  ocamlbuild
 AlphaFeatures: pure_interface
 AlphaFeatures: ocamlbuild_more_args
 
-Library "functoria-runtime"
-  Path:            runtime
-  Findlibname:     runtime
-  Findlibparent:   functoria
-  Modules:         Functoria_runtime, Functoria_info
-  BuildDepends:    cmdliner, fmt
-
 Library functoria
-  Path:            src
-  Findlibname:     functoria
-  Modules:         Functoria, Functoria_key, Functoria_app
-  InternalModules: Functoria_misc, Functoria_tool, Functoria_sigs,
-                   Functoria_graph
+  Path:            lib
+  FindlibName:     functoria
+  Modules:         Functoria, Functoria_key
+  InternalModules: Functoria_misc, Functoria_sigs
   BuildDepends:    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,
                    ocamlgraph
+
+Library "functoria-app"
+  Path:            app
+  FindlibName:     app
+  FindlibParent:   functoria
+  InternalModules: Functoria_tool, Functoria_graph
+  Modules:         Functoria_app
+  BuildDepends:    functoria
+
+Library "functoria-runtime"
+  Path:            runtime
+  FindlibName:     runtime
+  FindlibParent:   functoria
+  Modules:         Functoria_runtime, Functoria_info
+  BuildDepends:    cmdliner, fmt
 
 Document "functoria"
   Type: ocamlbuild (0.3)
@@ -34,4 +41,4 @@ Document "functoria"
   XOCamlbuildPath: .
   XOCamlbuildExtraArgs:
     "-docflags '-t Functoria -colorize-code -short-functors -charset utf-8'"
-  XOCamlbuildLibraries: functoria, functoria.runtime
+  XOCamlbuildLibraries: functoria, functoria.runtime, functoria.app

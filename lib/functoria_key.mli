@@ -155,20 +155,19 @@ val create: string -> 'a Arg.t -> 'a key
 val value: 'a key -> 'a value
 (** [value k] is the value parsed by [k]. *)
 
-(** {1 Data-dependencies} *)
-
 type t
-(** The type for data dependencies. Data dependencies form a directed
-    and acyclic graph that need to be evaluated in order to obtain
+(** The type for data dependencies, which are simply {!key} with their
+    type hidden. Data dependencies form a directed and acyclic graph
+    that need to be evaluated in order to obtain
     {{!value}values}. Vertices of the graph hold
     {{!value}values}. Edges represent evaluation-order (e.g. data)
     dependencies between values. *)
 
+val hide_type: 'a key -> t
+(** [hide_type k] is the data-dependency induced by using [k]. *)
+
 val compare: t -> t -> int
 (** [compare] compares untyped keys. *)
-
-val v: 'a key -> t
-(** [v k] is the data-dependency on the key [k].  *)
 
 val pp: t Fmt.t
 (** [pp fmt k] prints the name of [k]. *)

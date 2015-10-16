@@ -20,15 +20,14 @@ Library mirage
   Findlibname:        mirage
   Modules:            Mirage, Mirage_key
   InternalModules:    Mirage_version
-  BuildDepends:
-    ipaddr,functoria,mirage.runtime
+  BuildDepends:       ipaddr, functoria, mirage.runtime, functoria.app
 
 Executable mirage
   CompiledObject:     best
   Path:               lib
   MainIs:             main.ml
   Install:            true
-  BuildDepends:       mirage,functoria
+  BuildDepends:       mirage, functoria
 
 AlphaFeatures: ocamlbuild_more_args
 Document "mirage"

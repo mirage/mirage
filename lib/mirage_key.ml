@@ -14,17 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Cmdliner
 module Key = Functoria_key
-module C = Mirage_runtime.Converter
+module Alias = Key.Alias
 
 (** {2 Custom Descriptions} *)
 
-module Desc = struct
-  include Key.Desc
+module Arg = struct
+  include Key.Arg
 
   module type S = sig
-    include C.S
+    include Mirage_runtime.Arg.S
     val sexp_of_t : t -> Sexplib.Type.t
   end
 
@@ -32,15 +31,15 @@ module Desc = struct
      [description] and [m] should not need to be provided.
   *)
   let of_module
-      (type t) description m (module M:S with type t=t) =
-    let converter = C.of_module (module M) in
+      (type t) runtime_conv m (module M: S with type t=t) =
+    let converter = Mirage_runtime.Arg.of_module (module M) in
     let serializer fmt x =
       Fmt.pf fmt "(%s.t_of_sexp (Sexplib.Sexp.of_string %S))"
-      m (Sexplib.Sexp.to_string @@ M.sexp_of_t x)
+        m (Sexplib.Sexp.to_string @@ M.sexp_of_t x)
     in
-    create ~converter ~serializer ~description
+    converter, serializer, runtime_conv
 
-  let from_run s = "Mirage_runtime.Converter." ^ s
+  let from_run s = "Mirage_runtime.Arg." ^ s
   let builtin d mn m = of_module (from_run d) mn m
 
   let ipv4 = builtin "ipv4" "Ipaddr.V4" (module Ipaddr.V4)
@@ -68,139 +67,144 @@ type mode = [
   | `MacOSX
 ]
 
-let target_conv : mode Arg.converter = Arg.enum [ "unix", `Unix; "macosx", `MacOSX; "xen", `Xen ]
+let target_conv: mode Cmdliner.Arg.converter =
+  Cmdliner.Arg.enum [
+    "unix"  , `Unix;
+    "macosx", `MacOSX;
+    "xen"   , `Xen
+  ]
 
 let pp_target fmt m = snd target_conv fmt m
 
 let serialize_mode fmt = function
-  | `Unix -> Fmt.pf fmt "`Unix"
-  | `Xen  -> Fmt.pf fmt "`Xen"
+  | `Unix   -> Fmt.pf fmt "`Unix"
+  | `Xen    -> Fmt.pf fmt "`Xen"
   | `MacOSX -> Fmt.pf fmt "`MacOSX"
 
 let target =
-  let doc = "Target platform to compile the unikernel for. Valid values are: $(i,xen), $(i,unix), $(i,macosx)." in
-  let desc = Key.Desc.create
-      ~serializer:serialize_mode
-      ~description:"target"
-      ~converter:target_conv
+  let doc =
+    "Target platform to compile the unikernel for. Valid values are: \
+     $(i,xen), $(i,unix), $(i,macosx)."
   in
-  let doc = Key.Doc.create
-      ~docs:mirage_section
-      ~docv:"TARGET" ~doc ["t";"target"]
-      ~env:"MODE"
+  let conv = target_conv, serialize_mode, "assert false" in
+  let doc =
+    Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc ["t";"target"] ~env:"MODE"
   in
-  Key.create ~doc ~stage:`Configure ~default:`Unix "target" desc
+  let key = Arg.opt ~stage:`Configure conv `Unix doc in
+  Key.create "target" key
 
 let is_xen =
-  Key.pipe Key.(value target) @@ function
+  Key.match_ Key.(value target) @@ function
   | `Xen -> true
   | `Unix | `MacOSX -> false
 
 let unix =
   let doc = "Set $(b,target) to $(i,unix)." in
-  let doc = Key.Doc.create ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
   let setter b = if b then Some `Unix else None in
-  Key.proxy ~doc ~setters:Key.Setters.(add target setter empty) "unix"
+  let alias = Alias.flag doc in
+  let alias = Alias.add target setter alias in
+  Key.alias "unix" alias
 
 let xen =
   let doc = "Set $(b,target) to $(i,xen)." in
-  let doc = Key.Doc.create ~docs:mirage_section ~docv:"BOOL" ~doc ["xen"] in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["xen"] in
   let setter b = if b then Some `Xen else None in
-  Key.proxy ~doc ~setters:Key.Setters.(add target setter empty) "xen"
+  let alias = Alias.flag doc in
+  let alias = Alias.add target setter alias in
+  Key.alias "xen" alias
 
 (** {3 Tracing} *)
 
 let tracing default =
   let doc = "The tracing level. Accepts an integer" in
-  let desc = Key.Desc.int in
-  let doc = Key.Doc.create
-      ~docs:mirage_section
-      ~docv:"TRACING" ~doc ["tracing"]
-  in
-  Key.create ~doc ~stage:`Configure ~default "tracing" desc
+  let doc = Arg.info ~docs:mirage_section ~docv:"TRACING" ~doc ["tracing"] in
+  let key = Arg.opt ~stage:`Configure Arg.int default doc in
+  Key.create "tracing" key
 
 (** {2 General mirage keys} *)
 
-let create_simple ?(group="") ?(stage=`Both) ~doc ~default desc name =
+let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =
   let prefix = if group = "" then group else group^"-" in
-  let doc = Key.Doc.create
-      ~docs:unikernel_section
-      ~docv:(String.uppercase name) ~doc [prefix^name]
+  let doc =
+    Arg.info ~docs:unikernel_section ~docv:(String.uppercase name) ~doc
+      [prefix ^ name]
   in
-  Key.create ~doc ~stage ~default (prefix^name) desc
+  let key = Arg.opt ~stage conv default doc in
+  Key.create (prefix ^ name) key
 
 (** {3 File system keys} *)
 
 let kv_ro ?group () =
   let converter =
-    Arg.enum [ "fat", `Fat ; "archive", `Archive ; "crunch", `Crunch ]
+    Cmdliner.Arg.enum [
+      "fat"    , `Fat ;
+      "archive", `Archive ;
+      "crunch" , `Crunch ]
   in
   let serializer = Fmt.of_to_string @@ function
-    | `Fat -> "`Fat" | `Archive -> "`Archive" | `Crunch -> "`Crunch"
+    | `Fat     -> "`Fat"
+    | `Archive -> "`Archive"
+    | `Crunch  -> "`Crunch"
   in
-  let desc = Key.Desc.create ~converter ~serializer ~description:"kv_ro" in
+  let conv = converter, serializer, "kv_ro" in
   let doc =
     Fmt.strf
       "Use a $(i,fat), $(i,archive) or $(i,crunch) implementation for %a."
       pp_group group
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:`Crunch desc "kv_ro"
+  create_simple ~doc ?group ~stage:`Configure ~default:`Crunch conv "kv_ro"
 
 (** {3 Stack keys} *)
 
 let dhcp ?group () =
   let doc = Fmt.strf "Enable dhcp for %a." pp_group group in
   create_simple
-    ~doc ?group ~stage:`Configure ~default:false Key.Desc.bool "dhcp"
+    ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
 
-let net ?group () : [`Socket | `Direct] Key.key =
-  let converter = Arg.enum ["socket", `Socket ; "direct", `Direct] in
+let net ?group (): [`Socket | `Direct] Key.key =
+  let converter = Cmdliner.Arg.enum ["socket", `Socket ; "direct", `Direct] in
   let serializer fmt = function
     | `Socket -> Fmt.pf fmt "`Socket"
     | `Direct -> Fmt.pf fmt "`Direct"
   in
-  let desc = Key.Desc.create
-      ~converter ~serializer ~description:"net"
-  in
+  let conv = converter, serializer, "net" in
   let doc =
     Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
-  create_simple
-    ~doc ?group ~stage:`Configure ~default:`Direct desc "net"
+  create_simple ~doc ?group ~stage:`Configure ~default:`Direct conv "net"
 
 (** {3 Network keys} *)
 
 let network ?group default =
-  let doc =
-    Fmt.strf "The network interface listened by %a."
-      pp_group group
-  in
-  create_simple
-    ~doc ~default ?group Desc.string "network"
+  let doc = Fmt.strf "The network interface listened by %a." pp_group group in
+  create_simple ~doc ~default ?group Arg.string "network"
 
 module V4 = struct
 
   let ip ?group default =
     let doc = Fmt.strf "The ip address of %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.ipv4 "ip"
+    create_simple ~doc ~default ?group Arg.ipv4 "ip"
 
   let netmask ?group default =
     let doc = Fmt.strf "The netmask of %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.ipv4 "netmask"
+    create_simple ~doc ~default ?group Arg.ipv4 "netmask"
 
   let gateways ?group default =
     let doc = Fmt.strf "The gateways of %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.(list ipv4) "gateways"
+    create_simple ~doc ~default ?group Arg.(list ipv4) "gateways"
 
   let socket ?group default =
     let doc =
-      Fmt.strf "The address bounds by the socket in %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.(option ipv4) "socket"
+      Fmt.strf "The address bounds by the socket in %a." pp_group group
+    in
+    create_simple ~doc ~default ?group Arg.(some ipv4) "socket"
 
   let interfaces ?group default =
     let doc =
-      Fmt.strf "The interfaces bound by the socket in %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.(list ipv4) "interfaces"
+      Fmt.strf "The interfaces bound by the socket in %a." pp_group group
+    in
+    create_simple ~doc ~default ?group Arg.(list ipv4) "interfaces"
 
 end
 
@@ -208,16 +212,18 @@ module V6 = struct
 
   let ip ?group default =
     let doc = Fmt.strf "The ip address of %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.ipv6 "ip"
+    create_simple ~doc ~default ?group Arg.ipv6 "ip"
 
   let netmask ?group default =
     let doc = Fmt.strf "The netmasks of %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.(list ipv6_prefix) "netmask"
+    create_simple ~doc ~default ?group Arg.(list ipv6_prefix) "netmask"
 
   let gateways ?group default =
     let doc = Fmt.strf "The gateways of %a." pp_group group in
-    create_simple ~doc ~default ?group Desc.(list ipv6) "gateways"
+    create_simple ~doc ~default ?group Arg.(list ipv6) "gateways"
 
 end
 
-include (Key : Functoria.KEY with module Desc := Desc)
+(* FIXME: this is a crazy *)
+include (Key: module type of struct include Functoria_key end
+         with module Arg := Arg and module Alias := Alias)

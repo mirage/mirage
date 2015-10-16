@@ -14,8 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-
-include Functoria.KEY
+include module type of struct include Functoria_key end
 
 (** {2 Mirage keys} *)
 

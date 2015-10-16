@@ -15,17 +15,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Configuration library.
+(** Mirage combinators.
 
-    [Mirage_types] defines a set of well-defined module signatures
-    which are used by the various mirage libraries to implement a
-    large collection of devices. *)
+    [Mirage] devices a set of devices and combinator to to define
+    portable applications across all platforms that MirageOS
+    supports. *)
 
 
 (** Configuration keys. *)
 module Key : module type of struct include Mirage_key end
-
-include Functoria.S with module Key := Key
+include (module type of Functoria)
 
 (** {2 General mirage devices} *)
 
@@ -47,14 +46,14 @@ val register :
   ?keys:Key.t list ->
   ?libraries:string list ->
   ?packages:string list -> string -> job impl list -> unit
-    (** [register name jobs] registers the application named by [name]
-        which will executes the given [jobs].
-        @param libraries The ocamlfind libraries needed by this module.
-        @param packages The opam packages needed by this module.
-        @param keys The keys related to this module.
+(** [register name jobs] registers the application named by [name]
+    which will executes the given [jobs].
+    @param libraries The ocamlfind libraries needed by this module.
+    @param packages The opam packages needed by this module.
+    @param keys The keys related to this module.
 
-        @param tracing Enable tracing and give a default depth.
-    *)
+    @param tracing Enable tracing and give a default depth.
+*)
 
 
 (** {2 Time} *)
@@ -387,7 +386,7 @@ val http_server: conduit impl -> http impl
 
 (** {2 Argv configuration} *)
 
-val argv_dynamic: Functoria.Devices.argv impl
+val argv_dynamic: Functoria_app.argv impl
 (** Dynamic argv implementation that resolves either to
     the xen or the unix implementation. *)
 
@@ -396,7 +395,7 @@ val argv_dynamic: Functoria.Devices.argv impl
 val noop: job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
-val export_info : Functoria.Devices.info impl
+val export_info : Functoria_app.info impl
 (** Export all the information available at configure time to runtime.
     It produces, at runtime, a {!Functoria_info.info}.
 *)
@@ -418,8 +417,6 @@ val add_to_ocamlfind_libraries : string list -> unit
     @deprecated Use the [~libraries] argument from {!register}.
 *)
 
-
-
 (**/**)
 
-val launch : unit -> unit
+val run : unit -> unit

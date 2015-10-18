@@ -123,7 +123,9 @@ type +'a value
 (** The type for configure-time and run-time values. Values can be
     parsed from the command-line at configure and/or runtime, or can
     be provided as OCaml values in the application configuration file
-    (i.e. {i config.ml}). *)
+    (i.e. {i config.ml}). Values might have {{!deps}data
+    dependencies}, which form an (implicit) directed and acyclic graph
+    that need to be evaluated. *)
 
 val pure: 'a -> 'a value
 (** [pure x] is a value without any dependency. *)
@@ -141,7 +143,7 @@ val if_: bool value -> 'a -> 'a -> 'a value
 (** [if_ v x y] is [map (fun b -> if b then x else y) v]. *)
 
 val match_: 'a value -> ('a -> 'b) -> 'b value
-(** [match_ v patt] is [map patt v]. *)
+(** [match_ v pattern] is [map pattern v]. *)
 
 val default: 'a value -> 'a
 (** [default v] returns the default value for [v]. *)
@@ -243,20 +245,17 @@ val peek: context -> 'a value -> 'a option
 (** [peek c v] is [Some x] if [mem v] and [None] otherwise. *)
 
 val eval: context -> 'a value -> 'a
-(** [eval c v] evaluates [v] in [t]'s context, using default values if
+(** [eval c v] evaluates [v] in [c]'s context, using default values if
     necessary. *)
 
 val get: context -> 'a key -> 'a
-(** [get c k] resolves [k], using default values if necessary. *)
+(** [get c k] is [k]'s value in [c]'s context. *)
 
 val pps: context -> t list Fmt.t
 (** [pps c fmt ks] prints the keys [ks] using the context [c] to get
     their value. *)
 
-(** {1 Code Serialization}
-
-    FIXME: this is not really supposed to be exported, isn't it?
-*)
+(** {1 Code Serialization} *)
 
 val ocaml_name: t -> string
 (** [ocaml_name k] is the ocaml name of [k]. *)

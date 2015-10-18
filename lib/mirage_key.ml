@@ -32,12 +32,12 @@ module Arg = struct
   *)
   let of_module
       (type t) runtime_conv m (module M: S with type t=t) =
-    let converter = Mirage_runtime.Arg.of_module (module M) in
-    let serializer fmt x =
-      Fmt.pf fmt "(%s.t_of_sexp (Sexplib.Sexp.of_string %S))"
+    let conv = Mirage_runtime.Arg.of_module (module M) in
+    let serialize ppf x =
+      Fmt.pf ppf "(%s.t_of_sexp (Sexplib.Sexp.of_string %S))"
         m (Sexplib.Sexp.to_string @@ M.sexp_of_t x)
     in
-    converter, serializer, runtime_conv
+    Functoria_key.Arg.conv ~conv ~serialize ~runtime_conv
 
   let from_run s = "Mirage_runtime.Arg." ^ s
   let builtin d mn m = of_module (from_run d) mn m
@@ -76,17 +76,17 @@ let target_conv: mode Cmdliner.Arg.converter =
 
 let pp_target fmt m = snd target_conv fmt m
 
-let serialize_mode fmt = function
-  | `Unix   -> Fmt.pf fmt "`Unix"
-  | `Xen    -> Fmt.pf fmt "`Xen"
-  | `MacOSX -> Fmt.pf fmt "`MacOSX"
-
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
      $(i,xen), $(i,unix), $(i,macosx)."
   in
-  let conv = target_conv, serialize_mode, "assert false" in
+  let serialize ppf = function
+    | `Unix   -> Fmt.pf ppf "`Unix"
+    | `Xen    -> Fmt.pf ppf "`Xen"
+    | `MacOSX -> Fmt.pf ppf "`MacOSX"
+  in
+  let conv = Arg.conv ~conv:target_conv ~runtime_conv:"target" ~serialize in
   let doc =
     Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc ["t";"target"] ~env:"MODE"
   in
@@ -136,18 +136,18 @@ let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =
 (** {3 File system keys} *)
 
 let kv_ro ?group () =
-  let converter =
+  let conv =
     Cmdliner.Arg.enum [
       "fat"    , `Fat ;
       "archive", `Archive ;
       "crunch" , `Crunch ]
   in
-  let serializer = Fmt.of_to_string @@ function
+  let serialize = Fmt.of_to_string @@ function
     | `Fat     -> "`Fat"
     | `Archive -> "`Archive"
     | `Crunch  -> "`Crunch"
   in
-  let conv = converter, serializer, "kv_ro" in
+  let conv = Arg.conv ~conv ~serialize ~runtime_conv:"kv_ro" in
   let doc =
     Fmt.strf
       "Use a $(i,fat), $(i,archive) or $(i,crunch) implementation for %a."
@@ -163,12 +163,12 @@ let dhcp ?group () =
     ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
 
 let net ?group (): [`Socket | `Direct] Key.key =
-  let converter = Cmdliner.Arg.enum ["socket", `Socket ; "direct", `Direct] in
-  let serializer fmt = function
+  let conv = Cmdliner.Arg.enum ["socket", `Socket ; "direct", `Direct] in
+  let serialize fmt = function
     | `Socket -> Fmt.pf fmt "`Socket"
     | `Direct -> Fmt.pf fmt "`Direct"
   in
-  let conv = converter, serializer, "net" in
+  let conv = Arg.conv ~conv ~runtime_conv:"net" ~serialize in
   let doc =
     Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in

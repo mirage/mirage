@@ -178,7 +178,7 @@ val compare: t -> t -> int
 val pp: t Fmt.t
 (** [pp fmt k] prints the name of [k]. *)
 
-val with_deps: keys:t list -> 'a value -> 'a value
+val with_deps: t list -> 'a value -> 'a value
 (** [with_deps keys v] is [v] with [keys] as data-dependencies. *)
 
 val deps: 'a value -> t list

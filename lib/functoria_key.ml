@@ -147,17 +147,12 @@ module Arg = struct
     | Flag       -> (serialize bool) ppf v
     | Opt (_, c) -> (serialize c) ppf v
 
-  let default_ = default
-  let serialize (type a): ?default:a -> a t serialize = fun ?default ppf t ->
-    let default = match default with
-      | None   -> default_ t
-      | Some d -> d
-    in
+  let serialize (type a): a -> a t serialize = fun v ppf t ->
     match t.kind with (* FIXME: passing a default to flag does not make sense *)
     | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag %a" serialize_info t.info
     | Opt (_, c) ->
       Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a"
-        (runtime_conv c) (serialize c) default serialize_info t.info
+        (runtime_conv c) (serialize c) v serialize_info t.info
 
 end
 
@@ -338,7 +333,7 @@ let parse_value ?stage t =
 let module_name = "Bootvar_gen"
 let ocaml_name k = Name.ocamlify (name k)
 let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
-let serialize ctx ppf (Any k) = Arg.serialize ppf ~default:(get ctx k) (arg k)
+let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)
 let name (Any k) = k.name
 
 let serialize_rw ctx fmt t =

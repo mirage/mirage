@@ -148,7 +148,7 @@ module Arg = struct
     | Opt (_, c) -> (serialize c) ppf v
 
   let serialize (type a): a -> a t serialize = fun v ppf t ->
-    match t.kind with (* FIXME: passing a default to flag does not make sense *)
+    match t.kind with
     | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag %a" serialize_info t.info
     | Opt (_, c) ->
       Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a"

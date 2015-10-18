@@ -202,7 +202,7 @@ module Alias = struct
   let arg t = t.a_arg
   let create a_arg = { a_setters = []; a_arg }
   let flag doc = create (Arg.flag ~stage:`Configure doc)
-  let opt conv d i = create (Arg.opt ~stage:`Configure conv d i)
+  (* let opt conv d i = create (Arg.opt ~stage:`Configure conv d i) *)
   let add k f t = { t with a_setters = Setter (k, f) :: t.a_setters }
 
   let apply_one v map (Setter (k,f)) = match f v with

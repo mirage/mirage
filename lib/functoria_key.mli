@@ -194,11 +194,10 @@ val filter_stage: Arg.stage -> t list -> t list
 (** [filter_stage s ks] is [ks] but with only keys available at stage
     [s]. *)
 
-(** {1 Alias}
-
-    Alias allows to define virtual keys in terms of other keys at
+(** Alias allows to define virtual keys in terms of other keys at
     configuration time only. *)
 module Alias: sig
+  (** {1 Alias}  *)
 
   type 'a t
   (** The type for key alias. *)
@@ -212,9 +211,11 @@ module Alias: sig
   (** [flag] is similar to {!Arg.flag} but defines configure-only
       command-line flag alias. Set [stage] to [`Configure]. *)
 
+(*
   val opt: 'a Arg.converter -> 'a -> Arg.info -> 'a t
   (** [opt] is similar to {!Arg.opt} but defines configure-only
       optional command-line arguments. Set [stage] to [`Configure]. *)
+*)
 
 end
 

@@ -341,7 +341,7 @@ module Config = struct
       $ libraries
       $ packages
     in
-    with_deps ~keys di
+    with_deps keys di
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)

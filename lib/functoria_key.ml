@@ -261,8 +261,8 @@ let pipe x f = map f x
 let if_ c t e = pipe c @@ fun b -> if b then t else e
 let match_ v f = map f v
 let ($) = app
-let value k = let v p = get p k in { deps = Set.singleton (Any k); v }
-let with_deps ~keys v = { v with deps = Set.(union v.deps @@ Set.of_list keys) }
+let value k = let v c = get c k in { deps = Set.singleton (Any k); v }
+let with_deps deps v = { v with deps = Set.(union v.deps @@ Set.of_list deps) }
 let deps k = Set.elements k.deps
 let mem p v = Set.for_all (fun (Any x) -> mem_u p x) v.deps
 let peek p v = if mem p v then Some (eval p v) else None

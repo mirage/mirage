@@ -95,8 +95,10 @@ module Arg = struct
       Serialize.(option serialize_env) env
       Serialize.(list string) names
 
+  (** {1 Arguments} *)
+
   type 'a kind =
-    | Opt : 'a converter -> 'a kind
+    | Opt : 'a * 'a converter -> 'a kind
     | Flag: bool kind
 
   type stage = [
@@ -108,36 +110,35 @@ module Arg = struct
   let pp_conv c = snd (converter c)
 
   let pp_kind: type a . a kind -> a Fmt.t = function
-    | Opt c -> pp_conv c
-    | Flag  -> Fmt.bool
+    | Opt (_, c) -> pp_conv c
+    | Flag       -> Fmt.bool
 
   type 'a t = {
     stage  : stage;
-    default: 'a;
     info   : info;
     kind   : 'a kind;
   }
 
   let pp t = pp_kind t.kind
   let stage t = t.stage
-  let default t = t.default
+  let default (type a) (t: a t) = match t.kind with Opt (d, _) -> d | Flag -> false
 
   let opt ?(stage=`Both) conv default info =
-    { stage; info; default; kind = Opt conv }
+    { stage; info; kind = Opt (default, conv) }
 
   let flag ?(stage=`Both) info =
-    { stage; info; default = false; kind = Flag }
+    { stage; info; kind = Flag }
 
   let to_cmdliner (type a) (t: a t) (f: a -> _) =
     let i = cmdliner_of_info t.info in
     match t.kind with
-    | Flag     -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
-    | Opt desc ->
+    | Flag -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
+    | Opt (default, desc) ->
       let f_desc v z = match v with
         | Some v -> f v z
         | None -> z
       in
-      let none = Fmt.strf "%a" (pp_conv desc) t.default in
+      let none = Fmt.strf "%a" (pp_conv desc) default in
       Cmdliner.Term.(app @@ pure f_desc)
         Cmdliner.Arg.(value @@ opt (some ~none @@ converter desc) None i)
 
@@ -147,18 +148,20 @@ module Arg = struct
       | Some d -> d
     in
     match t.kind with
-    | Flag  -> (serialize bool) ppf default
-    | Opt c -> (serialize c) ppf default
+    | Flag       -> (serialize bool) ppf v
+    | Opt (_, c) -> (serialize c) ppf v
 
+  let default_ = default
   let serialize (type a): ?default:a -> a t serialize = fun ?default ppf t ->
     let default = match default with
-      | None   -> t.default
+      | None   -> default_ t
       | Some d -> d
     in
     match t.kind with (* FIXME: passing a default to flag does not make sense *)
-    | Flag  -> Fmt.pf ppf "Functoria_runtime.Arg.flag %a" serialize_info t.info
-    | Opt c -> Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a"
-                 (runtime_conv c) (serialize c) default serialize_info t.info
+    | Flag -> Fmt.pf ppf "Functoria_runtime.Arg.flag %a" serialize_info t.info
+    | Opt (_, c) ->
+      Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a"
+        (runtime_conv c) (serialize c) default serialize_info t.info
 
 end
 

@@ -47,8 +47,8 @@ module Key: sig
   type 'a t
   (** The type for runtime keys containing a value of type ['a]. *)
 
-  val create: string -> 'a Arg.t -> 'a t
-  (** [create ~doc ~default conv] create a new key. *)
+  val create: 'a Arg.t -> 'a t
+  (** [create conv] create a new runtime key. *)
 
   val get: 'a t -> 'a
   (** [get k] is the value of the key [k]. Use the default value if no

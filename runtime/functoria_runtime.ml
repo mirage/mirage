@@ -37,12 +37,11 @@ end
 module Key = struct
 
   type 'a t = {
-    name: string;
     arg : 'a Arg.t;
     mutable value: 'a option;
   }
 
-  let create name arg = { name; arg; value = None }
+  let create arg = { arg; value = None }
 
   let get t = match t.value with
     | None   -> Arg.default t.arg

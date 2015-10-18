@@ -84,7 +84,7 @@ module Arg: sig
     string list -> info
   (** Define cross-stage information for an argument. See
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEinfo}
-      Cmdliner.Arg.info}.*)
+      Cmdliner.Arg.info}. If not set, [docs] is ["UNIKERNEL PARAMETERS"]. *)
 
 
   (** {1 Optional Arguments} *)

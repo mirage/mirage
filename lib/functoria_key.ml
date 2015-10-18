@@ -338,7 +338,7 @@ let name (Any k) = k.name
 
 let serialize_rw ctx fmt t =
   Format.fprintf fmt
-    "@[<2>let %s =@,Functoria_runtime.Key.create@ %S@ @[%a@]@]@,\
+    "@[<2>let %s =@,Functoria_runtime.Key.create@ %S@ %a@]@,\
      @[<2>let %s_t =@ Functoria_runtime.Key.term %s@]@,\
      @[<2>let %s () =@ Functoria_runtime.Key.get %s@]@,"
     (ocaml_name t)  (name t) Fmt.(parens (serialize ctx)) t

@@ -120,12 +120,10 @@ module Arg: sig
 end
 
 type +'a value
-(** The type for configure-time and run-time values. Values can be
-    parsed from the command-line at configure and/or runtime, or can
-    be provided as OCaml values in the application configuration file
-    (i.e. {i config.ml}). Values might have {{!deps}data
-    dependencies}, which form an (implicit) directed and acyclic graph
-    that need to be evaluated. *)
+(** The type for configure-time and run-time values. Values are either
+    {!pure} or obtained by composing other values. Values might have
+    {{!deps}data dependencies}, which form an (implicit) directed and
+    acyclic graph that need to be evaluated. *)
 
 val pure: 'a -> 'a value
 (** [pure x] is a value without any dependency. *)

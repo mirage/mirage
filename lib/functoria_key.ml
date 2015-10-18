@@ -142,11 +142,7 @@ module Arg = struct
       Cmdliner.Term.(app @@ pure f_desc)
         Cmdliner.Arg.(value @@ opt (some ~none @@ converter desc) None i)
 
-  let serialize_default (type a) ?default ppf (t: a t) =
-    let default = match default with
-      | None   -> t.default
-      | Some d -> d
-    in
+  let serialize_value (type a) (v:a) ppf (t: a t) =
     match t.kind with
     | Flag       -> (serialize bool) ppf v
     | Opt (_, c) -> (serialize c) ppf v
@@ -357,7 +353,7 @@ let serialize_rw ctx fmt t =
 let serialize_ro ctx fmt t =
   let Any k = t in
   Format.fprintf fmt "@[<2>let %s () =@ %a@]@," (ocaml_name t)
-    (Arg.serialize_default ~default:(get ctx k)) (arg k)
+    (Arg.serialize_value (get ctx k)) (arg k)
 
 let serialize ctx fmt k =
   if is_runtime k

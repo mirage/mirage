@@ -221,7 +221,7 @@ module Alias = struct
 
 end
 
-let hide_type x = Any x
+let abstract x = Any x
 let arg k = k.arg
 let aliases (Any k) = Set.elements @@ Alias.keys k.setters
 let name (Any k) = k.name

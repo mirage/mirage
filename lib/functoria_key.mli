@@ -162,15 +162,10 @@ val value: 'a key -> 'a value
 (** [value k] is the value parsed by [k]. *)
 
 type t
-(** The type for data dependencies, which are simply {{!key}keys} with
-    their type hidden. Data dependencies form a directed and acyclic
-    graph that need to be evaluated in order to obtain
-    {{!value}values}. Vertices of the graph hold
-    {{!value}values}. Edges represent evaluation-order (e.g. data)
-    dependencies between values. *)
+(** The type for abstract {{!key}keys}. *)
 
-val hide_type: 'a key -> t
-(** [hide_type k] is the data-dependency induced by using [k]. *)
+val abstract: 'a key -> t
+(** [hide k] is the [k] with its type hidden. *)
 
 val compare: t -> t -> int
 (** [compare] compares untyped keys. *)

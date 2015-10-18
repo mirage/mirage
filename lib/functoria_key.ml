@@ -24,38 +24,46 @@ end
 
 module Arg = struct
 
+  (** {1 Converters} *)
+
   type 'a serialize = Format.formatter -> 'a -> unit
   type 'a runtime_conv = string
-  type 'a converter = 'a Cmdliner.Arg.converter * 'a serialize * 'a runtime_conv
 
-  let converter (x, _, _) = x
-  let serialize (_, x, _) = x
-  let runtime_conv (_, _, x) = x
+  type 'a converter = {
+    conv: 'a Cmdliner.Arg.converter;
+    serialize: 'a serialize;
+    runtime_conv: 'a runtime_conv;
+  }
 
-  let string =
-    Cmdliner.Arg.string,
-    (fun fmt -> Format.fprintf fmt "%S"),
-    "Cmdliner.Arg.string"
+  let conv ~conv ~serialize ~runtime_conv = { conv; serialize; runtime_conv }
 
-  let bool =
-    Cmdliner.Arg.bool,
-    (fun fmt -> Format.fprintf fmt "%b"),
-    "Cmdliner.Arg.bool"
+  let converter x = x.conv
+  let serialize x = x.serialize
+  let runtime_conv x = x.runtime_conv
 
-  let int =
-    Cmdliner.Arg.int,
-    (fun fmt -> Format.fprintf fmt "%i"),
-    "Cmdliner.Arg.int"
+  let string = conv
+      ~conv:Cmdliner.Arg.string ~runtime_conv:"Cmdliner.Arg.string"
+      ~serialize:(fun fmt -> Format.fprintf fmt "%S")
 
-  let list d =
-    Cmdliner.Arg.list (converter d),
-    Serialize.list (serialize d),
-    Fmt.strf "(Cmdliner.Arg.list %s)" (runtime_conv d)
+  let bool = conv
+      ~conv:Cmdliner.Arg.bool ~runtime_conv:"Cmdliner.Arg.bool"
+      ~serialize:(fun fmt -> Format.fprintf fmt "%b")
 
-  let some d =
-    Cmdliner.Arg.some (converter d),
-    Serialize.option (serialize d),
-    Fmt.strf "(Cmdliner.Arg.some %s)" (runtime_conv d)
+  let int = conv
+      ~conv:Cmdliner.Arg.int ~runtime_conv:"Cmdliner.Arg.int"
+      ~serialize:(fun fmt -> Format.fprintf fmt "%i")
+
+  let list d = conv
+      ~conv:(Cmdliner.Arg.list (converter d))
+      ~runtime_conv:(Fmt.strf "(Cmdliner.Arg.list %s)" (runtime_conv d))
+      ~serialize:(Serialize.list (serialize d))
+
+  let some d = conv
+      ~conv:(Cmdliner.Arg.some (converter d))
+      ~runtime_conv:(Fmt.strf "(Cmdliner.Arg.some %s)" (runtime_conv d))
+      ~serialize:(Serialize.option (serialize d))
+
+  (** {1 Information about arguments} *)
 
   type info = {
     doc  : string option;

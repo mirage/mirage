@@ -39,10 +39,16 @@ module Arg: sig
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#TYPEconverter}
       Cmdliner.Arg.converter}. *)
 
-  type 'a converter = 'a Cmdliner.Arg.converter * 'a serialize * 'a runtime_conv
-  (** The type for argument converters. A value of [(c, s, r)] of type
-      ['a converter] is the argument converter using [c] to convert
-      user strings into OCaml value, [s] to convert OCaml values into
+  type 'a converter
+      (** The type for argument converters. *)
+
+  val conv:
+    conv:'a Cmdliner.Arg.converter ->
+    serialize:'a serialize ->
+    runtime_conv:'a runtime_conv ->
+    'a converter
+  (** [conv c s r] is the argument converter using [c] to convert user
+      strings into OCaml value, [s] to convert OCaml values into
       strings interpretable as OCaml expressions, and the function
       named [r] to convert user strings into OCaml values at
       runtime. *)

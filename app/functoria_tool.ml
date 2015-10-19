@@ -110,25 +110,34 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     let _ = Term.eval_peek_opts Config.base_context in
     Config.load c
 
+  let load_color () =
+    (* This is ugly but we really want the color options to be set
+       before calling [load_config]. *)
+    let c = match Term.eval_peek_opts color with
+      | _, `Ok color -> color
+      | _ -> None
+    in
+    init_format c
+
   let config = Lazy.from_fun load_config
+  let set_color  = Lazy.from_fun load_color
 
   let with_config f options =
-    let apply color _file t =
-      init_format color;
-      match t with
-      | Ok r -> r
+    Lazy.force set_color;
+    let show_error = function
+      | Ok r    -> r
       | Error s -> Log.show_error "%s" s
     in
     let term = match Lazy.force config with
       | Ok t ->
-        let switch_context = Config.switching_context t in
-        let term = match Term.eval_peek_opts switch_context with
-          | Some context, _ -> f switch_context context t
+        let if_context = Config.if_context t in
+        let term = match Term.eval_peek_opts if_context with
+          | Some context, _ -> f if_context context t
           | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
         in term
       | Error err -> Term.pure (fun _ -> Error err)
     in
-    Term.(pure apply $ color $ file $ (term $ options))
+    Term.(pure (fun _ _ -> show_error) $ color $ file $ (term $ options))
 
   (* CONFIGURE *)
   let configure_doc =  "Configure a $(mname) application."

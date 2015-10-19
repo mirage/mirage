@@ -83,7 +83,7 @@ let keys (argv: argv impl) = impl @@ object
     method !clean = Keys.clean
     method !libraries = Key.pure [ "functoria.runtime" ]
     method !packages = Key.pure [ "functoria" ]
-    method !dependencies = [ abstract argv ]
+    method !deps = [ abstract argv ]
     method !connect info modname = function
       | [ argv ] ->
         Fmt.strf

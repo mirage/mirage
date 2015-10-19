@@ -112,7 +112,7 @@ val foreign:
   ?packages:string list ->
   ?libraries:string list ->
   ?keys:key list ->
-  ?dependencies:abstract_impl list ->
+  ?deps:abstract_impl list ->
   string -> 'a typ -> 'a impl
 (** [foreign name typ] is the module [name], having the module type
     [typ].
@@ -125,12 +125,10 @@ val foreign:
     {- If [keys] is set, use the given {{!Functoria_key.key}keys} to
        parse at configure and runtime the command-line arguments
        before calling [name.connect].}
-    {- If [dependencies] is set, the given list of
-       {{!abstract_impl}abstract} implementations is added as
-       data-dependencies: they will be initialized before calling
-       [name.connect]. }
+    {- If [depes] is set, the given list of {{!abstract_impl}abstract}
+       implementations is added as data-dependencies: they will be
+       initialized before calling [name.connect]. }
     }
-
 *)
 
 (** Information about the final application. *)
@@ -215,8 +213,8 @@ class type ['ty] configurable = object
   (** [keys] is the list of command-line keys to set-up the
       configurable. *)
 
-  method dependencies: abstract_impl list
-  (** [dependencies] is the list of {{!abstract_impl} abstract
+  method deps: abstract_impl list
+  (** [deps] is the list of {{!abstract_impl} abstract
       implementations} that must be initialized before calling
       {!connect}. *)
 
@@ -244,7 +242,7 @@ class base_configurable: object
   method connect: Info.t -> string -> string list -> string
   method configure: Info.t -> (unit, string) Rresult.result
   method clean: Info.t -> (unit, string) Rresult.result
-  method dependencies: abstract_impl list
+  method deps: abstract_impl list
 end
 
 (** {1 Sharing} *)

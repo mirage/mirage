@@ -78,7 +78,7 @@ module rec Typ: sig
     method connect: Info.t -> string -> string list -> string
     method configure: Info.t -> (unit, string) R.t
     method clean: Info.t -> (unit, string) R.t
-    method dependencies: abstract_impl list
+    method deps: abstract_impl list
   end
 
 end = Typ
@@ -102,15 +102,14 @@ class base_configurable = object
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
   method configure (_: Info.t): (unit,string) R.t = R.ok ()
   method clean (_: Info.t): (unit,string) R.t = R.ok ()
-  method dependencies: abstract_impl list = []
+  method deps: abstract_impl list = []
 end
 
 type job = JOB
 let job = Type JOB
 
 class ['ty] foreign
-    ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(dependencies=[])
-    module_name ty
+    ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(deps=[]) module_name ty
   : ['ty] configurable
   =
   let name = Name.create module_name ~prefix:"f" in
@@ -128,11 +127,11 @@ class ['ty] foreign
         Fmt.(list ~sep:sp string)  args
     method clean _ = R.ok ()
     method configure _ = R.ok ()
-    method dependencies = dependencies
+    method deps = deps
   end
 
-let foreign ?packages ?libraries ?keys ?dependencies module_name ty =
-  Impl (new foreign ?keys ?libraries ?packages ?dependencies module_name ty)
+let foreign ?packages ?libraries ?keys ?deps module_name ty =
+  Impl (new foreign ?keys ?libraries ?packages ?deps module_name ty)
 
 (* {Misc} *)
 
@@ -141,7 +140,7 @@ let rec equal
   = fun x y -> match x, y with
     | Impl c, Impl c' ->
       c#name = c'#name
-      && List.for_all2 equal_any c#dependencies c'#dependencies
+      && List.for_all2 equal_any c#deps c'#deps
     | App a, App b -> equal a.f b.f && equal a.x b.x
     | If (cond1, t1, e1), If (cond2, t2, e2) ->
       (* Key.value is a functional value (it contains a closure for eval).
@@ -156,7 +155,7 @@ and equal_any (Abstract x) (Abstract y) = equal x y
 let rec hash: type t . t impl -> int = function
   | Impl c ->
     Hashtbl.hash
-      (c#name, Hashtbl.hash c#keys, List.map hash_any c#dependencies)
+      (c#name, Hashtbl.hash c#keys, List.map hash_any c#deps)
   | App { f; x } -> Hashtbl.hash (`Bla (hash f, hash x))
   | If (cond, t, e) ->
     Hashtbl.hash (`If (cond, hash t, hash e))

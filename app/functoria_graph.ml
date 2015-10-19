@@ -187,7 +187,7 @@ let create impl =
             let deps, g =
               List.fold_right
                 (fun (Abstract x) (l,g) -> let v, g = aux g x in v::l, g)
-                c#dependencies ([], g)
+                c#deps ([], g)
             in
             add_impl g ~impl:(c :> subconf) ~args:[] ~deps
           | `If (cond, then_, else_) ->

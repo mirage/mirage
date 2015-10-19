@@ -11,7 +11,7 @@ Library "mirage-runtime"
   Path:               lib_runtime
   Findlibparent:      mirage
   Findlibname:        runtime
-  Modules:            Mirage_runtime
+  Modules:            Mirage_runtime, Mirage_info
   BuildDepends:       functoria.runtime, ipaddr
 
 Library mirage

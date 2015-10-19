@@ -132,7 +132,7 @@ let crunch dirname = impl @@ object
     method module_name = String.capitalize name
     method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch" ]
     method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct" ]
-    method dependencies = [ abstract default_io_page ]
+    method deps = [ abstract default_io_page ]
     method connect _ modname _ = Fmt.strf "%s.connect ()" modname
 
     method configure i =
@@ -700,7 +700,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method keys = [ Key.abstract interfaces ]
     method packages = Key.pure [ "tcpip" ]
     method libraries = Key.pure [ "tcpip.stack-socket" ]
-    method dependencies = [
+    method deps = [
       abstract (socket_udpv4 None);
       abstract (socket_tcpv4 None);
     ]
@@ -752,8 +752,8 @@ let check_entropy libs =
     Log.error
       "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
        Please enable the entropy by adding a dependency \
-       to the nocrypto device. You can do so with the ~dependencies \
-       argument of Mirage.foreign."
+       to the nocrypto device. You can do so by adding [~deps:nocrypto] \
+       to the arguments of Mirage.foreign."
   else R.ok ()
 
 let nocrypto = impl @@ object
@@ -805,7 +805,7 @@ let tls_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage"
     method packages = Key.pure [ "mirage-conduit" ; "tls" ]
     method libraries = Key.pure [ "conduit.mirage" ; "tls.mirage" ]
-    method dependencies = [ abstract nocrypto ]
+    method deps = [ abstract nocrypto ]
     method connect _ _ _ = "return (`Ok Conduit_mirage.with_tls)"
   end
 
@@ -819,7 +819,7 @@ let conduit_with_connectors connectors = impl @@ object
     method module_name = "Conduit_mirage"
     method packages = Key.pure [ "mirage-conduit" ]
     method libraries = Key.pure [ "conduit.mirage" ]
-    method dependencies = abstract nocrypto :: List.map abstract connectors
+    method deps = abstract nocrypto :: List.map abstract connectors
 
     method connect _i _ = function
       (* There is always at least the nocrypto device *)
@@ -897,7 +897,7 @@ let http_server conduit = impl @@ object
     method module_name = "Cohttp_mirage.Server_with_conduit"
     method packages = Key.pure [ "mirage-http" ]
     method libraries = Key.pure [ "mirage-http" ]
-    method dependencies = [ abstract conduit ]
+    method deps = [ abstract conduit ]
     method connect _i modname = function
       | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
       | _ -> failwith "The http connect should receive exactly one argument."
@@ -974,8 +974,11 @@ let mprof_trace ~size () = size
 
 (** Functoria devices *)
 
+type info = Functoria_app.info
 let noop = Functoria_app.noop
-let export_info = Functoria_app.export_info
+let info = Functoria_app.info
+let export_info =
+  Functoria_app.export_info ~type_modname:"Mirage_info" ()
 
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
@@ -1449,7 +1452,7 @@ module Project = struct
       method keys = [
         Key.(abstract target);
         Key.(abstract unix);
-        Key.(abstract xen)
+        Key.(abstract xen);
       ]
 
       method packages =
@@ -1464,7 +1467,7 @@ module Project = struct
       method configure = configure
       method clean = clean
       method connect _ _mod _names = "Lwt.return_unit"
-      method dependencies = List.map abstract jobs
+      method deps = List.map abstract jobs
     end
 
 end

@@ -391,15 +391,22 @@ val argv_dynamic: Functoria_app.argv impl
 (** Dynamic argv implementation that resolves either to
     the xen or the unix implementation. *)
 
-(** {2 Functoria devices} *)
+(** {2 Other devices} *)
 
 val noop: job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
-val export_info : Functoria_app.info impl
-(** Export all the information available at configure time to runtime.
-    It produces, at runtime, a {!Functoria_info.info}.
-*)
+type info
+(** [info] is the type for module implementing
+    {!Mirage_runtime.Info}. *)
+
+val info: info typ
+(** [info] is the combinator to generate {info} values to use at
+    runtime. *)
+
+val export_info: info impl
+(** [export_info] exports all the information available at configure
+    time to runtime.  It produces, at runtime, a {!Mirage.Info.t}. *)
 
 (** {2 Deprecated functions} *)
 

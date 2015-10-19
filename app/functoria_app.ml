@@ -107,40 +107,40 @@ let pp_packages fmt l =
          (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x)
         ) l
 
-let pp_dump_info fmt i =
+let pp_dump_info module_name fmt i =
   Fmt.pf fmt
-    "Functoria_info.{@ name = %S;@ \
+    "%s.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
-    (Info.name i)
+    module_name (Info.name i)
     pp_packages (Info.packages i)
     pp_libraries (Info.libraries i)
 
-let export_info = impl @@ object
+let export_info
+     ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
+  impl @@ object
     inherit base_configurable
     method ty = info
     method name = "info"
-
-    val gen_file_name = "Config_info_gen"
-    method module_name = "Functoria_info"
+    val gen_file = String.lowercase gen_modname  ^ ".ml"
+    method module_name = gen_modname
     method !libraries = Key.pure ["functoria.runtime"]
     method !packages = Key.pure ["functoria"]
     method !connect _ modname _ = Fmt.strf "return (`Ok %s.info)" modname
 
     method !clean i =
-      let file = Info.root i / (String.lowercase gen_file_name ^ ".ml") in
+      let file = Info.root i / gen_file in
       Cmd.remove file;
       Cmd.remove (file ^".in");
       R.ok ()
 
     method !configure i =
-      let filename = String.lowercase gen_file_name ^ ".ml" in
-      let file = Info.root i / filename in
-      Log.info "%a %s" Log.blue "Generating: " filename;
+      let file = Info.root i / gen_file in
+      Log.info "%a %s" Log.blue "Generating: " gen_file;
       let f fmt =
-        Fmt.pf fmt "@[<v 2>let info = %a@]" pp_dump_info i
+        Fmt.pf fmt "@[<v 2>let info = %a@]" (pp_dump_info type_modname) i
       in
       Cmd.with_file (file^".in") f;
-      Cmd.run ~redirect:false "opam config subst %s" filename
+      Cmd.run ~redirect:false "opam config subst %s" gen_file
   end
 
 module Engine = struct

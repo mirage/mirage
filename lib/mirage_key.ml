@@ -17,6 +17,42 @@
 module Key = Functoria_key
 module Alias = Key.Alias
 
+(* FIXME: replace by Astring *)
+module X = struct
+  let strip str =
+    let p = ref 0 in
+    let l = String.length str in
+    let fn = function
+      | ' ' | '\t' | '\r' | '\n' -> true
+      | _ -> false in
+    while !p < l && fn (String.unsafe_get str !p) do
+      incr p;
+    done;
+    let p = !p in
+    let l = ref (l - 1) in
+    while !l >= p && fn (String.unsafe_get str !l) do
+      decr l;
+    done;
+    String.sub str p (!l - p + 1)
+
+  let cut_at s sep =
+    try
+      let i = String.index s sep in
+      let name = String.sub s 0 i in
+      let version = String.sub s (i+1) (String.length s - i - 1) in
+      Some (name, version)
+    with _ ->
+      None
+
+  let split s sep =
+    let rec aux acc r =
+      match cut_at r sep with
+      | None       -> List.rev (r :: acc)
+      | Some (h,t) -> aux (strip h :: acc) t in
+    aux [] s
+
+end
+
 (** {2 Custom Descriptions} *)
 
 module Arg = struct
@@ -76,6 +112,26 @@ let target_conv: mode Cmdliner.Arg.converter =
 
 let pp_target fmt m = snd target_conv fmt m
 
+let default_unix = lazy (
+  match Functoria_app.Cmd.uname_s () with
+  | Some "Darwin" -> begin
+      (* Only use MacOS-specific functionality from Yosemite upwards *)
+      let is_yosemite_or_higher =
+        match Functoria_app.Cmd.uname_r () with
+        | None -> false
+        | Some vs ->
+          match X.split vs '.' with
+          | [] -> false
+          | hd::_ -> begin
+              let v = try int_of_string hd with _ -> 0 in
+              v >= 14
+            end
+      in
+      if is_yosemite_or_higher then `MacOSX else `Unix
+    end
+  | _ -> `Unix
+)
+
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
@@ -90,7 +146,8 @@ let target =
   let doc =
     Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc ["t";"target"] ~env:"MODE"
   in
-  let key = Arg.opt ~stage:`Configure conv `Unix doc in
+  let default = Lazy.force default_unix in
+  let key = Arg.opt ~stage:`Configure conv default doc in
   Key.create "target" key
 
 let is_xen =
@@ -101,7 +158,7 @@ let is_xen =
 let unix =
   let doc = "Set $(b,target) to $(i,unix)." in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
-  let setter b = if b then Some `Unix else None in
+  let setter b = if b then Some (Lazy.force default_unix) else None in
   let alias = Alias.flag doc in
   let alias = Alias.add target setter alias in
   Key.alias "unix" alias

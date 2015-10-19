@@ -145,7 +145,7 @@ let export_info
 
 module Engine = struct
 
-  let switching_context =
+  let if_context =
     let open Graph in
     Graph.collect (module KeySet) @@ function
     | If cond      -> KeySet.of_list (Key.deps cond)
@@ -305,11 +305,11 @@ module Config = struct
     jobs    : Graph.t;
   }
 
-  (* In practice, we get all the switching keys and all the keys that
-     have a setter to them. *)
-  let get_switching_context jobs =
+  (* In practice, we get all the keys associated to [if] cases, and
+     all the keys that have a setter to them. *)
+  let get_if_context jobs =
     let all_keys = Engine.keys jobs in
-    let skeys = Engine.switching_context jobs in
+    let skeys = Engine.if_context jobs in
     let f k s =
       if KeySet.is_empty @@ KeySet.inter (KeySet.of_list @@ Key.aliases k) skeys
       then s
@@ -321,7 +321,7 @@ module Config = struct
     let jobs = Graph.create main_dev in
     let libraries = Key.pure @@ String.Set.of_list libraries in
     let packages = Key.pure @@ String.Set.of_list packages in
-    let keys = KeySet.(union (of_list keys) (get_switching_context jobs)) in
+    let keys = KeySet.(union (of_list keys) (get_if_context jobs)) in
     { libraries; packages; keys; name; root; jobs }
 
   (* FIXME(samoht): I don't understand why eval return a function
@@ -542,7 +542,7 @@ module Make (P: S) = struct
            directory.\n\
            Please specify one explictly on the command-line."
 
-  module C = struct
+  module Config = struct
     include P
 
     (* This is a hack to allow the implementation of
@@ -574,7 +574,7 @@ module Make (P: S) = struct
       Log.set_section (Config.name t);
       Ok t
 
-    let switching_context t =
+    let if_context t =
       Key.context ~stage:`Configure @@ KeySet.elements @@ Config.keys t
 
     let configure (jobs, info) = configure info jobs
@@ -582,9 +582,8 @@ module Make (P: S) = struct
     let build (_jobs, info) = build info
     let describe context t = describe ~context t
 
-    (* FIXME: switch_map? *)
-    let eval switch_map t =
-      let info = Config.eval switch_map t in
+    let eval context t =
+      let info = Config.eval context t in
       let context = Key.context ~stage:`Configure (Key.deps info) in
       let f map =
         show_keys map @@ Key.deps info;
@@ -593,7 +592,7 @@ module Make (P: S) = struct
       Cmdliner.Term.(pure f $ context)
   end
 
-  let get_base_context = C.get_base_context
-  let run () = let module M = Functoria_tool.Make(C) in ()
+  let get_base_context = Config.get_base_context
+  let run () = let module M = Functoria_tool.Make(Config) in ()
 
 end

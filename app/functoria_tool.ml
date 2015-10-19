@@ -175,11 +175,11 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       Term.(pure (fun a b c d -> a, b, c, d)
             $ output $ dotcmd $ dot $ full_eval)
     in
-    let f switch_keys map t =
+    let f if_keys map t =
       let describe _ (output, dotcmd, dot, eval) =
         Config.describe ~dotcmd ~dot ~eval ~output map t
       in
-      Term.(pure describe $ switch_keys)
+      Term.(pure describe $ if_keys)
     in
     with_config f options, term_info "describe" ~doc ~man
 

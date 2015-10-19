@@ -39,7 +39,7 @@ module type CONFIG = sig
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 
-  val switching_context: t -> Functoria_key.context Cmdliner.Term.t
+  val if_context: t -> Functoria_key.context Cmdliner.Term.t
 
   val configure:
     evaluated ->

@@ -327,20 +327,19 @@ module Config = struct
      which take a context. Is this supposed to be different from the
      one passed as argument? *)
   let eval context { name = n; root; packages; libraries; keys; jobs } =
-    let e = Graph.eval ~context:context jobs in
-    let open Key in
-    let packages = pure String.Set.union $ packages $ Engine.packages e in
-    let libraries = pure String.Set.union $ libraries $ Engine.libraries e in
-    let keys = KeySet.elements (KeySet.union keys @@ Engine.keys e) in
+    let e = Graph.eval ~context jobs in
+    let pkgs = Key.(pure String.Set.union $ packages $ Engine.packages e) in
+    let libs = Key.(pure String.Set.union $ libraries $ Engine.libraries e) in
     let list = String.Set.elements in
+    let keys = KeySet.elements (KeySet.union keys @@ Engine.keys e) in
     let di =
-      pure (fun libraries packages context ->
+      Key.(pure (fun libraries packages context ->
           e, Info.create ~libraries:(list libraries) ~packages:(list packages)
             ~keys ~context ~name:n ~root)
-      $ libraries
-      $ packages
+      $ libs
+      $ pkgs)
     in
-    with_deps keys di
+    Key.with_deps keys di
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)
@@ -353,7 +352,7 @@ module Config = struct
   let gen_pp pp ~partial ~context fmt jobs =
     pp fmt @@ Graph.simplify @@ Graph.eval ~partial ~context jobs
 
-  let pp = gen_pp Graph.pp
+  let pp i = gen_pp (Graph.pp i)
   let pp_dot = gen_pp Graph.pp_dot
 
 end
@@ -483,9 +482,13 @@ module Make (P: S) = struct
           root root
       )
 
-  let describe ~dotcmd ~dot ~eval ~output ~context { Config.jobs; _ } =
+  let show_keys context keys =
+    Log.info "%a %a" Log.blue "Keys:" (Key.pps context) keys
+
+  let describe info ~dotcmd ~dot ~eval ~output ~context { Config.jobs; _ } =
     let f fmt =
-      Config.(if dot then pp_dot else pp) ~partial:(not eval) ~context fmt jobs
+      let dot = if dot then Config.pp_dot else Config.pp info in
+      dot ~partial:(not eval) ~context fmt jobs
     in
     let with_fmt f = match output with
       | None when dot ->
@@ -494,9 +497,6 @@ module Make (P: S) = struct
       | None -> f Fmt.stdout
       | Some s -> Cmd.with_file s f
     in R.ok @@ with_fmt f
-
-  let show_keys keymap keyset =
-    Log.info "%a %a" Log.blue "Keys:" (Key.pps keymap) keyset
 
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
@@ -579,7 +579,7 @@ module Make (P: S) = struct
     let configure (jobs, info) = configure info jobs
     let clean (jobs, info) = clean info jobs
     let build (_jobs, info) = build info
-    let describe context t = describe ~context t
+    let describe (_jobs, info) context t = describe info ~context t
 
     let eval context t =
       let info = Config.eval context t in

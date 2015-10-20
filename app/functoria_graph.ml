@@ -454,4 +454,11 @@ module Dot = Graphviz.Dot(struct
 
 let pp_dot = Dot.fprint_graph
 
-let pp = Fmt.nop
+let pp i ppf _ =
+  let show name = Fmt.pf ppf "%a @[%a@]@." Log.blue name in
+  Fmt.pf ppf "\n\n";
+  let list f = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter f in
+  show "Name      " Fmt.string (Info.name i);
+  show "Keys      " (list Key.pp) (Info.keys i);
+  show "Libraries " (list Fmt.string) (Info.libraries i);
+  show "Packages  " (list Fmt.string) (Info.packages i)

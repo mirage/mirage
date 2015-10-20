@@ -52,6 +52,7 @@ module type CONFIG = sig
   val clean: evaluated -> (unit, string) Rresult.result
 
   val describe:
+    evaluated ->
     Functoria_key.context -> t ->
     dotcmd:string -> dot:bool -> eval:bool -> output:string option ->
     (unit, string) Rresult.result

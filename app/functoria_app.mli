@@ -47,11 +47,11 @@ val info: info typ
 (** [info] is a value representing {!info} module types. *)
 
 val app_info: ?type_modname:string -> ?gen_modname:string -> unit -> info impl
-(** [app_info] is the module implementation whose state contins all
+(** [app_info] is the module implementation whose state contains all
     the information available at configure-time. The type of the
     generated value lives in the module [type_modname]: if not set, it
     is [Functoria_info]. The value is stored into a generated module
-    name [gen_modname]: if not set, it is [Config_info_gen]. *)
+    name [gen_modname]: if not set, it is [Info_gen]. *)
 
 (** {1 Builders} *)
 

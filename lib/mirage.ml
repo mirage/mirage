@@ -977,8 +977,7 @@ let mprof_trace ~size () = size
 type info = Functoria_app.info
 let noop = Functoria_app.noop
 let info = Functoria_app.info
-let export_info =
-  Functoria_app.export_info ~type_modname:"Mirage_info" ()
+let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
 
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in

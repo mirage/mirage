@@ -404,9 +404,9 @@ val info: info typ
 (** [info] is the combinator to generate {info} values to use at
     runtime. *)
 
-val export_info: info impl
-(** [export_info] exports all the information available at configure
-    time to runtime.  It produces, at runtime, a {!Mirage.Info.t}. *)
+val app_info: info impl
+(** [app_info] exports all the information available at configure time
+    into a runtime {!Mirage.Info.t} value. *)
 
 (** {2 Deprecated functions} *)
 

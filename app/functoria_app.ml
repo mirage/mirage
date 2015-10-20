@@ -115,8 +115,7 @@ let pp_dump_info module_name fmt i =
     pp_packages (Info.packages i)
     pp_libraries (Info.libraries i)
 
-let export_info
-     ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
+let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
   impl @@ object
     inherit base_configurable
     method ty = info

@@ -450,12 +450,5 @@ module Dot = Graphviz.Dot(struct
 
   end )
 
-let pp_dot _context _info = Dot.fprint_graph
-
-let pp context info ppf _ =
-  let show name = Fmt.pf ppf "%a @[%a@]@." Log.blue name in
-  let list f = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter f in
-  show "Name      " Fmt.string (Info.name info);
-  show "Keys      " (Key.pps context) (Key.Set.of_list @@ Info.keys info);
-  show "Libraries " (list Fmt.string) (Info.libraries info);
-  show "Packages  " (list Fmt.string) (Info.packages info)
+let pp_dot = Dot.fprint_graph
+let pp = Fmt.nop

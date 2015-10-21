@@ -94,8 +94,8 @@ val collect:
 
 val hash: vertex -> int
 
-val pp: context -> Info.t -> t Fmt.t
+val pp: t Fmt.t
 (** Textual representation of the graph. *)
 
-val pp_dot: context -> Info.t -> t Fmt.t
+val pp_dot: t Fmt.t
 (** Dot representation of the graph. *)

@@ -53,10 +53,9 @@ module type CONFIG = sig
 
   val describe:
     evaluated ->
-    Functoria_key.context -> t ->
-    dotcmd:string -> dot:bool -> eval:bool -> output:string option ->
+    dotcmd:string -> dot:bool -> output:string option ->
     (unit, string) Rresult.result
 
-  val eval: Functoria_key.context -> t -> evaluated Cmdliner.Term.t
+  val eval: partial:bool -> Functoria_key.context -> t -> evaluated Cmdliner.Term.t
 
 end

@@ -156,7 +156,11 @@ let is_xen =
   | `Unix | `MacOSX -> false
 
 let unix =
-  let doc = "Set $(b,target) to $(i,unix)." in
+  let doc =
+    "Set $(b,target) to $(i,unix). For OSX (Yosemite or higher) \
+     $(i,unix) is equivalent to `--target=macosx`. Otherwise it is \
+     `--target=unix`."
+  in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
   let setter b = if b then Some (Lazy.force default_unix) else None in
   let alias = Alias.flag doc in

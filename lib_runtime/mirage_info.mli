@@ -16,7 +16,7 @@
 
 (** Runtime information about the application. *)
 
-type t = {
+type t = Functoria_info.info = {
   name     : string;
   libraries: string list;
   packages : (string * string) list;

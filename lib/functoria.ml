@@ -43,6 +43,15 @@ module Info = struct
     let keys = Key.Set.of_list keys in
     { name; root; keys; libraries; packages; context }
 
+  let pp verbose ppf { name ; root ; keys ; context ; libraries ; packages } =
+    let show name = Fmt.pf ppf "@[<2>%a@ %a@]@," Log.blue name in
+    let set = Fmt.iter ~sep:(Fmt.unit ",@ ") String.Set.iter Fmt.string in
+    show "Name      " Fmt.string name;
+    if verbose then show "Root      " Fmt.string root;
+    show "Keys      " (Key.pps context) (KeySet.elements keys);
+    if verbose then show "Libraries " set libraries;
+    if verbose then show "Packages  " set packages
+
 end
 
 type _ typ =

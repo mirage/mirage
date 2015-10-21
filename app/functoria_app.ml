@@ -482,9 +482,6 @@ module Make (P: S) = struct
           root root
       )
 
-  let show_keys context keys =
-    Log.info "%a %a" Log.blue "Keys:" (Key.pps context) keys
-
   let describe _info ~dotcmd ~dot ~output jobs =
     let f fmt = (if dot then Config.pp_dot else Config.pp) fmt jobs in
     let with_fmt f = match output with
@@ -581,8 +578,9 @@ module Make (P: S) = struct
       let info = Config.eval ~partial context t in
       let context = Key.context ~stage:`Configure (Key.deps info) in
       let f map =
-        show_keys map @@ Key.deps info;
-        Key.eval map info @@ map
+        let e = Key.eval map info @@ map in
+        Log.info "@[<v>%a@]" (Info.pp false) (snd e) ;
+        e
       in
       Cmdliner.Term.(pure f $ context)
   end

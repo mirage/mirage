@@ -166,6 +166,8 @@ module Info: sig
     name:string ->
     root:string -> t
 
+  val pp: bool -> t Fmt.t
+
 end
 
 (** Signature for configurable module implementations. A

@@ -352,7 +352,7 @@ module Config = struct
   let gen_pp pp ~partial ~context fmt jobs =
     pp fmt @@ Graph.simplify @@ Graph.eval ~partial ~context jobs
 
-  let pp i = gen_pp (Graph.pp i)
+  let pp c i = gen_pp (Graph.pp c i)
   let pp_dot = gen_pp Graph.pp_dot
 
 end
@@ -487,7 +487,7 @@ module Make (P: S) = struct
 
   let describe info ~dotcmd ~dot ~eval ~output ~context { Config.jobs; _ } =
     let f fmt =
-      let dot = if dot then Config.pp_dot else Config.pp info in
+      let dot = if dot then Config.pp_dot else Config.pp context info in
       dot ~partial:(not eval) ~context fmt jobs
     in
     let with_fmt f = match output with

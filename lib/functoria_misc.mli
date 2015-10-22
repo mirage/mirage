@@ -120,10 +120,10 @@ end
 
 module Codegen: sig
   val generated_header: unit -> string
-  val append: Format.formatter -> ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a
+  val append: Format.formatter -> ('a, Format.formatter, unit) format -> 'a
   val newline: Format.formatter -> unit
   val set_main_ml: string -> unit
-  val append_main: ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a
+  val append_main: ('a, Format.formatter, unit) format -> 'a
   val newline_main: unit -> unit
 end
 

@@ -15,7 +15,7 @@ applications are found at <https://github.com/mirage/mirage-skeleton>.
 
 This repository includes:
 
-* a commmand-line tool to create and deploy applications with Mirage.
+* a command-line tool to create and deploy applications with Mirage.
 * in `types/`, a library of type signatures that compliant applications use.
 
 There are several diverse backends in Mirage that require rather specialised
@@ -60,13 +60,13 @@ will configure your project. It will generate a `Makefile` and
 `main.ml` with the appropriate boilerplate for your chosen
 platform.
 
-To configure for the unix-direct target (using tap interfaces), do:
+To configure for the Unix-direct target (using tap interfaces), do:
 
 ```
 mirage configure --unix
 ```
 
-To build for the xen target, do:
+To build for the Xen target, do:
 
 ```
 mirage configure --xen
@@ -100,11 +100,11 @@ mirage run # [--unix or --xen]
 
 will run the unikernel on the selected backend.
 
-* Under the unix-direct backend (`--unix`), `mirage` sets up a virtual
+* Under the Unix-direct backend (`--unix`), `mirage` sets up a virtual
   interface (tap) is passes its fd to the unikernel that will use it to
   perform networking operations.
 
-* Under the xen backend (`--xen`), `mirage` creates a xl configuration
+* Under the Xen backend (`--xen`), `mirage` creates a xl configuration
   file and uses `xl` to run the unikernel locally. Xen has to be
   installed and running on the machine.
 
@@ -113,6 +113,6 @@ will run the unikernel on the selected backend.
 In order to deploy a Mirage unikernel to Amazon EC2, you need to
 install the AWS tools on your machine, build a unikernel with the
 `--xen` option and then use the `ec2.sh` script (in directory
-`script`) in order to register you kernel with AWS. Then you can start
-your kernel with the web interface to AWS or any other mean AWS
+`script`) in order to register your kernel with AWS. Then you can start
+your kernel with the web interface to AWS or any other means AWS
 provides to start EC2 instances.

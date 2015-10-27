@@ -4,7 +4,7 @@ bash -ex .travis-opam.sh
 
 eval `opam config env`
 opam install mirage -y
-cd lib_test
-make MODE=unix MIRAGE=mirage BFLAGS=
-make clean
-make MODE=xen MIRAGE=mirage BFLAGS=
+opam source mirage-skeleton
+cd mirage-skeleton.dev
+MODE=unix make
+MODE=xen  make

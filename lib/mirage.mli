@@ -22,39 +22,39 @@
     large collection of devices. *)
 
 
+(** Configuration keys. *)
+module Key : module type of struct include Mirage_key end
 
-(** {2 Module combinators} *)
+include Functoria.S with module Key := Key
 
-type 'a typ
-(** The type of values representing module types. *)
+(** {2 General mirage devices} *)
 
-val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
-(** Construct a functor type from a type and an existing functor
-    type. This corresponds to prepending a parameter to the list of
-    functor parameters. For example,
+val tracing : int -> job impl
+(** Tracking implementation. *)
 
-    {[ kv_ro @-> ip @-> kv_ro ]}
+val mprof_trace : size:int -> unit -> int
+(** Use mirage-profile to trace the unikernel.
+    On Unix, this creates and mmaps a file called "trace.ctf".
+    On Xen, it shares the trace buffer with dom0.
 
-    describes a functor type that accepts two arguments -- a kv_ro and
-    an ip device -- and returns a kv_ro.
+    Deprecated. Is the identity over size.
 *)
 
-type 'a impl
-(** The type of values representing module implementations. *)
+(** {3 Application registering} *)
 
-val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
-(** [m $ a] applies the functor [a] to the functor [m]. *)
+val register :
+  ?tracing:int ->
+  ?keys:Key.t list ->
+  ?libraries:string list ->
+  ?packages:string list -> string -> job impl list -> unit
+    (** [register name jobs] registers the application named by [name]
+        which will executes the given [jobs].
+        @param libraries The ocamlfind libraries needed by this module.
+        @param packages The opam packages needed by this module.
+        @param keys The keys related to this module.
 
-val foreign: string -> ?libraries:string list -> ?packages:string list -> 'a typ -> 'a impl
-(** [foreign name libs packs constr typ] states that the module named
-    by [name] has the module type [typ]. If [libs] is set, add the
-    given set of ocamlfind libraries to the ones loaded by default. If
-    [packages] is set, add the given set of OPAM packages to the ones
-    loaded by default. *)
-
-val typ: 'a impl -> 'a typ
-(** Return the module signature of a given implementation. *)
-
+        @param tracing Enable tracing and give a default depth.
+    *)
 
 
 (** {2 Time} *)
@@ -63,7 +63,7 @@ type time
 (** Abstract type for timers. *)
 
 val time: time typ
-(** The [V1.TIME] module signature. *)
+(** Implementations of the [V1.TIME] signature. *)
 
 val default_time: time impl
 (** The default timer implementation. *)
@@ -76,7 +76,7 @@ type clock
 (** Abstract type for clocks. *)
 
 val clock: clock typ
-(** The [V1.CLOCK] module signature. *)
+(** Implementations of the [V1.CLOCK] signature. *)
 
 val default_clock: clock impl
 (** The default mirage-clock implementation. *)
@@ -89,7 +89,7 @@ type random
 (** Abstract type for random sources. *)
 
 val random: random typ
-(** The [V1.RANDOM] module signature. *)
+(** Implementations of the [V1.RANDOM] signature. *)
 
 val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
@@ -97,13 +97,11 @@ val default_random: random impl
 
 (** {2 Consoles} *)
 
-(** Implementations of the [V1.CONSOLE] signature. *)
-
 type console
 (** Abstract type for consoles. *)
 
 val console: console typ
-(** The [V1.CONSOLE] module signature. *)
+(** Implementations of the [V1.CONSOLE] signature. *)
 
 val default_console: console impl
 (** Default console implementation. *)
@@ -119,7 +117,7 @@ type io_page
 (** Abstract type for page-aligned buffers. *)
 
 val io_page: io_page typ
-(** The [V1.IO_PAGE] module signature. *)
+(** Implementations of the [V1.IO_PAGE] signature. *)
 
 val default_io_page: io_page impl
 (** The default [Io_page] implementation. *)
@@ -128,13 +126,12 @@ val default_io_page: io_page impl
 
 (** {2 Block devices} *)
 
-(** Implementations of the [V1.BLOCK] signature. *)
 
 type block
 (** Abstract type for raw block device configurations. *)
 
 val block: block typ
-(** The [V1.BLOCK] module signature. *)
+(** Implementations of the [V1.BLOCK] signature. *)
 
 val block_of_file: string -> block impl
 (** Use the given filen as a raw block device. *)
@@ -143,13 +140,11 @@ val block_of_file: string -> block impl
 
 (** {2 Static key/value stores} *)
 
-(** Implementations of the [V1.KV_RO] signature. *)
-
 type kv_ro
 (** Abstract type for read-only key/value store. *)
 
 val kv_ro: kv_ro typ
-(** The [V1.KV_RO] module signature. *)
+(** Implementations of the [V1.KV_RO] signature. *)
 
 val crunch: string -> kv_ro impl
 (** Crunch a directory. *)
@@ -166,13 +161,12 @@ val direct_kv_ro: string -> kv_ro impl
 
 (** {2 Filesystem} *)
 
-(** Implementations of the [V1.FS] signature. *)
 
 type fs
 (** Abstract type for filesystems. *)
 
 val fs: fs typ
-(** The [V1.FS] module signature. *)
+(** Implementations of the [V1.FS] signature. *)
 
 val fat: ?io_page:io_page impl -> block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
@@ -187,52 +181,60 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value
     store. *)
 
+(** {2 Generic key/value stores} *)
+
+val generic_kv_ro : ?group:string -> string -> kv_ro impl
+(** Generic key/value store exposing a key {!Key.kv_ro}. It will
+    choose dynamically between {!fat}, {!archive} and {!crunch}.
+*)
 
 
 (** {2 Network interfaces} *)
 
-(** Implementations of the [V1.NETWORK] signature. *)
 
 type network
 (** Abstract type for network configurations. *)
 
 val network: network typ
-(** Representation of [Mirage_types.NETWORK]. *)
+(** Implementations of the [V1.NETWORK] signature. *)
 
 val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
-val netif: string -> network impl
-(** A custom network interface. *)
+val netif: ?group:string -> string -> network impl
+(** A custom network interface. Exposes a {!Key.network} key. *)
 
 
 
 (** {2 Ethernet configuration} *)
 
-(** Implementations of the [V1.ETHIF] signature. *)
-(* XXX: is that meaningful to expose this level ? *)
 type ethernet
+
 val ethernet : ethernet typ
+(** Implementations of the [V1.ETHIF] signature. *)
+
 val etif: network impl -> ethernet impl
 
 (** {2 ARP configuration} *)
 
-(** Implementation of the [V1.ARPV4] signature. *)
 type arpv4
+
 val arpv4 : arpv4 typ
+(** Implementation of the [V1.ARPV4] signature. *)
+
 val arp: ?clock: clock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
 
-(** {2 IP configuration} *)
+(** {2 IP configuration}
 
-(** Implementations of the [V1.IP] signature. *)
+    Implementations of the [V1.IP] signature. *)
 
 type v4
 type v6
 
+(** Abstract type for IP configurations. *)
 type 'a ip
 type ipv4 = v4 ip
 type ipv6 = v6 ip
-(** Abstract type for IP configurations. *)
 
 val ipv4: ipv4 typ
 (** The [V1.IPV4] module signature. *)
@@ -250,10 +252,14 @@ type ('ipaddr, 'prefix) ip_config = {
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 (** Types for IPv4 manual configuration. *)
 
-val create_ipv4: ?clock:clock impl -> ?time:time impl -> network impl -> ipv4_config -> ipv4 impl
-(** Use an IPv4 address. *)
+val create_ipv4:
+  ?clock:clock impl -> ?time:time impl ->
+  ?group:string -> network impl -> ipv4_config -> ipv4 impl
+(** Use an IPv4 address.
+    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}.
+*)
 
-val default_ipv4: network impl -> ipv4 impl
+val default_ipv4: ?group:string -> network impl -> ipv4 impl
 (** Default local IP listening on the given network interfaces:
     - address: 10.0.0.2
     - netmask: 255.255.255.0
@@ -262,306 +268,158 @@ val default_ipv4: network impl -> ipv4 impl
 type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 (** Types for IPv6 manual configuration. *)
 
-val create_ipv6: ?time:time impl -> ?clock:clock impl -> network impl -> ipv6_config -> ipv6 impl
-(** Use an IPv6 address. *)
+val create_ipv6:
+  ?time:time impl -> ?clock:clock impl ->
+  ?group:string -> network impl -> ipv6_config -> ipv6 impl
+(** Use an IPv6 address.
+    Exposes the keys {!Key.V6.ip}, {!Key.V6.netmask} and {!Key.V6.gateways}.
+*)
 
 
 
-(** {UDP configuration} *)
-
-(** Implementation of the [V1.UDP] signature. *)
+(** {2 UDP configuration} *)
 
 type 'a udp
 type udpv4 = v4 udp
 type udpv6 = v6 udp
+
+(** Implementation of the [V1.UDP] signature. *)
 val udp: 'a udp typ
 val udpv4: udpv4 typ
 val udpv6: udpv6 typ
+
 val direct_udp: 'a ip impl -> 'a udp impl
-val socket_udpv4: Ipaddr.V4.t option -> udpv4 impl
+
+val socket_udpv4: ?group:string -> Ipaddr.V4.t option -> udpv4 impl
 
 
 
-(** {TCP configuration} *)
-
-(** Implementation of the [V1.TCP] signature. *)
+(** {2 TCP configuration} *)
 
 type 'a tcp
 type tcpv4 = v4 tcp
 type tcpv6 = v6 tcp
+
+(** Implementation of the [V1.TCP] signature. *)
 val tcp: 'a tcp typ
 val tcpv4: tcpv4 typ
 val tcpv6: tcpv6 typ
+
 val direct_tcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
   'a ip impl -> 'a tcp impl
-val socket_tcpv4: Ipaddr.V4.t option -> tcpv4 impl
+
+val socket_tcpv4: ?group:string -> Ipaddr.V4.t option -> tcpv4 impl
 
 
 
-(** {Network stack configuration} *)
-
-(** Implementation of the [V1.STACKV4] signature. *)
+(** {2 Network stack configuration} *)
 
 type stackv4
 
 val stackv4: stackv4 typ
+(** Implementation of the [V1.STACKV4] signature. *)
 
+(** Same as {!direct_stackv4_with_static_ipv4} with the default given by
+    {!default_ipv4}. *)
 val direct_stackv4_with_default_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?group:string ->
   console impl -> network impl -> stackv4 impl
 
+(** Direct network stack with ip.
+    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}. *)
 val direct_stackv4_with_static_ipv4:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?group:string ->
   console impl -> network impl -> ipv4_config -> stackv4 impl
 
+(** Direct network stack using dhcp. *)
 val direct_stackv4_with_dhcp:
   ?clock:clock impl ->
   ?random:random impl ->
   ?time:time impl ->
+  ?group:string ->
   console impl -> network impl -> stackv4 impl
 
-val socket_stackv4: console impl ->  Ipaddr.V4.t list -> stackv4 impl
+(** Network stack with sockets. Exposes the key {Key.interfaces}. *)
+val socket_stackv4:
+  ?group:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
 
-(** {Resolver configuration} *)
+(** Generic stack exposing two keys: {!Key.net} and {!Key.dhcp}.
+    - If [net] = [socket] then {!socket_stackv4} is used.
+    - Else, if [dhcp] then {!direct_stackv4_with_dhcp} is used
+    - Else, {!direct_stackv4_with_default_ipv4} is used.
+*)
+val generic_stackv4 :
+  ?group:string -> console impl -> network impl -> stackv4 impl
+
+(** {2 Resolver configuration} *)
 
 type resolver
 val resolver: resolver typ
-val resolver_dns : ?ns:Ipaddr.V4.t -> ?ns_port:int -> stackv4 impl -> resolver impl
+val resolver_dns :
+  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?time:time impl -> stackv4 impl -> resolver impl
 val resolver_unix_system : resolver impl
 
-(** {Conduit configuration} *)
+(** {2 Entropy} *)
+
+val nocrypto : job impl
+(** Device that initializes the entropy. *)
+
+(** {2 Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
 val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
 
-(** {HTTP configuration} *)
+(** {2 HTTP configuration} *)
 
 type http
 val http: http typ
 val http_server: conduit impl -> http impl
 
+(** {2 Argv configuration} *)
 
-(** {2 Tracing} *)
+val argv_dynamic: Functoria.Devices.argv impl
+(** Dynamic argv implementation that resolves either to
+    the xen or the unix implementation. *)
 
-type tracing
+(** {2 Functoria devices} *)
 
-val mprof_trace : size:int -> unit -> tracing
-(** Use mirage-profile to trace the unikernel.
-   On Unix, this creates and mmaps a file called "trace.ctf".
-   On Xen, it shares the trace buffer with dom0. *)
+val noop: job impl
+(** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
+val export_info : Functoria.Devices.info impl
+(** Export all the information available at configure time to runtime.
+    It produces, at runtime, a {!Functoria_info.info}.
+*)
 
-(** {2 Jobs} *)
+(** {2 Deprecated functions} *)
 
-type job
-(** Type for job values. *)
+val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
+(** Current configuration mode.
+    @deprecated Use {!Key.target} and {!Key.is_xen}.
+*)
 
-val job: job typ
-(** Reprensention of [JOB]. *)
+val add_to_opam_packages : string list -> unit
+(** Register opam packages.
+    @deprecated Use the [~package] argument from {!register}.
+*)
 
-val register: ?tracing:tracing -> string -> job impl list -> unit
-(** [register name jobs] registers the application named by [name]
-    which will executes the given [jobs].
-    @param tracing enables tracing if present (see {!mprof_trace}). *)
+val add_to_ocamlfind_libraries : string list -> unit
+(** Register ocamlfind libraries.
+    @deprecated Use the [~libraries] argument from {!register}.
+*)
 
-type t = {
-  name: string;
-  root: string;
-  jobs: job impl list;
-  tracing: tracing option;
-}
-(** Type for values representing a project description. *)
 
-val load: string option -> t
-(** Read a config file. If no name is given, search for use
-    [config.ml]. *)
 
-(** {2 Device configuration} *)
+(**/**)
 
-type mode = [
-  | `Unix
-  | `Xen
-  | `MacOSX
-]
-(** Configuration mode. *)
-
-val set_mode: mode -> unit
-(** Set the configuration mode for the current project. *)
-
-val get_mode: unit -> mode
-
-module Impl: sig
-
-  (** Configurable device. *)
-
-  val name: 'a impl -> string
-  (** The unique variable name of the value of type [t]. *)
-
-  val module_name: 'a impl -> string
-  (** The unique module name for the given implementation. *)
-
-  val packages: 'a impl -> string list
-  (** List of OPAM packages to install for this device. *)
-
-  val libraries: 'a impl -> string list
-  (** List of ocamlfind libraries. *)
-
-  val configure: 'a impl -> unit
-  (** Generate some code to create a value with the right
-      configuration settings. *)
-
-  val clean: 'a impl -> unit
-  (** Remove all the autogen files. *)
-
-end
-
-(** {2 Project configuration} *)
-
-val manage_opam_packages: bool -> unit
-(** Tell Irminsule to manage the OPAM configuration
-    (ie. install/remove missing packages). *)
-
-val no_opam_version_check: bool -> unit
-(** Bypass the check of opam's version. *)
-
-val no_depext: bool -> unit
-(** Skip installation of external dependencies. *)
-
-val add_to_opam_packages: string list -> unit
-(** Add some base OPAM package to install *)
-
-val add_to_ocamlfind_libraries: string list -> unit
-(** Link with the provided additional libraries. *)
-
-val packages: t -> string list
-(** List of OPAM packages to install for this project. *)
-
-val libraries: t -> string list
-(** List of ocamlfind libraries. *)
-
-val configure: t -> unit
-(** Generate some code to create a value with the right
-    configuration settings. *)
-
-val clean: t -> unit
-(** Remove all the autogen files. *)
-
-val build: t -> unit
-(** Call [make build] in the right directory. *)
-
-(** {2 Extensions} *)
-
-module type CONFIGURABLE = sig
-
-  (** Signature for configurable devices. *)
-
-  type t
-  (** Abstract type for configurable devices. *)
-
-  val name: t -> string
-  (** Return the unique variable name holding the state of the given
-      device. *)
-
-  val module_name: t -> string
-  (** Return the name of the module implementing the given device. *)
-
-  val packages: t -> string list
-  (** Return the list of OPAM packages which needs to be installed to
-      use the given device. *)
-
-  val libraries: t -> string list
-  (** Return the list of ocamlfind libraries to link with the
-      application to use the given device. *)
-
-  val configure: t -> unit
-  (** Configure the given device. *)
-
-  val clean: t -> unit
-  (** Clean all the files generated to use the given device. *)
-
-  val update_path: t -> string -> t
-  (** [update_path t root] prefixes all the path appearing in [t] with
-      the the prefix [root]. *)
-
-end
-
-val implementation: 'a -> 'b -> (module CONFIGURABLE with type t = 'b) -> 'a impl
-(** Extend the library with an external configuration. *)
-
-val append_main: ('a, unit, string, unit) format4 -> 'a
-(** Add some string to [main.ml]. *)
-
-val newline_main: unit -> unit
-(** Add a newline to [main.ml]. *)
-
-module Io_page: CONFIGURABLE
-(** Implementation of IO page allocators. *)
-
-module Clock: CONFIGURABLE
-(** Implementation of clocks. *)
-
-module Time: CONFIGURABLE
-(** Implementation of timers. *)
-
-module Random: CONFIGURABLE
-(** Implementation of timers. *)
-
-module Console: CONFIGURABLE
-(** Implementation of consoles. *)
-
-module Crunch: CONFIGURABLE
-(** Implementation of crunch a local filesystem. *)
-
-module Direct_kv_ro: CONFIGURABLE
-(** Implementation of direct access to the filesystem as a key/value
-    read-only store. *)
-
-module Block: CONFIGURABLE
-(** Implementation of raw block device. *)
-
-module Fat: CONFIGURABLE
-(** Implementation of the Fat filesystem. *)
-
-module Network: CONFIGURABLE
-(** Implementation of network configuration. *)
-
-module Ethif: CONFIGURABLE
-
-module Arpv4: CONFIGURABLE
-
-module IPV4: CONFIGURABLE
-module IPV6: CONFIGURABLE
-
-module UDP_direct: functor (V : sig type t end) -> CONFIGURABLE
-module UDPV4_socket: CONFIGURABLE
-
-module TCP_direct: functor (V : sig type t end) -> CONFIGURABLE
-module TCPV4_socket: CONFIGURABLE
-
-module STACKV4_direct: CONFIGURABLE
-module STACKV4_socket: CONFIGURABLE
-
-module HTTP: CONFIGURABLE
-
-module Job: CONFIGURABLE
-
-(** {2 Generation of fresh names} *)
-
-module Name: sig
-
-  val create: string -> string
-  (** [create base] creates a fresh name using the given [base]. *)
-
-  val of_key: string -> base:string -> string
-  (** [find_or_create key base] returns a unique name corresponding to
-      the key. *)
-
-end
+val launch : unit -> unit

@@ -20,7 +20,7 @@ remove: ["ocamlfind" "remove" "functoria"]
 depends: [
   "ocamlfind" {build}
   "base-unix"
-  "cmdliner"
+  "cmdliner" {>= "0.9.8"}
   "rresult"
   "fmt"
   "ocamlgraph"

@@ -77,7 +77,7 @@ module Arg: sig
   (** The type for information about cross-stage command-line
       arguments. See
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}
-      Cmdliner.Arg#TYPEinfo}. *)
+      Cmdliner's arguments}. *)
 
   val info:
     ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
@@ -114,7 +114,7 @@ module Arg: sig
   val flag: ?stage:stage -> info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}
-      Cmdliner.Arg.opt} but for cross-stage command-line flags. If not
+      Cmdliner.Arg.flag} but for cross-stage command-line flags. If not
       set, [stage] is [`Both]. *)
 
 end

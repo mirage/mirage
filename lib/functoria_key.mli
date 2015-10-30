@@ -111,6 +111,12 @@ module Arg: sig
       Cmdliner.Arg.opt} but for cross-stage optional command-line
       arguments. If not set, [stage] is [`Both]. *)
 
+  val required: ?stage:stage -> 'a converter -> info -> 'a option t
+  (** [required conv i] is similar to
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALrequired}
+      Cmdliner.Arg.required} but for cross-stage required command-line
+      arguments. If not set, [stage] is [`Both]. *)
+
   val flag: ?stage:stage -> info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}

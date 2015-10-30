@@ -99,6 +99,7 @@ module Arg = struct
 
   type 'a kind =
     | Opt : 'a * 'a converter -> 'a kind
+    | Required : 'a converter -> 'a option kind
     | Flag: bool kind
 
   type stage = [
@@ -111,6 +112,7 @@ module Arg = struct
 
   let pp_kind: type a . a kind -> a Fmt.t = function
     | Opt (_, c) -> pp_conv c
+    | Required c -> pp_conv (some c)
     | Flag       -> Fmt.bool
 
   type 'a t = {
@@ -121,7 +123,10 @@ module Arg = struct
 
   let pp t = pp_kind t.kind
   let stage t = t.stage
-  let default (type a) (t: a t) = match t.kind with Opt (d, _) -> d | Flag -> false
+  let default (type a) (t: a t) = match t.kind with
+    | Opt (d, _) -> Some d
+    | Required _ -> None
+    | Flag -> Some false
 
   let opt ?(stage=`Both) conv default info =
     { stage; info; kind = Opt (default, conv) }
@@ -129,23 +134,33 @@ module Arg = struct
   let flag ?(stage=`Both) info =
     { stage; info; kind = Flag }
 
+  let required ?(stage=`Both) conv info =
+    { stage; info; kind = Required conv }
+
+  let make_opt_cmdliner i default f desc =
+    let none = match default with
+      | Some d -> Some (Fmt.strf "%a" (pp_conv desc) d)
+      | None -> None
+    in
+    let f_desc v z = match v with
+      | Some v -> f v z
+      | None -> z
+    in
+    Cmdliner.Term.(app @@ pure f_desc)
+      Cmdliner.Arg.(value @@ opt (some ?none @@ converter desc) None i)
+
   let to_cmdliner (type a) (t: a t) (f: a -> _) =
     let i = cmdliner_of_info t.info in
     match t.kind with
     | Flag -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
-    | Opt (default, desc) ->
-      let f_desc v z = match v with
-        | Some v -> f v z
-        | None -> z
-      in
-      let none = Fmt.strf "%a" (pp_conv desc) default in
-      Cmdliner.Term.(app @@ pure f_desc)
-        Cmdliner.Arg.(value @@ opt (some ~none @@ converter desc) None i)
+    | Opt (default, desc) -> make_opt_cmdliner i (Some default) f desc
+    | Required desc       -> make_opt_cmdliner i None f (some desc)
 
   let serialize_value (type a) (v:a) ppf (t: a t) =
     match t.kind with
     | Flag       -> (serialize bool) ppf v
     | Opt (_, c) -> (serialize c) ppf v
+    | Required c -> (serialize @@ some c) ppf v
 
   let serialize (type a): a -> a t serialize = fun v ppf t ->
     match t.kind with
@@ -153,6 +168,9 @@ module Arg = struct
     | Opt (_, c) ->
       Fmt.pf ppf "Functoria_runtime.Arg.opt %s %a %a"
         (runtime_conv c) (serialize c) v serialize_info t.info
+    | Required c ->
+      Fmt.pf ppf "Functoria_runtime.Arg.key ?default:(%a) %s %a"
+        (serialize @@ some c) v (runtime_conv c) serialize_info t.info
 
 end
 
@@ -239,9 +257,14 @@ let filter_stage stage s = match stage with
 
 type context = Univ.t
 
-let get ctx t = match Univ.find t.key ctx with
-  | Some x -> x
-  | None   -> Arg.default t.arg
+let get (type a) ctx (t : a key) : a =
+  match t.arg.Arg.kind, Univ.find t.key ctx with
+  | Arg.Required _ , Some (Some x) -> Some x
+  | Arg.Required _ , (None | Some None) -> None
+  | Arg.Flag , Some x -> x
+  | Arg.Opt _, Some x -> x
+  | Arg.Opt (d,_), None -> d
+  | Arg.Flag, None -> false
 
 let mem_u ctx t = Univ.mem t.key ctx
 

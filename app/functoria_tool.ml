@@ -96,6 +96,17 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     Arg.(value & opt color None & doc)
 
+  let verbose =
+    let doc =
+      Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
+    in
+    Arg.(value & flag_all doc)
+
+  let init_log = function
+    | []  -> Functoria_misc.Log.(set_level WARN)
+    | [_] -> Functoria_misc.Log.(set_level INFO)
+    | _   -> Functoria_misc.Log.(set_level DEBUG)
+
   let init_format color =
     let i = Terminfo.columns () in
     Functoria_misc.Log.set_color color;
@@ -111,6 +122,13 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     let _ = Term.eval_peek_opts Config.base_context in
     Config.load c
 
+  let load_verbose () =
+    let v = match Term.eval_peek_opts verbose with
+      | _, `Ok v -> v
+      | _ -> []
+    in
+    init_log v
+
   let load_color () =
     (* This is ugly but we really want the color options to be set
        before calling [load_config]. *)
@@ -122,9 +140,11 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   let config = Lazy.from_fun load_config
   let set_color  = Lazy.from_fun load_color
+  let set_verbose = Lazy.from_fun load_verbose
 
   let with_config f options =
     Lazy.force set_color;
+    Lazy.force set_verbose;
     let show_error = function
       | Ok r    -> r
       | Error s -> Log.show_error "%s" s
@@ -138,7 +158,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         in term
       | Error err -> Term.pure (fun _ -> Error err)
     in
-    Term.(pure (fun _ _ -> show_error) $ color $ file $ (term $ options))
+    Term.(pure (fun _ _ _ -> show_error) $ verbose $ color $ file
+          $ (term $ options))
 
   (* CONFIGURE *)
   let configure_doc =  "Configure a $(mname) application."
@@ -232,7 +253,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc )
     in
-    let help color man_format cmds topic _keys =
+    let help verbose color man_format cmds topic _keys =
+      init_log verbose;
       init_format color;
       match topic with
       | None       -> `Help (`Pager, None)
@@ -244,8 +266,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic
-            $ Config.base_context)
+      Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
+            $ topic $ Config.base_context)
     in
     Term.ret term, Term.info "help" ~doc ~man
 
@@ -261,8 +283,12 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
           command.";
     ] @  help_sections
     in
-    let usage color = init_format color; `Help (`Plain, None) in
-    let term = Term.(ret (pure usage $ color)) in
+    let usage verbose color =
+      init_log verbose;
+      init_format color;
+      `Help (`Plain, None)
+    in
+    let term = Term.(ret (pure usage $ verbose $ color)) in
     term,
     Term.info cmdname
       ~version:Config.version

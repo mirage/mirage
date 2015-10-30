@@ -89,9 +89,25 @@ end
 
 module Log = struct
 
+  type level = FATAL | ERROR | WARN | INFO | DEBUG
+  let log_level = ref WARN
+  let set_level x = log_level := x
+  let get_level () = !log_level
   let color = ref None
   let set_color x = color := x
   let get_color () = !color
+
+  let int_of_level = function
+    | FATAL -> 4
+    | ERROR -> 3
+    | WARN  -> 2
+    | INFO  -> 1
+    | DEBUG -> 0
+
+  let log level fmt =
+    if int_of_level level >= int_of_level !log_level
+    then Format.eprintf fmt
+    else Format.ifprintf Fmt.stderr fmt
 
   let red     = Fmt.(styled `Red string)
   let green   = Fmt.(styled `Green string)
@@ -105,15 +121,14 @@ module Log = struct
   let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
     f ("@[<2>%a@ "^^fmt^^"@]@.") color section
 
-  let error_msg f = in_section ~color:red ~section:"[ERROR]" f
-
   exception Fatal of string
 
+  let error_msg f = in_section ~color:red ~section:"[ERROR]" f
   let error fmt = Fmt.kstrf (fun x -> Error x) fmt
-  let fail fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) fmt
-  let info fmt  = in_section ~color:green Fmt.pr fmt
-  let debug fmt = in_section ~color:green Fmt.pr fmt
-  let show_error fmt = error_msg Fmt.pr fmt
+  let fatal fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) fmt
+  let show_error x = error_msg Fmt.pr x
+  let info fmt = in_section ~color:green (log INFO) fmt
+  let debug fmt = in_section ~color:green (log DEBUG) fmt
 
 end
 

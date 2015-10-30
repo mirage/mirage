@@ -93,16 +93,19 @@ end
 (** {2 Display} *)
 
 module Log: sig
+  type level = FATAL | ERROR | WARN | INFO | DEBUG
+  val set_level: level -> unit
+  val get_level: unit -> level
   val set_color: Fmt.style_renderer option -> unit
   val get_color: unit -> Fmt.style_renderer option
   val set_section: string -> unit
   val get_section: unit -> string
   val error:
     ('a, Format.formatter, unit, ('b, string) result) format4 -> 'a
-  val fail: ('a, Format.formatter, unit, 'b) format4 -> 'a
-  val info: ('a, Format.formatter, unit, unit) format4 -> 'a
-  val debug: ('a, Format.formatter, unit, unit) format4 -> 'a
-  val show_error: ('a, Format.formatter, unit, unit) format4 -> 'a
+  val fatal: ('a, Format.formatter, unit, 'b) format4 -> 'a
+  val info: ('a, Format.formatter, unit) format -> 'a
+  val debug: ('a, Format.formatter, unit) format -> 'a
+  val show_error: ('a, Format.formatter, unit) format -> 'a
   val blue: string Fmt.t
   val yellow: string Fmt.t
   val red: string Fmt.t

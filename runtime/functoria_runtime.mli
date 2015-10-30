@@ -35,6 +35,9 @@ module Arg: sig
   val required: 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
   (** [required] is the runtime companion of {!Functoria_key.Arg.required}. *)
 
+  val key: ?default:'a -> 'a Cmdliner.Arg.converter -> Cmdliner.Arg.info -> 'a t
+  (** [key] is either {!opt} or {!runtime}, depending if [~default] is provided. *)
+
   val flag: Cmdliner.Arg.info -> bool t
   (** [flag] is the runtime companion of {!Functoria_key.Arg.flag}. *)
 

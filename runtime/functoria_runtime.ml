@@ -29,6 +29,9 @@ module Arg = struct
   let flag info = { info; kind = Flag }
   let opt conv default info = { info; kind = Opt (default, conv) }
   let required conv info = { info; kind = Required conv }
+  let key ?default c i = match default with
+    | None -> required c i
+    | Some d -> opt c d i
 
   let default (type a) (t : a t) = match t.kind with
     | Opt (d,_) -> Some d

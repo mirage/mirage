@@ -257,6 +257,18 @@ module Engine = struct
       Fmt.(list ~sep:nop @@ meta_connect error) names
       (connect_string @@ List.map snd names)
 
+  let emit_run key main =
+    (* "exit 1" is ok in this code, since cmdliner will print help. *)
+    Codegen.append_main
+      "@[<v 2>\
+       let () =@ \
+         let t =@ \
+         %s () >>= function@ \
+         | `Error _e -> exit 1@ \
+         | `Ok _ -> %s ()@ \
+       in run t@]"
+      key main
+
   let connect modtbl info error g =
     let tbl = Graph.Tbl.create 17 in
     let f v =
@@ -273,9 +285,7 @@ module Engine = struct
     Graph.fold (fun v () -> f v) g ();
     let main_name = Graph.Tbl.find tbl @@ Graph.find_root g in
     let bootvar_name = Graph.Tbl.find tbl @@ find_bootvar g in
-    Codegen.append_main
-      "let () = run (%s () >>= fun _ -> %s ())"
-      bootvar_name main_name;
+    emit_run bootvar_name main_name;
     ()
 
   let configure_and_connect info error g =

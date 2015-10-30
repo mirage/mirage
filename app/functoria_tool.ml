@@ -147,7 +147,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   let set_color  = Lazy.from_fun load_color
   let set_verbose = Lazy.from_fun load_verbose
 
-  let with_config ?(with_eval=false) f options =
+  let with_config ?(with_eval=false) ?(with_required=false) f options =
     Lazy.force set_color;
     Lazy.force set_verbose;
     let show_error = function
@@ -160,7 +160,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         let term = match Term.eval_peek_opts if_context with
           | Some context, _ ->
             let partial = with_eval && not @@ load_fully_eval () in
-            Term.app f @@ Config.eval ~partial context t
+            Term.app f @@ Config.eval ~with_required ~partial context t
           | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
         in term
       | Error err -> Term.pure (fun _ -> Error err)
@@ -187,7 +187,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version
     in
-    with_config (Term.pure configure) options, term_info "configure" ~doc ~man
+    with_config ~with_required:true (Term.pure configure) options,
+    term_info "configure" ~doc ~man
 
   (* DESCRIBE *)
   let describe_doc =  "Describe a $(mname) application."

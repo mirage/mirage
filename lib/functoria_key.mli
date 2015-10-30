@@ -249,11 +249,15 @@ val aliases: t -> Set.t
 type context
 (** The type for values holding parsing context. *)
 
-val context: ?stage:Arg.stage -> Set.t -> context Cmdliner.Term.t
-(** [context ks] is a [Cmdliner]
+val context:
+  ?stage:Arg.stage -> with_required: bool ->
+  Set.t -> context Cmdliner.Term.t
+(** [context ~with_required ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Term.html#TYPt}
     term} that evaluates into a parsing context for command-line
-    arguments. *)
+    arguments.
+    If [with_required] is false, it will only produce optional keys.
+*)
 
 val mem: context -> 'a value -> bool
 (** [mem c v] is [true] iff all the dependencies of [v] have been

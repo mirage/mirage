@@ -562,7 +562,7 @@ module Make (P: S) = struct
       let keys = Config.extract_keys (P.create []) in
       let context = Key.context ~stage:`Configure keys in
       let f x = base_context := Some x; x in
-      Cmdliner.Term.(pure f $ context)
+      Cmdliner.Term.(pure f $ context ~with_required:false )
 
     type t = Config.t
     type evaluated = Graph.t * Info.t
@@ -577,7 +577,8 @@ module Make (P: S) = struct
       Log.set_section (Config.name t);
       Ok t
 
-    let if_context t = Key.context ~stage:`Configure @@ Config.keys t
+    let if_context t =
+      Key.context ~stage:`Configure ~with_required:false @@ Config.keys t
 
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Log.get_level () >= level in
@@ -591,9 +592,11 @@ module Make (P: S) = struct
     let build (_jobs, info) = log info; build info
     let describe (jobs, info) = show info; describe info jobs
 
-    let eval ~partial context t =
+    let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
-      let context = Key.context ~stage:`Configure (Key.deps info) in
+      let context =
+        Key.context ~with_required ~stage:`Configure (Key.deps info)
+      in
       let f map = Key.eval map info @@ map in
       Cmdliner.Term.(pure f $ context)
 

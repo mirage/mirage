@@ -149,13 +149,13 @@ module Arg = struct
     Cmdliner.Term.(app @@ pure f_desc)
       Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
 
-  let to_cmdliner (type a) (t: a t) (f: a -> _) =
+  let to_cmdliner ~with_required (type a) (t: a t) (f: a -> _) =
     let i = cmdliner_of_info t.info in
     match t.kind with
     | Flag -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
     | Opt (default, desc) ->
       make_opt_cmdliner Cmdliner.Arg.value i (Some default) f desc
-    | Required desc when t.stage = `Configure ->
+    | Required desc when with_required && t.stage = `Configure ->
       make_opt_cmdliner Cmdliner.Arg.required i None f (some (some desc))
     | Required desc ->
       make_opt_cmdliner Cmdliner.Arg.value i None f (some desc)
@@ -345,10 +345,10 @@ let create name arg =
 
 let parse_key t = Arg.to_cmdliner t.arg
 
-let context ?(stage=`Both) l =
+let context ?(stage=`Both) ~with_required l =
   let gather (Any k) rest =
     let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
-    Cmdliner.Term.(parse_key k f $ rest)
+    Cmdliner.Term.(parse_key ~with_required k f $ rest)
   in
   Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure Univ.empty)
 

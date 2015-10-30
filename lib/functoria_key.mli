@@ -164,6 +164,14 @@ val value: 'a key -> 'a value
 type t
 (** The type for abstract {{!key}keys}. *)
 
+(** [Set] implements sets over [t] elements. *)
+module Set: sig
+  include Set.S with type elt = t
+
+  val pp: elt Fmt.t -> t Fmt.t
+  (** [pp] pretty-prints sets of keys. *)
+end
+
 val abstract: 'a key -> t
 (** [hide k] is the [k] with its type hidden. *)
 
@@ -176,7 +184,7 @@ val pp: t Fmt.t
 val with_deps: t list -> 'a value -> 'a value
 (** [with_deps keys v] is [v] with [keys] as data-dependencies. *)
 
-val deps: 'a value -> t list
+val deps: 'a value -> Set.t
 (** [deps v] are [v]'s data-dependencies. *)
 
 val pp_deps: 'a value Fmt.t
@@ -190,7 +198,7 @@ val is_runtime: t -> bool
 val is_configure: t -> bool
 (** [is_configure k] is true if [k]'s stage is [`Configure] or [`Both]. *)
 
-val filter_stage: Arg.stage -> t list -> t list
+val filter_stage: Arg.stage -> Set.t -> Set.t
 (** [filter_stage s ks] is [ks] but with only keys available at stage
     [s]. *)
 
@@ -222,7 +230,7 @@ end
 val alias: string -> 'a Alias.t -> 'a key
 (** Similar to {!create} but for command-line alias. *)
 
-val aliases: t -> t list
+val aliases: t -> Set.t
 (** [aliases t] is the list of [t]'s aliases. *)
 
 (** {1 Parsing context} *)
@@ -230,7 +238,7 @@ val aliases: t -> t list
 type context
 (** The type for values holding parsing context. *)
 
-val context: ?stage:Arg.stage -> t list -> context Cmdliner.Term.t
+val context: ?stage:Arg.stage -> Set.t -> context Cmdliner.Term.t
 (** [context ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Term.html#TYPt}
     term} that evaluates into a parsing context for command-line
@@ -250,7 +258,7 @@ val eval: context -> 'a value -> 'a
 val get: context -> 'a key -> 'a
 (** [get c k] is [k]'s value in [c]'s context. *)
 
-val pps: context -> t list Fmt.t
+val pps: context -> Set.t Fmt.t
 (** [pps c fmt ks] prints the keys [ks] using the context [c] to get
     their value. *)
 

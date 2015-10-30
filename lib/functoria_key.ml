@@ -173,12 +173,11 @@ module Set = struct
   end
   include (Set.Make(M): Set.S with type elt := elt)
 
-  (* FIXME(samoht): do we need this? *)
-  let _add k set =
+  let add k set =
     if mem k set then
       if k != find k set then
         let Any k' = k in
-        Log.fail "Duplicate key name: %S" k'.name
+        Log.fatal "Duplicate key name: %S" k'.name
       else
         set
     else
@@ -218,7 +217,7 @@ end
 
 let abstract x = Any x
 let arg k = k.arg
-let aliases (Any k) = Set.elements @@ Alias.keys k.setters
+let aliases (Any k) = Alias.keys k.setters
 let name (Any k) = k.name
 let stage (Any k) = Arg.stage k.arg
 
@@ -230,11 +229,11 @@ let is_configure k = match stage k with
   | `Configure | `Both -> true
   | `Run -> false
 
-let filter_stage stage l = match stage with
-  | `Run    -> List.filter is_runtime l
+let filter_stage stage s = match stage with
+  | `Run    -> Set.filter is_runtime s
   | `Configure
-  | `NoEmit -> List.filter is_configure l
-  | `Both   -> l
+  | `NoEmit -> Set.filter is_configure s
+  | `Both   -> s
 
 (* Key Map *)
 
@@ -265,7 +264,7 @@ let match_ v f = map f v
 let ($) = app
 let value k = let v c = get c k in { deps = Set.singleton (Any k); v }
 let with_deps deps v = { v with deps = Set.(union v.deps @@ Set.of_list deps) }
-let deps k = Set.elements k.deps
+let deps k = k.deps
 let mem p v = Set.for_all (fun (Any x) -> mem_u p x) v.deps
 let peek p v = if mem p v then Some (eval p v) else None
 let default v = eval Univ.empty v
@@ -281,7 +280,7 @@ let pps p =
     Fmt.pf fmt "%a=%a%a"
       Fmt.(styled `Bold string) k.name (Arg.pp k.arg) (get p k) default ()
   in
-  fun ppf l -> Set.(pp f ppf @@ of_list l)
+  fun ppf s -> Set.(pp f ppf @@ s)
 
 (* {2 Automatic documentation} *)
 
@@ -320,13 +319,7 @@ let context ?(stage=`Both) l =
     let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
     Cmdliner.Term.(parse_key k f $ rest)
   in
-  List.fold_right gather (filter_stage stage l) (Cmdliner.Term.pure Univ.empty)
-
-(*
-let parse_value ?stage t =
-  let deps = Set.elements t.deps in
-  Cmdliner.Term.(pure t.v $ context ?stage deps)
-*)
+  Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure Univ.empty)
 
 (* {2 Code emission} *)
 

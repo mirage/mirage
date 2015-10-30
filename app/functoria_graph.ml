@@ -27,7 +27,6 @@ open Functoria_misc
 open Functoria
 
 module Key = Functoria_key
-module KeySet = Set.Make(Key)
 
 (* {2 Utility} *)
 
@@ -329,8 +328,7 @@ module MergeNode = struct
   *)
 
   let set_equal l1 l2 =
-    let deps l = KeySet.of_list (Key.deps l) in
-    KeySet.equal (deps l1) (deps l2)
+    Key.Set.equal (Key.deps l1) (Key.deps l2)
 
   let predicate g v = match explode g v with
     | `If (cond, l) ->
@@ -458,6 +456,6 @@ let pp context info ppf _ =
   let show name = Fmt.pf ppf "%a @[%a@]@." Log.blue name in
   let list f = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter f in
   show "Name      " Fmt.string (Info.name info);
-  show "Keys      " (Key.pps context)  (Info.keys info);
+  show "Keys      " (Key.pps context) (Key.Set.of_list @@ Info.keys info);
   show "Libraries " (list Fmt.string) (Info.libraries info);
   show "Packages  " (list Fmt.string) (Info.packages info)

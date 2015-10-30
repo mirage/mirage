@@ -22,7 +22,6 @@ include Functoria_misc
 
 module Graph = Functoria_graph
 module Key = Functoria_key
-module KeySet = Set.Make(Key)
 
 let (/) = Filename.concat
 
@@ -57,12 +56,12 @@ module Keys = struct
     Cmd.with_file (Info.root i / file) @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
     Codegen.newline fmt;
-    let bootvars = Info.keys i in
-    Fmt.pf fmt "@[<v>%a@]@."
-      (Fmt.iter List.iter @@ Key.serialize @@ Info.context i) bootvars;
-    Codegen.append fmt "let runtime_keys = %a"
-      Fmt.(Dump.list (fmt "%s_t"))
-      (List.map Key.ocaml_name @@ Key.filter_stage `Run bootvars);
+    let bootvars = Key.Set.of_list @@ Info.keys i in
+    let pp_var k = Key.serialize (Info.context i) k in
+    Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) bootvars;
+    let runvars = Key.Set.elements (Key.filter_stage `Run bootvars) in
+    let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
+    Codegen.append fmt "let runtime_keys = %a" Fmt.Dump.(list pp_runvar) runvars;
     Codegen.newline fmt;
     R.ok ()
 
@@ -146,16 +145,16 @@ module Engine = struct
 
   let if_context =
     let open Graph in
-    Graph.collect (module KeySet) @@ function
-    | If cond      -> KeySet.of_list (Key.deps cond)
-    | App | Impl _ -> KeySet.empty
+    Graph.collect (module Key.Set) @@ function
+    | If cond      -> Key.deps cond
+    | App | Impl _ -> Key.Set.empty
 
   let keys =
     let open Graph in
-    Graph.collect (module KeySet) @@ function
-    | Impl c  -> KeySet.of_list c#keys
-    | If cond -> KeySet.of_list (Key.deps cond)
-    | App     -> KeySet.empty
+    Graph.collect (module Key.Set) @@ function
+    | Impl c  -> Key.Set.of_list c#keys
+    | If cond -> Key.deps cond
+    | App     -> Key.Set.empty
 
   module M = struct
     type t = String.Set.t Key.value
@@ -300,7 +299,7 @@ module Config = struct
     root     : string;
     libraries: String.Set.t Key.value;
     packages: String.Set.t Key.value;
-    keys    : KeySet.t;
+    keys    : Key.Set.t;
     jobs    : Graph.t;
   }
 
@@ -310,17 +309,17 @@ module Config = struct
     let all_keys = Engine.keys jobs in
     let skeys = Engine.if_context jobs in
     let f k s =
-      if KeySet.is_empty @@ KeySet.inter (KeySet.of_list @@ Key.aliases k) skeys
+      if Key.Set.is_empty @@ Key.Set.inter (Key.aliases k) skeys
       then s
-      else KeySet.add k s
+      else Key.Set.add k s
     in
-    KeySet.fold f all_keys skeys
+    Key.Set.fold f all_keys skeys
 
   let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) name root main_dev =
     let jobs = Graph.create main_dev in
     let libraries = Key.pure @@ String.Set.of_list libraries in
     let packages = Key.pure @@ String.Set.of_list packages in
-    let keys = KeySet.(union (of_list keys) (get_if_context jobs)) in
+    let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
     { libraries; packages; keys; name; root; jobs }
 
   (* FIXME(samoht): I don't understand why eval return a function
@@ -331,7 +330,7 @@ module Config = struct
     let pkgs = Key.(pure String.Set.union $ packages $ Engine.packages e) in
     let libs = Key.(pure String.Set.union $ libraries $ Engine.libraries e) in
     let list = String.Set.elements in
-    let keys = KeySet.elements (KeySet.union keys @@ Engine.keys e) in
+    let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
     let di =
       Key.(pure (fun libraries packages context ->
           e, Info.create ~libraries:(list libraries) ~packages:(list packages)
@@ -556,7 +555,7 @@ module Make (P: S) = struct
                      messing with functoria's invariants."
 
     let base_context =
-      let keys = KeySet.elements @@ Config.extract_keys (P.create []) in
+      let keys = Config.extract_keys (P.create []) in
       let context = Key.context ~stage:`Configure keys in
       let f x = base_context := Some x; x in
       Cmdliner.Term.(pure f $ context)
@@ -574,8 +573,7 @@ module Make (P: S) = struct
       Log.set_section (Config.name t);
       Ok t
 
-    let if_context t =
-      Key.context ~stage:`Configure @@ KeySet.elements @@ Config.keys t
+    let if_context t = Key.context ~stage:`Configure @@ Config.keys t
 
     let configure (jobs, info) = configure info jobs
     let clean (jobs, info) = clean info jobs

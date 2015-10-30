@@ -98,6 +98,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   let init_format color =
     let i = Terminfo.columns () in
+    Functoria_misc.Log.set_color color;
     Format.pp_set_margin Format.std_formatter i;
     Format.pp_set_margin Format.err_formatter i;
     Fmt_tty.setup_std_outputs ?style_renderer:color ()

@@ -72,7 +72,8 @@ module Cmd: sig
   val with_process_in: string -> (in_channel -> 'a) -> 'a
   val with_process_out: string -> (out_channel -> 'a) -> 'a
   val opam:
-    string -> ?yes:bool -> ?switch:string -> string list -> (unit, string) result
+    string -> ?yes:bool -> ?switch:string -> ?color:Fmt.style_renderer ->
+    string list -> (unit, string) result
   val in_dir: string -> (unit -> 'a) -> 'a
   val uname_s: unit -> string option
   val uname_m: unit -> string option
@@ -92,6 +93,8 @@ end
 (** {2 Display} *)
 
 module Log: sig
+  val set_color: Fmt.style_renderer option -> unit
+  val get_color: unit -> Fmt.style_renderer option
   val set_section: string -> unit
   val get_section: unit -> string
   val error:

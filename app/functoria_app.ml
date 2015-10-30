@@ -419,16 +419,17 @@ module Make (P: S) = struct
         | major::minor::_ ->
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
+          let color = Log.get_color () in
           if (major, minor) >= (1, 2) then (
             begin
               if no_depext then Ok ()
               else begin
                 if Cmd.exists "opam-depext"
                 then Ok (Log.info "opam depext is installed.")
-                else Cmd.opam "install" ["depext"]
+                else Cmd.opam ?color "install" ["depext"]
               end >>= fun () -> Cmd.opam ~yes:false "depext" ps
             end >>= fun () ->
-            Cmd.opam "install" ps
+            Cmd.opam ?color "install" ps
           ) else version_error ()
         | _ -> version_error ()
       )

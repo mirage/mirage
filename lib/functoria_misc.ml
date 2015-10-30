@@ -88,6 +88,11 @@ end
 (* {Logging} *)
 
 module Log = struct
+
+  let color = ref None
+  let set_color x = color := x
+  let get_color () = !color
+
   let red     = Fmt.(styled `Red string)
   let green   = Fmt.(styled `Green string)
   let yellow  = Fmt.(styled `Yellow string)
@@ -188,15 +193,23 @@ module Cmd = struct
         | Error err -> Log.error "%s" err
       ) fmt
 
-  let opam cmd ?(yes=true) ?switch deps =
-    let deps_str = String.concat " " deps in
-    (* Note: we don't redirect output to the log as installation can take a long time
-     * and the user will want to see what is happening. *)
-    let yes = if yes then "--yes " else "" in
-    match switch with
-    | None     -> run ~redirect:false "opam %s %s%s" cmd yes deps_str
-    | Some cmp ->
-      run ~redirect:false "opam %s %s%s --switch=%s" cmd yes deps_str cmp
+  let opam cmd ?(yes=true) ?switch ?color deps =
+    let color = match color with
+      | None -> ""
+      | Some `None -> " --color=never"
+      | Some `Ansi_tty -> " --color=always"
+    in
+    let deps = String.concat " " deps in
+    (* Note: we don't redirect output to the log as installation can
+     * take a long time and the user will want to see what is
+       happening. *)
+    let yes = if yes then " --yes " else "" in
+    let redirect = false in
+    let switch = match switch with
+      | None   -> ""
+      | Some s -> Printf.sprintf " --switch=%s" s
+    in
+    run ~redirect "opam %s%s%s%s %s" cmd yes color switch deps
 
   let in_dir dir f =
     let pwd = Sys.getcwd () in

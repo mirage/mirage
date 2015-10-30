@@ -306,10 +306,20 @@ let pp fmt k = Fmt.string fmt (name k)
 let pp_deps fmt v = Set.pp pp fmt v.deps
 
 let pps p =
-  let f fmt (Any k) =
+  let pp' fmt k v =
     let default = if mem_u p k then Fmt.nop else Fmt.unit " (default)" in
     Fmt.pf fmt "%a=%a%a"
-      Fmt.(styled `Bold string) k.name (Arg.pp k.arg) (get p k) default ()
+      Fmt.(styled `Bold string) k.name
+      (Arg.pp k.arg) v
+      default ()
+  in
+  let f fmt (Any k) = match k.arg.Arg.kind, get p k with
+    | Arg.Required _, None ->
+      Fmt.(styled `Bold string) fmt k.name
+    | Arg.Opt _ ,v     -> pp' fmt k v
+    | Arg.Required _,v -> pp' fmt k v
+    | Arg.Flag ,v      -> pp' fmt k v
+    (* Warning 4 and GADT don't interact well. *)
   in
   fun ppf s -> Set.(pp f ppf @@ s)
 

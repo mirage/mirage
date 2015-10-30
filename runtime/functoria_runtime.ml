@@ -53,6 +53,8 @@ module Key = struct
     | None   -> Arg.default t.arg
     | Some v -> v
 
+  let default t = Arg.default t.arg
+
   let term (type a) (t: a t) =
     let set w = t.value <- Some w in
     let doc = Arg.info t.arg in

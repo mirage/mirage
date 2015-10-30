@@ -57,6 +57,11 @@ module Key: sig
   (** [get k] is the value of the key [k]. Use the default value if no
       command-line argument is provided. *)
 
+  val default : 'a t -> 'a option
+  (** [default k] is the default value of [k], if one is available.
+      This function can be called before cmdliner's evaluation.
+  *)
+
   val term: 'a t -> unit Cmdliner.Term.t
   (** [term k] is the [Cmdliner] term whose evaluation sets [k]s'
       value to the parsed command-line argument. *)

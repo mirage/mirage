@@ -58,7 +58,9 @@ module Key: sig
 
   val get: 'a t -> 'a
   (** [get k] is the value of the key [k]. Use the default value if no
-      command-line argument is provided. *)
+      command-line argument is provided.
+      @raise Invalid_argument if called before cmdliner's evaluation.
+  *)
 
   val default : 'a t -> 'a option
   (** [default k] is the default value of [k], if one is available.

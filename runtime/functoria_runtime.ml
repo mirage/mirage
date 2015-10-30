@@ -53,7 +53,7 @@ module Key = struct
   let create arg = { arg; value = None }
 
   let get t = match t.value with
-    | None   -> Arg.default t.arg
+    | None   -> invalid_arg "Key.get: Called too early. Please delay this call after cmdliner's evaluation."
     | Some v -> v
 
   let default t = Arg.default t.arg

@@ -569,20 +569,24 @@ module Make (P: S) = struct
 
     let if_context t = Key.context ~stage:`Configure @@ Config.keys t
 
-    let configure (jobs, info) = configure info jobs
-    let clean (jobs, info) = clean info jobs
-    let build (_jobs, info) = build info
-    let describe (jobs, info) = describe info jobs
+    let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
+      let verbose = Log.get_level () >= level in
+      f "@[<v>%a@]" (Info.pp verbose) info
+
+    let log = pp_info Log.info Log.DEBUG
+    let show = pp_info Fmt.(pf stdout) Log.INFO
+
+    let configure (jobs, info) = log info; configure info jobs
+    let clean (jobs, info) = log info; clean info jobs
+    let build (_jobs, info) = log info; build info
+    let describe (jobs, info) = show info; describe info jobs
 
     let eval ~partial context t =
       let info = Config.eval ~partial context t in
       let context = Key.context ~stage:`Configure (Key.deps info) in
-      let f map =
-        let e = Key.eval map info @@ map in
-        Log.info "@[<v>%a@]" (Info.pp false) (snd e) ;
-        e
-      in
+      let f map = Key.eval map info @@ map in
       Cmdliner.Term.(pure f $ context)
+
   end
 
   let get_base_context = Config.get_base_context

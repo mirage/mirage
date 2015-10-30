@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: e8c0d26b673f1dec72069e5be9024c61) *)
+(* DO NOT EDIT (digest: 69c019001895c298fa6a038c2d0fec5c) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -608,10 +608,10 @@ open Ocamlbuild_plugin;;
 let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
-       [("mirage", ["lib"], []); ("mirage-runtime", ["lib"], [])];
+       [("mirage-runtime", ["lib_runtime"], []); ("mirage", ["lib"], [])];
      lib_c = [];
      flags = [];
-     includes = []
+     includes = [("lib", ["lib_runtime"])]
   }
   ;;
 
@@ -621,4 +621,9 @@ let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
 # 623 "myocamlbuild.ml"
 (* OASIS_STOP *)
-Ocamlbuild_plugin.dispatch dispatch_default;;
+
+open Ocamlbuild_plugin
+let () =
+  pflag ["ocaml"; "link"] "dontlink" (fun pkg -> S[A"-dontlink"; A pkg]) ;;
+
+dispatch dispatch_default;;

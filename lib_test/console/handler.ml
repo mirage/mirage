@@ -7,7 +7,7 @@ module Main (C: CONSOLE) = struct
     C.log_s c "Hello Mirage World"
     >>= fun () ->
     let rec aux () =
-      C.log_s c "."
+      C.log_s c (Bootvar_gen.hello ())
       >>= fun () ->
       OS.Time.sleep 1.
       >>= aux

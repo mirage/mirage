@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2014 David Sheets <sheets@alum.mit.edu>
+ * Copyright (c) 2015 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,12 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Mirage run-time utilities *)
-
-(** {2 Friendly run-time errors} *)
-
-val string_of_network_init_error:
-  string -> [> `Unknown of string | `Unimplemented | `Disconnected ] -> string
-(** [string_of_network_init_error ifname] will generate a helpful string for
-    network interface errors from the [ifname] interface name and the error
-    constructor. *)
+type t = Functoria_info.info = {
+  name: string;
+  libraries: string list;
+  packages: (string * string) list;
+  }

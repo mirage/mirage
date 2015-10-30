@@ -48,7 +48,7 @@ module Info = struct
     let set = Fmt.iter ~sep:(Fmt.unit ",@ ") String.Set.iter Fmt.string in
     show "Name      " Fmt.string name;
     if verbose then show "Root      " Fmt.string root;
-    show "Keys      " (Key.pps context) (KeySet.elements keys);
+    show "Keys      " (Key.pps context) keys;
     if verbose then show "Libraries " set libraries;
     if verbose then show "Packages  " set packages
 

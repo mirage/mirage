@@ -96,8 +96,20 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     Arg.(value & opt color None & doc)
 
+  let verbose =
+    let doc =
+      Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
+    in
+    Arg.(value & flag_all doc)
+
+  let init_log = function
+    | []  -> Functoria_misc.Log.(set_level WARN)
+    | [_] -> Functoria_misc.Log.(set_level INFO)
+    | _   -> Functoria_misc.Log.(set_level DEBUG)
+
   let init_format color =
     let i = Terminfo.columns () in
+    Functoria_misc.Log.set_color color;
     Format.pp_set_margin Format.std_formatter i;
     Format.pp_set_margin Format.err_formatter i;
     Fmt_tty.setup_std_outputs ?style_renderer:color ()
@@ -107,28 +119,59 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       | _, `Ok config -> config
       | _ -> None
     in
-    let _ = Term.eval_peek_opts Config.base_keys in
+    let _ = Term.eval_peek_opts Config.base_context in
     Config.load c
 
-  let config = Lazy.from_fun load_config
+  let load_verbose () =
+    let v = match Term.eval_peek_opts verbose with
+      | _, `Ok v -> v
+      | _ -> []
+    in
+    init_log v
 
-  let with_config f options =
-    let apply color _file t =
-      init_format color;
-      match t with
-      | Ok r -> r
-      | Error s -> show_error "%s" s
+  let load_color () =
+    (* This is ugly but we really want the color options to be set
+       before calling [load_config]. *)
+    let c = match Term.eval_peek_opts color with
+      | _, `Ok color -> color
+      | _ -> None
+    in
+    init_format c
+
+  let load_fully_eval () =
+    match snd @@ Term.eval_peek_opts full_eval with
+    | `Ok b -> b
+    | _ -> false
+
+  let config = Lazy.from_fun load_config
+  let set_color  = Lazy.from_fun load_color
+  let set_verbose = Lazy.from_fun load_verbose
+
+  let with_config ?(with_eval=false) f options =
+    Lazy.force set_color;
+    Lazy.force set_verbose;
+    let show_error = function
+      | Ok ()    -> ()
+      | Error s -> Log.show_error "%s" s
     in
     let term = match Lazy.force config with
       | Ok t ->
-        let switch_keys = Config.switching_keys t in
-        let term = match Term.eval_peek_opts switch_keys with
-          | Some map_switch, _ -> f switch_keys map_switch t
+        let if_context = Config.if_context t in
+        let term = match Term.eval_peek_opts if_context with
+          | Some context, _ ->
+            let partial = with_eval && not @@ load_fully_eval () in
+            Term.app f @@ Config.eval ~partial context t
           | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
         in term
       | Error err -> Term.pure (fun _ -> Error err)
     in
-    Term.(pure apply $ color $ file $ (term $ options))
+    let t =
+      Term.(pure (fun _ _ _ -> show_error) $ verbose $ color $ file
+            $ (term $ options))
+    in
+    if with_eval
+    then Term.(pure (fun _ t -> t) $ full_eval $ t)
+    else t
 
   (* CONFIGURE *)
   let configure_doc =  "Configure a $(mname) application."
@@ -144,8 +187,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version
     in
-    let f _ map conf = Term.(pure configure $ Config.eval map conf) in
-    with_config f options, term_info "configure" ~doc ~man
+    with_config (Term.pure configure) options, term_info "configure" ~doc ~man
 
   (* DESCRIBE *)
   let describe_doc =  "Describe a $(mname) application."
@@ -172,16 +214,14 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
           "Represented as diamonds. The bold arrow is the functor part.");
     ] in
     let options =
-      Term.(pure (fun a b c d -> a, b, c, d)
-            $ output $ dotcmd $ dot $ full_eval)
+      Term.(pure (fun a b c -> a, b, c)
+            $ output $ dotcmd $ dot)
     in
-    let f switch_keys map t =
-      let describe _ (output, dotcmd, dot, eval) =
-        Config.describe ~dotcmd ~dot ~eval ~output map t
-      in
-      Term.(pure describe $ switch_keys)
+    let describe info (output, dotcmd, dot) =
+      Config.describe ~dotcmd ~dot ~output info
     in
-    with_config f options, term_info "describe" ~doc ~man
+    with_config ~with_eval:true (Term.pure describe) options,
+    term_info "describe" ~doc ~man
 
   (* BUILD *)
   let build_doc = "Build a $(mname) application."
@@ -193,8 +233,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     ] in
     let options = Term.pure () in
     let build info () = Config.build info in
-    let f _ map conf = Term.(pure build $ Config.eval map conf) in
-    with_config f options, term_info "build" ~doc ~man
+    with_config (Term.pure build) options, term_info "build" ~doc ~man
 
   (* CLEAN *)
   let clean_doc =
@@ -207,8 +246,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     ] in
     let options = Term.pure () in
     let clean info () = Config.clean info in
-    let f _ map conf = Term.(pure clean $ Config.eval map conf) in
-    with_config f options, term_info "clean" ~doc ~man
+    with_config (Term.pure clean) options, term_info "clean" ~doc ~man
 
   (* HELP *)
   let help =
@@ -222,7 +260,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc )
     in
-    let help color man_format cmds topic _keys =
+    let help verbose color man_format cmds topic _keys =
+      init_log verbose;
       init_format color;
       match topic with
       | None       -> `Help (`Pager, None)
@@ -234,8 +273,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
     let term =
-      Term.(pure help $ color $ Term.man_format $ Term.choice_names $ topic
-            $ Config.base_keys)
+      Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
+            $ topic $ Config.base_context)
     in
     Term.ret term, Term.info "help" ~doc ~man
 
@@ -251,8 +290,12 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
           command.";
     ] @  help_sections
     in
-    let usage color = init_format color; `Help (`Plain, None) in
-    let term = Term.(ret (pure usage $ color)) in
+    let usage verbose color =
+      init_log verbose;
+      init_format color;
+      `Help (`Plain, None)
+    in
+    let term = Term.(ret (pure usage $ verbose $ color)) in
     term,
     Term.info cmdname
       ~version:Config.version

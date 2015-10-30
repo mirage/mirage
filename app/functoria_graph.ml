@@ -24,7 +24,8 @@
 
 open Graph
 open Functoria_misc
-module Dsl = Functoria_dsl
+open Functoria
+
 module Key = Functoria_key
 
 (* {2 Utility} *)
@@ -48,9 +49,9 @@ type subconf = <
   keys: Key.t list;
   packages: string list Key.value;
   libraries: string list Key.value;
-  connect: Dsl.Info.t -> string -> string list -> string;
-  configure: Dsl.Info.t -> (unit, string) Rresult.result;
-  clean: Dsl.Info.t -> (unit, string) Rresult.result;
+  connect: Info.t -> string -> string list -> string;
+  configure: Info.t -> (unit, string) Rresult.result;
+  clean: Info.t -> (unit, string) Rresult.result;
 >
 
 (* Helpers for If nodes. *)
@@ -61,7 +62,7 @@ module If = struct
   let singleton z = ([],z)
   let dir b = if b then singleton Then else singleton Else
   let fuse path v l = if v = path then append path l else path
-  let reduce v ~path ~add:v': path Key.value = Key.(pure (fuse path) $ v $ v')
+  let reduce f ~path ~add : path Key.value = Key.(pure (fuse path) $ f $ add)
 end
 
 type label =
@@ -173,39 +174,38 @@ let add_app graph ~f ~args =
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
 
 let create impl =
-  let module H = Dsl.ImplTbl in
+  let module H = ImplTbl in
   let tbl = H.create 50 in
-  let rec aux
-    : type t . G.t -> t Dsl.impl -> G.vertex * G.t
+  let rec aux: type t . G.t -> t impl -> G.vertex * G.t
     = fun g impl ->
-      if H.mem tbl @@ Dsl.hidden impl
-      then H.find tbl (Dsl.hidden impl), g
+      if H.mem tbl @@ abstract impl
+      then H.find tbl (abstract impl), g
       else
-        let v, g = match Dsl.explode impl with
+        let v, g = match explode impl with
           | `Impl c ->
             let deps, g =
               List.fold_right
-                (fun (Dsl.Any x) (l,g) -> let v, g = aux g x in v::l, g)
-                c#dependencies ([], g)
+                (fun (Abstract x) (l,g) -> let v, g = aux g x in v::l, g)
+                c#deps ([], g)
             in
             add_impl g ~impl:(c :> subconf) ~args:[] ~deps
           | `If (cond, then_, else_) ->
             let then_, g = aux g then_ in
             let else_, g = aux g else_ in
             add_if g ~cond ~then_ ~else_
-          | `App (Dsl.Any f , Dsl.Any x) ->
+          | `App (Abstract f , Abstract x) ->
             let f, g = aux g f in
             let x, g = aux g x in
             add_app g ~f ~args:[x]
         in
-        H.add tbl (Dsl.hidden impl) v;
+        H.add tbl (abstract impl) v;
         v, g
   in
   snd @@ aux G.empty impl
 
 let is_impl v = match G.V.label v with
   | Impl _ -> true
-  | _ -> false
+  | App | If _ -> false
 
 (* {2 Graph destruction/extraction} *)
 
@@ -239,11 +239,12 @@ let get_children g v =
   assert (is_sequence deps);
   `Args (List.map snd args), `Deps (List.map snd deps), cond, funct
 
-let explode g v = match G.V.label v, get_children g v with
-  | Impl i, (args, deps, [], None) -> `Impl (i, args, deps)
-  | If cond, (`Args [], `Deps [], l, None) -> `If (cond, l)
-  | App, (`Args args, `Deps [], [], Some f) -> `App (f, args)
-  | _ -> assert false
+let explode g v =
+  match G.V.label v, get_children g v with
+  | Impl i , (args      , deps    , [], None  ) -> `Impl (i, args, deps)
+  | If cond, (`Args []  , `Deps [], l , None  ) -> `If (cond, l)
+  | App    , (`Args args, `Deps [], [], Some f) -> `App (f, args)
+  | (Impl _ | If _ | App), _ -> assert false
 
 let fold f g z =
   if Dfs.has_cycle g then
@@ -326,11 +327,16 @@ module MergeNode = struct
      graph visualization by humans.
   *)
 
+  let set_equal l1 l2 =
+    Key.Set.equal (Key.deps l1) (Key.deps l2)
+
   let predicate g v = match explode g v with
     | `If (cond, l) ->
-      if List.exists (fun (_,v) -> match G.V.label v with
-          | If cond' -> Key.(Set.equal (deps cond) (deps cond'))
-          | _ -> false
+      if List.exists (fun (_,v) ->
+          match G.V.label v with
+          | If cond' -> set_equal cond cond'
+          | App
+          | Impl _   -> false
         ) l
       then Some (v, cond, l)
       else None
@@ -339,7 +345,7 @@ module MergeNode = struct
 
   let apply g (v_if, cond, l) =
     let f (new_cond, new_l) (path, v) = match explode g v with
-      | `If (cond', l') when Key.(Set.equal (deps cond) (deps cond')) ->
+      | `If (cond', l') when set_equal cond cond' ->
         If.reduce cond ~path ~add:cond',
         List.map (fun (p,v) -> If.append path p, v) l' @ new_l
       | _ ->
@@ -357,9 +363,9 @@ end
 module EvalIf = struct
   (* Evaluate the [If] vertices and remove them. *)
 
-  let predicate ~partial ~map _ v = match G.V.label v with
-    | If cond when not partial || Key.is_resolved map cond -> Some v
-    | _ -> None
+  let predicate ~partial ~context _ v = match G.V.label v with
+    | If cond when not partial || Key.mem context cond -> Some v
+    | If _ | App | Impl _ -> None
 
   let extract path l =
     let rec aux = function
@@ -369,15 +375,15 @@ module EvalIf = struct
     in
     aux l
 
-  let apply ~partial ~map g v_if =
+  let apply ~partial ~context g v_if =
     let path, l =
       match explode g v_if with
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.is_resolved map path then g
+    if partial && not @@ Key.mem context path then g
     else
-      let v_new, v_others = extract (Key.eval map path) l in
+      let v_new, v_others = extract (Key.eval context path) l in
       let g = G.remove_vertex g v_if in
       let g = List.fold_left remove_rec_if_orphan g v_others in
       add_pred_with_subst g preds v_new
@@ -388,11 +394,11 @@ let simplify = MergeNode.(transform ~predicate ~apply)
 
 let normalize = RemovePartialApp.(transform ~predicate ~apply)
 
-let eval ?(partial=false) ~map g =
+let eval ?(partial=false) ~context g =
   normalize @@
   EvalIf.(transform
-            ~predicate:(predicate ~partial ~map)
-            ~apply:(apply ~partial ~map)
+            ~predicate:(predicate ~partial ~context)
+            ~apply:(apply ~partial ~context)
             g)
 
 let is_fully_reduced g =
@@ -437,7 +443,7 @@ module Dot = Graphviz.Dot(struct
       | Condition path ->
         let cond =
           match V.label @@ E.src e with
-          | If cond -> cond | _ -> assert false
+          | If cond -> cond | App | Impl _ -> assert false
         in
         let l = [ `Style `Dotted; `Headport `N ] in
         if Key.default cond = path then `Style `Bold :: l else l
@@ -445,5 +451,4 @@ module Dot = Graphviz.Dot(struct
   end )
 
 let pp_dot = Dot.fprint_graph
-
 let pp = Fmt.nop

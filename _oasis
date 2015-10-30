@@ -1,5 +1,5 @@
 OASISFormat: 0.4
-Name:        Functoria
+Name:        functoria
 Version:     1.0.0
 Synopsis:    Functoria configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy, Dave Scott,
@@ -9,26 +9,31 @@ Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
 
 AlphaFeatures: pure_interface
+AlphaFeatures: ocamlbuild_more_args
+
+Library functoria
+  Path:            lib
+  Findlibname:     functoria
+  Modules:         Functoria, Functoria_key
+  InternalModules: Functoria_misc, Functoria_sigs
+  BuildDepends:    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,
+                   ocamlgraph
+
+Library "functoria-app"
+  Path:            app
+  Findlibname:     app
+  FindlibParent:   functoria
+  InternalModules: Functoria_tool, Functoria_graph
+  Modules:         Functoria_app
+  BuildDepends:    functoria
 
 Library "functoria-runtime"
   Path:            runtime
   Findlibname:     runtime
-  Findlibparent:   functoria
+  FindlibParent:   functoria
   Modules:         Functoria_runtime, Functoria_info
   BuildDepends:    cmdliner, fmt
 
-Library functoria
-  Path:            src
-  Findlibname:     functoria
-  Modules:
-    Functoria,
-    Functoria_misc, Functoria_key, Functoria_dsl
-  InternalModules:
-    Functoria_tool, Functoria_sigs, Functoria_graph
-  BuildDepends:
-    unix,dynlink,cmdliner,rresult,fmt.tty,functoria.runtime,ocamlgraph
-
-AlphaFeatures: ocamlbuild_more_args
 Document "functoria"
   Type: ocamlbuild (0.3)
   BuildTools: ocamldoc
@@ -36,4 +41,4 @@ Document "functoria"
   XOCamlbuildPath: .
   XOCamlbuildExtraArgs:
     "-docflags '-t Functoria -colorize-code -short-functors -charset utf-8'"
-  XOCamlbuildLibraries: functoria, functoria.runtime
+  XOCamlbuildLibraries: functoria, functoria.runtime, functoria.app

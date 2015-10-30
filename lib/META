@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d144029f9be485e2fcea09e6ada743ea)
+# DO NOT EDIT (digest: b180bf0fd684a4e8907a64172c863cfd)
 version = "1.0.0"
 description = "Functoria configuration tool"
 requires =
@@ -18,6 +18,17 @@ package "runtime" (
  archive(native) = "functoria-runtime.cmxa"
  archive(native, plugin) = "functoria-runtime.cmxs"
  exists_if = "functoria-runtime.cma"
+)
+
+package "app" (
+ version = "1.0.0"
+ description = "Functoria configuration tool"
+ requires = "functoria"
+ archive(byte) = "functoria-app.cma"
+ archive(byte, plugin) = "functoria-app.cma"
+ archive(native) = "functoria-app.cmxa"
+ archive(native, plugin) = "functoria-app.cmxs"
+ exists_if = "functoria-app.cma"
 )
 # OASIS_STOP
 

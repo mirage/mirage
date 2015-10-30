@@ -31,14 +31,15 @@ module type CONFIG = sig
   type evaluated
   (** A configuration resolved against the command line. *)
 
-  val base_keys: Functoria_key.map Cmdliner.Term.t
-  (** Base keys provided by the specialized DSL. *)
+  val base_context: Functoria_key.context Cmdliner.Term.t
+  (** [base_context] is the context needed to parse the base keys
+      defined by the custom DSL. *)
 
   val load: string option -> (t, string) Rresult.result
   (** Read a config file. If no name is given, search for use
       [config.ml]. *)
 
-  val switching_keys: t -> Functoria_key.map Cmdliner.Term.t
+  val if_context: t -> Functoria_key.context Cmdliner.Term.t
 
   val configure:
     evaluated ->
@@ -51,10 +52,10 @@ module type CONFIG = sig
   val clean: evaluated -> (unit, string) Rresult.result
 
   val describe:
-    Functoria_key.map -> t ->
-    dotcmd:string -> dot:bool -> eval:bool -> output:string option ->
+    evaluated ->
+    dotcmd:string -> dot:bool -> output:string option ->
     (unit, string) Rresult.result
 
-  val eval: Functoria_key.map -> t -> evaluated Cmdliner.Term.t
+  val eval: partial:bool -> Functoria_key.context -> t -> evaluated Cmdliner.Term.t
 
 end

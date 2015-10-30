@@ -13,8 +13,10 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
-open Functoria_misc
+
 open Rresult
+open Functoria_misc
+
 module Key = Functoria_key
 
 module Info = struct
@@ -23,23 +25,32 @@ module Info = struct
     name: string;
     root: string;
     keys: Key.Set.t;
-    keymap: Functoria_key.map;
-    libraries: StringSet.t;
-    packages: StringSet.t;
+    context: Key.context;
+    libraries: String.Set.t;
+    packages: String.Set.t;
   }
 
   let name t = t.name
   let root t = t.root
-  let libraries t = t.libraries
-  let packages t = t.packages
-  let keys t = t.keys
-  let keymap t = t.keymap
+  let libraries t = String.Set.elements t.libraries
+  let packages t = String.Set.elements t.packages
+  let keys t = Key.Set.elements t.keys
+  let context t = t.context
 
-  let create
-      ?(keys=Key.Set.empty)
-      ?(libraries=StringSet.empty) ?(packages=StringSet.empty)
-      ~keymap ~name ~root =
-    { name; root; keys; libraries; packages; keymap}
+  let create ?(packages=[]) ?(libraries=[]) ?(keys=[]) ~context ~name ~root =
+    let libraries = String.Set.of_list libraries in
+    let packages = String.Set.of_list packages in
+    let keys = Key.Set.of_list keys in
+    { name; root; keys; libraries; packages; context }
+
+  let pp verbose ppf { name ; root ; keys ; context ; libraries ; packages } =
+    let show name = Fmt.pf ppf "@[<2>%a@ %a@]@," Log.blue name in
+    let set = Fmt.iter ~sep:(Fmt.unit ",@ ") String.Set.iter Fmt.string in
+    show "Name      " Fmt.string name;
+    show "Root      " Fmt.string root;
+    show "Keys      " (Key.pps context) keys;
+    if verbose then show "Libraries " set libraries;
+    if verbose then show "Packages  " set packages
 
 end
 
@@ -47,8 +58,7 @@ type _ typ =
   | Type: 'a -> 'a typ
   | Function: 'a typ * 'b typ -> ('a -> 'b) typ
 
-let (@->) f t =
-  Function (f, t)
+let (@->) f t = Function (f, t)
 
 let typ ty = Type ty
 
@@ -64,7 +74,7 @@ module rec Typ: sig
     x: 'a impl;          (* parameter *)
   }
 
-  and any_impl = Any: _ impl -> any_impl
+  and abstract_impl = Abstract: _ impl -> abstract_impl
 
   class type ['ty] configurable = object
     method ty: 'ty typ
@@ -76,25 +86,21 @@ module rec Typ: sig
     method connect: Info.t -> string -> string list -> string
     method configure: Info.t -> (unit, string) R.t
     method clean: Info.t -> (unit, string) R.t
-    method dependencies: any_impl list
+    method deps: abstract_impl list
   end
+
 end = Typ
+
 include Typ
 
-
-let ($) f x =
-  App { f; x }
-
+let ($) f x = App { f; x }
 let impl x = Impl x
-let hidden x = Any x
-
+let abstract x = Abstract x
 let if_impl b x y = If(b,x,y)
-let rec switch ~default l kv = match l with
+
+let rec match_impl kv ~default = function
   | [] -> default
-  | (v, i) :: t ->
-    If (Key.(pure ((=) v) $ kv), i, switch ~default t kv)
-
-
+  | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
 
 class base_configurable = object
   method libraries: string list Key.value = Key.pure []
@@ -104,19 +110,17 @@ class base_configurable = object
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
   method configure (_: Info.t): (unit,string) R.t = R.ok ()
   method clean (_: Info.t): (unit,string) R.t = R.ok ()
-  method dependencies: any_impl list = []
+  method deps: abstract_impl list = []
 end
-
 
 type job = JOB
 let job = Type JOB
 
 class ['ty] foreign
-    ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(dependencies=[])
-    module_name ty
+    ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(deps=[]) module_name ty
   : ['ty] configurable
   =
-  let name = Name.of_key module_name ~base:"f" in
+  let name = Name.create module_name ~prefix:"f" in
   object
     method ty = ty
     method name = name
@@ -131,11 +135,11 @@ class ['ty] foreign
         Fmt.(list ~sep:sp string)  args
     method clean _ = R.ok ()
     method configure _ = R.ok ()
-    method dependencies = dependencies
+    method deps = deps
   end
 
-let foreign ?keys ?libraries ?packages ?dependencies module_name ty =
-  Impl (new foreign ?keys ?libraries ?packages ?dependencies module_name ty)
+let foreign ?packages ?libraries ?keys ?deps module_name ty =
+  Impl (new foreign ?keys ?libraries ?packages ?deps module_name ty)
 
 (* {Misc} *)
 
@@ -144,34 +148,41 @@ let rec equal
   = fun x y -> match x, y with
     | Impl c, Impl c' ->
       c#name = c'#name
-      && List.for_all2 equal_any c#dependencies c'#dependencies
+      && List.for_all2 equal_any c#deps c'#deps
     | App a, App b -> equal a.f b.f && equal a.x b.x
     | If (cond1, t1, e1), If (cond2, t2, e2) ->
       (* Key.value is a functional value (it contains a closure for eval).
          There is no prettier way than physical equality. *)
       cond1 == cond2 && equal t1 t2 && equal e1 e2
-    | _ -> false
+    | Impl _, (If _ | App _)
+    | App _ , (If _ | Impl _)
+    | If _  , (App _ | Impl _) -> false
 
-and equal_any (Any x) (Any y) = equal x y
-
+and equal_any (Abstract x) (Abstract y) = equal x y
 
 let rec hash: type t . t impl -> int = function
   | Impl c ->
     Hashtbl.hash
-      (c#name, Hashtbl.hash c#keys, List.map hash_any c#dependencies)
+      (c#name, Hashtbl.hash c#keys, List.map hash_any c#deps)
   | App { f; x } -> Hashtbl.hash (`Bla (hash f, hash x))
   | If (cond, t, e) ->
     Hashtbl.hash (`If (cond, hash t, hash e))
 
-and hash_any (Any x) = hash x
+and hash_any (Abstract x) = hash x
 
 module ImplTbl = Hashtbl.Make (struct
-    type t = any_impl
+    type t = abstract_impl
     let hash = hash_any
     let equal = equal_any
   end)
 
 let explode x = match x with
   | Impl c -> `Impl c
-  | App { f; x } -> `App (Any f, Any x)
+  | App { f; x } -> `App (Abstract f, Abstract x)
   | If (cond, x, y) -> `If (cond, x, y)
+
+type key = Functoria_key.t
+type context = Functoria_key.context
+type 'a value = 'a Functoria_key.value
+
+module type KEY = module type of struct include Functoria_key end

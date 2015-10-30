@@ -14,58 +14,48 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Cmdliner
+module Arg = struct
 
-module Converter = struct
+  type 'a kind =
+    | Opt : 'a Cmdliner.Arg.converter -> 'a kind
+    | Flag: bool kind
 
-  type 'a desc = 'a Arg.converter
+  type 'a t = {
+    default: 'a;
+    info   : Cmdliner.Arg.info;
+    kind   : 'a kind;
+  }
 
-  type 'a t =
-    | Flag : bool t
-    | Desc : 'a desc -> 'a t
-
-  let flag = Flag
-  let desc x = Desc x
-
-  let int = Arg.int
-  let string = Arg.string
-  let bool = Arg.bool
-  let list d = Arg.list d
-
-
-  let option_parser conv x =
-    match conv x with
-    | `Ok x -> `Ok (Some x)
-    | `Error s -> `Error s
-
-  let option d =
-    option_parser @@ fst d, Fmt.Dump.option @@ snd d
+  let flag info = { default = false; info; kind = Flag }
+  let opt conv default info = { default; info; kind = Opt conv }
+  let default t = t.default
+  let kind t = t.kind
+  let info t = t.info
 
 end
 
 module Key = struct
 
   type 'a t = {
-    doc : Arg.info ;
-    desc : 'a Converter.t ;
-    default : 'a ;
-    mutable value : 'a option ;
+    arg : 'a Arg.t;
+    mutable value: 'a option;
   }
 
-  let create ~doc ~default desc =
-    { doc ; default ; desc ; value = None }
+  let create arg = { arg; value = None }
 
-  let get k = match k.value with
-    | None -> k.default
+  let get t = match t.value with
+    | None   -> Arg.default t.arg
     | Some v -> v
 
-  let term (type a) ({ doc; desc; default } as t : a t) =
+  let term (type a) (t: a t) =
     let set w = t.value <- Some w in
-    match desc with
-    | Converter.Flag ->
-      Term.(pure set $ Arg.(value & flag doc))
-    | Converter.Desc desc ->
-      Term.(pure set $ Arg.(value & opt desc default doc))
+    let default = Arg.default t.arg in
+    let doc = Arg.info t.arg in
+    let term arg = Cmdliner.Term.(pure set $ arg) in
+    match Arg.kind t.arg with
+    | Arg.Flag     -> term @@ Cmdliner.Arg.(value & flag doc)
+    | Arg.Opt desc -> term @@ Cmdliner.Arg.(value & opt desc default doc)
+
 end
 
 let initialized = ref false
@@ -76,6 +66,6 @@ let with_argv keys s argv =
     let gather k rest = Term.(pure (fun () () -> ()) $ k $ rest) in
     let t = List.fold_right gather keys (Term.pure ()) in
     match Term.(eval ~argv (t, info s)) with
-    | `Ok _ -> initialized := true ; `Ok ()
+    | `Ok _ -> initialized := true; `Ok ()
     | `Error _ -> `Error "Key initialization failed"
     | `Help | `Version -> exit 0

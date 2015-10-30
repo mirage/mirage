@@ -14,46 +14,53 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Runtime *)
+(** Functoria runtime. *)
 
-(** Cmdliner converter. *)
-module Converter : sig
+(** [Arg] defines command-line arguments which can be set at runtime.
+    This module is the runtime companion of {!Functoria_key}. It
+    exposes a subset of
+    {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html}
+    Cmdliner.Arg}. *)
+module Arg: sig
+
+  (** {1 Runtime command-line arguments} *)
+
   type 'a t
-  val flag : bool t
-  type 'a desc = 'a Cmdliner.Arg.converter
-  val desc : 'a desc -> 'a t
-  val int : int desc
-  val bool : bool desc
-  val string : string desc
-  val list : 'a desc -> 'a list desc
-  val option : 'a desc -> 'a option desc
-end
+  (** The type for runtime command-line arguments. Similar to
+      {!Functoria_key.Arg.t} but only available at runtime. *)
 
-(** Runtime Key module.
+  val opt: 'a Cmdliner.Arg.converter -> 'a -> Cmdliner.Arg.info -> 'a t
+  (** [opt] is the runtime companion of {!Functoria_key.Arg.opt}. *)
 
-    Contains the bare minimum to define keys and plug them in cmdliner. *)
-module Key : sig
-
-  (** A key containing a value of type 'a. *)
-  type 'a t
-
-  (** Create a new key. *)
-  val create :
-    doc:Cmdliner.Arg.info ->
-    default:'a -> 'a Converter.t -> 'a t
-
-  (** Get the value of a key. Will use the default value if no
-      command line argument was provided. *)
-  val get : 'a t -> 'a
-
-  (** Derive a cmdliner term from a key. *)
-  val term : 'a t -> unit Cmdliner.Term.t
+  val flag: Cmdliner.Arg.info -> bool t
+  (** [flag] is the runtime companion of {!Functoria_key.Arg.flag}. *)
 
 end
 
+(** [Key] defines values that can be set by runtime command-line
+    arguments. This module is the runtime companion of
+    {!Functoria_key}. *)
+module Key: sig
 
-(** [with_argv keys s argv] uses the given key terms to parse the given [argv].
-    [s] is the name of the cmdline executable. *)
-val with_argv :
-  unit Cmdliner.Term.t list -> string -> string array ->
+  (** {1 Runtime keys} *)
+
+  type 'a t
+  (** The type for runtime keys containing a value of type ['a]. *)
+
+  val create: 'a Arg.t -> 'a t
+  (** [create conv] create a new runtime key. *)
+
+  val get: 'a t -> 'a
+  (** [get k] is the value of the key [k]. Use the default value if no
+      command-line argument is provided. *)
+
+  val term: 'a t -> unit Cmdliner.Term.t
+  (** [term k] is the [Cmdliner] term whose evaluation sets [k]s'
+      value to the parsed command-line argument. *)
+
+end
+
+(** [with_argv keys name argv] evaluates the [keys] {{!Key.term}terms}
+    on the command-line [argv]. [name] is the executable name. *)
+val with_argv : unit Cmdliner.Term.t list -> string -> string array ->
   [> `Error of string | `Ok of unit ]

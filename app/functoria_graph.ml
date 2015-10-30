@@ -450,7 +450,7 @@ module Dot = Graphviz.Dot(struct
 
   end )
 
-let pp_dot = Dot.fprint_graph
+let pp_dot _context _info = Dot.fprint_graph
 
 let pp context info ppf _ =
   let show name = Fmt.pf ppf "%a @[%a@]@." Log.blue name in

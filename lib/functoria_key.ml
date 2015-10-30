@@ -137,7 +137,7 @@ module Arg = struct
   let required ?(stage=`Both) conv info =
     { stage; info; kind = Required conv }
 
-  let make_opt_cmdliner i default f desc =
+  let make_opt_cmdliner wrap i default f desc =
     let none = match default with
       | Some d -> Some (Fmt.strf "%a" (pp_conv desc) d)
       | None -> None
@@ -147,20 +147,28 @@ module Arg = struct
       | None -> z
     in
     Cmdliner.Term.(app @@ pure f_desc)
-      Cmdliner.Arg.(value @@ opt (some ?none @@ converter desc) None i)
+      Cmdliner.Arg.(wrap @@ opt (some ?none @@ converter desc) None i)
 
   let to_cmdliner (type a) (t: a t) (f: a -> _) =
     let i = cmdliner_of_info t.info in
     match t.kind with
     | Flag -> Cmdliner.Term.(app @@ pure f) Cmdliner.Arg.(value @@ flag i)
-    | Opt (default, desc) -> make_opt_cmdliner i (Some default) f desc
-    | Required desc       -> make_opt_cmdliner i None f (some desc)
+    | Opt (default, desc) ->
+      make_opt_cmdliner Cmdliner.Arg.value i (Some default) f desc
+    | Required desc when t.stage = `Configure ->
+      make_opt_cmdliner Cmdliner.Arg.required i None f (some (some desc))
+    | Required desc ->
+      make_opt_cmdliner Cmdliner.Arg.value i None f (some desc)
 
   let serialize_value (type a) (v:a) ppf (t: a t) =
     match t.kind with
     | Flag       -> (serialize bool) ppf v
     | Opt (_, c) -> (serialize c) ppf v
-    | Required c -> (serialize @@ some c) ppf v
+    | Required c -> match v with
+      | Some v -> (serialize c) ppf v
+      | None -> assert false
+        (* This is only called by serialize_ro, hence a configure time
+           key, so the value is known. *)
 
   let serialize (type a): a -> a t serialize = fun v ppf t ->
     match t.kind with

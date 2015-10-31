@@ -14,7 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-include Functoria.KEY
+module Arg : sig
+  include module type of struct include Functoria_key.Arg end
+
+  val ipv4 : Ipaddr.V4.t converter
+  val ipv6 : Ipaddr.V6.t converter
+  val ipv6_prefix : Ipaddr.V6.Prefix.t converter
+
+end
+
+include Functoria.KEY with module Arg := Arg
 
 (** {2 Mirage keys} *)
 

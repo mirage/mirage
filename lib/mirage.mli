@@ -183,9 +183,12 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 
 (** {2 Generic key/value stores} *)
 
-val generic_kv_ro : ?group:string -> string -> kv_ro impl
-(** Generic key/value store exposing a key {!Key.kv_ro}. It will
-    choose dynamically between {!fat}, {!archive} and {!crunch}.
+val generic_kv_ro :
+  ?key:[ `Archive | `Crunch | `Fat ] value -> string -> kv_ro impl
+(** Generic key/value that will choose dynamically between
+    {!fat}, {!archive} and {!crunch}.
+
+    If no key is provided, it uses {!Key.kv_ro} to create a new one.
 *)
 
 
@@ -352,13 +355,19 @@ val direct_stackv4_with_dhcp:
 val socket_stackv4:
   ?group:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
 
-(** Generic stack exposing two keys: {!Key.net} and {!Key.dhcp}.
+(** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
     - If [net] = [socket] then {!socket_stackv4} is used.
     - Else, if [dhcp] then {!direct_stackv4_with_dhcp} is used
     - Else, {!direct_stackv4_with_default_ipv4} is used.
+
+    If a key is not provided, it uses {!Key.net} or {!Key.dhcp} (with the
+    [group] argument) to create it.
 *)
 val generic_stackv4 :
-  ?group:string -> console impl -> network impl -> stackv4 impl
+  ?group:string ->
+  ?dhcp_key:bool value ->
+  ?net_key:[ `Direct | `Socket ] value ->
+  console impl -> network impl -> stackv4 impl
 
 (** {2 Resolver configuration} *)
 

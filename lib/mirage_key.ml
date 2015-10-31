@@ -147,7 +147,7 @@ let target =
     Arg.info ~docs:mirage_section ~docv:"TARGET" ~doc ["t";"target"] ~env:"MODE"
   in
   let default = Lazy.force default_unix in
-  let key = Arg.opt ~stage:`Configure conv default doc in
+  let key = Arg.opt ~stage:`Configure ~default conv doc in
   Key.create "target" key
 
 let is_xen =
@@ -180,7 +180,7 @@ let xen =
 let tracing default =
   let doc = "The tracing level. Accepts an integer" in
   let doc = Arg.info ~docs:mirage_section ~docv:"TRACING" ~doc ["tracing"] in
-  let key = Arg.opt ~stage:`Configure Arg.int default doc in
+  let key = Arg.opt ~stage:`Configure ~default Arg.int doc in
   Key.create "tracing" key
 
 (** {2 General mirage keys} *)
@@ -191,7 +191,7 @@ let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =
     Arg.info ~docs:unikernel_section ~docv:(String.uppercase name) ~doc
       [prefix ^ name]
   in
-  let key = Arg.opt ~stage conv default doc in
+  let key = Arg.opt ~stage ~default conv doc in
   Key.create (prefix ^ name) key
 
 (** {3 File system keys} *)

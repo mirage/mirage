@@ -41,7 +41,7 @@ true: annot, bin_annot
 <app/*.ml{,i,y}>: use_functoria-runtime
 # OASIS_STOP
 
-true: warn(A-44)
+true: warn(A-40-42-44)
 true: warn_error(+1..49)
 true: strict_sequence, safe_string, short_paths
 true: bin_annot

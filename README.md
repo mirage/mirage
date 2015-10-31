@@ -4,14 +4,15 @@ Mirage is a programming framework for constructing secure, high-performance
 network applications across a variety of cloud computing and mobile platforms.
 Code can be developed on a normal OS such as Linux or MacOS X, and then
 compiled into a fully-standalone, specialised unikernel that runs under the Xen
-hypervisor.  Since Xen powers most public cloud computing infrastructure such
+hypervisor. Since Xen powers most public cloud computing infrastructure such
 as Amazon EC2, this lets your servers run more cheaply, securely and finer
 control than with a full software stack.
 
-The most up-to-date documentation can be found at the homepage, at
-<http://www.openmirage.org>.  The site is self-hosted and a useful example,
-available at <https://github.com/mirage/mirage-www>. Simpler skeleton
-applications are found at <https://github.com/mirage/mirage-skeleton>.
+The most up-to-date documentation can be found at the
+[homepage](http://www.mirage.io).  The site is self-hosted and a
+useful [example](https://github.com/mirage/mirage-www). Simpler
+[skeleton applications](https://github.com/mirage/mirage-skeleton) are
+also available online.
 
 [![Build Status](https://travis-ci.org/mirage/mirage.svg)](https://travis-ci.org/mirage/mirage)
 [![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://mirage.github.io/mirage/)
@@ -30,17 +31,16 @@ wrapped up in the tool.
 To work with Mirage, you'll need the following prerequisites installed:
 
 * a working [OCaml](http://ocaml.org) compiler (4.01.0 or higher).
-* the [OPAM](https://opam.ocaml.org) source package manager (1.2.0 or higher).
-* an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or MacOS X
-  for the userlevel version.
+* the [OPAM](https://opam.ocaml.org) source package manager (1.2.0 or
+  higher).
+* an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD,
+  OpenBSD or MacOS X for the userlevel version.
 
 There are three stages to using `mirage`:
 
 * a *configuration* phase where OPAM package dependencies are
   satisfied.
-
 * a *build* phase where the compiler and any support scripts are run.
-
 * a *run* phase where `mirage` spawns and tracks the progress of the
   deployment (e.g. as a UNIX process or a Xen kernel).
 

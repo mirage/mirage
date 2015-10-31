@@ -17,18 +17,27 @@
 module Arg = struct
 
   type 'a kind =
-    | Opt : 'a Cmdliner.Arg.converter -> 'a kind
+    | Opt : 'a * 'a Cmdliner.Arg.converter -> 'a kind
     | Flag: bool kind
+    | Required : 'a Cmdliner.Arg.converter -> 'a kind
 
   type 'a t = {
-    default: 'a;
     info   : Cmdliner.Arg.info;
     kind   : 'a kind;
   }
 
-  let flag info = { default = false; info; kind = Flag }
-  let opt conv default info = { default; info; kind = Opt conv }
-  let default t = t.default
+  let flag info = { info; kind = Flag }
+  let opt conv default info = { info; kind = Opt (default, conv) }
+  let required conv info = { info; kind = Required conv }
+  let key ?default c i = match default with
+    | None -> required c i
+    | Some d -> opt c d i
+
+  let default (type a) (t : a t) = match t.kind with
+    | Opt (d,_) -> Some d
+    | Flag -> Some false
+    | Required _ -> None
+
   let kind t = t.kind
   let info t = t.info
 
@@ -44,17 +53,21 @@ module Key = struct
   let create arg = { arg; value = None }
 
   let get t = match t.value with
-    | None   -> Arg.default t.arg
+    | None   -> invalid_arg "Key.get: Called too early. Please delay this call after cmdliner's evaluation."
     | Some v -> v
+
+  let default t = Arg.default t.arg
 
   let term (type a) (t: a t) =
     let set w = t.value <- Some w in
-    let default = Arg.default t.arg in
     let doc = Arg.info t.arg in
     let term arg = Cmdliner.Term.(pure set $ arg) in
     match Arg.kind t.arg with
     | Arg.Flag     -> term @@ Cmdliner.Arg.(value & flag doc)
-    | Arg.Opt desc -> term @@ Cmdliner.Arg.(value & opt desc default doc)
+    | Arg.Opt (default, desc) ->
+      term @@ Cmdliner.Arg.(value & opt desc default doc)
+    | Arg.Required desc ->
+      term @@ Cmdliner.Arg.(required & opt (some desc) None doc)
 
 end
 

@@ -257,6 +257,18 @@ module Engine = struct
       Fmt.(list ~sep:nop @@ meta_connect error) names
       (connect_string @@ List.map snd names)
 
+  let emit_run key main =
+    (* "exit 1" is ok in this code, since cmdliner will print help. *)
+    Codegen.append_main
+      "@[<v 2>\
+       let () =@ \
+         let t =@ \
+         %s () >>= function@ \
+         | `Error _e -> exit 1@ \
+         | `Ok _ -> %s ()@ \
+       in run t@]"
+      key main
+
   let connect modtbl info error g =
     let tbl = Graph.Tbl.create 17 in
     let f v =
@@ -273,9 +285,7 @@ module Engine = struct
     Graph.fold (fun v () -> f v) g ();
     let main_name = Graph.Tbl.find tbl @@ Graph.find_root g in
     let bootvar_name = Graph.Tbl.find tbl @@ find_bootvar g in
-    Codegen.append_main
-      "let () = run (%s () >>= fun _ -> %s ())"
-      bootvar_name main_name;
+    emit_run bootvar_name main_name;
     ()
 
   let configure_and_connect info error g =
@@ -552,7 +562,7 @@ module Make (P: S) = struct
       let keys = Config.extract_keys (P.create []) in
       let context = Key.context ~stage:`Configure keys in
       let f x = base_context := Some x; x in
-      Cmdliner.Term.(pure f $ context)
+      Cmdliner.Term.(pure f $ context ~with_required:false )
 
     type t = Config.t
     type evaluated = Graph.t * Info.t
@@ -567,7 +577,8 @@ module Make (P: S) = struct
       Log.set_section (Config.name t);
       Ok t
 
-    let if_context t = Key.context ~stage:`Configure @@ Config.keys t
+    let if_context t =
+      Key.context ~stage:`Configure ~with_required:false @@ Config.keys t
 
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Log.get_level () >= level in
@@ -581,9 +592,11 @@ module Make (P: S) = struct
     let build (_jobs, info) = log info; build info
     let describe (jobs, info) = show info; describe info jobs
 
-    let eval ~partial context t =
+    let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
-      let context = Key.context ~stage:`Configure (Key.deps info) in
+      let context =
+        Key.context ~with_required ~stage:`Configure (Key.deps info)
+      in
       let f map = Key.eval map info @@ map in
       Cmdliner.Term.(pure f $ context)
 

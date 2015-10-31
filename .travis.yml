@@ -5,7 +5,7 @@ script: bash -ex .travis-ci.sh
 env:
   global:
   - PACKAGE=functoria
-  - PINS="mirage:https://github.com/samoht/mirage.git#functoria mirage-skeleton.dev:https://github.com/Drup/mirage-skeleton.git#functoria"
+  - PINS="mirage:https://github.com/mirage/mirage.git mirage-skeleton.dev:https://github.com/Drup/mirage-skeleton.git#functoria"
   matrix:
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02

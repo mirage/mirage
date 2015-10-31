@@ -77,7 +77,7 @@ module Arg: sig
   (** The type for information about cross-stage command-line
       arguments. See
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#arginfo}
-      Cmdliner.Arg#TYPEinfo}. *)
+      Cmdliner's arguments}. *)
 
   val info:
     ?docs:string -> ?docv:string -> ?doc:string -> ?env:string ->
@@ -111,10 +111,16 @@ module Arg: sig
       Cmdliner.Arg.opt} but for cross-stage optional command-line
       arguments. If not set, [stage] is [`Both]. *)
 
+  val required: ?stage:stage -> 'a converter -> info -> 'a option t
+  (** [required conv i] is similar to
+      {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALrequired}
+      Cmdliner.Arg.required} but for cross-stage required command-line
+      arguments. If not set, [stage] is [`Both]. *)
+
   val flag: ?stage:stage -> info -> bool t
   (** [flag i] is similar to
       {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Arg.html#VALflag}
-      Cmdliner.Arg.opt} but for cross-stage command-line flags. If not
+      Cmdliner.Arg.flag} but for cross-stage command-line flags. If not
       set, [stage] is [`Both]. *)
 
 end
@@ -243,11 +249,15 @@ val aliases: t -> Set.t
 type context
 (** The type for values holding parsing context. *)
 
-val context: ?stage:Arg.stage -> Set.t -> context Cmdliner.Term.t
-(** [context ks] is a [Cmdliner]
+val context:
+  ?stage:Arg.stage -> with_required: bool ->
+  Set.t -> context Cmdliner.Term.t
+(** [context ~with_required ks] is a [Cmdliner]
     {{:http://erratique.ch/software/cmdliner/doc/Cmdliner.Term.html#TYPt}
     term} that evaluates into a parsing context for command-line
-    arguments. *)
+    arguments.
+    If [with_required] is false, it will only produce optional keys.
+*)
 
 val mem: context -> 'a value -> bool
 (** [mem c v] is [true] iff all the dependencies of [v] have been

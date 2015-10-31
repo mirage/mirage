@@ -326,8 +326,8 @@ let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 
 (** generic kv_ro. *)
 
-let generic_kv_ro ?group dir =
-  match_impl Key.(value @@ kv_ro ?group ()) [
+let generic_kv_ro ?(key = Key.value @@ Key.kv_ro ()) dir =
+  match_impl key [
     `Fat    , kv_ro_of_fs @@ fat_of_files ~dir () ;
     `Archive, archive_of_files ~dir () ;
   ] ~default:(direct_kv_ro dir)
@@ -724,14 +724,16 @@ let socket_stackv4 ?group console ipv4s =
 
 (** Generic stack *)
 
-let generic_stackv4 ?group console tap =
-  let dhcp_key = Key.dhcp ?group () in
-  let net_key = Key.net ?group () in
+let generic_stackv4
+    ?group
+    ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
+    ?(net_key = Key.value @@ Key.net ?group ())
+    console tap =
   if_impl
-    Key.(pure ((=) `Socket) $ value net_key)
+    Key.(pure ((=) `Socket) $ net_key)
     (socket_stackv4 console ?group [Ipaddr.V4.any])
     (if_impl
-       (Key.value dhcp_key)
+       dhcp_key
        (direct_stackv4_with_dhcp ?group console tap)
        (direct_stackv4_with_default_ipv4 ?group console tap)
     )

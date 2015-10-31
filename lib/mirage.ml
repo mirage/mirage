@@ -378,7 +378,7 @@ let ethernet_conf = object
   method name = "ethif"
   method module_name = "Ethif.Make"
   method packages = Key.pure ["tcpip"]
-  method libraries = Key.(if_ is_xen) [ "tcpip.ethif" ] [ "tcpip.ethif-unix" ]
+  method libraries = Key.pure ["tcpip.ethif"]
   method connect _ modname = function
     | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
     | _ -> failwith "The ethernet connect should receive exactly one argument."
@@ -396,7 +396,7 @@ let arpv4_conf = object
   method name = "arpv4"
   method module_name = "Arpv4.Make"
   method packages = Key.pure ["tcpip"]
-  method libraries = Key.(if_ is_xen) ["tcpip.arpv4"] ["tcpip.arpv4-unix"]
+  method libraries = Key.pure ["tcpip.arpv4"]
 
   method connect _ modname = function
     | [ eth ; _clock ; _time ] -> Printf.sprintf "%s.connect %s" modname eth
@@ -446,8 +446,8 @@ let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Ipv4.Make"
-    method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.(if_ is_xen) ["tcpip.ipv4"] ["tcpip.ipv4-unix"]
+    method packages = Key.pure ["tcpip"]
+    method libraries = Key.pure ["tcpip.ipv4"]
     method keys = address @?? netmask @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; arp ] ->
@@ -488,8 +488,8 @@ let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
     method ty = ethernet @-> time @-> clock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.(if_ is_xen) ["tcpip.ipv6"] ["tcpip.ipv6-unix"]
+    method packages = Key.pure ["tcpip"]
+    method libraries = Key.pure ["tcpip.ipv6"]
     method keys = address @?? netmask @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; _time ; _clock ] ->

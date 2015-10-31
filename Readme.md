@@ -10,9 +10,9 @@ The main use case is mirage. See the [mirage][] repository for details.
 
 ## How to write a configuration file ?
 
-There are numerous example of configuration files in [mirage-skeleton][]. Most of them should be fairly general and understandable, even outside the context of mirage. We can distinguish two part in a `config.ml`: Defining new modules and using them.
+There are numerous examples of configuration files in [mirage-skeleton][]. Most of them should be fairly general and understandable, even outside the context of mirage. We can distinguish two parts in a `config.ml`: Defining new modules and using them.
 
-In order to do define a new module, we use the `foreign` function. Among various arguments, it takes a module name and a type. The type is assembled with the DSL's combinators and the `@->` operator, which symbols a functor arrow.
+In order to define a new module, we use the `foreign` function. Among its various arguments, it takes a module name and a type. The type is assembled with the DSL's combinators and the `@->` operator, which symbols a functor arrow.
 
 ```ocaml
 let main = foreign "Unikernel.Main" (console @-> job)
@@ -74,7 +74,7 @@ First, we have to compute a boolean value from lang:
 let is_fi = Key.(pure ((=) "fi") $ value lang_key)
 ```
 
-We can use the `if_impl` combinator to choose between two implementation depending on the value of the key:
+We can use the `if_impl` combinator to choose between two implementations depending on the value of the key:
 
 ```ocaml
 let dynamic_storage =

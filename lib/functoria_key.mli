@@ -283,7 +283,7 @@ val ocaml_name: t -> string
 (** [ocaml_name k] is the ocaml name of [k]. *)
 
 val serialize_call: t Fmt.t
-(** [serialize_call fmt k] outputs [Bootvar_gen.n ()] to [fmt], where
+(** [serialize_call fmt k] outputs [Key_gen.n ()] to [fmt], where
     [n] is [k]'s {{!ocaml_name}OCaml name}. *)
 
 val serialize: context -> t Fmt.t

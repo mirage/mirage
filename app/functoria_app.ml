@@ -56,10 +56,10 @@ module Keys = struct
     Cmd.with_file (Info.root i / file) @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
     Codegen.newline fmt;
-    let bootvars = Key.Set.of_list @@ Info.keys i in
+    let keys = Key.Set.of_list @@ Info.keys i in
     let pp_var k = Key.serialize (Info.context i) k in
-    Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) bootvars;
-    let runvars = Key.Set.elements (Key.filter_stage `Run bootvars) in
+    Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
+    let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
     let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
     Codegen.append fmt "let runtime_keys = %a" Fmt.Dump.(list pp_runvar) runvars;
     Codegen.newline fmt;
@@ -69,7 +69,7 @@ module Keys = struct
     let file = String.lowercase Key.module_name ^ ".ml" in
     R.ok @@ Cmd.remove (Info.root i / file)
 
-  let name = "bootvar"
+  let name = "key"
 
 end
 
@@ -199,7 +199,7 @@ module Engine = struct
       let prefix = Name.ocamlify prefix in
       Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
-  let find_bootvar g =
+  let find_key_device g =
     let open Graph in
     let p = function
       | Impl c     -> c#name = Keys.name
@@ -208,7 +208,7 @@ module Engine = struct
     match Graph.find_all g p with
     | [ x ] -> x
     | _ -> invalid_arg
-             "Functoria.find_bootvar: There should be only one bootvar device."
+             "Functoria.find_key: There should be only one key device."
 
   let configure info g =
     let tbl = Graph.Tbl.create 17 in
@@ -284,8 +284,8 @@ module Engine = struct
     in
     Graph.fold (fun v () -> f v) g ();
     let main_name = Graph.Tbl.find tbl @@ Graph.find_root g in
-    let bootvar_name = Graph.Tbl.find tbl @@ find_bootvar g in
-    emit_run bootvar_name main_name;
+    let key_device_name = Graph.Tbl.find tbl @@ find_key_device g in
+    emit_run key_device_name main_name;
     ()
 
   let configure_and_connect info error g =

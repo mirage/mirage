@@ -364,7 +364,7 @@ let context ?(stage=`Both) ~with_required l =
 
 (* {2 Code emission} *)
 
-let module_name = "Bootvar_gen"
+let module_name = "Key_gen"
 let ocaml_name k = Name.ocamlify (name k)
 let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)

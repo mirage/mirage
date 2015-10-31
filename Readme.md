@@ -53,7 +53,7 @@ let lang_key =
 ```
 
 Here, We defined both a long option `--lang` and a short one `-l` (the format is similar to the one used by [Cmdliner][cmdliner]).
-In the application code, the value is retrieved with `Bootvar_gen.language ()`.
+In the application code, the value is retrieved with `Key_gen.language ()`.
 
 The option is also documented in the `--help` option for both the `configure` subcommand (at configure time) and `./my_application` (at startup time).
 

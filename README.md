@@ -79,7 +79,7 @@ mirage configure --xen
 
 ### Building Mirage Applications
 
-The command:
+To compile your application, use:
 
 ```
 make

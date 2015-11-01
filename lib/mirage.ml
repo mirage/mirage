@@ -753,8 +753,8 @@ let check_entropy libs =
   if is_needed && not (is_entropy_enabled ()) then
     Log.error
       "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
-       Please enable the entropy by adding a dependency \
-       to the nocrypto device. You can do so by adding [~deps:nocrypto] \
+       Please enable the entropy by adding a dependency to the nocrypto \
+       device. You can do so by adding ~deps:[abstract nocrypto] \
        to the arguments of Mirage.foreign."
   else R.ok ()
 

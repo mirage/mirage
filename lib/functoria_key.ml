@@ -325,31 +325,49 @@ let pps p =
 
 (* {2 Automatic documentation} *)
 
-let info_setters setters (info: Arg.info) =
+let info_alias setters =
   let f fmt k = Fmt.pf fmt "$(b,%s)" (name k) in
-  let doc_s = if setters = [] then "" else
-      Fmt.strf "\nWill automatically set the following keys: %a."
-        (Set.pp f) (Alias.keys setters)
-  in
-  let doc = match info.Arg.doc with
-    | None -> doc_s
-    | Some s -> s ^ doc_s
-  in
-  { info with Arg.doc = Some doc }
+  match setters with
+  | [] -> ""
+  | [ _ ] ->
+    Fmt.strf "Will automatically set %a." (Set.pp f) (Alias.keys setters)
+  | _ ->
+    Fmt.strf "Will automatically set the following keys: %a."
+      (Set.pp f) (Alias.keys setters)
+
+let info_arg (type a) (arg: a Arg.kind) = match arg with
+  | Arg.Required _ -> "This key is required."
+  | Arg.Flag -> ""
+  | Arg.Opt _ -> ""
+
+let add_extra_info setters arg =
+  match arg.Arg.info.doc with
+  | None -> arg
+  | Some doc ->
+    let doc = String.concat " " [
+        doc ;
+        info_alias setters ;
+        info_arg arg.kind ;
+      ]
+    in
+    {arg with info = {arg.info with doc = Some doc}}
 
 (* {2 Key creation} *)
+
+(* Unexposed smart constructor. *)
+let make ~setters ~arg ~name =
+  let key = Univ.new_key name in
+  let arg = add_extra_info setters arg in
+  { setters ; arg ; name ; key }
 
 let alias name a =
   let setters = Alias.setters a in
   let arg = Alias.arg a in
-  let arg = { arg with Arg.info = info_setters setters arg.Arg.info } in
-  let key = Univ.new_key name in
-  { setters; arg; name; key }
+  make ~setters ~arg ~name
 
 let create name arg =
-  let key = Univ.new_key name in
   let setters = [] in
-  { setters; arg; name; key }
+  make ~setters ~arg ~name
 
 (* {2 Cmdliner interface} *)
 
@@ -364,7 +382,7 @@ let context ?(stage=`Both) ~with_required l =
 
 (* {2 Code emission} *)
 
-let module_name = "Bootvar_gen"
+let module_name = "Key_gen"
 let ocaml_name k = Name.ocamlify (name k)
 let serialize_call fmt k = Fmt.pf fmt "(%s.%s ())" module_name (ocaml_name k)
 let serialize ctx ppf (Any k) = Arg.serialize (get ctx k) ppf (arg k)

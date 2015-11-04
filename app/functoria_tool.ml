@@ -44,7 +44,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
        installed during the configuration phase."
 
   let no_opam_version_check =
-    mk_flag ["no-opam-version-check"] "Bypass the check of opam's version."
+    mk_flag ["no-opam-version-check"] "Bypass the OPAM version check."
 
   let no_depext =
     mk_flag ["no-depext"] "Skip installation of external dependencies."
@@ -52,13 +52,13 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   let full_eval =
     mk_flag ["eval"]
       "Fully evaluate the graph before showing it. \
-       By default, only the key that are given on the command line are \
+       By default, only the keys that are given on the command line are \
        evaluated."
 
   let dot =
     mk_flag ["dot"]
       "Output a dot description. \
-       If no output file is given,  it will show the dot file using command \
+       If no output file is given,  it will display the dot file using the command \
        given to $(b,--dot-command)."
 
   let dotcmd =
@@ -201,7 +201,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       `P "The dot output contains the following elements:";
       `Noblank;
       `I ("If vertices",
-          "Represented as circles. Branches are doted, the default branch \
+          "Represented as circles. Branches are dotted, and the default branch \
            is in bold.");
       `Noblank;
       `I ("Configurables",
@@ -209,7 +209,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
            the order of the functor arguments.");
       `Noblank;
       `I ("Data dependencies",
-          "Represented as dashed arrows");
+          "Represented as dashed arrows.");
       `Noblank;
       `I ("App vertices",
           "Represented as diamonds. The bold arrow is the functor part.");

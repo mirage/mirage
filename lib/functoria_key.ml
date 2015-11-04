@@ -264,6 +264,7 @@ let filter_stage stage s = match stage with
 (* Key Map *)
 
 type context = Univ.t
+let empty_context = Univ.empty
 
 let get (type a) ctx (t : a key) : a =
   match t.arg.Arg.kind, Univ.find t.key ctx with

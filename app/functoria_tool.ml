@@ -157,11 +157,14 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     match Lazy.force config with
     | Ok t ->
       let if_context = Config.if_context t in
+      let partial = with_eval && not @@ load_fully_eval () in
       let term = match Term.eval_peek_opts if_context with
         | Some context, _ ->
-          let partial = with_eval && not @@ load_fully_eval () in
           Term.app f @@ Config.eval ~with_required ~partial context t
-        | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
+        | _, _ ->
+          (* If peeking has failed, this should always fail too, but with
+             a good error message. *)
+          Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
       in
 
       let t =

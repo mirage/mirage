@@ -249,6 +249,8 @@ val aliases: t -> Set.t
 type context
 (** The type for values holding parsing context. *)
 
+val empty_context : context
+
 val context:
   ?stage:Arg.stage -> with_required: bool ->
   Set.t -> context Cmdliner.Term.t

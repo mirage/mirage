@@ -125,7 +125,7 @@ module Log = struct
 
   let error_msg f = in_section ~color:red ~section:"[ERROR]" f
   let error fmt = Fmt.kstrf (fun x -> Error x) fmt
-  let fatal fmt = error_msg (Fmt.kstrf @@ fun s -> raise (Fatal s)) fmt
+  let fatal fmt = Fmt.kstrf (fun s -> raise (Fatal s)) fmt
   let show_error x = error_msg Fmt.pr x
   let info fmt = in_section ~color:green (log INFO) fmt
   let debug fmt = in_section ~color:green (log DEBUG) fmt

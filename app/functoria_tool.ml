@@ -150,9 +150,9 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   let with_config ?(with_eval=false) ?(with_required=false) f options =
     Lazy.force set_color;
     Lazy.force set_verbose;
-    let show_error = function
-      | Ok ()    -> ()
-      | Error s -> Log.show_error "%s" s
+    let handle_error = function
+      | Ok x    -> x
+      | Error s -> Log.fatal "%s" s
     in
     let term = match Lazy.force config with
       | Ok t ->
@@ -166,8 +166,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       | Error err -> Term.pure (fun _ -> Error err)
     in
     let t =
-      Term.(pure (fun _ _ _ -> show_error) $ verbose $ color $ file
-            $ (term $ options))
+      Term.(pure (fun _ _ _ -> handle_error) $ verbose $ color $ file
+        $ (term $ options))
     in
     if with_eval
     then Term.(pure (fun _ t -> t) $ full_eval $ t)
@@ -313,8 +313,11 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   ]
 
   let () =
-    match Term.eval_choice default commands with
+    match Term.eval_choice ~catch:false default commands with
     | `Error _ -> exit 1
     | _ -> ()
+    | exception (Functoria_misc.Log.Fatal s) ->
+      Log.show_error "%s" s ;
+      exit 1
 
 end

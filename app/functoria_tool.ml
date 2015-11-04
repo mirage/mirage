@@ -315,10 +315,11 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   ]
 
   let () =
-    match Term.eval_choice ~catch:false default (commands ()) with
-    | `Error _ -> exit 1
-    | _ -> ()
-    | exception (Functoria_misc.Log.Fatal s) ->
+    try match Term.eval_choice ~catch:false default (commands ()) with
+      | `Error _ -> exit 1
+      | _ -> ()
+    with
+    | Functoria_misc.Log.Fatal s ->
       Log.show_error "%s" s ;
       exit 1
 

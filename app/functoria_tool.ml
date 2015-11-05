@@ -150,32 +150,37 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   let with_config ?(with_eval=false) ?(with_required=false) f options =
     Lazy.force set_color;
     Lazy.force set_verbose;
-    let show_error = function
-      | Ok ()    -> ()
-      | Error s -> Log.show_error "%s" s
+    let handle_error = function
+      | Ok x    -> x
+      | Error s -> Log.fatal "%s" s
     in
-    let term = match Lazy.force config with
-      | Ok t ->
-        let if_context = Config.if_context t in
-        let term = match Term.eval_peek_opts if_context with
-          | Some context, _ ->
-            let partial = with_eval && not @@ load_fully_eval () in
-            Term.app f @@ Config.eval ~with_required ~partial context t
-          | _, _ -> Term.pure (fun _ -> Error "Error during peeking.")
-        in term
-      | Error err -> Term.pure (fun _ -> Error err)
-    in
-    let t =
-      Term.(pure (fun _ _ _ -> show_error) $ verbose $ color $ file
-            $ (term $ options))
-    in
-    if with_eval
-    then Term.(pure (fun _ t -> t) $ full_eval $ t)
-    else t
+    match Lazy.force config with
+    | Ok t ->
+      let if_context = Config.if_context t in
+      let partial = with_eval && not @@ load_fully_eval () in
+      let term = match Term.eval_peek_opts if_context with
+        | Some context, _ ->
+          Term.app f @@ Config.eval ~with_required ~partial context t
+        | _, _ ->
+          (* If peeking has failed, this should always fail too, but with
+             a good error message. *)
+          Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
+      in
+
+      let t =
+        Term.(pure (fun _ _ _ -> handle_error) $ verbose $ color $ file
+          $ (term $ options))
+      in
+      if with_eval
+      then Term.(pure (fun _ t -> t) $ full_eval $ t)
+      else t
+
+    | Error err -> Log.fatal "%s" err
+    (* We fail early here to avoid reporting lookup errors. *)
 
   (* CONFIGURE *)
   let configure_doc =  "Configure a $(mname) application."
-  let configure =
+  let configure () =
     let doc = configure_doc in
     let man = [
       `S "DESCRIPTION";
@@ -192,7 +197,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* DESCRIBE *)
   let describe_doc =  "Describe a $(mname) application."
-  let describe =
+  let describe () =
     let doc = describe_doc in
     let man = [
       `S "DESCRIPTION";
@@ -226,7 +231,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* BUILD *)
   let build_doc = "Build a $(mname) application."
-  let build =
+  let build () =
     let doc = build_doc in
     let man = [
       `S "DESCRIPTION";
@@ -239,7 +244,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   (* CLEAN *)
   let clean_doc =
     "Clean the files produced by $(mname) for a given application."
-  let clean =
+  let clean () =
     let doc = clean_doc in
     let man = [
       `S "DESCRIPTION";
@@ -304,17 +309,21 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       ~doc
       ~man
 
-  let commands = [
-    configure;
-    describe;
-    build;
-    clean;
+  let commands () = [
+    configure ();
+    describe ();
+    build ();
+    clean ();
     help;
   ]
 
   let () =
-    match Term.eval_choice default commands with
-    | `Error _ -> exit 1
-    | _ -> ()
+    try match Term.eval_choice ~catch:false default (commands ()) with
+      | `Error _ -> exit 1
+      | _ -> ()
+    with
+    | Functoria_misc.Log.Fatal s ->
+      Log.show_error "%s" s ;
+      exit 1
 
 end

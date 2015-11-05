@@ -110,6 +110,8 @@ module Log: sig
   val yellow: string Fmt.t
   val red: string Fmt.t
   val green: string Fmt.t
+
+  exception Fatal of string
 end
 
 (** Generation of fresh names *)

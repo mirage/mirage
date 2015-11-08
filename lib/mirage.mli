@@ -68,7 +68,14 @@ val clock: clock typ
 val default_clock: clock impl
 (** The default mirage-clock implementation. *)
 
+type pclock
+(** Abstract type for posix clocks. *)
 
+val pclock: pclock typ
+(** Implementations of the [V1.PCLOCK] signature. *)
+
+val default_posix_clock: pclock impl
+(** The default mirage-clock PCLOCK implementation. *)
 
 (** {2 Log reporters} *)
 

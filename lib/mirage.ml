@@ -80,6 +80,20 @@ end
 
 let default_clock = impl clock_conf
 
+type pclock = PCLOCK
+let pclock = Type PCLOCK
+
+let posix_clock_conf = object (self)
+  inherit base_configurable
+  method ty = pclock
+  method name = "pclock"
+  method module_name = "Pclock"
+  method libraries = Key.(if_ is_xen) ["mirage-clock-xen"] ["mirage-clock-unix"]
+  method packages = self#libraries
+end
+
+let default_posix_clock = impl posix_clock_conf
+
 type random = RANDOM
 let random = Type RANDOM
 

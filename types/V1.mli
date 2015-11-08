@@ -126,6 +126,10 @@ module type CLOCK = sig
       and a time. Assumes UTC (Coordinated Universal Time), also known
       as GMT. *)
 
+end
+
+module type PCLOCK = sig
+
   val now_d_ps : unit -> int * int64
   (** [now_d_ps ()] is [(d, ps)] representing the POSIX time occuring
       at [d] * 86'400e12 + [ps] POSIX picoseconds from the epoch

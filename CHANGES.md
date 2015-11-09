@@ -1,3 +1,36 @@
+### NEXT
+
+The mirage tool is now based on functoria. (#441 #450, by @drup @samoht)
+See https://blogpost for full details.
+
+* Command line interface: The config file must be passed with the -f option
+  (instead of being just an argument).
+* Two new generic combinators are available, generic_stack and generic_kv_ro.
+* `get_mode` is deprecated. You should use keys instead. And in particular
+  `Key.target` and `Key.is_xen`.
+* `add_to_ocamlfind_libraries` and `add_to_opam_packages` are deprecated. Both
+  the `foreign` and the `register` functions now possess the `~libraries` and
+  `~packages` arguments to specify libraries dependencies.
+
+* If you were using `tls` without the conduit combinator, you will be
+  greeted during configuration by a message like this:
+  ```
+The "nocrypto" library is loaded but entropy is not enabled!
+Please enable the entropy by adding a dependency to the nocrypto device.
+You can do so by adding ~deps:[abstract nocrypto] to the arguments of Mirage.foreign.
+  ```
+  Data dependencies (such as entropy initialization) are now explicit.
+  In order to fix this, you need to declare the dependency like so:
+  ```ocaml
+open Mirage
+
+let my_functor =
+  let deps = [abstract nocrypto] in
+  foreign ~deps "My_Functor" (foo @-> bar)
+  ```
+  `My_functor.start` will now take an extra argument for each
+  dependencies. In the case of nocrypto, this is `()`.
+
 ### 2.6.1 (2015-09-08)
 
 * Xen: improve the .xl file generation. We now have

@@ -29,21 +29,19 @@ include Functoria_app.DSL
 
 (** {2 General mirage devices} *)
 
-val tracing : int -> job impl
-(** Tracking implementation. *)
+type tracing
 
-val mprof_trace : size:int -> unit -> int
+val mprof_trace : size:int -> unit -> tracing
 (** Use mirage-profile to trace the unikernel.
     On Unix, this creates and mmaps a file called "trace.ctf".
     On Xen, it shares the trace buffer with dom0.
-
-    Deprecated. Is the identity over size.
+    @param size: size of the ring buffer to use
 *)
 
 (** {3 Application registering} *)
 
 val register :
-  ?tracing:int ->
+  ?tracing:tracing ->
   ?keys:Key.t list ->
   ?libraries:string list ->
   ?packages:string list -> string -> job impl list -> unit

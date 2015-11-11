@@ -44,8 +44,8 @@ val unix: bool key
 val xen: bool key
 (** [--xen]. Set {!target} to [`Xen]. *)
 
-val tracing: int -> int key
-(** [--tracing LEVEL]: Key setting the tracing level. Is an integer *)
+val tracing_size: int -> int key
+(** [--tracing-size]: Key setting the tracing ring buffer size. *)
 
 (** {2 Generic keys}
 

@@ -177,11 +177,11 @@ let xen =
 
 (** {3 Tracing} *)
 
-let tracing default =
-  let doc = "The tracing level. Accepts an integer" in
-  let doc = Arg.info ~docs:mirage_section ~docv:"TRACING" ~doc ["tracing"] in
+let tracing_size default =
+  let doc = "The size of the trace ring buffer." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"SIZE" ~doc ["tracing-size"] in
   let key = Arg.opt ~stage:`Configure Arg.int default doc in
-  Key.create "tracing" key
+  Key.create "tracing_size" key
 
 (** {2 General mirage keys} *)
 

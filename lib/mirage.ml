@@ -929,13 +929,15 @@ let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
 
 (** Tracing *)
 
-let tracing i =
+type tracing = job impl
+
+let mprof_trace ~size () =
   let unix_trace_file = "trace.ctf" in
-  let key = Key.tracing i in
+  let key = Key.tracing_size size in
   impl @@ object
     inherit base_configurable
     method ty = job
-    method name = "tracing"
+    method name = "mprof_trace"
     method module_name = "MProf"
     method keys = [ Key.abstract key ]
     method packages = Key.pure ["mirage-profile"]
@@ -955,24 +957,26 @@ let tracing i =
     method connect i _ _ = match Key.(get (Info.context i) target) with
       | `Unix | `MacOSX ->
         Fmt.strf
-          "let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
-           let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
-           MProf.Trace.Control.start trace_config"
+          "return (`Ok ())@.\
+           let () =@ \
+             @[<v 2>  let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
+             let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
+             MProf.Trace.Control.start trace_config@]"
           Key.serialize_call (Key.abstract key)
           unix_trace_file;
       | `Xen  ->
         Fmt.strf
-          "let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
-           let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
-           let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
-           MProf.Trace.Control.start trace_config;@ \
-           MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
-           |> OS.Main.run"
+          "return (`Ok ())@.\
+           let () =@ \
+             @[<v 2>  let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
+             let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
+             let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
+             MProf.Trace.Control.start trace_config;@ \
+             MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
+             |> OS.Main.run@]"
           Key.serialize_call (Key.abstract key)
 
   end
-
-let mprof_trace ~size () = size
 
 (** Functoria devices *)
 
@@ -1489,12 +1493,12 @@ let add_to_opam_packages l =
 
 (** {Custom registration} *)
 
-let register ?tracing:t ?keys ?(libraries=[]) ?(packages=[]) name jobs =
+let register ?tracing ?keys ?(libraries=[]) ?(packages=[]) name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
-  let jobs = match t with
+  let jobs = match tracing with
     | None -> jobs
-    | Some i ->
-      tracing i :: jobs
+    | Some tracing ->
+      tracing :: jobs
   in
   register ?keys ~libraries ~packages name jobs

@@ -1393,6 +1393,7 @@ let configure_makefile ~target ~root ~name info =
                   \t  $(shell gcc -print-libgcc-file-name) \\\n\
                   %s"
         extra_c_archives pkg_config_deps generate_image ;
+      append fmt "\t@@echo Build succeeded";
       R.ok ()
     | `Unix | `MacOSX ->
       append fmt "build: main.native";

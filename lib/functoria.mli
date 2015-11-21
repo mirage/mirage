@@ -125,10 +125,14 @@ val foreign:
     {- If [keys] is set, use the given {{!Functoria_key.key}keys} to
        parse at configure and runtime the command-line arguments
        before calling [name.connect].}
-    {- If [depes] is set, the given list of {{!abstract_impl}abstract}
+    {- If [deps] is set, the given list of {{!abstract_impl}abstract}
        implementations is added as data-dependencies: they will be
        initialized before calling [name.connect]. }
     }
+
+    For a more flexible definition of libraries and packages, or for a custom
+    configuration step, see the {!configurable} class type and the
+    {!class:foreign} class.
 *)
 
 (** Information about the final application. *)

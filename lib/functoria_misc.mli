@@ -104,6 +104,7 @@ module Log: sig
     ('a, Format.formatter, unit, ('b, string) result) format4 -> 'a
   val fatal: ('a, Format.formatter, unit, 'b) format4 -> 'a
   val info: ('a, Format.formatter, unit) format -> 'a
+  val warn: ('a, Format.formatter, unit) format -> 'a
   val debug: ('a, Format.formatter, unit) format -> 'a
   val show_error: ('a, Format.formatter, unit) format -> 'a
   val blue: string Fmt.t

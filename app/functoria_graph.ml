@@ -153,14 +153,15 @@ let add_pred_with_subst g preds v =
 let add_impl graph ~impl ~args ~deps =
   let v = G.V.create (Impl impl) in
   v,
-  graph
+  G.add_vertex graph v
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
   |> fold_lefti (fun i -> add_edge v (Dependency i)) deps
 
 let add_switch graph ~cond l =
   let v = G.V.create (If cond) in
   v,
-  List.fold_right (fun (p,v') -> add_edge v (Condition p) v') l graph
+  List.fold_right (fun (p,v') -> add_edge v (Condition p) v') l @@
+  G.add_vertex graph v
 
 let add_if graph ~cond ~else_ ~then_ =
   add_switch graph ~cond:(Key.map If.dir cond)
@@ -169,7 +170,7 @@ let add_if graph ~cond ~else_ ~then_ =
 let add_app graph ~f ~args =
   let v = G.V.create App in
   v,
-  graph
+  G.add_vertex graph v
   |> add_edge v Functor f
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
 

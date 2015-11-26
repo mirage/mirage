@@ -125,10 +125,14 @@ val foreign:
     {- If [keys] is set, use the given {{!Functoria_key.key}keys} to
        parse at configure and runtime the command-line arguments
        before calling [name.connect].}
-    {- If [depes] is set, the given list of {{!abstract_impl}abstract}
+    {- If [deps] is set, the given list of {{!abstract_impl}abstract}
        implementations is added as data-dependencies: they will be
        initialized before calling [name.connect]. }
     }
+
+    For a more flexible definition of libraries and packages, or for a custom
+    configuration step, see the {!configurable} class type and the
+    {!class:foreign} class.
 *)
 
 (** Information about the final application. *)
@@ -222,6 +226,7 @@ class type ['ty] configurable = object
 
 end
 
+
 val impl: 'a configurable -> 'a impl
 (** [impl c] is the implementation of the configurable [c]. *)
 
@@ -246,6 +251,26 @@ class base_configurable: object
   method clean: Info.t -> (unit, string) Rresult.result
   method deps: abstract_impl list
 end
+
+class ['a] foreign:
+  ?packages:string list ->
+  ?libraries:string list ->
+  ?keys:key list ->
+  ?deps:abstract_impl list ->
+  string -> 'a typ -> ['a] configurable
+(** This class can be inherited to define a {!configurable} with an API
+    similar to {!foreign}.
+
+    In particular, it allows dynamic libraries and packages. Here is an example:
+    {[
+      let main = impl @@ object
+          inherit [_] foreign
+              ~packages:["vchan"]
+              "Unikernel.Main" (console @-> job)
+          method libraries = Key.(if_ is_xen) ["vchan.xen"] ["vchan.lwt"]
+        end
+    ]}
+*)
 
 (** {1 Sharing} *)
 

@@ -117,7 +117,7 @@ type job = JOB
 let job = Type JOB
 
 class ['ty] foreign
-    ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(deps=[]) module_name ty
+     ?(packages=[]) ?(libraries=[]) ?(keys=[]) ?(deps=[]) module_name ty
   : ['ty] configurable
   =
   let name = Name.create module_name ~prefix:"f" in
@@ -139,7 +139,7 @@ class ['ty] foreign
   end
 
 let foreign ?packages ?libraries ?keys ?deps module_name ty =
-  Impl (new foreign ?keys ?libraries ?packages ?deps module_name ty)
+  Impl (new foreign ?packages ?libraries ?keys ?deps module_name ty)
 
 (* {Misc} *)
 

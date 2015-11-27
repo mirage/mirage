@@ -98,7 +98,7 @@ let console_unix str = impl @@ object
     method packages = Key.pure ["mirage-console"; "mirage-unix"]
     method libraries = Key.pure ["mirage-console.unix"]
     method connect _ modname _args =
-      Printf.sprintf "%s.connect %S" modname name
+      Printf.sprintf "%s.connect %S" modname str
   end
 
 let console_xen str = impl @@ object
@@ -111,7 +111,7 @@ let console_xen str = impl @@ object
         ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
     method libraries = Key.pure ["mirage-console.xen"]
     method connect _ modname _args =
-      Printf.sprintf "%s.connect %S" modname name
+      Printf.sprintf "%s.connect %S" modname str
   end
 
 let custom_console str =

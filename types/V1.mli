@@ -916,3 +916,33 @@ module type KV_RO = sig
   (** Get the value size. *)
 
 end
+
+(** {1 Logging} *)
+
+type 'a log = ('a, Format.formatter, unit) format -> ('a -> unit) -> unit
+(** Type for a function that accepts log messages. *)
+
+module type LOG = sig
+  (** These functions each take a format string and a function that provides
+      the values. This function is called only if the log message will be
+      recorded (e.g. [Log.debug] does not call the function by default).
+      Example: [Log.info "Server listening on port %d" (fun f -> f port)] *)
+
+  val error : 'a log
+  (** Log an error. An error indicates a serious problem; a human should be
+      alerted that this has happened. *)
+
+  val warn : 'a log
+  (** Log a warning. This indicates a problem that should be fixed, but does
+      not require immediate attention. Warnings should be reviewed
+      periodically, and checked first when diagnosing a fault. *)
+
+  val info : 'a log
+  (** Log an informational message.
+      Such messages are recorded by default but do not generate alerts
+      and do not indicate that anything is wrong. *)
+
+  val debug : 'a log
+  (** Log a debug message. Such messages are discarded by default, but
+      debug-level logging can be enabled by the user when required. *)
+end

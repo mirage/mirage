@@ -607,6 +607,5 @@ module Make (P: S) = struct
   end
 
   let get_base_context = Config.get_base_context
-  let run () = let module M = Functoria_tool.Make(Config) in ()
-
+  let run () = Functoria_tool.initialize (module Config)
 end

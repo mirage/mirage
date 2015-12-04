@@ -325,5 +325,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     | Functoria_misc.Log.Fatal s ->
       Log.show_error "%s" s ;
       exit 1
-
 end
+
+let initialize (module Config:Functoria_sigs.CONFIG) =
+ let module M = Make(Config) in ()

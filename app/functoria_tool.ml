@@ -18,102 +18,121 @@ open Cmdliner
 open Rresult
 open Functoria_misc
 
+let global_option_section = "COMMON OPTIONS"
+
+let help_sections = [
+  `S global_option_section;
+  `P "These options are common to all commands.";
+]
+
+(* Helpers *)
+let mk_flag ?(section=global_option_section) flags doc =
+  let doc = Arg.info ~docs:section ~doc flags in
+  Arg.(value & flag & doc)
+
+let term_info title ~doc ~man =
+  let man = man @ help_sections in
+  Term.info ~sdocs:global_option_section ~doc ~man title
+
+let no_opam =
+  mk_flag ["no-opam"]
+    "Do not manage the OPAM configuration. \
+     This will result in dependent libraries not being automatically \
+     installed during the configuration phase."
+
+let no_opam_version_check =
+  mk_flag ["no-opam-version-check"] "Bypass the OPAM version check."
+
+let no_depext =
+  mk_flag ["no-depext"] "Skip installation of external dependencies."
+
+let full_eval =
+  mk_flag ["eval"]
+    "Fully evaluate the graph before showing it. \
+     By default, only the keys that are given on the command line are \
+     evaluated."
+
+let dot =
+  mk_flag ["dot"]
+    "Output a dot description. \
+     If no output file is given,  it will display the dot file using the command \
+     given to $(b,--dot-command)."
+
+let dotcmd =
+  let doc =
+    Arg.info ~docs:global_option_section ~docv:"COMMAND" [ "dot-command" ]
+      ~doc:"Command used to show a dot file. This command should accept a \
+            dot file on its standard input."
+  in
+  Arg.(value & opt string "xdot" & doc)
+
+let file =
+  let doc =
+    Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE" ["f"; "file"]
+      ~doc:"Configuration file. If not specified, the current directory will \
+            be scanned. If one file named $(b,config.ml) is found, that file \
+            will be used. If no files or multiple configuration files are \
+            found, this will result in an error unless one is explicitly \
+            specified on the command line."
+  in
+  Arg.(value & opt (some file) None & doc)
+
+let output =
+  let doc =
+    Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
+      ~doc:"File where to output description or dot representation."
+  in
+  Arg.(value & opt (some string) None & doc)
+
+let color =
+  let enum = ["auto", None; "always", Some `Ansi_tty; "never", Some `None] in
+  let color = Arg.enum enum in
+  let alts = Arg.doc_alts_enum enum in
+  let doc = Arg.info ["color"] ~docs:global_option_section ~docv:"WHEN"
+      ~doc:(Fmt.strf "Colorize the output. $(docv) must be %s." alts)
+  in
+  Arg.(value & opt color None & doc)
+
+let verbose =
+  let doc =
+    Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
+  in
+  Arg.(value & flag_all doc)
+
+let init_log = function
+  | []  -> Functoria_misc.Log.(set_level WARN)
+  | [_] -> Functoria_misc.Log.(set_level INFO)
+  | _   -> Functoria_misc.Log.(set_level DEBUG)
+
+let init_format color =
+  let i = Terminfo.columns () in
+  Functoria_misc.Log.set_color color;
+  Format.pp_set_margin Format.std_formatter i;
+  Format.pp_set_margin Format.err_formatter i;
+  Fmt_tty.setup_std_outputs ?style_renderer:color ()
+
+let load_verbose () =
+  let v = match Term.eval_peek_opts verbose with
+    | _, `Ok v -> v
+    | _ -> []
+  in
+  init_log v
+
+let load_color () =
+  (* This is ugly but we really want the color options to be set
+     before calling [load_config]. *)
+  let c = match Term.eval_peek_opts color with
+    | _, `Ok color -> color
+    | _ -> None
+  in
+  init_format c
+
+let load_fully_eval () =
+  match snd @@ Term.eval_peek_opts full_eval with
+  | `Ok b -> b
+  | _ -> false
+
 module Make (Config: Functoria_sigs.CONFIG) = struct
-
-  let cmdname = Config.name
-
-  let global_option_section = "COMMON OPTIONS"
-  let help_sections = [
-    `S global_option_section;
-    `P "These options are common to all commands.";
-  ]
-
-  (* Helpers *)
-  let mk_flag ?(section=global_option_section) flags doc =
-    let doc = Arg.info ~docs:section ~doc flags in
-    Arg.(value & flag & doc)
-
-  let term_info title ~doc ~man =
-    let man = man @ help_sections in
-    Term.info ~sdocs:global_option_section ~doc ~man title
-
-  let no_opam =
-    mk_flag ["no-opam"]
-      "Do not manage the OPAM configuration. \
-       This will result in dependent libraries not being automatically \
-       installed during the configuration phase."
-
-  let no_opam_version_check =
-    mk_flag ["no-opam-version-check"] "Bypass the OPAM version check."
-
-  let no_depext =
-    mk_flag ["no-depext"] "Skip installation of external dependencies."
-
-  let full_eval =
-    mk_flag ["eval"]
-      "Fully evaluate the graph before showing it. \
-       By default, only the keys that are given on the command line are \
-       evaluated."
-
-  let dot =
-    mk_flag ["dot"]
-      "Output a dot description. \
-       If no output file is given,  it will display the dot file using the command \
-       given to $(b,--dot-command)."
-
-  let dotcmd =
-    let doc =
-      Arg.info ~docs:global_option_section ~docv:"COMMAND" [ "dot-command" ]
-        ~doc:"Command used to show a dot file. This command should accept a \
-              dot file on its standard input."
-    in
-    Arg.(value & opt string "xdot" & doc)
-
-  let file =
-    let doc =
-      Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE" ["f"; "file"]
-        ~doc:"Configuration file. If not specified, the current directory will \
-              be scanned. If one file named $(b,config.ml) is found, that file \
-              will be used. If no files or multiple configuration files are \
-              found, this will result in an error unless one is explicitly \
-              specified on the command line."
-    in
-    Arg.(value & opt (some file) None & doc)
-
-  let output =
-    let doc =
-      Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
-        ~doc:"File where to output description or dot representation."
-    in
-    Arg.(value & opt (some string) None & doc)
-
-  let color =
-    let enum = ["auto", None; "always", Some `Ansi_tty; "never", Some `None] in
-    let color = Arg.enum enum in
-    let alts = Arg.doc_alts_enum enum in
-    let doc = Arg.info ["color"] ~docs:global_option_section ~docv:"WHEN"
-        ~doc:(Fmt.strf "Colorize the output. $(docv) must be %s." alts)
-    in
-    Arg.(value & opt color None & doc)
-
-  let verbose =
-    let doc =
-      Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
-    in
-    Arg.(value & flag_all doc)
-
-  let init_log = function
-    | []  -> Functoria_misc.Log.(set_level WARN)
-    | [_] -> Functoria_misc.Log.(set_level INFO)
-    | _   -> Functoria_misc.Log.(set_level DEBUG)
-
-  let init_format color =
-    let i = Terminfo.columns () in
-    Functoria_misc.Log.set_color color;
-    Format.pp_set_margin Format.std_formatter i;
-    Format.pp_set_margin Format.err_formatter i;
-    Fmt_tty.setup_std_outputs ?style_renderer:color ()
-
   let load_config () =
     let c = match Term.eval_peek_opts file with
       | _, `Ok config -> config
@@ -121,27 +140,6 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     let _ = Term.eval_peek_opts Config.base_context in
     Config.load c
-
-  let load_verbose () =
-    let v = match Term.eval_peek_opts verbose with
-      | _, `Ok v -> v
-      | _ -> []
-    in
-    init_log v
-
-  let load_color () =
-    (* This is ugly but we really want the color options to be set
-       before calling [load_config]. *)
-    let c = match Term.eval_peek_opts color with
-      | _, `Ok color -> color
-      | _ -> None
-    in
-    init_format c
-
-  let load_fully_eval () =
-    match snd @@ Term.eval_peek_opts full_eval with
-    | `Ok b -> b
-    | _ -> false
 
   let config = Lazy.from_fun load_config
   let set_color  = Lazy.from_fun load_color
@@ -303,7 +301,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     let term = Term.(ret (pure usage $ verbose $ color)) in
     term,
-    Term.info cmdname
+    Term.info Config.name
       ~version:Config.version
       ~sdocs:global_option_section
       ~doc

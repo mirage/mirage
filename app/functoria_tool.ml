@@ -132,6 +132,71 @@ let load_fully_eval () =
   | `Ok b -> b
   | _ -> false
 
+type 'a subcommand_info = {
+  doc: string;
+  man: Manpage.block list;
+  opts: 'a Term.t;
+}
+
+(** Subcommand information *)
+let configure_info = {
+  doc = "Configure a $(mname) application.";
+  man = [
+    `S "DESCRIPTION";
+    `P "The $(b,configure) command initializes a fresh $(mname) application."
+    ];
+  opts = Term.(pure (fun a b c -> (a, b, c))
+               $ no_opam
+               $ no_opam_version_check
+               $ no_depext)
+}
+
+let describe_info = {
+  doc = "Describe a $(mname) application.";
+  man = [
+    `S "DESCRIPTION";
+    `P "The $(b,describe) command describes the configuration of a \
+        $(mname) application.";
+    `P "The dot output contains the following elements:";
+    `Noblank;
+    `I ("If vertices",
+        "Represented as circles. Branches are dotted, and the default branch \
+         is in bold.");
+    `Noblank;
+    `I ("Configurables",
+        "Represented as rectangles. The order of the output arrows is \
+         the order of the functor arguments.");
+    `Noblank;
+    `I ("Data dependencies",
+        "Represented as dashed arrows.");
+    `Noblank;
+    `I ("App vertices",
+        "Represented as diamonds. The bold arrow is the functor part.");
+  ];
+  opts = Term.(pure (fun a b c -> (a, b, c))
+              $ output
+              $ dotcmd
+              $ dot);
+}
+
+let build_info =
+  let doc = "Build a $(mname) application." in
+  { doc;
+    man = [
+      `S "DESCRIPTION";
+      `P doc;
+    ];
+    opts = Term.pure () }
+
+let clean_info =
+  let doc = "Clean the files produced by $(mname) for a given application." in
+  { doc;
+    man = [
+      `S "DESCRIPTION";
+      `P doc;
+    ];
+    opts = Term.pure (); }
+
 module Make (Config: Functoria_sigs.CONFIG) = struct
   let load_config () =
     let c = match Term.eval_peek_opts file with
@@ -177,80 +242,30 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     (* We fail early here to avoid reporting lookup errors. *)
 
   (* CONFIGURE *)
-  let configure_doc =  "Configure a $(mname) application."
   let configure () =
-    let doc = configure_doc in
-    let man = [
-      `S "DESCRIPTION";
-      `P "The $(b,configure) command initializes a fresh $(mname) application."
-    ] in
-    let options =
-      Term.(pure (fun a b c -> a, b, c) $ no_opam $ no_opam_version_check $ no_depext)
-    in
     let configure info (no_opam, no_opam_version, no_depext) =
-      Config.configure info ~no_opam ~no_depext ~no_opam_version
-    in
-    with_config ~with_required:true (Term.pure configure) options,
-    term_info "configure" ~doc ~man
+      Config.configure info ~no_opam ~no_depext ~no_opam_version in
+    (with_config ~with_required:true (Term.pure configure) configure_info.opts,
+     term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
-  let describe_doc =  "Describe a $(mname) application."
   let describe () =
-    let doc = describe_doc in
-    let man = [
-      `S "DESCRIPTION";
-      `P "The $(b,describe) command describes the configuration of a \
-          $(mname) application.";
-      `P "The dot output contains the following elements:";
-      `Noblank;
-      `I ("If vertices",
-          "Represented as circles. Branches are dotted, and the default branch \
-           is in bold.");
-      `Noblank;
-      `I ("Configurables",
-          "Represented as rectangles. The order of the output arrows is \
-           the order of the functor arguments.");
-      `Noblank;
-      `I ("Data dependencies",
-          "Represented as dashed arrows.");
-      `Noblank;
-      `I ("App vertices",
-          "Represented as diamonds. The bold arrow is the functor part.");
-    ] in
-    let options =
-      Term.(pure (fun a b c -> a, b, c)
-            $ output $ dotcmd $ dot)
-    in
     let describe info (output, dotcmd, dot) =
-      Config.describe ~dotcmd ~dot ~output info
-    in
-    with_config ~with_eval:true (Term.pure describe) options,
-    term_info "describe" ~doc ~man
+      Config.describe ~dotcmd ~dot ~output info in
+    (with_config ~with_eval:true (Term.pure describe) describe_info.opts,
+     term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
   (* BUILD *)
-  let build_doc = "Build a $(mname) application."
   let build () =
-    let doc = build_doc in
-    let man = [
-      `S "DESCRIPTION";
-      `P build_doc
-    ] in
-    let options = Term.pure () in
     let build info () = Config.build info in
-    with_config (Term.pure build) options, term_info "build" ~doc ~man
+    (with_config (Term.pure build) build_info.opts,
+     term_info "build" ~doc:build_info.doc ~man:build_info.man)
 
   (* CLEAN *)
-  let clean_doc =
-    "Clean the files produced by $(mname) for a given application."
   let clean () =
-    let doc = clean_doc in
-    let man = [
-      `S "DESCRIPTION";
-      `P clean_doc;
-    ] in
-    let options = Term.pure () in
     let clean info () = Config.clean info in
-    with_config (Term.pure clean) options, term_info "clean" ~doc ~man
+    (with_config (Term.pure clean) clean_info.opts,
+     term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
   (* HELP *)
   let help =

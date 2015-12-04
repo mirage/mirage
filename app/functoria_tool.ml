@@ -321,24 +321,23 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       ~sdocs:global_option_section
       ~doc
       ~man
-
-  let commands () = [
-    configure ();
-    describe ();
-    build ();
-    clean ();
-    help;
-  ]
-
-  let () =
-    try match Term.eval_choice ~catch:false default (commands ()) with
-      | `Error _ -> exit 1
-      | _ -> ()
-    with
-    | Functoria_misc.Log.Fatal s ->
-      Log.show_error "%s" s ;
-      exit 1
 end
 
 let initialize (module Config:Functoria_sigs.CONFIG) =
- let module M = Make(Config) in ()
+  let module M = Make(Config) in
+  let open M in 
+  try
+    let commands = [
+      configure ();
+      describe ();
+      build ();
+      clean ();
+      help;
+    ] in
+    match Term.eval_choice ~catch:false default commands with
+      | `Error _ -> exit 1
+      | _ -> ()
+  with
+  | Functoria_misc.Log.Fatal s ->
+    Log.show_error "%s" s ;
+    exit 1

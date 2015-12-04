@@ -14,10 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Functoria_sigs
-
-(** Create a command line tool.
-    This modules initialize this application and has numerous
-    side effects. It should be loaded only once.
-*)
-module Make (M:CONFIG): sig end
+(** Create a command line tool.  This initializes this application and
+    has numerous side effects. It should be called only once. *)
+val initialize : (module Functoria_sigs.CONFIG) -> unit

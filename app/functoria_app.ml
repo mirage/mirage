@@ -545,7 +545,11 @@ module Make (P: S) = struct
            directory.\n\
            Please specify one explictly on the command-line."
 
-  module Config = struct
+  module Config :
+  sig
+    include Functoria_sigs.CONFIG
+    val get_base_context : unit -> context
+  end = struct
     include P
 
     (* This is a hack to allow the implementation of
@@ -603,6 +607,5 @@ module Make (P: S) = struct
   end
 
   let get_base_context = Config.get_base_context
-  let run () = let module M = Functoria_tool.Make(Config) in ()
-
+  let run () = Functoria_tool.initialize (module Config)
 end

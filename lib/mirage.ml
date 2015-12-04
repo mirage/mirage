@@ -431,7 +431,7 @@ let meta_triple ppx ppy ppz =
   Fmt.parens @@ pp_triple ~sep:(Fmt.unit ",@ ") ppx ppy ppz
 
 let meta_ipv4 ppf s =
-  Fmt.pf ppf "Ipaddr.V4.of_string_exn %S" (Ipaddr.V4.to_string s)
+  Fmt.pf ppf "(Ipaddr.V4.of_string_exn %S)" (Ipaddr.V4.to_string s)
 
 type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 

@@ -232,7 +232,7 @@ module Engine = struct
     tbl
 
   let meta_init fmt (connect_name, result_name) =
-    Fmt.pf fmt "let _%s =@[@ %s () @]in@ " result_name connect_name
+    Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
 
   let meta_connect error fmt (connect_name, result_name) =
     Fmt.pf fmt
@@ -248,10 +248,10 @@ module Engine = struct
        by prefixing with "_". This also avoid warnings. *)
     let names = List.map (fun x -> (x, "_"^x)) names in
     Fmt.pf fmt
-      "@[<v 2>let %s () =@ \
+      "@[<v 2>let %s = lazy (@ \
        %a\
        %a\
-       %s@]@."
+       %s@ )@]@."
       iname
       Fmt.(list ~sep:nop meta_init) names
       Fmt.(list ~sep:nop @@ meta_connect error) names
@@ -263,9 +263,9 @@ module Engine = struct
       "@[<v 2>\
        let () =@ \
          let t =@ \
-         %s () >>= function@ \
+         Lazy.force %s >>= function@ \
          | `Error _e -> exit 1@ \
-         | `Ok _ -> %s ()@ \
+         | `Ok _ -> Lazy.force %s@ \
        in run t@]"
       key main
 

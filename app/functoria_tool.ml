@@ -219,29 +219,25 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     global_argv := argv;
     Lazy.force set_color;
     Lazy.force set_verbose;
-    match Lazy.force config with
-    | Ok t ->
-      let if_context = Config.if_context t in
-      let partial = with_eval && not @@ load_fully_eval argv in
-      let term = match Term.eval_peek_opts ~argv if_context with
-        | Some context, _ ->
-          Term.app f @@ Config.eval ~with_required ~partial context t
-        | _, _ ->
-          (* If peeking has failed, this should always fail too, but with
-             a good error message. *)
-          Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
-      in
-
-      let t =
-        Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ file
-          $ (term $ options))
-      in
-      if with_eval
-      then Term.(pure (fun _ t -> t) $ full_eval $ t)
-      else t
-
-    | Error err -> Functoria_misc.Log.fatal "%s" err
     (* We fail early here to avoid reporting lookup errors. *)
+    let t = fatalize_error (Lazy.force config) in
+    let if_context = Config.if_context t in
+    let partial = with_eval && not @@ load_fully_eval argv in
+    let term = match Term.eval_peek_opts ~argv if_context with
+      | Some context, _ ->
+        Term.app f @@ Config.eval ~with_required ~partial context t
+      | _, _ ->
+        (* If peeking has failed, this should always fail too, but with
+             a good error message. *)
+        Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
+    in
+    let t =
+      Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ file
+            $ (term $ options))
+    in
+    if with_eval
+    then Term.(pure (fun _ t -> t) $ full_eval $ t)
+    else t
 
   (* CONFIGURE *)
   let configure argv =

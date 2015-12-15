@@ -143,10 +143,9 @@ let read_full_eval argv =
   | `Ok b -> b
   | _ -> false
 
-type 'a subcommand_info = {
+type subcommand_info = {
   doc: string;
   man: Manpage.block list;
-  opts: 'a Term.t;
 }
 
 (** Subcommand information *)
@@ -156,10 +155,6 @@ let configure_info = {
     `S "DESCRIPTION";
     `P "The $(b,configure) command initializes a fresh $(mname) application."
     ];
-  opts = Term.(pure (fun a b c -> (a, b, c))
-               $ no_opam
-               $ no_opam_version_check
-               $ no_depext)
 }
 
 let describe_info = {
@@ -184,10 +179,6 @@ let describe_info = {
     `I ("App vertices",
         "Represented as diamonds. The bold arrow is the functor part.");
   ];
-  opts = Term.(pure (fun a b c -> (a, b, c))
-              $ output
-              $ dotcmd
-              $ dot);
 }
 
 let build_info =
@@ -196,8 +187,7 @@ let build_info =
     man = [
       `S "DESCRIPTION";
       `P doc;
-    ];
-    opts = Term.pure () }
+    ] }
 
 let clean_info =
   let doc = "Clean the files produced by $(mname) for a given application." in
@@ -205,8 +195,7 @@ let clean_info =
     man = [
       `S "DESCRIPTION";
       `P doc;
-    ];
-    opts = Term.pure (); }
+    ] }
 
 type 'a config_args = {
   evaluated: 'a;
@@ -231,25 +220,29 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* CONFIGURE *)
   let configure context config =
-    (Term.(pure (fun _ _ _ info (no_opam, no_opam_version, no_depext) -> 
+    (Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
          Configure { evaluated = info; no_opam; no_depext; no_opam_version })
            $ verbose
            $ color
            $ config_file
            $ Config.eval ~with_required:true ~partial:false context config
-           $ configure_info.opts),
+           $ no_opam
+           $ no_opam_version_check
+           $ no_depext),
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
   let describe context config partial_eval =
-    (Term.(pure (fun _ _ _ _ info (output, dotcmd, dot) ->
+    (Term.(pure (fun _ _ _ _ info output dotcmd dot ->
          Describe { evaluated = info; dotcmd; dot; output })
            $ full_eval
            $ verbose
            $ color
            $ config_file
            $ Config.eval ~with_required:false ~partial:partial_eval context config
-           $ describe_info.opts),
+           $ output
+           $ dotcmd
+           $ dot),
      term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
   (* BUILD *)
@@ -263,9 +256,11 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* CLEAN *)
   let clean context config =
-    (Term.(pure (fun _ _ _  info () -> Clean (context, config, info)) $ verbose $ color $ config_file
-           $ Config.eval ~with_required:false ~partial:false context config
-           $ clean_info.opts),
+    (Term.(pure (fun _ _ _  info -> Clean (context, config, info))
+           $ verbose
+           $ color
+           $ config_file
+           $ Config.eval ~with_required:false ~partial:false context config),
      term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
   (* HELP *)

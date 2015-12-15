@@ -566,15 +566,12 @@ module Make (P: S) = struct
       let verbose = Log.get_level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
 
-    let log = pp_info Log.info Log.DEBUG
-    let show = pp_info Fmt.(pf stdout) Log.INFO
-
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
       let context =
         Key.context ~with_required ~stage:`Configure (Key.deps info)
       in
-      let f map = Key.eval map info @@ map in
+      let f map = Key.eval map info map in
       Cmdliner.Term.(pure f $ context)
   end
 
@@ -637,16 +634,16 @@ module Make (P: S) = struct
       | `Error _ -> exit 1
       | `Ok Functoria_tool.Nothing -> ()
       | `Ok (Functoria_tool.Configure {evaluated = (jobs, info); no_opam; no_depext; no_opam_version}) ->
-        Config'.log info;
+        Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
       | `Ok (Functoria_tool.Describe { evaluated = (jobs, info); dotcmd; dot; output }) ->
-        Config'.show info;
+        Config'.pp_info Fmt.(pf stdout) Log.INFO info;
         fatalize_error (describe info jobs ~dotcmd ~dot ~output)
       | `Ok (Functoria_tool.Build (_, info)) ->
-        Config'.log info;
+        Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (build info)
       | `Ok (Functoria_tool.Clean (jobs, info)) ->
-        Config'.log info;
+        Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (clean info jobs)
       | `Version
       | `Help -> ()

@@ -620,56 +620,54 @@ module Make (P: S) = struct
       Format.pp_set_margin Format.err_formatter i;
       Fmt_tty.setup_std_outputs ?style_renderer:color ()
     in
-    let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
-      try
-        let () = Functoria_misc.Log.set_level (Functoria_tool.read_log_level argv) in
-        (* We really want the color options to be set before loading the config. *)
-        let () = init_format (Functoria_tool.read_colour_option argv) in
-        let config = 
-          let c = Functoria_tool.read_config_file argv in
-          let _ = Term.eval_peek_opts ~argv Config.base_context in
-          fatalize_error (Config.load c)
-        in
-        let if_context = Config.if_context config in
-        let context = 
-          match Term.eval_peek_opts ~argv if_context with
-          | Some context, _ -> context
-          | _ ->
-            (* If peeking has failed, this should always fail too, but with
-               a good error message. *)
-            Functoria_key.empty_context
-        in
-        let full_eval = Functoria_tool.read_full_eval argv in
-        let commands = [
-          Functoria_tool.configure (Config.eval ~with_required:true ~partial:false context config);
-          Functoria_tool.describe (Config.eval ~with_required:false ~partial:(not full_eval) context config);
-          Functoria_tool.build (Config.eval ~with_required:false ~partial:false context config);
-          Functoria_tool.clean (Config.eval ~with_required:false ~partial:false context config);
-          Functoria_tool.help Config.base_context;
-        ] in
-        match Term.eval_choice ~argv ~catch:false
-                (Functoria_tool.default ~name:Config.name ~version:Config.version)
-                commands with
-        | `Error _ -> exit 1
-        | `Ok Functoria_tool.Nothing -> ()
-        | `Ok (Functoria_tool.Configure {evaluated; no_opam; no_depext; no_opam_version}) ->
-          fatalize_error
-            (Config.configure evaluated ~no_opam ~no_depext ~no_opam_version)
-        | `Ok (Functoria_tool.Describe { evaluated; dotcmd; dot; output }) ->
-          fatalize_error
-            (Config.describe evaluated ~dotcmd ~dot ~output)
-        | `Ok (Functoria_tool.Build evaluated) ->
-          fatalize_error
-            (Config.build evaluated)
-        | `Ok (Functoria_tool.Clean evaluated) ->
-          fatalize_error
-            (Config.clean evaluated)
-        | `Version
-        | `Help -> ()
-      with
-      | Functoria_misc.Log.Fatal s ->
-        Functoria_misc.Log.show_error "%s" s ;
-        exit 1
-    in
-    initialize (module Config) ~argv:Sys.argv
+    let argv = Sys.argv in
+    try
+      let () = Functoria_misc.Log.set_level (Functoria_tool.read_log_level argv) in
+      (* We really want the color options to be set before loading the config. *)
+      let () = init_format (Functoria_tool.read_colour_option argv) in
+      let config = 
+        let c = Functoria_tool.read_config_file argv in
+        let _ = Term.eval_peek_opts ~argv Config.base_context in
+        fatalize_error (Config.load c)
+      in
+      let if_context = Config.if_context config in
+      let context = 
+        match Term.eval_peek_opts ~argv if_context with
+        | Some context, _ -> context
+        | _ ->
+          (* If peeking has failed, this should always fail too, but with
+             a good error message. *)
+          Functoria_key.empty_context
+      in
+      let full_eval = Functoria_tool.read_full_eval argv in
+      let commands = [
+        Functoria_tool.configure (Config.eval ~with_required:true ~partial:false context config);
+        Functoria_tool.describe (Config.eval ~with_required:false ~partial:(not full_eval) context config);
+        Functoria_tool.build (Config.eval ~with_required:false ~partial:false context config);
+        Functoria_tool.clean (Config.eval ~with_required:false ~partial:false context config);
+        Functoria_tool.help Config.base_context;
+      ] in
+      match Term.eval_choice ~argv ~catch:false
+              (Functoria_tool.default ~name:Config.name ~version:Config.version)
+              commands with
+      | `Error _ -> exit 1
+      | `Ok Functoria_tool.Nothing -> ()
+      | `Ok (Functoria_tool.Configure {evaluated; no_opam; no_depext; no_opam_version}) ->
+        fatalize_error
+          (Config.configure evaluated ~no_opam ~no_depext ~no_opam_version)
+      | `Ok (Functoria_tool.Describe { evaluated; dotcmd; dot; output }) ->
+        fatalize_error
+          (Config.describe evaluated ~dotcmd ~dot ~output)
+      | `Ok (Functoria_tool.Build evaluated) ->
+        fatalize_error
+          (Config.build evaluated)
+      | `Ok (Functoria_tool.Clean evaluated) ->
+        fatalize_error
+          (Config.clean evaluated)
+      | `Version
+      | `Help -> ()
+    with
+    | Functoria_misc.Log.Fatal s ->
+      Functoria_misc.Log.show_error "%s" s ;
+      exit 1
 end

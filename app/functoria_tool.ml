@@ -216,14 +216,15 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       Config.configure info ~no_opam ~no_depext ~no_opam_version
     in
     let if_context = Config.if_context config in
-    let term = match Term.eval_peek_opts ~argv if_context with
-      | Some context, _ ->
-        Term.app  (Term.pure configure) @@ Config.eval ~with_required:true ~partial:false context config
-      | _, _ ->
+    let context = match Term.eval_peek_opts ~argv if_context with
+      | Some context, _ -> context
+      | _ ->
         (* If peeking has failed, this should always fail too, but with
-               a good error message. *)
-        Term.app (Term.pure configure) @@ Config.eval ~with_required:true ~partial:false Functoria_key.empty_context config
+           a good error message. *)
+        Functoria_key.empty_context
     in
+    let term = Term.app (Term.pure configure)
+        (Config.eval ~with_required:true ~partial:false context config) in
     (Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
            $ (term $ configure_info.opts)),
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
@@ -234,14 +235,15 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       Config.describe ~dotcmd ~dot ~output info in
     let if_context = Config.if_context config in
     let partial = not (load_fully_eval argv) in
-    let term = match Term.eval_peek_opts ~argv if_context with
-      | Some context, _ ->
-        Term.app (Term.pure describe) @@ Config.eval ~with_required:false ~partial context config
-      | _, _ ->
+    let context = match Term.eval_peek_opts ~argv if_context with
+      | Some context, _ -> context
+      | _ ->
         (* If peeking has failed, this should always fail too, but with
-               a good error message. *)
-        Term.app (Term.pure describe) @@ Config.eval ~with_required:false ~partial Functoria_key.empty_context config
+           a good error message. *)
+        Functoria_key.empty_context
     in
+    let term = Term.app (Term.pure describe)
+        (Config.eval ~with_required:false ~partial context config) in
     (Term.(pure (fun _ t -> t)
            $ full_eval
            $ (Term.(pure (fun _ _ _ -> fatalize_error)
@@ -255,14 +257,15 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   let build config argv =
     let build info () = Config.build info in
     let if_context = Config.if_context config in
-    let term = match Term.eval_peek_opts ~argv if_context with
-      | Some context, _ ->
-        Term.app (Term.pure build) @@ Config.eval ~with_required:false ~partial:false context config
-      | _, _ ->
+    let context = match Term.eval_peek_opts ~argv if_context with
+      | Some context, _ -> context
+      | _ ->
         (* If peeking has failed, this should always fail too, but with
-               a good error message. *)
-        Term.app (Term.pure build) @@ Config.eval ~with_required:false ~partial:false Functoria_key.empty_context config
+           a good error message. *)
+        Functoria_key.empty_context
     in
+    let term = Term.app (Term.pure build)
+        (Config.eval ~with_required:false ~partial:false context config) in
     (Term.(pure (fun _ _ _ -> fatalize_error)
             $ verbose
             $ color
@@ -274,14 +277,15 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
   let clean config argv =
     let clean info () = Config.clean info in
     let if_context = Config.if_context config in
-    let term = match Term.eval_peek_opts ~argv if_context with
-      | Some context, _ ->
-        Term.app (Term.pure clean) @@ Config.eval ~with_required:false ~partial:false context config
-      | _, _ ->
+    let context = match Term.eval_peek_opts ~argv if_context with
+      | Some context, _ -> context
+      | _ ->
         (* If peeking has failed, this should always fail too, but with
-               a good error message. *)
-        Term.app (Term.pure clean) @@ Config.eval ~with_required:false ~partial:false Functoria_key.empty_context config
+           a good error message. *)
+        Functoria_key.empty_context
     in
+    let term = Term.app (Term.pure clean)
+        (Config.eval ~with_required:false ~partial:false context config) in
     ((Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
              $ (term $ clean_info.opts))),
      term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)

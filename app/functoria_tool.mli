@@ -60,7 +60,7 @@ type 'a action =
   | Describe of 'a describe_args
   | Build of 'a
   | Clean of 'a
-  | Nothing
+  | Help
 
 open Cmdliner.Term
 

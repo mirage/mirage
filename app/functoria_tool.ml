@@ -139,7 +139,7 @@ type 'a action =
   | Describe of 'a describe_args
   | Build of 'a
   | Clean of 'a
-  | Nothing
+  | Help
 
 (*
  * Subcommand specifications
@@ -241,7 +241,7 @@ let help base_context =
       | `Error e -> `Error (false, e)
       | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
       | `Ok t -> `Help (man_format, Some t) in
-  (Term.(pure (fun () -> Nothing) $
+  (Term.(pure (fun () -> Help) $
          ret (Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
                     $ topic $ base_context))),
    Term.info "help"

@@ -632,7 +632,7 @@ module Make (P: S) = struct
               (Functoria_tool.default ~name:P.name ~version:P.version)
               commands with
       | `Error _ -> exit 1
-      | `Ok Functoria_tool.Nothing -> ()
+      | `Ok Functoria_tool.Help -> ()
       | `Ok (Functoria_tool.Configure {evaluated = (jobs, info); no_opam; no_depext; no_opam_version}) ->
         Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)

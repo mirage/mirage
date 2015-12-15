@@ -47,6 +47,12 @@ type 'a config_args = {
   no_depext: bool;
   no_opam_version: bool
 }
+(** A value of type [config_args] is the result of parsing the arguments to a
+    [configure] subcommand.
+
+    The [result] field holds the result of parsing the "additional" arguments
+    whose specification is passed as the [configure] argument to
+    {!parse_args}. *)
 
 type 'a describe_args = {
   evaluated: 'a;
@@ -54,6 +60,12 @@ type 'a describe_args = {
   dot: bool;
   output: string option;
 }
+(** A value of type [describe_args] is the result of parsing the arguments to
+    a [describe] subcommand.
+
+    The [result] field holds the result of parsing the "additional" arguments
+    whose specification is passed as the [describe] argument to
+    {!parse_args}. *)
 
 type 'a action =
     Configure of 'a config_args
@@ -61,6 +73,8 @@ type 'a action =
   | Build of 'a
   | Clean of 'a
   | Help
+(** A value of type [action] is the result of parsing command-line arguments using
+    [parse_args]. *)
 
 open Cmdliner.Term
 

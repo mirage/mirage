@@ -555,8 +555,8 @@ module Make (P: S) = struct
     (* This is a hack to allow the implementation of
        [Mirage.get_mode]. Once it is removed, the notion of base context
        should be removed as well. *)
-    let base_context = ref None
-    let get_base_context () = match !base_context with
+    let base_context_ref = ref None
+    let get_base_context () = match !base_context_ref with
       | Some x -> x
       | None ->
         invalid_arg "Base key map is not available at this point. Please stop \
@@ -565,7 +565,7 @@ module Make (P: S) = struct
     let base_context =
       let keys = Config.extract_keys (P.create []) in
       let context = Key.context ~stage:`Configure keys in
-      let f x = base_context := Some x; x in
+      let f x = base_context_ref := Some x; x in
       Cmdliner.Term.(pure f $ context ~with_required:false )
 
     type t = Config.t

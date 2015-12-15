@@ -33,9 +33,9 @@ let mk_flag ?(section=global_option_section) flags doc =
   let doc = Arg.info ~docs:section ~doc flags in
   Arg.(value & flag & doc)
 
-let term_info title ~doc ~man =
+let term_info title ~doc ~man ~arg =
   let man = man @ help_sections in
-  Term.info ~sdocs:global_option_section ~doc ~man title
+  (arg, Term.info ~sdocs:global_option_section ~doc ~man title)
 
 let no_opam =
   mk_flag ["no-opam"]
@@ -133,15 +133,15 @@ let init_format color =
   Format.pp_set_margin Format.err_formatter i;
   Fmt_tty.setup_std_outputs ?style_renderer:color ()
 
-let read_log_level argv =
-  match Term.eval_peek_opts ~argv verbose with
-  | _, `Ok v -> v
-  | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
+let read_log_level : string array -> Functoria_misc.Log.level =
+  fun argv -> match Term.eval_peek_opts ~argv verbose with
+    | _, `Ok v -> v
+    | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
 
-let read_full_eval argv =
-  match snd @@ Term.eval_peek_opts ~argv full_eval with
-  | `Ok b -> b
-  | _ -> false
+let read_full_eval : string array -> bool =
+  fun argv -> match Term.eval_peek_opts ~argv full_eval with
+    | _, `Ok b -> b
+    | _ -> false
 
 type 'a config_args = {
   evaluated: 'a;
@@ -149,115 +149,104 @@ type 'a config_args = {
   no_depext: bool;
   no_opam_version: bool
 }
+
 type 'a describe_args = {
   evaluated: 'a;
   dotcmd: string;
   dot: bool;
   output: string option;
 }
-type ('a, 'b) action =
+
+type 'a action =
     Configure of 'a config_args
   | Describe of 'a describe_args
   | Build of 'a
-  | Clean of Functoria_key.context * 'b * 'a
+  | Clean of 'a
   | Nothing
 
-type ('t,'evaluated) eval_type = 
-  partial:bool ->
-  with_required:bool ->
-  Functoria_key.context ->
-  't ->
-  'evaluated Cmdliner.Term.t
-
 (* CONFIGURE *)
-let configure (eval_ : (_,_) eval_type) context config =
-  (Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
-       Configure { evaluated = info; no_opam; no_depext; no_opam_version })
-         $ verbose
-         $ color
-         $ config_file
-         $ eval_ ~with_required:true ~partial:false context config
-         $ no_opam
-         $ no_opam_version_check
-         $ no_depext),
-   term_info "configure"
-     ~doc:"Configure a $(mname) application."
-     ~man:[
-       `S "DESCRIPTION";
-       `P "The $(b,configure) command initializes a fresh $(mname) application."
-     ])
+let configure evaluated =
+  term_info "configure"
+    ~doc:"Configure a $(mname) application."
+    ~man:[
+      `S "DESCRIPTION";
+      `P "The $(b,configure) command initializes a fresh $(mname) application."
+    ]
+    ~arg:Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
+        Configure { evaluated = info; no_opam; no_depext; no_opam_version })
+               $ verbose
+               $ color
+               $ config_file
+               $ evaluated
+               $ no_opam
+               $ no_opam_version_check
+               $ no_depext)
 
 (* DESCRIBE *)
-let describe (eval_ : (_,_) eval_type) context config partial_eval =
-  (Term.(pure (fun _ _ _ _ info output dotcmd dot ->
-       Describe { evaluated = info; dotcmd; dot; output })
-         $ full_eval
-         $ verbose
-         $ color
-         $ config_file
-         $ eval_ ~with_required:false ~partial:partial_eval context config
-         $ output
-         $ dotcmd
-         $ dot),
-   term_info "describe"
-     ~doc:"Describe a $(mname) application."
-     ~man:[
-       `S "DESCRIPTION";
-       `P "The $(b,describe) command describes the configuration of a \
-           $(mname) application.";
-       `P "The dot output contains the following elements:";
-       `Noblank;
-       `I ("If vertices",
-           "Represented as circles. Branches are dotted, and the default branch \
-            is in bold.");
-       `Noblank;
-       `I ("Configurables",
-           "Represented as rectangles. The order of the output arrows is \
-            the order of the functor arguments.");
-       `Noblank;
-       `I ("Data dependencies",
-           "Represented as dashed arrows.");
-       `Noblank;
-       `I ("App vertices",
-           "Represented as diamonds. The bold arrow is the functor part.");
-     ])
+let describe evaluated =
+  term_info "describe"
+    ~doc:"Describe a $(mname) application."
+    ~man:[
+      `S "DESCRIPTION";
+      `P "The $(b,describe) command describes the configuration of a \
+          $(mname) application.";
+      `P "The dot output contains the following elements:";
+      `Noblank;
+      `I ("If vertices",
+          "Represented as circles. Branches are dotted, and the default branch \
+           is in bold.");
+      `Noblank;
+      `I ("Configurables",
+          "Represented as rectangles. The order of the output arrows is \
+           the order of the functor arguments.");
+      `Noblank;
+      `I ("Data dependencies",
+          "Represented as dashed arrows.");
+      `Noblank;
+      `I ("App vertices",
+          "Represented as diamonds. The bold arrow is the functor part.");
+    ]
+    ~arg:Term.(pure (fun _ _ _ _ info output dotcmd dot ->
+        Describe { evaluated = info; dotcmd; dot; output })
+               $ full_eval
+               $ verbose
+               $ color
+               $ config_file
+               $ evaluated
+               $ output
+               $ dotcmd
+               $ dot)
 
 (* BUILD *)
-let build (eval_ : (_,_) eval_type) context config =
-  (Term.(pure (fun _ _ _ info -> Build info)
-          $ verbose
-          $ color
-          $ config_file
-          $ eval_ ~with_required:false ~partial:false context config),
-   let doc = "Build a $(mname) application." in
-   term_info "build" ~doc
-     ~man:[
-       `S "DESCRIPTION";
-       `P doc;
-     ])
+let build evaluated =
+  let doc = "Build a $(mname) application." in
+  term_info "build" ~doc
+    ~man:[
+      `S "DESCRIPTION";
+      `P doc;
+    ]
+    ~arg:Term.(pure (fun _ _ _ info -> Build info)
+               $ verbose
+               $ color
+               $ config_file
+               $ evaluated)
 
 (* CLEAN *)
-let clean (eval_ : (_,_) eval_type) context config =
-  (Term.(pure (fun _ _ _  info -> Clean (context, config, info))
-         $ verbose
-         $ color
-         $ config_file
-         $ eval_ ~with_required:false ~partial:false context config),
-   let doc = "Clean the files produced by $(mname) for a given application." in
-   term_info "clean" ~doc
-     ~man:[
-       `S "DESCRIPTION";
-       `P doc;
-     ])
+let clean info_ =
+  let doc = "Clean the files produced by $(mname) for a given application." in
+  term_info "clean" ~doc
+    ~man:[
+      `S "DESCRIPTION";
+      `P doc;
+    ]
+    ~arg:Term.(pure (fun _ _ _  info -> Clean info)
+               $ verbose
+               $ color
+               $ config_file
+               $ info_)
 
 (* HELP *)
 let help base_context =
-  let doc = "Display help about $(mname) commands." in
-  let man = [
-    `S "DESCRIPTION";
-    `P "Prints help.";
-    `P "Use `$(mname) help topics' to get the full list of help topics.";
-  ] in
   let topic =
     let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
     Arg.(value & pos 0 (some string) None & doc )
@@ -276,20 +265,15 @@ let help base_context =
   (Term.(pure (fun () -> Nothing) $
          ret (Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
                     $ topic $ base_context))),
-   Term.info "help" ~doc ~man)
+   Term.info "help"
+     ~doc:"Display help about $(mname) commands."
+     ~man:[
+       `S "DESCRIPTION";
+       `P "Prints help.";
+       `P "Use `$(mname) help topics' to get the full list of help topics.";
+     ])
 
 let default ~name ~version =
-  let doc = "The $(mname) application builder" in
-  let man = [
-    `S "DESCRIPTION";
-    `P "The $(mname) application builder. It glues together a set of \
-        libraries and configuration (e.g. network and storage) into a \
-        standalone unikernel or UNIX binary.";
-    `P "Use either $(b,$(mname) <command> --help) or \
-        $(b,($mname) help <command>) for more information on a specific \
-        command.";
-  ] @  help_sections
-  in
   let usage verbose color =
     Functoria_misc.Log.set_level verbose;
     init_format color;
@@ -299,8 +283,16 @@ let default ~name ~version =
    Term.info name
      ~version
      ~sdocs:global_option_section
-     ~doc
-     ~man)
+     ~doc:"The $(mname) application builder"
+     ~man:([
+         `S "DESCRIPTION";
+         `P "The $(mname) application builder. It glues together a set of \
+             libraries and configuration (e.g. network and storage) into a \
+             standalone unikernel or UNIX binary.";
+         `P "Use either $(b,$(mname) <command> --help) or \
+             $(b,($mname) help <command>) for more information on a specific \
+             command.";
+       ] @  help_sections))
 
 let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
   try
@@ -321,12 +313,12 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
            a good error message. *)
         Functoria_key.empty_context
     in
-    let partial_eval = not (read_full_eval argv) in
+    let full_eval = read_full_eval argv in
     let commands = [
-      configure Config.eval context config;
-      describe Config.eval context config partial_eval;
-      build Config.eval context config;
-      clean Config.eval context config;
+      configure (Config.eval ~with_required:true ~partial:false context config);
+      describe (Config.eval ~with_required:false ~partial:(not full_eval) context config);
+      build (Config.eval ~with_required:false ~partial:false context config);
+      clean (Config.eval ~with_required:false ~partial:false context config);
       help Config.base_context;
     ] in
     match Term.eval_choice ~argv ~catch:false
@@ -343,7 +335,7 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
       | `Ok (Build evaluated) ->
         fatalize_error
           (Config.build evaluated)
-      | `Ok (Clean (_, _, evaluated)) ->
+      | `Ok (Clean evaluated) ->
         fatalize_error
           (Config.clean evaluated)
       | `Version

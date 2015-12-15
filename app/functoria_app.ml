@@ -348,7 +348,7 @@ module Config = struct
            $ libs
            $ pkgs)
     in
-    Key.with_deps keys di
+    Key.(pure (fun x _ -> x) $ di $ of_deps (Set.of_list keys))
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)

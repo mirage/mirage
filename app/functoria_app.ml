@@ -545,7 +545,7 @@ module Make (P: S) = struct
            directory.\n\
            Please specify one explictly on the command-line."
 
-  module Config = struct
+  module Config' = struct
     (* This is a hack to allow the implementation of
        [Mirage.get_mode]. Once it is removed, the notion of base context
        should be removed as well. *)
@@ -562,33 +562,12 @@ module Make (P: S) = struct
       let f x = base_context_ref := Some x; x in
       Cmdliner.Term.(pure f $ context ~with_required:false )
 
-    type t = Config.t
-    type evaluated = Graph.t * Info.t
-
-    let load file =
-      scan_conf file >>= fun file ->
-      let root = Cmd.realpath (Filename.dirname file) in
-      let file = root / Filename.basename file in
-      set_config_file file;
-      compile_and_dynlink file >>= fun () ->
-      registered () >>= fun t ->
-      Log.set_section (Config.name t);
-      Ok t
-
-    let if_context t =
-      Key.context ~stage:`Configure ~with_required:false @@ Config.keys t
-
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Log.get_level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
 
     let log = pp_info Log.info Log.DEBUG
     let show = pp_info Fmt.(pf stdout) Log.INFO
-
-    let configure (jobs, info) = log info; configure info jobs
-    let clean (jobs, info) = log info; clean info jobs
-    let build (_jobs, info) = log info; build info
-    let describe (jobs, info) = show info; describe info jobs
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
@@ -597,10 +576,19 @@ module Make (P: S) = struct
       in
       let f map = Key.eval map info @@ map in
       Cmdliner.Term.(pure f $ context)
-
   end
 
-  let get_base_context = Config.get_base_context
+  let load' file =
+    scan_conf file >>= fun file ->
+    let root = Cmd.realpath (Filename.dirname file) in
+    let file = root / Filename.basename file in
+    set_config_file file;
+    compile_and_dynlink file >>= fun () ->
+    registered () >>= fun t ->
+    Log.set_section (Config.name t);
+    Ok t
+
+  let get_base_context = Config'.get_base_context
   let run () = 
     let fatalize_error = function
       | Ok x    -> x
@@ -621,10 +609,12 @@ module Make (P: S) = struct
       let () = init_format (Functoria_tool.read_colour_option argv) in
       let config = 
         let c = Functoria_tool.read_config_file argv in
-        let _ = Term.eval_peek_opts ~argv Config.base_context in
-        fatalize_error (Config.load c)
+        let _ = Term.eval_peek_opts ~argv Config'.base_context in
+        fatalize_error (load' c)
       in
-      let if_context = Config.if_context config in
+      let if_context =
+        Key.context ~stage:`Configure ~with_required:false @@ Config.keys config
+      in
       let context = 
         match Term.eval_peek_opts ~argv if_context with
         | Some context, _ -> context
@@ -635,29 +625,29 @@ module Make (P: S) = struct
       in
       let full_eval = Functoria_tool.read_full_eval argv in
       let commands = [
-        Functoria_tool.configure (Config.eval ~with_required:true ~partial:false context config);
-        Functoria_tool.describe (Config.eval ~with_required:false ~partial:(not full_eval) context config);
-        Functoria_tool.build (Config.eval ~with_required:false ~partial:false context config);
-        Functoria_tool.clean (Config.eval ~with_required:false ~partial:false context config);
-        Functoria_tool.help Config.base_context;
+        Functoria_tool.configure (Config'.eval ~with_required:true ~partial:false context config);
+        Functoria_tool.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
+        Functoria_tool.build (Config'.eval ~with_required:false ~partial:false context config);
+        Functoria_tool.clean (Config'.eval ~with_required:false ~partial:false context config);
+        Functoria_tool.help Config'.base_context;
       ] in
       match Term.eval_choice ~argv ~catch:false
               (Functoria_tool.default ~name:P.name ~version:P.version)
               commands with
       | `Error _ -> exit 1
       | `Ok Functoria_tool.Nothing -> ()
-      | `Ok (Functoria_tool.Configure {evaluated; no_opam; no_depext; no_opam_version}) ->
-        fatalize_error
-          (Config.configure evaluated ~no_opam ~no_depext ~no_opam_version)
-      | `Ok (Functoria_tool.Describe { evaluated; dotcmd; dot; output }) ->
-        fatalize_error
-          (Config.describe evaluated ~dotcmd ~dot ~output)
-      | `Ok (Functoria_tool.Build evaluated) ->
-        fatalize_error
-          (Config.build evaluated)
-      | `Ok (Functoria_tool.Clean evaluated) ->
-        fatalize_error
-          (Config.clean evaluated)
+      | `Ok (Functoria_tool.Configure {evaluated = (jobs, info); no_opam; no_depext; no_opam_version}) ->
+        Config'.log info;
+        fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
+      | `Ok (Functoria_tool.Describe { evaluated = (jobs, info); dotcmd; dot; output }) ->
+        Config'.show info;
+        fatalize_error (describe info jobs ~dotcmd ~dot ~output)
+      | `Ok (Functoria_tool.Build (_, info)) ->
+        Config'.log info;
+        fatalize_error (build info)
+      | `Ok (Functoria_tool.Clean (jobs, info)) ->
+        Config'.log info;
+        fatalize_error (clean info jobs)
       | `Version
       | `Help -> ()
     with

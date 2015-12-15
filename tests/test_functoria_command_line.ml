@@ -20,12 +20,133 @@ open Functoria_misc
 module Cmd = Functoria_command_line
 
 
-(* TODO:
-   a test for each subcommand
-   a test for the top-level parsing
-   tests for top-level --help and --version
-   tests for config.ml file reading
- *)
+let test_configure _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"; "configure"; "--xyz"; "--verbose"; "--no-opam"|]
+  in
+  assert_equal
+    (`Ok (Cmd.Configure { result = (true, false);
+                          no_opam = true;
+                          no_opam_version = false;
+                          no_depext = false }))
+    result
+
+
+let test_describe _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"; "describe"; "--cde"; "--file=config.ml";
+        "--color=always"; "--dot-command=dot"; "--eval"|]
+  in
+  assert_equal
+    (`Ok (Cmd.Describe { result = (false, true);
+                         dotcmd = "dot";
+                         dot = false;
+                         output = None }))
+    result
+
+
+let test_build _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v"|]
+  in
+  assert_equal
+    (`Ok (Cmd.Build (true, true)))
+    result
+
+
+let test_clean _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"; "clean"|]
+  in
+  assert_equal
+    (`Ok (Cmd.Clean (false, false)))
+    result
+
+
+let test_help _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"; "help"; "--verbose"|]
+  in
+  assert_equal `Help result
+
+
+let test_default _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"|]
+  in
+  assert_equal `Help result
 
 
 let test_read_log_level _ =
@@ -110,6 +231,24 @@ let suite = "Command-line parsing tests" >:::
 
    "read_full_eval"
     >:: test_read_full_eval;
+
+    "configure"
+    >:: test_configure;
+
+    "describe"
+    >:: test_describe;
+
+    "build"
+    >:: test_build;
+
+    "clean"
+    >:: test_clean;
+
+    "help"
+    >:: test_help;
+
+    "default"
+    >:: test_default;
   ]
 
 

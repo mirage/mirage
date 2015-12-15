@@ -587,6 +587,7 @@ module Make (P: S) = struct
 
   let get_base_context = Config'.get_base_context
   let run () = 
+    let module Cmd = Functoria_command_line in
     let fatalize_error = function
       | Ok x    -> x
       | Error s -> Functoria_misc.Log.fatal "%s" s
@@ -601,11 +602,11 @@ module Make (P: S) = struct
     in
     let argv = Sys.argv in
     try
-      let () = Functoria_misc.Log.set_level (Functoria_command_line.read_log_level argv) in
+      let () = Functoria_misc.Log.set_level (Cmd.read_log_level argv) in
       (* We really want the color options to be set before loading the config. *)
-      let () = init_format (Functoria_command_line.read_colour_option argv) in
+      let () = init_format (Cmd.read_colour_option argv) in
       let config = 
-        let c = Functoria_command_line.read_config_file argv in
+        let c = Cmd.read_config_file argv in
         let _ = Term.eval_peek_opts ~argv Config'.base_context in
         fatalize_error (load' c)
       in
@@ -620,29 +621,29 @@ module Make (P: S) = struct
              a good error message. *)
           Functoria_key.empty_context
       in
-      let full_eval = Functoria_command_line.read_full_eval argv in
+      let full_eval = Cmd.read_full_eval argv in
       let commands = [
-        Functoria_command_line.configure (Config'.eval ~with_required:true ~partial:false context config);
-        Functoria_command_line.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
-        Functoria_command_line.build (Config'.eval ~with_required:false ~partial:false context config);
-        Functoria_command_line.clean (Config'.eval ~with_required:false ~partial:false context config);
-        Functoria_command_line.help Config'.base_context;
+        Cmd.configure (Config'.eval ~with_required:true ~partial:false context config);
+        Cmd.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
+        Cmd.build (Config'.eval ~with_required:false ~partial:false context config);
+        Cmd.clean (Config'.eval ~with_required:false ~partial:false context config);
+        Cmd.help Config'.base_context;
       ] in
       match Term.eval_choice ~argv ~catch:false
-              (Functoria_command_line.default ~name:P.name ~version:P.version)
+              (Cmd.default ~name:P.name ~version:P.version)
               commands with
       | `Error _ -> exit 1
-      | `Ok Functoria_command_line.Help -> ()
-      | `Ok (Functoria_command_line.Configure {evaluated = (jobs, info); no_opam; no_depext; no_opam_version}) ->
+      | `Ok Cmd.Help -> ()
+      | `Ok (Cmd.Configure {evaluated = (jobs, info); no_opam; no_depext; no_opam_version}) ->
         Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
-      | `Ok (Functoria_command_line.Describe { evaluated = (jobs, info); dotcmd; dot; output }) ->
+      | `Ok (Cmd.Describe { evaluated = (jobs, info); dotcmd; dot; output }) ->
         Config'.pp_info Fmt.(pf stdout) Log.INFO info;
         fatalize_error (describe info jobs ~dotcmd ~dot ~output)
-      | `Ok (Functoria_command_line.Build (_, info)) ->
+      | `Ok (Cmd.Build (_, info)) ->
         Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (build info)
-      | `Ok (Functoria_command_line.Clean (jobs, info)) ->
+      | `Ok (Cmd.Clean (jobs, info)) ->
         Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (clean info jobs)
       | `Version

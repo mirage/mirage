@@ -15,7 +15,6 @@
  *)
 
 open Cmdliner
-open Rresult
 
 let global_option_section = "COMMON OPTIONS"
 

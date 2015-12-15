@@ -17,10 +17,6 @@
 open Cmdliner
 open Rresult
 
-let fatalize_error = function
-  | Ok x    -> x
-  | Error s -> Functoria_misc.Log.fatal "%s" s
-
 let global_option_section = "COMMON OPTIONS"
 
 let help_sections = [
@@ -28,7 +24,7 @@ let help_sections = [
   `P "These options are common to all commands.";
 ]
 
-(* Helpers *)
+(** Helpers *)
 let mk_flag ?(section=global_option_section) flags doc =
   let doc = Arg.info ~docs:section ~doc flags in
   Arg.(value & flag & doc)
@@ -37,24 +33,33 @@ let term_info title ~doc ~man ~arg =
   let man = man @ help_sections in
   (arg, Term.info ~sdocs:global_option_section ~doc ~man title)
 
+(**
+ * Argument specifications
+ *)
+
+(** Argument specification for --no-opam *)
 let no_opam =
   mk_flag ["no-opam"]
     "Do not manage the OPAM configuration. \
      This will result in dependent libraries not being automatically \
      installed during the configuration phase."
 
+(** Argument specification for --no-opam-version-check *)
 let no_opam_version_check =
   mk_flag ["no-opam-version-check"] "Bypass the OPAM version check."
 
+(** Argument specification for --no-depext *)
 let no_depext =
   mk_flag ["no-depext"] "Skip installation of external dependencies."
 
+(** Argument specification for --eval *)
 let full_eval =
   mk_flag ["eval"]
     "Fully evaluate the graph before showing it. \
      By default, only the keys that are given on the command line are \
      evaluated."
 
+(** Argument specification for --dot *)
 let dot =
   mk_flag ["dot"]
     "Output a dot description. \
@@ -104,16 +109,6 @@ let color =
   in
   Arg.(value & opt color None & doc)
 
-let colour_option : string array -> Fmt.style_renderer option =
-  fun argv -> match Term.eval_peek_opts ~argv color with
-    | _, `Ok color -> color
-    | _ -> None
-
-let read_config_file : string array -> string option =
-  fun argv -> match Term.eval_peek_opts ~argv config_file with
-  | _, `Ok config -> config
-  | _ -> None
-
 (** Argument specification for -v or --verbose *)
 let verbose : Functoria_misc.Log.level Term.t =
   let log_level_of_verbosity = function
@@ -125,23 +120,6 @@ let verbose : Functoria_misc.Log.level Term.t =
     Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
   in
   Term.(pure log_level_of_verbosity $ Arg.(value & flag_all doc))
-
-let init_format color =
-  let i = Functoria_misc.Terminfo.columns () in
-  Functoria_misc.Log.set_color color;
-  Format.pp_set_margin Format.std_formatter i;
-  Format.pp_set_margin Format.err_formatter i;
-  Fmt_tty.setup_std_outputs ?style_renderer:color ()
-
-let read_log_level : string array -> Functoria_misc.Log.level =
-  fun argv -> match Term.eval_peek_opts ~argv verbose with
-    | _, `Ok v -> v
-    | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
-
-let read_full_eval : string array -> bool =
-  fun argv -> match Term.eval_peek_opts ~argv full_eval with
-    | _, `Ok b -> b
-    | _ -> false
 
 type 'a config_args = {
   evaluated: 'a;
@@ -164,7 +142,11 @@ type 'a action =
   | Clean of 'a
   | Nothing
 
-(* CONFIGURE *)
+(*
+ * Subcommand specifications
+ *)
+
+(** The 'configure' subcommand *)
 let configure evaluated =
   term_info "configure"
     ~doc:"Configure a $(mname) application."
@@ -182,7 +164,7 @@ let configure evaluated =
                $ no_opam_version_check
                $ no_depext)
 
-(* DESCRIBE *)
+(** The 'describe' subcommand *)
 let describe evaluated =
   term_info "describe"
     ~doc:"Describe a $(mname) application."
@@ -217,7 +199,7 @@ let describe evaluated =
                $ dotcmd
                $ dot)
 
-(* BUILD *)
+(** The 'build' subcommand *)
 let build evaluated =
   let doc = "Build a $(mname) application." in
   term_info "build" ~doc
@@ -231,7 +213,7 @@ let build evaluated =
                $ config_file
                $ evaluated)
 
-(* CLEAN *)
+(** The 'clean' subcommand *)
 let clean info_ =
   let doc = "Clean the files produced by $(mname) for a given application." in
   term_info "clean" ~doc
@@ -245,15 +227,13 @@ let clean info_ =
                $ config_file
                $ info_)
 
-(* HELP *)
+(** The 'help' subcommand *)
 let help base_context =
   let topic =
     let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
     Arg.(value & pos 0 (some string) None & doc )
   in
-  let help (verbose : Functoria_misc.Log.level) color man_format cmds topic _keys =
-    Functoria_misc.Log.set_level verbose;
-    init_format color;
+  let help _verbose _color man_format cmds topic _keys =
     match topic with
     | None       -> `Help (`Pager, None)
     | Some topic ->
@@ -274,10 +254,7 @@ let help base_context =
      ])
 
 let default ~name ~version =
-  let usage verbose color =
-    Functoria_misc.Log.set_level verbose;
-    init_format color;
-    `Help (`Plain, None)
+  let usage _verbose _color = `Help (`Plain, None)
   in
   (Term.(ret (pure usage $ verbose $ color)),
    Term.info name
@@ -294,11 +271,46 @@ let default ~name ~version =
              command.";
        ] @  help_sections))
 
+(*
+ * Functions for extracting particular flags from the command line.
+ *)
+
+let read_colour_option : string array -> Fmt.style_renderer option =
+  fun argv -> match Term.eval_peek_opts ~argv color with
+    | _, `Ok color -> color
+    | _ -> None
+
+let read_config_file : string array -> string option =
+  fun argv -> match Term.eval_peek_opts ~argv config_file with
+  | _, `Ok config -> config
+  | _ -> None
+
+let read_log_level : string array -> Functoria_misc.Log.level =
+  fun argv -> match Term.eval_peek_opts ~argv verbose with
+    | _, `Ok v -> v
+    | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
+
+let read_full_eval : string array -> bool =
+  fun argv -> match Term.eval_peek_opts ~argv full_eval with
+    | _, `Ok b -> b
+    | _ -> false
+
+let fatalize_error = function
+  | Ok x    -> x
+  | Error s -> Functoria_misc.Log.fatal "%s" s
+
+let init_format color =
+  let i = Functoria_misc.Terminfo.columns () in
+  Functoria_misc.Log.set_color color;
+  Format.pp_set_margin Format.std_formatter i;
+  Format.pp_set_margin Format.err_formatter i;
+  Fmt_tty.setup_std_outputs ?style_renderer:color ()
+
 let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
   try
     let () = Functoria_misc.Log.set_level (read_log_level argv) in
     (* We really want the color options to be set before loading the config. *)
-    let () = init_format (colour_option argv) in
+    let () = init_format (read_colour_option argv) in
     let config = 
       let c = read_config_file argv in
       let _ = Term.eval_peek_opts ~argv Config.base_context in

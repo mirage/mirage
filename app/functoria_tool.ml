@@ -111,24 +111,24 @@ let init_format color =
   Format.pp_set_margin Format.err_formatter i;
   Fmt_tty.setup_std_outputs ?style_renderer:color ()
 
-let load_verbose () =
-  let v = match Term.eval_peek_opts verbose with
+let load_verbose argv =
+  let v = match Term.eval_peek_opts ~argv verbose with
     | _, `Ok v -> v
     | _ -> []
   in
   init_log v
 
-let load_color () =
+let load_color argv =
   (* This is ugly but we really want the color options to be set
      before calling [load_config]. *)
-  let c = match Term.eval_peek_opts color with
+  let c = match Term.eval_peek_opts ~argv color with
     | _, `Ok color -> color
     | _ -> None
   in
   init_format c
 
-let load_fully_eval () =
-  match snd @@ Term.eval_peek_opts full_eval with
+let load_fully_eval argv =
+  match snd @@ Term.eval_peek_opts ~argv full_eval with
   | `Ok b -> b
   | _ -> false
 
@@ -198,19 +198,22 @@ let clean_info =
     opts = Term.pure (); }
 
 module Make (Config: Functoria_sigs.CONFIG) = struct
-  let load_config () =
-    let c = match Term.eval_peek_opts file with
+  let load_config argv =
+    let c = match Term.eval_peek_opts ~argv file with
       | _, `Ok config -> config
       | _ -> None
     in
-    let _ = Term.eval_peek_opts Config.base_context in
+    let _ = Term.eval_peek_opts ~argv Config.base_context in
     Config.load c
 
-  let config = Lazy.from_fun load_config
-  let set_color  = Lazy.from_fun load_color
-  let set_verbose = Lazy.from_fun load_verbose
+  let global_argv = ref [||]
 
-  let with_config ?(with_eval=false) ?(with_required=false) f options =
+  let config = lazy (load_config !global_argv)
+  let set_color  = lazy (load_color !global_argv)
+  let set_verbose = lazy (load_verbose !global_argv)
+
+  let with_config ~argv ?(with_eval=false) ?(with_required=false) f options =
+    global_argv := argv;
     Lazy.force set_color;
     Lazy.force set_verbose;
     let handle_error = function
@@ -220,8 +223,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     match Lazy.force config with
     | Ok t ->
       let if_context = Config.if_context t in
-      let partial = with_eval && not @@ load_fully_eval () in
-      let term = match Term.eval_peek_opts if_context with
+      let partial = with_eval && not @@ load_fully_eval argv in
+      let term = match Term.eval_peek_opts ~argv if_context with
         | Some context, _ ->
           Term.app f @@ Config.eval ~with_required ~partial context t
         | _, _ ->
@@ -242,29 +245,29 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     (* We fail early here to avoid reporting lookup errors. *)
 
   (* CONFIGURE *)
-  let configure () =
+  let configure argv =
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version in
-    (with_config ~with_required:true (Term.pure configure) configure_info.opts,
+    (with_config ~argv ~with_required:true (Term.pure configure) configure_info.opts,
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
-  let describe () =
+  let describe argv =
     let describe info (output, dotcmd, dot) =
       Config.describe ~dotcmd ~dot ~output info in
-    (with_config ~with_eval:true (Term.pure describe) describe_info.opts,
+    (with_config ~argv ~with_eval:true (Term.pure describe) describe_info.opts,
      term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
   (* BUILD *)
-  let build () =
+  let build argv =
     let build info () = Config.build info in
-    (with_config (Term.pure build) build_info.opts,
+    (with_config ~argv (Term.pure build) build_info.opts,
      term_info "build" ~doc:build_info.doc ~man:build_info.man)
 
   (* CLEAN *)
-  let clean () =
+  let clean argv =
     let clean info () = Config.clean info in
-    (with_config (Term.pure clean) clean_info.opts,
+    (with_config ~argv (Term.pure clean) clean_info.opts,
      term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
   (* HELP *)
@@ -323,18 +326,18 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       ~man
 end
 
-let initialize (module Config:Functoria_sigs.CONFIG) =
+let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
   let module M = Make(Config) in
   let open M in 
   try
     let commands = [
-      configure ();
-      describe ();
-      build ();
-      clean ();
+      configure argv;
+      describe argv;
+      build argv;
+      clean argv;
       help;
     ] in
-    match Term.eval_choice ~catch:false default commands with
+    match Term.eval_choice ~argv ~catch:false default commands with
       | `Error _ -> exit 1
       | _ -> ()
   with

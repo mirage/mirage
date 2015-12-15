@@ -607,5 +607,5 @@ module Make (P: S) = struct
   end
 
   let get_base_context = Config.get_base_context
-  let run () = Functoria_tool.initialize (module Config)
+  let run () = Functoria_tool.initialize (module Config) ~argv:Sys.argv
 end

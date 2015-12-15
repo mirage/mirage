@@ -16,4 +16,4 @@
 
 (** Create a command line tool.  This initializes this application and
     has numerous side effects. It should be called only once. *)
-val initialize : (module Functoria_sigs.CONFIG) -> unit
+val initialize : (module Functoria_sigs.CONFIG) -> argv:string array -> unit

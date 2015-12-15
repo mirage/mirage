@@ -586,13 +586,13 @@ module Make (P: S) = struct
     Ok t
 
   let get_base_context = Config'.get_base_context
+
   let run () = 
     let module Cmd = Functoria_command_line in
     let fatalize_error = function
       | Ok x    -> x
       | Error s -> Functoria_misc.Log.fatal "%s" s
     in
-    let open Cmdliner in
     let init_format color =
       let i = Functoria_misc.Terminfo.columns () in
       Functoria_misc.Log.set_color color;
@@ -607,14 +607,14 @@ module Make (P: S) = struct
       let () = init_format (Cmd.read_colour_option argv) in
       let config = 
         let c = Cmd.read_config_file argv in
-        let _ = Term.eval_peek_opts ~argv Config'.base_context in
+        let _ = Cmdliner.Term.eval_peek_opts ~argv Config'.base_context in
         fatalize_error (load' c)
       in
       let if_context =
         Key.context ~stage:`Configure ~with_required:false @@ Config.keys config
       in
       let context = 
-        match Term.eval_peek_opts ~argv if_context with
+        match Cmdliner.Term.eval_peek_opts ~argv if_context with
         | Some context, _ -> context
         | _ ->
           (* If peeking has failed, this should always fail too, but with
@@ -629,7 +629,7 @@ module Make (P: S) = struct
         Cmd.clean (Config'.eval ~with_required:false ~partial:false context config);
         Cmd.help Config'.base_context;
       ] in
-      match Term.eval_choice ~argv ~catch:false
+      match Cmdliner.Term.eval_choice ~argv ~catch:false
               (Cmd.default ~name:P.name ~version:P.version)
               commands with
       | `Error _ -> exit 1

@@ -61,6 +61,7 @@ let dot =
      If no output file is given,  it will display the dot file using the command \
      given to $(b,--dot-command)."
 
+(** Argument specification for --dot-command=COMMAND *)
 let dotcmd =
   let doc =
     Arg.info ~docs:global_option_section ~docv:"COMMAND" [ "dot-command" ]
@@ -69,7 +70,8 @@ let dotcmd =
   in
   Arg.(value & opt string "xdot" & doc)
 
-let file =
+(** Argument specification for -f CONFIG_FILE or --file=CONFIG_FILE *)
+let config_file =
   let doc =
     Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE" ["f"; "file"]
       ~doc:"Configuration file. If not specified, the current directory will \
@@ -80,6 +82,7 @@ let file =
   in
   Arg.(value & opt (some file) None & doc)
 
+(** Argument specification for -o FILE or --output=FILE *)
 let output =
   let doc =
     Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
@@ -87,25 +90,43 @@ let output =
   in
   Arg.(value & opt (some string) None & doc)
 
+(** Argument specification for --color=(auto|always|never) *)
 let color =
-  let enum = ["auto", None; "always", Some `Ansi_tty; "never", Some `None] in
+  let enum = [
+    "auto"  , None;
+    "always", Some `Ansi_tty;
+    "never" , Some `None
+  ] in
   let color = Arg.enum enum in
   let alts = Arg.doc_alts_enum enum in
-  let doc = Arg.info ["color"] ~docs:global_option_section ~docv:"WHEN"
+  let doc = Arg.info ["color"] ~docs:global_option_section ~docv:"COLOR"
       ~doc:(Fmt.strf "Colorize the output. $(docv) must be %s." alts)
   in
   Arg.(value & opt color None & doc)
 
+let colour_option : string array -> Fmt.style_renderer option =
+  fun argv -> match Term.eval_peek_opts ~argv color with
+    | _, `Ok color -> color
+    | _ -> None
+
+let read_config_file : string array -> string option =
+  fun argv -> match Term.eval_peek_opts ~argv config_file with
+  | _, `Ok config -> config
+  | _ -> None
+
+(** Argument specification for -v or --verbose *)
 let verbose =
   let doc =
     Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
   in
   Arg.(value & flag_all doc)
 
-let init_log = function
-  | []  -> Functoria_misc.Log.(set_level WARN)
-  | [_] -> Functoria_misc.Log.(set_level INFO)
-  | _   -> Functoria_misc.Log.(set_level DEBUG)
+let log_level_of_verbosity = function
+  | []  -> Functoria_misc.Log.WARN
+  | [_] -> Functoria_misc.Log.INFO
+  | _   -> Functoria_misc.Log.DEBUG
+
+let init_log l = Functoria_misc.Log.set_level (log_level_of_verbosity l)
 
 let init_format color =
   let i = Functoria_misc.Terminfo.columns () in
@@ -114,21 +135,10 @@ let init_format color =
   Format.pp_set_margin Format.err_formatter i;
   Fmt_tty.setup_std_outputs ?style_renderer:color ()
 
-let load_verbose argv =
-  let v = match Term.eval_peek_opts ~argv verbose with
-    | _, `Ok v -> v
-    | _ -> []
-  in
-  init_log v
-
-let load_color argv =
-  (* This is ugly but we really want the color options to be set
-     before calling [load_config]. *)
-  let c = match Term.eval_peek_opts ~argv color with
-    | _, `Ok color -> color
-    | _ -> None
-  in
-  init_format c
+let read_log_level argv =
+  match Term.eval_peek_opts ~argv verbose with
+  | _, `Ok v -> log_level_of_verbosity v
+  | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
 
 let load_fully_eval argv =
   match snd @@ Term.eval_peek_opts ~argv full_eval with
@@ -202,18 +212,17 @@ let clean_info =
 
 module Make (Config: Functoria_sigs.CONFIG) = struct
   let load_config argv =
-    let c = match Term.eval_peek_opts ~argv file with
-      | _, `Ok config -> config
-      | _ -> None
-    in
+    let c = read_config_file argv in
     let _ = Term.eval_peek_opts ~argv Config.base_context in
     Config.load c
 
   let global_argv = ref [||]
 
   let config = lazy (load_config !global_argv)
-  let set_color  = lazy (load_color !global_argv)
-  let set_verbose = lazy (load_verbose !global_argv)
+  (* This is ugly but we really want the color options to be set
+     before calling [load_config]. *)
+  let set_color  = lazy (init_format (colour_option !global_argv))
+  let set_verbose = lazy (Functoria_misc.Log.set_level (read_log_level !global_argv))
 
   let with_config ~argv ?(with_eval=false) ?(with_required=false) f options =
     global_argv := argv;
@@ -232,7 +241,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
     in
     let t =
-      Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ file
+      Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
             $ (term $ options))
     in
     if with_eval
@@ -277,15 +286,14 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc )
     in
-    let help verbose color man_format cmds topic _keys =
+    let help (verbose : _ list) color man_format cmds topic _keys =
       init_log verbose;
       init_format color;
       match topic with
       | None       -> `Help (`Pager, None)
       | Some topic ->
-        let topics = "topics" :: cmds in
-        let conv, _ = Arg.enum (List.rev_map (fun s -> (s, s)) topics) in
-        match conv topic with
+        let parser, _ = Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)) in
+        match parser topic with
         | `Error e -> `Error (false, e)
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
@@ -334,7 +342,9 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
     ] in
     match Term.eval_choice ~argv ~catch:false default commands with
       | `Error _ -> exit 1
-      | _ -> ()
+      | `Ok ()
+      | `Version
+      | `Help -> ()
   with
   | Functoria_misc.Log.Fatal s ->
     Functoria_misc.Log.show_error "%s" s ;

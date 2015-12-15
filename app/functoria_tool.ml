@@ -115,18 +115,16 @@ let read_config_file : string array -> string option =
   | _ -> None
 
 (** Argument specification for -v or --verbose *)
-let verbose =
+let verbose : Functoria_misc.Log.level Term.t =
+  let log_level_of_verbosity = function
+    | []  -> Functoria_misc.Log.WARN
+    | [_] -> Functoria_misc.Log.INFO
+    | _   -> Functoria_misc.Log.DEBUG
+  in
   let doc =
     Arg.info ~docs:global_option_section ~doc:"Be verbose" ["verbose";"v"]
   in
-  Arg.(value & flag_all doc)
-
-let log_level_of_verbosity = function
-  | []  -> Functoria_misc.Log.WARN
-  | [_] -> Functoria_misc.Log.INFO
-  | _   -> Functoria_misc.Log.DEBUG
-
-let init_log l = Functoria_misc.Log.set_level (log_level_of_verbosity l)
+  Term.(pure log_level_of_verbosity $ Arg.(value & flag_all doc))
 
 let init_format color =
   let i = Functoria_misc.Terminfo.columns () in
@@ -137,7 +135,7 @@ let init_format color =
 
 let read_log_level argv =
   match Term.eval_peek_opts ~argv verbose with
-  | _, `Ok v -> log_level_of_verbosity v
+  | _, `Ok v -> v
   | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
 
 let load_fully_eval argv =
@@ -286,8 +284,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
       Arg.(value & pos 0 (some string) None & doc )
     in
-    let help (verbose : _ list) color man_format cmds topic _keys =
-      init_log verbose;
+    let help (verbose : Functoria_misc.Log.level) color man_format cmds topic _keys =
+      Functoria_misc.Log.set_level verbose;
       init_format color;
       match topic with
       | None       -> `Help (`Pager, None)
@@ -316,7 +314,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     ] @  help_sections
     in
     let usage verbose color =
-      init_log verbose;
+      Functoria_misc.Log.set_level verbose;
       init_format color;
       `Help (`Plain, None)
     in

@@ -211,11 +211,10 @@ let clean_info =
 module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* CONFIGURE *)
-  let configure config argv =
+  let configure if_context config argv =
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version
     in
-    let if_context = Config.if_context config in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
       | _ ->
@@ -230,10 +229,9 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
-  let describe config argv =
+  let describe if_context config argv =
     let describe info (output, dotcmd, dot) =
       Config.describe ~dotcmd ~dot ~output info in
-    let if_context = Config.if_context config in
     let partial = not (load_fully_eval argv) in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
@@ -254,9 +252,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
      term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
   (* BUILD *)
-  let build config argv =
+  let build if_context config argv =
     let build info () = Config.build info in
-    let if_context = Config.if_context config in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
       | _ ->
@@ -274,9 +271,8 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
      term_info "build" ~doc:build_info.doc ~man:build_info.man)
 
   (* CLEAN *)
-  let clean config argv =
+  let clean if_context config argv =
     let clean info () = Config.clean info in
-    let if_context = Config.if_context config in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
       | _ ->
@@ -357,11 +353,12 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
       let _ = Term.eval_peek_opts ~argv Config.base_context in
       fatalize_error (Config.load c)
     in
+    let if_context = Config.if_context config in
     let commands = [
-      configure config argv;
-      describe config argv;
-      build config argv;
-      clean config argv;
+      configure if_context config argv;
+      describe if_context config argv;
+      build if_context config argv;
+      clean if_context config argv;
       help;
     ] in
     match Term.eval_choice ~argv ~catch:false default commands with

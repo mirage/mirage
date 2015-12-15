@@ -598,6 +598,26 @@ module Make (P: S) = struct
       Fmt_tty.setup_std_outputs ?style_renderer:color ()
     end
 
+  let handle_parse_args_result = let module Cmd = Functoria_command_line in
+    function
+    | `Error _ -> exit 1
+    | `Ok Cmd.Help -> ()
+    | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
+    | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
+      Config'.pp_info Fmt.(pf stdout) Log.INFO info;
+      fatalize_error (describe info jobs ~dotcmd ~dot ~output)
+    | `Ok (Cmd.Build (_, info)) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (build info)
+    | `Ok (Cmd.Clean (jobs, info)) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (clean info jobs)
+    | `Version
+    | `Help -> ()
+
+
   let run_with_argv argv = 
     let module Cmd = Functoria_command_line in
     (* 1. Pre-parse the arguments to load the config file, set the log
@@ -626,37 +646,19 @@ module Make (P: S) = struct
       | _ -> Functoria_key.empty_context
     in
 
-    (* 3. Build the full command-line parser *)
-    let commands = [
-      Cmd.configure (Config'.eval ~with_required:true ~partial:false context config);
-      Cmd.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
-      Cmd.build (Config'.eval ~with_required:false ~partial:false context config);
-      Cmd.clean (Config'.eval ~with_required:false ~partial:false context config);
-      Cmd.help base_context_arg;
-    ]
-    and default = Cmd.default ~name:P.name ~version:P.version in
+    (* 3. Parse the command-line and handle the result. *)
+    handle_parse_args_result
+      (Functoria_command_line.parse_args ~name:P.name ~version:P.version
+         ~configure:(Config'.eval ~with_required:true ~partial:false context config)
+         ~describe:(Config'.eval ~with_required:false ~partial:(not full_eval) context config)
+         ~build:(Config'.eval ~with_required:false ~partial:false context config)
+         ~clean:(Config'.eval ~with_required:false ~partial:false context config)
+         ~help:base_context_arg
+         argv)
 
-    (* 4. Parse the command line. *)
-    match Cmdliner.Term.eval_choice ~argv ~catch:false default commands with
-    | `Error _ -> exit 1
-    | `Ok Cmd.Help -> ()
-    | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
-      Config'.pp_info Log.info Log.DEBUG info;
-      fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
-    | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
-      Config'.pp_info Fmt.(pf stdout) Log.INFO info;
-      fatalize_error (describe info jobs ~dotcmd ~dot ~output)
-    | `Ok (Cmd.Build (_, info)) ->
-      Config'.pp_info Log.info Log.DEBUG info;
-      fatalize_error (build info)
-    | `Ok (Cmd.Clean (jobs, info)) ->
-      Config'.pp_info Log.info Log.DEBUG info;
-      fatalize_error (clean info jobs)
-    | `Version
-    | `Help -> ()
 
   let run () =
-    (* 1. Store the "base_context"  *)
+    (* Store the "base_context"  *)
     let () =
       match Cmdliner.Term.eval_peek_opts ~argv:Sys.argv base_context_arg with
         _, `Ok x -> Config'.base_context_ref := Some x

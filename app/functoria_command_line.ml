@@ -144,131 +144,133 @@ type 'a action =
 (*
  * Subcommand specifications
  *)
+module Subcommands =
+struct
+  (** The 'configure' subcommand *)
+  let configure result =
+    term_info "configure"
+      ~doc:"Configure a $(mname) application."
+      ~man:[
+        `S "DESCRIPTION";
+        `P "The $(b,configure) command initializes a fresh $(mname) application."
+      ]
+      ~arg:Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
+          Configure { result = info; no_opam; no_depext; no_opam_version })
+                 $ verbose
+                 $ color
+                 $ config_file
+                 $ result
+                 $ no_opam
+                 $ no_opam_version_check
+                 $ no_depext)
 
-(** The 'configure' subcommand *)
-let configure result =
-  term_info "configure"
-    ~doc:"Configure a $(mname) application."
-    ~man:[
-      `S "DESCRIPTION";
-      `P "The $(b,configure) command initializes a fresh $(mname) application."
-    ]
-    ~arg:Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
-        Configure { result = info; no_opam; no_depext; no_opam_version })
-               $ verbose
-               $ color
-               $ config_file
-               $ result
-               $ no_opam
-               $ no_opam_version_check
-               $ no_depext)
+  (** The 'describe' subcommand *)
+  let describe result =
+    term_info "describe"
+      ~doc:"Describe a $(mname) application."
+      ~man:[
+        `S "DESCRIPTION";
+        `P "The $(b,describe) command describes the configuration of a \
+            $(mname) application.";
+        `P "The dot output contains the following elements:";
+        `Noblank;
+        `I ("If vertices",
+            "Represented as circles. Branches are dotted, and the default branch \
+             is in bold.");
+        `Noblank;
+        `I ("Configurables",
+            "Represented as rectangles. The order of the output arrows is \
+             the order of the functor arguments.");
+        `Noblank;
+        `I ("Data dependencies",
+            "Represented as dashed arrows.");
+        `Noblank;
+        `I ("App vertices",
+            "Represented as diamonds. The bold arrow is the functor part.");
+      ]
+      ~arg:Term.(pure (fun _ _ _ _ info output dotcmd dot ->
+          Describe { result = info; dotcmd; dot; output })
+                 $ full_eval
+                 $ verbose
+                 $ color
+                 $ config_file
+                 $ result
+                 $ output
+                 $ dotcmd
+                 $ dot)
 
-(** The 'describe' subcommand *)
-let describe result =
-  term_info "describe"
-    ~doc:"Describe a $(mname) application."
-    ~man:[
-      `S "DESCRIPTION";
-      `P "The $(b,describe) command describes the configuration of a \
-          $(mname) application.";
-      `P "The dot output contains the following elements:";
-      `Noblank;
-      `I ("If vertices",
-          "Represented as circles. Branches are dotted, and the default branch \
-           is in bold.");
-      `Noblank;
-      `I ("Configurables",
-          "Represented as rectangles. The order of the output arrows is \
-           the order of the functor arguments.");
-      `Noblank;
-      `I ("Data dependencies",
-          "Represented as dashed arrows.");
-      `Noblank;
-      `I ("App vertices",
-          "Represented as diamonds. The bold arrow is the functor part.");
-    ]
-    ~arg:Term.(pure (fun _ _ _ _ info output dotcmd dot ->
-        Describe { result = info; dotcmd; dot; output })
-               $ full_eval
-               $ verbose
-               $ color
-               $ config_file
-               $ result
-               $ output
-               $ dotcmd
-               $ dot)
+  (** The 'build' subcommand *)
+  let build result =
+    let doc = "Build a $(mname) application." in
+    term_info "build" ~doc
+      ~man:[
+        `S "DESCRIPTION";
+        `P doc;
+      ]
+      ~arg:Term.(pure (fun _ _ _ info -> Build info)
+                 $ verbose
+                 $ color
+                 $ config_file
+                 $ result)
 
-(** The 'build' subcommand *)
-let build result =
-  let doc = "Build a $(mname) application." in
-  term_info "build" ~doc
-    ~man:[
-      `S "DESCRIPTION";
-      `P doc;
-    ]
-    ~arg:Term.(pure (fun _ _ _ info -> Build info)
-               $ verbose
-               $ color
-               $ config_file
-               $ result)
+  (** The 'clean' subcommand *)
+  let clean info_ =
+    let doc = "Clean the files produced by $(mname) for a given application." in
+    term_info "clean" ~doc
+      ~man:[
+        `S "DESCRIPTION";
+        `P doc;
+      ]
+      ~arg:Term.(pure (fun _ _ _  info -> Clean info)
+                 $ verbose
+                 $ color
+                 $ config_file
+                 $ info_)
 
-(** The 'clean' subcommand *)
-let clean info_ =
-  let doc = "Clean the files produced by $(mname) for a given application." in
-  term_info "clean" ~doc
-    ~man:[
-      `S "DESCRIPTION";
-      `P doc;
-    ]
-    ~arg:Term.(pure (fun _ _ _  info -> Clean info)
-               $ verbose
-               $ color
-               $ config_file
-               $ info_)
-
-(** The 'help' subcommand *)
-let help base_context =
-  let topic =
-    let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
-    Arg.(value & pos 0 (some string) None & doc )
-  in
-  let help _verbose _color man_format cmds topic _keys =
-    match topic with
-    | None       -> `Help (`Pager, None)
-    | Some topic ->
-      let parser, _ = Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)) in
-      match parser topic with
-      | `Error e -> `Error (false, e)
-      | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
-      | `Ok t -> `Help (man_format, Some t) in
-  (Term.(pure (fun () -> Help) $
-         ret (Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
-                    $ topic $ base_context))),
-   Term.info "help"
-     ~doc:"Display help about $(mname) commands."
-     ~man:[
-       `S "DESCRIPTION";
-       `P "Prints help.";
-       `P "Use `$(mname) help topics' to get the full list of help topics.";
-     ])
-
-let default ~name ~version =
-  let usage _verbose _color = `Help (`Plain, None)
-  in
-  (Term.(ret (pure usage $ verbose $ color)),
-   Term.info name
-     ~version
-     ~sdocs:global_option_section
-     ~doc:"The $(mname) application builder"
-     ~man:([
+  (** The 'help' subcommand *)
+  let help base_context =
+    let topic =
+      let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
+      Arg.(value & pos 0 (some string) None & doc )
+    in
+    let help _verbose _color man_format cmds topic _keys =
+      match topic with
+      | None       -> `Help (`Pager, None)
+      | Some topic ->
+        let parser, _ = Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)) in
+        match parser topic with
+        | `Error e -> `Error (false, e)
+        | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
+        | `Ok t -> `Help (man_format, Some t) in
+    (Term.(pure (fun () -> Help) $
+           ret (Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
+                      $ topic $ base_context))),
+     Term.info "help"
+       ~doc:"Display help about $(mname) commands."
+       ~man:[
          `S "DESCRIPTION";
-         `P "The $(mname) application builder. It glues together a set of \
-             libraries and configuration (e.g. network and storage) into a \
-             standalone unikernel or UNIX binary.";
-         `P "Use either $(b,$(mname) <command> --help) or \
-             $(b,($mname) help <command>) for more information on a specific \
-             command.";
-       ] @  help_sections))
+         `P "Prints help.";
+         `P "Use `$(mname) help topics' to get the full list of help topics.";
+       ])
+
+  let default ~name ~version =
+    let usage _verbose _color = `Help (`Plain, None)
+    in
+    (Term.(ret (pure usage $ verbose $ color)),
+     Term.info name
+       ~version
+       ~sdocs:global_option_section
+       ~doc:"The $(mname) application builder"
+       ~man:([
+           `S "DESCRIPTION";
+           `P "The $(mname) application builder. It glues together a set of \
+               libraries and configuration (e.g. network and storage) into a \
+               standalone unikernel or UNIX binary.";
+           `P "Use either $(b,$(mname) <command> --help) or \
+               $(b,($mname) help <command>) for more information on a specific \
+               command.";
+         ] @  help_sections))
+end
 
 (*
  * Functions for extracting particular flags from the command line.
@@ -293,3 +295,12 @@ let read_full_eval : string array -> bool =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with
     | _, `Ok b -> b
     | _ -> false
+
+let parse_args ~name ~version ~configure ~describe ~build ~clean ~help argv =
+  Cmdliner.Term.eval_choice ~argv ~catch:false (Subcommands.default ~name ~version) [
+    Subcommands.configure configure;
+    Subcommands.describe describe;
+    Subcommands.build build;
+    Subcommands.clean clean;
+    Subcommands.help help;
+  ]

@@ -78,9 +78,11 @@ type 'a action =
 
 open Cmdliner.Term
 
-val configure : 'a t -> 'a action t * info
-val build : 'a t -> 'a action t * info
-val help : 'a t -> 'b action t * info
-val describe : 'a t -> 'a action t * info
-val clean : 'a t -> 'a action t * info
-val default : name:string -> version:string -> 'a t * info
+val parse_args : name:string -> version:string ->
+  configure:'a t ->
+  describe:'a t ->
+  build:'a t -> 
+  clean:'a t ->
+  help:_ t ->
+  string array ->
+  'a action result

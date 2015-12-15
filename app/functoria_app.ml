@@ -535,7 +535,7 @@ module Make (P: S) = struct
       match List.filter ((=) "config.ml") files with
       | [] -> Log.error
                 "No configuration file config.ml found.\n\
-                 Please precise the configuration file using -f."
+                 Please specify the configuration file using -f."
       | [f] ->
         Log.info "%a %s" Log.blue "Config file:" f;
         Ok (Cmd.realpath f)

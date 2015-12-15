@@ -216,109 +216,111 @@ type ('a, 'b) action =
   | Clean of Functoria_key.context * 'b * 'a
   | Nothing
 
-module Make (Config: Functoria_sigs.CONFIG) = struct
+type ('t,'evaluated) eval_type = 
+  partial:bool ->
+  with_required:bool ->
+  Functoria_key.context ->
+  't ->
+  'evaluated Cmdliner.Term.t
 
-  (* CONFIGURE *)
-  let configure context config =
-    (Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
-         Configure { evaluated = info; no_opam; no_depext; no_opam_version })
-           $ verbose
-           $ color
-           $ config_file
-           $ Config.eval ~with_required:true ~partial:false context config
-           $ no_opam
-           $ no_opam_version_check
-           $ no_depext),
-     term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
+(* CONFIGURE *)
+let configure (eval_ : (_,_) eval_type) context config =
+  (Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
+       Configure { evaluated = info; no_opam; no_depext; no_opam_version })
+         $ verbose
+         $ color
+         $ config_file
+         $ eval_ ~with_required:true ~partial:false context config
+         $ no_opam
+         $ no_opam_version_check
+         $ no_depext),
+   term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
-  (* DESCRIBE *)
-  let describe context config partial_eval =
-    (Term.(pure (fun _ _ _ _ info output dotcmd dot ->
-         Describe { evaluated = info; dotcmd; dot; output })
-           $ full_eval
-           $ verbose
-           $ color
-           $ config_file
-           $ Config.eval ~with_required:false ~partial:partial_eval context config
-           $ output
-           $ dotcmd
-           $ dot),
-     term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
+(* DESCRIBE *)
+let describe (eval_ : (_,_) eval_type) context config partial_eval =
+  (Term.(pure (fun _ _ _ _ info output dotcmd dot ->
+       Describe { evaluated = info; dotcmd; dot; output })
+         $ full_eval
+         $ verbose
+         $ color
+         $ config_file
+         $ eval_ ~with_required:false ~partial:partial_eval context config
+         $ output
+         $ dotcmd
+         $ dot),
+   term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
-  (* BUILD *)
-  let build context config =
-    (Term.(pure (fun _ _ _ info -> Build info)
-            $ verbose
-            $ color
-            $ config_file
-            $ Config.eval ~with_required:false ~partial:false context config),
-     term_info "build" ~doc:build_info.doc ~man:build_info.man)
+(* BUILD *)
+let build (eval_ : (_,_) eval_type) context config =
+  (Term.(pure (fun _ _ _ info -> Build info)
+          $ verbose
+          $ color
+          $ config_file
+          $ eval_ ~with_required:false ~partial:false context config),
+   term_info "build" ~doc:build_info.doc ~man:build_info.man)
 
-  (* CLEAN *)
-  let clean context config =
-    (Term.(pure (fun _ _ _  info -> Clean (context, config, info))
-           $ verbose
-           $ color
-           $ config_file
-           $ Config.eval ~with_required:false ~partial:false context config),
-     term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
+(* CLEAN *)
+let clean (eval_ : (_,_) eval_type) context config =
+  (Term.(pure (fun _ _ _  info -> Clean (context, config, info))
+         $ verbose
+         $ color
+         $ config_file
+         $ eval_ ~with_required:false ~partial:false context config),
+   term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
-  (* HELP *)
-  let help =
-    let doc = "Display help about $(mname) commands." in
-    let man = [
-      `S "DESCRIPTION";
-      `P "Prints help.";
-      `P "Use `$(mname) help topics' to get the full list of help topics.";
-    ] in
-    let topic =
-      let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
-      Arg.(value & pos 0 (some string) None & doc )
-    in
-    let help (verbose : Functoria_misc.Log.level) color man_format cmds topic _keys =
-      Functoria_misc.Log.set_level verbose;
-      init_format color;
-      match topic with
-      | None       -> `Help (`Pager, None)
-      | Some topic ->
-        let parser, _ = Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)) in
-        match parser topic with
-        | `Error e -> `Error (false, e)
-        | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
-        | `Ok t -> `Help (man_format, Some t) in
-    (Term.(pure (fun () -> Nothing) $
-           ret (Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
-                      $ topic $ Config.base_context))),
-     Term.info "help" ~doc ~man)
+(* HELP *)
+let help base_context =
+  let doc = "Display help about $(mname) commands." in
+  let man = [
+    `S "DESCRIPTION";
+    `P "Prints help.";
+    `P "Use `$(mname) help topics' to get the full list of help topics.";
+  ] in
+  let topic =
+    let doc = Arg.info [] ~docv:"TOPIC" ~doc:"The topic to get help on." in
+    Arg.(value & pos 0 (some string) None & doc )
+  in
+  let help (verbose : Functoria_misc.Log.level) color man_format cmds topic _keys =
+    Functoria_misc.Log.set_level verbose;
+    init_format color;
+    match topic with
+    | None       -> `Help (`Pager, None)
+    | Some topic ->
+      let parser, _ = Arg.enum (List.rev_map (fun s -> (s, s)) ("topics" :: cmds)) in
+      match parser topic with
+      | `Error e -> `Error (false, e)
+      | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
+      | `Ok t -> `Help (man_format, Some t) in
+  (Term.(pure (fun () -> Nothing) $
+         ret (Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
+                    $ topic $ base_context))),
+   Term.info "help" ~doc ~man)
 
-  let default =
-    let doc = "The $(mname) application builder" in
-    let man = [
-      `S "DESCRIPTION";
-      `P "The $(mname) application builder. It glues together a set of \
-          libraries and configuration (e.g. network and storage) into a \
-          standalone unikernel or UNIX binary.";
-      `P "Use either $(b,$(mname) <command> --help) or \
-          $(b,($mname) help <command>) for more information on a specific \
-          command.";
-    ] @  help_sections
-    in
-    let usage verbose color =
-      Functoria_misc.Log.set_level verbose;
-      init_format color;
-      `Help (`Plain, None)
-    in
-    (Term.(ret (pure usage $ verbose $ color)),
-     Term.info Config.name
-       ~version:Config.version
-       ~sdocs:global_option_section
-       ~doc
-       ~man)
-end
+let default ~name ~version =
+  let doc = "The $(mname) application builder" in
+  let man = [
+    `S "DESCRIPTION";
+    `P "The $(mname) application builder. It glues together a set of \
+        libraries and configuration (e.g. network and storage) into a \
+        standalone unikernel or UNIX binary.";
+    `P "Use either $(b,$(mname) <command> --help) or \
+        $(b,($mname) help <command>) for more information on a specific \
+        command.";
+  ] @  help_sections
+  in
+  let usage verbose color =
+    Functoria_misc.Log.set_level verbose;
+    init_format color;
+    `Help (`Plain, None)
+  in
+  (Term.(ret (pure usage $ verbose $ color)),
+   Term.info name
+     ~version
+     ~sdocs:global_option_section
+     ~doc
+     ~man)
 
 let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
-  let module M = Make(Config) in
-  let open M in 
   try
     let () = Functoria_misc.Log.set_level (read_log_level argv) in
     (* We really want the color options to be set before loading the config. *)
@@ -339,13 +341,15 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
     in
     let partial_eval = not (read_full_eval argv) in
     let commands = [
-      configure context config;
-      describe context config partial_eval;
-      build context config;
-      clean context config;
-      help;
+      configure Config.eval context config;
+      describe Config.eval context config partial_eval;
+      build Config.eval context config;
+      clean Config.eval context config;
+      help Config.base_context;
     ] in
-    match Term.eval_choice ~argv ~catch:false default commands with
+    match Term.eval_choice ~argv ~catch:false
+            (default ~name:Config.name ~version:Config.version)
+            commands with
       | `Error _ -> exit 1
       | `Ok Nothing -> ()
       | `Ok (Configure {evaluated; no_opam; no_depext; no_opam_version}) ->

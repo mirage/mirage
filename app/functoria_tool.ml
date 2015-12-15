@@ -209,25 +209,10 @@ let clean_info =
     opts = Term.pure (); }
 
 module Make (Config: Functoria_sigs.CONFIG) = struct
-  let load_config argv =
-    let c = read_config_file argv in
-    let _ = Term.eval_peek_opts ~argv Config.base_context in
-    Config.load c
 
-  let global_argv = ref [||]
-
-  let config = lazy (load_config !global_argv)
-  (* This is ugly but we really want the color options to be set
-     before calling [load_config]. *)
-  let set_color  = lazy (init_format (colour_option !global_argv))
-  let set_verbose = lazy (Functoria_misc.Log.set_level (read_log_level !global_argv))
-
-  let with_config ~argv ?(with_eval=false) ?(with_required=false) f options =
-    global_argv := argv;
-    Lazy.force set_color;
-    Lazy.force set_verbose;
+  let with_config t ~argv ?(with_eval=false) ?(with_required=false) f options =
     (* We fail early here to avoid reporting lookup errors. *)
-    let t = fatalize_error (Lazy.force config) in
+    (* let t = fatalize_error (Lazy.force config) in *)
     let if_context = Config.if_context t in
     let partial = with_eval && not @@ load_fully_eval argv in
     let term = match Term.eval_peek_opts ~argv if_context with
@@ -247,29 +232,29 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     else t
 
   (* CONFIGURE *)
-  let configure argv =
+  let configure config argv =
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version in
-    (with_config ~argv ~with_required:true (Term.pure configure) configure_info.opts,
+    (with_config config ~argv ~with_required:true (Term.pure configure) configure_info.opts,
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
-  let describe argv =
+  let describe config argv =
     let describe info (output, dotcmd, dot) =
       Config.describe ~dotcmd ~dot ~output info in
-    (with_config ~argv ~with_eval:true (Term.pure describe) describe_info.opts,
+    (with_config config ~argv ~with_eval:true (Term.pure describe) describe_info.opts,
      term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
   (* BUILD *)
-  let build argv =
+  let build config argv =
     let build info () = Config.build info in
-    (with_config ~argv (Term.pure build) build_info.opts,
+    (with_config config ~argv (Term.pure build) build_info.opts,
      term_info "build" ~doc:build_info.doc ~man:build_info.man)
 
   (* CLEAN *)
-  let clean argv =
+  let clean config argv =
     let clean info () = Config.clean info in
-    (with_config ~argv (Term.pure clean) clean_info.opts,
+    (with_config config ~argv (Term.pure clean) clean_info.opts,
      term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
   (* HELP *)
@@ -331,11 +316,19 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
   let module M = Make(Config) in
   let open M in 
   try
+    let () = Functoria_misc.Log.set_level (read_log_level argv) in
+    (* We really want the color options to be set before loading the config. *)
+    let () = init_format (colour_option argv) in
+    let config = 
+      let c = read_config_file argv in
+      let _ = Term.eval_peek_opts ~argv Config.base_context in
+      fatalize_error (Config.load c)
+    in
     let commands = [
-      configure argv;
-      describe argv;
-      build argv;
-      clean argv;
+      configure config argv;
+      describe config argv;
+      build config argv;
+      clean config argv;
       help;
     ] in
     match Term.eval_choice ~argv ~catch:false default commands with

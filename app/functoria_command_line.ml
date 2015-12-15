@@ -121,14 +121,14 @@ let verbose : Functoria_misc.Log.level Term.t =
   Term.(pure log_level_of_verbosity $ Arg.(value & flag_all doc))
 
 type 'a config_args = {
-  evaluated: 'a;
+  result: 'a;
   no_opam: bool;
   no_depext: bool;
   no_opam_version: bool
 }
 
 type 'a describe_args = {
-  evaluated: 'a;
+  result: 'a;
   dotcmd: string;
   dot: bool;
   output: string option;
@@ -146,7 +146,7 @@ type 'a action =
  *)
 
 (** The 'configure' subcommand *)
-let configure evaluated =
+let configure result =
   term_info "configure"
     ~doc:"Configure a $(mname) application."
     ~man:[
@@ -154,17 +154,17 @@ let configure evaluated =
       `P "The $(b,configure) command initializes a fresh $(mname) application."
     ]
     ~arg:Term.(pure (fun _ _ _ info no_opam no_opam_version no_depext -> 
-        Configure { evaluated = info; no_opam; no_depext; no_opam_version })
+        Configure { result = info; no_opam; no_depext; no_opam_version })
                $ verbose
                $ color
                $ config_file
-               $ evaluated
+               $ result
                $ no_opam
                $ no_opam_version_check
                $ no_depext)
 
 (** The 'describe' subcommand *)
-let describe evaluated =
+let describe result =
   term_info "describe"
     ~doc:"Describe a $(mname) application."
     ~man:[
@@ -188,18 +188,18 @@ let describe evaluated =
           "Represented as diamonds. The bold arrow is the functor part.");
     ]
     ~arg:Term.(pure (fun _ _ _ _ info output dotcmd dot ->
-        Describe { evaluated = info; dotcmd; dot; output })
+        Describe { result = info; dotcmd; dot; output })
                $ full_eval
                $ verbose
                $ color
                $ config_file
-               $ evaluated
+               $ result
                $ output
                $ dotcmd
                $ dot)
 
 (** The 'build' subcommand *)
-let build evaluated =
+let build result =
   let doc = "Build a $(mname) application." in
   term_info "build" ~doc
     ~man:[
@@ -210,7 +210,7 @@ let build evaluated =
                $ verbose
                $ color
                $ config_file
-               $ evaluated)
+               $ result)
 
 (** The 'clean' subcommand *)
 let clean info_ =

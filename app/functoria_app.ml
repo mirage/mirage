@@ -634,10 +634,10 @@ module Make (P: S) = struct
               commands with
       | `Error _ -> exit 1
       | `Ok Cmd.Help -> ()
-      | `Ok (Cmd.Configure {evaluated = (jobs, info); no_opam; no_depext; no_opam_version}) ->
+      | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
         Config'.pp_info Log.info Log.DEBUG info;
         fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
-      | `Ok (Cmd.Describe { evaluated = (jobs, info); dotcmd; dot; output }) ->
+      | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
         Config'.pp_info Fmt.(pf stdout) Log.INFO info;
         fatalize_error (describe info jobs ~dotcmd ~dot ~output)
       | `Ok (Cmd.Build (_, info)) ->

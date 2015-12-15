@@ -42,7 +42,7 @@ val read_full_eval : string array -> bool
     value indicates whether the option is present in [argv]. *)
 
 type 'a config_args = {
-  evaluated: 'a;
+  result: 'a;
   no_opam: bool;
   no_depext: bool;
   no_opam_version: bool
@@ -55,7 +55,7 @@ type 'a config_args = {
     {!parse_args}. *)
 
 type 'a describe_args = {
-  evaluated: 'a;
+  result: 'a;
   dotcmd: string;
   dot: bool;
   output: string option;

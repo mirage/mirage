@@ -16,7 +16,6 @@
 
 open Cmdliner
 open Rresult
-open Functoria_misc
 
 let global_option_section = "COMMON OPTIONS"
 
@@ -105,7 +104,7 @@ let init_log = function
   | _   -> Functoria_misc.Log.(set_level DEBUG)
 
 let init_format color =
-  let i = Terminfo.columns () in
+  let i = Functoria_misc.Terminfo.columns () in
   Functoria_misc.Log.set_color color;
   Format.pp_set_margin Format.std_formatter i;
   Format.pp_set_margin Format.err_formatter i;
@@ -218,7 +217,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     Lazy.force set_verbose;
     let handle_error = function
       | Ok x    -> x
-      | Error s -> Log.fatal "%s" s
+      | Error s -> Functoria_misc.Log.fatal "%s" s
     in
     match Lazy.force config with
     | Ok t ->
@@ -241,7 +240,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       then Term.(pure (fun _ t -> t) $ full_eval $ t)
       else t
 
-    | Error err -> Log.fatal "%s" err
+    | Error err -> Functoria_misc.Log.fatal "%s" err
     (* We fail early here to avoid reporting lookup errors. *)
 
   (* CONFIGURE *)
@@ -342,5 +341,5 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
       | _ -> ()
   with
   | Functoria_misc.Log.Fatal s ->
-    Log.show_error "%s" s ;
+    Functoria_misc.Log.show_error "%s" s ;
     exit 1

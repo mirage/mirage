@@ -143,60 +143,6 @@ let read_full_eval argv =
   | `Ok b -> b
   | _ -> false
 
-type subcommand_info = {
-  doc: string;
-  man: Manpage.block list;
-}
-
-(** Subcommand information *)
-let configure_info = {
-  doc = "Configure a $(mname) application.";
-  man = [
-    `S "DESCRIPTION";
-    `P "The $(b,configure) command initializes a fresh $(mname) application."
-    ];
-}
-
-let describe_info = {
-  doc = "Describe a $(mname) application.";
-  man = [
-    `S "DESCRIPTION";
-    `P "The $(b,describe) command describes the configuration of a \
-        $(mname) application.";
-    `P "The dot output contains the following elements:";
-    `Noblank;
-    `I ("If vertices",
-        "Represented as circles. Branches are dotted, and the default branch \
-         is in bold.");
-    `Noblank;
-    `I ("Configurables",
-        "Represented as rectangles. The order of the output arrows is \
-         the order of the functor arguments.");
-    `Noblank;
-    `I ("Data dependencies",
-        "Represented as dashed arrows.");
-    `Noblank;
-    `I ("App vertices",
-        "Represented as diamonds. The bold arrow is the functor part.");
-  ];
-}
-
-let build_info =
-  let doc = "Build a $(mname) application." in
-  { doc;
-    man = [
-      `S "DESCRIPTION";
-      `P doc;
-    ] }
-
-let clean_info =
-  let doc = "Clean the files produced by $(mname) for a given application." in
-  { doc;
-    man = [
-      `S "DESCRIPTION";
-      `P doc;
-    ] }
-
 type 'a config_args = {
   evaluated: 'a;
   no_opam: bool;
@@ -234,7 +180,12 @@ let configure (eval_ : (_,_) eval_type) context config =
          $ no_opam
          $ no_opam_version_check
          $ no_depext),
-   term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
+   term_info "configure"
+     ~doc:"Configure a $(mname) application."
+     ~man:[
+       `S "DESCRIPTION";
+       `P "The $(b,configure) command initializes a fresh $(mname) application."
+     ])
 
 (* DESCRIBE *)
 let describe (eval_ : (_,_) eval_type) context config partial_eval =
@@ -248,7 +199,28 @@ let describe (eval_ : (_,_) eval_type) context config partial_eval =
          $ output
          $ dotcmd
          $ dot),
-   term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
+   term_info "describe"
+     ~doc:"Describe a $(mname) application."
+     ~man:[
+       `S "DESCRIPTION";
+       `P "The $(b,describe) command describes the configuration of a \
+           $(mname) application.";
+       `P "The dot output contains the following elements:";
+       `Noblank;
+       `I ("If vertices",
+           "Represented as circles. Branches are dotted, and the default branch \
+            is in bold.");
+       `Noblank;
+       `I ("Configurables",
+           "Represented as rectangles. The order of the output arrows is \
+            the order of the functor arguments.");
+       `Noblank;
+       `I ("Data dependencies",
+           "Represented as dashed arrows.");
+       `Noblank;
+       `I ("App vertices",
+           "Represented as diamonds. The bold arrow is the functor part.");
+     ])
 
 (* BUILD *)
 let build (eval_ : (_,_) eval_type) context config =
@@ -257,7 +229,12 @@ let build (eval_ : (_,_) eval_type) context config =
           $ color
           $ config_file
           $ eval_ ~with_required:false ~partial:false context config),
-   term_info "build" ~doc:build_info.doc ~man:build_info.man)
+   let doc = "Build a $(mname) application." in
+   term_info "build" ~doc
+     ~man:[
+       `S "DESCRIPTION";
+       `P doc;
+     ])
 
 (* CLEAN *)
 let clean (eval_ : (_,_) eval_type) context config =
@@ -266,7 +243,12 @@ let clean (eval_ : (_,_) eval_type) context config =
          $ color
          $ config_file
          $ eval_ ~with_required:false ~partial:false context config),
-   term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
+   let doc = "Clean the files produced by $(mname) for a given application." in
+   term_info "clean" ~doc
+     ~man:[
+       `S "DESCRIPTION";
+       `P doc;
+     ])
 
 (* HELP *)
 let help base_context =

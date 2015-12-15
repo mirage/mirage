@@ -545,13 +545,7 @@ module Make (P: S) = struct
            directory.\n\
            Please specify one explictly on the command-line."
 
-  module Config :
-  sig
-    include Functoria_sigs.CONFIG
-    val get_base_context : unit -> context
-  end = struct
-    include P
-
+  module Config = struct
     (* This is a hack to allow the implementation of
        [Mirage.get_mode]. Once it is removed, the notion of base context
        should be removed as well. *)
@@ -648,7 +642,7 @@ module Make (P: S) = struct
         Functoria_tool.help Config.base_context;
       ] in
       match Term.eval_choice ~argv ~catch:false
-              (Functoria_tool.default ~name:Config.name ~version:Config.version)
+              (Functoria_tool.default ~name:P.name ~version:P.version)
               commands with
       | `Error _ -> exit 1
       | `Ok Functoria_tool.Nothing -> ()

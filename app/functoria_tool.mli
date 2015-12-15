@@ -14,10 +14,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Functions for reading various options from a command line. *)
+
 val read_log_level : string array -> Functoria_misc.Log.level
+(** [read_log_level argv] reads -v and --verbose options from [argv] and
+    builds a {!Log.level} value according to the number of times the flags
+    occur:
+     * 0 occurrences: WARN
+     * 1 occurrence: INFO
+     * 2+ occurrences: DEBUG
+*)
+
 val read_colour_option : string array -> Fmt.style_renderer option
+(** [read_colour_option argv] reads the --color option from [argv] and builds
+    a {!Fmt.style_renderer} value that depends on the argument of the option:
+     * --color=auto: None
+     * --color=always: Some `Ansi_tty
+     * --color=never: Some `None
+*)
+
 val read_config_file : string array -> string option
+(** [read_config_file argv] reads the -f or --file option from [argv] and
+    returns the argument of the option. *)
+
 val read_full_eval : string array -> bool
+(** [read_full_eval argv] reads the --eval option from [argv]; the return
+    value indicates whether the option is present in [argv]. *)
 
 type 'a config_args = {
   evaluated: 'a;

@@ -86,3 +86,41 @@ val parse_args : name:string -> version:string ->
   help:_ t ->
   string array ->
   'a action result
+(** Parse the functoria command line.  The arguments to [~configure],
+    [~describe], etc., describe extra command-line arguments that should be
+    accepted by the corresponding subcommands.  The full argument
+    specification is as follows:
+
+      name configure [-v|--verbose]
+                     [--color=(auto|always|never)]
+                     [-f FILE | --file=FILE]
+                     [--no-opam]
+                     [--no-opam-version-check]
+                     [--no-depext]
+                     [extra arguments]
+      name describe [--eval]
+                    [-v|--verbose]
+                    [--color=(auto|always|never)]
+                    [-f FILE | --file=FILE]
+                    [-o FILE | --output=FILE]
+                    [--dot-command=COMMAND]
+                    [--dot]
+                    [extra arguments]
+      name build [-v|--verbose]
+                 [--color=(auto|always|never)]
+                 [-f FILE | --file=FILE]
+                 [extra arguments]
+      name clean [-v|--verbose]
+                 [--color=(auto|always|never)]
+                 [-f FILE | --file=FILE]
+                 [extra arguments]
+      name help [-v|--verbose]
+                [--color=(auto|always|never)]
+                [--man-format=(groff|pager|plain)]
+                [configure|describe|build|clean|help|topics]
+                [extra arguments]
+      name [-v|--verbose]
+           [--color=(auto|always|never)]
+
+    There are no side effects, save for the printing of usage messages and
+    other help when either the 'help' subcommand or no subcommand is specified. *)

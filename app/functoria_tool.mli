@@ -62,15 +62,11 @@ type 'a action =
   | Clean of 'a
   | Nothing
 
-val configure : 'a Cmdliner.Term.t ->
-  'a action Cmdliner.Term.t * Cmdliner.Term.info
-val build : 'a Cmdliner.Term.t ->
-  'a action Cmdliner.Term.t * Cmdliner.Term.info
-val help : 'a Cmdliner.Term.t ->
-  'b action Cmdliner.Term.t * Cmdliner.Term.info
-val describe : 'a Cmdliner.Term.t ->
-  'a action Cmdliner.Term.t * Cmdliner.Term.info
-val clean : 'a Cmdliner.Term.t ->
-  'a action Cmdliner.Term.t * Cmdliner.Term.info
-val default : name:string -> version:string ->
-  'a Cmdliner.Term.t * Cmdliner.Term.info
+open Cmdliner.Term
+
+val configure : 'a t -> 'a action t * info
+val build : 'a t -> 'a action t * info
+val help : 'a t -> 'b action t * info
+val describe : 'a t -> 'a action t * info
+val clean : 'a t -> 'a action t * info
+val default : name:string -> version:string -> 'a t * info

@@ -587,28 +587,39 @@ module Make (P: S) = struct
 
   let get_base_context = Config'.get_base_context
 
-  let run () = 
+  let fatalize_error = function
+    | Ok x    -> x
+    | Error s -> Functoria_misc.Log.fatal "%s" s
+
+  let run argv = 
     let module Cmd = Functoria_command_line in
-    let fatalize_error = function
-      | Ok x    -> x
-      | Error s -> Functoria_misc.Log.fatal "%s" s
-    in
-    let init_format color =
+
+    (* 1. Pre-parse the arguments to load the config file, set the log
+     *    level and colour, and determine whether the graph should be fully
+     *    evaluated. *)
+
+    (*    (a) log level *)
+    let () = Functoria_misc.Log.set_level (Cmd.read_log_level argv) in
+
+    (*    (b) colour option *)
+    let () =
+      let color = Cmd.read_colour_option argv in
       let i = Functoria_misc.Terminfo.columns () in
       Functoria_misc.Log.set_color color;
       Format.pp_set_margin Format.std_formatter i;
       Format.pp_set_margin Format.err_formatter i;
-      Fmt_tty.setup_std_outputs ?style_renderer:color ()
-    in
-    let argv = Sys.argv in
+      Fmt_tty.setup_std_outputs ?style_renderer:color () in
+
+    (*    (c) whether to fully evaluate the graph *)
+    let full_eval = Cmd.read_full_eval argv in
+
+    (*    (d) the config file passed as argument, if any *)
+    let config_file = Cmd.read_config_file argv in
+
     try
-      let () = Functoria_misc.Log.set_level (Cmd.read_log_level argv) in
-      (* We really want the color options to be set before loading the config. *)
-      let () = init_format (Cmd.read_colour_option argv) in
       let config = 
-        let c = Cmd.read_config_file argv in
         let _ = Cmdliner.Term.eval_peek_opts ~argv Config'.base_context in
-        fatalize_error (load' c)
+        fatalize_error (load' config_file)
       in
       let if_context =
         Key.context ~stage:`Configure ~with_required:false @@ Config.keys config
@@ -621,7 +632,6 @@ module Make (P: S) = struct
              a good error message. *)
           Functoria_key.empty_context
       in
-      let full_eval = Cmd.read_full_eval argv in
       let commands = [
         Cmd.configure (Config'.eval ~with_required:true ~partial:false context config);
         Cmd.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
@@ -652,4 +662,6 @@ module Make (P: S) = struct
     | Functoria_misc.Log.Fatal s ->
       Functoria_misc.Log.show_error "%s" s ;
       exit 1
+
+  let run () = run Sys.argv
 end

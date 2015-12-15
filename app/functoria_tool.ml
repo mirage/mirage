@@ -210,10 +210,29 @@ let clean_info =
 
 module Make (Config: Functoria_sigs.CONFIG) = struct
 
+  type config_args = {
+    evaluated: Config.evaluated;
+    no_opam: bool;
+    no_depext: bool;
+    no_opam_version: bool
+  }
+  type describe_args = {
+    evaluated: Config.evaluated;
+    dotcmd: string;
+    dot: bool;
+    output: string option;
+  }
+  type action =
+      Configure of config_args
+    | Describe of describe_args
+    | Build of Config.evaluated
+    | Clean of Config.evaluated
+    | Nothing
+
   (* CONFIGURE *)
   let configure if_context config argv =
     let configure info (no_opam, no_opam_version, no_depext) =
-      Config.configure info ~no_opam ~no_depext ~no_opam_version
+      Configure { evaluated = info; no_opam; no_depext; no_opam_version }
     in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
@@ -224,14 +243,14 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     let term = Term.app (Term.pure configure)
         (Config.eval ~with_required:true ~partial:false context config) in
-    (Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
+    (Term.(pure (fun _ _ _ e -> e) $ verbose $ color $ config_file
            $ (term $ configure_info.opts)),
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
   let describe if_context config argv =
     let describe info (output, dotcmd, dot) =
-      Config.describe ~dotcmd ~dot ~output info in
+      Describe { evaluated = info; dotcmd; dot; output } in
     let partial = not (load_fully_eval argv) in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
@@ -244,7 +263,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
         (Config.eval ~with_required:false ~partial context config) in
     (Term.(pure (fun _ t -> t)
            $ full_eval
-           $ (Term.(pure (fun _ _ _ -> fatalize_error)
+           $ (Term.(pure (fun _ _ _ e -> e)
                     $ verbose
                     $ color
                     $ config_file
@@ -253,7 +272,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* BUILD *)
   let build if_context config argv =
-    let build info () = Config.build info in
+    let build info () = Build info in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
       | _ ->
@@ -263,7 +282,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     let term = Term.app (Term.pure build)
         (Config.eval ~with_required:false ~partial:false context config) in
-    (Term.(pure (fun _ _ _ -> fatalize_error)
+    (Term.(pure (fun _ _ _ e -> e)
             $ verbose
             $ color
             $ config_file
@@ -272,7 +291,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
 
   (* CLEAN *)
   let clean if_context config argv =
-    let clean info () = Config.clean info in
+    let clean info () = Clean info in
     let context = match Term.eval_peek_opts ~argv if_context with
       | Some context, _ -> context
       | _ ->
@@ -282,7 +301,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     in
     let term = Term.app (Term.pure clean)
         (Config.eval ~with_required:false ~partial:false context config) in
-    ((Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
+    ((Term.(pure (fun _ _ _ e -> e) $ verbose $ color $ config_file
              $ (term $ clean_info.opts))),
      term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
@@ -313,7 +332,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       Term.(pure help $ verbose $ color $ Term.man_format $ Term.choice_names
             $ topic $ Config.base_context)
     in
-    Term.ret term, Term.info "help" ~doc ~man
+    Term.(pure (fun () -> Nothing) $ ret term), Term.info "help" ~doc ~man
 
   let default =
     let doc = "The $(mname) application builder" in
@@ -363,7 +382,19 @@ let initialize (module Config:Functoria_sigs.CONFIG) ~argv =
     ] in
     match Term.eval_choice ~argv ~catch:false default commands with
       | `Error _ -> exit 1
-      | `Ok ()
+      | `Ok Nothing -> ()
+      | `Ok (Configure {evaluated; no_opam; no_depext; no_opam_version}) ->
+        fatalize_error
+          (Config.configure evaluated ~no_opam ~no_depext ~no_opam_version)
+      | `Ok (Describe { evaluated; dotcmd; dot; output }) ->
+        fatalize_error
+          (Config.describe evaluated ~dotcmd ~dot ~output)
+      | `Ok (Build evaluated) ->
+        fatalize_error
+          (Config.build evaluated)
+      | `Ok (Clean evaluated) ->
+        fatalize_error
+          (Config.clean evaluated)
       | `Version
       | `Help -> ()
   with

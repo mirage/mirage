@@ -23,7 +23,7 @@ Library "functoria-app"
   Path:            app
   Findlibname:     app
   FindlibParent:   functoria
-  InternalModules: Functoria_tool, Functoria_graph
+  InternalModules: Functoria_command_line, Functoria_graph
   Modules:         Functoria_app
   BuildDepends:    functoria
 
@@ -33,6 +33,20 @@ Library "functoria-runtime"
   FindlibParent:   functoria
   Modules:         Functoria_runtime, Functoria_info
   BuildDepends:    cmdliner, fmt
+
+Executable test_functoria_command_line
+  Path:            tests
+  MainIs:          test_functoria_command_line.ml
+  Build$:          flag(tests)
+  CompiledObject:  best
+  Install:         false
+  BuildDepends:    functoria.app, oUnit (>= 1.0.2)
+
+Test test_functoria_command_line
+  Run$:             flag(tests)
+  Command:          $test_functoria_command_line
+  WorkingDirectory: tests
+
 
 Document "functoria"
   Type: ocamlbuild (0.3)

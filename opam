@@ -24,5 +24,6 @@ depends: [
   "rresult"
   "fmt"
   "ocamlgraph"
+  "ounit" {test}
 ]
 available: [ocaml-version >= "4.01"]

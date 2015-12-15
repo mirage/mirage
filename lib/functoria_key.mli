@@ -192,8 +192,13 @@ val compare: t -> t -> int
 val pp: t Fmt.t
 (** [pp fmt k] prints the name of [k]. *)
 
+val of_deps: Set.t -> unit value
+(** [of_deps keys] is a value with [keys] as data-dependencies. *)
+
 val with_deps: t list -> 'a value -> 'a value
-(** [with_deps keys v] is [v] with [keys] as data-dependencies. *)
+(** [with_deps keys v] is [pure const $ v $ of_deps (Set.of_list keys)].
+
+    @deprecated *)
 
 val deps: 'a value -> Set.t
 (** [deps v] are [v]'s data-dependencies. *)

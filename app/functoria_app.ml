@@ -339,16 +339,15 @@ module Config = struct
     let e = Graph.eval ~partial ~context jobs in
     let pkgs = Key.(pure String.Set.union $ packages $ Engine.packages e) in
     let libs = Key.(pure String.Set.union $ libraries $ Engine.libraries e) in
-    let list = String.Set.elements in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
-    let di =
-      Key.(pure (fun libraries packages context ->
-          e, Info.create ~libraries:(list libraries) ~packages:(list packages)
-            ~keys ~context ~name:n ~root)
-           $ libs
-           $ pkgs)
-    in
-    Key.with_deps keys di
+    Key.(pure (fun libraries packages _ context ->
+        (e, Info.create
+           ~libraries:(String.Set.elements libraries)
+           ~packages:(String.Set.elements packages)
+           ~keys ~context ~name:n ~root))
+         $ libs
+         $ pkgs
+         $ of_deps (Set.of_list keys))
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)
@@ -535,7 +534,7 @@ module Make (P: S) = struct
       match List.filter ((=) "config.ml") files with
       | [] -> Log.error
                 "No configuration file config.ml found.\n\
-                 Please precise the configuration file using -f."
+                 Please specify the configuration file using -f."
       | [f] ->
         Log.info "%a %s" Log.blue "Config file:" f;
         Ok (Cmd.realpath f)
@@ -545,67 +544,130 @@ module Make (P: S) = struct
            directory.\n\
            Please specify one explictly on the command-line."
 
-  module Config :
-  sig
-    include Functoria_sigs.CONFIG
-    val get_base_context : unit -> context
-  end = struct
-    include P
-
+  module Config' = struct
     (* This is a hack to allow the implementation of
        [Mirage.get_mode]. Once it is removed, the notion of base context
        should be removed as well. *)
-    let base_context = ref None
-    let get_base_context () = match !base_context with
+    let base_context_ref = ref None
+    let get_base_context () = match !base_context_ref with
       | Some x -> x
       | None ->
         invalid_arg "Base key map is not available at this point. Please stop \
                      messing with functoria's invariants."
 
-    let base_context =
-      let keys = Config.extract_keys (P.create []) in
-      let context = Key.context ~stage:`Configure keys in
-      let f x = base_context := Some x; x in
-      Cmdliner.Term.(pure f $ context ~with_required:false )
-
-    type t = Config.t
-    type evaluated = Graph.t * Info.t
-
-    let load file =
-      scan_conf file >>= fun file ->
-      let root = Cmd.realpath (Filename.dirname file) in
-      let file = root / Filename.basename file in
-      set_config_file file;
-      compile_and_dynlink file >>= fun () ->
-      registered () >>= fun t ->
-      Log.set_section (Config.name t);
-      Ok t
-
-    let if_context t =
-      Key.context ~stage:`Configure ~with_required:false @@ Config.keys t
-
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Log.get_level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
-
-    let log = pp_info Log.info Log.DEBUG
-    let show = pp_info Fmt.(pf stdout) Log.INFO
-
-    let configure (jobs, info) = log info; configure info jobs
-    let clean (jobs, info) = log info; clean info jobs
-    let build (_jobs, info) = log info; build info
-    let describe (jobs, info) = show info; describe info jobs
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
       let context =
         Key.context ~with_required ~stage:`Configure (Key.deps info)
       in
-      let f map = Key.eval map info @@ map in
+      let f map = Key.eval map info map in
       Cmdliner.Term.(pure f $ context)
-
   end
 
-  let get_base_context = Config.get_base_context
-  let run () = Functoria_tool.initialize (module Config)
+  let load' file =
+    scan_conf file >>= fun file ->
+    let root = Cmd.realpath (Filename.dirname file) in
+    let file = root / Filename.basename file in
+    set_config_file file;
+    compile_and_dynlink file >>= fun () ->
+    registered () >>= fun t ->
+    Log.set_section (Config.name t);
+    Ok t
+
+  let get_base_context = Config'.get_base_context
+
+  let fatalize_error = function
+    | Ok x    -> x
+    | Error s -> Functoria_misc.Log.fatal "%s" s
+
+  let base_keys : Key.Set.t = Config.extract_keys (P.create [])
+  let base_context_arg = Key.context base_keys
+      ~with_required:false ~stage:`Configure
+
+  let configure_colour color =
+    let i = Functoria_misc.Terminfo.columns () in
+    begin
+      Functoria_misc.Log.set_color color;
+      Format.pp_set_margin Format.std_formatter i;
+      Format.pp_set_margin Format.err_formatter i;
+      Fmt_tty.setup_std_outputs ?style_renderer:color ()
+    end
+
+  let handle_parse_args_result = let module Cmd = Functoria_command_line in
+    function
+    | `Error _ -> exit 1
+    | `Ok Cmd.Help -> ()
+    | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
+    | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
+      Config'.pp_info Fmt.(pf stdout) Log.INFO info;
+      fatalize_error (describe info jobs ~dotcmd ~dot ~output)
+    | `Ok (Cmd.Build (_, info)) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (build info)
+    | `Ok (Cmd.Clean (jobs, info)) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (clean info jobs)
+    | `Version
+    | `Help -> ()
+
+
+  let run_with_argv argv = 
+    let module Cmd = Functoria_command_line in
+    (* 1. Pre-parse the arguments to load the config file, set the log
+     *    level and colour, and determine whether the graph should be fully
+     *    evaluated. *)
+
+    (*    (a) log level *)
+    let () = Functoria_misc.Log.set_level (Cmd.read_log_level argv) in
+
+    (*    (b) colour option *)
+    let () = configure_colour (Cmd.read_colour_option argv) in
+
+    (*    (c) whether to fully evaluate the graph *)
+    let full_eval = Cmd.read_full_eval argv in
+
+    (*    (d) the config file passed as argument, if any *)
+    let config_file = Cmd.read_config_file argv in
+
+    (* 2. Load the config from the config file. *)
+    let config = fatalize_error (load' config_file) in
+    let config_keys = Config.keys config in
+    let context_args = Key.context ~stage:`Configure ~with_required:false config_keys in
+    let context = 
+      match Cmdliner.Term.eval_peek_opts ~argv context_args with
+      | Some context, _ -> context
+      | _ -> Functoria_key.empty_context
+    in
+
+    (* 3. Parse the command-line and handle the result. *)
+    handle_parse_args_result
+      (Functoria_command_line.parse_args ~name:P.name ~version:P.version
+         ~configure:(Config'.eval ~with_required:true ~partial:false context config)
+         ~describe:(Config'.eval ~with_required:false ~partial:(not full_eval) context config)
+         ~build:(Config'.eval ~with_required:false ~partial:false context config)
+         ~clean:(Config'.eval ~with_required:false ~partial:false context config)
+         ~help:base_context_arg
+         argv)
+
+
+  let run () =
+    (* Store the "base_context"  *)
+    let () =
+      match Cmdliner.Term.eval_peek_opts ~argv:Sys.argv base_context_arg with
+        _, `Ok x -> Config'.base_context_ref := Some x
+      | _ -> ()
+    in
+    try
+      run_with_argv Sys.argv
+    with Functoria_misc.Log.Fatal s ->
+      begin
+        Functoria_misc.Log.show_error "%s" s;
+        exit 1
+      end
 end

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d75eaf45791e8830af8a18b1e799a8dd)
+# DO NOT EDIT (digest: c55958025551743824e89fa92b2e00fb)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -39,6 +39,29 @@ true: annot, bin_annot
 <app/*.ml{,i,y}>: pkg_unix
 <app/*.ml{,i,y}>: use_functoria
 <app/*.ml{,i,y}>: use_functoria-runtime
+# Executable test_functoria_command_line
+<tests/test_functoria_command_line.{native,byte}>: pkg_cmdliner
+<tests/test_functoria_command_line.{native,byte}>: pkg_dynlink
+<tests/test_functoria_command_line.{native,byte}>: pkg_fmt
+<tests/test_functoria_command_line.{native,byte}>: pkg_fmt.tty
+<tests/test_functoria_command_line.{native,byte}>: pkg_oUnit
+<tests/test_functoria_command_line.{native,byte}>: pkg_ocamlgraph
+<tests/test_functoria_command_line.{native,byte}>: pkg_rresult
+<tests/test_functoria_command_line.{native,byte}>: pkg_unix
+<tests/test_functoria_command_line.{native,byte}>: use_functoria
+<tests/test_functoria_command_line.{native,byte}>: use_functoria-app
+<tests/test_functoria_command_line.{native,byte}>: use_functoria-runtime
+<tests/*.ml{,i,y}>: pkg_cmdliner
+<tests/*.ml{,i,y}>: pkg_dynlink
+<tests/*.ml{,i,y}>: pkg_fmt
+<tests/*.ml{,i,y}>: pkg_fmt.tty
+<tests/*.ml{,i,y}>: pkg_oUnit
+<tests/*.ml{,i,y}>: pkg_ocamlgraph
+<tests/*.ml{,i,y}>: pkg_rresult
+<tests/*.ml{,i,y}>: pkg_unix
+<tests/*.ml{,i,y}>: use_functoria
+<tests/*.ml{,i,y}>: use_functoria-app
+<tests/*.ml{,i,y}>: use_functoria-runtime
 # OASIS_STOP
 
 true: warn(A-40-42-44)

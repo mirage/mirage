@@ -23,7 +23,7 @@ Library "functoria-app"
   Path:            app
   Findlibname:     app
   FindlibParent:   functoria
-  InternalModules: Functoria_tool, Functoria_graph
+  InternalModules: Functoria_command_line, Functoria_graph
   Modules:         Functoria_app
   BuildDepends:    functoria
 

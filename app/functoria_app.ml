@@ -556,12 +556,6 @@ module Make (P: S) = struct
         invalid_arg "Base key map is not available at this point. Please stop \
                      messing with functoria's invariants."
 
-    let base_context =
-      let keys = Config.extract_keys (P.create []) in
-      let context = Key.context ~stage:`Configure keys in
-      let f x = base_context_ref := Some x; x in
-      Cmdliner.Term.(pure f $ context ~with_required:false )
-
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Log.get_level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
@@ -591,9 +585,21 @@ module Make (P: S) = struct
     | Ok x    -> x
     | Error s -> Functoria_misc.Log.fatal "%s" s
 
-  let run argv = 
-    let module Cmd = Functoria_command_line in
+  let base_keys : Key.Set.t = Config.extract_keys (P.create [])
+  let base_context_arg = Key.context base_keys
+      ~with_required:false ~stage:`Configure
 
+  let configure_colour color =
+    let i = Functoria_misc.Terminfo.columns () in
+    begin
+      Functoria_misc.Log.set_color color;
+      Format.pp_set_margin Format.std_formatter i;
+      Format.pp_set_margin Format.err_formatter i;
+      Fmt_tty.setup_std_outputs ?style_renderer:color ()
+    end
+
+  let run_with_argv argv = 
+    let module Cmd = Functoria_command_line in
     (* 1. Pre-parse the arguments to load the config file, set the log
      *    level and colour, and determine whether the graph should be fully
      *    evaluated. *)
@@ -602,13 +608,7 @@ module Make (P: S) = struct
     let () = Functoria_misc.Log.set_level (Cmd.read_log_level argv) in
 
     (*    (b) colour option *)
-    let () =
-      let color = Cmd.read_colour_option argv in
-      let i = Functoria_misc.Terminfo.columns () in
-      Functoria_misc.Log.set_color color;
-      Format.pp_set_margin Format.std_formatter i;
-      Format.pp_set_margin Format.err_formatter i;
-      Fmt_tty.setup_std_outputs ?style_renderer:color () in
+    let () = configure_colour (Cmd.read_colour_option argv) in
 
     (*    (c) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
@@ -616,52 +616,57 @@ module Make (P: S) = struct
     (*    (d) the config file passed as argument, if any *)
     let config_file = Cmd.read_config_file argv in
 
-    try
-      let config = 
-        let _ = Cmdliner.Term.eval_peek_opts ~argv Config'.base_context in
-        fatalize_error (load' config_file)
-      in
-      let if_context =
-        Key.context ~stage:`Configure ~with_required:false @@ Config.keys config
-      in
-      let context = 
-        match Cmdliner.Term.eval_peek_opts ~argv if_context with
-        | Some context, _ -> context
-        | _ ->
-          (* If peeking has failed, this should always fail too, but with
-             a good error message. *)
-          Functoria_key.empty_context
-      in
-      let commands = [
-        Cmd.configure (Config'.eval ~with_required:true ~partial:false context config);
-        Cmd.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
-        Cmd.build (Config'.eval ~with_required:false ~partial:false context config);
-        Cmd.clean (Config'.eval ~with_required:false ~partial:false context config);
-        Cmd.help Config'.base_context;
-      ] in
-      match Cmdliner.Term.eval_choice ~argv ~catch:false
-              (Cmd.default ~name:P.name ~version:P.version)
-              commands with
-      | `Error _ -> exit 1
-      | `Ok Cmd.Help -> ()
-      | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
-        Config'.pp_info Log.info Log.DEBUG info;
-        fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
-      | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
-        Config'.pp_info Fmt.(pf stdout) Log.INFO info;
-        fatalize_error (describe info jobs ~dotcmd ~dot ~output)
-      | `Ok (Cmd.Build (_, info)) ->
-        Config'.pp_info Log.info Log.DEBUG info;
-        fatalize_error (build info)
-      | `Ok (Cmd.Clean (jobs, info)) ->
-        Config'.pp_info Log.info Log.DEBUG info;
-        fatalize_error (clean info jobs)
-      | `Version
-      | `Help -> ()
-    with
-    | Functoria_misc.Log.Fatal s ->
-      Functoria_misc.Log.show_error "%s" s ;
-      exit 1
+    (* 2. Load the config from the config file. *)
+    let config = fatalize_error (load' config_file) in
+    let config_keys = Config.keys config in
+    let context_args = Key.context ~stage:`Configure ~with_required:false config_keys in
+    let context = 
+      match Cmdliner.Term.eval_peek_opts ~argv context_args with
+      | Some context, _ -> context
+      | _ -> Functoria_key.empty_context
+    in
 
-  let run () = run Sys.argv
+    (* 3. Build the full command-line parser *)
+    let commands = [
+      Cmd.configure (Config'.eval ~with_required:true ~partial:false context config);
+      Cmd.describe (Config'.eval ~with_required:false ~partial:(not full_eval) context config);
+      Cmd.build (Config'.eval ~with_required:false ~partial:false context config);
+      Cmd.clean (Config'.eval ~with_required:false ~partial:false context config);
+      Cmd.help base_context_arg;
+    ]
+    and default = Cmd.default ~name:P.name ~version:P.version in
+
+    (* 4. Parse the command line. *)
+    match Cmdliner.Term.eval_choice ~argv ~catch:false default commands with
+    | `Error _ -> exit 1
+    | `Ok Cmd.Help -> ()
+    | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
+    | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
+      Config'.pp_info Fmt.(pf stdout) Log.INFO info;
+      fatalize_error (describe info jobs ~dotcmd ~dot ~output)
+    | `Ok (Cmd.Build (_, info)) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (build info)
+    | `Ok (Cmd.Clean (jobs, info)) ->
+      Config'.pp_info Log.info Log.DEBUG info;
+      fatalize_error (clean info jobs)
+    | `Version
+    | `Help -> ()
+
+  let run () =
+    (* 1. Store the "base_context"  *)
+    let () =
+      match Cmdliner.Term.eval_peek_opts ~argv:Sys.argv base_context_arg with
+        _, `Ok x -> Config'.base_context_ref := Some x
+      | _ -> ()
+    in
+    try
+      run_with_argv Sys.argv
+    with Functoria_misc.Log.Fatal s ->
+      begin
+        Functoria_misc.Log.show_error "%s" s;
+        exit 1
+      end
 end

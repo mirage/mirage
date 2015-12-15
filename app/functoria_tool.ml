@@ -17,6 +17,10 @@
 open Cmdliner
 open Rresult
 
+let fatalize_error = function
+  | Ok x    -> x
+  | Error s -> Functoria_misc.Log.fatal "%s" s
+
 let global_option_section = "COMMON OPTIONS"
 
 let help_sections = [
@@ -215,10 +219,6 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
     global_argv := argv;
     Lazy.force set_color;
     Lazy.force set_verbose;
-    let handle_error = function
-      | Ok x    -> x
-      | Error s -> Functoria_misc.Log.fatal "%s" s
-    in
     match Lazy.force config with
     | Ok t ->
       let if_context = Config.if_context t in
@@ -233,7 +233,7 @@ module Make (Config: Functoria_sigs.CONFIG) = struct
       in
 
       let t =
-        Term.(pure (fun _ _ _ -> handle_error) $ verbose $ color $ file
+        Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ file
           $ (term $ options))
       in
       if with_eval

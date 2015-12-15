@@ -339,16 +339,15 @@ module Config = struct
     let e = Graph.eval ~partial ~context jobs in
     let pkgs = Key.(pure String.Set.union $ packages $ Engine.packages e) in
     let libs = Key.(pure String.Set.union $ libraries $ Engine.libraries e) in
-    let list = String.Set.elements in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
-    let di =
-      Key.(pure (fun libraries packages context ->
-          e, Info.create ~libraries:(list libraries) ~packages:(list packages)
-            ~keys ~context ~name:n ~root)
-           $ libs
-           $ pkgs)
-    in
-    Key.(pure (fun x _ -> x) $ di $ of_deps (Set.of_list keys))
+    Key.(pure (fun libraries packages _ context ->
+        (e, Info.create
+           ~libraries:(String.Set.elements libraries)
+           ~packages:(String.Set.elements packages)
+           ~keys ~context ~name:n ~root))
+         $ libs
+         $ pkgs
+         $ of_deps (Set.of_list keys))
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)

@@ -210,51 +210,114 @@ let clean_info =
 
 module Make (Config: Functoria_sigs.CONFIG) = struct
 
-  let with_config t ~argv ?(with_eval=false) ?(with_required=false) f options =
-    (* We fail early here to avoid reporting lookup errors. *)
-    (* let t = fatalize_error (Lazy.force config) in *)
-    let if_context = Config.if_context t in
-    let partial = with_eval && not @@ load_fully_eval argv in
-    let term = match Term.eval_peek_opts ~argv if_context with
-      | Some context, _ ->
-        Term.app f @@ Config.eval ~with_required ~partial context t
-      | _, _ ->
-        (* If peeking has failed, this should always fail too, but with
-             a good error message. *)
-        Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
-    in
-    let t =
-      Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
-            $ (term $ options))
-    in
-    if with_eval
-    then Term.(pure (fun _ t -> t) $ full_eval $ t)
-    else t
-
   (* CONFIGURE *)
   let configure config argv =
     let configure info (no_opam, no_opam_version, no_depext) =
       Config.configure info ~no_opam ~no_depext ~no_opam_version in
-    (with_config config ~argv ~with_required:true (Term.pure configure) configure_info.opts,
+    ((let with_config t ~argv ?(with_eval=false) ?(with_required=false) f options =
+        (* We fail early here to avoid reporting lookup errors. *)
+        (* let t = fatalize_error (Lazy.force config) in *)
+        let if_context = Config.if_context t in
+        let partial = with_eval && not @@ load_fully_eval argv in
+        let term = match Term.eval_peek_opts ~argv if_context with
+          | Some context, _ ->
+            Term.app f @@ Config.eval ~with_required ~partial context t
+          | _, _ ->
+            (* If peeking has failed, this should always fail too, but with
+               a good error message. *)
+            Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
+        in
+        let t =
+          Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
+                $ (term $ options))
+        in
+        if with_eval
+        then Term.(pure (fun _ t -> t) $ full_eval $ t)
+        else t
+      in
+      with_config config ~argv ~with_required:true (Term.pure configure) configure_info.opts),
      term_info "configure" ~doc:configure_info.doc ~man:configure_info.man)
 
   (* DESCRIBE *)
   let describe config argv =
     let describe info (output, dotcmd, dot) =
       Config.describe ~dotcmd ~dot ~output info in
-    (with_config config ~argv ~with_eval:true (Term.pure describe) describe_info.opts,
+    ((let with_config t ~argv ?(with_eval=false) ?(with_required=false) f options =
+        (* We fail early here to avoid reporting lookup errors. *)
+        (* let t = fatalize_error (Lazy.force config) in *)
+        let if_context = Config.if_context t in
+        let partial = with_eval && not @@ load_fully_eval argv in
+        let term = match Term.eval_peek_opts ~argv if_context with
+          | Some context, _ ->
+            Term.app f @@ Config.eval ~with_required ~partial context t
+          | _, _ ->
+            (* If peeking has failed, this should always fail too, but with
+               a good error message. *)
+            Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
+        in
+        let t =
+          Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
+                $ (term $ options))
+        in
+        if with_eval
+        then Term.(pure (fun _ t -> t) $ full_eval $ t)
+        else t
+      in
+     with_config config ~argv ~with_eval:true (Term.pure describe) describe_info.opts),
      term_info "describe" ~doc:describe_info.doc ~man:describe_info.man)
 
   (* BUILD *)
   let build config argv =
     let build info () = Config.build info in
-    (with_config config ~argv (Term.pure build) build_info.opts,
+    ((let with_config t ~argv ?(with_eval=false) ?(with_required=false) f options =
+        (* We fail early here to avoid reporting lookup errors. *)
+        (* let t = fatalize_error (Lazy.force config) in *)
+        let if_context = Config.if_context t in
+        let partial = with_eval && not @@ load_fully_eval argv in
+        let term = match Term.eval_peek_opts ~argv if_context with
+          | Some context, _ ->
+            Term.app f @@ Config.eval ~with_required ~partial context t
+          | _, _ ->
+            (* If peeking has failed, this should always fail too, but with
+               a good error message. *)
+            Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
+        in
+        let t =
+          Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
+                $ (term $ options))
+        in
+        if with_eval
+        then Term.(pure (fun _ t -> t) $ full_eval $ t)
+        else t
+      in
+     with_config config ~argv (Term.pure build) build_info.opts),
      term_info "build" ~doc:build_info.doc ~man:build_info.man)
 
   (* CLEAN *)
   let clean config argv =
     let clean info () = Config.clean info in
-    (with_config config ~argv (Term.pure clean) clean_info.opts,
+    ((let with_config t ~argv ?(with_eval=false) ?(with_required=false) f options =
+        (* We fail early here to avoid reporting lookup errors. *)
+        (* let t = fatalize_error (Lazy.force config) in *)
+        let if_context = Config.if_context t in
+        let partial = with_eval && not @@ load_fully_eval argv in
+        let term = match Term.eval_peek_opts ~argv if_context with
+          | Some context, _ ->
+            Term.app f @@ Config.eval ~with_required ~partial context t
+          | _, _ ->
+            (* If peeking has failed, this should always fail too, but with
+               a good error message. *)
+            Term.app f @@ Config.eval ~with_required ~partial Functoria_key.empty_context t
+        in
+        let t =
+          Term.(pure (fun _ _ _ -> fatalize_error) $ verbose $ color $ config_file
+                $ (term $ options))
+        in
+        if with_eval
+        then Term.(pure (fun _ t -> t) $ full_eval $ t)
+        else t
+      in
+     with_config config ~argv (Term.pure clean) clean_info.opts),
      term_info "clean" ~doc:clean_info.doc ~man:clean_info.man)
 
   (* HELP *)

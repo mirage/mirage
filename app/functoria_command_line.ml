@@ -283,13 +283,13 @@ let read_colour_option : string array -> Fmt.style_renderer option =
 
 let read_config_file : string array -> string option =
   fun argv -> match Term.eval_peek_opts ~argv config_file with
-  | _, `Ok config -> config
-  | _ -> None
+    | _, `Ok config -> config
+    | _ -> None
 
 let read_log_level : string array -> Functoria_misc.Log.level =
   fun argv -> match Term.eval_peek_opts ~argv verbose with
     | _, `Ok v -> v
-    | _, (`Help | `Version | `Error _) -> Functoria_misc.Log.WARN
+    | _ -> Functoria_misc.Log.WARN
 
 let read_full_eval : string array -> bool =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with

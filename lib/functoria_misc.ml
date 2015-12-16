@@ -133,6 +133,10 @@ module Log = struct
 
 end
 
+let fatalize_error = function
+  | Ok x    -> x
+  | Error s -> Log.fatal "%s" s
+
 (* {Process and output} *)
 
 module Cmd = struct

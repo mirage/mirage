@@ -296,7 +296,6 @@ let match_ v f = map f v
 let ($) = app
 let value k = let v c = get c k in { deps = Set.singleton (Any k); v }
 let of_deps deps = {(pure ()) with deps}
-let with_deps deps v = pure (fun x _ -> x) $ v $ of_deps (Set.of_list deps)
 let deps k = k.deps
 let mem p v = Set.for_all (fun (Any x) -> mem_u p x) v.deps
 let peek p v = if mem p v then Some (eval p v) else None

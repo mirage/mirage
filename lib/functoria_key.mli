@@ -195,11 +195,6 @@ val pp: t Fmt.t
 val of_deps: Set.t -> unit value
 (** [of_deps keys] is a value with [keys] as data-dependencies. *)
 
-val with_deps: t list -> 'a value -> 'a value
-(** [with_deps keys v] is [pure const $ v $ of_deps (Set.of_list keys)].
-
-    @deprecated *)
-
 val deps: 'a value -> Set.t
 (** [deps v] are [v]'s data-dependencies. *)
 

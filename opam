@@ -12,8 +12,11 @@ dev-repo:     "https://github.com/mirage/functoria.git"
 license:      "ISC"
 
 build: [
-  ["./configure" "--prefix=%{prefix}%"]
+  ["./configure" "--prefix=%{prefix}%" "--%{ounit:enable}%-tests"]
   [make]
+]
+build-test: [
+  [make "test"]
 ]
 install: [make "install"]
 remove: ["ocamlfind" "remove" "functoria"]

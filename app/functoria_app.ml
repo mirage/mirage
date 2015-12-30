@@ -637,7 +637,7 @@ module Make (P: S) = struct
     let context_args = Key.context ~stage:`Configure ~with_required:false config_keys in
     let context = 
       match Cmdliner.Term.eval_peek_opts ~argv context_args with
-      | Some context, _ -> context
+      | _, `Ok context -> context
       | _ -> Functoria_key.empty_context
     in
 

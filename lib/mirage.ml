@@ -94,6 +94,20 @@ end
 
 let default_posix_clock = impl posix_clock_conf
 
+type mclock = MCLOCK
+let mclock = Type MCLOCK
+
+let monotonic_clock_conf = object (self)
+  inherit base_configurable
+  method ty = mclock
+  method name = "mclock"
+  method module_name = "Mclock"
+  method libraries = Key.(if_ is_xen) ["mirage-clock-xen"] ["mirage-clock-unix"]
+  method packages = self#libraries
+end
+
+let default_monotonic_clock = impl monotonic_clock_conf
+
 type random = RANDOM
 let random = Type RANDOM
 

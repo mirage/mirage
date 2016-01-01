@@ -128,6 +128,10 @@ module type CLOCK = sig
 
 end
 
+(** {1 Posix clock}
+
+    Clock returning time since the unix epoch. Subject to adjustment by eg. NTP.
+    Compatible with the Ptime library. *)
 module type PCLOCK = sig
 
   val now_d_ps : unit -> int * int64
@@ -145,6 +149,22 @@ module type PCLOCK = sig
       clock's picosecond period [d] * 86'400e12 + [ps]. [ps] is in the
       range \[[0];[86_399_999_999_999_999L]\]. *)
 
+end
+
+(** {1 Monotonic clock}
+
+    Clock returning monotonic time since an arbitrary point. To be used for eg.
+    profiling. *)
+
+module type MCLOCK = sig
+
+  val elapsed_ns : unit -> int64
+  (** [elapsed_ns ()] gives a monotonically increasing count in nanoseconds from
+   * some arbitrary point *)
+
+  val period_ns : unit -> int64 option
+  (** [period_ns ()] is if available [Some ns] representing the clock's
+   * nanosecond period [ns] *)
 end
 
 (** {1 Connection between endpoints} *)

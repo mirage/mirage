@@ -77,6 +77,17 @@ val pclock: pclock typ
 val default_posix_clock: pclock impl
 (** The default mirage-clock PCLOCK implementation. *)
 
+type mclock
+(** Abstract type for monotonic clocks *)
+
+val mclock: mclock typ
+(** Implementations of the [V1.MCLOCK] signature. *)
+
+val default_monotonic_clock: mclock impl
+(** The default mirage-clock MCLOCK implementation. *)
+
+
+
 (** {2 Log reporters} *)
 
 type reporter
@@ -96,6 +107,8 @@ val default_reporter:
 
 val no_reporter: reporter impl
 (** [no_reporter] disable log reporting. *)
+
+
 
 (** {2 Random} *)
 

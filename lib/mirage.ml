@@ -957,8 +957,8 @@ let mprof_trace ~size () =
     method connect i _ _ = match Key.(get (Info.context i) target) with
       | `Unix | `MacOSX ->
         Fmt.strf
-          "return (`Ok ())@.\
-           let () =@ \
+          "return (`Ok ()))@.\
+           let () = (@ \
              @[<v 2>  let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
              let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
              MProf.Trace.Control.start trace_config@]"
@@ -966,8 +966,8 @@ let mprof_trace ~size () =
           unix_trace_file;
       | `Xen  ->
         Fmt.strf
-          "return (`Ok ())@.\
-           let () =@ \
+          "return (`Ok ()))@.\
+           let () = (@ \
              @[<v 2>  let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
              let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
              let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \

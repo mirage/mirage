@@ -580,10 +580,6 @@ module Make (P: S) = struct
 
   let get_base_context = Config'.get_base_context
 
-  let fatalize_error = function
-    | Ok x    -> x
-    | Error s -> Functoria_misc.Log.fatal "%s" s
-
   let base_keys : Key.Set.t = Config.extract_keys (P.create [])
   let base_context_arg = Key.context base_keys
       ~with_required:false ~stage:`Configure
@@ -641,7 +637,7 @@ module Make (P: S) = struct
     let context_args = Key.context ~stage:`Configure ~with_required:false config_keys in
     let context = 
       match Cmdliner.Term.eval_peek_opts ~argv context_args with
-      | Some context, _ -> context
+      | _, `Ok context -> context
       | _ -> Functoria_key.empty_context
     in
 

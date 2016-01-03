@@ -115,6 +115,8 @@ module Log: sig
   exception Fatal of string
 end
 
+val fatalize_error: ('a, string) result -> 'a
+
 (** Generation of fresh names *)
 module Name: sig
   val ocamlify: string -> string

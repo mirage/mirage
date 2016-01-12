@@ -31,6 +31,9 @@ let my_functor =
   `My_functor.start` will now take an extra argument for each
   dependencies. In the case of nocrypto, this is `()`.
 
+* Remove `nat-script.sh` from the scripts directory, to be available
+  as an external script.
+
 ### 2.6.1 (2015-09-08)
 
 * Xen: improve the .xl file generation. We now have

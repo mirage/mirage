@@ -21,7 +21,7 @@
     This module defines the basic signatures that functor parameters
     should implement in MirageOS to be portable. *)
 
-(** {1 Abtract devices}
+(** {1 Abstract devices}
 
     Defines the functions to define what is a device state and
     how to disconnect such a device. *)
@@ -58,7 +58,7 @@ end
 (** {1 Random}
 
     Operations to generate randomness. This is currently a passthrough
-    to the OCaml Random generator, and will be deprecated in V2 and
+    to the OCaml Random generator, and will be deprecated and
     turned into a proper DEVICE with blocking modes. *)
 module type RANDOM = sig
 
@@ -172,7 +172,7 @@ module type CONSOLE = sig
   and type flow   := t
 
   val log: t -> string -> unit
-  (** [log str] writes as much characters of [str] that can be written
+  (** [log str] writes as many characters of [str] that can be written
       in one write operation to the console [t], then writes "\r\n" to
       it. *)
 
@@ -482,7 +482,8 @@ module type ARP = sig
   val set_ips : t -> ipaddr list -> unit io
 
   (** [remove_ip arp ip] removes [ip] to the bound IP address list in
-      the [arp] value, which will xmit a GARP packet also. *)
+      the [arp] value, which will xmit a GARP packet for any remaining IPs in
+      the bound IP address list after the removal. *)
   val remove_ip : t -> ipaddr -> unit io
 
   (** [add_ip arp ip] adds [ip] to the bound IP address list in the

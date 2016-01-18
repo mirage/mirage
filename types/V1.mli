@@ -477,17 +477,17 @@ module type ARP = sig
       value. *)
   val get_ips : t -> ipaddr list
 
-  (** [set_ips arp] sets the bound IP address list, which will xmit a
+  (** [set_ips arp] sets the bound IP address list, which will transmit a
       GARP packet also. *)
   val set_ips : t -> ipaddr list -> unit io
 
   (** [remove_ip arp ip] removes [ip] to the bound IP address list in
-      the [arp] value, which will xmit a GARP packet for any remaining IPs in
+      the [arp] value, which will transmit a GARP packet for any remaining IPs in
       the bound IP address list after the removal. *)
   val remove_ip : t -> ipaddr -> unit io
 
   (** [add_ip arp ip] adds [ip] to the bound IP address list in the
-      [arp] value, which will xmit a GARP packet also. *)
+      [arp] value, which will transmit a GARP packet also. *)
   val add_ip : t -> ipaddr -> unit io
 
   (** [query arp ip] queries the cache in [arp] for an ARP entry

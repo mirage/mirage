@@ -1201,7 +1201,7 @@ let configure_main_xe ~root ~name =
       append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
     ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
   append fmt "echo Starting VM";
-  append fmt "xe vm-start vm=%s" name;
+  append fmt "xe vm-start uuid=$VM";
   Unix.chmod file 0o755
 
 let clean_main_xe ~root ~name = Cmd.remove (root / name ^ ".xe")

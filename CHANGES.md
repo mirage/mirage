@@ -1,7 +1,7 @@
-### NEXT
+### 2.7.0 (2016-02-17)
 
 The mirage tool is now based on functoria. (#441 #450, by @drup @samoht)
-See https://blogpost for full details.
+See https://mirage.io/blog/introducing-functoria for full details.
 
 * Command line interface: The config file must be passed with the -f option
   (instead of being just an argument).
@@ -9,8 +9,8 @@ See https://blogpost for full details.
 * `get_mode` is deprecated. You should use keys instead. And in particular
   `Key.target` and `Key.is_xen`.
 * `add_to_ocamlfind_libraries` and `add_to_opam_packages` are deprecated. Both
-  the `foreign` and the `register` functions now possess the `~libraries` and
-  `~packages` arguments to specify libraries dependencies.
+  the `foreign` and the `register` functions now accept the `~libraries` and
+  `~packages` arguments to specify library dependencies.
 
 * If you were using `tls` without the conduit combinator, you will be
   greeted during configuration by a message like this:

@@ -578,7 +578,8 @@ module Make (P: S) = struct
       Log.set_section (Config.name t);
       Ok t
     with Config'.No_base_key_map ->
-      Error "Access to base key map is unavailable at this point"      
+      Error ("Access to base key map is not available before configuration. \
+              For dynamically configured devices, please use the configurable class.")
 
   let get_base_context = Config'.get_base_context
 

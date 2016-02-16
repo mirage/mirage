@@ -615,7 +615,6 @@ module Make (P: S) = struct
     | `Help -> ()
 
   let handle_parse_args_no_config error argv =
-    try
     let module Cmd = Functoria_command_line in
     let open Cmdliner in
     let result = Functoria_command_line.parse_args ~name:P.name ~version:P.version
@@ -633,7 +632,6 @@ module Make (P: S) = struct
       Functoria_misc.Log.fatal "%s" error
     | `Version
     | `Help -> ()
-    with Invalid_argument _ -> assert false
 
   let run_with_argv ?base_context argv =
     let module Cmd = Functoria_command_line in

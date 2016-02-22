@@ -925,7 +925,18 @@ let argv_xen = impl @@ object
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
-let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
+let argv_empty = impl @@ object
+    inherit base_configurable
+    method ty = Functoria_app.argv
+    method name = "argv_empty"
+    method module_name = "Mirage_runtime"
+    method connect _ _ _ = "Lwt.return (`Ok [|\"\"|])"
+  end
+
+let argv_dynamic =
+  if_impl Key.(value argv_empty)
+    argv_empty
+    (if_impl Key.is_xen argv_xen argv_unix)
 
 (** Tracing *)
 

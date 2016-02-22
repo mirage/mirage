@@ -54,6 +54,9 @@ val warn_error: bool key
 val tracing_size: int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)
 
+val argv_empty: bool key
+(** [--no-argv]: Disable command line parsing and set argv to [|""|]. *)
+
 (** {2 Generic keys}
 
     Some keys have a [group] optional argument. This group argument allows to

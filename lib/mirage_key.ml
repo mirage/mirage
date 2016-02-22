@@ -162,6 +162,13 @@ let tracing_size default =
   let key = Arg.opt ~stage:`Configure Arg.int default doc in
   Key.create "tracing_size" key
 
+(** {3 Argv} *)
+let argv_empty =
+  let doc = "Ignore the command line and set argv to [|\"\"|]" in
+  let doc = Arg.info ~docs:mirage_section ~doc ["no-argv"] in
+  let key = Arg.flag ~stage:`Configure doc in
+  Key.create "argv_empty" key
+
 (** {2 General mirage keys} *)
 
 let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =

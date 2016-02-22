@@ -9,7 +9,7 @@ Amazon EC2, this lets your servers run more cheaply, securely and finer control
 than with a full software stack.
 
 The most up-to-date documentation can be found at the
-[homepage](http://www.mirage.io). The site is self-hosted and a useful
+[homepage](https://mirage.io). The site is self-hosted and a useful
 [example](https://github.com/mirage/mirage-www). Simpler
 [skeleton applications](https://github.com/mirage/mirage-skeleton) are also
 available online.

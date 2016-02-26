@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name:        mirage
-Version:     2.6.1
+Version:     2.7.0
 Synopsis:    Mirage configuration tool
 Authors:     Thomas Gazagnaire, Anil Madhavapeddy, Dave Scott, Thomas Leonard
 License:     ISC

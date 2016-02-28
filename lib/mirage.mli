@@ -408,7 +408,7 @@ type info
     {!Mirage_runtime.Info}. *)
 
 val info: info typ
-(** [info] is the combinator to generate {info} values to use at
+(** [info] is the combinator to generate {!info} values to use at
     runtime. *)
 
 val app_info: info impl

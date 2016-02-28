@@ -2,96 +2,87 @@
 <html>
 <head>
 <link rel="stylesheet" href="style.css" type="text/css">
-<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
 <link rel="Start" href="index.html">
-<link rel="next" href="Mirage_misc.html">
+<link rel="next" href="Mirage_key.html">
 <link rel="Up" href="index.html">
 <link title="Index of types" rel=Appendix href="index_types.html">
 <link title="Index of values" rel=Appendix href="index_values.html">
 <link title="Index of modules" rel=Appendix href="index_modules.html">
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
 <link title="Mirage" rel="Chapter" href="Mirage.html">
-<link title="Mirage_misc" rel="Chapter" href="Mirage_misc.html">
-<link title="V1" rel="Chapter" href="V1.html">
-<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="Module combinators" rel="Section" href="#2_Modulecombinators">
+<link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
+<link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><link title="General mirage devices" rel="Section" href="#2_Generalmiragedevices">
 <link title="Time" rel="Section" href="#2_Time">
 <link title="Clocks" rel="Section" href="#2_Clocks">
 <link title="Random" rel="Section" href="#2_Random">
-<link title="Entropy" rel="Section" href="#2_Entropy">
 <link title="Consoles" rel="Section" href="#2_Consoles">
 <link title="Memory allocation interface" rel="Section" href="#2_Memoryallocationinterface">
 <link title="Block devices" rel="Section" href="#2_Blockdevices">
 <link title="Static key/value stores" rel="Section" href="#2_Statickeyvaluestores">
 <link title="Filesystem" rel="Section" href="#2_Filesystem">
+<link title="Generic key/value stores" rel="Section" href="#2_Generickeyvaluestores">
 <link title="Network interfaces" rel="Section" href="#2_Networkinterfaces">
 <link title="Ethernet configuration" rel="Section" href="#2_Ethernetconfiguration">
+<link title="ARP configuration" rel="Section" href="#2_ARPconfiguration">
 <link title="IP configuration" rel="Section" href="#2_IPconfiguration">
-<link title="Tracing" rel="Section" href="#2_Tracing">
-<link title="Jobs" rel="Section" href="#2_Jobs">
-<link title="Device configuration" rel="Section" href="#2_Deviceconfiguration">
-<link title="Project configuration" rel="Section" href="#2_Projectconfiguration">
-<link title="Extensions" rel="Section" href="#2_Extensions">
-<link title="Generation of fresh names" rel="Section" href="#2_Generationoffreshnames">
+<link title="UDP configuration" rel="Section" href="#2_UDPconfiguration">
+<link title="TCP configuration" rel="Section" href="#2_TCPconfiguration">
+<link title="Network stack configuration" rel="Section" href="#2_Networkstackconfiguration">
+<link title="Resolver configuration" rel="Section" href="#2_Resolverconfiguration">
+<link title="Entropy" rel="Section" href="#2_Entropy">
+<link title="Conduit configuration" rel="Section" href="#2_Conduitconfiguration">
+<link title="HTTP configuration" rel="Section" href="#2_HTTPconfiguration">
+<link title="Argv configuration" rel="Section" href="#2_Argvconfiguration">
+<link title="Other devices" rel="Section" href="#2_Otherdevices">
+<link title="Deprecated functions" rel="Section" href="#2_Deprecatedfunctions">
+<link title="Application registering" rel="Subsection" href="#3_Applicationregistering">
 <title>Mirage</title>
 </head>
 <body>
 <div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
-&nbsp;<a class="post" href="Mirage_misc.html" title="Mirage_misc">Next</a>
+&nbsp;<a class="post" href="Mirage_key.html" title="Mirage_key">Next</a>
 </div>
 <h1>Module <a href="type_Mirage.html">Mirage</a></h1>
 
-<pre><span class="keyword">module</span> Mirage: <code class="code">sig</code> <a href="Mirage.html">..</a> <code class="code">end</code></pre><div class="info module top">
-Configuration library.
+<pre><span class="keyword">module</span> Mirage: <code class="code"><span class="keyword">sig</span></code> <a href="Mirage.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Mirage combinators.
 <p>
 
-    <code class="code">Mirage_types</code> defines a set of well-defined module signatures
-    which are used by the various mirage libraries to implement a
-    large collection of devices.<br>
+    <code class="code"><span class="constructor">Mirage</span></code> devices a set of devices and combinator to to define
+    portable applications across all platforms that MirageOS
+    supports.<br>
 </div>
 <hr width="100%">
+
+<pre><span class="keyword">module</span> <a href="Mirage.Key.html">Key</a>: <code class="type">module type of struct include <a href="Mirage_key.html">Mirage_key</a> end</code></pre><div class="info">
+Configuration keys.
+</div>
+
+<pre><span class="keyword">include</span> Functoria_app.DSL</pre>
 <br>
-<h2 id="2_Modulecombinators">Module combinators</h2><br>
+<h2 id="2_Generalmiragedevices">General mirage devices</h2><br>
 
-<pre><span id="TYPEtyp"><span class="keyword">type</span> <code class="type">'a</code> typ</span> </pre>
-<div class="info ">
-The type of values representing module types.<br>
+<pre><span id="TYPEtracing"><span class="keyword">type</span> <code class="type"></code>tracing</span> </pre>
+
+
+<pre><span id="VALmprof_trace"><span class="keyword">val</span> mprof_trace</span> : <code class="type">size:int -> unit -> <a href="Mirage.html#TYPEtracing">tracing</a></code></pre><div class="info ">
+Use mirage-profile to trace the unikernel.
+    On Unix, this creates and mmaps a file called "trace.ctf".
+    On Xen, it shares the trace buffer with dom0.<br>
 </div>
+<br>
+<h3 id="3_Applicationregistering">Application registering</h3><br>
 
-
-<pre><span id="VAL(@->)"><span class="keyword">val</span> (@-&gt;)</span> : <code class="type">'a <a href="Mirage.html#TYPEtyp">typ</a> -> 'b <a href="Mirage.html#TYPEtyp">typ</a> -> ('a -> 'b) <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-Construct a functor type from a type and an existing functor
-    type. This corresponds to prepending a parameter to the list of
-    functor parameters. For example,
-<p>
-
-    <pre class="codepre"><code class="code"> kv_ro @-&gt; ip @-&gt; kv_ro </code></pre>
-<p>
-
-    describes a functor type that accepts two arguments -- a kv_ro and
-    an ip device -- and returns a kv_ro.<br>
+<pre><span id="VALregister"><span class="keyword">val</span> register</span> : <code class="type">?tracing:<a href="Mirage.html#TYPEtracing">tracing</a> -><br>       ?keys:Key.t list -><br>       ?libraries:string list -><br>       ?packages:string list -> string -> job impl list -> unit</code></pre><div class="info ">
+<code class="code">register name jobs</code> registers the application named by <code class="code">name</code>
+    which will executes the given <code class="code">jobs</code>.<br>
 </div>
-
-<pre><span id="TYPEimpl"><span class="keyword">type</span> <code class="type">'a</code> impl</span> </pre>
-<div class="info ">
-The type of values representing module implementations.<br>
-</div>
-
-
-<pre><span id="VAL($)"><span class="keyword">val</span> ($)</span> : <code class="type">('a -> 'b) <a href="Mirage.html#TYPEimpl">impl</a> -> 'a <a href="Mirage.html#TYPEimpl">impl</a> -> 'b <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-<code class="code">m $ a</code> applies the functor <code class="code">a</code> to the functor <code class="code">m</code>.<br>
-</div>
-
-<pre><span id="VALforeign"><span class="keyword">val</span> foreign</span> : <code class="type">string -><br>       ?libraries:string list -><br>       ?packages:string list -> 'a <a href="Mirage.html#TYPEtyp">typ</a> -> 'a <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-<code class="code">foreign name libs packs constr typ</code> states that the module named
-    by <code class="code">name</code> has the module type <code class="code">typ</code>. If <code class="code">libs</code> is set, add the
-    given set of ocamlfind libraries to the ones loaded by default. If
-    <code class="code">packages</code> is set, add the given set of OPAM packages to the ones
-    loaded by default.<br>
-</div>
-
-<pre><span id="VALtyp"><span class="keyword">val</span> typ</span> : <code class="type">'a <a href="Mirage.html#TYPEimpl">impl</a> -> 'a <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-Return the module signature of a given implementation.<br>
-</div>
+<div class="param_info"><code class="code">tracing</code> : Enable tracing and give a default depth.</div>
+<div class="param_info"><code class="code">keys</code> : The keys related to this module.</div>
+<div class="param_info"><code class="code">libraries</code> : The ocamlfind libraries needed by this module.</div>
+<div class="param_info"><code class="code">packages</code> : The opam packages needed by this module.</div>
 <br>
 <h2 id="2_Time">Time</h2><br>
 
@@ -101,11 +92,11 @@ Abstract type for timers.<br>
 </div>
 
 
-<pre><span id="VALtime"><span class="keyword">val</span> time</span> : <code class="type"><a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.TIME</code> module signature.<br>
+<pre><span id="VALtime"><span class="keyword">val</span> time</span> : <code class="type"><a href="Mirage.html#TYPEtime">time</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">TIME</span></code> signature.<br>
 </div>
 
-<pre><span id="VALdefault_time"><span class="keyword">val</span> default_time</span> : <code class="type"><a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALdefault_time"><span class="keyword">val</span> default_time</span> : <code class="type"><a href="Mirage.html#TYPEtime">time</a> impl</code></pre><div class="info ">
 The default timer implementation.<br>
 </div>
 <br>
@@ -117,11 +108,11 @@ Abstract type for clocks.<br>
 </div>
 
 
-<pre><span id="VALclock"><span class="keyword">val</span> clock</span> : <code class="type"><a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.CLOCK</code> module signature.<br>
+<pre><span id="VALclock"><span class="keyword">val</span> clock</span> : <code class="type"><a href="Mirage.html#TYPEclock">clock</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">CLOCK</span></code> signature.<br>
 </div>
 
-<pre><span id="VALdefault_clock"><span class="keyword">val</span> default_clock</span> : <code class="type"><a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALdefault_clock"><span class="keyword">val</span> default_clock</span> : <code class="type"><a href="Mirage.html#TYPEclock">clock</a> impl</code></pre><div class="info ">
 The default mirage-clock implementation.<br>
 </div>
 <br>
@@ -133,33 +124,15 @@ Abstract type for random sources.<br>
 </div>
 
 
-<pre><span id="VALrandom"><span class="keyword">val</span> random</span> : <code class="type"><a href="Mirage.html#TYPErandom">random</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.RANDOM</code> module signature.<br>
+<pre><span id="VALrandom"><span class="keyword">val</span> random</span> : <code class="type"><a href="Mirage.html#TYPErandom">random</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">RANDOM</span></code> signature.<br>
 </div>
 
-<pre><span id="VALdefault_random"><span class="keyword">val</span> default_random</span> : <code class="type"><a href="Mirage.html#TYPErandom">random</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALdefault_random"><span class="keyword">val</span> default_random</span> : <code class="type"><a href="Mirage.html#TYPErandom">random</a> impl</code></pre><div class="info ">
 Passthrough to the OCaml Random generator.<br>
 </div>
 <br>
-<h2 id="2_Entropy">Entropy</h2><br>
-
-<pre><span id="TYPEentropy"><span class="keyword">type</span> <code class="type"></code>entropy</span> </pre>
-<div class="info ">
-Abstract type for entropy sources.<br>
-</div>
-
-
-<pre><span id="VALentropy"><span class="keyword">val</span> entropy</span> : <code class="type"><a href="Mirage.html#TYPEentropy">entropy</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.ENTROPY</code> module signature.<br>
-</div>
-
-<pre><span id="VALdefault_entropy"><span class="keyword">val</span> default_entropy</span> : <code class="type"><a href="Mirage.html#TYPEentropy">entropy</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-Pick the strongest entropy source available.<br>
-</div>
-<br>
 <h2 id="2_Consoles">Consoles</h2><br>
-<br>
-Implementations of the <code class="code">V1.CONSOLE</code> signature.<br>
 
 <pre><span id="TYPEconsole"><span class="keyword">type</span> <code class="type"></code>console</span> </pre>
 <div class="info ">
@@ -167,15 +140,15 @@ Abstract type for consoles.<br>
 </div>
 
 
-<pre><span id="VALconsole"><span class="keyword">val</span> console</span> : <code class="type"><a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.CONSOLE</code> module signature.<br>
+<pre><span id="VALconsole"><span class="keyword">val</span> console</span> : <code class="type"><a href="Mirage.html#TYPEconsole">console</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">CONSOLE</span></code> signature.<br>
 </div>
 
-<pre><span id="VALdefault_console"><span class="keyword">val</span> default_console</span> : <code class="type"><a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALdefault_console"><span class="keyword">val</span> default_console</span> : <code class="type"><a href="Mirage.html#TYPEconsole">console</a> impl</code></pre><div class="info ">
 Default console implementation.<br>
 </div>
 
-<pre><span id="VALcustom_console"><span class="keyword">val</span> custom_console</span> : <code class="type">string -> <a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALcustom_console"><span class="keyword">val</span> custom_console</span> : <code class="type">string -> <a href="Mirage.html#TYPEconsole">console</a> impl</code></pre><div class="info ">
 Custom console implementation.<br>
 </div>
 <br>
@@ -187,17 +160,15 @@ Abstract type for page-aligned buffers.<br>
 </div>
 
 
-<pre><span id="VALio_page"><span class="keyword">val</span> io_page</span> : <code class="type"><a href="Mirage.html#TYPEio_page">io_page</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.IO_PAGE</code> module signature.<br>
+<pre><span id="VALio_page"><span class="keyword">val</span> io_page</span> : <code class="type"><a href="Mirage.html#TYPEio_page">io_page</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">IO_PAGE</span></code> signature.<br>
 </div>
 
-<pre><span id="VALdefault_io_page"><span class="keyword">val</span> default_io_page</span> : <code class="type"><a href="Mirage.html#TYPEio_page">io_page</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-The default <code class="code">Io_page</code> implementation.<br>
+<pre><span id="VALdefault_io_page"><span class="keyword">val</span> default_io_page</span> : <code class="type"><a href="Mirage.html#TYPEio_page">io_page</a> impl</code></pre><div class="info ">
+The default <code class="code"><span class="constructor">Io_page</span></code> implementation.<br>
 </div>
 <br>
 <h2 id="2_Blockdevices">Block devices</h2><br>
-<br>
-Implementations of the <code class="code">V1.BLOCK</code> signature.<br>
 
 <pre><span id="TYPEblock"><span class="keyword">type</span> <code class="type"></code>block</span> </pre>
 <div class="info ">
@@ -205,17 +176,15 @@ Abstract type for raw block device configurations.<br>
 </div>
 
 
-<pre><span id="VALblock"><span class="keyword">val</span> block</span> : <code class="type"><a href="Mirage.html#TYPEblock">block</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.BLOCK</code> module signature.<br>
+<pre><span id="VALblock"><span class="keyword">val</span> block</span> : <code class="type"><a href="Mirage.html#TYPEblock">block</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">BLOCK</span></code> signature.<br>
 </div>
 
-<pre><span id="VALblock_of_file"><span class="keyword">val</span> block_of_file</span> : <code class="type">string -> <a href="Mirage.html#TYPEblock">block</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALblock_of_file"><span class="keyword">val</span> block_of_file</span> : <code class="type">string -> <a href="Mirage.html#TYPEblock">block</a> impl</code></pre><div class="info ">
 Use the given filen as a raw block device.<br>
 </div>
 <br>
 <h2 id="2_Statickeyvaluestores">Static key/value stores</h2><br>
-<br>
-Implementations of the <code class="code">V1.KV_RO</code> signature.<br>
 
 <pre><span id="TYPEkv_ro"><span class="keyword">type</span> <code class="type"></code>kv_ro</span> </pre>
 <div class="info ">
@@ -223,22 +192,22 @@ Abstract type for read-only key/value store.<br>
 </div>
 
 
-<pre><span id="VALkv_ro"><span class="keyword">val</span> kv_ro</span> : <code class="type"><a href="Mirage.html#TYPEkv_ro">kv_ro</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.KV_RO</code> module signature.<br>
+<pre><span id="VALkv_ro"><span class="keyword">val</span> kv_ro</span> : <code class="type"><a href="Mirage.html#TYPEkv_ro">kv_ro</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">KV_RO</span></code> signature.<br>
 </div>
 
-<pre><span id="VALcrunch"><span class="keyword">val</span> crunch</span> : <code class="type">string -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALcrunch"><span class="keyword">val</span> crunch</span> : <code class="type">string -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> impl</code></pre><div class="info ">
 Crunch a directory.<br>
 </div>
 
-<pre><span id="VALdirect_kv_ro"><span class="keyword">val</span> direct_kv_ro</span> : <code class="type">string -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALarchive"><span class="keyword">val</span> archive</span> : <code class="type"><a href="Mirage.html#TYPEblock">block</a> impl -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> impl</code></pre>
+<pre><span id="VALarchive_of_files"><span class="keyword">val</span> archive_of_files</span> : <code class="type">?dir:string -> unit -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> impl</code></pre>
+<pre><span id="VALdirect_kv_ro"><span class="keyword">val</span> direct_kv_ro</span> : <code class="type">string -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> impl</code></pre><div class="info ">
 Direct access to the underlying filesystem as a key/value
     store. For Xen backends, this is equivalent to <code class="code">crunch</code>.<br>
 </div>
 <br>
 <h2 id="2_Filesystem">Filesystem</h2><br>
-<br>
-Implementations of the <code class="code">V1.FS</code> signature.<br>
 
 <pre><span id="TYPEfs"><span class="keyword">type</span> <code class="type"></code>fs</span> </pre>
 <div class="info ">
@@ -246,29 +215,37 @@ Abstract type for filesystems.<br>
 </div>
 
 
-<pre><span id="VALfs"><span class="keyword">val</span> fs</span> : <code class="type"><a href="Mirage.html#TYPEfs">fs</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.FS</code> module signature.<br>
+<pre><span id="VALfs"><span class="keyword">val</span> fs</span> : <code class="type"><a href="Mirage.html#TYPEfs">fs</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">FS</span></code> signature.<br>
 </div>
 
-<pre><span id="VALfat"><span class="keyword">val</span> fat</span> : <code class="type">?io_page:<a href="Mirage.html#TYPEio_page">io_page</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEblock">block</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEfs">fs</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALfat"><span class="keyword">val</span> fat</span> : <code class="type">?io_page:<a href="Mirage.html#TYPEio_page">io_page</a> impl -> <a href="Mirage.html#TYPEblock">block</a> impl -> <a href="Mirage.html#TYPEfs">fs</a> impl</code></pre><div class="info ">
 Consider a raw block device as a FAT filesystem.<br>
 </div>
 
-<pre><span id="VALfat_of_files"><span class="keyword">val</span> fat_of_files</span> : <code class="type">?dir:string -> ?regexp:string -> unit -> <a href="Mirage.html#TYPEfs">fs</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALfat_of_files"><span class="keyword">val</span> fat_of_files</span> : <code class="type">?dir:string -> ?regexp:string -> unit -> <a href="Mirage.html#TYPEfs">fs</a> impl</code></pre><div class="info ">
 <code class="code">fat_files dir ?dir ?regexp ()</code> collects all the files matching
     the shell pattern <code class="code">regexp</code> in the directory <code class="code">dir</code> into a FAT
     image. By default, <code class="code">dir</code> is the current working directory and
     <code class="code">regexp</code> is <i>*</i><br>
 </div>
 
-<pre><span id="VALkv_ro_of_fs"><span class="keyword">val</span> kv_ro_of_fs</span> : <code class="type"><a href="Mirage.html#TYPEfs">fs</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALkv_ro_of_fs"><span class="keyword">val</span> kv_ro_of_fs</span> : <code class="type"><a href="Mirage.html#TYPEfs">fs</a> impl -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> impl</code></pre><div class="info ">
 Consider a filesystem implementation as a read-only key/value
     store.<br>
 </div>
 <br>
-<h2 id="2_Networkinterfaces">Network interfaces</h2><br>
+<h2 id="2_Generickeyvaluestores">Generic key/value stores</h2><br>
+
+<pre><span id="VALgeneric_kv_ro"><span class="keyword">val</span> generic_kv_ro</span> : <code class="type">?key:[ `Archive | `Crunch | `Fat ] value -> string -> <a href="Mirage.html#TYPEkv_ro">kv_ro</a> impl</code></pre><div class="info ">
+Generic key/value that will choose dynamically between
+    <a href="Mirage.html#VALfat"><code class="code"><span class="constructor">Mirage</span>.fat</code></a>, <a href="Mirage.html#VALarchive"><code class="code"><span class="constructor">Mirage</span>.archive</code></a> and <a href="Mirage.html#VALcrunch"><code class="code"><span class="constructor">Mirage</span>.crunch</code></a>.
+<p>
+
+    If no key is provided, it uses <code class="code"><span class="constructor">Key</span>.kv_ro</code> to create a new one.<br>
+</div>
 <br>
-Implementations of the <code class="code">V1.NETWORK</code> signature.<br>
+<h2 id="2_Networkinterfaces">Network interfaces</h2><br>
 
 <pre><span id="TYPEnetwork"><span class="keyword">type</span> <code class="type"></code>network</span> </pre>
 <div class="info ">
@@ -276,31 +253,42 @@ Abstract type for network configurations.<br>
 </div>
 
 
-<pre><span id="VALnetwork"><span class="keyword">val</span> network</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-Representation of <code class="code">Mirage_types.NETWORK</code>.<br>
+<pre><span id="VALnetwork"><span class="keyword">val</span> network</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">NETWORK</span></code> signature.<br>
 </div>
 
-<pre><span id="VALtap0"><span class="keyword">val</span> tap0</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALtap0"><span class="keyword">val</span> tap0</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> impl</code></pre><div class="info ">
 The '/dev/tap0' interface.<br>
 </div>
 
-<pre><span id="VALnetif"><span class="keyword">val</span> netif</span> : <code class="type">string -> <a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-A custom network interface.<br>
+<pre><span id="VALnetif"><span class="keyword">val</span> netif</span> : <code class="type">?group:string -> string -> <a href="Mirage.html#TYPEnetwork">network</a> impl</code></pre><div class="info ">
+A custom network interface. Exposes a <code class="code"><span class="constructor">Key</span>.network</code> key.<br>
 </div>
 <br>
 <h2 id="2_Ethernetconfiguration">Ethernet configuration</h2><br>
 
 <pre><span id="TYPEethernet"><span class="keyword">type</span> <code class="type"></code>ethernet</span> </pre>
-<div class="info ">
-Implementations of the <code class="code">V1.ETHIF</code> signature.<br>
+
+
+<pre><span id="VALethernet"><span class="keyword">val</span> ethernet</span> : <code class="type"><a href="Mirage.html#TYPEethernet">ethernet</a> typ</code></pre><div class="info ">
+Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">ETHIF</span></code> signature.<br>
 </div>
 
+<pre><span id="VALetif"><span class="keyword">val</span> etif</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEethernet">ethernet</a> impl</code></pre><br>
+<h2 id="2_ARPconfiguration">ARP configuration</h2><br>
 
-<pre><span id="VALethernet"><span class="keyword">val</span> ethernet</span> : <code class="type"><a href="Mirage.html#TYPEethernet">ethernet</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALetif"><span class="keyword">val</span> etif</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEethernet">ethernet</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
-<h2 id="2_IPconfiguration">IP configuration</h2><br>
-<br>
-Implementations of the <code class="code">V1.IP</code> signature.<br>
+<pre><span id="TYPEarpv4"><span class="keyword">type</span> <code class="type"></code>arpv4</span> </pre>
+
+
+<pre><span id="VALarpv4"><span class="keyword">val</span> arpv4</span> : <code class="type"><a href="Mirage.html#TYPEarpv4">arpv4</a> typ</code></pre><div class="info ">
+Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">ARPV4</span></code> signature.<br>
+</div>
+
+<pre><span id="VALarp"><span class="keyword">val</span> arp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -> <a href="Mirage.html#TYPEethernet">ethernet</a> impl -> <a href="Mirage.html#TYPEarpv4">arpv4</a> impl</code></pre><br>
+<h2 id="2_IPconfiguration">IP configuration</h2>
+<p>
+
+    Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">IP</span></code> signature.<br>
 
 <pre><span id="TYPEv4"><span class="keyword">type</span> <code class="type"></code>v4</span> </pre>
 
@@ -309,23 +297,23 @@ Implementations of the <code class="code">V1.IP</code> signature.<br>
 
 
 <pre><span id="TYPEip"><span class="keyword">type</span> <code class="type">'a</code> ip</span> </pre>
+<div class="info ">
+Abstract type for IP configurations.<br>
+</div>
 
 
 <pre><span id="TYPEipv4"><span class="keyword">type</span> <code class="type"></code>ipv4</span> = <code class="type"><a href="Mirage.html#TYPEv4">v4</a> <a href="Mirage.html#TYPEip">ip</a></code> </pre>
 
 
 <pre><span id="TYPEipv6"><span class="keyword">type</span> <code class="type"></code>ipv6</span> = <code class="type"><a href="Mirage.html#TYPEv6">v6</a> <a href="Mirage.html#TYPEip">ip</a></code> </pre>
-<div class="info ">
-Abstract type for IP configurations.<br>
+
+
+<pre><span id="VALipv4"><span class="keyword">val</span> ipv4</span> : <code class="type"><a href="Mirage.html#TYPEipv4">ipv4</a> typ</code></pre><div class="info ">
+The <code class="code"><span class="constructor">V1</span>.<span class="constructor">IPV4</span></code> module signature.<br>
 </div>
 
-
-<pre><span id="VALipv4"><span class="keyword">val</span> ipv4</span> : <code class="type"><a href="Mirage.html#TYPEipv4">ipv4</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.IPV4</code> module signature.<br>
-</div>
-
-<pre><span id="VALipv6"><span class="keyword">val</span> ipv6</span> : <code class="type"><a href="Mirage.html#TYPEipv6">ipv6</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-The <code class="code">V1.IPV6</code> module signature.<br>
+<pre><span id="VALipv6"><span class="keyword">val</span> ipv6</span> : <code class="type"><a href="Mirage.html#TYPEipv6">ipv6</a> typ</code></pre><div class="info ">
+The <code class="code"><span class="constructor">V1</span>.<span class="constructor">IPV6</span></code> module signature.<br>
 </div>
 
 <pre><code><span id="TYPEip_config"><span class="keyword">type</span> <code class="type">('ipaddr, 'prefix)</code> ip_config</span> = {</code></pre><table class="typetable">
@@ -363,11 +351,12 @@ Types for IPv4 manual configuration.<br>
 </div>
 
 
-<pre><span id="VALcreate_ipv4"><span class="keyword">val</span> create_ipv4</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEipv4_config">ipv4_config</a> -> <a href="Mirage.html#TYPEipv4">ipv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-Use an IPv4 address.<br>
+<pre><span id="VALcreate_ipv4"><span class="keyword">val</span> create_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEipv4_config">ipv4_config</a> -> <a href="Mirage.html#TYPEipv4">ipv4</a> impl</code></pre><div class="info ">
+Use an IPv4 address.
+    Exposes the keys <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.ip</code>, <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.netmask</code> and <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.gateways</code>.<br>
 </div>
 
-<pre><span id="VALdefault_ipv4"><span class="keyword">val</span> default_ipv4</span> : <code class="type"><a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEipv4">ipv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
+<pre><span id="VALdefault_ipv4"><span class="keyword">val</span> default_ipv4</span> : <code class="type">?group:string -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEipv4">ipv4</a> impl</code></pre><div class="info ">
 Default local IP listening on the given network interfaces:<ul>
 <li>address: 10.0.0.2</li>
 <li>netmask: 255.255.255.0</li>
@@ -382,13 +371,12 @@ Types for IPv6 manual configuration.<br>
 </div>
 
 
-<pre><span id="VALcreate_ipv6"><span class="keyword">val</span> create_ipv6</span> : <code class="type">?time:<a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?clock:<a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEipv6_config">ipv6_config</a> -> <a href="Mirage.html#TYPEipv6">ipv6</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-Use an IPv6 address.<br>
+<pre><span id="VALcreate_ipv6"><span class="keyword">val</span> create_ipv6</span> : <code class="type">?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEipv6_config">ipv6_config</a> -> <a href="Mirage.html#TYPEipv6">ipv6</a> impl</code></pre><div class="info ">
+Use an IPv6 address.
+    Exposes the keys <code class="code"><span class="constructor">Key</span>.<span class="constructor">V6</span>.ip</code>, <code class="code"><span class="constructor">Key</span>.<span class="constructor">V6</span>.netmask</code> and <code class="code"><span class="constructor">Key</span>.<span class="constructor">V6</span>.gateways</code>.<br>
 </div>
 <br>
-<br>
-<br>
-Implementation of the <code class="code">V1.UDP</code> signature.<br>
+<h2 id="2_UDPconfiguration">UDP configuration</h2><br>
 
 <pre><span id="TYPEudp"><span class="keyword">type</span> <code class="type">'a</code> udp</span> </pre>
 
@@ -399,14 +387,15 @@ Implementation of the <code class="code">V1.UDP</code> signature.<br>
 <pre><span id="TYPEudpv6"><span class="keyword">type</span> <code class="type"></code>udpv6</span> = <code class="type"><a href="Mirage.html#TYPEv6">v6</a> <a href="Mirage.html#TYPEudp">udp</a></code> </pre>
 
 
-<pre><span id="VALudp"><span class="keyword">val</span> udp</span> : <code class="type">'a <a href="Mirage.html#TYPEudp">udp</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALudpv4"><span class="keyword">val</span> udpv4</span> : <code class="type"><a href="Mirage.html#TYPEudpv4">udpv4</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALudpv6"><span class="keyword">val</span> udpv6</span> : <code class="type"><a href="Mirage.html#TYPEudpv6">udpv6</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALdirect_udp"><span class="keyword">val</span> direct_udp</span> : <code class="type">'a <a href="Mirage.html#TYPEip">ip</a> <a href="Mirage.html#TYPEimpl">impl</a> -> 'a <a href="Mirage.html#TYPEudp">udp</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALsocket_udpv4"><span class="keyword">val</span> socket_udpv4</span> : <code class="type">Ipaddr.V4.t option -> <a href="Mirage.html#TYPEudpv4">udpv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
-<br>
-<br>
-Implementation of the <code class="code">V1.TCP</code> signature.<br>
+<pre><span id="VALudp"><span class="keyword">val</span> udp</span> : <code class="type">'a <a href="Mirage.html#TYPEudp">udp</a> typ</code></pre><div class="info ">
+Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">UDP</span></code> signature.<br>
+</div>
+
+<pre><span id="VALudpv4"><span class="keyword">val</span> udpv4</span> : <code class="type"><a href="Mirage.html#TYPEudpv4">udpv4</a> typ</code></pre>
+<pre><span id="VALudpv6"><span class="keyword">val</span> udpv6</span> : <code class="type"><a href="Mirage.html#TYPEudpv6">udpv6</a> typ</code></pre>
+<pre><span id="VALdirect_udp"><span class="keyword">val</span> direct_udp</span> : <code class="type">'a <a href="Mirage.html#TYPEip">ip</a> impl -> 'a <a href="Mirage.html#TYPEudp">udp</a> impl</code></pre>
+<pre><span id="VALsocket_udpv4"><span class="keyword">val</span> socket_udpv4</span> : <code class="type">?group:string -> Ipaddr.V4.t option -> <a href="Mirage.html#TYPEudpv4">udpv4</a> impl</code></pre><br>
+<h2 id="2_TCPconfiguration">TCP configuration</h2><br>
 
 <pre><span id="TYPEtcp"><span class="keyword">type</span> <code class="type">'a</code> tcp</span> </pre>
 
@@ -417,271 +406,124 @@ Implementation of the <code class="code">V1.TCP</code> signature.<br>
 <pre><span id="TYPEtcpv6"><span class="keyword">type</span> <code class="type"></code>tcpv6</span> = <code class="type"><a href="Mirage.html#TYPEv6">v6</a> <a href="Mirage.html#TYPEtcp">tcp</a></code> </pre>
 
 
-<pre><span id="VALtcp"><span class="keyword">val</span> tcp</span> : <code class="type">'a <a href="Mirage.html#TYPEtcp">tcp</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALtcpv4"><span class="keyword">val</span> tcpv4</span> : <code class="type"><a href="Mirage.html#TYPEtcpv4">tcpv4</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALtcpv6"><span class="keyword">val</span> tcpv6</span> : <code class="type"><a href="Mirage.html#TYPEtcpv6">tcpv6</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALdirect_tcp"><span class="keyword">val</span> direct_tcp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       'a <a href="Mirage.html#TYPEip">ip</a> <a href="Mirage.html#TYPEimpl">impl</a> -> 'a <a href="Mirage.html#TYPEtcp">tcp</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALsocket_tcpv4"><span class="keyword">val</span> socket_tcpv4</span> : <code class="type">Ipaddr.V4.t option -> <a href="Mirage.html#TYPEtcpv4">tcpv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
-<br>
-<br>
-Implementation of the <code class="code">V1.STACKV4</code> signature.<br>
+<pre><span id="VALtcp"><span class="keyword">val</span> tcp</span> : <code class="type">'a <a href="Mirage.html#TYPEtcp">tcp</a> typ</code></pre><div class="info ">
+Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">TCP</span></code> signature.<br>
+</div>
+
+<pre><span id="VALtcpv4"><span class="keyword">val</span> tcpv4</span> : <code class="type"><a href="Mirage.html#TYPEtcpv4">tcpv4</a> typ</code></pre>
+<pre><span id="VALtcpv6"><span class="keyword">val</span> tcpv6</span> : <code class="type"><a href="Mirage.html#TYPEtcpv6">tcpv6</a> typ</code></pre>
+<pre><span id="VALdirect_tcp"><span class="keyword">val</span> direct_tcp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -> 'a <a href="Mirage.html#TYPEip">ip</a> impl -> 'a <a href="Mirage.html#TYPEtcp">tcp</a> impl</code></pre>
+<pre><span id="VALsocket_tcpv4"><span class="keyword">val</span> socket_tcpv4</span> : <code class="type">?group:string -> Ipaddr.V4.t option -> <a href="Mirage.html#TYPEtcpv4">tcpv4</a> impl</code></pre><br>
+<h2 id="2_Networkstackconfiguration">Network stack configuration</h2><br>
 
 <pre><span id="TYPEstackv4"><span class="keyword">type</span> <code class="type"></code>stackv4</span> </pre>
 
 
-<pre><span id="VALstackv4"><span class="keyword">val</span> stackv4</span> : <code class="type"><a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALdirect_stackv4_with_default_ipv4"><span class="keyword">val</span> direct_stackv4_with_default_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALdirect_stackv4_with_static_ipv4"><span class="keyword">val</span> direct_stackv4_with_static_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEipv4_config">ipv4_config</a> -> <a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALdirect_stackv4_with_dhcp"><span class="keyword">val</span> direct_stackv4_with_dhcp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEnetwork">network</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALsocket_stackv4"><span class="keyword">val</span> socket_stackv4</span> : <code class="type"><a href="Mirage.html#TYPEconsole">console</a> <a href="Mirage.html#TYPEimpl">impl</a> -> Ipaddr.V4.t list -> <a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
-<br>
-<br>
-Implementation of the <code class="code">V1.CHANNEL</code> signature.<br>
+<pre><span id="VALstackv4"><span class="keyword">val</span> stackv4</span> : <code class="type"><a href="Mirage.html#TYPEstackv4">stackv4</a> typ</code></pre><div class="info ">
+Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">STACKV4</span></code> signature.<br>
+</div>
 
-<pre><span id="TYPEchannel"><span class="keyword">type</span> <code class="type"></code>channel</span> </pre>
+<pre><span id="VALdirect_stackv4_with_default_ipv4"><span class="keyword">val</span> direct_stackv4_with_default_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+Same as <a href="Mirage.html#VALdirect_stackv4_with_static_ipv4"><code class="code"><span class="constructor">Mirage</span>.direct_stackv4_with_static_ipv4</code></a> with the default given by
+    <a href="Mirage.html#VALdefault_ipv4"><code class="code"><span class="constructor">Mirage</span>.default_ipv4</code></a>.<br>
+</div>
 
+<pre><span id="VALdirect_stackv4_with_static_ipv4"><span class="keyword">val</span> direct_stackv4_with_static_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -><br>       <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEipv4_config">ipv4_config</a> -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+Direct network stack with ip.
+    Exposes the keys <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.ip</code>, <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.netmask</code> and <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.gateways</code>.<br>
+</div>
 
-<pre><span id="VALchannel"><span class="keyword">val</span> channel</span> : <code class="type"><a href="Mirage.html#TYPEchannel">channel</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALchannel_over_tcp"><span class="keyword">val</span> channel_over_tcp</span> : <code class="type">'a <a href="Mirage.html#TYPEtcp">tcp</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEchannel">channel</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
+<pre><span id="VALdirect_stackv4_with_dhcp"><span class="keyword">val</span> direct_stackv4_with_dhcp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+Direct network stack using dhcp.<br>
+</div>
+
+<pre><span id="VALsocket_stackv4"><span class="keyword">val</span> socket_stackv4</span> : <code class="type">?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> Ipaddr.V4.t list -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+Network stack with sockets. Exposes the key .<br>
+</div>
+
+<pre><span id="VALgeneric_stackv4"><span class="keyword">val</span> generic_stackv4</span> : <code class="type">?group:string -><br>       ?dhcp_key:bool value -><br>       ?net_key:[ `Direct | `Socket ] value -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+Generic stack using a <code class="code">dhcp</code> and a <code class="code">net</code> keys: <code class="code"><span class="constructor">Key</span>.net</code> and <code class="code"><span class="constructor">Key</span>.dhcp</code>.<ul>
+<li>If <code class="code">net</code> = <code class="code">socket</code> then <a href="Mirage.html#VALsocket_stackv4"><code class="code"><span class="constructor">Mirage</span>.socket_stackv4</code></a> is used.</li>
+<li>Else, if <code class="code">dhcp</code> then <a href="Mirage.html#VALdirect_stackv4_with_dhcp"><code class="code"><span class="constructor">Mirage</span>.direct_stackv4_with_dhcp</code></a> is used</li>
+<li>Else, <a href="Mirage.html#VALdirect_stackv4_with_default_ipv4"><code class="code"><span class="constructor">Mirage</span>.direct_stackv4_with_default_ipv4</code></a> is used.</li>
+</ul>
+
+    If a key is not provided, it uses <code class="code"><span class="constructor">Key</span>.net</code> or <code class="code"><span class="constructor">Key</span>.dhcp</code> (with the
+    <code class="code">group</code> argument) to create it.<br>
+</div>
 <br>
+<h2 id="2_Resolverconfiguration">Resolver configuration</h2><br>
 
 <pre><span id="TYPEresolver"><span class="keyword">type</span> <code class="type"></code>resolver</span> </pre>
 
 
-<pre><span id="VALresolver"><span class="keyword">val</span> resolver</span> : <code class="type"><a href="Mirage.html#TYPEresolver">resolver</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALresolver_dns"><span class="keyword">val</span> resolver_dns</span> : <code class="type">?ns:Ipaddr.V4.t -><br>       ?ns_port:int -> <a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEresolver">resolver</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALresolver_unix_system"><span class="keyword">val</span> resolver_unix_system</span> : <code class="type"><a href="Mirage.html#TYPEresolver">resolver</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="TYPEvchan"><span class="keyword">type</span> <code class="type"></code>vchan</span> </pre>
-<div class="info ">
-<br>
+<pre><span id="VALresolver"><span class="keyword">val</span> resolver</span> : <code class="type"><a href="Mirage.html#TYPEresolver">resolver</a> typ</code></pre>
+<pre><span id="VALresolver_dns"><span class="keyword">val</span> resolver_dns</span> : <code class="type">?ns:Ipaddr.V4.t -><br>       ?ns_port:int -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl -> <a href="Mirage.html#TYPEresolver">resolver</a> impl</code></pre>
+<pre><span id="VALresolver_unix_system"><span class="keyword">val</span> resolver_unix_system</span> : <code class="type"><a href="Mirage.html#TYPEresolver">resolver</a> impl</code></pre><br>
+<h2 id="2_Entropy">Entropy</h2><br>
+
+<pre><span id="VALnocrypto"><span class="keyword">val</span> nocrypto</span> : <code class="type">job impl</code></pre><div class="info ">
+Device that initializes the entropy.<br>
 </div>
-
-
-<pre><span id="VALvchan"><span class="keyword">val</span> vchan</span> : <code class="type"><a href="Mirage.html#TYPEvchan">vchan</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALvchan_localhost"><span class="keyword">val</span> vchan_localhost</span> : <code class="type">?uuid:string -> unit -> <a href="Mirage.html#TYPEvchan">vchan</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALvchan_xen"><span class="keyword">val</span> vchan_xen</span> : <code class="type">?uuid:string -> unit -> <a href="Mirage.html#TYPEvchan">vchan</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="VALvchan_default"><span class="keyword">val</span> vchan_default</span> : <code class="type">?uuid:string -> unit -> <a href="Mirage.html#TYPEvchan">vchan</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
 <br>
+<h2 id="2_Conduitconfiguration">Conduit configuration</h2><br>
 
 <pre><span id="TYPEconduit"><span class="keyword">type</span> <code class="type"></code>conduit</span> </pre>
 
 
-<pre><span id="VALconduit"><span class="keyword">val</span> conduit</span> : <code class="type"><a href="Mirage.html#TYPEconduit">conduit</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALconduit_direct"><span class="keyword">val</span> conduit_direct</span> : <code class="type">?vchan:<a href="Mirage.html#TYPEvchan">vchan</a> <a href="Mirage.html#TYPEimpl">impl</a> -><br>       <a href="Mirage.html#TYPEstackv4">stackv4</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEconduit">conduit</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre>
-<pre><span id="TYPEconduit_client"><span class="keyword">type</span> <code class="type"></code>conduit_client</span> = <code class="type">[ `TCP of Ipaddr.t * int | `Vchan of string list ]</code> </pre>
-
-
-<pre><span id="TYPEconduit_server"><span class="keyword">type</span> <code class="type"></code>conduit_server</span> = <code class="type">[ `TCP of [ `Port of int ] | `Vchan of string list ]</code> </pre>
-
-<br>
-<br>
+<pre><span id="VALconduit"><span class="keyword">val</span> conduit</span> : <code class="type"><a href="Mirage.html#TYPEconduit">conduit</a> typ</code></pre>
+<pre><span id="VALconduit_direct"><span class="keyword">val</span> conduit_direct</span> : <code class="type">?tls:bool -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl -> <a href="Mirage.html#TYPEconduit">conduit</a> impl</code></pre><br>
+<h2 id="2_HTTPconfiguration">HTTP configuration</h2><br>
 
 <pre><span id="TYPEhttp"><span class="keyword">type</span> <code class="type"></code>http</span> </pre>
 
 
-<pre><span id="VALhttp"><span class="keyword">val</span> http</span> : <code class="type"><a href="Mirage.html#TYPEhttp">http</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre>
-<pre><span id="VALhttp_server"><span class="keyword">val</span> http_server</span> : <code class="type"><a href="Mirage.html#TYPEconduit_server">conduit_server</a> -><br>       <a href="Mirage.html#TYPEconduit">conduit</a> <a href="Mirage.html#TYPEimpl">impl</a> -> <a href="Mirage.html#TYPEhttp">http</a> <a href="Mirage.html#TYPEimpl">impl</a></code></pre><br>
-<h2 id="2_Tracing">Tracing</h2><br>
+<pre><span id="VALhttp"><span class="keyword">val</span> http</span> : <code class="type"><a href="Mirage.html#TYPEhttp">http</a> typ</code></pre>
+<pre><span id="VALhttp_server"><span class="keyword">val</span> http_server</span> : <code class="type"><a href="Mirage.html#TYPEconduit">conduit</a> impl -> <a href="Mirage.html#TYPEhttp">http</a> impl</code></pre><br>
+<h2 id="2_Argvconfiguration">Argv configuration</h2><br>
 
-<pre><span id="TYPEtracing"><span class="keyword">type</span> <code class="type"></code>tracing</span> </pre>
-
-
-<pre><span id="VALmprof_trace"><span class="keyword">val</span> mprof_trace</span> : <code class="type">size:int -> unit -> <a href="Mirage.html#TYPEtracing">tracing</a></code></pre><div class="info ">
-Use mirage-profile to trace the unikernel.
-   On Unix, this creates and mmaps a file called "trace.ctf".
-   On Xen, it shares the trace buffer with dom0.<br>
+<pre><span id="VALargv_dynamic"><span class="keyword">val</span> argv_dynamic</span> : <code class="type">Functoria_app.argv impl</code></pre><div class="info ">
+Dynamic argv implementation that resolves either to
+    the xen or the unix implementation.<br>
 </div>
 <br>
-<h2 id="2_Jobs">Jobs</h2><br>
+<h2 id="2_Otherdevices">Other devices</h2><br>
 
-<pre><span id="TYPEjob"><span class="keyword">type</span> <code class="type"></code>job</span> </pre>
+<pre><span id="VALnoop"><span class="keyword">val</span> noop</span> : <code class="type">job impl</code></pre><div class="info ">
+<code class="code">noop</code> is a job that does nothing, has no dependency and returns <code class="code">()</code><br>
+</div>
+
+<pre><span id="TYPEinfo"><span class="keyword">type</span> <code class="type"></code>info</span> </pre>
 <div class="info ">
-Type for job values.<br>
+<code class="code">info</code> is the type for module implementing
+    <code class="code"><span class="constructor">Mirage_runtime</span>.<span class="constructor">Info</span></code>.<br>
 </div>
 
 
-<pre><span id="VALjob"><span class="keyword">val</span> job</span> : <code class="type"><a href="Mirage.html#TYPEjob">job</a> <a href="Mirage.html#TYPEtyp">typ</a></code></pre><div class="info ">
-Reprensention of <code class="code">JOB</code>.<br>
+<pre><span id="VALinfo"><span class="keyword">val</span> info</span> : <code class="type"><a href="Mirage.html#TYPEinfo">info</a> typ</code></pre><div class="info ">
+<code class="code">info</code> is the combinator to generate <a href="Mirage.html#VALinfo"><code class="code"><span class="constructor">Mirage</span>.info</code></a> values to use at
+    runtime.<br>
 </div>
 
-<pre><span id="VALregister"><span class="keyword">val</span> register</span> : <code class="type">?tracing:<a href="Mirage.html#TYPEtracing">tracing</a> -> string -> <a href="Mirage.html#TYPEjob">job</a> <a href="Mirage.html#TYPEimpl">impl</a> list -> unit</code></pre><div class="info ">
-<code class="code">register name jobs</code> registers the application named by <code class="code">name</code>
-    which will executes the given <code class="code">jobs</code>.<br>
-</div>
-<div class="param_info"><code class="code">tracing</code> : enables tracing if present (see <a href="Mirage.html#VALmprof_trace"><code class="code">Mirage.mprof_trace</code></a>).</div>
-
-<pre><code><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = {</code></pre><table class="typetable">
-<tr>
-<td align="left" valign="top" >
-<code>&nbsp;&nbsp;</code></td>
-<td align="left" valign="top" >
-<code><span id="TYPEELTt.name">name</span>&nbsp;: <code class="type">string</code>;</code></td>
-
-</tr>
-<tr>
-<td align="left" valign="top" >
-<code>&nbsp;&nbsp;</code></td>
-<td align="left" valign="top" >
-<code><span id="TYPEELTt.root">root</span>&nbsp;: <code class="type">string</code>;</code></td>
-
-</tr>
-<tr>
-<td align="left" valign="top" >
-<code>&nbsp;&nbsp;</code></td>
-<td align="left" valign="top" >
-<code><span id="TYPEELTt.jobs">jobs</span>&nbsp;: <code class="type"><a href="Mirage.html#TYPEjob">job</a> <a href="Mirage.html#TYPEimpl">impl</a> list</code>;</code></td>
-
-</tr>
-<tr>
-<td align="left" valign="top" >
-<code>&nbsp;&nbsp;</code></td>
-<td align="left" valign="top" >
-<code><span id="TYPEELTt.tracing">tracing</span>&nbsp;: <code class="type"><a href="Mirage.html#TYPEtracing">tracing</a> option</code>;</code></td>
-
-</tr></table>
-}
-
-<div class="info ">
-Type for values representing a project description.<br>
-</div>
-
-
-<pre><span id="VALload"><span class="keyword">val</span> load</span> : <code class="type">string option -> <a href="Mirage.html#TYPEt">t</a></code></pre><div class="info ">
-Read a config file. If no name is given, search for use
-    <code class="code">config.ml</code>.<br>
+<pre><span id="VALapp_info"><span class="keyword">val</span> app_info</span> : <code class="type"><a href="Mirage.html#TYPEinfo">info</a> impl</code></pre><div class="info ">
+<code class="code">app_info</code> exports all the information available at configure time
+    into a runtime <code class="code"><span class="constructor">Mirage</span>.<span class="constructor">Info</span>.t</code> value.<br>
 </div>
 <br>
-<h2 id="2_Deviceconfiguration">Device configuration</h2><br>
+<h2 id="2_Deprecatedfunctions">Deprecated functions</h2><br>
 
-<pre><span id="TYPEmode"><span class="keyword">type</span> <code class="type"></code>mode</span> = <code class="type">[ `MacOSX | `Unix | `Xen ]</code> </pre>
-<div class="info ">
-Configuration mode.<br>
-</div>
-
-
-<pre><span id="VALset_mode"><span class="keyword">val</span> set_mode</span> : <code class="type"><a href="Mirage.html#TYPEmode">mode</a> -> unit</code></pre><div class="info ">
-Set the configuration mode for the current project.<br>
-</div>
-
-<pre><span id="VALget_mode"><span class="keyword">val</span> get_mode</span> : <code class="type">unit -> <a href="Mirage.html#TYPEmode">mode</a></code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.Impl.html">Impl</a>: <code class="code">sig</code> <a href="Mirage.Impl.html">..</a> <code class="code">end</code></pre><br>
-<h2 id="2_Projectconfiguration">Project configuration</h2><br>
-
-<pre><span id="VALmanage_opam_packages"><span class="keyword">val</span> manage_opam_packages</span> : <code class="type">bool -> unit</code></pre><div class="info ">
-Tell Irminsule to manage the OPAM configuration
-    (ie. install/remove missing packages).<br>
-</div>
-
-<pre><span id="VALno_opam_version_check"><span class="keyword">val</span> no_opam_version_check</span> : <code class="type">bool -> unit</code></pre><div class="info ">
-Bypass the check of opam's version.<br>
+<pre><span id="VALget_mode"><span class="keyword">val</span> get_mode</span> : <code class="type">unit -> [ `MacOSX | `Unix | `Xen ]</code></pre><div class="info ">
+<span class="warning">Deprecated.</span>Use <code class="code"><span class="constructor">Key</span>.target</code> and <code class="code"><span class="constructor">Key</span>.is_xen</code>.<br>
+Current configuration mode.<br>
 </div>
 
 <pre><span id="VALadd_to_opam_packages"><span class="keyword">val</span> add_to_opam_packages</span> : <code class="type">string list -> unit</code></pre><div class="info ">
-Add some base OPAM package to install<br>
+<span class="warning">Deprecated.</span>Use the <code class="code">~package</code> argument from <a href="Mirage.html#VALregister"><code class="code"><span class="constructor">Mirage</span>.register</code></a>.<br>
+Register opam packages.<br>
 </div>
 
 <pre><span id="VALadd_to_ocamlfind_libraries"><span class="keyword">val</span> add_to_ocamlfind_libraries</span> : <code class="type">string list -> unit</code></pre><div class="info ">
-Link with the provided additional libraries.<br>
+<span class="warning">Deprecated.</span>Use the <code class="code">~libraries</code> argument from <a href="Mirage.html#VALregister"><code class="code"><span class="constructor">Mirage</span>.register</code></a>.<br>
+Register ocamlfind libraries.<br>
 </div>
-
-<pre><span id="VALpackages"><span class="keyword">val</span> packages</span> : <code class="type"><a href="Mirage.html#TYPEt">t</a> -> string list</code></pre><div class="info ">
-List of OPAM packages to install for this project.<br>
-</div>
-
-<pre><span id="VALlibraries"><span class="keyword">val</span> libraries</span> : <code class="type"><a href="Mirage.html#TYPEt">t</a> -> string list</code></pre><div class="info ">
-List of ocamlfind libraries.<br>
-</div>
-
-<pre><span id="VALconfigure"><span class="keyword">val</span> configure</span> : <code class="type"><a href="Mirage.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
-Generate some code to create a value with the right
-    configuration settings.<br>
-</div>
-
-<pre><span id="VALclean"><span class="keyword">val</span> clean</span> : <code class="type"><a href="Mirage.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
-Remove all the autogen files.<br>
-</div>
-
-<pre><span id="VALbuild"><span class="keyword">val</span> build</span> : <code class="type"><a href="Mirage.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
-Call <code class="code">make build</code> in the right directory.<br>
-</div>
-<br>
-<h2 id="2_Extensions">Extensions</h2><br>
-
-<pre><span class="keyword">module type</span> <a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a> = <code class="code">sig</code> <a href="Mirage.CONFIGURABLE.html">..</a> <code class="code">end</code></pre>
-<pre><span id="VALimplementation"><span class="keyword">val</span> implementation</span> : <code class="type">'a -> 'b -> (module Mirage.CONFIGURABLE with type t = 'b) -> 'a <a href="Mirage.html#TYPEimpl">impl</a></code></pre><div class="info ">
-Extend the library with an external configuration.<br>
-</div>
-
-<pre><span id="VALappend_main"><span class="keyword">val</span> append_main</span> : <code class="type">('a, unit, string, unit) Pervasives.format4 -> 'a</code></pre><div class="info ">
-Add some string to <code class="code">main.ml</code>.<br>
-</div>
-
-<pre><span id="VALnewline_main"><span class="keyword">val</span> newline_main</span> : <code class="type">unit -> unit</code></pre><div class="info ">
-Add a newline to <code class="code">main.ml</code>.<br>
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Io_page.html">Io_page</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of IO page allocators.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Clock.html">Clock</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of clocks.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Time.html">Time</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of timers.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Random.html">Random</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of timers.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Console.html">Console</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of consoles.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Crunch.html">Crunch</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of crunch a local filesystem.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Direct_kv_ro.html">Direct_kv_ro</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of direct access to the filesystem as a key/value
-    read-only store.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Block.html">Block</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of raw block device.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Fat.html">Fat</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementatin of the Fat filesystem.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Network.html">Network</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><div class="info">
-Implementation of network configuration.
-</div>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Ethif.html">Ethif</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.IPV4.html">IPV4</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.IPV6.html">IPV6</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.UDP_direct.html">UDP_direct</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">V</code><code class="code"> : </code><code class="code">sig</code><div class="sig_block">
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
-
-</div><code class="code">end</code><code class="code">) -&gt; </code><code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></div></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.UDPV4_socket.html">UDPV4_socket</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.TCP_direct.html">TCP_direct</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">V</code><code class="code"> : </code><code class="code">sig</code><div class="sig_block">
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
-
-</div><code class="code">end</code><code class="code">) -&gt; </code><code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></div></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.TCPV4_socket.html">TCPV4_socket</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.STACKV4_direct.html">STACKV4_direct</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.STACKV4_socket.html">STACKV4_socket</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.Channel_over_TCP.html">Channel_over_TCP</a>: <div class="sig_block"><code class="code">functor (</code><code class="code">V</code><code class="code"> : </code><code class="code">sig</code><div class="sig_block">
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
-
-</div><code class="code">end</code><code class="code">) -&gt; </code><code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></div></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.HTTP.html">HTTP</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre>
-<pre><span class="keyword">module</span> <a href="Mirage.Job.html">Job</a>: <code class="type"><a href="Mirage.CONFIGURABLE.html">CONFIGURABLE</a></code><code class="type"> </code></pre><br>
-<h2 id="2_Generationoffreshnames">Generation of fresh names</h2><br>
-
-<pre><span class="keyword">module</span> <a href="Mirage.Name.html">Name</a>: <code class="code">sig</code> <a href="Mirage.Name.html">..</a> <code class="code">end</code></pre></body></html>
+</body></html>

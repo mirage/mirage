@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="Up" href="Mirage_runtime.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Mirage" rel="Chapter" href="Mirage.html">
+<link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
+<link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><link title="Mirage command-line arguments" rel="Section" href="#1_Miragecommandlinearguments">
+<link title="Mirage command-line argument converters" rel="Subsection" href="#2_Miragecommandlineargumentconverters">
+<title>Mirage_runtime.Arg</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="Mirage_runtime.html" title="Mirage_runtime">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Mirage_runtime.Arg.html">Mirage_runtime.Arg</a></h1>
+
+<pre><span class="keyword">module</span> Arg: <code class="code"><span class="keyword">sig</span></code> <a href="Mirage_runtime.Arg.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><hr width="100%">
+<br>
+<h1 id="1_Miragecommandlinearguments">Mirage command-line arguments</h1><br>
+
+<pre><span class="keyword">include</span> Functoria_runtime.Arg</pre>
+
+<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">(string -> 'a option) -> 'a Fmt.t -> 'a Cmdliner.Arg.converter</code></pre><div class="info ">
+<code class="code">make of_string pp</code> is the command-line argument converter using
+      on <code class="code">of_string</code> and <code class="code">pp</code>.<br>
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Mirage_runtime.Arg.S.html">S</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Mirage_runtime.Arg.S.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+<code class="code"><span class="constructor">S</span></code> is the signature used by <a href="Mirage_runtime.Arg.html#VALof_module"><code class="code"><span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.of_module</code></a> to create a
+      command-line argument converter.
+</div>
+
+<pre><span id="VALof_module"><span class="keyword">val</span> of_module</span> : <code class="type">(module Mirage_runtime.Arg.S with type t = 'a) -> 'a Cmdliner.Arg.converter</code></pre><div class="info ">
+<code class="code"><span class="keyword">of</span> <span class="keyword">module</span> (<span class="keyword">module</span> <span class="constructor">M</span>)</code> creates a command-line argyument
+      converter from a module satisfying the signature <a href="Mirage_runtime.Arg.S.html"><code class="code"><span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span></code></a>.<br>
+</div>
+<br>
+<h2 id="2_Miragecommandlineargumentconverters">Mirage command-line argument converters</h2><br>
+
+<pre><span id="VALip"><span class="keyword">val</span> ip</span> : <code class="type">Ipaddr.t Cmdliner.Arg.converter</code></pre><div class="info ">
+<code class="code">ip</code> converts IP address.<br>
+</div>
+
+<pre><span id="VALipv4"><span class="keyword">val</span> ipv4</span> : <code class="type">Ipaddr.V4.t Cmdliner.Arg.converter</code></pre><div class="info ">
+<code class="code">ipv4</code> converts IPv4 address.<br>
+</div>
+
+<pre><span id="VALipv6"><span class="keyword">val</span> ipv6</span> : <code class="type">Ipaddr.V6.t Cmdliner.Arg.converter</code></pre><div class="info ">
+<code class="code">ipv6</code>converts IPv6 address.<br>
+</div>
+
+<pre><span id="VALipv6_prefix"><span class="keyword">val</span> ipv6_prefix</span> : <code class="type">Ipaddr.V6.Prefix.t Cmdliner.Arg.converter</code></pre><div class="info ">
+<code class="code">ipv6_prefix</code> converts IPv6 prefixes.<br>
+</div>
+</body></html>

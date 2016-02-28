@@ -4,7 +4,7 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/ma
 script: bash -ex .travis-ci.sh
 env:
   global:
-  - PINS="mirage-skeleton.dev:https://github.com/Drup/mirage-skeleton.git#functoria"
+  - PINS="mirage-skeleton.dev:https://github.com/mirage/mirage-skeleton.git"
   matrix:
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01 PACKAGE=mirage

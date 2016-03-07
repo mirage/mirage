@@ -28,12 +28,24 @@ There are several diverse backends in MirageOS that require rather specialised
 build steps (from JavaScript to Xen unikernels), and this complexity is wrapped
 up in the tool.
 
-To work with Mirage, you'll need the following prerequisites installed:
+To work with `mirage`, you'll need to either install prerequisites
+locally or use the Docker image.
 
-* a working [OCaml](http://ocaml.org) compiler (4.02.1 or higher).
+**Local install**
+
+You will need the following:
+
+* a working [OCaml](http://ocaml.org) compiler (4.02.3 or higher).
 * the [OPAM](https://opam.ocaml.org) source package manager (1.2.0 or higher).
 * an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or
   MacOS X for the userlevel version.
+
+**Docker image**
+
+There is a maintained Docker image at
+[unikernel/mirage](https://hub.docker.com/r/unikernel/mirage/).
+
+### Using `mirage`
 
 There are two stages to using `mirage`:
 

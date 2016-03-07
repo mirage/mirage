@@ -1,12 +1,12 @@
-## Mirage
+## MirageOS
 
-Mirage is a programming framework for constructing secure, high-performance
-network applications across a variety of cloud computing and mobile platforms.
-Code can be developed on a normal OS such as Linux or MacOS X, and then compiled
-into a fully-standalone, specialised unikernel that runs under the Xen
-hypervisor. Since Xen powers most public cloud computing infrastructure such as
-Amazon EC2, this lets your servers run more cheaply, securely and finer control
-than with a full software stack.
+MirageOS is a library operating system that constructs unikernels for secure,
+high-performance network applications across a variety of cloud computing and
+mobile platforms. Code can be developed on a normal OS such as Linux or
+MacOS X, and then compiled into a fully-standalone, specialised unikernel that
+runs under the Xen hypervisor. Since Xen powers most public cloud computing
+infrastructure such as Amazon EC2 or Rackspace, this lets your servers run
+more cheaply, securely and with finer control than with a full software stack.
 
 The most up-to-date documentation can be found at the
 [homepage](https://mirage.io). The site is self-hosted and a useful
@@ -21,16 +21,16 @@ available online.
 
 This repository includes:
 
-* a command-line tool to create and deploy applications with Mirage; and
+* a command-line tool to create and deploy applications with MirageOS; and
 * in `types/`, a library of type signatures that compliant applications use.
 
-There are several diverse backends in Mirage that require rather specialised
+There are several diverse backends in MirageOS that require rather specialised
 build steps (from JavaScript to Xen unikernels), and this complexity is wrapped
 up in the tool.
 
 To work with Mirage, you'll need the following prerequisites installed:
 
-* a working [OCaml](http://ocaml.org) compiler (4.01.0 or higher).
+* a working [OCaml](http://ocaml.org) compiler (4.02.1 or higher).
 * the [OPAM](https://opam.ocaml.org) source package manager (1.2.0 or higher).
 * an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or
   MacOS X for the userlevel version.
@@ -40,14 +40,21 @@ There are two stages to using `mirage`:
 * a *configure* phase where OPAM package dependencies are satisfied.
 * a *build* phase where the compiler and any support scripts are run.
 
+You can find documentation, walkthroughs and tutorials over on the
+[MirageOS website](https://mirage.io).
+The [install instructions](https://mirage.io/wiki/install)
+are a good place to begin!
+
+<!-- AC: Commented out rather than deleting
+
 ### Configuration files
 
-`mirage` currently uses a configuration file to build a Mirage unikernel. While
+`mirage` currently uses a configuration file to build a MirageOS unikernel. While
 we're documenting it all, please see the `lib_test` directory in this repository
 for the regression examples. The latest instructions are also to be found at
-<http://openmirage.org/docs>
+<https://mirage.io/docs>
 
-### Configuring Mirage Applications
+### Configuring MirageOS Applications
 
 Provided that one and only one file of name `<foo>.conf` (where `<foo>` can be
 any string) is present in the current working directory, the command:
@@ -106,3 +113,4 @@ tools on your machine, build a unikernel with the `--xen` option and then use
 the `ec2.sh` script (in directory `script`) in order to register your kernel
 with AWS. Then you can start your kernel with the web interface to AWS or any
 other means AWS provides to start EC2 instances.
+-->

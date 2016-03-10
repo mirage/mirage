@@ -229,17 +229,17 @@ module type BLOCK = sig
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
+  type error = private [>
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Is_read_only      (** you cannot write to a read/only instance *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
   (** The type for IO operation errors. *)
 
-
   include DEVICE with
     type error := error
+
+  val pp_error : Format.formatter -> error -> unit
 
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)

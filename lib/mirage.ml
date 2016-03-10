@@ -217,8 +217,11 @@ class block_conf file =
          else (1 lsl 28)  lor (b.number lsl 8)) |> string_of_int
 
     method connect i s _ =
-      Printf.sprintf "%s.connect %S" s
-        (self#connect_name (get_target i) @@ Info.root i)
+      Format.sprintf "@[<v 2>%s.connect %S >|= function@ \
+                      | `Error e -> die \"@@[<v 2>Error connecting block device %%S:@@ %%a@@]\" %S Block.pp_error e@ \
+                      | `Ok _ as ok -> ok@]" s
+      (self#connect_name (get_target i) @@ Info.root i)
+      file
 
   end
 
@@ -1525,6 +1528,9 @@ module Project = struct
   let version = Mirage_version.current
   let prelude =
     "open Lwt\n\
+     let die fmt =\n\
+       Format.kfprintf (fun _ -> exit 1) Format.err_formatter\n\
+         (\"*** Setup failure ***@\\n@\\n\" ^^ fmt ^^ \"@.\")\n\
      let run = OS.Main.run"
   let driver_error = driver_error
 

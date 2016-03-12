@@ -1329,20 +1329,17 @@ let configure_makefile ~target ~root ~name info =
   append fmt "PKGS   = %s" packages;
   begin match target with
     | `Xen  ->
-      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,\
+      append fmt "SYNTAX = -tags \"annot,bin_annot,\
                   strict_sequence,principal\"\n";
-      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
       append fmt "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
-      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,\
+      append fmt "SYNTAX = -tags \"annot,bin_annot,\
                   strict_sequence,principal\"\n";
-      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
     | `MacOSX ->
-      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,\
+      append fmt "SYNTAX = -tags \"annot,bin_annot,\
                   strict_sequence,principal,thread\"\n";
-      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
   append fmt "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\

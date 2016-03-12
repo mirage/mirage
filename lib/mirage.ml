@@ -1327,24 +1327,23 @@ let configure_makefile ~target ~root ~name info =
   newline fmt;
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
+  let default_tags =
+    "warn_error(+1..49),warn(A-4-41-44),debug,bin_annot,\
+     strict_sequence,principal"
+  in
   begin match target with
     | `Xen  ->
-      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,\
-                  strict_sequence,principal\"\n";
-      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
+      append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
       append fmt "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
-      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,\
-                  strict_sequence,principal\"\n";
-      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
+      append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
     | `MacOSX ->
-      append fmt "SYNTAX = -tags \"syntax(camlp4o),annot,bin_annot,\
-                  strict_sequence,principal,thread\"\n";
-      append fmt "SYNTAX += -tag-line \"<static*.*>: -syntax(camlp4o)\"\n";
+      append fmt "SYNTAX = -tags \"thread,%s\"\n" default_tags;
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
+  append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32)\"\n";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
               export PKG_CONFIG_PATH=$(shell opam config var prefix)\

@@ -303,12 +303,13 @@ module type NETWORK = sig
   type buffer
   (** The type for memory buffers. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
+  type error = private [>
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
   (** The type for IO operation errors *)
+
+  val pp_error : Format.formatter -> error -> unit
 
   type macaddr
   (** The type for unique MAC identifiers for the device. *)

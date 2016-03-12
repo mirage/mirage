@@ -361,7 +361,10 @@ let network_conf (intf : string Key.key) =
     method libraries = self#packages
 
     method connect _ modname _ =
-      Fmt.strf "%s.connect %a" modname Key.serialize_call key
+      Fmt.strf "@[<v 2>%s.connect %a >|= function@ \
+                | `Error e -> die \"@@[<v 2>Error connecting network device %%S:@@ %%a@@]\" %a Netif.pp_error e@ \
+                | `Ok _ as ok -> ok@]"
+      modname Key.serialize_call key Key.serialize_call key
 
     method configure i =
       all_networks := Key.get (Info.context i) intf :: !all_networks;

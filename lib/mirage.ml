@@ -1343,6 +1343,7 @@ let configure_makefile ~target ~root ~name info =
       append fmt "SYNTAX = -tags \"thread,%s\"\n" default_tags;
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
   end;
+  append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32)\"\n";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
               export PKG_CONFIG_PATH=$(shell opam config var prefix)\

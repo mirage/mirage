@@ -427,6 +427,10 @@ module type IP = sig
       assumes that frame is of the form returned by [allocate_frame],
       i.e., that it contains the link-layer part. *)
 
+  val pseudoheader : t -> dst:ipaddr -> proto:[< `TCP | `UDP ] -> int -> Cstruct.t
+  (** [pseudoheader t dst proto len] gives a pseudoheader suitable for use in
+      TCP checksum calculation based on [t]. *)
+
   val get_source: t -> dst:ipaddr -> ipaddr
   (** [get_source ip ~dst] is the source address to be used to send a
       packet to [dst]. *)

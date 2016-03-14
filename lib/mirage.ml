@@ -1398,10 +1398,10 @@ let check_ocaml_version () =
   let major, minor, patch = ocaml_version in
   if major < 4 ||
      (major = 4 && minor < 2) ||
-     (major = 4 && minor = 2 && minor < 3)
+     (major = 4 && minor = 2 && patch < 3)
   then (
     Log.error
-      "Your version of OCaml (%d.%2d.%d) is not supported. Please upgrade to\n\
+      "Your version of OCaml (%d.%02d.%d) is not supported. Please upgrade to\n\
        at least OCaml 4.02.3 or use `--no-ocaml-version-check`."
       major minor patch
   ) else

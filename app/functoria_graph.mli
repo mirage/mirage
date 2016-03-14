@@ -24,7 +24,7 @@ type subconf = <
   keys       : key list;
   packages   : string list value;
   libraries  : string list value;
-  connect    : Info.t -> string -> string list -> string;
+  connect_raw: error:(string -> string) -> names:string list -> info:Info.t -> modname:string -> Format.formatter -> unit;
   configure  : Info.t -> (unit, string) Rresult.result;
   clean      : Info.t -> (unit, string) Rresult.result;
 >

@@ -42,6 +42,7 @@ val mprof_trace : size:int -> unit -> tracing
 
 val register :
   ?tracing:tracing ->
+  ?log:(job impl -> job impl) ->
   ?keys:Key.t list ->
   ?libraries:string list ->
   ?packages:string list -> string -> job impl list -> unit
@@ -51,7 +52,8 @@ val register :
     @param packages The opam packages needed by this module.
     @param keys The keys related to this module.
 
-    @param tracing Enable tracing and give a default depth.
+    @param tracing Enable tracing.
+    @param log Replace the default logger ({!mirage_logs}). To disable logging, pass the identity function.
 *)
 
 
@@ -79,6 +81,28 @@ val clock: clock typ
 val default_clock: clock impl
 (** The default mirage-clock implementation. *)
 
+
+(** {2 Logging} *)
+
+type logger
+(** Abstract type for loggers. *)
+
+val logger: logger typ
+
+val mirage_logs: ?clock:clock impl -> unit -> logger impl
+(** [mirage_logs ?clock ()] is a log reporter that prints log messages to the console,
+    timestampted with [clock] (default: [default_clock]). *)
+
+val with_logger:
+  ?level:[`Error | `Warning | `Info | `Debug] ->
+  logger impl ->
+  job impl ->
+  job impl
+(** [with_logger ?level logger job] is a job that behaves like [job], but wrapped by
+    [logger].
+    It initialises the log level to [level] (default: [`Info]), connects
+    [logger] and then connects [job] in a context provided by [logger].
+    It avoids forcing [job]'s dependencies until logging is set up. *)
 
 
 (** {2 Random} *)

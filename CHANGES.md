@@ -1,12 +1,14 @@
 ### 2.7.1 (trunk)
 
 * Improve the Dockerfile (#507, by @avsm)
+* Use Astring
 * Clean-up dependencies automatically added by the tool
   - do not require `lwt.syntax`, `cstruct.syntax` and `sexplib`, which
     should make the default unikernels camlp4-free (#510, #515 by @samoht)
   - always require `mirage-platform` (#512, by @talex5)
   - ensure that `mirage-types` >= 2.6.0 and `mirage-types-lwt` are
     installed
+* Check that the OCaml compiler is at least 4.02.3
 
 ### 2.7.0 (2016-02-17)
 

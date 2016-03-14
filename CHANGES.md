@@ -1,3 +1,12 @@
+### 2.7.1 (trunk)
+
+* Improve the Dockerfile (#507, by @avsm)
+* Clean-up dependencies automatically added by the tool
+  - do not require `lwt.syntax`, `cstruct.syntax` and `sexplib`, which
+    should make the default unikernels camlp4-free (#510, #515 by @samoht)
+  - always require `mirage-platform` (#512, by @talex5)
+
+
 ### 2.7.0 (2016-02-17)
 
 The mirage tool is now based on functoria. (#441 #450, by @drup @samoht)

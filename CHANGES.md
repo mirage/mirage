@@ -5,7 +5,8 @@
   - do not require `lwt.syntax`, `cstruct.syntax` and `sexplib`, which
     should make the default unikernels camlp4-free (#510, #515 by @samoht)
   - always require `mirage-platform` (#512, by @talex5)
-
+  - ensure that `mirage-types` >= 2.6.0 and `mirage-types-lwt` are
+    installed
 
 ### 2.7.0 (2016-02-17)
 

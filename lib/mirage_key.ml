@@ -140,6 +140,14 @@ let xen =
   let alias = Alias.add target setter alias in
   Key.alias "xen" alias
 
+let no_ocaml_check =
+  let doc = "Bypass the OCaml compiler version checks." in
+  let doc =
+    Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["no-ocaml-version-check"]
+  in
+  let key = Arg.flag ~stage:`Configure doc in
+  Key.create "ocaml_version_check" key
+
 (** {3 Tracing} *)
 
 let tracing_size default =

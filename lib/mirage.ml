@@ -1380,10 +1380,42 @@ let configure_makefile ~target ~root ~name info =
 
 let clean_makefile ~root = Cmd.remove (root / "Makefile")
 
+let check_ocaml_version () =
+  (* Similar to [Functoria_app.Cmd.ocaml_version] but with the patch number *)
+  let ocaml_version =
+    let version =
+      let v = Sys.ocaml_version in
+      match String.cut v ~sep:"+" with None -> v | Some (v, _) -> v
+    in
+    match String.cuts version ~sep:"." with
+    | [major; minor; patch] ->
+      begin
+        try int_of_string major, int_of_string minor, int_of_string patch
+        with _ -> 0, 0, 0
+      end
+    | _ -> 0, 0, 0
+  in
+  let major, minor, patch = ocaml_version in
+  if major < 4 ||
+     (major = 4 && minor < 2) ||
+     (major = 4 && minor = 2 && minor < 3)
+  then (
+    Log.error
+      "Your version of OCaml (%d.%2d.%d) is not supported. Please upgrade to\n\
+       at least OCaml 4.02.3 or use `--no-ocaml-version-check`."
+      major minor patch
+  ) else
+    R.ok ()
+
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
   let target = Key.(get (Info.context i) target) in
+  let ocaml_check = not (Key.(get (Info.context i) no_ocaml_check)) in
+  begin
+    if ocaml_check then check_ocaml_version ()
+    else R.ok ()
+  end >>= fun () ->
   check_entropy @@ Info.libraries i >>= fun () ->
   Log.info "%a %a" Log.blue "Configuring for target:" Key.pp_target target ;
   Cmd.in_dir root (fun () ->
@@ -1426,6 +1458,7 @@ module Project = struct
         Key.(abstract target);
         Key.(abstract unix);
         Key.(abstract xen);
+        Key.(abstract no_ocaml_check);
       ]
 
       method packages =

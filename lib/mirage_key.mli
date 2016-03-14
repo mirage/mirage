@@ -44,6 +44,9 @@ val unix: bool key
 val xen: bool key
 (** [--xen]. Set {!target} to [`Xen]. *)
 
+val no_ocaml_check: bool key
+(** [--no-ocaml-check]. Do not check the version of the compiler. *)
+
 val tracing_size: int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)
 

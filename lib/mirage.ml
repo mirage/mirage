@@ -1461,7 +1461,7 @@ module Project = struct
       ]
 
       method packages =
-        let l = [ "lwt"; "sexplib" ] in
+        let l = [ "lwt"; "sexplib"; "mirage-types-lwt" ] in
         Key.(if_ is_xen) ("mirage-xen" :: l) ("mirage-unix" :: l)
 
       method libraries =

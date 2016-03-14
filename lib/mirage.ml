@@ -1461,14 +1461,11 @@ module Project = struct
       ]
 
       method packages =
-        let l = [ "lwt"; "sexplib"; "mirage-types-lwt" ] in
+        let l = [ "lwt"; "mirage-types"; "mirage-types-lwt" ] in
         Key.(if_ is_xen) ("mirage-xen" :: l) ("mirage-unix" :: l)
 
       method libraries =
-        let l = [
-          "lwt.syntax" ; "mirage.runtime" ;
-          "mirage-types.lwt" ; "sexplib"
-        ] in
+        let l = [ "mirage.runtime"; "mirage-types.lwt" ] in
         Key.(if_ is_xen) ("mirage-xen" :: l) ("mirage-unix" :: l)
 
       method configure = configure

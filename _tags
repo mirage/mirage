@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: c50d20c5631ef5b982eb1c6ead8daad3)
+# DO NOT EDIT (digest: 4e91f4fbdf06d99d4c740d67793a5f80)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,17 +16,20 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Library mirage-runtime
 "lib_runtime/mirage-runtime.cmxs": use_mirage-runtime
+<lib_runtime/*.ml{,i,y}>: pkg_astring
 <lib_runtime/*.ml{,i,y}>: pkg_functoria.runtime
 <lib_runtime/*.ml{,i,y}>: pkg_ipaddr
 # Library mirage
 "lib/mirage.cmxs": use_mirage
 # Executable mirage
+<lib/main.{native,byte}>: pkg_astring
 <lib/main.{native,byte}>: pkg_functoria
 <lib/main.{native,byte}>: pkg_functoria.app
 <lib/main.{native,byte}>: pkg_functoria.runtime
 <lib/main.{native,byte}>: pkg_ipaddr
 <lib/main.{native,byte}>: use_mirage
 <lib/main.{native,byte}>: use_mirage-runtime
+<lib/*.ml{,i,y}>: pkg_astring
 <lib/*.ml{,i,y}>: pkg_functoria
 <lib/*.ml{,i,y}>: pkg_functoria.app
 <lib/*.ml{,i,y}>: pkg_functoria.runtime

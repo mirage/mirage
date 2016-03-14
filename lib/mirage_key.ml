@@ -16,42 +16,7 @@
 
 module Key = Functoria_key
 module Alias = Key.Alias
-
-(* FIXME: replace by Astring *)
-module X = struct
-  let strip str =
-    let p = ref 0 in
-    let l = String.length str in
-    let fn = function
-      | ' ' | '\t' | '\r' | '\n' -> true
-      | _ -> false in
-    while !p < l && fn (String.unsafe_get str !p) do
-      incr p;
-    done;
-    let p = !p in
-    let l = ref (l - 1) in
-    while !l >= p && fn (String.unsafe_get str !l) do
-      decr l;
-    done;
-    String.sub str p (!l - p + 1)
-
-  let cut_at s sep =
-    try
-      let i = String.index s sep in
-      let name = String.sub s 0 i in
-      let version = String.sub s (i+1) (String.length s - i - 1) in
-      Some (name, version)
-    with _ ->
-      None
-
-  let split s sep =
-    let rec aux acc r =
-      match cut_at r sep with
-      | None       -> List.rev (r :: acc)
-      | Some (h,t) -> aux (strip h :: acc) t in
-    aux [] s
-
-end
+open Astring
 
 (** {2 Custom Descriptions} *)
 
@@ -120,7 +85,7 @@ let default_unix = lazy (
         match Functoria_app.Cmd.uname_r () with
         | None -> false
         | Some vs ->
-          match X.split vs '.' with
+          match String.cuts vs ~sep:"." with
           | [] -> false
           | hd::_ -> begin
               let v = try int_of_string hd with _ -> 0 in
@@ -188,7 +153,7 @@ let tracing_size default =
 let create_simple ?(group="") ?(stage=`Both) ~doc ~default conv name =
   let prefix = if group = "" then group else group^"-" in
   let doc =
-    Arg.info ~docs:unikernel_section ~docv:(String.uppercase name) ~doc
+    Arg.info ~docs:unikernel_section ~docv:(String.Ascii.uppercase name) ~doc
       [prefix ^ name]
   in
   let key = Arg.opt ~stage conv default doc in

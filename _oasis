@@ -12,7 +12,7 @@ Library "mirage-runtime"
   Findlibparent:      mirage
   Findlibname:        runtime
   Modules:            Mirage_runtime, Mirage_info
-  BuildDepends:       functoria.runtime, ipaddr
+  BuildDepends:       functoria.runtime, ipaddr, astring
 
 Library mirage
   CompiledObject:     best

@@ -21,6 +21,8 @@ remove: [
   ["ocamlfind" "remove" "mirage"]
 ]
 depends: [
+  "mirage-types-lwt"
+  "mirage-types" {>= "2.6.0"}
   "ipaddr"       {>= "2.6.0"}
   "functoria"
 ]

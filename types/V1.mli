@@ -362,12 +362,13 @@ module type ETHIF = sig
   type netif
   (** The type for ethernet network interfaces. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
+  type error = private [>
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
   (** The type for IO operation errors. *)
+
+  val pp_error : Format.formatter -> error -> unit
 
   type macaddr
   (** The type for unique MAC identifiers. *)
@@ -410,15 +411,8 @@ module type IP = sig
   type prefix
   (** The type for IP prefixes. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-  ]
-  (** The type for IO operation errors. *)
-
   include DEVICE with
-        type error := error
-    and type id    := ethif
+    type id := ethif
 
   type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
   (** An input continuation used by the parsing functions to pass on
@@ -597,14 +591,8 @@ module type UDP = sig
       conventional kernel, but a direct implementation will parse the
       buffer. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-  ]
-  (** The type for IO operation errors. *)
-
   include DEVICE with
-      type error := error
-  and type id := ip
+    type id := ip
 
   type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
   (** The type for callback functions that adds the UDP metadata for
@@ -649,12 +637,13 @@ module type TCP = sig
   (** A flow represents the state of a single TCPv4 stream that is connected
       to an endpoint. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error. *)
+  type error = private [>
     | `Timeout  (** connection attempt did not get a valid response. *)
     | `Refused  (** connection attempt was actively refused via an RST. *)
   ]
   (** The type for IO operation errors. *)
+
+  val pp_error : Format.formatter -> error -> unit
 
   include DEVICE with
       type error := error
@@ -736,14 +725,7 @@ module type STACKV4 = sig
   type ipv4
   (** The type for IPv4 stacks. *)
 
-  type error = [
-    | `Unknown of string
-  ]
-  (** The type for I/O operation errors. *)
-
-  include DEVICE with
-    type error := error
-    and type id = (netif, mode) config
+  include DEVICE
 
   module UDPV4: UDP
     with type +'a io = 'a io

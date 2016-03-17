@@ -1,4 +1,4 @@
-### 2.7.1 (trunk)
+### 2.7.1 (2016-03-17)
 
 * Improve the Dockerfile (#507, by @avsm)
 * Use Astring

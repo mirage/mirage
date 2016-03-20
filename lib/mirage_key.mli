@@ -47,6 +47,10 @@ val xen: bool key
 val no_ocaml_check: bool key
 (** [--no-ocaml-check]. Do not check the version of the compiler. *)
 
+val warn_error: bool key
+(** [--warn-error]. Enable {i -warn-error} for OCaml sources. Set to [false] by
+    default, but might might enabled by by default later. *)
+
 val tracing_size: int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)
 

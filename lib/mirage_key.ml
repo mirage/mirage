@@ -148,6 +148,12 @@ let no_ocaml_check =
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "ocaml_version_check" key
 
+let warn_error =
+  let doc = "Enable -warn-error when compiling OCaml sources." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["warn-error"] in
+  let key = Arg.(opt ~stage:`Configure bool false doc) in
+  Key.create "warn_error" key
+
 (** {3 Tracing} *)
 
 let tracing_size default =

@@ -1,3 +1,8 @@
+### 2.7.2 (2016-03-20)
+
+* Fix regression introduce in 2.7.1 which truncates the ouput of
+  `opam install` and breaks `opam depext` (#519, by @samoht)
+
 ### 2.7.1 (2016-03-17)
 
 * Improve the Dockerfile (#507, by @avsm)

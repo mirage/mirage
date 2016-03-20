@@ -18,8 +18,6 @@
 open Rresult
 open Astring
 
-let mirage_types_version = ">=2.6.0"
-
 module Key = Mirage_key
 module Name = Functoria_app.Name
 module Cmd = Functoria_app.Cmd
@@ -1462,9 +1460,7 @@ module Project = struct
       ]
 
       method packages =
-        let l = [
-          "lwt"; "mirage-types" ^ mirage_types_version; "mirage-types-lwt"
-        ] in
+        let l = [ "lwt"; "mirage-types"; "mirage-types-lwt" ] in
         Key.(if_ is_xen) ("mirage-xen" :: l) ("mirage-unix" :: l)
 
       method libraries =

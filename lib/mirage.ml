@@ -1276,7 +1276,7 @@ let configure_myocamlbuild_ml ~root =
 
 let clean_myocamlbuild_ml ~root = Cmd.remove (root / "myocamlbuild.ml")
 
-let configure_makefile ~target ~root ~name info =
+let configure_makefile ~target ~root ~name ~warn_error info =
   let open Codegen in
   let file = root / "Makefile" in
   let libs = Info.libraries info in
@@ -1294,6 +1294,7 @@ let configure_makefile ~target ~root ~name info =
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
   let default_tags =
+    (if warn_error then "warn_error(+1..49)," else "") ^
     "warn(A-4-41-44),debug,bin_annot,\
      strict_sequence,principal,safe_string"
   in
@@ -1408,8 +1409,10 @@ let check_ocaml_version () =
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
-  let target = Key.(get (Info.context i) target) in
-  let ocaml_check = not (Key.(get (Info.context i) no_ocaml_check)) in
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
+  let ocaml_check = not Key.(get ctx no_ocaml_check) in
+  let warn_error = Key.(get ctx warn_error) in
   begin
     if ocaml_check then check_ocaml_version ()
     else R.ok ()
@@ -1422,7 +1425,7 @@ let configure i =
       configure_main_xe ~root ~name;
       configure_main_libvirt_xml ~root ~name;
       configure_myocamlbuild_ml ~root;
-      configure_makefile ~target ~root ~name i;
+      configure_makefile ~target ~root ~name ~warn_error i;
     )
 
 let clean i =
@@ -1457,6 +1460,7 @@ module Project = struct
         Key.(abstract unix);
         Key.(abstract xen);
         Key.(abstract no_ocaml_check);
+        Key.(abstract warn_error);
       ]
 
       method packages =

@@ -1,6 +1,14 @@
+### 2.7.3 (2016-03-20)
+
+* Fix another regression introduced in 2.7.1 which enable
+  `-warn-error` by default. This is now controlled by a
+  `--warn-error` flag on `mirage configure`. Currently it's
+  default value is [false] but this might change in future
+  versions (#520)
+
 ### 2.7.2 (2016-03-20)
 
-* Fix regression introduce in 2.7.1 which truncates the ouput of
+* Fix regression introduced in 2.7.1 which truncates the ouput of
   `opam install` and breaks `opam depext` (#519, by @samoht)
 
 ### 2.7.1 (2016-03-17)
@@ -12,6 +20,7 @@
     should make the default unikernels camlp4-free (#510, #515 by @samoht)
   - always require `mirage-platform` (#512, by @talex5)
   - ensure that `mirage-types` and `mirage-types-lwt` are installed
+* Turn on more warnings and enable "warning as errors".
 * Check that the OCaml compiler is at least 4.02.3 (by @samoht)
 
 ### 2.7.0 (2016-02-17)

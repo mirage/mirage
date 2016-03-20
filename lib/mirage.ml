@@ -1294,7 +1294,7 @@ let configure_makefile ~target ~root ~name info =
   append fmt "LIBS   = %s" libraries;
   append fmt "PKGS   = %s" packages;
   let default_tags =
-    "warn_error(+1..49),warn(A-4-41-44),debug,bin_annot,\
+    "warn(A-4-41-44),debug,bin_annot,\
      strict_sequence,principal,safe_string"
   in
   begin match target with

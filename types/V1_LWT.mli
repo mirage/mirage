@@ -67,6 +67,17 @@ module type IPV6 = IPV6
    and type prefix = Ipaddr.V6.Prefix.t
    and type uipaddr = Ipaddr.t
 
+(** ICMP module *)
+module type ICMP = ICMP
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+
+(** ICMPV4 module *)
+module type ICMPV4 = ICMPV4
+  with type 'a io = 'a Lwt.t
+   and type buffer = Cstruct.t
+   and type ipaddr = Ipaddr.V4.t
+
 (** UDP stack *)
 module type UDP = UDP
   with type 'a io = 'a Lwt.t

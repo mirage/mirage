@@ -4,7 +4,7 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/ma
 script: bash -ex .travis-ci.sh
 env:
   global:
-          - PINS="mirage-skeleton.dev:https://github.com/mirage/mirage-skeleton.git tcpip:https://github.com/yomimono/mirage-tcpip.git#icmp_refactor"
+          - PINS="mirage-skeleton.dev:https://github.com/yomimono/mirage-skeleton.git#charrua-0.3 tcpip:https://github.com/yomimono/mirage-tcpip.git#icmp_refactor mirage-types:https://github.com/yomimono/mirage.git#icmp_type mirage:https://github.com/yomimono/mirage.git#icmp_type charrua-core:https://github.com/haesbaert/charrua-core.git"
   matrix:
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage-types

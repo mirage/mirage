@@ -429,7 +429,7 @@ module type IP = sig
 
   val pseudoheader : t -> dst:ipaddr -> proto:[< `TCP | `UDP ] -> int -> Cstruct.t
   (** [pseudoheader t dst proto len] gives a pseudoheader suitable for use in
-      TCP checksum calculation based on [t]. *)
+      TCP or UDP checksum calculation based on [t]. *)
 
   val get_source: t -> dst:ipaddr -> ipaddr
   (** [get_source ip ~dst] is the source address to be used to send a

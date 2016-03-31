@@ -1,10 +1,22 @@
 language: c
-sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
-script: bash -ex .travis-ci.sh
+sudo: false
+services:
+  - docker
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-docker.sh
+script: bash -ex .travis-docker.sh
 env:
   global:
-  - PINS="mirage-skeleton.dev:https://github.com/mirage/mirage-skeleton.git"
+   - PINS="mirage-skeleton.dev:https://github.com/yomimono/mirage-skeleton.git#charrua-0.3 tcpip:https://github.com/yomimono/mirage-tcpip.git#icmp_refactor mirage-types:https://github.com/yomimono/mirage.git#icmp_type mirage:https://github.com/yomimono/mirage.git#icmp_type charrua-core:https://github.com/haesbaert/charrua-core.git"
+   - PACKAGE="mirage"
+   - POST_INSTALL_HOOK="./.travis-ci.sh"
   matrix:
-  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage
-  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PACKAGE=mirage-types
+   - DISTRO=debian-stable OCAML_VERSION=4.02.3
+   - DISTRO=debian-testing OCAML_VERSION=4.02.3
+   - DISTRO=debian-unstable OCAML_VERSION=4.02.3
+   - DISTRO=ubuntu-12.04 OCAML_VERSION=4.01.0
+   - DISTRO=ubuntu-15.10 OCAML_VERSION=4.02.3
+   - DISTRO=ubuntu-16.04 OCAML_VERSION=4.02.3
+   - DISTRO=centos-6 OCAML_VERSION=4.01.0
+   - DISTRO=centos-7 OCAML_VERSION=4.02.3
+   - DISTRO=fedora-23 OCAML_VERSION=4.02.3
+   - DISTRO=alpine-3.3 OCAML_VERSION=4.02.3

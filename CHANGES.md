@@ -1,3 +1,8 @@
+### 2.7.4
+
+* Switch to multidistro Travis scripts.
+* Add an `ICMP` and `ICMPv4` module type.
+
 ### 2.7.3 (2016-03-20)
 
 * Fix another regression introduced in 2.7.1 which enable

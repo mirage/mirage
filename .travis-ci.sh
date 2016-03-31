@@ -1,4 +1,4 @@
-bash -ex .travis-opam.sh
+#!/bin/sh -ex
 
 eval `opam config env`
 opam install mirage -y

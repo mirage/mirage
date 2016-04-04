@@ -11,5 +11,5 @@ depends: [
   "cstruct" {>= "1.4.0"}
   "io-page" {>= "1.4.0"}
   "ipaddr"
-  "mirage-types" {>= "2.6.0"}
+  "mirage-types" {>= "2.8.0"}
 ]

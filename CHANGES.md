@@ -1,3 +1,8 @@
+### 2.8.0 (2016-04-04)
+
+* Define an ICMP and ICMPV4 module type.  ICMPV4 is included in, and surfaced by, the STACKV4 module type.  The previous default behavior of the IPv4 module with respect to ICMP is preserved by STACKV4 and the tcpip_stack_direct function provided by mirage. (#523, by @yomimono)
+* Explicitly require OCaml compiler version 4.02.3 in opam files for mirage-types and mirage.
+
 ### 2.7.3 (2016-03-20)
 
 * Fix another regression introduced in 2.7.1 which enable

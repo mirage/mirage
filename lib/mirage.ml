@@ -513,6 +513,27 @@ let create_ipv6
   let gateways = Key.V6.gateways ?group gateways in
   ipv6_conf ~address ~netmask ~gateways () $ etif $ time $ clock
 
+type 'a icmp = ICMP
+type icmpv4 = v4 icmp
+
+let icmp = Type ICMP
+let icmpv4: icmpv4 typ = icmp
+
+let icmpv4_direct_conf () = object
+  inherit base_configurable
+  method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
+  method name = "icmpv4"
+  method module_name = "Icmpv4.Make"
+  method packages = Key.pure [ "tcpip" ]
+  method libraries = Key.pure [ "tcpip.icmpv4" ]
+  method connect _ modname = function
+    | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
+    | _  -> failwith "The icmpv4 connect should receive exactly one argument."
+end
+
+let icmpv4_direct_func () = impl (icmpv4_direct_conf ())
+let direct_icmpv4 ip = icmpv4_direct_func () $ ip
+
 type 'a udp = UDP
 type udpv4 = v4 udp
 type udpv6 = v6 udp
@@ -617,7 +638,7 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
 
     method ty =
       console @-> time @-> random @-> network @->
-      ethernet @-> arpv4 @-> ipv4 @-> udpv4 @-> tcpv4 @->
+      ethernet @-> arpv4 @-> ipv4 @-> icmpv4 @-> udpv4 @-> tcpv4 @->
       stackv4
 
     val name =
@@ -641,15 +662,15 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
     method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
 
     method connect _i modname = function
-      | [ console; _t; _r; interface; ethif; arp; ip; udp; tcp ] ->
+      | [ console; _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
         Fmt.strf
           "@[<2>let config = {V1_LWT.@ \
            name = %S;@ console = %s;@ \
            interface = %s;@ mode = %a }@]@ in@ \
-           %s.connect config@ %s %s %s %s %s"
+           %s.connect config@ %s %s %s %s %s %s"
           name console
           interface  pp_stackv4_config config
-          modname ethif arp ip udp tcp
+          modname ethif arp ip icmp udp tcp
       | _ -> failwith "Wrong arguments to connect to tcpip direct stack."
 
   end
@@ -667,6 +688,7 @@ let direct_stackv4_with_config
   stackv4_direct_conf ?group config
   $ console $ time $ random $ network
   $ eth $ arp $ ip
+  $ direct_icmpv4 ip
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 

@@ -522,6 +522,27 @@ module type IPV6 = sig
   include IP
 end
 
+(** {1 ICMP module} *)
+module type ICMP = sig
+  include DEVICE
+
+  type ipaddr
+  type buffer
+
+  val pp_of_error : Format.formatter -> error -> unit
+  (** pretty-print an error. *)
+
+  val input : t -> src:ipaddr -> dst:ipaddr -> buffer -> unit io
+(** [input t src dst buffer] reacts to the ICMP message in [buffer]. *)
+
+  val write : t -> dst:ipaddr -> buffer -> unit io
+(** [write t dst buffer] sends the ICMP message in [buffer] to [dst] over IP. *)
+end
+
+module type ICMPV4 = sig
+  include ICMP
+end
+
 (** {1 UDP stack}
 
     A UDP stack that can send and receive datagrams. *)

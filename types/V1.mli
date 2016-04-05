@@ -529,7 +529,7 @@ module type ICMP = sig
   type ipaddr
   type buffer
 
-  val pp_of_error : Format.formatter -> error -> unit
+  val pp_error : Format.formatter -> error -> unit
   (** pretty-print an error. *)
 
   val input : t -> src:ipaddr -> dst:ipaddr -> buffer -> unit io

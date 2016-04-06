@@ -14,4 +14,4 @@ depends:   ["ocamlfind"]
 depopts:   ["lwt" "cstruct" "io-page" "ipaddr"]
 conflicts: ["ipaddr" {< "2.0.0"}]
 
-available: [ocaml-version >= "4.01.0"]
+available: [ocaml-version >= "4.02.3"]

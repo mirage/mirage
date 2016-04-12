@@ -7,5 +7,4 @@ env:
   - PACKAGE=functoria
   - PINS="mirage-skeleton.dev:https://github.com/mirage/mirage-skeleton.git"
   matrix:
-  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.01
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02

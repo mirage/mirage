@@ -83,7 +83,7 @@ module rec Typ: sig
     method keys: Key.t list
     method packages: string list Key.value
     method libraries: string list Key.value
-    method connect: Info.t -> string -> string list -> string
+    method connect_raw: error:(string -> string) -> names:string list -> info:Info.t -> modname:string -> Format.formatter -> unit
     method configure: Info.t -> (unit, string) R.t
     method clean: Info.t -> (unit, string) R.t
     method deps: abstract_impl list
@@ -94,7 +94,7 @@ end = Typ
 include Typ
 
 let ($) f x = App { f; x }
-let impl x = Impl x
+let impl x = Impl (x :> _ configurable)
 let abstract x = Abstract x
 let if_impl b x y = If(b,x,y)
 
@@ -102,12 +102,37 @@ let rec match_impl kv ~default = function
   | [] -> default
   | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
 
-class base_configurable = object
+type connecting_input = string
+
+let meta_init fmt connect_name =
+  Fmt.pf fmt "let __%s =@[@ Lazy.force %s @]in@ " connect_name connect_name;
+  connect_name
+
+let meta_connect error fmt connect_name =
+  (* We avoid potential collision between double application
+     by prefixing with "_". This also avoid warnings. *)
+  Fmt.pf fmt
+    "__%s >>= function@ \
+     | `Error _e -> %s@ \
+     | `Ok _%s ->@ "
+    connect_name
+    (error connect_name)
+    connect_name;
+  "_" ^ connect_name
+
+class base_configurable = object (self)
   method libraries: string list Key.value = Key.pure []
   method packages: string list Key.value = Key.pure []
   method keys: Key.t list = []
-  method connect (_:Info.t) (_:string) l =
+
+  method connect_raw ~error ~names ~info ~modname fmt =
+    let connecting = List.map (meta_init fmt) names in
+    let instances = List.map (meta_connect error fmt) connecting in
+    Fmt.pf fmt "%s" (self#connect info modname instances)
+
+  method private connect (_:Info.t) (_:string) (l:string list) =
     Printf.sprintf "return (`Ok (%s))" (String.concat ", " l)
+
   method configure (_: Info.t): (unit,string) R.t = R.ok ()
   method clean (_: Info.t): (unit,string) R.t = R.ok ()
   method deps: abstract_impl list = []
@@ -122,20 +147,21 @@ class ['ty] foreign
   =
   let name = Name.create module_name ~prefix:"f" in
   object
+    inherit base_configurable
     method ty = ty
     method name = name
     method module_name = module_name
-    method keys = keys
-    method libraries = Key.pure libraries
-    method packages = Key.pure packages
-    method connect _ modname args =
+    method! keys = keys
+    method! libraries = Key.pure libraries
+    method! packages = Key.pure packages
+    method! private connect _ modname args =
       Fmt.strf
         "@[%s.start@ %a@ >>= fun t -> Lwt.return (`Ok t)@]"
         modname
         Fmt.(list ~sep:sp string)  args
-    method clean _ = R.ok ()
-    method configure _ = R.ok ()
-    method deps = deps
+    method! clean _ = R.ok ()
+    method! configure _ = R.ok ()
+    method! deps = deps
   end
 
 let foreign ?packages ?libraries ?keys ?deps module_name ty =

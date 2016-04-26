@@ -49,7 +49,7 @@ type subconf = <
   keys: Key.t list;
   packages: string list Key.value;
   libraries: string list Key.value;
-  connect_raw: error:(string -> string) -> names:string list -> info:Info.t -> modname:string -> Format.formatter -> unit;
+  connect: Info.t -> string -> string list -> string;
   configure: Info.t -> (unit, string) Rresult.result;
   clean: Info.t -> (unit, string) Rresult.result;
 >

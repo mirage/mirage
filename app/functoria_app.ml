@@ -42,7 +42,7 @@ let sys_argv = impl @@ object
     method ty = argv
     method name = "argv"
     method module_name = "Sys"
-    method! private connect _info _m _ =
+    method !connect _info _m _ =
       "return (`Ok Sys.argv)"
   end
 
@@ -78,12 +78,12 @@ let keys (argv: argv impl) = impl @@ object
     method ty = job
     method name = Keys.name
     method module_name = Key.module_name
-    method! configure = Keys.configure
-    method! clean = Keys.clean
-    method! libraries = Key.pure [ "functoria.runtime" ]
-    method! packages = Key.pure [ "functoria" ]
-    method! deps = [ abstract argv ]
-    method! private connect info modname = function
+    method !configure = Keys.configure
+    method !clean = Keys.clean
+    method !libraries = Key.pure [ "functoria.runtime" ]
+    method !packages = Key.pure [ "functoria" ]
+    method !deps = [ abstract argv ]
+    method !connect info modname = function
       | [ argv ] ->
         Fmt.strf
           "return (Functoria_runtime.with_argv %s.runtime_keys %S %s)"
@@ -121,17 +121,17 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     method name = "info"
     val gen_file = String.lowercase gen_modname  ^ ".ml"
     method module_name = gen_modname
-    method! libraries = Key.pure ["functoria.runtime"]
-    method! packages = Key.pure ["functoria"]
-    method! private connect _ modname _ = Fmt.strf "return (`Ok %s.info)" modname
+    method !libraries = Key.pure ["functoria.runtime"]
+    method !packages = Key.pure ["functoria"]
+    method !connect _ modname _ = Fmt.strf "return (`Ok %s.info)" modname
 
-    method! clean i =
+    method !clean i =
       let file = Info.root i / gen_file in
       Cmd.remove file;
       Cmd.remove (file ^".in");
       R.ok ()
 
-    method! configure i =
+    method !configure i =
       let file = Info.root i / gen_file in
       Log.info "%a %s" Log.blue "Generating: " gen_file;
       let f fmt =
@@ -231,12 +231,31 @@ module Engine = struct
     Graph.fold f g @@ R.ok () >>| fun () ->
     tbl
 
-  let emit_connect fmt (ident, connect) =
+  let meta_init fmt (connect_name, result_name) =
+    Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
+
+  let meta_connect error fmt (connect_name, result_name) =
+    Fmt.pf fmt
+      "_%s >>= function@ \
+       | `Error _e -> %s@ \
+       | `Ok %s ->@ "
+      result_name
+      (error connect_name)
+      result_name
+
+  let emit_connect fmt (error, iname, names, connect_string) =
+    (* We avoid potential collision between double application
+       by prefixing with "_". This also avoid warnings. *)
+    let names = List.map (fun x -> (x, "_"^x)) names in
     Fmt.pf fmt
       "@[<v 2>let %s = lazy (@ \
-       %t@ \
-       )@]@."
-      ident connect
+       %a\
+       %a\
+       %s@ )@]@."
+      iname
+      Fmt.(list ~sep:nop meta_init) names
+      Fmt.(list ~sep:nop @@ meta_connect error) names
+      (connect_string @@ List.map snd names)
 
   let emit_run key main =
     (* "exit 1" is ok in this code, since cmdliner will print help. *)
@@ -261,8 +280,7 @@ module Engine = struct
         Graph.Tbl.add tbl v ident;
         let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
         Codegen.append_main "%a"
-          emit_connect (ident, c#connect_raw ~error ~names ~info ~modname)
-
+          emit_connect (error, ident, names, c#connect info modname)
     in
     Graph.fold (fun v () -> f v) g ();
     let main_name = Graph.Tbl.find tbl @@ Graph.find_root g in

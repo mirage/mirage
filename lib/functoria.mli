@@ -174,18 +174,6 @@ module Info: sig
 
 end
 
-type connecting_input
-
-val meta_init : Format.formatter -> string -> connecting_input
-(** [meta_init input f] writes to [f] code to start connecting [input]. *)
-
-val meta_connect : (string -> string) -> Format.formatter -> connecting_input -> string
-(** [meta_connect error f input] writes to [f] code to wait for [input] to finish
-    connecting and returns the name of the variable holding the result.
-    [error input] is used to generate error handling code for the case where [input]
-    fails. TODO: we should handle errors from a device in that device itself, not in
-    its users. Doing that would allow us to remove [errors] from this API. *)
-
 (** Signature for configurable module implementations. A
     [configurable] is a module implementation which contains a runtime
     state which can be set either at configuration time (by the
@@ -212,12 +200,11 @@ class type ['ty] configurable = object
   (** [libraries] is the list of OCamlfind libraries to include and
       link with the configurable. *)
 
-  method connect_raw: error:(string -> string) -> names:string list -> info:Info.t -> modname:string -> Format.formatter -> unit
-  (** [connect_raw ~error ~names ~info ~modname fmt] writes to [fmt] code
-      to construct an instance of the module. Normally, this means forcing
-      each input in [names], waiting for them all to finish, and calling
-      [connect]. The helper functions [meta_init] and [meta_connect] may
-      be useful for this. *)
+  method connect: Info.t -> string -> string list -> string
+  (** [connect info mod args] is the code to execute in order to
+      initialize the state associated with the module [mod] (usually
+      calling [mod.connect]) with the arguments [args], in the context
+      of the project information [info]. *)
 
   method configure: Info.t -> (unit, string) Rresult.result
   (** [configure info] is the code to execute in order to configure
@@ -240,7 +227,7 @@ class type ['ty] configurable = object
 end
 
 
-val impl: 'a #configurable -> 'a impl
+val impl: 'a configurable -> 'a impl
 (** [impl c] is the implementation of the configurable [c]. *)
 
 (** [base_configurable] pre-defining many methods from the
@@ -259,19 +246,7 @@ class base_configurable: object
   method libraries: string list value
   method packages: string list value
   method keys: key list
-
-  method connect_raw: error:(string -> string) -> names:string list -> info:Info.t -> modname:string -> Format.formatter -> unit
-  (** [connect_raw ~error ~names ~info ~modname fmt] writes to [fmt] code
-      to construct an instance of the module. The default implementation uses
-      [meta_init] to force each input in [names], then [meta_connect] to
-      wait for them all to finish, and then calls [self#connect]. *)
-
-  method private connect: Info.t -> string -> string list -> string
-  (** [connect info mod args] is the code to execute in order to
-      initialize the state associated with the module [mod] (usually
-      calling [mod.connect]) with the arguments [args], in the context
-      of the project information [info]. It is called by [connect_raw]. *)
-
+  method connect: Info.t -> string -> string list -> string
   method configure: Info.t -> (unit, string) Rresult.result
   method clean: Info.t -> (unit, string) Rresult.result
   method deps: abstract_impl list

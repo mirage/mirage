@@ -80,9 +80,10 @@ module type S = sig
   (** [driver_error s] is the message given to the user when the
       the configurable [s] doesn't initialize correctly. *)
 
-  val argv: argv impl
-  (** [argv] is the device used to read the full list of command-line
-      arguments. *)
+  val init: job impl list
+  (** [init] is the list of job to execute before anything else (such
+      as command-line argument parsing, log reporter setup, etc.). The
+      jobs are always executed in sequence. *)
 
   val create: job impl list -> job impl
   (** [create jobs] is the top-level job in the custom DSL which will
@@ -100,6 +101,7 @@ module Make (P: S): sig
     ?packages:string list ->
     ?libraries:string list ->
     ?keys:key list ->
+    ?init:job impl list ->
     string -> job impl list -> unit
   (** [register name jobs] registers the application named by [name]
       which will executes the given [jobs]. Same optinal arguments as

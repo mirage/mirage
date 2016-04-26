@@ -199,20 +199,28 @@ module Engine = struct
       let prefix = Name.ocamlify prefix in
       Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
-  let find_key_device g =
+  (* FIXME: Can we do better than lookup by name? *)
+  let find_device g impl =
+    let rec name: type a . a impl -> string = fun impl ->
+      match explode impl with
+      | `Impl c              -> c#name
+      | `If (_, x, _)        -> name x
+      | `App (Abstract x, _) -> name x
+    in
+    let name = name impl in
     let open Graph in
     let p = function
-      | Impl c     -> c#name = Keys.name
+      | Impl c     -> c#name = name
       | App | If _ -> false
     in
     match Graph.find_all g p with
-    | [ x ] -> x
-    | _ -> invalid_arg
-             "Functoria.find_key: There should be only one key device."
+    | []  -> invalid_arg "Functoria.find_device: no device"
+    | [x] -> x
+    | _   -> invalid_arg "Functoria.find_device: too many devices."
 
-  let configure info g =
+  let configure info (_init, job) =
     let tbl = Graph.Tbl.create 17 in
-    let f v = match Graph.explode g v with
+    let f v = match Graph.explode job v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps _) ->
         let modname = module_name c (Graph.hash v) args in
@@ -228,7 +236,7 @@ module Engine = struct
         end
     in
     let f v res = res >>= fun () -> f v in
-    Graph.fold f g @@ R.ok () >>| fun () ->
+    Graph.fold f job @@ R.ok () >>| fun () ->
     tbl
 
   let meta_init fmt (connect_name, result_name) =
@@ -257,22 +265,23 @@ module Engine = struct
       Fmt.(list ~sep:nop @@ meta_connect error) names
       (connect_string @@ List.map snd names)
 
-  let emit_run key main =
+  let emit_run init main =
     (* "exit 1" is ok in this code, since cmdliner will print help. *)
+    let force ppf name =
+      Fmt.pf ppf "Lazy.force %s >>= function@ \
+                  | `Error _e -> exit 1@ \
+                  | `Ok _ ->@ " name
+    in
     Codegen.append_main
       "@[<v 2>\
        let () =@ \
-         let t =@ \
-         Lazy.force %s >>= function@ \
-         | `Error _e -> exit 1@ \
-         | `Ok _ -> Lazy.force %s@ \
+       let t =@ @[<v 2>%aLazy.force %s@]@ \
        in run t@]"
-      key main
+      Fmt.(list ~sep:nop force) init main
 
-  let connect modtbl info error g =
+  let connect modtbl info error (init, job) =
     let tbl = Graph.Tbl.create 17 in
-    let f v =
-      match Graph.explode g v with
+    let f v = match Graph.explode job v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps deps) ->
         let ident = name c (Graph.hash v) in
@@ -282,10 +291,12 @@ module Engine = struct
         Codegen.append_main "%a"
           emit_connect (error, ident, names, c#connect info modname)
     in
-    Graph.fold (fun v () -> f v) g ();
-    let main_name = Graph.Tbl.find tbl @@ Graph.find_root g in
-    let key_device_name = Graph.Tbl.find tbl @@ find_key_device g in
-    emit_run key_device_name main_name;
+    Graph.fold (fun v () -> f v) job ();
+    let main_name = Graph.Tbl.find tbl @@ Graph.find_root job in
+    let init_names =
+      List.map (fun name -> Graph.Tbl.find tbl @@ find_device job name) init
+    in
+    emit_run init_names main_name;
     ()
 
   let configure_and_connect info error g =
@@ -310,6 +321,7 @@ module Config = struct
     libraries: String.Set.t Key.value;
     packages: String.Set.t Key.value;
     keys    : Key.Set.t;
+    init    : job impl list;
     jobs    : Graph.t;
   }
 
@@ -325,23 +337,24 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) name root main_dev =
+  let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(init=[]) name root
+      main_dev =
     let jobs = Graph.create main_dev in
     let libraries = Key.pure @@ String.Set.of_list libraries in
     let packages = Key.pure @@ String.Set.of_list packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { libraries; packages; keys; name; root; jobs }
+    { libraries; packages; keys; name; root; init; jobs }
 
-  (* FIXME(samoht): I don't understand why eval return a function
-     which take a context. Is this supposed to be different from the
-     one passed as argument? *)
-  let eval ~partial context { name = n; root; packages; libraries; keys; jobs } =
+  let eval ~partial context
+      { name = n; root; packages; libraries; keys; jobs; init }
+    =
     let e = Graph.eval ~partial ~context jobs in
     let pkgs = Key.(pure String.Set.union $ packages $ Engine.packages e) in
     let libs = Key.(pure String.Set.union $ libraries $ Engine.libraries e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
     Key.(pure (fun libraries packages _ context ->
-        (e, Info.create
+        ((init, e),
+         Info.create
            ~libraries:(String.Set.elements libraries)
            ~packages:(String.Set.elements packages)
            ~keys ~context ~name:n ~root))
@@ -370,7 +383,7 @@ module type S = sig
   val name: string
   val version: string
   val driver_error: string -> string
-  val argv: argv impl
+  val init: job impl list
   val create: job impl list -> job impl
 end
 
@@ -393,11 +406,12 @@ module Make (P: S) = struct
 
   let get_root () = Filename.dirname @@ get_config_file ()
 
-  let register ?(packages=[]) ?(libraries=[]) ?keys:ckeys name jobs =
-    let ckeys = match ckeys with None -> [] | Some x -> x in
+  let register ?(packages=[]) ?(libraries=[]) ?keys ?(init=[]) name jobs =
+    let keys = match keys with None -> [] | Some x -> x in
     let root = get_root () in
-    let main_dev = P.create (keys P.argv :: jobs) in
-    let c = Config.make ~keys:ckeys ~libraries ~packages name root main_dev in
+    let init = P.init @ init in
+    let main_dev = P.create (init @ jobs) in
+    let c = Config.make ~keys ~libraries ~packages ~init name root main_dev in
     configuration := Some c
 
   let registered () =
@@ -481,18 +495,19 @@ module Make (P: S) = struct
         Cmd.run "%s build" (make ())
       )
 
-  let clean i jobs =
+  let clean i (_init, job) =
     Log.info "%a %s" Log.blue "Clean:"  (get_config_file ());
     let root = Info.root i in
     Cmd.in_dir root (fun () ->
-        clean_main i jobs >>= fun () ->
+        clean_main i job >>= fun () ->
         Cmd.run "rm -rf %s/_build" root >>= fun () ->
         Cmd.run "rm -rf log %s/main.native.o %s/main.native %s/*~" root
           root root
       )
 
-  let describe _info ~dotcmd ~dot ~output jobs =
-    let f fmt = (if dot then Config.pp_dot else Config.pp) fmt jobs in
+  (* FIXME: describe init *)
+  let describe _info ~dotcmd ~dot ~output (_init, job) =
+    let f fmt = (if dot then Config.pp_dot else Config.pp) fmt job in
     let with_fmt f = match output with
       | None when dot ->
         let f oc = Cmd.with_channel oc f in
@@ -667,7 +682,7 @@ module Make (P: S) = struct
     | Ok config ->
        let config_keys = Config.keys config in
        let context_args = Key.context ~stage:`Configure ~with_required:false config_keys in
-       let context = 
+       let context =
          match Cmdliner.Term.eval_peek_opts ~argv context_args with
          | _, `Ok context -> context
          | _ -> Functoria_key.empty_context

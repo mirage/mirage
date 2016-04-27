@@ -24,6 +24,18 @@ val string_of_network_init_error:
     string for network interface errors from the [ifname] interface
     name and the error constructor. *)
 
+type log_threshold = [`All | `Src of string] * Logs.level
+(** The type for log threshold. *)
+
+val threshold: default:Logs.level -> log_threshold list ->
+  Logs.src -> Logs.level
+(** [threshold l src] is the log level corresponding to [src] in
+    [l]. *)
+
+val log_level: log_threshold list -> Logs.level
+(** [log_level l] is the level needed to have all of the threshold
+    appearing in [l] be used. *)
+
 module Arg: sig
 
   (** {1 Mirage command-line arguments} *)
@@ -60,6 +72,8 @@ module Arg: sig
   val ipv6_prefix: Ipaddr.V6.Prefix.t Cmdliner.Arg.converter
   (**[ipv6_prefix] converts IPv6 prefixes. *)
 
+  val log_threshold: log_threshold Cmdliner.Arg.converter
+  (** [log_threshold] converts log reporter threshold. *)
 
 end
 

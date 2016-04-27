@@ -949,63 +949,68 @@ let argv_xen = impl @@ object
 
 let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
 
-(** Logging *)
+(** Log reporting *)
 
-type logger = LOGGER
-let logger = Type LOGGER
+type reporter = job
+let reporter = job
 
-let pp_level f = function
-  | `Error    -> Format.pp_print_string f "Logs.Error"
-  | `Warning  -> Format.pp_print_string f "Logs.Warning"
-  | `Info     -> Format.pp_print_string f "Logs.Info"
-  | `Debug    -> Format.pp_print_string f "Logs.Debug"
+let pp_level ppf = function
+  | Logs.Error    -> Fmt.string ppf "Logs.Error"
+  | Logs.Warning  -> Fmt.string ppf "Logs.Warning"
+  | Logs.Info     -> Fmt.string ppf "Logs.Info"
+  | Logs.Debug    -> Fmt.string ppf "Logs.Debug"
+  | Logs.App      -> Fmt.string ppf "Logs.App"
 
-let mirage_logs_conf =
+let mirage_log ?ring_size ~default =
+  let logs = Key.logs in
   impl @@ object
-    inherit base_configurable as super
-    method ty = clock @-> logger
+    inherit base_configurable
+    method ty = clock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
     method packages = Key.pure ["mirage-logs"]
     method libraries = Key.pure ["mirage-logs"]
-
-    method connect _ modname _args =
-      Printf.sprintf "return (`Ok (%s.create ()))" modname
+    method keys = [ Key.abstract logs ]
+    method connect info modname _ =
+      let pp_console_threshold ppf () =
+        match Key.get (Info.context info) logs with
+        | [] -> Fmt.string ppf "None"
+        | _  ->
+          Fmt.pf ppf "Some (Mirage_runtime.threshold ~default:%a %a)"
+            pp_level default pp_key logs
+      in
+      let pp_ring_buffer ppf () =
+        match ring_size with
+        | None   -> Fmt.string ppf "None"
+        | Some i -> Fmt.pf ppf "Some %d" i
+      in
+      Fmt.strf
+        "@[<v 2>\
+         let console_threshold =@,@[<v 2>%a@]@,in@ \
+         let ring_size = %a in@ \
+         let reporter = %s.create ?ring_size ?console_threshold () in@ \
+         let level = match %a with@ \
+        \  | [] -> None@ \
+        \  | l  -> Some (Mirage_runtime.log_level l)@ \
+         in@ \
+         Logs.set_level level;@ \
+         %s.set_reporter reporter;@ \
+         Lwt.return (`Ok ())"
+        pp_console_threshold ()
+        pp_ring_buffer ()
+        modname
+        pp_key logs
+        modname
   end
 
-let mirage_logs ?(clock=default_clock) () =
-  mirage_logs_conf $ clock
-
-let with_logger_conf level underlying =
-  impl @@ object
-    inherit base_configurable as super
-    method ty = logger @-> job
-    method name = "with_logger"
-    method module_name = "Logger"
-    method packages = Key.pure ["logs"]
-    method libraries = Key.pure ["logs"]
-    method deps = [abstract underlying]
-
-    method! connect_raw ~error ~names ~info ~modname fmt =
-      match names with
-      | [logger; underlying] ->
-          let logger = meta_init fmt logger |> meta_connect error fmt in
-          Fmt.pf fmt
-            "Logs.set_level (Some %a);@ \
-             %s.run %s @@@@ fun () ->@ "
-             pp_level level
-             modname logger;
-          let underlying = meta_init fmt underlying |> meta_connect error fmt in
-          Fmt.string fmt (super#connect info modname [underlying])
-      | _ -> failwith "Incorrect number of inputs!"
-  end
-
-let with_logger ?(level=`Info) logger underlying =
-  with_logger_conf level underlying $ logger
+let default_reporter
+    ?(clock=default_clock) ?ring_size ?(level=Logs.Warning) () =
+  mirage_log ?ring_size ~default:level $ clock
 
 (** Tracing *)
 
-type tracing = job impl
+type tracing = job
+let tracing = job
 
 let mprof_trace ~size () =
   let unix_trace_file = "trace.ctf" in
@@ -1522,10 +1527,9 @@ module Project = struct
   let version = Mirage_version.current
   let prelude =
     "open Lwt\n\
-     module Logger(X:sig type t val run: t -> (unit -> 'a Lwt.t) -> 'a Lwt.t end) = X\n\
      let run = OS.Main.run"
   let driver_error = driver_error
-  let argv = argv_dynamic
+  let init = [Functoria_app.keys argv_dynamic]
 
   let create jobs = impl @@ object
       inherit base_configurable
@@ -1584,14 +1588,17 @@ let add_to_opam_packages l =
 
 (** {Custom registration} *)
 
-let default_log = with_logger (mirage_logs ()) ~level:`Info
-
-let register ?tracing ?(log=default_log) ?keys ?(libraries=[]) ?(packages=[]) name jobs =
+let register
+    ?tracing ?(reporter=Some (default_reporter ()))
+    ?keys ?(libraries=[]) ?(packages=[])
+    name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
-  let jobs = log (in_parallel jobs) in
-  let jobs = match tracing with
-    | None -> [jobs]
-    | Some tracing -> [tracing; jobs]
+  let jobs = in_parallel jobs in
+  let jobs = match reporter, tracing with
+    | None  , None   -> [jobs]
+    | None  , Some t -> [t; jobs]
+    | Some r, None   -> [r; jobs]
+    | Some r, Some t -> [r; t; jobs]
   in
   register ?keys ~libraries ~packages name jobs

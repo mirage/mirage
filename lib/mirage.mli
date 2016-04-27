@@ -30,31 +30,16 @@ include Functoria_app.DSL
 (** {2 General mirage devices} *)
 
 type tracing
+(** The type for tracing. *)
 
-val mprof_trace : size:int -> unit -> tracing
-(** Use mirage-profile to trace the unikernel.
-    On Unix, this creates and mmaps a file called "trace.ctf".
-    On Xen, it shares the trace buffer with dom0.
-    @param size: size of the ring buffer to use
-*)
+val tracing: tracing typ
+(** Implementation of the {!tracing} type. *)
 
-(** {3 Application registering} *)
+val mprof_trace : size:int -> unit -> tracing impl
+(** Use mirage-profile to trace the unikernel. On Unix, this creates
+    and mmaps a file called "trace.ctf". On Xen, it shares the trace
+    buffer with dom0.  @param size: size of the ring buffer to use. *)
 
-val register :
-  ?tracing:tracing ->
-  ?log:(job impl -> job impl) ->
-  ?keys:Key.t list ->
-  ?libraries:string list ->
-  ?packages:string list -> string -> job impl list -> unit
-(** [register name jobs] registers the application named by [name]
-    which will executes the given [jobs].
-    @param libraries The ocamlfind libraries needed by this module.
-    @param packages The opam packages needed by this module.
-    @param keys The keys related to this module.
-
-    @param tracing Enable tracing.
-    @param log Replace the default logger ({!mirage_logs}). To disable logging, pass the identity function.
-*)
 
 
 (** {2 Time} *)
@@ -82,27 +67,24 @@ val default_clock: clock impl
 (** The default mirage-clock implementation. *)
 
 
-(** {2 Logging} *)
 
-type logger
-(** Abstract type for loggers. *)
+(** {2 Log reporters} *)
 
-val logger: logger typ
+type reporter
+(** The type for log reporters. *)
 
-val mirage_logs: ?clock:clock impl -> unit -> logger impl
-(** [mirage_logs ?clock ()] is a log reporter that prints log messages to the console,
-    timestampted with [clock] (default: [default_clock]). *)
+val reporter: reporter typ
+(** Implementation of the log {!reporter} type. *)
 
-val with_logger:
-  ?level:[`Error | `Warning | `Info | `Debug] ->
-  logger impl ->
-  job impl ->
-  job impl
-(** [with_logger ?level logger job] is a job that behaves like [job], but wrapped by
-    [logger].
-    It initialises the log level to [level] (default: [`Info]), connects
-    [logger] and then connects [job] in a context provided by [logger].
-    It avoids forcing [job]'s dependencies until logging is set up. *)
+val default_reporter:
+  ?clock:clock impl -> ?ring_size:int -> ?level:Logs.level ->
+  unit -> reporter impl
+(** [default_reporter ?clock ?level ()] is the log reporter that
+    prints log messages to the console, timestampted with [clock]. If
+    not provided, the default clock is {!default_clock]}. [level] is
+    the default log threshold. It is [Logs.Warning] is not
+    specified. *)
+
 
 
 (** {2 Random} *)
@@ -115,6 +97,7 @@ val random: random typ
 
 val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
+
 
 
 (** {2 Consoles} *)
@@ -455,6 +438,28 @@ val add_to_ocamlfind_libraries : string list -> unit
 (** Register ocamlfind libraries.
     @deprecated Use the [~libraries] argument from {!register}.
 *)
+
+
+(** {2 Application registering} *)
+
+val register :
+  ?tracing:tracing impl ->
+  ?reporter:reporter impl option ->
+  ?keys:Key.t list ->
+  ?libraries:string list ->
+  ?packages:string list -> string -> job impl list -> unit
+(** [register name jobs] registers the application named by [name]
+    which will executes the given [jobs].
+    @param libraries The ocamlfind libraries needed by this module.
+    @param packages The opam packages needed by this module.
+    @param keys The keys related to this module.
+
+    @param tracing Enable tracing.
+
+    @param reporter Configure logging. The default log reporter is
+    [Some {!default_reporter}]. To disable logging, use the [None].
+*)
+
 
 (**/**)
 

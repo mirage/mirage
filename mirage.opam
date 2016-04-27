@@ -26,6 +26,7 @@ depends: [
   "ipaddr"       {>= "2.6.0"}
   "functoria"
   "astring"
+  "logs"
 ]
 conflicts: [
   "nocrypto" {< "0.4.0"}

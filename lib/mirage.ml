@@ -949,6 +949,60 @@ let argv_xen = impl @@ object
 
 let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
 
+(** Logging *)
+
+type logger = LOGGER
+let logger = Type LOGGER
+
+let pp_level f = function
+  | `Error    -> Format.pp_print_string f "Logs.Error"
+  | `Warning  -> Format.pp_print_string f "Logs.Warning"
+  | `Info     -> Format.pp_print_string f "Logs.Info"
+  | `Debug    -> Format.pp_print_string f "Logs.Debug"
+
+let mirage_logs_conf =
+  impl @@ object
+    inherit base_configurable as super
+    method ty = clock @-> logger
+    method name = "mirage_logs"
+    method module_name = "Mirage_logs.Make"
+    method packages = Key.pure ["mirage-logs"]
+    method libraries = Key.pure ["mirage-logs"]
+
+    method connect _ modname _args =
+      Printf.sprintf "return (`Ok (%s.create ()))" modname
+  end
+
+let mirage_logs ?(clock=default_clock) () =
+  mirage_logs_conf $ clock
+
+let with_logger_conf level underlying =
+  impl @@ object
+    inherit base_configurable as super
+    method ty = logger @-> job
+    method name = "with_logger"
+    method module_name = "Logger"
+    method packages = Key.pure ["logs"]
+    method libraries = Key.pure ["logs"]
+    method deps = [abstract underlying]
+
+    method! connect_raw ~error ~names ~info ~modname fmt =
+      match names with
+      | [logger; underlying] ->
+          let logger = meta_init fmt logger |> meta_connect error fmt in
+          Fmt.pf fmt
+            "Logs.set_level (Some %a);@ \
+             %s.run %s @@@@ fun () ->@ "
+             pp_level level
+             modname logger;
+          let underlying = meta_init fmt underlying |> meta_connect error fmt in
+          Fmt.string fmt (super#connect info modname [underlying])
+      | _ -> failwith "Incorrect number of inputs!"
+  end
+
+let with_logger ?(level=`Info) logger underlying =
+  with_logger_conf level underlying $ logger
+
 (** Tracing *)
 
 type tracing = job impl
@@ -1468,6 +1522,7 @@ module Project = struct
   let version = Mirage_version.current
   let prelude =
     "open Lwt\n\
+     module Logger(X:sig type t val run: t -> (unit -> 'a Lwt.t) -> 'a Lwt.t end) = X\n\
      let run = OS.Main.run"
   let driver_error = driver_error
   let argv = argv_dynamic
@@ -1503,6 +1558,18 @@ end
 
 include Functoria_app.Make (Project)
 
+let in_parallel = function
+  | [singleton] -> singleton
+  | jobs ->
+    impl @@ object
+      inherit base_configurable
+      method ty = job
+      method name = "group"
+      method module_name = "Functoria_runtime"
+      method connect _ _mod _names = "Lwt.return (`Ok ())"
+      method deps = List.map abstract jobs
+    end
+
 (** {Deprecated functions} *)
 
 let get_mode () = Key.(get (get_base_context ()) target)
@@ -1517,12 +1584,14 @@ let add_to_opam_packages l =
 
 (** {Custom registration} *)
 
-let register ?tracing ?keys ?(libraries=[]) ?(packages=[]) name jobs =
+let default_log = with_logger (mirage_logs ()) ~level:`Info
+
+let register ?tracing ?(log=default_log) ?keys ?(libraries=[]) ?(packages=[]) name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
+  let jobs = log (in_parallel jobs) in
   let jobs = match tracing with
-    | None -> jobs
-    | Some tracing ->
-      tracing :: jobs
+    | None -> [jobs]
+    | Some tracing -> [tracing; jobs]
   in
   register ?keys ~libraries ~packages name jobs

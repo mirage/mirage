@@ -3,7 +3,7 @@ S lib/*
 S lib_runtime/*
 S lib_test/*
 PKG ipaddr unix dynlink lwt cmdliner mirage-types.lwt functoria rresult fmt
-PKG astring
+PKG astring logs
 
 FLG -w +A-4-6-7-9-40-42-44-48
 FLG -strict_sequence -safe_string

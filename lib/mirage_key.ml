@@ -264,6 +264,39 @@ module V6 = struct
 
 end
 
+let pp_level ppf = function
+  | Logs.Error    -> Fmt.string ppf "Logs.Error"
+  | Logs.Warning  -> Fmt.string ppf "Logs.Warning"
+  | Logs.Info     -> Fmt.string ppf "Logs.Info"
+  | Logs.Debug    -> Fmt.string ppf "Logs.Debug"
+  | Logs.App      -> Fmt.string ppf "Logs.App"
+
+let pp_pattern ppf = function
+  | `All   -> Fmt.string ppf "`All"
+  | `Src s -> Fmt.pf ppf "`Src %S" s
+
+let pp_threshold ppf (pattern, level) =
+  Fmt.pf ppf "(%a,@ %a)" pp_pattern pattern pp_level level
+
+let logs =
+  let env = "MIRAGE_LOGS" in
+  let docs = unikernel_section in
+  let conv = Cmdliner.Arg.list Mirage_runtime.Arg.log_threshold in
+  let serialize ppf levels =
+    Fmt.(pf ppf "[%a]" (list ~sep:(const string ";@ ") pp_threshold) levels)
+  in
+  let runtime_conv = "(Cmdliner.Arg.list Mirage_runtime.Arg.log_threshold)" in
+  let doc =
+    strf "Be more or less verbose. $(docv) must be of the form@ \
+          $(b,*:info,foo:debug) means that that the log threshold is set to@ \
+          $(b,info) for every log sources but the $(b,foo) which is set to@ \
+          $(b,debug)."
+  in
+  let logs = Key.Arg.conv ~conv ~serialize ~runtime_conv in
+  let info = Key.Arg.info ~env ~docv:"LEVEL" ~doc ~docs ["l";"logs"] in
+  let arg = Key.Arg.(opt logs []) info in
+  Key.create "logs" arg
+
 (* FIXME: this is a crazy *)
 include (Key: module type of struct include Functoria_key end
          with module Arg := Arg and module Alias := Alias)

@@ -83,7 +83,7 @@ val default_reporter:
   unit -> reporter impl
 (** [default_reporter ?clock ?level ()] is the log reporter that
     prints log messages to the console, timestampted with [clock]. If
-    not provided, the default clock is {!default_clock]}. [level] is
+    not provided, the default clock is {!default_clock}. [level] is
     the default log threshold. It is [Logs.Warning] if not
     specified. *)
 
@@ -461,6 +461,10 @@ val register :
 
     @param reporter Configure logging. The default log reporter is
     [Some {!default_reporter}]. To disable logging, use [None].
+
+    @param argv Configure command-line argument parsing. The default
+    parser is [Some {!argv_dynamic}]. To disable command-line parsing,
+    use [None].
 *)
 
 

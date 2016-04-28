@@ -979,14 +979,9 @@ let mirage_log ?ring_size ~default =
           Fmt.pf ppf "Some (Mirage_runtime.threshold ~default:%a %a)"
             pp_level default pp_key logs
       in
-      let pp_ring_buffer ppf () =
-        match ring_size with
-        | None   -> Fmt.string ppf "None"
-        | Some i -> Fmt.pf ppf "Some %d" i
-      in
       Fmt.strf
         "@[<v 2>\
-         let console_threshold =@,@[<v 2>%a@]@,in@ \
+         let console_threshold =@ @[<v 2>%a@]@ in@ \
          let ring_size = %a in@ \
          let reporter = %s.create ?ring_size ?console_threshold () in@ \
          let level = match %a with@ \
@@ -997,7 +992,7 @@ let mirage_log ?ring_size ~default =
          %s.set_reporter reporter;@ \
          Lwt.return (`Ok ())"
         pp_console_threshold ()
-        pp_ring_buffer ()
+        Fmt.(Dump.option int) ring_size
         modname
         pp_key logs
         modname
@@ -1562,18 +1557,6 @@ end
 
 include Functoria_app.Make (Project)
 
-let in_parallel = function
-  | [singleton] -> singleton
-  | jobs ->
-    impl @@ object
-      inherit base_configurable
-      method ty = job
-      method name = "group"
-      method module_name = "Functoria_runtime"
-      method connect _ _mod _names = "Lwt.return (`Ok ())"
-      method deps = List.map abstract jobs
-    end
-
 (** {Deprecated functions} *)
 
 let get_mode () = Key.(get (get_base_context ()) target)
@@ -1588,17 +1571,16 @@ let add_to_opam_packages l =
 
 (** {Custom registration} *)
 
+let (++) acc x = match acc, x with
+  | _       , None   -> acc
+  | None    , Some x -> Some [x]
+  | Some acc, Some x -> Some (x::acc)
+
 let register
     ?tracing ?(reporter=Some (default_reporter ()))
     ?keys ?(libraries=[]) ?(packages=[])
     name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
-  let jobs = in_parallel jobs in
-  let jobs = match reporter, tracing with
-    | None  , None   -> [jobs]
-    | None  , Some t -> [t; jobs]
-    | Some r, None   -> [r; jobs]
-    | Some r, Some t -> [r; t; jobs]
-  in
-  register ?keys ~libraries ~packages name jobs
+  let init = None ++ reporter ++ tracing in
+  register ?keys ~libraries ~packages ?init name jobs

@@ -38,7 +38,9 @@ val tracing: tracing typ
 val mprof_trace : size:int -> unit -> tracing impl
 (** Use mirage-profile to trace the unikernel. On Unix, this creates
     and mmaps a file called "trace.ctf". On Xen, it shares the trace
-    buffer with dom0.  @param size: size of the ring buffer to use. *)
+    buffer with dom0.
+
+    @param size: size of the ring buffer to use. *)
 
 
 
@@ -82,7 +84,7 @@ val default_reporter:
 (** [default_reporter ?clock ?level ()] is the log reporter that
     prints log messages to the console, timestampted with [clock]. If
     not provided, the default clock is {!default_clock]}. [level] is
-    the default log threshold. It is [Logs.Warning] is not
+    the default log threshold. It is [Logs.Warning] if not
     specified. *)
 
 
@@ -457,7 +459,7 @@ val register :
     @param tracing Enable tracing.
 
     @param reporter Configure logging. The default log reporter is
-    [Some {!default_reporter}]. To disable logging, use the [None].
+    [Some {!default_reporter}]. To disable logging, use [None].
 *)
 
 

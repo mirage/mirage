@@ -1524,7 +1524,6 @@ module Project = struct
     "open Lwt\n\
      let run = OS.Main.run"
   let driver_error = driver_error
-  let init = [Functoria_app.keys argv_dynamic]
 
   let create jobs = impl @@ object
       inherit base_configurable
@@ -1577,10 +1576,14 @@ let (++) acc x = match acc, x with
   | Some acc, Some x -> Some (x::acc)
 
 let register
+    ?(argv=Some argv_dynamic)
     ?tracing ?(reporter=Some (default_reporter ()))
     ?keys ?(libraries=[]) ?(packages=[])
     name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
-  let init = None ++ reporter ++ tracing in
+  let argv =
+    match argv with None -> None | Some a -> Some (Functoria_app.keys a)
+  in
+  let init = None ++ argv ++ reporter ++ tracing in
   register ?keys ~libraries ~packages ?init name jobs

@@ -445,6 +445,7 @@ val add_to_ocamlfind_libraries : string list -> unit
 (** {2 Application registering} *)
 
 val register :
+  ?argv:Functoria_app.argv impl option ->
   ?tracing:tracing impl ->
   ?reporter:reporter impl option ->
   ?keys:Key.t list ->

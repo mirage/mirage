@@ -200,12 +200,13 @@ module Engine = struct
       Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
   (* FIXME: Can we do better than lookup by name? *)
-  let find_device g impl =
+  let find_device info g impl =
+    let ctx = Info.context info in
     let rec name: type a . a impl -> string = fun impl ->
       match explode impl with
       | `Impl c              -> c#name
-      | `If (_, x, _)        -> name x
       | `App (Abstract x, _) -> name x
+      | `If (b, x, y)        -> if Key.eval ctx b then name x else name y
     in
     let name = name impl in
     let open Graph in
@@ -294,7 +295,7 @@ module Engine = struct
     Graph.fold (fun v () -> f v) job ();
     let main_name = Graph.Tbl.find tbl @@ Graph.find_root job in
     let init_names =
-      List.map (fun name -> Graph.Tbl.find tbl @@ find_device job name) init
+      List.map (fun name -> Graph.Tbl.find tbl @@ find_device info job name) init
     in
     emit_run init_names main_name;
     ()

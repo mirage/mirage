@@ -383,7 +383,6 @@ module type S = sig
   val name: string
   val version: string
   val driver_error: string -> string
-  val init: job impl list
   val create: job impl list -> job impl
 end
 
@@ -409,7 +408,6 @@ module Make (P: S) = struct
   let register ?(packages=[]) ?(libraries=[]) ?keys ?(init=[]) name jobs =
     let keys = match keys with None -> [] | Some x -> x in
     let root = get_root () in
-    let init = P.init @ init in
     let main_dev = P.create (init @ jobs) in
     let c = Config.make ~keys ~libraries ~packages ~init name root main_dev in
     configuration := Some c

@@ -984,16 +984,13 @@ let mirage_log ?ring_size ~default =
          let console_threshold =@ @[<v 2>%a@]@ in@ \
          let ring_size = %a in@ \
          let reporter = %s.create ?ring_size ?console_threshold () in@ \
-         let level = match %a with@ \
-        \  | [] -> None@ \
-        \  | l  -> Some (Mirage_runtime.log_level l)@ \
-         in@ \
-         Logs.set_level level;@ \
+         Mirage_runtime.set_level ~default:%a %a;@ \
          %s.set_reporter reporter;@ \
-         Lwt.return (`Ok ())"
+         Lwt.return (`Ok reporter)"
         pp_console_threshold ()
         Fmt.(Dump.option int) ring_size
         modname
+        pp_level default
         pp_key logs
         modname
   end

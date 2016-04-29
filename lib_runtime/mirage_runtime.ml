@@ -37,7 +37,23 @@ let threshold ~default l x =
   try List.assoc `All l
   with Not_found -> default
 
-let log_level l = List.fold_left (fun acc (_, l) -> max l acc) Logs.Debug l
+let set_level ~default l =
+  let srcs = Logs.Src.list () in
+  let default =
+    try snd @@ List.find (function (`All, _) -> true | _ -> false) l
+    with Not_found -> default
+  in
+  Logs.set_level (Some default);
+  List.iter (function
+      | (`All, _) -> ()
+      | (`Src src, level) ->
+        try
+          let s = List.find (fun s -> Logs.Src.name s = src) srcs in
+          Logs.Src.set_level s (Some level)
+        with Not_found ->
+          Fmt.(pf stdout) "%a %s is not a valid log source.\n%!"
+            Fmt.(styled `Yellow string) "Warning:" src
+    ) l
 
 module Arg = struct
 

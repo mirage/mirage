@@ -32,9 +32,9 @@ val threshold: default:Logs.level -> log_threshold list ->
 (** [threshold l src] is the log level corresponding to [src] in
     [l]. *)
 
-val log_level: log_threshold list -> Logs.level
-(** [log_level l] is the level needed to have all of the threshold
-    appearing in [l] be used. *)
+val set_level: default:Logs.level -> log_threshold list -> unit
+(** [set_level ~default l] set the log levels needed to have all of
+    the log sources appearing in [l] be used. *)
 
 module Arg: sig
 

@@ -24,7 +24,7 @@ depends: [
   "mirage-types-lwt"
   "mirage-types" {>= "2.8.0"}
   "ipaddr"       {>= "2.6.0"}
-  "functoria"
+  "functoria"    {>= "1.1.0"}
   "astring"
   "logs"
 ]

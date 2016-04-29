@@ -27,16 +27,6 @@ let string_of_network_init_error name = function
 
 type log_threshold = [`All | `Src of string] * Logs.level
 
-let threshold ~default l x =
-  let x = Logs.Src.name x in
-  try snd @@ List.find (function
-      | `Src s, _ -> String.equal s x
-      | `All  , _ -> false
-    ) l
-  with Not_found ->
-  try List.assoc `All l
-  with Not_found -> default
-
 let set_level ~default l =
   let srcs = Logs.Src.list () in
   let default =

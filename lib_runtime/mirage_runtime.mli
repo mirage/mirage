@@ -27,11 +27,6 @@ val string_of_network_init_error:
 type log_threshold = [`All | `Src of string] * Logs.level
 (** The type for log threshold. *)
 
-val threshold: default:Logs.level -> log_threshold list ->
-  Logs.src -> Logs.level
-(** [threshold l src] is the log level corresponding to [src] in
-    [l]. *)
-
 val set_level: default:Logs.level -> log_threshold list -> unit
 (** [set_level ~default l] set the log levels needed to have all of
     the log sources appearing in [l] be used. *)

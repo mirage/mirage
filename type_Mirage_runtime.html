@@ -16,6 +16,9 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;string_of_network_init_error&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Disconnected</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Unimplemented</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Unknown</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;log_threshold&nbsp;=&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">All</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Src</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]&nbsp;*&nbsp;<span class="constructor">Logs</span>.level<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;set_level&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;default:<span class="constructor">Logs</span>.level&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage_runtime</span>.log_threshold&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Arg</span>&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
@@ -39,6 +42,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv4&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V4</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6_prefix&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.<span class="constructor">Prefix</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;log_threshold&nbsp;:&nbsp;<span class="constructor">Mirage_runtime</span>.log_threshold&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Key</span>&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>

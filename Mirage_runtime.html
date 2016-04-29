@@ -37,6 +37,17 @@ Mirage run-time utilities<br>
     name and the error constructor.<br>
 </div>
 
+<pre><span id="TYPElog_threshold"><span class="keyword">type</span> <code class="type"></code>log_threshold</span> = <code class="type">[ `All | `Src of string ] * Logs.level</code> </pre>
+<div class="info ">
+The type for log threshold.<br>
+</div>
+
+
+<pre><span id="VALset_level"><span class="keyword">val</span> set_level</span> : <code class="type">default:Logs.level -> <a href="Mirage_runtime.html#TYPElog_threshold">log_threshold</a> list -> unit</code></pre><div class="info ">
+<code class="code">set_level ~default l</code> set the log levels needed to have all of
+    the log sources appearing in <code class="code">l</code> be used.<br>
+</div>
+
 <pre><span class="keyword">module</span> <a href="Mirage_runtime.Arg.html">Arg</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Mirage_runtime.Arg.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
 <pre><span class="keyword">include</span> Functoria_runtime</pre>
 </body></html>

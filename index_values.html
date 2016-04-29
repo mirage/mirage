@@ -38,12 +38,6 @@
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALarchive_of_files">archive_of_files</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
-<tr><td><a href="Mirage.html#VALargv_dynamic">argv_dynamic</a> [<a href="Mirage.html">Mirage</a>]</td>
-<td><div class="info">
-Dynamic argv implementation that resolves either to
-    the xen or the unix implementation.
-</div>
-</td></tr>
 <tr><td><a href="Mirage.html#VALarp">arp</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALarpv4">arpv4</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -98,6 +92,12 @@ Custom console implementation.
 </div>
 </td></tr>
 <tr><td align="left"><br>D</td></tr>
+<tr><td><a href="Mirage.html#VALdefault_argv">default_argv</a> [<a href="Mirage.html">Mirage</a>]</td>
+<td><div class="info">
+<code class="code">default_argv</code> is a dynamic argv implementation that resolves
+    either to the xen or the unix implementation.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALdefault_clock">default_clock</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 The default mirage-clock implementation.
@@ -121,6 +121,12 @@ Default local IP listening on the given network interfaces: address: 10.0.0.2, n
 <tr><td><a href="Mirage.html#VALdefault_random">default_random</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Passthrough to the OCaml Random generator.
+</div>
+</td></tr>
+<tr><td><a href="Mirage.html#VALdefault_reporter">default_reporter</a> [<a href="Mirage.html">Mirage</a>]</td>
+<td><div class="info">
+<code class="code">default_reporter ?clock ?level ()</code> is the log reporter that
+    prints log messages to the console, timestampted with <code class="code">clock</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALdefault_time">default_time</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -302,6 +308,14 @@ Consider a filesystem implementation as a read-only key/value
     store.
 </div>
 </td></tr>
+<tr><td align="left"><br>L</td></tr>
+<tr><td><a href="Mirage_runtime.Arg.html#VALlog_threshold">log_threshold</a> [<a href="Mirage_runtime.Arg.html">Mirage_runtime.Arg</a>]</td>
+<td><div class="info">
+<code class="code">log_threshold</code> converts log reporter threshold.
+</div>
+</td></tr>
+<tr><td><a href="Mirage_key.html#VALlogs">logs</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
+<td></td></tr>
 <tr><td align="left"><br>M</td></tr>
 <tr><td><a href="Mirage_runtime.Arg.html#VALmake">make</a> [<a href="Mirage_runtime.Arg.html">Mirage_runtime.Arg</a>]</td>
 <td><div class="info">
@@ -345,6 +359,21 @@ A network interface.
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">NETWORK</span></code> signature.
 </div>
 </td></tr>
+<tr><td><a href="Mirage.html#VALno_argv">no_argv</a> [<a href="Mirage.html">Mirage</a>]</td>
+<td><div class="info">
+<code class="code">no_argv</code> Disable command line parsing and set argv to <code class="code"><span class="keywordsign">|</span><span class="string">""</span><span class="keywordsign">|</span></code>.
+</div>
+</td></tr>
+<tr><td><a href="Mirage_key.html#VALno_ocaml_check">no_ocaml_check</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
+<td><div class="info">
+<code class="code">--no-ocaml-check</code>.
+</div>
+</td></tr>
+<tr><td><a href="Mirage.html#VALno_reporter">no_reporter</a> [<a href="Mirage.html">Mirage</a>]</td>
+<td><div class="info">
+<code class="code">no_reporter</code> disable log reporting.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALnocrypto">nocrypto</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Device that initializes the entropy.
@@ -384,6 +413,11 @@ Implementations of the <code class="code"><span class="constructor">V1</span>.<s
     which will executes the given <code class="code">jobs</code>.
 </div>
 </td></tr>
+<tr><td><a href="Mirage.html#VALreporter">reporter</a> [<a href="Mirage.html">Mirage</a>]</td>
+<td><div class="info">
+Implementation of the log <a href="Mirage.html#VALreporter"><code class="code"><span class="constructor">Mirage</span>.reporter</code></a> type.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALresolver">resolver</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALresolver_dns">resolver_dns</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -391,6 +425,12 @@ Implementations of the <code class="code"><span class="constructor">V1</span>.<s
 <tr><td><a href="Mirage.html#VALresolver_unix_system">resolver_unix_system</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>S</td></tr>
+<tr><td><a href="Mirage_runtime.html#VALset_level">set_level</a> [<a href="Mirage_runtime.html">Mirage_runtime</a>]</td>
+<td><div class="info">
+<code class="code">set_level ~default l</code> set the log levels needed to have all of
+    the log sources appearing in <code class="code">l</code> be used.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_key.V4.html#VALsocket">socket</a> [<a href="Mirage_key.V4.html">Mirage_key.V4</a>]</td>
 <td><div class="info">
 An address bound by a socket.
@@ -442,6 +482,11 @@ Implementation of the <code class="code"><span class="constructor">V1</span>.<sp
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">TIME</span></code> signature.
 </div>
 </td></tr>
+<tr><td><a href="Mirage.html#VALtracing">tracing</a> [<a href="Mirage.html">Mirage</a>]</td>
+<td><div class="info">
+Implementation of the <a href="Mirage.html#VALtracing"><code class="code"><span class="constructor">Mirage</span>.tracing</code></a> type.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_key.html#VALtracing_size">tracing_size</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
 <td><div class="info">
 <code class="code">--tracing-size</code>: Key setting the tracing ring buffer size.
@@ -460,6 +505,12 @@ Implementation of the <code class="code"><span class="constructor">V1</span>.<sp
 <tr><td><a href="Mirage_key.html#VALunix">unix</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
 <td><div class="info">
 <code class="code">--unix</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>W</td></tr>
+<tr><td><a href="Mirage_key.html#VALwarn_error">warn_error</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
+<td><div class="info">
+<code class="code">--warn-error</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>X</td></tr>

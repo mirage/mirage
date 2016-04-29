@@ -59,6 +59,15 @@ Is true iff the <a href="Mirage_key.html#VALtarget"><code class="code"><span cla
 <code class="code">--xen</code>. Set <a href="Mirage_key.html#VALtarget"><code class="code"><span class="constructor">Mirage_key</span>.target</code></a> to <code class="code"><span class="keywordsign">`</span><span class="constructor">Xen</span></code>.<br>
 </div>
 
+<pre><span id="VALno_ocaml_check"><span class="keyword">val</span> no_ocaml_check</span> : <code class="type">bool key</code></pre><div class="info ">
+<code class="code">--no-ocaml-check</code>. Do not check the version of the compiler.<br>
+</div>
+
+<pre><span id="VALwarn_error"><span class="keyword">val</span> warn_error</span> : <code class="type">bool key</code></pre><div class="info ">
+<code class="code">--warn-error</code>. Enable <i>-warn-error</i> for OCaml sources. Set to <code class="code"><span class="keyword">false</span></code> by
+    default, but might might enabled by default in later releases.<br>
+</div>
+
 <pre><span id="VALtracing_size"><span class="keyword">val</span> tracing_size</span> : <code class="type">int -> int key</code></pre><div class="info ">
 <code class="code">--tracing-size</code>: Key setting the tracing ring buffer size.<br>
 </div>
@@ -111,4 +120,5 @@ Ipv4 keys.
 <pre><span class="keyword">module</span> <a href="Mirage_key.V6.html">V6</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Mirage_key.V6.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
 Ipv6 keys.
 </div>
-</body></html>
+
+<pre><span id="VALlogs"><span class="keyword">val</span> logs</span> : <code class="type"><a href="Mirage_runtime.html#TYPElog_threshold">Mirage_runtime.log_threshold</a> list key</code></pre></body></html>

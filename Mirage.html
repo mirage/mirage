@@ -16,6 +16,7 @@
 <link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><link title="General mirage devices" rel="Section" href="#2_Generalmiragedevices">
 <link title="Time" rel="Section" href="#2_Time">
 <link title="Clocks" rel="Section" href="#2_Clocks">
+<link title="Log reporters" rel="Section" href="#2_Logreporters">
 <link title="Random" rel="Section" href="#2_Random">
 <link title="Consoles" rel="Section" href="#2_Consoles">
 <link title="Memory allocation interface" rel="Section" href="#2_Memoryallocationinterface">
@@ -37,7 +38,7 @@
 <link title="Argv configuration" rel="Section" href="#2_Argvconfiguration">
 <link title="Other devices" rel="Section" href="#2_Otherdevices">
 <link title="Deprecated functions" rel="Section" href="#2_Deprecatedfunctions">
-<link title="Application registering" rel="Subsection" href="#3_Applicationregistering">
+<link title="Application registering" rel="Section" href="#2_Applicationregistering">
 <title>Mirage</title>
 </head>
 <body>
@@ -65,24 +66,20 @@ Configuration keys.
 <h2 id="2_Generalmiragedevices">General mirage devices</h2><br>
 
 <pre><span id="TYPEtracing"><span class="keyword">type</span> <code class="type"></code>tracing</span> </pre>
-
-
-<pre><span id="VALmprof_trace"><span class="keyword">val</span> mprof_trace</span> : <code class="type">size:int -> unit -> <a href="Mirage.html#TYPEtracing">tracing</a></code></pre><div class="info ">
-Use mirage-profile to trace the unikernel.
-    On Unix, this creates and mmaps a file called "trace.ctf".
-    On Xen, it shares the trace buffer with dom0.<br>
+<div class="info ">
+The type for tracing.<br>
 </div>
-<br>
-<h3 id="3_Applicationregistering">Application registering</h3><br>
 
-<pre><span id="VALregister"><span class="keyword">val</span> register</span> : <code class="type">?tracing:<a href="Mirage.html#TYPEtracing">tracing</a> -><br>       ?keys:Key.t list -><br>       ?libraries:string list -><br>       ?packages:string list -> string -> job impl list -> unit</code></pre><div class="info ">
-<code class="code">register name jobs</code> registers the application named by <code class="code">name</code>
-    which will executes the given <code class="code">jobs</code>.<br>
+
+<pre><span id="VALtracing"><span class="keyword">val</span> tracing</span> : <code class="type"><a href="Mirage.html#TYPEtracing">tracing</a> typ</code></pre><div class="info ">
+Implementation of the <a href="Mirage.html#VALtracing"><code class="code"><span class="constructor">Mirage</span>.tracing</code></a> type.<br>
 </div>
-<div class="param_info"><code class="code">tracing</code> : Enable tracing and give a default depth.</div>
-<div class="param_info"><code class="code">keys</code> : The keys related to this module.</div>
-<div class="param_info"><code class="code">libraries</code> : The ocamlfind libraries needed by this module.</div>
-<div class="param_info"><code class="code">packages</code> : The opam packages needed by this module.</div>
+
+<pre><span id="VALmprof_trace"><span class="keyword">val</span> mprof_trace</span> : <code class="type">size:int -> unit -> <a href="Mirage.html#TYPEtracing">tracing</a> impl</code></pre><div class="info ">
+Use mirage-profile to trace the unikernel. On Unix, this creates
+    and mmaps a file called "trace.ctf". On Xen, it shares the trace
+    buffer with dom0.<br>
+</div>
 <br>
 <h2 id="2_Time">Time</h2><br>
 
@@ -114,6 +111,30 @@ Implementations of the <code class="code"><span class="constructor">V1</span>.<s
 
 <pre><span id="VALdefault_clock"><span class="keyword">val</span> default_clock</span> : <code class="type"><a href="Mirage.html#TYPEclock">clock</a> impl</code></pre><div class="info ">
 The default mirage-clock implementation.<br>
+</div>
+<br>
+<h2 id="2_Logreporters">Log reporters</h2><br>
+
+<pre><span id="TYPEreporter"><span class="keyword">type</span> <code class="type"></code>reporter</span> </pre>
+<div class="info ">
+The type for log reporters.<br>
+</div>
+
+
+<pre><span id="VALreporter"><span class="keyword">val</span> reporter</span> : <code class="type"><a href="Mirage.html#TYPEreporter">reporter</a> typ</code></pre><div class="info ">
+Implementation of the log <a href="Mirage.html#VALreporter"><code class="code"><span class="constructor">Mirage</span>.reporter</code></a> type.<br>
+</div>
+
+<pre><span id="VALdefault_reporter"><span class="keyword">val</span> default_reporter</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?ring_size:int -> ?level:Logs.level -> unit -> <a href="Mirage.html#TYPEreporter">reporter</a> impl</code></pre><div class="info ">
+<code class="code">default_reporter ?clock ?level ()</code> is the log reporter that
+    prints log messages to the console, timestampted with <code class="code">clock</code>. If
+    not provided, the default clock is <a href="Mirage.html#VALdefault_clock"><code class="code"><span class="constructor">Mirage</span>.default_clock</code></a>. <code class="code">level</code> is
+    the default log threshold. It is <code class="code"><span class="constructor">Logs</span>.<span class="constructor">Info</span></code> if not
+    specified.<br>
+</div>
+
+<pre><span id="VALno_reporter"><span class="keyword">val</span> no_reporter</span> : <code class="type"><a href="Mirage.html#TYPEreporter">reporter</a> impl</code></pre><div class="info ">
+<code class="code">no_reporter</code> disable log reporting.<br>
 </div>
 <br>
 <h2 id="2_Random">Random</h2><br>
@@ -482,9 +503,13 @@ Device that initializes the entropy.<br>
 <pre><span id="VALhttp_server"><span class="keyword">val</span> http_server</span> : <code class="type"><a href="Mirage.html#TYPEconduit">conduit</a> impl -> <a href="Mirage.html#TYPEhttp">http</a> impl</code></pre><br>
 <h2 id="2_Argvconfiguration">Argv configuration</h2><br>
 
-<pre><span id="VALargv_dynamic"><span class="keyword">val</span> argv_dynamic</span> : <code class="type">Functoria_app.argv impl</code></pre><div class="info ">
-Dynamic argv implementation that resolves either to
-    the xen or the unix implementation.<br>
+<pre><span id="VALdefault_argv"><span class="keyword">val</span> default_argv</span> : <code class="type">Functoria_app.argv impl</code></pre><div class="info ">
+<code class="code">default_argv</code> is a dynamic argv implementation that resolves
+    either to the xen or the unix implementation.<br>
+</div>
+
+<pre><span id="VALno_argv"><span class="keyword">val</span> no_argv</span> : <code class="type">Functoria_app.argv impl</code></pre><div class="info ">
+<code class="code">no_argv</code> Disable command line parsing and set argv to <code class="code"><span class="keywordsign">|</span><span class="string">""</span><span class="keywordsign">|</span></code>.<br>
 </div>
 <br>
 <h2 id="2_Otherdevices">Other devices</h2><br>
@@ -526,4 +551,20 @@ Register opam packages.<br>
 <span class="warning">Deprecated.</span>Use the <code class="code">~libraries</code> argument from <a href="Mirage.html#VALregister"><code class="code"><span class="constructor">Mirage</span>.register</code></a>.<br>
 Register ocamlfind libraries.<br>
 </div>
+<br>
+<h2 id="2_Applicationregistering">Application registering</h2><br>
+
+<pre><span id="VALregister"><span class="keyword">val</span> register</span> : <code class="type">?argv:Functoria_app.argv impl -><br>       ?tracing:<a href="Mirage.html#TYPEtracing">tracing</a> impl -><br>       ?reporter:<a href="Mirage.html#TYPEreporter">reporter</a> impl -><br>       ?keys:Key.t list -><br>       ?libraries:string list -><br>       ?packages:string list -> string -> job impl list -> unit</code></pre><div class="info ">
+<code class="code">register name jobs</code> registers the application named by <code class="code">name</code>
+    which will executes the given <code class="code">jobs</code>.<br>
+</div>
+<div class="param_info"><code class="code">argv</code> : Configure command-line argument parsing. The default
+    parser is <a href="Mirage.html#VALdefault_argv"><code class="code"><span class="constructor">Mirage</span>.default_argv</code></a>. To disable command-line parsing, use
+    <a href="Mirage.html#VALno_argv"><code class="code"><span class="constructor">Mirage</span>.no_argv</code></a>.</div>
+<div class="param_info"><code class="code">tracing</code> : Enable tracing.</div>
+<div class="param_info"><code class="code">reporter</code> : Configure logging. The default log reporter is
+    <a href="Mirage.html#VALdefault_reporter"><code class="code"><span class="constructor">Mirage</span>.default_reporter</code></a>. To disable logging, use <a href="Mirage.html#VALno_reporter"><code class="code"><span class="constructor">Mirage</span>.no_reporter</code></a>.</div>
+<div class="param_info"><code class="code">keys</code> : The keys related to this module.</div>
+<div class="param_info"><code class="code">libraries</code> : The ocamlfind libraries needed by this module.</div>
+<div class="param_info"><code class="code">packages</code> : The opam packages needed by this module.</div>
 </body></html>

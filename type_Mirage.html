@@ -121,6 +121,8 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;is_xen&nbsp;:&nbsp;bool&nbsp;value<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;unix&nbsp;:&nbsp;bool&nbsp;key<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;xen&nbsp;:&nbsp;bool&nbsp;key<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;no_ocaml_check&nbsp;:&nbsp;bool&nbsp;key<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;warn_error&nbsp;:&nbsp;bool&nbsp;key<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;tracing_size&nbsp;:&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;key<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;kv_ro&nbsp;:&nbsp;?group:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Archive</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Crunch</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Fat</span>&nbsp;]&nbsp;key<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;dhcp&nbsp;:&nbsp;?group:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;key<br>
@@ -151,6 +153,7 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?group:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;list&nbsp;<span class="constructor">Mirage_key</span>.key<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;logs&nbsp;:&nbsp;<span class="constructor">Mirage_runtime</span>.log_threshold&nbsp;list&nbsp;key<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;typ&nbsp;=<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Functoria</span>.typ&nbsp;=<br>
@@ -349,18 +352,20 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">If</span>&nbsp;<span class="keyword">of</span>&nbsp;bool&nbsp;value&nbsp;*&nbsp;<span class="keywordsign">'</span>a&nbsp;impl&nbsp;*&nbsp;<span class="keywordsign">'</span>a&nbsp;impl<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Impl</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;configurable&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;tracing<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mprof_trace&nbsp;:&nbsp;size:int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage</span>.tracing<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;register&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?tracing:<span class="constructor">Mirage</span>.tracing&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?keys:<span class="constructor">Mirage</span>.<span class="constructor">Key</span>.t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?libraries:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?packages:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;job&nbsp;impl&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;tracing&nbsp;:&nbsp;<span class="constructor">Mirage</span>.tracing&nbsp;typ<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mprof_trace&nbsp;:&nbsp;size:int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage</span>.tracing&nbsp;impl<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;time<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;time&nbsp;:&nbsp;<span class="constructor">Mirage</span>.time&nbsp;typ<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;default_time&nbsp;:&nbsp;<span class="constructor">Mirage</span>.time&nbsp;impl<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;clock<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;clock&nbsp;:&nbsp;<span class="constructor">Mirage</span>.clock&nbsp;typ<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;default_clock&nbsp;:&nbsp;<span class="constructor">Mirage</span>.clock&nbsp;impl<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;reporter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;reporter&nbsp;:&nbsp;<span class="constructor">Mirage</span>.reporter&nbsp;typ<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;default_reporter&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?clock:<span class="constructor">Mirage</span>.clock&nbsp;impl&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?ring_size:int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?level:<span class="constructor">Logs</span>.level&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage</span>.reporter&nbsp;impl<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;no_reporter&nbsp;:&nbsp;<span class="constructor">Mirage</span>.reporter&nbsp;impl<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;random<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;random&nbsp;:&nbsp;<span class="constructor">Mirage</span>.random&nbsp;typ<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;default_random&nbsp;:&nbsp;<span class="constructor">Mirage</span>.random&nbsp;impl<br>
@@ -488,7 +493,8 @@
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;http<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;http&nbsp;:&nbsp;<span class="constructor">Mirage</span>.http&nbsp;typ<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;http_server&nbsp;:&nbsp;<span class="constructor">Mirage</span>.conduit&nbsp;impl&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage</span>.http&nbsp;impl<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;argv_dynamic&nbsp;:&nbsp;<span class="constructor">Functoria_app</span>.argv&nbsp;impl<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;default_argv&nbsp;:&nbsp;<span class="constructor">Functoria_app</span>.argv&nbsp;impl<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;no_argv&nbsp;:&nbsp;<span class="constructor">Functoria_app</span>.argv&nbsp;impl<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;noop&nbsp;:&nbsp;job&nbsp;impl<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;info<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;info&nbsp;:&nbsp;<span class="constructor">Mirage</span>.info&nbsp;typ<br>
@@ -496,5 +502,12 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;get_mode&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">MacOSX</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Unix</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Xen</span>&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;add_to_opam_packages&nbsp;:&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;add_to_ocamlfind_libraries&nbsp;:&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;register&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?argv:<span class="constructor">Functoria_app</span>.argv&nbsp;impl&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?tracing:<span class="constructor">Mirage</span>.tracing&nbsp;impl&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?reporter:<span class="constructor">Mirage</span>.reporter&nbsp;impl&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?keys:<span class="constructor">Mirage</span>.<span class="constructor">Key</span>.t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?libraries:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?packages:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;job&nbsp;impl&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;run&nbsp;:&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 <span class="keyword">end</span></code></body></html>

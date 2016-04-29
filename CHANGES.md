@@ -1,7 +1,24 @@
+### 2.9.0 (2016-04-29)
+
+* Add logging support. A new `reporter` parameter to `register` is now
+  available. This parameter defines how to configure the log reporter,
+  using `Logs` and `Mirage_logs`. Log reporters can also be configured
+  at configuration AND runtime using on the new `-l` or `--logs`
+  command-line argument.  (#534, by @samoht, @talex5 and @Drup)
+* Allow to disable command-line parsing at runtime. There is a new
+  `argv` parameter to the `register` function to allow to pass custom
+  command-line argument parsing devices.  Use `register ~argv:no_argv`
+  to disable command-line argument parsing. (#493, by @samoht and @Drup)
+
 ### 2.8.0 (2016-04-04)
 
-* Define an ICMP and ICMPV4 module type.  ICMPV4 is included in, and surfaced by, the STACKV4 module type.  The previous default behavior of the IPv4 module with respect to ICMP is preserved by STACKV4 and the tcpip_stack_direct function provided by mirage. (#523, by @yomimono)
-* Explicitly require OCaml compiler version 4.02.3 in opam files for mirage-types and mirage.
+* Define an ICMP and ICMPV4 module type. ICMPV4 is included in, and
+  surfaced by, the STACKV4 module type. The previous default behavior
+  of the IPv4 module with respect to ICMP is preserved by STACKV4 and
+  the tcpip_stack_direct function provided by mirage. (#523, by
+  @yomimono)
+* Explicitly require OCaml compiler version 4.02.3 in opam files for
+  mirage-types and mirage.
 
 ### 2.7.3 (2016-03-20)
 

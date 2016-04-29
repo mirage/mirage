@@ -121,3 +121,5 @@ module V6 : sig
   (** A list of gateways. *)
 
 end
+
+val logs: Mirage_runtime.log_threshold list key

@@ -30,29 +30,18 @@ include Functoria_app.DSL
 (** {2 General mirage devices} *)
 
 type tracing
+(** The type for tracing. *)
 
-val mprof_trace : size:int -> unit -> tracing
-(** Use mirage-profile to trace the unikernel.
-    On Unix, this creates and mmaps a file called "trace.ctf".
-    On Xen, it shares the trace buffer with dom0.
-    @param size: size of the ring buffer to use
-*)
+val tracing: tracing typ
+(** Implementation of the {!tracing} type. *)
 
-(** {3 Application registering} *)
+val mprof_trace : size:int -> unit -> tracing impl
+(** Use mirage-profile to trace the unikernel. On Unix, this creates
+    and mmaps a file called "trace.ctf". On Xen, it shares the trace
+    buffer with dom0.
 
-val register :
-  ?tracing:tracing ->
-  ?keys:Key.t list ->
-  ?libraries:string list ->
-  ?packages:string list -> string -> job impl list -> unit
-(** [register name jobs] registers the application named by [name]
-    which will executes the given [jobs].
-    @param libraries The ocamlfind libraries needed by this module.
-    @param packages The opam packages needed by this module.
-    @param keys The keys related to this module.
+    @param size: size of the ring buffer to use. *)
 
-    @param tracing Enable tracing and give a default depth.
-*)
 
 
 (** {2 Time} *)
@@ -81,6 +70,26 @@ val default_clock: clock impl
 
 
 
+(** {2 Log reporters} *)
+
+type reporter
+(** The type for log reporters. *)
+
+val reporter: reporter typ
+(** Implementation of the log {!reporter} type. *)
+
+val default_reporter:
+  ?clock:clock impl -> ?ring_size:int -> ?level:Logs.level ->
+  unit -> reporter impl
+(** [default_reporter ?clock ?level ()] is the log reporter that
+    prints log messages to the console, timestampted with [clock]. If
+    not provided, the default clock is {!default_clock}. [level] is
+    the default log threshold. It is [Logs.Info] if not
+    specified. *)
+
+val no_reporter: reporter impl
+(** [no_reporter] disable log reporting. *)
+
 (** {2 Random} *)
 
 type random
@@ -91,6 +100,7 @@ val random: random typ
 
 val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
+
 
 
 (** {2 Consoles} *)
@@ -394,9 +404,12 @@ val http_server: conduit impl -> http impl
 
 (** {2 Argv configuration} *)
 
-val argv_dynamic: Functoria_app.argv impl
-(** Dynamic argv implementation that resolves either to
-    the xen or the unix implementation. *)
+val default_argv: Functoria_app.argv impl
+(** [default_argv] is a dynamic argv implementation that resolves
+    either to the xen or the unix implementation. *)
+
+val no_argv: Functoria_app.argv impl
+(** [no_argv] Disable command line parsing and set argv to [|""|]. *)
 
 (** {2 Other devices} *)
 
@@ -431,6 +444,33 @@ val add_to_ocamlfind_libraries : string list -> unit
 (** Register ocamlfind libraries.
     @deprecated Use the [~libraries] argument from {!register}.
 *)
+
+
+(** {2 Application registering} *)
+
+val register :
+  ?argv:Functoria_app.argv impl ->
+  ?tracing:tracing impl ->
+  ?reporter:reporter impl ->
+  ?keys:Key.t list ->
+  ?libraries:string list ->
+  ?packages:string list -> string -> job impl list -> unit
+(** [register name jobs] registers the application named by [name]
+    which will executes the given [jobs].
+    @param libraries The ocamlfind libraries needed by this module.
+    @param packages The opam packages needed by this module.
+    @param keys The keys related to this module.
+
+    @param tracing Enable tracing.
+
+    @param reporter Configure logging. The default log reporter is
+    {!default_reporter}. To disable logging, use {!no_reporter}.
+
+    @param argv Configure command-line argument parsing. The default
+    parser is {!default_argv}. To disable command-line parsing, use
+    {!no_argv}.
+*)
+
 
 (**/**)
 

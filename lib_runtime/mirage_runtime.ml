@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Astring
+
 let tuntap_help =
   "If using a tap device, is tun/tap enabled and have you permissions?"
 
@@ -22,6 +24,26 @@ let string_of_network_init_error name = function
   | `Unimplemented -> "\n\n"^name^": operation unimplemented\n\n"
   | `Disconnected -> "\n\n"^name^": disconnected\n\n"
   | _ ->  "\n\n"^name^": unknown error\n\n"
+
+type log_threshold = [`All | `Src of string] * Logs.level
+
+let set_level ~default l =
+  let srcs = Logs.Src.list () in
+  let default =
+    try snd @@ List.find (function (`All, _) -> true | _ -> false) l
+    with Not_found -> default
+  in
+  Logs.set_level (Some default);
+  List.iter (function
+      | (`All, _) -> ()
+      | (`Src src, level) ->
+        try
+          let s = List.find (fun s -> Logs.Src.name s = src) srcs in
+          Logs.Src.set_level s (Some level)
+        with Not_found ->
+          Fmt.(pf stdout) "%a %s is not a valid log source.\n%!"
+            Fmt.(styled `Yellow string) "Warning:" src
+    ) l
 
 module Arg = struct
 
@@ -48,7 +70,34 @@ module Arg = struct
   let ipv6 = of_module (module Ipaddr.V6)
   let ipv6_prefix = of_module (module Ipaddr.V6.Prefix)
 
+  let log_threshold =
+    let enum = [
+      "error"  , Logs.Error;
+      "warning", Logs.Warning;
+      "info"   , Logs.Info;
+      "debug"  , Logs.Debug;
+    ] in
+    let level_of_string x =
+      try List.assoc x enum
+      with Not_found -> Fmt.kstrf failwith "%s is not a valid log level" x
+    in
+    let string_of_level x =
+      try fst @@ List.find (fun (_, y) -> x = y) enum
+      with Not_found -> "warning"
+    in
+    let parser str =
+      match String.cut ~sep:":" str with
+      | None            -> `Ok (`All    , level_of_string str)
+      | Some ("*", str) -> `Ok (`All    , level_of_string str)
+      | Some (src, str) -> `Ok (`Src src, level_of_string str)
+    in
+    let serialize ppf = function
+      | `All  , l -> Fmt.string ppf (string_of_level l)
+      | `Src s, l -> Fmt.pf ppf "%s:%s" s (string_of_level l)
+    in
+    parser, serialize
+
 end
 
 include
-  (Functoria_runtime : module type of Functoria_runtime with module Arg := Arg)
+  (Functoria_runtime: module type of Functoria_runtime with module Arg := Arg)

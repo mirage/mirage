@@ -947,11 +947,69 @@ let argv_xen = impl @@ object
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
-let argv_dynamic = if_impl Key.is_xen argv_xen argv_unix
+let no_argv = impl @@ object
+    inherit base_configurable
+    method ty = Functoria_app.argv
+    method name = "argv_empty"
+    method module_name = "Mirage_runtime"
+    method connect _ _ _ = "Lwt.return (`Ok [|\"\"|])"
+  end
+
+let default_argv = if_impl Key.is_xen argv_xen argv_unix
+
+(** Log reporting *)
+
+type reporter = job
+let reporter = job
+
+let pp_level ppf = function
+  | Logs.Error    -> Fmt.string ppf "Logs.Error"
+  | Logs.Warning  -> Fmt.string ppf "Logs.Warning"
+  | Logs.Info     -> Fmt.string ppf "Logs.Info"
+  | Logs.Debug    -> Fmt.string ppf "Logs.Debug"
+  | Logs.App      -> Fmt.string ppf "Logs.App"
+
+let mirage_log ?ring_size ~default =
+  let logs = Key.logs in
+  impl @@ object
+    inherit base_configurable
+    method ty = clock @-> reporter
+    method name = "mirage_logs"
+    method module_name = "Mirage_logs.Make"
+    method packages = Key.pure ["mirage-logs"]
+    method libraries = Key.pure ["mirage-logs"]
+    method keys = [ Key.abstract logs ]
+    method connect _ modname _ =
+      Fmt.strf
+        "@[<v 2>\
+         let ring_size = %a in@ \
+         let reporter = %s.create ?ring_size () in@ \
+         Mirage_runtime.set_level ~default:%a %a;@ \
+         %s.set_reporter reporter;@ \
+         Lwt.return (`Ok reporter)"
+        Fmt.(Dump.option int) ring_size
+        modname
+        pp_level default
+        pp_key logs
+        modname
+  end
+
+let default_reporter
+    ?(clock=default_clock) ?ring_size ?(level=Logs.Info) () =
+  mirage_log ?ring_size ~default:level $ clock
+
+let no_reporter = impl @@ object
+    inherit base_configurable
+    method ty = reporter
+    method name = "no_reporter"
+    method module_name = "Mirage_runtime"
+    method connect _ _ _ = "assert false"
+  end
 
 (** Tracing *)
 
-type tracing = job impl
+type tracing = job
+let tracing = job
 
 let mprof_trace ~size () =
   let unix_trace_file = "trace.ctf" in
@@ -1470,7 +1528,6 @@ module Project = struct
     "open Lwt\n\
      let run = OS.Main.run"
   let driver_error = driver_error
-  let argv = argv_dynamic
 
   let create jobs = impl @@ object
       inherit base_configurable
@@ -1517,12 +1574,18 @@ let add_to_opam_packages l =
 
 (** {Custom registration} *)
 
-let register ?tracing ?keys ?(libraries=[]) ?(packages=[]) name jobs =
+let (++) acc x = match acc, x with
+  | _       , None   -> acc
+  | None    , Some x -> Some [x]
+  | Some acc, Some x -> Some (acc @ [x])
+
+let register
+    ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
+    ?keys ?(libraries=[]) ?(packages=[])
+    name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
-  let jobs = match tracing with
-    | None -> jobs
-    | Some tracing ->
-      tracing :: jobs
-  in
-  register ?keys ~libraries ~packages name jobs
+  let argv = Some (Functoria_app.keys argv) in
+  let reporter = if reporter == no_reporter then None else Some reporter in
+  let init = None ++ argv ++ reporter ++ tracing in
+  register ?keys ~libraries ~packages ?init name jobs

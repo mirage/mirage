@@ -70,3 +70,7 @@ release:
 	git tag -a $(VERSION) -m "Version $(VERSION)."
 	git push upstream $(VERSION)
 	$(MAKE) pr
+
+pr:
+	opam publish prepare $(NAME).$(VERSION) $(ARCHIVE)
+	OPAMYES=1 opam publish submit $(NAME).$(VERSION) && rm -rf $(NAME).$(VERSION)

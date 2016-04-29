@@ -1570,7 +1570,7 @@ let add_to_opam_packages l =
 let (++) acc x = match acc, x with
   | _       , None   -> acc
   | None    , Some x -> Some [x]
-  | Some acc, Some x -> Some (x::acc)
+  | Some acc, Some x -> Some (acc @ [x])
 
 let register
     ?(argv=Some argv_dynamic)

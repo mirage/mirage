@@ -123,10 +123,6 @@ module Arg = struct
 
   let pp t = pp_kind t.kind
   let stage t = t.stage
-  let default (type a) (t: a t) = match t.kind with
-    | Opt (d, _) -> Some d
-    | Required _ -> None
-    | Flag -> Some false
 
   let opt ?(stage=`Both) conv default info =
     { stage; info; kind = Opt (default, conv) }

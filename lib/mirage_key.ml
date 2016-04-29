@@ -283,7 +283,7 @@ let logs =
   let docs = unikernel_section in
   let conv = Cmdliner.Arg.list Mirage_runtime.Arg.log_threshold in
   let serialize ppf levels =
-    Fmt.(pf ppf "[%a]" (list ~sep:(const string ";@ ") pp_threshold) levels)
+    Fmt.(pf ppf "[%a]" (list ~sep:(const string "; ") pp_threshold) levels)
   in
   let runtime_conv = "(Cmdliner.Arg.list Mirage_runtime.Arg.log_threshold)" in
   let doc =

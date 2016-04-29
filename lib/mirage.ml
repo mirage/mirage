@@ -995,7 +995,7 @@ let mirage_log ?ring_size ~default =
   end
 
 let default_reporter
-    ?(clock=default_clock) ?ring_size ?(level=Logs.Warning) () =
+    ?(clock=default_clock) ?ring_size ?(level=Logs.Info) () =
   mirage_log ?ring_size ~default:level $ clock
 
 let no_reporter = impl @@ object

@@ -84,7 +84,7 @@ val default_reporter:
 (** [default_reporter ?clock ?level ()] is the log reporter that
     prints log messages to the console, timestampted with [clock]. If
     not provided, the default clock is {!default_clock}. [level] is
-    the default log threshold. It is [Logs.Warning] if not
+    the default log threshold. It is [Logs.Info] if not
     specified. *)
 
 val no_reporter: reporter impl

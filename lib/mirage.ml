@@ -947,7 +947,7 @@ let argv_xen = impl @@ object
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
-let argv_empty = impl @@ object
+let no_argv = impl @@ object
     inherit base_configurable
     method ty = Functoria_app.argv
     method name = "argv_empty"
@@ -955,10 +955,7 @@ let argv_empty = impl @@ object
     method connect _ _ _ = "Lwt.return (`Ok [|\"\"|])"
   end
 
-let argv_dynamic =
-  if_impl Key.(value argv_empty)
-    argv_empty
-    (if_impl Key.is_xen argv_xen argv_unix)
+let default_argv = if_impl Key.is_xen argv_xen argv_unix
 
 (** Log reporting *)
 
@@ -1009,6 +1006,14 @@ let mirage_log ?ring_size ~default =
 let default_reporter
     ?(clock=default_clock) ?ring_size ?(level=Logs.Warning) () =
   mirage_log ?ring_size ~default:level $ clock
+
+let no_reporter = impl @@ object
+    inherit base_configurable
+    method ty = reporter
+    method name = "no_reporter"
+    method module_name = "Mirage_runtime"
+    method connect _ _ _ = "assert false"
+  end
 
 (** Tracing *)
 
@@ -1584,14 +1589,12 @@ let (++) acc x = match acc, x with
   | Some acc, Some x -> Some (acc @ [x])
 
 let register
-    ?(argv=Some argv_dynamic)
-    ?tracing ?(reporter=Some (default_reporter ()))
+    ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
     ?keys ?(libraries=[]) ?(packages=[])
     name jobs =
   let libraries = !libraries_ref @ libraries in
   let packages = !packages_ref @ packages in
-  let argv =
-    match argv with None -> None | Some a -> Some (Functoria_app.keys a)
-  in
+  let argv = Some (Functoria_app.keys argv) in
+  let reporter = if reporter == no_reporter then None else Some reporter in
   let init = None ++ argv ++ reporter ++ tracing in
   register ?keys ~libraries ~packages ?init name jobs

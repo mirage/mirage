@@ -87,7 +87,8 @@ val default_reporter:
     the default log threshold. It is [Logs.Warning] if not
     specified. *)
 
-
+val no_reporter: reporter impl
+(** [no_reporter] disable log reporting. *)
 
 (** {2 Random} *)
 
@@ -403,9 +404,12 @@ val http_server: conduit impl -> http impl
 
 (** {2 Argv configuration} *)
 
-val argv_dynamic: Functoria_app.argv impl
-(** Dynamic argv implementation that resolves either to
-    the xen or the unix implementation. *)
+val default_argv: Functoria_app.argv impl
+(** [default_argv] is a dynamic argv implementation that resolves
+    either to the xen or the unix implementation. *)
+
+val no_argv: Functoria_app.argv impl
+(** [no_argv] Disable command line parsing and set argv to [|""|]. *)
 
 (** {2 Other devices} *)
 
@@ -445,9 +449,9 @@ val add_to_ocamlfind_libraries : string list -> unit
 (** {2 Application registering} *)
 
 val register :
-  ?argv:Functoria_app.argv impl option ->
+  ?argv:Functoria_app.argv impl ->
   ?tracing:tracing impl ->
-  ?reporter:reporter impl option ->
+  ?reporter:reporter impl ->
   ?keys:Key.t list ->
   ?libraries:string list ->
   ?packages:string list -> string -> job impl list -> unit
@@ -460,11 +464,11 @@ val register :
     @param tracing Enable tracing.
 
     @param reporter Configure logging. The default log reporter is
-    [Some {!default_reporter}]. To disable logging, use [None].
+    {!default_reporter}. To disable logging, use {!no_reporter}.
 
     @param argv Configure command-line argument parsing. The default
-    parser is [Some {!argv_dynamic}]. To disable command-line parsing,
-    use [None].
+    parser is {!default_argv}. To disable command-line parsing, use
+    {!no_argv}.
 *)
 
 

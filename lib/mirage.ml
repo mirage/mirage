@@ -1381,14 +1381,14 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   begin match target with
     | `Xen  ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
+      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
       append fmt "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Unix ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
     | `MacOSX ->
       append fmt "SYNTAX = -tags \"thread,%s\"\n" default_tags;
-      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg\n"
+      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
   end;
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind $(LIBS) $(SYNTAX) $(FLAGS)\n\

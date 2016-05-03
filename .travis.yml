@@ -6,4 +6,4 @@ env:
   global:
   matrix:
   - PACKAGE=mirage UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="functoria mirage-logs"
-  -  PACKAGE=mirage-types UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02
+  - PACKAGE=mirage-types UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="functoria"

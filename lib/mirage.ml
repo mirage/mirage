@@ -1411,17 +1411,22 @@ let configure_makefile ~target ~root ~name ~warn_error info =
               \t$(BUILD) main.native.o";
   newline fmt;
 
-  (* On ARM, we must convert the ELF image to an ARM boot executable zImage,
-   * while on x86 we leave it as it is. *)
+  (* On ARM:
+     - we must convert the ELF image to an ARM boot executable zImage,
+       while on x86 we leave it as it is.
+     - we need to link libgcc.a (otherwise we get undefined references to:
+       __aeabi_dcmpge, __aeabi_dadd, ...)
+ *)
   let generate_image =
-    let need_zImage =
+    let is_arm =
       match Cmd.uname_m () with
       | Some machine ->
         String.length machine > 2 && String.is_prefix ~affix:"arm" machine
       | None -> failwith "uname -m failed; can't determine target machine type!"
     in
-    if need_zImage then (
-      Printf.sprintf "\t  -o mir-%s.elf\n\
+    if is_arm then (
+      Printf.sprintf "\t  $(shell gcc -print-libgcc-file-name) \\\n\
+                      \t  -o mir-%s.elf\n\
                       \tobjcopy -O binary mir-%s.elf mir-%s.xen"
         name name name
     ) else (
@@ -1440,7 +1445,6 @@ let configure_makefile ~target ~root ~name ~warn_error info =
                   \t  _build/main.native.o \\\n\
                   \t  %s \\\n\
                   \t  $$(pkg-config --static --libs %s) \\\n\
-                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
                   %s"
         extra_c_archives pkg_config_deps generate_image ;
       append fmt "\t@@echo Build succeeded";

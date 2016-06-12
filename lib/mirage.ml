@@ -1400,12 +1400,14 @@ let configure_makefile ~target ~root ~name ~warn_error info =
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";
   newline fmt;
+  let pkg_config_deps = "mirage-xen" in
   begin match target with
     | `Xen ->
       get_extra_ld_flags libs >>= fun archives ->
       let archives = S.elements (S.of_list archives) in
       let extra_c_archives = String.concat ~sep:" \\\n\t  " archives in
       append fmt "EXTRA_LD_FLAGS = %s\n" extra_c_archives;
+      append fmt "EXTRA_LD_FLAGS += $$(pkg-config --static --libs %s)\n" pkg_config_deps;
       R.ok ()
     | `Unix | `MacOSX -> R.ok ()
   end >>= fun () ->
@@ -1448,14 +1450,12 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   begin match target with
     | `Xen ->
       append fmt "build:: main.native.o";
-      let pkg_config_deps = "mirage-xen" in
       append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append fmt "\tld -d -static -nostdlib \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\
-                  \t  $$(pkg-config --static --libs %s) \\\n\
                   %s"
-        pkg_config_deps generate_image ;
+        generate_image ;
       append fmt "\t@@echo Build succeeded";
       R.ok ()
     | `Unix | `MacOSX ->

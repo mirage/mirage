@@ -5,5 +5,5 @@ script: bash -ex .travis-ci.sh
 env:
   global:
   matrix:
-  - PACKAGE=mirage UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="mirage-logs mirage-types mirage-types-lwt"
-  - PACKAGE=mirage-types UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="tcpip mirage mirage-types-lwt"
+  - PACKAGE=mirage UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="tcpip mirage-types:git://github.com/yomimono/mirage.git#pseudoheaders mirage-types-lwt:git://github.com/yomimono/mirage.git#pseudoheaders charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
+  - PACKAGE=mirage-types UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="tcpip charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers mirage:git://github.com/yomimono/mirage.git#pseudoheaders mirage-types-lwt:git://github.com/yomimono/mirage.git#pseudoheaders"

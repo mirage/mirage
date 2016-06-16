@@ -587,10 +587,11 @@ module type UDP = sig
       return a concrete handler or a [None], which results in the
       datagram being dropped. *)
 
-  val write: ?source_port:int -> dest_ip:ipaddr -> dest_port:int -> t -> buffer -> unit io
-  (** [write ~source_port ~dest_ip ~dest_port udp data] is a thread
-      that writes [data] from an optional [source_port] to a [dest_ip]
-      and [dest_port] IPv4 address pair. *)
+  val write: ?src_port:int -> dst:ipaddr -> dst_port:int -> t -> buffer -> unit io
+  (** [write ~src_port ~dst ~dst_port udp data] is a thread
+      that writes [data] from an optional [src_port] to a [dst]
+      and [dst_port] IPv4 address pair. *)
+
 end
 
 (** {1 TCP stack}
@@ -639,7 +640,7 @@ module type TCP = sig
   (** The type for application callback that receives a [flow] that it
       can read/write to. *)
 
-  val get_dest: flow -> ipaddr * int
+  val get_dst: flow -> ipaddr * int
   (** Get the destination IPv4 address and destination port that a
       flow is currently connected to. *)
 

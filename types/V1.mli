@@ -431,8 +431,8 @@ module type IP = sig
   (** [pseudoheader t dst proto len] gives a pseudoheader suitable for use in
       TCP or UDP checksum calculation based on [t]. *)
 
-  val get_source: t -> dst:ipaddr -> ipaddr
-  (** [get_source ip ~dst] is the source address to be used to send a
+  val get_src: t -> dst:ipaddr -> ipaddr
+  (** [get_src ip ~dst] is the source address to be used to send a
       packet to [dst]. *)
 
   val set_ip: t -> ipaddr -> unit io

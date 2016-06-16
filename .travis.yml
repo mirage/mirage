@@ -6,7 +6,7 @@ env:
   global:
   - UPDATE_GCC_BINUTILS=1
   matrix:
-  - PACKAGE=mirage OCAML_VERSION=4.03 PINS="tcpip mirage-types mirage-types-lwt charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
-  - PACKAGE=mirage-types OCAML_VERSION=4.03 PINS="tcpip mirage mirage-types-lwt charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
-  - PACKAGE=mirage OCAML_VERSION=4.02 PINS="tcpip mirage-types mirage-types-lwt charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
-  - PACKAGE=mirage-types OCAML_VERSION=4.02 PINS="tcpip mirage mirage-types-lwt charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
+          - PACKAGE=mirage OCAML_VERSION=4.03 PINS="tcpip:git://github.com/yomimono/mirage.git#standard_record_fields mirage-types:git://github.com/yomimono/mirage.git#standard_record_fields mirage-types-lwt charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
+  - PACKAGE=mirage-types OCAML_VERSION=4.03 PINS="tcpip:git://github.com/yomimono/mirage.git#standard_record_fields mirage:git://github.com/yomimono/mirage.git#standard_record_fields mirage-types-lwt:git://github.com/yomimono/mirage.git#standard_record_fields charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
+  - PACKAGE=mirage OCAML_VERSION=4.02 PINS="tcpip:git://github.com/yomimono/mirage.git#standard_record_fields mirage-types:git://github.com/yomimono/mirage.git#standard_record_fields mirage-types-lwt:git://github.com/yomimono/mirage.git#standard_record_fields charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"
+  - PACKAGE=mirage-types OCAML_VERSION=4.02 PINS="tcpip:git://github.com/yomimono/mirage.git#standard_record_fields mirage:git://github.com/yomimono/mirage.git#standard_record_fields mirage-types-lwt:git://github.com/yomimono/mirage.git#standard_record_fields charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers"

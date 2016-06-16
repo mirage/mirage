@@ -51,8 +51,9 @@ module type TIME = sig
   type +'a io
   (** The type for potentially blocking I/O operation *)
 
-  val sleep: float -> unit io
-  (** [sleep nsec] Block the current thread for. {b FIXME:} remove float. *)
+  val sleep_ns: int64 -> unit io
+  (** [sleep_ns n] Block the current thread for n nanoseconds.
+      @raise Invalid_argument if [n] is negative.  *)
 end
 
 (** {1 Random}

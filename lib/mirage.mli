@@ -69,10 +69,10 @@ val default_clock: clock impl
 (** The default mirage-clock implementation. *)
 
 type pclock
-(** Abstract type for posix clocks. *)
+(** Abstract type for POSIX clocks. *)
 
 val pclock: pclock typ
-(** Implementations of the [V1.PCLOCK] signature. *)
+(** Implementations of the {!V1.PCLOCK} signature. *)
 
 val default_posix_clock: pclock impl
 (** The default mirage-clock PCLOCK implementation. *)
@@ -81,7 +81,7 @@ type mclock
 (** Abstract type for monotonic clocks *)
 
 val mclock: mclock typ
-(** Implementations of the [V1.MCLOCK] signature. *)
+(** Implementations of the {!V1.MCLOCK} signature. *)
 
 val default_monotonic_clock: mclock impl
 (** The default mirage-clock MCLOCK implementation. *)

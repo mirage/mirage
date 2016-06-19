@@ -128,10 +128,9 @@ module type CLOCK = sig
 
 end
 
-(** {1 Posix clock}
+(** {1 POSIX clock}
 
-    Clock returning time since the unix epoch. Subject to adjustment by eg. NTP.
-    Compatible with the Ptime library. *)
+    Clock counting time since the Unix epoch. Subject to adjustment by e.g. NTP. *)
 module type PCLOCK = sig
 
   val now_d_ps : unit -> int * int64
@@ -141,12 +140,13 @@ module type PCLOCK = sig
       \[[0];[86_399_999_999_999_999L]\]. *)
 
   val current_tz_offset_s : unit -> int option
-  (** [current_tz_offset_s ()] is if available the clock's current local time zone
-      offset to UTC in seconds. *)
+  (** [current_tz_offset_s ()] is the clock's current local time zone
+    offset to UTC in seconds, if known. This is the duration local time -
+    UTC time in seconds. *)
 
   val period_d_ps : unit -> (int * int64) option
-  (** [period_d_ps ()] is if available [Some (d, ps)] representing the
-      clock's picosecond period [d] * 86'400e12 + [ps]. [ps] is in the
+  (** [period_d_ps ()] is [Some (d, ps)] representing the
+      clock's picosecond period [d] * 86'400e12 + [ps], if known. [ps] is in the
       range \[[0];[86_399_999_999_999_999L]\]. *)
 
 end
@@ -159,12 +159,12 @@ end
 module type MCLOCK = sig
 
   val elapsed_ns : unit -> int64
-  (** [elapsed_ns ()] gives a monotonically increasing count in nanoseconds from
-   * some arbitrary point *)
+  (** [elapsed_ns ()] is a monotonically increasing count of nanoseconds elapsed
+   * since some arbitrary point *)
 
   val period_ns : unit -> int64 option
-  (** [period_ns ()] is if available [Some ns] representing the clock's
-   * nanosecond period [ns] *)
+  (** [period_ns ()] is [Some ns] representing the clock's
+   * nanosecond period [ns], if known *)
 end
 
 (** {1 Connection between endpoints} *)

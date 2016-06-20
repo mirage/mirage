@@ -63,23 +63,6 @@ end
 
 let default_time = impl time_conf
 
-type clock = CLOCK
-let clock = Type CLOCK
-
-let clock_conf = object (self)
-  inherit base_configurable
-  method ty = clock
-  method name = "clock"
-  method module_name = "Clock"
-  method libraries =
-    Key.match_ Key.(value target) @@ function
-    | `Xen | `Virtio | `Ukvm -> ["mirage-clock-xen"]
-    | `Unix | `MacOSX -> ["mirage-clock-unix"]
-  method packages = self#libraries
-end
-
-let default_clock = impl clock_conf
-
 type pclock = PCLOCK
 let pclock = Type PCLOCK
 
@@ -455,7 +438,7 @@ let arpv4 = Type Arpv4
 
 let arpv4_conf = object
   inherit base_configurable
-  method ty = ethernet @-> clock @-> time @-> arpv4
+  method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arpv4"
   method module_name = "Arpv4.Make"
   method packages = Key.pure ["tcpip"]
@@ -468,7 +451,7 @@ let arpv4_conf = object
 end
 
 let arp_func = impl arpv4_conf
-let arp ?(clock = default_clock) ?(time = default_time) (eth : ethernet impl) =
+let arp ?(clock = default_monotonic_clock) ?(time = default_time) (eth : ethernet impl) =
   arp_func $ eth $ clock $ time
 
 type ('ipaddr, 'prefix) ip_config = {
@@ -525,7 +508,7 @@ let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
   end
 
 let create_ipv4
-    ?(clock = default_clock) ?(time = default_time)
+    ?(clock = default_monotonic_clock) ?(time = default_time)
     ?group net { address ; netmask ; gateways } =
   let etif = etif net in
   let arp = arp ~clock ~time etif in
@@ -548,7 +531,7 @@ type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 
 let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
     inherit base_configurable
-    method ty = ethernet @-> time @-> clock @-> ipv6
+    method ty = ethernet @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
     method packages = Key.pure ["tcpip"]
@@ -568,7 +551,7 @@ let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
 
 let create_ipv6
     ?(time = default_time)
-    ?(clock = default_clock)
+    ?(clock = default_monotonic_clock)
     ?group net { address ; netmask ; gateways } =
   let etif = etif net in
   let address = Key.V6.ip ?group address in
@@ -652,7 +635,7 @@ let tcpv6 : tcpv6 typ = tcp
 let tcp_direct_conf () = object
   inherit base_configurable
   method ty =
-    (ip: 'a ip typ) @-> time @-> clock @-> random @-> (tcp: 'a tcp typ)
+    (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
   method packages = Key.pure [ "tcpip" ]
@@ -666,7 +649,7 @@ end
 let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
-    ?(clock=default_clock) ?(random=default_random) ?(time=default_time) ip =
+    ?(clock=default_monotonic_clock) ?(random=default_random) ?(time=default_time) ip =
   tcp_direct_func () $ ip $ time $ clock $ random
 
 let tcpv4_socket_conf ipv4_key = object
@@ -739,7 +722,7 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
 
 
 let direct_stackv4_with_config
-    ?(clock=default_clock)
+    ?(clock=default_monotonic_clock)
     ?(random=default_random)
     ?(time=default_time)
     ?group
@@ -1054,7 +1037,7 @@ let mirage_log ?ring_size ~default =
   let logs = Key.logs in
   impl @@ object
     inherit base_configurable
-    method ty = clock @-> reporter
+    method ty = pclock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
     method packages = Key.pure ["mirage-logs"]
@@ -1076,7 +1059,7 @@ let mirage_log ?ring_size ~default =
   end
 
 let default_reporter
-    ?(clock=default_clock) ?ring_size ?(level=Logs.Info) () =
+    ?(clock=default_posix_clock) ?ring_size ?(level=Logs.Info) () =
   mirage_log ?ring_size ~default:level $ clock
 
 let no_reporter = impl @@ object

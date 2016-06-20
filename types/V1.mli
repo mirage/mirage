@@ -99,35 +99,6 @@ module type RANDOM = sig
       [bound] (exclusive). [bound] must be greater than 0. *)
 end
 
-(** {1 Clock operations}
-
-    Currently read-only to retrieve the time in various formats. *)
-module type CLOCK = sig
-
-  type tm =
-    { tm_sec: int;               (** Seconds 0..60 *)
-      tm_min: int;               (** Minutes 0..59 *)
-      tm_hour: int;              (** Hours 0..23 *)
-      tm_mday: int;              (** Day of month 1..31 *)
-      tm_mon: int;               (** Month of year 0..11 *)
-      tm_year: int;              (** Year - 1900 *)
-      tm_wday: int;              (** Day of week (Sunday is 0) *)
-      tm_yday: int;              (** Day of year 0..365 *)
-      tm_isdst: bool;            (** Daylight time savings in effect *)
-    }
-  (** The type for representing wallclock time and calendar date. *)
-
-  val time: unit -> float
-  (** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in
-      seconds. *)
-
-  val gmtime: float -> tm
-  (** Convert a time in seconds, as returned by {!time}, into a date
-      and a time. Assumes UTC (Coordinated Universal Time), also known
-      as GMT. *)
-
-end
-
 (** {1 POSIX clock}
 
     Clock counting time since the Unix epoch. Subject to adjustment by e.g. NTP. *)

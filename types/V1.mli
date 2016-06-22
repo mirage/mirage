@@ -156,10 +156,9 @@ module type FLOW = sig
       has not called [close] is similar to that of a half-closed TCP
       connection or a Unix socket after [shutdown(SHUTDOWN_WRITE)].
 
-      The result [unit io] determines when the remote endpoint
-      finishes calling [write] and calls [close]. At this point no data
-      can flow in either direction and resources associated with the flow
-      can be freed.
+      [close flow] waits until the remote endpoint has also called [close]
+      before returning. At this point no data can flow in either direction
+      and resources associated with the flow can be freed.
       *)
 end
 

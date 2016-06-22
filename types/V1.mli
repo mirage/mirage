@@ -147,9 +147,17 @@ module type FLOW = sig
       logging. *)
 
   val read: flow -> [`Ok of buffer | `Eof | `Error of error ] io
-  (** [read flow] reads some data from the flow and returns a
-      fresh buffer (of arbitrary size), an [`Eof] if the other side has
-      called [close] or an [`Error]. *)
+  (** [read flow] blocks until some data is available and returns a
+      fresh buffer containing it.
+
+      The returned buffer will be of a size convenient to the flow
+      implementation, but will always have at least 1 byte.
+
+      If the remote endpoint calls [close] then calls to [read] will
+      keep returning data until all the in-flight data has been read.
+      [read flow] will return [`Eof] when the remote endpoint has
+      called [close] and when there is no more in-flight data.
+   *)
 
   val write: flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
   (** [write flow buffer] writes a buffer to the flow. There is no

@@ -19,7 +19,29 @@
 (** MirageOS Signatures.
 
     This module defines the basic signatures that functor parameters
-    should implement in MirageOS to be portable. *)
+    should implement in MirageOS to be portable.
+
+    {1 General conventions}
+
+    {ul
+    {- errors which application programmers are expected to handle
+       (e.g. connection refused or end of file) are encoded as result types
+       where [`Ok x] means the operation was succesful and returns [x] and
+       where [`Error e] means the operation has failed with error [e]. }
+    {- errors which represent programming errors such as assertion failures
+       or illegal arguments are encoded as exceptions. The application may
+       attempt to catch exceptions and recover or simply let the exception
+       propagate and crash the application. If the application crashes then
+       the runtime system should output diagnostics and abort. }
+    {- operations which perform I/O return values of [type +'a io] which
+       allow the application to either wait for the I/O to be completed or
+       leave it running asynchronously. If the I/O completes with an error
+       then the operation may have completely failed, partially succeeded
+       or even completely succeeded (e.g. it may only be a confirmation
+       message in a network protocol which was missed): see individual API
+       descriptions for details. }
+    }
+ *)
 
 (** {1 Abstract devices}
 

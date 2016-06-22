@@ -147,10 +147,10 @@ module type FLOW = sig
       error. *)
 
   val close: flow -> unit io
-  (** [close flow] will flush all pending writes and signal the remote
+  (** [close flow] flushes all pending writes and signals the remote
       endpoint that there will be no future writes. Once the remote endpoint
       has read all pending data, it is expected that calls to [read] on
-      the remote will return [`Eof].
+      the remote return [`Eof].
 
       Note it is still possible for the remote endpoint to [write] to
       the flow and for the local endpoint to call [read]. This state where
@@ -158,7 +158,7 @@ module type FLOW = sig
       has not called [close] is similar to that of a half-closed TCP
       connection or a Unix socket after [shutdown(SHUTDOWN_WRITE)].
 
-      The result [unit io] will become determined when the remote endpoint
+      The result [unit io] determines when the remote endpoint
       finishes calling [write] and calls [close]. At this point no data
       can flow in either direction and resources associated with the flow
       can be freed.

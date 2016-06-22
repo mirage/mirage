@@ -224,16 +224,18 @@ module type BLOCK = sig
   (** Query the characteristics of a specific block device *)
 
   val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
-  (** [read device sector_start buffers] returns a blocking IO
-      operation which attempts to fill [buffers] with data starting at
-      [sector_start].  Each of [buffers] must be a whole number of
-      sectors in length. The list of buffers can be of any length. *)
+  (** [read device sector_start buffers] reads data starting at [sector_start]
+      from the block device into [buffers]. [Ok ()] means the buffers have been filled.
+      [Error _] indicates an I/O error has happened and some of the buffers may not be filled.
+      Each of elements in the list [buffers] must be a whole number of sectors in length.
+      The list of buffers can be of any length. *)
 
   val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
-  (** [write device sector_start buffers] returns a blocking IO
-      operation which attempts to write the data contained within
-      [buffers] to [t] starting at [sector_start]. When the IO
-      operation completes then all writes have been persisted.
+  (** [write device sector_start buffers] writes data from [buffers]
+      onto the block device starting at [sector_start].
+      [Ok ()] means the contents of the buffers have been written.
+      [Error _] indicates a partial failure in which some of the writes may not have
+      happened.
 
       Once submitted, it is not possible to cancel a request and there
       is no timeout.
@@ -407,7 +409,7 @@ module type IP = sig
       function, or the [default] function for unknown IP protocols. *)
 
   val allocate_frame: t -> dst:ipaddr -> proto:[`ICMP | `TCP | `UDP] -> buffer * int
-  (** [allocate_frame t ~dst ~proto] retrurns a pair [(pkt, len)] such that
+  (** [allocate_frame t ~dst ~proto] returns a pair [(pkt, len)] such that
       [Cstruct.sub pkt 0 len] is the IP header (including the link layer part) of a
       packet going to [dst] for protocol [proto].  The space in [pkt] after the
       first [len] bytes can be used by the client. *)
@@ -642,22 +644,24 @@ module type TCP = sig
       flow is currently connected to. *)
 
   val write_nodelay: flow -> buffer -> unit io
-  (** [write_nodelay flow] will block until the contents of [buffer
-      list] are all successfully transmitted to the remote
-      endpoint. Buffering within the stack is minimized in this mode.
+  (** [write_nodelay flow buffer] writes the contents of [buffer]
+      to the flow. The thread blocks until all data has been successfully
+      transmitted to the remote endpoint.
+      Buffering within the stack is minimized in this mode.
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
   val writev_nodelay: flow -> buffer list -> unit io
-  (** [writev_nodelay flow] will block until the contents of [buffer
-      list] are all successfully transmitted to the remote
-      endpoint. Buffering within the stack is minimized in this mode.
+  (** [writev_nodelay flow buffers] writes the contents of [buffers]
+      to the flow. The thread blocks until all data has been successfully
+      transmitted to the remote endpoint.
+      Buffering within the stack is minimized in this mode.
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
   val create_connection: t -> ipaddr * int ->
     [ `Ok of flow | `Error of error ] io
-  (** [create_connection t (addr,port)] will open a TCPv4 connection
+  (** [create_connection t (addr,port)] opens a TCPv4 connection
       to the specified endpoint. *)
 
   val input: t -> listeners:(int -> callback option) -> ipinput
@@ -747,21 +751,21 @@ module type STACKV4 = sig
       configuration on the stack interface. *)
 
   val listen_udpv4: t -> port:int -> UDPV4.callback -> unit
-  (** [listen_udpv4 t ~port cb] will register the [cb] callback on the
+  (** [listen_udpv4 t ~port cb] registers the [cb] callback on the
       UDPv4 [port] and immediately return.  If [port] is invalid (not
       between 0 and 65535 inclusive), it raises [Invalid_argument].
       Multiple bindings to the same port will overwrite previous
       bindings, so callbacks will not chain if ports clash. *)
 
   val listen_tcpv4: t -> port:int -> TCPV4.callback -> unit
-  (** [listen_tcpv4 t ~port cb] will register the [cb] callback on the
+  (** [listen_tcpv4 t ~port cb] registers the [cb] callback on the
       TCPv4 [port] and immediatey return.  If [port] is invalid (not
       between 0 and 65535 inclusive), it raises [Invalid_argument].
       Multiple bindings to the same port will overwrite previous
       bindings, so callbacks will not chain if ports clash. *)
 
   val listen: t -> unit io
-  (** [listen t] will cause the stack to listen for traffic on the
+  (** [listen t] requests that the stack listen for traffic on the
       network interface associated with the stack, and demultiplex
       traffic to the appropriate callbacks. *)
 end
@@ -789,18 +793,18 @@ module type CHANNEL = sig
   (** The type for potentially blocking stream of IO requests. *)
 
   val create: flow -> t
-  (** [create flow] will allocate send and receive buffers and
-      associated them with the given unbuffered [flow]. *)
+  (** [create flow] allocates send and receive buffers and
+      associates them with the given unbuffered [flow]. *)
 
   val to_flow: t -> flow
-  (** [to_flow t] will return the flow that backs this channel. *)
+  (** [to_flow t] returns the flow that backs this channel. *)
 
   val read_char: t -> char io
-  (** Read a single character from the channel, blocking if there is
+  (** Reads a single character from the channel, blocking if there is
       no immediately available input data. *)
 
   val read_until: t -> char -> (bool * buffer) io
-  (** [read_until t ch] will read from the channel until the given
+  (** [read_until t ch] reads from the channel until the given
       [ch] character is found.  It returns a tuple indicating whether
       the character was found at all ([false] indicates that an EOF
       condition occurred before the character was encountered), and
@@ -809,18 +813,18 @@ module type CHANNEL = sig
       never encountered). *)
 
   val read_some: ?len:int -> t -> buffer io
-  (** [read_some ?len t] will read up to [len] characters from the
+  (** [read_some ?len t] reads up to [len] characters from the
       input channel and at most a full [buffer]. If [len] is not
-      specified, it will read all available data and return that
+      specified, it reads all available data and return that
       buffer. *)
 
   val read_stream: ?len:int -> t -> buffer io_stream
-  (** [read_stream ?len t] will return up to [len] characters as a
+  (** [read_stream ?len t] returns up to [len] characters as a
       stream of buffers. This call will probably be removed in a
       future revision of the API in favour of {!read_some}. *)
 
   val read_line: t -> buffer list io
-  (** [read_line t] will read a line of input, which is terminated
+  (** [read_line t] reads a line of input, which is terminated
       either by a CRLF sequence, or the end of the channel (which
       counts as a line).  @return Returns a list of views that
       terminates at EOF. *)
@@ -834,21 +838,21 @@ module type CHANNEL = sig
       [buf], starting from from offset [off]. *)
 
   val write_buffer: t -> buffer -> unit
-  (** [write_buffer t buf] will copy the buffer to the channel's
+  (** [write_buffer t buf] copies the buffer to the channel's
       output buffer.  The buffer should not be modified after being
       written, and it will be recycled into the buffer allocation pool
       at some future point. *)
 
   val write_line: t -> string -> unit
-  (** [write_line t buf] will write the string [buf] to the output
+  (** [write_line t buf] writes the string [buf] to the output
       channel and append a newline character afterwards. *)
 
   val flush: t -> unit io
-  (** [flush t] will flush the output buffer and block if necessary
+  (** [flush t] flushes the output buffer and block if necessary
       until it is all written out to the flow. *)
 
   val close: t -> unit io
-  (** [close t] will call {!flush} and then close the underlying
+  (** [close t] calls {!flush} and then close the underlying
       flow. *)
 
 end

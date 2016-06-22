@@ -19,7 +19,29 @@
 (** MirageOS Signatures.
 
     This module defines the basic signatures that functor parameters
-    should implement in MirageOS to be portable. *)
+    should implement in MirageOS to be portable.
+
+    {1 General conventions}
+
+    {ul
+    {- errors which application programmers are expected to handle
+       (e.g. connection refused or end of file) are encoded as result types
+       where [`Ok x] means the operation was succesful and returns [x] and
+       where [`Error e] means the operation has failed with error [e]. }
+    {- errors which represent programming errors such as assertion failures
+       or illegal arguments are encoded as exceptions. The application may
+       attempt to catch exceptions and recover or simply let the exception
+       propagate and crash the application. If the application crashes then
+       the runtime system should output diagnostics and abort. }
+    {- operations which perform I/O return values of [type +'a io] which
+       allow the application to either wait for the I/O to be completed or
+       leave it running asynchronously. If the I/O completes with an error
+       then the operation may have completely failed, partially succeeded
+       or even completely succeeded (e.g. it may only be a confirmation
+       message in a network protocol which was missed): see individual API
+       descriptions for details. }
+    }
+ *)
 
 (** {1 Abstract devices}
 
@@ -125,32 +147,38 @@ module type FLOW = sig
       logging. *)
 
   val read: flow -> [`Ok of buffer | `Eof | `Error of error ] io
-  (** [read flow] will block until it either successfully reads a
-      segment of data from the current flow, receives an [Eof]
-      signifying that the connection is now closed, or an [Error]. *)
+  (** [read flow] blocks until some data is available and returns a
+      fresh buffer containing it.
+
+      The returned buffer will be of a size convenient to the flow
+      implementation, but will always have at least 1 byte.
+
+      If the remote endpoint calls [close] then calls to [read] will
+      keep returning data until all the in-flight data has been read.
+      [read flow] will return [`Eof] when the remote endpoint has
+      called [close] and when there is no more in-flight data.
+   *)
 
   val write: flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
-  (** [write flow buffer] will block until [buffer] has been added to
-      the send queue. There is no indication when the buffer has
-      actually been read and, therefore, it must not be reused.  The
-      contents may be transmitted in separate packets, depending on
-      the underlying transport. The result [`Ok ()] indicates success,
-      [`Eof] indicates that the connection is now closed and [`Error]
-      indicates some other error. *)
+  (** [write flow buffer] writes a buffer to the flow. There is no
+      indication when the buffer has actually been read and, therefore,
+      it must not be reused.  The contents may be transmitted in
+      separate packets, depending on the underlying transport. The
+      result [`Ok ()] indicates success, [`Eof] indicates that the
+      connection is now closed and [`Error] indicates some other error. *)
 
   val writev: flow -> buffer list -> [`Ok of unit | `Eof | `Error of error ] io
-  (** [writev flow buffers] will block until the buffers have all been
-      added to the send queue. There is no indication when the buffers
-      have actually been read and, therefore, they must not be reused.
-      The result [`Ok ()] indicates success, [`Eof] indicates that the
-      connection is now closed and [`Error] indicates some other
-      error. *)
+  (** [writev flow buffers] writes a sequence of buffers to the flow.
+      There is no indication when the buffers have actually been read and,
+      therefore, they must not be reused. The result [`Ok ()] indicates
+      success, [`Eof] indicates that the connection is now closed and
+      [`Error] indicates some other error. *)
 
   val close: flow -> unit io
-  (** [close flow] will flush all pending writes and signal the remote
+  (** [close flow] flushes all pending writes and signals the remote
       endpoint that there will be no future writes. Once the remote endpoint
       has read all pending data, it is expected that calls to [read] on
-      the remote will return [`Eof].
+      the remote return [`Eof].
 
       Note it is still possible for the remote endpoint to [write] to
       the flow and for the local endpoint to call [read]. This state where
@@ -158,10 +186,9 @@ module type FLOW = sig
       has not called [close] is similar to that of a half-closed TCP
       connection or a Unix socket after [shutdown(SHUTDOWN_WRITE)].
 
-      The result [unit io] will become determined when the remote endpoint
-      finishes calling [write] and calls [close]. At this point no data
-      can flow in either direction and resources associated with the flow
-      can be freed.
+      [close flow] waits until the remote endpoint has also called [close]
+      before returning. At this point no data can flow in either direction
+      and resources associated with the flow can be freed.
       *)
 end
 
@@ -226,16 +253,18 @@ module type BLOCK = sig
   (** Query the characteristics of a specific block device *)
 
   val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
-  (** [read device sector_start buffers] returns a blocking IO
-      operation which attempts to fill [buffers] with data starting at
-      [sector_start].  Each of [buffers] must be a whole number of
-      sectors in length. The list of buffers can be of any length. *)
+  (** [read device sector_start buffers] reads data starting at [sector_start]
+      from the block device into [buffers]. [Ok ()] means the buffers have been filled.
+      [Error _] indicates an I/O error has happened and some of the buffers may not be filled.
+      Each of elements in the list [buffers] must be a whole number of sectors in length.
+      The list of buffers can be of any length. *)
 
   val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
-  (** [write device sector_start buffers] returns a blocking IO
-      operation which attempts to write the data contained within
-      [buffers] to [t] starting at [sector_start]. When the IO
-      operation completes then all writes have been persisted.
+  (** [write device sector_start buffers] writes data from [buffers]
+      onto the block device starting at [sector_start].
+      [Ok ()] means the contents of the buffers have been written.
+      [Error _] indicates a partial failure in which some of the writes may not have
+      happened.
 
       Once submitted, it is not possible to cancel a request and there
       is no timeout.
@@ -409,7 +438,7 @@ module type IP = sig
       function, or the [default] function for unknown IP protocols. *)
 
   val allocate_frame: t -> dst:ipaddr -> proto:[`ICMP | `TCP | `UDP] -> buffer * int
-  (** [allocate_frame t ~dst ~proto] retrurns a pair [(pkt, len)] such that
+  (** [allocate_frame t ~dst ~proto] returns a pair [(pkt, len)] such that
       [Cstruct.sub pkt 0 len] is the IP header (including the link layer part) of a
       packet going to [dst] for protocol [proto].  The space in [pkt] after the
       first [len] bytes can be used by the client. *)
@@ -644,22 +673,24 @@ module type TCP = sig
       flow is currently connected to. *)
 
   val write_nodelay: flow -> buffer -> unit io
-  (** [write_nodelay flow] will block until the contents of [buffer
-      list] are all successfully transmitted to the remote
-      endpoint. Buffering within the stack is minimized in this mode.
+  (** [write_nodelay flow buffer] writes the contents of [buffer]
+      to the flow. The thread blocks until all data has been successfully
+      transmitted to the remote endpoint.
+      Buffering within the stack is minimized in this mode.
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
   val writev_nodelay: flow -> buffer list -> unit io
-  (** [writev_nodelay flow] will block until the contents of [buffer
-      list] are all successfully transmitted to the remote
-      endpoint. Buffering within the stack is minimized in this mode.
+  (** [writev_nodelay flow buffers] writes the contents of [buffers]
+      to the flow. The thread blocks until all data has been successfully
+      transmitted to the remote endpoint.
+      Buffering within the stack is minimized in this mode.
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
   val create_connection: t -> ipaddr * int ->
     [ `Ok of flow | `Error of error ] io
-  (** [create_connection t (addr,port)] will open a TCPv4 connection
+  (** [create_connection t (addr,port)] opens a TCPv4 connection
       to the specified endpoint. *)
 
   val input: t -> listeners:(int -> callback option) -> ipinput
@@ -749,21 +780,21 @@ module type STACKV4 = sig
       configuration on the stack interface. *)
 
   val listen_udpv4: t -> port:int -> UDPV4.callback -> unit
-  (** [listen_udpv4 t ~port cb] will register the [cb] callback on the
+  (** [listen_udpv4 t ~port cb] registers the [cb] callback on the
       UDPv4 [port] and immediately return.  If [port] is invalid (not
       between 0 and 65535 inclusive), it raises [Invalid_argument].
       Multiple bindings to the same port will overwrite previous
       bindings, so callbacks will not chain if ports clash. *)
 
   val listen_tcpv4: t -> port:int -> TCPV4.callback -> unit
-  (** [listen_tcpv4 t ~port cb] will register the [cb] callback on the
+  (** [listen_tcpv4 t ~port cb] registers the [cb] callback on the
       TCPv4 [port] and immediatey return.  If [port] is invalid (not
       between 0 and 65535 inclusive), it raises [Invalid_argument].
       Multiple bindings to the same port will overwrite previous
       bindings, so callbacks will not chain if ports clash. *)
 
   val listen: t -> unit io
-  (** [listen t] will cause the stack to listen for traffic on the
+  (** [listen t] requests that the stack listen for traffic on the
       network interface associated with the stack, and demultiplex
       traffic to the appropriate callbacks. *)
 end
@@ -791,18 +822,18 @@ module type CHANNEL = sig
   (** The type for potentially blocking stream of IO requests. *)
 
   val create: flow -> t
-  (** [create flow] will allocate send and receive buffers and
-      associated them with the given unbuffered [flow]. *)
+  (** [create flow] allocates send and receive buffers and
+      associates them with the given unbuffered [flow]. *)
 
   val to_flow: t -> flow
-  (** [to_flow t] will return the flow that backs this channel. *)
+  (** [to_flow t] returns the flow that backs this channel. *)
 
   val read_char: t -> char io
-  (** Read a single character from the channel, blocking if there is
+  (** Reads a single character from the channel, blocking if there is
       no immediately available input data. *)
 
   val read_until: t -> char -> (bool * buffer) io
-  (** [read_until t ch] will read from the channel until the given
+  (** [read_until t ch] reads from the channel until the given
       [ch] character is found.  It returns a tuple indicating whether
       the character was found at all ([false] indicates that an EOF
       condition occurred before the character was encountered), and
@@ -811,18 +842,18 @@ module type CHANNEL = sig
       never encountered). *)
 
   val read_some: ?len:int -> t -> buffer io
-  (** [read_some ?len t] will read up to [len] characters from the
+  (** [read_some ?len t] reads up to [len] characters from the
       input channel and at most a full [buffer]. If [len] is not
-      specified, it will read all available data and return that
+      specified, it reads all available data and return that
       buffer. *)
 
   val read_stream: ?len:int -> t -> buffer io_stream
-  (** [read_stream ?len t] will return up to [len] characters as a
+  (** [read_stream ?len t] returns up to [len] characters as a
       stream of buffers. This call will probably be removed in a
       future revision of the API in favour of {!read_some}. *)
 
   val read_line: t -> buffer list io
-  (** [read_line t] will read a line of input, which is terminated
+  (** [read_line t] reads a line of input, which is terminated
       either by a CRLF sequence, or the end of the channel (which
       counts as a line).  @return Returns a list of views that
       terminates at EOF. *)
@@ -836,21 +867,21 @@ module type CHANNEL = sig
       [buf], starting from from offset [off]. *)
 
   val write_buffer: t -> buffer -> unit
-  (** [write_buffer t buf] will copy the buffer to the channel's
+  (** [write_buffer t buf] copies the buffer to the channel's
       output buffer.  The buffer should not be modified after being
       written, and it will be recycled into the buffer allocation pool
       at some future point. *)
 
   val write_line: t -> string -> unit
-  (** [write_line t buf] will write the string [buf] to the output
+  (** [write_line t buf] writes the string [buf] to the output
       channel and append a newline character afterwards. *)
 
   val flush: t -> unit io
-  (** [flush t] will flush the output buffer and block if necessary
+  (** [flush t] flushes the output buffer and block if necessary
       until it is all written out to the flow. *)
 
   val close: t -> unit io
-  (** [close t] will call {!flush} and then close the underlying
+  (** [close t] calls {!flush} and then close the underlying
       flow. *)
 
 end

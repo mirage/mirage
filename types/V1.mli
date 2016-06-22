@@ -190,6 +190,22 @@ module type FLOW = sig
       before returning. At this point no data can flow in either direction
       and resources associated with the flow can be freed.
       *)
+
+  val disconnect: flow -> unit io
+  (** [disconnect flow] disconnects from the flow without flushing and
+      frees local resources.
+
+      Warning: [disconnect flow] may drop in-flight data: to ensure data is
+      transmitted use [close flow] first.
+
+      [disconnect flow] waits for the local resources to be freed. The time
+      taken depends on the underlying implementation; for example an implementation
+      over a Unix pipe can be freed quickly, while a connection to a
+      remote machine over TCP may require the connection to remain in a
+      "TIME-WAIT" state for several minutes, see
+      {{:http://www.isi.edu/touch/pubs/infocomm99/infocomm99-web/}The TIME-WAIT
+      state in TCP and Its Effect on Busy Servers}.
+  *)
 end
 
 (** {1 Console input/output} *)

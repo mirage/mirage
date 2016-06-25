@@ -431,8 +431,8 @@ module type IP = sig
   (** [pseudoheader t dst proto len] gives a pseudoheader suitable for use in
       TCP or UDP checksum calculation based on [t]. *)
 
-  val get_src: t -> dst:ipaddr -> ipaddr
-  (** [get_src ip ~dst] is the source address to be used to send a
+  val src: t -> dst:ipaddr -> ipaddr
+  (** [src ip ~dst] is the source address to be used to send a
       packet to [dst]. *)
 
   val set_ip: t -> ipaddr -> unit io
@@ -640,7 +640,7 @@ module type TCP = sig
   (** The type for application callback that receives a [flow] that it
       can read/write to. *)
 
-  val get_dst: flow -> ipaddr * int
+  val dst: flow -> ipaddr * int
   (** Get the destination IPv4 address and destination port that a
       flow is currently connected to. *)
 

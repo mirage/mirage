@@ -80,23 +80,14 @@ end
 
 (** {1 Random}
 
-    Operations to generate randomness. This is currently a passthrough
-    to the OCaml Random generator, and will be deprecated and
-    turned into a proper DEVICE with blocking modes. *)
+    Operations to generate random numbers. *)
 module type RANDOM = sig
 
-  val self_init: unit -> unit
-  (** Initialize the generator with a random seed chosen in a
-      system-dependent way. *)
+  type buffer
+  (** The type for memory buffer. *)
 
-  val int: int -> int
-  (** [int bound] returns a random integer between 0 (inclusive) and
-      [bound] (exclusive). [bound] must be greater than 0 and less
-      than 2{^30}. *)
-
-  val int32: int32 -> int32
-  (** [int32 bound] returns a random integer between 0 (inclusive) and
-      [bound] (exclusive). [bound] must be greater than 0. *)
+  val generate: int -> buffer
+  (** [generate n] is a buffer of length [n] filled with random. *)
 end
 
 (** {1 POSIX clock}

@@ -340,7 +340,7 @@ val direct_stackv4_with_default_ipv4:
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
-  console impl -> network impl -> stackv4 impl
+  network impl -> stackv4 impl
 
 (** Direct network stack with ip.
     Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}. *)
@@ -349,7 +349,7 @@ val direct_stackv4_with_static_ipv4:
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
-  console impl -> network impl -> ipv4_config -> stackv4 impl
+  network impl -> ipv4_config -> stackv4 impl
 
 (** Direct network stack using dhcp. *)
 val direct_stackv4_with_dhcp:
@@ -357,11 +357,11 @@ val direct_stackv4_with_dhcp:
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
-  console impl -> network impl -> stackv4 impl
+  network impl -> stackv4 impl
 
 (** Network stack with sockets. Exposes the key {Key.interfaces}. *)
 val socket_stackv4:
-  ?group:string -> console impl -> Ipaddr.V4.t list -> stackv4 impl
+  ?group:string -> Ipaddr.V4.t list -> stackv4 impl
 
 (** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
     - If [net] = [socket] then {!socket_stackv4} is used.
@@ -375,7 +375,7 @@ val generic_stackv4 :
   ?group:string ->
   ?dhcp_key:bool value ->
   ?net_key:[ `Direct | `Socket ] value ->
-  console impl -> network impl -> stackv4 impl
+  network impl -> stackv4 impl
 
 (** {2 Resolver configuration} *)
 

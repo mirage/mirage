@@ -138,9 +138,8 @@ type direct_stack_config = [
   | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
 ]
 
-type ('console, 'netif, 'mode) stackv4_config = {
+type ('netif, 'mode) stackv4_config = {
   name: string;
-  console: 'console;
   interface: 'netif;
   mode: 'mode;
 }
@@ -148,6 +147,6 @@ type ('console, 'netif, 'mode) stackv4_config = {
 (** Single network stack *)
 module type STACKV4 = STACKV4
   with type 'a io = 'a Lwt.t
-   and type ('a,'b,'c) config = ('a,'b,'c) stackv4_config
+   and type ('a,'b) config = ('a,'b) stackv4_config
    and type ipv4addr = Ipaddr.V4.t
    and type buffer = Cstruct.t

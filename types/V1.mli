@@ -987,6 +987,9 @@ module type KV_RO = sig
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
+  val mem: t -> string -> bool
+  (** [mem t key] returns [true] if a value is set for [key] in [t], and [false] if not so. *)
+
   val size: t -> string -> [`Error of error | `Ok of int64] io
   (** Get the value size. *)
 

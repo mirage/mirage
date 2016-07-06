@@ -975,6 +975,7 @@ module type KV_RO = sig
 
   type error =
     | Unknown_key of string
+    | Failure of string
 
   include DEVICE
     with type error := error
@@ -987,7 +988,7 @@ module type KV_RO = sig
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val mem: t -> string -> bool
+  val mem: t -> string -> [ `Ok of bool | `Error of error ] io
   (** [mem t key] returns [true] if a value is set for [key] in [t], and [false] if not so. *)
 
   val size: t -> string -> [`Error of error | `Ok of int64] io

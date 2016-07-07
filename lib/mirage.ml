@@ -717,7 +717,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method ty = stackv4
     val name = add_suffix "stackv4_socket" ~suffix:group
     method name = name
-    method module_name = "Tcpip_stack_socket.Make"
+    method module_name = "Tcpip_stack_socket"
     method keys = [ Key.abstract interfaces ]
     method packages = Key.pure [ "tcpip" ]
     method libraries = Key.pure [ "tcpip.stack-socket" ]

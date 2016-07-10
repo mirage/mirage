@@ -637,7 +637,7 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
     inherit base_configurable
 
     method ty =
-      console @-> time @-> random @-> network @->
+      time @-> random @-> network @->
       ethernet @-> arpv4 @-> ipv4 @-> icmpv4 @-> udpv4 @-> tcpv4 @->
       stackv4
 
@@ -662,14 +662,13 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
     method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
 
     method connect _i modname = function
-      | [ console; _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
+      | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
         Fmt.strf
           "@[<2>let config = {V1_LWT.@ \
-           name = %S;@ console = %s;@ \
+           name = %S;@ \
            interface = %s;@ mode = %a }@]@ in@ \
            %s.connect config@ %s %s %s %s %s %s"
-          name console
-          interface  pp_stackv4_config config
+          name interface pp_stackv4_config config
           modname ethif arp ip icmp udp tcp
       | _ -> failwith "Wrong arguments to connect to tcpip direct stack."
 
@@ -681,44 +680,44 @@ let direct_stackv4_with_config
     ?(random=default_random)
     ?(time=default_time)
     ?group
-    console network config =
+    network config =
   let eth = etif_func $ network in
   let arp = arp ~clock ~time eth in
   let ip = ipv4_conf () $ eth $ arp in
   stackv4_direct_conf ?group config
-  $ console $ time $ random $ network
+  $ time $ random $ network
   $ eth $ arp $ ip
   $ direct_icmpv4 ip
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 
 let direct_stackv4_with_dhcp
-    ?clock ?random ?time ?group console network =
+    ?clock ?random ?time ?group network =
   direct_stackv4_with_config
-    ?clock ?random ?time ?group console network `DHCP
+    ?clock ?random ?time ?group network `DHCP
 
 let direct_stackv4_with_static_ipv4
-    ?clock ?random ?time ?group console network
+    ?clock ?random ?time ?group network
     {address; netmask; gateways} =
   let address = Key.V4.ip ?group address in
   let netmask = Key.V4.netmask ?group netmask in
   let gateways = Key.V4.gateways ?group gateways in
   direct_stackv4_with_config
-    ?clock ?random ?time ?group console network
+    ?clock ?random ?time ?group network
     (`IPV4 (address, netmask, gateways))
 
 let direct_stackv4_with_default_ipv4
-    ?clock ?random ?time ?group console network =
+    ?clock ?random ?time ?group network =
   direct_stackv4_with_static_ipv4
-    ?clock ?random ?time ?group console network
+    ?clock ?random ?time ?group network
     default_ipv4_conf
 
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     inherit base_configurable
-    method ty = console @-> stackv4
+    method ty = stackv4
     val name = add_suffix "stackv4_socket" ~suffix:group
     method name = name
-    method module_name = "Tcpip_stack_socket.Make"
+    method module_name = "Tcpip_stack_socket"
     method keys = [ Key.abstract interfaces ]
     method packages = Key.pure [ "tcpip" ]
     method libraries = Key.pure [ "tcpip.stack-socket" ]
@@ -728,21 +727,21 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     ]
 
     method connect _i modname = function
-      | [ console ; udpv4 ; tcpv4 ] ->
+      | [ udpv4 ; tcpv4 ] ->
         Fmt.strf
           "let config =@[@ \
-           { V1_LWT.name = %S;@ console = %s ;@ \
+           { V1_LWT.name = %S;@ \
            interface = %a ;@ mode = () }@] in@ \
            %s.connect config %s %s"
           name
-          console  pp_key interfaces
+          pp_key interfaces
           modname udpv4 tcpv4
       | _ -> failwith "Wrong arguments to connect to tcpip socket stack."
 
   end
 
-let socket_stackv4 ?group console ipv4s =
-  stackv4_socket_conf ?group (Key.V4.interfaces ?group ipv4s) $ console
+let socket_stackv4 ?group ipv4s =
+  stackv4_socket_conf ?group (Key.V4.interfaces ?group ipv4s)
 
 (** Generic stack *)
 
@@ -750,14 +749,14 @@ let generic_stackv4
     ?group
     ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ())
-    console tap =
+    (tap : network impl) : stackv4 impl=
   if_impl
     Key.(pure ((=) `Socket) $ net_key)
-    (socket_stackv4 console ?group [Ipaddr.V4.any])
+    (socket_stackv4 ?group [Ipaddr.V4.any])
     (if_impl
        dhcp_key
-       (direct_stackv4_with_dhcp ?group console tap)
-       (direct_stackv4_with_default_ipv4 ?group console tap)
+       (direct_stackv4_with_dhcp ?group tap)
+       (direct_stackv4_with_default_ipv4 ?group tap)
     )
 
 (* This is to check that entropy is a dependency if "tls" is in

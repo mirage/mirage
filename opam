@@ -11,15 +11,11 @@ bug-reports:  "https://github.com/mirage/functoria/issues"
 dev-repo:     "https://github.com/mirage/functoria.git"
 license:      "ISC"
 
-build: [
-  ["./configure" "--prefix=%{prefix}%" "--%{ounit:enable}%-tests"]
-  [make]
-]
+build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" pinned]
 build-test: [
-  [make "test"]
+  ["ocaml" "pkg/pkg.ml" "build" "--pinned" pinned "--tests" "true"]
+  ["ocaml" "pkg/pkg.ml" "test"]
 ]
-install: [make "install"]
-remove: ["ocamlfind" "remove" "functoria"]
 depends: [
   "ocamlfind" {build}
   "topkg"     {build}

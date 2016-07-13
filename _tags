@@ -1,53 +1,19 @@
-# OASIS_START
-# DO NOT EDIT (digest: 1a42a65f41f3b4dd1e37a462f0e017cf)
-# Ignore VCS directories, you can use the same kind of rule outside
-# OASIS_START/STOP if you want to exclude directories that contains
-# useless stuff for the build process
-true: annot, bin_annot
-<**/.svn>: -traverse
-<**/.svn>: not_hygienic
-".bzr": -traverse
-".bzr": not_hygienic
-".hg": -traverse
-".hg": not_hygienic
-".git": -traverse
-".git": not_hygienic
-"_darcs": -traverse
-"_darcs": not_hygienic
-# Library mirage-runtime
-"lib_runtime/mirage-runtime.cmxs": use_mirage-runtime
-<lib_runtime/*.ml{,i,y}>: pkg_astring
-<lib_runtime/*.ml{,i,y}>: pkg_functoria.runtime
-<lib_runtime/*.ml{,i,y}>: pkg_ipaddr
-<lib_runtime/*.ml{,i,y}>: pkg_logs
-# Library mirage
-"lib/mirage.cmxs": use_mirage
-# Executable mirage
-<lib/main.{native,byte}>: pkg_astring
-<lib/main.{native,byte}>: pkg_functoria
-<lib/main.{native,byte}>: pkg_functoria.app
-<lib/main.{native,byte}>: pkg_functoria.runtime
-<lib/main.{native,byte}>: pkg_ipaddr
-<lib/main.{native,byte}>: pkg_logs
-<lib/main.{native,byte}>: use_mirage
-<lib/main.{native,byte}>: use_mirage-runtime
-<lib/*.ml{,i,y}>: pkg_astring
-<lib/*.ml{,i,y}>: pkg_functoria
-<lib/*.ml{,i,y}>: pkg_functoria.app
-<lib/*.ml{,i,y}>: pkg_functoria.runtime
-<lib/*.ml{,i,y}>: pkg_ipaddr
-<lib/*.ml{,i,y}>: pkg_logs
-<lib/*.ml{,i,y}>: use_mirage
-<lib/*.ml{,i,y}>: use_mirage-runtime
-# OASIS_STOP
-<types/*.mli>: pkg_cstruct, pkg_io-page, pkg_ipaddr, pkg_lwt
-
 true: warn(+A-4-6-7-9-40-42-44-48)
 true: strict_sequence, safe_string, short_paths, principal
 true: debug, annot, bin_annot
 
+<lib>        : include
+<lib_runtime>: include
+
 # Better locations and loc in .mlis
 true: keep_locs
 
+true: package(ipaddr), package(logs), package(astring)
+
+<lib/*>: package(functoria), package(functoria.app)
+
 # Force the runtime to be unix-independent.
+<lib_runtime/*>: package(functoria.runtime)
 <lib_runtime/*>: dontlink(unix)
+
+<types/*>: package(cstruct), package(io-page), package(lwt)

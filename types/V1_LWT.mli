@@ -16,6 +16,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** lwt-compatible MirageOS signatures *)
+
 open V1
 
 module type TIME = TIME

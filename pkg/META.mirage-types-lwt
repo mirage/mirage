@@ -1,0 +1,3 @@
+version = "%%VERSION%%"
+description = "Collection of module signatures for Mirage compatible with lwt"
+requires = "cstruct io-page ipaddr lwt"

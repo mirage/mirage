@@ -1537,8 +1537,6 @@ module Project = struct
       method module_name = "Mirage_runtime"
       method keys = [
         Key.(abstract target);
-        Key.(abstract unix);
-        Key.(abstract xen);
         Key.(abstract no_ocaml_check);
         Key.(abstract warn_error);
       ]

@@ -626,8 +626,8 @@ module Make (P: S) = struct
         argv
     in
     match result with
-    | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
+    | `Error _
     | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
       Functoria_misc.Log.fatal "%s" error
     | `Version

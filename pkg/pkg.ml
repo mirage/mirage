@@ -16,8 +16,10 @@ let opams =
     Pkg.opam_file "mirage-types-lwt.opam" ~lint_deps_excluding;
   ]
 
+let delegate = Cmd.(v "toy-github-topkg-delegate")
+
 let () =
-  Pkg.describe ~metas ~opams "mirage" @@ fun c ->
+  Pkg.describe ~delegate ~metas ~opams "mirage" @@ fun c ->
   match Conf.pkg_name c with
   | "mirage" ->
     Ok [ Pkg.lib "pkg/META.mirage" ~dst:"META";

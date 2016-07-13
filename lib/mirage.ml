@@ -330,6 +330,7 @@ let generic_kv_ro ?(key = Key.value @@ Key.kv_ro ()) dir =
   match_impl key [
     `Fat    , kv_ro_of_fs @@ fat_of_files ~dir () ;
     `Archive, archive_of_files ~dir () ;
+    `Crunch , crunch dir;
   ] ~default:(direct_kv_ro dir)
 
 (** network devices *)

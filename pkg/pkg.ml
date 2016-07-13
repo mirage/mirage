@@ -13,5 +13,5 @@ let () =
     Pkg.mllib "lib/functoria.mllib";
     Pkg.mllib "app/functoria-app.mllib";
     Pkg.mllib "runtime/functoria-runtime.mllib";
-    Pkg.test ~run:false "tests/test_functoria_command_line";
+    Pkg.test  "tests/test_functoria_command_line";
   ]

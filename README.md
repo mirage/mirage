@@ -1,6 +1,7 @@
-# Functoria
+# Functoria - A DSL to organize functor applications.
 
-A DSL to organize functor applications.
+[![Build Status](https://travis-ci.org/mirage/functoria.svg)](https://travis-ci.org/mirage/functoria)
+[![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://mirage.github.io/functoria/index.html)
 
 ## What is this for ?
 

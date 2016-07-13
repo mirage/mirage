@@ -19,7 +19,7 @@ build-test: [
 ]
 depends: [
   "ocamlfind" {build}
-  "topkg"     {build >= "0.7.3"}
+  "topkg"     {build & >= "0.7.3"}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
   "rresult"

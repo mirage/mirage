@@ -3,8 +3,12 @@
 #require "topkg"
 open Topkg
 
+let opams =
+  let lint_deps_excluding = Some ["ounit"; "oUnit"] in
+  [Pkg.opam_file ~lint_deps_excluding "opam"]
+
 let () =
-  Pkg.describe "functoria" @@ fun c ->
+  Pkg.describe ~opams "functoria" @@ fun c ->
   Ok [
     Pkg.mllib "lib/functoria.mllib";
     Pkg.mllib "app/functoria-app.mllib";

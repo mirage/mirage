@@ -1,34 +1,27 @@
-# OASIS_START
-# DO NOT EDIT (digest: 6508c6b23fcc4e102e21daa60296628c)
-version = "1.1.0"
 description = "Functoria configuration tool"
-requires =
-"unix dynlink cmdliner rresult fmt.tty functoria.runtime ocamlgraph"
+version = "%%VERSION%%"
+requires = "unix dynlink cmdliner rresult fmt.tty functoria.runtime ocamlgraph"
 archive(byte) = "functoria.cma"
-archive(byte, plugin) = "functoria.cma"
 archive(native) = "functoria.cmxa"
-archive(native, plugin) = "functoria.cmxs"
-exists_if = "functoria.cma"
+plugin(byte) = "functoria.cma"
+plugin(native) = "functoria.cmxs"
+
 package "runtime" (
- version = "1.1.0"
- description = "Functoria configuration tool"
+ description = "Functoria runtime"
+ version = "%%VERSION%%"
  requires = "cmdliner fmt"
  archive(byte) = "functoria-runtime.cma"
- archive(byte, plugin) = "functoria-runtime.cma"
  archive(native) = "functoria-runtime.cmxa"
- archive(native, plugin) = "functoria-runtime.cmxs"
- exists_if = "functoria-runtime.cma"
+ plugin(byte) = "functoria-runtime.cma"
+ plugin(native) = "functoria-runtime.cmxs"
 )
 
 package "app" (
- version = "1.1.0"
- description = "Functoria configuration tool"
+ description = "Functoria tool helpers"
+ version = "%%VERSION%%"
  requires = "functoria"
  archive(byte) = "functoria-app.cma"
- archive(byte, plugin) = "functoria-app.cma"
  archive(native) = "functoria-app.cmxa"
- archive(native, plugin) = "functoria-app.cmxs"
- exists_if = "functoria-app.cma"
+ plugin(byte) = "functoria-app.cma"
+ plugin(native) = "functoria-app.cmxs"
 )
-# OASIS_STOP
-

@@ -18,7 +18,7 @@ depends: [
   "cstruct"      {>= "1.4.0"}
   "io-page"      {>= "1.4.0"}
   "ipaddr"       {>= "2.0.0"}
-  "mirage-types" {>= "2.8.0"}
+  "mirage-types" {>= version}
 ]
 
 available: [ocaml-version >= "4.02.3"]

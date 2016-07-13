@@ -1,4 +1,4 @@
-### (unreleased)
+### 3.0.0 (unreleased)
 
 * Switch to topkg
 

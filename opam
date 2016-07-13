@@ -22,6 +22,7 @@ install: [make "install"]
 remove: ["ocamlfind" "remove" "functoria"]
 depends: [
   "ocamlfind" {build}
+  "topkg"     {build}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
   "rresult"

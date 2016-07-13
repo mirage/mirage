@@ -1,0 +1,27 @@
+description = "Functoria configuration tool"
+version = "%%VERSION%%"
+requires = "unix dynlink cmdliner rresult fmt.tty functoria.runtime ocamlgraph"
+archive(byte) = "functoria.cma"
+archive(native) = "functoria.cmxa"
+plugin(byte) = "functoria.cma"
+plugin(native) = "functoria.cmxs"
+
+package "runtime" (
+ description = "Functoria runtime"
+ version = "%%VERSION%%"
+ requires = "cmdliner fmt"
+ archive(byte) = "functoria-runtime.cma"
+ archive(native) = "functoria-runtime.cmxa"
+ plugin(byte) = "functoria-runtime.cma"
+ plugin(native) = "functoria-runtime.cmxs"
+)
+
+package "app" (
+ description = "Functoria tool helpers"
+ version = "%%VERSION%%"
+ requires = "functoria"
+ archive(byte) = "functoria-app.cma"
+ archive(native) = "functoria-app.cmxa"
+ plugin(byte) = "functoria-app.cma"
+ plugin(native) = "functoria-app.cmxs"
+)

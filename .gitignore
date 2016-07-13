@@ -1,7 +1,7 @@
+_build
 *~
-_build/
+\.\#*
+\#*#
 *.native
-setup.bin
-setup.data
-setup.log
-*.docdir
+*.byte
+*.install

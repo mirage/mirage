@@ -1,76 +1,19 @@
-# OASIS_START
-# DO NOT EDIT (digest: c55958025551743824e89fa92b2e00fb)
-# Ignore VCS directories, you can use the same kind of rule outside
-# OASIS_START/STOP if you want to exclude directories that contains
-# useless stuff for the build process
-true: annot, bin_annot
-<**/.svn>: -traverse
-<**/.svn>: not_hygienic
-".bzr": -traverse
-".bzr": not_hygienic
-".hg": -traverse
-".hg": not_hygienic
-".git": -traverse
-".git": not_hygienic
-"_darcs": -traverse
-"_darcs": not_hygienic
-# Library functoria-runtime
-"runtime/functoria-runtime.cmxs": use_functoria-runtime
-<runtime/*.ml{,i,y}>: pkg_cmdliner
-<runtime/*.ml{,i,y}>: pkg_fmt
-# Library functoria
-"lib/functoria.cmxs": use_functoria
-<lib/*.ml{,i,y}>: pkg_cmdliner
-<lib/*.ml{,i,y}>: pkg_dynlink
-<lib/*.ml{,i,y}>: pkg_fmt
-<lib/*.ml{,i,y}>: pkg_fmt.tty
-<lib/*.ml{,i,y}>: pkg_ocamlgraph
-<lib/*.ml{,i,y}>: pkg_rresult
-<lib/*.ml{,i,y}>: pkg_unix
-<lib/*.ml{,i,y}>: use_functoria-runtime
-# Library functoria-app
-"app/functoria-app.cmxs": use_functoria-app
-<app/*.ml{,i,y}>: pkg_cmdliner
-<app/*.ml{,i,y}>: pkg_dynlink
-<app/*.ml{,i,y}>: pkg_fmt
-<app/*.ml{,i,y}>: pkg_fmt.tty
-<app/*.ml{,i,y}>: pkg_ocamlgraph
-<app/*.ml{,i,y}>: pkg_rresult
-<app/*.ml{,i,y}>: pkg_unix
-<app/*.ml{,i,y}>: use_functoria
-<app/*.ml{,i,y}>: use_functoria-runtime
-# Executable test_functoria_command_line
-<tests/test_functoria_command_line.{native,byte}>: pkg_cmdliner
-<tests/test_functoria_command_line.{native,byte}>: pkg_dynlink
-<tests/test_functoria_command_line.{native,byte}>: pkg_fmt
-<tests/test_functoria_command_line.{native,byte}>: pkg_fmt.tty
-<tests/test_functoria_command_line.{native,byte}>: pkg_oUnit
-<tests/test_functoria_command_line.{native,byte}>: pkg_ocamlgraph
-<tests/test_functoria_command_line.{native,byte}>: pkg_rresult
-<tests/test_functoria_command_line.{native,byte}>: pkg_unix
-<tests/test_functoria_command_line.{native,byte}>: use_functoria
-<tests/test_functoria_command_line.{native,byte}>: use_functoria-app
-<tests/test_functoria_command_line.{native,byte}>: use_functoria-runtime
-<tests/*.ml{,i,y}>: pkg_cmdliner
-<tests/*.ml{,i,y}>: pkg_dynlink
-<tests/*.ml{,i,y}>: pkg_fmt
-<tests/*.ml{,i,y}>: pkg_fmt.tty
-<tests/*.ml{,i,y}>: pkg_oUnit
-<tests/*.ml{,i,y}>: pkg_ocamlgraph
-<tests/*.ml{,i,y}>: pkg_rresult
-<tests/*.ml{,i,y}>: pkg_unix
-<tests/*.ml{,i,y}>: use_functoria
-<tests/*.ml{,i,y}>: use_functoria-app
-<tests/*.ml{,i,y}>: use_functoria-runtime
-# OASIS_STOP
-
-true: warn(A-40-42-44)
-true: warn_error(+1..49), warn_error(-45-3)
-true: strict_sequence, safe_string, short_paths
-true: bin_annot
+true : bin_annot, safe_string, package(bytes), strict_sequence, short_paths
+true: warn(A-40-42-44), warn_error(+1..49), warn_error(-45-3)
 
 # Better locations and loc in .mlis
 true: keep_locs
 
+<app>    : include
+<lib>    : include
+<runtime>: include
+
+<{lib,app}/*>: \
+  package(unix), package(dynlink), package(cmdliner), package(rresult), \
+  package(fmt.tty), package(ocamlgraph)
+
 # Force the runtime to be unix-independent.
 <runtime/*>: dontlink(unix)
+<runtime/*>: package(cmdliner), package(fmt)
+
+<tests/*>: package(oUnit), package(cmdliner), package(fmt.cli), package(rresult)

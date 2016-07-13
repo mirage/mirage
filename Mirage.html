@@ -13,7 +13,9 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
 <link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
-<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><link title="General mirage devices" rel="Section" href="#2_Generalmiragedevices">
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><link title="General mirage devices" rel="Section" href="#2_Generalmiragedevices">
 <link title="Time" rel="Section" href="#2_Time">
 <link title="Clocks" rel="Section" href="#2_Clocks">
 <link title="Log reporters" rel="Section" href="#2_Logreporters">
@@ -53,7 +55,10 @@ Mirage combinators.
 
     <code class="code"><span class="constructor">Mirage</span></code> devices a set of devices and combinator to to define
     portable applications across all platforms that MirageOS
-    supports.<br>
+    supports.
+<p>
+
+   <em>Release v2.9.0-37-g69e9c87 </em><br>
 </div>
 <hr width="100%">
 
@@ -444,25 +449,25 @@ Implementation of the <code class="code"><span class="constructor">V1</span>.<sp
 Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">STACKV4</span></code> signature.<br>
 </div>
 
-<pre><span id="VALdirect_stackv4_with_default_ipv4"><span class="keyword">val</span> direct_stackv4_with_default_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+<pre><span id="VALdirect_stackv4_with_default_ipv4"><span class="keyword">val</span> direct_stackv4_with_default_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
 Same as <a href="Mirage.html#VALdirect_stackv4_with_static_ipv4"><code class="code"><span class="constructor">Mirage</span>.direct_stackv4_with_static_ipv4</code></a> with the default given by
     <a href="Mirage.html#VALdefault_ipv4"><code class="code"><span class="constructor">Mirage</span>.default_ipv4</code></a>.<br>
 </div>
 
-<pre><span id="VALdirect_stackv4_with_static_ipv4"><span class="keyword">val</span> direct_stackv4_with_static_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -><br>       <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEipv4_config">ipv4_config</a> -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+<pre><span id="VALdirect_stackv4_with_static_ipv4"><span class="keyword">val</span> direct_stackv4_with_static_ipv4</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEipv4_config">ipv4_config</a> -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
 Direct network stack with ip.
     Exposes the keys <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.ip</code>, <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.netmask</code> and <code class="code"><span class="constructor">Key</span>.<span class="constructor">V4</span>.gateways</code>.<br>
 </div>
 
-<pre><span id="VALdirect_stackv4_with_dhcp"><span class="keyword">val</span> direct_stackv4_with_dhcp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+<pre><span id="VALdirect_stackv4_with_dhcp"><span class="keyword">val</span> direct_stackv4_with_dhcp</span> : <code class="type">?clock:<a href="Mirage.html#TYPEclock">clock</a> impl -><br>       ?random:<a href="Mirage.html#TYPErandom">random</a> impl -><br>       ?time:<a href="Mirage.html#TYPEtime">time</a> impl -><br>       ?group:string -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
 Direct network stack using dhcp.<br>
 </div>
 
-<pre><span id="VALsocket_stackv4"><span class="keyword">val</span> socket_stackv4</span> : <code class="type">?group:string -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> Ipaddr.V4.t list -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+<pre><span id="VALsocket_stackv4"><span class="keyword">val</span> socket_stackv4</span> : <code class="type">?group:string -> Ipaddr.V4.t list -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
 Network stack with sockets. Exposes the key .<br>
 </div>
 
-<pre><span id="VALgeneric_stackv4"><span class="keyword">val</span> generic_stackv4</span> : <code class="type">?group:string -><br>       ?dhcp_key:bool value -><br>       ?net_key:[ `Direct | `Socket ] value -><br>       <a href="Mirage.html#TYPEconsole">console</a> impl -> <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
+<pre><span id="VALgeneric_stackv4"><span class="keyword">val</span> generic_stackv4</span> : <code class="type">?group:string -><br>       ?dhcp_key:bool value -><br>       ?net_key:[ `Direct | `Socket ] value -><br>       <a href="Mirage.html#TYPEnetwork">network</a> impl -> <a href="Mirage.html#TYPEstackv4">stackv4</a> impl</code></pre><div class="info ">
 Generic stack using a <code class="code">dhcp</code> and a <code class="code">net</code> keys: <code class="code"><span class="constructor">Key</span>.net</code> and <code class="code"><span class="constructor">Key</span>.dhcp</code>.<ul>
 <li>If <code class="code">net</code> = <code class="code">socket</code> then <a href="Mirage.html#VALsocket_stackv4"><code class="code"><span class="constructor">Mirage</span>.socket_stackv4</code></a> is used.</li>
 <li>Else, if <code class="code">dhcp</code> then <a href="Mirage.html#VALdirect_stackv4_with_dhcp"><code class="code"><span class="constructor">Mirage</span>.direct_stackv4_with_dhcp</code></a> is used</li>

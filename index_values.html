@@ -10,7 +10,9 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
 <link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
-<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><title>Index of values</title>
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>Index of values</title>
 </head>
 <body>
 <div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
@@ -18,6 +20,12 @@
 <h1>Index of values</h1>
 <table>
 <tr><td align="left"><br>A</td></tr>
+<tr><td><a href="V1.ARP.html#VALadd_ip">add_ip</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+<code class="code">add_ip arp ip</code> adds <code class="code">ip</code> to the bound IP address list in the
+      <code class="code">arp</code> value, which will transmit a GARP packet also.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALadd_to_ocamlfind_libraries">add_to_ocamlfind_libraries</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 <span class="deprecated">Register ocamlfind libraries.
@@ -27,6 +35,13 @@
 <td><div class="info">
 <span class="deprecated">Register opam packages.
 </span></div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALallocate_frame">allocate_frame</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">allocate_frame t ~dst ~proto</code> returns a pair <code class="code">(pkt, len)</code> such that
+      <code class="code"><span class="constructor">Cstruct</span>.sub pkt 0 len</code> is the IP header (including the link layer part) of a
+      packet going to <code class="code">dst</code> for protocol <code class="code">proto</code>.
+</div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALapp_info">app_info</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
@@ -57,9 +72,27 @@ Use the given filen as a raw block device.
 </div>
 </td></tr>
 <tr><td align="left"><br>C</td></tr>
+<tr><td><a href="V1.IP.html#VALchecksum">checksum</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">checksum frame bufs</code> computes the IP checksum of <code class="code">bufs</code>
+      computing the pseudo-header from the actual header <code class="code">frame</code>.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALclock">clock</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">CLOCK</span></code> signature.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALclose">close</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">close t</code> calls <a href="V1.CHANNEL.html#VALflush"><code class="code"><span class="constructor">V1</span>.<span class="constructor">CHANNEL</span>.flush</code></a> and then close the underlying
+      flow.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#VALclose">close</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+<code class="code">close flow</code> flushes all pending writes and signals the remote
+      endpoint that there will be no future writes.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALconduit">conduit</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -69,6 +102,23 @@ Implementations of the <code class="code"><span class="constructor">V1</span>.<s
 <tr><td><a href="Mirage.html#VALconsole">console</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">CONSOLE</span></code> signature.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALcreate">create</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">create t path</code> creates an empty file at <code class="code">path</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALcreate">create</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">create flow</code> allocates send and receive buffers and
+      associates them with the given unbuffered <code class="code">flow</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#VALcreate_connection">create_connection</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+<code class="code">create_connection t (addr,port)</code> opens a TCPv4 connection
+      to the specified endpoint.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALcreate_ipv4">create_ipv4</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -134,6 +184,12 @@ Passthrough to the OCaml Random generator.
 The default timer implementation.
 </div>
 </td></tr>
+<tr><td><a href="V1.FS.html#VALdestroy">destroy</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">destroy t path</code> removes a <code class="code">path</code> (which may be a file or an
+      empty directory) on filesystem <code class="code">t</code>.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_key.html#VALdhcp">dhcp</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
 <td><div class="info">
 Enable dhcp.
@@ -165,7 +221,24 @@ Direct network stack with ip.
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALdirect_udp">direct_udp</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.DEVICE.html#VALdisconnect">disconnect</a> [<a href="V1.DEVICE.html">V1.DEVICE</a>]</td>
+<td><div class="info">
+Disconnect from the device.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#VALdst">dst</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+Get the destination IPv4 address and destination port that a
+      flow is currently connected to.
+</div>
+</td></tr>
 <tr><td align="left"><br>E</td></tr>
+<tr><td><a href="V1.FLOW.html#VALerror_message">error_message</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+Convert an error to a human-readable message, suitable for
+      logging.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALethernet">ethernet</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">ETHIF</span></code> signature.
@@ -184,6 +257,18 @@ Consider a raw block device as a FAT filesystem.
 <code class="code">fat_files dir ?dir ?regexp ()</code> collects all the files matching
     the shell pattern <code class="code">regexp</code> in the directory <code class="code">dir</code> into a FAT
     image.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALflush">flush</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">flush t</code> flushes the output buffer and block if necessary
+      until it is all written out to the flow.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALformat">format</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">format t size</code> erases the contents of <code class="code">t</code> and creates an empty
+      filesystem of size <code class="code">size</code> bytes.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALfs">fs</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -213,10 +298,47 @@ Generic key/value that will choose dynamically between
 Generic stack using a <code class="code">dhcp</code> and a <code class="code">net</code> keys: <code class="code"><span class="constructor">Key</span>.net</code> and <code class="code"><span class="constructor">Key</span>.dhcp</code>.
 </div>
 </td></tr>
+<tr><td><a href="V1.BLOCK.html#VALget_info">get_info</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
+<td><div class="info">
+Query the characteristics of a specific block device
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALget_ip">get_ip</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Get the IP addresses associated with this interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALget_ip_gateways">get_ip_gateways</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Get the IP gateways associated with this interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALget_ip_netmasks">get_ip_netmasks</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Get the IP netmasks associated with this interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.ARP.html#VALget_ips">get_ips</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+<code class="code">get_ips arp</code> gets the bound IP address list in the <code class="code">arp</code>
+      value.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALget_mode">get_mode</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 <span class="deprecated">Current configuration mode.
 </span></div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#VALget_stats_counters">get_stats_counters</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+Obtain the most recent snapshot of the device statistics.
+</div>
+</td></tr>
+<tr><td><a href="V1.CLOCK.html#VALgmtime">gmtime</a> [<a href="V1.CLOCK.html">V1.CLOCK</a>]</td>
+<td><div class="info">
+Convert a time in seconds, as returned by <a href="V1.CLOCK.html#VALtime"><code class="code"><span class="constructor">V1</span>.<span class="constructor">CLOCK</span>.time</code></a>, into a date
+      and a time.
+</div>
 </td></tr>
 <tr><td align="left"><br>H</td></tr>
 <tr><td><a href="Mirage.html#VALhttp">http</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -228,6 +350,52 @@ Generic stack using a <code class="code">dhcp</code> and a <code class="code">ne
 <td><div class="info">
 <code class="code">info</code> is the combinator to generate <a href="Mirage.html#VALinfo"><code class="code"><span class="constructor">Mirage</span>.info</code></a> values to use at
     runtime.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#VALinput">input</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+<code class="code">input t listeners</code> defines a mapping of threads that are
+      willing to accept new flows on a given port.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#VALinput">input</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+<code class="code">input listeners t</code> demultiplexes incoming datagrams based on
+      their destination port.
+</div>
+</td></tr>
+<tr><td><a href="V1.ICMP.html#VALinput">input</a> [<a href="V1.ICMP.html">V1.ICMP</a>]</td>
+<td><div class="info">
+<code class="code">input t src dst buffer</code> reacts to the ICMP message in <code class="code">buffer</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.ARP.html#VALinput">input</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+<code class="code">input arp frame</code> will handle an ARP frame.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALinput">input</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">input ~tcp ~udp ~default ip buf</code> demultiplexes an incoming
+      <code class="code">buffer</code> that contains an IP frame.
+</div>
+</td></tr>
+<tr><td><a href="V1.ETHIF.html#VALinput">input</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+<b>FIXME</b> <code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn
+      buf</code> with every packet that is read from the interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.RANDOM.html#VALint">int</a> [<a href="V1.RANDOM.html">V1.RANDOM</a>]</td>
+<td><div class="info">
+<code class="code">int bound</code> returns a random integer between 0 (inclusive) and
+      <code class="code">bound</code> (exclusive).
+</div>
+</td></tr>
+<tr><td><a href="V1.RANDOM.html#VALint32">int32</a> [<a href="V1.RANDOM.html">V1.RANDOM</a>]</td>
+<td><div class="info">
+<code class="code">int32 bound</code> returns a random integer between 0 (inclusive) and
+      <code class="code">bound</code> (exclusive).
 </div>
 </td></tr>
 <tr><td><a href="Mirage_key.V4.html#VALinterfaces">interfaces</a> [<a href="Mirage_key.V4.html">Mirage_key.V4</a>]</td>
@@ -253,6 +421,13 @@ An ip address.
 <tr><td><a href="Mirage_key.V4.html#VALip">ip</a> [<a href="Mirage_key.V4.html">Mirage_key.V4</a>]</td>
 <td><div class="info">
 An ip address.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#VALipv4">ipv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+<code class="code">ipv4 t</code> obtains a descriptor for use with the <code class="code"><span class="constructor">IPV4</span></code> module,
+      which can handle raw IPv4 frames, or manipulate IP address
+      configuration on the stack interface.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_runtime.Arg.html#VALipv4">ipv4</a> [<a href="Mirage_runtime.Arg.html">Mirage_runtime.Arg</a>]</td>
@@ -309,6 +484,50 @@ Consider a filesystem implementation as a read-only key/value
 </div>
 </td></tr>
 <tr><td align="left"><br>L</td></tr>
+<tr><td><a href="V1.FS.html#VALlistdir">listdir</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">listdir t path</code> returns the names of files and subdirectories
+      within the directory <code class="code">path</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#VALlisten">listen</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+<code class="code">listen t</code> requests that the stack listen for traffic on the
+      network interface associated with the stack, and demultiplex
+      traffic to the appropriate callbacks.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#VALlisten">listen</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+<code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn buf</code> with
+      every packet that is read from the interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#VALlisten_tcpv4">listen_tcpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+<code class="code">listen_tcpv4 t ~port cb</code> registers the <code class="code">cb</code> callback on the
+      TCPv4 <code class="code">port</code> and immediatey return.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#VALlisten_udpv4">listen_udpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+<code class="code">listen_udpv4 t ~port cb</code> registers the <code class="code">cb</code> callback on the
+      UDPv4 <code class="code">port</code> and immediately return.
+</div>
+</td></tr>
+<tr><td><a href="V1.CONSOLE.html#VALlog">log</a> [<a href="V1.CONSOLE.html">V1.CONSOLE</a>]</td>
+<td><div class="info">
+<code class="code">log str</code> writes as many characters of <code class="code">str</code> that can be written
+      in one write operation to the console <code class="code">t</code>, then writes "\r\n" to
+      it.
+</div>
+</td></tr>
+<tr><td><a href="V1.CONSOLE.html#VALlog_s">log_s</a> [<a href="V1.CONSOLE.html">V1.CONSOLE</a>]</td>
+<td><div class="info">
+<code class="code">log_s str</code> is a thread that writes <code class="code">str ^ <span class="string">"\r\n"</span></code> in the
+      console <code class="code">t</code>.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_runtime.Arg.html#VALlog_threshold">log_threshold</a> [<a href="Mirage_runtime.Arg.html">Mirage_runtime.Arg</a>]</td>
 <td><div class="info">
 <code class="code">log_threshold</code> converts log reporter threshold.
@@ -317,10 +536,25 @@ Consider a filesystem implementation as a read-only key/value
 <tr><td><a href="Mirage_key.html#VALlogs">logs</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>M</td></tr>
+<tr><td><a href="V1.ETHIF.html#VALmac">mac</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+<code class="code">mac nf</code> is the MAC address of <code class="code">nf</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#VALmac">mac</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+<code class="code">mac nf</code> is the MAC address of <code class="code">nf</code>.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_runtime.Arg.html#VALmake">make</a> [<a href="Mirage_runtime.Arg.html">Mirage_runtime.Arg</a>]</td>
 <td><div class="info">
 <code class="code">make of_string pp</code> is the command-line argument converter using
       on <code class="code">of_string</code> and <code class="code">pp</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALmkdir">mkdir</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">mkdir t path</code> creates an empty directory at <code class="code">path</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALmprof_trace">mprof_trace</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -393,12 +627,39 @@ Device that initializes the entropy.
 </td></tr>
 <tr><td><a href="Mirage_runtime.Arg.S.html#VALof_string">of_string</a> [<a href="Mirage_runtime.Arg.S.html">Mirage_runtime.Arg.S</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.IP.html#VALof_uipaddr">of_uipaddr</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Project a universal IP address into the version supported by the
+      current implementation.
+</div>
+</td></tr>
 <tr><td align="left"><br>P</td></tr>
+<tr><td><a href="V1.ARP.html#VALpp">pp</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.ICMP.html#VALpp_error">pp_error</a> [<a href="V1.ICMP.html">V1.ICMP</a>]</td>
+<td><div class="info">
+pretty-print an error.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_runtime.Arg.S.html#VALpp_hum">pp_hum</a> [<a href="Mirage_runtime.Arg.S.html">Mirage_runtime.Arg.S</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage_key.html#VALpp_target">pp_target</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
 <td><div class="info">
 Pretty printer for the mode.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALpseudoheader">pseudoheader</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">pseudoheader t dst proto len</code> gives a pseudoheader suitable for use in
+      TCP or UDP checksum calculation based on <code class="code">t</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>Q</td></tr>
+<tr><td><a href="V1.ARP.html#VALquery">query</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+<code class="code">query arp ip</code> queries the cache in <code class="code">arp</code> for an ARP entry
+      corresponding to <code class="code">ip</code>, which may result in the sender sleeping
+      waiting for a response.
 </div>
 </td></tr>
 <tr><td align="left"><br>R</td></tr>
@@ -407,15 +668,83 @@ Pretty printer for the mode.
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">RANDOM</span></code> signature.
 </div>
 </td></tr>
+<tr><td><a href="V1.KV_RO.html#VALread">read</a> [<a href="V1.KV_RO.html">V1.KV_RO</a>]</td>
+<td><div class="info">
+<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the
+      value associated with <code class="code">key</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALread">read</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">read t key offset length</code> reads up to <code class="code">length</code> bytes from the
+      value associated with <code class="code">key</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.BLOCK.html#VALread">read</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
+<td><div class="info">
+<code class="code">read device sector_start buffers</code> reads data starting at <code class="code">sector_start</code>
+      from the block device into <code class="code">buffers</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#VALread">read</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+<code class="code">read flow</code> blocks until some data is available and returns a
+      fresh buffer containing it.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALread_char">read_char</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+Reads a single character from the channel, blocking if there is
+      no immediately available input data.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALread_line">read_line</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">read_line t</code> reads a line of input, which is terminated
+      either by a CRLF sequence, or the end of the channel (which
+      counts as a line).
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALread_some">read_some</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">read_some ?len t</code> reads up to <code class="code">len</code> characters from the
+      input channel and at most a full <code class="code">buffer</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALread_stream">read_stream</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">read_stream ?len t</code> returns up to <code class="code">len</code> characters as a
+      stream of buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALread_until">read_until</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">read_until t ch</code> reads from the channel until the given
+      <code class="code">ch</code> character is found.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALregister">register</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 <code class="code">register name jobs</code> registers the application named by <code class="code">name</code>
     which will executes the given <code class="code">jobs</code>.
 </div>
 </td></tr>
+<tr><td><a href="V1.ARP.html#VALremove_ip">remove_ip</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+<code class="code">remove_ip arp ip</code> removes <code class="code">ip</code> to the bound IP address list in
+      the <code class="code">arp</code> value, which will transmit a GARP packet for any remaining IPs in
+      the bound IP address list after the removal.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALreporter">reporter</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Implementation of the log <a href="Mirage.html#VALreporter"><code class="code"><span class="constructor">Mirage</span>.reporter</code></a> type.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#VALreset_stats_counters">reset_stats_counters</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+Reset the statistics associated with this device to their
+      defaults.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALresolver">resolver</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -425,10 +754,52 @@ Implementation of the log <a href="Mirage.html#VALreporter"><code class="code"><
 <tr><td><a href="Mirage.html#VALresolver_unix_system">resolver_unix_system</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>S</td></tr>
+<tr><td><a href="V1.RANDOM.html#VALself_init">self_init</a> [<a href="V1.RANDOM.html">V1.RANDOM</a>]</td>
+<td><div class="info">
+Initialize the generator with a random seed chosen in a
+      system-dependent way.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALset_ip">set_ip</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Set the IP address associated with this interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALset_ip_gateways">set_ip_gateways</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Set an IP gateways associated with this interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALset_ip_netmask">set_ip_netmask</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Set an IP netmask associated with this interface.
+</div>
+</td></tr>
+<tr><td><a href="V1.ARP.html#VALset_ips">set_ips</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+<code class="code">set_ips arp</code> sets the bound IP address list, which will transmit a
+      GARP packet also.
+</div>
+</td></tr>
 <tr><td><a href="Mirage_runtime.html#VALset_level">set_level</a> [<a href="Mirage_runtime.html">Mirage_runtime</a>]</td>
 <td><div class="info">
 <code class="code">set_level ~default l</code> set the log levels needed to have all of
     the log sources appearing in <code class="code">l</code> be used.
+</div>
+</td></tr>
+<tr><td><a href="V1.KV_RO.html#VALsize">size</a> [<a href="V1.KV_RO.html">V1.KV_RO</a>]</td>
+<td><div class="info">
+Get the value size.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALsize">size</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+Get the value size.
+</div>
+</td></tr>
+<tr><td><a href="V1.TIME.html#VALsleep">sleep</a> [<a href="V1.TIME.html">V1.TIME</a>]</td>
+<td><div class="info">
+<code class="code">sleep nsec</code> Block the current thread for.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_key.V4.html#VALsocket">socket</a> [<a href="Mirage_key.V4.html">Mirage_key.V4</a>]</td>
@@ -445,9 +816,21 @@ Network stack with sockets.
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALsocket_udpv4">socket_udpv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.IP.html#VALsrc">src</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">src ip ~dst</code> is the source address to be used to send a
+      packet to <code class="code">dst</code>.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALstackv4">stackv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">STACKV4</span></code> signature.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALstat">stat</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">stat t path</code> returns information about file or directory at
+      <code class="code">path</code>.
 </div>
 </td></tr>
 <tr><td><a href="Mirage_runtime.html#VALstring_of_network_init_error">string_of_network_init_error</a> [<a href="Mirage_runtime.html">Mirage_runtime</a>]</td>
@@ -473,13 +856,39 @@ The '/dev/tap0' interface.
 Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">TCP</span></code> signature.
 </div>
 </td></tr>
+<tr><td><a href="V1.STACKV4.html#VALtcpv4">tcpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+<code class="code">tcpv4 t</code> obtains a descriptor for use with the <code class="code"><span class="constructor">TCPV4</span></code> module,
+      usually to initiate outgoing connections.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALtcpv4">tcpv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALtcpv6">tcpv6</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.CLOCK.html#VALtime">time</a> [<a href="V1.CLOCK.html">V1.CLOCK</a>]</td>
+<td><div class="info">
+Return the current time since 00:00:00 GMT, Jan.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALtime">time</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Implementations of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">TIME</span></code> signature.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALto_flow">to_flow</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">to_flow t</code> returns the flow that backs this channel.
+</div>
+</td></tr>
+<tr><td><a href="V1.ARP.html#VALto_repr">to_repr</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+Prettyprint cache contents
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALto_uipaddr">to_uipaddr</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+Convert an IP address with a specific version (eg.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#VALtracing">tracing</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -498,6 +907,12 @@ Implementation of the <a href="Mirage.html#VALtracing"><code class="code"><span 
 Implementation of the <code class="code"><span class="constructor">V1</span>.<span class="constructor">UDP</span></code> signature.
 </div>
 </td></tr>
+<tr><td><a href="V1.STACKV4.html#VALudpv4">udpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+<code class="code">udpv4 t</code> obtains a descriptor for use with the <code class="code"><span class="constructor">UDPV4</span></code> module,
+      usually to transmit traffic.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#VALudpv4">udpv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#VALudpv6">udpv6</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -511,6 +926,109 @@ Implementation of the <code class="code"><span class="constructor">V1</span>.<sp
 <tr><td><a href="Mirage_key.html#VALwarn_error">warn_error</a> [<a href="Mirage_key.html">Mirage_key</a>]</td>
 <td><div class="info">
 <code class="code">--warn-error</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#VALwrite">write</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+<code class="code">write t path offset data</code> writes <code class="code">data</code> at <code class="code">offset</code> in file
+      <code class="code">path</code> on filesystem <code class="code">t</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#VALwrite">write</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+<code class="code">write ~src_port ~dst ~dst_port udp data</code> is a thread
+      that writes <code class="code">data</code> from an optional <code class="code">src_port</code> to a <code class="code">dst</code>
+      and <code class="code">dst_port</code> IPv4 address pair.
+</div>
+</td></tr>
+<tr><td><a href="V1.ICMP.html#VALwrite">write</a> [<a href="V1.ICMP.html">V1.ICMP</a>]</td>
+<td><div class="info">
+<code class="code">write t dst buffer</code> sends the ICMP message in <code class="code">buffer</code> to <code class="code">dst</code> over IP.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALwrite">write</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">write t frame buf</code> writes the packet <code class="code">frame :: buf :: []</code> to
+      the address <code class="code">dst</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.ETHIF.html#VALwrite">write</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+<code class="code">write nf buf</code> outputs <code class="code">buf</code> to netfront <code class="code">nf</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#VALwrite">write</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+<code class="code">write nf buf</code> outputs <code class="code">buf</code> to netfront <code class="code">nf</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.BLOCK.html#VALwrite">write</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
+<td><div class="info">
+<code class="code">write device sector_start buffers</code> writes data from <code class="code">buffers</code>
+      onto the block device starting at <code class="code">sector_start</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#VALwrite">write</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+<code class="code">write flow buffer</code> writes a buffer to the flow.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALwrite_buffer">write_buffer</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">write_buffer t buf</code> copies the buffer to the channel's
+      output buffer.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALwrite_char">write_char</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">write_char t ch</code> writes a single character to the output
+      channel.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALwrite_line">write_line</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">write_line t buf</code> writes the string <code class="code">buf</code> to the output
+      channel and append a newline character afterwards.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#VALwrite_nodelay">write_nodelay</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+<code class="code">write_nodelay flow buffer</code> writes the contents of <code class="code">buffer</code>
+      to the flow.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#VALwrite_string">write_string</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+<code class="code">write_string t buf off len</code> writes <code class="code">len</code> bytes from a string
+      <code class="code">buf</code>, starting from from offset <code class="code">off</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#VALwritev">writev</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+<code class="code">writev t frame bufs</code> writes the packet <code class="code">frame :: bufs</code>.
+</div>
+</td></tr>
+<tr><td><a href="V1.ETHIF.html#VALwritev">writev</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+<code class="code">writev nf bufs</code> output a list of buffers to netfront <code class="code">nf</code> as a
+      single packet.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#VALwritev">writev</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+<code class="code">writev nf bufs</code> output a list of buffers to netfront <code class="code">nf</code> as a
+      single packet.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#VALwritev">writev</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+<code class="code">writev flow buffers</code> writes a sequence of buffers to the flow.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#VALwritev_nodelay">writev_nodelay</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+<code class="code">writev_nodelay flow buffers</code> writes the contents of <code class="code">buffers</code>
+      to the flow.
 </div>
 </td></tr>
 <tr><td align="left"><br>X</td></tr>

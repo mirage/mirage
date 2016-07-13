@@ -9,29 +9,31 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
 <link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
-<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><title>Mirage_runtime.Arg</title>
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>Mirage_runtime.Arg</title>
 </head>
 <body>
-<code class="code"><span class="keyword">sig</span><br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opt&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;required&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;key&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?default:<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;flag&nbsp;:&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;make&nbsp;:&nbsp;(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Fmt</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="keyword">type</span>&nbsp;<span class="constructor">S</span>&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;of_string&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span>.t&nbsp;option<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_hum&nbsp;:&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;of_module&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">module</span>&nbsp;<span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span>&nbsp;<span class="keyword">with</span>&nbsp;<span class="keyword">type</span>&nbsp;t&nbsp;=&nbsp;<span class="keywordsign">'</span>a)&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ip&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv4&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V4</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6_prefix&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.<span class="constructor">Prefix</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;log_threshold&nbsp;:&nbsp;<span class="constructor">Mirage_runtime</span>.log_threshold&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter<br>
+<code class="code"><span class="keyword">sig</span>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opt&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;required&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;key&nbsp;:
+&nbsp;&nbsp;&nbsp;&nbsp;?default:<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;flag&nbsp;:&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;make&nbsp;:&nbsp;(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Fmt</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="keyword">type</span>&nbsp;<span class="constructor">S</span>&nbsp;=
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;of_string&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span>.t&nbsp;option
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_hum&nbsp;:&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;of_module&nbsp;:
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keyword">module</span>&nbsp;<span class="constructor">Mirage_runtime</span>.<span class="constructor">Arg</span>.<span class="constructor">S</span>&nbsp;<span class="keyword">with</span>&nbsp;<span class="keyword">type</span>&nbsp;t&nbsp;=&nbsp;<span class="keywordsign">'</span>a)&nbsp;<span class="keywordsign">-&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ip&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv4&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V4</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6_prefix&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.<span class="constructor">Prefix</span>.t&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;log_threshold&nbsp;:&nbsp;<span class="constructor">Mirage_runtime</span>.log_threshold&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter
 <span class="keyword">end</span></code></body></html>

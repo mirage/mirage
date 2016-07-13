@@ -9,31 +9,33 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
 <link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
-<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><title>Mirage_key.Arg</title>
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>Mirage_key.Arg</title>
 </head>
 <body>
-<code class="code"><span class="keyword">sig</span><br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;serialize&nbsp;=&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;runtime_conv&nbsp;=&nbsp;string<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;=&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Functoria_key</span>.<span class="constructor">Arg</span>.converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;conv&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;conv:<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;serialize:<span class="keywordsign">'</span>a&nbsp;serialize&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;runtime_conv:<span class="keywordsign">'</span>a&nbsp;runtime_conv&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;string&nbsp;:&nbsp;string&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bool&nbsp;:&nbsp;bool&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;int&nbsp;:&nbsp;int&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;list&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;some&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;=&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Functoria_key</span>.<span class="constructor">Arg</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;info&nbsp;=&nbsp;<span class="constructor">Functoria_key</span>.<span class="constructor">Arg</span>.info<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;info&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?docs:string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?docv:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?doc:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?env:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;stage&nbsp;=&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Both</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Configure</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Run</span>&nbsp;]<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opt&nbsp;:&nbsp;?stage:stage&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;required&nbsp;:&nbsp;?stage:stage&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;flag&nbsp;:&nbsp;?stage:stage&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv4&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V4</span>.t&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;converter<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6_prefix&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.<span class="constructor">Prefix</span>.t&nbsp;converter<br>
+<code class="code"><span class="keyword">sig</span>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;serialize&nbsp;=&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;runtime_conv&nbsp;=&nbsp;string
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;=&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Functoria_key</span>.<span class="constructor">Arg</span>.converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;conv&nbsp;:
+&nbsp;&nbsp;&nbsp;&nbsp;conv:<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Cmdliner</span>.<span class="constructor">Arg</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;serialize:<span class="keywordsign">'</span>a&nbsp;serialize&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;runtime_conv:<span class="keywordsign">'</span>a&nbsp;runtime_conv&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;string&nbsp;:&nbsp;string&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bool&nbsp;:&nbsp;bool&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;int&nbsp;:&nbsp;int&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;list&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;list&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;some&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t&nbsp;=&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Functoria_key</span>.<span class="constructor">Arg</span>.t
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;info&nbsp;=&nbsp;<span class="constructor">Functoria_key</span>.<span class="constructor">Arg</span>.info
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;info&nbsp;:
+&nbsp;&nbsp;&nbsp;&nbsp;?docs:string&nbsp;<span class="keywordsign">-&gt;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;?docv:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?doc:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?env:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;stage&nbsp;=&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Both</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Configure</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Run</span>&nbsp;]
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opt&nbsp;:&nbsp;?stage:stage&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;required&nbsp;:&nbsp;?stage:stage&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;flag&nbsp;:&nbsp;?stage:stage&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;info&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;t
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv4&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V4</span>.t&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.t&nbsp;converter
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ipv6_prefix&nbsp;:&nbsp;<span class="constructor">Ipaddr</span>.<span class="constructor">V6</span>.<span class="constructor">Prefix</span>.t&nbsp;converter
 <span class="keyword">end</span></code></body></html>

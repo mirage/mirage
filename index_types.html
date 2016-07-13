@@ -10,7 +10,9 @@
 <link title="Mirage" rel="Chapter" href="Mirage.html">
 <link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
 <link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
-<link title="Mirage_info" rel="Chapter" href="Mirage_info.html"><title>Index of types</title>
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>Index of types</title>
 </head>
 <body>
 <div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
@@ -26,7 +28,75 @@
 Abstract type for raw block device configurations.
 </div>
 </td></tr>
+<tr><td><a href="V1.FS.html#TYPEblock_device_error">block_device_error</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+The type for errors from the block layer
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#TYPEbuffer">buffer</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEbuffer">buffer</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#TYPEbuffer">buffer</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#TYPEbuffer">buffer</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.ICMP.html#TYPEbuffer">buffer</a> [<a href="V1.ICMP.html">V1.ICMP</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.ARP.html#TYPEbuffer">buffer</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.IP.html#TYPEbuffer">buffer</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.ETHIF.html#TYPEbuffer">buffer</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#TYPEbuffer">buffer</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#TYPEbuffer">buffer</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+The type for memory buffer.
+</div>
+</td></tr>
 <tr><td align="left"><br>C</td></tr>
+<tr><td><a href="V1.TCP.html#TYPEcallback">callback</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+The type for application callback that receives a <code class="code">flow</code> that it
+      can read/write to.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#TYPEcallback">callback</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+The type for callback functions that adds the UDP metadata for
+      <code class="code">src</code> and <code class="code">dst</code> IP addresses, the <code class="code">src_port</code> of the connection
+      and the <code class="code">buffer</code> payload of the datagram.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#TYPEcallback">callback</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+An input continuation used by the parsing functions to pass on
+      an input packet down the stack.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEclock">clock</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Abstract type for clocks.
@@ -34,15 +104,103 @@ Abstract type for clocks.
 </td></tr>
 <tr><td><a href="Mirage.html#TYPEconduit">conduit</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEconfig">config</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for the collection of user configuration specified to
+      construct a stack.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEconsole">console</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Abstract type for consoles.
 </div>
 </td></tr>
+<tr><td align="left"><br>D</td></tr>
+<tr><td><a href="V1_LWT.html#TYPEdirect_stack_config">direct_stack_config</a> [<a href="V1_LWT.html">V1_LWT</a>]</td>
+<td></td></tr>
 <tr><td align="left"><br>E</td></tr>
+<tr><td><a href="V1.KV_RO.html#TYPEerror">error</a> [<a href="V1.KV_RO.html">V1.KV_RO</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.FS.html#TYPEerror">error</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+The type for filesystem errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEerror">error</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for I/O operation errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#TYPEerror">error</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+The type for IO operation errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#TYPEerror">error</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+The type for IO operation errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#TYPEerror">error</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+The type for IO operation errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.ETHIF.html#TYPEerror">error</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+The type for IO operation errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#TYPEerror">error</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+The type for IO operation errors
+</div>
+</td></tr>
+<tr><td><a href="V1.BLOCK.html#TYPEerror">error</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
+<td><div class="info">
+The type for IO operation errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.CONSOLE.html#TYPEerror">error</a> [<a href="V1.CONSOLE.html">V1.CONSOLE</a>]</td>
+<td><div class="info">
+The type for representing possible errors when attaching a
+      console.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#TYPEerror">error</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+The type for errors.
+</div>
+</td></tr>
+<tr><td><a href="V1.DEVICE.html#TYPEerror">error</a> [<a href="V1.DEVICE.html">V1.DEVICE</a>]</td>
+<td><div class="info">
+The type for errors signalled by the device
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEethernet">ethernet</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.IP.html#TYPEethif">ethif</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+The type for ethernet devices.
+</div>
+</td></tr>
 <tr><td align="left"><br>F</td></tr>
+<tr><td><a href="V1.CHANNEL.html#TYPEflow">flow</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+The type for unbuffered network flow.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#TYPEflow">flow</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+A flow represents the state of a single TCPv4 stream that is connected
+      to an endpoint.
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#TYPEflow">flow</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+The type for flows.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEfs">fs</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Abstract type for filesystems.
@@ -52,15 +210,61 @@ Abstract type for filesystems.
 <tr><td><a href="Mirage.html#TYPEhttp">http</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td align="left"><br>I</td></tr>
+<tr><td><a href="V1.DEVICE.html#TYPEid">id</a> [<a href="V1.DEVICE.html">V1.DEVICE</a>]</td>
+<td><div class="info">
+This type is no longer used and will be removed once other
+   * modules stop using it in their type signatures.
+</div>
+</td></tr>
+<tr><td><a href="V1.BLOCK.html#TYPEinfo">info</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
+<td><div class="info">
+Characteristics of the block device.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEinfo">info</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 <code class="code">info</code> is the type for module implementing
     <code class="code"><span class="constructor">Mirage_runtime</span>.<span class="constructor">Info</span></code>.
 </div>
 </td></tr>
+<tr><td><a href="V1.CHANNEL.html#TYPEio">io</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+The type for potentially blocking I/O operation
+</div>
+</td></tr>
+<tr><td><a href="V1.FLOW.html#TYPEio">io</a> [<a href="V1.FLOW.html">V1.FLOW</a>]</td>
+<td><div class="info">
+The type for potentially blocking I/O operation
+</div>
+</td></tr>
+<tr><td><a href="V1.TIME.html#TYPEio">io</a> [<a href="V1.TIME.html">V1.TIME</a>]</td>
+<td><div class="info">
+The type for potentially blocking I/O operation
+</div>
+</td></tr>
+<tr><td><a href="V1.DEVICE.html#TYPEio">io</a> [<a href="V1.DEVICE.html">V1.DEVICE</a>]</td>
+<td><div class="info">
+The type for potentially blocking I/O operation
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEio_page">io_page</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Abstract type for page-aligned buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.CHANNEL.html#TYPEio_stream">io_stream</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+The type for potentially blocking stream of IO requests.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#TYPEip">ip</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+The type for IPv4 stacks for this stack to connect to.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#TYPEip">ip</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+The type for IPv4/6 stacks for this stack to connect to.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#TYPEip">ip</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -73,11 +277,52 @@ Abstract type for IP configurations.
 Types for IP manual configuration.
 </div>
 </td></tr>
+<tr><td><a href="V1.TCP.html#TYPEipaddr">ipaddr</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+The type for IP address representations.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#TYPEipaddr">ipaddr</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+The type for an IP address representations.
+</div>
+</td></tr>
+<tr><td><a href="V1.ICMP.html#TYPEipaddr">ipaddr</a> [<a href="V1.ICMP.html">V1.ICMP</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.ARP.html#TYPEipaddr">ipaddr</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.IP.html#TYPEipaddr">ipaddr</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+The type for IP addresses.
+</div>
+</td></tr>
+<tr><td><a href="V1.TCP.html#TYPEipinput">ipinput</a> [<a href="V1.TCP.html">V1.TCP</a>]</td>
+<td><div class="info">
+The type for input function continuation to pass onto the
+      underlying <a href="V1.IP.html"><code class="code"><span class="constructor">V1</span>.<span class="constructor">IP</span></code></a> stack.
+</div>
+</td></tr>
+<tr><td><a href="V1.UDP.html#TYPEipinput">ipinput</a> [<a href="V1.UDP.html">V1.UDP</a>]</td>
+<td><div class="info">
+The type for input function continuation to pass onto the
+      underlying <a href="V1.IP.html"><code class="code"><span class="constructor">V1</span>.<span class="constructor">IP</span></code></a> stack.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEipv4">ipv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for IPv4 stacks.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEipv4">ipv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#TYPEipv4_config">ipv4_config</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Types for IPv4 manual configuration.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEipv4addr">ipv4addr</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for IPv4 addresses.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#TYPEipv6">ipv6</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -99,10 +344,65 @@ Abstract type for read-only key/value store.
 The type for log threshold.
 </div>
 </td></tr>
+<tr><td align="left"><br>M</td></tr>
+<tr><td><a href="V1.ARP.html#TYPEmacaddr">macaddr</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.ETHIF.html#TYPEmacaddr">macaddr</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+The type for unique MAC identifiers.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#TYPEmacaddr">macaddr</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+The type for unique MAC identifiers for the device.
+</div>
+</td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEmode">mode</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for configuration modes associated with this interface.
+</div>
+</td></tr>
 <tr><td align="left"><br>N</td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEnetif">netif</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for network interface that is used to transmit and
+      receive traffic associated with this stack.
+</div>
+</td></tr>
+<tr><td><a href="V1.ETHIF.html#TYPEnetif">netif</a> [<a href="V1.ETHIF.html">V1.ETHIF</a>]</td>
+<td><div class="info">
+The type for ethernet network interfaces.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEnetwork">network</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Abstract type for network configurations.
+</div>
+</td></tr>
+<tr><td align="left"><br>P</td></tr>
+<tr><td><a href="V1.KV_RO.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> [<a href="V1.KV_RO.html">V1.KV_RO</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.FS.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+The type for memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+The type for page-aligned memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.BLOCK.html#TYPEpage_aligned_buffer">page_aligned_buffer</a> [<a href="V1.BLOCK.html">V1.BLOCK</a>]</td>
+<td><div class="info">
+The type for page-aligned memory buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.IP.html#TYPEprefix">prefix</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+The type for IP prefixes.
 </div>
 </td></tr>
 <tr><td align="left"><br>R</td></tr>
@@ -116,18 +416,56 @@ Abstract type for random sources.
 The type for log reporters.
 </div>
 </td></tr>
+<tr><td><a href="V1.ARP.html#TYPErepr">repr</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td></td></tr>
 <tr><td><a href="Mirage.html#TYPEresolver">resolver</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.ARP.html#TYPEresult">result</a> [<a href="V1.ARP.html">V1.ARP</a>]</td>
+<td><div class="info">
+Type of the result of an ARP query.
+</div>
+</td></tr>
 <tr><td align="left"><br>S</td></tr>
+<tr><td><a href="V1_LWT.html#TYPEsocket_stack_config">socket_stack_config</a> [<a href="V1_LWT.html">V1_LWT</a>]</td>
+<td></td></tr>
 <tr><td><a href="Mirage.html#TYPEstackv4">stackv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1_LWT.html#TYPEstackv4_config">stackv4_config</a> [<a href="V1_LWT.html">V1_LWT</a>]</td>
+<td></td></tr>
+<tr><td><a href="V1.FS.html#TYPEstat">stat</a> [<a href="V1.FS.html">V1.FS</a>]</td>
+<td><div class="info">
+The type for Per-file/directory statistics.
+</div>
+</td></tr>
+<tr><td><a href="V1.NETWORK.html#TYPEstats">stats</a> [<a href="V1.NETWORK.html">V1.NETWORK</a>]</td>
+<td><div class="info">
+The type for frame statistics to track the usage of the
+      device.
+</div>
+</td></tr>
 <tr><td align="left"><br>T</td></tr>
+<tr><td><a href="V1.CHANNEL.html#TYPEt">t</a> [<a href="V1.CHANNEL.html">V1.CHANNEL</a>]</td>
+<td><div class="info">
+The type for the state associated with channels, such as the
+      inflight buffers.
+</div>
+</td></tr>
+<tr><td><a href="V1.DEVICE.html#TYPEt">t</a> [<a href="V1.DEVICE.html">V1.DEVICE</a>]</td>
+<td><div class="info">
+The type representing the internal state of the device
+</div>
+</td></tr>
 <tr><td><a href="Mirage_info.html#TYPEt">t</a> [<a href="Mirage_info.html">Mirage_info</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage_runtime.Arg.S.html#TYPEt">t</a> [<a href="Mirage_runtime.Arg.S.html">Mirage_runtime.Arg.S</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#TYPEtcp">tcp</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEtcpv4">tcpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for TCPv4 stacks.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEtcpv4">tcpv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#TYPEtcpv6">tcpv6</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -135,6 +473,11 @@ The type for log reporters.
 <tr><td><a href="Mirage.html#TYPEtime">time</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td><div class="info">
 Abstract type for timers.
+</div>
+</td></tr>
+<tr><td><a href="V1.CLOCK.html#TYPEtm">tm</a> [<a href="V1.CLOCK.html">V1.CLOCK</a>]</td>
+<td><div class="info">
+The type for representing wallclock time and calendar date.
 </div>
 </td></tr>
 <tr><td><a href="Mirage.html#TYPEtracing">tracing</a> [<a href="Mirage.html">Mirage</a>]</td>
@@ -145,10 +488,20 @@ The type for tracing.
 <tr><td align="left"><br>U</td></tr>
 <tr><td><a href="Mirage.html#TYPEudp">udp</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.STACKV4.html#TYPEudpv4">udpv4</a> [<a href="V1.STACKV4.html">V1.STACKV4</a>]</td>
+<td><div class="info">
+The type for UDPv4 stacks.
+</div>
+</td></tr>
 <tr><td><a href="Mirage.html#TYPEudpv4">udpv4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
 <tr><td><a href="Mirage.html#TYPEudpv6">udpv6</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>
+<tr><td><a href="V1.IP.html#TYPEuipaddr">uipaddr</a> [<a href="V1.IP.html">V1.IP</a>]</td>
+<td><div class="info">
+The type for universal IP addresses.
+</div>
+</td></tr>
 <tr><td align="left"><br>V</td></tr>
 <tr><td><a href="Mirage.html#TYPEv4">v4</a> [<a href="Mirage.html">Mirage</a>]</td>
 <td></td></tr>

@@ -16,7 +16,7 @@ table { border-collapse: collapse; border-spacing: 0; }
 
 body { font: normal 10pt/1.375em helvetica, arial, sans-serif; text-align:left;
        margin: 1.375em 10%; min-width: 40ex; max-width: 72ex;
-       color: black; background: transparent /* url(line-height-22.gif) */; }
+       color: black; background: white /* url(line-height-22.gif) */; }
 
 b { font-weight: bold }
 em { font-style: italic } 
@@ -94,8 +94,8 @@ a:hover { text-decoration : underline }
 
 /* Images */
 
-img { margin-top: 1.375em }
-
+img { margin-top: 1.375em; display:block }
+li img { margin-top: 0em; }
 
 
 

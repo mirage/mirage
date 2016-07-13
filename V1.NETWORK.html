@@ -1,0 +1,127 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="V1.BLOCK.html">
+<link rel="next" href="V1.ETHIF.html">
+<link rel="Up" href="V1.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Mirage" rel="Chapter" href="Mirage.html">
+<link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
+<link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1.NETWORK</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="V1.BLOCK.html" title="V1.BLOCK">Previous</a>
+&nbsp;<a class="up" href="V1.html" title="V1">Up</a>
+&nbsp;<a class="post" href="V1.ETHIF.html" title="V1.ETHIF">Next</a>
+</div>
+<h1>Module type <a href="type_V1.NETWORK.html">V1.NETWORK</a></h1>
+
+<pre><span class="keyword">module type</span> NETWORK = <code class="code"><span class="keyword">sig</span></code> <a href="V1.NETWORK.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info modtype top">
+<h1 id="1_Networkstack">Network stack</h1>
+<p>
+
+    A network interface that serves Ethernet frames.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEpage_aligned_buffer"><span class="keyword">type</span> <code class="type"></code>page_aligned_buffer</span> </pre>
+<div class="info ">
+The type for page-aligned memory buffers.<br>
+</div>
+
+
+<pre><span id="TYPEbuffer"><span class="keyword">type</span> <code class="type"></code>buffer</span> </pre>
+<div class="info ">
+The type for memory buffers.<br>
+</div>
+
+
+<pre><span id="TYPEerror"><span class="keyword">type</span> <code class="type"></code>error</span> = <code class="type">[ `Disconnected | `Unimplemented | `Unknown of string ]</code> </pre>
+<div class="info ">
+The type for IO operation errors<br>
+</div>
+
+
+<pre><span id="TYPEmacaddr"><span class="keyword">type</span> <code class="type"></code>macaddr</span> </pre>
+<div class="info ">
+The type for unique MAC identifiers for the device.<br>
+</div>
+
+
+<pre><span class="keyword">include</span> <a href="V1.DEVICE.html">V1.DEVICE</a></pre>
+
+<pre><span id="VALwrite"><span class="keyword">val</span> write</span> : <code class="type">t -> <a href="V1.NETWORK.html#TYPEbuffer">buffer</a> -> unit io</code></pre><div class="info ">
+<code class="code">write nf buf</code> outputs <code class="code">buf</code> to netfront <code class="code">nf</code>.<br>
+</div>
+
+<pre><span id="VALwritev"><span class="keyword">val</span> writev</span> : <code class="type">t -> <a href="V1.NETWORK.html#TYPEbuffer">buffer</a> list -> unit io</code></pre><div class="info ">
+<code class="code">writev nf bufs</code> output a list of buffers to netfront <code class="code">nf</code> as a
+      single packet.<br>
+</div>
+
+<pre><span id="VALlisten"><span class="keyword">val</span> listen</span> : <code class="type">t -> (<a href="V1.NETWORK.html#TYPEbuffer">buffer</a> -> unit io) -> unit io</code></pre><div class="info ">
+<code class="code">listen nf fn</code> is a blocking operation that calls <code class="code">fn buf</code> with
+      every packet that is read from the interface.  It returns as
+      soon as it has initialised, and the function can be stopped by
+      calling <code class="code">disconnect</code> in the device layer.<br>
+</div>
+
+<pre><span id="VALmac"><span class="keyword">val</span> mac</span> : <code class="type">t -> <a href="V1.NETWORK.html#TYPEmacaddr">macaddr</a></code></pre><div class="info ">
+<code class="code">mac nf</code> is the MAC address of <code class="code">nf</code>.<br>
+</div>
+
+<pre><code><span id="TYPEstats"><span class="keyword">type</span> <code class="type"></code>stats</span> = {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span class="keyword">mutable&nbsp;</span><span id="TYPEELTstats.rx_bytes">rx_bytes</span>&nbsp;: <code class="type">int64</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span class="keyword">mutable&nbsp;</span><span id="TYPEELTstats.rx_pkts">rx_pkts</span>&nbsp;: <code class="type">int32</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span class="keyword">mutable&nbsp;</span><span id="TYPEELTstats.tx_bytes">tx_bytes</span>&nbsp;: <code class="type">int64</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span class="keyword">mutable&nbsp;</span><span id="TYPEELTstats.tx_pkts">tx_pkts</span>&nbsp;: <code class="type">int32</code>;</code></td>
+
+</tr></table>
+}
+
+<div class="info ">
+The type for frame statistics to track the usage of the
+      device.<br>
+</div>
+
+
+<pre><span id="VALget_stats_counters"><span class="keyword">val</span> get_stats_counters</span> : <code class="type">t -> <a href="V1.NETWORK.html#TYPEstats">stats</a></code></pre><div class="info ">
+Obtain the most recent snapshot of the device statistics.<br>
+</div>
+
+<pre><span id="VALreset_stats_counters"><span class="keyword">val</span> reset_stats_counters</span> : <code class="type">t -> unit</code></pre><div class="info ">
+Reset the statistics associated with this device to their
+      defaults.<br>
+</div>
+</body></html>

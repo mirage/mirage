@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Mirage_info.html">
+<link rel="next" href="V1_LWT.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Mirage" rel="Chapter" href="Mirage.html">
+<link title="Mirage_key" rel="Chapter" href="Mirage_key.html">
+<link title="Mirage_runtime" rel="Chapter" href="Mirage_runtime.html">
+<link title="Mirage_info" rel="Chapter" href="Mirage_info.html">
+<link title="V1" rel="Chapter" href="V1.html">
+<link title="V1_LWT" rel="Chapter" href="V1_LWT.html"><title>V1</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Mirage_info.html" title="Mirage_info">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="V1_LWT.html" title="V1_LWT">Next</a>
+</div>
+<h1>Module <a href="type_V1.html">V1</a></h1>
+
+<pre><span class="keyword">module</span> V1: <code class="code"><span class="keyword">sig</span></code> <a href="V1.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+MirageOS Signatures.
+<p>
+
+    This module defines the basic signatures that functor parameters
+    should implement in MirageOS to be portable.
+<p>
+
+    <h1 id="1_Generalconventions">General conventions</h1>
+<p>
+
+    <ul>
+<li>errors which application programmers are expected to handle
+       (e.g. connection refused or end of file) are encoded as result types
+       where <code class="code"><span class="keywordsign">`</span><span class="constructor">Ok</span> x</code> means the operation was succesful and returns <code class="code">x</code> and
+       where <code class="code"><span class="keywordsign">`</span><span class="constructor">Error</span> e</code> means the operation has failed with error <code class="code">e</code>. </li>
+<li>errors which represent programming errors such as assertion failures
+       or illegal arguments are encoded as exceptions. The application may
+       attempt to catch exceptions and recover or simply let the exception
+       propagate and crash the application. If the application crashes then
+       the runtime system should output diagnostics and abort. </li>
+<li>operations which perform I/O return values of <code class="code"><span class="keyword">type</span> +<span class="keywordsign">'</span>a io</code> which
+       allow the application to either wait for the I/O to be completed or
+       leave it running asynchronously. If the I/O completes with an error
+       then the operation may have completely failed, partially succeeded
+       or even completely succeeded (e.g. it may only be a confirmation
+       message in a network protocol which was missed): see individual API
+       descriptions for details. </li>
+</ul>
+
+<p>
+
+    <em>Release v2.9.0-37-g69e9c87 </em><br>
+</div>
+<hr width="100%">
+
+<pre><span class="keyword">module type</span> <a href="V1.DEVICE.html">DEVICE</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.DEVICE.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Abstract devices
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.TIME.html">TIME</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.TIME.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Time operations for cooperative threads
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.RANDOM.html">RANDOM</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.RANDOM.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Random
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.CLOCK.html">CLOCK</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.CLOCK.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Clock operations
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.FLOW.html">FLOW</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.FLOW.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Connection between endpoints
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.CONSOLE.html">CONSOLE</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.CONSOLE.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Console input/output
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.BLOCK.html">BLOCK</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.BLOCK.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Sector-addressible block devices
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.NETWORK.html">NETWORK</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.NETWORK.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Network stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.ETHIF.html">ETHIF</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.ETHIF.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Ethernet stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.IP.html">IP</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.IP.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+IP stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.ARP.html">ARP</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.ARP.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module type</span> <a href="V1.IPV4.html">IPV4</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.IPV4.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+IPv4 stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.IPV6.html">IPV6</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.IPV6.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+IPv6 stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.ICMP.html">ICMP</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.ICMP.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+ICMP module
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.ICMPV4.html">ICMPV4</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.ICMPV4.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module type</span> <a href="V1.UDP.html">UDP</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.UDP.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+UDP stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.TCP.html">TCP</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.TCP.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+TCP stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.STACKV4.html">STACKV4</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.STACKV4.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+TCP/IPv4 stack
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.CHANNEL.html">CHANNEL</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.CHANNEL.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Buffered byte-stream
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.FS.html">FS</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.FS.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Filesystem
+</div>
+
+<pre><span class="keyword">module type</span> <a href="V1.KV_RO.html">KV_RO</a> = <code class="code"><span class="keyword">sig</span></code> <a href="V1.KV_RO.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Static Key/value store
+</div>
+</body></html>

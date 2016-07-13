@@ -41,7 +41,8 @@
        message in a network protocol which was missed): see individual API
        descriptions for details. }
     }
- *)
+
+    {e Release %%VERSION%% } *)
 
 (** {1 Abstract devices}
 

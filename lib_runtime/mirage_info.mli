@@ -14,7 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Runtime information about the application. *)
+(** Runtime information about the application.
+
+    {e Release %%VERSION%% } *)
 
 type t = Functoria_info.info = {
   name     : string;

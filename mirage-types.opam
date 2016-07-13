@@ -11,6 +11,7 @@ tags:         ["org:mirage" "org:xapi-project"]
 build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" pinned ]
 
 depends:   [
-  "ocamlfind"  {build}
   "ocamlbuild" {build}
+  "ocamlfind"  {build}
+  "topkg"      {build & >= "0.7.3"}
 ]

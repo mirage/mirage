@@ -11,11 +11,13 @@ tags:         ["org:mirage" "org:xapi-project"]
 build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" pinned ]
 
 depends: [
-  "ocamlfind"
+  "ocamlbuild" {build}
+  "ocamlfind"  {build}
+  "topkg"      {build & >= "0.7.3"}
   "lwt"
-  "cstruct" {>= "1.4.0"}
-  "io-page" {>= "1.4.0"}
-  "ipaddr"  {>= "2.0.0"}
+  "cstruct"      {>= "1.4.0"}
+  "io-page"      {>= "1.4.0"}
+  "ipaddr"       {>= "2.0.0"}
   "mirage-types" {>= "2.8.0"}
 ]
 

@@ -6,6 +6,7 @@ open Topkg
 let metas = [
   Pkg.meta_file "pkg/META.mirage";
   Pkg.meta_file "pkg/META.mirage-types";
+  Pkg.meta_file "pkg/META.mirage-types-lwt";
 ]
 
 let opams =

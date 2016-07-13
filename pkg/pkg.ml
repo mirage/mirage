@@ -4,17 +4,18 @@
 open Topkg
 
 let metas = [
-  Pkg.meta_file "pkg/META.mirage";
-  Pkg.meta_file "pkg/META.mirage-types";
-  Pkg.meta_file "pkg/META.mirage-types-lwt";
+  Pkg.meta_file ~install:false "pkg/META.mirage";
+  Pkg.meta_file ~install:false "pkg/META.mirage-types";
+  Pkg.meta_file ~install:false "pkg/META.mirage-types-lwt";
 ]
 
 let opams =
   let lint_deps_excluding = None in
+  let install = false in
   [
-    Pkg.opam_file "mirage.opam" ~lint_deps_excluding;
-    Pkg.opam_file "mirage-types.opam" ~lint_deps_excluding;
-    Pkg.opam_file "mirage-types-lwt.opam" ~lint_deps_excluding;
+    Pkg.opam_file ~install ~lint_deps_excluding "mirage.opam";
+    Pkg.opam_file ~install ~lint_deps_excluding "mirage-types.opam";
+    Pkg.opam_file ~install ~lint_deps_excluding "mirage-types-lwt.opam";
   ]
 
 let delegate = Cmd.(v "toy-github-topkg-delegate")

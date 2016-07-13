@@ -151,6 +151,7 @@ let crunch dirname = impl @@ object
 
     method clean i =
       Cmd.remove (Info.root i / name ^ ".ml");
+      Cmd.remove (Info.root i / name ^ ".mli");
       R.ok ()
 
   end

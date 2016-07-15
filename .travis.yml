@@ -7,7 +7,7 @@ env:
   - UPDATE_GCC_BINUTILS=1
   - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
   matrix:
-  - PACKAGE=mirage OCAML_VERSION=4.03 PINS="charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
-  - PACKAGE=mirage-types OCAML_VERSION=4.03 PINS="charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
-  - PACKAGE=mirage OCAML_VERSION=4.02 PINS="charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
-  - PACKAGE=mirage-types OCAML_VERSION=4.02 PINS="charrua-core:git://github.com/yomimono/charrua-core.git#use_new_marshallers dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
+  - PACKAGE=mirage OCAML_VERSION=4.03 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
+  - PACKAGE=mirage-types OCAML_VERSION=4.03 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
+  - PACKAGE=mirage OCAML_VERSION=4.02 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
+  - PACKAGE=mirage-types OCAML_VERSION=4.02 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"

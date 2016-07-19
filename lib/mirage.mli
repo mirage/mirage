@@ -429,24 +429,6 @@ val app_info: info impl
 (** [app_info] exports all the information available at configure time
     into a runtime {!Mirage.Info.t} value. *)
 
-(** {2 Deprecated functions} *)
-
-val get_mode: unit -> [ `Unix | `Xen | `MacOSX ]
-(** Current configuration mode.
-    @deprecated Use {!Key.target} and {!Key.is_xen}.
-*)
-
-val add_to_opam_packages : string list -> unit
-(** Register opam packages.
-    @deprecated Use the [~package] argument from {!register}.
-*)
-
-val add_to_ocamlfind_libraries : string list -> unit
-(** Register ocamlfind libraries.
-    @deprecated Use the [~libraries] argument from {!register}.
-*)
-
-
 (** {2 Application registering} *)
 
 val register :

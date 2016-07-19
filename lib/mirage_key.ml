@@ -120,26 +120,6 @@ let is_xen =
   | `Xen -> true
   | `Unix | `MacOSX -> false
 
-let unix =
-  let doc =
-    "Set $(b,target) to $(i,unix). For OSX (Yosemite or higher) \
-     $(i,unix) is equivalent to `--target=macosx`. Otherwise it is \
-     `--target=unix`."
-  in
-  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
-  let setter b = if b then Some (Lazy.force default_unix) else None in
-  let alias = Alias.flag doc in
-  let alias = Alias.add target setter alias in
-  Key.alias "unix" alias
-
-let xen =
-  let doc = "Set $(b,target) to $(i,xen)." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["xen"] in
-  let setter b = if b then Some `Xen else None in
-  let alias = Alias.flag doc in
-  let alias = Alias.add target setter alias in
-  Key.alias "xen" alias
-
 let no_ocaml_check =
   let doc = "Bypass the OCaml compiler version checks." in
   let doc =

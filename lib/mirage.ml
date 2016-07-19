@@ -1550,8 +1550,6 @@ module Project = struct
       method module_name = "Mirage_runtime"
       method keys = [
         Key.(abstract target);
-        Key.(abstract unix);
-        Key.(abstract xen);
         Key.(abstract no_ocaml_check);
         Key.(abstract warn_error);
       ]
@@ -1574,18 +1572,6 @@ end
 
 include Functoria_app.Make (Project)
 
-(** {Deprecated functions} *)
-
-let get_mode () = Key.(get (get_base_context ()) target)
-
-let libraries_ref = ref []
-let add_to_ocamlfind_libraries l =
-  libraries_ref := !libraries_ref @ l
-
-let packages_ref = ref []
-let add_to_opam_packages l =
-  packages_ref := !packages_ref @ l
-
 (** {Custom registration} *)
 
 let (++) acc x = match acc, x with
@@ -1597,8 +1583,6 @@ let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
     ?keys ?(libraries=[]) ?(packages=[])
     name jobs =
-  let libraries = !libraries_ref @ libraries in
-  let packages = !packages_ref @ packages in
   let argv = Some (Functoria_app.keys argv) in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = None ++ argv ++ reporter ++ tracing in

@@ -81,13 +81,13 @@ the appropriate boilerplate for your chosen platform.
 To configure for the Unix-direct target (using tap interfaces), do:
 
 ```
-mirage configure --unix
+mirage configure -t unix
 ```
 
 To build for the Xen target, do:
 
 ```
-mirage configure --xen
+mirage configure -t xen
 ```
 
 ### Building Mirage Applications
@@ -121,7 +121,7 @@ directory).
 ### Compiling to Xen and deploying to the cloud
 
 In order to deploy a Mirage unikernel to Amazon EC2, you need to install the AWS
-tools on your machine, build a unikernel with the `--xen` option and then use
+tools on your machine, build a unikernel with the `-t xen` option and then use
 the `ec2.sh` script (in directory `script`) in order to register your kernel
 with AWS. Then you can start your kernel with the web interface to AWS or any
 other means AWS provides to start EC2 instances.

@@ -124,7 +124,8 @@ let unix =
   let doc =
     "Set $(b,target) to $(i,unix). For OSX (Yosemite or higher) \
      $(i,unix) is equivalent to `--target=macosx`. Otherwise it is \
-     `--target=unix`."
+     `--target=unix`.  This argument is deprecated and will be removed \
+     in the next release of Mirage."
   in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
   let setter b = if b then Some (Lazy.force default_unix) else None in
@@ -133,7 +134,9 @@ let unix =
   Key.alias "unix" alias
 
 let xen =
-  let doc = "Set $(b,target) to $(i,xen)." in
+  let doc = "Set $(b,target) to $(i,xen).  This is equivalent to --target=xen. \
+             This argument is deprecated and will be removed in the next release \
+             of Mirage." in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["xen"] in
   let setter b = if b then Some `Xen else None in
   let alias = Alias.flag doc in

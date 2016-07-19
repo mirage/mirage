@@ -128,7 +128,10 @@ let unix =
      in the next release of Mirage."
   in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["unix"] in
-  let setter b = if b then Some (Lazy.force default_unix) else None in
+  let setter b =
+    if b then Some (Lazy.force (
+    Format.eprintf "--%s is deprecated.  Please use -t %s instead.\n" "unix" "unix";
+    default_unix)) else None in
   let alias = Alias.flag doc in
   let alias = Alias.add target setter alias in
   Key.alias "unix" alias
@@ -138,7 +141,10 @@ let xen =
              This argument is deprecated and will be removed in the next release \
              of Mirage." in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["xen"] in
-  let setter b = if b then Some `Xen else None in
+  let setter b =
+    if b then begin
+    Format.eprintf "--%s is deprecated.  Please use -t %s instead.\n" "xen" "xen";
+    Some `Xen end else None in
   let alias = Alias.flag doc in
   let alias = Alias.add target setter alias in
   Key.alias "xen" alias

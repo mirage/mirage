@@ -1566,20 +1566,20 @@ let get_mode () = Key.(get (get_base_context ()) target)
 
 let libraries_ref = ref []
 let add_to_ocamlfind_libraries l =
-  let pp_v fmt lib = Format.fprintf fmt "%s ;" lib in
+  let pp_v fmt lib = Format.fprintf fmt "\"%s\" ;" lib in
   let list_pp fmt l = Format.pp_print_list pp_v fmt l in
-  Log.info "add_to_ocamlfind_libraries [%a] is deprecated. \
-      Please instead call `register` with `~libraries:[%a]`."
+  Format.eprintf "add_to_ocamlfind_libraries [%a] is deprecated. \
+      Please instead call `register` with `~libraries:[%a]`.\n"
       list_pp l list_pp l
   ;
   libraries_ref := !libraries_ref @ l
 
 let packages_ref = ref []
 let add_to_opam_packages l =
-  let pp_v fmt package = Format.fprintf fmt "%s ;" package in
+  let pp_v fmt package = Format.fprintf fmt "\"%s\" ;" package in
   let list_pp fmt l = Format.pp_print_list pp_v fmt l in
-  Log.info "add_to_opam_packages [%a] is deprecated. \
-      Please instead call `register` with `~packages:[%a]`."
+  Format.eprintf "add_to_opam_packages [%a] is deprecated. \
+      Please instead call `register` with `~packages:[%a]`.\n"
       list_pp l list_pp l
   ;
   packages_ref := !packages_ref @ l

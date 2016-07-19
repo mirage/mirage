@@ -1357,6 +1357,8 @@ let configure_myocamlbuild_ml ~root =
 
 let clean_myocamlbuild_ml ~root = Cmd.remove (root / "myocamlbuild.ml")
 
+module S = Set.Make(String)
+
 let configure_makefile ~target ~root ~name ~warn_error info =
   let open Codegen in
   let file = root / "Makefile" in
@@ -1399,6 +1401,18 @@ let configure_makefile ~target ~root ~name ~warn_error info =
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";
   newline fmt;
+  let pkg_config_deps = "mirage-xen" in
+  begin match target with
+    | `Xen ->
+      get_extra_ld_flags libs >>= fun archives ->
+      let archives = S.elements (S.of_list archives) in
+      let extra_c_archives = String.concat ~sep:" \\\n\t  " archives in
+      append fmt "EXTRA_LD_FLAGS = %s\n" extra_c_archives;
+      append fmt "EXTRA_LD_FLAGS += $$(pkg-config --static --libs %s)\n" pkg_config_deps;
+      R.ok ()
+    | `Unix | `MacOSX -> R.ok ()
+  end >>= fun () ->
+  newline fmt;
   append fmt ".PHONY: all depend clean build main.native\n\
               all:: build\n\
               \n\
@@ -1412,17 +1426,22 @@ let configure_makefile ~target ~root ~name ~warn_error info =
               \t$(BUILD) main.native.o";
   newline fmt;
 
-  (* On ARM, we must convert the ELF image to an ARM boot executable zImage,
-   * while on x86 we leave it as it is. *)
+  (* On ARM:
+     - we must convert the ELF image to an ARM boot executable zImage,
+       while on x86 we leave it as it is.
+     - we need to link libgcc.a (otherwise we get undefined references to:
+       __aeabi_dcmpge, __aeabi_dadd, ...)
+ *)
   let generate_image =
-    let need_zImage =
+    let is_arm =
       match Cmd.uname_m () with
       | Some machine ->
         String.length machine > 2 && String.is_prefix ~affix:"arm" machine
       | None -> failwith "uname -m failed; can't determine target machine type!"
     in
-    if need_zImage then (
-      Printf.sprintf "\t  -o mir-%s.elf\n\
+    if is_arm then (
+      Printf.sprintf "\t  $(shell gcc -print-libgcc-file-name) \\\n\
+                      \t  -o mir-%s.elf\n\
                       \tobjcopy -O binary mir-%s.elf mir-%s.xen"
         name name name
     ) else (
@@ -1431,19 +1450,13 @@ let configure_makefile ~target ~root ~name ~warn_error info =
 
   begin match target with
     | `Xen ->
-      get_extra_ld_flags libs
-      >>| String.concat ~sep:" \\\n\t  "
-      >>= fun extra_c_archives ->
       append fmt "build:: main.native.o";
-      let pkg_config_deps = "mirage-xen" in
       append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append fmt "\tld -d -static -nostdlib \\\n\
                   \t  _build/main.native.o \\\n\
-                  \t  %s \\\n\
-                  \t  $$(pkg-config --static --libs %s) \\\n\
-                  \t  $(shell gcc -print-libgcc-file-name) \\\n\
+                  \t  $(EXTRA_LD_FLAGS) \\\n\
                   %s"
-        extra_c_archives pkg_config_deps generate_image ;
+        generate_image ;
       append fmt "\t@@echo Build succeeded";
       R.ok ()
     | `Unix | `MacOSX ->

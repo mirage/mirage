@@ -107,14 +107,6 @@ module Make (P: S): sig
       jobs are always executed in the sequence specified by the
       caller. *)
 
-  val get_base_context: unit -> context
-  (** [get_base_context ()] returns a subset of the parsed keys which
-      are part of the base configuration of the DSL. This functions
-      should be avoided as it exposes the internal parsing context.
-
-      @deprecated Use the regular key mechanism.
-  *)
-
   val run: unit -> unit
   (** Run the application builder. This should be called exactly once
       to run the application builder: command-line argument will be

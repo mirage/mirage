@@ -559,15 +559,6 @@ module Make (P: S) = struct
            Please specify one explictly on the command-line."
 
   module Config' = struct
-    (* This is a hack to allow the implementation of
-       [Mirage.get_mode]. Once it is removed, the notion of base context
-       should be removed as well. *)
-    exception No_base_key_map
-    let base_context_ref = ref None
-    let get_base_context () = match !base_context_ref with
-      | Some x -> x
-      | None -> raise No_base_key_map
-
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Log.get_level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
@@ -586,16 +577,10 @@ module Make (P: S) = struct
     let root = Cmd.realpath (Filename.dirname file) in
     let file = root / Filename.basename file in
     set_config_file file;
-    try
-      compile_and_dynlink file >>= fun () ->
-      registered () >>= fun t ->
-      Log.set_section (Config.name t);
-      Ok t
-    with Config'.No_base_key_map ->
-      Error ("Access to base key map is not available before configuration. \
-              For dynamically configured devices, please use the configurable class.")
-
-  let get_base_context = Config'.get_base_context
+    compile_and_dynlink file >>= fun () ->
+    registered () >>= fun t ->
+    Log.set_section (Config.name t);
+    Ok t
 
   let base_keys : Key.Set.t = Config.extract_keys (P.create [])
   let base_context_arg = Key.context base_keys
@@ -641,14 +626,14 @@ module Make (P: S) = struct
         argv
     in
     match result with
-    | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
+    | `Error _
     | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
       Functoria_misc.Log.fatal "%s" error
     | `Version
     | `Help -> ()
 
-  let run_with_argv ?base_context argv =
+  let run_with_argv argv =
     let module Cmd = Functoria_command_line in
     (* 1. Pre-parse the arguments to load the config file, set the log
      *    level and colour, and determine whether the graph should be fully
@@ -667,9 +652,6 @@ module Make (P: S) = struct
     let config_file = Cmd.read_config_file argv in
 
     (* 2. Load the config from the config file. *)
-    (* First, set the base context ref, which might be accessed in the
-       config file. *)
-    let () = Config'.base_context_ref := base_context in
     (* There are three possible outcomes:
          1. the config file is found and loaded succeessfully
          2. no config file is specified
@@ -698,14 +680,8 @@ module Make (P: S) = struct
             argv)
 
   let run () =
-    (* Store the "base_context"  *)
-    let base_context =
-      match Cmdliner.Term.eval_peek_opts ~argv:Sys.argv base_context_arg with
-        _, `Ok x -> Some x
-      | _ -> None
-    in
     try
-      run_with_argv ?base_context Sys.argv
+      run_with_argv Sys.argv
     with Functoria_misc.Log.Fatal s ->
       begin
         Functoria_misc.Log.show_error "%s" s;

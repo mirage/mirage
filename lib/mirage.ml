@@ -800,7 +800,7 @@ let nocrypto = impl @@ object
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
       let s = if Key.(eval (Info.context i) is_xen)
-        then "Nocrypto_entropy_xen.initialize ()"
+        then "Nocrypto_entropy_mirage.initialize ()"
         else "Nocrypto_entropy_lwt.initialize ()"
       in
       Fmt.strf "%s >|= fun x -> `Ok x" s

@@ -1,3 +1,14 @@
+### 2.9.1 (2016-07-20)
+
+* Warn users of command-line arguments `--unix` and `--xen` that support for
+  these will soon be dropped.  Instead, use `-t unix` and `-t xen` respectively.
+  (see https://github.com/mirage/mirage-www/pull/475#issuecomment-233802501)
+  (#561, by @yomimono)
+* Warn users of functions `add_to_opam_packages p` and
+  `add_to_ocamlfind_libraries l` that support for these will soon be dropped.
+  Instead, use `register ~libraries:l` and `register:~packages:p`
+  respectively. (#561, by @yomimono).
+
 ### 2.9.0 (2016-04-29)
 
 * Add logging support. A new `reporter` parameter to `register` is now

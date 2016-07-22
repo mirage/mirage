@@ -29,7 +29,7 @@ include Functoria.KEY with module Arg := Arg
 
 val target: [ `Unix | `Xen | `MacOSX | `Virtio | `Ukvm ] key
 (** [-t TARGET]: Key setting the configuration mode for the current project.
-    Is either ["xen"], ["unix"], ["macosx"], ["virtio"] or ["ukvm"].
+    Is one of ["xen"], ["unix"], ["macosx"], ["virtio"] or ["ukvm"].
 *)
 
 val pp_target: [ `Unix | `Xen | `MacOSX | `Virtio | `Ukvm ] Fmt.t
@@ -65,7 +65,7 @@ val tracing_size: int -> int key
 
 val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Fat ] key
 (** The type of key value store.
-    Is either ["fat"], ["archive"] or ["crunch"]. *)
+    Is one of ["fat"], ["archive"] or ["crunch"]. *)
 
 (** {3 Stack keys} *)
 

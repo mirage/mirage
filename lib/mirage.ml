@@ -605,7 +605,7 @@ let udpv4_socket_conf ipv4_key = object
   method libraries =
     Key.match_ Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
-    | `Xen | `Virtio | `Ukvm -> failwith "No socket implementation available for Xen"
+    | `Xen | `Virtio | `Ukvm -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 end
@@ -652,7 +652,7 @@ let tcpv4_socket_conf ipv4_key = object
   method libraries =
     Key.match_ Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
-    | `Xen | `Virtio | `Ukvm  -> failwith "No socket implementation available for Xen"
+    | `Xen | `Virtio | `Ukvm  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 end
@@ -837,7 +837,7 @@ let nocrypto = impl @@ object
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
       let s = match Key.(get (Info.context i) target) with
-        | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_freestanding.initialize ()"
+        | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
         | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
       in
       Fmt.strf "%s >|= fun x -> `Ok x" s
@@ -917,7 +917,7 @@ let resolver_unix_system = impl @@ object
     method packages =
       Key.match_ Key.(value target) @@ function
       | `Unix | `MacOSX -> [ "mirage-conduit" ]
-      | `Xen | `Virtio | `Ukvm -> failwith "Resolver_unix not supported on Xen"
+      | `Xen | `Virtio | `Ukvm -> failwith "Resolver_unix not supported on unikernel"
     method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "return (`Ok Resolver_lwt_unix.system)"
   end

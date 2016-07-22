@@ -3,7 +3,7 @@ sudo: required
 install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
 script: bash -ex .travis-ci.sh
 env:
-  global:
+  global: PINS="functoria:git://github.com/mirage/functoria.git#fix-depext"
   matrix:
-  - PACKAGE=mirage UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02 PINS="mirage-logs"
-  -  PACKAGE=mirage-types UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02
+  - PACKAGE=mirage UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02
+  - PACKAGE=mirage-types UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02

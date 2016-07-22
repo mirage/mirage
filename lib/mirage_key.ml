@@ -65,6 +65,8 @@ let pp_group =
 type mode = [
   | `Unix
   | `Xen
+  | `Virtio
+  | `Ukvm
   | `MacOSX
 ]
 
@@ -72,7 +74,9 @@ let target_conv: mode Cmdliner.Arg.converter =
   Cmdliner.Arg.enum [
     "unix"  , `Unix;
     "macosx", `MacOSX;
-    "xen"   , `Xen
+    "xen"   , `Xen;
+    "virtio", `Virtio;
+    "ukvm"  , `Ukvm
   ]
 
 let pp_target fmt m = snd target_conv fmt m
@@ -100,11 +104,13 @@ let default_unix = lazy (
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
-     $(i,xen), $(i,unix), $(i,macosx)."
+     $(i,xen), $(i,unix), $(i,macosx), $(i,virtio), $(i,ukvm)."
   in
   let serialize ppf = function
     | `Unix   -> Fmt.pf ppf "`Unix"
     | `Xen    -> Fmt.pf ppf "`Xen"
+    | `Virtio -> Fmt.pf ppf "`Virtio"
+    | `Ukvm   -> Fmt.pf ppf "`Ukvm"
     | `MacOSX -> Fmt.pf ppf "`MacOSX"
   in
   let conv = Arg.conv ~conv:target_conv ~runtime_conv:"target" ~serialize in
@@ -118,7 +124,7 @@ let target =
 let is_xen =
   Key.match_ Key.(value target) @@ function
   | `Xen -> true
-  | `Unix | `MacOSX -> false
+  | `Unix | `MacOSX | `Virtio | `Ukvm -> false
 
 let no_ocaml_check =
   let doc = "Bypass the OCaml compiler version checks." in

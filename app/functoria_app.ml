@@ -448,7 +448,7 @@ module Make (P: S) = struct
                 if Cmd.exists "opam-depext"
                 then Ok (Log.info "opam depext is installed.")
                 else Cmd.opam ?color "install" ["depext"]
-              end >>= fun () -> Cmd.opam ~yes:false "depext" ps
+              end >>= fun () -> Cmd.opam "depext" ps
             end >>= fun () ->
             Cmd.opam ?color "install" ps
           ) else version_error ()

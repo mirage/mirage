@@ -104,18 +104,21 @@ end
     Clock counting time since the Unix epoch. Subject to adjustment by e.g. NTP. *)
 module type PCLOCK = sig
 
-  val now_d_ps : unit -> int * int64
+  include DEVICE
+    with type id := string
+
+  val now_d_ps : t -> int * int64
   (** [now_d_ps ()] is [(d, ps)] representing the POSIX time occuring
       at [d] * 86'400e12 + [ps] POSIX picoseconds from the epoch
       1970-01-01 00:00:00 UTC. [ps] is in the range
       \[[0];[86_399_999_999_999_999L]\]. *)
 
-  val current_tz_offset_s : unit -> int option
+  val current_tz_offset_s : t -> int option
   (** [current_tz_offset_s ()] is the clock's current local time zone
     offset to UTC in seconds, if known. This is the duration local time -
     UTC time in seconds. *)
 
-  val period_d_ps : unit -> (int * int64) option
+  val period_d_ps : t -> (int * int64) option
   (** [period_d_ps ()] is [Some (d, ps)] representing the
       clock's picosecond period [d] * 86'400e12 + [ps], if known. [ps] is in the
       range \[[0];[86_399_999_999_999_999L]\]. *)

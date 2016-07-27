@@ -898,6 +898,10 @@ module type CHANNEL = sig
   (** [close t] calls {!flush} and then close the underlying
       flow. *)
 
+  val disconnect: t -> unit io
+  (** [disconnect t] calls {!disconnect} on the underlying flow without
+      flushing first. *)
+
 end
 
 (** {1 Filesystem} *)

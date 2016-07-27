@@ -73,6 +73,8 @@ let posix_clock_conf = object (self)
   method module_name = "Pclock"
   method libraries = Key.(if_ is_xen) ["mirage-clock-xen"] ["mirage-clock-unix"]
   method packages = self#libraries
+  method connect _ modname _args =
+    Printf.sprintf "%s.connect ()" modname
 end
 
 let default_posix_clock = impl posix_clock_conf

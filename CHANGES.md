@@ -1,3 +1,25 @@
+### 3.0.0 (2016-soon!)
+
+* use an int64 representing nanoseconds as the argument for `TIME.sleep`,
+  instead of a float representing seconds. (#547, by @hannesm)
+* expose new targets `virtio` and `ukvm` via the `solo5` project. (#565,
+  by @djwillia, @mato, and @hannesm).
+* remove users of `base_context`, which includes command-line arguments `--unix`
+  and `--xen`, and `config.ml` functions `add_to_ocamlfind_libraries` and
+  `add_to_opam_packages`.  As a side effect, fix a long-standing error message
+  bug when invoking `mirage` against a `config.ml` that does not build.
+  (#560, by @yomimono)
+* link `libgcc.a` only on ARM & other build improvements (#544, by @hannesm)
+* allow users to use `crunch` on unix with `kv_ro`; clean up crunch .mlis on
+  clean (#556, by @yomimono)
+* remove console arguments to network functors (#554, by @talex5 and @yomimono)
+* standardize ip source and destination argument names as `src` and `dst`, and
+  source and destination ports as `src_port` and `dst_port` (#546, by @yomimono)
+* a large number of documentation improvements (#549, by @djs55)
+* require `pseudoheader` function for IP module types. (#541, by @yomimono)
+* always build with `ocamlbuild -r`, to avoid repetitive failure message
+  (#537, by @talex5)
+
 ### 2.9.1 (2016-07-20)
 
 * Warn users of command-line arguments `--unix` and `--xen` that support for

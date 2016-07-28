@@ -5,7 +5,7 @@ script: bash -ex .travis-ci.sh
 env:
   global:
   - UPDATE_GCC_BINUTILS=1
-  - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
+  - EXTRA_REMOTES="git://github.com/hannesm/mirage-dev.git#sleep-nsec"
   matrix:
   - PACKAGE=mirage OCAML_VERSION=4.03
   - PACKAGE=mirage-types OCAML_VERSION=4.03

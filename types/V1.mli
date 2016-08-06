@@ -132,11 +132,14 @@ end
 
 module type MCLOCK = sig
 
-  val elapsed_ns : unit -> int64
+  include DEVICE
+    with type id := string
+
+  val elapsed_ns : t -> int64
   (** [elapsed_ns ()] is a monotonically increasing count of nanoseconds elapsed
    * since some arbitrary point *)
 
-  val period_ns : unit -> int64 option
+  val period_ns : t -> int64 option
   (** [period_ns ()] is [Some ns] representing the clock's
    * nanosecond period [ns], if known *)
 end

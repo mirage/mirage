@@ -28,6 +28,9 @@ module type FLOW = FLOW
 module type PCLOCK = PCLOCK
   with type 'a io = 'a Lwt.t
 
+module type MCLOCK = MCLOCK
+  with type 'a io = 'a Lwt.t
+
 (** Network *)
 module type NETWORK = NETWORK
   with type 'a io = 'a Lwt.t

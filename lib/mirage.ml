@@ -89,6 +89,8 @@ let monotonic_clock_conf = object (self)
   method module_name = "Mclock"
   method libraries = Key.(if_ is_xen) ["mirage-clock-xen"] ["mirage-clock-unix"]
   method packages = self#libraries
+  method connect _ modname _args =
+    Printf.sprintf "%s.connect ()" modname
 end
 
 let default_monotonic_clock = impl monotonic_clock_conf

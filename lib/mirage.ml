@@ -1467,7 +1467,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     match target with
     | `Xen -> "mirage-xen"
     | `Virtio -> "mirage-solo5 ocaml-freestanding"
-    | `Ukvm -> "mirage-solo5 ocaml-freestanding solo5-kernel-ukvm"
+    | `Ukvm -> "mirage-solo5 ocaml-freestanding"
     | `MacOSX | `Unix -> ""
   in
   let extra_ld_flags archives =

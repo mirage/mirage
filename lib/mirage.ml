@@ -1563,7 +1563,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       let ukvm_mods =
         let ukvm_filter = function
           | "mirage-net-solo5" -> "net"
-          | "mirage-block-solo5" -> "block"
+          | "mirage-block-solo5" -> "blk"
           | _ -> ""
         in
         String.concat ~sep:" " (List.map ukvm_filter libs)

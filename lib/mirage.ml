@@ -603,9 +603,9 @@ let udpv4_socket_conf ipv4_key = object
   method keys = [ Key.abstract ipv4_key ]
   method packages = Key.pure [ "tcpip" ]
   method libraries =
-    Key.match_ Key.is_unix @@ function
-    | true -> [ "tcpip.udpv4-socket" ]
-    | false -> failwith "No socket implementation available for unikernel"
+    Key.match_ Key.(value target) @@ function
+    | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
+    | `Xen | `Virtio | `Ukvm -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 end
@@ -650,9 +650,9 @@ let tcpv4_socket_conf ipv4_key = object
   method keys = [ Key.abstract ipv4_key ]
   method packages = Key.pure [ "tcpip" ]
   method libraries =
-    Key.match_ Key.is_unix @@ function
-    | true -> [ "tcpip.tcpv4-socket" ]
-    | false  -> failwith "No socket implementation available for unikernel"
+    Key.match_ Key.(value target) @@ function
+    | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
+    | `Xen | `Virtio | `Ukvm  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 end
@@ -915,9 +915,9 @@ let resolver_unix_system = impl @@ object
     method name = "resolver_unix"
     method module_name = "Resolver_lwt"
     method packages =
-      Key.match_ Key.is_unix @@ function
-      | true -> [ "mirage-conduit" ]
-      | false -> failwith "Resolver_unix not supported on unikernel"
+      Key.match_ Key.(value target) @@ function
+      | `Unix | `MacOSX -> [ "mirage-conduit" ]
+      | `Xen | `Virtio | `Ukvm -> failwith "Resolver_unix not supported on unikernel"
     method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "return (`Ok Resolver_lwt_unix.system)"
   end

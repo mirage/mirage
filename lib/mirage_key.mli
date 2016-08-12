@@ -38,6 +38,9 @@ val pp_target: [ `Unix | `Xen | `MacOSX | `Virtio | `Ukvm ] Fmt.t
 val is_xen: bool value
 (** Is true iff the {!target} keys takes the value [`Xen]. *)
 
+val is_unix: bool value
+(** Is true iff the {!target} key is a UNIXish system. *)
+
 val no_ocaml_check: bool key
 (** [--no-ocaml-check]. Do not check the version of the compiler. *)
 

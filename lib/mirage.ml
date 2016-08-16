@@ -66,7 +66,7 @@ let default_time = impl time_conf
 type pclock = PCLOCK
 let pclock = Type PCLOCK
 
-let posix_clock_conf = object (self)
+let posix_clock_conf str = object (self)
   inherit base_configurable
   method ty = pclock
   method name = "pclock"
@@ -75,7 +75,7 @@ let posix_clock_conf = object (self)
     Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-xen"]
   method packages = self#libraries
   method connect _ modname _args =
-    Printf.sprintf "%s.connect ()" modname
+    Printf.sprintf "%s.connect %S" modname str
 end
 
 let default_posix_clock = impl posix_clock_conf

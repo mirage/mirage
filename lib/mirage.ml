@@ -71,7 +71,8 @@ let posix_clock_conf = object (self)
   method ty = pclock
   method name = "pclock"
   method module_name = "Pclock"
-  method libraries = Key.(if_ is_xen) ["mirage-clock-xen"] ["mirage-clock-unix"]
+  method libraries =
+    Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-xen"]
   method packages = self#libraries
   method connect _ modname _args =
     Printf.sprintf "%s.connect ()" modname
@@ -87,7 +88,8 @@ let monotonic_clock_conf = object (self)
   method ty = mclock
   method name = "mclock"
   method module_name = "Mclock"
-  method libraries = Key.(if_ is_xen) ["mirage-clock-xen"] ["mirage-clock-unix"]
+  method libraries =
+    Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-xen"]
   method packages = self#libraries
   method connect _ modname _args =
     Printf.sprintf "%s.connect ()" modname

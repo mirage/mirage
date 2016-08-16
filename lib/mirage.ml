@@ -66,7 +66,7 @@ let default_time = impl time_conf
 type pclock = PCLOCK
 let pclock = Type PCLOCK
 
-let posix_clock_conf str = object (self)
+let posix_clock_conf = object (self)
   inherit base_configurable
   method ty = pclock
   method name = "pclock"
@@ -75,7 +75,7 @@ let posix_clock_conf str = object (self)
     Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-xen"]
   method packages = self#libraries
   method connect _ modname _args =
-    Printf.sprintf "%s.connect %S" modname str
+    Printf.sprintf "%s.connect ()" modname
 end
 
 let default_posix_clock = impl posix_clock_conf
@@ -1049,19 +1049,21 @@ let mirage_log ?ring_size ~default =
     method packages = Key.pure ["mirage-logs"]
     method libraries = Key.pure ["mirage-logs"]
     method keys = [ Key.abstract logs ]
-    method connect _ modname _ =
+    method connect _ modname = function
+    | [ pclock ] ->
       Fmt.strf
         "@[<v 2>\
          let ring_size = %a in@ \
-         let reporter = %s.create ?ring_size () in@ \
+         let reporter = %s.create ?ring_size %s in@ \
          Mirage_runtime.set_level ~default:%a %a;@ \
          %s.set_reporter reporter;@ \
          Lwt.return (`Ok reporter)"
         Fmt.(Dump.option int) ring_size
-        modname
+        modname pclock
         pp_level default
         pp_key logs
         modname
+    | _ -> failwith "The Pclock connect should receive exactly one argument."
   end
 
 let default_reporter

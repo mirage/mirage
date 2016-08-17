@@ -449,7 +449,8 @@ let arpv4_conf = object
   method libraries = Key.pure ["tcpip.arpv4"]
 
   method connect _ modname = function
-    | [ eth ; _clock ; _time ] -> Printf.sprintf "%s.connect %s" modname eth
+    | [ eth ; _clock ; _time ] ->
+        Printf.sprintf "%s.connect %s %s" modname eth _clock
     | _ -> failwith "The arpv4 connect should receive exactly three arguments."
 
 end
@@ -1047,16 +1048,17 @@ let mirage_log ?ring_size ~default =
     method packages = Key.pure ["mirage-logs"]
     method libraries = Key.pure ["mirage-logs"]
     method keys = [ Key.abstract logs ]
-    method connect _ modname _ =
-      Fmt.strf
+    method connect _ modname = function
+      | [_pclock] -> Fmt.strf
         "@[<v 2>\
          let ring_size = %a in@ \
-         let reporter = %s.create ?ring_size () in@ \
+         let reporter = %s.create ?ring_size %s () in@ \
          Mirage_runtime.set_level ~default:%a %a;@ \
          %s.set_reporter reporter;@ \
          Lwt.return (`Ok reporter)"
         Fmt.(Dump.option int) ring_size
         modname
+        _pclock
         pp_level default
         pp_key logs
         modname

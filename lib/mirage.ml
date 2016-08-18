@@ -451,7 +451,7 @@ let arpv4_conf = object
   method libraries = Key.pure ["tcpip.arpv4"]
 
   method connect _ modname = function
-    | [ eth ; _clock ; _time ] -> Printf.sprintf "%s.connect %s" modname eth
+    | [ eth ; clock ; _time ] -> Printf.sprintf "%s.connect %s %s" modname eth clock
     | _ -> failwith "The arpv4 connect should receive exactly three arguments."
 
 end
@@ -647,7 +647,7 @@ let tcp_direct_conf () = object
   method packages = Key.pure [ "tcpip" ]
   method libraries = Key.pure [ "tcpip.tcp" ]
   method connect _ modname = function
-    | [ip; _time; _clock; _random] -> Printf.sprintf "%s.connect %s" modname ip
+    | [ip; _time; clock; _random] -> Printf.sprintf "%s.connect %s %s" modname ip clock
     | _ -> failwith "The tcp connect should receive exactly four arguments."
 end
 

@@ -1,5 +1,12 @@
 ### 3.0.0 (2016-soon!)
 
+* deprecate the CLOCK module type in favor of PCLOCK (POSIX clock) and
+  MCLOCK (a monotonically increasing counter of elapsed nanoseconds).
+  (#548 and #579, by @mattgray and @yomimono)
+* emit an ocamlfind predicate that matches the target, reducing the
+  amount of duplication by target required of library authors
+  (#568, by @pqwy)
+* implement an `is_unix` key (#575, by @mato)
 * use an int64 representing nanoseconds as the argument for `TIME.sleep`,
   instead of a float representing seconds. (#547, by @hannesm)
 * expose new targets `virtio` and `ukvm` via the `solo5` project. (#565,

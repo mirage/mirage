@@ -99,32 +99,49 @@ module type RANDOM = sig
       [bound] (exclusive). [bound] must be greater than 0. *)
 end
 
-(** {1 Clock operations}
+(** {1 POSIX clock}
 
-    Currently read-only to retrieve the time in various formats. *)
-module type CLOCK = sig
+    Clock counting time since the Unix epoch. Subject to adjustment by e.g. NTP. *)
+module type PCLOCK = sig
 
-  type tm =
-    { tm_sec: int;               (** Seconds 0..60 *)
-      tm_min: int;               (** Minutes 0..59 *)
-      tm_hour: int;              (** Hours 0..23 *)
-      tm_mday: int;              (** Day of month 1..31 *)
-      tm_mon: int;               (** Month of year 0..11 *)
-      tm_year: int;              (** Year - 1900 *)
-      tm_wday: int;              (** Day of week (Sunday is 0) *)
-      tm_yday: int;              (** Day of year 0..365 *)
-      tm_isdst: bool;            (** Daylight time savings in effect *)
-    }
-  (** The type for representing wallclock time and calendar date. *)
+  include DEVICE
+    with type id := string
 
-  val time: unit -> float
-  (** Return the current time since 00:00:00 GMT, Jan. 1, 1970, in
-      seconds. *)
+  val now_d_ps : t -> int * int64
+  (** [now_d_ps ()] is [(d, ps)] representing the POSIX time occuring
+      at [d] * 86'400e12 + [ps] POSIX picoseconds from the epoch
+      1970-01-01 00:00:00 UTC. [ps] is in the range
+      \[[0];[86_399_999_999_999_999L]\]. *)
 
-  val gmtime: float -> tm
-  (** Convert a time in seconds, as returned by {!time}, into a date
-      and a time. Assumes UTC (Coordinated Universal Time), also known
-      as GMT. *)
+  val current_tz_offset_s : t -> int option
+  (** [current_tz_offset_s ()] is the clock's current local time zone
+    offset to UTC in seconds, if known. This is the duration local time -
+    UTC time in seconds. *)
+
+  val period_d_ps : t -> (int * int64) option
+  (** [period_d_ps ()] is [Some (d, ps)] representing the
+      clock's picosecond period [d] * 86'400e12 + [ps], if known. [ps] is in the
+      range \[[0];[86_399_999_999_999_999L]\]. *)
+
+end
+
+(** {1 Monotonic clock}
+
+    Clock returning monotonic time since an arbitrary point. To be used for eg.
+    profiling. *)
+
+module type MCLOCK = sig
+
+  include DEVICE
+    with type id := string
+
+  val elapsed_ns : t -> int64
+  (** [elapsed_ns ()] is a monotonically increasing count of nanoseconds elapsed
+   * since some arbitrary point *)
+
+  val period_ns : t -> int64 option
+  (** [period_ns ()] is [Some ns] representing the clock's
+   * nanosecond period [ns], if known *)
 end
 
 (** {1 Connection between endpoints} *)

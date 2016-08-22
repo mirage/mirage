@@ -59,14 +59,23 @@ val default_time: time impl
 
 (** {2 Clocks} *)
 
-type clock
-(** Abstract type for clocks. *)
+type pclock
+(** Abstract type for POSIX clocks. *)
 
-val clock: clock typ
-(** Implementations of the [V1.CLOCK] signature. *)
+val pclock: pclock typ
+(** Implementations of the {!V1.PCLOCK} signature. *)
 
-val default_clock: clock impl
-(** The default mirage-clock implementation. *)
+val default_posix_clock: pclock impl
+(** The default mirage-clock PCLOCK implementation. *)
+
+type mclock
+(** Abstract type for monotonic clocks *)
+
+val mclock: mclock typ
+(** Implementations of the {!V1.MCLOCK} signature. *)
+
+val default_monotonic_clock: mclock impl
+(** The default mirage-clock MCLOCK implementation. *)
 
 
 
@@ -79,16 +88,18 @@ val reporter: reporter typ
 (** Implementation of the log {!reporter} type. *)
 
 val default_reporter:
-  ?clock:clock impl -> ?ring_size:int -> ?level:Logs.level ->
+  ?clock:pclock impl -> ?ring_size:int -> ?level:Logs.level ->
   unit -> reporter impl
 (** [default_reporter ?clock ?level ()] is the log reporter that
     prints log messages to the console, timestampted with [clock]. If
-    not provided, the default clock is {!default_clock}. [level] is
+    not provided, the default clock is {!default_posix_clock}. [level] is
     the default log threshold. It is [Logs.Info] if not
     specified. *)
 
 val no_reporter: reporter impl
 (** [no_reporter] disable log reporting. *)
+
+
 
 (** {2 Random} *)
 
@@ -100,7 +111,6 @@ val random: random typ
 
 val default_random: random impl
 (** Passthrough to the OCaml Random generator. *)
-
 
 
 (** {2 Consoles} *)
@@ -234,7 +244,7 @@ type arpv4
 val arpv4 : arpv4 typ
 (** Implementation of the [V1.ARPV4] signature. *)
 
-val arp: ?clock: clock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
+val arp: ?clock: mclock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
 
 (** {2 IP configuration}
 
@@ -265,7 +275,7 @@ type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
 (** Types for IPv4 manual configuration. *)
 
 val create_ipv4:
-  ?clock:clock impl -> ?time:time impl ->
+  ?clock:mclock impl -> ?time:time impl ->
   ?group:string -> network impl -> ipv4_config -> ipv4 impl
 (** Use an IPv4 address.
     Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}.
@@ -281,7 +291,7 @@ type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
 (** Types for IPv6 manual configuration. *)
 
 val create_ipv6:
-  ?time:time impl -> ?clock:clock impl ->
+  ?time:time impl -> ?clock:mclock impl ->
   ?group:string -> network impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address.
     Exposes the keys {!Key.V6.ip}, {!Key.V6.netmask} and {!Key.V6.gateways}.
@@ -318,7 +328,7 @@ val tcpv4: tcpv4 typ
 val tcpv6: tcpv6 typ
 
 val direct_tcp:
-  ?clock:clock impl ->
+  ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   'a ip impl -> 'a tcp impl
@@ -337,7 +347,7 @@ val stackv4: stackv4 typ
 (** Same as {!direct_stackv4_with_static_ipv4} with the default given by
     {!default_ipv4}. *)
 val direct_stackv4_with_default_ipv4:
-  ?clock:clock impl ->
+  ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
@@ -346,7 +356,7 @@ val direct_stackv4_with_default_ipv4:
 (** Direct network stack with ip.
     Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}. *)
 val direct_stackv4_with_static_ipv4:
-  ?clock:clock impl ->
+  ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
@@ -354,7 +364,7 @@ val direct_stackv4_with_static_ipv4:
 
 (** Direct network stack using dhcp. *)
 val direct_stackv4_with_dhcp:
-  ?clock:clock impl ->
+  ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->

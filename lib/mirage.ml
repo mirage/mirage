@@ -1517,6 +1517,8 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       pre_ld_flags "solo5-kernel-ukvm" ;
       R.ok ()
     | `Unix | `MacOSX ->
+      get_extra_ld_flags "unix" libs >>= fun archives ->
+      extra_ld_flags archives;
       R.ok ()
   end >>= fun () ->
   newline fmt;

@@ -169,8 +169,8 @@ let crunch dirname = impl @@ object
     val name = Name.create ("static" ^ dirname) ~prefix:"static"
     method name = name
     method module_name = String.Ascii.capitalize name
-    method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch" ]
-    method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct" ]
+    method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch"; "io-page" ]
+    method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "io-page" ]
     method deps = [ abstract default_io_page ]
     method connect _ modname _ = Fmt.strf "%s.connect ()" modname
 

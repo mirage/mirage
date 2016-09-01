@@ -1620,7 +1620,9 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   append fmt "-include Makefile.user";
   R.ok ()
 
-let clean_makefile ~root = Cmd.remove (root / "Makefile")
+let clean_makefile ~root =
+  Cmd.remove (root / "Makefile");
+  Cmd.remove (root / "Makefile.ukvm")
 
 let check_ocaml_version () =
   (* Similar to [Functoria_app.Cmd.ocaml_version] but with the patch number *)

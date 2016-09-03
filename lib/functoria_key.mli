@@ -240,6 +240,9 @@ val alias: string -> 'a Alias.t -> 'a key
 val aliases: t -> Set.t
 (** [aliases t] is the list of [t]'s aliases. *)
 
+val name : t -> string
+(** [name t] is the string given as [t]'s name when [t] was created. *)
+
 (** {1 Parsing context} *)
 
 type context

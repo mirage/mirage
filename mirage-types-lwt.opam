@@ -1,15 +1,24 @@
 opam-version: "1.2"
-maintainer: ["anil@recoil.org" "thomas@gazagnaire.org"]
-authors: "The MirageOS team"
-homepage: "https://github.com/mirage/mirage"
-bug-reports: "https://github.com/mirage/mirage/issues/"
-tags: ["org:mirage" "org:xapi-project"]
-dev-repo: "https://github.com/mirage/mirage.git"
+maintainer:   ["anil@recoil.org" "thomas@gazagnaire.org"]
+authors:      ["Thomas Gazagnaire" "Anil Madhavapeddy" "Gabriel Radanne"
+               "Mindy Preston" "Thomas Leonard" "Nicolas Ojeda Bar"
+               "Dave Scott" "David Kaloper" "Hannes Mehnert" "Richard Mortier"]
+homepage:     "https://mirage.io/"
+bug-reports:  "https://github.com/mirage/mirage/issues/"
+dev-repo:     "https://github.com/mirage/mirage.git"
+tags:         ["org:mirage" "org:xapi-project"]
+
+build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" pinned ]
+
 depends: [
-  "ocamlfind"
+  "ocamlbuild" {build}
+  "ocamlfind"  {build}
+  "topkg"      {build & >= "0.7.3"}
   "lwt"
-  "cstruct" {>= "1.4.0"}
-  "io-page" {>= "1.4.0"}
-  "ipaddr"
-  "mirage-types" {>= "2.8.0"}
+  "cstruct"      {>= "1.4.0"}
+  "io-page"      {>= "1.4.0"}
+  "ipaddr"       {>= "2.0.0"}
+  "mirage-types" {>= "3.0.0"}
 ]
+
+available: [ocaml-version >= "4.02.3"]

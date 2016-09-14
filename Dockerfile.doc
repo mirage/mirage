@@ -4,13 +4,13 @@ RUN opam remote add mirage-dev git://github.com/mirage/mirage-dev
 RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git
 RUN opam depext -uivy -j 2 opkg 
 RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alcotest \
-    mirage-block-solo5 mirage-block-xen mirage-block-unix \
+    mirage-block-xen mirage-block-unix \
     mirage-clock-unix mirage-clock-xen \
-    mirage-console mirage-console-solo5 \
-    mirage-entropy-xen mirage-entropy-solo5 mirage-entropy-unix \
+    mirage-console \
+    mirage-entropy-xen \
     mirage-flow mirage-http \
-    mirage-net-solo5 mirage-net-unix mirage-net-xen \
-    mirage-solo5 mirage-xen mirage-unix \
+    mirage-net-unix mirage-net-xen \
+    mirage-xen mirage-unix \
     cow cstruct crunch \
     dns hex pcap-format vchan ctypes channel
 RUN opam config exec -- opkg ocamldoc

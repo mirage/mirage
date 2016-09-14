@@ -1,4 +1,4 @@
-FROM ocaml/opam:alpine-3.4_ocaml-4.03.0
+FROM ocaml/opam:debian-stable_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam remote add mirage-dev git://github.com/mirage/mirage-dev
 RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git

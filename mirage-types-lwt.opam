@@ -1,4 +1,5 @@
 opam-version: "1.2"
+version: "dev"
 maintainer:   ["anil@recoil.org" "thomas@gazagnaire.org"]
 authors:      ["Thomas Gazagnaire" "Anil Madhavapeddy" "Gabriel Radanne"
                "Mindy Preston" "Thomas Leonard" "Nicolas Ojeda Bar"

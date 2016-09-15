@@ -5,10 +5,9 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/ma
 script: bash ./.travis-docker.sh
 env:
   global:
-  - UPDATE_GCC_BINUTILS=1
-  - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
+  - EXTRA_REMOTES="git://github.com/mirage/mirage-dev.git"
   matrix:
-  - DISTRO="debian-stable" PACKAGE=mirage OCAML_VERSION=4.03 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
-  - DISTRO="alpine-3.4" PACKAGE=mirage-types OCAML_VERSION=4.03 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
-  - DISTRO="ubuntu-16.04" PACKAGE=mirage OCAML_VERSION=4.02 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
-  - DISTRO="fedora-24" PACKAGE=mirage-types OCAML_VERSION=4.02 PINS="dns:git://github.com/yomimono/ocaml-dns.git#standardize_record_fields functoria:git://github.com/yomimono/functoria.git#no-base-context mirage:git://github.com/yomimono/mirage.git#no-base-context"
+  - DISTRO="debian-stable" PACKAGE=mirage OCAML_VERSION=4.03
+  - DISTRO="alpine-3.4" PACKAGE=mirage-types OCAML_VERSION=4.03
+  - DISTRO="ubuntu-16.04" PACKAGE=mirage OCAML_VERSION=4.02
+  - DISTRO="fedora-24" PACKAGE=mirage-types OCAML_VERSION=4.02

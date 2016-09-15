@@ -1,0 +1,20 @@
+FROM ocaml/opam:debian-stable_ocaml-4.03.0
+RUN cd /home/opam/opam-repository && git pull origin master && opam update
+RUN opam remote add mirage-dev git://github.com/mirage/mirage-dev
+RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git
+RUN opam depext -uivy -j 2 opkg 
+RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alcotest \
+    mirage-block-xen mirage-block-unix \
+    mirage-clock-unix mirage-clock-xen \
+    mirage-console \
+    mirage-entropy-xen \
+    mirage-flow mirage-http \
+    mirage-net-unix mirage-net-xen \
+    mirage-xen mirage-unix \
+    cow cstruct crunch \
+    dns hex pcap-format vchan ctypes channel \
+    shared-memory-ring \
+    mirage-fs-unix
+RUN opam config exec -- opkg ocamldoc
+EXPOSE 8080
+ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.03.0/var/cache/opkg/ocamldoc

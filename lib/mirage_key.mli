@@ -27,16 +27,20 @@ include Functoria.KEY with module Arg := Arg
 
 (** {2 Mirage keys} *)
 
-val target: [ `Unix | `Xen | `MacOSX ] key
+val target: [ `Unix | `Xen | `MacOSX | `Virtio | `Ukvm ] key
 (** [-t TARGET]: Key setting the configuration mode for the current project.
-    Is either ["xen"], ["unix"] or ["macosx"].
+    Is one of ["xen"], ["unix"], ["macosx"], ["virtio"] or ["ukvm"].
 *)
 
-val pp_target: [ `Unix | `Xen | `MacOSX ] Fmt.t
+val pp_target: [ `Unix | `Xen | `MacOSX | `Virtio | `Ukvm ] Fmt.t
 (** Pretty printer for the mode. *)
 
 val is_xen: bool value
 (** Is true iff the {!target} keys takes the value [`Xen]. *)
+
+val is_unix: bool value
+(** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]).
+*)
 
 val no_ocaml_check: bool key
 (** [--no-ocaml-check]. Do not check the version of the compiler. *)
@@ -65,7 +69,7 @@ val tracing_size: int -> int key
 
 val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Fat ] key
 (** The type of key value store.
-    Is either ["fat"], ["archive"] or ["crunch"]. *)
+    Is one of ["fat"], ["archive"] or ["crunch"]. *)
 
 (** {3 Stack keys} *)
 

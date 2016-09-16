@@ -1,4 +1,5 @@
 language: c
+sudo: false
 services:
   - docker
 install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-docker.sh
@@ -11,3 +12,4 @@ env:
   - DISTRO="alpine-3.4" PACKAGE=mirage-types OCAML_VERSION=4.03
   - DISTRO="ubuntu-16.04" PACKAGE=mirage OCAML_VERSION=4.02
   - DISTRO="fedora-24" PACKAGE=mirage-types OCAML_VERSION=4.02
+  - DISTRO="centos-7" PACKAGE=mirage OCAML_VERSION=4.03

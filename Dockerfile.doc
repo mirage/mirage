@@ -14,7 +14,8 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     cow cstruct crunch \
     dns hex pcap-format vchan ctypes channel \
     shared-memory-ring \
-    mirage-fs-unix
+    mirage-fs-unix \
+    git git-unix mirage-git 
 RUN opam config exec -- opkg ocamldoc
 EXPOSE 8080
 ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.03.0/var/cache/opkg/ocamldoc

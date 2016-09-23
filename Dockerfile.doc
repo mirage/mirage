@@ -17,7 +17,11 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     mirage-fs-unix \
     git git-unix mirage-git  \
     core_kernel \
-    topkg-care
+    topkg-care \
+    websocket \
+    cowabloga \
+    ezxmlm \
+    vhd-format
 RUN opam config exec -- opkg ocamldoc
 RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git
 RUN opam depext -uivy -j 2 opkg 

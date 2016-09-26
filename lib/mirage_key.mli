@@ -30,13 +30,13 @@ end
 
 include Functoria.KEY with module Arg := Arg
 
-type mode = [ `Unix | `Xen | `MacOSX | `Virtio | `Ukvm ]
+type mode = [ `Unix | `Xen | `Qubes | `MacOSX | `Virtio | `Ukvm ]
 
 (** {2 Mirage keys} *)
 
 val target: mode key
 (** [-t TARGET]: Key setting the configuration mode for the current project.
-    Is one of ["xen"], ["unix"], ["macosx"], ["virtio"] or ["ukvm"].
+    Is one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"] or ["ukvm"].
 *)
 
 val pp_target: mode Fmt.t

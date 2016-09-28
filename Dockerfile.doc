@@ -17,7 +17,7 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     mirage-fs-unix \
     git git-unix mirage-git  \
     core_kernel \
-    todig-care \
+    topkg-care \
     websocket \
     cowabloga \
     ezxmlm \

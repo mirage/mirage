@@ -23,7 +23,13 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     ezxmlm \
     vhd-format \
     dockerfile \
-    qcow-format
+    qcow-format \
+    mirage-dns \
+    mirage-btrees \
+    arp \
+    charrua-core \
+    conduit \
+    irmin-watcher
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

@@ -21,7 +21,9 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     websocket \
     cowabloga \
     ezxmlm \
-    vhd-format
+    vhd-format \
+    dockerfile \
+    qcow-format
 RUN opam config exec -- opkg ocamldoc
 RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git
 RUN opam depext -uivy -j 2 opkg 

@@ -1,8 +1,8 @@
 FROM ocaml/opam:debian-stable_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam remote add mirage-dev git://github.com/mirage/mirage-dev
-RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git
-RUN opam depext -uivy -j 2 opkg 
+RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
+RUN opam depext -uivy -j 2 odig 
 RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alcotest \
     mirage-block-xen mirage-block-unix \
     mirage-clock-unix mirage-clock-xen \
@@ -17,23 +17,21 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     mirage-fs-unix \
     git git-unix mirage-git  \
     core_kernel \
-    topkg-care \
+    todig-care \
     websocket \
     cowabloga \
     ezxmlm \
     vhd-format \
     dockerfile \
     qcow-format
-RUN opam config exec -- opkg ocamldoc
-RUN opam pin add -n opkg https://github.com/dbuenzli/opkg.git
-RUN opam depext -uivy -j 2 opkg 
+RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock
 RUN opam pin add -n doc-ock-xml git://github.com/ocaml-doc/doc-ock-xml
 RUN opam pin add -n doc-ock-html git://github.com/ocaml-doc/doc-ock-html
 RUN opam pin add -n odoc git://github.com/ocaml-doc/odoc
 RUN opam depext -uivy -j 2 odoc
-RUN opam config exec -- opkg odoc
-RUN ln -s /home/opam/.opam/4.03.0/var/cache/opkg/odoc /home/opam/.opam/4.03.0/var/cache/opkg/ocamldoc/odoc
+RUN opam config exec -- odig odoc
+RUN ln -s /home/opam/.opam/4.03.0/var/cache/odig/odoc /home/opam/.opam/4.03.0/var/cache/odig/ocamldoc/odoc
 EXPOSE 8080
-ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.03.0/var/cache/opkg/ocamldoc
+ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.03.0/var/cache/odig/ocamldoc

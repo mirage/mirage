@@ -109,7 +109,7 @@ type random
 val random: random typ
 (** Implementations of the [V1.RANDOM] signature. *)
 
-val default_random: random impl
+val stdlib_random: random impl
 (** Passthrough to the OCaml Random generator. *)
 
 

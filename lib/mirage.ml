@@ -100,14 +100,18 @@ let default_monotonic_clock = impl monotonic_clock_conf
 type random = RANDOM
 let random = Type RANDOM
 
-let random_conf = object
+let stdlib_random_conf = object
   inherit base_configurable
   method ty = random
   method name = "random"
-  method module_name = "Random"
+  method module_name = "Stdlibrandom"
+  method packages = Key.pure ["mirage-stdlib-random"]
+  method libraries = Key.pure ["mirage-stdlib-random"]
+  method connect _ modname _args =
+    Printf.sprintf "Lwt.return (`Ok (%s.initialize ()))" modname
 end
 
-let default_random = impl random_conf
+let stdlib_random = impl stdlib_random_conf
 
 type console = CONSOLE
 let console = Type CONSOLE
@@ -655,7 +659,7 @@ end
 let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
-    ?(clock=default_monotonic_clock) ?(random=default_random) ?(time=default_time) ip =
+    ?(clock=default_monotonic_clock) ?(random=stdlib_random) ?(time=default_time) ip =
   tcp_direct_func () $ ip $ time $ clock $ random
 
 let tcpv4_socket_conf ipv4_key = object
@@ -729,7 +733,7 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
 
 let direct_stackv4_with_config
     ?(clock=default_monotonic_clock)
-    ?(random=default_random)
+    ?(random=stdlib_random)
     ?(time=default_time)
     ?group
     network config =

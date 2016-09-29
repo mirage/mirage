@@ -29,7 +29,10 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     arp \
     charrua-core \
     conduit \
-    irmin-watcher
+    irmin-watcher \
+    angstrom session webmachine \
+    datakit datakit-client datakit-github \
+    hvsock tlstunnel
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

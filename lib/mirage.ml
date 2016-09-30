@@ -113,6 +113,17 @@ end
 
 let stdlib_random = impl stdlib_random_conf
 
+let nocrypto_random_conf = object
+  inherit base_configurable
+  method ty = random
+  method name = "random"
+  method module_name = "Nocrypto.Rng"
+  method packages = Key.pure ["nocrypto"]
+  method libraries = Key.pure ["nocrypto"]
+end
+
+let nocrypto_random = impl nocrypto_random_conf
+
 type console = CONSOLE
 let console = Type CONSOLE
 

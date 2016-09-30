@@ -112,6 +112,9 @@ val random: random typ
 val stdlib_random: random impl
 (** Passthrough to the OCaml Random generator. *)
 
+val nocrypto_random: random impl
+(** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
+
 
 (** {2 Consoles} *)
 

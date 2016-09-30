@@ -1,0 +1,24 @@
+#!/bin/sh
+# This script is only used for developement. It is removed by the
+# distribution process.
+
+set -e
+
+OCAMLBUILD=${OCAMLBUILD:="ocamlbuild -use-ocamlfind -classic-display \
+                                     -tag debug"}
+
+action ()
+{
+    case $1 in
+        default)    topkg build ;;
+        test|tests) topkg build && topkg test ;;
+        doc)        shift; topkg doc --dev $* ;;
+        api-doc)    shift; topkg doc $* ;;
+        clean)      topkg clean ;;
+        *)          $OCAMLBUILD $* ;;
+    esac
+}
+
+if [ $# -eq 0 ];
+then action default ;
+else action $*; fi

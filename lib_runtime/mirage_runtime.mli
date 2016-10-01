@@ -16,13 +16,7 @@
 
 (** Mirage run-time utilities *)
 
-(** {1 Errors} *)
-
-val string_of_network_init_error:
-  string -> [> `Unknown of string | `Unimplemented | `Disconnected ] -> string
-(** [string_of_network_init_error ifname] will generate a helpful
-    string for network interface errors from the [ifname] interface
-    name and the error constructor. *)
+(** {1 Log thresholds} *)
 
 type log_threshold = [`All | `Src of string] * Logs.level
 (** The type for log threshold. *)

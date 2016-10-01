@@ -1,7 +1,7 @@
 all:
 	ocaml pkg/pkg.ml build --pkg-name mirage-types
-	ocaml pkg/pkg.ml build --pkg-name mirage-types-lwt
 	ocaml pkg/pkg.ml build --pkg-name mirage
 
 clean:
-	rm -rf _build
+	ocaml pkg/pkg.ml clean --pkg-name mirage-types
+	ocaml pkg/pkg.ml clean --pkg-name mirage

@@ -6,7 +6,6 @@ open Topkg
 let metas = [
   Pkg.meta_file ~install:false "pkg/META.mirage";
   Pkg.meta_file ~install:false "pkg/META.mirage-types";
-  Pkg.meta_file ~install:false "pkg/META.mirage-types-lwt";
 ]
 
 let opams =
@@ -18,10 +17,12 @@ let opams =
     Pkg.opam_file ~install ~lint_deps_excluding "mirage-types-lwt.opam";
   ]
 
+let lwt = Conf.key ~doc:"Build Mirage Lwt types" "with-lwt-types" ~absent:false Conf.bool
 let delegate = Cmd.(v "toy-github-topkg-delegate")
 
 let () =
   Pkg.describe ~delegate ~metas ~opams "mirage" @@ fun c ->
+  let lwt = Conf.value c lwt in
   match Conf.pkg_name c with
   | "mirage" ->
     Ok [ Pkg.lib "pkg/META.mirage" ~dst:"META";
@@ -31,10 +32,8 @@ let () =
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
          Pkg.lib "types/V1.mli";
-         Pkg.lib "types/V1.cmi"; ]
-  | "mirage-types-lwt" ->
-    Ok [ Pkg.lib "pkg/META.mirage-types-lwt" ~dst:"META";
-         Pkg.lib "types/V1_LWT.mli";
-         Pkg.lib "types/V1_LWT.cmi"; ]
+         Pkg.lib "types/V1.cmi";
+         Pkg.lib ~cond:lwt "types/V1_LWT.mli";
+         Pkg.lib ~cond:lwt "types/V1_LWT.cmi"; ]
   | other ->
     R.error_msgf "unknown package name: %s" other

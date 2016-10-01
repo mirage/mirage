@@ -76,10 +76,6 @@ module type S = sig
   val version: string
   (** Version of the custom DSL. *)
 
-  val driver_error: string -> string
-  (** [driver_error s] is the message given to the user when the
-      the configurable [s] doesn't initialize correctly. *)
-
   val create: job impl list -> job impl
   (** [create jobs] is the top-level job in the custom DSL which will
       execute the given list of [job]. *)

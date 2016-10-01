@@ -75,5 +75,4 @@ end
 
 (** [with_argv keys name argv] evaluates the [keys] {{!Key.term}terms}
     on the command-line [argv]. [name] is the executable name. *)
-val with_argv : unit Cmdliner.Term.t list -> string -> string array ->
-  [> `Error of string | `Ok of unit ]
+val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit

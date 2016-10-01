@@ -13,11 +13,14 @@ env:
    - PACKAGE=mirage DISTRO=debian-stable OCAML_VERSION=4.02.3
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0
    - PACKAGE=mirage DISTRO=debian-unstable OCAML_VERSION=4.03.0
-   - PACKAGE=mirage DISTRO=ubuntu-12.04 OCAML_VERSION=4.02.3
+   - PACKAGE=mirage-types DISTRO=debian-stable OCAML_VERSION=4.02.3
+   - PACKAGE=mirage-types DISTRO=debian-stable OCAML_VERSION=4.03.0
+#   - PACKAGE=mirage DISTRO=ubuntu-12.04 OCAML_VERSION=4.02.3
+# ubuntu-12.04: too old a gcc
    - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0
-   - PACKAGE=mirage DISTRO=centos-6 OCAML_VERSION=4.02.3
+#   - PACKAGE=mirage DISTRO=centos-6 OCAML_VERSION=4.02.3
+# centos-6: too old a gcc
    - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0
    - PACKAGE=mirage DISTRO=fedora-24 OCAML_VERSION=4.02.3
-   - PACKAGE=mirage DISTRO=alpine OCAML_VERSION=4.03.0
-   - PACKAGE=mirage-types DISTRO=alpine OCAML_VERSION=4.02.3
-   - PACKAGE=mirage-types DISTRO=alpine OCAML_VERSION=4.03.0
+#   - PACKAGE=mirage DISTRO=alpine OCAML_VERSION=4.03.0
+# alpine: openlibm needs refreshing to latest

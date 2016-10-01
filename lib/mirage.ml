@@ -1702,6 +1702,7 @@ module Project = struct
   let version = Mirage_version.current
   let prelude =
     "open Lwt.Infix\n\
+     let return = Lwt.return\n\
      let run = OS.Main.run"
 
   let create jobs = impl @@ object

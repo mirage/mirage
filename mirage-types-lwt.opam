@@ -1,5 +1,4 @@
 opam-version: "1.2"
-version: "dev"
 maintainer:   ["anil@recoil.org" "thomas@gazagnaire.org"]
 authors:      "The MirageOS team"
 homepage:     "https://github.com/mirage/mirage"

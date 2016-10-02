@@ -152,11 +152,9 @@ let nocrypto = impl @@ object
 
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
-      let s = match Key.(get (Info.context i) target) with
+      match Key.(get (Info.context i) target) with
         | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
         | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
-      in
-      Fmt.strf "%s >|= fun x -> `Ok x" s
 
   end
 

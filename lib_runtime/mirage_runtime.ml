@@ -14,17 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Astring
-
-let tuntap_help =
-  "If using a tap device, is tun/tap enabled and have you permissions?"
-
-let string_of_network_init_error name = function
-  | `Unknown msg -> "\n\n"^name^": "^msg^"\n"^tuntap_help^"\n\n"
-  | `Unimplemented -> "\n\n"^name^": operation unimplemented\n\n"
-  | `Disconnected -> "\n\n"^name^": disconnected\n\n"
-  | _ ->  "\n\n"^name^": unknown error\n\n"
-
 type log_threshold = [`All | `Src of string] * Logs.level
 
 let set_level ~default l =
@@ -86,7 +75,7 @@ module Arg = struct
       with Not_found -> "warning"
     in
     let parser str =
-      match String.cut ~sep:":" str with
+      match Astring.String.cut ~sep:":" str with
       | None            -> `Ok (`All    , level_of_string str)
       | Some ("*", str) -> `Ok (`All    , level_of_string str)
       | Some (src, str) -> `Ok (`Src src, level_of_string str)

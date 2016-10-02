@@ -28,10 +28,6 @@ include Functoria
 
 let get_target i = Key.(get (Info.context i) target)
 
-(** {2 Error handling} *)
-let driver_error name =
-  Printf.sprintf "fail (Failure %S)" name
-
 (** {2 Devices} *)
 
 type io_page = IO_PAGE
@@ -156,11 +152,9 @@ let nocrypto = impl @@ object
 
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
-      let s = match Key.(get (Info.context i) target) with
+      match Key.(get (Info.context i) target) with
         | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
         | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
-      in
-      Fmt.strf "%s >|= fun x -> `Ok x" s
 
   end
 
@@ -890,7 +884,7 @@ let tcp_conduit_connector = impl @@ object
     method libraries = Key.pure [ "conduit.mirage" ]
     method connect _ modname = function
       | [ stack ] ->
-        Fmt.strf "let f = %s.connect %s in@ return (`Ok f)@;" modname stack
+        Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
       | _ -> failwith "Wrong arguments to connect to tcp conduit connector."
   end
 
@@ -902,7 +896,7 @@ let tls_conduit_connector = impl @@ object
     method packages = Key.pure [ "mirage-conduit" ; "tls" ]
     method libraries = Key.pure [ "conduit.mirage" ; "tls.mirage" ]
     method deps = [ abstract nocrypto ]
-    method connect _ _ _ = "return (`Ok Conduit_mirage.with_tls)"
+    method connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
   end
 
 type conduit = Conduit
@@ -926,7 +920,7 @@ let conduit_with_connectors connectors = impl @@ object
         Fmt.strf
           "Lwt.return Conduit_mirage.empty >>=@ \
            %a\
-           fun t -> Lwt.return (`Ok t)"
+           fun t -> Lwt.return t"
           pp_connectors connectors
   end
 
@@ -953,7 +947,7 @@ let resolver_unix_system = impl @@ object
       | `Unix | `MacOSX -> [ "mirage-conduit" ]
       | `Xen | `Virtio | `Ukvm -> failwith "Resolver_unix not supported on unikernel"
     method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
-    method connect _ _modname _ = "return (`Ok Resolver_lwt_unix.system)"
+    method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
@@ -972,7 +966,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
           "let ns = %a in@;\
            let ns_port = %a in@;\
            let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
-           return (`Ok res)@;"
+           Lwt.return res@;"
           meta_ns ns
           meta_port ns_port
           modname stack
@@ -1006,7 +1000,7 @@ let argv_unix = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_unix"
     method module_name = "OS.Env"
-    method connect _ _ _ = "OS.Env.argv () >>= (fun x -> Lwt.return (`Ok x))"
+    method connect _ _ _ = "OS.Env.argv ()"
   end
 
 let argv_xen = impl @@ object
@@ -1034,7 +1028,7 @@ let no_argv = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_empty"
     method module_name = "Mirage_runtime"
-    method connect _ _ _ = "Lwt.return (`Ok [|\"\"|])"
+    method connect _ _ _ = "Lwt.return [|\"\"|]"
   end
 
 let default_argv =
@@ -1074,7 +1068,7 @@ let mirage_log ?ring_size ~default =
          let reporter = %s.create ?ring_size %s in@ \
          Mirage_runtime.set_level ~default:%a %a;@ \
          %s.set_reporter reporter;@ \
-         Lwt.return (`Ok reporter)"
+         Lwt.return reporter"
         Fmt.(Dump.option int) ring_size
         modname pclock
         pp_level default
@@ -1128,7 +1122,7 @@ let mprof_trace ~size () =
     method connect i _ _ = match Key.(get (Info.context i) target) with
       | `Unix | `MacOSX ->
         Fmt.strf
-          "return (`Ok ()))@.\
+          "Lwt.return ())@.\
            let () = (@ \
              @[<v 2>  let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
              let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
@@ -1137,7 +1131,7 @@ let mprof_trace ~size () =
           unix_trace_file;
       | `Xen | `Virtio | `Ukvm ->
         Fmt.strf
-          "return (`Ok ()))@.\
+          "Lwt.return ())@.\
            let () = (@ \
              @[<v 2>  let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
              let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
@@ -1705,9 +1699,9 @@ module Project = struct
   let name = "mirage"
   let version = Mirage_version.current
   let prelude =
-    "open Lwt\n\
+    "open Lwt.Infix\n\
+     let return = Lwt.return\n\
      let run = OS.Main.run"
-  let driver_error = driver_error
 
   let create jobs = impl @@ object
       inherit base_configurable

@@ -42,8 +42,7 @@ let sys_argv = impl @@ object
     method ty = argv
     method name = "argv"
     method module_name = "Sys"
-    method !connect _info _m _ =
-      "return (`Ok Sys.argv)"
+    method !connect _info _m _ = "return Sys.argv"
   end
 
 (* Keys *)
@@ -123,7 +122,7 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     method module_name = gen_modname
     method !libraries = Key.pure ["functoria.runtime"]
     method !packages = Key.pure ["functoria"]
-    method !connect _ modname _ = Fmt.strf "return (`Ok %s.info)" modname
+    method !connect _ modname _ = Fmt.strf "return %s.info" modname
 
     method !clean i =
       let file = Info.root i / gen_file in
@@ -243,35 +242,27 @@ module Engine = struct
   let meta_init fmt (connect_name, result_name) =
     Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
 
-  let meta_connect error fmt (connect_name, result_name) =
-    Fmt.pf fmt
-      "_%s >>= function@ \
-       | `Error _e -> %s@ \
-       | `Ok %s ->@ "
-      result_name
-      (error connect_name)
-      result_name
-
-  let emit_connect fmt (error, iname, names, connect_string) =
+  let emit_connect fmt (iname, names, connect_string) =
     (* We avoid potential collision between double application
        by prefixing with "_". This also avoid warnings. *)
-    let names = List.map (fun x -> (x, "_"^x)) names in
+    let rnames = List.map (fun x -> "_"^x) names in
+    let bind ppf name =
+      Fmt.pf ppf "_%s >>= fun %s ->@ " name name
+    in
     Fmt.pf fmt
       "@[<v 2>let %s = lazy (@ \
        %a\
        %a\
        %s@ )@]@."
       iname
-      Fmt.(list ~sep:nop meta_init) names
-      Fmt.(list ~sep:nop @@ meta_connect error) names
-      (connect_string @@ List.map snd names)
+      Fmt.(list ~sep:nop meta_init) (List.combine names rnames)
+      Fmt.(list ~sep:nop bind) rnames
+      (connect_string rnames)
 
   let emit_run init main =
     (* "exit 1" is ok in this code, since cmdliner will print help. *)
     let force ppf name =
-      Fmt.pf ppf "Lazy.force %s >>= function@ \
-                  | `Error _e -> exit 1@ \
-                  | `Ok _ ->@ " name
+      Fmt.pf ppf "Lazy.force %s >>= fun _ ->@ " name
     in
     Codegen.append_main
       "@[<v 2>\
@@ -280,7 +271,7 @@ module Engine = struct
        in run t@]"
       Fmt.(list ~sep:nop force) init main
 
-  let connect modtbl info error (init, job) =
+  let connect modtbl info (init, job) =
     let tbl = Graph.Tbl.create 17 in
     let f v = match Graph.explode job v with
       | `App _ | `If _ -> assert false
@@ -290,7 +281,7 @@ module Engine = struct
         Graph.Tbl.add tbl v ident;
         let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
         Codegen.append_main "%a"
-          emit_connect (error, ident, names, c#connect info modname)
+          emit_connect (ident, names, c#connect info modname)
     in
     Graph.fold (fun v () -> f v) job ();
     let main_name = Graph.Tbl.find tbl @@ Graph.find_root job in
@@ -300,9 +291,9 @@ module Engine = struct
     emit_run init_names main_name;
     ()
 
-  let configure_and_connect info error g =
+  let configure_and_connect info g =
     configure info g >>| fun modtbl ->
-    connect modtbl info error g
+    connect modtbl info g
 
   let clean i g =
     let f v = match Graph.explode g v with
@@ -383,7 +374,6 @@ module type S = sig
   val prelude: string
   val name: string
   val version: string
-  val driver_error: string -> string
   val create: job impl list -> job impl
 end
 
@@ -465,7 +455,7 @@ module Make (P: S) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Engine.configure_and_connect i P.driver_error jobs >>| fun () ->
+    Engine.configure_and_connect i jobs >>| fun () ->
     Codegen.newline_main ();
     ()
 

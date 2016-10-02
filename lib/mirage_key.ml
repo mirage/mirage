@@ -171,17 +171,21 @@ let kv_ro ?group () =
     Cmdliner.Arg.enum [
       "fat"    , `Fat ;
       "archive", `Archive ;
-      "crunch" , `Crunch ]
+      "crunch" , `Crunch ;
+      "direct" , `Direct
+    ]
   in
   let serialize = Fmt.of_to_string @@ function
     | `Fat     -> "`Fat"
     | `Archive -> "`Archive"
     | `Crunch  -> "`Crunch"
+    | `Direct  -> "`Direct"
   in
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"kv_ro" in
   let doc =
     Fmt.strf
-      "Use a $(i,fat), $(i,archive) or $(i,crunch) implementation for %a."
+      "Use a $(i,fat), $(i,archive), $(i,crunch) or $(i,direct) pass-through \
+       implementation for %a."
       pp_group group
   in
   create_simple ~doc ?group ~stage:`Configure ~default:`Crunch conv "kv_ro"

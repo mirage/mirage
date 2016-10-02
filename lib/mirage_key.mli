@@ -67,9 +67,9 @@ val tracing_size: int -> int key
 
     {3 File system keys} *)
 
-val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Fat ] key
+val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Direct | `Fat ] key
 (** The type of key value store.
-    Is one of ["fat"], ["archive"] or ["crunch"]. *)
+    Is one of ["archive"], ["crunch"], ["direct"], or ["fat"]. *)
 
 (** {3 Stack keys} *)
 

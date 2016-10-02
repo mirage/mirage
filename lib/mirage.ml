@@ -113,6 +113,57 @@ end
 
 let stdlib_random = impl stdlib_random_conf
 
+
+(* This is to check that entropy is a dependency if "tls" is in
+   the package array. *)
+let enable_entropy, is_entropy_enabled =
+  let r = ref false in
+  let f () = r := true in
+  let g () = !r in
+  (f, g)
+
+let check_entropy libs =
+  Cmd.OCamlfind.query ~recursive:true libs
+  >>| List.exists ((=) "nocrypto")
+  >>= fun is_needed ->
+  if is_needed && not (is_entropy_enabled ()) then
+    Log.error
+      "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
+       Please enable the entropy by adding a dependency to the nocrypto \
+       device. You can do so by adding ~deps:[abstract nocrypto] \
+       to the arguments of Mirage.foreign."
+  else R.ok ()
+
+let nocrypto = impl @@ object
+    inherit base_configurable
+    method ty = job
+    method name = "nocrypto"
+    method module_name = "Nocrypto_entropy"
+
+    method packages =
+      Key.match_ Key.(value target) @@ function
+      | `Xen ->
+        ["nocrypto"; "mirage-entropy-xen"; "zarith-xen"]
+      | `Virtio | `Ukvm ->
+        ["nocrypto"; "mirage-entropy-solo5"; "zarith-freestanding"]
+      | `Unix | `MacOSX -> ["nocrypto"]
+
+    method libraries =
+      Key.match_ Key.(value target) @@ function
+      | `Xen -> ["nocrypto.xen"]
+      | `Virtio | `Ukvm -> ["nocrypto.solo5"]
+      | `Unix | `MacOSX -> ["nocrypto.lwt"]
+
+    method configure _ = R.ok (enable_entropy ())
+    method connect i _ _ =
+      let s = match Key.(get (Info.context i) target) with
+        | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
+        | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+      in
+      Fmt.strf "%s >|= fun x -> `Ok x" s
+
+  end
+
 let nocrypto_random_conf = object
   inherit base_configurable
   method ty = random
@@ -120,6 +171,7 @@ let nocrypto_random_conf = object
   method module_name = "Nocrypto.Rng"
   method packages = Key.pure ["nocrypto"]
   method libraries = Key.pure ["nocrypto"]
+  method deps = [abstract nocrypto]
 end
 
 let nocrypto_random = impl nocrypto_random_conf
@@ -825,56 +877,6 @@ let generic_stackv4
        (direct_stackv4_with_dhcp ?group tap)
        (direct_stackv4_with_default_ipv4 ?group tap)
     )
-
-(* This is to check that entropy is a dependency if "tls" is in
-   the package array. *)
-let enable_entropy, is_entropy_enabled =
-  let r = ref false in
-  let f () = r := true in
-  let g () = !r in
-  (f, g)
-
-let check_entropy libs =
-  Cmd.OCamlfind.query ~recursive:true libs
-  >>| List.exists ((=) "nocrypto")
-  >>= fun is_needed ->
-  if is_needed && not (is_entropy_enabled ()) then
-    Log.error
-      "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
-       Please enable the entropy by adding a dependency to the nocrypto \
-       device. You can do so by adding ~deps:[abstract nocrypto] \
-       to the arguments of Mirage.foreign."
-  else R.ok ()
-
-let nocrypto = impl @@ object
-    inherit base_configurable
-    method ty = job
-    method name = "nocrypto"
-    method module_name = "Nocrypto_entropy"
-
-    method packages =
-      Key.match_ Key.(value target) @@ function
-      | `Xen ->
-        ["nocrypto"; "mirage-entropy-xen"; "zarith-xen"]
-      | `Virtio | `Ukvm ->
-        ["nocrypto"; "mirage-entropy-solo5"; "zarith-freestanding"]
-      | `Unix | `MacOSX -> ["nocrypto"]
-
-    method libraries =
-      Key.match_ Key.(value target) @@ function
-      | `Xen -> ["nocrypto.xen"]
-      | `Virtio | `Ukvm -> ["nocrypto.solo5"]
-      | `Unix | `MacOSX -> ["nocrypto.lwt"]
-
-    method configure _ = R.ok (enable_entropy ())
-    method connect i _ _ =
-      let s = match Key.(get (Info.context i) target) with
-        | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
-        | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
-      in
-      Fmt.strf "%s >|= fun x -> `Ok x" s
-
-  end
 
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector

@@ -83,7 +83,7 @@ end
 
     Operations to generate randomness. This is currently a passthrough
     to the OCaml Random generator, and will be deprecated and
-    turned into a proper DEVICE with blocking modes. *)
+    turned into a proper {!DEVICE} with blocking modes. *)
 module type RANDOM = sig
 
   val self_init: unit -> unit

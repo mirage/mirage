@@ -21,6 +21,9 @@ open V1
 module type TIME = TIME
   with type 'a io = 'a Lwt.t
 
+module type RANDOM = RANDOM
+  with type buffer = Cstruct.t
+
 module type FLOW = FLOW
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t

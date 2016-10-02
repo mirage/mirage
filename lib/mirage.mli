@@ -109,8 +109,11 @@ type random
 val random: random typ
 (** Implementations of the [V1.RANDOM] signature. *)
 
-val default_random: random impl
+val stdlib_random: random impl
 (** Passthrough to the OCaml Random generator. *)
+
+val nocrypto_random: random impl
+(** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
 
 
 (** {2 Consoles} *)

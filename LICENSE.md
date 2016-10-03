@@ -1,6 +1,3 @@
-Copyright (c) 2011-2016 Thomas Gazagnaire <thomas@gazagnaire.org>
-Copyright (c) 2011-2016 Anil Madhavapeddy <anil@recoil.org>
-
 Permission to use, copy, modify, and distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
 copyright notice and this permission notice appear in all copies.

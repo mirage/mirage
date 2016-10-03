@@ -104,7 +104,7 @@ let stdlib_random_conf = object
   method packages = Key.pure ["mirage-stdlib-random"]
   method libraries = Key.pure ["mirage-stdlib-random"]
   method connect _ modname _args =
-    Printf.sprintf "Lwt.return (`Ok (%s.initialize ()))" modname
+    Printf.sprintf "Lwt.return (%s.initialize ())" modname
 end
 
 let stdlib_random = impl stdlib_random_conf

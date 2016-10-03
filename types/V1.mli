@@ -59,10 +59,6 @@ module type DEVICE = sig
   type error
   (** The type for errors signalled by the device *)
 
-  type id
-  (** This type is no longer used and will be removed once other
-   * modules stop using it in their type signatures. *)
-
   val disconnect: t -> unit io
   (** Disconnect from the device.  While this might take some time to
       complete, it can never result in an error. *)
@@ -97,7 +93,6 @@ end
 module type PCLOCK = sig
 
   include DEVICE
-    with type id := string
 
   val now_d_ps : t -> int * int64
   (** [now_d_ps ()] is [(d, ps)] representing the POSIX time occuring
@@ -125,7 +120,6 @@ end
 module type MCLOCK = sig
 
   include DEVICE
-    with type id := string
 
   val elapsed_ns : t -> int64
   (** [elapsed_ns ()] is a monotonically increasing count of nanoseconds elapsed
@@ -383,7 +377,6 @@ module type ETHIF = sig
 
   include DEVICE with
         type error := error
-    and type id    := netif
 
   val write: t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -427,7 +420,6 @@ module type IP = sig
 
   include DEVICE with
         type error := error
-    and type id    := ethif
 
   type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
   (** An input continuation used by the parsing functions to pass on
@@ -613,7 +605,6 @@ module type UDP = sig
 
   include DEVICE with
       type error := error
-  and type id := ip
 
   type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
   (** The type for callback functions that adds the UDP metadata for
@@ -667,7 +658,6 @@ module type TCP = sig
 
   include DEVICE with
       type error := error
-  and type id := ip
 
   include FLOW with
       type error  := error
@@ -752,7 +742,6 @@ module type STACKV4 = sig
 
   include DEVICE with
     type error := error
-    and type id = (netif, mode) config
 
   module UDPV4: UDP
     with type +'a io = 'a io

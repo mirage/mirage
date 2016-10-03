@@ -1,16 +1,24 @@
-#!/bin/sh -ex
+#!/bin/sh
+# This script is only used for developement. It is removed by the
+# distribution process.
 
-WITH_LWT=`ocamlfind query lwt cstruct ipaddr io-page 2>/dev/null || echo ""`
+set -e
 
-ocamlbuild -tag bin_annot types/V1.cmi
-FILES="types/META _build/types/V1.mli _build/types/V1.cmi -optional _build/types/V1.cmti"
+OCAMLBUILD=${OCAMLBUILD:="ocamlbuild -use-ocamlfind -classic-display \
+                                     -tag debug"}
 
-if [ "$WITH_LWT" != "" ]; then
-  ocamlbuild -use-ocamlfind -pkgs lwt,io-page,cstruct,ipaddr -tag bin_annot -I types types/V1_LWT.cmi
-  FILES="${FILES} _build/types/V1_LWT.cmi _build/types/V1_LWT.mli _build/types/V1_LWT.cmti"
-fi
+action ()
+{
+    case $1 in
+        default)    topkg build ;;
+        test|tests) topkg build && topkg test ;;
+        doc)        shift; topkg doc --dev $* ;;
+        api-doc)    shift; topkg doc $* ;;
+        clean)      topkg clean ;;
+        *)          $OCAMLBUILD $* ;;
+    esac
+}
 
-if [ "$1" = "true" ]; then
-  ocamlfind remove mirage-types || true
-  ocamlfind install mirage-types ${FILES}
-fi
+if [ $# -eq 0 ];
+then action default ;
+else action $*; fi

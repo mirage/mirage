@@ -14,6 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Mirage keys.
+
+ {e Release %%VERSION%% } *)
+
 module Arg : sig
   include module type of struct include Functoria_key.Arg end
 

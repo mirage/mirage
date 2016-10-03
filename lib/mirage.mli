@@ -19,7 +19,9 @@
 
     [Mirage] devices a set of devices and combinator to to define
     portable applications across all platforms that MirageOS
-    supports. *)
+    supports.
+
+   {e Release %%VERSION%% } *)
 
 
 (** Configuration keys. *)

@@ -14,7 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Mirage run-time utilities *)
+(** Mirage run-time utilities.
+
+    {e Release %%VERSION%% } *)
 
 (** {1 Log thresholds} *)
 

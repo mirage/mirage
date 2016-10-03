@@ -1698,7 +1698,7 @@ let clean i =
 
 module Project = struct
   let name = "mirage"
-  let version = Mirage_version.current
+  let version = "%%VERSION%%"
   let prelude =
     "open Lwt.Infix\n\
      let return = Lwt.return\n\

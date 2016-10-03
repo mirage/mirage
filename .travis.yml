@@ -1,13 +1,26 @@
 language: c
-sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
-script: bash -ex .travis-ci.sh
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-docker.sh
+script: bash -ex .travis-docker.sh
+services:
+  - docker
+sudo: false
 env:
-  global:
-  - UPDATE_GCC_BINUTILS=1
-  - EXTRA_REMOTES="git://github.com/mirage/mirage-dev.git"
-  matrix:
-  - PACKAGE=mirage OCAML_VERSION=4.03
-  - PACKAGE=mirage-types OCAML_VERSION=4.03
-  - PACKAGE=mirage OCAML_VERSION=4.02
-  - PACKAGE=mirage-types OCAML_VERSION=4.02
+ global:
+   - EXTRA_REMOTES="git://github.com/mirage/mirage-dev.git"
+   - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
+   - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
+ matrix:
+   - PACKAGE=mirage DISTRO=debian-stable OCAML_VERSION=4.02.3
+   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0
+   - PACKAGE=mirage DISTRO=debian-unstable OCAML_VERSION=4.03.0
+   - PACKAGE=mirage-types DISTRO=debian-stable OCAML_VERSION=4.02.3
+   - PACKAGE=mirage-types DISTRO=debian-stable OCAML_VERSION=4.03.0
+#   - PACKAGE=mirage DISTRO=ubuntu-12.04 OCAML_VERSION=4.02.3
+# ubuntu-12.04: too old a gcc
+   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0
+#   - PACKAGE=mirage DISTRO=centos-6 OCAML_VERSION=4.02.3
+# centos-6: too old a gcc
+   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0
+   - PACKAGE=mirage DISTRO=fedora-24 OCAML_VERSION=4.02.3
+#   - PACKAGE=mirage DISTRO=alpine OCAML_VERSION=4.03.0
+# alpine: openlibm needs refreshing to latest

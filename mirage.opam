@@ -1,30 +1,23 @@
 opam-version: "1.2"
 maintainer:   ["anil@recoil.org" "thomas@gazagnaire.org"]
-authors:      [
-  "Anil Madhavapeddy" "Thomas Gazagnaire" "Dave Scott" "Richard Mortier"
-]
-homepage:     "http://http://www.openmirage.org/"
+authors:      ["Thomas Gazagnaire" "Anil Madhavapeddy" "Gabriel Radanne"
+               "Mindy Preston" "Thomas Leonard" "Nicolas Ojeda Bar"
+               "Dave Scott" "David Kaloper" "Hannes Mehnert" "Richard Mortier"]
+homepage:     "https://mirage.io/"
 bug-reports:  "https://github.com/mirage/mirage/issues/"
 dev-repo:     "https://github.com/mirage/mirage.git"
 tags:         ["org:mirage" "org:xapi-project"]
+doc:          "https://mirage.github.io/mirage/"
 
-build: [
-  ["ocaml" "setup.ml" "-configure"
-   "--prefix" prefix
-   "--bindir" bin
-  ]
-  [make]
-]
-install: [make "install"]
-remove: [
-  ["rm" "-f" "%{bin}%/mirage"]
-  ["ocamlfind" "remove" "mirage"]
-]
+build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" pinned]
+
 depends: [
-  "mirage-types-lwt"
-  "mirage-types" {>= "2.8.0"}
-  "ipaddr"       {>= "2.6.0"}
-  "functoria"    {>= "1.1.0"}
+  "ocamlbuild" {build}
+  "ocamlfind"  {build}
+  "topkg"      {build & >= "0.7.3"}
+  "mirage-types-lwt" {>= "3.0.0"}
+  "ipaddr"           {>= "2.6.0"}
+  "functoria"        {>= "1.1.0"}
   "astring"
   "logs"
 ]

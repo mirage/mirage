@@ -192,6 +192,27 @@ let kv_ro ?group () =
   in
   create_simple ~doc ?group ~stage:`Configure ~default:`Crunch conv "kv_ro"
 
+(** {3 PRNG key} *)
+let prng ?group () =
+  let conv =
+    Cmdliner.Arg.enum [
+      "stdlib"  , `Stdlib ;
+      "nocrypto", `Nocrypto ;
+      "fortuna" , `Nocrypto ;
+    ]
+  in
+  let serialize = Fmt.of_to_string @@ function
+    | `Stdlib   -> "`Stdlib"
+    | `Nocrypto -> "`Nocrypto"
+  in
+  let conv = Arg.conv ~conv ~serialize ~runtime_conv:"prng" in
+  let doc =
+    Fmt.strf
+      "Use a $(i,stdlib) or $(i,nocrypto) PRNG implementation for %a."
+      pp_group group
+  in
+  create_simple ~doc ?group ~stage:`Configure ~default:`Stdlib conv "prng"
+
 (** {3 Stack keys} *)
 
 let dhcp ?group () =

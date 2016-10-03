@@ -117,6 +117,12 @@ val stdlib_random: random impl
 val nocrypto_random: random impl
 (** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
 
+val default_random: random impl
+(** Default PRNG device to be used in unikernels.  It defaults to {!stdlib}, but
+    users can override using the {!Key.prng} command line argument.
+*)
+
+
 
 (** {2 Consoles} *)
 

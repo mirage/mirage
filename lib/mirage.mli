@@ -205,7 +205,7 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 (** {2 Generic key/value stores} *)
 
 val generic_kv_ro :
-  ?key:[ `Archive | `Crunch | `Fat ] value -> string -> kv_ro impl
+  ?key:[ `Archive | `Crunch | `Direct | `Fat ] value -> string -> kv_ro impl
 (** Generic key/value that will choose dynamically between
     {!fat}, {!archive} and {!crunch}.  To use a filesystem implementation,
     try {!kv_ro_of_fs}.

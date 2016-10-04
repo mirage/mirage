@@ -34,7 +34,6 @@
 * require `pseudoheader` function for IP module types. (#541, by @yomimono)
 * always build with `ocamlbuild -r`, to avoid repetitive failure message
   (#537, by @talex5)
-* Switch to topkg
 
 ### 2.9.1 (2016-07-20)
 

@@ -87,8 +87,11 @@ module type RANDOM = sig
   type buffer
   (** The type for memory buffer. *)
 
-  val generate: int -> buffer
-  (** [generate n] is a buffer of length [n] filled with random. *)
+  type g
+  (** The state of the generator. *)
+
+  val generate: ?g:g -> int -> buffer
+  (** [generate ~g n] generates a random buffer of length [n] using [g]. *)
 end
 
 (** {1 POSIX clock}

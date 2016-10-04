@@ -1,7 +1,7 @@
 ### 3.0.0 (2016-soon!)
 
 * remove type `id` from `DEVICE` module type. (#612, by @yomimono and @talex5)
-* add to `RANDOM` a `generator` type, making it interoperable with `Nocrypto.Rng`. (#610, by @hannesm)
+* revise the RANDOM signature to provide n random bytes; provide nocrypto_random and stdlib_random (#551 and #610, by @hannesm)
 * expose `direct` as an option for `kv_ro`.  (#607, by @mor1)
 * require a `mem` function in KV_RO, and add `Failure` error variant (#606, by @yomimono)
 * `connect` functions are no longer expected to return polyvars, but rather to raise exceptions if `connect` fails and return the value directly. (#602, by @hannesm)

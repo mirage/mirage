@@ -1,5 +1,13 @@
 ### 3.0.0 (2016-soon!)
 
+* remove type `id` from `DEVICE` module type. (#612, by @yomimono and @talex5)
+* add to `RANDOM` a `generator` type, making it interoperable with `Nocrypto.Rng`. (#610, by @hannesm)
+* expose `direct` as an option for `kv_ro`.  (#607, by @mor1)
+* require a `mem` function in KV_RO, and add `Failure` error variant (#606, by @yomimono)
+* `connect` functions are no longer expected to return polyvars, but rather to raise exceptions if `connect` fails and return the value directly. (#602, by @hannesm)
+* new documentation using `odig` (#591, #593, #594, #597, #598, #599, and #600 by @avsm)
+* change build system to `topkg` from `oasis`. (#558 and #590, by @avsm and @samoht)
+* express io-page dependency of crunch. (#585, by @yomimono and @mato)
 * deprecate the CLOCK module type in favor of PCLOCK (POSIX clock) and
   MCLOCK (a monotonically increasing counter of elapsed nanoseconds).
   (#548 and #579, by @mattgray and @yomimono)

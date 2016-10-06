@@ -2,7 +2,6 @@ true: warn(+A-4-6-7-9-40-42-44-48)
 true: strict_sequence, safe_string, short_paths, principal
 true: debug, annot, bin_annot
 
-<lib>        : include
 <lib_runtime>: include
 
 # Better locations and loc in .mlis
@@ -16,4 +15,9 @@ true: keep_locs
 <lib_runtime/*>: package(functoria.runtime)
 <lib_runtime/*>: dontlink(unix)
 
+<types/V1.*>: package(result)
 <types/V1_LWT.*>: package(cstruct), package(io-page), package(lwt), package(ipaddr)
+
+<types>: include
+
+<types/runtime/*>: package(result)

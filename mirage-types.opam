@@ -14,6 +14,7 @@ depends:   [
   "ocamlbuild" {build}
   "ocamlfind"  {build}
   "topkg"      {build & >= "0.7.3"}
+  "result"
 ]
 depopts: [ "lwt" "cstruct" "ipaddr" "io-page" ]
 conflicts: [

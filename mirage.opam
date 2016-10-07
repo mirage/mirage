@@ -9,7 +9,7 @@ dev-repo:     "https://github.com/mirage/mirage.git"
 tags:         ["org:mirage" "org:xapi-project"]
 doc:          "https://mirage.github.io/mirage/"
 
-build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" pinned]
+build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%"]
 
 depends: [
   "ocamlbuild" {build}

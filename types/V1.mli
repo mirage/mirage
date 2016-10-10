@@ -136,6 +136,16 @@ module type MCLOCK = sig
    * nanosecond period [ns], if known *)
 end
 
+module Flow : sig
+  type error = [
+    | `Msg of string
+  ]
+  type write_error = [
+    | `Closed
+    | `Msg of string
+  ]
+end
+
 (** {1 Connection between endpoints} *)
 module type FLOW = sig
 
@@ -149,14 +159,7 @@ module type FLOW = sig
   (** The type for flows. A flow represents the state of a single
       stream that is connected to an endpoint. *)
 
-  type error
-  (** The type for errors. *)
-
-  val error_message: error -> string
-  (** Convert an error to a human-readable message, suitable for
-      logging. *)
-
-  val read: flow -> [`Ok of buffer | `Eof | `Error of error ] io
+  val read: flow -> ([`Data of buffer | `Eof ], Flow.error) result io
   (** [read flow] blocks until some data is available and returns a
       fresh buffer containing it.
 
@@ -169,20 +172,22 @@ module type FLOW = sig
       called [close] and when there is no more in-flight data.
    *)
 
-  val write: flow -> buffer -> [`Ok of unit | `Eof | `Error of error ] io
+  val write: flow -> buffer -> (unit, Flow.write_error) result io
   (** [write flow buffer] writes a buffer to the flow. There is no
       indication when the buffer has actually been read and, therefore,
       it must not be reused.  The contents may be transmitted in
       separate packets, depending on the underlying transport. The
-      result [`Ok ()] indicates success, [`Eof] indicates that the
-      connection is now closed and [`Error] indicates some other error. *)
+      result [Ok ()] indicates success, [Error `Closed] indicates that the
+      connection is now closed and therefore the data could not be
+      written.  Other errors are possible. *)
 
-  val writev: flow -> buffer list -> [`Ok of unit | `Eof | `Error of error ] io
+  val writev: flow -> buffer list -> (unit, Flow.write_error) result io
   (** [writev flow buffers] writes a sequence of buffers to the flow.
       There is no indication when the buffers have actually been read and,
-      therefore, they must not be reused. The result [`Ok ()] indicates
-      success, [`Eof] indicates that the connection is now closed and
-      [`Error] indicates some other error. *)
+      therefore, they must not be reused. The
+      result [Ok ()] indicates success, [Error `Closed] indicates that the
+      connection is now closed and therefore the data could not be
+      written.  Other errors are possible. *)
 
   val close: flow -> unit io
   (** [close flow] flushes all pending writes and signals the remote
@@ -219,8 +224,7 @@ module type CONSOLE = sig
     type error := error
 
   include FLOW with
-      type error  := error
-  and type 'a io  := 'a io
+    type 'a io  := 'a io
   and type flow   := t
 
   val log: t -> string -> unit io
@@ -363,11 +367,49 @@ module type NETWORK = sig
       defaults. *)
 end
 
+module Ethif : sig
+  type error = [
+    | `Msg of string     (** an undiagnosed error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Disconnected      (** the device has been previously disconnected *)
+  ]
+end
+module Ip : sig
+  type error = [
+    | `Msg of string     (** an undiagnosed error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Disconnected      (** the device has been previously disconnected *)
+  ]
+end
+
+module Icmp : sig
+  type error = [
+    | `Msg of string
+    | `Routing of string
+  ]
+end
+
+module Udp : sig
+  type error = [
+    | `Msg of string     (** an undiagnosed error *)
+  ]
+end
+
+module Tcp : sig
+  type error = [
+    | `Msg of string     (** an undiagnosed error *)
+    | `Timeout
+    | `Refused
+  ]
+end
+
 (** {1 Ethernet stack}
 
     An Ethernet stack that parses frames from a network device and
     can associate them with IP address via ARP. *)
 module type ETHIF = sig
+
+  open Ethif
 
   type buffer
   (** The type for memory buffers. *)
@@ -375,23 +417,16 @@ module type ETHIF = sig
   type netif
   (** The type for ethernet network interfaces. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors. *)
-
   type macaddr
   (** The type for unique MAC identifiers. *)
 
   include DEVICE with
-        type error := error
+    type error := error
 
-  val write: t -> buffer -> unit io
+  val write: t -> buffer -> (unit, error) result io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
 
-  val writev: t -> buffer list -> unit io
+  val writev: t -> buffer list -> (unit, error) result io
   (** [writev nf bufs] output a list of buffers to netfront [nf] as a
       single packet. *)
 
@@ -410,6 +445,8 @@ end
     An IP stack that parses Ethernet frames into IP packets *)
 module type IP = sig
 
+  open Ip
+
   type buffer
     (** The type for memory buffers. *)
 
@@ -421,12 +458,6 @@ module type IP = sig
 
   type prefix
   (** The type for IP prefixes. *)
-
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-  ]
-  (** The type for IO operation errors. *)
 
   include DEVICE with
         type error := error
@@ -455,11 +486,11 @@ module type IP = sig
       packet going to [dst] for protocol [proto].  The space in [pkt] after the
       first [len] bytes can be used by the client. *)
 
-  val write: t -> buffer -> buffer -> unit io
+  val write: t -> buffer -> buffer -> (unit, error) result io
   (** [write t frame buf] writes the packet [frame :: buf :: []] to
       the address [dst]. *)
 
-  val writev: t -> buffer -> buffer list -> unit io
+  val writev: t -> buffer -> buffer list -> (unit, error) result io
   (** [writev t frame bufs] writes the packet [frame :: bufs]. *)
 
   val checksum: buffer -> buffer list -> int
@@ -558,18 +589,16 @@ end
 
 (** {1 ICMP module} *)
 module type ICMP = sig
-  include DEVICE
+  type error = Icmp.error
+  include DEVICE with type error := error
 
   type ipaddr
   type buffer
 
-  val pp_error : Format.formatter -> error -> unit
-  (** pretty-print an error. *)
-
   val input : t -> src:ipaddr -> dst:ipaddr -> buffer -> unit io
 (** [input t src dst buffer] reacts to the ICMP message in [buffer]. *)
 
-  val write : t -> dst:ipaddr -> buffer -> unit io
+  val write : t -> dst:ipaddr -> buffer -> (unit, error) result io
 (** [write t dst buffer] sends the ICMP message in [buffer] to [dst] over IP. *)
 end
 
@@ -597,10 +626,7 @@ module type UDP = sig
       conventional kernel, but a direct implementation will parse the
       buffer. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-  ]
-  (** The type for IO operation errors. *)
+  type error = Udp.error
 
   include DEVICE with
       type error := error
@@ -616,7 +642,7 @@ module type UDP = sig
       return a concrete handler or a [None], which results in the
       datagram being dropped. *)
 
-  val write: ?src_port:int -> dst:ipaddr -> dst_port:int -> t -> buffer -> unit io
+  val write: ?src_port:int -> dst:ipaddr -> dst_port:int -> t -> buffer -> (unit, error) result io
   (** [write ~src_port ~dst ~dst_port udp data] is a thread
       that writes [data] from an optional [src_port] to a [dst]
       and [dst_port] IPv4 address pair. *)
@@ -648,19 +674,13 @@ module type TCP = sig
   (** A flow represents the state of a single TCPv4 stream that is connected
       to an endpoint. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error. *)
-    | `Timeout  (** connection attempt did not get a valid response. *)
-    | `Refused  (** connection attempt was actively refused via an RST. *)
-  ]
-  (** The type for IO operation errors. *)
+  type error = Tcp.error
 
   include DEVICE with
       type error := error
 
   include FLOW with
-      type error  := error
-  and type 'a io  := 'a io
+      type 'a io  := 'a io
   and type buffer := buffer
   and type flow   := flow
 
@@ -672,7 +692,7 @@ module type TCP = sig
   (** Get the destination IPv4 address and destination port that a
       flow is currently connected to. *)
 
-  val write_nodelay: flow -> buffer -> unit io
+  val write_nodelay: flow -> buffer -> (unit, Flow.write_error) result io
   (** [write_nodelay flow buffer] writes the contents of [buffer]
       to the flow. The thread blocks until all data has been successfully
       transmitted to the remote endpoint.
@@ -680,7 +700,7 @@ module type TCP = sig
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
-  val writev_nodelay: flow -> buffer list -> unit io
+  val writev_nodelay: flow -> buffer list -> (unit, Flow.write_error) result io
   (** [writev_nodelay flow buffers] writes the contents of [buffers]
       to the flow. The thread blocks until all data has been successfully
       transmitted to the remote endpoint.
@@ -688,8 +708,7 @@ module type TCP = sig
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
-  val create_connection: t -> ipaddr * int ->
-    [ `Ok of flow | `Error of error ] io
+  val create_connection: t -> ipaddr * int -> (flow, error) result io
   (** [create_connection t (addr,port)] opens a TCPv4 connection
       to the specified endpoint. *)
 

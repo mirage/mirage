@@ -332,9 +332,9 @@ module type NETWORK = sig
 
   val listen: t -> (buffer -> unit io) -> unit io
   (** [listen nf fn] is a blocking operation that calls [fn buf] with
-      every packet that is read from the interface.  It returns as
-      soon as it has initialised, and the function can be stopped by
-      calling [disconnect] in the device layer. *)
+      every packet that is read from the interface.
+      The function can be stopped by calling [disconnect]
+      in the device layer. *)
 
   val mac: t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
@@ -392,10 +392,10 @@ module type ETHIF = sig
   (** [mac nf] is the MAC address of [nf]. *)
 
   val input: arpv4:(buffer -> unit io) -> ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
-  (** {b FIXME} [listen nf fn] is a blocking operation that calls [fn
-      buf] with every packet that is read from the interface.  It
-      returns as soon as it has initialised, and the function can be
-      stopped by calling [disconnect] in the device layer. *)
+  (** [listen nf fn] is a blocking operation that calls [fn buf]
+      with every packet that is read from the interface.
+      The function can be stopped by calling [disconnect]
+      in the device layer. *)
 end
 
 (** {1 IP stack}

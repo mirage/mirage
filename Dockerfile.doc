@@ -1,6 +1,6 @@
 FROM ocaml/opam:debian-stable_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
-RUN opam remote add mirage-dev git://github.com/mirage/mirage-dev
+RUN opam remote add mirage-dev https://github.com/mirage/mirage-dev.git
 RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
 RUN opam depext -uivy -j 2 odig 
 RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alcotest \
@@ -15,7 +15,7 @@ RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alco
     dns hex pcap-format vchan ctypes channel \
     shared-memory-ring \
     mirage-fs-unix \
-    git git-unix mirage-git  \
+    git git-unix git-mirage  \
     core_kernel \
     topkg-care \
     websocket \

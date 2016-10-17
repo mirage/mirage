@@ -237,7 +237,7 @@ let crunch dirname = impl @@ object
 
     method configure i =
       if not (Cmd.exists "ocaml-crunch") then
-        Log.error "ocaml-crunch not found, stopping."
+        Log.error "Couldn't find the ocaml-crunch binary.  Please install the opam package crunch."
       else begin
         let dir = Info.root i / dirname in
         let file = Info.root i / (name ^ ".ml") in

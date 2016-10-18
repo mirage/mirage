@@ -237,7 +237,7 @@ let crunch dirname = impl @@ object
 
     method configure i =
       if not (Cmd.exists "ocaml-crunch") then
-        Log.error "ocaml-crunch not found, stopping."
+        Log.error "Couldn't find the ocaml-crunch binary.  Please install the opam package crunch."
       else begin
         let dir = Info.root i / dirname in
         let file = Info.root i / (name ^ ".ml") in
@@ -1489,13 +1489,15 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     (match target with
       `Unix | `MacOSX -> "unix" | `Xen -> "xen" | `Virtio | `Ukvm -> "solo5" );
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
-  append fmt "LD?=ld";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind -tags $(TAGS) $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
               export PKG_CONFIG_PATH=$(shell opam config var prefix)\
               /lib/pkgconfig\n\n\
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";
+  (match target with
+   | `Virtio | `Ukvm -> append fmt "LD=$(shell pkg-config solo5-kernel-virtio --variable=ld)"
+   | _ -> ());
   newline fmt;
   let pkg_config_deps =
     match target with

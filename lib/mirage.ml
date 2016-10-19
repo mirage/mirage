@@ -1496,20 +1496,17 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     (match target with
       `Unix | `MacOSX -> "unix" | `Xen -> "xen" | `Virtio | `Ukvm -> "solo5" );
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
-  append fmt "LD?=ld";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind -tags $(TAGS) $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";
   let ld = match target with
-   | `Ukvm -> Printf.sprintf "LD?=%s"
-                  (pkg_config "solo5-kernel-ukvm" "--variable=ld")
-   | `Virtio -> Printf.sprintf "LD?=%s"
-                    (pkg_config "solo5-kernel-virtio" "--variable=ld")
-   | `Xen -> "LD?=ld"
-   | `MacOSX | `Unix -> ""
+   | `Ukvm -> pkg_config "solo5-kernel-ukvm" "--variable=ld"
+   | `Virtio -> pkg_config "solo5-kernel-virtio" "--variable=ld"
+   | `Xen | `MacOSX | `Unix -> "ld"
   in
-  append fmt "%s" ld;
+  newline fmt;
+  append fmt "LD=%s" ld;
   newline fmt;
   let pkg_config_deps =
     match target with

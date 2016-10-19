@@ -1480,11 +1480,9 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     | `Xen ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
-      append fmt "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Virtio | `Ukvm ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
-      append fmt "XENLIB = $(shell ocamlfind query mirage-solo5)\n"
     | `Unix ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"

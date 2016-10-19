@@ -1382,6 +1382,13 @@ let rec expand_name ~lib param =
     | None              -> prefix ^ lib / name
     | Some (name, rest) -> prefix ^ lib / name / expand_name ~lib rest
 
+(* Invoke pkg-config and return output if successful. *)
+let pkg_config pkgs args =
+  match Cmd.read "PKG_CONFIG_PATH=$(opam config var lib)/pkgconfig \
+    pkg-config %s %s" pkgs args with
+  | Ok s -> String.trim s
+  | Error e -> failwith e
+
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)
 let get_extra_ld_flags target pkgs =
@@ -1473,11 +1480,9 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     | `Xen ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
-      append fmt "XENLIB = $(shell ocamlfind query mirage-xen)\n"
     | `Virtio | `Ukvm ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
-      append fmt "XENLIB = $(shell ocamlfind query mirage-solo5)\n"
     | `Unix ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
@@ -1489,13 +1494,17 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     (match target with
       `Unix | `MacOSX -> "unix" | `Xen -> "xen" | `Virtio | `Ukvm -> "solo5" );
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
-  append fmt "LD?=ld";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind -tags $(TAGS) $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
-              export PKG_CONFIG_PATH=$(shell opam config var prefix)\
-              /lib/pkgconfig\n\n\
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";
+  let ld = match target with
+   | `Ukvm -> pkg_config "solo5-kernel-ukvm" "--variable=ld"
+   | `Virtio -> pkg_config "solo5-kernel-virtio" "--variable=ld"
+   | `Xen | `MacOSX | `Unix -> "ld"
+  in
+  newline fmt;
+  append fmt "LD=%s" ld;
   newline fmt;
   let pkg_config_deps =
     match target with
@@ -1508,10 +1517,11 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     let archives = S.elements (S.of_list archives) in
     let extra_c_archives = String.concat ~sep:" \\\n\t  " archives in
     append fmt "EXTRA_LD_FLAGS = %s\n" extra_c_archives;
-    append fmt "EXTRA_LD_FLAGS += $$(pkg-config --static --libs %s)\n" pkg_config_deps
+    append fmt "EXTRA_LD_FLAGS += %s\n"
+               (pkg_config pkg_config_deps "--static --libs")
   in
   let pre_ld_flags x =
-    append fmt "PRE_LD_FLAGS = $$(pkg-config --variable=ldflags %s)\n" x
+    append fmt "PRE_LD_FLAGS = %s\n" (pkg_config x "--variable=ldflags")
   in
   begin match target with
     | `Xen ->
@@ -1569,7 +1579,6 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   begin match target with
     | `Xen ->
       append fmt "build:: main.native.o";
-      append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append fmt "\t$(LD) -d -static -nostdlib \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\
@@ -1582,7 +1591,6 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       R.ok ()
     | `Virtio ->
       append fmt "build:: main.native.o";
-      append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\
@@ -1604,11 +1612,11 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       in
       append fmt "UKVM_MODULES=%s" ukvm_mods;
       append fmt "Makefile.ukvm:";
-      append fmt "\t ukvm-configure $$(pkg-config --variable=libdir solo5-kernel-ukvm)/src/ukvm $(UKVM_MODULES)";
+      append fmt "\t ukvm-configure %s/src/ukvm $(UKVM_MODULES)"
+                 (pkg_config "solo5-kernel-ukvm" "--variable=libdir");
       newline fmt;
       append fmt "include Makefile.ukvm";
       append fmt "build:: main.native.o ukvm-bin";
-      append fmt "\tpkg-config --print-errors --exists %s" pkg_config_deps;
       append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\

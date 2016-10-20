@@ -1732,7 +1732,7 @@ module Project = struct
         | `Unix | `MacOSX -> "mirage-unix" :: l
 
       method libraries =
-        let l = [ "mirage.runtime"; "mirage-types.lwt" ] in
+        let l = [ "mirage.runtime"; "mirage-types"; "mirage-types.lwt" ] in
         Key.match_ Key.(value target) @@ function
         | `Xen -> "mirage-xen" :: l
         | `Virtio | `Ukvm -> "mirage-solo5" :: l

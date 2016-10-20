@@ -1,9 +1,14 @@
-version = "%%VERSION%%"
+version = "%%VERSION_NUM%%"
 description = "Collection of module signatures for MirageOS"
-exists_if = "V1.cmi"
-requires = ""
+requires = "result"
+archive(byte) = "mirage-types.cma"
+archive(native) = "mirage-types.cmxa"
+plugin(byte) = "mirage-types.cma"
+plugin(native) = "mirage-types.cmxs"
+exists_if = "mirage-types.cma"
+
 package "lwt" (
-  version = "%%VERSION%%"
+  version = "%%VERSION_NUM%%"
   requires = ""
   description = "Lwt module signatures for MirageOS"
   exists_if = "V1_LWT.cmi"

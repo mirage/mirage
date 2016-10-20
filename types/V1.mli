@@ -16,6 +16,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Result
+
 (** MirageOS Signatures.
 
     This module defines the basic signatures that functor parameters
@@ -56,6 +58,7 @@ module type DEVICE = sig
   type t
   (** The type representing the internal state of the device *)
 
+  (* XXX: no good reason to have it here anymore! *)
   type error
   (** The type for errors signalled by the device *)
 
@@ -299,17 +302,9 @@ module type BLOCK = sig
 
 end
 
-(** {1 Network stack}
+(** {1 Network stack} *)
 
-    A network interface that serves Ethernet frames. *)
-module type NETWORK = sig
-
-  type page_aligned_buffer
-  (** The type for page-aligned memory buffers. *)
-
-  type buffer
-  (** The type for memory buffers. *)
-
+module Network : sig
   type error = [
     | `Unknown of string (** an undiagnosed error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
@@ -317,27 +312,7 @@ module type NETWORK = sig
   ]
   (** The type for IO operation errors *)
 
-  type macaddr
-  (** The type for unique MAC identifiers for the device. *)
-
-  include DEVICE with
-    type error := error
-
-  val write: t -> buffer -> unit io
-  (** [write nf buf] outputs [buf] to netfront [nf]. *)
-
-  val writev: t -> buffer list -> unit io
-  (** [writev nf bufs] output a list of buffers to netfront [nf] as a
-      single packet. *)
-
-  val listen: t -> (buffer -> unit io) -> unit io
-  (** [listen nf fn] is a blocking operation that calls [fn buf] with
-      every packet that is read from the interface.
-      The function can be stopped by calling [disconnect]
-      in the device layer. *)
-
-  val mac: t -> macaddr
-  (** [mac nf] is the MAC address of [nf]. *)
+  (* XXX: here we'd like to have a printer!  but maybe more convenient in a V1_PP.mli+ml? *)
 
   type stats = {
     mutable rx_bytes: int64;
@@ -347,6 +322,40 @@ module type NETWORK = sig
   }
   (** The type for frame statistics to track the usage of the
       device. *)
+end
+
+(** A network interface that serves Ethernet frames. *)
+module type NETWORK = sig
+  open Network
+
+  type page_aligned_buffer
+  (** The type for page-aligned memory buffers. *)
+
+  type buffer
+  (** The type for memory buffers. *)
+
+  type macaddr
+  (** The type for unique MAC identifiers for the device. *)
+
+  include DEVICE with
+    type error := error
+
+  val write: t -> buffer -> (unit, error) result io
+  (** [write nf buf] outputs [buf] to netfront [nf]. *)
+
+  val writev: t -> buffer list -> (unit, error) result io
+  (** [writev nf bufs] output a list of buffers to netfront [nf] as a
+      single packet. *)
+
+  (* XXX: listen currently runs forever (documentation wrong)! *)
+  val listen: t -> (buffer -> unit io) -> (unit, error) result io
+  (** [listen nf fn] is a blocking operation that calls [fn buf] with
+      every packet that is read from the interface.
+      The function can be stopped by calling [disconnect]
+      in the device layer. *)
+
+  val mac: t -> macaddr
+  (** [mac nf] is the MAC address of [nf]. *)
 
   val get_stats_counters: t -> stats
   (** Obtain the most recent snapshot of the device statistics. *)

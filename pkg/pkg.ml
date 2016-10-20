@@ -33,7 +33,10 @@ let () =
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
          Pkg.lib "types/V1.mli";
          Pkg.lib "types/V1.cmi";
+         Pkg.lib "types/V1.cmti";
+         Pkg.mllib "types/mirage-types.mllib";
          Pkg.lib ~cond:lwt "types/V1_LWT.mli";
-         Pkg.lib ~cond:lwt "types/V1_LWT.cmi"; ]
+         Pkg.lib ~cond:lwt "types/V1_LWT.cmi";
+         Pkg.lib ~cond:lwt "types/V1_LWT.cmti"; ]
   | other ->
     R.error_msgf "unknown package name: %s" other

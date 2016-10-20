@@ -15,7 +15,6 @@ depends: [
   "ocamlbuild" {build}
   "ocamlfind"  {build}
   "topkg"      {build & >= "0.7.3"}
-  "mirage-types-lwt" {>= "3.0.0"}
   "ipaddr"           {>= "2.6.0"}
   "functoria"        {>= "1.1.0"}
   "astring"

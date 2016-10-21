@@ -306,7 +306,7 @@ end
 
 module Network : sig
   type error = [
-    | `Unknown of string (** an undiagnosed error *)
+    | `Msg of string     (** an unspecified error *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]

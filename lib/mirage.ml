@@ -1010,7 +1010,7 @@ let argv_xen = impl @@ object
     method name = "argv_xen"
     method module_name = "Bootvar"
     method packages = Key.pure [ "mirage-bootvar-xen" ]
-    method libraries = Key.pure [ "mirage-bootvar" ]
+    method libraries = Key.pure [ "mirage-bootvar-xen" ]
     method connect _ _ _ = "Bootvar.argv ()"
   end
 

@@ -1473,7 +1473,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   append fmt "PKGS   = %s" packages;
   let default_tags =
     (if warn_error then "warn_error(+1..49)," else "") ^
-    "warn(A-4-41-44),debug,bin_annot,\
+    "warn(A-4-41-42-44),debug,bin_annot,\
      strict_sequence,principal,safe_string"
   in
   begin match target with

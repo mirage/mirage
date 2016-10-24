@@ -3,38 +3,75 @@ RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam remote add mirage-dev https://github.com/mirage/mirage-dev.git
 RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
 RUN opam depext -uivy -j 2 odig 
-RUN opam depext -uivj 3 mirage tcpip tls cohttp lwt irmin ipaddr uri github alcotest \
-    mirage-block-xen mirage-block-unix \
-    mirage-clock-unix mirage-clock-xen \
-    mirage-console \
-    mirage-entropy-xen \
-    mirage-flow mirage-http \
-    mirage-net-unix mirage-net-xen \
-    mirage-xen mirage-unix \
-    cow cstruct crunch \
-    dns hex pcap-format vchan ctypes ctypes-foreign \
-    channel \
-    shared-memory-ring \
-    mirage-fs-unix \
-    git git-unix git-mirage  \
-    core_kernel \
-    topkg-care \
-    websocket \
-    cowabloga \
-    ezxmlm \
-    vhd-format \
-    dockerfile \
-    qcow-format \
-    mirage-dns \
-    mirage-btrees \
-    arp \
-    charrua-core \
-    conduit \
-    irmin-watcher \
-    angstrom session webmachine \
-    datakit datakit-client datakit-github \
-    hvsock tlstunnel xenctrl xen-gnt xen-evtchn \
-    parse-argv magic-mime mirage-vnetif
+RUN opam depext -uivj 3 \
+  alcotest \
+  angstrom \
+  arp \
+  channel \
+  charrua-core \
+  cohttp \
+  conduit \
+  core_kernel \
+  cow \
+  cowabloga \
+  crunch \
+  cstruct \
+  ctypes \
+  ctypes-foreign \
+  datakit \
+  datakit-client \
+  datakit-github \
+  dns \
+  dockerfile \
+  ezxmlm \
+  git \
+  git-mirage \
+  git-unix \
+  github \
+  hex \
+  hvsock \
+  ipaddr \
+  irmin \
+  irmin-watcher \
+  lwt \
+  magic-mime \
+  merlin \
+  mirage \
+  mirage-block-unix \
+  mirage-block-xen \
+  mirage-btrees \
+  mirage-clock-unix \
+  mirage-clock-xen \
+  mirage-console \
+  mirage-dns \
+  mirage-entropy-xen \
+  mirage-flow \
+  mirage-fs-unix \
+  mirage-http \
+  mirage-net-unix \
+  mirage-net-xen \
+  mirage-unix \
+  mirage-vnetif \
+  mirage-xen \
+  parse-argv \
+  pcap-format \
+  ppx_expect \
+  qcow-format \
+  session \
+  shared-memory-ring \
+  tcpip \
+  tls \
+  tlstunnel \
+  topkg-care \
+  tyxml-ppx \
+  uri \
+  vchan \
+  vhd-format \
+  webmachine \
+  websocket \
+  xen-evtchn \
+  xen-gnt \
+  xenctrl
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

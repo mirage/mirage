@@ -7,17 +7,18 @@ true: debug, annot, bin_annot
 # Better locations and loc in .mlis
 true: keep_locs
 
-<{lib,lib_runtime}/*>: package(ipaddr), package(logs), package(astring)
+<{lib,lib_runtime}/*>: package(ipaddr logs astring)
 
-<lib/*>: package(functoria), package(functoria.app)
+<lib/*>: package(functoria functoria.app)
 
 # Force the runtime to be unix-independent.
 <lib_runtime/*>: package(functoria.runtime)
 <lib_runtime/*>: dontlink(unix)
 
 <types/V1.*>: package(result)
-<types/V1_LWT.*>: package(cstruct), package(io-page), package(lwt), package(ipaddr)
+<types/V1_LWT.*>: package(cstruct io-page lwt ipaddr)
 
 <types>: include
 
 <types/runtime/*>: package(result)
+<types/runtime/*>: dontlink(unix)

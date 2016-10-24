@@ -44,6 +44,8 @@ module Arg = struct
   let builtin d mn m = of_module (from_run d) mn m
 
   let ipv4 = builtin "ipv4" "Ipaddr.V4" (module Ipaddr.V4)
+  let ipv4_prefix =
+    builtin "ipv4_prefix" "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
   let ipv6 = builtin "ipv6" "Ipaddr.V6" (module Ipaddr.V6)
   let ipv6_prefix =
     builtin "ipv6_prefix" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
@@ -211,23 +213,26 @@ let net ?group (): [`Socket | `Direct] Key.key =
 
 (** {3 Network keys} *)
 
-let network ?group default =
+let interface ?group default =
   let doc = Fmt.strf "The network interface listened by %a." pp_group group in
-  create_simple ~doc ~default ?group Arg.string "network"
+  create_simple ~doc ~default ?group Arg.string "interface"
 
 module V4 = struct
+  let default_address = Ipaddr.V4.of_string_exn "10.0.0.2"
+  let default_network = Ipaddr.V4.Prefix.make 24 default_address
+  let default_gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1")
 
-  let ip ?group default =
+  let ip ?group () =
     let doc = Fmt.strf "The ip address of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.ipv4 "ip"
+    create_simple ~doc ~default:default_address ?group Arg.ipv4 "ip"
 
-  let netmask ?group default =
-    let doc = Fmt.strf "The netmask of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.ipv4 "netmask"
+  let network ?group () =
+    let doc = Fmt.strf "The network of %a specified as an IP address and netmask, e.g. 192.168.0.0/16 ." pp_group group in
+    create_simple ~doc ~default:default_network ?group Arg.ipv4_prefix "network"
 
-  let gateways ?group default =
-    let doc = Fmt.strf "The gateways of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(list ipv4) "gateways"
+  let gateway ?group () =
+    let doc = Fmt.strf "The gateway of %a." pp_group group in
+    create_simple ~doc ~default:default_gateway ?group Arg.(some ipv4) "gateway"
 
   let socket ?group default =
     let doc =
@@ -245,13 +250,13 @@ end
 
 module V6 = struct
 
-  let ip ?group default =
-    let doc = Fmt.strf "The ip address of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.ipv6 "ip"
+  let ips ?group default =
+    let doc = Fmt.strf "The ip addresses of %a." pp_group group in
+    create_simple ~doc ~default ?group Arg.(list ipv6) "ips"
 
-  let netmask ?group default =
+  let netmasks ?group default =
     let doc = Fmt.strf "The netmasks of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(list ipv6_prefix) "netmask"
+    create_simple ~doc ~default ?group Arg.(list ipv6_prefix) "netmasks"
 
   let gateways ?group default =
     let doc = Fmt.strf "The gateways of %a." pp_group group in

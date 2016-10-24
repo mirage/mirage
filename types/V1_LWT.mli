@@ -69,7 +69,7 @@ module type IPV4 = IPV4
   with type 'a io = 'a Lwt.t
    and type buffer = Cstruct.t
    and type ipaddr = Ipaddr.V4.t
-   and type prefix = Ipaddr.V4.t (* FIXME: Use Ipaddr.V4.Prefix.t *)
+   and type prefix = Ipaddr.V4.Prefix.t
    and type uipaddr = Ipaddr.t
 
 (** IPv6 stack *)
@@ -143,23 +143,31 @@ module type FS = FS
   with type 'a io = 'a Lwt.t
    and type page_aligned_buffer = Cstruct.t
 
+(** Configuration *)
+
 type socket_stack_config =
   Ipaddr.V4.t list
 
-type direct_stack_config = [
-    `DHCP
-  | `IPv4 of Ipaddr.V4.t * Ipaddr.V4.t * Ipaddr.V4.t list
-]
+type ipv4_config = {
+  address : Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
+  gateway : Ipaddr.V4.t option;
+}
 
-type ('netif, 'mode) stackv4_config = {
+type ipv6_config = {
+  address : Ipaddr.V6.t list;
+  netmasks : Ipaddr.V6.Prefix.t list;
+  gateways : Ipaddr.V6.t list;
+}
+
+type 'netif stackv4_config = {
   name: string;
   interface: 'netif;
-  mode: 'mode;
 }
 
 (** Single network stack *)
 module type STACKV4 = STACKV4
   with type 'a io = 'a Lwt.t
-   and type ('a,'b) config = ('a,'b) stackv4_config
+   and type 'a config = 'a stackv4_config
    and type ipv4addr = Ipaddr.V4.t
    and type buffer = Cstruct.t

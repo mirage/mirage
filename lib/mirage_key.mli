@@ -22,6 +22,7 @@ module Arg : sig
   include module type of struct include Functoria_key.Arg end
 
   val ipv4 : Ipaddr.V4.t converter
+  val ipv4_prefix : Ipaddr.V4.Prefix.t converter
   val ipv6 : Ipaddr.V6.t converter
   val ipv6_prefix : Ipaddr.V6.Prefix.t converter
 
@@ -85,21 +86,21 @@ val net : ?group:string -> unit -> [ `Direct | `Socket ] key
 
 (** {3 Network keys} *)
 
-val network : ?group:string -> string -> string key
+val interface : ?group:string -> string -> string key
 (** A network interface. *)
 
 (** Ipv4 keys. *)
 module V4 : sig
   open Ipaddr.V4
 
-  val ip : ?group:string -> t -> t key
+  val ip : ?group:string -> unit -> t key
   (** An ip address. *)
 
-  val netmask : ?group:string -> t -> t key
-  (** A netmask. *)
+  val network : ?group:string -> unit -> Prefix.t key
+  (** A network defined by an address and netmask. *)
 
-  val gateways : ?group:string -> t list -> t list key
-  (** A list of gateways. *)
+  val gateway : ?group:string -> unit -> t option key
+  (** A default gateway option. *)
 
   val socket : ?group:string -> t option -> t option key
   (** An address bound by a socket. Will be none if no address is provided. *)
@@ -113,10 +114,10 @@ end
 module V6 : sig
   open Ipaddr.V6
 
-  val ip : ?group:string -> t -> t key
+  val ips : ?group:string -> t list -> t list key
   (** An ip address. *)
 
-  val netmask : ?group:string -> Prefix.t list -> Prefix.t list key
+  val netmasks : ?group:string -> Prefix.t list -> Prefix.t list key
   (** A list of netmasks. *)
 
   val gateways : ?group:string -> t list -> t list key

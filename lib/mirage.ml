@@ -146,23 +146,18 @@ let nocrypto = impl @@ object
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen ->
-        ["nocrypto"; "mirage-entropy-xen"; "zarith-xen"]
-      | `Virtio | `Ukvm ->
-        ["nocrypto"; "mirage-entropy-solo5"; "zarith-freestanding"]
+      | `Xen            -> ["nocrypto"; "zarith-xen"]
+      | `Virtio | `Ukvm -> ["nocrypto"; "zarith-freestanding"]
       | `Unix | `MacOSX -> ["nocrypto"]
 
     method libraries =
-      Key.match_ Key.(value target) @@ function
-      | `Xen -> ["nocrypto.xen"]
-      | `Virtio | `Ukvm -> ["nocrypto.solo5"]
-      | `Unix | `MacOSX -> ["nocrypto.lwt"]
+      Key.(if_ is_unix) ["nocrypto.lwt"] ["nocrypto.mirage"]
 
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
       match Key.(get (Info.context i) target) with
-        | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
-        | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+      | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
+      | `Unix | `MacOSX        -> "Nocrypto_entropy_lwt.initialize ()"
 
   end
 

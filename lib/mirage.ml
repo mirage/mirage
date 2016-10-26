@@ -28,6 +28,14 @@ include Functoria
 
 let get_target i = Key.(get (Info.context i) target)
 
+(** {2 OCamlfind predicates} *)
+
+(* Mirage implementation backing the target. *)
+let backend_predicate = function
+  | `Xen            -> "mirage_xen"
+  | `Virtio | `Ukvm -> "mirage_solo5"
+  | `Unix | `MacOSX -> "mirage_unix"
+
 (** {2 Devices} *)
 
 type io_page = IO_PAGE
@@ -1490,11 +1498,9 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       append fmt "SYNTAX = -tags \"thread,%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
   end;
-  append fmt "TAGS = \"predicate(%s)\""
-    (match target with
-      `Unix | `MacOSX -> "unix" | `Xen -> "xen" | `Virtio | `Ukvm -> "solo5" );
+  append fmt "TARGET = -tags \"predicate(%s)\"" (backend_predicate target);
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
-  append fmt "BUILD  = ocamlbuild -use-ocamlfind -tags $(TAGS) $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append fmt "BUILD  = ocamlbuild -use-ocamlfind $(TARGET) $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";

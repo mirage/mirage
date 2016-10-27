@@ -28,6 +28,14 @@ include Functoria
 
 let get_target i = Key.(get (Info.context i) target)
 
+(** {2 OCamlfind predicates} *)
+
+(* Mirage implementation backing the target. *)
+let backend_predicate = function
+  | `Xen            -> "mirage_xen"
+  | `Virtio | `Ukvm -> "mirage_solo5"
+  | `Unix | `MacOSX -> "mirage_unix"
+
 (** {2 Devices} *)
 
 type io_page = IO_PAGE
@@ -138,23 +146,18 @@ let nocrypto = impl @@ object
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen ->
-        ["nocrypto"; "mirage-entropy-xen"; "zarith-xen"]
-      | `Virtio | `Ukvm ->
-        ["nocrypto"; "mirage-entropy-solo5"; "zarith-freestanding"]
+      | `Xen            -> ["nocrypto"; "zarith-xen"]
+      | `Virtio | `Ukvm -> ["nocrypto"; "zarith-freestanding"]
       | `Unix | `MacOSX -> ["nocrypto"]
 
     method libraries =
-      Key.match_ Key.(value target) @@ function
-      | `Xen -> ["nocrypto.xen"]
-      | `Virtio | `Ukvm -> ["nocrypto.solo5"]
-      | `Unix | `MacOSX -> ["nocrypto.lwt"]
+      Key.(if_ is_unix) ["nocrypto.lwt"] ["nocrypto.mirage"]
 
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
       match Key.(get (Info.context i) target) with
-        | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
-        | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+      | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
+      | `Unix | `MacOSX        -> "Nocrypto_entropy_lwt.initialize ()"
 
   end
 
@@ -1490,11 +1493,9 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       append fmt "SYNTAX = -tags \"thread,%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
   end;
-  append fmt "TAGS = \"predicate(%s)\""
-    (match target with
-      `Unix | `MacOSX -> "unix" | `Xen -> "xen" | `Virtio | `Ukvm -> "solo5" );
+  append fmt "TARGET = -tags \"predicate(%s)\"" (backend_predicate target);
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
-  append fmt "BUILD  = ocamlbuild -use-ocamlfind -tags $(TAGS) $(LIBS) $(SYNTAX) $(FLAGS)\n\
+  append fmt "BUILD  = ocamlbuild -use-ocamlfind $(TARGET) $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPAM   = opam\n\n\
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";

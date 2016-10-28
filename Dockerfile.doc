@@ -44,7 +44,7 @@ RUN opam depext -uivj 3 \
   mirage-clock-xen \
   mirage-console \
   mirage-dns \
-  mirage-entropy-xen \
+  mirage-entropy \
   mirage-flow \
   mirage-fs-unix \
   mirage-http \

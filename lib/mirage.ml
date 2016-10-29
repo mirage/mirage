@@ -1684,10 +1684,13 @@ let configure i =
   check_entropy @@ Info.libraries i >>= fun () ->
   Log.info "%a %a" Log.blue "Configuring for target:" Key.pp_target target ;
   Cmd.in_dir root (fun () ->
-      configure_main_xl ".xl" i;
-      configure_main_xl ~substitutions:[] ".xl.in" i;
-      configure_main_xe ~root ~name;
-      configure_main_libvirt_xml ~root ~name;
+      (match target with
+       | `Xen ->
+         configure_main_xl ".xl" i;
+         configure_main_xl ~substitutions:[] ".xl.in" i;
+         configure_main_xe ~root ~name;
+         configure_main_libvirt_xml ~root ~name
+       | _ -> ()) ;
       configure_myocamlbuild_ml ~root;
       configure_makefile ~target ~root ~name ~warn_error i;
     )

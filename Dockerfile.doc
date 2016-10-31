@@ -59,6 +59,7 @@ RUN opam depext -uivj 3 \
   qcow-format \
   session \
   shared-memory-ring \
+  syslog-message \
   tcpip \
   tls \
   tlstunnel \

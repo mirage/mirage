@@ -55,6 +55,7 @@ RUN opam depext -uivj 3 \
   mirage-vnetif \
   mirage-xen \
   parse-argv \
+  pbkdf \
   pcap-format \
   ppx_expect \
   qcow-format \

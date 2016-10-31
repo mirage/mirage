@@ -9,6 +9,7 @@ RUN opam depext -uivj 3 \
   arp \
   channel \
   charrua-core \
+  charrua-unix \
   cohttp \
   conduit \
   core_kernel \

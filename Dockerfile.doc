@@ -31,15 +31,18 @@ RUN opam depext -uivj 3 \
   git-unix \
   github \
   hex \
+  hkdf \
   hvsock \
   ipaddr \
   irmin \
   irmin-watcher \
   jenga \
+  logs-syslog \
   lwt \
   magic-mime \
   merlin \
   mirage \
+  mirage-block-ccm \
   mirage-block-unix \
   mirage-block-xen \
   mirage-btrees \
@@ -51,18 +54,22 @@ RUN opam depext -uivj 3 \
   mirage-flow \
   mirage-fs-unix \
   mirage-http \
+  mirage-logs \
   mirage-net-unix \
   mirage-net-xen \
   mirage-os-shim \
+  mirage-stdlib-random \
   mirage-unix \
   mirage-vnetif \
   mirage-xen \
   ocb-stubblr \
+  otr \
   parse-argv \
   pbkdf \
   pcap-format \
   ppx_expect \
   qcow-format \
+  scrypt-kdf \
   session \
   shared-memory-ring \
   syslog-message \

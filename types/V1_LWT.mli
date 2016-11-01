@@ -165,6 +165,13 @@ type 'netif stackv4_config = {
   interface: 'netif;
 }
 
+(** {1 DHCP client}
+ *  A client which engages in lease transactions. *)
+module type DHCP_CLIENT = sig
+  type t = ipv4_config Lwt_stream.t
+end
+
+
 (** Single network stack *)
 module type STACKV4 = STACKV4
   with type 'a io = 'a Lwt.t

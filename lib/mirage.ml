@@ -486,6 +486,9 @@ let network_conf (intf : string Key.key) =
 let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
 let tap0 = netif "tap0"
 
+type dhcp = Dhcp_client
+let dhcp = Type Dhcp_client
+
 type ethernet = ETHERNET
 let ethernet = Type ETHERNET
 
@@ -535,12 +538,6 @@ let ip = Type IP
 let ipv4: ipv4 typ = ip
 let ipv6: ipv6 typ = ip
 
-let pp_triple ?(sep=Fmt.cut) ppx ppy ppz fmt (x,y,z) =
-  ppx fmt x ; sep fmt () ; ppy fmt y ; sep fmt () ; ppz fmt z
-
-let meta_triple ppx ppy ppz =
-  Fmt.parens @@ pp_triple ~sep:(Fmt.unit ",@ ") ppx ppy ppz
-
 let meta_ipv4 ppf s =
   Fmt.pf ppf "(Ipaddr.V4.of_string_exn %S)" (Ipaddr.V4.to_string s)
 
@@ -558,11 +555,11 @@ let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
 
-let ipv4_conf ?address ?network ?gateway () = impl @@ object
+let ipv4_keyed_conf ?address ?network ?gateway () = impl @@ object
     inherit base_configurable
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
-    method module_name = "Ipv4.Make"
+    method module_name = "Static_ipv4.Make"
     method packages = Key.pure ["tcpip"]
     method libraries = Key.pure ["tcpip.ipv4"]
     method keys = address @?? network @?? gateway @?? []
@@ -578,12 +575,47 @@ let ipv4_conf ?address ?network ?gateway () = impl @@ object
       | _ -> failwith "The ipv4 connect should receive exactly two arguments."
   end
 
+let dhcp_conf = impl @@ object
+  inherit base_configurable
+  method ty = time @-> network @-> dhcp
+  method name = "dhcp"
+  method module_name = "Dhcp_client_mirage.Make"
+  method packages = Key.pure [ "charrua-client" ]
+  method libraries = Key.pure [ "charrua-client.mirage" ]
+  method connect _ modname = function
+  | [ _time; network ] ->
+    Fmt.strf
+      "%s.connect %s "
+      modname network
+  | _ -> failwith "The dhcp_config connect should receive exactly two arguments."
+end
+
+let ipv4_dhcp_conf = impl @@ object
+    inherit base_configurable
+    method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
+    method name = Name.create "ipv4" ~prefix:"ipv4"
+    method module_name = "Dhcp_ipv4.Make"
+    method packages = Key.pure ["tcpip"]
+    method libraries = Key.pure ["tcpip.ipv4"]
+    method connect _ modname = function
+          | [ dhcp ; ethernet ; arp ] ->
+        Fmt.strf
+          "%s.connect@[@ %s@ %s@ %s@]"
+          modname
+          dhcp ethernet arp
+      | _ -> failwith "The ipv4 connect should receive exactly three arguments."
+  end
+
+
+let dhcp time net = dhcp_conf $ time $ net
+let ipv4_of_dhcp dhcp ethif arp = ipv4_dhcp_conf $ dhcp $ ethif $ arp
+
 let create_ipv4
-    ?group net etif arp =
+    ?group _net etif arp =
   let address = Key.V4.ip ?group () in
   let network = Key.V4.network ?group () in
   let gateway = Key.V4.gateway ?group () in
-  ipv4_conf ~address ~network ~gateway () $ etif $ arp
+  ipv4_keyed_conf ~address ~network ~gateway () $ etif $ arp
 
 type ipv6_config = {
   addresses: Ipaddr.V6.t list;
@@ -825,10 +857,23 @@ let generic_stackv4
     let i = create_ipv4 tap e a in
     direct_stackv4 ?group tap e a i
   in
+  let dhcp_stack () =
+    let time = default_time in
+    let config = dhcp time tap in
+    let e = etif tap in
+    let (a : arpv4 impl) = arp e in
+    let i = ipv4_of_dhcp config e a in
+    direct_stackv4 ?group tap e a i
+  in
+  let pick_direct_stack () =
+    if_impl Key.(pure ((=) true) $ dhcp_key)
+    (dhcp_stack ())
+    (directify ())
+  in
   if_impl
     Key.(pure ((=) `Socket) $ net_key)
     (socket_stackv4 ?group [Ipaddr.V4.any])
-    (directify ())
+    (pick_direct_stack ())
 
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector

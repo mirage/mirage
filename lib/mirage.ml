@@ -595,8 +595,8 @@ let ipv4_dhcp_conf = impl @@ object
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method packages = Key.pure ["tcpip"]
-    method libraries = Key.pure ["tcpip.ipv4"]
+    method packages = Key.pure ["charrua-client"]
+    method libraries = Key.pure ["charrua-client.mirage"]
     method connect _ modname = function
           | [ dhcp ; ethernet ; arp ] ->
         Fmt.strf

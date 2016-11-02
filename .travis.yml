@@ -9,3 +9,4 @@ env:
   - PINS="mirage-skeleton.dev:https://github.com/mirage/mirage-skeleton.git#mirage-dev"
   matrix:
   - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.02
+  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.03

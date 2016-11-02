@@ -6,7 +6,7 @@ services:
 sudo: false
 env:
  global:
-   - EXTRA_REMOTES="git://github.com/mirage/mirage-dev.git"
+   - EXTRA_REMOTES="git://github.com/yomimono/mirage-dev.git#normalize-ipv4"
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
  matrix:

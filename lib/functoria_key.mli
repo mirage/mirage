@@ -174,10 +174,6 @@ type t
 module Set: sig
   include Set.S with type elt = t
 
-  val of_list: elt list -> t
-  (** [of_list l] is the set of keys [l]. Added for compatibility with
-      OCaml 4.01. *)
-
   val pp: elt Fmt.t -> t Fmt.t
   (** [pp] pretty-prints sets of keys. *)
 

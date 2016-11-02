@@ -32,15 +32,6 @@ module type Monoid = sig
   val union: t -> t -> t
 end
 
-module Set: sig
-  (** Compat with OCaml < 4.02 *)
-  module type S = sig
-    include Set.S
-    val of_list: elt list -> t
-  end
-  module Make (M:Set.OrderedType): S with type elt = M.t
-end
-
 (** {2 String utilities} *)
 
 module String: sig

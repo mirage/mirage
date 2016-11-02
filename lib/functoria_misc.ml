@@ -29,20 +29,6 @@ module type Monoid = sig
   val union: t -> t -> t
 end
 
-module Set = struct
-  (* Compat with OCaml < 4.02 *)
-  module type S = sig
-    include Set.S
-    val of_list: elt list -> t
-  end
-  module Make (M: Set.OrderedType) = struct
-    module M = Set.Make(M)
-    let of_list l = List.fold_left (fun s x -> M.add x s) M.empty l
-    let _ = of_list (* quiet warning 32 on 4.02 *)
-    include M
-  end
-end
-
 (* {String manipulation} *)
 
 module String = struct

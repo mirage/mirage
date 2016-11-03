@@ -283,18 +283,12 @@ type ipv6_config = {
 }
 (** Types for IP manual configuration. *)
 
-val keyed_ipv4:
-  ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
-(** Use an IPv4 address.
-    Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
-*)
-
 val create_ipv4 : ?group:string ->
-  ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
-(** Use an IPv4 address, given a specific config.
+  ?config:ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
+(** Use an IPv4 address
     Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
     If provided, the values of these keys will override those supplied
-    in the ipv4 configuration record.
+    in the ipv4 configuration record, ifthat has been provided.
 *)
 
 val create_ipv6:
@@ -373,7 +367,7 @@ val socket_stackv4:
     [group] argument) to create it.
 *)
 val generic_stackv4 :
-  ?group:string ->
+  ?group:string -> ?config:ipv4_config ->
   ?dhcp_key:bool value ->
   ?net_key:[ `Direct | `Socket ] value ->
   network impl -> stackv4 impl

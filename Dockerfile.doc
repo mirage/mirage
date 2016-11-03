@@ -18,9 +18,9 @@ RUN opam depext -uivj 3 \
   cstruct \
   ctypes \
   ctypes-foreign \
-  datakit \
   datakit-client \
   datakit-github \
+  datakit-ci \
   dns \
   dockerfile \
   ezxmlm \
@@ -30,6 +30,7 @@ RUN opam depext -uivj 3 \
   github \
   hex \
   hvsock \
+  integers \
   ipaddr \
   irmin \
   irmin-watcher \
@@ -53,15 +54,21 @@ RUN opam depext -uivj 3 \
   mirage-unix \
   mirage-vnetif \
   mirage-xen \
+  obytelib \
+  ocamlclean \
+  opam-file-format \
   parse-argv \
   pcap-format \
   ppx_expect \
   qcow-format \
+  re \
+  scrypt-kdf \
   session \
   shared-memory-ring \
   tcpip \
   tls \
   tlstunnel \
+  tyre \
   topkg-care \
   tyxml-ppx \
   uri \
@@ -71,7 +78,8 @@ RUN opam depext -uivj 3 \
   websocket \
   xen-evtchn \
   xen-gnt \
-  xenctrl
+  xenctrl \
+  yojson
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

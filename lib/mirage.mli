@@ -229,7 +229,7 @@ val tap0: network impl
 (** The '/dev/tap0' interface. *)
 
 val netif: ?group:string -> string -> network impl
-(** A custom network interface. Exposes a {!Key.network} key. *)
+(** A custom network interface. Exposes a {!Key.interface} key. *)
 
 
 
@@ -269,37 +269,33 @@ val ipv4: ipv4 typ
 val ipv6: ipv6 typ
 (** The [V1.IPV6] module signature. *)
 
-type ('ipaddr, 'prefix) ip_config = {
-  address: 'ipaddr;
-  netmask: 'prefix;
-  gateways: 'ipaddr list;
+type ipv4_config = {
+  address : Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
+  gateway : Ipaddr.V4.t option;
+}
+(** Types for IPv4 manual configuration. *)
+
+type ipv6_config = {
+  addresses : Ipaddr.V6.t list;
+  netmasks : Ipaddr.V6.Prefix.t list;
+  gateways : Ipaddr.V6.t list;
 }
 (** Types for IP manual configuration. *)
 
-type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
-(** Types for IPv4 manual configuration. *)
-
-val create_ipv4:
-  ?clock:mclock impl -> ?time:time impl ->
-  ?group:string -> network impl -> ipv4_config -> ipv4 impl
-(** Use an IPv4 address.
-    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}.
+val create_ipv4 : ?group:string ->
+  ?config:ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
+(** Use an IPv4 address
+    Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
+    If provided, the values of these keys will override those supplied
+    in the ipv4 configuration record, ifthat has been provided.
 *)
-
-val default_ipv4: ?group:string -> network impl -> ipv4 impl
-(** Default local IP listening on the given network interfaces:
-    - address: 10.0.0.2
-    - netmask: 255.255.255.0
-    - gateways: [10.0.0.1] *)
-
-type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
-(** Types for IPv6 manual configuration. *)
 
 val create_ipv6:
   ?time:time impl -> ?clock:mclock impl ->
-  ?group:string -> network impl -> ipv6_config -> ipv6 impl
+  ?group:string -> ethernet impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address.
-    Exposes the keys {!Key.V6.ip}, {!Key.V6.netmask} and {!Key.V6.gateways}.
+    Exposes the keys {!Key.V6.ips}, {!Key.V6.netmasks} and {!Key.V6.gateways}.
 *)
 
 
@@ -349,31 +345,13 @@ type stackv4
 val stackv4: stackv4 typ
 (** Implementation of the [V1.STACKV4] signature. *)
 
-(** Same as {!direct_stackv4_with_static_ipv4} with the default given by
-    {!default_ipv4}. *)
-val direct_stackv4_with_default_ipv4:
+(** Direct network stack with given ip. *)
+val direct_stackv4:
   ?clock:mclock impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
-  network impl -> stackv4 impl
-
-(** Direct network stack with ip.
-    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}. *)
-val direct_stackv4_with_static_ipv4:
-  ?clock:mclock impl ->
-  ?random:random impl ->
-  ?time:time impl ->
-  ?group:string ->
-  network impl -> ipv4_config -> stackv4 impl
-
-(** Direct network stack using dhcp. *)
-val direct_stackv4_with_dhcp:
-  ?clock:mclock impl ->
-  ?random:random impl ->
-  ?time:time impl ->
-  ?group:string ->
-  network impl -> stackv4 impl
+  network impl -> ethernet impl -> arpv4 impl -> ipv4 impl -> stackv4 impl
 
 (** Network stack with sockets. Exposes the key {Key.interfaces}. *)
 val socket_stackv4:
@@ -388,7 +366,7 @@ val socket_stackv4:
     [group] argument) to create it.
 *)
 val generic_stackv4 :
-  ?group:string ->
+  ?group:string -> ?config:ipv4_config ->
   ?dhcp_key:bool value ->
   ?net_key:[ `Direct | `Socket ] value ->
   network impl -> stackv4 impl

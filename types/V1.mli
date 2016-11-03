@@ -476,7 +476,8 @@ module type IP = sig
 
   val src: t -> dst:ipaddr -> ipaddr
   (** [src ip ~dst] is the source address to be used to send a
-      packet to [dst]. *)
+      packet to [dst].  In the case of IPv4, this will always return
+      the same IP, which is the only one set. *)
 
   val set_ip: t -> ipaddr -> unit io
   (** Set the IP address associated with this interface.  For IPv4,
@@ -484,21 +485,9 @@ module type IP = sig
       be added in a future revision. *)
 
   val get_ip: t -> ipaddr list
-  (** Get the IP addresses associated with this interface. *)
-
-  val set_ip_netmask: t -> prefix -> unit io
-  (** Set an IP netmask associated with this interface.  For IPv4,
-      currently only supports a single IPv4 netmask, and aliases will
-      be added in a future revision. *)
-
-  val get_ip_netmasks: t -> prefix list
-  (** Get the IP netmasks associated with this interface. *)
-
-  val set_ip_gateways: t -> ipaddr list -> unit io
-  (** Set an IP gateways associated with this interface. *)
-
-  val get_ip_gateways: t -> ipaddr list
-  (** Get the IP gateways associated with this interface. *)
+  (** Get the IP addresses associated with this interface. For IPv4, only
+   *  one IP address can be set at a time, so the list will always be of
+   *  length 1 (and may be the default value, 0.0.0.0). *)
 
   type uipaddr
   (** The type for universal IP addresses. It supports all the
@@ -723,12 +712,7 @@ module type STACKV4 = sig
   (** The type for network interface that is used to transmit and
       receive traffic associated with this stack. *)
 
-  type mode
-  (** The type for configuration modes associated with this interface.
-      These can consist of the IPv4 address binding, or a DHCP
-      interface. *)
-
-  type ('netif, 'mode) config
+  type 'netif config
   (** The type for the collection of user configuration specified to
       construct a stack. *)
 

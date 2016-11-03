@@ -483,8 +483,11 @@ let network_conf (intf : string Key.key) =
 
   end
 
-let netif ?group dev = impl (network_conf @@ Key.network ?group dev)
+let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
 let tap0 = netif "tap0"
+
+type dhcp = Dhcp_client
+let dhcp = Type Dhcp_client
 
 type ethernet = ETHERNET
 let ethernet = Type ETHERNET
@@ -525,12 +528,6 @@ let arp_func = impl arpv4_conf
 let arp ?(clock = default_monotonic_clock) ?(time = default_time) (eth : ethernet impl) =
   arp_func $ eth $ clock $ time
 
-type ('ipaddr, 'prefix) ip_config = {
-  address: 'ipaddr;
-  netmask: 'prefix;
-  gateways: 'ipaddr list;
-}
-
 type v4
 type v6
 type 'a ip = IP
@@ -541,80 +538,115 @@ let ip = Type IP
 let ipv4: ipv4 typ = ip
 let ipv6: ipv6 typ = ip
 
-let pp_triple ?(sep=Fmt.cut) ppx ppy ppz fmt (x,y,z) =
-  ppx fmt x ; sep fmt () ; ppy fmt y ; sep fmt () ; ppz fmt z
-
-let meta_triple ppx ppy ppz =
-  Fmt.parens @@ pp_triple ~sep:(Fmt.unit ",@ ") ppx ppy ppz
-
 let meta_ipv4 ppf s =
   Fmt.pf ppf "(Ipaddr.V4.of_string_exn %S)" (Ipaddr.V4.to_string s)
 
-type ipv4_config = (Ipaddr.V4.t, Ipaddr.V4.t) ip_config
+type ipv4_config = {
+  address : Ipaddr.V4.t;
+  network : Ipaddr.V4.Prefix.t;
+  gateway : Ipaddr.V4.t option;
+}
+(** Types for IPv4 manual configuration. *)
+
 
 let pp_key fmt k = Key.serialize_call fmt (Key.abstract k)
-let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s)) pp_key)
+let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
 
-let ipv4_conf ?address ?netmask ?gateways () = impl @@ object
+let ipv4_keyed_conf ?address ?network ?gateway () = impl @@ object
     inherit base_configurable
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
-    method module_name = "Ipv4.Make"
+    method module_name = "Static_ipv4.Make"
     method packages = Key.pure ["tcpip"]
     method libraries = Key.pure ["tcpip.ipv4"]
-    method keys = address @?? netmask @?? gateways @?? []
+    method keys = address @?? network @?? gateway @?? []
     method connect _ modname = function
       | [ etif ; arp ] ->
         Fmt.strf
           "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
           (opt_key "ip") address
-          (opt_key "netmask") netmask
-          (opt_key "gateways") gateways
+          (opt_key "network") network
+          (opt_key "gateway") gateway
           etif arp
       | _ -> failwith "The ipv4 connect should receive exactly two arguments."
   end
 
-let create_ipv4
-    ?(clock = default_monotonic_clock) ?(time = default_time)
-    ?group net { address ; netmask ; gateways } =
-  let etif = etif net in
-  let arp = arp ~clock ~time etif in
-  let address = Key.V4.ip ?group address in
-  let netmask = Key.V4.netmask ?group netmask in
-  let gateways = Key.V4.gateways ?group gateways in
-  ipv4_conf ~address ~netmask ~gateways () $ etif $ arp
+let dhcp_conf = impl @@ object
+  inherit base_configurable
+  method ty = time @-> network @-> dhcp
+  method name = "dhcp"
+  method module_name = "Dhcp_client_mirage.Make"
+  method packages = Key.pure [ "charrua-client" ]
+  method libraries = Key.pure [ "charrua-client.mirage" ]
+  method connect _ modname = function
+  | [ _time; network ] ->
+    Fmt.strf
+      "%s.connect %s "
+      modname network
+  | _ -> failwith "The dhcp_config connect should receive exactly two arguments."
+end
 
-let default_ipv4_conf =
-  let i = Ipaddr.V4.of_string_exn in
-  {
-    address  = i "10.0.0.2";
-    netmask  = i "255.255.255.0";
-    gateways = [i "10.0.0.1"];
-  }
+let ipv4_dhcp_conf = impl @@ object
+    inherit base_configurable
+    method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
+    method name = Name.create "ipv4" ~prefix:"ipv4"
+    method module_name = "Dhcp_ipv4.Make"
+    method packages = Key.pure ["charrua-client"]
+    method libraries = Key.pure ["charrua-client.mirage"]
+    method connect _ modname = function
+          | [ dhcp ; ethernet ; arp ] ->
+        Fmt.strf
+          "%s.connect@[@ %s@ %s@ %s@]"
+          modname
+          dhcp ethernet arp
+      | _ -> failwith "The ipv4 connect should receive exactly three arguments."
+  end
 
-let default_ipv4 ?group net = create_ipv4 ?group net default_ipv4_conf
 
-type ipv6_config = (Ipaddr.V6.t, Ipaddr.V6.Prefix.t list) ip_config
+let dhcp time net = dhcp_conf $ time $ net
+let ipv4_of_dhcp dhcp ethif arp = ipv4_dhcp_conf $ dhcp $ ethif $ arp
 
-let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
+let create_ipv4 ?group ?config etif arp =
+  let config = match config with
+  | None ->
+    let default_address = Ipaddr.V4.of_string_exn "10.0.0.2" in
+    { address = default_address;
+      network = Ipaddr.V4.Prefix.make 24 default_address;
+      gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1");
+    }
+  | Some config -> config
+  in
+  let address = Key.V4.ip ?group config.address in
+  let network = Key.V4.network ?group config.network in
+  let gateway = Key.V4.gateway ?group config.gateway in
+  ipv4_keyed_conf ~address ~network ~gateway () $ etif $ arp
+
+type ipv6_config = {
+  addresses: Ipaddr.V6.t list;
+  netmasks: Ipaddr.V6.Prefix.t list;
+  gateways: Ipaddr.V6.t list;
+}
+(** Types for IP manual configuration. *)
+
+let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     inherit base_configurable
     method ty = ethernet @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
     method packages = Key.pure ["tcpip"]
     method libraries = Key.pure ["tcpip.ipv6"]
-    method keys = address @?? netmask @?? gateways @?? []
+    method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; _time ; _clock ] ->
         Fmt.strf
           "%s.connect@[@ %a@ %a@ %a@ %s@@]"
           modname
-          (opt_key "ip") address
-          (opt_key "netmask") netmask
+          (opt_key "ip") addresses
+          (opt_key "netmask") netmasks
           (opt_key "gateways") gateways
           etif
       | _ -> failwith "The ipv6 connect should receive exactly three arguments."
@@ -623,12 +655,11 @@ let ipv6_conf ?address ?netmask ?gateways () = impl @@ object
 let create_ipv6
     ?(time = default_time)
     ?(clock = default_monotonic_clock)
-    ?group net { address ; netmask ; gateways } =
-  let etif = etif net in
-  let address = Key.V6.ip ?group address in
-  let netmask = Key.V6.netmask ?group netmask in
+    ?group etif { addresses ; netmasks ; gateways } =
+  let addresses = Key.V6.ips ?group addresses in
+  let netmasks = Key.V6.netmasks ?group netmasks in
   let gateways = Key.V6.gateways ?group gateways in
-  ipv6_conf ~address ~netmask ~gateways () $ etif $ time $ clock
+  ipv6_conf ~addresses ~netmasks ~gateways () $ etif $ time $ clock
 
 type 'a icmp = ICMP
 type icmpv4 = v4 icmp
@@ -744,13 +775,9 @@ let socket_tcpv4 ?group ip = impl (tcpv4_socket_conf @@ Key.V4.socket ?group ip)
 type stackv4 = STACKV4
 let stackv4 = Type STACKV4
 
-let pp_stackv4_config fmt = function
-  | `DHCP   -> Fmt.pf fmt "`DHCP"
-  | `IPV4 i -> Fmt.pf fmt "`IPv4 %a" (meta_triple pp_key pp_key pp_key) i
-
 let add_suffix s ~suffix = if suffix = "" then s else s^"_"^suffix
 
-let stackv4_direct_conf ?(group="") config = impl @@ object
+let stackv4_direct_conf ?(group="") () = impl @@ object
     inherit base_configurable
 
     method ty =
@@ -758,22 +785,10 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
       ethernet @-> arpv4 @-> ipv4 @-> icmpv4 @-> udpv4 @-> tcpv4 @->
       stackv4
 
-    val name =
-      let base = match config with
-        | `DHCP -> "dhcp"
-        | `IPV4 _ -> "ip"
-      in add_suffix ("stackv4_" ^ base) ~suffix:group
+    val name = add_suffix "stackv4_" ~suffix:group
 
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
-
-    method keys = match config with
-      | `DHCP -> []
-      | `IPV4 (addr,netm,gate) -> [
-          Key.abstract addr;
-          Key.abstract netm;
-          Key.abstract gate
-        ]
 
     method packages = Key.pure [ "tcpip" ]
     method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
@@ -783,51 +798,40 @@ let stackv4_direct_conf ?(group="") config = impl @@ object
         Fmt.strf
           "@[<2>let config = {V1_LWT.@ \
            name = %S;@ \
-           interface = %s;@ mode = %a }@]@ in@ \
+           interface = %s;}@]@ in@ \
            %s.connect config@ %s %s %s %s %s %s"
-          name interface pp_stackv4_config config
+          name interface
           modname ethif arp ip icmp udp tcp
       | _ -> failwith "Wrong arguments to connect to tcpip direct stack."
 
   end
 
 
-let direct_stackv4_with_config
+let direct_stackv4
     ?(clock=default_monotonic_clock)
     ?(random=stdlib_random)
     ?(time=default_time)
     ?group
-    network config =
-  let eth = etif_func $ network in
-  let arp = arp ~clock ~time eth in
-  let ip = ipv4_conf () $ eth $ arp in
-  stackv4_direct_conf ?group config
+    network eth arp ip =
+  stackv4_direct_conf ?group ()
   $ time $ random $ network
   $ eth $ arp $ ip
   $ direct_icmpv4 ip
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 
-let direct_stackv4_with_dhcp
-    ?clock ?random ?time ?group network =
-  direct_stackv4_with_config
-    ?clock ?random ?time ?group network `DHCP
+let dhcp_stack ?group time tap =
+  let config = dhcp time tap in
+  let e = etif tap in
+  let (a : arpv4 impl) = arp e in
+  let i = ipv4_of_dhcp config e a in
+  direct_stackv4 ?group tap e a i
 
-let direct_stackv4_with_static_ipv4
-    ?clock ?random ?time ?group network
-    {address; netmask; gateways} =
-  let address = Key.V4.ip ?group address in
-  let netmask = Key.V4.netmask ?group netmask in
-  let gateways = Key.V4.gateways ?group gateways in
-  direct_stackv4_with_config
-    ?clock ?random ?time ?group network
-    (`IPV4 (address, netmask, gateways))
-
-let direct_stackv4_with_default_ipv4
-    ?clock ?random ?time ?group network =
-  direct_stackv4_with_static_ipv4
-    ?clock ?random ?time ?group network
-    default_ipv4_conf
+let static_ipv4_stack ?group ?config tap =
+  let e = etif tap in
+  let a = arp e in
+  let i = create_ipv4 ?group ?config e a in
+  direct_stackv4 ?group tap e a i
 
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     inherit base_configurable
@@ -848,7 +852,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
         Fmt.strf
           "let config =@[@ \
            { V1_LWT.name = %S;@ \
-           interface = %a ;@ mode = () }@] in@ \
+           interface = %a ;@] in@ \
            %s.connect config %s %s"
           name
           pp_key interfaces
@@ -863,18 +867,16 @@ let socket_stackv4 ?group ipv4s =
 (** Generic stack *)
 
 let generic_stackv4
-    ?group
+    ?group ?config
     ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ())
-    (tap : network impl) : stackv4 impl=
+    (tap : network impl) : stackv4 impl =
   if_impl
     Key.(pure ((=) `Socket) $ net_key)
     (socket_stackv4 ?group [Ipaddr.V4.any])
-    (if_impl
-       dhcp_key
-       (direct_stackv4_with_dhcp ?group tap)
-       (direct_stackv4_with_default_ipv4 ?group tap)
-    )
+    (if_impl Key.(pure ((=) true) $ dhcp_key)
+      (dhcp_stack ?group default_time tap)
+      (static_ipv4_stack ?config ?group tap))
 
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector

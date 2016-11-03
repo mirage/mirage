@@ -813,6 +813,19 @@ let direct_stackv4
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 
+let dhcp_stack ?group time tap =
+  let config = dhcp time tap in
+  let e = etif tap in
+  let (a : arpv4 impl) = arp e in
+  let i = ipv4_of_dhcp config e a in
+  direct_stackv4 ?group tap e a i
+
+let keyed_stack ?group tap =
+  let e = etif tap in
+  let a = arp e in
+  let i = create_ipv4 tap e a in
+  direct_stackv4 ?group tap e a i
+
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     inherit base_configurable
     method ty = stackv4
@@ -851,29 +864,12 @@ let generic_stackv4
     ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ())
     (tap : network impl) : stackv4 impl =
-  let directify () =
-    let e = etif tap in
-    let (a : arpv4 impl) = arp e in
-    let i = create_ipv4 tap e a in
-    direct_stackv4 ?group tap e a i
-  in
-  let dhcp_stack () =
-    let time = default_time in
-    let config = dhcp time tap in
-    let e = etif tap in
-    let (a : arpv4 impl) = arp e in
-    let i = ipv4_of_dhcp config e a in
-    direct_stackv4 ?group tap e a i
-  in
-  let pick_direct_stack () =
-    if_impl Key.(pure ((=) true) $ dhcp_key)
-    (dhcp_stack ())
-    (directify ())
-  in
   if_impl
     Key.(pure ((=) `Socket) $ net_key)
     (socket_stackv4 ?group [Ipaddr.V4.any])
-    (pick_direct_stack ())
+    (if_impl Key.(pure ((=) true) $ dhcp_key)
+      (dhcp_stack ?group default_time tap)
+      (keyed_stack ?group tap))
 
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector

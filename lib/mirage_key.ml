@@ -218,21 +218,18 @@ let interface ?group default =
   create_simple ~doc ~default ?group Arg.string "interface"
 
 module V4 = struct
-  let default_address = Ipaddr.V4.of_string_exn "10.0.0.2"
-  let default_network = Ipaddr.V4.Prefix.make 24 default_address
-  let default_gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1")
 
-  let ip ?group () =
+  let ip ?group default =
     let doc = Fmt.strf "The ip address of %a." pp_group group in
-    create_simple ~doc ~default:default_address ?group Arg.ipv4 "ip"
+    create_simple ~doc ~default ?group Arg.ipv4 "ip"
 
-  let network ?group () =
+  let network ?group default =
     let doc = Fmt.strf "The network of %a specified as an IP address and netmask, e.g. 192.168.0.0/16 ." pp_group group in
-    create_simple ~doc ~default:default_network ?group Arg.ipv4_prefix "network"
+    create_simple ~doc ~default ?group Arg.ipv4_prefix "network"
 
-  let gateway ?group () =
+  let gateway ?group default =
     let doc = Fmt.strf "The gateway of %a." pp_group group in
-    create_simple ~doc ~default:default_gateway ?group Arg.(some ipv4) "gateway"
+    create_simple ~doc ~default ?group Arg.(some ipv4) "gateway"
 
   let socket ?group default =
     let doc =

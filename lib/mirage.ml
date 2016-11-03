@@ -610,11 +610,19 @@ let ipv4_dhcp_conf = impl @@ object
 let dhcp time net = dhcp_conf $ time $ net
 let ipv4_of_dhcp dhcp ethif arp = ipv4_dhcp_conf $ dhcp $ ethif $ arp
 
-let create_ipv4
-    ?group etif arp =
-  let address = Key.V4.ip ?group () in
-  let network = Key.V4.network ?group () in
-  let gateway = Key.V4.gateway ?group () in
+let keyed_ipv4 ?group etif arp =
+  let default_address = Ipaddr.V4.of_string_exn "10.0.0.2" in
+  let default_network = Ipaddr.V4.Prefix.make 24 default_address in
+  let default_gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1") in
+  let address = Key.V4.ip ?group default_address in
+  let network = Key.V4.network ?group default_network in
+  let gateway = Key.V4.gateway ?group default_gateway in
+  ipv4_keyed_conf ~address ~network ~gateway () $ etif $ arp
+
+let create_ipv4 ?group { address; network; gateway } etif arp =
+  let address = Key.V4.ip ?group address in
+  let network = Key.V4.network ?group network in
+  let gateway = Key.V4.gateway ?group gateway in
   ipv4_keyed_conf ~address ~network ~gateway () $ etif $ arp
 
 type ipv6_config = {
@@ -819,10 +827,16 @@ let dhcp_stack ?group time tap =
   let i = ipv4_of_dhcp config e a in
   direct_stackv4 ?group tap e a i
 
+let static_ipv4_stack ?group config tap =
+  let e = etif tap in
+  let a = arp e in
+  let i = create_ipv4 ?group config e a in
+  direct_stackv4 ?group tap e a i
+
 let keyed_stack ?group tap =
   let e = etif tap in
   let a = arp e in
-  let i = create_ipv4 e a in
+  let i = keyed_ipv4 e a in
   direct_stackv4 ?group tap e a i
 
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object

@@ -283,10 +283,18 @@ type ipv6_config = {
 }
 (** Types for IP manual configuration. *)
 
-val create_ipv4:
+val keyed_ipv4:
   ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address.
     Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
+*)
+
+val create_ipv4 : ?group:string ->
+  ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
+(** Use an IPv4 address, given a specific config.
+    Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
+    If provided, the values of these keys will override those supplied
+    in the ipv4 configuration record.
 *)
 
 val create_ipv6:

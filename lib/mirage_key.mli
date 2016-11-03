@@ -93,13 +93,13 @@ val interface : ?group:string -> string -> string key
 module V4 : sig
   open Ipaddr.V4
 
-  val ip : ?group:string -> unit -> t key
+  val ip : ?group:string -> t -> t key
   (** An ip address. *)
 
-  val network : ?group:string -> unit -> Prefix.t key
+  val network : ?group:string -> Prefix.t -> Prefix.t key
   (** A network defined by an address and netmask. *)
 
-  val gateway : ?group:string -> unit -> t option key
+  val gateway : ?group:string -> t option -> t option key
   (** A default gateway option. *)
 
   val socket : ?group:string -> t option -> t option key

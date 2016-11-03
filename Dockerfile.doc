@@ -2,18 +2,24 @@ FROM ocaml/opam:debian-stable_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam remote add mirage-dev https://github.com/mirage/mirage-dev.git
 RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
-RUN opam depext -uivy -j 2 odig 
+RUN opam depext -uivy -j 2 odig
 RUN opam depext -uivj 3 \
   alcotest \
   angstrom \
   arp \
+  asn1-combinators \
+  astring \
+  base64 \
   channel \
   charrua-core \
+  charrua-unix \
+  cmdliner \
   cohttp \
   conduit \
   core_kernel \
   cow \
   cowabloga \
+  cpuid \
   crunch \
   cstruct \
   ctypes \
@@ -23,23 +29,35 @@ RUN opam depext -uivj 3 \
   datakit-ci \
   dns \
   dockerfile \
+  duration \
   ezxmlm \
+  fat-filesystem \
+  functoria \
   git \
   git-mirage \
   git-unix \
   github \
   hex \
+  hkdf \
   hvsock \
   integers \
+  io-page \
   ipaddr \
   irmin \
   irmin-watcher \
+  jenga \
+  logs \
+  logs-syslog \
   lwt \
   magic-mime \
   merlin \
   mirage \
+  mirage-block \
+  mirage-block-ccm \
   mirage-block-unix \
+  mirage-block-ramdisk \
   mirage-block-xen \
+  mirage-bootvar-xen \
   mirage-btrees \
   mirage-clock-unix \
   mirage-clock-xen \
@@ -49,37 +67,55 @@ RUN opam depext -uivj 3 \
   mirage-flow \
   mirage-fs-unix \
   mirage-http \
+  mirage-logs \
   mirage-net-unix \
   mirage-net-xen \
+  mirage-os-shim \
+  mirage-stdlib-random \
   mirage-unix \
   mirage-vnetif \
   mirage-xen \
+  nocrypto \
   obytelib \
   ocamlclean \
+  ocb-stubblr \
+  ocplib-endian \
   opam-file-format \
+  otr \
   parse-argv \
+  pbkdf \
   pcap-format \
   ppx_expect \
+  protocol-9p \
+  ptime \
   qcow-format \
   re \
+  randomconv \
+  rresult \
   scrypt-kdf \
   session \
   shared-memory-ring \
+  syslog-message \
+  tar-format \
   tcpip \
   tls \
   tlstunnel \
   tyre \
+  topkg \
   topkg-care \
+  tuntap \
   tyxml-ppx \
   uri \
   vchan \
   vhd-format \
   webmachine \
   websocket \
+  x509 \
   xen-evtchn \
   xen-gnt \
   xenctrl \
-  yojson
+  yojson \
+  xenstore
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

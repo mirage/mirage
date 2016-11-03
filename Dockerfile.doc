@@ -54,23 +54,28 @@ RUN opam depext -uivj 3 \
   mirage \
   mirage-block \
   mirage-block-ccm \
+  mirage-block-solo5 \
   mirage-block-unix \
   mirage-block-ramdisk \
   mirage-block-xen \
+  mirage-bootvar-solo5 \
   mirage-bootvar-xen \
   mirage-btrees \
   mirage-clock-unix \
   mirage-clock-xen \
   mirage-console \
+  mirage-console-solo5 \
   mirage-dns \
   mirage-entropy \
   mirage-flow \
   mirage-fs-unix \
   mirage-http \
   mirage-logs \
+  mirage-net-solo5 \
   mirage-net-unix \
   mirage-net-xen \
   mirage-os-shim \
+  mirage-solo5 \
   mirage-stdlib-random \
   mirage-unix \
   mirage-vnetif \
@@ -95,6 +100,7 @@ RUN opam depext -uivj 3 \
   scrypt-kdf \
   session \
   shared-memory-ring \
+  solo5-kernel-virtio \
   syslog-message \
   tar-format \
   tcpip \

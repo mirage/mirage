@@ -284,14 +284,14 @@ type ipv6_config = {
 (** Types for IP manual configuration. *)
 
 val create_ipv4:
-  ?group:string -> network impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+  ?group:string -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address.
     Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
 *)
 
 val create_ipv6:
   ?time:time impl -> ?clock:mclock impl ->
-  ?group:string -> network impl -> ipv6_config -> ipv6 impl
+  ?group:string -> ethernet impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address.
     Exposes the keys {!Key.V6.ips}, {!Key.V6.netmasks} and {!Key.V6.gateways}.
 *)

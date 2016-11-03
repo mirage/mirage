@@ -611,7 +611,7 @@ let dhcp time net = dhcp_conf $ time $ net
 let ipv4_of_dhcp dhcp ethif arp = ipv4_dhcp_conf $ dhcp $ ethif $ arp
 
 let create_ipv4
-    ?group _net etif arp =
+    ?group etif arp =
   let address = Key.V4.ip ?group () in
   let network = Key.V4.network ?group () in
   let gateway = Key.V4.gateway ?group () in
@@ -647,8 +647,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
 let create_ipv6
     ?(time = default_time)
     ?(clock = default_monotonic_clock)
-    ?group net { addresses ; netmasks ; gateways } =
-  let etif = etif net in
+    ?group etif { addresses ; netmasks ; gateways } =
   let addresses = Key.V6.ips ?group addresses in
   let netmasks = Key.V6.netmasks ?group netmasks in
   let gateways = Key.V6.gateways ?group gateways in
@@ -823,7 +822,7 @@ let dhcp_stack ?group time tap =
 let keyed_stack ?group tap =
   let e = etif tap in
   let a = arp e in
-  let i = create_ipv4 tap e a in
+  let i = create_ipv4 e a in
   direct_stackv4 ?group tap e a i
 
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object

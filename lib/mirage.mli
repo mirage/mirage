@@ -345,8 +345,7 @@ type stackv4
 val stackv4: stackv4 typ
 (** Implementation of the [V1.STACKV4] signature. *)
 
-(** Direct network stack with ip.
-    Exposes the keys {!Key.V4.ip}, {!Key.V4.netmask} and {!Key.V4.gateways}. *)
+(** Direct network stack with given ip. *)
 val direct_stackv4:
   ?clock:mclock impl ->
   ?random:random impl ->

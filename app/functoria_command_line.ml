@@ -137,7 +137,6 @@ type 'a describe_args = {
 type 'a action =
     Configure of 'a config_args
   | Describe of 'a describe_args
-  | Build of 'a
   | Clean of 'a
   | Help
 
@@ -198,20 +197,6 @@ struct
                  $ output
                  $ dotcmd
                  $ dot)
-
-  (** The 'build' subcommand *)
-  let build result =
-    let doc = "Build a $(mname) application." in
-    term_info "build" ~doc
-      ~man:[
-        `S "DESCRIPTION";
-        `P doc;
-      ]
-      ~arg:Term.(pure (fun _ _ _ info -> Build info)
-                 $ verbose
-                 $ color
-                 $ config_file
-                 $ result)
 
   (** The 'clean' subcommand *)
   let clean info_ =
@@ -296,11 +281,10 @@ let read_full_eval : string array -> bool =
     | _, `Ok b -> b
     | _ -> false
 
-let parse_args ~name ~version ~configure ~describe ~build ~clean ~help argv =
+let parse_args ~name ~version ~configure ~describe ~clean ~help argv =
   Cmdliner.Term.eval_choice ~argv ~catch:false (Subcommands.default ~name ~version) [
     Subcommands.configure configure;
     Subcommands.describe describe;
-    Subcommands.build build;
     Subcommands.clean clean;
     Subcommands.help help;
   ]

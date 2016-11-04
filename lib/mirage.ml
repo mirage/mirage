@@ -852,7 +852,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
         Fmt.strf
           "let config =@[@ \
            { V1_LWT.name = %S;@ \
-           interface = %a ;@] in@ \
+           interface = %a ;}@] in@ \
            %s.connect config %s %s"
           name
           pp_key interfaces

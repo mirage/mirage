@@ -1,12 +1,18 @@
 ### 3.0.0 (2016-soon!)
 
+* refactor ipv4, stackv4, and dhcp handling (#643, by @yomimono)
+* create xen-related helper files only when the target is xen (#639, by @hannesm)
+* improvements to nocrypto handling (#636, by @pqwy)
+* disable warning #42 in generated code for unikernels (#633, by @hannesm)
+* V1.NETWORK functions return a Result.t rather than polyvars indicating success or errors (#615, by @hannesm)
+* remove GNUisms and unnecessary artifacts from build (#623, #627, by @mato and @hannesm)
 * remove type `id` from `DEVICE` module type. (#612, by @yomimono and @talex5)
 * revise the RANDOM signature to provide n random bytes; provide nocrypto_random and stdlib_random (#551 and #610, by @hannesm)
 * expose `direct` as an option for `kv_ro`.  (#607, by @mor1)
 * require a `mem` function in KV_RO, and add `Failure` error variant (#606, by @yomimono)
 * `connect` functions are no longer expected to return polyvars, but rather to raise exceptions if `connect` fails and return the value directly. (#602, by @hannesm)
-* new documentation using `odig` (#591, #593, #594, #597, #598, #599, and #600 by @avsm)
-* change build system to `topkg` from `oasis`. (#558 and #590, by @avsm and @samoht)
+* new documentation using `odig` (#591, #593, #594, #597, #598, #599, #600, and more, by @avsm)
+* change build system to `topkg` from `oasis`. (#558, #590, #659, by @avsm, @samoht, @hannesm, @dbuenzli)
 * express io-page dependency of crunch. (#585, by @yomimono and @mato)
 * deprecate the CLOCK module type in favor of PCLOCK (POSIX clock) and
   MCLOCK (a monotonically increasing counter of elapsed nanoseconds).

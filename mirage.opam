@@ -14,7 +14,7 @@ build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%"]
 depends: [
   "ocamlbuild" {build}
   "ocamlfind"  {build}
-  "topkg"      {build & >= "0.7.3"}
+  "topkg"      {build & >= "0.8.0"}
   "ipaddr"           {>= "2.6.0"}
   "functoria"        {>= "1.1.0"}
   "astring"

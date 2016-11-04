@@ -31,12 +31,8 @@ let () =
          Pkg.bin "lib/main" ~dst:"mirage"; ]
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
-         Pkg.lib "types/V1.mli";
-         Pkg.lib "types/V1.cmi";
-         Pkg.lib "types/V1.cmti";
+         Pkg.lib ~exts:Exts.interface "types/V1";
          Pkg.mllib "types/mirage-types.mllib";
-         Pkg.lib ~cond:lwt "types/V1_LWT.mli";
-         Pkg.lib ~cond:lwt "types/V1_LWT.cmi";
-         Pkg.lib ~cond:lwt "types/V1_LWT.cmti"; ]
+         Pkg.lib ~cond:lwt ~exts:Exts.interface "types/V1_LWT"; ]
   | other ->
     R.error_msgf "unknown package name: %s" other

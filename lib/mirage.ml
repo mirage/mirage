@@ -1111,8 +1111,9 @@ let mprof_trace ~size () =
     method keys = [ Key.abstract key ]
     method packages = Key.pure ["mirage-profile"]
     method libraries =
-      Key.match_ Key.(value target) @@function
-      | `Xen | `Virtio | `Ukvm -> ["mirage-profile.xen"]
+      Key.match_ Key.(value target) @@ function
+      | `Xen -> ["mirage-profile.xen"]
+      | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX -> ["mirage-profile.unix"]
 
     method configure _ =

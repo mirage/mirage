@@ -60,7 +60,9 @@ module Keys = struct
     Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
     let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
     let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
-    Codegen.append fmt "let runtime_keys = %a" Fmt.Dump.(list pp_runvar) runvars;
+    let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
+    Codegen.append fmt "let runtime_keys = List.combine %a %a"
+      Fmt.Dump.(list pp_runvar) runvars Fmt.Dump.(list pp_names) runvars;
     Codegen.newline fmt;
     R.ok ()
 
@@ -85,7 +87,7 @@ let keys (argv: argv impl) = impl @@ object
     method !connect info modname = function
       | [ argv ] ->
         Fmt.strf
-          "return (Functoria_runtime.with_argv %s.runtime_keys %S %s)"
+          "return (Functoria_runtime.with_argv (List.map fst %s.runtime_keys) %S %s)"
           modname (Info.name info) argv
       | _ -> failwith "The keys connect should receive exactly one argument."
   end

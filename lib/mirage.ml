@@ -46,10 +46,7 @@ let io_page_conf = object
   method ty = io_page
   method name = "io_page"
   method module_name = "Io_page"
-  method libraries =
-    Key.match_ Key.(value target) @@ function
-    | `Xen | `Virtio | `Ukvm -> ["io-page"]
-    | `Unix | `MacOSX -> ["io-page"; "io-page.unix"]
+  method libraries = Key.(if_ is_unix) ["io-page.unix"] ["io-page"]
   method packages = Key.pure [ "io-page" ]
 end
 

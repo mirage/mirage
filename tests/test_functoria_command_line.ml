@@ -30,7 +30,6 @@ let test_configure _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
-      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"; "configure"; "--xyz"; "--verbose"; "--no-opam"|]
@@ -54,7 +53,6 @@ let test_describe _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
-      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"; "describe"; "--cde"; "--file=tests/config.ml";
@@ -65,27 +63,6 @@ let test_describe _ =
                          dotcmd = "dot";
                          dot = false;
                          output = None }))
-    result
-
-
-let test_build _ =
-  let extra_term = Cmdliner.(Term.(
-      pure (fun xyz cde -> (xyz, cde))
-      $ Arg.(value (flag (info ["x"; "xyz"])))
-      $ Arg.(value (flag (info ["c"; "cde"])))
-    ))
-  in
-  let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
-      ~configure:extra_term
-      ~describe:extra_term
-      ~build:extra_term
-      ~clean:extra_term
-      ~help:extra_term
-      [|"name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v"|]
-  in
-  assert_equal
-    (`Ok (Cmd.Build (true, true)))
     result
 
 
@@ -100,7 +77,6 @@ let test_clean _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
-      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"; "clean"|]
@@ -121,7 +97,6 @@ let test_help _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
-      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"; "help"; "--help"; "plain"; "--verbose"|]
@@ -139,7 +114,6 @@ let test_default _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
-      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"|]
@@ -235,9 +209,6 @@ let suite = "Command-line parsing tests" >:::
 
     "describe"
     >:: test_describe;
-
-    "build"
-    >:: test_build;
 
     "clean"
     >:: test_clean;

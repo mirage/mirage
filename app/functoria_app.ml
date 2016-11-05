@@ -475,17 +475,6 @@ module Make (P: S) = struct
         configure_main i jobs
       )
 
-  let make () =
-    match Cmd.uname_s () with
-    | Some ("FreeBSD" | "OpenBSD" | "NetBSD" | "DragonFly") -> "gmake"
-    | _ -> "make"
-
-  let build i =
-    Log.info "%a %s" Log.blue "Build:" (get_config_file ());
-    Cmd.in_dir (Info.root i) (fun () ->
-        Cmd.run "%s build" (make ())
-      )
-
   let clean i (_init, job) =
     Log.info "%a %s" Log.blue "Clean:"  (get_config_file ());
     let root = Info.root i in
@@ -597,9 +586,6 @@ module Make (P: S) = struct
     | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
       Config'.pp_info Fmt.(pf stdout) Log.INFO info;
       fatalize_error (describe info jobs ~dotcmd ~dot ~output)
-    | `Ok (Cmd.Build (_, info)) ->
-      Config'.pp_info Log.info Log.DEBUG info;
-      fatalize_error (build info)
     | `Ok (Cmd.Clean (jobs, info)) ->
       Config'.pp_info Log.info Log.DEBUG info;
       fatalize_error (clean info jobs)
@@ -612,7 +598,6 @@ module Make (P: S) = struct
     let result = Functoria_command_line.parse_args ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
-        ~build:(Term.pure ())
         ~clean:(Term.pure ())
         ~help:base_context_arg
         argv
@@ -620,7 +605,7 @@ module Make (P: S) = struct
     match result with
     | `Ok Cmd.Help -> ()
     | `Error _
-    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
+    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Clean _) ->
       Functoria_misc.Log.fatal "%s" error
     | `Version
     | `Help -> ()
@@ -666,7 +651,6 @@ module Make (P: S) = struct
          (Functoria_command_line.parse_args ~name:P.name ~version:P.version
             ~configure:(Config'.eval ~with_required:true ~partial:false context config)
             ~describe:(Config'.eval ~with_required:false ~partial:(not full_eval) context config)
-            ~build:(Config'.eval ~with_required:false ~partial:false context config)
             ~clean:(Config'.eval ~with_required:false ~partial:false context config)
             ~help:base_context_arg
             argv)

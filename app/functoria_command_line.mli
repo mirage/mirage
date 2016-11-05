@@ -70,7 +70,6 @@ type 'a describe_args = {
 type 'a action =
     Configure of 'a config_args
   | Describe of 'a describe_args
-  | Build of 'a
   | Clean of 'a
   | Help
 (** A value of type [action] is the result of parsing command-line arguments using
@@ -81,7 +80,6 @@ open Cmdliner.Term
 val parse_args : name:string -> version:string ->
   configure:'a t ->
   describe:'a t ->
-  build:'a t -> 
   clean:'a t ->
   help:_ t ->
   string array ->
@@ -106,10 +104,6 @@ val parse_args : name:string -> version:string ->
                     [--dot-command=COMMAND]
                     [--dot]
                     [extra arguments]
-      name build [-v|--verbose]
-                 [--color=(auto|always|never)]
-                 [-f FILE | --file=FILE]
-                 [extra arguments]
       name clean [-v|--verbose]
                  [--color=(auto|always|never)]
                  [-f FILE | --file=FILE]
@@ -117,7 +111,7 @@ val parse_args : name:string -> version:string ->
       name help [-v|--verbose]
                 [--color=(auto|always|never)]
                 [--man-format=(groff|pager|plain)]
-                [configure|describe|build|clean|help|topics]
+                [configure|describe|clean|help|topics]
                 [extra arguments]
       name [-v|--verbose]
            [--color=(auto|always|never)]

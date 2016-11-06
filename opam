@@ -19,10 +19,12 @@ build-test: [
 ]
 depends: [
   "ocamlfind" {build}
+  "ocamlbuild" {build}
   "topkg"     {build & >= "0.7.3"}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
   "rresult"
+  "astring"
   "fmt"
   "ocamlgraph"
   "ounit" {test}

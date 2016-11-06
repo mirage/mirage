@@ -32,23 +32,6 @@ module type Monoid = sig
   val union: t -> t -> t
 end
 
-(** {2 String utilities} *)
-
-module String: sig
-  include (module type of String)
-
-  module Set: Set.S with type elt = string
-
-  val strip: string -> string
-  (** Remove heading and trailing spaces. *)
-
-  val cut_at: string -> char -> (string * string) option
-  (** Cut at the first occurrence of a given character. *)
-
-  val split: string -> char -> string list
-  (** Split at each occurence of the given character. *)
-end
-
 (** {2 Command-line utilities} *)
 
 module Cmd: sig

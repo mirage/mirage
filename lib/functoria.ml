@@ -15,6 +15,8 @@
  *)
 
 open Rresult
+open Astring
+
 open Functoria_misc
 
 module Key = Functoria_key
@@ -107,7 +109,7 @@ class base_configurable = object
   method packages: string list Key.value = Key.pure []
   method keys: Key.t list = []
   method connect (_:Info.t) (_:string) l =
-    Printf.sprintf "return (%s)" (String.concat ", " l)
+    Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
   method configure (_: Info.t): (unit,string) R.t = R.ok ()
   method clean (_: Info.t): (unit,string) R.t = R.ok ()
   method deps: abstract_impl list = []

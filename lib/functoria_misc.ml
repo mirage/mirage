@@ -16,6 +16,7 @@
  *)
 
 open Rresult
+open Astring
 
 let (/) = Filename.concat
 
@@ -27,48 +28,6 @@ module type Monoid = sig
   type t
   val empty: t
   val union: t -> t -> t
-end
-
-(* {String manipulation} *)
-
-module String = struct
-
-  include String
-
-  let strip str =
-    let p = ref 0 in
-    let l = String.length str in
-    let fn = function
-      | ' ' | '\t' | '\r' | '\n' -> true
-      | _ -> false in
-    while !p < l && fn (String.unsafe_get str !p) do
-      incr p;
-    done;
-    let p = !p in
-    let l = ref (l - 1) in
-    while !l >= p && fn (String.unsafe_get str !l) do
-      decr l;
-    done;
-    String.sub str p (!l - p + 1)
-
-  let cut_at s sep =
-    try
-      let i = String.index s sep in
-      let name = String.sub s 0 i in
-      let version = String.sub s (i+1) (String.length s - i - 1) in
-      Some (name, version)
-    with _ ->
-      None
-
-  let split s sep =
-    let rec aux acc r =
-      match cut_at r sep with
-      | None       -> List.rev (r :: acc)
-      | Some (h,t) -> aux (strip h :: acc) t in
-    aux [] s
-
-  module Set = Set.Make (String)
-
 end
 
 (* {Logging} *)
@@ -205,7 +164,7 @@ module Cmd = struct
       | Some `None -> " --color=never"
       | Some `Ansi_tty -> " --color=always"
     in
-    let deps = String.concat " " deps in
+    let deps = String.concat ~sep:" " deps in
     (* Note: we don't redirect output to the log as installation can
      * take a long time and the user will want to see what is
        happening. *)
@@ -254,7 +213,7 @@ module Cmd = struct
   let collect_output cmd =
     try
       with_process_in cmd
-        (fun ic -> Some (String.strip (input_line ic)))
+        (fun ic -> Some (Astring.String.trim (input_line ic)))
     with _ ->
       None
 
@@ -283,10 +242,10 @@ module Cmd = struct
 
   let ocaml_version () =
     let version =
-      match String.cut_at Sys.ocaml_version '+' with
+      match Astring.String.cut ~sep:"+" Sys.ocaml_version with
       | Some (version, _) -> version
       | None              -> Sys.ocaml_version in
-    match String.split version '.' with
+    match Astring.String.cuts ~sep:"." version with
     | major :: minor :: _ ->
       begin
         try int_of_string major, int_of_string minor
@@ -299,13 +258,13 @@ module Cmd = struct
     let query ?predicates ?(format="%p") ?(recursive=false) xs =
       let pred = match predicates with
         | None    -> ""
-        | Some ps -> "-predicates '" ^ String.concat "," ps ^ "'"
+        | Some ps -> "-predicates '" ^ String.concat ~sep:"," ps ^ "'"
       and fmt  = "-format '" ^ format ^ "'"
       and r    = if recursive then "-recursive" else ""
-      and pkgs = String.concat " " xs
+      and pkgs = String.concat ~sep:" " xs
       in
       read "ocamlfind query %s %s %s %s" fmt pred r pkgs
-      >>| fun out -> String.split out '\n'
+      >>| fun out -> Astring.String.cuts ~sep:"\n" out
 
     let installed lib =
       Sys.command ("ocamlfind query " ^ lib ^ " 2>&1 1>/dev/null") = 0
@@ -412,7 +371,7 @@ module Terminfo = struct
       try (* GNU stty *)
         with_process_in "stty" "size"
           (fun ic ->
-             match String.split (input_line ic) ' ' with
+             match Astring.String.cuts ~sep:" " (input_line ic) with
              | [_; v] -> int_of_string v
              | _ -> failwith "stty")
       with

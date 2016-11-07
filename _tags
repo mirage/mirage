@@ -1,5 +1,5 @@
 true : bin_annot, safe_string, package(bytes), strict_sequence, short_paths
-true: warn(A-40-42-44), warn_error(+1..49), warn_error(-45-3)
+true: warn(A-40-42-44), warn_error(+1..49), warn_error(-45)
 
 # Better locations and loc in .mlis
 true: keep_locs
@@ -8,12 +8,10 @@ true: keep_locs
 <lib>    : include
 <runtime>: include
 
-<{lib,app}/*>: \
-  package(unix), package(dynlink), package(cmdliner), package(rresult), \
-  package(fmt.tty), package(ocamlgraph)
+<{lib,app}/*>: package(unix dynlink cmdliner rresult fmt.tty ocamlgraph astring)
 
 # Force the runtime to be unix-independent.
 <runtime/*>: dontlink(unix)
 <runtime/*>: package(cmdliner), package(fmt)
 
-<tests/*>: package(oUnit), package(cmdliner), package(fmt.cli), package(rresult)
+<tests/*>: package(oUnit cmdliner fmt.cli rresult astring)

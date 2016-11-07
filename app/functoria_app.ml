@@ -16,6 +16,7 @@
  *)
 
 open Rresult
+open Astring
 
 open Functoria
 include Functoria_misc
@@ -50,7 +51,7 @@ let sys_argv = impl @@ object
 module Keys = struct
 
   let configure i =
-    let file = String.lowercase Key.module_name ^ ".ml" in
+    let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
     Log.info "%a %s" Log.blue "Generating:"  file;
     Cmd.with_file (Info.root i / file) @@ fun fmt ->
     Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
@@ -67,7 +68,7 @@ module Keys = struct
     R.ok ()
 
   let clean i =
-    let file = String.lowercase Key.module_name ^ ".ml" in
+    let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
     R.ok @@ Cmd.remove (Info.root i / file)
 
   let name = "key"
@@ -120,7 +121,7 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     inherit base_configurable
     method ty = info
     method name = "info"
-    val gen_file = String.lowercase gen_modname  ^ ".ml"
+    val gen_file = String.Ascii.lowercase gen_modname  ^ ".ml"
     method module_name = gen_modname
     method !libraries = Key.pure ["functoria.runtime"]
     method !packages = Key.pure ["functoria"]
@@ -196,7 +197,10 @@ module Engine = struct
     let base = c#module_name in
     if args = [] then base
     else
-      let prefix = try String.(sub base 0 @@ index base '.') with _ -> base in
+      let prefix = match String.cut ~sep:"." base with
+        | Some (l, _) -> l
+        | None -> base
+      in
       let prefix = Name.ocamlify prefix in
       Name.create (Fmt.strf "%s%i" prefix id) ~prefix
 
@@ -428,7 +432,7 @@ module Make (P: S) = struct
              You can pass the `--no-opam-version-check` flag to force its \
              use." opam_version
         in
-        match String.split opam_version '.' with
+        match String.cuts ~sep:"." opam_version with
         | major::minor::_ ->
           let major = try int_of_string major with Failure _ -> 0 in
           let minor = try int_of_string minor with Failure _ -> 0 in
@@ -511,7 +515,7 @@ module Make (P: S) = struct
       "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg %s %s"
       root P.name file
     >>= fun () ->
-    try Ok (Dynlink.loadfile (String.concat "/" [root; "_build"; file]))
+    try Ok (Dynlink.loadfile (String.concat ~sep:"/" [root; "_build"; file]))
     with Dynlink.Error err ->
       Log.error "Error loading config: %s" (Dynlink.error_message err)
 

@@ -1,5 +1,5 @@
 true : bin_annot, safe_string, package(bytes), strict_sequence, short_paths
-true: warn(A-40-42-44), warn_error(+1..49), warn_error(-45-3)
+true: warn(A-40-42-44), warn_error(+1..49), warn_error(-45)
 
 # Better locations and loc in .mlis
 true: keep_locs

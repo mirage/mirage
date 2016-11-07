@@ -1025,7 +1025,7 @@ let argv_solo5 = impl @@ object
     method name = "argv_solo5"
     method module_name = "Bootvar"
     method packages = Key.pure [ "mirage-bootvar-solo5" ]
-    method libraries = Key.pure [ "mirage-bootvar" ]
+    method libraries = Key.pure [ "mirage-bootvar-solo5" ]
     method connect _ _ _ = "Bootvar.argv ()"
   end
 

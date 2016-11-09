@@ -87,6 +87,7 @@ RUN opam depext -uivj 3 \
   ocplib-endian \
   opam-file-format \
   otr \
+  owl \
   parse-argv \
   pbkdf \
   pcap-format \

@@ -173,6 +173,12 @@ end
 
 let nocrypto_random = impl nocrypto_random_conf
 
+let default_random =
+  match_impl (Key.value @@ Key.prng ()) [
+    `Stdlib  , stdlib_random;
+    `Nocrypto, nocrypto_random;
+  ] ~default:stdlib_random
+
 type console = CONSOLE
 let console = Type CONSOLE
 
@@ -751,7 +757,7 @@ end
 let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
-    ?(clock=default_monotonic_clock) ?(random=stdlib_random) ?(time=default_time) ip =
+    ?(clock=default_monotonic_clock) ?(random=default_random) ?(time=default_time) ip =
   tcp_direct_func () $ ip $ time $ clock $ random
 
 let tcpv4_socket_conf ipv4_key = object
@@ -809,7 +815,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
 
 let direct_stackv4
     ?(clock=default_monotonic_clock)
-    ?(random=stdlib_random)
+    ?(random=default_random)
     ?(time=default_time)
     ?group
     network eth arp ip =

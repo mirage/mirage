@@ -188,8 +188,8 @@ let console_unix str = impl @@ object
     val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
     method module_name = "Console_unix"
-    method packages = Key.pure ["mirage-console"; "mirage-unix"]
-    method libraries = Key.pure ["mirage-console.unix"]
+    method packages = Key.pure ["mirage-console-unix"]
+    method libraries = Key.pure ["mirage-console-unix"]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -200,9 +200,8 @@ let console_xen str = impl @@ object
     val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
     method module_name = "Console_xen"
-    method packages = Key.pure
-        ["mirage-console"; "xenstore"; "mirage-xen"; "xen-gnt"; "xen-evtchn"]
-    method libraries = Key.pure ["mirage-console.xen"]
+    method packages = Key.pure ["mirage-console-xen"]
+    method libraries = Key.pure ["mirage-console-xen"]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end

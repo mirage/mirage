@@ -63,8 +63,12 @@ RUN opam depext -uivj 3 \
   mirage-btrees \
   mirage-clock-unix \
   mirage-clock-xen \
-  mirage-console \
   mirage-console-solo5 \
+  mirage-console-unix \
+  mirage-console-xen \
+  mirage-console-xen-backend \
+  mirage-console-xen-cli \
+  mirage-console-xen-proto \
   mirage-dns \
   mirage-entropy \
   mirage-flow \

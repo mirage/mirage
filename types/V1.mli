@@ -203,13 +203,17 @@ module type FLOW = sig
 end
 
 (** {1 Console input/output} *)
-module type CONSOLE = sig
-
+module Console : sig
   type error = [
     | `Invalid_console of string
   ]
   (** The type for representing possible errors when attaching a
       console. *)
+end
+
+(** {A console module type} *)
+module type CONSOLE = sig
+  open Console
 
   include DEVICE with
     type error := error
@@ -227,7 +231,6 @@ module type CONSOLE = sig
   val log_s: t -> string -> unit io
   (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
-
 end
 
 (** {1 Sector-addressible block devices}
@@ -311,8 +314,6 @@ module Network : sig
     | `Disconnected      (** the device has been previously disconnected *)
   ]
   (** The type for IO operation errors *)
-
-  (* XXX: here we'd like to have a printer!  but maybe more convenient in a V1_PP.mli+ml? *)
 
   type stats = {
     mutable rx_bytes: int64;

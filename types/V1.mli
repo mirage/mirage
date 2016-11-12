@@ -223,14 +223,11 @@ module type CONSOLE = sig
   and type 'a io  := 'a io
   and type flow   := t
 
-  val log: t -> string -> unit
-  (** [log str] writes as many characters of [str] that can be written
-      in one write operation to the console [t], then writes "\r\n" to
-      it. *)
-
-  val log_s: t -> string -> unit io
-  (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
-      console [t]. *)
+  val log: t -> string -> unit io
+  (** [log t str] writes [str] to the console [t], appending appropriate line
+      endings.  If {!close} was called on the console before, [str] is discarded
+      silently.
+  *)
 end
 
 (** {1 Sector-addressible block devices}

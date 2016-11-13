@@ -1395,10 +1395,13 @@ let rec expand_name ~lib param =
 
 (* Invoke pkg-config and return output if successful. *)
 let pkg_config pkgs args =
-  match Cmd.read "PKG_CONFIG_PATH=$(opam config var lib)/pkgconfig \
-    pkg-config %s %s" pkgs args with
-  | Ok s -> String.trim s
+  match Cmd.read "opam config var prefix" with
   | Error e -> failwith e
+  | Ok prefix ->
+    match Cmd.read "PKG_CONFIG_PATH=%s/lib/pkgconfig:%s/share/pkgconfig \
+                    pkg-config %s %s" prefix prefix pkgs args with
+    | Ok s -> String.trim s
+    | Error e -> failwith e
 
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)

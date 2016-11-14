@@ -17,11 +17,10 @@ let opams =
     Pkg.opam_file ~install ~lint_deps_excluding "mirage-types-lwt.opam";
   ]
 
-let lwt = Conf.key ~doc:"Build Mirage Lwt types" "with-lwt-types" ~absent:false Conf.bool
-let delegate = Cmd.(v "toy-github-topkg-delegate")
+let lwt = Conf.with_pkg ~default:false "lwt-types"
 
 let () =
-  Pkg.describe ~delegate ~metas ~opams "mirage" @@ fun c ->
+  Pkg.describe ~metas ~opams "mirage" @@ fun c ->
   let lwt = Conf.value c lwt in
   match Conf.pkg_name c with
   | "mirage" ->

@@ -1398,6 +1398,7 @@ let pkg_config pkgs args =
   match Cmd.read "opam config var prefix" with
   | Error e -> failwith e
   | Ok prefix ->
+    let prefix = String.trim prefix in
     match Cmd.read "PKG_CONFIG_PATH=%s/lib/pkgconfig:%s/share/pkgconfig \
                     pkg-config %s %s" prefix prefix pkgs args with
     | Ok s -> String.trim s

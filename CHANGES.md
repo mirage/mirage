@@ -1,5 +1,10 @@
 ### 3.0.0 (2016-soon!)
 
+* revised V1.CONSOLE interface: removed log, renamed log_s to log (#667, by @hannesm)
+* provide common functionality (pretty printer, stats) via M_util from the mirage-types package (#615, #666, by @hannesm)
+* remove Str module from OCaml runtime (#663, in ocaml-freestanding and mirage-xen-ocaml, by @hannesm)
+* new configuration time keyword: prng to select the default prng (#611, by @hannesm)
+* fail early if tracing is attempted with Solo5 (#657, by @yomimono)
 * refactor ipv4, stackv4, and dhcp handling (#643, by @yomimono)
 * create xen-related helper files only when the target is xen (#639, by @hannesm)
 * improvements to nocrypto handling (#636, by @pqwy)

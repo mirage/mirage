@@ -1,4 +1,4 @@
-FROM ocaml/opam:debian-stable_ocaml-4.03.0
+FROM ocaml/opam:ubuntu-16.04_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam remote add mirage-dev https://github.com/mirage/mirage-dev.git
 RUN opam pin add -n odig https://github.com/dbuenzli/odig.git

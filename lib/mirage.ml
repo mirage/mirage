@@ -1399,7 +1399,9 @@ let pkg_config pkgs args =
   | Error e -> failwith e
   | Ok prefix ->
     let prefix = String.trim prefix in
-    match Cmd.read "PKG_CONFIG_PATH=%s/lib/pkgconfig:%s/share/pkgconfig \
+    (* the order here matters (at least for ancient 0.26, distributed with
+       ubuntu 14.04 versions): use share before lib! *)
+    match Cmd.read "PKG_CONFIG_PATH=%s/share/pkgconfig:%s/lib/pkgconfig \
                     pkg-config %s %s" prefix prefix pkgs args with
     | Ok s -> String.trim s
     | Error e -> failwith e
@@ -1522,8 +1524,8 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   let pkg_config_deps =
     match target with
     | `Xen -> "mirage-xen"
-    | `Virtio -> "mirage-solo5 ocaml-freestanding"
-    | `Ukvm -> "mirage-solo5 ocaml-freestanding"
+    | `Virtio -> "mirage-solo5"
+    | `Ukvm -> "mirage-solo5"
     | `MacOSX | `Unix -> ""
   in
   let extra_ld_flags archives =

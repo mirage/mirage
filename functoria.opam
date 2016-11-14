@@ -1,5 +1,4 @@
 opam-version: "1.2"
-name:         "functoria"
 maintainer:   "Gabriel Radanne <drupyog@zoho.com>"
 authors:      [ "Thomas Gazagnaire"
                 "Anil Madhavapeddy"
@@ -12,9 +11,9 @@ dev-repo:     "https://github.com/mirage/functoria.git"
 doc:          "https://mirage.github.io/functoria/"
 license:      "ISC"
 
-build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" pinned]
+build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%" "--tests" "false" ]
 build-test: [
-  ["ocaml" "pkg/pkg.ml" "build" "--pinned" pinned "--tests" "true"]
+  ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%" "--tests" "true"]
   ["ocaml" "pkg/pkg.ml" "test"]
 ]
 depends: [

@@ -6,12 +6,11 @@ true: keep_locs
 
 <app>    : include
 <lib>    : include
-<runtime>: include
 
 <{lib,app}/*>: package(unix dynlink cmdliner rresult fmt.tty ocamlgraph astring)
 
 # Force the runtime to be unix-independent.
-<runtime/*>: dontlink(unix)
-<runtime/*>: package(cmdliner), package(fmt)
+<runtime/*>: dontlink(unix str num threads)
+<runtime/*>: package(cmdliner fmt)
 
 <tests/*>: package(oUnit cmdliner fmt.cli rresult astring)

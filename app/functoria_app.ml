@@ -82,8 +82,8 @@ let keys (argv: argv impl) = impl @@ object
     method module_name = Key.module_name
     method !configure = Keys.configure
     method !clean = Keys.clean
-    method !libraries = Key.pure [ "functoria.runtime" ]
-    method !packages = Key.pure [ "functoria" ]
+    method !libraries = Key.pure [ "functoria-runtime" ]
+    method !packages = Key.pure [ "functoria-runtime" ]
     method !deps = [ abstract argv ]
     method !connect info modname = function
       | [ argv ] ->
@@ -123,8 +123,8 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     method name = "info"
     val gen_file = String.Ascii.lowercase gen_modname  ^ ".ml"
     method module_name = gen_modname
-    method !libraries = Key.pure ["functoria.runtime"]
-    method !packages = Key.pure ["functoria"]
+    method !libraries = Key.pure ["functoria-runtime"]
+    method !packages = Key.pure ["functoria-runtime"]
     method !connect _ modname _ = Fmt.strf "return %s.info" modname
 
     method !clean i =

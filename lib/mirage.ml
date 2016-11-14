@@ -1246,6 +1246,7 @@ let mprof_trace ~size () =
       end
 
     method connect i _ _ = match Key.(get (Info.context i) target) with
+      | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf
           "Lwt.return ())@.\
@@ -1255,7 +1256,7 @@ let mprof_trace ~size () =
              MProf.Trace.Control.start trace_config@]"
           Key.serialize_call (Key.abstract key)
           unix_trace_file;
-      | `Xen | `Virtio | `Ukvm | `Qubes ->
+      | `Xen | `Qubes ->
         Fmt.strf
           "Lwt.return ())@.\
            let () = (@ \

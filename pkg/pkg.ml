@@ -25,13 +25,17 @@ let () =
   match Conf.pkg_name c with
   | "mirage" ->
     Ok [ Pkg.lib "pkg/META.mirage" ~dst:"META";
+         Pkg.lib "mirage.opam" ~dst:"opam";
          Pkg.mllib "lib/mirage.mllib";
          Pkg.mllib "lib_runtime/mirage-runtime.mllib";
          Pkg.bin "lib/main" ~dst:"mirage"; ]
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
-         Pkg.lib ~exts:Exts.interface "types/V1";
+         Pkg.lib "mirage-types.opam" ~dst:"opam";
          Pkg.mllib "types/mirage-types.mllib";
+         Pkg.lib ~exts:Exts.interface "types/V1";
          Pkg.lib ~cond:lwt ~exts:Exts.interface "types/V1_LWT"; ]
+  | "mirage-types-lwt" ->
+    Ok [ Pkg.lib "mirage-types-lwt.opam" ~dst:"opam"; ]
   | other ->
     R.error_msgf "unknown package name: %s" other

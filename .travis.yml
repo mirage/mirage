@@ -1,6 +1,7 @@
 language: c
 install: wget https://raw.githubusercontent.com/yomimono/ocaml-ci-scripts/pass-mode/.travis-docker.sh
 script: bash -ex .travis-docker.sh
+sudo: required
 services:
   - docker
 sudo: false

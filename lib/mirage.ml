@@ -1639,8 +1639,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   let pkg_config_deps =
     match target with
     | `Xen | `Qubes -> "mirage-xen"
-    | `Virtio -> "mirage-solo5 ocaml-freestanding"
-    | `Ukvm -> "mirage-solo5 ocaml-freestanding"
+    | `Virtio | `Ukvm -> "mirage-solo5"
     | `MacOSX | `Unix -> ""
   in
   let extra_ld_flags archives =

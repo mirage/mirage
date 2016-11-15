@@ -126,11 +126,6 @@ let target =
   let key = Arg.opt ~stage:`Configure conv default doc in
   Key.create "target" key
 
-let is_xen =
-  Key.match_ Key.(value target) @@ function
-  | `Xen | `Qubes -> true
-  | `Unix | `MacOSX | `Virtio | `Ukvm -> false
-
 let is_unix =
   Key.match_ Key.(value target) @@ function
   | `Unix | `MacOSX -> true

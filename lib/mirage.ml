@@ -1054,8 +1054,9 @@ let resolver_unix_system = impl @@ object
     method name = "resolver_unix"
     method module_name = "Resolver_lwt"
     method packages =
-      Key.(if_ is_unix) ["mirage-conduit" ]
-      (failwith "Resolver_unix not supported on unikernel")
+      Key.match_ Key.(value target) @@ function
+      | `Unix | `MacOSX -> ["mirage-conduit" ]
+      | _ -> failwith "Resolver_unix not supported on unikernel"
     method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
@@ -1639,8 +1640,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   let pkg_config_deps =
     match target with
     | `Xen | `Qubes -> "mirage-xen"
-    | `Virtio -> "mirage-solo5 ocaml-freestanding"
-    | `Ukvm -> "mirage-solo5 ocaml-freestanding"
+    | `Virtio | `Ukvm -> "mirage-solo5"
     | `MacOSX | `Unix -> ""
   in
   let extra_ld_flags archives =

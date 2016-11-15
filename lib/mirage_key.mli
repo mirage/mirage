@@ -42,9 +42,6 @@ val target: mode key
 val pp_target: mode Fmt.t
 (** Pretty printer for the mode. *)
 
-val is_xen: bool value
-(** Is true iff the {!target} keys takes the value [`Xen]. *)
-
 val is_unix: bool value
 (** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]).
 *)

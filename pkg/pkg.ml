@@ -6,6 +6,7 @@ open Topkg
 let metas = [
   Pkg.meta_file ~install:false "pkg/META.mirage";
   Pkg.meta_file ~install:false "pkg/META.mirage-types";
+  Pkg.meta_file ~install:false "pkg/META.mirage-runtime";
 ]
 
 let opams =
@@ -13,6 +14,7 @@ let opams =
   let install = false in
   [
     Pkg.opam_file ~install ~lint_deps_excluding "mirage.opam";
+    Pkg.opam_file ~install ~lint_deps_excluding "mirage-runtime.opam";
     Pkg.opam_file ~install ~lint_deps_excluding "mirage-types.opam";
     Pkg.opam_file ~install ~lint_deps_excluding "mirage-types-lwt.opam";
   ]
@@ -27,12 +29,14 @@ let () =
     Ok [ Pkg.lib "pkg/META.mirage" ~dst:"META";
          Pkg.lib "mirage.opam" ~dst:"opam";
          Pkg.mllib "lib/mirage.mllib";
-         Pkg.mllib "lib_runtime/mirage-runtime.mllib";
          Pkg.bin "lib/mirage_cli" ~dst:"mirage"; ]
+  | "mirage-runtime" ->
+    Ok [ Pkg.lib "pkg/META.mirage-runtime" ~dst:"META";
+         Pkg.lib "mirage-runtime.opam" ~dst:"opam";
+         Pkg.mllib "lib_runtime/mirage-runtime.mllib"; ]
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
          Pkg.lib "mirage-types.opam" ~dst:"opam";
-         Pkg.mllib "types/mirage-types.mllib";
          Pkg.lib ~exts:Exts.interface "types/V1";
          Pkg.lib ~cond:lwt ~exts:Exts.interface "types/V1_LWT"; ]
   | "mirage-types-lwt" ->

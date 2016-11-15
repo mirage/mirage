@@ -44,6 +44,14 @@ val mprof_trace : size:int -> unit -> tracing impl
 
     @param size: size of the ring buffer to use. *)
 
+type qubesdb
+
+val qubesdb : qubesdb typ
+(** For the Qubes target, the Qubes database from which to look up
+ *  dynamic runtime configuration information. *)
+
+val default_qubesdb : qubesdb impl
+(** A default qubes database, guessed from the usual valid configurations. *)
 
 
 (** {2 Time} *)
@@ -294,8 +302,12 @@ val create_ipv4 : ?group:string ->
 (** Use an IPv4 address
     Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
     If provided, the values of these keys will override those supplied
-    in the ipv4 configuration record, ifthat has been provided.
+    in the ipv4 configuration record, if that has been provided.
 *)
+
+val ipv4_qubes : qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+(** Use a given initialized QubesDB to look up and configure the appropriate
+ *  IPv4 interface. *)
 
 val create_ipv6:
   ?time:time impl -> ?clock:mclock impl ->
@@ -363,10 +375,24 @@ val direct_stackv4:
 val socket_stackv4:
   ?group:string -> Ipaddr.V4.t list -> stackv4 impl
 
+(** Build a stackv4 by looking up configuration information via QubesDB,
+ *  building an ipv4, then building a stack on top of that. *)
+val qubes_ipv4_stack : ?group:string -> ?qubesdb : qubesdb impl -> network impl -> stackv4 impl
+
+(** Build a stackv4 by obtaining a DHCP lease, using the lease to
+ *  build an ipv4, then building a stack on top of that. *)
+val dhcp_ipv4_stack : ?group:string -> ?time : time impl -> network impl -> stackv4 impl
+
+(** Build a stackv4 by checking the {Key.ip}, {Key.network}, and {Key.gateway} keys
+ *  for ipv4 configuration information, filling in unspecified information from [?config],
+ *  then building a stack on top of that. *)
+val static_ipv4_stack : ?group:string -> ?config : ipv4_config -> network impl -> stackv4 impl
+
 (** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
+    - If [target] = [Qubes] then {!qubes_ipv4_stack} is used.
     - If [net] = [socket] then {!socket_stackv4} is used.
-    - Else, if [dhcp] then {!direct_stackv4_with_dhcp} is used
-    - Else, {!direct_stackv4_with_default_ipv4} is used.
+    - Else, if [dhcp] then {!dhcp_ipv4_stack} is used
+    - Else, {!static_ipv4_stack} is used.
 
     If a key is not provided, it uses {!Key.net} or {!Key.dhcp} (with the
     [group] argument) to create it.

@@ -32,11 +32,79 @@ let get_target i = Key.(get (Info.context i) target)
 
 (* Mirage implementation backing the target. *)
 let backend_predicate = function
-  | `Xen            -> "mirage_xen"
+  | `Xen | `Qubes   -> "mirage_xen"
   | `Virtio | `Ukvm -> "mirage_solo5"
   | `Unix | `MacOSX -> "mirage_unix"
 
 (** {2 Devices} *)
+let qrexec = job
+
+let qrexec_qubes = impl @@ object
+  inherit base_configurable
+  method ty = qrexec
+  val name = Name.ocamlify @@ "qrexec_"
+  method name = name
+  method module_name = "Qubes.RExec"
+  method packages = Key.pure ["mirage-qubes"]
+  method libraries = Key.pure ["mirage-qubes"]
+  method configure i =
+    match Key.(get (Info.context i) target) with
+    | `Qubes -> Result.Ok ()
+    | _ ->
+      Log.error "Qubes remote-exec invoked for non-Qubes target, stopping."
+  method connect _ modname _args =
+     Fmt.strf
+"@[<v 2>\
+         %s.connect ~domid:0 () >>= fun qrexec ->@ \
+         Lwt.async (fun () ->@ \
+         OS.Lifecycle.await_shutdown_request () >>= fun (`Poweroff | `Reboot ) ->@ \
+         %s.disconnect qrexec);@ \
+         Lwt.return (`Ok qrexec)@]"
+     modname modname
+end
+
+let gui = job
+
+let gui_qubes = impl @@ object
+  inherit base_configurable
+  method ty = gui
+  val name = Name.ocamlify @@ "gui"
+  method name = name
+  method module_name = "Qubes.GUI"
+  method packages = Key.pure ["mirage-qubes"]
+  method libraries = Key.pure ["mirage-qubes"]
+  method configure i =
+    match Key.(get (Info.context i) target) with
+    | `Qubes -> Result.Ok ()
+    | _ ->
+      Log.error "Qubes GUI invoked for non-Qubes target, stopping."
+  method connect _ modname _args =
+     Fmt.strf
+"@[<v 2>\
+         %s.connect ~domid:0 () >>= fun gui ->@ \
+         Lwt.async (fun () -> %s.listen gui);@ \
+         Lwt.return (`Ok gui)@]"
+     modname modname
+end
+
+type qubesdb = QUBES_DB
+let qubesdb = Type QUBES_DB
+
+let qubesdb_conf = object
+  inherit base_configurable
+  method ty = qubesdb
+  method name = "qubesdb"
+  method module_name = "Qubes.DB"
+  method libraries = Key.pure ["mirage-qubes"]
+  method packages = Key.pure [ "mirage-qubes" ]
+  method connect _ modname _args =
+     Fmt.strf
+"@[<v 2>\
+         %s.connect ~domid:0 ()@]"
+     modname
+end
+
+let default_qubesdb = impl qubesdb_conf
 
 type io_page = IO_PAGE
 let io_page = Type IO_PAGE
@@ -46,10 +114,7 @@ let io_page_conf = object
   method ty = io_page
   method name = "io_page"
   method module_name = "Io_page"
-  method libraries =
-    Key.match_ Key.(value target) @@ function
-    | `Xen | `Virtio | `Ukvm -> ["io-page"]
-    | `Unix | `MacOSX -> ["io-page"; "io-page.unix"]
+  method libraries = Key.(if_ is_unix) ["io-page.unix"] ["io-page"]
   method packages = Key.pure [ "io-page" ]
 end
 
@@ -146,7 +211,7 @@ let nocrypto = impl @@ object
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen            -> ["nocrypto"; "zarith-xen"]
+      | `Xen | `Qubes   -> ["nocrypto"; "zarith-xen"]
       | `Virtio | `Ukvm -> ["nocrypto"; "zarith-freestanding"]
       | `Unix | `MacOSX -> ["nocrypto"]
 
@@ -156,7 +221,7 @@ let nocrypto = impl @@ object
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
       match Key.(get (Info.context i) target) with
-      | `Xen | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
+      | `Xen | `Qubes | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
       | `Unix | `MacOSX        -> "Nocrypto_entropy_lwt.initialize ()"
 
   end
@@ -221,6 +286,7 @@ let console_solo5 str = impl @@ object
 let custom_console str =
   match_impl Key.(value target) [
     `Xen, console_xen str;
+    `Qubes, console_xen str;
     `Virtio, console_solo5 str;
     `Ukvm, console_solo5 str
   ] ~default:(console_unix str)
@@ -279,6 +345,7 @@ let direct_kv_ro_conf dirname = impl @@ object
 let direct_kv_ro dirname =
   match_impl Key.(value target) [
     `Xen, crunch dirname;
+    `Qubes, crunch dirname;
     `Virtio, crunch dirname;
     `Ukvm, crunch dirname
   ] ~default:(direct_kv_ro_conf dirname)
@@ -314,12 +381,12 @@ class block_conf file =
     method module_name = "Block"
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen -> ["mirage-block-xen"]
+      | `Xen | `Qubes -> ["mirage-block-xen"]
       | `Virtio | `Ukvm -> ["mirage-block-solo5"]
       | `Unix | `MacOSX -> ["mirage-block-unix"]
     method libraries =
       Key.match_ Key.(value target) @@ function
-      | `Xen -> ["mirage-block-xen.front"]
+      | `Xen | `Qubes -> ["mirage-block-xen.front"]
       | `Virtio | `Ukvm -> ["mirage-block-solo5"]
       | `Unix | `MacOSX -> ["mirage-block-unix"]
 
@@ -327,7 +394,7 @@ class block_conf file =
       match target with
       | `Unix | `MacOSX | `Virtio | `Ukvm ->
         root / b.filename (* open the file directly *)
-      | `Xen ->
+      | `Xen | `Qubes ->
         (* We need the xenstore id *)
         (* Taken from https://github.com/mirage/mirage-block-xen/blob/
            a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 *)
@@ -475,6 +542,7 @@ let network_conf (intf : string Key.key) =
       | `Unix -> ["mirage-net-unix"]
       | `MacOSX -> ["mirage-net-macosx"]
       | `Xen -> ["mirage-net-xen"]
+      | `Qubes -> ["mirage-net-xen" ; "mirage-qubes"]
       | `Virtio | `Ukvm -> ["mirage-net-solo5"]
 
     method libraries = self#packages
@@ -569,7 +637,8 @@ let ipv4_keyed_conf ?address ?network ?gateway () = impl @@ object
     method libraries = Key.pure ["tcpip.ipv4"]
     method keys = address @?? network @?? gateway @?? []
     method connect _ modname = function
-      | [ etif ; arp ] ->
+    | [ etif ; arp ] ->
+
         Fmt.strf
           "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
@@ -583,7 +652,7 @@ let ipv4_keyed_conf ?address ?network ?gateway () = impl @@ object
 let dhcp_conf = impl @@ object
   inherit base_configurable
   method ty = time @-> network @-> dhcp
-  method name = "dhcp"
+  method name = "dhcp_client"
   method module_name = "Dhcp_client_mirage.Make"
   method packages = Key.pure [ "charrua-client" ]
   method libraries = Key.pure [ "charrua-client.mirage" ]
@@ -598,7 +667,7 @@ end
 let ipv4_dhcp_conf = impl @@ object
     inherit base_configurable
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
-    method name = Name.create "ipv4" ~prefix:"ipv4"
+    method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
     method packages = Key.pure ["charrua-client"]
     method libraries = Key.pure ["charrua-client.mirage"]
@@ -636,6 +705,23 @@ type ipv6_config = {
   gateways: Ipaddr.V6.t list;
 }
 (** Types for IP manual configuration. *)
+
+let ipv4_qubes_conf = impl @@ object
+  inherit base_configurable
+  method ty = qubesdb @-> ethernet @-> arpv4 @-> ipv4
+  method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
+  method module_name = "Qubesdb_ipv4.Make"
+  method packages = Key.pure ["mirage-qubes"]
+  method libraries = Key.pure ["mirage-qubes.ipv4"]
+  method connect _ modname = function
+  | [ db ; ethif; arp ] ->
+      Fmt.strf
+        "%s.connect@[@ %s %s %s @@]"
+        modname db ethif arp
+  | _ -> failwith "The qubes_ipv4_conf connect should receive exactly three arguments."
+end
+
+let ipv4_qubes db ethernet arp = ipv4_qubes_conf $ db $ ethernet $ arp
 
 let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     inherit base_configurable
@@ -723,7 +809,7 @@ let udpv4_socket_conf ipv4_key = object
   method libraries =
     Key.match_ Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
-    | `Xen | `Virtio | `Ukvm -> failwith "No socket implementation available for unikernel"
+    | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 end
@@ -770,7 +856,7 @@ let tcpv4_socket_conf ipv4_key = object
   method libraries =
     Key.match_ Key.(value target) @@ function
     | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
-    | `Xen | `Virtio | `Ukvm  -> failwith "No socket implementation available for unikernel"
+    | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
 end
@@ -808,9 +894,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
           name interface
           modname ethif arp ip icmp udp tcp
       | _ -> failwith "Wrong arguments to connect to tcpip direct stack."
-
   end
-
 
 let direct_stackv4
     ?(clock=default_monotonic_clock)
@@ -825,7 +909,7 @@ let direct_stackv4
   $ direct_udp ip
   $ direct_tcp ~clock ~random ~time ip
 
-let dhcp_stack ?group time tap =
+let dhcp_ipv4_stack ?group ?(time = default_time) tap =
   let config = dhcp time tap in
   let e = etif tap in
   let (a : arpv4 impl) = arp e in
@@ -836,6 +920,12 @@ let static_ipv4_stack ?group ?config tap =
   let e = etif tap in
   let a = arp e in
   let i = create_ipv4 ?group ?config e a in
+  direct_stackv4 ?group tap e a i
+
+let qubes_ipv4_stack ?group ?(qubesdb = default_qubesdb) tap =
+  let e = etif tap in
+  let a = arp e in
+  let i = ipv4_qubes qubesdb e a in
   direct_stackv4 ?group tap e a i
 
 let stackv4_socket_conf ?(group="") interfaces = impl @@ object
@@ -876,12 +966,22 @@ let generic_stackv4
     ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ())
     (tap : network impl) : stackv4 impl =
-  if_impl
-    Key.(pure ((=) `Socket) $ net_key)
-    (socket_stackv4 ?group [Ipaddr.V4.any])
-    (if_impl Key.(pure ((=) true) $ dhcp_key)
-      (dhcp_stack ?group default_time tap)
-      (static_ipv4_stack ?config ?group tap))
+  let eq a b = Key.(pure ((=) a) $ b) in
+  let choose qubes socket dhcp =
+    if qubes then `Qubes
+    else if socket then `Socket
+    else if dhcp then `Dhcp
+    else `Static
+  in
+  let p = Functoria_key.((pure choose)
+          $ eq `Qubes Key.(value target)
+          $ eq `Socket net_key
+          $ eq true dhcp_key) in
+  match_impl p [
+    `Dhcp, dhcp_ipv4_stack ?group tap;
+    `Socket, socket_stackv4 ?group [Ipaddr.V4.any];
+    `Qubes, qubes_ipv4_stack ?group tap;
+  ] ~default:(static_ipv4_stack ?config ?group tap)
 
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector
@@ -954,9 +1054,8 @@ let resolver_unix_system = impl @@ object
     method name = "resolver_unix"
     method module_name = "Resolver_lwt"
     method packages =
-      Key.match_ Key.(value target) @@ function
-      | `Unix | `MacOSX -> [ "mirage-conduit" ]
-      | `Xen | `Virtio | `Ukvm -> failwith "Resolver_unix not supported on unikernel"
+      Key.(if_ is_unix) ["mirage-conduit" ]
+      (failwith "Resolver_unix not supported on unikernel")
     method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
@@ -1042,9 +1141,24 @@ let no_argv = impl @@ object
     method connect _ _ _ = "Lwt.return [|\"\"|]"
   end
 
+let argv_qubes = impl @@ object
+    inherit base_configurable
+    method ty = Functoria_app.argv
+    method name = "argv_qubes"
+    method module_name = "Bootvar"
+    method packages = Key.pure [ "mirage-bootvar-xen" ]
+    method libraries = Key.pure [ "mirage-bootvar-xen" ]
+    method connect _ _ _ =
+      (* Qubes tries to pass some nice arguments.
+       * It means well, but we can't do much with them,
+       * and they cause Functoria to abort. *)
+      "Bootvar.argv ~filter:(fun (key, _) -> List.mem key @@ List.map snd Key_gen.runtime_keys) ()"
+  end
+
 let default_argv =
   match_impl Key.(value target) [
     `Xen, argv_xen;
+    `Qubes, argv_qubes;
     `Virtio, argv_solo5;
     `Ukvm, argv_solo5
   ] ~default:argv_unix
@@ -1117,7 +1231,7 @@ let mprof_trace ~size () =
     method packages = Key.pure ["mirage-profile"]
     method libraries =
       Key.match_ Key.(value target) @@ function
-      | `Xen -> ["mirage-profile.xen"]
+      | `Xen | `Qubes -> ["mirage-profile.xen"]
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX -> ["mirage-profile.unix"]
 
@@ -1132,6 +1246,7 @@ let mprof_trace ~size () =
       end
 
     method connect i _ _ = match Key.(get (Info.context i) target) with
+      | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf
           "Lwt.return ())@.\
@@ -1141,7 +1256,7 @@ let mprof_trace ~size () =
              MProf.Trace.Control.start trace_config@]"
           Key.serialize_call (Key.abstract key)
           unix_trace_file;
-      | `Xen | `Virtio | `Ukvm ->
+      | `Xen | `Qubes ->
         Fmt.strf
           "Lwt.return ())@.\
            let () = (@ \
@@ -1494,7 +1609,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
      strict_sequence,principal,safe_string"
   in
   begin match target with
-    | `Xen ->
+    | `Xen | `Qubes ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
     | `Virtio | `Ukvm ->
@@ -1516,16 +1631,16 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   let ld = match target with
    | `Ukvm -> pkg_config "solo5-kernel-ukvm" "--variable=ld"
    | `Virtio -> pkg_config "solo5-kernel-virtio" "--variable=ld"
-   | `Xen | `MacOSX | `Unix -> "ld"
+   | `Xen | `Qubes | `MacOSX | `Unix -> "ld"
   in
   newline fmt;
   append fmt "LD=%s" ld;
   newline fmt;
   let pkg_config_deps =
     match target with
-    | `Xen -> "mirage-xen"
-    | `Virtio -> "mirage-solo5"
-    | `Ukvm -> "mirage-solo5"
+    | `Xen | `Qubes -> "mirage-xen"
+    | `Virtio -> "mirage-solo5 ocaml-freestanding"
+    | `Ukvm -> "mirage-solo5 ocaml-freestanding"
     | `MacOSX | `Unix -> ""
   in
   let extra_ld_flags archives =
@@ -1539,7 +1654,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     append fmt "PRE_LD_FLAGS = %s\n" (pkg_config x "--variable=ldflags")
   in
   begin match target with
-    | `Xen ->
+    | `Xen | `Qubes ->
       get_extra_ld_flags "xen" libs >>= fun archives ->
       extra_ld_flags archives;
       R.ok ()
@@ -1592,7 +1707,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
   begin match target with
-    | `Xen ->
+    | `Xen | `Qubes ->
       append fmt "build:: main.native.o";
       append fmt "\t$(LD) -d -static -nostdlib \\\n\
                   \t  _build/main.native.o \\\n\
@@ -1699,7 +1814,7 @@ let configure i =
   Log.info "%a %a" Log.blue "Configuring for target:" Key.pp_target target ;
   Cmd.in_dir root (fun () ->
       (match target with
-       | `Xen ->
+       | `Xen | `Qubes ->
          configure_main_xl ".xl" i;
          configure_main_xl ~substitutions:[] ".xl.in" i;
          configure_main_xe ~root ~name;
@@ -1744,7 +1859,7 @@ module Project = struct
       method packages =
         let l = [ "lwt"; "mirage-types"; "mirage-types-lwt" ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen -> "mirage-xen" :: l
+        | `Xen | `Qubes -> "mirage-xen" :: l
         | `Virtio -> "solo5-kernel-virtio" :: "mirage-solo5" :: l
         | `Ukvm -> "solo5-kernel-ukvm" :: "mirage-solo5" :: l
         | `Unix | `MacOSX -> "mirage-unix" :: l
@@ -1752,7 +1867,7 @@ module Project = struct
       method libraries =
         let l = [ "mirage.runtime"; "mirage-types"; "mirage-types.lwt" ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen -> "mirage-xen" :: l
+        | `Xen | `Qubes -> "mirage-xen" :: l
         | `Virtio | `Ukvm -> "mirage-solo5" :: l
         | `Unix | `MacOSX -> "mirage-unix" :: l
 
@@ -1773,11 +1888,21 @@ let (++) acc x = match acc, x with
   | None    , Some x -> Some [x]
   | Some acc, Some x -> Some (acc @ [x])
 
+(* TODO: ideally we'd combine these *)
+let qrexec_init = match_impl Key.(value target) [
+  `Qubes, qrexec_qubes;
+] ~default:Functoria_app.noop
+
+let gui_init = match_impl Key.(value target) [
+  `Qubes, gui_qubes;
+] ~default:Functoria_app.noop
+
 let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
     ?keys ?(libraries=[]) ?(packages=[])
     name jobs =
   let argv = Some (Functoria_app.keys argv) in
   let reporter = if reporter == no_reporter then None else Some reporter in
-  let init = None ++ argv ++ reporter ++ tracing in
+  let qubes_init = Some [qrexec_init; gui_init] in
+  let init = qubes_init ++ argv ++ reporter ++ tracing in
   register ?keys ~libraries ~packages ?init name jobs

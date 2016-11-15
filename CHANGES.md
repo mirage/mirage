@@ -1,5 +1,6 @@
 ### 3.0.0 (2016-soon!)
 
+* add `qubes` target for making Xen unikernels which boot & configure themselves correctly on QubesOS. (#553, by @yomimono)
 * revised V1.CONSOLE interface: removed log, renamed log_s to log (#667, by @hannesm)
 * provide common functionality (pretty printer, stats) via M_util from the mirage-types package (#615, #666, by @hannesm)
 * remove Str module from OCaml runtime (#663, in ocaml-freestanding and mirage-xen-ocaml, by @hannesm)

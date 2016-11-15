@@ -1054,8 +1054,9 @@ let resolver_unix_system = impl @@ object
     method name = "resolver_unix"
     method module_name = "Resolver_lwt"
     method packages =
-      Key.(if_ is_unix) ["mirage-conduit" ]
-      (failwith "Resolver_unix not supported on unikernel")
+      Key.match_ Key.(value target) @@ function
+      | `Unix | `MacOSX -> ["mirage-conduit" ]
+      | _ -> failwith "Resolver_unix not supported on unikernel"
     method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end

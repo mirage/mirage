@@ -28,7 +28,7 @@ let () =
          Pkg.lib "mirage.opam" ~dst:"opam";
          Pkg.mllib "lib/mirage.mllib";
          Pkg.mllib "lib_runtime/mirage-runtime.mllib";
-         Pkg.bin "lib/main" ~dst:"mirage"; ]
+         Pkg.bin "lib/mirage_cli" ~dst:"mirage"; ]
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
          Pkg.lib "mirage-types.opam" ~dst:"opam";

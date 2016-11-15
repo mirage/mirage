@@ -1,7 +1,4 @@
-opam depext -uiy mirage
-git clone -b mirage-dev https://github.com/mirage/mirage-skeleton.git
-cd mirage-skeleton
 eval `opam config env`
-find . -name _build | xargs rm -rf
-find . -name _build-ukvm | xargs rm -rf
-make
+rm -rf mirage-skeleton
+git clone -b mirage-dev https://github.com/mirage/mirage-skeleton.git
+make -C mirage-skeleton

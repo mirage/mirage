@@ -1694,8 +1694,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   let generate_image =
     let is_arm =
       match Cmd.uname_m () with
-      | Some machine ->
-        String.length machine > 2 && String.is_prefix ~affix:"arm" machine
+      | Some machine -> String.is_prefix ~affix:"arm" machine
       | None -> failwith "uname -m failed; can't determine target machine type!"
     in
     if is_arm then (

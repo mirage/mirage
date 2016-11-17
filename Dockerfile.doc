@@ -37,6 +37,7 @@ RUN opam depext -uivj 3 \
   git-mirage \
   git-unix \
   github \
+  gmp-freestanding \
   hex \
   hkdf \
   hvsock \
@@ -62,7 +63,7 @@ RUN opam depext -uivj 3 \
   mirage-bootvar-xen \
   mirage-btrees \
   mirage-clock-unix \
-  mirage-clock-xen \
+  mirage-clock-freestanding \
   mirage-console-solo5 \
   mirage-console-unix \
   mirage-console-xen \
@@ -86,6 +87,7 @@ RUN opam depext -uivj 3 \
   mirage-xen \
   nocrypto \
   obytelib \
+  ocaml-freestanding \
   ocamlclean \
   ocb-stubblr \
   ocplib-endian \
@@ -126,7 +128,8 @@ RUN opam depext -uivj 3 \
   xen-gnt \
   xenctrl \
   yojson \
-  xenstore
+  xenstore \
+  zarith-freestanding
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

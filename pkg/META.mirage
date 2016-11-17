@@ -1,17 +1,7 @@
 description = "MirageOS configuration tool"
 version = "%%VERSION_NUM%%"
-requires = "ipaddr functoria mirage.runtime functoria.app logs"
+requires = "ipaddr functoria functoria.app logs mirage-runtime"
 archive(byte) = "mirage.cma"
 archive(native) = "mirage.cmxa"
 plugin(byte) = "mirage.cma"
 plugin(native) = "mirage.cmxs"
-
-package "runtime" (
- version = "%%VERSION_NUM%%"
- description = "MirageOS runtime libraries"
- requires = "functoria.runtime ipaddr astring logs"
- archive(byte) = "mirage-runtime.cma"
- archive(native) = "mirage-runtime.cmxa"
- plugin(byte) = "mirage-runtime.cma"
- plugin(native) = "mirage-runtime.cmxs"
-)

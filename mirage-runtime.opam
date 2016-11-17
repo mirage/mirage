@@ -16,15 +16,9 @@ depends: [
   "ocamlfind"  {build}
   "topkg"      {build & >= "0.8.0"}
   "ipaddr"             {>= "2.6.0"}
-  "functoria"          {>= "1.1.0"}
+  "functoria-runtime"
   "astring"
   "logs"
-  "mirage-runtime"
-]
-conflicts: [
-  "nocrypto" {< "0.4.0"}
-  "cstruct"  {< "1.0.1"}
-  "io-page"  {< "1.4.0"}
-  "crunch"   {< "1.2.2"}
+  "mirage-types"
 ]
 available: [ocaml-version >= "4.02.3"]

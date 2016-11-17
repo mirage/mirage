@@ -2,23 +2,14 @@ true: warn(+A-4-6-7-9-40-42-44-48)
 true: strict_sequence, safe_string, short_paths, principal
 true: debug, annot, bin_annot
 
-<lib_runtime>: include
-
 # Better locations and loc in .mlis
 true: keep_locs
 
-<{lib,lib_runtime}/*>: package(ipaddr logs astring)
-
-<lib/*>: package(functoria functoria.app)
+<lib/*>: package(ipaddr logs astring functoria functoria.app mirage-runtime)
 
 # Force the runtime to be unix-independent.
-<lib_runtime/*>: package(functoria.runtime)
-<lib_runtime/*>: dontlink(unix)
+<lib_runtime/*>: package(functoria-runtime ipaddr astring logs mirage-types)
+<lib_runtime/*>: dontlink(unix str num threads)
 
 <types/V1.*>: package(result)
 <types/V1_LWT.*>: package(cstruct io-page lwt ipaddr)
-
-<types>: include
-
-<types/runtime/*>: package(result)
-<types/runtime/*>: dontlink(unix)

@@ -882,7 +882,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     method module_name = "Tcpip_stack_direct.Make"
 
     method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage.runtime" ]
+    method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage-runtime" ]
 
     method connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
@@ -1609,13 +1609,16 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     "warn(A-4-41-42-44),debug,bin_annot,\
      strict_sequence,principal,safe_string"
   in
+  let dontlink =
+    String.concat ~sep:",-dontlink," [ "" ; "unix" ; "str" ; "num" ; "threads" ]
+  in
   begin match target with
     | `Xen | `Qubes ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
+      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
     | `Virtio | `Ukvm ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg,-dontlink,unix\n";
+      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
     | `Unix ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
@@ -1865,7 +1868,7 @@ module Project = struct
         | `Unix | `MacOSX -> "mirage-unix" :: l
 
       method libraries =
-        let l = [ "mirage.runtime"; "mirage-types"; "mirage-types.lwt" ] in
+        let l = [ "mirage-runtime"; "mirage-types"; "mirage-types.lwt" ] in
         Key.match_ Key.(value target) @@ function
         | `Xen | `Qubes -> "mirage-xen" :: l
         | `Virtio | `Ukvm -> "mirage-solo5" :: l

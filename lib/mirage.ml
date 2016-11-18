@@ -716,7 +716,7 @@ let ipv4_qubes_conf = impl @@ object
   method connect _ modname = function
   | [ db ; ethif; arp ] ->
       Fmt.strf
-        "%s.connect@[@ %s %s %s @@]"
+        "%s.connect %s %s %s"
         modname db ethif arp
   | _ -> failwith "The qubes_ipv4_conf connect should receive exactly three arguments."
 end

@@ -45,6 +45,7 @@ RUN opam depext -uivj 3 \
   ipaddr \
   irmin \
   irmin-watcher \
+  jekyll-format \
   jenga \
   logs \
   logs-syslog \
@@ -90,6 +91,7 @@ RUN opam depext -uivj 3 \
   ocb-stubblr \
   ocplib-endian \
   opam-file-format \
+  opam-lib \
   otr \
   owl \
   parse-argv \

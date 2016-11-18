@@ -1,8 +1,10 @@
 ### 3.0.0 (2016-soon!)
 
+* removed `is_xen` key (#682, by @hannesm)
+* mirage-clock-xen is now mirage-clock-freestanding (#684, by @mato)
+* mirage-runtime is a separate opam package providing common functionality (#681, #615 by @hannesm)
 * add `qubes` target for making Xen unikernels which boot & configure themselves correctly on QubesOS. (#553, by @yomimono)
 * revised V1.CONSOLE interface: removed log, renamed log_s to log (#667, by @hannesm)
-* provide common functionality (pretty printer, stats) via M_util from the mirage-types package (#615, #666, by @hannesm)
 * remove Str module from OCaml runtime (#663, in ocaml-freestanding and mirage-xen-ocaml, by @hannesm)
 * new configuration time keyword: prng to select the default prng (#611, by @hannesm)
 * fail early if tracing is attempted with Solo5 (#657, by @yomimono)
@@ -18,7 +20,7 @@
 * require a `mem` function in KV_RO, and add `Failure` error variant (#606, by @yomimono)
 * `connect` functions are no longer expected to return polyvars, but rather to raise exceptions if `connect` fails and return the value directly. (#602, by @hannesm)
 * new documentation using `odig` (#591, #593, #594, #597, #598, #599, #600, and more, by @avsm)
-* change build system to `topkg` from `oasis`. (#558, #590, #659, by @avsm, @samoht, @hannesm, @dbuenzli)
+* change build system to `topkg` from `oasis`. (#558, #590, #654, #673, by @avsm, @samoht, @hannesm, @dbuenzli)
 * express io-page dependency of crunch. (#585, by @yomimono and @mato)
 * deprecate the CLOCK module type in favor of PCLOCK (POSIX clock) and
   MCLOCK (a monotonically increasing counter of elapsed nanoseconds).

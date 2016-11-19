@@ -460,8 +460,7 @@ val register :
   ?tracing:tracing impl ->
   ?reporter:reporter impl ->
   ?keys:Key.t list ->
-  ?libraries:string list ->
-  ?packages:string list -> string -> job impl list -> unit
+  ?packages:Functoria.package list -> string -> job impl list -> unit
 (** [register name jobs] registers the application named by [name]
     which will executes the given [jobs].
     @param libraries The ocamlfind libraries needed by this module.

@@ -46,9 +46,6 @@ val is_unix: bool value
 (** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]).
 *)
 
-val no_ocaml_check: bool key
-(** [--no-ocaml-check]. Do not check the version of the compiler. *)
-
 val warn_error: bool key
 (** [--warn-error]. Enable {i -warn-error} for OCaml sources. Set to [false] by
     default, but might might enabled by default in later releases. *)

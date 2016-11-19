@@ -136,7 +136,7 @@ let rec remove_rec g v =
     g
 
 and remove_rec_if_orphan g c =
-  if G.in_degree g c = 0
+  if G.mem_vertex g c && G.in_degree g c = 0
   then remove_rec g c
   else g
 

@@ -189,19 +189,6 @@ let enable_entropy, is_entropy_enabled =
   let g () = !r in
   (f, g)
 
-(* XXX: needs to move into the makefile (depend and/or build)!
-let check_entropy libs =
-  Cmd.OCamlfind.query ~recursive:true libs
-  >>| List.exists ((=) "nocrypto")
-  >>= fun is_needed ->
-  if is_needed && not (is_entropy_enabled ()) then
-    Log.error
-      "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
-       Please enable the entropy by adding a dependency to the nocrypto \
-       device. You can do so by adding ~deps:[abstract nocrypto] \
-       to the arguments of Mirage.foreign."
-  else R.ok ()
-*)
 let nocrypto = impl @@ object
     inherit base_configurable
     method ty = job
@@ -1518,7 +1505,11 @@ let configure_makefile ~target ~root ~name ~opam_name ~warn_error info =
   append fmt "BUILD  = ocamlbuild -use-ocamlfind $(TARGET) $(LIBS) $(SYNTAX) $(FLAGS)\n\
               OPREFIX= $(shell opam config var prefix)\n\
               PKG_CONFIG_PATH=$(OPREFIX)/share/pkgconfig:$(OPREFIX)/lib/pkgconfig\n\
-              OPAM   = opam";
+              OPAM   = opam\n\
+              NOCRYPTO = $$(ocamlfind query -r %s | grep -c nocrypto)\n\
+              NOCRYPTO_INITIALISED = %s"
+    (String.concat ~sep:" " libs)
+    (if is_entropy_enabled () then "1" else "0");
   newline fmt;
   let pkg_config_deps =
     match target with
@@ -1560,12 +1551,19 @@ let configure_makefile ~target ~root ~name ~opam_name ~warn_error info =
               \t$(OPAM) install --deps-only --verbose %s\n\
               \t$(OPAM) pin remove -n %s\n\
               \n\
-              main.native:\n\
+              check::\n\
+              \tif [ $(NOCRYPTO) -ge 1 ] && [ $(NOCRYPTO_INITIALISED) -eq 0 ]; then echo \"%s\" ; exit 2 ; fi\n\
+              \n\
+              main.native: check\n\
               \t$(BUILD) main.native\n\
               \n\
-              main.native.o:\n\
+              main.native.o: check\n\
               \t$(BUILD) main.native.o"
-    opam_name opam_name opam_name;
+    opam_name opam_name opam_name
+    "The 'nocrypto' library is loaded but entropy is not enabled! \
+     Please enable the entropy by adding a dependency to the nocrypto \
+     device. You can do so by adding ~deps:[abstract nocrypto] \
+     to the arguments of Mirage.foreign.";
   newline fmt;
 
   (* On ARM:
@@ -1710,7 +1708,6 @@ let configure i =
     if ocaml_check then check_ocaml_version ()
     else R.ok ()
   end >>= fun () ->
-  (*  check_entropy @@ Info.libraries i >>= fun () -> *)
   Log.info "%a %a" Log.blue "Configuring for target:" Key.pp_target target ;
   let opam_name = unikernel_name target name in
   Cmd.in_dir root (fun () ->

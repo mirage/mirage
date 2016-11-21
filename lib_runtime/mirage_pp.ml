@@ -1,3 +1,5 @@
+open Result
+
 let pp_console_error pp = function
   | `Invalid_console str -> Format.fprintf pp "invalid console %s" str
 

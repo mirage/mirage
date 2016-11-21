@@ -42,11 +42,14 @@ let pp_flow_write_error pp = function
   | `Closed        -> say pp "attempted to write to a closed flow"
 
 let pp_block_error pp = function
-  | `Msg message -> unspecified pp message
+  | `Msg message   -> unspecified pp message
   | `Unimplemented -> say pp "operation not yet implemented"
   | `Disconnected  -> say pp "a required device was disconnected"
 
 let pp_block_write_error pp = function
+  | `Msg message   -> unspecified pp message
+  | `Unimplemented -> say pp "operation not yet implemented"
+  | `Disconnected  -> say pp "a required device was disconnected"
   | `Is_read_only  -> say pp "attempted to write to a read-only disk"
 
 let reduce = function

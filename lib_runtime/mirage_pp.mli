@@ -12,4 +12,6 @@ val pp_tcp_error    : Format.formatter -> Tcp.error -> unit
 val pp_flow_error   : Format.formatter -> Flow.error -> unit
 val pp_flow_write_error : Format.formatter -> Flow.write_error -> unit
 
+val pp_block_error  : Format.formatter -> Block.error -> unit
+
 val reduce : (unit, [`Msg of string | `Unimplemented | `Disconnected]) Result.result -> (unit, [> `Msg of string]) Result.result

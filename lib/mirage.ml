@@ -1544,49 +1544,6 @@ let get_extra_ld_flags target pkgs =
           acc
     ) []
 
-let configure_myocamlbuild_ml ~root =
-  let minor, major = Cmd.ocaml_version () in
-  if minor < 4 || major < 1 then (
-    (* Previous ocamlbuild versions weren't able to understand the
-       --output-obj rules *)
-    let file = root / "myocamlbuild.ml" in
-    Cmd.with_file file @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
-    Codegen.newline fmt;
-    Codegen.append fmt
-      "open Ocamlbuild_pack;;\n\
-       open Ocamlbuild_plugin;;\n\
-       open Ocaml_compiler;;\n\
-       \n\
-       let native_link_gen linker =\n\
-      \  link_gen \"cmx\" \"cmxa\" !Options.ext_lib [!Options.ext_obj; \"cmi\"\
-       ] linker;;\n\
-       \n\
-       let native_output_obj x = native_link_gen ocamlopt_link_prog\n\
-      \  (fun tags -> tags++\"ocaml\"++\"link\"++\"native\"++\"output_obj\") \
-       x;;\n\
-       \n\
-       rule \"ocaml: cmx* & o* -> native.o\"\n\
-      \  ~tags:[\"ocaml\"; \"native\"; \"output_obj\" ]\n\
-      \  ~prod:\"%%.native.o\" ~deps:[\"%%.cmx\"; \"%%.o\"]\n\
-      \  (native_output_obj \"%%.cmx\" \"%%.native.o\");;\n\
-       \n\
-       \n\
-       let byte_link_gen = link_gen \"cmo\" \"cma\" \"cma\" [\"cmo\"; \"cmi\"\
-       ];;\n\
-       let byte_output_obj = byte_link_gen ocamlc_link_prog\n\
-      \  (fun tags -> tags++\"ocaml\"++\"link\"++\"byte\"++\"output_obj\");;\n\
-       \n\
-       rule \"ocaml: cmo* -> byte.o\"\n\
-      \  ~tags:[\"ocaml\"; \"byte\"; \"link\"; \"output_obj\" ]\n\
-       ~prod:\"%%.byte.o\" ~dep:\"%%.cmo\"\n\
-      \  (byte_output_obj \"%%.cmo\" \"%%.byte.o\");;";
-  )
-
-let clean_myocamlbuild_ml ~root = Cmd.remove (root / "myocamlbuild.ml")
-
-module S = Set.Make(String)
-
 let configure_makefile ~target ~root ~name ~warn_error info =
   let open Codegen in
   let file = root / "Makefile" in
@@ -1647,7 +1604,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     | `MacOSX | `Unix -> ""
   in
   let extra_ld_flags archives =
-    let archives = S.elements (S.of_list archives) in
+    let archives = String.Set.elements (String.Set.of_list archives) in
     let extra_c_archives = String.concat ~sep:" \\\n\t  " archives in
     append fmt "EXTRA_LD_FLAGS = %s\n" extra_c_archives;
     append fmt "EXTRA_LD_FLAGS += %s\n"
@@ -1822,7 +1779,6 @@ let configure i =
          configure_main_xe ~root ~name;
          configure_main_libvirt_xml ~root ~name
        | _ -> ()) ;
-      configure_myocamlbuild_ml ~root;
       configure_makefile ~target ~root ~name ~warn_error i;
     )
 
@@ -1834,7 +1790,6 @@ let clean i =
       clean_main_xl ~root ~name ".xl.in";
       clean_main_xe ~root ~name;
       clean_main_libvirt_xml ~root ~name;
-      clean_myocamlbuild_ml ~root;
       clean_makefile ~root;
       Cmd.run "rm -rf %s/mir-%s" root name;
     )

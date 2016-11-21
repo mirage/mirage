@@ -240,6 +240,16 @@ module type CONSOLE = sig
   *)
 end
 
+module Block : sig
+  type error = [
+    | `Unknown of string (** an undiagnosed error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Is_read_only      (** you cannot write to a read/only instance *)
+    | `Disconnected      (** the device has been previously disconnected *)
+  ]
+  (** The type for IO operation errors. *)
+end
+
 (** {1 Sector-addressible block devices}
 
     Operations on sector-addressible block devices, usually used
@@ -249,14 +259,7 @@ module type BLOCK = sig
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Is_read_only      (** you cannot write to a read/only instance *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors. *)
-
+  type error = Block.error
 
   include DEVICE with
     type error := error

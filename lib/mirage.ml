@@ -1629,7 +1629,9 @@ let configure_makefile ~target ~root ~name ~opam_name ~warn_error info =
       append fmt "Makefile.ukvm:";
       append fmt "\t ukvm-configure $$(PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --variable=libdir solo5-kernel-ukvm)/src/ukvm $(UKVM_MODULES)";
       newline fmt;
-      append fmt "include Makefile.ukvm";
+      append fmt "ukvm-bin:: Makefile.ukvm";
+      append fmt "\t$(MAKE) -f Makefile.ukvm $@";
+      newline fmt;
       append fmt "build:: main.native.o ukvm-bin";
       tst_pkg_config pkg_config_deps;
       append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
@@ -1639,7 +1641,8 @@ let configure_makefile ~target ~root ~name ~opam_name ~warn_error info =
         name ;
       append fmt "\t@@echo Build succeeded";
       newline fmt;
-      append fmt "clean:: ukvm-clean\n\
+      append fmt "clean:: Makefile.ukvm\n\
+                  \t$(MAKE) -f Makefile.ukvm ukvm-clean\n\
                   \tocamlbuild -clean\n\
                   \t$(RM) Makefile.ukvm";
       R.ok ()

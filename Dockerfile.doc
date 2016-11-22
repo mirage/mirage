@@ -50,6 +50,7 @@ RUN opam depext -uivj 3 \
   jenga \
   logs \
   logs-syslog \
+  lru-cache \
   lwt \
   magic-mime \
   merlin \
@@ -87,6 +88,7 @@ RUN opam depext -uivj 3 \
   mirage-vnetif \
   mirage-xen \
   nocrypto \
+  notty \
   obytelib \
   ocaml-freestanding \
   ocamlclean \

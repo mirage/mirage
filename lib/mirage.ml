@@ -1589,13 +1589,6 @@ let configure_makefile ~target ~root ~name ~warn_error info =
               OPAM   = opam\n\n\
               export OPAMVERBOSE=1\n\
               export OPAMYES=1";
-  let ld = match target with
-   | `Ukvm -> pkg_config "solo5-kernel-ukvm" "--variable=ld"
-   | `Virtio -> pkg_config "solo5-kernel-virtio" "--variable=ld"
-   | `Xen | `Qubes | `MacOSX | `Unix -> "ld"
-  in
-  newline fmt;
-  append fmt "LD=%s" ld;
   newline fmt;
   let pkg_config_deps =
     match target with

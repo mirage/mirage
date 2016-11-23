@@ -144,6 +144,10 @@ module Flow : sig
     | `Closed
     | `Msg of string
   ]
+  type 'a or_eof = [
+    | `Data of 'a
+    | `Eof
+  ]
 end
 
 (** {1 Connection between endpoints} *)
@@ -159,7 +163,7 @@ module type FLOW = sig
   (** The type for flows. A flow represents the state of a single
       stream that is connected to an endpoint. *)
 
-  val read: flow -> ([`Data of buffer | `Eof ], Flow.error) result io
+  val read: flow -> (buffer Flow.or_eof, Flow.error) result io
   (** [read flow] blocks until some data is available and returns a
       fresh buffer containing it.
 
@@ -835,21 +839,21 @@ module type CHANNEL = sig
   val to_flow: t -> flow
   (** [to_flow t] returns the flow that backs this channel. *)
 
-  val read_char: t -> ([> `Data of char | `Eof ], [`Msg of string]) result io
+  val read_char: t -> (char Flow.or_eof, Flow.error) result io
   (** Reads a single character from the channel, blocking if there is
       no immediately available input data. *)
 
-  val read_some: ?len:int -> t -> ([> `Data of buffer | `Eof ], [> `Msg of string ]) result io
+  val read_some: ?len:int -> t -> (buffer Flow.or_eof, Flow.error) result io
   (** [read_some ?len t] reads up to [len] characters from the
       input channel and at most a full [buffer]. If [len] is not
       specified, it reads all available data and return that
       buffer. *)
 
-  val read_exactly: len:int -> t -> ([> `Data of buffer list | `Eof ], Flow.error) result io
+  val read_exactly: len:int -> t -> (buffer list Flow.or_eof, Flow.error) result io
   (** [read_exactly len t] reads [len] bytes from the channel [t] or fails
       with [Eof]. *)
 
-  val read_line: t -> ([> `Data of buffer list | `Eof ], [> `Msg of string ]) result io
+  val read_line: t -> (buffer list Flow.or_eof, Flow.error) result io
   (** [read_line t] reads a line of input, which is terminated
       either by a CRLF sequence, or the end of the channel (which
       counts as a line).  @return Returns a list of views that

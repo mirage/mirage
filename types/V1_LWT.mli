@@ -120,7 +120,6 @@ module type TCPV6 = TCP
 (** Buffered TCP channel *)
 module type CHANNEL = CHANNEL
   with type 'a io = 'a Lwt.t
-   and type 'a io_stream = 'a Lwt_stream.t
    and type buffer = Cstruct.t
 
 (** KV RO *)

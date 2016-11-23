@@ -52,6 +52,26 @@ let pp_block_write_error pp = function
   | `Disconnected  -> say pp "a required device was disconnected"
   | `Is_read_only  -> say pp "attempted to write to a read-only disk"
 
+let pp_fs_error pp = function
+    | `Msg message         -> unspecified pp message
+    | `Is_a_directory      -> say pp "is a directory"
+    | `Not_a_directory     -> say pp "is not a directory"
+    | `No_directory_entry  -> say pp "a directory in the path does not exist"
+    | `Format_unknown      -> say pp "the device is not formatted for this filesystem"
+
+let pp_fs_write_error pp = function
+  | `Msg message         -> unspecified pp message
+  | `Is_a_directory      -> say pp "is a directory"
+  | `Not_a_directory     -> say pp "is not a directory"
+  | `Directory_not_empty -> say pp "directory is not empty"
+  | `No_directory_entry  -> say pp "a directory in the path does not exist"
+  | `File_already_exists -> say pp "file already exists"
+  | `No_space            -> say pp "device has no more free space"
+
+let pp_kv_ro_error pp = function
+  | `Msg message   -> unspecified pp message
+  | `Unknown_key   -> say pp "key not present in the store"
+
 let reduce = function
   | Ok () -> Ok ()
   | Error (`Msg _) as e -> e

@@ -156,14 +156,14 @@ end
 module type FLOW = sig
 
   type +'a io
-  (** The type for potentially blocking I/O operation *)
+  (** The type for potentially blocking I/O operations. *)
 
   type buffer
   (** The type for memory buffer. *)
 
   type flow
   (** The type for flows. A flow represents the state of a single
-      stream that is connected to an endpoint. *)
+      reliable stream that is connected to an endpoint. *)
 
   val read: flow -> (buffer Flow.or_eof, Flow.error) result io
   (** [read flow] blocks until some data is available and returns a

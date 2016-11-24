@@ -28,8 +28,10 @@ open Result
     {ul
     {- errors which application programmers are expected to handle
        (e.g. connection refused or end of file) are encoded as result types
-       where [`Ok x] means the operation was succesful and returns [x] and
-       where [`Error e] means the operation has failed with error [e]. }
+       where [Ok x] means the operation was succesful and returns [x] and
+       where [Error e] means the operation has failed with error [e].
+       The error [e] uses the {!Rresult.R.msg} type for the most general
+       error message, and possibly more specific ones depending on the interface. }
     {- errors which represent programming errors such as assertion failures
        or illegal arguments are encoded as exceptions. The application may
        attempt to catch exceptions and recover or simply let the exception
@@ -846,7 +848,7 @@ module type CHANNEL = sig
   val read_some: ?len:int -> t -> (buffer Flow.or_eof, Flow.error) result io
   (** [read_some ?len t] reads up to [len] characters from the
       input channel and at most a full [buffer]. If [len] is not
-      specified, it reads all available data and return that
+      specified, it reads all available data and returns that
       buffer. *)
 
   val read_exactly: len:int -> t -> (buffer list Flow.or_eof, Flow.error) result io

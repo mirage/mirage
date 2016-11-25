@@ -28,8 +28,10 @@ open Result
     {ul
     {- errors which application programmers are expected to handle
        (e.g. connection refused or end of file) are encoded as result types
-       where [`Ok x] means the operation was succesful and returns [x] and
-       where [`Error e] means the operation has failed with error [e]. }
+       where [Ok x] means the operation was succesful and returns [x] and
+       where [Error e] means the operation has failed with error [e].
+       The error [e] uses the {!Rresult.R.msg} type for the most general
+       error message, and possibly more specific ones depending on the interface. }
     {- errors which represent programming errors such as assertion failures
        or illegal arguments are encoded as exceptions. The application may
        attempt to catch exceptions and recover or simply let the exception
@@ -144,22 +146,26 @@ module Flow : sig
     | `Closed
     | `Msg of string
   ]
+  type 'a or_eof = [
+    | `Data of 'a
+    | `Eof
+  ]
 end
 
 (** {1 Connection between endpoints} *)
 module type FLOW = sig
 
   type +'a io
-  (** The type for potentially blocking I/O operation *)
+  (** The type for potentially blocking I/O operations. *)
 
   type buffer
   (** The type for memory buffer. *)
 
   type flow
   (** The type for flows. A flow represents the state of a single
-      stream that is connected to an endpoint. *)
+      reliable stream that is connected to an endpoint. *)
 
-  val read: flow -> ([`Data of buffer | `Eof ], Flow.error) result io
+  val read: flow -> (buffer Flow.or_eof, Flow.error) result io
   (** [read flow] blocks until some data is available and returns a
       fresh buffer containing it.
 
@@ -828,9 +834,6 @@ module type CHANNEL = sig
   type +'a io
   (** The type for potentially blocking I/O operation *)
 
-  type 'a io_stream
-  (** The type for potentially blocking stream of IO requests. *)
-
   val create: flow -> t
   (** [create flow] allocates send and receive buffers and
       associates them with the given unbuffered [flow]. *)
@@ -838,31 +841,21 @@ module type CHANNEL = sig
   val to_flow: t -> flow
   (** [to_flow t] returns the flow that backs this channel. *)
 
-  val read_char: t -> char io
+  val read_char: t -> (char Flow.or_eof, Flow.error) result io
   (** Reads a single character from the channel, blocking if there is
       no immediately available input data. *)
 
-  val read_until: t -> char -> (bool * buffer) io
-  (** [read_until t ch] reads from the channel until the given
-      [ch] character is found.  It returns a tuple indicating whether
-      the character was found at all ([false] indicates that an EOF
-      condition occurred before the character was encountered), and
-      the [buffer] pointing to the position immediately after the
-      character (or the complete scanned buffer if the character was
-      never encountered). *)
-
-  val read_some: ?len:int -> t -> buffer io
+  val read_some: ?len:int -> t -> (buffer Flow.or_eof, Flow.error) result io
   (** [read_some ?len t] reads up to [len] characters from the
       input channel and at most a full [buffer]. If [len] is not
-      specified, it reads all available data and return that
+      specified, it reads all available data and returns that
       buffer. *)
 
-  val read_stream: ?len:int -> t -> buffer io_stream
-  (** [read_stream ?len t] returns up to [len] characters as a
-      stream of buffers. This call will probably be removed in a
-      future revision of the API in favour of {!read_some}. *)
+  val read_exactly: len:int -> t -> (buffer list Flow.or_eof, Flow.error) result io
+  (** [read_exactly len t] reads [len] bytes from the channel [t] or fails
+      with [Eof]. *)
 
-  val read_line: t -> buffer list io
+  val read_line: t -> (buffer list Flow.or_eof, Flow.error) result io
   (** [read_line t] reads a line of input, which is terminated
       either by a CRLF sequence, or the end of the channel (which
       counts as a line).  @return Returns a list of views that
@@ -886,11 +879,11 @@ module type CHANNEL = sig
   (** [write_line t buf] writes the string [buf] to the output
       channel and append a newline character afterwards. *)
 
-  val flush: t -> unit io
+  val flush: t -> (unit, Flow.write_error) result io
   (** [flush t] flushes the output buffer and block if necessary
       until it is all written out to the flow. *)
 
-  val close: t -> unit io
+  val close: t -> (unit, Flow.write_error) result io
   (** [close t] calls {!flush} and then close the underlying
       flow. *)
 

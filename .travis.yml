@@ -1,5 +1,5 @@
 language: c
-install: wget https://raw.githubusercontent.com/yomimono/ocaml-ci-scripts/pass-mode/.travis-docker.sh
+install: wget https://raw.githubusercontent.com/avsm/ocaml-ci-scripts/extra-env/.travis-docker.sh
 script: bash -ex .travis-docker.sh
 sudo: required
 services:
@@ -11,15 +11,15 @@ env:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
  matrix:
-   - PACKAGE=mirage-types DISTRO=debian-testing OCAML_VERSION=4.03.0 MODE=unix
-   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 MODE=xen
-   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 MODE=ukvm
-   - PACKAGE=mirage DISTRO=debian-unstable OCAML_VERSION=4.03.0 MODE=virtio
-   - PACKAGE=mirage-types DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0 MODE=unix
-   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0 MODE=virtio
-   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0 MODE=xen
-   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0 MODE=ukvm
-   - PACKAGE=mirage-types DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.0 MODE=unix
-   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.0 MODE=xen
-   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.0 MODE=ukvm
-   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.04.0 MODE=virtio
+   - PACKAGE=mirage-types DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=unix"
+   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=xen"
+   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=ukvm"
+   - PACKAGE=mirage DISTRO=debian-unstable OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=virtio"
+   - PACKAGE=mirage-types DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=unix"
+   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=virtio"
+   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=xen"
+   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=ukvm"
+   - PACKAGE=mirage-types DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.0 EXTRA_ENV="MODE=unix"
+   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.0 EXTRA_ENV="MODE=xen"
+   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.0 EXTRA_ENV="MODE=ukvm"
+   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.04.0 EXTRA_ENV="MODE=virtio"

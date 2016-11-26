@@ -1538,9 +1538,21 @@ let configure_makefile ~target ~opam_name =
 
 let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
 
-let configure_myocamlbuild () = Bos.OS.File.write Fpath.(v "myocamlbuild.ml") ""
+let fn = Fpath.(v "myocamlbuild.ml")
 
-let clean_myocamlbuild () = Bos.OS.File.delete Fpath.(v "myocamlbuild.ml")
+let configure_myocamlbuild () =
+  Bos.OS.File.exists fn >>= fun is ->
+  if is then
+    R.ok ()
+  else
+    Bos.OS.File.write fn ""
+
+let clean_myocamlbuild () =
+  Bos.OS.File.read fn >>= fun contents ->
+  if String.length contents = 0 then
+    Bos.OS.File.delete fn
+  else
+    R.ok ()
 
 let configure_opam ~name info =
   let open Codegen in

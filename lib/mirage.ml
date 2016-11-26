@@ -29,6 +29,12 @@ include Functoria
 
 let get_target i = Key.(get (Info.context i) target)
 
+let with_output ?mode f k err =
+  match Bos.OS.File.with_oc ?mode f k () with
+  | Ok b -> b
+  | Error _ -> R.error_msg ("couldn't open output channel for " ^ err)
+
+
 (** {2 OCamlfind predicates} *)
 
 (* Mirage implementation backing the target. *)
@@ -463,34 +469,32 @@ let fat_block ?(dir=".") ?(regexp="*") () =
     method configure i =
       let root = Info.root i in
       let file = Printf.sprintf "make-%s-image.sh" name in
-      (match
-         Bos.OS.File.with_oc ~mode:0o755 (Fpath.v file) (fun oc () ->
-             let fmt = Format.formatter_of_out_channel oc in
-             Codegen.append fmt "#!/bin/sh";
-             Codegen.append fmt "";
-             Codegen.append fmt "echo This uses the 'fat' command-line tool to \
-                                 build a simple FAT";
-             Codegen.append fmt "echo filesystem image.";
-             Codegen.append fmt "";
-             Codegen.append fmt "FAT=$(which fat)";
-             Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then";
-             Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line \
-                                 tool.";
-             Codegen.append fmt "  echo Try running 'opam install fat-filesystem'";
-             Codegen.append fmt "  exit 1";
-             Codegen.append fmt "fi";
-             Codegen.append fmt "";
-             Codegen.append fmt "IMG=$(pwd)/%s" block_file;
-             Codegen.append fmt "rm -f ${IMG}";
-             Codegen.append fmt "cd %s/" (Filename.concat root dir);
-             Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
-             Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
-             Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
-             Codegen.append fmt "echo Created '%s'" block_file;
-             R.ok ()) ()
-      with
-      | Ok b -> b
-      | Error _ -> R.error_msg "couldn't open output channel for fat shell script") >>= fun () ->
+      with_output ~mode:0o755 (Fpath.v file)
+        (fun oc () ->
+           let fmt = Format.formatter_of_out_channel oc in
+           Codegen.append fmt "#!/bin/sh";
+           Codegen.append fmt "";
+           Codegen.append fmt "echo This uses the 'fat' command-line tool to \
+                               build a simple FAT";
+           Codegen.append fmt "echo filesystem image.";
+           Codegen.append fmt "";
+           Codegen.append fmt "FAT=$(which fat)";
+           Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then";
+           Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line \
+                               tool.";
+           Codegen.append fmt "  echo Try running 'opam install fat-filesystem'";
+           Codegen.append fmt "  exit 1";
+           Codegen.append fmt "fi";
+           Codegen.append fmt "";
+           Codegen.append fmt "IMG=$(pwd)/%s" block_file;
+           Codegen.append fmt "rm -f ${IMG}";
+           Codegen.append fmt "cd %s/" (Filename.concat root dir);
+           Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
+           Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
+           Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
+           Codegen.append fmt "echo Created '%s'" block_file;
+           R.ok ())
+        "fat shell script" >>= fun () ->
       Bos.OS.Cmd.run (Bos.Cmd.v ("./make-" ^ name ^ "-image.sh")) >>= fun () ->
       super#configure i
 
@@ -1269,60 +1273,57 @@ let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
   let file = Fpath.(v root / (name ^  "_libvirt") + "xml") in
-  match
-    Bos.OS.File.with_oc file (fun oc () ->
-        let fmt = Format.formatter_of_out_channel oc in
-        append fmt "<!-- %s -->" (generated_header ());
-        append fmt "<domain type='xen'>";
-        append fmt "    <name>%s</name>" name;
-        append fmt "    <memory unit='KiB'>262144</memory>";
-        append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
-        append fmt "    <vcpu placement='static'>1</vcpu>";
-        append fmt "    <os>";
-        append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-        append fmt "        <kernel>%s/mir-%s.xen</kernel>" root name;
-        append fmt "        <cmdline> </cmdline>";
-        (* the libxl driver currently needs an empty cmdline to be able to
+  with_output file
+    (fun oc () ->
+       let fmt = Format.formatter_of_out_channel oc in
+       append fmt "<!-- %s -->" (generated_header ());
+       append fmt "<domain type='xen'>";
+       append fmt "    <name>%s</name>" name;
+       append fmt "    <memory unit='KiB'>262144</memory>";
+       append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
+       append fmt "    <vcpu placement='static'>1</vcpu>";
+       append fmt "    <os>";
+       append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
+       append fmt "        <kernel>%s/mir-%s.xen</kernel>" root name;
+       append fmt "        <cmdline> </cmdline>";
+       (* the libxl driver currently needs an empty cmdline to be able to
            start the domain on arm - due to this?
            http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
-        append fmt "    </os>";
-        append fmt "    <clock offset='utc' adjustment='reset'/>";
-        append fmt "    <on_crash>preserve</on_crash>";
-        append fmt "    <!-- ";
-        append fmt "    You must define network and block interfaces manually.";
-        append fmt "    See http://libvirt.org/drvxen.html for information about \
-                    converting .xl-files to libvirt xml automatically.";
-        append fmt "    -->";
-        append fmt "    <devices>";
-        append fmt "        <!--";
-        append fmt "        The disk configuration is defined here:";
-        append fmt "        http://libvirt.org/formatstorage.html.";
-        append fmt "        An example would look like:";
-        append fmt"         <disk type='block' device='disk'>";
-        append fmt "            <driver name='phy'/>";
-        append fmt "            <source dev='/dev/loop0'/>";
-        append fmt "            <target dev='' bus='xen'/>";
-        append fmt "        </disk>";
-        append fmt "        -->";
-        append fmt "        <!-- ";
-        append fmt "        The network configuration is defined here:";
-        append fmt "        http://libvirt.org/formatnetwork.html";
-        append fmt "        An example would look like:";
-        append fmt "        <interface type='bridge'>";
-        append fmt "            <mac address='c0:ff:ee:c0:ff:ee'/>";
-        append fmt "            <source bridge='br0'/>";
-        append fmt "        </interface>";
-        append fmt "        -->";
-        append fmt "        <console type='pty'>";
-        append fmt "            <target type='xen' port='0'/>";
-        append fmt "        </console>";
-        append fmt "    </devices>";
-        append fmt "</domain>";
-        R.ok ()) ()
-  with
-  | Ok b -> b
-  | Error _ -> R.error_msg "couldn't open output channel for libvirt xml file"
-
+       append fmt "    </os>";
+       append fmt "    <clock offset='utc' adjustment='reset'/>";
+       append fmt "    <on_crash>preserve</on_crash>";
+       append fmt "    <!-- ";
+       append fmt "    You must define network and block interfaces manually.";
+       append fmt "    See http://libvirt.org/drvxen.html for information about \
+                   converting .xl-files to libvirt xml automatically.";
+       append fmt "    -->";
+       append fmt "    <devices>";
+       append fmt "        <!--";
+       append fmt "        The disk configuration is defined here:";
+       append fmt "        http://libvirt.org/formatstorage.html.";
+       append fmt "        An example would look like:";
+       append fmt"         <disk type='block' device='disk'>";
+       append fmt "            <driver name='phy'/>";
+       append fmt "            <source dev='/dev/loop0'/>";
+       append fmt "            <target dev='' bus='xen'/>";
+       append fmt "        </disk>";
+       append fmt "        -->";
+       append fmt "        <!-- ";
+       append fmt "        The network configuration is defined here:";
+       append fmt "        http://libvirt.org/formatnetwork.html";
+       append fmt "        An example would look like:";
+       append fmt "        <interface type='bridge'>";
+       append fmt "            <mac address='c0:ff:ee:c0:ff:ee'/>";
+       append fmt "            <source bridge='br0'/>";
+       append fmt "        </interface>";
+       append fmt "        -->";
+       append fmt "        <console type='pty'>";
+       append fmt "            <target type='xen' port='0'/>";
+       append fmt "        </console>";
+       append fmt "    </devices>";
+       append fmt "</domain>";
+       R.ok ())
+    "libvirt.xml"
 
 let clean_main_libvirt_xml ~name =
   Bos.OS.File.delete Fpath.(v (name ^ "_libvirt") + "xml")
@@ -1395,7 +1396,7 @@ let configure_main_xl ?substitutions ext i =
     | None -> defaults i in
   let file = Fpath.(v (Info.root i) / (Info.name i) + ext) in
   let open Codegen in
-  match Bos.OS.File.with_oc file (fun oc () ->
+  with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ()) ;
       newline fmt;
@@ -1432,74 +1433,68 @@ let configure_main_xl ?substitutions ext i =
       append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" \
                   below:";
       append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
-      R.ok ()) ()
-  with
-  | Ok b -> b
-  | Error _ -> R.error_msg "couldn't open output channel for xl file"
+      R.ok ()) "xl file"
 
 let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
 
 let configure_main_xe ~root ~name =
   let open Codegen in
   let file = Fpath.(v name + "xe") in
-  match
-    Bos.OS.File.with_oc ~mode:0o755 file (fun oc () ->
-        let fmt = Format.formatter_of_out_channel oc in
-        append fmt "#!/bin/sh";
-        append fmt "# %s" (generated_header ());
-        newline fmt;
-        append fmt "set -e";
-        newline fmt;
-        append fmt "# Dependency: xe";
-        append fmt "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but \
-                    it's not installed.  Aborting.\"; exit 1; }";
-        append fmt "# Dependency: xe-unikernel-upload";
-        append fmt "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I \
-                    require xe-unikernel-upload but it's not installed.  Aborting.\"\
-                    ; exit 1; }";
-        append fmt "# Dependency: a $HOME/.xe";
-        append fmt "if [ ! -e $HOME/.xe ]; then";
-        append fmt "  echo Please create a config file for xe in $HOME/.xe which \
-                    contains:";
-        append fmt "  echo server='<IP or DNS name of the host running xapi>'";
-        append fmt "  echo username=root";
-        append fmt "  echo password=password";
-        append fmt "  exit 1";
-        append fmt "fi";
-        newline fmt;
-        append fmt "echo Uploading VDI containing unikernel";
-        append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" root name;
-        append fmt "echo VDI=$VDI";
-        append fmt "echo Creating VM metadata";
-        append fmt "VM=$(xe vm-create name-label=%s)" name;
-        append fmt "echo VM=$VM";
-        append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
-        append fmt "echo Adding network interface connected to xenbr0";
-        append fmt "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
-        append fmt "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
-        append fmt "echo Atting block device and making it bootable";
-        append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
-        append fmt "xe vbd-param-set uuid=$VBD bootable=true";
-        append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
-        List.iter (fun b ->
-            append fmt "echo Uploading data VDI %s" b.filename;
-            append fmt "echo VDI=$VDI";
-            append fmt "SIZE=$(stat --format '%%s' %s/%s)" root b.filename;
-            append fmt "POOL=$(xe pool-list params=uuid --minimal)";
-            append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
-            append fmt "VDI=$(xe vdi-create type=user name-label='%s' \
-                        virtual-size=$SIZE sr-uuid=$SR)" b.filename;
-            append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
-            append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
-              b.number;
-            append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
-          ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
-        append fmt "echo Starting VM";
-        append fmt "xe vm-start uuid=$VM";
-        R.ok ()) ()
-  with
-  | Ok b -> b
-  | Error _ -> R.error_msg "couldn't open output channel for xe file"
+  with_output ~mode:0o755 file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "#!/bin/sh";
+      append fmt "# %s" (generated_header ());
+      newline fmt;
+      append fmt "set -e";
+      newline fmt;
+      append fmt "# Dependency: xe";
+      append fmt "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but \
+                  it's not installed.  Aborting.\"; exit 1; }";
+      append fmt "# Dependency: xe-unikernel-upload";
+      append fmt "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I \
+                  require xe-unikernel-upload but it's not installed.  Aborting.\"\
+                  ; exit 1; }";
+      append fmt "# Dependency: a $HOME/.xe";
+      append fmt "if [ ! -e $HOME/.xe ]; then";
+      append fmt "  echo Please create a config file for xe in $HOME/.xe which \
+                  contains:";
+      append fmt "  echo server='<IP or DNS name of the host running xapi>'";
+      append fmt "  echo username=root";
+      append fmt "  echo password=password";
+      append fmt "  exit 1";
+      append fmt "fi";
+      newline fmt;
+      append fmt "echo Uploading VDI containing unikernel";
+      append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" root name;
+      append fmt "echo VDI=$VDI";
+      append fmt "echo Creating VM metadata";
+      append fmt "VM=$(xe vm-create name-label=%s)" name;
+      append fmt "echo VM=$VM";
+      append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
+      append fmt "echo Adding network interface connected to xenbr0";
+      append fmt "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
+      append fmt "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
+      append fmt "echo Atting block device and making it bootable";
+      append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
+      append fmt "xe vbd-param-set uuid=$VBD bootable=true";
+      append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
+      List.iter (fun b ->
+          append fmt "echo Uploading data VDI %s" b.filename;
+          append fmt "echo VDI=$VDI";
+          append fmt "SIZE=$(stat --format '%%s' %s/%s)" root b.filename;
+          append fmt "POOL=$(xe pool-list params=uuid --minimal)";
+          append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
+          append fmt "VDI=$(xe vdi-create type=user name-label='%s' \
+                      virtual-size=$SIZE sr-uuid=$SR)" b.filename;
+          append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
+          append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
+            b.number;
+          append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
+        ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
+      append fmt "echo Starting VM";
+      append fmt "xe vm-start uuid=$VM";
+      R.ok ())
+    "xe file"
 
 
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
@@ -1507,34 +1502,31 @@ let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 let configure_makefile ~target ~opam_name =
   let open Codegen in
   let file = Fpath.(v "Makefile") in
-  match
-    Bos.OS.File.with_oc file (fun oc () ->
-        let fmt = Format.formatter_of_out_channel oc in
-        append fmt "# %s" (generated_header ());
-        newline fmt;
-        let starget = Fmt.to_to_string Mirage_key.pp_target target in
-        append fmt "OPAM  = opam\n\
-                    \n\
-                    .PHONY: all depend clean build\n\
-                    all:: build\n\
-                    \n\
-                    depend::\n\
-                    \t$(OPAM) pin add --no-action --yes %s .\n\
-                    \t$(OPAM) install --yes --deps-only %s\n\
-                    \t$(OPAM) pin remove --no-action %s\n\
-                    \n\
-                    build::\n\
-                    \tmirage build -t %s\n\
-                    \n\
-                    clean::\n\
-                    \tmirage clean -t %s\n"
-          opam_name opam_name opam_name starget starget;
-        newline fmt;
-        append fmt "-include Makefile.user";
-        R.ok ()) ()
-  with
-  | Ok b -> b
-  | Error _ -> R.error_msg "couldn't open output channel for Makefile"
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "# %s" (generated_header ());
+      newline fmt;
+      let starget = Fmt.to_to_string Mirage_key.pp_target target in
+      append fmt "OPAM  = opam\n\
+                  \n\
+                  .PHONY: all depend clean build\n\
+                  all:: build\n\
+                  \n\
+                  depend::\n\
+                  \t$(OPAM) pin add --no-action --yes %s .\n\
+                  \t$(OPAM) install --yes --deps-only %s\n\
+                  \t$(OPAM) pin remove --no-action %s\n\
+                  \n\
+                  build::\n\
+                  \tmirage build -t %s\n\
+                  \n\
+                  clean::\n\
+                  \tmirage clean -t %s\n"
+        opam_name opam_name opam_name starget starget;
+      newline fmt;
+      append fmt "-include Makefile.user";
+      R.ok ())
+    "Makefile"
 
 let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
 
@@ -1554,18 +1546,16 @@ let clean_myocamlbuild () =
   else
     R.ok ()
 
-let configure_opam ~name info =
+let configure_opam ~name ~target info =
   let open Codegen in
   let file = Fpath.(v name + "opam") in
-  match
-    Bos.OS.File.with_oc file (fun oc () ->
-        let fmt = Format.formatter_of_out_channel oc in
-        append fmt "# %s" (generated_header ());
-        Info.opam ~name fmt info;
-        R.ok ()) ()
-  with
-  | Ok b -> b
-  | Error _ -> R.error_msg "couldn't open output channel for opam file"
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "# %s" (generated_header ());
+      Info.opam ~name fmt info;
+      append fmt "build: [ \"mirage\" \"build\" \"-t %a\" ]" Key.pp_target target;
+      R.ok ())
+    "opam file"
 
 let clean_opam ~name = Bos.OS.File.delete Fpath.(v name + "opam")
 
@@ -1590,7 +1580,7 @@ let configure i =
            configure_main_libvirt_xml ~root ~name
          | _ -> R.ok ()) >>= fun () ->
         configure_myocamlbuild () >>= fun () ->
-        configure_opam ~name:opam_name i >>= fun () ->
+        configure_opam ~target ~name:opam_name i >>= fun () ->
         configure_makefile ~target ~opam_name) ()
   with
   | Ok a -> a

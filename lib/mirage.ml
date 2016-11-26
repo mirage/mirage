@@ -27,7 +27,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 include Functoria
 
-let target i = Key.(get (Info.context i) target)
+let get_target i = Key.(get (Info.context i) target)
 
 (** {2 OCamlfind predicates} *)
 
@@ -48,7 +48,7 @@ let qrexec_qubes = impl @@ object
   method module_name = "Qubes.RExec"
   method packages = Key.pure [package "mirage-qubes"]
   method configure i =
-    match target i with
+    match get_target i with
     | `Qubes -> R.ok ()
     | _ ->
       Log.err (fun m -> m "Qubes remote-exec invoked for non-Qubes target, stopping.");
@@ -75,7 +75,7 @@ let gui_qubes = impl @@ object
   method module_name = "Qubes.GUI"
   method packages = Key.pure [package "mirage-qubes"]
   method configure i =
-    match target i with
+    match get_target i with
     | `Qubes -> R.ok ()
     | _ ->
       Log.err (fun m -> m  "Qubes GUI invoked for non-Qubes target, stopping.");
@@ -232,7 +232,7 @@ let nocrypto = impl @@ object
 
     method build _ = R.ok (enable_entropy ())
     method connect i _ _ =
-      match target i with
+      match get_target i with
       | `Xen | `Qubes | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
 
@@ -405,7 +405,7 @@ class block_conf file =
 
     method connect i s _ =
       Printf.sprintf "%s.connect %S" s
-        (self#connect_name (target i) @@ Info.root i)
+        (self#connect_name (get_target i) @@ Info.root i)
 
   end
 
@@ -1234,7 +1234,7 @@ let mprof_trace ~size () =
                opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'") ;
         Error (`Msg "no lwt.tracing")
 
-    method connect i _ _ = match target i with
+    method connect i _ _ = match get_target i with
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf

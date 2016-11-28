@@ -4,6 +4,7 @@ val pp_console_error: Format.formatter -> Console.error -> unit
 
 val pp_network_error: Format.formatter -> Network.error -> unit
 val pp_ethif_error  : Format.formatter -> Ethif.error -> unit
+val pp_arp_error    : Format.formatter -> Arp.error -> unit
 val pp_ip_error     : Format.formatter -> Ip.error -> unit
 val pp_icmp_error   : Format.formatter -> Icmp.error -> unit
 val pp_udp_error    : Format.formatter -> Udp.error -> unit

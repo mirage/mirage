@@ -56,7 +56,24 @@ module Arg = struct
 
   let ip = of_module (module Ipaddr)
   let ipv4 = of_module (module Ipaddr.V4)
-  let ipv4_prefix = of_module (module Ipaddr.V4.Prefix)
+  let ipv4_network =
+    let serialize fmt (ip, prefix) =
+      Format.fprintf fmt "\"%a/%d\"" Ipaddr.V4.pp_hum ip (Ipaddr.V4.Prefix.bits prefix)
+    in
+    let parse str =
+      let (>>=) x f =
+        match x with
+        | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
+        | Some g -> f g
+      in
+      Ipaddr.V4.Prefix.of_string str >>= fun network ->
+      (* recover the IP *)
+      Astring.String.cut ~sep:"/" str >>= fun (ip, _) ->
+      Ipaddr.V4.of_string ip >>= fun ip ->
+      `Ok (ip, network)
+    in
+    parse, serialize
+
   let ipv6 = of_module (module Ipaddr.V6)
   let ipv6_prefix = of_module (module Ipaddr.V6.Prefix)
 

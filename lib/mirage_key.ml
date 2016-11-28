@@ -44,12 +44,38 @@ module Arg = struct
   let builtin d mn m = of_module (from_run d) mn m
 
   let ipv4 = builtin "ipv4" "Ipaddr.V4" (module Ipaddr.V4)
-  let ipv4_prefix =
-    builtin "ipv4_prefix" "Ipaddr.V4.Prefix" (module Ipaddr.V4.Prefix)
   let ipv6 = builtin "ipv6" "Ipaddr.V6" (module Ipaddr.V6)
   let ipv6_prefix =
     builtin "ipv6_prefix" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
 
+  let ipv4_network =
+    let serialize fmt (ip, prefix) =
+      Format.fprintf fmt "((Ipaddr.V4.of_string_exn \"%a\"), (Ipaddr.V4.Prefix.of_string_exn \"%a/%d\"))"
+      Ipaddr.V4.pp_hum ip
+      Ipaddr.V4.pp_hum ip
+      (Ipaddr.V4.Prefix.bits prefix)
+    in
+    let print fmt (ip, prefix) = 
+      Format.fprintf fmt "%a/%d" Ipaddr.V4.pp_hum ip (Ipaddr.V4.Prefix.bits prefix)
+    in
+    let parse str =
+      let (>>=) x f =
+        match x with
+        | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
+        | Some g -> f g
+      in
+      Ipaddr.V4.Prefix.of_string str >>= fun network ->
+      (* recover the IP *)
+      Astring.String.cut ~sep:"/" str >>= fun (ip, _) ->
+      Ipaddr.V4.of_string ip >>= fun ip ->
+      `Ok (ip, network)
+    in
+    let runtime_conv = "Mirage_runtime.Arg.ipv4_network"
+    in
+    Functoria_key.Arg.conv
+      ~conv:(parse, print)
+      ~serialize
+      ~runtime_conv
 end
 
 (** {2 Documentation helper} *)
@@ -238,13 +264,9 @@ let interface ?group default =
 
 module V4 = struct
 
-  let ip ?group default =
-    let doc = Fmt.strf "The ip address of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.ipv4 "ip"
-
   let network ?group default =
-    let doc = Fmt.strf "The network of %a specified as an IP address and netmask, e.g. 192.168.0.0/16 ." pp_group group in
-    create_simple ~doc ~default ?group Arg.ipv4_prefix "network"
+    let doc = Fmt.strf "The network of %a specified as an IP address and netmask, e.g. 192.168.0.1/16 ." pp_group group in
+    create_simple ~doc ~default ?group Arg.ipv4_network "network"
 
   let gateway ?group default =
     let doc = Fmt.strf "The gateway of %a." pp_group group in

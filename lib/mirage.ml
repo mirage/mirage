@@ -1618,7 +1618,7 @@ let compile libs warn_error target =
                      "-tag-line" % tag_line %
                      result)
   in
-  Log.info (fun m -> m "executing %s" (Bos.Cmd.to_string cmd));
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
 
 (* Implement something similar to the @name/file extended names of findlib. *)
@@ -1697,13 +1697,13 @@ let link info name target =
            __aeabi_dcmpge, __aeabi_dadd, ...) *)
       Bos.OS.Cmd.run_out Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") |> Bos.OS.Cmd.out_string >>= fun (libgcc, _) ->
       let link = Bos.Cmd.(linker % libgcc % "-o" % (name ^ ".elf")) in
-      Log.info (fun m -> m "linking with %s" (Bos.Cmd.to_string link));
+      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
       Bos.OS.Cmd.run link >>= fun () ->
       Bos.OS.Cmd.run Bos.Cmd.(v "objcopy" % "-O" % "binary" % (name ^ ".elf") % out) >>= fun () ->
       Ok out
     end else begin
       let link = Bos.Cmd.(linker % "-o" % out) in
-      Log.info (fun m -> m "linking with %s" (Bos.Cmd.to_string link));
+      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
       Bos.OS.Cmd.run link >>= fun () ->
       Ok out
     end
@@ -1713,7 +1713,7 @@ let link info name target =
     ldflags "solo5-kernel-virtio" >>= fun ldflags ->
     let out = name ^ ".virtio" in
     let linker = Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs % "-o" % out) in
-    Log.info (fun m -> m "linking with %s" (Bos.Cmd.to_string linker));
+    Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
     Ok out
   | `Ukvm ->
@@ -1735,7 +1735,7 @@ let link info name target =
     | [ libdir ] ->
       Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm")) >>= fun () ->
       Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.ukvm" % "ukvm-bin") >>= fun () ->
-      Log.info (fun m -> m "linking with %s" (Bos.Cmd.to_string linker));
+      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
       Bos.OS.Cmd.run linker >>= fun () ->
       Ok out
     | _ -> R.error_msg "pkg-config solo5-kernel-ukvm --variable=libdir failed"

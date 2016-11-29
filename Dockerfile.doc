@@ -6,7 +6,6 @@ RUN opam depext -uivy -j 2 odig
 RUN opam depext -uivj 3 \
   alcotest \
   angstrom \
-  arp \
   asn1-combinators \
   astring \
   base64 \
@@ -59,7 +58,6 @@ RUN opam depext -uivj 3 \
   mirage-block-ccm \
   mirage-block-solo5 \
   mirage-block-unix \
-  mirage-block-ramdisk \
   mirage-block-xen \
   mirage-bootvar-solo5 \
   mirage-bootvar-xen \
@@ -134,6 +132,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
+# to fix: arp mirage-block-ramdisk
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

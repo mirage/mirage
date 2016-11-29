@@ -15,7 +15,12 @@ let pp_ethif_error = pp_network_error
 let pp_arp_error pp = function
   | `Timeout -> Format.fprintf pp "Dynamic ARP timed out"
 
-let pp_ip_error = pp_ethif_error
+let pp_ip_error pp = function
+  | `Msg message   -> unspecified pp message
+  | `Unimplemented -> Format.fprintf pp "operation not yet implemented"
+  | `Disconnected  -> Format.fprintf pp "device is disconnected"
+  | `No_route      -> Format.fprintf pp "no route to destination"
+
 
 let pp_icmp_error pp = function
   | `Msg message   -> unspecified pp message

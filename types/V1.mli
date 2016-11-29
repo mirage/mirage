@@ -383,6 +383,7 @@ end
 module Ip : sig
   type error = [
     | `Msg of string     (** an undiagnosed error *)
+    | `No_route          (** can't send a message to that destination *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]

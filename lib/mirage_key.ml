@@ -43,34 +43,25 @@ module Arg = struct
   let from_run s = "Mirage_runtime.Arg." ^ s
   let builtin d mn m = of_module (from_run d) mn m
 
-  let ipv4 = builtin "ipv4" "Ipaddr.V4" (module Ipaddr.V4)
+  let ipv4_address = builtin "ipv4_address" "Ipaddr.V4" (module Ipaddr.V4)
   let ipv6 = builtin "ipv6" "Ipaddr.V6" (module Ipaddr.V6)
   let ipv6_prefix =
     builtin "ipv6_prefix" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
 
-  let ipv4_network =
-    let serialize fmt (ip, prefix) =
-      Format.fprintf fmt "((Ipaddr.V4.of_string_exn \"%a\"), (Ipaddr.V4.Prefix.of_string_exn \"%a/%d\"))"
-      Ipaddr.V4.pp_hum ip
-      Ipaddr.V4.pp_hum ip
-      (Ipaddr.V4.Prefix.bits prefix)
+  let ipv4 =
+    let serialize fmt (prefix, ip) =
+      Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn \"%s\")"
+      @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
-    let print fmt (ip, prefix) = 
-      Format.fprintf fmt "%a/%d" Ipaddr.V4.pp_hum ip (Ipaddr.V4.Prefix.bits prefix)
+    let print fmt (prefix, ip) = 
+      Format.fprintf fmt "%s" @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
     let parse str =
-      let (>>=) x f =
-        match x with
-        | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
-        | Some g -> f g
-      in
-      Ipaddr.V4.Prefix.of_string str >>= fun network ->
-      (* recover the IP *)
-      Astring.String.cut ~sep:"/" str >>= fun (ip, _) ->
-      Ipaddr.V4.of_string ip >>= fun ip ->
-      `Ok (ip, network)
+      match Ipaddr.V4.Prefix.of_address_string str with
+      | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
+      | Some (network, ip) -> `Ok (network, ip)
     in
-    let runtime_conv = "Mirage_runtime.Arg.ipv4_network"
+    let runtime_conv = "Mirage_runtime.Arg.ipv4"
     in
     Functoria_key.Arg.conv
       ~conv:(parse, print)
@@ -260,23 +251,23 @@ module V4 = struct
 
   let network ?group default =
     let doc = Fmt.strf "The network of %a specified as an IP address and netmask, e.g. 192.168.0.1/16 ." pp_group group in
-    create_simple ~doc ~default ?group Arg.ipv4_network "network"
+    create_simple ~doc ~default ?group Arg.ipv4 "ipv4"
 
   let gateway ?group default =
     let doc = Fmt.strf "The gateway of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(some ipv4) "gateway"
+    create_simple ~doc ~default ?group Arg.(some ipv4_address) "gateway"
 
   let socket ?group default =
     let doc =
       Fmt.strf "The address bounds by the socket in %a." pp_group group
     in
-    create_simple ~doc ~default ?group Arg.(some ipv4) "socket"
+    create_simple ~doc ~default ?group Arg.(some ipv4_address) "socket"
 
   let interfaces ?group default =
     let doc =
       Fmt.strf "The interfaces bound by the socket in %a." pp_group group
     in
-    create_simple ~doc ~default ?group Arg.(list ipv4) "interfaces"
+    create_simple ~doc ~default ?group Arg.(list ipv4_address) "interfaces"
 
 end
 

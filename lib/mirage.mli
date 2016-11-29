@@ -284,7 +284,7 @@ val ipv6: ipv6 typ
 (** The [V1.IPV6] module signature. *)
 
 type ipv4_config = {
-  network : Ipaddr.V4.t * Ipaddr.V4.Prefix.t;
+  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
   gateway : Ipaddr.V4.t option;
 }
 (** Types for IPv4 manual configuration. *)

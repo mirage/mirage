@@ -99,6 +99,38 @@ module type KEY = module type of struct include Functoria_key end
 (** The signature for run-time and configure-time command-line
     keys. *)
 
+(** {1:pkg Package dependencies}
+
+    For specifying opam package dependencies, the type {!package} is used.  It
+    consists of the opam package name, the ocamlfind names, and optional lower
+    and upper bounds.  The version constraints are merged with other modules.
+*)
+
+type package = private {
+  opam : string ;
+  build : bool ;
+  ocamlfind : Astring.String.Set.t ;
+  min : string option ;
+  max : string option
+}
+(** The type of a package *)
+
+val package :
+  ?build:bool ->
+  ?sublibs:string list ->
+  ?ocamlfind:string list ->
+  ?min:string ->
+  ?max:string ->
+  string -> package
+(** [package ~build ~sublibs ~ocamlfind ~min ~max opam] is a [package].  [Build]
+    indicates a build-time dependency only, defaults to [false]. The ocamlfind
+    name is by default the same as [opam], you can specify [~sublibs] to add
+    additional sublibraries (e.g. [~sublibs:["mirage"] "foo"] will result in the
+    findlib names [ ["foo"; "foo.mirage"] ].  In case the findlib name is
+    disjoint (or empty), use [~ocamlfind].  Specifying both [~ocamlfind] and
+    [~sublibs] leads to an invalid argument.  Version constraints are given as
+    [min] (inclusive) and [max] (exclusive). *)
+
 (** {1:app Application Builder}
 
     Values of type {!impl} are tied to concrete module implementation
@@ -109,8 +141,7 @@ module type KEY = module type of struct include Functoria_key end
     application. See {!Functoria_app} for details. *)
 
 val foreign:
-  ?packages:string list ->
-  ?libraries:string list ->
+  ?packages:package list ->
   ?keys:key list ->
   ?deps:abstract_impl list ->
   string -> 'a typ -> 'a impl
@@ -118,10 +149,8 @@ val foreign:
     [typ].
 
     {ul
-    {- If [packages] is set, then the given OPAM packages are
+    {- If [packages] is set, then the given packages are
        installed before compiling the current application.}
-    {- If [libraries] is set, the given OCamlfind libraries are
-       included and linked with the module [name].}
     {- If [keys] is set, use the given {{!Functoria_key.key}keys} to
        parse at configure and runtime the command-line arguments
        before calling [name.connect].}
@@ -130,9 +159,8 @@ val foreign:
        initialized before calling [name.connect]. }
     }
 
-    For a more flexible definition of libraries and packages, or for a custom
-    configuration step, see the {!configurable} class type and the
-    {!class:foreign} class.
+    For a more flexible definition of packages, or for a custom configuration
+    step, see the {!configurable} class type and the {!class:foreign} class.
 *)
 
 (** Information about the final application. *)
@@ -148,9 +176,12 @@ module Info: sig
   (** Directory in which the configuration is done. *)
 
   val libraries: t -> string list
-  (** OCamlfind libraries needed by the project. *)
+  (** OCamlfind libraries needed by the project at runtime. *)
 
-  val packages: t -> string list
+  val package_names: t -> string list
+  (** OPAM packages names needed by the project at runtime. *)
+
+  val packages: t -> package list
   (** OPAM packages needed by the project. *)
 
   val keys: t -> key list
@@ -163,15 +194,17 @@ module Info: sig
   (** [create context n r] contains information about the application
       being built. *)
   val create:
-    ?packages:string list ->
-    ?libraries:string list ->
-    ?keys:key list ->
+    packages:package list ->
+    keys:key list ->
     context:context ->
     name:string ->
     root:string -> t
 
   val pp: bool -> t Fmt.t
 
+  val opam : ?name:string -> t Fmt.t
+  (** [opam ~name t] generates an opam file including all dependencies.  The
+      [name] will be used as package name, defaults to {!name}. *)
 end
 
 (** Signature for configurable module implementations. A
@@ -192,13 +225,9 @@ class type ['ty] configurable = object
   (** [module_name] is the name of the module implementing the
       configurable. *)
 
-  method packages: string list value
+  method packages: package list value
   (** [packages] is the list of OPAM packages which needs to be
       installed before compiling the configurable. *)
-
-  method libraries: string list value
-  (** [libraries] is the list of OCamlfind libraries to include and
-      link with the configurable. *)
 
   method connect: Info.t -> string -> string list -> string
   (** [connect info mod args] is the code to execute in order to
@@ -206,14 +235,22 @@ class type ['ty] configurable = object
       calling [mod.connect]) with the arguments [args], in the context
       of the project information [info]. *)
 
-  method configure: Info.t -> (unit, string) Rresult.result
+  method configure: Info.t -> (unit, Rresult.R.msg) Rresult.result
   (** [configure info] is the code to execute in order to configure
-      the device. This might involve generating more OCaml code,
-      running bash scripts, etc. *)
+      the device.  During the configuration phase, the specficied
+      {!packages} might not yet be there.  The code might involve
+      generating more OCaml code, running shell scripts, etc. *)
 
-  method clean: Info.t -> (unit, string) Rresult.result
+  method build: Info.t -> (unit, Rresult.R.msg) Rresult.result
+  (** [build info] is the code to execute in order to build
+      the device.  During the build phase, you can rely that all
+      {!packages} are installed (via opam).  The code might involve
+      generating more OCaml code (crunching directories), running
+      shell scripts, etc. *)
+
+  method clean: Info.t -> (unit, Rresult.R.msg) Rresult.result
   (** [clean info] is the code to clean-up what has been generated
-      by {!configure}. *)
+      by {!build} and {!configure}. *)
 
   method keys: key list
   (** [keys] is the list of command-line keys to set-up the
@@ -243,31 +280,31 @@ val impl: 'a configurable -> 'a impl
     ]}
 *)
 class base_configurable: object
-  method libraries: string list value
-  method packages: string list value
+  method packages: package list value
   method keys: key list
   method connect: Info.t -> string -> string list -> string
-  method configure: Info.t -> (unit, string) Rresult.result
-  method clean: Info.t -> (unit, string) Rresult.result
+  method configure: Info.t -> (unit, Rresult.R.msg) Rresult.result
+  method build: Info.t -> (unit, Rresult.R.msg) Rresult.result
+  method clean: Info.t -> (unit, Rresult.R.msg) Rresult.result
   method deps: abstract_impl list
 end
 
 class ['a] foreign:
-  ?packages:string list ->
-  ?libraries:string list ->
+  ?packages:package list ->
   ?keys:key list ->
   ?deps:abstract_impl list ->
   string -> 'a typ -> ['a] configurable
 (** This class can be inherited to define a {!configurable} with an API
     similar to {!foreign}.
 
-    In particular, it allows dynamic libraries and packages. Here is an example:
+    In particular, it allows dynamic packages. Here is an example:
     {[
       let main = impl @@ object
           inherit [_] foreign
-              ~packages:["vchan"]
               "Unikernel.Main" (console @-> job)
-          method libraries = Key.(if_ is_xen) ["vchan.xen"] ["vchan.lwt"]
+          method packages = Key.(if_ is_xen)
+              [package ~sublibs:["xen"] "vchan"]
+              [package ~sublibs:["lwt"] "vchan"]
         end
     ]}
 *)

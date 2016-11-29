@@ -199,7 +199,7 @@ module Set = struct
     if mem k set then
       if k != find k set then
         let Any k' = k in
-        Log.fatal "Duplicate key name: %S" k'.name
+        invalid_arg ("Duplicate key name: " ^ k'.name)
       else
         set
     else

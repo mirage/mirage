@@ -89,8 +89,7 @@ module Make (P: S): sig
   open Functoria
 
   val register:
-    ?packages:string list ->
-    ?libraries:string list ->
+    ?packages:package list ->
     ?keys:key list ->
     ?init:job impl list ->
     string -> job impl list -> unit
@@ -128,54 +127,6 @@ module Name: sig
   val create: string -> prefix:string -> string
   (** [name key ~prefix] is an deterministic name starting by
       [prefix]. The name is derived from [key].  *)
-
-end
-
-(** Shell command helpers. FIXME: replace by [Bos]. *)
-module Cmd: sig
-
-  val exists: string -> bool
-  (** [exists cmd] is [true] if the command [cmd] is available in {i
-      $PATH}. *)
-
-  val run: ?redirect:bool ->
-    ('a, unit, string, (unit, string) Rresult.result) format4 -> 'a
-
-  val read: ('a, unit, string,  (string, string) Rresult.result) format4 -> 'a
-
-  val remove: string -> unit
-
-  val with_file: string -> (Format.formatter -> 'a) -> 'a
-  val in_dir: string -> (unit -> 'a) -> 'a
-
-  val uname_s: unit -> string option
-  val uname_m: unit -> string option
-  val uname_r: unit -> string option
-
-  val ocaml_version: unit -> int * int
-  (** [ocaml_version] is [ocaml -version]'s output. *)
-
-  module OCamlfind: sig
-    val query:
-      ?predicates:string list -> ?format:string -> ?recursive:bool ->
-      string list -> (string list, string) Rresult.result
-  end
-
-end
-
-(** Console logging. FIXME: replace by [Bos.Log]. *)
-module Log: sig
-
-  val blue: string Fmt.t
-  val yellow: string Fmt.t
-  val red: string Fmt.t
-  val green: string Fmt.t
-
-  val error:
-    ('a, Format.formatter, unit, ('b, string) Rresult.result) format4 -> 'a
-  (** [error] display an error on the console. *)
-
-  val info: ('a, Format.formatter, unit, unit) format4 -> 'a
 
 end
 

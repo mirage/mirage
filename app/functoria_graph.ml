@@ -47,11 +47,11 @@ type subconf = <
   name: string;
   module_name: string;
   keys: Key.t list;
-  packages: string list Key.value;
-  libraries: string list Key.value;
+  packages: package list Key.value;
   connect: Info.t -> string -> string list -> string;
-  configure: Info.t -> (unit, string) Rresult.result;
-  clean: Info.t -> (unit, string) Rresult.result;
+  build: Info.t -> (unit, [ `Msg of string ]) Rresult.result;
+  configure: Info.t -> (unit, [ `Msg of string ]) Rresult.result;
+  clean: Info.t -> (unit, [ `Msg of string ]) Rresult.result;
 >
 
 (* Helpers for If nodes. *)

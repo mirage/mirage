@@ -16,7 +16,6 @@
 
 open OUnit2
 
-open Functoria_misc
 module Cmd = Functoria_command_line
 
 let test_configure _ =
@@ -30,15 +29,13 @@ let test_configure _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
+      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
-      [|"name"; "configure"; "--xyz"; "--verbose"; "--no-opam"|]
+      [|"name"; "configure"; "--xyz"; "--verbose"|]
   in
   assert_equal
-    (`Ok (Cmd.Configure { result = (true, false);
-                          no_opam = true;
-                          no_opam_version = false;
-                          no_depext = false }))
+    (`Ok (Cmd.Configure (true, false)))
     result
 
 
@@ -53,6 +50,7 @@ let test_describe _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
+      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"; "describe"; "--cde"; "--file=tests/config.ml";
@@ -65,6 +63,25 @@ let test_describe _ =
                          output = None }))
     result
 
+let test_build _ =
+  let extra_term = Cmdliner.(Term.(
+      pure (fun xyz cde -> (xyz, cde))
+      $ Arg.(value (flag (info ["x"; "xyz"])))
+      $ Arg.(value (flag (info ["c"; "cde"])))
+    ))
+  in
+  let result =
+    Cmd.parse_args ~name:"name" ~version:"0.2"
+      ~configure:extra_term
+      ~describe:extra_term
+      ~build:extra_term
+      ~clean:extra_term
+      ~help:extra_term
+      [|"name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v"|]
+  in
+  assert_equal
+    (`Ok (Cmd.Build (true, true)))
+    result
 
 let test_clean _ =
   let extra_term = Cmdliner.(Term.(
@@ -77,6 +94,7 @@ let test_clean _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
+      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"; "clean"|]
@@ -97,9 +115,10 @@ let test_help _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
+      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
-      [|"name"; "help"; "--help"; "plain"; "--verbose"|]
+      [|"name"; "help"; "--help"; "plain"|]
   in
   assert_equal `Help result
 
@@ -114,49 +133,12 @@ let test_default _ =
     Cmd.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
+      ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
       [|"name"|]
   in
   assert_equal `Help result
-
-
-let test_read_log_level _ =
-  begin
-    assert_equal Log.WARN
-      (Cmd.read_log_level [|"test"|]);
-
-    assert_equal Log.INFO
-      (Cmd.read_log_level [|"test"; "blah"; "-verbose"; "blah"|]);
-
-    assert_equal Log.INFO
-      (Cmd.read_log_level [|"test"; "-verbose"|]);
-
-    assert_equal Log.DEBUG
-      (Cmd.read_log_level [|"test"; "blah"; "-verbose"; "blah"; "-verbose"|]);
-  end
-
-
-let test_read_colour_option _ =
-  begin
-    assert_equal None
-      (Cmd.read_colour_option [|"test"|]);
-
-    assert_equal None
-      (Cmd.read_colour_option [|"test"; "--color=auto"|]);
-
-    assert_equal None
-      (Cmd.read_colour_option [|"test"; "blah"; "--color=auto"|]);
-
-    assert_equal (Some `Ansi_tty)
-      (Cmd.read_colour_option [|"test"; "--color=always"|]);
-
-    assert_equal (Some `Ansi_tty)
-      (Cmd.read_colour_option [|"test"; "blah"; "--color=always"|]);
-
-    assert_equal (Some `None)
-      (Cmd.read_colour_option [|"test"; "blah"; "--color=never"|]);
-  end
 
 
 let test_read_config_file _ =
@@ -192,13 +174,7 @@ let test_read_full_eval _ =
 
 
 let suite = "Command-line parsing tests" >:::
-  ["read_log_level"
-    >:: test_read_log_level;
-
-   "read_colour_option"
-    >:: test_read_colour_option;
-
-   "read_config_file"
+  ["read_config_file"
     >:: test_read_config_file;
 
    "read_full_eval"
@@ -209,6 +185,9 @@ let suite = "Command-line parsing tests" >:::
 
     "describe"
     >:: test_describe;
+
+    "build"
+    >:: test_build;
 
     "clean"
     >:: test_clean;

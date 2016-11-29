@@ -21,39 +21,169 @@ open Functoria_misc
 
 module Key = Functoria_key
 
-module Info = struct
+type package = {
+  opam : string ;
+  build : bool ;
+  ocamlfind : String.Set.t ;
+  min : string option ;
+  max : string option
+}
 
+module Package = struct
+  (* we could have copied code from opam, but that's LGPL *)
+  let version_of_string s =
+    let r = List.fold_left (fun acc v ->
+        match Astring.String.to_int v with
+        | Some n -> n :: acc
+        | None -> invalid_arg "cannot parse version number")
+        []
+        (Astring.String.cuts ~sep:"." s)
+    in
+    List.rev r
+
+  let compare_version v1 v2 =
+    let rec cmp a b =
+      match a, b with
+      | x::xs, y::ys when x = y -> cmp xs ys
+      | x::_, y::_ -> compare x y
+      | [], y::ys when y = 0 -> cmp [] ys
+      | [], y::_ -> compare 0 y
+      | x::xs, [] when x = 0 -> cmp xs []
+      | x::_, [] -> compare x 0
+      | [], [] -> 0
+    in
+    let v1 = version_of_string v1
+    and v2 = version_of_string v2
+    in
+    cmp v1 v2
+
+  let m_option f a b = match a, b with
+    | None, None -> None
+    | Some a, None -> Some a
+    | None, Some b -> Some b
+    | Some a, Some b -> Some (f a b)
+
+  let merge opam a b =
+    let ocamlfind = String.Set.union a.ocamlfind b.ocamlfind
+    and min =
+      m_option
+        (fun a b -> match compare_version a b with 0 -> a | 1 -> a | _ -> b)
+        a.min b.min
+    and max =
+      m_option
+        (fun a b -> match compare_version a b with 0 -> a | 1 -> b | _ -> a)
+        a.max b.max
+    and build = if not a.build || not b.build then false else true
+    in
+    match min, max with
+    | Some a, Some b when compare_version a b >= 0 ->
+      invalid_arg ("version constraint for " ^ opam ^ " must be that min is smaller than max")
+    | _ -> Some { opam ; build ; ocamlfind ; min ; max }
+
+  let package ?(build = false) ?sublibs ?ocamlfind ?min ?max opam =
+    let ocamlfind = match sublibs, ocamlfind with
+      | None, None -> [opam]
+      | Some xs, None -> opam :: List.map (fun x -> opam ^ "." ^ x) xs
+      | None, Some a -> a
+      | Some _, Some _ ->
+        invalid_arg ("dependent package " ^ opam ^ " may either specify ~sublibs or ~ocamlfind")
+    in
+    let ocamlfind = String.Set.of_list ocamlfind in
+    match min, max with
+    | Some min, Some max when compare_version min max >= 0 ->
+      invalid_arg ("invalid version constraints for " ^ opam)
+    | _ -> { opam ; build ; ocamlfind ; min ; max }
+
+  let ocamlfind build p =
+    if p.build = build then
+      p.ocamlfind
+    else
+      String.Set.empty
+
+  let libraries ps =
+    String.Set.elements
+      (List.fold_left String.Set.union String.Set.empty
+         (List.map (ocamlfind false) ps))
+
+  let package_name build p =
+    if p.build = build then
+      Some p.opam
+    else
+      None
+
+  let package_names ps =
+    List.fold_left (fun acc p ->
+        match package_name false p with
+        | Some pack -> pack :: acc
+        | None -> acc) []
+      ps
+
+  let exts_to_string min max build =
+    let bui = if build then "build & " else "" in
+    match min, max with
+    | None, None -> if build then "{build}" else ""
+    | Some a, None -> Printf.sprintf "{%s>=\"%s\"}" bui a
+    | None, Some b -> Printf.sprintf "{%s<\"%s\"}" bui b
+    | Some a, Some b -> Printf.sprintf "{%s>=\"%s\" & <\"%s\"}" bui a b
+
+  let pp_package t ppf p =
+    Fmt.pf ppf "%s%s%s %s" t p.opam t (exts_to_string p.min p.max p.build)
+end
+
+let package = Package.package
+
+module Info = struct
   type t = {
     name: string;
     root: string;
     keys: Key.Set.t;
     context: Key.context;
-    libraries: String.Set.t;
-    packages: String.Set.t;
+    packages: package String.Map.t;
   }
 
   let name t = t.name
   let root t = t.root
-  let libraries t = String.Set.elements t.libraries
-  let packages t = String.Set.elements t.packages
+
+  let packages t = List.map snd (String.Map.bindings t.packages)
+  let libraries t = Package.libraries (packages t)
+  let package_names t = Package.package_names (packages t)
+
   let keys t = Key.Set.elements t.keys
   let context t = t.context
 
-  let create ?(packages=[]) ?(libraries=[]) ?(keys=[]) ~context ~name ~root =
-    let libraries = String.Set.of_list libraries in
-    let packages = String.Set.of_list packages in
+  let create ~packages ~keys ~context ~name ~root =
     let keys = Key.Set.of_list keys in
-    { name; root; keys; libraries; packages; context }
+    let packages = List.fold_left (fun m p ->
+        let n = p.opam in
+        match String.Map.find p.opam m with
+        | None -> String.Map.add n p m
+        | Some p' -> match Package.merge p.opam p p' with
+          | Some p -> String.Map.add n p m
+          | None -> invalid_arg ("bad version constraints in " ^ p.opam))
+        String.Map.empty packages
+    in
+    { name; root; keys; packages; context }
 
-  let pp verbose ppf { name ; root ; keys ; context ; libraries ; packages } =
-    let show name = Fmt.pf ppf "@[<2>%a@ %a@]@," Log.blue name in
-    let set = Fmt.iter ~sep:(Fmt.unit ",@ ") String.Set.iter Fmt.string in
+  let pp_packages ?(surround = "") ?sep ppf t =
+    Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp_package surround)) (packages t)
+
+  let pp verbose ppf ({ name ; root ; keys ; context ; _ } as t) =
+    let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in
+    let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
     show "Name      " Fmt.string name;
     show "Root      " Fmt.string root;
     show "Keys      " (Key.pps context) keys;
-    if verbose then show "Libraries " set libraries;
-    if verbose then show "Packages  " set packages
+    if verbose then show "Libraries " list (libraries t);
+    if verbose then
+      show "Packages  "
+        (pp_packages ?surround:None ~sep:(Fmt.unit ",@ ")) t
 
+  let opam ?name ppf t =
+    let name = match name with None -> t.name | Some x -> x in
+    Fmt.pf ppf "opam-version: \"1.2\"@." ;
+    Fmt.pf ppf "name: \"%s\"@." name ;
+    Fmt.pf ppf "depends: [ @[<hv>%a@]@ ]@."
+      (pp_packages ~surround:"\"" ~sep:(Fmt.unit "@ ")) t
 end
 
 type _ typ =
@@ -83,11 +213,11 @@ module rec Typ: sig
     method name: string
     method module_name: string
     method keys: Key.t list
-    method packages: string list Key.value
-    method libraries: string list Key.value
+    method packages: package list Key.value
     method connect: Info.t -> string -> string list -> string
-    method configure: Info.t -> (unit, string) R.t
-    method clean: Info.t -> (unit, string) R.t
+    method configure: Info.t -> (unit, R.msg) R.t
+    method build: Info.t -> (unit, R.msg) R.t
+    method clean: Info.t -> (unit, R.msg) R.t
     method deps: abstract_impl list
   end
 
@@ -105,13 +235,13 @@ let rec match_impl kv ~default = function
   | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
 
 class base_configurable = object
-  method libraries: string list Key.value = Key.pure []
-  method packages: string list Key.value = Key.pure []
+  method packages: package list Key.value = Key.pure []
   method keys: Key.t list = []
   method connect (_:Info.t) (_:string) l =
     Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
-  method configure (_: Info.t): (unit,string) R.t = R.ok ()
-  method clean (_: Info.t): (unit,string) R.t = R.ok ()
+  method configure (_: Info.t): (unit, R.msg) R.t = R.ok ()
+  method build (_: Info.t): (unit, R.msg) R.t = R.ok ()
+  method clean (_: Info.t): (unit, R.msg) R.t = R.ok ()
   method deps: abstract_impl list = []
 end
 
@@ -119,7 +249,7 @@ type job = JOB
 let job = Type JOB
 
 class ['ty] foreign
-     ?(packages=[]) ?(libraries=[]) ?(keys=[]) ?(deps=[]) module_name ty
+     ?(packages=[]) ?(keys=[]) ?(deps=[]) module_name ty
   : ['ty] configurable
   =
   let name = Name.create module_name ~prefix:"f" in
@@ -128,7 +258,6 @@ class ['ty] foreign
     method name = name
     method module_name = module_name
     method keys = keys
-    method libraries = Key.pure libraries
     method packages = Key.pure packages
     method connect _ modname args =
       Fmt.strf
@@ -137,11 +266,12 @@ class ['ty] foreign
         Fmt.(list ~sep:sp string)  args
     method clean _ = R.ok ()
     method configure _ = R.ok ()
+    method build _ = R.ok ()
     method deps = deps
   end
 
-let foreign ?packages ?libraries ?keys ?deps module_name ty =
-  Impl (new foreign ?packages ?libraries ?keys ?deps module_name ty)
+let foreign ?packages ?keys ?deps module_name ty =
+  Impl (new foreign ?packages ?keys ?deps module_name ty)
 
 (* {Misc} *)
 

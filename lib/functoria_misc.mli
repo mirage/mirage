@@ -21,9 +21,6 @@
 
 open Rresult
 
-val (/): string -> string -> string
-(** Same as [Filename.concat]. *)
-
 val err_cmdliner: ?usage:bool -> ('a, string) result -> 'a Cmdliner.Term.ret
 
 module type Monoid = sig
@@ -31,65 +28,6 @@ module type Monoid = sig
   val empty: t
   val union: t -> t -> t
 end
-
-(** {2 Command-line utilities} *)
-
-module Cmd: sig
-  val exists: string -> bool
-  val run:
-  ?redirect:bool -> ('a, unit, string, (unit, string) result) format4 -> 'a
-  val read: ('a, unit, string,  (string, string) result) format4 -> 'a
-  val remove: string -> unit
-  val realpath: string -> string
-  val with_channel: out_channel -> (Format.formatter -> 'a) -> 'a
-  val with_file: string -> (Format.formatter -> 'a) -> 'a
-  val with_process_in: string -> (in_channel -> 'a) -> 'a
-  val with_process_out: string -> (out_channel -> 'a) -> 'a
-  val opam:
-    string -> ?yes:bool -> ?switch:string -> ?color:Fmt.style_renderer ->
-    string list -> (unit, string) result
-  val in_dir: string -> (unit -> 'a) -> 'a
-  val uname_s: unit -> string option
-  val uname_m: unit -> string option
-  val uname_r: unit -> string option
-  val ocaml_version: unit -> int * int
-
-  module OCamlfind: sig
-    val query:
-      ?predicates:string list -> ?format:string -> ?recursive:bool ->
-      string list -> (string list, string) result
-    val installed: string -> bool
-  end
-
-end
-
-
-(** {2 Display} *)
-
-module Log: sig
-  type level = FATAL | ERROR | WARN | INFO | DEBUG
-  val set_level: level -> unit
-  val get_level: unit -> level
-  val set_color: Fmt.style_renderer option -> unit
-  val get_color: unit -> Fmt.style_renderer option
-  val set_section: string -> unit
-  val get_section: unit -> string
-  val error:
-    ('a, Format.formatter, unit, ('b, string) result) format4 -> 'a
-  val fatal: ('a, Format.formatter, unit, 'b) format4 -> 'a
-  val info: ('a, Format.formatter, unit) format -> 'a
-  val warn: ('a, Format.formatter, unit) format -> 'a
-  val debug: ('a, Format.formatter, unit) format -> 'a
-  val show_error: ('a, Format.formatter, unit) format -> 'a
-  val blue: string Fmt.t
-  val yellow: string Fmt.t
-  val red: string Fmt.t
-  val green: string Fmt.t
-
-  exception Fatal of string
-end
-
-val fatalize_error: ('a, string) result -> 'a
 
 (** Generation of fresh names *)
 module Name: sig
@@ -104,11 +42,6 @@ module Codegen: sig
   val set_main_ml: string -> unit
   val append_main: ('a, Format.formatter, unit) format -> 'a
   val newline_main: unit -> unit
-end
-
-(** TTY feature detection *)
-module Terminfo: sig
-  val columns: unit -> int
 end
 
 (** Universal map *)

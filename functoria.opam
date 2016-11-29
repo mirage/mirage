@@ -26,6 +26,9 @@ depends: [
   "astring"
   "fmt"
   "ocamlgraph"
+  "logs"
+  "bos"
+  "fpath"
   "ounit" {test}
 ]
 available: [ocaml-version >= "4.02"]

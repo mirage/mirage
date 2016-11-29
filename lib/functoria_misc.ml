@@ -18,8 +18,6 @@
 open Rresult
 open Astring
 
-let (/) = Filename.concat
-
 let err_cmdliner ?(usage=false) = function
   | Ok x -> `Ok x
   | Error s -> `Error (usage, s)
@@ -30,250 +28,7 @@ module type Monoid = sig
   val union: t -> t -> t
 end
 
-(* {Logging} *)
-
-module Log = struct
-
-  type level = FATAL | ERROR | WARN | INFO | DEBUG
-  let log_level = ref WARN
-  let set_level x = log_level := x
-  let get_level () = !log_level
-  let color = ref None
-  let set_color x = color := x
-  let get_color () = !color
-
-  let int_of_level = function
-    | FATAL -> 4
-    | ERROR -> 3
-    | WARN  -> 2
-    | INFO  -> 1
-    | DEBUG -> 0
-
-  let log level fmt =
-    if int_of_level level >= int_of_level !log_level
-    then Format.eprintf fmt
-    else Format.ifprintf Fmt.stderr fmt
-
-  let red     = Fmt.(styled `Red string)
-  let green   = Fmt.(styled `Green string)
-  let yellow  = Fmt.(styled `Yellow string)
-  let blue    = Fmt.(styled `Cyan string)
-
-  let section = ref "Functoria"
-  let set_section s = section := s
-  let get_section () = !section
-
-  let in_section ?(color = Fmt.nop) ?(section = get_section ()) f fmt =
-    f ("@[<2>%a@ "^^fmt^^"@]@.") color section
-
-  exception Fatal of string
-
-  let error_msg f = in_section ~color:red ~section:"[ERROR]" f
-  let error fmt = Fmt.kstrf (fun x -> Error x) fmt
-  let fatal fmt = Fmt.kstrf (fun s -> raise (Fatal s)) fmt
-  let show_error x = error_msg Fmt.pr x
-  let info fmt = in_section ~color:green (log INFO) fmt
-  let warn fmt = in_section ~color:green (log WARN) fmt
-  let debug fmt = in_section ~color:green (log DEBUG) fmt
-
-end
-
-let fatalize_error = function
-  | Ok x    -> x
-  | Error s -> Log.fatal "%s" s
-
-(* {Process and output} *)
-
-module Cmd = struct
-
-  let realdir dir =
-    if Sys.file_exists dir && Sys.is_directory dir then (
-      let cwd = Sys.getcwd () in
-      Sys.chdir dir;
-      let d = Sys.getcwd () in
-      Sys.chdir cwd;
-      d
-    ) else
-      failwith "realdir"
-
-  let realpath file =
-    if Sys.file_exists file && Sys.is_directory file then realdir file
-    else if Sys.file_exists file
-            || Sys.file_exists (Filename.dirname file) then
-      realdir (Filename.dirname file) / (Filename.basename file)
-    else
-      failwith "realpath"
-
-  let remove file =
-    if Sys.file_exists file then (
-      Log.info "%a %s" Log.red "Removing:" (realpath file);
-      Sys.remove file
-    )
-
-  let with_redirect oc file fn =
-    flush oc;
-    let fd_oc = Unix.descr_of_out_channel oc in
-    let fd_old = Unix.dup fd_oc in
-    let fd_file = Unix.(openfile file [O_WRONLY; O_TRUNC; O_CREAT] 0o666) in
-    Unix.dup2 fd_file fd_oc;
-    Unix.close fd_file;
-    let r =
-      try Ok (fn ())
-      with e -> Error e in
-    flush oc;
-    Unix.dup2 fd_old fd_oc;
-    Unix.close fd_old;
-    match r with
-    | Ok x -> x
-    | Error e -> raise e
-
-
-  let run ?(redirect=true) fmt =
-    Format.ksprintf (fun cmd ->
-        Log.info "%a@ %s" Log.yellow "=>"  cmd;
-        let redirect fn =
-          if redirect then (
-            let status =
-              with_redirect stdout "log" (fun () ->
-                  with_redirect stderr "log" fn
-                ) in
-            if status <> 0 then
-              let ic = open_in "log" in
-              let buf = Buffer.create 17 in
-              begin
-                try while true do Buffer.add_channel buf ic 1 done
-                with End_of_file -> ()
-              end;
-              Log.error "@;%a" Fmt.buffer buf
-            else
-              Ok status
-          ) else (
-            flush stdout;
-            flush stderr;
-            Ok (fn ())
-          ) in
-        match redirect (fun () -> Sys.command cmd) with
-        | Ok 0 -> Ok ()
-        | Ok i -> Log.error "The command %S exited with code %d." cmd i
-        | Error err -> Log.error "%s" err
-      ) fmt
-
-  let opam cmd ?(yes=true) ?switch ?color deps =
-    let color = match color with
-      | None -> ""
-      | Some `None -> " --color=never"
-      | Some `Ansi_tty -> " --color=always"
-    in
-    let deps = String.concat ~sep:" " deps in
-    (* Note: we don't redirect output to the log as installation can
-     * take a long time and the user will want to see what is
-       happening. *)
-    let yes = if yes then " --yes " else "" in
-    let redirect = false in
-    let switch = match switch with
-      | None   -> ""
-      | Some s -> Printf.sprintf " --switch=%s" s
-    in
-    run ~redirect "opam %s%s%s%s %s" cmd yes color switch deps
-
-  let in_dir dir f =
-    let pwd = Sys.getcwd () in
-    let reset () =
-      if pwd <> dir then Sys.chdir pwd in
-    if pwd <> dir then Sys.chdir dir;
-    try let r = f () in reset (); r
-    with e -> reset (); raise e
-
-  let with_process open_p close_p cmd f =
-    let ic = open_p cmd in
-    try
-      let r = f ic in
-      ignore (close_p ic); r
-    with exn ->
-      ignore (close_p ic); raise exn
-
-  let with_process_in s f =
-    with_process Unix.open_process_in Unix.close_process_in s f
-
-  let with_process_out s f =
-    with_process Unix.open_process_out Unix.close_process_out s f
-
-  let with_channel oc f =
-    let ppf = Format.formatter_of_out_channel oc in
-    let x = f ppf in
-    Format.pp_print_flush ppf ();
-    x
-
-  let with_file filename f =
-    let oc = open_out filename in
-    let x = with_channel oc f in
-    close_out oc;
-    x
-
-  let collect_output cmd =
-    try
-      with_process_in cmd
-        (fun ic -> Some (Astring.String.trim (input_line ic)))
-    with _ ->
-      None
-
-  let uname_s () = collect_output "uname -s"
-  let uname_m () = collect_output "uname -m"
-  let uname_r () = collect_output "uname -r"
-
-  let exists s = Sys.command ("which " ^ s ^ " > /dev/null") = 0
-
-  let read fmt =
-    let open Unix in
-    Format.ksprintf (fun cmd ->
-        Log.info "%a@ %s" Log.yellow "=>" cmd;
-        let ic, oc, ec = open_process_full cmd (environment ()) in
-        let buf1 = Buffer.create 64
-        and buf2 = Buffer.create 64 in
-        (try while true do Buffer.add_channel buf1 ic 1 done with End_of_file -> ());
-        (try while true do Buffer.add_channel buf2 ec 1 done with End_of_file -> ());
-        match close_process_full (ic,oc,ec) with
-        | WEXITED 0   -> Ok (Buffer.contents buf1)
-        | WSIGNALED n -> Log.error "process killed by signal %d" n
-        | WSTOPPED n  -> Log.error "process stopped by signal %d" n
-        | WEXITED r   ->
-          Log.error "command terminated with exit code %d\nstderr: %s" r
-            (Buffer.contents buf2)) fmt
-
-  let ocaml_version () =
-    let version =
-      match Astring.String.cut ~sep:"+" Sys.ocaml_version with
-      | Some (version, _) -> version
-      | None              -> Sys.ocaml_version in
-    match Astring.String.cuts ~sep:"." version with
-    | major :: minor :: _ ->
-      begin
-        try int_of_string major, int_of_string minor
-        with _ -> 0, 0
-      end
-    | _ -> 0, 0
-
-  module OCamlfind = struct
-
-    let query ?predicates ?(format="%p") ?(recursive=false) xs =
-      let pred = match predicates with
-        | None    -> ""
-        | Some ps -> "-predicates '" ^ String.concat ~sep:"," ps ^ "'"
-      and fmt  = "-format '" ^ format ^ "'"
-      and r    = if recursive then "-recursive" else ""
-      and pkgs = String.concat ~sep:" " xs
-      in
-      read "ocamlfind query %s %s %s %s" fmt pred r pkgs
-      >>| fun out -> Astring.String.cuts ~sep:"\n" out
-
-    let installed lib =
-      Sys.command ("ocamlfind query " ^ lib ^ " 2>&1 1>/dev/null") = 0
-
-  end
-
-end
 (* {Misc informations} *)
-
 
 module Name = struct
 
@@ -317,9 +72,7 @@ module Codegen = struct
 
   let main_ml = ref None
 
-
   let generated_header () =
-    let name = Log.get_section () in
     let t = Unix.gettimeofday () in
     let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
                     "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |] in
@@ -330,7 +83,9 @@ module Codegen = struct
         days.(time.Unix.tm_wday) time.Unix.tm_mday
         months.(time.Unix.tm_mon) (time.Unix.tm_year+1900)
         time.Unix.tm_hour time.Unix.tm_min time.Unix.tm_sec in
-    Format.sprintf "Generated by %s (%s)." name date
+    Format.sprintf "Generated by %s (%s)."
+      (String.concat ~sep:" " (Array.to_list Sys.argv))
+      date
 
   let append oc fmt = Format.fprintf oc (fmt ^^ "@.")
   let newline oc = append oc ""
@@ -346,55 +101,6 @@ module Codegen = struct
   let set_main_ml file =
     let oc = Format.formatter_of_out_channel @@ open_out file in
     main_ml := Some oc
-
-end
-
-(* TTY feature detection *)
-module Terminfo = struct
-
-  (* stolen from opam *)
-
-  let default_columns = 100
-
-  let with_process_in cmd args f =
-    let path = ["/bin";"/usr/bin"] in
-    let cmd =
-      List.find Sys.file_exists (List.map (fun d -> Filename.concat d cmd) path)
-    in
-    Cmd.with_process_in (cmd^" "^args) f
-
-  let get_terminal_columns () =
-    try (* terminfo *)
-      with_process_in "tput" "cols"
-        (fun ic -> int_of_string (input_line ic))
-    with Unix.Unix_error _ | Sys_error _ | Failure _ | End_of_file | Not_found ->
-      try (* GNU stty *)
-        with_process_in "stty" "size"
-          (fun ic ->
-             match Astring.String.cuts ~sep:" " (input_line ic) with
-             | [_; v] -> int_of_string v
-             | _ -> failwith "stty")
-      with
-        Unix.Unix_error _ | Sys_error _ | Failure _  | End_of_file | Not_found ->
-        try (* shell envvar *)
-          int_of_string (Unix.getenv "COLUMNS")
-        with Not_found | Failure _ ->
-          default_columns
-
-  let tty_out = Unix.isatty Unix.stdout
-
-  let columns =
-    let v = ref (lazy (get_terminal_columns ())) in
-    let () =
-      try Sys.set_signal 28 (* SIGWINCH *)
-            (Sys.Signal_handle
-               (fun _ -> v := lazy (get_terminal_columns ())))
-      with Invalid_argument _ -> ()
-    in
-    fun () ->
-      if tty_out
-      then Lazy.force !v
-      else 80
 
 end
 

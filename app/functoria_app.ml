@@ -46,30 +46,50 @@ let sys_argv = impl @@ object
     method !connect _info _m _ = "return Sys.argv"
   end
 
+let src = Logs.Src.create "functoria" ~doc:"functoria library"
+module Log = (val Logs.src_log src : Logs.LOG)
+
+let wrap f err =
+  match f () with
+  | Ok b -> b
+  | Error _ -> R.error_msg err
+
+let with_output f k =
+  wrap
+    (Bos.OS.File.with_oc f k)
+    ("couldn't open output channel " ^ Fpath.to_string f)
+
+let with_current f k err =
+  wrap
+    (Bos.OS.Dir.with_current f k)
+    ("failed to change directory for " ^ err)
+
 (* Keys *)
 
 module Keys = struct
 
   let configure i =
     let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
-    Log.info "%a %s" Log.blue "Generating:"  file;
-    Cmd.with_file (Info.root i / file) @@ fun fmt ->
-    Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
-    Codegen.newline fmt;
-    let keys = Key.Set.of_list @@ Info.keys i in
-    let pp_var k = Key.serialize (Info.context i) k in
-    Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
-    let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
-    let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
-    let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
-    Codegen.append fmt "let runtime_keys = List.combine %a %a"
-      Fmt.Dump.(list pp_runvar) runvars Fmt.Dump.(list pp_names) runvars;
-    Codegen.newline fmt;
-    R.ok ()
+    Log.info (fun m -> m "Generating: %s" file);
+    with_output Fpath.(v (Info.root i) / file)
+      (fun oc () ->
+         let fmt = Format.formatter_of_out_channel oc in
+         Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
+         Codegen.newline fmt;
+         let keys = Key.Set.of_list @@ Info.keys i in
+         let pp_var k = Key.serialize (Info.context i) k in
+         Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
+         let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
+         let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
+         let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
+         Codegen.append fmt "let runtime_keys = List.combine %a %a"
+           Fmt.Dump.(list pp_runvar) runvars Fmt.Dump.(list pp_names) runvars;
+         Codegen.newline fmt;
+         R.ok ())
 
   let clean i =
     let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
-    R.ok @@ Cmd.remove (Info.root i / file)
+    Bos.OS.Path.delete Fpath.(v (Info.root i) / file)
 
   let name = "key"
 
@@ -82,8 +102,7 @@ let keys (argv: argv impl) = impl @@ object
     method module_name = Key.module_name
     method !configure = Keys.configure
     method !clean = Keys.clean
-    method !libraries = Key.pure [ "functoria-runtime" ]
-    method !packages = Key.pure [ "functoria-runtime" ]
+    method !packages = Key.pure [package "functoria-runtime"]
     method !deps = [ abstract argv ]
     method !connect info modname = function
       | [ argv ] ->
@@ -98,6 +117,8 @@ let keys (argv: argv impl) = impl @@ object
 type info = Info
 let info = Type Info
 
+(* hannes is pretty sure the following pp needs adjustments, but unclear to me
+   what exactly to do here? i.e. who reads the formatted stuff in again? *)
 let pp_libraries fmt l =
   Fmt.pf fmt "[@ %a]"
     Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
@@ -113,7 +134,7 @@ let pp_dump_info module_name fmt i =
     "%s.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
     module_name (Info.name i)
-    pp_packages (Info.packages i)
+    pp_packages (Info.package_names i)
     pp_libraries (Info.libraries i)
 
 let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
@@ -123,24 +144,22 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     method name = "info"
     val gen_file = String.Ascii.lowercase gen_modname  ^ ".ml"
     method module_name = gen_modname
-    method !libraries = Key.pure ["functoria-runtime"]
-    method !packages = Key.pure ["functoria-runtime"]
+    method !packages = Key.pure [package "functoria-runtime"]
     method !connect _ modname _ = Fmt.strf "return %s.info" modname
 
     method !clean i =
-      let file = Info.root i / gen_file in
-      Cmd.remove file;
-      Cmd.remove (file ^".in");
-      R.ok ()
+      let file = Fpath.(v (Info.root i) / gen_file) in
+      Bos.OS.Path.delete file >>= fun () ->
+      Bos.OS.Path.delete Fpath.(file + "in")
 
     method !configure i =
-      let file = Info.root i / gen_file in
-      Log.info "%a %s" Log.blue "Generating: " gen_file;
-      let f fmt =
-        Fmt.pf fmt "@[<v 2>let info = %a@]" (pp_dump_info type_modname) i
-      in
-      Cmd.with_file (file^".in") f;
-      Cmd.run ~redirect:false "opam config subst %s" gen_file
+      let file = Fpath.(v (Info.root i) / gen_file) in
+      Log.info (fun m -> m "Generating: %s" gen_file);
+      Bos.OS.File.writef Fpath.(file + "in")
+        "@[<v 2>let info = %a@]" (pp_dump_info type_modname) i
+
+    method !build _i =
+      Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % gen_file)
   end
 
 module Engine = struct
@@ -159,21 +178,15 @@ module Engine = struct
     | App     -> Key.Set.empty
 
   module M = struct
-    type t = String.Set.t Key.value
-    let union x y = Key.(pure String.Set.union $ x $ y)
-    let empty = Key.pure String.Set.empty
+    type t = package list Key.value
+    let union x y = Key.(pure List.append $ x $ y)
+    let empty = Key.pure []
   end
 
   let packages =
     let open Graph in
     Graph.collect (module M) @@ function
-    | Impl c     -> Key.map String.Set.of_list c#packages
-    | If _ | App -> M.empty
-
-  let libraries =
-    let open Graph in
-    Graph.collect (module M) @@ function
-    | Impl c     -> Key.map String.Set.of_list c#libraries
+    | Impl c     -> c#packages
     | If _ | App -> M.empty
 
   (* Return a unique variable name holding the state of the given
@@ -223,6 +236,14 @@ module Engine = struct
     | []  -> invalid_arg "Functoria.find_device: no device"
     | [x] -> x
     | _   -> invalid_arg "Functoria.find_device: too many devices."
+
+  let build info (_init, job) =
+    let f v = match Graph.explode job v with
+      | `App _ | `If _ -> R.ok ()
+      | `Impl (c, _, _) -> c#build info
+    in
+    let f v res = res >>= fun () -> f v in
+    Graph.fold f job @@ R.ok ()
 
   let configure info (_init, job) =
     let tbl = Graph.Tbl.create 17 in
@@ -316,8 +337,7 @@ module Config = struct
   type t = {
     name     : string;
     root     : string;
-    libraries: String.Set.t Key.value;
-    packages: String.Set.t Key.value;
+    packages: package list Key.value;
     keys    : Key.Set.t;
     init    : job impl list;
     jobs    : Graph.t;
@@ -335,29 +355,25 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let make ?(keys=[]) ?(libraries=[]) ?(packages=[]) ?(init=[]) name root
+  let make ?(keys=[]) ?(packages=[]) ?(init=[]) name root
       main_dev =
     let jobs = Graph.create main_dev in
-    let libraries = Key.pure @@ String.Set.of_list libraries in
-    let packages = Key.pure @@ String.Set.of_list packages in
+    let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { libraries; packages; keys; name; root; init; jobs }
+    { packages; keys; name; root; init; jobs }
 
   let eval ~partial context
-      { name = n; root; packages; libraries; keys; jobs; init }
+      { name = n; root; packages; keys; jobs; init }
     =
     let e = Graph.eval ~partial ~context jobs in
-    let pkgs = Key.(pure String.Set.union $ packages $ Engine.packages e) in
-    let libs = Key.(pure String.Set.union $ libraries $ Engine.libraries e) in
+    let packages = Key.(pure List.append $ packages $ Engine.packages e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
-    Key.(pure (fun libraries packages _ context ->
+    Key.(pure (fun packages _ context ->
         ((init, e),
          Info.create
-           ~libraries:(String.Set.elements libraries)
-           ~packages:(String.Set.elements packages)
+           ~packages
            ~keys ~context ~name:n ~root))
-         $ libs
-         $ pkgs
+         $ packages
          $ of_deps (Set.of_list keys))
 
   (* Extract all the keys directly. Useful to pre-resolve the keys
@@ -387,7 +403,8 @@ module type DSL = module type of struct include Functoria end
 
 module Make (P: S) = struct
 
-  let () = Log.set_section P.name
+  let src = Logs.Src.create P.name ~doc:"functoria generated"
+  module Log = (val Logs.src_log src : Logs.LOG)
 
   let configuration = ref None
   let config_file = ref None
@@ -402,59 +419,23 @@ module Make (P: S) = struct
 
   let get_root () = Filename.dirname @@ get_config_file ()
 
-  let register ?(packages=[]) ?(libraries=[]) ?keys ?(init=[]) name jobs =
+  let register ?(packages=[]) ?keys ?(init=[]) name jobs =
     let keys = match keys with None -> [] | Some x -> x in
     let root = get_root () in
     let main_dev = P.create (init @ jobs) in
-    let c = Config.make ~keys ~libraries ~packages ~init name root main_dev in
+    let c = Config.make ~keys ~packages ~init name root main_dev in
     configuration := Some c
 
   let registered () =
     match !configuration with
-    | None   -> Log.error "No configuration was registered."
+    | None   ->
+      Log.err (fun m -> m "No configuration was registered.") ;
+      Error (`Msg "no configuration file was registered")
     | Some t -> Ok t
 
-  (* {2 Opam Management} *)
-
-  let configure_opam ~no_opam_version ~no_depext t =
-    Log.info "Installing OPAM packages.";
-    let ps = Info.packages t in
-    if ps = [] then Ok ()
-    else if Cmd.exists "opam" then
-      if no_opam_version then Ok ()
-      else (
-        Cmd.read "opam --version" >>= fun opam_version ->
-        let version_error () =
-          Log.error
-            "Your version of OPAM (%s) is not recent enough. \
-             Please update to (at least) 1.2: \
-             https://opam.ocaml.org/doc/Install.html \
-             You can pass the `--no-opam-version-check` flag to force its \
-             use." opam_version
-        in
-        match String.cuts ~sep:"." opam_version with
-        | major::minor::_ ->
-          let major = try int_of_string major with Failure _ -> 0 in
-          let minor = try int_of_string minor with Failure _ -> 0 in
-          let color = Log.get_color () in
-          if (major, minor) >= (1, 2) then (
-            begin
-              if no_depext then Ok ()
-              else begin
-                if Cmd.exists "opam-depext"
-                then Ok (Log.info "opam depext is installed.")
-                else Cmd.opam ?color "install" ["depext"]
-              end >>= fun () -> Cmd.opam "depext" ps
-            end >>= fun () ->
-            Cmd.opam ?color "install" ps
-          ) else version_error ()
-        | _ -> version_error ()
-      )
-    else Log.error "OPAM is not installed."
-
   let configure_main i jobs =
-    Log.info "%a main.ml" Log.blue "Generating:";
-    Codegen.set_main_ml (Info.root i / "main.ml");
+    Log.info (fun m -> m "Generating: main.ml");
+    Codegen.set_main_ml "main.ml";
     Codegen.append_main "(* %s *)" (Codegen.generated_header ());
     Codegen.newline_main ();
     Codegen.append_main "%a" Fmt.text  P.prelude;
@@ -466,86 +447,103 @@ module Make (P: S) = struct
     ()
 
   let clean_main i jobs =
-    Engine.clean i jobs >>| fun () ->
-    Cmd.remove (Info.root i / "main.ml")
+    Engine.clean i jobs >>= fun () ->
+    Bos.OS.File.delete Fpath.(v "main.ml")
 
-  let configure ~no_opam ~no_depext ~no_opam_version i jobs =
-    Log.info "%a %s" Log.blue "Using configuration:"  (get_config_file ());
-    Cmd.in_dir (Info.root i) (fun () ->
-        begin if no_opam
-          then Ok ()
-          else configure_opam ~no_depext ~no_opam_version i
-        end >>= fun () ->
-        configure_main i jobs
-      )
+  let configure i jobs =
+    Log.info (fun m -> m "Using configuration: %s" (get_config_file ()));
+    Log.info (fun m -> m "opam: %a" (Info.opam ?name:None) i);
+    Log.info (fun m -> m "within: %s" (Info.root i));
+    with_current
+      (Fpath.v (Info.root i))
+      (fun () -> configure_main i jobs)
+      "configure"
+
+  let build i jobs =
+    Log.info (fun m -> m "Building: %s" (get_config_file ()));
+    with_current
+      (Fpath.v (Info.root i))
+      (fun () -> Engine.build i jobs)
+      "build"
 
   let clean i (_init, job) =
-    Log.info "%a %s" Log.blue "Clean:"  (get_config_file ());
+    Log.info (fun m -> m "Cleaning: %s" (get_config_file ()));
     let root = Info.root i in
-    Cmd.in_dir root (fun () ->
-        clean_main i job >>= fun () ->
-        Cmd.run "rm -rf %s/_build" root >>= fun () ->
-        Cmd.run "rm -rf log %s/main.native.o %s/main.native %s/*~" root
-          root root
-      )
+    with_current
+      (Fpath.v root)
+      (fun () ->
+         clean_main i job >>= fun () ->
+         Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
+         Bos.OS.File.delete (Fpath.v "log"))
+      "clean"
 
   (* FIXME: describe init *)
   let describe _info ~dotcmd ~dot ~output (_init, job) =
     let f fmt = (if dot then Config.pp_dot else Config.pp) fmt job in
     let with_fmt f = match output with
       | None when dot ->
-        let f oc = Cmd.with_channel oc f in
-        Cmd.with_process_out dotcmd f
-      | None -> f Fmt.stdout
-      | Some s -> Cmd.with_file s f
-    in R.ok @@ with_fmt f
+        f Format.str_formatter ;
+        let data = Format.flush_str_formatter () in
+        Bos.OS.File.tmp ~mode:0o644 "graph%s.dot" >>= fun tmp ->
+        Bos.OS.File.write tmp data >>= fun () ->
+        Bos.OS.Cmd.run Bos.Cmd.(v dotcmd % p tmp)
+      | None -> Ok (f Fmt.stdout)
+      | Some s ->
+        with_output (Fpath.v s)
+          (fun oc () -> Ok (f (Format.formatter_of_out_channel oc)))
+    in
+    with_fmt f
 
   (* Compile the configuration file and attempt to dynlink it.
    * It is responsible for registering an application via
    * [register] in order to have an observable
    * side effect to this command. *)
   let compile_and_dynlink file =
-    Log.info "%a %s" Log.blue "Processing:" file;
-    let root = Filename.dirname file in
-    let file = Filename.basename file in
-    let file = Dynlink.adapt_filename file in
-    Cmd.run "rm -rf %s/_build/%s.*" root (Filename.chop_extension file)
-    >>= fun () ->
-    Cmd.run
-      "cd %s && ocamlbuild -use-ocamlfind -tags annot,bin_annot -pkg %s %s"
-      root P.name file
-    >>= fun () ->
-    try Ok (Dynlink.loadfile (String.concat ~sep:"/" [root; "_build"; file]))
-    with Dynlink.Error err ->
-      Log.error "Error loading config: %s" (Dynlink.error_message err)
+    Log.info (fun m -> m "Processing: %a" Fpath.pp file);
+    let root, config = Fpath.(split_base file) in
+    let file = Dynlink.adapt_filename (Fpath.to_string config) in
+    let cfg = Fpath.rem_ext config in
+    Bos.OS.Path.matches Fpath.(root / "_build" // cfg + "$(ext)") >>= fun files ->
+    List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
+    with_current root
+      (fun () ->
+         let cmd =
+           Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" % "-classic-display" %
+                    "-tags" % "bin_annot,color(always)" %
+                    "-X" % "_build-ukvm" % "-pkg" % P.name % file)
+         in
+         Bos.OS.Cmd.run cmd >>= fun _ ->
+         try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
+         with Dynlink.Error err ->
+           Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));
+           Error (`Msg "error loading configuration"))
+      "compile and dynlink"
 
   (* If a configuration file is specified, then use that.
    * If not, then scan the curdir for a `config.ml` file.
    * If there is more than one, then error out. *)
-  let scan_conf = function
-    | Some f ->
-      Log.info "%a %s" Log.blue "Config file:" f;
-      if not (Sys.file_exists f) then
-        Log.error "%s does not exist, stopping." f
-      else Ok (Cmd.realpath f)
-    | None   ->
-      let files = Array.to_list (Sys.readdir ".") in
-      match List.filter ((=) "config.ml") files with
-      | [] -> Log.error
-                "No configuration file config.ml found.\n\
-                 Please specify the configuration file using -f."
-      | [f] ->
-        Log.info "%a %s" Log.blue "Config file:" f;
-        Ok (Cmd.realpath f)
-      | _   ->
-        Log.error
-          "There is more than one config.ml in the current working \
-           directory.\n\
-           Please specify one explictly on the command-line."
+  let scan_conf c =
+    let f =
+      match c with
+      | None -> "config.ml"
+      | Some f -> f
+    in
+    Log.info (fun m -> m "Config file: %s" f);
+    begin match Bos.OS.File.exists (Fpath.v f) with
+      | Ok true ->
+        Bos.OS.Dir.current () >>= fun dir ->
+        Ok Fpath.(dir // v f)
+      | Ok false ->
+        Log.err (fun m -> m "%s does not exist, stopping." f);
+        Error (`Msg "config does not exist")
+      | Error (`Msg e) ->
+        Log.err (fun m -> m "error while trying to access %s, stopping." f);
+        Error (`Msg e)
+    end
 
   module Config' = struct
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
-      let verbose = Log.get_level () >= level in
+      let verbose = Logs.level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
 
     let eval ~partial ~with_required context t =
@@ -559,40 +557,32 @@ module Make (P: S) = struct
 
   let load' file =
     scan_conf file >>= fun file ->
-    let root = Cmd.realpath (Filename.dirname file) in
-    let file = root / Filename.basename file in
-    set_config_file file;
+    set_config_file (Fpath.to_string file);
     compile_and_dynlink file >>= fun () ->
     registered () >>= fun t ->
-    Log.set_section (Config.name t);
+    Log.info (fun m -> m "using configuration %s" (Config.name t));
     Ok t
 
   let base_keys : Key.Set.t = Config.extract_keys (P.create [])
   let base_context_arg = Key.context base_keys
       ~with_required:false ~stage:`Configure
 
-  let configure_colour color =
-    let i = Functoria_misc.Terminfo.columns () in
-    begin
-      Functoria_misc.Log.set_color color;
-      Format.pp_set_margin Format.std_formatter i;
-      Format.pp_set_margin Format.err_formatter i;
-      Fmt_tty.setup_std_outputs ?style_renderer:color ()
-    end
-
   let handle_parse_args_result = let module Cmd = Functoria_command_line in
     function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
-    | `Ok (Cmd.Configure {result = (jobs, info); no_opam; no_depext; no_opam_version}) ->
-      Config'.pp_info Log.info Log.DEBUG info;
-      fatalize_error (configure info jobs ~no_opam ~no_depext ~no_opam_version)
+    | `Ok (Cmd.Configure (jobs, info)) ->
+      Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
+      R.error_msg_to_invalid_arg (configure info jobs)
+    | `Ok (Cmd.Build (jobs, info)) ->
+      Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
+      R.error_msg_to_invalid_arg (build info jobs)
     | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
-      Config'.pp_info Fmt.(pf stdout) Log.INFO info;
-      fatalize_error (describe info jobs ~dotcmd ~dot ~output)
+      Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
+      R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
     | `Ok (Cmd.Clean (jobs, info)) ->
-      Config'.pp_info Log.info Log.DEBUG info;
-      fatalize_error (clean info jobs)
+      Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
+      R.error_msg_to_invalid_arg (clean info jobs)
     | `Version
     | `Help -> ()
 
@@ -602,6 +592,7 @@ module Make (P: S) = struct
     let result = Functoria_command_line.parse_args ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
+        ~build:(Term.pure ())
         ~clean:(Term.pure ())
         ~help:base_context_arg
         argv
@@ -609,22 +600,17 @@ module Make (P: S) = struct
     match result with
     | `Ok Cmd.Help -> ()
     | `Error _
-    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Clean _) ->
-      Functoria_misc.Log.fatal "%s" error
+    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
+      R.error_msg_to_invalid_arg (Error error)
     | `Version
     | `Help -> ()
 
   let run_with_argv argv =
     let module Cmd = Functoria_command_line in
     (* 1. Pre-parse the arguments to load the config file, set the log
-     *    level and colour, and determine whether the graph should be fully
+     *    level, and determine whether the graph should be fully
      *    evaluated. *)
-
-    (*    (a) log level *)
-    let () = Functoria_misc.Log.set_level (Cmd.read_log_level argv) in
-
-    (*    (b) colour option *)
-    let () = configure_colour (Cmd.read_colour_option argv) in
+    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
 
     (*    (c) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
@@ -655,16 +641,10 @@ module Make (P: S) = struct
          (Functoria_command_line.parse_args ~name:P.name ~version:P.version
             ~configure:(Config'.eval ~with_required:true ~partial:false context config)
             ~describe:(Config'.eval ~with_required:false ~partial:(not full_eval) context config)
+            ~build:(Config'.eval ~with_required:false ~partial:false context config)
             ~clean:(Config'.eval ~with_required:false ~partial:false context config)
             ~help:base_context_arg
             argv)
 
-  let run () =
-    try
-      run_with_argv Sys.argv
-    with Functoria_misc.Log.Fatal s ->
-      begin
-        Functoria_misc.Log.show_error "%s" s;
-        exit 1
-      end
+  let run () = run_with_argv Sys.argv
 end

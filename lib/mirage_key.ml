@@ -112,19 +112,21 @@ let target_conv: mode Cmdliner.Arg.converter =
 let pp_target fmt m = snd target_conv fmt m
 
 let default_unix = lazy (
-  match Functoria_app.Cmd.uname_s () with
-  | Some "Darwin" -> begin
+  let open Bos in
+  let uname arg = OS.Cmd.(run_out (Cmd.(v "uname" % arg)) |> OS.Cmd.out_string) in
+  match uname "-s" with
+  | Ok ("Darwin", _) -> begin
       (* Only use MacOS-specific functionality from Yosemite upwards *)
       let is_yosemite_or_higher =
-        match Functoria_app.Cmd.uname_r () with
-        | None -> false
-        | Some vs ->
-          match String.cuts vs ~sep:"." with
-          | [] -> false
-          | hd::_ -> begin
-              let v = try int_of_string hd with _ -> 0 in
-              v >= 14
-            end
+        match uname "-r" with
+        | Ok (vs, _) -> begin match String.cut ~sep:"." vs with
+            | Some (f, _) -> begin match String.to_int f with
+                | Some v -> v >= 14
+                | _ -> false
+              end
+            | _ -> false
+          end
+        | _ -> false
       in
       if is_yosemite_or_higher then `MacOSX else `Unix
     end
@@ -156,14 +158,6 @@ let is_unix =
   Key.match_ Key.(value target) @@ function
   | `Unix | `MacOSX -> true
   | `Qubes | `Xen | `Virtio | `Ukvm -> false
-
-let no_ocaml_check =
-  let doc = "Bypass the OCaml compiler version checks." in
-  let doc =
-    Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["no-ocaml-version-check"]
-  in
-  let key = Arg.flag ~stage:`Configure doc in
-  Key.create "ocaml_version_check" key
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in

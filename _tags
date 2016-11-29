@@ -5,7 +5,7 @@ true: debug, annot, bin_annot
 # Better locations and loc in .mlis
 true: keep_locs
 
-<lib/*>: package(ipaddr logs astring functoria functoria.app mirage-runtime)
+<lib/*>: package(ipaddr logs astring functoria functoria.app mirage-runtime bos)
 
 # Force the runtime to be unix-independent.
 <lib_runtime/*>: package(functoria-runtime ipaddr astring logs mirage-types)

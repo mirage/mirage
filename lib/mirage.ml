@@ -20,13 +20,20 @@ open Astring
 
 module Key = Mirage_key
 module Name = Functoria_app.Name
-module Cmd = Functoria_app.Cmd
-module Log = Functoria_app.Log
 module Codegen = Functoria_app.Codegen
+
+let src = Logs.Src.create "mirage" ~doc:"mirage library"
+module Log = (val Logs.src_log src : Logs.LOG)
 
 include Functoria
 
 let get_target i = Key.(get (Info.context i) target)
+
+let with_output ?mode f k err =
+  match Bos.OS.File.with_oc ?mode f k () with
+  | Ok b -> b
+  | Error _ -> R.error_msg ("couldn't open output channel for " ^ err)
+
 
 (** {2 OCamlfind predicates} *)
 
@@ -45,13 +52,14 @@ let qrexec_qubes = impl @@ object
   val name = Name.ocamlify @@ "qrexec_"
   method name = name
   method module_name = "Qubes.RExec"
-  method packages = Key.pure ["mirage-qubes"]
-  method libraries = Key.pure ["mirage-qubes"]
+  method packages = Key.pure [package "mirage-qubes"]
   method configure i =
-    match Key.(get (Info.context i) target) with
-    | `Qubes -> Result.Ok ()
+    match get_target i with
+    | `Qubes -> R.ok ()
     | _ ->
-      Log.error "Qubes remote-exec invoked for non-Qubes target, stopping."
+      Log.err (fun m -> m "Qubes remote-exec invoked for non-Qubes target, stopping.");
+      R.error_msg "non-qubes target"
+
   method connect _ modname _args =
      Fmt.strf
 "@[<v 2>\
@@ -71,13 +79,13 @@ let gui_qubes = impl @@ object
   val name = Name.ocamlify @@ "gui"
   method name = name
   method module_name = "Qubes.GUI"
-  method packages = Key.pure ["mirage-qubes"]
-  method libraries = Key.pure ["mirage-qubes"]
+  method packages = Key.pure [package "mirage-qubes"]
   method configure i =
-    match Key.(get (Info.context i) target) with
-    | `Qubes -> Result.Ok ()
+    match get_target i with
+    | `Qubes -> R.ok ()
     | _ ->
-      Log.error "Qubes GUI invoked for non-Qubes target, stopping."
+      Log.err (fun m -> m  "Qubes GUI invoked for non-Qubes target, stopping.");
+      R.error_msg "non-qubes target"
   method connect _ modname _args =
      Fmt.strf
 "@[<v 2>\
@@ -95,8 +103,7 @@ let qubesdb_conf = object
   method ty = qubesdb
   method name = "qubesdb"
   method module_name = "Qubes.DB"
-  method libraries = Key.pure ["mirage-qubes"]
-  method packages = Key.pure [ "mirage-qubes" ]
+  method packages = Key.pure [ package "mirage-qubes" ]
   method connect _ modname _args =
      Fmt.strf
 "@[<v 2>\
@@ -114,8 +121,8 @@ let io_page_conf = object
   method ty = io_page
   method name = "io_page"
   method module_name = "Io_page"
-  method libraries = Key.(if_ is_unix) ["io-page.unix"] ["io-page"]
-  method packages = Key.pure [ "io-page" ]
+  method packages =
+    Key.(if_ is_unix) [package ~sublibs:["unix"] "io-page"] [package "io-page"]
 end
 
 let default_io_page = impl io_page_conf
@@ -135,14 +142,15 @@ let default_time = impl time_conf
 type pclock = PCLOCK
 let pclock = Type PCLOCK
 
-let posix_clock_conf = object (self)
+let posix_clock_conf = object
   inherit base_configurable
   method ty = pclock
   method name = "pclock"
   method module_name = "Pclock"
-  method libraries =
-    Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-freestanding"]
-  method packages = self#libraries
+  method packages =
+    Key.(if_ is_unix)
+      [package "mirage-clock-unix"]
+      [package "mirage-clock-freestanding"]
   method connect _ modname _args =
     Printf.sprintf "%s.connect ()" modname
 end
@@ -152,14 +160,15 @@ let default_posix_clock = impl posix_clock_conf
 type mclock = MCLOCK
 let mclock = Type MCLOCK
 
-let monotonic_clock_conf = object (self)
+let monotonic_clock_conf = object
   inherit base_configurable
   method ty = mclock
   method name = "mclock"
   method module_name = "Mclock"
-  method libraries =
-    Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-freestanding"]
-  method packages = self#libraries
+  method packages =
+    Key.(if_ is_unix)
+      [package "mirage-clock-unix"]
+      [package "mirage-clock-freestanding"]
   method connect _ modname _args =
     Printf.sprintf "%s.connect ()" modname
 end
@@ -174,14 +183,24 @@ let stdlib_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Stdlibrandom"
-  method packages = Key.pure ["mirage-stdlib-random"]
-  method libraries = Key.pure ["mirage-stdlib-random"]
+  method packages = Key.pure [package "mirage-stdlib-random"]
   method connect _ modname _args =
     Printf.sprintf "Lwt.return (%s.initialize ())" modname
 end
 
 let stdlib_random = impl stdlib_random_conf
 
+
+let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
+  let open Bos in
+  let flag = if recursive then "-recursive" else ""
+  and format = Cmd.of_list [ "-format" ; format ]
+  and predicate = match predicates with
+    | None -> []
+    | Some x -> [ "-predicates" ; x ]
+  in
+  let cmd = Cmd.(v "ocamlfind" % "query" % flag %% format %% of_list predicate %% of_list libs) in
+  OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
 
 (* This is to check that entropy is a dependency if "tls" is in
    the package array. *)
@@ -192,16 +211,15 @@ let enable_entropy, is_entropy_enabled =
   (f, g)
 
 let check_entropy libs =
-  Cmd.OCamlfind.query ~recursive:true libs
-  >>| List.exists ((=) "nocrypto")
-  >>= fun is_needed ->
-  if is_needed && not (is_entropy_enabled ()) then
-    Log.error
-      "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
-       Please enable the entropy by adding a dependency to the nocrypto \
-       device. You can do so by adding ~deps:[abstract nocrypto] \
-       to the arguments of Mirage.foreign."
-  else R.ok ()
+  query_ocamlfind ~recursive:true libs >>= fun ps ->
+  if List.mem "nocrypto" ps && not (is_entropy_enabled ()) then begin
+    Log.err (fun m -> m
+                "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
+                 Please enable the entropy by adding a dependency to the nocrypto \
+                 device. You can do so by adding ~deps:[abstract nocrypto] \
+                 to the arguments of Mirage.foreign.");
+    R.error_msg "need crypto"
+  end else R.ok ()
 
 let nocrypto = impl @@ object
     inherit base_configurable
@@ -211,18 +229,18 @@ let nocrypto = impl @@ object
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes   -> ["nocrypto"; "zarith-xen"]
-      | `Virtio | `Ukvm -> ["nocrypto"; "zarith-freestanding"]
-      | `Unix | `MacOSX -> ["nocrypto"]
+      | `Xen | `Qubes ->
+        [package ~sublibs:["mirage"] "nocrypto"; package ~ocamlfind:[] "zarith-xen"]
+      | `Virtio | `Ukvm ->
+        [package ~sublibs:["mirage"] "nocrypto"; package ~ocamlfind:[] "zarith-freestanding"]
+      | `Unix | `MacOSX ->
+        [package ~sublibs:["lwt"] "nocrypto"]
 
-    method libraries =
-      Key.(if_ is_unix) ["nocrypto.lwt"] ["nocrypto.mirage"]
-
-    method configure _ = R.ok (enable_entropy ())
+    method build _ = R.ok (enable_entropy ())
     method connect i _ _ =
-      match Key.(get (Info.context i) target) with
+      match get_target i with
       | `Xen | `Qubes | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
-      | `Unix | `MacOSX        -> "Nocrypto_entropy_lwt.initialize ()"
+      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
 
   end
 
@@ -231,8 +249,7 @@ let nocrypto_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Nocrypto.Rng"
-  method packages = Key.pure ["nocrypto"]
-  method libraries = Key.pure ["nocrypto"]
+  method packages = Key.pure [package "nocrypto"]
   method deps = [abstract nocrypto]
 end
 
@@ -253,8 +270,7 @@ let console_unix str = impl @@ object
     val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
     method module_name = "Console_unix"
-    method packages = Key.pure ["mirage-console-unix"]
-    method libraries = Key.pure ["mirage-console-unix"]
+    method packages = Key.pure [package "mirage-console-unix"]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -265,8 +281,7 @@ let console_xen str = impl @@ object
     val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
     method module_name = "Console_xen"
-    method packages = Key.pure ["mirage-console-xen"]
-    method libraries = Key.pure ["mirage-console-xen"]
+    method packages = Key.pure [package "mirage-console-xen"]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -277,8 +292,7 @@ let console_solo5 str = impl @@ object
     val name = Name.ocamlify @@ "console_solo5_" ^ str
     method name = name
     method module_name = "Console_solo5"
-    method packages = Key.pure ["mirage-console-solo5";]
-    method libraries = Key.pure ["mirage-console-solo5"]
+    method packages = Key.pure [package "mirage-console-solo5";]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -296,37 +310,36 @@ let default_console = custom_console "0"
 type kv_ro = KV_RO
 let kv_ro = Type KV_RO
 
-let (/) = Filename.concat
-
 let crunch dirname = impl @@ object
     inherit base_configurable
     method ty = kv_ro
     val name = Name.create ("static" ^ dirname) ~prefix:"static"
     method name = name
     method module_name = String.Ascii.capitalize name
-    method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch"; "io-page" ]
-    method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "io-page" ]
+    method packages = Key.pure [package "io-page"; package ~build:true "crunch"]
     method deps = [ abstract default_io_page ]
     method connect _ modname _ = Fmt.strf "%s.connect ()" modname
 
-    method configure i =
-      if not (Cmd.exists "ocaml-crunch") then
-        Log.error "Couldn't find the ocaml-crunch binary.  Please install the opam package crunch."
-      else begin
-        let dir = Info.root i / dirname in
-        let file = Info.root i / (name ^ ".ml") in
-        if Sys.file_exists dir then (
-          Log.info "%a %s" Log.blue "Generating:" file;
-          Cmd.run "ocaml-crunch -o %s %s" file dir
-        ) else (
-          Log.error "The directory %s does not exist." dir
-        )
-      end
+    method build i =
+      match query_ocamlfind  ["crunch"] with
+      | Ok _ ->
+        let dir = Fpath.(v (Info.root i) // v dirname) in
+        let file = Fpath.(v (Info.root i) / name + ".ml") in
+        begin match Bos.OS.Path.exists dir with
+          | Ok _ ->
+            Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+            Bos.OS.Cmd.run Bos.Cmd.(v "ocaml-crunch" % "-o" % (Fpath.to_string file) % (Fpath.to_string dir))
+          | Error _ ->
+            Log.err (fun m -> m "The directory %a does not exist." Fpath.pp dir);
+            R.error_msg "no such directory"
+        end
+      | Error e ->
+        Log.err (fun m -> m  "Couldn't find the ocaml-crunch binary.  Please install the opam package crunch.");
+        Error e
 
-    method clean i =
-      Cmd.remove (Info.root i / name ^ ".ml");
-      Cmd.remove (Info.root i / name ^ ".mli");
-      R.ok ()
+    method clean _i =
+      Bos.OS.File.delete Fpath.(v name + "ml") >>= fun () ->
+      Bos.OS.File.delete Fpath.(v name + "mli")
 
   end
 
@@ -336,10 +349,9 @@ let direct_kv_ro_conf dirname = impl @@ object
     val name = Name.create ("direct" ^ dirname) ~prefix:"direct"
     method name = name
     method module_name = "Kvro_fs_unix"
-    method packages = Key.pure ["mirage-fs-unix"]
-    method libraries = Key.pure ["mirage-fs-unix"]
+    method packages = Key.pure [package "mirage-fs-unix"]
     method connect i _modname _names =
-      Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i / dirname)
+      Fmt.strf "Kvro_fs_unix.connect %S" (Filename.concat (Info.root i) dirname)
   end
 
 let direct_kv_ro dirname =
@@ -381,19 +393,14 @@ class block_conf file =
     method module_name = "Block"
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> ["mirage-block-xen"]
-      | `Virtio | `Ukvm -> ["mirage-block-solo5"]
-      | `Unix | `MacOSX -> ["mirage-block-unix"]
-    method libraries =
-      Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> ["mirage-block-xen.front"]
-      | `Virtio | `Ukvm -> ["mirage-block-solo5"]
-      | `Unix | `MacOSX -> ["mirage-block-unix"]
+      | `Xen | `Qubes -> [package ~sublibs:["front"] "mirage-block-xen"]
+      | `Virtio | `Ukvm -> [package "mirage-block-solo5"]
+      | `Unix | `MacOSX -> [package "mirage-block-unix"]
 
     method private connect_name target root =
       match target with
       | `Unix | `MacOSX | `Virtio | `Ukvm ->
-        root / b.filename (* open the file directly *)
+        Filename.concat root b.filename (* open the file directly *)
       | `Xen | `Qubes ->
         (* We need the xenstore id *)
         (* Taken from https://github.com/mirage/mirage-block-xen/blob/
@@ -415,9 +422,9 @@ let tar_block dir =
   let block_file = name ^ ".img" in
   impl @@ object
     inherit block_conf block_file as super
-    method configure i =
-      Cmd.run "tar -C %s -cvf %s ." dir block_file >>= fun () ->
-      super#configure i
+    method build i =
+      Bos.OS.Cmd.run Bos.Cmd.(v "tar" % "-C" % dir % "-cvf" % block_file) >>= fun () ->
+      super#build i
   end
 
 let archive_conf = impl @@ object
@@ -425,8 +432,7 @@ let archive_conf = impl @@ object
     method ty = block @-> kv_ro
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
-    method packages = Key.pure [ "tar-format" ]
-    method libraries = Key.pure [ "tar.mirage" ]
+    method packages = Key.pure [ package ~ocamlfind:["tar.mirage"] "tar-format" ]
     method connect _ modname = function
       | [ block ] ->
         Fmt.strf "%s.connect %s" modname block
@@ -443,8 +449,7 @@ let fs = Type FS
 let fat_conf = impl @@ object
     inherit base_configurable
     method ty = (block @-> io_page @-> fs)
-    method packages = Key.pure [ "fat-filesystem" ]
-    method libraries = Key.pure [ "fat-filesystem" ]
+    method packages = Key.pure [ package "fat-filesystem" ]
     method name = "fat"
     method module_name = "Fat.Fs.Make"
     method connect _ modname l = match l with
@@ -464,35 +469,38 @@ let fat_block ?(dir=".") ?(regexp="*") () =
     method configure i =
       let root = Info.root i in
       let file = Printf.sprintf "make-%s-image.sh" name in
-      Cmd.with_file file begin fun fmt ->
-        Codegen.append fmt "#!/bin/sh";
-        Codegen.append fmt "";
-        Codegen.append fmt "echo This uses the 'fat' command-line tool to \
-                            build a simple FAT";
-        Codegen.append fmt "echo filesystem image.";
-        Codegen.append fmt "";
-        Codegen.append fmt "FAT=$(which fat)";
-        Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then";
-        Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line \
-                            tool.";
-        Codegen.append fmt "  echo Try running 'opam install fat-filesystem'";
-        Codegen.append fmt "  exit 1";
-        Codegen.append fmt "fi";
-        Codegen.append fmt "";
-        Codegen.append fmt "IMG=$(pwd)/%s" block_file;
-        Codegen.append fmt "rm -f ${IMG}";
-        Codegen.append fmt "cd %s/" (root/dir);
-        Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
-        Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
-        Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
-        Codegen.append fmt "echo Created '%s'" block_file;
-      end ;
-      Unix.chmod file 0o755;
-      Cmd.run "./make-%s-image.sh" name >>= fun () ->
+      with_output ~mode:0o755 (Fpath.v file)
+        (fun oc () ->
+           let fmt = Format.formatter_of_out_channel oc in
+           Codegen.append fmt "#!/bin/sh";
+           Codegen.append fmt "";
+           Codegen.append fmt "echo This uses the 'fat' command-line tool to \
+                               build a simple FAT";
+           Codegen.append fmt "echo filesystem image.";
+           Codegen.append fmt "";
+           Codegen.append fmt "FAT=$(which fat)";
+           Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then";
+           Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line \
+                               tool.";
+           Codegen.append fmt "  echo Try running 'opam install fat-filesystem'";
+           Codegen.append fmt "  exit 1";
+           Codegen.append fmt "fi";
+           Codegen.append fmt "";
+           Codegen.append fmt "IMG=$(pwd)/%s" block_file;
+           Codegen.append fmt "rm -f ${IMG}";
+           Codegen.append fmt "cd %s/" (Filename.concat root dir);
+           Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
+           Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
+           Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
+           Codegen.append fmt "echo Created '%s'" block_file;
+           R.ok ())
+        "fat shell script" >>= fun () ->
+      Bos.OS.Cmd.run (Bos.Cmd.v ("./make-" ^ name ^ "-image.sh")) >>= fun () ->
       super#configure i
 
     method clean i =
-      R.get_ok @@ Cmd.run "rm -f make-%s-image.sh %s" name block_file ;
+      Bos.OS.File.delete (Fpath.v ("make-" ^ name ^ "-image.sh")) >>= fun () ->
+      Bos.OS.File.delete (Fpath.v block_file) >>= fun () ->
       super#clean i
   end
 
@@ -504,8 +512,7 @@ let kv_ro_of_fs_conf = impl @@ object
     method ty = fs @-> kv_ro
     method name = "kv_ro_of_fs"
     method module_name = "Fat.KV_RO.Make"
-    method packages = Key.pure [ "fat-filesystem" ]
-    method libraries = Key.pure [ "fat-filesystem" ]
+    method packages = Key.pure [ package "fat-filesystem" ]
   end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
@@ -529,7 +536,7 @@ let all_networks = ref []
 
 let network_conf (intf : string Key.key) =
   let key = Key.abstract intf in
-  object (self)
+  object
     inherit base_configurable
     method ty = network
     val name = Functoria_app.Name.create "net" ~prefix:"net"
@@ -539,13 +546,11 @@ let network_conf (intf : string Key.key) =
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix -> ["mirage-net-unix"]
-      | `MacOSX -> ["mirage-net-macosx"]
-      | `Xen -> ["mirage-net-xen"]
-      | `Qubes -> ["mirage-net-xen" ; "mirage-qubes"]
-      | `Virtio | `Ukvm -> ["mirage-net-solo5"]
-
-    method libraries = self#packages
+      | `Unix -> [package "mirage-net-unix"]
+      | `MacOSX -> [package "mirage-net-macosx"]
+      | `Xen -> [package "mirage-net-xen"]
+      | `Qubes -> [package "mirage-net-xen" ; package "mirage-qubes"]
+      | `Virtio | `Ukvm -> [package "mirage-net-solo5"]
 
     method connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
@@ -570,8 +575,7 @@ let ethernet_conf = object
   method ty = network @-> ethernet
   method name = "ethif"
   method module_name = "Ethif.Make"
-  method packages = Key.pure ["tcpip"]
-  method libraries = Key.pure ["tcpip.ethif"]
+  method packages = Key.pure [package ~sublibs:["ethif"] "tcpip"]
   method connect _ modname = function
     | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
     | _ -> failwith "The ethernet connect should receive exactly one argument."
@@ -588,8 +592,7 @@ let arpv4_conf = object
   method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arpv4"
   method module_name = "Arpv4.Make"
-  method packages = Key.pure ["tcpip"]
-  method libraries = Key.pure ["tcpip.arpv4"]
+  method packages = Key.pure [package ~sublibs:["arpv4"] "tcpip"]
 
   method connect _ modname = function
     | [ eth ; clock ; _time ] -> Printf.sprintf "%s.connect %s %s" modname eth clock
@@ -632,8 +635,7 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method packages = Key.pure ["tcpip"]
-    method libraries = Key.pure ["tcpip.ipv4"]
+    method packages = Key.pure [package ~sublibs:["ipv4"] "tcpip"]
     method keys = network @?? gateway @?? []
     method connect _ modname = function
     | [ etif ; arp ] ->
@@ -652,8 +654,7 @@ let dhcp_conf = impl @@ object
   method ty = time @-> network @-> dhcp
   method name = "dhcp_client"
   method module_name = "Dhcp_client_mirage.Make"
-  method packages = Key.pure [ "charrua-client" ]
-  method libraries = Key.pure [ "charrua-client.mirage" ]
+  method packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
   method connect _ modname = function
   | [ _time; network ] ->
     Fmt.strf
@@ -667,8 +668,7 @@ let ipv4_dhcp_conf = impl @@ object
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method packages = Key.pure ["charrua-client"]
-    method libraries = Key.pure ["charrua-client.mirage"]
+    method packages = Key.pure [package ~sublibs:["mirage"] "charrua-client"]
     method connect _ modname = function
           | [ dhcp ; ethernet ; arp ] ->
         Fmt.strf
@@ -708,8 +708,7 @@ let ipv4_qubes_conf = impl @@ object
   method ty = qubesdb @-> ethernet @-> arpv4 @-> ipv4
   method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
   method module_name = "Qubesdb_ipv4.Make"
-  method packages = Key.pure ["mirage-qubes"]
-  method libraries = Key.pure ["mirage-qubes.ipv4"]
+  method packages = Key.pure [package ~sublibs:["ipv4"] "mirage-qubes"]
   method connect _ modname = function
   | [ db ; ethif; arp ] ->
       Fmt.strf
@@ -725,8 +724,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method packages = Key.pure ["tcpip"]
-    method libraries = Key.pure ["tcpip.ipv6"]
+    method packages = Key.pure [package ~sublibs:["ipv6"] "tcpip"]
     method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; _time ; _clock ] ->
@@ -760,8 +758,7 @@ let icmpv4_direct_conf () = object
   method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
   method name = "icmpv4"
   method module_name = "Icmpv4.Make"
-  method packages = Key.pure [ "tcpip" ]
-  method libraries = Key.pure [ "tcpip.icmpv4" ]
+  method packages = Key.pure [ package ~sublibs:["icmpv4"] "tcpip" ]
   method connect _ modname = function
     | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
     | _  -> failwith "The icmpv4 connect should receive exactly one argument."
@@ -784,8 +781,7 @@ let udp_direct_conf () = object
   method ty : ('a ip -> 'a udp) typ = ip @-> udp
   method name = "udp"
   method module_name = "Udp.Make"
-  method packages = Key.pure [ "tcpip" ]
-  method libraries = Key.pure [ "tcpip.udp" ]
+  method packages = Key.pure [package ~sublibs:["udp"] "tcpip" ]
   method connect _ modname = function
     | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
     | _  -> failwith "The udpv6 connect should receive exactly one argument."
@@ -802,10 +798,9 @@ let udpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Udpv4_socket"
   method keys = [ Key.abstract ipv4_key ]
-  method packages = Key.pure [ "tcpip" ]
-  method libraries =
+  method packages =
     Key.match_ Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
+    | `Unix | `MacOSX -> [ package ~sublibs:["udpv4-socket"] "tcpip" ]
     | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
@@ -828,8 +823,7 @@ let tcp_direct_conf () = object
     (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method packages = Key.pure [ "tcpip" ]
-  method libraries = Key.pure [ "tcpip.tcp" ]
+  method packages = Key.pure [package ~sublibs:["tcp"] "tcpip" ]
   method connect _ modname = function
     | [ip; _time; clock; _random] -> Printf.sprintf "%s.connect %s %s" modname ip clock
     | _ -> failwith "The tcp connect should receive exactly four arguments."
@@ -849,10 +843,9 @@ let tcpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Tcpv4_socket"
   method keys = [ Key.abstract ipv4_key ]
-  method packages = Key.pure [ "tcpip" ]
-  method libraries =
+  method packages =
     Key.match_ Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
+    | `Unix | `MacOSX -> [package ~sublibs:["tcpv4-socket"] "tcpip" ]
     | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
@@ -878,8 +871,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
 
-    method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage-runtime" ]
+    method packages = Key.pure [package ~sublibs:["stack-direct"] "tcpip" ]
 
     method connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
@@ -932,8 +924,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_socket"
     method keys = [ Key.abstract interfaces ]
-    method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.pure [ "tcpip.stack-socket" ]
+    method packages = Key.pure [ package ~sublibs:["stack-socket"] "tcpip" ]
     method deps = [
       abstract (socket_udpv4 None);
       abstract (socket_tcpv4 None);
@@ -988,8 +979,11 @@ let tcp_conduit_connector = impl @@ object
     method ty = stackv4 @-> conduit_connector
     method name = "tcp_conduit_connector"
     method module_name = "Conduit_mirage.With_tcp"
-    method packages = Key.pure [ "mirage-conduit" ]
-    method libraries = Key.pure [ "conduit.mirage" ]
+    method packages =
+      Key.pure [
+        package ~ocamlfind:[] "mirage-conduit";
+        package ~sublibs:["mirage"] "conduit"
+      ]
     method connect _ modname = function
       | [ stack ] ->
         Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
@@ -1001,8 +995,12 @@ let tls_conduit_connector = impl @@ object
     method ty = conduit_connector
     method name = "tls_conduit_connector"
     method module_name = "Conduit_mirage"
-    method packages = Key.pure [ "mirage-conduit" ; "tls" ]
-    method libraries = Key.pure [ "conduit.mirage" ; "tls.mirage" ]
+    method packages =
+      Key.pure [
+        package ~sublibs:["mirage"] "tls" ;
+        package ~ocamlfind:[] "mirage-conduit" ;
+        package ~sublibs:["mirage"] "conduit"
+      ]
     method deps = [ abstract nocrypto ]
     method connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
   end
@@ -1015,8 +1013,11 @@ let conduit_with_connectors connectors = impl @@ object
     method ty = conduit
     method name = Name.create "conduit" ~prefix:"conduit"
     method module_name = "Conduit_mirage"
-    method packages = Key.pure [ "mirage-conduit" ]
-    method libraries = Key.pure [ "conduit.mirage" ]
+    method packages =
+      Key.pure [
+        package ~ocamlfind:[] "mirage-conduit";
+        package ~sublibs:["mirage"] "conduit"
+      ]
     method deps = abstract nocrypto :: List.map abstract connectors
 
     method connect _i _ = function
@@ -1052,9 +1053,10 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix | `MacOSX -> ["mirage-conduit" ]
+      | `Unix | `MacOSX ->
+        [ package ~ocamlfind:[] "mirage-conduit" ;
+          package ~sublibs:["mirage";"lwt-unix"] "conduit" ]
       | _ -> failwith "Resolver_unix not supported on unikernel"
-    method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
 
@@ -1063,8 +1065,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method ty = time @-> stackv4 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
-    method packages = Key.pure [ "dns"; "tcpip" ]
-    method libraries = Key.pure [ "dns.mirage" ]
+    method packages =
+      Key.pure [ package ~sublibs:["mirage"] "dns"; package "tcpip" ]
 
     method connect _ modname = function
       | [ _t ; stack ] ->
@@ -1093,8 +1095,7 @@ let http_server conduit = impl @@ object
     method ty = http
     method name = "http"
     method module_name = "Cohttp_mirage.Server_with_conduit"
-    method packages = Key.pure [ "mirage-http" ]
-    method libraries = Key.pure [ "mirage-http" ]
+    method packages = Key.pure [ package "mirage-http" ]
     method deps = [ abstract conduit ]
     method connect _i modname = function
       | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
@@ -1116,8 +1117,7 @@ let argv_xen = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_xen"
     method module_name = "Bootvar"
-    method packages = Key.pure [ "mirage-bootvar-xen" ]
-    method libraries = Key.pure [ "mirage-bootvar-xen" ]
+    method packages = Key.pure [ package "mirage-bootvar-xen" ]
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -1126,8 +1126,7 @@ let argv_solo5 = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_solo5"
     method module_name = "Bootvar"
-    method packages = Key.pure [ "mirage-bootvar-solo5" ]
-    method libraries = Key.pure [ "mirage-bootvar-solo5" ]
+    method packages = Key.pure [ package "mirage-bootvar-solo5" ]
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -1144,8 +1143,7 @@ let argv_qubes = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_qubes"
     method module_name = "Bootvar"
-    method packages = Key.pure [ "mirage-bootvar-xen" ]
-    method libraries = Key.pure [ "mirage-bootvar-xen" ]
+    method packages = Key.pure [ package "mirage-bootvar-xen" ]
     method connect _ _ _ =
       (* Qubes tries to pass some nice arguments.
        * It means well, but we can't do much with them,
@@ -1180,8 +1178,7 @@ let mirage_log ?ring_size ~default =
     method ty = pclock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
-    method packages = Key.pure ["mirage-logs"]
-    method libraries = Key.pure ["mirage-logs"]
+    method packages = Key.pure [ package "mirage-logs"]
     method keys = [ Key.abstract logs ]
     method connect _ modname = function
     | [ pclock ] ->
@@ -1226,24 +1223,22 @@ let mprof_trace ~size () =
     method name = "mprof_trace"
     method module_name = "MProf"
     method keys = [ Key.abstract key ]
-    method packages = Key.pure ["mirage-profile"]
-    method libraries =
+    method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> ["mirage-profile.xen"]
+      | `Xen | `Qubes -> [package ~sublibs:["xen"] "mirage-profile"]
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
-      | `Unix | `MacOSX -> ["mirage-profile.unix"]
+      | `Unix | `MacOSX -> [package ~sublibs:["unix"] "mirage-profile"]
 
     method configure _ =
-      if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" = 0
-      then R.ok ()
-      else begin
-        flush stdout;
-        Log.error
-          "lwt.tracing module not found. Hint:\n\
-           opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'"
-      end
+      match query_ocamlfind ["lwt.tracing"] with
+      | Ok _ -> Ok ()
+      | Error _ ->
+        Log.err (fun m ->
+            m "lwt.tracing module not found. Hint:\
+               opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'") ;
+        Error (`Msg "no lwt.tracing")
 
-    method connect i _ _ = match Key.(get (Info.context i) target) with
+    method connect i _ _ = match get_target i with
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf
@@ -1277,58 +1272,61 @@ let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
 
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
-  let file = root / name ^ "_libvirt.xml" in
-  Cmd.with_file file @@ fun fmt ->
-  append fmt "<!-- %s -->" (generated_header ());
-  append fmt "<domain type='xen'>";
-  append fmt "    <name>%s</name>" name;
-  append fmt "    <memory unit='KiB'>262144</memory>";
-  append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
-  append fmt "    <vcpu placement='static'>1</vcpu>";
-  append fmt "    <os>";
-  append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-  append fmt "        <kernel>%s/mir-%s.xen</kernel>" root name;
-  append fmt "        <cmdline> </cmdline>";
-  (* the libxl driver currently needs an empty cmdline to be able to
-     start the domain on arm - due to this?
-     http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
-  append fmt "    </os>";
-  append fmt "    <clock offset='utc' adjustment='reset'/>";
-  append fmt "    <on_crash>preserve</on_crash>";
-  append fmt "    <!-- ";
-  append fmt "    You must define network and block interfaces manually.";
-  append fmt "    See http://libvirt.org/drvxen.html for information about \
-              converting .xl-files to libvirt xml automatically.";
-  append fmt "    -->";
-  append fmt "    <devices>";
-  append fmt "        <!--";
-  append fmt "        The disk configuration is defined here:";
-  append fmt "        http://libvirt.org/formatstorage.html.";
-  append fmt "        An example would look like:";
-  append fmt"         <disk type='block' device='disk'>";
-  append fmt "            <driver name='phy'/>";
-  append fmt "            <source dev='/dev/loop0'/>";
-  append fmt "            <target dev='' bus='xen'/>";
-  append fmt "        </disk>";
-  append fmt "        -->";
-  append fmt "        <!-- ";
-  append fmt "        The network configuration is defined here:";
-  append fmt "        http://libvirt.org/formatnetwork.html";
-  append fmt "        An example would look like:";
-  append fmt "        <interface type='bridge'>";
-  append fmt "            <mac address='c0:ff:ee:c0:ff:ee'/>";
-  append fmt "            <source bridge='br0'/>";
-  append fmt "        </interface>";
-  append fmt "        -->";
-  append fmt "        <console type='pty'>";
-  append fmt "            <target type='xen' port='0'/>";
-  append fmt "        </console>";
-  append fmt "    </devices>";
-  append fmt "</domain>";
-  ()
+  let file = Fpath.(v root / (name ^  "_libvirt") + "xml") in
+  with_output file
+    (fun oc () ->
+       let fmt = Format.formatter_of_out_channel oc in
+       append fmt "<!-- %s -->" (generated_header ());
+       append fmt "<domain type='xen'>";
+       append fmt "    <name>%s</name>" name;
+       append fmt "    <memory unit='KiB'>262144</memory>";
+       append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
+       append fmt "    <vcpu placement='static'>1</vcpu>";
+       append fmt "    <os>";
+       append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
+       append fmt "        <kernel>%s/mir-%s.xen</kernel>" root name;
+       append fmt "        <cmdline> </cmdline>";
+       (* the libxl driver currently needs an empty cmdline to be able to
+           start the domain on arm - due to this?
+           http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
+       append fmt "    </os>";
+       append fmt "    <clock offset='utc' adjustment='reset'/>";
+       append fmt "    <on_crash>preserve</on_crash>";
+       append fmt "    <!-- ";
+       append fmt "    You must define network and block interfaces manually.";
+       append fmt "    See http://libvirt.org/drvxen.html for information about \
+                   converting .xl-files to libvirt xml automatically.";
+       append fmt "    -->";
+       append fmt "    <devices>";
+       append fmt "        <!--";
+       append fmt "        The disk configuration is defined here:";
+       append fmt "        http://libvirt.org/formatstorage.html.";
+       append fmt "        An example would look like:";
+       append fmt"         <disk type='block' device='disk'>";
+       append fmt "            <driver name='phy'/>";
+       append fmt "            <source dev='/dev/loop0'/>";
+       append fmt "            <target dev='' bus='xen'/>";
+       append fmt "        </disk>";
+       append fmt "        -->";
+       append fmt "        <!-- ";
+       append fmt "        The network configuration is defined here:";
+       append fmt "        http://libvirt.org/formatnetwork.html";
+       append fmt "        An example would look like:";
+       append fmt "        <interface type='bridge'>";
+       append fmt "            <mac address='c0:ff:ee:c0:ff:ee'/>";
+       append fmt "            <source bridge='br0'/>";
+       append fmt "        </interface>";
+       append fmt "        -->";
+       append fmt "        <console type='pty'>";
+       append fmt "            <target type='xen' port='0'/>";
+       append fmt "        </console>";
+       append fmt "    </devices>";
+       append fmt "</domain>";
+       R.ok ())
+    "libvirt.xml"
 
-let clean_main_libvirt_xml ~root ~name =
-  Cmd.remove (root / name ^ "_libvirt.xml")
+let clean_main_libvirt_xml ~name =
+  Bos.OS.File.delete Fpath.(v (name ^ "_libvirt") + "xml")
 
 (* We generate an example .xl with common defaults, and a generic
    .xl.in which has @VARIABLES@ which must be substituted by sed
@@ -1396,393 +1394,384 @@ let configure_main_xl ?substitutions ext i =
   let substitutions = match substitutions with
     | Some x -> x
     | None -> defaults i in
-  let file = Info.root i / Info.name i ^ ext in
+  let file = Fpath.(v (Info.root i) / (Info.name i) + ext) in
   let open Codegen in
-  Cmd.with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header ()) ;
-  newline fmt;
-  append fmt "name = '%s'" (lookup substitutions Name);
-  append fmt "kernel = '%s'" (lookup substitutions Kernel);
-  append fmt "builder = 'linux'";
-  append fmt "memory = %s" (lookup substitutions Memory);
-  append fmt "on_crash = 'preserve'";
-  newline fmt;
-  let blocks = List.map (fun b ->
-      (* We need the Linux version of the block number (this is a
-         strange historical artifact) Taken from
-         https://github.com/mirage/mirage-block-xen/blob/
-         a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
-      let rec string_of_int26 x =
-        let (/) = Pervasives.(/) in
-        let high, low = x / 26 - 1, x mod 26 + 1 in
-        let high' = if high = -1 then "" else string_of_int26 high in
-        let low' =
-          String.v 1 (fun _ -> char_of_int (low + (int_of_char 'a') - 1))
-        in
-        high' ^ low' in
-      let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.number) in
-      let path = lookup substitutions (Block b) in
-      Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
-    ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
-  append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
-  newline fmt;
-  let networks = List.map (fun n ->
-      Printf.sprintf "'bridge=%s'" (lookup substitutions (Network n))
-    ) !all_networks in
-  append fmt "# if your system uses openvswitch then either edit \
-              /etc/xen/xl.conf and set";
-  append fmt "#     vif.default.script=\"vif-openvswitch\"";
-  append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" \
-              below:";
-  append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
-  ()
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "# %s" (generated_header ()) ;
+      newline fmt;
+      append fmt "name = '%s'" (lookup substitutions Name);
+      append fmt "kernel = '%s'" (lookup substitutions Kernel);
+      append fmt "builder = 'linux'";
+      append fmt "memory = %s" (lookup substitutions Memory);
+      append fmt "on_crash = 'preserve'";
+      newline fmt;
+      let blocks = List.map (fun b ->
+          (* We need the Linux version of the block number (this is a
+             strange historical artifact) Taken from
+             https://github.com/mirage/mirage-block-xen/blob/
+             a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
+          let rec string_of_int26 x =
+            let high, low = x / 26 - 1, x mod 26 + 1 in
+            let high' = if high = -1 then "" else string_of_int26 high in
+            let low' =
+              String.v 1 (fun _ -> char_of_int (low + (int_of_char 'a') - 1))
+            in
+            high' ^ low' in
+          let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.number) in
+          let path = lookup substitutions (Block b) in
+          Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
+        ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
+      append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
+      newline fmt;
+      let networks = List.map (fun n ->
+          Printf.sprintf "'bridge=%s'" (lookup substitutions (Network n))
+        ) !all_networks in
+      append fmt "# if your system uses openvswitch then either edit \
+                  /etc/xen/xl.conf and set";
+      append fmt "#     vif.default.script=\"vif-openvswitch\"";
+      append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" \
+                  below:";
+      append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
+      R.ok ()) "xl file"
 
-let clean_main_xl ~root ~name ext = Cmd.remove (root / name ^ ext)
+let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
 
 let configure_main_xe ~root ~name =
   let open Codegen in
-  let file = root / name ^ ".xe" in
-  Cmd.with_file file @@ fun fmt ->
-  append fmt "#!/bin/sh";
-  append fmt "# %s" (generated_header ());
-  newline fmt;
-  append fmt "set -e";
-  newline fmt;
-  append fmt "# Dependency: xe";
-  append fmt "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but \
-              it's not installed.  Aborting.\"; exit 1; }";
-  append fmt "# Dependency: xe-unikernel-upload";
-  append fmt "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I \
-              require xe-unikernel-upload but it's not installed.  Aborting.\"\
-              ; exit 1; }";
-  append fmt "# Dependency: a $HOME/.xe";
-  append fmt "if [ ! -e $HOME/.xe ]; then";
-  append fmt "  echo Please create a config file for xe in $HOME/.xe which \
-              contains:";
-  append fmt "  echo server='<IP or DNS name of the host running xapi>'";
-  append fmt "  echo username=root";
-  append fmt "  echo password=password";
-  append fmt "  exit 1";
-  append fmt "fi";
-  newline fmt;
-  append fmt "echo Uploading VDI containing unikernel";
-  append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" root name;
-  append fmt "echo VDI=$VDI";
-  append fmt "echo Creating VM metadata";
-  append fmt "VM=$(xe vm-create name-label=%s)" name;
-  append fmt "echo VM=$VM";
-  append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
-  append fmt "echo Adding network interface connected to xenbr0";
-  append fmt "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
-  append fmt "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
-  append fmt "echo Atting block device and making it bootable";
-  append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
-  append fmt "xe vbd-param-set uuid=$VBD bootable=true";
-  append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
-  List.iter (fun b ->
-      append fmt "echo Uploading data VDI %s" b.filename;
+  let file = Fpath.(v name + "xe") in
+  with_output ~mode:0o755 file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "#!/bin/sh";
+      append fmt "# %s" (generated_header ());
+      newline fmt;
+      append fmt "set -e";
+      newline fmt;
+      append fmt "# Dependency: xe";
+      append fmt "command -v xe >/dev/null 2>&1 || { echo >&2 \"I require xe but \
+                  it's not installed.  Aborting.\"; exit 1; }";
+      append fmt "# Dependency: xe-unikernel-upload";
+      append fmt "command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 \"I \
+                  require xe-unikernel-upload but it's not installed.  Aborting.\"\
+                  ; exit 1; }";
+      append fmt "# Dependency: a $HOME/.xe";
+      append fmt "if [ ! -e $HOME/.xe ]; then";
+      append fmt "  echo Please create a config file for xe in $HOME/.xe which \
+                  contains:";
+      append fmt "  echo server='<IP or DNS name of the host running xapi>'";
+      append fmt "  echo username=root";
+      append fmt "  echo password=password";
+      append fmt "  exit 1";
+      append fmt "fi";
+      newline fmt;
+      append fmt "echo Uploading VDI containing unikernel";
+      append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" root name;
       append fmt "echo VDI=$VDI";
-      append fmt "SIZE=$(stat --format '%%s' %s/%s)" root b.filename;
-      append fmt "POOL=$(xe pool-list params=uuid --minimal)";
-      append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
-      append fmt "VDI=$(xe vdi-create type=user name-label='%s' \
-                  virtual-size=$SIZE sr-uuid=$SR)" b.filename;
-      append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
-      append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
-        b.number;
+      append fmt "echo Creating VM metadata";
+      append fmt "VM=$(xe vm-create name-label=%s)" name;
+      append fmt "echo VM=$VM";
+      append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
+      append fmt "echo Adding network interface connected to xenbr0";
+      append fmt "ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)";
+      append fmt "VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)";
+      append fmt "echo Atting block device and making it bootable";
+      append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)";
+      append fmt "xe vbd-param-set uuid=$VBD bootable=true";
       append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
-    ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
-  append fmt "echo Starting VM";
-  append fmt "xe vm-start uuid=$VM";
-  Unix.chmod file 0o755
+      List.iter (fun b ->
+          append fmt "echo Uploading data VDI %s" b.filename;
+          append fmt "echo VDI=$VDI";
+          append fmt "SIZE=$(stat --format '%%s' %s/%s)" root b.filename;
+          append fmt "POOL=$(xe pool-list params=uuid --minimal)";
+          append fmt "SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)";
+          append fmt "VDI=$(xe vdi-create type=user name-label='%s' \
+                      virtual-size=$SIZE sr-uuid=$SR)" b.filename;
+          append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
+          append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
+            b.number;
+          append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
+        ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
+      append fmt "echo Starting VM";
+      append fmt "xe vm-start uuid=$VM";
+      R.ok ())
+    "xe file"
 
-let clean_main_xe ~root ~name = Cmd.remove (root / name ^ ".xe")
 
-(* Implement something similar to the @name/file extended names of findlib. *)
-let rec expand_name ~lib param =
-  match String.cut param ~sep:"@" with
-  | None -> param
-  | Some (prefix, name) -> match String.cut name ~sep:"/" with
-    | None              -> prefix ^ lib / name
-    | Some (name, rest) -> prefix ^ lib / name / expand_name ~lib rest
+let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  match Cmd.read "opam config var prefix" with
-  | Error e -> failwith e
-  | Ok prefix ->
-    let prefix = String.trim prefix in
-    (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-    match Cmd.read "PKG_CONFIG_PATH=%s/share/pkgconfig:%s/lib/pkgconfig \
-                    pkg-config %s %s" prefix prefix pkgs args with
-    | Ok s -> String.trim s
-    | Error e -> failwith e
-
-(* Get the linker flags for any extra C objects we depend on.
- * This is needed when building a Xen/Solo5 image as we do the link manually. *)
-let get_extra_ld_flags target pkgs =
-  Cmd.read "opam config var lib" >>= fun s ->
-  let lib = String.trim s in
-  Cmd.read
-    "ocamlfind query -r -format '%%d\t%%(%s_linkopts)' -predicates native %s"
-    target (String.concat ~sep:" " pkgs) >>| fun output ->
-  String.cuts output ~sep:"\n"
-  |> List.fold_left (fun acc line ->
-      match String.cut line ~sep:"\t" with
-      | None -> acc
-      | Some (dir, ldflags) ->
-        if ldflags <> "" then
-          let ldflags = String.cuts ldflags ~sep:" " in
-          let ldflags = List.map (expand_name ~lib) ldflags in
-          let ldflags = String.concat ~sep:" " ldflags in
-          Printf.sprintf "-L%s %s" dir ldflags :: acc
-        else
-          acc
-    ) []
-
-let configure_makefile ~target ~root ~name ~warn_error info =
+let configure_makefile ~target ~opam_name =
   let open Codegen in
-  let file = root / "Makefile" in
-  let libs = Info.libraries info in
-  let libraries =
-    match libs with
-    | [] -> ""
-    | l -> Fmt.(strf "-pkgs %a" (list ~sep:(unit ",") string)) l
-  in
-  let packages =
-    Fmt.(strf "%a" (list ~sep:(unit " ") string)) @@ Info.packages info
-  in
-  Cmd.with_file file @@ fun fmt ->
-  append fmt "# %s" (generated_header ());
-  newline fmt;
-  append fmt "LIBS   = %s" libraries;
-  append fmt "PKGS   = %s" packages;
-  let default_tags =
-    (if warn_error then "warn_error(+1..49)," else "") ^
-    "warn(A-4-41-42-44),debug,bin_annot,\
-     strict_sequence,principal,safe_string"
-  in
-  let dontlink =
-    String.concat ~sep:",-dontlink," [ "" ; "unix" ; "str" ; "num" ; "threads" ]
-  in
-  begin match target with
-    | `Xen | `Qubes ->
-      append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
-    | `Virtio | `Ukvm ->
-      append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
-    | `Unix ->
-      append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
-    | `MacOSX ->
-      append fmt "SYNTAX = -tags \"thread,%s\"\n" default_tags;
-      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
-  end;
-  append fmt "TARGET = -tags \"predicate(%s)\"" (backend_predicate target);
-  append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
-  append fmt "BUILD  = ocamlbuild -use-ocamlfind $(TARGET) $(LIBS) $(SYNTAX) $(FLAGS)\n\
-              OPAM   = opam\n\n\
-              export OPAMVERBOSE=1\n\
-              export OPAMYES=1";
-  newline fmt;
-  let pkg_config_deps =
-    match target with
-    | `Xen | `Qubes -> "mirage-xen"
-    | `Virtio | `Ukvm -> "mirage-solo5"
-    | `MacOSX | `Unix -> ""
-  in
-  let extra_ld_flags archives =
-    let archives = String.Set.elements (String.Set.of_list archives) in
-    let extra_c_archives = String.concat ~sep:" \\\n\t  " archives in
-    append fmt "EXTRA_LD_FLAGS = %s\n" extra_c_archives;
-    append fmt "EXTRA_LD_FLAGS += %s\n"
-               (pkg_config pkg_config_deps "--static --libs")
-  in
-  let pre_ld_flags x =
-    append fmt "PRE_LD_FLAGS = %s\n" (pkg_config x "--variable=ldflags")
-  in
-  begin match target with
-    | `Xen | `Qubes ->
-      get_extra_ld_flags "xen" libs >>= fun archives ->
-      extra_ld_flags archives;
-      R.ok ()
-    | `Virtio ->
-      get_extra_ld_flags "freestanding" libs >>= fun archives ->
-      extra_ld_flags archives;
-      pre_ld_flags "solo5-kernel-virtio" ;
-      R.ok ()
-    | `Ukvm ->
-      get_extra_ld_flags "freestanding" libs >>= fun archives ->
-      extra_ld_flags archives;
-      pre_ld_flags "solo5-kernel-ukvm" ;
-      R.ok ()
-    | `Unix | `MacOSX ->
-      R.ok ()
-  end >>= fun () ->
-  newline fmt;
-  append fmt ".PHONY: all depend clean build main.native\n\
-              all:: build\n\
-              \n\
-              depend::\n\
-              \t$(OPAM) install $(PKGS) --verbose\n\
-              \n\
-              main.native:\n\
-              \t$(BUILD) main.native\n\
-              \n\
-              main.native.o:\n\
-              \t$(BUILD) main.native.o";
-  newline fmt;
+  let file = Fpath.(v "Makefile") in
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "# %s" (generated_header ());
+      newline fmt;
+      let starget = Fmt.to_to_string Mirage_key.pp_target target in
+      append fmt "OPAM  = opam\n\
+                  \n\
+                  .PHONY: all depend clean build\n\
+                  all:: build\n\
+                  \n\
+                  depend::\n\
+                  \t$(OPAM) pin add --no-action --yes %s .\n\
+                  \t$(OPAM) install --yes --deps-only %s\n\
+                  \t$(OPAM) pin remove --no-action %s\n\
+                  \n\
+                  build::\n\
+                  \tmirage build -t %s\n\
+                  \n\
+                  clean::\n\
+                  \tmirage clean -t %s\n"
+        opam_name opam_name opam_name starget starget;
+      newline fmt;
+      append fmt "-include Makefile.user";
+      R.ok ())
+    "Makefile"
 
-  (* On ARM:
-     - we must convert the ELF image to an ARM boot executable zImage,
-       while on x86 we leave it as it is.
-     - we need to link libgcc.a (otherwise we get undefined references to:
-       __aeabi_dcmpge, __aeabi_dadd, ...)
- *)
-  let generate_image =
-    let is_arm =
-      match Cmd.uname_m () with
-      | Some machine -> String.is_prefix ~affix:"arm" machine
-      | None -> failwith "uname -m failed; can't determine target machine type!"
-    in
-    if is_arm then (
-      Printf.sprintf "\t  $(shell gcc -print-libgcc-file-name) \\\n\
-                      \t  -o mir-%s.elf\n\
-                      \tobjcopy -O binary mir-%s.elf mir-%s.xen"
-        name name name
-    ) else (
-      Printf.sprintf "\t  -o mir-%s.xen" name
-    ) in
-  begin match target with
-    | `Xen | `Qubes ->
-      append fmt "build:: main.native.o";
-      append fmt "\t$(LD) -d -static -nostdlib \\\n\
-                  \t  _build/main.native.o \\\n\
-                  \t  $(EXTRA_LD_FLAGS) \\\n\
-                  %s"
-        generate_image ;
-      append fmt "\t@@echo Build succeeded";
-      newline fmt;
-      append fmt "clean::\n\
-                  \tocamlbuild -clean";
-      R.ok ()
-    | `Virtio ->
-      append fmt "build:: main.native.o";
-      append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
-                  \t  _build/main.native.o \\\n\
-                  \t  $(EXTRA_LD_FLAGS) \\\n\
-                  \t  -o mir-%s.virtio"
-        name ;
-      append fmt "\t@@echo Build succeeded";
-      newline fmt;
-      append fmt "clean::\n\
-                  \tocamlbuild -clean";
-      R.ok ()
-    | `Ukvm ->
-      let ukvm_mods =
-        let ukvm_filter = function
-          | "mirage-net-solo5" -> "net"
-          | "mirage-block-solo5" -> "blk"
-          | _ -> ""
-        in
-        String.concat ~sep:" " (List.map ukvm_filter libs)
-      in
-      append fmt "UKVM_MODULES=%s" ukvm_mods;
-      append fmt "Makefile.ukvm:";
-      append fmt "\t ukvm-configure %s/src/ukvm $(UKVM_MODULES)"
-                 (pkg_config "solo5-kernel-ukvm" "--variable=libdir");
-      newline fmt;
-      append fmt "include Makefile.ukvm";
-      append fmt "build:: main.native.o ukvm-bin";
-      append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
-                  \t  _build/main.native.o \\\n\
-                  \t  $(EXTRA_LD_FLAGS) \\\n\
-                  \t  -o mir-%s.ukvm"
-        name ;
-      append fmt "\t@@echo Build succeeded";
-      newline fmt;
-      append fmt "clean:: ukvm-clean\n\
-                  \tocamlbuild -clean\n\
-                  \t$(RM) Makefile.ukvm";
-      R.ok ()
-    | `Unix | `MacOSX ->
-      append fmt "build: main.native";
-      append fmt "\tln -nfs _build/main.native mir-%s" name;
-      newline fmt;
-      append fmt "clean::\n\
-                  \tocamlbuild -clean";
-      R.ok ()
-  end >>= fun () ->
-  newline fmt;
-  append fmt "-include Makefile.user";
-  R.ok ()
+let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
 
-let clean_makefile ~root = Cmd.remove (root / "Makefile")
+let fn = Fpath.(v "myocamlbuild.ml")
 
-let check_ocaml_version () =
-  (* Similar to [Functoria_app.Cmd.ocaml_version] but with the patch number *)
-  let ocaml_version =
-    let version =
-      let v = Sys.ocaml_version in
-      match String.cut v ~sep:"+" with None -> v | Some (v, _) -> v
-    in
-    match String.cuts version ~sep:"." with
-    | [major; minor; patch] ->
-      begin
-        try int_of_string major, int_of_string minor, int_of_string patch
-        with _ -> 0, 0, 0
-      end
-    | _ -> 0, 0, 0
-  in
-  let major, minor, patch = ocaml_version in
-  if major < 4 ||
-     (major = 4 && minor < 2) ||
-     (major = 4 && minor = 2 && patch < 3)
-  then (
-    Log.error
-      "Your version of OCaml (%d.%02d.%d) is not supported. Please upgrade to\n\
-       at least OCaml 4.02.3 or use `--no-ocaml-version-check`."
-      major minor patch
-  ) else
+let configure_myocamlbuild () =
+  Bos.OS.File.exists fn >>= fun is ->
+  if is then
     R.ok ()
+  else
+    Bos.OS.File.write fn ""
+
+let clean_myocamlbuild () =
+  Bos.OS.File.read fn >>= fun contents ->
+  if String.length contents = 0 then
+    Bos.OS.File.delete fn
+  else
+    R.ok ()
+
+let configure_opam ~name ~target info =
+  let open Codegen in
+  let file = Fpath.(v name + "opam") in
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "# %s" (generated_header ());
+      Info.opam ~name fmt info;
+      append fmt "build: [ \"mirage\" \"build\" \"-t %a\" ]" Key.pp_target target;
+      R.ok ())
+    "opam file"
+
+let clean_opam ~name = Bos.OS.File.delete Fpath.(v name + "opam")
+
+let unikernel_name target name =
+  let target = Fmt.strf "%a" Key.pp_target target in
+  String.concat ~sep:"-" ["mirage" ; "unikernel" ; name ; target]
 
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
-  let ocaml_check = not Key.(get ctx no_ocaml_check) in
+  Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
+  let opam_name = unikernel_name target name in
+  match
+    Bos.OS.Dir.with_current Fpath.(v root) (fun () ->
+        (match target with
+         | `Xen | `Qubes ->
+           configure_main_xl "xl" i >>= fun () ->
+           configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
+           configure_main_xe ~root ~name >>= fun () ->
+           configure_main_libvirt_xml ~root ~name
+         | _ -> R.ok ()) >>= fun () ->
+        configure_myocamlbuild () >>= fun () ->
+        configure_opam ~target ~name:opam_name i >>= fun () ->
+        configure_makefile ~target ~opam_name) ()
+  with
+  | Ok a -> a
+  | Error _ -> R.error_msg "couldn't access root directory"
+
+let compile libs warn_error target =
+  let tags =
+    [ Printf.sprintf "predicate(%s)" (backend_predicate target);
+      "warn(A-4-41-42-44)"; "color(always)"; "debug"; "bin_annot";
+      "strict_sequence"; "principal"; "safe_string" ] @
+    (if warn_error then ["warn_error(+1..49)"] else []) @
+    match target with
+    | `MacOSX -> ["thread"] | _ -> []
+  and pkgs = String.concat ~sep:"," libs
+  and flags =
+    let dontlink = ["unix"; "str"; "num"; "threads"] in
+    let link = match target with
+      | `Xen | `Qubes | `Virtio | `Ukvm ->
+        String.concat ~sep:",-dontlink," (""::dontlink)
+      | _ -> ""
+    in
+    Bos.Cmd.of_list [ "-cflag" ; "-g" ; "-lflags" ; ("-g,-linkpkg" ^ link) ]
+  in
+  let tags = String.concat ~sep:"," tags
+  and tag_line = "<static*.*>: warn(-32-34)"
+  and result = match target with
+    | `Unix | `MacOSX -> "main.native"
+    | _ -> "main.native.o"
+  in
+  let cmd = Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" %
+                     "-classic-display" %
+                     "-tags" % tags %
+                     "-pkgs" % pkgs %%
+                     flags %
+                     "-tag-line" % tag_line %
+                     "-X" %  "_build-ukvm" %
+                     result)
+  in
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
+  Bos.OS.Cmd.run cmd
+
+(* Implement something similar to the @name/file extended names of findlib. *)
+let rec expand_name ~lib param =
+  match String.cut param ~sep:"@" with
+  | None -> param
+  | Some (prefix, name) -> match String.cut name ~sep:"/" with
+    | None              -> prefix ^ Fpath.(to_string (v lib / name))
+    | Some (name, rest) ->
+      let rest = expand_name ~lib rest in
+      prefix ^ Fpath.(to_string (v lib / name / rest))
+
+let opam_prefix =
+  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
+  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
+
+(* Invoke pkg-config and return output if successful. *)
+let pkg_config pkgs args =
+  Lazy.force opam_prefix >>= fun prefix ->
+  (* the order here matters (at least for ancient 0.26, distributed with
+       ubuntu 14.04 versions): use share before lib! *)
+  let var = "PKG_CONFIG_PATH"
+  and value = Printf.sprintf "%s/share/pkgconfig:%s/lib/pkgconfig" prefix prefix
+  in
+  Bos.OS.Env.set_var var (Some value) >>= fun () ->
+  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
+  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
+  String.cuts ~sep:" " data
+
+(* Get the linker flags for any extra C objects we depend on.
+ * This is needed when building a Xen/Solo5 image as we do the link manually. *)
+let extra_c_artifacts target pkgs =
+  Lazy.force opam_prefix >>= fun prefix ->
+  let lib = prefix ^ "/lib" in
+  let format = Printf.sprintf "%%d\t%%(%s_linkopts)" target
+  and predicates = "native"
+  in
+  query_ocamlfind ~recursive:true ~format ~predicates pkgs >>= fun data ->
+  let r = List.fold_left (fun acc line ->
+      match String.cut line ~sep:"\t" with
+      | None -> acc
+      | Some (dir, ldflags) ->
+        if ldflags <> "" then begin
+          let ldflags = String.cuts ldflags ~sep:" " in
+          let ldflags = List.map (expand_name ~lib) ldflags in
+          acc @ ("-L" ^ dir) :: ldflags
+        end else
+          acc
+    ) [] data
+  in
+  R.ok r
+
+let static_libs pkg_config_deps = pkg_config pkg_config_deps [ "--static" ; "--libs" ]
+
+let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
+
+let link info name target =
+  let libs = Info.libraries info
+  and name = "mir-" ^ name
+  in
+  match target with
+  | `Unix | `MacOSX ->
+    Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) >>= fun () ->
+    Ok name
+  | `Xen | `Qubes ->
+    extra_c_artifacts "xen" libs >>= fun c_artifacts ->
+    static_libs "mirage-xen" >>= fun static_libs ->
+    let linker = Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs) in
+    let out = name ^ ".xen" in
+    Bos.OS.Cmd.run_out Bos.Cmd.(v "uname" % "-m") |> Bos.OS.Cmd.out_string >>= fun (machine, _) ->
+    if String.is_prefix ~affix:"arm" machine then begin
+      (* On ARM:
+         - we must convert the ELF image to an ARM boot executable zImage,
+           while on x86 we leave it as it is.
+         - we need to link libgcc.a (otherwise we get undefined references to:
+           __aeabi_dcmpge, __aeabi_dadd, ...) *)
+      Bos.OS.Cmd.run_out Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") |> Bos.OS.Cmd.out_string >>= fun (libgcc, _) ->
+      let link = Bos.Cmd.(linker % libgcc % "-o" % (name ^ ".elf")) in
+      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
+      Bos.OS.Cmd.run link >>= fun () ->
+      Bos.OS.Cmd.run Bos.Cmd.(v "objcopy" % "-O" % "binary" % (name ^ ".elf") % out) >>= fun () ->
+      Ok out
+    end else begin
+      let link = Bos.Cmd.(linker % "-o" % out) in
+      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
+      Bos.OS.Cmd.run link >>= fun () ->
+      Ok out
+    end
+  | `Virtio ->
+    extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
+    static_libs "mirage-solo5" >>= fun static_libs ->
+    ldflags "solo5-kernel-virtio" >>= fun ldflags ->
+    let out = name ^ ".virtio" in
+    let linker = Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs % "-o" % out) in
+    Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
+    Bos.OS.Cmd.run linker >>= fun () ->
+    Ok out
+  | `Ukvm ->
+    extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
+    static_libs "mirage-solo5" >>= fun static_libs ->
+    ldflags "solo5-kernel-ukvm" >>= fun ldflags ->
+    let out = name ^ ".ukvm" in
+    let linker = Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs % "-o" % out) in
+    let ukvm_mods =
+      let ukvm_filter = function
+        | "mirage-net-solo5" -> "net"
+        | "mirage-block-solo5" -> "blk"
+        | _ -> ""
+      in
+      List.map ukvm_filter libs
+    in
+    pkg_config "solo5-kernel-ukvm" ["--variable=libdir"] >>= function
+    | [ libdir ] ->
+      Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm") %% of_list ukvm_mods) >>= fun () ->
+      Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.ukvm" % "ukvm-bin") >>= fun () ->
+      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
+      Bos.OS.Cmd.run linker >>= fun () ->
+      Ok out
+    | _ -> R.error_msg "pkg-config solo5-kernel-ukvm --variable=libdir failed"
+
+let build i =
+  let name = Info.name i in
+  let ctx = Info.context i in
   let warn_error = Key.(get ctx warn_error) in
-  begin
-    if ocaml_check then check_ocaml_version ()
-    else R.ok ()
-  end >>= fun () ->
-  check_entropy @@ Info.libraries i >>= fun () ->
-  Log.info "%a %a" Log.blue "Configuring for target:" Key.pp_target target ;
-  Cmd.in_dir root (fun () ->
-      (match target with
-       | `Xen | `Qubes ->
-         configure_main_xl ".xl" i;
-         configure_main_xl ~substitutions:[] ".xl.in" i;
-         configure_main_xe ~root ~name;
-         configure_main_libvirt_xml ~root ~name
-       | _ -> ()) ;
-      configure_makefile ~target ~root ~name ~warn_error i;
-    )
+  let target = Key.(get ctx target) in
+  let libs = Info.libraries i in
+  check_entropy libs >>= fun () ->
+  compile libs warn_error target >>= fun () ->
+  link i name target >>| fun out ->
+  Log.info (fun m -> m "Build succeeded: %s" out)
 
 let clean i =
   let name = Info.name i in
-  let root = Info.root i in
-  Cmd.in_dir root (fun () ->
-      clean_main_xl ~root ~name ".xl";
-      clean_main_xl ~root ~name ".xl.in";
-      clean_main_xe ~root ~name;
-      clean_main_libvirt_xml ~root ~name;
-      clean_makefile ~root;
-      Cmd.run "rm -rf %s/mir-%s" root name;
-    )
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
+  clean_main_xl ~name "xl" >>= fun () ->
+  clean_main_xl ~name "xl.in" >>= fun () ->
+  clean_main_xe ~name >>= fun () ->
+  clean_main_libvirt_xml ~name >>= fun () ->
+  clean_myocamlbuild () >>= fun () ->
+  clean_makefile () >>= fun () ->
+  clean_opam ~name:(unikernel_name target name) >>= fun () ->
+  Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v ("mir-" ^ name)) >>= fun () ->
+  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "xen") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "elf") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "virtio") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "ukvm") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->
+  Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-ukvm") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v "ukvm-bin")
 
 module Project = struct
   let name = "mirage"
@@ -1799,25 +1788,27 @@ module Project = struct
       method module_name = "Mirage_runtime"
       method keys = [
         Key.(abstract target);
-        Key.(abstract no_ocaml_check);
         Key.(abstract warn_error);
       ]
 
       method packages =
-        let l = [ "lwt"; "mirage-types"; "mirage-types-lwt" ] in
+        let l = [
+          (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
+          package "lwt";
+          package ~ocamlfind:[] "mirage-types-lwt";
+          package ~sublibs:["lwt"] ~min:"3.0.0"  "mirage-types";
+          package ~min:"3.0.0" "mirage-runtime" ;
+          package ~build:true "ocamlfind" ;
+          package ~build:true "ocamlbuild" ;
+        ]
+        in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> "mirage-xen" :: l
-        | `Virtio -> "solo5-kernel-virtio" :: "mirage-solo5" :: l
-        | `Ukvm -> "solo5-kernel-ukvm" :: "mirage-solo5" :: l
-        | `Unix | `MacOSX -> "mirage-unix" :: l
+        | `Xen | `Qubes -> package "mirage-xen" :: l
+        | `Virtio -> package ~ocamlfind:[] "solo5-kernel-virtio" :: package "mirage-solo5" :: l
+        | `Ukvm -> package ~ocamlfind:[] "solo5-kernel-ukvm" :: package "mirage-solo5" :: l
+        | `Unix | `MacOSX -> package "mirage-unix" :: l
 
-      method libraries =
-        let l = [ "mirage-runtime"; "mirage-types"; "mirage-types.lwt" ] in
-        Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> "mirage-xen" :: l
-        | `Virtio | `Ukvm -> "mirage-solo5" :: l
-        | `Unix | `MacOSX -> "mirage-unix" :: l
-
+      method build = build
       method configure = configure
       method clean = clean
       method connect _ _mod _names = "Lwt.return_unit"
@@ -1846,10 +1837,10 @@ let gui_init = match_impl Key.(value target) [
 
 let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
-    ?keys ?(libraries=[]) ?(packages=[])
+    ?keys ?(packages=[])
     name jobs =
   let argv = Some (Functoria_app.keys argv) in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let qubes_init = Some [qrexec_init; gui_init] in
   let init = qubes_init ++ argv ++ reporter ++ tracing in
-  register ?keys ~libraries ~packages ?init name jobs
+  register ?keys ~packages ?init name jobs

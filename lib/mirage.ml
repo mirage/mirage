@@ -1729,12 +1729,11 @@ let link info name target =
         | "mirage-block-solo5" -> "blk"
         | _ -> ""
       in
-      String.concat ~sep:" " (List.map ukvm_filter libs)
+      List.map ukvm_filter libs
     in
-    Bos.OS.Env.set_var "UKVM_MODULES" (Some ukvm_mods) >>= fun () ->
     pkg_config "solo5-kernel-ukvm" ["--variable=libdir"] >>= function
     | [ libdir ] ->
-      Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm")) >>= fun () ->
+      Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm") %% of_list ukvm_mods) >>= fun () ->
       Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.ukvm" % "ukvm-bin") >>= fun () ->
       Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
       Bos.OS.Cmd.run linker >>= fun () ->

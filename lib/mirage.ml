@@ -45,8 +45,7 @@ let qrexec_qubes = impl @@ object
   val name = Name.ocamlify @@ "qrexec_"
   method name = name
   method module_name = "Qubes.RExec"
-  method packages = Key.pure ["mirage-qubes"]
-  method libraries = Key.pure ["mirage-qubes"]
+  method packages = Key.pure [package "mirage-qubes"]
   method configure i =
     match Key.(get (Info.context i) target) with
     | `Qubes -> Result.Ok ()
@@ -71,8 +70,7 @@ let gui_qubes = impl @@ object
   val name = Name.ocamlify @@ "gui"
   method name = name
   method module_name = "Qubes.GUI"
-  method packages = Key.pure ["mirage-qubes"]
-  method libraries = Key.pure ["mirage-qubes"]
+  method packages = Key.pure [package "mirage-qubes"]
   method configure i =
     match Key.(get (Info.context i) target) with
     | `Qubes -> Result.Ok ()
@@ -95,8 +93,7 @@ let qubesdb_conf = object
   method ty = qubesdb
   method name = "qubesdb"
   method module_name = "Qubes.DB"
-  method libraries = Key.pure ["mirage-qubes"]
-  method packages = Key.pure [ "mirage-qubes" ]
+  method packages = Key.pure [ package "mirage-qubes" ]
   method connect _ modname _args =
      Fmt.strf
 "@[<v 2>\
@@ -114,8 +111,8 @@ let io_page_conf = object
   method ty = io_page
   method name = "io_page"
   method module_name = "Io_page"
-  method libraries = Key.(if_ is_unix) ["io-page.unix"] ["io-page"]
-  method packages = Key.pure [ "io-page" ]
+  method packages =
+    Key.(if_ is_unix) [package ~sublibs:["unix"] "io-page"] [package "io-page"]
 end
 
 let default_io_page = impl io_page_conf
@@ -135,14 +132,15 @@ let default_time = impl time_conf
 type pclock = PCLOCK
 let pclock = Type PCLOCK
 
-let posix_clock_conf = object (self)
+let posix_clock_conf = object
   inherit base_configurable
   method ty = pclock
   method name = "pclock"
   method module_name = "Pclock"
-  method libraries =
-    Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-freestanding"]
-  method packages = self#libraries
+  method packages =
+    Key.(if_ is_unix)
+      [package "mirage-clock-unix"]
+      [package "mirage-clock-freestanding"]
   method connect _ modname _args =
     Printf.sprintf "%s.connect ()" modname
 end
@@ -152,14 +150,15 @@ let default_posix_clock = impl posix_clock_conf
 type mclock = MCLOCK
 let mclock = Type MCLOCK
 
-let monotonic_clock_conf = object (self)
+let monotonic_clock_conf = object
   inherit base_configurable
   method ty = mclock
   method name = "mclock"
   method module_name = "Mclock"
-  method libraries =
-    Key.(if_ is_unix) ["mirage-clock-unix"] ["mirage-clock-freestanding"]
-  method packages = self#libraries
+  method packages =
+    Key.(if_ is_unix)
+      [package "mirage-clock-unix"]
+      [package "mirage-clock-freestanding"]
   method connect _ modname _args =
     Printf.sprintf "%s.connect ()" modname
 end
@@ -174,8 +173,7 @@ let stdlib_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Stdlibrandom"
-  method packages = Key.pure ["mirage-stdlib-random"]
-  method libraries = Key.pure ["mirage-stdlib-random"]
+  method packages = Key.pure [package "mirage-stdlib-random"]
   method connect _ modname _args =
     Printf.sprintf "Lwt.return (%s.initialize ())" modname
 end
@@ -191,18 +189,6 @@ let enable_entropy, is_entropy_enabled =
   let g () = !r in
   (f, g)
 
-let check_entropy libs =
-  Cmd.OCamlfind.query ~recursive:true libs
-  >>| List.exists ((=) "nocrypto")
-  >>= fun is_needed ->
-  if is_needed && not (is_entropy_enabled ()) then
-    Log.error
-      "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
-       Please enable the entropy by adding a dependency to the nocrypto \
-       device. You can do so by adding ~deps:[abstract nocrypto] \
-       to the arguments of Mirage.foreign."
-  else R.ok ()
-
 let nocrypto = impl @@ object
     inherit base_configurable
     method ty = job
@@ -211,18 +197,18 @@ let nocrypto = impl @@ object
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes   -> ["nocrypto"; "zarith-xen"]
-      | `Virtio | `Ukvm -> ["nocrypto"; "zarith-freestanding"]
-      | `Unix | `MacOSX -> ["nocrypto"]
-
-    method libraries =
-      Key.(if_ is_unix) ["nocrypto.lwt"] ["nocrypto.mirage"]
+      | `Xen | `Qubes ->
+        [package ~sublibs:["mirage"] "nocrypto"; package ~ocamlfind:[] "zarith-xen"]
+      | `Virtio | `Ukvm ->
+        [package ~sublibs:["mirage"] "nocrypto"; package ~ocamlfind:[] "zarith-freestanding"]
+      | `Unix | `MacOSX ->
+        [package ~sublibs:["lwt"] "nocrypto"]
 
     method configure _ = R.ok (enable_entropy ())
     method connect i _ _ =
       match Key.(get (Info.context i) target) with
       | `Xen | `Qubes | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
-      | `Unix | `MacOSX        -> "Nocrypto_entropy_lwt.initialize ()"
+      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
 
   end
 
@@ -231,8 +217,7 @@ let nocrypto_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Nocrypto.Rng"
-  method packages = Key.pure ["nocrypto"]
-  method libraries = Key.pure ["nocrypto"]
+  method packages = Key.pure [package "nocrypto"]
   method deps = [abstract nocrypto]
 end
 
@@ -253,8 +238,7 @@ let console_unix str = impl @@ object
     val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
     method module_name = "Console_unix"
-    method packages = Key.pure ["mirage-console-unix"]
-    method libraries = Key.pure ["mirage-console-unix"]
+    method packages = Key.pure [package "mirage-console-unix"]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -265,8 +249,7 @@ let console_xen str = impl @@ object
     val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
     method module_name = "Console_xen"
-    method packages = Key.pure ["mirage-console-xen"]
-    method libraries = Key.pure ["mirage-console-xen"]
+    method packages = Key.pure [package "mirage-console-xen"]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -277,8 +260,7 @@ let console_solo5 str = impl @@ object
     val name = Name.ocamlify @@ "console_solo5_" ^ str
     method name = name
     method module_name = "Console_solo5"
-    method packages = Key.pure ["mirage-console-solo5";]
-    method libraries = Key.pure ["mirage-console-solo5"]
+    method packages = Key.pure [package "mirage-console-solo5";]
     method connect _ modname _args =
       Printf.sprintf "%s.connect %S" modname str
   end
@@ -304,8 +286,7 @@ let crunch dirname = impl @@ object
     val name = Name.create ("static" ^ dirname) ~prefix:"static"
     method name = name
     method module_name = String.Ascii.capitalize name
-    method packages = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "crunch"; "io-page" ]
-    method libraries = Key.pure [ "mirage-types"; "lwt"; "cstruct"; "io-page" ]
+    method packages = Key.pure [package "io-page"; package ~build:true "crunch"]
     method deps = [ abstract default_io_page ]
     method connect _ modname _ = Fmt.strf "%s.connect ()" modname
 
@@ -336,8 +317,7 @@ let direct_kv_ro_conf dirname = impl @@ object
     val name = Name.create ("direct" ^ dirname) ~prefix:"direct"
     method name = name
     method module_name = "Kvro_fs_unix"
-    method packages = Key.pure ["mirage-fs-unix"]
-    method libraries = Key.pure ["mirage-fs-unix"]
+    method packages = Key.pure [package "mirage-fs-unix"]
     method connect i _modname _names =
       Fmt.strf "Kvro_fs_unix.connect %S" (Info.root i / dirname)
   end
@@ -381,14 +361,9 @@ class block_conf file =
     method module_name = "Block"
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> ["mirage-block-xen"]
-      | `Virtio | `Ukvm -> ["mirage-block-solo5"]
-      | `Unix | `MacOSX -> ["mirage-block-unix"]
-    method libraries =
-      Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> ["mirage-block-xen.front"]
-      | `Virtio | `Ukvm -> ["mirage-block-solo5"]
-      | `Unix | `MacOSX -> ["mirage-block-unix"]
+      | `Xen | `Qubes -> [package ~sublibs:["front"] "mirage-block-xen"]
+      | `Virtio | `Ukvm -> [package "mirage-block-solo5"]
+      | `Unix | `MacOSX -> [package "mirage-block-unix"]
 
     method private connect_name target root =
       match target with
@@ -425,8 +400,7 @@ let archive_conf = impl @@ object
     method ty = block @-> kv_ro
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
-    method packages = Key.pure [ "tar-format" ]
-    method libraries = Key.pure [ "tar.mirage" ]
+    method packages = Key.pure [ package ~ocamlfind:["tar.mirage"] "tar-format" ]
     method connect _ modname = function
       | [ block ] ->
         Fmt.strf "%s.connect %s" modname block
@@ -443,8 +417,7 @@ let fs = Type FS
 let fat_conf = impl @@ object
     inherit base_configurable
     method ty = (block @-> io_page @-> fs)
-    method packages = Key.pure [ "fat-filesystem" ]
-    method libraries = Key.pure [ "fat-filesystem" ]
+    method packages = Key.pure [ package "fat-filesystem" ]
     method name = "fat"
     method module_name = "Fat.Fs.Make"
     method connect _ modname l = match l with
@@ -504,8 +477,7 @@ let kv_ro_of_fs_conf = impl @@ object
     method ty = fs @-> kv_ro
     method name = "kv_ro_of_fs"
     method module_name = "Fat.KV_RO.Make"
-    method packages = Key.pure [ "fat-filesystem" ]
-    method libraries = Key.pure [ "fat-filesystem" ]
+    method packages = Key.pure [ package "fat-filesystem" ]
   end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
@@ -529,7 +501,7 @@ let all_networks = ref []
 
 let network_conf (intf : string Key.key) =
   let key = Key.abstract intf in
-  object (self)
+  object
     inherit base_configurable
     method ty = network
     val name = Functoria_app.Name.create "net" ~prefix:"net"
@@ -539,13 +511,11 @@ let network_conf (intf : string Key.key) =
 
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix -> ["mirage-net-unix"]
-      | `MacOSX -> ["mirage-net-macosx"]
-      | `Xen -> ["mirage-net-xen"]
-      | `Qubes -> ["mirage-net-xen" ; "mirage-qubes"]
-      | `Virtio | `Ukvm -> ["mirage-net-solo5"]
-
-    method libraries = self#packages
+      | `Unix -> [package "mirage-net-unix"]
+      | `MacOSX -> [package "mirage-net-macosx"]
+      | `Xen -> [package "mirage-net-xen"]
+      | `Qubes -> [package "mirage-net-xen" ; package "mirage-qubes"]
+      | `Virtio | `Ukvm -> [package "mirage-net-solo5"]
 
     method connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
@@ -570,8 +540,7 @@ let ethernet_conf = object
   method ty = network @-> ethernet
   method name = "ethif"
   method module_name = "Ethif.Make"
-  method packages = Key.pure ["tcpip"]
-  method libraries = Key.pure ["tcpip.ethif"]
+  method packages = Key.pure [package ~sublibs:["ethif"] "tcpip"]
   method connect _ modname = function
     | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
     | _ -> failwith "The ethernet connect should receive exactly one argument."
@@ -588,8 +557,7 @@ let arpv4_conf = object
   method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arpv4"
   method module_name = "Arpv4.Make"
-  method packages = Key.pure ["tcpip"]
-  method libraries = Key.pure ["tcpip.arpv4"]
+  method packages = Key.pure [package ~sublibs:["arpv4"] "tcpip"]
 
   method connect _ modname = function
     | [ eth ; clock ; _time ] -> Printf.sprintf "%s.connect %s %s" modname eth clock
@@ -633,12 +601,10 @@ let ipv4_keyed_conf ?address ?network ?gateway () = impl @@ object
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method packages = Key.pure ["tcpip"]
-    method libraries = Key.pure ["tcpip.ipv4"]
+    method packages = Key.pure [package ~sublibs:["ipv4"] "tcpip"]
     method keys = address @?? network @?? gateway @?? []
     method connect _ modname = function
     | [ etif ; arp ] ->
-
         Fmt.strf
           "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
@@ -654,8 +620,7 @@ let dhcp_conf = impl @@ object
   method ty = time @-> network @-> dhcp
   method name = "dhcp_client"
   method module_name = "Dhcp_client_mirage.Make"
-  method packages = Key.pure [ "charrua-client" ]
-  method libraries = Key.pure [ "charrua-client.mirage" ]
+  method packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
   method connect _ modname = function
   | [ _time; network ] ->
     Fmt.strf
@@ -669,8 +634,7 @@ let ipv4_dhcp_conf = impl @@ object
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method packages = Key.pure ["charrua-client"]
-    method libraries = Key.pure ["charrua-client.mirage"]
+    method packages = Key.pure [package ~sublibs:["mirage"] "charrua-client"]
     method connect _ modname = function
           | [ dhcp ; ethernet ; arp ] ->
         Fmt.strf
@@ -711,8 +675,7 @@ let ipv4_qubes_conf = impl @@ object
   method ty = qubesdb @-> ethernet @-> arpv4 @-> ipv4
   method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
   method module_name = "Qubesdb_ipv4.Make"
-  method packages = Key.pure ["mirage-qubes"]
-  method libraries = Key.pure ["mirage-qubes.ipv4"]
+  method packages = Key.pure [package ~sublibs:["ipv4"] "mirage-qubes"]
   method connect _ modname = function
   | [ db ; ethif; arp ] ->
       Fmt.strf
@@ -728,8 +691,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method packages = Key.pure ["tcpip"]
-    method libraries = Key.pure ["tcpip.ipv6"]
+    method packages = Key.pure [package ~sublibs:["ipv6"] "tcpip"]
     method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; _time ; _clock ] ->
@@ -763,8 +725,7 @@ let icmpv4_direct_conf () = object
   method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
   method name = "icmpv4"
   method module_name = "Icmpv4.Make"
-  method packages = Key.pure [ "tcpip" ]
-  method libraries = Key.pure [ "tcpip.icmpv4" ]
+  method packages = Key.pure [ package ~sublibs:["icmpv4"] "tcpip" ]
   method connect _ modname = function
     | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
     | _  -> failwith "The icmpv4 connect should receive exactly one argument."
@@ -787,8 +748,7 @@ let udp_direct_conf () = object
   method ty : ('a ip -> 'a udp) typ = ip @-> udp
   method name = "udp"
   method module_name = "Udp.Make"
-  method packages = Key.pure [ "tcpip" ]
-  method libraries = Key.pure [ "tcpip.udp" ]
+  method packages = Key.pure [package ~sublibs:["udp"] "tcpip" ]
   method connect _ modname = function
     | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
     | _  -> failwith "The udpv6 connect should receive exactly one argument."
@@ -805,10 +765,9 @@ let udpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Udpv4_socket"
   method keys = [ Key.abstract ipv4_key ]
-  method packages = Key.pure [ "tcpip" ]
-  method libraries =
+  method packages =
     Key.match_ Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.udpv4-socket" ]
+    | `Unix | `MacOSX -> [ package ~sublibs:["udpv4-socket"] "tcpip" ]
     | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
@@ -831,8 +790,7 @@ let tcp_direct_conf () = object
     (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method packages = Key.pure [ "tcpip" ]
-  method libraries = Key.pure [ "tcpip.tcp" ]
+  method packages = Key.pure [package ~sublibs:["tcp"] "tcpip" ]
   method connect _ modname = function
     | [ip; _time; clock; _random] -> Printf.sprintf "%s.connect %s %s" modname ip clock
     | _ -> failwith "The tcp connect should receive exactly four arguments."
@@ -852,10 +810,9 @@ let tcpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Tcpv4_socket"
   method keys = [ Key.abstract ipv4_key ]
-  method packages = Key.pure [ "tcpip" ]
-  method libraries =
+  method packages =
     Key.match_ Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ "tcpip.tcpv4-socket" ]
+    | `Unix | `MacOSX -> [package ~sublibs:["tcpv4-socket"] "tcpip" ]
     | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
   method connect _ modname _ =
     Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
@@ -881,8 +838,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
 
-    method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.pure [ "tcpip.stack-direct" ; "mirage-runtime" ]
+    method packages = Key.pure [package ~sublibs:["stack-direct"] "tcpip" ]
 
     method connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
@@ -935,8 +891,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_socket"
     method keys = [ Key.abstract interfaces ]
-    method packages = Key.pure [ "tcpip" ]
-    method libraries = Key.pure [ "tcpip.stack-socket" ]
+    method packages = Key.pure [ package ~sublibs:["stack-socket"] "tcpip" ]
     method deps = [
       abstract (socket_udpv4 None);
       abstract (socket_tcpv4 None);
@@ -991,8 +946,11 @@ let tcp_conduit_connector = impl @@ object
     method ty = stackv4 @-> conduit_connector
     method name = "tcp_conduit_connector"
     method module_name = "Conduit_mirage.With_tcp"
-    method packages = Key.pure [ "mirage-conduit" ]
-    method libraries = Key.pure [ "conduit.mirage" ]
+    method packages =
+      Key.pure [
+        package ~ocamlfind:[] "mirage-conduit";
+        package ~sublibs:["mirage"] "conduit"
+      ]
     method connect _ modname = function
       | [ stack ] ->
         Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
@@ -1004,8 +962,12 @@ let tls_conduit_connector = impl @@ object
     method ty = conduit_connector
     method name = "tls_conduit_connector"
     method module_name = "Conduit_mirage"
-    method packages = Key.pure [ "mirage-conduit" ; "tls" ]
-    method libraries = Key.pure [ "conduit.mirage" ; "tls.mirage" ]
+    method packages =
+      Key.pure [
+        package ~sublibs:["mirage"] "tls" ;
+        package ~ocamlfind:[] "mirage-conduit" ;
+        package ~sublibs:["mirage"] "conduit"
+      ]
     method deps = [ abstract nocrypto ]
     method connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
   end
@@ -1018,8 +980,11 @@ let conduit_with_connectors connectors = impl @@ object
     method ty = conduit
     method name = Name.create "conduit" ~prefix:"conduit"
     method module_name = "Conduit_mirage"
-    method packages = Key.pure [ "mirage-conduit" ]
-    method libraries = Key.pure [ "conduit.mirage" ]
+    method packages =
+      Key.pure [
+        package ~ocamlfind:[] "mirage-conduit";
+        package ~sublibs:["mirage"] "conduit"
+      ]
     method deps = abstract nocrypto :: List.map abstract connectors
 
     method connect _i _ = function
@@ -1055,9 +1020,10 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix | `MacOSX -> ["mirage-conduit" ]
+      | `Unix | `MacOSX ->
+        [ package ~ocamlfind:[] "mirage-conduit" ;
+          package ~sublibs:["mirage";"lwt-unix"] "conduit" ]
       | _ -> failwith "Resolver_unix not supported on unikernel"
-    method libraries = Key.pure [ "conduit.mirage"; "conduit.lwt-unix" ]
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
 
@@ -1066,8 +1032,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method ty = time @-> stackv4 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
-    method packages = Key.pure [ "dns"; "tcpip" ]
-    method libraries = Key.pure [ "dns.mirage" ]
+    method packages =
+      Key.pure [ package ~sublibs:["mirage"] "dns"; package "tcpip" ]
 
     method connect _ modname = function
       | [ _t ; stack ] ->
@@ -1096,8 +1062,7 @@ let http_server conduit = impl @@ object
     method ty = http
     method name = "http"
     method module_name = "Cohttp_mirage.Server_with_conduit"
-    method packages = Key.pure [ "mirage-http" ]
-    method libraries = Key.pure [ "mirage-http" ]
+    method packages = Key.pure [ package "mirage-http" ]
     method deps = [ abstract conduit ]
     method connect _i modname = function
       | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
@@ -1119,8 +1084,7 @@ let argv_xen = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_xen"
     method module_name = "Bootvar"
-    method packages = Key.pure [ "mirage-bootvar-xen" ]
-    method libraries = Key.pure [ "mirage-bootvar-xen" ]
+    method packages = Key.pure [ package "mirage-bootvar-xen" ]
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -1129,8 +1093,7 @@ let argv_solo5 = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_solo5"
     method module_name = "Bootvar"
-    method packages = Key.pure [ "mirage-bootvar-solo5" ]
-    method libraries = Key.pure [ "mirage-bootvar-solo5" ]
+    method packages = Key.pure [ package "mirage-bootvar-solo5" ]
     method connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -1147,8 +1110,7 @@ let argv_qubes = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_qubes"
     method module_name = "Bootvar"
-    method packages = Key.pure [ "mirage-bootvar-xen" ]
-    method libraries = Key.pure [ "mirage-bootvar-xen" ]
+    method packages = Key.pure [ package "mirage-bootvar-xen" ]
     method connect _ _ _ =
       (* Qubes tries to pass some nice arguments.
        * It means well, but we can't do much with them,
@@ -1183,8 +1145,7 @@ let mirage_log ?ring_size ~default =
     method ty = pclock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
-    method packages = Key.pure ["mirage-logs"]
-    method libraries = Key.pure ["mirage-logs"]
+    method packages = Key.pure [ package "mirage-logs"]
     method keys = [ Key.abstract logs ]
     method connect _ modname = function
     | [ pclock ] ->
@@ -1229,12 +1190,11 @@ let mprof_trace ~size () =
     method name = "mprof_trace"
     method module_name = "MProf"
     method keys = [ Key.abstract key ]
-    method packages = Key.pure ["mirage-profile"]
-    method libraries =
+    method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> ["mirage-profile.xen"]
+      | `Xen | `Qubes -> [package ~sublibs:["xen"] "mirage-profile"]
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
-      | `Unix | `MacOSX -> ["mirage-profile.unix"]
+      | `Unix | `MacOSX -> [package ~sublibs:["unix"] "mirage-profile"]
 
     method configure _ =
       if Sys.command "ocamlfind query lwt.tracing 2>/dev/null" = 0
@@ -1501,50 +1461,7 @@ let configure_main_xe ~root ~name =
 
 let clean_main_xe ~root ~name = Cmd.remove (root / name ^ ".xe")
 
-(* Implement something similar to the @name/file extended names of findlib. *)
-let rec expand_name ~lib param =
-  match String.cut param ~sep:"@" with
-  | None -> param
-  | Some (prefix, name) -> match String.cut name ~sep:"/" with
-    | None              -> prefix ^ lib / name
-    | Some (name, rest) -> prefix ^ lib / name / expand_name ~lib rest
-
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  match Cmd.read "opam config var prefix" with
-  | Error e -> failwith e
-  | Ok prefix ->
-    let prefix = String.trim prefix in
-    (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-    match Cmd.read "PKG_CONFIG_PATH=%s/share/pkgconfig:%s/lib/pkgconfig \
-                    pkg-config %s %s" prefix prefix pkgs args with
-    | Ok s -> String.trim s
-    | Error e -> failwith e
-
-(* Get the linker flags for any extra C objects we depend on.
- * This is needed when building a Xen/Solo5 image as we do the link manually. *)
-let get_extra_ld_flags target pkgs =
-  Cmd.read "opam config var lib" >>= fun s ->
-  let lib = String.trim s in
-  Cmd.read
-    "ocamlfind query -r -format '%%d\t%%(%s_linkopts)' -predicates native %s"
-    target (String.concat ~sep:" " pkgs) >>| fun output ->
-  String.cuts output ~sep:"\n"
-  |> List.fold_left (fun acc line ->
-      match String.cut line ~sep:"\t" with
-      | None -> acc
-      | Some (dir, ldflags) ->
-        if ldflags <> "" then
-          let ldflags = String.cuts ldflags ~sep:" " in
-          let ldflags = List.map (expand_name ~lib) ldflags in
-          let ldflags = String.concat ~sep:" " ldflags in
-          Printf.sprintf "-L%s %s" dir ldflags :: acc
-        else
-          acc
-    ) []
-
-let configure_makefile ~target ~root ~name ~warn_error info =
+let configure_makefile ~target ~root ~name ~opam_name ~warn_error info =
   let open Codegen in
   let file = root / "Makefile" in
   let libs = Info.libraries info in
@@ -1554,7 +1471,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     | l -> Fmt.(strf "-pkgs %a" (list ~sep:(unit ",") string)) l
   in
   let packages =
-    Fmt.(strf "%a" (list ~sep:(unit " ") string)) @@ Info.packages info
+    Fmt.(strf "%a" (list ~sep:(unit " ") string)) @@ Info.package_names info
   in
   Cmd.with_file file @@ fun fmt ->
   append fmt "# %s" (generated_header ());
@@ -1575,7 +1492,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
     | `Virtio | `Ukvm ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
-      append fmt "FLAGS  = -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
+      append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg%s\n" dontlink;
     | `Unix ->
       append fmt "SYNTAX = -tags \"%s\"\n" default_tags;
       append fmt "FLAGS  = -r -cflag -g -lflags -g,-linkpkg\n"
@@ -1586,9 +1503,13 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   append fmt "TARGET = -tags \"predicate(%s)\"" (backend_predicate target);
   append fmt "SYNTAX += -tag-line \"<static*.*>: warn(-32-34)\"\n";
   append fmt "BUILD  = ocamlbuild -use-ocamlfind $(TARGET) $(LIBS) $(SYNTAX) $(FLAGS)\n\
-              OPAM   = opam\n\n\
-              export OPAMVERBOSE=1\n\
-              export OPAMYES=1";
+              OPREFIX= $(shell opam config var prefix)\n\
+              PKG_CONFIG_PATH=$(OPREFIX)/share/pkgconfig:$(OPREFIX)/lib/pkgconfig\n\
+              OPAM   = opam\n\
+              NOCRYPTO = $$(ocamlfind query -r %s | grep -c nocrypto)\n\
+              NOCRYPTO_INITIALISED = %s"
+    (String.concat ~sep:" " libs)
+    (if is_entropy_enabled () then "1" else "0");
   newline fmt;
   let pkg_config_deps =
     match target with
@@ -1596,46 +1517,53 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     | `Virtio | `Ukvm -> "mirage-solo5"
     | `MacOSX | `Unix -> ""
   in
-  let extra_ld_flags archives =
-    let archives = String.Set.elements (String.Set.of_list archives) in
-    let extra_c_archives = String.concat ~sep:" \\\n\t  " archives in
-    append fmt "EXTRA_LD_FLAGS = %s\n" extra_c_archives;
-    append fmt "EXTRA_LD_FLAGS += %s\n"
-               (pkg_config pkg_config_deps "--static --libs")
+  let extra_ld_flags target =
+    append fmt "EXTRA_LD_FLAGS = $$(ocamlfind query -r -format '-L%%d %%(%s_linkopts)' -predicates native %s | sort -u | sed -e 's|@|$(OPREFIX)/lib/|g')"
+      target (String.concat ~sep:" " libs) ;
+    append fmt "EXTRA_LD_FLAGS += $$(PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --static --libs %s)\n"
+      pkg_config_deps
   in
   let pre_ld_flags x =
-    append fmt "PRE_LD_FLAGS = %s\n" (pkg_config x "--variable=ldflags")
+    append fmt "PRE_LD_FLAGS = $$(PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --variable=ldflags %s)\n" x
   in
   begin match target with
     | `Xen | `Qubes ->
-      get_extra_ld_flags "xen" libs >>= fun archives ->
-      extra_ld_flags archives;
+      extra_ld_flags "xen";
       R.ok ()
     | `Virtio ->
-      get_extra_ld_flags "freestanding" libs >>= fun archives ->
-      extra_ld_flags archives;
-      pre_ld_flags "solo5-kernel-virtio" ;
+      extra_ld_flags "freestanding";
+      pre_ld_flags "solo5-kernel-virtio";
       R.ok ()
     | `Ukvm ->
-      get_extra_ld_flags "freestanding" libs >>= fun archives ->
-      extra_ld_flags archives;
+      extra_ld_flags "freestanding";
       pre_ld_flags "solo5-kernel-ukvm" ;
       R.ok ()
     | `Unix | `MacOSX ->
       R.ok ()
   end >>= fun () ->
   newline fmt;
+  (* XXX: should we run opam depext as well?  not sure how*)
   append fmt ".PHONY: all depend clean build main.native\n\
               all:: build\n\
               \n\
               depend::\n\
-              \t$(OPAM) install $(PKGS) --verbose\n\
+              \t$(OPAM) pin add -n %s .\n\
+              \t$(OPAM) install --deps-only --verbose %s\n\
+              \t$(OPAM) pin remove -n %s\n\
               \n\
-              main.native:\n\
+              check::\n\
+              \tif [ $(NOCRYPTO) -ge 1 ] && [ $(NOCRYPTO_INITIALISED) -eq 0 ]; then echo \"%s\" ; exit 2 ; fi\n\
+              \n\
+              main.native: check\n\
               \t$(BUILD) main.native\n\
               \n\
-              main.native.o:\n\
-              \t$(BUILD) main.native.o";
+              main.native.o: check\n\
+              \t$(BUILD) main.native.o"
+    opam_name opam_name opam_name
+    "The 'nocrypto' library is loaded but entropy is not enabled! \
+     Please enable the entropy by adding a dependency to the nocrypto \
+     device. You can do so by adding ~deps:[abstract nocrypto] \
+     to the arguments of Mirage.foreign.";
   newline fmt;
 
   (* On ARM:
@@ -1658,9 +1586,13 @@ let configure_makefile ~target ~root ~name ~warn_error info =
     ) else (
       Printf.sprintf "\t  -o mir-%s.xen" name
     ) in
+  let tst_pkg_config dep =
+      append fmt "\tPKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --print-errors --exists %s" dep;
+  in
   begin match target with
     | `Xen | `Qubes ->
       append fmt "build:: main.native.o";
+      tst_pkg_config pkg_config_deps;
       append fmt "\t$(LD) -d -static -nostdlib \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\
@@ -1673,6 +1605,7 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       R.ok ()
     | `Virtio ->
       append fmt "build:: main.native.o";
+      tst_pkg_config pkg_config_deps;
       append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\
@@ -1694,11 +1627,13 @@ let configure_makefile ~target ~root ~name ~warn_error info =
       in
       append fmt "UKVM_MODULES=%s" ukvm_mods;
       append fmt "Makefile.ukvm:";
-      append fmt "\t ukvm-configure %s/src/ukvm $(UKVM_MODULES)"
-                 (pkg_config "solo5-kernel-ukvm" "--variable=libdir");
+      append fmt "\t ukvm-configure $$(PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --variable=libdir solo5-kernel-ukvm)/src/ukvm $(UKVM_MODULES)";
       newline fmt;
-      append fmt "include Makefile.ukvm";
+      append fmt "ukvm-bin:: Makefile.ukvm";
+      append fmt "\t$(MAKE) -f Makefile.ukvm $@";
+      newline fmt;
       append fmt "build:: main.native.o ukvm-bin";
+      tst_pkg_config pkg_config_deps;
       append fmt "\t$(LD) $(PRE_LD_FLAGS) \\\n\
                   \t  _build/main.native.o \\\n\
                   \t  $(EXTRA_LD_FLAGS) \\\n\
@@ -1706,7 +1641,8 @@ let configure_makefile ~target ~root ~name ~warn_error info =
         name ;
       append fmt "\t@@echo Build succeeded";
       newline fmt;
-      append fmt "clean:: ukvm-clean\n\
+      append fmt "clean:: Makefile.ukvm\n\
+                  \t$(MAKE) -f Makefile.ukvm ukvm-clean\n\
                   \tocamlbuild -clean\n\
                   \t$(RM) Makefile.ukvm";
       R.ok ()
@@ -1723,6 +1659,15 @@ let configure_makefile ~target ~root ~name ~warn_error info =
   R.ok ()
 
 let clean_makefile ~root = Cmd.remove (root / "Makefile")
+
+let configure_opam ~root ~name info =
+  let open Codegen in
+  let file = root / name ^ ".opam" in
+  Cmd.with_file file @@ fun fmt ->
+  append fmt "# %s" (generated_header ());
+  Info.opam ~name fmt info
+
+let clean_opam ~root ~name = Cmd.remove (root / name ^ ".opam")
 
 let check_ocaml_version () =
   (* Similar to [Functoria_app.Cmd.ocaml_version] but with the patch number *)
@@ -1751,6 +1696,10 @@ let check_ocaml_version () =
   ) else
     R.ok ()
 
+let unikernel_name target name =
+  let target = Fmt.strf "%a" Key.pp_target target in
+  String.concat ~sep:"-" ["mirage" ; "unikernel" ; name ; target]
+
 let configure i =
   let name = Info.name i in
   let root = Info.root i in
@@ -1762,8 +1711,8 @@ let configure i =
     if ocaml_check then check_ocaml_version ()
     else R.ok ()
   end >>= fun () ->
-  check_entropy @@ Info.libraries i >>= fun () ->
   Log.info "%a %a" Log.blue "Configuring for target:" Key.pp_target target ;
+  let opam_name = unikernel_name target name in
   Cmd.in_dir root (fun () ->
       (match target with
        | `Xen | `Qubes ->
@@ -1772,17 +1721,21 @@ let configure i =
          configure_main_xe ~root ~name;
          configure_main_libvirt_xml ~root ~name
        | _ -> ()) ;
-      configure_makefile ~target ~root ~name ~warn_error i;
+      configure_opam ~root ~name:opam_name i;
+      configure_makefile ~target ~root ~name ~opam_name ~warn_error i;
     )
 
 let clean i =
   let name = Info.name i in
   let root = Info.root i in
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
   Cmd.in_dir root (fun () ->
       clean_main_xl ~root ~name ".xl";
       clean_main_xl ~root ~name ".xl.in";
       clean_main_xe ~root ~name;
       clean_main_libvirt_xml ~root ~name;
+      clean_opam ~root ~name:(unikernel_name target name);
       clean_makefile ~root;
       Cmd.run "rm -rf %s/mir-%s" root name;
     )
@@ -1807,19 +1760,21 @@ module Project = struct
       ]
 
       method packages =
-        let l = [ "lwt"; "mirage-types"; "mirage-types-lwt" ] in
+        let l = [
+          (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
+          package "lwt";
+          package ~ocamlfind:[] "mirage-types-lwt";
+          package ~sublibs:["lwt"] ~min:"3.0.0"  "mirage-types";
+          package ~min:"3.0.0" "mirage-runtime" ;
+          package ~build:true "ocamlfind" ;
+          package ~build:true "ocamlbuild" ;
+        ]
+        in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> "mirage-xen" :: l
-        | `Virtio -> "solo5-kernel-virtio" :: "mirage-solo5" :: l
-        | `Ukvm -> "solo5-kernel-ukvm" :: "mirage-solo5" :: l
-        | `Unix | `MacOSX -> "mirage-unix" :: l
-
-      method libraries =
-        let l = [ "mirage-runtime"; "mirage-types"; "mirage-types.lwt" ] in
-        Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> "mirage-xen" :: l
-        | `Virtio | `Ukvm -> "mirage-solo5" :: l
-        | `Unix | `MacOSX -> "mirage-unix" :: l
+        | `Xen | `Qubes -> package "mirage-xen" :: l
+        | `Virtio -> package ~ocamlfind:[] "solo5-kernel-virtio" :: package "mirage-solo5" :: l
+        | `Ukvm -> package ~ocamlfind:[] "solo5-kernel-ukvm" :: package "mirage-solo5" :: l
+        | `Unix | `MacOSX -> package "mirage-unix" :: l
 
       method configure = configure
       method clean = clean
@@ -1849,10 +1804,10 @@ let gui_init = match_impl Key.(value target) [
 
 let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
-    ?keys ?(libraries=[]) ?(packages=[])
+    ?keys ?(packages=[])
     name jobs =
   let argv = Some (Functoria_app.keys argv) in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let qubes_init = Some [qrexec_init; gui_init] in
   let init = qubes_init ++ argv ++ reporter ++ tracing in
-  register ?keys ~libraries ~packages ?init name jobs
+  register ?keys ~packages ?init name jobs

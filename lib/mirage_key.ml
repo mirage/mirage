@@ -255,7 +255,7 @@ module V4 = struct
 
   let gateway ?group default =
     let doc = Fmt.strf "The gateway of %a." pp_group group in
-    create_simple ~doc ~default ?group Arg.(some ipv4_address) "gateway"
+    create_simple ~doc ~default ?group Arg.(some ipv4_address) "ipv4-gateway"
 
   let socket ?group default =
     let doc =

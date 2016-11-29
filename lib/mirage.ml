@@ -1616,6 +1616,7 @@ let compile libs warn_error target =
                      "-pkgs" % pkgs %%
                      flags %
                      "-tag-line" % tag_line %
+                     "-X" %  "_build-ukvm" %
                      result)
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);

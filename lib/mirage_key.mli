@@ -21,8 +21,8 @@
 module Arg : sig
   include module type of struct include Functoria_key.Arg end
 
-  val ipv4 : Ipaddr.V4.t converter
-  val ipv4_network : (Ipaddr.V4.t * Ipaddr.V4.Prefix.t) converter
+  val ipv4_address : Ipaddr.V4.t converter
+  val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) converter
   val ipv6 : Ipaddr.V6.t converter
   val ipv6_prefix : Ipaddr.V6.Prefix.t converter
 
@@ -95,7 +95,7 @@ val interface : ?group:string -> string -> string key
 module V4 : sig
   open Ipaddr.V4
 
-  val network : ?group:string -> (t * Prefix.t) -> (t * Prefix.t) key
+  val network : ?group:string -> (Prefix.t * t)-> (Prefix.t * t) key
   (** A network defined by an address and netmask. *)
 
   val gateway : ?group:string -> t option -> t option key

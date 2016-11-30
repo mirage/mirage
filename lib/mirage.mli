@@ -284,7 +284,7 @@ val ipv6: ipv6 typ
 (** The [V1.IPV6] module signature. *)
 
 type ipv4_config = {
-  network : Ipaddr.V4.t * Ipaddr.V4.Prefix.t;
+  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
   gateway : Ipaddr.V4.t option;
 }
 (** Types for IPv4 manual configuration. *)
@@ -299,7 +299,7 @@ type ipv6_config = {
 val create_ipv4 : ?group:string ->
   ?config:ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address
-    Exposes the keys {!Key.V4.ip}, {!Key.V4.network} and {!Key.V4.gateway}.
+    Exposes the keys {!Key.V4.ipv4} and {!Key.V4.ipv4-gateway}.
     If provided, the values of these keys will override those supplied
     in the ipv4 configuration record, if that has been provided.
 *)
@@ -382,7 +382,7 @@ val qubes_ipv4_stack : ?group:string -> ?qubesdb : qubesdb impl -> network impl 
  *  build an ipv4, then building a stack on top of that. *)
 val dhcp_ipv4_stack : ?group:string -> ?time : time impl -> network impl -> stackv4 impl
 
-(** Build a stackv4 by checking the {Key.ip}, {Key.network}, and {Key.gateway} keys
+(** Build a stackv4 by checking the {Key.ip4}, and {Key.ipv4-gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],
  *  then building a stack on top of that. *)
 val static_ipv4_stack : ?group:string -> ?config : ipv4_config -> network impl -> stackv4 impl

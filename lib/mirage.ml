@@ -618,7 +618,7 @@ let meta_ipv4 ppf s =
   Fmt.pf ppf "(Ipaddr.V4.of_string_exn %S)" (Ipaddr.V4.to_string s)
 
 type ipv4_config = {
-  network : Ipaddr.V4.t * Ipaddr.V4.Prefix.t;
+  network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
   gateway : Ipaddr.V4.t option;
 }
 (** Types for IPv4 manual configuration. *)
@@ -640,7 +640,7 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method connect _ modname = function
     | [ etif ; arp ] ->
         Fmt.strf
-          "let (ip, network) = %a in @ \
+          "let (network, ip) = %a in @ \
              %s.connect@[@ ~ip ~network %a@ %s@ %s@]"
           (Fmt.option pp_key) network
           modname
@@ -685,9 +685,9 @@ let ipv4_of_dhcp dhcp ethif arp = ipv4_dhcp_conf $ dhcp $ ethif $ arp
 let create_ipv4 ?group ?config etif arp =
   let config = match config with
   | None ->
-    let default_address = Ipaddr.V4.of_string_exn "10.0.0.2" in
+    let network = Ipaddr.V4.Prefix.of_address_string_exn "10.0.0.2/24" in
     {
-      network = default_address, Ipaddr.V4.Prefix.make 24 default_address;
+      network;
       gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1");
     }
   | Some config -> config

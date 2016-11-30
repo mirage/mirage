@@ -562,7 +562,11 @@ let network_conf (intf : string Key.key) =
   end
 
 let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
-let tap0 = netif "tap0"
+let default_network =
+  match_impl Key.(value target) [
+    `Xen   , netif "0";
+    `Qubes , netif "0";
+  ] ~default:(netif "tap0")
 
 type dhcp = Dhcp_client
 let dhcp = Type Dhcp_client

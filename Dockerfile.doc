@@ -30,7 +30,6 @@ RUN opam depext -uivj 3 \
   datakit-ci \
   depyt \
   dns \
-  dns-forward \
   dockerfile \
   duration \
   ezxmlm \
@@ -38,7 +37,6 @@ RUN opam depext -uivj 3 \
   functoria \
   git \
   git-mirage \
-  depyt \
   git-unix \
   github \
   gmp-freestanding \
@@ -142,7 +140,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: arp
+# to fix: arp dns-forward
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

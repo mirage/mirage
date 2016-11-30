@@ -6,6 +6,8 @@ RUN opam depext -uivy -j 2 odig
 RUN opam depext -uivj 3 \
   alcotest \
   angstrom \
+  ansi-parse \
+  anycache \
   asn1-combinators \
   astring \
   base64 \
@@ -26,7 +28,9 @@ RUN opam depext -uivj 3 \
   datakit-client \
   datakit-github \
   datakit-ci \
+  depyt \
   dns \
+  dns-forward \
   dockerfile \
   duration \
   ezxmlm \
@@ -34,6 +38,7 @@ RUN opam depext -uivj 3 \
   functoria \
   git \
   git-mirage \
+  depyt \
   git-unix \
   github \
   gmp-freestanding \
@@ -47,6 +52,7 @@ RUN opam depext -uivj 3 \
   irmin-watcher \
   jekyll-format \
   jenga \
+  jsonm \
   logs \
   logs-syslog \
   lru-cache \
@@ -56,6 +62,7 @@ RUN opam depext -uivj 3 \
   mirage \
   mirage-block \
   mirage-block-ccm \
+  mirage-block-ramdisk \
   mirage-block-solo5 \
   mirage-block-unix \
   mirage-block-xen \
@@ -85,6 +92,7 @@ RUN opam depext -uivj 3 \
   mirage-unix \
   mirage-vnetif \
   mirage-xen \
+  nbd \
   nocrypto \
   notty \
   obytelib \
@@ -121,6 +129,8 @@ RUN opam depext -uivj 3 \
   tuntap \
   tyxml-ppx \
   uri \
+  uucp \
+  uuseg \
   vchan \
   vhd-format \
   webmachine \
@@ -132,7 +142,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: arp mirage-block-ramdisk
+# to fix: arp
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

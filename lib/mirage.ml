@@ -1499,14 +1499,13 @@ let configure_main_xe ~root ~name =
 
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 
-let configure_makefile ~target ~opam_name =
+let configure_makefile ~opam_name =
   let open Codegen in
   let file = Fpath.(v "Makefile") in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       newline fmt;
-      let starget = Fmt.to_to_string Mirage_key.pp_target target in
       append fmt "OPAM  = opam\n\
                   \n\
                   .PHONY: all depend clean build\n\
@@ -1518,11 +1517,11 @@ let configure_makefile ~target ~opam_name =
                   \t$(OPAM) pin remove --no-action %s\n\
                   \n\
                   build::\n\
-                  \tmirage build -t %s\n\
+                  \tmirage build\n\
                   \n\
                   clean::\n\
-                  \tmirage clean -t %s\n"
-        opam_name opam_name opam_name starget starget;
+                  \tmirage clean\n"
+        opam_name opam_name opam_name;
       newline fmt;
       append fmt "-include Makefile.user";
       R.ok ())
@@ -1546,14 +1545,14 @@ let clean_myocamlbuild () =
   else
     R.ok ()
 
-let configure_opam ~name ~target info =
+let configure_opam ~name info =
   let open Codegen in
   let file = Fpath.(v name + "opam") in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       Info.opam ~name fmt info;
-      append fmt "build: [ \"mirage\" \"build\" \"-t %a\" ]" Key.pp_target target;
+      append fmt "build: [ \"mirage\" \"build\" ]";
       R.ok ())
     "opam file"
 
@@ -1580,8 +1579,8 @@ let configure i =
            configure_main_libvirt_xml ~root ~name
          | _ -> R.ok ()) >>= fun () ->
         configure_myocamlbuild () >>= fun () ->
-        configure_opam ~target ~name:opam_name i >>= fun () ->
-        configure_makefile ~target ~opam_name) ()
+        configure_opam ~name:opam_name i >>= fun () ->
+        configure_makefile ~opam_name) ()
   with
   | Ok a -> a
   | Error _ -> R.error_msg "couldn't access root directory"

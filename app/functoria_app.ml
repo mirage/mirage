@@ -392,6 +392,70 @@ module Config = struct
 
 end
 
+(** Cached configuration in [.mirage.config].
+    Currently, we cache Sys.argv directly
+*)
+module Cache : sig
+  open Cmdliner
+  val save : string -> (unit, [> Rresult.R.msg ]) result
+  val clean : string -> (unit, [> Rresult.R.msg ]) result
+  val get_context : string -> context Term.t ->
+    [> `Error of bool * string | `Ok of context option ]
+  val require :
+    [< `Error of bool * string | `Ok of context option ] -> context Term.ret
+  val merge :
+    cache:[< `Error of bool * string | `Ok of context option ] ->
+    context -> context
+  val present :
+    [< `Error of bool * string | `Ok of context option ] -> bool
+end = struct
+  let filename root =
+    Fpath.(v root / ".mirage" + "config")
+
+  let save root =
+    let file = filename root in
+    Log.info (fun m -> m "Preserving arguments");
+    let args = String.concat ~sep:";" Array.(to_list Sys.argv) in
+    Bos.OS.File.write file args
+
+  let clean root =
+    Bos.OS.File.delete (filename root)
+
+  let read root =
+    match Bos.OS.File.read (filename root) with
+    | Ok args ->
+      Some (Array.of_list @@ String.cuts ~empty:false ~sep:";" args)
+    | Error _ -> None
+
+  let get_context root context_args =
+    match read root with
+    | None -> `Ok None
+    | Some argv ->
+      match Cmdliner.Term.eval_peek_opts ~argv context_args with
+      | _, `Ok c -> `Ok (Some c)
+      | _ ->
+        let msg =
+          "Invalid cached configuration. Please run configure again."
+        in
+        `Error (false, msg)
+
+  let require cache : _ Cmdliner.Term.ret =
+    match cache with
+    | `Ok None ->
+      `Error (false, "Configuration is not available. Please run configure.")
+    | `Ok (Some x) -> `Ok x
+    | `Error err -> `Error err
+
+  let merge ~cache context =
+    match cache with
+    | `Ok None | `Error _ -> context
+    | `Ok (Some default) -> Key.merge_context ~default context
+
+  let present cache = match cache with
+    | `Ok None | `Error _ -> false
+    | `Ok (Some _) -> true
+end
+
 module type S = sig
   val prelude: string
   val name: string
@@ -434,14 +498,6 @@ module Make (P: S) = struct
     | Some t -> Ok t
 
   let configure_main i jobs =
-    Log.info (fun m -> m "Preserving arguments");
-    let args =
-      if Array.length Sys.argv >= 2 then
-        String.concat ~sep:";" Array.(to_list (sub Sys.argv 2 (length Sys.argv - 2)))
-      else
-        ""
-    in
-    Bos.OS.File.write Fpath.(v ".mirage" + "keys") args >>= fun () ->
     Log.info (fun m -> m "Generating: main.ml");
     Codegen.set_main_ml "main.ml";
     Codegen.append_main "(* %s *)" (Codegen.generated_header ());
@@ -450,6 +506,7 @@ module Make (P: S) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
+    Cache.save (Info.root i) >>= fun () ->
     Engine.configure_and_connect i jobs >>| fun () ->
     Codegen.newline_main ()
 
@@ -481,7 +538,7 @@ module Make (P: S) = struct
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
-         Bos.OS.File.delete Fpath.(v ".mirage" + "keys") >>= fun () ->
+         Cache.clean root >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"
 
@@ -520,7 +577,7 @@ module Make (P: S) = struct
                     "-tags" % "bin_annot,color(always)" %
                     "-X" % "_build-ukvm" % "-pkg" % P.name % file)
          in
-         Bos.OS.Cmd.run cmd >>= fun _ ->
+         Bos.OS.Cmd.(run_out cmd |> to_null) >>= fun _ ->
          try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
          with Dynlink.Error err ->
            Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));
@@ -553,6 +610,11 @@ module Make (P: S) = struct
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
       let verbose = Logs.level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
+
+    let eval_cached ~partial context t =
+      let info c = Config.eval ~partial c t in
+      let f c = Key.eval c (info c) c in
+      Cmdliner.Term.(pure f $ ret @@ pure @@ Cache.require context)
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
@@ -626,33 +688,9 @@ module Make (P: S) = struct
     (*    (d) the config file passed as argument, if any *)
     let config_file = Cmd.read_config_file argv in
 
-    (* is there a better way? *)
-    let argv =
-      if Array.length Sys.argv >= 2 then
-        let cmd = Sys.argv.(1) in
-        if cmd <> "configure" then
-          let root = match config_file with
-            | None -> "."
-            | Some x -> Filename.dirname x
-          in
-          match Bos.OS.File.read Fpath.(v root / ".mirage" + "keys") with
-          | Ok keys ->
-            let argv' = String.cuts ~empty:false ~sep:";" keys in
-            Array.append argv (Array.of_list argv')
-          | Error e ->
-            if cmd = "build" || cmd = "clean" then
-              R.error_msg_to_invalid_arg (Error e)
-            else
-              argv
-        else
-          argv
-      else
-        argv
-    in
-
     (* 2. Load the config from the config file. *)
     (* There are three possible outcomes:
-         1. the config file is found and loaded succeessfully
+         1. the config file is found and loaded successfully
          2. no config file is specified
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
@@ -660,8 +698,13 @@ module Make (P: S) = struct
     match load' config_file with
     | Error err -> handle_parse_args_no_config err argv
     | Ok config ->
+
        let config_keys = Config.keys config in
-       let context_args = Key.context ~stage:`Configure ~with_required:false config_keys in
+       let context_args =
+         Key.context ~stage:`Configure ~with_required:false config_keys
+       in
+
+       let cached_context = Cache.get_context config.root context_args in
        let context =
          match Cmdliner.Term.eval_peek_opts ~argv context_args with
          | _, `Ok context -> context
@@ -669,12 +712,25 @@ module Make (P: S) = struct
        in
 
        (* 3. Parse the command-line and handle the result. *)
+
+       let configure =
+         Config'.eval ~with_required:true ~partial:false context config
+       and describe =
+         let context = Cache.merge ~cache:cached_context context in
+         let partial = not (full_eval || Cache.present cached_context) in
+         Config'.eval ~with_required:false ~partial context config
+       and build =
+         Config'.eval_cached ~partial:false cached_context config
+       and clean =
+         Config'.eval_cached ~partial:false cached_context config
+       in
+
        handle_parse_args_result
          (Functoria_command_line.parse_args ~name:P.name ~version:P.version
-            ~configure:(Config'.eval ~with_required:true ~partial:false context config)
-            ~describe:(Config'.eval ~with_required:false ~partial:(not full_eval) context config)
-            ~build:(Config'.eval ~with_required:false ~partial:false context config)
-            ~clean:(Config'.eval ~with_required:false ~partial:false context config)
+            ~configure
+            ~describe
+            ~build
+            ~clean
             ~help:base_context_arg
             argv)
 

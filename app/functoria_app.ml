@@ -717,7 +717,11 @@ module Make (P: S) = struct
          Config'.eval ~with_required:true ~partial:false context config
        and describe =
          let context = Cache.merge ~cache:cached_context context in
-         let partial = not (full_eval || Cache.present cached_context) in
+         let partial = match full_eval with
+           | Some true  -> false
+           | Some false -> true
+           | None -> not (Cache.present cached_context)
+         in
          Config'.eval ~with_required:false ~partial context config
        and build =
          Config'.eval_cached ~partial:false cached_context config

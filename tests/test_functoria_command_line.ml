@@ -162,14 +162,26 @@ let test_read_config_file _ =
 
 let test_read_full_eval _ =
   begin
-    assert_equal false
+    assert_equal None
       (Cmd.read_full_eval [|"test"|]);
 
-    assert_equal true
+    assert_equal (Some true)
       (Cmd.read_full_eval [|"test"; "--eval"|]);
 
-    assert_equal true
+    assert_equal (Some true)
       (Cmd.read_full_eval [|"test"; "blah"; "--eval"; "blah"|]);
+
+    assert_equal (Some false)
+      (Cmd.read_full_eval [|"test"; "--no-eval"|]);
+
+    assert_equal (Some false)
+      (Cmd.read_full_eval [|"test"; "blah"; "--no-eval"; "blah"|]);
+
+    assert_equal (Some true)
+      (Cmd.read_full_eval [|"--no-eval"; "test"; "--eval"|]);
+
+    assert_equal (Some false)
+      (Cmd.read_full_eval [|"--eval"; "test"; "--no-eval"|]);
   end
 
 

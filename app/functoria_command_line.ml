@@ -49,10 +49,18 @@ let term_info title ~doc ~man ~arg =
 
 (** Argument specification for --eval *)
 let full_eval =
-  mk_flag ["eval"]
-    "Fully evaluate the graph before showing it. \
-     By default, only the keys that are given on the command line are \
-     evaluated."
+  let eval_doc =
+    Arg.info ~docs:global_option_section ["eval"]
+    ~doc:"Fully evaluate the graph before showing it. \
+          The default when the unikernel has already been configured."
+  in
+  let no_eval_doc =
+    Arg.info ~docs:global_option_section ["no-eval"]
+    ~doc:"Do not evaluate the graph before showing it. See ${b,--eval}. \
+          The default when the unikernel has not been configured."
+  in
+  let eval_opts = [ (Some true, eval_doc) ; (Some false, no_eval_doc) ] in
+  Arg.(value & vflag None eval_opts)
 
 (** Argument specification for --dot *)
 let dot =
@@ -236,10 +244,10 @@ let read_config_file : string array -> string option =
     | _, `Ok config -> config
     | _ -> None
 
-let read_full_eval : string array -> bool =
+let read_full_eval : string array -> bool option =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with
     | _, `Ok b -> b
-    | _ -> false
+    | _ -> None
 
 let parse_args ~name ~version ~configure ~describe ~build ~clean ~help argv =
   Cmdliner.Term.eval_choice ~argv ~catch:false (Subcommands.default ~name ~version) [

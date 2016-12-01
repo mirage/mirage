@@ -261,6 +261,7 @@ let filter_stage stage s = match stage with
 
 type context = Univ.t
 let empty_context = Univ.empty
+let merge_context = Univ.merge
 
 let get (type a) ctx (t : a key) : a =
   match t.arg.Arg.kind, Univ.find t.key ctx with
@@ -375,7 +376,7 @@ let context ?(stage=`Both) ~with_required l =
     let f v p = Alias.apply v k.setters (Univ.add k.key v p) in
     Cmdliner.Term.(parse_key ~with_required k f $ rest)
   in
-  Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure Univ.empty)
+  Set.fold gather (filter_stage stage l) (Cmdliner.Term.pure empty_context)
 
 (* {2 Code emission} *)
 

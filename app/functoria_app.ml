@@ -434,6 +434,14 @@ module Make (P: S) = struct
     | Some t -> Ok t
 
   let configure_main i jobs =
+    Log.info (fun m -> m "Preserving arguments");
+    let args =
+      if Array.length Sys.argv >= 2 then
+        String.concat ~sep:";" Array.(to_list (sub Sys.argv 2 (length Sys.argv - 2)))
+      else
+        ""
+    in
+    Bos.OS.File.write Fpath.(v ".mirage" + "keys") args >>= fun () ->
     Log.info (fun m -> m "Generating: main.ml");
     Codegen.set_main_ml "main.ml";
     Codegen.append_main "(* %s *)" (Codegen.generated_header ());
@@ -443,8 +451,7 @@ module Make (P: S) = struct
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
     Engine.configure_and_connect i jobs >>| fun () ->
-    Codegen.newline_main ();
-    ()
+    Codegen.newline_main ()
 
   let clean_main i jobs =
     Engine.clean i jobs >>= fun () ->
@@ -474,6 +481,7 @@ module Make (P: S) = struct
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
+         Bos.OS.File.delete Fpath.(v ".mirage" + "keys") >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"
 
@@ -617,6 +625,30 @@ module Make (P: S) = struct
 
     (*    (d) the config file passed as argument, if any *)
     let config_file = Cmd.read_config_file argv in
+
+    (* is there a better way? *)
+    let argv =
+      if Array.length Sys.argv >= 2 then
+        let cmd = Sys.argv.(1) in
+        if cmd <> "configure" then
+          let root = match config_file with
+            | None -> "."
+            | Some x -> Filename.dirname x
+          in
+          match Bos.OS.File.read Fpath.(v root / ".mirage" + "keys") with
+          | Ok keys ->
+            let argv' = String.cuts ~empty:false ~sep:";" keys in
+            Array.append argv (Array.of_list argv')
+          | Error e ->
+            if cmd = "build" || cmd = "clean" then
+              R.error_msg_to_invalid_arg (Error e)
+            else
+              argv
+        else
+          argv
+      else
+        argv
+    in
 
     (* 2. Load the config from the config file. *)
     (* There are three possible outcomes:

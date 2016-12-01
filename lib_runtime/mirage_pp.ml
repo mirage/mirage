@@ -12,6 +12,9 @@ let pp_network_error pp = function
 
 let pp_ethif_error = pp_network_error
 
+let pp_arp_error pp = function
+  | `Timeout -> Format.fprintf pp "Dynamic ARP timed out"
+
 let pp_ip_error = pp_ethif_error
 
 let pp_icmp_error pp = function

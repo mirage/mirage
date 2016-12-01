@@ -10,6 +10,8 @@ RUN opam depext -uivj 3 \
   anycache \
   asn1-combinators \
   astring \
+  atd \
+  atdgen \
   base64 \
   channel \
   charrua-core \
@@ -46,6 +48,7 @@ RUN opam depext -uivj 3 \
   integers \
   io-page \
   ipaddr \
+  irc-client \
   irmin \
   irmin-watcher \
   jekyll-format \
@@ -90,7 +93,6 @@ RUN opam depext -uivj 3 \
   mirage-unix \
   mirage-vnetif \
   mirage-xen \
-  nbd \
   nocrypto \
   notty \
   obytelib \
@@ -129,8 +131,10 @@ RUN opam depext -uivj 3 \
   uri \
   uucp \
   uuseg \
+  utop \
   vchan \
   vhd-format \
+  webbrowser \
   webmachine \
   websocket \
   x509 \
@@ -140,7 +144,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: arp dns-forward
+# to fix: arp dns-forward nbd
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

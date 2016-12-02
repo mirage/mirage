@@ -578,7 +578,8 @@ module Make (P: S) = struct
          try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
          with Dynlink.Error err ->
            Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));
-           Error (`Msg "error loading configuration"))
+           let msg = Printf.sprintf "error loading configuration, please run 'configure' subcommand (see '%s configure --help' for details)" P.name in
+           Error (`Msg msg))
       "compile and dynlink"
 
   (* If a configuration file is specified, then use that.

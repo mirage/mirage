@@ -66,10 +66,11 @@ let with_current f k err =
 
 module Keys = struct
 
+  let file = Fpath.(v (String.Ascii.lowercase Key.module_name) + "ml")
+
   let configure i =
-    let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
-    Log.info (fun m -> m "Generating: %s" file);
-    with_output Fpath.(Info.root i / file)
+    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    with_output file
       (fun oc () ->
          let fmt = Format.formatter_of_out_channel oc in
          Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
@@ -85,9 +86,7 @@ module Keys = struct
          Codegen.newline fmt;
          R.ok ())
 
-  let clean i =
-    let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
-    Bos.OS.Path.delete Fpath.(Info.root i / file)
+  let clean _i = Bos.OS.Path.delete file
 
   let name = "key"
 
@@ -140,24 +139,22 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     inherit base_configurable
     method ty = info
     method name = "info"
-    val gen_file = String.Ascii.lowercase gen_modname  ^ ".ml"
+    val file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml")
     method module_name = gen_modname
     method !packages = Key.pure [package "functoria-runtime"]
     method !connect _ modname _ = Fmt.strf "return %s.info" modname
 
-    method !clean i =
-      let file = Fpath.(Info.root i / gen_file) in
+    method !clean _i =
       Bos.OS.Path.delete file >>= fun () ->
       Bos.OS.Path.delete Fpath.(file + "in")
 
     method !configure i =
-      let file = Fpath.(Info.root i / gen_file) in
-      Log.info (fun m -> m "Generating: %s" gen_file);
+      Log.info (fun m -> m "Generating: %a" Fpath.pp file);
       Bos.OS.File.writef Fpath.(file + "in")
         "@[<v 2>let info = %a@]" (pp_dump_info type_modname) i
 
     method !build _i =
-      Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % gen_file)
+      Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % p file)
   end
 
 module Engine = struct

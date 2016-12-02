@@ -1544,11 +1544,10 @@ let configure_myocamlbuild () =
     Bos.OS.File.write fn ""
 
 let clean_myocamlbuild () =
-  Bos.OS.File.read fn >>= fun contents ->
-  if String.length contents = 0 then
+  match Bos.OS.Path.stat fn with
+  | Ok stat when stat.Unix.st_size = 0 ->
     Bos.OS.File.delete fn
-  else
-    R.ok ()
+  | _ -> R.ok ()
 
 let configure_opam ~name info =
   let open Codegen in

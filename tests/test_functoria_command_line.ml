@@ -146,16 +146,16 @@ let test_read_config_file _ =
     assert_equal None
       (Cmd.read_config_file [|"test"|]);
 
-    assert_equal (Some "tests/config.ml")
+    assert_equal (Some (Fpath.v "tests/config.ml"))
       (Cmd.read_config_file [|"test"; "blah"; "-f"; "tests/config.ml"|]);
 
-    assert_equal (Some "tests/config.ml")
+    assert_equal (Some (Fpath.v "tests/config.ml"))
       (Cmd.read_config_file [|"test"; "blah"; "--file=tests/config.ml"|]);
 
-    assert_equal (Some "tests/config.ml")
+    assert_equal (Some (Fpath.v "tests/config.ml"))
       (Cmd.read_config_file [|"test"; "-f"; "tests/config.ml"; "blah"|]);
 
-    assert_equal (Some "tests/config.ml")
+    assert_equal (Some (Fpath.v "tests/config.ml"))
       (Cmd.read_config_file [|"test"; "--file=tests/config.ml"|]);
   end
 

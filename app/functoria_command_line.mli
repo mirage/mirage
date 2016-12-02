@@ -16,7 +16,7 @@
 
 (** Functions for reading various options from a command line. *)
 
-val read_config_file : string array -> string option
+val read_config_file : string array -> Fpath.t option
 (** [read_config_file argv] reads the -f or --file option from [argv] and
     returns the argument of the option. *)
 

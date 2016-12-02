@@ -238,10 +238,9 @@ end
 (*
  * Functions for extracting particular flags from the command line.
  *)
-
-let read_config_file : string array -> string option =
+let read_config_file : string array -> Fpath.t option =
   fun argv -> match Term.eval_peek_opts ~argv config_file with
-    | _, `Ok config -> config
+    | _, `Ok (Some config) -> Some (Fpath.v config)
     | _ -> None
 
 let read_full_eval : string array -> bool option =

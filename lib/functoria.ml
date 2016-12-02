@@ -135,7 +135,7 @@ let package = Package.package
 module Info = struct
   type t = {
     name: string;
-    root: string;
+    root: Fpath.t;
     keys: Key.Set.t;
     context: Key.context;
     packages: package String.Map.t;
@@ -171,7 +171,7 @@ module Info = struct
     let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in
     let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
     show "Name      " Fmt.string name;
-    show "Root      " Fmt.string root;
+    show "Root      " Fpath.pp root;
     show "Keys      " (Key.pps context) keys;
     if verbose then show "Libraries " list (libraries t);
     if verbose then

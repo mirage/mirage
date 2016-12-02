@@ -1517,6 +1517,7 @@ let configure_makefile ~opam_name =
                   \n\
                   depend::\n\
                   \t$(OPAM) pin add --no-action --yes %s .\n\
+                  \t$(OPAM) depext --yes %s\n\
                   \t$(OPAM) install --yes --deps-only %s\n\
                   \t$(OPAM) pin remove --no-action %s\n\
                   \n\
@@ -1525,7 +1526,7 @@ let configure_makefile ~opam_name =
                   \n\
                   clean::\n\
                   \tmirage clean\n"
-        opam_name opam_name opam_name;
+        opam_name opam_name opam_name opam_name;
       newline fmt;
       append fmt "-include Makefile.user";
       R.ok ())

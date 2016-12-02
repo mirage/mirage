@@ -1835,10 +1835,10 @@ let gui_init = match_impl Key.(value target) [
 
 let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
-    ?keys ?(packages=[])
+    ?keys ?packages
     name jobs =
   let argv = Some (Functoria_app.keys argv) in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let qubes_init = Some [qrexec_init; gui_init] in
   let init = qubes_init ++ argv ++ reporter ++ tracing in
-  register ?keys ~packages ?init name jobs
+  register ?keys ?packages ?init name jobs

@@ -383,6 +383,7 @@ end
 module Ip : sig
   type error = [
     | `Msg of string     (** an undiagnosed error *)
+    | `No_route          (** can't send a message to that destination *)
     | `Unimplemented     (** operation not yet implemented in the code *)
     | `Disconnected      (** the device has been previously disconnected *)
   ]
@@ -539,17 +540,19 @@ module type IP = sig
 
 end
 
+module Arp : sig
+  type error = [
+    `Timeout
+  ]
+end
+
 module type ARP = sig
-  include DEVICE
+  include DEVICE with type error := Arp.error
 
   type ipaddr
   type buffer
   type macaddr
   type repr
-
-  (** Type of the result of an ARP query.  One of `Ok macaddr (for successful
-      queries) or `Timeout (for attempted queries that received no response). *)
-  type result = [ `Ok of macaddr | `Timeout ]
 
   (** Prettyprint cache contents *)
   val to_repr : t -> repr io
@@ -575,7 +578,7 @@ module type ARP = sig
   (** [query arp ip] queries the cache in [arp] for an ARP entry
       corresponding to [ip], which may result in the sender sleeping
       waiting for a response. *)
-  val query : t -> ipaddr -> result io
+  val query : t -> ipaddr -> (macaddr, Arp.error) result io
 
   (** [input arp frame] will handle an ARP frame. If it is a response,
       it will update its cache, otherwise will try to satisfy the

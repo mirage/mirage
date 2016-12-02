@@ -134,4 +134,8 @@ module Univ = struct
   let find (kn, _kput, kget) t =
     if Map.mem kn t then Some (kget @@ Map.find kn t)
     else None
+
+  let merge ~default m =
+    let aux _k _def v = Some v in
+    Map.union aux default m 
 end

@@ -250,6 +250,8 @@ type context
 
 val empty_context : context
 
+val merge_context : default:context -> context -> context
+
 val context:
   ?stage:Arg.stage -> with_required: bool ->
   Set.t -> context Cmdliner.Term.t

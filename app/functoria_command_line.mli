@@ -22,9 +22,9 @@ val read_config_file : string array -> string option
 
 val setup_log : unit Cmdliner.Term.t
 
-val read_full_eval : string array -> bool
+val read_full_eval : string array -> bool option
 (** [read_full_eval argv] reads the --eval option from [argv]; the return
-    value indicates whether the option is present in [argv]. *)
+    value is [None] if option is absent in [argv]. *)
 
 type 'a describe_args = {
   result: 'a;

@@ -239,8 +239,9 @@ type network
 val network: network typ
 (** Implementations of the [V1.NETWORK] signature. *)
 
-val tap0: network impl
-(** The '/dev/tap0' interface. *)
+val default_network: network impl
+(** [default_network] is a dynamic network implementatation
+ *  which attempts to do something reasonable based on the target. *)
 
 val netif: ?group:string -> string -> network impl
 (** A custom network interface. Exposes a {!Key.interface} key. *)

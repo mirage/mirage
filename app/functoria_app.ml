@@ -481,11 +481,10 @@ module Make (P: S) = struct
 
   let get_root () = Fpath.parent (get_config_file ())
 
-  let register ?(packages=[]) ?keys ?(init=[]) name jobs =
-    let keys = match keys with None -> [] | Some x -> x in
+  let register ?packages ?keys ?(init=[]) name jobs =
     let root = get_root () in
     let main_dev = P.create (init @ jobs) in
-    let c = Config.make ~keys ~packages ~init name root main_dev in
+    let c = Config.make ?keys ?packages ~init name root main_dev in
     configuration := Some c
 
   let registered () =

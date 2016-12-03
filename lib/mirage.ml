@@ -731,14 +731,14 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method packages = Key.pure [package ~sublibs:["ipv6"] "tcpip"]
     method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
-      | [ etif ; _time ; _clock ] ->
+      | [ etif ; _time ; clock ] ->
         Fmt.strf
-          "%s.connect@[@ %a@ %a@ %a@ %s@@]"
+          "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
           (opt_key "ip") addresses
           (opt_key "netmask") netmasks
           (opt_key "gateways") gateways
-          etif
+          etif clock
       | _ -> failwith "The ipv6 connect should receive exactly three arguments."
   end
 

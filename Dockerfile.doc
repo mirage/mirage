@@ -12,6 +12,7 @@ RUN opam depext -uivj 3 \
   astring \
   atd \
   atdgen \
+  base \
   base64 \
   channel \
   charrua-core \
@@ -118,6 +119,7 @@ RUN opam depext -uivj 3 \
   session \
   shared-memory-ring \
   solo5-kernel-virtio \
+  stdio \
   syslog-message \
   tar-format \
   tcpip \

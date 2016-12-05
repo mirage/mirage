@@ -466,7 +466,8 @@ let fat_block ?(dir=".") ?(regexp="*") () =
   impl @@ object
     inherit block_conf block_file as super
 
-    method configure i =
+    method packages = Key.pure [ package ~build:true "fat-filesystem" ]
+    method build i =
       let root = Info.root i in
       let file = Printf.sprintf "make-%s-image.sh" name in
       with_output ~mode:0o755 (Fpath.v file)
@@ -496,7 +497,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
            R.ok ())
         "fat shell script" >>= fun () ->
       Bos.OS.Cmd.run (Bos.Cmd.v ("./make-" ^ name ^ "-image.sh")) >>= fun () ->
-      super#configure i
+      super#build i
 
     method clean i =
       Bos.OS.File.delete (Fpath.v ("make-" ^ name ^ "-image.sh")) >>= fun () ->

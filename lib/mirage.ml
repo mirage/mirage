@@ -1510,14 +1510,17 @@ let configure_makefile ~opam_name =
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       newline fmt;
-      append fmt "OPAM  = opam\n\
+      append fmt "-include Makefile.user";
+      newline fmt;
+      append fmt "OPAM = opam\n\
+                  DEPEXT ?= opam depext --yes %s\n\
                   \n\
                   .PHONY: all depend clean build\n\
                   all:: build\n\
                   \n\
                   depend::\n\
                   \t$(OPAM) pin add --no-action --yes %s .\n\
-                  \t$(OPAM) depext --yes %s\n\
+                  \t$(DEPEXT)\n\
                   \t$(OPAM) install --yes --deps-only %s\n\
                   \t$(OPAM) pin remove --no-action %s\n\
                   \n\
@@ -1527,8 +1530,6 @@ let configure_makefile ~opam_name =
                   clean::\n\
                   \tmirage clean\n"
         opam_name opam_name opam_name opam_name;
-      newline fmt;
-      append fmt "-include Makefile.user";
       R.ok ())
     "Makefile"
 

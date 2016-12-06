@@ -323,8 +323,8 @@ let crunch dirname = impl @@ object
     method build i =
       match query_ocamlfind  ["crunch"] with
       | Ok _ ->
-        let dir = Fpath.(v (Info.root i) // v dirname) in
-        let file = Fpath.(v (Info.root i) / name + ".ml") in
+        let dir = Fpath.(v dirname) in
+        let file = Fpath.(v name + "ml") in
         begin match Bos.OS.Path.exists dir with
           | Ok _ ->
             Log.info (fun m -> m "Generating: %a" Fpath.pp file);
@@ -351,7 +351,7 @@ let direct_kv_ro_conf dirname = impl @@ object
     method module_name = "Kvro_fs_unix"
     method packages = Key.pure [package "mirage-fs-unix"]
     method connect i _modname _names =
-      Fmt.strf "Kvro_fs_unix.connect %S" (Filename.concat (Info.root i) dirname)
+      Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp Fpath.((Info.root i) / dirname)
   end
 
 let direct_kv_ro dirname =
@@ -400,7 +400,7 @@ class block_conf file =
     method private connect_name target root =
       match target with
       | `Unix | `MacOSX | `Virtio | `Ukvm ->
-        Filename.concat root b.filename (* open the file directly *)
+        Fpath.(to_string (root / b.filename)) (* open the file directly *)
       | `Xen | `Qubes ->
         (* We need the xenstore id *)
         (* Taken from https://github.com/mirage/mirage-block-xen/blob/
@@ -489,7 +489,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
            Codegen.append fmt "";
            Codegen.append fmt "IMG=$(pwd)/%s" block_file;
            Codegen.append fmt "rm -f ${IMG}";
-           Codegen.append fmt "cd %s/" (Filename.concat root dir);
+           Codegen.append fmt "cd %a" Fpath.pp Fpath.(root / dir);
            Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
            Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
            Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
@@ -1277,7 +1277,7 @@ let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
 
 let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
-  let file = Fpath.(v root / (name ^  "_libvirt") + "xml") in
+  let file = Fpath.(v (name ^  "_libvirt") + "xml") in
   with_output file
     (fun oc () ->
        let fmt = Format.formatter_of_out_channel oc in
@@ -1382,13 +1382,13 @@ module Substitutions = struct
 
   let defaults i =
     let blocks = List.map (fun b ->
-        Block b, Filename.concat (Info.root i) b.filename
+        Block b, Fpath.(to_string ((Info.root i) / b.filename))
       ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
     let networks = List.mapi (fun i n ->
         Network n, Printf.sprintf "%s%d" detected_bridge_name i
       ) !all_networks in [
       Name, (Info.name i);
-      Kernel, Printf.sprintf "%s/mir-%s.xen" (Info.root i) (Info.name i);
+      Kernel, Fpath.(to_string ((Info.root i) / ("mir-" ^ (Info.name i)) + "xen"));
       Memory, "256";
     ] @ blocks @ networks
 
@@ -1399,7 +1399,7 @@ let configure_main_xl ?substitutions ext i =
   let substitutions = match substitutions with
     | Some x -> x
     | None -> defaults i in
-  let file = Fpath.(v (Info.root i) / (Info.name i) + ext) in
+  let file = Fpath.(v (Info.name i) + ext) in
   let open Codegen in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
@@ -1511,14 +1511,17 @@ let configure_makefile ~opam_name =
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       newline fmt;
-      append fmt "OPAM  = opam\n\
+      append fmt "-include Makefile.user";
+      newline fmt;
+      append fmt "OPAM = opam\n\
+                  DEPEXT ?= opam depext --yes %s\n\
                   \n\
                   .PHONY: all depend clean build\n\
                   all:: build\n\
                   \n\
                   depend::\n\
                   \t$(OPAM) pin add --no-action --yes %s .\n\
-                  \t$(OPAM) depext --yes %s\n\
+                  \t$(DEPEXT)\n\
                   \t$(OPAM) install --yes --deps-only %s\n\
                   \t$(OPAM) pin remove --no-action %s\n\
                   \n\
@@ -1528,8 +1531,6 @@ let configure_makefile ~opam_name =
                   clean::\n\
                   \tmirage clean\n"
         opam_name opam_name opam_name opam_name;
-      newline fmt;
-      append fmt "-include Makefile.user";
       R.ok ())
     "Makefile"
 
@@ -1545,11 +1546,10 @@ let configure_myocamlbuild () =
     Bos.OS.File.write fn ""
 
 let clean_myocamlbuild () =
-  Bos.OS.File.read fn >>= fun contents ->
-  if String.length contents = 0 then
+  match Bos.OS.Path.stat fn with
+  | Ok stat when stat.Unix.st_size = 0 ->
     Bos.OS.File.delete fn
-  else
-    R.ok ()
+  | _ -> R.ok ()
 
 let configure_opam ~name info =
   let open Codegen in
@@ -1570,26 +1570,21 @@ let unikernel_name target name =
 
 let configure i =
   let name = Info.name i in
-  let root = Info.root i in
+  let root = Fpath.to_string (Info.root i) in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
   let opam_name = unikernel_name target name in
-  match
-    Bos.OS.Dir.with_current Fpath.(v root) (fun () ->
-        (match target with
-         | `Xen | `Qubes ->
-           configure_main_xl "xl" i >>= fun () ->
-           configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
-           configure_main_xe ~root ~name >>= fun () ->
-           configure_main_libvirt_xml ~root ~name
-         | _ -> R.ok ()) >>= fun () ->
-        configure_myocamlbuild () >>= fun () ->
-        configure_opam ~name:opam_name i >>= fun () ->
-        configure_makefile ~opam_name) ()
-  with
-  | Ok a -> a
-  | Error _ -> R.error_msg "couldn't access root directory"
+  (match target with
+   | `Xen | `Qubes ->
+     configure_main_xl "xl" i >>= fun () ->
+     configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
+     configure_main_xe ~root ~name >>= fun () ->
+     configure_main_libvirt_xml ~root ~name
+   | _ -> R.ok ()) >>= fun () ->
+  configure_myocamlbuild () >>= fun () ->
+  configure_opam ~name:opam_name i >>= fun () ->
+  configure_makefile ~opam_name
 
 let compile libs warn_error target =
   let tags =
@@ -1842,10 +1837,10 @@ let gui_init = match_impl Key.(value target) [
 
 let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
-    ?keys ?(packages=[])
+    ?keys ?packages
     name jobs =
   let argv = Some (Functoria_app.keys argv) in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let qubes_init = Some [qrexec_init; gui_init] in
   let init = qubes_init ++ argv ++ reporter ++ tracing in
-  register ?keys ~packages ?init name jobs
+  register ?keys ?packages ?init name jobs

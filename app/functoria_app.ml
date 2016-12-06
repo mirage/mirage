@@ -352,6 +352,7 @@ module Config = struct
 
   let make ?(keys=[]) ?(packages=[]) ?(init=[]) name root
       main_dev =
+    let name = Name.ocamlify name in
     let jobs = Graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in

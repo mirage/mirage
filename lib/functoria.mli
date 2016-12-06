@@ -172,7 +172,7 @@ module Info: sig
   val name: t -> string
   (** [name t] is the name of the application. *)
 
-  val root: t -> string
+  val root: t -> Fpath.t
   (** Directory in which the configuration is done. *)
 
   val libraries: t -> string list
@@ -198,7 +198,7 @@ module Info: sig
     keys:key list ->
     context:context ->
     name:string ->
-    root:string -> t
+    root:Fpath.t -> t
 
   val pp: bool -> t Fmt.t
 

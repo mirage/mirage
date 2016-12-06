@@ -24,8 +24,6 @@ include Functoria_misc
 module Graph = Functoria_graph
 module Key = Functoria_key
 
-let (/) = Filename.concat
-
 (* Noop, the job that does nothing. *)
 let noop = impl @@ object
     inherit base_configurable
@@ -68,10 +66,11 @@ let with_current f k err =
 
 module Keys = struct
 
+  let file = Fpath.(v (String.Ascii.lowercase Key.module_name) + "ml")
+
   let configure i =
-    let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
-    Log.info (fun m -> m "Generating: %s" file);
-    with_output Fpath.(v (Info.root i) / file)
+    Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+    with_output file
       (fun oc () ->
          let fmt = Format.formatter_of_out_channel oc in
          Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
@@ -87,9 +86,7 @@ module Keys = struct
          Codegen.newline fmt;
          R.ok ())
 
-  let clean i =
-    let file = String.Ascii.lowercase Key.module_name ^ ".ml" in
-    Bos.OS.Path.delete Fpath.(v (Info.root i) / file)
+  let clean _i = Bos.OS.Path.delete file
 
   let name = "key"
 
@@ -142,24 +139,22 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     inherit base_configurable
     method ty = info
     method name = "info"
-    val gen_file = String.Ascii.lowercase gen_modname  ^ ".ml"
+    val file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml")
     method module_name = gen_modname
     method !packages = Key.pure [package "functoria-runtime"]
     method !connect _ modname _ = Fmt.strf "return %s.info" modname
 
-    method !clean i =
-      let file = Fpath.(v (Info.root i) / gen_file) in
+    method !clean _i =
       Bos.OS.Path.delete file >>= fun () ->
       Bos.OS.Path.delete Fpath.(file + "in")
 
     method !configure i =
-      let file = Fpath.(v (Info.root i) / gen_file) in
-      Log.info (fun m -> m "Generating: %s" gen_file);
+      Log.info (fun m -> m "Generating: %a" Fpath.pp file);
       Bos.OS.File.writef Fpath.(file + "in")
         "@[<v 2>let info = %a@]" (pp_dump_info type_modname) i
 
     method !build _i =
-      Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % gen_file)
+      Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % p file)
   end
 
 module Engine = struct
@@ -336,7 +331,7 @@ module Config = struct
 
   type t = {
     name     : string;
-    root     : string;
+    root     : Fpath.t;
     packages: package list Key.value;
     keys    : Key.Set.t;
     init    : job impl list;
@@ -397,9 +392,9 @@ end
 *)
 module Cache : sig
   open Cmdliner
-  val save : string -> (unit, [> Rresult.R.msg ]) result
-  val clean : string -> (unit, [> Rresult.R.msg ]) result
-  val get_context : string -> context Term.t ->
+  val save : Fpath.t -> (unit, [> Rresult.R.msg ]) result
+  val clean : Fpath.t -> (unit, [> Rresult.R.msg ]) result
+  val get_context : Fpath.t -> context Term.t ->
     [> `Error of bool * string | `Ok of context option ]
   val require :
     [< `Error of bool * string | `Ok of context option ] -> context Term.ret
@@ -410,7 +405,7 @@ module Cache : sig
     [< `Error of bool * string | `Ok of context option ] -> bool
 end = struct
   let filename root =
-    Fpath.(v root / ".mirage" + "config")
+    Fpath.(root / ".mirage" + "config")
 
   let save root =
     let file = filename root in
@@ -478,16 +473,18 @@ module Make (P: S) = struct
 
   let get_config_file () =
     match !config_file with
-    | None -> Sys.getcwd () / "config.ml"
     | Some f -> f
+    | None ->
+      match Bos.OS.Dir.current () with
+      | Ok p -> Fpath.(p / "config.ml")
+      | Error e -> R.error_msg_to_invalid_arg (Error e)
 
-  let get_root () = Filename.dirname @@ get_config_file ()
+  let get_root () = Fpath.parent (get_config_file ())
 
-  let register ?(packages=[]) ?keys ?(init=[]) name jobs =
-    let keys = match keys with None -> [] | Some x -> x in
+  let register ?packages ?keys ?(init=[]) name jobs =
     let root = get_root () in
     let main_dev = P.create (init @ jobs) in
-    let c = Config.make ~keys ~packages ~init name root main_dev in
+    let c = Config.make ?keys ?packages ~init name root main_dev in
     configuration := Some c
 
   let registered () =
@@ -515,30 +512,29 @@ module Make (P: S) = struct
     Bos.OS.File.delete Fpath.(v "main.ml")
 
   let configure i jobs =
-    Log.info (fun m -> m "Using configuration: %s" (get_config_file ()));
+    Log.info (fun m -> m "Using configuration: %a" Fpath.pp (get_config_file ()));
     Log.info (fun m -> m "opam: %a" (Info.opam ?name:None) i);
-    Log.info (fun m -> m "within: %s" (Info.root i));
+    Log.info (fun m -> m "within: %a" Fpath.pp (Info.root i));
     with_current
-      (Fpath.v (Info.root i))
+      (Info.root i)
       (fun () -> configure_main i jobs)
       "configure"
 
   let build i jobs =
-    Log.info (fun m -> m "Building: %s" (get_config_file ()));
+    Log.info (fun m -> m "Building: %a" Fpath.pp (get_config_file ()));
     with_current
-      (Fpath.v (Info.root i))
+      (Info.root i)
       (fun () -> Engine.build i jobs)
       "build"
 
   let clean i (_init, job) =
-    Log.info (fun m -> m "Cleaning: %s" (get_config_file ()));
-    let root = Info.root i in
+    Log.info (fun m -> m "Cleaning: %a" Fpath.pp (get_config_file ()));
     with_current
-      (Fpath.v root)
+      (Info.root i)
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
-         Cache.clean root >>= fun () ->
+         Cache.clean (Info.root i) >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"
 
@@ -581,7 +577,8 @@ module Make (P: S) = struct
          try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
          with Dynlink.Error err ->
            Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));
-           Error (`Msg "error loading configuration"))
+           let msg = Printf.sprintf "error loading configuration, please run 'configure' subcommand (see '%s configure --help' for details)" P.name in
+           Error (`Msg msg))
       "compile and dynlink"
 
   (* If a configuration file is specified, then use that.
@@ -590,19 +587,19 @@ module Make (P: S) = struct
   let scan_conf c =
     let f =
       match c with
-      | None -> "config.ml"
+      | None -> Fpath.v "config.ml"
       | Some f -> f
     in
-    Log.info (fun m -> m "Config file: %s" f);
-    begin match Bos.OS.File.exists (Fpath.v f) with
+    Log.info (fun m -> m "Config file: %a" Fpath.pp f);
+    begin match Bos.OS.File.exists f with
       | Ok true ->
         Bos.OS.Dir.current () >>= fun dir ->
-        Ok Fpath.(dir // v f)
+        Ok Fpath.(dir // f)
       | Ok false ->
-        Log.err (fun m -> m "%s does not exist, stopping." f);
+        Log.err (fun m -> m "%a does not exist, stopping." Fpath.pp f);
         Error (`Msg "config does not exist")
       | Error (`Msg e) ->
-        Log.err (fun m -> m "error while trying to access %s, stopping." f);
+        Log.err (fun m -> m "error while trying to access %a, stopping." Fpath.pp f);
         Error (`Msg e)
     end
 
@@ -627,7 +624,7 @@ module Make (P: S) = struct
 
   let load' file =
     scan_conf file >>= fun file ->
-    set_config_file (Fpath.to_string file);
+    set_config_file file;
     compile_and_dynlink file >>= fun () ->
     registered () >>= fun t ->
     Log.info (fun m -> m "using configuration %s" (Config.name t));

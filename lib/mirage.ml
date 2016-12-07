@@ -461,15 +461,17 @@ let fat_conf = impl @@ object
 let fat ?(io_page=default_io_page) block = fat_conf $ block $ io_page
 
 let fat_block ?(dir=".") ?(regexp="*") () =
-  let name = Name.create (Fmt.strf "fat%s:%s" dir regexp) ~prefix:"fat_block" in
+  let name = Name.(ocamlify @@ create (Fmt.strf "fat%s:%s" dir regexp) ~prefix:"fat_block") in
   let block_file = name ^ ".img" in
   impl @@ object
     inherit block_conf block_file as super
 
-    method packages = Key.pure [ package ~build:true "fat-filesystem" ]
+    method packages = Key.map (fun l -> (package ~build:true "fat-filesystem") :: l) super#packages
     method build i =
       let root = Info.root i in
       let file = Printf.sprintf "make-%s-image.sh" name in
+      let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
+      Log.info (fun m -> m "Generating block generator script: %s" file);
       with_output ~mode:0o755 (Fpath.v file)
         (fun oc () ->
            let fmt = Format.formatter_of_out_channel oc in
@@ -489,18 +491,20 @@ let fat_block ?(dir=".") ?(regexp="*") () =
            Codegen.append fmt "";
            Codegen.append fmt "IMG=$(pwd)/%s" block_file;
            Codegen.append fmt "rm -f ${IMG}";
-           Codegen.append fmt "cd %a" Fpath.pp Fpath.(root / dir);
+           Codegen.append fmt "cd %a" Fpath.pp (Fpath.append root dir);
            Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
            Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
            Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
            Codegen.append fmt "echo Created '%s'" block_file;
            R.ok ())
         "fat shell script" >>= fun () ->
-      Bos.OS.Cmd.run (Bos.Cmd.v ("./make-" ^ name ^ "-image.sh")) >>= fun () ->
+      Log.info (fun m -> m "Executing block generator script: ./%s" file);
+      Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file)) >>= fun () ->
       super#build i
 
     method clean i =
-      Bos.OS.File.delete (Fpath.v ("make-" ^ name ^ "-image.sh")) >>= fun () ->
+      let file = Printf.sprintf "make-%s-image.sh" name in
+      Bos.OS.File.delete (Fpath.v file) >>= fun () ->
       Bos.OS.File.delete (Fpath.v block_file) >>= fun () ->
       super#clean i
   end
@@ -514,6 +518,9 @@ let kv_ro_of_fs_conf = impl @@ object
     method name = "kv_ro_of_fs"
     method module_name = "Fat.KV_RO.Make"
     method packages = Key.pure [ package "fat-filesystem" ]
+    method connect _ modname = function
+    | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
+    | _ -> failwith "The kv_ro_of_fs connect should receive exactly one argument."
   end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x

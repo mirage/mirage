@@ -466,7 +466,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
   impl @@ object
     inherit block_conf block_file as super
 
-    method packages = Key.pure [ package ~build:true "fat-filesystem" ]
+    method packages = Key.map (fun l -> (package ~build:true "fat-filesystem") :: l) super#packages
     method build i =
       let root = Info.root i in
       let file = Printf.sprintf "make-%s-image.sh" name in

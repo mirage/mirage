@@ -518,6 +518,9 @@ let kv_ro_of_fs_conf = impl @@ object
     method name = "kv_ro_of_fs"
     method module_name = "Fat.KV_RO.Make"
     method packages = Key.pure [ package "fat-filesystem" ]
+    method connect _ modname = function
+    | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
+    | _ -> failwith "The kv_ro_of_fs connect should receive exactly one argument."
   end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x

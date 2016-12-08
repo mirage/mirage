@@ -19,10 +19,10 @@
 
 open Functoria
 
-(** {1 Usefull module implementations} *)
+(** {1 Useful module implementations} *)
 
 val noop: job impl
-(** [noop] is an implementation of {!Functoria.job} that hold no
+(** [noop] is an implementation of {!Functoria.job} that holds no
     state, does nothing and has no dependency. *)
 
 type argv
@@ -94,7 +94,7 @@ module Make (P: S): sig
     ?init:job impl list ->
     string -> job impl list -> unit
   (** [register name jobs] registers the application named by [name]
-      which will executes the given [jobs]. Same optinal arguments as
+      which will execute the given [jobs]. Same optional arguments as
       {!Functoria.foreign}.
 
       [init] is the list of job to execute before anything else (such
@@ -104,7 +104,7 @@ module Make (P: S): sig
 
   val run: unit -> unit
   (** Run the application builder. This should be called exactly once
-      to run the application builder: command-line argument will be
+      to run the application builder: command-line arguments will be
       parsed, and some code will be generated and compiled. *)
 
 end

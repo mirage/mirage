@@ -88,7 +88,7 @@ let config_file =
             found, this will result in an error unless one is explicitly \
             specified on the command line."
   in
-  Arg.(value & opt (some file) None & doc)
+  Arg.(value & opt file "config.ml" & doc)
 
 (** Argument specification for -o FILE or --output=FILE *)
 let output =
@@ -238,10 +238,14 @@ end
 (*
  * Functions for extracting particular flags from the command line.
  *)
-let read_config_file : string array -> Fpath.t option =
+let read_config_file : string array -> Fpath.t =
   fun argv -> match Term.eval_peek_opts ~argv config_file with
-    | _, `Ok (Some config) -> Some (Fpath.v config)
-    | _ -> None
+    | _, `Ok config ->
+      if Sys.file_exists config && not (Sys.is_directory config) && Fpath.is_seg config then
+        Fpath.v config
+      else
+        invalid_arg "config must be an existing file (single segment)"
+    | _ -> invalid_arg "parse error while parsing command line"
 
 let read_full_eval : string array -> bool option =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with

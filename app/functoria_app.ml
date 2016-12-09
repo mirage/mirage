@@ -466,20 +466,15 @@ module Make (P: S) = struct
   module Log = (val Logs.src_log src : Logs.LOG)
 
   let configuration = ref None
-  let config_file = ref None
+  let config_file = ref Fpath.(v "config.ml")
 
-  let set_config_file f =
-    config_file := Some f
+  let get_config_file () = !config_file
+  let set_config_file file = config_file := file
 
-  let get_config_file () =
-    match !config_file with
-    | Some f -> f
-    | None ->
-      match Bos.OS.Dir.current () with
-      | Ok p -> Fpath.(p / "config.ml")
-      | Error e -> R.error_msg_to_invalid_arg (Error e)
-
-  let get_root () = Fpath.parent (get_config_file ())
+  let get_root () =
+    match Bos.OS.Dir.current () with
+    | Ok p -> p
+    | Error e -> R.error_msg_to_invalid_arg (Error e)
 
   let register ?packages ?keys ?(init=[]) name jobs =
     let root = get_root () in
@@ -561,9 +556,10 @@ module Make (P: S) = struct
    * side effect to this command. *)
   let compile_and_dynlink file =
     Log.info (fun m -> m "Processing: %a" Fpath.pp file);
-    let root, config = Fpath.(split_base file) in
-    let file = Dynlink.adapt_filename (Fpath.to_string config) in
-    let cfg = Fpath.rem_ext config in
+    let file = Dynlink.adapt_filename (Fpath.to_string file)
+    and cfg = Fpath.rem_ext file
+    and root = get_root ()
+    in
     Bos.OS.Path.matches Fpath.(root / "_build" // cfg + "$(ext)") >>= fun files ->
     List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
     with_current root
@@ -580,28 +576,6 @@ module Make (P: S) = struct
            let msg = Printf.sprintf "error loading configuration, please run 'configure' subcommand (see '%s configure --help' for details)" P.name in
            Error (`Msg msg))
       "compile and dynlink"
-
-  (* If a configuration file is specified, then use that.
-   * If not, then scan the curdir for a `config.ml` file.
-   * If there is more than one, then error out. *)
-  let scan_conf c =
-    let f =
-      match c with
-      | None -> Fpath.v "config.ml"
-      | Some f -> f
-    in
-    Log.info (fun m -> m "Config file: %a" Fpath.pp f);
-    begin match Bos.OS.File.exists f with
-      | Ok true ->
-        Bos.OS.Dir.current () >>= fun dir ->
-        Ok Fpath.(dir // f)
-      | Ok false ->
-        Log.err (fun m -> m "%a does not exist, stopping." Fpath.pp f);
-        Error (`Msg "config does not exist")
-      | Error (`Msg e) ->
-        Log.err (fun m -> m "error while trying to access %a, stopping." Fpath.pp f);
-        Error (`Msg e)
-    end
 
   module Config' = struct
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
@@ -623,8 +597,6 @@ module Make (P: S) = struct
   end
 
   let load' file =
-    scan_conf file >>= fun file ->
-    set_config_file file;
     compile_and_dynlink file >>= fun () ->
     registered () >>= fun t ->
     Log.info (fun m -> m "using configuration %s" (Config.name t));
@@ -683,7 +655,7 @@ module Make (P: S) = struct
     let full_eval = Cmd.read_full_eval argv in
 
     (*    (d) the config file passed as argument, if any *)
-    let config_file = Cmd.read_config_file argv in
+    set_config_file (Cmd.read_config_file argv) ;
 
     (* 2. Load the config from the config file. *)
     (* There are three possible outcomes:
@@ -692,7 +664,7 @@ module Make (P: S) = struct
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-    match load' config_file with
+    match load' (get_config_file ()) with
     | Error err -> handle_parse_args_no_config err argv
     | Ok config ->
 

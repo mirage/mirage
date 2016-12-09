@@ -53,7 +53,7 @@ let test_describe _ =
       ~build:extra_term
       ~clean:extra_term
       ~help:extra_term
-      [|"name"; "describe"; "--cde"; "--file=tests/config.ml";
+      [|"name"; "describe"; "--cde";
         "--color=always"; "--dot-command=dot"; "--eval"|]
   in
   assert_equal
@@ -143,20 +143,23 @@ let test_default _ =
 
 let test_read_config_file _ =
   begin
-    assert_equal None
-      (Cmd.read_config_file [|"test"|]);
+    assert_raises ~msg:"expected: cannot find test"
+      (Invalid_argument "config must be an existing file (single segment)")
+      (fun () -> Cmd.read_config_file [|"test"|]);
 
-    assert_equal (Some (Fpath.v "tests/config.ml"))
-      (Cmd.read_config_file [|"test"; "blah"; "-f"; "tests/config.ml"|]);
+    assert_raises
+      ~msg:"expected: must be single segment"
+      (Invalid_argument "config must be an existing file (single segment)")
+      (fun () -> Cmd.read_config_file [|"test"; "blah"; "-f"; "tests/config.ml"|]);
 
-    assert_equal (Some (Fpath.v "tests/config.ml"))
-      (Cmd.read_config_file [|"test"; "blah"; "--file=tests/config.ml"|]);
+    assert_equal (Fpath.v "CHANGES.md")
+      (Cmd.read_config_file [|"test"; "blah"; "--file=CHANGES.md"|]);
 
-    assert_equal (Some (Fpath.v "tests/config.ml"))
-      (Cmd.read_config_file [|"test"; "-f"; "tests/config.ml"; "blah"|]);
+    assert_equal (Fpath.v "CHANGES.md")
+      (Cmd.read_config_file [|"test"; "-f"; "CHANGES.md"; "blah"|]);
 
-    assert_equal (Some (Fpath.v "tests/config.ml"))
-      (Cmd.read_config_file [|"test"; "--file=tests/config.ml"|]);
+    assert_equal (Fpath.v "CHANGES.md")
+      (Cmd.read_config_file [|"test"; "--file=CHANGES.md"|]);
   end
 
 

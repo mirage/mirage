@@ -240,6 +240,22 @@ module type CONSOLE = sig
   *)
 end
 
+module Block : sig
+  type error = [
+    | `Msg of string     (** an unspecified error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Disconnected      (** the device has been previously disconnected *)
+  ]
+  (** The type for IO operation errors. *)
+
+  type write_error = [
+    | `Msg of string     (** an unspecified error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Disconnected      (** the device has been previously disconnected *)
+    | `Is_read_only      (** attempted to write to a read-only disk *)
+  ]
+end
+
 (** {1 Sector-addressible block devices}
 
     Operations on sector-addressible block devices, usually used
@@ -249,14 +265,7 @@ module type BLOCK = sig
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Is_read_only      (** you cannot write to a read/only instance *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors. *)
-
+  type error = Block.error
 
   include DEVICE with
     type error := error
@@ -272,14 +281,14 @@ module type BLOCK = sig
   val get_info: t -> info io
   (** Query the characteristics of a specific block device *)
 
-  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  val read: t -> int64 -> page_aligned_buffer list -> (unit, Block.error) result io
   (** [read device sector_start buffers] reads data starting at [sector_start]
       from the block device into [buffers]. [Ok ()] means the buffers have been filled.
       [Error _] indicates an I/O error has happened and some of the buffers may not be filled.
       Each of elements in the list [buffers] must be a whole number of sectors in length.
       The list of buffers can be of any length. *)
 
-  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  val write: t -> int64 -> page_aligned_buffer list -> (unit, Block.write_error) result io
   (** [write device sector_start buffers] writes data from [buffers]
       onto the block device starting at [sector_start].
       [Ok ()] means the contents of the buffers have been written.
@@ -892,24 +901,29 @@ module type CHANNEL = sig
 
 end
 
+module Fs : sig
+  type error = [
+    | `Msg of string
+    | `Is_a_directory      (** Cannot read or write the contents of a directory *)
+    | `No_directory_entry  (** Cannot find a directory entry *)
+    | `Not_a_directory     (** Cannot create a directory entry in a file *)
+    | `Format_unknown      (** The block device appears to not be formatted *)
+  ]
+  type write_error = [
+    | `Msg of string
+    | `Is_a_directory      (** Cannot read or write the contents of a directory *)
+    | `Not_a_directory     (** Cannot create a directory entry in a file *)
+    | `Directory_not_empty (** Cannot remove a non-empty directory *)
+    | `File_already_exists (** Cannot create a file with a duplicate name *)
+    | `No_directory_entry  (** Something in the path doesn't exist *)
+    | `No_space            (** No space left on the block device *)
+  ]
+end
+
 (** {1 Filesystem} *)
 module type FS = sig
 
-  type block_device_error
-  (** The type for errors from the block layer *)
-
-  type error = [
-    | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
-    | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
-    | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
-    | `No_directory_entry of string * string (** Cannot find a directory entry *)
-    | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
-    | `No_space                              (** No space left on the block device *)
-    | `Format_not_recognised of string       (** The block device appears to not be formatted *)
-    | `Unknown_error of string
-    | `Block_device of block_device_error
-  ]
-  (** The type for filesystem errors. *)
+  open Fs
 
   include DEVICE
     with type error := error
@@ -917,12 +931,12 @@ module type FS = sig
   type page_aligned_buffer
   (** The type for memory buffers. *)
 
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  val read: t -> string -> int -> int -> (page_aligned_buffer list, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val size: t -> string -> [`Error of error | `Ok of int64] io
+  val size: t -> string -> (int64, error) result io
   (** Get the value size. *)
 
   type stat = {
@@ -933,33 +947,33 @@ module type FS = sig
   }
   (** The type for Per-file/directory statistics. *)
 
-  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
+  val format: t -> int64 -> (unit, error) result io
   (** [format t size] erases the contents of [t] and creates an empty
       filesystem of size [size] bytes. *)
 
-  val create: t -> string -> [ `Ok of unit | `Error of error ] io
+  val create: t -> string -> (unit, write_error) result io
   (** [create t path] creates an empty file at [path]. If [path] contains
       directories that do not yet exist, [create] will attempt to create them. *)
 
-  val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+  val mkdir: t -> string -> (unit, write_error) result io
   (** [mkdir t path] creates an empty directory at [path].  If [path] contains
       intermediate directories that do not yet exist, [mkdir] will create them.
       If a directory already exists at [path], [mkdir] returns [`Ok ()] and
       takes no action. *)
 
-  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
+  val destroy: t -> string -> (unit, write_error) result io
   (** [destroy t path] removes a [path] (which may be a file or an
       empty directory) on filesystem [t]. *)
 
-  val stat: t -> string -> [ `Ok of stat | `Error of error ] io
+  val stat: t -> string -> (stat, error) result io
   (** [stat t path] returns information about file or directory at
       [path]. *)
 
-  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
+  val listdir: t -> string -> (string list, error) result io
   (** [listdir t path] returns the names of files and subdirectories
       within the directory [path]. *)
 
-  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
+  val write: t -> string -> int -> page_aligned_buffer -> (unit, write_error) result io
   (** [write t path offset data] writes [data] at [offset] in file
       [path] on filesystem [t].
 
@@ -969,12 +983,16 @@ module type FS = sig
 
 end
 
+module Kv_ro : sig
+  type error =
+    [ `Unknown_key
+    | `Msg of string ]
+end
+
 (** {1 Static Key/value store} *)
 module type KV_RO = sig
 
-  type error =
-    | Unknown_key of string
-    | Failure of string
+  open Kv_ro
 
   include DEVICE
     with type error := error
@@ -982,15 +1000,15 @@ module type KV_RO = sig
   type page_aligned_buffer
   (** The type for memory buffers.*)
 
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  val read: t -> string -> int64 -> int64 -> (page_aligned_buffer list, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
-  val mem: t -> string -> [ `Ok of bool | `Error of error ] io
+  val mem: t -> string -> (bool, error) result io
   (** [mem t key] returns [true] if a value is set for [key] in [t], and [false] if not so. *)
 
-  val size: t -> string -> [`Error of error | `Ok of int64] io
+  val size: t -> string -> (int64, error) result io
   (** Get the value size. *)
 
 end

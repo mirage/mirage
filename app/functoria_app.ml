@@ -571,10 +571,10 @@ module Make (P: S) = struct
       (fun () ->
          let cmd =
            Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" % "-classic-display" %
-                    "-tags" % "bin_annot,color(always)" %
+                    "-tags" % "bin_annot,color(always)" % "-quiet" %
                     "-X" % "_build-ukvm" % "-pkg" % P.name % file)
          in
-         Bos.OS.Cmd.(run_out cmd |> to_null) >>= fun _ ->
+         Bos.OS.Cmd.run cmd >>= fun _ ->
          try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
          with Dynlink.Error err ->
            Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));

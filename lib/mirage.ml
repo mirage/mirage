@@ -320,7 +320,7 @@ let crunch dirname = impl @@ object
     method deps = [ abstract default_io_page ]
     method connect _ modname _ = Fmt.strf "%s.connect ()" modname
 
-    method build i =
+    method build _i =
       match query_ocamlfind  ["crunch"] with
       | Ok _ ->
         let dir = Fpath.(v dirname) in
@@ -1296,7 +1296,7 @@ let configure_main_libvirt_xml ~root ~name =
        append fmt "    <vcpu placement='static'>1</vcpu>";
        append fmt "    <os>";
        append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-       append fmt "        <kernel>%s/mir-%s.xen</kernel>" root name;
+       append fmt "        <kernel>%s/%s.xen</kernel>" root name;
        append fmt "        <cmdline> </cmdline>";
        (* the libxl driver currently needs an empty cmdline to be able to
            start the domain on arm - due to this?
@@ -1395,7 +1395,7 @@ module Substitutions = struct
         Network n, Printf.sprintf "%s%d" detected_bridge_name i
       ) !all_networks in [
       Name, (Info.name i);
-      Kernel, Fpath.(to_string ((Info.root i) / ("mir-" ^ (Info.name i)) + "xen"));
+      Kernel, Fpath.(to_string ((Info.root i) / (Info.name i) + "xen"));
       Memory, "256";
     ] @ blocks @ networks
 
@@ -1477,7 +1477,7 @@ let configure_main_xe ~root ~name =
       append fmt "fi";
       newline fmt;
       append fmt "echo Uploading VDI containing unikernel";
-      append fmt "VDI=$(xe-unikernel-upload --path %s/mir-%s.xen)" root name;
+      append fmt "VDI=$(xe-unikernel-upload --path %s/%s.xen)" root name;
       append fmt "echo VDI=$VDI";
       append fmt "echo Creating VM metadata";
       append fmt "VM=$(xe vm-create name-label=%s)" name;
@@ -1684,9 +1684,7 @@ let static_libs pkg_config_deps = pkg_config pkg_config_deps [ "--static" ; "--l
 let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
 
 let link info name target =
-  let libs = Info.libraries info
-  and name = "mir-" ^ name
-  in
+  let libs = Info.libraries info in
   match target with
   | `Unix | `MacOSX ->
     Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) >>= fun () ->
@@ -1704,10 +1702,11 @@ let link info name target =
          - we need to link libgcc.a (otherwise we get undefined references to:
            __aeabi_dcmpge, __aeabi_dadd, ...) *)
       Bos.OS.Cmd.run_out Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") |> Bos.OS.Cmd.out_string >>= fun (libgcc, _) ->
-      let link = Bos.Cmd.(linker % libgcc % "-o" % (name ^ ".elf")) in
+      let elf = name ^ ".elf" in
+      let link = Bos.Cmd.(linker % libgcc % "-o" % elf) in
       Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
       Bos.OS.Cmd.run link >>= fun () ->
-      Bos.OS.Cmd.run Bos.Cmd.(v "objcopy" % "-O" % "binary" % (name ^ ".elf") % out) >>= fun () ->
+      Bos.OS.Cmd.run Bos.Cmd.(v "objcopy" % "-O" % "binary" % elf % out) >>= fun () ->
       Ok out
     end else begin
       let link = Bos.Cmd.(linker % "-o" % out) in
@@ -1771,11 +1770,11 @@ let clean i =
   clean_opam ~name:(unikernel_name target name) >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v ("mir-" ^ name)) >>= fun () ->
-  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "xen") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "elf") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "virtio") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v ("mir-" ^ name) + "ukvm") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name) >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "xen") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "elf") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "virtio") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "ukvm-bin")

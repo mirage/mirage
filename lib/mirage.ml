@@ -790,18 +790,18 @@ let udpv6: udpv6 typ = udp
 (* Value restriction ... *)
 let udp_direct_conf () = object
   inherit base_configurable
-  method ty : ('a ip -> 'a udp) typ = ip @-> udp
+  method ty = (ip: 'a ip typ) @-> random @-> (udp: 'a udp typ)
   method name = "udp"
   method module_name = "Udp.Make"
   method packages = Key.pure [package ~sublibs:["udp"] "tcpip" ]
   method connect _ modname = function
-    | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
-    | _  -> failwith "The udpv6 connect should receive exactly one argument."
+    | [ ip; _random ] -> Printf.sprintf "%s.connect %s" modname ip
+    | _  -> failwith "The udpv6 connect should receive exactly two arguments."
 end
 
 (* Value restriction ... *)
 let udp_direct_func () = impl (udp_direct_conf ())
-let direct_udp ip = udp_direct_func () $ ip
+let direct_udp ?(random=default_random) ip = udp_direct_func () $ ip $ random
 
 let udpv4_socket_conf ipv4_key = object
   inherit base_configurable
@@ -907,7 +907,7 @@ let direct_stackv4
   $ time $ random $ network
   $ eth $ arp $ ip
   $ direct_icmpv4 ip
-  $ direct_udp ip
+  $ direct_udp ~random ip
   $ direct_tcp ~clock ~random ~time ip
 
 let dhcp_ipv4_stack ?group ?(time = default_time) tap =

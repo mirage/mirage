@@ -329,7 +329,7 @@ val udp: 'a udp typ
 val udpv4: udpv4 typ
 val udpv6: udpv6 typ
 
-val direct_udp: 'a ip impl -> 'a udp impl
+val direct_udp: ?random:random impl -> 'a ip impl -> 'a udp impl
 
 val socket_udpv4: ?group:string -> Ipaddr.V4.t option -> udpv4 impl
 

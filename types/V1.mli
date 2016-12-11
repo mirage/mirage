@@ -60,10 +60,6 @@ module type DEVICE = sig
   type t
   (** The type representing the internal state of the device *)
 
-  (* XXX: no good reason to have it here anymore! *)
-  type error
-  (** The type for errors signalled by the device *)
-
   val disconnect: t -> unit io
   (** Disconnect from the device.  While this might take some time to
       complete, it can never result in an error. *)
@@ -139,17 +135,9 @@ module type MCLOCK = sig
 end
 
 module Flow : sig
-  type error = [
-    | `Msg of string
-  ]
-  type write_error = [
-    | `Closed
-    | `Msg of string
-  ]
-  type 'a or_eof = [
-    | `Data of 'a
-    | `Eof
-  ]
+  type error = [ `Msg of string ]
+  type write_error = [ error | `Closed ]
+  type 'a or_eof = [ `Data of 'a | `Eof ]
 end
 
 (** {1 Connection between endpoints} *)
@@ -224,13 +212,10 @@ end
 
 (** {A console module type} *)
 module type CONSOLE = sig
-  open Console
-
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   include FLOW with
-    type 'a io  := 'a io
+      type 'a io  := 'a io
   and type flow   := t
 
   val log: t -> string -> unit io
@@ -267,8 +252,7 @@ module type BLOCK = sig
 
   type error = Block.error
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
@@ -354,8 +338,7 @@ module type NETWORK = sig
   type macaddr
   (** The type for unique MAC identifiers for the device. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   val write: t -> buffer -> (unit, error) result io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -436,8 +419,7 @@ module type ETHIF = sig
   type macaddr
   (** The type for unique MAC identifiers. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   val write: t -> buffer -> (unit, error) result io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -475,8 +457,7 @@ module type IP = sig
   type prefix
   (** The type for IP prefixes. *)
 
-  include DEVICE with
-        type error := error
+  include DEVICE
 
   type callback = src:ipaddr -> dst:ipaddr -> buffer -> unit io
   (** An input continuation used by the parsing functions to pass on
@@ -556,7 +537,7 @@ module Arp : sig
 end
 
 module type ARP = sig
-  include DEVICE with type error := Arp.error
+  include DEVICE
 
   type ipaddr
   type buffer
@@ -607,8 +588,8 @@ end
 
 (** {1 ICMP module} *)
 module type ICMP = sig
-  type error = Icmp.error
-  include DEVICE with type error := error
+  open Icmp
+  include DEVICE
 
   type ipaddr
   type buffer
@@ -628,6 +609,7 @@ end
 
     A UDP stack that can send and receive datagrams. *)
 module type UDP = sig
+  open Udp
 
   type buffer
   (** The type for memory buffers. *)
@@ -644,10 +626,7 @@ module type UDP = sig
       conventional kernel, but a direct implementation will parse the
       buffer. *)
 
-  type error = Udp.error
-
-  include DEVICE with
-      type error := error
+  include DEVICE
 
   type callback = src:ipaddr -> dst:ipaddr -> src_port:int -> buffer -> unit io
   (** The type for callback functions that adds the UDP metadata for
@@ -672,6 +651,7 @@ end
     A TCP stack that can send and receive reliable streams using the
     TCP protocol. *)
 module type TCP = sig
+  open Tcp
 
   type buffer
   (** The type for memory buffers. *)
@@ -692,10 +672,7 @@ module type TCP = sig
   (** A flow represents the state of a single TCPv4 stream that is connected
       to an endpoint. *)
 
-  type error = Tcp.error
-
-  include DEVICE with
-      type error := error
+  include DEVICE
 
   include FLOW with
       type 'a io  := 'a io
@@ -771,8 +748,7 @@ module type STACKV4 = sig
   ]
   (** The type for I/O operation errors. *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE
 
   module UDPV4: UDP
     with type +'a io = 'a io
@@ -926,7 +902,6 @@ module type FS = sig
   open Fs
 
   include DEVICE
-    with type error := error
 
   type page_aligned_buffer
   (** The type for memory buffers. *)
@@ -984,9 +959,7 @@ module type FS = sig
 end
 
 module Kv_ro : sig
-  type error =
-    [ `Unknown_key
-    | `Msg of string ]
+  type error = [ `Unknown_key | `Msg of string ]
 end
 
 (** {1 Static Key/value store} *)
@@ -995,7 +968,6 @@ module type KV_RO = sig
   open Kv_ro
 
   include DEVICE
-    with type error := error
 
   type page_aligned_buffer
   (** The type for memory buffers.*)

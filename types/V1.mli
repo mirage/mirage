@@ -812,19 +812,31 @@ module type STACKV4 = sig
       UDPv4 [port] and immediately return.  If [port] is invalid (not
       between 0 and 65535 inclusive), it raises [Invalid_argument].
       Multiple bindings to the same port will overwrite previous
-      bindings, so callbacks will not chain if ports clash. *)
+      bindings, so callbacks will not chain if ports clash.
+      Note that [listen] must be called again after new callbacks are
+      registered in order to have traffic sent to them.
+      *)
 
   val listen_tcpv4: t -> port:int -> TCPV4.callback -> unit
   (** [listen_tcpv4 t ~port cb] registers the [cb] callback on the
       TCPv4 [port] and immediatey return.  If [port] is invalid (not
       between 0 and 65535 inclusive), it raises [Invalid_argument].
       Multiple bindings to the same port will overwrite previous
-      bindings, so callbacks will not chain if ports clash. *)
+      bindings, so callbacks will not chain if ports clash.
+      Note that [listen] must be called again after new callbacks are
+      registered in order to have traffic sent to them.
+      *)
 
   val listen: t -> unit io
   (** [listen t] requests that the stack listen for traffic on the
       network interface associated with the stack, and demultiplex
-      traffic to the appropriate callbacks. *)
+      traffic to the appropriate callbacks.
+      At the time of creation of the stack, [listen] will be automatically
+      called with no udp or tcp listeners registered.  Subsequent calls to
+      [listen] after registering listeners with [listen_tcpv4] and
+      [listen_udpv4] will cause the stack to forward TCP and UDP traffic to
+      those listeners.
+  *)
 end
 
 (** {1 Buffered byte-stream}

@@ -883,7 +883,6 @@ module Fs : sig
     | `Is_a_directory      (** Cannot read or write the contents of a directory *)
     | `No_directory_entry  (** Cannot find a directory entry *)
     | `Not_a_directory     (** Cannot create a directory entry in a file *)
-    | `Format_unknown      (** The block device appears to not be formatted *)
   ]
   type write_error = [
     | `Msg of string
@@ -921,10 +920,6 @@ module type FS = sig
     size: int64;      (** Size of the entity in bytes *)
   }
   (** The type for Per-file/directory statistics. *)
-
-  val format: t -> int64 -> (unit, error) result io
-  (** [format t size] erases the contents of [t] and creates an empty
-      filesystem of size [size] bytes. *)
 
   val create: t -> string -> (unit, write_error) result io
   (** [create t path] creates an empty file at [path]. If [path] contains

@@ -1,0 +1,4 @@
+version = "%%VERSION_NUM%%"
+description = "Collection of lwt module signatures for MirageOS"
+requires = "cstruct io-page ipaddr mirage-types"
+exists_if = "V1_LWT.cmi"

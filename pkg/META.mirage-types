@@ -2,10 +2,3 @@ version = "%%VERSION_NUM%%"
 description = "Collection of module signatures for MirageOS"
 requires = ""
 exists_if = "V1.cmi"
-
-package "lwt" (
-  version = "%%VERSION_NUM%%"
-  requires = ""
-  description = "Lwt module signatures for MirageOS"
-  exists_if = "V1_LWT.cmi"
-)

@@ -6,6 +6,7 @@ open Topkg
 let metas = [
   Pkg.meta_file ~install:false "pkg/META.mirage";
   Pkg.meta_file ~install:false "pkg/META.mirage-types";
+  Pkg.meta_file ~install:false "pkg/META.mirage-types-lwt";
   Pkg.meta_file ~install:false "pkg/META.mirage-runtime";
 ]
 
@@ -19,11 +20,8 @@ let opams =
     Pkg.opam_file ~install ~lint_deps_excluding "mirage-types-lwt.opam";
   ]
 
-let lwt = Conf.with_pkg ~default:false "lwt-types"
-
 let () =
   Pkg.describe ~metas ~opams "mirage" @@ fun c ->
-  let lwt = Conf.value c lwt in
   match Conf.pkg_name c with
   | "mirage" ->
     Ok [ Pkg.lib "pkg/META.mirage" ~dst:"META";
@@ -37,9 +35,10 @@ let () =
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
          Pkg.lib "mirage-types.opam" ~dst:"opam";
-         Pkg.lib ~exts:Exts.interface "types/V1";
-         Pkg.lib ~cond:lwt ~exts:Exts.interface "types/V1_LWT"; ]
+         Pkg.lib ~exts:Exts.interface "types/V1"; ]
   | "mirage-types-lwt" ->
-    Ok [ Pkg.lib "mirage-types-lwt.opam" ~dst:"opam"; ]
+    Ok [ Pkg.lib "pkg/META.mirage-types-lwt" ~dst:"META";
+         Pkg.lib "mirage-types-lwt.opam" ~dst:"opam";
+         Pkg.lib ~exts:Exts.interface "types/V1_LWT"; ]
   | other ->
     R.error_msgf "unknown package name: %s" other

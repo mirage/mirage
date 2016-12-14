@@ -8,6 +8,7 @@ RUN opam depext -uivj 3 \
   angstrom \
   ansi-parse \
   anycache \
+  arp \
   asn1-combinators \
   astring \
   atd \
@@ -146,7 +147,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: arp dns-forward nbd
+# to fix: dns-forward nbd
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

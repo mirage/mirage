@@ -1,5 +1,7 @@
 ## 1.2.0 (unreleased)
 
+* invoke ocamlbuild with quiet (#93 by @hannesm)
+* restrict -f command line argument to items in current working directory (#91 by @hannesm)
 * ocamlify opam filename (#89 by @yomimono)
 * persist configuration arguments (#85, #87 by @hannesm, @Drup)
 * remove Functoria_misc.Log (#84 by @hannesm)

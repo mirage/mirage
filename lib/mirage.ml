@@ -1801,8 +1801,8 @@ module Project = struct
         let l = [
           (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
           package "lwt";
-          package ~ocamlfind:[] "mirage-types-lwt";
-          package ~sublibs:["lwt"] ~min:"3.0.0"  "mirage-types";
+          package ~min:"3.0.0" "mirage-types-lwt";
+          package ~min:"3.0.0" "mirage-types";
           package ~min:"3.0.0" "mirage-runtime" ;
           package ~build:true "ocamlfind" ;
           package ~build:true "ocamlbuild" ;

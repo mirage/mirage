@@ -141,7 +141,7 @@ module Flow : sig
 end
 
 (** {1 Connection between endpoints} *)
-module type FLOW = sig
+module type RFLOW = sig
 
   type +'a io
   (** The type for potentially blocking I/O operations. *)
@@ -153,10 +153,10 @@ module type FLOW = sig
   (** The type for flows. A flow represents the state of a single
       reliable stream that is connected to an endpoint. *)
 
-  type error = private [> Flow.error]
+  type error
   (** the type for read errors. *)
 
-  type write_error = private [> Flow.write_error]
+  type write_error
   (** the type for write errors. *)
 
   val pp_error : Format.formatter -> error -> unit
@@ -212,6 +212,10 @@ module type FLOW = sig
       and resources associated with the flow can be freed.
       *)
 end
+
+module type FLOW = RFLOW
+  with type error = private [> Flow.error]
+   and type write_error = private [> Flow.write_error]
 
 (** {1 Console input/output} *)
 module Console : sig

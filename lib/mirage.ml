@@ -22,7 +22,7 @@ module Key = Mirage_key
 module Name = Functoria_app.Name
 module Codegen = Functoria_app.Codegen
 
-let src = Logs.Src.create "mirage" ~doc:"mirage library"
+let src = Logs.Src.create "mirage" ~doc:"mirage cli tool"
 module Log = (val Logs.src_log src : Logs.LOG)
 
 include Functoria
@@ -34,6 +34,9 @@ let with_output ?mode f k err =
   | Ok b -> b
   | Error _ -> R.error_msg ("couldn't open output channel for " ^ err)
 
+let connect_err name number =
+  Fmt.strf "The %s connect expects exactly %d argument%s"
+    name number (if number = 1 then "" else "s")
 
 (** {2 OCamlfind predicates} *)
 
@@ -52,23 +55,20 @@ let qrexec_qubes = impl @@ object
   val name = Name.ocamlify @@ "qrexec_"
   method name = name
   method module_name = "Qubes.RExec"
-  method packages = Key.pure [package "mirage-qubes"]
+  method packages = Key.pure [ package "mirage-qubes" ]
   method configure i =
     match get_target i with
     | `Qubes -> R.ok ()
-    | _ ->
-      Log.err (fun m -> m "Qubes remote-exec invoked for non-Qubes target, stopping.");
-      R.error_msg "non-qubes target"
-
+    | _ -> R.error_msg "Qubes remote-exec invoked for non-Qubes target."
   method connect _ modname _args =
-     Fmt.strf
-"@[<v 2>\
-         %s.connect ~domid:0 () >>= fun qrexec ->@ \
-         Lwt.async (fun () ->@ \
-         OS.Lifecycle.await_shutdown_request () >>= fun (`Poweroff | `Reboot ) ->@ \
-         %s.disconnect qrexec);@ \
-         Lwt.return (`Ok qrexec)@]"
-     modname modname
+    Fmt.strf
+      "@[<v 2>\
+       %s.connect ~domid:0 () >>= fun qrexec ->@ \
+       Lwt.async (fun () ->@ \
+       OS.Lifecycle.await_shutdown_request () >>= fun _ ->@ \
+       %s.disconnect qrexec);@ \
+       Lwt.return (`Ok qrexec)@]"
+      modname modname
 end
 
 let gui = job
@@ -79,20 +79,18 @@ let gui_qubes = impl @@ object
   val name = Name.ocamlify @@ "gui"
   method name = name
   method module_name = "Qubes.GUI"
-  method packages = Key.pure [package "mirage-qubes"]
+  method packages = Key.pure [ package "mirage-qubes" ]
   method configure i =
     match get_target i with
     | `Qubes -> R.ok ()
-    | _ ->
-      Log.err (fun m -> m  "Qubes GUI invoked for non-Qubes target, stopping.");
-      R.error_msg "non-qubes target"
+    | _ -> R.error_msg "Qubes GUI invoked for non-Qubes target."
   method connect _ modname _args =
-     Fmt.strf
-"@[<v 2>\
-         %s.connect ~domid:0 () >>= fun gui ->@ \
-         Lwt.async (fun () -> %s.listen gui);@ \
-         Lwt.return (`Ok gui)@]"
-     modname modname
+    Fmt.strf
+      "@[<v 2>\
+       %s.connect ~domid:0 () >>= fun gui ->@ \
+       Lwt.async (fun () -> %s.listen gui);@ \
+       Lwt.return (`Ok gui)@]"
+      modname modname
 end
 
 type qubesdb = QUBES_DB
@@ -104,11 +102,11 @@ let qubesdb_conf = object
   method name = "qubesdb"
   method module_name = "Qubes.DB"
   method packages = Key.pure [ package "mirage-qubes" ]
-  method connect _ modname _args =
-     Fmt.strf
-"@[<v 2>\
-         %s.connect ~domid:0 ()@]"
-     modname
+  method configure i =
+    match get_target i with
+    | `Qubes -> R.ok ()
+    | _ -> R.error_msg "Qubes DB invoked for non-Qubes target."
+  method connect _ modname _args = Fmt.strf "%s.connect ~domid:0 ()" modname
 end
 
 let default_qubesdb = impl qubesdb_conf
@@ -122,7 +120,9 @@ let io_page_conf = object
   method name = "io_page"
   method module_name = "Io_page"
   method packages =
-    Key.(if_ is_unix) [package ~sublibs:["unix"] "io-page"] [package "io-page"]
+    Key.(if_ is_unix)
+      [ package ~sublibs:["unix"] "io-page" ]
+      [ package "io-page" ]
 end
 
 let default_io_page = impl io_page_conf
@@ -149,10 +149,9 @@ let posix_clock_conf = object
   method module_name = "Pclock"
   method packages =
     Key.(if_ is_unix)
-      [package "mirage-clock-unix"]
-      [package "mirage-clock-freestanding"]
-  method connect _ modname _args =
-    Printf.sprintf "%s.connect ()" modname
+      [ package "mirage-clock-unix" ]
+      [ package "mirage-clock-freestanding" ]
+  method connect _ modname _args = Fmt.strf "%s.connect ()" modname
 end
 
 let default_posix_clock = impl posix_clock_conf
@@ -167,10 +166,9 @@ let monotonic_clock_conf = object
   method module_name = "Mclock"
   method packages =
     Key.(if_ is_unix)
-      [package "mirage-clock-unix"]
-      [package "mirage-clock-freestanding"]
-  method connect _ modname _args =
-    Printf.sprintf "%s.connect ()" modname
+      [ package "mirage-clock-unix" ]
+      [ package "mirage-clock-freestanding" ]
+  method connect _ modname _args = Fmt.strf "%s.connect ()" modname
 end
 
 let default_monotonic_clock = impl monotonic_clock_conf
@@ -183,9 +181,8 @@ let stdlib_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Stdlibrandom"
-  method packages = Key.pure [package "mirage-stdlib-random"]
-  method connect _ modname _args =
-    Printf.sprintf "Lwt.return (%s.initialize ())" modname
+  method packages = Key.pure [ package "mirage-stdlib-random" ]
+  method connect _ modname _ = Fmt.strf "Lwt.return (%s.initialize ())" modname
 end
 
 let stdlib_random = impl stdlib_random_conf
@@ -198,8 +195,11 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   and predicate = match predicates with
     | None -> []
     | Some x -> [ "-predicates" ; x ]
+  and q = "query"
   in
-  let cmd = Cmd.(v "ocamlfind" % "query" % flag %% format %% of_list predicate %% of_list libs) in
+  let cmd =
+    Cmd.(v "ocamlfind" % q % flag %% format %% of_list predicate %% of_list libs)
+  in
   OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
 
 (* This is to check that entropy is a dependency if "tls" is in
@@ -212,36 +212,36 @@ let enable_entropy, is_entropy_enabled =
 
 let check_entropy libs =
   query_ocamlfind ~recursive:true libs >>= fun ps ->
-  if List.mem "nocrypto" ps && not (is_entropy_enabled ()) then begin
-    Log.err (fun m -> m
-                "The \"nocrypto\" library is loaded but entropy is not enabled!@ \
-                 Please enable the entropy by adding a dependency to the nocrypto \
-                 device. You can do so by adding ~deps:[abstract nocrypto] \
-                 to the arguments of Mirage.foreign.");
-    R.error_msg "need crypto"
-  end else R.ok ()
+  if List.mem "nocrypto" ps && not (is_entropy_enabled ()) then
+    R.error_msg
+      {___|The \"nocrypto\" library is loaded but entropy is not enabled!@ \
+       Please enable the entropy by adding a dependency to the nocrypto \
+       device. You can do so by adding ~deps:[abstract nocrypto] \
+       to the arguments of Mirage.foreign.|___}
+  else
+    R.ok ()
 
 let nocrypto = impl @@ object
     inherit base_configurable
     method ty = job
     method name = "nocrypto"
     method module_name = "Nocrypto_entropy"
-
     method packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes ->
-        [package ~sublibs:["mirage"] "nocrypto"; package ~ocamlfind:[] "zarith-xen"]
+        [ package ~sublibs:["mirage"] "nocrypto";
+          package ~ocamlfind:[] "zarith-xen" ]
       | `Virtio | `Ukvm ->
-        [package ~sublibs:["mirage"] "nocrypto"; package ~ocamlfind:[] "zarith-freestanding"]
+        [ package ~sublibs:["mirage"] "nocrypto";
+          package ~ocamlfind:[] "zarith-freestanding" ]
       | `Unix | `MacOSX ->
-        [package ~sublibs:["lwt"] "nocrypto"]
+        [ package ~sublibs:["lwt"] "nocrypto" ]
 
     method build _ = R.ok (enable_entropy ())
     method connect i _ _ =
       match get_target i with
       | `Xen | `Qubes | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
-
   end
 
 let nocrypto_random_conf = object
@@ -249,7 +249,7 @@ let nocrypto_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Nocrypto.Rng"
-  method packages = Key.pure [package "nocrypto"]
+  method packages = Key.pure [ package "nocrypto" ]
   method deps = [abstract nocrypto]
 end
 
@@ -270,9 +270,8 @@ let console_unix str = impl @@ object
     val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
     method module_name = "Console_unix"
-    method packages = Key.pure [package "mirage-console-unix"]
-    method connect _ modname _args =
-      Printf.sprintf "%s.connect %S" modname str
+    method packages = Key.pure [ package "mirage-console-unix" ]
+    method connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
 let console_xen str = impl @@ object
@@ -281,9 +280,8 @@ let console_xen str = impl @@ object
     val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
     method module_name = "Console_xen"
-    method packages = Key.pure [package "mirage-console-xen"]
-    method connect _ modname _args =
-      Printf.sprintf "%s.connect %S" modname str
+    method packages = Key.pure [ package "mirage-console-xen" ]
+    method connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
 let console_solo5 str = impl @@ object
@@ -292,9 +290,8 @@ let console_solo5 str = impl @@ object
     val name = Name.ocamlify @@ "console_solo5_" ^ str
     method name = name
     method module_name = "Console_solo5"
-    method packages = Key.pure [package "mirage-console-solo5";]
-    method connect _ modname _args =
-      Printf.sprintf "%s.connect %S" modname str
+    method packages = Key.pure [ package "mirage-console-solo5" ]
+    method connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
 let custom_console str =
@@ -316,31 +313,22 @@ let crunch dirname = impl @@ object
     val name = Name.create ("static" ^ dirname) ~prefix:"static"
     method name = name
     method module_name = String.Ascii.capitalize name
-    method packages = Key.pure [package "io-page"; package ~build:true "crunch"]
+    method packages =
+      Key.pure [ package "io-page"; package ~build:true "crunch" ]
     method deps = [ abstract default_io_page ]
     method connect _ modname _ = Fmt.strf "%s.connect ()" modname
-
     method build _i =
-      match query_ocamlfind  ["crunch"] with
-      | Ok _ ->
-        let dir = Fpath.(v dirname) in
-        let file = Fpath.(v name + "ml") in
-        begin match Bos.OS.Path.exists dir with
-          | Ok _ ->
-            Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-            Bos.OS.Cmd.run Bos.Cmd.(v "ocaml-crunch" % "-o" % (Fpath.to_string file) % (Fpath.to_string dir))
-          | Error _ ->
-            Log.err (fun m -> m "The directory %a does not exist." Fpath.pp dir);
-            R.error_msg "no such directory"
-        end
-      | Error e ->
-        Log.err (fun m -> m  "Couldn't find the ocaml-crunch binary.  Please install the opam package crunch.");
-        Error e
-
+      let dir = Fpath.(v dirname) in
+      let file = Fpath.(v name + "ml") in
+      Bos.OS.Path.exists dir >>= function
+      | true ->
+        Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+        Bos.OS.Cmd.run Bos.Cmd.(v "ocaml-crunch" % "-o" % p file % p dir)
+      | false ->
+        R.error_msg (Fmt.strf "The directory %s does not exist." dirname)
     method clean _i =
       Bos.OS.File.delete Fpath.(v name + "ml") >>= fun () ->
       Bos.OS.File.delete Fpath.(v name + "mli")
-
   end
 
 let direct_kv_ro_conf dirname = impl @@ object
@@ -349,9 +337,10 @@ let direct_kv_ro_conf dirname = impl @@ object
     val name = Name.create ("direct" ^ dirname) ~prefix:"direct"
     method name = name
     method module_name = "Kvro_fs_unix"
-    method packages = Key.pure [package "mirage-fs-unix"]
+    method packages = Key.pure [ package "mirage-fs-unix" ]
     method connect i _modname _names =
-      Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp Fpath.((Info.root i) / dirname)
+      let path = Fpath.(Info.root i / dirname) in
+      Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path
   end
 
 let direct_kv_ro dirname =
@@ -372,8 +361,8 @@ let make_block_t =
   let next_number = ref 1 in
   fun filename ->
     let b =
-      if Hashtbl.mem all_blocks filename
-      then Hashtbl.find all_blocks filename
+      if Hashtbl.mem all_blocks filename then
+        Hashtbl.find all_blocks filename
       else begin
         let number = !next_number in
         incr next_number;
@@ -393,9 +382,9 @@ class block_conf file =
     method module_name = "Block"
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> [package ~sublibs:["front"] "mirage-block-xen"]
-      | `Virtio | `Ukvm -> [package "mirage-block-solo5"]
-      | `Unix | `MacOSX -> [package "mirage-block-unix"]
+      | `Xen | `Qubes -> [ package ~sublibs:["front"] "mirage-block-xen" ]
+      | `Virtio | `Ukvm -> [ package "mirage-block-solo5" ]
+      | `Unix | `MacOSX -> [ package "mirage-block-unix" ]
 
     method private connect_name target root =
       match target with
@@ -410,9 +399,8 @@ class block_conf file =
          else (1 lsl 28)  lor (b.number lsl 8)) |> string_of_int
 
     method connect i s _ =
-      Printf.sprintf "%s.connect %S" s
+      Fmt.strf "%s.connect %S" s
         (self#connect_name (get_target i) @@ Info.root i)
-
   end
 
 let block_of_file file = impl (new block_conf file)
@@ -432,12 +420,11 @@ let archive_conf = impl @@ object
     method ty = block @-> kv_ro
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
-    method packages = Key.pure [ package ~ocamlfind:["tar.mirage"] "tar-format" ]
+    method packages =
+      Key.pure [ package ~ocamlfind:["tar.mirage"] "tar-format" ]
     method connect _ modname = function
-      | [ block ] ->
-        Fmt.strf "%s.connect %s" modname block
-      | _ -> failwith "The archive connect should receive exactly one argument."
-
+      | [ block ] -> Fmt.strf "%s.connect %s" modname block
+      | _ -> failwith (connect_err "archive" 1)
   end
 
 let archive block = archive_conf $ block
@@ -453,23 +440,24 @@ let fat_conf = impl @@ object
     method name = "fat"
     method module_name = "Fat.Fs.Make"
     method connect _ modname l = match l with
-      | [ block_name ; _io_page_name ] ->
-        Printf.sprintf "%s.connect %s" modname block_name
-      | _ -> assert false
+      | [ block_name ; _iop ] -> Fmt.strf "%s.connect %s" modname block_name
+      | _ -> failwith (connect_err "fat" 2)
   end
 
 let fat ?(io_page=default_io_page) block = fat_conf $ block $ io_page
 
 let fat_block ?(dir=".") ?(regexp="*") () =
-  let name = Name.(ocamlify @@ create (Fmt.strf "fat%s:%s" dir regexp) ~prefix:"fat_block") in
+  let name =
+    Name.(ocamlify @@ create (Fmt.strf "fat%s:%s" dir regexp) ~prefix:"fat_block")
+  in
   let block_file = name ^ ".img" in
   impl @@ object
     inherit block_conf block_file as super
-
-    method packages = Key.map (fun l -> (package ~build:true "fat-filesystem") :: l) super#packages
+    method packages =
+      Key.map (List.cons (package ~build:true "fat-filesystem")) super#packages
     method build i =
       let root = Info.root i in
-      let file = Printf.sprintf "make-%s-image.sh" name in
+      let file = Fmt.strf "make-%s-image.sh" name in
       let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
       Log.info (fun m -> m "Generating block generator script: %s" file);
       with_output ~mode:0o755 (Fpath.v file)
@@ -503,7 +491,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
       super#build i
 
     method clean i =
-      let file = Printf.sprintf "make-%s-image.sh" name in
+      let file = Fmt.strf "make-%s-image.sh" name in
       Bos.OS.File.delete (Fpath.v file) >>= fun () ->
       Bos.OS.File.delete (Fpath.v block_file) >>= fun () ->
       super#clean i
@@ -519,8 +507,8 @@ let kv_ro_of_fs_conf = impl @@ object
     method module_name = "Fat.KV_RO.Make"
     method packages = Key.pure [ package "fat-filesystem" ]
     method connect _ modname = function
-    | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
-    | _ -> failwith "The kv_ro_of_fs connect should receive exactly one argument."
+      | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
+      | _ -> failwith (connect_err "kv_ro_of_fs" 1)
   end
 
 let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
@@ -551,22 +539,18 @@ let network_conf (intf : string Key.key) =
     method name = name
     method module_name = "Netif"
     method keys = [ key ]
-
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix -> [package "mirage-net-unix"]
-      | `MacOSX -> [package "mirage-net-macosx"]
-      | `Xen -> [package "mirage-net-xen"]
-      | `Qubes -> [package "mirage-net-xen" ; package "mirage-qubes"]
-      | `Virtio | `Ukvm -> [package "mirage-net-solo5"]
-
+      | `Unix -> [ package "mirage-net-unix" ]
+      | `MacOSX -> [ package "mirage-net-macosx" ]
+      | `Xen -> [ package "mirage-net-xen"]
+      | `Qubes -> [ package "mirage-net-xen" ; package "mirage-qubes" ]
+      | `Virtio | `Ukvm -> [ package "mirage-net-solo5" ]
     method connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
-
     method configure i =
       all_networks := Key.get (Info.context i) intf :: !all_networks;
       R.ok ()
-
   end
 
 let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
@@ -587,10 +571,10 @@ let ethernet_conf = object
   method ty = network @-> ethernet
   method name = "ethif"
   method module_name = "Ethif.Make"
-  method packages = Key.pure [package ~sublibs:["ethif"] "tcpip"]
+  method packages = Key.pure [ package ~sublibs:["ethif"] "tcpip" ]
   method connect _ modname = function
-    | [ eth ] -> Printf.sprintf "%s.connect %s" modname eth
-    | _ -> failwith "The ethernet connect should receive exactly one argument."
+    | [ eth ] -> Fmt.strf "%s.connect %s" modname eth
+    | _ -> failwith (connect_err "ethernet" 1)
 end
 
 let etif_func = impl ethernet_conf
@@ -604,16 +588,17 @@ let arpv4_conf = object
   method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arpv4"
   method module_name = "Arpv4.Make"
-  method packages = Key.pure [package ~sublibs:["arpv4"] "tcpip"]
-
+  method packages = Key.pure [ package ~sublibs:["arpv4"] "tcpip" ]
   method connect _ modname = function
-    | [ eth ; clock ; _time ] -> Printf.sprintf "%s.connect %s %s" modname eth clock
-    | _ -> failwith "The arpv4 connect should receive exactly three arguments."
-
+    | [ eth ; clock ; _time ] -> Fmt.strf "%s.connect %s %s" modname eth clock
+    | _ -> failwith (connect_err "arpv4" 3)
 end
 
 let arp_func = impl arpv4_conf
-let arp ?(clock = default_monotonic_clock) ?(time = default_time) (eth : ethernet impl) =
+let arp
+    ?(clock = default_monotonic_clock)
+    ?(time = default_time)
+    (eth : ethernet impl) =
   arp_func $ eth $ clock $ time
 
 type v4
@@ -647,47 +632,41 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method packages = Key.pure [package ~sublibs:["ipv4"] "tcpip"]
+    method packages = Key.pure [ package ~sublibs:["ipv4"] "tcpip" ]
     method keys = network @?? gateway @?? []
     method connect _ modname = function
     | [ etif ; arp ] ->
-        Fmt.strf
-          "let (network, ip) = %a in @ \
-             %s.connect@[@ ~ip ~network %a@ %s@ %s@]"
-          (Fmt.option pp_key) network
-          modname
-          (opt_key "gateway") gateway
-          etif arp
-      | _ -> failwith "The ipv4 connect should receive exactly two arguments."
+      Fmt.strf
+        "let (network, ip) = %a in @ \
+         %s.connect@[@ ~ip ~network %a@ %s@ %s@]"
+        (Fmt.option pp_key) network
+        modname
+        (opt_key "gateway") gateway
+        etif arp
+      | _ -> failwith (connect_err "ipv4 keyed" 2)
   end
 
 let dhcp_conf = impl @@ object
-  inherit base_configurable
-  method ty = time @-> network @-> dhcp
-  method name = "dhcp_client"
-  method module_name = "Dhcp_client_mirage.Make"
-  method packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
-  method connect _ modname = function
-  | [ _time; network ] ->
-    Fmt.strf
-      "%s.connect %s "
-      modname network
-  | _ -> failwith "The dhcp_config connect should receive exactly two arguments."
-end
+    inherit base_configurable
+    method ty = time @-> network @-> dhcp
+    method name = "dhcp_client"
+    method module_name = "Dhcp_client_mirage.Make"
+    method packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
+    method connect _ modname = function
+      | [ _time; network ] -> Fmt.strf "%s.connect %s " modname network
+      | _ -> failwith (connect_err "dhcp" 2)
+  end
 
 let ipv4_dhcp_conf = impl @@ object
     inherit base_configurable
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method packages = Key.pure [package ~sublibs:["mirage"] "charrua-client"]
+    method packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
     method connect _ modname = function
-          | [ dhcp ; ethernet ; arp ] ->
-        Fmt.strf
-          "%s.connect@[@ %s@ %s@ %s@]"
-          modname
-          dhcp ethernet arp
-      | _ -> failwith "The ipv4 connect should receive exactly three arguments."
+      | [ dhcp ; ethernet ; arp ] ->
+        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname dhcp ethernet arp
+      | _ -> failwith (connect_err "ipv4 dhcp" 3)
   end
 
 
@@ -697,15 +676,15 @@ let ipv4_of_dhcp dhcp ethif arp = ipv4_dhcp_conf $ dhcp $ ethif $ arp
 let create_ipv4 ?group ?config etif arp =
   let config = match config with
   | None ->
-    let network = Ipaddr.V4.Prefix.of_address_string_exn "10.0.0.2/24" in
-    {
-      network;
-      gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1");
-    }
+    let network = Ipaddr.V4.Prefix.of_address_string_exn "10.0.0.2/24"
+    and gateway = Some (Ipaddr.V4.of_string_exn "10.0.0.1")
+    in
+    { network; gateway }
   | Some config -> config
   in
-  let network = Key.V4.network ?group config.network in
-  let gateway = Key.V4.gateway ?group config.gateway in
+  let network = Key.V4.network ?group config.network
+  and gateway = Key.V4.gateway ?group config.gateway
+  in
   ipv4_keyed_conf ~network ~gateway () $ etif $ arp
 
 type ipv6_config = {
@@ -716,18 +695,15 @@ type ipv6_config = {
 (** Types for IP manual configuration. *)
 
 let ipv4_qubes_conf = impl @@ object
-  inherit base_configurable
-  method ty = qubesdb @-> ethernet @-> arpv4 @-> ipv4
-  method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
-  method module_name = "Qubesdb_ipv4.Make"
-  method packages = Key.pure [package ~sublibs:["ipv4"] "mirage-qubes"]
-  method connect _ modname = function
-  | [ db ; ethif; arp ] ->
-      Fmt.strf
-        "%s.connect %s %s %s"
-        modname db ethif arp
-  | _ -> failwith "The qubes_ipv4_conf connect should receive exactly three arguments."
-end
+    inherit base_configurable
+    method ty = qubesdb @-> ethernet @-> arpv4 @-> ipv4
+    method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
+    method module_name = "Qubesdb_ipv4.Make"
+    method packages = Key.pure [ package ~sublibs:["ipv4"] "mirage-qubes" ]
+    method connect _ modname = function
+      | [ db ; etif; arp ] -> Fmt.strf "%s.connect %s %s %s" modname db etif arp
+      | _ -> failwith (connect_err "qubes ipv4" 3)
+  end
 
 let ipv4_qubes db ethernet arp = ipv4_qubes_conf $ db $ ethernet $ arp
 
@@ -736,18 +712,17 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method packages = Key.pure [package ~sublibs:["ipv6"] "tcpip"]
+    method packages = Key.pure [ package ~sublibs:["ipv6"] "tcpip" ]
     method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; _time ; clock ] ->
-        Fmt.strf
-          "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
           (opt_key "ip") addresses
           (opt_key "netmask") netmasks
           (opt_key "gateways") gateways
           etif clock
-      | _ -> failwith "The ipv6 connect should receive exactly three arguments."
+      | _ -> failwith (connect_err "ipv6" 3)
   end
 
 let create_ipv6
@@ -772,8 +747,8 @@ let icmpv4_direct_conf () = object
   method module_name = "Icmpv4.Make"
   method packages = Key.pure [ package ~sublibs:["icmpv4"] "tcpip" ]
   method connect _ modname = function
-    | [ ip ] -> Printf.sprintf "%s.connect %s" modname ip
-    | _  -> failwith "The icmpv4 connect should receive exactly one argument."
+    | [ ip ] -> Fmt.strf "%s.connect %s" modname ip
+    | _  -> failwith (connect_err "icmpv4" 1)
 end
 
 let icmpv4_direct_func () = impl (icmpv4_direct_conf ())
@@ -793,10 +768,10 @@ let udp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> random @-> (udp: 'a udp typ)
   method name = "udp"
   method module_name = "Udp.Make"
-  method packages = Key.pure [package ~sublibs:["udp"] "tcpip" ]
+  method packages = Key.pure [ package ~sublibs:["udp"] "tcpip" ]
   method connect _ modname = function
-    | [ ip; _random ] -> Printf.sprintf "%s.connect %s" modname ip
-    | _  -> failwith "The udpv6 connect should receive exactly two arguments."
+    | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
+    | _  -> failwith (connect_err "udp" 2)
 end
 
 (* Value restriction ... *)
@@ -811,11 +786,12 @@ let udpv4_socket_conf ipv4_key = object
   method module_name = "Udpv4_socket"
   method keys = [ Key.abstract ipv4_key ]
   method packages =
-    Key.match_ Key.(value target) @@ function
-    | `Unix | `MacOSX -> [ package ~sublibs:["udpv4-socket"] "tcpip" ]
-    | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
-  method connect _ modname _ =
-    Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
+    Key.(if_ is_unix) [ package ~sublibs:["udpv4-socket"] "tcpip" ] []
+  method configure i =
+    match get_target i with
+    | `MacOSX | `Unix -> R.ok ()
+    | _ -> R.error_msg "UDPv4 socket invoked for non-UNIX target."
+  method connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
 end
 
 let socket_udpv4 ?group ip = impl (udpv4_socket_conf @@ Key.V4.socket ?group ip)
@@ -831,21 +807,22 @@ let tcpv6 : tcpv6 typ = tcp
 (* Value restriction ... *)
 let tcp_direct_conf () = object
   inherit base_configurable
-  method ty =
-    (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
+  method ty = (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method packages = Key.pure [package ~sublibs:["tcp"] "tcpip" ]
+  method packages = Key.pure [ package ~sublibs:["tcp"] "tcpip" ]
   method connect _ modname = function
-    | [ip; _time; clock; _random] -> Printf.sprintf "%s.connect %s %s" modname ip clock
-    | _ -> failwith "The tcp connect should receive exactly four arguments."
+    | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
+    | _ -> failwith (connect_err "direct tcp" 4)
 end
 
 (* Value restriction ... *)
 let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
-    ?(clock=default_monotonic_clock) ?(random=default_random) ?(time=default_time) ip =
+    ?(clock=default_monotonic_clock)
+    ?(random=default_random)
+    ?(time=default_time) ip =
   tcp_direct_func () $ ip $ time $ clock $ random
 
 let tcpv4_socket_conf ipv4_key = object
@@ -856,11 +833,12 @@ let tcpv4_socket_conf ipv4_key = object
   method module_name = "Tcpv4_socket"
   method keys = [ Key.abstract ipv4_key ]
   method packages =
-    Key.match_ Key.(value target) @@ function
-    | `Unix | `MacOSX -> [package ~sublibs:["tcpv4-socket"] "tcpip" ]
-    | `Xen | `Virtio | `Ukvm | `Qubes  -> failwith "No socket implementation available for unikernel"
-  method connect _ modname _ =
-    Format.asprintf "%s.connect %a" modname  pp_key ipv4_key
+    Key.(if_ is_unix) [ package ~sublibs:["tcpv4-socket"] "tcpip" ] []
+  method configure i =
+    match get_target i with
+    | `Unix | `MacOSX -> R.ok ()
+    | _  -> R.error_msg "TCPv4 socket invoked for non-UNIX target."
+  method connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
 end
 
 let socket_tcpv4 ?group ip = impl (tcpv4_socket_conf @@ Key.V4.socket ?group ip)
@@ -872,19 +850,14 @@ let add_suffix s ~suffix = if suffix = "" then s else s^"_"^suffix
 
 let stackv4_direct_conf ?(group="") () = impl @@ object
     inherit base_configurable
-
     method ty =
       time @-> random @-> network @->
       ethernet @-> arpv4 @-> ipv4 @-> icmpv4 @-> udpv4 @-> tcpv4 @->
       stackv4
-
     val name = add_suffix "stackv4_" ~suffix:group
-
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
-
-    method packages = Key.pure [package ~sublibs:["stack-direct"] "tcpip" ]
-
+    method packages = Key.pure [ package ~sublibs:["stack-direct"] "tcpip" ]
     method connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
         Fmt.strf
@@ -892,9 +865,8 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
            name = %S;@ \
            interface = %s;}@]@ in@ \
            %s.connect config@ %s %s %s %s %s %s"
-          name interface
-          modname ethif arp ip icmp udp tcp
-      | _ -> failwith "Wrong arguments to connect to tcpip direct stack."
+          name interface modname ethif arp ip icmp udp tcp
+      | _ -> failwith (connect_err "direct stackv4" 9)
   end
 
 let direct_stackv4
@@ -937,11 +909,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method module_name = "Tcpip_stack_socket"
     method keys = [ Key.abstract interfaces ]
     method packages = Key.pure [ package ~sublibs:["stack-socket"] "tcpip" ]
-    method deps = [
-      abstract (socket_udpv4 None);
-      abstract (socket_tcpv4 None);
-    ]
-
+    method deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
     method connect _i modname = function
       | [ udpv4 ; tcpv4 ] ->
         Fmt.strf
@@ -949,11 +917,8 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
            { V1_LWT.name = %S;@ \
            interface = %a ;}@] in@ \
            %s.connect config %s %s"
-          name
-          pp_key interfaces
-          modname udpv4 tcpv4
-      | _ -> failwith "Wrong arguments to connect to tcpip socket stack."
-
+          name pp_key interfaces modname udpv4 tcpv4
+      | _ -> failwith (connect_err "socket stack" 2)
   end
 
 let socket_stackv4 ?group ipv4s =
@@ -997,9 +962,8 @@ let tcp_conduit_connector = impl @@ object
         package ~sublibs:["mirage"] "conduit"
       ]
     method connect _ modname = function
-      | [ stack ] ->
-        Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
-      | _ -> failwith "Wrong arguments to connect to tcp conduit connector."
+      | [ stack ] -> Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
+      | _ -> failwith (connect_err "tcp conduit" 1)
   end
 
 let tls_conduit_connector = impl @@ object
@@ -1034,7 +998,6 @@ let conduit_with_connectors connectors = impl @@ object
 
     method connect _i _ = function
       (* There is always at least the nocrypto device *)
-      | [] -> invalid_arg "Mirage.conduit_with_connector"
       | _nocrypto :: connectors ->
         let pp_connector = Fmt.fmt "%s >>=@ " in
         let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
@@ -1043,15 +1006,17 @@ let conduit_with_connectors connectors = impl @@ object
            %a\
            fun t -> Lwt.return t"
           pp_connectors connectors
+      | [] -> failwith "The conduit with connectors expects at least one argument"
   end
 
 let conduit_direct ?(tls=false) s =
   (* TCP must be before tls in the list. *)
   let connectors = [tcp_conduit_connector $ s] in
   let connectors =
-    if tls
-    then connectors @ [tls_conduit_connector]
-    else connectors
+    if tls then
+      connectors @ [tls_conduit_connector]
+    else
+      connectors
   in
   conduit_with_connectors connectors
 
@@ -1064,11 +1029,14 @@ let resolver_unix_system = impl @@ object
     method name = "resolver_unix"
     method module_name = "Resolver_lwt"
     method packages =
-      Key.match_ Key.(value target) @@ function
-      | `Unix | `MacOSX ->
+      Key.(if_ is_unix)
         [ package ~ocamlfind:[] "mirage-conduit" ;
           package ~sublibs:["mirage";"lwt-unix"] "conduit" ]
-      | _ -> failwith "Resolver_unix not supported on unikernel"
+        []
+    method configure i =
+      match get_target i with
+      | `Unix | `MacOSX -> R.ok ()
+      | _ -> R.error_msg "Resolver_unix not supported on unikernel"
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
 
@@ -1079,7 +1047,6 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method module_name = "Resolver_mirage.Make_with_stack"
     method packages =
       Key.pure [ package ~sublibs:["mirage"] "dns"; package "tcpip" ]
-
     method connect _ modname = function
       | [ _t ; stack ] ->
         let meta_ns = Fmt.Dump.option meta_ipv4 in
@@ -1089,11 +1056,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
            let ns_port = %a in@;\
            let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
            Lwt.return res@;"
-          meta_ns ns
-          meta_port ns_port
-          modname stack
-      | _ -> failwith "The resolver connect should receive exactly two arguments."
-
+          meta_ns ns meta_port ns_port modname stack
+      | _ -> failwith (connect_err "resolver" 2)
   end
 
 let resolver_dns ?ns ?ns_port ?(time = default_time) stack =
@@ -1111,7 +1075,7 @@ let http_server conduit = impl @@ object
     method deps = [ abstract conduit ]
     method connect _i modname = function
       | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
-      | _ -> failwith "The http connect should receive exactly one argument."
+      | _ -> failwith (connect_err "http" 1)
   end
 
 (** Argv *)
@@ -1160,7 +1124,8 @@ let argv_qubes = impl @@ object
       (* Qubes tries to pass some nice arguments.
        * It means well, but we can't do much with them,
        * and they cause Functoria to abort. *)
-      "Bootvar.argv ~filter:(fun (key, _) -> List.mem key @@ List.map snd Key_gen.runtime_keys) ()"
+      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) in\
+       Bootvar.argv ~filter ()"
   end
 
 let default_argv =
@@ -1193,20 +1158,20 @@ let mirage_log ?ring_size ~default =
     method packages = Key.pure [ package "mirage-logs"]
     method keys = [ Key.abstract logs ]
     method connect _ modname = function
-    | [ pclock ] ->
-      Fmt.strf
-        "@[<v 2>\
-         let ring_size = %a in@ \
-         let reporter = %s.create ?ring_size %s in@ \
-         Mirage_runtime.set_level ~default:%a %a;@ \
-         %s.set_reporter reporter;@ \
-         Lwt.return reporter"
-        Fmt.(Dump.option int) ring_size
-        modname pclock
-        pp_level default
-        pp_key logs
-        modname
-    | _ -> failwith "The Pclock connect should receive exactly one argument."
+      | [ pclock ] ->
+        Fmt.strf
+          "@[<v 2>\
+           let ring_size = %a in@ \
+           let reporter = %s.create ?ring_size %s in@ \
+           Mirage_runtime.set_level ~default:%a %a;@ \
+           %s.set_reporter reporter;@ \
+           Lwt.return reporter"
+          Fmt.(Dump.option int) ring_size
+          modname pclock
+          pp_level default
+          pp_key logs
+          modname
+    | _ -> failwith (connect_err "log" 1)
   end
 
 let default_reporter
@@ -1237,42 +1202,37 @@ let mprof_trace ~size () =
     method keys = [ Key.abstract key ]
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> [package ~sublibs:["xen"] "mirage-profile"]
-      | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
-      | `Unix | `MacOSX -> [package ~sublibs:["unix"] "mirage-profile"]
-
-    method configure _ =
+      | `Xen | `Qubes -> [ package ~sublibs:["xen"] "mirage-profile" ]
+      | `Virtio | `Ukvm -> []
+      | `Unix | `MacOSX -> [ package ~sublibs:["unix"] "mirage-profile" ]
+    method build _ =
       match query_ocamlfind ["lwt.tracing"] with
       | Ok _ -> Ok ()
       | Error _ ->
-        Log.err (fun m ->
-            m "lwt.tracing module not found. Hint:\
-               opam pin add lwt 'https://github.com/mirage/lwt.git#tracing'") ;
-        Error (`Msg "no lwt.tracing")
-
+        R.error_msg "lwt.tracing module not found. Hint:\
+                     opam pin add lwt https://github.com/mirage/lwt.git#tracing"
     method connect i _ _ = match get_target i with
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf
           "Lwt.return ())@.\
            let () = (@ \
-             @[<v 2>  let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
-             let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
-             MProf.Trace.Control.start trace_config@]"
+           @[<v 2> let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
+           let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
+           MProf.Trace.Control.start trace_config@]"
           Key.serialize_call (Key.abstract key)
           unix_trace_file;
       | `Xen | `Qubes ->
         Fmt.strf
           "Lwt.return ())@.\
            let () = (@ \
-             @[<v 2>  let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
-             let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
-             let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
-             MProf.Trace.Control.start trace_config;@ \
-             MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
-             |> OS.Main.run@]"
+           @[<v 2> let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
+           let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
+           let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
+           MProf.Trace.Control.start trace_config;@ \
+           MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
+           |> OS.Main.run@]"
           Key.serialize_call (Key.abstract key)
-
   end
 
 (** Functoria devices *)
@@ -1355,19 +1315,19 @@ let detected_bridge_name =
   (* Best-effort guess of a bridge name stem to use. Note this
      inspects the build host and will probably be wrong if the
      deployment host is different.  *)
-  match List.fold_left (fun sofar x -> match sofar with
-      | None ->
+  match
+    List.fold_left (fun sofar x ->
+        match sofar with
         (* This is Linux-specific *)
-        if Sys.file_exists (Printf.sprintf "/sys/class/net/%s0" x)
-        then Some x
-        else None
-      | Some x -> Some x
-    ) None [ "xenbr"; "br"; "virbr" ] with
+        | None when Sys.file_exists (Fmt.strf "/sys/class/net/%s0" x) -> Some x
+        | None -> None
+        | Some x -> Some x)
+      None [ "xenbr"; "br"; "virbr" ]
+  with
   | Some x -> x
   | None -> "br"
 
 module Substitutions = struct
-
   type v =
     | Name
     | Kernel
@@ -1379,26 +1339,27 @@ module Substitutions = struct
     | Name -> "@NAME@"
     | Kernel -> "@KERNEL@"
     | Memory -> "@MEMORY@"
-    | Block b -> Printf.sprintf "@BLOCK:%s@" b.filename
-    | Network n -> Printf.sprintf "@NETWORK:%s@" n
+    | Block b -> Fmt.strf "@BLOCK:%s@" b.filename
+    | Network n -> Fmt.strf "@NETWORK:%s@" n
 
   let lookup ts v =
-    if List.mem_assoc v ts
-    then List.assoc v ts
-    else string_of_v v
+    if List.mem_assoc v ts then
+      List.assoc v ts
+    else
+      string_of_v v
 
   let defaults i =
-    let blocks = List.map (fun b ->
-        Block b, Fpath.(to_string ((Info.root i) / b.filename))
-      ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
-    let networks = List.mapi (fun i n ->
-        Network n, Printf.sprintf "%s%d" detected_bridge_name i
-      ) !all_networks in [
+    let blocks =
+      List.map (fun b -> Block b, Fpath.(to_string ((Info.root i) / b.filename)))
+        (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
+    and networks =
+      List.mapi (fun i n -> Network n, Fmt.strf "%s%d" detected_bridge_name i)
+        !all_networks
+    in [
       Name, (Info.name i);
       Kernel, Fpath.(to_string ((Info.root i) / (Info.name i) + "xen"));
       Memory, "256";
     ] @ blocks @ networks
-
 end
 
 let configure_main_xl ?substitutions ext i =
@@ -1418,34 +1379,38 @@ let configure_main_xl ?substitutions ext i =
       append fmt "memory = %s" (lookup substitutions Memory);
       append fmt "on_crash = 'preserve'";
       newline fmt;
-      let blocks = List.map (fun b ->
-          (* We need the Linux version of the block number (this is a
-             strange historical artifact) Taken from
-             https://github.com/mirage/mirage-block-xen/blob/
-             a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
-          let rec string_of_int26 x =
-            let high, low = x / 26 - 1, x mod 26 + 1 in
-            let high' = if high = -1 then "" else string_of_int26 high in
-            let low' =
-              String.v 1 (fun _ -> char_of_int (low + (int_of_char 'a') - 1))
-            in
-            high' ^ low' in
-          let vdev = Printf.sprintf "xvd%s" (string_of_int26 b.number) in
-          let path = lookup substitutions (Block b) in
-          Printf.sprintf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path
-        ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []) in
+      let blocks = List.map
+          (fun b ->
+             (* We need the Linux version of the block number (this is a
+                strange historical artifact) Taken from
+                https://github.com/mirage/mirage-block-xen/blob/
+                a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
+             let rec string_of_int26 x =
+               let high, low = x / 26 - 1, x mod 26 + 1 in
+               let high' = if high = -1 then "" else string_of_int26 high in
+               let low' =
+                 String.v 1 (fun _ -> char_of_int (low + (int_of_char 'a') - 1))
+               in
+               high' ^ low' in
+             let vdev = Fmt.strf "xvd%s" (string_of_int26 b.number) in
+             let path = lookup substitutions (Block b) in
+             Fmt.strf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path)
+          (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
+      in
       append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
       newline fmt;
       let networks = List.map (fun n ->
-          Printf.sprintf "'bridge=%s'" (lookup substitutions (Network n))
-        ) !all_networks in
+          Fmt.strf "'bridge=%s'" (lookup substitutions (Network n)))
+          !all_networks
+      in
       append fmt "# if your system uses openvswitch then either edit \
                   /etc/xen/xl.conf and set";
       append fmt "#     vif.default.script=\"vif-openvswitch\"";
       append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" \
                   below:";
       append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
-      R.ok ()) "xl file"
+      R.ok ())
+    "xl file"
 
 let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
 
@@ -1501,13 +1466,12 @@ let configure_main_xe ~root ~name =
           append fmt "xe vdi-import uuid=$VDI filename=%s/%s" root b.filename;
           append fmt "VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=%d)"
             b.number;
-          append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true";
-        ) (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
+          append fmt "xe vbd-param-set uuid=$VBD other-config:owner=true")
+        (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
       append fmt "echo Starting VM";
       append fmt "xe vm-start uuid=$VM";
       R.ok ())
     "xe file"
-
 
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 
@@ -1546,16 +1510,13 @@ let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
 let fn = Fpath.(v "myocamlbuild.ml")
 
 let configure_myocamlbuild () =
-  Bos.OS.File.exists fn >>= fun is ->
-  if is then
-    R.ok ()
-  else
-    Bos.OS.File.write fn ""
+  Bos.OS.File.exists fn >>= function
+  | true -> R.ok ()
+  | false -> Bos.OS.File.write fn ""
 
 let clean_myocamlbuild () =
   match Bos.OS.Path.stat fn with
-  | Ok stat when stat.Unix.st_size = 0 ->
-    Bos.OS.File.delete fn
+  | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete fn
   | _ -> R.ok ()
 
 let configure_opam ~name info =
@@ -1566,6 +1527,7 @@ let configure_opam ~name info =
       append fmt "# %s" (generated_header ());
       Info.opam ~name fmt info;
       append fmt "build: [ \"mirage\" \"build\" ]";
+      append fmt "available: [ ocaml-version >= \"4.03.0\" ]";
       R.ok ())
     "opam file"
 
@@ -1582,47 +1544,50 @@ let configure i =
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
   let opam_name = unikernel_name target name in
-  (match target with
-   | `Xen | `Qubes ->
-     configure_main_xl "xl" i >>= fun () ->
-     configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
-     configure_main_xe ~root ~name >>= fun () ->
-     configure_main_libvirt_xml ~root ~name
-   | _ -> R.ok ()) >>= fun () ->
   configure_myocamlbuild () >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
-  configure_makefile ~opam_name
+  configure_makefile ~opam_name >>= fun () ->
+  match target with
+  | `Xen | `Qubes ->
+    configure_main_xl "xl" i >>= fun () ->
+    configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
+    configure_main_xe ~root ~name >>= fun () ->
+    configure_main_libvirt_xml ~root ~name
+  | _ -> R.ok ()
 
 let compile libs warn_error target =
   let tags =
-    [ Printf.sprintf "predicate(%s)" (backend_predicate target);
-      "warn(A-4-41-42-44)"; "color(always)"; "debug"; "bin_annot";
-      "strict_sequence"; "principal"; "safe_string" ] @
+    [ Fmt.strf "predicate(%s)" (backend_predicate target);
+      "warn(A-4-41-42-44)";
+      "color(always)";
+      "debug";
+      "bin_annot";
+      "strict_sequence";
+      "principal";
+      "safe_string" ] @
     (if warn_error then ["warn_error(+1..49)"] else []) @
-    match target with
-    | `MacOSX -> ["thread"] | _ -> []
-  and pkgs = String.concat ~sep:"," libs
-  and flags =
-    let dontlink = ["unix"; "str"; "num"; "threads"] in
-    let link = match target with
-      | `Xen | `Qubes | `Virtio | `Ukvm ->
-        String.concat ~sep:",-dontlink," (""::dontlink)
-      | _ -> ""
-    in
-    Bos.Cmd.of_list [ "-cflag" ; "-g" ; "-lflags" ; ("-g,-linkpkg" ^ link) ]
-  in
-  let tags = String.concat ~sep:"," tags
-  and tag_line = "<static*.*>: warn(-32-34)"
+    match target with | `MacOSX -> ["thread"] | _ -> []
   and result = match target with
     | `Unix | `MacOSX -> "main.native"
-    | _ -> "main.native.o"
+    | `Xen | `Qubes | `Virtio | `Ukvm -> "main.native.o"
+  and cflags = [ "-g" ]
+  and lflags =
+    let dontlink =
+      match target with
+      | `Xen | `Qubes | `Virtio | `Ukvm -> ["unix"; "str"; "num"; "threads"]
+      | `MacOSX | `Unix -> []
+    in
+    let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
+    "-g" :: List.flatten dont
   in
+  let concat = String.concat ~sep:"," in
   let cmd = Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" %
                      "-classic-display" %
-                     "-tags" % tags %
-                     "-pkgs" % pkgs %%
-                     flags %
-                     "-tag-line" % tag_line %
+                     "-tags" % concat tags %
+                     "-pkgs" % concat libs %
+                     "-cflags" % concat cflags %
+                     "-lflags" % concat lflags %
+                     "-tag-line" % "<static*.*>: warn(-32-34)" %
                      "-X" %  "_build-ukvm" %
                      result)
   in
@@ -1649,7 +1614,7 @@ let pkg_config pkgs args =
   (* the order here matters (at least for ancient 0.26, distributed with
        ubuntu 14.04 versions): use share before lib! *)
   let var = "PKG_CONFIG_PATH"
-  and value = Printf.sprintf "%s/share/pkgconfig:%s/lib/pkgconfig" prefix prefix
+  and value = Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig" prefix prefix
   in
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
@@ -1661,7 +1626,7 @@ let pkg_config pkgs args =
 let extra_c_artifacts target pkgs =
   Lazy.force opam_prefix >>= fun prefix ->
   let lib = prefix ^ "/lib" in
-  let format = Printf.sprintf "%%d\t%%(%s_linkopts)" target
+  let format = Fmt.strf "%%d\t%%(%s_linkopts)" target
   and predicates = "native"
   in
   query_ocamlfind ~recursive:true ~format ~predicates pkgs >>= fun data ->
@@ -1692,7 +1657,10 @@ let link info name target =
   | `Xen | `Qubes ->
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
-    let linker = Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs) in
+    let linker =
+      Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %%
+               of_list c_artifacts %% of_list static_libs)
+    in
     let out = name ^ ".xen" in
     Bos.OS.Cmd.run_out Bos.Cmd.(v "uname" % "-m") |> Bos.OS.Cmd.out_string >>= fun (machine, _) ->
     if String.is_prefix ~affix:"arm" machine then begin
@@ -1719,7 +1687,10 @@ let link info name target =
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags "solo5-kernel-virtio" >>= fun ldflags ->
     let out = name ^ ".virtio" in
-    let linker = Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs % "-o" % out) in
+    let linker =
+      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+               of_list c_artifacts %% of_list static_libs % "-o" % out)
+    in
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
     Ok out
@@ -1728,7 +1699,10 @@ let link info name target =
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags "solo5-kernel-ukvm" >>= fun ldflags ->
     let out = name ^ ".ukvm" in
-    let linker = Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %% of_list c_artifacts %% of_list static_libs % "-o" % out) in
+    let linker =
+      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+               of_list c_artifacts %% of_list static_libs % "-o" % out)
+    in
     let ukvm_mods =
       let ukvm_filter = function
         | "mirage-net-solo5" -> "net"
@@ -1796,9 +1770,8 @@ module Project = struct
         Key.(abstract target);
         Key.(abstract warn_error);
       ]
-
       method packages =
-        let l = [
+        let common = [
           (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
           package "lwt";
           package ~min:"3.0.0" "mirage-types-lwt";
@@ -1806,13 +1779,14 @@ module Project = struct
           package ~min:"3.0.0" "mirage-runtime" ;
           package ~build:true "ocamlfind" ;
           package ~build:true "ocamlbuild" ;
-        ]
-        in
+        ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> package "mirage-xen" :: l
-        | `Virtio -> package ~ocamlfind:[] "solo5-kernel-virtio" :: package "mirage-solo5" :: l
-        | `Ukvm -> package ~ocamlfind:[] "solo5-kernel-ukvm" :: package "mirage-solo5" :: l
-        | `Unix | `MacOSX -> package "mirage-unix" :: l
+        | `Xen | `Qubes -> [ package "mirage-xen" ] @ common
+        | `Virtio -> [ package ~ocamlfind:[] "solo5-kernel-virtio" ;
+                       package "mirage-solo5" ] @ common
+        | `Ukvm -> [ package ~ocamlfind:[] "solo5-kernel-ukvm" ;
+                     package "mirage-solo5" ] @ common
+        | `Unix | `MacOSX -> [ package "mirage-unix" ] @ common
 
       method build = build
       method configure = configure

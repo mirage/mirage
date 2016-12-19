@@ -790,7 +790,7 @@ let udpv4_socket_conf ipv4_key = object
   method configure i =
     match get_target i with
     | `MacOSX | `Unix -> R.ok ()
-    | _ -> R.error_msg "UDPv4 socket invoked for non-UNIX target."
+    | _ -> R.error_msg "UDPv4 socket not supported on non-UNIX targets."
   method connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
 end
 
@@ -837,7 +837,7 @@ let tcpv4_socket_conf ipv4_key = object
   method configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
-    | _  -> R.error_msg "TCPv4 socket invoked for non-UNIX target."
+    | _  -> R.error_msg "TCPv4 socket not supported on non-UNIX targets."
   method connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
 end
 
@@ -1036,7 +1036,7 @@ let resolver_unix_system = impl @@ object
     method configure i =
       match get_target i with
       | `Unix | `MacOSX -> R.ok ()
-      | _ -> R.error_msg "Resolver_unix not supported on unikernel"
+      | _ -> R.error_msg "Unix resolver not supported on non-UNIX targets."
     method connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
   end
 

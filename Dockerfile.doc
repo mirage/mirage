@@ -64,7 +64,6 @@ RUN opam depext -uivj 3 \
   merlin \
   mirage \
   mirage-block \
-  mirage-block-ccm \
   mirage-block-ramdisk \
   mirage-block-solo5 \
   mirage-block-unix \
@@ -112,7 +111,6 @@ RUN opam depext -uivj 3 \
   ppx_expect \
   protocol-9p \
   ptime \
-  qcow-format \
   re \
   randomconv \
   rresult \
@@ -136,7 +134,6 @@ RUN opam depext -uivj 3 \
   uuseg \
   utop \
   vchan \
-  vhd-format \
   webbrowser \
   webmachine \
   websocket \
@@ -147,7 +144,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd
+# to fix: dns-forward nbd mirage-block-ccm qcow vhd-format
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

@@ -112,7 +112,6 @@ RUN opam depext -uivj 3 \
   ppx_expect \
   protocol-9p \
   ptime \
-  qcow-format \
   re \
   randomconv \
   rresult \
@@ -136,7 +135,6 @@ RUN opam depext -uivj 3 \
   uuseg \
   utop \
   vchan \
-  vhd-format \
   webbrowser \
   webmachine \
   websocket \
@@ -147,7 +145,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd
+# to fix: dns-forward nbd qcow vhd-format
 RUN opam config exec -- odig ocamldoc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

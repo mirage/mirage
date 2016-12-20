@@ -647,16 +647,16 @@ module Make (P: S) = struct
 
   let run_with_argv argv =
     let module Cmd = Functoria_command_line in
-    (* 1. Pre-parse the arguments to load the config file, set the log
-     *    level, and determine whether the graph should be fully
-     *    evaluated. *)
+    (* 1. (a) Pre-parse the arguments set the log level. *)
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
 
-    (*    (c) whether to fully evaluate the graph *)
+    (*    (b) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
 
-    (*    (d) the config file passed as argument, if any *)
-    set_config_file (Cmd.read_config_file argv) ;
+    (*    (c) the config file passed as argument, if any *)
+    (match Cmd.read_config_file argv with
+     | None -> ()
+     | Some cfg -> set_config_file cfg);
 
     (* 2. Load the config from the config file. *)
     (* There are three possible outcomes:

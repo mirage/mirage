@@ -238,14 +238,14 @@ end
 (*
  * Functions for extracting particular flags from the command line.
  *)
-let read_config_file : string array -> Fpath.t =
+let read_config_file : string array -> Fpath.t option =
   fun argv -> match Term.eval_peek_opts ~argv config_file with
-    | _, `Ok config ->
-      if Sys.file_exists config && not (Sys.is_directory config) && Fpath.is_seg config then
-        Fpath.v config
+    | _, `Ok config when Fpath.is_seg config ->
+      if Sys.file_exists config && not (Sys.is_directory config) then
+        Some (Fpath.v config)
       else
-        invalid_arg "config must be an existing file (single segment)"
-    | _ -> invalid_arg "parse error while parsing command line"
+        None
+    | _ -> invalid_arg "config must be an existing file (single segment)"
 
 let read_full_eval : string array -> bool option =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with

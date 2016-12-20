@@ -13,4 +13,11 @@ depends:   [
   "ocamlfind"  {build}
   "topkg"      {build & >= "0.8.0"}
   "result"
+  "mirage-device"
+  "mirage-time"
+  "mirage-clock" {>= "1.2.0"}
+  "mirage-random"
+  "mirage-flow"
+  "mirage-console"
+  "mirage-block" {>= "1.0.0"}
 ]

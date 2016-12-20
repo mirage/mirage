@@ -22,21 +22,15 @@
 
 open V1
 
-module type TIME = TIME
-  with type 'a io = 'a Lwt.t
+module type TIME = Mirage_time_lwt.S
+module type RANDOM = Mirage_random.C
+module type FLOW = Mirage_flow_lwt.S
 
-module type RANDOM = RANDOM
-  with type buffer = Cstruct.t
+(** Consoles *)
+module type CONSOLE = Mirage_console_lwt.S
 
-module type FLOW = FLOW
-  with type 'a io = 'a Lwt.t
-   and type buffer = Cstruct.t
-
-module type MCLOCK = MCLOCK
-  with type 'a io = 'a Lwt.t
-
-module type PCLOCK = PCLOCK
-  with type 'a io = 'a Lwt.t
+(** Block devices *)
+module type BLOCK = Mirage_block_lwt.S
 
 (** Network *)
 module type NETWORK = NETWORK
@@ -124,16 +118,6 @@ module type CHANNEL = CHANNEL
 
 (** KV RO *)
 module type KV_RO = KV_RO
-  with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
-
-(** Consoles *)
-module type CONSOLE = CONSOLE
-  with type 'a io = 'a Lwt.t
-   and type buffer = Cstruct.t
-
-(** Block devices *)
-module type BLOCK = BLOCK
   with type 'a io = 'a Lwt.t
    and type page_aligned_buffer = Cstruct.t
 

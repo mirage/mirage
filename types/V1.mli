@@ -48,271 +48,36 @@ open Result
 
     {e Release %%VERSION%% } *)
 
-(** {1 Abstract devices}
+module type DEVICE = Mirage_device.S
 
-    Defines the functions to define what is a device state and
-    how to disconnect such a device. *)
-module type DEVICE = sig
+(** {1 Time-related devices} *)
 
-  type +'a io
-  (** The type for potentially blocking I/O operation *)
-
-  type t
-  (** The type representing the internal state of the device *)
-
-  val disconnect: t -> unit io
-  (** Disconnect from the device.  While this might take some time to
-      complete, it can never result in an error. *)
-end
-
-(** {1 Time operations for cooperative threads} *)
-module type TIME = sig
-
-  type +'a io
-  (** The type for potentially blocking I/O operation *)
-
-  val sleep_ns: int64 -> unit io
-  (** [sleep_ns n] Block the current thread for [n] nanoseconds, treating
-      the [n] unsigned.  *)
-end
+module type TIME  = Mirage_time.S
+module type MCLOCK = Mirage_clock.MCLOCK
+module type PCLOCK = Mirage_clock.PCLOCK
 
 (** {1 Random}
 
     Operations to generate random numbers. *)
-module type RANDOM = sig
-
-  type buffer
-  (** The type for memory buffer. *)
-
-  type g
-  (** The state of the generator. *)
-
-  val generate: ?g:g -> int -> buffer
-  (** [generate ~g n] generates a random buffer of length [n] using [g]. *)
-end
-
-(** {1 POSIX clock}
-
-    Clock counting time since the Unix epoch. Subject to adjustment by e.g. NTP. *)
-module type PCLOCK = sig
-
-  include DEVICE
-
-  val now_d_ps : t -> int * int64
-  (** [now_d_ps ()] is [(d, ps)] representing the POSIX time occuring
-      at [d] * 86'400e12 + [ps] POSIX picoseconds from the epoch
-      1970-01-01 00:00:00 UTC. [ps] is in the range
-      \[[0];[86_399_999_999_999_999L]\]. *)
-
-  val current_tz_offset_s : t -> int option
-  (** [current_tz_offset_s ()] is the clock's current local time zone
-    offset to UTC in seconds, if known. This is the duration local time -
-    UTC time in seconds. *)
-
-  val period_d_ps : t -> (int * int64) option
-  (** [period_d_ps ()] is [Some (d, ps)] representing the
-      clock's picosecond period [d] * 86'400e12 + [ps], if known. [ps] is in the
-      range \[[0];[86_399_999_999_999_999L]\]. *)
-
-end
-
-(** {1 Monotonic clock}
-
-    Clock returning monotonic time since an arbitrary point. To be used for eg.
-    profiling. *)
-
-module type MCLOCK = sig
-
-  include DEVICE
-
-  val elapsed_ns : t -> int64
-  (** [elapsed_ns ()] is a monotonically increasing count of nanoseconds elapsed
-   * since some arbitrary point *)
-
-  val period_ns : t -> int64 option
-  (** [period_ns ()] is [Some ns] representing the clock's
-   * nanosecond period [ns], if known *)
-end
-
-module Flow : sig
-  type error = [ `Msg of string ]
-  type write_error = [ error | `Closed ]
-  type 'a or_eof = [ `Data of 'a | `Eof ]
-end
+module type RANDOM = Mirage_random.S
 
 (** {1 Connection between endpoints} *)
-module type FLOW = sig
 
-  type +'a io
-  (** The type for potentially blocking I/O operations. *)
+module type FLOW = Mirage_flow.S
 
-  type buffer
-  (** The type for memory buffer. *)
+(** {1 Console} *)
 
-  type flow
-  (** The type for flows. A flow represents the state of a single
-      reliable stream that is connected to an endpoint. *)
+module type CONSOLE = Mirage_console.S
 
-  val read: flow -> (buffer Flow.or_eof, Flow.error) result io
-  (** [read flow] blocks until some data is available and returns a
-      fresh buffer containing it.
+(** {1 Sector-addressible block devices} *)
 
-      The returned buffer will be of a size convenient to the flow
-      implementation, but will always have at least 1 byte.
-
-      If the remote endpoint calls [close] then calls to [read] will
-      keep returning data until all the in-flight data has been read.
-      [read flow] will return [`Eof] when the remote endpoint has
-      called [close] and when there is no more in-flight data.
-   *)
-
-  val write: flow -> buffer -> (unit, Flow.write_error) result io
-  (** [write flow buffer] writes a buffer to the flow. There is no
-      indication when the buffer has actually been read and, therefore,
-      it must not be reused.  The contents may be transmitted in
-      separate packets, depending on the underlying transport. The
-      result [Ok ()] indicates success, [Error `Closed] indicates that the
-      connection is now closed and therefore the data could not be
-      written.  Other errors are possible. *)
-
-  val writev: flow -> buffer list -> (unit, Flow.write_error) result io
-  (** [writev flow buffers] writes a sequence of buffers to the flow.
-      There is no indication when the buffers have actually been read and,
-      therefore, they must not be reused. The
-      result [Ok ()] indicates success, [Error `Closed] indicates that the
-      connection is now closed and therefore the data could not be
-      written.  Other errors are possible. *)
-
-  val close: flow -> unit io
-  (** [close flow] flushes all pending writes and signals the remote
-      endpoint that there will be no future writes. Once the remote endpoint
-      has read all pending data, it is expected that calls to [read] on
-      the remote return [`Eof].
-
-      Note it is still possible for the remote endpoint to [write] to
-      the flow and for the local endpoint to call [read]. This state where
-      the local endpoint has called [close] but the remote endpoint
-      has not called [close] is similar to that of a half-closed TCP
-      connection or a Unix socket after [shutdown(SHUTDOWN_WRITE)].
-
-      [close flow] waits until the remote endpoint has also called [close]
-      before returning. At this point no data can flow in either direction
-      and resources associated with the flow can be freed.
-      *)
-end
-
-(** {1 Console input/output} *)
-module Console : sig
-  type error = [
-    | `Invalid_console of string
-  ]
-  (** The type for representing possible errors when attaching a
-      console. *)
-end
-
-(** {A console module type} *)
-module type CONSOLE = sig
-  include DEVICE
-
-  include FLOW with
-      type 'a io  := 'a io
-  and type flow   := t
-
-  val log: t -> string -> unit io
-  (** [log t str] writes [str] to the console [t], appending appropriate line
-      endings.  If {!close} was called on the console before, [str] is discarded
-      silently.
-  *)
-end
-
-module Block : sig
-  type error = [
-    | `Msg of string     (** an unspecified error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** The type for IO operation errors. *)
-
-  type write_error = [
-    | `Msg of string     (** an unspecified error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-    | `Is_read_only      (** attempted to write to a read-only disk *)
-  ]
-end
-
-(** {1 Sector-addressible block devices}
-
-    Operations on sector-addressible block devices, usually used
-    for persistent storage *)
-module type BLOCK = sig
-
-  type page_aligned_buffer
-  (** The type for page-aligned memory buffers. *)
-
-  type error = Block.error
-
-  include DEVICE
-
-  type info = {
-    read_write: bool;    (** True if we can write, false if read/only *)
-    sector_size: int;    (** Octets per sector *)
-    size_sectors: int64; (** Total sectors per device *)
-  }
-  (** Characteristics of the block device. Note some devices may be
-      able to make themselves bigger over time. *)
-
-  val get_info: t -> info io
-  (** Query the characteristics of a specific block device *)
-
-  val read: t -> int64 -> page_aligned_buffer list -> (unit, Block.error) result io
-  (** [read device sector_start buffers] reads data starting at [sector_start]
-      from the block device into [buffers]. [Ok ()] means the buffers have been filled.
-      [Error _] indicates an I/O error has happened and some of the buffers may not be filled.
-      Each of elements in the list [buffers] must be a whole number of sectors in length.
-      The list of buffers can be of any length. *)
-
-  val write: t -> int64 -> page_aligned_buffer list -> (unit, Block.write_error) result io
-  (** [write device sector_start buffers] writes data from [buffers]
-      onto the block device starting at [sector_start].
-      [Ok ()] means the contents of the buffers have been written.
-      [Error _] indicates a partial failure in which some of the writes may not have
-      happened.
-
-      Once submitted, it is not possible to cancel a request and there
-      is no timeout.
-
-      The operation may fail with:
-
-      {ul
-
-      {- [`Unimplemented]: the operation has not been implemented, no
-      data has been written.}
-      {- [`Is_read_only]: the device is read-only, no data has been
-      written.}
-      {- [`Disconnected]: the device has been disconnected at
-        application request, an unknown amount of data has been
-        written.}
-      {- [`Unknown]: some other permanent, fatal error (e.g. disk is
-        on fire), where an unknown amount of data has been written.}
-      }
-
-      Each of [buffers] must be a whole number of sectors in
-      length. The list of buffers can be of any length.
-
-      The data will not be copied, so the supplied buffers must not be
-      re-used until the IO operation completes. *)
-
-end
+module type BLOCK = Mirage_block.S
 
 (** {1 Network stack} *)
 
 module Network : sig
-  type error = [
-    | `Msg of string     (** an unspecified error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
+
+  type error = Mirage_device.error
   (** The type for IO operation errors *)
 
   type stats = {
@@ -323,11 +88,19 @@ module Network : sig
   }
   (** The type for frame statistics to track the usage of the
       device. *)
+
 end
+
+(** {1 Networking} *)
 
 (** A network interface that serves Ethernet frames. *)
 module type NETWORK = sig
-  open Network
+
+  type error = private [> Network.error]
+  (** The type for network errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
 
   type page_aligned_buffer
   (** The type for page-aligned memory buffers. *)
@@ -357,7 +130,7 @@ module type NETWORK = sig
   val mac: t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
 
-  val get_stats_counters: t -> stats
+  val get_stats_counters: t -> Network.stats
   (** Obtain the most recent snapshot of the device statistics. *)
 
   val reset_stats_counters: t -> unit
@@ -366,40 +139,7 @@ module type NETWORK = sig
 end
 
 module Ethif : sig
-  type error = [
-    | `Msg of string     (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-end
-module Ip : sig
-  type error = [
-    | `Msg of string     (** an undiagnosed error *)
-    | `No_route          (** can't send a message to that destination *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-end
-
-module Icmp : sig
-  type error = [
-    | `Msg of string
-    | `Routing of string
-  ]
-end
-
-module Udp : sig
-  type error = [
-    | `Msg of string     (** an undiagnosed error *)
-  ]
-end
-
-module Tcp : sig
-  type error = [
-    | `Msg of string     (** an undiagnosed error *)
-    | `Timeout
-    | `Refused
-  ]
+  type error = Mirage_device.error
 end
 
 (** {1 Ethernet stack}
@@ -408,7 +148,11 @@ end
     can associate them with IP address via ARP. *)
 module type ETHIF = sig
 
-  open Ethif
+  type error = private [> Ethif.error]
+  (** The type for ethernet interface errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
 
   type buffer
   (** The type for memory buffers. *)
@@ -431,19 +175,37 @@ module type ETHIF = sig
   val mac: t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
 
-  val input: arpv4:(buffer -> unit io) -> ipv4:(buffer -> unit io) -> ipv6:(buffer -> unit io) -> t -> buffer -> unit io
+  val input:
+    arpv4:(buffer -> unit io) ->
+    ipv4:(buffer -> unit io) ->
+    ipv6:(buffer -> unit io) ->
+    t -> buffer -> unit io
   (** [listen nf fn] is a blocking operation that calls [fn buf]
       with every packet that is read from the interface.
       The function can be stopped by calling [disconnect]
       in the device layer. *)
 end
 
-(** {1 IP stack}
+(** {1 IP stack} *)
 
-    An IP stack that parses Ethernet frames into IP packets *)
+(** IP errors. *)
+module Ip : sig
+
+  type error = [
+    | Mirage_device.error
+    | `No_route          (** can't send a message to that destination *)
+  ]
+
+end
+
+(** An IP stack that parses Ethernet frames into IP packets *)
 module type IP = sig
 
-  open Ip
+  type error = private [> Ip.error]
+  (** The type for IP errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
 
   type buffer
     (** The type for memory buffers. *)
@@ -530,10 +292,11 @@ module type IP = sig
 
 end
 
+(** {1 ARP} *)
+
+(** Arp error. *)
 module Arp : sig
-  type error = [
-    `Timeout
-  ]
+  type error = [ `Timeout]
 end
 
 module type ARP = sig
@@ -544,9 +307,15 @@ module type ARP = sig
   type macaddr
   type repr
 
+  type error = private [> Arp.error]
+  (** The type for ARP errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
+
   (** Prettyprint cache contents *)
   val to_repr : t -> repr io
-  val pp : Format.formatter -> repr -> unit
+  val pp : repr Fmt.t
 
   (** [get_ips arp] gets the bound IP address list in the [arp]
       value. *)
@@ -568,7 +337,7 @@ module type ARP = sig
   (** [query arp ip] queries the cache in [arp] for an ARP entry
       corresponding to [ip], which may result in the sender sleeping
       waiting for a response. *)
-  val query : t -> ipaddr -> (macaddr, Arp.error) result io
+  val query : t -> ipaddr -> (macaddr, error) result io
 
   (** [input arp frame] will handle an ARP frame. If it is a response,
       it will update its cache, otherwise will try to satisfy the
@@ -587,29 +356,50 @@ module type IPV6 = sig
 end
 
 (** {1 ICMP module} *)
+
+(** ICMP error. *)
+module Icmp : sig
+  type error = [`Routing of string]
+end
+
 module type ICMP = sig
-  open Icmp
   include DEVICE
 
   type ipaddr
+  (** The type for IP addresses. *)
+
   type buffer
+  (** The type for buffers. *)
+
+  type error = private [> Icmp.error]
+  (** The type for ICMP errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
 
   val input : t -> src:ipaddr -> dst:ipaddr -> buffer -> unit io
-(** [input t src dst buffer] reacts to the ICMP message in [buffer]. *)
+  (** [input t src dst buffer] reacts to the ICMP message in
+      [buffer]. *)
 
   val write : t -> dst:ipaddr -> buffer -> (unit, error) result io
-(** [write t dst buffer] sends the ICMP message in [buffer] to [dst] over IP. *)
+  (** [write t dst buffer] sends the ICMP message in [buffer] to [dst]
+      over IP. *)
 end
 
 module type ICMPV4 = sig
   include ICMP
 end
 
-(** {1 UDP stack}
+(** {1 UDP stack} *)
 
-    A UDP stack that can send and receive datagrams. *)
+(*    A UDP stack that can send and receive datagrams. *)
 module type UDP = sig
-  open Udp
+
+  type error
+  (** The type for UDP errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp] is the pretty-printer for errors. *)
 
   type buffer
   (** The type for memory buffers. *)
@@ -639,19 +429,30 @@ module type UDP = sig
       return a concrete handler or a [None], which results in the
       datagram being dropped. *)
 
-  val write: ?src_port:int -> dst:ipaddr -> dst_port:int -> t -> buffer -> (unit, error) result io
+  val write: ?src_port:int -> dst:ipaddr -> dst_port:int -> t -> buffer ->
+    (unit, error) result io
   (** [write ~src_port ~dst ~dst_port udp data] is a thread
       that writes [data] from an optional [src_port] to a [dst]
       and [dst_port] IPv4 address pair. *)
 
 end
 
-(** {1 TCP stack}
+(** {1 TCP stack} *)
 
-    A TCP stack that can send and receive reliable streams using the
+(** TCP errors. *)
+module Tcp : sig
+  type error = [ `Timeout | `Refused]
+end
+
+(** A TCP stack that can send and receive reliable streams using the
     TCP protocol. *)
 module type TCP = sig
-  open Tcp
+
+  type error = private [> Tcp.error]
+  (** The type for TCP errors. *)
+
+  type write_error = private [> Mirage_flow.write_error | Tcp.error]
+  (** The type for TCP write errors. *)
 
   type buffer
   (** The type for memory buffers. *)
@@ -678,6 +479,8 @@ module type TCP = sig
       type 'a io  := 'a io
   and type buffer := buffer
   and type flow   := flow
+  and type error  := error
+  and type write_error := write_error
 
   type callback = flow -> unit io
   (** The type for application callback that receives a [flow] that it
@@ -687,7 +490,7 @@ module type TCP = sig
   (** Get the destination IPv4 address and destination port that a
       flow is currently connected to. *)
 
-  val write_nodelay: flow -> buffer -> (unit, Flow.write_error) result io
+  val write_nodelay: flow -> buffer -> (unit, write_error) result io
   (** [write_nodelay flow buffer] writes the contents of [buffer]
       to the flow. The thread blocks until all data has been successfully
       transmitted to the remote endpoint.
@@ -695,7 +498,7 @@ module type TCP = sig
       Note that this API will change in a future revision to be a
       per-flow attribute instead of a separately exposed function. *)
 
-  val writev_nodelay: flow -> buffer list -> (unit, Flow.write_error) result io
+  val writev_nodelay: flow -> buffer list -> (unit, write_error) result io
   (** [writev_nodelay flow buffers] writes the contents of [buffers]
       to the flow. The thread blocks until all data has been successfully
       transmitted to the remote endpoint.
@@ -743,10 +546,11 @@ module type STACKV4 = sig
   type ipv4
   (** The type for IPv4 stacks. *)
 
-  type error = [
-    | `Unknown of string
-  ]
+  type error
   (** The type for I/O operation errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
 
   include DEVICE
 
@@ -809,6 +613,18 @@ end
     flow (e.g. a TCPv4 connection). *)
 module type CHANNEL = sig
 
+  type error
+  (** The type for errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
+
+  type write_error = private [> Mirage_flow.write_error]
+  (** The type for write errors. *)
+
+  val pp_write_error: write_error Fmt.t
+  (** [pp_write_error] is the pretty-printer for write errors. *)
+
   type buffer
     (** The type for memory buffers. *)
 
@@ -829,21 +645,21 @@ module type CHANNEL = sig
   val to_flow: t -> flow
   (** [to_flow t] returns the flow that backs this channel. *)
 
-  val read_char: t -> (char Flow.or_eof, Flow.error) result io
+  val read_char: t -> (char Mirage_flow.or_eof, error) result io
   (** Reads a single character from the channel, blocking if there is
       no immediately available input data. *)
 
-  val read_some: ?len:int -> t -> (buffer Flow.or_eof, Flow.error) result io
+  val read_some: ?len:int -> t -> (buffer Mirage_flow.or_eof, error) result io
   (** [read_some ?len t] reads up to [len] characters from the
       input channel and at most a full [buffer]. If [len] is not
       specified, it reads all available data and returns that
       buffer. *)
 
-  val read_exactly: len:int -> t -> (buffer list Flow.or_eof, Flow.error) result io
+  val read_exactly: len:int -> t -> (buffer list Mirage_flow.or_eof, error) result io
   (** [read_exactly len t] reads [len] bytes from the channel [t] or fails
       with [Eof]. *)
 
-  val read_line: t -> (buffer list Flow.or_eof, Flow.error) result io
+  val read_line: t -> (buffer list Mirage_flow.or_eof, error) result io
   (** [read_line t] reads a line of input, which is terminated
       either by a CRLF sequence, or the end of the channel (which
       counts as a line).  @return Returns a list of views that
@@ -867,45 +683,57 @@ module type CHANNEL = sig
   (** [write_line t buf] writes the string [buf] to the output
       channel and append a newline character afterwards. *)
 
-  val flush: t -> (unit, Flow.write_error) result io
+  val flush: t -> (unit, write_error) result io
   (** [flush t] flushes the output buffer and block if necessary
       until it is all written out to the flow. *)
 
-  val close: t -> (unit, Flow.write_error) result io
+  val close: t -> (unit, write_error) result io
   (** [close t] calls {!flush} and then close the underlying
       flow. *)
 
 end
 
 module Fs : sig
+
+  (** The type for FS errors. *)
   type error = [
-    | `Msg of string
     | `Is_a_directory      (** Cannot read or write the contents of a directory *)
     | `No_directory_entry  (** Cannot find a directory entry *)
     | `Not_a_directory     (** Cannot create a directory entry in a file *)
   ]
+
+  (** The type for FS write errors. *)
   type write_error = [
-    | `Msg of string
-    | `Is_a_directory      (** Cannot read or write the contents of a directory *)
-    | `Not_a_directory     (** Cannot create a directory entry in a file *)
-    | `Directory_not_empty (** Cannot remove a non-empty directory *)
+    | error
     | `File_already_exists (** Cannot create a file with a duplicate name *)
     | `No_directory_entry  (** Something in the path doesn't exist *)
     | `No_space            (** No space left on the block device *)
   ]
+
 end
 
 (** {1 Filesystem} *)
 module type FS = sig
 
-  open Fs
+  type error = private [> Fs.error]
+  (** The type for errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
+
+  type write_error = private [> Fs.write_error]
+  (** The type for FS write errors. *)
+
+  val pp_write_error: write_error Fmt.t
+  (** [pp_write_error] is the pretty-printer for write errors. *)
 
   include DEVICE
 
   type page_aligned_buffer
   (** The type for memory buffers. *)
 
-  val read: t -> string -> int -> int -> (page_aligned_buffer list, error) result io
+  val read: t -> string -> int -> int ->
+    (page_aligned_buffer list, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
@@ -922,14 +750,15 @@ module type FS = sig
   (** The type for Per-file/directory statistics. *)
 
   val create: t -> string -> (unit, write_error) result io
-  (** [create t path] creates an empty file at [path]. If [path] contains
-      directories that do not yet exist, [create] will attempt to create them. *)
+  (** [create t path] creates an empty file at [path]. If [path]
+      contains directories that do not yet exist, [create] will
+      attempt to create them. *)
 
   val mkdir: t -> string -> (unit, write_error) result io
-  (** [mkdir t path] creates an empty directory at [path].  If [path] contains
-      intermediate directories that do not yet exist, [mkdir] will create them.
-      If a directory already exists at [path], [mkdir] returns [`Ok ()] and
-      takes no action. *)
+  (** [mkdir t path] creates an empty directory at [path].  If [path]
+      contains intermediate directories that do not yet exist, [mkdir]
+      will create them.  If a directory already exists at [path],
+      [mkdir] returns [`Ok ()] and takes no action. *)
 
   val destroy: t -> string -> (unit, write_error) result io
   (** [destroy t path] removes a [path] (which may be a file or an
@@ -943,7 +772,8 @@ module type FS = sig
   (** [listdir t path] returns the names of files and subdirectories
       within the directory [path]. *)
 
-  val write: t -> string -> int -> page_aligned_buffer -> (unit, write_error) result io
+  val write: t -> string -> int -> page_aligned_buffer ->
+    (unit, write_error) result io
   (** [write t path offset data] writes [data] at [offset] in file
       [path] on filesystem [t].
 
@@ -954,26 +784,32 @@ module type FS = sig
 end
 
 module Kv_ro : sig
-  type error = [ `Unknown_key | `Msg of string ]
+  type error = [`Unknown_key of string]
 end
 
 (** {1 Static Key/value store} *)
 module type KV_RO = sig
 
-  open Kv_ro
+  type error = private [> Kv_ro.error]
+  (** The type for errors. *)
+
+  val pp_error: error Fmt.t
+  (** [pp_error] is the pretty-printer for errors. *)
 
   include DEVICE
 
   type page_aligned_buffer
   (** The type for memory buffers.*)
 
-  val read: t -> string -> int64 -> int64 -> (page_aligned_buffer list, error) result io
+  val read: t -> string -> int64 -> int64 ->
+    (page_aligned_buffer list, error) result io
   (** [read t key offset length] reads up to [length] bytes from the
       value associated with [key]. If less data is returned than
       requested, this indicates the end of the value. *)
 
   val mem: t -> string -> (bool, error) result io
-  (** [mem t key] returns [true] if a value is set for [key] in [t], and [false] if not so. *)
+  (** [mem t key] returns [true] if a value is set for [key] in [t],
+      and [false] if not so. *)
 
   val size: t -> string -> (int64, error) result io
   (** Get the value size. *)

@@ -684,59 +684,60 @@ module Make (P: S) = struct
     let full_eval = Cmd.read_full_eval argv in
 
     (*    (c) the config file passed as argument, if any *)
-    (match Cmd.read_config_file argv with
-     | None -> ()
-     | Some cfg -> set_config_file cfg);
+    match Cmd.read_config_file argv with
+    | None -> handle_parse_args_no_config (`Msg "couldn't read config file\n") argv
+    | Some cfg ->
+      set_config_file cfg ;
 
-    (* 2. Load the config from the config file. *)
-    (* There are three possible outcomes:
+      (* 2. Load the config from the config file. *)
+      (* There are three possible outcomes:
          1. the config file is found and loaded successfully
          2. no config file is specified
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-    match load' (get_config_file ()) with
-    | Error err -> handle_parse_args_no_config err argv
-    | Ok config ->
+      match load' (get_config_file ()) with
+      | Error err -> handle_parse_args_no_config err argv
+      | Ok config ->
 
-       let config_keys = Config.keys config in
-       let context_args =
-         Key.context ~stage:`Configure ~with_required:false config_keys
-       in
+        let config_keys = Config.keys config in
+        let context_args =
+          Key.context ~stage:`Configure ~with_required:false config_keys
+        in
 
-       let cached_context = Cache.get_context config.root context_args in
-       let context =
-         match Cmdliner.Term.eval_peek_opts ~argv context_args with
-         | _, `Ok context -> context
-         | _ -> Functoria_key.empty_context
-       in
+        let cached_context = Cache.get_context config.root context_args in
+        let context =
+          match Cmdliner.Term.eval_peek_opts ~argv context_args with
+          | _, `Ok context -> context
+          | _ -> Functoria_key.empty_context
+        in
 
-       (* 3. Parse the command-line and handle the result. *)
+        (* 3. Parse the command-line and handle the result. *)
 
-       let configure =
-         Config'.eval ~with_required:true ~partial:false context config
-       and describe =
-         let context = Cache.merge ~cache:cached_context context in
-         let partial = match full_eval with
-           | Some true  -> false
-           | Some false -> true
-           | None -> not (Cache.present cached_context)
-         in
-         Config'.eval ~with_required:false ~partial context config
-       and build =
-         Config'.eval_cached ~partial:false cached_context config
-       and clean =
-         Config'.eval_cached ~partial:false cached_context config
-       in
+        let configure =
+          Config'.eval ~with_required:true ~partial:false context config
+        and describe =
+          let context = Cache.merge ~cache:cached_context context in
+          let partial = match full_eval with
+            | Some true  -> false
+            | Some false -> true
+            | None -> not (Cache.present cached_context)
+          in
+          Config'.eval ~with_required:false ~partial context config
+        and build =
+          Config'.eval_cached ~partial:false cached_context config
+        and clean =
+          Config'.eval_cached ~partial:false cached_context config
+        in
 
-       handle_parse_args_result
-         (Functoria_command_line.parse_args ~name:P.name ~version:P.version
-            ~configure
-            ~describe
-            ~build
-            ~clean
-            ~help:base_context_arg
-            argv)
+        handle_parse_args_result
+          (Functoria_command_line.parse_args ~name:P.name ~version:P.version
+             ~configure
+             ~describe
+             ~build
+             ~clean
+             ~help:base_context_arg
+             argv)
 
   let run () = run_with_argv Sys.argv
 end

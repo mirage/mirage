@@ -591,7 +591,7 @@ module Make (P: S) = struct
       let err = Dynlink.error_message err in
       let msg = Printf.sprintf
           "error %s while loading configuration, please run 'configure' \
-           subcommand (see '%s configure --help' for details)" err P.name
+           subcommand (see '%s help configure' for details)" err P.name
       in
       Error (`Msg msg)
 

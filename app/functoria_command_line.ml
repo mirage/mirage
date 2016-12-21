@@ -228,9 +228,8 @@ struct
            `P "The $(mname) application builder. It glues together a set of \
                libraries and configuration (e.g. network and storage) into a \
                standalone unikernel or UNIX binary.";
-           `P "Use either $(b,$(mname) <command> --help) or \
-               $(b,($mname) help <command>) for more information on a specific \
-               command.";
+           `P "Use $(b,($mname) help <command>) for more information on a \
+               specific command.";
          ] @  help_sections))
 end
 

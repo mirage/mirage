@@ -551,12 +551,9 @@ module Make (P: S) = struct
     in
     with_fmt f
 
-  (* Compile the configuration file and attempt to dynlink it.
-   * It is responsible for registering an application via
-   * [register] in order to have an observable
-   * side effect to this command. *)
-  let compile_and_dynlink file =
-    Log.info (fun m -> m "Processing: %a" Fpath.pp file);
+  (* Compile the configuration file. *)
+  let compile file =
+    Log.info (fun m -> m "Compiling: %a" Fpath.pp file);
     let file = Dynlink.adapt_filename (Fpath.to_string file)
     and cfg = Fpath.rem_ext file
     and root = get_root ()
@@ -570,13 +567,25 @@ module Make (P: S) = struct
                     "-tags" % "bin_annot,color(always)" % "-quiet" %
                     "-X" % "_build-ukvm" % "-pkg" % P.name % file)
          in
-         Bos.OS.Cmd.run cmd >>= fun _ ->
-         try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
-         with Dynlink.Error err ->
-           Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));
-           let msg = Printf.sprintf "error loading configuration, please run 'configure' subcommand (see '%s configure --help' for details)" P.name in
-           Error (`Msg msg))
-      "compile and dynlink"
+         Bos.OS.Cmd.run cmd)
+      "compile configuration"
+
+  (* attempt to dynlink the configuration file.
+   * It is responsible for registering an application via
+   * [register] in order to have an observable
+   * side effect to this command *)
+  let dynlink file =
+    let file = Dynlink.adapt_filename (Fpath.to_string file)
+    and root = get_root ()
+    in
+    try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
+    with Dynlink.Error err ->
+      let err = Dynlink.error_message err in
+      let msg = Printf.sprintf
+          "error %s while loading configuration, please run 'configure' \
+           subcommand (see '%s configure --help' for details)" err P.name
+      in
+      Error (`Msg msg)
 
   module Config' = struct
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
@@ -598,7 +607,8 @@ module Make (P: S) = struct
   end
 
   let load' file =
-    compile_and_dynlink file >>= fun () ->
+    compile file >>= fun () ->
+    dynlink file >>= fun () ->
     registered () >>= fun t ->
     Log.info (fun m -> m "using configuration %s" (Config.name t));
     Ok t

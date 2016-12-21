@@ -551,12 +551,9 @@ module Make (P: S) = struct
     in
     with_fmt f
 
-  (* Compile the configuration file and attempt to dynlink it.
-   * It is responsible for registering an application via
-   * [register] in order to have an observable
-   * side effect to this command. *)
-  let compile_and_dynlink file =
-    Log.info (fun m -> m "Processing: %a" Fpath.pp file);
+  (* Compile the configuration file. *)
+  let compile file =
+    Log.info (fun m -> m "Compiling: %a" Fpath.pp file);
     let file = Dynlink.adapt_filename (Fpath.to_string file)
     and cfg = Fpath.rem_ext file
     and root = get_root ()
@@ -567,16 +564,36 @@ module Make (P: S) = struct
       (fun () ->
          let cmd =
            Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" % "-classic-display" %
-                    "-tags" % "bin_annot,color(always)" % "-quiet" %
+                    "-tags" % "bin_annot" % "-quiet" %
                     "-X" % "_build-ukvm" % "-pkg" % P.name % file)
          in
-         Bos.OS.Cmd.run cmd >>= fun _ ->
-         try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
-         with Dynlink.Error err ->
-           Log.err (fun m -> m "Error loading config: %s" (Dynlink.error_message err));
-           let msg = Printf.sprintf "error loading configuration, please run 'configure' subcommand (see '%s configure --help' for details)" P.name in
-           Error (`Msg msg))
-      "compile and dynlink"
+         Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
+         match snd status with
+         | `Exited 0 ->  Ok ()
+         | `Exited _
+         | `Signaled _ ->
+           Format.fprintf Format.str_formatter "error while executing %a\n%s"
+             Bos.Cmd.pp cmd out ;
+           let err = Format.flush_str_formatter () in
+           Error (`Msg err))
+      "compile configuration"
+
+  (* attempt to dynlink the configuration file.
+   * It is responsible for registering an application via
+   * [register] in order to have an observable
+   * side effect to this command *)
+  let dynlink file =
+    let file = Dynlink.adapt_filename (Fpath.to_string file)
+    and root = get_root ()
+    in
+    try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
+    with Dynlink.Error err ->
+      let err = Dynlink.error_message err in
+      let msg = Printf.sprintf
+          "error %s while loading configuration, please run 'configure' \
+           subcommand (see '%s help configure' for details)" err P.name
+      in
+      Error (`Msg msg)
 
   module Config' = struct
     let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
@@ -598,7 +615,13 @@ module Make (P: S) = struct
   end
 
   let load' file =
-    compile_and_dynlink file >>= fun () ->
+    ( match Bos.OS.File.must_exist file with
+      | Ok _ -> Ok ()
+      | Error _ ->
+        Error (`Msg ("configuration file " ^ Fpath.to_string file^ " missing\n"))
+    ) >>= fun () ->
+    compile file >>= fun () ->
+    dynlink file >>= fun () ->
     registered () >>= fun t ->
     Log.info (fun m -> m "using configuration %s" (Config.name t));
     Ok t
@@ -607,22 +630,29 @@ module Make (P: S) = struct
   let base_context_arg = Key.context base_keys
       ~with_required:false ~stage:`Configure
 
+  let exit_err = function
+    | Ok v -> v
+    | Error (`Msg m) ->
+      R.pp_msg Format.std_formatter (`Msg m) ;
+      print_newline ();
+      exit 1
+
   let handle_parse_args_result = let module Cmd = Functoria_command_line in
     function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
     | `Ok (Cmd.Configure (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      R.error_msg_to_invalid_arg (configure info jobs)
+      exit_err (configure info jobs)
     | `Ok (Cmd.Build (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      R.error_msg_to_invalid_arg (build info jobs)
+      exit_err (build info jobs)
     | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
       Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
       R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
     | `Ok (Cmd.Clean (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      R.error_msg_to_invalid_arg (clean info jobs)
+      exit_err (clean info jobs)
     | `Version
     | `Help -> ()
 
@@ -641,72 +671,73 @@ module Make (P: S) = struct
     | `Ok Cmd.Help -> ()
     | `Error _
     | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
-      R.error_msg_to_invalid_arg (Error error)
+      exit_err (Error error)
     | `Version
     | `Help -> ()
 
   let run_with_argv argv =
     let module Cmd = Functoria_command_line in
-    (* 1. Pre-parse the arguments to load the config file, set the log
-     *    level, and determine whether the graph should be fully
-     *    evaluated. *)
+    (* 1. (a) Pre-parse the arguments set the log level. *)
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
 
-    (*    (c) whether to fully evaluate the graph *)
+    (*    (b) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
 
-    (*    (d) the config file passed as argument, if any *)
-    set_config_file (Cmd.read_config_file argv) ;
+    (*    (c) the config file passed as argument, if any *)
+    match Cmd.read_config_file argv with
+    | None -> handle_parse_args_no_config (`Msg "couldn't read config file\n") argv
+    | Some cfg ->
+      set_config_file cfg ;
 
-    (* 2. Load the config from the config file. *)
-    (* There are three possible outcomes:
+      (* 2. Load the config from the config file. *)
+      (* There are three possible outcomes:
          1. the config file is found and loaded successfully
          2. no config file is specified
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-    match load' (get_config_file ()) with
-    | Error err -> handle_parse_args_no_config err argv
-    | Ok config ->
+      match load' (get_config_file ()) with
+      | Error err -> handle_parse_args_no_config err argv
+      | Ok config ->
 
-       let config_keys = Config.keys config in
-       let context_args =
-         Key.context ~stage:`Configure ~with_required:false config_keys
-       in
+        let config_keys = Config.keys config in
+        let context_args =
+          Key.context ~stage:`Configure ~with_required:false config_keys
+        in
 
-       let cached_context = Cache.get_context config.root context_args in
-       let context =
-         match Cmdliner.Term.eval_peek_opts ~argv context_args with
-         | _, `Ok context -> context
-         | _ -> Functoria_key.empty_context
-       in
+        let cached_context = Cache.get_context config.root context_args in
+        let context =
+          match Cmdliner.Term.eval_peek_opts ~argv context_args with
+          | _, `Ok context -> context
+          | _ -> Functoria_key.empty_context
+        in
 
-       (* 3. Parse the command-line and handle the result. *)
+        (* 3. Parse the command-line and handle the result. *)
 
-       let configure =
-         Config'.eval ~with_required:true ~partial:false context config
-       and describe =
-         let context = Cache.merge ~cache:cached_context context in
-         let partial = match full_eval with
-           | Some true  -> false
-           | Some false -> true
-           | None -> not (Cache.present cached_context)
-         in
-         Config'.eval ~with_required:false ~partial context config
-       and build =
-         Config'.eval_cached ~partial:false cached_context config
-       and clean =
-         Config'.eval_cached ~partial:false cached_context config
-       in
+        let configure =
+          Config'.eval ~with_required:true ~partial:false context config
+        and describe =
+          let context = Cache.merge ~cache:cached_context context in
+          let partial = match full_eval with
+            | Some true  -> false
+            | Some false -> true
+            | None -> not (Cache.present cached_context)
+          in
+          Config'.eval ~with_required:false ~partial context config
+        and build =
+          Config'.eval_cached ~partial:false cached_context config
+        and clean =
+          Config'.eval_cached ~partial:false cached_context config
+        in
 
-       handle_parse_args_result
-         (Functoria_command_line.parse_args ~name:P.name ~version:P.version
-            ~configure
-            ~describe
-            ~build
-            ~clean
-            ~help:base_context_arg
-            argv)
+        handle_parse_args_result
+          (Functoria_command_line.parse_args ~name:P.name ~version:P.version
+             ~configure
+             ~describe
+             ~build
+             ~clean
+             ~help:base_context_arg
+             argv)
 
   let run () = run_with_argv Sys.argv
 end

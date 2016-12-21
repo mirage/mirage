@@ -17,8 +17,7 @@
 let setup_log style_renderer level =
   Fmt_tty.setup_std_outputs ?style_renderer ();
   Logs.set_level level;
-  Logs.set_reporter (Logs_fmt.reporter ());
-  ()
+  Logs.set_reporter (Logs_fmt.reporter ())
 
 open Cmdliner
 
@@ -205,7 +204,7 @@ struct
         | `Error e -> `Error (false, e)
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
-    (Term.(const (fun _ () -> Help) $ setup_log $
+    (Term.(const (fun _ _ () -> Help) $ setup_log $ config_file $
            ret (Term.(const help $ Term.man_format $ Term.choice_names
                       $ topic $ base_context))),
      Term.info "help"
@@ -229,23 +228,22 @@ struct
            `P "The $(mname) application builder. It glues together a set of \
                libraries and configuration (e.g. network and storage) into a \
                standalone unikernel or UNIX binary.";
-           `P "Use either $(b,$(mname) <command> --help) or \
-               $(b,($mname) help <command>) for more information on a specific \
-               command.";
+           `P "Use $(b,($mname) help <command>) for more information on a \
+               specific command.";
          ] @  help_sections))
 end
 
 (*
  * Functions for extracting particular flags from the command line.
  *)
-let read_config_file : string array -> Fpath.t =
+let read_config_file : string array -> Fpath.t option =
   fun argv -> match Term.eval_peek_opts ~argv config_file with
-    | _, `Ok config ->
-      if Sys.file_exists config && not (Sys.is_directory config) && Fpath.is_seg config then
-        Fpath.v config
+    | _, `Ok config when Fpath.is_seg config ->
+      if Sys.file_exists config && not (Sys.is_directory config) then
+        Some (Fpath.v config)
       else
-        invalid_arg "config must be an existing file (single segment)"
-    | _ -> invalid_arg "parse error while parsing command line"
+        None
+    | _ -> invalid_arg "config must be an existing file (single segment)"
 
 let read_full_eval : string array -> bool option =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with

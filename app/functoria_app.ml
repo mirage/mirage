@@ -564,10 +564,18 @@ module Make (P: S) = struct
       (fun () ->
          let cmd =
            Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" % "-classic-display" %
-                    "-tags" % "bin_annot,color(always)" % "-quiet" %
+                    "-tags" % "bin_annot" % "-quiet" %
                     "-X" % "_build-ukvm" % "-pkg" % P.name % file)
          in
-         Bos.OS.Cmd.run cmd)
+         Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
+         match snd status with
+         | `Exited 0 ->  Ok ()
+         | `Exited _
+         | `Signaled _ ->
+           Format.fprintf Format.str_formatter "error while executing %a\n%s"
+             Bos.Cmd.pp cmd out ;
+           let err = Format.flush_str_formatter () in
+           Error (`Msg err))
       "compile configuration"
 
   (* attempt to dynlink the configuration file.
@@ -607,6 +615,11 @@ module Make (P: S) = struct
   end
 
   let load' file =
+    ( match Bos.OS.File.must_exist file with
+      | Ok _ -> Ok ()
+      | Error _ ->
+        Error (`Msg ("configuration file " ^ Fpath.to_string file^ " missing\n"))
+    ) >>= fun () ->
     compile file >>= fun () ->
     dynlink file >>= fun () ->
     registered () >>= fun t ->
@@ -617,22 +630,29 @@ module Make (P: S) = struct
   let base_context_arg = Key.context base_keys
       ~with_required:false ~stage:`Configure
 
+  let exit_err = function
+    | Ok v -> v
+    | Error (`Msg m) ->
+      R.pp_msg Format.std_formatter (`Msg m) ;
+      print_newline ();
+      exit 1
+
   let handle_parse_args_result = let module Cmd = Functoria_command_line in
     function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
     | `Ok (Cmd.Configure (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      R.error_msg_to_invalid_arg (configure info jobs)
+      exit_err (configure info jobs)
     | `Ok (Cmd.Build (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      R.error_msg_to_invalid_arg (build info jobs)
+      exit_err (build info jobs)
     | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
       Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
       R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
     | `Ok (Cmd.Clean (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      R.error_msg_to_invalid_arg (clean info jobs)
+      exit_err (clean info jobs)
     | `Version
     | `Help -> ()
 
@@ -651,7 +671,7 @@ module Make (P: S) = struct
     | `Ok Cmd.Help -> ()
     | `Error _
     | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
-      R.error_msg_to_invalid_arg (Error error)
+      exit_err (Error error)
     | `Version
     | `Help -> ()
 

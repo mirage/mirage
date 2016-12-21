@@ -442,6 +442,7 @@ end
 (** TCP errors. *)
 module Tcp : sig
   type error = [ `Timeout | `Refused]
+  type write_error = [ error | Mirage_flow.write_error]
 end
 
 (** A TCP stack that can send and receive reliable streams using the
@@ -451,7 +452,7 @@ module type TCP = sig
   type error = private [> Tcp.error]
   (** The type for TCP errors. *)
 
-  type write_error = private [> Mirage_flow.write_error | Tcp.error]
+  type write_error = private [> Tcp.write_error]
   (** The type for TCP write errors. *)
 
   type buffer

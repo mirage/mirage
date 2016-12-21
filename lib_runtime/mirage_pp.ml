@@ -17,6 +17,10 @@ let pp_tcp_error ppf = function
   | `Timeout -> Fmt.string ppf "connection attempt timed out"
   | `Refused -> Fmt.string ppf "connection attempt was refused"
 
+let pp_tcp_write_error ppf = function
+  | #Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
+  | #V1.Tcp.error as e            -> pp_tcp_error ppf e
+
 let pp_fs_error ppf = function
     | `Is_a_directory      -> Fmt.string ppf "is a directory"
     | `Not_a_directory     -> Fmt.string ppf "is not a directory"

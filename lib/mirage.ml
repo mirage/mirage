@@ -1120,11 +1120,11 @@ let argv_qubes = impl @@ object
     method name = "argv_qubes"
     method module_name = "Bootvar"
     method packages = Key.pure [ package "mirage-bootvar-xen" ]
-    method connect _ _ _ =
+    method connect _ _ _ = Fmt.strf
       (* Qubes tries to pass some nice arguments.
        * It means well, but we can't do much with them,
        * and they cause Functoria to abort. *)
-      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) in\
+      "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) in@ \
        Bootvar.argv ~filter ()"
   end
 

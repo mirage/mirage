@@ -2,14 +2,15 @@
 
 MirageOS is a library operating system that constructs unikernels for secure,
 high-performance network applications across a variety of cloud computing and
-mobile platforms. Code can be developed on a normal OS such as Linux or
+mobile platforms. Code can be developed on a traditional OS such as Linux or
 MacOS X, and then compiled into a fully-standalone, specialised unikernel that
-runs under the Xen hypervisor. Since Xen powers most public cloud computing
-infrastructure such as Amazon EC2 or Rackspace, this lets your servers run
-more cheaply, securely and with finer control than with a full software stack.
+runs under the Xen or KVM hypervisors as well as lightweight hypervisors like
+BSD's bhyve.  Xen and KVM power many public clouds;
+MirageOS unikernels are currently running on Amazon's Elastic Compute Cloud
+and Google Compute Engine, and maybe others!
 
 The most up-to-date documentation can be found at the
-[homepage](https://mirage.io). The site is self-hosted and a useful
+[homepage](https://mirage.io). The site is self-hosted, and is itself a useful
 [example](https://github.com/mirage/mirage-www). Simpler
 [skeleton applications](https://github.com/mirage/mirage-skeleton) are also
 available online.

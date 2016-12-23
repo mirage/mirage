@@ -14,4 +14,10 @@ depends: [
   "io-page" {>="1.4.0"}
   "ipaddr"
   "mirage-types" {>="3.0.0"}
+  "mirage-clock-lwt"
+  "mirage-time-lwt"
+  "mirage-random"
+  "mirage-flow-lwt"
+  "mirage-console-lwt" {>= "1.2.0"}
+  "mirage-block-lwt" {>= "1.0.0"}
 ]

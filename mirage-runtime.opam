@@ -17,6 +17,7 @@ depends: [
   "topkg"      {build & >= "0.8.0"}
   "ipaddr"             {>= "2.6.0"}
   "functoria-runtime"
+  "fmt"
   "astring"
   "logs"
   "mirage-types"

@@ -141,7 +141,7 @@ module Flow : sig
 end
 
 (** {1 Connection between endpoints} *)
-module type FLOW = sig
+module type RFLOW = sig
 
   type +'a io
   (** The type for potentially blocking I/O operations. *)
@@ -153,7 +153,19 @@ module type FLOW = sig
   (** The type for flows. A flow represents the state of a single
       reliable stream that is connected to an endpoint. *)
 
-  val read: flow -> (buffer Flow.or_eof, Flow.error) result io
+  type error
+  (** the type for read errors. *)
+
+  type write_error
+  (** the type for write errors. *)
+
+  val pp_error : Format.formatter -> error -> unit
+  (** a printer for errors. *)
+
+  val pp_write_error : Format.formatter -> write_error -> unit
+  (** a printer for write errors. *)
+
+  val read: flow -> (buffer Flow.or_eof, error) result io
   (** [read flow] blocks until some data is available and returns a
       fresh buffer containing it.
 
@@ -166,7 +178,7 @@ module type FLOW = sig
       called [close] and when there is no more in-flight data.
    *)
 
-  val write: flow -> buffer -> (unit, Flow.write_error) result io
+  val write: flow -> buffer -> (unit, write_error) result io
   (** [write flow buffer] writes a buffer to the flow. There is no
       indication when the buffer has actually been read and, therefore,
       it must not be reused.  The contents may be transmitted in
@@ -175,7 +187,7 @@ module type FLOW = sig
       connection is now closed and therefore the data could not be
       written.  Other errors are possible. *)
 
-  val writev: flow -> buffer list -> (unit, Flow.write_error) result io
+  val writev: flow -> buffer list -> (unit, write_error) result io
   (** [writev flow buffers] writes a sequence of buffers to the flow.
       There is no indication when the buffers have actually been read and,
       therefore, they must not be reused. The
@@ -200,6 +212,10 @@ module type FLOW = sig
       and resources associated with the flow can be freed.
       *)
 end
+
+module type FLOW = RFLOW
+  with type error = private [> Flow.error]
+   and type write_error = private [> Flow.write_error]
 
 (** {1 Console input/output} *)
 module Console : sig
@@ -678,6 +694,7 @@ module type TCP = sig
       type 'a io  := 'a io
   and type buffer := buffer
   and type flow   := flow
+  and type error  := Tcp.error
 
   type callback = flow -> unit io
   (** The type for application callback that receives a [flow] that it

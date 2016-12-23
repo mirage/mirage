@@ -240,7 +240,7 @@ val network: network typ
 (** Implementations of the [V1.NETWORK] signature. *)
 
 val default_network: network impl
-(** [default_network] is a dynamic network implementatation
+(** [default_network] is a dynamic network implementation
  *  which attempts to do something reasonable based on the target. *)
 
 val netif: ?group:string -> string -> network impl
@@ -431,8 +431,8 @@ val http_server: conduit impl -> http impl
 (** {2 Argv configuration} *)
 
 val default_argv: Functoria_app.argv impl
-(** [default_argv] is a dynamic argv implementation that resolves
-    either to the xen or the unix implementation. *)
+(** [default_argv] is a dynamic argv implementation
+ *  which attempts to do something reasonable based on the target. *)
 
 val no_argv: Functoria_app.argv impl
 (** [no_argv] Disable command line parsing and set argv to [|""|]. *)

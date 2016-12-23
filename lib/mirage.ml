@@ -1088,15 +1088,6 @@ let argv_unix = impl @@ object
     method connect _ _ _ = "OS.Env.argv ()"
   end
 
-let argv_xen = impl @@ object
-    inherit base_configurable
-    method ty = Functoria_app.argv
-    method name = "argv_xen"
-    method module_name = "Bootvar"
-    method packages = Key.pure [ package "mirage-bootvar-xen" ]
-    method connect _ _ _ = "Bootvar.argv ()"
-  end
-
 let argv_solo5 = impl @@ object
     inherit base_configurable
     method ty = Functoria_app.argv
@@ -1114,15 +1105,15 @@ let no_argv = impl @@ object
     method connect _ _ _ = "Lwt.return [|\"\"|]"
   end
 
-let argv_qubes = impl @@ object
+let argv_xen = impl @@ object
     inherit base_configurable
     method ty = Functoria_app.argv
     method name = "argv_qubes"
     method module_name = "Bootvar"
     method packages = Key.pure [ package "mirage-bootvar-xen" ]
     method connect _ _ _ = Fmt.strf
-      (* Qubes tries to pass some nice arguments.
-       * It means well, but we can't do much with them,
+      (* Some hypervisor configurations try to pass some extra arguments.
+       * They means well, but we can't do much with them,
        * and they cause Functoria to abort. *)
       "let filter (key, _) = List.mem key (List.map snd Key_gen.runtime_keys) in@ \
        Bootvar.argv ~filter ()"
@@ -1131,7 +1122,7 @@ let argv_qubes = impl @@ object
 let default_argv =
   match_impl Key.(value target) [
     `Xen, argv_xen;
-    `Qubes, argv_qubes;
+    `Qubes, argv_xen;
     `Virtio, argv_solo5;
     `Ukvm, argv_solo5
   ] ~default:argv_unix

@@ -33,11 +33,7 @@ module type CONSOLE = Mirage_console_lwt.S
 module type BLOCK = Mirage_block_lwt.S
 
 (** Network *)
-module type NETWORK = NETWORK
-  with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Io_page.t
-   and type buffer = Cstruct.t
-   and type macaddr = Macaddr.t
+module type NETWORK = Mirage_net_lwt.S
 
 (** Ethernet interface *)
 module type ETHIF = ETHIF

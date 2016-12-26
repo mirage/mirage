@@ -1,6 +1,5 @@
 open V1
 
-let pp_network_error = Mirage_device.pp_error
 let pp_ethif_error = Mirage_device.pp_error
 
 let pp_arp_error ppf = function

@@ -50,7 +50,7 @@ open Result
 
 module type DEVICE = Mirage_device.S
 
-(** {1 Time-related devices} *)
+(** {1 Time and clock devices} *)
 
 module type TIME  = Mirage_time.S
 module type MCLOCK = Mirage_clock.MCLOCK
@@ -75,77 +75,17 @@ module type BLOCK = Mirage_block.S
 
 (** {1 Network stack} *)
 
-module Network : sig
-
-  type error = Mirage_device.error
-  (** The type for IO operation errors *)
-
-  type stats = {
-    mutable rx_bytes: int64;
-    mutable rx_pkts: int32;
-    mutable tx_bytes: int64;
-    mutable tx_pkts: int32;
-  }
-  (** The type for frame statistics to track the usage of the
-      device. *)
-
-end
-
-(** {1 Networking} *)
-
-(** A network interface that serves Ethernet frames. *)
-module type NETWORK = sig
-
-  type error = private [> Network.error]
-  (** The type for network errors. *)
-
-  val pp_error: error Fmt.t
-  (** [pp_error] is the pretty-printer for errors. *)
-
-  type page_aligned_buffer
-  (** The type for page-aligned memory buffers. *)
-
-  type buffer
-  (** The type for memory buffers. *)
-
-  type macaddr
-  (** The type for unique MAC identifiers for the device. *)
-
-  include DEVICE
-
-  val write: t -> buffer -> (unit, error) result io
-  (** [write nf buf] outputs [buf] to netfront [nf]. *)
-
-  val writev: t -> buffer list -> (unit, error) result io
-  (** [writev nf bufs] output a list of buffers to netfront [nf] as a
-      single packet. *)
-
-  (* XXX: listen currently runs forever (documentation wrong)! *)
-  val listen: t -> (buffer -> unit io) -> (unit, error) result io
-  (** [listen nf fn] is a blocking operation that calls [fn buf] with
-      every packet that is read from the interface.
-      The function can be stopped by calling [disconnect]
-      in the device layer. *)
-
-  val mac: t -> macaddr
-  (** [mac nf] is the MAC address of [nf]. *)
-
-  val get_stats_counters: t -> Network.stats
-  (** Obtain the most recent snapshot of the device statistics. *)
-
-  val reset_stats_counters: t -> unit
-  (** Reset the statistics associated with this device to their
-      defaults. *)
-end
-
-module Ethif : sig
-  type error = Mirage_device.error
-end
+module type NETWORK = Mirage_net.S
 
 (** {1 Ethernet stack}
 
     An Ethernet stack that parses frames from a network device and
     can associate them with IP address via ARP. *)
+
+module Ethif : sig
+  type error = Mirage_device.error
+end
+
 module type ETHIF = sig
 
   type error = private [> Ethif.error]

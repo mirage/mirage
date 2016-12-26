@@ -1,6 +1,5 @@
 open V1
 
-val pp_network_error: Network.error Fmt.t
 val pp_ethif_error: Ethif.error Fmt.t
 val pp_arp_error: Arp.error Fmt.t
 val pp_ip_error: Ip.error Fmt.t

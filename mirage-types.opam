@@ -20,4 +20,5 @@ depends:   [
   "mirage-flow"
   "mirage-console"
   "mirage-block" {>= "1.0.0"}
+  "mirage-net" {>= "1.0.0"}
 ]

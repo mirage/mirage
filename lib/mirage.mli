@@ -46,11 +46,11 @@ val mprof_trace : size:int -> unit -> tracing impl
 
 type qubesdb
 
-val qubesdb : qubesdb typ
+val qubesdb: qubesdb typ
 (** For the Qubes target, the Qubes database from which to look up
  *  dynamic runtime configuration information. *)
 
-val default_qubesdb : qubesdb impl
+val default_qubesdb: qubesdb impl
 (** A default qubes database, guessed from the usual valid configurations. *)
 
 
@@ -220,7 +220,7 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 
 (** {2 Generic key/value stores} *)
 
-val generic_kv_ro :
+val generic_kv_ro:
   ?key:[ `Archive | `Crunch | `Direct | `Fat ] value -> string -> kv_ro impl
 (** Generic key/value that will choose dynamically between
     {!fat}, {!archive} and {!crunch}.  To use a filesystem implementation,
@@ -252,7 +252,7 @@ val netif: ?group:string -> string -> network impl
 
 type ethernet
 
-val ethernet : ethernet typ
+val ethernet: ethernet typ
 (** Implementations of the [V1.ETHIF] signature. *)
 
 val etif: network impl -> ethernet impl
@@ -261,10 +261,10 @@ val etif: network impl -> ethernet impl
 
 type arpv4
 
-val arpv4 : arpv4 typ
+val arpv4: arpv4 typ
 (** Implementation of the [V1.ARPV4] signature. *)
 
-val arp: ?clock: mclock impl -> ?time: time impl -> ethernet impl -> arpv4 impl
+val arp: ?clock:mclock impl -> ?time:time impl -> ethernet impl -> arpv4 impl
 
 (** {2 IP configuration}
 
@@ -292,12 +292,12 @@ type ipv4_config = {
 
 type ipv6_config = {
   addresses : Ipaddr.V6.t list;
-  netmasks : Ipaddr.V6.Prefix.t list;
-  gateways : Ipaddr.V6.t list;
+  netmasks  : Ipaddr.V6.Prefix.t list;
+  gateways  : Ipaddr.V6.t list;
 }
 (** Types for IP manual configuration. *)
 
-val create_ipv4 : ?group:string ->
+val create_ipv4: ?group:string ->
   ?config:ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address
     Exposes the keys {!Key.V4.ipv4} and {!Key.V4.ipv4-gateway}.
@@ -305,7 +305,7 @@ val create_ipv4 : ?group:string ->
     in the ipv4 configuration record, if that has been provided.
 *)
 
-val ipv4_qubes : qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+val ipv4_qubes: qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use a given initialized QubesDB to look up and configure the appropriate
  *  IPv4 interface. *)
 
@@ -377,16 +377,16 @@ val socket_stackv4:
 
 (** Build a stackv4 by looking up configuration information via QubesDB,
  *  building an ipv4, then building a stack on top of that. *)
-val qubes_ipv4_stack : ?group:string -> ?qubesdb : qubesdb impl -> network impl -> stackv4 impl
+val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> network impl -> stackv4 impl
 
 (** Build a stackv4 by obtaining a DHCP lease, using the lease to
  *  build an ipv4, then building a stack on top of that. *)
-val dhcp_ipv4_stack : ?group:string -> ?time : time impl -> network impl -> stackv4 impl
+val dhcp_ipv4_stack: ?group:string -> ?time:time impl -> network impl -> stackv4 impl
 
 (** Build a stackv4 by checking the {Key.ip4}, and {Key.ipv4-gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],
  *  then building a stack on top of that. *)
-val static_ipv4_stack : ?group:string -> ?config : ipv4_config -> network impl -> stackv4 impl
+val static_ipv4_stack: ?group:string -> ?config:ipv4_config -> network impl -> stackv4 impl
 
 (** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
     - If [target] = [Qubes] then {!qubes_ipv4_stack} is used.
@@ -397,7 +397,7 @@ val static_ipv4_stack : ?group:string -> ?config : ipv4_config -> network impl -
     If a key is not provided, it uses {!Key.net} or {!Key.dhcp} (with the
     [group] argument) to create it.
 *)
-val generic_stackv4 :
+val generic_stackv4:
   ?group:string -> ?config:ipv4_config ->
   ?dhcp_key:bool value ->
   ?net_key:[ `Direct | `Socket ] value ->
@@ -407,9 +407,9 @@ val generic_stackv4 :
 
 type resolver
 val resolver: resolver typ
-val resolver_dns :
+val resolver_dns:
   ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?time:time impl -> stackv4 impl -> resolver impl
-val resolver_unix_system : resolver impl
+val resolver_unix_system: resolver impl
 
 (** {2 Syslog configuration *)
 
@@ -424,7 +424,7 @@ type syslog_config = {
   truncate : int option
 }
 
-val syslog_config : ?port:int -> ?truncate:int -> string -> Ipaddr.V4.t -> syslog_config
+val syslog_config: ?port:int -> ?truncate:int -> string -> Ipaddr.V4.t -> syslog_config
 (** Helper for constructing a {!syslog_config}. *)
 
 type syslog
@@ -433,15 +433,15 @@ type syslog
 val syslog: syslog typ
 (** Implementation of the {!syslog} type. *)
 
-val syslog_udp : syslog_config -> ?console:console impl -> ?clock:pclock impl ->
+val syslog_udp: syslog_config -> ?console:console impl -> ?clock:pclock impl ->
   stackv4 impl -> syslog impl
 (** Emit log messages via UDP to the configured host. *)
 
-val syslog_tcp : syslog_config -> ?console:console impl -> ?clock:pclock impl ->
+val syslog_tcp: syslog_config -> ?console:console impl -> ?clock:pclock impl ->
   stackv4 impl -> syslog impl
 (** Emit log messages via TCP to the configured host. *)
 
-val syslog_tls : syslog_config -> ?keyname:string -> ?console:console impl ->
+val syslog_tls: syslog_config -> ?keyname:string -> ?console:console impl ->
   ?clock:pclock impl -> stackv4 impl -> kv_ro impl -> syslog impl
 (** Emit log messages via TLS to the configured host, using the credentials
     (private ekey, certificate, trust anchor) provided in the KV_RO using the
@@ -449,14 +449,14 @@ val syslog_tls : syslog_config -> ?keyname:string -> ?console:console impl ->
 
 (** {2 Entropy} *)
 
-val nocrypto : job impl
+val nocrypto: job impl
 (** Device that initializes the entropy. *)
 
 (** {2 Conduit configuration} *)
 
 type conduit
 val conduit: conduit typ
-val conduit_direct : ?tls:bool -> stackv4 impl -> conduit impl
+val conduit_direct: ?tls:bool -> stackv4 impl -> conduit impl
 
 (** {2 HTTP configuration} *)
 
@@ -492,7 +492,7 @@ val app_info: info impl
 
 (** {2 Application registering} *)
 
-val register :
+val register:
   ?argv:Functoria_app.argv impl ->
   ?tracing:tracing impl ->
   ?reporter:reporter impl ->
@@ -516,4 +516,4 @@ val register :
 
 (**/**)
 
-val run : unit -> unit
+val run: unit -> unit

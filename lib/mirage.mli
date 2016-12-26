@@ -266,6 +266,9 @@ val arpv4: arpv4 typ
 
 val arp: ?clock:mclock impl -> ?time:time impl -> ethernet impl -> arpv4 impl
 
+val farp : ?clock:mclock impl -> ?time:time impl -> ethernet impl -> arpv4 impl
+(** Functional ARP implementation provided by the arp library *)
+
 (** {2 IP configuration}
 
     Implementations of the [V1.IP] signature. *)
@@ -377,16 +380,16 @@ val socket_stackv4:
 
 (** Build a stackv4 by looking up configuration information via QubesDB,
  *  building an ipv4, then building a stack on top of that. *)
-val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> network impl -> stackv4 impl
+val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Build a stackv4 by obtaining a DHCP lease, using the lease to
  *  build an ipv4, then building a stack on top of that. *)
-val dhcp_ipv4_stack: ?group:string -> ?time:time impl -> network impl -> stackv4 impl
+val dhcp_ipv4_stack: ?group:string -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Build a stackv4 by checking the {Key.ip4}, and {Key.ipv4-gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],
  *  then building a stack on top of that. *)
-val static_ipv4_stack: ?group:string -> ?config:ipv4_config -> network impl -> stackv4 impl
+val static_ipv4_stack: ?group:string -> ?config:ipv4_config -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
     - If [target] = [Qubes] then {!qubes_ipv4_stack} is used.

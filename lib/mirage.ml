@@ -438,7 +438,7 @@ let fat_conf = impl @@ object
     method ty = (block @-> io_page @-> fs)
     method packages = Key.pure [ package "fat-filesystem" ]
     method name = "fat"
-    method module_name = "Fat.Fs.Make"
+    method module_name = "Fat.FS"
     method connect _ modname l = match l with
       | [ block_name ; _iop ] -> Fmt.strf "%s.connect %s" modname block_name
       | _ -> failwith (connect_err "fat" 2)
@@ -504,7 +504,7 @@ let kv_ro_of_fs_conf = impl @@ object
     inherit base_configurable
     method ty = fs @-> kv_ro
     method name = "kv_ro_of_fs"
-    method module_name = "Fat.KV_RO.Make"
+    method module_name = "Fat.KV_RO"
     method packages = Key.pure [ package "fat-filesystem" ]
     method connect _ modname = function
       | [ fs ] -> Fmt.strf "%s.connect %s" modname fs

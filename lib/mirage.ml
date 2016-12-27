@@ -1063,6 +1063,95 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
 let resolver_dns ?ns ?ns_port ?(time = default_time) stack =
   resolver_dns_conf ~ns ~ns_port $ time $ stack
 
+
+type syslog_config = {
+  hostname : string;
+  server   : Ipaddr.V4.t;
+  port     : int option;
+  truncate : int option;
+}
+
+let syslog_config ?port ?truncate hostname server = {
+  hostname ; server ; port ; truncate
+}
+
+type syslog = SYSLOG
+let syslog = Type SYSLOG
+
+let opt p s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) p)
+let opt_int = opt Fmt.int
+let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
+
+let syslog_udp_conf config = impl @@ object
+    inherit base_configurable
+    method ty = console @-> pclock @-> stackv4 @-> syslog
+    method name = "udp_syslog"
+    method module_name = "Logs_syslog_mirage.Udp"
+    method packages = Key.pure [ package ~sublibs:["mirage"] "logs-syslog" ]
+    method connect _i modname = function
+      | [ console ; pclock ; stack ] ->
+        Fmt.strf
+          "let reporter = \
+             %s.create %s %s %s ~hostname:%S (Ipaddr.V4.of_string_exn %S) %a %a () \
+           in \
+           Logs.set_reporter reporter; \
+           Lwt.return_unit"
+          modname console pclock stack config.hostname
+          (Ipaddr.V4.to_string config.server)
+          (opt_int "port") config.port
+          (opt_int "truncate") config.truncate
+      | _ -> failwith (connect_err "syslog udp" 3)
+  end
+
+let syslog_udp conf ?(console = default_console) ?(clock = default_posix_clock) stack =
+  syslog_udp_conf conf $ console $ clock $ stack
+
+let syslog_tcp_conf config = impl @@ object
+    inherit base_configurable
+    method ty = console @-> pclock @-> stackv4 @-> syslog
+    method name = "tcp_syslog"
+    method module_name = "Logs_syslog_mirage.Tcp"
+    method packages = Key.pure [ package ~sublibs:["mirage"] "logs-syslog" ]
+    method connect _i modname = function
+      | [ console ; pclock ; stack ] ->
+        Fmt.strf
+          "%s.create %s %s %s ~hostname:%S (Ipaddr.V4.of_string_exn %S) %a %a () >>= function \
+           | Ok reporter -> Logs.set_reporter reporter; Lwt.return_unit \
+           | Error e -> invalid_arg e"
+          modname console pclock stack config.hostname
+          (Ipaddr.V4.to_string config.server)
+          (opt_int "port") config.port
+          (opt_int "truncate") config.truncate
+      | _ -> failwith (connect_err "syslog tcp" 3)
+  end
+
+let syslog_tcp conf ?(console = default_console) ?(clock = default_posix_clock) stack =
+  syslog_tcp_conf conf $ console $ clock $ stack
+
+let syslog_tls_conf ?keyname config = impl @@ object
+    inherit base_configurable
+    method ty = console @-> pclock @-> stackv4 @-> kv_ro @-> syslog
+    method name = "tls_syslog"
+    method module_name = "Logs_syslog_mirage.Tls"
+    method packages = Key.pure [ package ~sublibs:["mirage" ; "mirage.tls"] "logs-syslog" ]
+    method connect _i modname = function
+      | [ console ; pclock ; stack ; kv ] ->
+        Fmt.strf
+          "%s.create %s %s %s %s ~hostname:%S (Ipaddr.V4.of_string_exn %S) %a %a %a () >>= function \
+           | Ok reporter -> Logs.set_reporter reporter; Lwt.return_unit \
+           | Error e -> invalid_arg e"
+          modname console pclock stack kv config.hostname
+          (Ipaddr.V4.to_string config.server)
+          (opt_int "port") config.port
+          (opt_int "truncate") config.truncate
+          (opt_string "keyname") keyname
+      | _ -> failwith (connect_err "syslog tls" 4)
+  end
+
+let syslog_tls conf ?keyname ?(console = default_console) ?(clock = default_posix_clock) stack kv =
+  syslog_tls_conf ?keyname conf $ console $ clock $ stack $ kv
+
+
 type http = HTTP
 let http = Type HTTP
 

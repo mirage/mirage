@@ -601,6 +601,26 @@ let arp
     (eth : ethernet impl) =
   arp_func $ eth $ clock $ time
 
+
+let farp_conf = object
+  inherit base_configurable
+  method ty = ethernet @-> mclock @-> time @-> arpv4
+  method name = "arp"
+  method module_name = "Arp.Make"
+  method packages = Key.pure [ package ~sublibs:["mirage"] "arp" ]
+  method connect _ modname = function
+    | [ eth ; clock ; _time ] -> Fmt.strf "%s.connect %s %s" modname eth clock
+    | _ -> failwith (connect_err "arp" 3)
+end
+
+let farp_func = impl farp_conf
+let farp
+    ?(clock = default_monotonic_clock)
+    ?(time = default_time)
+    (eth : ethernet impl) =
+  farp_func $ eth $ clock $ time
+
+
 type v4
 type v6
 type 'a ip = IP
@@ -882,20 +902,20 @@ let direct_stackv4
   $ direct_udp ~random ip
   $ direct_tcp ~clock ~random ~time ip
 
-let dhcp_ipv4_stack ?group ?(time = default_time) tap =
+let dhcp_ipv4_stack ?group ?(time = default_time) ?(arp = arp ?clock:None ?time:None) tap =
   let config = dhcp time tap in
   let e = etif tap in
-  let (a : arpv4 impl) = arp e in
+  let a = arp e in
   let i = ipv4_of_dhcp config e a in
   direct_stackv4 ?group tap e a i
 
-let static_ipv4_stack ?group ?config tap =
+let static_ipv4_stack ?group ?config ?(arp = arp ?clock:None ?time:None) tap =
   let e = etif tap in
   let a = arp e in
   let i = create_ipv4 ?group ?config e a in
   direct_stackv4 ?group tap e a i
 
-let qubes_ipv4_stack ?group ?(qubesdb = default_qubesdb) tap =
+let qubes_ipv4_stack ?group ?(qubesdb = default_qubesdb) ?(arp = arp ?clock:None ?time:None) tap =
   let e = etif tap in
   let a = arp e in
   let i = ipv4_qubes qubesdb e a in

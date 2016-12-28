@@ -113,14 +113,10 @@ module type CHANNEL = CHANNEL
    and type buffer = Cstruct.t
 
 (** KV RO *)
-module type KV_RO = KV_RO
-  with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
+module type KV_RO = Mirage_kv_lwt.RO
 
 (** FS *)
-module type FS = FS
-  with type 'a io = 'a Lwt.t
-   and type page_aligned_buffer = Cstruct.t
+module type FS = Mirage_fs_lwt.S
 
 (** Configuration *)
 

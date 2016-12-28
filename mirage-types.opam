@@ -23,4 +23,5 @@ depends:   [
   "mirage-net" {>= "1.0.0"}
   "mirage-fs" {>= "1.0.0"}
   "mirage-kv"
+  "mirage-channel"
 ]

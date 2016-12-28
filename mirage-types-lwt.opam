@@ -23,4 +23,5 @@ depends: [
   "mirage-net-lwt" {>= "1.0.0"}
   "mirage-fs-lwt" {>= "1.0.0"}
   "mirage-kv-lwt"
+  "mirage-channel-lwt"
 ]

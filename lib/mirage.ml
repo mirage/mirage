@@ -994,6 +994,9 @@ let tls_conduit_connector = impl @@ object
     method packages =
       Key.pure [
         package ~sublibs:["mirage"] "tls" ;
+        package "mirage-flow-lwt";
+        package "mirage-kv-lwt";
+        package "mirage-clock";
         package ~ocamlfind:[] "mirage-conduit" ;
         package ~sublibs:["mirage"] "conduit"
       ]

@@ -15,7 +15,6 @@ RUN opam depext -uivj 3 \
   atdgen \
   base \
   base64 \
-  channel \
   charrua-core \
   charrua-unix \
   cmdliner \
@@ -36,6 +35,8 @@ RUN opam depext -uivj 3 \
   dns \
   dockerfile \
   duration \
+  ezirmin \
+  ezjsonm \
   ezxmlm \
   fat-filesystem \
   functoria \
@@ -65,6 +66,7 @@ RUN opam depext -uivj 3 \
   mirage \
   mirage-block \
   mirage-block-ccm \
+  mirage-block-lwt \
   mirage-block-ramdisk \
   mirage-block-solo5 \
   mirage-block-unix \
@@ -72,6 +74,7 @@ RUN opam depext -uivj 3 \
   mirage-bootvar-solo5 \
   mirage-bootvar-xen \
   mirage-btrees \
+  mirage-channel \
   mirage-clock-unix \
   mirage-clock-freestanding \
   mirage-console-solo5 \
@@ -80,9 +83,12 @@ RUN opam depext -uivj 3 \
   mirage-console-xen-backend \
   mirage-console-xen-cli \
   mirage-console-xen-proto \
+  mirage-device \
   mirage-dns \
   mirage-entropy \
   mirage-flow \
+  mirage-flow-lwt \
+  mirage-flow-unix \
   mirage-fs-unix \
   mirage-http \
   mirage-logs \
@@ -90,6 +96,7 @@ RUN opam depext -uivj 3 \
   mirage-net-unix \
   mirage-net-xen \
   mirage-os-shim \
+  mirage-random \
   mirage-solo5 \
   mirage-stdlib-random \
   mirage-unix \

@@ -56,7 +56,8 @@ docker run -v <your-source>:/src opam config exec -- mirage
 
 There are two stages to using `mirage`:
 
-* a *configure* phase where OPAM package dependencies are satisfied.
+* a *configure* phase where necessary code is generated and dependencies are determined.
+* an optional *depends* phase where OPAM package dependencies are satisfied.
 * a *build* phase where the compiler and any support scripts are run.
 
 You can find documentation, walkthroughs and tutorials over on the

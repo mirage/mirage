@@ -1,6 +1,13 @@
 ### 3.0.0 (2016-soon!)
 
+* split type signatures and error printers into separate libraries (#755, #753, #752, #751, and others by @samoht)
+* changes to simplify choosing an alternate ARP implementation (#750, by @hannesm)
+* add configurators for syslog reporter (#749, by @hannesm)
+* filter incoming boot-time arguments for all Xen backends, not just QubesOS (#746, by @yomimono)
+* give mirage-types-lwt its own library, instead of a mirage-types sublibrary called lwt (#735, by @hannesm)
+* remove `format` function and `Format_unknown` error from FS module type (#733, by @djs55)
 * ocamlify FAT name (#723 by @yomimono)
+* remove type `error` from DEVICE module type (#728, by @hannesm)
 * UDP requires random for source port randomization (#726 by @hannesm)
 * drop "mir-" prefix from generated binaries (#725 by @hannesm)
 * BLOCK and FS uses result types (#705 by @yomimono)

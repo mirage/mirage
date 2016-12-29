@@ -35,6 +35,8 @@ RUN opam depext -uivj 3 \
   dns \
   dockerfile \
   duration \
+  ezirmin \
+  ezjsonm \
   ezxmlm \
   fat-filesystem \
   functoria \

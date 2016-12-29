@@ -504,8 +504,8 @@ let kv_ro_of_fs_conf = impl @@ object
     inherit base_configurable
     method ty = fs @-> kv_ro
     method name = "kv_ro_of_fs"
-    method module_name = "Fat.KV_RO"
-    method packages = Key.pure [ package "fat-filesystem" ]
+    method module_name = "Mirage_fs_lwt.To_KV_RO"
+    method packages = Key.pure [ package "mirage-fs-lwt" ]
     method connect _ modname = function
       | [ fs ] -> Fmt.strf "%s.connect %s" modname fs
       | _ -> failwith (connect_err "kv_ro_of_fs" 1)

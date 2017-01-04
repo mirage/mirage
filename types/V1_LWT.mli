@@ -108,9 +108,7 @@ module type TCPV6 = TCP
   with type ipaddr = Ipaddr.V6.t
 
 (** Buffered TCP channel *)
-module type CHANNEL = CHANNEL
-  with type 'a io = 'a Lwt.t
-   and type buffer = Cstruct.t
+module type CHANNEL = Mirage_channel_lwt.S
 
 (** KV RO *)
 module type KV_RO = Mirage_kv_lwt.RO

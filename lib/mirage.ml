@@ -881,7 +881,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     method connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
         Fmt.strf
-          "@[<2>let config = {V1_LWT.@ \
+          "@[<2>let config = {Mirage_stack_lwt.@ \
            name = %S;@ \
            interface = %s;}@]@ in@ \
            %s.connect config@ %s %s %s %s %s %s"
@@ -934,7 +934,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
       | [ udpv4 ; tcpv4 ] ->
         Fmt.strf
           "let config =@[@ \
-           { V1_LWT.name = %S;@ \
+           { Mirage_stack_lwt.name = %S;@ \
            interface = %a ;}@] in@ \
            %s.connect config %s %s"
           name pp_key interfaces modname udpv4 tcpv4

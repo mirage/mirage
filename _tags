@@ -15,9 +15,11 @@ true: keep_locs
 <types/V1.*>: package(result mirage-device mirage-time mirage-random mirage-flow)
 <types/V1.*>: package(mirage-console mirage-block mirage-clock mirage-net)
 <types/V1.*>: package(mirage-kv mirage-fs mirage-channel)
+<types/V1.*>: package(mirage-protocols mirage-stack)
 
 <types/V1_LWT.*>: package(cstruct io-page lwt ipaddr mirage-types)
 <types/V1_LWT.*>: package(mirage-time-lwt mirage-random mirage-flow-lwt)
 <types/V1_LWT.*>: package(mirage-console-lwt mirage-block-lwt mirage-clock-lwt)
 <types/V1_LWT.*>: package(mirage-net-lwt mirage-kv-lwt mirage-fs-lwt)
 <types/V1_LWT.*>: package(mirage-channel-lwt)
+<types/V1_LWT.*>: package(mirage-protocols-lwt mirage-stack-lwt)

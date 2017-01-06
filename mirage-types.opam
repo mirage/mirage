@@ -19,6 +19,8 @@ depends:   [
   "mirage-random"
   "mirage-flow"
   "mirage-console"
+  "mirage-protocols"
+  "mirage-stack"
   "mirage-block" {>= "1.0.0"}
   "mirage-net" {>= "1.0.0"}
   "mirage-fs" {>= "1.0.0"}

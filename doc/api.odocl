@@ -2,5 +2,5 @@ lib/Mirage
 lib/Mirage_key
 lib_runtime/Mirage_runtime
 lib_runtime/Mirage_info
-types/V1
-types/V1_LWT
+types/Mirage_types
+types/Mirage_types_lwt

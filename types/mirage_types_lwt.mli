@@ -20,7 +20,7 @@
 
     {e Release %%VERSION%% } *)
 
-open V1
+open Mirage_types
 
 module type TIME = Mirage_time_lwt.S
 module type RANDOM = Mirage_random.C

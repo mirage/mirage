@@ -35,10 +35,10 @@ let () =
   | "mirage-types" ->
     Ok [ Pkg.lib "pkg/META.mirage-types" ~dst:"META";
          Pkg.lib "mirage-types.opam" ~dst:"opam";
-         Pkg.lib ~exts:Exts.interface "types/V1"; ]
+         Pkg.lib ~exts:Exts.interface "types/mirage_types"; ]
   | "mirage-types-lwt" ->
     Ok [ Pkg.lib "pkg/META.mirage-types-lwt" ~dst:"META";
          Pkg.lib "mirage-types-lwt.opam" ~dst:"opam";
-         Pkg.lib ~exts:Exts.interface "types/V1_LWT"; ]
+         Pkg.lib ~exts:Exts.interface "types/mirage_types_lwt"; ]
   | other ->
     R.error_msgf "unknown package name: %s" other

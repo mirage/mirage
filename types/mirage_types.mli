@@ -16,8 +16,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Result
-
 (** MirageOS Signatures.
 
     This module defines the basic signatures that functor parameters

@@ -9,6 +9,8 @@ tags:         ["org:mirage" "org:xapi-project"]
 build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%"]
 depends: [
   "ocamlfind" {build}
+  "ocamlfind"  {build}
+  "topkg"      {build & >= "0.8.0"}
   "lwt"
   "cstruct" {>="1.4.0"}
   "io-page" {>="1.4.0"}

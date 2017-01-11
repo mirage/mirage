@@ -8,8 +8,7 @@ true: keep_locs
 <lib/*>: package(ipaddr logs astring functoria functoria.app mirage-runtime bos)
 
 # Force the runtime to be unix-independent.
-<lib_runtime/*>: package(functoria-runtime ipaddr astring logs mirage-types)
-<lib_runtime/*>: package(mirage-device)
+<lib_runtime/*>: package(functoria-runtime ipaddr astring logs mirage-types fmt)
 <lib_runtime/*>: dontlink(unix str num threads)
 
 <types/mirage_types.*>: package(mirage-device mirage-time mirage-random mirage-flow)

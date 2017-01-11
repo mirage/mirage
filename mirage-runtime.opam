@@ -20,6 +20,5 @@ depends: [
   "fmt"
   "astring"
   "logs"
-  "mirage-types"       {>= "3.0.0"}
 ]
 available: [ocaml-version >= "4.02.3"]

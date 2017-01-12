@@ -1,3 +1,3 @@
 version = "%%VERSION_NUM%%"
 description = "Collection of module signatures for MirageOS"
-requires = "result mirage-device mirage-time mirage-random mirage-flow mirage-console mirage-block mirage-clock mirage-net mirage-kv mirage-fs mirage-channel"
+requires = "mirage-device mirage-time mirage-random mirage-flow mirage-console mirage-block mirage-clock mirage-net mirage-kv mirage-fs mirage-channel mirage-protocols mirage-stack"

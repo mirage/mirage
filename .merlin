@@ -7,6 +7,8 @@ PKG astring logs bos mirage-runtime
 PKG mirage-device mirage-time mirage-time-lwt mirage-random
 PKG mirage-flow mirage-flow-lwt mirage-console mirage-console-lwt
 PKG mirage-block-lwt mirage-net-lwt mirage-fs-lwt mirage-kv-lwt
+PKG mirage-clock mirage-clock-lwt mirage-stack mirage-stack-lwt
+PKG mirage-protocols mirage-protocols-lwt mirage-channel mirage-channel-lwt
 
 FLG -w +A-4-6-7-9-40-42-44-48
 FLG -strict_sequence -safe_string

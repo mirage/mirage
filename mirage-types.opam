@@ -12,7 +12,6 @@ depends:   [
   "ocamlbuild" {build}
   "ocamlfind"  {build}
   "topkg"      {build & >= "0.8.0"}
-  "result"
   "mirage-device"
   "mirage-time"
   "mirage-clock" {>= "1.2.0"}

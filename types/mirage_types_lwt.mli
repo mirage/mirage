@@ -20,9 +20,10 @@
 
     {e Release %%VERSION%% } *)
 
-open Mirage_types
-
 module type TIME = Mirage_time_lwt.S
+module type MCLOCK = Mirage_clock_lwt.MCLOCK
+module type PCLOCK = Mirage_clock_lwt.PCLOCK
+
 module type RANDOM = Mirage_random.C
 module type FLOW = Mirage_flow_lwt.S
 

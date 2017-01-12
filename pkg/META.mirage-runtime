@@ -1,6 +1,6 @@
 version = "%%VERSION_NUM%%"
 description = "MirageOS runtime libraries"
-requires = "functoria-runtime ipaddr astring logs mirage-types"
+requires = "functoria-runtime fmt ipaddr astring logs"
 archive(byte) = "mirage-runtime.cma"
 archive(native) = "mirage-runtime.cmxa"
 plugin(byte) = "mirage-runtime.cma"

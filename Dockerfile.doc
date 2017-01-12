@@ -36,7 +36,6 @@ RUN opam depext -uivj 3 \
   dns \
   dockerfile \
   duration \
-  ezirmin \
   ezjsonm \
   ezxmlm \
   fat-filesystem \
@@ -151,7 +150,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format datakit-ci mirage-block-ccm tar-format
+# to fix: dns-forward nbd qcow vhd-format datakit-ci mirage-block-ccm tar-format ezirmin
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

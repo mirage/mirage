@@ -16,7 +16,7 @@ depends: [
   "ocamlfind"  {build}
   "topkg"      {build & >= "0.8.0"}
   "ipaddr"             {>= "2.6.0"}
-  "functoria"          {>= "1.1.0"}
+  "functoria"          {>= "2.0.0"}
   "bos"
   "astring"
   "logs"

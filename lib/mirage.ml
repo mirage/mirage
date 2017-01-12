@@ -435,16 +435,16 @@ let fs = Type FS
 
 let fat_conf = impl @@ object
     inherit base_configurable
-    method ty = (block @-> io_page @-> fs)
+    method ty = (block @-> fs)
     method packages = Key.pure [ package "fat-filesystem" ]
     method name = "fat"
     method module_name = "Fat.FS"
     method connect _ modname l = match l with
-      | [ block_name ; _iop ] -> Fmt.strf "%s.connect %s" modname block_name
-      | _ -> failwith (connect_err "fat" 2)
+      | [ block_name ] -> Fmt.strf "%s.connect %s" modname block_name
+      | _ -> failwith (connect_err "fat" 1)
   end
 
-let fat ?(io_page=default_io_page) block = fat_conf $ block $ io_page
+let fat block = fat_conf $ block
 
 let fat_block ?(dir=".") ?(regexp="*") () =
   let name =

@@ -65,6 +65,7 @@ RUN opam depext -uivj 3 \
   merlin \
   mirage \
   mirage-block \
+  mirage-block-ccm \
   mirage-block-lwt \
   mirage-block-ramdisk \
   mirage-block-solo5 \
@@ -150,7 +151,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format datakit-ci mirage-block-ccm tar-format ezirmin
+# to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

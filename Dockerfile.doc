@@ -19,6 +19,7 @@ RUN opam depext -uivj 3 \
   charrua-unix \
   cmdliner \
   cohttp \
+  conduit \
   core_kernel \
   cow \
   cowabloga \
@@ -27,10 +28,15 @@ RUN opam depext -uivj 3 \
   cstruct \
   ctypes \
   ctypes-foreign \
+  datakit \
+  datakit-server \
+  datakit-client \
+  datakit-github \
   depyt \
   dns \
   dockerfile \
   duration \
+  ezirmin \
   ezjsonm \
   ezxmlm \
   fat-filesystem \
@@ -42,10 +48,12 @@ RUN opam depext -uivj 3 \
   gmp-freestanding \
   hex \
   hkdf \
+  hvsock \
   integers \
   io-page \
   ipaddr \
   irc-client \
+  irmin \
   irmin-watcher \
   jekyll-format \
   jenga \
@@ -143,7 +151,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format git datakit-server hvsock datakit-github datakit-ci mirage-block-ccm tar-format ezirmin irmin conduit
+# to fix: dns-forward nbd qcow vhd-format datakit-ci mirage-block-ccm tar-format
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

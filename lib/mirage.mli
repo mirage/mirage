@@ -205,7 +205,7 @@ type fs
 val fs: fs typ
 (** Implementations of the [Mirage_types.FS] signature. *)
 
-val fat: ?io_page:io_page impl -> block impl -> fs impl
+val fat: block impl -> fs impl
 (** Consider a raw block device as a FAT filesystem. *)
 
 val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl

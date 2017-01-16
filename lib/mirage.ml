@@ -411,7 +411,7 @@ let tar_block dir =
   impl @@ object
     inherit block_conf block_file as super
     method build i =
-      Bos.OS.Cmd.run Bos.Cmd.(v "tar" % "-C" % dir % "-cvf" % block_file) >>= fun () ->
+      Bos.OS.Cmd.run Bos.Cmd.(v "tar" % "-cvf" % block_file % dir) >>= fun () ->
       super#build i
   end
 

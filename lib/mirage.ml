@@ -1069,7 +1069,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
     method packages =
-      Key.pure [ package ~sublibs:["mirage"] "dns"; package "tcpip" ]
+      Key.pure [ package ~ocamlfind:[] "mirage-conduit" ;
+        package ~sublibs:["mirage"] "conduit" ]
     method connect _ modname = function
       | [ _t ; stack ] ->
         let meta_ns = Fmt.Dump.option meta_ipv4 in

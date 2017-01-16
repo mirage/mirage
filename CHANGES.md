@@ -1,6 +1,8 @@
-### 3.0.0 (2016-soon!)
+### 3.0.0 (2017-soon!)
 
-* split type signatures and error printers into separate libraries (#755, #753, #752, #751, and others by @samoht)
+* rename module types modules: V1 -> Mirage_types, V1_LWT -> Mirage_types_lwt (#766, by @yomimono, @samoht, and @hannesm)
+* split type signatures and error printers into separate libraries (#755, #753, #752, #751, #764, and several others, by @samoht and @yomimono)
+* use mirage-fs instead of ocaml-fat to transform FS into KV_RO (#756, by @samoht)
 * changes to simplify choosing an alternate ARP implementation (#750, by @hannesm)
 * add configurators for syslog reporter (#749, by @hannesm)
 * filter incoming boot-time arguments for all Xen backends, not just QubesOS (#746, by @yomimono)

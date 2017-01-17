@@ -1155,7 +1155,7 @@ let syslog_tls_conf ?keyname config = impl @@ object
     inherit base_configurable
     method ty = console @-> pclock @-> stackv4 @-> kv_ro @-> syslog
     method name = "tls_syslog"
-    method module_name = "Logs_syslog_mirage.Tls"
+    method module_name = "Logs_syslog_mirage_tls.Tls"
     method packages = Key.pure [ package ~sublibs:["mirage" ; "mirage.tls"] "logs-syslog" ]
     method connect _i modname = function
       | [ console ; pclock ; stack ; kv ] ->

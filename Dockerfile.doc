@@ -94,7 +94,6 @@ RUN opam depext -uivj 3 \
   mirage-os-shim \
   mirage-random \
   mirage-solo5 \
-  mirage-stdlib-random \
   mirage-unix \
   mirage-vnetif \
   mirage-xen \

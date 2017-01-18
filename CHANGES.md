@@ -1,4 +1,4 @@
-## 1.2.0 (unreleased)
+## 2.0.0 (unreleased)
 
 * invoke ocamlbuild with quiet (#93 by @hannesm)
 * restrict -f command line argument to items in current working directory (#91 by @hannesm)

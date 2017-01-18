@@ -10,19 +10,19 @@ tags:         ["org:mirage" "org:xapi-project"]
 build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%"]
 depends:   [
   "ocamlbuild" {build}
-  "ocamlfind"  {build}
-  "topkg"      {build & >= "0.8.0"}
-  "mirage-device"
-  "mirage-time"
+  "ocamlfind" {build}
+  "topkg" {build & >= "0.8.0"}
+  "mirage-device" {>= "1.0.0"}
+  "mirage-time" {>= "1.0.0"}
   "mirage-clock" {>= "1.2.0"}
-  "mirage-random"
-  "mirage-flow"
-  "mirage-console"
-  "mirage-protocols"
-  "mirage-stack"
+  "mirage-random" {>= "1.0.0"}
+  "mirage-flow" {>= "1.2.0"}
+  "mirage-console" {>= "2.2.0"}
+  "mirage-protocols" {>= "1.0.0"}
+  "mirage-stack" {>= "1.0.0"}
   "mirage-block" {>= "1.0.0"}
   "mirage-net" {>= "1.0.0"}
   "mirage-fs" {>= "1.0.0"}
-  "mirage-kv"
-  "mirage-channel"
+  "mirage-kv" {>= "1.0.0"}
+  "mirage-channel" {>= "3.0.0"}
 ]

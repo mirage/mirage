@@ -10,6 +10,7 @@ bug-reports:  "https://github.com/mirage/functoria/issues"
 dev-repo:     "https://github.com/mirage/functoria.git"
 doc:          "https://mirage.github.io/functoria/"
 license:      "ISC"
+tags:         ["org:mirage"]
 
 build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%" ]
 depends: [

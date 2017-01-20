@@ -1723,7 +1723,7 @@ let pkg_config pkgs args =
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
   Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
-  String.cuts ~sep:" " data
+  String.cuts ~sep:" " ~empty:false data
 
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)
@@ -1751,6 +1751,8 @@ let extra_c_artifacts target pkgs =
 let static_libs pkg_config_deps = pkg_config pkg_config_deps [ "--static" ; "--libs" ]
 
 let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
+
+let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 
 let link info name target =
   let libs = Info.libraries info in
@@ -1790,10 +1792,12 @@ let link info name target =
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags "solo5-kernel-virtio" >>= fun ldflags ->
+    ldpostflags "solo5-kernel-virtio" >>= fun ldpostflags ->
     let out = name ^ ".virtio" in
     let linker =
       Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
-               of_list c_artifacts %% of_list static_libs % "-o" % out)
+               of_list c_artifacts %% of_list static_libs % "-o" % out
+               %% of_list ldpostflags)
     in
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
@@ -1802,10 +1806,12 @@ let link info name target =
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags "solo5-kernel-ukvm" >>= fun ldflags ->
+    ldpostflags "solo5-kernel-ukvm" >>= fun ldpostflags ->
     let out = name ^ ".ukvm" in
     let linker =
       Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
-               of_list c_artifacts %% of_list static_libs % "-o" % out)
+               of_list c_artifacts %% of_list static_libs % "-o" % out
+               %% of_list ldpostflags)
     in
     let ukvm_mods =
       let ukvm_filter = function

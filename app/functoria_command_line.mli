@@ -16,10 +16,6 @@
 
 (** Functions for reading various options from a command line. *)
 
-val read_config_file : string array -> Fpath.t option
-(** [read_config_file argv] reads the -f or --file option from [argv] and
-    returns the argument of the option. *)
-
 val setup_log : unit Cmdliner.Term.t
 
 val read_full_eval : string array -> bool option
@@ -65,23 +61,19 @@ val parse_args : name:string -> version:string ->
 
       name configure [-v|--verbose]
                      [--color=(auto|always|never)]
-                     [-f FILE | --file=FILE]
                      [extra arguments]
       name describe [--eval]
                     [-v|--verbose]
                     [--color=(auto|always|never)]
-                    [-f FILE | --file=FILE]
                     [-o FILE | --output=FILE]
                     [--dot-command=COMMAND]
                     [--dot]
                     [extra arguments]
       name build [-v|--verbose]
                  [--color=(auto|always|never)]
-                 [-f FILE | --file=FILE]
                  [extra arguments]
       name clean [-v|--verbose]
                  [--color=(auto|always|never)]
-                 [-f FILE | --file=FILE]
                  [extra arguments]
       name help [-v|--verbose]
                 [--color=(auto|always|never)]

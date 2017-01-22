@@ -467,10 +467,7 @@ module Make (P: S) = struct
   module Log = (val Logs.src_log src : Logs.LOG)
 
   let configuration = ref None
-  let config_file = ref Fpath.(v "config.ml")
-
-  let get_config_file () = !config_file
-  let set_config_file file = config_file := file
+  let config_file = Fpath.(v "config.ml")
 
   let get_root () =
     match Bos.OS.Dir.current () with
@@ -508,7 +505,7 @@ module Make (P: S) = struct
     Bos.OS.File.delete Fpath.(v "main.ml")
 
   let configure i jobs =
-    Log.info (fun m -> m "Using configuration: %a" Fpath.pp (get_config_file ()));
+    Log.info (fun m -> m "Using configuration: %a" Fpath.pp config_file);
     Log.info (fun m -> m "opam: %a" (Info.opam ?name:None) i);
     Log.info (fun m -> m "within: %a" Fpath.pp (Info.root i));
     with_current
@@ -517,14 +514,14 @@ module Make (P: S) = struct
       "configure"
 
   let build i jobs =
-    Log.info (fun m -> m "Building: %a" Fpath.pp (get_config_file ()));
+    Log.info (fun m -> m "Building: %a" Fpath.pp config_file);
     with_current
       (Info.root i)
       (fun () -> Engine.build i jobs)
       "build"
 
   let clean i (_init, job) =
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp (get_config_file ()));
+    Log.info (fun m -> m "Cleaning: %a" Fpath.pp config_file);
     with_current
       (Info.root i)
       (fun () ->
@@ -683,20 +680,14 @@ module Make (P: S) = struct
     (*    (b) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
 
-    (*    (c) the config file passed as argument, if any *)
-    match Cmd.read_config_file argv with
-    | None -> handle_parse_args_no_config (`Msg "couldn't read config file\n") argv
-    | Some cfg ->
-      set_config_file cfg ;
-
-      (* 2. Load the config from the config file. *)
-      (* There are three possible outcomes:
+    (* 2. Load the config from the config file. *)
+    (* There are three possible outcomes:
          1. the config file is found and loaded successfully
          2. no config file is specified
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-      match load' (get_config_file ()) with
+      match load' config_file with
       | Error err -> handle_parse_args_no_config err argv
       | Ok config ->
 

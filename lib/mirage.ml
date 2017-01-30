@@ -1611,18 +1611,6 @@ let configure_makefile ~opam_name =
 
 let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
 
-let fn = Fpath.(v "myocamlbuild.ml")
-
-let configure_myocamlbuild () =
-  Bos.OS.File.exists fn >>= function
-  | true -> R.ok ()
-  | false -> Bos.OS.File.write fn ""
-
-let clean_myocamlbuild () =
-  match Bos.OS.Path.stat fn with
-  | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete fn
-  | _ -> R.ok ()
-
 let configure_opam ~name info =
   let open Codegen in
   let file = Fpath.(v name + "opam") in
@@ -1648,7 +1636,6 @@ let configure i =
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
   let opam_name = unikernel_name target name in
-  configure_myocamlbuild () >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
   configure_makefile ~opam_name >>= fun () ->
   match target with
@@ -1849,7 +1836,6 @@ let clean i =
   clean_main_xl ~name "xl.in" >>= fun () ->
   clean_main_xe ~name >>= fun () ->
   clean_main_libvirt_xml ~name >>= fun () ->
-  clean_myocamlbuild () >>= fun () ->
   clean_makefile () >>= fun () ->
   clean_opam ~name:(unikernel_name target name) >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->

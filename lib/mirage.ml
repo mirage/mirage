@@ -1613,11 +1613,19 @@ let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
 
 let fn = Fpath.(v "myocamlbuild.ml")
 
+(* ocamlbuild will give a misleading hint on build failures
+ * ( https://github.com/ocaml/ocamlbuild/blob/0eb62b72b5abd520484210125b18073338a634bc/src/ocaml_compiler.ml#L130 )
+ * if it doesn't detect that the project is an ocamlbuild
+ * project.  The only facility for hinting this is presence of
+ * myocamlbuild.ml or _tags
+ * ( https://github.com/ocaml/ocamlbuild/blob/0eb62b72b5abd520484210125b18073338a634bc/src/options.ml#L375-L387 )
+ * so we create an empty myocamlbuild.ml . *)
 let configure_myocamlbuild () =
   Bos.OS.File.exists fn >>= function
   | true -> R.ok ()
   | false -> Bos.OS.File.write fn ""
 
+(* we made it, so we should clean it up *)
 let clean_myocamlbuild () =
   match Bos.OS.Path.stat fn with
   | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete fn

@@ -77,18 +77,6 @@ let dotcmd =
   in
   Arg.(value & opt string "xdot" & doc)
 
-(** Argument specification for -f CONFIG_FILE or --file=CONFIG_FILE *)
-let config_file =
-  let doc =
-    Arg.info ~docs:global_option_section ~docv:"CONFIG_FILE" ["f"; "file"]
-      ~doc:"Configuration file. If not specified, the current directory will \
-            be scanned. If one file named $(b,config.ml) is found, that file \
-            will be used. If no files or multiple configuration files are \
-            found, this will result in an error unless one is explicitly \
-            specified on the command line."
-  in
-  Arg.(value & opt file "config.ml" & doc)
-
 (** Argument specification for -o FILE or --output=FILE *)
 let output =
   let doc =
@@ -124,9 +112,8 @@ struct
         `S "DESCRIPTION";
         `P "The $(b,configure) command initializes a fresh $(mname) application."
       ]
-      ~arg:Term.(const (fun _ _ info -> Configure info)
+      ~arg:Term.(const (fun _ info -> Configure info)
                  $ setup_log
-                 $ config_file
                  $ result)
 
   (** The 'describe' subcommand *)
@@ -153,11 +140,10 @@ struct
         `I ("App vertices",
             "Represented as diamonds. The bold arrow is the functor part.");
       ]
-      ~arg:Term.(const (fun _ _ _ info output dotcmd dot ->
+      ~arg:Term.(const (fun _ _ info output dotcmd dot ->
           Describe { result = info; dotcmd; dot; output })
                  $ setup_log
                  $ full_eval
-                 $ config_file
                  $ result
                  $ output
                  $ dotcmd
@@ -171,9 +157,8 @@ struct
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ _ info -> Build info)
+      ~arg:Term.(const (fun _ info -> Build info)
                  $ setup_log
-                 $ config_file
                  $ result)
 
   (** The 'clean' subcommand *)
@@ -184,9 +169,8 @@ struct
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ _ info -> Clean info)
+      ~arg:Term.(const (fun _ info -> Clean info)
                  $ setup_log
-                 $ config_file
                  $ info_)
 
   (** The 'help' subcommand *)
@@ -204,7 +188,7 @@ struct
         | `Error e -> `Error (false, e)
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
-    (Term.(const (fun _ _ () -> Help) $ setup_log $ config_file $
+    (Term.(const (fun _ () -> Help) $ setup_log $
            ret (Term.(const help $ Term.man_format $ Term.choice_names
                       $ topic $ base_context))),
      Term.info "help"
@@ -236,15 +220,6 @@ end
 (*
  * Functions for extracting particular flags from the command line.
  *)
-let read_config_file : string array -> Fpath.t option =
-  fun argv -> match Term.eval_peek_opts ~argv config_file with
-    | _, `Ok config when Fpath.is_seg config ->
-      if Sys.file_exists config && not (Sys.is_directory config) then
-        Some (Fpath.v config)
-      else
-        None
-    | _ -> invalid_arg "config must be an existing file (single segment)"
-
 let read_full_eval : string array -> bool option =
   fun argv -> match Term.eval_peek_opts ~argv full_eval with
     | _, `Ok b -> b

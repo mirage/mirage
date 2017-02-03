@@ -141,26 +141,6 @@ let test_default _ =
   assert_equal `Help result
 
 
-let test_read_config_file _ =
-  begin
-    assert_equal None (Cmd.read_config_file [|"test"|]);
-
-    assert_raises
-      ~msg:"expected: must be single segment"
-      (Invalid_argument "config must be an existing file (single segment)")
-      (fun () -> Cmd.read_config_file [|"test"; "blah"; "-f"; "tests/config.ml"|]);
-
-    assert_equal (Some (Fpath.v "CHANGES.md"))
-      (Cmd.read_config_file [|"test"; "blah"; "--file=CHANGES.md"|]);
-
-    assert_equal (Some (Fpath.v "CHANGES.md"))
-      (Cmd.read_config_file [|"test"; "-f"; "CHANGES.md"; "blah"|]);
-
-    assert_equal (Some (Fpath.v "CHANGES.md"))
-      (Cmd.read_config_file [|"test"; "--file=CHANGES.md"|]);
-  end
-
-
 let test_read_full_eval _ =
   begin
     assert_equal None
@@ -187,10 +167,7 @@ let test_read_full_eval _ =
 
 
 let suite = "Command-line parsing tests" >:::
-  ["read_config_file"
-    >:: test_read_config_file;
-
-   "read_full_eval"
+  ["read_full_eval"
     >:: test_read_full_eval;
 
     "configure"

@@ -1,4 +1,11 @@
-## 2.0.0 (unreleased)
+## unreleased
+
+* remove `-f <config-file>` command option to unbreak `--help` with subcommands
+  and unikernel present (which config.ml is dynamically loaded to present
+  possible command-line keys (#101 (superseeding #100), discussion in #91 and
+  #97, fixes #72 by @hannesm)
+
+## 2.0.0 (19/01/2017)
 
 * invoke ocamlbuild with quiet (#93 by @hannesm)
 * restrict -f command line argument to items in current working directory (#91 by @hannesm)

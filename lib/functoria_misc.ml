@@ -116,7 +116,7 @@ module Univ = struct
       in
       ( s
       , (fun a -> M.E a)
-      , (function M.E a -> a | _ -> assert false)
+      , (function M.E a -> a | _ -> raise @@ Invalid_argument ("duplicate key: " ^ s))
       )
 
   module Map = Map.Make(String)

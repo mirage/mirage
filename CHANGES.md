@@ -1,5 +1,6 @@
-## unreleased
+## 2.0.1 (13/02/2017)
 
+* raise an exception with useful information when Univ.new_key fails (#102, by @yomimono)
 * remove `-f <config-file>` command option to unbreak `--help` with subcommands
   and unikernel present (which config.ml is dynamically loaded to present
   possible command-line keys (#101 (superseeding #100), discussion in #91 and

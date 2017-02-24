@@ -7,7 +7,6 @@ services:
 sudo: false
 env:
  global:
-   - EXTRA_REMOTES="git://github.com/mirage/mirage-dev.git"
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
    - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."

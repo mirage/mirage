@@ -20,4 +20,7 @@ depends: [
   "cmdliner" {>= "0.9.8"}
   "fmt"
 ]
+conflicts: [
+  "functoria" {< "2.0.0"}
+]
 available: [ocaml-version >= "4.02"]

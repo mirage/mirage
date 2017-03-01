@@ -35,7 +35,7 @@ let test_configure _ =
       [|"name"; "configure"; "--xyz"; "--verbose"|]
   in
   assert_equal
-    (`Ok (Cmd.Configure (true, false)))
+    (`Ok (Cmd.Configure { result = (true, false); output = None }))
     result
 
 

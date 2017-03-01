@@ -81,7 +81,7 @@ let dotcmd =
 let output =
   let doc =
     Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
-      ~doc:"File where to output description or dot representation."
+      ~doc:"Name of the output file."
   in
   Arg.(value & opt (some string) None & doc)
 
@@ -92,8 +92,13 @@ type 'a describe_args = {
   output: string option;
 }
 
+type 'a configure_args = {
+  result: 'a;
+  output: string option;
+}
+
 type 'a action =
-    Configure of 'a
+    Configure of 'a configure_args
   | Describe of 'a describe_args
   | Build of 'a
   | Clean of 'a
@@ -112,8 +117,9 @@ struct
         `S "DESCRIPTION";
         `P "The $(b,configure) command initializes a fresh $(mname) application."
       ]
-      ~arg:Term.(const (fun _ info -> Configure info)
+      ~arg:Term.(const (fun _ output result -> Configure { output; result })
                  $ setup_log
+                 $ output
                  $ result)
 
   (** The 'describe' subcommand *)

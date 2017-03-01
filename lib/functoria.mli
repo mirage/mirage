@@ -172,6 +172,14 @@ module Info: sig
   val name: t -> string
   (** [name t] is the name of the application. *)
 
+  val output: t -> string option
+  (** [output t] is the name of [t]'s output. Derived from {!name} if
+      not set. *)
+
+  val with_output: t -> string -> t
+  (** [with_output t o] is similar to [t] but with the output set to
+      [Some o]. *)
+
   val root: t -> Fpath.t
   (** Directory in which the configuration is done. *)
 
@@ -202,9 +210,11 @@ module Info: sig
 
   val pp: bool -> t Fmt.t
 
-  val opam : ?name:string -> t Fmt.t
-  (** [opam ~name t] generates an opam file including all dependencies.  The
-      [name] will be used as package name, defaults to {!name}. *)
+  val opam: ?name:string -> t Fmt.t
+  (** [opam t] generates an opam file including all dependencies. If
+      set, [name] will be used as package name, otherwise use
+      {!name}. *)
+
 end
 
 (** Signature for configurable module implementations. A

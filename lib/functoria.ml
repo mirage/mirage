@@ -135,6 +135,7 @@ let package = Package.package
 module Info = struct
   type t = {
     name: string;
+    output: string option;
     root: Fpath.t;
     keys: Key.Set.t;
     context: Key.context;
@@ -143,6 +144,8 @@ module Info = struct
 
   let name t = t.name
   let root t = t.root
+  let output t = t.output
+  let with_output t output = { t with output = Some output }
 
   let packages t = List.map snd (String.Map.bindings t.packages)
   let libraries t = Package.libraries (packages t)
@@ -162,24 +165,28 @@ module Info = struct
           | None -> invalid_arg ("bad version constraints in " ^ p.opam))
         String.Map.empty packages
     in
-    { name; root; keys; packages; context }
+    { name; root; keys; packages; context; output = None }
 
   let pp_packages ?(surround = "") ?sep ppf t =
     Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp_package surround)) (packages t)
 
-  let pp verbose ppf ({ name ; root ; keys ; context ; _ } as t) =
+  let pp verbose ppf ({ name ; root ; keys ; context ; output; _ } as t) =
     let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in
     let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
     show "Name      " Fmt.string name;
     show "Root      " Fpath.pp root;
     show "Keys      " (Key.pps context) keys;
+    show "Output    " Fmt.(option string) output;
     if verbose then show "Libraries " list (libraries t);
     if verbose then
       show "Packages  "
         (pp_packages ?surround:None ~sep:(Fmt.unit ",@ ")) t
 
   let opam ?name ppf t =
-    let name = (match name with None -> t.name | Some x -> x) |> Name.ocamlify in
+    let name =
+      (match name with | None -> t.name | Some x -> x)
+      |> Name.ocamlify
+    in
     Fmt.pf ppf "opam-version: \"1.2\"@." ;
     Fmt.pf ppf "name: \"%s\"@." name ;
     Fmt.pf ppf "depends: [ @[<hv>%a@]@ ]@."

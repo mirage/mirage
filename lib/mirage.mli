@@ -313,7 +313,7 @@ val ipv4_qubes: qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
  *  IPv4 interface. *)
 
 val create_ipv6:
-  ?time:time impl -> ?clock:mclock impl ->
+  ?random:random impl -> ?time:time impl -> ?clock:mclock impl ->
   ?group:string -> ethernet impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address.
     Exposes the keys {!Key.V6.ips}, {!Key.V6.netmasks} and {!Key.V6.gateways}.

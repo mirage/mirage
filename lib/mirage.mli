@@ -173,7 +173,11 @@ val block: block typ
 val block_of_file: string -> block impl
 (** Use the given filen as a raw block device. *)
 
+val ramdisk: string -> block impl
+(** Use a ramdisk with the given name. *)
 
+val generic_block:
+  ?key:[ `BlockFile | `Ramdisk ] value -> string -> block impl
 
 (** {2 Static key/value stores} *)
 

@@ -201,6 +201,27 @@ let kv_ro ?group () =
   in
   create_simple ~doc ?group ~stage:`Configure ~default:`Crunch conv "kv_ro"
 
+(** {3 Block device keys} *)
+let block ?group () =
+  let conv =
+    Cmdliner.Arg.enum [
+      "block-file", `BlockFile;
+      "ramdisk", `Ramdisk;
+    ]
+  in
+  let serialize = Fmt.of_to_string @@ function
+    | `BlockFile -> "`BlockFile"
+    | `Ramdisk   -> "`Ramdisk"
+  in
+  let conv = Arg.conv ~conv ~serialize ~runtime_conv:"block" in
+  let doc =
+    Fmt.strf
+      "Use a $(i,ramdisk) or $(i,block-file) pass-through \
+       implementation for %a."
+      pp_group group
+  in
+  create_simple ~doc ?group ~stage:`Configure ~default:`Ramdisk conv "block"
+
 (** {3 PRNG key} *)
 let prng ?group () =
   let conv =

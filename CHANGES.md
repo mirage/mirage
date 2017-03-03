@@ -1,4 +1,4 @@
-### 3.0.0 (2017-soon!)
+### 3.0.0 (2017-02-23)
 
 * rename module types modules: V1 -> Mirage_types, V1_LWT -> Mirage_types_lwt (#766, by @yomimono, @samoht, and @hannesm)
 * split type signatures and error printers into separate libraries (#755, #753, #752, #751, #764, and several others, by @samoht and @yomimono)

@@ -406,11 +406,10 @@ class block_conf file =
 let block_of_file file = impl (new block_conf file)
 
 class ramdisk_conf rname =
-  let name = Name.create rname ~prefix:"ramdisk" in
-  object (self)
+  object
     inherit base_configurable
     method ty = block
-    method name = name
+    method name = "ramdisk"
     method module_name = "Ramdisk"
     method packages =
       Key.pure [ package "mirage-block-ramdisk" ]

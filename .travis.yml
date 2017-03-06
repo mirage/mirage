@@ -1,5 +1,5 @@
 language: c
-install: wget https://raw.githubusercontent.com/avsm/ocaml-ci-scripts/extra-env/.travis-docker.sh
+install: wget https://raw.githubusercontent.com/yomimono/ocaml-ci-scripts/extra-env/.travis-docker.sh #fork needed for extra_env, github pr#160
 script: bash -ex .travis-docker.sh
 sudo: required
 services:

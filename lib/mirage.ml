@@ -42,9 +42,9 @@ let connect_err name number =
 
 (* Mirage implementation backing the target. *)
 let backend_predicate = function
-  | `Xen | `Qubes   -> "mirage_xen"
-  | `Virtio | `Ukvm -> "mirage_solo5"
-  | `Unix | `MacOSX -> "mirage_unix"
+  | `Xen | `Qubes           -> "mirage_xen"
+  | `Virtio | `Ukvm | `Muen -> "mirage_solo5"
+  | `Unix | `MacOSX         -> "mirage_unix"
 
 (** {2 Devices} *)
 let qrexec = job
@@ -231,7 +231,7 @@ let nocrypto = impl @@ object
       | `Xen | `Qubes ->
         [ package ~min:"0.5.4" ~sublibs:["mirage"] "nocrypto";
           package ~ocamlfind:[] "zarith-xen" ]
-      | `Virtio | `Ukvm ->
+      | `Virtio | `Ukvm | `Muen ->
         [ package ~min:"0.5.4" ~sublibs:["mirage"] "nocrypto";
           package ~ocamlfind:[] "zarith-freestanding" ]
       | `Unix | `MacOSX ->
@@ -240,7 +240,7 @@ let nocrypto = impl @@ object
     method! build _ = R.ok (enable_entropy ())
     method! connect i _ _ =
       match get_target i with
-      | `Xen | `Qubes | `Virtio | `Ukvm -> "Nocrypto_entropy_mirage.initialize ()"
+      | `Xen | `Qubes | `Virtio | `Ukvm | `Muen -> "Nocrypto_entropy_mirage.initialize ()"
       | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
   end
 
@@ -299,7 +299,8 @@ let custom_console str =
     `Xen, console_xen str;
     `Qubes, console_xen str;
     `Virtio, console_solo5 str;
-    `Ukvm, console_solo5 str
+    `Ukvm, console_solo5 str;
+    `Muen, console_solo5 str
   ] ~default:(console_unix str)
 
 let default_console = custom_console "0"
@@ -348,7 +349,8 @@ let direct_kv_ro dirname =
     `Xen, crunch dirname;
     `Qubes, crunch dirname;
     `Virtio, crunch dirname;
-    `Ukvm, crunch dirname
+    `Ukvm, crunch dirname;
+    `Muen, crunch dirname
   ] ~default:(direct_kv_ro_conf dirname)
 
 type block = BLOCK
@@ -383,12 +385,12 @@ class block_conf file =
     method! packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes -> [ package ~min:"1.5.0" ~sublibs:["front"] "mirage-block-xen" ]
-      | `Virtio | `Ukvm -> [ package ~min:"0.2.1" "mirage-block-solo5" ]
+      | `Virtio | `Ukvm | `Muen -> [ package ~min:"0.2.1" "mirage-block-solo5" ]
       | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
 
     method private connect_name target root =
       match target with
-      | `Unix | `MacOSX | `Virtio | `Ukvm ->
+      | `Unix | `MacOSX | `Virtio | `Ukvm | `Muen ->
         Fpath.(to_string (root / b.filename)) (* open the file directly *)
       | `Xen | `Qubes ->
         (* don't try to infer anything about this filename - let
@@ -396,8 +398,11 @@ class block_conf file =
         b.filename
 
     method! connect i s _ =
-      Fmt.strf "%s.connect %S" s
-        (self#connect_name (get_target i) @@ Info.build_dir i)
+      match get_target i with
+      | `Muen -> failwith "Block devices not supported on Muen target."
+      | `Unix | `MacOSX | `Virtio | `Ukvm | `Xen | `Qubes ->
+        Fmt.strf "%s.connect %S" s
+          (self#connect_name (get_target i) @@ Info.build_dir i)
   end
 
 let block_of_file file = impl (new block_conf file)
@@ -564,7 +569,7 @@ let network_conf (intf : string Key.key) =
       | `MacOSX -> [ package ~min:"1.3.0" "mirage-net-macosx" ]
       | `Xen -> [ package ~min:"1.7.0" "mirage-net-xen"]
       | `Qubes -> [ package ~min:"1.7.0" "mirage-net-xen" ; package ~min:"0.4" "mirage-qubes" ]
-      | `Virtio | `Ukvm -> [ package ~min:"0.2.0" "mirage-net-solo5" ]
+      | `Virtio | `Ukvm | `Muen -> [ package ~min:"0.2.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =
@@ -669,9 +674,9 @@ let (@??) x y = opt_map Key.abstract x @? y
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?min ?max ?ocamlfind ~sublibs pkg =
   Key.match_ Key.(value target) @@ function
-  |`MacOSX | `Unix -> [ package ?min ?max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  |`Qubes  | `Xen  -> [ package ?min ?max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
-  |`Virtio | `Ukvm -> [ package ?min ?max ?ocamlfind ~sublibs pkg ]
+  |`MacOSX | `Unix         -> [ package ?min ?max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
+  |`Qubes  | `Xen          -> [ package ?min ?max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
+  |`Virtio | `Ukvm | `Muen -> [ package ?min ?max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     inherit base_configurable
@@ -1307,7 +1312,8 @@ let default_argv =
     `Xen, argv_xen;
     `Qubes, argv_xen;
     `Virtio, argv_solo5;
-    `Ukvm, argv_solo5
+    `Ukvm, argv_solo5;
+    `Muen, argv_solo5
   ] ~default:argv_unix
 
 (** Log reporting *)
@@ -1377,7 +1383,7 @@ let mprof_trace ~size () =
     method! packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes -> [ package "mirage-profile"; package "mirage-profile-xen" ]
-      | `Virtio | `Ukvm -> []
+      | `Virtio | `Ukvm | `Muen -> []
       | `Unix | `MacOSX -> [ package "mirage-profile"; package "mirage-profile-unix" ]
     method! build _ =
       match query_ocamlfind ["lwt.tracing"] with
@@ -1386,7 +1392,7 @@ let mprof_trace ~size () =
                      opam pin add lwt https://github.com/mirage/lwt.git#tracing"
       | Ok _ -> Ok ()
     method! connect i _ _ = match get_target i with
-      | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
+      | `Virtio | `Ukvm | `Muen -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf
           "Lwt.return ())@.\
@@ -1762,12 +1768,12 @@ let compile libs warn_error target =
     (if terminal () then ["color(always)"] else [])
   and result = match target with
     | `Unix | `MacOSX -> "main.native"
-    | `Xen | `Qubes | `Virtio | `Ukvm -> "main.native.o"
+    | `Xen | `Qubes | `Virtio | `Ukvm | `Muen -> "main.native.o"
   and cflags = [ "-g" ]
   and lflags =
     let dontlink =
       match target with
-      | `Xen | `Qubes | `Virtio | `Ukvm -> ["unix"; "str"; "num"; "threads"]
+      | `Xen | `Qubes | `Virtio | `Ukvm | `Muen -> ["unix"; "str"; "num"; "threads"]
       | `Unix | `MacOSX -> []
     in
     let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
@@ -1894,6 +1900,20 @@ let link info name target target_debug =
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
     Ok out
+  | `Muen ->
+    extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
+    static_libs "mirage-solo5" >>= fun static_libs ->
+    ldflags "solo5-kernel-muen" >>= fun ldflags ->
+    ldpostflags "solo5-kernel-muen" >>= fun ldpostflags ->
+    let out = name ^ ".muen" in
+    let linker =
+      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+               of_list c_artifacts %% of_list static_libs % "-o" % out
+               %% of_list ldpostflags)
+    in
+    Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
+    Bos.OS.Cmd.run linker >>= fun () ->
+    Ok out
   | `Ukvm ->
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
@@ -1950,6 +1970,7 @@ let clean i =
   Bos.OS.File.delete Fpath.(v name + "xen") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "elf") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "virtio") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "muen") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-ukvm") >>= fun () ->
@@ -1994,6 +2015,8 @@ module Project = struct
         | `Virtio -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-virtio" ;
                        package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Ukvm -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-ukvm" ;
+                     package ~min:"0.2.0" "mirage-solo5" ] @ common
+        | `Muen -> [ package ~ocamlfind:[] "solo5-kernel-muen" ;
                      package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ] @ common
 

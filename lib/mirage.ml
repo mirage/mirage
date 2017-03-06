@@ -1594,7 +1594,7 @@ let configure_makefile ~opam_name =
                   .PHONY: all depend clean build\n\
                   all:: build\n\
                   \n\
-                  depend::\n\
+                  depend depends::\n\
                   \t$(OPAM) pin add --no-action --yes %s .\n\
                   \t$(DEPEXT)\n\
                   \t$(OPAM) install --yes --deps-only %s\n\

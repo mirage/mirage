@@ -1,5 +1,5 @@
 language: c
-install: wget https://raw.githubusercontent.com/avsm/ocaml-ci-scripts/extra-env/.travis-docker.sh
+install: wget https://raw.githubusercontent.com/yomimono/ocaml-ci-scripts/extra-env/.travis-docker.sh #fork needed for extra_env, github pr#160
 script: bash -ex .travis-docker.sh
 sudo: required
 services:
@@ -7,10 +7,10 @@ services:
 sudo: false
 env:
  global:
-   - EXTRA_REMOTES="git://github.com/mirage/mirage-dev.git"
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
+   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:. dns mirage-dns" #dns for 0.19.1, mirage-dns for 2.6.1, remove when released
+   - TESTS=false #testing via travis-ci.sh
  matrix:
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=xen"
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=ukvm"

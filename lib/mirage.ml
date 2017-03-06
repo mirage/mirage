@@ -1786,6 +1786,8 @@ let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 let link info target =
   let libs = Info.libraries info in
   let output = output info in
+  Bos.OS.Cmd.run Bos.Cmd.(v "mkdir" % "-p" % Filename.dirname output)
+  >>= fun () ->
   match target with
   | `Unix | `MacOSX ->
     Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % output) >>= fun () ->

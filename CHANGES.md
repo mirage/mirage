@@ -1,3 +1,7 @@
+## 2.0.2 (07/03/2017)
+
+* don't complain about command-line options when config.ml is unbuildable (#109, by @yomimono and @talex5)
+
 ## 2.0.1 (13/02/2017)
 
 * raise an exception with useful information when Univ.new_key fails (#102, by @yomimono)

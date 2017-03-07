@@ -1,15 +1,15 @@
-# Functoria - A DSL to organize functor applications.
+# Functoria - A DSL to organize functor applications
 
 [![Build Status](https://travis-ci.org/mirage/functoria.svg)](https://travis-ci.org/mirage/functoria)
 [![docs](https://img.shields.io/badge/doc-online-blue.svg)](https://mirage.github.io/functoria/index.html)
 
-## What is this for ?
+## What is this for?
 
 Functoria is a DSL to describe a set of modules and functors, their types and how to apply them in order to produce a complete application.
 
 The main use case is mirage. See the [mirage][] repository for details.
 
-## How to write a configuration file ?
+## How to write a configuration file?
 
 There are numerous examples of configuration files in [mirage-skeleton][]. Most of them should be fairly general and understandable, even outside the context of mirage. We can distinguish two parts in a `config.ml`: Defining new modules and using them.
 
@@ -31,16 +31,17 @@ Here, we register a new application with the `register` function. This function 
 
 Now that everything is ready, you can use the `configure` subcommand!
 
-### What is a job ?
+### What is a job?
 
 A job is a module containing a function `start`. This function will receive one argument per functor argument and one per dependency, in this order. `foreign` assumes the function `start` returns `unit`.
 
-### Defining new keys.
+### Defining new keys
 
-A key is composed of :
+A key is composed of:
+
 - _name_ : The name of the value in the program.
 - _description_ : How it should be displayed/serialized.
-- _stage_ : Is the key available only at runtime, at configure time or both ?
+- _stage_ : Is the key available only at runtime, at configure time or both?
 - _documentation_ : It is not optional so you should really write it.
 
 Consider a multilingual application: we want to pass the default language as a parameter. We will use a simple string, so we can use the predefined description `Key.Desc.string`. We want to be able to define it both at configure and run time, so we use the stage `` `Both``. This gives us the following code:
@@ -53,7 +54,7 @@ let lang_key =
   Key.create ~doc ~stage:`Both ~default:"en" "language" Key.Desc.string
 ```
 
-Here, We defined both a long option `--lang` and a short one `-l` (the format is similar to the one used by [Cmdliner][cmdliner]).
+Here, we defined both a long option `--lang` and a short one `-l` (the format is similar to the one used by [Cmdliner][cmdliner]).
 In the application code, the value is retrieved with `Key_gen.language ()`.
 
 The option is also documented in the `--help` option for both the `configure` subcommand (at configure time) and `./my_application` (at startup time).
@@ -69,7 +70,7 @@ The option is also documented in the `--help` option for both the `configure` su
 
 We can do much more with keys: we can use them to switch implementation at configure time. Imagine we want to completely change some implementation based on the language. Finns are special snowflakes, they deserve their special application!
 
-First, we have to compute a boolean value from lang:
+First, we have to compute a boolean value from `lang`:
 
 ```ocaml
 let is_fi = Key.(pure ((=) "fi") $ value lang_key)
@@ -96,7 +97,7 @@ Configuration is separated into phases:
    The specialized DSL's keys (along with functoria's keys) are resolved.
 2. Compilation and dynlink of the config file.
 3. Registering.
-   When the `register` function is called, the list of job is recorded and
+   When the `register` function is called, the list of jobs is recorded and
    immediately transformed into a graph.
 4. Switching keys and tree evaluation.
    The switching keys are the keys inside the [If].

@@ -1591,7 +1591,7 @@ let configure_makefile ~opam_name =
       append fmt "OPAM = opam\n\
                   DEPEXT ?= opam depext --yes %s\n\
                   \n\
-                  .PHONY: all depend clean build\n\
+                  .PHONY: all depend depends clean build\n\
                   all:: build\n\
                   \n\
                   depend depends::\n\

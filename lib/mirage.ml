@@ -104,8 +104,8 @@ let qubesdb_conf = object
   method packages = Key.pure [ package "mirage-qubes" ]
   method configure i =
     match get_target i with
-    | `Qubes -> R.ok ()
-    | _ -> R.error_msg "Qubes DB invoked for non-Qubes target."
+    | `Qubes | `Xen -> R.ok ()
+    | _ -> R.error_msg "Qubes DB invoked for an unsupported target; qubes and xen are supported"
   method connect _ modname _args = Fmt.strf "%s.connect ~domid:0 ()" modname
 end
 

@@ -2,6 +2,7 @@ FROM ocaml/opam:ubuntu-16.04_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
 RUN opam depext -uivy -j 2 odig
+RUN opam pin add cmdliner 1.0.0
 RUN opam depext -uivj 3 \
   alcotest \
   angstrom \
@@ -124,7 +125,6 @@ RUN opam depext -uivj 3 \
   tlstunnel \
   tyre \
   topkg \
-  topkg-care \
   tuntap \
   tyxml-ppx \
   uri \
@@ -142,7 +142,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin datakit hvsock mirage-block-ccm git-mirage
+# to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin datakit hvsock mirage-block-ccm git-mirage topkg-care
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

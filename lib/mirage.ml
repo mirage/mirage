@@ -810,7 +810,7 @@ let udpv4_socket_conf ipv4_key = object
     Key.(if_ is_unix) [ package ~sublibs:["udpv4-socket"] "tcpip" ] []
   method configure i =
     match get_target i with
-    | `MacOSX | `Unix -> R.ok ()
+    | `Unix | `MacOSX -> R.ok ()
     | _ -> R.error_msg "UDPv4 socket not supported on non-UNIX targets."
   method connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
 end
@@ -1668,6 +1668,13 @@ let configure i =
     configure_main_libvirt_xml ~root ~name
   | _ -> R.ok ()
 
+let terminal () =
+  let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
+  let isatty = try Unix.(isatty (descr_of_out_channel Pervasives.stdout)) with
+    | Unix.Unix_error _ -> false
+  in
+  not dumb && isatty
+
 let compile libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
@@ -1678,7 +1685,8 @@ let compile libs warn_error target =
       "principal";
       "safe_string" ] @
     (if warn_error then ["warn_error(+1..49)"] else []) @
-    match target with | `MacOSX -> ["thread"] | _ -> []
+    (match target with `MacOSX -> ["thread"] | _ -> []) @
+    (if terminal () then ["color(always)"] else [])
   and result = match target with
     | `Unix | `MacOSX -> "main.native"
     | `Xen | `Qubes | `Virtio | `Ukvm -> "main.native.o"
@@ -1687,7 +1695,7 @@ let compile libs warn_error target =
     let dontlink =
       match target with
       | `Xen | `Qubes | `Virtio | `Ukvm -> ["unix"; "str"; "num"; "threads"]
-      | `MacOSX | `Unix -> []
+      | `Unix | `MacOSX -> []
     in
     let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
     "-g" :: List.flatten dont

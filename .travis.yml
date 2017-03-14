@@ -9,7 +9,7 @@ env:
  global:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:. dns mirage-dns" #dns for 0.19.1, mirage-dns for 2.6.1, remove when released
+   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - TESTS=false #testing via travis-ci.sh
  matrix:
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=xen"

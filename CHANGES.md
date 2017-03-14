@@ -1,3 +1,10 @@
+### 3.0.1 (2017-03-14)
+
+* remove "-color always" from ocamlbuild invocation (bugfix for some scripts interpreting build output) (#811, by @hannesm)
+* provide a "random" module argument when invoking IPv6.Make (compat with tcpip 3.1.0) (#801, by @hannesm)
+* add a "depends" target to the generated Makefile (controversial and may be removed) (#805, by @yomimono)
+* allow qubesdb to be requested in config.ml when the target is xen (#807, by @talex5)
+
 ### 3.0.0 (2017-02-23)
 
 * rename module types modules: V1 -> Mirage_types, V1_LWT -> Mirage_types_lwt (#766, by @yomimono, @samoht, and @hannesm)

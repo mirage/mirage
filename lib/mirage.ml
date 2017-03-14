@@ -1671,7 +1671,6 @@ let compile libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
       "warn(A-4-41-42-44)";
-      "color(always)";
       "debug";
       "bin_annot";
       "strict_sequence";

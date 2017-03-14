@@ -37,7 +37,6 @@ RUN opam depext -uivj 3 \
   fat-filesystem \
   functoria \
   git \
-  git-unix \
   github \
   gmp-freestanding \
   hex \
@@ -142,7 +141,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin datakit hvsock mirage-block-ccm git-mirage topkg-care
+# to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin datakit hvsock mirage-block-ccm git-mirage topkg-care git-unix
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
 RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock

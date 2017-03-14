@@ -179,7 +179,7 @@ module Info = struct
         (pp_packages ?surround:None ~sep:(Fmt.unit ",@ ")) t
 
   let opam ?name ppf t =
-    let name = (match name with None -> t.name | Some x -> x) |> Name.ocamlify in
+    let name = match name with None -> t.name | Some x -> x in
     Fmt.pf ppf "opam-version: \"1.2\"@." ;
     Fmt.pf ppf "name: \"%s\"@." name ;
     Fmt.pf ppf "depends: [ @[<hv>%a@]@ ]@."

@@ -580,7 +580,7 @@ module Make (P: S) = struct
            Format.fprintf Format.str_formatter "error while executing %a\n%s"
              Bos.Cmd.pp cmd out ;
            let err = Format.flush_str_formatter () in
-           Error (`Msg err))
+           Error (`Invalid_config_ml err))
       "compile configuration"
 
   (* attempt to dynlink the configuration file.
@@ -701,7 +701,8 @@ module Make (P: S) = struct
             when they weren't loaded *)
 
       match load' config_file with
-      | Error err -> handle_parse_args_no_config err argv
+      | Error (`Invalid_config_ml err) -> Logs.err (fun f -> f "%s" err)
+      | Error (`Msg _ as err) -> handle_parse_args_no_config err argv
       | Ok config ->
 
         let config_keys = Config.keys config in

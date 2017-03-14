@@ -729,13 +729,13 @@ let ipv4_qubes db ethernet arp = ipv4_qubes_conf $ db $ ethernet $ arp
 
 let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     inherit base_configurable
-    method ty = ethernet @-> time @-> mclock @-> ipv6
+    method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
     method packages = Key.pure [ package ~sublibs:["ipv6"] "tcpip" ]
     method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
-      | [ etif ; _time ; clock ] ->
+      | [ etif ; _random ; _time ; clock ] ->
         Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
           modname
           (opt_key "ip") addresses
@@ -746,13 +746,14 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
   end
 
 let create_ipv6
+    ?(random = default_random)
     ?(time = default_time)
     ?(clock = default_monotonic_clock)
     ?group etif { addresses ; netmasks ; gateways } =
   let addresses = Key.V6.ips ?group addresses in
   let netmasks = Key.V6.netmasks ?group netmasks in
   let gateways = Key.V6.gateways ?group gateways in
-  ipv6_conf ~addresses ~netmasks ~gateways () $ etif $ time $ clock
+  ipv6_conf ~addresses ~netmasks ~gateways () $ etif $ random $ time $ clock
 
 type 'a icmp = ICMP
 type icmpv4 = v4 icmp

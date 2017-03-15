@@ -1,3 +1,7 @@
+### 3.0.2 (2017-03-15)
+
+* restore ocamlbuild colors when `TERM <> dumb && Unix.isatty stdout` (#814, by @hannesm)
+
 ### 3.0.1 (2017-03-14)
 
 * remove "-color always" from ocamlbuild invocation (bugfix for some scripts interpreting build output) (#811, by @hannesm)

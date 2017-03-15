@@ -571,7 +571,7 @@ let ethernet_conf = object
   method ty = network @-> ethernet
   method name = "ethif"
   method module_name = "Ethif.Make"
-  method packages = Key.pure [ package ~sublibs:["ethif"] "tcpip" ]
+  method packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ethif"] "tcpip" ]
   method connect _ modname = function
     | [ eth ] -> Fmt.strf "%s.connect %s" modname eth
     | _ -> failwith (connect_err "ethernet" 1)
@@ -652,7 +652,7 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method packages = Key.pure [ package ~sublibs:["ipv4"] "tcpip" ]
+    method packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ipv4"] "tcpip" ]
     method keys = network @?? gateway @?? []
     method connect _ modname = function
     | [ etif ; arp ] ->
@@ -732,7 +732,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method packages = Key.pure [ package ~sublibs:["ipv6"] "tcpip" ]
+    method packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ipv6"] "tcpip" ]
     method keys = addresses @?? netmasks @?? gateways @?? []
     method connect _ modname = function
       | [ etif ; _random ; _time ; clock ] ->
@@ -831,7 +831,7 @@ let tcp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method packages = Key.pure [ package ~sublibs:["tcp"] "tcpip" ]
+  method packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["tcp"] "tcpip" ]
   method connect _ modname = function
     | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
     | _ -> failwith (connect_err "direct tcp" 4)

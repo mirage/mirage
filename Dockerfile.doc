@@ -1,7 +1,7 @@
 FROM ocaml/opam:ubuntu-16.04_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
-RUN opam depext -uivy -j 2 odig
+RUN opam depext -uivy -j 2 odig odoc
 RUN opam pin add cmdliner 1.0.0
 RUN opam depext -uivj 3 \
   alcotest \
@@ -142,12 +142,6 @@ RUN opam depext -uivj 3 \
   zarith-freestanding
 # to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin datakit hvsock mirage-block-ccm git-mirage topkg-care git-unix irmin
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
-RUN opam pin add -n octavius git://github.com/ocaml-doc/octavius
-RUN opam pin add -n doc-ock git://github.com/ocaml-doc/doc-ock
-RUN opam pin add -n doc-ock-xml git://github.com/ocaml-doc/doc-ock-xml
-RUN opam pin add -n doc-ock-html git://github.com/ocaml-doc/doc-ock-html
-RUN opam pin add -n odoc https://github.com/ocaml-doc/odoc.git
-RUN opam depext -uivy -j 2 odoc
 RUN opam config exec -- odig odoc --docdir-href _doc
 RUN ln -s /home/opam/.opam/4.03.0/var/cache/odig/ocamldoc /home/opam/.opam/4.03.0/var/cache/odig/odoc/_ocamldoc
 RUN ln -s /home/opam/.opam/4.03.0/doc /home/opam/.opam/4.03.0/var/cache/odig/odoc/_doc

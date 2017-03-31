@@ -1732,12 +1732,15 @@ let opam_prefix =
 
 (* Invoke pkg-config and return output if successful. *)
 let pkg_config pkgs args =
+  let var = "PKG_CONFIG_PATH" in
+  let pkg_config_fallback = match Bos.OS.Env.var var with
+    | Some path -> ":" ^ path
+    | None -> ""
+  in
   Lazy.force opam_prefix >>= fun prefix ->
   (* the order here matters (at least for ancient 0.26, distributed with
        ubuntu 14.04 versions): use share before lib! *)
-  let var = "PKG_CONFIG_PATH"
-  and value = Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig" prefix prefix
-  in
+  let value = Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s" prefix prefix pkg_config_fallback in
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
   Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->

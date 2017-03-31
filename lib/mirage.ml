@@ -1832,12 +1832,11 @@ let link info name target =
                %% of_list ldpostflags)
     in
     let ukvm_mods =
-      let ukvm_filter = function
-        | "mirage-net-solo5" -> "net"
-        | "mirage-block-solo5" -> "blk"
-        | _ -> ""
-      in
-      List.map ukvm_filter libs
+      List.fold_left (fun acc -> function
+        | "mirage-net-solo5" -> "net" :: acc
+        | "mirage-block-solo5" -> "blk" :: acc
+        | _ -> acc)
+        [] libs
     in
     pkg_config "solo5-kernel-ukvm" ["--variable=libdir"] >>= function
     | [ libdir ] ->

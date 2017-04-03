@@ -190,7 +190,7 @@ let stdlib_random = impl stdlib_random_conf
 
 let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   let open Bos in
-  let flag = if recursive then "-recursive" else ""
+  let flag = if recursive then [ "-recursive" ] else []
   and format = Cmd.of_list [ "-format" ; format ]
   and predicate = match predicates with
     | None -> []
@@ -198,7 +198,7 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   and q = "query"
   in
   let cmd =
-    Cmd.(v "ocamlfind" % q % flag %% format %% of_list predicate %% of_list libs)
+    Cmd.(v "ocamlfind" % q %% of_list flag %% format %% of_list predicate %% of_list libs)
   in
   OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
 
@@ -1739,14 +1739,16 @@ let compile libs warn_error target =
   Bos.OS.Cmd.run cmd
 
 (* Implement something similar to the @name/file extended names of findlib. *)
-let rec expand_name ~lib param =
+let rec expand_name param =
+  let pkg_path name = query_ocamlfind ~format:"%d" [name] >>| List.hd in
   match String.cut param ~sep:"@" with
-  | None -> param
+  | None -> R.ok param
   | Some (prefix, name) -> match String.cut name ~sep:"/" with
-    | None              -> prefix ^ Fpath.(to_string (v lib / name))
+    | None              -> pkg_path name >>| fun path -> prefix ^ path
     | Some (name, rest) ->
-      let rest = expand_name ~lib rest in
-      prefix ^ Fpath.(to_string (v lib / name / rest))
+      expand_name rest >>= fun rest ->
+      pkg_path name >>| fun path ->
+      prefix ^ Fpath.(to_string (v path / rest))
 
 let opam_prefix =
   let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
@@ -1771,25 +1773,26 @@ let pkg_config pkgs args =
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)
 let extra_c_artifacts target pkgs =
-  Lazy.force opam_prefix >>= fun prefix ->
-  let lib = prefix ^ "/lib" in
   let format = Fmt.strf "%%d\t%%(%s_linkopts)" target
   and predicates = "native"
   in
   query_ocamlfind ~recursive:true ~format ~predicates pkgs >>= fun data ->
-  let r = List.fold_left (fun acc line ->
-      match String.cut line ~sep:"\t" with
-      | None -> acc
-      | Some (dir, ldflags) ->
-        if ldflags <> "" then begin
-          let ldflags = String.cuts ldflags ~sep:" " in
-          let ldflags = List.map (expand_name ~lib) ldflags in
-          acc @ ("-L" ^ dir) :: ldflags
-        end else
-          acc
-    ) [] data
-  in
-  R.ok r
+  List.fold_left (fun acc line ->
+    acc >>= fun acc ->
+    match String.cut line ~sep:"\t" with
+    | None -> R.ok acc
+    | Some (dir, ldflags) ->
+      if ldflags <> "" then begin
+        let ldflags = String.cuts ldflags ~sep:" " in
+        List.fold_left (fun acc flag ->
+          acc >>= fun acc ->
+          expand_name flag >>| fun flag ->
+          acc @ [flag]
+        ) (R.ok []) ldflags >>| fun ldflags ->
+        acc @ ("-L" ^ dir) :: ldflags
+      end else
+        R.ok acc
+  ) (R.ok []) data
 
 let static_libs pkg_config_deps = pkg_config pkg_config_deps [ "--static" ; "--libs" ]
 

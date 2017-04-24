@@ -205,7 +205,7 @@ let kv_ro ?group () =
 let block ?group () =
   let conv =
     Cmdliner.Arg.enum [
-      "block-file", `BlockFile;
+      "file", `BlockFile;
       "ramdisk", `Ramdisk;
     ]
   in
@@ -216,7 +216,7 @@ let block ?group () =
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"block" in
   let doc =
     Fmt.strf
-      "Use a $(i,ramdisk) or $(i,block-file) pass-through \
+      "Use a $(i,ramdisk) or $(i,file) pass-through \
        implementation for %a."
       pp_group group
   in

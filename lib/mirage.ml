@@ -405,6 +405,28 @@ class block_conf file =
 
 let block_of_file file = impl (new block_conf file)
 
+class ramdisk_conf rname =
+  object
+    inherit base_configurable
+    method ty = block
+    method name = "ramdisk"
+    method module_name = "Ramdisk"
+    method packages =
+      Key.pure [ package "mirage-block-ramdisk" ]
+
+    method connect _i modname _names =
+      Fmt.strf "%s.connect %S" modname rname
+  end
+
+
+let ramdisk rname = impl (new ramdisk_conf rname)
+
+let generic_block ?(key = Key.value @@ Key.block ()) name =
+  match_impl key [
+    `BlockFile, block_of_file name;
+    `Ramdisk, ramdisk name;
+  ] ~default:(ramdisk name)
+
 let tar_block dir =
   let name = Name.create ("tar_block" ^ dir) ~prefix:"tar_block" in
   let block_file = name ^ ".img" in

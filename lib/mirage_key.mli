@@ -72,6 +72,9 @@ val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Direct | `Fat ] key
 (** The type of key value store.
     Is one of ["archive"], ["crunch"], ["direct"], or ["fat"]. *)
 
+(** {3 Block device keys} *)
+val block : ?group:string -> unit -> [ `BlockFile | `Ramdisk ] key
+
 (** {3 PRNG key} *)
 
 val prng : ?group:string -> unit -> [ `Stdlib | `Nocrypto ] key

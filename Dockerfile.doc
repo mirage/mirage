@@ -1,9 +1,7 @@
 FROM ocaml/opam:ubuntu-16.04_ocaml-4.03.0
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
-RUN opam pin add -n odig https://github.com/avsm/odig.git#mtime-1.0
+RUN opam pin add -n odig https://github.com/dbuenzli/odig.git
 RUN opam depext -uivy -j 2 odig odoc
-RUN opam pin add cmdliner 1.0.0
-RUN opam pin add mtime 1.0.0
 RUN opam depext -uivj 3 \
   alcotest \
   angstrom \

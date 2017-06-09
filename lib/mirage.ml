@@ -1331,9 +1331,9 @@ let mprof_trace ~size () =
     method keys = [ Key.abstract key ]
     method packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> [ package ~sublibs:["xen"] "mirage-profile" ]
+      | `Xen | `Qubes -> [ package "mirage-profile"; package "mirage-profile-xen" ]
       | `Virtio | `Ukvm -> []
-      | `Unix | `MacOSX -> [ package ~sublibs:["unix"] "mirage-profile" ]
+      | `Unix | `MacOSX -> [ package "mirage-profile"; package "mirage-profile-unix" ]
     method build _ =
       match query_ocamlfind ["lwt.tracing"] with
       | Ok _ -> Ok ()

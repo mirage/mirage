@@ -202,6 +202,35 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   in
   OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
 
+type ocamlobj = {
+  extra_c_object_files: string;
+  extra_c_options: string;
+}
+let query_ocamlobjinfo cmxs =
+  let open Bos in
+  let cmd = Cmd.(v "ocamlobjinfo" % cmxs) in
+  OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
+  >>= fun lines ->
+  let none = {
+    extra_c_object_files = "";
+    extra_c_options = "";
+  } in
+  let extra_c_object_files_prefix = "Extra C object files: " in
+  let extra_c_options_prefix = "Extra C options: " in
+  let r = List.fold_left (fun acc line ->
+    let acc = match String.cut ~sep:extra_c_object_files_prefix line with
+      | None -> acc
+      | Some ("", extra_c_object_files) -> { acc with extra_c_object_files }
+      | _ -> assert false in
+    let acc = match String.cut ~sep:extra_c_options_prefix line with
+      | None -> acc
+      | Some ("", extra_c_options) -> { acc with extra_c_options }
+      | _ -> assert false in
+    acc
+  ) none lines
+  in
+  R.ok r
+
 (* This is to check that entropy is a dependency if "tls" is in
    the package array. *)
 let enable_entropy, is_entropy_enabled =
@@ -1791,6 +1820,34 @@ let extra_c_artifacts target pkgs =
   in
   R.ok r
 
+let extra_c_artifacts' pkgs =
+  Lazy.force opam_prefix >>= fun prefix ->
+  let lib = prefix ^ "/lib" in
+  let format = "%+a"
+  and predicates = "native"
+  in
+  let module DirSet = Set.Make(String) in
+  query_ocamlfind ~recursive:true ~format ~predicates pkgs >>= fun data ->
+  List.fold_left (fun acc cmxs ->
+    acc >>= fun (dirs, args) ->
+    query_ocamlobjinfo cmxs
+    >>= fun info ->
+    let dirs = if info.extra_c_object_files = "" then dirs else DirSet.add (Filename.dirname cmxs) dirs in
+    let objects =
+      if info.extra_c_object_files = ""
+      then []
+      else [ info.extra_c_object_files ] in
+    let options =
+      if info.extra_c_options = ""
+      then []
+      else [ info.extra_c_options ] in
+    R.ok (dirs, args @ objects @ options)
+    ) (R.ok (DirSet.empty, [])) data
+  >>= fun (dirs, args) ->
+  (* Add the -L at the beginning *)
+  let dirs = DirSet.fold (fun dir acc -> ("-L" ^ dir) :: acc) dirs [] in
+  R.ok (dirs @ args)
+
 let static_libs pkg_config_deps = pkg_config pkg_config_deps [ "--static" ; "--libs" ]
 
 let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
@@ -1805,6 +1862,9 @@ let link info name target =
     Ok name
   | `Xen | `Qubes ->
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
+    extra_c_artifacts' libs >>= fun c_artifacts' ->
+    Printf.fprintf stderr "extra_c_artifacts =  %s\nextra_c_artifacts' = %s\n%!"
+      (String.concat ~sep:";" c_artifacts) (String.concat ~sep:";" c_artifacts');
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
       Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %%

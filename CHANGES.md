@@ -1,3 +1,9 @@
+### 3.0.3 (2017-06-14)
+* add a --block configure flag for picking ramdisk or file-backed disk
+* add lower bounds on packages
+* fallback to system `$PKG_CONFIG_PATH`
+* update for mirage-qubes-ipv4, io-page-unix, io-page-xen
+
 ### 3.0.2 (2017-03-15)
 
 * restore ocamlbuild colors when `TERM <> dumb && Unix.isatty stdout` (#814, by @hannesm)

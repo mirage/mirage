@@ -1,4 +1,4 @@
-### 3.0.3 (2017-06-14)
+### 3.0.4 (2017-06-15)
 * add a --block configure flag for picking ramdisk or file-backed disk
 * add lower bounds on packages
 * fallback to system `$PKG_CONFIG_PATH`

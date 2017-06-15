@@ -1936,11 +1936,9 @@ module Project = struct
         | `Xen | `Qubes -> [ package ~min:"3.0.0" "mirage-xen";
                              package "io-page-xen" ] @ common
         | `Virtio -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-virtio" ;
-                       package ~min:"0.2.0" "mirage-solo5";
-                       package "io-page-unix" ] @ common
+                       package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Ukvm -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-ukvm" ;
-                     package ~min:"0.2.0" "mirage-solo5";
-                     package "io-page-unix"; ] @ common
+                     package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ;
                                package "io-page-unix"; ] @ common
 

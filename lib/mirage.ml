@@ -1933,14 +1933,12 @@ module Project = struct
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> [ package ~min:"3.0.0" "mirage-xen";
-                             package "io-page-xen" ] @ common
+        | `Xen | `Qubes -> [ package ~min:"3.0.0" "mirage-xen" ] @ common
         | `Virtio -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-virtio" ;
                        package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Ukvm -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-ukvm" ;
                      package ~min:"0.2.0" "mirage-solo5" ] @ common
-        | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ;
-                               package "io-page-unix"; ] @ common
+        | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ] @ common
 
       method build = build
       method configure = configure

@@ -1,4 +1,8 @@
-* port to jbuilder
+### 3.0.4 (2017-06-15)
+* add a --block configure flag for picking ramdisk or file-backed disk
+* add lower bounds on packages
+* fallback to system `$PKG_CONFIG_PATH`
+* update for mirage-qubes-ipv4
 
 ### 3.0.2 (2017-03-15)
 

@@ -1,3 +1,5 @@
+* port to jbuilder
+
 ### 3.0.2 (2017-03-15)
 
 * restore ocamlbuild colors when `TERM <> dumb && Unix.isatty stdout` (#814, by @hannesm)

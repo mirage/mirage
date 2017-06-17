@@ -1,0 +1,6 @@
+(library
+ ((name        mirage_types_lwt)
+  (public_name mirage-types-lwt)
+  (libraries   (mirage-types mirage-time-lwt mirage-random mirage-flow-lwt
+                mirage-console-lwt mirage-block-lwt mirage-clock-lwt mirage-kv-lwt
+                mirage-fs-lwt mirage-net-lwt mirage-channel-lwt mirage-stack-lwt mirage-protocols-lwt))))

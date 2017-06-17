@@ -1,0 +1,2 @@
+(jbuild_version 1)
+(executable ((name mirage_cli) (public_name mirage) (package mirage) (libraries (mirage))))

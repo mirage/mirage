@@ -1,8 +1,32 @@
-all:
-	ocaml pkg/pkg.ml build --pkg-name mirage-types -q
-	ocaml pkg/pkg.ml build --pkg-name mirage-types-lwt -q
-	ocaml pkg/pkg.ml build --pkg-name mirage-runtime -q
-	ocaml pkg/pkg.ml build --pkg-name mirage -q
+
+.PHONY: build clean test
+
+build:
+	jbuilder build @install
+
+test:
+	jbuilder runtest
+
+install:
+	jbuilder install
+
+uninstall:
+	jbuilder uninstall
 
 clean:
-	ocaml pkg/pkg.ml clean
+	rm -rf _build
+
+REPO=../../mirage/opam-repository
+PACKAGES=$(REPO)/packages
+# until we have https://github.com/ocaml/opam-publish/issues/38
+pkg-%:
+	topkg opam pkg -n $*
+	mkdir -p $(PACKAGES)/$*
+	cp -r _build/$*.* $(PACKAGES)/$*/
+	cd $(PACKAGES) && git add $*
+
+PKGS=$(basename $(wildcard *.opam))
+opam-pkg:
+	$(MAKE) $(PKGS:%=pkg-%)
+
+

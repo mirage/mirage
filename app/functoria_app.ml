@@ -397,6 +397,7 @@ module Cache : sig
   val clean : Fpath.t -> (unit, [> Rresult.R.msg ]) result
   val get_context : Fpath.t -> context Term.t ->
     [> `Error of bool * string | `Ok of context option ]
+  val get_output: Fpath.t -> [> `Error of bool * string | `Ok of string option ]
   val require :
     [< `Error of bool * string | `Ok of context option ] -> context Term.ret
   val merge :
@@ -434,6 +435,13 @@ end = struct
           "Invalid cached configuration. Please run configure again."
         in
         `Error (false, msg)
+
+  let get_output root =
+    match get_context root Functoria_command_line.output with
+    | `Ok (Some None) -> `Ok None
+    | `Ok (Some x)    -> `Ok x
+    | `Ok None        -> `Ok None
+    | `Error e        -> `Error e
 
   let require cache : _ Cmdliner.Term.ret =
     match cache with
@@ -506,7 +514,7 @@ module Make (P: S) = struct
 
   let configure i jobs =
     Log.info (fun m -> m "Using configuration: %a" Fpath.pp config_file);
-    Log.info (fun m -> m "opam: %a" (Info.opam ?name:None) i);
+    Log.info (fun m -> m "output: %a" Fmt.(option string) (Info.output i));
     Log.info (fun m -> m "within: %a" Fpath.pp (Info.root i));
     with_current
       (Info.root i)
@@ -634,11 +642,16 @@ module Make (P: S) = struct
       print_newline ();
       exit 1
 
+  let with_output i = function
+    | None   -> i
+    | Some o -> Info.with_output i o
+
   let handle_parse_args_result = let module Cmd = Functoria_command_line in
     function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
-    | `Ok (Cmd.Configure (jobs, info)) ->
+    | `Ok (Cmd.Configure { result = (jobs, info); output }) ->
+      let info = with_output info output in
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (configure info jobs)
     | `Ok (Cmd.Build (jobs, info)) ->
@@ -698,6 +711,14 @@ module Make (P: S) = struct
         in
 
         let cached_context = Cache.get_context config.root context_args in
+        let merge_output term =
+          match Cache.get_output config.root with
+          | `Ok (Some o) ->
+            let update_output (r, i) = r, Info.with_output i o in
+            Cmdliner.Term.(app (const update_output) term)
+          | _ -> term
+        in
+
         let context =
           match Cmdliner.Term.eval_peek_opts ~argv context_args with
           | _, `Ok context -> context
@@ -718,8 +739,10 @@ module Make (P: S) = struct
           Config'.eval ~with_required:false ~partial context config
         and build =
           Config'.eval_cached ~partial:false cached_context config
+          |> merge_output
         and clean =
           Config'.eval_cached ~partial:false cached_context config
+          |> merge_output
         in
 
         handle_parse_args_result

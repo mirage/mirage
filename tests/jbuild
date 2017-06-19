@@ -1,0 +1,10 @@
+(jbuild_version 1)
+
+(executables
+ ((libraries (functoria.app oUnit cmdliner fmt.cli rresult astring bos logs logs.cli logs.fmt fmt.tty))
+  (names (test_functoria_command_line))))
+
+(alias
+ ((name runtest)
+  (deps (test_functoria_command_line.exe))
+  (action (run ${<}))))

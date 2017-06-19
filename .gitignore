@@ -2,6 +2,5 @@ _build
 *~
 \.\#*
 \#*#
-*.native
-*.byte
+*.merlin
 *.install

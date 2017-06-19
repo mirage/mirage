@@ -22,6 +22,8 @@ RUN opam depext -uivj 3 \
   cstruct.3.0.2 \
   ctypes \
   ctypes-foreign \
+  datakit \
+  datakit-ci \
   depyt \
   dns \
   dockerfile \
@@ -34,6 +36,7 @@ RUN opam depext -uivj 3 \
   gmp-freestanding \
   hex \
   hkdf \
+  hvsock \
   integers \
   io-page \
   ipaddr \
@@ -73,9 +76,11 @@ RUN opam depext -uivj 3 \
   mirage-flow \
   mirage-flow-lwt \
   mirage-flow-unix \
+  mirage-flow-rawlink \
   mirage-fs-unix \
   mirage-http \
   mirage-logs \
+  mirage-net-flow \
   mirage-net-solo5 \
   mirage-net-unix \
   mirage-net-xen \
@@ -111,6 +116,7 @@ RUN opam depext -uivj 3 \
   solo5-kernel-virtio \
   stdio \
   syslog-message \
+  tar \
   tcpip \
   tls \
   tyre \
@@ -131,7 +137,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format datakit-ci tar-format ezirmin datakit hvsock mirage-block-ccm git-mirage topkg-care git-unix irmin websocket charrua-core charrua-unix fat-filesystem ansi-parse tlstunnel
+# to fix: dns-forward nbd qcow vhd-format ezirmin mirage-block-ccm git-mirage topkg-care git-unix irmin websocket charrua-core charrua-unix fat-filesystem ansi-parse tlstunnel
 # not relevant: owl
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam config exec -- odig odoc --docdir-href _doc

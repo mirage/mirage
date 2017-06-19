@@ -92,6 +92,7 @@ RUN opam depext -uivj 3 \
   ocamlclean \
   ocb-stubblr \
   ocplib-endian \
+  odig \
   opam-file-format \
   opam-lib \
   otr \

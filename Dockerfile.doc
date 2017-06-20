@@ -143,4 +143,4 @@ RUN opam install -yj4 odoc odig
 # RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam config exec -- odig odoc --docdir-href _doc
 EXPOSE 8080
-ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.03.0/var/cache/odig/odoc
+ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.04.1/var/cache/odig/odoc

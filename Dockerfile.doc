@@ -91,7 +91,6 @@ RUN opam depext -uivj 3 \
   mirage-vnetif \
   mirage-xen \
   nocrypto \
-  notty \
   obytelib \
   ocaml-freestanding \
   ocamlclean \
@@ -137,7 +136,7 @@ RUN opam depext -uivj 3 \
   yojson \
   xenstore \
   zarith-freestanding
-# to fix: dns-forward nbd qcow vhd-format ezirmin mirage-block-ccm git-mirage topkg-care git-unix irmin websocket charrua-core charrua-unix fat-filesystem ansi-parse tlstunnel
+# to fix: dns-forward nbd qcow vhd-format ezirmin mirage-block-ccm git-mirage topkg-care git-unix irmin websocket charrua-core charrua-unix fat-filesystem ansi-parse tlstunnel notty
 # not relevant: owl
 RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam config exec -- odig odoc --docdir-href _doc

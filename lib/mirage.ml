@@ -415,7 +415,7 @@ class ramdisk_conf rname =
       Key.pure [ package "mirage-block-ramdisk" ]
 
     method connect _i modname _names =
-      Fmt.strf "%s.connect %S" modname rname
+      Fmt.strf "%s.connect ~name:%S" modname rname
   end
 
 

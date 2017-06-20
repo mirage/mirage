@@ -1,5 +1,6 @@
-FROM ocaml/opam:ubuntu-16.04_ocaml-4.03.0
+FROM ocaml/opam:ubuntu-16.04_ocaml-4.04.1
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
+RUN opam pin add -n --dev magic-mime
 RUN opam depext -uivj 3 \
   alcotest \
   angstrom \
@@ -138,9 +139,8 @@ RUN opam depext -uivj 3 \
   zarith-freestanding
 # to fix: dns-forward nbd qcow vhd-format ezirmin mirage-block-ccm git-mirage topkg-care git-unix irmin websocket charrua-core charrua-unix fat-filesystem ansi-parse tlstunnel notty
 # not relevant: owl
-RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
+RUN opam install -yj4 odoc odig
+# RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam config exec -- odig odoc --docdir-href _doc
-RUN ln -s /home/opam/.opam/4.03.0/var/cache/odig/ocamldoc /home/opam/.opam/4.03.0/var/cache/odig/odoc/_ocamldoc
-RUN ln -s /home/opam/.opam/4.03.0/doc /home/opam/.opam/4.03.0/var/cache/odig/odoc/_doc
 EXPOSE 8080
 ENTRYPOINT opam config exec -- cohttp-server-lwt /home/opam/.opam/4.03.0/var/cache/odig/odoc

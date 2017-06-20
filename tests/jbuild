@@ -1,7 +1,7 @@
 (jbuild_version 1)
 
 (executables
- ((libraries (functoria.app oUnit cmdliner fmt.cli rresult astring bos logs logs.cli logs.fmt fmt.tty))
+ ((libraries (functoria.app oUnit cmdliner))
   (names (test_functoria_command_line))))
 
 (alias

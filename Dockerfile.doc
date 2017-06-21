@@ -1,7 +1,8 @@
 FROM ocaml/opam:ubuntu-16.04_ocaml-4.04.1
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
-RUN opam pin add -n --dev magic-mime
+RUN opam pin add no-camlp4 https://github.com/avsm/no-camlp4.git
 RUN opam depext -uivj 3 \
+  no-camlp4 \
   alcotest \
   angstrom \
   anycache \

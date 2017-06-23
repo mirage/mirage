@@ -13,6 +13,7 @@ RUN opam depext -uivj 3 \
   atdgen \
   base \
   base64 \
+  camlzip \
   cmdliner \
   cohttp \
   conduit \
@@ -100,7 +101,6 @@ RUN opam depext -uivj 3 \
   ocplib-endian \
   odig \
   opam-file-format \
-  opam-lib \
   otr \
   parse-argv \
   pbkdf \
@@ -121,9 +121,7 @@ RUN opam depext -uivj 3 \
   tcpip \
   tls \
   tyre \
-  topkg \
   tuntap \
-  tyxml-ppx \
   uri \
   uucp \
   uuseg \
@@ -139,7 +137,7 @@ RUN opam depext -uivj 3 \
   xenstore \
   zarith-freestanding
 # to fix: dns-forward nbd qcow vhd-format ezirmin mirage-block-ccm git-mirage topkg-care git-unix irmin websocket charrua-core charrua-unix fat-filesystem ansi-parse tlstunnel notty
-# not relevant: owl
+# not relevant: owl tyxml-ppx
 RUN opam install -yj4 odoc odig
 # RUN opam config exec -- odig ocamldoc --docdir-href ../_doc
 RUN opam config exec -- odig odoc --docdir-href _doc

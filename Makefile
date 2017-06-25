@@ -9,6 +9,9 @@ test:
 clean:
 	jbuilder clean
 
+doc:
+	jbuilder build @doc
+
 # until we have https://github.com/ocaml/opam-publish/issues/38
 
 REPO=../opam-repository

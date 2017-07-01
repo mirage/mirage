@@ -1,0 +1,7 @@
+(library
+ ((name functoria)
+  (public_name functoria)
+  (libraries (unix cmdliner rresult fmt astring fpath))
+  (flags (-bin-annot -safe-string -w "A-40-42-44-48" -warn-error "+1..49" -warn-error "-15"))
+  (wrapped false)
+))

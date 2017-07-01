@@ -1,8 +1,0 @@
-description = "Functoria runtime"
-version = "%%VERSION_NUM%%"
-requires = "cmdliner fmt"
-archive(byte) = "functoria-runtime.cma"
-archive(native) = "functoria-runtime.cmxa"
-plugin(byte) = "functoria-runtime.cma"
-plugin(native) = "functoria-runtime.cmxs"
-exists_if = "functoria-runtime.cma"

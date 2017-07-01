@@ -12,11 +12,16 @@ doc:          "https://mirage.github.io/functoria/"
 license:      "ISC"
 tags:         ["org:mirage"]
 
-build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%" ]
+build: [
+  ["jbuilder" "subst"] {pinned}
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+build-test: [
+  ["jbuilder" "runtest"]
+]
+
 depends: [
-  "ocamlfind" {build}
-  "ocamlbuild" {build}
-  "topkg"     {build & >= "0.7.3"}
+  "jbuilder" {build & >="1.0+beta10"}
   "cmdliner" {>= "0.9.8"}
   "fmt"
 ]

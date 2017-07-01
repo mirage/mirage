@@ -1,0 +1,7 @@
+(library
+ ((name functoria_runtime)
+  (public_name functoria-runtime)
+  (libraries (bytes cmdliner fmt))
+  (flags (-bin-annot -safe-string -w "A-40-42-44-48" -warn-error "+1..49" -warn-error "-15"))
+  (wrapped false)
+))

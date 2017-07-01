@@ -1,0 +1,7 @@
+(library
+ ((name functoria_app)
+  (public_name functoria.app)
+  (libraries (functoria dynlink cmdliner rresult fmt.tty fmt.cli ocamlgraph astring fpath bos logs logs.cli logs.fmt))
+  (flags (-bin-annot -safe-string -w "A-40-42-44-48" -warn-error "+1..49" -warn-error "-15"))
+  (wrapped false)
+))

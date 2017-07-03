@@ -1,3 +1,11 @@
+## 2.1.0 (03/07/2017)
+
+* port build to Jbuilder (#115 @djs55)
+* add `--output` option to configure so that the name of hte output target can be overridden (#108 @samoht)
+* improve README formatting (@olleolleolle)
+* fix formatting error in the `help` subcommand (#112 @neatonk)
+* do not munge the name of the output opam package twice (#113 @hannesm)
+
 ## 2.0.2 (07/03/2017)
 
 * don't complain about command-line options when config.ml is unbuildable (#109, by @yomimono and @talex5)

@@ -1,4 +1,4 @@
-FROM ocaml/opam:ubuntu-16.04_ocaml-4.04.1
+FROM ocaml/opam:ubuntu-16.04_ocaml-4.04.2
 RUN cd /home/opam/opam-repository && git pull origin master && opam update
 RUN opam pin add no-camlp4 https://github.com/avsm/no-camlp4.git
 RUN opam depext -uivj 3 \

@@ -14,11 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open OUnit2
-
 module Cmd = Functoria_command_line
 
-let test_configure _ =
+let result_t =
+  let pp ppf = function
+    | `Error `Exn   -> Fmt.string ppf "error exn"
+    | `Error `Parse -> Fmt.string ppf "error parse"
+    | `Error `Term  -> Fmt.string ppf "error term"
+    | `Help         -> Fmt.string ppf "help"
+    | `Version      -> Fmt.string ppf "version"
+    | `Ok action    ->
+      let pp = Cmd.pp_action Fmt.(Dump.pair bool bool) in
+      Fmt.pf ppf "ok %a" pp action
+  in
+  Alcotest.testable pp (=)
+
+let test_configure () =
   let extra_term = Cmdliner.(Term.(
       pure (fun xyz cde -> (xyz, cde))
       $ Arg.(value (flag (info ["x"; "xyz"])))
@@ -34,12 +45,12 @@ let test_configure _ =
       ~help:extra_term
       [|"name"; "configure"; "--xyz"; "--verbose"|]
   in
-  assert_equal
+  Alcotest.(check result_t) "configure"
     (`Ok (Cmd.Configure { result = (true, false); output = None }))
     result
 
 
-let test_describe _ =
+let test_describe () =
   let extra_term = Cmdliner.(Term.(
       pure (fun xyz cde -> (xyz, cde))
       $ Arg.(value (flag (info ["x"; "xyz"])))
@@ -56,14 +67,14 @@ let test_describe _ =
       [|"name"; "describe"; "--cde";
         "--color=always"; "--dot-command=dot"; "--eval"|]
   in
-  assert_equal
+  Alcotest.(check result_t) "describe"
     (`Ok (Cmd.Describe { result = (false, true);
                          dotcmd = "dot";
                          dot = false;
                          output = None }))
     result
 
-let test_build _ =
+let test_build () =
   let extra_term = Cmdliner.(Term.(
       pure (fun xyz cde -> (xyz, cde))
       $ Arg.(value (flag (info ["x"; "xyz"])))
@@ -79,11 +90,11 @@ let test_build _ =
       ~help:extra_term
       [|"name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v"|]
   in
-  assert_equal
+  Alcotest.(check result_t) "build"
     (`Ok (Cmd.Build (true, true)))
     result
 
-let test_clean _ =
+let test_clean () =
   let extra_term = Cmdliner.(Term.(
       pure (fun xyz cde -> (xyz, cde))
       $ Arg.(value (flag (info ["x"; "xyz"])))
@@ -99,12 +110,12 @@ let test_clean _ =
       ~help:extra_term
       [|"name"; "clean"|]
   in
-  assert_equal
+  Alcotest.(check result_t) "clean"
     (`Ok (Cmd.Clean (false, false)))
     result
 
 
-let test_help _ =
+let test_help () =
   let extra_term = Cmdliner.(Term.(
       pure (fun xyz cde -> (xyz, cde))
       $ Arg.(value (flag (info ["x"; "xyz"])))
@@ -120,9 +131,9 @@ let test_help _ =
       ~help:extra_term
       [|"name"; "help"; "--help"; "plain"|]
   in
-  assert_equal `Help result
+  Alcotest.(check result_t) "help" `Help result
 
-let test_default _ =
+let test_default () =
   let extra_term = Cmdliner.(Term.(
       pure (fun xyz cde -> (xyz, cde))
       $ Arg.(value (flag (info ["x"; "xyz"])))
@@ -138,57 +149,44 @@ let test_default _ =
       ~help:extra_term
       [|"name"|]
   in
-  assert_equal `Help result
+  Alcotest.(check result_t) "default" `Help result
 
 
-let test_read_full_eval _ =
+let test_read_full_eval () =
+  let check = Alcotest.(check @@ option bool) in
   begin
-    assert_equal None
+    check "test" None
       (Cmd.read_full_eval [|"test"|]);
 
-    assert_equal (Some true)
+    check "test --eval" (Some true)
       (Cmd.read_full_eval [|"test"; "--eval"|]);
 
-    assert_equal (Some true)
+    check "test blah --eval blah" (Some true)
       (Cmd.read_full_eval [|"test"; "blah"; "--eval"; "blah"|]);
 
-    assert_equal (Some false)
+    check "test --no-eval" (Some false)
       (Cmd.read_full_eval [|"test"; "--no-eval"|]);
 
-    assert_equal (Some false)
+    check "test blah --no-eval blah" (Some false)
       (Cmd.read_full_eval [|"test"; "blah"; "--no-eval"; "blah"|]);
 
-    assert_equal (Some true)
+    check "--no-eval test --eval" (Some true)
       (Cmd.read_full_eval [|"--no-eval"; "test"; "--eval"|]);
 
-    assert_equal (Some false)
+    check "--eval test --no-eval" (Some false)
       (Cmd.read_full_eval [|"--eval"; "test"; "--no-eval"|]);
   end
 
 
-let suite = "Command-line parsing tests" >:::
-  ["read_full_eval"
-    >:: test_read_full_eval;
-
-    "configure"
-    >:: test_configure;
-
-    "describe"
-    >:: test_describe;
-
-    "build"
-    >:: test_build;
-
-    "clean"
-    >:: test_clean;
-
-    "help"
-    >:: test_help;
-
-    "default"
-    >:: test_default;
+let suite  =
+  "Command-line parsing tests", [
+    "read_full_eval", `Quick, test_read_full_eval;
+    "configure"     , `Quick, test_configure;
+    "describe"      , `Quick, test_describe;
+    "build"         , `Quick, test_build;
+    "clean"         , `Quick, test_clean;
+    "help"          , `Quick, test_help;
+    "default"       , `Quick, test_default;
   ]
 
-
-let _ =
-  run_test_tt_main suite
+let () = Alcotest.run "functoria" [suite]

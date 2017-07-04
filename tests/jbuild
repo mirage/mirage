@@ -1,7 +1,7 @@
 (jbuild_version 1)
 
 (executables
- ((libraries (functoria.app oUnit cmdliner))
+ ((libraries (functoria.app alcotest cmdliner))
   (names (test_functoria_command_line))))
 
 (alias

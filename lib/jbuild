@@ -1,0 +1,5 @@
+(library
+ ((name        mirage)
+  (public_name mirage)
+  (wrapped false)
+  (libraries  (ipaddr functoria functoria.app logs mirage-runtime bos astring))))

@@ -1371,21 +1371,21 @@ let noop = Functoria_app.noop
 let info = Functoria_app.info
 let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
 
-let configure_main_libvirt_xml ~root ~name =
+let configure_main_libvirt_xml ~root ~output =
   let open Codegen in
-  let file = Fpath.(v (name ^  "_libvirt") + "xml") in
+  let file = Fpath.(v (output ^  "_libvirt") + "xml") in
   with_output file
     (fun oc () ->
        let fmt = Format.formatter_of_out_channel oc in
        append fmt "<!-- %s -->" (generated_header ());
        append fmt "<domain type='xen'>";
-       append fmt "    <name>%s</name>" name;
+       append fmt "    <name>%s</name>" output;
        append fmt "    <memory unit='KiB'>262144</memory>";
        append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
        append fmt "    <vcpu placement='static'>1</vcpu>";
        append fmt "    <os>";
        append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
-       append fmt "        <kernel>%s/%s.xen</kernel>" root name;
+       append fmt "        <kernel>%s/%s.xen</kernel>" root output;
        append fmt "        <cmdline> </cmdline>";
        (* the libxl driver currently needs an empty cmdline to be able to
            start the domain on arm - due to this?
@@ -1426,8 +1426,8 @@ let configure_main_libvirt_xml ~root ~name =
        R.ok ())
     "libvirt.xml"
 
-let clean_main_libvirt_xml ~name =
-  Bos.OS.File.delete Fpath.(v (name ^ "_libvirt") + "xml")
+let clean_main_libvirt_xml ~output =
+  Bos.OS.File.delete Fpath.(v (output ^ "_libvirt") + "xml")
 
 (* We generate an example .xl with common defaults, and a generic
    .xl.in which has @VARIABLES@ which must be substituted by sed
@@ -1491,6 +1491,31 @@ module Substitutions = struct
     ] @ blocks @ networks
 end
 
+let opamify s =
+  let b = Buffer.create (String.length s) in
+  String.iter (function
+      | 'a'..'z' | 'A'..'Z' | '0'..'9'
+      | '_' | '-' | '+' as c -> Buffer.add_char b c
+      | '.' -> Buffer.add_char b '-'
+      | _ -> ()
+    ) s;
+  let s' = Buffer.contents b in
+  if String.length s' = 0 then raise (Invalid_argument s);
+  s'
+
+let long_name name target =
+  Fmt.strf "mirage-unikernel-%s-%a" (opamify name) Key.pp_target target
+
+let unikernel_name i target = match Info.output i with
+  | Some o -> opamify (Filename.basename o)
+  | None   -> long_name (Info.name i) target
+
+let opam_file i target = Fpath.(v (unikernel_name i target) + "opam")
+
+let output i = match Info.output i with
+  | Some o -> o
+  | None   -> Info.name i
+
 let configure_main_xl ?substitutions ext i =
   let open Substitutions in
   let substitutions = match substitutions with
@@ -1541,11 +1566,11 @@ let configure_main_xl ?substitutions ext i =
       R.ok ())
     "xl file"
 
-let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
+let clean_main_xl ~output ext = Bos.OS.File.delete Fpath.(v output + ext)
 
-let configure_main_xe ~root ~name =
+let configure_main_xe ~root ~output =
   let open Codegen in
-  let file = Fpath.(v name + "xe") in
+  let file = Fpath.(v output + "xe") in
   with_output ~mode:0o755 file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "#!/bin/sh";
@@ -1571,10 +1596,10 @@ let configure_main_xe ~root ~name =
       append fmt "fi";
       newline fmt;
       append fmt "echo Uploading VDI containing unikernel";
-      append fmt "VDI=$(xe-unikernel-upload --path %s/%s.xen)" root name;
+      append fmt "VDI=$(xe-unikernel-upload --path %s/%s.xen)" root output;
       append fmt "echo VDI=$VDI";
       append fmt "echo Creating VM metadata";
-      append fmt "VM=$(xe vm-create name-label=%s)" name;
+      append fmt "VM=$(xe vm-create name-label=%s)" output;
       append fmt "echo VM=$VM";
       append fmt "xe vm-param-set uuid=$VM PV-bootloader=pygrub";
       append fmt "echo Adding network interface connected to xenbr0";
@@ -1602,7 +1627,7 @@ let configure_main_xe ~root ~name =
       R.ok ())
     "xe file"
 
-let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
+let clean_main_xe ~output = Bos.OS.File.delete Fpath.(v output + "xe")
 
 let configure_makefile ~opam_name =
   let open Codegen in
@@ -1656,10 +1681,9 @@ let clean_myocamlbuild () =
   | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete fn
   | _ -> R.ok ()
 
-let configure_opam ~name info =
+let configure_opam info ~opam_file ~name =
   let open Codegen in
-  let file = Fpath.(v name + "opam") in
-  with_output file (fun oc () ->
+  with_output opam_file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       Info.opam ~name fmt info;
@@ -1668,28 +1692,25 @@ let configure_opam ~name info =
       R.ok ())
     "opam file"
 
-let clean_opam ~name = Bos.OS.File.delete Fpath.(v name + "opam")
-
-let unikernel_name target name =
-  let target = Fmt.strf "%a" Key.pp_target target in
-  String.concat ~sep:"-" ["mirage" ; "unikernel" ; name ; target]
+let clean_opam ~file = Bos.OS.File.delete file
 
 let configure i =
-  let name = Info.name i in
+  let output = output i in
   let root = Fpath.to_string (Info.root i) in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
-  let opam_name = unikernel_name target name in
   configure_myocamlbuild () >>= fun () ->
-  configure_opam ~name:opam_name i >>= fun () ->
-  configure_makefile ~opam_name >>= fun () ->
+  let name = unikernel_name i target in
+  let opam_file = opam_file i target in
+  configure_opam i ~name ~opam_file >>= fun () ->
+  configure_makefile name >>= fun () ->
   match target with
   | `Xen | `Qubes ->
     configure_main_xl "xl" i >>= fun () ->
     configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
-    configure_main_xe ~root ~name >>= fun () ->
-    configure_main_libvirt_xml ~root ~name
+    configure_main_xe ~root ~output >>= fun () ->
+    configure_main_libvirt_xml ~root ~output
   | _ -> R.ok ()
 
 let terminal () =
@@ -1797,12 +1818,15 @@ let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
 
 let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 
-let link info name target =
+let link info target =
   let libs = Info.libraries info in
+  let output = output info in
+  Bos.OS.Cmd.run Bos.Cmd.(v "mkdir" % "-p" % Filename.dirname output)
+  >>= fun () ->
   match target with
   | `Unix | `MacOSX ->
-    Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) >>= fun () ->
-    Ok name
+    Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % output) >>= fun () ->
+    Ok output
   | `Xen | `Qubes ->
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
@@ -1810,7 +1834,7 @@ let link info name target =
       Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs)
     in
-    let out = name ^ ".xen" in
+    let out = output ^ ".xen" in
     Bos.OS.Cmd.run_out Bos.Cmd.(v "uname" % "-m") |> Bos.OS.Cmd.out_string >>= fun (machine, _) ->
     if String.is_prefix ~affix:"arm" machine then begin
       (* On ARM:
@@ -1819,7 +1843,7 @@ let link info name target =
          - we need to link libgcc.a (otherwise we get undefined references to:
            __aeabi_dcmpge, __aeabi_dadd, ...) *)
       Bos.OS.Cmd.run_out Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") |> Bos.OS.Cmd.out_string >>= fun (libgcc, _) ->
-      let elf = name ^ ".elf" in
+      let elf = output ^ ".elf" in
       let link = Bos.Cmd.(linker % libgcc % "-o" % elf) in
       Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
       Bos.OS.Cmd.run link >>= fun () ->
@@ -1836,7 +1860,7 @@ let link info name target =
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags "solo5-kernel-virtio" >>= fun ldflags ->
     ldpostflags "solo5-kernel-virtio" >>= fun ldpostflags ->
-    let out = name ^ ".virtio" in
+    let out = output ^ ".virtio" in
     let linker =
       Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
@@ -1850,7 +1874,7 @@ let link info name target =
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags "solo5-kernel-ukvm" >>= fun ldflags ->
     ldpostflags "solo5-kernel-ukvm" >>= fun ldpostflags ->
-    let out = name ^ ".ukvm" in
+    let out = output ^ ".ukvm" in
     let linker =
       Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
@@ -1873,34 +1897,33 @@ let link info name target =
     | _ -> R.error_msg "pkg-config solo5-kernel-ukvm --variable=libdir failed"
 
 let build i =
-  let name = Info.name i in
   let ctx = Info.context i in
   let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
   check_entropy libs >>= fun () ->
   compile libs warn_error target >>= fun () ->
-  link i name target >>| fun out ->
+  link i target >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
 let clean i =
-  let name = Info.name i in
+  let output = output i in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
-  clean_main_xl ~name "xl" >>= fun () ->
-  clean_main_xl ~name "xl.in" >>= fun () ->
-  clean_main_xe ~name >>= fun () ->
-  clean_main_libvirt_xml ~name >>= fun () ->
+  clean_main_xl ~output "xl" >>= fun () ->
+  clean_main_xl ~output "xl.in" >>= fun () ->
+  clean_main_xe ~output >>= fun () ->
+  clean_main_libvirt_xml ~output >>= fun () ->
   clean_myocamlbuild () >>= fun () ->
   clean_makefile () >>= fun () ->
-  clean_opam ~name:(unikernel_name target name) >>= fun () ->
+  clean_opam ~file:(opam_file i target) >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name) >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "xen") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "elf") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "virtio") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "ukvm") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v output) >>= fun () ->
+  Bos.OS.File.delete Fpath.(v output + "xen") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v output + "elf") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v output + "virtio") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v output + "ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "ukvm-bin")

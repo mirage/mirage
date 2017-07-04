@@ -1,10 +1,10 @@
 (jbuild_version 1)
 
 (executables
- ((libraries (functoria.app alcotest cmdliner))
-  (names (test_functoria_command_line))))
+ ((names (test))
+  (libraries (test_app alcotest cmdliner rresult))))
 
 (alias
  ((name runtest)
-  (deps (test_functoria_command_line.exe))
+  (deps (test.exe app/config.ml app/myocamlbuild.ml app/app.ml))
   (action (run ${<}))))

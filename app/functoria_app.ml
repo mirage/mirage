@@ -701,7 +701,7 @@ module Make (P: S) = struct
             when they weren't loaded *)
 
       match load' config_file with
-      | Error (`Invalid_config_ml err) -> Logs.err (fun f -> f "%s" err)
+      | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
       | Error (`Msg _ as err) -> handle_parse_args_no_config err argv
       | Ok config ->
 

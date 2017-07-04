@@ -52,6 +52,9 @@ type 'a action =
 (** A value of type [action] is the result of parsing command-line arguments using
     [parse_args]. *)
 
+val pp_action: 'a Fmt.t -> 'a action Fmt.t
+(** [pp_action] is the pretty-printer for actions. *)
+
 open Cmdliner.Term
 
 val parse_args : name:string -> version:string ->

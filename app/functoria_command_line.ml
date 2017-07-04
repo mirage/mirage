@@ -104,6 +104,25 @@ type 'a action =
   | Clean of 'a
   | Help
 
+
+(*
+ * Pretty-printing
+ *)
+let pp_configure pp_a ppf (c: 'a configure_args) =
+  Fmt.pf ppf "@[result:%a@;output:%a@]"
+    pp_a c.result Fmt.(option string) c.output
+
+let pp_describe pp_a ppf (d: 'a describe_args) =
+  Fmt.pf ppf "@[result:%a@;dotcmd:%s@;dot:%a@;output:%a@]"
+    pp_a d.result d.dotcmd Fmt.bool d.dot Fmt.(option string) d.output
+
+let pp_action pp_a ppf = function
+  | Configure c -> Fmt.pf ppf "@[configure:@ @[<2>%a@]@]" (pp_configure pp_a) c
+  | Describe d  -> Fmt.pf ppf "@[describe:@ @[<2>%a@]@]" (pp_describe pp_a) d
+  | Build b     -> Fmt.pf ppf "@[build:@ @[<2>%a@]@]" pp_a b
+  | Clean c     -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" pp_a c
+  | Help        -> Fmt.string ppf "help"
+
 (*
  * Subcommand specifications
  *)

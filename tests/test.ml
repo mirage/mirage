@@ -304,7 +304,23 @@ module Full = struct
     Alcotest.(check (list string))
       "help messages have the same common options"
       (List.assoc "COMMON OPTIONS" s1)
-      (List.assoc "COMMON OPTIONS" s2)
+      (List.assoc "COMMON OPTIONS" s2);
+
+    (* check that `test help configure` works when no config.ml file
+       is present. *)
+    let b3 = Buffer.create 128 in
+    let b4 = Buffer.create 128 in
+    Test_app.run_with_argv
+      ~err_ppf:(Format.formatter_of_buffer b3)
+      ~help_ppf:(Format.formatter_of_buffer b4)
+      [| ""; "help"; "configure"; "--help=plain" |];
+    let s3 = Buffer.contents b3 in
+    let s4 = by_sections (Buffer.contents b4) in
+    Alcotest.(check string) "no errors" s3 "";
+    Alcotest.(check bool) "name should be present"
+      true (List.mem_assoc "NAME" s4);
+    Alcotest.(check bool) "synopsis should be present"
+      true (List.mem_assoc "SYNOPSIS" s4)
 
   let test_describe () =
     Test_app.run_with_argv

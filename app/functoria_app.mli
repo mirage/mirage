@@ -107,6 +107,12 @@ module Make (P: S): sig
       to run the application builder: command-line arguments will be
       parsed, and some code will be generated and compiled. *)
 
+  val run_with_argv:
+    ?help_ppf:Format.formatter -> ?err_ppf:Format.formatter ->
+    string array -> unit
+  (** [run_with_argv a] is the same as {!run} but parses [a] instead
+      of the process command line argurments. It also allows to set
+      the error and help channels using [help_ppf] and [err_ppf]. *)
 end
 
 module type DSL = module type of struct include Functoria end

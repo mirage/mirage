@@ -250,8 +250,11 @@ let read_full_eval : string array -> bool option =
     | _, `Ok b -> b
     | _ -> None
 
-let parse_args ~name ~version ~configure ~describe ~build ~clean ~help argv =
-  Cmdliner.Term.eval_choice ~argv ~catch:false (Subcommands.default ~name ~version) [
+let parse_args ?help_ppf ?err_ppf
+    ~name ~version ~configure ~describe ~build ~clean ~help argv
+  =
+  Cmdliner.Term.eval_choice ?help:help_ppf ?err:err_ppf ~argv ~catch:false
+    (Subcommands.default ~name ~version) [
     Subcommands.configure configure;
     Subcommands.describe describe;
     Subcommands.build build;

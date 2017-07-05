@@ -21,16 +21,19 @@ let setup_log style_renderer level =
 
 open Cmdliner
 
-let global_option_section = "COMMON OPTIONS"
+let common_section = "COMMON OPTIONS"
+let configuration_section = "CONFIGURE OPTIONS"
+let description_section = "DESCRIBE OPTIONS"
 
 let setup_log =
   Term.(const setup_log
-        $ Fmt_cli.style_renderer ~docs:global_option_section ()
-        $ Logs_cli.level ~docs:global_option_section ())
+        $ Fmt_cli.style_renderer ~docs:common_section ()
+        $ Logs_cli.level ~docs:common_section ())
 
 let config_file f =
   let doc =
     Arg.info
+      ~docs:configuration_section
       ~docv:"FILE"
       ~doc:"The configuration file to use."
       ["f"; "file"]
@@ -41,26 +44,13 @@ let config_file f =
 let root f =
   let doc =
     Arg.info
+      ~docs:configuration_section
       ~docv:"DIR"
       ~doc:"The directory where the configuration has to be done."
       ["root"]
   in
   Term.(const (function None -> () | Some x ->  f (Fpath.v x))
         $ Arg.(value & opt (some string) None & doc))
-
-let help_sections = [
-  `S global_option_section;
-  `P "These options are common to all commands.";
-]
-
-(** Helpers *)
-let mk_flag ?(section=global_option_section) flags doc =
-  let doc = Arg.info ~docs:section ~doc flags in
-  Arg.(value & flag & doc)
-
-let term_info title ~doc ~man ~arg =
-  let man = man @ help_sections in
-  (arg, Term.info ~sdocs:global_option_section ~doc ~man title)
 
 (**
  * Argument specifications
@@ -69,12 +59,12 @@ let term_info title ~doc ~man ~arg =
 (** Argument specification for --eval *)
 let full_eval =
   let eval_doc =
-    Arg.info ~docs:global_option_section ["eval"]
+    Arg.info ~docs:description_section ["eval"]
     ~doc:"Fully evaluate the graph before showing it. \
           The default when the unikernel has already been configured."
   in
   let no_eval_doc =
-    Arg.info ~docs:global_option_section ["no-eval"]
+    Arg.info ~docs:description_section ["no-eval"]
     ~doc:"Do not evaluate the graph before showing it. See ${b,--eval}. \
           The default when the unikernel has not been configured."
   in
@@ -83,15 +73,18 @@ let full_eval =
 
 (** Argument specification for --dot *)
 let dot =
-  mk_flag ["dot"]
-    "Output a dot description. \
-     If no output file is given,  it will display the dot file using the command \
-     given to $(b,--dot-command)."
+  let doc =
+    Arg.info ~docs:description_section ["dot"]
+      ~doc:"Output a dot description. If no output file is given, it will \
+            display the dot file using the  command  given to \
+            $(b,--dot-command)."
+  in
+  Arg.(value & flag doc)
 
 (** Argument specification for --dot-command=COMMAND *)
 let dotcmd =
   let doc =
-    Arg.info ~docs:global_option_section ~docv:"COMMAND" [ "dot-command" ]
+    Arg.info ~docs:description_section ~docv:"COMMAND" [ "dot-command" ]
       ~doc:"Command used to show a dot file. This command should accept a \
             dot file on its standard input."
   in
@@ -100,7 +93,7 @@ let dotcmd =
 (** Argument specification for -o FILE or --output=FILE *)
 let output =
   let doc =
-    Arg.info ~docs:global_option_section ~docv:"FILE" ["o"; "output"]
+    Arg.info ~docs:configuration_section ~docv:"FILE" ["o"; "output"]
       ~doc:"Name of the output file."
   in
   Arg.(value & opt (some string) None & doc)
@@ -154,20 +147,29 @@ module Subcommands =
 struct
   (** The 'configure' subcommand *)
   let configure result =
-    term_info "configure"
+    Term.(const (fun _ output result -> Configure { output; result })
+          $ setup
+          $ output
+          $ result),
+    Term.info "configure"
       ~doc:"Configure a $(mname) application."
       ~man:[
         `S "DESCRIPTION";
-        `P "The $(b,configure) command initializes a fresh $(mname) application."
+        `P "The $(b,configure) command initializes a fresh $(mname) \
+            application."
       ]
-      ~arg:Term.(const (fun _ output result -> Configure { output; result })
-                 $ setup
-                 $ output
-                 $ result)
 
   (** The 'describe' subcommand *)
   let describe result =
-    term_info "describe"
+    Term.(const (fun _ _ info output dotcmd dot ->
+        Describe { result = info; dotcmd; dot; output })
+          $ setup
+          $ full_eval
+          $ result
+          $ output
+          $ dotcmd
+          $ dot),
+    Term.info "describe"
       ~doc:"Describe a $(mname) application."
       ~man:[
         `S "DESCRIPTION";
@@ -189,38 +191,30 @@ struct
         `I ("App vertices",
             "Represented as diamonds. The bold arrow is the functor part.");
       ]
-      ~arg:Term.(const (fun _ _ info output dotcmd dot ->
-          Describe { result = info; dotcmd; dot; output })
-                 $ setup
-                 $ full_eval
-                 $ result
-                 $ output
-                 $ dotcmd
-                 $ dot)
 
   (** The 'build' subcommand *)
   let build result =
     let doc = "Build a $(mname) application." in
-    term_info "build" ~doc
+    Term.(const (fun _ info -> Build info)
+          $ setup
+          $ result),
+    Term.info "build" ~doc
       ~man:[
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ info -> Build info)
-                 $ setup
-                 $ result)
 
   (** The 'clean' subcommand *)
   let clean info_ =
     let doc = "Clean the files produced by $(mname) for a given application." in
-    term_info "clean" ~doc
+    Term.(const (fun _ info -> Clean info)
+          $ setup
+          $ info_),
+    Term.info "clean" ~doc
       ~man:[
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ info -> Clean info)
-                 $ setup
-                 $ info_)
 
   (** The 'help' subcommand *)
   let help base_context =
@@ -236,34 +230,39 @@ struct
         match parser topic with
         | `Error e -> `Error (false, e)
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
-        | `Ok t -> `Help (man_format, Some t) in
-    (Term.(const (fun _ () -> Help) $ setup $
-           ret (Term.(const help $ Term.man_format $ Term.choice_names
-                      $ topic $ base_context))),
-     Term.info "help"
-       ~doc:"Display help about $(mname) commands."
-       ~man:[
-         `S "DESCRIPTION";
-         `P "Prints help.";
-         `P "Use `$(mname) help topics' to get the full list of help topics.";
-       ])
+        | `Ok t -> `Help (man_format, Some t)
+    in
+    Term.(const (fun _ _ () -> Help)
+          $ setup
+          $ output
+          $ ret (const help
+                 $ Term.man_format
+                 $ Term.choice_names
+                 $ topic
+                 $ base_context)),
+    Term.info "help"
+      ~doc:"Display help about $(mname) commands."
+      ~man:[
+        `S "DESCRIPTION";
+        `P "Prints help.";
+        `P "Use `$(mname) help topics' to get the full list of help topics.";
+      ]
 
   let default ~name ~version =
     let usage = `Help (`Plain, None)
     in
-    (Term.(ret (pure usage) $ setup),
-     Term.info name
-       ~version
-       ~sdocs:global_option_section
-       ~doc:"The $(mname) application builder"
-       ~man:([
-           `S "DESCRIPTION";
-           `P "The $(mname) application builder. It glues together a set of \
-               libraries and configuration (e.g. network and storage) into a \
-               standalone unikernel or UNIX binary.";
-           `P "Use $(mname) $(b,help <command>) for more information on a \
-               specific command.";
-         ] @  help_sections))
+    Term.(ret (pure usage) $ setup),
+    Term.info name
+      ~version
+      ~doc:"The $(mname) application builder"
+      ~man:[
+        `S "DESCRIPTION";
+        `P "The $(mname) application builder. It glues together a set of \
+            libraries and configuration (e.g. network and storage) into a \
+            standalone unikernel or UNIX binary.";
+        `P "Use $(mname) $(b,help <command>) for more information on a \
+            specific command.";
+      ]
 end
 
 (*

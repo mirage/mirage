@@ -47,7 +47,7 @@ module Name = struct
 
   let ids = Hashtbl.create 1024
 
-  let names = Hashtbl.create 1024
+  let names: (string, string) Hashtbl.t = Hashtbl.create 1024
 
   let create name =
     let n =
@@ -137,5 +137,5 @@ module Univ = struct
 
   let merge ~default m =
     let aux _k _def v = Some v in
-    Map.union aux default m 
+    Map.union aux default m
 end

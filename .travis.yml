@@ -1,11 +1,12 @@
 language: c
 sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
-script: bash -ex .travis-ci.sh
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
+script: bash -ex .travis-opam.sh
 env:
   global:
-  - PACKAGE=functoria
-  - PINS="mirage-skeleton.dev:https://github.com/mirage/mirage-skeleton.git"
+  - PINS="functoria.dev:. functoria-runtime.dev:."
   matrix:
-  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.03
-  - UPDATE_GCC_BINUTILS=1 OCAML_VERSION=4.04
+  - OCAML_VERSION=4.03 PACKAGE="functoria"
+  - OCAML_VERSION=4.04 PACKAGE="functoria"
+  - OCAML_VERSION=4.03 PACKAGE="functoria-runtime"
+  - OCAML_VERSION=4.04 PACKAGE="functoria-runtime"

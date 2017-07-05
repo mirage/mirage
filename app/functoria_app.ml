@@ -464,6 +464,8 @@ end
 module type S = sig
   val prelude: string
   val name: string
+  val packages: string list
+  val ignore_dirs: string list
   val version: string
   val create: job impl list -> job impl
 end
@@ -568,10 +570,18 @@ module Make (P: S) = struct
     List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
     with_current root
       (fun () ->
+         let pkgs = match P.packages with
+           | []   -> Bos.Cmd.empty
+           | pkgs -> Bos.Cmd.(v "-pkgs" % String.concat ~sep:"," pkgs)
+         in
+         let ignore_dirs = match P.ignore_dirs with
+           | []    -> Bos.Cmd.empty
+           | dirs  -> Bos.Cmd.(v "-Xs" % String.concat ~sep:"," dirs)
+         in
          let cmd =
            Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" % "-classic-display" %
-                    "-tags" % "bin_annot" % "-quiet" %
-                    "-X" % "_build-ukvm" % "-pkg" % P.name % file)
+                    "-tags" % "bin_annot" % "-quiet" %%
+                    ignore_dirs %% pkgs % file)
          in
          Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
          match snd status with

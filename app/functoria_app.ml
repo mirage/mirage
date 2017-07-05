@@ -394,7 +394,7 @@ end
 *)
 module Cache : sig
   open Cmdliner
-  val save : Fpath.t -> (unit, [> Rresult.R.msg ]) result
+  val save : argv:string array -> Fpath.t -> (unit, [> Rresult.R.msg ]) result
   val clean : Fpath.t -> (unit, [> Rresult.R.msg ]) result
   val get_context : Fpath.t -> context Term.t ->
     [> `Error of bool * string | `Ok of context option ]
@@ -410,10 +410,10 @@ end = struct
   let filename root =
     Fpath.(root / ".mirage" + "config")
 
-  let save root =
+  let save ~argv root =
     let file = filename root in
     Log.info (fun m -> m "Preserving arguments");
-    let args = String.concat ~sep:";" Array.(to_list Sys.argv) in
+    let args = String.concat ~sep:";" Array.(to_list argv) in
     Bos.OS.File.write file args
 
   let clean root =
@@ -496,7 +496,7 @@ module Make (P: S) = struct
       Error (`Msg "no configuration file was registered")
     | Some t -> Ok t
 
-  let configure_main i jobs =
+  let configure_main ~argv i jobs =
     Log.info (fun m -> m "Generating: main.ml");
     Codegen.set_main_ml "main.ml";
     Codegen.append_main "(* %s *)" (Codegen.generated_header ());
@@ -505,7 +505,7 @@ module Make (P: S) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Cache.save (Info.root i) >>= fun () ->
+    Cache.save ~argv (Info.root i) >>= fun () ->
     Engine.configure_and_connect i jobs >>| fun () ->
     Codegen.newline_main ()
 
@@ -513,13 +513,13 @@ module Make (P: S) = struct
     Engine.clean i jobs >>= fun () ->
     Bos.OS.File.delete Fpath.(v "main.ml")
 
-  let configure i jobs =
+  let configure ~argv i jobs =
     Log.info (fun m -> m "Using configuration: %a" Fpath.pp config_file);
     Log.info (fun m -> m "output: %a" Fmt.(option string) (Info.output i));
     Log.info (fun m -> m "within: %a" Fpath.pp (Info.root i));
     with_current
       (Info.root i)
-      (fun () -> configure_main i jobs)
+      (fun () -> configure_main ~argv i jobs)
       "configure"
 
   let build i jobs =
@@ -647,13 +647,13 @@ module Make (P: S) = struct
     | None   -> i
     | Some o -> Info.with_output i o
 
-  let handle_parse_args_result = function
+  let handle_parse_args_result argv = function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
     | `Ok (Cmd.Configure { result = (jobs, info); output }) ->
       let info = with_output info output in
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      exit_err (configure info jobs)
+      exit_err (configure ~argv info jobs)
     | `Ok (Cmd.Build (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (build info jobs)
@@ -743,7 +743,7 @@ module Make (P: S) = struct
           |> merge_output
         in
 
-        handle_parse_args_result
+        handle_parse_args_result argv
           (Cmd.parse_args ~name:P.name ~version:P.version
              ~configure
              ~describe

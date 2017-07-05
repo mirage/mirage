@@ -57,7 +57,10 @@ val pp_action: 'a Fmt.t -> 'a action Fmt.t
 
 open Cmdliner.Term
 
-val parse_args : name:string -> version:string ->
+val parse_args :
+  ?help_ppf:Format.formatter ->
+  ?err_ppf:Format.formatter ->
+  name:string -> version:string ->
   configure:'a t ->
   describe:'a t ->
   build:'a t ->

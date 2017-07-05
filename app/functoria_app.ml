@@ -684,7 +684,7 @@ module Make (P: S) = struct
     | `Version
     | `Help -> ()
 
-  let run_with_argv argv =
+  let run_with_argv ?help_ppf ?err_ppf argv =
     (* 1. (a) Pre-parse the arguments set the log level. *)
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
 
@@ -744,7 +744,7 @@ module Make (P: S) = struct
         in
 
         handle_parse_args_result argv
-          (Cmd.parse_args ~name:P.name ~version:P.version
+          (Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
              ~configure
              ~describe
              ~build

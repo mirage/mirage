@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Astring
 module Cmd = Functoria_command_line
 
 module Parsing = struct
@@ -209,7 +210,34 @@ module Full = struct
     | Ok x           -> x
     | Error (`Msg e) -> Alcotest.fail e
 
+  let clean_app () =
+    get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
+    get_ok @@ Bos.OS.File.delete Fpath.(v "app/main.ml");
+    get_ok @@ Bos.OS.File.delete Fpath.(v "app/.mirage.config");
+    get_ok @@ Bos.OS.File.delete Fpath.(v "app/jbuild");
+    get_ok @@ Bos.OS.File.delete Fpath.(v "app/.merlin")
+
+  (* cut a man page into sections *)
+  let by_sections s =
+    let lines = String.cuts ~sep:"\n" s in
+    let return l = match List.rev l with
+      | []   -> assert false
+      | h::t -> h, t
+    in
+    let rec aux current sections = function
+      | []     -> List.rev (return current :: sections)
+      | h :: t ->
+        if String.length h > 1
+        && String.for_all (fun x -> Char.Ascii.(is_upper x || is_white x)) h
+        then
+          aux [h] (return current :: sections) t
+        else
+          aux (h :: current) sections t
+    in
+    aux ["INIT"] [] lines
+
   let test_configure () =
+    clean_app ();
     (* check that configure generates the file in the right dir when
        --file is passed. *)
     let files = Alcotest.(slist string String.compare) in
@@ -222,12 +250,8 @@ module Full = struct
       ["app.ml"; "config.ml"; "myocamlbuild.ml";
        "main.ml"; ".mirage.config"; "jbuild"; "_build"
       ] (list_files "app");
-    (* cleanups *)
-    get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/main.ml");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/.mirage.config");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/jbuild");
 
+    clean_app ();
     (* check that configure generates the file in the right dir when
        --root is passed. *)
     let files = Alcotest.(slist string String.compare) in
@@ -251,13 +275,36 @@ module Full = struct
         |> String.trim
       in
       Alcotest.(check string) ("config should persist in " ^ root)
-        (String.concat ";" cfg) config
+        (String.concat ~sep:";" cfg) config
     in
 
     test_config "_root"
       [""; "configure"; "-vv"; "--file=app/config.ml"; "--root=_root"];
     test_config "app"
-      [""; "configure"; "-vv"; "--file=app/config.ml"]
+      [""; "configure"; "-vv"; "--file=app/config.ml"];
+
+    (* check that `test help configure` and `test configure --help` have
+       the same output. *)
+    let b1 = Buffer.create 128 and b2 = Buffer.create 128 in
+    Test_app.run_with_argv ~help_ppf:(Format.formatter_of_buffer b1)
+      [| ""; "help"; "configure"; "--file=app/config.ml"; "--help=plain" |];
+    Test_app.run_with_argv ~help_ppf:(Format.formatter_of_buffer b2)
+      [| ""; "configure"; "--file=app/config.ml"; "--help=plain" |];
+    let s1 = Buffer.contents b1 and s2 = Buffer.contents b2 in
+
+    let s1 = by_sections s1 and s2 = by_sections s2 in
+    Alcotest.(check (list string))
+      "help messages have the same configure options"
+      (List.assoc "CONFIGURE OPTIONS" s1)
+      (List.assoc "CONFIGURE OPTIONS" s2);
+    Alcotest.(check (list string))
+      "help messages have the same unikernel parameters"
+      (List.assoc "UNIKERNEL OPTIONS" s1)
+      (List.assoc "UNIKERNEL OPTIONS" s2);
+    Alcotest.(check (list string))
+      "help messages have the same common options"
+      (List.assoc "COMMON OPTIONS" s1)
+      (List.assoc "COMMON OPTIONS" s2)
 
   let test_describe () =
     Test_app.run_with_argv
@@ -276,7 +323,7 @@ module Full = struct
 
   let test_help () =
     Test_app.run_with_argv
-      [| ""; "help"; "-vv" |]
+      [| ""; "help"; "-vv"; "--help=plain" |]
 
   let test_default () =
     Test_app.run_with_argv

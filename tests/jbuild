@@ -2,7 +2,7 @@
 
 (executables
  ((names (test))
-  (libraries (test_app alcotest cmdliner rresult))))
+  (libraries (test_app alcotest cmdliner rresult astring))))
 
 (alias
  ((name runtest)

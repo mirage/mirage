@@ -23,6 +23,7 @@ include Functoria_misc
 
 module Graph = Functoria_graph
 module Key = Functoria_key
+module Cmd = Functoria_command_line
 
 (* Noop, the job that does nothing. *)
 let noop = impl @@ object
@@ -437,7 +438,7 @@ end = struct
         `Error (false, msg)
 
   let get_output root =
-    match get_context root Functoria_command_line.output with
+    match get_context root Cmd.output with
     | `Ok (Some None) -> `Ok None
     | `Ok (Some x)    -> `Ok x
     | `Ok None        -> `Ok None
@@ -646,8 +647,7 @@ module Make (P: S) = struct
     | None   -> i
     | Some o -> Info.with_output i o
 
-  let handle_parse_args_result = let module Cmd = Functoria_command_line in
-    function
+  let handle_parse_args_result = function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
     | `Ok (Cmd.Configure { result = (jobs, info); output }) ->
@@ -667,9 +667,8 @@ module Make (P: S) = struct
     | `Help -> ()
 
   let handle_parse_args_no_config error argv =
-    let module Cmd = Functoria_command_line in
     let open Cmdliner in
-    let result = Functoria_command_line.parse_args ~name:P.name ~version:P.version
+    let result = Cmd.parse_args ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
         ~build:(Term.pure ())
@@ -686,7 +685,6 @@ module Make (P: S) = struct
     | `Help -> ()
 
   let run_with_argv argv =
-    let module Cmd = Functoria_command_line in
     (* 1. (a) Pre-parse the arguments set the log level. *)
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
 
@@ -746,7 +744,7 @@ module Make (P: S) = struct
         in
 
         handle_parse_args_result
-          (Functoria_command_line.parse_args ~name:P.name ~version:P.version
+          (Cmd.parse_args ~name:P.name ~version:P.version
              ~configure
              ~describe
              ~build

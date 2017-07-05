@@ -477,8 +477,20 @@ module Make (P: S) = struct
   let src = Logs.Src.create P.name ~doc:"functoria generated"
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let configuration = ref None
+  (* this needs to be set-up beforce any calls to {!register} *)
+  let root = ref None
   let config_file = ref Fpath.(v "config.ml")
+
+  let init_global_state argv =
+    root := None;
+    config_file := Fpath.(v "config.ml");
+    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
+    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
+            Cmd.config_file (fun c -> config_file := c));
+    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
+            Cmd.root (fun r ->
+                let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true r in
+                root := Some r))
 
   let get_cwd () =
     match Bos.OS.Dir.current () with
@@ -486,9 +498,16 @@ module Make (P: S) = struct
     | Error e -> R.error_msg_to_invalid_arg (Error e)
 
   let get_root () =
-    if Fpath.(is_abs !config_file) then Fpath.(parent !config_file)
-    else
-      Fpath.(get_cwd () // parent !config_file)
+    match !root with
+    | Some r ->
+      if Fpath.is_abs r then r
+      else Fpath.(get_cwd () // r)
+    | None   ->
+      if Fpath.(is_abs !config_file) then Fpath.(parent !config_file)
+      else Fpath.(get_cwd () // parent !config_file)
+
+  (* This is set by {!register} *)
+  let configuration = ref None
 
   let register ?packages ?keys ?(init=[]) name jobs =
     let root = get_root () in
@@ -573,7 +592,7 @@ module Make (P: S) = struct
     in
     Bos.OS.Path.matches Fpath.(root / "_build" // cfg + "$(ext)") >>= fun files ->
     List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
-    with_current root
+    with_current Fpath.(parent !config_file)
       (fun () ->
          let pkgs = match P.packages with
            | []   -> Bos.Cmd.empty
@@ -604,10 +623,8 @@ module Make (P: S) = struct
    * [register] in order to have an observable
    * side effect to this command *)
   let dynlink file =
-    let file = Dynlink.adapt_filename (Fpath.basename file)
-    and root = get_root ()
-    in
-    let file = Fpath.(to_string (root / "_build" / file)) in
+    let file = Dynlink.adapt_filename (Fpath.basename file) in
+    let file = Fpath.(to_string (parent !config_file / "_build" / file)) in
     try Ok (Dynlink.loadfile file)
     with Dynlink.Error err ->
       let err = Dynlink.error_message err in
@@ -703,10 +720,9 @@ module Make (P: S) = struct
     | `Help -> ()
 
   let run_with_argv ?help_ppf ?err_ppf argv =
-    (* 1. (a) Pre-parse the arguments set the log level. *)
-    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
-    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
-            Cmd.config_file (fun c -> config_file := c));
+    (* 1. (a) Pre-parse the arguments set the log level, config file
+       and root directory. *)
+    init_global_state argv;
 
     (*    (b) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in

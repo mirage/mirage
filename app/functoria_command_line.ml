@@ -38,6 +38,16 @@ let config_file f =
   Term.(const (fun x ->  f (Fpath.v x))
         $ Arg.(value & opt string "config.ml" & doc))
 
+let root f =
+  let doc =
+    Arg.info
+      ~docv:"DIR"
+      ~doc:"The directory where the configuration has to be done."
+      ["root"]
+  in
+  Term.(const (function None -> () | Some x ->  f (Fpath.v x))
+        $ Arg.(value & opt (some string) None & doc))
+
 let help_sections = [
   `S global_option_section;
   `P "These options are common to all commands.";
@@ -133,6 +143,10 @@ let pp_action pp_a ppf = function
   | Clean c     -> Fmt.pf ppf "@[clean:@ @[<2>%a@]@]" pp_a c
   | Help        -> Fmt.string ppf "help"
 
+let setup =
+  let noop _ = () in
+  Term.(const (fun () () () -> ()) $ setup_log $ config_file noop $ root noop)
+
 (*
  * Subcommand specifications
  *)
@@ -146,9 +160,8 @@ struct
         `S "DESCRIPTION";
         `P "The $(b,configure) command initializes a fresh $(mname) application."
       ]
-      ~arg:Term.(const (fun _ _ output result -> Configure { output; result })
-                 $ setup_log
-                 $ config_file (fun _ -> ())
+      ~arg:Term.(const (fun _ output result -> Configure { output; result })
+                 $ setup
                  $ output
                  $ result)
 
@@ -176,10 +189,9 @@ struct
         `I ("App vertices",
             "Represented as diamonds. The bold arrow is the functor part.");
       ]
-      ~arg:Term.(const (fun _ _ _ info output dotcmd dot ->
+      ~arg:Term.(const (fun _ _ info output dotcmd dot ->
           Describe { result = info; dotcmd; dot; output })
-                 $ setup_log
-                 $ config_file (fun _ -> ())
+                 $ setup
                  $ full_eval
                  $ result
                  $ output
@@ -194,9 +206,8 @@ struct
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ _ info -> Build info)
-                 $ setup_log
-                 $ config_file (fun _ -> ())
+      ~arg:Term.(const (fun _ info -> Build info)
+                 $ setup
                  $ result)
 
   (** The 'clean' subcommand *)
@@ -207,9 +218,8 @@ struct
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ _ info -> Clean info)
-                 $ setup_log
-                 $ config_file (fun _ -> ())
+      ~arg:Term.(const (fun _ info -> Clean info)
+                 $ setup
                  $ info_)
 
   (** The 'help' subcommand *)
@@ -227,7 +237,7 @@ struct
         | `Error e -> `Error (false, e)
         | `Ok t when t = "topics" -> List.iter print_endline cmds; `Ok ()
         | `Ok t -> `Help (man_format, Some t) in
-    (Term.(const (fun _ () -> Help) $ setup_log $
+    (Term.(const (fun _ () -> Help) $ setup $
            ret (Term.(const help $ Term.man_format $ Term.choice_names
                       $ topic $ base_context))),
      Term.info "help"
@@ -241,7 +251,7 @@ struct
   let default ~name ~version =
     let usage = `Help (`Plain, None)
     in
-    (Term.(ret (pure usage) $ setup_log),
+    (Term.(ret (pure usage) $ setup),
      Term.info name
        ~version
        ~sdocs:global_option_section

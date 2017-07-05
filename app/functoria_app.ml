@@ -666,9 +666,10 @@ module Make (P: S) = struct
     | `Version
     | `Help -> ()
 
-  let handle_parse_args_no_config error argv =
+  let handle_parse_args_no_config ?help_ppf ?err_ppf error argv =
     let open Cmdliner in
-    let result = Cmd.parse_args ~name:P.name ~version:P.version
+    let result =
+      Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
         ~build:(Term.pure ())
@@ -700,7 +701,8 @@ module Make (P: S) = struct
 
       match load' config_file with
       | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
-      | Error (`Msg _ as err) -> handle_parse_args_no_config err argv
+      | Error (`Msg _ as err) ->
+        handle_parse_args_no_config ?help_ppf ?err_ppf err argv
       | Ok config ->
 
         let config_keys = Config.keys config in

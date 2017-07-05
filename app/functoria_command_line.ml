@@ -28,6 +28,16 @@ let setup_log =
         $ Fmt_cli.style_renderer ~docs:global_option_section ()
         $ Logs_cli.level ~docs:global_option_section ())
 
+let config_file f =
+  let doc =
+    Arg.info
+      ~docv:"FILE"
+      ~doc:"The configuration file to use."
+      ["f"; "file"]
+  in
+  Term.(const (fun x ->  f (Fpath.v x))
+        $ Arg.(value & opt string "config.ml" & doc))
+
 let help_sections = [
   `S global_option_section;
   `P "These options are common to all commands.";
@@ -136,8 +146,9 @@ struct
         `S "DESCRIPTION";
         `P "The $(b,configure) command initializes a fresh $(mname) application."
       ]
-      ~arg:Term.(const (fun _ output result -> Configure { output; result })
+      ~arg:Term.(const (fun _ _ output result -> Configure { output; result })
                  $ setup_log
+                 $ config_file (fun _ -> ())
                  $ output
                  $ result)
 
@@ -165,9 +176,10 @@ struct
         `I ("App vertices",
             "Represented as diamonds. The bold arrow is the functor part.");
       ]
-      ~arg:Term.(const (fun _ _ info output dotcmd dot ->
+      ~arg:Term.(const (fun _ _ _ info output dotcmd dot ->
           Describe { result = info; dotcmd; dot; output })
                  $ setup_log
+                 $ config_file (fun _ -> ())
                  $ full_eval
                  $ result
                  $ output
@@ -182,8 +194,9 @@ struct
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ info -> Build info)
+      ~arg:Term.(const (fun _ _ info -> Build info)
                  $ setup_log
+                 $ config_file (fun _ -> ())
                  $ result)
 
   (** The 'clean' subcommand *)
@@ -194,8 +207,9 @@ struct
         `S "DESCRIPTION";
         `P doc;
       ]
-      ~arg:Term.(const (fun _ info -> Clean info)
+      ~arg:Term.(const (fun _ _ info -> Clean info)
                  $ setup_log
+                 $ config_file (fun _ -> ())
                  $ info_)
 
   (** The 'help' subcommand *)

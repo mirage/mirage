@@ -73,7 +73,7 @@ module Arg = struct
     env  : string option;
   }
 
-  let info ?(docs="UNIKERNEL PARAMETERS") ?docv ?doc ?env names =
+  let info ?(docs="UNIKERNEL OPTIONS") ?docv ?doc ?env names =
     { doc; docs; docv; names; env }
 
   let cmdliner_of_info { docs; docv; doc; env; names } =

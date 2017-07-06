@@ -236,11 +236,12 @@ module Full = struct
     in
     aux ["INIT"] [] lines
 
+  let files = Alcotest.(slist string String.compare)
+
   let test_configure () =
     clean_app ();
     (* check that configure generates the file in the right dir when
        --file is passed. *)
-    let files = Alcotest.(slist string String.compare) in
     Alcotest.(check files) "the usual files should be present before configure"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
     Test_app.run_with_argv
@@ -328,9 +329,20 @@ module Full = struct
          "--file"; "app/config.ml"|]
 
   let test_build () =
+    clean_app ();
+    (* default build *)
+    Test_app.run_with_argv [| ""; "configure"; "--file"; "app/config.ml"|];
+    Test_app.run_with_argv [| ""; "build"; "-vv"; "--file"; "app/config.ml"|];
+    Alcotest.(check bool) "main.exe should be built" true
+      (Sys.file_exists "app/_build/default/main.exe");
+
+    (* test --output *)
     Test_app.run_with_argv
-      [| ""; "build"; "-vv";
-         "--file"; "app/config.ml"|]
+      [| ""; "configure"; "--file"; "app/config.ml"; "-o"; "toto"|];
+    Test_app.run_with_argv
+      [| ""; "build"; "-vv"; "--file"; "app/config.ml"|];
+    Alcotest.(check bool) "toto.exe should be built" true
+      (Sys.file_exists "app/_build/default/toto.exe")
 
   let test_clean () =
     Test_app.run_with_argv

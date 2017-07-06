@@ -286,10 +286,10 @@ module Full = struct
       Test_app.run_with_argv (Array.of_list cfg);
       let config =
         get_ok @@ Bos.OS.File.read Fpath.(v root / ".mirage.config")
-        |> String.trim
       in
       Alcotest.(check string) ("config should persist in " ^ root)
-        (String.concat ~sep:";" cfg) config
+        (String.concat ~sep:"\n" @@ List.map String.Ascii.escape cfg)
+        config
     in
 
     test_config "_custom_build_"

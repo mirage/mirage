@@ -523,8 +523,10 @@ module Make (P: S) = struct
     | Some t -> Ok t
 
   let configure_main ~argv i jobs =
-    Log.info (fun m -> m "Generating: main.ml");
-    Codegen.set_main_ml "main.ml";
+    let main = match Info.output i with None -> "main" | Some f -> f in
+    let file = main ^ ".ml" in
+    Log.info (fun m -> m "Generating: %s" file);
+    Codegen.set_main_ml file;
     Codegen.append_main "(* %s *)" (Codegen.generated_header ());
     Codegen.newline_main ();
     Codegen.append_main "%a" Fmt.text  P.prelude;

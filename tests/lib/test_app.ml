@@ -56,9 +56,11 @@ module C = struct
             "(jbuild_version 1)\n\
              \n\
              (executable\n\
-            \   ((name      main)\n\
+            \   ((name      %s)\n\
             \    (libraries (%a))))\n"
-            Fmt.(list ~sep:(unit " ") string) Functoria.Info.(package_names i)
+            (output i)
+            Fmt.(list ~sep:(unit " ") string)
+            Functoria.Info.(package_names i)
         in
         let file = Fpath.(Functoria.Info.root i / "jbuild") in
         Bos.OS.File.write file jbuild

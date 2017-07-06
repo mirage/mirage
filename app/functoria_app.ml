@@ -477,13 +477,37 @@ module Make (P: S) = struct
   let src = Logs.Src.create P.name ~doc:"functoria generated"
   module Log = (val Logs.src_log src : Logs.LOG)
 
-  let configuration = ref None
-  let config_file = Fpath.(v "config.ml")
+  (* this needs to be set-up beforce any calls to {!register} *)
+  let root = ref None
+  let config_file = ref Fpath.(v "config.ml")
 
-  let get_root () =
+  let init_global_state argv =
+    root := None;
+    config_file := Fpath.(v "config.ml");
+    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
+    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
+            Cmd.config_file (fun c -> config_file := c));
+    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
+            Cmd.root (fun r ->
+                let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true r in
+                root := Some r))
+
+  let get_cwd () =
     match Bos.OS.Dir.current () with
     | Ok p -> p
     | Error e -> R.error_msg_to_invalid_arg (Error e)
+
+  let get_root () =
+    match !root with
+    | Some r ->
+      if Fpath.is_abs r then r
+      else Fpath.(get_cwd () // r)
+    | None   ->
+      if Fpath.(is_abs !config_file) then Fpath.(parent !config_file)
+      else Fpath.(get_cwd () // parent !config_file)
+
+  (* This is set by {!register} *)
+  let configuration = ref None
 
   let register ?packages ?keys ?(init=[]) name jobs =
     let root = get_root () in
@@ -516,7 +540,7 @@ module Make (P: S) = struct
     Bos.OS.File.delete Fpath.(v "main.ml")
 
   let configure ~argv i jobs =
-    Log.info (fun m -> m "Using configuration: %a" Fpath.pp config_file);
+    Log.info (fun m -> m "Using configuration: %a" Fpath.pp !config_file);
     Log.info (fun m -> m "output: %a" Fmt.(option string) (Info.output i));
     Log.info (fun m -> m "within: %a" Fpath.pp (Info.root i));
     with_current
@@ -525,14 +549,14 @@ module Make (P: S) = struct
       "configure"
 
   let build i jobs =
-    Log.info (fun m -> m "Building: %a" Fpath.pp config_file);
+    Log.info (fun m -> m "Building: %a" Fpath.pp !config_file);
     with_current
       (Info.root i)
       (fun () -> Engine.build i jobs)
       "build"
 
   let clean i (_init, job) =
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp config_file);
+    Log.info (fun m -> m "Cleaning: %a" Fpath.pp !config_file);
     with_current
       (Info.root i)
       (fun () ->
@@ -562,13 +586,13 @@ module Make (P: S) = struct
   (* Compile the configuration file. *)
   let compile file =
     Log.info (fun m -> m "Compiling: %a" Fpath.pp file);
-    let file = Dynlink.adapt_filename (Fpath.to_string file)
+    let file = Dynlink.adapt_filename (Fpath.basename file)
     and cfg = Fpath.rem_ext file
     and root = get_root ()
     in
     Bos.OS.Path.matches Fpath.(root / "_build" // cfg + "$(ext)") >>= fun files ->
     List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
-    with_current root
+    with_current Fpath.(parent !config_file)
       (fun () ->
          let pkgs = match P.packages with
            | []   -> Bos.Cmd.empty
@@ -599,15 +623,15 @@ module Make (P: S) = struct
    * [register] in order to have an observable
    * side effect to this command *)
   let dynlink file =
-    let file = Dynlink.adapt_filename (Fpath.to_string file)
-    and root = get_root ()
-    in
-    try Ok (Dynlink.loadfile Fpath.(to_string (root / "_build" / file)))
+    let file = Dynlink.adapt_filename (Fpath.basename file) in
+    let file = Fpath.(to_string (parent !config_file / "_build" / file)) in
+    try Ok (Dynlink.loadfile file)
     with Dynlink.Error err ->
       let err = Dynlink.error_message err in
       let msg = Printf.sprintf
-          "error %s while loading configuration, please run 'configure' \
-           subcommand (see '%s help configure' for details)" err P.name
+          "error %s while loading %s, please run 'configure' \
+           subcommand (see '%s help configure' for details)"
+          err file P.name
       in
       Error (`Msg msg)
 
@@ -651,6 +675,7 @@ module Make (P: S) = struct
     | Error (`Msg m) ->
       R.pp_msg Format.std_formatter (`Msg m) ;
       print_newline ();
+      flush_all ();
       exit 1
 
   let with_output i = function
@@ -696,8 +721,9 @@ module Make (P: S) = struct
     | `Help -> ()
 
   let run_with_argv ?help_ppf ?err_ppf argv =
-    (* 1. (a) Pre-parse the arguments set the log level. *)
-    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
+    (* 1. (a) Pre-parse the arguments set the log level, config file
+       and root directory. *)
+    init_global_state argv;
 
     (*    (b) whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
@@ -709,7 +735,7 @@ module Make (P: S) = struct
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-      match load' config_file with
+      match load' !config_file with
       | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
       | Error (`Msg _ as err) ->
         handle_parse_args_no_config ?help_ppf ?err_ppf err argv

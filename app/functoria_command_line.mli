@@ -17,6 +17,8 @@
 (** Functions for reading various options from a command line. *)
 
 val setup_log : unit Cmdliner.Term.t
+val config_file : (Fpath.t -> unit) -> unit Cmdliner.Term.t
+val root: (Fpath.t -> unit) -> unit Cmdliner.Term.t
 val output: string option Cmdliner.Term.t
 
 val read_full_eval : string array -> bool option

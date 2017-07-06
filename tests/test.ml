@@ -212,10 +212,17 @@ module Full = struct
 
   let clean_app () =
     get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/main.ml");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/.mirage.config");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/jbuild");
-    get_ok @@ Bos.OS.File.delete Fpath.(v "app/.merlin")
+    let files = list_files "app" in
+    List.iter (fun f ->
+        match Filename.basename f with
+        | "app.ml" | "config.ml" | "myocamlbuild.ml" -> ()
+        | _ ->
+          if Sys.is_directory (Filename.concat "app" f) then ()
+          else get_ok @@ Bos.OS.File.delete Fpath.(v "app" / f)
+      ) files
+
+  let clean_root () =
+    get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "_root")
 
   (* cut a man page into sections *)
   let by_sections s =
@@ -251,8 +258,8 @@ module Full = struct
       ["app.ml"; "config.ml"; "myocamlbuild.ml";
        "main.ml"; ".mirage.config"; "jbuild"; "_build"
       ] (list_files "app");
-
     clean_app ();
+
     (* check that configure generates the file in the right dir when
        --root is passed. *)
     let files = Alcotest.(slist string String.compare) in
@@ -265,8 +272,10 @@ module Full = struct
       ["app.ml"; "config.ml"; "myocamlbuild.ml"; "_build"]
       (list_files "app");
     Alcotest.(check files) "other files should be created in _root"
-      ["main.ml"; ".mirage.config"; "jbuild"]
+      ["main.ml"; "app.ml"; ".mirage.config"; "jbuild";
+       "myocamlbuild.ml" (* FIXME: add a .mirage-ignore file to avoid this *) ]
       (list_files "_root");
+    clean_root ();
 
     (* check that configure is writting the correct .mirage.config file *)
     let test_config root cfg =
@@ -281,8 +290,11 @@ module Full = struct
 
     test_config "_root"
       [""; "configure"; "-vv"; "--file=app/config.ml"; "--root=_root"];
+    clean_root ();
+
     test_config "app"
       [""; "configure"; "-vv"; "--file=app/config.ml"];
+    clean_app ();
 
     (* check that `test help configure` and `test configure --help` have
        the same output. *)
@@ -335,6 +347,7 @@ module Full = struct
     Test_app.run_with_argv [| ""; "build"; "-vv"; "--file"; "app/config.ml"|];
     Alcotest.(check bool) "main.exe should be built" true
       (Sys.file_exists "app/_build/default/main.exe");
+    clean_app ();
 
     (* test --output *)
     Test_app.run_with_argv
@@ -342,12 +355,51 @@ module Full = struct
     Test_app.run_with_argv
       [| ""; "build"; "-vv"; "--file"; "app/config.ml"|];
     Alcotest.(check bool) "toto.exe should be built" true
-      (Sys.file_exists "app/_build/default/toto.exe")
+      (Sys.file_exists "app/_build/default/toto.exe");
+    clean_app ();
+
+    (* test --root *)
+    Test_app.run_with_argv
+      [| ""; "configure"; "-vv"; "--file"; "app/config.ml"; "--root"; "_root"|];
+    Test_app.run_with_argv
+      [| ""; "build"; "-vv"; "--file"; "app/config.ml"; "--root"; "_root"|];
+    Alcotest.(check bool) "main.exe should be built in _root" true
+      (Sys.file_exists "_root/_build/default/main.exe");
+    clean_root ();
+
+    (* test --output + --root *)
+    Test_app.run_with_argv
+      [| ""; "configure"; "--file"; "app/config.ml";
+         "--root"; "_root"; "-o"; "toto"|];
+    Test_app.run_with_argv
+      [| ""; "build"; "-vv";
+         "--root"; "_root"; "--file"; "app/config.ml"|];
+    Alcotest.(check bool) "toto.exe should be built in _root" true
+      (Sys.file_exists "_root/_build/default/toto.exe");
+    clean_root ()
 
   let test_clean () =
     Test_app.run_with_argv
+      [| ""; "configure"; "-vv";
+         "--file"; "app/config.ml"|];
+    Test_app.run_with_argv
       [| ""; "clean"; "-vv";
-         "--file"; "app/config.ml"|]
+         "--file"; "app/config.ml"|];
+    Alcotest.(check files) "clean should remove all the files"
+      ["app.ml"; "config.ml"; "myocamlbuild.ml"]
+      (list_files "app");
+
+    Test_app.run_with_argv
+      [| ""; "configure"; "-vv";
+         "--file"; "app/config.ml"; "--root"; "_root" |];
+    Test_app.run_with_argv
+      [| ""; "clean"; "-vv";
+         "--file"; "app/config.ml"; "--root"; "_root"|];
+    Alcotest.(check files) "clean should remove all the files"
+      []
+      (list_files "root")
+
+
 
   let test_help () =
     Test_app.run_with_argv

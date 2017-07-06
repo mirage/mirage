@@ -137,5 +137,11 @@ module Univ = struct
 
   let merge ~default m =
     let aux _k _def v = Some v in
-    Map.union aux default m 
+    Map.union aux default m
+
+  let dump =
+    let pp_elt ppf (k, v) = Fmt.pf ppf "%s: %a@ " k Fmt.exn v in
+    let map_iter f = Map.iter (fun k v -> f (k, v)) in
+    Fmt.(iter ~sep:(unit ", ")) map_iter pp_elt
+
 end

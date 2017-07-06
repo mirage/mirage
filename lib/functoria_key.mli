@@ -248,6 +248,9 @@ val name : t -> string
 type context
 (** The type for values holding parsing context. *)
 
+val dump_context: context Fmt.t
+(** [dump_context] dumps the contents of a context. *)
+
 val empty_context : context
 
 val merge_context : default:context -> context -> context

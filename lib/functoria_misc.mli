@@ -54,4 +54,5 @@ module Univ: sig
   val mem: 'a key -> t -> bool
   val find: 'a key -> t -> 'a option
   val merge: default:t -> t -> t
+  val dump: t Fmt.t
 end

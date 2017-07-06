@@ -548,7 +548,29 @@ module Make (P: S) = struct
     with_current
       (Info.root i)
       (fun () -> configure_main ~argv i jobs)
-      "configure"
+      "configure" >>= fun () ->
+    let config_dir =
+      let dir = Fpath.(parent !config_file) in
+      if Fpath.is_rel dir then Fpath.(get_cwd () // dir) else dir
+    in
+    let build_dir = get_root () in
+    Log.debug (fun l -> l "config-dir=%a" Fpath.pp config_dir);
+    Log.debug (fun l -> l "build-dir=%a" Fpath.pp build_dir);
+    if Fpath.equal build_dir config_dir then Ok ()
+    else (
+      Bos.OS.Path.matches ~dotfiles:true Fpath.(config_dir / "$(file)") >>=
+      List.fold_left (fun acc target ->
+          acc >>= fun () ->
+          match Fpath.basename target with
+          | "_build" -> Ok ()
+          | b        ->
+            if Fpath.basename !config_file = b then Ok ()
+            else (
+              let dst = Fpath.(build_dir / basename target) in
+              Bos.OS.Path.symlink ~force:true ~target dst
+            ))
+        (Ok ())
+    )
 
   let build i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp !config_file);

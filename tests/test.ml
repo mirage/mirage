@@ -224,6 +224,10 @@ module Full = struct
   let clean_build () =
     get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "_custom_build_")
 
+  let test ?err_ppf ?help_ppf l =
+    let l = String.cuts ~sep:" " l in
+    Test_app.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l))
+
   (* cut a man page into sections *)
   let by_sections s =
     let lines = String.cuts ~sep:"\n" s in
@@ -251,9 +255,7 @@ module Full = struct
        --file is passed. *)
     Alcotest.(check files) "the usual files should be present before configure"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
-    Test_app.run_with_argv
-      [| ""; "configure"; "-vv";
-         "--file"; "app/config.ml" |];
+    test "configure -vv --file app/config.ml";
     Alcotest.(check files) "new files should be created in the source dir"
       ["app.ml"; "config.ml"; "myocamlbuild.ml";
        "main.ml"; ".mirage.config"; "jbuild"; "_build"
@@ -265,9 +267,7 @@ module Full = struct
     let files = Alcotest.(slist string String.compare) in
     Alcotest.(check files) "the usual files should be present before configure"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
-    Test_app.run_with_argv
-      [| ""; "configure"; "-vv";
-         "--file"; "app/config.ml"; "--build-dir"; "_custom_build_" |];
+    test "configure -vv --file app/config.ml --build-dir _custom_build_";
     Alcotest.(check files) "only _build should be created in the source dir"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"; "_build"]
       (list_files "app");
@@ -299,10 +299,10 @@ module Full = struct
     (* check that `test help configure` and `test configure --help` have
        the same output. *)
     let b1 = Buffer.create 128 and b2 = Buffer.create 128 in
-    Test_app.run_with_argv ~help_ppf:(Format.formatter_of_buffer b1)
-      [| ""; "help"; "configure"; "--file=app/config.ml"; "--help=plain" |];
-    Test_app.run_with_argv ~help_ppf:(Format.formatter_of_buffer b2)
-      [| ""; "configure"; "--file=app/config.ml"; "--help=plain" |];
+    test ~help_ppf:(Format.formatter_of_buffer b1)
+      "help configure --file=app/config.ml --help=plain";
+    test ~help_ppf:(Format.formatter_of_buffer b2)
+      "configure --file=app/config.ml --help=plain";
     let s1 = Buffer.contents b1 and s2 = Buffer.contents b2 in
 
     let s1 = by_sections s1 and s2 = by_sections s2 in
@@ -323,10 +323,9 @@ module Full = struct
        is present. *)
     let b3 = Buffer.create 128 in
     let b4 = Buffer.create 128 in
-    Test_app.run_with_argv
+    test "help configure --help=plain"
       ~err_ppf:(Format.formatter_of_buffer b3)
-      ~help_ppf:(Format.formatter_of_buffer b4)
-      [| ""; "help"; "configure"; "--help=plain" |];
+      ~help_ppf:(Format.formatter_of_buffer b4);
     let s3 = Buffer.contents b3 in
     let s4 = by_sections (Buffer.contents b4) in
     Alcotest.(check string) "no errors" s3 "";
@@ -335,7 +334,7 @@ module Full = struct
     Alcotest.(check bool) "synopsis should be present"
       true (List.mem_assoc "SYNOPSIS" s4)
 
-  let test_describe () =
+    let test_describe () =
     Test_app.run_with_argv
       [| ""; "describe"; "-vv";
          "--file"; "app/config.ml"|]
@@ -343,63 +342,45 @@ module Full = struct
   let test_build () =
     clean_app ();
     (* default build *)
-    Test_app.run_with_argv [| ""; "configure"; "--file"; "app/config.ml"|];
-    Test_app.run_with_argv [| ""; "build"; "-vv"; "--file"; "app/config.ml"|];
+    test "configure --file app/config.ml";
+    test "build -vv --file app/config.ml";
     Alcotest.(check bool) "main.exe should be built" true
       (Sys.file_exists "app/_build/default/main.exe");
     clean_app ();
 
     (* test --output *)
-    Test_app.run_with_argv
-      [| ""; "configure"; "--file"; "app/config.ml"; "-o"; "toto"|];
-    Test_app.run_with_argv
-      [| ""; "build"; "-vv"; "--file"; "app/config.ml"|];
+    test "configure --file app/config.ml -o toto";
+    test "build -vv --file app/config.ml";
     Alcotest.(check bool) "toto.exe should be built" true
       (Sys.file_exists "app/_build/default/toto.exe");
     clean_app ();
 
     (* test --build-dir *)
-    Test_app.run_with_argv
-      [| ""; "configure"; "-vv"; "--file"; "app/config.ml"; "--build-dir"; "_custom_build_"|];
-    Test_app.run_with_argv
-      [| ""; "build"; "-vv"; "--file"; "app/config.ml"; "--build-dir"; "_custom_build_"|];
+    test "configure -vv --file app/config.ml --build-dir _custom_build_";
+    test "build -vv --file app/config.ml --build-dir _custom_build_";
     Alcotest.(check bool) "main.exe should be built in _custom_build_" true
       (Sys.file_exists "_custom_build_/_build/default/main.exe");
     clean_build ();
 
     (* test --output + --build-dir *)
-    Test_app.run_with_argv
-      [| ""; "configure"; "--file"; "app/config.ml";
-         "--build-dir"; "_custom_build_"; "-o"; "toto"|];
-    Test_app.run_with_argv
-      [| ""; "build"; "-vv";
-         "--build-dir"; "_custom_build_"; "--file"; "app/config.ml"|];
+    test "configure --file app/config.ml --build-dir _custom_build_ -o toto";
+    test "build -vv --build-dir _custom_build_ --file app/config.ml";
     Alcotest.(check bool) "toto.exe should be built in _custom_build_" true
       (Sys.file_exists "_custom_build_/_build/default/toto.exe");
     clean_build ()
 
   let test_clean () =
-    Test_app.run_with_argv
-      [| ""; "configure"; "-vv";
-         "--file"; "app/config.ml"|];
-    Test_app.run_with_argv
-      [| ""; "clean"; "-vv";
-         "--file"; "app/config.ml"|];
+    test "configure -vv --file app/config.ml";
+    test "clean -vv --file app/config.ml";
     Alcotest.(check files) "clean should remove all the files"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"]
       (list_files "app");
 
-    Test_app.run_with_argv
-      [| ""; "configure"; "-vv";
-         "--file"; "app/config.ml"; "--build-dir"; "_custom_build_" |];
-    Test_app.run_with_argv
-      [| ""; "clean"; "-vv";
-         "--file"; "app/config.ml"; "--build-dir"; "_custom_build_"|];
+    test "configure -vv --file app/config.ml --build-dir=_custom_build_";
+    test "clean -vv --file app/config.ml --build-dir _custom_build_";
     Alcotest.(check files) "clean should remove all the files"
       []
       (list_files "root")
-
-
 
   let test_help () =
     Test_app.run_with_argv

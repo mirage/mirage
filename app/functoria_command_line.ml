@@ -41,13 +41,13 @@ let config_file f =
   Term.(const (fun x ->  f (Fpath.v x))
         $ Arg.(value & opt string "config.ml" & doc))
 
-let root f =
+let build_dir f =
   let doc =
     Arg.info
       ~docs:configuration_section
       ~docv:"DIR"
-      ~doc:"The directory where the configuration has to be done."
-      ["root"]
+      ~doc:"The directory where the build is done."
+      ["b"; "build-dir"]
   in
   Term.(const (function None -> () | Some x ->  f (Fpath.v x))
         $ Arg.(value & opt (some string) None & doc))
@@ -138,7 +138,10 @@ let pp_action pp_a ppf = function
 
 let setup =
   let noop _ = () in
-  Term.(const (fun () () () -> ()) $ setup_log $ config_file noop $ root noop)
+  Term.(const (fun () () () -> ())
+        $ setup_log
+        $ config_file noop
+        $ build_dir noop)
 
 (*
  * Subcommand specifications

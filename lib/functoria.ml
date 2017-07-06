@@ -136,14 +136,14 @@ module Info = struct
   type t = {
     name: string;
     output: string option;
-    root: Fpath.t;
+    build_dir: Fpath.t;
     keys: Key.Set.t;
     context: Key.context;
     packages: package String.Map.t;
   }
 
   let name t = t.name
-  let root t = t.root
+  let build_dir t = t.build_dir
   let output t = t.output
   let with_output t output = { t with output = Some output }
 
@@ -154,7 +154,7 @@ module Info = struct
   let keys t = Key.Set.elements t.keys
   let context t = t.context
 
-  let create ~packages ~keys ~context ~name ~root =
+  let create ~packages ~keys ~context ~name ~build_dir =
     let keys = Key.Set.of_list keys in
     let packages = List.fold_left (fun m p ->
         let n = p.opam in
@@ -165,16 +165,16 @@ module Info = struct
           | None -> invalid_arg ("bad version constraints in " ^ p.opam))
         String.Map.empty packages
     in
-    { name; root; keys; packages; context; output = None }
+    { name; build_dir; keys; packages; context; output = None }
 
   let pp_packages ?(surround = "") ?sep ppf t =
     Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp_package surround)) (packages t)
 
-  let pp verbose ppf ({ name ; root ; keys ; context ; output; _ } as t) =
+  let pp verbose ppf ({ name ; build_dir ; keys ; context ; output; _ } as t) =
     let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in
     let list = Fmt.iter ~sep:(Fmt.unit ",@ ") List.iter Fmt.string in
     show "Name      " Fmt.string name;
-    show "Root      " Fpath.pp root;
+    show "Build-dir " Fpath.pp build_dir;
     show "Keys      " (Key.pps context) keys;
     show "Output    " Fmt.(option string) output;
     if verbose then show "Libraries " list (libraries t);

@@ -180,8 +180,8 @@ module Info: sig
   (** [with_output t o] is similar to [t] but with the output set to
       [Some o]. *)
 
-  val root: t -> Fpath.t
-  (** Directory in which the configuration is done. *)
+  val build_dir: t -> Fpath.t
+  (** Directory in which the build is done. *)
 
   val libraries: t -> string list
   (** OCamlfind libraries needed by the project at runtime. *)
@@ -206,7 +206,7 @@ module Info: sig
     keys:key list ->
     context:context ->
     name:string ->
-    root:Fpath.t -> t
+    build_dir:Fpath.t -> t
 
   val pp: bool -> t Fmt.t
 

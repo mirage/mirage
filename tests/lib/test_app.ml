@@ -29,7 +29,7 @@ let run cmd =
       let err = Format.flush_str_formatter () in
       failwith err
 
-let jbuild_file i = Fpath.(Functoria.Info.root i / "jbuild")
+let jbuild_file i = Fpath.(Functoria.Info.build_dir i / "jbuild")
 
 module C = struct
   let prelude = "let (>>=) x f = f x\n\
@@ -70,7 +70,7 @@ module C = struct
         Bos.OS.File.delete (jbuild_file i)
 
       method! build i =
-        Bos.OS.Dir.with_current (Functoria.Info.root i) (fun () ->
+        Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->
             run @@ Bos.Cmd.(v "jbuilder" % "build" % (output i ^ ".exe"));
           ) ()
 

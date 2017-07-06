@@ -221,8 +221,8 @@ module Full = struct
           else get_ok @@ Bos.OS.File.delete Fpath.(v "app" / f)
       ) files
 
-  let clean_root () =
-    get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "_root")
+  let clean_build () =
+    get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "_custom_build_")
 
   (* cut a man page into sections *)
   let by_sections s =
@@ -261,21 +261,21 @@ module Full = struct
     clean_app ();
 
     (* check that configure generates the file in the right dir when
-       --root is passed. *)
+       --build-dir is passed. *)
     let files = Alcotest.(slist string String.compare) in
     Alcotest.(check files) "the usual files should be present before configure"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
     Test_app.run_with_argv
       [| ""; "configure"; "-vv";
-         "--file"; "app/config.ml"; "--root"; "_root" |];
+         "--file"; "app/config.ml"; "--build-dir"; "_custom_build_" |];
     Alcotest.(check files) "only _build should be created in the source dir"
       ["app.ml"; "config.ml"; "myocamlbuild.ml"; "_build"]
       (list_files "app");
-    Alcotest.(check files) "other files should be created in _root"
+    Alcotest.(check files) "other files should be created in _custom_build_"
       ["main.ml"; "app.ml"; ".mirage.config"; "jbuild";
        "myocamlbuild.ml" (* FIXME: add a .mirage-ignore file to avoid this *) ]
-      (list_files "_root");
-    clean_root ();
+      (list_files "_custom_build_");
+    clean_build ();
 
     (* check that configure is writting the correct .mirage.config file *)
     let test_config root cfg =
@@ -288,9 +288,9 @@ module Full = struct
         (String.concat ~sep:";" cfg) config
     in
 
-    test_config "_root"
-      [""; "configure"; "-vv"; "--file=app/config.ml"; "--root=_root"];
-    clean_root ();
+    test_config "_custom_build_"
+      [""; "configure"; "-vv"; "--file=app/config.ml"; "--build-dir=_custom_build_"];
+    clean_build ();
 
     test_config "app"
       [""; "configure"; "-vv"; "--file=app/config.ml"];
@@ -358,25 +358,25 @@ module Full = struct
       (Sys.file_exists "app/_build/default/toto.exe");
     clean_app ();
 
-    (* test --root *)
+    (* test --build-dir *)
     Test_app.run_with_argv
-      [| ""; "configure"; "-vv"; "--file"; "app/config.ml"; "--root"; "_root"|];
+      [| ""; "configure"; "-vv"; "--file"; "app/config.ml"; "--build-dir"; "_custom_build_"|];
     Test_app.run_with_argv
-      [| ""; "build"; "-vv"; "--file"; "app/config.ml"; "--root"; "_root"|];
-    Alcotest.(check bool) "main.exe should be built in _root" true
-      (Sys.file_exists "_root/_build/default/main.exe");
-    clean_root ();
+      [| ""; "build"; "-vv"; "--file"; "app/config.ml"; "--build-dir"; "_custom_build_"|];
+    Alcotest.(check bool) "main.exe should be built in _custom_build_" true
+      (Sys.file_exists "_custom_build_/_build/default/main.exe");
+    clean_build ();
 
-    (* test --output + --root *)
+    (* test --output + --build-dir *)
     Test_app.run_with_argv
       [| ""; "configure"; "--file"; "app/config.ml";
-         "--root"; "_root"; "-o"; "toto"|];
+         "--build-dir"; "_custom_build_"; "-o"; "toto"|];
     Test_app.run_with_argv
       [| ""; "build"; "-vv";
-         "--root"; "_root"; "--file"; "app/config.ml"|];
-    Alcotest.(check bool) "toto.exe should be built in _root" true
-      (Sys.file_exists "_root/_build/default/toto.exe");
-    clean_root ()
+         "--build-dir"; "_custom_build_"; "--file"; "app/config.ml"|];
+    Alcotest.(check bool) "toto.exe should be built in _custom_build_" true
+      (Sys.file_exists "_custom_build_/_build/default/toto.exe");
+    clean_build ()
 
   let test_clean () =
     Test_app.run_with_argv
@@ -391,10 +391,10 @@ module Full = struct
 
     Test_app.run_with_argv
       [| ""; "configure"; "-vv";
-         "--file"; "app/config.ml"; "--root"; "_root" |];
+         "--file"; "app/config.ml"; "--build-dir"; "_custom_build_" |];
     Test_app.run_with_argv
       [| ""; "clean"; "-vv";
-         "--file"; "app/config.ml"; "--root"; "_root"|];
+         "--file"; "app/config.ml"; "--build-dir"; "_custom_build_"|];
     Alcotest.(check files) "clean should remove all the files"
       []
       (list_files "root")

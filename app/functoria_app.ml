@@ -332,11 +332,11 @@ module Config = struct
 
   type t = {
     name     : string;
-    root     : Fpath.t;
-    packages: package list Key.value;
-    keys    : Key.Set.t;
-    init    : job impl list;
-    jobs    : Graph.t;
+    build_dir: Fpath.t;
+    packages : package list Key.value;
+    keys     : Key.Set.t;
+    init     : job impl list;
+    jobs     : Graph.t;
   }
 
   (* In practice, we get all the keys associated to [if] cases, and
@@ -351,16 +351,15 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let make ?(keys=[]) ?(packages=[]) ?(init=[]) name root
-      main_dev =
+  let make ?(keys=[]) ?(packages=[]) ?(init=[]) name build_dir main_dev =
     let name = Name.ocamlify name in
     let jobs = Graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; root; init; jobs }
+    { packages; keys; name; build_dir; init; jobs }
 
   let eval ~partial context
-      { name = n; root; packages; keys; jobs; init }
+      { name = n; build_dir; packages; keys; jobs; init }
     =
     let e = Graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
@@ -369,7 +368,7 @@ module Config = struct
         ((init, e),
          Info.create
            ~packages
-           ~keys ~context ~name:n ~root))
+           ~keys ~context ~name:n ~build_dir))
          $ packages
          $ of_deps (Set.of_list keys))
 
@@ -478,27 +477,27 @@ module Make (P: S) = struct
   module Log = (val Logs.src_log src : Logs.LOG)
 
   (* this needs to be set-up beforce any calls to {!register} *)
-  let root = ref None
+  let build_dir = ref None
   let config_file = ref Fpath.(v "config.ml")
 
   let init_global_state argv =
-    root := None;
+    build_dir := None;
     config_file := Fpath.(v "config.ml");
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
     ignore (Cmdliner.Term.eval_peek_opts ~argv @@
             Cmd.config_file (fun c -> config_file := c));
     ignore (Cmdliner.Term.eval_peek_opts ~argv @@
-            Cmd.root (fun r ->
+            Cmd.build_dir (fun r ->
                 let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true r in
-                root := Some r))
+                build_dir := Some r))
 
   let get_cwd () =
     match Bos.OS.Dir.current () with
     | Ok p -> p
     | Error e -> R.error_msg_to_invalid_arg (Error e)
 
-  let get_root () =
-    match !root with
+  let get_build_dir () =
+    match !build_dir with
     | Some r ->
       if Fpath.is_abs r then r
       else Fpath.(get_cwd () // r)
@@ -510,9 +509,9 @@ module Make (P: S) = struct
   let configuration = ref None
 
   let register ?packages ?keys ?(init=[]) name jobs =
-    let root = get_root () in
+    let build_dir = get_build_dir () in
     let main_dev = P.create (init @ jobs) in
-    let c = Config.make ?keys ?packages ~init name root main_dev in
+    let c = Config.make ?keys ?packages ~init name build_dir main_dev in
     configuration := Some c
 
   let registered () =
@@ -533,7 +532,7 @@ module Make (P: S) = struct
     Codegen.newline_main ();
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
-    Cache.save ~argv (Info.root i) >>= fun () ->
+    Cache.save ~argv (Info.build_dir i) >>= fun () ->
     Engine.configure_and_connect i jobs >>| fun () ->
     Codegen.newline_main ()
 
@@ -542,18 +541,18 @@ module Make (P: S) = struct
     Bos.OS.File.delete Fpath.(v "main.ml")
 
   let configure ~argv i jobs =
-    Log.info (fun m -> m "Using configuration: %a" Fpath.pp !config_file);
-    Log.info (fun m -> m "output: %a" Fmt.(option string) (Info.output i));
-    Log.info (fun m -> m "within: %a" Fpath.pp (Info.root i));
+    Log.info (fun m -> m "Configuration: %a" Fpath.pp !config_file);
+    Log.info (fun m -> m "Output       : %a" Fmt.(option string) (Info.output i));
+    Log.info (fun m -> m "Build-dir    : %a" Fpath.pp (Info.build_dir i));
     with_current
-      (Info.root i)
+      (Info.build_dir i)
       (fun () -> configure_main ~argv i jobs)
       "configure" >>= fun () ->
     let config_dir =
       let dir = Fpath.(parent !config_file) in
       if Fpath.is_rel dir then Fpath.(get_cwd () // dir) else dir
     in
-    let build_dir = get_root () in
+    let build_dir = get_build_dir () in
     Log.debug (fun l -> l "config-dir=%a" Fpath.pp config_dir);
     Log.debug (fun l -> l "build-dir=%a" Fpath.pp build_dir);
     if Fpath.equal build_dir config_dir then Ok ()
@@ -575,18 +574,18 @@ module Make (P: S) = struct
   let build i jobs =
     Log.info (fun m -> m "Building: %a" Fpath.pp !config_file);
     with_current
-      (Info.root i)
+      (Info.build_dir i)
       (fun () -> Engine.build i jobs)
       "build"
 
   let clean i (_init, job) =
     Log.info (fun m -> m "Cleaning: %a" Fpath.pp !config_file);
     with_current
-      (Info.root i)
+      (Info.build_dir i)
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
-         Cache.clean (Info.root i) >>= fun () ->
+         Cache.clean (Info.build_dir i) >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"
 
@@ -612,11 +611,11 @@ module Make (P: S) = struct
     Log.info (fun m -> m "Compiling: %a" Fpath.pp file);
     let file = Dynlink.adapt_filename (Fpath.basename file)
     and cfg = Fpath.rem_ext file
-    and root = get_root ()
+    and config_dir = Fpath.parent !config_file
     in
-    Bos.OS.Path.matches Fpath.(root / "_build" // cfg + "$(ext)") >>= fun files ->
+    Bos.OS.Path.matches Fpath.(config_dir / "_build" // cfg + "$(ext)") >>= fun files ->
     List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
-    with_current Fpath.(parent !config_file)
+    with_current config_dir
       (fun () ->
          let pkgs = match P.packages with
            | []   -> Bos.Cmd.empty
@@ -770,9 +769,9 @@ module Make (P: S) = struct
           Key.context ~stage:`Configure ~with_required:false config_keys
         in
 
-        let cached_context = Cache.get_context config.root context_args in
+        let cached_context = Cache.get_context config.build_dir context_args in
         let merge_output term =
-          match Cache.get_output config.root with
+          match Cache.get_output config.build_dir with
           | `Ok (Some o) ->
             let update_output (r, i) = r, Info.with_output i o in
             Cmdliner.Term.(app (const update_output) term)

@@ -13,6 +13,22 @@ let vote =
   let key = Key.Arg.(opt ~stage:`Configure string "cat" doc) in
   Key.create "vote" key
 
+let output i = match Functoria.Info.output i with
+  | None   -> "main"
+  | Some o -> o
+
+let run cmd =
+  match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string with
+  | Error (`Msg e)   -> failwith e
+  | Ok (out, status) -> match snd status with
+    | `Exited 0 ->  ()
+    | `Exited _
+    | `Signaled _ ->
+      Format.fprintf Format.str_formatter "error while executing %a\n%s"
+        Bos.Cmd.pp cmd out ;
+      let err = Format.flush_str_formatter () in
+      failwith err
+
 module C = struct
   let prelude = "let (>>=) x f = f x\n\
                  let return x = x\n\
@@ -48,18 +64,8 @@ module C = struct
         Bos.OS.File.write file jbuild
 
       method! build i =
-        let cmd = Bos.Cmd.(v "jbuilder" % "build" % "main.exe") in
         Bos.OS.Dir.with_current (Functoria.Info.root i) (fun () ->
-            match Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string with
-            | Error (`Msg e)   -> failwith e
-            | Ok (out, status) -> match snd status with
-              | `Exited 0 ->  ()
-              | `Exited _
-              | `Signaled _ ->
-                Format.fprintf Format.str_formatter "error while executing %a\n%s"
-                  Bos.Cmd.pp cmd out ;
-                let err = Format.flush_str_formatter () in
-                failwith err
+            run @@ Bos.Cmd.(v "jbuilder" % "build" % (output i ^ ".exe"));
           ) ()
 
       method! deps = List.map Functoria.abstract jobs

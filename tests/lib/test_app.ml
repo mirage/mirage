@@ -31,6 +31,12 @@ let run cmd =
 
 let jbuild_file i = Fpath.(Functoria.Info.build_dir i / "jbuild")
 
+let write_key i k f =
+  let context = Functoria.Info.context i in
+  let file = Key.(name @@ abstract k) in
+  let contents = f (Key.get context k) in
+  R.get_ok @@ Bos.OS.File.write Fpath.(v file) contents
+
 module C = struct
   let prelude = "let (>>=) x f = f x\n\
                  let return x = x\n\
@@ -71,6 +77,8 @@ module C = struct
 
       method! build i =
         Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->
+            write_key i vote (fun x -> x);
+            write_key i warn_error string_of_bool;
             run @@ Bos.Cmd.(v "jbuilder" % "build" % (output i ^ ".exe"));
           ) ()
 

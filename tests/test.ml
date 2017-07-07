@@ -210,6 +210,8 @@ module Full = struct
     | Ok x           -> x
     | Error (`Msg e) -> Alcotest.fail e
 
+  let read_file file = get_ok @@ Bos.OS.File.read Fpath.(v file)
+
   let clean_app () =
     get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
     let files = list_files "app" in
@@ -369,6 +371,27 @@ module Full = struct
       (Sys.file_exists "_custom_build_/_build/default/toto.exe");
     clean_build ()
 
+  let test_keys () =
+    clean_app ();
+    test "configure -vv --file app/config.ml";
+    test "build -vv --file app/config.ml";
+    Alcotest.(check string) "vote contains the default value: cat" "cat"
+      (read_file "app/vote");
+    clean_app ();
+
+    clean_build ();
+    test "configure --file app/config.ml --build-dir _custom_build_";
+    test "build --file app/config.ml --build-dir _custom_build_";
+    Alcotest.(check string) "vote contains the default value: cat" "cat"
+      (read_file "_custom_build_/vote");
+    clean_build ();
+
+    clean_app ();
+    test "configure --file app/config.ml --vote=dog";
+    test "build --file app/config.ml";
+    Alcotest.(check string) "vote contains dog" "dog" (read_file "app/vote");
+    clean_app ()
+
   let test_clean () =
     test "configure -vv --file app/config.ml";
     test "clean -vv --file app/config.ml";
@@ -392,6 +415,7 @@ module Full = struct
     "configure"     , `Quick, test_configure;
     "describe"      , `Quick, test_describe;
     "build"         , `Quick, test_build;
+    "keys"          , `Quick, test_keys;
     "clean"         , `Quick, test_clean;
     "help"          , `Quick, test_help;
     "default"       , `Quick, test_default;

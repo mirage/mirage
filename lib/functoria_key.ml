@@ -300,6 +300,7 @@ let default v = eval Univ.empty v
 
 (* {2 Pretty printing} *)
 
+let dump_context = Univ.dump
 let pp fmt k = Fmt.string fmt (name k)
 let pp_deps fmt v = Set.pp pp fmt v.deps
 

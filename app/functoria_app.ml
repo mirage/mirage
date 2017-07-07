@@ -758,60 +758,60 @@ module Make (P: S) = struct
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-      match load' !config_file with
-      | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
-      | Error (`Msg _ as err) ->
-        handle_parse_args_no_config ?help_ppf ?err_ppf err argv
-      | Ok config ->
+    match load' !config_file with
+    | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
+    | Error (`Msg _ as err) ->
+      handle_parse_args_no_config ?help_ppf ?err_ppf err argv
+    | Ok config ->
 
-        let config_keys = Config.keys config in
-        let context_args =
-          Key.context ~stage:`Configure ~with_required:false config_keys
+      let config_keys = Config.keys config in
+      let context_args =
+        Key.context ~stage:`Configure ~with_required:false config_keys
+      in
+
+      let cached_context = Cache.get_context config.build_dir context_args in
+      let merge_output term =
+        match Cache.get_output config.build_dir with
+        | `Ok (Some o) ->
+          let update_output (r, i) = r, Info.with_output i o in
+          Cmdliner.Term.(app (const update_output) term)
+        | _ -> term
+      in
+
+      let context =
+        match Cmdliner.Term.eval_peek_opts ~argv context_args with
+        | _, `Ok context -> context
+        | _ -> Functoria_key.empty_context
+      in
+
+      (* 3. Parse the command-line and handle the result. *)
+
+      let configure =
+        Config'.eval ~with_required:true ~partial:false context config
+      and describe =
+        let context = Cache.merge ~cache:cached_context context in
+        let partial = match full_eval with
+          | Some true  -> false
+          | Some false -> true
+          | None -> not (Cache.present cached_context)
         in
+        Config'.eval ~with_required:false ~partial context config
+      and build =
+        Config'.eval_cached ~partial:false cached_context config
+        |> merge_output
+      and clean =
+        Config'.eval_cached ~partial:false cached_context config
+        |> merge_output
+      in
 
-        let cached_context = Cache.get_context config.build_dir context_args in
-        let merge_output term =
-          match Cache.get_output config.build_dir with
-          | `Ok (Some o) ->
-            let update_output (r, i) = r, Info.with_output i o in
-            Cmdliner.Term.(app (const update_output) term)
-          | _ -> term
-        in
-
-        let context =
-          match Cmdliner.Term.eval_peek_opts ~argv context_args with
-          | _, `Ok context -> context
-          | _ -> Functoria_key.empty_context
-        in
-
-        (* 3. Parse the command-line and handle the result. *)
-
-        let configure =
-          Config'.eval ~with_required:true ~partial:false context config
-        and describe =
-          let context = Cache.merge ~cache:cached_context context in
-          let partial = match full_eval with
-            | Some true  -> false
-            | Some false -> true
-            | None -> not (Cache.present cached_context)
-          in
-          Config'.eval ~with_required:false ~partial context config
-        and build =
-          Config'.eval_cached ~partial:false cached_context config
-          |> merge_output
-        and clean =
-          Config'.eval_cached ~partial:false cached_context config
-          |> merge_output
-        in
-
-        handle_parse_args_result argv
-          (Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-             ~configure
-             ~describe
-             ~build
-             ~clean
-             ~help:base_context_arg
-             argv)
+      handle_parse_args_result argv
+        (Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+           ~configure
+           ~describe
+           ~build
+           ~clean
+           ~help:base_context_arg
+           argv)
 
   let run () = run_with_argv Sys.argv
 end

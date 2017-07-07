@@ -743,6 +743,13 @@ module Make (P: S) = struct
     | `Version
     | `Help -> ()
 
+  let set_output config term =
+    match Cache.get_output config.Config.build_dir with
+    | `Ok (Some o) ->
+      let update_output (r, i) = r, Info.with_output i o in
+      Cmdliner.Term.(app (const update_output) term)
+    | _ -> term
+
   let run_with_argv ?help_ppf ?err_ppf argv =
     (* 1. (a) Pre-parse the arguments set the log level, config file
        and root directory. *)
@@ -764,25 +771,21 @@ module Make (P: S) = struct
       handle_parse_args_no_config ?help_ppf ?err_ppf err argv
     | Ok config ->
 
-      let config_keys = Config.keys config in
-      let context_args =
-        Key.context ~stage:`Configure ~with_required:false config_keys
+      (* Consider only the 'if' keys. *)
+      let if_term =
+        let if_keys = Config.keys config in
+        Key.context ~stage:`Configure ~with_required:false if_keys
       in
 
-      let cached_context = Cache.get_context config.build_dir context_args in
-      let merge_output term =
-        match Cache.get_output config.build_dir with
-        | `Ok (Some o) ->
-          let update_output (r, i) = r, Info.with_output i o in
-          Cmdliner.Term.(app (const update_output) term)
-        | _ -> term
-      in
-
-      let context =
-        match Cmdliner.Term.eval_peek_opts ~argv context_args with
+      let context = match Cmdliner.Term.eval_peek_opts ~argv if_term with
         | _, `Ok context -> context
         | _ -> Functoria_key.empty_context
       in
+
+      (* this is a trim-down version of the cached context, with only
+         the values corresponding to 'if' keys. This is useful to
+         start reducing the config into something consistent. *)
+      let cached_context = Cache.get_context config.build_dir if_term in
 
       (* 3. Parse the command-line and handle the result. *)
 
@@ -798,10 +801,10 @@ module Make (P: S) = struct
         Config'.eval ~with_required:false ~partial context config
       and build =
         Config'.eval_cached ~partial:false cached_context config
-        |> merge_output
+        |> set_output config
       and clean =
         Config'.eval_cached ~partial:false cached_context config
-        |> merge_output
+        |> set_output config
       in
 
       handle_parse_args_result argv

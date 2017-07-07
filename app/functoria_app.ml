@@ -663,10 +663,17 @@ module Make (P: S) = struct
       let verbose = Logs.level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
 
-    let eval_cached ~partial context t =
-      let info c = Config.eval ~partial c t in
-      let f c = Key.eval c (info c) c in
-      Cmdliner.Term.(pure f $ ret @@ pure @@ Cache.require context)
+    let eval_cached ~partial cached_context t =
+      let f c =
+        let info = Config.eval ~partial c t in
+        let keys = Key.deps info in
+        let term = Key.context ~stage:`Configure ~with_required:false keys in
+        match Cache.get_context t.Config.build_dir term with
+        | `Ok (Some c) -> `Ok (Key.eval c info c)
+        | `Ok None     -> let c = Key.empty_context in`Ok (Key.eval c info c)
+        | `Error _ | `Help _ as err -> err
+      in
+      Cmdliner.Term.(ret (pure f $ ret @@ pure @@ Cache.require cached_context))
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in

@@ -313,9 +313,9 @@ module Full = struct
       (List.assoc "CONFIGURE OPTIONS" s1)
       (List.assoc "CONFIGURE OPTIONS" s2);
     Alcotest.(check (list string))
-      "help messages have the same unikernel parameters"
-      (List.assoc "UNIKERNEL OPTIONS" s1)
-      (List.assoc "UNIKERNEL OPTIONS" s2);
+      "help messages have the same application parameters"
+      (List.assoc "APPLICATION OPTIONS" s1)
+      (List.assoc "APPLICATION OPTIONS" s2);
     Alcotest.(check (list string))
       "help messages have the same common options"
       (List.assoc "COMMON OPTIONS" s1)

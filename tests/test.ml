@@ -383,12 +383,10 @@ module Full = struct
       (list_files "root")
 
   let test_help () =
-    Test_app.run_with_argv
-      [| ""; "help"; "-vv"; "--help=plain" |]
+    test "help -vv --help=plain"
 
   let test_default () =
-    Test_app.run_with_argv
-      [| ""; "-vv"; |]
+    test "-vv"
 
   let suite = [
     "configure"     , `Quick, test_configure;

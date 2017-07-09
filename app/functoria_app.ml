@@ -663,10 +663,17 @@ module Make (P: S) = struct
       let verbose = Logs.level () >= level in
       f "@[<v>%a@]" (Info.pp verbose) info
 
-    let eval_cached ~partial context t =
-      let info c = Config.eval ~partial c t in
-      let f c = Key.eval c (info c) c in
-      Cmdliner.Term.(pure f $ ret @@ pure @@ Cache.require context)
+    let eval_cached ~partial cached_context t =
+      let f c =
+        let info = Config.eval ~partial c t in
+        let keys = Key.deps info in
+        let term = Key.context ~stage:`Configure ~with_required:false keys in
+        match Cache.get_context t.Config.build_dir term with
+        | `Ok (Some c) -> `Ok (Key.eval c info c)
+        | `Ok None     -> let c = Key.empty_context in`Ok (Key.eval c info c)
+        | `Error _ | `Help _ as err -> err
+      in
+      Cmdliner.Term.(ret (pure f $ ret @@ pure @@ Cache.require cached_context))
 
     let eval ~partial ~with_required context t =
       let info = Config.eval ~partial context t in
@@ -743,6 +750,13 @@ module Make (P: S) = struct
     | `Version
     | `Help -> ()
 
+  let set_output config term =
+    match Cache.get_output config.Config.build_dir with
+    | `Ok (Some o) ->
+      let update_output (r, i) = r, Info.with_output i o in
+      Cmdliner.Term.(app (const update_output) term)
+    | _ -> term
+
   let run_with_argv ?help_ppf ?err_ppf argv =
     (* 1. (a) Pre-parse the arguments set the log level, config file
        and root directory. *)
@@ -758,60 +772,56 @@ module Make (P: S) = struct
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-      match load' !config_file with
-      | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
-      | Error (`Msg _ as err) ->
-        handle_parse_args_no_config ?help_ppf ?err_ppf err argv
-      | Ok config ->
+    match load' !config_file with
+    | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
+    | Error (`Msg _ as err) ->
+      handle_parse_args_no_config ?help_ppf ?err_ppf err argv
+    | Ok config ->
 
-        let config_keys = Config.keys config in
-        let context_args =
-          Key.context ~stage:`Configure ~with_required:false config_keys
+      (* Consider only the 'if' keys. *)
+      let if_term =
+        let if_keys = Config.keys config in
+        Key.context ~stage:`Configure ~with_required:false if_keys
+      in
+
+      let context = match Cmdliner.Term.eval_peek_opts ~argv if_term with
+        | _, `Ok context -> context
+        | _ -> Functoria_key.empty_context
+      in
+
+      (* this is a trim-down version of the cached context, with only
+         the values corresponding to 'if' keys. This is useful to
+         start reducing the config into something consistent. *)
+      let cached_context = Cache.get_context config.build_dir if_term in
+
+      (* 3. Parse the command-line and handle the result. *)
+
+      let configure =
+        Config'.eval ~with_required:true ~partial:false context config
+      and describe =
+        let context = Cache.merge ~cache:cached_context context in
+        let partial = match full_eval with
+          | Some true  -> false
+          | Some false -> true
+          | None -> not (Cache.present cached_context)
         in
+        Config'.eval ~with_required:false ~partial context config
+      and build =
+        Config'.eval_cached ~partial:false cached_context config
+        |> set_output config
+      and clean =
+        Config'.eval_cached ~partial:false cached_context config
+        |> set_output config
+      in
 
-        let cached_context = Cache.get_context config.build_dir context_args in
-        let merge_output term =
-          match Cache.get_output config.build_dir with
-          | `Ok (Some o) ->
-            let update_output (r, i) = r, Info.with_output i o in
-            Cmdliner.Term.(app (const update_output) term)
-          | _ -> term
-        in
-
-        let context =
-          match Cmdliner.Term.eval_peek_opts ~argv context_args with
-          | _, `Ok context -> context
-          | _ -> Functoria_key.empty_context
-        in
-
-        (* 3. Parse the command-line and handle the result. *)
-
-        let configure =
-          Config'.eval ~with_required:true ~partial:false context config
-        and describe =
-          let context = Cache.merge ~cache:cached_context context in
-          let partial = match full_eval with
-            | Some true  -> false
-            | Some false -> true
-            | None -> not (Cache.present cached_context)
-          in
-          Config'.eval ~with_required:false ~partial context config
-        and build =
-          Config'.eval_cached ~partial:false cached_context config
-          |> merge_output
-        and clean =
-          Config'.eval_cached ~partial:false cached_context config
-          |> merge_output
-        in
-
-        handle_parse_args_result argv
-          (Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-             ~configure
-             ~describe
-             ~build
-             ~clean
-             ~help:base_context_arg
-             argv)
+      handle_parse_args_result argv
+        (Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+           ~configure
+           ~describe
+           ~build
+           ~clean
+           ~help:base_context_arg
+           argv)
 
   let run () = run_with_argv Sys.argv
 end

@@ -51,6 +51,7 @@ module C = struct
       method ty = Functoria.job
       method name = "test_app"
       method module_name = "Test_app"
+      method! connect _ _ _ = "()"
       method! keys = [
         Functoria_key.(abstract vote);
         Functoria_key.(abstract warn_error);
@@ -87,3 +88,7 @@ module C = struct
 end
 
 include Functoria_app.Make(C)
+
+let register ?packages ?keys name jobs =
+  let init = [Functoria_app.(keys sys_argv)] in
+  register ?keys ?packages ~init name jobs

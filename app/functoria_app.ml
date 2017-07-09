@@ -706,10 +706,6 @@ module Make (P: S) = struct
     Log.info (fun m -> m "using configuration %s" (Config.name t));
     Ok t
 
-  let base_keys : Key.Set.t = Config.extract_keys (P.create [])
-  let base_context_arg = Key.context base_keys
-      ~with_required:false ~stage:`Configure
-
   let exit_err = function
     | Ok v -> v
     | Error (`Msg m) ->
@@ -743,13 +739,17 @@ module Make (P: S) = struct
 
   let handle_parse_args_no_config ?help_ppf ?err_ppf error argv =
     let open Cmdliner in
+    let base_keys = Config.extract_keys (P.create []) in
+    let base_context =
+      Key.context base_keys ~with_required:false ~stage:`Configure
+    in
     let result =
       Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
         ~build:(Term.pure ())
         ~clean:(Term.pure ())
-        ~help:base_context_arg
+        ~help:base_context
         argv
     in
     match result with
@@ -822,6 +822,11 @@ module Make (P: S) = struct
       and clean =
         Config'.eval_cached ~partial:false cached_context config
         |> set_output config
+      and help =
+        let context = Cache.merge ~cache:cached_context context in
+        let info = Config.eval ~partial:false context config in
+        let keys = Key.deps info in
+        Key.context ~stage:`Configure ~with_required:false keys
       in
 
       handle_parse_args_result argv
@@ -830,7 +835,7 @@ module Make (P: S) = struct
            ~describe
            ~build
            ~clean
-           ~help:base_context_arg
+           ~help
            argv)
 
   let run () = run_with_argv Sys.argv

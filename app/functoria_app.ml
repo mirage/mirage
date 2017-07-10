@@ -518,7 +518,9 @@ module Make (P: S) = struct
   (* This is set by {!register} *)
   let configuration = ref None
 
-  let register ?packages ?keys ?(init=[]) name jobs =
+  let default_init = [keys sys_argv]
+
+  let register ?packages ?keys ?(init=default_init) name jobs =
     let build_dir = get_build_dir () in
     let main_dev = P.create (init @ jobs) in
     let c = Config.make ?keys ?packages ~init name build_dir main_dev in

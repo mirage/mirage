@@ -88,7 +88,3 @@ module C = struct
 end
 
 include Functoria_app.Make(C)
-
-let register ?packages ?keys name jobs =
-  let init = [Functoria_app.(keys sys_argv)] in
-  register ?keys ?packages ~init name jobs

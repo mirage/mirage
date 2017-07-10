@@ -156,6 +156,12 @@ let warn_error =
   let key = Arg.(opt ~stage:`Configure bool false doc) in
   Key.create "warn_error" key
 
+let gdb =
+  let doc = "Start a gdb server (only available for ukvm)." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"GDB" ~doc ["g";"gdb"] in
+  let key = Arg.flag ~stage:`Configure doc in
+  Key.create "gdb" key
+
 (** {3 Tracing} *)
 
 let tracing_size default =

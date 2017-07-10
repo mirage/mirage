@@ -786,7 +786,7 @@ module Make (P: S) = struct
 
       let context = match Cmdliner.Term.eval_peek_opts ~argv if_term with
         | _, `Ok context -> context
-        | _ -> Functoria_key.empty_context
+        | _ -> Key.empty_context
       in
 
       (* this is a trim-down version of the cached context, with only

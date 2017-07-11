@@ -48,7 +48,7 @@ let clean_app () =
     ) files
 
 let clean_build () =
-  get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "_custom_build_")
+  get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "custom_build_")
 
 let test ?err_ppf ?help_ppf fmt =
   Fmt.kstrf (fun l ->
@@ -95,14 +95,14 @@ let test_configure () =
   let files = Alcotest.(slist string String.compare) in
   Alcotest.(check files) "the usual files should be present before configure"
     ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
-  test "configure -vv --file app/config.ml --build-dir _custom_build_";
+  test "configure -vv --file app/config.ml --build-dir custom_build_";
   Alcotest.(check files) "only _build should be created in the source dir"
     ["app.ml"; "config.ml"; "myocamlbuild.ml"; "_build"]
     (list_files "app");
-  Alcotest.(check files) "other files should be created in _custom_build_"
+  Alcotest.(check files) "other files should be created in custom_build_"
     ["main.ml"; "app.ml"; ".mirage.config"; "jbuild"; "key_gen.ml";
      "myocamlbuild.ml" (* FIXME: add a .mirage-ignore file to avoid this *) ]
-    (list_files "_custom_build_");
+    (list_files "custom_build_");
   clean_build ();
 
   (* check that configure is writting the correct .mirage.config
@@ -116,8 +116,8 @@ let test_configure () =
       (String.Ascii.escape_string got)
   in
 
-  test_config "_custom_build_"
-    [""; "configure"; "-vv"; "--file=app/config.ml"; "--build-dir=_custom_build_"];
+  test_config "custom_build_"
+    [""; "configure"; "-vv"; "--file=app/config.ml"; "--build-dir=custom_build_"];
   clean_build ();
 
   test_config "app"
@@ -173,28 +173,28 @@ let test_build () =
   test "configure --file app/config.ml";
   test "build -vv --file app/config.ml";
   Alcotest.(check bool) "main.exe should be built" true
-    (Sys.file_exists "app/_build/default/main.exe");
+    (Sys.file_exists "app/main.exe");
   clean_app ();
 
   (* test --output *)
   test "configure --file app/config.ml -o toto";
   test "build -vv --file app/config.ml";
   Alcotest.(check bool) "toto.exe should be built" true
-    (Sys.file_exists "app/_build/default/toto.exe");
+    (Sys.file_exists "app/toto.exe");
   clean_app ();
 
   (* test --build-dir *)
-  test "configure -vv --file app/config.ml --build-dir _custom_build_";
-  test "build -vv --file app/config.ml --build-dir _custom_build_";
-  Alcotest.(check bool) "main.exe should be built in _custom_build_" true
-    (Sys.file_exists "_custom_build_/_build/default/main.exe");
+  test "configure -vv --file app/config.ml --build-dir custom_build_";
+  test "build -vv --file app/config.ml --build-dir custom_build_";
+  Alcotest.(check bool) "main.exe should be built in custom_build_" true
+    (Sys.file_exists "custom_build_/main.exe");
   clean_build ();
 
   (* test --output + --build-dir *)
-  test "configure --file app/config.ml --build-dir _custom_build_ -o toto";
-  test "build -vv --build-dir _custom_build_ --file app/config.ml";
-  Alcotest.(check bool) "toto.exe should be built in _custom_build_" true
-    (Sys.file_exists "_custom_build_/_build/default/toto.exe");
+  test "configure --file app/config.ml --build-dir custom_build_ -o toto";
+  test "build -vv --build-dir custom_build_ --file app/config.ml";
+  Alcotest.(check bool) "toto.exe should be built in custom_build_" true
+    (Sys.file_exists "custom_build_/toto.exe");
   clean_build ()
 
 let test_keys () =
@@ -206,10 +206,10 @@ let test_keys () =
   clean_app ();
 
   clean_build ();
-  test "configure --file app/config.ml --build-dir _custom_build_";
-  test "build --file app/config.ml --build-dir _custom_build_";
+  test "configure --file app/config.ml --build-dir custom_build_";
+  test "build --file app/config.ml --build-dir custom_build_";
   Alcotest.(check string) "vote contains the default value: cat" "cat"
-    (read_file "_custom_build_/vote");
+    (read_file "custom_build_/vote");
   clean_build ();
 
   clean_app ();
@@ -225,8 +225,8 @@ let test_clean () =
     ["app.ml"; "config.ml"; "myocamlbuild.ml"]
     (list_files "app");
 
-  test "configure -vv --file app/config.ml --build-dir=_custom_build_";
-  test "clean -vv --file app/config.ml --build-dir _custom_build_";
+  test "configure -vv --file app/config.ml --build-dir=custom_build_";
+  test "clean -vv --file app/config.ml --build-dir custom_build_";
   Alcotest.(check files) "clean should remove all the files"
     []
     (list_files "root")

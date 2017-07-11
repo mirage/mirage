@@ -8,7 +8,7 @@
 (executables
  ((names     (test_full))
   (modules   (test_full))
-  (libraries (test_app functoria-runtime alcotest cmdliner rresult astring))))
+  (libraries (test_app alcotest cmdliner rresult astring))))
 
 (alias
  ((name    runtest)
@@ -21,4 +21,4 @@
   (package functoria-runtime)
   (deps    (test_full.exe app/config.ml app/myocamlbuild.ml
             app/app.ml))
-  (action  (run ${<} test full 2 -v))))
+  (action  (run ${<}))))

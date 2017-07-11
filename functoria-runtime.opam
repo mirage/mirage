@@ -16,11 +16,13 @@ build: [
   ["jbuilder" "subst"] {pinned}
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
+build-test: ["jbuilder" "runtest" "-p" name "-j" jobs]
 
 depends: [
   "jbuilder" {build & >="1.0+beta10"}
   "cmdliner" {>= "0.9.8"}
   "fmt"
+  "alcotest" {test}
 ]
 conflicts: [
   "functoria" {< "2.0.0"}

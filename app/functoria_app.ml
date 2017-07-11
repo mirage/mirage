@@ -412,17 +412,27 @@ end = struct
   let save ~argv root =
     let file = filename root in
     Log.info (fun m -> m "Preserving arguments");
-    let args = String.concat ~sep:";" Array.(to_list argv) in
+    let args = Array.to_list argv in
+    let args = List.map String.Ascii.escape args in
+    let args = String.concat ~sep:"\n" args in
     Bos.OS.File.write file args
 
   let clean root =
     Bos.OS.File.delete (filename root)
 
   let read root =
+    Log.info (fun l -> l "reading cache");
     match Bos.OS.File.read (filename root) with
-    | Ok args ->
-      Some (Array.of_list @@ String.cuts ~empty:false ~sep:";" args)
     | Error _ -> None
+    | Ok args ->
+      let contents = Array.of_list @@ String.cuts ~sep:"\n" args in
+      let contents =
+        Array.map (fun x -> match String.Ascii.unescape x with
+            | Some s -> s
+            | None   -> failwith "cannot parse cached context"
+          ) contents
+      in
+      Some contents
 
   let get_context root context_args =
     match read root with

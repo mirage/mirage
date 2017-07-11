@@ -226,9 +226,11 @@ module Full = struct
   let clean_build () =
     get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "_custom_build_")
 
-  let test ?err_ppf ?help_ppf l =
-    let l = String.cuts ~sep:" " l in
-    Test_app.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l))
+  let test ?err_ppf ?help_ppf fmt =
+    Fmt.kstrf (fun l ->
+        let l = String.cuts ~sep:" " l in
+        Test_app.run_with_argv ?err_ppf ?help_ppf (Array.of_list ("" :: l))
+      ) fmt
 
   (* cut a man page into sections *)
   let by_sections s =
@@ -284,10 +286,10 @@ module Full = struct
       Test_app.run_with_argv (Array.of_list cfg);
       let config =
         get_ok @@ Bos.OS.File.read Fpath.(v root / ".mirage.config")
-        |> String.trim
       in
       Alcotest.(check string) ("config should persist in " ^ root)
-        (String.concat ~sep:";" cfg) config
+        (String.concat ~sep:"\n" @@ List.map String.Ascii.escape cfg)
+        config
     in
 
     test_config "_custom_build_"
@@ -411,6 +413,12 @@ module Full = struct
   let test_default () =
     test "-vv"
 
+  let test_cache () =
+    let str = "foo;;bar;;;\n\nllll;;;sdaads;;\n\t\\0" in
+    test "configure --file app/config.ml --vote=%s" str;
+    test "build --file app/config.ml";
+    Alcotest.(check string) "cache is valid" str (read_file "app/vote")
+
   let suite = [
     "configure"     , `Quick, test_configure;
     "describe"      , `Quick, test_describe;
@@ -419,6 +427,7 @@ module Full = struct
     "clean"         , `Quick, test_clean;
     "help"          , `Quick, test_help;
     "default"       , `Quick, test_default;
+    "cache"         , `Quick, test_cache;
   ]
 
 end

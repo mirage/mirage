@@ -17,12 +17,14 @@ build: [
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 
+# do not run the tests in parallel as it uses side-effects
+build-test: ["jbuilder" "runtest" "-p" name "-j" "1"]
+
 depends: [
   "jbuilder" {build & >="1.0+beta10"}
   "cmdliner" {>= "0.9.8"}
   "fmt"
-]
-conflicts: [
-  "functoria" {< "2.0.0"}
+  "functoria" {test & >= "2.1.0"}
+  "alcotest"  {test}
 ]
 available: [ocaml-version >= "4.02"]

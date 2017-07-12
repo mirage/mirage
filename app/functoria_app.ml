@@ -473,7 +473,7 @@ end
 module type S = sig
   val prelude: string
   val name: string
-  val packages: string list
+  val packages: package list
   val ignore_dirs: string list
   val version: string
   val create: job impl list -> job impl
@@ -518,7 +518,9 @@ module Make (P: S) = struct
   (* This is set by {!register} *)
   let configuration = ref None
 
-  let register ?packages ?keys ?(init=[]) name jobs =
+  let default_init = [keys sys_argv]
+
+  let register ?packages ?keys ?(init=default_init) name jobs =
     let build_dir = get_build_dir () in
     let main_dev = P.create (init @ jobs) in
     let c = Config.make ?keys ?packages ~init name build_dir main_dev in
@@ -629,7 +631,14 @@ module Make (P: S) = struct
       (fun () ->
          let pkgs = match P.packages with
            | []   -> Bos.Cmd.empty
-           | pkgs -> Bos.Cmd.(v "-pkgs" % String.concat ~sep:"," pkgs)
+           | pkgs ->
+             let pkgs =
+               List.fold_left (fun acc pkg ->
+                   String.Set.union pkg.ocamlfind acc
+                 ) String.Set.empty pkgs
+               |> String.Set.elements
+             in
+             Bos.Cmd.(v "-pkgs" % String.concat ~sep:"," pkgs)
          in
          let ignore_dirs = match P.ignore_dirs with
            | []    -> Bos.Cmd.empty
@@ -706,10 +715,6 @@ module Make (P: S) = struct
     Log.info (fun m -> m "using configuration %s" (Config.name t));
     Ok t
 
-  let base_keys : Key.Set.t = Config.extract_keys (P.create [])
-  let base_context_arg = Key.context base_keys
-      ~with_required:false ~stage:`Configure
-
   let exit_err = function
     | Ok v -> v
     | Error (`Msg m) ->
@@ -743,13 +748,17 @@ module Make (P: S) = struct
 
   let handle_parse_args_no_config ?help_ppf ?err_ppf error argv =
     let open Cmdliner in
+    let base_keys = Config.extract_keys (P.create []) in
+    let base_context =
+      Key.context base_keys ~with_required:false ~stage:`Configure
+    in
     let result =
       Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
         ~build:(Term.pure ())
         ~clean:(Term.pure ())
-        ~help:base_context_arg
+        ~help:base_context
         argv
     in
     match result with
@@ -822,6 +831,11 @@ module Make (P: S) = struct
       and clean =
         Config'.eval_cached ~partial:false cached_context config
         |> set_output config
+      and help =
+        let context = Cache.merge ~cache:cached_context context in
+        let info = Config.eval ~partial:false context config in
+        let keys = Key.deps info in
+        Key.context ~stage:`Configure ~with_required:false keys
       in
 
       handle_parse_args_result argv
@@ -830,7 +844,7 @@ module Make (P: S) = struct
            ~describe
            ~build
            ~clean
-           ~help:base_context_arg
+           ~help
            argv)
 
   let run () = run_with_argv Sys.argv

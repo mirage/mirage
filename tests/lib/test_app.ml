@@ -29,6 +29,13 @@ let run cmd =
       let err = Format.flush_str_formatter () in
       failwith err
 
+let rec root path =
+  Bos.OS.File.exists Fpath.(path / "functoria.opam") >>= function
+  | true  -> Ok path
+  | false -> root (Fpath.parent path)
+
+let root () = R.get_ok @@ (Bos.OS.Dir.current () >>= root)
+
 let jbuild_file i = Fpath.(Functoria.Info.build_dir i / "jbuild")
 
 let write_key i k f =
@@ -37,13 +44,20 @@ let write_key i k f =
   let contents = f (Key.get context k) in
   R.get_ok @@ Bos.OS.File.write Fpath.(v file) contents
 
+let split_root () =
+  let cwd = R.get_ok @@ Bos.OS.Dir.current () in
+  let root = Fpath.(root () / "_build" / "default") in
+  match Fpath.relativize ~root cwd with
+  | None      -> failwith "split root"
+  | Some path -> root, path
+
 module C = struct
   let prelude = "let (>>=) x f = f x\n\
                  let return x = x\n\
                  let run x = x"
   let name = "test"
   let version = "1.0"
-  let packages = []
+  let packages = [Functoria.package "functoria"]
   let ignore_dirs = []
 
   let create jobs = Functoria.impl @@ object
@@ -51,6 +65,7 @@ module C = struct
       method ty = Functoria.job
       method name = "test_app"
       method module_name = "Test_app"
+      method! connect _ _ _ = "()"
       method! keys = [
         Functoria_key.(abstract vote);
         Functoria_key.(abstract warn_error);
@@ -63,12 +78,14 @@ module C = struct
         let jbuild = Fmt.strf
             "(jbuild_version 1)\n\
              \n\
+             ; An infortunate hack: bring stage 0 modules in scope of stage 1\n\
+             (rule (copy ../../runtime/functoria_runtime.ml functoria_runtime.ml))\n\
+             (rule (copy ../../runtime/functoria_info.ml functoria_info.ml))\n\
+             \n\
              (executable\n\
             \   ((name      %s)\n\
-            \    (libraries (%a))))\n"
+            \    (libraries (cmdliner fmt))))\n"
             (output i)
-            Fmt.(list ~sep:(unit " ") string)
-            Functoria.Info.(package_names i)
         in
         Bos.OS.File.write (jbuild_file i) jbuild
 
@@ -77,9 +94,15 @@ module C = struct
 
       method! build i =
         Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->
+            let root, prefix = split_root () in
+            let exe = Fpath.(prefix / output i + "exe") in
             write_key i vote (fun x -> x);
             write_key i warn_error string_of_bool;
-            run @@ Bos.Cmd.(v "jbuilder" % "build" % (output i ^ ".exe"));
+            run @@ Bos.Cmd.(v "jbuilder" % "build"
+                            % "--root" % Fpath.to_string root
+                            % Fpath.(to_string exe));
+            run @@ Bos.Cmd.(v "mv" % Fpath.(to_string @@ root / "_build" / "default" // exe)
+                            % (output i ^ ".exe"));
           ) ()
 
       method! deps = List.map Functoria.abstract jobs

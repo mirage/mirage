@@ -1,10 +1,24 @@
 (jbuild_version 1)
 
 (executables
- ((names (test))
+ ((names     (test_core))
+  (modules   (test_core))
+  (libraries (test_app alcotest cmdliner rresult astring))))
+
+(executables
+ ((names     (test_full))
+  (modules   (test_full))
   (libraries (test_app alcotest cmdliner rresult astring))))
 
 (alias
- ((name runtest)
-  (deps (test.exe app/config.ml app/myocamlbuild.ml app/app.ml))
-  (action (run ${<}))))
+ ((name    runtest)
+  (package functoria)
+  (deps    (test_core.exe app/config.ml app/myocamlbuild.ml app/app.ml))
+  (action  (run ${<}))))
+
+(alias
+ ((name    runtest)
+  (package functoria-runtime)
+  (deps    (test_full.exe app/config.ml app/myocamlbuild.ml
+            app/app.ml))
+  (action  (run ${<}))))

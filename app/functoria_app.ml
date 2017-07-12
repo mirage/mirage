@@ -473,7 +473,7 @@ end
 module type S = sig
   val prelude: string
   val name: string
-  val packages: string list
+  val packages: package list
   val ignore_dirs: string list
   val version: string
   val create: job impl list -> job impl
@@ -631,7 +631,14 @@ module Make (P: S) = struct
       (fun () ->
          let pkgs = match P.packages with
            | []   -> Bos.Cmd.empty
-           | pkgs -> Bos.Cmd.(v "-pkgs" % String.concat ~sep:"," pkgs)
+           | pkgs ->
+             let pkgs =
+               List.fold_left (fun acc pkg ->
+                   String.Set.union pkg.ocamlfind acc
+                 ) String.Set.empty pkgs
+               |> String.Set.elements
+             in
+             Bos.Cmd.(v "-pkgs" % String.concat ~sep:"," pkgs)
          in
          let ignore_dirs = match P.ignore_dirs with
            | []    -> Bos.Cmd.empty

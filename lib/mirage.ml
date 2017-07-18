@@ -339,7 +339,7 @@ let direct_kv_ro_conf dirname = impl @@ object
     method module_name = "Kvro_fs_unix"
     method packages = Key.pure [ package ~min:"1.3.0" "mirage-fs-unix" ]
     method connect i _modname _names =
-      let path = Fpath.(Info.root i / dirname) in
+      let path = Fpath.(Info.build_dir i / dirname) in
       Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path
   end
 
@@ -400,7 +400,7 @@ class block_conf file =
 
     method connect i s _ =
       Fmt.strf "%s.connect %S" s
-        (self#connect_name (get_target i) @@ Info.root i)
+        (self#connect_name (get_target i) @@ Info.build_dir i)
   end
 
 let block_of_file file = impl (new block_conf file)
@@ -478,7 +478,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
     method packages =
       Key.map (List.cons (package ~min:"0.12.0" ~build:true "fat-filesystem")) super#packages
     method build i =
-      let root = Info.root i in
+      let root = Info.build_dir i in
       let file = Fmt.strf "make-%s-image.sh" name in
       let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
       Log.info (fun m -> m "Generating block generator script: %s" file);
@@ -1479,14 +1479,14 @@ module Substitutions = struct
 
   let defaults i =
     let blocks =
-      List.map (fun b -> Block b, Fpath.(to_string ((Info.root i) / b.filename)))
+      List.map (fun b -> Block b, Fpath.(to_string ((Info.build_dir i) / b.filename)))
         (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
     and networks =
       List.mapi (fun i n -> Network n, Fmt.strf "%s%d" detected_bridge_name i)
         !all_networks
     in [
       Name, (Info.name i);
-      Kernel, Fpath.(to_string ((Info.root i) / (Info.name i) + "xen"));
+      Kernel, Fpath.(to_string ((Info.build_dir i) / (Info.name i) + "xen"));
       Memory, "256";
     ] @ blocks @ networks
 end
@@ -1676,7 +1676,7 @@ let unikernel_name target name =
 
 let configure i =
   let name = Info.name i in
-  let root = Fpath.to_string (Info.root i) in
+  let root = Fpath.to_string (Info.build_dir i) in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
@@ -1912,6 +1912,12 @@ module Project = struct
     "open Lwt.Infix\n\
      let return = Lwt.return\n\
      let run = OS.Main.run"
+
+  (* The ocamlfind packages to use when compiling config.ml *)
+  let packages = [package "mirage"]
+
+  (* The directories to ignore when compiling config.ml *)
+  let ignore_dirs = ["_build-ukvm"]
 
   let create jobs = impl @@ object
       inherit base_configurable

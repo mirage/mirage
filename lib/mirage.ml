@@ -1939,7 +1939,7 @@ module Project = struct
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> [ package ~min:"3.0.0" "mirage-xen" ] @ common
+        | `Xen | `Qubes -> [ package ~min:"3.0.4" "mirage-xen" ] @ common
         | `Virtio -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-virtio" ;
                        package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Ukvm -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-ukvm" ;

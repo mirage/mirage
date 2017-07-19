@@ -443,7 +443,7 @@ let archive_conf = impl @@ object
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
     method packages =
-      Key.pure [ package ~min:"0.7.0" ~ocamlfind:["tar.mirage"] "tar-format" ]
+      Key.pure [ package ~min:"0.8.0" "tar-mirage" ]
     method connect _ modname = function
       | [ block ] -> Fmt.strf "%s.connect %s" modname block
       | _ -> failwith (connect_err "archive" 1)

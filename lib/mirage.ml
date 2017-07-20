@@ -1614,7 +1614,7 @@ let configure_makefile ~opam_name =
       append fmt "-include Makefile.user";
       newline fmt;
       append fmt "OPAM = opam\n\
-                  DEPEXT ?= opam depext --yes %s\n\
+                  DEPEXT ?= opam depext --yes --update %s\n\
                   \n\
                   .PHONY: all depend depends clean build\n\
                   all:: build\n\

@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(executable
+  ((name        main)
+   (public_name mirage)
+   (package     mirage)
+   (libraries   (mirage))))

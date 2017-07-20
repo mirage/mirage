@@ -6,11 +6,14 @@ bug-reports:  "https://github.com/mirage/mirage/issues/"
 dev-repo:     "https://github.com/mirage/mirage.git"
 tags:         ["org:mirage" "org:xapi-project"]
 
-build: ["ocaml" "pkg/pkg.ml" "build" "--pkg-name" name "--pinned" "%{pinned}%"]
-depends: [
-  "ocamlfind"  {build}
-  "ocamlbuild" {build}
-  "topkg"      {build & >= "0.8.0"}
+
+build: [
+  ["jbuilder" "subst"]{pinned}
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+
+depends:   [
+  "jbuilder" {build & >= "1.0+beta10"}
   "lwt"
   "cstruct" {>="1.4.0"}
   "io-page" {>="1.4.0"}

@@ -1,6 +1,0 @@
-lib/Mirage
-lib/Mirage_key
-lib_runtime/Mirage_runtime
-lib_runtime/Mirage_info
-types/Mirage_types
-types/Mirage_types_lwt

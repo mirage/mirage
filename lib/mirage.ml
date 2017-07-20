@@ -1246,7 +1246,7 @@ let no_argv = impl @@ object
 let argv_xen = impl @@ object
     inherit base_configurable
     method ty = Functoria_app.argv
-    method name = "argv_qubes"
+    method name = "argv_xen"
     method module_name = "Bootvar"
     method packages = Key.pure [ package ~min:"0.4.0" "mirage-bootvar-xen" ]
     method connect _ _ _ = Fmt.strf

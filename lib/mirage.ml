@@ -629,7 +629,7 @@ let farp_conf = object
   method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arp"
   method module_name = "Arp.Make"
-  method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["mirage"] "arp" ]
+  method! packages = Key.pure [ package ~min:"0.2.0" ~sublibs:["mirage"] "arp" ]
   method! connect _ modname = function
     | [ eth ; clock ; _time ] -> Fmt.strf "%s.connect %s %s" modname eth clock
     | _ -> failwith (connect_err "arp" 3)

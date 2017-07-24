@@ -1,0 +1,23 @@
+(jbuild_version 1)
+
+(library
+  ((name        mirage_types)
+   (public_name mirage-types)
+   (wrapped     false)
+   (modules     (mirage_types))
+   (libraries   (mirage-device mirage-time mirage-random mirage-flow
+                 mirage-console mirage-block mirage-clock mirage-net
+                 mirage-kv mirage-fs mirage-channel
+                 mirage-protocols mirage-stack))))
+
+(library
+  ((name        mirage_types_lwt)
+   (public_name mirage-types-lwt)
+   (wrapped     false)
+   (modules     (mirage_types_lwt))
+   (libraries   (cstruct io-page lwt ipaddr mirage-types
+                 mirage-time-lwt mirage-random mirage-flow-lwt
+                 mirage-console-lwt mirage-block-lwt mirage-clock-lwt
+                 mirage-net-lwt mirage-kv-lwt mirage-fs-lwt
+                 mirage-channel-lwt
+                 mirage-protocols-lwt mirage-stack-lwt))))

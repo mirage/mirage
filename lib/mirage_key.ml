@@ -156,11 +156,12 @@ let warn_error =
   let key = Arg.(opt ~stage:`Configure bool false doc) in
   Key.create "warn_error" key
 
-let gdb =
-  let doc = "Start a gdb server (only available for ukvm)." in
-  let doc = Arg.info ~docs:mirage_section ~docv:"GDB" ~doc ["g";"gdb"] in
+let target_debug =
+  let doc = "Enables target-specific support for debugging. Supported \
+             targets: ukvm (compiles ukvm-bin with GDB server support)." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"DEBUG" ~doc ["g"] in
   let key = Arg.flag ~stage:`Configure doc in
-  Key.create "gdb" key
+  Key.create "target_debug" key
 
 (** {3 Tracing} *)
 

@@ -50,8 +50,8 @@ val warn_error: bool key
 (** [--warn-error]. Enable {i -warn-error} for OCaml sources. Set to [false] by
     default, but might might enabled by default in later releases. *)
 
-val gdb: bool key
-(** Start a GDB server. *)
+val target_debug: bool key
+(** Enables target-specific support for debugging. *)
 
 val tracing_size: int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)

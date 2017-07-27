@@ -1683,7 +1683,7 @@ let configure i =
   let opam_name = unikernel_name target name in
   let target_debug = Key.(get ctx target_debug) in
   if target_debug && target <> `Ukvm then
-    Log.warn (fun m -> m "-g not supported on this target.");
+    Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
   configure_myocamlbuild () >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
   configure_makefile ~opam_name >>= fun () ->

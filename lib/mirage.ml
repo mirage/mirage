@@ -1682,6 +1682,9 @@ let configure i =
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
   let opam_name = unikernel_name target name in
+  let target_debug = Key.(get ctx target_debug) in
+  if target_debug && target <> `Ukvm then
+    Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
   configure_myocamlbuild () >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
   configure_makefile ~opam_name >>= fun () ->
@@ -1798,7 +1801,7 @@ let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
 
 let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 
-let link info name target =
+let link info name target target_debug =
   let libs = Info.libraries info in
   match target with
   | `Unix | `MacOSX ->
@@ -1862,7 +1865,7 @@ let link info name target =
         | "mirage-net-solo5" -> "net" :: acc
         | "mirage-block-solo5" -> "blk" :: acc
         | _ -> acc)
-        [] libs
+        [] libs @ (if target_debug then ["gdb"] else [])
     in
     pkg_config "solo5-kernel-ukvm" ["--variable=libdir"] >>= function
     | [ libdir ] ->
@@ -1879,9 +1882,10 @@ let build i =
   let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
+  let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
   compile libs warn_error target >>= fun () ->
-  link i name target >>| fun out ->
+  link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
 let clean i =
@@ -1928,6 +1932,7 @@ module Project = struct
       method! keys = [
         Key.(abstract target);
         Key.(abstract warn_error);
+        Key.(abstract target_debug);
       ]
       method! packages =
         let common = [

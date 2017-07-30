@@ -130,7 +130,7 @@ module V6 : sig
 
 end
 
-val syslog: Ipaddr.V4.t -> Ipaddr.V4.t key
+val syslog: Ipaddr.V4.t option -> Ipaddr.V4.t option key
 (** The address to send syslog frames to. *)
 
 val syslog_port: int option -> int option key

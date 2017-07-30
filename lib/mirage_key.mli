@@ -130,4 +130,13 @@ module V6 : sig
 
 end
 
+val syslog: Ipaddr.V4.t -> Ipaddr.V4.t key
+(** The address to send syslog frames to. *)
+
+val syslog_port: int option -> int option key
+(** The port to send syslog frames to. *)
+
+val syslog_hostname: string -> string key
+(** The hostname to use in syslog frames. *)
+
 val logs: Mirage_runtime.log_threshold list key

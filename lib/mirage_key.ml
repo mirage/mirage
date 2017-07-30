@@ -53,7 +53,7 @@ module Arg = struct
       Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn \"%s\")"
       @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
-    let print fmt (prefix, ip) = 
+    let print fmt (prefix, ip) =
       Format.fprintf fmt "%s" @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
     let parse str =
@@ -314,6 +314,18 @@ module V6 = struct
     create_simple ~doc ~default ?group Arg.(list ipv6) "gateways"
 
 end
+
+let syslog default =
+  let doc = Fmt.strf "syslog server" in
+  create_simple ~doc ~default Arg.ipv4_address "syslog"
+
+let syslog_port default =
+  let doc = Fmt.strf "syslog server port" in
+  create_simple ~doc ~default Arg.(some int) "syslog-port"
+
+let syslog_hostname default =
+  let doc = Fmt.strf "hostname to report to syslog" in
+  create_simple ~doc ~default Arg.string "syslog-hostname"
 
 let pp_level ppf = function
   | Logs.Error    -> Fmt.string ppf "Logs.Error"

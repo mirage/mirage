@@ -441,16 +441,13 @@ type syslog
 val syslog: syslog typ
 (** Implementation of the {!syslog} type. *)
 
-val syslog_udp: syslog_config -> ?console:console impl -> ?clock:pclock impl ->
-  stackv4 impl -> syslog impl
+val syslog_udp: ?config:syslog_config -> ?console:console impl -> ?clock:pclock impl -> stackv4 impl -> syslog impl
 (** Emit log messages via UDP to the configured host. *)
 
-val syslog_tcp: syslog_config -> ?console:console impl -> ?clock:pclock impl ->
-  stackv4 impl -> syslog impl
+val syslog_tcp: ?config:syslog_config -> ?console:console impl -> ?clock:pclock impl -> stackv4 impl -> syslog impl
 (** Emit log messages via TCP to the configured host. *)
 
-val syslog_tls: syslog_config -> ?keyname:string -> ?console:console impl ->
-  ?clock:pclock impl -> stackv4 impl -> kv_ro impl -> syslog impl
+val syslog_tls: ?config:syslog_config -> ?keyname:string -> ?console:console impl -> ?clock:pclock impl -> stackv4 impl -> kv_ro impl -> syslog impl
 (** Emit log messages via TLS to the configured host, using the credentials
     (private ekey, certificate, trust anchor) provided in the KV_RO using the
     [keyname]. *)

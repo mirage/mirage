@@ -427,12 +427,12 @@ val resolver_unix_system: resolver impl
 
 type syslog_config = {
   hostname : string;
-  server   : Ipaddr.V4.t;
+  server   : Ipaddr.V4.t option;
   port     : int option;
   truncate : int option
 }
 
-val syslog_config: ?port:int -> ?truncate:int -> string -> Ipaddr.V4.t -> syslog_config
+val syslog_config: ?port:int -> ?truncate:int -> ?server:Ipaddr.V4.t -> string -> syslog_config
 (** Helper for constructing a {!syslog_config}. *)
 
 type syslog

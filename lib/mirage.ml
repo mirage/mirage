@@ -55,7 +55,7 @@ let qrexec_qubes = impl @@ object
   val name = Name.ocamlify @@ "qrexec_"
   method name = name
   method module_name = "Qubes.RExec"
-  method! packages = Key.pure [ package ~min:"0.4" "mirage-qubes" ]
+  method! packages = Key.pure [ package ~min:"0.4" ~max:"1.0" "mirage-qubes" ]
   method! configure i =
     match get_target i with
     | `Qubes -> R.ok ()
@@ -79,7 +79,7 @@ let gui_qubes = impl @@ object
   val name = Name.ocamlify @@ "gui"
   method name = name
   method module_name = "Qubes.GUI"
-  method! packages = Key.pure [ package ~min:"0.4" "mirage-qubes" ]
+  method! packages = Key.pure [ package ~min:"0.4" ~max:"1.0" "mirage-qubes" ]
   method! configure i =
     match get_target i with
     | `Qubes -> R.ok ()
@@ -101,7 +101,7 @@ let qubesdb_conf = object
   method ty = qubesdb
   method name = "qubesdb"
   method module_name = "Qubes.DB"
-  method! packages = Key.pure [ package ~min:"0.4" "mirage-qubes" ]
+  method! packages = Key.pure [ package ~min:"0.4" ~max:"1.0" "mirage-qubes" ]
   method! configure i =
     match get_target i with
     | `Qubes | `Xen -> R.ok ()
@@ -149,8 +149,8 @@ let posix_clock_conf = object
   method module_name = "Pclock"
   method! packages =
     Key.(if_ is_unix)
-      [ package ~min:"1.2.0" "mirage-clock-unix" ]
-      [ package ~min:"1.2.0" "mirage-clock-freestanding" ]
+      [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-clock-unix" ]
+      [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-clock-freestanding" ]
   method! connect _ modname _args = Fmt.strf "%s.connect ()" modname
 end
 
@@ -166,8 +166,8 @@ let monotonic_clock_conf = object
   method module_name = "Mclock"
   method! packages =
     Key.(if_ is_unix)
-      [ package ~min:"1.2.0" "mirage-clock-unix" ]
-      [ package ~min:"1.2.0" "mirage-clock-freestanding" ]
+      [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-clock-unix" ]
+      [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-clock-freestanding" ]
   method! connect _ modname _args = Fmt.strf "%s.connect ()" modname
 end
 
@@ -229,13 +229,13 @@ let nocrypto = impl @@ object
     method! packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes ->
-        [ package ~min:"0.5.4" ~sublibs:["mirage"] "nocrypto";
+        [ package ~min:"0.5.4" ~max:"1.0.0" ~sublibs:["mirage"] "nocrypto";
           package ~ocamlfind:[] "zarith-xen" ]
       | `Virtio | `Ukvm ->
-        [ package ~min:"0.5.4" ~sublibs:["mirage"] "nocrypto";
+        [ package ~min:"0.5.4" ~max:"1.0.0" ~sublibs:["mirage"] "nocrypto";
           package ~ocamlfind:[] "zarith-freestanding" ]
       | `Unix | `MacOSX ->
-        [ package ~min:"0.5.4" ~sublibs:["lwt"] "nocrypto" ]
+        [ package ~min:"0.5.4" ~max:"1.0.0" ~sublibs:["lwt"] "nocrypto" ]
 
     method! build _ = R.ok (enable_entropy ())
     method! connect i _ _ =
@@ -249,7 +249,7 @@ let nocrypto_random_conf = object
   method ty = random
   method name = "random"
   method module_name = "Nocrypto.Rng"
-  method! packages = Key.pure [ package ~min:"0.5.4" "nocrypto" ]
+  method! packages = Key.pure [ package ~min:"0.5.4" ~max:"1.0.0" "nocrypto" ]
   method! deps = [abstract nocrypto]
 end
 
@@ -270,7 +270,7 @@ let console_unix str = impl @@ object
     val name = Name.ocamlify @@ "console_unix_" ^ str
     method name = name
     method module_name = "Console_unix"
-    method! packages = Key.pure [ package ~min:"2.2.0" "mirage-console-unix" ]
+    method! packages = Key.pure [ package ~min:"2.2.0" ~max:"3.0.0" "mirage-console-unix" ]
     method! connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
@@ -280,7 +280,7 @@ let console_xen str = impl @@ object
     val name = Name.ocamlify @@ "console_xen_" ^ str
     method name = name
     method module_name = "Console_xen"
-    method! packages = Key.pure [ package ~min:"2.2.0" "mirage-console-xen" ]
+    method! packages = Key.pure [ package ~min:"2.2.0" ~max:"3.0.0" "mirage-console-xen" ]
     method! connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
@@ -290,7 +290,7 @@ let console_solo5 str = impl @@ object
     val name = Name.ocamlify @@ "console_solo5_" ^ str
     method name = name
     method module_name = "Console_solo5"
-    method! packages = Key.pure [ package ~min:"0.2.0" "mirage-console-solo5" ]
+    method! packages = Key.pure [ package ~min:"0.2.0" ~max:"1.0.0" "mirage-console-solo5" ]
     method! connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
@@ -314,7 +314,7 @@ let crunch dirname = impl @@ object
     method name = name
     method module_name = String.Ascii.capitalize name
     method! packages =
-      Key.pure [ package "io-page"; package ~min:"2.0.0" ~build:true "crunch" ]
+      Key.pure [ package "io-page"; package ~min:"2.0.0" ~max:"3.0.0" ~build:true "crunch" ]
     method! deps = [ abstract default_io_page ]
     method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
     method! build _i =
@@ -337,7 +337,7 @@ let direct_kv_ro_conf dirname = impl @@ object
     val name = Name.create ("direct" ^ dirname) ~prefix:"direct"
     method name = name
     method module_name = "Kvro_fs_unix"
-    method! packages = Key.pure [ package ~min:"1.3.0" "mirage-fs-unix" ]
+    method! packages = Key.pure [ package ~min:"1.3.0" ~max:"2.0.0" "mirage-fs-unix" ]
     method! connect i _modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
       Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path
@@ -382,9 +382,9 @@ class block_conf file =
     method module_name = "Block"
     method! packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> [ package ~min:"1.5.0" ~sublibs:["front"] "mirage-block-xen" ]
-      | `Virtio | `Ukvm -> [ package ~min:"0.2.1" "mirage-block-solo5" ]
-      | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
+      | `Xen | `Qubes -> [ package ~min:"1.5.0" ~max:"2.0.0" ~sublibs:["front"] "mirage-block-xen" ]
+      | `Virtio | `Ukvm -> [ package ~min:"0.2.1" ~max:"1.0.0" "mirage-block-solo5" ]
+      | `Unix | `MacOSX -> [ package ~min:"2.5.0" ~max:"3.0.0" "mirage-block-unix" ]
 
     method private connect_name target root =
       match target with
@@ -443,7 +443,7 @@ let archive_conf = impl @@ object
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
     method! packages =
-      Key.pure [ package ~min:"0.8.0" "tar-mirage" ]
+      Key.pure [ package ~min:"0.8.0" ~max:"1.0.0" "tar-mirage" ]
     method! connect _ modname = function
       | [ block ] -> Fmt.strf "%s.connect %s" modname block
       | _ -> failwith (connect_err "archive" 1)
@@ -458,7 +458,7 @@ let fs = Type FS
 let fat_conf = impl @@ object
     inherit base_configurable
     method ty = (block @-> fs)
-    method! packages = Key.pure [ package ~min:"0.12.0" "fat-filesystem" ]
+    method! packages = Key.pure [ package ~min:"0.12.0" ~max:"1.0.0" "fat-filesystem" ]
     method name = "fat"
     method module_name = "Fat.FS"
     method! connect _ modname l = match l with
@@ -476,7 +476,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
   impl @@ object
     inherit block_conf block_file as super
     method! packages =
-      Key.map (List.cons (package ~min:"0.12.0" ~build:true "fat-filesystem")) super#packages
+      Key.map (List.cons (package ~min:"0.12.0" ~max:"1.0.0" ~build:true "fat-filesystem")) super#packages
     method! build i =
       let root = Info.build_dir i in
       let file = Fmt.strf "make-%s-image.sh" name in
@@ -563,11 +563,11 @@ let network_conf (intf : string Key.key) =
     method! keys = [ key ]
     method! packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix -> [ package ~min:"2.3.0" "mirage-net-unix" ]
-      | `MacOSX -> [ package ~min:"1.3.0" "mirage-net-macosx" ]
-      | `Xen -> [ package ~min:"1.7.0" "mirage-net-xen"]
-      | `Qubes -> [ package ~min:"1.7.0" "mirage-net-xen" ; package ~min:"0.4" "mirage-qubes" ]
-      | `Virtio | `Ukvm -> [ package ~min:"0.2.0" "mirage-net-solo5" ]
+      | `Unix -> [ package ~min:"2.3.0" ~max:"3.0.0" "mirage-net-unix" ]
+      | `MacOSX -> [ package ~min:"1.3.0" ~max:"2.0.0" "mirage-net-macosx" ]
+      | `Xen -> [ package ~min:"1.7.0" ~max:"2.0.0" "mirage-net-xen"]
+      | `Qubes -> [ package ~min:"1.7.0" ~max:"2.0.0" "mirage-net-xen" ; package ~min:"0.4" ~max:"2.0.0" "mirage-qubes" ]
+      | `Virtio | `Ukvm -> [ package ~min:"0.2.0" ~max:"1.0.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =
@@ -593,7 +593,7 @@ let ethernet_conf = object
   method ty = network @-> ethernet
   method name = "ethif"
   method module_name = "Ethif.Make"
-  method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ethif"] "tcpip" ]
+  method! packages = Key.pure [ package ~min:"3.1.0" ~max:"4.0.0" ~sublibs:["ethif"] "tcpip" ]
   method! connect _ modname = function
     | [ eth ] -> Fmt.strf "%s.connect %s" modname eth
     | _ -> failwith (connect_err "ethernet" 1)
@@ -610,7 +610,7 @@ let arpv4_conf = object
   method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arpv4"
   method module_name = "Arpv4.Make"
-  method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["arpv4"] "tcpip" ]
+  method! packages = Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:["arpv4"] "tcpip" ]
   method! connect _ modname = function
     | [ eth ; clock ; _time ] -> Fmt.strf "%s.connect %s %s" modname eth clock
     | _ -> failwith (connect_err "arpv4" 3)
@@ -629,7 +629,7 @@ let farp_conf = object
   method ty = ethernet @-> mclock @-> time @-> arpv4
   method name = "arp"
   method module_name = "Arp.Make"
-  method! packages = Key.pure [ package ~min:"0.2.0" ~sublibs:["mirage"] "arp" ]
+  method! packages = Key.pure [ package ~min:"0.2.0" ~max:"1.0.0" ~sublibs:["mirage"] "arp" ]
   method! connect _ modname = function
     | [ eth ; clock ; _time ] -> Fmt.strf "%s.connect %s %s" modname eth clock
     | _ -> failwith (connect_err "arp" 3)
@@ -674,7 +674,7 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ipv4"] "tcpip" ]
+    method! packages = Key.pure [ package ~min:"3.1.0" ~max:"4.0.0" ~sublibs:["ipv4"] "tcpip" ]
     method! keys = network @?? gateway @?? []
     method! connect _ modname = function
     | [ etif ; arp ] ->
@@ -741,7 +741,7 @@ let ipv4_qubes_conf = impl @@ object
     method ty = qubesdb @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
     method module_name = "Qubesdb_ipv4.Make"
-    method! packages = Key.pure [ package ~min:"0.5" "mirage-qubes-ipv4" ]
+    method! packages = Key.pure [ package ~min:"0.5" ~max:"1.0" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
       | [ db ; etif; arp ] -> Fmt.strf "%s.connect %s %s %s" modname db etif arp
       | _ -> failwith (connect_err "qubes ipv4" 3)
@@ -754,7 +754,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ipv6"] "tcpip" ]
+    method! packages = Key.pure [ package ~min:"3.1.0" ~max:"4.0.0" ~sublibs:["ipv6"] "tcpip" ]
     method! keys = addresses @?? netmasks @?? gateways @?? []
     method! connect _ modname = function
       | [ etif ; _random ; _time ; clock ] ->
@@ -788,7 +788,7 @@ let icmpv4_direct_conf () = object
   method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
   method name = "icmpv4"
   method module_name = "Icmpv4.Make"
-  method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["icmpv4"] "tcpip" ]
+  method! packages = Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:["icmpv4"] "tcpip" ]
   method! connect _ modname = function
     | [ ip ] -> Fmt.strf "%s.connect %s" modname ip
     | _  -> failwith (connect_err "icmpv4" 1)
@@ -811,7 +811,7 @@ let udp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> random @-> (udp: 'a udp typ)
   method name = "udp"
   method module_name = "Udp.Make"
-  method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["udp"] "tcpip" ]
+  method! packages = Key.pure [ package ~min:"3.0.0" ~max:"4.0.0"  ~sublibs:["udp"] "tcpip" ]
   method! connect _ modname = function
     | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
     | _  -> failwith (connect_err "udp" 2)
@@ -829,7 +829,7 @@ let udpv4_socket_conf ipv4_key = object
   method module_name = "Udpv4_socket"
   method! keys = [ Key.abstract ipv4_key ]
   method! packages =
-    Key.(if_ is_unix) [ package ~min:"3.0.0" ~sublibs:["udpv4-socket"] "tcpip" ] []
+    Key.(if_ is_unix) [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:["udpv4-socket"] "tcpip" ] []
   method! configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
@@ -853,7 +853,7 @@ let tcp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["tcp"] "tcpip" ]
+  method! packages = Key.pure [ package ~min:"3.1.0" ~max:"4.0.0" ~sublibs:["tcp"] "tcpip" ]
   method! connect _ modname = function
     | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
     | _ -> failwith (connect_err "direct tcp" 4)
@@ -876,7 +876,7 @@ let tcpv4_socket_conf ipv4_key = object
   method module_name = "Tcpv4_socket"
   method! keys = [ Key.abstract ipv4_key ]
   method! packages =
-    Key.(if_ is_unix) [ package ~min:"3.0.0" ~sublibs:["tcpv4-socket"] "tcpip" ] []
+    Key.(if_ is_unix) [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:["tcpv4-socket"] "tcpip" ] []
   method! configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
@@ -900,7 +900,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     val name = add_suffix "stackv4_" ~suffix:group
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
-    method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["stack-direct"] "tcpip" ]
+    method! packages = Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:["stack-direct"] "tcpip" ]
     method! connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
         Fmt.strf
@@ -951,7 +951,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_socket"
     method! keys = [ Key.abstract interfaces ]
-    method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["stack-socket"] "tcpip" ]
+    method! packages = Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" ~sublibs:["stack-socket"] "tcpip" ]
     method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
     method! connect _i modname = function
       | [ udpv4 ; tcpv4 ] ->
@@ -1001,8 +1001,7 @@ let tcp_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage.With_tcp"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit";
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.0" ~max:"4.0.0" "mirage-conduit";
       ]
     method! connect _ modname = function
       | [ stack ] -> Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
@@ -1016,12 +1015,11 @@ let tls_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage"
     method! packages =
       Key.pure [
-        package ~min:"0.8.0" ~sublibs:["mirage"] "tls" ;
+        package ~min:"0.8.0" ~max:"1.0.0" ~sublibs:["mirage"] "tls" ;
         package "mirage-flow-lwt";
         package "mirage-kv-lwt";
         package "mirage-clock";
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.0" ~ocamlfind:[] "mirage-conduit" ;
       ]
     method! deps = [ abstract nocrypto ]
     method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
@@ -1037,8 +1035,7 @@ let conduit_with_connectors connectors = impl @@ object
     method module_name = "Conduit_mirage"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit";
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.0" ~max:"4.0.0" "mirage-conduit";
       ]
     method! deps = abstract nocrypto :: List.map abstract connectors
 
@@ -1076,8 +1073,8 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method! packages =
       Key.(if_ is_unix)
-        [ package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-          package ~min:"0.15.0" ~sublibs:["mirage";"lwt-unix"] "conduit" ]
+        [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-conduit" ;
+          package ~min:"0.99" ~max:"1.0.0" "conduit-lwt-unix" ]
         []
     method! configure i =
       match get_target i with
@@ -1093,8 +1090,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.0" ~max:"4.0.0" "mirage-conduit" ;
       ]
     method! connect _ modname = function
       | [ _t ; stack ] ->
@@ -1149,7 +1145,7 @@ let syslog_udp_conf config =
     method ty = console @-> pclock @-> stackv4 @-> syslog
     method name = "udp_syslog"
     method module_name = "Logs_syslog_mirage.Udp"
-    method! packages = Key.pure [ package ~min:"0.1.0" ~sublibs:["mirage"] "logs-syslog" ]
+    method! packages = Key.pure [ package ~min:"0.1.0" ~max:"1.0.0" ~sublibs:["mirage"] "logs-syslog" ]
     method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
@@ -1185,7 +1181,7 @@ let syslog_tcp_conf config =
     method ty = console @-> pclock @-> stackv4 @-> syslog
     method name = "tcp_syslog"
     method module_name = "Logs_syslog_mirage.Tcp"
-    method! packages = Key.pure [ package ~min:"0.1.0" ~sublibs:["mirage"] "logs-syslog" ]
+    method! packages = Key.pure [ package ~min:"0.1.0" ~max:"1.0.0" ~sublibs:["mirage"] "logs-syslog" ]
     method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
@@ -1219,7 +1215,7 @@ let syslog_tls_conf ?keyname config =
     method ty = console @-> pclock @-> stackv4 @-> kv_ro @-> syslog
     method name = "tls_syslog"
     method module_name = "Logs_syslog_mirage_tls.Tls"
-    method! packages = Key.pure [ package ~min:"0.1.0" ~sublibs:["mirage" ; "mirage.tls"] "logs-syslog" ]
+    method! packages = Key.pure [ package ~min:"0.1.0" ~max:"1.0.0" ~sublibs:["mirage" ; "mirage.tls"] "logs-syslog" ]
     method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ; kv ] ->
@@ -1253,7 +1249,7 @@ let http_server conduit = impl @@ object
     method ty = http
     method name = "http"
     method module_name = "Cohttp_mirage.Server_with_conduit"
-    method! packages = Key.pure [ package ~min:"3.0.0" "mirage-http" ]
+    method! packages = Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-http" ]
     method! deps = [ abstract conduit ]
     method! connect _i modname = function
       | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
@@ -1275,7 +1271,7 @@ let argv_solo5 = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_solo5"
     method module_name = "Bootvar"
-    method! packages = Key.pure [ package ~min:"0.2.0" "mirage-bootvar-solo5" ]
+    method! packages = Key.pure [ package ~min:"0.2.0" ~max:"1.0.0" "mirage-bootvar-solo5" ]
     method! connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -1292,7 +1288,7 @@ let argv_xen = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_xen"
     method module_name = "Bootvar"
-    method! packages = Key.pure [ package ~min:"0.4.0" "mirage-bootvar-xen" ]
+    method! packages = Key.pure [ package ~min:"0.4.0" ~max:"1.0.0" "mirage-bootvar-xen" ]
     method! connect _ _ _ = Fmt.strf
       (* Some hypervisor configurations try to pass some extra arguments.
        * They means well, but we can't do much with them,
@@ -1328,7 +1324,7 @@ let mirage_log ?ring_size ~default =
     method ty = pclock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
-    method! packages = Key.pure [ package ~min:"0.3.0" "mirage-logs"]
+    method! packages = Key.pure [ package ~min:"0.3.0" ~max:"1.0.0" "mirage-logs"]
     method! keys = [ Key.abstract logs ]
     method! connect _ modname = function
       | [ pclock ] ->
@@ -1982,19 +1978,19 @@ module Project = struct
         let common = [
           (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
           package "lwt";
-          package ~min:"3.0.0" "mirage-types-lwt";
-          package ~min:"3.0.0" "mirage-types";
-          package ~min:"3.0.0" "mirage-runtime" ;
+          package ~min:"3.0.0" ~max:"4.0.0" "mirage-types-lwt";
+          package ~min:"3.0.0" ~max:"4.0.0" "mirage-types";
+          package ~min:"3.0.0" ~max:"4.0.0" "mirage-runtime" ;
           package ~build:true "ocamlfind" ;
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> [ package ~min:"3.0.4" "mirage-xen" ] @ common
-        | `Virtio -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-virtio" ;
-                       package ~min:"0.2.0" "mirage-solo5" ] @ common
-        | `Ukvm -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-ukvm" ;
-                     package ~min:"0.2.0" "mirage-solo5" ] @ common
-        | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ] @ common
+        | `Xen | `Qubes -> [ package ~min:"3.0.4" ~max:"4.0.0" "mirage-xen" ] @ common
+        | `Virtio -> [ package ~min:"0.2.1" ~max:"1.0.0" ~ocamlfind:[] "solo5-kernel-virtio" ;
+                       package ~min:"0.2.0" ~max:"1.0.0" "mirage-solo5" ] @ common
+        | `Ukvm -> [ package ~min:"0.2.1" ~max:"1.0.0" ~ocamlfind:[] "solo5-kernel-ukvm" ;
+                     package ~min:"0.2.0" ~max:"1.0.0" "mirage-solo5" ] @ common
+        | `Unix | `MacOSX -> [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-unix" ] @ common
 
       method! build = build
       method! configure = configure

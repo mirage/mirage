@@ -9,7 +9,7 @@ env:
  global:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="functoria.dev:--dev functoria-runtime.dev:--dev mirage.dev:. mirage-types.dev:. mirage-types-lwt.dev:. mirage-runtime.dev:."
+   - PINS="functoria.dev:--dev functoria-runtime.dev:--dev mirage.3.1.0:. mirage-types.3.1.0:. mirage-types-lwt.3.1.0:. mirage-runtime.3.1.0:."
    - TESTS=false #testing via travis-ci.sh
  matrix:
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=xen"

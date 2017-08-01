@@ -5,6 +5,7 @@ script: bash -ex .travis-opam.sh
 env:
   global:
   - PINS="functoria.dev:. functoria-runtime.dev:."
+  - REVDEPS=true
   matrix:
   - OCAML_VERSION=4.03 PACKAGE="functoria"
   - OCAML_VERSION=4.04 PACKAGE="functoria"

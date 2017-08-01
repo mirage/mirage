@@ -24,7 +24,7 @@ depends: [
   "jbuilder" {build & >="1.0+beta10"}
   "cmdliner" {>= "0.9.8"}
   "fmt"
-  "functoria" {test & >= "2.1.0"}
+  "functoria" {test & >= "2.2.0"}
   "alcotest"  {test}
 ]
 available: [ocaml-version >= "4.02"]

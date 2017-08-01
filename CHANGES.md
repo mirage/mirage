@@ -1,3 +1,10 @@
+## 2.2.0 (01/08/2017)
+
+* API improvements: add `Functoria_app.packages` and `ignore_dirs`
+  functions. Also add prettyprinting functions to the CLI module. (@samoht)
+* rename the man pages from "Unikernel" references to "Application"
+* Add end-to-end tests for the tool (@samoht)
+
 ## 2.1.0 (03/07/2017)
 
 * port build to Jbuilder (#115 @djs55)

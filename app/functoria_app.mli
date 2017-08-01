@@ -117,7 +117,7 @@ module Make (P: S): sig
     ?help_ppf:Format.formatter -> ?err_ppf:Format.formatter ->
     string array -> unit
   (** [run_with_argv a] is the same as {!run} but parses [a] instead
-      of the process command line argurments. It also allows to set
+      of the process command line arguments. It also allows to set
       the error and help channels using [help_ppf] and [err_ppf]. *)
 end
 

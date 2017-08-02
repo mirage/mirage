@@ -1001,8 +1001,7 @@ let tcp_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage.With_tcp"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit";
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit";
       ]
     method! connect _ modname = function
       | [ stack ] -> Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
@@ -1020,8 +1019,7 @@ let tls_conduit_connector = impl @@ object
         package "mirage-flow-lwt";
         package "mirage-kv-lwt";
         package "mirage-clock";
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit" ;
       ]
     method! deps = [ abstract nocrypto ]
     method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
@@ -1037,8 +1035,7 @@ let conduit_with_connectors connectors = impl @@ object
     method module_name = "Conduit_mirage"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit";
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit";
       ]
     method! deps = abstract nocrypto :: List.map abstract connectors
 
@@ -1076,8 +1073,8 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method! packages =
       Key.(if_ is_unix)
-        [ package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-          package ~min:"0.15.0" ~sublibs:["mirage";"lwt-unix"] "conduit" ]
+        [ package ~min:"3.1.0" ~ocamlfind:[] "mirage-conduit" ;
+          package ~min:"1.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with
@@ -1093,8 +1090,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit" ;
       ]
     method! connect _ modname = function
       | [ _t ; stack ] ->

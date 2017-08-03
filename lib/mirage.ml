@@ -700,7 +700,7 @@ let dhcp_conf = impl @@ object
     method ty = time @-> network @-> dhcp
     method name = "dhcp_client"
     method module_name = "Dhcp_client_mirage.Make"
-    method! packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
+    method! packages = Key.pure [ package "charrua-client-mirage" ]
     method! connect _ modname = function
       | [ _time; network ] -> Fmt.strf "%s.connect %s " modname network
       | _ -> failwith (connect_err "dhcp" 2)
@@ -711,7 +711,7 @@ let ipv4_dhcp_conf = impl @@ object
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method! packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
+    method! packages = Key.pure [ package "charrua-client-mirage" ]
     method! connect _ modname = function
       | [ dhcp ; ethernet ; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname dhcp ethernet arp

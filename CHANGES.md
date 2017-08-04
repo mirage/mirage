@@ -1,3 +1,19 @@
+### 3.0.5 (2017-07-01)
+
+* Allow runtime configuration of syslog via config keys `--syslog`,
+  `--syslog-port` and `--syslog-hostname` (#853 via @hannesm).
+* Switch build of tool and libraries to Jbuilder (by @samoht)
+* Fix a warning when connecting to a ramdisk device (#837 by @g2p)
+* Fix reference to tar library when using `--kv-ro archive` (#848 by @mor1)
+* Adapt to latest functoria API (#849 by @samoht)
+
+* Add a `--gdb` argument for ukvm targets so that debuggers can be attached easily.
+  This allows `mirage configure --gdb -t ukvm` to work (@ricarkol in #847).
+
+Packaging updates for latest opam repository:
+* ARP is compatible with MirageOS3 since 0.2.0 (#851 by @hannesm)
+
+
 ### 3.0.4 (2017-06-15)
 * add a --block configure flag for picking ramdisk or file-backed disk
 * add lower bounds on packages

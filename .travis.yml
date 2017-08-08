@@ -10,8 +10,7 @@ env:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
      # tcpip pin needed for tcpip.xen linking fix, yet unreleased -yomimono
-     # charrua pins needed until v0.9 release -yomimono
-   - PINS="tcpip.dev:--dev functoria.dev:--dev functoria-runtime.dev:--dev mirage.dev:. mirage-types.dev:. mirage-types-lwt.dev:. mirage-runtime.dev:. charrua-core.dev:--dev charrua-client.dev:https://github.com/mirage/charrua-core.git charrua-client-lwt.dev:https://github.com/mirage/charrua-core.git charrua-client-mirage.dev:https://github.com/mirage/charrua-core.git"
+   - PINS="tcpip.dev:--dev mirage.dev:. mirage-types.dev:. mirage-types-lwt.dev:. mirage-runtime.dev:."
    - TESTS=false #testing via travis-ci.sh
  matrix:
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=xen"

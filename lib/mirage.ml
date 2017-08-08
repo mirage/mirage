@@ -669,12 +669,19 @@ let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
 
+(* convenience function for linking tcpip.unix or .xen for checksums *)
+let right_tcpip_library ?min ?max ?ocamlfind ~sublibs pkg =
+  Key.match_ Key.(value target) @@ function
+  |`MacOSX | `Unix -> [ package ?min ?max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
+  |`Qubes  | `Xen  -> [ package ?min ?max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
+  |`Virtio | `Ukvm -> [ package ?min ?max ?ocamlfind ~sublibs pkg ]
+
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     inherit base_configurable
     method ty = ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ipv4"] "tcpip" ]
+    method! packages = right_tcpip_library ~min:"3.1.0" ~sublibs:["ipv4"] "tcpip"
     method! keys = network @?? gateway @?? []
     method! connect _ modname = function
     | [ etif ; arp ] ->
@@ -693,7 +700,7 @@ let dhcp_conf = impl @@ object
     method ty = time @-> network @-> dhcp
     method name = "dhcp_client"
     method module_name = "Dhcp_client_mirage.Make"
-    method! packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
+    method! packages = Key.pure [ package "charrua-client-mirage" ]
     method! connect _ modname = function
       | [ _time; network ] -> Fmt.strf "%s.connect %s " modname network
       | _ -> failwith (connect_err "dhcp" 2)
@@ -704,7 +711,7 @@ let ipv4_dhcp_conf = impl @@ object
     method ty = dhcp @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method! packages = Key.pure [ package ~sublibs:["mirage"] "charrua-client" ]
+    method! packages = Key.pure [ package "charrua-client-mirage" ]
     method! connect _ modname = function
       | [ dhcp ; ethernet ; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname dhcp ethernet arp
@@ -754,7 +761,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["ipv6"] "tcpip" ]
+    method! packages = right_tcpip_library ~min:"3.1.0" ~sublibs:["ipv6"] "tcpip"
     method! keys = addresses @?? netmasks @?? gateways @?? []
     method! connect _ modname = function
       | [ etif ; _random ; _time ; clock ] ->
@@ -788,7 +795,7 @@ let icmpv4_direct_conf () = object
   method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
   method name = "icmpv4"
   method module_name = "Icmpv4.Make"
-  method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["icmpv4"] "tcpip" ]
+  method! packages = right_tcpip_library ~min:"3.0.0" ~sublibs:["icmpv4"] "tcpip"
   method! connect _ modname = function
     | [ ip ] -> Fmt.strf "%s.connect %s" modname ip
     | _  -> failwith (connect_err "icmpv4" 1)
@@ -811,7 +818,7 @@ let udp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> random @-> (udp: 'a udp typ)
   method name = "udp"
   method module_name = "Udp.Make"
-  method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["udp"] "tcpip" ]
+  method! packages = right_tcpip_library ~min:"3.0.0" ~sublibs:["udp"] "tcpip"
   method! connect _ modname = function
     | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
     | _  -> failwith (connect_err "udp" 2)
@@ -829,7 +836,8 @@ let udpv4_socket_conf ipv4_key = object
   method module_name = "Udpv4_socket"
   method! keys = [ Key.abstract ipv4_key ]
   method! packages =
-    Key.(if_ is_unix) [ package ~min:"3.0.0" ~sublibs:["udpv4-socket"] "tcpip" ] []
+    Key.(if_ is_unix) [ package ~min:"3.0.0" ~sublibs:["udpv4-socket"; "unix"]
+      "tcpip" ] []
   method! configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
@@ -853,7 +861,7 @@ let tcp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method! packages = Key.pure [ package ~min:"3.1.0" ~sublibs:["tcp"] "tcpip" ]
+  method! packages = right_tcpip_library ~min:"3.1.0" ~sublibs:["tcp"] "tcpip"
   method! connect _ modname = function
     | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
     | _ -> failwith (connect_err "direct tcp" 4)
@@ -876,7 +884,7 @@ let tcpv4_socket_conf ipv4_key = object
   method module_name = "Tcpv4_socket"
   method! keys = [ Key.abstract ipv4_key ]
   method! packages =
-    Key.(if_ is_unix) [ package ~min:"3.0.0" ~sublibs:["tcpv4-socket"] "tcpip" ] []
+Key.(if_ is_unix) [ package ~min:"3.0.0" ~sublibs:["tcpv4-socket"; "unix"] "tcpip" ] []
   method! configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
@@ -951,7 +959,7 @@ let stackv4_socket_conf ?(group="") interfaces = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_socket"
     method! keys = [ Key.abstract interfaces ]
-    method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["stack-socket"] "tcpip" ]
+    method! packages = Key.pure [ package ~min:"3.0.0" ~sublibs:["stack-socket"; "unix"] "tcpip" ]
     method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
     method! connect _i modname = function
       | [ udpv4 ; tcpv4 ] ->
@@ -1001,8 +1009,7 @@ let tcp_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage.With_tcp"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit";
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit";
       ]
     method! connect _ modname = function
       | [ stack ] -> Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
@@ -1020,8 +1027,7 @@ let tls_conduit_connector = impl @@ object
         package "mirage-flow-lwt";
         package "mirage-kv-lwt";
         package "mirage-clock";
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit" ;
       ]
     method! deps = [ abstract nocrypto ]
     method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
@@ -1037,8 +1043,7 @@ let conduit_with_connectors connectors = impl @@ object
     method module_name = "Conduit_mirage"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit";
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit";
       ]
     method! deps = abstract nocrypto :: List.map abstract connectors
 
@@ -1076,8 +1081,8 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method! packages =
       Key.(if_ is_unix)
-        [ package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-          package ~min:"0.15.0" ~sublibs:["mirage";"lwt-unix"] "conduit" ]
+        [ package ~min:"3.1.0" ~ocamlfind:[] "mirage-conduit" ;
+          package ~min:"1.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with
@@ -1093,8 +1098,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
       Key.pure [
-        package ~min:"2.3.0" ~ocamlfind:[] "mirage-conduit" ;
-        package ~min:"0.15.0" ~sublibs:["mirage"] "conduit"
+        package ~min:"3.0.1" "mirage-conduit" ;
       ]
     method! connect _ modname = function
       | [ _t ; stack ] ->

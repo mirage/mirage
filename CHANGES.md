@@ -1,4 +1,4 @@
-### 3.0.5 (2017-07-01)
+### 3.0.5 (2017-08-08)
 
 * Allow runtime configuration of syslog via config keys `--syslog`,
   `--syslog-port` and `--syslog-hostname` (#853 via @hannesm).
@@ -9,6 +9,10 @@
 
 * Add a `--gdb` argument for ukvm targets so that debuggers can be attached easily.
   This allows `mirage configure --gdb -t ukvm` to work (@ricarkol in #847).
+
+* Adapt to latest functoria (#849 by @samoht)
+* Adapt to latest charrua, tcpip (#854 by @yomimono)
+* Switch to jbuilder (#850 by @samoht)
 
 Packaging updates for latest opam repository:
 * ARP is compatible with MirageOS3 since 0.2.0 (#851 by @hannesm)

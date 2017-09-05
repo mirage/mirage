@@ -48,10 +48,10 @@ Consider a multilingual application: we want to pass the default language as a p
 
 ```ocaml
 let lang_key =
-  let doc = Key.Doc.create
-      ~doc:"The default language for the application." [ "l" ; "lang" ]
+  let doc = Key.Arg.info
+    ~doc:"The default language for the application." [ "l" ; "lang" ]
   in
-  Key.create ~doc ~stage:`Both ~default:"en" "language" Key.Desc.string
+  Key.create "language" @@ Key.Arg.(opt ~stage:`Both string "en" doc)
 ```
 
 Here, we defined both a long option `--lang` and a short one `-l` (the format is similar to the one used by [Cmdliner][cmdliner]).

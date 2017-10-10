@@ -106,21 +106,7 @@ let default_unix = lazy (
   let open Bos in
   let uname arg = OS.Cmd.(run_out (Cmd.(v "uname" % arg)) |> OS.Cmd.out_string) in
   match uname "-s" with
-  | Ok ("Darwin", _) -> begin
-      (* Only use MacOS-specific functionality from Yosemite upwards *)
-      let is_yosemite_or_higher =
-        match uname "-r" with
-        | Ok (vs, _) -> begin match String.cut ~sep:"." vs with
-            | Some (f, _) -> begin match String.to_int f with
-                | Some v -> v >= 14
-                | _ -> false
-              end
-            | _ -> false
-          end
-        | _ -> false
-      in
-      if is_yosemite_or_higher then `MacOSX else `Unix
-    end
+  | Ok ("Darwin", _) -> `MacOSX
   | _ -> `Unix
 )
 

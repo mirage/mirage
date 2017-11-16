@@ -11,6 +11,8 @@ env:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
      # tcpip pin needed for tcpip.xen linking fix, yet unreleased -yomimono
    - PINS="tcpip.dev:--dev mirage.dev:. mirage-types.dev:. mirage-types-lwt.dev:. mirage-runtime.dev:."
+     # needed for cohttp-mirage.3.0.0 -djs55
+   - EXTRA_REMOTES="git://github.com/djs55/mirage-dev.git#cohttp"
    - TESTS=false #testing via travis-ci.sh
  matrix:
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=xen"

@@ -1257,7 +1257,7 @@ let http_server conduit = impl @@ object
     method ty = http
     method name = "http"
     method module_name = "Cohttp_mirage.Server_with_conduit"
-    method! packages = Key.pure [ package ~min:"3.0.0" "mirage-http" ]
+    method! packages = Key.pure [ package ~min:"3.0.0" "cohttp-mirage" ]
     method! deps = [ abstract conduit ]
     method! connect _i modname = function
       | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit

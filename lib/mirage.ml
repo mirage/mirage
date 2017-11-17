@@ -1384,10 +1384,10 @@ let mprof_trace ~size () =
       | `Unix | `MacOSX -> [ package "mirage-profile"; package "mirage-profile-unix" ]
     method! build _ =
       match query_ocamlfind ["lwt.tracing"] with
-      | Ok _ -> Ok ()
-      | Error _ ->
+      | Error _ | Ok [] ->
         R.error_msg "lwt.tracing module not found. Hint:\
                      opam pin add lwt https://github.com/mirage/lwt.git#tracing"
+      | Ok _ -> Ok ()
     method! connect i _ _ = match get_target i with
       | `Virtio | `Ukvm -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->

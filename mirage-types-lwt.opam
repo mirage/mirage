@@ -32,3 +32,4 @@ depends:   [
   "mirage-kv-lwt" {>= "1.0.0"}
   "mirage-channel-lwt" {>= "3.0.0"}
 ]
+available: [ ocaml-version >= "4.04.2" ]

@@ -22,4 +22,4 @@ depends: [
   "astring"
   "logs"
 ]
-available: [ocaml-version >= "4.02.3"]
+available: [ocaml-version >= "4.04.2"]

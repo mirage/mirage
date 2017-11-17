@@ -190,7 +190,7 @@ let stdlib_random = impl stdlib_random_conf
 
 let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   let open Bos in
-  let flag = if recursive then "-recursive" else ""
+  let flag = if recursive then (Cmd.v "-recursive") else Cmd.empty
   and format = Cmd.of_list [ "-format" ; format ]
   and predicate = match predicates with
     | None -> []
@@ -198,7 +198,7 @@ let query_ocamlfind ?(recursive = false) ?(format="%p") ?predicates libs =
   and q = "query"
   in
   let cmd =
-    Cmd.(v "ocamlfind" % q % flag %% format %% of_list predicate %% of_list libs)
+    Cmd.(v "ocamlfind" % q %% flag %% format %% of_list predicate %% of_list libs)
   in
   OS.Cmd.run_out cmd |> OS.Cmd.out_lines >>| fst
 

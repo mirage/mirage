@@ -29,4 +29,4 @@ conflicts: [
   "io-page"  {< "1.4.0"}
   "crunch"   {< "1.2.2"}
 ]
-available: [ocaml-version >= "4.02.3"]
+available: [ocaml-version >= "4.04.2"]

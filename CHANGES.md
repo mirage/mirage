@@ -1,3 +1,10 @@
+### 3.0.6 (2017-11-16)
+
+* remove macOS < yosemite support (#860 by @hannesm)
+* rename `mirage-http` to `cohttp-mirage` (#863 by @djs55)
+  See [mirage/ocaml-cohttp#572]
+* opam: require OCaml 4.04.2+ (#867 by @hannesm)
+
 ### 3.0.5 (2017-08-08)
 
 * Allow runtime configuration of syslog via config keys `--syslog`,

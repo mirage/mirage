@@ -16,11 +16,11 @@ env:
    - TESTS=false #testing via travis-ci.sh
  matrix:
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=xen"
-   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=ukvm"
-   - PACKAGE=mirage DISTRO=debian-unstable OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=unix"
+   - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=ukvm"
+   - PACKAGE=mirage DISTRO=debian-unstable OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=unix"
    - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=xen"
-   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=ukvm"
+   - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=ukvm"
    - PACKAGE=mirage DISTRO=centos-7 OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=virtio"
    - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=xen"
    - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=ukvm"
-   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0 EXTRA_ENV="MODE=virtio"
+   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.04.2 EXTRA_ENV="MODE=virtio"

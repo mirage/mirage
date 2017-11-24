@@ -1,3 +1,8 @@
+### 3.0.7 (2017-11-24)
+
+* the released version of `cohttp-mirage` is `1.0.0` (not `3.0.0`)
+  (#870 by @hannesm)
+
 ### 3.0.6 (2017-11-16)
 
 * remove macOS < yosemite support (#860 by @hannesm)

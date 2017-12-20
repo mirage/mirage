@@ -1,3 +1,8 @@
+### 3.0.8 (2017-12-19)
+
+* when passing block devices to `xen`, pass the raw filename rather than trying to infer the xenstore ID (#874, by @yomimono)
+* make homepage in opam files consistent (#872, by @djs55)
+
 ### 3.0.7 (2017-11-24)
 
 * the released version of `cohttp-mirage` is `1.0.0` (not `3.0.0`)

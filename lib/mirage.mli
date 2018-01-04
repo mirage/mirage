@@ -171,13 +171,16 @@ val block: block typ
 (** Implementations of the [Mirage_types.BLOCK] signature. *)
 
 val block_of_file: string -> block impl
-(** Use the given filen as a raw block device. *)
+(** Use the given file as a raw block device. *)
+
+val block_of_xenstore_id: string -> block impl
+(** Use the given XenStore ID (ex: [/dev/xvdi1] or [51760]) as a raw block device. *)
 
 val ramdisk: string -> block impl
 (** Use a ramdisk with the given name. *)
 
 val generic_block:
-  ?key:[ `BlockFile | `Ramdisk ] value -> string -> block impl
+  ?key:[ `XenstoreId | `BlockFile | `Ramdisk ] value -> string -> block impl
 
 (** {2 Static key/value stores} *)
 

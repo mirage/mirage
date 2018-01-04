@@ -391,9 +391,12 @@ class block_conf file =
       | `Unix | `MacOSX | `Virtio | `Ukvm ->
         Fpath.(to_string (root / b.filename)) (* open the file directly *)
       | `Xen | `Qubes ->
-        (* don't try to infer anything about this filename - let
-           mirage-block-xen do that for us; it has better heuristics *)
-        b.filename
+        (* We need the xenstore id *)
+        (* Taken from https://github.com/mirage/mirage-block-xen/blob/
+           a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 *)
+        (if b. number < 16
+         then (202 lsl 8) lor (b.number lsl 4)
+         else (1 lsl 28)  lor (b.number lsl 8)) |> string_of_int
 
     method! connect i s _ =
       Fmt.strf "%s.connect %S" s

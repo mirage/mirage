@@ -1709,6 +1709,10 @@ let configure_opam ~name info =
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       Info.opam ~name fmt info;
+      append fmt "maintainer: \"dummy\"";
+      append fmt "authors: \"dummy\"";
+      append fmt "homepage: \"dummy\"";
+      append fmt "bug-reports: \"dummy\"";
       append fmt "build: [ \"mirage\" \"build\" ]";
       append fmt "available: [ ocaml-version >= \"4.03.0\" ]";
       R.ok ())

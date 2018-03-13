@@ -372,6 +372,38 @@ let make_block_t =
       end in
     b
 
+let xen_block_packages =
+  [ package ~min:"1.5.0" ~sublibs:["front"] "mirage-block-xen" ]
+
+(* this class takes a string rather than an int as `id` to allow the user to
+   pass stuff like "/dev/xvdi1", which mirage-block-xen also understands *)
+class xenstore_conf id =
+  let name = Name.create id ~prefix:"block" in
+  object
+    inherit base_configurable
+    method ty = block
+    method name = name
+    method module_name = "Block"
+    method! packages = Key.pure xen_block_packages
+    method! configure i =
+      match get_target i with
+      | `Qubes | `Xen -> R.ok ()
+      | _ -> R.error_msg "XenStore IDs are only valid ways of specifying block \
+                          devices when the target is Xen or Qubes."
+    method! connect _ s _ =
+      Fmt.strf "%s.connect %S" s id
+  end
+
+let block_of_xenstore_id id = impl (new xenstore_conf id)
+
+(* calculate the XenStore ID for the nth available block device.
+   Taken from https://github.com/mirage/mirage-block-xen/blob/
+   a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L64 . *)
+let xenstore_id_of_index number =
+        (if number < 16
+         then (202 lsl 8) lor (number lsl 4)
+         else (1 lsl 28)  lor (number lsl 8))
+
 class block_conf file =
   let b = make_block_t file in
   let name = Name.create file ~prefix:"block" in
@@ -382,7 +414,7 @@ class block_conf file =
     method module_name = "Block"
     method! packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes -> [ package ~min:"1.5.0" ~sublibs:["front"] "mirage-block-xen" ]
+      | `Xen | `Qubes -> xen_block_packages
       | `Virtio | `Ukvm -> [ package ~min:"0.2.1" "mirage-block-solo5" ]
       | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
 
@@ -391,9 +423,7 @@ class block_conf file =
       | `Unix | `MacOSX | `Virtio | `Ukvm ->
         Fpath.(to_string (root / b.filename)) (* open the file directly *)
       | `Xen | `Qubes ->
-        (* don't try to infer anything about this filename - let
-           mirage-block-xen do that for us; it has better heuristics *)
-        b.filename
+        xenstore_id_of_index b.number |> string_of_int
 
     method! connect i s _ =
       Fmt.strf "%s.connect %S" s
@@ -420,6 +450,7 @@ let ramdisk rname = impl (new ramdisk_conf rname)
 
 let generic_block ?(key = Key.value @@ Key.block ()) name =
   match_impl key [
+    `XenstoreId, block_of_xenstore_id name;
     `BlockFile, block_of_file name;
     `Ramdisk, ramdisk name;
   ] ~default:(ramdisk name)

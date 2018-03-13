@@ -76,7 +76,7 @@ val kv_ro : ?group:string -> unit -> [ `Archive | `Crunch | `Direct | `Fat ] key
     Is one of ["archive"], ["crunch"], ["direct"], or ["fat"]. *)
 
 (** {3 Block device keys} *)
-val block : ?group:string -> unit -> [ `BlockFile | `Ramdisk ] key
+val block : ?group:string -> unit -> [ `XenstoreId | `BlockFile | `Ramdisk ] key
 
 (** {3 PRNG key} *)
 

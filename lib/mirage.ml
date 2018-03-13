@@ -406,7 +406,6 @@ let xenstore_id_of_index number =
          else (1 lsl 28)  lor (number lsl 8))
 
 class block_conf file =
-  let b = make_block_t file in
   let name = Name.create file ~prefix:"block" in
   object (self)
     inherit base_configurable
@@ -419,11 +418,16 @@ class block_conf file =
       | `Virtio | `Ukvm -> [ package ~min:"0.2.1" "mirage-block-solo5" ]
       | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
 
+    method! configure _ =
+      let _block = make_block_t file in
+      R.ok ()
+
     method private connect_name target root =
       match target with
       | `Unix | `MacOSX | `Virtio | `Ukvm ->
-        Fpath.(to_string (root / b.filename)) (* open the file directly *)
+        Fpath.(to_string (root / file)) (* open the file directly *)
       | `Xen | `Qubes ->
+        let b = make_block_t file in
         xenstore_id_of_index b.number |> string_of_int
 
     method! connect i s _ =

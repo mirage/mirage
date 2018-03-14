@@ -28,5 +28,6 @@ conflicts: [
   "cstruct"  {< "1.0.1"}
   "io-page"  {< "1.4.0"}
   "crunch"   {< "1.2.2"}
+  "jbuilder" {= "1.0+beta18"}
 ]
 available: [ocaml-version >= "4.04.2"]

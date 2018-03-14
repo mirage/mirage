@@ -1702,7 +1702,7 @@ let configure_makefile ~opam_name =
                   all:: build\n\
                   \n\
                   depend depends::\n\
-                  \t$(OPAM) pin add --no-action --yes %s .\n\
+                  \t$(OPAM) pin add -k path --no-action --yes %s .\n\
                   \t$(DEPEXT)\n\
                   \t$(OPAM) install --yes --deps-only %s\n\
                   \t$(OPAM) pin remove --no-action %s\n\

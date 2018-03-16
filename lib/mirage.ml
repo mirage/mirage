@@ -1774,7 +1774,7 @@ let configure i =
   configure_opam ~name:opam_name i >>= fun () ->
   configure_makefile ~opam_name >>= fun () ->
   match target with
-  | `Xen | `Qubes ->
+  | `Xen ->
     configure_main_xl "xl" i >>= fun () ->
     configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
     configure_main_xe ~root ~name >>= fun () ->

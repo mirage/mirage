@@ -94,29 +94,14 @@ module Package = struct
       invalid_arg ("invalid version constraints for " ^ opam)
     | _ -> { opam ; build ; ocamlfind ; min ; max }
 
-  let ocamlfind build p =
-    if p.build = build then
-      p.ocamlfind
-    else
-      String.Set.empty
-
   let libraries ps =
+    let ocamlfind p = if p.build then String.Set.empty else p.ocamlfind in
     String.Set.elements
       (List.fold_left String.Set.union String.Set.empty
-         (List.map (ocamlfind false) ps))
-
-  let package_name build p =
-    if p.build = build then
-      Some p.opam
-    else
-      None
+         (List.map ocamlfind ps))
 
   let package_names ps =
-    List.fold_left (fun acc p ->
-        match package_name false p with
-        | Some pack -> pack :: acc
-        | None -> acc) []
-      ps
+    List.fold_left (fun acc p -> if p.build then acc else p.opam :: acc) [] ps
 
   let exts_to_string min max build =
     let bui = if build then "build & " else "" in

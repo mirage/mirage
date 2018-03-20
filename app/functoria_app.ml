@@ -115,8 +115,6 @@ let keys (argv: argv impl) = impl @@ object
 type info = Info
 let info = Type Info
 
-(* hannes is pretty sure the following pp needs adjustments, but unclear to me
-   what exactly to do here? i.e. who reads the formatted stuff in again? *)
 let pp_libraries fmt l =
   Fmt.pf fmt "[@ %a]"
     Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
@@ -127,13 +125,13 @@ let pp_packages fmt l =
          (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x)
         ) l
 
-let pp_dump_info module_name fmt i =
+let pp_dump_pkgs module_name fmt (name, pkg, libs) =
   Fmt.pf fmt
     "%s.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
-    module_name (Info.name i)
-    pp_packages (Info.package_names i)
-    pp_libraries (Info.libraries i)
+    module_name name
+    pp_packages (List.sort String.compare (String.Set.elements pkg))
+    pp_libraries (List.sort String.compare (String.Set.elements libs))
 
 let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
   impl @@ object
@@ -149,12 +147,17 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
       Bos.OS.Path.delete file >>= fun () ->
       Bos.OS.Path.delete Fpath.(file + "in")
 
-    method !configure i =
-      Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      Bos.OS.File.writef Fpath.(file + "in")
-        "@[<v 2>let info = %a@]" (pp_dump_info type_modname) i
+    method !configure _i = Ok ()
 
-    method !build _i =
+    method !build i =
+      Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+      let cmd = Bos.Cmd.(v "opam" % "list" % "--installed" % "-s" % "--rec" % "--depopts" % "--required-by" %% of_list (Info.libraries i)) in
+      (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (rdeps, _) ->
+      let opam = String.Set.(union (of_list (Info.package_names i)) (of_list rdeps)) in
+      let ocl = String.Set.of_list (Info.libraries i)
+      in
+      Bos.OS.File.writef Fpath.(file + "in")
+        "@[<v 2>let info = %a@]" (pp_dump_pkgs type_modname) (Info.name i, opam, ocl) >>= fun () ->
       Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % p file)
   end
 

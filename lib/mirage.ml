@@ -1856,8 +1856,25 @@ let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
 
 let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 
+let find_ld = function
+  | `Xen | `Qubes | `MacOSX | `Unix -> Ok [ "ld" ]
+  | `Ukvm -> pkg_config "solo5-kernel-ukvm" ["--variable=ld"]
+  | `Virtio -> pkg_config "solo5-kernel-virtio" ["--variable=ld"]
+  | `Muen -> pkg_config "solo5-kernel-muen" ["--variable=ld"]
+
 let link info name target target_debug =
   let libs = Info.libraries info in
+  let ld = match find_ld target with
+    | Ok (ld::_) ->
+      Log.warn (fun m -> m "using %s as ld (pkg-config --variable=ld)" ld) ;
+      ld
+    | Ok [] ->
+      Log.warn (fun m -> m "pkg-config --variable=ld returned empty list, using ld") ;
+      "ld"
+    | Error msg ->
+      Log.warn (fun m -> m "error %a while pkg-config --variable=ld, using ld" Rresult.R.pp_msg msg) ;
+      "ld"
+  in
   match target with
   | `Unix | `MacOSX ->
     Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) >>= fun () ->
@@ -1866,7 +1883,7 @@ let link info name target target_debug =
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %%
+      Bos.Cmd.(v ld % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs)
     in
     let out = name ^ ".xen" in
@@ -1897,7 +1914,7 @@ let link info name target target_debug =
     ldpostflags "solo5-kernel-virtio" >>= fun ldpostflags ->
     let out = name ^ ".virtio" in
     let linker =
-      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in
@@ -1911,7 +1928,7 @@ let link info name target target_debug =
     ldpostflags "solo5-kernel-muen" >>= fun ldpostflags ->
     let out = name ^ ".muen" in
     let linker =
-      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in
@@ -1925,7 +1942,7 @@ let link info name target target_debug =
     ldpostflags "solo5-kernel-ukvm" >>= fun ldpostflags ->
     let out = name ^ ".ukvm" in
     let linker =
-      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in

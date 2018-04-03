@@ -310,7 +310,7 @@ type ipv6_config = {
 val create_ipv4: ?group:string ->
   ?config:ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address
-    Exposes the keys {!Key.V4.ipv4} and {!Key.V4.ipv4-gateway}.
+    Exposes the keys {!Key.V4.network} and {!Key.V4.gateway}.
     If provided, the values of these keys will override those supplied
     in the ipv4 configuration record, if that has been provided.
 *)
@@ -381,7 +381,7 @@ val direct_stackv4:
   ?group:string ->
   network impl -> ethernet impl -> arpv4 impl -> ipv4 impl -> stackv4 impl
 
-(** Network stack with sockets. Exposes the key {Key.interfaces}. *)
+(** Network stack with sockets. Exposes the key {!Key.V4.interfaces}. *)
 val socket_stackv4:
   ?group:string -> Ipaddr.V4.t list -> stackv4 impl
 
@@ -393,7 +393,7 @@ val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> ?arp:(ethernet i
  *  build an ipv4, then building a stack on top of that. *)
 val dhcp_ipv4_stack: ?group:string -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
-(** Build a stackv4 by checking the {Key.ip4}, and {Key.ipv4-gateway} keys
+(** Build a stackv4 by checking the {!Key.V4.network}, and {!Key.V4.gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],
  *  then building a stack on top of that. *)
 val static_ipv4_stack: ?group:string -> ?config:ipv4_config -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl

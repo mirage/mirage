@@ -1937,8 +1937,6 @@ let link info name target target_debug =
       | [ libdir ] ->
         Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm") %% of_list ukvm_mods) >>= fun () ->
         Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.ukvm" % "ukvm-bin") >>= fun () ->
-        Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
-        Bos.OS.Cmd.run linker >>= fun () ->
         Ok out
       | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed")
     else

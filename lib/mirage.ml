@@ -1948,6 +1948,26 @@ let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
 
 let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 
+let find_ld pkg =
+  match pkg_config pkg ["--variable=ld"] with
+  | Ok (ld::_) ->
+    Log.warn (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg) ;
+    ld
+  | Ok [] ->
+    Log.warn (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg) ;
+    "ld"
+  | Error msg ->
+    Log.warn (fun m -> m "error %a while pkg-config %s --variable=ld, using ld"
+                 Rresult.R.pp_msg msg pkg) ;
+    "ld"
+
+let solo5_pkg = function
+  | `Virtio -> "solo5-kernel-virtio", ".virtio"
+  | `Muen -> "solo5-kernel-muen", ".muen"
+  | `Ukvm -> "solo5-kernel-ukvm", ".ukvm"
+  | `Unix | `MacOSX | `Xen | `Qubes ->
+    invalid_arg "solo5_kernel only defined for solo5 targets"
+
 let link info name target target_debug =
   let libs = Info.libraries info in
   match target with
@@ -1982,60 +2002,37 @@ let link info name target target_debug =
       Bos.OS.Cmd.run link >>= fun () ->
       Ok out
     end
-  | `Virtio ->
+  | `Virtio | `Muen | `Ukvm ->
+    let pkg, post = solo5_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
-    ldflags "solo5-kernel-virtio" >>= fun ldflags ->
-    ldpostflags "solo5-kernel-virtio" >>= fun ldpostflags ->
-    let out = name ^ ".virtio" in
+    ldflags pkg >>= fun ldflags ->
+    ldpostflags pkg >>= fun ldpostflags ->
+    let out = name ^ post in
+    let ld = find_ld pkg in
     let linker =
-      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
-    Ok out
-  | `Muen ->
-    extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
-    static_libs "mirage-solo5" >>= fun static_libs ->
-    ldflags "solo5-kernel-muen" >>= fun ldflags ->
-    ldpostflags "solo5-kernel-muen" >>= fun ldpostflags ->
-    let out = name ^ ".muen" in
-    let linker =
-      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
-               of_list c_artifacts %% of_list static_libs % "-o" % out
-               %% of_list ldpostflags)
-    in
-    Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
-    Bos.OS.Cmd.run linker >>= fun () ->
-    Ok out
-  | `Ukvm ->
-    extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
-    static_libs "mirage-solo5" >>= fun static_libs ->
-    ldflags "solo5-kernel-ukvm" >>= fun ldflags ->
-    ldpostflags "solo5-kernel-ukvm" >>= fun ldpostflags ->
-    let out = name ^ ".ukvm" in
-    let linker =
-      Bos.Cmd.(v "ld" %% of_list ldflags % "_build/main.native.o" %%
-               of_list c_artifacts %% of_list static_libs % "-o" % out
-               %% of_list ldpostflags)
-    in
-    let ukvm_mods =
-      List.fold_left (fun acc -> function
-        | "mirage-net-solo5" -> "net" :: acc
-        | "mirage-block-solo5" -> "blk" :: acc
-        | _ -> acc)
-        [] libs @ (if target_debug then ["gdb"] else [])
-    in
-    pkg_config "solo5-kernel-ukvm" ["--variable=libdir"] >>= function
-    | [ libdir ] ->
-      Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm") %% of_list ukvm_mods) >>= fun () ->
-      Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.ukvm" % "ukvm-bin") >>= fun () ->
-      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
-      Bos.OS.Cmd.run linker >>= fun () ->
+    if target = `Ukvm then
+      let ukvm_mods =
+        List.fold_left (fun acc -> function
+            | "mirage-net-solo5" -> "net" :: acc
+            | "mirage-block-solo5" -> "blk" :: acc
+            | _ -> acc)
+          [] libs @ (if target_debug then ["gdb"] else [])
+      in
+      pkg_config pkg ["--variable=libdir"] >>= function
+      | [ libdir ] ->
+        Bos.OS.Cmd.run Bos.Cmd.(v "ukvm-configure" % (libdir ^ "/src/ukvm") %% of_list ukvm_mods) >>= fun () ->
+        Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.ukvm" % "ukvm-bin") >>= fun () ->
+        Ok out
+      | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed")
+    else
       Ok out
-    | _ -> R.error_msg "pkg-config solo5-kernel-ukvm --variable=libdir failed"
 
 let build i =
   let name = Info.name i in
@@ -2107,14 +2104,12 @@ module Project = struct
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Xen | `Qubes -> [ package ~min:"3.0.4" "mirage-xen" ] @ common
-        | `Virtio -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-virtio" ;
-                       package ~min:"0.2.0" "mirage-solo5" ] @ common
-        | `Ukvm -> [ package ~min:"0.2.1" ~ocamlfind:[] "solo5-kernel-ukvm" ;
-                     package ~min:"0.2.0" "mirage-solo5" ] @ common
-        | `Muen -> [ package ~ocamlfind:[] "solo5-kernel-muen" ;
-                     package ~min:"0.2.0" "mirage-solo5" ] @ common
         | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ] @ common
+        | `Xen | `Qubes -> [ package ~min:"3.0.4" "mirage-xen" ] @ common
+        | `Virtio | `Ukvm | `Muen as tgt ->
+          let pkg, _ = solo5_pkg tgt in
+          [ package ~min:"0.2.1" ~ocamlfind:[] pkg ;
+            package ~min:"0.2.0" "mirage-solo5" ] @ common
 
       method! build = build
       method! configure = configure

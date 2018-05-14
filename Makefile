@@ -9,6 +9,12 @@ clean:
 doc:
 	jbuilder build --dev @doc
 
+docker:
+	docker build -t unikernel/mirage .
+
+docker-push:
+	docker push unikernel/mirage
+
 REPO=../opam-repository
 PACKAGES=$(REPO)/packages
 

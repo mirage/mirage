@@ -1529,6 +1529,16 @@ let configure_virtio_libvirt_xml ~root ~name =
       append fmt "    <clock offset='utc' adjustment='reset'/>";
       append fmt "    <devices>";
       append fmt "        <emulator>/usr/bin/qemu-system-x86_64</emulator>";
+      append fmt "        <!--";
+      append fmt "        Disk/block configuration reference is here:";
+      append fmt "        https://libvirt.org/formatdomain.html#elementsDisks";
+      append fmt "        This example uses a raw file on the host as a block in the guest:";
+      append fmt "        <disk type='file' device='disk'>";
+      append fmt "            <driver name='qemu' type='raw'/>";
+      append fmt "            <source file='/var/lib/libvirt/images/%s.img'/>" name;
+      append fmt "            <target dev='vda' bus='virtio'/>";
+      append fmt "        </disk>";
+      append fmt "        -->";
       append fmt "        <!-- ";
       append fmt "        Network configuration reference is here:";
       append fmt "        https://libvirt.org/formatdomain.html#elementsNICS";

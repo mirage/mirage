@@ -19,7 +19,7 @@ build: [
 build-test: ["jbuilder" "runtest" "-p" name "-j" jobs]
 
 depends: [
-  "jbuilder" {build & >="1.0+beta10"}
+  "jbuilder" {build & >="1.0+beta20"}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
   "rresult"

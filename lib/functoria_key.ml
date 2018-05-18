@@ -51,7 +51,7 @@ module Arg = struct
 
   let int = conv
       ~conv:Cmdliner.Arg.int ~runtime_conv:"Cmdliner.Arg.int"
-      ~serialize:(fun fmt -> Format.fprintf fmt "%i")
+      ~serialize:(fun fmt i -> Format.fprintf fmt "(%i)" i)
 
   let list d = conv
       ~conv:(Cmdliner.Arg.list (converter d))

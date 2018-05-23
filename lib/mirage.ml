@@ -1507,6 +1507,60 @@ let configure_main_libvirt_xml ~root ~name =
        R.ok ())
     "libvirt.xml"
 
+let configure_virtio_libvirt_xml ~root ~name =
+  let open Codegen in
+  let file = Fpath.(v (name ^  "_libvirt") + "xml") in
+  with_output file
+    (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "<!-- %s -->" (generated_header ());
+      append fmt "<domain type='kvm'>";
+      append fmt "    <name>%s</name>" name;
+      append fmt "    <memory unit='KiB'>262144</memory>";
+      append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
+      append fmt "    <vcpu placement='static'>1</vcpu>";
+      append fmt "    <os>";
+      append fmt "        <type arch='x86_64' machine='pc'>hvm</type>";
+      append fmt "        <kernel>%s/%s.virtio</kernel>" root name;
+      append fmt "        <!-- Command line arguments can be given if required:";
+      append fmt "        <cmdline>-l *:debug</cmdline>";
+      append fmt "        -->";
+      append fmt "    </os>";
+      append fmt "    <clock offset='utc' adjustment='reset'/>";
+      append fmt "    <devices>";
+      append fmt "        <emulator>/usr/bin/qemu-system-x86_64</emulator>";
+      append fmt "        <!--";
+      append fmt "        Disk/block configuration reference is here:";
+      append fmt "        https://libvirt.org/formatdomain.html#elementsDisks";
+      append fmt "        This example uses a raw file on the host as a block in the guest:";
+      append fmt "        <disk type='file' device='disk'>";
+      append fmt "            <driver name='qemu' type='raw'/>";
+      append fmt "            <source file='/var/lib/libvirt/images/%s.img'/>" name;
+      append fmt "            <target dev='vda' bus='virtio'/>";
+      append fmt "        </disk>";
+      append fmt "        -->";
+      append fmt "        <!-- ";
+      append fmt "        Network configuration reference is here:";
+      append fmt "        https://libvirt.org/formatdomain.html#elementsNICS";
+      append fmt "        This example adds a device in the 'default' libvirt bridge:";
+      append fmt "        <interface type='bridge'>";
+      append fmt "            <source bridge='virbr0'/>";
+      append fmt "            <model type='virtio'/>";
+      append fmt "            <alias name='0'/>";
+      append fmt "        </interface>";
+      append fmt "        -->";
+      append fmt "        <serial type='pty'>";
+      append fmt "            <target port='0'/>";
+      append fmt "        </serial>";
+      append fmt "        <console type='pty'>";
+      append fmt "            <target type='serial' port='0'/>";
+      append fmt "        </console>";
+      append fmt "        <memballoon model='none'/>";
+      append fmt "    </devices>";
+      append fmt "</domain>";
+      R.ok ())
+    "libvirt.xml"
+
 let clean_main_libvirt_xml ~name =
   Bos.OS.File.delete Fpath.(v (name ^ "_libvirt") + "xml")
 
@@ -1779,6 +1833,8 @@ let configure i =
     configure_main_xl ~substitutions:[] "xl.in" i >>= fun () ->
     configure_main_xe ~root ~name >>= fun () ->
     configure_main_libvirt_xml ~root ~name
+  | `Virtio ->
+    configure_virtio_libvirt_xml ~root ~name
   | _ -> R.ok ()
 
 let terminal () =

@@ -86,6 +86,7 @@ type mode = [
   | `Xen
   | `Virtio
   | `Ukvm
+  | `Muen
   | `MacOSX
   | `Qubes
 ]
@@ -97,6 +98,7 @@ let target_conv: mode Cmdliner.Arg.converter =
     "xen"   , `Xen;
     "virtio", `Virtio;
     "ukvm"  , `Ukvm;
+    "muen"  , `Muen;
     "qubes" , `Qubes
   ]
 
@@ -113,13 +115,14 @@ let default_unix = lazy (
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
-     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,ukvm)."
+     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,ukvm), $(i,muen)."
   in
   let serialize ppf = function
     | `Unix   -> Fmt.pf ppf "`Unix"
     | `Xen    -> Fmt.pf ppf "`Xen"
     | `Virtio -> Fmt.pf ppf "`Virtio"
     | `Ukvm   -> Fmt.pf ppf "`Ukvm"
+    | `Muen   -> Fmt.pf ppf "`Muen"
     | `MacOSX -> Fmt.pf ppf "`MacOSX"
     | `Qubes  -> Fmt.pf ppf "`Qubes"
   in
@@ -134,7 +137,7 @@ let target =
 let is_unix =
   Key.match_ Key.(value target) @@ function
   | `Unix | `MacOSX -> true
-  | `Qubes | `Xen | `Virtio | `Ukvm -> false
+  | `Qubes | `Xen | `Virtio | `Ukvm | `Muen -> false
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in

@@ -1,3 +1,17 @@
+### 3.1.0
+
+* solo5 v0.3.0 support (#906, by @mato @kensan @hannesm):
+  The major new user-visible features for the Solo5 backends are:
+    ukvm: Now runs natively on FreeBSD vmm and OpenBSD vmm.
+    ukvm: ARM64 support.
+    muen: New target, for the Muen Separation Kernel.
+    ukvm: Improved and documented support for debugging Solo5-based unikernels.
+* generate libvirt.xml for virtio target (#903, by @bramford)
+* don't make xen config documents for target qubes (#895, by @yomimono)
+* use a path pin when making depends (#891, by @yomimono)
+* move block registration to `configure` section (#892, by @yomimono)
+* allow to directly specifying xenstore ids (#879, by @yomimono)
+
 ### 3.0.8 (2017-12-19)
 
 * when passing block devices to `xen`, pass the raw filename rather than trying to infer the xenstore ID (#874, by @yomimono)

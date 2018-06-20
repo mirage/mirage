@@ -1,4 +1,4 @@
-### 3.1.0
+### 3.1.0 (2018-06-20)
 
 * solo5 v0.3.0 support (#906, by @mato @kensan @hannesm):
   The major new user-visible features for the Solo5 backends are:

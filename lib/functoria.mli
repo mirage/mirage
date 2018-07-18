@@ -95,7 +95,18 @@ val match_impl: 'b value -> default:'a impl -> ('b * 'a impl) list ->  'a impl
     [cases] by matching the [v]'s value. [default] is chosen if no
     value matches. *)
 
-module type KEY = module type of struct include Functoria_key end
+
+module type KEY =
+  module type of Functoria_key
+  with type 'a Arg.converter = 'a Functoria_key.Arg.converter
+   and type 'a Arg.t = 'a Functoria_key.Arg.t
+   and type Arg.info = Functoria_key.Arg.info
+   and type 'a value = 'a Functoria_key.value
+   and type 'a key = 'a Functoria_key.key
+   and type t = Functoria_key.t
+   and type Set.t = Functoria_key.Set.t
+   and type 'a Alias.t = 'a Functoria_key.Alias.t
+   and type context = Functoria_key.context
 (** The signature for run-time and configure-time command-line
     keys. *)
 

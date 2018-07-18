@@ -346,6 +346,4 @@ let logs =
   let arg = Key.Arg.(opt logs []) info in
   Key.create "logs" arg
 
-(* FIXME: this is a crazy *)
-include (Key: module type of struct include Functoria_key end
-         with module Arg := Arg and module Alias := Alias)
+include (Key: Functoria.KEY with module Arg := Arg and module Alias := Alias)

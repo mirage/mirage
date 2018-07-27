@@ -458,7 +458,7 @@ class ramdisk_conf rname =
 
 let ramdisk rname = impl (new ramdisk_conf rname)
 
-let generic_block ?(key = Key.value @@ Key.block ()) name =
+let generic_block ?group ?(key = Key.value @@ Key.block ?group ()) name =
   match_impl key [
     `XenstoreId, block_of_xenstore_id name;
     `BlockFile, block_of_file name;
@@ -575,7 +575,7 @@ let kv_ro_of_fs x = kv_ro_of_fs_conf $ x
 
 (** generic kv_ro. *)
 
-let generic_kv_ro ?(key = Key.value @@ Key.kv_ro ()) dir =
+let generic_kv_ro ?group ?(key = Key.value @@ Key.kv_ro ?group ()) dir =
   match_impl key [
     `Fat    , kv_ro_of_fs @@ fat_of_files ~dir () ;
     `Archive, archive_of_files ~dir () ;

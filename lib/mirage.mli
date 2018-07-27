@@ -180,6 +180,7 @@ val ramdisk: string -> block impl
 (** Use a ramdisk with the given name. *)
 
 val generic_block:
+  ?group:string ->
   ?key:[ `XenstoreId | `BlockFile | `Ramdisk ] value -> string -> block impl
 
 (** {2 Static key/value stores} *)
@@ -228,6 +229,7 @@ val kv_ro_of_fs: fs impl -> kv_ro impl
 (** {2 Generic key/value stores} *)
 
 val generic_kv_ro:
+  ?group:string ->
   ?key:[ `Archive | `Crunch | `Direct | `Fat ] value -> string -> kv_ro impl
 (** Generic key/value that will choose dynamically between
     {!fat}, {!archive} and {!crunch}.  To use a filesystem implementation,

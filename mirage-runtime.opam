@@ -10,7 +10,7 @@ tags:         ["org:mirage" "org:xapi-project"]
 doc:          "https://mirage.github.io/mirage/"
 
 build: [
-  ["jbuilder" "subst"]{pinned}
+  ["jbuilder" "subst" "-p" name]{pinned}
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 

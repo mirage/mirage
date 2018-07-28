@@ -1,3 +1,8 @@
+### master
+
+* use the exposed signature in functoria for Key modules (#912, by @Drup)
+* add ?group param to all generic devices (#913, by @samoht)
+
 ### 3.1.0 (2018-06-20)
 
 * solo5 v0.3.0 support (#906, by @mato @kensan @hannesm):

@@ -1,5 +1,7 @@
 ### master
 
+* for the unix target, add `-tags thread`, as done for the mac osx target (#861,
+  suggested by @cfcs)
 * bump minimum mirage-solo5* and solo5-kernel* to 0.3.0 (#914, by @hannesm, as
   suggested by @mato)
 * use the exposed signature in functoria for Key modules (#912, by @Drup)

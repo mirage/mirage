@@ -1,5 +1,7 @@
 ### master
 
+* bump minimum mirage-solo5* and solo5-kernel* to 0.3.0 (#914, by @hannesm, as
+  suggested by @mato)
 * use the exposed signature in functoria for Key modules (#912, by @Drup)
 * add ?group param to all generic devices (#913, by @samoht)
 

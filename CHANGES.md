@@ -1,3 +1,9 @@
+## 2.2.1 (01/08/2018)
+
+* expand signatures manually for 4.07.0 support (#153, by @Drup)
+* fix serialization of negative ints (#152, by @samoht)
+* fix example in README (#144, by @samoht)
+
 ## 2.2.0 (01/08/2017)
 
 * API improvements: add `Functoria_app.packages` and `ignore_dirs`

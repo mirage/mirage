@@ -1,4 +1,4 @@
-### master
+### 3.1.1 (2018-08-01)
 
 * for the unix target, add `-tags thread`, as done for the mac osx target (#861,
   suggested by @cfcs)

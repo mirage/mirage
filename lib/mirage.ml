@@ -291,7 +291,7 @@ let console_solo5 str = impl @@ object
     val name = Name.ocamlify @@ "console_solo5_" ^ str
     method name = name
     method module_name = "Console_solo5"
-    method! packages = Key.pure [ package ~min:"0.2.0" "mirage-console-solo5" ]
+    method! packages = Key.pure [ package ~min:"0.3.0" "mirage-console-solo5" ]
     method! connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
@@ -417,7 +417,7 @@ class block_conf file =
     method! packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes -> xen_block_packages
-      | `Virtio | `Ukvm | `Muen -> [ package ~min:"0.2.1" "mirage-block-solo5" ]
+      | `Virtio | `Ukvm | `Muen -> [ package ~min:"0.3.0" "mirage-block-solo5" ]
       | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
 
     method! configure _ =
@@ -605,7 +605,7 @@ let network_conf (intf : string Key.key) =
       | `MacOSX -> [ package ~min:"1.3.0" "mirage-net-macosx" ]
       | `Xen -> [ package ~min:"1.7.0" "mirage-net-xen"]
       | `Qubes -> [ package ~min:"1.7.0" "mirage-net-xen" ; package ~min:"0.4" "mirage-qubes" ]
-      | `Virtio | `Ukvm | `Muen -> [ package ~min:"0.2.0" "mirage-net-solo5" ]
+      | `Virtio | `Ukvm | `Muen -> [ package ~min:"0.3.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =
@@ -1317,7 +1317,7 @@ let argv_solo5 = impl @@ object
     method ty = Functoria_app.argv
     method name = "argv_solo5"
     method module_name = "Bootvar"
-    method! packages = Key.pure [ package ~min:"0.2.0" "mirage-bootvar-solo5" ]
+    method! packages = Key.pure [ package ~min:"0.3.0" "mirage-bootvar-solo5" ]
     method! connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -1860,7 +1860,7 @@ let compile libs warn_error target =
       "principal";
       "safe_string" ] @
     (if warn_error then ["warn_error(+1..49)"] else []) @
-    (match target with `MacOSX -> ["thread"] | _ -> []) @
+    (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
     (if terminal () then ["color(always)"] else [])
   and result = match target with
     | `Unix | `MacOSX -> "main.native"
@@ -2108,8 +2108,8 @@ module Project = struct
         | `Xen | `Qubes -> [ package ~min:"3.0.4" "mirage-xen" ] @ common
         | `Virtio | `Ukvm | `Muen as tgt ->
           let pkg, _ = solo5_pkg tgt in
-          [ package ~min:"0.2.1" ~ocamlfind:[] pkg ;
-            package ~min:"0.2.0" "mirage-solo5" ] @ common
+          [ package ~min:"0.3.0" ~ocamlfind:[] pkg ;
+            package ~min:"0.3.0" "mirage-solo5" ] @ common
 
       method! build = build
       method! configure = configure

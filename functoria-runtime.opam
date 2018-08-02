@@ -27,4 +27,4 @@ depends: [
   "functoria" {test & >= "2.2.0"}
   "alcotest"  {test}
 ]
-available: [ocaml-version >= "4.02"]
+available: [ocaml-version >= "4.03"]

@@ -1951,7 +1951,7 @@ let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 let find_ld pkg =
   match pkg_config pkg ["--variable=ld"] with
   | Ok (ld::_) ->
-    Log.warn (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg) ;
+    Log.info (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg) ;
     ld
   | Ok [] ->
     Log.warn (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg) ;

@@ -278,15 +278,15 @@ module V4 = struct
 
   let socket ?group default =
     let doc =
-      Fmt.strf "The address bounds by the socket in %a." pp_group group
+      Fmt.strf "The IPv4 address bound by the socket in %a." pp_group group
     in
     create_simple ~doc ~default ?group Arg.(some ipv4_address) "socket"
 
-  let interfaces ?group default =
+  let ips ?group default =
     let doc =
-      Fmt.strf "The interfaces bound by the socket in %a." pp_group group
+      Fmt.strf "The IPv4 addresses bound by the socket in %a." pp_group group
     in
-    create_simple ~doc ~default ?group Arg.(list ipv4_address) "interfaces"
+    create_simple ~doc ~default ?group Arg.(list ipv4_address) "ips"
 
 end
 

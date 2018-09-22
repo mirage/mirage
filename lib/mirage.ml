@@ -1780,8 +1780,6 @@ let configure_makefile ~opam_name =
       R.ok ())
     "Makefile"
 
-let clean_makefile () = Bos.OS.File.delete Fpath.(v "Makefile")
-
 let fn = Fpath.(v "myocamlbuild.ml")
 
 (* ocamlbuild will give a misleading hint on build failures
@@ -1802,9 +1800,11 @@ let clean_myocamlbuild () =
   | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete fn
   | _ -> R.ok ()
 
+let opam_file n = Fpath.(v n + "opam")
+
 let configure_opam ~name info =
   let open Codegen in
-  let file = Fpath.(v name + "opam") in
+  let file = opam_file name in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
@@ -1818,11 +1818,12 @@ let configure_opam ~name info =
       R.ok ())
     "opam file"
 
-let clean_opam ~name = Bos.OS.File.delete Fpath.(v name + "opam")
+let opam_name name target =
+  String.concat ~sep:"-" ["mirage"; "unikernel"; name; target]
 
-let unikernel_name target name =
-  let target = Fmt.strf "%a" Key.pp_target target in
-  String.concat ~sep:"-" ["mirage" ; "unikernel" ; name ; target]
+let unikernel_opam_name name target =
+  let target_str = Fmt.strf "%a" Key.pp_target target in
+  opam_name name target_str
 
 let configure i =
   let name = Info.name i in
@@ -1830,7 +1831,7 @@ let configure i =
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
-  let opam_name = unikernel_name target name in
+  let opam_name = unikernel_opam_name name target in
   let target_debug = Key.(get ctx target_debug) in
   if target_debug && target <> `Hvt then
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
@@ -2055,15 +2056,18 @@ let build i =
 
 let clean i =
   let name = Info.name i in
-  let ctx = Info.context i in
-  let target = Key.(get ctx target) in
   clean_main_xl ~name "xl" >>= fun () ->
   clean_main_xl ~name "xl.in" >>= fun () ->
   clean_main_xe ~name >>= fun () ->
   clean_main_libvirt_xml ~name >>= fun () ->
   clean_myocamlbuild () >>= fun () ->
-  clean_makefile () >>= fun () ->
-  clean_opam ~name:(unikernel_name target name) >>= fun () ->
+  Bos.OS.File.delete Fpath.(v "Makefile") >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Hvt)) >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Unix)) >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Xen)) >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Qubes)) >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Muen)) >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `MacOSX)) >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name) >>= fun () ->
@@ -2077,6 +2081,8 @@ let clean i =
   Bos.OS.File.delete Fpath.(v "solo5-hvt") >>= fun () ->
   (* The following deprecated names are kept here to allow "mirage clean" to
    * continue to work after an upgrade. *)
+  Bos.OS.File.delete (opam_file (opam_name name "ukvm")) >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "ukvm-bin")

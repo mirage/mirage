@@ -184,7 +184,7 @@ module Info = struct
 
   let opam ?name ppf t =
     let name = match name with None -> t.name | Some x -> x in
-    Fmt.pf ppf "opam-version: \"1.2\"@." ;
+    Fmt.pf ppf "opam-version: \"2.0\"@." ;
     Fmt.pf ppf "name: \"%s\"@." name ;
     Fmt.pf ppf "depends: [ @[<hv>%a@]@ ]@."
       (pp_packages ~surround:"\"" ~sep:(Fmt.unit "@ ")) t

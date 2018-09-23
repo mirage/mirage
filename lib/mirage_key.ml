@@ -85,7 +85,7 @@ type mode = [
   | `Unix
   | `Xen
   | `Virtio
-  | `Ukvm
+  | `Hvt
   | `Muen
   | `MacOSX
   | `Qubes
@@ -97,7 +97,7 @@ let target_conv: mode Cmdliner.Arg.converter =
     "macosx", `MacOSX;
     "xen"   , `Xen;
     "virtio", `Virtio;
-    "ukvm"  , `Ukvm;
+    "hvt"    ,`Hvt;
     "muen"  , `Muen;
     "qubes" , `Qubes
   ]
@@ -115,13 +115,13 @@ let default_unix = lazy (
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
-     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,ukvm), $(i,muen)."
+     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,muen)."
   in
   let serialize ppf = function
     | `Unix   -> Fmt.pf ppf "`Unix"
     | `Xen    -> Fmt.pf ppf "`Xen"
     | `Virtio -> Fmt.pf ppf "`Virtio"
-    | `Ukvm   -> Fmt.pf ppf "`Ukvm"
+    | `Hvt    -> Fmt.pf ppf "`Hvt"
     | `Muen   -> Fmt.pf ppf "`Muen"
     | `MacOSX -> Fmt.pf ppf "`MacOSX"
     | `Qubes  -> Fmt.pf ppf "`Qubes"
@@ -137,7 +137,7 @@ let target =
 let is_unix =
   Key.match_ Key.(value target) @@ function
   | `Unix | `MacOSX -> true
-  | `Qubes | `Xen | `Virtio | `Ukvm | `Muen -> false
+  | `Qubes | `Xen | `Virtio | `Hvt | `Muen -> false
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
@@ -147,7 +147,7 @@ let warn_error =
 
 let target_debug =
   let doc = "Enables target-specific support for debugging. Supported \
-             targets: ukvm (compiles ukvm-bin with GDB server support)." in
+             targets: hvt (compiles solo5-hvt with GDB server support)." in
   let doc = Arg.info ~docs:mirage_section ~docv:"DEBUG" ~doc ["g"] in
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "target_debug" key
@@ -278,15 +278,15 @@ module V4 = struct
 
   let socket ?group default =
     let doc =
-      Fmt.strf "The address bounds by the socket in %a." pp_group group
+      Fmt.strf "The IPv4 address bound by the socket in %a." pp_group group
     in
     create_simple ~doc ~default ?group Arg.(some ipv4_address) "socket"
 
-  let interfaces ?group default =
+  let ips ?group default =
     let doc =
-      Fmt.strf "The interfaces bound by the socket in %a." pp_group group
+      Fmt.strf "The IPv4 addresses bound by the socket in %a." pp_group group
     in
-    create_simple ~doc ~default ?group Arg.(list ipv4_address) "interfaces"
+    create_simple ~doc ~default ?group Arg.(list ipv4_address) "ips"
 
 end
 

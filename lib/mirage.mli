@@ -310,14 +310,16 @@ type ipv6_config = {
 (** Types for IP manual configuration. *)
 
 val create_ipv4: ?group:string ->
-  ?config:ipv4_config -> ethernet impl -> arpv4 impl -> ipv4 impl
+  ?config:ipv4_config -> ?random:random impl -> ?clock:mclock impl ->
+  ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address
     Exposes the keys {!Key.V4.network} and {!Key.V4.gateway}.
     If provided, the values of these keys will override those supplied
     in the ipv4 configuration record, if that has been provided.
 *)
 
-val ipv4_qubes: qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
+val ipv4_qubes: ?random:random impl -> ?clock:mclock impl ->
+  qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use a given initialized QubesDB to look up and configure the appropriate
  *  IPv4 interface. *)
 

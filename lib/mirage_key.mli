@@ -30,13 +30,13 @@ end
 
 include Functoria.KEY with module Arg := Arg
 
-type mode = [ `Unix | `Xen | `Qubes | `MacOSX | `Virtio | `Ukvm | `Muen ]
+type mode = [ `Unix | `Xen | `Qubes | `MacOSX | `Virtio | `Hvt | `Muen ]
 
 (** {2 Mirage keys} *)
 
 val target: mode key
 (** [-t TARGET]: Key setting the configuration mode for the current project.
-    Is one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"], ["ukvm"]
+    Is one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"], ["hvt"]
     or ["muen"].
 *)
 
@@ -109,10 +109,10 @@ module V4 : sig
   (** A default gateway option. *)
 
   val socket : ?group:string -> t option -> t option key
-  (** An address bound by a socket. Will be none if no address is provided. *)
+  (** An IPv4 address bound by a socket. Will be none if no address is provided. *)
 
-  val interfaces : ?group:string -> t list -> t list key
-  (** A list of interfaces bound by a socket. *)
+  val ips : ?group:string -> t list -> t list key
+  (** A list of IPv4 addresses bound by a socket. *)
 
 end
 

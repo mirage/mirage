@@ -1,4 +1,4 @@
-### 3.2.0 (2018-09-??)
+### 3.2.0 (2018-09-23)
 
 * adapt to solo5 0.4.0 changes (#924, by @mato)
 Upgrading from Mirage 3.1.x or earlier

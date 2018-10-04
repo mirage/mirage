@@ -58,7 +58,18 @@ let test_output_main_xe () =
          ]
     )
 
+let test_output_main_libvirt_xml () =
+  print_banner "output_main_libvirt_xml";
+  print_endline @@
+  redact_line 1 @@
+  with_fmt_str
+    (Mirage_cli.output_main_libvirt_xml
+       ~root:"ROOT"
+       ~name:"NAME"
+    )
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
+  test_output_main_libvirt_xml ();
   ()

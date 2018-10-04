@@ -72,3 +72,49 @@ xe vbd-param-set uuid=$VBD other-config:owner=true
 echo Starting VM
 xe vm-start uuid=$VM
 
+output_main_libvirt_xml
+=======================
+
+# REDACTED
+<domain type='xen'>
+    <name>NAME</name>
+    <memory unit='KiB'>262144</memory>
+    <currentMemory unit='KiB'>262144</currentMemory>
+    <vcpu placement='static'>1</vcpu>
+    <os>
+        <type arch='armv7l' machine='xenpv'>linux</type>
+        <kernel>ROOT/NAME.xen</kernel>
+        <cmdline> </cmdline>
+    </os>
+    <clock offset='utc' adjustment='reset'/>
+    <on_crash>preserve</on_crash>
+    <!-- 
+    You must define network and block interfaces manually.
+    See http://libvirt.org/drvxen.html for information about converting .xl-files to libvirt xml automatically.
+    -->
+    <devices>
+        <!--
+        The disk configuration is defined here:
+        http://libvirt.org/formatstorage.html.
+        An example would look like:
+         <disk type='block' device='disk'>
+            <driver name='phy'/>
+            <source dev='/dev/loop0'/>
+            <target dev='' bus='xen'/>
+        </disk>
+        -->
+        <!-- 
+        The network configuration is defined here:
+        http://libvirt.org/formatnetwork.html
+        An example would look like:
+        <interface type='bridge'>
+            <mac address='c0:ff:ee:c0:ff:ee'/>
+            <source bridge='br0'/>
+        </interface>
+        -->
+        <console type='pty'>
+            <target type='xen' port='0'/>
+        </console>
+    </devices>
+</domain>
+

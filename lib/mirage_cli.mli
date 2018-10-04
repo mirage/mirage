@@ -13,3 +13,9 @@ val output_main_xe :
   name:string ->
   blocks:(string * int) list ->
   unit
+
+val output_main_libvirt_xml :
+  Format.formatter ->
+  root:string ->
+  name:string ->
+  unit

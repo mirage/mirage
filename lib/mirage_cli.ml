@@ -98,3 +98,52 @@ let output_main_xe fmt ~root ~name ~blocks =
     blocks;
   append fmt "echo Starting VM";
   append fmt "xe vm-start uuid=$VM"
+
+let output_main_libvirt_xml fmt ~root ~name =
+  let open Functoria_app.Codegen in
+  append fmt "<!-- %s -->" (generated_header ());
+  append fmt "<domain type='xen'>";
+  append fmt "    <name>%s</name>" name;
+  append fmt "    <memory unit='KiB'>262144</memory>";
+  append fmt "    <currentMemory unit='KiB'>262144</currentMemory>";
+  append fmt "    <vcpu placement='static'>1</vcpu>";
+  append fmt "    <os>";
+  append fmt "        <type arch='armv7l' machine='xenpv'>linux</type>";
+  append fmt "        <kernel>%s/%s.xen</kernel>" root name;
+  append fmt "        <cmdline> </cmdline>";
+  (* the libxl driver currently needs an empty cmdline to be able to
+      start the domain on arm - due to this?
+      http://lists.xen.org/archives/html/xen-devel/2014-02/msg02375.html *)
+  append fmt "    </os>";
+  append fmt "    <clock offset='utc' adjustment='reset'/>";
+  append fmt "    <on_crash>preserve</on_crash>";
+  append fmt "    <!-- ";
+  append fmt "    You must define network and block interfaces manually.";
+  append fmt "    See http://libvirt.org/drvxen.html for information about \
+              converting .xl-files to libvirt xml automatically.";
+  append fmt "    -->";
+  append fmt "    <devices>";
+  append fmt "        <!--";
+  append fmt "        The disk configuration is defined here:";
+  append fmt "        http://libvirt.org/formatstorage.html.";
+  append fmt "        An example would look like:";
+  append fmt"         <disk type='block' device='disk'>";
+  append fmt "            <driver name='phy'/>";
+  append fmt "            <source dev='/dev/loop0'/>";
+  append fmt "            <target dev='' bus='xen'/>";
+  append fmt "        </disk>";
+  append fmt "        -->";
+  append fmt "        <!-- ";
+  append fmt "        The network configuration is defined here:";
+  append fmt "        http://libvirt.org/formatnetwork.html";
+  append fmt "        An example would look like:";
+  append fmt "        <interface type='bridge'>";
+  append fmt "            <mac address='c0:ff:ee:c0:ff:ee'/>";
+  append fmt "            <source bridge='br0'/>";
+  append fmt "        </interface>";
+  append fmt "        -->";
+  append fmt "        <console type='pty'>";
+  append fmt "            <target type='xen' port='0'/>";
+  append fmt "        </console>";
+  append fmt "    </devices>";
+  append fmt "</domain>"

@@ -36,7 +36,7 @@ module Name: sig
 end
 
 module Codegen: sig
-  val generated_header: unit -> string
+  val generated_header: ?argv:string array -> ?time:float -> unit -> string
   val append: Format.formatter -> ('a, Format.formatter, unit) format -> 'a
   val newline: Format.formatter -> unit
   val set_main_ml: string -> unit

@@ -86,7 +86,7 @@ let test_configure () =
   test "configure -vv --file app/config.ml";
   Alcotest.(check files) "new files should be created in the source dir"
     ["app.ml"; "config.ml"; "myocamlbuild.ml"; "key_gen.ml";
-     "main.ml"; ".mirage.config"; "jbuild"; "_build"
+     "main.ml"; ".mirage.config"; "dune"; "_build"
     ] (list_files "app");
   clean_app ();
 
@@ -100,7 +100,7 @@ let test_configure () =
     ["app.ml"; "config.ml"; "myocamlbuild.ml"; "_build"]
     (list_files "app");
   Alcotest.(check files) "other files should be created in custom_build_"
-    ["main.ml"; "app.ml"; ".mirage.config"; "jbuild"; "key_gen.ml";
+    ["main.ml"; "app.ml"; ".mirage.config"; "dune"; "key_gen.ml";
      "myocamlbuild.ml" (* FIXME: add a .mirage-ignore file to avoid this *) ]
     (list_files "custom_build_");
   clean_build ();

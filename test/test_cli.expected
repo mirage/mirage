@@ -16,3 +16,59 @@ disk = [ 'format=raw, vdev=xvda, access=rw, target=BLOCK_PATH0', 'format=raw, vd
 # or add "script=vif-openvswitch," before the "bridge=" below:
 vif = [ 'bridge=NETWORK1', 'bridge=NETWORK2' ]
 
+output_main_xe
+==============
+
+#!/bin/sh
+# REDACTED
+
+set -e
+
+# Dependency: xe
+command -v xe >/dev/null 2>&1 || { echo >&2 "I require xe but it's not installed.  Aborting."; exit 1; }
+# Dependency: xe-unikernel-upload
+command -v xe-unikernel-upload >/dev/null 2>&1 || { echo >&2 "I require xe-unikernel-upload but it's not installed.  Aborting."; exit 1; }
+# Dependency: a $HOME/.xe
+if [ ! -e $HOME/.xe ]; then
+  echo Please create a config file for xe in $HOME/.xe which contains:
+  echo server='<IP or DNS name of the host running xapi>'
+  echo username=root
+  echo password=password
+  exit 1
+fi
+
+echo Uploading VDI containing unikernel
+VDI=$(xe-unikernel-upload --path ROOT/NAME.xen)
+echo VDI=$VDI
+echo Creating VM metadata
+VM=$(xe vm-create name-label=NAME)
+echo VM=$VM
+xe vm-param-set uuid=$VM PV-bootloader=pygrub
+echo Adding network interface connected to xenbr0
+ETH0=$(xe network-list bridge=xenbr0 params=uuid --minimal)
+VIF=$(xe vif-create vm-uuid=$VM network-uuid=$ETH0 device=0)
+echo Atting block device and making it bootable
+VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=0)
+xe vbd-param-set uuid=$VBD bootable=true
+xe vbd-param-set uuid=$VBD other-config:owner=true
+echo Uploading data VDI FILE1
+echo VDI=$VDI
+SIZE=$(stat --format '%s' ROOT/FILE1)
+POOL=$(xe pool-list params=uuid --minimal)
+SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)
+VDI=$(xe vdi-create type=user name-label='FILE1' virtual-size=$SIZE sr-uuid=$SR)
+xe vdi-import uuid=$VDI filename=ROOT/FILE1
+VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=1)
+xe vbd-param-set uuid=$VBD other-config:owner=true
+echo Uploading data VDI FILE2
+echo VDI=$VDI
+SIZE=$(stat --format '%s' ROOT/FILE2)
+POOL=$(xe pool-list params=uuid --minimal)
+SR=$(xe pool-list uuid=$POOL params=default-SR --minimal)
+VDI=$(xe vdi-create type=user name-label='FILE2' virtual-size=$SIZE sr-uuid=$SR)
+xe vdi-import uuid=$VDI filename=ROOT/FILE2
+VBD=$(xe vbd-create vm-uuid=$VM vdi-uuid=$VDI device=2)
+xe vbd-param-set uuid=$VBD other-config:owner=true
+echo Starting VM
+xe vm-start uuid=$VM
+

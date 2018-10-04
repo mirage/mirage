@@ -6,3 +6,10 @@ val output_main_xl :
   blocks:(int * string) list ->
   networks:string list ->
   unit
+
+val output_main_xe :
+  Format.formatter ->
+  root:string ->
+  name:string ->
+  blocks:(string * int) list ->
+  unit

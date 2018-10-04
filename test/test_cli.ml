@@ -5,7 +5,7 @@ let with_fmt_str k =
   Format.pp_print_flush fmt ();
   Buffer.contents buf
 
-let redact_first_line s =
+let redact_line n s =
   (* At the moment it is not possible to inject argv & time so we remove the
    * generated line.
    * See https://github.com/mirage/functoria/pull/159 *)
@@ -13,7 +13,7 @@ let redact_first_line s =
   let redacted_lines =
     List.mapi
       (fun i line ->
-        if i = 0 then
+        if i + 1 = n then
           "# REDACTED"
         else
           line
@@ -30,7 +30,7 @@ let print_banner s =
 let test_output_main_xl () =
   print_banner "output_main_xl";
   print_endline @@
-  redact_first_line @@
+  redact_line 1 @@
   with_fmt_str
     (Mirage_cli.output_main_xl
        ~name:"NAME"
@@ -44,5 +44,21 @@ let test_output_main_xl () =
        ~networks:["NETWORK1"; "NETWORK2"]
     )
 
+let test_output_main_xe () =
+  print_banner "output_main_xe";
+  print_endline @@
+  redact_line 2 @@
+  with_fmt_str
+    (Mirage_cli.output_main_xe
+       ~root:"ROOT"
+       ~name:"NAME"
+       ~blocks:
+         [ ("FILE1", 1)
+         ; ("FILE2", 2)
+         ]
+    )
+
 let () =
-  test_output_main_xl ()
+  test_output_main_xl ();
+  test_output_main_xe ();
+  ()

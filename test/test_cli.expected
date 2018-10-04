@@ -1,0 +1,18 @@
+output_main_xl
+==============
+
+# REDACTED
+
+name = 'NAME'
+kernel = 'KERNEL'
+builder = 'linux'
+memory = MEMORY
+on_crash = 'preserve'
+
+disk = [ 'format=raw, vdev=xvda, access=rw, target=BLOCK_PATH0', 'format=raw, vdev=xvdb, access=rw, target=BLOCK_PATH1', 'format=raw, vdev=xvdbi, access=rw, target=BLOCK_PATH60' ]
+
+# if your system uses openvswitch then either edit /etc/xen/xl.conf and set
+#     vif.default.script="vif-openvswitch"
+# or add "script=vif-openvswitch," before the "bridge=" below:
+vif = [ 'bridge=NETWORK1', 'bridge=NETWORK2' ]
+

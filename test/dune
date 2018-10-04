@@ -1,0 +1,4 @@
+(test
+ (name test_cli)
+ (libraries mirage)
+)

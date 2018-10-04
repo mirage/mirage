@@ -1636,54 +1636,36 @@ module Substitutions = struct
     ] @ blocks @ networks
 end
 
+let hashtbl_map_values f h =
+  Hashtbl.fold (fun _ v acc -> f v :: acc) h []
+
 let configure_main_xl ?substitutions ext i =
   let open Substitutions in
   let substitutions = match substitutions with
     | Some x -> x
     | None -> defaults i in
+  let blocks =
+    hashtbl_map_values
+      (fun b ->
+        let path = lookup substitutions (Block b) in
+        (b.number, path))
+    all_blocks
+  in
+  let networks =
+    List.map
+    (fun n -> lookup substitutions (Network n))
+    !all_networks
+  in
   let file = Fpath.(v (Info.name i) + ext) in
-  let open Codegen in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ()) ;
-      newline fmt;
-      append fmt "name = '%s'" (lookup substitutions Name);
-      append fmt "kernel = '%s'" (lookup substitutions Kernel);
-      append fmt "builder = 'linux'";
-      append fmt "memory = %s" (lookup substitutions Memory);
-      append fmt "on_crash = 'preserve'";
-      newline fmt;
-      let blocks = List.map
-          (fun b ->
-             (* We need the Linux version of the block number (this is a
-                strange historical artifact) Taken from
-                https://github.com/mirage/mirage-block-xen/blob/
-                a64d152586c7ebc1d23c5adaa4ddd440b45a3a83/lib/device_number.ml#L128 *)
-             let rec string_of_int26 x =
-               let high, low = x / 26 - 1, x mod 26 + 1 in
-               let high' = if high = -1 then "" else string_of_int26 high in
-               let low' =
-                 String.v ~len:1
-                   (fun _ -> char_of_int (low + (int_of_char 'a') - 1))
-               in
-               high' ^ low' in
-             let vdev = Fmt.strf "xvd%s" (string_of_int26 b.number) in
-             let path = lookup substitutions (Block b) in
-             Fmt.strf "'format=raw, vdev=%s, access=rw, target=%s'" vdev path)
-          (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks [])
-      in
-      append fmt "disk = [ %s ]" (String.concat ~sep:", " blocks);
-      newline fmt;
-      let networks = List.map (fun n ->
-          Fmt.strf "'bridge=%s'" (lookup substitutions (Network n)))
-          !all_networks
-      in
-      append fmt "# if your system uses openvswitch then either edit \
-                  /etc/xen/xl.conf and set";
-      append fmt "#     vif.default.script=\"vif-openvswitch\"";
-      append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" \
-                  below:";
-      append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
+      Mirage_cli.output_main_xl
+        fmt
+        ~name:(lookup substitutions Name)
+        ~kernel:(lookup substitutions Kernel)
+        ~memory:(lookup substitutions Memory)
+        ~blocks
+        ~networks;
       R.ok ())
     "xl file"
 

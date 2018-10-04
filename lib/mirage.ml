@@ -1814,7 +1814,6 @@ let configure_opam ~name info =
       append fmt "homepage: \"dummy\"";
       append fmt "bug-reports: \"dummy\"";
       append fmt "build: [ \"mirage\" \"build\" ]";
-      append fmt "available: [ ocaml-version >= \"4.03.0\" ]";
       R.ok ())
     "opam file"
 
@@ -2113,11 +2112,12 @@ module Project = struct
       ]
       method! packages =
         let common = [
-          (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
+          package ~build:true ~min:"4.04.2" "ocaml";
           package "lwt";
+          (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
           package ~min:"3.2.0" "mirage-types-lwt";
           package ~min:"3.2.0" "mirage-types";
-          package ~min:"3.0.0" "mirage-runtime" ;
+          package ~min:"3.2.0" "mirage-runtime" ;
           package ~build:true "ocamlfind" ;
           package ~build:true "ocamlbuild" ;
         ] in

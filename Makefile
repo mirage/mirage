@@ -1,13 +1,16 @@
-.PHONY: all clean doc
+.PHONY: all clean doc test
 
 all:
-	jbuilder build --dev
+	dune build
 
 clean:
-	jbuilder clean
+	dune clean
 
 doc:
-	jbuilder build --dev @doc
+	dune build @doc
+
+test:
+	dune runtest
 
 REPO=../opam-repository
 PACKAGES=$(REPO)/packages

@@ -10,12 +10,15 @@ tags:         ["org:mirage" "org:xapi-project"]
 
 
 build: [
-  ["jbuilder" "subst" "-p" name]{pinned}
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+]
+build-test: [
+  ["dune" "runtest" "-p" name "-j" jobs]
 ]
 
 depends:   [
-  "jbuilder" {build & >= "1.0+beta10"}
+  "dune" {build}
   "mirage-device" {>= "1.0.0"}
   "mirage-time" {>= "1.0.0"}
   "mirage-clock" {>= "1.2.0"}

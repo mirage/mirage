@@ -1,0 +1,21 @@
+(executables
+ (names     test_core)
+ (modules   test_core)
+ (libraries test_app alcotest cmdliner rresult astring))
+
+(executables
+ (names     test_full)
+ (modules   test_full)
+ (libraries test_app alcotest cmdliner rresult astring))
+
+(alias
+ (name    runtest)
+ (package functoria)
+ (deps    (:exe test_core.exe) app/config.ml app/myocamlbuild.ml app/app.ml)
+ (action  (run %{exe})))
+
+(alias
+ (name    runtest)
+ (package functoria-runtime)
+ (deps    (:exe test_full.exe) app/config.ml app/myocamlbuild.ml app/app.ml)
+ (action  (run %{exe})))

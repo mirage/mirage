@@ -13,15 +13,15 @@ license:      "ISC"
 tags:         ["org:mirage"]
 
 build: [
-  ["jbuilder" "subst" "-p" name] {pinned}
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 
 # do not run the tests in parallel as it uses side-effects
-build-test: ["jbuilder" "runtest" "-p" name "-j" "1"]
+build-test: [["dune" "runtest" "-p" name "-j" "1"]]
 
 depends: [
-  "jbuilder" {build & >="1.0+beta10"}
+  "dune" {build}
   "cmdliner" {>= "0.9.8"}
   "fmt"
   "functoria" {test & >= "2.2.0"}

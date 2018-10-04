@@ -1,16 +1,16 @@
 .PHONY: build clean test
 
 build:
-	jbuilder build --dev
+	dune build
 
 test:
-	jbuilder runtest --dev
+	dune runtest
 
 clean:
-	jbuilder clean
+	dune clean
 
 doc:
-	jbuilder build @doc
+	dune build @doc
 
 # until we have https://github.com/ocaml/opam-publish/issues/38
 

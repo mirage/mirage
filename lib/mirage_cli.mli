@@ -19,3 +19,9 @@ val output_main_libvirt_xml :
   root:string ->
   name:string ->
   unit
+
+val output_virtio_libvirt_xml :
+  Format.formatter ->
+  root:string ->
+  name:string ->
+  unit

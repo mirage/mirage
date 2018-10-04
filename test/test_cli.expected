@@ -118,3 +118,52 @@ output_main_libvirt_xml
     </devices>
 </domain>
 
+output_virtio_libvirt_xml
+=========================
+
+# REDACTED
+<domain type='kvm'>
+    <name>NAME</name>
+    <memory unit='KiB'>262144</memory>
+    <currentMemory unit='KiB'>262144</currentMemory>
+    <vcpu placement='static'>1</vcpu>
+    <os>
+        <type arch='x86_64' machine='pc'>hvm</type>
+        <kernel>ROOT/NAME.virtio</kernel>
+        <!-- Command line arguments can be given if required:
+        <cmdline>-l *:debug</cmdline>
+        -->
+    </os>
+    <clock offset='utc' adjustment='reset'/>
+    <devices>
+        <emulator>/usr/bin/qemu-system-x86_64</emulator>
+        <!--
+        Disk/block configuration reference is here:
+        https://libvirt.org/formatdomain.html#elementsDisks
+        This example uses a raw file on the host as a block in the guest:
+        <disk type='file' device='disk'>
+            <driver name='qemu' type='raw'/>
+            <source file='/var/lib/libvirt/images/NAME.img'/>
+            <target dev='vda' bus='virtio'/>
+        </disk>
+        -->
+        <!-- 
+        Network configuration reference is here:
+        https://libvirt.org/formatdomain.html#elementsNICS
+        This example adds a device in the 'default' libvirt bridge:
+        <interface type='bridge'>
+            <source bridge='virbr0'/>
+            <model type='virtio'/>
+            <alias name='0'/>
+        </interface>
+        -->
+        <serial type='pty'>
+            <target port='0'/>
+        </serial>
+        <console type='pty'>
+            <target type='serial' port='0'/>
+        </console>
+        <memballoon model='none'/>
+    </devices>
+</domain>
+

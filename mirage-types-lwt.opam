@@ -8,12 +8,15 @@ tags:         ["org:mirage" "org:xapi-project"]
 
 
 build: [
-  ["jbuilder" "subst" "-p" name]{pinned}
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+]
+build-test: [
+  ["dune" "runtest" "-p" name "-j" jobs]
 ]
 
 depends:   [
-  "jbuilder" {build & >= "1.0+beta10"}
+  "dune" {build & >= "1.1.0"}
   "lwt"
   "cstruct" {>="1.4.0"}
   "io-page" {>="1.4.0"}

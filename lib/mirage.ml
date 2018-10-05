@@ -1647,17 +1647,10 @@ let clean_myocamlbuild () =
 let opam_file n = Fpath.(v n + "opam")
 
 let configure_opam ~name info =
-  let open Codegen in
   let file = opam_file name in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ());
-      Info.opam ~name fmt info;
-      append fmt "maintainer: \"dummy\"";
-      append fmt "authors: \"dummy\"";
-      append fmt "homepage: \"dummy\"";
-      append fmt "bug-reports: \"dummy\"";
-      append fmt "build: [ \"mirage\" \"build\" ]";
+      Mirage_cli.output_opam fmt ~name ~info;
       R.ok ())
     "opam file"
 

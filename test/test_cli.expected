@@ -167,3 +167,21 @@ output_virtio_libvirt_xml
     </devices>
 </domain>
 
+output_opam
+===========
+
+# REDACTED
+opam-version: "1.2"
+name: "NAME"
+depends: [ "pkg1" 
+           "pkg2" {build}
+           "pkg3" {>="3"}
+           "pkg4" {<"4"}
+           "pkg5" {>="5.0" & <"5.1"}
+]
+maintainer: "dummy"
+authors: "dummy"
+homepage: "dummy"
+bug-reports: "dummy"
+build: [ "mirage" "build" ]
+

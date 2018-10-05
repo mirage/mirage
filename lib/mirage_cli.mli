@@ -25,3 +25,9 @@ val output_virtio_libvirt_xml :
   root:string ->
   name:string ->
   unit
+
+val output_opam :
+  Format.formatter ->
+  name:string ->
+  info:Functoria.Info.t ->
+  unit

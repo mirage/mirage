@@ -194,3 +194,12 @@ let output_virtio_libvirt_xml fmt ~root ~name =
   append fmt "        <memballoon model='none'/>";
   append fmt "    </devices>";
   append fmt "</domain>"
+
+let output_opam fmt ~name ~info =
+  append fmt "# %s" (generated_header ());
+  Functoria.Info.opam ~name fmt info;
+  append fmt "maintainer: \"dummy\"";
+  append fmt "authors: \"dummy\"";
+  append fmt "homepage: \"dummy\"";
+  append fmt "bug-reports: \"dummy\"";
+  append fmt "build: [ \"mirage\" \"build\" ]"

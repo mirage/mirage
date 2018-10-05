@@ -78,9 +78,33 @@ let test_output_virtio_libvirt_xml () =
        ~name:"NAME"
     )
 
+let test_output_opam () =
+  print_banner "output_opam";
+  print_endline @@
+  redact_line 1 @@
+  with_fmt_str
+    (Mirage_cli.output_opam
+      ~name:"NAME"
+      ~info:(
+        Functoria.Info.create
+          ~packages:
+            [ Functoria.package "pkg1"
+            ; Functoria.package "pkg2" ~build:true
+            ; Functoria.package "pkg3" ~min:"3"
+            ; Functoria.package "pkg4" ~max:"4"
+            ; Functoria.package "pkg5" ~min:"5.0" ~max:"5.1"
+            ]
+          ~keys:[]
+          ~context:Functoria_key.empty_context
+          ~name:"INFO_NAME"
+          ~build_dir:(Fpath.v "BUILD_DIR")
+      )
+    )
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
   test_output_main_libvirt_xml ();
   test_output_virtio_libvirt_xml ();
+  test_output_opam ();
   ()

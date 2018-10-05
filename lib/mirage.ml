@@ -67,14 +67,7 @@ let qrexec_qubes = impl @@ object
     | `Qubes -> R.ok ()
     | _ -> R.error_msg "Qubes remote-exec invoked for non-Qubes target."
   method! connect _ modname _args =
-    Fmt.strf
-      "@[<v 2>\
-       %s.connect ~domid:0 () >>= fun qrexec ->@ \
-       Lwt.async (fun () ->@ \
-       OS.Lifecycle.await_shutdown_request () >>= fun _ ->@ \
-       %s.disconnect qrexec);@ \
-       Lwt.return (`Ok qrexec)@]"
-      modname modname
+    Mirage_cli.qrexec_qubes_connect ~modname
 end
 
 let gui = job

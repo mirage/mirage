@@ -44,3 +44,5 @@ val output_makefile :
   Format.formatter ->
   opam_name:string ->
   unit
+
+val qrexec_qubes_connect : modname:string -> string

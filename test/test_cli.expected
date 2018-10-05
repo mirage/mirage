@@ -234,3 +234,11 @@ clean::
 	mirage clean
 
 
+qrexec_qubes_connect
+====================
+
+MODNAME.connect ~domid:0 () >>= fun qrexec ->
+  Lwt.async (fun () ->
+  OS.Lifecycle.await_shutdown_request () >>= fun _ ->
+  MODNAME.disconnect qrexec);
+  Lwt.return (`Ok qrexec)

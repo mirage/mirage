@@ -250,3 +250,13 @@ let output_makefile fmt ~opam_name =
               clean::\n\
               \tmirage clean\n"
     opam_name opam_name opam_name opam_name
+
+let qrexec_qubes_connect ~modname =
+  Fmt.strf
+    "@[<v 2>\
+     %s.connect ~domid:0 () >>= fun qrexec ->@ \
+     Lwt.async (fun () ->@ \
+     OS.Lifecycle.await_shutdown_request () >>= fun _ ->@ \
+     %s.disconnect qrexec);@ \
+     Lwt.return (`Ok qrexec)@]"
+    modname modname

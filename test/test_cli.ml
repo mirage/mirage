@@ -121,6 +121,11 @@ let test_output_makefile () =
       ~opam_name:"OPAM_NAME"
     )
 
+let test_qrexec_qubes_connect () =
+  print_banner "qrexec_qubes_connect";
+  print_endline @@
+  Mirage_cli.qrexec_qubes_connect ~modname:"MODNAME"
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
@@ -129,4 +134,5 @@ let () =
   test_output_opam ();
   test_output_fat ();
   test_output_makefile ();
+  test_qrexec_qubes_connect ();
   ()

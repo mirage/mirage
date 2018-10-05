@@ -31,7 +31,12 @@ include Functoria
 let get_target i = Key.(get (Info.context i) target)
 
 let with_output ?mode f k err =
-  match Bos.OS.File.with_oc ?mode f k () with
+  let bos_k oc () =
+    let fmt = Format.formatter_of_out_channel oc in
+    k fmt;
+    R.ok ()
+  in
+  match Bos.OS.File.with_oc ?mode f bos_k () with
   | Ok b -> b
   | Error _ -> R.error_msg ("couldn't open output channel for " ^ err)
 
@@ -521,10 +526,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
       let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
       Log.info (fun m -> m "Generating block generator script: %s" file);
       with_output ~mode:0o755 (Fpath.v file)
-        (fun oc () ->
-           let fmt = Format.formatter_of_out_channel oc in
-           Mirage_cli.output_fat fmt ~block_file ~root ~dir ~regexp;
-           R.ok ())
+        (Mirage_cli.output_fat ~block_file ~root ~dir ~regexp)
         "fat shell script" >>= fun () ->
       Log.info (fun m -> m "Executing block generator script: ./%s" file);
       Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file)) >>= fun () ->
@@ -1445,19 +1447,13 @@ let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
 let configure_main_libvirt_xml ~root ~name =
   let file = Fpath.(v (name ^  "_libvirt") + "xml") in
   with_output file
-    (fun oc () ->
-       let fmt = Format.formatter_of_out_channel oc in
-       Mirage_cli.output_main_libvirt_xml fmt ~root ~name;
-       R.ok ())
+    (Mirage_cli.output_main_libvirt_xml ~root ~name)
     "libvirt.xml"
 
 let configure_virtio_libvirt_xml ~root ~name =
   let file = Fpath.(v (name ^  "_libvirt") + "xml") in
   with_output file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      Mirage_cli.output_virtio_libvirt_xml fmt ~root ~name;
-      R.ok ())
+    (Mirage_cli.output_virtio_libvirt_xml ~root ~name)
     "libvirt.xml"
 
 let clean_main_libvirt_xml ~name =
@@ -1546,40 +1542,33 @@ let configure_main_xl ?substitutions ext i =
     !all_networks
   in
   let file = Fpath.(v (Info.name i) + ext) in
-  with_output file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      Mirage_cli.output_main_xl
-        fmt
+  with_output file
+    (Mirage_cli.output_main_xl
         ~name:(lookup substitutions Name)
         ~kernel:(lookup substitutions Kernel)
         ~memory:(lookup substitutions Memory)
         ~blocks
-        ~networks;
-      R.ok ())
+        ~networks)
     "xl file"
 
 let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
 
 let configure_main_xe ~root ~name =
   let file = Fpath.(v name + "xe") in
+  let blocks = hashtbl_map_values (fun b -> (b.filename, b.number)) all_blocks in
   with_output
     ~mode:0o755
     file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      let blocks = hashtbl_map_values (fun b -> (b.filename, b.number)) all_blocks in
-      Mirage_cli.output_main_xe fmt ~root ~name ~blocks;
-      R.ok ())
+    (Mirage_cli.output_main_xe ~root ~name ~blocks)
     "xe file"
 
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 
 let configure_makefile ~opam_name =
   let file = Fpath.(v "Makefile") in
-  with_output file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      Mirage_cli.output_makefile fmt ~opam_name;
-      R.ok ())
+  with_output
+    file
+    (Mirage_cli.output_makefile ~opam_name)
     "Makefile"
 
 let fn = Fpath.(v "myocamlbuild.ml")
@@ -1606,10 +1595,9 @@ let opam_file n = Fpath.(v n + "opam")
 
 let configure_opam ~name info =
   let file = opam_file name in
-  with_output file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
-      Mirage_cli.output_opam fmt ~name ~info;
-      R.ok ())
+  with_output
+    file
+    (Mirage_cli.output_opam ~name ~info)
     "opam file"
 
 let opam_name name target =

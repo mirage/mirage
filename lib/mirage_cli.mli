@@ -31,3 +31,11 @@ val output_opam :
   name:string ->
   info:Functoria.Info.t ->
   unit
+
+val output_fat :
+  Format.formatter ->
+  block_file:string ->
+  root:Fpath.t ->
+  dir:Fpath.t ->
+  regexp:string ->
+  unit

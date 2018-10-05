@@ -101,10 +101,22 @@ let test_output_opam () =
       )
     )
 
+let test_output_fat () =
+  print_banner "output_fat";
+  print_endline @@
+  with_fmt_str
+    (Mirage_cli.output_fat
+      ~block_file:"BLOCK_FILE"
+      ~root:(Fpath.v "ROOT")
+      ~dir:(Fpath.v "DIR")
+      ~regexp:"REGEXP"
+    )
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
   test_output_main_libvirt_xml ();
   test_output_virtio_libvirt_xml ();
   test_output_opam ();
+  test_output_fat ();
   ()

@@ -203,3 +203,26 @@ let output_opam fmt ~name ~info =
   append fmt "homepage: \"dummy\"";
   append fmt "bug-reports: \"dummy\"";
   append fmt "build: [ \"mirage\" \"build\" ]"
+
+let output_fat fmt ~block_file ~root ~dir ~regexp =
+  append fmt "#!/bin/sh";
+  append fmt "";
+  append fmt "echo This uses the 'fat' command-line tool to \
+              build a simple FAT";
+  append fmt "echo filesystem image.";
+  append fmt "";
+  append fmt "FAT=$(which fat)";
+  append fmt "if [ ! -x \"${FAT}\" ]; then";
+  append fmt "  echo I couldn\\'t find the 'fat' command-line \
+              tool.";
+  append fmt "  echo Try running 'opam install fat-filesystem'";
+  append fmt "  exit 1";
+  append fmt "fi";
+  append fmt "";
+  append fmt "IMG=$(pwd)/%s" block_file;
+  append fmt "rm -f ${IMG}";
+  append fmt "cd %a" Fpath.pp (Fpath.append root dir);
+  append fmt "SIZE=$(du -s . | cut -f 1)";
+  append fmt "${FAT} create ${IMG} ${SIZE}KiB";
+  append fmt "${FAT} add ${IMG} %s" regexp;
+  append fmt "echo Created '%s'" block_file

@@ -523,27 +523,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
       with_output ~mode:0o755 (Fpath.v file)
         (fun oc () ->
            let fmt = Format.formatter_of_out_channel oc in
-           Codegen.append fmt "#!/bin/sh";
-           Codegen.append fmt "";
-           Codegen.append fmt "echo This uses the 'fat' command-line tool to \
-                               build a simple FAT";
-           Codegen.append fmt "echo filesystem image.";
-           Codegen.append fmt "";
-           Codegen.append fmt "FAT=$(which fat)";
-           Codegen.append fmt "if [ ! -x \"${FAT}\" ]; then";
-           Codegen.append fmt "  echo I couldn\\'t find the 'fat' command-line \
-                               tool.";
-           Codegen.append fmt "  echo Try running 'opam install fat-filesystem'";
-           Codegen.append fmt "  exit 1";
-           Codegen.append fmt "fi";
-           Codegen.append fmt "";
-           Codegen.append fmt "IMG=$(pwd)/%s" block_file;
-           Codegen.append fmt "rm -f ${IMG}";
-           Codegen.append fmt "cd %a" Fpath.pp (Fpath.append root dir);
-           Codegen.append fmt "SIZE=$(du -s . | cut -f 1)";
-           Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
-           Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
-           Codegen.append fmt "echo Created '%s'" block_file;
+           Mirage_cli.output_fat fmt ~block_file ~root ~dir ~regexp;
            R.ok ())
         "fat shell script" >>= fun () ->
       Log.info (fun m -> m "Executing block generator script: ./%s" file);

@@ -1575,32 +1575,10 @@ let configure_main_xe ~root ~name =
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 
 let configure_makefile ~opam_name =
-  let open Codegen in
   let file = Fpath.(v "Makefile") in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ());
-      newline fmt;
-      append fmt "-include Makefile.user";
-      newline fmt;
-      append fmt "OPAM = opam\n\
-                  DEPEXT ?= opam depext --yes --update %s\n\
-                  \n\
-                  .PHONY: all depend depends clean build\n\
-                  all:: build\n\
-                  \n\
-                  depend depends::\n\
-                  \t$(OPAM) pin add -k path --no-action --yes %s .\n\
-                  \t$(DEPEXT)\n\
-                  \t$(OPAM) install --yes --deps-only %s\n\
-                  \t$(OPAM) pin remove --no-action %s\n\
-                  \n\
-                  build::\n\
-                  \tmirage build\n\
-                  \n\
-                  clean::\n\
-                  \tmirage clean\n"
-        opam_name opam_name opam_name opam_name;
+      Mirage_cli.output_makefile fmt ~opam_name;
       R.ok ())
     "Makefile"
 

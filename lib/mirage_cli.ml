@@ -226,3 +226,27 @@ let output_fat fmt ~block_file ~root ~dir ~regexp =
   append fmt "${FAT} create ${IMG} ${SIZE}KiB";
   append fmt "${FAT} add ${IMG} %s" regexp;
   append fmt "echo Created '%s'" block_file
+
+let output_makefile fmt ~opam_name =
+  append fmt "# %s" (generated_header ());
+  newline fmt;
+  append fmt "-include Makefile.user";
+  newline fmt;
+  append fmt "OPAM = opam\n\
+              DEPEXT ?= opam depext --yes --update %s\n\
+              \n\
+              .PHONY: all depend depends clean build\n\
+              all:: build\n\
+              \n\
+              depend depends::\n\
+              \t$(OPAM) pin add -k path --no-action --yes %s .\n\
+              \t$(DEPEXT)\n\
+              \t$(OPAM) install --yes --deps-only %s\n\
+              \t$(OPAM) pin remove --no-action %s\n\
+              \n\
+              build::\n\
+              \tmirage build\n\
+              \n\
+              clean::\n\
+              \tmirage clean\n"
+    opam_name opam_name opam_name opam_name

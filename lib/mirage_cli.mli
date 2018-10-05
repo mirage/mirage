@@ -39,3 +39,8 @@ val output_fat :
   dir:Fpath.t ->
   regexp:string ->
   unit
+
+val output_makefile :
+  Format.formatter ->
+  opam_name:string ->
+  unit

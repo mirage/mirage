@@ -208,3 +208,29 @@ ${FAT} create ${IMG} ${SIZE}KiB
 ${FAT} add ${IMG} REGEXP
 echo Created 'BLOCK_FILE'
 
+output_makefile
+===============
+
+# REDACTED
+
+-include Makefile.user
+
+OPAM = opam
+DEPEXT ?= opam depext --yes --update OPAM_NAME
+
+.PHONY: all depend depends clean build
+all:: build
+
+depend depends::
+	$(OPAM) pin add -k path --no-action --yes OPAM_NAME .
+	$(DEPEXT)
+	$(OPAM) install --yes --deps-only OPAM_NAME
+	$(OPAM) pin remove --no-action OPAM_NAME
+
+build::
+	mirage build
+
+clean::
+	mirage clean
+
+

@@ -251,12 +251,23 @@ let output_makefile fmt ~opam_name =
               \tmirage clean\n"
     opam_name opam_name opam_name opam_name
 
+let string_of_expr e =
+  let open Migrate_parsetree in
+  let migrate = Versions.migrate (module OCaml_404) (module OCaml_current) in
+  Format.asprintf "%a" Pprintast.expression @@
+  migrate.Versions.copy_expression e
+
 let qrexec_qubes_connect ~modname =
-  Fmt.strf
-    "@[<v 2>\
-     %s.connect ~domid:0 () >>= fun qrexec ->@ \
-     Lwt.async (fun () ->@ \
-     OS.Lifecycle.await_shutdown_request () >>= fun _ ->@ \
-     %s.disconnect qrexec);@ \
-     Lwt.return (`Ok qrexec)@]"
-    modname modname
+  let in_module s =
+    Ast_404.Ast_helper.Exp.ident @@
+    Location.mknoloc @@
+    Longident.Ldot (Lident modname, s)
+  in
+  string_of_expr
+  [%expr
+     [%e in_module "connect"] ~domid:0 () >>= fun qrexec ->
+     Lwt.async (fun () ->
+         OS.Lifecycle.await_shutdown_request () >>= fun _ ->
+         [%e in_module "disconnect"] qrexec);
+     Lwt.return (`Ok qrexec)
+  ]

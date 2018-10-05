@@ -1,4 +1,6 @@
 (library
   (public_name mirage)
   (wrapped     false)
-  (libraries ipaddr logs astring functoria functoria.app mirage-runtime bos))
+  (libraries ipaddr logs astring functoria functoria.app mirage-runtime bos ocaml-migrate-parsetree)
+  (preprocess (pps ppx_tools_versioned.metaquot_404))
+)

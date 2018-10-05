@@ -13,3 +13,11 @@ val generic_kv_ro :
   -> ?key:[`Archive | `Crunch | `Direct | `Fat] Functoria.value
   -> string
   -> Mirage_impl_kv_ro.kv_ro Functoria.impl
+
+val fat_shell_script :
+     Format.formatter
+  -> block_file:string
+  -> root:Fpath.t
+  -> dir:Fpath.t
+  -> regexp:string
+  -> unit

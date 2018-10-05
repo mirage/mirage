@@ -1,0 +1,4 @@
+(test
+ (name test_generated_files)
+ (libraries mirage)
+)

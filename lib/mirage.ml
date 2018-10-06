@@ -661,9 +661,6 @@ let ip = Type IP
 let ipv4: ipv4 typ = ip
 let ipv6: ipv6 typ = ip
 
-let meta_ipv4 ppf s =
-  Fmt.pf ppf "(Ipaddr.V4.of_string_exn %S)" (Ipaddr.V4.to_string s)
-
 type ipv4_config = {
   network : Ipaddr.V4.Prefix.t * Ipaddr.V4.t;
   gateway : Ipaddr.V4.t option;
@@ -1106,15 +1103,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
         package ~min:"3.0.1" "mirage-conduit" ;
       ]
     method! connect _ modname = function
-      | [ _t ; stack ] ->
-        let meta_ns = Fmt.Dump.option meta_ipv4 in
-        let meta_port = Fmt.(Dump.option int) in
-        Fmt.strf
-          "let ns = %a in@;\
-           let ns_port = %a in@;\
-           let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
-           Lwt.return res@;"
-          meta_ns ns meta_port ns_port modname stack
+      | [ _t ; stack ] -> Mirage_cli.resolver_dns_conf_connect ~ns ~ns_port ~modname ~stack
       | _ -> failwith (connect_err "resolver" 2)
   end
 

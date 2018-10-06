@@ -50,3 +50,10 @@ val qrexec_qubes_connect : modname:string -> string
 val gui_qubes_connect : modname:string -> string
 
 val conduit_with_connectors_connect : connectors:string list -> string
+
+val resolver_dns_conf_connect :
+  ns:Ipaddr.V4.t option ->
+  ns_port:int option ->
+  modname:string ->
+  stack:string ->
+  string

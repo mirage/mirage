@@ -136,6 +136,15 @@ let test_conduit_with_connectors_connect () =
   print_endline @@
   Mirage_cli.conduit_with_connectors_connect ~connectors:["CONNECTOR1"; "CONNECTOR2"]
 
+let test_resolver_dns_conf_connect () =
+  print_banner "resolver_dns_conf_connect";
+  print_endline @@
+  Mirage_cli.resolver_dns_conf_connect
+    ~ns:(Some (Ipaddr.V4.make 192 168 0 1))
+    ~ns_port:(Some 1234)
+    ~modname:"MODNAME"
+    ~stack:"STACK"
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
@@ -147,4 +156,5 @@ let () =
   test_qrexec_qubes_connect ();
   test_gui_qubes_connect ();
   test_conduit_with_connectors_connect ();
+  test_resolver_dns_conf_connect ();
   ()

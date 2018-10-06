@@ -260,4 +260,3 @@ resolver_dns_conf_connect
 let ns = Some (Ipaddr.V4.of_string_exn "192.168.0.1") in
 let ns_port = Some 1234 in
 let res = MODNAME.R.init ?ns ?ns_port ~stack:STACK () in Lwt.return res
-

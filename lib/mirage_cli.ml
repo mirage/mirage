@@ -291,13 +291,29 @@ let conduit_with_connectors_connect ~connectors =
   bind [%expr Lwt.return Conduit_mirage.empty] @@
   List.fold_right go connectors init
 
+let make_string_lit s =
+  let open Ast_404.Ast_helper in
+  Exp.constant @@ Const.string s
+
+let make_int_lit n =
+  let open Ast_404.Ast_helper in
+  Exp.constant @@ Const.int n
+
+let opt f =
+  function
+  | None -> [%expr None]
+  | Some x -> [%expr Some [%e f x]]
+
 let resolver_dns_conf_connect ~ns ~ns_port ~modname ~stack =
-  let meta_ipv4 ppf s = Fmt.pf ppf "(Ipaddr.V4.of_string_exn %S)" (Ipaddr.V4.to_string s) in
-  let meta_ns = Fmt.Dump.option meta_ipv4 in
-  let meta_port = Fmt.(Dump.option int) in
-  Fmt.strf
-    "let ns = %a in@;\
-     let ns_port = %a in@;\
-     let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
-     Lwt.return res@;"
-    meta_ns ns meta_port ns_port modname stack
+  let expr_ipv4 addr =
+    [%expr Ipaddr.V4.of_string_exn [%e make_string_lit (Ipaddr.V4.to_string addr)]]
+  in
+  let init = ident @@ Longident.Ldot (Ldot (Lident modname, "R"), "init") in
+  let stack = ident @@ Longident.Lident stack in
+  string_of_expr
+  [%expr
+    let ns = [%e opt expr_ipv4 ns] in
+    let ns_port = [%e opt make_int_lit ns_port] in
+    let res = [%e init] ?ns ?ns_port ~stack:[%e stack] () in
+    Lwt.return res
+  ]

@@ -255,6 +255,9 @@ val empty_context : context
 
 val merge_context : default:context -> context -> context
 
+(** Add a binding to a context. *)
+val add_to_context : 'a key -> 'a -> context -> context
+
 val context:
   ?stage:Arg.stage -> with_required: bool ->
   Set.t -> context Cmdliner.Term.t

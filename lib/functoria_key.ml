@@ -262,6 +262,7 @@ let filter_stage stage s = match stage with
 type context = Univ.t
 let empty_context = Univ.empty
 let merge_context = Univ.merge
+let add_to_context t = Univ.add t.key
 
 let get (type a) ctx (t : a key) : a =
   match t.arg.Arg.kind, Univ.find t.key ctx with

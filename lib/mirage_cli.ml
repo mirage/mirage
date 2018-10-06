@@ -312,8 +312,11 @@ let resolver_dns_conf_connect ~ns ~ns_port ~modname ~stack =
   let stack = ident @@ Longident.Lident stack in
   string_of_expr
   [%expr
-    let ns = [%e opt expr_ipv4 ns] in
-    let ns_port = [%e opt make_int_lit ns_port] in
-    let res = [%e init] ?ns ?ns_port ~stack:[%e stack] () in
-    Lwt.return res
+    Lwt.return (
+      [%e init]
+        ?ns:[%e opt expr_ipv4 ns]
+        ?ns_port:[%e opt make_int_lit ns_port]
+        ~stack:[%e stack]
+        ()
+    )
   ]

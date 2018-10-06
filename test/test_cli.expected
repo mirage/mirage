@@ -247,6 +247,5 @@ qrexec_qubes_connect
 gui_qubes_connect
 =================
 
-MODNAME.connect ~domid:0 () >>= fun gui ->
-  Lwt.async (fun () -> MODNAME.listen gui);
-  Lwt.return (`Ok gui)
+(MODNAME.connect ~domid:0 ()) >>=
+  (fun gui -> Lwt.async (fun () -> MODNAME.listen gui); Lwt.return (`Ok gui))

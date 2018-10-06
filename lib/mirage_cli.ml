@@ -257,25 +257,25 @@ let string_of_expr e =
   Format.asprintf "%a" Pprintast.expression @@
   migrate.Versions.copy_expression e
 
+let in_module ~modname s =
+  Ast_404.Ast_helper.Exp.ident @@
+  Location.mknoloc @@
+  Longident.Ldot (Lident modname, s)
+
 let qrexec_qubes_connect ~modname =
-  let in_module s =
-    Ast_404.Ast_helper.Exp.ident @@
-    Location.mknoloc @@
-    Longident.Ldot (Lident modname, s)
-  in
   string_of_expr
   [%expr
-     [%e in_module "connect"] ~domid:0 () >>= fun qrexec ->
+     [%e in_module ~modname "connect"] ~domid:0 () >>= fun qrexec ->
      Lwt.async (fun () ->
          OS.Lifecycle.await_shutdown_request () >>= fun _ ->
-         [%e in_module "disconnect"] qrexec);
+         [%e in_module ~modname "disconnect"] qrexec);
      Lwt.return (`Ok qrexec)
   ]
 
 let gui_qubes_connect ~modname =
-  Fmt.strf
-    "@[<v 2>\
-     %s.connect ~domid:0 () >>= fun gui ->@ \
-     Lwt.async (fun () -> %s.listen gui);@ \
-     Lwt.return (`Ok gui)@]"
-    modname modname
+  string_of_expr
+  [%expr
+     [%e in_module ~modname "connect"] ~domid:0 () >>= fun gui ->
+     Lwt.async (fun () -> [%e in_module ~modname "listen"] gui);
+     Lwt.return (`Ok gui)
+  ]

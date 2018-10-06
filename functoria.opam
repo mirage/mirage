@@ -30,5 +30,6 @@ depends: [
   "bos"
   "fpath"
   "alcotest" {test}
+  "ptime"
 ]
 available: [ocaml-version >= "4.03"]

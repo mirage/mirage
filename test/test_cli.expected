@@ -249,3 +249,8 @@ gui_qubes_connect
 
 (MODNAME.connect ~domid:0 ()) >>=
   (fun gui -> Lwt.async (fun () -> MODNAME.listen gui); Lwt.return (`Ok gui))
+conduit_with_connectors_connect
+===============================
+
+Lwt.return Conduit_mirage.empty >>= CONNECTOR1 >>= CONNECTOR2 >>=
+fun t -> Lwt.return t

@@ -1061,14 +1061,7 @@ let conduit_with_connectors connectors = impl @@ object
 
     method! connect _i _ = function
       (* There is always at least the nocrypto device *)
-      | _nocrypto :: connectors ->
-        let pp_connector = Fmt.fmt "%s >>=@ " in
-        let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
-        Fmt.strf
-          "Lwt.return Conduit_mirage.empty >>=@ \
-           %a\
-           fun t -> Lwt.return t"
-          pp_connectors connectors
+      | _nocrypto :: connectors -> Mirage_cli.conduit_with_connectors_connect ~connectors
       | [] -> failwith "The conduit with connectors expects at least one argument"
   end
 

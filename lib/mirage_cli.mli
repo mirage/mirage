@@ -48,3 +48,5 @@ val output_makefile :
 val qrexec_qubes_connect : modname:string -> string
 
 val gui_qubes_connect : modname:string -> string
+
+val conduit_with_connectors_connect : connectors:string list -> string

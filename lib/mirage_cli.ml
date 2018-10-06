@@ -279,3 +279,12 @@ let gui_qubes_connect ~modname =
      Lwt.async (fun () -> [%e in_module ~modname "listen"] gui);
      Lwt.return (`Ok gui)
   ]
+
+let conduit_with_connectors_connect ~connectors =
+  let pp_connector = Fmt.fmt "%s >>=@ " in
+  let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
+  Fmt.strf
+    "Lwt.return Conduit_mirage.empty >>=@ \
+     %a\
+     fun t -> Lwt.return t"
+    pp_connectors connectors

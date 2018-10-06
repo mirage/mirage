@@ -131,6 +131,11 @@ let test_gui_qubes_connect () =
   print_endline @@
   Mirage_cli.gui_qubes_connect ~modname:"MODNAME"
 
+let test_conduit_with_connectors_connect () =
+  print_banner "conduit_with_connectors_connect";
+  print_endline @@
+  Mirage_cli.conduit_with_connectors_connect ~connectors:["CONNECTOR1"; "CONNECTOR2"]
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
@@ -141,4 +146,5 @@ let () =
   test_output_makefile ();
   test_qrexec_qubes_connect ();
   test_gui_qubes_connect ();
+  test_conduit_with_connectors_connect ();
   ()

@@ -126,6 +126,11 @@ let test_qrexec_qubes_connect () =
   print_endline @@
   Mirage_cli.qrexec_qubes_connect ~modname:"MODNAME"
 
+let test_gui_qubes_connect () =
+  print_banner "gui_qubes_connect";
+  print_endline @@
+  Mirage_cli.gui_qubes_connect ~modname:"MODNAME"
+
 let () =
   test_output_main_xl ();
   test_output_main_xe ();
@@ -135,4 +140,5 @@ let () =
   test_output_fat ();
   test_output_makefile ();
   test_qrexec_qubes_connect ();
+  test_gui_qubes_connect ();
   ()

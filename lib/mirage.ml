@@ -84,12 +84,7 @@ let gui_qubes = impl @@ object
     | `Qubes -> R.ok ()
     | _ -> R.error_msg "Qubes GUI invoked for non-Qubes target."
   method! connect _ modname _args =
-    Fmt.strf
-      "@[<v 2>\
-       %s.connect ~domid:0 () >>= fun gui ->@ \
-       Lwt.async (fun () -> %s.listen gui);@ \
-       Lwt.return (`Ok gui)@]"
-      modname modname
+    Mirage_cli.gui_qubes_connect ~modname
 end
 
 type qubesdb = QUBES_DB

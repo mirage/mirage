@@ -271,3 +271,11 @@ let qrexec_qubes_connect ~modname =
          [%e in_module "disconnect"] qrexec);
      Lwt.return (`Ok qrexec)
   ]
+
+let gui_qubes_connect ~modname =
+  Fmt.strf
+    "@[<v 2>\
+     %s.connect ~domid:0 () >>= fun gui ->@ \
+     Lwt.async (fun () -> %s.listen gui);@ \
+     Lwt.return (`Ok gui)@]"
+    modname modname

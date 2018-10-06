@@ -46,3 +46,5 @@ val output_makefile :
   unit
 
 val qrexec_qubes_connect : modname:string -> string
+
+val gui_qubes_connect : modname:string -> string

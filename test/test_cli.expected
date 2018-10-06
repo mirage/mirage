@@ -244,3 +244,9 @@ qrexec_qubes_connect
           (OS.Lifecycle.await_shutdown_request ()) >>=
             (fun _ -> MODNAME.disconnect qrexec));
      Lwt.return (`Ok qrexec))
+gui_qubes_connect
+=================
+
+MODNAME.connect ~domid:0 () >>= fun gui ->
+  Lwt.async (fun () -> MODNAME.listen gui);
+  Lwt.return (`Ok gui)

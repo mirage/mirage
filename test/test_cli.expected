@@ -252,5 +252,5 @@ gui_qubes_connect
 conduit_with_connectors_connect
 ===============================
 
-Lwt.return Conduit_mirage.empty >>= CONNECTOR1 >>= CONNECTOR2 >>=
-fun t -> Lwt.return t
+(Lwt.return Conduit_mirage.empty) >>=
+  (CONNECTOR1 >>= (CONNECTOR2 >>= (fun t -> Lwt.return t)))

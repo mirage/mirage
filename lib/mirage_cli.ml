@@ -257,9 +257,12 @@ let string_of_expr e =
   Format.asprintf "%a" Pprintast.expression @@
   migrate.Versions.copy_expression e
 
-let in_module ~modname s =
+let ident lid =
   Ast_404.Ast_helper.Exp.ident @@
-  Location.mknoloc @@
+  Location.mknoloc lid
+
+let in_module ~modname s =
+  ident @@
   Longident.Ldot (Lident modname, s)
 
 let qrexec_qubes_connect ~modname =
@@ -281,10 +284,9 @@ let gui_qubes_connect ~modname =
   ]
 
 let conduit_with_connectors_connect ~connectors =
-  let pp_connector = Fmt.fmt "%s >>=@ " in
-  let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
-  Fmt.strf
-    "Lwt.return Conduit_mirage.empty >>=@ \
-     %a\
-     fun t -> Lwt.return t"
-    pp_connectors connectors
+  let bind x f = [%expr [%e x] >>= [%e f]] in
+  let init = [%expr fun t -> Lwt.return t] in
+  let go connector acc = bind (ident (Longident.Lident connector)) acc in
+  string_of_expr @@
+  bind [%expr Lwt.return Conduit_mirage.empty] @@
+  List.fold_right go connectors init

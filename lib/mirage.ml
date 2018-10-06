@@ -30,10 +30,8 @@ include Functoria
 
 let get_target i = Key.(get (Info.context i) target)
 
-let with_output ?mode f k err =
-  match Bos.OS.File.with_oc ?mode f k () with
-  | Ok b -> b
-  | Error _ -> R.error_msg ("couldn't open output channel for " ^ err)
+let with_output ?mode path k purpose =
+  Mirage_job.with_out ~mode ~path ~purpose k
 
 let connect_err name number =
   Fmt.strf "The %s connect expects exactly %d argument%s"
@@ -520,9 +518,9 @@ let fat_block ?(dir=".") ?(regexp="*") () =
       let file = Fmt.strf "make-%s-image.sh" name in
       let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
       Log.info (fun m -> m "Generating block generator script: %s" file);
+      Mirage_job.run @@
       with_output ~mode:0o755 (Fpath.v file)
-        (fun oc () ->
-           let fmt = Format.formatter_of_out_channel oc in
+        (fun fmt ->
            Codegen.append fmt "#!/bin/sh";
            Codegen.append fmt "";
            Codegen.append fmt "echo This uses the 'fat' command-line tool to \
@@ -544,7 +542,7 @@ let fat_block ?(dir=".") ?(regexp="*") () =
            Codegen.append fmt "${FAT} create ${IMG} ${SIZE}KiB";
            Codegen.append fmt "${FAT} add ${IMG} %s" regexp;
            Codegen.append fmt "echo Created '%s'" block_file;
-           R.ok ())
+           ())
         "fat shell script" >>= fun () ->
       Log.info (fun m -> m "Executing block generator script: ./%s" file);
       Bos.OS.Cmd.run (Bos.Cmd.v ("./" ^ file)) >>= fun () ->
@@ -1466,8 +1464,7 @@ let configure_main_libvirt_xml ~root ~name =
   let open Codegen in
   let file = Fpath.(v (name ^  "_libvirt") + "xml") in
   with_output file
-    (fun oc () ->
-       let fmt = Format.formatter_of_out_channel oc in
+    (fun fmt ->
        append fmt "<!-- %s -->" (generated_header ());
        append fmt "<domain type='xen'>";
        append fmt "    <name>%s</name>" name;
@@ -1514,15 +1511,14 @@ let configure_main_libvirt_xml ~root ~name =
        append fmt "        </console>";
        append fmt "    </devices>";
        append fmt "</domain>";
-       R.ok ())
+       ())
     "libvirt.xml"
 
 let configure_virtio_libvirt_xml ~root ~name =
   let open Codegen in
   let file = Fpath.(v (name ^  "_libvirt") + "xml") in
   with_output file
-    (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+    (fun fmt ->
       append fmt "<!-- %s -->" (generated_header ());
       append fmt "<domain type='kvm'>";
       append fmt "    <name>%s</name>" name;
@@ -1568,7 +1564,7 @@ let configure_virtio_libvirt_xml ~root ~name =
       append fmt "        <memballoon model='none'/>";
       append fmt "    </devices>";
       append fmt "</domain>";
-      R.ok ())
+      ())
     "libvirt.xml"
 
 let clean_main_libvirt_xml ~name =
@@ -1643,8 +1639,7 @@ let configure_main_xl ?substitutions ext i =
     | None -> defaults i in
   let file = Fpath.(v (Info.name i) + ext) in
   let open Codegen in
-  with_output file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  with_output file (fun fmt ->
       append fmt "# %s" (generated_header ()) ;
       newline fmt;
       append fmt "name = '%s'" (lookup substitutions Name);
@@ -1684,7 +1679,7 @@ let configure_main_xl ?substitutions ext i =
       append fmt "# or add \"script=vif-openvswitch,\" before the \"bridge=\" \
                   below:";
       append fmt "vif = [ %s ]" (String.concat ~sep:", " networks);
-      R.ok ())
+      ())
     "xl file"
 
 let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
@@ -1692,8 +1687,7 @@ let clean_main_xl ~name ext = Bos.OS.File.delete Fpath.(v name + ext)
 let configure_main_xe ~root ~name =
   let open Codegen in
   let file = Fpath.(v name + "xe") in
-  with_output ~mode:0o755 file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  with_output ~mode:0o755 file (fun fmt ->
       append fmt "#!/bin/sh";
       append fmt "# %s" (generated_header ());
       newline fmt;
@@ -1745,7 +1739,7 @@ let configure_main_xe ~root ~name =
         (Hashtbl.fold (fun _ v acc -> v :: acc) all_blocks []);
       append fmt "echo Starting VM";
       append fmt "xe vm-start uuid=$VM";
-      R.ok ())
+      ())
     "xe file"
 
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
@@ -1753,8 +1747,7 @@ let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 let configure_makefile ~opam_name =
   let open Codegen in
   let file = Fpath.(v "Makefile") in
-  with_output file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  with_output file (fun fmt ->
       append fmt "# %s" (generated_header ());
       newline fmt;
       append fmt "-include Makefile.user";
@@ -1777,7 +1770,7 @@ let configure_makefile ~opam_name =
                   clean::\n\
                   \tmirage clean\n"
         opam_name opam_name opam_name opam_name;
-      R.ok ())
+      ())
     "Makefile"
 
 let fn = Fpath.(v "myocamlbuild.ml")
@@ -1790,9 +1783,11 @@ let fn = Fpath.(v "myocamlbuild.ml")
  * ( https://github.com/ocaml/ocamlbuild/blob/0eb62b72b5abd520484210125b18073338a634bc/src/options.ml#L375-L387 )
  * so we create an empty myocamlbuild.ml . *)
 let configure_myocamlbuild () =
-  Bos.OS.File.exists fn >>= function
-  | true -> R.ok ()
-  | false -> Bos.OS.File.write fn ""
+  let open Mirage_job in
+  let open Mirage_job.Infix in
+  exists fn >>= function
+  | true -> return ()
+  | false -> write_file fn ""
 
 (* we made it, so we should clean it up *)
 let clean_myocamlbuild () =
@@ -1805,8 +1800,7 @@ let opam_file n = Fpath.(v n + "opam")
 let configure_opam ~name info =
   let open Codegen in
   let file = opam_file name in
-  with_output file (fun oc () ->
-      let fmt = Format.formatter_of_out_channel oc in
+  with_output file (fun fmt ->
       append fmt "# %s" (generated_header ());
       Info.opam ~name fmt info;
       append fmt "maintainer: \"dummy\"";
@@ -1814,7 +1808,7 @@ let configure_opam ~name info =
       append fmt "homepage: \"dummy\"";
       append fmt "bug-reports: \"dummy\"";
       append fmt "build: [ \"mirage\" \"build\" ]";
-      R.ok ())
+      ())
     "opam file"
 
 let opam_name name target =
@@ -1825,6 +1819,7 @@ let unikernel_opam_name name target =
   opam_name name target_str
 
 let configure i =
+  let open Mirage_job.Infix in
   let name = Info.name i in
   let root = Fpath.to_string (Info.build_dir i) in
   let ctx = Info.context i in
@@ -1845,7 +1840,7 @@ let configure i =
     configure_main_libvirt_xml ~root ~name
   | `Virtio ->
     configure_virtio_libvirt_xml ~root ~name
-  | _ -> R.ok ()
+  | _ -> Mirage_job.return ()
 
 let terminal () =
   let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
@@ -2130,7 +2125,8 @@ module Project = struct
             package ~min:"0.4.0" "mirage-solo5" ] @ common
 
       method! build = build
-      method! configure = configure
+      method! configure i =
+        Mirage_job.run (configure i)
       method! clean = clean
       method! connect _ _mod _names = "Lwt.return_unit"
       method! deps = List.map abstract jobs

@@ -1,0 +1,29 @@
+unix
+====
+
+Exists? myocamlbuild.ml -> false
+Write to myocamlbuild.ml (0 bytes)
+Write (fmt) to mirage-unikernel-NAME-unix.opam (mode: default, purpose: opam file)
+Write (fmt) to Makefile (mode: default, purpose: Makefile)
+
+xen
+===
+
+Exists? myocamlbuild.ml -> false
+Write to myocamlbuild.ml (0 bytes)
+Write (fmt) to mirage-unikernel-NAME-xen.opam (mode: default, purpose: opam file)
+Write (fmt) to Makefile (mode: default, purpose: Makefile)
+Write (fmt) to NAME.xl (mode: default, purpose: xl file)
+Write (fmt) to NAME.xl.in (mode: default, purpose: xl file)
+Write (fmt) to NAME.xe (mode: 0755, purpose: xe file)
+Write (fmt) to NAME_libvirt.xml (mode: default, purpose: libvirt.xml)
+
+virtio
+======
+
+Exists? myocamlbuild.ml -> false
+Write to myocamlbuild.ml (0 bytes)
+Write (fmt) to mirage-unikernel-NAME-virtio.opam (mode: default, purpose: opam file)
+Write (fmt) to Makefile (mode: default, purpose: Makefile)
+Write (fmt) to NAME_libvirt.xml (mode: default, purpose: libvirt.xml)
+

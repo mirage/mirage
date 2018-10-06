@@ -529,3 +529,5 @@ val register:
 (**/**)
 
 val run: unit -> unit
+
+val configure : Info.t -> unit Mirage_job.t

@@ -1,0 +1,11 @@
+(test
+ (name test_mirage_job)
+ (modules test_mirage_job)
+ (libraries alcotest mirage)
+)
+
+(test
+ (name test_jobs)
+ (modules test_jobs)
+ (libraries mirage)
+)

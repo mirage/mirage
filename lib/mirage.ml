@@ -183,7 +183,7 @@ let stdlib_random_conf = object
   method name = "random"
   method module_name = "Stdlibrandom"
   method! packages = Key.pure [ package "mirage-random" ]
-  method! connect _ modname _ = Fmt.strf "Lwt.return (%s.initialize ())" modname
+  method! connect _ modname _ = Fmt.strf "%s.initialize ()" modname
 end
 
 let stdlib_random = impl stdlib_random_conf

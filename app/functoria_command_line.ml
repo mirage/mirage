@@ -65,7 +65,7 @@ let full_eval =
   in
   let no_eval_doc =
     Arg.info ~docs:description_section ["no-eval"]
-    ~doc:"Do not evaluate the graph before showing it. See ${b,--eval}. \
+    ~doc:"Do not evaluate the graph before showing it. See $(b,--eval). \
           The default when the unikernel has not been configured."
   in
   let eval_opts = [ (Some true, eval_doc) ; (Some false, no_eval_doc) ] in

@@ -5,8 +5,9 @@ let argv_unix = impl @@ object
     inherit base_configurable
     method ty = Functoria_app.argv
     method name = "argv_unix"
-    method module_name = "OS.Env"
-    method! connect _ _ _ = "OS.Env.argv ()"
+    method module_name = "Bootvar"
+    method! packages = Key.pure [ package "mirage-bootvar-unix" ]
+    method! connect _ _ _ = "Bootvar.argv ()"
   end
 
 let argv_solo5 = impl @@ object

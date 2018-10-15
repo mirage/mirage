@@ -1,12 +1,12 @@
-type fs
+type t
 
-val fs : fs Functoria.typ
+val typ : t Functoria.typ
 
-val fat : Mirage_impl_block.block Functoria.impl -> fs Functoria.impl
+val fat : Mirage_impl_block.block Functoria.impl -> t Functoria.impl
 
-val fat_of_files : ?dir:string -> ?regexp:string -> unit -> fs Functoria.impl
+val fat_of_files : ?dir:string -> ?regexp:string -> unit -> t Functoria.impl
 
-val kv_ro_of_fs : fs Functoria.impl -> Mirage_impl_kv_ro.kv_ro Functoria.impl
+val kv_ro_of_fs : t Functoria.impl -> Mirage_impl_kv_ro.kv_ro Functoria.impl
 
 val generic_kv_ro :
      ?group:string

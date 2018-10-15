@@ -7,16 +7,16 @@ open Mirage_impl_kv_ro
 open Mirage_impl_misc
 open Rresult
 
-type fs = FS
+type t = FS
 
-let fs = Type FS
+let typ = Type FS
 
 let fat_conf =
   impl
   @@ object
        inherit base_configurable
 
-       method ty = block @-> fs
+       method ty = block @-> typ
 
        method! packages = Key.pure [package ~min:"0.12.0" "fat-filesystem"]
 
@@ -101,7 +101,7 @@ let kv_ro_of_fs_conf =
   @@ object
        inherit base_configurable
 
-       method ty = fs @-> kv_ro
+       method ty = typ @-> kv_ro
 
        method name = "kv_ro_of_fs"
 

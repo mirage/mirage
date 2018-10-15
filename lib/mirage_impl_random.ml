@@ -7,9 +7,9 @@ let stdlib_random_conf = object
   inherit base_configurable
   method ty = random
   method name = "random"
-  method module_name = "Stdlibrandom"
-  method! packages = Mirage_key.pure [ package "mirage-random" ]
-  method! connect _ modname _ = Fmt.strf "Lwt.return (%s.initialize ())" modname
+  method module_name = "Mirage_random_stdlib"
+  method! packages = Mirage_key.pure [ package "mirage-random-stdlib" ]
+  method! connect _ modname _ = Fmt.strf "%s.initialize ()" modname
 end
 
 let stdlib_random = impl stdlib_random_conf

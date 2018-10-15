@@ -36,7 +36,7 @@ let rec root path =
 
 let root () = R.get_ok @@ (Bos.OS.Dir.current () >>= root)
 
-let jbuild_file i = Fpath.(Functoria.Info.build_dir i / "jbuild")
+let dune_file i = Fpath.(Functoria.Info.build_dir i / "dune")
 
 let write_key i k f =
   let context = Functoria.Info.context i in
@@ -75,22 +75,20 @@ module C = struct
         ]
 
       method! configure i =
-        let jbuild = Fmt.strf
-            "(jbuild_version 1)\n\
-             \n\
-             ; An infortunate hack: bring stage 0 modules in scope of stage 1\n\
+        let dune = Fmt.strf
+            "; An infortunate hack: bring stage 0 modules in scope of stage 1\n\
              (rule (copy ../../runtime/functoria_runtime.ml functoria_runtime.ml))\n\
              (rule (copy ../../runtime/functoria_info.ml functoria_info.ml))\n\
              \n\
              (executable\n\
-            \   ((name      %s)\n\
-            \    (libraries (cmdliner fmt))))\n"
+            \   (name      %s)\n\
+            \   (libraries cmdliner fmt))\n"
             (output i)
         in
-        Bos.OS.File.write (jbuild_file i) jbuild
+        Bos.OS.File.write (dune_file i) dune
 
       method! clean i =
-        Bos.OS.File.delete (jbuild_file i)
+        Bos.OS.File.delete (dune_file i)
 
       method! build i =
         Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->
@@ -98,7 +96,7 @@ module C = struct
             let exe = Fpath.(prefix / output i + "exe") in
             write_key i vote (fun x -> x);
             write_key i warn_error string_of_bool;
-            run @@ Bos.Cmd.(v "jbuilder" % "build"
+            run @@ Bos.Cmd.(v "dune" % "build"
                             % "--root" % Fpath.to_string root
                             % Fpath.(to_string exe));
             run @@ Bos.Cmd.(v "mv" % Fpath.(to_string @@ root / "_build" / "default" // exe)

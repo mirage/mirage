@@ -1,0 +1,15 @@
+(test
+ (name      test_core)
+ (modules   test_core)
+ (libraries test_app alcotest cmdliner rresult astring)
+ (package   functoria)
+ (deps      app/config.ml app/myocamlbuild.ml app/app.ml)
+)
+
+(test
+ (name      test_full)
+ (modules   test_full)
+ (libraries test_app alcotest cmdliner rresult astring)
+ (package   functoria-runtime)
+ (deps      app/config.ml app/myocamlbuild.ml app/app.ml)
+)

@@ -36,26 +36,27 @@ let fat block = fat_conf $ block
 
 let fat_shell_script fmt ~block_file ~root ~dir ~regexp =
   let open Functoria_app.Codegen in
-  append fmt "#!/bin/sh";
-  append fmt "";
   append fmt
-    "echo This uses the 'fat' command-line tool to build a simple FAT";
-  append fmt "echo filesystem image.";
-  append fmt "";
-  append fmt "FAT=$(which fat)";
-  append fmt "if [ ! -x \"${FAT}\" ]; then";
-  append fmt "  echo I couldn\\'t find the 'fat' command-line tool.";
-  append fmt "  echo Try running 'opam install fat-filesystem'";
-  append fmt "  exit 1";
-  append fmt "fi";
-  append fmt "";
-  append fmt "IMG=$(pwd)/%s" block_file;
-  append fmt "rm -f ${IMG}";
-  append fmt "cd %a" Fpath.pp (Fpath.append root dir);
-  append fmt "SIZE=$(du -s . | cut -f 1)";
-  append fmt "${FAT} create ${IMG} ${SIZE}KiB";
-  append fmt "${FAT} add ${IMG} %s" regexp;
-  append fmt "echo Created '%s'" block_file
+    {|#!/bin/sh
+
+echo This uses the 'fat' command-line tool to build a simple FAT
+echo filesystem image.
+
+FAT=$(which fat)
+if [ ! -x "${FAT}" ]; then
+  echo I couldn\'t find the 'fat' command-line tool.
+  echo Try running 'opam install fat-filesystem'
+  exit 1
+fi
+
+IMG=$(pwd)/%s
+rm -f ${IMG}
+cd %a
+SIZE=$(du -s . | cut -f 1)
+${FAT} create ${IMG} ${SIZE}KiB
+${FAT} add ${IMG} %s
+echo Created '%s'|}
+    block_file Fpath.pp (Fpath.append root dir) regexp block_file
 
 let fat_block ?(dir = ".") ?(regexp = "*") () =
   let name =

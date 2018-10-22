@@ -84,8 +84,8 @@ let ramdisk = Mirage_impl_block.ramdisk
 let block_of_xenstore_id = Mirage_impl_block.block_of_xenstore_id
 let block_of_file = Mirage_impl_block.block_of_file
 
-type fs = Mirage_impl_fs.fs
-let fs = Mirage_impl_fs.fs
+type fs = Mirage_impl_fs.t
+let fs = Mirage_impl_fs.typ
 let fat = Mirage_impl_fs.fat
 let fat_of_files = Mirage_impl_fs.fat_of_files
 let generic_kv_ro = Mirage_impl_fs.generic_kv_ro

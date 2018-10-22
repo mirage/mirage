@@ -1,0 +1,7 @@
+break-cases=all
+break-infix=fit-or-vertical
+field-space=loose
+margin=79
+parens-tuple=always
+sequence-style=terminator
+type-decl=sparse

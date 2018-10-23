@@ -1,21 +1,20 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer:   ["anil@recoil.org" "thomas@gazagnaire.org"]
 authors:      "The MirageOS team"
 homepage:     "https://github.com/mirage/mirage"
 bug-reports:  "https://github.com/mirage/mirage/issues/"
-dev-repo:     "https://github.com/mirage/mirage.git"
+dev-repo:     "git+https://github.com/mirage/mirage.git"
 tags:         ["org:mirage" "org:xapi-project"]
 
 
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
-]
-build-test: [
-  ["dune" "runtest" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 
 depends:   [
+  "ocaml" {>= "4.04.2"}
   "dune" {build & >= "1.1.0"}
   "lwt"
   "cstruct" {>="1.4.0"}
@@ -35,4 +34,15 @@ depends:   [
   "mirage-kv-lwt" {>= "1.0.0"}
   "mirage-channel-lwt" {>= "3.0.0"}
 ]
-available: [ ocaml-version >= "4.04.2" ]
+
+synopsis: "Lwt module type definitions for MirageOS applications"
+description: """
+The purpose of this library is to provide concrete types
+for several that are left abstract in `mirage-types`:
+
+- `type 'a io = 'a Lwt.t`
+- `type page_aligned_buffer = Io_page.t`
+- `type buffer = Cstruct.t`
+- `type macaddr = Macaddr.t`
+- `type ipv4addr = Ipaddr.V4.t`
+"""

@@ -551,6 +551,7 @@ let configure_opam ~name info =
       append fmt "homepage: \"dummy\"";
       append fmt "bug-reports: \"dummy\"";
       append fmt "build: [ \"mirage\" \"build\" ]";
+      append fmt "synopsis: \"This is a dummy\"";
       R.ok ())
     "opam file"
 

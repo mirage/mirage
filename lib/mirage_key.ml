@@ -91,16 +91,37 @@ type mode = [
   | `Qubes
 ]
 
+let first_ukvm_mention = ref true
+let ukvm_warning = "The `ukvm' target has been renamed to `hvt', and support \
+for it will be removed in a future MirageOS release. Please reconfigure using \
+`-t hvt' at your earliest convenience."
+
 let target_conv: mode Cmdliner.Arg.converter =
-  Cmdliner.Arg.enum [
-    "unix"  , `Unix;
-    "macosx", `MacOSX;
-    "xen"   , `Xen;
-    "virtio", `Virtio;
-    "hvt"    ,`Hvt;
-    "muen"  , `Muen;
-    "qubes" , `Qubes
-  ]
+  let parser, printer =
+    Cmdliner.Arg.enum [
+      "unix"  , `Unix;
+      "macosx", `MacOSX;
+      "xen"   , `Xen;
+      "virtio", `Virtio;
+      "hvt"   , `Hvt;
+      "muen"  , `Muen;
+      "qubes" , `Qubes;
+    ]
+  in
+  let filter_ukvm s =
+    let str =
+      if s = "ukvm" then begin
+        if !first_ukvm_mention then begin
+          Logs.warn (fun m -> m "%s" ukvm_warning) ;
+          first_ukvm_mention := false
+        end ;
+        "hvt"
+      end else
+        s
+    in
+    parser str
+  in
+  filter_ukvm, printer
 
 let pp_target fmt m = snd target_conv fmt m
 

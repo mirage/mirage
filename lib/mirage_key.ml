@@ -92,9 +92,9 @@ type mode = [
 ]
 
 let first_ukvm_mention = ref true
-let ukvm_warning = "The `ukvm' target has been renamed to `hvt', and support \
-for it will be removed in a future MirageOS release. Please reconfigure using \
-`-t hvt' at your earliest convenience."
+let ukvm_warning = "The `ukvm' target has been renamed to `hvt'. \
+Support for the `ukvm` target will be removed in a future MirageOS release. \
+Please reconfigure using `-t hvt' at your earliest convenience."
 
 let target_conv: mode Cmdliner.Arg.converter =
   let parser, printer =

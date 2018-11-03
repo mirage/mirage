@@ -59,13 +59,13 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
 
 let dhcp_conf = impl @@ object
     inherit base_configurable
-    method ty = time @-> network @-> Mirage_impl_dhcp.dhcp
+    method ty = random @-> time @-> network @-> Mirage_impl_dhcp.dhcp
     method name = "dhcp_client"
     method module_name = "Dhcp_client_mirage.Make"
     method! packages = Key.pure [ package ~min:"0.10" "charrua-client-mirage" ]
     method! connect _ modname = function
-      | [ _time; network ] -> Fmt.strf "%s.connect %s " modname network
-      | _ -> failwith (connect_err "dhcp" 2)
+      | [ _random; _time; network ] -> Fmt.strf "%s.connect %s " modname network
+      | _ -> failwith (connect_err "dhcp" 3)
   end
 
 let ipv4_dhcp_conf = impl @@ object
@@ -82,7 +82,7 @@ let ipv4_dhcp_conf = impl @@ object
   end
 
 
-let dhcp time net = dhcp_conf $ time $ net
+let dhcp random time net = dhcp_conf $ random $ time $ net
 let ipv4_of_dhcp
     ?(random = default_random)
     ?(clock = default_monotonic_clock) dhcp ethif arp =

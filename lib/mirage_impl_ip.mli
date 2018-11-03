@@ -49,7 +49,10 @@ val create_ipv6 :
   -> ipv6 impl
 
 val dhcp :
-  Mirage_impl_time.time impl -> network impl -> Mirage_impl_dhcp.dhcp impl
+  random impl
+  -> Mirage_impl_time.time impl
+  -> network impl
+  -> Mirage_impl_dhcp.dhcp impl
 
 val ipv4_of_dhcp :
      ?random:random impl

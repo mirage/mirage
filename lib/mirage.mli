@@ -148,19 +148,6 @@ val custom_console: string -> console impl
 
 
 
-(** {2 Memory allocation interface} *)
-
-type io_page
-(** Abstract type for page-aligned buffers. *)
-
-val io_page: io_page typ
-(** Implementations of the [Mirage_types.IO_PAGE] signature. *)
-
-val default_io_page: io_page impl
-(** The default [Io_page] implementation. *)
-
-
-
 (** {2 Block devices} *)
 
 

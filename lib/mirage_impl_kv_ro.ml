@@ -15,7 +15,6 @@ let crunch dirname = impl @@ object
     method module_name = String.Ascii.capitalize name
     method! packages =
       Key.pure [ package "io-page"; package ~min:"2.0.0" ~build:true "crunch" ]
-    method! deps = [ abstract Mirage_impl_io_page.default_io_page ]
     method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
     method! build _i =
       let dir = Fpath.(v dirname) in

@@ -42,10 +42,6 @@ type qubesdb = Mirage_impl_qubesdb.qubesdb
 let qubesdb = Mirage_impl_qubesdb.qubesdb
 let default_qubesdb = Mirage_impl_qubesdb.default_qubesdb
 
-type io_page = Mirage_impl_io_page.io_page
-let io_page = Mirage_impl_io_page.io_page
-let default_io_page = Mirage_impl_io_page.default_io_page
-
 type time = Mirage_impl_time.time
 let time = Mirage_impl_time.time
 let default_time = Mirage_impl_time.default_time

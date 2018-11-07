@@ -10,10 +10,7 @@ let conduit_with_connectors connectors = impl @@ object
     method ty = conduit
     method name = Functoria_app.Name.create "conduit" ~prefix:"conduit"
     method module_name = "Conduit_mirage"
-    method! packages =
-      Mirage_key.pure [
-        package ~min:"3.0.1" "mirage-conduit";
-      ]
+    method! packages = Mirage_key.pure [ pkg ]
     method! deps = abstract nocrypto :: List.map abstract connectors
 
     method! connect _i _ = function

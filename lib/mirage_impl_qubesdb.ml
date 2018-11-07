@@ -6,12 +6,14 @@ open Rresult
 type qubesdb = QUBES_DB
 let qubesdb = Type QUBES_DB
 
+let pkg = package ~min:"0.4" ~max:"0.7" "mirage-qubes"
+
 let qubesdb_conf = object
   inherit base_configurable
   method ty = qubesdb
   method name = "qubesdb"
   method module_name = "Qubes.DB"
-  method! packages = Key.pure [ package ~min:"0.4" "mirage-qubes" ]
+  method! packages = Key.pure [ pkg ]
   method! configure i =
     match get_target i with
     | `Qubes | `Xen -> R.ok ()

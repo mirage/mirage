@@ -20,7 +20,7 @@ depends:   [
   "cstruct" {>="1.4.0"}
   "io-page" {>="1.4.0"}
   "ipaddr"
-  "mirage-types" {>= "3.2.0"}
+  "mirage-types" {>= "3.3.0"}
   "mirage-clock-lwt" {>= "1.2.0"}
   "mirage-time-lwt" {>= "1.0.0"}
   "mirage-random" {>= "1.0.0"}

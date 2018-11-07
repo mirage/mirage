@@ -22,7 +22,7 @@ let tcp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> time @-> mclock @-> random @-> (tcp: 'a tcp typ)
   method name = "tcp"
   method module_name = "Tcp.Flow.Make"
-  method! packages = right_tcpip_library ~min:"3.5.0" ~sublibs:["tcp"] "tcpip"
+  method! packages = right_tcpip_library ~sublibs:["tcp"] "tcpip"
   method! connect _ modname = function
     | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
     | _ -> failwith (connect_err "direct tcp" 4)
@@ -44,8 +44,7 @@ let tcpv4_socket_conf ipv4_key = object
   method name = name
   method module_name = "Tcpv4_socket"
   method! keys = [ Key.abstract ipv4_key ]
-  method! packages =
-    Key.(if_ is_unix) [ package ~min:"3.5.0" ~sublibs:["tcpv4-socket"; "unix"] "tcpip" ] []
+  method! packages = right_tcpip_library ~sublibs:["tcpv4-socket"] "tcpip"
   method! configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()

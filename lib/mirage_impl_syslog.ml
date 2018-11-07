@@ -32,6 +32,9 @@ let opt p s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) p)
 let opt_int = opt Fmt.int
 let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
 
+let pkg sublibs =
+  Key.pure [ package ~min:"0.2.0" ~max:"0.3.0" ~sublibs "logs-syslog" ]
+
 let syslog_udp_conf config =
   let endpoint = Key.syslog config.server
   and port = Key.syslog_port config.port
@@ -42,8 +45,9 @@ let syslog_udp_conf config =
     method ty = console @-> pclock @-> stackv4 @-> syslog
     method name = "udp_syslog"
     method module_name = "Logs_syslog_mirage.Udp"
-    method! packages = Key.pure [ package ~min:"0.1.0" ~sublibs:["mirage"] "logs-syslog" ]
-    method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
+    method! packages = pkg ["mirage"]
+    method! keys =
+      [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
         Fmt.strf
@@ -78,8 +82,9 @@ let syslog_tcp_conf config =
     method ty = console @-> pclock @-> stackv4 @-> syslog
     method name = "tcp_syslog"
     method module_name = "Logs_syslog_mirage.Tcp"
-    method! packages = Key.pure [ package ~min:"0.1.0" ~sublibs:["mirage"] "logs-syslog" ]
-    method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
+    method! packages = pkg ["mirage"]
+    method! keys =
+      [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
         Fmt.strf
@@ -112,7 +117,7 @@ let syslog_tls_conf ?keyname config =
     method ty = console @-> pclock @-> stackv4 @-> kv_ro @-> syslog
     method name = "tls_syslog"
     method module_name = "Logs_syslog_mirage_tls.Tls"
-    method! packages = Key.pure [ package ~min:"0.1.0" ~sublibs:["mirage" ; "mirage.tls"] "logs-syslog" ]
+    method! packages = pkg ["mirage" ; "mirage.tls"]
     method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ; kv ] ->

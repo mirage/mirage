@@ -14,7 +14,10 @@ let crunch dirname = impl @@ object
     method name = name
     method module_name = String.Ascii.capitalize name
     method! packages =
-      Key.pure [ package "io-page"; package ~min:"2.0.0" ~build:true "crunch" ]
+      Key.pure [
+        package ~min:"2.0.0" ~max:"3.0.0" "io-page";
+        package ~min:"2.0.0" ~max:"3.0.0" ~build:true "crunch"
+      ]
     method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
     method! build _i =
       let dir = Fpath.(v dirname) in
@@ -36,7 +39,8 @@ let direct_kv_ro_conf dirname = impl @@ object
     val name = Name.create ("direct" ^ dirname) ~prefix:"direct"
     method name = name
     method module_name = "Kvro_fs_unix"
-    method! packages = Key.pure [ package ~min:"1.3.0" "mirage-fs-unix" ]
+    method! packages =
+      Key.pure [ package ~min:"1.3.0" ~max:"2.0.0" "mirage-fs-unix" ]
     method! connect i _modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
       Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path

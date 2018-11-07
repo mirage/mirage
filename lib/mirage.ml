@@ -32,9 +32,9 @@ include Functoria
 
 (* Mirage implementation backing the target. *)
 let backend_predicate = function
-  | `Xen | `Qubes                     -> "mirage_xen"
+  | `Xen | `Qubes -> "mirage_xen"
   | `Virtio | `Hvt | `Muen | `Genode  -> "mirage_solo5"
-  | `Unix | `MacOSX                   -> "mirage_unix"
+  | `Unix | `MacOSX -> "mirage_unix"
 
 (** {2 Devices} *)
 
@@ -355,7 +355,8 @@ module Substitutions = struct
 
   let defaults i =
     let blocks =
-      List.map (fun b -> Block b, Fpath.(to_string ((Info.build_dir i) / b.filename)))
+      List.map
+        (fun b -> Block b, Fpath.(to_string ((Info.build_dir i) / b.filename)))
         (Hashtbl.fold (fun _ v acc -> v :: acc) Mirage_impl_block.all_blocks [])
     and networks =
       List.mapi (fun i n -> Network n, Fmt.strf "%s%d" detected_bridge_name i)
@@ -656,7 +657,10 @@ let pkg_config pkgs args =
   Lazy.force opam_prefix >>= fun prefix ->
   (* the order here matters (at least for ancient 0.26, distributed with
        ubuntu 14.04 versions): use share before lib! *)
-  let value = Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s" prefix prefix pkg_config_fallback in
+  let value =
+    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
+      prefix prefix pkg_config_fallback
+  in
   Bos.OS.Env.set_var var (Some value) >>= fun () ->
   let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
   Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
@@ -695,14 +699,15 @@ let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
 let find_ld pkg =
   match pkg_config pkg ["--variable=ld"] with
   | Ok (ld::_) ->
-    Log.info (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg) ;
+    Log.info (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg);
     ld
   | Ok [] ->
-    Log.warn (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg) ;
+    Log.warn
+      (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg);
     "ld"
   | Error msg ->
     Log.warn (fun m -> m "error %a while pkg-config %s --variable=ld, using ld"
-                 Rresult.R.pp_msg msg pkg) ;
+                 Rresult.R.pp_msg msg pkg);
     "ld"
 
 let solo5_pkg = function
@@ -717,29 +722,35 @@ let link info name target target_debug =
   let libs = Info.libraries info in
   match target with
   | `Unix | `MacOSX ->
-    Bos.OS.Cmd.run Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) >>= fun () ->
+    let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
+    Bos.OS.Cmd.run link >>= fun () ->
     Ok name
   | `Xen | `Qubes ->
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" % "_build/main.native.o" %%
-               of_list c_artifacts %% of_list static_libs)
+      Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" %
+               "_build/main.native.o" %%
+               of_list c_artifacts %%
+               of_list static_libs)
     in
     let out = name ^ ".xen" in
-    Bos.OS.Cmd.run_out Bos.Cmd.(v "uname" % "-m") |> Bos.OS.Cmd.out_string >>= fun (machine, _) ->
+    let uname_cmd = Bos.Cmd.(v "uname" % "-m") in
+    Bos.OS.Cmd.(run_out uname_cmd |> out_string) >>= fun (machine, _) ->
     if String.is_prefix ~affix:"arm" machine then begin
       (* On ARM:
          - we must convert the ELF image to an ARM boot executable zImage,
            while on x86 we leave it as it is.
          - we need to link libgcc.a (otherwise we get undefined references to:
            __aeabi_dcmpge, __aeabi_dadd, ...) *)
-      Bos.OS.Cmd.run_out Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") |> Bos.OS.Cmd.out_string >>= fun (libgcc, _) ->
+      let libgcc_cmd = Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") in
+      Bos.OS.Cmd.(run_out libgcc_cmd |> out_string) >>= fun (libgcc, _) ->
       let elf = name ^ ".elf" in
       let link = Bos.Cmd.(linker % libgcc % "-o" % elf) in
       Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
       Bos.OS.Cmd.run link >>= fun () ->
-      Bos.OS.Cmd.run Bos.Cmd.(v "objcopy" % "-O" % "binary" % elf % out) >>= fun () ->
+      let objcopy_cmd = Bos.Cmd.(v "objcopy" % "-O" % "binary" % elf % out) in
+      Bos.OS.Cmd.run objcopy_cmd  >>= fun () ->
       Ok out
     end else begin
       let link = Bos.Cmd.(linker % "-o" % out) in
@@ -772,8 +783,16 @@ let link info name target target_debug =
       in
       pkg_config pkg ["--variable=libdir"] >>= function
       | [ libdir ] ->
-        Bos.OS.Cmd.run Bos.Cmd.(v "solo5-hvt-configure" % (libdir ^ "/src") %% of_list tender_mods) >>= fun () ->
-        Bos.OS.Cmd.run Bos.Cmd.(v "make" % "-f" % "Makefile.solo5-hvt" % "solo5-hvt") >>= fun () ->
+        let config_cmd =
+          Bos.Cmd.(v "solo5-hvt-configure" %
+                   (libdir ^ "/src") %%
+                   of_list tender_mods)
+        in
+        Bos.OS.Cmd.run config_cmd >>= fun () ->
+        let make_cmd =
+          Bos.Cmd.(v "make" % "-f" % "Makefile.solo5-hvt" % "solo5-hvt")
+        in
+        Bos.OS.Cmd.run make_cmd >>= fun () ->
         Ok out
       | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed")
     else
@@ -864,23 +883,26 @@ module Project = struct
         Key.(abstract target_debug);
       ]
       method! packages =
+        (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
+        let min = "3.3.0" and max = "3.4.0" in
         let common = [
           package ~build:true ~min:"4.04.2" "ocaml";
           package "lwt";
-          (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-          package ~min:"3.2.0" "mirage-types-lwt";
-          package ~min:"3.2.0" "mirage-types";
-          package ~min:"3.2.0" "mirage-runtime" ;
+          package ~min ~max "mirage-types-lwt";
+          package ~min ~max "mirage-types";
+          package ~min ~max "mirage-runtime" ;
           package ~build:true "ocamlfind" ;
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Unix | `MacOSX -> [ package ~min:"3.0.0" "mirage-unix" ] @ common
-        | `Xen | `Qubes -> [ package ~min:"3.0.4" "mirage-xen" ] @ common
+        | `Unix | `MacOSX ->
+          package ~min:"3.1.0" ~max:"3.2.0" "mirage-unix" :: common
+        | `Xen | `Qubes ->
+          package ~min:"3.1.0" ~max:"3.2.0" "mirage-xen" :: common
         | `Virtio | `Hvt | `Muen | `Genode as tgt ->
-          let pkg, _ = solo5_pkg tgt in
-          [ package ~min:"0.4.0" ~ocamlfind:[] pkg ;
-            package ~min:"0.4.0" "mirage-solo5" ] @ common
+          package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
+          package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::
+          common
 
       method! build = build
       method! configure = configure
@@ -896,8 +918,8 @@ include Functoria_app.Make (Project)
 (** {Custom registration} *)
 
 let (++) acc x = match acc, x with
-  | _       , None   -> acc
-  | None    , Some x -> Some [x]
+  | _ , None -> acc
+  | None, Some x -> Some [x]
   | Some acc, Some x -> Some (acc @ [x])
 
 (* TODO: ideally we'd combine these *)

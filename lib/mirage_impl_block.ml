@@ -27,7 +27,7 @@ let make_block_t =
     b
 
 let xen_block_packages =
-  [ package ~min:"1.5.0" ~sublibs:["front"] "mirage-block-xen" ]
+  [ package ~min:"1.5.0" ~max:"2.0.0" ~sublibs:["front"] "mirage-block-xen" ]
 
 (* this class takes a string rather than an int as `id` to allow the user to
    pass stuff like "/dev/xvdi1", which mirage-block-xen also understands *)
@@ -69,8 +69,9 @@ class block_conf file =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes -> xen_block_packages
       | `Virtio | `Hvt | `Muen | `Genode ->
-        [ package ~min:"0.3.0" "mirage-block-solo5" ]
-      | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
+        [ package ~min:"0.4.0" ~max:"0.5.0" "mirage-block-solo5" ]
+      | `Unix | `MacOSX ->
+        [ package ~min:"2.5.0" ~max:"3.0.0" "mirage-block-unix" ]
 
     method! configure _ =
       let _block = make_block_t file in
@@ -133,7 +134,7 @@ let archive_conf = impl @@ object
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
     method! packages =
-      Key.pure [ package ~min:"0.8.0" "tar-mirage" ]
+      Key.pure [ package ~min:"0.9.0" ~max:"0.10.0" "tar-mirage" ]
     method! connect _ modname = function
       | [ block ] -> Fmt.strf "%s.connect %s" modname block
       | _ -> failwith (connect_err "archive" 1)

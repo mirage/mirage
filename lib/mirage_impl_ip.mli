@@ -71,9 +71,7 @@ val ipv4_qubes :
   -> ipv4 impl
 
 val right_tcpip_library :
-     ?min:string
-  -> ?max:string
-  -> ?ocamlfind:string list
+     ?ocamlfind:string list
   -> sublibs:string list
   -> string
   -> package list value

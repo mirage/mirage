@@ -20,7 +20,7 @@ let udp_direct_conf () = object
   method ty = (ip: 'a ip typ) @-> random @-> (udp: 'a udp typ)
   method name = "udp"
   method module_name = "Udp.Make"
-  method! packages = right_tcpip_library ~min:"3.5.0" ~sublibs:["udp"] "tcpip"
+  method! packages = right_tcpip_library ~sublibs:["udp"] "tcpip"
   method! connect _ modname = function
     | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
     | _  -> failwith (connect_err "udp" 2)
@@ -38,9 +38,7 @@ let udpv4_socket_conf ipv4_key = object
   method module_name = "Udpv4_socket"
   method! keys = [ Key.abstract ipv4_key ]
   method! packages =
-    Key.(if_ is_unix)
-      [ package ~min:"3.5.0" ~sublibs:["udpv4-socket"; "unix"] "tcpip" ]
-      []
+    right_tcpip_library ~sublibs:["udpv4-socket"] "tcpip"
   method! configure i =
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()

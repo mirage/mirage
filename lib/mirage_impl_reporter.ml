@@ -20,7 +20,8 @@ let mirage_log ?ring_size ~default =
     method ty = pclock @-> reporter
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
-    method! packages = Key.pure [ package ~min:"0.3.0" "mirage-logs"]
+    method! packages =
+      Key.pure [ package ~min:"0.3.0" ~max:"0.4.0" "mirage-logs" ]
     method! keys = [ Key.abstract logs ]
     method! connect _ modname = function
       | [ pclock ] ->

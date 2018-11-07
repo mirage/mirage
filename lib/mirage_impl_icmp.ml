@@ -13,7 +13,7 @@ let icmpv4_direct_conf () = object
   method ty : ('a ip -> 'a icmp) typ = ip @-> icmp
   method name = "icmpv4"
   method module_name = "Icmpv4.Make"
-  method! packages = right_tcpip_library ~min:"3.5.0" ~sublibs:["icmpv4"] "tcpip"
+  method! packages = right_tcpip_library ~sublibs:["icmpv4"] "tcpip"
   method! connect _ modname = function
     | [ ip ] -> Fmt.strf "%s.connect %s" modname ip
     | _  -> failwith (connect_err "icmpv4" 1)

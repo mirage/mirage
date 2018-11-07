@@ -1,5 +1,5 @@
 language: c
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/9c602f881f2b55649011e37002f9177cbf9af8b2/.travis-docker.sh
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/d18943783fc582732d579116344b733a425131bf/.travis-docker.sh
 script: bash -ex .travis-docker.sh
 sudo: required
 services:

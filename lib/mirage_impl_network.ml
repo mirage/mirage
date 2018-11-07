@@ -21,7 +21,7 @@ let network_conf (intf : string Key.key) =
       | `MacOSX -> [ package ~min:"1.3.0" "mirage-net-macosx" ]
       | `Xen -> [ package ~min:"1.7.0" "mirage-net-xen"]
       | `Qubes -> [ package ~min:"1.7.0" "mirage-net-xen" ; package ~min:"0.4" "mirage-qubes" ]
-      | `Virtio | `Hvt | `Muen -> [ package ~min:"0.3.0" "mirage-net-solo5" ]
+      | `Virtio | `Hvt | `Muen | `Genode -> [ package ~min:"0.3.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =

@@ -68,7 +68,8 @@ class block_conf file =
     method! packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes -> xen_block_packages
-      | `Virtio | `Hvt | `Muen -> [ package ~min:"0.3.0" "mirage-block-solo5" ]
+      | `Virtio | `Hvt | `Muen | `Genode ->
+        [ package ~min:"0.3.0" "mirage-block-solo5" ]
       | `Unix | `MacOSX -> [ package ~min:"2.5.0" "mirage-block-unix" ]
 
     method! configure _ =
@@ -77,7 +78,7 @@ class block_conf file =
 
     method private connect_name target root =
       match target with
-      | `Unix | `MacOSX | `Virtio | `Hvt | `Muen ->
+      | `Unix | `MacOSX | `Virtio | `Hvt | `Muen | `Genode ->
         Fpath.(to_string (root / file)) (* open the file directly *)
       | `Xen | `Qubes ->
         let b = make_block_t file in
@@ -86,7 +87,7 @@ class block_conf file =
     method! connect i s _ =
       match get_target i with
       | `Muen -> failwith "Block devices not supported on Muen target."
-      | `Unix | `MacOSX | `Virtio | `Hvt | `Xen | `Qubes ->
+      | `Unix | `MacOSX | `Virtio | `Hvt | `Xen | `Qubes | `Genode ->
         Fmt.strf "%s.connect %S" s
           (self#connect_name (get_target i) @@ Info.build_dir i)
   end

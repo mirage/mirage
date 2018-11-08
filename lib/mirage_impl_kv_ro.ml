@@ -49,5 +49,6 @@ let direct_kv_ro dirname =
     `Qubes, crunch dirname;
     `Virtio, crunch dirname;
     `Hvt, crunch dirname;
-    `Muen, crunch dirname
+    `Muen, crunch dirname;
+    `Genode, crunch dirname
   ] ~default:(direct_kv_ro_conf dirname)

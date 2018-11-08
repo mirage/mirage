@@ -89,6 +89,7 @@ type mode = [
   | `Muen
   | `MacOSX
   | `Qubes
+  | `Genode
 ]
 
 let first_ukvm_mention = ref true
@@ -106,6 +107,7 @@ let target_conv: mode Cmdliner.Arg.converter =
       "hvt"   , `Hvt;
       "muen"  , `Muen;
       "qubes" , `Qubes;
+      "genode" , `Genode;
     ]
   in
   let filter_ukvm s =
@@ -136,7 +138,7 @@ let default_unix = lazy (
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
-     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,muen)."
+     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,muen), $(i,genode)."
   in
   let serialize ppf = function
     | `Unix   -> Fmt.pf ppf "`Unix"
@@ -146,6 +148,7 @@ let target =
     | `Muen   -> Fmt.pf ppf "`Muen"
     | `MacOSX -> Fmt.pf ppf "`MacOSX"
     | `Qubes  -> Fmt.pf ppf "`Qubes"
+    | `Genode  -> Fmt.pf ppf "`Genode"
   in
   let conv = Arg.conv ~conv:target_conv ~runtime_conv:"target" ~serialize in
   let doc =
@@ -158,7 +161,7 @@ let target =
 let is_unix =
   Key.match_ Key.(value target) @@ function
   | `Unix | `MacOSX -> true
-  | `Qubes | `Xen | `Virtio | `Hvt | `Muen -> false
+  | `Qubes | `Xen | `Virtio | `Hvt | `Muen | `Genode -> false
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in

@@ -47,5 +47,6 @@ let default_argv =
     `Qubes, argv_xen;
     `Virtio, argv_solo5;
     `Hvt, argv_solo5;
-    `Muen, argv_solo5
+    `Muen, argv_solo5;
+    `Genode, argv_solo5
   ] ~default:argv_unix

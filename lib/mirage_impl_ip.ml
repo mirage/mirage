@@ -34,9 +34,9 @@ let (@??) x y = opt_map Key.abstract x @? y
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?min ?max ?ocamlfind ~sublibs pkg =
   Key.match_ Key.(value target) @@ function
-  |`MacOSX | `Unix         -> [ package ?min ?max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  |`Qubes  | `Xen          -> [ package ?min ?max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
-  |`Virtio | `Hvt | `Muen  -> [ package ?min ?max ?ocamlfind ~sublibs pkg ]
+  |`MacOSX | `Unix                  -> [ package ?min ?max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
+  |`Qubes  | `Xen                   -> [ package ?min ?max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
+  |`Virtio | `Hvt | `Muen | `Genode -> [ package ?min ?max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     inherit base_configurable

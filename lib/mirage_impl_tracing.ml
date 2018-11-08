@@ -18,7 +18,7 @@ let mprof_trace ~size () =
     method! packages =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes -> [ package "mirage-profile"; package "mirage-profile-xen" ]
-      | `Virtio | `Hvt | `Muen -> []
+      | `Virtio | `Hvt | `Muen | `Genode -> []
       | `Unix | `MacOSX -> [ package "mirage-profile"; package "mirage-profile-unix" ]
     method! build _ =
       match query_ocamlfind ["lwt.tracing"] with
@@ -27,7 +27,7 @@ let mprof_trace ~size () =
                      opam pin add lwt https://github.com/mirage/lwt.git#tracing"
       | Ok _ -> Ok ()
     method! connect i _ _ = match get_target i with
-      | `Virtio | `Hvt | `Muen -> failwith  "tracing is not currently implemented for solo5 targets"
+      | `Virtio | `Hvt | `Muen | `Genode -> failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
         Fmt.strf
           "Lwt.return ())@.\

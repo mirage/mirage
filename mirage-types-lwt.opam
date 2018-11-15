@@ -4,6 +4,7 @@ authors:      "The MirageOS team"
 homepage:     "https://github.com/mirage/mirage"
 bug-reports:  "https://github.com/mirage/mirage/issues/"
 dev-repo:     "git+https://github.com/mirage/mirage.git"
+license:      "ISC"
 tags:         ["org:mirage" "org:xapi-project"]
 
 

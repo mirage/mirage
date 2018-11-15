@@ -483,7 +483,7 @@ let configure_main_xe ~root ~name =
 
 let clean_main_xe ~name = Bos.OS.File.delete Fpath.(v name + "xe")
 
-let configure_makefile ~opam_name =
+let configure_makefile ~no_depext ~opam_name =
   let open Codegen in
   let file = Fpath.(v "Makefile") in
   with_output file (fun oc () ->
@@ -492,6 +492,7 @@ let configure_makefile ~opam_name =
       newline fmt;
       append fmt "-include Makefile.user";
       newline fmt;
+      let depext = if no_depext then "" else "\n\t$(DEPEXT)" in
       append fmt "OPAM = opam\n\
                   DEPEXT ?= $(OPAM) pin add -k path --no-action --yes %s . &&\\\n\
                   \t$(OPAM) depext --yes --update %s ;\\\n\
@@ -500,8 +501,7 @@ let configure_makefile ~opam_name =
                   .PHONY: all depend depends clean build\n\
                   all:: build\n\
                   \n\
-                  depend depends::\n\
-                  \t$(DEPEXT)\n\
+                  depend depends::%s\n\
                   \t$(OPAM) install --deps-only .\n\
                   \n\
                   build::\n\
@@ -509,7 +509,7 @@ let configure_makefile ~opam_name =
                   \n\
                   clean::\n\
                   \tmirage clean\n"
-        opam_name opam_name opam_name;
+        opam_name opam_name opam_name depext;
       R.ok ())
     "Makefile"
 
@@ -570,7 +570,8 @@ let configure i =
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
   configure_myocamlbuild () >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
-  configure_makefile ~opam_name >>= fun () ->
+  let no_depext = Key.(get ctx no_depext) in
+  configure_makefile ~no_depext ~opam_name >>= fun () ->
   match target with
   | `Xen ->
     configure_main_xl "xl" i >>= fun () ->
@@ -862,6 +863,7 @@ module Project = struct
         Key.(abstract target);
         Key.(abstract warn_error);
         Key.(abstract target_debug);
+        Key.(abstract no_depext);
       ]
       method! packages =
         let common = [

@@ -176,6 +176,12 @@ let target_debug =
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "target_debug" key
 
+let no_depext =
+  let doc = "Disable call to depext when generating Makefile." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["no-depext"] in
+  let key = Arg.flag ~stage:`Configure doc in
+  Key.create "no_depext" key
+
 (** {3 Tracing} *)
 
 let tracing_size default =

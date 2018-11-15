@@ -493,23 +493,23 @@ let configure_makefile ~opam_name =
       append fmt "-include Makefile.user";
       newline fmt;
       append fmt "OPAM = opam\n\
-                  DEPEXT ?= opam depext --yes --update %s\n\
+                  DEPEXT ?= $(OPAM) pin add -k path --no-action --yes %s . &&\\\n\
+                  \t$(OPAM) depext --yes --update %s ;\\\n\
+                  \t$(OPAM) pin remove --no-action %s\n\
                   \n\
                   .PHONY: all depend depends clean build\n\
                   all:: build\n\
                   \n\
                   depend depends::\n\
-                  \t$(OPAM) pin add -k path --no-action --yes %s .\n\
                   \t$(DEPEXT)\n\
-                  \t$(OPAM) install --yes --deps-only %s\n\
-                  \t$(OPAM) pin remove --no-action %s\n\
+                  \t$(OPAM) install --deps-only .\n\
                   \n\
                   build::\n\
                   \tmirage build\n\
                   \n\
                   clean::\n\
                   \tmirage clean\n"
-        opam_name opam_name opam_name opam_name;
+        opam_name opam_name opam_name;
       R.ok ())
     "Makefile"
 

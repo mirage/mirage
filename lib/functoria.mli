@@ -119,6 +119,7 @@ module type KEY =
 
 type package = private {
   opam : string ;
+  pin : string option ;
   build : bool ;
   ocamlfind : Astring.String.Set.t ;
   min : string option ;
@@ -132,15 +133,18 @@ val package :
   ?ocamlfind:string list ->
   ?min:string ->
   ?max:string ->
+  ?pin:string ->
   string -> package
-(** [package ~build ~sublibs ~ocamlfind ~min ~max opam] is a [package].  [Build]
+(** [package ~build ~sublibs ~ocamlfind ~min ~max ~pin opam] is a [package].  [Build]
     indicates a build-time dependency only, defaults to [false]. The ocamlfind
     name is by default the same as [opam], you can specify [~sublibs] to add
     additional sublibraries (e.g. [~sublibs:["mirage"] "foo"] will result in the
     findlib names [ ["foo"; "foo.mirage"] ].  In case the findlib name is
     disjoint (or empty), use [~ocamlfind].  Specifying both [~ocamlfind] and
     [~sublibs] leads to an invalid argument.  Version constraints are given as
-    [min] (inclusive) and [max] (exclusive). *)
+    [min] (inclusive) and [max] (exclusive).  If [pin] is provided, a
+    {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}pin-depends}
+    is generated. *)
 
 (** {1:app Application Builder}
 

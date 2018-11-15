@@ -23,6 +23,7 @@ module Key = Functoria_key
 
 type package = {
   opam : string ;
+  pin : string option ;
   build : bool ;
   ocamlfind : String.Set.t ;
   min : string option ;
@@ -73,14 +74,22 @@ module Package = struct
       m_option
         (fun a b -> match compare_version a b with 0 -> a | 1 -> b | _ -> a)
         a.max b.max
+    and pin =
+      m_option
+        (fun a b -> if String.equal a b then a else invalid_arg ("conflicting pin depends for " ^ opam))
+        a.pin b.pin
     and build = if not a.build || not b.build then false else true
     in
-    match min, max with
-    | Some a, Some b when compare_version a b >= 0 ->
+    match pin, min, max with
+    | Some _, _, _ ->
+      (* pin wins over min and max *)
+      Some { opam ; build ; ocamlfind ; min = None ; max = None ; pin }
+    | None, Some a, Some b when compare_version a b >= 0 ->
       invalid_arg ("version constraint for " ^ opam ^ " must be that min is smaller than max")
-    | _ -> Some { opam ; build ; ocamlfind ; min ; max }
+    | _ ->
+      Some { opam ; build ; ocamlfind ; min ; max ; pin }
 
-  let package ?(build = false) ?sublibs ?ocamlfind ?min ?max opam =
+  let package ?(build = false) ?sublibs ?ocamlfind ?min ?max ?pin opam =
     let ocamlfind = match sublibs, ocamlfind with
       | None, None -> [opam]
       | Some xs, None -> opam :: List.map (fun x -> opam ^ "." ^ x) xs
@@ -92,7 +101,7 @@ module Package = struct
     match min, max with
     | Some min, Some max when compare_version min max >= 0 ->
       invalid_arg ("invalid version constraints for " ^ opam)
-    | _ -> { opam ; build ; ocamlfind ; min ; max }
+    | _ -> { opam ; build ; ocamlfind ; min ; max ; pin }
 
   let ocamlfind build p =
     if p.build = build then
@@ -150,6 +159,10 @@ module Info = struct
   let packages t = List.map snd (String.Map.bindings t.packages)
   let libraries t = Package.libraries (packages t)
   let package_names t = Package.package_names (packages t)
+  let pins t =
+    List.fold_left
+      (fun acc p -> match p.pin with None -> acc | Some u -> (p.opam, u) :: acc)
+      [] (packages t)
 
   let keys t = Key.Set.elements t.keys
   let context t = t.context
@@ -187,7 +200,15 @@ module Info = struct
     Fmt.pf ppf "opam-version: \"2.0\"@." ;
     Fmt.pf ppf "name: \"%s\"@." name ;
     Fmt.pf ppf "depends: [ @[<hv>%a@]@ ]@."
-      (pp_packages ~surround:"\"" ~sep:(Fmt.unit "@ ")) t
+      (pp_packages ~surround:"\"" ~sep:(Fmt.unit "@ ")) t ;
+    match pins t with
+    | [] -> ()
+    | pin_depends ->
+      let pp_pin ppf (package, url) =
+        Fmt.pf ppf "\"%s.dev\" %S" package url
+      in
+      Fmt.pf ppf "pin-depends: [ @[<hv>%a@]@ ]@."
+        Fmt.(list ~sep:(unit "@ ") pp_pin) pin_depends
 end
 
 type _ typ =

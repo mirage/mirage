@@ -130,8 +130,8 @@ let pp_dump_pkgs module_name fmt (name, pkg, libs) =
     "%s.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
     module_name name
-    pp_packages (List.sort String.compare (String.Set.elements pkg))
-    pp_libraries (List.sort String.compare (String.Set.elements libs))
+    pp_packages (String.Set.elements pkg)
+    pp_libraries (String.Set.elements libs)
 
 let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
   impl @@ object

@@ -199,16 +199,16 @@ module Info: sig
   (** Directory in which the build is done. *)
 
   val libraries: t -> string list
-  (** OCamlfind libraries needed by the project at runtime. *)
+  (** [libraries t] are the direct OCamlfind dependencies. *)
 
   val package_names: t -> string list
-  (** OPAM packages names needed by the project at runtime. *)
+  (** [package_names t] are the opam package dependencies. *)
 
   val packages: t -> package list
-  (** OPAM packages needed by the project. *)
+  (** [packages t] are the opam package dependencies by the project. *)
 
   val keys: t -> key list
-  (** Keys declared by the project. *)
+  (** [keys t] are the keys declared by the project. *)
 
   val context: t -> context
   (** [parsed t] is a value representing the command-line argument

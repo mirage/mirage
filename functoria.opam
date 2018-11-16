@@ -1,4 +1,4 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer:   "Gabriel Radanne <drupyog@zoho.com>"
 authors:      [ "Thomas Gazagnaire"
                 "Anil Madhavapeddy"
@@ -7,7 +7,7 @@ authors:      [ "Thomas Gazagnaire"
                 "Gabriel Radanne" ]
 homepage:     "https://github.com/mirage/functoria"
 bug-reports:  "https://github.com/mirage/functoria/issues"
-dev-repo:     "https://github.com/mirage/functoria.git"
+dev-repo:     "git+https://github.com/mirage/functoria.git"
 doc:          "https://mirage.github.io/functoria/"
 license:      "ISC"
 tags:         ["org:mirage"]
@@ -15,10 +15,11 @@ tags:         ["org:mirage"]
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
-build-test: [["dune" "runtest" "-p" name "-j" jobs]]
 
 depends: [
+  "ocaml" {>= "4.03.0"}
   "dune" {build}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
@@ -29,7 +30,14 @@ depends: [
   "logs"
   "bos"
   "fpath"
-  "alcotest" {test}
+  "alcotest" {with-test}
   "ptime"
 ]
-available: [ocaml-version >= "4.03"]
+synopsis: "A DSL to organize functor applications"
+description: """
+Functoria is a DSL to describe a set of modules and functors, their types and
+how to apply them in order to produce a complete application.
+
+The main use case is mirage. See the [mirage](https://github.com/mirage/mirage)
+repository for details.
+"""

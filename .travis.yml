@@ -10,6 +10,8 @@ env:
   - OCAML_VERSION=4.04 PACKAGE="functoria"
   - OCAML_VERSION=4.05 PACKAGE="functoria"
   - OCAML_VERSION=4.06 PACKAGE="functoria"
+  - OCAML_VERSION=4.07 PACKAGE="functoria"
   - OCAML_VERSION=4.04 PACKAGE="functoria-runtime"
   - OCAML_VERSION=4.05 PACKAGE="functoria-runtime"
   - OCAML_VERSION=4.06 PACKAGE="functoria-runtime"
+  - OCAML_VERSION=4.07 PACKAGE="functoria-runtime"

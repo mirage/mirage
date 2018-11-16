@@ -1,3 +1,13 @@
+## 2.2.2 (16/11/2018)
+
+* compute all transitive opam dependencies for info (#151, by @hannesm)
+* support pin-depends in generated opam file (#163, by @hannesm)
+* use dune as build system (#158, by @emillon)
+* use Ptime for time printing (#160, by @emillon)
+* inject global arguments into generated header (#159, by @emillon)
+* add Functoria_key.add_to_context (#161, by @emillon)
+* output opam2 files (#157, by @hannesm)
+
 ## 2.2.1 (01/08/2018)
 
 * expand signatures manually for 4.07.0 support (#153, by @Drup)

@@ -20,7 +20,7 @@ depends: [
   "ocaml" {>= "4.04.2"}
   "dune" {build & >= "1.1.0"}
   "ipaddr"             {>= "2.6.0"}
-  "functoria"          {>= "2.2.0"}
+  "functoria"          {>= "2.2.2"}
   "bos"
   "astring"
   "logs"

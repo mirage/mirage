@@ -62,7 +62,7 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
   end
 
 let charrua_pkg =
-  Key.pure [ package ~min:"0.11" ~max:"0.12" "charrua-client-mirage" ]
+  Key.pure [ package ~min:"0.11.0" ~max:"0.12.0" "charrua-client-mirage" ]
 
 let dhcp_conf = impl @@ object
     inherit base_configurable

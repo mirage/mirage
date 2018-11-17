@@ -52,7 +52,10 @@ val warn_error: bool key
     default, but might might enabled by default in later releases. *)
 
 val target_debug: bool key
-(** Enables target-specific support for debugging. *)
+(** [-g]. Enables target-specific support for debugging. *)
+
+val no_depext: bool key
+(** [--no-depext]. Disables opam depext in depend target of generated Makefile. *)
 
 val tracing_size: int -> int key
 (** [--tracing-size]: Key setting the tracing ring buffer size. *)

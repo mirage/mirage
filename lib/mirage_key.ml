@@ -166,7 +166,7 @@ let is_unix =
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["warn-error"] in
-  let key = Arg.(opt ~stage:`Configure bool false doc) in
+  let key = Arg.flag ~stage:`Configure doc in
   Key.create "warn_error" key
 
 let target_debug =
@@ -175,6 +175,12 @@ let target_debug =
   let doc = Arg.info ~docs:mirage_section ~docv:"DEBUG" ~doc ["g"] in
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "target_debug" key
+
+let no_depext =
+  let doc = "Disable call to depext when generating Makefile." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["no-depext"] in
+  let key = Arg.flag ~stage:`Configure doc in
+  Key.create "no_depext" key
 
 (** {3 Tracing} *)
 

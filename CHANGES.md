@@ -1,3 +1,69 @@
+### 3.3.0 (2018-11-18)
+
+New target: (via solo5) Genode:
+"Genode[4][5][6] is a free and open-source operating system framework consisting
+of a microkernel abstraction layer and a collection of userspace components. The
+framework is notable as one of the few open-source operating systems not derived
+from a proprietary OS, such as Unix. The characteristic design philosophy is
+that a small trusted computing base is of primary concern in a security oriented
+OS." (from wikipedia, more at https://genode.org/ #942, by @ehmry)
+
+User-visible changes
+* use mirage-bootvar-unix instead of OS.Env.argv
+  (deprecated since mirage-{xen,unix,os-shim}.3.1.0, mirage-solo5.0.5.0) on unix
+  (#931, by @hannesm)
+
+  WARNING: this leads to a different semantics for argument passing on Unix:
+  all arguments are concatenated (using a whitespace " " as separator), and
+  split on the whitespace character again (by parse-argv). This is coherent
+  with all other backends, but the whitespace in "--hello=foo bar" needs to
+  be escaped now.
+
+* mirage now generates upper bounds for hard-coded packages that are used in
+  generated code. When we now break the API, unikernels which are configured with
+  an earlier version won't accept the new release of the dependency. This means
+  API breakage is much smoother for us, apart from that we now track version
+  numbers in the mirage utility. The following rules were applied for upper bounds:
+  - if version < 1.0.0 then ~min:"a.b.c" ~max:"a.(b+1).0"
+  - if version > 1.0.0 then ~min:"a.b.c" ~max:"(a+1).0.0"`
+  - exceptions: tcpip (~min:"3.5.0" ~max:"3.6.0"), mirage-block-ramdisk (unconstrained)
+
+  WARNING: Please be careful when release any of the referenced libraries by
+  taking care of appropriate version numbering.
+  (initial version in #855 by @avsm, final #946 by @hannesm)
+
+* since functoria.2.2.2, the "package" function (used in unikernel configuration)
+  is extended with the labeled argument ~pin that receives a string (e.g.
+  ~pin:"git+https://github.com/mirage-random/mirage-random.git"), and is embedded
+  into the generated opam file as [pin-depends](https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends)
+
+* mirage-random-stdlib is now used for default_random instead of mirage-random
+  (which since 1.2.0 no longer bundles the stdlib Random
+  module). mirage-random-stdlib is not cryptographically secure, but "a
+  lagged-Fibonacci F(55, 24, +) with a modified addition function to enhance the
+  mixing of bits.", which is now seeded using mirage-entropy. If you configure
+  your unikernel with "mirage configure --prng fortuna" (since mirage 3.0.0), a
+  cryptographically secure PRNG will be used (read more at
+  https://mirage.io/blog/mirage-entropy)
+
+* mirage now revived its command-line "--no-depext", which removes the call to
+  "opam depext" in the depend and depends target of the generated Makefile
+  (#948, by @hannesm)
+
+* make depend no longer uses opam pin for opam install --deps-only (#948, by @hannesm)
+
+* remove unused io_page configuration (initial discussion in #855, #940, by @hannesm)
+
+* charrua-client requires a Mirage_random interface since 0.11.0 (#938, by @hannesm)
+
+* split implementations into separate modules (#933, by @emillon)
+
+* improved opam2 support (declare ocaml as dependency #926)
+
+* switch build system to dune (#927, by @emillon)
+
+* block device writes has been fixed in mirage.0.5.0
+
 ### 3.2.0 (2018-09-23)
 
 * adapt to solo5 0.4.0 changes (#924, by @mato)

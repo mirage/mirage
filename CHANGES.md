@@ -62,7 +62,7 @@ User-visible changes
 
 * switch build system to dune (#927, by @emillon)
 
-* block device writes has been fixed in mirage.0.5.0
+* block device writes has been fixed in mirage-solo5.0.5.0
 
 ### 3.2.0 (2018-09-23)
 

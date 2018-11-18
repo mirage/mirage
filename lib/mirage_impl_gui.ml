@@ -12,7 +12,7 @@ let gui_qubes = impl @@ object
   val name = Name.ocamlify @@ "gui"
   method name = name
   method module_name = "Qubes.GUI"
-  method! packages = Key.pure [ package ~min:"0.4" "mirage-qubes" ]
+  method! packages = Key.pure [ Mirage_impl_qubesdb.pkg ]
   method! configure i =
     match get_target i with
     | `Qubes -> R.ok ()

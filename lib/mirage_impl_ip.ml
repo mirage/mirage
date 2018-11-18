@@ -32,18 +32,22 @@ let (@?) x l = match x with Some s -> s :: l | None -> l
 let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix or .xen for checksums *)
-let right_tcpip_library ?min ?max ?ocamlfind ~sublibs pkg =
+let right_tcpip_library ?ocamlfind ~sublibs pkg =
+  let min = "3.5.0" and max = "3.6.0" in
   Key.match_ Key.(value target) @@ function
-  |`MacOSX | `Unix                  -> [ package ?min ?max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  |`Qubes  | `Xen                   -> [ package ?min ?max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
-  |`Virtio | `Hvt | `Muen | `Genode -> [ package ?min ?max ?ocamlfind ~sublibs pkg ]
+  |`MacOSX | `Unix ->
+    [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
+  |`Qubes  | `Xen ->
+    [ package ~min ~max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
+  |`Virtio | `Hvt | `Muen | `Genode ->
+    [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     inherit base_configurable
     method ty = random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
-    method! packages = right_tcpip_library ~min:"3.5.0" ~sublibs:["ipv4"] "tcpip"
+    method! packages = right_tcpip_library ~sublibs:["ipv4"] "tcpip"
     method! keys = network @?? gateway @?? []
     method! connect _ modname = function
     | [ _random ; mclock ; etif ; arp ] ->
@@ -57,12 +61,15 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
       | _ -> failwith (connect_err "ipv4 keyed" 4)
   end
 
+let charrua_pkg =
+  Key.pure [ package ~min:"0.11.0" ~max:"0.12.0" "charrua-client-mirage" ]
+
 let dhcp_conf = impl @@ object
     inherit base_configurable
     method ty = random @-> time @-> network @-> Mirage_impl_dhcp.dhcp
     method name = "dhcp_client"
     method module_name = "Dhcp_client_mirage.Make"
-    method! packages = Key.pure [ package ~min:"0.10" "charrua-client-mirage" ]
+    method! packages = charrua_pkg
     method! connect _ modname = function
       | [ _random; _time; network ] -> Fmt.strf "%s.connect %s " modname network
       | _ -> failwith (connect_err "dhcp" 3)
@@ -73,7 +80,7 @@ let ipv4_dhcp_conf = impl @@ object
     method ty = Mirage_impl_dhcp.dhcp @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "dhcp_ipv4" ~prefix:"dhcp_ipv4"
     method module_name = "Dhcp_ipv4.Make"
-    method! packages = Key.pure [ package "charrua-client-mirage" ]
+    method! packages = charrua_pkg
     method! connect _ modname = function
       | [ dhcp ; _random ; mclock ; ethernet ; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]"
@@ -115,7 +122,8 @@ let ipv4_qubes_conf = impl @@ object
     method ty = qubesdb @-> random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
     method module_name = "Qubesdb_ipv4.Make"
-    method! packages = Key.pure [ package ~min:"0.6" "mirage-qubes-ipv4" ]
+    method! packages =
+      Key.pure [ package ~min:"0.6" ~max:"0.7" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
       | [  db ; _random ; mclock ;etif; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]" modname db mclock etif arp
@@ -132,7 +140,7 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method ty = ethernet @-> random @-> time @-> mclock @-> ipv6
     method name = Name.create "ipv6" ~prefix:"ipv6"
     method module_name = "Ipv6.Make"
-    method! packages = right_tcpip_library ~min:"3.5.0" ~sublibs:["ipv6"] "tcpip"
+    method! packages = right_tcpip_library ~sublibs:["ipv6"] "tcpip"
     method! keys = addresses @?? netmasks @?? gateways @?? []
     method! connect _ modname = function
       | [ etif ; _random ; _time ; clock ] ->

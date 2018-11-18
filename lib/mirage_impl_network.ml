@@ -17,11 +17,14 @@ let network_conf (intf : string Key.key) =
     method! keys = [ key ]
     method! packages =
       Key.match_ Key.(value target) @@ function
-      | `Unix -> [ package ~min:"2.3.0" "mirage-net-unix" ]
-      | `MacOSX -> [ package ~min:"1.3.0" "mirage-net-macosx" ]
-      | `Xen -> [ package ~min:"1.7.0" "mirage-net-xen"]
-      | `Qubes -> [ package ~min:"1.7.0" "mirage-net-xen" ; package ~min:"0.4" "mirage-qubes" ]
-      | `Virtio | `Hvt | `Muen | `Genode -> [ package ~min:"0.3.0" "mirage-net-solo5" ]
+      | `Unix -> [ package ~min:"2.3.0" ~max:"3.0.0" "mirage-net-unix" ]
+      | `MacOSX -> [ package ~min:"1.4.0" ~max:"2.0.0" "mirage-net-macosx" ]
+      | `Xen -> [ package ~min:"1.7.0" ~max:"2.0.0" "mirage-net-xen"]
+      | `Qubes ->
+        [ package ~min:"1.7.0" ~max:"2.0.0" "mirage-net-xen" ;
+          Mirage_impl_qubesdb.pkg ]
+      | `Virtio | `Hvt | `Muen | `Genode ->
+        [ package ~min:"0.4.0" ~max:"0.5.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =

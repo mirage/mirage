@@ -15,8 +15,8 @@ let resolver_unix_system = impl @@ object
     method module_name = "Resolver_lwt"
     method! packages =
       Key.(if_ is_unix)
-        [ package ~min:"3.1.0" ~ocamlfind:[] "mirage-conduit" ;
-          package ~min:"1.0.0" "conduit-lwt-unix"; ]
+        [ Mirage_impl_conduit_connector.pkg ;
+          package ~min:"1.0.0" ~max:"2.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with
@@ -34,9 +34,7 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
-      Key.pure [
-        package ~min:"3.0.1" "mirage-conduit" ;
-      ]
+      Key.pure [ Mirage_impl_conduit_connector.pkg ]
     method! connect _ modname = function
       | [ _t ; stack ] ->
         let meta_ns = Fmt.Dump.option meta_ipv4 in

@@ -11,7 +11,7 @@ let qrexec_qubes = impl @@ object
   val name = Name.ocamlify @@ "qrexec_"
   method name = name
   method module_name = "Qubes.RExec"
-  method! packages = Key.pure [ package ~min:"0.4" "mirage-qubes" ]
+  method! packages = Key.pure [ Mirage_impl_qubesdb.pkg ]
   method! configure i =
     match Mirage_impl_misc.get_target i with
     | `Qubes -> R.ok ()

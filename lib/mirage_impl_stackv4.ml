@@ -26,7 +26,7 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     val name = add_suffix "stackv4_" ~suffix:group
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
-    method! packages = Key.pure [ package ~min:"3.5.0" ~sublibs:["stack-direct"] "tcpip" ]
+    method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
     method! connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
         Fmt.strf
@@ -74,7 +74,7 @@ let stackv4_socket_conf ?(group="") ips = impl @@ object
     method name = name
     method module_name = "Tcpip_stack_socket"
     method! keys = [ Key.abstract ips ]
-    method! packages = Key.pure [ package ~min:"3.5.0" ~sublibs:["stack-socket"; "unix"] "tcpip" ]
+    method! packages = right_tcpip_library ~sublibs:["stack-socket"] "tcpip"
     method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
     method! connect _i modname = function
       | [ udpv4 ; tcpv4 ] ->

@@ -5,14 +5,13 @@ high-performance network applications across a variety of cloud computing and
 mobile platforms. Code can be developed on a traditional OS such as Linux or
 MacOS X, and then compiled into a fully-standalone, specialised unikernel that
 runs under the Xen or KVM hypervisors as well as lightweight hypervisors like
-BSD's bhyve.  Xen and KVM power many public clouds;
+FreeBSD's BHyve, OpenBSD's VMM.  Xen and KVM power many public clouds;
 MirageOS unikernels are currently running on Amazon's Elastic Compute Cloud
 and Google Compute Engine, and maybe others!
 
 The most up-to-date documentation can be found at the
-[homepage](https://mirage.io). The site is self-hosted, and is itself a useful
-[example](https://github.com/mirage/mirage-www). Simpler
-[skeleton applications](https://github.com/mirage/mirage-skeleton) are also
+[homepage](https://mirage.io). The site is [a Xen hosted unikernel](https://github.com/mirage/mirage-www).
+Simpler [skeleton applications](https://github.com/mirage/mirage-skeleton) are also
 available online.
 
 [![Build Status](https://travis-ci.org/mirage/mirage.svg)](https://travis-ci.org/mirage/mirage)
@@ -36,10 +35,10 @@ locally or use the Docker image.
 
 You will need the following:
 
-* a working [OCaml](https://ocaml.org) compiler (4.03.0 or higher).
-* the [OPAM](https://opam.ocaml.org) source package manager (1.2.2 or higher).
+* a working [OCaml](https://ocaml.org) compiler (4.04.2 or higher).
+* the [OPAM](https://opam.ocaml.org) source package manager (2.0.0 or higher).
 * an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or
-  MacOS X for the userlevel version.
+  MacOS X for the solo5 and userlevel versions.
 
 **Docker image**
 

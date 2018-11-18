@@ -1,3 +1,0 @@
-{2 Library mirage}
-This library exposes the following toplevel modules:
-{!modules:Mirage Mirage_key}

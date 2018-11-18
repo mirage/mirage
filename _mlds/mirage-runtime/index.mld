@@ -1,3 +1,0 @@
-{2 Library mirage-runtime}
-This library exposes the following toplevel modules:
-{!modules:Mirage_info Mirage_runtime}

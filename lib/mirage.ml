@@ -503,7 +503,7 @@ let configure_makefile ~no_depext ~opam_name =
                   all:: build\n\
                   \n\
                   depend depends::%s\n\
-                  \t$(OPAM) install --deps-only .\n\
+                  \t$(OPAM) install -y --deps-only .\n\
                   \n\
                   build::\n\
                   \tmirage build\n\

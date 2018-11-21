@@ -190,7 +190,7 @@ module Info = struct
     | [] -> ()
     | pin_depends ->
       let pp_pin ppf (package, url) =
-        Fmt.pf ppf "\"%s.dev\" %S" package url
+        Fmt.pf ppf "[\"%s.dev\" %S]" package url
       in
       Fmt.pf ppf "pin-depends: [ @[<hv>%a@]@ ]@."
         Fmt.(list ~sep:(unit "@ ") pp_pin) pin_depends

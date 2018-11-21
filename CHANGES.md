@@ -1,3 +1,7 @@
+### 3.3.1 (2018-11-21)
+
+* fix regression: --yes was not passed to opam in 3.3.0 (#950, by @hannesm)
+
 ### 3.3.0 (2018-11-18)
 
 New target: (via solo5) Genode:

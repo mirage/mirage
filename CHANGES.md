@@ -1,3 +1,7 @@
+## 2.2.3 (21/11/2018)
+
+* fix support for pin-depends (#165, by @hannesm)
+
 ## 2.2.2 (16/11/2018)
 
 * compute all transitive opam dependencies for info (#151, by @hannesm)

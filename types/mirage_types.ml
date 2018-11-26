@@ -75,7 +75,7 @@ module type BLOCK = Mirage_block.S
 module type NETWORK = Mirage_net.S
 
 (** {1 Ethernet module} *)
-module type ETHIF = Mirage_protocols.ETHIF
+module type ETHERNET = Mirage_protocols.ETHERNET
 
 (** {1 IP stack}
     An IP module that allows communication via IPv4 or IPv6. *)

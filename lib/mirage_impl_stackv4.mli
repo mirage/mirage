@@ -7,9 +7,6 @@ val direct_stackv4 :
   -> ?random:Mirage_impl_random.random Functoria.impl
   -> ?time:Mirage_impl_time.time Functoria.impl
   -> ?group:string
-  -> Mirage_impl_network.network Functoria.impl
-  -> Mirage_impl_ethernet.ethernet Functoria.impl
-  -> Mirage_impl_arpv4.arpv4 Functoria.impl
   -> Mirage_impl_ip.ipv4 Functoria.impl
   -> stackv4 Functoria.impl
 

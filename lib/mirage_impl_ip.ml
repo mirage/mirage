@@ -26,6 +26,7 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
+let maybe_key s = Fmt.(option @@ prefix (unit ("?"^^s^^":")) pp_key)
 let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
@@ -52,11 +53,10 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method! connect _ modname = function
     | [ _random ; mclock ; etif ; arp ] ->
       Fmt.strf
-        "let (network, ip) = %a in @ \
-         %s.connect@[@ ~ip ~network %a@ %s@ %s@ %s@]"
-        (Fmt.option pp_key) network
+        "%s.connect@[@ %a@ %a@ %s@ %s@ %s@]"
         modname
-        (opt_key "gateway") gateway
+        (opt_key "ip") network
+        (maybe_key "gateway") gateway
         mclock etif arp
       | _ -> failwith (connect_err "ipv4 keyed" 4)
   end
@@ -92,8 +92,8 @@ let ipv4_dhcp_conf = impl @@ object
 let dhcp random time net = dhcp_conf $ random $ time $ net
 let ipv4_of_dhcp
     ?(random = default_random)
-    ?(clock = default_monotonic_clock) dhcp ethif arp =
-  ipv4_dhcp_conf $ dhcp $ random $ clock $ ethif $ arp
+    ?(clock = default_monotonic_clock) dhcp ethernet arp =
+  ipv4_dhcp_conf $ dhcp $ random $ clock $ ethernet $ arp
 
 let create_ipv4 ?group ?config
     ?(random = default_random) ?(clock = default_monotonic_clock) etif arp =

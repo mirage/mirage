@@ -20,18 +20,17 @@ let add_suffix s ~suffix = if suffix = "" then s else s^"_"^suffix
 let stackv4_direct_conf ?(group="") () = impl @@ object
     inherit base_configurable
     method ty =
-      time @-> random @-> network @->
-      ethernet @-> arpv4 @-> ipv4 @-> Mirage_impl_icmp.icmpv4 @-> udpv4 @-> tcpv4 @->
+      time @-> random @-> ipv4 @-> Mirage_impl_icmp.icmpv4 @-> udpv4 @-> tcpv4 @->
       stackv4
     val name = add_suffix "stackv4_" ~suffix:group
     method name = name
     method module_name = "Tcpip_stack_direct.Make"
     method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
     method! connect _i modname = function
-      | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
+      | [ _t; _r; ip; icmp; udp; tcp ] ->
         Fmt.strf
-          "%s.connect %s %s %s %s %s %s %s"
-          modname interface ethif arp ip icmp udp tcp
+          "%s.connect %s %s %s %s"
+          modname ip icmp udp tcp
       | _ -> failwith (connect_err "direct stackv4" 9)
   end
 
@@ -40,10 +39,9 @@ let direct_stackv4
     ?(random=default_random)
     ?(time=default_time)
     ?group
-    network eth arp ip =
+    ip =
   stackv4_direct_conf ?group ()
-  $ time $ random $ network
-  $ eth $ arp $ ip
+  $ time $ random $ ip
   $ Mirage_impl_icmp.direct_icmpv4 ip
   $ direct_udp ~random ip
   $ direct_tcp ~clock ~random ~time ip
@@ -53,19 +51,19 @@ let dhcp_ipv4_stack ?group ?(random = default_random) ?(time = default_time) ?(a
   let e = etif tap in
   let a = arp e in
   let i = ipv4_of_dhcp config e a in
-  direct_stackv4 ?group tap e a i
+  direct_stackv4 ?group i
 
 let static_ipv4_stack ?group ?config ?(arp = arp ?clock:None ?time:None) tap =
   let e = etif tap in
   let a = arp e in
   let i = create_ipv4 ?group ?config e a in
-  direct_stackv4 ?group tap e a i
+  direct_stackv4 ?group i
 
 let qubes_ipv4_stack ?group ?(qubesdb = default_qubesdb) ?(arp = arp ?clock:None ?time:None) tap =
   let e = etif tap in
   let a = arp e in
   let i = ipv4_qubes qubesdb e a in
-  direct_stackv4 ?group tap e a i
+  direct_stackv4 ?group i
 
 let stackv4_socket_conf ?(group="") ips = impl @@ object
     inherit base_configurable

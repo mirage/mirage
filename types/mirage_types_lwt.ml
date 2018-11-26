@@ -37,7 +37,7 @@ module type BLOCK = Mirage_block_lwt.S
 module type NETWORK = Mirage_net_lwt.S
 
 (** Network protocol implementations from Mirage_protocols *)
-module type ETHIF = Mirage_protocols_lwt.ETHIF
+module type ETHERNET = Mirage_protocols_lwt.ETHERNET
 module type ARP = Mirage_protocols_lwt.ARP
 module type IP = Mirage_protocols_lwt.IP
 module type IPV4 = Mirage_protocols_lwt.IPV4

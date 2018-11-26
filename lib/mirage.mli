@@ -249,7 +249,7 @@ val netif: ?group:string -> string -> network impl
 type ethernet
 
 val ethernet: ethernet typ
-(** Implementations of the [Mirage_types.ETHIF] signature. *)
+(** Implementations of the [Mirage_types.ETHERNET] signature. *)
 
 val etif: network impl -> ethernet impl
 
@@ -370,7 +370,7 @@ val direct_stackv4:
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
-  network impl -> ethernet impl -> arpv4 impl -> ipv4 impl -> stackv4 impl
+  ipv4 impl -> stackv4 impl
 
 (** Network stack with sockets. Exposes the key {!Key.V4.interfaces}. *)
 val socket_stackv4:

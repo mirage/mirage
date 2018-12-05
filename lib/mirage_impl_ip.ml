@@ -34,7 +34,7 @@ let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
-  let min = "3.5.0" and max = "3.6.0" in
+  let min = "3.6.0" and max = "3.7.0" in
   Key.match_ Key.(value target) @@ function
   |`MacOSX | `Unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]

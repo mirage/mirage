@@ -26,6 +26,7 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
+let opt_opt_key s = Fmt.(option @@ prefix (unit ("?"^^s^^":")) pp_key)
 let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
@@ -42,21 +43,20 @@ let right_tcpip_library ?ocamlfind ~sublibs pkg =
   |`Virtio | `Hvt | `Muen | `Genode ->
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
-let ipv4_keyed_conf ?network ?gateway () = impl @@ object
+let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
     inherit base_configurable
     method ty = random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
     method! packages = right_tcpip_library ~sublibs:["ipv4"] "tcpip"
-    method! keys = network @?? gateway @?? []
+    method! keys = gateway @?? [Key.abstract ip]
     method! connect _ modname = function
     | [ _random ; mclock ; etif ; arp ] ->
       Fmt.strf
-        "let (network, ip) = %a in @ \
-         %s.connect@[@ ~ip ~network %a@ %s@ %s@ %s@]"
-        (Fmt.option pp_key) network
+        "%s.connect@[@ %a@ %a@ %s@ %s@ %s@]"
         modname
-        (opt_key "gateway") gateway
+        Fmt.(prefix (unit "~ip:") pp_key) ip
+        (opt_opt_key "gateway") gateway
         mclock etif arp
       | _ -> failwith (connect_err "ipv4 keyed" 4)
   end
@@ -105,10 +105,10 @@ let create_ipv4 ?group ?config
     { network; gateway }
   | Some config -> config
   in
-  let network = Key.V4.network ?group config.network
+  let ip = Key.V4.network ?group config.network
   and gateway = Key.V4.gateway ?group config.gateway
   in
-  ipv4_keyed_conf ~network ~gateway () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway () $ random $ clock $ etif $ arp
 
 type ipv6_config = {
   addresses: Ipaddr.V6.t list;

@@ -457,17 +457,12 @@ type conduit
 val conduit: conduit typ
 val conduit_direct: ?tls:bool -> stackv4 impl -> conduit impl
 
-(** {2 HTTP (Cohttp) configuration} *)
+(** {2 HTTP configuration} *)
 
 type http
 val http: http typ
 val http_server: conduit impl -> http impl
-
-(** {2 HTTP (http/af) configuration} *)
-
-type httpaf
-val httpaf: httpaf typ
-val httpaf_server: conduit impl -> httpaf impl
+val httpaf_server: conduit impl -> http impl
 
 (** {2 Argv configuration} *)
 

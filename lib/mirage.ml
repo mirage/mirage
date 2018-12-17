@@ -174,6 +174,10 @@ type http = Mirage_impl_http.http
 let http = Mirage_impl_http.http
 let http_server = Mirage_impl_http.http_server
 
+type httpaf = Mirage_impl_httpaf.httpaf
+let httpaf = Mirage_impl_httpaf.httpaf
+let httpaf_server = Mirage_impl_httpaf.httpaf_server
+
 let default_argv = Mirage_impl_argv.default_argv
 let no_argv = Mirage_impl_argv.no_argv
 

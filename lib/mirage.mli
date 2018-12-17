@@ -461,8 +461,15 @@ val conduit_direct: ?tls:bool -> stackv4 impl -> conduit impl
 
 type http
 val http: http typ
+
 val http_server: conduit impl -> http impl
+[@@ocaml.deprecated "`http_server` is deprecated. Please use `cohttp_server` or `httpaf_server` instead."]
+
+val cohttp_server: conduit impl -> http impl
+(** [cohttp_server] starts a Cohttp server. *)
+
 val httpaf_server: conduit impl -> http impl
+(** [httpaf_server] starts a http/af server. *)
 
 (** {2 Argv configuration} *)
 

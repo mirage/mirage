@@ -4,7 +4,7 @@ open Mirage_impl_misc
 type http = HTTP
 let http = Type HTTP
 
-let http_server conduit = impl @@ object
+let cohttp_server conduit = impl @@ object
     inherit base_configurable
     method ty = http
     method name = "http"

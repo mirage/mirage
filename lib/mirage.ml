@@ -172,7 +172,9 @@ let syslog_config = Mirage_impl_syslog.syslog_config
 
 type http = Mirage_impl_http.http
 let http = Mirage_impl_http.http
-let http_server = Mirage_impl_http.http_server
+let http_server = Mirage_impl_http.cohttp_server
+[@@ocaml.deprecated "`http_server` is deprecated. Please use `cohttp_server` or `httpaf_server` instead."]
+let cohttp_server = Mirage_impl_http.cohttp_server
 let httpaf_server = Mirage_impl_http.httpaf_server
 
 let default_argv = Mirage_impl_argv.default_argv

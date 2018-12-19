@@ -87,10 +87,10 @@ module Arg = struct
       with Not_found -> "warning"
     in
     let parser str =
-      match Astring.String.cut ~sep:":" str with
-      | None            -> `Ok (`All    , level_of_string str)
-      | Some ("*", str) -> `Ok (`All    , level_of_string str)
-      | Some (src, str) -> `Ok (`Src src, level_of_string str)
+      match String.split_on_char ':' str with
+      | [] -> `Ok (`All, level_of_string str)
+      | [ src ; lvl ] -> `Ok (`Src src, level_of_string lvl)
+      | _ -> `Error ("Can't parse log threshold: "^str)
     in
     let serialize ppf = function
       | `All  , l -> Fmt.string ppf (string_of_level l)

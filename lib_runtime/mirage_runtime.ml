@@ -48,18 +48,17 @@ module Arg = struct
   module type S = sig
     type t
     val of_string : string -> t option
-    val pp_hum : Format.formatter -> t -> unit
+    val pp : Format.formatter -> t -> unit
   end
 
   let of_module (type t) (module M:S with type t = t) =
-    make M.of_string M.pp_hum
+    make M.of_string M.pp
 
   let ip = of_module (module Ipaddr)
   let ipv4_address = of_module (module Ipaddr.V4)
   let ipv4 =
     let serialize fmt (prefix, ip) =
-      Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn \"%s\")"
-      @@ Ipaddr.V4.Prefix.to_address_string prefix ip
+      Format.fprintf fmt "%S" @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
     let parse str =
       match Ipaddr.V4.Prefix.of_address_string str with

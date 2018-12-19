@@ -40,7 +40,7 @@ module Arg: sig
   module type S = sig
     type t
     val of_string: string -> t option
-    val pp_hum: Format.formatter -> t -> unit
+    val pp: Format.formatter -> t -> unit
   end
   (** [S] is the signature used by {!of_module} to create a
       command-line argument converter. *)

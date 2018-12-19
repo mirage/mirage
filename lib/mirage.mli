@@ -98,13 +98,15 @@ val reporter: reporter typ
 (** Implementation of the log {!reporter} type. *)
 
 val default_reporter:
-  ?clock:pclock impl -> ?ring_size:int -> ?level:Logs.level ->
-  unit -> reporter impl
-(** [default_reporter ?clock ?level ()] is the log reporter that
-    prints log messages to the console, timestampted with [clock]. If
-    not provided, the default clock is {!default_posix_clock}. [level] is
-    the default log threshold. It is [Logs.Info] if not
-    specified. *)
+  ?timestamp:bool -> ?clock:pclock impl -> ?ring_size:int -> ?level:Logs.level ->
+  ?style:Fmt.style_renderer -> ?channel:out_channel -> unit -> reporter impl
+(** [default_reporter ~timestamp ~clock ~ring_size ~level ~style ~channel ()]
+    is the log reporter that prints log messages to the console, timestampted
+    with [clock] (if [timestamp] is provided and [true]). By default, the clock
+    is {!default_posix_clock}. [level] is the default log threshold. It is
+    [Logs.Info] unless specified. The [channel] is by default [Fmt.stderr].
+    The [style] defaults to [Fmt.setup_std_outputs ()] for Unix targets, and
+    none for other targets. *)
 
 val no_reporter: reporter impl
 (** [no_reporter] disable log reporting. *)

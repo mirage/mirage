@@ -893,6 +893,7 @@ module Project = struct
           package ~min ~max "mirage-types-lwt";
           package ~min ~max "mirage-types";
           package ~min ~max "mirage-runtime" ;
+          package ~build:true ~min ~max "mirage" ;
           package ~build:true "ocamlfind" ;
           package ~build:true "ocamlbuild" ;
         ] in

@@ -45,6 +45,6 @@ val generic_stackv4 :
      ?group:string
   -> ?config:Mirage_impl_ip.ipv4_config
   -> ?dhcp_key:bool Functoria.value
-  -> ?net_key:[`Direct | `Socket] Functoria.value
+  -> ?net_key:[`Direct | `Socket] option Functoria.value
   -> Mirage_impl_network.network Functoria.impl
   -> stackv4 Functoria.impl

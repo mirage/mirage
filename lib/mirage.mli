@@ -390,9 +390,10 @@ val dhcp_ipv4_stack: ?group:string -> ?random:random impl -> ?time:time impl -> 
 val static_ipv4_stack: ?group:string -> ?config:ipv4_config -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Generic stack using a [dhcp] and a [net] keys: {!Key.net} and {!Key.dhcp}.
-    - If [target] = [Qubes] then {!qubes_ipv4_stack} is used.
-    - If [net] = [socket] then {!socket_stackv4} is used.
+    - If [target] = [Qubes] then {!qubes_ipv4_stack} is used
+    - Else, if [net] = [socket] then {!socket_stackv4} is used
     - Else, if [dhcp] then {!dhcp_ipv4_stack} is used
+    - Else, if [unix or macosx] then {!socket_stackv4} is used
     - Else, {!static_ipv4_stack} is used.
 
     If a key is not provided, it uses {!Key.net} or {!Key.dhcp} (with the
@@ -401,7 +402,7 @@ val static_ipv4_stack: ?group:string -> ?config:ipv4_config -> ?arp:(ethernet im
 val generic_stackv4:
   ?group:string -> ?config:ipv4_config ->
   ?dhcp_key:bool value ->
-  ?net_key:[ `Direct | `Socket ] value ->
+  ?net_key:[ `Direct | `Socket ] option value ->
   network impl -> stackv4 impl
 
 (** {2 Resolver configuration} *)

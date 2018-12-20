@@ -93,7 +93,7 @@ val prng : ?group:string -> unit -> [ `Stdlib | `Nocrypto ] key
 val dhcp : ?group:string -> unit -> bool key
 (** Enable dhcp. Is either [true] or [false]. *)
 
-val net : ?group:string -> unit -> [ `Direct | `Socket ] key
+val net : ?group:string -> unit -> [ `Direct | `Socket ] option key
 (** The type of stack. Is either ["direct"] or ["socket"]. *)
 
 (** {3 Network keys} *)

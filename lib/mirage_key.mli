@@ -84,9 +84,8 @@ val block : ?group:string -> unit -> [ `XenstoreId | `BlockFile | `Ramdisk ] key
 
 (** {3 PRNG key} *)
 
-val prng : ?group:string -> unit -> [ `Stdlib | `Nocrypto ] key
-(** The type of pseudo random number generator to use by default.
-    Is one of ["stdlib"] (lagged Fibonacci), or ["nocrypto"] (Fortuna). *)
+val prng : [ `Stdlib | `Nocrypto ] key
+(** The type of pseudo random number generator to use by default. *)
 
 (** {3 Stack keys} *)
 

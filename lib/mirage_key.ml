@@ -251,7 +251,7 @@ let block ?group () =
   create_simple ~doc ?group ~stage:`Configure ~default:`Ramdisk conv "block"
 
 (** {3 PRNG key} *)
-let prng ?group () =
+let prng =
   let conv =
     Cmdliner.Arg.enum [
       "stdlib"  , `Stdlib ;
@@ -266,10 +266,13 @@ let prng ?group () =
   let conv = Arg.conv ~conv ~serialize ~runtime_conv:"prng" in
   let doc =
     Fmt.strf
-      "Use a $(i,stdlib) or $(i,nocrypto) PRNG implementation for %a."
-      pp_group group
+      "Use the $(i,stdlib), a lagged-Fibonacci PRNG \
+       (not cryptographically secure), or $(i,fortuna), a Fortuna PRNG \
+       (https://en.wikipedia.org/wiki/Fortuna_(PRNG)). \
+       The selected PRNG is seeded by mirage-entropy \
+       (https://github.com/mirage/mirage-entropy)."
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:`Stdlib conv "prng"
+  create_simple ~doc ~stage:`Configure ~default:`Stdlib conv "prng"
 
 (** {3 Stack keys} *)
 

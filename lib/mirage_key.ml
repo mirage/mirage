@@ -25,13 +25,14 @@ module Arg = struct
 
   let from_run s = "Mirage_runtime.Arg." ^ s
 
-  let make d m of_string pp =
+  let make d m of_string to_string =
     let parser s = match of_string s with
-      | Some ip -> `Ok ip
-      | None -> `Error ("Can't parse ip address: "^s)
-    in
-    let serialize ppf t =
-      Fmt.pf ppf "(Ipaddr.%s.of_string_exn \"%a\")" m pp t
+      | Error (`Msg m) -> `Error ("Can't parse ip address: "^s^": "^m)
+      | Ok ip -> `Ok ip
+    and serialize ppf t =
+      Fmt.pf ppf "(Ipaddr.%s.of_string_exn %S)" m (to_string t)
+    and pp ppf t =
+      Fmt.string ppf (to_string t)
     in
     Functoria_key.Arg.conv
       ~conv:(parser, pp)
@@ -40,12 +41,12 @@ module Arg = struct
 
   module type S = sig
     type t
-    val of_string : string -> t option
-    val pp : Format.formatter -> t -> unit
+    val of_string : string -> (t, [ `Msg of string ]) result
+    val to_string : t -> string
   end
 
   let of_module (type t) d m (module M:S with type t = t) =
-    make d m M.of_string M.pp
+    make d m M.of_string M.to_string
 
   let ipv4_address = of_module "ipv4_address" "V4" (module Ipaddr.V4)
   let ipv4 =
@@ -58,8 +59,8 @@ module Arg = struct
     in
     let parse str =
       match Ipaddr.V4.Prefix.of_address_string str with
-      | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
-      | Some n -> `Ok n
+      | Error (`Msg m) -> `Error (str ^ " is not a valid IPv4 address and netmask: "^m)
+      | Ok n -> `Ok n
     in
     let runtime_conv = "Mirage_runtime.Arg.ipv4"
     in

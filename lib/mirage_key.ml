@@ -278,17 +278,17 @@ let dhcp ?group () =
   create_simple
     ~doc ?group ~stage:`Configure ~default:false Arg.bool "dhcp"
 
-let net ?group (): [`Socket | `Direct] Key.key =
+let net ?group (): [`Socket | `Direct] option Key.key =
   let conv = Cmdliner.Arg.enum ["socket", `Socket ; "direct", `Direct] in
   let serialize fmt = function
-    | `Socket -> Fmt.pf fmt "`Socket"
-    | `Direct -> Fmt.pf fmt "`Direct"
+    | `Socket -> Fmt.string fmt "`Socket"
+    | `Direct -> Fmt.string fmt "`Direct"
   in
   let conv = Arg.conv ~conv ~runtime_conv:"net" ~serialize in
   let doc =
     Fmt.strf "Use $(i,socket) or $(i,direct) group for %a." pp_group group
   in
-  create_simple ~doc ?group ~stage:`Configure ~default:`Direct conv "net"
+  create_simple ~doc ?group ~stage:`Configure ~default:None (Arg.some conv) "net"
 
 (** {3 Network keys} *)
 

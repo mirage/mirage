@@ -94,17 +94,18 @@ let generic_stackv4
     ?(dhcp_key = Key.value @@ Key.dhcp ?group ())
     ?(net_key = Key.value @@ Key.net ?group ())
     (tap : network impl) : stackv4 impl =
-  let eq a b = Key.(pure ((=) a) $ b) in
-  let choose qubes socket dhcp =
-    if qubes then `Qubes
-    else if socket then `Socket
-    else if dhcp then `Dhcp
-    else `Static
+  let choose target net dhcp =
+    match target, net, dhcp with
+    | `Qubes, _, _ -> `Qubes
+    | _, Some `Socket, _ -> `Socket
+    | _, _, true -> `Dhcp
+    | (`Unix | `MacOSX), None, false -> `Socket
+    | _, _, _ -> `Static
   in
   let p = Functoria_key.((pure choose)
-          $ eq `Qubes Key.(value target)
-          $ eq `Socket net_key
-          $ eq true dhcp_key) in
+          $ Key.(value target)
+          $ net_key
+          $ dhcp_key) in
   match_impl p [
     `Dhcp, dhcp_ipv4_stack ?group tap;
     `Socket, socket_stackv4 ?group [Ipaddr.V4.any];

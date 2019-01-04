@@ -38,33 +38,34 @@ module Arg = struct
 
   include Functoria_runtime.Arg
 
-  let make of_string pp: _ Cmdliner.Arg.converter =
+  let make of_string to_string :_ Cmdliner.Arg.converter =
     let parser s = match of_string s with
-      | Some ip -> `Ok ip
-      | None -> `Error ("Can't parse ip address: "^s)
+      | Error (`Msg m) -> `Error ("Can't parse ip address: "^s^": "^m)
+      | Ok ip -> `Ok ip
+    and pp ppf ip =
+      Fmt.string ppf (to_string ip)
     in
     parser, pp
 
   module type S = sig
     type t
-    val of_string : string -> t option
-    val pp_hum : Format.formatter -> t -> unit
+    val of_string : string -> (t, [ `Msg of string ]) result
+    val to_string : t -> string
   end
 
   let of_module (type t) (module M:S with type t = t) =
-    make M.of_string M.pp_hum
+    make M.of_string M.to_string
 
   let ip = of_module (module Ipaddr)
   let ipv4_address = of_module (module Ipaddr.V4)
   let ipv4 =
     let serialize fmt (prefix, ip) =
-      Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn \"%s\")"
-      @@ Ipaddr.V4.Prefix.to_address_string prefix ip
+      Format.fprintf fmt "%S" @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
     let parse str =
       match Ipaddr.V4.Prefix.of_address_string str with
-      | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
-      | Some n -> `Ok n
+      | Error (`Msg m) -> `Error (str ^ " is not a valid IPv4 address and netmask: " ^ m)
+      | Ok n -> `Ok n
     in
     parse, serialize
 

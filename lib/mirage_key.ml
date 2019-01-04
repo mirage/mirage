@@ -23,34 +23,35 @@ open Astring
 module Arg = struct
   include Key.Arg
 
+  let from_run s = "Mirage_runtime.Arg." ^ s
+
+  let make d m of_string to_string =
+    let parser s = match of_string s with
+      | Error (`Msg m) -> `Error ("Can't parse ip address: "^s^": "^m)
+      | Ok ip -> `Ok ip
+    and serialize ppf t =
+      Fmt.pf ppf "(Ipaddr.%s.of_string_exn %S)" m (to_string t)
+    and pp ppf t =
+      Fmt.string ppf (to_string t)
+    in
+    Functoria_key.Arg.conv
+      ~conv:(parser, pp)
+      ~serialize
+      ~runtime_conv:(from_run d)
+
   module type S = sig
-    include Mirage_runtime.Arg.S
-    val sexp_of_t : t -> Sexplib.Type.t
+    type t
+    val of_string : string -> (t, [ `Msg of string ]) result
+    val to_string : t -> string
   end
 
-  (* Could be improved with metaocaml and/or some reflection.
-     [description] and [m] should not need to be provided.
-  *)
-  let of_module
-      (type t) runtime_conv m (module M: S with type t=t) =
-    let conv = Mirage_runtime.Arg.of_module (module M) in
-    let serialize ppf x =
-      Fmt.pf ppf "(%s.t_of_sexp (Sexplib.Sexp.of_string %S))"
-        m (Sexplib.Sexp.to_string @@ M.sexp_of_t x)
-    in
-    Functoria_key.Arg.conv ~conv ~serialize ~runtime_conv
+  let of_module (type t) d m (module M:S with type t = t) =
+    make d m M.of_string M.to_string
 
-  let from_run s = "Mirage_runtime.Arg." ^ s
-  let builtin d mn m = of_module (from_run d) mn m
-
-  let ipv4_address = builtin "ipv4_address" "Ipaddr.V4" (module Ipaddr.V4)
-  let ipv6 = builtin "ipv6" "Ipaddr.V6" (module Ipaddr.V6)
-  let ipv6_prefix =
-    builtin "ipv6_prefix" "Ipaddr.V6.Prefix" (module Ipaddr.V6.Prefix)
-
+  let ipv4_address = of_module "ipv4_address" "V4" (module Ipaddr.V4)
   let ipv4 =
     let serialize fmt (prefix, ip) =
-      Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn \"%s\")"
+      Format.fprintf fmt "(Ipaddr.V4.Prefix.of_address_string_exn %S)"
       @@ Ipaddr.V4.Prefix.to_address_string prefix ip
     in
     let print fmt (prefix, ip) =
@@ -58,8 +59,8 @@ module Arg = struct
     in
     let parse str =
       match Ipaddr.V4.Prefix.of_address_string str with
-      | None -> `Error (str ^ " is not a valid IPv4 address and netmask")
-      | Some (network, ip) -> `Ok (network, ip)
+      | Error (`Msg m) -> `Error (str ^ " is not a valid IPv4 address and netmask: "^m)
+      | Ok n -> `Ok n
     in
     let runtime_conv = "Mirage_runtime.Arg.ipv4"
     in
@@ -67,6 +68,9 @@ module Arg = struct
       ~conv:(parse, print)
       ~serialize
       ~runtime_conv
+
+  let ipv6 = of_module "ipv6" "V6" (module Ipaddr.V6)
+  let ipv6_prefix = of_module "ipv6_prefix" "V6.Prefix" (module Ipaddr.V6.Prefix)
 end
 
 (** {2 Documentation helper} *)

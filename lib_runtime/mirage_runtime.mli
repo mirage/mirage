@@ -33,14 +33,15 @@ module Arg: sig
 
   include module type of Functoria_runtime.Arg
 
-  val make: (string -> 'a option) -> 'a Fmt.t -> 'a Cmdliner.Arg.converter
+  val make: (string -> ('a, [ `Msg of string ]) result) -> ('a -> string) ->
+    'a Cmdliner.Arg.converter
   (** [make of_string pp] is the command-line argument converter using
       on [of_string] and [pp]. *)
 
   module type S = sig
     type t
-    val of_string: string -> t option
-    val pp_hum: Format.formatter -> t -> unit
+    val of_string: string -> (t, [ `Msg of string ]) result
+    val to_string: t -> string
   end
   (** [S] is the signature used by {!of_module} to create a
       command-line argument converter. *)

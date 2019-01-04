@@ -12,7 +12,7 @@ let ethernet_conf = object
   method name = "ethif"
   method module_name = "Ethif.Make"
   method! packages =
-    Key.pure [ package ~min:"3.5.0" ~max:"3.6.0" ~sublibs:["ethif"] "tcpip" ]
+    Key.pure [ package ~min:"3.6.0" ~max:"3.7.0" ~sublibs:["ethif"] "tcpip" ]
   method! connect _ modname = function
     | [ eth ] -> Fmt.strf "%s.connect %s" modname eth
     | _ -> failwith (connect_err "ethernet" 1)

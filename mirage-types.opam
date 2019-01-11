@@ -19,19 +19,19 @@ build: [
 depends: [
   "ocaml" {>= "4.04.2"}
   "dune" {build & >= "1.1.0"}
-  "mirage-device" {>= "1.0.0"}
-  "mirage-time" {>= "1.0.0"}
-  "mirage-clock" {>= "1.2.0"}
-  "mirage-random" {>= "1.0.0"}
-  "mirage-flow" {>= "1.2.0"}
-  "mirage-console" {>= "2.2.0"}
-  "mirage-protocols" {>= "1.4.0"}
+  "mirage-device" {>= "1.1.0"}
+  "mirage-time" {>= "1.1.0"}
+  "mirage-clock" {>= "2.0.0"}
+  "mirage-random" {>= "1.2.0"}
+  "mirage-flow" {>= "1.5.0"}
+  "mirage-console" {>= "2.3.5"}
+  "mirage-protocols" {>= "1.4.1"}
   "mirage-stack" {>= "1.3.0"}
-  "mirage-block" {>= "1.0.0"}
-  "mirage-net" {>= "1.0.0"}
-  "mirage-fs" {>= "1.0.0"}
-  "mirage-kv" {>= "1.0.0"}
-  "mirage-channel" {>= "3.0.0"}
+  "mirage-block" {>= "1.1.0"}
+  "mirage-net" {>= "1.2.0"}
+  "mirage-fs" {>= "1.1.1"}
+  "mirage-kv" {>= "1.1.1"}
+  "mirage-channel" {>= "3.1.0"}
 ]
 synopsis: "Module type definitions for MirageOS applications"
 description: """

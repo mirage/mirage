@@ -24,7 +24,7 @@ depends: [
   "bos"
   "astring"
   "logs"
-  "mirage-runtime"     {>= "3.3.0"}
+  "mirage-runtime"     {>= "3.4.0"}
 ]
 synopsis: "The MirageOS library operating system"
 description: """

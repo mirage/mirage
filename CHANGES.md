@@ -1,4 +1,4 @@
-### v3.4.0 (2019-01-08)
+### v3.4.0 (2019-01-11)
 
 * use ipaddr 3.0 without s-expression dependency (#956, by @hannesm)
 * use mirage-clock 2.x and tcpip 3.6.x libraries (#960, #962, by @hannesm)

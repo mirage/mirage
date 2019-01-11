@@ -22,6 +22,6 @@ env:
    - DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=unix"
    - DISTRO=debian-testing OCAML_VERSION=4.07 EXTRA_ENV="MODE=hvt"
    - DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=xen"
- matrix:
-   allow_failures:
-   - DISTRO=ubuntu-18.04 OCAML_VERSION=4.07 EXTRA_ENV="MODE=genode"
+matrix:
+  allow_failures:
+  - DISTRO=debian-testing OCAML_VERSION=4.07 EXTRA_ENV="MODE=genode"

@@ -18,7 +18,9 @@ env:
    - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.05 EXTRA_ENV="MODE=virtio"
    - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.06 EXTRA_ENV="MODE=xen"
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.06 EXTRA_ENV="MODE=muen"
-   - PACKAGE=mirage DISTRO=ubuntu-16.04 OCAML_VERSION=4.07 EXTRA_ENV="MODE=genode"
    - PACKAGE=mirage DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=unix"
    - PACKAGE=mirage DISTRO=debian-testing OCAML_VERSION=4.07 EXTRA_ENV="MODE=hvt"
    - PACKAGE=mirage DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=xen"
+ matrix:
+   allow_failures:
+   - PACKAGE=mirage DISTRO=ubuntu-18.04 OCAML_VERSION=4.07 EXTRA_ENV="MODE=genode"

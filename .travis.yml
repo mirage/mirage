@@ -9,7 +9,7 @@ env:
  global:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage.3.4.0:. mirage-types.3.4.0:. mirage-types-lwt.3.4.0:. mirage-runtime.3.4.0:."
+   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
    - PACKAGE=mirage
  matrix:

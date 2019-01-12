@@ -30,14 +30,10 @@ let nocrypto = impl @@ object
     method module_name = "Nocrypto_entropy"
     method! packages =
       Mirage_key.match_ Mirage_key.(value target) @@ function
-      | `Xen | `Qubes ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto";
-          package ~max:"2.0" ~ocamlfind:[] "zarith-xen" ]
-      | `Virtio | `Hvt | `Muen | `Genode ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto";
-          package ~max:"2.0" ~ocamlfind:[] "zarith-freestanding" ]
       | `Unix | `MacOSX ->
         [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["lwt"] "nocrypto" ]
+      | _ ->
+        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto"]
 
     method! build _ = Rresult.R.ok (enable_entropy ())
     method! connect i _ _ =

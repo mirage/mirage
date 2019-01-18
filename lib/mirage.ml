@@ -33,7 +33,7 @@ include Functoria
 (* Mirage implementation backing the target. *)
 let backend_predicate = function
   | `Xen | `Qubes -> "mirage_xen"
-  | `Virtio | `Hvt | `Muen | `Genode  -> "mirage_solo5"
+  | `Virtio | `Hvt | `Muen | `Genode | `Spt -> "mirage_solo5"
   | `Unix | `MacOSX -> "mirage_unix"
 
 (** {2 Devices} *)
@@ -610,12 +610,12 @@ let compile ignore_dirs libs warn_error target =
     (if terminal () then ["color(always)"] else [])
   and result = match target with
     | `Unix | `MacOSX -> "main.native"
-    | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode -> "main.native.o"
+    | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode | `Spt -> "main.native.o"
   and cflags = [ "-g" ]
   and lflags =
     let dontlink =
       match target with
-      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
+      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode | `Spt ->
         ["unix"; "str"; "num"; "threads"]
       | `Unix | `MacOSX -> []
     in
@@ -722,6 +722,7 @@ let solo5_pkg = function
   | `Muen -> "solo5-bindings-muen", ".muen"
   | `Hvt -> "solo5-bindings-hvt", ".hvt"
   | `Genode -> "solo5-bindings-genode", ".genode"
+  | `Spt -> "solo5-bindings-spt", ".spt"
   | `Unix | `MacOSX | `Xen | `Qubes ->
     invalid_arg "solo5_kernel only defined for solo5 targets"
 
@@ -765,7 +766,7 @@ let link info name target target_debug =
       Bos.OS.Cmd.run link >>= fun () ->
       Ok out
     end
-  | `Virtio | `Muen | `Hvt | `Genode ->
+  | `Virtio | `Muen | `Hvt | `Genode | `Spt ->
     let pkg, post = solo5_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
@@ -845,6 +846,7 @@ let clean i =
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `Muen)) >>= fun () ->
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `MacOSX)) >>= fun () ->
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `Genode)) >>= fun () ->
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Spt)) >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name) >>= fun () ->
@@ -854,6 +856,7 @@ let clean i =
   Bos.OS.File.delete Fpath.(v name + "muen") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "hvt") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "genode") >>= fun () ->
+  Bos.OS.File.delete Fpath.(v name + "spt") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.solo5-hvt") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-solo5-hvt") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "solo5-hvt") >>= fun () ->
@@ -908,7 +911,7 @@ module Project = struct
           package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
         | `Xen | `Qubes ->
           package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
-        | `Virtio | `Hvt | `Muen | `Genode as tgt ->
+        | `Virtio | `Hvt | `Muen | `Genode | `Spt as tgt ->
           package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
           package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::
           common

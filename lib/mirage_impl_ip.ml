@@ -39,7 +39,7 @@ let right_tcpip_library ?ocamlfind ~sublibs pkg =
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
   |`Qubes  | `Xen ->
     [ package ~min ~max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
-  |`Virtio | `Hvt | `Muen | `Genode ->
+  |`Virtio | `Hvt | `Muen | `Genode | `Spt ->
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object

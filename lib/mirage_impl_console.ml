@@ -44,6 +44,7 @@ let custom_console str =
     `Qubes, console_xen str;
     `Virtio, console_solo5 str;
     `Hvt, console_solo5 str;
+    `Spt, console_solo5 str;
     `Muen, console_solo5 str;
     `Genode, console_solo5 str
   ] ~default:(console_unix str)

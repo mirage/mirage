@@ -99,7 +99,6 @@ let etif = Mirage_impl_ethernet.etif
 type arpv4 = Mirage_impl_arpv4.arpv4
 let arpv4 = Mirage_impl_arpv4.arpv4
 let arp = Mirage_impl_arpv4.arp
-let farp = Mirage_impl_arpv4.farp
 
 type v4 = Mirage_impl_ip.v4
 type v6 = Mirage_impl_ip.v6

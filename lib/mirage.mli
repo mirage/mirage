@@ -260,10 +260,8 @@ type arpv4
 val arpv4: arpv4 typ
 (** Implementation of the [Mirage_types.ARPV4] signature. *)
 
-val arp: ?clock:mclock impl -> ?time:time impl -> ethernet impl -> arpv4 impl
-
-val farp : ?clock:mclock impl -> ?time:time impl -> ethernet impl -> arpv4 impl
-(** Functional ARP implementation provided by the arp library *)
+val arp : ?time:time impl -> ethernet impl -> arpv4 impl
+(** ARP implementation provided by the arp library *)
 
 (** {2 IP configuration}
 

@@ -1,3 +1,9 @@
+### v3.4.1 (2019-02-02)
+
+* ethernet is now a separate package (#965, by @hannesm)
+* arp now uses the mirage/arp repository by default, the tcpip.arpv4
+  implementation was removed in tcpip 3.7.0 (#965, by @hannesm)
+
 ### v3.4.0 (2019-01-11)
 
 * use ipaddr 3.0 without s-expression dependency (#956, by @hannesm)

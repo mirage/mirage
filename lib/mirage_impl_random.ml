@@ -57,7 +57,7 @@ end
 let nocrypto_random = impl nocrypto_random_conf
 
 let default_random =
-  match_impl (Mirage_key.value @@ Mirage_key.prng ()) [
+  match_impl (Mirage_key.value Mirage_key.prng) [
     `Stdlib  , stdlib_random;
     `Nocrypto, nocrypto_random;
   ] ~default:stdlib_random

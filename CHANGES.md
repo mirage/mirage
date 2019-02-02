@@ -1,5 +1,6 @@
 ### v3.4.1 (2019-02-02)
 
+* Provide a httpaf_server device, and a cohttp_server device (#955, by @anmonteiro)
 * There can only be a single prng device in a unikernel, due to entropy
   harvesting setup (#959, by @hannesm)
 * Cleanup zarith-freestanding / gmp-freestanding dependencies (#964, by @hannesm)

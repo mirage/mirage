@@ -1,5 +1,8 @@
 ### v3.4.1 (2019-02-02)
 
+* There can only be a single prng device in a unikernel, due to entropy
+  harvesting setup (#959, by @hannesm)
+* Cleanup zarith-freestanding / gmp-freestanding dependencies (#964, by @hannesm)
 * ethernet is now a separate package (#965, by @hannesm)
 * arp now uses the mirage/arp repository by default, the tcpip.arpv4
   implementation was removed in tcpip 3.7.0 (#965, by @hannesm)

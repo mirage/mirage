@@ -18,6 +18,7 @@
 
 open Rresult
 open Astring
+open Sexplib
 
 module Key = Mirage_key
 module Name = Functoria_app.Name
@@ -520,25 +521,71 @@ let configure_makefile ~no_depext ~opam_name =
       R.ok ())
     "Makefile"
 
-let fn = Fpath.(v "myocamlbuild.ml")
+let fn = Fpath.(v "dune")
 
-(* ocamlbuild will give a misleading hint on build failures
- * ( https://github.com/ocaml/ocamlbuild/blob/0eb62b72b5abd520484210125b18073338a634bc/src/ocaml_compiler.ml#L130 )
- * if it doesn't detect that the project is an ocamlbuild
- * project.  The only facility for hinting this is presence of
- * myocamlbuild.ml or _tags
- * ( https://github.com/ocaml/ocamlbuild/blob/0eb62b72b5abd520484210125b18073338a634bc/src/options.ml#L375-L387 )
- * so we create an empty myocamlbuild.ml . *)
-let configure_myocamlbuild () =
+let terminal () =
+  let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
+  let isatty = try Unix.(isatty (descr_of_out_channel Pervasives.stdout)) with
+    | Unix.Unix_error _ -> false
+  in
+  not dumb && isatty
+
+let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
+
+let configure_dune i =
+  let name = Info.name i in
+  let ctx = Info.context i in
+  let warn_error = Key.(get ctx warn_error) in
+  let target = Key.(get ctx target) in
+  let libs = Info.libraries i in
+  let _tags =
+    [ Fmt.strf "predicate(%s)" (backend_predicate target);
+      "warn(A-4-41-42-44)";
+      "debug";
+      "bin_annot";
+      "strict_sequence";
+      "principal";
+      "safe_string" ] @
+    (if warn_error then ["warn_error(+1..49)"] else []) @
+    (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
+    (if terminal () then ["color(always)"] else [])
+  and cflags = [ "-g" ]
+  and lflags =
+    let dontlink =
+      match target with
+      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
+        ["unix"; "str"; "num"; "threads"]
+      | `Unix | `MacOSX -> []
+    in
+    let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
+    "-g" :: List.flatten dont
+  in
+  let strings_to_atoms = List.map (fun x -> Sexp.Atom x) in
+  let s_output_mode = match target with 
+  | `Unix | `MacOSX -> Sexp.(List [Atom "native"; Atom "exe"])
+  | _ -> Sexp.(List [Atom "native"; Atom "object"])
+  in
+  let s_libraries = Sexp.List (Sexp.Atom "libraries" ::  strings_to_atoms libs) 
+  in
+  let s_link_flags = Sexp.(List ((Atom "link_flags") :: strings_to_atoms lflags)) 
+  in
+  let s_compilation_flags = Sexp.(List ((Atom "flags") :: strings_to_atoms cflags)) 
+  in
+  let config = Sexp.(List [
+    Atom "executable";
+    List [Atom "name"; Atom "main"];
+    List [Atom "modes"; s_output_mode];
+    s_libraries;
+    s_link_flags;
+    s_compilation_flags
+  ])
+  in
   Bos.OS.File.exists fn >>= function
   | true -> R.ok ()
-  | false -> Bos.OS.File.write fn ""
+  | false -> Bos.OS.File.write fn (Sexp.to_string config)
 
 (* we made it, so we should clean it up *)
-let clean_myocamlbuild () =
-  match Bos.OS.Path.stat fn with
-  | Ok stat when stat.Unix.st_size = 0 -> Bos.OS.File.delete fn
-  | _ -> R.ok ()
+let clean_dune () = Bos.OS.File.delete fn
 
 let opam_file n = Fpath.(v n + "opam")
 
@@ -575,7 +622,7 @@ let configure i =
   let target_debug = Key.(get ctx target_debug) in
   if target_debug && target <> `Hvt then
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
-  configure_myocamlbuild () >>= fun () ->
+  configure_dune i >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->
@@ -589,53 +636,18 @@ let configure i =
     configure_virtio_libvirt_xml ~root ~name
   | _ -> R.ok ()
 
-let terminal () =
-  let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
-  let isatty = try Unix.(isatty (descr_of_out_channel Pervasives.stdout)) with
-    | Unix.Unix_error _ -> false
-  in
-  not dumb && isatty
+let target_file = function
+  | `Unix | `MacOSX -> "_build/default/main.exe"
+  | _ -> "_build/default/main.exe.o"
 
-let compile ignore_dirs libs warn_error target =
-  let tags =
-    [ Fmt.strf "predicate(%s)" (backend_predicate target);
-      "warn(A-4-41-42-44)";
-      "debug";
-      "bin_annot";
-      "strict_sequence";
-      "principal";
-      "safe_string" ] @
-    (if warn_error then ["warn_error(+1..49)"] else []) @
-    (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
-    (if terminal () then ["color(always)"] else [])
-  and result = match target with
-    | `Unix | `MacOSX -> "main.native"
-    | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode -> "main.native.o"
-  and cflags = [ "-g" ]
-  and lflags =
-    let dontlink =
-      match target with
-      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
-        ["unix"; "str"; "num"; "threads"]
-      | `Unix | `MacOSX -> []
-    in
-    let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
-    "-g" :: List.flatten dont
-  in
-  let concat = String.concat ~sep:"," in
-  let ignore_dirs = match ignore_dirs with
-    | [] -> Bos.Cmd.empty
-    | dirs  -> Bos.Cmd.(v "-Xs" % concat dirs)
-  in
-  let cmd = Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" %
-                     "-classic-display" %
-                     "-tags" % concat tags %
-                     "-pkgs" % concat libs %
-                     "-cflags" % concat cflags %
-                     "-lflags" % concat lflags %
-                     "-tag-line" % "<static*.*>: warn(-32-34)" %%
-                     ignore_dirs %
-                     result)
+let cross_compile = function
+  | _ -> None
+
+let compile target =
+  let output_file = target_file target in
+  let cmd = match cross_compile target with 
+  | None ->         Bos.Cmd.(v "dune" % "build" % output_file)
+  | Some backend -> Bos.Cmd.(v "dune" % "build" % "-x" % backend % output_file)
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
@@ -816,17 +828,15 @@ let check_entropy libs =
   else
     R.ok ()
 
-let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
 
 let build i =
   let name = Info.name i in
   let ctx = Info.context i in
-  let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
   let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
-  compile ignore_dirs libs warn_error target >>= fun () ->
+  compile target >>= fun () ->
   link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
@@ -836,7 +846,7 @@ let clean i =
   clean_main_xl ~name "xl.in" >>= fun () ->
   clean_main_xe ~name >>= fun () ->
   clean_main_libvirt_xml ~name >>= fun () ->
-  clean_myocamlbuild () >>= fun () ->
+  clean_dune () >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile") >>= fun () ->
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `Hvt)) >>= fun () ->
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `Unix)) >>= fun () ->
@@ -901,7 +911,7 @@ module Project = struct
           package ~min ~max "mirage-runtime" ;
           package ~build:true ~min ~max "mirage" ;
           package ~build:true "ocamlfind" ;
-          package ~build:true "ocamlbuild" ;
+          package ~build:true "dune" ;
         ] in
         Key.match_ Key.(value target) @@ function
         | `Unix | `MacOSX ->

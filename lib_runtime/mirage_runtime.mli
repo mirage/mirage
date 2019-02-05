@@ -18,7 +18,7 @@
 
     {e Release %%VERSION%% } *)
 
-(** {1 Log thresholds} *)
+(** {2 Log thresholds} *)
 
 type log_threshold = [`All | `Src of string] * Logs.level
 (** The type for log threshold. *)
@@ -29,7 +29,7 @@ val set_level: default:Logs.level -> log_threshold list -> unit
 
 module Arg: sig
 
-  (** {1 Mirage command-line arguments} *)
+  (** {2 Mirage command-line arguments} *)
 
   include module type of Functoria_runtime.Arg
 

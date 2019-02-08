@@ -748,7 +748,7 @@ let link info name target target_debug =
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "-d" % "-static" % "-nostdlib" %
+      Bos.Cmd.(v "ld" % "-z" % "muldefs" % "-d" % "-static" % "-nostdlib" %
                "_build/main.native.o" %%
                of_list c_artifacts %%
                of_list static_libs)

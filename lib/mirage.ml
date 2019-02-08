@@ -532,33 +532,30 @@ let terminal () =
 
 let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
 
+let custom_runtime = function 
+  | `Xen | `Qubes -> Some "xen"
+  | `Virtio | `Hvt | `Muen | `Genode  -> Some "freestanding"
+  | _ -> None
+
 let configure_dune i =
-  let name = Info.name i in
   let ctx = Info.context i in
   let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
+  let custom_runtime = custom_runtime target in
   let libs = Info.libraries i in
-  let _tags =
-    [ Fmt.strf "predicate(%s)" (backend_predicate target);
-      "warn(A-4-41-42-44)";
-      "debug";
-      "bin_annot";
-      "strict_sequence";
-      "principal";
-      "safe_string" ] @
-    (if warn_error then ["warn_error(+1..49)"] else []) @
-    (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
-    (if terminal () then ["color(always)"] else [])
-  and cflags = [ "-g" ]
-  and lflags =
-    let dontlink =
-      match target with
-      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
-        ["unix"; "str"; "num"; "threads"]
-      | `Unix | `MacOSX -> []
-    in
-    let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
-    "-g" :: List.flatten dont
+  let cflags = [ 
+      "-g"; 
+      "-w";
+      "+A-4-41-42-44";
+      "-bin-annot";
+      "-strict-sequence";
+      "-principal";
+      "-safe-string" ] @
+      (if warn_error then ["-warn-error"; "+1..49"] else []) @
+      (match target with `MacOSX | `Unix -> ["-thread"] | _ -> []) @
+      (if terminal () then ["-color"; "always"] else []) @
+      (match custom_runtime with Some runtime -> ["-runtime-variant"; runtime] | _ -> [])
+  and lflags = ["-g"]
   in
   let strings_to_atoms = List.map (fun x -> Sexp.Atom x) in
   let s_output_mode = match target with 
@@ -580,9 +577,7 @@ let configure_dune i =
     s_compilation_flags
   ])
   in
-  Bos.OS.File.exists fn >>= function
-  | true -> R.ok ()
-  | false -> Bos.OS.File.write fn (Sexp.to_string config)
+  Bos.OS.File.write fn (Sexp.to_string config)
 
 (* we made it, so we should clean it up *)
 let clean_dune () = Bos.OS.File.delete fn
@@ -739,9 +734,10 @@ let solo5_pkg = function
 
 let link info name target target_debug =
   let libs = Info.libraries info in
+  let binary_location = target_file target in
   match target with
   | `Unix | `MacOSX ->
-    let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
+    let link = Bos.Cmd.(v "ln" % "-nfs" % binary_location % name) in
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
   | `Xen | `Qubes ->
@@ -749,7 +745,7 @@ let link info name target target_debug =
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
       Bos.Cmd.(v "ld" % "-z" % "muldefs" % "-d" % "-static" % "-nostdlib" %
-               "_build/main.native.o" %%
+               binary_location %%
                of_list c_artifacts %%
                of_list static_libs)
     in
@@ -786,7 +782,7 @@ let link info name target target_debug =
     let out = name ^ post in
     let ld = find_ld pkg in
     let linker =
-      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % binary_location %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in

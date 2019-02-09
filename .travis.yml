@@ -10,7 +10,7 @@ env:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
    - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
-   - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
+   - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git#layering"
    - PACKAGE=mirage
  matrix:
    - DISTRO=debian-testing OCAML_VERSION=4.04 EXTRA_ENV="MODE=xen"

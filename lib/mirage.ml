@@ -532,7 +532,7 @@ let terminal () =
 
 let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
 
-let custom_runtime = function 
+let custom_runtime = function
   | `Xen | `Qubes -> Some "xen"
   | `Virtio | `Hvt | `Muen | `Genode  -> Some "freestanding"
   | _ -> None
@@ -543,8 +543,8 @@ let configure_dune i =
   let target = Key.(get ctx target) in
   let custom_runtime = custom_runtime target in
   let libs = Info.libraries i in
-  let cflags = [ 
-      "-g"; 
+  let cflags = [
+      "-g";
       "-w";
       "+A-4-41-42-44";
       "-bin-annot";
@@ -558,15 +558,15 @@ let configure_dune i =
   and lflags = ["-g"]
   in
   let strings_to_atoms = List.map (fun x -> Sexp.Atom x) in
-  let s_output_mode = match target with 
+  let s_output_mode = match target with
   | `Unix | `MacOSX -> Sexp.(List [Atom "native"; Atom "exe"])
   | _ -> Sexp.(List [Atom "native"; Atom "object"])
   in
-  let s_libraries = Sexp.List (Sexp.Atom "libraries" ::  strings_to_atoms libs) 
+  let s_libraries = Sexp.List (Sexp.Atom "libraries" ::  strings_to_atoms libs)
   in
-  let s_link_flags = Sexp.(List ((Atom "link_flags") :: strings_to_atoms lflags)) 
+  let s_link_flags = Sexp.(List ((Atom "link_flags") :: strings_to_atoms lflags))
   in
-  let s_compilation_flags = Sexp.(List ((Atom "flags") :: strings_to_atoms cflags)) 
+  let s_compilation_flags = Sexp.(List ((Atom "flags") :: strings_to_atoms cflags))
   in
   let config = Sexp.(List [
     Atom "executable";
@@ -640,7 +640,7 @@ let cross_compile = function
 
 let compile target =
   let output_file = target_file target in
-  let cmd = match cross_compile target with 
+  let cmd = match cross_compile target with
   | None ->         Bos.Cmd.(v "dune" % "build" % output_file)
   | Some backend -> Bos.Cmd.(v "dune" % "build" % "-x" % backend % output_file)
   in
@@ -744,7 +744,7 @@ let link info name target target_debug =
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "-z" % "muldefs" % "-d" % "-static" % "-nostdlib" %
+      Bos.Cmd.(v "ld" % "-z" % "muldefs" % "--unresolved-symbols=ignore-all" % "-d" % "-static" % "-nostdlib" %
                binary_location %%
                of_list c_artifacts %%
                of_list static_libs)
@@ -774,6 +774,7 @@ let link info name target target_debug =
       Ok out
     end
   | `Virtio | `Muen | `Hvt | `Genode ->
+
     let pkg, post = solo5_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
@@ -781,11 +782,14 @@ let link info name target target_debug =
     ldpostflags pkg >>= fun ldpostflags ->
     let out = name ^ post in
     let ld = find_ld pkg in
+    let pre_link = Bos.Cmd.(v "objcopy" % "-W" % "caml_ba_map_file" % binary_location % binary_location) in
     let linker =
       Bos.Cmd.(v ld %% of_list ldflags % binary_location %%
-               of_list c_artifacts %% of_list static_libs % "-o" % out
+               of_list c_artifacts %% of_list static_libs % "--unresolved-symbols=ignore-all" % "-o" % out
                %% of_list ldpostflags)
     in
+    Log.info (fun m -> m "objcopy with %a" Bos.Cmd.pp pre_link);
+    Bos.OS.Cmd.run pre_link >>= fun () ->
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
     if target = `Hvt then

@@ -90,6 +90,7 @@ module Arg = struct
     let parser str =
       match String.split_on_char ':' str with
       | [ _ ] -> `Ok (`All, level_of_string str)
+      | [ "*" ; lvl ] -> `Ok (`All, level_of_string lvl)
       | [ src ; lvl ] -> `Ok (`Src src, level_of_string lvl)
       | _ -> `Error ("Can't parse log threshold: "^str)
     in

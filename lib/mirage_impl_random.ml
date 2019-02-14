@@ -9,7 +9,16 @@ let stdlib_random_conf = object
   method name = "random"
   method module_name = "Mirage_random_stdlib"
   method! packages =
-    Mirage_key.pure [ package ~max:"0.1.0" "mirage-random-stdlib" ]
+      Mirage_key.match_ Mirage_key.(value target) @@ function
+      | `Unix | `MacOSX ->
+        [ package ~max:"0.1.0" "mirage-random-stdlib" ;
+          package "mirage-entropy-unix"]
+      | `Hvt | `Virtio | `Muen | `Genode ->
+        [ package ~max:"0.1.0" "mirage-random-stdlib" ;
+          package "mirage-entropy-freestanding" ]
+      | `Xen | `Qubes ->
+        [ package ~max:"0.1.0" "mirage-random-stdlib" ;
+          package "mirage-entropy-xen" ]
   method! connect _ modname _ = Fmt.strf "%s.initialize ()" modname
 end
 

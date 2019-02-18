@@ -15,7 +15,7 @@ let tcp_conduit_connector = impl @@ object
     method module_name = "Conduit_mirage.With_tcp"
     method! packages = Mirage_key.pure [ pkg ]
     method! connect _ modname = function
-      | [ stack ] -> Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack
+      | [ stack ] -> `Eff (Fmt.strf "Lwt.return (%s.connect %s)@;" modname stack)
       | _ -> failwith (connect_err "tcp conduit" 1)
   end
 
@@ -30,5 +30,5 @@ let tls_conduit_connector = impl @@ object
         pkg
       ]
     method! deps = [ abstract nocrypto ]
-    method! connect _ _ _ = "Lwt.return Conduit_mirage.with_tls"
+    method! connect _ _ _ = `Val "Conduit_mirage.with_tls"
   end

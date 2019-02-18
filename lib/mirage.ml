@@ -911,7 +911,7 @@ module Project = struct
       method! build = build
       method! configure = configure
       method! clean = clean
-      method! connect _ _mod _names = "Lwt.return_unit"
+      method! connect _ _mod _names = `Val "()"
       method! deps = List.map abstract jobs
     end
 

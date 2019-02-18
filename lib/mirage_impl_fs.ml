@@ -22,7 +22,7 @@ let fat_conf = impl @@ object
     method! connect _ modname l =
       match l with
       | [block_name] ->
-        Fmt.strf "%s.connect %s" modname block_name
+         `Eff (Fmt.strf "%s.connect %s" modname block_name)
       | _ ->
         failwith (connect_err "fat" 1)
   end
@@ -94,7 +94,7 @@ let kv_ro_of_fs_conf =
     method! packages =
       Key.pure [package ~min:"1.0.0" ~max:"2.0.0" "mirage-fs-lwt"]
     method! connect _ modname = function
-      | [fs] -> Fmt.strf "%s.connect %s" modname fs
+      | [fs] -> `Eff (Fmt.strf "%s.connect %s" modname fs)
       | _ -> failwith (connect_err "kv_ro_of_fs" 1)
   end
 

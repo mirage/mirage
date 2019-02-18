@@ -29,9 +29,10 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["stack-direct"] "tcpip"
     method! connect _i modname = function
       | [ _t; _r; interface; ethif; arp; ip; icmp; udp; tcp ] ->
-        Fmt.strf
-          "%s.connect %s %s %s %s %s %s %s"
-          modname interface ethif arp ip icmp udp tcp
+         `Eff
+           (Fmt.strf
+              "%s.connect %s %s %s %s %s %s %s"
+              modname interface ethif arp ip icmp udp tcp)
       | _ -> failwith (connect_err "direct stackv4" 9)
   end
 
@@ -78,9 +79,10 @@ let stackv4_socket_conf ?(group="") ips = impl @@ object
     method! deps = [abstract (socket_udpv4 None); abstract (socket_tcpv4 None)]
     method! connect _i modname = function
       | [ udpv4 ; tcpv4 ] ->
-        Fmt.strf
-          "%s.connect %a %s %s"
-          modname pp_key ips udpv4 tcpv4
+         `Eff
+           (Fmt.strf
+              "%s.connect %a %s %s"
+              modname pp_key ips udpv4 tcpv4)
       | _ -> failwith (connect_err "socket stack" 2)
   end
 

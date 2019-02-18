@@ -14,7 +14,7 @@ let ethernet_conf = object
   method! packages =
     Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "ethernet" ]
   method! connect _ modname = function
-    | [ eth ] -> Fmt.strf "%s.connect %s" modname eth
+    | [ eth ] -> `Eff (Fmt.strf "%s.connect %s" modname eth)
     | _ -> failwith (connect_err "ethernet" 1)
 end
 

@@ -51,13 +51,14 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     method! keys = network @?? gateway @?? []
     method! connect _ modname = function
     | [ _random ; mclock ; etif ; arp ] ->
-      Fmt.strf
-        "let (network, ip) = %a in @ \
-         %s.connect@[@ ~ip ~network %a@ %s@ %s@ %s@]"
-        (Fmt.option pp_key) network
-        modname
-        (opt_key "gateway") gateway
-        mclock etif arp
+       `Eff
+          (Fmt.strf
+             "let (network, ip) = %a in @ \
+              %s.connect@[@ ~ip ~network %a@ %s@ %s@ %s@]"
+             (Fmt.option pp_key) network
+             modname
+             (opt_key "gateway") gateway
+             mclock etif arp)
       | _ -> failwith (connect_err "ipv4 keyed" 4)
   end
 
@@ -71,7 +72,7 @@ let dhcp_conf = impl @@ object
     method module_name = "Dhcp_client_mirage.Make"
     method! packages = charrua_pkg
     method! connect _ modname = function
-      | [ _random; _time; network ] -> Fmt.strf "%s.connect %s " modname network
+      | [ _random; _time; network ] -> `Eff (Fmt.strf "%s.connect %s " modname network)
       | _ -> failwith (connect_err "dhcp" 3)
   end
 
@@ -83,8 +84,8 @@ let ipv4_dhcp_conf = impl @@ object
     method! packages = charrua_pkg
     method! connect _ modname = function
       | [ dhcp ; _random ; mclock ; ethernet ; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]"
-          modname dhcp mclock ethernet arp
+         `Eff (Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]"
+                 modname dhcp mclock ethernet arp)
       | _ -> failwith (connect_err "ipv4 dhcp" 5)
   end
 
@@ -126,7 +127,7 @@ let ipv4_qubes_conf = impl @@ object
       Key.pure [ package ~min:"0.6" ~max:"0.7" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
       | [  db ; _random ; mclock ;etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]" modname db mclock etif arp
+         `Eff (Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]" modname db mclock etif arp)
       | _ -> failwith (connect_err "qubes ipv4" 5)
   end
 
@@ -144,12 +145,13 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method! keys = addresses @?? netmasks @?? gateways @?? []
     method! connect _ modname = function
       | [ etif ; _random ; _time ; clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
-          modname
-          (opt_key "ip") addresses
-          (opt_key "netmask") netmasks
-          (opt_key "gateways") gateways
-          etif clock
+         `Eff
+           (Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
+              modname
+              (opt_key "ip") addresses
+              (opt_key "netmask") netmasks
+              (opt_key "gateways") gateways
+              etif clock)
       | _ -> failwith (connect_err "ipv6" 3)
   end
 

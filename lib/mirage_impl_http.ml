@@ -13,7 +13,7 @@ let cohttp_server conduit = impl @@ object
       Mirage_key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "cohttp-mirage" ]
     method! deps = [ abstract conduit ]
     method! connect _i modname = function
-      | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
+      | [ conduit ] -> `Eff (Fmt.strf "%s.connect %s" modname conduit)
       | _ -> failwith (connect_err "http" 1)
   end
 
@@ -26,6 +26,6 @@ let httpaf_server conduit = impl @@ object
       Mirage_key.pure [ package "httpaf-mirage" ]
     method! deps = [ abstract conduit ]
     method! connect _i modname = function
-      | [ conduit ] -> Fmt.strf "%s.connect %s" modname conduit
+      | [ conduit ] -> `Eff (Fmt.strf "%s.connect %s" modname conduit)
       | _ -> failwith (connect_err "httpaf" 1)
   end

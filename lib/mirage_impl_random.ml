@@ -10,7 +10,7 @@ let stdlib_random_conf = object
   method module_name = "Mirage_random_stdlib"
   method! packages =
     Mirage_key.pure [ package ~max:"0.1.0" "mirage-random-stdlib" ]
-  method! connect _ modname _ = Fmt.strf "%s.initialize ()" modname
+  method! connect _ modname _ = `Eff (Fmt.strf "%s.initialize ()" modname)
 end
 
 let stdlib_random = impl stdlib_random_conf
@@ -40,8 +40,8 @@ let nocrypto = impl @@ object
     method! connect i _ _ =
       match Mirage_impl_misc.get_target i with
       | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
-        "Nocrypto_entropy_mirage.initialize ()"
-      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+        `Eff "Nocrypto_entropy_mirage.initialize ()"
+      | `Unix | `MacOSX -> `Eff "Nocrypto_entropy_lwt.initialize ()"
   end
 
 let nocrypto_random_conf = object

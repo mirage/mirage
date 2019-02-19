@@ -577,7 +577,7 @@ let configure_dune i =
     s_compilation_flags
   ])
   in
-  Bos.OS.File.write fn (Sexp.to_string config)
+  Bos.OS.File.write fn (Sexp.to_string_hum config)
 
 (* we made it, so we should clean it up *)
 let clean_dune () = Bos.OS.File.delete fn
@@ -680,29 +680,6 @@ let pkg_config pkgs args =
   Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
   String.cuts ~sep:" " ~empty:false data
 
-(* Get the linker flags for any extra C objects we depend on.
- * This is needed when building a Xen/Solo5 image as we do the link manually. *)
-let extra_c_artifacts target pkgs =
-  Lazy.force opam_prefix >>= fun prefix ->
-  let lib = prefix ^ "/lib" in
-  let format = Fmt.strf "%%d\t%%(%s_linkopts)" target
-  and predicates = "native"
-  in
-  query_ocamlfind ~recursive:true ~format ~predicates pkgs >>= fun data ->
-  let r = List.fold_left (fun acc line ->
-      match String.cut line ~sep:"\t" with
-      | None -> acc
-      | Some (dir, ldflags) ->
-        if ldflags <> "" then begin
-          let ldflags = String.cuts ldflags ~sep:" " in
-          let ldflags = List.map (expand_name ~lib) ldflags in
-          acc @ ("-L" ^ dir) :: ldflags
-        end else
-          acc
-    ) [] data
-  in
-  R.ok r
-
 let static_libs pkg_config_deps =
   pkg_config pkg_config_deps [ "--static" ; "--libs" ]
 
@@ -741,13 +718,10 @@ let link info name target target_debug =
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
   | `Xen | `Qubes ->
-    extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "-z" % "muldefs" % "--unresolved-symbols=ignore-all" % "-d" % "-static" % "-nostdlib" %
-               binary_location %%
-               of_list c_artifacts %%
-               of_list static_libs)
+      Bos.Cmd.(v "ld" % "--unresolved-symbols=ignore-all" % "-d"
+               % "-static" % "-nostdlib" % binary_location %% of_list static_libs )
     in
     let out = name ^ ".xen" in
     let uname_cmd = Bos.Cmd.(v "uname" % "-m") in
@@ -776,7 +750,6 @@ let link info name target target_debug =
   | `Virtio | `Muen | `Hvt | `Genode ->
 
     let pkg, post = solo5_pkg target in
-    extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
     ldflags pkg >>= fun ldflags ->
     ldpostflags pkg >>= fun ldpostflags ->
@@ -785,7 +758,7 @@ let link info name target target_debug =
     let pre_link = Bos.Cmd.(v "objcopy" % "-W" % "caml_ba_map_file" % binary_location % binary_location) in
     let linker =
       Bos.Cmd.(v ld %% of_list ldflags % binary_location %%
-               of_list c_artifacts %% of_list static_libs % "--unresolved-symbols=ignore-all" % "-o" % out
+               of_list static_libs % "--unresolved-symbols=ignore-all" % "-o" % out
                %% of_list ldpostflags)
     in
     Log.info (fun m -> m "objcopy with %a" Bos.Cmd.pp pre_link);

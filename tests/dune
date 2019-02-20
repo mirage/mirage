@@ -3,7 +3,7 @@
  (modules   test_core)
  (libraries test_app alcotest cmdliner rresult astring)
  (package   functoria)
- (deps      app/config.ml app/myocamlbuild.ml app/app.ml)
+ (deps      app/config.ml app/app.ml app/dune.inc)
 )
 
 (test
@@ -11,5 +11,5 @@
  (modules   test_full)
  (libraries test_app alcotest cmdliner rresult astring)
  (package   functoria-runtime)
- (deps      app/config.ml app/myocamlbuild.ml app/app.ml)
+ (deps      app/config.ml app/app.ml app/dune.inc ../runtime/functoria_runtime.ml ../runtime/functoria_info.ml)
 )

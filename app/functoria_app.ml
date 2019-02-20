@@ -660,14 +660,16 @@ module Make (P: S) = struct
           in
           let dune_file = "(library (name config) (modules config) (libraries "^pkgs^"))" in
           let dune_file = if has_dune_inc then ("(include dune.inc)"^dune_file) else dune_file in
-          let write_dune_file = Bos.OS.File.write config_file dune_file
+          let write_dune_file = Bos.OS.File.write config_file dune_file in
+          let write_dune_workspace_file = Bos.OS.File.write Fpath.(v "_build" / "dune-project") "(lang dune 1.7)"
           in
           (* Build config.cmxa with dune *)
           let target_file = Fpath.(v "_build" / "default" / file) |> Fpath.to_string in
           let cmd =
-            Bos.Cmd.(v "dune" % "build" % "--root" % "_build" % target_file)
+            Bos.Cmd.(v "dune" % "build" % "--no-print-directory" % "--root" % "_build" % target_file)
          in
-         write_dune_file |> fun _ -> Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
+         write_dune_workspace_file >>= fun _ -> write_dune_file >>= fun _ ->
+         Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
          match snd status with
          | `Exited 0 ->  Ok ()
          | `Exited _

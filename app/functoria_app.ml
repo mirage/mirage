@@ -646,7 +646,8 @@ module Make (P: S) = struct
           | false -> Ok false)
           (* Generate dune configuration file *)
           >>= fun has_dune_inc ->
-          let config_file = Fpath.(v "_build" / "dune") in
+          let dune_file = Fpath.(v "_build" / "dune")
+          and dune_project_file = Fpath.(v "_build" / "dune-project") in
           let pkgs = match P.packages with
             | []   -> ""
             | pkgs ->
@@ -658,17 +659,17 @@ module Make (P: S) = struct
               in
               String.concat ~sep:" " pkgs
           in
-          let dune_file = "(library (name config) (modules config) (libraries "^pkgs^"))" in
-          let dune_file = if has_dune_inc then ("(include dune.inc)"^dune_file) else dune_file in
-          let write_dune_file = Bos.OS.File.write config_file dune_file in
-          let write_dune_workspace_file = Bos.OS.File.write Fpath.(v "_build" / "dune-project") "(lang dune 1.7)"
+          let dune_content = "(library (name config) (modules config) (libraries "^pkgs^"))" in
+          let dune_content = if has_dune_inc then ("(include dune.inc)"^dune_content) else dune_content in
+          let write_dune_file = Bos.OS.File.delete dune_file >>= fun () -> Bos.OS.File.write dune_file dune_content
+          and write_dune_project_file = Bos.OS.File.delete dune_project_file >>= fun () -> Bos.OS.File.write dune_project_file "(lang dune 1.7)"
           in
           (* Build config.cmxa with dune *)
           let target_file = Fpath.(v "_build" / "default" / file) |> Fpath.to_string in
           let cmd =
             Bos.Cmd.(v "dune" % "build" % "--no-print-directory" % "--root" % "_build" % target_file)
          in
-         write_dune_workspace_file >>= fun _ -> write_dune_file >>= fun _ ->
+         write_dune_project_file >>= fun () -> write_dune_file >>= fun () ->
          Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
          match snd status with
          | `Exited 0 ->  Ok ()

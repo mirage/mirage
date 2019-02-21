@@ -636,13 +636,13 @@ module Make (P: S) = struct
           let target_dir = Fpath.(v "_build")
           (* Import files in the build target *)
           and target_path = Fpath.(v "_build" / file_ml)
-          and target_path_dune = Fpath.(v "_build" / "dune.inc")
+          and target_path_dune = Fpath.(v "_build" / "config.dune")
           in
           Bos.OS.Dir.create target_dir >>= fun _ ->
           Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." / file_ml)) target_path >>= fun () ->
-          Bos.OS.Path.exists Fpath.(v "dune.inc") >>= fun res ->
+          Bos.OS.Path.exists Fpath.(v "config.dune") >>= fun res ->
           (match res with
-          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." / "dune.inc")) target_path_dune >>= fun () -> Ok true)
+          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." / "config.dune")) target_path_dune >>= fun () -> Ok true)
           | false -> Ok false)
           (* Generate dune configuration file *)
           >>= fun has_dune_inc ->
@@ -657,10 +657,12 @@ module Make (P: S) = struct
                   ) String.Set.empty pkgs
                 |> String.Set.elements
               in
+              let pkgs = if has_dune_inc then "config_custom"::pkgs else pkgs
+              in
               String.concat ~sep:" " pkgs
           in
-          let dune_content = "(library (name config) (modules config) (libraries "^pkgs^"))" in
-          let dune_content = if has_dune_inc then ("(include dune.inc)"^dune_content) else dune_content in
+          let dune_content_default = "(library (name config) (modules config) (libraries "^pkgs^"))" in
+          let dune_content = if has_dune_inc then ("(include config.dune)"^dune_content_default) else dune_content_default in
           let write_dune_file = Bos.OS.File.delete dune_file >>= fun () -> Bos.OS.File.write dune_file dune_content
           and write_dune_project_file = Bos.OS.File.delete dune_project_file >>= fun () -> Bos.OS.File.write dune_project_file "(lang dune 1.7)"
           in

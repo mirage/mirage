@@ -577,6 +577,7 @@ module Make (P: S) = struct
           acc >>= fun () ->
           match Fpath.basename target with
           | "_build" -> Ok ()
+          | "build-config" -> Ok ()
           | b        ->
             if Fpath.basename !config_file = b then Ok ()
             else (
@@ -600,6 +601,7 @@ module Make (P: S) = struct
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
+         Bos.OS.Dir.delete ~recurse:true (Fpath.v "build-config") >>= fun () ->
          Cache.clean (Info.build_dir i) >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"
@@ -622,32 +624,38 @@ module Make (P: S) = struct
     with_fmt f
 
   (* Compile the configuration file. *)
-  let compile file_ml =
-    Log.info (fun m -> m "Compiling: %a" Fpath.pp file_ml);
-    let file = Dynlink.adapt_filename (Fpath.basename file_ml)
-    and cfg = Fpath.rem_ext file_ml
-    and config_dir = Fpath.parent !config_file
-    and file_ml = Fpath.basename file_ml
+  let compile file_ml_path =
+    let build_dir = get_build_dir () in
+    let file = Dynlink.adapt_filename (Fpath.basename file_ml_path)
+    and cfg = Fpath.rem_ext file_ml_path
+    and config_dir = Fpath.(get_cwd () // parent !config_file)
+    and file_ml = Fpath.basename file_ml_path
     in
-    Bos.OS.Path.matches Fpath.(config_dir / "_build" // cfg + "$(ext)") >>= fun files ->
+    Log.info (fun m -> m "Compiling: %a" Fpath.pp file_ml_path);
+    let config_dir_to_build_dir = match Fpath.relativize ~root:build_dir config_dir with 
+    | Some x -> x
+    | None -> assert false
+    in
+    Bos.OS.Path.matches Fpath.(build_dir / "_build" // cfg + "$(ext)") >>= fun files ->
     List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
-    with_current config_dir
+    with_current build_dir
       (fun () ->
-          let target_dir = Fpath.(v "_build")
+          Log.info (fun m -> m "%s" file_ml);
+          let target_dir = Fpath.(v "build-config")
           (* Import files in the build target *)
-          and target_path = Fpath.(v "_build" / file_ml)
-          and target_path_dune = Fpath.(v "_build" / "config.dune")
+          and target_path = Fpath.(v "build-config" / file_ml)
+          and target_path_dune = Fpath.(v "build-config" / "config.dune")
           in
           Bos.OS.Dir.create target_dir >>= fun _ ->
-          Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." / file_ml)) target_path >>= fun () ->
-          Bos.OS.Path.exists Fpath.(v "config.dune") >>= fun res ->
+          Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / file_ml)) target_path >>= fun () ->
+          Bos.OS.Path.exists Fpath.(config_dir_to_build_dir / "config.dune") >>= fun res ->
           (match res with
-          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." / "config.dune")) target_path_dune >>= fun () -> Ok true)
+          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / "config.dune")) target_path_dune >>= fun () -> Ok true)
           | false -> Ok false)
           (* Generate dune configuration file *)
           >>= fun has_dune_inc ->
-          let dune_file = Fpath.(v "_build" / "dune")
-          and dune_project_file = Fpath.(v "_build" / "dune-project") in
+          let dune_file = Fpath.(v "build-config" / "dune")
+          and dune_project_file = Fpath.(v "dune-project") in
           let pkgs = match P.packages with
             | []   -> ""
             | pkgs ->
@@ -664,12 +672,14 @@ module Make (P: S) = struct
           let dune_content_default = "(library (name config) (modules config) (libraries "^pkgs^"))" in
           let dune_content = if has_dune_inc then ("(include config.dune)"^dune_content_default) else dune_content_default in
           let write_dune_file = Bos.OS.File.delete dune_file >>= fun () -> Bos.OS.File.write dune_file dune_content
-          and write_dune_project_file = Bos.OS.File.delete dune_project_file >>= fun () -> Bos.OS.File.write dune_project_file "(lang dune 1.7)"
+          and write_dune_project_file = Bos.OS.File.exists dune_project_file 
+          >>= function | false -> Bos.OS.File.write dune_project_file "(lang dune 1.7)" 
+                       | true  -> Ok ()
           in
-          (* Build config.cmxa with dune *)
-          let target_file = Fpath.(v "_build" / "default" / file) |> Fpath.to_string in
+          (* Build config.cmxs with dune *)
+          let target_file = Fpath.(v "_build" / "default" / "build-config" / file) |> Fpath.to_string in
           let cmd =
-            Bos.Cmd.(v "dune" % "build" % "--no-print-directory" % "--root" % "_build" % target_file)
+            Bos.Cmd.(v "dune" % "build" % "--no-print-directory" % "--root" % "." % target_file)
          in
          write_dune_project_file >>= fun () -> write_dune_file >>= fun () ->
          Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
@@ -688,8 +698,9 @@ module Make (P: S) = struct
    * [register] in order to have an observable
    * side effect to this command *)
   let dynlink file =
+    let position = get_build_dir () in
     let file = Dynlink.adapt_filename (Fpath.basename file) in
-    let file = Fpath.(to_string (parent !config_file / "_build" / "_build" / "default" / file)) in
+    let file = Fpath.(to_string (position / "_build" / "default" / "build-config" / file)) in
     try Ok (Dynlink.loadfile file)
     with Dynlink.Error err ->
       let err = Dynlink.error_message err in

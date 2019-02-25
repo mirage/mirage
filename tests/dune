@@ -9,7 +9,7 @@
 (test
  (name      test_full)
  (modules   test_full)
- (libraries test_app alcotest cmdliner rresult astring)
+ (libraries functoria.test alcotest cmdliner rresult astring)
  (package   functoria-runtime)
- (deps      app/config.ml app/app.ml app/config.dune ../runtime/functoria_runtime.ml ../runtime/functoria_info.ml)
+ (deps      app/config.ml app/app.ml app/config.dune (package functoria-runtime))
 )

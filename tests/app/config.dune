@@ -1,6 +1,5 @@
 (library
     (name config_custom)
+    (libraries functoria.test)
     (modules)
 )
-
-(env (_ (flags (-I ../../../../lib/.test_app.objs/byte -I ../../../../../lib/.functoria.objs/byte))))

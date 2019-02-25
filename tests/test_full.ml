@@ -38,6 +38,7 @@ let read_file file = get_ok @@ Bos.OS.File.read Fpath.(v file)
 
 let clean_app () =
   get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
+  get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/build-config");
   let files = list_files "app" in
   List.iter (fun f ->
       match Filename.basename f with
@@ -86,8 +87,7 @@ let test_configure () =
   test "configure -vv --file app/config.ml";
   Alcotest.(check files) "new files should be created in the source dir"
     ["app.ml"; "config.ml"; "config.dune"; "key_gen.ml";
-     "main.ml"; ".mirage.config"; "dune"; "_build"
-    ] (list_files "app");
+     "main.ml"; ".mirage.config"; "dune"; "build-config"; "dune-project"; "_build"] (list_files "app");
  clean_app ();
 
   (* check that configure generates the file in the right dir when
@@ -96,11 +96,12 @@ let test_configure () =
   Alcotest.(check files) "the usual files should be present before configure"
     ["app.ml"; "config.ml"; "config.dune"] (list_files "app");
   test "configure -vv --file app/config.ml --build-dir custom_build_";
-  Alcotest.(check files) "only _build should be created in the source dir"
-    ["app.ml"; "config.ml"; "config.dune"; "_build"]
+  Alcotest.(check files) "nothing should be created in the source dir"
+    ["app.ml"; "config.ml"; "config.dune"; ]
     (list_files "app");
   Alcotest.(check files) "other files should be created in custom_build_"
     ["main.ml"; "app.ml"; "config.dune"; ".mirage.config"; "dune"; "key_gen.ml";
+    "build-config"; "dune-project"; "_build"
    (* FIXME: add a .mirage-ignore file to avoid this *) ]
     (list_files "custom_build_");
   clean_build ();
@@ -222,7 +223,7 @@ let test_clean () =
   test "configure -vv --file app/config.ml";
   test "clean -vv --file app/config.ml";
   Alcotest.(check files) "clean should remove all the files"
-    ["app.ml"; "config.ml"; "config.dune"]
+    ["app.ml"; "config.ml"; "config.dune"; "dune-project"]
     (list_files "app");
 
   test "configure -vv --file app/config.ml --build-dir=custom_build_";

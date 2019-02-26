@@ -249,7 +249,7 @@ val netif: ?group:string -> string -> network impl
 type ethernet
 
 val ethernet: ethernet typ
-(** Implementations of the [Mirage_types.ETHIF] signature. *)
+(** Implementations of the [Mirage_types.ETHERNET] signature. *)
 
 val etif: network impl -> ethernet impl
 

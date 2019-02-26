@@ -33,7 +33,7 @@ let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
-  let min = "3.7.0" and max = "3.8.0" in
+  let min = "3.7.1" and max = "3.8.0" in
   Key.match_ Key.(value target) @@ function
   |`MacOSX | `Unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
@@ -62,7 +62,7 @@ let ipv4_keyed_conf ?network ?gateway () = impl @@ object
   end
 
 let charrua_pkg =
-  Key.pure [ package ~min:"0.11.0" ~max:"0.12.0" "charrua-client-mirage" ]
+  Key.pure [ package ~min:"0.12.0" ~max:"0.13.0" "charrua-client-mirage" ]
 
 let dhcp_conf = impl @@ object
     inherit base_configurable

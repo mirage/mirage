@@ -115,6 +115,7 @@ module type CHANNEL = Mirage_channel.S
 (** {2 Static Key/value store} *)
 
 module type KV_RO = Mirage_kv.RO
+module type KV_RW = Mirage_kv.RW
 
 (** {2 Filesystem devices} *)
 

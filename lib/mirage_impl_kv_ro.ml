@@ -15,7 +15,7 @@ let crunch dirname = impl @@ object
     method module_name = String.Ascii.capitalize name
     method! packages =
       Key.pure [
-        package ~min:"2.0.0" ~max:"3.0.0" "io-page";
+        package "mirage-kv-mem";
         package ~min:"2.0.0" ~max:"3.0.0" ~build:true "crunch"
       ]
     method! connect _ modname _ = Fmt.strf "%s.connect ()" modname

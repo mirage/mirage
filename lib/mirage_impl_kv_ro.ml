@@ -18,7 +18,7 @@ let crunch dirname = impl @@ object
         package ~min:"2.0.0" ~max:"3.0.0" "io-page";
         package ~min:"2.0.0" ~max:"3.0.0" ~build:true "crunch"
       ]
-    method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
+    method! connect _ modname _ = `Eff (Fmt.strf "%s.connect ()" modname)
     method! build _i =
       let dir = Fpath.(v dirname) in
       let file = Fpath.(v name + "ml") in
@@ -43,7 +43,7 @@ let direct_kv_ro_conf dirname = impl @@ object
       Key.pure [ package ~min:"1.5.0" ~max:"2.0.0" "mirage-fs-unix" ]
     method! connect i _modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
-      Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path
+      `Eff (Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path)
   end
 
 let direct_kv_ro dirname =

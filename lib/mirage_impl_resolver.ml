@@ -22,7 +22,7 @@ let resolver_unix_system = impl @@ object
       match get_target i with
       | `Unix | `MacOSX -> R.ok ()
       | _ -> R.error_msg "Unix resolver not supported on non-UNIX targets."
-    method! connect _ _modname _ = "Lwt.return Resolver_lwt_unix.system"
+    method! connect _ _modname _ = `Val "Resolver_lwt_unix.system"
   end
 
 let meta_ipv4 ppf s =
@@ -39,12 +39,13 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
       | [ _t ; stack ] ->
         let meta_ns = Fmt.Dump.option meta_ipv4 in
         let meta_port = Fmt.(Dump.option int) in
-        Fmt.strf
-          "let ns = %a in@;\
-           let ns_port = %a in@;\
-           let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
-           Lwt.return res@;"
-          meta_ns ns meta_port ns_port modname stack
+        `Eff
+          (Fmt.strf
+             "let ns = %a in@;\
+              let ns_port = %a in@;\
+              let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
+              Lwt.return res@;"
+             meta_ns ns meta_port ns_port modname stack)
       | _ -> failwith (connect_err "resolver" 2)
   end
 

@@ -22,7 +22,7 @@ let udp_direct_conf () = object
   method module_name = "Udp.Make"
   method! packages = right_tcpip_library ~sublibs:["udp"] "tcpip"
   method! connect _ modname = function
-    | [ ip; _random ] -> Fmt.strf "%s.connect %s" modname ip
+    | [ ip; _random ] -> `Eff (Fmt.strf "%s.connect %s" modname ip)
     | _  -> failwith (connect_err "udp" 2)
 end
 
@@ -43,7 +43,7 @@ let udpv4_socket_conf ipv4_key = object
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
     | _ -> R.error_msg "UDPv4 socket not supported on non-UNIX targets."
-  method! connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
+  method! connect _ modname _ = `Eff (Fmt.strf "%s.connect %a" modname pp_key ipv4_key)
 end
 
 let socket_udpv4 ?group ip = impl (udpv4_socket_conf @@ Key.V4.socket ?group ip)

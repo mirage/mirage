@@ -18,11 +18,12 @@ let conduit_with_connectors connectors = impl @@ object
       | _nocrypto :: connectors ->
         let pp_connector = Fmt.fmt "%s >>=@ " in
         let pp_connectors = Fmt.list ~sep:Fmt.nop pp_connector in
-        Fmt.strf
-          "Lwt.return Conduit_mirage.empty >>=@ \
-           %a\
-           fun t -> Lwt.return t"
-          pp_connectors connectors
+        `Eff
+          (Fmt.strf
+             "Lwt.return Conduit_mirage.empty >>=@ \
+              %a\
+              fun t -> Lwt.return t"
+             pp_connectors connectors)
       | [] -> failwith "The conduit with connectors expects at least one argument"
   end
 

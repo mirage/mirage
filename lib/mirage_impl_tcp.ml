@@ -24,7 +24,7 @@ let tcp_direct_conf () = object
   method module_name = "Tcp.Flow.Make"
   method! packages = right_tcpip_library ~sublibs:["tcp"] "tcpip"
   method! connect _ modname = function
-    | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
+    | [ip; _time; clock; _random] -> `Eff (Fmt.strf "%s.connect %s %s" modname ip clock)
     | _ -> failwith (connect_err "direct tcp" 4)
 end
 
@@ -49,7 +49,7 @@ let tcpv4_socket_conf ipv4_key = object
     match get_target i with
     | `Unix | `MacOSX -> R.ok ()
     | _  -> R.error_msg "TCPv4 socket not supported on non-UNIX targets."
-  method! connect _ modname _ = Fmt.strf "%s.connect %a" modname pp_key ipv4_key
+  method! connect _ modname _ = `Eff (Fmt.strf "%s.connect %a" modname pp_key ipv4_key)
 end
 
 let socket_tcpv4 ?group ip = impl (tcpv4_socket_conf @@ Key.V4.socket ?group ip)

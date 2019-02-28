@@ -34,23 +34,25 @@ let mprof_trace ~size () =
       | `Virtio | `Hvt | `Muen | `Genode ->
         failwith  "tracing is not currently implemented for solo5 targets"
       | `Unix | `MacOSX ->
-        Fmt.strf
-          "Lwt.return ())@.\
-           let () = (@ \
-           @[<v 2> let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
-           let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
-           MProf.Trace.Control.start trace_config@]"
-          Key.serialize_call (Key.abstract key)
-          unix_trace_file;
+         `Eff
+           (Fmt.strf
+              "Lwt.return ())@.\
+               let () = (@ \
+               @[<v 2> let buffer = MProf_unix.mmap_buffer ~size:%a %S in@ \
+               let trace_config = MProf.Trace.Control.make buffer MProf_unix.timestamper in@ \
+               MProf.Trace.Control.start trace_config@]"
+              Key.serialize_call (Key.abstract key)
+              unix_trace_file)
       | `Xen | `Qubes ->
-        Fmt.strf
-          "Lwt.return ())@.\
-           let () = (@ \
-           @[<v 2> let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
-           let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
-           let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
-           MProf.Trace.Control.start trace_config;@ \
-           MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
-           |> OS.Main.run@]"
-          Key.serialize_call (Key.abstract key)
+         `Eff
+           (Fmt.strf
+              "Lwt.return ())@.\
+               let () = (@ \
+               @[<v 2> let trace_pages = MProf_xen.make_shared_buffer ~size:%a in@ \
+               let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
+               let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
+               MProf.Trace.Control.start trace_config;@ \
+               MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
+               |> OS.Main.run@]"
+              Key.serialize_call (Key.abstract key))
   end

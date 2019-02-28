@@ -25,18 +25,19 @@ let mirage_log ?ring_size ~default =
     method! keys = [ Key.abstract logs ]
     method! connect _ modname = function
       | [ pclock ] ->
-        Fmt.strf
-          "@[<v 2>\
-           let ring_size = %a in@ \
-           let reporter = %s.create ?ring_size %s in@ \
-           Mirage_runtime.set_level ~default:%a %a;@ \
-           %s.set_reporter reporter;@ \
-           Lwt.return reporter"
-          Fmt.(Dump.option int) ring_size
-          modname pclock
-          pp_level default
-          pp_key logs
-          modname
+         `Eff
+           (Fmt.strf
+              "@[<v 2>\
+               let ring_size = %a in@ \
+               let reporter = %s.create ?ring_size %s in@ \
+               Mirage_runtime.set_level ~default:%a %a;@ \
+               %s.set_reporter reporter;@ \
+               Lwt.return reporter"
+              Fmt.(Dump.option int) ring_size
+              modname pclock
+              pp_level default
+              pp_key logs
+              modname)
     | _ -> failwith (connect_err "log" 1)
   end
 
@@ -49,5 +50,5 @@ let no_reporter = impl @@ object
     method ty = reporter
     method name = "no_reporter"
     method module_name = "Mirage_runtime"
-    method! connect _ _ _ = "assert false"
+    method! connect _ _ _ = `Eff "assert false"
   end

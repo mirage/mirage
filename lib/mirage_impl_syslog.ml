@@ -50,22 +50,23 @@ let syslog_udp_conf config =
       [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
-        Fmt.strf
-          "@[<v 2>\
-           match %a with@ \
-           | None -> Lwt.return_unit@ \
-           | Some server ->@ \
-             let port = %a in@ \
-             let reporter =@ \
+         `Eff
+           (Fmt.strf
+              "@[<v 2>\
+               match %a with@ \
+               | None -> Lwt.return_unit@ \
+               | Some server ->@ \
+               let port = %a in@ \
+               let reporter =@ \
                %s.create %s %s %s ~hostname:%a ?port server %a ()@ \
-             in@ \
-             Logs.set_reporter reporter;@ \
-             Lwt.return_unit@]"
-          pp_key endpoint
-          pp_key port
-          modname console pclock stack
-          pp_key hostname
-          (opt_int "truncate") config.truncate
+               in@ \
+               Logs.set_reporter reporter;@ \
+               Lwt.return_unit@]"
+              pp_key endpoint
+              pp_key port
+              modname console pclock stack
+              pp_key hostname
+              (opt_int "truncate") config.truncate)
       | _ -> failwith (connect_err "syslog udp" 3)
   end
 
@@ -87,20 +88,21 @@ let syslog_tcp_conf config =
       [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ] ->
-        Fmt.strf
-          "@[<v 2>\
-           match %a with@ \
-           | None -> Lwt.return_unit@ \
-           | Some server ->@ \
-             let port = %a in@ \
-             %s.create %s %s %s ~hostname:%a ?port server %a () >>= function@ \
-             | Ok reporter -> Logs.set_reporter reporter; Lwt.return_unit@ \
-             | Error e -> invalid_arg e@]"
-          pp_key endpoint
-          pp_key port
-          modname console pclock stack
-          pp_key hostname
-          (opt_int "truncate") config.truncate
+         `Eff
+           (Fmt.strf
+              "@[<v 2>\
+               match %a with@ \
+               | None -> Lwt.return_unit@ \
+               | Some server ->@ \
+               let port = %a in@ \
+               %s.create %s %s %s ~hostname:%a ?port server %a () >>= function@ \
+               | Ok reporter -> Logs.set_reporter reporter; Lwt.return_unit@ \
+               | Error e -> invalid_arg e@]"
+              pp_key endpoint
+              pp_key port
+              modname console pclock stack
+              pp_key hostname
+              (opt_int "truncate") config.truncate)
       | _ -> failwith (connect_err "syslog tcp" 3)
   end
 
@@ -121,21 +123,22 @@ let syslog_tls_conf ?keyname config =
     method! keys = [ Key.abstract endpoint ; Key.abstract hostname ; Key.abstract port ]
     method! connect _i modname = function
       | [ console ; pclock ; stack ; kv ] ->
-        Fmt.strf
-          "@[<v 2>\
-           match %a with@ \
-           | None -> Lwt.return_unit@ \
-           | Some server ->@ \
-             let port = %a in@ \
-             %s.create %s %s %s %s ~hostname:%a ?port server %a %a () >>= function@ \
-             | Ok reporter -> Logs.set_reporter reporter; Lwt.return_unit@ \
-             | Error e -> invalid_arg e@]"
-          pp_key endpoint
-          pp_key port
-          modname console pclock stack kv
-          pp_key hostname
-          (opt_int "truncate") config.truncate
-          (opt_string "keyname") keyname
+         `Eff
+            (Fmt.strf
+               "@[<v 2>\
+                match %a with@ \
+                | None -> Lwt.return_unit@ \
+                | Some server ->@ \
+                  let port = %a in@ \
+                  %s.create %s %s %s %s ~hostname:%a ?port server %a %a () >>= function@ \
+                  | Ok reporter -> Logs.set_reporter reporter; Lwt.return_unit@ \
+                  | Error e -> invalid_arg e@]"
+               pp_key endpoint
+               pp_key port
+               modname console pclock stack kv
+               pp_key hostname
+               (opt_int "truncate") config.truncate
+               (opt_string "keyname") keyname)
       | _ -> failwith (connect_err "syslog tls" 4)
   end
 

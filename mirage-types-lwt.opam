@@ -19,7 +19,6 @@ depends:   [
   "dune" {build & >= "1.1.0"}
   "lwt"
   "cstruct" {>="3.2.1"}
-  "io-page" {>="2.0.1"}
   "ipaddr" {>= "3.0.0"}
   "mirage-types" {>= "3.4.0"}
   "mirage-clock-lwt" {>= "2.0.0"}

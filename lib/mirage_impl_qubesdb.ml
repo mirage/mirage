@@ -6,7 +6,7 @@ open Rresult
 type qubesdb = QUBES_DB
 let qubesdb = Type QUBES_DB
 
-let pkg = package ~min:"0.4" ~max:"0.7" "mirage-qubes"
+let pkg = package ~min:"0.4" ~max:"0.8" "mirage-qubes"
 
 let qubesdb_conf = object
   inherit base_configurable

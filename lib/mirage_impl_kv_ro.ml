@@ -16,7 +16,7 @@ let crunch dirname = impl @@ object
     method! packages =
       Key.pure [
         package "mirage-kv-mem";
-        package ~min:"2.0.0" ~max:"3.0.0" ~build:true "crunch"
+        package ~min:"3.0.0" ~max:"4.0.0" ~build:true "crunch"
       ]
     method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
     method! build _i =

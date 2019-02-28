@@ -92,7 +92,7 @@ let kv_ro_of_fs_conf =
     method name = "kv_ro_of_fs"
     method module_name = "Mirage_fs_lwt.To_KV_RO"
     method! packages =
-      Key.pure [package ~min:"1.0.0" ~max:"2.0.0" "mirage-fs-lwt"]
+      Key.pure [package ~min:"2.0.0" ~max:"3.0.0" "mirage-fs-lwt"]
     method! connect _ modname = function
       | [fs] -> Fmt.strf "%s.connect %s" modname fs
       | _ -> failwith (connect_err "kv_ro_of_fs" 1)

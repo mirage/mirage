@@ -134,7 +134,7 @@ let archive_conf = impl @@ object
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
     method! packages =
-      Key.pure [ package ~min:"0.9.0" ~max:"0.10.0" "tar-mirage" ]
+      Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ]
     method! connect _ modname = function
       | [ block ] -> Fmt.strf "%s.connect %s" modname block
       | _ -> failwith (connect_err "archive" 1)

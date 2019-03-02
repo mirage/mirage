@@ -4,12 +4,12 @@ module Key = Mirage_key
 open Rresult
 open Astring
 
-type kv_ro = KV_RO
-let kv_ro = Type KV_RO
+type ro = RO
+let ro = Type RO
 
 let crunch dirname = impl @@ object
     inherit base_configurable
-    method ty = kv_ro
+    method ty = ro
     val name = Name.create ("static" ^ dirname) ~prefix:"static"
     method name = name
     method module_name = String.Ascii.capitalize name
@@ -33,17 +33,17 @@ let crunch dirname = impl @@ object
       Bos.OS.File.delete Fpath.(v name + "mli")
   end
 
-let direct_kv_ro_conf dirname = impl @@ object
+let direct_kv_ro dirname = impl @@ object
     inherit base_configurable
-    method ty = kv_ro
-    val name = Name.create ("direct" ^ dirname) ~prefix:"direct"
+    method ty = ro
+    val name = Name.create ("direct-kv-ro-" ^ dirname) ~prefix:"direct"
     method name = name
-    method module_name = "Kvro_fs_unix"
+    method module_name = "Mirage_kv_unix"
     method! packages =
-      Key.pure [ package ~min:"1.5.0" ~max:"2.0.0" "mirage-fs-unix" ]
-    method! connect i _modname _names =
+      Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-kv-unix" ]
+    method! connect i modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
-      Fmt.strf "Kvro_fs_unix.connect \"%a\"" Fpath.pp path
+      Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
   end
 
 let direct_kv_ro dirname =
@@ -54,4 +54,34 @@ let direct_kv_ro dirname =
     `Hvt, crunch dirname;
     `Muen, crunch dirname;
     `Genode, crunch dirname
-  ] ~default:(direct_kv_ro_conf dirname)
+  ] ~default:(direct_kv_ro dirname)
+
+type rw = RW
+let rw = Type RW
+
+let direct_kv_rw dirname = impl @@ object
+    inherit base_configurable
+    method ty = rw
+    val name = Name.create ("direct-kv-rw-" ^ dirname) ~prefix:"direct"
+    method name = name
+    method module_name = "Mirage_kv_unix"
+    method! packages =
+      Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-kv-unix" ]
+    method! connect i modname _names =
+      let path = Fpath.(Info.build_dir i / dirname) in
+      Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
+  end
+
+let mem_kv_rw_config = impl @@ object
+    inherit base_configurable
+    method ty = Mirage_impl_pclock.pclock @-> rw
+    method name = "mirage-kv-mem"
+    method module_name = "Mirage_kv_mem.Make"
+    method! packages =
+      Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-kv-mem" ]
+    method! connect _i modname _names =
+      Fmt.strf "%s.connect ()" modname
+  end
+
+let mem_kv_rw ?(clock = Mirage_impl_pclock.default_posix_clock) () =
+  mem_kv_rw_config $ clock

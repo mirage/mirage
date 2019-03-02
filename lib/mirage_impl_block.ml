@@ -3,7 +3,6 @@ module Name = Functoria_app.Name
 module Key = Mirage_key
 open Mirage_impl_misc
 open Rresult
-open Mirage_impl_kv_ro
 
 type block = BLOCK
 let block = Type BLOCK
@@ -130,7 +129,7 @@ let tar_block dir =
 
 let archive_conf = impl @@ object
     inherit base_configurable
-    method ty = block @-> kv_ro
+    method ty = block @-> Mirage_impl_kv.ro
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
     method! packages =

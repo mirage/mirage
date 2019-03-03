@@ -1,3 +1,12 @@
+### v3.5.0 (2019-03-03)
+
+* Rename Mirage_impl_kv_ro to Mirage_impl_kv, and introduce `rw` (#975, by @hannesm)
+* Adapt to mirage-kv 2.0.0 changes (#975, by @hannesm)
+* Adapt to mirage-protocols and mirag-net 2.0.0 changes (#972, by @hannesm)
+* mirage-types-lwt: remove unneeded io-page dependency (#971, by @hannesm)
+* Fix regression introduced in v3.4.0 that "-l *:debug" did no longer work (#970, by @hannesm)
+* Adjust various upper bounds (mirage-unix, cohttp-mirage, mirage-bootvar-xen) (#967, by @hannesm)
+
 ### v3.4.1 (2019-02-05)
 
 * Provide a httpaf_server device, and a cohttp_server device (#955, by @anmonteiro)

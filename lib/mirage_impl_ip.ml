@@ -123,7 +123,7 @@ let ipv4_qubes_conf = impl @@ object
     method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
     method module_name = "Qubesdb_ipv4.Make"
     method! packages =
-      Key.pure [ package ~min:"0.6" ~max:"0.7" "mirage-qubes-ipv4" ]
+      Key.pure [ package ~min:"0.7" ~max:"0.8" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
       | [  db ; _random ; mclock ;etif; arp ] ->
         Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]" modname db mclock etif arp

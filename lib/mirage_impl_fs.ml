@@ -3,7 +3,6 @@ module Key = Mirage_key
 module Name = Functoria_app.Name
 open Functoria
 open Mirage_impl_block
-open Mirage_impl_kv_ro
 open Mirage_impl_misc
 open Rresult
 
@@ -88,11 +87,11 @@ let fat_of_files ?dir ?regexp () = fat @@ fat_block ?dir ?regexp ()
 let kv_ro_of_fs_conf =
   impl @@ object
     inherit base_configurable
-    method ty = typ @-> kv_ro
+    method ty = typ @-> Mirage_impl_kv.ro
     method name = "kv_ro_of_fs"
     method module_name = "Mirage_fs_lwt.To_KV_RO"
     method! packages =
-      Key.pure [package ~min:"1.0.0" ~max:"2.0.0" "mirage-fs-lwt"]
+      Key.pure [package ~min:"2.0.0" ~max:"3.0.0" "mirage-fs-lwt"]
     method! connect _ modname = function
       | [fs] -> Fmt.strf "%s.connect %s" modname fs
       | _ -> failwith (connect_err "kv_ro_of_fs" 1)
@@ -106,6 +105,6 @@ let generic_kv_ro ?group ?(key = Key.value @@ Key.kv_ro ?group ()) dir =
   match_impl key
     [ (`Fat, kv_ro_of_fs @@ fat_of_files ~dir ())
     ; (`Archive, archive_of_files ~dir ())
-    ; (`Crunch, crunch dir)
-    ; (`Direct, direct_kv_ro dir) ]
-    ~default:(direct_kv_ro dir)
+    ; (`Crunch, Mirage_impl_kv.crunch dir)
+    ; (`Direct, Mirage_impl_kv.direct_kv_ro dir) ]
+    ~default:(Mirage_impl_kv.direct_kv_ro dir)

@@ -30,8 +30,8 @@ depends:   [
   "mirage-console-lwt" {>= "2.3.5"}
   "mirage-block-lwt" {>= "1.1.0"}
   "mirage-net-lwt" {>= "2.0.0"}
-  "mirage-fs-lwt" {>= "1.1.1"}
-  "mirage-kv-lwt" {>= "1.1.0"}
+  "mirage-fs-lwt" {>= "2.0.0"}
+  "mirage-kv-lwt" {>= "2.0.0"}
   "mirage-channel-lwt" {>= "3.1.0"}
 ]
 

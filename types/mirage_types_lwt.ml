@@ -54,8 +54,9 @@ module type TCPV6 = Mirage_protocols_lwt.TCPV6
 (** Buffered TCP channel *)
 module type CHANNEL = Mirage_channel_lwt.S
 
-(** KV RO *)
+(** Key-value stores *)
 module type KV_RO = Mirage_kv_lwt.RO
+module type KV_RW = Mirage_kv_lwt.RW
 
 (** FS *)
 module type FS = Mirage_fs_lwt.S

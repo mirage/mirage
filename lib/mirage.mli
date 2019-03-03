@@ -189,6 +189,28 @@ val direct_kv_ro: string -> kv_ro impl
 (** Direct access to the underlying filesystem as a key/value
     store. For Xen backends, this is equivalent to [crunch]. *)
 
+val generic_kv_ro:
+  ?group:string ->
+  ?key:[ `Archive | `Crunch | `Direct | `Fat ] value -> string -> kv_ro impl
+(** Generic key/value that will choose dynamically between
+    {!fat}, {!archive} and {!crunch}.  To use a filesystem implementation,
+    try {!kv_ro_of_fs}.
+
+    If no key is provided, it uses {!Key.kv_ro} to create a new one.
+*)
+
+type kv_rw
+(** Abstract type for read-write key/value store. *)
+
+val kv_rw: kv_rw typ
+(** Implementations of the [Mirage_types.KV_RW] signature. *)
+
+val direct_kv_rw: string -> kv_rw impl
+(** Direct access to the underlying filesystem as a key/value
+    store. Only available on Unix backends. *)
+
+val kv_rw_mem: ?clock:pclock impl -> unit -> kv_rw impl
+(** An in-memory key-value store using [mirage-kv-mem]. *)
 
 
 (** {2 Filesystem} *)
@@ -212,18 +234,6 @@ val fat_of_files: ?dir:string -> ?regexp:string -> unit -> fs impl
 val kv_ro_of_fs: fs impl -> kv_ro impl
 (** Consider a filesystem implementation as a read-only key/value
     store. *)
-
-(** {2 Generic key/value stores} *)
-
-val generic_kv_ro:
-  ?group:string ->
-  ?key:[ `Archive | `Crunch | `Direct | `Fat ] value -> string -> kv_ro impl
-(** Generic key/value that will choose dynamically between
-    {!fat}, {!archive} and {!crunch}.  To use a filesystem implementation,
-    try {!kv_ro_of_fs}.
-
-    If no key is provided, it uses {!Key.kv_ro} to create a new one.
-*)
 
 
 (** {2 Network interfaces} *)

@@ -66,10 +66,15 @@ let console = Mirage_impl_console.console
 let default_console = Mirage_impl_console.default_console
 let custom_console = Mirage_impl_console.custom_console
 
-type kv_ro = Mirage_impl_kv_ro.kv_ro
-let kv_ro = Mirage_impl_kv_ro.kv_ro
-let direct_kv_ro = Mirage_impl_kv_ro.direct_kv_ro
-let crunch = Mirage_impl_kv_ro.crunch
+type kv_ro = Mirage_impl_kv.ro
+let kv_ro = Mirage_impl_kv.ro
+let direct_kv_ro = Mirage_impl_kv.direct_kv_ro
+let crunch = Mirage_impl_kv.crunch
+
+type kv_rw = Mirage_impl_kv.rw
+let kv_rw = Mirage_impl_kv.rw
+let direct_kv_rw = Mirage_impl_kv.direct_kv_rw
+let kv_rw_mem = Mirage_impl_kv.mem_kv_rw
 
 type block = Mirage_impl_block.block
 let block = Mirage_impl_block.block
@@ -900,9 +905,9 @@ module Project = struct
         ] in
         Key.match_ Key.(value target) @@ function
         | `Unix | `MacOSX ->
-          package ~min:"3.1.0" ~max:"3.3.0" "mirage-unix" :: common
+          package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
         | `Xen | `Qubes ->
-          package ~min:"3.1.0" ~max:"3.2.0" "mirage-xen" :: common
+          package ~min:"3.1.0" ~max:"4.0.0" "mirage-xen" :: common
         | `Virtio | `Hvt | `Muen | `Genode as tgt ->
           package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
           package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::

@@ -31,5 +31,5 @@ val syslog_tls :
   -> ?console:Mirage_impl_console.console Functoria.impl
   -> ?clock:Mirage_impl_pclock.pclock Functoria.impl
   -> Mirage_impl_stackv4.stackv4 Functoria.impl
-  -> Mirage_impl_kv_ro.kv_ro Functoria.impl
+  -> Mirage_impl_kv.ro Functoria.impl
   -> syslog Functoria.impl

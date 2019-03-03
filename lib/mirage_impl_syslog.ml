@@ -1,7 +1,6 @@
 module Key = Mirage_key
 open Functoria
 open Mirage_impl_console
-open Mirage_impl_kv_ro
 open Mirage_impl_misc
 open Mirage_impl_pclock
 open Mirage_impl_stackv4
@@ -114,7 +113,7 @@ let syslog_tls_conf ?keyname config =
   in
   impl @@ object
     inherit base_configurable
-    method ty = console @-> pclock @-> stackv4 @-> kv_ro @-> syslog
+    method ty = console @-> pclock @-> stackv4 @-> Mirage_impl_kv.ro @-> syslog
     method name = "tls_syslog"
     method module_name = "Logs_syslog_mirage_tls.Tls"
     method! packages = pkg ["mirage" ; "mirage.tls"]

@@ -3,7 +3,6 @@ module Name = Functoria_app.Name
 module Key = Mirage_key
 open Mirage_impl_misc
 open Rresult
-open Mirage_impl_kv_ro
 
 type block = BLOCK
 let block = Type BLOCK
@@ -130,11 +129,11 @@ let tar_block dir =
 
 let archive_conf = impl @@ object
     inherit base_configurable
-    method ty = block @-> kv_ro
+    method ty = block @-> Mirage_impl_kv.ro
     method name = "archive"
     method module_name = "Tar_mirage.Make_KV_RO"
     method! packages =
-      Key.pure [ package ~min:"0.9.0" ~max:"0.10.0" "tar-mirage" ]
+      Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "tar-mirage" ]
     method! connect _ modname = function
       | [ block ] -> Fmt.strf "%s.connect %s" modname block
       | _ -> failwith (connect_err "archive" 1)

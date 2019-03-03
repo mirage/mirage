@@ -1,3 +1,12 @@
+### v3.5.0 (2019-03-03)
+
+* Rename Mirage_impl_kv_ro to Mirage_impl_kv, and introduce `rw` (#975, by @hannesm)
+* Adapt to mirage-kv 2.0.0 changes (#975, by @hannesm)
+* Adapt to mirage-protocols and mirag-net 2.0.0 changes (#972, by @hannesm)
+* mirage-types-lwt: remove unneeded io-page dependency (#971, by @hannesm)
+* Fix regression introduced in 3.4.0 that "-l *:debug" did no longer work (#970, by @hannesm)
+* Adjust various upper bounds (mirage-unix, cohttp-mirage, mirage-bootvar-xen) (#967, by @hannesm)
+
 ### v3.4.1 (2019-02-05)
 
 * Provide a httpaf_server device, and a cohttp_server device (#955, by @anmonteiro)
@@ -23,7 +32,7 @@
 ### 3.3.0 (2018-11-18)
 
 New target: (via solo5) Genode:
-"Genode[4][5][6] is a free and open-source operating system framework consisting
+"Genode is a free and open-source operating system framework consisting
 of a microkernel abstraction layer and a collection of userspace components. The
 framework is notable as one of the few open-source operating systems not derived
 from a proprietary OS, such as Unix. The characteristic design philosophy is

@@ -180,6 +180,13 @@ let target_debug =
   let key = Arg.flag ~stage:`Configure doc in
   Key.create "target_debug" key
 
+let ixy =
+  let doc = "Enables target-specific support for ixy. Supported \
+             targets: unix." in
+  let doc = Arg.info ~docs:mirage_section ~docv:"IXY" ~doc ["ixy"] in
+  let key = Arg.flag ~stage:`Configure doc in
+  Key.create "ixy" key
+
 let no_depext =
   let doc = "Disable call to depext when generating Makefile." in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["no-depext"] in

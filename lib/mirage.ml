@@ -888,6 +888,7 @@ module Project = struct
         Key.(abstract target);
         Key.(abstract warn_error);
         Key.(abstract target_debug);
+        Key.(abstract ixy);
         Key.(abstract no_depext);
       ]
       method! packages =

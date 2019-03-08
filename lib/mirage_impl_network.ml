@@ -22,6 +22,7 @@ let network_conf (intf : string Key.key) =
           [ package "mirage-net-ixy" ]
         | `Unix, false ->
           [ package ~min:"2.6.0" ~max:"3.0.0" "mirage-net-unix" ]
+        | _, true -> failwith "ixy is not available on non-Linux platforms"
         | `MacOSX, _ -> [ package ~min:"1.6.0" ~max:"2.0.0" "mirage-net-macosx" ]
         | `Xen, _ -> [ package ~min:"1.10.0" ~max:"2.0.0" "mirage-net-xen"]
         | `Qubes, _ ->

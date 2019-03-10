@@ -29,14 +29,6 @@ open Mirage_impl_misc
 
 include Functoria
 
-(** {2 OCamlfind predicates} *)
-
-(* Mirage implementation backing the target. *)
-let backend_predicate = function
-  | `Xen | `Qubes -> "mirage_xen"
-  | `Virtio | `Hvt | `Muen | `Genode  -> "mirage_solo5"
-  | `Unix | `MacOSX -> "mirage_unix"
-
 (** {2 Devices} *)
 
 type qubesdb = Mirage_impl_qubesdb.qubesdb
@@ -537,6 +529,12 @@ let custom_runtime = function
   | `Virtio | `Hvt | `Muen | `Genode  -> Some "freestanding"
   | _ -> None
 
+let variant_of_target = function
+  | `Xen | `Qubes -> "xen"
+  | `Virtio | `Hvt | `Muen | `Genode  -> "freestanding"
+  | _ -> "unix"
+
+
 let configure_dune i =
   let ctx = Info.context i in
   let warn_error = Key.(get ctx warn_error) in
@@ -568,13 +566,16 @@ let configure_dune i =
   in
   let s_compilation_flags = Sexp.(List ((Atom "flags") :: strings_to_atoms cflags))
   in
+  let s_variants = Sexp.(List ([(Atom "variants"); (Atom (variant_of_target target))]))
+  in
   let config = Sexp.(List [
     Atom "executable";
     List [Atom "name"; Atom "main"];
     List [Atom "modes"; s_output_mode];
     s_libraries;
     s_link_flags;
-    s_compilation_flags
+    s_compilation_flags;
+    s_variants
   ])
   in
   Bos.OS.File.write fn (Sexp.to_string_hum config)
@@ -641,21 +642,11 @@ let cross_compile = function
 let compile target =
   let output_file = target_file target in
   let cmd = match cross_compile target with
-  | None ->         Bos.Cmd.(v "dune" % "build" % output_file)
-  | Some backend -> Bos.Cmd.(v "dune" % "build" % "-x" % backend % output_file)
+  | None ->         Bos.Cmd.(v "dune" % "build" % "--profile" % "release" % output_file)
+  | Some backend -> Bos.Cmd.(v "dune" % "build" % "--profile" % "release" % "-x" % backend % output_file)
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
-
-(* Implement something similar to the @name/file extended names of findlib. *)
-let rec expand_name ~lib param =
-  match String.cut param ~sep:"@" with
-  | None -> param
-  | Some (prefix, name) -> match String.cut name ~sep:"/" with
-    | None              -> prefix ^ Fpath.(to_string (v lib / name))
-    | Some (name, rest) ->
-      let rest = expand_name ~lib rest in
-      prefix ^ Fpath.(to_string (v lib / name / rest))
 
 let opam_prefix =
   let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
@@ -718,9 +709,9 @@ let link info name target target_debug =
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
   | `Xen | `Qubes ->
-    static_libs "mirage-xen" >>= fun static_libs ->
+    static_libs "mirage-xen-ocaml" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "--unresolved-symbols=ignore-all" % "-d"
+      Bos.Cmd.(v "ld" % "-d"
                % "-static" % "-nostdlib" % binary_location %% of_list static_libs )
     in
     let out = name ^ ".xen" in

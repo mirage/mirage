@@ -11,14 +11,11 @@ let stdlib_random_conf = object
   method! packages =
       Mirage_key.match_ Mirage_key.(value target) @@ function
       | `Unix | `MacOSX ->
-        [ package ~max:"0.1.0" "mirage-random-stdlib" ;
-          package "mirage-entropy-unix"]
+        [ package ~max:"0.1.0" "mirage-random-stdlib" ]
       | `Hvt | `Virtio | `Muen | `Genode ->
-        [ package ~max:"0.1.0" "mirage-random-stdlib" ;
-          package "mirage-entropy-freestanding" ]
+        [ package ~max:"0.1.0" "mirage-random-stdlib" ]
       | `Xen | `Qubes ->
-        [ package ~max:"0.1.0" "mirage-random-stdlib" ;
-          package "mirage-entropy-xen" ]
+        [ package ~max:"0.1.0" "mirage-random-stdlib" ]
   method! connect _ modname _ = Fmt.strf "%s.initialize ()" modname
 end
 
@@ -40,18 +37,13 @@ let nocrypto = impl @@ object
     method! packages =
       Mirage_key.match_ Mirage_key.(value target) @@ function
       | `Unix | `MacOSX ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["lwt"] "nocrypto" ;
-          package "zarith"  ]
+        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["lwt"] "nocrypto" ]
       | `Hvt | `Virtio | `Muen | `Genode ->
         [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"; "freestanding"] "nocrypto" ;
-          package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy"  ;
-          package "mirage-entropy-freestanding" ;
-          package "zarith-freestanding" ]
+          package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy" ]
       | `Xen | `Qubes ->
         [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"; "xen"] "nocrypto" ;
-          package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy"  ;
-          package "mirage-entropy-xen"  ;
-          package "zarith-xen" ]
+          package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy" ]
 
     method! build _ = Rresult.R.ok (enable_entropy ())
     method! connect i _ _ =

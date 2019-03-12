@@ -258,6 +258,12 @@ let cohttp_server = Mirage_impl_http.cohttp_server
 
 let httpaf_server = Mirage_impl_http.httpaf_server
 
+type http2 = Mirage_impl_http.http2
+
+let http2 = Mirage_impl_http.http2
+
+let http2_server = Mirage_impl_http.http2_server
+
 type argv = Functoria.argv
 
 let argv = Functoria.argv

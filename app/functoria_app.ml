@@ -633,7 +633,7 @@ module Make (P: S) = struct
     and file_ml = Fpath.basename file_ml_path
     in
     Log.info (fun m -> m "Compiling: %a" Fpath.pp file_ml_path);
-    let config_dir_to_build_dir = match Fpath.relativize ~root:build_dir config_dir with 
+    let config_dir_to_build_dir = match Fpath.relativize ~root:build_dir config_dir with
     | Some x -> x
     | None -> assert false
     in
@@ -644,13 +644,13 @@ module Make (P: S) = struct
           let target_dir = build_config_dir in
           (* Import files in the build target *)
           let target_path = Fpath.(target_dir / file_ml)
-          and target_path_dune = Fpath.(target_dir / "config.dune")
+          and target_path_dune = Fpath.(target_dir / "dune.config")
           in
           Bos.OS.Dir.create target_dir >>= fun _ ->
           Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / file_ml)) target_path >>= fun () ->
-          Bos.OS.Path.exists Fpath.(config_dir_to_build_dir / "config.dune") >>= fun res ->
+          Bos.OS.Path.exists Fpath.(config_dir_to_build_dir / "dune.config") >>= fun res ->
           (match res with
-          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / "config.dune")) target_path_dune >>= fun () -> Ok true)
+          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / "dune.config")) target_path_dune >>= fun () -> Ok true)
           | false -> Ok false)
           (* Generate dune configuration file *)
           >>= fun has_dune_inc ->
@@ -670,10 +670,10 @@ module Make (P: S) = struct
               String.concat ~sep:" " pkgs
           in
           let dune_content_default = "(library (name config) (modules config) (libraries "^pkgs^"))" in
-          let dune_content = if has_dune_inc then ("(include config.dune)"^dune_content_default) else dune_content_default in
+          let dune_content = if has_dune_inc then ("(include dune.config)"^dune_content_default) else dune_content_default in
           let write_dune_file = Bos.OS.File.delete dune_file >>= fun () -> Bos.OS.File.write dune_file dune_content
-          and write_dune_project_file = Bos.OS.File.exists dune_project_file 
-          >>= function | false -> Bos.OS.File.write dune_project_file "(lang dune 1.0)" 
+          and write_dune_project_file = Bos.OS.File.exists dune_project_file
+          >>= function | false -> Bos.OS.File.write dune_project_file "(lang dune 1.0)"
                        | true  -> Ok ()
           in
           (* Build config.cmxs with dune *)

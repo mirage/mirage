@@ -711,7 +711,7 @@ let link info name target target_debug =
   | `Xen | `Qubes ->
     static_libs "mirage-xen-ocaml" >>= fun static_libs ->
     let linker =
-      Bos.Cmd.(v "ld" % "-d"
+      Bos.Cmd.(v "ld" % "--unresolved-symbols=ignore-all" % "-d" (*Some bigarray stuff is grabbed..*) 
                % "-static" % "-nostdlib" % binary_location %% of_list static_libs )
     in
     let out = name ^ ".xen" in

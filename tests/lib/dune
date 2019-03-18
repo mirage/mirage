@@ -1,5 +1,7 @@
 (library
- (name      test_app)
- (libraries functoria.app)
- (wrapped   false)
+ (name          test_app)
+ (public_name   functoria.test)
+ (libraries     functoria.app)
+ (wrapped       false)
+ (modules       test_app)
 )

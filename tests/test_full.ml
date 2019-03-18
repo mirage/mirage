@@ -38,10 +38,11 @@ let read_file file = get_ok @@ Bos.OS.File.read Fpath.(v file)
 
 let clean_app () =
   get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
+  get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/build-config");
   let files = list_files "app" in
   List.iter (fun f ->
       match Filename.basename f with
-      | "app.ml" | "config.ml" | "myocamlbuild.ml" -> ()
+      | "app.ml" | "config.ml" | "dune.config" -> ()
       | _ ->
         if Sys.is_directory (Filename.concat "app" f) then ()
         else get_ok @@ Bos.OS.File.delete Fpath.(v "app" / f)
@@ -82,26 +83,26 @@ let test_configure () =
   (* check that configure generates the file in the right dir when
      --file is passed. *)
   Alcotest.(check files) "the usual files should be present before configure"
-    ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
+    ["app.ml"; "config.ml"; "dune.config"] (list_files "app");
   test "configure -vv --file app/config.ml";
   Alcotest.(check files) "new files should be created in the source dir"
-    ["app.ml"; "config.ml"; "myocamlbuild.ml"; "key_gen.ml";
-     "main.ml"; ".mirage.config"; "dune"; "_build"
-    ] (list_files "app");
-  clean_app ();
+    ["app.ml"; "config.ml"; "dune.config"; "key_gen.ml";
+     "main.ml"; ".mirage.config"; "dune"; "build-config"; "dune-project"; "_build"] (list_files "app");
+ clean_app ();
 
   (* check that configure generates the file in the right dir when
      --build-dir is passed. *)
   let files = Alcotest.(slist string String.compare) in
   Alcotest.(check files) "the usual files should be present before configure"
-    ["app.ml"; "config.ml"; "myocamlbuild.ml"] (list_files "app");
+    ["app.ml"; "config.ml"; "dune.config"] (list_files "app");
   test "configure -vv --file app/config.ml --build-dir custom_build_";
-  Alcotest.(check files) "only _build should be created in the source dir"
-    ["app.ml"; "config.ml"; "myocamlbuild.ml"; "_build"]
+  Alcotest.(check files) "nothing should be created in the source dir"
+    ["app.ml"; "config.ml"; "dune.config"; ]
     (list_files "app");
   Alcotest.(check files) "other files should be created in custom_build_"
-    ["main.ml"; "app.ml"; ".mirage.config"; "dune"; "key_gen.ml";
-     "myocamlbuild.ml" (* FIXME: add a .mirage-ignore file to avoid this *) ]
+    ["main.ml"; "app.ml"; "dune.config"; ".mirage.config"; "dune"; "key_gen.ml";
+    "build-config"; "dune-project"; "_build"
+   (* FIXME: add a .mirage-ignore file to avoid this *) ]
     (list_files "custom_build_");
   clean_build ();
 
@@ -222,7 +223,7 @@ let test_clean () =
   test "configure -vv --file app/config.ml";
   test "clean -vv --file app/config.ml";
   Alcotest.(check files) "clean should remove all the files"
-    ["app.ml"; "config.ml"; "myocamlbuild.ml"]
+    ["app.ml"; "config.ml"; "dune.config"; "dune-project"]
     (list_files "app");
 
   test "configure -vv --file app/config.ml --build-dir=custom_build_";

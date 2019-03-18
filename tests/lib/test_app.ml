@@ -76,13 +76,9 @@ module C = struct
 
       method! configure i =
         let dune = Fmt.strf
-            "; An infortunate hack: bring stage 0 modules in scope of stage 1\n\
-             (rule (copy ../../runtime/functoria_runtime.ml functoria_runtime.ml))\n\
-             (rule (copy ../../runtime/functoria_info.ml functoria_info.ml))\n\
-             \n\
-             (executable\n\
+            "(executable\n\
             \   (name      %s)\n\
-            \   (libraries cmdliner fmt))\n"
+            \   (libraries cmdliner fmt functoria-runtime))\n"
             (output i)
         in
         Bos.OS.File.write (dune_file i) dune

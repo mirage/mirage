@@ -36,11 +36,11 @@ let right_tcpip_library ?ocamlfind ~sublibs pkg =
   let min = "3.7.1" and max = "3.8.0" in
   Key.match_ Key.(value target) @@ function
   |`MacOSX | `Unix ->
-    [ package ~min ~max ?ocamlfind ~sublibs pkg; package ?ocamlfind ~sublibs:["unix"] "tcpip-checksum"  ]
+    [ package ~min ~max ?ocamlfind ~sublibs pkg  ]
   |`Qubes  | `Xen ->
-    [ package ~min ~max ?ocamlfind ~sublibs pkg; package ?ocamlfind ~sublibs:["xen"] "tcpip-checksum"  ]
+    [ package ~min ~max ?ocamlfind ~sublibs pkg ]
   |`Virtio | `Hvt | `Muen | `Genode ->
-    [ package ~min ~max ?ocamlfind ~sublibs pkg; package ?ocamlfind ~sublibs:["ocaml"] "tcpip-checksum"  ]
+    [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object
     inherit base_configurable

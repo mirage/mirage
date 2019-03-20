@@ -39,10 +39,10 @@ let nocrypto = impl @@ object
       | `Unix | `MacOSX ->
         [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["lwt"] "nocrypto" ]
       | `Hvt | `Virtio | `Muen | `Genode ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"; "freestanding"] "nocrypto" ;
+        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto" ;
           package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy" ]
       | `Xen | `Qubes ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"; "xen"] "nocrypto" ;
+        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto" ;
           package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy" ]
 
     method! build _ = Rresult.R.ok (enable_entropy ())

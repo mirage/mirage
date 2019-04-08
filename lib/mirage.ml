@@ -535,12 +535,232 @@ let variant_of_target = function
   | _ -> "unix"
 
 
+let opam_prefix =
+  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
+  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
+
+(* Invoke pkg-config and return output if successful. *)
+let pkg_config pkgs args =
+  let var = "PKG_CONFIG_PATH" in
+  let pkg_config_fallback = match Bos.OS.Env.var var with
+    | Some path -> ":" ^ path
+    | None -> ""
+  in
+  Lazy.force opam_prefix >>= fun prefix ->
+  (* the order here matters (at least for ancient 0.26, distributed with
+       ubuntu 14.04 versions): use share before lib! *)
+  let value =
+    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
+      prefix prefix pkg_config_fallback
+  in
+  Bos.OS.Env.set_var var (Some value) >>= fun () ->
+  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
+  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
+  String.cuts ~sep:" " ~empty:false data
+
+
+let find_ld pkg =
+  match pkg_config pkg ["--variable=ld"] with
+  | Ok (ld::_) ->
+    Log.info (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg);
+    ld
+  | Ok [] ->
+    Log.warn
+      (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg);
+    "ld"
+  | Error msg ->
+    Log.warn (fun m -> m "error %a while pkg-config %s --variable=ld, using ld"
+                 Rresult.R.pp_msg msg pkg);
+    "ld"
+let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
+
+let sxp_of_fmt fmt = Fmt.kstrf Sexp.of_string fmt
+
+let config_unix ~name ~binary_location ~target =
+  let target_name = Fmt.strf "%a" Key.pp_target target in
+  let alias = sxp_of_fmt {|
+    (alias
+      (name %s)
+      (deps %s))
+    |} target_name name
+  in
+  let rule = sxp_of_fmt {|
+    (rule
+      (targets %s)
+      (deps %s)
+      (mode promote)
+      (action (run ln -nfs %s %s)))
+  |} name binary_location binary_location name
+  in
+  Ok [alias; rule]
+
+
+(* On ARM:
+        - we must convert the ELF image to an ARM boot executable zImage,
+          while on x86 we leave it as it is.
+        - we need to link libgcc.a (otherwise we get undefined references to:
+          __aeabi_dcmpge, __aeabi_dadd, ...) *)
+let config_xen_arm ~out ~linker_command ~binary_location =
+  let elf = out ^ ".elf" in
+  let libgcc_cmd = Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") in
+  Bos.OS.Cmd.(run_out libgcc_cmd |> out_string) >>= fun (libgcc, _) ->
+  let rule_link = sxp_of_fmt {|
+    (rule
+      (targets %s)
+      (deps %s)
+      (action (run %s %s -o %s)))
+    |} elf binary_location linker_command libgcc elf
+  and rule_obj_copy = sxp_of_fmt {|
+    (rule
+      (mode promote)
+      (targets %s)
+      (deps %s)
+      (action (run objcopy -O binary %s %s)))
+  |} out elf elf out
+  in
+  Ok [rule_link; rule_obj_copy]
+
+let config_xen_default ~out ~linker_command ~binary_location =
+  let rule = sxp_of_fmt {|
+    (rule
+      (mode promote)
+      (targets %s)
+      (deps %s)
+      (action (run %s -o %s)))
+  |} out binary_location linker_command out
+  in
+  Ok [rule]
+
+let config_xen ~name ~binary_location ~target =
+  let target_name = Fmt.strf "%a" Key.pp_target target in
+  let out = name ^ ".xen" in
+  let alias = sxp_of_fmt {|
+    (alias
+      (name %s)
+      (deps %s))
+  |} target_name out
+  in
+  let linker_command = "ld -d -static -nostdlib "^binary_location
+  in
+  let uname_cmd = Bos.Cmd.(v "uname" % "-m") in
+  Bos.OS.Cmd.(run_out uname_cmd |> out_string) >>= fun (machine, _) ->
+  match String.is_prefix ~affix:"arm" machine with
+  | true -> config_xen_arm ~out ~linker_command ~binary_location
+  | false -> config_xen_default ~out ~linker_command ~binary_location
+  >>= fun rules ->
+  Ok (alias::rules)
+
+let solo5_pkg = function
+  | `Virtio -> "solo5-bindings-virtio", ".virtio"
+  | `Muen -> "solo5-bindings-muen", ".muen"
+  | `Hvt -> "solo5-bindings-hvt", ".hvt"
+  | `Genode -> "solo5-bindings-genode", ".genode"
+  | `Unix | `MacOSX | `Xen | `Qubes ->
+    invalid_arg "solo5_kernel only defined for solo5 targets"
+
+let config_solo5_hvt i ~name ~binary_location =
+  let pkg, post = solo5_pkg `Hvt in
+  (* Generate target alias *)
+  let out = name ^ post in
+  let alias = sxp_of_fmt {|
+    (alias
+      (name hvt)
+      (deps solo5-hvt %s))
+  |} out
+  in
+  (* Generate solo5-hvt rules*)
+  let ctx = Info.context i in
+  let libs = Info.libraries i in
+  let target_debug = Key.(get ctx target_debug) in
+  let tender_mods =
+    List.fold_left (fun acc -> function
+        | "mirage-net-solo5" -> "net" :: acc
+        | "mirage-block-solo5" -> "blk" :: acc
+        | _ -> acc)
+      [] libs @ (if target_debug then ["gdb"] else [])
+  in
+  let tender_mods = String.concat ~sep:" " tender_mods in
+  pkg_config pkg ["--variable=libdir"]
+  >>= (function
+  | [ libdir ] ->
+    Ok (sxp_of_fmt {|
+      (rule
+        (targets Makefile.solo5-hvt)
+        (action (run solo5-hvt-configure %s/src %s)))
+    |} libdir tender_mods)
+  | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed"))
+  >>= fun rule_solo5_makefile ->
+  let rule_solo5_hvt = sxp_of_fmt {|
+    (rule
+      (targets solo5-hvt)
+      (deps Makefile.solo5-hvt)
+      (mode promote)
+      (action (run make -f Makefile.solo5-hvt solo5-hvt)))
+  |}
+  in
+  (* Generate unikernel linking rule*)
+  ldflags pkg >>= fun ldflags ->
+  let ld = find_ld pkg in
+  let rule_unikernel = sxp_of_fmt {|
+    (rule
+      (targets %s)
+      (mode promote)
+      (deps %s)
+      (action (run %s %s %s -o %s)))
+  |} out
+     binary_location
+     ld (String.concat ~sep:" " ldflags) binary_location out
+  in
+  Ok [alias; rule_solo5_makefile; rule_solo5_hvt; rule_unikernel]
+
+let config_solo5_default ~name ~binary_location ~target =
+  let pkg, post = solo5_pkg target in
+  (* Generate target alias *)
+  let out = name ^ post in
+  let alias = sxp_of_fmt {|
+    (alias
+      (name hvt)
+      (deps %s))
+  |} out
+  in
+  (* Generate unikernel linking rule*)
+  ldflags pkg >>= fun ldflags ->
+  let ld = find_ld pkg in
+  let rule_unikernel = sxp_of_fmt {|
+    (rule
+      (targets %s)
+      (mode promote)
+      (deps %s)
+      (action (run ld %s %s %s -o %s)))
+  |} out
+     binary_location
+     ld (String.concat ~sep:" " ldflags) binary_location out
+  in
+  Ok [alias; rule_unikernel]
+
+let config_solo5 i ~name ~binary_location ~target =
+  match target with
+  | `Hvt -> config_solo5_hvt i ~name ~binary_location
+  | _ -> config_solo5_default ~name ~binary_location ~target
+
+let configure_postbuild_rules i ~name ~binary_location ~target =
+  match target with
+  | `Unix | `MacOSX -> config_unix ~name ~binary_location ~target
+  | `Xen | `Qubes -> config_xen ~name ~binary_location ~target
+  | `Virtio | `Muen | `Hvt | `Genode -> config_solo5 i ~name ~binary_location ~target
+
+let target_file = function
+  | `Unix | `MacOSX -> "main.exe"
+  | _ -> "main.exe.o"
+
 let configure_dune i =
   let ctx = Info.context i in
   let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let custom_runtime = custom_runtime target in
   let libs = Info.libraries i in
+  let name = Info.name i in
+  let binary_location = target_file target in
   let cflags = [
       "-g";
       "-w";
@@ -555,30 +775,36 @@ let configure_dune i =
       (match custom_runtime with Some runtime -> ["-runtime-variant"; runtime] | _ -> [])
   and lflags = ["-g"]
   in
-  let strings_to_atoms = List.map (fun x -> Sexp.Atom x) in
   let s_output_mode = match target with
-  | `Unix | `MacOSX -> Sexp.(List [Atom "native"; Atom "exe"])
-  | _ -> Sexp.(List [Atom "native"; Atom "object"])
+    | `Unix | `MacOSX -> "native exe"
+    | _ -> "native object"
   in
-  let s_libraries = Sexp.List (Sexp.Atom "libraries" ::  strings_to_atoms libs)
+  let s_libraries = String.concat ~sep:" " libs in
+  let s_link_flags = String.concat ~sep:" " lflags in
+  let s_compilation_flags = String.concat ~sep:" " cflags in
+  let s_variants = variant_of_target target
   in
-  let s_link_flags = Sexp.(List ((Atom "link_flags") :: strings_to_atoms lflags))
+  let config = sxp_of_fmt {|
+    (executable
+      (name main)
+      (modes %s)
+      (libraries %s)
+      (link_flags %s)
+      (flags %s)
+      (variants %s))
+  |} s_output_mode
+     s_libraries
+     s_link_flags
+     s_compilation_flags
+     s_variants
   in
-  let s_compilation_flags = Sexp.(List ((Atom "flags") :: strings_to_atoms cflags))
-  in
-  let s_variants = Sexp.(List ([(Atom "variants"); (Atom (variant_of_target target))]))
-  in
-  let config = Sexp.(List [
-    Atom "executable";
-    List [Atom "name"; Atom "main"];
-    List [Atom "modes"; s_output_mode];
-    s_libraries;
-    s_link_flags;
-    s_compilation_flags;
-    s_variants
-  ])
-  in
-  Bos.OS.File.write fn (Sexp.to_string_hum config)
+  configure_postbuild_rules i ~name ~binary_location ~target >>= fun rules ->
+  let rules = config::rules in
+  Bos.OS.File.write_lines
+    fn
+    (List.map (fun x -> (Sexp.to_string_hum x)^"\n") rules)
+
+
 
 (* we made it, so we should clean it up *)
 let clean_dune () = Bos.OS.File.delete fn
@@ -632,155 +858,22 @@ let configure i =
     configure_virtio_libvirt_xml ~root ~name
   | _ -> R.ok ()
 
-let target_file = function
-  | `Unix | `MacOSX -> "_build/default/main.exe"
-  | _ -> "_build/default/main.exe.o"
-
 let cross_compile = function
   | _ -> None
 
 let compile target =
-  let output_file = target_file target in
+  let target_name = Fmt.strf "%a" Key.pp_target target in
   let cmd = match cross_compile target with
-  | None ->         Bos.Cmd.(v "dune" % "build" % "--profile" % "release" % output_file)
-  | Some backend -> Bos.Cmd.(v "dune" % "build" % "--profile" % "release" % "-x" % backend % output_file)
+  | None ->         Bos.Cmd.(v "dune" % "build" % ("@"^target_name) )
+  | Some backend -> Bos.Cmd.(v "dune" % "build" % ("@"^target_name) % "-x" % backend)
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
 
-let opam_prefix =
-  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
 
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  let var = "PKG_CONFIG_PATH" in
-  let pkg_config_fallback = match Bos.OS.Env.var var with
-    | Some path -> ":" ^ path
-    | None -> ""
-  in
-  Lazy.force opam_prefix >>= fun prefix ->
-  (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-  let value =
-    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
-      prefix prefix pkg_config_fallback
-  in
-  Bos.OS.Env.set_var var (Some value) >>= fun () ->
-  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
-  String.cuts ~sep:" " ~empty:false data
 
-let static_libs pkg_config_deps =
-  pkg_config pkg_config_deps [ "--static" ; "--libs" ]
 
-let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
-
-let ldpostflags pkg = pkg_config pkg ["--variable=ldpostflags"]
-
-let find_ld pkg =
-  match pkg_config pkg ["--variable=ld"] with
-  | Ok (ld::_) ->
-    Log.info (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg);
-    ld
-  | Ok [] ->
-    Log.warn
-      (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg);
-    "ld"
-  | Error msg ->
-    Log.warn (fun m -> m "error %a while pkg-config %s --variable=ld, using ld"
-                 Rresult.R.pp_msg msg pkg);
-    "ld"
-
-let solo5_pkg = function
-  | `Virtio -> "solo5-bindings-virtio", ".virtio"
-  | `Muen -> "solo5-bindings-muen", ".muen"
-  | `Hvt -> "solo5-bindings-hvt", ".hvt"
-  | `Genode -> "solo5-bindings-genode", ".genode"
-  | `Unix | `MacOSX | `Xen | `Qubes ->
-    invalid_arg "solo5_kernel only defined for solo5 targets"
-
-let link info name target target_debug =
-  let libs = Info.libraries info in
-  let binary_location = target_file target in
-  match target with
-  | `Unix | `MacOSX ->
-    let link = Bos.Cmd.(v "ln" % "-nfs" % binary_location % name) in
-    Bos.OS.Cmd.run link >>= fun () ->
-    Ok name
-  | `Xen | `Qubes ->
-    static_libs "mirage-xen-ocaml" >>= fun static_libs ->
-    let linker =
-      Bos.Cmd.(v "ld" % "--unresolved-symbols=ignore-all" % "-d" (*Some bigarray stuff is grabbed..*) 
-               % "-static" % "-nostdlib" % binary_location %% of_list static_libs )
-    in
-    let out = name ^ ".xen" in
-    let uname_cmd = Bos.Cmd.(v "uname" % "-m") in
-    Bos.OS.Cmd.(run_out uname_cmd |> out_string) >>= fun (machine, _) ->
-    if String.is_prefix ~affix:"arm" machine then begin
-      (* On ARM:
-         - we must convert the ELF image to an ARM boot executable zImage,
-           while on x86 we leave it as it is.
-         - we need to link libgcc.a (otherwise we get undefined references to:
-           __aeabi_dcmpge, __aeabi_dadd, ...) *)
-      let libgcc_cmd = Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") in
-      Bos.OS.Cmd.(run_out libgcc_cmd |> out_string) >>= fun (libgcc, _) ->
-      let elf = name ^ ".elf" in
-      let link = Bos.Cmd.(linker % libgcc % "-o" % elf) in
-      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
-      Bos.OS.Cmd.run link >>= fun () ->
-      let objcopy_cmd = Bos.Cmd.(v "objcopy" % "-O" % "binary" % elf % out) in
-      Bos.OS.Cmd.run objcopy_cmd  >>= fun () ->
-      Ok out
-    end else begin
-      let link = Bos.Cmd.(linker % "-o" % out) in
-      Log.info (fun m -> m "linking with %a" Bos.Cmd.pp link);
-      Bos.OS.Cmd.run link >>= fun () ->
-      Ok out
-    end
-  | `Virtio | `Muen | `Hvt | `Genode ->
-
-    let pkg, post = solo5_pkg target in
-    static_libs "mirage-solo5" >>= fun static_libs ->
-    ldflags pkg >>= fun ldflags ->
-    ldpostflags pkg >>= fun ldpostflags ->
-    let out = name ^ post in
-    let ld = find_ld pkg in
-    let pre_link = Bos.Cmd.(v "objcopy" % "-W" % "caml_ba_map_file" % binary_location % binary_location) in
-    let linker =
-      Bos.Cmd.(v ld %% of_list ldflags % binary_location %%
-               of_list static_libs % "--unresolved-symbols=ignore-all" % "-o" % out
-               %% of_list ldpostflags)
-    in
-    Log.info (fun m -> m "objcopy with %a" Bos.Cmd.pp pre_link);
-    Bos.OS.Cmd.run pre_link >>= fun () ->
-    Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
-    Bos.OS.Cmd.run linker >>= fun () ->
-    if target = `Hvt then
-      let tender_mods =
-        List.fold_left (fun acc -> function
-            | "mirage-net-solo5" -> "net" :: acc
-            | "mirage-block-solo5" -> "blk" :: acc
-            | _ -> acc)
-          [] libs @ (if target_debug then ["gdb"] else [])
-      in
-      pkg_config pkg ["--variable=libdir"] >>= function
-      | [ libdir ] ->
-        let config_cmd =
-          Bos.Cmd.(v "solo5-hvt-configure" %
-                   (libdir ^ "/src") %%
-                   of_list tender_mods)
-        in
-        Bos.OS.Cmd.run config_cmd >>= fun () ->
-        let make_cmd =
-          Bos.Cmd.(v "make" % "-f" % "Makefile.solo5-hvt" % "solo5-hvt")
-        in
-        Bos.OS.Cmd.run make_cmd >>= fun () ->
-        Ok out
-      | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed")
-    else
-      Ok out
-
+let link _info _name _target _target_debug = Ok ()
 let check_entropy libs =
   query_ocamlfind ~recursive:true libs >>= fun ps ->
   if List.mem "nocrypto" ps && not (Mirage_impl_random.is_entropy_enabled ()) then
@@ -801,8 +894,8 @@ let build i =
   let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
   compile target >>= fun () ->
-  link i name target target_debug >>| fun out ->
-  Log.info (fun m -> m "Build succeeded: %s" out)
+  link i name target target_debug >>| fun () ->
+  Log.info (fun m -> m "Build succeeded")
 
 let clean i =
   let name = Info.name i in

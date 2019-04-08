@@ -526,7 +526,7 @@ let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
 
 let custom_runtime = function
   | `Xen | `Qubes -> Some "xen"
-  | `Virtio | `Hvt | `Muen | `Genode  -> Some "freestanding"
+  | `Virtio | `Hvt | `Muen | `Genode  -> None
   | _ -> None
 
 let variant_of_target = function
@@ -648,7 +648,9 @@ let config_xen ~name ~binary_location ~target =
   | true -> config_xen_arm ~out ~linker_command ~binary_location
   | false -> config_xen_default ~out ~linker_command ~binary_location
   >>= fun rules ->
-  Ok (alias::rules)
+  let rule_ldflags = sxp_of_fmt "(rule (copy %%{lib:mirage-xen-ocaml:libs} ldflags))"
+  in
+  Ok (rule_ldflags::alias::rules)
 
 let solo5_pkg = function
   | `Virtio -> "solo5-bindings-virtio", ".virtio"
@@ -739,9 +741,13 @@ let config_solo5_default ~name ~binary_location ~target =
   Ok [alias; rule_unikernel]
 
 let config_solo5 i ~name ~binary_location ~target =
-  match target with
+  (match target with
   | `Hvt -> config_solo5_hvt i ~name ~binary_location
-  | _ -> config_solo5_default ~name ~binary_location ~target
+  | _ -> config_solo5_default ~name ~binary_location ~target)
+  >>= fun base_rules ->
+  let rule_ldflags = sxp_of_fmt "(rule (copy %%{lib:ocaml-freestanding:libs} ldflags))"
+  in
+  Ok (rule_ldflags::base_rules)
 
 let configure_postbuild_rules i ~name ~binary_location ~target =
   match target with
@@ -773,11 +779,13 @@ let configure_dune i =
       (match target with `MacOSX | `Unix -> ["-thread"] | _ -> []) @
       (if terminal () then ["-color"; "always"] else []) @
       (match custom_runtime with Some runtime -> ["-runtime-variant"; runtime] | _ -> [])
-  and lflags = ["-g"]
+  and lflags = "-g"::(match target with
+    | `Xen | `Qubes | `Virtio | `Muen | `Hvt | `Genode -> ["(:include ldflags)"]
+    | _ -> [])
   in
   let s_output_mode = match target with
-    | `Unix | `MacOSX -> "native exe"
-    | _ -> "native object"
+    | `Unix | `MacOSX -> "(native exe)"
+    | _ -> "(native object)"
   in
   let s_libraries = String.concat ~sep:" " libs in
   let s_link_flags = String.concat ~sep:" " lflags in
@@ -804,6 +812,11 @@ let configure_dune i =
     fn
     (List.map (fun x -> (Sexp.to_string_hum x)^"\n") rules)
 
+
+(*
+ (:include %%{lib:ocaml-freestanding:libs})
+
+*)
 
 
 (* we made it, so we should clean it up *)

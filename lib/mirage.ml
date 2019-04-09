@@ -721,9 +721,10 @@ let config_solo5_default ~name ~binary_location ~target =
   let out = name ^ post in
   let alias = sxp_of_fmt {|
     (alias
-      (name hvt)
+      (name %a)
       (deps %s))
-  |} out
+  |} Key.pp_target target
+     out
   in
   (* Generate unikernel linking rule*)
   ldflags pkg >>= fun ldflags ->

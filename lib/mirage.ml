@@ -534,46 +534,6 @@ let variant_of_target = function
   | `Virtio | `Hvt | `Muen | `Genode  -> "freestanding"
   | _ -> "unix"
 
-
-let opam_prefix =
-  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
-
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  let var = "PKG_CONFIG_PATH" in
-  let pkg_config_fallback = match Bos.OS.Env.var var with
-    | Some path -> ":" ^ path
-    | None -> ""
-  in
-  Lazy.force opam_prefix >>= fun prefix ->
-  (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-  let value =
-    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
-      prefix prefix pkg_config_fallback
-  in
-  Bos.OS.Env.set_var var (Some value) >>= fun () ->
-  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
-  String.cuts ~sep:" " ~empty:false data
-
-
-let find_ld pkg =
-  match pkg_config pkg ["--variable=ld"] with
-  | Ok (ld::_) ->
-    Log.info (fun m -> m "using %s as ld (pkg-config %s --variable=ld)" ld pkg);
-    ld
-  | Ok [] ->
-    Log.warn
-      (fun m -> m "pkg-config %s --variable=ld returned nothing, using ld" pkg);
-    "ld"
-  | Error msg ->
-    Log.warn (fun m -> m "error %a while pkg-config %s --variable=ld, using ld"
-                 Rresult.R.pp_msg msg pkg);
-    "ld"
-let ldflags pkg = pkg_config pkg ["--variable=ldflags"]
-
 let sxp_of_fmt fmt = Fmt.kstrf Sexp.of_string fmt
 
 let config_unix ~name ~binary_location ~target =
@@ -648,9 +608,9 @@ let config_xen ~name ~binary_location ~target =
   | true -> config_xen_arm ~out ~linker_command ~binary_location
   | false -> config_xen_default ~out ~linker_command ~binary_location
   >>= fun rules ->
-  let rule_ldflags = sxp_of_fmt "(rule (copy %%{lib:mirage-xen-ocaml:libs} ldflags))"
+  let rule_libs = sxp_of_fmt "(rule (copy %%{lib:mirage-xen-ocaml:libs} libs))"
   in
-  Ok (rule_ldflags::alias::rules)
+  Ok (rule_libs::alias::rules)
 
 let solo5_pkg = function
   | `Virtio -> "solo5-bindings-virtio", ".virtio"
@@ -661,7 +621,7 @@ let solo5_pkg = function
     invalid_arg "solo5_kernel only defined for solo5 targets"
 
 let config_solo5_hvt i ~name ~binary_location =
-  let pkg, post = solo5_pkg `Hvt in
+  let _, post = solo5_pkg `Hvt in
   (* Generate target alias *)
   let out = name ^ post in
   let alias = sxp_of_fmt {|
@@ -682,16 +642,12 @@ let config_solo5_hvt i ~name ~binary_location =
       [] libs @ (if target_debug then ["gdb"] else [])
   in
   let tender_mods = String.concat ~sep:" " tender_mods in
-  pkg_config pkg ["--variable=libdir"]
-  >>= (function
-  | [ libdir ] ->
-    Ok (sxp_of_fmt {|
+  let rule_solo5_makefile = sxp_of_fmt {|
       (rule
         (targets Makefile.solo5-hvt)
-        (action (run solo5-hvt-configure %s/src %s)))
-    |} libdir tender_mods)
-  | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed"))
-  >>= fun rule_solo5_makefile ->
+        (action (run solo5-hvt-configure %%{read:libdir} %s)))
+    |} tender_mods
+  in
   let rule_solo5_hvt = sxp_of_fmt {|
     (rule
       (targets solo5-hvt)
@@ -701,22 +657,20 @@ let config_solo5_hvt i ~name ~binary_location =
   |}
   in
   (* Generate unikernel linking rule*)
-  ldflags pkg >>= fun ldflags ->
-  let ld = find_ld pkg in
   let rule_unikernel = sxp_of_fmt {|
     (rule
       (targets %s)
       (mode promote)
       (deps %s)
-      (action (run %s %s %s -o %s)))
+      (action (run %%{read-lines:ld} %%{read-lines:ldflags} %s -o %s)))
   |} out
      binary_location
-     ld (String.concat ~sep:" " ldflags) binary_location out
+     binary_location out
   in
   Ok [alias; rule_solo5_makefile; rule_solo5_hvt; rule_unikernel]
 
 let config_solo5_default ~name ~binary_location ~target =
-  let pkg, post = solo5_pkg target in
+  let _, post = solo5_pkg target in
   (* Generate target alias *)
   let out = name ^ post in
   let alias = sxp_of_fmt {|
@@ -727,17 +681,15 @@ let config_solo5_default ~name ~binary_location ~target =
      out
   in
   (* Generate unikernel linking rule*)
-  ldflags pkg >>= fun ldflags ->
-  let ld = find_ld pkg in
   let rule_unikernel = sxp_of_fmt {|
     (rule
       (targets %s)
       (mode promote)
       (deps %s)
-      (action (run ld %s %s %s -o %s)))
+      (action (run %%{read-lines:ld} %%{read-lines:ldflags} %s -o %s)))
   |} out
      binary_location
-     ld (String.concat ~sep:" " ldflags) binary_location out
+     binary_location out
   in
   Ok [alias; rule_unikernel]
 
@@ -746,9 +698,12 @@ let config_solo5 i ~name ~binary_location ~target =
   | `Hvt -> config_solo5_hvt i ~name ~binary_location
   | _ -> config_solo5_default ~name ~binary_location ~target)
   >>= fun base_rules ->
-  let rule_ldflags = sxp_of_fmt "(rule (copy %%{lib:ocaml-freestanding:libs} ldflags))"
+  let rule_libs = sxp_of_fmt "(rule (copy %%{lib:ocaml-freestanding:libs} libs))" in
+  let rule_ldflags = sxp_of_fmt "(rule (copy %%{lib:ocaml-freestanding:ldflags} ldflags))" in
+  let rule_ld = sxp_of_fmt "(rule (copy %%{lib:ocaml-freestanding:ld} ld))" in
+  let rule_libdir = sxp_of_fmt "(rule (copy %%{lib:ocaml-freestanding:libdir} libdir))"
   in
-  Ok (rule_ldflags::base_rules)
+  Ok (rule_ldflags::rule_libs::rule_libdir::rule_ld::base_rules)
 
 let configure_postbuild_rules i ~name ~binary_location ~target =
   match target with
@@ -781,7 +736,7 @@ let configure_dune i =
       (if terminal () then ["-color"; "always"] else []) @
       (match custom_runtime with Some runtime -> ["-runtime-variant"; runtime] | _ -> [])
   and lflags = "-g"::(match target with
-    | `Xen | `Qubes | `Virtio | `Muen | `Hvt | `Genode -> ["(:include ldflags)"]
+    | `Xen | `Qubes | `Virtio | `Muen | `Hvt | `Genode -> ["(:include libs)"]
     | _ -> [])
   in
   let s_output_mode = match target with
@@ -812,12 +767,6 @@ let configure_dune i =
   Bos.OS.File.write_lines
     fn
     (List.map (fun x -> (Sexp.to_string_hum x)^"\n") rules)
-
-
-(*
- (:include %%{lib:ocaml-freestanding:libs})
-
-*)
 
 
 (* we made it, so we should clean it up *)
@@ -883,8 +832,6 @@ let compile target =
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
-
-
 
 
 let link _info _name _target _target_debug = Ok ()

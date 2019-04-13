@@ -12,8 +12,9 @@ env:
    - PACKAGE=mirage
    - TESTS=false
  matrix:
-   - DISTRO=alpine OCAML_VERSION=4.05 EXTRA_ENV="MODE=unix" TESTS=true
-   - DISTRO=ubuntu-16.04 OCAML_VERSION=4.05 EXTRA_ENV="MODE=virtio"
-   - DISTRO=ubuntu-16.04 OCAML_VERSION=4.06 EXTRA_ENV="MODE=xen"
-   - DISTRO=debian-testing OCAML_VERSION=4.06 EXTRA_ENV="MODE=muen"
-   - DISTRO=debian-testing OCAML_VERSION=4.07 EXTRA_ENV="MODE=hvt"
+   - DISTRO=alpine OCAML_VERSION=4.05 EXTRA_ENV="MODE=unix"
+   - DISTRO=alpine OCAML_VERSION=4.05 EXTRA_ENV="MODE=virtio" TESTS=true
+   - DISTRO=ubuntu OCAML_VERSION=4.06 EXTRA_ENV="MODE=xen"
+   - DISTRO=centos-7 OCAML_VERSION=4.06 EXTRA_ENV="MODE=muen"
+   - DISTRO=debian-stable OCAML_VERSION=4.07 EXTRA_ENV="MODE=hvt"
+   - DISTRO=ubuntu-lts OCAML_VERSION=4.07 EXTRA_ENV="MODE=qubes"

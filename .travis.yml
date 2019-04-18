@@ -1,22 +1,20 @@
 language: c
 install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-docker.sh
 script: bash -ex .travis-docker.sh
-sudo: required
 services:
   - docker
 sudo: false
 env:
  global:
-   - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
    - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
    - PACKAGE=mirage
+   - TESTS=false
  matrix:
    - DISTRO=alpine OCAML_VERSION=4.05 EXTRA_ENV="MODE=unix"
-   - DISTRO=ubuntu-16.04 OCAML_VERSION=4.05 EXTRA_ENV="MODE=virtio"
-   - DISTRO=ubuntu-16.04 OCAML_VERSION=4.06 EXTRA_ENV="MODE=xen"
-   - DISTRO=debian-testing OCAML_VERSION=4.06 EXTRA_ENV="MODE=muen"
-   - DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=unix"
-   - DISTRO=debian-testing OCAML_VERSION=4.07 EXTRA_ENV="MODE=hvt"
-   - DISTRO=alpine OCAML_VERSION=4.07 EXTRA_ENV="MODE=xen"
+   - DISTRO=alpine OCAML_VERSION=4.05 EXTRA_ENV="MODE=virtio" TESTS=true
+   - DISTRO=ubuntu OCAML_VERSION=4.06 EXTRA_ENV="MODE=xen"
+   - DISTRO=centos-7 OCAML_VERSION=4.06 EXTRA_ENV="MODE=muen"
+   - DISTRO=debian-stable OCAML_VERSION=4.07 EXTRA_ENV="MODE=hvt"
+   - DISTRO=ubuntu-lts OCAML_VERSION=4.07 EXTRA_ENV="MODE=qubes"

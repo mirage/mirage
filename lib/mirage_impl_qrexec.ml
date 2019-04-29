@@ -24,6 +24,6 @@ let default_qrexec = impl @@ object
        Lwt.async (fun () ->@ \
        OS.Lifecycle.await_shutdown_request () >>= fun _ ->@ \
        %s.disconnect qrexec);@ \
-       Lwt.return (`Ok qrexec)@]"
+       Lwt.return qrexec@]"
       modname modname
 end

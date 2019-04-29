@@ -42,6 +42,10 @@ type qubesdb = Mirage_impl_qubesdb.qubesdb
 let qubesdb = Mirage_impl_qubesdb.qubesdb
 let default_qubesdb = Mirage_impl_qubesdb.default_qubesdb
 
+type qrexec = Mirage_impl_qrexec.qrexec
+let qrexec = Mirage_impl_qrexec.qrexec
+let default_qrexec = Mirage_impl_qrexec.default_qrexec
+
 type time = Mirage_impl_time.time
 let time = Mirage_impl_time.time
 let default_time = Mirage_impl_time.default_time

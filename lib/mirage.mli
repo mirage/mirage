@@ -53,6 +53,9 @@ val qubesdb: qubesdb typ
 val default_qubesdb: qubesdb impl
 (** A default qubes database, guessed from the usual valid configurations. *)
 
+type qrexec
+val qrexec: qrexec typ
+val default_qrexec: qrexec impl
 
 (** {2 Time} *)
 

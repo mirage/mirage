@@ -1,2 +1,3 @@
-val qrexec_qubes : Functoria.job Functoria.impl
-val qrexec : Functoria.job Functoria.typ
+type qrexec
+val default_qrexec : qrexec Functoria.impl
+val qrexec : qrexec Functoria.typ

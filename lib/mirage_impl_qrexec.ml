@@ -3,9 +3,10 @@ module Name = Functoria_app.Name
 module Key = Mirage_key
 open Rresult
 
-let qrexec = job
+type qrexec = QREXEC
+let qrexec = Type QREXEC
 
-let qrexec_qubes = impl @@ object
+let default_qrexec = impl @@ object
   inherit base_configurable
   method ty = qrexec
   val name = Name.ocamlify @@ "qrexec_"

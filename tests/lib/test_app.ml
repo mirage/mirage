@@ -30,7 +30,7 @@ let run cmd =
       failwith err
 
 let rec root path =
-  Bos.OS.File.exists Fpath.(path / "functoria.opam") >>= function
+  Bos.OS.File.exists Fpath.(path / "functoria-runtime.opam") >>= function
   | true  -> Ok path
   | false -> root (Fpath.parent path)
 
@@ -46,7 +46,7 @@ let write_key i k f =
 
 let split_root () =
   let cwd = R.get_ok @@ Bos.OS.Dir.current () in
-  let root = Fpath.(root () / "_build" / "default") in
+  let root = root () in
   match Fpath.relativize ~root cwd with
   | None      -> failwith "split root"
   | Some path -> root, path

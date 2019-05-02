@@ -87,7 +87,7 @@ let test_configure () =
   test "configure -vv --file app/config.ml";
   Alcotest.(check files) "new files should be created in the source dir"
     ["app.ml"; "config.ml"; "dune.config"; "key_gen.ml";
-     "main.ml"; ".mirage.config"; "dune"; "build-config"; "dune-project"; "_build"] (list_files "app");
+     "main.ml"; ".mirage.config"; "dune"; "build-config"; "_build"] (list_files "app");
  clean_app ();
 
   (* check that configure generates the file in the right dir when
@@ -101,7 +101,7 @@ let test_configure () =
     (list_files "app");
   Alcotest.(check files) "other files should be created in custom_build_"
     ["main.ml"; "app.ml"; "dune.config"; ".mirage.config"; "dune"; "key_gen.ml";
-    "build-config"; "dune-project"; "_build"
+    "build-config"; "_build"
    (* FIXME: add a .mirage-ignore file to avoid this *) ]
     (list_files "custom_build_");
   clean_build ();
@@ -110,7 +110,9 @@ let test_configure () =
      file *)
   let test_config root cfg =
     Test_app.run_with_argv (Array.of_list cfg);
-    let expected = String.concat ~sep:"\n" @@ List.map String.Ascii.escape cfg in
+    let expected =
+      String.concat ~sep:"\n"
+      @@ List.map String.Ascii.escape (List.tl cfg) in
     let got = get_ok @@ Bos.OS.File.read Fpath.(v root / ".mirage.config") in
     Alcotest.(check string) ("config should persist in " ^ root)
       (String.Ascii.escape_string expected )

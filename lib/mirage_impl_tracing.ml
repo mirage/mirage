@@ -19,7 +19,7 @@ let mprof_trace ~size () =
       Key.match_ Key.(value target) @@ function
       | `Xen | `Qubes ->
         [ package ~max:"1.0.0" "mirage-profile";
-          package ~max:"1.0.0" "mirage-profile-xen" ]
+          package ~max:"1.0.0" ~min:"0.9.0" "mirage-profile-xen" ]
       | `Virtio | `Hvt | `Muen | `Genode -> []
       | `Unix | `MacOSX ->
         [ package ~max:"1.0.0" "mirage-profile";
@@ -50,7 +50,7 @@ let mprof_trace ~size () =
            let buffer = trace_pages |> Io_page.to_cstruct |> Cstruct.to_bigarray in@ \
            let trace_config = MProf.Trace.Control.make buffer MProf_xen.timestamper in@ \
            MProf.Trace.Control.start trace_config;@ \
-           MProf_xen.share_with (module Gnt.Gntshr) (module OS.Xs) ~domid:0 trace_pages@ \
+           MProf_xen.share_with ~domid:0 trace_pages@ \
            |> OS.Main.run@]"
           Key.serialize_call (Key.abstract key)
   end

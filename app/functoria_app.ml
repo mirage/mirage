@@ -151,9 +151,10 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
 
     method !build i =
       Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      let cmd = Bos.Cmd.(v "opam" % "list" % "--installed" % "-s" % "--rec" % "--depopts" % "--required-by" %% of_list (Info.libraries i)) in
+      let direct = String.concat ~sep:"," (Info.package_names i) in
+      let cmd = Bos.Cmd.(v "opam" % "list" % "--installed" % "-s" % "--rec" % "--depopts" % "--required-by" % direct) in
       (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (rdeps, _) ->
-      let opam = String.Set.(union (of_list (Info.package_names i)) (of_list rdeps)) in
+      let opam = String.Set.of_list rdeps in
       let ocl = String.Set.of_list (Info.libraries i)
       in
       Bos.OS.File.writef Fpath.(file + "in")

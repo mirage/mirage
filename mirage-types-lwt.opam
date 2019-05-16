@@ -15,7 +15,7 @@ build: [
 ]
 
 depends:   [
-  "ocaml" {>= "4.04.2"}
+  "ocaml" {>= "4.05.0"}
   "dune" {build & >= "1.1.0"}
   "lwt"
   "cstruct" {>="3.2.1"}

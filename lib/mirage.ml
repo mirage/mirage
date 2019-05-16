@@ -894,7 +894,7 @@ module Project = struct
         (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
         let min = "3.5.0" and max = "3.6.0" in
         let common = [
-          package ~build:true ~min:"4.04.2" "ocaml";
+          package ~build:true ~min:"4.05.0" "ocaml";
           package "lwt";
           package ~min ~max "mirage-types-lwt";
           package ~min ~max "mirage-types";

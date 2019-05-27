@@ -1,3 +1,7 @@
+## v2.2.4 (2019-05-27)
+
+* fix app_info - executing "opam list --installed" (#170, by @hannesm)
+
 ## 2.2.3 (21/11/2018)
 
 * fix support for pin-depends (#165, by @hannesm)

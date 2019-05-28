@@ -35,7 +35,7 @@ locally or use the Docker image.
 
 You will need the following:
 
-* a working [OCaml](https://ocaml.org) compiler (4.04.2 or higher).
+* a working [OCaml](https://ocaml.org) compiler (4.05.0 or higher).
 * the [OPAM](https://opam.ocaml.org) source package manager (2.0.0 or higher).
 * an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or
   MacOS X for the solo5 and userlevel versions.

@@ -381,7 +381,6 @@ module Config = struct
   let extract_keys impl =
     Engine.keys @@ Graph.create impl
 
-  let name t = t.name
   let keys t = t.keys
 
   let gen_pp pp fmt jobs =
@@ -416,7 +415,7 @@ end = struct
   let save ~argv root =
     let file = filename root in
     Log.info (fun m -> m "Preserving arguments");
-    let args = Array.to_list argv in
+    let args = List.tl (Array.to_list argv) in (* Only keep args *)
     let args = List.map String.Ascii.escape args in
     let args = String.concat ~sep:"\n" args in
     Bos.OS.File.write file args
@@ -487,13 +486,12 @@ module type DSL = module type of struct include Functoria end
 
 module Make (P: S) = struct
 
-  let src = Logs.Src.create P.name ~doc:"functoria generated"
-  module Log = (val Logs.src_log src : Logs.LOG)
+  (* GLOBAL STATE *)
 
   (* this needs to be set-up beforce any calls to {!register} *)
   let build_dir = ref None
+  let default_init = [keys sys_argv]
   let config_file = ref Fpath.(v "config.ml")
-  let build_config_dir = Fpath.(v "build-config")
 
   let init_global_state argv =
     build_dir := None;
@@ -520,23 +518,258 @@ module Make (P: S) = struct
       if Fpath.(is_abs !config_file) then Fpath.(parent !config_file)
       else Fpath.(get_cwd () // parent !config_file)
 
-  (* This is set by {!register} *)
-  let configuration = ref None
+  let get_config_dir () = Fpath.(get_cwd () // parent !config_file)
 
-  let default_init = [keys sys_argv]
+  (* STAGE 1 *)
+  let config_executable_name = "config.exe"
 
-  let register ?packages ?keys ?(init=default_init) name jobs =
+  (* Look for a `dune.config` file in configuration directory and
+     symlink it if it exists. *)
+  let check_and_import_dune_config ~config_dir ~build_config_dir () =
+    let dune_config = "dune.config" in
+    Bos.OS.Path.exists Fpath.(config_dir / dune_config)
+    >>= function
+    | true -> (
+      Bos.OS.Path.symlink
+        ~force:true
+        ~target:(Fpath.(config_dir / dune_config))
+        Fpath.(build_config_dir / dune_config)
+      >>| fun () -> true)
+    | false -> Ok false
+
+  (* Generate a dune file in the build-config directory.
+     If a `dune.config` file exists, it's included in the generated dune file
+     and a `config_custom` dummy dependency is created to allow external
+     dependencies through transitive closure.
+     An example dune.config file:
+      (library
+        (name config_custom)
+        (libraries foo bar dep)
+        (modules)
+      )
+  *)
+  let configure_dune_file ~config_dir ~build_config_dir () =
+    let dune_file = Fpath.(build_config_dir / "dune") in
+    check_and_import_dune_config ~config_dir ~build_config_dir ()
+    >>= fun has_dune_config ->
+    let pkgs = match P.packages with
+      | []   -> ""
+      | pkgs ->
+        let pkgs =
+          List.fold_left (fun acc pkg ->
+              String.Set.union pkg.ocamlfind acc
+            ) String.Set.empty pkgs
+          |> String.Set.elements
+        in
+        let pkgs = if has_dune_config then "config_custom"::pkgs else pkgs
+        in
+        String.concat ~sep:" " pkgs
+    in
+    let dune_content_default =
+      Format.sprintf
+        {|(executable (name config) (modules config) (libraries %s))
+          (alias
+            (name config)
+            (enabled_if (= %%{context_name} default))
+            (deps config.exe))
+        |} pkgs
+    in
+    let dune_content =
+      if has_dune_config
+      then ("(include dune.config)"^dune_content_default)
+      else dune_content_default
+    in
+    Bos.OS.File.delete dune_file
+    >>= fun () -> Bos.OS.File.write dune_file dune_content
+
+  (* Set up everything needed to build the configuration file inside a
+    separate build-config directory. *)
+  let configure_build_config_directory ~config_dir ~build_config_dir () =
+    let config_file_name = Fpath.basename (!config_file) in
+    let dune_project_file = Fpath.(build_config_dir / "dune-project")
+    in
+    Bos.OS.Dir.create build_config_dir >>= fun _ ->
+    (* Symlink config.ml inside the build-config directory *)
+    Bos.OS.Path.symlink
+      ~force:true
+      ~target:(Fpath.(config_dir / config_file_name))
+      Fpath.(build_config_dir / config_file_name) >>= fun () ->
+    (* Generate dune-project file*)
+    Bos.OS.File.exists dune_project_file
+    >>= (function
+      | false -> Bos.OS.File.write dune_project_file "(lang dune 1.1)"
+      | true  -> Ok ())
+    >>=
+    (* Generate dune file *)
+    configure_dune_file ~config_dir ~build_config_dir
+
+  (* Build the configuration *)
+  let call_dune_build ~root ~target_exe () =
+    let cmd =
+      Bos.Cmd.(v "dune" % "build" % "--no-print-directory" % "--root" % p root % "@config")
+    in
+    Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
+    match snd status with
+    | `Exited 0 ->  Ok (Fpath.(to_string target_exe))
+    | `Exited _
+    | `Signaled _ ->
+      let err = Fmt.strf "error while executing %a\n%s" Bos.Cmd.pp cmd out in
+      Error (`Invalid_config_ml err)
+
+  (* Compile the configuration file. *)
+  let compile () =
+    let build_config_name = "build-config" in
     let build_dir = get_build_dir () in
-    let main_dev = P.create (init @ jobs) in
-    let c = Config.make ?keys ?packages ~init name build_dir main_dev in
-    configuration := Some c
+    let build_config_dir = Fpath.(build_dir / build_config_name) in
+    let config_dir = get_config_dir ()
+    in
+    Log.info (fun m -> m "Compiling: %a" Fpath.pp (!config_file));
+    Log.info (fun m -> m "Build dir: %a" Fpath.pp build_dir);
+    configure_build_config_directory ~config_dir ~build_config_dir () >>= fun () ->
+    let target_exe = Fpath.(v build_config_name / config_executable_name) in
+    call_dune_build ~root:build_dir ~target_exe ()
 
-  let registered () =
-    match !configuration with
-    | None   ->
-      Log.err (fun m -> m "No configuration was registered.") ;
-      Error (`Msg "no configuration file was registered")
-    | Some t -> Ok t
+  let build () =
+    ( match Bos.OS.File.must_exist (!config_file) with
+      | Ok _ -> Ok ()
+      | Error _ -> R.error_msgf "configuration file %a missing" Fpath.pp (!config_file)
+    ) >>= fun () ->
+    compile ()
+
+  let build_and_execute ?help_ppf ?err_ppf argv =
+    build () >>| fun name ->
+    let build_dir = get_build_dir () in
+    let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in (* Only keep args *)
+    let command = Bos.Cmd.(v "dune" % "exec" % "--root" % (Fpath.to_string build_dir) % "--" % name %% args) in
+    match help_ppf, err_ppf with
+    | None, None ->
+      Bos.OS.Cmd.run command
+      |> R.ignore_error ~use:(fun _ -> ())
+    | _, _ -> (
+      let dune_exec_cmd = Bos.OS.Cmd.run_out command in
+      let command_result = Bos.OS.Cmd.to_string dune_exec_cmd in
+      match command_result, help_ppf, err_ppf with
+      | Ok output, Some help_ppf, _ -> Format.fprintf help_ppf "%s" output
+      | Error `Msg err, _, Some err_ppf -> Format.fprintf err_ppf "%s" err
+      | _ -> ()
+    )
+
+  let exit_err = function
+    | Ok v -> v
+    | Error (`Msg m) ->
+      R.pp_msg Format.std_formatter (`Msg m) ;
+      print_newline ();
+      flush_all ()
+
+  let handle_parse_args_no_config ?help_ppf ?err_ppf error argv =
+    let open Cmdliner in
+    let base_keys = Config.extract_keys (P.create []) in
+    let base_context =
+      Key.context base_keys ~with_required:false ~stage:`Configure
+    in
+    let result =
+      Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+        ~configure:(Term.pure ())
+        ~describe:(Term.pure ())
+        ~build:(Term.pure ())
+        ~clean:(Term.pure ())
+        ~help:base_context
+        argv
+    in
+    match result with
+    | `Ok Cmd.Help -> ()
+    | `Error _
+    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
+      exit_err (Error error)
+    | `Version
+    | `Help -> ()
+
+  let run_with_argv ?help_ppf ?err_ppf argv =
+    (* 1. Pre-parse the arguments set the log level, config file
+       and root directory. *)
+    init_global_state argv;
+    (* 2. Build the config from the config file. *)
+    (* There are three possible outcomes:
+         1. the config file is found and built successfully
+         2. no config file is specified
+         3. an attempt is made to access the base keys at this point.
+            when they weren't loaded *)
+
+    match build_and_execute ?help_ppf ?err_ppf argv with
+    | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
+    | Error (`Msg _ as err) ->
+      handle_parse_args_no_config ?help_ppf ?err_ppf err argv
+    | Ok () -> ()
+
+  let run () =
+    run_with_argv Sys.argv
+
+  (* STAGE 2 *)
+
+  let src = Logs.Src.create (P.name^"-configure") ~doc:"functoria generated"
+  module Log = (val Logs.src_log src : Logs.LOG)
+
+  module Config' = struct
+    let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
+      let verbose = Logs.level () >= level in
+      f "@[<v>%a@]" (Info.pp verbose) info
+
+    let eval_cached ~partial cached_context t =
+      let f c =
+        let info = Config.eval ~partial c t in
+        let keys = Key.deps info in
+        let term = Key.context ~stage:`Configure ~with_required:false keys in
+        match Cache.get_context t.Config.build_dir term with
+        | `Ok (Some c) -> `Ok (Key.eval c info c)
+        | `Ok None     -> let c = Key.empty_context in`Ok (Key.eval c info c)
+        | `Error _ | `Help _ as err -> err
+      in
+      Cmdliner.Term.(ret (pure f $ ret @@ pure @@ Cache.require cached_context))
+
+    let eval ~partial ~with_required context t =
+      let info = Config.eval ~partial context t in
+      let context =
+        Key.context ~with_required ~stage:`Configure (Key.deps info)
+      in
+      let f map = Key.eval map info map in
+      Cmdliner.Term.(pure f $ context)
+  end
+
+  let set_output config term =
+    match Cache.get_output config.Config.build_dir with
+    | `Ok (Some o) ->
+      let update_output (r, i) = r, Info.with_output i o in
+      Cmdliner.Term.(app (const update_output) term)
+    | _ -> term
+
+  let exit_err = function
+    | Ok v -> v
+    | Error (`Msg m) ->
+      R.pp_msg Format.std_formatter (`Msg m) ;
+      print_newline ();
+      flush_all ();
+      exit 1
+
+  (* FIXME: describe init *)
+  let describe _info ~dotcmd ~dot ~output (_init, job) =
+    let f fmt = (if dot then Config.pp_dot else Config.pp) fmt job in
+    let with_fmt f = match output with
+      | None when dot ->
+        f Format.str_formatter ;
+        let data = Format.flush_str_formatter () in
+        Bos.OS.File.tmp ~mode:0o644 "graph%s.dot" >>= fun tmp ->
+        Bos.OS.File.write tmp data >>= fun () ->
+        Bos.OS.Cmd.run Bos.Cmd.(v dotcmd % p tmp)
+      | None -> Ok (f Fmt.stdout)
+      | Some s ->
+        with_output (Fpath.v s)
+          (fun oc () -> Ok (f (Format.formatter_of_out_channel oc)))
+    in
+    with_fmt f
+
+  let with_output i = function
+    | None   -> i
+    | Some o -> Info.with_output i o
 
   let configure_main ~argv i jobs =
     let main = match Info.output i with None -> "main" | Some f -> f in
@@ -564,7 +797,8 @@ module Make (P: S) = struct
     with_current
       (Info.build_dir i)
       (fun () -> configure_main ~argv i jobs)
-      "configure" >>= fun () ->
+      "configure"
+    >>= fun () ->
     let config_dir =
       let dir = Fpath.(parent !config_file) in
       if Fpath.is_rel dir then Fpath.(get_cwd () // dir) else dir
@@ -603,164 +837,11 @@ module Make (P: S) = struct
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
-         Bos.OS.Dir.delete ~recurse:true build_config_dir >>= fun () ->
+         Bos.OS.Dir.delete ~recurse:true (Fpath.v "build-config") >>= fun () ->
          Cache.clean (Info.build_dir i) >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"
 
-  (* FIXME: describe init *)
-  let describe _info ~dotcmd ~dot ~output (_init, job) =
-    let f fmt = (if dot then Config.pp_dot else Config.pp) fmt job in
-    let with_fmt f = match output with
-      | None when dot ->
-        f Format.str_formatter ;
-        let data = Format.flush_str_formatter () in
-        Bos.OS.File.tmp ~mode:0o644 "graph%s.dot" >>= fun tmp ->
-        Bos.OS.File.write tmp data >>= fun () ->
-        Bos.OS.Cmd.run Bos.Cmd.(v dotcmd % p tmp)
-      | None -> Ok (f Fmt.stdout)
-      | Some s ->
-        with_output (Fpath.v s)
-          (fun oc () -> Ok (f (Format.formatter_of_out_channel oc)))
-    in
-    with_fmt f
-
-  (* Compile the configuration file. *)
-  let compile file_ml_path =
-    let build_dir = get_build_dir () in
-    let file = Dynlink.adapt_filename (Fpath.basename file_ml_path)
-    and cfg = Fpath.rem_ext file_ml_path
-    and config_dir = Fpath.(get_cwd () // parent !config_file)
-    and file_ml = Fpath.basename file_ml_path
-    in
-    Log.info (fun m -> m "Compiling: %a" Fpath.pp file_ml_path);
-    let config_dir_to_build_dir = match Fpath.relativize ~root:build_dir config_dir with
-    | Some x -> x
-    | None -> assert false
-    in
-    Bos.OS.Path.matches Fpath.(build_dir / "_build" // cfg + "$(ext)") >>= fun files ->
-    List.fold_left (fun r p -> r >>= fun () -> Bos.OS.Path.delete p) (R.ok ()) files >>= fun () ->
-    with_current build_dir
-      (fun () ->
-          let target_dir = build_config_dir in
-          (* Import files in the build target *)
-          let target_path = Fpath.(target_dir / file_ml)
-          and target_path_dune = Fpath.(target_dir / "dune.config")
-          in
-          Bos.OS.Dir.create target_dir >>= fun _ ->
-          Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / file_ml)) target_path >>= fun () ->
-          Bos.OS.Path.exists Fpath.(config_dir_to_build_dir / "dune.config") >>= fun res ->
-          (match res with
-          | true ->  (Bos.OS.Path.symlink ~force:true ~target:(Fpath.(v ".." // config_dir_to_build_dir / "dune.config")) target_path_dune >>= fun () -> Ok true)
-          | false -> Ok false)
-          (* Generate dune configuration file *)
-          >>= fun has_dune_inc ->
-          let dune_file = Fpath.(target_dir / "dune")
-          and dune_project_file = Fpath.(v "dune-project") in
-          let pkgs = match P.packages with
-            | []   -> ""
-            | pkgs ->
-              let pkgs =
-                List.fold_left (fun acc pkg ->
-                    String.Set.union pkg.ocamlfind acc
-                  ) String.Set.empty pkgs
-                |> String.Set.elements
-              in
-              let pkgs = if has_dune_inc then "config_custom"::pkgs else pkgs
-              in
-              String.concat ~sep:" " pkgs
-          in
-          let dune_content_default = "(library (name config) (modules config) (libraries "^pkgs^"))" in
-          let dune_content = if has_dune_inc then ("(include dune.config)"^dune_content_default) else dune_content_default in
-          let write_dune_file = Bos.OS.File.delete dune_file >>= fun () -> Bos.OS.File.write dune_file dune_content
-          and write_dune_project_file = Bos.OS.File.exists dune_project_file
-          >>= function | false -> Bos.OS.File.write dune_project_file "(lang dune 1.0)"
-                       | true  -> Ok ()
-          in
-          (* Build config.cmxs with dune *)
-          let target_file = Fpath.(v "_build" / "default" // target_dir / file) |> Fpath.to_string in
-          let cmd =
-            Bos.Cmd.(v "dune" % "build" % "--no-print-directory" % "--root" % "." % target_file)
-         in
-         write_dune_project_file >>= fun () -> write_dune_file >>= fun () ->
-         Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>= fun (out, status) ->
-         match snd status with
-         | `Exited 0 ->  Ok ()
-         | `Exited _
-         | `Signaled _ ->
-           Format.fprintf Format.str_formatter "error while executing %a\n%s"
-             Bos.Cmd.pp cmd out ;
-           let err = Format.flush_str_formatter () in
-           Error (`Invalid_config_ml err))
-      "compile configuration"
-
-  (* attempt to dynlink the configuration file.
-   * It is responsible for registering an application via
-   * [register] in order to have an observable
-   * side effect to this command *)
-  let dynlink file =
-    let position = get_build_dir () in
-    let file = Dynlink.adapt_filename (Fpath.basename file) in
-    let file = Fpath.(to_string (position / "_build" / "default" // build_config_dir / file)) in
-    try Ok (Dynlink.loadfile file)
-    with Dynlink.Error err ->
-      let err = Dynlink.error_message err in
-      let msg = Printf.sprintf
-          "error %s while loading %s, please run 'configure' \
-           subcommand (see '%s help configure' for details)"
-          err file P.name
-      in
-      Error (`Msg msg)
-
-  module Config' = struct
-    let pp_info (f:('a, Format.formatter, unit) format -> 'a) level info =
-      let verbose = Logs.level () >= level in
-      f "@[<v>%a@]" (Info.pp verbose) info
-
-    let eval_cached ~partial cached_context t =
-      let f c =
-        let info = Config.eval ~partial c t in
-        let keys = Key.deps info in
-        let term = Key.context ~stage:`Configure ~with_required:false keys in
-        match Cache.get_context t.Config.build_dir term with
-        | `Ok (Some c) -> `Ok (Key.eval c info c)
-        | `Ok None     -> let c = Key.empty_context in`Ok (Key.eval c info c)
-        | `Error _ | `Help _ as err -> err
-      in
-      Cmdliner.Term.(ret (pure f $ ret @@ pure @@ Cache.require cached_context))
-
-    let eval ~partial ~with_required context t =
-      let info = Config.eval ~partial context t in
-      let context =
-        Key.context ~with_required ~stage:`Configure (Key.deps info)
-      in
-      let f map = Key.eval map info map in
-      Cmdliner.Term.(pure f $ context)
-  end
-
-  let load' file =
-    ( match Bos.OS.File.must_exist file with
-      | Ok _ -> Ok ()
-      | Error _ ->
-        Error (`Msg ("configuration file " ^ Fpath.to_string file^ " missing\n"))
-    ) >>= fun () ->
-    compile file >>= fun () ->
-    dynlink file >>= fun () ->
-    registered () >>= fun t ->
-    Log.info (fun m -> m "using configuration %s" (Config.name t));
-    Ok t
-
-  let exit_err = function
-    | Ok v -> v
-    | Error (`Msg m) ->
-      R.pp_msg Format.std_formatter (`Msg m) ;
-      print_newline ();
-      flush_all ();
-      exit 1
-
-  let with_output i = function
-    | None   -> i
-    | Some o -> Info.with_output i o
 
   let handle_parse_args_result argv = function
     | `Error _ -> exit 1
@@ -781,106 +862,66 @@ module Make (P: S) = struct
     | `Version
     | `Help -> ()
 
-  let handle_parse_args_no_config ?help_ppf ?err_ppf error argv =
-    let open Cmdliner in
-    let base_keys = Config.extract_keys (P.create []) in
-    let base_context =
-      Key.context base_keys ~with_required:false ~stage:`Configure
-    in
-    let result =
-      Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-        ~configure:(Term.pure ())
-        ~describe:(Term.pure ())
-        ~build:(Term.pure ())
-        ~clean:(Term.pure ())
-        ~help:base_context
-        argv
-    in
-    match result with
-    | `Ok Cmd.Help -> ()
-    | `Error _
-    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
-      exit_err (Error error)
-    | `Version
-    | `Help -> ()
-
-  let set_output config term =
-    match Cache.get_output config.Config.build_dir with
-    | `Ok (Some o) ->
-      let update_output (r, i) = r, Info.with_output i o in
-      Cmdliner.Term.(app (const update_output) term)
-    | _ -> term
-
-  let run_with_argv ?help_ppf ?err_ppf argv =
-    (* 1. (a) Pre-parse the arguments set the log level, config file
-       and root directory. *)
-    init_global_state argv;
-
-    (*    (b) whether to fully evaluate the graph *)
+  let run_configure_with_argv argv config =
+  (*   whether to fully evaluate the graph *)
     let full_eval = Cmd.read_full_eval argv in
+  (* Consider only the 'if' keys. *)
+    let if_term =
+      let if_keys = Config.keys config in
+      Key.context ~stage:`Configure ~with_required:false if_keys
+    in
 
-    (* 2. Load the config from the config file. *)
-    (* There are three possible outcomes:
-         1. the config file is found and loaded successfully
-         2. no config file is specified
-         3. an attempt is made to access the base keys at this point.
-            when they weren't loaded *)
+    let context = match Cmdliner.Term.eval_peek_opts ~argv if_term with
+      | _, `Ok context -> context
+      | _ -> Key.empty_context
+    in
 
-    match load' !config_file with
-    | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
-    | Error (`Msg _ as err) ->
-      handle_parse_args_no_config ?help_ppf ?err_ppf err argv
-    | Ok config ->
+    (* this is a trim-down version of the cached context, with only
+        the values corresponding to 'if' keys. This is useful to
+        start reducing the config into something consistent. *)
+    let cached_context = Cache.get_context config.build_dir if_term in
 
-      (* Consider only the 'if' keys. *)
-      let if_term =
-        let if_keys = Config.keys config in
-        Key.context ~stage:`Configure ~with_required:false if_keys
+    (* 3. Parse the command-line and handle the result. *)
+
+    let configure =
+      Config'.eval ~with_required:true ~partial:false context config
+    and describe =
+      let context = Cache.merge ~cache:cached_context context in
+      let partial = match full_eval with
+        | Some true  -> false
+        | Some false -> true
+        | None -> not (Cache.present cached_context)
       in
+      Config'.eval ~with_required:false ~partial context config
+    and build =
+      Config'.eval_cached ~partial:false cached_context config
+      |> set_output config
+    and clean =
+      Config'.eval_cached ~partial:false cached_context config
+      |> set_output config
+    and help =
+      let context = Cache.merge ~cache:cached_context context in
+      let info = Config.eval ~partial:false context config in
+      let keys = Key.deps info in
+      Key.context ~stage:`Configure ~with_required:false keys
+    in
 
-      let context = match Cmdliner.Term.eval_peek_opts ~argv if_term with
-        | _, `Ok context -> context
-        | _ -> Key.empty_context
-      in
+    handle_parse_args_result argv
+      (Cmd.parse_args ~name:P.name ~version:P.version
+          ~configure
+          ~describe
+          ~build
+          ~clean
+          ~help
+          argv)
 
-      (* this is a trim-down version of the cached context, with only
-         the values corresponding to 'if' keys. This is useful to
-         start reducing the config into something consistent. *)
-      let cached_context = Cache.get_context config.build_dir if_term in
+  let register ?packages ?keys ?(init=default_init) name jobs =
+    (* 1. Pre-parse the arguments set the log level, config file
+       and root directory. *)
+    init_global_state Sys.argv;
+    let build_dir = get_build_dir () in
+    let main_dev = P.create (init @ jobs) in
+    let c = Config.make ?keys ?packages ~init name build_dir main_dev in
+    run_configure_with_argv Sys.argv c
 
-      (* 3. Parse the command-line and handle the result. *)
-
-      let configure =
-        Config'.eval ~with_required:true ~partial:false context config
-      and describe =
-        let context = Cache.merge ~cache:cached_context context in
-        let partial = match full_eval with
-          | Some true  -> false
-          | Some false -> true
-          | None -> not (Cache.present cached_context)
-        in
-        Config'.eval ~with_required:false ~partial context config
-      and build =
-        Config'.eval_cached ~partial:false cached_context config
-        |> set_output config
-      and clean =
-        Config'.eval_cached ~partial:false cached_context config
-        |> set_output config
-      and help =
-        let context = Cache.merge ~cache:cached_context context in
-        let info = Config.eval ~partial:false context config in
-        let keys = Key.deps info in
-        Key.context ~stage:`Configure ~with_required:false keys
-      in
-
-      handle_parse_args_result argv
-        (Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
-           ~configure
-           ~describe
-           ~build
-           ~clean
-           ~help
-           argv)
-
-  let run () = run_with_argv Sys.argv
 end

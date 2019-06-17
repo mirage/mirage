@@ -88,11 +88,26 @@ module type S = sig
 
 end
 
-(** [Make] is an helper to generate new a application builder with the
-    custom constructs defined by {!S}. *)
 module Make (P: S): sig
 
   open Functoria
+
+  (** Configuration builder: stage 1 *)
+
+  val run: unit -> unit
+  (** Run the configuration builder. This should be called exactly once
+      to run the configuration builder: command-line arguments will be
+      parsed, and some code will be generated and compiled. *)
+
+  val run_with_argv:
+    ?help_ppf:Format.formatter -> ?err_ppf:Format.formatter ->
+    string array -> unit
+  (** [run_with_argv a] is the same as {!run} but parses [a] instead
+      of the process command line arguments. It also allows to set
+      the error and help channels using [help_ppf] and [err_ppf]. *)
+
+
+  (** Configuration module: stage 2 *)
 
   val register:
     ?packages:package list ->
@@ -107,19 +122,8 @@ module Make (P: S): sig
       as command-line argument parsing, log reporter setup, etc.). The
       jobs are always executed in the sequence specified by the
       caller. *)
-
-  val run: unit -> unit
-  (** Run the application builder. This should be called exactly once
-      to run the application builder: command-line arguments will be
-      parsed, and some code will be generated and compiled. *)
-
-  val run_with_argv:
-    ?help_ppf:Format.formatter -> ?err_ppf:Format.formatter ->
-    string array -> unit
-  (** [run_with_argv a] is the same as {!run} but parses [a] instead
-      of the process command line arguments. It also allows to set
-      the error and help channels using [help_ppf] and [err_ppf]. *)
 end
+
 
 module type DSL = module type of struct include Functoria end
 (** The signature of Functoria-like DSLs. *)

@@ -726,7 +726,7 @@ let solo5_pkg = function
   | _ ->
     invalid_arg "solo5_kernel only defined for solo5 targets"
 
-let link info name target target_debug =
+let link info name target _target_debug =
   let libs = Info.libraries info in
   match target with
   | #Mirage_key.mode_unix ->
@@ -781,30 +781,7 @@ let link info name target target_debug =
     in
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
-    if target = `Hvt then
-      let tender_mods =
-        List.fold_left (fun acc -> function
-            | "mirage-net-solo5" -> "net" :: acc
-            | "mirage-block-solo5" -> "blk" :: acc
-            | _ -> acc)
-          [] libs @ (if target_debug then ["gdb"] else [])
-      in
-      pkg_config pkg ["--variable=libdir"] >>= function
-      | [ libdir ] ->
-        let config_cmd =
-          Bos.Cmd.(v "solo5-hvt-configure" %
-                   (libdir ^ "/src") %%
-                   of_list tender_mods)
-        in
-        Bos.OS.Cmd.run config_cmd >>= fun () ->
-        let make_cmd =
-          Bos.Cmd.(v "make" % "-f" % "Makefile.solo5-hvt" % "solo5-hvt")
-        in
-        Bos.OS.Cmd.run make_cmd >>= fun () ->
-        Ok out
-      | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed")
-    else
-      Ok out
+    Ok out
 
 let check_entropy libs =
   query_ocamlfind ~recursive:true libs >>= fun ps ->
@@ -857,11 +834,11 @@ let clean i =
   Bos.OS.File.delete Fpath.(v name + "hvt") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "genode") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "spt") >>= fun () ->
+  (* The following deprecated names are kept here to allow "mirage clean" to
+   * continue to work after an upgrade. *)
   Bos.OS.File.delete Fpath.(v "Makefile.solo5-hvt") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-solo5-hvt") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "solo5-hvt") >>= fun () ->
-  (* The following deprecated names are kept here to allow "mirage clean" to
-   * continue to work after an upgrade. *)
   Bos.OS.File.delete (opam_file (opam_name name "ukvm")) >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->

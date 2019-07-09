@@ -17,16 +17,11 @@ let mprof_trace ~size () =
     method! keys = [ Key.abstract key ]
     method! packages =
       Key.match_ Key.(value target) @@ function
-      | `Xen | `Qubes ->
+      | #Mirage_key.mode_xen ->
         [ package ~max:"1.0.0" "mirage-profile";
-<<<<<<< HEAD
           package ~max:"1.0.0" ~min:"0.9.0" "mirage-profile-xen" ]
-      | `Virtio | `Hvt | `Muen | `Genode -> []
-=======
-          package ~max:"1.0.0" "mirage-profile-xen" ]
-      | `Virtio | `Hvt | `Muen | `Genode | `Spt -> []
->>>>>>> Add support for the Solo5 "spt" target
-      | `Unix | `MacOSX ->
+      | #Mirage_key.mode_solo5 -> []
+      | #Mirage_key.mode_unix ->
         [ package ~max:"1.0.0" "mirage-profile";
           package ~max:"1.0.0" "mirage-profile-unix" ]
     method! build _ =
@@ -36,9 +31,9 @@ let mprof_trace ~size () =
                      opam pin add lwt https://github.com/mirage/lwt.git#tracing"
       | Ok _ -> Ok ()
     method! connect i _ _ = match get_target i with
-      | `Virtio | `Hvt | `Muen | `Genode | `Spt ->
+      | #Mirage_key.mode_solo5 ->
         failwith  "tracing is not currently implemented for solo5 targets"
-      | `Unix | `MacOSX ->
+      | #Mirage_key.mode_unix ->
         Fmt.strf
           "Lwt.return ())@.\
            let () = (@ \
@@ -47,7 +42,7 @@ let mprof_trace ~size () =
            MProf.Trace.Control.start trace_config@]"
           Key.serialize_call (Key.abstract key)
           unix_trace_file;
-      | `Xen | `Qubes ->
+      | #Mirage_key.mode_xen ->
         Fmt.strf
           "Lwt.return ())@.\
            let () = (@ \

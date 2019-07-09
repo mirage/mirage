@@ -32,9 +32,9 @@ include Functoria
 
 (* Mirage implementation backing the target. *)
 let backend_predicate = function
-  | `Xen | `Qubes -> "mirage_xen"
-  | `Virtio | `Hvt | `Muen | `Genode | `Spt -> "mirage_solo5"
-  | `Unix | `MacOSX -> "mirage_unix"
+  | #Mirage_key.mode_xen -> "mirage_xen"
+  | #Mirage_key.mode_solo5 -> "mirage_solo5"
+  | #Mirage_key.mode_unix -> "mirage_unix"
 
 (** {2 Devices} *)
 
@@ -609,15 +609,15 @@ let compile ignore_dirs libs warn_error target =
     (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
     (if terminal () then ["color(always)"] else [])
   and result = match target with
-    | `Unix | `MacOSX -> "main.native"
-    | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode | `Spt -> "main.native.o"
+    | #Mirage_key.mode_unix -> "main.native"
+    | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> "main.native.o"
   and cflags = [ "-g" ]
   and lflags =
     let dontlink =
       match target with
-      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode | `Spt ->
+      | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
         ["unix"; "str"; "num"; "threads"]
-      | `Unix | `MacOSX -> []
+      | #Mirage_key.mode_unix -> []
     in
     let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
     "-g" :: List.flatten dont
@@ -723,17 +723,17 @@ let solo5_pkg = function
   | `Hvt -> "solo5-bindings-hvt", ".hvt"
   | `Genode -> "solo5-bindings-genode", ".genode"
   | `Spt -> "solo5-bindings-spt", ".spt"
-  | `Unix | `MacOSX | `Xen | `Qubes ->
+  | _ ->
     invalid_arg "solo5_kernel only defined for solo5 targets"
 
 let link info name target target_debug =
   let libs = Info.libraries info in
   match target with
-  | `Unix | `MacOSX ->
+  | #Mirage_key.mode_unix ->
     let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
-  | `Xen | `Qubes ->
+  | #Mirage_key.mode_xen ->
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
@@ -766,7 +766,7 @@ let link info name target target_debug =
       Bos.OS.Cmd.run link >>= fun () ->
       Ok out
     end
-  | `Virtio | `Muen | `Hvt | `Genode | `Spt ->
+  | #Mirage_key.mode_solo5 ->
     let pkg, post = solo5_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
@@ -907,11 +907,11 @@ module Project = struct
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Unix | `MacOSX ->
+        | #Mirage_key.mode_unix ->
           package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
-        | `Xen | `Qubes ->
+        | #Mirage_key.mode_xen ->
           package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
-        | `Virtio | `Hvt | `Muen | `Genode | `Spt as tgt ->
+        | #Mirage_key.mode_solo5 as tgt ->
           package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
           package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::
           common

@@ -85,17 +85,10 @@ let pp_group =
 
 (** {3 Mode} *)
 
-type mode = [
-  | `Unix
-  | `Xen
-  | `Virtio
-  | `Hvt
-  | `Muen
-  | `MacOSX
-  | `Qubes
-  | `Genode
-  | `Spt
-]
+type mode_unix = [ `Unix | `MacOSX ]
+type mode_xen = [ `Xen | `Qubes ]
+type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
+type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 let first_ukvm_mention = ref true
 let ukvm_warning = "The `ukvm' target has been renamed to `hvt'. \
@@ -167,8 +160,8 @@ let target =
 
 let is_unix =
   Key.match_ Key.(value target) @@ function
-  | `Unix | `MacOSX -> true
-  | `Qubes | `Xen | `Virtio | `Hvt | `Muen | `Genode | `Spt -> false
+  | #mode_unix -> true
+  | #mode_xen | #mode_solo5 -> false
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in

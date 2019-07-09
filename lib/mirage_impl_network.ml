@@ -37,4 +37,11 @@ let default_network =
   match_impl Key.(value target) [
     `Unix   , netif "tap0";
     `MacOSX , netif "tap0";
+    (* On Solo5 targets, a single default network is customarily
+     * named just 'service' *)
+    `Hvt    , netif "service";
+    `Spt    , netif "service";
+    `Virtio , netif "service";
+    `Muen   , netif "service";
+    `Genode , netif "service";
   ] ~default:(netif "0")

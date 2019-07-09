@@ -78,11 +78,15 @@ class block_conf file =
 
     method private connect_name target root =
       match target with
-      | #Mirage_key.mode_unix | #Mirage_key.mode_solo5 ->
+      | #Mirage_key.mode_unix ->
         Fpath.(to_string (root / file)) (* open the file directly *)
       | #Mirage_key.mode_xen ->
         let b = make_block_t file in
         xenstore_id_of_index b.number |> string_of_int
+      | #Mirage_key.mode_solo5 ->
+        (* XXX For now, on Solo5, just pass the "file" name through directly as
+         * the Solo5 block device name *)
+        file
 
     method! connect i s _ =
       match get_target i with

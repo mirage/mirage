@@ -565,6 +565,41 @@ let unikernel_opam_name name target =
   let target_str = Fmt.strf "%a" Key.pp_target target in
   opam_name name target_str
 
+let generate_manifest =
+  Log.info (fun m -> m "generating manifest");
+  let networks = List.map (fun n -> (n, `Network))
+    !Mirage_impl_network.all_networks in
+  let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
+    Mirage_impl_block.all_blocks [] in
+  let devices = List.map (function
+      | (n, `Network) -> Fmt.strf "{ \"name\": \"%s\", \"type\": NET_BASIC }" n
+      | (n, `Block) -> Fmt.strf "{ \"name\": \"%s\", \"type\": BLOCK_BASIC }" n)
+      (networks @ blocks) in
+  let s = String.concat ~sep:", " devices in
+  let open Codegen in
+  let file = Fpath.(v "manifest.json") in
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt "{ \"version\": 1, \"devices\": [ %s ] }" s;
+      R.ok ())
+    "Solo5 application manifest file"
+
+let generate_manifest_c =
+  let json = "manifest.json" in
+  let c = "_build/manifest.c" in
+  let cmd = Bos.Cmd.(v "solo5-mfttool" % "gen" % json % c)
+  in
+  Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
+  Bos.OS.Cmd.run cmd
+
+let configure_manifest () =
+  generate_manifest >>= fun () ->
+  generate_manifest_c
+
+let clean_manifest () =
+  Bos.OS.File.delete Fpath.(v "manifest.json")
+
 let configure i =
   let name = Info.name i in
   let root = Fpath.to_string (Info.build_dir i) in
@@ -579,6 +614,9 @@ let configure i =
   configure_opam ~name:opam_name i >>= fun () ->
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->
+  (match target with
+    | #Mirage_key.mode_solo5 -> configure_manifest ()
+    | _ -> R.ok ()) >>= fun () ->
   match target with
   | `Xen ->
     configure_main_xl "xl" i >>= fun () ->
@@ -595,6 +633,50 @@ let terminal () =
     | Unix.Unix_error _ -> false
   in
   not dumb && isatty
+
+let opam_prefix =
+  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
+  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
+
+(* Invoke pkg-config and return output if successful. *)
+let pkg_config pkgs args =
+  let var = "PKG_CONFIG_PATH" in
+  let pkg_config_fallback = match Bos.OS.Env.var var with
+    | Some path -> ":" ^ path
+    | None -> ""
+  in
+  Lazy.force opam_prefix >>= fun prefix ->
+  (* the order here matters (at least for ancient 0.26, distributed with
+       ubuntu 14.04 versions): use share before lib! *)
+  let value =
+    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
+      prefix prefix pkg_config_fallback
+  in
+  Bos.OS.Env.set_var var (Some value) >>= fun () ->
+  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
+  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
+  String.cuts ~sep:" " ~empty:false data
+
+let solo5_pkg = function
+  | `Virtio -> "solo5-bindings-virtio", ".virtio"
+  | `Muen -> "solo5-bindings-muen", ".muen"
+  | `Hvt -> "solo5-bindings-hvt", ".hvt"
+  | `Genode -> "solo5-bindings-genode", ".genode"
+  | `Spt -> "solo5-bindings-spt", ".spt"
+  | _ ->
+    invalid_arg "solo5 bindings only defined for solo5 targets"
+
+let cflags pkg = pkg_config pkg ["--cflags"]
+
+let compile_manifest target =
+  let pkg, _post = solo5_pkg target in
+  let c = "_build/manifest.c" in
+  let obj = "_build/manifest.o" in
+  cflags pkg >>= fun cflags ->
+  let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj)
+  in
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
+  Bos.OS.Cmd.run cmd
 
 let compile ignore_dirs libs warn_error target =
   let tags =
@@ -650,29 +732,6 @@ let rec expand_name ~lib param =
       let rest = expand_name ~lib rest in
       prefix ^ Fpath.(to_string (v lib / name / rest))
 
-let opam_prefix =
-  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
-
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  let var = "PKG_CONFIG_PATH" in
-  let pkg_config_fallback = match Bos.OS.Env.var var with
-    | Some path -> ":" ^ path
-    | None -> ""
-  in
-  Lazy.force opam_prefix >>= fun prefix ->
-  (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-  let value =
-    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
-      prefix prefix pkg_config_fallback
-  in
-  Bos.OS.Env.set_var var (Some value) >>= fun () ->
-  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
-  String.cuts ~sep:" " ~empty:false data
-
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)
 let extra_c_artifacts target pkgs =
@@ -716,15 +775,6 @@ let find_ld pkg =
     Log.warn (fun m -> m "error %a while pkg-config %s --variable=ld, using ld"
                  Rresult.R.pp_msg msg pkg);
     "ld"
-
-let solo5_pkg = function
-  | `Virtio -> "solo5-bindings-virtio", ".virtio"
-  | `Muen -> "solo5-bindings-muen", ".muen"
-  | `Hvt -> "solo5-bindings-hvt", ".hvt"
-  | `Genode -> "solo5-bindings-genode", ".genode"
-  | `Spt -> "solo5-bindings-spt", ".spt"
-  | _ ->
-    invalid_arg "solo5_kernel only defined for solo5 targets"
 
 let link info name target _target_debug =
   let libs = Info.libraries info in
@@ -775,7 +825,8 @@ let link info name target _target_debug =
     let out = name ^ post in
     let ld = find_ld pkg in
     let linker =
-      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %
+               "_build/manifest.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in
@@ -805,6 +856,9 @@ let build i =
   let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
   compile ignore_dirs libs warn_error target >>= fun () ->
+  (match target with
+    | #Mirage_key.mode_solo5 -> compile_manifest target
+    | _ -> R.ok ()) >>= fun () ->
   link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
@@ -815,6 +869,7 @@ let clean i =
   clean_main_xe ~name >>= fun () ->
   clean_main_libvirt_xml ~name >>= fun () ->
   clean_myocamlbuild () >>= fun () ->
+  clean_manifest () >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile") >>= fun () ->
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `Hvt)) >>= fun () ->
   Bos.OS.File.delete (opam_file (unikernel_opam_name name `Unix)) >>= fun () ->

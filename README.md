@@ -29,7 +29,7 @@ build steps (from Xen to KVM unikernels), and this complexity is wrapped
 up in the tool.
 
 To work with `mirage`, you'll need to either install prerequisites
-locally or use the Docker image.
+locally.
 
 **Local install**
 
@@ -39,17 +39,6 @@ You will need the following:
 * the [OPAM](https://opam.ocaml.org) source package manager (2.0.0 or higher).
 * an x86\_64 or armel Linux host to compile Xen kernels, or FreeBSD, OpenBSD or
   MacOS X for the solo5 and userlevel versions.
-
-**Docker image**
-
-There is a maintained Docker image at
-[unikernel/mirage](https://hub.docker.com/r/unikernel/mirage/).
-You can also use the Dockerfile in this repository:
-
-```
-docker build -t mirage .
-docker run -v <your-source>:/src opam config exec -- mirage
-```
 
 ### Using `mirage`
 

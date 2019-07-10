@@ -570,11 +570,12 @@ let generate_manifest () =
   let networks = List.map (fun n -> (n, `Network))
     !Mirage_impl_network.all_networks in
   let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
-    Mirage_impl_block.all_blocks [] in
-  let devices = List.map (function
-      | (n, `Network) -> Fmt.strf "{ \"name\": \"%s\", \"type\": NET_BASIC }" n
-      | (n, `Block) -> Fmt.strf "{ \"name\": \"%s\", \"type\": BLOCK_BASIC }" n)
-      (networks @ blocks) in
+      Mirage_impl_block.all_blocks [] in
+  let to_string (name, typ) =
+    Fmt.strf {|{ "name": %S, "type": %S }|}
+      name
+      (match typ with `Network -> "NET_BASIC" | `Block -> "BLOCK_BASIC") in
+  let devices = List.map to_string (networks @ blocks) in
   let s = String.concat ~sep:", " devices in
   let open Codegen in
   let file = Fpath.(v "manifest.json") in

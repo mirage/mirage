@@ -1,7 +1,7 @@
 @charset "UTF-8";
-/* Copyright (c) 2016 Daniel C. Bünzli. All rights reserved.
+/* Copyright (c) 2016 The odoc contributors. All rights reserved.
    Distributed under the ISC license, see terms at the end of the file.
-   odoc 1.3.0 */
+   odoc 1.4.1 */
 
 /* Fonts */
 @import url('https://fonts.googleapis.com/css?family=Fira+Mono:400,500');
@@ -202,17 +202,17 @@ h1 {
   margin-top: 1.214em;
 }
 
-h2 {
+h1 {
   font-weight: 500;
   font-size: 1.953em;
   box-shadow: 0 1px 0 0 #ddd;
 }
 
-h3 {
+h2 {
   font-size: 1.563em;
 }
 
-h4 {
+h3 {
   font-size: 1.25em;
 }
 
@@ -235,15 +235,20 @@ h3 code, h3 tt {
   font-weight: inherit;
 }
 
-h4 code, h4 tt {
+h3 code, h3 tt {
   font-size: inherit;
   font-weight: inherit;
 }
 
+h4 {
+  font-size: 1.12em;
+}
+
+
 /* Preformatted and code */
 
 tt, code, pre {
-  font-family: "Fira Code", "Fira Mono", courier;
+  font-family: "Fira Mono", courier;
   font-weight: 400;
 }
 
@@ -274,7 +279,7 @@ pre code {
 /* Code lexemes */
 
 .keyword {
-  font-weight: 700;
+  font-weight: 500;
 }
 
 /* Module member specification */
@@ -293,17 +298,6 @@ pre code {
 
 dl, div.spec, .doc, aside {
   margin-bottom: 20px;
-}
-
-/* Indent the second line in multiline spec definitions. */
-.spec:not(.type) > code {
-  display: block;
-  padding-left: 4ex;
-  text-indent: -4ex;
-}
-
-.spec.exception > code {
-  display: inline-block;
 }
 
 dl > dd {
@@ -330,6 +324,13 @@ section+section, section > header + dl {
   margin-left: 2ch;
 }
 .spec.type .variant p {
+  margin: 0;
+  font-style: italic;
+}
+.spec.type .record {
+  margin-left: 2ch;
+}
+.spec.type .record p {
   margin: 0;
   font-style: italic;
 }
@@ -447,7 +448,7 @@ span.at-tag {
 
 .heading {
   margin-top: 10px;
-  border-top: solid;
+  border-bottom: solid;
   border-width: 1px;
   border-color: #DDD;
   text-align: right;
@@ -578,7 +579,7 @@ h1+.modules, h1+.sel {
 
 .toc:before {
   display: block;
-  content: "Topics";
+  content: "Contents";
   text-transform: uppercase;
   font-size: 1em;
   margin: 1.414em 0 0.5em;
@@ -675,10 +676,6 @@ h1+.modules, h1+.sel {
 
 /* Syntax highlighting (based on github-gist) */
 
-.keyword {
-  font-weight: 500;
-}
-
 .hljs {
   display: block;
   background: white;
@@ -751,7 +748,7 @@ h1+.modules, h1+.sel {
 }
 
 /*---------------------------------------------------------------------------
-   Copyright (c) 2016 Daniel C. Bünzli
+   Copyright (c) 2016 The odoc contributors
 
    Permission to use, copy, modify, and/or distribute this software for any
    purpose with or without fee is hereby granted, provided that the above

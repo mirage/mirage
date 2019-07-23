@@ -637,21 +637,20 @@ module Make (P: S) = struct
     compile ()
 
   let build_and_execute ?help_ppf ?err_ppf argv =
-    build () >>| fun name ->
+    build () >>= fun name ->
     let build_dir = get_build_dir () in
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in (* Only keep args *)
     let command = Bos.Cmd.(v "dune" % "exec" % "--root" % (Fpath.to_string build_dir) % "--" % name %% args) in
     match help_ppf, err_ppf with
     | None, None ->
       Bos.OS.Cmd.run command
-      |> R.ignore_error ~use:(fun _ -> ())
     | _, _ -> (
       let dune_exec_cmd = Bos.OS.Cmd.run_out command in
       let command_result = Bos.OS.Cmd.to_string dune_exec_cmd in
       match command_result, help_ppf, err_ppf with
-      | Ok output, Some help_ppf, _ -> Format.fprintf help_ppf "%s" output
-      | Error `Msg err, _, Some err_ppf -> Format.fprintf err_ppf "%s" err
-      | _ -> ()
+      | Ok output, Some help_ppf, _ -> Format.fprintf help_ppf "%s" output; Ok ()
+      | Error `Msg err, _, Some err_ppf -> Format.fprintf err_ppf "%s" err; Ok ()
+      | _ -> Ok ()
     )
 
   let exit_err = function
@@ -659,7 +658,8 @@ module Make (P: S) = struct
     | Error (`Msg m) ->
       R.pp_msg Format.std_formatter (`Msg m) ;
       print_newline ();
-      flush_all ()
+      flush_all ();
+      exit 1
 
   let handle_parse_args_no_config ?help_ppf ?err_ppf error argv =
     let open Cmdliner in

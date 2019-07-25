@@ -1,3 +1,10 @@
+## v3.0.0 (2019-07-25)
+
+* use `dune` to build `config.ml` (@TheLortex, #167)
+* add the ability to use external libraries un `config.ml` via an optional
+  `dune.config` file (@TheLortex, #167)
+* Replace dynlink method by a 2-stage build (@TheLortex, #167)
+
 ## v2.2.4 (2019-05-27)
 
 * fix app_info - executing "opam list --installed" (#170, by @hannesm)

@@ -38,7 +38,7 @@ let read_file file = get_ok @@ Bos.OS.File.read Fpath.(v file)
 
 let clean_app () =
   get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/_build");
-  get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/build-config");
+  get_ok @@ Bos.OS.Dir.delete ~recurse:true Fpath.(v "app/config");
   let files = list_files "app" in
   List.iter (fun f ->
       match Filename.basename f with
@@ -87,7 +87,7 @@ let test_configure () =
   test "configure -vv --file app/config.ml";
   Alcotest.(check files) "new files should be created in the source dir"
     ["app.ml"; "config.ml"; "dune.config"; "key_gen.ml";
-     "main.ml"; ".mirage.config"; "dune"; "build-config"; "_build"] (list_files "app");
+     "main.ml"; ".mirage.config"; "dune"; "config"; "_build"] (list_files "app");
  clean_app ();
 
   (* check that configure generates the file in the right dir when
@@ -101,7 +101,7 @@ let test_configure () =
     (list_files "app");
   Alcotest.(check files) "other files should be created in custom_build_"
     ["main.ml"; "app.ml"; "dune.config"; ".mirage.config"; "dune"; "key_gen.ml";
-    "build-config"; "_build"
+    "config"; "_build"
    (* FIXME: add a .mirage-ignore file to avoid this *) ]
     (list_files "custom_build_");
   clean_build ();

@@ -537,7 +537,7 @@ module Make (P: S) = struct
       >>| fun () -> true)
     | false -> Ok false
 
-  (* Generate a dune file in the build-config directory.
+  (* Generate a dune file in the config directory.
      If a `dune.config` file exists, it's included in the generated dune file
      and a `config_custom` dummy dependency is created to allow external
      dependencies through transitive closure.
@@ -583,13 +583,13 @@ module Make (P: S) = struct
     >>= fun () -> Bos.OS.File.write dune_file dune_content
 
   (* Set up everything needed to build the configuration file inside a
-    separate build-config directory. *)
+    separate config/ directory. *)
   let configure_build_config_directory ~config_dir ~build_config_dir () =
     let config_file_name = Fpath.basename (!config_file) in
     let dune_project_file = Fpath.(build_config_dir / "dune-project")
     in
     Bos.OS.Dir.create build_config_dir >>= fun _ ->
-    (* Symlink config.ml inside the build-config directory *)
+    (* Symlink config.ml inside the config/ directory *)
     Bos.OS.Path.symlink
       ~force:true
       ~target:(Fpath.(config_dir / config_file_name))
@@ -618,7 +618,7 @@ module Make (P: S) = struct
 
   (* Compile the configuration file. *)
   let compile () =
-    let build_config_name = "build-config" in
+    let build_config_name = "config" in
     let build_dir = get_build_dir () in
     let build_config_dir = Fpath.(build_dir / build_config_name) in
     let config_dir = get_config_dir ()
@@ -813,7 +813,7 @@ module Make (P: S) = struct
           acc >>= fun () ->
           match Fpath.basename target with
           | "_build" -> Ok ()
-          | "build-config" -> Ok ()
+          | "config" -> Ok ()
           | b        ->
             if Fpath.basename !config_file = b then Ok ()
             else (
@@ -837,7 +837,7 @@ module Make (P: S) = struct
       (fun () ->
          clean_main i job >>= fun () ->
          Bos.OS.Dir.delete ~recurse:true (Fpath.v "_build") >>= fun () ->
-         Bos.OS.Dir.delete ~recurse:true (Fpath.v "build-config") >>= fun () ->
+         Bos.OS.Dir.delete ~recurse:true (Fpath.v "config") >>= fun () ->
          Cache.clean (Info.build_dir i) >>= fun () ->
          Bos.OS.File.delete (Fpath.v "log"))
       "clean"

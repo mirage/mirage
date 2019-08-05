@@ -907,7 +907,7 @@ module Project = struct
         | `Unix | `MacOSX ->
           package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
         | `Xen | `Qubes ->
-          package ~min:"3.1.0" ~max:"4.0.0" "mirage-xen" :: common
+          package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
         | `Virtio | `Hvt | `Muen | `Genode as tgt ->
           package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
           package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::

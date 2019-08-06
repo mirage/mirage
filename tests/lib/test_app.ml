@@ -36,7 +36,7 @@ let rec root path =
 
 let root () = R.get_ok @@ (Bos.OS.Dir.current () >>= root)
 
-let dune_file i = Fpath.(Functoria.Info.build_dir i / "dune")
+let dune_file i = Fpath.(Functoria.Info.build_dir i / "dune.build")
 
 let write_key i k f =
   let context = Functoria.Info.context i in
@@ -57,10 +57,10 @@ module C = struct
                  let run x = x"
   let name = "test"
   let version = "1.0"
-  let packages = [Functoria.package "functoria"]
+  let packages = [Functoria.package "functoria"; Functoria.package "test_app"]
   let ignore_dirs = []
 
-  let create jobs = Functoria.impl @@ object
+  let create jobs = Functoria.impl @@ object (self)
       inherit Functoria.base_configurable
       method ty = Functoria.job
       method name = "test_app"
@@ -78,13 +78,20 @@ module C = struct
         let dune = Fmt.strf
             "(executable\n\
             \   (name      %s)\n\
+            \   (modules (:standard \\ config))\n\
             \   (libraries cmdliner fmt functoria-runtime))\n"
             (output i)
         in
         Bos.OS.File.write (dune_file i) dune
 
       method! clean i =
-        Bos.OS.File.delete (dune_file i)
+        Bos.OS.File.delete (dune_file i) >>= fun () ->
+        Bos.OS.File.delete Fpath.(v @@ output i ^ ".exe") >>= fun () ->
+        List.fold_left (fun acc key ->
+            acc >>= fun () ->
+            let file = Fpath.v (Key.name key) in
+            Bos.OS.File.delete file
+          ) (Ok ()) self#keys
 
       method! build i =
         Bos.OS.Dir.with_current (Functoria.Info.build_dir i) (fun () ->

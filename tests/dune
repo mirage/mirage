@@ -3,13 +3,9 @@
  (modules   test_core)
  (libraries test_app alcotest cmdliner rresult astring)
  (package   functoria)
- (deps      app/config.ml app/app.ml app/dune.config)
-)
+ (deps      app/config.ml app/app.ml))
 
-(test
+(executable
  (name      test_full)
  (modules   test_full)
- (libraries functoria.test alcotest cmdliner rresult astring)
- (package   functoria-runtime)
- (deps      app/config.ml app/app.ml app/dune.config (package functoria-runtime))
-)
+ (libraries functoria.test alcotest cmdliner rresult astring))

@@ -343,6 +343,14 @@ module V6 = struct
 
 end
 
+let resolver ?(default = Ipaddr.V4.of_string_exn "91.239.100.100") () =
+  let doc = Fmt.strf "DNS resolver (default to anycast.censurfridns.dk)" in
+  create_simple ~doc ~default Arg.ipv4_address "resolver"
+
+let resolver_port ?(default = 53) () =
+  let doc = Fmt.strf "DNS resolver port" in
+  create_simple ~doc ~default Arg.int "resolver-port"
+
 let syslog default =
   let doc = Fmt.strf "syslog server" in
   create_simple ~doc ~default Arg.(some ipv4_address) "syslog"

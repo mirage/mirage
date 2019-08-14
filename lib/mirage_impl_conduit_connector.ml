@@ -6,7 +6,7 @@ open Mirage_impl_stackv4
 type conduit_connector = Conduit_connector
 let conduit_connector = Type Conduit_connector
 
-let pkg = package ~min:"3.0.1" ~max:"4.0.0" "mirage-conduit"
+let pkg = package ~min:"4.0.0" ~max:"5.0.0" "mirage-conduit"
 
 let tcp_conduit_connector = impl @@ object
     inherit base_configurable

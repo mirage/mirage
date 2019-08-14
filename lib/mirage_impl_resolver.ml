@@ -3,6 +3,7 @@ module Key = Mirage_key
 open Mirage_impl_misc
 open Mirage_impl_time
 open Mirage_impl_stackv4
+open Mirage_impl_random
 open Rresult
 
 type resolver = Resolver
@@ -30,13 +31,13 @@ let meta_ipv4 ppf s =
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
-    method ty = time @-> stackv4 @-> resolver
+    method ty = random @-> time @-> stackv4 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
       Key.pure [ Mirage_impl_conduit_connector.pkg ]
     method! connect _ modname = function
-      | [ _t ; stack ] ->
+      | [ _r ; _t ; stack ] ->
         let meta_ns = Fmt.Dump.option meta_ipv4 in
         let meta_port = Fmt.(Dump.option int) in
         Fmt.strf
@@ -45,8 +46,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
            let res = %s.R.init ?ns ?ns_port ~stack:%s () in@;\
            Lwt.return res@;"
           meta_ns ns meta_port ns_port modname stack
-      | _ -> failwith (connect_err "resolver" 2)
+      | _ -> failwith (connect_err "resolver" 3)
   end
 
-let resolver_dns ?ns ?ns_port ?(time = default_time) stack =
-  resolver_dns_conf ~ns ~ns_port $ time $ stack
+let resolver_dns ?ns ?ns_port ?(random = default_random) ?(time = default_time) stack =
+  resolver_dns_conf ~ns ~ns_port $ random $ time $ stack

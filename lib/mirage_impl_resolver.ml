@@ -17,7 +17,7 @@ let resolver_unix_system = impl @@ object
     method! packages =
       Key.(if_ is_unix)
         [ Mirage_impl_conduit_connector.pkg ;
-          package ~min:"1.0.0" ~max:"2.0.0" "conduit-lwt-unix"; ]
+          package ~min:"1.0.0" ~max:"3.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with

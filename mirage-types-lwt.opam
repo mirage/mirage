@@ -16,7 +16,7 @@ build: [
 
 depends:   [
   "ocaml" {>= "4.05.0"}
-  "dune" {build & >= "1.1.0"}
+  "dune" {>= "1.1.0"}
   "lwt"
   "cstruct" {>="3.2.1"}
   "ipaddr" {>= "3.0.0"}

@@ -18,7 +18,7 @@ build: [
 
 depends: [
   "ocaml" {>= "4.05.0"}
-  "dune" {build & >= "1.1.0"}
+  "dune" {>= "1.1.0"}
   "ipaddr"             {>= "3.0.0"}
   "functoria-runtime"  {>= "2.2.2"}
   "fmt"

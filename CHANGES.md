@@ -1,3 +1,8 @@
+### v3.5.2 (2019-08-22)
+
+* Adapt to conduit 2.0.0 release, including dns 4.0.0 (#996, by @hannesm)
+* Adjust mirage-xen constraints to < 5.0.0 (#995, by @reynir)
+
 ### v3.5.1 (2019-07-11)
 
 * Adapt to new tracing API (#985, by @talex5)

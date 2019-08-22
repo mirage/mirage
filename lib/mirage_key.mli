@@ -133,6 +133,12 @@ module V6 : sig
 
 end
 
+val resolver: ?default:Ipaddr.V4.t -> unit -> Ipaddr.V4.t key
+(** The address of the DNS resolver to use. *)
+
+val resolver_port: ?default:int -> unit -> int key
+(** The port of the DNS resolver. *)
+
 val syslog: Ipaddr.V4.t option -> Ipaddr.V4.t option key
 (** The address to send syslog frames to. *)
 

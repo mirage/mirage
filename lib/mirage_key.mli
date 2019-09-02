@@ -54,6 +54,10 @@ val warn_error: bool key
 val target_debug: bool key
 (** [-g]. Enables target-specific support for debugging. *)
 
+val ixy: bool key
+(** [-ixy]. Enables target-specific support for ixy.
+    {{https://github.com/ixy-languages/ixy.ml}} *)
+
 val no_depext: bool key
 (** [--no-depext]. Disables opam depext in depend target of generated Makefile. *)
 

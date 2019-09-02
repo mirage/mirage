@@ -16,15 +16,24 @@ let network_conf (intf : string Key.key) =
     method module_name = "Netif"
     method! keys = [ key ]
     method! packages =
-      Key.match_ Key.(value target) @@ function
-      | `Unix -> [ package ~min:"2.6.0" ~max:"3.0.0" "mirage-net-unix" ]
-      | `MacOSX -> [ package ~min:"1.6.0" ~max:"2.0.0" "mirage-net-macosx" ]
-      | `Xen -> [ package ~min:"1.10.0" ~max:"2.0.0" "mirage-net-xen"]
-      | `Qubes ->
-        [ package ~min:"1.10.0" ~max:"2.0.0" "mirage-net-xen" ;
-          Mirage_impl_qubesdb.pkg ]
-      | `Virtio | `Hvt | `Muen | `Genode ->
-        [ package ~min:"0.4.2" ~max:"0.5.0" "mirage-net-solo5" ]
+      let choose target ixy =
+        match target, ixy with
+        | `Unix, true ->
+          [ package "mirage-net-ixy" ]
+        | `Unix, false ->
+          [ package ~min:"2.6.0" ~max:"3.0.0" "mirage-net-unix" ]
+        | _, true -> failwith "ixy is not available on non-Linux platforms"
+        | `MacOSX, _ -> [ package ~min:"1.6.0" ~max:"2.0.0" "mirage-net-macosx" ]
+        | `Xen, _ -> [ package ~min:"1.10.0" ~max:"2.0.0" "mirage-net-xen"]
+        | `Qubes, _ ->
+          [ package ~min:"1.10.0" ~max:"2.0.0" "mirage-net-xen" ;
+            Mirage_impl_qubesdb.pkg ]
+        | `Virtio, _ | `Hvt, _ | `Muen, _ | `Genode, _ ->
+          [ package ~min:"0.4.2" ~max:"0.5.0" "mirage-net-solo5" ] in
+      Functoria_key.((pure choose)
+                     $ Key.(value target)
+                     $ Key.(value ixy))
+
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =

@@ -572,23 +572,29 @@ let generate_manifest () =
   let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
       Mirage_impl_block.all_blocks [] in
   let to_string (name, typ) =
-    Fmt.strf {|{ "name": %S, "type": %S }|}
+    Fmt.strf {json|{ "name": %S, "type": %S }|json}
       name
       (match typ with `Network -> "NET_BASIC" | `Block -> "BLOCK_BASIC") in
   let devices = List.map to_string (networks @ blocks) in
   let s = String.concat ~sep:", " devices in
   let open Codegen in
-  let file = Fpath.(v "manifest.json") in
+  let file = Fpath.(v "_build/manifest.json") in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "{ \"version\": 1, \"devices\": [ %s ] }" s;
+      append fmt
+{json|{
+  "type": "solo5.manifest",
+  "version": 1,
+  "devices": [ %s ]
+}
+|json} s;
       R.ok ())
     "Solo5 application manifest file"
 
 let generate_manifest_c () =
-  let json = "manifest.json" in
+  let json = "_build/manifest.json" in
   let c = "_build/manifest.c" in
-  let cmd = Bos.Cmd.(v "solo5-mfttool" % "gen" % json % c)
+  let cmd = Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % json % c)
   in
   Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
@@ -599,7 +605,7 @@ let configure_manifest () =
   generate_manifest_c ()
 
 let clean_manifest () =
-  Bos.OS.File.delete Fpath.(v "manifest.json")
+  Bos.OS.File.delete Fpath.(v "_build/manifest.json")
 
 let configure i =
   let name = Info.name i in

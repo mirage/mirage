@@ -565,7 +565,9 @@ let unikernel_opam_name name target =
   let target_str = Fmt.strf "%a" Key.pp_target target in
   opam_name name target_str
 
-let generate_manifest () =
+let solo5_manifest_path = "_build/manifest.json"
+
+let generate_manifest_json () =
   Log.info (fun m -> m "generating manifest");
   let networks = List.map (fun n -> (n, `Network))
     !Mirage_impl_network.all_networks in
@@ -578,7 +580,7 @@ let generate_manifest () =
   let devices = List.map to_string (networks @ blocks) in
   let s = String.concat ~sep:", " devices in
   let open Codegen in
-  let file = Fpath.(v "_build/manifest.json") in
+  let file = Fpath.(v solo5_manifest_path) in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt
@@ -591,21 +593,8 @@ let generate_manifest () =
       R.ok ())
     "Solo5 application manifest file"
 
-let generate_manifest_c () =
-  let json = "_build/manifest.json" in
-  let c = "_build/manifest.c" in
-  let cmd = Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % json % c)
-  in
-  Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
-  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
-  Bos.OS.Cmd.run cmd
-
-let configure_manifest () =
-  generate_manifest () >>= fun () ->
-  generate_manifest_c ()
-
 let clean_manifest () =
-  Bos.OS.File.delete Fpath.(v "_build/manifest.json")
+  Bos.OS.File.delete Fpath.(v solo5_manifest_path)
 
 let configure i =
   let name = Info.name i in
@@ -622,7 +611,7 @@ let configure i =
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->
   (match target with
-    | #Mirage_key.mode_solo5 -> configure_manifest ()
+    | #Mirage_key.mode_solo5 -> generate_manifest_json ()
     | _ -> R.ok ()) >>= fun () ->
   match target with
   | `Xen ->
@@ -674,6 +663,15 @@ let solo5_pkg = function
     invalid_arg "solo5 bindings only defined for solo5 targets"
 
 let cflags pkg = pkg_config pkg ["--cflags"]
+
+let generate_manifest_c () =
+  let json = solo5_manifest_path in
+  let c = "_build/manifest.c" in
+  let cmd = Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % json % c)
+  in
+  Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
+  Bos.OS.Cmd.run cmd
 
 let compile_manifest target =
   let pkg, _post = solo5_pkg target in
@@ -864,7 +862,9 @@ let build i =
   check_entropy libs >>= fun () ->
   compile ignore_dirs libs warn_error target >>= fun () ->
   (match target with
-    | #Mirage_key.mode_solo5 -> compile_manifest target
+    | #Mirage_key.mode_solo5 ->
+        generate_manifest_c () >>= fun () ->
+        compile_manifest target
     | _ -> R.ok ()) >>= fun () ->
   link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)

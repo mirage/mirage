@@ -17,7 +17,7 @@ let argv_solo5 = impl @@ object
     method name = "argv_solo5"
     method module_name = "Bootvar"
     method! packages =
-      Key.pure [ package ~min:"0.3.0" ~max:"0.4.0" "mirage-bootvar-solo5" ]
+      Key.pure [ package ~min:"0.6.0" ~max:"0.7.0" "mirage-bootvar-solo5" ]
     method! connect _ _ _ = "Bootvar.argv ()"
   end
 

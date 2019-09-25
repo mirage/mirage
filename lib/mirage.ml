@@ -951,8 +951,8 @@ module Project = struct
         | #Mirage_key.mode_xen ->
           package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
         | #Mirage_key.mode_solo5 as tgt ->
-          package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
-          package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::
+          package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
+          package ~min:"0.6.0" ~max:"0.7.0" "mirage-solo5" ::
           common
 
       method! build = build

@@ -24,7 +24,7 @@ let network_conf (intf : string Key.key) =
         [ package ~min:"1.10.0" ~max:"2.0.0" "mirage-net-xen" ;
           Mirage_impl_qubesdb.pkg ]
       | #Mirage_key.mode_solo5 ->
-        [ package ~min:"0.4.2" ~max:"0.5.0" "mirage-net-solo5" ]
+        [ package ~min:"0.6.0" ~max:"0.7.0" "mirage-net-solo5" ]
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =

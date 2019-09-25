@@ -869,7 +869,18 @@ let build i =
   link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
+let clean_opam name target =
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name target))
+
+let clean_binary name suffix =
+  Bos.OS.File.delete Fpath.(v name + suffix)
+
 let clean i =
+  let rec rr_iter f l =
+    match l with
+    | [] -> R.ok ()
+    | x :: l -> f x >>= fun () -> rr_iter f l
+  in
   let name = Info.name i in
   clean_main_xl ~name "xl" >>= fun () ->
   clean_main_xl ~name "xl.in" >>= fun () ->
@@ -878,24 +889,15 @@ let clean i =
   clean_myocamlbuild () >>= fun () ->
   clean_manifest () >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile") >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Hvt)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Unix)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Xen)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Qubes)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Muen)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `MacOSX)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Genode)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Spt)) >>= fun () ->
+  rr_iter (clean_opam name)
+    [`Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode]
+  >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name) >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "xen") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "elf") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "virtio") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "muen") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "hvt") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "genode") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "spt") >>= fun () ->
+  rr_iter (clean_binary name)
+    ["xen"; "elf"; "hvt"; "spt"; "virtio"; "muen"; "genode"]
+  >>= fun () ->
   (* The following deprecated names are kept here to allow "mirage clean" to
    * continue to work after an upgrade. *)
   Bos.OS.File.delete Fpath.(v "Makefile.solo5-hvt") >>= fun () ->

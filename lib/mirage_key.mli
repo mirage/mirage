@@ -50,6 +50,14 @@ val is_unix: bool value
 (** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]).
 *)
 
+val is_solo5: bool value
+(** Is true iff the {!target} key is a Solo5-based target.
+*)
+
+val is_xen: bool value
+(** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]).
+*)
+
 val warn_error: bool key
 (** [--warn-error]. Enable {i -warn-error} for OCaml sources. Set to [false] by
     default, but might might enabled by default in later releases. *)

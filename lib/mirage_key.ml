@@ -163,6 +163,16 @@ let is_unix =
   | #mode_unix -> true
   | #mode_xen | #mode_solo5 -> false
 
+let is_solo5 =
+  Key.match_ Key.(value target) @@ function
+  | #mode_solo5 -> true
+  | #mode_xen | #mode_unix -> false
+
+let is_xen =
+  Key.match_ Key.(value target) @@ function
+  | #mode_xen -> true
+  | #mode_solo5 | #mode_unix -> false
+
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in
   let doc = Arg.info ~docs:mirage_section ~docv:"BOOL" ~doc ["warn-error"] in

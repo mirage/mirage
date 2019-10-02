@@ -7,7 +7,7 @@ sudo: false
 env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
+   - PINS="mirage.3.6.0:. mirage-types.3.6.0:. mirage-types-lwt.3.6.0:. mirage-runtime.3.6.0:."
    - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
    - PACKAGE=mirage
    - TESTS=false

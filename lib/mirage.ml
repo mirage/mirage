@@ -714,8 +714,13 @@ let compile ignore_dirs libs warn_error target =
     | [] -> Bos.Cmd.empty
     | dirs  -> Bos.Cmd.(v "-Xs" % concat dirs)
   in
+  let want_quiet_build = match Logs.level () with
+  | Some Info | Some Debug -> false
+  | _ -> true
+  in
   let cmd = Bos.Cmd.(v "ocamlbuild" % "-use-ocamlfind" %
-                     "-classic-display" %
+                     "-classic-display" %%
+                     on want_quiet_build (v "-quiet") %
                      "-tags" % concat tags %
                      "-pkgs" % concat libs %
                      "-cflags" % concat cflags %

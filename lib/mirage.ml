@@ -941,7 +941,7 @@ module Project = struct
       ]
       method! packages =
         (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-        let min = "3.5.0" and max = "3.6.0" in
+        let min = "3.6.0" and max = "3.7.0" in
         let common = [
           package ~build:true ~min:"4.05.0" "ocaml";
           package "lwt";

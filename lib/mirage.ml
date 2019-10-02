@@ -32,9 +32,9 @@ include Functoria
 
 (* Mirage implementation backing the target. *)
 let backend_predicate = function
-  | `Xen | `Qubes -> "mirage_xen"
-  | `Virtio | `Hvt | `Muen | `Genode  -> "mirage_solo5"
-  | `Unix | `MacOSX -> "mirage_unix"
+  | #Mirage_key.mode_xen -> "mirage_xen"
+  | #Mirage_key.mode_solo5 -> "mirage_solo5"
+  | #Mirage_key.mode_unix -> "mirage_unix"
 
 (** {2 Devices} *)
 
@@ -565,6 +565,37 @@ let unikernel_opam_name name target =
   let target_str = Fmt.strf "%a" Key.pp_target target in
   opam_name name target_str
 
+let solo5_manifest_path = "_build/manifest.json"
+
+let generate_manifest_json () =
+  Log.info (fun m -> m "generating manifest");
+  let networks = List.map (fun n -> (n, `Network))
+    !Mirage_impl_network.all_networks in
+  let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
+      Mirage_impl_block.all_blocks [] in
+  let to_string (name, typ) =
+    Fmt.strf {json|{ "name": %S, "type": %S }|json}
+      name
+      (match typ with `Network -> "NET_BASIC" | `Block -> "BLOCK_BASIC") in
+  let devices = List.map to_string (networks @ blocks) in
+  let s = String.concat ~sep:", " devices in
+  let open Codegen in
+  let file = Fpath.(v solo5_manifest_path) in
+  with_output file (fun oc () ->
+      let fmt = Format.formatter_of_out_channel oc in
+      append fmt
+{json|{
+  "type": "solo5.manifest",
+  "version": 1,
+  "devices": [ %s ]
+}
+|json} s;
+      R.ok ())
+    "Solo5 application manifest file"
+
+let clean_manifest () =
+  Bos.OS.File.delete Fpath.(v solo5_manifest_path)
+
 let configure i =
   let name = Info.name i in
   let root = Fpath.to_string (Info.build_dir i) in
@@ -579,6 +610,9 @@ let configure i =
   configure_opam ~name:opam_name i >>= fun () ->
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->
+  (match target with
+    | #Mirage_key.mode_solo5 -> generate_manifest_json ()
+    | _ -> R.ok ()) >>= fun () ->
   match target with
   | `Xen ->
     configure_main_xl "xl" i >>= fun () ->
@@ -596,6 +630,59 @@ let terminal () =
   in
   not dumb && isatty
 
+let opam_prefix =
+  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
+  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
+
+(* Invoke pkg-config and return output if successful. *)
+let pkg_config pkgs args =
+  let var = "PKG_CONFIG_PATH" in
+  let pkg_config_fallback = match Bos.OS.Env.var var with
+    | Some path -> ":" ^ path
+    | None -> ""
+  in
+  Lazy.force opam_prefix >>= fun prefix ->
+  (* the order here matters (at least for ancient 0.26, distributed with
+       ubuntu 14.04 versions): use share before lib! *)
+  let value =
+    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
+      prefix prefix pkg_config_fallback
+  in
+  Bos.OS.Env.set_var var (Some value) >>= fun () ->
+  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
+  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
+  String.cuts ~sep:" " ~empty:false data
+
+let solo5_pkg = function
+  | `Virtio -> "solo5-bindings-virtio", ".virtio"
+  | `Muen -> "solo5-bindings-muen", ".muen"
+  | `Hvt -> "solo5-bindings-hvt", ".hvt"
+  | `Genode -> "solo5-bindings-genode", ".genode"
+  | `Spt -> "solo5-bindings-spt", ".spt"
+  | _ ->
+    invalid_arg "solo5 bindings only defined for solo5 targets"
+
+let cflags pkg = pkg_config pkg ["--cflags"]
+
+let generate_manifest_c () =
+  let json = solo5_manifest_path in
+  let c = "_build/manifest.c" in
+  let cmd = Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % json % c)
+  in
+  Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
+  Bos.OS.Cmd.run cmd
+
+let compile_manifest target =
+  let pkg, _post = solo5_pkg target in
+  let c = "_build/manifest.c" in
+  let obj = "_build/manifest.o" in
+  cflags pkg >>= fun cflags ->
+  let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj)
+  in
+  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
+  Bos.OS.Cmd.run cmd
+
 let compile ignore_dirs libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
@@ -609,15 +696,15 @@ let compile ignore_dirs libs warn_error target =
     (match target with `MacOSX | `Unix -> ["thread"] | _ -> []) @
     (if terminal () then ["color(always)"] else [])
   and result = match target with
-    | `Unix | `MacOSX -> "main.native"
-    | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode -> "main.native.o"
+    | #Mirage_key.mode_unix -> "main.native"
+    | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> "main.native.o"
   and cflags = [ "-g" ]
   and lflags =
     let dontlink =
       match target with
-      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
+      | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
         ["unix"; "str"; "num"; "threads"]
-      | `Unix | `MacOSX -> []
+      | #Mirage_key.mode_unix -> []
     in
     let dont = List.map (fun k -> [ "-dontlink" ; k ]) dontlink in
     "-g" :: List.flatten dont
@@ -649,29 +736,6 @@ let rec expand_name ~lib param =
     | Some (name, rest) ->
       let rest = expand_name ~lib rest in
       prefix ^ Fpath.(to_string (v lib / name / rest))
-
-let opam_prefix =
-  let cmd = Bos.Cmd.(v "opam" % "config" % "var" % "prefix") in
-  lazy (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fst)
-
-(* Invoke pkg-config and return output if successful. *)
-let pkg_config pkgs args =
-  let var = "PKG_CONFIG_PATH" in
-  let pkg_config_fallback = match Bos.OS.Env.var var with
-    | Some path -> ":" ^ path
-    | None -> ""
-  in
-  Lazy.force opam_prefix >>= fun prefix ->
-  (* the order here matters (at least for ancient 0.26, distributed with
-       ubuntu 14.04 versions): use share before lib! *)
-  let value =
-    Fmt.strf "%s/share/pkgconfig:%s/lib/pkgconfig%s"
-      prefix prefix pkg_config_fallback
-  in
-  Bos.OS.Env.set_var var (Some value) >>= fun () ->
-  let cmd = Bos.Cmd.(v "pkg-config" % pkgs %% of_list args) in
-  Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_string >>| fun (data, _) ->
-  String.cuts ~sep:" " ~empty:false data
 
 (* Get the linker flags for any extra C objects we depend on.
  * This is needed when building a Xen/Solo5 image as we do the link manually. *)
@@ -717,22 +781,14 @@ let find_ld pkg =
                  Rresult.R.pp_msg msg pkg);
     "ld"
 
-let solo5_pkg = function
-  | `Virtio -> "solo5-bindings-virtio", ".virtio"
-  | `Muen -> "solo5-bindings-muen", ".muen"
-  | `Hvt -> "solo5-bindings-hvt", ".hvt"
-  | `Genode -> "solo5-bindings-genode", ".genode"
-  | `Unix | `MacOSX | `Xen | `Qubes ->
-    invalid_arg "solo5_kernel only defined for solo5 targets"
-
-let link info name target target_debug =
+let link info name target _target_debug =
   let libs = Info.libraries info in
   match target with
-  | `Unix | `MacOSX ->
+  | #Mirage_key.mode_unix ->
     let link = Bos.Cmd.(v "ln" % "-nfs" % "_build/main.native" % name) in
     Bos.OS.Cmd.run link >>= fun () ->
     Ok name
-  | `Xen | `Qubes ->
+  | #Mirage_key.mode_xen ->
     extra_c_artifacts "xen" libs >>= fun c_artifacts ->
     static_libs "mirage-xen" >>= fun static_libs ->
     let linker =
@@ -765,7 +821,7 @@ let link info name target target_debug =
       Bos.OS.Cmd.run link >>= fun () ->
       Ok out
     end
-  | `Virtio | `Muen | `Hvt | `Genode ->
+  | #Mirage_key.mode_solo5 ->
     let pkg, post = solo5_pkg target in
     extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
     static_libs "mirage-solo5" >>= fun static_libs ->
@@ -774,36 +830,14 @@ let link info name target target_debug =
     let out = name ^ post in
     let ld = find_ld pkg in
     let linker =
-      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %%
+      Bos.Cmd.(v ld %% of_list ldflags % "_build/main.native.o" %
+               "_build/manifest.o" %%
                of_list c_artifacts %% of_list static_libs % "-o" % out
                %% of_list ldpostflags)
     in
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
-    if target = `Hvt then
-      let tender_mods =
-        List.fold_left (fun acc -> function
-            | "mirage-net-solo5" -> "net" :: acc
-            | "mirage-block-solo5" -> "blk" :: acc
-            | _ -> acc)
-          [] libs @ (if target_debug then ["gdb"] else [])
-      in
-      pkg_config pkg ["--variable=libdir"] >>= function
-      | [ libdir ] ->
-        let config_cmd =
-          Bos.Cmd.(v "solo5-hvt-configure" %
-                   (libdir ^ "/src") %%
-                   of_list tender_mods)
-        in
-        Bos.OS.Cmd.run config_cmd >>= fun () ->
-        let make_cmd =
-          Bos.Cmd.(v "make" % "-f" % "Makefile.solo5-hvt" % "solo5-hvt")
-        in
-        Bos.OS.Cmd.run make_cmd >>= fun () ->
-        Ok out
-      | _ -> R.error_msg ("pkg-config " ^ pkg ^ " --variable=libdir failed")
-    else
-      Ok out
+    Ok out
 
 let check_entropy libs =
   query_ocamlfind ~recursive:true libs >>= fun ps ->
@@ -827,38 +861,48 @@ let build i =
   let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
   compile ignore_dirs libs warn_error target >>= fun () ->
+  (match target with
+    | #Mirage_key.mode_solo5 ->
+        generate_manifest_c () >>= fun () ->
+        compile_manifest target
+    | _ -> R.ok ()) >>= fun () ->
   link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
+let clean_opam name target =
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name target))
+
+let clean_binary name suffix =
+  Bos.OS.File.delete Fpath.(v name + suffix)
+
 let clean i =
+  let rec rr_iter f l =
+    match l with
+    | [] -> R.ok ()
+    | x :: l -> f x >>= fun () -> rr_iter f l
+  in
   let name = Info.name i in
   clean_main_xl ~name "xl" >>= fun () ->
   clean_main_xl ~name "xl.in" >>= fun () ->
   clean_main_xe ~name >>= fun () ->
   clean_main_libvirt_xml ~name >>= fun () ->
   clean_myocamlbuild () >>= fun () ->
+  clean_manifest () >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile") >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Hvt)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Unix)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Xen)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Qubes)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Muen)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `MacOSX)) >>= fun () ->
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name `Genode)) >>= fun () ->
+  rr_iter (clean_opam name)
+    [`Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode]
+  >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native.o") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "main.native") >>= fun () ->
   Bos.OS.File.delete Fpath.(v name) >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "xen") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "elf") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "virtio") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "muen") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "hvt") >>= fun () ->
-  Bos.OS.File.delete Fpath.(v name + "genode") >>= fun () ->
+  rr_iter (clean_binary name)
+    ["xen"; "elf"; "hvt"; "spt"; "virtio"; "muen"; "genode"]
+  >>= fun () ->
+  (* The following deprecated names are kept here to allow "mirage clean" to
+   * continue to work after an upgrade. *)
   Bos.OS.File.delete Fpath.(v "Makefile.solo5-hvt") >>= fun () ->
   Bos.OS.Dir.delete ~recurse:true Fpath.(v "_build-solo5-hvt") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "solo5-hvt") >>= fun () ->
-  (* The following deprecated names are kept here to allow "mirage clean" to
-   * continue to work after an upgrade. *)
   Bos.OS.File.delete (opam_file (opam_name name "ukvm")) >>= fun () ->
   Bos.OS.File.delete Fpath.(v name + "ukvm") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile.ukvm") >>= fun () ->
@@ -904,13 +948,13 @@ module Project = struct
           package ~build:true "ocamlbuild" ;
         ] in
         Key.match_ Key.(value target) @@ function
-        | `Unix | `MacOSX ->
+        | #Mirage_key.mode_unix ->
           package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
-        | `Xen | `Qubes ->
+        | #Mirage_key.mode_xen ->
           package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
-        | `Virtio | `Hvt | `Muen | `Genode as tgt ->
-          package ~min:"0.4.0" ~max:"0.5.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
-          package ~min:"0.5.0" ~max:"0.6.0" "mirage-solo5" ::
+        | #Mirage_key.mode_solo5 as tgt ->
+          package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
+          package ~min:"0.6.0" ~max:"0.7.0" "mirage-solo5" ::
           common
 
       method! build = build

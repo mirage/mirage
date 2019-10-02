@@ -39,9 +39,9 @@ let nocrypto = impl @@ object
     method! build _ = Rresult.R.ok (enable_entropy ())
     method! connect i _ _ =
       match Mirage_impl_misc.get_target i with
-      | `Xen | `Qubes | `Virtio | `Hvt | `Muen | `Genode ->
+      | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
         "Nocrypto_entropy_mirage.initialize ()"
-      | `Unix | `MacOSX -> "Nocrypto_entropy_lwt.initialize ()"
+      | #Mirage_key.mode_unix -> "Nocrypto_entropy_lwt.initialize ()"
   end
 
 let nocrypto_random_conf = object

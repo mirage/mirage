@@ -30,14 +30,17 @@ end
 
 include Functoria.KEY with module Arg := Arg
 
-type mode = [ `Unix | `Xen | `Qubes | `MacOSX | `Virtio | `Hvt | `Muen | `Genode ]
+type mode_unix = [ `Unix | `MacOSX ]
+type mode_xen = [ `Xen | `Qubes ]
+type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
+type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 (** {2 Mirage keys} *)
 
 val target: mode key
 (** [-t TARGET]: Key setting the configuration mode for the current project.
-    Is one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"], ["hvt"], ["muen"]
-    or ["genode"].
+    Is one of ["unix"], ["macosx"], ["xen"], ["qubes"], ["virtio"], ["hvt"],
+    ["muen"], ["genode"] or ["spt"].
 *)
 
 val pp_target: mode Fmt.t
@@ -45,6 +48,14 @@ val pp_target: mode Fmt.t
 
 val is_unix: bool value
 (** Is true iff the {!target} key is a UNIXish system (["unix" or "macosx"]).
+*)
+
+val is_solo5: bool value
+(** Is true iff the {!target} key is a Solo5-based target.
+*)
+
+val is_xen: bool value
+(** Is true iff the {!target} key is a Xen-based system (["xen" or "qubes"]).
 *)
 
 val warn_error: bool key

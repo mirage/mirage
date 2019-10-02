@@ -35,11 +35,11 @@ let (@??) x y = opt_map Key.abstract x @? y
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
   let min = "3.7.1" and max = "3.8.0" in
   Key.match_ Key.(value target) @@ function
-  |`MacOSX | `Unix ->
+  | #Mirage_key.mode_unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
-  |`Qubes  | `Xen ->
+  | #Mirage_key.mode_xen ->
     [ package ~min ~max ?ocamlfind ~sublibs:("xen"::sublibs) pkg ]
-  |`Virtio | `Hvt | `Muen | `Genode ->
+  | #Mirage_key.mode_solo5 ->
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
 let ipv4_keyed_conf ?network ?gateway () = impl @@ object

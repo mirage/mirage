@@ -34,7 +34,7 @@ let console_solo5 str = impl @@ object
     method name = name
     method module_name = "Console_solo5"
     method! packages =
-      Key.pure [ package ~min:"0.3.0" ~max:"0.4.0" "mirage-console-solo5" ]
+      Key.pure [ package ~min:"0.6.0" ~max:"0.7.0" "mirage-console-solo5" ]
     method! connect _ modname _args = Fmt.strf "%s.connect %S" modname str
   end
 
@@ -44,6 +44,7 @@ let custom_console str =
     `Qubes, console_xen str;
     `Virtio, console_solo5 str;
     `Hvt, console_solo5 str;
+    `Spt, console_solo5 str;
     `Muen, console_solo5 str;
     `Genode, console_solo5 str
   ] ~default:(console_unix str)

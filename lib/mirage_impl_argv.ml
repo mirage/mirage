@@ -17,7 +17,7 @@ let argv_solo5 = impl @@ object
     method name = "argv_solo5"
     method module_name = "Bootvar"
     method! packages =
-      Key.pure [ package ~min:"0.3.0" ~max:"0.4.0" "mirage-bootvar-solo5" ]
+      Key.pure [ package ~min:"0.6.0" ~max:"0.7.0" "mirage-bootvar-solo5" ]
     method! connect _ _ _ = "Bootvar.argv ()"
   end
 
@@ -51,5 +51,6 @@ let default_argv =
     `Virtio, argv_solo5;
     `Hvt, argv_solo5;
     `Muen, argv_solo5;
-    `Genode, argv_solo5
+    `Genode, argv_solo5;
+    `Spt, argv_solo5
   ] ~default:argv_unix

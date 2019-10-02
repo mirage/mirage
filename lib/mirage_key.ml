@@ -85,16 +85,10 @@ let pp_group =
 
 (** {3 Mode} *)
 
-type mode = [
-  | `Unix
-  | `Xen
-  | `Virtio
-  | `Hvt
-  | `Muen
-  | `MacOSX
-  | `Qubes
-  | `Genode
-]
+type mode_unix = [ `Unix | `MacOSX ]
+type mode_xen = [ `Xen | `Qubes ]
+type mode_solo5 = [ `Hvt | `Spt | `Virtio | `Muen | `Genode ]
+type mode = [ mode_unix | mode_xen | mode_solo5 ]
 
 let first_ukvm_mention = ref true
 let ukvm_warning = "The `ukvm' target has been renamed to `hvt'. \
@@ -111,7 +105,8 @@ let target_conv: mode Cmdliner.Arg.converter =
       "hvt"   , `Hvt;
       "muen"  , `Muen;
       "qubes" , `Qubes;
-      "genode" , `Genode;
+      "genode", `Genode;
+      "spt"   , `Spt;
     ]
   in
   let filter_ukvm s =
@@ -152,7 +147,8 @@ let target =
     | `Muen   -> Fmt.pf ppf "`Muen"
     | `MacOSX -> Fmt.pf ppf "`MacOSX"
     | `Qubes  -> Fmt.pf ppf "`Qubes"
-    | `Genode  -> Fmt.pf ppf "`Genode"
+    | `Genode -> Fmt.pf ppf "`Genode"
+    | `Spt    -> Fmt.pf ppf "`Spt"
   in
   let conv = Arg.conv ~conv:target_conv ~runtime_conv:"target" ~serialize in
   let doc =
@@ -164,8 +160,18 @@ let target =
 
 let is_unix =
   Key.match_ Key.(value target) @@ function
-  | `Unix | `MacOSX -> true
-  | `Qubes | `Xen | `Virtio | `Hvt | `Muen | `Genode -> false
+  | #mode_unix -> true
+  | #mode_xen | #mode_solo5 -> false
+
+let is_solo5 =
+  Key.match_ Key.(value target) @@ function
+  | #mode_solo5 -> true
+  | #mode_xen | #mode_unix -> false
+
+let is_xen =
+  Key.match_ Key.(value target) @@ function
+  | #mode_xen -> true
+  | #mode_solo5 | #mode_unix -> false
 
 let warn_error =
   let doc = "Enable -warn-error when compiling OCaml sources." in

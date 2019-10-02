@@ -1,3 +1,12 @@
+### v3.6.0 (2019-10-02)
+
+* solo5 0.6 support for multiple devices (#993, by @mato)
+  please read https://github.com/Solo5/solo5/blob/v0.6.2/CHANGES.md for detailed changes
+  observable mirage changes:
+  - new target `-t spt` for sandboxed processed tender (seccomp on Linux)
+  - new functions Mirage_key.is_solo5 and Mirage_key.is_xen, analogue to Mirage_key.is_unix
+* respect verbosity when calling `ocamlbuild` -- verbose if log level is info or debug (#999, by @mato)
+
 ### v3.5.2 (2019-08-22)
 
 * Adapt to conduit 2.0.0 release, including dns 4.0.0 (#996, by @hannesm)

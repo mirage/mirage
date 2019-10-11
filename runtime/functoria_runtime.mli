@@ -73,6 +73,8 @@ module Key: sig
 
 end
 
-(** [with_argv keys name argv] evaluates the [keys] {{!Key.term}terms}
-    on the command-line [argv]. [name] is the executable name. *)
+(** [with_argv keys name argv] evaluates the [keys] {{!Key.term}terms} on the
+    command-line [argv]. [name] is the executable name. On evaluation error the
+    application calls [exit(3)] with status [64].  If [`Help] or [`Version] were
+    evaluated, [exit(3)] is called with status [63]. *)
 val with_argv : unit Cmdliner.Term.t list -> string -> string array -> unit

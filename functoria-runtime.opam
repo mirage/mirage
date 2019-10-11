@@ -21,7 +21,7 @@ build: [
 
 depends: [
   "ocaml" {>= "4.03.0"}
-  "dune" {build}
+  "dune"
   "cmdliner" {>= "0.9.8"}
   "fmt"
   "functoria" {with-test & >= "2.2.0"}

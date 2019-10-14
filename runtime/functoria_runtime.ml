@@ -80,5 +80,5 @@ let with_argv keys s argv =
     let t = List.fold_right gather keys (Term.pure ()) in
     match Term.(eval ~argv (t, info s)) with
     | `Ok _ -> initialized := true; ()
-    | `Error _ -> failwith "Key initialization failed"
-    | `Help | `Version -> exit 0
+    | `Error _ -> exit 64
+    | `Help | `Version -> exit 63

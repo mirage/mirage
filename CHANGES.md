@@ -1,3 +1,9 @@
+## v2.2.5 (2019-10-14)
+
+* Functoria_runtime.with_argv now uses (#179, by @hannesm)
+  - exit 63 when `Help or `Version is requested (used to exit with 0)
+  - exit 64 when Term.eval returns with an error (used to raise an exception)
+
 ## v3.0.0 (2019-07-25)
 
 * use `dune` to build `config.ml` (@TheLortex, #167)

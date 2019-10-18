@@ -15,24 +15,9 @@ build: [
 ]
 
 depends:   [
-  "ocaml" {>= "4.05.0"}
+  "ocaml" {>= "4.06.0"}
   "dune" {>= "1.1.0"}
-  "lwt"
-  "cstruct" {>="3.2.1"}
-  "ipaddr" {>= "3.0.0"}
-  "mirage-types" {>= "3.5.0"}
-  "mirage-clock-lwt" {>= "2.0.0"}
-  "mirage-time-lwt" {>= "1.1.0"}
-  "mirage-random" {>= "1.2.0"}
-  "mirage-flow-lwt" {>= "1.5.0"}
-  "mirage-protocols-lwt" {>= "2.0.0"}
-  "mirage-stack-lwt" {>= "1.3.0"}
-  "mirage-console-lwt" {>= "2.3.5"}
-  "mirage-block-lwt" {>= "1.1.0"}
-  "mirage-net-lwt" {>= "2.0.0"}
-  "mirage-fs-lwt" {>= "2.0.0"}
-  "mirage-kv-lwt" {>= "2.0.0"}
-  "mirage-channel-lwt" {>= "3.1.0"}
+  "mirage-types" {= version}
 ]
 
 synopsis: "Lwt module type definitions for MirageOS applications"
@@ -46,3 +31,6 @@ for several that are left abstract in `mirage-types`:
 - `type macaddr = Macaddr.t`
 - `type ipv4addr = Ipaddr.V4.t`
 """
+post-messages: [
+ "This package will be retired in MirageOS 4.0. Please use individual signatures (mirage-net / mirage-clock / etc.) instead."
+]

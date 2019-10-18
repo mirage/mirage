@@ -698,7 +698,7 @@ let compile_manifest target =
 let compile ignore_dirs libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
-      "warn(A-4-41-42-44)";
+      "warn(A-4-41-42-44-48)";
       "debug";
       "bin_annot";
       "strict_sequence";
@@ -945,9 +945,9 @@ module Project = struct
       ]
       method! packages =
         (* XXX: use %%VERSION_NUM%% here instead of hardcoding a version? *)
-        let min = "3.6.0" and max = "3.7.0" in
+        let min = "3.7.0" and max = "3.8.0" in
         let common = [
-          package ~build:true ~min:"4.05.0" "ocaml";
+          package ~build:true ~min:"4.06.0" "ocaml";
           package "lwt";
           package ~min ~max "mirage-types-lwt";
           package ~min ~max "mirage-types";
@@ -958,12 +958,12 @@ module Project = struct
         ] in
         Key.match_ Key.(value target) @@ function
         | #Mirage_key.mode_unix ->
-          package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
+          package ~min:"4.0.0" ~max:"5.0.0" "mirage-unix" :: common
         | #Mirage_key.mode_xen ->
-          package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
+          package ~min:"5.0.0" ~max:"6.0.0" "mirage-xen" :: common
         | #Mirage_key.mode_solo5 as tgt ->
           package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
-          package ~min:"0.6.0" ~max:"0.7.0" "mirage-solo5" ::
+          package ~min:"0.6.1" ~max:"0.7.0" "mirage-solo5" ::
           common
 
       method! build = build

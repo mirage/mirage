@@ -21,19 +21,19 @@ let mirage_log ?ring_size ~default =
     method name = "mirage_logs"
     method module_name = "Mirage_logs.Make"
     method! packages =
-      Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "mirage-logs" ]
+      Key.pure [ package ~min:"1.2.0" ~max:"2.0.0" "mirage-logs" ]
     method! keys = [ Key.abstract logs ]
     method! connect _ modname = function
-      | [ pclock ] ->
+      | [ _pclock ] ->
         Fmt.strf
           "@[<v 2>\
            let ring_size = %a in@ \
-           let reporter = %s.create ?ring_size %s in@ \
+           let reporter = %s.create ?ring_size () in@ \
            Mirage_runtime.set_level ~default:%a %a;@ \
            %s.set_reporter reporter;@ \
            Lwt.return reporter"
           Fmt.(Dump.option int) ring_size
-          modname pclock
+          modname
           pp_level default
           pp_key logs
           modname

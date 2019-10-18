@@ -26,6 +26,7 @@ type ipv4_config = {
 }
 (** Types for IPv4 manual configuration. *)
 
+let opt_opt_key s = Fmt.(option @@ prefix (unit ("?"^^s^^":")) pp_key)
 let opt_key s = Fmt.(option @@ prefix (unit ("~"^^s^^":")) pp_key)
 let opt_map f = function Some x -> Some (f x) | None -> None
 let (@?) x l = match x with Some s -> s :: l | None -> l
@@ -33,7 +34,7 @@ let (@??) x y = opt_map Key.abstract x @? y
 
 (* convenience function for linking tcpip.unix or .xen for checksums *)
 let right_tcpip_library ?ocamlfind ~sublibs pkg =
-  let min = "3.7.1" and max = "3.8.0" in
+  let min = "4.0.0" and max = "5.0.0" in
   Key.match_ Key.(value target) @@ function
   | #Mirage_key.mode_unix ->
     [ package ~min ~max ?ocamlfind ~sublibs:("unix"::sublibs) pkg ]
@@ -42,27 +43,26 @@ let right_tcpip_library ?ocamlfind ~sublibs pkg =
   | #Mirage_key.mode_solo5 ->
     [ package ~min ~max ?ocamlfind ~sublibs pkg ]
 
-let ipv4_keyed_conf ?network ?gateway () = impl @@ object
+let ipv4_keyed_conf ~ip ?gateway () = impl @@ object
     inherit base_configurable
     method ty = random @-> mclock @-> ethernet @-> arpv4 @-> ipv4
     method name = Name.create "ipv4" ~prefix:"ipv4"
     method module_name = "Static_ipv4.Make"
     method! packages = right_tcpip_library ~sublibs:["ipv4"] "tcpip"
-    method! keys = network @?? gateway @?? []
+    method! keys = gateway @?? [Key.abstract ip]
     method! connect _ modname = function
-    | [ _random ; mclock ; etif ; arp ] ->
+    | [ _random ; _mclock ; etif ; arp ] ->
       Fmt.strf
-        "let (network, ip) = %a in @ \
-         %s.connect@[@ ~ip ~network %a@ %s@ %s@ %s@]"
-        (Fmt.option pp_key) network
+        "%s.connect@[@ %a@ %a@ %s@ %s@]"
         modname
-        (opt_key "gateway") gateway
-        mclock etif arp
+        Fmt.(prefix (unit "~ip:") pp_key) ip
+        (opt_opt_key "gateway") gateway
+        etif arp
       | _ -> failwith (connect_err "ipv4 keyed" 4)
   end
 
 let charrua_pkg =
-  Key.pure [ package ~min:"1.0.0" ~max:"2.0.0" "charrua-client-mirage" ]
+  Key.pure [ package ~min:"1.2.0" ~max:"2.0.0" "charrua-client-mirage" ]
 
 let dhcp_conf = impl @@ object
     inherit base_configurable
@@ -82,9 +82,9 @@ let ipv4_dhcp_conf = impl @@ object
     method module_name = "Dhcp_ipv4.Make"
     method! packages = charrua_pkg
     method! connect _ modname = function
-      | [ dhcp ; _random ; mclock ; ethernet ; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]"
-          modname dhcp mclock ethernet arp
+      | [ dhcp ; _random ; _mclock ; ethernet ; arp ] ->
+        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]"
+          modname dhcp ethernet arp
       | _ -> failwith (connect_err "ipv4 dhcp" 5)
   end
 
@@ -105,10 +105,10 @@ let create_ipv4 ?group ?config
     { network; gateway }
   | Some config -> config
   in
-  let network = Key.V4.network ?group config.network
+  let ip = Key.V4.network ?group config.network
   and gateway = Key.V4.gateway ?group config.gateway
   in
-  ipv4_keyed_conf ~network ~gateway () $ random $ clock $ etif $ arp
+  ipv4_keyed_conf ~ip ~gateway () $ random $ clock $ etif $ arp
 
 type ipv6_config = {
   addresses: Ipaddr.V6.t list;
@@ -123,10 +123,10 @@ let ipv4_qubes_conf = impl @@ object
     method name = Name.create "qubes_ipv4" ~prefix:"qubes_ipv4"
     method module_name = "Qubesdb_ipv4.Make"
     method! packages =
-      Key.pure [ package ~min:"0.7" ~max:"0.8" "mirage-qubes-ipv4" ]
+      Key.pure [ package ~min:"0.8.0" ~max:"0.9.0" "mirage-qubes-ipv4" ]
     method! connect _ modname = function
-      | [  db ; _random ; mclock ;etif; arp ] ->
-        Fmt.strf "%s.connect@[@ %s@ %s@ %s@ %s@]" modname db mclock etif arp
+      | [  db ; _random ; _mclock ;etif; arp ] ->
+        Fmt.strf "%s.connect@[@ %s@ %s@ %s@]" modname db etif arp
       | _ -> failwith (connect_err "qubes ipv4" 5)
   end
 
@@ -143,13 +143,13 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
     method! packages = right_tcpip_library ~sublibs:["ipv6"] "tcpip"
     method! keys = addresses @?? netmasks @?? gateways @?? []
     method! connect _ modname = function
-      | [ etif ; _random ; _time ; clock ] ->
-        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@ %s@]"
+      | [ etif ; _random ; _time ; _clock ] ->
+        Fmt.strf "%s.connect@[@ %a@ %a@ %a@ %s@]"
           modname
           (opt_key "ip") addresses
           (opt_key "netmask") netmasks
           (opt_key "gateways") gateways
-          etif clock
+          etif
       | _ -> failwith (connect_err "ipv6" 3)
   end
 

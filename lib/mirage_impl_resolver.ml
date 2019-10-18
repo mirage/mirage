@@ -1,7 +1,7 @@
 open Functoria
 module Key = Mirage_key
 open Mirage_impl_misc
-open Mirage_impl_time
+open Mirage_impl_mclock
 open Mirage_impl_stackv4
 open Mirage_impl_random
 open Rresult
@@ -17,7 +17,7 @@ let resolver_unix_system = impl @@ object
     method! packages =
       Key.(if_ is_unix)
         [ Mirage_impl_conduit_connector.pkg ;
-          package ~min:"1.0.0" ~max:"3.0.0" "conduit-lwt-unix"; ]
+          package ~min:"2.0.2" ~max:"3.0.0" "conduit-lwt-unix"; ]
         []
     method! configure i =
       match get_target i with
@@ -28,7 +28,7 @@ let resolver_unix_system = impl @@ object
 
 let resolver_dns_conf ~ns ~ns_port = impl @@ object
     inherit base_configurable
-    method ty = random @-> time @-> stackv4 @-> resolver
+    method ty = random @-> mclock @-> stackv4 @-> resolver
     method name = "resolver"
     method module_name = "Resolver_mirage.Make_with_stack"
     method! packages =
@@ -45,8 +45,8 @@ let resolver_dns_conf ~ns ~ns_port = impl @@ object
       | _ -> failwith (connect_err "resolver" 3)
   end
 
-let resolver_dns ?ns ?ns_port ?(random = default_random) ?(time = default_time) stack =
+let resolver_dns ?ns ?ns_port ?(random = default_random) ?(mclock = default_monotonic_clock) stack =
   let ns = Key.resolver ?default:ns ()
   and ns_port = Key.resolver_port ?default:ns_port ()
   in
-  resolver_dns_conf ~ns ~ns_port $ random $ time $ stack
+  resolver_dns_conf ~ns ~ns_port $ random $ mclock $ stack

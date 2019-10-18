@@ -24,7 +24,7 @@ let tcp_direct_conf () = object
   method module_name = "Tcp.Flow.Make"
   method! packages = right_tcpip_library ~sublibs:["tcp"] "tcpip"
   method! connect _ modname = function
-    | [ip; _time; clock; _random] -> Fmt.strf "%s.connect %s %s" modname ip clock
+    | [ip; _time; _clock; _random] -> Fmt.strf "%s.connect %s" modname ip
     | _ -> failwith (connect_err "direct tcp" 4)
 end
 

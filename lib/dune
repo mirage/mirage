@@ -1,4 +1,4 @@
 (library
   (public_name mirage)
   (wrapped     false)
-  (libraries ipaddr logs astring functoria functoria.app mirage-runtime bos))
+  (libraries stdlib-shims ipaddr logs astring functoria functoria.app mirage-runtime bos))

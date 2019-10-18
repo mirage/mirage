@@ -954,11 +954,13 @@ module Project = struct
         ] in
         Key.match_ Key.(value target) @@ function
         | #Mirage_key.mode_unix ->
-          package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
+          package ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" ::
+          package ~sublibs:[ "os" ] ~min:"3.1.0" ~max:"4.0.0" "mirage-unix" :: common
         | #Mirage_key.mode_xen ->
           package ~min:"3.1.0" ~max:"5.0.0" "mirage-xen" :: common
         | #Mirage_key.mode_solo5 as tgt ->
           package ~min:"0.6.0" ~max:"0.7.0" ~ocamlfind:[] (fst (solo5_pkg tgt)) ::
+          package ~sublibs:[ "os" ] ~min:"0.6.0" ~max:"0.7.0" "mirage-solo5" ::
           package ~min:"0.6.0" ~max:"0.7.0" "mirage-solo5" ::
           common
 

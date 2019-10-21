@@ -1,3 +1,21 @@
+## v3.0.1 (2019-10-21)
+
+* Use `dune` to compile `config.ml` into an executable and run it.
+  This replaces the use of `ocamlbuild` and dynlinking of `config.ml`
+  (#176, @samoht)
+  The new compilation scheme:
+  - generates `dune`, `dune.config` and `dune.build` with sensible
+    configuration values. Each file can be overwritten by the user,
+    in that case functoria will detect it and will not remove during
+    the clean step;
+  - by default, `dune` just includes `dune.config` and `dune.build`;
+  - by default, `dune.config` contains the rules to build `config.ml`
+    into `config.exe`;
+  - by default, `dune.build` is empty -- functoria users such as
+    `mirage` can just overwrite that file with the rigth build rules.
+* Invoke `opam list` with `--color=never` (#177, @ehmry)
+* Use different exit codes in `Functoria_runtime.with_argv` (#180, @hannesm)
+
 ## v2.2.5 (2019-10-14)
 
 * Functoria_runtime.with_argv now uses (#179, by @hannesm)

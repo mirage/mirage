@@ -4,7 +4,8 @@ build:
 	dune build
 
 test:
-	dune runtest
+	dune runtest && \
+	INSIDE_FUNCTORIA_TESTS=1 dune exec -- tests/test_full.exe
 
 clean:
 	dune clean

@@ -7,6 +7,7 @@ open Mirage_impl_mclock
 open Mirage_impl_misc
 open Mirage_impl_network
 open Mirage_impl_qubesdb
+open Mirage_impl_entry_points
 open Mirage_impl_random
 open Mirage_impl_tcp
 open Mirage_impl_time
@@ -37,7 +38,8 @@ let stackv4_direct_conf ?(group="") () = impl @@ object
 
 let direct_stackv4
     ?(clock=default_monotonic_clock)
-    ?(random=default_random)
+    ?(entry_points=default_entry_points)
+    ?(random=default_random ~entry_points ())
     ?(time=default_time)
     ?group
     network eth arp ip =
@@ -48,7 +50,10 @@ let direct_stackv4
   $ direct_udp ~random ip
   $ direct_tcp ~clock ~random ~time ip
 
-let dhcp_ipv4_stack ?group ?(random = default_random) ?(time = default_time) ?(arp = arp ?time:None) tap =
+let dhcp_ipv4_stack ?group
+    ?(entry_points = default_entry_points)
+    ?(random = default_random ~entry_points ())
+    ?(time = default_time) ?(arp = arp ?time:None) tap =
   let config = dhcp random time tap in
   let e = etif tap in
   let a = arp e in

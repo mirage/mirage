@@ -4,6 +4,7 @@ open Mirage_impl_ethernet
 open Mirage_impl_mclock
 open Mirage_impl_network
 open Mirage_impl_qubesdb
+open Mirage_impl_entry_points
 open Mirage_impl_random
 
 type v4
@@ -33,6 +34,7 @@ type ipv6_config =
 val create_ipv4 :
      ?group:string
   -> ?config:ipv4_config
+  -> ?entry_points:entry_points impl
   -> ?random:random impl
   -> ?clock:mclock impl
   -> ethernet impl
@@ -40,7 +42,8 @@ val create_ipv4 :
   -> ipv4 impl
 
 val create_ipv6 :
-     ?random:random impl
+     ?entry_points:entry_points impl
+  -> ?random:random impl
   -> ?time:Mirage_impl_time.time impl
   -> ?clock:mclock impl
   -> ?group:string
@@ -55,7 +58,8 @@ val dhcp :
   -> Mirage_impl_dhcp.dhcp impl
 
 val ipv4_of_dhcp :
-     ?random:random impl
+     ?entry_points:entry_points impl
+  -> ?random:random impl
   -> ?clock:mclock impl
   -> Mirage_impl_dhcp.dhcp impl
   -> ethernet impl
@@ -63,7 +67,8 @@ val ipv4_of_dhcp :
   -> ipv4 impl
 
 val ipv4_qubes :
-     ?random:random impl
+     ?entry_points:entry_points impl
+  -> ?random:random impl
   -> ?clock:mclock impl
   -> qubesdb impl
   -> ethernet impl

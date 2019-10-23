@@ -4,6 +4,7 @@ open Functoria
 open Mirage_impl_ip
 open Mirage_impl_mclock
 open Mirage_impl_misc
+open Mirage_impl_entry_points
 open Mirage_impl_random
 open Mirage_impl_time
 open Rresult
@@ -33,7 +34,8 @@ let tcp_direct_func () = impl (tcp_direct_conf ())
 
 let direct_tcp
     ?(clock=default_monotonic_clock)
-    ?(random=default_random)
+    ?(entry_points= default_entry_points)
+    ?(random=default_random ~entry_points ())
     ?(time=default_time) ip =
   tcp_direct_func () $ ip $ time $ clock $ random
 

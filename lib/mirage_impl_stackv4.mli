@@ -4,6 +4,7 @@ val stackv4 : stackv4 Functoria.typ
 
 val direct_stackv4 :
      ?clock:Mirage_impl_mclock.mclock Functoria.impl
+  -> ?entry_points:Mirage_impl_entry_points.entry_points Functoria.impl
   -> ?random:Mirage_impl_random.random Functoria.impl
   -> ?time:Mirage_impl_time.time Functoria.impl
   -> ?group:string
@@ -26,6 +27,7 @@ val qubes_ipv4_stack :
 
 val dhcp_ipv4_stack :
      ?group:string
+  -> ?entry_points:Mirage_impl_entry_points.entry_points Functoria.impl
   -> ?random:Mirage_impl_random.random Functoria.impl
   -> ?time:Mirage_impl_time.time Functoria.impl
   -> ?arp:(   Mirage_impl_ethernet.ethernet Functoria.impl

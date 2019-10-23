@@ -3,6 +3,7 @@ module Name = Functoria_app.Name
 open Functoria
 open Mirage_impl_ip
 open Mirage_impl_misc
+open Mirage_impl_entry_points
 open Mirage_impl_random
 open Rresult
 
@@ -28,7 +29,10 @@ end
 
 (* Value restriction ... *)
 let udp_direct_func () = impl (udp_direct_conf ())
-let direct_udp ?(random=default_random) ip = udp_direct_func () $ ip $ random
+let direct_udp
+  ?(entry_points=default_entry_points)
+  ?(random=default_random ~entry_points ())
+  ip = udp_direct_func () $ ip $ random
 
 let udpv4_socket_conf ipv4_key = object
   inherit base_configurable

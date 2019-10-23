@@ -9,6 +9,7 @@ val udpv4 : udpv4 Functoria.typ
 val udpv6 : udpv6 Functoria.typ
 
 val direct_udp :
+?entry_points:Mirage_impl_entry_points.entry_points Functoria.impl ->
 ?random:Mirage_impl_random.random Functoria.impl -> 'a Mirage_impl_ip.ip
 Functoria.impl -> 'a udp Functoria.impl
 

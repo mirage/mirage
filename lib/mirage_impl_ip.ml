@@ -7,6 +7,7 @@ open Mirage_impl_mclock
 open Mirage_impl_misc
 open Mirage_impl_network
 open Mirage_impl_qubesdb
+open Mirage_impl_entry_points
 open Mirage_impl_random
 open Mirage_impl_time
 
@@ -91,12 +92,15 @@ let ipv4_dhcp_conf = impl @@ object
 
 let dhcp random time net = dhcp_conf $ random $ time $ net
 let ipv4_of_dhcp
-    ?(random = default_random)
+    ?(entry_points= default_entry_points)
+    ?(random = default_random ~entry_points ())
     ?(clock = default_monotonic_clock) dhcp ethif arp =
   ipv4_dhcp_conf $ dhcp $ random $ clock $ ethif $ arp
 
 let create_ipv4 ?group ?config
-    ?(random = default_random) ?(clock = default_monotonic_clock) etif arp =
+    ?(entry_points= default_entry_points)
+    ?(random = default_random ~entry_points ())
+    ?(clock = default_monotonic_clock) etif arp =
   let config = match config with
   | None ->
     let network = Ipaddr.V4.Prefix.of_address_string_exn "10.0.0.2/24"
@@ -131,7 +135,8 @@ let ipv4_qubes_conf = impl @@ object
   end
 
 let ipv4_qubes
-    ?(random = default_random)
+    ?(entry_points = default_entry_points)
+    ?(random = default_random ~entry_points ())
     ?(clock = default_monotonic_clock) db ethernet arp =
   ipv4_qubes_conf $ db $ random $ clock $ ethernet $ arp
 
@@ -154,7 +159,8 @@ let ipv6_conf ?addresses ?netmasks ?gateways () = impl @@ object
   end
 
 let create_ipv6
-    ?(random = default_random)
+    ?(entry_points = default_entry_points)
+    ?(random = default_random ~entry_points ())
     ?(time = default_time)
     ?(clock = default_monotonic_clock)
     ?group etif { addresses ; netmasks ; gateways } =

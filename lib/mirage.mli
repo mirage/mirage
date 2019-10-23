@@ -110,6 +110,12 @@ val no_reporter: reporter impl
 (** [no_reporter] disable log reporting. *)
 
 
+(** {2 Entry-points} *)
+
+type entry_points
+
+val entry_points : entry_points typ
+val default_entry_points : entry_points impl
 
 (** {2 Random} *)
 
@@ -119,13 +125,13 @@ type random
 val random: random typ
 (** Implementations of the [Mirage_types.RANDOM] signature. *)
 
-val stdlib_random: random impl
+val stdlib_random: entry_points impl -> random impl
 (** Passthrough to the OCaml Random generator. *)
 
-val nocrypto_random: random impl
+val nocrypto_random: entry_points impl -> random impl
 (** Passthrough to the Fortuna PRNG implemented in nocrypto. *)
 
-val default_random: random impl
+val default_random : ?entry_points:entry_points impl -> unit -> random impl
 (** Default PRNG device to be used in unikernels.  It defaults to {!stdlib}, but
     users can override using the {!Key.prng} command line argument.
 *)
@@ -305,7 +311,9 @@ type ipv6_config = {
 (** Types for IP manual configuration. *)
 
 val create_ipv4: ?group:string ->
-  ?config:ipv4_config -> ?random:random impl -> ?clock:mclock impl ->
+  ?config:ipv4_config ->
+  ?entry_points:entry_points impl ->
+  ?random:random impl -> ?clock:mclock impl ->
   ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use an IPv4 address
     Exposes the keys {!Key.V4.network} and {!Key.V4.gateway}.
@@ -313,12 +321,15 @@ val create_ipv4: ?group:string ->
     in the ipv4 configuration record, if that has been provided.
 *)
 
-val ipv4_qubes: ?random:random impl -> ?clock:mclock impl ->
+val ipv4_qubes:
+  ?entry_points:entry_points impl ->
+  ?random:random impl -> ?clock:mclock impl ->
   qubesdb impl -> ethernet impl -> arpv4 impl -> ipv4 impl
 (** Use a given initialized QubesDB to look up and configure the appropriate
  *  IPv4 interface. *)
 
 val create_ipv6:
+  ?entry_points:entry_points impl ->
   ?random:random impl -> ?time:time impl -> ?clock:mclock impl ->
   ?group:string -> ethernet impl -> ipv6_config -> ipv6 impl
 (** Use an IPv6 address.
@@ -338,7 +349,9 @@ val udp: 'a udp typ
 val udpv4: udpv4 typ
 val udpv6: udpv6 typ
 
-val direct_udp: ?random:random impl -> 'a ip impl -> 'a udp impl
+val direct_udp:
+  ?entry_points:entry_points impl ->
+  ?random:random impl -> 'a ip impl -> 'a udp impl
 
 val socket_udpv4: ?group:string -> Ipaddr.V4.t option -> udpv4 impl
 
@@ -357,6 +370,7 @@ val tcpv6: tcpv6 typ
 
 val direct_tcp:
   ?clock:mclock impl ->
+  ?entry_points:entry_points impl ->
   ?random:random impl ->
   ?time:time impl ->
   'a ip impl -> 'a tcp impl
@@ -375,6 +389,7 @@ val stackv4: stackv4 typ
 (** Direct network stack with given ip. *)
 val direct_stackv4:
   ?clock:mclock impl ->
+  ?entry_points:entry_points impl ->
   ?random:random impl ->
   ?time:time impl ->
   ?group:string ->
@@ -390,7 +405,7 @@ val qubes_ipv4_stack: ?group:string -> ?qubesdb:qubesdb impl -> ?arp:(ethernet i
 
 (** Build a stackv4 by obtaining a DHCP lease, using the lease to
  *  build an ipv4, then building a stack on top of that. *)
-val dhcp_ipv4_stack: ?group:string -> ?random:random impl -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
+val dhcp_ipv4_stack: ?group:string -> ?entry_points:entry_points impl -> ?random:random impl -> ?time:time impl -> ?arp:(ethernet impl -> arpv4 impl) -> network impl -> stackv4 impl
 
 (** Build a stackv4 by checking the {!Key.V4.network}, and {!Key.V4.gateway} keys
  *  for ipv4 configuration information, filling in unspecified information from [?config],
@@ -418,7 +433,7 @@ val generic_stackv4:
 type resolver
 val resolver: resolver typ
 val resolver_dns:
-  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?random:random impl -> ?time:time impl -> stackv4 impl -> resolver impl
+  ?ns:Ipaddr.V4.t -> ?ns_port:int -> ?entry_points:entry_points impl -> ?random:random impl -> ?time:time impl -> stackv4 impl -> resolver impl
 val resolver_unix_system: resolver impl
 
 (** {2 Syslog configuration} *)
@@ -454,11 +469,6 @@ val syslog_tls: ?config:syslog_config -> ?keyname:string -> ?console:console imp
 (** Emit log messages via TLS to the configured host, using the credentials
     (private ekey, certificate, trust anchor) provided in the KV_RO using the
     [keyname]. *)
-
-(** {2 Entropy} *)
-
-val nocrypto: job impl
-(** Device that initializes the entropy. *)
 
 (** {2 Conduit configuration} *)
 

@@ -1,19 +1,20 @@
 open Functoria
+open Mirage_impl_entry_points
 
 type random = RANDOM
 let random = Type RANDOM
 
 let stdlib_random_conf = object
   inherit base_configurable
-  method ty = random
-  method name = "random"
-  method module_name = "Mirage_random_stdlib"
-  method! packages =
-    Mirage_key.pure [ package ~max:"0.1.0" "mirage-random-stdlib" ]
+  method ty = entry_points @-> random
+  method name = "random-stdlib"
+  method module_name = "Mirage_random_stdlib.Make"
+  method! packages = Mirage_key.pure [ package "mirage-random-stdlib" ]
   method! connect _ modname _ = Fmt.strf "%s.initialize ()" modname
 end
 
-let stdlib_random = impl stdlib_random_conf
+let stdlib_random_func = impl stdlib_random_conf
+let stdlib_random entry_points = stdlib_random_func $ entry_points
 
 (* This is to check that entropy is a dependency if "tls" is in
    the package array. *)
@@ -23,41 +24,22 @@ let enable_entropy, is_entropy_enabled =
   let g () = !r in
   (f, g)
 
-let nocrypto = impl @@ object
-    inherit base_configurable
-    method ty = job
-    method name = "nocrypto"
-    method module_name = "Nocrypto_entropy"
-    method! packages =
-      Mirage_key.match_ Mirage_key.(value target) @@ function
-      | `Unix | `MacOSX ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["lwt"] "nocrypto" ]
-      | _ ->
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto" ;
-          package ~min:"0.4.1" ~max:"0.5.0" "mirage-entropy" ]
-
-    method! build _ = Rresult.R.ok (enable_entropy ())
-    method! connect i _ _ =
-      match Mirage_impl_misc.get_target i with
-      | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 ->
-        "Nocrypto_entropy_mirage.initialize ()"
-      | #Mirage_key.mode_unix -> "Nocrypto_entropy_lwt.initialize ()"
-  end
-
 let nocrypto_random_conf = object
   inherit base_configurable
-  method ty = random
-  method name = "random"
-  method module_name = "Nocrypto.Rng"
+  method ty = entry_points @-> random
+  method name = "nocrypto-random"
+  method module_name = "Mirage_entropy_nocrypto.Make"
+  method! build _ = Rresult.R.ok (enable_entropy ())
   method! packages =
-    Mirage_key.pure [ package ~min:"0.5.4" ~max:"0.6.0" "nocrypto" ]
-  method! deps = [abstract nocrypto]
+    Mirage_key.pure [ package "mirage-entropy-nocrypto" ]
 end
 
-let nocrypto_random = impl nocrypto_random_conf
+let nocrypto_random_func = impl nocrypto_random_conf
+let nocrypto_random (entry_points : entry_points impl) = nocrypto_random_func $ entry_points
 
-let default_random =
-  match_impl (Mirage_key.value Mirage_key.prng) [
-    `Stdlib  , stdlib_random;
-    `Nocrypto, nocrypto_random;
-  ] ~default:stdlib_random
+let default_random ?(entry_points = default_entry_points) () =
+  let random = match_impl (Mirage_key.value Mirage_key.prng)
+    [ `Stdlib  , stdlib_random_func
+    ; `Nocrypto, nocrypto_random_func ]
+    ~default:stdlib_random_func in
+  random $ entry_points

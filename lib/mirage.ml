@@ -920,7 +920,7 @@ module Project = struct
   let prelude =
     "open Lwt.Infix\n\
      let return = Lwt.return\n\
-     let run = OS.Main.run"
+     let run t = OS.Main.run t ; exit 0"
 
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [package "mirage"]

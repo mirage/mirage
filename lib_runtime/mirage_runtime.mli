@@ -73,3 +73,37 @@ module Arg: sig
 end
 
 include module type of Functoria_runtime with module Arg := Arg
+
+(** {2 Registering scheduler hooks} *)
+
+val at_exit : (unit -> unit Lwt.t) -> unit
+(** [at_exit hook] registers [hook], which will be executed before the unikernel
+    exits. The first hook registered will be executed last. *)
+
+val at_enter_iter : (unit -> unit) -> unit
+(** [at_enter_iter hook] registers [hook] to be executed at the
+    beginning of each event loop iteration. The first hook registered
+    will be executed last.
+
+    If [hook] calls {!at_enter_iter} recursively, the new hook will
+    run only on the next event loop iteration. *)
+
+val at_leave_iter : (unit -> unit) -> unit
+(** [at_leave_iter hook] registers [hook] to be executed at the end of each
+    event loop iteration. See {!at_enter_iter} for details. *)
+
+(** {2 Running hooks} *)
+
+(** This is mainly for for developers implementing new targets. *)
+
+val run_exit_hooks : unit -> unit Lwt.t
+(** [run_exit_hooks ()] calls the sequence of hooks registered with {!at_exit}
+    in sequence. *)
+
+val run_enter_iter_hooks : unit -> unit
+(** [run_enter_iter_hooks ()] calls the sequence of hooks registered with
+    {!at_enter_iter} in sequence. *)
+
+val run_leave_iter_hooks : unit -> unit
+(** [run_leave_iter_hooks ()] call the sequence of hooks registered with
+    !{at_leave_iter} in sequence. *)

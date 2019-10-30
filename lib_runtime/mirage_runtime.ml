@@ -104,3 +104,28 @@ end
 
 include
   (Functoria_runtime: module type of Functoria_runtime with module Arg := Arg)
+
+let exit_hooks = ref []
+
+let enter_iter_hooks = ref []
+
+let leave_iter_hooks = ref []
+
+let run t = List.iter (fun f -> f ()) !t
+
+let add f t = t := f :: !t
+
+let run_exit_hooks () =
+  Lwt_list.iter_s
+    (fun hook -> Lwt.catch (fun () -> hook ()) (fun _  -> Lwt.return_unit))
+    !exit_hooks
+
+let run_enter_iter_hooks () = run enter_iter_hooks
+
+let run_leave_iter_hooks () = run leave_iter_hooks
+
+let at_exit f = add f exit_hooks
+
+let at_leave_iter f = add f leave_iter_hooks
+
+let at_enter_iter f = add f enter_iter_hooks

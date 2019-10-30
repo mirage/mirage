@@ -23,6 +23,7 @@ depends: [
   "functoria-runtime"  {>= "2.2.2"}
   "fmt"
   "logs"
+  "lwt" {>= "4.4.0"}
 ]
 synopsis: "The base MirageOS runtime library, part of every MirageOS unikernel"
 description: """

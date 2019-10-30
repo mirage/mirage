@@ -85,9 +85,6 @@ val at_enter_iter : (unit -> unit) -> unit
     beginning of each event loop iteration. The first hook registered
     will be executed last.
 
-    If [hook] raises an exception, it will be printed on [stderr] and
-    discarded.
-
     If [hook] calls {!at_enter_iter} recursively, the new hook will
     run only on the next event loop iteration. *)
 

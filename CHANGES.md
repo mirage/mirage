@@ -1,3 +1,9 @@
+### v3.7.0 (2019-11-01)
+
+* mirage-runtime: provide at_enter_iter/at_exit_iter/at_exit hooks for the event loop (#1010, @samoht @dinosaure @hannesm)
+* call `exit 0` after the Lwt event loop returned (to run at_exit handlers in freestanding environments) (#1011, @hannesm)
+* NOTE: this release only contains the mirage-runtime opam package to unblock other releases, there'll be a 3.7.1 soon
+
 ### v3.6.0 (2019-10-02)
 
 * solo5 0.6 support for multiple devices (#993, by @mato)

@@ -17,6 +17,12 @@
  *)
 
 open Rresult
+
+let rec rr_iter f l =
+  match l with
+  | [] -> R.ok ()
+  | x :: l -> f x >>= fun () -> rr_iter f l
+
 open Astring
 
 module Key = Mirage_key
@@ -565,6 +571,9 @@ let unikernel_opam_name name target =
   let target_str = Fmt.strf "%a" Key.pp_target target in
   opam_name name target_str
 
+let clean_opam name target =
+  Bos.OS.File.delete (opam_file (unikernel_opam_name name target))
+
 let solo5_manifest_path = "_build/manifest.json"
 
 let generate_manifest_json () =
@@ -607,6 +616,9 @@ let configure i =
   if target_debug && target <> `Hvt then
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
   configure_myocamlbuild () >>= fun () ->
+  rr_iter (clean_opam name)
+    [`Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode]
+  >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->
@@ -874,18 +886,10 @@ let build i =
   link i name target target_debug >>| fun out ->
   Log.info (fun m -> m "Build succeeded: %s" out)
 
-let clean_opam name target =
-  Bos.OS.File.delete (opam_file (unikernel_opam_name name target))
-
 let clean_binary name suffix =
   Bos.OS.File.delete Fpath.(v name + suffix)
 
 let clean i =
-  let rec rr_iter f l =
-    match l with
-    | [] -> R.ok ()
-    | x :: l -> f x >>= fun () -> rr_iter f l
-  in
   let name = Info.name i in
   clean_main_xl ~name "xl" >>= fun () ->
   clean_main_xl ~name "xl.in" >>= fun () ->

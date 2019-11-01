@@ -106,4 +106,4 @@ val run_enter_iter_hooks : unit -> unit
 
 val run_leave_iter_hooks : unit -> unit
 (** [run_leave_iter_hooks ()] call the sequence of hooks registered with
-    !{at_leave_iter} in sequence. *)
+    {!at_leave_iter} in sequence. *)

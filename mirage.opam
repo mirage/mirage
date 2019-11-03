@@ -17,15 +17,15 @@ build: [
 ]
 
 depends: [
-  "ocaml" {>= "4.05.0"}
+  "ocaml" {>= "4.06.0"}
   "dune" {>= "1.1.0"}
   "ipaddr"             {>= "3.0.0"}
-  "functoria"          {>= "2.2.3"}
+  "functoria"          {>= "3.0.2"}
   "bos"
   "astring"
   "logs"
   "stdlib-shims"
-  "mirage-runtime"     {>= "3.5.0"}
+  "mirage-runtime"     {= version}
 ]
 synopsis: "The MirageOS library operating system"
 description: """

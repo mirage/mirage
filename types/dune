@@ -13,9 +13,4 @@
   (public_name mirage-types-lwt)
   (wrapped     false)
   (modules     mirage_types_lwt)
-  (libraries   cstruct lwt ipaddr mirage-types
-               mirage-time-lwt mirage-random mirage-flow-lwt
-               mirage-console-lwt mirage-block-lwt mirage-clock-lwt
-               mirage-net-lwt mirage-kv-lwt mirage-fs-lwt
-               mirage-channel-lwt
-               mirage-protocols-lwt mirage-stack-lwt))
+  (libraries   mirage-types))

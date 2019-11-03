@@ -16,50 +16,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** lwt-compatible MirageOS signatures.
+(** Deprecated MirageOS signatures, use them directly *)
 
-    {e Release %%VERSION%% } *)
+[@@@ocaml.deprecated "This module will be removed from MirageOS 4.0. Please use the individual signatures (mirage-net / mirage-block / ...) directly."]
 
-module type TIME = Mirage_time_lwt.S
-module type MCLOCK = Mirage_clock_lwt.MCLOCK
-module type PCLOCK = Mirage_clock_lwt.PCLOCK
-
-module type RANDOM = Mirage_random.C
-module type FLOW = Mirage_flow_lwt.S
-
-(** Consoles *)
-module type CONSOLE = Mirage_console_lwt.S
-
-(** Block devices *)
-module type BLOCK = Mirage_block_lwt.S
-
-(** Network *)
-module type NETWORK = Mirage_net_lwt.S
-
-(** Network protocol implementations from Mirage_protocols *)
-module type ETHERNET = Mirage_protocols_lwt.ETHERNET
-module type ARP = Mirage_protocols_lwt.ARP
-module type IP = Mirage_protocols_lwt.IP
-module type IPV4 = Mirage_protocols_lwt.IPV4
-module type IPV6 = Mirage_protocols_lwt.IPV6
-module type ICMP = Mirage_protocols_lwt.ICMP
-module type ICMPV4 = Mirage_protocols_lwt.ICMPV4
-module type UDP = Mirage_protocols_lwt.UDP
-module type UDPV4 = Mirage_protocols_lwt.UDPV4
-module type UDPV6 = Mirage_protocols_lwt.UDPV6
-module type TCP = Mirage_protocols_lwt.TCP
-module type TCPV4 = Mirage_protocols_lwt.TCPV4
-module type TCPV6 = Mirage_protocols_lwt.TCPV6
-
-(** Buffered TCP channel *)
-module type CHANNEL = Mirage_channel_lwt.S
-
-(** Key-value stores *)
-module type KV_RO = Mirage_kv_lwt.RO
-module type KV_RW = Mirage_kv_lwt.RW
-
-(** FS *)
-module type FS = Mirage_fs_lwt.S
-
-(** Single network stack *)
-module type STACKV4 = Mirage_stack_lwt.V4
+include Mirage_types

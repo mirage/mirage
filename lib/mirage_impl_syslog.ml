@@ -32,7 +32,7 @@ let opt_int = opt Fmt.int
 let opt_string = opt (fun pp v -> Format.fprintf pp "%S" v)
 
 let pkg sublibs =
-  Key.pure [ package ~min:"0.2.0" ~max:"0.3.0" ~sublibs "logs-syslog" ]
+  Key.pure [ package ~min:"0.2.2" ~max:"0.3.0" ~sublibs "logs-syslog" ]
 
 let syslog_udp_conf config =
   let endpoint = Key.syslog config.server

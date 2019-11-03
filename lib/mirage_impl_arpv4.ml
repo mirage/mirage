@@ -13,7 +13,7 @@ let arp_conf = object
   method name = "arp"
   method module_name = "Arp.Make"
   method! packages =
-    Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "arp-mirage" ]
+    Key.pure [ package ~min:"2.2.0" ~max:"3.0.0" "arp-mirage" ]
   method! connect _ modname = function
     | [ eth ; _time ] -> Fmt.strf "%s.connect %s" modname eth
     | _ -> failwith (connect_err "arp" 3)

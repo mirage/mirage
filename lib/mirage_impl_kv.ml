@@ -15,8 +15,8 @@ let crunch dirname = impl @@ object
     method module_name = String.Ascii.capitalize name
     method! packages =
       Key.pure [
-        package "mirage-kv-mem";
-        package ~min:"3.0.0" ~max:"4.0.0" ~build:true "crunch"
+        package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem";
+        package ~min:"3.1.0" ~max:"4.0.0" ~build:true "crunch"
       ]
     method! connect _ modname _ = Fmt.strf "%s.connect ()" modname
     method! build _i =
@@ -40,7 +40,7 @@ let direct_kv_ro dirname = impl @@ object
     method name = name
     method module_name = "Mirage_kv_unix"
     method! packages =
-      Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-kv-unix" ]
+      Key.pure [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ]
     method! connect i modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
       Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
@@ -67,7 +67,7 @@ let direct_kv_rw dirname = impl @@ object
     method name = name
     method module_name = "Mirage_kv_unix"
     method! packages =
-      Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-kv-unix" ]
+      Key.pure [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ]
     method! connect i modname _names =
       let path = Fpath.(Info.build_dir i / dirname) in
       Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
@@ -79,7 +79,7 @@ let mem_kv_rw_config = impl @@ object
     method name = "mirage-kv-mem"
     method module_name = "Mirage_kv_mem.Make"
     method! packages =
-      Key.pure [ package ~min:"2.0.0" ~max:"3.0.0" "mirage-kv-mem" ]
+      Key.pure [ package ~min:"3.0.0" ~max:"4.0.0" "mirage-kv-mem" ]
     method! connect _i modname _names =
       Fmt.strf "%s.connect ()" modname
   end

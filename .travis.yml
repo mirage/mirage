@@ -1,11 +1,15 @@
 language: c
-sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
-script: bash -ex .travis-opam.sh
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-docker.sh
+script: bash -ex .travis-docker.sh
+services:
+  - docker
+sudo: false
 env:
   global:
   - PINS="functoria.dev:. functoria-runtime.dev:."
   - REVDEPS=true
+  - DISTRO=alpine
+  - TESTS=true
   matrix:
   - OCAML_VERSION=4.04 PACKAGE="functoria"
   - OCAML_VERSION=4.05 PACKAGE="functoria"

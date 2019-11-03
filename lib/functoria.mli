@@ -122,8 +122,8 @@ type package = private {
   pin : string option ;
   build : bool ;
   ocamlfind : Astring.String.Set.t ;
-  min : string option ;
-  max : string option
+  min : Astring.String.Set.t ;
+  max : Astring.String.Set.t ;
 }
 (** The type of a package *)
 

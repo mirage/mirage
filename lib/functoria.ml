@@ -26,67 +26,28 @@ type package = {
   pin : string option ;
   build : bool ;
   ocamlfind : String.Set.t ;
-  min : string option ;
-  max : string option
+  min : String.Set.t ;
+  max : String.Set.t ;
 }
 
 module Package = struct
-  (* we could have copied code from opam, but that's LGPL *)
-  let version_of_string s =
-    let r = List.fold_left (fun acc v ->
-        match Astring.String.to_int v with
-        | Some n -> n :: acc
-        | None -> invalid_arg "cannot parse version number")
-        []
-        (Astring.String.cuts ~sep:"." s)
-    in
-    List.rev r
-
-  let compare_version v1 v2 =
-    let rec cmp a b =
-      match a, b with
-      | x::xs, y::ys when x = y -> cmp xs ys
-      | x::_, y::_ -> compare x y
-      | [], y::ys when y = 0 -> cmp [] ys
-      | [], y::_ -> compare 0 y
-      | x::xs, [] when x = 0 -> cmp xs []
-      | x::_, [] -> compare x 0
-      | [], [] -> 0
-    in
-    let v1 = version_of_string v1
-    and v2 = version_of_string v2
-    in
-    cmp v1 v2
-
-  let m_option f a b = match a, b with
-    | None, None -> None
-    | Some a, None -> Some a
-    | None, Some b -> Some b
-    | Some a, Some b -> Some (f a b)
-
   let merge opam a b =
     let ocamlfind = String.Set.union a.ocamlfind b.ocamlfind
-    and min =
-      m_option
-        (fun a b -> match compare_version a b with 0 -> a | 1 -> a | _ -> b)
-        a.min b.min
-    and max =
-      m_option
-        (fun a b -> match compare_version a b with 0 -> a | 1 -> b | _ -> a)
-        a.max b.max
+    and min = String.Set.union a.min b.min
+    and max = String.Set.union a.max b.max
     and pin =
-      m_option
-        (fun a b -> if String.equal a b then a else invalid_arg ("conflicting pin depends for " ^ opam))
-        a.pin b.pin
+      match a.pin, b.pin with
+      | None, None -> None
+      | None, Some a | Some a, None -> Some a
+      | Some a, Some b when String.equal a b -> Some a
+      | _ -> invalid_arg ("conflicting pin depends for " ^ opam)
     and build = if not a.build || not b.build then false else true
     in
-    match pin, min, max with
-    | Some _, _, _ ->
+    match pin with
+    | Some _ ->
       (* pin wins over min and max *)
-      Some { opam ; build ; ocamlfind ; min = None ; max = None ; pin }
-    | None, Some a, Some b when compare_version a b >= 0 ->
-      invalid_arg ("version constraint for " ^ opam ^ " must be that min is smaller than max")
-    | _ ->
+      Some { opam ; build ; ocamlfind ; min = String.Set.empty ; max = String.Set.empty ; pin }
+    | None ->
       Some { opam ; build ; ocamlfind ; min ; max ; pin }
 
   let package ?(build = false) ?sublibs ?ocamlfind ?min ?max ?pin opam =
@@ -98,10 +59,9 @@ module Package = struct
         invalid_arg ("dependent package " ^ opam ^ " may either specify ~sublibs or ~ocamlfind")
     in
     let ocamlfind = String.Set.of_list ocamlfind in
-    match min, max with
-    | Some min, Some max when compare_version min max >= 0 ->
-      invalid_arg ("invalid version constraints for " ^ opam)
-    | _ -> { opam ; build ; ocamlfind ; min ; max ; pin }
+    let to_set = function None -> String.Set.empty | Some m -> String.Set.singleton m in
+    let min = to_set min and max = to_set max in
+    { opam ; build ; ocamlfind ; min ; max ; pin }
 
   let libraries ps =
     let ocamlfind p = if p.build then String.Set.empty else p.ocamlfind in
@@ -114,11 +74,17 @@ module Package = struct
 
   let exts_to_string min max build =
     let bui = if build then "build & " else "" in
-    match min, max with
-    | None, None -> if build then "{build}" else ""
-    | Some a, None -> Printf.sprintf "{%s>=\"%s\"}" bui a
-    | None, Some b -> Printf.sprintf "{%s<\"%s\"}" bui b
-    | Some a, Some b -> Printf.sprintf "{%s>=\"%s\" & <\"%s\"}" bui a b
+    let esc_prefix prefix e = Printf.sprintf "%s %S" prefix e in
+    let min_strs = List.map (esc_prefix ">=") (String.Set.elements min)
+    and max_strs = List.map (esc_prefix "<") (String.Set.elements max)
+    and flat xs = String.concat ~sep:" & " xs
+    in
+    match String.Set.is_empty min, String.Set.is_empty max with
+    | true, true -> if build then "{build}" else ""
+    | false, true -> Printf.sprintf "{%s %s}" bui (flat min_strs)
+    | true, false -> Printf.sprintf "{%s %s}" bui (flat max_strs)
+    | false, false ->
+      Printf.sprintf "{%s %s & %s}" bui (flat min_strs) (flat max_strs)
 
   let pp_package t ppf p =
     Fmt.pf ppf "%s%s%s %s" t p.opam t (exts_to_string p.min p.max p.build)

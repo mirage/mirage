@@ -30,7 +30,7 @@ let nocrypto = impl @@ object
     method module_name = "Nocrypto_entropy"
     method! packages =
       Mirage_key.pure
-        [ package ~min:"0.5.4" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto" ;
+        [ package ~min:"0.5.4-2" ~max:"0.6.0" ~sublibs:["mirage"] "nocrypto" ;
           package ~min:"0.5.0" ~max:"0.6.0" "mirage-entropy" ]
 
     method! build _ = Rresult.R.ok (enable_entropy ())
@@ -43,7 +43,7 @@ let nocrypto_random_conf = object
   method name = "random"
   method module_name = "Nocrypto.Rng"
   method! packages =
-    Mirage_key.pure [ package ~min:"0.5.4" ~max:"0.6.0" "nocrypto" ]
+    Mirage_key.pure [ package ~min:"0.5.4-2" ~max:"0.6.0" "nocrypto" ]
   method! deps = [abstract nocrypto]
 end
 

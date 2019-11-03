@@ -1,3 +1,16 @@
+## v3.0.2 (2019-11-03)
+
+* Remove custom opam version comparison code, instead collect min and max as
+  sets and output them all (#183, @hannesm fixes #143)
+  for `package ~min:"1.0" ~max:"2.0" "a" ; package ~min:"1.5" ~max:"2.0" "a"`,
+  the output is now `"a" {>= "1.0" & >= "1.5" & < "2.0"}`, it used to be
+  `"a" {>= "1.5" & < "2.0"}`.
+
+  The advantage of avoiding to parse version numbers is that it can't be
+  incompatible with how opam works (functoria's approach used to not support
+  "1.0~beta", "1.0-5", "v1.0"; and it used to handle "1.0" and "1.0.0"
+  differently than opam).
+
 ## v3.0.1 (2019-10-21)
 
 * Use `dune` to compile `config.ml` into an executable and run it.

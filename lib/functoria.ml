@@ -41,7 +41,7 @@ module Package = struct
       | None, Some a | Some a, None -> Some a
       | Some a, Some b when String.equal a b -> Some a
       | _ -> invalid_arg ("conflicting pin depends for " ^ opam)
-    and build = if not a.build || not b.build then false else true
+    and build = a.build || b.build
     in
     match pin with
     | Some _ ->

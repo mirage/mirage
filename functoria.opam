@@ -20,7 +20,7 @@ build: [
 
 depends: [
   "ocaml" {>= "4.04.0"}
-  "dune"
+  "dune" {>= "1.1.0"}
   "base-unix"
   "cmdliner" {>= "0.9.8"}
   "rresult"

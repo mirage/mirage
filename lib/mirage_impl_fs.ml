@@ -10,7 +10,7 @@ type t = FS
 
 let typ = Type FS
 
-let fat_pkg = package ~min:"0.12.0" ~max:"0.13.0" "fat-filesystem"
+let fat_pkg = package ~min:"0.14.0" ~max:"0.15.0" "fat-filesystem"
 
 let fat_conf = impl @@ object
     inherit base_configurable

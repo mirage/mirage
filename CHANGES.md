@@ -1,7 +1,11 @@
+### v3.7.2 (2019-11-18)
+
+* adjust fat-filesystem constraints to >= 0.14 && < 0.15 (#1015, @hannesm)
+
 ### v3.7.1 (2019-11-03)
 
 * clean opam files when `mirage configure` is executed (#1013 @dinosaure)
-* deprecate mirage-types and mirage-types-lwt (#1006 @hannes)
+* deprecate mirage-types and mirage-types-lwt (#1006 @hannesm)
 * remove abstraction over 'type 'a io' and 'buffer', remove mirage-*-lwt packages (#1006 @hannesm)
 * unify targets in respect to hooks (Mirage_runtime provides the hooks and registration)
 * unify targets in respect to error handling (no toplevel try .. with installed anymore, mirage-unix does no longer ignore all errors)

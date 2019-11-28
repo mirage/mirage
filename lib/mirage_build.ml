@@ -66,6 +66,8 @@ let compile ignore_dirs libs warn_error target =
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
 
+let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
+
 let build i =
   let name = Info.name i in
   let ctx = Info.context i in
@@ -74,7 +76,7 @@ let build i =
   let libs = Info.libraries i in
   let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
-  compile Mirage_configure_solo5.ignore_dirs libs warn_error target >>= fun () ->
+  compile ignore_dirs libs warn_error target >>= fun () ->
   (match target with
     | #Mirage_key.mode_solo5 ->
         Mirage_configure_solo5.generate_manifest_c () >>= fun () ->

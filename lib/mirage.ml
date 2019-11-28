@@ -204,8 +204,7 @@ module Project = struct
   (* The ocamlfind packages to use when compiling config.ml *)
   let packages = [package "mirage"]
 
-  (* The directories to ignore when compiling config.ml *)
-  let ignore_dirs = Mirage_configure_solo5.ignore_dirs
+  let ignore_dirs = Mirage_build.ignore_dirs
 
   let create jobs = impl @@ object
       inherit base_configurable

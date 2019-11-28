@@ -65,5 +65,3 @@ let compile_manifest target =
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
-
-let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]

@@ -1,10 +1,4 @@
-open Rresult
-open Astring
-open Mirage_impl_misc
-
-module Key = Mirage_key
-module Info = Functoria.Info
-
+(*
 let static_libs pkg_config_deps =
   pkg_config pkg_config_deps [ "--static" ; "--libs" ]
 
@@ -83,5 +77,6 @@ let link info name target _target_debug =
     Log.info (fun m -> m "linking with %a" Bos.Cmd.pp linker);
     Bos.OS.Cmd.run linker >>= fun () ->
     Ok out
+*)
 
-
+let link _info _name _target _target_debug = Ok ()

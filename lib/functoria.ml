@@ -256,6 +256,7 @@ let rec equal
   = fun x y -> match x, y with
     | Impl c, Impl c' ->
       c#name = c'#name
+      && List.for_all2 Key.equal c#keys c'#keys
       && List.for_all2 equal_any c#deps c'#deps
     | App a, App b -> equal a.f b.f && equal a.x b.x
     | If (cond1, t1, e1), If (cond2, t2, e2) ->

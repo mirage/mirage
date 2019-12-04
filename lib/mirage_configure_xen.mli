@@ -19,3 +19,4 @@ val clean_main_xl : name:string -> ext:string -> (unit, [> R.msg ]) result
 
 val configure_main_xe : root:string -> name:string -> (unit, [> R.msg ]) result
 val clean_main_xe : name:string -> (unit, [> R.msg ]) result
+val configure_xen : name:string -> binary_location:string -> target:Mirage_key.mode -> (Sexplib.Sexp.t list, [> R.msg ]) result

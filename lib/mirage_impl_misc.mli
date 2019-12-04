@@ -30,3 +30,5 @@ val extra_c_artifacts : string -> string list -> (string list, [> R.msg ]) resul
 val terminal : unit -> bool
 
 val rr_iter : ('a -> (unit, 'e) result) -> 'a list -> (unit, 'e) result
+
+val sexp_of_fmt : ('a, Format.formatter, unit, Sexplib.Sexp.t) format4 -> 'a

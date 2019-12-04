@@ -25,6 +25,7 @@ depends: [
   "astring"
   "logs"
   "stdlib-shims"
+  "sexplib"
   "mirage-runtime"     {>= "3.7.0" & < "3.8.0"}
 ]
 synopsis: "The MirageOS library operating system"

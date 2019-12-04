@@ -105,3 +105,5 @@ let rec rr_iter f l =
   match l with
   | [] -> R.ok ()
   | x :: l -> f x >>= fun () -> rr_iter f l
+
+let sexp_of_fmt fmt = Fmt.kstrf Sexplib.Sexp.of_string fmt

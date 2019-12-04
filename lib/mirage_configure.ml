@@ -212,10 +212,11 @@ let configure i =
   let target_debug = Key.(get ctx target_debug) in
   if target_debug && target <> `Hvt then
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);
-  configure_myocamlbuild () >>= fun () ->
+  configure_dune i >>= fun () ->
   rr_iter (clean_opam ~name)
     [`Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode]
   >>= fun () ->
+  configure_dune_workspace i >>= fun () ->
   configure_opam ~name:opam_name i >>= fun () ->
   let no_depext = Key.(get ctx no_depext) in
   configure_makefile ~no_depext ~opam_name >>= fun () ->

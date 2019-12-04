@@ -94,6 +94,9 @@ let extra_c_artifacts target pkgs =
   in
   R.ok r
 
+let static_libs pkg_config_deps =
+  pkg_config pkg_config_deps [ "--static"; "--libs" ]
+
 let terminal () =
   let dumb = try Sys.getenv "TERM" = "dumb" with Not_found -> true in
   let isatty = try Unix.(isatty (descr_of_out_channel Stdlib.stdout)) with

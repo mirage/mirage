@@ -5,10 +5,18 @@ open Mirage_impl_misc
 module Key = Mirage_key
 module Info = Functoria.Info
 module Codegen = Functoria_app.Codegen
+module CC_to_OPT = Mirage_cc_to_opt
 
 open Mirage_configure_virtio
 open Mirage_configure_xen
 open Mirage_configure_solo5
+open Mirage_configure_unix
+
+let configure_post_build_rules _ ~name ~binary_location ~target =
+  match target with
+  | #Mirage_key.mode_unix -> configure_unix ~name ~binary_location ~target
+  | #Mirage_key.mode_xen -> configure_xen ~name ~binary_location ~target
+  | #Mirage_key.mode_solo5 -> configure_solo5 ~name ~binary_location ~target
 
 let myocamlbuild_path = Fpath.(v "myocamlbuild.ml")
 
@@ -87,6 +95,112 @@ let configure_makefile ~no_depext ~opam_name =
         opam_name opam_name opam_name depext;
       R.ok ())
     "Makefile"
+
+let custom_runtime = function
+  | #Mirage_key.mode_xen -> Some "xen"
+  | #Mirage_key.mode_unix | #Mirage_key.mode_solo5 -> None
+
+let output_of_target = function
+  | #Mirage_key.mode_unix -> "main.exe"
+  | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> "main.exe.o"
+
+let variant_of_target = function
+  | #Mirage_key.mode_solo5 -> "freestanding"
+  | #Mirage_key.mode_xen -> "xen"
+  | #Mirage_key.mode_unix -> "unix"
+
+let exclude_modules_of_target = function
+  | #Mirage_key.mode_solo5 -> [ "config"; "manifest" ]
+  | #Mirage_key.mode_xen | #Mirage_key.mode_unix -> [ "config" ]
+
+let dune_path = Fpath.v "dune.build"
+let dune_project_path = Fpath.v "dune-project"
+let dune_workspace_path = Fpath.v "dune-workspace"
+
+let configure_dune i =
+  let ctx = Info.context i in
+  let warn_error = Key.(get ctx warn_error) in
+  let target = Key.(get ctx target) in
+  let custom_runtime = custom_runtime target in
+  let libs = Info.libraries i in
+  let name = Info.name i in
+  let binary_location = output_of_target target in
+  let cflags =
+    [ "-g"; "-w"; "+A-4-41-42-44"; "-bin-annot"; "-strict-sequence";
+      "-principal"; "-safe-string" ]
+    @ (if warn_error then [ "-warn-error"; "+1..49" ] else [])
+    @ (match target with #Mirage_key.mode_unix -> [ "-thread" ] | _ -> [])
+    @ (if terminal () then [ "-color"; "always" ] else [])
+    @ (match custom_runtime with Some runtime -> [ "-runtime-variant"; runtime ] | _ -> []) in
+  ( match target with
+    | #Mirage_key.mode_solo5 ->
+      extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
+      static_libs "mirage-solo5" >>= fun static_libs -> Ok (c_artifacts, static_libs)
+    | #Mirage_key.mode_xen ->
+      extra_c_artifacts "xen" libs >>= fun c_artifacts ->
+      static_libs "mirage-xen" >>= fun static_libs -> Ok (c_artifacts, static_libs)
+    | #Mirage_key.mode_unix -> Ok ([], []) ) >>= fun (c_artifacts, static_libs) ->
+  CC_to_OPT.run (Array.of_list (c_artifacts @ static_libs)) >>= fun lflags ->
+  let s_output_mode = match target with
+    | #Mirage_key.mode_unix -> "(native exe)"
+    | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen -> "(native object)" in
+  let s_libraries = String.concat ~sep:" " libs in
+  let s_lflags = String.concat ~sep:" " lflags in
+  let s_cflags = String.concat ~sep:" " cflags in
+  let s_variants = variant_of_target target in
+  let s_exclude_modules = String.concat ~sep:" " (exclude_modules_of_target target) in
+  let res =
+    Fmt.strf
+      {sexp|
+        (executable
+          (name main)
+          (modes %s)
+          (libraries %s)
+          (link_flags %s)
+          (modules (:standard \ %s))
+          (flags %s)
+          (variants %s))
+        |sexp}
+        s_output_mode
+        s_libraries
+        s_lflags
+        s_exclude_modules
+        s_cflags
+        s_variants in
+  configure_post_build_rules i ~name ~binary_location ~target >>= fun rules ->
+  let res = res ^ "\n" in
+  let rules = List.map (fun x -> Sexplib.Sexp.to_string_hum x ^ "\n") rules in
+  Bos.OS.File.write_lines dune_path (res :: rules)
+
+let configure_dune_workspace i =
+  let ctx = Info.context i in
+  let target = Key.(get ctx target) in
+  let lang = sexp_of_fmt {sexp|(lang dune 2.0)|sexp}
+  and variant_feature = sexp_of_fmt {sexp|(using library_variants 0.2)|sexp}
+  and implicit_transitive_deps = sexp_of_fmt {sexp|(implicit_transitive_deps true)|sexp}
+  and profile_release = sexp_of_fmt {sexp|(profile release)|sexp}
+  and base_context = sexp_of_fmt {sexp|(context (default))|sexp} in
+  let extra_contexts = match target with
+    | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
+      [ sexp_of_fmt {sexp|
+          (context (default
+            (name mirage-%s)
+            (host default)
+            (env (_ (c_flags (:include cflags.sexp))))))
+          |sexp} (variant_of_target target) ]
+    | #Mirage_key.mode_unix -> [] in
+  let rules = lang :: profile_release :: base_context :: extra_contexts in
+  Bos.OS.File.write_lines
+    dune_workspace_path
+    (List.map (fun x -> Sexplib.Sexp.to_string_hum x ^ "\n") rules) >>= fun () ->
+  let rules = [ lang; variant_feature; implicit_transitive_deps; ] in
+  Bos.OS.File.write_lines
+    dune_project_path
+    (List.map (fun x -> Sexplib.Sexp.to_string_hum x ^ "\n") rules)
+
+let clean_dune () = Bos.OS.File.delete dune_path
+let clean_dune_project () = Bos.OS.File.delete dune_project_path
+let clean_dune_workspace () = Bos.OS.File.delete dune_workspace_path
 
 let configure i =
   let name = Info.name i in

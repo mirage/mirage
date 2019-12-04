@@ -2,6 +2,7 @@ open Rresult
 open Astring
 open Mirage_impl_misc
 
+module Key = Mirage_key
 module Info = Functoria.Info
 module Codegen = Functoria_app.Codegen
 module Log = Mirage_impl_misc.Log

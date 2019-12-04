@@ -17,6 +17,7 @@ let check_entropy libs =
   else
     R.ok ()
 
+(*
 let compile ignore_dirs libs warn_error target =
   let tags =
     [ Fmt.strf "predicate(%s)" (backend_predicate target);
@@ -65,22 +66,27 @@ let compile ignore_dirs libs warn_error target =
   in
   Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
   Bos.OS.Cmd.run cmd
+*)
 
 let ignore_dirs = ["_build-solo5-hvt"; "_build-ukvm"]
+
+let cross_compile = fun _ -> None
+
+let compile target =
+  let target_name = Fmt.to_to_string Key.pp_target target in
+  let cmd = match cross_compile target with
+    | None -> Bos.Cmd.(v "dune" % "build" % ("@" ^ target_name))
+    | Some b -> Bos.Cmd.(v "dune" % "build" % ("@" ^ target_name) % "-x" % b) in
+  Log.info (fun m -> m "Executing %a" Bos.Cmd.pp cmd) ;
+  Bos.OS.Cmd.run cmd
 
 let build i =
   let name = Info.name i in
   let ctx = Info.context i in
-  let warn_error = Key.(get ctx warn_error) in
   let target = Key.(get ctx target) in
   let libs = Info.libraries i in
   let target_debug = Key.(get ctx target_debug) in
   check_entropy libs >>= fun () ->
-  compile ignore_dirs libs warn_error target >>= fun () ->
-  (match target with
-    | #Mirage_key.mode_solo5 ->
-        Mirage_configure_solo5.generate_manifest_c () >>= fun () ->
-        Mirage_configure_solo5.compile_manifest target
-    | _ -> R.ok ()) >>= fun () ->
-  link i name target target_debug >>| fun out ->
-  Log.info (fun m -> m "Build succeeded: %s" out)
+  compile target >>= fun () ->
+  link i name target target_debug >>| fun () ->
+  Log.info (fun m -> m "Build succeeded.")

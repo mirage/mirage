@@ -211,6 +211,7 @@ end
 
 type t = Set.elt = Any: 'a key -> t
 let compare = Set.M.compare
+let equal (Any x) (Any y) = String.equal x.name y.name
 
 module Alias = struct
 

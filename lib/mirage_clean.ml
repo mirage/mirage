@@ -17,6 +17,7 @@ let clean i =
   Mirage_configure.clean_dune_workspace () >>= fun () ->
   Mirage_configure.clean_dune_project () >>= fun () ->
   Mirage_configure_solo5.clean_manifest () >>= fun () ->
+  Bos.OS.File.delete Fpath.(v "extra-libraries.sexp") >>= fun () ->
   Bos.OS.File.delete Fpath.(v "Makefile") >>= fun () ->
   rr_iter (Mirage_configure.clean_opam ~name)
     [`Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode]

@@ -5,7 +5,6 @@ open Mirage_impl_misc
 module Key = Mirage_key
 module Info = Functoria.Info
 module Codegen = Functoria_app.Codegen
-module CC_to_OPT = Mirage_cc_to_opt
 
 open Mirage_configure_virtio
 open Mirage_configure_xen
@@ -129,43 +128,37 @@ let configure_dune i =
     [ "-g"; "-w"; "+A-4-41-42-44"; "-bin-annot"; "-strict-sequence";
       "-principal"; "-safe-string" ]
     @ (if warn_error then [ "-warn-error"; "+1..49" ] else [])
-    @ (match target with #Mirage_key.mode_unix -> [ "-thread" ] | _ -> [])
     @ (if terminal () then [ "-color"; "always" ] else [])
     @ (match custom_runtime with Some runtime -> [ "-runtime-variant"; runtime ] | _ -> []) in
-  ( match target with
-    | #Mirage_key.mode_solo5 ->
-      extra_c_artifacts "freestanding" libs >>= fun c_artifacts ->
-      static_libs "mirage-solo5" >>= fun static_libs -> Ok (c_artifacts, static_libs)
-    | #Mirage_key.mode_xen ->
-      extra_c_artifacts "xen" libs >>= fun c_artifacts ->
-      static_libs "mirage-xen" >>= fun static_libs -> Ok (c_artifacts, static_libs)
-    | #Mirage_key.mode_unix -> Ok ([], []) ) >>= fun (c_artifacts, static_libs) ->
-  CC_to_OPT.run (Array.of_list (c_artifacts @ static_libs)) >>= fun lflags ->
+
   let s_output_mode = match target with
     | #Mirage_key.mode_unix -> "(native exe)"
     | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen -> "(native object)" in
   let s_libraries = String.concat ~sep:" " libs in
-  let s_lflags = String.concat ~sep:" " lflags in
   let s_cflags = String.concat ~sep:" " cflags in
   let s_variants = variant_of_target target in
+  let s_forbidden = match target with
+    | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> "(forbidden_libraries unix)"
+    | #Mirage_key.mode_unix -> "" in
   let s_exclude_modules = String.concat ~sep:" " (exclude_modules_of_target target) in
   let res =
     Fmt.strf
-      {sexp|
-        (executable
-          (name main)
-          (modes %s)
-          (libraries %s)
-          (link_flags %s)
-          (modules (:standard \ %s))
-          (flags %s)
-          (variants %s))
-        |sexp}
+{sexp|
+(executable
+  (name main)
+  (modes %s)
+  (libraries %s)
+  (link_flags (:include libs.sexp))
+  (modules (:standard \ %s))
+  (flags %s)
+  %s
+  (variants %s))
+|sexp}
         s_output_mode
         s_libraries
-        s_lflags
         s_exclude_modules
         s_cflags
+        s_forbidden
         s_variants in
   configure_post_build_rules i ~name ~binary_location ~target >>= fun rules ->
   let res = res ^ "\n" in

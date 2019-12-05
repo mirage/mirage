@@ -5,6 +5,7 @@ open Mirage_link
 
 module Key = Mirage_key
 module Info = Functoria.Info
+module CC_to_OPT = Mirage_cc_to_opt
 
 let check_entropy libs =
   query_ocamlfind ~recursive:true libs >>= fun ps ->

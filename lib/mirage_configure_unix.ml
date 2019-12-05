@@ -12,6 +12,13 @@ let configure_unix ~name ~binary_location ~target =
         (enabled_if (= %%{context_name} "default"))
         (deps %s))
       |sexp} target_name name in
+  let libs =
+    sexp_of_fmt
+      {sexp|
+      (rule
+        (target libs.sexp)
+        (action (with-stdout-to %%{target} (echo "(-thread)"))))
+      |sexp} in
   let rule =
     sexp_of_fmt
       {sexp|
@@ -21,4 +28,4 @@ let configure_unix ~name ~binary_location ~target =
         (mode promote)
         (action (run ln -nfs %s %s)))
       |sexp} name binary_location binary_location name in
-  Ok [ alias; rule; ]
+  Ok [ alias; libs; rule; ]

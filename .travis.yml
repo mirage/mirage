@@ -7,7 +7,7 @@ sudo: false
 env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
+   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:. ocaml-freestanding:https://github.com/dinosaure/ocaml-freestanding.git#dunification ocplib-endian:https://github.com/dune-universe/ocplib-endian.git#duniverse-1.0 sexplib:https://github.com/dinosaure/sexplib.git#bigarray-compat nocrypto:https://github.com/dinosaure/ocaml-nocrypto.git#bigarray-compat"
    - PACKAGE=mirage
    - TESTS=false
  matrix:

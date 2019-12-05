@@ -219,7 +219,7 @@ let configure_xen_default ~out ~linker_command ~binary_location =
         (mode promote)
         (targets %s)
         (deps %s)
-        (action (run %s -o %s)))
+        (action (run %s %%{read-lines:lib:mirage-xen-ocaml:ldflags} -o %s)))
       |sexp} out binary_location linker_command out in
   Ok [ rule ]
 

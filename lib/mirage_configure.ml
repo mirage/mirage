@@ -148,24 +148,29 @@ let configure_dune i =
   let s_lflags = String.concat ~sep:" " lflags in
   let s_cflags = String.concat ~sep:" " cflags in
   let s_variants = variant_of_target target in
+  let s_forbidden = match target with
+    | #Mirage_key.mode_xen | #Mirage_key.mode_solo5 -> "(forbidden_libraries unix)"
+    | #Mirage_key.mode_unix -> "" in
   let s_exclude_modules = String.concat ~sep:" " (exclude_modules_of_target target) in
   let res =
     Fmt.strf
-      {sexp|
-        (executable
-          (name main)
-          (modes %s)
-          (libraries %s)
-          (link_flags %s)
-          (modules (:standard \ %s))
-          (flags %s)
-          (variants %s))
-        |sexp}
+{sexp|
+  (executable
+    (name main)
+    (modes %s)
+    (libraries %s)
+    (link_flags %s)
+    (modules (:standard \ %s))
+    (flags %s)
+    %s
+    (variants %s))
+  |sexp}
         s_output_mode
         s_libraries
         s_lflags
         s_exclude_modules
         s_cflags
+        s_forbidden
         s_variants in
   configure_post_build_rules i ~name ~binary_location ~target >>= fun rules ->
   let res = res ^ "\n" in

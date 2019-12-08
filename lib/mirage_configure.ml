@@ -32,6 +32,16 @@ let clean_myocamlbuild () =
 
 let opam_path ~name = Fpath.(v name + "opam")
 
+let binary_suffix = function
+  | `Hvt -> ".hvt"
+  | `Spt -> ".spt"
+  | `Unix | `MacOSX -> ""
+  | `Virtio -> ".virtio"
+  | `Xen -> ".xen"
+  | `Qubes -> ".xen"
+  | `Genode -> ""
+  | `Muen -> ""
+
 let configure_opam ~name info =
   let open Codegen in
   let file = opam_path ~name in
@@ -39,12 +49,19 @@ let configure_opam ~name info =
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
       Info.opam ~name fmt info;
-      append fmt "maintainer: \"dummy\"";
-      append fmt "authors: \"dummy\"";
-      append fmt "homepage: \"dummy\"";
-      append fmt "bug-reports: \"dummy\"";
-      append fmt "build: [ \"mirage\" \"build\" ]";
-      append fmt "synopsis: \"This is a dummy\"";
+      append fmt {|maintainer: "dummy"|};
+      append fmt {|authors: "dummy"|};
+      append fmt {|homepage: "dummy"|};
+      append fmt {|bug-reports: "dummy"|};
+      (* TODO figure out git repository root to use here (cd ___ && mirage configure ..) *)
+      append fmt {|build: [ "/bin/sh" "-eax" "mirage %a && mirage build" ]|}
+        Fmt.(list ~sep:(unit " ") string) (List.tl (Array.to_list Sys.argv));
+      append fmt {|synopsis: "This is a dummy"|};
+      (* TODO potentially embed subdirectory (cp ___/zzz) *)
+      let ext = binary_suffix (Key.(get (Info.context info) target)) in
+      append fmt {|install: [ "cp" "%s%s" "%%{prefix}%%/bin/" ]|}
+        (Info.name info) ext;
+      (* TODO compute git origin and commit to embed a url { src: git version } *)
       R.ok ())
     "opam file"
 

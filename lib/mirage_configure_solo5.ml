@@ -14,6 +14,7 @@ let generate_manifest_json () =
   Log.info (fun m -> m "generating manifest");
   let networks = List.map (fun n -> (n, `Network))
     !Mirage_impl_network.all_networks in
+  Log.info (fun m -> m "Networks: %s" networks );
   let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
       Mirage_impl_block.all_blocks [] in
   let to_string (name, typ) =
@@ -21,6 +22,7 @@ let generate_manifest_json () =
       name
       (match typ with `Network -> "NET_BASIC" | `Block -> "BLOCK_BASIC") in
   let devices = List.map to_string (networks @ blocks) in
+  Log.info (fun m -> m "Devices: %s" devices );
   let s = String.concat ~sep:", " devices in
   let open Codegen in
   let file = solo5_manifest_path in

@@ -9,8 +9,6 @@ let solo5_manifest_path = Fpath.v "_build/manifest.json"
 
 let clean_manifest () =
   Bos.OS.File.delete solo5_manifest_path
-
-let print_list l = print_string (String.concat "\n" l)
   
 let generate_manifest_json () =
   Log.info (fun m -> m "generating manifest");

@@ -33,6 +33,8 @@ let network_conf (intf : string Key.key) =
   end
 
 let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
+Log.info (fun m -> m "HELLO WE R IN MIRAGE IMPL NETWORK");
+Log.info (fun m -> m "netif name: %s" netif);
 let default_network =
   match_impl Key.(value target) [
     `Unix   , netif "tap0";

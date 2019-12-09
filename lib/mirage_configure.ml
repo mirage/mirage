@@ -97,6 +97,9 @@ let configure i =
   Log.info (fun m -> m "Configuring fasdjfksdjan target: %a" Key.pp_target target);
   let opam_name = unikernel_opam_name ~name target in
   Log.info(fun m -> m "Name: %s" name);
+  Log.info(fun m -> m "ROot: %s" root);
+  Log.info(fun m -> m "Context: %s" ctx);
+  Log.info(fun m -> m "Target: %s" target);
   let target_debug = Key.(get ctx target_debug) in
   if target_debug && target <> `Hvt then
     Log.warn (fun m -> m "-g not supported for target: %a" Key.pp_target target);

@@ -45,3 +45,4 @@ let default_network =
     `Muen   , netif "service";
     `Genode , netif "service";
   ] ~default:(netif "0")
+  Log.info (fun m -> m "netif: %s" netif);

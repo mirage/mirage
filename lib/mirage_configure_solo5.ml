@@ -21,8 +21,8 @@ let generate_manifest_json () =
       name
       (match typ with `Network -> "NET_BASIC" | `Block -> "BLOCK_BASIC") in
   let devices = List.map to_string (networks @ blocks) in
-  Log.info (fun m -> m "Devices: %s" devices );
   let s = String.concat ~sep:", " devices in
+  Log.info (fun m -> m "devices: %s" s);
   let open Codegen in
   let file = solo5_manifest_path in
   with_output file (fun oc () ->

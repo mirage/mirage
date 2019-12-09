@@ -10,11 +10,13 @@ let solo5_manifest_path = Fpath.v "_build/manifest.json"
 let clean_manifest () =
   Bos.OS.File.delete solo5_manifest_path
 
+let print_list l = print_string (String.concat "\n" l)
+  
 let generate_manifest_json () =
   Log.info (fun m -> m "generating manifest");
   let networks = List.map (fun n -> (n, `Network))
     !Mirage_impl_network.all_networks in
-  Log.info (fun m -> m "Networks: %s" networks );
+  print_list networks
   let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
       Mirage_impl_block.all_blocks [] in
   let to_string (name, typ) =

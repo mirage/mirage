@@ -93,6 +93,7 @@ let configure i =
   let root = Fpath.to_string (Info.build_dir i) in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
+  Log.info(fun m -> m "HELLO I'M HERE" );
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
   let opam_name = unikernel_opam_name ~name target in
   let target_debug = Key.(get ctx target_debug) in

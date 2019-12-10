@@ -1,5 +1,6 @@
 open Functoria
 module Key = Mirage_key
+module Log = Mirage_impl_misc.Log
 
 type network = NETWORK
 let network = Type NETWORK
@@ -33,6 +34,7 @@ let network_conf (intf : string Key.key) =
   end
 
 let netif ?group dev = impl (network_conf @@ Key.interface ?group dev)
+Log.info (fun m -> m "netif: %s" netif);
 let default_network =
   match_impl Key.(value target) [
     `Unix   , netif "tap0";

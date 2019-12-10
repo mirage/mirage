@@ -14,8 +14,6 @@ let generate_manifest_json () =
   Log.info (fun m -> m "generating manifest");
   let networks = List.map (fun n -> (n, `Network))
     !Mirage_impl_network.all_networks in
-  let n = String.concat ~sep:", " networks in
-  Log.info (fun m -> m "networks: %s" n);
   let blocks = Hashtbl.fold (fun k _v acc -> (k, `Block) :: acc)
       Mirage_impl_block.all_blocks [] in
   let to_string (name, typ) =

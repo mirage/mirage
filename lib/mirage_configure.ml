@@ -54,12 +54,12 @@ let configure_opam ~name info =
       append fmt {|homepage: "dummy"|};
       append fmt {|bug-reports: "dummy"|};
       (* TODO figure out git repository root to use here (cd ___ && mirage configure ..) *)
-      append fmt {|build: [ "/bin/sh" "-eax" "mirage %a && mirage build" ]|}
-        Fmt.(list ~sep:(unit " ") string) (List.tl (Array.to_list Sys.argv));
+      append fmt {|build: [ "sh" "-exc" "mirage %s && mirage build" ]|}
+        (String.concat ~sep:" " (List.tl (Array.to_list Sys.argv)));
       append fmt {|synopsis: "This is a dummy"|};
       (* TODO potentially embed subdirectory (cp ___/zzz) *)
       let ext = binary_suffix (Key.(get (Info.context info) target)) in
-      append fmt {|install: [ "cp" "%s%s" "%%{prefix}%%/bin/" ]|}
+      append fmt {|install: [ "cp" "%s%s" "%%{share}%%" ]|}
         (Info.name info) ext;
       (* TODO compute git origin and commit to embed a url { src: git version } *)
       R.ok ())

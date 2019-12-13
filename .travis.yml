@@ -7,7 +7,7 @@ sudo: false
 env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
+   - EXTRA_REMOTES=https://github.com/dinosaure/mirage-dune.git
    - PACKAGE=mirage
    - TESTS=false
  matrix:

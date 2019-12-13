@@ -24,7 +24,6 @@ val query_ocamlfind :
   -> (string list, [> Rresult.R.msg]) result
 
 val opam_prefix : (string, [> R.msg ]) result Lazy.t
-val pkg_config : string -> string list -> (string list, [> R.msg ]) result
 val extra_c_artifacts : string -> string list -> (string list, [> R.msg ]) result
 
 val terminal : unit -> bool

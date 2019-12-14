@@ -33,13 +33,14 @@ let opam_path ~name = Fpath.(v name + "opam")
 
 let artifact ~name = function
   | #Mirage_key.mode_solo5 as tgt ->
-    let artifact = name ^ snd (Mirage_configure_solo5.solo5_pkg tgt) in
-    artifact, artifact
+    let ext = snd (Mirage_configure_solo5.solo5_pkg tgt) in
+    let file = Fpath.v (name ^ ext) in
+    file, file
   | #Mirage_key.mode_unix ->
-    "_build/main.native", name
+    Fpath.(v "_build" / "main" + "native"), Fpath.v name
   | #Mirage_key.mode_xen ->
-    let artifact = name ^ ".xen" in
-    artifact, artifact
+    let file = Fpath.(v name + "xen") in
+    file, file
 
 let additional_artifacts ~name =
   let libvirt = Mirage_configure_libvirt.filename ~name in
@@ -48,8 +49,32 @@ let additional_artifacts ~name =
   | `Virtio -> [ libvirt ]
   | _ -> []
 
+let find_git () =
+  let is_git p = Bos.OS.Dir.exists Fpath.(p / ".git") in
+  let app_opt p d = match p with None -> d | Some p -> Fpath.(d // p) in
+  let rec find p path =
+    if Fpath.is_root p
+    then Error (`Msg "no git repo found, reached root")
+    else is_git p >>= fun has_git ->
+      if has_git
+      then Ok path
+      else find (Fpath.parent p) (Some (app_opt path (Fpath.base p)))
+  in
+  Bos.OS.Dir.current () >>= fun cwd ->
+  find cwd None >>= fun subdir ->
+  let git_branch = Bos.Cmd.(v "git" % "branch" % "--show-current") in
+  Bos.OS.Cmd.(run_out git_branch |> out_string) >>= fun (branch, _) ->
+  let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
+  Bos.OS.Cmd.(run_out git_remote |> out_string) >>| fun (git_url, _) ->
+  subdir, branch, git_url
+
 let configure_opam ~name info =
   let open Codegen in
+  let subdir, git_info =
+    match find_git () with
+    | Error _ -> None, None
+    | Ok (subdir, branch, git_url) -> subdir, Some (branch, git_url)
+  in
   let file = opam_path ~name in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
@@ -59,23 +84,39 @@ let configure_opam ~name info =
       append fmt {|authors: "dummy"|};
       append fmt {|homepage: "dummy"|};
       append fmt {|bug-reports: "dummy"|};
-      (* TODO figure out git repository root to use here (cd ___ && mirage configure ..) *)
-      append fmt {|build: [ "sh" "-exc" "mirage %s && mirage build" ]|}
+      Format.fprintf fmt {|build: [ "sh" "-exc" "|};
+      (match subdir with
+       | None -> ()
+       | Some p -> Format.fprintf fmt "cd %a && " Fpath.pp p);
+      append fmt {|mirage %s && mirage build" ]|}
         (String.concat ~sep:" " (List.tl (Array.to_list Sys.argv)));
       append fmt {|synopsis: "This is a dummy"|};
-      (* TODO potentially embed subdirectory (cp ___/zzz) *)
       let target = Key.(get (Info.context info) target)
       and name = Info.name info
       in
-      let source, dst = artifact ~name target in
+      let src, dst = artifact ~name target in
+      let src' = match subdir with None -> src | Some p -> Fpath.(p // src) in
       append fmt {|install: [|};
-      append fmt {|[ "cp" "%s" "%%{bin}%%/%s" ]|} source dst;
+      append fmt {|  [ "cp" "%a" "%%{bin}%%/%a" ]|} Fpath.pp src' Fpath.pp dst;
       (match additional_artifacts ~name target with
        | [] -> ()
-       | xs -> append fmt {| [ "cp" %a "%%{etc}%%" ]|}
-                 Fmt.(list ~sep:(unit " ") (quote Fpath.pp)) xs);
+       | xs ->
+         let xs' = match subdir with
+           | None -> xs
+           | Some d -> (List.map (fun a -> Fpath.(d // a)) xs)
+         in
+         append fmt {|  [ "cp" %a "%%{etc}%%" ]|}
+           Fmt.(list ~sep:(unit " ") (quote Fpath.pp)) xs');
       append fmt {|]|};
-      (* TODO compute git origin and commit to embed a url { src: git version } *)
+      (match git_info with
+       | None -> ()
+       | Some (branch, origin) ->
+         (* TODO is there a library for git urls anywhere? *)
+         let public = match Astring.String.cut ~sep:"github.com:" origin with
+           | Some (_, post) -> "git+https://github.com/" ^ post
+           | _ -> origin
+         in
+         append fmt {|url { src: "%s#%s" }|} public branch);
       R.ok ())
     "opam file"
 

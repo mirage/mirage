@@ -151,10 +151,29 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
 
     method !build i =
       Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      let direct = String.concat ~sep:"," (Info.package_names i) in
-      let cmd = Bos.Cmd.(v "opam" % "list" % "--installed" % "-s" % "--rec" % "--color=never" % "--depopts" % "--required-by" % direct) in
-      (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (rdeps, _) ->
-      let opam = String.Set.of_list rdeps in
+      (* this used to call 'opam list --rec ..', but that leads to
+         non-reproducibility, since this uses the opam CUDF solver which
+         drops some packages (which are in the repositories configured for the
+         switch), see https://github.com/mirage/functoria/pull/189 for further
+         discussion on this before changing the code below.  *)
+      let rec opam_deps args collected =
+        Log.debug (fun m -> m
+                      "opam_deps %d args %d collected\nargs: %a\ncollected: %a"
+                      (String.Set.cardinal args) (String.Set.cardinal collected)
+                      (String.Set.pp ~sep:(Fmt.unit ",") Fmt.string) args
+                      (String.Set.pp ~sep:(Fmt.unit ",") Fmt.string) collected);
+        if String.Set.is_empty args then Ok collected
+        else
+          let pkgs = String.concat ~sep:"," (String.Set.elements args) in
+          let cmd =
+            Bos.Cmd.(v "opam" % "list" % "--installed" % "-s" % "--color=never" % "--depopts" % "--required-by" % pkgs)
+          in
+          (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (rdeps, _) ->
+          let reqd = String.Set.of_list rdeps in
+          let collected' = String.Set.union collected reqd in
+          opam_deps (String.Set.diff collected' collected) collected'
+      in
+      opam_deps (String.Set.of_list (Info.package_names i)) String.Set.empty >>= fun opam ->
       let ocl = String.Set.of_list (Info.libraries i)
       in
       Bos.OS.File.writef Fpath.(file + "in")

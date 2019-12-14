@@ -6,7 +6,6 @@ module Key = Mirage_key
 module Info = Functoria.Info
 module Codegen = Functoria_app.Codegen
 
-open Mirage_configure_virtio
 open Mirage_configure_xen
 open Mirage_configure_solo5
 
@@ -32,15 +31,22 @@ let clean_myocamlbuild () =
 
 let opam_path ~name = Fpath.(v name + "opam")
 
-let binary_suffix = function
-  | `Hvt -> ".hvt"
-  | `Spt -> ".spt"
-  | `Unix | `MacOSX -> ""
-  | `Virtio -> ".virtio"
-  | `Xen -> ".xen"
-  | `Qubes -> ".xen"
-  | `Genode -> ""
-  | `Muen -> ""
+let artifact ~name = function
+  | #Mirage_key.mode_solo5 as tgt ->
+    let artifact = name ^ snd (Mirage_configure_solo5.solo5_pkg tgt) in
+    artifact, artifact
+  | #Mirage_key.mode_unix ->
+    "_build/main.native", name
+  | #Mirage_key.mode_xen ->
+    let artifact = name ^ ".xen" in
+    artifact, artifact
+
+let additional_artifacts ~name =
+  let libvirt = Mirage_configure_libvirt.filename ~name in
+  function
+  | `Xen -> Fpath.[ v name + "xl" ; v name + "xl.in" ; v name + "xe" ; libvirt ]
+  | `Virtio -> [ libvirt ]
+  | _ -> []
 
 let configure_opam ~name info =
   let open Codegen in
@@ -58,9 +64,17 @@ let configure_opam ~name info =
         (String.concat ~sep:" " (List.tl (Array.to_list Sys.argv)));
       append fmt {|synopsis: "This is a dummy"|};
       (* TODO potentially embed subdirectory (cp ___/zzz) *)
-      let ext = binary_suffix (Key.(get (Info.context info) target)) in
-      append fmt {|install: [ "cp" "%s%s" "%%{share}%%" ]|}
-        (Info.name info) ext;
+      let target = Key.(get (Info.context info) target)
+      and name = Info.name info
+      in
+      let source, dst = artifact ~name target in
+      append fmt {|install: [|};
+      append fmt {|[ "cp" "%s" "%%{bin}%%/%s" ]|} source dst;
+      (match additional_artifacts ~name target with
+       | [] -> ()
+       | xs -> append fmt {| [ "cp" %a "%%{etc}%%" ]|}
+                 Fmt.(list ~sep:(unit " ") (quote Fpath.pp)) xs);
+      append fmt {|]|};
       (* TODO compute git origin and commit to embed a url { src: git version } *)
       R.ok ())
     "opam file"
@@ -130,7 +144,7 @@ let configure i =
     configure_main_xl ~ext:"xl" i >>= fun () ->
     configure_main_xl ~substitutions:[] ~ext:"xl.in" i >>= fun () ->
     configure_main_xe ~root ~name >>= fun () ->
-    configure_main_libvirt_xml ~root ~name
+    Mirage_configure_libvirt.configure_main ~root ~name
   | `Virtio ->
-    configure_virtio_libvirt_xml ~root ~name
+    Mirage_configure_libvirt.configure_virtio ~root ~name
   | _ -> R.ok ()

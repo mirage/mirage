@@ -1,3 +1,10 @@
+### v3.7.3 (2019-12-17)
+
+* `mirage configure` now emits build and install steps into generated opam file
+  this allows to use `opam install .` to actually install a unikernel.
+  (#1022 @hannesm)
+* refactor configure, build and link step into separate modules (#1017 @dinosaure)
+
 ### v3.7.2 (2019-11-18)
 
 * adjust fat-filesystem constraints to >= 0.14 && < 0.15 (#1015, @hannesm)

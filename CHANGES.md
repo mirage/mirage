@@ -1,3 +1,10 @@
+## v3.0.3 (2019-12-17)
+
+* Fix equality for `'a impl` values, which caused issue in `mirage configure`
+  when multiple keys share the same name (issue #187, fix #188 by @samoht)
+* App_info: avoid `opam list --rec` which uses the CUDF solver, instead do
+  fixpoint manually. Fixes reproducibility with `orb` (#189 @hannesm)
+
 ## v3.0.2 (2019-11-03)
 
 * Remove custom opam version comparison code, instead collect min and max as

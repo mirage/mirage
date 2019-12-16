@@ -127,9 +127,7 @@ let target_conv: mode Cmdliner.Arg.converter =
 let pp_target fmt m = snd target_conv fmt m
 
 let default_unix = lazy (
-  let open Bos in
-  let uname arg = OS.Cmd.(run_out (Cmd.(v "uname" % arg)) |> OS.Cmd.out_string) in
-  match uname "-s" with
+  match Bos.OS.Cmd.(run_out Bos.Cmd.(v "uname" % "-s") |> out_string) with
   | Ok ("Darwin", _) -> `MacOSX
   | _ -> `Unix
 )
@@ -137,7 +135,7 @@ let default_unix = lazy (
 let target =
   let doc =
     "Target platform to compile the unikernel for. Valid values are: \
-     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,muen), $(i,genode)."
+     $(i,xen), $(i,qubes), $(i,unix), $(i,macosx), $(i,virtio), $(i,hvt), $(i,spt), $(i,muen), $(i,genode)."
   in
   let serialize ppf = function
     | `Unix   -> Fmt.pf ppf "`Unix"

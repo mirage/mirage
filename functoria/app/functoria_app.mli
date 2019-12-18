@@ -166,3 +166,5 @@ module Codegen: sig
   (** Add a newline to [main.ml]. *)
 
 end
+
+module Cli = Cli

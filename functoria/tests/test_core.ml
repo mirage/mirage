@@ -1,4 +1,4 @@
-module Cmd = Functoria_command_line
+module Cli = Functoria_app.Cli
 
 let result_t =
   let pp ppf = function
@@ -8,7 +8,7 @@ let result_t =
     | `Help         -> Fmt.string ppf "help"
     | `Version      -> Fmt.string ppf "version"
     | `Ok action    ->
-      let pp = Cmd.pp_action Fmt.(Dump.pair bool bool) in
+      let pp = Cli.pp_action Fmt.(Dump.pair bool bool) in
       Fmt.pf ppf "ok %a" pp action
   in
   Alcotest.testable pp (=)
@@ -21,7 +21,7 @@ let test_configure () =
     ))
   in
   let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
+    Cli.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
       ~build:extra_term
@@ -30,7 +30,7 @@ let test_configure () =
       [|"name"; "configure"; "--xyz"; "--verbose"|]
   in
   Alcotest.(check result_t) "configure"
-    (`Ok (Cmd.Configure { result = (true, false); output = None }))
+    (`Ok (Cli.Configure { result = (true, false); output = None }))
     result
 
 let test_describe () =
@@ -41,7 +41,7 @@ let test_describe () =
     ))
   in
   let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
+    Cli.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
       ~build:extra_term
@@ -51,7 +51,7 @@ let test_describe () =
         "--color=always"; "--dot-command=dot"; "--eval"|]
   in
   Alcotest.(check result_t) "describe"
-    (`Ok (Cmd.Describe { result = (false, true);
+    (`Ok (Cli.Describe { result = (false, true);
                          dotcmd = "dot";
                          dot = false;
                          output = None }))
@@ -65,7 +65,7 @@ let test_build () =
     ))
   in
   let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
+    Cli.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
       ~build:extra_term
@@ -74,7 +74,7 @@ let test_build () =
       [|"name"; "build"; "--cde"; "-x"; "--color=never"; "-v"; "-v"|]
   in
   Alcotest.(check result_t) "build"
-    (`Ok (Cmd.Build (true, true)))
+    (`Ok (Cli.Build (true, true)))
     result
 
 let test_clean () =
@@ -85,7 +85,7 @@ let test_clean () =
     ))
   in
   let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
+    Cli.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
       ~build:extra_term
@@ -94,7 +94,7 @@ let test_clean () =
       [|"name"; "clean"|]
   in
   Alcotest.(check result_t) "clean"
-    (`Ok (Cmd.Clean (false, false)))
+    (`Ok (Cli.Clean (false, false)))
     result
 
 let test_help () =
@@ -105,7 +105,7 @@ let test_help () =
     ))
   in
   let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
+    Cli.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
       ~build:extra_term
@@ -123,7 +123,7 @@ let test_default () =
     ))
   in
   let result =
-    Cmd.parse_args ~name:"name" ~version:"0.2"
+    Cli.parse_args ~name:"name" ~version:"0.2"
       ~configure:extra_term
       ~describe:extra_term
       ~build:extra_term
@@ -137,25 +137,25 @@ let test_read_full_eval () =
   let check = Alcotest.(check @@ option bool) in
   begin
     check "test" None
-      (Cmd.read_full_eval [|"test"|]);
+      (Cli.read_full_eval [|"test"|]);
 
     check "test --eval" (Some true)
-      (Cmd.read_full_eval [|"test"; "--eval"|]);
+      (Cli.read_full_eval [|"test"; "--eval"|]);
 
     check "test blah --eval blah" (Some true)
-      (Cmd.read_full_eval [|"test"; "blah"; "--eval"; "blah"|]);
+      (Cli.read_full_eval [|"test"; "blah"; "--eval"; "blah"|]);
 
     check "test --no-eval" (Some false)
-      (Cmd.read_full_eval [|"test"; "--no-eval"|]);
+      (Cli.read_full_eval [|"test"; "--no-eval"|]);
 
     check "test blah --no-eval blah" (Some false)
-      (Cmd.read_full_eval [|"test"; "blah"; "--no-eval"; "blah"|]);
+      (Cli.read_full_eval [|"test"; "blah"; "--no-eval"; "blah"|]);
 
     check "--no-eval test --eval" (Some true)
-      (Cmd.read_full_eval [|"--no-eval"; "test"; "--eval"|]);
+      (Cli.read_full_eval [|"--no-eval"; "test"; "--eval"|]);
 
     check "--eval test --no-eval" (Some false)
-      (Cmd.read_full_eval [|"--eval"; "test"; "--no-eval"|]);
+      (Cli.read_full_eval [|"--eval"; "test"; "--no-eval"|]);
   end
 
 let test_generated_header () =

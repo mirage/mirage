@@ -21,9 +21,7 @@ open Astring
 open Functoria
 include Functoria_misc
 
-module Graph = Functoria_graph
 module Key = Functoria_key
-module Cmd = Functoria_command_line
 
 (* Noop, the job that does nothing. *)
 let noop = impl @@ object
@@ -184,14 +182,14 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
 module Engine = struct
 
   let if_context =
-    let open Graph in
-    Graph.collect (module Key.Set) @@ function
+    let open Key_graph in
+    Key_graph.collect (module Key.Set) @@ function
     | If cond      -> Key.deps cond
     | App | Impl _ -> Key.Set.empty
 
   let keys =
-    let open Graph in
-    Graph.collect (module Key.Set) @@ function
+    let open Key_graph in
+    Key_graph.collect (module Key.Set) @@ function
     | Impl c  -> Key.Set.of_list c#keys
     | If cond -> Key.deps cond
     | App     -> Key.Set.empty
@@ -203,8 +201,8 @@ module Engine = struct
   end
 
   let packages =
-    let open Graph in
-    Graph.collect (module M) @@ function
+    let open Key_graph in
+    Key_graph.collect (module M) @@ function
     | Impl c     -> c#packages
     | If _ | App -> M.empty
 
@@ -219,7 +217,7 @@ module Engine = struct
   let module_expression tbl fmt (c, args) =
     Fmt.pf fmt "%s%a"
       c#module_name
-      Fmt.(list (parens @@ of_to_string @@ Graph.Tbl.find tbl))
+      Fmt.(list (parens @@ of_to_string @@ Key_graph.Tbl.find tbl))
       args
 
   (* [module_name tbl c args] return the module name of the result of
@@ -246,31 +244,31 @@ module Engine = struct
       | `If (b, x, y)        -> if Key.eval ctx b then name x else name y
     in
     let name = name impl in
-    let open Graph in
+    let open Key_graph in
     let p = function
       | Impl c     -> c#name = name
       | App | If _ -> false
     in
-    match Graph.find_all g p with
+    match Key_graph.find_all g p with
     | []  -> invalid_arg "Functoria.find_device: no device"
     | [x] -> x
     | _   -> invalid_arg "Functoria.find_device: too many devices."
 
   let build info (_init, job) =
-    let f v = match Graph.explode job v with
+    let f v = match Key_graph.explode job v with
       | `App _ | `If _ -> R.ok ()
       | `Impl (c, _, _) -> c#build info
     in
     let f v res = res >>= fun () -> f v in
-    Graph.fold f job @@ R.ok ()
+    Key_graph.fold f job @@ R.ok ()
 
   let configure info (_init, job) =
-    let tbl = Graph.Tbl.create 17 in
-    let f v = match Graph.explode job v with
+    let tbl = Key_graph.Tbl.create 17 in
+    let f v = match Key_graph.explode job v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps _) ->
-        let modname = module_name c (Graph.hash v) args in
-        Graph.Tbl.add tbl v modname;
+        let modname = module_name c (Key_graph.hash v) args in
+        Key_graph.Tbl.add tbl v modname;
         c#configure info >>| fun () ->
         if args = [] then ()
         else begin
@@ -282,7 +280,7 @@ module Engine = struct
         end
     in
     let f v res = res >>= fun () -> f v in
-    Graph.fold f job @@ R.ok () >>| fun () ->
+    Key_graph.fold f job @@ R.ok () >>| fun () ->
     tbl
 
   let meta_init fmt (connect_name, result_name) =
@@ -318,21 +316,21 @@ module Engine = struct
       Fmt.(list ~sep:nop force) init main
 
   let connect modtbl info (init, job) =
-    let tbl = Graph.Tbl.create 17 in
-    let f v = match Graph.explode job v with
+    let tbl = Key_graph.Tbl.create 17 in
+    let f v = match Key_graph.explode job v with
       | `App _ | `If _ -> assert false
       | `Impl (c, `Args args, `Deps deps) ->
-        let ident = name c (Graph.hash v) in
-        let modname = Graph.Tbl.find modtbl v in
-        Graph.Tbl.add tbl v ident;
-        let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
+        let ident = name c (Key_graph.hash v) in
+        let modname = Key_graph.Tbl.find modtbl v in
+        Key_graph.Tbl.add tbl v ident;
+        let names = List.map (Key_graph.Tbl.find tbl) (args @ deps) in
         Codegen.append_main "%a"
           emit_connect (ident, names, c#connect info modname)
     in
-    Graph.fold (fun v () -> f v) job ();
-    let main_name = Graph.Tbl.find tbl @@ Graph.find_root job in
+    Key_graph.fold (fun v () -> f v) job ();
+    let main_name = Key_graph.Tbl.find tbl @@ Key_graph.find_root job in
     let init_names =
-      List.map (fun name -> Graph.Tbl.find tbl @@ find_device info job name) init
+      List.map (fun name -> Key_graph.Tbl.find tbl @@ find_device info job name) init
     in
     emit_run init_names main_name;
     ()
@@ -342,12 +340,12 @@ module Engine = struct
     connect modtbl info g
 
   let clean i g =
-    let f v = match Graph.explode g v with
+    let f v = match Key_graph.explode g v with
       | `Impl (c,_,_) -> c#clean i
       | _ -> R.ok ()
     in
     let f v res = res >>= fun () -> f v in
-    Graph.fold f g @@ R.ok ()
+    Key_graph.fold f g @@ R.ok ()
 
 end
 
@@ -359,7 +357,7 @@ module Config = struct
     packages : package list Key.value;
     keys     : Key.Set.t;
     init     : job impl list;
-    jobs     : Graph.t;
+    jobs     : Key_graph.t;
   }
 
   (* In practice, we get all the keys associated to [if] cases, and
@@ -376,7 +374,7 @@ module Config = struct
 
   let make ?(keys=[]) ?(packages=[]) ?(init=[]) name build_dir main_dev =
     let name = Name.ocamlify name in
-    let jobs = Graph.create main_dev in
+    let jobs = Key_graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
     { packages; keys; name; build_dir; init; jobs }
@@ -384,7 +382,7 @@ module Config = struct
   let eval ~partial context
       { name = n; build_dir; packages; keys; jobs; init }
     =
-    let e = Graph.eval ~partial ~context jobs in
+    let e = Key_graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
     let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
     Key.(pure (fun packages _ context ->
@@ -398,15 +396,15 @@ module Config = struct
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)
   let extract_keys impl =
-    Engine.keys @@ Graph.create impl
+    Engine.keys @@ Key_graph.create impl
 
   let keys t = t.keys
 
   let gen_pp pp fmt jobs =
-    pp fmt @@ Graph.simplify jobs
+    pp fmt @@ Key_graph.simplify jobs
 
-  let pp = gen_pp Graph.pp
-  let pp_dot = gen_pp Graph.pp_dot
+  let pp = gen_pp Key_graph.pp
+  let pp_dot = gen_pp Key_graph.pp_dot
 
 end
 
@@ -469,7 +467,7 @@ end = struct
         `Error (false, msg)
 
   let get_output root =
-    match get_context root Cmd.output with
+    match get_context root Cli.output with
     | `Ok (Some None) -> `Ok None
     | `Ok (Some x)    -> `Ok x
     | `Ok None        -> `Ok None
@@ -515,11 +513,11 @@ module Make (P: S) = struct
   let init_global_state argv =
     build_dir := None;
     config_file := Fpath.(v "config.ml");
-    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
+    ignore (Cmdliner.Term.eval_peek_opts ~argv Cli.setup_log);
     ignore (Cmdliner.Term.eval_peek_opts ~argv @@
-            Cmd.config_file (fun c -> config_file := c));
+            Cli.config_file (fun c -> config_file := c));
     ignore (Cmdliner.Term.eval_peek_opts ~argv @@
-            Cmd.build_dir (fun r ->
+            Cli.build_dir (fun r ->
                 let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true r in
                 build_dir := Some r))
 
@@ -712,7 +710,7 @@ module Make (P: S) = struct
       Key.context base_keys ~with_required:false ~stage:`Configure
     in
     let result =
-      Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+      Cli.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
         ~build:(Term.pure ())
@@ -721,9 +719,9 @@ module Make (P: S) = struct
         argv
     in
     match result with
-    | `Ok Cmd.Help -> ()
+    | `Ok Cli.Help -> ()
     | `Error _
-    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
+    | `Ok (Cli.Configure _ | Cli.Describe _ | Cli.Build _ | Cli.Clean _) ->
       exit_err (Error error)
     | `Version
     | `Help -> ()
@@ -878,18 +876,18 @@ module Make (P: S) = struct
 
   let handle_parse_args_result argv = function
     | `Error _ -> exit 1
-    | `Ok Cmd.Help -> ()
-    | `Ok (Cmd.Configure { result = (jobs, info); output }) ->
+    | `Ok Cli.Help -> ()
+    | `Ok (Cli.Configure { result = (jobs, info); output }) ->
       let info = with_output info output in
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (configure ~argv info jobs)
-    | `Ok (Cmd.Build (jobs, info)) ->
+    | `Ok (Cli.Build (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (build info jobs)
-    | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
+    | `Ok (Cli.Describe { result = (jobs, info); dotcmd; dot; output }) ->
       Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
       R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
-    | `Ok (Cmd.Clean (jobs, info)) ->
+    | `Ok (Cli.Clean (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (clean info jobs)
     | `Version
@@ -897,7 +895,7 @@ module Make (P: S) = struct
 
   let run_configure_with_argv argv config =
   (*   whether to fully evaluate the graph *)
-    let full_eval = Cmd.read_full_eval argv in
+    let full_eval = Cli.read_full_eval argv in
   (* Consider only the 'if' keys. *)
     let if_term =
       let if_keys = Config.keys config in
@@ -940,7 +938,7 @@ module Make (P: S) = struct
     in
 
     handle_parse_args_result argv
-      (Cmd.parse_args ~name:P.name ~version:P.version
+      (Cli.parse_args ~name:P.name ~version:P.version
           ~configure
           ~describe
           ~build
@@ -958,3 +956,5 @@ module Make (P: S) = struct
     run_configure_with_argv Sys.argv c
 
 end
+
+module Cli = Cli

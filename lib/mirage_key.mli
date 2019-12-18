@@ -19,7 +19,7 @@
  {e Release %%VERSION%% } *)
 
 module Arg : sig
-  include module type of struct include Functoria_key.Arg end
+  include module type of struct include Functoria.Key.Arg end
 
   val ipv4_address : Ipaddr.V4.t converter
   val ipv4 : (Ipaddr.V4.Prefix.t * Ipaddr.V4.t) converter

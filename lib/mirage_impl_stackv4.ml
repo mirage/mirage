@@ -1,4 +1,3 @@
-module Key = Mirage_key
 open Functoria
 open Mirage_impl_arpv4
 open Mirage_impl_ethernet
@@ -11,6 +10,8 @@ open Mirage_impl_random
 open Mirage_impl_tcp
 open Mirage_impl_time
 open Mirage_impl_udp
+
+module Key = Mirage_key
 
 type stackv4 = STACKV4
 let stackv4 = Type STACKV4
@@ -102,7 +103,7 @@ let generic_stackv4
     | (`Unix | `MacOSX), None, false -> `Socket
     | _, _, _ -> `Static
   in
-  let p = Functoria_key.((pure choose)
+  let p = Functoria.Key.((pure choose)
           $ Key.(value target)
           $ net_key
           $ dhcp_key) in

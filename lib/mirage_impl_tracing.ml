@@ -1,7 +1,8 @@
-module Key = Mirage_key
 open Functoria
 open Mirage_impl_misc
 open Rresult
+
+module Key = Mirage_key
 
 type tracing = job
 let tracing = job

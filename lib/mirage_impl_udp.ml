@@ -1,10 +1,11 @@
-module Key = Mirage_key
-module Name = Functoria_app.Name
 open Functoria
 open Mirage_impl_ip
 open Mirage_impl_misc
 open Mirage_impl_random
 open Rresult
+
+module Key = Mirage_key
+module Name = Functoria_app.Name
 
 type 'a udp = UDP
 type udpv4 = v4 udp

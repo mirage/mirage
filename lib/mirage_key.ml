@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Key = Functoria_key
+module Key = Functoria.Key
 module Alias = Key.Alias
 open Astring
 
@@ -34,7 +34,7 @@ module Arg = struct
     and pp ppf t =
       Fmt.string ppf (to_string t)
     in
-    Functoria_key.Arg.conv
+    Functoria.Key.Arg.conv
       ~conv:(parser, pp)
       ~serialize
       ~runtime_conv:(from_run d)
@@ -64,7 +64,7 @@ module Arg = struct
     in
     let runtime_conv = "Mirage_runtime.Arg.ipv4"
     in
-    Functoria_key.Arg.conv
+    Functoria.Key.Arg.conv
       ~conv:(parse, print)
       ~serialize
       ~runtime_conv

@@ -14,7 +14,7 @@ val with_output :
   -> string
   -> ('a, 'b) result
 
-val pp_key : Format.formatter -> 'a Functoria_key.key -> unit
+val pp_key : Format.formatter -> 'a Functoria.Key.key -> unit
 
 val query_ocamlfind :
      ?recursive:bool

@@ -23,10 +23,8 @@
 *)
 
 open Graph
-open Functoria_misc
 open Functoria
-
-module Key = Functoria_key
+open Misc
 
 (* {2 Utility} *)
 

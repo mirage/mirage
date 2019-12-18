@@ -26,6 +26,7 @@
 
 (** Configuration keys. *)
 module Key : module type of struct include Mirage_key end
+module Info: module type of struct include Functoria.Info end
 
 include Functoria_app.DSL
 

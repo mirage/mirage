@@ -19,9 +19,7 @@ open Rresult
 open Astring
 
 open Functoria
-include Functoria_misc
-
-module Key = Functoria_key
+include Misc
 
 (* Noop, the job that does nothing. *)
 let noop = impl @@ object
@@ -499,7 +497,65 @@ module type S = sig
   val create: job impl list -> job impl
 end
 
-module type DSL = module type of struct include Functoria end
+module type DSL = sig
+  type 'a typ = 'a Functoria.typ =
+    | Type    : 'a -> 'a typ
+    | Function: 'b typ * 'c typ -> ('b -> 'c) typ
+  val typ: 'a -> 'a typ
+  val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
+  type job = Functoria.job
+  val job: job typ
+  type 'a impl = 'a Functoria.impl
+  val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
+  type abstract_impl = Functoria.abstract_impl
+  val abstract: _ impl -> abstract_impl
+  type key = Functoria.key
+  type context = Functoria.context
+  type 'a value = 'a Functoria.value
+  val if_impl: bool value -> 'a impl -> 'a impl -> 'a impl
+  val match_impl: 'b value -> default:'a impl -> ('b * 'a impl) list ->  'a impl
+  type package = Functoria.package
+  val package :
+    ?build:bool ->
+    ?sublibs:string list ->
+    ?ocamlfind:string list ->
+    ?min:string ->
+    ?max:string ->
+    ?pin:string ->
+    string -> package
+  val foreign:
+    ?packages:package list ->
+    ?keys:key list ->
+    ?deps:abstract_impl list ->
+    string -> 'a typ -> 'a impl
+  class type ['ty] configurable = object
+    method ty: 'ty typ
+    method name: string
+    method module_name: string
+    method packages: package list value
+    method connect: Info.t -> string -> string list -> string
+    method configure: Info.t -> (unit, Rresult.R.msg) result
+    method build: Info.t -> (unit, Rresult.R.msg) result
+    method clean: Info.t -> (unit, Rresult.R.msg) result
+    method keys: key list
+    method deps: abstract_impl list
+  end
+  val impl: 'a configurable -> 'a impl
+  class base_configurable: object
+    method packages: package list value
+    method keys: key list
+    method connect: Info.t -> string -> string list -> string
+    method configure: Info.t -> (unit, Rresult.R.msg) result
+    method build: Info.t -> (unit, Rresult.R.msg) result
+    method clean: Info.t -> (unit, Rresult.R.msg) result
+    method deps: abstract_impl list
+  end
+  class ['a] foreign:
+    ?packages:package list ->
+    ?keys:key list ->
+    ?deps:abstract_impl list ->
+    string -> 'a typ -> ['a] configurable
+end
 
 module Make (P: S) = struct
 

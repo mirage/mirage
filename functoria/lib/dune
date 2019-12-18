@@ -1,6 +1,4 @@
 (library
  (name functoria)
  (public_name functoria)
- (libraries unix cmdliner rresult fmt astring fpath ptime.clock.os)
- (wrapped false)
-)
+ (libraries unix cmdliner rresult fmt astring fpath ptime.clock.os))

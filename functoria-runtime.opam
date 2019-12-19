@@ -16,7 +16,7 @@ build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
-  ["env" "INSIDE_FUNCTORIA_TESTS=1" "dune" "exec" "-p" name "-j" jobs "--" "tests/test_full.exe"] {with-test}
+  ["env" "INSIDE_FUNCTORIA_TESTS=1" "dune" "exec" "-p" name "-j" jobs "--" "functoria/tests/test_full.exe"] {with-test}
 ]
 
 depends: [

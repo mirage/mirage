@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 module Codegen = Functoria_app.Codegen
 module Key = Mirage_key
 module Name = Functoria_app.Name
@@ -62,7 +62,7 @@ let fat_block ?(dir = ".") ?(regexp = "*") () =
     inherit Mirage_impl_block.block_conf block_file as super
     method! packages = Key.map (List.cons fat_pkg) super#packages
     method! build i =
-      let root = Info.build_dir i in
+      let root = Functoria.Info.build_dir i in
       let file = Fmt.strf "make-%s-image.sh" name in
       let dir = Fpath.of_string dir |> R.error_msg_to_invalid_arg in
       Log.info (fun m -> m "Generating block generator script: %s" file);

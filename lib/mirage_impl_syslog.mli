@@ -1,6 +1,8 @@
+open Functoria.DSL
+
 type syslog
 
-val syslog : syslog Functoria.typ
+val syslog : syslog typ
 
 type syslog_config =
   { hostname: string
@@ -13,23 +15,23 @@ val syslog_config :
 
 val syslog_udp :
      ?config:syslog_config
-  -> ?console:Mirage_impl_console.console Functoria.impl
-  -> ?clock:Mirage_impl_pclock.pclock Functoria.impl
-  -> Mirage_impl_stackv4.stackv4 Functoria.impl
-  -> syslog Functoria.impl
+  -> ?console:Mirage_impl_console.console impl
+  -> ?clock:Mirage_impl_pclock.pclock impl
+  -> Mirage_impl_stackv4.stackv4 impl
+  -> syslog impl
 
 val syslog_tcp :
      ?config:syslog_config
-  -> ?console:Mirage_impl_console.console Functoria.impl
-  -> ?clock:Mirage_impl_pclock.pclock Functoria.impl
-  -> Mirage_impl_stackv4.stackv4 Functoria.impl
-  -> syslog Functoria.impl
+  -> ?console:Mirage_impl_console.console impl
+  -> ?clock:Mirage_impl_pclock.pclock impl
+  -> Mirage_impl_stackv4.stackv4 impl
+  -> syslog impl
 
 val syslog_tls :
      ?config:syslog_config
   -> ?keyname:string
-  -> ?console:Mirage_impl_console.console Functoria.impl
-  -> ?clock:Mirage_impl_pclock.pclock Functoria.impl
-  -> Mirage_impl_stackv4.stackv4 Functoria.impl
-  -> Mirage_impl_kv.ro Functoria.impl
-  -> syslog Functoria.impl
+  -> ?console:Mirage_impl_console.console impl
+  -> ?clock:Mirage_impl_pclock.pclock impl
+  -> Mirage_impl_stackv4.stackv4 impl
+  -> Mirage_impl_kv.ro impl
+  -> syslog impl

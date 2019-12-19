@@ -1,4 +1,5 @@
-open Functoria
+open Functoria.DSL
+       
 module Name = Functoria_app.Name
 module Key = Mirage_key
 

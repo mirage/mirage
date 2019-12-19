@@ -16,17 +16,17 @@
 
 (** Graph engine *)
 
-open Functoria
+open Functoria.DSL
 
 type subconf = <
   name       : string;
   module_name: string;
   keys       : key list;
   packages   : package list value ;
-  connect    : Info.t -> string -> string list -> string;
-  build      : Info.t -> (unit, Rresult.R.msg) result;
-  configure  : Info.t -> (unit, Rresult.R.msg) result;
-  clean      : Info.t -> (unit, Rresult.R.msg) result;
+  connect    : info -> string -> string list -> string;
+  build      : info -> (unit, Rresult.R.msg) result;
+  configure  : info -> (unit, Rresult.R.msg) result;
+  clean      : info -> (unit, Rresult.R.msg) result;
 >
 (** A subset of {!configurable} with neither polymorphism nor recursion. *)
 

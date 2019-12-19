@@ -1,5 +1,7 @@
-type tracing = Functoria.job
+open Functoria.DSL
 
-val tracing : tracing Functoria.typ
+type tracing = job
 
-val mprof_trace : size:int -> unit -> tracing Functoria.impl
+val tracing : tracing typ
+
+val mprof_trace : size:int -> unit -> tracing impl

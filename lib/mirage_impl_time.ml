@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 
 type time = TIME
 let time = Type TIME

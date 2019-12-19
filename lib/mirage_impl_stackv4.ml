@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 open Mirage_impl_arpv4
 open Mirage_impl_ethernet
 open Mirage_impl_ip

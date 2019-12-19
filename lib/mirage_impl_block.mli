@@ -1,34 +1,36 @@
+open Functoria.DSL
+
 type block
 
-val block : block Functoria.typ
+val block : block typ
 
 val generic_block :
      ?group:string
-  -> ?key:[`BlockFile | `Ramdisk | `XenstoreId] Functoria.value
+  -> ?key:[`BlockFile | `Ramdisk | `XenstoreId] value
   -> string
-  -> block Functoria.impl
+  -> block impl
 
 val archive_of_files :
-  ?dir:string -> unit -> Mirage_impl_kv.ro Functoria.impl
+  ?dir:string -> unit -> Mirage_impl_kv.ro impl
 
-val archive : block Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
+val archive : block impl -> Mirage_impl_kv.ro impl
 
-val ramdisk : string -> block Functoria.impl
+val ramdisk : string -> block impl
 
-val block_of_xenstore_id : string -> block Functoria.impl
+val block_of_xenstore_id : string -> block impl
 
-val block_of_file : string -> block Functoria.impl
+val block_of_file : string -> block impl
 
 class block_conf :
   string
   -> object
-       inherit Functoria.base_configurable
+       inherit base_configurable
 
        method module_name : string
 
        method name : string
 
-       method ty : block Functoria.typ
+       method ty : block typ
      end
 
 type block_t = {filename: string; number: int}

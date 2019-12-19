@@ -23,8 +23,8 @@
 *)
 
 open Graph
-open Functoria
-open Misc
+open Functoria.DSL
+open Functoria.Misc
 
 (* {2 Utility} *)
 
@@ -44,12 +44,12 @@ let is_sequence l =
 type subconf = <
   name: string;
   module_name: string;
-  keys: Key.t list;
-  packages: package list Key.value;
-  connect: Info.t -> string -> string list -> string;
-  build: Info.t -> (unit, Rresult.R.msg) result;
-  configure: Info.t -> (unit, Rresult.R.msg) result;
-  clean: Info.t -> (unit, Rresult.R.msg) result;
+  keys: key list;
+  packages: package list value;
+  connect: info -> string -> string list -> string;
+  build: info -> (unit, Rresult.R.msg) result;
+  configure: info -> (unit, Rresult.R.msg) result;
+  clean: info -> (unit, Rresult.R.msg) result;
 >
 
 (* Helpers for If nodes. *)
@@ -60,11 +60,11 @@ module If = struct
   let singleton z = ([],z)
   let dir b = if b then singleton Then else singleton Else
   let fuse path v l = if v = path then append path l else path
-  let reduce f ~path ~add : path Key.value = Key.(pure (fuse path) $ f $ add)
+  let reduce f ~path ~add : path value = Functoria.Key.(pure (fuse path) $ f $ add)
 end
 
 type label =
-  | If of If.path Key.value
+  | If of If.path value
   | Impl of subconf
   | App
 
@@ -162,7 +162,7 @@ let add_switch graph ~cond l =
   G.add_vertex graph v
 
 let add_if graph ~cond ~else_ ~then_ =
-  add_switch graph ~cond:(Key.map If.dir cond)
+  add_switch graph ~cond:(Functoria.Key.map If.dir cond)
     [ If.(singleton Else), else_; If.(singleton Then), then_ ]
 
 let add_app graph ~f ~args =
@@ -173,14 +173,14 @@ let add_app graph ~f ~args =
   |> fold_lefti (fun i -> add_edge v (Parameter i)) args
 
 let create impl =
-  let module H = ImplTbl in
+  let module H = Functoria.ImplTbl in
   let tbl = H.create 50 in
   let rec aux: type t . G.t -> t impl -> G.vertex * G.t
     = fun g impl ->
       if H.mem tbl @@ abstract impl
       then H.find tbl (abstract impl), g
       else
-        let v, g = match explode impl with
+        let v, g = match Functoria.explode impl with
           | `Impl c ->
             let deps, g =
               List.fold_right
@@ -327,7 +327,7 @@ module MergeNode = struct
   *)
 
   let set_equal l1 l2 =
-    Key.Set.equal (Key.deps l1) (Key.deps l2)
+    Functoria.Key.(Set.equal (deps l1) (deps l2))
 
   let predicate g v = match explode g v with
     | `If (cond, l) ->
@@ -363,7 +363,7 @@ module EvalIf = struct
   (* Evaluate the [If] vertices and remove them. *)
 
   let predicate ~partial ~context _ v = match G.V.label v with
-    | If cond when not partial || Key.mem context cond -> Some v
+    | If cond when not partial || Functoria.Key.mem context cond -> Some v
     | If _ | App | Impl _ -> None
 
   let extract path l =
@@ -380,9 +380,9 @@ module EvalIf = struct
       | `If x -> x | _ -> assert false
     in
     let preds = G.pred_e g v_if in
-    if partial && not @@ Key.mem context path then g
+    if partial && not @@ Functoria.Key.mem context path then g
     else
-      let v_new, v_others = extract (Key.eval context path) l in
+      let v_new, v_others = extract (Functoria.Key.eval context path) l in
       let g = G.remove_vertex g v_if in
       let g = List.fold_left remove_rec_if_orphan g v_others in
       add_pred_with_subst g preds v_new
@@ -420,13 +420,13 @@ module Dot = Graphviz.Dot(struct
     let vertex_attributes v = match V.label v with
       | App -> [ `Label "$"; `Shape `Diamond ]
       | If cond ->
-        [ `Label (Fmt.strf "If\n%a" Key.pp_deps cond) ]
+        [ `Label (Fmt.strf "If\n%a" Functoria.Key.pp_deps cond) ]
       | Impl f ->
         let label =
           Fmt.strf
             "%s\n%s\n%a"
             f#name f#module_name
-            Fmt.(list ~sep:(unit ", ") Key.pp)
+            Fmt.(list ~sep:(unit ", ") Functoria.Key.pp)
             f#keys
         in
         [ `Label label; `Shape `Box; ]
@@ -445,7 +445,7 @@ module Dot = Graphviz.Dot(struct
           | If cond -> cond | App | Impl _ -> assert false
         in
         let l = [ `Style `Dotted; `Headport `N ] in
-        if Key.default cond = path then `Style `Bold :: l else l
+        if Functoria.Key.default cond = path then `Style `Bold :: l else l
 
   end )
 

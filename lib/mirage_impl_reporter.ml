@@ -1,7 +1,8 @@
-open Functoria
-module Key = Mirage_key
+open Functoria.DSL
 open Mirage_impl_pclock
 open Mirage_impl_misc
+
+module Key = Mirage_key
 
 type reporter = job
 let reporter = job

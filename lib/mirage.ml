@@ -16,13 +16,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-include Functoria
+include Functoria.DSL
 
 module Key = Mirage_key
 module Name = Functoria_app.Name
 module Codegen = Functoria_app.Codegen
 module Log = Mirage_impl_misc.Log
-
+module Info = Functoria.Info
+                
 (** {2 OCamlfind predicates} *)
 
 (** {2 Devices} *)

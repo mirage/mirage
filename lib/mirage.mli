@@ -28,7 +28,7 @@
 module Key : module type of struct include Mirage_key end
 module Info: module type of struct include Functoria.Info end
 
-include Functoria_app.DSL
+include Functoria.DSL
 
 (** {2 General mirage devices} *)
 
@@ -514,7 +514,7 @@ val register:
   ?tracing:tracing impl ->
   ?reporter:reporter impl ->
   ?keys:Key.t list ->
-  ?packages:Functoria.package list -> string -> job impl list -> unit
+  ?packages:package list -> string -> job impl list -> unit
 (** [register name jobs] registers the application named by [name]
     which will executes the given [jobs].
     @param packages The opam packages needed by this module.

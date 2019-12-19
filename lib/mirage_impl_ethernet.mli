@@ -1,5 +1,7 @@
+open Functoria.DSL
+
 type ethernet
 
-val ethernet : ethernet Functoria.typ
+val ethernet : ethernet typ
 
-val etif : Mirage_impl_network.network Functoria.impl -> ethernet Functoria.impl
+val etif : Mirage_impl_network.network impl -> ethernet impl

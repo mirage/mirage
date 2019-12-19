@@ -1,4 +1,5 @@
-open Functoria
+open Functoria.DSL
+
 module Key = Mirage_key
 
 type network = NETWORK
@@ -28,7 +29,7 @@ let network_conf (intf : string Key.key) =
     method! connect _ modname _ =
       Fmt.strf "%s.connect %a" modname Key.serialize_call key
     method! configure i =
-      all_networks := Key.get (Info.context i) intf :: !all_networks;
+      all_networks := Key.get (Functoria.Info.context i) intf :: !all_networks;
       Rresult.R.ok ()
   end
 

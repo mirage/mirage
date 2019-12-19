@@ -1,10 +1,11 @@
-open Functoria
-module Key = Mirage_key
+open Functoria.DSL
 open Mirage_impl_misc
 open Mirage_impl_mclock
 open Mirage_impl_stackv4
 open Mirage_impl_random
 open Rresult
+
+module Key = Mirage_key
 
 type resolver = Resolver
 let resolver = Type Resolver

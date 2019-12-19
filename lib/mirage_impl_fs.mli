@@ -1,18 +1,20 @@
+open Functoria.DSL
+
 type t
 
-val typ : t Functoria.typ
+val typ : t typ
 
-val fat : Mirage_impl_block.block Functoria.impl -> t Functoria.impl
+val fat : Mirage_impl_block.block impl -> t impl
 
-val fat_of_files : ?dir:string -> ?regexp:string -> unit -> t Functoria.impl
+val fat_of_files : ?dir:string -> ?regexp:string -> unit -> t impl
 
-val kv_ro_of_fs : t Functoria.impl -> Mirage_impl_kv.ro Functoria.impl
+val kv_ro_of_fs : t impl -> Mirage_impl_kv.ro impl
 
 val generic_kv_ro :
      ?group:string
-  -> ?key:[`Archive | `Crunch | `Direct | `Fat] Functoria.value
+  -> ?key:[`Archive | `Crunch | `Direct | `Fat] value
   -> string
-  -> Mirage_impl_kv.ro Functoria.impl
+  -> Mirage_impl_kv.ro impl
 
 val fat_shell_script :
      Format.formatter

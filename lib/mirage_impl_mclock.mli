@@ -1,5 +1,7 @@
+open Functoria.DSL
+
 type mclock
 
-val mclock : mclock Functoria.typ
+val mclock : mclock typ
 
-val default_monotonic_clock : mclock Functoria.impl
+val default_monotonic_clock : mclock impl

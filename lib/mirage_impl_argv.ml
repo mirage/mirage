@@ -1,4 +1,5 @@
-open Functoria
+open Functoria.DSL
+
 module Key = Mirage_key
 
 let argv_unix = impl @@ object

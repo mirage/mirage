@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 
 type mclock = MCLOCK
 let mclock = Type MCLOCK

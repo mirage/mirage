@@ -1,13 +1,15 @@
+open Functoria.DSL
+
 type random
 
-val random : random Functoria.typ
+val random : random typ
 
-val stdlib_random : random Functoria.impl
+val stdlib_random : random impl
 
-val default_random : random Functoria.impl
+val default_random : random impl
 
-val nocrypto : Functoria.job Functoria.impl
+val nocrypto : job impl
 
-val nocrypto_random : random Functoria.impl
+val nocrypto_random : random impl
 
 val is_entropy_enabled : unit -> bool

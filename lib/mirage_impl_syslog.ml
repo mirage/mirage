@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 open Mirage_impl_console
 open Mirage_impl_misc
 open Mirage_impl_pclock

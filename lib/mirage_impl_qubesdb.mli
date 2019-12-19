@@ -1,7 +1,9 @@
+open Functoria.DSL
+
 type qubesdb
 
-val qubesdb : qubesdb Functoria.typ
+val qubesdb : qubesdb typ
 
-val default_qubesdb : qubesdb Functoria.impl
+val default_qubesdb : qubesdb impl
 
-val pkg : Functoria.package
+val pkg : package

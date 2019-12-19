@@ -21,16 +21,17 @@ open Misc
 
 module Key = Key
 
-type package = {
-  opam : string ;
-  pin : string option ;
-  build : bool ;
-  ocamlfind : String.Set.t ;
-  min : String.Set.t ;
-  max : String.Set.t ;
-}
-
 module Package = struct
+
+  type t = {
+    opam : string ;
+    pin : string option ;
+    build : bool ;
+    ocamlfind : String.Set.t ;
+    min : String.Set.t ;
+    max : String.Set.t ;
+  }
+
   let merge opam a b =
     let ocamlfind = String.Set.union a.ocamlfind b.ocamlfind
     and min = String.Set.union a.min b.min
@@ -90,16 +91,17 @@ module Package = struct
     Fmt.pf ppf "%s%s%s %s" t p.opam t (exts_to_string p.min p.max p.build)
 end
 
-let package = Package.package
-
 module Info = struct
+
+  open Package
+
   type t = {
     name: string;
     output: string option;
     build_dir: Fpath.t;
     keys: Key.Set.t;
     context: Key.context;
-    packages: package String.Map.t;
+    packages: Package.t String.Map.t;
   }
 
   let name t = t.name
@@ -162,15 +164,110 @@ module Info = struct
         Fmt.(list ~sep:(unit "@ ") pp_pin) pin_depends
 end
 
-type _ typ =
-  | Type: 'a -> 'a typ
-  | Function: 'a typ * 'b typ -> ('a -> 'b) typ
+module type DSL = sig
 
-let (@->) f t = Function (f, t)
+  type _ typ =
+    | Type    : 'a -> 'a typ
+    | Function: 'b typ * 'c typ -> ('b -> 'c) typ
 
-let typ ty = Type ty
+  val typ: 'a -> 'a typ
+
+  val (@->): 'a typ -> 'b typ -> ('a -> 'b) typ
+
+  type job
+
+  val job: job typ
+
+  type 'a impl
+
+  val ($): ('a -> 'b) impl -> 'a impl -> 'b impl
+
+  type abstract_impl = Abstract: _ impl -> abstract_impl
+
+  val abstract: _ impl -> abstract_impl
+
+  type key = Key.t
+
+  type context = Key.context
+
+  type 'a value = 'a Key.value
+
+  type info = Info.t
+
+  val if_impl: bool value -> 'a impl -> 'a impl -> 'a impl
+
+  val match_impl: 'b value -> default:'a impl -> ('b * 'a impl) list ->  'a impl
+
+  type package = Package.t = private {
+    opam : string ;
+    pin : string option ;
+    build : bool ;
+    ocamlfind : Astring.String.Set.t ;
+    min : Astring.String.Set.t ;
+    max : Astring.String.Set.t ;
+  }
+
+  val package :
+    ?build:bool ->
+    ?sublibs:string list ->
+    ?ocamlfind:string list ->
+    ?min:string ->
+    ?max:string ->
+    ?pin:string ->
+    string -> package
+
+  val foreign:
+    ?packages:package list ->
+    ?keys:key list ->
+    ?deps:abstract_impl list ->
+    string -> 'a typ -> 'a impl
+
+  class type ['ty] configurable = object
+    method ty: 'ty typ
+    method name: string
+    method module_name: string
+    method packages: package list value
+    method connect: Info.t -> string -> string list -> string
+    method configure: Info.t -> (unit, Rresult.R.msg) result
+    method build: Info.t -> (unit, Rresult.R.msg) result
+    method clean: Info.t -> (unit, Rresult.R.msg) result
+    method keys: key list
+    method deps: abstract_impl list
+  end
+
+  val impl: 'a configurable -> 'a impl
+
+  class base_configurable: object
+    method packages: package list value
+    method keys: key list
+    method connect: Info.t -> string -> string list -> string
+    method configure: Info.t -> (unit, Rresult.R.msg) result
+    method build: Info.t -> (unit, Rresult.R.msg) result
+    method clean: Info.t -> (unit, Rresult.R.msg) result
+    method deps: abstract_impl list
+  end
+
+  class ['a] foreign:
+    ?packages:package list ->
+    ?keys:key list ->
+    ?deps:abstract_impl list ->
+    string -> 'a typ -> ['a] configurable
+end
 
 module rec Typ: sig
+
+  type package = Package.t = {
+    opam : string ;
+    pin : string option ;
+    build : bool ;
+    ocamlfind : Astring.String.Set.t ;
+    min : Astring.String.Set.t ;
+    max : Astring.String.Set.t ;
+  }
+
+  type _ typ =
+    | Type: 'a -> 'a typ
+    | Function: 'a typ * 'b typ -> ('a -> 'b) typ
 
   type _ impl =
     | Impl: 'ty Typ.configurable -> 'ty impl (* base implementation *)
@@ -199,58 +296,72 @@ module rec Typ: sig
 
 end = Typ
 
-include Typ
+module DSL = struct
 
-let ($) f x = App { f; x }
-let impl x = Impl x
-let abstract x = Abstract x
-let if_impl b x y = If(b,x,y)
+  include Typ
 
-let rec match_impl kv ~default = function
-  | [] -> default
-  | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
+  let (@->) f t = Function (f, t)
 
-type key = Key.t
-type context = Key.context
-type 'a value = 'a Key.value
-type job = JOB
-let job = Type JOB
+  let typ ty = Type ty
 
-class base_configurable = object
-  method packages: package list Key.value = Key.pure []
-  method keys: Key.t list = []
-  method connect (_:Info.t) (_:string) l =
-    Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
-  method configure (_: Info.t): (unit, R.msg) R.t = R.ok ()
-  method build (_: Info.t): (unit, R.msg) R.t = R.ok ()
-  method clean (_: Info.t): (unit, R.msg) R.t = R.ok ()
-  method deps: abstract_impl list = []
-end
+  let ($) f x = App { f; x }
+  let impl x = Impl x
+  let abstract x = Abstract x
+  let if_impl b x y = If(b,x,y)
 
-class ['ty] foreign
-     ?(packages=[]) ?(keys=[]) ?(deps=[]) module_name ty
-  : ['ty] configurable
-  =
-  let name = Name.create module_name ~prefix:"f" in
-  object
-    method ty = ty
-    method name = name
-    method module_name = module_name
-    method keys = keys
-    method packages = Key.pure packages
-    method connect _ modname args =
-      Fmt.strf
-        "@[%s.start@ %a@]"
-        modname
-        Fmt.(list ~sep:sp string)  args
-    method clean _ = R.ok ()
-    method configure _ = R.ok ()
-    method build _ = R.ok ()
-    method deps = deps
+  let rec match_impl kv ~default = function
+    | [] -> default
+    | (f, i) :: t -> If (Key.(pure ((=) f) $ kv), i, match_impl kv ~default t)
+
+  type key = Key.t
+  type context = Key.context
+  type 'a value = 'a Key.value
+  type info = Info.t
+
+  type job = JOB
+  let job = Type JOB
+
+  class base_configurable = object
+    method packages: package list Key.value = Key.pure []
+    method keys: Key.t list = []
+    method connect (_:Info.t) (_:string) l =
+      Printf.sprintf "return (%s)" (String.concat ~sep:", " l)
+    method configure (_: Info.t): (unit, R.msg) R.t = R.ok ()
+    method build (_: Info.t): (unit, R.msg) R.t = R.ok ()
+    method clean (_: Info.t): (unit, R.msg) R.t = R.ok ()
+    method deps: abstract_impl list = []
   end
 
-let foreign ?packages ?keys ?deps module_name ty =
-  Impl (new foreign ?packages ?keys ?deps module_name ty)
+  class ['ty] foreign
+      ?(packages=[]) ?(keys=[]) ?(deps=[]) module_name ty
+    : ['ty] configurable
+    =
+    let name = Name.create module_name ~prefix:"f" in
+    object
+      method ty = ty
+      method name = name
+      method module_name = module_name
+      method keys = keys
+      method packages = Key.pure packages
+      method connect _ modname args =
+        Fmt.strf
+          "@[%s.start@ %a@]"
+          modname
+          Fmt.(list ~sep:sp string)  args
+      method clean _ = R.ok ()
+      method configure _ = R.ok ()
+      method build _ = R.ok ()
+      method deps = deps
+    end
+
+  let foreign ?packages ?keys ?deps module_name ty =
+    Impl (new foreign ?packages ?keys ?deps module_name ty)
+
+  let package = Package.package
+
+end
+
+open DSL
 
 (* {Misc} *)
 

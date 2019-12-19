@@ -1,3 +1,4 @@
+open Functoria.DSL
 open Rresult
 module Key = Functoria.Key
 
@@ -57,12 +58,12 @@ module C = struct
                  let run x = x"
   let name = "test"
   let version = "1.0"
-  let packages = [Functoria.package "functoria"; Functoria.package "f0"]
+  let packages = [package "functoria"; package "f0"]
   let ignore_dirs = []
 
-  let create jobs = Functoria.impl @@ object (self)
-      inherit Functoria.base_configurable
-      method ty = Functoria.job
+  let create jobs = impl @@ object (self)
+      inherit base_configurable
+      method ty = job
       method name = "f0"
       method module_name = "F0"
       method! connect _ _ _ = "()"
@@ -71,7 +72,7 @@ module C = struct
         Functoria.Key.(abstract warn_error);
       ]
       method! packages = Key.pure [
-          Functoria.package "fmt";
+          package "fmt";
         ]
 
       method! configure i =
@@ -106,7 +107,7 @@ module C = struct
                             % (output i ^ ".exe"));
           ) ()
 
-      method! deps = List.map Functoria.abstract jobs
+      method! deps = List.map abstract jobs
     end
 end
 

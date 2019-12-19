@@ -1,7 +1,8 @@
-open Functoria
-module Key = Mirage_key
+open Functoria.DSL
 open Mirage_impl_misc
 open Rresult
+
+module Key = Mirage_key
 
 type qubesdb = QUBES_DB
 let qubesdb = Type QUBES_DB

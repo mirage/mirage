@@ -1,6 +1,7 @@
-open Functoria
 module Key = Mirage_key
 module Name = Functoria_app.Name
+
+open Functoria.DSL
 open Mirage_impl_arpv4
 open Mirage_impl_ethernet
 open Mirage_impl_mclock

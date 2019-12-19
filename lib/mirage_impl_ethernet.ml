@@ -1,7 +1,8 @@
-module Key = Mirage_key
-open Functoria
+open Functoria.DSL
 open Mirage_impl_misc
 open Mirage_impl_network
+
+module Key = Mirage_key
 
 type ethernet = ETHERNET
 let ethernet = Type ETHERNET

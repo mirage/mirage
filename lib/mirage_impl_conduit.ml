@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 open Mirage_impl_conduit_connector
 open Mirage_impl_random
 

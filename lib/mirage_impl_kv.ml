@@ -1,8 +1,9 @@
-open Functoria
-module Name = Functoria_app.Name
-module Key = Mirage_key
+open Functoria.DSL
 open Rresult
 open Astring
+
+module Name = Functoria_app.Name
+module Key = Mirage_key
 
 type ro = RO
 let ro = Type RO
@@ -42,7 +43,7 @@ let direct_kv_ro dirname = impl @@ object
     method! packages =
       Key.pure [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ]
     method! connect i modname _names =
-      let path = Fpath.(Info.build_dir i / dirname) in
+      let path = Fpath.(Functoria.Info.build_dir i / dirname) in
       Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
   end
 
@@ -69,7 +70,7 @@ let direct_kv_rw dirname = impl @@ object
     method! packages =
       Key.pure [ package ~min:"2.1.0" ~max:"3.0.0" "mirage-kv-unix" ]
     method! connect i modname _names =
-      let path = Fpath.(Info.build_dir i / dirname) in
+      let path = Fpath.(Functoria.Info.build_dir i / dirname) in
       Fmt.strf "%s.connect \"%a\"" modname Fpath.pp path
   end
 

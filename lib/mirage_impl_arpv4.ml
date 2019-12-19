@@ -1,5 +1,6 @@
 module Key = Mirage_key
-open Functoria
+
+open Functoria.DSL
 open Mirage_impl_ethernet
 open Mirage_impl_time
 open Mirage_impl_misc

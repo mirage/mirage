@@ -1,4 +1,4 @@
-open Functoria
+open Functoria.DSL
 open Mirage_impl_arpv4
 open Mirage_impl_ethernet
 open Mirage_impl_mclock
@@ -16,11 +16,11 @@ type ipv4 = v4 ip
 
 type ipv6 = v6 ip
 
-val ip : 'a ip Functoria.typ
+val ip : 'a ip typ
 
-val ipv4 : ipv4 Functoria.typ
+val ipv4 : ipv4 typ
 
-val ipv6 : ipv6 Functoria.typ
+val ipv6 : ipv6 typ
 
 type ipv4_config =
   {network: Ipaddr.V4.Prefix.t * Ipaddr.V4.t; gateway: Ipaddr.V4.t option}

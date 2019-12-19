@@ -1,3 +1,5 @@
-val default_argv : Functoria_app.argv Functoria.impl
+open Functoria.DSL
 
-val no_argv : Functoria_app.argv Functoria.impl
+val default_argv : Functoria_app.argv impl
+
+val no_argv : Functoria_app.argv impl

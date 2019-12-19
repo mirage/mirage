@@ -1,9 +1,11 @@
+open Functoria.DSL
+
 type http
 
-val http : http Functoria.typ
+val http : http typ
 
 val cohttp_server :
-  Mirage_impl_conduit.conduit Functoria.impl -> http Functoria.impl
+  Mirage_impl_conduit.conduit impl -> http impl
 
 val httpaf_server :
-  Mirage_impl_conduit.conduit Functoria.impl -> http Functoria.impl
+  Mirage_impl_conduit.conduit impl -> http impl

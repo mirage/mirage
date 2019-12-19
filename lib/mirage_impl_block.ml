@@ -1,4 +1,5 @@
-open Functoria
+open Functoria.DSL
+       
 module Name = Functoria_app.Name
 module Key = Mirage_key
 open Mirage_impl_misc
@@ -93,7 +94,7 @@ class block_conf file =
       | `Muen -> failwith "Block devices not supported on Muen target."
       | _ ->
         Fmt.strf "%s.connect %S" s
-          (self#connect_name (get_target i) @@ Info.build_dir i)
+          (self#connect_name (get_target i) @@ Functoria.Info.build_dir i)
   end
 
 let block_of_file file = impl (new block_conf file)

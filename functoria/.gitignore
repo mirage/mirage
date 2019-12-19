@@ -1,7 +1,0 @@
-_build
-*~
-\.\#*
-\#*#
-*.merlin
-*.install
-_opam

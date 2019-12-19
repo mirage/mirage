@@ -5,10 +5,10 @@ authors:      [ "Thomas Gazagnaire"
                 "Dave Scott"
                 "Thomas Leonard"
                 "Gabriel Radanne" ]
-homepage:     "https://github.com/mirage/functoria"
-bug-reports:  "https://github.com/mirage/functoria/issues"
-dev-repo:     "git+https://github.com/mirage/functoria.git"
-doc:          "https://mirage.github.io/functoria/"
+homepage:     "https://github.com/mirage/mirage"
+bug-reports:  "https://github.com/mirage/mirage/issues"
+dev-repo:     "git+https://github.com/mirage/mirage.git"
+doc:          "https://mirage.github.io/mirage/"
 license:      "ISC"
 tags:         ["org:mirage"]
 

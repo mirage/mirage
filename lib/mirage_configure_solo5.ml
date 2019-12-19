@@ -81,51 +81,53 @@ let configure_solo5 ~name ~binary_location ~target =
   let _, post = solo5_pkg target in
   let out = name ^ post in
   let alias =
-    sexp_of_fmt
-      {sexp|
-      (alias
-        (name %a)
-         (enabled_if (= %%{context_name} "mirage-freestanding"))
-         (deps libmirage-solo5_bindings.a %s))
-      |sexp} Key.pp_target target out in
+    Fmt.strf
+{sexp|
+(alias
+  (name %a)
+   (enabled_if (= %%{context_name} "mirage-freestanding"))
+   (deps libmirage-solo5_bindings.a %s))
+|sexp}
+      Key.pp_target target out in
   let rule_unikernel =
-    sexp_of_fmt
-      {sexp|
-      (rule
-        (targets %s)
-        (mode promote)
-        (deps %s manifest.o)
-        (action (run ld libmirage-solo5_bindings.a %%{read-lines:ldflags} manifest.o %s -o %s)))
-      |sexp} out binary_location binary_location out in
+    Fmt.strf
+{sexp|
+(rule
+  (targets %s)
+  (mode promote)
+  (deps %s manifest.o)
+  (action (run ld libmirage-solo5_bindings.a %%{read-lines:ldflags} manifest.o %s -o %s)))
+|sexp}
+      out binary_location binary_location out in
   let rule_libmirage_solo5_bindings =
-    sexp_of_fmt
+    Fmt.strf
       {sexp|(rule (copy %%{lib:mirage-solo5:libmirage-solo5_bindings.a} libmirage-solo5_bindings.a))|sexp} in
   let rule_libs =
-    sexp_of_fmt
+    Fmt.strf
       {sexp|(rule (copy %%{lib:ocaml-freestanding:libs.sexp} libs.sexp))|sexp} in
   let rule_ldflags =
-    sexp_of_fmt
+    Fmt.strf
       {sexp|(rule (copy %%{lib:ocaml-freestanding:ldflags} ldflags))|sexp} in
   let rule_cflags =
-    sexp_of_fmt
+    Fmt.strf
       {sexp|(rule (copy %%{lib:ocaml-freestanding:cflags.sexp} cflags.sexp))|sexp} in
   let rule_manifest_c =
-    sexp_of_fmt
-      {sexp|
-      (rule
-        (targets manifest.c)
-        (deps manifest.json)
-        (action (run solo5-elftool gen-manifest manifest.json manifest.c)))
-      |sexp} in
+    Fmt.strf
+{sexp|
+(rule
+  (targets manifest.c)
+  (deps manifest.json)
+  (action (run solo5-elftool gen-manifest manifest.json manifest.c)))
+|sexp} in
   let rule_manifest_o =
-    sexp_of_fmt
-      {sexp|
-      (library
-        (name manifest)
-        (modules manifest)
-        (foreign_stubs (language c) (names manifest)
-          (flags (:include cflags.sexp))))
-      |sexp} in
+    Fmt.strf
+{sexp|
+(library
+  (name manifest)
+  (modules manifest)
+  (foreign_stubs (language c) (names manifest)
+    (flags (:include cflags.sexp))))
+|sexp} in
   Bos.OS.File.write (Fpath.v "manifest.ml") "" >>= fun () ->
   Ok ( rule_libmirage_solo5_bindings
        :: rule_ldflags :: rule_cflags :: rule_libs

@@ -161,35 +161,33 @@ let configure_dune i =
         s_forbidden
         s_variants in
   configure_post_build_rules i ~name ~binary_location ~target >>= fun rules ->
-  let res = res ^ "\n" in
-  let rules = List.map (fun x -> Sexplib.Sexp.to_string_hum x ^ "\n") rules in
   Bos.OS.File.write_lines dune_path (res :: rules)
 
 let configure_dune_workspace i =
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
-  let lang = sexp_of_fmt {sexp|(lang dune 2.0)|sexp}
-  and variant_feature = sexp_of_fmt {sexp|(using library_variants 0.2)|sexp}
-  and implicit_transitive_deps = sexp_of_fmt {sexp|(implicit_transitive_deps true)|sexp}
-  and profile_release = sexp_of_fmt {sexp|(profile release)|sexp}
-  and base_context = sexp_of_fmt {sexp|(context (default))|sexp} in
+  let lang = Fmt.strf {sexp|(lang dune 2.0)|sexp}
+  and variant_feature = Fmt.strf {sexp|(using library_variants 0.2)|sexp}
+  and implicit_transitive_deps = Fmt.strf {sexp|(implicit_transitive_deps true)|sexp}
+  and profile_release = Fmt.strf {sexp|(profile release)|sexp}
+  and base_context = Fmt.strf {sexp|(context (default))|sexp} in
   let extra_contexts = match target with
     | #Mirage_key.mode_solo5 | #Mirage_key.mode_xen ->
-      [ sexp_of_fmt {sexp|
-          (context (default
-            (name mirage-%s)
-            (host default)
-            (env (_ (c_flags (:include cflags.sexp))))))
-          |sexp} (variant_of_target target) ]
+      [ Fmt.strf
+{sexp|
+(context (default
+  (name mirage-%s)
+  (host default)
+  (env (_ (c_flags (:include cflags.sexp))))))
+|sexp}
+          (variant_of_target target) ]
     | #Mirage_key.mode_unix -> [] in
   let rules = lang :: profile_release :: base_context :: extra_contexts in
   Bos.OS.File.write_lines
-    dune_workspace_path
-    (List.map (fun x -> Sexplib.Sexp.to_string_hum x ^ "\n") rules) >>= fun () ->
+    dune_workspace_path rules >>= fun () ->
   let rules = [ lang; variant_feature; implicit_transitive_deps; ] in
   Bos.OS.File.write_lines
-    dune_project_path
-    (List.map (fun x -> Sexplib.Sexp.to_string_hum x ^ "\n") rules)
+    dune_project_path rules
 
 let clean_dune () = Bos.OS.File.delete dune_path
 let clean_dune_project () = Bos.OS.File.delete dune_project_path

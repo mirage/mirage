@@ -193,22 +193,24 @@ let configure_xen_arm ~out ~linker_command ~binary_location =
   let libgcc_cmd = Bos.Cmd.(v "gcc" % "-print-libgcc-file-name") in
   Bos.OS.Cmd.(run_out libgcc_cmd |> out_string) >>= fun (libgcc, _) ->
   let rule_link =
-    sexp_of_fmt
-      {sexp|
-      (rule
-        (targets %s)
-        (deps %s)
-        (action (run %s %s -o %s)))
-      |sexp} elf binary_location linker_command libgcc elf in
+    Fmt.strf
+{sexp|
+(rule
+  (targets %s)
+  (deps %s)
+  (action (run %s %s -o %s)))
+|sexp}
+      elf binary_location linker_command libgcc elf in
   let rule_obj_copy =
-    sexp_of_fmt
-      {sexp|
-      (rule
-        (mode promote)
-        (targets %s)
-        (deps %s)
-        (action (run objcopy -O binary %s %s)))
-      |sexp} out elf elf out in
+    Fmt.strf
+{sexp|
+(rule
+  (mode promote)
+  (targets %s)
+  (deps %s)
+  (action (run objcopy -O binary %s %s)))
+|sexp}
+      out elf elf out in
   Ok [ rule_link; rule_obj_copy; ]
 
 let configure_xen_default ~out ~linker_command ~binary_location =
@@ -228,13 +230,14 @@ let configure_xen ~name ~binary_location ~target =
   let target_name = Fmt.strf "%a" Key.pp_target target in
   let out = name ^ ".xen" in
   let alias =
-    sexp_of_fmt
-      {sexp|
-      (alias
-        (name %s)
-        (enabled_if (= %%{context_name} "mirage-xen"))
-        (deps %s))
-      |sexp} target_name out in
+    Fmt.strf
+{sexp|
+(alias
+  (name %s)
+  (enabled_if (= %%{context_name} "mirage-xen"))
+  (deps %s))
+|sexp}
+      target_name out in
   let linker_command = "ld -d -static -nostdlib " ^ binary_location in
   let uname_cmd = Bos.Cmd.(v "uname" %  "-m") in
   Bos.OS.Cmd.(run_out uname_cmd |> out_string) >>= fun (machine, _) ->
@@ -243,12 +246,12 @@ let configure_xen ~name ~binary_location ~target =
   | false -> configure_xen_default ~out ~linker_command ~binary_location )
   >>= fun rules ->
   let rule_libs =
-    sexp_of_fmt
+    Fmt.strf
       {sexp|(rule (copy %%{lib:mirage-xen-ocaml:libs.sexp} libs.sexp))|sexp} in
   let rule_ldflags =
     Fmt.strf
       {sexp|(rule (copy %%{lib:mirage-xen-ocaml:ldflags} ldflags))|sexp} in
   let rule_cflags =
-    sexp_of_fmt
+    Fmt.strf
       {sexp|(rule (copy %%{lib:mirage-xen-ocaml:cflags.sexp} cflags.sexp))|sexp} in
   Ok ( rule_cflags :: rule_libs :: rule_ldflags :: alias :: rules )

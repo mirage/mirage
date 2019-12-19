@@ -1,5 +1,5 @@
-open Test_app
-module Key = Functoria_key
+open F0
+module Key = Functoria.Key
 
 let main = Functoria.(foreign "App" job)
 

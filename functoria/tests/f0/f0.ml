@@ -57,14 +57,14 @@ module C = struct
                  let run x = x"
   let name = "test"
   let version = "1.0"
-  let packages = [Functoria.package "functoria"; Functoria.package "test_app"]
+  let packages = [Functoria.package "functoria"; Functoria.package "f0"]
   let ignore_dirs = []
 
   let create jobs = Functoria.impl @@ object (self)
       inherit Functoria.base_configurable
       method ty = Functoria.job
-      method name = "test_app"
-      method module_name = "Test_app"
+      method name = "f0"
+      method module_name = "F0"
       method! connect _ _ _ = "()"
       method! keys = [
         Functoria.Key.(abstract vote);

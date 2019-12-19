@@ -39,17 +39,6 @@ let generate_manifest_json () =
       R.ok ())
     "Solo5 application manifest file"
 
-(*
-let generate_manifest_c () =
-  let json = solo5_manifest_path in
-  let c = "_build/manifest.c" in
-  let cmd = Bos.Cmd.(v "solo5-elftool" % "gen-manifest" % Fpath.to_string json % c)
-  in
-  Bos.OS.Dir.create Fpath.(v "_build") >>= fun _created ->
-  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
-  Bos.OS.Cmd.run cmd
-*)
-
 let solo5_pkg = function
   | `Virtio -> "solo5-bindings-virtio", ".virtio"
   | `Muen -> "solo5-bindings-muen", ".muen"
@@ -58,20 +47,6 @@ let solo5_pkg = function
   | `Spt -> "solo5-bindings-spt", ".spt"
   | _ ->
     invalid_arg "solo5 bindings only defined for solo5 targets"
-
-(*
-let cflags pkg = pkg_config pkg ["--cflags"]
-
-let compile_manifest target =
-  let pkg, _post = solo5_pkg target in
-  let c = "_build/manifest.c" in
-  let obj = "_build/manifest.o" in
-  cflags pkg >>= fun cflags ->
-  let cmd = Bos.Cmd.(v "cc" %% of_list cflags % "-c" % c % "-o" % obj)
-  in
-  Log.info (fun m -> m "executing %a" Bos.Cmd.pp cmd);
-  Bos.OS.Cmd.run cmd
-*)
 
 (* Generate configure part of Solo5 target. *)
 

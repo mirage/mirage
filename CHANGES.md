@@ -1,3 +1,10 @@
+### v3.7.4 (2019-12-20)
+
+* use `git rev-parse --abbrev-ref HEAD` instead of `git branch --show-current`
+  for emitting branch information into the opam file. The latter is only
+  available in git 2.22 or later, while the former seems to be supported by
+  old git releases. (#1024, @hannesm)
+
 ### v3.7.3 (2019-12-17)
 
 * `mirage configure` now emits build and install steps into generated opam file

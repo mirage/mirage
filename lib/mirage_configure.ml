@@ -62,7 +62,7 @@ let find_git () =
   in
   Bos.OS.Dir.current () >>= fun cwd ->
   find cwd None >>= fun subdir ->
-  let git_branch = Bos.Cmd.(v "git" % "branch" % "--show-current") in
+  let git_branch = Bos.Cmd.(v "git" % "rev-parse" % "--abbrev-ref" % "HEAD") in
   Bos.OS.Cmd.(run_out git_branch |> out_string) >>= fun (branch, _) ->
   let git_remote = Bos.Cmd.(v "git" % "remote" % "get-url" % "origin") in
   Bos.OS.Cmd.(run_out git_remote |> out_string) >>| fun (git_url, _) ->

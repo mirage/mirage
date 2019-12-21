@@ -72,6 +72,7 @@ module Substitutions = struct
 end
 
 let configure_main_xl ?substitutions ~ext i =
+  let timestamp = Info.build_time i in
   let open Substitutions in
   let substitutions = match substitutions with
     | Some x -> x
@@ -81,7 +82,7 @@ let configure_main_xl ?substitutions ~ext i =
   with_output file (fun oc () ->
       let open Mirage_impl_block in
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ()) ;
+      append fmt "# %s" (generated_header timestamp) ;
       newline fmt;
       append fmt "name = '%s'" (lookup substitutions Name);
       append fmt "kernel = '%s'" (lookup substitutions Kernel);
@@ -125,14 +126,17 @@ let configure_main_xl ?substitutions ~ext i =
 
 let clean_main_xl ~name ~ext = Bos.OS.File.delete Fpath.(v name + ext)
 
-let configure_main_xe ~root ~name =
+let configure_main_xe i =
+  let name = Info.name i in
+  let timestamp = Info.build_time i in
+  let root = Fpath.to_string (Info.build_dir i) in
   let open Codegen in
   let file = Fpath.(v name + "xe") in
   with_output ~mode:0o755 file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       let open Mirage_impl_block in
       append fmt "#!/bin/sh";
-      append fmt "# %s" (generated_header ());
+      append fmt "# %s" (generated_header timestamp);
       newline fmt;
       append fmt "set -e";
       newline fmt;

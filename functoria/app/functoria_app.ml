@@ -74,7 +74,8 @@ module Keys = struct
     with_output file
       (fun oc () ->
          let fmt = Format.formatter_of_out_channel oc in
-         Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
+         Codegen.append fmt "(* %s *)"
+           (Codegen.generated_header (Info.build_time i));
          Codegen.newline fmt;
          let keys = Key.Set.of_list @@ Info.keys i in
          let pp_var k = Key.serialize (Info.context i) k in
@@ -356,6 +357,7 @@ module Config = struct
   type t = {
     name     : string;
     build_dir: Fpath.t;
+    build_time: string;
     packages : package list Key.value;
     keys     : Key.Set.t;
     init     : job impl list;
@@ -374,15 +376,16 @@ module Config = struct
     in
     Key.Set.fold f all_keys skeys
 
-  let make ?(keys=[]) ?(packages=[]) ?(init=[]) name build_dir main_dev =
+  let make ?(keys=[]) ?(packages=[]) ?(init=[])
+      name build_dir build_time main_dev =
     let name = Name.ocamlify name in
     let jobs = Graph.create main_dev in
     let packages = Key.pure @@ packages in
     let keys = Key.Set.(union (of_list keys) (get_if_context jobs)) in
-    { packages; keys; name; build_dir; init; jobs }
+    { packages; keys; name; build_dir; build_time; init; jobs }
 
   let eval ~partial context
-      { name = n; build_dir; packages; keys; jobs; init }
+      { name = n; build_dir; build_time; packages; keys; jobs; init }
     =
     let e = Graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
@@ -391,7 +394,7 @@ module Config = struct
         ((init, e),
          Info.create
            ~packages
-           ~keys ~context ~name:n ~build_dir))
+           ~keys ~context ~name:n ~build_dir ~build_time))
          $ packages
          $ of_deps (Set.of_list keys))
 
@@ -505,9 +508,17 @@ module type DSL = module type of struct include Functoria end
 
 module Make (P: S) = struct
 
-  type state = { build_dir: Fpath.t option; config_file: Fpath.t }
+  type state = {
+    build_dir: Fpath.t option;
+    config_file: Fpath.t;
+    timestamp: string;
+  }
 
   let default_init = [keys sys_argv]
+
+  let timestamp () =
+    Fmt.to_to_string
+      (Ptime.pp_rfc3339 ~space:true ~frac_s:0 ()) (Ptime_clock.now ())
 
   let init_global_state argv =
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
@@ -523,7 +534,12 @@ module Make (P: S) = struct
         Some d
       | _ -> None
     in
-    { config_file; build_dir }
+    let timestamp =
+      match Cmdliner.Term.eval_peek_opts ~argv Cmd.timestamp with
+      | Some (Some f), _ -> f
+      | _ -> timestamp ()
+    in
+    { config_file; build_dir; timestamp }
 
   let get_project_root () = R.get_ok @@ Bos.OS.Dir.current ()
 
@@ -817,12 +833,12 @@ module Make (P: S) = struct
     | None   -> i
     | Some o -> Info.with_output i o
 
-  let configure_main ~argv i jobs =
+  let configure_main ~state ~argv i jobs =
     let main = match Info.output i with None -> "main" | Some f -> f in
     let file = main ^ ".ml" in
     Log.info (fun m -> m "Generating: %s" file);
     Codegen.set_main_ml file;
-    Codegen.append_main "(* %s *)" (Codegen.generated_header ());
+    Codegen.append_main "(* %s *)" (Codegen.generated_header state.timestamp);
     Codegen.newline_main ();
     Codegen.append_main "%a" Fmt.text  P.prelude;
     Codegen.newline_main ();
@@ -844,7 +860,7 @@ module Make (P: S) = struct
     Log.info (fun m -> m "Build-dir    : %a" Fpath.pp (Info.build_dir i));
     with_current
       (Info.build_dir i)
-      (fun () -> configure_main ~argv i jobs)
+      (fun () -> configure_main ~state ~argv i jobs)
       "configure"
 
   let build ~state i jobs =
@@ -956,7 +972,9 @@ module Make (P: S) = struct
     let state = init_global_state Sys.argv in
     let build_dir = get_build_dir ~state in
     let main_dev = P.create (init @ jobs) in
-    let c = Config.make ?keys ?packages ~init name build_dir main_dev in
+    let c =
+      Config.make ?keys ?packages ~init name build_dir state.timestamp main_dev
+    in
     run_configure_with_argv ~state Sys.argv c
 
 end

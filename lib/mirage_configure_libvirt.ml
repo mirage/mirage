@@ -4,12 +4,15 @@ module Codegen = Functoria_app.Codegen
 
 let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
 
-let configure_main ~root ~name =
+let configure_main i =
+  let name = Functoria.Info.name i in
+  let timestamp = Functoria.Info.build_time i in
+  let root = Fpath.to_string (Functoria.Info.build_dir i) in
   let open Codegen in
   with_output (filename ~name)
     (fun oc () ->
        let fmt = Format.formatter_of_out_channel oc in
-       append fmt "<!-- %s -->" (generated_header ());
+       append fmt "<!-- %s -->" (generated_header timestamp);
        append fmt "<domain type='xen'>";
        append fmt "    <name>%s</name>" name;
        append fmt "    <memory unit='KiB'>262144</memory>";
@@ -58,12 +61,15 @@ let configure_main ~root ~name =
        R.ok ())
     "libvirt.xml"
 
-let configure_virtio ~root ~name =
+let configure_virtio i =
+  let name = Functoria.Info.name i in
+  let timestamp = Functoria.Info.build_time i in
+  let root = Fpath.to_string (Functoria.Info.build_dir i) in
   let open Codegen in
   with_output (filename ~name)
     (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "<!-- %s -->" (generated_header ());
+      append fmt "<!-- %s -->" (generated_header timestamp);
       append fmt "<domain type='kvm'>";
       append fmt "    <name>%s</name>" name;
       append fmt "    <memory unit='KiB'>262144</memory>";

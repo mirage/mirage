@@ -51,6 +51,17 @@ let build_dir =
   Term.(const (function None -> None | Some f -> Some (Fpath.v f))
         $ Arg.(value & opt (some string) None & doc))
 
+let timestamp =
+  let doc =
+    Arg.info
+      ~docs:configuration_section
+      ~docv:"DATA"
+      ~doc:"The timestamp to use in generated files. If not provided, use \
+            the current date instead."
+      ["timestamp"]
+  in
+  Arg.(value & opt (some string) None & doc)
+
 (**
  * Argument specifications
  *)

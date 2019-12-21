@@ -68,7 +68,9 @@ let find_git () =
   Bos.OS.Cmd.(run_out git_remote |> out_string) >>| fun (git_url, _) ->
   subdir, branch, git_url
 
-let configure_opam ~name info =
+let configure_opam info =
+  let name = Info.name info in
+  let timestamp = Info.build_time info in
   let open Codegen in
   let subdir, git_info =
     match find_git () with
@@ -78,7 +80,7 @@ let configure_opam ~name info =
   let file = opam_path ~name in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ());
+      append fmt "# %s" (generated_header timestamp);
       Info.opam ~name fmt info;
       append fmt {|maintainer: "dummy"|};
       append fmt {|authors: "dummy"|};
@@ -130,12 +132,13 @@ let unikernel_opam_name ~name target =
 let clean_opam ~name target =
   Bos.OS.File.delete (opam_path ~name:(unikernel_opam_name ~name target))
 
-let configure_makefile ~no_depext ~opam_name =
+let configure_makefile ~no_depext ~opam_name info =
+  let timestamp = Info.build_time info in
   let open Codegen in
   let file = Fpath.(v "Makefile") in
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
-      append fmt "# %s" (generated_header ());
+      append fmt "# %s" (generated_header timestamp);
       newline fmt;
       append fmt "-include Makefile.user";
       newline fmt;
@@ -162,7 +165,6 @@ let configure_makefile ~no_depext ~opam_name =
 
 let configure i =
   let name = Info.name i in
-  let root = Fpath.to_string (Info.build_dir i) in
   let ctx = Info.context i in
   let target = Key.(get ctx target) in
   Log.info (fun m -> m "Configuring for target: %a" Key.pp_target target);
@@ -174,9 +176,9 @@ let configure i =
   rr_iter (clean_opam ~name)
     [`Unix; `MacOSX; `Xen; `Qubes; `Hvt; `Spt; `Virtio; `Muen; `Genode]
   >>= fun () ->
-  configure_opam ~name:opam_name i >>= fun () ->
+  configure_opam i >>= fun () ->
   let no_depext = Key.(get ctx no_depext) in
-  configure_makefile ~no_depext ~opam_name >>= fun () ->
+  configure_makefile ~no_depext ~opam_name i >>= fun () ->
   (match target with
     | #Mirage_key.mode_solo5 -> generate_manifest_json ()
     | _ -> R.ok ()) >>= fun () ->
@@ -184,8 +186,8 @@ let configure i =
   | `Xen ->
     configure_main_xl ~ext:"xl" i >>= fun () ->
     configure_main_xl ~substitutions:[] ~ext:"xl.in" i >>= fun () ->
-    configure_main_xe ~root ~name >>= fun () ->
-    Mirage_configure_libvirt.configure_main ~root ~name
+    configure_main_xe i >>= fun () ->
+    Mirage_configure_libvirt.configure_main i
   | `Virtio ->
-    Mirage_configure_libvirt.configure_virtio ~root ~name
+    Mirage_configure_libvirt.configure_virtio i
   | _ -> R.ok ()

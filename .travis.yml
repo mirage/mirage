@@ -7,7 +7,7 @@ sudo: false
 env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
-   - PINS="mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
+   - PINS="functoria:. functoria-runtime:. mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - PACKAGE=mirage
    - TESTS=false
  matrix:

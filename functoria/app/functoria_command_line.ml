@@ -30,7 +30,7 @@ let setup_log =
         $ Fmt_cli.style_renderer ~docs:common_section ()
         $ Logs_cli.level ~docs:common_section ())
 
-let config_file f =
+let config_file =
   let doc =
     Arg.info
       ~docs:configuration_section
@@ -38,10 +38,9 @@ let config_file f =
       ~doc:"The configuration file to use."
       ["f"; "file"]
   in
-  Term.(const (fun x ->  f (Fpath.v x))
-        $ Arg.(value & opt string "config.ml" & doc))
+  Term.(const Fpath.v $ Arg.(value & opt string "config.ml" & doc))
 
-let build_dir f =
+let build_dir =
   let doc =
     Arg.info
       ~docs:configuration_section
@@ -49,7 +48,7 @@ let build_dir f =
       ~doc:"The directory where the build is done."
       ["b"; "build-dir"]
   in
-  Term.(const (function None -> () | Some x ->  f (Fpath.v x))
+  Term.(const (function None -> None | Some f -> Some (Fpath.v f))
         $ Arg.(value & opt (some string) None & doc))
 
 (**
@@ -137,11 +136,10 @@ let pp_action pp_a ppf = function
   | Help        -> Fmt.string ppf "help"
 
 let setup =
-  let noop _ = () in
-  Term.(const (fun () () () -> ())
+  Term.(const (fun () _ _ -> ())
         $ setup_log
-        $ config_file noop
-        $ build_dir noop)
+        $ config_file
+        $ build_dir)
 
 (*
  * Subcommand specifications

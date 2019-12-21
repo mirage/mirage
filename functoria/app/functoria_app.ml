@@ -505,23 +505,25 @@ module type DSL = module type of struct include Functoria end
 
 module Make (P: S) = struct
 
-  (* GLOBAL STATE *)
+  type state = { build_dir: Fpath.t option; config_file: Fpath.t }
 
-  (* this needs to be set-up beforce any calls to {!register} *)
-  let build_dir = ref None
   let default_init = [keys sys_argv]
-  let config_file = ref Fpath.(v "config.ml")
 
   let init_global_state argv =
-    build_dir := None;
-    config_file := Fpath.(v "config.ml");
     ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
-    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
-            Cmd.config_file (fun c -> config_file := c));
-    ignore (Cmdliner.Term.eval_peek_opts ~argv @@
-            Cmd.build_dir (fun r ->
-                let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true r in
-                build_dir := Some r))
+    let config_file =
+      match Cmdliner.Term.eval_peek_opts ~argv Cmd.config_file with
+      | None  , _ -> Fpath.(v "config.ml")
+      | Some f, _ -> f
+    in
+    let build_dir =
+      match Cmdliner.Term.eval_peek_opts ~argv Cmd.build_dir with
+      | Some (Some d), _ ->
+        let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true d in
+        Some d
+      | _ -> None
+    in
+    { config_file; build_dir }
 
   let get_project_root () = R.get_ok @@ Bos.OS.Dir.current ()
 
@@ -531,14 +533,14 @@ module Make (P: S) = struct
     | Some p -> p
     | None -> Fmt.failwith "relativize: root=%a %a" Fpath.pp root Fpath.pp p
 
-  let get_relative_source_dir () =
-    let dir = Fpath.parent !config_file in
+  let get_relative_source_dir ~state =
+    let dir = Fpath.parent state.config_file in
     let root = get_project_root () in
     relativize ~root dir
 
-  let get_build_dir () =
-    let dir = match !build_dir with
-      | None -> get_relative_source_dir ()
+  let get_build_dir ~state =
+    let dir = match state.build_dir with
+      | None -> get_relative_source_dir ~state
       | Some p -> p
     in
     let dir =
@@ -589,7 +591,7 @@ module Make (P: S) = struct
       ) (Ok []) l
 
   (* Generate a `dune.config` file in the build directory. *)
-  let generate_dune_config ~project_root ~source_dir () =
+  let generate_dune_config ~state ~project_root ~source_dir () =
     let file = Fpath.v "dune.config" in
     let pkgs = match P.packages with
       | []   -> ""
@@ -602,7 +604,7 @@ module Make (P: S) = struct
         in
         String.concat ~sep:" " pkgs
     in
-    let copy_rule file = match !build_dir with
+    let copy_rule file = match state.build_dir with
       | None -> ""
       | Some root ->
         let root = Fpath.(project_root // root) in
@@ -612,7 +614,7 @@ module Make (P: S) = struct
     in
     list_files Fpath.(project_root // source_dir) >>= fun files ->
     let copy_rules = List.map copy_rule files in
-    let config_file = Fpath.(basename (rem_ext !config_file)) in
+    let config_file = Fpath.(basename (rem_ext state.config_file)) in
     let contents =
       Fmt.strf
         {|%s
@@ -652,7 +654,7 @@ module Make (P: S) = struct
 
   (* Generate the configuration files in the the build directory *)
   let generate_configuration_files
-      ~project_root ~source_dir ~build_dir ~config_file
+      ~state ~project_root ~source_dir ~build_dir ~config_file
     =
     Log.info (fun m -> m "Compiling: %a" Fpath.pp config_file);
     Log.info (fun m -> m "Project root: %a" Fpath.pp project_root);
@@ -664,20 +666,20 @@ module Make (P: S) = struct
     ) >>= fun () ->
     generate_dune_project ~project_root >>= fun () ->
     Bos.OS.Dir.with_current build_dir (fun () ->
-        generate_dune_config ~project_root ~source_dir () >>= fun () ->
+        generate_dune_config ~state ~project_root ~source_dir () >>= fun () ->
         generate_empty_dune_build () >>= fun () ->
         generate_dune ()
       ) () >>= fun result ->
     result
 
   (* Compile the configuration files and execute it. *)
-  let build_and_execute ?help_ppf ?err_ppf argv =
-    let build_dir = get_build_dir () in
-    let config_file = !config_file in
+  let build_and_execute ~state ?help_ppf ?err_ppf argv =
+    let build_dir = get_build_dir ~state in
+    let config_file = state.config_file in
     let project_root = get_project_root () in
-    let source_dir = get_relative_source_dir () in
+    let source_dir = get_relative_source_dir ~state in
     generate_configuration_files
-      ~project_root ~source_dir ~build_dir ~config_file
+      ~state ~project_root ~source_dir ~build_dir ~config_file
     >>= fun () ->
     let args = Bos.Cmd.of_list (List.tl (Array.to_list argv)) in
     let target_dir = relativize ~root:project_root build_dir in
@@ -731,7 +733,7 @@ module Make (P: S) = struct
   let run_with_argv ?help_ppf ?err_ppf argv =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
-    init_global_state argv;
+    let state = init_global_state argv in
     (* 2. Build the config from the config file. *)
     (* There are three possible outcomes:
          1. the config file is found and built successfully
@@ -739,7 +741,7 @@ module Make (P: S) = struct
          3. an attempt is made to access the base keys at this point.
             when they weren't loaded *)
 
-    match build_and_execute ?help_ppf ?err_ppf argv with
+    match build_and_execute ~state ?help_ppf ?err_ppf argv with
     | Error (`Invalid_config_ml err) -> exit_err (Error (`Msg err))
     | Error (`Msg _ as err) ->
       handle_parse_args_no_config ?help_ppf ?err_ppf err argv
@@ -834,10 +836,10 @@ module Make (P: S) = struct
     Engine.clean i jobs >>= fun () ->
     Bos.OS.File.delete Fpath.(v "main.ml")
 
-  let configure ~argv i jobs =
-    let source_dir = get_relative_source_dir () in
+  let configure ~state ~argv i jobs =
+    let source_dir = get_relative_source_dir ~state in
     Log.debug (fun l -> l "source-dir=%a" Fpath.pp source_dir);
-    Log.info (fun m -> m "Configuration: %a" Fpath.pp !config_file);
+    Log.info (fun m -> m "Configuration: %a" Fpath.pp state.config_file);
     Log.info (fun m -> m "Output       : %a" Fmt.(option string) (Info.output i));
     Log.info (fun m -> m "Build-dir    : %a" Fpath.pp (Info.build_dir i));
     with_current
@@ -845,15 +847,15 @@ module Make (P: S) = struct
       (fun () -> configure_main ~argv i jobs)
       "configure"
 
-  let build i jobs =
-    Log.info (fun m -> m "Building: %a" Fpath.pp !config_file);
+  let build ~state i jobs =
+    Log.info (fun m -> m "Building: %a" Fpath.pp state.config_file);
     with_current
       (Info.build_dir i)
       (fun () -> Engine.build i jobs)
       "build"
 
-  let clean i (_init, job) =
-    Log.info (fun m -> m "Cleaning: %a" Fpath.pp !config_file);
+  let clean ~state i (_init, job) =
+    Log.info (fun m -> m "Cleaning: %a" Fpath.pp state.config_file);
     let clean_file file =
       can_overwrite file >>= function
       | false -> Ok ()
@@ -876,22 +878,22 @@ module Make (P: S) = struct
          Bos.OS.File.delete Fpath.(v ".merlin"))
       "clean"
 
-  let handle_parse_args_result argv = function
+  let handle_parse_args_result ~state argv = function
     | `Error _ -> exit 1
     | `Ok Cmd.Help -> ()
     | `Ok (Cmd.Configure { result = (jobs, info); output }) ->
       let info = with_output info output in
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      exit_err (configure ~argv info jobs)
+      exit_err (configure ~state ~argv info jobs)
     | `Ok (Cmd.Build (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      exit_err (build info jobs)
+      exit_err (build ~state info jobs)
     | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
       Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
       R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
     | `Ok (Cmd.Clean (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
-      exit_err (clean info jobs)
+      exit_err (clean ~state info jobs)
     | `Version
     | `Help -> ()
 
@@ -951,10 +953,10 @@ module Make (P: S) = struct
   let register ?packages ?keys ?(init=default_init) name jobs =
     (* 1. Pre-parse the arguments set the log level, config file
        and root directory. *)
-    init_global_state Sys.argv;
-    let build_dir = get_build_dir () in
+    let state = init_global_state Sys.argv in
+    let build_dir = get_build_dir ~state in
     let main_dev = P.create (init @ jobs) in
     let c = Config.make ?keys ?packages ~init name build_dir main_dev in
-    run_configure_with_argv Sys.argv c
+    run_configure_with_argv ~state Sys.argv c
 
 end

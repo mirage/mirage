@@ -1,11 +1,4 @@
-(test
- (name      test_core)
- (modules   test_core)
- (libraries test_app alcotest cmdliner rresult astring)
- (package   functoria)
- (deps      app/config.ml app/app.ml))
-
 (executable
  (name      test_full)
  (modules   test_full)
- (libraries functoria.test alcotest cmdliner rresult astring))
+ (libraries f0 alcotest cmdliner rresult astring))

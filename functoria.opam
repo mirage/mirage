@@ -31,7 +31,6 @@ depends: [
   "bos"
   "fpath"
   "alcotest" {with-test}
-  "ptime"
 ]
 synopsis: "A DSL to organize functor applications"
 description: """

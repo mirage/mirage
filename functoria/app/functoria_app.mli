@@ -149,7 +149,7 @@ end
 (** Code generation helpers. *)
 module Codegen: sig
 
-  val generated_header: ?argv:string array -> ?time:Ptime.t -> unit -> string
+  val generated_header: ?argv:string array -> unit -> string
 
   val append:
     Format.formatter -> ('a, Format.formatter, unit, unit, unit, unit) format6 -> 'a

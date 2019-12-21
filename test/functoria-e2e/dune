@@ -1,4 +1,3 @@
 (executable
- (name      test_full)
- (modules   test_full)
+ (name      test)
  (libraries f0 alcotest cmdliner rresult astring))

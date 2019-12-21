@@ -29,17 +29,15 @@ let list_files dir =
         | Some d -> Fpath.to_string d
       ) l
 
-let root =
-  let cwd = Rresult.R.get_ok @@ Bos.OS.Dir.current () in
-  match Fpath.(basename cwd) with
-  | "tests" -> Fpath.v "app"
-  | _ -> Fpath.(v "functoria" / "tests" / "app")
+let root = Fpath.(v "test" / "functoria-e2e" / "app")
+
+let config_ml = Fpath.(root / "config.ml")
 
 let get_ok = function
   | Ok x           -> x
   | Error (`Msg e) -> Alcotest.fail e
 
-let read_file file = get_ok @@ Bos.OS.File.read Fpath.(v file)
+let read_file file = get_ok @@ Bos.OS.File.read file
 
 let clean_app () =
   let dir = Fpath.(v "_build" / "default" // root) in
@@ -90,7 +88,7 @@ let test_configure () =
      --file is passed. *)
   Alcotest.(check files) "the usual files should be present before configure"
     ["app.ml"; "config.ml"] (list_files root);
-  test "configure -vv --file functoria/tests/app/config.ml";
+  test "configure -vv --file %a" Fpath.pp config_ml;
   Alcotest.(check files) "new files should be created in the source dir"
     ["app.ml"; "config.ml";
      "key_gen.ml"; "main.ml"; ".mirage.config";
@@ -103,7 +101,7 @@ let test_configure () =
   let files = Alcotest.(slist string String.compare) in
   Alcotest.(check files) "the usual files should be present before configure"
     ["app.ml"; "config.ml"] (list_files root);
-  test "configure -vv --file functoria/tests/app/config.ml --build-dir custom_build_";
+  test "configure -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
   Alcotest.(check files) "nothing should be created in the source dir"
     ["app.ml"; "config.ml"]
     (list_files root);
@@ -129,21 +127,21 @@ let test_configure () =
   in
 
   test_config "custom_build_"
-    [""; "configure"; "-vv"; "--file=functoria/tests/app/config.ml";
+    [""; "configure"; "-vv"; "--file=" ^ Fpath.to_string config_ml;
      "--build-dir=custom_build_"];
   clean_build ();
 
-  test_config "functoria/tests/app"
-    [""; "configure"; "-vv"; "--file=functoria/tests/app/config.ml"];
+  test_config (Fpath.to_string root)
+    [""; "configure"; "-vv"; "--file=" ^ Fpath.to_string config_ml];
   clean_app ();
 
   (* check that `test help configure` and `test configure --help` have
      the same output. *)
   let b1 = Buffer.create 128 and b2 = Buffer.create 128 in
   test ~help_ppf:(Format.formatter_of_buffer b1)
-    "help configure --file=functoria/tests/app/config.ml --help=plain";
+    "help configure --file=%a --help=plain" Fpath.pp config_ml;
   test ~help_ppf:(Format.formatter_of_buffer b2)
-    "configure --file=functoria/tests/app/config.ml --help=plain";
+    "configure --file=%a --help=plain" Fpath.pp config_ml;
   let s1 = Buffer.contents b1 and s2 = Buffer.contents b2 in
 
   let s1 = by_sections s1 and s2 = by_sections s2 in
@@ -178,74 +176,74 @@ let test_configure () =
 let test_describe () =
   F0.run_with_argv
     [| ""; "describe"; "-vv";
-       "--file"; "functoria/tests/app/config.ml"|]
+       "--file"; Fpath.to_string config_ml|]
 
 let test_build () =
   (* default build *)
-  test "configure --file functoria/tests/app/config.ml";
-  test "build -vv --file functoria/tests/app/config.ml";
+  test "configure --file %a" Fpath.pp config_ml;
+  test "build -vv --file %a" Fpath.pp config_ml;
   Alcotest.(check bool) "main.exe should be built" true
-    (Sys.file_exists "functoria/tests/app/main.exe");
+    (Sys.file_exists Fpath.(to_string (root / "main.exe")));
   clean_app ();
 
   (* test --output *)
-  test "configure --file functoria/tests/app/config.ml -o toto";
-  test "build -vv --file functoria/tests/app/config.ml";
+  test "configure --file %a -o toto" Fpath.pp config_ml;
+  test "build -vv --file %a" Fpath.pp config_ml;
   Alcotest.(check bool) "toto.exe should be built" true
-    (Sys.file_exists "functoria/tests/app/toto.exe");
+    (Sys.file_exists Fpath.(to_string (root / "toto.exe")));
   clean_app ();
 
   (* test --build-dir *)
-  test "configure -vv --file functoria/tests/app/config.ml --build-dir custom_build_";
-  test "build -vv --file functoria/tests/app/config.ml --build-dir custom_build_";
+  test "configure -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
+  test "build -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
   Alcotest.(check bool) "main.exe should be built in custom_build_" true
-    (Sys.file_exists "custom_build_/main.exe");
+    (Sys.file_exists Fpath.(to_string (v "custom_build_" / "main.exe")));
   clean_build ();
 
   (* test --output + --build-dir *)
-  test "configure --file functoria/tests/app/config.ml --build-dir custom_build_ -o toto";
-  test "build -vv --build-dir custom_build_ --file functoria/tests/app/config.ml";
+  test "configure --file %a --build-dir custom_build_ -o toto" Fpath.pp config_ml;
+  test "build -vv --build-dir custom_build_ --file %a" Fpath.pp config_ml;
   Alcotest.(check bool) "toto.exe should be built in custom_build_" true
-    (Sys.file_exists "custom_build_/toto.exe");
+    (Sys.file_exists Fpath.(to_string (v "custom_build_" / "toto.exe")));
   clean_build ()
 
 let test_keys () =
-  test "configure -vv --file functoria/tests/app/config.ml";
-  test "build -vv --file functoria/tests/app/config.ml";
+  test "configure -vv --file %a" Fpath.pp config_ml;
+  test "build -vv --file %a" Fpath.pp config_ml;
   Alcotest.(check string) "vote contains the default value: cat" "cat"
-    (read_file "functoria/tests/app/vote");
+    (read_file Fpath.(root / "vote"));
   clean_app ();
 
-  test "configure --file functoria/tests/app/config.ml --build-dir custom_build_";
-  test "build --file functoria/tests/app/config.ml --build-dir custom_build_";
+  test "configure --file %a --build-dir custom_build_" Fpath.pp config_ml;
+  test "build --file %a --build-dir custom_build_" Fpath.pp config_ml;
   Alcotest.(check string) "vote contains the default value: cat" "cat"
-    (read_file "custom_build_/vote");
+    (read_file Fpath.(v "custom_build_" / "vote"));
   clean_build ();
 
-  test "configure --file functoria/tests/app/config.ml --vote=dog";
-  test "build --file functoria/tests/app/config.ml";
+  test "configure --file %a --vote=dog" Fpath.pp config_ml;
+  test "build --file %a" Fpath.pp config_ml;
   Alcotest.(check string) "vote contains dog"
-    "dog" (read_file "functoria/tests/app/vote");
+    "dog" (read_file Fpath.(root / "vote"));
   clean_app ()
 
 let test_clean () =
-  test "configure -vv --file functoria/tests/app/config.ml";
-  test "clean -vv --file functoria/tests/app/config.ml";
+  test "configure -vv --file %a" Fpath.pp config_ml;
+  test "clean -vv --file %a" Fpath.pp config_ml;
   Alcotest.(check files) "clean should remove all the files"
     ["app.ml"; "config.ml"]
     (list_files root);
 
-  test "configure -vv --file functoria/tests/app/config.ml --build-dir=custom_build_";
-  test "clean -vv --file functoria/tests/app/config.ml --build-dir custom_build_";
+  test "configure -vv --file %a --build-dir=custom_build_" Fpath.pp config_ml;
+  test "clean -vv --file %a --build-dir custom_build_" Fpath.pp config_ml;
   Alcotest.(check files) "clean should remove all the files"
     []
     (list_files (Fpath.v "custom_build_"))
 
 let test_cache () =
   let str = "foo;;bar;;;\n\nllll;;;sdaads;;\n\t\\0" in
-  test "configure --file functoria/tests/app/config.ml --vote=%s" str;
-  test "build --file functoria/tests/app/config.ml";
-  Alcotest.(check string) "cache is valid" str (read_file "functoria/tests/app/vote");
+  test "configure --file %a --vote=%s" Fpath.pp config_ml str;
+  test "build --file %a" Fpath.pp config_ml;
+  Alcotest.(check string) "cache is valid" str (read_file Fpath.(root / "vote"));
   clean_app ()
 
 let test_help () =

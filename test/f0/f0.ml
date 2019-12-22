@@ -57,7 +57,7 @@ module C = struct
                  let run x = x"
   let name = "test"
   let version = "1.0"
-  let packages = [Functoria.package "functoria"; Functoria.package "f0"]
+  let packages = [Functoria.package "functoria.f0"]
   let ignore_dirs = []
 
   let create jobs = Functoria.impl @@ object (self)

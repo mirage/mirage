@@ -1,0 +1,4 @@
+(executable
+   (name      main)
+   (modules (:standard \ config))
+   (libraries cmdliner fmt functoria-runtime))

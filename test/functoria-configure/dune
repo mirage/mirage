@@ -1,0 +1,13 @@
+(executable (name test) (libraries astring f0))
+
+(alias
+  (name runtest)
+  (package functoria)
+  (deps (package functoria) (source_tree src))
+  (action (progn
+    (run %{exe:test.exe})
+    (diff? src/main.ml.expected src/main.ml)
+    (diff? src/dune.expected src/dune)
+    (diff? src/dune.build.expected src/dune.build)
+    (diff? src/dune.config.expected src/dune.config)
+    (diff? src/key_gen.ml.expected src/key_gen.ml))))

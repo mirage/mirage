@@ -1,1 +1,4 @@
-(library (name f0) (libraries functoria.app))
+(library
+  (name f0)
+  (public_name functoria.f0)
+  (libraries functoria.app))

@@ -10,4 +10,5 @@
     (diff? src/dune.expected src/dune)
     (diff? src/dune.build.expected src/dune.build)
     (diff? src/dune.config.expected src/dune.config)
+    (diff? src/.mirage.config.expected src/.mirage.config)
     (diff? src/key_gen.ml.expected src/key_gen.ml))))

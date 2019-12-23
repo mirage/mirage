@@ -1,4 +1,4 @@
 (test
  (name      test)
- (libraries functoria.f0 alcotest cmdliner rresult astring)
+ (libraries f0 alcotest cmdliner rresult astring)
  (package   functoria))

@@ -29,10 +29,12 @@ let run cmd =
       let err = Format.flush_str_formatter () in
       failwith err
 
-let rec root path =
-  Bos.OS.File.exists Fpath.(path / "functoria-runtime.opam") >>= function
+let rec find_parent path dir =
+  Bos.OS.File.exists Fpath.(path / dir) >>= function
   | true  -> Ok path
-  | false -> root (Fpath.parent path)
+  | false -> find_parent (Fpath.parent path) dir
+
+let root path = find_parent path "functoria.opam"
 
 let root () = R.get_ok @@ (Bos.OS.Dir.current () >>= root)
 
@@ -111,3 +113,5 @@ module C = struct
 end
 
 include Functoria_app.Make(C)
+
+include Functoria

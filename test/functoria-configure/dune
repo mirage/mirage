@@ -1,11 +1,9 @@
-(executable (name test) (libraries astring f0))
-
 (alias
   (name runtest)
   (package functoria)
   (deps (package functoria) (source_tree src))
   (action (progn
-    (run %{exe:test.exe})
+    (run %{exe:../f0/f0_run.exe} configure -f src/config.ml)
     (diff? src/main.ml.expected src/main.ml)
     (diff? src/dune.expected src/dune)
     (diff? src/dune.build.expected src/dune.build)

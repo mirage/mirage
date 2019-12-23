@@ -1,4 +1,10 @@
 (library
   (name f0)
   (public_name functoria.f0)
+  (modules f0)
   (libraries functoria.app))
+
+(executable
+  (name f0_run)
+  (modules f0_run)
+  (libraries f0))

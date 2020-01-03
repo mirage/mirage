@@ -1,0 +1,1 @@
+(library (name f0) (libraries functoria.app))

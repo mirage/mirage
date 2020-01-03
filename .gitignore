@@ -7,3 +7,5 @@ _build
 *.install
 _tests/
 .merlin
+_opam
+.DS_Store

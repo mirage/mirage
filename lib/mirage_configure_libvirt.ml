@@ -2,10 +2,11 @@ open Rresult
 open Mirage_impl_misc
 module Codegen = Functoria_app.Codegen
 
-let configure_main_libvirt_xml ~root ~name =
+let filename ~name = Fpath.(v (name ^ "_libvirt") + "xml")
+
+let configure_main ~root ~name =
   let open Codegen in
-  let file = Fpath.(v (name ^  "_libvirt") + "xml") in
-  with_output file
+  with_output (filename ~name)
     (fun oc () ->
        let fmt = Format.formatter_of_out_channel oc in
        append fmt "<!-- %s -->" (generated_header ());
@@ -57,10 +58,9 @@ let configure_main_libvirt_xml ~root ~name =
        R.ok ())
     "libvirt.xml"
 
-let configure_virtio_libvirt_xml ~root ~name =
+let configure_virtio ~root ~name =
   let open Codegen in
-  let file = Fpath.(v (name ^  "_libvirt") + "xml") in
-  with_output file
+  with_output (filename ~name)
     (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "<!-- %s -->" (generated_header ());
@@ -111,5 +111,4 @@ let configure_virtio_libvirt_xml ~root ~name =
       R.ok ())
     "libvirt.xml"
 
-let clean_main_libvirt_xml ~name =
-  Bos.OS.File.delete Fpath.(v (name ^ "_libvirt") + "xml")
+let clean ~name = Bos.OS.File.delete (filename ~name)

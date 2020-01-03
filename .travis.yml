@@ -8,6 +8,7 @@ env:
  global:
    - POST_INSTALL_HOOK="sh ./.travis-ci.sh"
    - EXTRA_REMOTES=https://github.com/dinosaure/mirage-dune.git
+   - PINS="functoria:. functoria-runtime:. mirage:. mirage-types:. mirage-types-lwt:. mirage-runtime:."
    - PACKAGE=mirage
    - TESTS=false
  matrix:

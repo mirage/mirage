@@ -117,34 +117,20 @@ module type KEY =
     and upper bounds.  The version constraints are merged with other modules.
 *)
 
-type package = private {
-  opam : string ;
-  pin : string option ;
-  build : bool ;
-  ocamlfind : Astring.String.Set.t ;
-  min : Astring.String.Set.t ;
-  max : Astring.String.Set.t ;
-}
-(** The type of a package *)
+module Package = Functoria_package
+
+type package = Package.t
+(** The type for packages. *)
 
 val package :
   ?build:bool ->
   ?sublibs:string list ->
-  ?ocamlfind:string list ->
+  ?libs:string list ->
   ?min:string ->
   ?max:string ->
   ?pin:string ->
   string -> package
-(** [package ~build ~sublibs ~ocamlfind ~min ~max ~pin opam] is a [package].  [Build]
-    indicates a build-time dependency only, defaults to [false]. The ocamlfind
-    name is by default the same as [opam], you can specify [~sublibs] to add
-    additional sublibraries (e.g. [~sublibs:["mirage"] "foo"] will result in the
-    findlib names [ ["foo"; "foo.mirage"] ].  In case the findlib name is
-    disjoint (or empty), use [~ocamlfind].  Specifying both [~ocamlfind] and
-    [~sublibs] leads to an invalid argument.  Version constraints are given as
-    [min] (inclusive) and [max] (exclusive).  If [pin] is provided, a
-    {{:https://opam.ocaml.org/doc/Manual.html#opamfield-pin-depends}pin-depends}
-    is generated. *)
+(** Same as {!Package.v} *)
 
 (** {1:app Application Builder}
 

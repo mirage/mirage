@@ -597,7 +597,8 @@ module Make (P: S) = struct
       | pkgs ->
         let pkgs =
           List.fold_left (fun acc pkg ->
-              String.Set.union pkg.ocamlfind acc
+              let pkgs = String.Set.of_list (Package.libraries pkg) in
+              String.Set.union pkgs acc
             ) String.Set.empty pkgs
           |> String.Set.elements
         in

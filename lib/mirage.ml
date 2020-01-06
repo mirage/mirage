@@ -223,7 +223,6 @@ module Project = struct
         let common = [
           package ~build:true ~min:"4.06.0" "ocaml";
           package "lwt";
-          package ~min ~max "mirage-types-lwt";
           package ~min ~max "mirage-types";
           package ~min ~max "mirage-runtime" ;
           package ~build:true ~min ~max "mirage" ;

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Graph engine *)
+(** Implementation Graphs. *)
 
 open Functoria
 

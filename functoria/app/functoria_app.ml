@@ -24,6 +24,7 @@ include Functoria_misc
 module Graph = Functoria_graph
 module Key = Functoria_key
 module Cmd = Functoria_command_line
+module Engine = Functoria_engine
 
 (* Noop, the job that does nothing. *)
 let noop = impl @@ object
@@ -181,176 +182,6 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
       Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % p file)
   end
 
-module Engine = struct
-
-  let if_context =
-    let open Graph in
-    Graph.collect (module Key.Set) @@ function
-    | If cond      -> Key.deps cond
-    | App | Impl _ -> Key.Set.empty
-
-  let keys =
-    let open Graph in
-    Graph.collect (module Key.Set) @@ function
-    | Impl c  -> Key.Set.of_list c#keys
-    | If cond -> Key.deps cond
-    | App     -> Key.Set.empty
-
-  module M = struct
-    type t = package list Key.value
-    let union x y = Key.(pure List.append $ x $ y)
-    let empty = Key.pure []
-  end
-
-  let packages =
-    let open Graph in
-    Graph.collect (module M) @@ function
-    | Impl c     -> c#packages
-    | If _ | App -> M.empty
-
-  (* Return a unique variable name holding the state of the given
-     module construction. *)
-  let name c id =
-    let prefix = Name.ocamlify c#name in
-    Name.create (Fmt.strf "%s%i" prefix id) ~prefix
-
-  (* [module_expresion tbl c args] returns the module expression of
-     the functor [c] applies to [args]. *)
-  let module_expression tbl fmt (c, args) =
-    Fmt.pf fmt "%s%a"
-      c#module_name
-      Fmt.(list (parens @@ of_to_string @@ Graph.Tbl.find tbl))
-      args
-
-  (* [module_name tbl c args] return the module name of the result of
-     the functor application. If [args = []], it returns
-     [c#module_name]. *)
-  let module_name c id args =
-    let base = c#module_name in
-    if args = [] then base
-    else
-      let prefix = match String.cut ~sep:"." base with
-        | Some (l, _) -> l
-        | None -> base
-      in
-      let prefix = Name.ocamlify prefix in
-      Name.create (Fmt.strf "%s%i" prefix id) ~prefix
-
-  (* FIXME: Can we do better than lookup by name? *)
-  let find_device info g impl =
-    let ctx = Info.context info in
-    let rec name: type a . a impl -> string = fun impl ->
-      match explode impl with
-      | `Impl c              -> c#name
-      | `App (Abstract x, _) -> name x
-      | `If (b, x, y)        -> if Key.eval ctx b then name x else name y
-    in
-    let name = name impl in
-    let open Graph in
-    let p = function
-      | Impl c     -> c#name = name
-      | App | If _ -> false
-    in
-    match Graph.find_all g p with
-    | []  -> invalid_arg "Functoria.find_device: no device"
-    | [x] -> x
-    | _   -> invalid_arg "Functoria.find_device: too many devices."
-
-  let build info (_init, job) =
-    let f v = match Graph.explode job v with
-      | `App _ | `If _ -> R.ok ()
-      | `Impl (c, _, _) -> c#build info
-    in
-    let f v res = res >>= fun () -> f v in
-    Graph.fold f job @@ R.ok ()
-
-  let configure info (_init, job) =
-    let tbl = Graph.Tbl.create 17 in
-    let f v = match Graph.explode job v with
-      | `App _ | `If _ -> assert false
-      | `Impl (c, `Args args, `Deps _) ->
-        let modname = module_name c (Graph.hash v) args in
-        Graph.Tbl.add tbl v modname;
-        c#configure info >>| fun () ->
-        if args = [] then ()
-        else begin
-          Codegen.append_main
-            "@[<2>module %s =@ %a@]"
-            modname
-            (module_expression tbl) (c,args);
-          Codegen.newline_main ();
-        end
-    in
-    let f v res = res >>= fun () -> f v in
-    Graph.fold f job @@ R.ok () >>| fun () ->
-    tbl
-
-  let meta_init fmt (connect_name, result_name) =
-    Fmt.pf fmt "let _%s =@[@ Lazy.force %s @]in@ " result_name connect_name
-
-  let emit_connect fmt (iname, names, connect_string) =
-    (* We avoid potential collision between double application
-       by prefixing with "_". This also avoid warnings. *)
-    let rnames = List.map (fun x -> "_"^x) names in
-    let bind ppf name =
-      Fmt.pf ppf "_%s >>= fun %s ->@ " name name
-    in
-    Fmt.pf fmt
-      "@[<v 2>let %s = lazy (@ \
-       %a\
-       %a\
-       %s@ )@]@."
-      iname
-      Fmt.(list ~sep:nop meta_init) (List.combine names rnames)
-      Fmt.(list ~sep:nop bind) rnames
-      (connect_string rnames)
-
-  let emit_run init main =
-    (* "exit 1" is ok in this code, since cmdliner will print help. *)
-    let force ppf name =
-      Fmt.pf ppf "Lazy.force %s >>= fun _ ->@ " name
-    in
-    Codegen.append_main
-      "@[<v 2>\
-       let () =@ \
-       let t =@ @[<v 2>%aLazy.force %s@]@ \
-       in run t@]"
-      Fmt.(list ~sep:nop force) init main
-
-  let connect modtbl info (init, job) =
-    let tbl = Graph.Tbl.create 17 in
-    let f v = match Graph.explode job v with
-      | `App _ | `If _ -> assert false
-      | `Impl (c, `Args args, `Deps deps) ->
-        let ident = name c (Graph.hash v) in
-        let modname = Graph.Tbl.find modtbl v in
-        Graph.Tbl.add tbl v ident;
-        let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
-        Codegen.append_main "%a"
-          emit_connect (ident, names, c#connect info modname)
-    in
-    Graph.fold (fun v () -> f v) job ();
-    let main_name = Graph.Tbl.find tbl @@ Graph.find_root job in
-    let init_names =
-      List.map (fun name -> Graph.Tbl.find tbl @@ find_device info job name) init
-    in
-    emit_run init_names main_name;
-    ()
-
-  let configure_and_connect info g =
-    configure info g >>| fun modtbl ->
-    connect modtbl info g
-
-  let clean i g =
-    let f v = match Graph.explode g v with
-      | `Impl (c,_,_) -> c#clean i
-      | _ -> R.ok ()
-    in
-    let f v res = res >>= fun () -> f v in
-    Graph.fold f g @@ R.ok ()
-
-end
-
 module Config = struct
 
   type t = {
@@ -365,8 +196,8 @@ module Config = struct
   (* In practice, we get all the keys associated to [if] cases, and
      all the keys that have a setter to them. *)
   let get_if_context jobs =
-    let all_keys = Engine.keys jobs in
-    let skeys = Engine.if_context jobs in
+    let all_keys = Engine.all_keys jobs in
+    let skeys = Engine.if_keys jobs in
     let f k s =
       if Key.Set.is_empty @@ Key.Set.inter (Key.aliases k) skeys
       then s
@@ -386,7 +217,7 @@ module Config = struct
     =
     let e = Graph.eval ~partial ~context jobs in
     let packages = Key.(pure List.append $ packages $ Engine.packages e) in
-    let keys = Key.Set.elements (Key.Set.union keys @@ Engine.keys e) in
+    let keys = Key.Set.elements (Key.Set.union keys @@ Engine.all_keys e) in
     Key.(pure (fun packages _ context ->
         ((init, e),
          Info.create
@@ -398,7 +229,7 @@ module Config = struct
   (* Extract all the keys directly. Useful to pre-resolve the keys
      provided by the specialized DSL. *)
   let extract_keys impl =
-    Engine.keys @@ Graph.create impl
+    Engine.all_keys @@ Graph.create impl
 
   let keys t = t.keys
 
@@ -817,7 +648,7 @@ module Make (P: S) = struct
     | None   -> i
     | Some o -> Info.with_output i o
 
-  let configure_main ~argv i jobs =
+  let configure_main ~argv i (init, jobs) =
     let main = match Info.output i with None -> "main" | Some f -> f in
     let file = main ^ ".ml" in
     Log.info (fun m -> m "Generating: %s" file);
@@ -829,7 +660,7 @@ module Make (P: S) = struct
     Codegen.append_main "let _ = Printexc.record_backtrace true";
     Codegen.newline_main ();
     Cache.save ~argv (Info.build_dir i) >>= fun () ->
-    Engine.configure_and_connect i jobs >>| fun () ->
+    Engine.configure_and_connect ~init i jobs >>| fun () ->
     Codegen.newline_main ()
 
   let clean_main i jobs =
@@ -885,7 +716,7 @@ module Make (P: S) = struct
       let info = with_output info output in
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (configure ~state ~argv info jobs)
-    | `Ok (Cmd.Build (jobs, info)) ->
+    | `Ok (Cmd.Build ((_, jobs), info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (build ~state info jobs)
     | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->

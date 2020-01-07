@@ -20,77 +20,10 @@ open Astring
 open Functoria_misc
 
 module Key = Functoria_key
+module Package = Functoria_package
 
-type package = {
-  opam : string ;
-  pin : string option ;
-  build : bool ;
-  ocamlfind : String.Set.t ;
-  min : String.Set.t ;
-  max : String.Set.t ;
-}
-
-module Package = struct
-  let merge opam a b =
-    let ocamlfind = String.Set.union a.ocamlfind b.ocamlfind
-    and min = String.Set.union a.min b.min
-    and max = String.Set.union a.max b.max
-    and pin =
-      match a.pin, b.pin with
-      | None, None -> None
-      | None, Some a | Some a, None -> Some a
-      | Some a, Some b when String.equal a b -> Some a
-      | _ -> invalid_arg ("conflicting pin depends for " ^ opam)
-    and build = a.build || b.build
-    in
-    match pin with
-    | Some _ ->
-      (* pin wins over min and max *)
-      Some { opam ; build ; ocamlfind ; min = String.Set.empty ; max = String.Set.empty ; pin }
-    | None ->
-      Some { opam ; build ; ocamlfind ; min ; max ; pin }
-
-  let package ?(build = false) ?sublibs ?ocamlfind ?min ?max ?pin opam =
-    let ocamlfind = match sublibs, ocamlfind with
-      | None, None -> [opam]
-      | Some xs, None -> opam :: List.map (fun x -> opam ^ "." ^ x) xs
-      | None, Some a -> a
-      | Some _, Some _ ->
-        invalid_arg ("dependent package " ^ opam ^ " may either specify ~sublibs or ~ocamlfind")
-    in
-    let ocamlfind = String.Set.of_list ocamlfind in
-    let to_set = function None -> String.Set.empty | Some m -> String.Set.singleton m in
-    let min = to_set min and max = to_set max in
-    { opam ; build ; ocamlfind ; min ; max ; pin }
-
-  let libraries ps =
-    let ocamlfind p = if p.build then String.Set.empty else p.ocamlfind in
-    String.Set.elements
-      (List.fold_left String.Set.union String.Set.empty
-         (List.map ocamlfind ps))
-
-  let package_names ps =
-    List.fold_left (fun acc p -> if p.build then acc else p.opam :: acc) [] ps
-
-  let exts_to_string min max build =
-    let bui = if build then "build & " else "" in
-    let esc_prefix prefix e = Printf.sprintf "%s %S" prefix e in
-    let min_strs = List.map (esc_prefix ">=") (String.Set.elements min)
-    and max_strs = List.map (esc_prefix "<") (String.Set.elements max)
-    and flat xs = String.concat ~sep:" & " xs
-    in
-    match String.Set.is_empty min, String.Set.is_empty max with
-    | true, true -> if build then "{build}" else ""
-    | false, true -> Printf.sprintf "{%s %s}" bui (flat min_strs)
-    | true, false -> Printf.sprintf "{%s %s}" bui (flat max_strs)
-    | false, false ->
-      Printf.sprintf "{%s %s & %s}" bui (flat min_strs) (flat max_strs)
-
-  let pp_package t ppf p =
-    Fmt.pf ppf "%s%s%s %s" t p.opam t (exts_to_string p.min p.max p.build)
-end
-
-let package = Package.package
+type package = Package.t
+let package = Package.v
 
 module Info = struct
   type t = {
@@ -107,12 +40,24 @@ module Info = struct
   let output t = t.output
   let with_output t output = { t with output = Some output }
 
+  let libraries ps =
+    let libs p =
+      if Package.build_dependency p
+      then String.Set.empty
+      else String.Set.of_list (Package.libraries p)
+    in
+    String.Set.elements
+      (List.fold_left String.Set.union String.Set.empty
+         (List.map libs ps))
+
   let packages t = List.map snd (String.Map.bindings t.packages)
-  let libraries t = Package.libraries (packages t)
-  let package_names t = Package.package_names (packages t)
+  let libraries t = libraries (packages t)
+  let package_names t = List.map Package.name (packages t)
   let pins t =
     List.fold_left
-      (fun acc p -> match p.pin with None -> acc | Some u -> (p.opam, u) :: acc)
+      (fun acc p -> match Package.pin p with
+         | None -> acc
+         | Some u -> (Package.name p, u) :: acc)
       [] (packages t)
 
   let keys t = Key.Set.elements t.keys
@@ -121,18 +66,18 @@ module Info = struct
   let create ~packages ~keys ~context ~name ~build_dir =
     let keys = Key.Set.of_list keys in
     let packages = List.fold_left (fun m p ->
-        let n = p.opam in
-        match String.Map.find p.opam m with
+        let n = Package.name p in
+        match String.Map.find n m with
         | None -> String.Map.add n p m
-        | Some p' -> match Package.merge p.opam p p' with
+        | Some p' -> match Package.merge p p' with
           | Some p -> String.Map.add n p m
-          | None -> invalid_arg ("bad version constraints in " ^ p.opam))
-        String.Map.empty packages
+          | None -> m
+      ) String.Map.empty packages
     in
     { name; build_dir; keys; packages; context; output = None }
 
   let pp_packages ?(surround = "") ?sep ppf t =
-    Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp_package surround)) (packages t)
+    Fmt.pf ppf "%a" (Fmt.iter ?sep List.iter (Package.pp ~surround)) (packages t)
 
   let pp verbose ppf ({ name ; build_dir ; keys ; context ; output; _ } as t) =
     let show name = Fmt.pf ppf "@[<2>%s@ %a@]@," name in

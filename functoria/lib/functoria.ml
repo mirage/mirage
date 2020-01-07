@@ -379,25 +379,26 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
          non-reproducibility, since this uses the opam CUDF solver which
          drops some packages (which are in the repositories configured for the
          switch), see https://github.com/mirage/functoria/pull/189 for further
-         discussion on this before changing the code below.  *)
-      let rec opam_deps args collected =
-        Log.debug (fun m -> m
-                      "opam_deps %d args %d collected\nargs: %a\ncollected: %a"
-                      (String.Set.cardinal args) (String.Set.cardinal collected)
-                      (String.Set.pp ~sep:(Fmt.unit ",") Fmt.string) args
-                      (String.Set.pp ~sep:(Fmt.unit ",") Fmt.string) collected);
-        if String.Set.is_empty args then Ok collected
-        else
-          let pkgs = String.concat ~sep:"," (String.Set.elements args) in
-          let cmd =
-            Bos.Cmd.(v "opam" % "list" % "--installed" % "-s" % "--color=never" % "--depopts" % "--required-by" % pkgs)
-          in
-          (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (rdeps, _) ->
-          let reqd = String.Set.of_list rdeps in
-          let collected' = String.Set.union collected reqd in
-          opam_deps (String.Set.diff collected' collected) collected'
+         discussion on this before changing the code below.
+
+         this also used to call `opam list --installed --required-by <pkgs>`,
+         but that was not precise enough as this was 1/ computing the
+         dependencies for all version of <pkgs> and 2/ keeping only the
+         installed packages. `opam list --installed --resolve <pkgs>`
+         will compute the dependencies of the installed versions of <pkgs>. 
+      *)
+      let opam_deps pkgs =
+        let pkgs_str = String.concat ~sep:"," pkgs in
+        let cmd =
+          Bos.Cmd.(v "opam" % "list" % "--installed" % "-s"
+                   % "--color=never" % "--depopts" % "--resolve" % pkgs_str)
+        in
+        (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (deps, _) ->
+        let deps = String.Set.of_list deps in
+        let roots = String.Set.of_list pkgs in
+        Ok (String.Set.diff deps roots)
       in
-      opam_deps (String.Set.of_list (Info.package_names i)) String.Set.empty >>= fun opam ->
+      opam_deps (Info.package_names i) >>= fun opam ->
       let ocl = String.Set.of_list (Info.libraries i)
       in
       Bos.OS.File.writef Fpath.(file + "in")

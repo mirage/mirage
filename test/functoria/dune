@@ -1,4 +1,13 @@
-(test
+(executable
  (name      test)
- (libraries f0 alcotest cmdliner rresult astring)
- (package   functoria))
+ (modules   test test_impl test_package test_cli)
+ (libraries f0 alcotest cmdliner rresult astring))
+
+(rule
+  (alias runtest)
+  (deps %{bin:test})
+  (action (progn
+    (run ./test.exe)
+    (diff? key_gen.ml.expected key_gen.ml)
+    (diff? info_gen.ml.in.expected info_gen.ml.in)
+    (diff? main.ml.expected main.ml))))

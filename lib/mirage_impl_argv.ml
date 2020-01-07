@@ -3,7 +3,7 @@ module Key = Mirage_key
 
 let argv_unix = impl @@ object
     inherit base_configurable
-    method ty = Functoria_app.argv
+    method ty = Functoria.argv
     method name = "argv_unix"
     method module_name = "Bootvar"
     method! packages =
@@ -13,7 +13,7 @@ let argv_unix = impl @@ object
 
 let argv_solo5 = impl @@ object
     inherit base_configurable
-    method ty = Functoria_app.argv
+    method ty = Functoria.argv
     method name = "argv_solo5"
     method module_name = "Bootvar"
     method! packages =
@@ -23,7 +23,7 @@ let argv_solo5 = impl @@ object
 
 let no_argv = impl @@ object
     inherit base_configurable
-    method ty = Functoria_app.argv
+    method ty = Functoria.argv
     method name = "argv_empty"
     method module_name = "Mirage_runtime"
     method! connect _ _ _ = "Lwt.return [|\"\"|]"
@@ -31,7 +31,7 @@ let no_argv = impl @@ object
 
 let argv_xen = impl @@ object
     inherit base_configurable
-    method ty = Functoria_app.argv
+    method ty = Functoria.argv
     method name = "argv_xen"
     method module_name = "Bootvar"
     method! packages =

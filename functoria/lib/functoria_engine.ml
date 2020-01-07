@@ -80,8 +80,8 @@ let module_name c id args =
 
 (* FIXME: Can we do better than lookup by name? *)
 let find_device info g i =
+  let ctx = Functoria.Info.context info in
   let open Functoria in
-  let ctx = Info.context info in
   let rec name: type a . a impl -> string = fun impl ->
     match explode impl with
     | `Impl c              -> c#name
@@ -170,7 +170,7 @@ let connect ?(init=[]) ~modules info t =
       Graph.Tbl.add tbl v ident;
       let names = List.map (Graph.Tbl.find tbl) (args @ deps) in
       Codegen.append_main "%a"
-        emit_connect (ident, names, c#connect info modname)
+        emit_connect (ident, names, c#connect info modname);
   in
   Graph.fold (fun v () -> f v) t ();
   let main_name = Graph.Tbl.find tbl @@ Graph.find_root t in

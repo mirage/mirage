@@ -1,0 +1,23 @@
+let info = Functoria_info.{
+  name = "foo";
+  packages = [
+    "base-threads", "%{base-threads:version}%";
+    "base-unix", "%{base-unix:version}%";
+    "cmdliner", "%{cmdliner:version}%";
+    "conf-m4", "%{conf-m4:version}%";
+    "dune", "%{dune:version}%";
+    "fmt", "%{fmt:version}%";
+    "ocaml", "%{ocaml:version}%";
+    "ocaml-base-compiler", "%{ocaml-base-compiler:version}%";
+    "ocaml-config", "%{ocaml-config:version}%";
+    "ocamlbuild", "%{ocamlbuild:version}%";
+    "ocamlfind", "%{ocamlfind:version}%";
+    "result", "%{result:version}%";
+    "seq", "%{seq:version}%";
+    "stdlib-shims", "%{stdlib-shims:version}%";
+    "topkg", "%{topkg:version}%";
+    "uchar", "%{uchar:version}%"]
+  ;
+  libraries = [
+    "functoria-runtime"]
+  }

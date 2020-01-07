@@ -17,42 +17,6 @@
 
 (** Application builder. *)
 
-open Functoria
-
-(** {1 Useful module implementations} *)
-
-val noop: job impl
-(** [noop] is an implementation of {!Functoria.job} that holds no
-    state, does nothing and has no dependency. *)
-
-type argv
-(** The type for command-line arguments, similar to the usual
-    [Sys.argv]. *)
-
-val argv: argv typ
-(** [argv] is a value representing {!argv} module types. *)
-
-val sys_argv: argv impl
-(** [sys_argv] is a device providing command-line arguments by using
-    {!Sys.argv}. *)
-
-val keys: argv impl -> job impl
-(** [keys a] is an implementation of {!Functoria.job} that holds the
-    parsed command-line arguments. *)
-
-type info
-(** The type for application about the application being built. *)
-
-val info: info typ
-(** [info] is a value representing {!info} module types. *)
-
-val app_info: ?type_modname:string -> ?gen_modname:string -> unit -> info impl
-(** [app_info] is the module implementation whose state contains all
-    the information available at configure-time. The type of the
-    generated value lives in the module [type_modname]: if not set, it
-    is [Functoria_info]. The value is stored into a generated module
-    name [gen_modname]: if not set, it is [Info_gen]. *)
-
 (** {1 Builders} *)
 
 (** [S] is the signature that application builders have to provide. *)

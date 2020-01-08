@@ -1,4 +1,4 @@
-let info = Functoria_info.{
+let info = Functoria_runtime.{
   name = "foo";
   packages = [
     "base-bigarray", "base";

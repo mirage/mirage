@@ -390,7 +390,7 @@ let default_opam_deps pkgs =
   Ok deps
 
 let app_info
-    ?opam_deps ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") ()
+    ?opam_deps ?(type_modname="Functoria_runtime")  ?(gen_modname="Info_gen") ()
   =
   impl @@ object
     inherit base_configurable

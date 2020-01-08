@@ -18,7 +18,7 @@
 
     {e Release %%VERSION%% } *)
 
-type t = Functoria_info.info = {
+type t = Functoria_runtime.info = {
   name     : string;
   libraries: string list;
   packages : (string * string) list;

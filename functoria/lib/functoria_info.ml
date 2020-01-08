@@ -85,7 +85,7 @@ let pp verbose ppf ({ name ; build_dir ; keys ; context ; output; _ } as t) =
     show "Packages  "
       (pp_packages ?surround:None ~sep:(Fmt.unit ",@ ")) t
 
-let opam ?name ppf t =
+let pp_opam ?name ppf t =
   let name = match name with None -> t.name | Some x -> x in
   Fmt.pf ppf "opam-version: \"2.0\"@." ;
   Fmt.pf ppf "name: \"%s\"@." name ;

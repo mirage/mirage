@@ -64,7 +64,7 @@ val create:
 
 val pp: bool -> t Fmt.t
 
-val opam: ?name:string -> t Fmt.t
+val pp_opam: ?name:string -> t Fmt.t
 (** [opam t] generates an opam file including all dependencies. If
     set, [name] will be used as package name, otherwise use
     {!name}. *)

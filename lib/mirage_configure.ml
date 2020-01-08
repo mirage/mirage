@@ -79,7 +79,7 @@ let configure_opam ~name info =
   with_output file (fun oc () ->
       let fmt = Format.formatter_of_out_channel oc in
       append fmt "# %s" (generated_header ());
-      Info.opam ~name fmt info;
+      Info.pp_opam ~name fmt info;
       append fmt {|maintainer: "dummy"|};
       append fmt {|authors: "dummy"|};
       append fmt {|homepage: "dummy"|};

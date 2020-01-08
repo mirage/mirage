@@ -357,7 +357,41 @@ let pp_dump_pkgs module_name fmt (name, pkg, libs) =
     pp_packages (String.Map.bindings pkg)
     pp_libraries (String.Set.elements libs)
 
-let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
+
+(* this used to call 'opam list --rec ..', but that leads to
+   non-reproducibility, since this uses the opam CUDF solver which
+   drops some packages (which are in the repositories configured for
+   the switch), see https://github.com/mirage/functoria/pull/189 for
+   further discussion on this before changing the code below.
+
+   This also used to call `opam list --installed --required-by <pkgs>`,
+   but that was not precise enough as this was 1/ computing the
+   dependencies for all version of <pkgs> and 2/ keeping only the
+   installed packages. `opam list --installed --resolve <pkgs>` will
+   compute the dependencies of the installed versions of <pkgs>.  *)
+let default_opam_deps pkgs =
+  let pkgs_str = String.concat ~sep:"," pkgs in
+  let cmd =
+    Bos.Cmd.(v "opam" % "list" % "--installed" % "-s"
+             % "--color=never" % "--depopts" % "--resolve" % pkgs_str
+             % "--columns" % "name,version")
+  in
+  (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (deps, _) ->
+  let deps =
+    List.fold_left (fun acc s ->
+        match String.cuts ~empty:false ~sep:" " s with
+        | [n; v] -> (n, v) :: acc
+        | _ -> assert false
+      ) [] deps
+  in
+  let deps = String.Map.of_list deps in
+  let roots = String.Set.of_list pkgs in
+  let deps = String.Set.fold String.Map.remove roots deps in
+  Ok deps
+
+let app_info
+    ?opam_deps ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") ()
+  =
   impl @@ object
     inherit base_configurable
     method ty = info
@@ -373,41 +407,12 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
 
     method !build i =
       Log.info (fun m -> m "Generating: %a" Fpath.pp file);
-      (* this used to call 'opam list --rec ..', but that leads to
-         non-reproducibility, since this uses the opam CUDF solver which
-         drops some packages (which are in the repositories configured for the
-         switch), see https://github.com/mirage/functoria/pull/189 for further
-         discussion on this before changing the code below.
-
-         this also used to call `opam list --installed --required-by <pkgs>`,
-         but that was not precise enough as this was 1/ computing the
-         dependencies for all version of <pkgs> and 2/ keeping only the
-         installed packages. `opam list --installed --resolve <pkgs>`
-         will compute the dependencies of the installed versions of <pkgs>. 
-      *)
-      let opam_deps pkgs =
-        let pkgs_str = String.concat ~sep:"," pkgs in
-        let cmd =
-          Bos.Cmd.(v "opam" % "list" % "--installed" % "-s"
-                   % "--color=never" % "--depopts" % "--resolve" % pkgs_str
-                   % "--columns" % "name,version")
-        in
-        (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (deps, _) ->
-        let deps =
-          List.fold_left (fun acc s ->
-              match String.cuts ~empty:false ~sep:" " s with
-              | [n; v] -> (n, v) :: acc
-              | _ -> assert false
-            ) [] deps
-        in
-        let deps = String.Map.of_list deps in
-        let roots = String.Set.of_list pkgs in
-        let deps = String.Set.fold String.Map.remove roots deps in
-        Ok deps
+      let opam_deps = match opam_deps with
+        | None -> default_opam_deps (Info.package_names i)
+        | Some pkgs -> Ok (String.Map.of_list pkgs)
       in
-      opam_deps (Info.package_names i) >>= fun opam ->
-      let ocl = String.Set.of_list (Info.libraries i)
-      in
+      opam_deps >>= fun opam ->
+      let ocl = String.Set.of_list (Info.libraries i) in
       Bos.OS.File.writef file
         "@[<v 2>let info = %a@]" (pp_dump_pkgs type_modname)
         (Info.name i, opam, ocl)

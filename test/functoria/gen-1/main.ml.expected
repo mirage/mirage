@@ -1,0 +1,28 @@
+module test1 = test(Key_gen)(Info_gen)
+
+let argv1 = lazy (
+  return Sys.argv
+  )
+
+let key1 = lazy (
+  let __argv1 = Lazy.force argv1 in
+  __argv1 >>= fun _argv1 ->
+  return (Functoria_runtime.with_argv (List.map fst Key_gen.runtime_keys) "foo" _argv1)
+  )
+
+let info1 = lazy (
+  return Info_gen.info
+  )
+
+let f11 = lazy (
+  let __key1 = Lazy.force key1 in
+  let __info1 = Lazy.force info1 in
+  __key1 >>= fun _key1 ->
+  __info1 >>= fun _info1 ->
+  test1.start _key1 _info1
+  )
+
+let () =
+  let t =
+  Lazy.force f11
+  in run t

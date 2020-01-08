@@ -166,9 +166,6 @@ class base_configurable = object
   method deps: abstract_impl list = []
 end
 
-type job = JOB
-let job = Type JOB
-
 class ['ty] foreign
      ?(packages=[]) ?(keys=[]) ?(deps=[]) module_name ty
   : ['ty] configurable
@@ -250,3 +247,173 @@ module type KEY =
    and type Set.t = Functoria_key.Set.t
    and type 'a Alias.t = 'a Functoria_key.Alias.t
    and type context = Functoria_key.context
+
+(** Devices *)
+
+let src = Logs.Src.create "functoria" ~doc:"functoria library"
+module Log = (val Logs.src_log src : Logs.LOG)
+
+type job = JOB
+let job = Type JOB
+
+(* Noop, the job that does nothing. *)
+let noop = impl @@ object
+    inherit base_configurable
+    method ty = job
+    method name = "noop"
+    method module_name = "Pervasives"
+  end
+
+(* Default argv *)
+type argv = ARGV
+let argv = Type ARGV
+
+let sys_argv = impl @@ object
+    inherit base_configurable
+    method ty = argv
+    method name = "argv"
+    method module_name = "Sys"
+    method !connect _info _m _ = "return Sys.argv"
+  end
+
+
+(* Keys *)
+
+module Keys = struct
+
+   let file = Fpath.(v (String.Ascii.lowercase Key.module_name) + "ml")
+
+   let wrap f err =
+     match f () with
+     | Ok b -> b
+     | Error _ -> R.error_msg err
+
+   let with_output f k =
+     wrap
+       (Bos.OS.File.with_oc f k)
+       ("couldn't open output channel " ^ Fpath.to_string f)
+
+   let configure i =
+     Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+     with_output file
+       (fun oc () ->
+          let fmt = Format.formatter_of_out_channel oc in
+          Codegen.append fmt "(* %s *)" (Codegen.generated_header ());
+          Codegen.newline fmt;
+          let keys = Key.Set.of_list @@ Info.keys i in
+          let pp_var k = Key.serialize (Info.context i) k in
+          Fmt.pf fmt "@[<v>%a@]@." (Fmt.iter Key.Set.iter pp_var) keys;
+          let runvars = Key.Set.elements (Key.filter_stage `Run keys) in
+          let pp_runvar ppf v = Fmt.pf ppf "%s_t" (Key.ocaml_name v) in
+          let pp_names ppf v = Fmt.pf ppf "%S" (Key.name v) in
+          Codegen.append fmt "let runtime_keys = List.combine %a %a"
+            Fmt.Dump.(list pp_runvar) runvars Fmt.Dump.(list pp_names) runvars;
+          Codegen.newline fmt;
+          R.ok ())
+
+  let clean _i = Bos.OS.Path.delete file
+
+  let name = "key"
+
+end
+
+let keys (argv: argv impl) = impl @@ object
+    inherit base_configurable
+    method ty = job
+    method name = Keys.name
+    method module_name = Key.module_name
+    method !configure = Keys.configure
+    method !clean = Keys.clean
+    method !packages = Key.pure [package "functoria-runtime"]
+    method !deps = [ abstract argv ]
+    method !connect info modname = function
+      | [ argv ] ->
+        Fmt.strf
+          "return (Functoria_runtime.with_argv (List.map fst %s.runtime_keys) %S %s)"
+          modname (Info.name info) argv
+      | _ -> failwith "The keys connect should receive exactly one argument."
+  end
+
+(* Module emiting a file containing all the build information. *)
+
+type info = Info
+let info = Type Info
+
+let pp_libraries fmt l =
+  Fmt.pf fmt "[@ %a]"
+    Fmt.(iter ~sep:(unit ";@ ") List.iter @@ fmt "%S") l
+
+let pp_packages fmt l =
+  Fmt.pf fmt "[@ %a]"
+    Fmt.(iter ~sep:(unit ";@ ") List.iter @@
+         (fun fmt (n, v) -> pf fmt "%S, %S" n v)
+        ) l
+
+let pp_dump_pkgs module_name fmt (name, pkg, libs) =
+  Fmt.pf fmt
+    "%s.{@ name = %S;@ \
+     @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
+    module_name name
+    pp_packages (String.Map.bindings pkg)
+    pp_libraries (String.Set.elements libs)
+
+
+(* this used to call 'opam list --rec ..', but that leads to
+   non-reproducibility, since this uses the opam CUDF solver which
+   drops some packages (which are in the repositories configured for
+   the switch), see https://github.com/mirage/functoria/pull/189 for
+   further discussion on this before changing the code below.
+
+   This also used to call `opam list --installed --required-by <pkgs>`,
+   but that was not precise enough as this was 1/ computing the
+   dependencies for all version of <pkgs> and 2/ keeping only the
+   installed packages. `opam list --installed --resolve <pkgs>` will
+   compute the dependencies of the installed versions of <pkgs>.  *)
+let default_opam_deps pkgs =
+  let pkgs_str = String.concat ~sep:"," pkgs in
+  let cmd =
+    Bos.Cmd.(v "opam" % "list" % "--installed" % "-s"
+             % "--color=never" % "--depopts" % "--resolve" % pkgs_str
+             % "--columns" % "name,version")
+  in
+  (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (deps, _) ->
+  let deps =
+    List.fold_left (fun acc s ->
+        match String.cuts ~empty:false ~sep:" " s with
+        | [n; v] -> (n, v) :: acc
+        | _ -> assert false
+      ) [] deps
+  in
+  let deps = String.Map.of_list deps in
+  let roots = String.Set.of_list pkgs in
+  let deps = String.Set.fold String.Map.remove roots deps in
+  Ok deps
+
+let app_info
+    ?opam_deps ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") ()
+  =
+  impl @@ object
+    inherit base_configurable
+    method ty = info
+    method name = "info"
+    val file = Fpath.(v (String.Ascii.lowercase gen_modname) + "ml")
+    method module_name = gen_modname
+    method !packages = Key.pure [package "functoria-runtime"]
+    method !connect _ modname _ = Fmt.strf "return %s.info" modname
+
+    method !clean _i = Bos.OS.Path.delete file
+
+    method !configure _i = Ok ()
+
+    method !build i =
+      Log.info (fun m -> m "Generating: %a" Fpath.pp file);
+      let opam_deps = match opam_deps with
+        | None -> default_opam_deps (Info.package_names i)
+        | Some pkgs -> Ok (String.Map.of_list pkgs)
+      in
+      opam_deps >>= fun opam ->
+      let ocl = String.Set.of_list (Info.libraries i) in
+      Bos.OS.File.writef file
+        "@[<v 2>let info = %a@]" (pp_dump_pkgs type_modname)
+        (Info.name i, opam, ocl)
+  end

@@ -184,10 +184,12 @@ let mprof_trace = Mirage_impl_tracing.mprof_trace
 
 (** Functoria devices *)
 
-type info = Functoria_app.info
-let noop = Functoria_app.noop
-let info = Functoria_app.info
-let app_info = Functoria_app.app_info ~type_modname:"Mirage_info" ()
+(* fix compilation on ocaml<4.08 *)
+(* type info = Functoria.info *)
+
+let noop = Functoria.noop
+let info = Functoria.info
+let app_info = Functoria.app_info ~type_modname:"Mirage_info" ()
 
 open Mirage_configure
 open Mirage_build
@@ -262,7 +264,7 @@ let register
     ?(argv=default_argv) ?tracing ?(reporter=default_reporter ())
     ?keys ?packages
     name jobs =
-  let argv = Some [Functoria_app.keys argv] in
+  let argv = Some [Functoria.keys argv] in
   let reporter = if reporter == no_reporter then None else Some reporter in
   let init = argv ++ reporter ++ tracing in
   register ?keys ?packages ?init name jobs

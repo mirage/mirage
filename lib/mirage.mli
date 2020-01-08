@@ -482,11 +482,11 @@ val httpaf_server: conduit impl -> http impl
 
 (** {2 Argv configuration} *)
 
-val default_argv: Functoria_app.argv impl
+val default_argv: Functoria.argv impl
 (** [default_argv] is a dynamic argv implementation
  *  which attempts to do something reasonable based on the target. *)
 
-val no_argv: Functoria_app.argv impl
+val no_argv: Functoria.argv impl
 (** [no_argv] Disable command line parsing and set argv to [|""|]. *)
 
 (** {2 Other devices} *)
@@ -494,9 +494,10 @@ val no_argv: Functoria_app.argv impl
 val noop: job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
-type info
+(* fix compilation on ocaml<4.08 *)
+(* type info
 (** [info] is the type for module implementing
-    {!Mirage_runtime.Info}. *)
+    {!Mirage_runtime.Info}. *) *)
 
 val info: info typ
 (** [info] is the combinator to generate {!info} values to use at
@@ -509,7 +510,7 @@ val app_info: info impl
 (** {2 Application registering} *)
 
 val register:
-  ?argv:Functoria_app.argv impl ->
+  ?argv:Functoria.argv impl ->
   ?tracing:tracing impl ->
   ?reporter:reporter impl ->
   ?keys:Key.t list ->

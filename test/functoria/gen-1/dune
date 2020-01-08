@@ -1,0 +1,13 @@
+(executable
+ (name      test)
+ (libraries fmt functoria))
+
+(rule
+  (alias runtest)
+  (package functoria)
+  (deps %{bin:test})
+  (action (progn
+    (run ./test.exe)
+    (diff? key_gen.ml.expected key_gen.ml)
+    (diff? info_gen.ml.expected info_gen.ml)
+    (diff? main.ml.expected main.ml))))

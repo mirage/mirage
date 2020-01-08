@@ -494,9 +494,10 @@ val no_argv: Functoria.argv impl
 val noop: job impl
 (** [noop] is a job that does nothing, has no dependency and returns [()] *)
 
-type info
+(* fix compilation on ocaml<4.08 *)
+(* type info
 (** [info] is the type for module implementing
-    {!Mirage_runtime.Info}. *)
+    {!Mirage_runtime.Info}. *) *)
 
 val info: info typ
 (** [info] is the combinator to generate {!info} values to use at

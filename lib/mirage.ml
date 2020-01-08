@@ -184,7 +184,9 @@ let mprof_trace = Mirage_impl_tracing.mprof_trace
 
 (** Functoria devices *)
 
-type info = Functoria.info
+(* fix compilation on ocaml<4.08 *)
+(* type info = Functoria.info *)
+
 let noop = Functoria.noop
 let info = Functoria.info
 let app_info = Functoria.app_info ~type_modname:"Mirage_info" ()

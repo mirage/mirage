@@ -1,0 +1,8 @@
+(executable
+  (name main)
+  (libraries functoria-runtime))
+
+(alias
+  (name runtest)
+  (package functoria-runtime)
+  (deps ./main.exe))

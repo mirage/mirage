@@ -1,5 +1,10 @@
 (* yiikes *)
-let () = Functoria_misc.Codegen.set_main_ml "main.ml"
+let () =
+  Functoria_misc.Codegen.set_main_ml "main.ml";
+  Functoria_misc.Codegen.append_main "let (>>=) x f = f x";
+  Functoria_misc.Codegen.append_main "let return x = x";
+  Functoria_misc.Codegen.append_main "let run x = x";
+  Functoria_misc.Codegen.newline_main ()
 
 let ok msg = function
   | Ok () -> ()
@@ -43,7 +48,9 @@ let test () =
   let context = Functoria_key.empty_context in
   let sigs = Functoria.(job @-> info @-> job) in
   let keys =
-    Functoria.(foreign "test" sigs $ keys sys_argv $ app_info ~opam_deps ())
+    Functoria.(foreign "App.Make" sigs
+               $ keys sys_argv
+               $ app_info ~opam_deps ())
   in
   test_device context keys
 

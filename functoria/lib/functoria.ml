@@ -346,7 +346,7 @@ let pp_libraries fmt l =
 let pp_packages fmt l =
   Fmt.pf fmt "[@ %a]"
     Fmt.(iter ~sep:(unit ";@ ") List.iter @@
-         (fun fmt x -> pf fmt "%S, \"%%{%s:version}%%\"" x x)
+         (fun fmt (n, v) -> pf fmt "%S, %S" n v)
         ) l
 
 let pp_dump_pkgs module_name fmt (name, pkg, libs) =
@@ -354,7 +354,7 @@ let pp_dump_pkgs module_name fmt (name, pkg, libs) =
     "%s.{@ name = %S;@ \
      @[<v 2>packages = %a@]@ ;@ @[<v 2>libraries = %a@]@ }"
     module_name name
-    pp_packages (String.Set.elements pkg)
+    pp_packages (String.Map.bindings pkg)
     pp_libraries (String.Set.elements libs)
 
 let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
@@ -367,9 +367,7 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
     method !packages = Key.pure [package "functoria-runtime"]
     method !connect _ modname _ = Fmt.strf "return %s.info" modname
 
-    method !clean _i =
-      Bos.OS.Path.delete file >>= fun () ->
-      Bos.OS.Path.delete Fpath.(file + "in")
+    method !clean _i = Bos.OS.Path.delete file
 
     method !configure _i = Ok ()
 
@@ -391,17 +389,26 @@ let app_info ?(type_modname="Functoria_info")  ?(gen_modname="Info_gen") () =
         let pkgs_str = String.concat ~sep:"," pkgs in
         let cmd =
           Bos.Cmd.(v "opam" % "list" % "--installed" % "-s"
-                   % "--color=never" % "--depopts" % "--resolve" % pkgs_str)
+                   % "--color=never" % "--depopts" % "--resolve" % pkgs_str
+                   % "--columns" % "name,version")
         in
         (Bos.OS.Cmd.run_out cmd |> Bos.OS.Cmd.out_lines) >>= fun (deps, _) ->
-        let deps = String.Set.of_list deps in
+        let deps =
+          List.fold_left (fun acc s ->
+              match String.cuts ~empty:false ~sep:" " s with
+              | [n; v] -> (n, v) :: acc
+              | _ -> assert false
+            ) [] deps
+        in
+        let deps = String.Map.of_list deps in
         let roots = String.Set.of_list pkgs in
-        Ok (String.Set.diff deps roots)
+        let deps = String.Set.fold String.Map.remove roots deps in
+        Ok deps
       in
       opam_deps (Info.package_names i) >>= fun opam ->
       let ocl = String.Set.of_list (Info.libraries i)
       in
-      Bos.OS.File.writef Fpath.(file + "in")
-        "@[<v 2>let info = %a@]" (pp_dump_pkgs type_modname) (Info.name i, opam, ocl) >>= fun () ->
-      Bos.OS.Cmd.run Bos.Cmd.(v "opam" % "config" % "subst" % p file)
+      Bos.OS.File.writef file
+        "@[<v 2>let info = %a@]" (pp_dump_pkgs type_modname)
+        (Info.name i, opam, ocl)
   end

@@ -3,7 +3,7 @@ let () = Functoria_misc.Codegen.set_main_ml "main.ml"
 
 let ok msg = function
   | Ok () -> ()
-  | Error (`Msg e) -> Alcotest.failf "%s: %s" msg e
+  | Error (`Msg e) -> Fmt.failwith "%s: %s" msg e
 
 let test_device context device =
   let t = Functoria_graph.create device in
@@ -27,6 +27,4 @@ let test () =
   let keys = Functoria.(foreign "test" sigs $ keys sys_argv $ app_info ()) in
   test_device context keys
 
-let suite = [
-  "keys", `Quick, test;
-]
+let () = test ()

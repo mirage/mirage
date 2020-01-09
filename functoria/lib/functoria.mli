@@ -158,59 +158,7 @@ val foreign:
     step, see the {!configurable} class type and the {!class:foreign} class.
 *)
 
-(** Information about the final application. *)
-module Info: sig
-
-  type t
-  (** The type for information about the final application. *)
-
-  val name: t -> string
-  (** [name t] is the name of the application. *)
-
-  val output: t -> string option
-  (** [output t] is the name of [t]'s output. Derived from {!name} if
-      not set. *)
-
-  val with_output: t -> string -> t
-  (** [with_output t o] is similar to [t] but with the output set to
-      [Some o]. *)
-
-  val build_dir: t -> Fpath.t
-  (** Directory in which the build is done. *)
-
-  val libraries: t -> string list
-  (** [libraries t] are the direct OCamlfind dependencies. *)
-
-  val package_names: t -> string list
-  (** [package_names t] are the opam package dependencies. *)
-
-  val packages: t -> package list
-  (** [packages t] are the opam package dependencies by the project. *)
-
-  val keys: t -> key list
-  (** [keys t] are the keys declared by the project. *)
-
-  val context: t -> context
-  (** [parsed t] is a value representing the command-line argument
-      being parsed. *)
-
-  (** [create context n r] contains information about the application
-      being built. *)
-  val create:
-    packages:package list ->
-    keys:key list ->
-    context:context ->
-    name:string ->
-    build_dir:Fpath.t -> t
-
-  val pp: bool -> t Fmt.t
-
-  val opam: ?name:string -> t Fmt.t
-  (** [opam t] generates an opam file including all dependencies. If
-      set, [name] will be used as package name, otherwise use
-      {!name}. *)
-
-end
+module Info = Functoria_info
 
 (** Signature for configurable module implementations. A
     [configurable] is a module implementation which contains a runtime

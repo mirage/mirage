@@ -23,7 +23,7 @@ include Functoria_misc
 
 module Graph = Functoria_graph
 module Key = Functoria_key
-module Cmd = Functoria_command_line
+module Cli = Functoria_cli
 module Engine = Functoria_engine
 
 let src = Logs.Src.create "functoria" ~doc:"functoria library"
@@ -162,7 +162,7 @@ end = struct
         `Error (false, msg)
 
   let get_output root =
-    match get_context root Cmd.output with
+    match get_context root Cli.output with
     | `Ok (Some None) -> `Ok None
     | `Ok (Some x)    -> `Ok x
     | `Ok None        -> `Ok None
@@ -203,14 +203,14 @@ module Make (P: S) = struct
   let default_init = [keys sys_argv]
 
   let init_global_state argv =
-    ignore (Cmdliner.Term.eval_peek_opts ~argv Cmd.setup_log);
+    ignore (Cmdliner.Term.eval_peek_opts ~argv Cli.setup_log);
     let config_file =
-      match Cmdliner.Term.eval_peek_opts ~argv Cmd.config_file with
+      match Cmdliner.Term.eval_peek_opts ~argv Cli.config_file with
       | None  , _ -> Fpath.(v "config.ml")
       | Some f, _ -> f
     in
     let build_dir =
-      match Cmdliner.Term.eval_peek_opts ~argv Cmd.build_dir with
+      match Cmdliner.Term.eval_peek_opts ~argv Cli.build_dir with
       | Some (Some d), _ ->
         let (_:bool) = R.get_ok @@ Bos.OS.Dir.create ~path:true d in
         Some d
@@ -407,7 +407,7 @@ module Make (P: S) = struct
       Key.context base_keys ~with_required:false ~stage:`Configure
     in
     let result =
-      Cmd.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
+      Cli.parse_args ?help_ppf ?err_ppf ~name:P.name ~version:P.version
         ~configure:(Term.pure ())
         ~describe:(Term.pure ())
         ~build:(Term.pure ())
@@ -416,9 +416,9 @@ module Make (P: S) = struct
         argv
     in
     match result with
-    | `Ok Cmd.Help -> ()
+    | `Ok Cli.Help -> ()
     | `Error _
-    | `Ok (Cmd.Configure _ | Cmd.Describe _ | Cmd.Build _ | Cmd.Clean _) ->
+    | `Ok (Cli.Configure _ | Cli.Describe _ | Cli.Build _ | Cli.Clean _) ->
       exit_err (Error error)
     | `Version
     | `Help -> ()
@@ -573,18 +573,18 @@ module Make (P: S) = struct
 
   let handle_parse_args_result ~state argv = function
     | `Error _ -> exit 1
-    | `Ok Cmd.Help -> ()
-    | `Ok (Cmd.Configure { result = (jobs, info); output }) ->
+    | `Ok Cli.Help -> ()
+    | `Ok (Cli.Configure { result = (jobs, info); output }) ->
       let info = with_output info output in
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (configure ~state ~argv info jobs)
-    | `Ok (Cmd.Build ((_, jobs), info)) ->
+    | `Ok (Cli.Build ((_, jobs), info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (build ~state info jobs)
-    | `Ok (Cmd.Describe { result = (jobs, info); dotcmd; dot; output }) ->
+    | `Ok (Cli.Describe { result = (jobs, info); dotcmd; dot; output }) ->
       Config'.pp_info Fmt.(pf stdout) (Some Logs.Info) info;
       R.error_msg_to_invalid_arg (describe info jobs ~dotcmd ~dot ~output)
-    | `Ok (Cmd.Clean (jobs, info)) ->
+    | `Ok (Cli.Clean (jobs, info)) ->
       Log.info (fun m -> Config'.pp_info m (Some Logs.Debug) info);
       exit_err (clean ~state info jobs)
     | `Version
@@ -592,7 +592,7 @@ module Make (P: S) = struct
 
   let run_configure_with_argv argv config =
   (*   whether to fully evaluate the graph *)
-    let full_eval = Cmd.read_full_eval argv in
+    let full_eval = Cli.read_full_eval argv in
   (* Consider only the 'if' keys. *)
     let if_term =
       let if_keys = Config.keys config in
@@ -635,7 +635,7 @@ module Make (P: S) = struct
     in
 
     handle_parse_args_result argv
-      (Cmd.parse_args ~name:P.name ~version:P.version
+      (Cli.parse_args ~name:P.name ~version:P.version
           ~configure
           ~describe
           ~build

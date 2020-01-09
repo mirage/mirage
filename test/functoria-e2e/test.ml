@@ -15,7 +15,6 @@
  *)
 
 open Astring
-module Cmd = Functoria_command_line
 
 let list_files dir =
   let l = Bos.OS.Path.matches ~dotfiles:true Fpath.(dir / "$(file)") in
